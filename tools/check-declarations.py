@@ -178,7 +178,18 @@ DECL_PROSE = (
     "along with GNU",
     "Copyright (C)",
 )
-PRODUCT = ("GNU Emacs", "gnu emacs")
+# The product's *other* registered names, added by the seventh half (status 3.503): the
+# Java/Kotlin package the app was shipped under, the JNI symbol prefix it pastes, the
+# AppUserModelID C sets with a wide-string literal, the reference's bug address and the Haiku
+# bundle signature.  Each of them was an identity declaration of *this* program before 3.503 -
+# the Kotlin package and the JNI prefix above all, since the app is what they name.  What
+# stays is recounted in the allowlist with a reason: the reference's own text inside a carried
+# `.cc`, an address that points upstream, or a literal the frozen configuration prints.
+# The *reference path* form the port headers and the port map use
+# (`java/org/gnu/emacs/X.java`) is deliberately not a pattern: it names where a unit was
+# copied from, which is the other half of PORTING.md 0.1-19.
+PRODUCT = ("GNU Emacs", "gnu emacs", "org.gnu.emacs", "org_gnu_emacs", "GNU.Emacs",
+           "bug-gnu-emacs", "x-vnd.GNU-emacs")
 
 # The Kept assembly files are the one kind in a scanned tree whose comments are not C's,
 # and the *suffix* is all the walk has (the target is not in the path: `loader-x86.s` and

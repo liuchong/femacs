@@ -162,7 +162,7 @@ unsafe fn android_init_emacs_context_menu ()                    // C 70-119
 
   menu_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-                                                    c"org/gnu/emacs/EmacsContextMenu".as_ptr ());
+                                                    c"org/femacs/EmacsContextMenu".as_ptr ());
   eassert! (! menu_class.class.is_null ());
 
   old = menu_class.class;
@@ -197,17 +197,17 @@ unsafe fn android_init_emacs_context_menu ()                    // C 70-119
   }
 
   FIND_METHOD_STATIC! (create_context_menu, c"createContextMenu".as_ptr (),
-                       c"(Ljava/lang/String;)Lorg/gnu/emacs/EmacsContextMenu;".as_ptr ());
+                       c"(Ljava/lang/String;)Lorg/femacs/EmacsContextMenu;".as_ptr ());
 
   FIND_METHOD! (add_item, c"addItem".as_ptr (),
                 c"(ILjava/lang/String;ZZZLjava/lang/String;Z)V".as_ptr ());
   FIND_METHOD! (add_submenu, c"addSubmenu".as_ptr (),
-                c"(Ljava/lang/String;Ljava/lang/String;)Lorg/gnu/emacs/EmacsContextMenu;".as_ptr ());
+                c"(Ljava/lang/String;Ljava/lang/String;)Lorg/femacs/EmacsContextMenu;".as_ptr ());
   FIND_METHOD! (add_pane, c"addPane".as_ptr (), c"(Ljava/lang/String;)V".as_ptr ());
   FIND_METHOD! (parent, c"parent".as_ptr (),
-                c"()Lorg/gnu/emacs/EmacsContextMenu;".as_ptr ());
-  FIND_METHOD! (display, c"display".as_ptr (), c"(Lorg/gnu/emacs/EmacsWindow;III)Z".as_ptr ());
-  FIND_METHOD! (dismiss, c"dismiss".as_ptr (), c"(Lorg/gnu/emacs/EmacsWindow;)V".as_ptr ());
+                c"()Lorg/femacs/EmacsContextMenu;".as_ptr ());
+  FIND_METHOD! (display, c"display".as_ptr (), c"(Lorg/femacs/EmacsWindow;III)Z".as_ptr ());
+  FIND_METHOD! (dismiss, c"dismiss".as_ptr (), c"(Lorg/femacs/EmacsWindow;)V".as_ptr ());
 }
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" fn android_unwind_local_frame ()              // C 121-125
@@ -753,7 +753,7 @@ unsafe fn android_init_emacs_dialog ()                          // C 612-651
 
   dialog_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-                                                    c"org/gnu/emacs/EmacsDialog".as_ptr ());
+                                                    c"org/femacs/EmacsDialog".as_ptr ());
   eassert! (! dialog_class.class.is_null ());
 
   old = dialog_class.class;
@@ -787,7 +787,7 @@ unsafe fn android_init_emacs_dialog ()                          // C 612-651
   }
 
   FIND_METHOD_STATIC! (create_dialog, c"createDialog".as_ptr (),
-                       c"(Ljava/lang/String;Ljava/lang/String;I)Lorg/gnu/emacs/EmacsDialog;"
+                       c"(Ljava/lang/String;Ljava/lang/String;I)Lorg/femacs/EmacsDialog;"
                         .as_ptr ());
   FIND_METHOD! (add_button, c"addButton".as_ptr (), c"(Ljava/lang/String;IZ)V".as_ptr ());
   FIND_METHOD! (display, c"display".as_ptr (), c"()Z".as_ptr ());

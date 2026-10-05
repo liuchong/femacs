@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsActivity.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import java.util.ArrayList
 import java.util.concurrent.TimeUnit
@@ -56,7 +56,7 @@ open class EmacsActivity : Activity(),
     private const val TAG = "EmacsActivity"
 
     /* Key of intent value providing extra startup argument.  */
-    @JvmField val EXTRA_STARTUP_ARGUMENTS: String = "org.gnu.emacs.STARTUP_ARGUMENTS"
+    @JvmField val EXTRA_STARTUP_ARGUMENTS: String = "org.femacs.STARTUP_ARGUMENTS"
 
     /* ID for URIs from a granted document tree.  */
     @JvmField val ACCEPT_DOCUMENT_TREE: Int = 1

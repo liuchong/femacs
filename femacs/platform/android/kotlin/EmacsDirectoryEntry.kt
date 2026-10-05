@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsDirectoryEntry.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 /* Structure holding a single ``directory entry'' from a document
    provider.  */

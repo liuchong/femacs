@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsDocumentsProvider.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.content.Context
 import android.database.Cursor
@@ -103,7 +103,7 @@ class EmacsDocumentsProvider : DocumentsProvider() {
   private fun getNotificationUri(file: File): Uri {
     val updatedUri: Uri
 
-    updatedUri = buildChildDocumentsUri("org.gnu.emacs", file.absolutePath)
+    updatedUri = buildChildDocumentsUri("org.femacs", file.absolutePath)
 
     return updatedUri
   }
@@ -116,7 +116,7 @@ class EmacsDocumentsProvider : DocumentsProvider() {
     val context: Context
 
     context = this.context!!
-    updatedUri = buildChildDocumentsUri("org.gnu.emacs", file.absolutePath)
+    updatedUri = buildChildDocumentsUri("org.femacs", file.absolutePath)
     context.contentResolver.notifyChange(updatedUri, null)
   }
 
@@ -129,7 +129,7 @@ class EmacsDocumentsProvider : DocumentsProvider() {
     val context: Context
 
     context = this.context!!
-    updatedUri = buildChildDocumentsUri("org.gnu.emacs", file)
+    updatedUri = buildChildDocumentsUri("org.femacs", file)
     context.contentResolver.notifyChange(updatedUri, null)
   }
 

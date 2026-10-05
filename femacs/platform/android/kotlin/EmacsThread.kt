@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsThread.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.util.Log
 import java.util.Arrays

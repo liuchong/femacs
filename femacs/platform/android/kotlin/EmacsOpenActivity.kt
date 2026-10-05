@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsOpenActivity.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.app.Activity
 import android.app.AlertDialog

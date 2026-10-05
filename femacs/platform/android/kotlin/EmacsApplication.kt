@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsApplication.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.app.Application
 import android.content.Context
@@ -26,9 +26,9 @@ class EmacsApplication : Application() {
     try {
       info =
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU)
-          manager.getApplicationInfo("org.gnu.emacs", 0)
+          manager.getApplicationInfo("org.femacs", 0)
         else
-          manager.getApplicationInfo("org.gnu.emacs", ApplicationInfoFlags.of(0))
+          manager.getApplicationInfo("org.femacs", ApplicationInfoFlags.of(0))
 
       /* Return an empty string upon failure.  */
 

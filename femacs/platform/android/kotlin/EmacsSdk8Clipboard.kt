@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsSdk8Clipboard.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 /* Importing the entire package instead of just the legacy
    ClipboardManager class avoids the deprecation warning.  */

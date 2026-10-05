@@ -25,7 +25,7 @@
 //
 // Ledger: `docs/ports/runemacs.md` carries the C line ranges, the acceptance readings and every
 // deviation (the dropped `DEFER_MS_W32_H`/forward declarations, the zero-initialised locals
-// PORTING.md 1.5 requires, the placeholder values, the `L"GNU.Emacs"` array, the labelled block
+// PORTING.md 1.5 requires, the placeholder values, the AppUserModelID array, the labelled block
 // that replaces C's `goto error`).
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_imports,
@@ -144,12 +144,15 @@ pub const MB_SETFOREGROUND: UINT = 0x00010000;        // placeholder, not <winus
 #[cfg (feature = "windowsnt")]
 pub const IDOK: c_int = 1;                            // placeholder, not <winuser.h>'s value
 
-/// C: `L"GNU.Emacs"` (C 206) - Rust has no wide-string literal, so the port spells the same UTF-16
-/// code units in an array (host-endian, as C's `L"..."` is; the trailing `0x0000` is C's
-/// terminator) - the `src/w32fns.rs` 391 `DARK_MODE_APP_NAME` shape.
+/// C 206: `set_user_model` is called with C's own wide-string AppUserModelID - the id the Windows
+/// shell groups this program's windows by.  **This is our program saying what it is called**, so the port carries
+/// its own name (PORTING.md 0.1-19's name half, status 3.433/3.503): Rust has no wide-string
+/// literal, so the UTF-16 code units are spelled in an array (host-endian, as C's `L"..."` is;
+/// the trailing `0x0000` is C's terminator) - the `src/w32fns.rs` 391 `DARK_MODE_APP_NAME` shape,
+/// and the same treatment `PACKAGE_NAME`/`emacs.rs 359` got.  C's own text stays in the ledger.
 #[cfg (feature = "windowsnt")]
-pub const USER_MODEL_ID: [u16; 10] =
-  [0x0047, 0x004E, 0x0055, 0x002E, 0x0045, 0x006D, 0x0061, 0x0063, 0x0073, 0x0000];
+pub const USER_MODEL_ID: [u16; 7] =
+  [0x0066, 0x0065, 0x006D, 0x0061, 0x0063, 0x0073, 0x0000];
 
 /// C: typedef struct _STARTUPINFOA { DWORD cb; LPSTR lpReserved, lpDesktop, lpTitle; DWORD dwX, dwY,
 /// C:   dwXSize, dwYSize, dwXCountChars, dwYCountChars, dwFillAttribute, dwFlags; WORD wShowWindow,

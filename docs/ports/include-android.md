@@ -66,9 +66,10 @@
   is the same no-op.
 - **Two macros have no Rust text at all** and are recorded in `docs/ports/excluded-macros.txt`
   (kind=syntax, the class the file already holds for `DOHASH`/`KVAR`/`STAT_TIMESPEC`/`NUMNAME`):
-  - `NATIVE_NAME` (C 344) pastes its argument into the exported JNI symbol name
-    (`Java_org_gnu_emacs_EmacsNative_##name`); Rust has no identifier pasting, and the replacement
-    is the definition site's `#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_<name>")]`
+  - `NATIVE_NAME` (C 344) pastes its argument into the exported JNI symbol name; the macro's own
+    prefix is the reference's Java package (`src/android.h` 344) and the port's is our own
+    (`org.femacs`, status 3.503).  Rust has no identifier pasting, and the replacement
+    is the definition site's `#[unsafe(export_name = "Java_org_femacs_EmacsNative_<name>")]`
     (the `DEFUN!` shape).
   - `ANDROID_DELETE_LOCAL_REF` (C 340-342) reads a `<jni.h>` vtable entry
     (`(*android_java_env)->DeleteLocalRef`); `JNINativeInterface` has no mirror and its ~230
@@ -122,3 +123,9 @@
   --emit=metadata` -> exit 0; and on the materialised root,
   `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type=lib --emit=metadata -o
   /tmp/android_inc_probe.rmeta build/probes/android_inc_probe/_root.rs` -> exit 0.
+
+## 2026-10-05: `NATIVE_NAME`'s prefix is the port's own package (3.503)
+
+The macro's body pastes the reference's Java package into the symbol name; the tree's own Kotlin and
+Rust move to `org.femacs` together (PORTING.md 0.1-19's seventh half), so the replacement the
+definition sites write is `Java_org_femacs_EmacsNative_<name>`.  C's own text is `src/android.h` 344.

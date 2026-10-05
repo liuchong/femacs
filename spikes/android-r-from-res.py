@@ -72,7 +72,7 @@ def main() -> int:
     out = ["// Generated from emacs/java/res by spikes/android-r-from-res.py - the `R` class the",
            "// Kotlin targets compile against.  Ids are zero: only the names and the nesting are read",
            "// from the reference (see the tool's docstring).",
-           "package org.gnu.emacs", "", "object R {"]
+           "package org.femacs", "", "object R {"]
     for kind in sorted(entries):
         out.append(f"  object {kind} {{")
         for name in sorted(entries[kind]):

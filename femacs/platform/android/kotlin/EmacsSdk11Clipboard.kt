@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsSdk11Clipboard.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.content.ClipData
 import android.content.ClipDescription

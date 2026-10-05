@@ -199,7 +199,7 @@ unsafe fn android_init_emacs_clipboard ()                     // C 71-116
 
   clipboard_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-                                                    c"org/gnu/emacs/EmacsClipboard".as_ptr ());
+                                                    c"org/femacs/EmacsClipboard".as_ptr ());
   eassert! (! clipboard_class.class.is_null ());
 
   old = clipboard_class.class;
@@ -236,7 +236,7 @@ unsafe fn android_init_emacs_clipboard ()                     // C 71-116
     = ((*(*android_java_env)).GetStaticMethodID.unwrap ()) (android_java_env,
                                                            clipboard_class.class,
                                                            c"makeClipboard".as_ptr (),
-                                                           c"()Lorg/gnu/emacs/EmacsClipboard;"
+                                                           c"()Lorg/femacs/EmacsClipboard;"
                                                             .as_ptr ());
   eassert! (! clipboard_class.make_clipboard.is_null ());
 }
@@ -810,7 +810,7 @@ unsafe fn android_init_emacs_desktop_notification ()          // C 663-695
 
   notification_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-                                                    c"org/gnu/emacs/EmacsDesktopNotification"
+                                                    c"org/femacs/EmacsDesktopNotification"
                                                      .as_ptr ());
   eassert! (! notification_class.class.is_null ());
 

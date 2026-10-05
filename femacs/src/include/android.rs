@@ -199,10 +199,12 @@ macro_rules! android_get_current_api_level {
 // model (`JNINativeInterface` has no mirror), so the name owns a row in
 // docs/ports/excluded-macros.txt and the ledger records the decision.
 
-// C 344: `#define NATIVE_NAME(name) Java_org_gnu_emacs_EmacsNative_##name` pastes the argument
-// into the exported JNI symbol name.  Rust cannot paste identifiers, so the name owns a row in
+// C 344: `#define NATIVE_NAME(name)` pastes the argument into the exported JNI symbol name, whose
+// prefix is the *reference's* own Java package (the macro body is in `src/android.h` 344).  Rust cannot paste identifiers, so the name owns a row in
 // docs/ports/excluded-macros.txt; the port writes the symbol at each definition site, where the
-// C name survives as `#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_<name>")]`.
+// C name would carry the reference's Java package - and the port's own is
+// `#[unsafe(export_name = "Java_org_femacs_EmacsNative_<name>")]` (PORTING.md 0.1-19's name
+// half, status 3.503): the class this tree loads is `org.femacs.EmacsNative`.
 
 // C 352-359: the `__i386__` arm is dead on this target (C 349-357) and is recorded in the
 // ledger; the live arm is C's `((void) 0)`, and the macro is used as a statement.

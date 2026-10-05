@@ -337,7 +337,7 @@ unsafe fn android_init_font_driver ()                     // C 173-223
 
   font_driver_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-                                                    c"org/gnu/emacs/EmacsFontDriver".as_ptr ());
+                                                    c"org/femacs/EmacsFontDriver".as_ptr ());
   eassert! (! font_driver_class.class.is_null ());
 
   old = font_driver_class.class;
@@ -364,28 +364,28 @@ unsafe fn android_init_font_driver ()                     // C 173-223
   }
 
   FIND_METHOD! (list, c"list".as_ptr (),                   // C 199-200
-                c"(Lorg/gnu/emacs/EmacsFontDriver$FontSpec;)[Lorg/gnu/emacs/EmacsFontDriver$FontEntity;".as_ptr ());
+                c"(Lorg/femacs/EmacsFontDriver$FontSpec;)[Lorg/femacs/EmacsFontDriver$FontEntity;".as_ptr ());
   FIND_METHOD! (r#match, c"match".as_ptr (),               // C 201-202
-                c"(Lorg/gnu/emacs/EmacsFontDriver$FontSpec;)Lorg/gnu/emacs/EmacsFontDriver$FontEntity;".as_ptr ());
+                c"(Lorg/femacs/EmacsFontDriver$FontSpec;)Lorg/femacs/EmacsFontDriver$FontEntity;".as_ptr ());
   FIND_METHOD! (list_families, c"listFamilies".as_ptr (),  // C 203
                 c"()[Ljava/lang/String;".as_ptr ());
   FIND_METHOD! (open_font, c"openFont".as_ptr (),           // C 204-205
-                c"(Lorg/gnu/emacs/EmacsFontDriver$FontEntity;I)Lorg/gnu/emacs/EmacsFontDriver$FontObject;".as_ptr ());
+                c"(Lorg/femacs/EmacsFontDriver$FontEntity;I)Lorg/femacs/EmacsFontDriver$FontObject;".as_ptr ());
   FIND_METHOD! (has_char, c"hasChar".as_ptr (),             // C 206-207
-                c"(Lorg/gnu/emacs/EmacsFontDriver$FontSpec;I)I".as_ptr ());
+                c"(Lorg/femacs/EmacsFontDriver$FontSpec;I)I".as_ptr ());
   FIND_METHOD! (text_extents, c"textExtents".as_ptr (),     // C 208-209
-                c"(Lorg/gnu/emacs/EmacsFontDriver$FontObject;[ILorg/gnu/emacs/EmacsFontDriver$FontMetrics;)V".as_ptr ());
+                c"(Lorg/femacs/EmacsFontDriver$FontObject;[ILorg/femacs/EmacsFontDriver$FontMetrics;)V".as_ptr ());
   FIND_METHOD! (encode_char, c"encodeChar".as_ptr (),       // C 210-211
-                c"(Lorg/gnu/emacs/EmacsFontDriver$FontObject;I)I".as_ptr ());
+                c"(Lorg/femacs/EmacsFontDriver$FontObject;I)I".as_ptr ());
   FIND_METHOD! (draw, c"draw".as_ptr (),                    // C 212-213
-                c"(Lorg/gnu/emacs/EmacsFontDriver$FontObject;Lorg/gnu/emacs/EmacsGC;Lorg/gnu/emacs/EmacsDrawable;[IIIIZ)I".as_ptr ());
+                c"(Lorg/femacs/EmacsFontDriver$FontObject;Lorg/femacs/EmacsGC;Lorg/femacs/EmacsDrawable;[IIIIZ)I".as_ptr ());
 
   /* C 215-221: the one place that is not a `FIND_METHOD`.  */
   font_driver_class.create_font_driver
     = ((*(*android_java_env)).GetStaticMethodID.unwrap ()) (android_java_env,
                                                             font_driver_class.class,
                                                             c"createFontDriver".as_ptr (),
-                                                            c"()Lorg/gnu/emacs/EmacsFontDriver;"  // C 219-220
+                                                            c"()Lorg/femacs/EmacsFontDriver;"  // C 219-220
                                                              .as_ptr ());
   eassert! (! font_driver_class.create_font_driver.is_null ());
 }
@@ -400,7 +400,7 @@ unsafe fn android_init_font_spec ()                       // C 229-268
 
   font_spec_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-                                                    c"org/gnu/emacs/EmacsFontDriver$FontSpec"  // C 236-237
+                                                    c"org/femacs/EmacsFontDriver$FontSpec"  // C 236-237
                                                      .as_ptr ());
   eassert! (! font_spec_class.class.is_null ());
 
@@ -443,7 +443,7 @@ unsafe fn android_init_font_metrics ()                    // C 270-303
 
   font_metrics_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-                                                    c"org/gnu/emacs/EmacsFontDriver$FontMetrics"  // C 276-278
+                                                    c"org/femacs/EmacsFontDriver$FontMetrics"  // C 276-278
                                                      .as_ptr ());
   eassert! (! font_metrics_class.class.is_null ());
 
@@ -513,7 +513,7 @@ unsafe fn android_init_font_object ()                     // C 336-379
 
   font_object_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-                                                    c"org/gnu/emacs/EmacsFontDriver$FontObject"  // C 341-344
+                                                    c"org/femacs/EmacsFontDriver$FontObject"  // C 341-344
                                                      .as_ptr ());
   eassert! (! font_object_class.class.is_null ());
 

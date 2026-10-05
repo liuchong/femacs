@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsContextMenu.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import java.util.concurrent.Callable
 import java.util.concurrent.FutureTask

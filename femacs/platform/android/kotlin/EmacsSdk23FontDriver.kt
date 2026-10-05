@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsSdk23FontDriver.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.graphics.Paint
 import android.graphics.Rect

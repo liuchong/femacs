@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsDesktopNotification.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -72,7 +72,7 @@ class EmacsDesktopNotification(title: String, content: String,
 
     /* Action ID assigned to the broadcast receiver which should be
        notified of any notification's being dismissed.  */
-    @JvmField val NOTIFICATION_DISMISSED: String = "org.gnu.emacs.DISMISSED"
+    @JvmField val NOTIFICATION_DISMISSED: String = "org.femacs.DISMISSED"
   }
 
   /* The content of this desktop notification.  */
@@ -236,7 +236,7 @@ class EmacsDesktopNotification(title: String, content: String,
 
       /* This remote widget tree is defined in
          java/res/layout/sdk8_notifications_view.xml.  */
-      contentView = RemoteViews("org.gnu.emacs",
+      contentView = RemoteViews("org.femacs",
                                 R.layout.sdk8_notifications_view)
       notification.contentView = contentView
       contentView.setTextViewText(R.id.sdk8_notifications_title,
@@ -269,7 +269,7 @@ class EmacsDesktopNotification(title: String, content: String,
 
     intent = Intent(context, CancellationReceiver::class.java)
     intent.setAction(NOTIFICATION_DISMISSED)
-    intent.setPackage("org.gnu.emacs")
+    intent.setPackage("org.femacs")
     intent.setData(Uri.Builder().scheme("action")
                      .appendPath(tag)
                      .build())

@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsService.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
@@ -902,7 +902,7 @@ class EmacsService : Service() {
 
           if (uri.getScheme().equals("file")
               && uri.getPath() != null)
-            uri = DocumentsContract.buildDocumentUri("org.gnu.emacs",
+            uri = DocumentsContract.buildDocumentUri("org.femacs",
                                                      uri.getPath()!!)
         }
 
@@ -1954,7 +1954,7 @@ class EmacsService : Service() {
     val intent: Intent
 
     intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                    Uri.parse("package:org.gnu.emacs"))
+                    Uri.parse("package:org.femacs"))
 
     runnable = Runnable {
       val activity: EmacsActivity

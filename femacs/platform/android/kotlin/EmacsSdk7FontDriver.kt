@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsSdk7FontDriver.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import java.util.LinkedList
 

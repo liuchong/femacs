@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsSafThread.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import java.io.IOException
 

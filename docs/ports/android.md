@@ -345,7 +345,8 @@ readings exist only with `android_api_lt_21` selected.
   (`free (buffer); return array;`) after it.  The `goto` token does not survive either (owed row, item 9).
 * **`NATIVE_NAME` (C 344, an excluded macro) and `JNIEXPORT`/`JNICALL`**: the three entry points are
   Rust fns named after the macro *argument* (`getFingerprint`, `setEmacsParams`, `getProcName`) and
-  carry the pasted C symbol as `#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_<name>")]` -
+  carry the pasted symbol as `#[unsafe(export_name = "Java_org_femacs_EmacsNative_<name>")]` - the
+  prefix is **our own** package, not the reference's (`src/android.h` 344; status 3.503) -
   the replacement `docs/ports/excluded-macros.txt` 147 prescribes.  `JNIEXPORT`/`JNICALL` (jni.h's
   visibility and calling-convention attributes) have no mirror and no Rust text: the
   `pub unsafe extern "C"` signature is where they land.
@@ -420,7 +421,8 @@ readings exist only with `android_api_lt_21` selected.
 9. **`tools/cinventory.py`'s function scan is blind to `NATIVE_NAME` definitions, and the port pays
    for it in `extract-abi --check`.**  C 1461/1475/1688 define
    `JNIEXPORT … JNICALL NATIVE_NAME (getFingerprint/setEmacsParams/getProcName) (…)`; the C symbol
-   each one emits is `Java_org_gnu_emacs_EmacsNative_<name>` (the excluded macro pastes it), and the
+   each one emits is `Java_org_femacs_EmacsNative_<name>` (the excluded macro pastes it, with our
+   own package as the prefix since status 3.503), and the
    port writes that symbol as `#[unsafe(export_name = …)]` on the Rust fn - the replacement
    `docs/ports/excluded-macros.txt` 147 prescribes.  But `ci.functions` lists neither the pasted
    C name nor the macro argument, so `c_exported` and `whole_reference("function")` cannot back the
@@ -429,7 +431,7 @@ readings exist only with `android_api_lt_21` selected.
    `fn getFingerprint carries #[unsafe(no_mangle)] but the reference does not define a non-static
    function of that name (invented exported symbol)`, and the same for `setEmacsParams` and
    `getProcName`.  Owed: teach the scan that `NATIVE_NAME (x) (params)` is a non-static definition of
-   `Java_org_gnu_emacs_EmacsNative_x` (then the three lines disappear and the attributes stay), or
+   `Java_org_femacs_EmacsNative_x` (then the three lines disappear and the attributes stay), or
    record the class as allowed.  It is the P-86 ⑩/⑪ family of "the gate has not been taught this
    shape", and the reference does export those three symbols.
 10. `docs/baseline/declarations-allowlist.tsv` (not in this lane's writable set): **one `literal`
@@ -454,7 +456,7 @@ readings exist only with `android_api_lt_21` selected.
 
 Every line of both slices is behind gates the frozen configuration leaves false: ① is an empty
 object, the arm readings (②a/②b) are compile-level, and **nothing here was executed** - no thread,
-no semaphore, no JNI call, no `Java_org_gnu_emacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
+no semaphore, no JNI call, no `Java_org_femacs_EmacsNative_*` lookup, no `pipe2`, no `stat`, no
 `getline`, no event, no `select`.  Slice 2's C lines (C 1038-1869) are carried; the **unported**
 part is C 1870-7594, and `extract-abi --check`'s remaining `- missing …` list and the 72.3% drift
 are that boundary, not defects.  The three `invented exported symbol` lines are the extractor blind spot of Owed 9, the
@@ -470,3 +472,20 @@ The startup log line C 1511-1513 builds from this macro is the program's self-de
 macro body now spells the port's own name with the same version number; the frozen configuration's
 measured value stays in `docs/baseline/config/` (PORTING.md 0.1-19's name half).  `PACKAGE_BUGREPORT`
 is left as the measured value, which status 3.433 names as the boundary of this half.
+
+## 2026-10-05: the JNI names carry the port's own package (3.503)
+
+C 344's `NATIVE_NAME` pastes the *reference's* Java package into every exported symbol; that name is
+what *this* app's class is found by, so the seventh half of PORTING.md 0.1-19 renames both sides at
+once: the 40 Kotlin targets declare `package org.femacs` (11 identity strings with it:
+`EmacsActivity`'s extra key, `EmacsDesktopNotification`'s notification tags and `RemoteViews`,
+`EmacsDocumentsProvider`'s authority, `EmacsService`'s `package:` URI, `EmacsApplication`'s
+`getApplicationInfo`, `EmacsNoninteractive`'s `loadClass`), and this unit's 41 `FindClass`/descriptor
+lines plus the three `export_name`s move with them (`Java_org_femacs_EmacsNative_*`).  P-83 (1)(2)
+now says it in one line: the package is ours, the class/field/method names are byte-identical on
+both sides.  Evidence: `spikes/kotlin-compile-probe.sh femacs/platform/android/kotlin/*.kt` -> **exit
+0** (the probe re-homes the reference `.java` stand-ins into the same package, so the whole batch is
+still a real compile; measured 3.503, `JAVA_TOOL_OPTIONS=-Xmx2g`).  The Rust side has no compiler on
+this machine for the `have_android` arm (the mirror blockers of P-86 (7)), so its evidence is textual
+plus the descriptor-by-descriptor `grep`.  `PACKAGE_BUGREPORT` is untouched: the address is the
+reference's and points upstream (the 3.433 boundary).

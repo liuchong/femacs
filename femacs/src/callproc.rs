@@ -2334,17 +2334,17 @@ pub unsafe extern "C" fn syms_of_callproc ()
 	       "Directory for executables for Emacs to invoke.\nMore generally, this includes any architecture-dependent files\nthat are built and installed from the Emacs distribution.");
 
   DEFVAR_LISP! (c"data-directory", Vdata_directory,
-	       "Directory of machine-independent files that come with GNU Emacs.\nThese are files intended for Emacs to use while it runs.");
+	       "Directory of machine-independent files that come with femacs.\nThese are files intended for Emacs to use while it runs.");
 
   DEFVAR_LISP! (c"doc-directory", Vdoc_directory,
-	       "Directory containing the DOC file that comes with GNU Emacs.\nThis is usually the same as `data-directory'.");
+	       "Directory containing the DOC file that comes with femacs.\nThis is usually the same as `data-directory'.");
 
   DEFVAR_LISP! (c"configure-info-directory", Vconfigure_info_directory,
 	       "For internal use by the build procedure only.\nThis is the name of the directory in which the build procedure installed\nEmacs's info files; the default value for `Info-default-directory-list'\nincludes this.");
   Vconfigure_info_directory = build_string (PATH_INFO.as_ptr ());
 
   DEFVAR_LISP! (c"shared-game-score-directory", Vshared_game_score_directory,
-	       "Directory of score files for games which come with GNU Emacs.\nIf this variable is nil, then Emacs is unable to use a shared directory.");
+	       "Directory of score files for games which come with femacs.\nIf this variable is nil, then Emacs is unable to use a shared directory.");
 
   DEFVAR_LISP! (c"initial-environment", Vinitial_environment,
 	       "List of environment variables inherited from the parent process.\nEach element should be a string of the form ENVVARNAME=VALUE.\nThe elements must normally be decoded (using `locale-coding-system') for use.");

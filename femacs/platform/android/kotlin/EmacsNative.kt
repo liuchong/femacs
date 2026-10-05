@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsNative.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.content.res.AssetManager
 
@@ -13,8 +13,8 @@ import android.view.inputmethod.TextAttribute
 import android.view.inputmethod.TextSnapshot
 
 /* The 69 methods below are the only consumers whose names are bound by the JNI **naming
-   convention**, not by a lookup table: `src/android.h` 344 defines
-   `#define NATIVE_NAME(name) Java_org_gnu_emacs_EmacsNative_##name`, and the 69
+   convention**, not by a lookup table: `src/android.h` 344 defines `NATIVE_NAME(name)`, which
+   pastes the reference's own Java package into the symbol name, and the 69
    `NATIVE_NAME (…)` definitions live in three files - `android.c` 42, `androidterm.c` 22,
    `androidvfs.c` 5 - the same 69 names this class declares (measured set-equality, both ways).
    A JVM-visible `EmacsNative.<name>` must therefore exist as a *static native* method, which in

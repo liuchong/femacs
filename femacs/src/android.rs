@@ -1414,7 +1414,10 @@ const DIRECTORY_SEP: c_char = b'/' as c_char;
 
 /* C 344's `NATIVE_NAME` is an excluded macro (`docs/ports/excluded-macros.txt`: Rust cannot
    paste identifiers) whose replacement is the definition site's
-   `#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_<name>")]`, and C 340-342's
+   `#[unsafe(export_name = "Java_org_femacs_EmacsNative_<name>")]`.  **The pasted name is our
+   program's own**: C's macro prefixes the *reference's* own Java package (its body is in
+   `src/android.h` 344), while the class this tree loads is `org.femacs.EmacsNative`
+   (PORTING.md 0.1-19's name half, status 3.503).  C 340-342's
    `ANDROID_DELETE_LOCAL_REF` is excluded for the old "`JNINativeInterface` has no mirror"
    reason that `include/jni.rs` has since answered, so the unit defines its expansion under C's
    own name (the androidselect.rs 121-129 shape; P-86 ⑪).  `JNIEXPORT`/`JNICALL` (jni.h) have
@@ -1652,10 +1655,12 @@ unsafe fn android_create_lib_link ()
    timefns.rs 79-81 precedent).  */
 
 /* C 1461-1462: `JNIEXPORT jstring JNICALL NATIVE_NAME (getFingerprint) (JNIEnv *env, jobject
-   object)`; the symbol is C's pasted `Java_org_gnu_emacs_EmacsNative_getFingerprint` (the
-   excluded macro's replacement, `docs/ports/excluded-macros.txt`).  */
+   object)`; C's paste prefixes the reference's own Java package (`src/android.h` 344) and the port
+   exports its own class's name, `Java_org_femacs_EmacsNative_getFingerprint` (PORTING.md 0.1-19's name half /
+   status 3.503 - the macro's replacement is written at each definition site,
+   `docs/ports/excluded-macros.txt`).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_getFingerprint")]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_getFingerprint")]
 pub unsafe extern "C" fn getFingerprint (env: *mut JNIEnv, object: jobject) -> jstring
 {
   JNI_STACK_ALIGNMENT_PROLOGUE! ();
@@ -1679,9 +1684,10 @@ pub unsafe extern "C" fn getFingerprint (env: *mut JNIEnv, object: jobject) -> j
    object, jobject local_asset_manager, jobject files_dir, jobject libs_dir, jobject cache_dir,
    jfloat pixel_density_x, jfloat pixel_density_y, jfloat scaled_density, jint ui_mode, jobject
    class_path, jobject emacs_service_object, jint api_level)`; the symbol is C's pasted
-   `Java_org_gnu_emacs_EmacsNative_setEmacsParams`.  */
+   the reference's own paste of `setEmacsParams`; the port's own export below is
+   `Java_org_femacs_EmacsNative_setEmacsParams` (status 3.503).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_setEmacsParams")]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_setEmacsParams")]
 pub unsafe extern "C" fn setEmacsParams (env: *mut JNIEnv, object: jobject,
 					 local_asset_manager: jobject,
 					 files_dir: jobject, libs_dir: jobject,
@@ -1914,9 +1920,10 @@ pub unsafe extern "C" fn setEmacsParams (env: *mut JNIEnv, object: jobject,
 }
 
 /* C 1688-1689: `JNIEXPORT jobject JNICALL NATIVE_NAME (getProcName) (JNIEnv *env, jobject
-   object, jint fd)`; the symbol is C's pasted `Java_org_gnu_emacs_EmacsNative_getProcName`.  */
+   object, jint fd)`; C's paste prefixes the reference's own package; the port exports
+   `Java_org_femacs_EmacsNative_getProcName` (status 3.503).  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_getProcName")]
+#[unsafe(export_name = "Java_org_femacs_EmacsNative_getProcName")]
 pub unsafe extern "C" fn getProcName (env: *mut JNIEnv, object: jobject, fd: jint) -> jobject
 {
   JNI_STACK_ALIGNMENT_PROLOGUE! ();
@@ -1968,7 +1975,7 @@ unsafe fn android_init_emacs_service ()
 
   service_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-						    c"org/gnu/emacs/EmacsService".as_ptr ());
+						    c"org/femacs/EmacsService".as_ptr ());
   eassert! (! service_class.class.is_null ());
 
   old = service_class.class;
@@ -1993,17 +2000,17 @@ unsafe fn android_init_emacs_service ()
   }
 
   FIND_METHOD! (fill_rectangle, c"fillRectangle".as_ptr (),
-                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;IIII)V".as_ptr ());
+                c"(Lorg/femacs/EmacsDrawable;Lorg/femacs/EmacsGC;IIII)V".as_ptr ());
   FIND_METHOD! (fill_polygon, c"fillPolygon".as_ptr (),
-                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;[Landroid/graphics/Point;)V".as_ptr ());
+                c"(Lorg/femacs/EmacsDrawable;Lorg/femacs/EmacsGC;[Landroid/graphics/Point;)V".as_ptr ());
   FIND_METHOD! (draw_rectangle, c"drawRectangle".as_ptr (),
-                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;IIII)V".as_ptr ());
+                c"(Lorg/femacs/EmacsDrawable;Lorg/femacs/EmacsGC;IIII)V".as_ptr ());
   FIND_METHOD! (draw_line, c"drawLine".as_ptr (),
-                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;IIII)V".as_ptr ());
+                c"(Lorg/femacs/EmacsDrawable;Lorg/femacs/EmacsGC;IIII)V".as_ptr ());
   FIND_METHOD! (draw_point, c"drawPoint".as_ptr (),
-                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;II)V".as_ptr ());
+                c"(Lorg/femacs/EmacsDrawable;Lorg/femacs/EmacsGC;II)V".as_ptr ());
   FIND_METHOD! (ring_bell, c"ringBell".as_ptr (), c"(I)V".as_ptr ());
-  FIND_METHOD! (query_tree, c"queryTree".as_ptr (), c"(Lorg/gnu/emacs/EmacsWindow;)[J".as_ptr ());
+  FIND_METHOD! (query_tree, c"queryTree".as_ptr (), c"(Lorg/femacs/EmacsWindow;)[J".as_ptr ());
   FIND_METHOD! (get_screen_width, c"getScreenWidth".as_ptr (), c"(Z)I".as_ptr ());
   FIND_METHOD! (get_screen_height, c"getScreenHeight".as_ptr (), c"(Z)I".as_ptr ());
   FIND_METHOD! (detect_mouse, c"detectMouse".as_ptr (), c"()Z".as_ptr ());
@@ -2012,17 +2019,17 @@ unsafe fn android_init_emacs_service ()
   FIND_METHOD! (browse_url, c"browseUrl".as_ptr (),
                 c"(Ljava/lang/String;Z)Ljava/lang/String;".as_ptr ());
   FIND_METHOD! (restart_emacs, c"restartEmacs".as_ptr (), c"()V".as_ptr ());
-  FIND_METHOD! (update_ic, c"updateIC".as_ptr (), c"(Lorg/gnu/emacs/EmacsWindow;IIII)V".as_ptr ());
-  FIND_METHOD! (reset_ic, c"resetIC".as_ptr (), c"(Lorg/gnu/emacs/EmacsWindow;I)V".as_ptr ());
+  FIND_METHOD! (update_ic, c"updateIC".as_ptr (), c"(Lorg/femacs/EmacsWindow;IIII)V".as_ptr ());
+  FIND_METHOD! (reset_ic, c"resetIC".as_ptr (), c"(Lorg/femacs/EmacsWindow;I)V".as_ptr ());
   FIND_METHOD! (open_content_uri, c"openContentUri".as_ptr (),
                 c"(Ljava/lang/String;ZZZ)I".as_ptr ());
   FIND_METHOD! (check_content_uri, c"checkContentUri".as_ptr (),
                 c"(Ljava/lang/String;ZZ)Z".as_ptr ());
   FIND_METHOD! (query_battery, c"queryBattery".as_ptr (), c"()[J".as_ptr ());
   FIND_METHOD! (update_extracted_text, c"updateExtractedText".as_ptr (),
-                c"(Lorg/gnu/emacs/EmacsWindow;Landroid/view/inputmethod/ExtractedText;I)V".as_ptr ());
+                c"(Lorg/femacs/EmacsWindow;Landroid/view/inputmethod/ExtractedText;I)V".as_ptr ());
   FIND_METHOD! (update_cursor_anchor_info, c"updateCursorAnchorInfo".as_ptr (),
-                c"(Lorg/gnu/emacs/EmacsWindow;FFFF)V".as_ptr ());
+                c"(Lorg/femacs/EmacsWindow;FFFF)V".as_ptr ());
   FIND_METHOD! (get_document_authorities, c"getDocumentAuthorities".as_ptr (),
                 c"()[Ljava/lang/String;".as_ptr ());
   FIND_METHOD! (request_directory_access, c"requestDirectoryAccess".as_ptr (), c"()I".as_ptr ());
@@ -2039,7 +2046,7 @@ unsafe fn android_init_emacs_service ()
   FIND_METHOD! (open_document_directory, c"openDocumentDirectory".as_ptr (),
                 c"(Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;".as_ptr ());
   FIND_METHOD! (read_directory_entry, c"readDirectoryEntry".as_ptr (),
-                c"(Landroid/database/Cursor;)Lorg/gnu/emacs/EmacsDirectoryEntry;".as_ptr ());
+                c"(Landroid/database/Cursor;)Lorg/femacs/EmacsDirectoryEntry;".as_ptr ());
   FIND_METHOD! (open_document, c"openDocument".as_ptr (),
                 c"(Ljava/lang/String;Ljava/lang/String;ZZZ)Landroid/os/ParcelFileDescriptor;".as_ptr ());
   FIND_METHOD! (create_document, c"createDocument".as_ptr (),
@@ -2073,7 +2080,7 @@ unsafe fn android_init_emacs_pixmap ()
 
   pixmap_class.class
     = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
-						    c"org/gnu/emacs/EmacsPixmap".as_ptr ());
+						    c"org/femacs/EmacsPixmap".as_ptr ());
   eassert! (! pixmap_class.class.is_null ());
 
   old = pixmap_class.class;

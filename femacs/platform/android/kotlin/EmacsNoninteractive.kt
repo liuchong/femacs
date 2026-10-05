@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsNoninteractive.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.os.Looper
 import android.os.Build
@@ -120,7 +120,7 @@ class EmacsNoninteractive {
           method = activityThreadClass.getMethod("getPackageInfo",
                                                   String::class.java,
                                                   Int::class.javaPrimitiveType)
-          loadedApk = method.invoke(activityThread, "org.gnu.emacs",
+          loadedApk = method.invoke(activityThread, "org.femacs",
                                     (Context.CONTEXT_INCLUDE_CODE
                                      or Context.CONTEXT_IGNORE_SECURITY))
         } catch (exception: NoSuchMethodException) {
@@ -130,7 +130,7 @@ class EmacsNoninteractive {
                                                   String::class.java,
                                                   compatibilityInfoClass,
                                                   Int::class.javaPrimitiveType)
-          loadedApk = method.invoke(activityThread, "org.gnu.emacs",
+          loadedApk = method.invoke(activityThread, "org.femacs",
                                     null, (Context.CONTEXT_INCLUDE_CODE
                                            or Context.CONTEXT_IGNORE_SECURITY))
         }
@@ -163,7 +163,7 @@ class EmacsNoninteractive {
                                                       String::class.java,
                                                       Int::class.javaPrimitiveType)
           method.setAccessible(true)
-          context = method.invoke(context, "org.gnu.emacs",
+          context = method.invoke(context, "org.femacs",
                                   0) as Context
         }
 
@@ -187,7 +187,7 @@ class EmacsNoninteractive {
       }
 
       try {
-        emacsNoninteractiveClass = classLoader!!.loadClass("org.gnu.emacs.EmacsNoninteractive")
+        emacsNoninteractiveClass = classLoader!!.loadClass("org.femacs.EmacsNoninteractive")
         method = emacsNoninteractiveClass.getMethod("main1", Array<String>::class.java,
                                                     Context::class.java)
         method.setAccessible(true)

@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsMultitaskActivity.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.content.Intent
 import android.os.Bundle

@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsHolder.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 /* This class serves as a simple reference to an object of type T.
    Nothing could be found inside the standard library.  */

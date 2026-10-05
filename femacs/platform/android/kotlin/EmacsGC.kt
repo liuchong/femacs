@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsGC.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.graphics.Bitmap
 import android.graphics.Canvas

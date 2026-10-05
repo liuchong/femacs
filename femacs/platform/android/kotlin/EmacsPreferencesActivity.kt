@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsPreferencesActivity.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import java.io.File
 

@@ -50,7 +50,7 @@ kotlin_stdlib="$gradle_lib/kotlin-stdlib-2.4.0.jar"
 # convention: real names, probe-owned values).  Measured 3.321: without it,
 # `EmacsNative.kt:292` is `unresolved reference 'EmacsConfig'` and the whole-directory probe fails.
 cat > "$out/EmacsConfig.java" <<'JAVA'
-package org.gnu.emacs;
+package org.femacs;
 /* femacs probe stand-in: emacs/java/Makefile.in 409-427 generates this class in the build tree. */
 public class EmacsConfig
 {
@@ -66,12 +66,18 @@ JAVA
 ported=""
 java_deps=""
 for kt in "$@"; do ported="$ported ${kt##*/}"; done
+mkdir -p "$out/stubs"
 for java in "$root"/emacs/java/org/gnu/emacs/*.java; do
   stem="$(basename "$java" .java)"
   case " $ported " in
     *" ${stem}.kt "*) continue ;;
   esac
-  java_deps="$java_deps $java"
+  # A stand-in has to move into **our** package with the port (status 3.503): the ported Kotlin
+  # lives in `org.femacs` now, and a class in another package is not visible without an import,
+  # so the reference file's own `package` line is rewritten on the way in.  The body - every
+  # name the port has to agree with - is the reference's, unchanged.
+  sed 's/^package org\.gnu\.emacs;/package org.femacs;/' "$java" > "$out/stubs/$stem.java"
+  java_deps="$java_deps $out/stubs/$stem.java"
 done
 "java" -cp "$gradle_lib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   -no-stdlib -classpath "$kotlin_stdlib:$android_jar" -d "$out/classes" "$out/R.kt" \

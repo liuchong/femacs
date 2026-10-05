@@ -49,7 +49,7 @@
 | 46-48 | `#include <windows.h>` / `<string.h>` / `<malloc.h>` | file gate; `<windows.h>`'s surface is declared here (UNVERIFIED), `<string.h>` is `lib/include/string.rs`, `<malloc.h>` contributes only `alloca` |
 | 50-51 | `static void set_user_model_id (void);` and `static int ensure_unicows_dll (void);` | dropped (PORTING.md 0.1-12, forward declarations); the definitions follow `WinMain` |
 | 53-203 | `WinMain` (`int WINAPI`): the `ensure_unicows_dll`/`set_user_model_id` calls, `GetModuleFileName`, the `alloca`d command line, the `nt`→`src` fix-up, both `CHOOSE_NEWEST_EXE` arms, the `-wait`/`-high`/`-low` scan, the `--iconic`/`--maximized` pass-through, the `emacs_dir` export, `CreateProcess` and the wait, and C 200-202's `error:` label | file gate; C 94-123 `choose_newest_exe`, C 124-125 `not (choose_newest_exe)` |
-| 205-231 | `set_user_model_id`: `LoadLibrary ("shell32.dll")`, `GetProcAddress ("SetCurrentProcessExplicitAppUserModelID")`, the `L"GNU.Emacs"` call and `FreeLibrary` | file gate |
+| 205-231 | `set_user_model_id`: `LoadLibrary ("shell32.dll")`, `GetProcAddress ("SetCurrentProcessExplicitAppUserModelID")`, the AppUserModelID call (C 206's own wide-string literal is the reference's id; the port carries its own, status 3.503) and `FreeLibrary` | file gate |
 | 233-270 | `ensure_unicows_dll`: `ZeroMemory`+`GetVersionEx`, the `VER_PLATFORM_WIN32_WINDOWS` arm, `LoadLibrary ("Unicows.dll")`, the `MessageBox` and its one-arm `switch`, `FreeLibrary`, and the two `return 1`s | file gate |
 
 ## Evidence
@@ -91,8 +91,9 @@
    (PORTING.md 2.2), so the body runs once before the first `FindNextFile` exactly as C's does.
 6. **C 190's `error:` label is a labelled block** (`'error: { … }` with `break 'error` for each
    `goto`, PORTING.md 2.2); the block's tail is C 200-202's `MessageBox` and `return 1`.
-7. **`L"GNU.Emacs"` (C 206) is a `[u16; 10]` of code units** with C's trailing `0x0000` - Rust has no
-   wide-string literal (the `src/w32fns.rs` 391 `DARK_MODE_APP_NAME` shape).
+7. **C 206's AppUserModelID is a `[u16; 7]` of code units** (`femacs`) with the trailing `0x0000` -
+   the port carries its own name, not the reference's (C's own literal is in `nt/runemacs.c` 206;
+   status 3.503), and Rust has no wide-string literal (the `src/w32fns.rs` 391 shape).
 8. **`static const char iconic_opt[]`/`maximized_opt[]` (C 65) are `&[u8]` slices without the NUL**,
    with `+ 1` where C's `sizeof` counts the terminator (the `xg_set_widget_bg` `format` reading),
    cast to `*const c_char` at the `strcat` calls.
@@ -137,3 +138,13 @@
   stub and rebuilt from `build/femacs/units/runemacs/_root.rs`, xtask's materialised copy of the
   text that had just been compiled) is recorded in `docs/status.md` 3.468 with the evidence that the
   recovery is faithful: 652 lines, the same 336-byte object, and the same two `--check` rows.
+
+## 2026-10-05: the AppUserModelID is the port's own name (3.503)
+
+C 206 hands the Windows shell the *reference's* AppUserModelID; it is the id this program's windows
+are grouped by, so the seventh half of PORTING.md 0.1-19 makes it this repository's own name
+(`USER_MODEL_ID`, a `[u16; 7]` of the port's name plus C's `0x0000`, where C had a `[u16; 10]`).
+C's own literal stays in `nt/runemacs.c` 206 and the deviation is item 7 of `## Deviations`.
+Readings: `extract-abi --check emacs/nt/runemacs.c femacs/nt/runemacs.rs` -> **OK**, with the
+`runemacs` row in `docs/ports/line-drift-tolerance.tsv` moved `1.43 -> 1.46` (C 270 vs the port's
+659 = 144.1%; the unit grew 7 lines here, all of it prose around the constant).

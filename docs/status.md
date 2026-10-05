@@ -9689,3 +9689,58 @@
   ⑦ **预算**：lane：`build-tu` **4 发**（超 1，其中一次 `exit 101` 是磁盘满）、`probe` **4 发**（超 1）、
      另有 6 次直接 `rustc` 与 2 次 clang 探针；集成者：feature 登记 1 发、gate 各 1 发；
      未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/ftfont2-lane` 已删。
+
+- **3.503 版本声明的第七半：程序"向外报出的身份"也改成本仓库自己的名字（2026-10-05）**：
+  ① **范围与判据**：第五半（3.433）改了身份常量与版本横幅，把四类留在门外并点名"若也要改是下一句话的事"；
+     用户判定（"把之前的代码中的这种声明也去掉"）之后逐条复算，改的是**主语是"本程序"的那些**，共 **4 类**：
+     ⑴ **Android 侧的包名与它派生的 JNI 名字**——**40** 个 Kotlin 目标的 `package` 声明、**15** 处身份串
+     （extra key、notification tag、`RemoteViews`、provider authority、`package:` URI、`getApplicationInfo`、
+     `loadClass`），与 Rust 侧 **5 个单元 44 行**按名字查找的类名/描述符（`FindClass`/`FIND_METHOD` 的
+     `Lorg/…;`）以及 3 个 `#[unsafe(export_name = "Java_org_femacs_EmacsNative_*")]`；C 344 的 `NATIVE_NAME`
+     拼的是**参照的**包名，于是 P-83 ①② 改写为"包名是本程序自己的、类名/字段名/方法名两侧逐字一致"，
+     探针拿参照 `.java` 当替身时把替身的 `package` 行一并重挂（`spikes/kotlin-compile-probe.sh`），两个
+     生成器（`spikes/android-r-from-res.py` 的 `R.kt`、探针的 `EmacsConfig.java`）同改。
+     ⑵ **Windows 的 AppUserModelID**：`femacs/nt/runemacs.rs` 的 `USER_MODEL_ID` 从 C 的宽串字面量改成
+     本程序自己的名字（`[u16; 10]` → `[u16; 7]`，尾部仍是 C 的 `0x0000`）。
+     ⑶ **三个 `DEFVAR_LISP` 的 docstring**（`src/callproc.rs` 的 `data-directory`/`doc-directory`/
+     `shared-game-score-directory`）：那句"文件随 <产品> 一起来"的主语是本程序 ⇒ 改成本程序自己的名字。
+     ⑷ **门**：`tools/check-declarations.py` 的 `PRODUCT` 表新增参照的**其它注册名**（Android 包名、JNI 前缀、
+     `L"…"` 形式的 AppUserModelID、bug 地址、Haiku bundle 签名）——3.250 之后它们对每一道门都不可见。
+     **判据一句话不变**（3.433）：**这句话说的是谁**；说"本程序叫什么"的改。
+  ② **留下的四类，照旧点名**：C 的 `DEFUN` docstring（`extract-abi.py` 1724-1727 逐字比对）、`COPYRIGHT` 与
+     许可文本（署名与许可义务）、`PACKAGE_BUGREPORT`（指向上游，改它要发明一个不存在的联系地址）、Haiku 的
+     `application/x-vnd.…`（**`check-carried.py` 把 `.cc` 钉成参照原文**，是"对外注册名"）。**还没移植的同类
+     站点**（规则已写进 PORTING.md 0.1-19 第七半，落库时按新口径写）：`src/xterm.c` 31017、`src/w32term.c`
+     7834、`src/androidterm.c` 6838、`src/haikuterm.c` 4536-4547 的窗口标题，`nt/addpm.c` 266/297 的快捷方式
+     描述，`src/android-emacs.c` 的 `app_process` 类名。**逐字树的运行时横幅**（`femacs/lisp/version.el` 111
+     的 `"GNU Emacs %s …"`）按用户指令原样不动——这一条与"差分阶梯凡打印版本横幅处从此不同"是明码标价的代价。
+  ③ **读数**：⑴ `check-declarations`：**17 declaration sites (0 forbidden, 17 allowed literals), 0 failures**
+     （改前 10 行；3 行随 docstring 改写删除、4 行是 Haiku 被携带的原文、6 行是上游地址、4 行是 C 自己的字面量
+     副本——每行仍带理由）。⑵ 三处**引用 C 自己文本**的行改成不含该名字的说法（`android.rs`/`include/android.rs`/
+     `runemacs.rs`/`EmacsNative.kt` 与三个台账）：gate 的 headline 因此仍是 **0 forbidden**，作者行不必靠豁免
+     撑住。⑶ `extract-abi --check emacs/src/callproc.c femacs/src/callproc.rs` **OK**（`DEFVAR_LISP` 的 docstring
+     **没有任何门在比对**——旧豁免行写"docstring 门逐字比对"，那只对 `DEFUN` 成立，本轮在那一行的 reason 里
+     纠正）；`emacs/nt/runemacs.c` → **OK**（`line-drift-tolerance.tsv` 的 `runemacs` 行 1.43 → **1.46**，
+     C 270 vs 端口 659 = 144.1%，本条让它长了 7 行散文）。⑷ `spikes/kotlin-compile-probe.sh
+     femacs/platform/android/kotlin/*.kt` → **exit 0**（`JAVA_TOOL_OPTIONS=-Xmx2g`；40 个目标 + 参照替身一起
+     编，替身随包名重挂 ⇒ 换包之后**仍是一次真编译**）。⑸ `emacs/src/android.c` 的 `--check` 仍是**同样的两条
+     FAIL**（`no_mangle` 与 72.2% 漂移，与 3.433 逐字相同，漂移因注释变长从 72.3 到 72.2）。
+  ④ **未声称**：**零运行证据**——Kotlin 只编到 `.class`，没有 APK、没有设备、没有 Android 运行时；`have_android`
+     的 Rust 臂在本机仍编不过（P-86 ⑦ 的镜像阻塞），所以 Rust 侧这 44 行只有文本证据（逐描述符 `grep`）；
+     `USER_MODEL_ID` 只编到对象（`windowsnt` 臂的替换值是本机 rustc 的类型检查，不是 Windows 编译）；
+     三个 docstring 只改文本，没有在跑起来的程序里 `C-h v` 过；**没有任何行为验证**说"改了包名之后 JNI 仍能
+     互相找到"——那是 Owed（见 ⑤）。
+  ⑤ **顺带记下的读数**：`check-citations` 本轮中段量到 **1 drift** 在 `femacs/src/widget.rs:78`（lisp.h 30 的
+     `memcpy` 引用），**同轮由 widget lane 自己修掉**，收工读数是 **676 文件 / 0 drift / 0 range / 0 stale**；
+     `check-globals` 有 **1 失败**在 `femacs/src/msdos.rs`（`Vdos_unsupported_char_glyph` 未在本单元定义），
+     该文件本轮没有被改过（`git status` 可查），归属其 lane/后续提交。其余六道门收工读数：
+     `check-verbatim` **6 树 / 4,604 文件 / 0**、`check-mirror-dupes` **17/17/0**、`check-dead-file-coverage`
+     **77 绑定 / 0**、`check-port-lines` **49 棘轮 / 0 new / 2 stale**、`check-target-names` **629 .rs / 591
+     targets / 0**、`check-ledger-ticks` **234 / 0**。
+  ⑥ **预算**：`build-tu` **0 发**（本条不改可编语义，只改文本与身份串；Android 侧的编译证据由 Kotlin 探针给出）；
+     `check-all-units.sh` 1 发（P-87 ① 要求：动过 `femacs/src/include/*.rs` 就要跑，读数 **83 unit(s), 0 failure(s)**，两腿）；
+     Kotlin 探针 1 发；gate 各 1 发；`/tmp/femacs-id` 收工删。
+  ⑦ **欠账（点名）**：Android 的**运行时**验证（重命名后 JNI 查找、provider authority、`package:` URI 是否
+     全部自洽）要等 Android 目标能编/能跑；`docs/baseline/feature-coverage.tsv` 与 `docs/port-map.md` 的重算
+     随各自 lane；`bug-gnu-emacs@gnu.org` 与 Haiku 签名若要改，是**下一句话的事**（前者要一个新地址，后者要
+     先解 `check-carried.py` 的钉死）。

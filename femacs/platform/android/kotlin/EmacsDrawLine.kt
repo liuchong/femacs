@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsDrawLine.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 import android.graphics.Canvas
 import android.graphics.Paint

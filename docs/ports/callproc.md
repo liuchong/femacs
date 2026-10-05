@@ -272,3 +272,15 @@ references and no library defines - the first real link refused it.  Now: the ca
 `fork` (the same shape `sysdep.rs` uses), and the invented declaration is gone.  Evidence:
 `build-tu src/callproc.c` built, `--check` OK, name absent from the link's undefined list
 (`docs/ports/link.md`, reading three).
+
+## 2026-10-05: the three docstrings that named the reference as the program they come with (3.503)
+
+`data-directory`, `doc-directory` and `shared-game-score-directory` (C 2120, 2124, 2135) said the
+files "come with GNU Emacs"; the subject of that clause is the program that ships them, i.e. *this*
+one, so the rule's seventh half (PORTING.md 0.1-19) writes this repository's own name instead.
+Readings: `extract-abi --check emacs/src/callproc.c femacs/src/callproc.rs` stays **OK** - a
+`DEFVAR_LISP` docstring is not compared by any gate (only a `DEFUN`'s digest is, `extract-abi.py`
+1724-1727), which is why the three `literal` rows in `docs/baseline/declarations-allowlist.tsv`
+could be deleted rather than re-reasoned: `check-declarations` falls 10 -> 7 rows on this change
+alone, and the corrected reason for the one docstring that *stays* (`src/emacs.rs`,
+`Vemacs_bugreport`) is recorded in the same commit.

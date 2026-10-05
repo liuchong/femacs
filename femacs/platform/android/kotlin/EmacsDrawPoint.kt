@@ -1,6 +1,6 @@
 // femacs: port of java/org/gnu/emacs/EmacsDrawPoint.java @ fd7afced403.
 
-package org.gnu.emacs
+package org.femacs
 
 class EmacsDrawPoint {
   companion object {

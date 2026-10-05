@@ -625,7 +625,7 @@ unsafe fn android_init_entry_class (env: *mut JNIEnv)
   old = std::ptr::null_mut ();
 
   entry_class.class
-    = ((*(*env)).FindClass.unwrap ()) (env, c"org/gnu/emacs/EmacsDirectoryEntry".as_ptr ());
+    = ((*(*env)).FindClass.unwrap ()) (env, c"org/femacs/EmacsDirectoryEntry".as_ptr ());
   eassert! (! entry_class.class.is_null ());
 
   old = entry_class.class;
