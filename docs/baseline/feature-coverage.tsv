@@ -14,7 +14,7 @@ have_pgtk	823	24	-	-
 not_android_stubify	700	11	-	-
 use_lucid	473	9	-	-
 use_gtk	445	15	-	-
-have_haiku	433	16	xtask dead-arms	-
+have_haiku	431	16	xtask dead-arms	-
 msdos	407	15	-	-
 dispextern_face_records	289	5	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP

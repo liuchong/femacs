@@ -10730,3 +10730,33 @@
      把配置常量一起翻，而 `dead-arms` 会重编每个已落单元，所以我继续等这批 lane 收口后的安静窗口。
   ⑤ **预算**：`probe` 3 发（两次是复读）、`check-all-units` 1 发、`check-citations` 2 发、`extract-abi --check` 2 发、
      `check-mirror-dupes` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`；`/tmp/hkf545` 收工删。
+
+- **3.546 `src/w32menu.c` 整文件落地（C 1-1850）：Windows 菜单面（2026-10-05）**：
+  ① **产出**：`femacs/src/w32menu.rs` 11 → **2904** 行（C 1850，+57.0%），台账 `docs/ports/w32menu.md` 24 → 433 行
+     （**48 行**区间表覆盖 C 1-1850，吸收 260 个块间空行）；`docs/ports/macro-body-notes.tsv` 由该 lane 追加 5 行
+     （它们随上一批的提交进了库，本轮不再重复提交）。**文件门 `have_ntgui`** 落在每个 item 与 C 19-55 的 include 图上；
+     **15 个条件两臂全带**（`NTGUI_UNICODE` 家族 7 处、`makedev`、`have_dialogs`（本文件自己 `#undef` 它）、`true`、
+     `mingw_w64`、`menu_debug`）；`check-cond-eval` 读作 `15 conditions, 0 unknown, 1 disagreements`（C 60 的
+     `#ifndef TRUE`，clang 真/求值器假——已记）。
+  ② **集成者落的账**：登记 **5 个 feature**（`ngui_unicode`→`NTGUI_UNICODE`、`makedev`、`have_dialogs`、`true`、
+     `menu_debug`）；`docs/ports/line-drift-tolerance.tsv` 一行 `w32menu 0.58 total`；`port-map.md`/
+     `port-lines-pending.tsv`/`feature-coverage.tsv` 重算。
+  ③ **读数**：`extract-abi --check emacs/src/w32menu.c femacs/src/w32menu.rs` **OK**（加容差行前唯一一行是 57.0%）；
+     冻结 `build-tu` **exit 0 / 336 字节空对象**；臂（`have_ntgui` + `windowsnt`）**exit 1 / 13 条错误消息**，
+     其中**单元自身 6 条**全是 `E0609 no field menubar_active on w32_output`（`include/w32term.rs` 393-400 把该位域
+     **记着没装**，见下一条镜像轮），其余 7 条在镜像：`include/w32term.rs` 的 5 × `E0428`（`current_popup_menu`、
+     `initialize_frame_menubar`、`w32_popup_dialog`、`syms_of_w32menu`、`globals_of_w32menu` 摆在 crate 根，而本单元
+     定义了它们）+ 1 × `E0425 cannot find type font`，以及 `include/frame.rs` 那条**自己写明**的 `compile_error!`；
+     变异实测 **13 → 14，恰 1 条 `E0308` 点名注入行**；lane 还实测了"只补 `menubar_active` 一个成员"的 `/tmp` 变体：
+     基础读数 **8 条、单元侧 0 条** ⇒ 那 6 条**就是这一个镜像缺口**。
+  ④ **lane 自己修的**：`w32_dialog_show` 的 `error` 参数实为 `char **`（不是 `menu.h` 的 `const char **`）与四处
+     `*error` 存储、两个匿名声明的 `DUMMYUNIONNAME`/`DUMMYUNIONNAME2` 名字（checker 的 `missing field` 行）、
+     一处 `set_buffer_internal_1` 副本（dupes 门）、两条声明类 finding、以及两处原本藏在辅助宏里、body token 门
+     看不见的 `(*f).output_data.w32` 拼写。**参照自身的缺陷**也照录了一处：`HAVE_DIALOGS` 臂命名了
+     `src/w32term.h` 309-456 **没有声明**的 `widget` 成员等，而 C 58 自己 `#undef` 了该宏 ⇒ 那条臂在**任何**配置下
+     都死，两种语言都编不出来。
+  ⑤ **未声称**：零运行证据（冻结档不编本文件；336 字节对象是空的）；臂读数是**物化镜像图**上的 `rustc` 读数、
+     不是 Windows 目标编译（"单元侧 6 条"不等于它能链接）；整个 `<windows.h>`/`<commctrl.h>`/`<mbstring.h>` 面
+     一律 **UNVERIFIED**（本机没有这些头，布局断言欠着）。
+  ⑥ **预算实报**：lane 侧 `build-tu` **3/3**、`probe` **4/3（超支 1，台账点名）**；集成者：生成物 4 发、
+     `extract-abi --check` 1 发、特征表 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
