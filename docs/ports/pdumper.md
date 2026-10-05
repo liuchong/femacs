@@ -463,3 +463,20 @@ re-implemented here.
   with the `glyph_debug` flip is what found it - and this unit's own declaration of the same name was
   what made the name ambiguous once the mirror carried it.  The declaration is gone; the mirror is
   the single declaration point (PORTING.md 0.1-3).
+
+- **The dump runs, and `dump_reloc_set_type` takes the number (3.642).**  C's one caller (C 3706)
+  casts `XFIXNUM (...)` to `enum dump_reloc_type`, and the values that reach it are
+  `RELOC_DUMP_TO_DUMP_LV + <Lisp_Type>` (C 1461) and `RELOC_DUMP_TO_EMACS_LV + <Lisp_Type>`
+  (C 1510) - {6,9,10,11,13} and {14,17,18,19,21} - of which 9/10/11/13/17/18/19/21 are *not*
+  members of the enum (0-6 and 14).  C only stores that number in a 5-bit field, so the port's
+  parameter is `c_int` (PORTING.md P-98) and the truncation is C's (`& ((1 <<
+  DUMP_RELOC_TYPE_BITS) - 1)`), with C's own `eassert (reloc->type == type)` (C 303) as the
+  assertion.  Before this the `transmute` built an invalid discriminant and stopped the dump;
+  after it the dump **completes**: `build/femacs/emacs.pdmp`, 13,025,304 bytes, `Dump complete`,
+  `Byte counts: header=100 hot=8916092 discardable=171944 cold=3915800`.
+- **Owed (named): the load path stops in the `RELOC_DUMP_TO_EMACS_LV` arm (C 5328).**  Starting the
+  binary while that `.pdmp` sits next to it panics with `attempt to add with overflow` at
+  `value += emacs_basis ();` (C 5328; `femacs/src/pdumper.rs` 6005).  The dump *is* produced and
+  *is* opened, so this is the next site - not a regression of the dump run.  C's `uintptr_t`
+  addition there wraps where Rust's checked arithmetic panics (PORTING.md P-96's family), which is
+  the first thing to check.

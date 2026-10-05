@@ -538,12 +538,24 @@ macro_rules! dump_reloc_type_of {
 /* Set the type of a dump relocation.
 
    Also assert that the type fits in the bitfield.  */
-fn dump_reloc_set_type (reloc: *mut dump_reloc, r#type: dump_reloc_type)
+fn dump_reloc_set_type (reloc: *mut dump_reloc, r#type: c_int)
 {
   unsafe {
     /* PORTING.md 0.2: C's `type` is a Rust keyword, so the port uses the raw identifier
-       (the same name, `type`).  */
-    let r#type: c_int = r#type as c_int;
+       (the same name, `type`).
+
+       PORTING.md P-98: C's parameter is `enum dump_reloc_type` (C 300), but the value its one
+       caller passes is **not always one of that enum's members** - C 1461 writes
+       `RELOC_DUMP_TO_DUMP_LV + type` and C 1510 `RELOC_DUMP_TO_EMACS_LV + type` with
+       `type = XTYPE (obj)`, i.e. 6 + {0,3,4,5,7} = {6,9,10,11,13} and 14 + {0,3,4,5,7} =
+       {14,17,18,19,21} (the `Lisp_Type` values this configuration selects, `include/lisp.rs`
+       93-101), while the enum's own members are 0-6 and 14.  C only ever stores that number in a
+       5-bit field (C 291-292) - the enum is a spelling, the storage is an integer - so the port
+       carries the value as the number: `core::mem::transmute` into the port's `dump_reloc_type`
+       would build an **invalid discriminant** and panic on 9/10/11/13/17/18/19/21, which is
+       exactly where the dump stopped (status 3.640).  */
+    /* C's bitfield truncates (`type : DUMP_RELOC_TYPE_BITS`), so the mask is C's own.  */
+    let r#type: c_int = r#type & ((1 << DUMP_RELOC_TYPE_BITS) - 1);
     dump_reloc_set_type_field! (*reloc, r#type);
     eassert! (dump_reloc_type_of! (*reloc) == r#type);
   }
@@ -4141,9 +4153,11 @@ fn dump_decode_dump_reloc (lreloc: Lisp_Object) -> dump_reloc
 {
   let mut lreloc = lreloc;
   let mut reloc: dump_reloc = unsafe { core::mem::zeroed () };
-  dump_reloc_set_type (&mut reloc,
-		       unsafe { core::mem::transmute::<c_int, dump_reloc_type> (
-                           XFIXNUM (dump_pop (&mut lreloc)) as c_int) });
+  /* C 3706-3707: `dump_reloc_set_type (&reloc, (enum dump_reloc_type) XFIXNUM (dump_pop
+     (&lreloc)));` - C's cast does not check the number against the enum's members (see
+     `dump_reloc_set_type`), so the port writes the number rather than transmuting it into the
+     enum (PORTING.md P-98; the C text stays here for the byte-for-byte reading).  */
+  dump_reloc_set_type (&mut reloc, XFIXNUM (dump_pop (&mut lreloc)) as c_int);
   /* C reads `reloc.type`; the port's accessor is `dump_reloc_type_of!` (the `type` family
      in docs/ports/token-aliases.tsv), named once here so the body keeps C's spelling.  */
   let r#type: c_int = dump_reloc_type_of! (reloc);
