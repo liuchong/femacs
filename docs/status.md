@@ -13154,3 +13154,10 @@
   ⑧ **门的扩容**：`tools/check-fwd-static-init.py` 从"`include/lisp.rs` 的 5 个宏"扩到**6 个**（加 `buffer.rs` 的 `DEFVAR_PER_BUFFER`），判据加"`buf.offset`/`buf.predicate` 在静态式里非零"；`--selftest` **5 例 / 0 失败**（含"运行期赋值"形状 ⇒ 3 处失败、`offset/predicate` 归零 ⇒ 1 处、宏被删 ⇒ 1 处）；真树读数 **`6 macro(s), 0 failure(s)`**。**这条规则（P-100）现在有三例**：`DEFVAR_*`（3.644）、`DEFVAR_PER_BUFFER`（3.646）——都是"装载后的进程只跑静态初始化式"这一个形状。
   ⑨ **未声称**：**装载仍未走完**（新停点未定案）；新停点的**符号化不敢当结论**（`decode_emacs_reloc` 是**静态**函数，lldb 的解析可能是"最近的前一个符号"，下一站先把它钉准再动手）；dump 未与参照逐字节比对；没有 L1/L4、没有 `make check`。
   ⑩ **预算**：`build-tu` 2 发、`check-link --executable` 2 发、dump/装载运行 6 发、lldb 5 发（条件断点 + 4 个硬件写断点）；**没有临时仪表残留**（本轮只改 `buffer.rs` 的宏与门）。
+
+- **3.646（补记，同日）：那份 `misaligned pointer dereference` 的读数属于**陈旧 dump**；用修好的二进制**重生成 dump** 后，**装载成功且被装载的程序真的跑 Lisp** —— L3 的三件事（产出 / 装载 / 运行）第一次同时实测到**：
+  ① **更正**：⑦ 里那次 `0xfffffffffffffffd` 的 panic 是拿**旧 dump**（由**未修**的二进制在 dump 期就被写坏 header 的 buffer 一起 dump 下去）跑出来的；`build-tu src/buffer.rs` 之后**重新 `--temacs=pdump`** 生成的 dump 装载时**不再出现**该 panic。⇒ **判据**：改端口里"dump 期会写进 dump 内容"的行为后，**必须重生成 dump**（本件第一次读数就是漏了这一步，照实记）。
+  ② **读数（本机实测，`tools/loadup-fixture.sh --batch --eval …`）**：`rc=0`；`(princ (list "DUMPED-OK" (fboundp 'car) (featurep 'dump-mode) 6))` ⇒ **`(DUMPED-OK t nil 6)`**（`car` 这类 subr 在 dump 里活着、整数运算正常）；`(princ (format "VERSION=%s FEATURES=%d" emacs-version (length features)))` ⇒ **`VERSION=32.0.50 FEATURES=102`**（`emacs-version` 与 102 个 feature 都从 dump 里取到）。
+  ③ **对拍（同一条夹具、同一条 `--eval`，参照用自己的 dump）**：端口 **`(P t 102 32.0.50)`** vs 参照 **`(R t 136 32.0.50)`** ⇒ **`car` 与版本相同，`features` 差 34 个**：这个差是**端口自己的 loadup 还没加载完整**（夹具阶梯停在 114 个文件，3.640 起就记着）——dump 忠实地记下了"端口 loadup 的状态"，不是 dump 的缺陷（下一站可点名到缺哪些 feature）。
+  ④ **未声称**：只到"dump 产出 + 装载 + 在 `--batch` 下跑 `--eval`"；**没有** `.elc` 装载（除 loadup 已加载的）、**没有** `make check`、**没有** L1/L4/L5；`features` 的 34 个差**尚未点名**；dump 未与参照逐字节比对。
+  ⑤ **预算**：本补记 0 编译、0 门改动之外的运行 4 发（装载/对拍）+ 1 发重生成 dump。
