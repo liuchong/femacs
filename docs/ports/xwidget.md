@@ -208,7 +208,7 @@ block, and the union covers C 1-4304 without a gap.
 | 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
 | 3548-3770 | `xwidget-webkit-search` (C 3549-3607), `xwidget-webkit-next-result` (C 3609-3640), `xwidget-webkit-previous-result` (C 3642-3673), `xwidget-webkit-finish-search` (C 3675-3712), `kill-xwidget` (C 3714-3731) and `xwidget-webkit-load-html` (C 3734-3769, under C 3733's `#ifdef USE_GTK`, which is this file's gate) | file gate - **transcribed** (slice 6, status 3.674) |
 | 3771-4027 | `xwidget-webkit-back-forward-list` (C 3771-3865, with C 3864's `#endif` closing C 3733's `#ifdef USE_GTK`), `xwidget-webkit-set-cookie-storage-file` (C 3866-3898), `xwidget-webkit-stop-loading` (C 3899-3925) and **`syms_of_xwidget`** (C 3928-4026, which registers every subr this unit ports) | file gate - **transcribed** (slice 7, status 3.675) |
-| 4028-4304 | **the remainder**: C 4028-4035's comment and the store/kill helpers from C 4037 - `valid_xwidget_spec_p`, `xwidget_spec_value`, `xwidget_touch`, `xwidget_touched`, `lookup_xwidget`, `xwidget_start_redisplay`, `xwidget_end_redisplay`, `xwidget_view_lookup`, `xwidget_view_delete_all_in_window`, `kill_xwidget` (C 4247), `kill_frame_xwidget_views` and `kill_buffer_xwidgets` | file gate - **owed** |
+| 4028-4304 | C 4028-4035's comment on `valid_xwidget_spec_p` and the store/kill helpers: `valid_xwidget_spec_p` (C 4036-4040), `xwidget_spec_value` (C 4044-4059), `xwidget_view_delete_all_in_window` (C 4062-4078), `xwidget_view_lookup` (C 4080-4090), `lookup_xwidget` (C 4092-4105), `xwidget_start_redisplay` (C 4108-4117), `xwidget_touch` (C 4121-4125), `xwidget_touched` (C 4127-4131), `xwidget_end_redisplay` (C 4134-4209), `lower_frame_xwidget_views` (C 4212-4224, C 4211's `#ifdef HAVE_X_WINDOWS`), `kill_frame_xwidget_views` (C 4228-4243, C 4227's `#ifndef NS_IMPL_COCOA`), `kill_xwidget` (C 4246-4285) and `kill_buffer_xwidgets` (C 4288-4304) | file gate; `have_x_windows` on C 4212-4224; `not ns_impl_cocoa` on C 4228-4243 - **transcribed** (slice 8, status 3.676) |
 
 ## Evidence` readings and the `## Deviations`.
 >
@@ -359,7 +359,7 @@ Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861)
 | 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
 | 3548-3770 | `xwidget-webkit-search` (C 3549-3607), `xwidget-webkit-next-result` (C 3609-3640), `xwidget-webkit-previous-result` (C 3642-3673), `xwidget-webkit-finish-search` (C 3675-3712), `kill-xwidget` (C 3714-3731) and `xwidget-webkit-load-html` (C 3734-3769, under C 3733's `#ifdef USE_GTK`, which is this file's gate) | file gate - **transcribed** (slice 6, status 3.674) |
 | 3771-4027 | `xwidget-webkit-back-forward-list` (C 3771-3865, with C 3864's `#endif` closing C 3733's `#ifdef USE_GTK`), `xwidget-webkit-set-cookie-storage-file` (C 3866-3898), `xwidget-webkit-stop-loading` (C 3899-3925) and **`syms_of_xwidget`** (C 3928-4026, which registers every subr this unit ports) | file gate - **transcribed** (slice 7, status 3.675) |
-| 4028-4304 | **the remainder**: C 4028-4035's comment and the store/kill helpers from C 4037 - `valid_xwidget_spec_p`, `xwidget_spec_value`, `xwidget_touch`, `xwidget_touched`, `lookup_xwidget`, `xwidget_start_redisplay`, `xwidget_end_redisplay`, `xwidget_view_lookup`, `xwidget_view_delete_all_in_window`, `kill_xwidget` (C 4247), `kill_frame_xwidget_views` and `kill_buffer_xwidgets` | file gate - **owed** |
+| 4028-4304 | C 4028-4035's comment on `valid_xwidget_spec_p` and the store/kill helpers: `valid_xwidget_spec_p` (C 4036-4040), `xwidget_spec_value` (C 4044-4059), `xwidget_view_delete_all_in_window` (C 4062-4078), `xwidget_view_lookup` (C 4080-4090), `lookup_xwidget` (C 4092-4105), `xwidget_start_redisplay` (C 4108-4117), `xwidget_touch` (C 4121-4125), `xwidget_touched` (C 4127-4131), `xwidget_end_redisplay` (C 4134-4209), `lower_frame_xwidget_views` (C 4212-4224, C 4211's `#ifdef HAVE_X_WINDOWS`), `kill_frame_xwidget_views` (C 4228-4243, C 4227's `#ifndef NS_IMPL_COCOA`), `kill_xwidget` (C 4246-4285) and `kill_buffer_xwidgets` (C 4288-4304) | file gate; `have_x_windows` on C 4212-4224; `not ns_impl_cocoa` on C 4228-4243 - **transcribed** (slice 8, status 3.676) |
 
 ## Evidence
 
@@ -801,6 +801,35 @@ the `nsxwidget_webkit_stop_loading` declaration all live in this unit's own bloc
 `check-dead-file-coverage.py` re-read after the table change: `145 ledger(s), 0 failure(s)`.
 
 
+**⑮ Slice 8 (C 4028-4304): the readings of the round that landed it (2026-10-06, status 3.676).**
+
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **14 -> 2**
+rows.  The twelve retired are the store/kill helper rows (`valid_xwidget_spec_p`,
+`xwidget_spec_value`, `xwidget_view_delete_all_in_window`, `xwidget_view_lookup`,
+`lookup_xwidget`, `xwidget_start_redisplay`, `xwidget_touch`, `xwidget_touched`,
+`xwidget_end_redisplay`, **`kill_xwidget`** - the definition slice 6's use-site declaration could
+not stand in for - `kill_frame_xwidget_views` and `kill_buffer_xwidgets`).  **What is left is the
+drift row** (`line count drifted 48.9%: C 4304 vs Rust 6407`) **and exactly one function**:
+`missing function x_draw_xwidget_glyph_string` (C 2793-3041), the file's last owed text.
+
+b) **The frozen reading.**  `build-tu src/xwidget.c` -> built, `build/femacs/xwidget.o` **336
+bytes** - the empty object of the P-86 class.
+
+c) **The three arm flips against HEAD's own file**: A 51 -> **51**, B 13 -> **13**, C 24 -> **24**,
+added 0 in every arm (after two fixes, below).
+
+d) **Two fixes behind c.**  Run 1: `E0428: the name kill_xwidget is defined multiple times` - slice
+6's use-site declaration must go now that C 4247's *definition* is here (its own comment said so;
+the replacement note records it), and ARM A's `E0605: non-primitive cast Option<_> as u64` in
+`lower_frame_xwidget_views` - C 4221's `None` needs `use x11_constants::None;` (slice 3's import
+shape).  Run 2 is the table above.
+
+e) **No mirror was edited this round**, so P-87 ①'s legs do not apply: `XLowerWindow`,
+`nsxwidget_show_view`/`nsxwidget_hide_view`/`nsxwidget_kill` and C 4221's `None` import all live in
+this unit.  `check-dead-file-coverage.py` re-read after the table change:
+`145 ledger(s), 0 failure(s)`.
+
+
 ## Deviations
 
 1. **Include order.**  C's list starts at `"buffer.h"` (C 22) and reaches `"lisp.h"` at C 25;
@@ -1096,6 +1125,34 @@ the `nsxwidget_webkit_stop_loading` declaration all live in this unit's own bloc
    nested inside it, as C nests them.
 
 
+### Slice 8 (C 4028-4304, status 3.676)
+
+1. **C 96's prototype and slice 6's use-site declaration are replaced by the definition**: C 4247's
+   `kill_xwidget` is now this file's own `unsafe fn` (P-91: Rust has no prototype, so the file
+   carries the definition where C defines it and the declaration where C declares it disappears with
+   it).  The note left in the file says so.
+2. **`lower_frame_xwidget_views` (C 4212-4224) is carried even though the frozen configuration never
+   compiles it**: C 4211's `#ifdef HAVE_X_WINDOWS` arm is dead here (`docs/baseline/config` has
+   `HAVE_X_WINDOWS undef`), but P-86 ① carries both arms of every `#if`, so the item exists under
+   `have_window_system` + `have_x_windows` and its own `XLowerWindow`/`None` declarations sit at the
+   use site.  The checker's `missing function` list never named it for the same reason (its
+   live-line filter is empty for dead-config files) - which is why this slice retires twelve rows
+   for *thirteen* functions.
+3. **`kill_frame_xwidget_views`'s gate is `not ns_impl_cocoa`** (C 4227's `#ifndef`), spelled in the
+   port's feature terms rather than as a negation of the file gate.
+4. **C 4221's `None` needs the `x11_constants` import** inside `lower_frame_xwidget_views` (the
+   `include/xlib.rs` 60-70 module; slice 3's note), otherwise it resolves to `Option::None`.
+5. **`xwidget_end_redisplay`'s glyph walk** keeps C's pointer arithmetic (`glyph.add (…)`,
+   `glyph < glyph_end`) and reads `glyph`'s two bitfields through the mirror's accessors
+   (`glyph_bits! (type, …)`, `glyph_row_bits! (enabled_p, …)`) and its union member as
+   `(*glyph).u.xwidget` (the mirror's `glyph_u`).
+6. **`xfree (xmint_pointer (XCAR (cb)))`** in C 4272 passes `void *`; the port's `xfree` takes
+   `*mut c_void` and `xmint_pointer` already answers it, so no cast is needed - recorded because the
+   neighbouring sites in this file do need one.
+7. **The two `for (Lisp_Object tail = …; …)` loops** are init + `while` + the update statement, and
+   `kill_buffer_xwidgets`'s inner C block is kept as a bare block (C's own braces).
+
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. `femacs/xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
@@ -1157,17 +1214,15 @@ the `nsxwidget_webkit_stop_loading` declaration all live in this unit's own bloc
    only; **slice 2 flips them** (ARM A11 sets `have_xinput2`/`have_xinput2_4`, Evidence ⑧) but the
    arm cannot *resolve* until `XIEventMask`/`x_display_info` land in `include/xterm.rs` (owed 10),
    so the reading is still a name-resolution one and not a compile.
-7. **The next slice - the file's last two fronts.**  Slices 3-7 (status 3.671-3.675) landed
-   C 2717-2790, C 3042-3116, C 3117-3307, C 3308-3547, C 3548-3770 and C 3771-4027; what is left is
-   **C 2791-3041** (C 2793's `x_draw_xwidget_glyph_string`, the densest function in the file: the
-   `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms, `XCreateWindow`/`XISelectEvents`/
-   `cairo_xlib_surface_create`) and **C 4028-4304** - the thirteen `missing function` rows the
-   `--check` reading now carries: `valid_xwidget_spec_p`, `xwidget_spec_value`, `xwidget_touch`,
-   `xwidget_touched`, `lookup_xwidget`, `xwidget_start_redisplay`, `xwidget_end_redisplay`,
-   `xwidget_view_lookup`, `xwidget_view_delete_all_in_window`, **`kill_xwidget` (C 4247, whose
-   *definition* is what slice 6's use-site declaration cannot stand in for)**,
-   `kill_frame_xwidget_views` and `kill_buffer_xwidgets`.  The C line-range table carries both as
-   its **owed** rows.
+7. **The next slice is the file's last one.**  Slices 3-8 (status 3.671-3.676) landed
+   C 2717-2790, C 3042-3116, C 3117-3307, C 3308-3547, C 3548-3770, C 3771-4027 and C 4028-4304;
+   **the only owed text left in this file is C 2791-3041** - C 2793's `x_draw_xwidget_glyph_string`,
+   the densest function in the file (the `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms,
+   `XCreateWindow`/`XISelectEvents`/`cairo_xlib_surface_create`).  The `--check` reading is two rows:
+   that function and the line-count drift, so land it and the unit is text-complete; the drift row
+   then needs `docs/ports/line-drift-tolerance.tsv`'s decision (the three `failing` files at the end
+   of status 3.676 are the same class: a port that carries *more* text than C because every arm is
+   text).
 
 
 8. **The mirror's GDK event records need the members this slice reads.**  The ARM A11 reading's 84

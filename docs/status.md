@@ -13823,3 +13823,27 @@
      三组翻臂都是**编译**不是链接/加载；WebKit 那几个类型与枚举值仍是 **UNVERIFIED**；`syms_of_xwidget` 这次**只**做了注册与变量初始化，
      没有跑过它；没有跑任何行为。
   ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 6 发（本片 3 + HEAD 基线 3）、`--check` 3 发、文本门 2 发；`/tmp` 脚本收工删。
+
+- **3.676 `src/xwidget.c` 的第八片（末片除一处）：C 4028-4304 的存取/销毁助手全部落地——`--check` 的 `- ` 行 14 → **2**，整台单元只剩下 **一个函数**（C 2793 的 `x_draw_xwidget_glyph_string`）加一行行数棘轮；三组翻臂对 HEAD **新增 0**（含把上一片那条使用点声明换成 C 4247 的定义）（2026-10-06）**：
+  ① **范围**：`valid_xwidget_spec_p`（C 4036-4040）、`xwidget_spec_value`（C 4044-4059）、`xwidget_view_delete_all_in_window`（C 4062-4078）、
+     `xwidget_view_lookup`（C 4080-4090）、`lookup_xwidget`（C 4092-4105）、`xwidget_start_redisplay`、`xwidget_touch`、`xwidget_touched`、
+     `xwidget_end_redisplay`（C 4134-4209，glyph 矩阵遍历 + `USE_GTK`/`NS_IMPL_COCOA` 两臂）、
+     `lower_frame_xwidget_views`（C 4212-4224，C 4211 的 `#ifdef HAVE_X_WINDOWS`）、`kill_frame_xwidget_views`（C 4228-4243，C 4227 的 `#ifndef NS_IMPL_COCOA`）、
+     `kill_xwidget`（C 4246-4285）、`kill_buffer_xwidgets`（C 4288-4304）。
+  ② **读数**：`extract-abi --check` **14 → 2**（退场十二条助手行，含 **`kill_xwidget` 的定义**——上一片那条使用点声明顶不了的正是它）。
+     **剩下的就是一行行数棘轮**（`48.9%: C 4304 vs Rust 6407`）**和一个函数**：`missing function x_draw_xwidget_glyph_string`（C 2793-3041）。
+     冻结档仍是 **336 字节空对象**。
+  ③ **三组翻臂（对 HEAD 的同名文件）**：A 51 → **51**、B 13 → **13**、C 24 → **24**，**新增 0**。途中两条修复照实记：
+     `E0428: the name kill_xwidget is defined multiple times`（上一片的使用点声明必须随定义一起撤——它自己的注释就是这么写的，原地留了说明），
+     以及 ARM A 的 `E0605`（`lower_frame_xwidget_views` 里 C 4221 的 `None` 要 `use x11_constants::None;`，同一处第三片起的老办法）。
+  ④ **一条"名义上多算一个函数"的实测**：`lower_frame_xwidget_views` 在冻结配置下**永不被编译**（`HAVE_X_WINDOWS undef`），
+     所以 checker 的 `missing function` 列表从来就没点过它——本片因此是"**十二行对应十三个函数**"；P-86 ① 要求两条手臂都带，端口照带。
+     这条写进 `### Slice 8` 的偏离 2，并给出 `not ns_impl_cocoa`（C 4227 的 `#ifndef`）与 `have_x_windows`（C 4211）两条手臂的拼法。
+  ⑤ **零镜像改动 ⇒ P-87 两条腿不适用**：`XLowerWindow`、`nsxwidget_show_view`/`hide_view`/`kill` 与 `None` 的导入都在本单元。
+     `check-dead-file-coverage` 复读 **145 ledger(s), 0 failure(s)**。
+  ⑥ **账目**：C 区间表两处副本的**最后一行 owed 也变成 transcribed**（现在整张表只剩 2791-3041 一处 owed）；新增 Evidence ⑮（a-e）、
+     `### Slice 8` 的 7 条偏离；Owed 7 改成"本文件只剩最后一片"，并点名落地之后棘轮行要交给 `docs/ports/line-drift-tolerance.tsv` 的口径
+     （与 status 3.676 结尾那三台 same-class 的 failing 文件同类：端口比 C 长的原因是**每条手臂都是文本**）。
+  ⑦ **未声称**：C 2791-3041 一行未动（这台单元仍 FAIL，两行）；冻结档编译不到这个文件；三组翻臂都是**编译**不是链接/加载；
+     WebKit 类型与枚举值仍是 **UNVERIFIED**；没有跑任何行为。
+  ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 6 发（本片 3 × 两轮，含 HEAD 基线 3）、`--check` 4 发、文本门 2 发；`/tmp` 脚本收工删。

@@ -5703,14 +5703,10 @@ DEFUN! ("kill-xwidget", Fkill_xwidget, Skill_xwidget, 1, 1, 0,
   return Qnil ();
 });
 
-/// C 3714's callee: C 4247's `static void kill_xwidget (struct xwidget *xw)` is the remaining
-/// slice's, so the unit declares it at the use site (P-72 rule 4) the way the C 96 prototype
-/// makes it visible in C.  The definition lands with C 4247 and this declaration goes with it.
-/// C: xwidget.c 96: `static void kill_xwidget (struct xwidget *);`
-#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
-unsafe extern "C" {
-  pub fn kill_xwidget (xw: *mut xwidget);
-}
+
+/* C 96's `static void kill_xwidget (struct xwidget *);` prototype and slice 6's use-site
+   declaration are gone: C 4247's definition is carried by this file now (slice 8), so the
+   name is defined, not declared (the P-91 shape).  */
 
 /// C 3734-3741: `DEFUN ("xwidget-webkit-load-html", Fxwidget_webkit_load_html,
 /// Sxwidget_webkit_load_html, 2, 3, 0, doc: ...)` - C 3733's `#ifdef USE_GTK` is this file's
@@ -6041,4 +6037,371 @@ pub unsafe extern "C" fn syms_of_xwidget ()
   }
   DEFSYM! (Qdownload_callback, c"download-callback");
   DEFSYM! (Qjavascript_callback, c"javascript-callback");
+}
+
+/* C 4028's comment on: slice 8, the file's last function block (C 4028-4304).  With it the
+   unit's only owed text is C 2791-3041 (C 2793's `x_draw_xwidget_glyph_string`).  */
+
+/* Value is non-zero if OBJECT is a valid Lisp xwidget specification.  A
+   valid xwidget specification is a list whose car is the symbol
+   `xwidget', and whose rest is a property list.  The property list must
+   contain a value for key `:type'.  That value must be the name of a
+   supported xwidget type.  The rest of the property list depends on the
+   xwidget type.  */
+
+/// C: 4036-4037: `bool` / `valid_xwidget_spec_p (Lisp_Object object)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn valid_xwidget_spec_p (object: Lisp_Object) -> bool
+{
+  return CONSP (object) && EQ (XCAR (object), Qxwidget ());
+}
+
+/* Find a value associated with key in spec.  */
+
+/// C: 4044-4045: `static Lisp_Object` / `xwidget_spec_value (Lisp_Object spec, Lisp_Object key)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe fn xwidget_spec_value (spec: Lisp_Object, key: Lisp_Object) -> Lisp_Object
+{
+  let mut tail: Lisp_Object;
+
+  eassert! (valid_xwidget_spec_p (spec));
+
+  tail = XCDR (spec);
+  while CONSP (tail) && CONSP (XCDR (tail))
+    {
+      if EQ (XCAR (tail), key)
+	{ return XCAR (XCDR (tail)); }
+      tail = XCDR (XCDR (tail));
+    }
+
+  return Qnil ();
+}
+
+/// C: 4062-4063: `void` / `xwidget_view_delete_all_in_window (struct window *w)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xwidget_view_delete_all_in_window (w: *mut window)
+{
+  let mut xv: *mut xwidget_view = core::ptr::null_mut ();
+  let mut tail: Lisp_Object = internal_xwidget_view_list;
+  while CONSP (tail)
+    {
+      if XWIDGET_VIEW_P (XCAR (tail))
+        {
+          xv = XXWIDGET_VIEW (XCAR (tail));
+          if XWINDOW ((*xv).w) == w
+            {
+              Fdelete_xwidget_view (XCAR (tail));
+            }
+        }
+      tail = XCDR (tail);
+    }
+}
+
+/// C: 4080-4081: `static struct xwidget_view *` / `xwidget_view_lookup (struct xwidget *xw,
+/// struct window *w)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe fn xwidget_view_lookup (xw: *mut xwidget, w: *mut window) -> *mut xwidget_view
+{
+  let mut xwidget: Lisp_Object;
+  let mut window: Lisp_Object;
+  let mut ret: Lisp_Object;
+  XSETXWIDGET! (xwidget, xw);
+  XSETWINDOW! (window, w);
+
+  ret = Fxwidget_view_lookup (xwidget, window);
+
+  return if NILP (ret) { core::ptr::null_mut () } else { XXWIDGET_VIEW (ret) };
+}
+
+/// C: 4092-4093: `struct xwidget *` / `lookup_xwidget (Lisp_Object spec)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lookup_xwidget (spec: Lisp_Object) -> *mut xwidget
+{
+  /* When a xwidget lisp spec is found initialize the C struct that is
+     used in the C code.  This is done by redisplay so values change
+     if the spec changes.  So, take special care of one-shot events.  */
+  let mut value: Lisp_Object;
+  let mut xw: *mut xwidget;
+
+  value = xwidget_spec_value (spec, QCxwidget ());
+  xw = XXWIDGET (value);
+
+  return xw;
+}
+
+/* Set up detection of touched xwidget.  */
+
+/// C: 4108-4109: `static void` / `xwidget_start_redisplay (void)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe fn xwidget_start_redisplay ()
+{
+  let mut tail: Lisp_Object = internal_xwidget_view_list;
+  while CONSP (tail)
+    {
+      if XWIDGET_VIEW_P (XCAR (tail))
+        { (*XXWIDGET_VIEW (XCAR (tail))).redisplayed = false; }
+      tail = XCDR (tail);
+    }
+}
+
+/* The xwidget was touched during redisplay, so it isn't a candidate
+   for hiding.  */
+
+/// C: 4121-4122: `static void` / `xwidget_touch (struct xwidget_view *xv)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe fn xwidget_touch (xv: *mut xwidget_view)
+{
+  (*xv).redisplayed = true;
+}
+
+/// C: 4127-4128: `static bool` / `xwidget_touched (struct xwidget_view *xv)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe fn xwidget_touched (xv: *mut xwidget_view) -> bool
+{
+  return (*xv).redisplayed;
+}
+
+/* Redisplay has ended, now we should hide untouched xwidgets.  */
+
+/// C: 4134-4135: `void` / `xwidget_end_redisplay (struct window *w, struct glyph_matrix *matrix)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xwidget_end_redisplay (w: *mut window, matrix: *mut glyph_matrix)
+{
+  let mut i: c_int;
+  let mut area: c_int;
+
+  xwidget_start_redisplay ();
+  /* Iterate desired glyph matrix of window here, hide gtk widgets
+     not in the desired matrix.
+
+     This only takes care of xwidgets in active windows.  If a window
+     goes away from the screen, xwidget views must be deleted.
+
+     dump_glyph_matrix (matrix, 2);  */
+  i = 0;
+  while i < (*matrix).nrows
+    {
+      /* dump_glyph_row (MATRIX_ROW (matrix, i), i, glyphs); */
+      let mut row: *mut glyph_row;
+      row = MATRIX_ROW! (matrix, i);
+      if glyph_row_bits! (enabled_p, row)
+	{
+	  area = LEFT_MARGIN_AREA;
+	  while area < LAST_AREA
+	    {
+	      let mut glyph: *mut glyph = (*row).glyphs [area as usize];
+	      let glyph_end: *mut glyph = glyph.add ((*row).used [area as usize] as usize);
+	      while glyph < glyph_end
+		{
+		  if glyph_bits! (type, glyph) == XWIDGET_GLYPH
+		    {
+		      /* The only call to xwidget_end_redisplay is in dispnew.
+			 xwidget_end_redisplay (w->current_matrix);  */
+		      let xv: *mut xwidget_view
+			= xwidget_view_lookup (xwidget_from_id ((*glyph).u.xwidget), w);
+
+		      /* In NS xwidget, xv can be NULL for the second or
+                         later views for a model, the result of 1 to 1
+                         model view relation enforcement.  `xwidget_view_lookup'
+			 has also been observed to return NULL here on X-Windows
+			 at least once, so stay safe and only touch it if it's
+			 not NULL.  */
+
+                      if !xv.is_null ()
+                        { xwidget_touch (xv); }
+		    }
+		  glyph = glyph.add (1);
+		}
+	      area += 1;
+	    }
+	}
+      i += 1;
+    }
+
+  let mut tail: Lisp_Object = internal_xwidget_view_list;
+  while CONSP (tail)
+    {
+      if XWIDGET_VIEW_P (XCAR (tail))
+        {
+          let xv: *mut xwidget_view = XXWIDGET_VIEW (XCAR (tail));
+
+          /* "touched" is only meaningful for the current window, so
+             disregard other views.  */
+          if XWINDOW ((*xv).w) == w
+            {
+              if xwidget_touched (xv)
+                {
+		  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+		  {
+                  xwidget_show_view (xv);
+		  }
+		  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+		  {
+                  nsxwidget_show_view (xv);
+		  }
+                }
+              else
+                {
+		  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+		  {
+                  xwidget_hide_view (xv);
+		  }
+		  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+		  {
+                  nsxwidget_hide_view (xv);
+		  }
+                }
+            }
+        }
+      tail = XCDR (tail);
+    }
+}
+
+/// C 4192-4195 and C 4200-4203's two `#elif defined NS_IMPL_COCOA` arms' callees.
+/// C: nsxwidget.h 73: `void nsxwidget_show_view (struct xwidget_view *xv);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_show_view (xv: *mut xwidget_view);
+}
+/// C: nsxwidget.h 74: `void nsxwidget_hide_view (struct xwidget_view *xv);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_hide_view (xv: *mut xwidget_view);
+}
+
+/// C: 4212-4213: `void` / `lower_frame_xwidget_views (struct frame *f)` - C 4211's
+/// `#ifdef HAVE_X_WINDOWS`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lower_frame_xwidget_views (f: *mut frame)
+{
+  let mut xv: *mut xwidget_view;
+
+  /* C 4221's `None` is X11/X.h 115's `#define None 0L`, imported by name (slice 3's note).  */
+  use x11_constants::None;
+
+  let mut tail: Lisp_Object = internal_xwidget_view_list;
+  while CONSP (tail)
+    {
+      xv = XXWIDGET_VIEW (XCAR (tail));
+      if (*xv).frame == f as *mut c_void && (*xv).wdesc != None as Window
+	{ XLowerWindow ((*xv).dpy, (*xv).wdesc); }
+      tail = XCDR (tail);
+    }
+}
+
+/// C 4221's `None` (X11/X.h 115) and C 4222's `XLowerWindow`, at the use site (the unit's X11
+/// surface, P-72 rule 4; the `XDestroyWindow` shape above).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+unsafe extern "C" {
+  /// C 4222: `XLowerWindow (xv->dpy, xv->wdesc);`
+  /// C: X11/Xlib.h: `int XLowerWindow (Display *display, Window w);`
+  pub fn XLowerWindow (display: *mut Display, w: Window) -> c_int;
+}
+
+/// C: 4228-4229: `void` / `kill_frame_xwidget_views (struct frame *f)` - C 4227's
+/// `#ifndef NS_IMPL_COCOA`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "ns_impl_cocoa")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn kill_frame_xwidget_views (f: *mut frame)
+{
+  let mut rem: Lisp_Object = Qnil ();
+
+  let mut tail: Lisp_Object = internal_xwidget_view_list;
+  while CONSP (tail)
+    {
+      if XWIDGET_VIEW_P (XCAR (tail))
+	  && (*XXWIDGET_VIEW (XCAR (tail))).frame == f as *mut c_void
+	{ rem = Fcons (XCAR (tail), rem); }
+      tail = XCDR (tail);
+    }
+
+  while CONSP (rem)
+    {
+      Fdelete_xwidget_view (XCAR (rem));
+      rem = XCDR (rem);
+    }
+}
+
+/// C: 4246-4247: `static void` / `kill_xwidget (struct xwidget *xw)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe fn kill_xwidget (xw: *mut xwidget)
+{
+  let mut val: Lisp_Object;
+  XSETXWIDGET! (val, xw);
+
+  internal_xwidget_list = Fdelq (val, internal_xwidget_list);
+  Vxwidget_list = Fcopy_sequence (internal_xwidget_list);
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  (*xw).buffer = Qnil ();
+
+  if !(*xw).widget_osr.is_null () && !(*xw).widgetwindow_osr.is_null ()
+    {
+      gtk_widget_destroy ((*xw).widget_osr);
+      gtk_widget_destroy ((*xw).widgetwindow_osr);
+    }
+
+  if !(*xw).find_text.is_null ()
+    { xfree ((*xw).find_text as *mut c_void); }
+
+  if !NILP ((*xw).script_callbacks)
+    {
+      let mut idx: ptrdiff_t = 0;
+      while idx < ASIZE ((*xw).script_callbacks)
+	{
+	  let cb: Lisp_Object = AREF ((*xw).script_callbacks, idx);
+	  if !NILP (cb)
+	    { xfree (xmint_pointer (XCAR (cb))); }
+	  ASET ((*xw).script_callbacks, idx, Qnil ());
+	  idx += 1;
+	}
+    }
+
+  (*xw).widget_osr = core::ptr::null_mut ();
+  (*xw).widgetwindow_osr = core::ptr::null_mut ();
+  (*xw).find_text = core::ptr::null_mut ();
+
+  catch_child_signal ();
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  nsxwidget_kill (xw);
+  }
+}
+
+/// C 4282-4283's `#elif defined NS_IMPL_COCOA` arm's callee.
+/// C: nsxwidget.h 52: `void nsxwidget_kill (struct xwidget *xw);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_kill (xw: *mut xwidget);
+}
+
+/* Kill all xwidget in BUFFER.  */
+
+/// C: 4288-4289: `void` / `kill_buffer_xwidgets (Lisp_Object buffer)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn kill_buffer_xwidgets (buffer: Lisp_Object)
+{
+  let mut tail: Lisp_Object;
+  let mut xwidget: Lisp_Object;
+  tail = Fget_buffer_xwidgets (buffer);
+  while CONSP (tail)
+    {
+      xwidget = XCAR (tail);
+      {
+        CHECK_LIVE_XWIDGET (xwidget);
+        let xw: *mut xwidget = XXWIDGET (xwidget);
+
+	kill_xwidget (xw);
+      }
+      tail = XCDR (tail);
+    }
+
+  catch_child_signal ();
 }
