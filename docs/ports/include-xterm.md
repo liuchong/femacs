@@ -351,3 +351,11 @@ header has no mirror here: the member is the P-72 rule 3 untyped pointer, with a
 the header's names casting at its use site.  Same flip: the XRender arm goes **14 -> 1**, and the
 one that is left is `include/systime.rs`'s feature/config assertion (whose faithful arm is
 `xtask dead-arms`, status 3.434/3.506).
+
+## 2026-10-05: `x_mark_frame_dirty` (3.521)
+
+C 1405 declares it and C 1412's `FRAME_X_DRAWABLE` calls it - and nothing in the tree declared it,
+so `src/xfont.rs` carried its own declaration at the use site (its Owed 5, status 3.519).  It is
+now in `xterm_bitmap_decls`, the module this mirror glob-imports for names whose *definition* is a
+unit's (`xterm.c` defines it): a crate-root declaration would be `E0428` there, while a glob
+import is shadowed by the definition.

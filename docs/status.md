@@ -10130,3 +10130,15 @@
      `:365` 变 stale（`check-citations` 的 drift+stale 抓的），已挪到 `:371`，读数回到 **0 drift / 0 stale**。
      ——这是"改镜像会把引用行号推走"的第三次实例（3.507 的 `dispextern.rs`、3.511 的修法同型），台账记下。
   ⑥ **未声称**：零运行证据（两条臂都只是本机 rustc 的类型检查；XRender 臂仍停在那一处机制性错误上）。
+
+- **3.521 镜像轮第六批之二：两条"镜像宏在调、却没人声明"的函数（2026-10-05）**：
+  ① **来源**：`src/xfont.rs` 的 Owed 5 点名两处——`include/xterm.rs` 的 `FRAME_X_DRAWABLE!`（C 1412）
+     调 `x_mark_frame_dirty`、`include/font.rs` 的 `FONT_ADD_LOG!`（C 1004-1011）调 `font_add_log`，
+     而两条声明**都不在镜像里**，该单元只能在两个使用点各补一条（P-88 ①）。
+  ② **改动**：⑴ `x_mark_frame_dirty`（C 1405）进 `include/xterm.rs` 的 `xterm_bitmap_decls` 模块 + glob；
+     ⑵ `font_add_log`（C 1001）进 `include/font.rs` 新的 `font_log_decls` 模块 + glob。**两处都用模块**的理由是
+     同一条：它们的**定义**是单元的（`xterm.c`、`src/font.rs` 6288），crate 根上的副本会在那个单元里
+     `E0428`，而 glob 导入会被单元自己的定义遮蔽（P-39 的形状与理由写在两处注释里）。
+  ③ **验收**：`layout-check` **passed**、`check-all-units` **83 unit(s), 0 failure(s)**（P-87 ①）、
+     `check-mirror-dupes`/`check-declarations`/`check-citations`/`check-dead-file-coverage` 全绿。
+  ④ **未声称**：零运行证据；两条声明只让**宏展开后能解析**，没有任何调用被打过。

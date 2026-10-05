@@ -268,3 +268,11 @@ decl, and `5` after this one - the five are the four deferred X11 typedefs of
 `include/dispextern.rs` (next item, `docs/ports/include-dispextern.md`) and one `E0080` in
 `include/systime.rs` whose faithful form is `xtask dead-arms` (it asserts that the feature and
 the `config.rs` constant move together), not a mirror defect.
+
+## 2026-10-05: `font_add_log` (3.521)
+
+C 1001 declares it and the `FONT_ADD_LOG!` macro below (C 1004-1011) calls it; nothing declared it,
+so `src/xfont.rs` and `src/ftfont.rs` each declared it at their use sites (status 3.519).  It lives
+in a `font_log_decls` module the mirror glob-imports because **`src/font.rs` 6288 defines it** -
+the `x_bitmap_stipple`/P-39 shape, and the reason a crate-root copy would be `E0428` in `font.rs`
+while a glob import is simply shadowed by that definition.

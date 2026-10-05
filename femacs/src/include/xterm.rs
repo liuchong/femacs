@@ -217,6 +217,16 @@ pub mod xterm_bitmap_decls {
   unsafe extern "C" {
     pub fn x_bitmap_stipple (f: *mut frame, pixmap: Pixmap) -> *mut cairo_pattern_t;
   }
+
+  /* C 1405: `extern void x_mark_frame_dirty (struct frame *f);`.  The mirror's own
+     `FRAME_X_DRAWABLE!` (C 1412) *calls* it, and nothing declared it: `src/xfont.rs` had to
+     declare it at its use site (its Owed 5, status 3.519).  It belongs here for the same reason
+     the declaration above does - its definition is a unit's (`xterm.c` defines it), so a
+     crate-root copy would be `E0428` there.  */
+  #[cfg (feature = "have_x_windows")]
+  unsafe extern "C" {
+    pub fn x_mark_frame_dirty (f: *mut frame);
+  }
 }
 use xterm_bitmap_decls::*;
 
