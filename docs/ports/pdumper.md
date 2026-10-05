@@ -530,3 +530,26 @@ re-implemented here.
   the reference's `.pdmp` in the port (fingerprint temporarily substituted) therefore wrote into a
   read-only `__DATA_CONST` page and bus-errored - the expected outcome, not a loader defect.  Do not
   spend another round on that experiment.
+
+- **The next stop is in the unwinder, and the dump itself is *correct* (3.645).**  `emacs_abort`
+  inside `print_object` hides the real error: the chain is `emacs_abort <- print_object <- print <-
+  Fprin1 <- print_error_message <- Ferror_message_string <- signal_or_quit <- Fsignal <- xsignal2 <-
+  wrong_type_argument <- Flocal_variable_p <- do_one_unbind <- unbind_to <- exec_byte_code` - i.e.
+  `Flocal_variable_p` signalled `wrong_type_argument` and printing *that* aborted.  The failing call
+  is `do_one_unbind`'s `SPECPDL_LET_LOCAL` branch (`if (!NILP (Flocal_variable_p (symbol, where)))`,
+  C 3880): the binding is `{kind 10, symbol 0x4cba1b0, old_value Qnil, where 0x105e15415}`, and
+  `where` is a Vectorlike object whose *first word is a Lisp_Object* instead of a pseudovector
+  header (a live buffer's header reads `0x400000000d02f04b`), so `CHECK_BUFFER` fails.
+  Two measurements bracket it: (a) reading the **dump file** at the offset of all four dumped
+  buffers (`DUMPBUF` instrument: 57384, 3381024, 5886992, 5895112) shows a proper header and an
+  *unrelocated* `name_` offset - the writer is fine; (b) a hardware write watchpoint on one of those
+  buffers, set from the EARLY phase's `dump_base`, caught exactly one write of its own header value
+  (idempotent) and nothing after.  So the corrupt object still to be identified: watch *all four*
+  buffers through LATE/VERY_LATE and the hooks to the failure.
+- **`union specbinding` measured for the first time (3.645).**  `docs/baseline/layout/` has no keys
+  for it (its `kind` is a bitfield, so `offsetof` cannot name it) - a clang probe with `-std=gnu23`
+  over the reference headers gives `sizeof = 32`, `let.symbol = 8`, `let.old_value = 16`,
+  `let.where = 24`, `bt.function = 8`, `unwind.func = 8`, `SPECPDL_LET = 9`, `SPECPDL_LET_LOCAL =
+  10` - identical to the port's `specbinding_let` (`kind: u8` + `_pad: [u8; 7]` puts `symbol` at 8),
+  so the binding's fields are read correctly.  Writing these into `docs/baseline/layout/` needs the
+  probe regenerated; this round only measured them (`docs/ports/include-lisp.md`).

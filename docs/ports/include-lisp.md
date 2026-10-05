@@ -46,3 +46,10 @@ The five `DEFVAR_*` macros now build their forwarding object in the **static ini
 the way C's macros do with `.u.objvar = &globals.f_##vname`.  A run-time assignment is invisible to
 a process that has just *loaded a dump* - `syms_of_*` never runs again - and left every one of these
 objects NULL (status 3.644); `tools/check-fwd-static-init.py` holds the shape.
+
+`union specbinding` (lisp.h 3572-3635) is **measured, not assumed** (3.645; the layout baseline has
+no keys for it because `let.kind` is a bitfield and `offsetof` cannot name one): a clang probe over
+the frozen headers with `-std=gnu23` prints `sizeof (union specbinding) = 32`, `let.symbol = 8`,
+`let.old_value = 16`, `let.where = 24`, `where.buf`/`where.kbd` both at 24, `bt.function = 8`,
+`unwind.func = 8`, `SPECPDL_LET = 9`, `SPECPDL_LET_LOCAL = 10`.  The port's `specbinding_let` and the
+`specbinding_unwind*`/`specbinding_bt` variants match field for field.
