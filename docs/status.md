@@ -13067,3 +13067,12 @@
   ⑤ **未声称**：**没有 dump 成功**（没有 `.pdmp`）、没有 `.elc` 装载、没有 `make check`；110 行仍是夹具读数；dump 的写点分析是**代码路径**读数（尚未真正写出文件）。
   ⑥ **预算**：`build-tu lib/memmem.c` 4 发、`check-link --executable` 3 发、dump 运行 4 发；`/tmp/d*.log|err` 收工删；`build/femacs/` 无 `.pdmp` 残留。
 
+- **3.638 dump 路径第二站：`DEFVAR_INT` 载体类型写小了一档 ⇒ 8 字节解引用遇 4 字节对齐（misaligned panic）；修好后 dump 真正启动，停在夹具的 DOC 路径（2026-10-06）**：
+  ① **定位链**：上一轮的 panic 在 `src/data.c` 的 `do_symval_forwarding`（`units/data/_root.rs:1173` = 镜像里 `return make_int (*XINTVAR (valcontents));`，即 **`Lisp_Fwd_Int` 支**）。先给该函数装**只在指针错位时打印**的三支守卫 ⇒ 读到 `INTVAR-BAD valcontents=0x…  XINTVAR=0x102d5fc8c（4 字节对齐）XFWDTYPE=0（Lisp_Fwd_Int）`；再在调用者 `default_value` 的两个调用点上按**符号名**打印 ⇒ 点名 **`process-error-pause-time`**（第一次插在 `(*blv).fwd` 那条，没出；真实路径是符号直接 forwarded 的那条）。
+  ② **根因**：端口的 `DEFVAR_INT!` 把地址强转成 `*mut i64`（8 对齐）后交给 `defvar_int`，而 `process.rs` **自己持有**的那个载体写的是 `c_int`（4 字节对齐）——C 那边 `DEFVAR_INT` 指向 `&globals.f_<name>`（8 对齐），端口这条"单元自持"的偏离（status 3.29）把类型也带偏了。⇒ 8 字节读 4 对齐对象 ⇒ Rust `misaligned pointer dereference` panic。
+  ③ **修法**：载体改成 **`EMACS_INT`**（与 C 的 `intmax_t` 同宽同对齐），并把为迁就旧类型加的两处 `as EMACS_INT` 去掉（C 写的是裸变量）；`PORTING.md` 记作 **P-97**（单元自持的 `DEFVAR_*` 载体写成 C 的那个类型：Int → `EMACS_INT`、Bool → `bool`、Lisp → `Lisp_Object`）。
+  ④ **读数（干净树复读）**：`build-tu src/process.c` → `built`；`extract-abi --check emacs/src/process.c femacs/src/process.rs` → **OK**；`check-all-units` 两腿 **83/0**；dump 运行：`rc=134` → **`rc=255`**、`^Loading` **110 → 114**、**`Dump mode: pdump`**（dump 路径这次真的启动），停点是 `Opening doc string file: No such file or directory, ../etc/DOC`——参照构建的 DOC 在 `build/emacs-ref/etc/DOC`，属**夹具路径**而非缺陷；`build/femacs/` 仍无 `.pdmp`。
+  ⑤ **未声称**：**没有 dump 成功**（无 `.pdmp`）、没有 `.elc` 装载、没有 `make check`；114 行是夹具读数。
+  ⑥ **欠账（点名）**：P-97 的**机器门待补**——把每个 `DEFVAR_*!` 的变量名与它在本单元/镜像里的声明类型对拍（下一轮第一件事）。
+  ⑦ **预算**：`build-tu` `src/data.c` 5 发 + `src/process.c` 1 发、`check-link --executable` 5 发、dump 运行 6 发；`data.rs` 的临时仪表已用 `git show HEAD:` 还原；`/tmp/e*.log|err` 收工删。
+

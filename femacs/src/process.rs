@@ -6340,7 +6340,7 @@ unsafe extern "C" fn read_process_output_error_handler (error_val: Lisp_Object) 
   Vinhibit_quit = Qt ();
   update_echo_area ();
   if (process_error_pause_time > 0)
-    { Fsleep_for (make_fixnum (process_error_pause_time as EMACS_INT), Qnil ()); }
+    { Fsleep_for (make_fixnum (process_error_pause_time), Qnil ()); }
   return Qt ();
 }
 
@@ -6348,9 +6348,13 @@ unsafe extern "C" fn read_process_output_error_handler (error_val: Lisp_Object) 
    `read_and_insert_process_output`) are dropped per PORTING.md 0.1-12.  */
 
 /* The `DEFVAR_INT` carrier this file owns (C 9004; status 3.29): C's storage is
-   `globals.f_process_error_pause_time`, so the unit defines the `*` object itself.  */
+   `globals.f_process_error_pause_time`, so the unit defines the `*` object itself.  Type and
+   alignment must be C's: `DEFVAR_INT` reads it through `intmax_t *` (the port's macro casts to
+   `*mut i64`), so a `c_int` here is a 4-byte-aligned object read as 8 bytes - which is the
+   misaligned-pointer panic of status 3.638 (`EMACS_INT` is the port's `intmax_t`, PORTING.md
+   P-97).  */
 #[unsafe(no_mangle)]
-pub static mut process_error_pause_time: c_int = 0;
+pub static mut process_error_pause_time: EMACS_INT = 0;
 
 /// coding.h 408-440's bitfield members this file assigns, in P-80's member-name form: C's
 /// field name stays in the port's text and dispatches to the `bits` unit the mirror declares
@@ -7897,7 +7901,7 @@ unsafe extern "C" fn exec_sentinel_error_handler (error_val: Lisp_Object) -> Lis
   Vinhibit_quit = Qt ();
   update_echo_area ();
   if (process_error_pause_time > 0)
-    { Fsleep_for (make_fixnum (process_error_pause_time as EMACS_INT), Qnil ()); }
+    { Fsleep_for (make_fixnum (process_error_pause_time), Qnil ()); }
   return Qt ();
 }
 

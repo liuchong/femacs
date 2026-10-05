@@ -610,3 +610,21 @@ grep -c '^- [ ]' docs/ports/process.md -> 0   (235 rows ticked)
   with the `glyph_debug` flip is what found it - and this unit's own declaration of the same name was
   what made the name ambiguous once the mirror carried it.  The declaration is gone; the mirror is
   the single declaration point (PORTING.md 0.1-3).
+
+## 2026-10-06: the `DEFVAR_INT` carrier's type (status 3.638)
+
+`DEFVAR_INT! (c"process-error-pause-time", process_error_pause_time, ...)` reads its carrier through
+`intmax_t *` - the port's macro casts the address to `*mut i64` - and this unit owns the object (C's
+storage is `globals.f_process_error_pause_time`, the deviation status 3.29 recorded).  The carrier was
+declared `c_int`: 4-byte aligned, so the 8-byte read panicked with `misaligned pointer dereference`
+(0x102d5fc8c) as soon as the dump path reached `default_value` -> `do_symval_forwarding`'s
+`Lisp_Fwd_Int` arm.  It is `EMACS_INT` now, and the two `make_fixnum (process_error_pause_time as
+EMACS_INT)` casts are gone, since C writes the bare variable.
+
+Readings: `build-tu src/process.c` -> `built`; `extract-abi --check emacs/src/process.c
+femacs/src/process.rs` -> `OK`; `check-all-units.sh` -> 83/0 on both legs; and the dump run moves from
+`rc=134` to `rc=255` with 110 -> **114 `^Loading` lines** and `Dump mode: pdump` - the dump path is
+engaged now and stops on the fixture's missing `../etc/DOC` (the reference build's DOC is at
+`build/emacs-ref/etc/DOC`), which is a harness path rather than a defect in this unit.  PORTING.md
+P-97 states the carrier rule; the gate that checks every `DEFVAR_*!` carrier's declared type is owed
+(status 3.638 ⑥).
