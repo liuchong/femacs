@@ -5,9 +5,10 @@
 > `HAVE_W32` test that also `AC_DEFINE`s `HAVE_NTGUI`), and `docs/baseline/frozen-build-sources.txt`
 > lists no `w32term.o` for this target - so `extract-abi.py`'s checklist for the file is empty
 > (P-86 ②) and this is that clause's substitute: the **C line-range table**, the `## Evidence`
-> readings and the `## Deviations`.  Port: `femacs/src/w32term.rs` (**2941 lines**), which carries
-> **C 1-1949** in two slices - P-86 ④'s **slice 1** (C 1-1002, 1592 lines) and this batch's
-> **slice 2** (C 1003-1949) - with **both arms of every `#if` carried**.
+> readings and the `## Deviations`.  Port: `femacs/src/w32term.rs` (**4123 lines**), which carries
+> **C 1-2715** in three slices - P-86 ④'s **slice 1** (C 1-1002, 1592 lines), **slice 2**
+> (C 1003-1949) and this batch's **slice 3** (C 1950-2715, the image page and the underline
+> drawing) - with **both arms of every `#if` carried**.
 >
 > **This ledger overturns its own earlier conclusion.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names
@@ -68,7 +69,8 @@
 | C 214-216 `#ifdef CYGWIN` / `int w32_message_fd = -1;` | `all (feature = "have_ntgui", feature = "cygwin")`; the `#else` arm is empty | the Cygwin GUI build |
 | C 248-250, 255-257 `#if 0` / `#ifdef GLYPH_DEBUG` (in the prototype block) | the prototype block is dropped (0.1-12); `glyph_debug` is the feature C's arm names | - |
 | C 79-81 `#ifndef GET_WHEEL_DELTA_WPARAM` | the guard reading: the `macro_rules!` is unconditional, C's tokens kept | an SDK without that macro |
-| C 1274-1287, 1719-1721, 1731-1734 `#if 0` (slice 2) | C's own text inside a comment (the `cm.rs` 86 reading) | - |
+| C 1274-1287, 1719-1721, 1731-1734 `#if 0` (slice 2), C 2455-2494 `#if 0` (slice 3) | C's own text inside a comment (the `cm.rs` 86 reading) | - |
+| C 2114-2148 `#ifdef WINDOWSNT` (slice 3, a *statement* inside `w32_draw_image_foreground`) | `all (feature = "have_ntgui", feature = "windowsnt")` on the GDI+ arm and `not (feature = "windowsnt")` on C 2149-2160; C's own text in a comment | the non-Cygwin Windows build (the GDI+ arm); every build (C's `#else`) |
 
 `HAVE_NTGUI` and `WINDOWSNT` are `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`; the
 file has exactly one build condition of its own (the file gate) plus the platform macros above.
@@ -168,7 +170,18 @@ The `arm` cell says what the port does with the block.
 | 1779-1841 | `w32_draw_relief_rect` | file gate |
 | 1844-1881 | `w32_draw_box_rect` | file gate |
 | 1884-1949 | `w32_draw_glyph_string_box` (slice 2's last item) | file gate |
-| 1950-8414 | **the remainder of the file** (C 1952 `w32_image_rotations_p` onward: Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 1950-1955 | `w32_image_rotations_p` (C 1951-1955; C 1950 is the blank line under slice 2's `}`) | file gate (non-`static`, so it carries `#[unsafe(no_mangle)]`) |
+| 1956-1969 | `transform` (C 1962's documentation URL) | file gate |
+| 1970-2190 | `w32_draw_image_foreground` (C 1972-1973's comment; C 2114-2148's `#ifdef WINDOWSNT`) | file gate; the `#ifdef` both arms, C's own text in a comment |
+| 2191-2201 | `w32_image_size` (C 2192-2201) | file gate (non-`static`) |
+| 2202-2293 | `w32_draw_image_relief` (C 2204-2206's comment) | file gate |
+| 2294-2383 | `w32_draw_image_foreground_1` (C 2296-2298's comment) | file gate |
+| 2384-2399 | `w32_draw_glyph_string_bg_rect` (C 2386-2389's comment) | file gate |
+| 2400-2532 | `w32_draw_image_glyph_string` (C 2402-2414's comment and picture; C 2455-2494's `#if 0`) | file gate; the `#if 0` dead text as C's own text in a comment |
+| 2533-2631 | `w32_draw_stretch_glyph_string` (C 2535's comment) | file gate |
+| 2632-2674 | `w32_draw_dash` (C 2633-2638's comment) | file gate |
+| 2675-2715 | `w32_fill_underline` (C 2676-2680's comment; **slice 3's last item**) | file gate (C's `switch` is the port's `match`; `docs/ports/macro-body-notes.tsv`) |
+| 2716-8414 | **the remainder of the file** (C 2720 `w32_draw_glyph_string` onward: C 3044 `w32_shift_glyphs_for_insert`, C 3061 `w32_delete_glyphs`, C 3073 `w32_clear_frame`, C 3097 `w32_ring_bell`, C 3127 `w32_ins_del_lines`, C 3139 `w32_scroll_run`; Line Dance at 3119, Exposure Events at 3239, Mouse Face at 3822, Tab-bars 3973, Tool-bars 3996, Scroll bars 4019/4160, `w32_read_socket` at 5131, Text Cursor 6462, X errors 6819, Input Methods 6894, Fonts 7737, Image Hooks 7809, `w32_initialize` 8155, `syms_of_w32term` 8273) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -367,6 +380,71 @@ at name resolution in the mirror graph (110 unit-anchored errors, exactly Eviden
 "0 in slice 2's lines" is a *name-resolution and type-check* reading taken in an arm where 42
 errors remain elsewhere - it is not "the unit compiles", and no behaviour was executed.
 
+**6. Slice 3's own readings (C 1950-2715) - the same levers, plus the free sweep.**
+
+`cd femacs && CARGO_TARGET_DIR=/tmp/w32term-lane/target cargo run -q -p xtask -- build-tu
+src/w32term.c` -> `built src/w32term.rs -> ../build/femacs/w32term.o`, **exit 0**, and
+`build/femacs/w32term.o` is **336 bytes** - Evidence 1's empty object.  Every item this slice adds
+carries the file gate, so the frozen configuration still compiles only `include/config.rs` and the
+`#![allow]` attribute.  Three runs over the batch: the baseline before the text was written, one
+mid-batch run that stopped on the first draft's four errors (below), and the final one - the last
+two are the reading; only the last is the final revision's.
+
+**The free sweep** (a *free* reading: direct `rustc` on a copy of `build/femacs/units/w32term` in
+`/tmp`, the same materialized root `build-tu` compiles, under four `--cfg` sets):
+
+| configuration | errors | where |
+| --- | --- | --- |
+| none (the frozen arm) | 0 | - |
+| `windowsnt` | 0 | - |
+| `have_ntgui` + `windowsnt` | the mirror's own refusal | `include/frame.rs` 329's `compile_error!`, the two `E0428`s of `include/w32term.rs` 338/1173 and `glyph_string_bits!`'s `E0425` (`have_window_system` is off in this set) |
+| `have_ntgui` + `windowsnt` + `have_window_system` + `dispextern_face_records` | 19 | 9 mirror-anchored, 10 in **slice 1's** lines, **0 in this slice's** |
+
+The 19: the two `E0428`s of `include/w32term.rs` 338 (`w32_query_frame_background_color`, owed 15)
+and 1173 (`w32_image_rotations_p`, **new - this slice's definition**, owed 21), `include/frame.rs`
+329's `compile_error!`, `CRITICAL_SECTION` (`include/w32term.rs` 1585), `LPVOID`
+(`include/w32common.rs` 126/127), `LOGFONT` (`include/w32font.rs` 177), `c_variadic`
+(`include/lisp.rs` 3763) and one `E0308` (`include/w32term.rs` 632) - the mirror rows owed 12
+already names; then the seven `w32_fill_area_abs` `COLORREF` conversions of owed 8 and the three
+`draw_fringe_bitmap_params` reads of owed 5, both in slice 1's lines.  **"0 in this slice's lines"
+is a name-resolution and type-check reading**: the arm is not a working Windows configuration, no
+behaviour was executed, and the two arms above it are refused, so nothing here says the unit
+compiles end to end.
+
+**Two corrections inside earlier slices' lines, measured the same way.**  Before them this sweep
+read 39 errors, five of them **slice 2's**: `w32_compute_glyph_string_overhangs`' two
+`(*s).cmp.rbearing`/`.pixel_width`/`.lbearing` reads (C 1241-1242) and
+`w32_draw_composite_glyph_string_foreground`'s two `(*s).cmp.offsets` reads and its
+`COMPOSITION_GLYPH ((*s).cmp, …)` argument (C 1462-1464) were `E0609`/`E0308`, because
+`glyph_string::cmp` is the mirror's untyped `*mut c_void` and `include/composite.rs` carries the
+record.  All five now cast `as *mut composition` (the `w32_draw_composite_glyph_string_foreground`
+shape) and read 0.  The first draft's four errors were this slice's own and were fixed inside the
+batch: `E0585` (a `/// C:` line after a struct member), `E0244`-class `box` (a Rust keyword, so
+`face_bits! (box, …)`), `E0308` on `GetObject`'s `LPVOID` argument, `E0308` on C's `corner` array
+decay and `E0618` on the four GDI+ macro calls (they yield the loaded `Option`).
+
+**The official probes.**  `... probe src/w32term.rs /tmp/w32term-lane/x-windowsnt.rlib --crate-type=lib
+-C panic=abort --cfg 'feature="windowsnt"'` -> **exit 0, no output, a 22448-byte rlib**: the
+mirror graph and this unit's `windowsnt`-gated declarations compile in the single-gate arm (3.575's
+claim, re-read here).  The same command with `--cfg 'feature="have_ntgui"'` added -> **exit 1, 33
+errors**, the mirror's refusal this batch does not touch: `include/frame.rs` 329's `compile_error!`
+(`HAVE_NTGUI` is not the arm the flag run was measured on), the two `E0428`s above, the four
+`E0425`s of owed 22 (`CRITICAL_SECTION`, `LPVOID` twice, `LOGFONT`) and **24 `E0425`s for
+`glyph_string_bits!`** - `include/dispextern.rs` 1835 gates that macro on `have_window_system`,
+which C's `HAVE_NTGUI` implies (config.h) but this hand-set `--cfg` pair does not set.  None of the
+33 is this slice's text and none is fixable in this unit; the substantive reading of the GDI+ and
+drawing code is the free sweep's fourth row above.
+
+**The `extract-abi --check` readings (before -> after): 110 -> 99 findings.**  The eleven retired
+rows are exactly this slice's eleven definitions (`transform`, `w32_draw_dash`,
+`w32_draw_glyph_string_bg_rect`, `w32_draw_image_foreground`, `w32_draw_image_foreground_1`,
+`w32_draw_image_glyph_string`, `w32_draw_image_relief`, `w32_draw_stretch_glyph_string`,
+`w32_fill_underline`, `w32_image_rotations_p`, `w32_image_size`); the line-count row moved from
+`65.0%: C 8414 vs Rust 2941` to `51.0%: C 8414 vs Rust 4123`; and one **new** row this slice
+measures, `function w32_fill_underline does not mention break, case, default, fallthrough,
+switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch appends (the
+`tparam1`/`Fvariable_binding_locus` precedents).
+
 ## Deviations
 
 - **The `<windows.h>` section is spelled, not measured.**  C reaches `<windows.h>` through C 25's
@@ -491,6 +569,84 @@ errors remain elsewhere - it is not "the unit compiles", and no behaviour was ex
   configuration, dispextern.h 3766) promotes the shorter arm; the port's macro does the same, and
   its call site narrows back with C's own assignment conversion (`as COLORREF`).
 
+### Slice 3 (C 1950-2715)
+
+- **The `<windows.h>` / `<wingdi.h>` / `<gdiplus.h>` names this slice adds are spelled, not
+  measured** - the same reading and the same site (C 25's chain) as slices 1 and 2, and the same
+  **UNVERIFIED** status.  The plain Windows names: `FLOAT`, `XFORM` (six `FLOAT`s),
+  `BITMAP`, `BITMAPINFOHEADER`, `DIBSECTION`, `GetObject`, `StretchBlt`, `SetStretchBltMode`,
+  `SetBrushOrgEx`, `CopyImage`, `GetCurrentObject`, `SRCINVERT`, `SRCAND`, `HALFTONE`,
+  `OBJ_BITMAP`, `IMAGE_BITMAP`.  The GDI+ names the C text of this slice *itself* names stand here
+  too, gated `feature = "windowsnt"` the way `include/w32gdiplus.rs`'s own items are: `GpStatus`
+  (the SDK's `Status`, with `Ok`), `GpImage`, `GpGraphics`, `GpBitmap`, `GpUnit` (with
+  `UnitPixel`), `InterpolationMode` (with `InterpolationModeHighQualityBilinear`) and
+  `DrawImageAbort` - the `src/w32image.rs` 244-293 reading of the same header, and the reason
+  `include/w32gdiplus.rs`'s head note gives for leaving the SDK's GDI+ types to its includer.
+  **The rest of that header's type set stays owed to the mirror** (owed 12): `GpImageAttributes`,
+  `ARGB`, `PROPID`, `PixelFormat`, `RotateFlipType`, `GUID`/`CLSID`/`IID`, `IStream`,
+  `PropertyItem`, `ImageCodecInfo`, `EncoderParameters`, `GdiplusStartupInput`/
+  `GdiplusStartupOutput` and the three callback typedefs, `ULONG` and `GetThumbnailImageAbort`; the
+  sweep reads **no error** for any of them, because rustc resolves a type alias only when it is
+  used (measured: the arm reports `CRITICAL_SECTION`/`LPVOID`/`LOGFONT` from the same class and
+  nothing for these).  Every record is `#[repr(C)]` and no size is measured (owed 24).
+- **The GDI+ entry points are macros that yield the loaded `Option`.**  C's `GdipCreateFromHDC (…)`
+  / `GdipDisposeImage (…)` / `GdipDeleteGraphics (…)` / `GdipSetInterpolationMode (…)` /
+  `GdipDrawImageRectRectI (…)` / `GdipCreateBitmapFromHBITMAP (…)` are the port's
+  `GdipCreateFromHDC! ().unwrap () (…)` and so on (the `pfnSetLayeredWindowAttributes.unwrap ()`
+  reading above), and C's `… == Ok` compares the returned `GpStatus` with the value this unit
+  declares.  C's `NULL` pointer arguments are `core::ptr::null`/`null_mut` and its null
+  `DrawImageAbort` is `None`.
+- **`struct image`'s `xform` member is by value in C and a `*mut c_void` in the mirror** (that
+  mirror's own recorded deviation, `include/dispextern.rs` 2412-2416).  Every read is therefore
+  the use-site cast C's `s->img->xform.eM12` needs - `(*( (*(*s).img).xform as *mut XFORM )).eM12`
+  with C's `!= 0` written `!= 0 as FLOAT` (the member is a `FLOAT` and C's `0` converts to it) -
+  and C's `&s->img->xform` is `(*(*s).img).xform as *mut XFORM`.  C's `&s->slice` is
+  `&raw mut (*s).slice` (`image_ascent`'s third parameter).
+- **C 2114-2148's `#ifdef WINDOWSNT` is the first *statement*-level guard in this file.**  Both arms
+  are carried, C's own text stands in a comment above them, and because Rust cannot attach a `cfg`
+  to an `else` clause, C 2148-2160's HALFTONE/`StretchBlt` block appears **twice**: as the GDI+
+  test's `else` under `feature = "windowsnt"` and as the whole arm under
+  `not (feature = "windowsnt")`.  C's `(pmode = SetStretchBltMode (…)) != 0` in both copies is the
+  block operand the `terminal.rs` 479 reading gives an assignment inside a condition.
+- **The bitfield runs read through the mirrors' accessors.**  `s->slice.x`/`y`/`width`/`height` are
+  `glyph_slice_bits!` (`include/dispextern.rs` 599-608; each read lands in an `int` parameter or
+  variable, so C's `unsigned` → `int` conversion is written out), `s->face->box` is
+  `face_bits! (box, …)` - `box` is a Rust keyword, which is why the write-out is a macro - and
+  `s->first_glyph->left_box_line_p`/`right_box_line_p`, `s->row`'s `reversed_p`/`mouse_face_p`/
+  `mode_line_p` and `s->stippled_p`/`background_filled_p` are `glyph_bits!`/`glyph_row_bits!`/
+  `glyph_string_bits!` (the two write sites are the macro's three-argument arm).
+- **C's `!` on a `BOOL` is `== 0`.**  `!pfnPlgBlt (…)` is `pfnPlgBlt.unwrap () (…) == 0` and the
+  bare `pfnPlgBlt` truth test is `is_some ()`; C's `corner` array decay at that call is
+  `&raw mut corner as *mut POINT` (the slice 1 `w32_restore_glyph_string_clip` reading of the same
+  decay), and C's `sizeof (dib)` / `sizeof (BITMAP)` are `core::mem::size_of::<DIBSECTION> ()` /
+  `<BITMAP> ()` with the `LPVOID` argument spelled `as *mut c_void`.
+- **C's `char segment`** (C 2640) is a `c_char`, so each arithmetic use writes C's own promotion to
+  `int` out (`segment as c_int`) and `length = segment` is `length = segment as c_int`;
+  `which = !which` is the recorded `(which == 0) as c_int`; and `w32_draw_dash`'s
+  `for (x = s->x; …; x += length, length = segment)` is the header's assignment plus a `while`
+  whose last two statements are C's increment in C's order.
+- **`w32_fill_underline`'s `switch` is the port's `match`** over C's own labels, so
+  `switch`/`case`/`default`/`break` cannot reappear and the `FACE_UNDERLINE_DOTS` arm's
+  `FALLTHROUGH;` is carried as that arm's second statement (C's `w32_draw_dash` call written there
+  as well, PORTING.md 2.2).  `emacs_abort` stands in two arms - `FACE_NO_UNDERLINE |
+  FACE_UNDERLINE_WAVE` and `_` - where C has `case FACE_NO_UNDERLINE: case FACE_UNDERLINE_WAVE:
+  default:`.  The five tokens are recorded in `docs/ports/macro-body-notes.tsv`.
+- **Three more `dispextern.h` entry points are declared at their use sites** - `window_box_left`
+  (3579), `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692) - the class slice 2's
+  five name (owed 17).  `image_ascent` (dispextern.h 3774) is declared the same way but is **not**
+  a gap: `src/image.rs` 2808 defines it as a non-`static` `#[unsafe(no_mangle)]` function, so the
+  declaration keeps C's prototype and no stand-in (the `gui_define_fringe_bitmap` reading).
+- **The unit includes `include/conf_post.rs`** because C's `config.h` AH_BOTTOM does (`DebPrint`,
+  C 1807/2145/2353/2366 - the `w32dwrite.rs` 415-417 reading of the same line).  This is the one
+  line this batch added to slice 1's include section, next to the `include/config.rs` line C 20
+  names.
+- **Two corrections inside earlier slices' lines** (measured by this batch's sweep, not new text):
+  five `(*s).cmp` sites in slice 2 now cast `as *mut composition` (Evidence 6), and the slice 1
+  `w32_draw_glyph_string_box` region is untouched.  The switch-token gap of `w32_fill_underline` is
+  the only other earlier-slice-adjacent change; it is a table row, not port text.
+- **Line count.**  C 8,414 (this slice 766) vs Rust 4,123 - the `docs/ports/line-drift-tolerance.tsv`
+  row owed 2 below now covers a three-slice prefix.
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. `tools/check-port-lines.py --write-pending`: this file's ratchet row is now **stale**
@@ -560,9 +716,13 @@ errors remain elsewhere - it is not "the unit compiles", and no behaviour was ex
     `RECT`, `_TOUCHINPUT`, the `MSG`/`RECT` pair in `W32Msg`) once a Windows or mingw toolchain
     exists (`xtask layout-asserts` reads a C compiler's readings; `x86_64-w64-mingw32-gcc` is
     absent here).
-14. The next lane's slice: **C 1950-8414**, whose first definition is **`w32_image_rotations_p`
-    (C 1952-1955)** - the image page; its callers are `w32_draw_image_foreground`'s two rotation
-    tests (C 1975 onward), so it opens that page.  That slice also removes the remaining
+14. ~~The next lane's slice: **C 1950-8414**~~ - **DONE to C 2715 in this batch (slice 3)**, see
+    the C line-range table and `## Deviations`' `### Slice 3`.  The next lane's slice is now
+    **C 2716-8414**, whose first definition is **`w32_draw_glyph_string` (C 2720-3042)** - the
+    glyph-string dispatcher, followed by `w32_shift_glyphs_for_insert` (C 3044-3060),
+    `w32_delete_glyphs` (C 3061-3072), `w32_clear_frame` (C 3073-3096), `w32_ring_bell`
+    (C 3097-3126), `w32_ins_del_lines` (C 3127-3138) and `w32_scroll_run` (C 3139-3243).  That
+    slice also removes the remaining
     `missing file-scope object` rows (`dbcs_lead`, `utf16_high`, `utf16_high_modifiers`,
     `temp_index`, `temp_buffer`, `w32_initialized`) and the last remainder macro (`LOAD_PROC`,
     C 8244).
@@ -597,6 +757,32 @@ errors remain elsewhere - it is not "the unit compiles", and no behaviour was ex
     the arm cannot be type-checked end to end until those assertions are put behind the arm they
     were measured on - the same missing toolchain owed 13 records.
 
+21. `include/w32term.rs` 1170-1173: the `extern "C"` block there declares
+    `w32_image_rotations_p`, and this slice **defines** it, so the arm reads **one new `E0428`**
+    (the primary anchor is the mirror's line, the unit's definition the second) until that
+    declaration gets owed 4's `*_decls` module + glob-import treatment.  It joins owed 4's list,
+    which becomes **9 functions** and 16 objects.  It is the only new collision this slice
+    creates: `w32_image_size` is declared in `include/w32gui.rs`'s `w32gui_fn_decls` module (a
+    crate-root definition shadows the glob-imported one), and the other nine definitions are C
+    `static` functions, which the mirror does not declare.
+22. **The three new mirror-anchored name gaps this slice's sweep reads**: `LPVOID`
+    (`include/w32common.rs` 126-127), `CRITICAL_SECTION` (`include/w32term.rs` 1585) and `LOGFONT`
+    (`include/w32font.rs` 177) - the class owed 12 names, and the same `<windows.h>` missing on
+    this machine.  They are name-resolution errors in the **mirror**; none is this unit's text,
+    and no mirror adds them here (P-72/P-88 leave the SDK's names to the target).
+23. `include/dispextern.rs`: **three more entry points** are declared at this unit's use sites
+    because no mirror carries them - `window_box_left` (dispextern.h 3579),
+    `window_box_left_offset` (3580) and `cursor_in_mouse_face_p` (3692) - the `androidterm.rs`
+    160-175 precedent owed 17 records for its five.  (`image_ascent`, dispextern.h 3774, is
+    declared the same way but is **not** a gap: `src/image.rs` 2808 defines it.)
+24. The layout assertions for this slice's four `#[repr(C)]` records (`XFORM`'s six `FLOAT`s, the
+    `BITMAP`/`BITMAPINFOHEADER` pair and the `DIBSECTION` that embeds both, whose `sizeof` C 2008
+    passes to `GetObject`) once a Windows or mingw toolchain exists - owed 13's list, and the GDI+
+    records' assertions with them.
+25. `docs/ports/macro-body-notes.tsv`: this batch **appended one row** (`w32_fill_underline`, the
+    five `switch` tokens, `## Deviations`' `### Slice 3` records why); `docs/ports/
+    excluded-macros.txt` was **not** touched (this slice excludes no macro).
+
 ## Not claimed
 
 - **No runtime evidence of any kind.**  The frozen configuration compiles nothing from this file
@@ -612,7 +798,19 @@ errors remain elsewhere - it is not "the unit compiles", and no behaviour was ex
 - **The `<windows.h>` records of this slice stay unmeasured.**  No `#[repr(C)]` record is added by
   slice 2, but the section it extends (`POINT`, `RECT`, `W32Msg`) is still **UNVERIFIED**, and the
   new typedefs/macros are C's text at PORTING.md 1.1's widths, with no layout reading (owed 13).
-- **`extract-abi --check` still FAILs for the file**, by construction: 110 rows remain, 109 of
-  them the C 1950-8414 remainder plus the line-count row.  Nothing in this ledger claims the file
-  is complete, and the checklist is empty for it (P-86 ②), so the C line-range table and these
-  readings are the substitute, not a pass.
+- **Slice 3's 19-error sweep is not a Windows compile either.**  Evidence 6's "0 in this slice's
+  lines" is a name-resolution and type-check reading taken under a hand-set `--cfg` combination
+  (`have_ntgui`, `windowsnt`, `have_window_system`, `dispextern_face_records`) in which 19 errors
+  remain elsewhere; the official `windowsnt`-alone probe compiles the include graph and this unit's
+  `windowsnt`-gated names only (clean), and the official `have_ntgui` + `windowsnt` probe is
+  **refused by the mirror** (`include/frame.rs` 329's `compile_error!`), so *neither* official arm
+  reads the GDI+ block, the image drawing or the underline drawing.  No behaviour was executed;
+  there is no `HDC`, bitmap, image or redisplay loop anywhere in this batch's readings.
+- **This slice's four records stay unmeasured.**  `XFORM`, `BITMAP`, `BITMAPINFOHEADER` and
+  `DIBSECTION` are spelled from `<windows.h>`'s declaration order and PORTING.md 1.1's widths, and
+  `sizeof (DIBSECTION)` - the size C 2008 hands `GetObject` - is `size_of`'s answer for that
+  spelling, not a measured SDK reading (owed 24).
+- **`extract-abi --check` still FAILs for the file**, by construction: 99 rows remain - 91
+  `missing function`, 6 `missing file-scope object`, the `LOAD_PROC` macro of C 8244 and the
+  line-count row.  Nothing in this ledger claims the file is complete, and the checklist is empty
+  for it (P-86 ②), so the C line-range table and these readings are the substitute, not a pass.

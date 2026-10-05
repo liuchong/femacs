@@ -60,6 +60,10 @@
          overflowing_literals, unused_must_use, clippy::all)]
 
 include!("include/config.rs");
+/* C 20's AH_BOTTOM: `#include <conf_post.h>` (`DebPrint`, C 1807/2145/2353's uses; the
+   `w32dwrite.rs` 415-417 reading of the same AH_BOTTOM).  */
+#[cfg (feature = "have_ntgui")]
+include!("include/conf_post.rs");
 
 /* C 20-66: the include graph.  Every header sits inside the file gate, as C's own build has it (no
    translation unit the frozen configuration builds reaches this file).  */
@@ -2101,8 +2105,8 @@ unsafe fn w32_compute_glyph_string_overhangs (s: *mut glyph_string)
     }
   else
     {
-      (*s).right_overhang = ((*(*s).cmp).rbearing - (*(*s).cmp).pixel_width) as c_int;
-      (*s).left_overhang = (- (*(*s).cmp).lbearing) as c_int;
+      (*s).right_overhang = ((*( (*s).cmp as *mut composition )).rbearing - (*( (*s).cmp as *mut composition )).pixel_width) as c_int;
+      (*s).left_overhang = (- (*( (*s).cmp as *mut composition )).lbearing) as c_int;
     }
 }
 
@@ -2345,10 +2349,10 @@ unsafe fn w32_draw_composite_glyph_string_foreground (s: *mut glyph_string)
 	{
 	  /* TAB in a composition means display glyphs with padding
 	     space on the left or right.  */
-	  if COMPOSITION_GLYPH ((*s).cmp, j as ptrdiff_t) != 9
+	  if COMPOSITION_GLYPH ((*s).cmp as *mut composition, j as ptrdiff_t) != 9
 	    {
-	      let xx: c_int = x + (*(*(*s).cmp).offsets.add ((j * 2) as usize)) as c_int;
-	      let yy: c_int = y - (*(*(*s).cmp).offsets.add ((j * 2 + 1) as usize)) as c_int;
+	      let xx: c_int = x + (*(*( (*s).cmp as *mut composition )).offsets.add ((j * 2) as usize)) as c_int;
+	      let yy: c_int = y - (*(*( (*s).cmp as *mut composition )).offsets.add ((j * 2 + 1) as usize)) as c_int;
 
 	      ((*((*font).driver as *const font_driver)).draw.unwrap ())
 		(s, j, j + 1, xx, yy, false);
@@ -2937,5 +2941,1183 @@ unsafe fn w32_draw_glyph_string_box (s: *mut glyph_string)
       w32_draw_relief_rect ((*s).f, left_x, top_y, right_x, bottom_y, hwidth, vwidth, raised_p
 			    as c_int, 1, 1, left_p as c_int, right_p as c_int,
 			    &raw mut clip_rect);
+    }
+}
+
+/* ----------------------------------------------------------------------------------------------
+   The `<windows.h>` / `<wingdi.h>` / `<gdiplus.h>` names **this slice** adds to the section C 25's
+   chain opened above, at the same declaration site and by the same reading (P-88 clause 1: the
+   site is the chain's include line, and no file is added under `femacs/src/include/`).  The image
+   page that C 1950 opens is where `w32term.c` starts reading the GDI bitmap records and the GDI+
+   entry points, so its section is the first one with `#[repr(C)]` members of its own.  No
+   measurement was possible: this machine has no `windows.h`, no `gdiplus.h` and no mingw toolchain
+   (the file note above), so every scalar below is PORTING.md 1.1's fixed width, every record keeps
+   `<windows.h>`'s own declaration order, and each size is **UNVERIFIED** (the ledger's owed layout
+   list).
+   ---------------------------------------------------------------------------------------------- */
+
+/// C 1964's `0.5f` and C 3247's `XFORM`: `<windows.h>`'s `typedef float FLOAT;`.
+/// C: typedef float FLOAT;
+#[cfg (feature = "have_ntgui")]
+pub type FLOAT = f32;
+
+/// C 1978's `&s->img->xform` and the three `transform` calls: `<windows.h>`'s `tagXFORM` (six
+/// `FLOAT`s, 24 bytes).  `struct image`'s member of this type is the mirror's recorded deviation
+/// (`include/dispextern.rs` 2412-2416: it stores a `*mut c_void` where C reads a record by value),
+/// so every site that names the member is the use-site cast `as *mut XFORM` - this unit is the
+/// first reader of that member and the ledger records it.
+/// C: typedef struct tagXFORM { FLOAT eM11; FLOAT eM12; FLOAT eM21; FLOAT eM22; FLOAT eDx;
+/// C:                         FLOAT eDy; } XFORM;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XFORM
+{
+  pub eM11: FLOAT,
+  pub eM12: FLOAT,
+  pub eM21: FLOAT,
+  pub eM22: FLOAT,
+  pub eDx: FLOAT,
+  pub eDy: FLOAT,
+}
+
+/// C 2009's `BITMAP bmp = dib.dsBm;` and C 2195's `BITMAP bm_info;`: `<wingdi.h>`'s `tagBITMAP`.
+/// C: typedef struct tagBITMAP { LONG bmType; LONG bmWidth; LONG bmHeight; LONG bmWidthBytes;
+/// C:                           WORD bmPlanes; WORD bmBitsPixel; LPVOID bmBits; } BITMAP;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct BITMAP
+{
+  pub bmType: LONG,
+  pub bmWidth: LONG,
+  pub bmHeight: LONG,
+  pub bmWidthBytes: LONG,
+  pub bmPlanes: WORD,
+  pub bmBitsPixel: WORD,
+  /// C: `LPVOID bmBits;`
+  pub bmBits: *mut c_void,
+}
+
+/// C 2003's `DIBSECTION dib;` embeds `<wingdi.h>`'s `tagBITMAPINFOHEADER` by value, so the record
+/// stands here with it (`sizeof (dib)` is C 2008's second argument to `GetObject`, which is this
+/// record's size whatever the member values are).
+/// C: typedef struct tagBITMAPINFOHEADER { DWORD biSize; LONG biWidth; LONG biHeight;
+/// C:      WORD biPlanes; WORD biBitCount; DWORD biCompression; DWORD biSizeImage;
+/// C:      LONG biXPelsPerMeter; LONG biYPelsPerMeter; DWORD biClrUsed; DWORD biClrImportant; }
+/// C:      BITMAPINFOHEADER;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct BITMAPINFOHEADER
+{
+  pub biSize: DWORD,
+  pub biWidth: LONG,
+  pub biHeight: LONG,
+  pub biPlanes: WORD,
+  pub biBitCount: WORD,
+  pub biCompression: DWORD,
+  pub biSizeImage: DWORD,
+  pub biXPelsPerMeter: LONG,
+  pub biYPelsPerMeter: LONG,
+  pub biClrUsed: DWORD,
+  pub biClrImportant: DWORD,
+}
+
+/// C 2003/2009/2198's `DIBSECTION`: `<wingdi.h>`'s `tagDIBSECTION`, whose first member is the
+/// `BITMAP` that `GetObject` fills and whose `dsBm` C 2009 reads.
+/// C: typedef struct tagDIBSECTION { BITMAP dsBm; BITMAPINFOHEADER dsBmih; DWORD dsBitfields[3];
+/// C:                               HANDLE dshSection; DWORD dsOffset; } DIBSECTION;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DIBSECTION
+{
+  pub dsBm: BITMAP,
+  pub dsBmih: BITMAPINFOHEADER,
+  pub dsBitfields: [DWORD; 3],
+  pub dshSection: HANDLE,
+  pub dsOffset: DWORD,
+}
+
+/// C 2008/2198's `GetObject`, `<wingdi.h>`'s `GetObjectA`.  Its second argument is C's
+/// `sizeof (dib)` / `sizeof (BITMAP)`, written out with `size_of`.
+/// C: int WINAPI GetObjectA (HANDLE h, int c, LPVOID pv);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetObject (h: HANDLE, c: c_int, pv: *mut c_void) -> c_int;
+}
+
+/// C 2110/2155-2157/2199 and 2055's `StretchBlt` family, C 2153/2159's `SetStretchBltMode` and
+/// C 2154's `SetBrushOrgEx` (`<wingdi.h>`), and C 2124-2125's `CopyImage`/`GetCurrentObject`
+/// (`<winuser.h>`/`<wingdi.h>`).
+/// C: BOOL WINAPI StretchBlt (HDC hdcDest, int xDest, int yDest, int wDest, int hDest,
+/// C:                          HDC hdcSrc, int xSrc, int ySrc, int wSrc, int hSrc, DWORD rop);
+/// C: int WINAPI SetStretchBltMode (HDC hdc, int mode);
+/// C: BOOL WINAPI SetBrushOrgEx (HDC hdc, int x, int y, LPPOINT lppt);
+/// C: HANDLE WINAPI CopyImage (HANDLE h, UINT type, int cx, int cy, UINT flags);
+/// C: HGDIOBJ WINAPI GetCurrentObject (HDC hdc, UINT type);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn StretchBlt (hdcDest: HDC, xDest: c_int, yDest: c_int, wDest: c_int, hDest: c_int,
+                     hdcSrc: HDC, xSrc: c_int, ySrc: c_int, wSrc: c_int, hSrc: c_int,
+                     rop: DWORD) -> BOOL;
+  pub fn SetStretchBltMode (hdc: HDC, mode: c_int) -> c_int;
+  pub fn SetBrushOrgEx (hdc: HDC, x: c_int, y: c_int, lppt: LPPOINT) -> BOOL;
+  pub fn CopyImage (h: HANDLE, r#type: UINT, cx: c_int, cy: c_int, flags: UINT) -> HANDLE;
+  pub fn GetCurrentObject (hdc: HDC, r#type: UINT) -> HGDIOBJ;
+}
+
+/// C 2110-2111/2155-2157's four raster-operation codes and C 2153/2159's HALFTONE stretch mode
+/// (`<wingdi.h>`), and C 2124-2125's two object-type constants.
+/// C: #define SRCINVERT 0x00660046
+/// C: #define SRCAND 0x008800C6
+/// C: #define HALFTONE 4
+/// C: #define OBJ_BITMAP 7
+/// C: #define IMAGE_BITMAP 0
+#[cfg (feature = "have_ntgui")]
+pub const SRCINVERT: DWORD = 0x00660046;
+#[cfg (feature = "have_ntgui")]
+pub const SRCAND: DWORD = 0x008800C6;
+#[cfg (feature = "have_ntgui")]
+pub const HALFTONE: c_int = 4;
+#[cfg (feature = "have_ntgui")]
+pub const OBJ_BITMAP: UINT = 7;
+#[cfg (feature = "have_ntgui")]
+pub const IMAGE_BITMAP: UINT = 0;
+
+/// C 2117-2145's GDI+ names (`<gdiplus.h>`), the `src/w32image.rs` 244-293 reading of the same
+/// header and the same reason: `include/w32gdiplus.rs` leaves the SDK's GDI+ types to its
+/// includer (its own head note says so), so the unit declares the ones it names.  `GpStatus` is
+/// the SDK's `Status` enum and the three constants are C's own values.
+/// C: typedef INT GpStatus; typedef enum Status { Ok = 0, GenericError, InvalidParameter, ... };
+/// C: typedef struct GpImage GpImage; typedef struct GpGraphics GpGraphics;
+/// C: typedef struct GpBitmap GpBitmap; typedef INT GpUnit; typedef INT InterpolationMode;
+/// C: typedef enum InterpolationMode { InterpolationModeInvalid = QualityModeInvalid, ...,
+/// C:                                  InterpolationModeHighQualityBilinear, ... };
+/// C: typedef enum GpUnit { UnitWorld = 0, UnitDisplay, UnitPixel, ... };
+/// C: typedef VOID (*DrawImageAbort) (VOID *);
+#[cfg (feature = "have_ntgui")]
+pub type GpStatus = c_int;
+#[cfg (feature = "have_ntgui")]
+pub type GpImage = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub type GpGraphics = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub type GpBitmap = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub type GpUnit = c_int;
+#[cfg (feature = "have_ntgui")]
+pub type InterpolationMode = c_int;
+#[cfg (feature = "have_ntgui")]
+pub type DrawImageAbort = Option<unsafe extern "system" fn (*mut c_void) -> BOOL>;
+#[cfg (feature = "have_ntgui")]
+pub const Ok: GpStatus = 0;
+#[cfg (feature = "have_ntgui")]
+pub const UnitPixel: GpUnit = 2;
+#[cfg (feature = "have_ntgui")]
+pub const InterpolationModeHighQualityBilinear: InterpolationMode = 6;
+
+/// C 1978/2213/2304's `image_ascent`.  `dispextern.h` 3774 declares it and `src/image.rs`
+/// defines it (`image.rs` 2808, `#[unsafe(no_mangle)]`), so the declaration keeps C's prototype
+/// and no stand-in (the `gui_define_fringe_bitmap` reading above).  C's `&s->slice` is C's
+/// address-of on a `struct glyph_slice`, the port's `&raw mut`.
+/// C: dispextern.h 3774: `int image_ascent (struct image *, struct face *, struct glyph_slice *);`
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn image_ascent (img: *mut image, face: *mut face, slice: *mut glyph_slice) -> c_int;
+}
+
+/// C 2552/2564/2616's three display entry points of the same class as the five above
+/// (`dispextern.h` declares them, no mirror in this unit's graph carries them), each declared at
+/// its use site; the ledger records the gap for the integrator.
+/// C: dispextern.h 3579: `int window_box_left (struct window *, enum glyph_row_area);`
+/// C: dispextern.h 3580: `int window_box_left_offset (struct window *, enum glyph_row_area);`
+/// C: dispextern.h 3692: `extern bool cursor_in_mouse_face_p (struct window *w);`
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn window_box_left (w: *mut window, area: glyph_row_area) -> c_int;
+  pub fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int;
+  pub fn cursor_in_mouse_face_p (w: *mut window) -> bool;
+}
+
+/* ==============================================================================================
+   **Slice 3: C 1950-….**  The image page C 1951-2415 (its first definition, `w32_image_rotations_p`
+   at C 1952-1955, was the boundary the previous slice stopped short of), then the glyph-string
+   drawing C 2417-… that follows it.  The ledger `docs/ports/w32term.md` records the boundary and
+   its neighbours.
+
+   Everything below carries the same readings the file note above records - the file gate is
+   `feature = "have_ntgui"`, both arms of every `#if` are carried, the `#if 0` regions are C's own
+   text inside a comment, the `<windows.h>` declarations are spelled (this machine has no
+   `windows.h` to measure against) and every `#[repr(C)]` record stays **UNVERIFIED** here.  The
+   ledger's `## Evidence` is the frozen `build-tu`, the `extract-abi --check` reading and the
+   inventory gates.
+   ============================================================================================== */
+
+/* C 1951-1955: "Return true if the GDI+ `PlgBlt` entry point is available."  C's `pfnPlgBlt !=
+   NULL` is the `Option`'s `is_some ()` (the `pfnSetLayeredWindowAttributes` reading above).  */
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_image_rotations_p () -> bool
+{
+  return pfnPlgBlt.is_some ();
+}
+
+/* C 1957-1969: `transform` - the affine `XFORM` applied to one corner of the image.  C's four
+   `FLOAT` members are `f32`, so the whole expression is C's `float` arithmetic and the
+   assignment to the `POINT`'s `LONG` members is C's implicit `float` -> `long` conversion, written
+   out (`as c_int`, PORTING.md 1.4); C's `0.5f` is a `FLOAT` literal.  `struct image`'s `xform`
+   member is the mirror's recorded deviation (`include/dispextern.rs` 2412-2416: a `*mut c_void`
+   where C holds the record by value), so every read is the use-site cast at the call sites.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn transform (x0: c_int, y0: c_int, x: c_int, y: c_int, xform: *mut XFORM) -> POINT
+{
+  let mut pt: POINT = core::mem::zeroed ();
+
+  /* See https://docs.microsoft.com/en-us/windows/desktop/api/Wingdi/nf-wingdi-setworldtransform */
+  pt.x
+    = (x0 as FLOAT + (x - x0) as FLOAT * (*xform).eM11 + (y - y0) as FLOAT * (*xform).eM21
+       + (*xform).eDx + 0.5f32) as c_int;
+  pt.y
+    = (y0 as FLOAT + (x - x0) as FLOAT * (*xform).eM12 + (y - y0) as FLOAT * (*xform).eM22
+       + (*xform).eDy + 0.5f32) as c_int;
+
+  return pt;
+}
+
+
+/* C 1972-2190: "Draw foreground of image glyph string S."  The three `s->slice` reads are the
+   record's four 16-bit members (`glyph_slice_bits!`, `include/dispextern.rs` 599-608) and every
+   one of them lands in an `int` parameter or variable, so each is C's `unsigned` -> `int`
+   conversion written out; `s->gc->foreground`/`background` widen to `COLORREF` the way the
+   `<windows.h>` section above records; `s->img->xform` is the use-site cast
+   `(*(*s).img).xform as *mut XFORM`; and C's `(pmode = SetStretchBltMode (…)) != 0` is the block
+   operand the `terminal.rs` 479 reading gives an assignment inside a condition.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_image_foreground (s: *mut glyph_string)
+{
+  let mut x: c_int = (*s).x;
+  let mut y: c_int
+    = (*s).ybase - image_ascent ((*s).img, (*s).face as *mut face, &raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+      && glyph_slice_bits! (x, (*s).slice) == 0
+    { x += max! ((*( (*s).face as *mut face )).box_vertical_line_width, 0); }
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_slice_bits! (x, (*s).slice) == 0
+    { x += (*(*s).img).hmargin; }
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    { y += (*(*s).img).vmargin; }
+
+  SaveDC ((*s).hdc as HDC);
+
+  if ! (*(*s).img).pixmap.is_null ()
+    {
+      let compat_hdc: HDC = CreateCompatibleDC ((*s).hdc as HDC);
+      let fg_brush: HBRUSH = CreateSolidBrush ((*(*s).gc).foreground as COLORREF);
+      let orig_brush: HBRUSH = SelectObject ((*s).hdc as HDC, fg_brush);
+      let orig_obj: HGDIOBJ = SelectObject (compat_hdc, (*(*s).img).pixmap);
+      let mut orig_width: LONG = 0;
+      let mut orig_height: LONG = 0;
+      let mut dib: DIBSECTION = core::mem::zeroed ();
+      SetBkColor (compat_hdc, RGB! (255, 255, 255));
+      SetTextColor ((*s).hdc as HDC, RGB! (0, 0, 0));
+      w32_set_glyph_string_clipping (s);
+      /* Extract the original dimensions of the bitmap.  */
+      if GetObject ((*(*s).img).pixmap, core::mem::size_of::<DIBSECTION> () as c_int,
+		    &raw mut dib as *mut c_void) > 0
+	{
+	  let bmp: BITMAP = dib.dsBm;
+	  orig_width = bmp.bmWidth;
+	  orig_height = bmp.bmHeight;
+	}
+      else
+	{
+	  DebPrint! (("w32_draw_image_foreground: GetObject(pixmap) failed!\n"));
+	  orig_width = glyph_slice_bits! (width, (*s).slice) as LONG;
+	  orig_height = glyph_slice_bits! (height, (*s).slice) as LONG;
+	}
+
+      let mut w_factor: c_double = 1.0;
+      let mut h_factor: c_double = 1.0;
+      let mut scaled: bool = false;
+      let mut need_xform: bool = false;
+      let mut orig_slice_width: c_int = glyph_slice_bits! (width, (*s).slice) as c_int;
+      let mut orig_slice_height: c_int = glyph_slice_bits! (height, (*s).slice) as c_int;
+      let mut orig_slice_x: c_int = glyph_slice_bits! (x, (*s).slice) as c_int;
+      let mut orig_slice_y: c_int = glyph_slice_bits! (y, (*s).slice) as c_int;
+      let mut corner: [POINT; 3] = core::mem::zeroed ();
+      if ((*( (*(*s).img).xform as *mut XFORM )).eM12 != 0 as FLOAT
+	  || (*( (*(*s).img).xform as *mut XFORM )).eM21 != 0 as FLOAT
+	  || (*( (*(*s).img).xform as *mut XFORM )).eDx != 0 as FLOAT
+	  || (*( (*(*s).img).xform as *mut XFORM )).eDy != 0 as FLOAT)
+	  /* PlgBlt is not available on Windows 9X.  */
+	  && pfnPlgBlt.is_some ()
+	{
+	  need_xform = true;
+	  corner[0] = transform (x, y, x, y, (*(*s).img).xform as *mut XFORM);
+	  corner[1] = transform (x, y, x + orig_width, y, (*(*s).img).xform as *mut XFORM);
+	  corner[2] = transform (x, y, x, y + orig_height, (*(*s).img).xform as *mut XFORM);
+	}
+      else if (*(*s).img).width != orig_width || (*(*s).img).height != orig_height
+	{
+	  /* For scaled images we need to restore the original slice's
+	     dimensions and origin coordinates, from before the scaling.  */
+	  scaled = true;
+	  w_factor = orig_width as c_double / (*(*s).img).width as c_double;
+	  h_factor = orig_height as c_double / (*(*s).img).height as c_double;
+	  orig_slice_width
+	    = (glyph_slice_bits! (width, (*s).slice) as c_double * w_factor + 0.5) as c_int;
+	  orig_slice_height
+	    = (glyph_slice_bits! (height, (*s).slice) as c_double * h_factor + 0.5) as c_int;
+	  orig_slice_x
+	    = (glyph_slice_bits! (x, (*s).slice) as c_double * w_factor + 0.5) as c_int;
+	  orig_slice_y
+	    = (glyph_slice_bits! (y, (*s).slice) as c_double * h_factor + 0.5) as c_int;
+	}
+
+      if ! (*(*s).img).mask.is_null ()
+	{
+	  let mask_dc: HDC = CreateCompatibleDC ((*s).hdc as HDC);
+	  let mask_orig_obj: HGDIOBJ = SelectObject (mask_dc, (*(*s).img).mask);
+
+	  SetTextColor ((*s).hdc as HDC, RGB! (255, 255, 255));
+	  SetBkColor ((*s).hdc as HDC, RGB! (0, 0, 0));
+	  if need_xform
+	    {
+	      if pfnPlgBlt.unwrap () ((*s).hdc as HDC, &raw mut corner as *mut POINT, compat_hdc,
+					glyph_slice_bits! (x, (*s).slice) as c_int,
+					glyph_slice_bits! (y, (*s).slice) as c_int,
+					orig_width, orig_height, (*(*s).img).mask,
+					glyph_slice_bits! (x, (*s).slice) as c_int,
+					glyph_slice_bits! (y, (*s).slice) as c_int) == 0
+		{ DebPrint! (("PlgBlt failed!")); }
+	    }
+	  else if ! scaled
+	    {
+	      BitBlt ((*s).hdc as HDC, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+		      glyph_slice_bits! (height, (*s).slice) as c_int,
+		      compat_hdc, glyph_slice_bits! (x, (*s).slice) as c_int,
+		      glyph_slice_bits! (y, (*s).slice) as c_int, SRCINVERT);
+	      BitBlt ((*s).hdc as HDC, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+		      glyph_slice_bits! (height, (*s).slice) as c_int,
+		      mask_dc, glyph_slice_bits! (x, (*s).slice) as c_int,
+		      glyph_slice_bits! (y, (*s).slice) as c_int, SRCAND);
+	      BitBlt ((*s).hdc as HDC, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+		      glyph_slice_bits! (height, (*s).slice) as c_int,
+		      compat_hdc, glyph_slice_bits! (x, (*s).slice) as c_int,
+		      glyph_slice_bits! (y, (*s).slice) as c_int, SRCINVERT);
+	    }
+	  else
+	    {
+	      let mut pmode: c_int = 0;
+	      /* HALFTONE produces better results, especially when
+		 scaling to a larger size, but Windows 9X doesn't
+		 support HALFTONE.  */
+	      if os_subtype == OS_SUBTYPE_NT
+		  && {
+		       pmode = SetStretchBltMode ((*s).hdc as HDC, HALFTONE);
+		       pmode != 0
+		     }
+		{ SetBrushOrgEx ((*s).hdc as HDC, 0, 0, core::ptr::null_mut ()); }
+	      StretchBlt ((*s).hdc as HDC, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+			  glyph_slice_bits! (height, (*s).slice) as c_int,
+			  compat_hdc, orig_slice_x, orig_slice_y,
+			  orig_slice_width, orig_slice_height, SRCINVERT);
+	      StretchBlt ((*s).hdc as HDC, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+			  glyph_slice_bits! (height, (*s).slice) as c_int,
+			  mask_dc, orig_slice_x, orig_slice_y,
+			  orig_slice_width, orig_slice_height, SRCAND);
+	      StretchBlt ((*s).hdc as HDC, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+			  glyph_slice_bits! (height, (*s).slice) as c_int,
+			  compat_hdc, orig_slice_x, orig_slice_y,
+			  orig_slice_width, orig_slice_height, SRCINVERT);
+	      if pmode != 0
+		{ SetStretchBltMode ((*s).hdc as HDC, pmode); }
+	    }
+	  SelectObject (mask_dc, mask_orig_obj);
+	  DeleteDC (mask_dc);
+	}
+      else
+	{
+	  SetTextColor ((*s).hdc as HDC, (*(*s).gc).foreground as COLORREF);
+	  SetBkColor ((*s).hdc as HDC, (*(*s).gc).background as COLORREF);
+	  if need_xform
+	    {
+	      if pfnPlgBlt.unwrap () ((*s).hdc as HDC, &raw mut corner as *mut POINT, compat_hdc,
+					glyph_slice_bits! (x, (*s).slice) as c_int,
+					glyph_slice_bits! (y, (*s).slice) as c_int,
+					orig_width, orig_height,
+					core::ptr::null_mut (), 0, 0) == 0
+		{ DebPrint! (("PlgBlt failed!")); }
+	    }
+	  else if ! scaled
+	    {
+	      BitBlt ((*s).hdc as HDC, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+		      glyph_slice_bits! (height, (*s).slice) as c_int,
+		      compat_hdc, glyph_slice_bits! (x, (*s).slice) as c_int,
+		      glyph_slice_bits! (y, (*s).slice) as c_int, SRCCOPY);
+	    }
+	  else
+	    {
+/* C 2114-2148 is `#ifdef WINDOWSNT` around the GDI+ smoothing arm and C 2147-2149's `#else`
+   is the HALFTONE/`StretchBlt` arm; both are carried, and because Rust cannot attach a `cfg`
+   to an `else` clause C 2148-2160's block stands once as the GDI+ test's `else` and once as
+   the whole arm (the `hbfont.rs` 870 two-arm reading; `docs/ports/w32term.md` records it).
+   C's own text:
+
+#ifdef WINDOWSNT
+	      if (s->img->smoothing && w32_gdiplus_startup ())
+		{
+		  GpGraphics *graphics;
+		  if (GdipCreateFromHDC (s->hdc, &graphics) == Ok)
+		    {
+		      GpBitmap *gp_bitmap;
+		      /* Can't create a GpBitmap from a HBITMAP that was
+			 ever selected into a DC, so we need to copy.  */
+		      HBITMAP copy
+			= CopyImage (GetCurrentObject (compat_hdc, OBJ_BITMAP),
+				     IMAGE_BITMAP, 0, 0, 0);
+		      if (GdipCreateBitmapFromHBITMAP (copy, NULL,
+						       &gp_bitmap) == Ok)
+			{
+			  GdipSetInterpolationMode (graphics,
+						    InterpolationModeHighQualityBilinear);
+			  GdipDrawImageRectRectI (graphics,
+						  gp_bitmap, x, y,
+						  s->slice.width,
+						  s->slice.height,
+						  orig_slice_x,
+						  orig_slice_y,
+						  orig_slice_width,
+						  orig_slice_height,
+						  UnitPixel,
+						  NULL, NULL, NULL);
+			  GdipDisposeImage (gp_bitmap);
+			}
+		      DeleteObject (copy);
+		      GdipDeleteGraphics (graphics);
+		    }
+		}
+	      else
+#endif
+*/
+	      #[cfg (feature = "windowsnt")]
+	      {
+		if (*(*s).img).smoothing && w32_gdiplus_startup ()
+		  {
+		    let mut graphics: *mut GpGraphics = core::ptr::null_mut ();
+		    if GdipCreateFromHDC! ().unwrap () ((*s).hdc as HDC, &raw mut graphics) == Ok
+		      {
+			let mut gp_bitmap: *mut GpBitmap = core::ptr::null_mut ();
+			/* Can't create a GpBitmap from a HBITMAP that was
+			   ever selected into a DC, so we need to copy.  */
+			let copy: HBITMAP
+			  = CopyImage (GetCurrentObject (compat_hdc, OBJ_BITMAP),
+				       IMAGE_BITMAP, 0, 0, 0);
+			if GdipCreateBitmapFromHBITMAP! ().unwrap () (copy, core::ptr::null_mut (),
+								 &raw mut gp_bitmap) == Ok
+			  {
+			    GdipSetInterpolationMode! ().unwrap () (graphics,
+							  InterpolationModeHighQualityBilinear);
+			    GdipDrawImageRectRectI! ().unwrap () (graphics,
+							gp_bitmap, x, y,
+							glyph_slice_bits! (width, (*s).slice)
+							  as c_int,
+							glyph_slice_bits! (height, (*s).slice)
+							  as c_int,
+							orig_slice_x,
+							orig_slice_y,
+							orig_slice_width,
+							orig_slice_height,
+							UnitPixel,
+							core::ptr::null (),
+							None, core::ptr::null_mut ());
+			    GdipDisposeImage! ().unwrap () (gp_bitmap);
+			  }
+			DeleteObject (copy);
+			GdipDeleteGraphics! ().unwrap () (graphics);
+		      }
+		  }
+		else
+		  {
+		    let mut pmode: c_int = 0;
+		    /* Windows 9X doesn't support HALFTONE.  */
+		    if os_subtype == OS_SUBTYPE_NT
+			&& {
+			     pmode = SetStretchBltMode ((*s).hdc as HDC, HALFTONE);
+			     pmode != 0
+			   }
+		      { SetBrushOrgEx ((*s).hdc as HDC, 0, 0, core::ptr::null_mut ()); }
+		    StretchBlt ((*s).hdc as HDC, x, y,
+				glyph_slice_bits! (width, (*s).slice) as c_int,
+				glyph_slice_bits! (height, (*s).slice) as c_int,
+				compat_hdc, orig_slice_x, orig_slice_y,
+				orig_slice_width, orig_slice_height, SRCCOPY);
+		    if pmode != 0
+		      { SetStretchBltMode ((*s).hdc as HDC, pmode); }
+		  }
+	      }
+	      #[cfg (not (feature = "windowsnt"))]
+	      {
+		let mut pmode: c_int = 0;
+		/* Windows 9X doesn't support HALFTONE.  */
+		if os_subtype == OS_SUBTYPE_NT
+		    && {
+			 pmode = SetStretchBltMode ((*s).hdc as HDC, HALFTONE);
+			 pmode != 0
+		       }
+		  { SetBrushOrgEx ((*s).hdc as HDC, 0, 0, core::ptr::null_mut ()); }
+		StretchBlt ((*s).hdc as HDC, x, y,
+			    glyph_slice_bits! (width, (*s).slice) as c_int,
+			    glyph_slice_bits! (height, (*s).slice) as c_int,
+			    compat_hdc, orig_slice_x, orig_slice_y,
+			    orig_slice_width, orig_slice_height, SRCCOPY);
+		if pmode != 0
+		  { SetStretchBltMode ((*s).hdc as HDC, pmode); }
+	      }
+	    }
+
+	  /* When the image has a mask, we can expect that at
+	     least part of a mouse highlight or a block cursor will
+	     be visible.  If the image doesn't have a mask, make
+	     a block cursor visible by drawing a rectangle around
+	     the image.  I believe it's looking better if we do
+	     nothing here for mouse-face.  */
+	  if (*s).hl == DRAW_CURSOR
+	    {
+	      let mut r: c_int = (*(*s).img).relief;
+	      if r < 0 { r = -r; }
+	      w32_draw_rectangle ((*s).hdc as HDC, (*s).gc, x - r, y - r,
+				  glyph_slice_bits! (width, (*s).slice) as c_int + r * 2 - 1,
+				  glyph_slice_bits! (height, (*s).slice) as c_int + r * 2 - 1);
+	    }
+	}
+
+      w32_set_clip_rectangle ((*s).hdc as HDC, core::ptr::null_mut ());
+      SelectObject ((*s).hdc as HDC, orig_brush);
+      DeleteObject (fg_brush);
+      SelectObject (compat_hdc, orig_obj);
+      DeleteDC (compat_hdc);
+    }
+  else
+    { w32_draw_rectangle ((*s).hdc as HDC, (*s).gc, x, y,
+			  glyph_slice_bits! (width, (*s).slice) as c_int - 1,
+			  glyph_slice_bits! (height, (*s).slice) as c_int - 1); }
+
+  RestoreDC ((*s).hdc as HDC, -1);
+}
+
+/* C 2192-2201: `w32_image_size` - the `GetObject`-reported size of PIXMAP in bytes.  C's
+   `sizeof (BITMAP)` is the second argument, written out; C's `size_t rv = 0` is the zeroed local
+   (PORTING.md 1.5) and the whole expression is C's arithmetic on `LONG`/`WORD` members widened to
+   the `size_t` result.  The definition is the `w32gui.h` 53 declaration `include/w32gui.rs`
+   carries inside `w32gui_fn_decls` (a crate-root definition shadows the glob-imported one).  */
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_image_size (pixmap: Emacs_Pixmap) -> size_t
+{
+  let mut bm_info: BITMAP = core::mem::zeroed ();
+  let mut rv: size_t = 0;
+
+  if GetObject (pixmap, core::mem::size_of::<BITMAP> () as c_int,
+	       &raw mut bm_info as *mut c_void) != 0
+    {
+      rv = (bm_info.bmWidth * bm_info.bmHeight * bm_info.bmBitsPixel as LONG / 8) as size_t;
+    }
+  return rv;
+}
+
+
+/* C 2204-2293: "Draw a relief around the image glyph string S."  C's three chained assignments
+   (`extra_x = extra_y = 0`, `top_p = bot_p = left_p = right_p = 0`) are one statement per
+   assignment (the recorded chained-assignment deviation), C's two comma expressions
+   (`x -= thick + extra_x, left_p = 1` and its three siblings) are one statement per assignment in
+   C's order, `raised_p` is C's `s->hl == DRAW_IMAGE_RAISED` (a `bool` here, so each use is `as
+   c_int`), and `s->slice` again reads through `glyph_slice_bits!` with C's `unsigned` -> `int`
+   conversions written out.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_image_relief (s: *mut glyph_string)
+{
+  let mut x1: c_int = 0;
+  let mut y1: c_int = 0;
+  let mut thick: c_int = 0;
+  let mut raised_p: c_int = 0;
+  let mut top_p: c_int = 0;
+  let mut bot_p: c_int = 0;
+  let mut left_p: c_int = 0;
+  let mut right_p: c_int = 0;
+  let mut extra_x: c_int = 0;
+  let mut extra_y: c_int = 0;
+  let mut r: RECT = core::mem::zeroed ();
+  let mut x: c_int = (*s).x;
+  let mut y: c_int
+    = (*s).ybase - image_ascent ((*s).img, (*s).face as *mut face, &raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+      && glyph_slice_bits! (x, (*s).slice) == 0
+    { x += max! ((*( (*s).face as *mut face )).box_vertical_line_width, 0); }
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_slice_bits! (x, (*s).slice) == 0
+    { x += (*(*s).img).hmargin; }
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    { y += (*(*s).img).vmargin; }
+
+  if (*s).hl == DRAW_IMAGE_SUNKEN
+      || (*s).hl == DRAW_IMAGE_RAISED
+    {
+      if (*( (*s).face as *mut face )).id == TAB_BAR_FACE_ID
+	{ thick = (if tab_bar_button_relief < 0
+		     { DEFAULT_TAB_BAR_BUTTON_RELIEF }
+		     else { min! (tab_bar_button_relief, 1000000) as c_int }); }
+      else
+	{ thick = (if tool_bar_button_relief < 0
+		     { DEFAULT_TOOL_BAR_BUTTON_RELIEF }
+		     else { min! (tool_bar_button_relief, 1000000) as c_int }); }
+      raised_p = ((*s).hl == DRAW_IMAGE_RAISED) as c_int;
+    }
+  else
+    {
+      thick = eabs! ((*(*s).img).relief);
+      raised_p = ((*(*s).img).relief > 0) as c_int;
+    }
+
+  x1 = x + glyph_slice_bits! (width, (*s).slice) as c_int - 1;
+  y1 = y + glyph_slice_bits! (height, (*s).slice) as c_int - 1;
+
+  extra_x = 0;
+  extra_y = 0;
+  if (*( (*s).face as *mut face )).id == TAB_BAR_FACE_ID
+    {
+      if CONSP (Vtab_bar_button_margin)
+	  && FIXNUMP (XCAR (Vtab_bar_button_margin))
+	  && FIXNUMP (XCDR (Vtab_bar_button_margin))
+	{
+	  extra_x = XFIXNUM (XCAR (Vtab_bar_button_margin)) as c_int - thick;
+	  extra_y = XFIXNUM (XCDR (Vtab_bar_button_margin)) as c_int - thick;
+	}
+      else if FIXNUMP (Vtab_bar_button_margin)
+	{
+	  extra_x = XFIXNUM (Vtab_bar_button_margin) as c_int - thick;
+	  extra_y = XFIXNUM (Vtab_bar_button_margin) as c_int - thick;
+	}
+    }
+
+  if (*( (*s).face as *mut face )).id == TOOL_BAR_FACE_ID
+    {
+      if CONSP (Vtool_bar_button_margin)
+	  && FIXNUMP (XCAR (Vtool_bar_button_margin))
+	  && FIXNUMP (XCDR (Vtool_bar_button_margin))
+	{
+	  extra_x = XFIXNUM (XCAR (Vtool_bar_button_margin)) as c_int;
+	  extra_y = XFIXNUM (XCDR (Vtool_bar_button_margin)) as c_int;
+	}
+      else if FIXNUMP (Vtool_bar_button_margin)
+	{
+	  extra_x = XFIXNUM (Vtool_bar_button_margin) as c_int;
+	  extra_y = XFIXNUM (Vtool_bar_button_margin) as c_int;
+	}
+    }
+
+  top_p = 0;
+  bot_p = 0;
+  left_p = 0;
+  right_p = 0;
+
+  if glyph_slice_bits! (x, (*s).slice) == 0
+    {
+      x -= thick + extra_x; left_p = 1;
+    }
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    {
+      y -= thick + extra_y; top_p = 1;
+    }
+  if glyph_slice_bits! (x, (*s).slice) + glyph_slice_bits! (width, (*s).slice)
+     == (*(*s).img).width as c_uint
+    {
+      x1 += thick + extra_x; right_p = 1;
+    }
+  if glyph_slice_bits! (y, (*s).slice) + glyph_slice_bits! (height, (*s).slice)
+     == (*(*s).img).height as c_uint
+    {
+      y1 += thick + extra_y; bot_p = 1;
+    }
+
+  w32_setup_relief_colors (s);
+  get_glyph_string_clip_rect (s, &raw mut r);
+  w32_draw_relief_rect ((*s).f, x, y, x1, y1, thick, thick, raised_p,
+			top_p, bot_p, left_p, right_p, &raw mut r);
+}
+
+
+/* C 2296-2383: "Draw the foreground of image glyph string S to PIXMAP."  The same three
+   `s->slice` reads and the two `Emacs_GC` members' `COLORREF` conversions as
+   `w32_draw_image_foreground`; C's `x = 0` and its `y` are that function's pair offset by
+   `s->y`.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_image_foreground_1 (s: *mut glyph_string, pixmap: HBITMAP)
+{
+  let hdc: HDC = CreateCompatibleDC ((*s).hdc as HDC);
+  let orig_hdc_obj: HGDIOBJ = SelectObject (hdc, pixmap);
+  let mut x: c_int = 0;
+  let mut y: c_int = (*s).ybase - (*s).y
+    - image_ascent ((*s).img, (*s).face as *mut face, &raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+      && glyph_slice_bits! (x, (*s).slice) == 0
+    { x += max! ((*( (*s).face as *mut face )).box_vertical_line_width, 0); }
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_slice_bits! (x, (*s).slice) == 0
+    { x += (*(*s).img).hmargin; }
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    { y += (*(*s).img).vmargin; }
+
+  /* FIXME (maybe): The below doesn't support image scaling.  But it
+     seems to never be called, because the conditions for its call in
+     w32_draw_image_glyph_string are never fulfilled (they will be if
+     the #ifdef'ed away part of that function is ever activated).  */
+  if ! (*(*s).img).pixmap.is_null ()
+    {
+      let compat_hdc: HDC = CreateCompatibleDC (hdc);
+      let fg_brush: HBRUSH = CreateSolidBrush ((*(*s).gc).foreground as COLORREF);
+      let orig_brush: HBRUSH = SelectObject (hdc, fg_brush);
+      let orig_obj: HGDIOBJ = SelectObject (compat_hdc, (*(*s).img).pixmap);
+
+      if ! (*(*s).img).mask.is_null ()
+	{
+	  let mask_dc: HDC = CreateCompatibleDC (hdc);
+	  let mask_orig_obj: HGDIOBJ = SelectObject (mask_dc, (*(*s).img).mask);
+
+	  SetTextColor (hdc, RGB! (0, 0, 0));
+	  SetBkColor (hdc, RGB! (255, 255, 255));
+	  BitBlt (hdc, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+		  glyph_slice_bits! (height, (*s).slice) as c_int,
+		  compat_hdc, glyph_slice_bits! (x, (*s).slice) as c_int,
+		  glyph_slice_bits! (y, (*s).slice) as c_int, SRCINVERT);
+	  BitBlt (hdc, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+		  glyph_slice_bits! (height, (*s).slice) as c_int,
+		  mask_dc, glyph_slice_bits! (x, (*s).slice) as c_int,
+		  glyph_slice_bits! (y, (*s).slice) as c_int, SRCAND);
+	  BitBlt (hdc, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+		  glyph_slice_bits! (height, (*s).slice) as c_int,
+		  compat_hdc, glyph_slice_bits! (x, (*s).slice) as c_int,
+		  glyph_slice_bits! (y, (*s).slice) as c_int, SRCINVERT);
+
+	  SelectObject (mask_dc, mask_orig_obj);
+	  DeleteDC (mask_dc);
+	}
+      else
+	{
+	  SetTextColor (hdc, (*(*s).gc).foreground as COLORREF);
+	  SetBkColor (hdc, (*(*s).gc).background as COLORREF);
+
+          BitBlt (hdc, x, y, glyph_slice_bits! (width, (*s).slice) as c_int,
+                  glyph_slice_bits! (height, (*s).slice) as c_int,
+                  compat_hdc, glyph_slice_bits! (x, (*s).slice) as c_int,
+                  glyph_slice_bits! (y, (*s).slice) as c_int, SRCCOPY);
+
+	  /* When the image has a mask, we can expect that at
+	     least part of a mouse highlight or a block cursor will
+	     be visible.  If the image doesn't have a mask, make
+	     a block cursor visible by drawing a rectangle around
+	     the image.  I believe it's looking better if we do
+	     nothing here for mouse-face.  */
+	  if (*s).hl == DRAW_CURSOR
+	    {
+	      let mut r: c_int = (*(*s).img).relief;
+	      if r < 0 { r = -r; }
+	      w32_draw_rectangle (hdc, (*s).gc, x - r, y - r,
+				  glyph_slice_bits! (width, (*s).slice) as c_int + r * 2 - 1,
+				  glyph_slice_bits! (height, (*s).slice) as c_int + r * 2 - 1);
+	    }
+	}
+
+      SelectObject (hdc, orig_brush);
+      DeleteObject (fg_brush);
+      SelectObject (compat_hdc, orig_obj);
+      DeleteDC (compat_hdc);
+    }
+  else
+    { w32_draw_rectangle (hdc, (*s).gc, x, y,
+			  glyph_slice_bits! (width, (*s).slice) as c_int - 1,
+			  glyph_slice_bits! (height, (*s).slice) as c_int - 1); }
+
+  SelectObject (hdc, orig_hdc_obj);
+  DeleteDC (hdc);
+}
+
+
+/* C 2386-2399: "Draw part of the background of glyph string S.  X, Y, W, and H give the rectangle
+   to draw."  `s->stippled_p` is the record's bitfield run (`glyph_string_bits!`) and
+   `w32_fill_stipple_pattern`'s last two parameters are C's `unsigned int`, so C's implicit
+   conversion from the `int` arguments is written out.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_glyph_string_bg_rect (s: *mut glyph_string, x: c_int, y: c_int, w: c_int,
+					 h: c_int)
+{
+  if glyph_string_bits! (stippled_p, (*s))
+    {
+      /* Fill background with a stipple pattern.  */
+      w32_fill_stipple_pattern ((*s).hdc as HDC, s, (*s).gc, x, y, w as c_uint, h as c_uint);
+    }
+  else
+    { w32_clear_glyph_string_rect (s, x, y, w, h); }
+}
+
+
+/* C 2402-2532: "Draw image glyph string S." and the picture of its geometry C carries above it (the
+   `ASCII wave picture` reading of slice 1):
+
+            s->y
+   s->x      +-------------------------
+	     |   s->face->box
+	     |
+	     |     +-------------------------
+	     |     |  s->img->vmargin
+	     |     |
+	     |     |       +-------------------
+	     |     |       |  the image
+
+   `s->stippled_p`
+   and `s->background_filled_p` are the record's bitfield run (the read and the write arms of
+   `glyph_string_bits!`); the `#if 0` region C 2455-2494 is dead text in every configuration and is
+   carried as C's own text; and `pixmap` keeps C's `HBITMAP pixmap = 0` as a null pointer.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_image_glyph_string (s: *mut glyph_string)
+{
+  let mut x: c_int = 0;
+  let mut y: c_int = 0;
+  let box_line_hwidth: c_int = max! ((*( (*s).face as *mut face )).box_vertical_line_width, 0);
+  let box_line_vwidth: c_int = max! ((*( (*s).face as *mut face )).box_horizontal_line_width, 0);
+  let mut height: c_int = 0;
+  let mut width: c_int = 0;
+  let mut pixmap: HBITMAP = 0 as HBITMAP;
+
+  height = (*s).height;
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    { height -= box_line_vwidth; }
+  if glyph_slice_bits! (y, (*s).slice) + glyph_slice_bits! (height, (*s).slice)
+     >= (*(*s).img).height as c_uint
+    { height -= box_line_vwidth; }
+
+  /* Fill background with face under the image.  Do it only if row is
+     taller than image or if image has a clip mask to reduce
+     flickering.  */
+  glyph_string_bits! (stippled_p, (*s), (*( (*s).face as *mut face )).stipple != 0);
+  if height > glyph_slice_bits! (height, (*s).slice) as c_int
+      || (*(*s).img).hmargin != 0
+      || (*(*s).img).vmargin != 0
+      || ! (*(*s).img).mask.is_null ()
+      || (*(*s).img).pixmap.is_null ()
+      || (*s).width != (*s).background_width
+    {
+      width = (*s).background_width;
+      x = (*s).x;
+      if glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+	  && glyph_slice_bits! (x, (*s).slice) == 0
+	{
+	  x += box_line_hwidth;
+	  width -= box_line_hwidth;
+	}
+
+      y = (*s).y;
+      if glyph_slice_bits! (y, (*s).slice) == 0
+	{ y += box_line_vwidth; }
+
+/* C 2455-2494 is `#if 0 /* TODO: figure out if we need to do this on Windows.  */` - the X11
+   pixmap path C never compiles; C's own text:
+
+#if 0 /* TODO: figure out if we need to do this on Windows.  */
+      if (s->img->mask)
+	{
+	  /* Create a pixmap as large as the glyph string.  Fill it
+	     with the background color.  Copy the image to it, using
+	     its mask.  Copy the temporary pixmap to the display.  */
+	  Screen *screen = FRAME_X_SCREEN (s->f);
+	  int depth = DefaultDepthOfScreen (screen);
+
+	  /* Create a pixmap as large as the glyph string.  */
+	  pixmap = XCreatePixmap (s->display, FRAME_W32_WINDOW (s->f),
+				  s->background_width,
+				  s->height, depth);
+
+	  /* Don't clip in the following because we're working on the
+	     pixmap.  */
+	  XSetClipMask (s->display, s->gc, None);
+
+	  /* Fill the pixmap with the background color/stipple.  */
+	  if (s->stippled_p)
+	    {
+	      /* Fill background with a stipple pattern.  */
+	      XSetFillStyle (s->display, s->gc, FillOpaqueStippled);
+	      XFillRectangle (s->display, pixmap, s->gc,
+			      0, 0, s->background_width, s->height);
+	      XSetFillStyle (s->display, s->gc, FillSolid);
+	    }
+	  else
+	    {
+	      XGCValues xgcv;
+	      XGetGCValues (s->display, s->gc, GCForeground | GCBackground,
+			    &xgcv);
+	      XSetForeground (s->display, s->gc, xgcv.background);
+	      XFillRectangle (s->display, pixmap, s->gc,
+			      0, 0, s->background_width, s->height);
+	      XSetForeground (s->display, s->gc, xgcv.foreground);
+	    }
+	}
+      else
+#endif
+*/
+	w32_draw_glyph_string_bg_rect (s, x, y, width, height);
+
+      glyph_string_bits! (background_filled_p, (*s), true);
+    }
+
+  /* Draw the foreground.  */
+  if ! pixmap.is_null ()
+    {
+      w32_draw_image_foreground_1 (s, pixmap);
+      w32_set_glyph_string_clipping (s);
+      {
+        let compat_hdc: HDC = CreateCompatibleDC ((*s).hdc as HDC);
+        let fg_brush: HBRUSH = CreateSolidBrush ((*(*s).gc).foreground as COLORREF);
+        let orig_brush: HBRUSH = SelectObject ((*s).hdc as HDC, fg_brush);
+        let orig_obj: HGDIOBJ = SelectObject (compat_hdc, pixmap);
+
+        SetTextColor ((*s).hdc as HDC, (*(*s).gc).foreground as COLORREF);
+        SetBkColor ((*s).hdc as HDC, (*(*s).gc).background as COLORREF);
+        BitBlt ((*s).hdc as HDC, (*s).x, (*s).y, (*s).background_width, (*s).height,
+                compat_hdc, 0, 0, SRCCOPY);
+
+        SelectObject ((*s).hdc as HDC, orig_brush);
+        DeleteObject (fg_brush);
+        SelectObject (compat_hdc, orig_obj);
+        DeleteDC (compat_hdc);
+      }
+      DeleteObject (pixmap);
+      pixmap = 0 as HBITMAP;
+    }
+  else
+    { w32_draw_image_foreground (s); }
+
+  /* If we must draw a relief around the image, do it.  */
+  if (*(*s).img).relief != 0
+      || (*s).hl == DRAW_IMAGE_RAISED
+      || (*s).hl == DRAW_IMAGE_SUNKEN
+    { w32_draw_image_relief (s); }
+}
+
+
+/* C 2534-2631: "Draw stretch glyph string S."  `s->row`'s three members are the record's bitfield
+   run (`glyph_row_bits!`, `include/dispextern.rs` 1107), `s->area` is C's `enum glyph_row_area`
+   (C's `TEXT_AREA`), `FRAME_COLUMN_WIDTH` is the mirror's `pub fn` and C's `min`/`max` the pair
+   declared above; `window_box_left_offset`, `window_box_left` and `cursor_in_mouse_face_p` are
+   `dispextern.h` 3579/3580/3692's entry points, which no mirror carries, so the unit declares them
+   at their use sites (the reading the five `dispextern.h` names above share).  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_stretch_glyph_string (s: *mut glyph_string)
+{
+  eassert! (glyph_bits! (type, (*(*s).first_glyph)) == STRETCH_GLYPH);
+
+  if (*s).hl == DRAW_CURSOR
+      && ! x_stretch_cursor_p
+    {
+      /* If `x-stretch-cursor' is nil, don't draw a block cursor as
+	 wide as the stretch glyph.  */
+      let mut width: c_int = 0;
+      let mut background_width: c_int = (*s).background_width;
+      let mut x: c_int = (*s).x;
+
+      if ! glyph_row_bits! (reversed_p, (*s).row)
+	{
+	  let left_x: c_int = window_box_left_offset ((*s).w, TEXT_AREA);
+
+	  if x < left_x
+	    {
+	      background_width -= left_x - x;
+	      x = left_x;
+	    }
+	}
+      else
+	{
+	  /* In R2L rows, draw the cursor on the right edge of the
+	     stretch glyph.  */
+	  let right_x: c_int = window_box_right ((*s).w, TEXT_AREA);
+
+	  if x + background_width > right_x
+	    { background_width -= x - right_x; }
+	  x += background_width;
+	}
+      width = min! (FRAME_COLUMN_WIDTH ((*s).f), background_width);
+      if glyph_row_bits! (reversed_p, (*s).row)
+	{ x -= width; }
+
+      /* Draw cursor.  */
+      w32_draw_glyph_string_bg_rect (s, x, (*s).y, width, (*s).height);
+
+      /* Clear rest using the GC of the original non-cursor face.  */
+      if width < background_width
+	{
+	  let mut gc: *mut Emacs_GC = (*( (*s).face as *mut face )).gc;
+	  let y: c_int = (*s).y;
+	  let w: c_int = background_width - width;
+	  let h: c_int = (*s).height;
+	  let mut r: RECT = core::mem::zeroed ();
+          let hdc: HDC = (*s).hdc as HDC;
+
+	  if ! glyph_row_bits! (reversed_p, (*s).row)
+	    { x += width; }
+	  else
+	    { x = (*s).x; }
+	  if glyph_row_bits! (mouse_face_p, (*s).row)
+	      && cursor_in_mouse_face_p ((*s).w)
+	    {
+	      w32_set_mouse_face_gc (s);
+	      gc = (*s).gc;
+	    }
+	  else
+	    { gc = (*( (*s).face as *mut face )).gc; }
+
+	  get_glyph_string_clip_rect (s, &raw mut r);
+	  w32_set_clip_rectangle (hdc, &raw mut r);
+
+	  if (*( (*s).face as *mut face )).stipple != 0
+	    {
+	      /* Fill background with a stipple pattern.  */
+	      w32_fill_stipple_pattern ((*s).hdc as HDC, s, gc, x, y, w as c_uint, h as c_uint);
+	    }
+	  else
+            {
+              w32_fill_area! ((*s).f, (*s).hdc as HDC, (*gc).background as COLORREF,
+			      x, y, w, h);
+            }
+        }
+    }
+  else if ! glyph_string_bits! (background_filled_p, (*s))
+    {
+      let mut background_width: c_int = (*s).background_width;
+      let mut x: c_int = (*s).x;
+      let text_left_x: c_int = window_box_left ((*s).w, TEXT_AREA);
+
+      /* Don't draw into left fringe or scrollbar area except for
+         header line and mode line.  */
+      if (*s).area == TEXT_AREA
+	  && x < text_left_x && ! glyph_row_bits! (mode_line_p, (*s).row)
+	{
+	  background_width -= text_left_x - x;
+	  x = text_left_x;
+	}
+      if background_width > 0
+	{ w32_draw_glyph_string_bg_rect (s, x, (*s).y, background_width, (*s).height); }
+    }
+
+  glyph_string_bits! (background_filled_p, (*s), true);
+}
+
+/* C 2633-2674: "Draw a dashed underline of thickness THICKNESS and width WIDTH onto F at a
+   vertical offset of OFFSET …"  C's `char segment` is a `c_char` here, so every arithmetic use
+   writes C's own promotion to `int` out (`as c_int`); `which` is C's `int` truth value, so
+   `which = !which` is the recorded `(which == 0) as c_int`; and C's `for` header plus its
+   comma-expression increment is the header's assignment plus a `while` whose last two statements
+   are C's increment in C's order (`x += length` then `length = segment`).  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_dash (f: *mut frame, s: *mut glyph_string, foreground: COLORREF,
+			 width: c_int, segment: c_char, offset: c_int, thickness: c_int)
+{
+  let mut y_base: c_int = 0;
+  let mut which: c_int = 0;
+  let mut length: c_int = 0;
+  let mut x: c_int = 0;
+  let mut doffset: c_int = 0;
+  let hdc: HDC = (*s).hdc as HDC;
+
+  /* A pen with PS_DASH (or PS_DOT) is unsuitable for two reasons: first
+     that PS_DASH does not accept width values greater than 1, with
+     itself considered equivalent to PS_SOLID if such a value be
+     specified, and second that it does not provide for an offset to be
+     applied to the pattern, absent which Emacs cannot align dashes that
+     are displayed at locations not multiples of each other.  I can't be
+     bothered to research this matter further, so, for want of a better
+     option, draw the specified pattern manually.  */
+
+  y_base = (*s).ybase + offset;
+
+  /* Remove redundant portions of OFFSET.  */
+  doffset = (*s).x % (segment as c_int * 2);
+
+  /* Set which to the phase of the first dash that ought to be drawn and
+     length to its length.  */
+  which = (doffset < segment as c_int) as c_int;
+  length = segment as c_int - (*s).x % segment as c_int;
+
+  /* Begin drawing this dash.  */
+  x = (*s).x;
+  while x < (*s).x + width
+    {
+      if which != 0
+	{ w32_fill_area! (f, hdc, foreground, x, y_base, length, thickness); }
+
+      which = (which == 0) as c_int;
+      x += length; length = segment as c_int;
+    }
+}
+
+/* C 2676-2715: "Draw an underline of STYLE onto F at an offset of POSITION from the baseline of
+   the glyph string S, in the color FOREGROUND that is THICKNESS in height."  C's `switch` is the
+   port's `match` over the same labels; the `FACE_UNDERLINE_DOTS` arm's `FALLTHROUGH` is recorded
+   in the arm (PORTING.md 2.2, the `ccl.rs` 1535 reading), and C's `case FACE_NO_UNDERLINE:` /
+   `case FACE_UNDERLINE_WAVE:` / `default:` run `emacs_abort` in either case.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_fill_underline (f: *mut frame, s: *mut glyph_string, foreground: COLORREF,
+			      style: face_underline_type, position: c_int, thickness: c_int)
+{
+  let mut segment: c_int = 0;
+
+  segment = thickness * 3;
+
+  match style
+    {
+      /* FACE_UNDERLINE_DOUBLE_LINE is treated identically to SINGLE, as
+	 the second line will be filled by another invocation of this
+	 function.  */
+    FACE_UNDERLINE_SINGLE | FACE_UNDERLINE_DOUBLE_LINE =>
+      {
+	w32_fill_area! ((*s).f, (*s).hdc as HDC, foreground, (*s).x,
+			(*s).ybase + position, (*s).width, thickness);
+      }
+
+    FACE_UNDERLINE_DOTS =>
+      {
+	segment = thickness;
+	/* C's `FALLTHROUGH;` sends this arm on into the `FACE_UNDERLINE_DASHES` arm's
+	   statement, which the port therefore writes here too (PORTING.md 2.2).  */
+	w32_draw_dash (f, s, foreground, (*s).width, segment as c_char, position, thickness);
+      }
+
+    FACE_UNDERLINE_DASHES =>
+      {
+	w32_draw_dash (f, s, foreground, (*s).width, segment as c_char, position, thickness);
+      }
+
+    FACE_NO_UNDERLINE | FACE_UNDERLINE_WAVE =>
+      { emacs_abort (); }
+    _ =>
+      { emacs_abort (); }
     }
 }

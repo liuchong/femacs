@@ -11727,3 +11727,23 @@
      —— 该段挂在 `#ifdef TEST` 下，`build-tu` 与 flip 的 feature 集都不含 `test`，进去只能得到"仅解析过"的文本，所以本片**停在该边界**并
      把裁决记为 Owed 21；`sfnt_gvar_glyph_header` 安放在 unit（Owed 20）、`sfnt_vary_interpreter` C 16271 的 `cvt[i]` 是 C 自己的怪癖、
      按原文保留（Deviation 56/Owed 19）。
+
+- **3.581 lane 产出收口：`src/w32term.c` 第三片落地（C 1,950-2,715；C 8,414 → Rust 4,123 行；`--check` 110 → 99）（2026-10-05）**：
+  ① **lane 的产出（Carver）**：`femacs/src/w32term.rs` 2,941 → **4,123 行**（md5 `192f5e00…`；台账 `docs/ports/w32term.md` 区间表
+     改成真实行、末行指向 C 2,716 的 remainder）。落 11 个定义（图像页 + 下划线段）：`w32_image_rotations_p`、`transform`、
+     `w32_draw_image_foreground`（C 2114-2148 的两臂）、`w32_image_size`、`w32_draw_image_relief`、`w32_draw_image_foreground_1`、
+     `w32_draw_glyph_string_bg_rect`、`w32_draw_image_glyph_string`、`w32_draw_stretch_glyph_string`、`w32_draw_dash`、
+     `w32_fill_underline`；另做了一遍**机械调用序列比对**（C 该区间 187 个调用点全部在位同序）。
+  ② **读数**：`--check` **110 → 99**（退掉的 11 行正是这 11 个定义；新增的 1 行 `w32_fill_underline does not mention
+     break,case,default,fallthrough,switch` 由本件追加的 `macro-body-notes.tsv` 行回答）；`check-cond-eval.py src/w32term.c`
+     41 conditions / 0 disagreements [VERIFIED]；`build-tu` 3 发（**末发 exit 0**，336 字节空对象）；`probe windowsnt` **exit 0**；
+     `probe windowsnt+have_ntgui` exit 1/33 错——**全是镜像的已知拒绝**（`include/frame.rs` 329 的 `compile_error!`、两条 `E0428`、
+     four `E0425`、以及 `glyph_string_bits!` 被 `have_window_system` 门住），**没有一条锚在本片文本上**。
+  ③ **本片顺带修掉上一片的 5 处真缺陷**：`w32_compute_glyph_string_overhangs` 与 `w32_draw_composite_glyph_string_foreground`
+     里 `(*s).cmp.*` 的读法（`glyph_string::cmp` 是镜像的无类型 `*mut c_void`）现统一 `as *mut composition`。
+  ④ **集成者登记（我）**：**不加容差行**（行数漂移 51.0% 是"还没落完"的真信号）；`macro-body-notes.tsv` 收下该 lane 的 **1 行**；
+     `port-map.md` 刷新本件。
+  ⑤ **未声称**：冻结态仍是 336 字节空对象，**没有运行期证据**；"本片行 0 报错"只是手工 `--cfg` 组合下的名字解析/类型检查读数，
+     两个正式臂都没读到 GDI+ 块、图像绘制与下划线绘制；本片四条 `#[repr(C)]`（`XFORM`/`BITMAP`/`BITMAPINFOHEADER`/`DIBSECTION`）
+     与 `sizeof (DIBSECTION)` 全是**拼写、非测量**（Owed 24）；新增 5 条集成者欠账（21-25，含 `include/w32term.rs` 该收
+     `w32_image_rotations_p` 的 `*_decls` 迁移、三条镜像 SDK 名缺口、`dispextern.h` 三个 use-site 入口）。
