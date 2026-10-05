@@ -776,6 +776,12 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
     # A regex cannot see a body that contains braces (`{ { unimplemented!() } }` used to
     # slip past the stub gate), so every definition is scanned with block_body.
     bodies = {}
+    # Every body of a name, in file order.  C may define one function in each of two mutually
+    # exclusive arms (`Fx_menu_bar_open_internal` is defined once in xmenu.c's Xt/GTK arm and
+    # once in its oldXMenu arm, C 471 and C 579) and the port carries one definition per arm the
+    # same way - so the checks below must compare C's live arm against *all* of the port's arms
+    # and accept the port when any of them matches (docs/status.md 3.556).
+    bodies_all: dict[str, list[str]] = {}
     for m in re.finditer(r"\bfn\s+(?P<name>[A-Za-z_]\w*)\s*(?:<[^>{}]*>)?\s*\(", flat_own):
         open_brace = flat_own.find("{", m.end())
         if open_brace < 0:
@@ -784,8 +790,12 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
         semi = flat_own.find(";", m.end())
         if 0 <= semi < open_brace:
             continue
-        bodies.setdefault(m.group("name"), block_body(flat_own, open_brace))
-    bodies.update({d["c_name"]: d["body"] for d in subr_defs})
+        body = block_body(flat_own, open_brace)
+        bodies.setdefault(m.group("name"), body)
+        bodies_all.setdefault(m.group("name"), []).append(body)
+    for d in subr_defs:
+        bodies[d["c_name"]] = d["body"]
+        bodies_all.setdefault(d["c_name"], []).append(d["body"])
     # C's enum members live in Rust enums as often as in `pub const`s
     # (`enum pvec_type { PVEC_BUFFER = 13, … }`), so both count as constants.
     variants = rust_enum_variants(flat)
@@ -797,6 +807,7 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
             "constants": constants_of(text),
             "variants": variants,
             "subrs": subrs, "subr_defs": subr_defs, "bodies": bodies,
+            "bodies_all": bodies_all,
             "flat_own": flat_own, "text": text}
 
 
@@ -1775,7 +1786,17 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         if name not in c_by_name and name not in whole_reference("defun"):
             problems.append(f"DEFUN! {name}: the reference file has no such DEFUN")
         if len(defs) > 1:
-            problems.append(f"DEFUN! {name}: defined {len(defs)} times in this file")
+            # C's own text is the authority: a subr it defines once per arm (see the note on
+            # `bodies_all`) is defined the same number of times in the port, and only a
+            # *surplus* definition is a defect.
+            # Counted in the reference's *text*, not in the arm-filtered inventory: the point
+            # is that C's file writes this DEFUN once per arm, and the port - which carries both
+            # arms, P-86 (1) - must do the same.
+            c_times = len(re.findall(
+                r'DEFUN\s*\(\s*"[^"]*"\s*,\s*' + re.escape(name) + r'\s*,',
+                c_path.read_text(encoding="utf-8", errors="replace")))
+            if not c_times or len(defs) > c_times:
+                problems.append(f"DEFUN! {name}: defined {len(defs)} times in this file")
     # A subr the port does not define at all is already one problem ("missing subr"
     # above); the second report is the same fact twice (review B's D6).
     undefined = {d["c_name"] for d in c["defuns"]
@@ -1982,13 +2003,25 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             c_text = c_body_text(c_source, name)
         if rust_body is None or c_text is None:
             continue
-        missing = (body_tokens(c_text, skip_short=True)
-                   - body_tokens(rust_body, skip_short=True)) - allowed
-        if missing:
-            problems.append(f"{kind} {name} does not mention "
-                            + ", ".join(sorted(missing)))
-        problems.extend(alias_count_problems(c_text, rust_body, skip_short=True))
-        problems.extend(va_arg_problems(c_text, rust_body))
+        # The port may carry one definition per arm, and C's live arm corresponds to exactly
+        # one of them: the candidates are tried in file order and the arm with the fewest
+        # complaints wins, so a faithful second arm is not reported as a broken first one.
+        candidates = r.get("bodies_all", {}).get(name) or [rust_body]
+        best: list[str] | None = None
+        for candidate in candidates:
+            rows: list[str] = []
+            missing = (body_tokens(c_text, skip_short=True)
+                       - body_tokens(candidate, skip_short=True)) - allowed
+            if missing:
+                rows.append(f"{kind} {name} does not mention " + ", ".join(sorted(missing)))
+            rows.extend(alias_count_problems(c_text, candidate, skip_short=True))
+            rows.extend(va_arg_problems(c_text, candidate))
+            if not rows:
+                best = []
+                break
+            if best is None or len(rows) < len(best):
+                best = rows
+        problems.extend(best or [])
 
     with ci.blind_conditions(c_path):
         empty_in_c = {f["name"] for f in c["functions"]

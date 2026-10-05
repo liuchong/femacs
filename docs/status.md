@@ -11065,3 +11065,38 @@
      `emacs_env_private`/`emacs_value_frame`/`Lisp_Module_Function` 等记录的布局断言与字段偏移**未实测**，
      没有链接、没有加载任何 module host、没有端到端验证。**预算**：我本轮跑 `--check` 约 8 发（同一条命令的复读）、
      `--selftest` 2 发、文本门 2 轮、`--write-pending`/`gen-port-map` 各 1 发；**零 `build-tu`/零 `probe`**。
+
+- **3.556 lane 产出收口：`src/xmenu.c` 整文件落地（C 2932 → Rust 4,011），抽取器补上"按臂配对"（2026-10-05）**：
+  ① **lane 的产出（Feynman）**：`femacs/src/xmenu.rs` 20 → **4,011 行**（md5 `0223d2a5…`），台账 24 → 295 行，
+     45 行区间表连续覆盖 C 1-2932；文件门 `have_x_windows`（`configure.ac` 7189-7195 的 `XMENU_OBJ`）压在每个项与整张
+     include 图上，**十个子门**两臂都带（`use_x_toolkit`/`use_gtk`/`use_lucid`/`use_motif`/`have_gtk3`/`have_xinput2`/
+     `have_xaw3d`/`msdos`/文件自己 `#undef` 的 `have_multilingual_menu`/`xdebug`）；`check-cond-eval` 读
+     **95 conditions / 0 unknown / 0 disagreements**。
+  ② **读数**：冻结 `build-tu` exit 0 / **336 字节**（`nm` 里没有该单元的任何符号）；三套真臂——旧 XMenu 臂
+     **单元自身 0 错**、GTK 臂 **单元自身 0 错**、Xt/Lucid 臂**单元自身 2 错**（C 1244/1298 的 `FRAME_MENUBAR_HEIGHT`，
+     镜像 `include/xterm.rs` 缺 USE_X_TOOLKIT 臂，记 `## Owed`）；另两套组合（`use_x_toolkit` 单独 / +use_motif）
+     **C 自己也编不了**（`lwlib.h` 只经 `USE_MOTIF` 或 `xlwmenu.h`→`lwlib.h` 进来），台账写明、不计真臂；
+     **变异实测**（`have_x_windows` 下注入 `mutation_probe`）两臂都报出来 ⇒ 臂读数非空跑。首轮旧 XMenu 臂 91 错
+     （单元自身 88）已逐条修毕（`c_int` 族、XEvent 联合成员指针视图、表达式上的 `#[cfg]`、`FRAME_X_OUTPUT!` 的
+     优先级、`lw_*` 的 `None`、两处 `SAFE_NALLOCA` 未初始化缓冲等）。
+  ③ **抽取器"按臂配对"（本轮我修，3 处，根因同一个）**：C 可以在**互斥的两臂里各定义一次同一个函数**
+     （`Fx_menu_bar_open_internal` 在 C 471 与 C 579），端口按 P-86 ① 同样一臂一份；而检查器把 C 的**活臂**
+     与端口**第一个**同名定义配对 ⇒ 三条假失败：`DEFUN! … defined 2 times`、`family memcpy: C 2 vs port 0`、
+     行数漂移。改法：⑴ `rust_inventory` 新增 `bodies_all`（同名函数的**全部**函数体）；⑵ 逐函数的 token/family/va_arg
+     检查改为**候选臂逐个试、取抱怨最少的那条**（忠实的那一臂不再被当成坏掉的第一臂）；⑶ `DEFUN!` 重复只在
+     **参照文本自身没有那么多处定义**时才报（在参照文本里按 `DEFUN ("…", Fname,` 计数，而不是用被臂过滤过的清单）。
+  ④ **A/B 证据（同一棵树、两版工具）**：`extract-abi --all` 在 **HEAD 版**读 `530 done, 3 in progress, 57 failing`，
+     在**本轮版**读 **`532 done, 3 in progress, 55 failing`** ⇒ 少两件失败、**没有回归**；`--selftest` 12 例 + 4 token 例
+     0 失败；定点点检 gmalloc / textconv / lwlib / emacs-module / w32menu / alloc / dispnew **全部 OK**。
+  ⑤ **集成者登记**：容差行 `xmenu 0.37`（2932 vs 4011 = 36.8%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件
+     （在飞的 `haikufont`/`w32dwrite` 行回退成已提交值）；`port-lines-pending.tsv` 去掉本件的行（两件在飞的行同样回退）——
+     **`extract-abi --all` 的 pending 计数因此从 17 文件 / 15,183 参照行降到 15 文件 / 12,304 行**；
+     `macro-body-notes.tsv` 保留该 lane 追加的 2 行（`x_menu_show`/`pop_down_menu`，**只追加**）。
+  ⑥ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、
+     `check-declarations` 0 failures、`check-dead-file-coverage` **125/0**、`check-ledger-ticks` 234/0、
+     `check-port-lines` 15 文件 / 12,304 参照行 / **0 new / 2 stale**、`check-target-names` 0 finding。
+  ⑦ **未声称**：冻结配置**不编**此文件，全部是**编译/文本**读数；没有任何 X11/Xt/Lucid/Motif/GTK/oldXMenu 的**行为**
+     声明（本机无这些头，libXt/Xaw/GTK/libXi 的记录与原型、`CorePart`/`XIDeviceEvent` 的偏移一律 **UNVERIFIED**）。
+     **预算**：本轮我跑了 `extract-abi --all` **2 发**（A/B，各约 2.5 分钟，都是只读）、定点 `--check` 约 12 发、
+     `--selftest` 2 发、文本门 2 轮、`--write-pending`/`gen-port-map` 各 1 发；**零 `build-tu`/零 `probe`**（编译都在 lane 侧）；
+     临时文件 `tools/_ea_head_ab.py` 用完即删（A/B 用的 HEAD 版工具，已确认不在树里）。
