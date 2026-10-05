@@ -207,7 +207,8 @@ block, and the union covers C 1-4304 without a gap.
 | 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
 | 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
 | 3548-3770 | `xwidget-webkit-search` (C 3549-3607), `xwidget-webkit-next-result` (C 3609-3640), `xwidget-webkit-previous-result` (C 3642-3673), `xwidget-webkit-finish-search` (C 3675-3712), `kill-xwidget` (C 3714-3731) and `xwidget-webkit-load-html` (C 3734-3769, under C 3733's `#ifdef USE_GTK`, which is this file's gate) | file gate - **transcribed** (slice 6, status 3.674) |
-| 3771-4304 | **the remainder**: `xwidget-webkit-back-forward-list` (C 3771-3865), `xwidget-webkit-set-cookie-storage-file` (C 3866-3898), `xwidget-webkit-stop-loading` (C 3899-3925), `syms_of_xwidget` (C 3928-4035) and the store/kill helpers from C 4037 | file gate - **owed** |
+| 3771-4027 | `xwidget-webkit-back-forward-list` (C 3771-3865, with C 3864's `#endif` closing C 3733's `#ifdef USE_GTK`), `xwidget-webkit-set-cookie-storage-file` (C 3866-3898), `xwidget-webkit-stop-loading` (C 3899-3925) and **`syms_of_xwidget`** (C 3928-4026, which registers every subr this unit ports) | file gate - **transcribed** (slice 7, status 3.675) |
+| 4028-4304 | **the remainder**: C 4028-4035's comment and the store/kill helpers from C 4037 - `valid_xwidget_spec_p`, `xwidget_spec_value`, `xwidget_touch`, `xwidget_touched`, `lookup_xwidget`, `xwidget_start_redisplay`, `xwidget_end_redisplay`, `xwidget_view_lookup`, `xwidget_view_delete_all_in_window`, `kill_xwidget` (C 4247), `kill_frame_xwidget_views` and `kill_buffer_xwidgets` | file gate - **owed** |
 
 ## Evidence` readings and the `## Deviations`.
 >
@@ -357,7 +358,8 @@ Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861)
 | 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
 | 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
 | 3548-3770 | `xwidget-webkit-search` (C 3549-3607), `xwidget-webkit-next-result` (C 3609-3640), `xwidget-webkit-previous-result` (C 3642-3673), `xwidget-webkit-finish-search` (C 3675-3712), `kill-xwidget` (C 3714-3731) and `xwidget-webkit-load-html` (C 3734-3769, under C 3733's `#ifdef USE_GTK`, which is this file's gate) | file gate - **transcribed** (slice 6, status 3.674) |
-| 3771-4304 | **the remainder**: `xwidget-webkit-back-forward-list` (C 3771-3865), `xwidget-webkit-set-cookie-storage-file` (C 3866-3898), `xwidget-webkit-stop-loading` (C 3899-3925), `syms_of_xwidget` (C 3928-4035) and the store/kill helpers from C 4037 | file gate - **owed** |
+| 3771-4027 | `xwidget-webkit-back-forward-list` (C 3771-3865, with C 3864's `#endif` closing C 3733's `#ifdef USE_GTK`), `xwidget-webkit-set-cookie-storage-file` (C 3866-3898), `xwidget-webkit-stop-loading` (C 3899-3925) and **`syms_of_xwidget`** (C 3928-4026, which registers every subr this unit ports) | file gate - **transcribed** (slice 7, status 3.675) |
+| 4028-4304 | **the remainder**: C 4028-4035's comment and the store/kill helpers from C 4037 - `valid_xwidget_spec_p`, `xwidget_spec_value`, `xwidget_touch`, `xwidget_touched`, `lookup_xwidget`, `xwidget_start_redisplay`, `xwidget_end_redisplay`, `xwidget_view_lookup`, `xwidget_view_delete_all_in_window`, `kill_xwidget` (C 4247), `kill_frame_xwidget_views` and `kill_buffer_xwidgets` | file gate - **owed** |
 
 ## Evidence
 
@@ -762,6 +764,43 @@ surface already lives.  `check-dead-file-coverage.py` re-read after the table ch
 `145 ledger(s), 0 failure(s)`.
 
 
+**⑭ Slice 7 (C 3771-4027): the readings of the round that landed it (2026-10-06, status 3.675).**
+
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **51 -> 14**
+rows.  The thirty-seven retired are the three subrs' rows
+(`Fxwidget_webkit_back_forward_list`, `Fxwidget_webkit_set_cookie_storage_file`,
+`Fxwidget_webkit_stop_loading`), the row for `missing function syms_of_xwidget`, and **every
+`defsubr (&raw const S… )` row the file carries** - 25 registrations, which is what the ledger's
+Owed 7 predicted `syms_of_xwidget` would do.  What is left is the thirteen `missing function` rows
+of C 4037-4304's store/kill helpers plus the drift row, now
+`line count drifted 40.4%: C 4304 vs Rust 6044`.
+
+b) **The frozen reading.**  `build-tu src/xwidget.c` -> built, `build/femacs/xwidget.o` **336
+bytes** - the empty object of the P-86 class.
+
+c) **The three arm flips against HEAD's own file**, and this one came in clean on the first run:
+
+| arm (`use_gtk` + `have_gtk3` + `have_xwidgets` + …) | own-text rows, HEAD | this slice | added |
+| --- | --- | --- | --- |
+| A: `have_x_windows` + `have_window_system` | 51 | **51** | **0** |
+| B: `have_pgtk` + `have_window_system` | 13 | **13** | **0** |
+| C: (no window system) | 24 | **24** | **0** |
+
+The slice applied slice 6's structural lesson up front (C's `#ifdef USE_GTK` locals at function
+scope, no inner `#[cfg]` block), which is why the first run is the last one this time.
+
+d) **Two things this slice adds that are not transcription**, both named in the deviations: the
+`DEFVAR_BOOL` carrier (`pub static mut xwidget_webkit_disable_javascript: bool`, P-97's type and
+P-21's shadowing of the globals mirror's `extern`) and the `webkit_check_version_ge_2_34` arm for
+C 4019's `#if WEBKIT_CHECK_VERSION (2, 34, 0)` (the derivation `## Owed` 1 records; C 4019 is that
+feature's fourth site).
+
+e) **No mirror was edited this round**, so P-87 ①'s legs do not apply: the cookie-manager surface
+(`WebKitCookieManager`, `WEBKIT_COOKIE_PERSISTENT_STORAGE_TEXT`), the nine WebKit entry points and
+the `nsxwidget_webkit_stop_loading` declaration all live in this unit's own blocks.
+`check-dead-file-coverage.py` re-read after the table change: `145 ledger(s), 0 failure(s)`.
+
+
 ## Deviations
 
 1. **Include order.**  C's list starts at `"buffer.h"` (C 22) and reaches `"lisp.h"` at C 25;
@@ -1032,6 +1071,31 @@ surface already lives.  `check-dead-file-coverage.py` re-read after the table ch
    this unit includes - no new cross-unit declaration beyond `kill_xwidget` (Deviation 3).
 
 
+### Slice 7 (C 3771-4027, status 3.675)
+
+1. **The `DEFVAR_BOOL` carrier is the unit's own** (P-97): `pub static mut
+   xwidget_webkit_disable_javascript: bool = false;` with `#[unsafe(no_mangle)]`, which shadows the
+   `include/globals.rs` 7205 `extern` for this TU (P-21's "definition shadows the glob import").
+   C 4001's `= false` is the initialiser.
+2. **`staticpro` takes a `*const Lisp_Object`** in the port (`alloc.rs` 5815), so C's four
+   `staticpro (&x)` sites are `staticpro (&raw const x)`.
+3. **C 4019's `#if WEBKIT_CHECK_VERSION (2, 34, 0)`** is `feature = "webkit_check_version_ge_2_34"`,
+   the spelling this file's head comment derives from the reference (`WEBKIT_CHECK_VERSION` is
+   defined nowhere in the reference tree) - its fourth site; the three derived features are still
+   unregistered in `femacs/xtask/Cargo.toml` (`## Owed` 1).
+4. **The two GList walks** (C 3829-3837 and C 3847-3855) are C's comma-expression `for` written as
+   an init plus a `while` plus the two update statements in C's order (`tem = tem->next; ++i;`) -
+   the same shape `fringe.c` slice 2's loops carry.
+5. **`lim = XFIXNAT (limit) as c_uint`** and **`i as EMACS_INT` / `-(i as EMACS_INT)`**: C's
+   `unsigned int lim` and `make_fixnum (-i)` mix the widths implicitly.
+6. **`build_string_from_utf8 (item_title ? item_title : "")`** is an `if`/`else` expression in the
+   port (Rust has no `?:`), with `c""` for C's empty string literal.
+7. **`internal_xwidget_list`/`internal_xwidget_view_list`/`id_to_xwidget_map`/
+   `dummy_tooltip_string`** are this unit's own `static mut`s (already declared by slice 1's
+   prefix), and C 4015-4022's `HAVE_X_WINDOWS` block carries the arm plus C 4019's version test
+   nested inside it, as C nests them.
+
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. `femacs/xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
@@ -1093,15 +1157,17 @@ surface already lives.  `check-dead-file-coverage.py` re-read after the table ch
    only; **slice 2 flips them** (ARM A11 sets `have_xinput2`/`have_xinput2_4`, Evidence ⑧) but the
    arm cannot *resolve* until `XIEventMask`/`x_display_info` land in `include/xterm.rs` (owed 10),
    so the reading is still a name-resolution one and not a compile.
-7. **The next slices.**  Slices 3-6 (status 3.671-3.674) landed C 2717-2790, C 3042-3116,
-   C 3117-3307, C 3308-3547 and C 3548-3770; what is left is **C 2791-3041** (C 2793's
-   `x_draw_xwidget_glyph_string`, the densest function in the file: the
+7. **The next slice - the file's last two fronts.**  Slices 3-7 (status 3.671-3.675) landed
+   C 2717-2790, C 3042-3116, C 3117-3307, C 3308-3547, C 3548-3770 and C 3771-4027; what is left is
+   **C 2791-3041** (C 2793's `x_draw_xwidget_glyph_string`, the densest function in the file: the
    `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms, `XCreateWindow`/`XISelectEvents`/
-   `cairo_xlib_surface_create`) and **C 3771-4304** (`xwidget-webkit-back-forward-list`,
-   `xwidget-webkit-set-cookie-storage-file`, `xwidget-webkit-stop-loading`, `syms_of_xwidget`
-   C 3928-4035, and the store/kill helpers from C 4037 - including C 4247's `kill_xwidget`, whose
-   *definition* is what retires the row slice 6's use-site declaration could not).  The C
-   line-range table carries both fronts as its **owed** rows.
+   `cairo_xlib_surface_create`) and **C 4028-4304** - the thirteen `missing function` rows the
+   `--check` reading now carries: `valid_xwidget_spec_p`, `xwidget_spec_value`, `xwidget_touch`,
+   `xwidget_touched`, `lookup_xwidget`, `xwidget_start_redisplay`, `xwidget_end_redisplay`,
+   `xwidget_view_lookup`, `xwidget_view_delete_all_in_window`, **`kill_xwidget` (C 4247, whose
+   *definition* is what slice 6's use-site declaration cannot stand in for)**,
+   `kill_frame_xwidget_views` and `kill_buffer_xwidgets`.  The C line-range table carries both as
+   its **owed** rows.
 
 
 8. **The mirror's GDK event records need the members this slice reads.**  The ARM A11 reading's 84

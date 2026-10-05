@@ -639,6 +639,19 @@ pub struct WebKitDownload
 {
   _private: [u8; 0],
 }
+/// C: webkit2/WebKitCookieManager.h: `typedef struct _WebKitCookieManager
+/// WebKitCookieManager;` - C 3879's `manager` (slice 7).  **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[repr (C)]
+pub struct WebKitCookieManager
+{
+  _private: [u8; 0],
+}
+/// C: webkit2/WebKitCookieManager.h: `typedef enum { WEBKIT_COOKIE_PERSISTENT_STORAGE_TEXT,
+/// WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE } WebKitCookiePersistentStorage;` - the value C 3892
+/// passes.  **UNVERIFIED** (a distinct placeholder; no WebKit tree on this machine).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub const WEBKIT_COOKIE_PERSISTENT_STORAGE_TEXT: c_int = 0;
 /// C: webkit2/WebKitFindController.h: `typedef struct _WebKitFindController
 /// WebKitFindController;` - C 3571/3621/3654/3687's `controller` (slice 6).  **UNVERIFIED**.
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
@@ -841,6 +854,53 @@ unsafe extern "C" {
   /// gchar *content, const gchar *base_uri);`
   pub fn webkit_web_view_load_html (web_view: *mut WebKitWebView, content: *const gchar,
 				    base_uri: *const gchar);
+  /// C 3814: `item = webkit_back_forward_list_get_current_item (list);`
+  /// C: webkit2/WebKitBackForwardList.h: `WebKitBackForwardListItem
+  /// *webkit_back_forward_list_get_current_item (WebKitBackForwardList *back_forward_list);`
+  pub fn webkit_back_forward_list_get_current_item (back_forward_list: *mut WebKitBackForwardList)
+    -> *mut WebKitBackForwardListItem;
+  /// C 3819/3832/3850: `item_title = webkit_back_forward_list_item_get_title (item);`
+  /// C: webkit2/WebKitBackForwardListItem.h: `const gchar *webkit_back_forward_list_item_get_title
+  /// (WebKitBackForwardListItem *item);`
+  pub fn webkit_back_forward_list_item_get_title (item: *mut WebKitBackForwardListItem)
+    -> *const gchar;
+  /// C 3820/3833/3851: `item_uri = webkit_back_forward_list_item_get_uri (item);`
+  /// C: webkit2/WebKitBackForwardListItem.h: `const gchar *webkit_back_forward_list_item_get_uri
+  /// (WebKitBackForwardListItem *item);`
+  pub fn webkit_back_forward_list_item_get_uri (item: *mut WebKitBackForwardListItem)
+    -> *const gchar;
+  /// C 3825: `parent = webkit_back_forward_list_get_back_list_with_limit (list, lim);`
+  /// C: webkit2/WebKitBackForwardList.h: `GList
+  /// *webkit_back_forward_list_get_back_list_with_limit (WebKitBackForwardList *back_forward_list,
+  /// guint limit);`
+  pub fn webkit_back_forward_list_get_back_list_with_limit
+    (back_forward_list: *mut WebKitBackForwardList, limit: c_uint) -> *mut GList;
+  /// C 3843: `parent = webkit_back_forward_list_get_forward_list_with_limit (list, lim);`
+  /// C: webkit2/WebKitBackForwardList.h: `GList
+  /// *webkit_back_forward_list_get_forward_list_with_limit (WebKitBackForwardList
+  /// *back_forward_list, guint limit);`
+  pub fn webkit_back_forward_list_get_forward_list_with_limit
+    (back_forward_list: *mut WebKitBackForwardList, limit: c_uint) -> *mut GList;
+  /// C 3888: `context = webkit_web_view_get_context (webview);`
+  /// C: webkit2/WebKitWebView.h: `WebKitWebContext *webkit_web_view_get_context (WebKitWebView
+  /// *web_view);`
+  pub fn webkit_web_view_get_context (web_view: *mut WebKitWebView) -> *mut WebKitWebContext;
+  /// C 3889: `manager = webkit_web_context_get_cookie_manager (context);`
+  /// C: webkit2/WebKitWebContext.h: `WebKitCookieManager *webkit_web_context_get_cookie_manager
+  /// (WebKitWebContext *context);`
+  pub fn webkit_web_context_get_cookie_manager (context: *mut WebKitWebContext)
+    -> *mut WebKitCookieManager;
+  /// C 3890-3892: `webkit_cookie_manager_set_persistent_storage (manager, SSDATA (ENCODE_UTF_8
+  /// (file)), WEBKIT_COOKIE_PERSISTENT_STORAGE_TEXT);`
+  /// C: webkit2/WebKitCookieManager.h: `void webkit_cookie_manager_set_persistent_storage
+  /// (WebKitCookieManager *cookie_manager, const gchar *filename,
+  /// WebKitCookiePersistentStorage storage);`
+  pub fn webkit_cookie_manager_set_persistent_storage (cookie_manager: *mut WebKitCookieManager,
+						       filename: *const gchar,
+						       storage: c_int);
+  /// C 3918: `webkit_web_view_stop_loading (webview);`
+  /// C: webkit2/WebKitWebView.h: `void webkit_web_view_stop_loading (WebKitWebView *web_view);`
+  pub fn webkit_web_view_stop_loading (web_view: *mut WebKitWebView);
 }
 
 /* C 56-59: the file's four file-scope objects.  The first three are C's tentative definitions
@@ -5692,3 +5752,293 @@ DEFUN! ("xwidget-webkit-load-html", Fxwidget_webkit_load_html, Sxwidget_webkit_l
 
   return Qnil ();
 });
+
+/* C 3771's `DEFUN ("xwidget-webkit-back-forward-list", …)` on: slice 7 (C 3771-4035).  This lands
+   the last three WebKit subrs and `syms_of_xwidget` (C 3928-4026, which registers every subr this
+   unit has ported); C 4028 on (`valid_xwidget_spec_p` and the store/kill helpers, C 4247's
+   `kill_xwidget` among them) is the file's last slice.  */
+
+/// C 3771-3786: `DEFUN ("xwidget-webkit-back-forward-list", Fxwidget_webkit_back_forward_list,
+/// Sxwidget_webkit_back_forward_list, 1, 2, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-back-forward-list", Fxwidget_webkit_back_forward_list,
+       Sxwidget_webkit_back_forward_list, 1, 2, 0,
+       doc: "Return the navigation history of XWIDGET, a WebKit xwidget.\n\nReturn the history as a list of the form (BACK HERE FORWARD), where\nHERE is the current navigation item, while BACK and FORWARD are lists\nof history items of the form (IDX TITLE URI).  Here, IDX is an index\nthat can be passed to `xwidget-webkit-goto-history', TITLE is a string\ncontaining the human-readable title of the history item, and URI is\nthe URI of the history item.\n\nBACK, HERE, and FORWARD can all be nil depending on the state of the\nnavigation history.\n\nBACK and FORWARD will each not contain more elements than LIMIT.  If\nLIMIT is not specified or nil, it is treated as `50'.",
+       (xwidget: Lisp_Object, limit: Lisp_Object),
+       {
+  let mut xw: *mut xwidget;
+  let mut back: Lisp_Object;
+  let mut here: Lisp_Object;
+  let mut forward: Lisp_Object;
+  let mut webview: *mut WebKitWebView;
+  let mut list: *mut WebKitBackForwardList;
+  let mut item: *mut WebKitBackForwardListItem;
+  let mut parent: *mut GList;
+  let mut tem: *mut GList;
+  let mut i: c_int;
+  let mut lim: c_uint;
+  let mut title: Lisp_Object;
+  let mut uri: Lisp_Object;
+  let mut item_title: *const gchar;
+  let mut item_uri: *const gchar;
+
+  /* C 3805 assigns its own `limit` parameter.  */
+  let mut limit: Lisp_Object = limit;
+
+  back = Qnil ();
+  here = Qnil ();
+  forward = Qnil ();
+
+  if NILP (limit)
+    { limit = make_fixnum (50); }
+  else
+    { CHECK_FIXNAT (limit); }
+
+  CHECK_LIVE_XWIDGET (xwidget);
+  xw = XXWIDGET (xwidget);
+
+  webview = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  list = webkit_web_view_get_back_forward_list (webview);
+  item = webkit_back_forward_list_get_current_item (list);
+  lim = XFIXNAT (limit) as c_uint;
+
+  if !item.is_null ()
+    {
+      item_title = webkit_back_forward_list_item_get_title (item);
+      item_uri = webkit_back_forward_list_item_get_uri (item);
+      here = list3 (make_fixnum (0),
+		    build_string_from_utf8 (if item_title.is_null () { c"".as_ptr () }
+					    else { item_title }),
+		    build_string_from_utf8 (if item_uri.is_null () { c"".as_ptr () }
+					    else { item_uri }));
+    }
+  parent = webkit_back_forward_list_get_back_list_with_limit (list, lim);
+
+  if !parent.is_null ()
+    {
+      i = 1;
+      tem = parent;
+      while !tem.is_null ()
+	{
+	  item = (*tem).data as *mut WebKitBackForwardListItem;
+	  item_title = webkit_back_forward_list_item_get_title (item);
+	  item_uri = webkit_back_forward_list_item_get_uri (item);
+	  title = build_string_from_utf8 (if item_title.is_null () { c"".as_ptr () }
+					  else { item_title });
+	  uri = build_string_from_utf8 (if item_uri.is_null () { c"".as_ptr () }
+					else { item_uri });
+	  back = Fcons (list3 (make_fixnum (-(i as EMACS_INT)), title, uri), back);
+	  tem = (*tem).next;
+	  i += 1;
+	}
+    }
+
+  back = Fnreverse (back);
+  g_list_free (parent);
+
+  parent = webkit_back_forward_list_get_forward_list_with_limit (list, lim);
+
+  if !parent.is_null ()
+    {
+      i = 1;
+      tem = parent;
+      while !tem.is_null ()
+	{
+	  item = (*tem).data as *mut WebKitBackForwardListItem;
+	  item_title = webkit_back_forward_list_item_get_title (item);
+	  item_uri = webkit_back_forward_list_item_get_uri (item);
+	  title = build_string_from_utf8 (if item_title.is_null () { c"".as_ptr () }
+					  else { item_title });
+	  uri = build_string_from_utf8 (if item_uri.is_null () { c"".as_ptr () }
+					else { item_uri });
+	  forward = Fcons (list3 (make_fixnum (i as EMACS_INT), title, uri), forward);
+	  tem = (*tem).next;
+	  i += 1;
+	}
+    }
+
+  forward = Fnreverse (forward);
+  g_list_free (parent);
+
+  return list3 (back, here, forward);
+});
+
+/// C 3866-3872: `DEFUN ("xwidget-webkit-set-cookie-storage-file",
+/// Fxwidget_webkit_set_cookie_storage_file, Sxwidget_webkit_set_cookie_storage_file, 2, 2, 0,
+/// doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-set-cookie-storage-file", Fxwidget_webkit_set_cookie_storage_file,
+       Sxwidget_webkit_set_cookie_storage_file, 2, 2, 0,
+       doc: "Make the WebKit widget XWIDGET load and store cookies in FILE.\n\nCookies will be stored as plain text in FILE, which must be an\nabsolute file name.  All xwidgets related to XWIDGET will also\nstore cookies in FILE and load them from there.",
+       (xwidget: Lisp_Object, file: Lisp_Object),
+       {
+  let mut xw: *mut xwidget;
+  let mut webview: *mut WebKitWebView;
+  let mut context: *mut WebKitWebContext;
+  let mut manager: *mut WebKitCookieManager;
+
+  CHECK_LIVE_XWIDGET (xwidget);
+  xw = XXWIDGET (xwidget);
+  CHECK_WEBKIT_WIDGET! (xw);
+  CHECK_STRING (file);
+
+  block_input ();
+  webview = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  context = webkit_web_view_get_context (webview);
+  manager = webkit_web_context_get_cookie_manager (context);
+  webkit_cookie_manager_set_persistent_storage (manager,
+						SSDATA (ENCODE_UTF_8 (file)),
+						WEBKIT_COOKIE_PERSISTENT_STORAGE_TEXT);
+  unblock_input ();
+
+  return Qnil ();
+});
+
+/// C 3899-3903: `DEFUN ("xwidget-webkit-stop-loading", Fxwidget_webkit_stop_loading,
+/// Sxwidget_webkit_stop_loading, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-stop-loading", Fxwidget_webkit_stop_loading,
+       Sxwidget_webkit_stop_loading, 1, 1, 0,
+       doc: "Stop loading data in the WebKit widget XWIDGET.\nThis will stop any data transfer that may still be in progress inside\nXWIDGET as part of loading a page.",
+       (xwidget: Lisp_Object),
+       {
+  let mut xw: *mut xwidget;
+  /* C 3907-3909's `#ifdef USE_GTK` local (the file gate, as slices 5/6 record).  */
+  let mut webview: *mut WebKitWebView;
+
+  CHECK_LIVE_XWIDGET (xwidget);
+  xw = XXWIDGET (xwidget);
+  CHECK_WEBKIT_WIDGET! (xw);
+
+  block_input ();
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  webview = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  webkit_web_view_stop_loading (webview);
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  nsxwidget_webkit_stop_loading (xw);
+  }
+  unblock_input ();
+
+  return Qnil ();
+});
+
+/// C 3919-3920's `#elif defined NS_IMPL_COCOA` arm's callee.
+/// C: nsxwidget.h 40: `void nsxwidget_webkit_stop_loading (struct xwidget *xw);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_webkit_stop_loading (xw: *mut xwidget);
+}
+
+/// C 3996-4001's `DEFVAR_BOOL` carrier (P-97: a Bool carrier is the unit's own `bool`); the
+/// declaration in `include/globals.rs` 7205 is the mirror's `extern`, and this definition is what
+/// the macro dereferences (`#[unsafe(no_mangle)]` shadows the glob import, PORTING.md P-21).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub static mut xwidget_webkit_disable_javascript: bool = false;
+
+/// C 3928: `void` / `syms_of_xwidget (void)` - non-`static`, so exported.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_xwidget ()
+{
+  defsubr (&raw mut Smake_xwidget);
+  defsubr (&raw mut Sxwidgetp);
+  defsubr (&raw mut Sxwidget_live_p);
+  DEFSYM! (Qxwidgetp, c"xwidgetp");
+  DEFSYM! (Qxwidget_live_p, c"xwidget-live-p");
+  defsubr (&raw mut Sxwidget_view_p);
+  DEFSYM! (Qxwidget_view_p, c"xwidget-view-p");
+  defsubr (&raw mut Sxwidget_info);
+  defsubr (&raw mut Sxwidget_view_info);
+  defsubr (&raw mut Sxwidget_resize);
+  defsubr (&raw mut Sget_buffer_xwidgets);
+  defsubr (&raw mut Sxwidget_view_model);
+  defsubr (&raw mut Sxwidget_view_window);
+  defsubr (&raw mut Sxwidget_view_lookup);
+  defsubr (&raw mut Sxwidget_query_on_exit_flag);
+  defsubr (&raw mut Sset_xwidget_query_on_exit_flag);
+
+  defsubr (&raw mut Sxwidget_webkit_uri);
+  defsubr (&raw mut Sxwidget_webkit_title);
+  defsubr (&raw mut Sxwidget_webkit_goto_uri);
+  defsubr (&raw mut Sxwidget_webkit_goto_history);
+  defsubr (&raw mut Sxwidget_webkit_zoom);
+  defsubr (&raw mut Sxwidget_webkit_execute_script);
+  DEFSYM! (Qwebkit, c"webkit");
+
+  defsubr (&raw mut Sxwidget_size_request);
+  defsubr (&raw mut Sdelete_xwidget_view);
+
+  defsubr (&raw mut Sxwidget_plist);
+  defsubr (&raw mut Sxwidget_buffer);
+  defsubr (&raw mut Sset_xwidget_plist);
+  defsubr (&raw mut Sxwidget_perform_lispy_event);
+  defsubr (&raw mut Sxwidget_webkit_search);
+  defsubr (&raw mut Sxwidget_webkit_finish_search);
+  defsubr (&raw mut Sxwidget_webkit_next_result);
+  defsubr (&raw mut Sxwidget_webkit_previous_result);
+  defsubr (&raw mut Sset_xwidget_buffer);
+  defsubr (&raw mut Sxwidget_webkit_set_cookie_storage_file);
+  defsubr (&raw mut Sxwidget_webkit_stop_loading);
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  defsubr (&raw mut Sxwidget_webkit_load_html);
+  defsubr (&raw mut Sxwidget_webkit_back_forward_list);
+  }
+
+  defsubr (&raw mut Sxwidget_webkit_estimated_load_progress);
+  defsubr (&raw mut Skill_xwidget);
+
+  DEFSYM! (QCxwidget, c":xwidget");
+  DEFSYM! (QCtitle, c":title");
+
+  /* Do not forget to update the docstring of make-xwidget if you add
+     new types.  */
+
+  DEFSYM! (Qvertical, c"vertical");
+  DEFSYM! (Qhorizontal, c"horizontal");
+
+  DEFSYM! (QCplist, c":plist");
+
+  DEFVAR_LISP! (c"xwidget-list", Vxwidget_list,
+		"List of all xwidgets that have not been killed.");
+  Vxwidget_list = Qnil ();
+
+  DEFVAR_LISP! (c"xwidget-view-list", Vxwidget_view_list,
+		"List of all xwidget views.");
+  Vxwidget_view_list = Qnil ();
+
+  DEFVAR_BOOL! (c"xwidget-webkit-disable-javascript", xwidget_webkit_disable_javascript,
+    "If non-nil, disable execution of JavaScript in xwidget WebKit widgets.\nModifications to this setting do not take effect in existing WebKit\nwidgets; kill all xwidget-webkit buffers for changes in this setting\nto take effect.");
+  xwidget_webkit_disable_javascript = false;
+
+  Fprovide (intern (c"xwidget-internal".as_ptr ()), Qnil ());
+
+  id_to_xwidget_map = CALLN! (Fmake_hash_table, QCtest (), Qeq (),
+			      QCweakness (), Qvalue ());
+  staticpro (&raw const id_to_xwidget_map);
+
+  internal_xwidget_list = Qnil ();
+  staticpro (&raw const internal_xwidget_list);
+  internal_xwidget_view_list = Qnil ();
+  staticpro (&raw const internal_xwidget_view_list);
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+  {
+  x_window_to_xwv_map = CALLN! (Fmake_hash_table, QCtest (), Qeq ());
+
+  staticpro (&raw const x_window_to_xwv_map);
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	     feature = "webkit_check_version_ge_2_34"))]
+  {
+  dummy_tooltip_string = build_string (c"".as_ptr ());
+  staticpro (&raw const dummy_tooltip_string);
+  }
+  }
+  DEFSYM! (Qdownload_callback, c"download-callback");
+  DEFSYM! (Qjavascript_callback, c"javascript-callback");
+}

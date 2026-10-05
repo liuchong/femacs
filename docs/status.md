@@ -13796,3 +13796,30 @@
   ⑦ **未声称**：C 2791-3041 与 C 3771-4304 一行未动；冻结档编译不到这个文件；三组翻臂都是**编译**不是链接/加载；
      WebKit 那几个类型与枚举值仍是 **UNVERIFIED**（本机没有 WebKit 树）；没有跑任何行为。
   ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 12 发（本片 3 + 迭代 6 + HEAD 基线 3）、`--check` 3 发、文本门 2 发；`/tmp` 脚本收工删。
+
+- **3.675 `src/xwidget.c` 的第七片：C 3771-4027（三个 WebKit subr + **`syms_of_xwidget`**）落地——`--check` 的 `- ` 行 51 → **14**（一次退场 37 条：三个 subr、`missing function syms_of_xwidget`，以及本文件**全部 25 条 `defsubr (&raw const S… )` 注册行**）；三组翻臂对 HEAD **新增 0，而且第一发就干净**（上一片的结构性教训这次用在了前头）（2026-10-06）**：
+  ① **范围**：`xwidget-webkit-back-forward-list`（C 3771-3865，含 C 3864 的 `#endif` 收掉 C 3733 的 `#ifdef USE_GTK`；
+     两段 GList 遍历 + `webkit_back_forward_list_*` 五个入口）、`xwidget-webkit-set-cookie-storage-file`（C 3866-3898，
+     `WebKitCookieManager` 与 `webkit_*_cookie_manager_*` 三个入口）、`xwidget-webkit-stop-loading`（C 3899-3925，`USE_GTK`/`NS_IMPL_COCOA` 两臂），
+     以及 **`syms_of_xwidget`**（C 3928-4026：25 个 `defsubr`、九个 `DEFSYM`、两个 `DEFVAR_LISP`、一个 `DEFVAR_BOOL`、
+     `Fprovide`、四个 `staticpro`，以及 `HAVE_X_WINDOWS` 里那一段 `x_window_to_xwv_map` 与 `WEBKIT_CHECK_VERSION (2,34,0)` 的嵌套手臂）。
+  ② **读数（本单元最大的一次收口）**：`extract-abi --check` **51 → 14**。剩下的是 C 4037-4304 那十三个存取/销毁助手的
+     `missing function` 行（`valid_xwidget_spec_p`、`xwidget_spec_value`、`xwidget_touch`、`xwidget_touched`、`lookup_xwidget`、
+     `xwidget_start_redisplay`、`xwidget_end_redisplay`、`xwidget_view_lookup`、`xwidget_view_delete_all_in_window`、
+     **`kill_xwidget`（C 4247 的定义）**、`kill_frame_xwidget_views`、`kill_buffer_xwidgets`）加一行行数棘轮
+     `40.4%: C 4304 vs Rust 6044`。冻结档仍是 **336 字节空对象**。
+  ③ **三组翻臂（对 HEAD 的同名文件）**：A 51 → **51**、B 13 → **13**、C 24 → **24**，**新增 0，而且这次第一发就是最后发**——
+     上一片量出的"`#ifdef USE_GTK` 的局部量要放函数作用域、不带内层块"这次直接按那个形状写（结构性教训用在前面，不是靠再跑一轮改）。
+  ④ **本片新增的两处"不是转写"的东西，都在偏离里点名**：⑴ `DEFVAR_BOOL` 的载体按 P-97 写成单元自己的
+     `pub static mut xwidget_webkit_disable_javascript: bool`（`#[unsafe(no_mangle)]`，按 P-21 遮蔽 `include/globals.rs` 的 `extern`）；
+     ⑵ C 4019 的 `#if WEBKIT_CHECK_VERSION (2, 34, 0)` 写成 `feature = "webkit_check_version_ge_2_34"`（本文件头注释推导出的拼法，
+     这是该 feature 的第四处；三个派生 feature 仍未注册进 `femacs/xtask/Cargo.toml`，即 Owed 1）。
+  ⑤ **零镜像改动 ⇒ P-87 两条腿不适用**（写进账）：cookie 管理器表面（`WebKitCookieManager`、`WEBKIT_COOKIE_PERSISTENT_STORAGE_TEXT`）、
+     九个 WebKit 入口与 `nsxwidget_webkit_stop_loading` 都在本单元自己的段落里。`check-dead-file-coverage` 复读
+     **145 ledger(s), 0 failure(s)**。
+  ⑥ **账目**：C 区间表两处副本把"3771-4304 一整行"拆成 **3771-4027 transcribed / 4028-4304 owed**；新增 Evidence ⑭（a-e，含 HEAD 对照表）；
+     `### Slice 7` 的 7 条偏离；Owed 7 换成"本文件最后两处前沿"并逐个点名那十三个函数。
+  ⑦ **未声称**：C 2791-3041（`x_draw_xwidget_glyph_string`）与 C 4028-4304 一行未动；冻结档编译不到这个文件；
+     三组翻臂都是**编译**不是链接/加载；WebKit 那几个类型与枚举值仍是 **UNVERIFIED**；`syms_of_xwidget` 这次**只**做了注册与变量初始化，
+     没有跑过它；没有跑任何行为。
+  ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 6 发（本片 3 + HEAD 基线 3）、`--check` 3 发、文本门 2 发；`/tmp` 脚本收工删。
