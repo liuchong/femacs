@@ -1,12 +1,14 @@
 // femacs: port of src/xgselect.h @ fd7afced403.
 //
 // Header mirror (PORTING.md 0.1).  The header has no platform guard of its own - C 20-21 is the
-// include guard and C 28-33 are live text - but nothing on this target compiles it:
-// `src/xgselect.c`'s whole body is inside `#ifdef HAVE_GLIB` (undefined in the frozen
-// configuration, docs/baseline/config/darwin-arm64.macros.tsv), so `femacs/src/xgselect.rs` is
-// the empty-shape note and no unit links these names (the `src/w32select.h` precedent,
-// status 3.158).  The mirror carries them anyway, because the header's *text* is what a mirror
-// mirrors.
+// include guard and C 28-33 are live text - while the *unit*'s whole body is inside
+// `#ifdef HAVE_GLIB` (undefined in the frozen configuration,
+// docs/baseline/config/darwin-arm64.macros.tsv), so the frozen target links none of these names
+// (the `src/w32select.h` precedent, status 3.158).  The mirror carries them anyway, because the
+// header's *text* is what a mirror mirrors - and since `src/xgselect.rs` now *defines* all four
+// (status 3.477), they live in a `pub mod xgselect_decls` + glob import (the `character.rs`
+// shape): an explicit item shadows a glob import, where a same-named declaration at this scope
+// would be `E0428` (PORTING.md 0.1-10, P-39).
 //
 // P-72 decides every name here: the header declares no type of its own and its two `#include`s
 // (C 23-24) supply `fd_set` only through `sysselect.h`, which a *consumer* reaches itself
@@ -27,10 +29,18 @@ pub const XGSELECT_H: bool = true;
 /// C: extern void suppress_xg_select (void);
 /// C: extern void release_xg_select (void);
 /// C: extern void release_select_lock (void);
-unsafe extern "C" {
-  pub fn xg_select (max_fds: c_int, rfds: *mut c_void, wfds: *mut c_void, efds: *mut c_void,
-                    timeout: *mut c_void, sigmask: *mut c_void) -> c_int;
-  pub fn suppress_xg_select ();
-  pub fn release_xg_select ();
-  pub fn release_select_lock ();
+pub mod xgselect_decls {
+  use super::*;
+  // The names this mirror's own text needs, named where the module is (a header mirror carries
+  // no crate-relative paths and no inner attributes, so a scope that needs one brings it).
+  use std::ffi::{c_int, c_void};
+
+  unsafe extern "C" {
+    pub fn xg_select (max_fds: c_int, rfds: *mut c_void, wfds: *mut c_void, efds: *mut c_void,
+                      timeout: *mut c_void, sigmask: *mut c_void) -> c_int;
+    pub fn suppress_xg_select ();
+    pub fn release_xg_select ();
+    pub fn release_select_lock ();
+  }
 }
+use xgselect_decls::*;

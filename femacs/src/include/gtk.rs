@@ -934,6 +934,13 @@ unsafe extern "C" {
   /// C 1408: `gdkwin = gdk_x11_window_lookup_for_display (gdk_x11_lookup_xdisplay (dpy), wdesc);`
   /// C: gdk/gdkx.h: `gpointer gdk_x11_window_lookup_for_display (GdkDisplay *display, Window
   /// window);`
+  /* `<gtk/gtk.h>`'s X11 half: these four entries are gdk/gdkx.h's and gtk/gtkx.h's, and their
+     parameters name X11's `Window`/`Display`, whose home is `include/xlib.rs` - the other mirror
+     this surface is not allowed to name (`include/xlib.rs` 847/880).  C reaches them only through
+     `<gtk/gtk.h>` (USE_GTK) *and* the X11 headers, so the entry carries that gate: a unit whose
+     graph has GLib but not GTK/X11 - `src/xgselect.rs`, whose C 27 is `<glib.h>` alone - must not
+     see them (status 3.477: the `have_glib`-only flip named exactly these four).  */
+  #[cfg (feature = "use_gtk")]
   pub fn gdk_x11_window_lookup_for_display (display: *mut GdkDisplay, window: Window) -> gpointer;
   /// C 1352/1365: `gdk_window_move_resize (gwin, x, y, outer_width, outer_height);`
   /// C: gdk/gdkwindow.h: `void gdk_window_move_resize (GdkWindow *window, gint x, gint y, gint
@@ -1170,6 +1177,7 @@ unsafe extern "C" {
 unsafe extern "C" {
   /// C 1597: `wtop = gtk_plug_new_for_display (gdpy, f->output_data.xp->parent_desc);`
   /// C: gtk/gtkx.h: `GtkWidget *gtk_plug_new_for_display (GdkDisplay *display, Window socket_id);`
+  #[cfg (feature = "use_gtk")]
   pub fn gtk_plug_new_for_display (display: *mut GdkDisplay, socket_id: Window) -> *mut GtkWidget;
 }
 /* The GTK entry points this block also carried belong to the *surface*: GTK3 provides them in both
@@ -1235,9 +1243,11 @@ unsafe extern "C" {
 unsafe extern "C" {
   /// C 207/307/321/373: `gdk_x11_lookup_xdisplay (FRAME_X_DISPLAY (f))` / `… (dpy)`
   /// C: gdk/gdkx.h: `GdkDisplay *gdk_x11_lookup_xdisplay (Display *xdisplay);`
+  #[cfg (feature = "use_gtk")]
   pub fn gdk_x11_lookup_xdisplay (xdisplay: *mut Display) -> *mut GdkDisplay;
   /// C 260: `GDK_DISPLAY_XDISPLAY (gdpy)`
   /// C: gdk/gdkx.h: `Display *gdk_x11_display_get_xdisplay (GdkDisplay *display);`
+  #[cfg (feature = "use_gtk")]
   pub fn gdk_x11_display_get_xdisplay (display: *mut GdkDisplay) -> *mut Display;
 }
 /* The *GTK* entry points this block carried are the surface's too (`src/pgtkterm.c` calls
@@ -1581,4 +1591,59 @@ pub struct GdkRectangle
   pub y: c_int,
   pub width: c_int,    // C: `gint width, height;`
   pub height: c_int,
+}
+
+/* ----------------------------------------------------------------------------------------------
+   GLib's main-context surface (status 3.476).  `src/xgselect.c` is its only consumer, and P-90 ②
+   puts every GLib name in this mirror rather than inline in the unit, so the names it needs are
+   declared here.  **No GLib tree exists on this machine**, so every constant below is a
+   placeholder and no record layout is measured (P-88 ②: no numbers from memory); the ledger's Owed
+   names the GLib host that would measure them.
+   ---------------------------------------------------------------------------------------------- */
+
+/// C: glib/gmain.h: `typedef struct _GMainContext GMainContext;` (opaque).
+#[repr(C)]
+pub struct GMainContext
+{
+  _private: [u8; 0],
+}
+
+/// C: glib/gmain.h: `typedef struct _GPollFD { gint fd; gushort events; gushort revents; } GPollFD;`
+/// - the offsets follow that declaration and are UNVERIFIED.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct GPollFD
+{
+  pub fd: c_int,          /* C: gint fd; */
+  pub events: c_ushort,   /* C: gushort events; */
+  pub revents: c_ushort,  /* C: gushort revents; */
+}
+
+/// C: glib/gmain.h: `#define G_PRIORITY_LOW 300`
+pub const G_PRIORITY_LOW: c_int = 300;      // placeholder, not glib's value
+/// C: glib/gmain.h: `#define G_IO_IN 1`
+pub const G_IO_IN: c_int = 1;               // placeholder, not glib's value
+/// C: glib/gmain.h: `#define G_IO_OUT 4`
+pub const G_IO_OUT: c_int = 4;              // placeholder, not glib's value
+
+/// C: glib/gmain.h: the seven entry points `src/xgselect.c` calls.  Every prototype here is
+/// `UNVERIFIED` (the header is not on this machine), and `gboolean` is spelled `c_int` as the rest
+/// of this mirror spells it.
+/// C: GMainContext *g_main_context_default (void);
+/// C: gboolean g_main_context_acquire (GMainContext *context);
+/// C: void g_main_context_release (GMainContext *context);
+/// C: gint g_main_context_query (GMainContext *context, gint max_priority, gint *timeout_,
+/// C:   GPollFD *fds, gint n_fds);
+/// C: gboolean g_main_context_pending (GMainContext *context);
+/// C: void g_main_context_dispatch (GMainContext *context);
+/// C: gboolean g_main_context_iteration (GMainContext *context, gboolean may_block);
+unsafe extern "C" {
+  pub fn g_main_context_default () -> *mut GMainContext;
+  pub fn g_main_context_acquire (context: *mut GMainContext) -> c_int;
+  pub fn g_main_context_release (context: *mut GMainContext);
+  pub fn g_main_context_query (context: *mut GMainContext, max_priority: c_int,
+                               timeout_: *mut c_int, fds: *mut GPollFD, n_fds: c_int) -> c_int;
+  pub fn g_main_context_pending (context: *mut GMainContext) -> c_int;
+  pub fn g_main_context_dispatch (context: *mut GMainContext);
+  pub fn g_main_context_iteration (context: *mut GMainContext, may_block: c_int) -> c_int;
 }

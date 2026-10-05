@@ -8750,3 +8750,50 @@
   `femacs/**` 与任何镜像，所以 `layout-check` 与全树扫描不适用）；改动量 = 工具 1 行 + 注释 4 行；
   唯一的读数就是 `check-declarations`。这条门读的是**文本**：0 命中只说明"文件里没有"，不证明任何**行为**
   不写出产品名（3.413 那类只能读它写出的产物）。
+
+- **3.477 `src/xgselect.c` 整文件落地（C 1-296），GLib 臂翻臂 0 错（2026-10-05）**：
+  ① **区间/块**：C 1-296 全文件——三个 statics（C 33 `threads_holding_glib_lock`、C 34
+  `glib_main_context`、C 37 `xg_select_suppress_count`）与五个函数：`release_select_lock`（C 40-49）、
+  `acquire_select_lock`（C 52-73）、`suppress_xg_select`（C 77-81）、`release_xg_select`（C 83-90）、
+  `xg_select`（C 104-295，含 C 42/54 的两条 `GNUC_PREREQ` 臂、C 119/129 的 `USE_GTK`、C 131 的
+  `#ifndef HAVE_PGTK`、C 182-186/187-220 的 `thread_select` 两臂、C 267-269 的 `HAVE_XWIDGETS`）。
+  台账 `docs/ports/xgselect.md` **138 行**，11 行**连续**区间表——`docs/port-map.md` 把这个 ledger 同时
+  绑到 `src/xgselect.c` 与 `src/xgselect.h`，表必须覆盖两个参照（`check-dead-file-coverage` 因此
+  **49 ledger / 0 failure**，两参照各 "0 blank line(s) ... need no row"）。
+  ② **行数**：`femacs/src/xgselect.rs` 406 → **427**（md5 `b7760f00cfc5dcfbcc1c8dc7d0db7921`）；
+  `femacs/src/include/gtk.rs` 1,639 → **1,654**（四条 gdkx/gtkx 条目加门 + 一段说明）；
+  `femacs/src/include/xgselect.rs` 34 → **68**（四条声明搬进 `pub mod xgselect_decls` + glob）。
+  ③ **读数**：冻结 `build-tu src/xgselect.c` → exit 0 / **336 字节空对象**；**翻臂**
+  `probe src/xgselect.rs --crate-type=lib -C panic=abort --cfg 'feature="have_glib"'` → **exit 0 /
+  0 错 / 6 警告 / rlib 8,795,712 字节**（六条警告全是 `include/lisp.rs` 的 `unused doc comment`，镜像侧、
+  先前就有，点名不静音）；`extract-abi --check` **OK**；`layout-check` **exit 0**；
+  `check-all-units.sh`（镜像改动必跑的 P-87 两腿）**83/0 + 83/0**；`check-citations` **676 文件 / 0 drift**
+  （本条修前是 1）；`check-declarations` 10/0/0；`check-mirror-dupes` 19/19/0；`check-ledger-ticks`
+  234/0；`check-target-names` 629/591/0。`check-port-lines --write-pending` 撤下本单元的行
+  （现 65 文件 / 86,492 行；剩下的 stale 只有 `src/pgtkterm.h`，那是 Nietzsche 在飞的 P-90 轮）。
+  ④ **翻臂抓到并修掉的六类缺陷**（首轮 15 错）：⑴ `use std::ffi::{c_char, c_int, c_void}` 与
+  `include/lisp.rs` 14-15 的同一组导入重复（`E0252` ×3）⇒ 删本单元的导入（lisp.rs 在门内，名字由它带）；
+  ⑵ `GNUC_PREREQ`（×2）在 `include/conf_post.rs`、⑶ `countof`（×1）在 `lib/include/stdcountof.rs`
+  （lisp.h 28）、⑷ `pid_t`（×1）在 `lib/include/sys_types.in.rs`（process.h 22-24 的 `<sys/types.h>`）
+  ——三条边是 C 的包含链本来就要的，按既有的 `src/emacs.rs` 130 / `src/editfns.rs` 62 / `src/callproc.rs` 63
+  读法逐条接上；⑸ 镜像 `include/xgselect.rs` 自己的四条声明与本单元的定义同 scope 撞名（`E0428` ×4）
+  ⇒ 按 **P-39/0.1-10** 搬进 `pub mod xgselect_decls` + glob（显式项遮蔽 glob 导入）；⑹ 本单元文本自身四条：
+  `xnmalloc` 的参数（`usize → isize`）、`xfree (gfds as *mut c_void)`、五处 `FD_ISSET (…) != 0`
+  （镜像是 `bool`）、`tmo_in_millisec` 初始化（C 117 无值，`&raw mut` 要活值，1.5）、`mut fds_lim`（C 183/204 重赋值）。
+  ⑤ **一次真实的镜像发现，点名**：首轮另有 4 条 `Window`/`Display` 错误，全部来自 `include/gtk.rs` 的
+  gdkx/gtkx 条目——它们命名的 X11 类型住在 `include/xlib.rs`（847/880，`have_x_windows` 门），而 C 只在
+  `<gtk/gtk.h>` 的链上才拿到它们 ⇒ 这四条加 `feature = "use_gtk"`（C 的可达性），GLib-only 的图不再看见它们。
+  **残留（不藏）**：`use_gtk` 却没有 `have_x_windows` 的图（PGTK 形状）在那四条处仍会红——同一类 X11 名的
+  账，`src/gtkutil.rs`/`src/pgtkterm.rs` 的翻臂早已报过；两种一行改法（给那四条加 `have_x_windows`，或按
+  P-55 把 `Window` 写成 `c_ulong`、`Display` 写成 `*mut c_void` 并在 `src/gtkutil.rs` 的调用点转换）写在
+  台账 `## Owed` 2，**未做**。
+  ⑥ **顺带改正 66 处陈旧 citation**：核对时发现文件里的 `C n` 引文整体漂移——locals 记的是 C 98-109、
+  实际 C 107-118；statics 记 34/35/38、实际 33/34/37；`#if` 行、块区间与尾段偏 3-13 行（`C 85-294` 实为
+  103-294）。按冻结文件**逐条重导并复核**（脚本把每条引文对应的 C 行打印出来对照），`check-citations`
+  的 1 drift（`process.h 23` 的位置 vs `pid_t` 所在行 134）也一并归零。这条门只读 `<file> <line>` 形式的
+  引文，单元内的 `C n` 引文没有门在读——所以这一轮的做法是把它量出来、改对，而不是当它不存在。
+  ⑦ **预算与未声称**：本轮 `build-tu` **2 发**、翻臂 **4 发**（超 3 的限一发：逐类修缺陷后各复测一次，
+  如实报）、`layout-check` 1 发、`check-all-units.sh` 1 发；**零运行证据**（8.8 MB 的 rlib 只是编译读数，
+  没有链接、没有启动）；**不是 GLib 构建**（编译对象是端口自己的镜像，`include/gtk.rs` 的 GLib 部分引用本机
+  真头 GLib 2.90.0，GDK/GTK 部分是占位，值与尺寸仍 UNVERIFIED）；本单元在冻结配置里整段是死文本，没有参照
+  对象可做差分（P-86 ⑦ 说的弱读数）。
