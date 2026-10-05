@@ -9572,3 +9572,29 @@
      也不说明正文。
   ⑦ **预算**：`probe` **4 发**、`build-tu` **1 发**、gate 脚本各 1 发；未跑 `--all`/`gate-fast`/`cargo test`/
      `check-all-units.sh`（本轮没改镜像）；`/tmp/st-w32*.log` 收工删除。
+
+- **3.499 `src/haiku.c`（C 1-286，整文件）落地：没有 Haiku SDK 也能证明这个臂 type-check（2026-10-05）**：
+  ① **范围/块**：C 1-286 全部转写（team/area 遍历、1 秒采样的环形缓冲、`getloadavg`）；门 `have_haiku`
+     取**构建层**判据（`configure.ac` 3097-3107 的 `HAIKU_OBJ=… haiku.o` + 3107 的 `AC_DEFINE ([HAVE_HAIKU],[1])`、
+     `src/Makefile.in` 378/469），`frozen-build-sources.txt` 无本文件；`<kernel/OS.h>` 面**就地声明**
+     （P-88 ①），每个记录只带 C 读到的成员、其余成员点名欠账、偏移 **UNVERIFIED**（`include/gtk.rs` 的
+     `GtkWidgetClass` 形状，3.481）。
+  ② **行数**：`femacs/src/haiku.rs` **11 → 487**；台账 `docs/ports/haiku.md` 24 → **101**（重写成 P-86 ② 形状）。
+  ③ **读数**：⑴ 冻结 `build-tu` → **exit 0 / 336 字节空对象**（参照也不编它）；⑵ **翻臂
+     `--cfg 'feature="have_haiku"'` → exit 0 / 0 error / 14 warning / rlib 8,837,304 字节** ⇒
+     "没 SDK" 只说明没法测量，**不说明编不过**：这个臂在本机 rustc 下 type-check 通过；
+     ⑶ `extract-abi --check` 首读 3 条 → `getloadavg`/`getavg` 的 `DBL_EPSILON` 进
+     `macro-body-notes.tsv`（Rust 没有这个常量）、`system_process_attributes` 的 `int64` 用**别名**消掉
+     （更忠实：Haiku 的 OS.h 本来就有 `int64`）⇒ 加 `total`/0.72 行后 **OK**。
+  ④ **我自造并修掉（都由读数抓到）**：文件尾 `///` 后没有项（语法错——3.496 的 `pgtkterm.rs` 776 同款，
+     这次是我自己踩的）、`pwd.rs` 的边路径写成 `../../lib/…`、缺 `sys_types.in.rs`/`unistd.in.rs`/`string.rs`
+     三条链边、我的 `sleep (bigtime_t)` 与 `<unistd.h>` 的 `sleep` 撞名（改成走 unistd 的原型并在注释里写明
+     "C 的 `sleep (0.05)` 被原型截成 0"）。
+  ⑤ **点名归属**：Haiku 轮要补全四个记录与被省略成员、按架构量 `B_PAGE_SIZE`；`getloadavg` 与
+     `lib/getloadavg.rs`（gnulib）**双定义**（各自有门，Haiku 构建必须只取一个——参照自己的构建就是这么做的）。
+  ⑥ **未声称**：**零运行证据**（没链接、没跑，没有读过任何 Haiku 进程/team/area/load average）；
+     **没有任何 Haiku SDK 被查看** ⇒ 每个宽度与偏移都是 C 的拼法，且记录缺失的成员意味着这些偏移**明知**
+     不等于 Haiku 的真实值。
+  ⑦ **预算**：`build-tu` **2 发**、`probe` **4 发**、gate 脚本各 1 发、`--write-pending` 1 发
+     （棘轮 53 → **51 文件 / 67,241 参考行**，0 stale）；未跑 `--all`/`gate-fast`/`cargo test`；
+     `/tmp/ha*.log`、`/tmp/femacs-sweep/ha*.rlib` 收工删除。

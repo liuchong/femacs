@@ -1397,3 +1397,6 @@ ftfont_spec_pattern	goto	C 334/732/754/758/764/792/796/802/806/810/813/816/819/8
 ftfont_list	goto	C 918/926/939's three `goto err;` and C 1076's `goto finish;`, with C 1078's `err:` and C 1083's `finish:` labels, are the port's two nested labelled blocks; C 1084's `FONT_ADD_LOG` call and the three destroys follow them (PORTING.md 2.2)
 ftfont_list_family	goto	C 1180/1185/1189's three `goto finish;` and C 1191's `finish:` label are the port's labelled block plus `break 'finish`, with C 1192-1199's three destroys after it (PORTING.md 2.2)
 ftfont_match	1	C 1114's `fc_initialized = 1;` is the port's `true` on the file's `bool fc_initialized` object (PORTING.md 0.1-13's zero-value spelling, the `scan_file`/`Fset_standard_case_table` `1 -> true` class); the body's other `1`-valued sites (C 1121's `FIXNUMP` test, C 1129's `FcTrue` comparison) are not literals C writes
+# src/haiku.c (286 lines): the one `<float.h>` constant the load-average code names.
+getloadavg	dbl_epsilon	C 20/31's `DBL_EPSILON` is `f64::EPSILON` in the port (Rust has no `DBL_EPSILON`; the same 2.220446049250313e-16, and `include/float.in.rs` carries the header's other constants)
+getavg	dbl_epsilon	C 175's `DBL_EPSILON` is `f64::EPSILON` in the port (the same row as `getloadavg`'s)
