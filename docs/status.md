@@ -9919,3 +9919,26 @@
      仍是 placeholder 或 documented 值（该文件台账 Owed 2 原样成立）；零运行证据。
   ⑤ **顺带**：本条证明"lane 顺手翻一个已入库文件"能抓到 ledger 自己声明"读不了"的地方——Owed 3 从"无法翻臂"
      变成"臂已读到 0 错"，台账新段记了这次升级。
+
+- **3.510 `lib/file-has-acl.c` 整文件入库（2026-10-05）**：
+  ① **范围**：`femacs/lib/file-has-acl.rs` 95 → **1463** 行（C 1-986 全落）；台账 `docs/ports/file-has-acl.md` 209 行。
+  ② **读数**：冻结 `build-tu` **exit 0**，`build/femacs/file-has-acl.o` 5184 字节，导出三名与参照对象相同；
+     `extract-abi --check emacs/lib/file-has-acl.c femacs/lib/file-has-acl.rs` → **OK**（既有 `file-has-acl 0.91` 容差行覆盖
+     48.4% 漂移）；三条臂：`use_linux_xattr+have_smack+use_selinux_selinux_h` **0 error**（322,664 B rlib，变异实测
+     3 条错全在本单元）、`use_acl+use_acl_have_acl_get_file+have_acl_get_fd+cygwin+o_path` **1 error 全在镜像**、
+     `use_acl+use_acl_have_getacl+have_aclv_h` **0 error**（263,144 B）；`check-dead-file-coverage` 15 行/0 failure。
+  ③ **集成者登记**：**11 个 feature**（`use_linux_xattr`、`have_smack`、`use_selinux_selinux_h`、`se_selinux_inline`、
+     `have_acl_extended_file`、`have_acl_type_extended`、`have_acl_get_fd`、`have_acl_get_link_np`、`acl_no_trivial`、
+     `have_aclx_get`、`acl_aix_wip`）+ `feature-coverage` 重算；**不需要**新容差行（既有行覆盖）。
+  ④ **lane 量到的镜像缺陷（点名，归下一批镜像轮）**：⑴ `femacs/lib/include/acl-internal.rs` 把 `MODE_INSIDE_ACL`
+     **定义了三次**（158/190 是两条替代臂、294 无门）⇒ 任何开 `use_acl_have_acl_get_file`/`use_acl_getacl` 的臂都是
+     该镜像的 `E0428`，而**同时开两者时 rustc 在读到本单元前就停**（lane 的变异实验证明那是空读数：把一条注入错误塞进
+     C 612-777 臂，输出逐字不变）；⑵ 同镜像的 `acl_nontrivial` 在四个互斥 feature 下各声明一次（197/268/282/288），
+     同族两支不能同时翻 ⇒ 五条平台臂（Solaris/AIX×2/NonStop/HP-UX）本轮**未翻**，如实记在台账 Owed；
+     ⑶ `femacs/lib/include/acl.rs` 把 `aclinfo_has_xattr`/`aclinfo_free`/`aclinfo_scontext_free` 无条件写成冻结档的
+     **宏**，而 `use_linux_xattr` 真臂下 C 调用的是同名**函数**（本单元 C 142/297/284 有定义）⇒ 宏会先答、两个活调用点
+     的语义会被静默改写；⑷ `errno.rs`/`errno.in.rs` 缺 `E2BIG`、`sys_acl.rs` 缺 6 个名字（本单元按 P-72 ④ 就地声明）；
+     ⑸ **既有台账的一处数据错**：它说 `HAVE_LINUX_XATTR_H` 与 `HAVE_LISTXATTR` 都未定义，而
+     `docs/baseline/config/darwin-arm64.macros.tsv` 1433 显示 `HAVE_LISTXATTR = 1`（结论不变、理由要改）。
+  ⑤ **未声称**：零行为证据（冻结档在任何 ACL 调用前就写 `ENOTSUP` 返回 0）；五条平台臂未翻；外来平台面的
+     ABI（`aclent_t`/`ace_t` 12 字节、`NACLENTRIES` 100、`O_PATH` 0x200000）全是文档值/他平台值，**UNVERIFIED**。

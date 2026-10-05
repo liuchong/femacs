@@ -5,7 +5,7 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	1663	44	-	-
+windowsnt	1662	44	-	-
 have_android	1003	32	-	-
 have_window_system	942	19	-	-
 have_x_windows	700	23	-	HAVE_X_WINDOWS
