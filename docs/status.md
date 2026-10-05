@@ -13250,3 +13250,20 @@
   ⑨ **预算**：`build-tu` 3 发（instrument / memset / 还原）、`check-link --executable` 3 发、`--temacs=pdump` 3 发、
      夹具运行 ≈40 发、lldb 7 发、崩溃报告解析 1 发；`/tmp` 脚本与 lldb 脚本收工删；`build/femacs/{emacs,emacs.pdmp}` 保持
      **同一次构建的一对**（03:08）。
+
+- **3.649 补记：三条定位读数（一条新的正面线索 + 两条被推翻的假设），探针全部还原（2026-10-06）**：
+  ① **正面线索（新）**：`MallocPreScribble=1 MallocScribble=1`（Darwin libmalloc：新分配填 `0x55`、释放后填 `0xAA`）下连跑 6 次：
+     **5 次 `rc=134`（每次同一条 `units/alloc/_root.rs:2074` = `femacs/src/alloc.rs:2067`）/ 1 次 `rc=0`** —— 失败率从 ~40%
+     升到 ~83%、站点不变 ⇒ 这个失败**依赖"读到未写过/被回收过的堆内存"**（对照：C 在同一处拿到的是**新页**，所以它那条路径看不出问题）。
+  ② **被推翻（假设一）**："某条 emacs reloc 的 target 算错、写进了堆" ⇒ 在 `pdumper::dump_do_all_emacs_relocations` 里逐条校验
+     `emacs_ptr_at (rel.emacs_offset)` 是否落在本映像带内（以 `&Vpurify_flag` 向下取整 16 MB 为基、带宽 32 MB）并只打印越界项 +
+     一行合计：读数 **`[rel] entries=1639 out-of-image=0`**（连跑 3 次相同）⇒ **1639 条 target 全在映像内**，这条假设不成立。
+  ③ **被推翻（假设二）**：上面那行**每跑只出现一次**——我第一版读数写成"每跑两次"是**我自己 grep 命令的重复**（同一个模式连跑了两条
+     grep，各打印一行）；用 lldb 断 `pdumper::dump_do_all_emacs_relocations`（命令 `bt 9` + `continue`）实测**只命中一次** ⇒
+     **每跑只装载一次**，端口没有"重复装载 dump"的缺陷。（本条记下来是为了别让下轮拿着假读数去追。）
+  ④ **现场与产物**：三个探针（`emacs.rs` 的 instrument/memset、`pdumper.rs` 的 reloc 校验）都已用
+     `git show HEAD:<path> > <path>` 还原（`git diff` 对这两个文件为 0 行）；随后按"重链 ⇒ 必须重生成 dump"的顺序
+     `build-tu src/pdumper.c` → `check-link --executable` → `--temacs=pdump`，`build/femacs/{emacs,emacs.pdmp}` 是**同一次构建的一对**；
+     该配对的现读（连跑 6 次）**3 次 `rc=0`（打出 `X`）/ 3 次 `rc=134`**。
+  ⑤ **下一站不变**（见 3.649 ⑦），并把 ① 的读数并进去：找"读到未初始化/回收内存"的那一处（`alloc` 单元的字符串块状态只是**症状现场**；
+     首个可疑点是装载路径与 `xmalloc` 的交互，见 3.649 ⑤⑴ 的崩溃报告）。
