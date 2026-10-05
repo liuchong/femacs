@@ -11166,3 +11166,33 @@
      `<dwrite_3.h>`/`<d2d1.h>`/mingw），站位记录与常量全部 UNVERIFIED；`mingw_w64` 与 `<dwrite_3.h>` 两条臂
      **本机不可编译**（台账已记）；`FRAME_WINDOW_P` 的新臂只在带平台 feature 的档里生效，本轮的验证是
      pgtkselect/textconv 两条臂 + `layout-check`，**没有**全量扫描背书（见 ④）。
+
+- **3.559 lane 产出收口：`src/pgtkmenu.c` 整文件落地（C 1123 → Rust 1,486）；`check-all-units.sh` 改成逐单元清理；磁盘阻塞第四次记录（2026-10-05）**：
+  ① **lane 的产出（Arendt）**：`femacs/src/pgtkmenu.rs` 11 → **1,486 行**（md5 `ca67d2bd…`），台账 344 行 / 35 行区间表
+     覆盖 C 1-1123；文件门 `have_pgtk` 压在每个项**与整张 include 图**上（冻结对象与同族 `pgtkselect.o` **逐字节同 md5**），
+     三个 `#ifndef HAVE_MULTILINGUAL_MENU` 区（C 655-661/704-716/758-761）按"参照里没人定义该宏"的实测两臂都带；
+     `check-cond-eval` 读 `3 conditions / 0 disagreements`。
+  ② **读数**：**narrow 档**（仅 `have_pgtk`）6 条错，**全部落在镜像 `include/pgtkterm.rs`**（`XrmDatabase`×2、
+     `XRectangle`、`GtkCssProvider`×3——它用这些名却不带 `have_x_windows`/`have_gtk3`，owner 是该镜像的台账）；
+     **wide 档**（`have_pgtk`+`have_window_system`+`use_gtk`+`have_gtk3`）**exit 0 / 0 error** ⇒ 6 条是镜像/配置欠账，
+     不是本单元的缺口。**非空读数两条独立证据**：变异注入恰好 +1 条 `E0308` 且锚在注入行；把单元里四段就地声明的注释从
+     `///` 改成 `/*` 后，落在 `_root.rs` 的 4 条诊断消失（注释文本能改变诊断 ⇒ 单元自身文本确实在读取路径上）。
+  ③ **`tools/check-all-units.sh` 改成逐单元清理（我做的）**：这个门原来把 83 个物化单元**全部留到最后**（实测 49 个
+     单元占 75 MB，全量约 130 MB 起），在外部磁盘压力下**连续四次**死在 `No space left on device`。现在每个单元的两条腿
+     读完就 `rm -rf build/femacs/units/<stem>`（`KEEP_UNITS=1` 可关），实测同一轮里 units 目录只到 **19 MB** 而不是
+     75 MB。冻结的 83 个 stem 与在飞 lane 的目标**互不相交**，所以这不会删掉别人正在用的目录。
+  ④ **磁盘阻塞（第四次，照实记，仍然不是"代码红"）**：本轮 `check-all-units.sh` 两次尝试（改动前后各一次）**都因
+     `No space left on device` 中止**（38 / 48 个 failure，全部是 `lib-src/pop.c: No space left on device`）；
+     加上 3.558 那轮的两条，**同一个阻塞条件已连续两个 goal turn、四次出现**。读数期间的可用空间：
+     **0.49–0.85 GiB / 94–97%**，占用来自**别的项目的 `/tmp`**（不许碰）。⇒ 这条门在磁盘恢复前**无法完成**，
+     本项目的镜像改动（3.558 的 frame.rs）**仍只由 `layout-check` + 三条臂读数背书**，全量扫描是欠账。
+     我这边能做的都做了：清理本项目派生件、给四条 lane 发磁盘通知、把扫描改成有界占用（③）。
+  ⑤ **门读数（文本门，本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、
+     `check-declarations` 0 failures、`check-dead-file-coverage` **127/0**、`check-ledger-ticks` 234/0、
+     `check-port-lines` **12 文件 / 8,734 参照行** / 0 new / 2 stale、`check-target-names` 0 finding；
+     `extract-abi --check src/pgtkmenu.c` 加容差行 `pgtkmenu 0.33` 后 **OK**。
+  ⑥ **集成者登记**：容差行 1 条；`port-map.md` 只改 pgtkmenu 一行（在飞的 `w32console`/`exec` 行回退成已提交值）；
+     `port-inventory.md` 同步重生成；`port-lines-pending.tsv` 去掉本件的行（**12 文件 / 8,734 行**）。
+     `docs/ports/macro-body-notes.tsv` 该 lane 的两行已随 3.558 的提交入库（同样只追加）。
+  ⑦ **未声称**：pgtkmenu 无任何行为读数（本机没有 GTK 树、没有 PGTK 目标可跑），336 字节空对象里没有本文件任何符号，
+     所以没有 symbols/ABI 主张；GTK/GDK 与 `gtkutil.h` 的记录全是占位或不可编译的转写，**布局一律 UNVERIFIED**。

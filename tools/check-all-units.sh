@@ -70,6 +70,15 @@ while read -r line; do
     printf '%s\n' "$cout" | grep '^error' | head -3 | sed 's/^/    /'
     checking_fails=$((checking_fails + 1))
   }
+  # The materialised unit is ~1.5 MB and the run keeps every one of them until the end, so a full
+  # sweep needs ~130 MB of scratch *at once* - which a machine under external disk pressure does
+  # not have (measured twice on 2026-10-05: the run died at unit 42 and again at 45 with `No space
+  # left on device`, i.e. failures that are not about the code at all).  Each unit is pruned as
+  # soon as its two legs have read it unless `KEEP_UNITS=1`; the frozen 83 stems are disjoint from
+  # the lanes' in-flight targets, so this never deletes a directory another lane is using.
+  if [ "${KEEP_UNITS:-0}" != "1" ]; then
+    rm -rf "$root/build/femacs/units/$stem"
+  fi
 done < "$list"
 echo "checked $n unit(s), $fails failure(s)"
 if [ "$checking_n" -eq "$n" ] && [ "$checking_fails" -eq 0 ]; then
