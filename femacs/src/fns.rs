@@ -875,7 +875,11 @@ DEFUN! ("copy-sequence", Fcopy_sequence, Scopy_sequence, 1, 1, 0,
       let nbits: EMACS_INT = bool_vector_size (arg);
       let nbytes: ptrdiff_t = bool_vector_bytes (nbits);
       let val: Lisp_Object = make_uninit_bool_vector (nbits);
-      std::ptr::copy_nonoverlapping (bool_vector_data (arg), bool_vector_data (val),
+      /* C's `memcpy (bool_vector_data (val), bool_vector_data (arg), nbytes)` counts *bytes*;
+	 `copy_nonoverlapping` counts `T`s, and `bits_word` is 8 bytes wide, so both pointers go
+	 through `u8` for the count to stay bytes (status 3.626; the 3.618 memcpy family).  */
+      std::ptr::copy_nonoverlapping (bool_vector_data (arg) as *const u8,
+				     bool_vector_data (val) as *mut u8,
 				     nbytes as usize);
       return val;
     }

@@ -398,3 +398,22 @@ the count is bytes exactly as in C.
 Readings: a two-line elisp program - 2000 `(puthash ...)` calls in a loop, run with `-nl -l` - went
 from `SIGABRT` ("ranges do not overlap") to printing its final `princ`; and `loadup` goes from a SEGV
 in the fifth file to a clean Lisp-level error in the same file (documented in docs/status.md 3.618).
+
+## 2026-10-05: `Fcopy_sequence`'s bool-vector copy counted elements, not bytes (status 3.626)
+
+C writes `memcpy (bool_vector_data (val), bool_vector_data (arg), nbytes)` - a *byte* count -
+and the port handed the same `nbytes` to `std::ptr::copy_nonoverlapping` with `*mut bits_word`
+pointers, whose third argument counts `T`s.  `bits_word` is eight bytes wide, so the copy was
+eight times too long, and Rust's precondition check aborted the loadup with
+`copy_nonoverlapping requires that both pointer arguments are aligned and non-null and the
+specified memory ranges do not overlap` inside `Fcopy_sequence`.  Both pointers now go through
+`u8`, so the count stays bytes, exactly as the same fix did for `maybe_resize_hash_table`
+(status 3.618); PORTING.md P-93 makes that the rule for every `memcpy` the port writes as
+`copy_nonoverlapping` and names the sites that still need checking.
+
+Reading: with the GC's `alloca`-pool fix (3.626) in place the loadup reached
+`international/characters.el` (34 files) and stopped on this panic; with the copy fixed the same
+command gets past it and stops on a *Lisp-level* error instead -
+`Error: file-missing ("Cannot open load file" ... "charscript")` - i.e. on the port's `lisp` tree
+lacking the reference build's *generated* Lisp files, which is an environment/harness issue and
+not a defect in this unit.

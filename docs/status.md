@@ -12930,3 +12930,26 @@
      下一处崩溃（④）本身就说明后面还有缺陷；`docs/ports/alloc.md` 记了同一件事的台账版本，PORTING.md P-05 增了第三条偏离。
   ⑧ **预算**：`build-tu` 约 16 发、`check-link --executable` 约 12 发、端口运行约 14 次、`lldb` 2 次、`check-all-units.sh` 1 发（两腿）；
      `/tmp`（`scan*.txt`、`sa.txt`、`mk.txt`、`roots*.txt`、`fl.txt`、`freelog.txt`）与 `build/femacs/units`、`build/probes` 已清。
+
+- **3.627 第二处同类缺陷：`Fcopy_sequence` 的 bool 向量拷贝把**字节数**当成了 `T` 的个数——加载链因此又往前走到 `characters.el`，撞上"生成物缺失"这一档（不是缺陷）（2026-10-05/06）**：
+  ① **缺陷**：C 写 `memcpy (bool_vector_data (val), bool_vector_data (arg), nbytes)`（**字节数**），端口把同一个 `nbytes`
+     交给 `std::ptr::copy_nonoverlapping`，而指针是 `*mut bits_word`（**8 字节**）⇒ 实拷 8 倍，Rust 的前置条件检查把
+     加载链打断在 `Fcopy_sequence` 里：`copy_nonoverlapping requires that both pointer arguments are aligned and non-null
+     and the specified memory ranges do not overlap`。修法：两个指针都经 `u8` 传，计数保持字节数（与 3.618 那处同形）。
+  ② **规则落地（新 P-93）**：`memcpy` 家族在端口里写成 `copy_nonoverlapping` 时**一律**"u8 指针 + 字节数"；
+     已核对：`fns.rs` 两处、`dispnew.rs` 1338、`buffer.rs` 820、以及 `emacs.rs`/`callproc.rs`/`doprnt.rs` 里指针是
+     `c_void`/`c_char` 的那些。**尚未核对且形状可疑，点名留给下一轮**：`dispnew.rs` 的 6 处 glyph 拷贝
+     （2217/2227/2237/2263/2271/2283：指针 `*mut glyph`、计数是字节数）、`callproc.rs:1246`
+     （指针 `*mut Lisp_Object`、计数是 `nargs * size_of::<Lisp_Object>()`）、`fns.rs` 590/1044/1247/1304/1569/3754/4835、
+     `callint.rs:336`。
+  ③ **读数（对照链）**：⑴ 只加 3.626 的 GC 修复：34 行 `Loading`，停在 `characters.el`，**panic 打在 `Fcopy_sequence`**；
+     ⑵ 再加本件：同一条命令**过了这个 panic**，停在**Lisp 层**的 `Error: file-missing ("Cannot open load file" "No such file
+     or directory" "charscript")` ✔——即 `characters.el` 要 `(load "charscript")`，而 `charscript.el` 是**参照构建生成**的
+     Lisp 文件（不在追踪清单里，逐字节树只带追踪文件 ✔ 记事里早已点名 `subdirs.el`/`*loaddefs.el` 同类），
+     属**环境/夹具**问题，不是本单元的缺陷。
+  ④ **门**：`check-all-units.sh` **83/0 + 83/0**、`extract-abi --check emacs/src/fns.c femacs/src/fns.rs` **OK**、
+     八道文本门 + `check-carried` 全绿（`check-declarations` 6/0/0、`check-citations` 0 drift/0 stale）。
+  ⑤ **未声称**：仍然**没有 dump、没有 L1**；本件的证据是"panic 消失 + 崩点换成 Lisp 层的缺文件错误"，
+     P-93 表里那些**尚未核对**的站点在核对之前不得当作已通过（下一轮逐处对 C 的 `memcpy` 第三参）。
+  ⑥ **预算**：`build-tu` 2 发、`check-link --executable` 2 发、端口运行 3 次、`check-all-units.sh` 1 发（两腿）；
+     `build/femacs/units`、`build/probes` 已清。
