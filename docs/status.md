@@ -13446,3 +13446,18 @@
   ⑦ **下一站（点名，按优先）**：⑴ **读 `b`/`current_sblock`/`oldest_sblock` 的来龙去脉**：在 panic 点（`alloc.rs:2067`）起 lldb 停住，打印 `b`、`current_sblock`、`(*b).next_free`、`(*b).next`，并用 `mem_find` 那一族的判据看 `b` 是否仍在**活着的 mem_node** 里（若不在 ⇒ 块被释放后仍被使用，去找 `sweep_strings`/`free_sblock`/`lisp_free` 的记账）；⑵ 同时逐句对照 `sweep_strings`、`free_sblock`/`free_sblocks`、`lisp_malloc`/`lisp_free` 的 `mem_node` 记账与 C（3.649 ⑤ 的崩溃报告 `xmalloc ← hash_table_alloc_bytes ← maybe_resize_hash_table` 是同一个"堆记账"面）；⑶ **不再以 dump 字节相差为判据**，改用 ⑤ 的 40 发计数（它是便宜的、有分布的读数）。
   ⑧ **未声称**：**L3 稳定性仍未达成**（40 发里 20 发失败）；② 的"每跑量"**没有**逐个定位到写入点（只到"偏移+对象+形状"）；**没有**证明 ⑦⑴ 的假设（只是排除了一条、并把下一条做成可跑的判据）；**本轮 0 编译**（无源码改动，`git diff -- femacs/src` 为空）；`.elc`/`make check`/L4-L5 未动。
   ⑨ **预算**：参照侧 `temacs` dump 6 发、端口 dump 3 发、`cmp`/解码 12 发、夹具运行 40 + 10 发、lldb 0 发；`/tmp` 里的 dump 副本、`guard.*.log`、`refdump*.log` 收工删（参照侧 `.6`/`.7` 留在 `build/emacs-ref/src/`，是本条读数的证据）。
+
+- **3.657 补记：两种失败模式与 ASLR 的关系被实测钉住（panic 侧的断点在关 ASLR 时永不命中）**：
+  ① **读数**：按 3.652 记的"launch 会话才让 `settings set target.disable-aslr true` 生效"跑 lldb（`FEMACS_BIN` 包装成 lldb 的 `--batch`，
+     断点 `rust_begin_unwind`）：**关 ASLR 后这一跑不进 panic**（10 分钟无命中、进程停在装载后那段），与 3.647/3.648 记的
+     "ASLR 关 ⇒ 确定性**自旋**（`rc=124`）"一致 ⇒ **两种模式是 ASLR 相关的**：**开** ASLR 时约 1/3 跑次走到
+     `alloc.rs:2067` 的 `(*data).string = s;`（`b->next_free == NULL`，3.657 ⑤ 的 13/40），**关** ASLR 时走
+     `hash_find` 那条自旋（`index_bits` 被写成 `0x20`，3.654 `bf51dfeb`）。
+  ② **⇒ 下一站按模式分开、各自有确定性跳板**：⑴ **自旋侧**：关 ASLR 后**受害者表是确定的**（同一地址/同一 dump 偏移），
+     所以 3.654 那种"对某张表的 `index_bits` 下 1 字节写断点"应当**必然命中**——上一轮没命中是因为当时在**开 ASLR** 下跑、
+     受害者每次不同（3.654 `dae8f5d9`）；做法：关 ASLR + `br set -r pdumper_load` 步出后，从 `pdumper_hashes`
+     现算表地址、对 `+60` 下写断点，再 `continue`。⑵ **abort 侧**：把 3.657 ⑦⑴ 的"读 `b`/`current_sblock`/mem_node"
+     放在**开 ASLR** 的跑次里做（那种跑次才会 panic），断点用 `_root.rs:2074` + 条件 `(void*)data == 0`（本轮第一次尝试
+     因 lldb 的 `-c` 传参形式写错而没建立，命令形状记在 `/tmp/l3wrap.sh` 的形状里，下一轮重写）。
+  ③ **未声称**：本轮**没有**取到任何一侧的写点；两种模式**是否同因**仍未证明（3.649 ① 已把它们拆成两条"都不是 Lisp 层差异"）；
+     预算：lldb 2 发（1 发自旋侧超时、1 发命令写错）、`pkill` 1 发（清掉本轮自己起的 lldb 与其目标进程）。
