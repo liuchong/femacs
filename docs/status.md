@@ -11444,3 +11444,27 @@
      **没有** Int 2Fh/21h 剪贴板调用、far-memory 存取、编码系统、kill-ring 或消息被运行。该 lane 的 7 条欠账记在
      `docs/ports/w16select.md` 的 `## Owed`；**本单元不 include `msdos.h`/`dosfns.h`**，故 `include/msdos.rs` 的 `EINPROGRESS`
      等镜像债**未被本 lane 暴露、也未修**（勿把本件 0 error 误读成已修）。
+
+- **3.570 lane 产出收口：`oldXMenu/Create.c` 整文件落地（C 752 → Rust 1,291）（2026-10-05）**：
+  ① **lane 的产出（Confucius）**：`femacs/oldXMenu/Create.rs` 3 → **1,291 行**（md5 `4cc475f8…`；台账
+     `docs/ports/Create.md` 14 → 302 行）。文件门 `have_x_windows` 压在每个项与 C 50-52 的 include 图上；C 54 的
+     `#ifdef EMACS_BITMAP_FILES`（`oldXMenu/Makefile.in` 112 定义它）**两臂都带**——活臂 12 个 `../src/bitmaps/*.xbm`、
+     死臂 12 个 `<X11/bitmaps/*>`；31 行区间表覆盖 C 1-752。
+  ② **读数**：冻结 `build-tu` 1 发 → `exit 0`、`build/femacs/Create.o` **336 B**（与 `Internal.o` 逐字节同值，P-08 空对象）。
+     翻臂（`--cfg 'feature="have_x_windows"'`）3 念：**25 error → 0 → 0**；终版 `exit 0 / 0 error / 78 warning`、rlib 320,192 B。
+     25 个 error **全在单元自身**（17 × `E0425` 镜像 `include/xlib.rs` 的三个私有 `use` 不 re-export、4 × `E0425` 记录类型、
+     2 × `E0308` short 提升、2 × 声明写在 `unsafe extern` 块外），**镜像内 0 条**。
+  ③ **实测（本件证据较硬）**：X11 记录/GC 位用本机 clang 21 + libX11 1.8.13 量（`XGCValues` 128 @16/24/32/48/72/88/100、
+     `XFontStruct` 96 @88/92、`XCharStruct` 12、`XColor` 16…）；12 个 XBM 数组与 `emacs/src/bitmaps/*.xbm` **逐字节 0 mismatch**
+     （32/32/2/4/32×8/8），同族 30 个 `#define` 同读数；`nm -gU libX11.6.dylib` 复核 10 个新入口点全部导出。
+  ④ **集成者登记（我）**：容差行 `Create 0.73`（752 vs 1291 = 71.7%）；`port-map.md` 刷新本件（在飞的 `w32image` 行回退成
+     已提交值 13）；`port-lines-pending.tsv` 去掉本件行 ⇒ **pending 只剩 3 文件 / 1,531 参照行**；`macro-body-notes.tsv`
+     收下该 lane 追加的 **2 行**（按行名切分提交，另一 lane 在飞的 2 行留在工作树）。本件 `--check` **OK**。
+  ⑤ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **2 drift / 0 stale**（两条都在在飞的
+     `w32image.rs`，本单元 0）、`check-declarations` 0 failures、`check-dead-file-coverage` **141/0**、`check-ledger-ticks`
+     **238/0**、`check-port-lines` **0 new / 1 stale**、`check-target-names` 0 finding。
+  ⑥ **未声称**：冻结配置对 C **一行不编**（`oldXMenu/*.o` 只在 `have_x_windows` 的 X11 构建里）；本机无 X11 程序，翻臂只是
+     "物化镜像图上的 `rustc` 类型检查"——不是画出的菜单、映出的窗口、装上的光标或读到的资源。死臂 `<X11/bitmaps/*>`
+     **无读数**（本机无该目录），端口数据取自参照 Makefile 选中的 `src/bitmaps/*.xbm` 臂；X11 布局是本机 X11 的读数，
+     非冻结目标；XBM 是数据不是行为；C 1-48 标题/许可块未转写。台账 6 条欠账（`include/xlib.rs` 该承载的 X11 面、
+     `lib/include/stdlib.rs` 缺 `atoi`/`atof`、`XCreateGC` 第四参数定型等）记在 `docs/ports/Create.md` 的 `## Owed`。
