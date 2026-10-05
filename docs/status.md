@@ -7886,3 +7886,28 @@
   ⑥ **未声称**：**零运行证据**——336 字节空对象与 10,128 字节翻臂对象**都没有跑过**：没开过字体、没读过表目录、没解析过任何
      cmap/glyf 子表、没 `mmap` 过、没产出任何轮廓；C 2408-21,215 **未移植**（184 个缺失函数就是那条边界）；
      **预算如实报**：`build-tu` 4 发（限 3，超 1）、`probe` 4 发（限 3，超 1）。
+
+- **3.443 sfntfont 切片 1（C 1-1240）：编码系统、样式表与字体枚举；`include/sfntfont.rs` 的 E0428 修掉，臂从此编得过（2026-10-05）**：
+  ① **区间**：C 1-1240（收在 `sfnt_enum_font` 的 `}`）；**下一个活定义 = C 1246 `sfntfont_charset_for_name`**。
+     23 行区间表连续覆盖 C 1-1240（并覆盖 `src/sfntfont.h` 78 行）；本切片只含全文 27 个 `#if` 中的 3 个（C 36 `HAVE_HARFBUZZ`、
+     C 85 `HAVE_MMAP`、C 90 `HAVE_HARFBUZZ`），其余 24 个属后切片。文件门 = `have_android + not_android_stubify`。
+  ② **行数**：`femacs/src/sfntfont.rs` **11 → 1,554**；台账 24 → **319**。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**；**翻臂（本条的集成者修复之后）`have_android + not_android_stubify`
+     = exit 0 / 0 error / 14,832 字节对象**，6 条 warning 全在镜像（`lisp.rs`/`frame.rs`/`charset.rs`/`unistd.in.rs`×2/`stdbit.in.rs`）；
+     `check-cond-eval` 27 条件 / 0 unknown；`extract-abi --check` 的 `- missing` 48 条（42 函数 / 2 常量 / 4 对象，**全在 C 1241+**）
+     + 63.2% 漂移；`check-dead-file-coverage` **32 ledger / 0 failure**；`check-ledger-ticks` 234/0。
+  ④ **集成者本轮替它落的账（三件）**：⑴ **`femacs/src/include/sfntfont.rs` 的 E0428 修掉**——该镜像把
+     `sfnt_enum_font` 等声明放在**顶层**，而单元在 crate 根**定义**同名函数 ⇒ 同命名空间冲突（lane 的臂读数里唯一的那条错）。
+     按 3.427 给 `include/sfnt.rs` 定过的形状：整块声明搬进 `pub mod sfntfont_decls { use super::*; … }` 再加
+     `use sfntfont_decls::*;`（glob 导入输给同名定义，PORTING.md 0.1-10）。**判据**：修前臂是 `1 error（在镜像里）`，
+     修后 **exit 0 / 0 error / 14,832 字节**。⑵ `macro-body-notes.tsv` **9 行**（`sfnt_setup_coding_system` /
+     `sfntfont_identify_cmap` / `sfnt_registry_for_subtable` → `case,default,switch`；`sfnt_parse_style` → `continue,goto`；
+     `sfnt_grok_registry` / `sfnt_replace_fonts_p` → `goto`；`sfnt_decode_font_string` → `common_flags,mode`；
+     `sfnt_enum_font_1` → `bail1..bail4,goto,true,underline_position_set`；`sfnt_enum_font` → `bail0,goto`），
+     补后本单元 `does not mention` **归零**。⑶ `--write-pending` 棘轮行退役。**lane 建议但不需要**：`token-aliases.tsv`
+     三行——本单元的 `--check` **没有任何 family 行**，按"不给没有人用的名字占位"的既定纪律不写。
+  ⑤ **P-87（我改的是镜像，必须跑）**：`CARGO_TARGET_DIR=/tmp/femacs-exec1/sweep tools/check-all-units.sh` →
+     **`checked 83 unit(s), 0 failure(s)` + `checking 83 unit(s), 0 unit failure(s)`**（含四条在飞 lane 的文件）。
+  ⑥ **未声称**：**零运行证据**——两个对象都**没跑过**（没开过字体、没读过 name 表、没解析过 style、没识别过 cmap、
+     没有一次 `lseek`/`read`/`memmem` 返回）；C 1241-4,222 未移植（48 条 `- missing` 与 63.2% 漂移就是那条边界）；
+     lane 自己的预算：`build-tu` 3/3、`probe` 3/3，另有若干次直接 `rustc` 复读（台账 Evidence 已记）。

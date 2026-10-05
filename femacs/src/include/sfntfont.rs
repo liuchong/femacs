@@ -50,64 +50,8 @@ include!("frame.rs");        // C 24: `#include "frame.h"` (`struct frame`)
 include!("font.rs");         // C 25: `#include "font.h"` (`struct font`)
 include!("sfnt.rs");         // C 26: `#include "sfnt.h"` (`struct sfnt_raster`)
 
-/// C 28: `extern int sfnt_enum_font (const char *);` - the one entry point `src/sfnt.c` defines.
-unsafe extern "C" {
-  pub fn sfnt_enum_font (file: *const c_char) -> c_int;
-
-  /// C 33-35: the three `Lisp_Object`-valued callbacks.  `struct frame` comes from `frame.rs`.
-  /// C: extern Lisp_Object sfntfont_list (struct frame *, Lisp_Object);
-  /// C: extern Lisp_Object sfntfont_match (struct frame *, Lisp_Object);
-  /// C: extern Lisp_Object sfntfont_open (struct frame *, Lisp_Object, int);
-  pub fn sfntfont_list (f: *mut frame, spec: Lisp_Object) -> Lisp_Object;
-  pub fn sfntfont_match (f: *mut frame, spec: Lisp_Object) -> Lisp_Object;
-  pub fn sfntfont_open (f: *mut frame, font_entity: Lisp_Object, pixel_size: c_int)
-                        -> Lisp_Object;
-
-  /// C 37-44: the driver hooks.  C 37's `int` and C 44's `unsigned[256]` are `c_int`/`*mut c_uint`
-  /// (an array parameter decays to a pointer, PORTING.md P-55); `struct font_metrics *` and
-  /// `struct glyph_string *` are the stand-ins of the file note.
-  /// C: extern unsigned int sfntfont_encode_char (struct font *, int);
-  /// C: extern void sfntfont_text_extents (struct font *, const unsigned int *,
-  /// C: 				   int, struct font_metrics *);
-  /// C: extern void sfntfont_close (struct font *);
-  /// C: extern int sfntfont_draw (struct glyph_string *, int, int,
-  /// C: 			  int, int, bool);
-  /// C: extern Lisp_Object sfntfont_list_family (struct frame *);
-  /// C: extern int sfntfont_get_variation_glyphs (struct font *, int, unsigned[256]);
-  pub fn sfntfont_encode_char (font: *mut font, char_: c_int) -> c_uint;
-  pub fn sfntfont_text_extents (font: *mut font, code: *const c_uint, nchars: c_int,
-                                metrics: *mut c_void);
-  pub fn sfntfont_close (font: *mut font);
-  pub fn sfntfont_draw (s: *mut c_void, from: c_int, to: c_int, x: c_int, y: c_int,
-                        with_background: bool) -> c_int;
-  pub fn sfntfont_list_family (f: *mut frame) -> Lisp_Object;
-  pub fn sfntfont_get_variation_glyphs (font: *mut font, character: c_int,
-                                        variation_selectors: *mut c_uint) -> c_int;
-
-  /// C 53-57: the initialization entry points.  C 56-57's `const struct font_driver *` has no
-  /// owner mirror (the file note) and `sfntfont_put_glyph_proc` is C 49-51's typedef below.
-  /// C: extern void syms_of_sfntfont (void);
-  /// C: extern void init_sfntfont (void);
-  /// C: extern void mark_sfntfont (void);
-  /// C: extern void init_sfntfont_vendor (Lisp_Object, const struct font_driver *,
-  /// C: 				  sfntfont_put_glyph_proc);
-  pub fn syms_of_sfntfont ();
-  pub fn init_sfntfont ();
-  pub fn mark_sfntfont ();
-  pub fn init_sfntfont_vendor (name: Lisp_Object, driver: *const c_void,
-                               put_glyph: sfntfont_put_glyph_proc);
-
-  /// C 62-66: the `HAVE_MMAP` arm, live here (the file note).
-  /// C: extern bool sfntfont_detect_sigbus (void *);
-  pub fn sfntfont_detect_sigbus (addr: *mut c_void) -> bool;
-
-  /// C 72-76: the `HAVE_HARFBUZZ` arm, dead text on this target (`HAVE_HARFBUZZ` is `undef`),
-  /// carried under the feature that names the other side (PORTING.md P-51).  `hb_font_t` is
-  /// `<hb.h>`'s record and the pointer keeps C's depth with an untyped interior.
-  /// C: extern hb_font_t *sfntfont_begin_hb_font (struct font *, double *);
-  #[cfg (feature = "harfbuzz")]
-  pub fn sfntfont_begin_hb_font (font: *mut font, advance: *mut c_double) -> *mut c_void;
-}
+// C 28: `extern int sfnt_enum_font (const char *);` - the one entry point `src/sfnt.c` defines;
+// its declaration is in `sfntfont_decls` at the end of this file (the module note says why).
 
 /// C 49-51: `typedef void (*sfntfont_put_glyph_proc) (struct glyph_string *, int, int, int, int,
 /// bool, struct sfnt_raster **, int *)` - a C function pointer is nullable, so it is an `Option`
@@ -120,3 +64,71 @@ pub type sfntfont_put_glyph_proc
   = Option<unsafe extern "C" fn (s: *mut c_void, from: c_int, to: c_int, x: c_int, y: c_int,
                                  with_background: bool, raster: *mut *mut sfnt_raster,
                                  y_offset: *mut c_int)>;
+
+/* The declarations live in a module of its own (PORTING.md 0.1-10, the `include/sfnt.rs`
+   `sfnt_decls` shape of status 3.427): the unit that *defines* one of these names -
+   `src/sfntfont.rs` defines `sfnt_enum_font` at the crate root - would otherwise collide
+   with its own header's declaration (`E0428`), and a glob import loses to a same-named
+   definition in the same namespace.  */
+pub mod sfntfont_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn sfnt_enum_font (file: *const c_char) -> c_int;
+
+    /// C 33-35: the three `Lisp_Object`-valued callbacks.  `struct frame` comes from `frame.rs`.
+    /// C: extern Lisp_Object sfntfont_list (struct frame *, Lisp_Object);
+    /// C: extern Lisp_Object sfntfont_match (struct frame *, Lisp_Object);
+    /// C: extern Lisp_Object sfntfont_open (struct frame *, Lisp_Object, int);
+    pub fn sfntfont_list (f: *mut frame, spec: Lisp_Object) -> Lisp_Object;
+    pub fn sfntfont_match (f: *mut frame, spec: Lisp_Object) -> Lisp_Object;
+    pub fn sfntfont_open (f: *mut frame, font_entity: Lisp_Object, pixel_size: c_int)
+                          -> Lisp_Object;
+
+    /// C 37-44: the driver hooks.  C 37's `int` and C 44's `unsigned[256]` are `c_int`/`*mut c_uint`
+    /// (an array parameter decays to a pointer, PORTING.md P-55); `struct font_metrics *` and
+    /// `struct glyph_string *` are the stand-ins of the file note.
+    /// C: extern unsigned int sfntfont_encode_char (struct font *, int);
+    /// C: extern void sfntfont_text_extents (struct font *, const unsigned int *,
+    /// C: 				   int, struct font_metrics *);
+    /// C: extern void sfntfont_close (struct font *);
+    /// C: extern int sfntfont_draw (struct glyph_string *, int, int,
+    /// C: 			  int, int, bool);
+    /// C: extern Lisp_Object sfntfont_list_family (struct frame *);
+    /// C: extern int sfntfont_get_variation_glyphs (struct font *, int, unsigned[256]);
+    pub fn sfntfont_encode_char (font: *mut font, char_: c_int) -> c_uint;
+    pub fn sfntfont_text_extents (font: *mut font, code: *const c_uint, nchars: c_int,
+                                  metrics: *mut c_void);
+    pub fn sfntfont_close (font: *mut font);
+    pub fn sfntfont_draw (s: *mut c_void, from: c_int, to: c_int, x: c_int, y: c_int,
+                          with_background: bool) -> c_int;
+    pub fn sfntfont_list_family (f: *mut frame) -> Lisp_Object;
+    pub fn sfntfont_get_variation_glyphs (font: *mut font, character: c_int,
+                                          variation_selectors: *mut c_uint) -> c_int;
+
+    /// C 53-57: the initialization entry points.  C 56-57's `const struct font_driver *` has no
+    /// owner mirror (the file note) and `sfntfont_put_glyph_proc` is C 49-51's typedef below.
+    /// C: extern void syms_of_sfntfont (void);
+    /// C: extern void init_sfntfont (void);
+    /// C: extern void mark_sfntfont (void);
+    /// C: extern void init_sfntfont_vendor (Lisp_Object, const struct font_driver *,
+    /// C: 				  sfntfont_put_glyph_proc);
+    pub fn syms_of_sfntfont ();
+    pub fn init_sfntfont ();
+    pub fn mark_sfntfont ();
+    pub fn init_sfntfont_vendor (name: Lisp_Object, driver: *const c_void,
+                                 put_glyph: sfntfont_put_glyph_proc);
+
+    /// C 62-66: the `HAVE_MMAP` arm, live here (the file note).
+    /// C: extern bool sfntfont_detect_sigbus (void *);
+    pub fn sfntfont_detect_sigbus (addr: *mut c_void) -> bool;
+
+    /// C 72-76: the `HAVE_HARFBUZZ` arm, dead text on this target (`HAVE_HARFBUZZ` is `undef`),
+    /// carried under the feature that names the other side (PORTING.md P-51).  `hb_font_t` is
+    /// `<hb.h>`'s record and the pointer keeps C's depth with an untyped interior.
+    /// C: extern hb_font_t *sfntfont_begin_hb_font (struct font *, double *);
+    #[cfg (feature = "harfbuzz")]
+    pub fn sfntfont_begin_hb_font (font: *mut font, advance: *mut c_double) -> *mut c_void;
+  }
+}
+use sfntfont_decls::*;
