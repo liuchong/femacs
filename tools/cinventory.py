@@ -144,7 +144,17 @@ class Lines:
 
 
 def blank_comments(text: str) -> str:
-    """Replace comments with spaces, preserving length and newlines."""
+    """Replace comments with spaces, preserving length and newlines.
+
+    String and character literals are copied through untouched, escapes included, because a
+    `//` can stand *inside* one: C's own `"/proc/self/task//comm"` (android.c 470-471) made this
+    scanner blank the rest of the line, so the reference body a token check compares lost
+    `comm`, `failed`, `proc`, `self`, `set` and `task` and the port was reported as not
+    mentioning them (status 3.413; the same class `strip_char_literals` was written for, one
+    level up).  The character-literal case is bounded the way that helper's is - a literal is a
+    few characters long - so a stray apostrophe cannot swallow the rest of the line; a string
+    runs to its closing quote, which is also what makes a backslash-continued one work.
+    """
     out = []
     i, n = 0, len(text)
     state = "code"
@@ -162,7 +172,31 @@ def blank_comments(text: str) -> str:
                 out.append("  ")
                 i += 2
                 continue
+            if ch == '"':
+                state = "string"
+            elif ch == "'":
+                j = i + 1
+                while j < n and j - i <= 8:
+                    if text[j] == "\\":
+                        j += 2
+                        continue
+                    if text[j] == "'":
+                        break
+                    j += 1
+                if j < n and j - i <= 8 and text[j] == "'":
+                    out.append(text[i: j + 1])
+                    i = j + 1
+                    continue
             out.append(ch)
+            i += 1
+        elif state == "string":
+            out.append(ch)
+            if ch == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if ch == '"':
+                state = "code"
             i += 1
         elif state == "block":
             if ch == "*" and nxt == "/":

@@ -7128,3 +7128,47 @@
   ⑦ **未声称**：本轮只扫"我们写下的东西"并修掉其中的身份行，**没有**动逐字节复制树（`lisp/`/`test/`/`doc/`/
      `etc/`/`admin/`/`leim/`——它们就是参照的原文，产品名在原文里）；`docs/baseline/` 其余实测表未动；
      ⑥ 里的字面量与那两处引文**仍在原处**。
+
+- **3.414 集成者这一轮：mirror-dupes 那道红门、以及 `blank_comments` 的字符串洞（2026-10-05）**：
+  ① **范围**：本轮做的是 3.412 台账里点名"欠集成者"的几项，加上当时正红的一道门。
+  ② **红门（`check-mirror-dupes` 1 FAIL）的处置，以及为什么不按 P-26 删声明**：`femacs/src/android.rs`
+     的 P-88 段声明了 bionic 的 `pipe2`，而 `femacs/lib/include/unistd.in.rs` 里也有这个名字（冻结配置的
+     `# undef pipe2 / # define pipe2 rpl_pipe2` 落成 `macro_rules! pipe2`）。**删掉单元侧声明会把 Android 臂
+     悄悄改成"调 gnulib 的替换实现"**——C 的 android.c 在 Android 配置下没有替换（`@REPLACE_PIPE2@` 只对
+     冻结的 Darwin 为 1），那是"发明 C 里没有的行为"（硬约束 1）。证据是实测的：bionic 的 `<unistd.h>`
+     299 行 `int pipe2 (int[2], int)`（NDK 25.1/26.1/27.0/28.2 四个版本一致）。⇒ 按树里既有的同类判据
+     （`sysdep.rs` 那行）**加棘轮行**，理由写清"这是两个配置各自的臂，不是一份声明被抄了两遍"。
+     **读数：`19 duplicate declaration(s), 19 ratchet row(s), 0 failure(s)`**（此前 `19/18/1`）。
+  ③ **真洞：`tools/cinventory.py` 的 `blank_comments` 不认识字符串字面量**。它在 code 态只看 `/*`/`//`，
+     于是 C 里 `"/proc/self/task//comm"`（android.c 470-471）的 `//` 被当成注释起点，**该行后半被挖空**，
+     `android_set_task_name` 的参照体因此丢掉 `comm/failed/proc/self/set/task` 六个 token，`extract-abi --check`
+     报出假阳性（3.412 ⑤ 已实测复现，当时留着"给工具修"）。本轮修在扫描器里：**字符串与字符字面量都建模**
+     （字符串按闭合引号走，转义成对吃掉，反斜杠续行的字符串不跨行断；字符字面量按 `strip_char_literals`
+     既有的"几个字符就结束"上限，免得一个落单的撇号吞掉整行）。**假阳性消失**，取代它的是真finding
+     `- function android_set_task_name does not mention goto`。
+  ④ **同一条洞的第二个实例（本轮新发现，影响另一个文件）**：`emacs/src/w32fns.c` 4127 的
+     `strchr ("0123456789/*-+.,", code_unit)` 里那个 `/*` 让老扫描器**进入了块注释态**，把 **C 4127-4139
+     全部挖空**——那是 `deliver_wm_chars` 的收尾和 `#ifdef DBG_WM_CHARS` 两臂的 `FPRINTF_WM_CHARS` 定义。
+     修好后 `w32fns` 的清单多出 `FPRINTF_WM_CHARS` 这条宏、并恢复若干函数（`deliver_wm_chars` 等）的可见性。
+  ⑤ **完整性读数（谁被这条洞影响，一次量清）**：`emacs/` 下 **634 个 `.c/.h`** 逐个比对新旧 blanking，
+     **12 个文件**的读数变了，**最大 13 行**（w32fns.c）——没有"某个状态泄漏、吞掉几百行"的情形：
+     `w32fns.c`13、`androidvfs.c`6、`sfnt.c`5、`image.c`3、`exec/trace.c`3、`android.c`2、
+     `lib-src/make-docfile.c`2、`xterm.c`/`gtkutil.c`/`fileio.c`/`emacs.c`/`comp.c` 各 1。
+  ⑥ **`extract-abi --all` 前后对拍（同一天两次全量，2 分钟一次）**：`checked 590 ported files:
+     582 done, 2 in progress, 6 failing` **两侧一致**；**差异只有两处**：`android.c` 的假阳性变成真 `goto`、
+     `w32fns.c` 的函数/宏清单按 ④ 变多。⇒ 扫描器修复**没有**在其他 588 个文件上改变任何读数。
+     ⑥ 里那 6 个 failing 是**切片中的 P-86 单元**（android 11/7,594、androidterm 1,055/7,117、
+     haikuterm 1,554/4,898、image 3,134/13,805〔在飞〕、w32fns 1,548/12,488、w32term 1,592/8,414），
+     它们报的是"还没移植的函数"，不是缺陷；2 个 WIP 是 xdisp/xterm 的未勾选清单。**验收口径不变**：
+     完成定义要求的是全部落完后 `--all` 零差异。
+  ⑦ **本轮落地的行**：`docs/ports/macro-body-notes.tsv` 补 `android_set_task_name → goto`
+     （C 481/486 的两处 `goto failure` 与 C 491 的 `failure:` 标号，端口是 `'failure:` 标号块 +
+     `break 'failure`，PORTING.md 2.2），并把"为什么这行 3.413 之前量不出来"写进该行；
+     `docs/ports/android.md` 的"Owed by the integrator"逐条标状态（1/2/5 已做、4 有意延到批次收口、
+     `pipe2` 一项按 ② 结案）；`docs/baseline/mirror-dupes.tsv` 加 ② 那行。
+  ⑧ **新欠（点名，给 w32fns 的下一片）**：④ 恢复的 **C 4127-4139** 需要进 w32fns 的对照面——
+     `FPRINTF_WM_CHARS` 两臂与 `deliver_wm_chars` 的收尾；`docs/ports/w32fns.md` 的区间表要按恢复后的文本
+     重核（`check-dead-file-coverage.py` 现在 `17 ledger(s) bound, 0 failure(s)`，尚无该文件的表）。
+  ⑨ **未声称**：本轮**没有编译**（只跑文本门：`check-mirror-dupes`、`extract-abi --check/--all`、
+     `check-declarations`、`check-dead-file-coverage`）；Android 臂的两处配置**没有跑过**；②的棘轮行是一条
+     **带证据的判断**（bionic 头实测 + android.c 两处调用点 + 冻结配置的替换值），不是"语义已验"。

@@ -310,30 +310,38 @@ levels via `-S` on a TU initialized from the enum: `ANDROID_LOG_INFO 4`, `ANDROI
 * **Line count**: C 1,037 (this slice) vs the port's 1,311 (+26.4%) - the per-item `#[cfg]`s, the
   in-unit declarations, Rust's brace-only lines and the C-line comments.
 
-## Owed by the integrator (nothing here is claimed as done)
+## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
-1. `femacs/xtask/Cargo.toml`'s `[features]` table: **`android_api_lt_21`** (comment: the derived
+1. ✅ **Done in 3.412** — `femacs/xtask/Cargo.toml`'s `[features]` table: **`android_api_lt_21`** (comment: the derived
    condition `__ANDROID_API__ < 21`, android.c 297/310/367/426/509/522/604/672/713/738/923/973;
    its negation is C's `>= 21` arm).  Without it none of this slice's `#if` pairs can be selected.
-2. `docs/ports/macro-body-notes.tsv`: two rows - `android_set_task_name` → `goto` (the
-   labeled-block spelling, PORTING.md 2.2) and `android_write_event` → `switch`/`case`/`break`/
-   `default` (the `match` + `|` + `_` spelling).
+2. ✅ **Done** — `docs/ports/macro-body-notes.tsv`: `android_write_event` →
+   `break,case,default,switch` landed with this slice; `android_set_task_name` → `goto` could not
+   be measured until 3.414 fixed the extractor's `//`-in-string defect, and is now recorded there
+   (C 481/486's `goto failure` and the `failure:` label at C 491).
 3. `docs/ports/line-drift-tolerance.tsv`: one row for `android` once the last slice lands (the
    whole-file reading is the 82.7% of ⑤; this slice's own ratio is +26.4%).
 4. `tools/check-port-lines.py --write-pending`: this file's ratchet row is now stale (it is no
-   longer under ten percent) and the re-run drops it.
-5. **A `tools/extract-abi.py` fix (or a `macro-body-notes.tsv` row) for the `//`-in-string
-   corruption of ⑤**: `c_body_text` blanks the rest of C 470-471's line because the string literal
-   `"/proc/self/task//comm"` holds a `//`, so `android_set_task_name`'s body comparison is run
-   against a corrupted reference.
+   longer under ten percent) and the re-run drops it.  Deferred on purpose to a batch close (the
+   tool's own reading is `86 ratchet row(s), 0 new, 1 stale` and it exits 0), so that the rewrite
+   does not encode the two lanes' in-flight units.
+5. ✅ **Done in 3.414** — the tool was fixed, not the symptom:
+   `tools/cinventory.py`'s `blank_comments` now models string and character literals, so C 470-471's
+   `"/proc/self/task//comm"` no longer blanks the rest of the line.  The false positive
+   (`does not mention comm, failed, proc, self, set, task`) is gone and the real finding - the
+   `goto` of item 2 - took its place.  See `docs/status.md` 3.414 for the 634-file reading and the
+   second manifestation it uncovered in `w32fns.c` 4127.
 6. **The mirror round that blocks the pristine base-config arm: `lib/include/signal.rs` needs the
    bionic `sa_sigaction` member C 749 names** (or an Android `signal.h` mirror).  That file is
    another lane's in-flight mirror and the change needs `tools/check-all-units.sh` (P-87), which is
    why it is not touched here; until it lands the base config reads ②a and the unit's own body
    needs ④'s harness.
 7. The in-unit declarations of Deviations 1 belong in mirrors once those exist (P-88 ⑤): the
-   `<pthread.h>`/`<semaphore.h>` block, the `<signal.h>` extras, `gettid`/`pipe2`/`kill` and the
-   `<android/log.h>` pair.
+   `<pthread.h>`/`<semaphore.h>` block, the `<signal.h>` extras, `gettid`/`kill` and the
+   `<android/log.h>` pair.  **`pipe2` is settled and stays where it is** (3.414): bionic's
+   `<unistd.h>` declares it for this configuration, and `docs/baseline/mirror-dupes.tsv` now
+   carries the ratchet row that says why the mirror's Darwin redirect and this declaration are two
+   configurations' arms rather than a copied declaration.
 
 ### Not claimed
 
