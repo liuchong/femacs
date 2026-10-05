@@ -1315,3 +1315,34 @@ on where the *tag* `x_display_info` lives: at the mirror's top level it collides
 `include/xterm.rs`'s own record in a unit that includes both (`E0428`), and inside the module
 `pub type Display_Info = x_display_info;` cannot see it.  That ruling is the next mirror round's
 first item, not a defect of the arms.
+
+## 2026-10-05: the X11 typedefs land and `redisplay_interface`'s arm is read (3.507)
+
+Same flip (`src/fringe.rs`, `have_window_system` + `have_x_windows` + `dispextern_face_records`),
+three items:
+
+1. **The four `E0425` this file was carrying are gone.**  `Emacs_Cursor` (C 37/39, inside
+   C 27-45's `#ifdef HAVE_X_WINDOWS`) is `Cursor` - `include/xlib.rs` 862 - and
+   `Emacs_Pix_Container` (C 116-118, `#ifndef USE_CAIRO`) is `*mut XImage` (that mirror's
+   356-390 record, measured 136/8).  The deferral comment above `Display_Info` had outlived its
+   reason: it named `include/xlib.rs`'s missing `XImage`/`Cursor` and both have been there since
+   3.500.
+2. **The `x_display_info` tag lives in the module.**  C 115's `typedef struct x_display_info
+   Display_Info;` declares the *tag* and C's record is `xterm.h`'s, so the port names an opaque
+   type (`dispextern_unit_names::x_display_info`) and aliases it; a top-level tag would be
+   `E0428` in every unit that also includes `include/xterm.rs` (the record's real definition),
+   which is the same reason the 102 names of this class live there.  A unit that needs the
+   complete record declares its own alias - `src/frame.rs` 6059 and `src/androidfns.rs` 418
+   already do.
+3. **`struct redisplay_interface`'s arm reading.**  C 3131-3195's fifteen `HAVE_WINDOW_SYSTEM`
+   hooks (already carried behind `have_window_system`) are appended after `fix_overlapping_area`,
+   so they add 120 bytes and shift nothing: `docs/baseline/redisplay_interface-layout.tsv`
+   (`frozen` 104/8, `x11`/`ns_cocoa`/`x11_ext` 224/8, the fifteen at 104 … 216).  The size
+   assertion adds `REDISPLAY_IFACE_WS_SHIFT` (0/120) and the fifteen members have arm-only
+   assertions at their measured offsets.
+
+Readings, same flip: `38 -> 24 -> 13 -> 5 -> 2 -> 1` errors over 3.505/3.506/3.507.  **The one
+left is not this file's**: `include/systime.rs` 27 asserts that `have_x_windows` and
+`config.rs`'s `HAVE_X_WINDOWS` constant move together, which is exactly what `xtask dead-arms`
+does and a bare `--cfg` does not (status 3.434's reading) - the faithful arm for that class is
+`dead-arms`, not a change to `systime.rs`.

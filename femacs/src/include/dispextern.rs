@@ -85,7 +85,14 @@ pub const GCForeground: c_int = 0x01;
 pub const GCBackground: c_int = 0x02;
 
 #[cfg (all (not (feature = "have_window_system"), not (feature = "have_android")))]
-pub type Emacs_Cursor = *mut c_void;  // dispextern.h 174-176 `#ifndef HAVE_WINDOW_SYSTEM` / `typedef void *Emacs_Cursor;` (docs/ports/include-dispextern.md)
+pub type Emacs_Cursor = *mut c_void;
+/// C 37/39 (inside C 27-45's `#ifdef HAVE_X_WINDOWS`): `typedef Cursor Emacs_Cursor;` - Xlib's
+/// `Cursor` (`include/xlib.rs` 862, `XID`).  The other four window arms take their cursor type
+/// from their own GUI header, which this mirror includes (`nsgui.rs`/`pgtkgui.rs`/
+/// `haikugui.rs`/`androidgui.rs`, C 143-166), so X11 was the one arm the name was missing in -
+/// the `E0425` of `define_frame_cursor` (C 3150) in every X11 flip (status 3.506).
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
+pub type Emacs_Cursor = Cursor;  // dispextern.h 174-176 `#ifndef HAVE_WINDOW_SYSTEM` / `typedef void *Emacs_Cursor;` (docs/ports/include-dispextern.md)
 
 /* Text cursor types.  */
 // C's members have type `int`; the port keeps the enum as a type alias plus constants, which
@@ -680,9 +687,15 @@ include!("haikugui.rs");
 // `docs/ports/include-androidgui.md`'s 3.370 ruling already resolves the `Emacs_Cursor` pair.
 // The edge can land when the materializer follows a *live* path only.
 
-/// C: dispextern.h 115: `typedef struct x_display_info Display_Info;`
+/// C: dispextern.h 115: `typedef struct x_display_info Display_Info;` - C declares the *tag*
+/// here and the record itself is `xterm.h`'s.  The port names an opaque type for the tag
+/// (module, P-21/P-39) rather than a top-level one: a unit that includes this mirror usually
+/// also includes `include/xterm.rs`, whose record is the complete one, and two top-level types
+/// of one name are `E0428` there.  A unit that needs the complete record declares its own alias
+/// (the `src/frame.rs` 6059 / `src/androidfns.rs` 418 precedent), which is also why the mirror's
+/// alias is only for the declarations below.
 #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
-pub type Display_Info = x_display_info;
+pub type Display_Info = dispextern_unit_names::x_display_info;
 /// C: dispextern.h 136: `typedef struct w32_display_info Display_Info;`
 #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
 pub type Display_Info = w32_display_info;
@@ -697,10 +710,16 @@ pub type Display_Info = haiku_display_info;
 pub type Display_Info = android_display_info;
 // C 152: `typedef struct pgtk_display_info Display_Info;` - deferred with the pgtk records
 // (`include/pgtkterm.rs` has no `pgtk_display_info` and no arm can read one here).
-// C 116-118's X11 arm (`typedef XImage *Emacs_Pix_Container;`), C 137-139's `HAVE_NTGUI` arm
-// (`XImage`/`HDC`) are deferred with `include/xlib.rs`'s `XImage`/`Cursor` (the x+cairo flip's
-// 230-error reading is that gap) and with the unmeasured Windows arm; both C texts are quoted in
-// the ledger's Evidence rather than guessed at here.
+// C 137-139's `HAVE_NTGUI` arm (`XImage`/`HDC`) is still deferred with the unmeasured Windows
+// arm; its C text is quoted in the ledger's Evidence rather than guessed at here.
+/* C 116-118's X11 arm.  The deferral this used to carry ("with `include/xlib.rs`'s
+   `XImage`/`Cursor`") outlived its reason: that mirror has had `Cursor` (862) and `XImage`
+   (356-390's record, measured 136/8) since 3.500, and the arm needs them - `Emacs_Pix_Context`
+   below (C 196) and every X11 flip read `E0425` without this line (status 3.506).  */
+/// C: dispextern.h 116-118: `#ifndef USE_CAIRO` / `typedef XImage *Emacs_Pix_Container;`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows",
+           not (feature = "use_cairo")))]
+pub type Emacs_Pix_Container = *mut XImage;
 
 /* C 122-131: the `USE_CAIRO` arm - "Minimal version of XImage".  C's record is anonymous and
    the port names it after the typedef's object (PORTING.md 1.3).  Measured with this machine's
@@ -2715,6 +2734,12 @@ pub const TRY_WINDOW_IGNORE_FONTS_CHANGE: c_int = 1 << 1;
 pub mod dispextern_unit_names {
   use super::*;
 
+  /* C 115's tag, `struct x_display_info`, whose record is `xterm.h`'s: this mirror needs only
+     the incomplete tag C declares (a pointer target), and the opaque type is the port's
+     spelling of it.  See the alias at the top level for why it lives here.  */
+  #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
+  pub enum x_display_info {}
+
   /* C 286-343: the text-position accessors.  `BYTEPOS`/`CHARPOS` are usable as assignment
      targets in C, and `macro_rules!` keeps that property (`BYTEPOS! (pos) = n`).  */
   /// C: #define BYTEPOS(POS)	(POS).bytepos
@@ -3786,8 +3811,50 @@ pub struct redisplay_interface
   #[cfg (feature = "have_window_system")]
   pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
 }
+/* C 3131-3195's `HAVE_WINDOW_SYSTEM` members - the fifteen display hooks this record already
+   carries behind that feature - are appended after `fix_overlapping_area`, so they add 120 bytes
+   and shift nothing above them (`docs/baseline/redisplay_interface-layout.tsv`: `frozen` 104/8
+   with the thirteen base members, `x11`/`ns_cocoa`/`x11_ext` 224/8; the fifteen measure 104 …
+   216).  The same device status 3.505/3.506 used for `struct face`, `struct font` and
+   `struct font_driver`.  */
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (core::mem::size_of::<redisplay_interface> () == 104);
+#[cfg (not (feature = "have_window_system"))]
+const REDISPLAY_IFACE_WS_SHIFT: usize = 0;
+#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_window_system")]
+const REDISPLAY_IFACE_WS_SHIFT: usize = 120;
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::size_of::<redisplay_interface> () == 104 + REDISPLAY_IFACE_WS_SHIFT);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, draw_fringe_bitmap) == 104);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, define_fringe_bitmap) == 112);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, destroy_fringe_bitmap) == 120);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, compute_glyph_string_overhangs) == 128);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, draw_glyph_string) == 136);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, define_frame_cursor) == 144);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, clear_frame_area) == 152);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, clear_under_internal_border) == 160);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, draw_window_cursor) == 168);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, draw_vertical_window_border) == 176);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, draw_window_divider) == 184);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, shift_glyphs_for_insert) == 192);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, show_hourglass) == 200);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, hide_hourglass) == 208);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, default_font_parameter) == 216);
 #[cfg (feature = "dispextern_face_records")]
 const _: () = core::assert! (core::mem::align_of::<redisplay_interface> () == 8);
 #[cfg (feature = "dispextern_face_records")]

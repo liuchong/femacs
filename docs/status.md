@@ -9840,3 +9840,26 @@
      （`termini-*`、`intent-*`），本条**没有**碰它们。
   ⑦ **未声称**：零运行证据；臂读数只是本机 rustc 的类型检查，本条不为那 5 条剩余错误说话；两个新基线是**C 侧**
      clang 的读数（`--write` 的产物），端口侧的对应数字由断言覆盖，但**没有任何运行**验证过字体记录的真机行为。
+
+- **3.507 镜像轮第三批之三：X11 的两个 typedef 落地、`x_display_info` 的 tag 进模块、`redisplay_interface` 的臂断言按臂取值（2026-10-05）**：
+  ① **三项**：⑴ `Emacs_Cursor` 的 X11 臂（C 37/39：`typedef Cursor Emacs_Cursor;`，`Cursor` = `include/xlib.rs` 862）
+     与 `Emacs_Pix_Container` 的 X11 臂（C 116-118：`#ifndef USE_CAIRO` / `typedef XImage *Emacs_Pix_Container;`，
+     该镜像的 `XImage` 3.500 就已实测 136/8）——延后注释点名的前提**早已不存在**，本条的 4 个 `E0425`
+     （`define_frame_cursor` C 3150 与 `Emacs_Pix_Context` C 196）随之清零。
+     ⑵ **C 115 的 tag `x_display_info` 住进 `dispextern_unit_names`**（不透明类型），顶层别名指过去：C 那里只声明
+     *tag*，记录是 `xterm.h` 的；顶层放一个会被"同时 include `include/xterm.rs`"的单元撞 `E0428`，
+     而需要完整记录的单元本来就自己声明别名（`src/frame.rs` 6059、`src/androidfns.rs` 418 的先例）。
+     ⑶ **`struct redisplay_interface`**：C 3131-3195 的十五个 `HAVE_WINDOW_SYSTEM` 钩子（记录里早已带着）追加在
+     `fix_overlapping_area` 之后 ⇒ 只加 120 字节、不移动任何成员；新基线
+     **`docs/baseline/redisplay_interface-layout.tsv`**（`frozen` 104/8 → 三个窗口臂 224/8，十五个成员 104…216），
+     断言加 `REDISPLAY_IFACE_WS_SHIFT`（0/120）+ 十五个臂内独有偏移。
+  ② **读数**：同一条翻臂（`src/fringe.rs`）**38 → 24 → 13 → 5 → 2 → 1**（3.505/3.506/3.507 三轮的累计）；
+     剩下的 **1 条不是镜像的**：`include/systime.rs` 27 断言"feature 与 `config.rs` 常量同动"，忠实的翻法是
+     `xtask dead-arms`（3.434 已记），不是改 `systime.rs`。
+  ③ **验收**：`layout-check` **passed**、`check-all-units` **83 unit(s), 0 failure(s)**（P-87 ①：动过
+     `femacs/src/include/*.rs` 必跑）、`check-mirror-dupes` **17/17/0**；`check-declarations` 当轮唯一失败在
+     `femacs/lib/file-has-acl.rs`（ACL lane 的在飞文本），本条的三个文件 0 命中。
+  ④ **未声称**：零运行证据；臂读数只是本机 rustc 的类型检查（且这一条臂**仍未编过**——剩的那 1 条
+     `dead-arms` 才编得动）；新基线是 C 侧 clang 的读数，端口侧只由断言覆盖。
+  ⑤ **预算**：`probe` 4 发（本条内：3 次迭代 + 1 次复读）、`layout-check` 2 发、`check-all-units` 2 发
+     （其中 1 发是磁盘满后的复读，见 3.506 ⑥）。
