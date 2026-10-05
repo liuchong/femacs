@@ -13076,3 +13076,12 @@
   ⑥ **欠账（点名）**：P-97 的**机器门待补**——把每个 `DEFVAR_*!` 的变量名与它在本单元/镜像里的声明类型对拍（下一轮第一件事）。
   ⑦ **预算**：`build-tu` `src/data.c` 5 发 + `src/process.c` 1 发、`check-link --executable` 5 发、dump 运行 6 发；`data.rs` 的临时仪表已用 `git show HEAD:` 还原；`/tmp/e*.log|err` 收工删。
 
+- **3.639 P-97 的机器门：651 个 `DEFVAR_*` 载体的类型逐个对拍（2026-10-06）**：
+  ① **新门**：`tools/check-defvar-carriers.py`——对每个 `DEFVAR_INT!`/`DEFVAR_BOOL!`/`DEFVAR_LISP!` 站点取出变量名，**先在本单元、再在 `femacs/src/include/*.rs`** 里找它的声明，再按宏解引用它的方式核对类型：
+     Int → `EMACS_INT`/`intmax_t`/`i64`/`isize`/`ptrdiff_t`（8 字节 · 8 对齐）、Bool → `bool`、Lisp → `Lisp_Object`；类型取最后一段（`crate::…::EMACS_INT` 也算 ✔）。
+  ② **读数**：`read 153 unit file(s): 651 DEFVAR_* site(s), 651 with a declaration whose type is checked, 0 failure(s)`，`--selftest` **7 例 / 0 失败**（含 3.638 的正反两个形状）。
+  ③ **判别力证据**：拿**修复前**的 `process.rs`（`git show 1cd24844:femacs/src/process.rs`）喂给 `check_text` ⇒ **1 failure**，正是 `DEFVAR_INT! uses process_error_pause_time: c_int` ✔。
+  ④ **边界**：找不到声明的站点（名字可能是宏或字段）**计入覆盖行而不算失败**（本机是 0 个未取到的情况）；门只看类型拼写，不解析 `use` 路径（取最后一段）。
+  ⑤ **未声称**：本件**没有改端口代码**（只加 `tools/` 与状态/PORTING 一行）、没有编译、没有运行读数；它证明的是"651 个站点的载体类型与宏的解引用方式一致"，不是"这些变量在运行期都对"。
+  ⑥ **收口**：新增 `tools/check-defvar-carriers.py`；PORTING.md P-97 行由"待补门"改为点名这道门；十一/十一道文本门复跑全绿。
+
