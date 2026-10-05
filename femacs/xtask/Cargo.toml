@@ -131,6 +131,7 @@ mingw32_w32api_ge_5_2                      = []  # the derived condition `__MING
 mingw32_w32api_lt_3_15                     = []  # the derived condition `__MINGW32_MAJOR_VERSION < 3 || (== 3 && __MINGW32_MINOR_VERSION < 15)` (w32.c 141, the old-SDK `PROCESS_MEMORY_COUNTERS_EX` arm)
 win32_windows_ge_0410                      = []  # the derived condition `_WIN32_WINDOWS >= 0x0410` (w32fns.c 167)
 have_gif                                   = []  # HAVE_GIF (image.c 244 `#if defined (HAVE_WEBP) || defined (HAVE_GIF)`)
+have_shared_game_dir                       = []  # HAVE_SHARED_GAME_DIR (update-game-score.c 129; the value is a configure parameter - see the unit's Owed 1)
 have_imagemagick                           = []  # HAVE_IMAGEMAGICK (image.c 104 `#if defined HAVE_PGTK && defined HAVE_IMAGEMAGICK`)
 have_native_transforms                    = []  # HAVE_NATIVE_TRANSFORMS (image.c 2671/2777's `#if defined (HAVE_IMAGEMAGICK) || defined (HAVE_NATIVE_TRANSFORMS)` arms and the compute_image_size / image_set_transform block they gate)
 have_png                                   = []  # HAVE_PNG (image.c 30 `#if defined HAVE_PNG`)
@@ -623,6 +624,7 @@ have_xaw3d                                 = []  # HAVE_XAW3D (xfns.c 78-83, the
 have_xrandr                                = []  # HAVE_XRANDR (xfns.c 54-57, <X11/extensions/Xrandr.h> and the Ninerama arm)
 have_xinerama                              = []  # HAVE_XINERAMA (xfns.c 54-60, <X11/extensions/Xinerama.h>)
 use_horizontal_scroll_bars                 = []  # USE_HORIZONTAL_SCROLL_BARS
+use_gamedir                                = []  # the build-level gate of lib-src/update-game-score.c (lib-src/Makefile.in 165: `$(and $(use_gamedir), update-game-score)`)
 use_lucid                                  = []  # USE_LUCID
 use_ncurses                                = []  # USE_NCURSES
 use_toolkit_scroll_bars                    = []  # USE_TOOLKIT_SCROLL_BARS (gtkutil.c 2124)

@@ -5,15 +5,15 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	1053	33	-	-
-have_android	875	30	-	-
+windowsnt	1054	34	-	-
+have_android	895	30	-	-
 have_window_system	821	17	-	-
-have_x_windows	678	22	-	HAVE_X_WINDOWS
-not_android_stubify	596	10	-	-
+have_x_windows	683	22	-	HAVE_X_WINDOWS
+not_android_stubify	616	10	-	-
 have_ntgui	500	13	-	-
-have_pgtk	484	17	-	-
-use_gtk	406	10	-	-
-msdos	326	14	-	-
+have_pgtk	485	17	-	-
+use_gtk	405	10	-	-
+msdos	376	14	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
 dispextern_face_records	266	4	-	-
 have_ns	261	10	-	HAVE_NS
@@ -21,7 +21,7 @@ have_haiku	211	13	xtask dead-arms	-
 use_xcb	171	4	-	-
 use_cairo	135	10	-	-
 have_tree_sitter	133	7	-	HAVE_TREE_SITTER
-have_gtk3	93	4	-	-
+have_gtk3	90	4	-	-
 windows	83	5	-	-
 have_ext_tool_bar	76	2	-	-
 ns_impl_gnustep	70	2	-	-
@@ -29,11 +29,12 @@ have_lcms2	54	1	-	-
 have_ext_menu_bar	51	3	-	-
 have_xinput2	51	6	-	-
 have_zlib	51	2	-	-
+test	46	4	-	-
+use_gamedir	44	1	-	-
 glyph_debug	36	5	xtask dead-arms	-
-test	34	4	-	-
+dos_nt	30	5	-	-
 have_text_conversion	30	3	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
-dos_nt	29	4	-	-
 use_x_toolkit	29	8	-	USE_X_TOOLKIT
 have_x_i18n	28	4	-	-
 use_acl_ace_getacl	28	1	-	-
@@ -63,6 +64,7 @@ have_imagemagick	14	1	-	-
 stdc_iso_10646_no_newlocale	14	1	-	-
 doug_lea_malloc	13	1	-	-
 use_motif	13	3	-	-
+djgpp_2_3	12	3	-	-
 have_native_transforms	12	1	-	-
 have_xcb_shape_input_rects	12	1	-	-
 have_xinput2_2	12	1	-	-
@@ -111,7 +113,6 @@ use_cairo_or_have_xft	7	1	-	-
 use_file_notify	7	1	-	-
 win32_winnt_lt_0500	7	2	-	-
 windows_msvc	7	1	-	-
-djgpp_2_3	6	3	-	-
 exec_64	6	1	-	-
 have_getgroups	6	1	-	-
 have_xkb	6	2	-	-
@@ -180,6 +181,8 @@ clock_monotonic_coarse	3	1	-	-
 cplusplus_gnuc_prereq_2_8_clang	3	1	-	-
 gcc_lint	3	2	-	-
 gnuc_prereq_4_3	3	1	-	-
+have_select	3	1	-	-
+have_shared_game_dir	3	1	-	-
 have_x11_or_have_pgtk	3	1	-	-
 have_xdbe	3	2	-	-
 have_xfixes	3	1	-	-
@@ -410,6 +413,7 @@ cairo_has_pdf_surface	1	1	-	-
 cairo_has_png_functions	1	1	-	-
 cairo_has_ps_surface	1	1	-	-
 cairo_has_svg_surface	1	1	-	-
+chdir	1	1	-	-
 clang_lt_21	1	1	-	-
 cplusplus_defined_stdc_version_stdc_version	1	1	-	-
 debug	1	1	-	-
@@ -788,6 +792,7 @@ thread_safe_utmp_data	1	1	-	-
 tiocnotty	1	1	-	-
 tiocsigsend	1	1	-	-
 traditional_uid_model	1	1	-	-
+tzset	1	1	-	-
 unipair_unicode	1	1	-	-
 use_acl	1	1	-	-
 use_cairo_xcb	1	1	-	-

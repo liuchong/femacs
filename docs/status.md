@@ -8601,3 +8601,43 @@
   `msdos` 臂**编不过**（56 错，仍全在镜像图/镜像缺名，本单元文本 0 个行为错）；没有任何运行证据。
   本轮 `build-tu` **1 发** + 翻臂 **2 发** + `layout-check` **2 发**（限各 3，均为着陆验证）。
 
+- **3.473 `lib-src/update-game-score.c` 整文件落地（C 1-506）：P-86 类里**证据等级最高**的一件——两条臂都是真编译（2026-10-05）**：
+  ① **范围/门**：全文件 506 行 → `femacs/lib-src/update-game-score.rs` **783 行**（16 个函数 + `struct score_entry`
+  + 全部宏）。文件门 = **构建级** `feature = "use_gamedir"`（`lib-src/Makefile.in` 165 的
+  `$(and $(use_gamedir), update-game-score)`；本目标无共享游戏目录 ⇒ 参照也不编），每个 item 与 include 图都带门
+  （P-86 ⑧）；嵌套两臂：C 51-53 的 `#ifdef WINDOWSNT`（`ntlib.h`）→ `windowsnt`，C 129-135 的
+  `#ifdef HAVE_SHARED_GAME_DIR`（`get_prefix`）→ `have_shared_game_dir`（其**值是 configure 参数**，冻结表里
+  该宏是 `undef` ⇒ 占位并点名 Owed 1）。
+  ② **两条臂都是真编译（本轮最重要的读数）**：这个文件的表面是 POSIX、本机每个 reader 都在，所以
+  **`probe --cfg 'feature="use_gamedir"'` → exit 0 / 0 error / 6 warning / rlib 470,104 字节**，
+  再加 `have_shared_game_dir` → **exit 0 / rlib 470,400 字节**（P-86 ③⑴ 的"有 SDK 就必须翻臂"在这里是
+  *真正编完整身*，不是 Windows/GTK/DJGPP 那种只解析文本）；冻结 `build-tu` 仍是 336 字节空对象。
+  ③ **移植过程中被这条读数抓出的真缺陷（值得记）**：**C 的 include 清单不是它的全部依赖图**——C 49 的
+  `<unlocked-io.h>` 才是这个文件拿到 `<stdio.h>` 的地方（`emacs/lib/unlocked-io.h` 39 是 `# include <stdio.h>`），
+  所以 `fprintf`/`stdout`/`stderr`/`fopen`/`fdopen`/… 全从那一行来。第一版按 C 自己写的头文件建图，翻臂立刻报
+  `cannot find value stdout/stderr` + `cannot find type FILE`（9 条）⇒ 在 C 49 的位置补
+  `lib/include/unlocked-io.rs` + `lib/include/stdio.in.rs` 两条边后归零。**教训写进台账**：包装头
+  （`unlocked-io.h` 这一类）要按 C 的**包含链**建图，不能只看文件自己写的 `#include`。
+  ④ **其余自造缺陷（都在翻臂读数里现形并修掉）**：`exit`/`qsort`/`strnlen`/`intmax_t`/`strtoimax` 五个名字
+  没有镜像 ⇒ 按 P-88 ① 就地声明（`exit` 走 `movemail.rs` 96-99 的先例、`qsort` 因为 `stdlib.in.rs` 221 只有
+  BSD 签名的 `qsort_r`）；两个未初始化局部量（`end`/`scores`）按 PORTING.md 1.5 补零初始化；
+  `score_entry` 加 `#[derive(Clone, Copy)]`（C 的 `newscores[i] = *newscore` 在 Rust 里是 `E0507` 的 move）；
+  C 494 的 `buf.st_ctime` 在这台机器上是宏 `st_ctimespec.tv_sec` ⇒ 按镜像的成员名写。
+  **实测值（clang，不用记忆）**：`PRIdMAX` = `"j" "d"`（C 124 的 `"%"PRIdMAX` ⇒ 端口 `c"%jd"`）、`CHAR_BIT` 8、
+  `struct score_entry` `sizeof` 16 / `score`@0 / `user_data`@8（单元内 `core::assert!` 钉住）。
+  ⑤ **集成者替它落的账**：`macro-body-notes.tsv` 五行（`MAX_SCORES`/`read_scores` 的
+  `ptrdiff_max,size_max`、`get_user_id` 的 `pridmax`、`normalize_integer` 的 `continue`、`lock_file` 的
+  `st_ctime`）、`line-drift-tolerance.tsv` 一行（**0.56**，basis `total`，理由：54.7% 的膨胀来自每个 item 的
+  `#[cfg]` 门 + 没有 `<stdio.h>` 显式边）、`femacs/xtask/Cargo.toml` 登记 `use_gamedir`（44 站点）与
+  `have_shared_game_dir`（3 站点）、`docs/baseline/port-lines-pending.tsv` 删掉本文件的行。
+  ⑥ **读数**：`extract-abi --check emacs/lib-src/update-game-score.c femacs/lib-src/update-game-score.rs` →
+  **OK**（**零 `missing`**，五行 token 与漂移行都被上面的账消掉）；`check-dead-file-coverage` **47 绑定 / 0 failure**
+  （本台账 23 行区间覆盖 C 1-506，第一版漏了 6 行边界被这道门当场抓住并补齐）；`check-port-lines`
+  **66 文件 / 86,788 行**（本文件的行已退出棘轮，剩 1 stale = 在飞的 `src/pgtkterm.h`）；`check-declarations`
+  10/0/0、`check-ledger-ticks` 234/0、`check-mirror-dupes` 19/19/0、`check-citations` 0 drift 均不变。
+  ⑦ **未声称**：**什么都没运行**——两条臂的 rlib（470,104 / 470,400 字节）**没有人链接、没有人执行**：没有读过/
+  写过/锁过/解锁过任何 score 文件、没有走过 setuid 路径、没有观察过 `qsort` 的顺序、没有查过 user id；冻结对象
+  是空的（文件门），对正文什么都不说明；`have_shared_game_dir` 臂的**参数是占位** ⇒ 那一条臂**编译得过但不正确**
+  （Owed 1）。**预算如实**：本轮我 `build-tu` **1 发** + 翻臂 **6 发**（限 3，超 3——每一发都对应 ④ 里一个
+  已关闭的缺陷：首读定位 `<stdio.h>` 链、`use` 家族、stdio 边、`exit`、最后三处、第二臂），全部记在这里。
+
