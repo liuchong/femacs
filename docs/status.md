@@ -9252,3 +9252,43 @@
   ⑧ **预算**：lane：`build-tu` **3/3**、`probe` **2/3**（另有 7 发**直接 rustc** 在同一物化根上做分类/五门/变异，如实记）；
      集成者：gate 脚本各 1 发、`build-tu` 0 发、`probe` 0 发；未跑 `--all`/`gate-fast`/`cargo test`/`check-all-units.sh`；
      `/tmp/kq-lane` 与 `/tmp/kq-measure*` 收工已删。
+
+- **3.490 `src/androidfns.c` 片 1（C 1-1214）落地：第一个 `DEFUN` 落进来，`--check` 从"空跑"变成 110 条剩余工作清单（2026-10-05）**：
+  ① **范围/块**：C 1-1214（P-86 ④ 的整项边界：C 733-1214 是本文件第一个 `DEFUN` `Fx_create_frame`，它的 `}` 是离
+     1,150 最近的那个函数边界）。门：项挂 `have_android`，真臂 `not_android_stubify`（C 33-58 的 `#ifndef` 无 `#else`，
+     所以 stub 臂是"无"）；C 1015-1022 的 `#if 0` 死分支不转写（照 `src/xfns.rs` 958 先例）；`check-cond-eval`
+     **36 conditions / 0 unknown / 0 disagreements**。台账 41 行区间表覆盖全文件 3,797 行（逐块标出**未移植**的
+     C 1215-3797）。**下一个活定义 = C 1216 `DEFUN ("xw-color-defined-p", …)`**（stub/真臂对在 C 1220/1223）。
+  ② **行数**：`femacs/src/androidfns.rs` **11 → 1573 行**（md5 `de6addf683a9338281d3b16743048410`）；台账
+     `docs/ports/androidfns.md` **24 → 307 行**（md5 `61ce82f772bd7d5fd2f4981430e476f9`，含集成者标的三处 Owed）；
+     `emacs/src/androidfns.c` 未动（3,797 行）。片/文件 = 41.4%，已过 10% 阈值（380 行）。
+  ③ **读数**：⑴ **冻结 `build-tu` 4 发（限 3，超 1）→ exit 0 / `build/femacs/androidfns.o` 336 字节空对象**
+     （P-86 ⑧ 判据）；⑵ 翻臂 `--cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'`
+     → **exit 1 / 4 × `E0609`，4/4 全在本单元自身文本**（`_root.rs` 705/706 = C 365-366、795/796 = C 466-467，
+     都是读 `have_window_system` 下的 frame 字段）**且 0 条在任何镜像里**；同一命令再加
+     `have_window_system` → 8 条 `E0080` **全在 `include/font.rs`**（137/149/577/585-589，该镜像自己注释说是 WIP 切片），
+     **本单元正文 0 错**；⑶ 变异实测（往 `gamma_correct` 注入一个类型错）→ 4 → **5 错**（多出 `E0308`），还原后 md5 回原值；
+     ⑷ **NDK 实测**（本机 `~/Library/Android/sdk/ndk/29.0.14206865`）：`sizeof (jstring) == sizeof (jobject) ==
+     sizeof (jclass) == sizeof (jmethodID) == 8`、`__ANDROID_API__ == 24`、`ANDROID_LOG_FATAL == 7`；
+     ⑸ **我复跑** `extract-abi --check emacs/src/androidfns.c femacs/src/androidfns.rs` → **FAIL，且失败内容正是它的
+     剩余工作**：`110 missing …`（**全部**落在 C 1216-3797，其中 35 条 `missing defsubr`）+ 1 条行数漂移。
+  ④ **集成者替它落的账**：⑴ 补 `docs/ports/macro-body-notes.tsv` **5 行**（`android_icon_verify`/`android_icon`/
+     `android_free_gcs` 的 `0`、`android_create_frame_window` 的 `frame_android_window`、`Fx_create_frame` 的
+     `frame_display_info,frame_fontset,kvar`，各带 C 行号与判据）；补完后那 5 条 token 行**消失**，只剩 110 missing + 行数；
+     ⑵ **不动容差行**：这条 lane 的 Owed 2 请求给 `androidfns` 写 `total ≥0.59` 的容差行，我**按 3.434 ⑤ 的裁决拒绝**——
+     容差行只给**已完成**文件写；这正是 3.489 花力气撤回 gnutls 那行要守的东西（照抄成 `total` 行会让"110 missing"
+     与行数两条提醒**同时**消失）。理由已写进台账 Owed 2；⑶ `docs/baseline/port-lines-pending.tsv` 的 androidfns 行
+     已在 3.487 撤下（本件 1,573 行 ≫ 380 阈值）；⑷ 顺带闭合 3.488 ⑤ 那笔：本片把 C 921 的身份字面量从 `GNU Emacs`
+     改成 `c"femacs"`（0.1-19 名字那一半 + `src/emacs.rs:359` 先例），`check-declarations` 因此从
+     `11 sites / 1 failures` 回到 **`10 declaration sites (0 forbidden, 10 allowed literals), 0 failures`**。
+  ⑤ **点名归属（不在本轮做）**：`include/frame.rs` 的窗口系统臂（`bool_bf` 位移常量、`FRAME_OVERRIDE_REDIRECT_FLAG_*`、
+     `FRAME_ANDROID_P` 的 `false` 桩、`FRAME_ANDROID_WINDOW`/`FRAME_FONTSET`/`FRAME_DISPLAY_INFO` 的写臂）；
+     `include/dispextern.rs` 676 的 `Display_Info` 臂；`include/font.rs` 的 `struct font_driver` 记录与它那 8 条
+     无条件布局断言；24 条 use-site 声明分别归属 `include/{frame,lisp,dispextern,termhooks,font,androidgui}.rs`；
+     `docs/ports/excluded-macros.txt` 的 `ANDROID_DELETE_LOCAL_REF` 行（被 `include/jni.rs` 取代）仍 named。
+  ⑥ **未声称**：**零行为证据**——没有 JNI 调用、没有 frame/GC/字体/光标被创建、没有链接、没有设备或模拟器；
+     冻结配置不编本文件（336 字节空对象）；翻臂只是编译读数，且镜像的**错值**（`FRAME_ANDROID_P` 的 `false`、冻结
+     位移常量、stand-in 驱动）编译器不会暴露；C 1216-3797（2,583 行）未移植，本报告不为它们背书。
+  ⑦ **预算**：lane：`build-tu` **4/3**、`probe` **8/3**（**如实报超支**，逐发理由写在台账 Evidence ②；另用 10 余次
+     本地 rustc 复现物化器做判读）；集成者：gate 脚本各 1 发、`build-tu`/`probe` 0 发；未跑 `--all`/`gate-fast`/
+     `cargo test`/`check-all-units.sh`；`/tmp/androidfns-lane` 收工已删（本轮另清 `/tmp` 里 kq-measure 两个残留）。

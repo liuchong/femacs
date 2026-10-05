@@ -1376,3 +1376,9 @@ Fgfile_add_watch	gcallback	C 219's `(GCallback) dir_monitor_callback` cast is th
 kqueue_generate_event	1	C 81-90's `do { ... } while (1);` becomes the port's `loop` (PORTING.md 2.2; the `Fboundp` row's precedent for C's literal loop condition)
 kqueue_compare_dir_list	1,goto	C 136's `while (1)` becomes the port's `loop`, and C 147/176/187/201's four `goto the_end;` sites with C 216's `the_end:` label become one labelled block plus `break 'the_end` (PORTING.md 2.2)
 Fkqueue_add_watch	ev_set,u_short	C 447-452's `EV_SET (&kev, ...)` is written as the six-member assignment it expands to (PORTING.md 0.1), and C 374's `u_short fflags = 0` is `c_ushort` - the C type name has no Rust spelling
+# src/androidfns.c (3797 lines): C's literal `0`s and the macro-spelled names of the x-create-frame slice.
+android_icon_verify	0	C 527/529's two literal `0` default arguments to `gui_frame_get_and_record_arg` are the port's null defaults (PORTING.md 1.1: the value is spelled, not the literal)
+android_icon	0	C 551/554's two literal `0` default arguments - the same shape as the sibling function's
+android_free_gcs	0	C 618/624/630's `…->normal_gc = 0;` (and the reverse/cursor twins) are the port's `= std::ptr::null_mut ()`
+android_create_frame_window	frame_android_window	C 719's `FRAME_ANDROID_WINDOW (f) = …` is an l-value macro the mirror carries as a read arm only, so C's own member path (`output_data.android->window`) is written instead (the `include/frame.rs` l-value-macro rule)
+Fx_create_frame	frame_display_info,frame_fontset,kvar	C 871's `FRAME_FONTSET (f) = -1;` and the `FRAME_DISPLAY_INFO` reads are C's macro spellings; the port writes the mirror's member path where the macro is l-value-only and keeps `FRAME_DISPLAY_INFO!` where the mirror has the read arm, while `kvar` is expanded at its use site (P-86 clause 11)
