@@ -11319,3 +11319,27 @@
   ⑥ **未声称**：本机没有 X11 程序，冻结配置一行都不编，臂读数只是 `rustc` 的**类型检查**（没有画出的菜单、映射的窗口、
      抓到的指针）；`HAVE_XINPUT2` 那一臂本轮**没有任何臂读数**；X11 布局是本机头文件的读数而非冻结目标的；
      C 1-114 只按区间记账。**在飞**：`src/w32inevt.c`（Mill）。
+
+- **3.565 lane 产出收口：`src/w32inevt.c` 整文件落地（C 862 → Rust 1,493）（2026-10-05）**：
+  ① **lane 的产出（Mill）**：`femacs/src/w32inevt.rs` 16 → **1,493 行**（md5 `1ae106d3…`），台账 398 行 / 22 行区间表
+     覆盖 C 1-862；文件门 `windowsnt`（依据 `configure.ac` 3051 的非 Cygwin `W32_OBJ` 臂，与 `w32.rs`/`w32heap.rs`/
+     `w32proc.rs`/`w32console.rs` 同族），4 个条件两臂都带（`MOUSE_MOVED`/`MOUSE_HWHEELED` 的常量、一处 `#if 0`、
+     `HAVE_W32NOTIFY` 对）。
+  ② **读数**：冻结 `build-tu` 6 发（超 3，其中一发是自伤）→ **336 字节**（与移植前空壳逐字节同 md5）；臂
+     （`windowsnt`+`have_ntgui`+`have_window_system`）**单元自身 0 个错误**，9 条全在镜像：`include/w32term.rs`
+     5×`E0425`（`RECT`/`HDC`/`COLORREF`）+1×`E0428`（`handle_file_notifications`，**本单元定义的名字**）、
+     `include/w32inevt.rs` 2×`E0428`（`w32_console_read_socket`/`w32_console_mouse_position`，同为本单元定义名）、
+     `include/frame.rs` 那条自己写明的 `compile_error!`；**变异实测**把错误锚回单元自身行 ⇒ 读数非空；
+     另测 `have_w32notify` 臂，读数**完全同形**（通知那段新代码不引入新错）。
+  ③ **它点名的镜像欠账（我记账，未修）**：`include/w32inevt.rs` 19 与 `include/w32term.rs` 1121 把**单元会定义的名字**
+     声明在顶层 `unsafe extern "C"` 块里 ⇒ 同 TU `E0428`；修法是按 `include/w32.rs` 对 `w32_get_internal_run_time`
+     的先例搬进 glob-import 模块。这与 `w32console`（3.560）报的是**同一类**，三处一起留在各台账 `## Owed`。
+  ④ **集成者登记**：容差行 `w32inevt 0.74`（862 vs 1493 = 73.2%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件；
+     `port-lines-pending.tsv` 去掉本件的行（**8 文件 / 5,420 参照行，0 stale**）；该 lane 的 3 行 `macro-body-notes.tsv`
+     已随 3.564 的提交进库（共享文件只追加）。
+  ⑤ **门读数（本轮现读）**：`check-mirror-dupes` 17/17/0、`check-citations` **0 drift / 0 stale**、`check-declarations`
+     0 failures、`check-dead-file-coverage` **135/0**、`check-ledger-ticks` 235/0、`check-port-lines` **0 new / 0 stale**、
+     `check-target-names` 0 finding。
+  ⑥ **未声称**：冻结配置**不编**此文件（`build-tu` 只有 336 字节空对象），整件是文本移植——没有 Windows 目标、控制台句柄、
+     `INPUT_RECORD`、码页或事件循环被运行；`<windows.h>` 记录与常量全部 **UNVERIFIED**；C 291 的
+     `lispy_function_keys` 越界读被端口的**有界索引**取代（台账 Deviations 10 明记这是**故意偏离 C 的 UB**）。
