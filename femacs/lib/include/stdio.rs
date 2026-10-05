@@ -98,3 +98,8 @@ use stdio_objs::*;
 
 /// <stdio.h>: `#define EOF (-1)` (the same value lib/getdelim.c declares in-unit).
 pub const EOF: c_int = -1;
+
+/// <stdio.h>'s `#define FILENAME_MAX 1024` - **measured with clang on this target**
+/// (`printf ("%d", FILENAME_MAX)` -> 1024), not recalled; `src/msdos.c`'s DJGPP arm is the
+/// reference's only reader (status 3.479).
+pub const FILENAME_MAX: c_int = 1024;

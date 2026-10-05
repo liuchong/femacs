@@ -634,6 +634,22 @@ is also the one the msdos.h *mirror* resolves to, and the tool reads that pair t
     same warning-suppression and costs one `unused_assignments` warning that the unit's `#![allow]`
     already covers.
 
+50. **C's array bound carries C's integer type** (C 3491's `char buf[FILENAME_MAX]`, with
+    `FILENAME_MAX` = 1024 measured in `lib/include/stdio.rs`): Rust's array length is a `usize`, so
+    the port writes `[c_char; FILENAME_MAX as usize] = [0; FILENAME_MAX as usize]`.  Measured: the
+    first arm flip that had the constant declared reported `error[E0308]: expected usize, found
+    i32` at both positions (status 3.479).
+51. **C 3738's `char *saveargv1, *saveargv2, …;` are initialised by the port** (PORTING.md 1.5):
+    they are assigned only on C 3763-3764's `env == NULL` path, and Rust refuses the later reads
+    (`error[E0381]: used binding saveargv1/2 is possibly-uninitialized`, measured on the 3.479 arm
+    flip).  The zero value changes no C-reachable path.
+52. **C 2251/4808's `clock ()` is declared at C 38's edge** (P-88 ①): the frozen SDK's `<time.h>`
+    declares `clock_t` and `CLOCKS_PER_SEC` but **not** `clock` - measured on this machine with
+    `echo 'int main(void){return (int) clock();}' | clang -x c -` -> `error: call to undeclared
+    function 'clock'`.  The calls are the DJGPP arm's, so the prototype comes from DJGPP's
+    `<time.h>` and the port carries it as `/// C: clock_t clock (void);` with DJGPP's `clock_t`
+    **UNVERIFIED** (no DJGPP toolchain here).
+
 ## Owed (nothing here is claimed as done)
 
 1. **`femacs/xtask/Cargo.toml`**: three feature names this unit uses are registered nowhere —
@@ -732,6 +748,15 @@ is also the one the msdos.h *mirror* resolves to, and the tool reads that pair t
     writes `core::ffi`'s types unqualified).  This lane kept its `stdlib.rs` edge and declared the
     two functions itself (Deviations 48) rather than patch a mirror it does not own; the two rows
     are the mirror round's.
+    ✅ **Closed by the integrator in 3.479 as "not a mirror defect"**: this tree's convention is
+    that the *including unit* supplies the types a mirror names (a header mirror carries no
+    `use` of its own crate-relative paths - `PORTING.md 0.1`), and the mirror's **one** existing
+    consumer already does exactly that: `femacs/lib-src/update-game-score.rs` 37 imports
+    `{c_char, c_double, c_float, c_int, c_long, c_longlong, …}` before its `include!` at 53, and
+    that unit's arm flip is green.  Adding the two names to the mirror instead would be an
+    `E0252` in that consumer (two imports of one name at one scope - the `src/xgselect.rs` 3.477
+    reading measured exactly that shape).  Nothing to change; this unit's own use stays on
+    `stdlib.rs` with the two in-place declarations (Deviations 48).
 7. **The mirror round's reconciliation of the `dispextern_unit_names`/`frame_face_accessors`
    edges.**  Both modules are `pub mod`s inside a mirror that never glob-imports them
    (`include/syssignal.rs` 52 is the shape they lack), so *this* unit adds its own `use` edges

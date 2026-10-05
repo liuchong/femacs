@@ -280,6 +280,13 @@ two citation-looking lines were rewritten to drop that shape - Owed 6.
    `sfnt_enum_font` at that mirror's line 55, and this unit's own text is never *fully* compiled
    (Evidence ④).  The mirror is another lane's in-flight file
    (`docs/ports/include-sfntfont.md` is its ledger) and is outside this lane's write scope.
+   ✅ **Closed by a mirror round and re-measured by the integrator in 3.479**: the module is in
+   place (`include/sfntfont.rs` 73-134, `use sfntfont_decls::*;` at 134) and the same arm flip now
+   reports **exit 0, 0 errors, 6 warnings, a 17,627,624-byte rlib** (`--cfg 'feature="have_android"'
+   --cfg 'feature="not_android_stubify"'`) - the unit's text compiles end to end for the first
+   time.  The six warnings are the mirror-side `unused doc comment` class this ledger already
+   names (`stdbit.in.rs` 644, `lisp.rs` 3934, `charset.rs` 697, `sfntfont.rs` 53, `frame.rs`
+   1355/1360).
 2. **`docs/ports/token-aliases.tsv` rows**: (a) a **bitfield family** for `underline_position_set`
    - `underline_position_set<TAB>underline_position_set,sfnt_font_desc_underline_position_set`, the
      `dump_flags_*`/`charset_*` shape;

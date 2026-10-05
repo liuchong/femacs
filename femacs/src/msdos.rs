@@ -148,6 +148,15 @@ include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcount
 include!("../lib/include/stdio.rs");           // C 37: `#include <stdio.h>` (`fprintf`, `fputc`, `FILE`)
 #[cfg (feature = "msdos")]
 include!("../lib/include/time.in.rs");         // C 38: `#include <time.h>` (`clock_t`)
+/* The frozen SDK's `<time.h>` declares `clock_t` and `CLOCKS_PER_SEC` but **not** `clock`:
+   measured here with `echo 'int main(void){return (int) clock();}' | clang -x c -` ->
+   `error: call to undeclared function 'clock'` (the SDK dropped the legacy prototype).
+   C's calls at 2251/4808 are the DJGPP arm's, so the prototype comes from DJGPP's
+   `<time.h>` and is declared here (P-88 ①): `/// C: clock_t clock (void);`.  DJGPP's
+   `clock_t` is unverifiable on this machine - **UNVERIFIED** (status 3.479).  */
+unsafe extern "C" {
+  pub fn clock () -> clock_t;
+}
 /* C 39's `#include <sys/param.h>` has no mirror; slice 3's two arrays (C 3457's `emacsroot`
    and C 3462's `result`) are its `MAXPATHLEN`, and the tree spells that constant at the use site
    with the measured value (the `src/sysdep.rs` 369-370 / `src/pdumper.rs` 218-219 reading).
@@ -4759,7 +4768,10 @@ pub unsafe fn init_environment (argc: c_int, argv: *mut *mut c_char,
   while i < imax
     {
       let mut tmp: *const c_char = tempdirs[i as usize];
-      let mut buf: [c_char; FILENAME_MAX] = [0; FILENAME_MAX];
+      /* C 3491: `char buf[FILENAME_MAX];` - the mirror carries the measured constant
+         (`lib/include/stdio.rs`, `FILENAME_MAX` = 1024), and Rust's array length is a
+         `usize`, so the C-shaped bound is spelled with the cast (PORTING.md 1.1).  */
+      let mut buf: [c_char; FILENAME_MAX as usize] = [0; FILENAME_MAX as usize];
 
       if *tmp == b'$' as c_char
 	{
@@ -5016,8 +5028,11 @@ pub unsafe fn run_msdos_command (argv: *mut *mut c_char, working_dir: *const c_c
 				 tempin: c_int, tempout: c_int, temperr: c_int,
 				 envv: *mut *mut c_char) -> c_int   // C 3734-3736
 {
-  let mut saveargv1: *mut c_char;
-  let mut saveargv2: *mut c_char;
+  /* C 3738: `char *saveargv1, *saveargv2, …;` - declared without a value and assigned only
+     on the `env == NULL` path (C 3763-3764), so PORTING.md 1.5's rule applies: the port
+     initialises them (`&raw mut`/reads on the other path then see C's own uncertainty).  */
+  let mut saveargv1: *mut c_char = core::ptr::null_mut ();
+  let mut saveargv2: *mut c_char = core::ptr::null_mut ();
   let mut lowcase_argv0: *mut c_char;
   let mut pa: *mut c_char;
   let mut pl: *mut c_char;

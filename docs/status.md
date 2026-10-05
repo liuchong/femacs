@@ -8842,3 +8842,43 @@
   报 14 条 `free function without a body` 当即抓住，改回把块闭合在声明之后才过；这是本条的自造缺陷，
   记在这里不藏）、`check-all-units.sh` 1 发；Nietzsche 的 P-90 轮仍在飞，它的文件（`src/image.rs`、
   `src/pgtkfns.rs`、`include/gtkutil.rs` 与四个 ledger）本轮**一行未碰、未提交**。
+
+- **3.479 收口后的补账：镜像卫生两处 + msdos 三处真缺陷，sfntfont 的臂翻臂首次 0 错；两条 lane 按"最强证据"派出（2026-10-05）**：
+  ① **派出与选片的判据是实测的交集，不是感觉**：把 `tools/extract-abi.py` 自己的
+  `_load_frozen_build_sources()`（冻结配置真正编译的 **83** 个 `src/*.c`）与
+  `docs/baseline/port-lines-pending.tsv`（端口 <10%）取交集，剩下的**只有 4 个文件**——
+  `src/gnutls.c` 3,196、`lib-src/pop.c` 1,703、`src/sound.c` 1,554、`src/sqlite.c` 933。
+  这 4 个是"证据最强的一档"：冻结参考会编它们的 TU（空对象），端口的翻臂也能在本机真编。
+  本轮把 `sound.c` 与 `pop.c` 各派一条 lane（整文件，P-86 ① 照录），Nietzsche 的 P-90 搬运算
+  仍在飞（3/3 并发满）。
+  ② **镜像卫生批次（我自己做）**：`lib/include/stdio.rs` 加 `FILENAME_MAX`（**clang 实测 1024**，
+  不是记忆）、`lib/include/unistd.in.rs` 加 `getwd`（冻结 SDK 的 `unistd.h` 578
+  `char *getwd (char *)`，实测）、`femacs/src/msdos.rs` 三处：C 3491 的数组界
+  `[c_char; FILENAME_MAX as usize]`（Deviation 50）、C 3738 的 `saveargv1/2` 零初始化
+  （PORTING.md 1.5，Deviation 51）、C 2251/4808 的 `clock ()` 原型（Deviation 52 —— 冻结 SDK 的
+  `<time.h>` **有** `clock_t`/`CLOCKS_PER_SEC` 但**没有** `clock`，实测：`echo 'int main(void){return
+  (int) clock();}' | clang -x c -` 报 `call to undeclared function 'clock'`，所以它按 P-88 ① 落在
+  DJGPP 臂里，`clock_t` 标 **UNVERIFIED**）。
+  ③ **两条 Owed 按证据结案（不是缺陷，不改代码）**：⑴ 3.478 的 Owed 6a（`lib/include/stdlib.in.rs`
+  的 `c_float`/`c_longlong`）：本树的约定是**includer 供应**类型（头镜像不带 crate 相对 `use`），
+  而该镜像**唯一**的消费者 `femacs/lib-src/update-game-score.rs` 37 已经把那一组名字全导入、
+  其翻臂是绿的；往镜像里加反而会让它 `E0252`（同一作用域两次导入同一个名字——3.477 在
+  `src/xgselect.rs` 上量过这个形状）。⑵ Averroes 的 `include/sfntfont.rs` glob 欠账：模块**已在位**
+  （`include/sfntfont.rs` 73-134，`use sfntfont_decls::*;` 在 134）。
+  ④ **读数**：⑴ msdos 臂翻臂（`--cfg 'feature="msdos"' --cfg 'feature="dispextern_face_records"'`，
+  台账 Evidence ② 的同一条命令）**58 → 54 错**（45 E0425 + 8 E0428 + 1 E0609；3.478 的基线是 71/21）。
+  过程里值得记一笔：**只**加 `FILENAME_MAX` 的那一发把已落地的 msdos 文本**新暴露**了 4 条
+  （2 × `E0308` expected usize/found i32 + 2 × `E0381` possibly-uninitialized）——那正是本轮修的
+  两处真缺陷，修完归零；"补一个名字，旧文本才第一次被类型检查"本身就是补名有意义的读数。
+  ⑵ **`src/sfntfont.rs` 的臂翻臂：1 错 → `exit 0` / 0 错 / 6 警告 / rlib 17,627,624 字节**（同 cfgs）——
+  Averroes 台账里那条唯一的 `E0428` 随镜像模块消失，**该单元文本首次整段编过**（6 条警告仍是
+  `unused doc comment` 那族：`stdbit.in.rs` 644、`lisp.rs` 3934、`charset.rs` 697、`sfntfont.rs` 53、
+  `frame.rs` 1355/1360）。⑶ `extract-abi --check emacs/src/msdos.c femacs/src/msdos.rs` 仍 **OK
+  （0 问题行）**；`layout-check` **passed**（cargo exit 0）；镜像改动的两腿
+  `tools/check-all-units.sh` **83/0 + 83/0**。
+  ⑤ **未声称**：**零运行证据**（17.6 MB 的 rlib 与 336 字节的空对象都是编译产物）；msdos 臂**仍编不过**
+  （54 错全在镜像缺名/覆盖类，本单元文本 0 错）；`FILENAME_MAX`/`getwd` 是**冻结 SDK 的实测值**，
+  不是行为证据；`clock` 的 DJGPP `clock_t` 宽度**无人测过**（UNVERIFIED）。
+  ⑥ **预算**：`probe` **3 发**（msdos 补名前/补名后/修缺陷后各一）、`build-tu` **0 发**、
+  `layout-check` 1 发、`check-all-units.sh` 1 发；两条 lane 的预算在它们自己的报告里；
+  本轮所有 `/tmp/femacs-int` 编译产物在收工时删（`/tmp/femacs-sweep` 是共享扫描缓存，保留）。

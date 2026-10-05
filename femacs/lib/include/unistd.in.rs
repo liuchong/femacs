@@ -49,6 +49,10 @@ unsafe extern "C" {
   pub fn chdir (file: *const c_char) -> c_int;
   pub fn fchdir (fd: c_int) -> c_int;
   pub fn getcwd (buf: *mut c_char, size: usize) -> *mut c_char;
+  /// The frozen SDK's `<unistd.h>` 578: `char *getwd (char *)` - declared there with
+  /// `__POSIX_C_DEPRECATED(200112L)` (measured on this target's header, not recalled);
+  /// `src/msdos.c`'s DJGPP arm is its only caller in the reference (status 3.479).
+  pub fn getwd (buf: *mut c_char) -> *mut c_char;
   pub fn access (file: *const c_char, mode: c_int) -> c_int;
   pub fn close (fd: c_int) -> c_int;
   pub fn read (fd: c_int, buf: *mut c_void, n: usize) -> ssize_t;
