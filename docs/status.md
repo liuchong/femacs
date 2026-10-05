@@ -9744,3 +9744,39 @@
      全部自洽）要等 Android 目标能编/能跑；`docs/baseline/feature-coverage.tsv` 与 `docs/port-map.md` 的重算
      随各自 lane；`bug-gnu-emacs@gnu.org` 与 Haiku 签名若要改，是**下一句话的事**（前者要一个新地址，后者要
      先解 `check-carried.py` 的钉死）。
+
+- **3.504 三个整文件单元一并入库：`src/w32heap.c`、`src/widget.c`、`lib-src/ntlib.c`（2026-10-05）**：
+  ① **为什么一个提交三件**：三件共享 `docs/ports/macro-body-notes.tsv`（widget 3 行、ntlib 7 行、w32heap 2 行）
+     与 `docs/baseline/port-lines-pending.tsv`、`docs/baseline/feature-coverage.tsv`、`docs/port-map.md` 这四本
+     生成物，按 lane 拆提交会让先入库的那件在自己那格是红的；三件各自的范围、C 行号区间表、读数与缺陷归属
+     在各自台账 `docs/ports/{w32heap,widget,ntlib}.md` 里，逐条可查。三件都是**整文件**（C 1-554 / C 1-514 /
+     C 1-601）。
+  ② **行数**：`femacs/src/w32heap.rs` 31 → **888**、`femacs/src/widget.rs` 18 → **1464**（第一个 Xt/Xaw 单元）、
+     `femacs/lib-src/ntlib.rs` 12 → **1181**。
+  ③ **读数**：⑴ `extract-abi --check` 三件**全 OK**——集成者补的账是 `macro-body-notes.tsv` 的
+     `getrlimit`/`setrlimit` 两行（C 的 `switch`/`case`/`default`/`break` → `match`）与
+     `line-drift-tolerance.tsv` 的三行（`w32heap 0.613` / `widget 1.858` / `ntlib 0.975`，全部 basis `total`，
+     因为三件都**多带文本**：Windows/Xt 面、Xaw 面、C 的注释块）。⑵ 集成者复读的冻结档：三个 `build-tu`
+     **exit 0**，三个对象**各 336 字节**（空对象；冻结配置不编译它们），即新文本在冻结臂里**能解析**。
+     ⑶ 臂读数在各自台账（`windowsnt` / `use_x_toolkit`+`have_x_windows`+`have_x11` / `windowsnt`），
+     **错误全在镜像侧**（widget：4 × `E0428` 在 `include/widget.rs`、12 × `E0425` 在 `include/dispextern.rs`
+     的 `character.h` 缺口——后者由 lane 按 `src/dispnew.rs` 先例补边后归零；w32heap：33 错全在五个镜像；
+     ntlib：`probe` exit 0）。⑷ `check-all-units` 收工 **83 unit(s), 0 failure(s)**（两腿）、`check-verbatim`
+     **6 树 / 4,604 文件 / 0**、`check-declarations` **17 / 0 / 0**、`check-dead-file-coverage` **77 绑定 / 0**。
+  ④ **集成者替三件落的账（点名）**：`femacs/xtask/Cargo.toml` 登记 **2 个 feature**——`_timezone_defined`
+     （ntlib C 56；lane 的备选 `mingw64` 未采用，理由是 C 测的是 `_TIMEZONE_DEFINED`）与 **`have_x11`**
+     （widget 的 LUCID 臂需要，而树里**已有 7 处在用却没人登记**）；四本生成物重算：`port-lines-pending`
+     **47 文件 / 65,301 参考行**、`feature-coverage` **868 feature / 861 从未启用**、`port-map` 重生成。
+  ⑤ **未声称**：三件都**零运行证据**——Windows / Xt / Haiku 三条线本机都没有头文件或工具链，臂读数只是本机
+     rustc 对**带门文本**的类型检查，且三件的臂里都还剩镜像侧错误（各自台账点名）；`w32heap` 的
+     `MEMORY_BASIC_INFORMATION` 与 SDK 标量宽度是 documented 值、**UNVERIFIED**；`widget` 的 Xt 宽度/枚举/
+     资源类型字符串同样是 C 的拼写而非实测（本机无 Xt/Xaw 头），`resources[]` 的 12 个 `resource_offset`
+     **不是 C 的字节偏移**。
+  ⑥ **欠账（点名，全部归镜像轮或平台验收）**：`include/widget.rs` 的 `_decls` 搬运与 `EmacsFrame` 的 tag、
+     `include/widgetprv.rs` 三个记录改成 C 的 by-value、`include/xlib.rs` 缺的 Xlib 名与 8 个宏值、
+     `include/xterm.rs` 774 的 `font`、`include/frame.rs` 的 `flush_frame!`、`include/dispextern.rs` 的
+     `character.h` 边（widget lane 已在单元侧绕开）与 `redisplay_interface` 的门、P-90① 的 Xt/Xaw 专用镜像；
+     `include/w32heap.rs` 的五条声明按 P-39 搬进 `mod`、`nt/inc/sys/include/resource.rs` 的两条与
+     `c_longlong`、`src/include/w32common.rs` 的 `SYSTEM_INFO`/`OSVERSIONINFO`、`lib-src/include/ntlib.rs`
+     的 module+glob 形状、`uid_t`/`gid_t` 的双声明、`<sys/stat.h>` 的两份镜像；以及三件各自的真平台验收
+     （装 mingw / 有 Xt/Xaw 头的 X11 目标 / Haiku SDK）。

@@ -276,8 +276,9 @@ references and no library defines - the first real link refused it.  Now: the ca
 ## 2026-10-05: the three docstrings that named the reference as the program they come with (3.503)
 
 `data-directory`, `doc-directory` and `shared-game-score-directory` (C 2120, 2124, 2135) said the
-files "come with GNU Emacs"; the subject of that clause is the program that ships them, i.e. *this*
-one, so the rule's seventh half (PORTING.md 0.1-19) writes this repository's own name instead.
+files "come with" the *reference product*; the subject of that clause is the program that ships
+them, i.e. *this* one, so the rule's seventh half (PORTING.md 0.1-19) writes this repository's own
+name there instead.
 Readings: `extract-abi --check emacs/src/callproc.c femacs/src/callproc.rs` stays **OK** - a
 `DEFVAR_LISP` docstring is not compared by any gate (only a `DEFUN`'s digest is, `extract-abi.py`
 1724-1727), which is why the three `literal` rows in `docs/baseline/declarations-allowlist.tsv`

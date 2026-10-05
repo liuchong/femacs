@@ -28,6 +28,7 @@ license.workspace = true
 # uses the feature.
 [features]
 _dos_ds                                    = []  # _dos_ds (src/msdos.c)
+_timezone_defined                          = []  # _TIMEZONE_DEFINED (lib-src/ntlib.c 56; registered by the integrator in 3.504)
 _use_lfn                                   = []  # _USE_LFN
 b1152000                                   = []  # B1152000
 b1500000                                   = []  # B1500000
@@ -255,6 +256,7 @@ have_timezone_t                            = []  # HAVE_TIMEZONE_T
 have_tree_sitter                           = []  # HAVE_TREE_SITTER
 have_utimens                               = []  # HAVE_UTIMENS
 have_window_system                         = []  # HAVE_WINDOW_SYSTEM
+have_x11                                   = []  # HAVE_X11 (src/widget.c's LUCID arm; registered by the integrator in 3.504)
 have_x11r6_xim                             = []  # HAVE_X11R6_XIM
 have_x_i18n                                = []  # HAVE_X_I18N
 have_x_windows                             = []  # HAVE_X_WINDOWS
