@@ -12081,3 +12081,51 @@
      `src/include/syssignal.rs` 18 也用**另一条相对路径**指向同一文件）。C 里 `<signal.h>` 重复包含有 include guard 兜底，Rust 的
      `include!` 没有 ⇒ 模块名与其中的项都会撞。这条属**工具/镜像图**（`xtask` 物化器的去重规则是否按 canonical path 生效）——
      与本次 21 条无因果，单独列为下次镜像轮的欠账。
+
+- **3.599 版本声明的第八半：把"本程序默认叫什么"这一族字面量一次量清，判据、站点名单与不许改的对外名称写进 `PORTING.md`；两处 xdisp 站点随在飞 lane 改成本仓库自己的名字（2026-10-05）**：
+  ① **来源与读法**：用户的长期指令（"版本声明不要再说是 gnu emacs 了……把之前的代码中的这种声明也去掉"）
+     在第七半（3.503）点了名，但五个站点分散在四个 `.c` 里、容易被读成各文件的局部细节；本轮把这一族
+     **量成一张单子并写死判据**——判据仍是"这句话说的是谁"：凡是**本程序的默认显示名/帧名/帧标题**，
+     落库时写本仓库自己的名字，对外注册名照抄。
+  ② **全树复核（本轮实扫）**：`femacs/{src,lib,lib-src,platform,nt,xtask}` 里带那个名字的**字面量**
+     只剩 `src/emacs.rs` 2936 的 `DEFVAR_LISP` docstring（豁免表第 29 行）与两处 `src/xdisp.rs`（见 ④，
+     本轮已改）；定向正则（`GNU[\\/ _-]*Emacs|Emacs[\\/ _-]*GNU`）在 `docs/ports/**`、`tools/**`、
+     `spikes/**` 与六个源码树里 **0 命中**（扣 `docs/status.md`、豁免表、门自身）。**剩下的三处都不是
+     自称**：`SOFTWARE\GNU\Emacs`（`src/w32.rs` 4679、`nt/addpm.rs` 560，注册表路径）、
+     `GNUEmacs_PlaySound_Device`（`src/sound.rs` 1747/1781/1794，交给系统的 MCI 设备别名）、
+     `src/emacs.rs` 2936 的 docstring（参照的原文）。
+  ③ **这一族现在还有谁（点名，交给各自的 lane）**：`src/xterm.c` 31017、`src/w32term.c` 7834、
+     `src/androidterm.c` 6838、`src/haikuterm.c` 4536-4547 的 `dpyinfo->default_name`（四处都还没移植到）；
+     `nt/addpm.c` 266/297 **已落库且已改**（`femacs/nt/addpm.rs` 848/891 = `c"femacs"`，注释引用 3.503）；
+     `src/android-emacs.c` 的参照 Android 包名（该文件还是 11 行占位，`femacs/src/android-emacs.rs`）。
+  ④ **改动**：⑴ `PORTING.md` 0.1-19 新增**第八半**：判据、七个站点、**不许改的对外名称**（上面的注册表
+     路径、`EMACS_CLASS`/`pgtk_app_name` 的资源类、`Emacs Clipboard` 窗口类、MCI 设备别名、Haiku bundle
+     签名、`nt/addpm.rs` 的目录与 `.lnk` 文件名——它们是**与外部（用户配置、注册表、WM、开始菜单）的
+     约定**，改名改的是行为而不是自称；`nt/addpm.rs` 266/297 的"描述改、文件名不改"就是先例），以及
+     **一条点名的表面缺口**（门的 `PRODUCT` 表收的是产品名与注册名的**可读形态**，
+     `SOFTWARE\GNU\Emacs` 与 `GNUEmacs_PlaySound_Device` 这两种**路径/别名片段**不在表里，所以它们不在
+     站点计数内——记为已知缺口，不用"没有命中"冒充"不存在"）；⑵ 0.1-19 **第一半**那句"字符串字面量
+     里的产品名是移植语义、照抄不动"加**收窄指针**（它只对**参照的** docstring 与参照的实测值成立，
+     本程序自称的一类按第五/第七/第八半改）——这一句此前会把人引到错的判据上，本轮 xdisp 的站点就是
+     先按它写的；⑶ `docs/baseline/declarations-allowlist.tsv` 删掉**重复的表头注释**（第七半把同一段
+     追加了三次，现留一段；表体一行未动、计数不变）；⑷ **两处 `src/xdisp.rs` 站点**由在飞 xdisp lane 改
+     成 `c"femacs"`：`decode_mode_spec` 的 `%F` 默认帧名（C 29565）与 `syms_of_xdisp` 的
+     `icon_title_name_format`（C 38856）——后者是 TTY 帧标题的模板，前者是**帧名**的默认值（与 3.490 已改的
+     C `androidfns.c` 921 同一字段）。**本提交不含 `femacs/src/xdisp.rs`**，它随该 lane 的片收口。
+  ⑤ **读数**：⑴ `check-declarations` **`17 declaration sites (0 forbidden, 17 allowed literals),
+     0 failures`**（工作树与 HEAD 同读数：两处站点改完后，那个名字在**被移植树里只剩豁免表第 29 行**）；
+     ⑵ 其余六道文本门全绿：`check-mirror-dupes` 17 重复/17 棘轮/**0 failure**、`check-citations`
+     676 文件/0 drift/0 range/0 stale、`check-ledger-ticks` 238 绑定/0 failure、`check-dead-file-coverage`
+     145 绑定/0 failure、`check-port-lines` 0/0/0/0、`check-target-names` 629 文件/591 目标/0 finding。
+  ⑥ **一条教训（记录在案，免得下个 lane 再踩）**：我给该 lane 的第一版收口要求写着"两处各留一行注释点名
+     依据"，它照做后门**反而红了三条**——两条 `recital`（在**单元注释**里复述 0.1-19 的裁决）、一条
+     `title`（把 C 的原句连那个名字一起引在注释里）。0.1-19 的读法是：**决定只记在本文档与
+     `docs/status.md`；单元注释里能写的只有"这是本程序自称"这一类中性说明**（`androidfns.rs` 1271 的
+     措辞是已通过门的样板）。第二版要求按那个样板改写，门回到 `0 failures`。
+  ⑦ **未声称**：本轮**一枚都没编译**（`build-tu`/`probe`/`check-all-units.sh`/`layout-check`/`--all` 全 0 发；
+     改动只碰 `PORTING.md`、豁免表的注释、`docs/status.md`）。两处字面量的改动**没有运行证据**：它们
+     改变的是 TTY 帧标题与 `%F` 的显示文本（与 3.413 记的"版本横幅从此与参照不同"同类代价），没有人跑过；
+     `check-declarations` 是**文本**门：0 命中只说明"文件里没有"，不证明运行期不打出那个名字。
+     ⑥ 里那两条 `recital` 的修法只在**工作树**里成立，它的落地读数由该 lane 的收口条记。
+  ⑧ **预算**：`check-declarations` 4 发、其余六道文本门各 1 发、`rg`/`awk`/`sed` 若干；`build-tu` 0、
+     `probe` 0；未建工作树，`/tmp` 0 残留。

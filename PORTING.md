@@ -97,7 +97,10 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     放在本仓库里就是一句关于本仓库的错声明，删掉比改写安全。267 个已落地单元/镜像的该块已一并删除，
     其中首行原本就是该块的文件补上了上面那条首行声明（267+1 个文件，-4,932 行；`docs/status.md`
     3.58）。**字符串字面量/docstring 里的产品名是移植语义**，照抄不动（`src/callproc.c` 三条
-    `DEFVAR_LISP` 的 docstring 就是例子），门也要求它们与参照逐字一致。这条规则有机器门：
+    `DEFVAR_LISP` 的 docstring 就是例子），门也要求它们与参照逐字一致。**2026-10-05 收窄**：这一句只对
+    **参照的** docstring 与参照的实测值成立；**本程序说自己叫什么**的那些字面量（`PACKAGE_NAME`、`RCS_Id`、
+    版本横幅、帧名与帧标题、Android 包名、AppUserModelID、快捷方式描述）按第五、第七、第八半改成
+    本仓库自己的名字（`femacs`）——**别照抄**。这条规则有机器门：
     `python3 tools/check-declarations.py`（`gate-fast` 的 declaration gate，status 3.73）把
     四类都扫出来——`decl`（复制的所有权/许可块）、`version`（版本行里带产品名的括注）、
     `title`（注释里的产品名，含 `/// C …` 引文）、`literal`（字符串字面量里的产品名）——四类
@@ -178,6 +181,29 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     **还没移植的同类站点（点名，交给各自的 lane）**：`src/xterm.c` 31017、`src/w32term.c` 7834、
     `src/androidterm.c` 6838、`src/haikuterm.c` 4536-4547 的窗口标题与 `nt/addpm.c` 266/297 的快捷方式描述，
     以及 `src/android-emacs.c` 的 `app_process` 类名——落库时写本程序自己的名字。
+    这条规则现在有第八半（2026-10-05，status 3.599）：**把"本程序默认叫什么"这一族字面量一次量清**。
+    第七半点名的五个站点分散在四个 `.c` 里，容易被读成"各文件的局部细节"；判据不变，仍是"这句话说的是谁"，
+    凡是**本程序的默认显示名/帧名/帧标题**就是"本程序自称"，落库时写本仓库自己的名字。这一族点名如下：
+    `src/xterm.c` 31017、`src/w32term.c` 7834、`src/androidterm.c` 6838、`src/haikuterm.c` 4536-4547
+    （四处都是 `dpyinfo->default_name`：值是 C 的默认显示名字面量本身，或它 + `" at "` + `system-name`；
+    **本文档不重复写出那个字面量**——本文件也在门的散文面里，而产品名在这里是 `title` 类；
+    站点与读数记在 `docs/status.md` 3.599）、
+    `nt/addpm.c` 266/297（快捷方式描述；**已落库并已改**：`femacs/nt/addpm.rs` 848/891 = `c"femacs"`）、
+    `src/xdisp.c` 29565（`decode_mode_spec` 的 `%F` 分支——它就是**帧名**的默认值，与 C `androidfns.c` 921
+    的 `fset_name` 是同一个字段）、`src/xdisp.c` 38856（`syms_of_xdisp` 的 `icon_title_name_format`，
+    `Vframe_title_format`/`Vicon_title_format` 的模板，TTY 帧标题就长这样）、`src/android-emacs.c` 的
+    参照的 Android 包名 `org.gnu.…`（第七半已把本仓库自己的包名换掉）类名（该文件尚未移植，`femacs/src/android-emacs.rs` 只有首行与
+    一句"冻结配置不编它"的声明）。已落先例：`femacs/src/androidfns.rs` 1271
+    （status 3.490）、`femacs/src/xdisp.rs` 的两处（status 3.599）。
+    **对外名称不受这一族影响（照抄）**：`REG_ROOT` 的 `SOFTWARE\GNU\Emacs`、`EMACS_CLASS`/`pgtk_app_name`
+    的 `Emacs` 资源类、`Emacs Clipboard` 窗口类、`GNUEmacs_PlaySound_Device` 设备别名、Haiku 的
+    bundle 签名 `application/x-vnd.…`、`nt/addpm.rs` 的 `\Gnu Emacs` 目录与 `Emacs.lnk` 文件名——它们是**与外部
+    （用户配置、系统注册表、WM、开始菜单）的约定**，改名改的是行为而不是自称；`nt/addpm.rs` 266/297 的
+    "描述改、文件名不改"就是这条边界的先例。
+    **一条点名的表面缺口**：`tools/check-declarations.py` 的 `PRODUCT` 表收的是产品名与注册名的**可读形态**，
+    `SOFTWARE\GNU\Emacs` 与 `GNUEmacs_PlaySound_Device` 这两种**路径/别名片段**不在表里，因此它们不会出现在
+    它报告的站点列表里（2026-10-05 的读数是 18 条）——这是**已知且点名**的（用"没有命中"冒充"不存在"
+    是不允许的写法）。
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
     因此不能调用排在它后面的宏——`call0` 按 lisp.h 3462-3471 的顺序挪到了 `calln!`
