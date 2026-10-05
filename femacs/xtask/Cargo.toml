@@ -109,6 +109,7 @@ libgccjit_have_gcc_jit_version             = []  # LIBGCCJIT_HAVE_gcc_jit_versio
 libgccjit_have_reflection                  = []  # LIBGCCJIT_HAVE_REFLECTION
 lisp_object_is_struct                      = []  # LISP_OBJECT_IS_STRUCT
 mingw64                                    = []  # __MINGW64__
+mips_isa_rev_ge_6                          = []  # __mips_isa_rev >= 6 (src/exec/mipsfpu.c 140)
 no_value                                   = []  # the derived condition `!defined HAVE_X_WINDOWS && defined (NoValue)` (frame.c 6538; `NoValue` is the non-X `*gui.h` constant)
 mingw_w64                                  = []  # MINGW_W64 (w32fns.c 38 `#if !defined MINGW_W64 && !defined CYGWIN`, 63 `# ifndef MINGW_W64`)
 ns_self_contained                          = []  # NS_SELF_CONTAINED

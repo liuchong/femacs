@@ -7964,3 +7964,30 @@
      `build-tu` **7 发**（限 3，超 4）、`probe` **0 发**（臂读数是 materialize 后 `_root.rs` 上的裸 `rustc`，已在台账声明
      不是 `xtask probe` 的那次读数）。**P-90 的搬运仍欠**：本单元自带的 220 个第三方名（86 类型/常量、31 宏、103 入口）
      与 `src/pgtkterm.rs` 的段内副本一起，欠给"建 `femacs/src/include/gtk.rs`"的那一轮。
+
+- **3.446 exec/ 切片 1：`test.c` 与 `mipsfpu.c` 两个整文件落成；`exec/` 镜像的三处潜伏缺陷修掉（2026-10-05）**：
+  ① **区间**：`exec/test.c` **C 1-105 全文件**（`print_usage` + `main`）与 `exec/mipsfpu.c` **C 1-289 全文件**
+     （`mode_description`/`fpu_reqs`、`valid_abi_p`、`fp_mode_for_abi`、`cpu_supports_fr0_p`、`determine_fpu_mode`）。
+     两件都是 P-86 类（冻结配置不编译 `exec/`），前次修订是 3 行的 P-08 注释 ⇒ 按 P-86 ① **照录整身**。
+  ② **行数**：`femacs/exec/test.rs` 3 → **129**；`femacs/exec/mipsfpu.rs` 3 → **310**；两份台账按 P-86 ② 重写
+     （`## Gate mapping` + `## C line ranges` 连续铺满 C 1-105 / 1-289）。
+  ③ **读数（两件都是整文件完成，不是切片）**：`xtask build-tu exec/test.c` → **exit 0 / 6,072 字节对象**；
+     `build-tu exec/mipsfpu.c` → **exit 0 / 10,904 字节对象**（`nm` 见 `_main`、`_cpu_supports_fr0_p`、
+     `_determine_fpu_mode` 三个定义）；`extract-abi --check` **两件都是 0 条 `- `（通过）**；`check-cond-eval`
+     `exec/test.c` 0 条件、`exec/mipsfpu.c` **1 条件 / 0 unknown**；`check-dead-file-coverage` **37 ledger / 0 failure**；
+     `check-declarations` 10/0/0；**P-87 全树扫描 83/0 + 83/0**（我改了三处镜像，必须跑）。
+  ④ **集成者替它们落的账**：`macro-body-notes.tsv` 2 行（`main` → `true`；`valid_abi_p` → `case,default,switch`）、
+     `line-drift-tolerance.tsv` 2 行（`test` 0.24、`mipsfpu` 0.09，都是**已完成文件**的实测值 + 0.01，basis `total`）、
+     `femacs/xtask/Cargo.toml` 登记 **`mips_isa_rev_ge_6`**（C 140 的 `__mips_isa_rev >= 6` 两臂）。
+  ⑤ **修掉的三处 `exec/` 镜像潜伏缺陷（都是"没人 include 过所以没有门读过"的那一类）**：⑴
+     `femacs/exec/include/exec.rs` 的两条嵌套 `include!` 路径**深了一层**（`../../../lib/include/…` 指向仓库根），
+     改成 `../../lib/include/…` —— `exec/test.rs` 是**第一个** include 该镜像的单元，所以这条坏边从落地起就没人读；
+     ⑵ 同一镜像的 `USER_WORD`（它自己的文件注释写明是 `uintptr_t`）**全树没有任何声明**，现在按 `usize` 声明在该镜像里；
+     ⑶ `femacs/exec/include/mipsfpu.rs` 把 `cpu_supports_fr0_p`/`determine_fpu_mode` 声明在**顶层**，与单元的**定义**
+     撞 `E0428` ⇒ 按 0.1-10 搬进 glob 导入的 `mipsfpu_decls` 模块。另有 `lib/include/errno.rs` 补三个**实测**常量
+     （`ENOEXEC` 8、`ESRCH` 3、`EFAULT` 14——后两个正是 3.444 w32proc 台账 Owed 点名的缺口）；`ELIBBAD` 是 Linux 专有、
+     本机头文件没有，故按 P-88 ① 在单元内声明并标 `UNVERIFIED`。
+  ⑥ **未声称**：**零运行证据**——两个对象都只编到 `.o`，**没有链接、没有启动**（没有 `fork`、没有 `exec_init`、
+     没有任何 `determine_fpu_mode` 的调用）；`exec/` 在冻结配置里一行都不编；`mipsfpu` 的 `#else` 臂（本机没有
+     `__mips_isa_rev`）是有意选择，`mips_isa_rev_ge_6` 那一臂从未被编过；参照自己的两处 bug（C 241 的 `abiflags1`/`abiflags`
+     笔误、C 3200 的 `size_t` 回绕依赖）**照录不改**。`build-tu` 2 发 + `probe` 0 发 + 全树扫描 1 次（本轮）。

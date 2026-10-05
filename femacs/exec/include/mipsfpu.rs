@@ -7,7 +7,7 @@
 // so the mirror is text: it is the target the port-map names for this header.
 
 include!("exec.rs");                             // C 24: `#include "exec.h"` (`elf_header`)
-include!("../../../lib/include/stdint.in.rs");   // `uint16_t`/`uint8_t`/`uint32_t` (C 26's `<stdint.h>`)
+include!("../../lib/include/stdint.in.rs");   // `uint16_t`/`uint8_t`/`uint32_t` (C 26's `<stdint.h>`)
 
 /* C 19-21's include guard has no Rust counterpart (PORTING.md 0.1).  */
 pub const _MIPSFPU_H_: bool = true;
@@ -65,7 +65,13 @@ pub const FP_FR0: c_int = 0;
 pub const FP_FR1: c_int = 1;
 pub const FP_FRE: c_int = 3;
 
-/* C 69: "Defined in mipsfpu.c."  */
+/* C 69: "Defined in mipsfpu.c."  The two declarations sit in a glob-imported module, because
+   `exec/mipsfpu.rs` is the unit that defines them: a crate-root definition shadows a glob import,
+   while two declarations of one name in one namespace are `E0428` (PORTING.md 0.1-10, the
+   `include/sfnt.rs` `sfnt_decls` shape; measured here at status 3.446).  */
+pub mod mipsfpu_decls {
+  use super::*;
+
 unsafe extern "C" {
   /// C 71: `extern bool cpu_supports_fr0_p (void);`
   pub fn cpu_supports_fr0_p () -> bool;
@@ -75,3 +81,5 @@ unsafe extern "C" {
                              fp_abi: *mut c_int, in_flags: *mut mips_elf_abi_flags,
                              out_flags: *mut mips_elf_abi_flags) -> c_int;
 }
+}
+use mipsfpu_decls::*;

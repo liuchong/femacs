@@ -21,8 +21,8 @@
 // `exec/exec.h` is not in `docs/baseline/config/cond-eval-verified.txt`, so both arms of
 // C 30's `UINT64_MAX` test and C 135's `EXEC_64` test are carried (PORTING.md P-51).
 
-include!("../../../lib/include/stdint.in.rs");    // C 20-22: `#include <stdint.h>` (HAVE_STDINT_H)
-include!("../../../lib/include/sys_types.in.rs"); // C 24: `#include <sys/types.h>` (pid_t)
+include!("../../lib/include/stdint.in.rs");    // C 20-22: `#include <stdint.h>` (HAVE_STDINT_H)
+include!("../../lib/include/sys_types.in.rs"); // C 24: `#include <sys/types.h>` (pid_t)
 
 /* C 26: `#include USER_HEADER` - recorded above, with the hosts' values the reference
    configure script writes.  */
@@ -164,6 +164,12 @@ pub type program_header = program_header_32;
 pub type dt_entry = dt_entry_32;
 
 /* C 139: "Defined in trace.c."  */
+
+/* `USER_WORD` is the first of the four host-supplied names the file note lists: the reference's
+   `configure.ac` 252/286/318/351 make it `uintptr_t`, which the port spells `usize`
+   (PORTING.md 1.1).  It had no declaration anywhere in the tree until `exec/test.rs` became the
+   first unit to include this mirror (status 3.446).  */
+pub type USER_WORD = usize;
 
 /// C 143-177: `struct exec_tracee` - "Structure describing a process being traced."
 /// `USER_WORD` is the host's `uintptr_t` (see the header note).

@@ -103,3 +103,13 @@ pub const ECHILD: c_int = 10;
 /// <errno.h>: `#define EXDEV 18` (measured; `src/fileio.c`'s rename path is the one caller).
 pub const EXDEV: c_int = 18;
 
+
+/* Three codes `exec/`'s loader and the runtime arm name, measured with the same probe as the block
+   above (`ENOEXEC 8`, `ESRCH 3`, `EFAULT 14`); `ELIBBAD` is Linux's and is *not* on this target, so
+   `exec/mipsfpu.c` carries that one itself (status 3.446).  */
+/// <errno.h>: `#define ENOEXEC 8`.
+pub const ENOEXEC: c_int = 8;
+/// <errno.h>: `#define ESRCH 3`.
+pub const ESRCH: c_int = 3;
+/// <errno.h>: `#define EFAULT 14`.
+pub const EFAULT: c_int = 14;
