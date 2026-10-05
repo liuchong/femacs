@@ -56,6 +56,8 @@
          overflowing_literals, unused_must_use, clippy::all)]
 
 include!("include/config.rs");
+#[cfg (feature = "have_ntgui")]
+include!("include/conf_post.rs");               // config.h's AH_BOTTOM `#include <conf_post.h>` (`DebPrint`, C 3819)
 
 /* C 22-25: "Override API version to get the latest functionality."  The two directives have no
    Rust counterpart (there is no preprocessor); the value is what the `<windows.h>` section below
@@ -3674,9 +3676,9 @@ pub unsafe extern "C" fn w32_load_cursor (name: LPCTSTR) -> HCURSOR
 /// C: ATOM WINAPI RegisterClassA (const WNDCLASSA *lpWndClass);
 /// C: ATOM WINAPI RegisterClassW (const WNDCLASSW *lpWndClass);
 /// C: HICON WINAPI LoadIconA (HINSTANCE hInstance, LPCSTR lpIconName);
-/// C: HWND WINAPI CreateWindowExA (DWORD dwExStyle, LPCSTR lpClassName, LPCSTR lpWindowName,
-/// C: DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu,
-/// C: HINSTANCE hInstance, LPVOID lpParam);
+/// C: #define CreateWindowA(lpClassName, lpWindowName, dwStyle, X, Y, nWidth, nHeight,
+/// C: hWndParent, hMenu, hInstance, lpParam) CreateWindowExA (0L, lpClassName, lpWindowName,
+/// C: dwStyle, X, Y, nWidth, nHeight, hWndParent, hMenu, hInstance, lpParam);
 /// C: BOOL WINAPI PostThreadMessageA (DWORD idThread, UINT Msg, WPARAM wParam, LPARAM lParam);
 /// C: #define IDC_ARROW MAKEINTRESOURCE(32512)
 /// C: #define EMACS_CLASS "Emacs"
@@ -3747,7 +3749,7 @@ unsafe extern "system" {
   pub fn RegisterClassA (lpWndClass: *const WNDCLASS) -> ATOM;
   pub fn RegisterClassW (lpWndClass: *const WNDCLASS) -> ATOM;
   pub fn LoadIcon (hInstance: HINSTANCE, lpIconName: LPSTR) -> HICON;
-  pub fn CreateWindow (dwExStyle: DWORD, lpClassName: *const c_char, lpWindowName: *const c_char,
+  pub fn CreateWindow (lpClassName: *const c_char, lpWindowName: *const c_char,
 		       dwStyle: DWORD, x: c_int, y: c_int, nWidth: c_int, nHeight: c_int,
 		       hWndParent: HWND, hMenu: HMENU, hInstance: HINSTANCE,
 		       lpParam: LPVOID) -> HWND;
@@ -3942,4 +3944,2608 @@ unsafe fn process_dropfiles (files: *mut DROPFILES) -> Lisp_Object
     }
   }
   return lisp_files;
+}
+
+
+/* ==============================================================================================
+   Slice 3: C 2538-4041 (`w32_process_dnd_data` through `post_character_message`).
+
+   It continues where slice 2 stopped (C 2536, the `}` of `process_dropfiles`) and stops at a
+   whole-item boundary: C 4041 is the `}` of `post_character_message`, and the next item's
+   return type is C 4043.  The slice carries 1,504 C lines: the COM drop-target half (C
+   2538-2700), `w32_createwindow` (C 2701), `my_post_msg` (C 2860), the keyboard-hook family
+   (C 2871-3238), the modifier family and `map_keypad_keys` (C 3252-3575), the hot-key macros and
+   `register_hot_keys`/`unregister_hot_keys` (C 3577-3615), `w32_name_of_message` (C 3617-3673,
+   `EMACSDEBUG`), `w32_msg_pump` (C 3706-3838), the deferred-message family (C 3840-3960),
+   `signal_user_input` (C 3962) and `post_character_message` (C 3976-4041).
+
+   The COM surface (C 2538-2700) is the item slice 2 stopped in front of: its ledger entry asked
+   for P-90 ①'s dedicated SDK mirror because this tree has a second consumer of `IDataObject`
+   (`w32select.c`).  This lane cannot add a file under `femacs/src/include/` (its writable set),
+   so the surface stands **in the unit** at C's own `#include` lines - P-88 ①'s rule, the same
+   shape as this file's `<windows.h>`/`<winreg.h>`/`<wingdi.h>` sections - and
+   `docs/ports/w32fns.md`'s owed list carries the move-back into `include/ole.rs` for the mirror
+   round.  Every record there is spelled from the SDK's published member lists: no Windows SDK
+   exists on this machine (`x86_64-w64-mingw32-gcc` is absent), so the layouts are `UNVERIFIED`.
+
+   The file gate (`have_ntgui`) is on every item; the sub-gates this slice's C text names are
+   `windowsnt` (C 2871-3154, C 3196-3239, C 3415-3418), `emacsdebug` (C 3617) and `msg_debug`
+   (C 3816), the last two named after C's own macros (P-86 ①) and registered by the integrator.
+   C 2834-2836's `#ifndef GC_ALLGESTURES` is an SDK guard, so the constant is carried with C's
+   value and no `cfg` (the first slice's eleven-guard reading).
+   ============================================================================================== */
+
+/* C 41-46's `<oleidl.h>`/`<objidl.h>`/`<unknwn.h>`/`<ole2.h>` section, continued: the interfaces,
+   the COM records and the result codes the drop-target half names.  The section's first half is
+   C 41-46 (the include list itself); no file in the reference tree carries these names (P-88 ①)
+   and P-90 ①'s dedicated SDK mirror is a mirror-round item - see the ledger.  */
+/// C: typedef struct IUnknown { IUnknownVtbl *lpVtbl; } IUnknown;
+/// C: HRESULT STDMETHODCALLTYPE QueryInterface (IUnknown *This, REFIID riid, void **ppvObject);
+/// C: ULONG STDMETHODCALLTYPE AddRef (IUnknown *This);
+/// C: ULONG STDMETHODCALLTYPE Release (IUnknown *This);
+/// C: typedef /* [unique] */ IUnknown *LPUNKNOWN;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+pub struct IUnknown
+{
+  pub lpVtbl: *mut IUnknownVtbl,
+}
+/// C: typedef struct IUnknownVtbl {
+/// C:   BEGIN_INTERFACE
+/// C:   HRESULT (STDMETHODCALLTYPE *QueryInterface) (IUnknown *This, REFIID riid, void **ppvObject);
+/// C:   ULONG (STDMETHODCALLTYPE *AddRef) (IUnknown *This);
+/// C:   ULONG (STDMETHODCALLTYPE *Release) (IUnknown *This);
+/// C:   END_INTERFACE
+/// C: } IUnknownVtbl;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct IUnknownVtbl
+{
+  pub QueryInterface: Option<unsafe extern "system" fn (This: *mut IUnknown, riid: REFIID,
+                                                         ppvObject: *mut *mut c_void) -> HRESULT>,
+  pub AddRef: Option<unsafe extern "system" fn (This: *mut IUnknown) -> ULONG>,
+  pub Release: Option<unsafe extern "system" fn (This: *mut IUnknown) -> ULONG>,
+}
+/// C: typedef GUID IID; typedef const IID *REFIID;
+/// C: typedef struct _GUID { unsigned long Data1; unsigned short Data2; unsigned short Data3;
+/// C: unsigned char Data4[8]; } GUID;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct GUID
+{
+  pub Data1: c_ulong,
+  pub Data2: c_ushort,
+  pub Data3: c_ushort,
+  pub Data4: [c_uchar; 8],
+}
+#[cfg (feature = "have_ntgui")]
+pub type IID = GUID;
+#[cfg (feature = "have_ntgui")]
+pub type REFIID = *const IID;
+/// C: typedef struct tagPOINTL { LONG x; LONG y; } POINTL;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct POINTL
+{
+  pub x: LONG,
+  pub y: LONG,
+}
+/// C: typedef struct tagDVTARGETDEVICE { /* … */ } DVTARGETDEVICE;   (only ever a pointer here)
+#[cfg (feature = "have_ntgui")]
+pub type DVTARGETDEVICE = c_void;
+/// C: typedef WORD CLIPFORMAT;
+#[cfg (feature = "have_ntgui")]
+pub type CLIPFORMAT = WORD;
+/// C: typedef struct tagFORMATETC { CLIPFORMAT cfFormat; DVTARGETDEVICE *ptd; DWORD dwAspect;
+/// C: LONG lindex; DWORD tymed; } FORMATETC;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FORMATETC
+{
+  pub cfFormat: CLIPFORMAT,
+  pub ptd: *mut DVTARGETDEVICE,
+  pub dwAspect: DWORD,
+  pub lindex: LONG,
+  pub tymed: DWORD,
+}
+/// C: typedef struct tagSTGMEDIUM { DWORD tymed; union { HBITMAP hBitmap; HMETAFILEPICT
+/// C: hMetaFilePict; HENHMETAFILE hEnhMetaFile; HGLOBAL hGlobal; LPWSTR lpszFileName; IStream
+/// C: *pstm; IStorage *pstg; } u; IUnknown *pUnkForRelease; } STGMEDIUM;
+/// The union keeps C's name `u`; the union itself is named `<struct>_<member>` (the `glyph_slice`
+/// convention `include/dispextern.rs`/`src/w32inevt.rs` use).  `IStream`/`IStorage` appear only as
+/// pointers here, so they are the port's `*mut c_void` (0.1-2), with C's member text kept in the
+/// `/// C:` lines above.
+#[cfg (feature = "have_ntgui")]
+pub type HBITMAP = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub type HMETAFILEPICT = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub type HENHMETAFILE = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub type HGLOBAL = HANDLE;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union STGMEDIUM_u
+{
+  pub hBitmap: HBITMAP,
+  pub hMetaFilePict: HMETAFILEPICT,
+  pub hEnhMetaFile: HENHMETAFILE,
+  pub hGlobal: HGLOBAL,
+  pub lpszFileName: LPWSTR,
+  pub pstm: *mut c_void,   /* C: IStream *pstm; */
+  pub pstg: *mut c_void,   /* C: IStorage *pstg; */
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct STGMEDIUM
+{
+  pub tymed: DWORD,
+  pub u: STGMEDIUM_u,
+  pub pUnkForRelease: *mut IUnknown,
+}
+/// C: typedef struct IDropTarget { IDropTargetVtbl *lpVtbl; } IDropTarget;
+/// C: typedef struct IDataObject { IDataObjectVtbl *lpVtbl; } IDataObject;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+pub struct IDropTarget
+{
+  pub lpVtbl: *mut IDropTargetVtbl,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+pub struct IDataObject
+{
+  pub lpVtbl: *mut IDataObjectVtbl,
+}
+/// C: typedef struct IDropTargetVtbl {
+/// C:   BEGIN_INTERFACE
+/// C:   HRESULT (STDMETHODCALLTYPE *QueryInterface) (IDropTarget *This, REFIID riid, void **ppvObject);
+/// C:   ULONG (STDMETHODCALLTYPE *AddRef) (IDropTarget *This);
+/// C:   ULONG (STDMETHODCALLTYPE *Release) (IDropTarget *This);
+/// C:   HRESULT (STDMETHODCALLTYPE *DragEnter) (IDropTarget *This, IDataObject *pDataObj,
+/// C:   DWORD grfKeyState, POINTL pt, DWORD *pdwEffect);
+/// C:   HRESULT (STDMETHODCALLTYPE *DragOver) (IDropTarget *This, DWORD grfKeyState, POINTL pt,
+/// C:   DWORD *pdwEffect);
+/// C:   HRESULT (STDMETHODCALLTYPE *DragLeave) (IDropTarget *This);
+/// C:   HRESULT (STDMETHODCALLTYPE *Drop) (IDropTarget *This, IDataObject *pDataObj, DWORD
+/// C:   grfKeyState, POINTL pt, DWORD *pdwEffect);
+/// C:   END_INTERFACE
+/// C: } IDropTargetVtbl;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct IDropTargetVtbl
+{
+  pub QueryInterface: Option<unsafe extern "system" fn (This: *mut IDropTarget, riid: REFIID,
+                                                         ppvObject: *mut *mut c_void) -> HRESULT>,
+  pub AddRef: Option<unsafe extern "system" fn (This: *mut IDropTarget) -> ULONG>,
+  pub Release: Option<unsafe extern "system" fn (This: *mut IDropTarget) -> ULONG>,
+  pub DragEnter: Option<unsafe extern "system" fn (This: *mut IDropTarget,
+                                                   pDataObj: *mut IDataObject,
+                                                   grfKeyState: DWORD, pt: POINTL,
+                                                   pdwEffect: *mut DWORD) -> HRESULT>,
+  pub DragOver: Option<unsafe extern "system" fn (This: *mut IDropTarget, grfKeyState: DWORD,
+                                                  pt: POINTL, pdwEffect: *mut DWORD) -> HRESULT>,
+  pub DragLeave: Option<unsafe extern "system" fn (This: *mut IDropTarget) -> HRESULT>,
+  pub Drop: Option<unsafe extern "system" fn (This: *mut IDropTarget,
+                                              pDataObj: *mut IDataObject, grfKeyState: DWORD,
+                                              pt: POINTL, pdwEffect: *mut DWORD) -> HRESULT>,
+}
+/// C: typedef struct IDataObjectVtbl {
+/// C:   BEGIN_INTERFACE
+/// C:   HRESULT (STDMETHODCALLTYPE *QueryInterface) (IDataObject *This, REFIID riid, void **ppvObject);
+/// C:   ULONG (STDMETHODCALLTYPE *AddRef) (IDataObject *This);
+/// C:   ULONG (STDMETHODCALLTYPE *Release) (IDataObject *This);
+/// C:   HRESULT (STDMETHODCALLTYPE *GetData) (IDataObject *This, FORMATETC *pformatetcIn,
+/// C:   STGMEDIUM *pmedium);
+/// C:   HRESULT (STDMETHODCALLTYPE *GetDataHere) (IDataObject *This, FORMATETC *pformatetc,
+/// C:   STGMEDIUM *pmedium);
+/// C:   HRESULT (STDMETHODCALLTYPE *QueryGetData) (IDataObject *This, FORMATETC *pformatetc);
+/// C:   HRESULT (STDMETHODCALLTYPE *GetCanonicalFormatEtc) (IDataObject *This, FORMATETC
+/// C:   *pformatectIn, FORMATETC *pformatetcOut);
+/// C:   HRESULT (STDMETHODCALLTYPE *SetData) (IDataObject *This, FORMATETC *pformatetc,
+/// C:   STGMEDIUM *pmedium, BOOL fRelease);
+/// C:   HRESULT (STDMETHODCALLTYPE *EnumFormatEtc) (IDataObject *This, DWORD dwDirection,
+/// C:   IEnumFORMATETC **ppenumFormatEtc);
+/// C:   HRESULT (STDMETHODCALLTYPE *DAdvise) (IDataObject *This, FORMATETC *pformatetc, DWORD
+/// C:   advf, IAdviseSink *pAdvSink, DWORD *pdwConnection);
+/// C:   HRESULT (STDMETHODCALLTYPE *DUnadvise) (IDataObject *This, DWORD dwConnection);
+/// C:   HRESULT (STDMETHODCALLTYPE *EnumDAdvise) (IDataObject *This, IEnumSTATDATA **ppenumAdvise);
+/// C:   END_INTERFACE
+/// C: } IDataObjectVtbl;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct IDataObjectVtbl
+{
+  pub QueryInterface: Option<unsafe extern "system" fn (This: *mut IDataObject, riid: REFIID,
+                                                         ppvObject: *mut *mut c_void) -> HRESULT>,
+  pub AddRef: Option<unsafe extern "system" fn (This: *mut IDataObject) -> ULONG>,
+  pub Release: Option<unsafe extern "system" fn (This: *mut IDataObject) -> ULONG>,
+  pub GetData: Option<unsafe extern "system" fn (This: *mut IDataObject,
+                                                 pformatetcIn: *mut FORMATETC,
+                                                 pmedium: *mut STGMEDIUM) -> HRESULT>,
+  pub GetDataHere: Option<unsafe extern "system" fn (This: *mut IDataObject,
+                                                     pformatetc: *mut FORMATETC,
+                                                     pmedium: *mut STGMEDIUM) -> HRESULT>,
+  pub QueryGetData: Option<unsafe extern "system" fn (This: *mut IDataObject,
+                                                      pformatetc: *mut FORMATETC) -> HRESULT>,
+  pub GetCanonicalFormatEtc: Option<unsafe extern "system" fn (This: *mut IDataObject,
+                                                               pformatectIn: *mut FORMATETC,
+                                                               pformatetcOut: *mut FORMATETC)
+                                                              -> HRESULT>,
+  pub SetData: Option<unsafe extern "system" fn (This: *mut IDataObject, pformatetc: *mut FORMATETC,
+                                                 pmedium: *mut STGMEDIUM,
+                                                 fRelease: BOOL) -> HRESULT>,
+  pub EnumFormatEtc: Option<unsafe extern "system" fn (This: *mut IDataObject, dwDirection: DWORD,
+                                                      ppenumFormatEtc: *mut *mut c_void) -> HRESULT>,
+  pub DAdvise: Option<unsafe extern "system" fn (This: *mut IDataObject, pformatetc: *mut FORMATETC,
+                                                 advf: DWORD, pAdvSink: *mut c_void,
+                                                 pdwConnection: *mut DWORD) -> HRESULT>,
+  pub DUnadvise: Option<unsafe extern "system" fn (This: *mut IDataObject,
+                                                   dwConnection: DWORD) -> HRESULT>,
+  pub EnumDAdvise: Option<unsafe extern "system" fn (This: *mut IDataObject,
+                                                     ppenumAdvise: *mut *mut c_void) -> HRESULT>,
+}
+/// C: #define S_OK ((HRESULT)0L)
+/// C: #define E_NOINTERFACE ((HRESULT)0x80004002L)
+/// C: #define DROPEFFECT_NONE 0 / #define DROPEFFECT_COPY 1 / #define DROPEFFECT_MOVE 2
+/// C: #define DROPEFFECT_LINK 4
+/// C: #define DVASPECT_CONTENT 1
+/// C: #define TYMED_HGLOBAL 1
+/// C: #define SUCCEEDED(hr) (((HRESULT)(hr)) >= 0)
+/// C: #define CF_TEXT 1 / #define CF_UNICODETEXT 13 / #define CF_HDROP 15
+#[cfg (feature = "have_ntgui")]
+pub const S_OK: HRESULT = 0;
+#[cfg (feature = "have_ntgui")]
+pub const E_NOINTERFACE: HRESULT = 0x80004002_u32 as HRESULT;
+#[cfg (feature = "have_ntgui")]
+pub const DROPEFFECT_NONE: DWORD = 0;
+#[cfg (feature = "have_ntgui")]
+pub const DROPEFFECT_COPY: DWORD = 1;
+#[cfg (feature = "have_ntgui")]
+pub const DROPEFFECT_MOVE: DWORD = 2;
+#[cfg (feature = "have_ntgui")]
+pub const DROPEFFECT_LINK: DWORD = 4;
+#[cfg (feature = "have_ntgui")]
+pub const DVASPECT_CONTENT: DWORD = 1;
+#[cfg (feature = "have_ntgui")]
+pub const TYMED_HGLOBAL: DWORD = 1;
+#[cfg (feature = "have_ntgui")]
+pub const CF_TEXT: c_int = 1;
+#[cfg (feature = "have_ntgui")]
+pub const CF_UNICODETEXT: c_int = 13;
+#[cfg (feature = "have_ntgui")]
+pub const CF_HDROP: c_int = 15;
+/// C 2600: `SUCCEEDED (r)` - the SDK's macro over an `HRESULT`; its argument is evaluated once on
+/// both sides (PORTING.md 2.1, the `eassert` reading) and its token survives the port.
+/// C: #define SUCCEEDED(hr) (((HRESULT)(hr)) >= 0)
+#[cfg (feature = "have_ntgui")]
+macro_rules! SUCCEEDED {
+  ($hr:expr) => { ($hr) >= 0 };
+}
+/// C 2607: `IDataObject_GetData (pDataObj, &formatetc, &stgmedium)` - `COBJMACROS`' C spelling of
+/// the vtable call (C 37's `#define COBJMACROS`); the port spells the body and keeps the name.
+/// C: #define IDataObject_GetData(This, pformatetcIn, pmedium) \
+/// C: ((This)->lpVtbl->GetData (This, pformatetcIn, pmedium))
+#[cfg (feature = "have_ntgui")]
+macro_rules! IDataObject_GetData {
+  ($obj:expr, $fmt:expr, $med:expr) => {
+    (((*(*($obj)).lpVtbl).GetData).unwrap ()) (($obj), ($fmt), ($med)) };
+}
+/// C 2570: `HGLOBAL GlobalLock (HGLOBAL hMem); LPVOID GlobalLock (HGLOBAL hMem);` - `<winbase.h>`.
+/// C: #define GlobalLock(hMem) GlobalLock (hMem)
+/// C: LPVOID GlobalLock (HGLOBAL hMem);
+/// C: BOOL GlobalUnlock (HGLOBAL hMem);
+/// C: HGLOBAL GlobalFree (HGLOBAL hMem);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GlobalLock (hMem: HGLOBAL) -> LPVOID;
+  pub fn GlobalUnlock (hMem: HGLOBAL) -> BOOL;
+  pub fn GlobalFree (hMem: HGLOBAL) -> HGLOBAL;
+}
+/// C 2599/2604: `free (target->i_drop_target.lpVtbl); free (target);` and C 2736's
+/// `malloc (sizeof (struct w32_drop_target))` - `<stdlib.h>`'s pair.  `include/lisp.rs` carries
+/// `xmalloc`/`xfree` but not the bare pair, and `lib/include/stdlib.rs` is not in this unit's
+/// include graph (the ledger records the declaration site).
+/// C: void *malloc (size_t size);
+/// C: void free (void *ptr);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn malloc (size: usize) -> *mut c_void;
+  pub fn free (ptr: *mut c_void);
+}
+/// C 2570/2602: `HGLOBAL hg = hGlobal;` and C 2596's `WCHAR *text` - the wide character of this
+/// unit's own `WCHAR` (C 1117's `<winnt.h>` reading, spelled in the second slice).
+
+/* This function can be called ONLY between calls to
+   block_input/unblock_input.  It is used in w32_read_socket.  */
+/// C 2541-2575: `Lisp_Object w32_process_dnd_data (int format, void *hGlobal)` - a non-`static`
+/// definition, so it carries `#[unsafe(no_mangle)]` (PORTING.md 0.2).  C's `switch (format)` has
+/// no `default:`; the port writes the empty arm PORTING.md 2.2's table records for that shape
+/// (`set_internal`'s precedent), and the `break` of each arm has no Rust spelling.
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_process_dnd_data (format: c_int, hGlobal: *mut c_void) -> Lisp_Object
+{
+  let mut result: Lisp_Object = Qnil ();
+  let hg: HGLOBAL = hGlobal as HGLOBAL;
+
+  match format
+    {
+    CF_HDROP =>
+      {
+	let files: *mut DROPFILES = GlobalLock (hg) as *mut DROPFILES;
+	if ! files.is_null ()
+	  { result = process_dropfiles (files); }
+	GlobalUnlock (hg);
+      }
+    CF_UNICODETEXT =>
+      {
+	let text: *mut WCHAR = GlobalLock (hg) as *mut WCHAR;
+	result = from_unicode_buffer (text);
+	GlobalUnlock (hg);
+      }
+    CF_TEXT =>
+      {
+	let text: *mut c_char = GlobalLock (hg) as *mut c_char;
+	result = DECODE_SYSTEM (build_unibyte_string (text));
+	GlobalUnlock (hg);
+      }
+    _ => {}
+    }
+
+  GlobalFree (hg);
+
+  return result;
+}
+
+/* C 2577-2700.  The COM drop-target half: the record C 2538's own text names (`i_drop_target`
+   must be the first member), the seven vtable entries C writes, and the two helpers.  */
+/// C: struct w32_drop_target { IDropTarget i_drop_target; HWND hwnd; int ref_count; };
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+pub struct w32_drop_target
+{
+  pub i_drop_target: IDropTarget,   /* i_drop_target must be the first member.  */
+  pub hwnd: HWND,
+  pub ref_count: c_int,
+}
+
+/// C 2584-2589: `static HRESULT STDMETHODCALLTYPE w32_drop_target_QueryInterface (IDropTarget
+/// *t, REFIID ri, void **r)`.  `STDMETHODCALLTYPE` is `__stdcall`, so the definition is
+/// `unsafe extern "system"` (the `WNDPROC` reading above), and C's unused `t`/`ri`/`r` keep
+/// their names.
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn w32_drop_target_QueryInterface (t: *mut IDropTarget, ri: REFIID,
+                                                          r: *mut *mut c_void) -> HRESULT
+{
+  return E_NOINTERFACE;
+}
+
+/// C 2590-2596: `static ULONG STDMETHODCALLTYPE w32_drop_target_AddRef (IDropTarget *This)` -
+/// C's `return ++target->ref_count;` is an increment then a return of the new value.
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn w32_drop_target_AddRef (This: *mut IDropTarget) -> ULONG
+{
+  let target: *mut w32_drop_target = This as *mut w32_drop_target;
+  (*target).ref_count += 1;
+  return (*target).ref_count as ULONG;
+}
+
+/// C 2597-2605: `static ULONG STDMETHODCALLTYPE w32_drop_target_Release (IDropTarget *This)` -
+/// C's `if (--target->ref_count > 0)` is a decrement inside the test; the two `free`s keep C's
+/// arguments and order.
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn w32_drop_target_Release (This: *mut IDropTarget) -> ULONG
+{
+  let target: *mut w32_drop_target = This as *mut w32_drop_target;
+  (*target).ref_count -= 1;
+  if (*target).ref_count > 0
+    { return (*target).ref_count as ULONG; }
+  free ((*target).i_drop_target.lpVtbl as *mut c_void);
+  free (target as *mut c_void);
+  return 0;
+}
+
+/// C 2608-2620.
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_handle_drag_movement (This: *mut IDropTarget, pt: POINTL)
+{
+  let target: *mut w32_drop_target = This as *mut w32_drop_target;
+
+  let mut msg: W32Msg = core::mem::zeroed ();   /* C: W32Msg msg = {0}; */
+  msg.dwModifiers = w32_get_modifiers ();
+  msg.msg.time = GetMessageTime () as DWORD;
+  msg.msg.pt.x = pt.x;
+  msg.msg.pt.y = pt.y;
+  my_post_msg (&raw mut msg, (*target).hwnd, WM_EMACS_DRAGOVER as UINT, 0, 0);
+}
+
+/// C 2621-2633.  C's comment is kept; the four parameters of C's `DragEnter` keep their names.
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn w32_drop_target_DragEnter (This: *mut IDropTarget,
+                                                     pDataObj: *mut IDataObject,
+                                                     grfKeyState: DWORD, pt: POINTL,
+                                                     pdwEffect: *mut DWORD) -> HRESULT
+{
+  /* Possible 'effect' values are COPY, MOVE, LINK or NONE.  This choice
+     changes the mouse pointer shape to inform the user of what will
+     happen on drop.  We send COPY because our use cases don't modify
+     or link to the original data.  */
+  *pdwEffect = DROPEFFECT_COPY;
+  w32_handle_drag_movement (This, pt);
+  return S_OK;
+}
+
+/// C 2634-2643.
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn w32_drop_target_DragOver (This: *mut IDropTarget, grfKeyState: DWORD,
+                                                    pt: POINTL,
+                                                    pdwEffect: *mut DWORD) -> HRESULT
+{
+  /* See comment in w32_drop_target_DragEnter.  */
+  *pdwEffect = DROPEFFECT_COPY;
+  w32_handle_drag_movement (This, pt);
+  return S_OK;
+}
+
+/// C 2644-2649.
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn w32_drop_target_DragLeave (This: *mut IDropTarget) -> HRESULT
+{
+  return S_OK;
+}
+
+/// C 2650-2664.  C's `STGMEDIUM stgmedium;` is an uninitialised local the callee fills
+/// (PORTING.md 1.5: the port zero-initialises it and keeps C's statements), and C's `FORMATETC
+/// formatetc = { format, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL }` keeps its member order.
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_try_get_data (pDataObj: *mut IDataObject, format: c_int) -> HGLOBAL
+{
+  let mut formatetc: FORMATETC = FORMATETC { cfFormat: format as CLIPFORMAT,
+					     ptd: core::ptr::null_mut (),
+					     dwAspect: DVASPECT_CONTENT,
+					     lindex: -1,
+					     tymed: TYMED_HGLOBAL };
+  let mut stgmedium: STGMEDIUM = core::mem::zeroed ();
+  let r: HRESULT = IDataObject_GetData! (pDataObj, &raw mut formatetc, &raw mut stgmedium);
+  if SUCCEEDED! (r)
+    {
+      if stgmedium.tymed == TYMED_HGLOBAL
+	{ return stgmedium.u.hGlobal; }
+      ReleaseStgMedium (&raw mut stgmedium);
+    }
+  return core::ptr::null_mut ();
+}
+
+/// C 2665-2699.  C's `W32Msg msg = {0}` is the port's zeroed initialiser, the three
+/// `w32_try_get_data` calls keep C's `format` sequence, and `(LPARAM) hGlobal` is C's cast.
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn w32_drop_target_Drop (This: *mut IDropTarget, pDataObj: *mut IDataObject,
+                                                grfKeyState: DWORD, pt: POINTL,
+                                                pdwEffect: *mut DWORD) -> HRESULT
+{
+  let target: *mut w32_drop_target = This as *mut w32_drop_target;
+  *pdwEffect = DROPEFFECT_COPY;
+
+  let mut msg: W32Msg = core::mem::zeroed ();
+  msg.dwModifiers = w32_get_modifiers ();
+  msg.msg.time = GetMessageTime () as DWORD;
+  msg.msg.pt.x = pt.x;
+  msg.msg.pt.y = pt.y;
+
+  let mut format: c_int = CF_HDROP;
+  let mut hGlobal: HGLOBAL = w32_try_get_data (pDataObj, format);
+
+  if hGlobal.is_null ()
+    {
+      format = CF_UNICODETEXT;
+      hGlobal = w32_try_get_data (pDataObj, format);
+    }
+
+  if hGlobal.is_null ()
+    {
+      format = CF_TEXT;
+      hGlobal = w32_try_get_data (pDataObj, format);
+    }
+
+  if ! hGlobal.is_null ()
+    { my_post_msg (&raw mut msg, (*target).hwnd, WM_EMACS_DROP as UINT, format as WPARAM,
+		   hGlobal as LPARAM); }
+
+  return S_OK;
+}
+
+/// C 2706: `static EMACS_INT touch_base;` - a **function-local** static in C (one object with
+/// internal linkage and static storage duration).  Rust has no function-scope `static`, so the
+/// declaration stands at file scope inside the same gate; C's implicit zero initialiser is what
+/// the initialiser spells (the `frame.rs` 4813 `frame_float` reading).
+/// C: static EMACS_INT touch_base;
+#[cfg (feature = "have_ntgui")]
+static mut touch_base: EMACS_INT = 0;
+
+/// C 2701-2706/2783-2842: `<winuser.h>`'s remaining window-style constants and the two entry
+/// points this function calls that the sections above do not carry (`AdjustWindowRect` is
+/// `<winuser.h>`'s rect helper).  C 2834-2836's `#ifndef GC_ALLGESTURES` is one of the SDK's
+/// "define it if the SDK has not" guards, so the constant is carried with C's value and no `cfg`
+/// (the first slice's eleven-guard reading).
+/// C: #define WS_POPUP 0x80000000L / #define WS_OVERLAPPEDWINDOW (WS_OVERLAPPED | WS_CAPTION |
+/// C: WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX) / #define WS_CLIPCHILDREN
+/// C: 0x02000000L / #define WS_EX_NOACTIVATE 0x08000000L
+/// C: #ifndef GC_ALLGESTURES / #define GC_ALLGESTURES 0x00000001 / #endif /* GC_ALLGESTURES */
+/// C: BOOL WINAPI AdjustWindowRect (LPRECT lpRect, DWORD dwStyle, BOOL bMenu);
+/// C: HRESULT WINAPI RegisterDragDrop (HWND hwnd, LPDROPTARGET pDropTarget);
+/// C: HRESULT WINAPI OleInitialize (LPVOID pvReserved);
+#[cfg (feature = "have_ntgui")]
+pub const WS_POPUP: DWORD = 0x80000000;
+#[cfg (feature = "have_ntgui")]
+pub const WS_OVERLAPPED: DWORD = 0x00000000;
+#[cfg (feature = "have_ntgui")]
+pub const WS_OVERLAPPEDWINDOW: DWORD = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+                                    | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
+#[cfg (feature = "have_ntgui")]
+pub const WS_CLIPCHILDREN: DWORD = 0x02000000;
+#[cfg (feature = "have_ntgui")]
+pub const GC_ALLGESTURES: DWORD = 0x00000001;
+#[cfg (feature = "have_ntgui")]
+pub type LPDROPTARGET = *mut IDropTarget;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn AdjustWindowRect (lpRect: LPRECT, dwStyle: DWORD, bMenu: BOOL) -> BOOL;
+  pub fn RegisterDragDrop (hwnd: HWND, pDropTarget: LPDROPTARGET) -> HRESULT;
+  pub fn OleInitialize (pvReserved: LPVOID) -> HRESULT;
+}
+
+/* C 2701-2857.  `w32_createwindow`: C's `int top, left;` are the port's zero initialisers
+   (PORTING.md 1.5, the `w32_real_positions` reading above), `f->output_data.w32->dwStyle` is the
+   `w32_output` member the section above spells, and C's two tests
+   `f->size_hint_flags & USPosition` write the usual-arithmetic conversion out because the
+   mirror's `USPosition`/`PPosition` are `c_long` while the member is C's `int` (the
+   `gtkutil.rs` 1488 reading).  C's `CreateWindow` is the SDK's `CreateWindowA` macro, whose
+   eleven-argument shape the declaration above spells (the arity the four call sites of this file
+   use).  */
+/// C 2701-2857: `static void w32_createwindow (struct frame *f, int *coords)`
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_createwindow (f: *mut frame, coords: *mut c_int)
+{
+  let mut hwnd: HWND = core::ptr::null_mut ();
+  let mut parent_hwnd: HWND = core::ptr::null_mut ();
+  let mut rect: RECT = core::mem::zeroed ();
+  let mut top: c_int = 0;
+  let mut left: c_int = 0;
+  let border_width: Lisp_Object = Fcdr (Fassq (Qborder_width (), (*f).param_alist));
+
+  if ! FRAME_PARENT_FRAME (f).is_null () && FRAME_W32_P (FRAME_PARENT_FRAME (f))
+    {
+      parent_hwnd = FRAME_W32_WINDOW! (FRAME_PARENT_FRAME (f));
+      (*((*f).output_data.w32 as *mut w32_output)).dwStyle = WS_CHILD | WS_CLIPSIBLINGS;
+
+      if FRAME_UNDECORATED (f) != 0
+	{
+	  /* If we want a thin border, specify it here.  */
+	  if FIXNUMP (border_width) && (XFIXNUM (border_width) > 0)
+	    { (*((*f).output_data.w32 as *mut w32_output)).dwStyle |= WS_BORDER; }
+	}
+      else
+	/* To decorate a child frame, list all needed elements.  */
+	{ (*((*f).output_data.w32 as *mut w32_output)).dwStyle |= (WS_THICKFRAME | WS_CAPTION
+								  | WS_MAXIMIZEBOX
+								  | WS_MINIMIZEBOX
+								  | WS_SYSMENU); }
+    }
+  else if FRAME_UNDECORATED (f) != 0
+    {
+      /* All attempts to start with ~WS_OVERLAPPEDWINDOW or overlapped
+	 with all other style elements negated failed here.  */
+      (*((*f).output_data.w32 as *mut w32_output)).dwStyle = WS_POPUP;
+
+      /* If we want a thin border, specify it here.  */
+      if FIXNUMP (border_width) && (XFIXNUM (border_width) > 0)
+	{ (*((*f).output_data.w32 as *mut w32_output)).dwStyle |= WS_BORDER; }
+    }
+  else
+    { (*((*f).output_data.w32 as *mut w32_output)).dwStyle = WS_OVERLAPPEDWINDOW; }
+
+  /* Always clip children.  */
+  (*((*f).output_data.w32 as *mut w32_output)).dwStyle |= WS_CLIPCHILDREN;
+
+  rect.left = 0;
+  rect.top = 0;
+  rect.right = FRAME_PIXEL_WIDTH (f);
+  rect.bottom = FRAME_PIXEL_HEIGHT (f);
+
+  AdjustWindowRect (&raw mut rect, (*((*f).output_data.w32 as *mut w32_output)).dwStyle,
+		    (FRAME_EXTERNAL_MENU_BAR (f) && parent_hwnd.is_null ()) as BOOL);
+
+  /* Do first time app init */
+  w32_init_class (hinst);
+
+  if (*f).size_hint_flags as c_long & USPosition != 0
+      || (*f).size_hint_flags as c_long & PPosition != 0
+    {
+      left = (*f).left_pos;
+      top = (*f).top_pos;
+    }
+  else
+    {
+      left = *coords.offset (0);
+      top = *coords.offset (1);
+    }
+
+  hwnd = CreateWindow (EMACS_CLASS.as_ptr () as *const c_char, (*f).namebuf,
+		       (*((*f).output_data.w32 as *mut w32_output)).dwStyle,
+		       left, top, rect.right - rect.left, rect.bottom - rect.top,
+		       parent_hwnd, core::ptr::null_mut (), hinst, core::ptr::null_mut ());
+  FRAME_W32_WINDOW! (f) = hwnd;
+
+  if ! hwnd.is_null ()
+    {
+      let mut i: c_int;
+
+      if FRAME_SKIP_TASKBAR (f) != 0
+	{ SetWindowLong (hwnd, GWL_EXSTYLE,
+			 (GetWindowLong (hwnd, GWL_EXSTYLE) | WS_EX_NOACTIVATE as LONG) as LONG); }
+
+      SetWindowLong (hwnd, WND_FONTWIDTH_INDEX, FRAME_COLUMN_WIDTH (f));
+      SetWindowLong (hwnd, WND_LINEHEIGHT_INDEX, FRAME_LINE_HEIGHT (f));
+      SetWindowLong (hwnd, WND_BORDER_INDEX, FRAME_INTERNAL_BORDER_WIDTH (f));
+      SetWindowLong (hwnd, WND_VSCROLLBAR_INDEX, FRAME_SCROLL_BAR_AREA_WIDTH (f));
+      SetWindowLong (hwnd, WND_HSCROLLBAR_INDEX, FRAME_SCROLL_BAR_AREA_HEIGHT (f));
+      SetWindowLong (hwnd, WND_BACKGROUND_INDEX, FRAME_BACKGROUND_PIXEL (f) as LONG);
+
+      /* Enable drag-n-drop.  */
+      let drop_target: *mut w32_drop_target
+	= malloc (core::mem::size_of::<w32_drop_target> ()) as *mut w32_drop_target;
+
+      if ! drop_target.is_null ()
+	{
+	  let vtbl: *mut IDropTargetVtbl
+	    = malloc (core::mem::size_of::<IDropTargetVtbl> ()) as *mut IDropTargetVtbl;
+	  if ! vtbl.is_null ()
+	    {
+	      (*drop_target).hwnd = hwnd;
+	      (*drop_target).ref_count = 0;
+	      (*drop_target).i_drop_target.lpVtbl = vtbl;
+	      (*vtbl).QueryInterface = Some (w32_drop_target_QueryInterface);
+	      (*vtbl).AddRef = Some (w32_drop_target_AddRef);
+	      (*vtbl).Release = Some (w32_drop_target_Release);
+	      (*vtbl).DragEnter = Some (w32_drop_target_DragEnter);
+	      (*vtbl).DragOver = Some (w32_drop_target_DragOver);
+	      (*vtbl).DragLeave = Some (w32_drop_target_DragLeave);
+	      (*vtbl).Drop = Some (w32_drop_target_Drop);
+	      RegisterDragDrop (hwnd, &raw mut (*drop_target).i_drop_target);
+	    }
+	  else
+	    {
+	      free (drop_target as *mut c_void);
+	    }
+	}
+
+      /* Enable system light/dark theme.  */
+      w32_applytheme (hwnd);
+
+      /* Do this to discard the default setting specified by our parent. */
+      ShowWindow (hwnd, SW_HIDE);
+
+      /* Update frame positions. */
+      GetWindowRect (hwnd, &raw mut rect);
+
+      if ! parent_hwnd.is_null ()
+	/* For a child window we have to get its coordinates wrt its
+	   parent.  */
+	{ MapWindowPoints (HWND_DESKTOP, parent_hwnd, (&raw mut rect) as LPPOINT, 2); }
+
+      /* Enable touch-screen input.  */
+      if RegisterTouchWindow_fn.is_some ()
+	{
+	  let mut cfg: Emacs_GESTURECONFIG = core::mem::zeroed ();
+
+	  (RegisterTouchWindow_fn.unwrap ()) (hwnd, 0);
+
+	  /* Disable Window's emulation of mouse events.  */
+	  cfg.dwID = 0;
+	  cfg.dwWant = 0;
+	  cfg.dwBlock = GC_ALLGESTURES;
+	  (SetGestureConfig_fn.unwrap ()) (hwnd, 0, 1, &raw mut cfg,
+					   core::mem::size_of_val (&cfg) as UINT);
+	}
+
+      /* Reset F's touch point array.  */
+      for i in 0..countof! ((*((*f).output_data.w32 as *mut w32_output)).touch_ids)
+	{ (*((*f).output_data.w32 as *mut w32_output)).touch_ids[i as usize] = -1; }
+
+      /* Assign an offset for touch points reported to F.  */
+      if FIXNUM_OVERFLOW_P (touch_base + MAX_TOUCH_POINTS as EMACS_INT - 1)
+	{ touch_base = 0; }
+      (*((*f).output_data.w32 as *mut w32_output)).touch_base = touch_base;
+      touch_base += MAX_TOUCH_POINTS as EMACS_INT;
+
+      /* Reset the tool bar touch sequence identifier slot.  */
+      (*((*f).output_data.w32 as *mut w32_output)).tool_bar_dwID = (-1 as LONG) as DWORD;
+
+      (*f).left_pos = rect.left;
+      (*f).top_pos = rect.top;
+    }
+}
+
+/// C 2859-2869: `static void my_post_msg (W32Msg * wmsg, HWND hwnd, UINT msg, WPARAM wParam,
+/// LPARAM lParam)` - C 380-383's forward declaration has no Rust counterpart (PORTING.md
+/// 0.1-12), so the definition stands here and the calls above see it (Rust items are
+/// order-independent).
+#[cfg (feature = "have_ntgui")]
+unsafe fn my_post_msg (wmsg: *mut W32Msg, hwnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)
+{
+  (*wmsg).msg.hwnd = hwnd;
+  (*wmsg).msg.message = msg;
+  (*wmsg).msg.wParam = wParam;
+  (*wmsg).msg.lParam = lParam;
+  (*wmsg).msg.time = GetMessageTime () as DWORD;
+
+  post_msg (wmsg);
+}
+
+/* C 2871-3066.  The keyboard hook callback and its two installers.  The whole family is the
+   `windowsnt` arm of the file gate (C 2871's `#ifdef WINDOWSNT` ... C 3154's `#endif`), so every
+   item carries both gates.  */
+/// C 2877-3042/3434: `<wincon.h>`'s console records and `<winuser.h>`'s input record and hook
+/// record, plus the constants the callback compares against.  C's text for each is in the
+/// `/// C:` lines; the option bits are typed at the width of the port's member they meet (C's
+/// `#define`s are untyped), which the ledger's Deviations record.
+/// C: typedef struct _COORD { SHORT X; SHORT Y; } COORD;
+/// C: typedef CHAR *LPCH, *PCH;
+/// C: #define KEY_EVENT 0x0001
+/// C: #define RIGHT_ALT_PRESSED 0x0001 / #define LEFT_ALT_PRESSED 0x0002 /
+/// C: #define RIGHT_CTRL_PRESSED 0x0004 / #define LEFT_CTRL_PRESSED 0x0008 /
+/// C: #define SHIFT_PRESSED 0x0010 / #define NUMLOCK_ON 0x0020 / #define SCROLLLOCK_ON 0x0040 /
+/// C: #define CAPSLOCK_ON 0x0080 / #define ENHANCED_KEY 0x0100
+/// C: #define KEYEVENTF_EXTENDEDKEY 0x0001 / #define KEYEVENTF_KEYUP 0x0002
+/// C: #define SM_CXSCREEN 0 / #define SM_CYSCREEN 1
+/// C: typedef struct tagKEYBDINPUT { WORD wVk; WORD wScan; DWORD dwFlags; DWORD time;
+/// C: ULONG_PTR dwExtraInfo; } KEYBDINPUT;
+/// C: typedef struct tagMOUSEINPUT { LONG dx; LONG dy; DWORD mouseData; DWORD dwFlags; DWORD time;
+/// C: ULONG_PTR dwExtraInfo; } MOUSEINPUT;
+/// C: typedef struct tagHARDWAREINPUT { DWORD uMsg; WORD wParamL; WORD wParamH; } HARDWAREINPUT;
+/// C: typedef struct tagINPUT { DWORD type; union { MOUSEINPUT mi; KEYBDINPUT ki; HARDWAREINPUT
+/// C: hi; } DUMMYUNIONNAME; } INPUT;
+/// C: typedef struct tagKBDLLHOOKSTRUCT { DWORD vkCode; DWORD scanCode; DWORD flags; DWORD time;
+/// C: ULONG_PTR dwExtraInfo; } KBDLLHOOKSTRUCT, *PKBDLLHOOKSTRUCT, *LPKBDLLHOOKSTRUCT;
+/// C: #define LLKHF_EXTENDED (KF_EXTENDED >> 8) / #define LLKHF_INJECTED 0x00000010
+/// C: typedef LRESULT (CALLBACK *HOOKPROC) (int code, WPARAM wParam, LPARAM lParam);
+/// C: #define WH_KEYBOARD_LL 13
+/// C: #define NOTIFY_FOR_THIS_SESSION 0
+/// C: #define INPUT_KEYBOARD 1
+/// C: typedef HKL *LPHKL;
+#[cfg (feature = "have_ntgui")]
+pub type SHORT = c_short;
+#[cfg (feature = "have_ntgui")]
+pub type CHAR = c_char;
+#[cfg (feature = "have_ntgui")]
+pub type HKL = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct KEYBDINPUT
+{
+  pub wVk: WORD,
+  pub wScan: WORD,
+  pub dwFlags: DWORD,
+  pub time: DWORD,
+  pub dwExtraInfo: ULONG_PTR,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MOUSEINPUT
+{
+  pub dx: LONG,
+  pub dy: LONG,
+  pub mouseData: DWORD,
+  pub dwFlags: DWORD,
+  pub time: DWORD,
+  pub dwExtraInfo: ULONG_PTR,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct HARDWAREINPUT
+{
+  pub uMsg: DWORD,
+  pub wParamL: WORD,
+  pub wParamH: WORD,
+}
+/// C's anonymous union member keeps the SDK's own compatibility name `DUMMYUNIONNAME` (the
+/// `w32menu.rs` 648-652 and `w32.rs` 640 readings: `<winnt.h>` defines it as `u` for compilers
+/// without anonymous unions), and C's promoted accesses `inputs[0].ki.…` are written with it.
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union DUMMYUNIONNAME
+{
+  pub mi: MOUSEINPUT,
+  pub ki: KEYBDINPUT,
+  pub hi: HARDWAREINPUT,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct INPUT
+{
+  pub r#type: DWORD,
+  pub DUMMYUNIONNAME: DUMMYUNIONNAME,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct KBDLLHOOKSTRUCT
+{
+  pub vkCode: DWORD,
+  pub scanCode: DWORD,
+  pub flags: DWORD,
+  pub time: DWORD,
+  pub dwExtraInfo: ULONG_PTR,
+}
+#[cfg (feature = "have_ntgui")]
+pub type HOOKPROC = Option<unsafe extern "system" fn (code: c_int, wParam: WPARAM,
+                                                      lParam: LPARAM) -> LRESULT>;
+/// C 3040-3042: `INPUT_RECORD rec;` and C 2940's `KEY_EVENT_RECORD` - `<wincon.h>`'s records,
+/// the same shapes the `w32inevt.c` unit spells (its 159-232).
+/// C: typedef struct _KEY_EVENT_RECORD { BOOL bKeyDown; WORD wRepeatCount; WORD wVirtualKeyCode;
+/// C: WORD wVirtualScanCode; union { WCHAR UnicodeChar; CHAR AsciiChar; } uChar; DWORD
+/// C: dwControlKeyState; } KEY_EVENT_RECORD;
+/// C: typedef struct _COORD { SHORT X; SHORT Y; } COORD;
+/// C: typedef struct _MOUSE_EVENT_RECORD { COORD dwMousePosition; DWORD dwButtonState; DWORD
+/// C: dwControlKeyState; DWORD dwEventFlags; } MOUSE_EVENT_RECORD;
+/// C: typedef struct _WINDOW_BUFFER_SIZE_RECORD { COORD dwSize; } WINDOW_BUFFER_SIZE_RECORD;
+/// C: typedef struct _MENU_EVENT_RECORD { UINT dwCommandId; } MENU_EVENT_RECORD;
+/// C: typedef struct _FOCUS_EVENT_RECORD { BOOL bSetFocus; } FOCUS_EVENT_RECORD;
+/// C: typedef struct _INPUT_RECORD { WORD EventType; union { KEY_EVENT_RECORD KeyEvent;
+/// C: MOUSE_EVENT_RECORD MouseEvent; WINDOW_BUFFER_SIZE_RECORD WindowBufferSizeEvent;
+/// C: MENU_EVENT_RECORD MenuEvent; FOCUS_EVENT_RECORD FocusEvent; } Event; } INPUT_RECORD;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct COORD
+{
+  pub X: SHORT,
+  pub Y: SHORT,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union KEY_EVENT_RECORD_uChar
+{
+  pub UnicodeChar: WCHAR,
+  pub AsciiChar: CHAR,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct KEY_EVENT_RECORD
+{
+  pub bKeyDown: BOOL,
+  pub wRepeatCount: WORD,
+  pub wVirtualKeyCode: WORD,
+  pub wVirtualScanCode: WORD,
+  pub uChar: KEY_EVENT_RECORD_uChar,
+  pub dwControlKeyState: DWORD,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MOUSE_EVENT_RECORD
+{
+  pub dwMousePosition: COORD,
+  pub dwButtonState: DWORD,
+  pub dwControlKeyState: DWORD,
+  pub dwEventFlags: DWORD,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct WINDOW_BUFFER_SIZE_RECORD
+{
+  pub dwSize: COORD,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MENU_EVENT_RECORD
+{
+  pub dwCommandId: UINT,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FOCUS_EVENT_RECORD
+{
+  pub bSetFocus: BOOL,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union INPUT_RECORD_Event
+{
+  pub KeyEvent: KEY_EVENT_RECORD,
+  pub MouseEvent: MOUSE_EVENT_RECORD,
+  pub WindowBufferSizeEvent: WINDOW_BUFFER_SIZE_RECORD,
+  pub MenuEvent: MENU_EVENT_RECORD,
+  pub FocusEvent: FOCUS_EVENT_RECORD,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct INPUT_RECORD
+{
+  pub EventType: WORD,
+  pub Event: INPUT_RECORD_Event,
+}
+#[cfg (feature = "have_ntgui")]
+pub const KEY_EVENT: WORD = 0x0001;
+#[cfg (feature = "have_ntgui")]
+pub const RIGHT_ALT_PRESSED: c_int = 0x0001;
+#[cfg (feature = "have_ntgui")]
+pub const LEFT_ALT_PRESSED: c_int = 0x0002;
+#[cfg (feature = "have_ntgui")]
+pub const RIGHT_CTRL_PRESSED: c_int = 0x0004;
+#[cfg (feature = "have_ntgui")]
+pub const LEFT_CTRL_PRESSED: c_int = 0x0008;
+#[cfg (feature = "have_ntgui")]
+pub const SHIFT_PRESSED: c_int = 0x0010;
+#[cfg (feature = "have_ntgui")]
+pub const NUMLOCK_ON: c_int = 0x0020;
+#[cfg (feature = "have_ntgui")]
+pub const SCROLLLOCK_ON: c_int = 0x0040;
+#[cfg (feature = "have_ntgui")]
+pub const CAPSLOCK_ON: c_int = 0x0080;
+#[cfg (feature = "have_ntgui")]
+pub const ENHANCED_KEY: c_int = 0x0100;
+#[cfg (feature = "have_ntgui")]
+pub const KEYEVENTF_EXTENDEDKEY: DWORD = 0x0001;
+#[cfg (feature = "have_ntgui")]
+pub const KEYEVENTF_KEYUP: DWORD = 0x0002;
+#[cfg (feature = "have_ntgui")]
+pub const INPUT_KEYBOARD: DWORD = 1;
+#[cfg (feature = "have_ntgui")]
+pub const LLKHF_EXTENDED: DWORD = 0x00000001;
+#[cfg (feature = "have_ntgui")]
+pub const LLKHF_INJECTED: DWORD = 0x00000010;
+#[cfg (feature = "have_ntgui")]
+pub const WH_KEYBOARD_LL: c_int = 13;
+#[cfg (feature = "have_ntgui")]
+pub const NOTIFY_FOR_THIS_SESSION: DWORD = 0;
+/// C 3028's `WH_KEYBOARD_LL` hook and C 2980's virtual-key codes - `<winuser.h>`'s (the mirror
+/// carries `VK_LWIN`, `VK_RWIN`, `VK_APPS` and the `VK_NUMPAD_*` family, so only the rest are
+/// here).
+/// C: #define VK_LBUTTON 0x01 … #define VK_CLEAR 0x0C / #define VK_RETURN 0x0D /
+/// C: #define VK_SHIFT 0x10 / #define VK_CONTROL 0x11 / #define VK_MENU 0x12 /
+/// C: #define VK_CAPITAL 0x14 / #define VK_PRIOR 0x21 / #define VK_DOWN 0x28 /
+/// C: #define VK_INSERT 0x2D / #define VK_DELETE 0x2E / #define VK_LSHIFT 0xA0 /
+/// C: #define VK_RSHIFT 0xA1 / #define VK_LCONTROL 0xA2 / #define VK_RCONTROL 0xA3 /
+/// C: #define VK_LMENU 0xA4 / #define VK_RMENU 0xA5 / #define VK_NUMLOCK 0x90 /
+/// C: #define VK_SCROLL 0x91
+#[cfg (feature = "have_ntgui")]
+pub const VK_SHIFT: c_int = 0x10;
+#[cfg (feature = "have_ntgui")]
+pub const VK_CONTROL: c_int = 0x11;
+#[cfg (feature = "have_ntgui")]
+pub const VK_MENU: c_int = 0x12;
+#[cfg (feature = "have_ntgui")]
+pub const VK_CAPITAL: c_int = 0x14;
+#[cfg (feature = "have_ntgui")]
+pub const VK_LSHIFT: c_int = 0xA0;
+#[cfg (feature = "have_ntgui")]
+pub const VK_RSHIFT: c_int = 0xA1;
+#[cfg (feature = "have_ntgui")]
+pub const VK_LCONTROL: c_int = 0xA2;
+#[cfg (feature = "have_ntgui")]
+pub const VK_RCONTROL: c_int = 0xA3;
+#[cfg (feature = "have_ntgui")]
+pub const VK_LMENU: c_int = 0xA4;
+#[cfg (feature = "have_ntgui")]
+pub const VK_RMENU: c_int = 0xA5;
+#[cfg (feature = "have_ntgui")]
+pub const VK_CLEAR: c_int = 0x0C;
+#[cfg (feature = "have_ntgui")]
+pub const VK_RETURN: c_int = 0x0D;
+#[cfg (feature = "have_ntgui")]
+pub const VK_PRIOR: c_int = 0x21;
+#[cfg (feature = "have_ntgui")]
+pub const VK_DOWN: c_int = 0x28;
+#[cfg (feature = "have_ntgui")]
+pub const VK_INSERT: c_int = 0x2D;
+#[cfg (feature = "have_ntgui")]
+pub const VK_DELETE: c_int = 0x2E;
+#[cfg (feature = "have_ntgui")]
+pub const VK_NUMLOCK: c_int = 0x90;
+#[cfg (feature = "have_ntgui")]
+pub const VK_SCROLL: c_int = 0x91;
+/// C 3028-3033: the SDK's keyboard/hook/console/WTS entry points this family calls.
+/// C: BOOL WINAPI GetKeyboardState (PBYTE lpKeyState);
+/// C: BOOL WINAPI SetKeyboardState (LPBYTE lpKeyState);
+/// C: SHORT WINAPI GetKeyState (int nVirtKey);
+/// C: SHORT WINAPI GetAsyncKeyState (int vKey);
+/// C: HWND WINAPI GetFocus (void);
+/// C: HWND WINAPI GetForegroundWindow (void);
+/// C: BOOL WINAPI PostMessageA (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+/// C: LRESULT CALLBACK CallNextHookEx (HHOOK hhk, int nCode, WPARAM wParam, LPARAM lParam);
+/// C: UINT WINAPI SendInput (UINT cInputs, LPINPUT pInputs, int cbSize);
+/// C: void WINAPI keybd_event (BYTE bVk, BYTE bScan, DWORD dwFlags, ULONG_PTR dwExtraInfo);
+/// C: UINT WINAPI MapVirtualKeyA (UINT uCode, UINT uMapType);
+/// C: HHOOK WINAPI SetWindowsHookExA (int idHook, HOOKPROC lpfn, HINSTANCE hmod,
+/// C: DWORD dwThreadId);
+/// C: BOOL WINAPI UnhookWindowsHookEx (HHOOK hhk);
+/// C: DWORD WINAPI GetCurrentThreadId (void);
+/// C: BOOL WINAPI WriteConsoleInputA (HANDLE hConsoleInput, const INPUT_RECORD *lpBuffer,
+/// C: DWORD nLength, LPDWORD lpNumberOfEventsWritten);
+/// C: BOOL WINAPI WriteConsoleInputW (HANDLE hConsoleInput, const INPUT_RECORD *lpBuffer,
+/// C: DWORD nLength, LPDWORD lpNumberOfEventsWritten);
+/// C: DWORD WINAPI GetModuleHandleA (LPCSTR lpModuleName);
+/// C: HRESULT WINAPI CoCreateGuid (GUID *pguid);
+/// C: int WINAPI StringFromGUID2 (REFGUID rguid, LPOLESTR lpsz, int cchMax);
+/// C: DWORD WINAPI GetConsoleTitleW (LPWSTR lpConsoleTitle, DWORD nSize);
+/// C: BOOL WINAPI SetConsoleTitleW (LPCWSTR lpConsoleTitle);
+/// C: HWND WINAPI FindWindowW (LPCWSTR lpClassName, LPCWSTR lpWindowName);
+/// C: void WINAPI Sleep (DWORD dwMilliseconds);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetKeyboardState (lpKeyState: LPBYTE) -> BOOL;
+  pub fn SetKeyboardState (lpKeyState: LPBYTE) -> BOOL;
+  pub fn GetKeyState (nVirtKey: c_int) -> SHORT;
+  pub fn GetAsyncKeyState (vKey: c_int) -> SHORT;
+  pub fn GetFocus () -> HWND;
+  pub fn GetForegroundWindow () -> HWND;
+  pub fn PostMessage (hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> BOOL;
+  pub fn CallNextHookEx (hhk: HHOOK, nCode: c_int, wParam: WPARAM, lParam: LPARAM) -> LRESULT;
+  pub fn SendInput (cInputs: UINT, pInputs: *const INPUT, cbSize: c_int) -> UINT;
+  pub fn keybd_event (bVk: BYTE, bScan: BYTE, dwFlags: DWORD, dwExtraInfo: ULONG_PTR);
+  pub fn MapVirtualKey (uCode: UINT, uMapType: UINT) -> UINT;
+  pub fn SetWindowsHookEx (idHook: c_int, lpfn: HOOKPROC, hmod: HINSTANCE,
+                           dwThreadId: DWORD) -> HHOOK;
+  pub fn UnhookWindowsHookEx (hhk: HHOOK) -> BOOL;
+  pub fn GetCurrentThreadId () -> DWORD;
+  pub fn WriteConsoleInputA (hConsoleInput: HANDLE, lpBuffer: *const INPUT_RECORD,
+                             nLength: DWORD, lpNumberOfEventsWritten: *mut DWORD) -> BOOL;
+  pub fn WriteConsoleInputW (hConsoleInput: HANDLE, lpBuffer: *const INPUT_RECORD,
+                             nLength: DWORD, lpNumberOfEventsWritten: *mut DWORD) -> BOOL;
+  pub fn CoCreateGuid (pguid: *mut GUID) -> HRESULT;
+  pub fn StringFromGUID2 (rguid: *const GUID, lpsz: LPWSTR, cchMax: c_int) -> c_int;
+  pub fn GetConsoleTitleW (lpConsoleTitle: LPWSTR, nSize: DWORD) -> DWORD;
+  pub fn SetConsoleTitleW (lpConsoleTitle: *const WCHAR) -> BOOL;
+  pub fn FindWindowW (lpClassName: *const WCHAR, lpWindowName: *const WCHAR) -> HWND;
+  pub fn Sleep (dwMilliseconds: DWORD);
+}
+
+/* The Windows keyboard hook callback.  */
+/// C 2874-3066: `static LRESULT CALLBACK funhook (int code, WPARAM w, LPARAM l)`.  `CALLBACK` is
+/// `__stdcall` (the `WNDPROC` reading above), C's `get_console != NULL` is the port's integer
+/// test of a raw function pointer, and C's `GetKeyState`/`GetAsyncKeyState` results (Windows'
+/// 16-bit `SHORT`) promote to `int` inside C's `&` expressions, which the port writes out.
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe extern "system" fn funhook (code: c_int, w: WPARAM, l: LPARAM) -> LRESULT
+{
+  let mut inputs: [INPUT; 2] = core::mem::zeroed ();
+  let mut focus: HWND = GetFocus ();
+  let mut console: c_int = 0;
+  let hs: *const KBDLLHOOKSTRUCT = l as *const KBDLLHOOKSTRUCT;
+
+  if code < 0 || (*hs).flags & LLKHF_INJECTED != 0
+    { return CallNextHookEx (core::ptr::null_mut (), code, w, l); }
+
+  /* The keyboard hook sees keyboard input on all processes (except
+     elevated ones, when Emacs itself is not elevated).  As such,
+     care must be taken to only filter out keyboard input when Emacs
+     itself is on the foreground.
+
+     GetFocus returns a non-NULL window if another application is active,
+     and always for a console Emacs process.  For a console Emacs, determine
+     focus by checking if the current foreground window is the process's
+     console window.  */
+  if focus.is_null () && ! kbdhook.console.is_null ()
+    {
+      if GetForegroundWindow () == kbdhook.console
+	{
+	  focus = kbdhook.console;
+	  console = 1;
+	}
+    }
+
+  /* First, check hooks for the left and right Windows keys.  */
+  if (*hs).vkCode == VK_LWIN as DWORD || (*hs).vkCode == VK_RWIN as DWORD
+    {
+      if ! focus.is_null () && (w as c_int == WM_KEYDOWN || w as c_int == WM_SYSKEYDOWN)
+	{
+	  /* The key is being pressed in an Emacs window.  */
+	  if (*hs).vkCode == VK_LWIN as DWORD && kbdhook.lwindown == 0
+	    {
+	      kbdhook.lwindown = 1;
+	      kbdhook.winseen = 1;
+	      kbdhook.winsdown += 1;
+	    }
+	  else if (*hs).vkCode == VK_RWIN as DWORD && kbdhook.rwindown == 0
+	    {
+	      kbdhook.rwindown = 1;
+	      kbdhook.winseen = 1;
+	      kbdhook.winsdown += 1;
+	    }
+	  /* Returning 1 here drops the keypress without further processing.
+	     If the keypress was allowed to go through, the normal Windows
+	     hotkeys would take over.  */
+	  return 1;
+	}
+      else if kbdhook.winsdown > 0 && (w as c_int == WM_KEYUP || w as c_int == WM_SYSKEYUP)
+	{
+	  /* A key that has been captured earlier is being released now.  */
+	  if (*hs).vkCode == VK_LWIN as DWORD && kbdhook.lwindown != 0
+	    {
+	      kbdhook.lwindown = 0;
+	      kbdhook.winsdown -= 1;
+	    }
+	  else if (*hs).vkCode == VK_RWIN as DWORD && kbdhook.rwindown != 0
+	    {
+	      kbdhook.rwindown = 0;
+	      kbdhook.winsdown -= 1;
+	    }
+	  if kbdhook.winsdown == 0 && kbdhook.winseen != 0
+	    {
+	      if kbdhook.suppress_lone == 0
+		{
+		  /* The Windows key was pressed, then released,
+		     without any other key pressed simultaneously.
+		     Normally, this opens the Start menu, but the user
+		     can prevent this by setting the
+		     w32-pass-[lr]window-to-system variable to
+		     NIL.  */
+		  if (*hs).vkCode == VK_LWIN as DWORD
+		       && ! NILP (Vw32_pass_lwindow_to_system)
+		     || (*hs).vkCode == VK_RWIN as DWORD
+		       && ! NILP (Vw32_pass_rwindow_to_system)
+		    {
+		      /* Not prevented - Simulate the keypress to the system.  */
+		      memset (inputs.as_mut_ptr () as *mut c_void, 0,
+			      core::mem::size_of_val (&inputs));
+		      inputs[0].r#type = INPUT_KEYBOARD;
+		      inputs[0].DUMMYUNIONNAME.ki.wVk = (*hs).vkCode as WORD;
+		      inputs[0].DUMMYUNIONNAME.ki.wScan = (*hs).vkCode as WORD;
+		      inputs[0].DUMMYUNIONNAME.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+		      inputs[0].DUMMYUNIONNAME.ki.time = 0;
+		      inputs[1].r#type = INPUT_KEYBOARD;
+		      inputs[1].DUMMYUNIONNAME.ki.wVk = (*hs).vkCode as WORD;
+		      inputs[1].DUMMYUNIONNAME.ki.wScan = (*hs).vkCode as WORD;
+		      inputs[1].DUMMYUNIONNAME.ki.dwFlags
+			= KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP;
+		      inputs[1].DUMMYUNIONNAME.ki.time = 0;
+		      SendInput (2, inputs.as_mut_ptr (), core::mem::size_of::<INPUT> () as c_int);
+		    }
+		  else if ! focus.is_null ()
+		    {
+		      /* When not passed to system, must simulate privately to Emacs.  */
+		      PostMessage (focus, WM_SYSKEYDOWN as UINT, (*hs).vkCode as WPARAM, 0);
+		      PostMessage (focus, WM_SYSKEYUP as UINT, (*hs).vkCode as WPARAM, 0);
+		    }
+		}
+	    }
+	  if kbdhook.winsdown == 0
+	    {
+	      /* No Windows keys pressed anymore - clear the state flags.  */
+	      kbdhook.suppress_lone = 0;
+	      kbdhook.winseen = 0;
+	    }
+	  if kbdhook.send_win_up == 0
+	    {
+	      /* Swallow this release message, as not to confuse
+		 applications who did not get to see the original
+		 WM_KEYDOWN message either.  */
+	      return 1;
+	    }
+	  kbdhook.send_win_up = 0;
+	}
+    }
+  else if kbdhook.winsdown > 0
+    {
+      /* Some other key was pressed while a captured Win key is down.
+	 This is either an Emacs registered hotkey combination, or a
+	 system hotkey.	 */
+      if kbdhook.lwindown != 0 && kbdhook.lwin_hooked[(*hs).vkCode as usize] != 0
+	  || kbdhook.rwindown != 0 && kbdhook.rwin_hooked[(*hs).vkCode as usize] != 0
+	{
+	  /* Hooked Win-x combination, do not pass the keypress to Windows.  */
+	  kbdhook.suppress_lone = 1;
+	}
+      else if kbdhook.suppress_lone == 0
+	{
+	  /* Unhooked S-x combination; simulate the combination now
+	     (will be seen by the system).  */
+	  memset (inputs.as_mut_ptr () as *mut c_void, 0, core::mem::size_of_val (&inputs));
+	  inputs[0].r#type = INPUT_KEYBOARD;
+	  inputs[0].DUMMYUNIONNAME.ki.wVk
+	    = (if kbdhook.lwindown != 0 { VK_LWIN } else { VK_RWIN }) as WORD;
+	  inputs[0].DUMMYUNIONNAME.ki.wScan
+	    = (if kbdhook.lwindown != 0 { VK_LWIN } else { VK_RWIN }) as WORD;
+	  inputs[0].DUMMYUNIONNAME.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+	  inputs[0].DUMMYUNIONNAME.ki.time = 0;
+	  inputs[1].r#type = INPUT_KEYBOARD;
+	  inputs[1].DUMMYUNIONNAME.ki.wVk = (*hs).vkCode as WORD;
+	  inputs[1].DUMMYUNIONNAME.ki.wScan = (*hs).scanCode as WORD;
+	  inputs[1].DUMMYUNIONNAME.ki.dwFlags
+	    = if (*hs).flags & LLKHF_EXTENDED != 0 { KEYEVENTF_EXTENDEDKEY } else { 0 };
+	  inputs[1].DUMMYUNIONNAME.ki.time = 0;
+	  SendInput (2, inputs.as_mut_ptr (), core::mem::size_of::<INPUT> () as c_int);
+	  /* Stop processing of this Win sequence here; the
+	     corresponding keyup messages will come through the normal
+	     channel when the keys are released.  */
+	  kbdhook.suppress_lone = 1;
+	  kbdhook.send_win_up = 1;
+	  /* Swallow the original keypress (as we want the Win key
+	     down message simulated above to precede this real message).  */
+	  return 1;
+	}
+    }
+
+  /* Next, handle the registered Alt-* combinations.  */
+  if (w as c_int == WM_SYSKEYDOWN || w as c_int == WM_KEYDOWN)
+      && kbdhook.alt_hooked[(*hs).vkCode as usize] != 0
+      && ! focus.is_null ()
+      && (GetAsyncKeyState (VK_MENU) as c_int & 0x8000) != 0
+    {
+      /* Prevent the system from getting this Alt-* key - suppress the
+	 message and post as a normal keypress to Emacs.  */
+      if console != 0
+	{
+	  let mut rec: INPUT_RECORD = core::mem::zeroed ();
+	  let mut n: DWORD = 0;
+	  rec.EventType = KEY_EVENT;
+	  rec.Event.KeyEvent.bKeyDown = TRUE;
+	  rec.Event.KeyEvent.wVirtualKeyCode = (*hs).vkCode as WORD;
+	  rec.Event.KeyEvent.wVirtualScanCode = (*hs).scanCode as WORD;
+	  rec.Event.KeyEvent.uChar.UnicodeChar = 0;
+	  rec.Event.KeyEvent.dwControlKeyState
+	    = ((if GetAsyncKeyState (VK_LMENU) as c_int & 0x8000 != 0
+		   { LEFT_ALT_PRESSED } else { 0 })
+	       | (if GetAsyncKeyState (VK_RMENU) as c_int & 0x8000 != 0
+		    { RIGHT_ALT_PRESSED } else { 0 })
+	       | (if GetAsyncKeyState (VK_LCONTROL) as c_int & 0x8000 != 0
+		    { LEFT_CTRL_PRESSED } else { 0 })
+	       | (if GetAsyncKeyState (VK_RCONTROL) as c_int & 0x8000 != 0
+		    { RIGHT_CTRL_PRESSED } else { 0 })
+	       | (if GetAsyncKeyState (VK_SHIFT) as c_int & 0x8000 != 0
+		    { SHIFT_PRESSED } else { 0 })
+	       | (if (*hs).flags & LLKHF_EXTENDED != 0 { ENHANCED_KEY } else { 0 })) as DWORD;
+	  if w32_console_unicode_input != 0
+	    { WriteConsoleInputW (keyboard_handle, &raw const rec, 1, &raw mut n); }
+	  else
+	    { WriteConsoleInputA (keyboard_handle, &raw const rec, 1, &raw mut n); }
+	}
+      else
+	{ PostMessage (focus, w as UINT, (*hs).vkCode as WPARAM, 1 | (1 << 29)); }
+      return 1;
+    }
+
+  /* The normal case - pass the message through.  */
+  return CallNextHookEx (core::ptr::null_mut (), code, w, l);
+}
+
+/// C 3096/3126: `GetModuleHandle ("kernel32.dll")` and `GetModuleHandle (NULL)` - the entry point
+/// the first slice's `w32_load_cursor` (C 2381-2394) also calls; no mirror carries it, so the
+/// single declaration stands here (P-88 ①), where C 3096 names it.
+/// C: HMODULE WINAPI GetModuleHandleA (LPCSTR lpModuleName);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetModuleHandle (lpModuleName: *const c_char) -> HMODULE;
+}
+
+/* Set up the hook; can be called several times, with matching
+   remove_w32_kbdhook calls.  */
+/// C 3070-3137: `void setup_w32_kbdhook (HWND hwnd)` - a non-`static` definition, so it carries
+/// `#[unsafe(no_mangle)]`.  C's `(GetConsoleWindow_Proc) get_proc_addr (…)` is the port's
+/// `transmute` of the `VOIDFNPTR` the header returns (the `LOAD_DLL_FN` reading, `w32common.h`
+/// 82-89), and C's `get_console != NULL` is a raw function pointer's integer test.
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn setup_w32_kbdhook (hwnd: HWND)
+{
+  kbdhook.hook_count += 1;
+
+  /* This hook gets in the way of debugging, since when Emacs stops,
+     its input thread stops, and there's nothing to process keyboard
+     events, whereas this hook is global, and is invoked in the
+     context of the thread that installed it.  So we don't install the
+     hook if the process is being debugged. */
+  if w32_kbdhook_active! ()
+    {
+      if is_debugger_present.is_some () && (is_debugger_present.unwrap ()) () != 0
+	{ return; }
+    }
+
+  /* Hooking is only available on NT architecture systems, as
+     indicated by the w32_kbdhook_active variable.  */
+  if kbdhook.hook_count == 1 && w32_kbdhook_active! ()
+    {
+      /* Get the handle of the Emacs console window.  As the
+	 GetConsoleWindow function is only available on Win2000+, a
+	 hackish workaround described in Microsoft KB article 124103
+	 (https://support.microsoft.com/en-us/kb/124103) is used for
+	 NT 4 systems.  */
+      let get_console: GetConsoleWindow_Proc
+	= core::mem::transmute (get_proc_addr (GetModuleHandle (c"kernel32.dll".as_ptr ()),
+					       c"GetConsoleWindow".as_ptr ()));
+
+      if get_console as usize != 0
+	{ kbdhook.console = get_console (); }
+      else
+	{
+	  let mut guid: GUID = core::mem::zeroed ();
+	  let oldTitle: *mut c_ushort
+	    = malloc (1024 * core::mem::size_of::<c_ushort> ()) as *mut c_ushort;
+	  let mut newTitle: [c_ushort; 64] = [0; 64];
+	  let mut i: c_int;
+
+	  CoCreateGuid (&raw mut guid);
+	  if ! oldTitle.is_null () && StringFromGUID2 (&raw const guid, newTitle.as_mut_ptr (), 64) != 0
+	    {
+	      GetConsoleTitleW (oldTitle, 1024);
+	      SetConsoleTitleW (newTitle.as_ptr ());
+	      for i in 0..25
+		{
+		  Sleep (40);
+		  kbdhook.console = FindWindowW (core::ptr::null (), newTitle.as_ptr ());
+		  if ! kbdhook.console.is_null ()
+		    { break; }
+		}
+	      SetConsoleTitleW (oldTitle);
+	    }
+	  free (oldTitle as *mut c_void);
+	}
+
+      /* Set the hook.  */
+      kbdhook.hook = SetWindowsHookEx (WH_KEYBOARD_LL, Some (funhook),
+				       GetModuleHandle (core::ptr::null ()), 0);
+
+      /* Register session notifications so we get notified about the
+	 computer being locked.  */
+      kbdhook.notified_wnd = core::ptr::null_mut ();
+      if ! hwnd.is_null () && WTSRegisterSessionNotification_fn.is_some ()
+	{
+	  (WTSRegisterSessionNotification_fn.unwrap ()) (hwnd, NOTIFY_FOR_THIS_SESSION);
+	  kbdhook.notified_wnd = hwnd;
+	}
+    }
+}
+
+/* Remove the hook.  */
+/// C 3140-3153: `void remove_w32_kbdhook (void)` - the second non-`static` definition of the
+/// family.
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn remove_w32_kbdhook ()
+{
+  kbdhook.hook_count -= 1;
+  if kbdhook.hook_count == 0 && w32_kbdhook_active! ()
+    {
+      UnhookWindowsHookEx (kbdhook.hook);
+      if ! kbdhook.notified_wnd.is_null ()
+	  && WTSUnRegisterSessionNotification_fn.is_some ()
+	{ (WTSUnRegisterSessionNotification_fn.unwrap ()) (kbdhook.notified_wnd); }
+      kbdhook.hook = core::ptr::null_mut ();
+      kbdhook.notified_wnd = core::ptr::null_mut ();
+    }
+}
+
+/* Mark a specific key combination as hooked, preventing it to be
+   handled by the system.  */
+/// C 3158-3194: `static void hook_w32_key (int hook, int modifier, int vkey)` - outside the
+/// `WINDOWSNT` arm (C 3154's `#endif` closes it), so only the file gate applies.  C's `char *tbl`
+/// takes the address of one of the record's three 256-byte tables, and its `(char)hook` casts
+/// narrow the value to C's `char` before both stores (written out here).
+#[cfg (feature = "have_ntgui")]
+unsafe fn hook_w32_key (hook: c_int, modifier: c_int, vkey: c_int)
+{
+  let mut tbl: *mut c_char = core::ptr::null_mut ();
+
+  match modifier
+    {
+    VK_MENU =>
+      {
+	tbl = kbdhook.alt_hooked.as_mut_ptr ();
+      }
+    VK_LWIN =>
+      {
+	tbl = kbdhook.lwin_hooked.as_mut_ptr ();
+      }
+    VK_RWIN =>
+      {
+	tbl = kbdhook.rwin_hooked.as_mut_ptr ();
+      }
+    _ => {}
+    }
+
+  if ! tbl.is_null () && vkey >= 0 && vkey <= 255
+    {
+       /* VK_ANY hooks all keys for this modifier */
+       if vkey == VK_ANY
+	 { memset (tbl as *mut c_void, hook as c_char as c_int, 256); }
+       else
+	 { *tbl.offset (vkey as isize) = hook as c_char; }
+       /* Alt-<modifier>s should go through */
+       kbdhook.alt_hooked[VK_MENU as usize] = 0;
+       kbdhook.alt_hooked[VK_LMENU as usize] = 0;
+       kbdhook.alt_hooked[VK_RMENU as usize] = 0;
+       kbdhook.alt_hooked[VK_CONTROL as usize] = 0;
+       kbdhook.alt_hooked[VK_LCONTROL as usize] = 0;
+       kbdhook.alt_hooked[VK_RCONTROL as usize] = 0;
+       kbdhook.alt_hooked[VK_SHIFT as usize] = 0;
+       kbdhook.alt_hooked[VK_LSHIFT as usize] = 0;
+       kbdhook.alt_hooked[VK_RSHIFT as usize] = 0;
+    }
+}
+
+/* Check the current Win key pressed state.  */
+/// C 3198-3223: `int check_w32_winkey_state (int vkey)` - inside C 3196's `#ifdef WINDOWSNT`
+/// arm, so it carries both gates; C's comment is kept below C's own position.
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn check_w32_winkey_state (vkey: c_int) -> c_int
+{
+  /* The hook code handles grabbing of the Windows keys and Alt-* key
+     combinations reserved by the system.  Handling Alt is a bit
+     easier, as Windows intends Alt-* shortcuts for application use in
+     Windows; hotkeys such as Alt-tab and Alt-escape are special
+     cases.  Win-* hotkeys, on the other hand, are primarily meant for
+     system use.
+
+     As a result, when we want Emacs to be able to grab the Win-*
+     keys, we must swallow all Win key presses in a low-level keyboard
+     hook.  Unfortunately, this means that the Emacs window procedure
+     (and console input handler) never see the keypresses either.
+     Thus, to check the modifier states properly, Emacs code must use
+     the check_w32_winkey_state function that uses the flags directly
+     updated by the hook callback.  */
+  match vkey
+    {
+    VK_LWIN =>
+      {
+	return kbdhook.lwindown;
+      }
+    VK_RWIN =>
+      {
+	return kbdhook.rwindown;
+      }
+    _ => {}
+    }
+  return 0;
+}
+
+/* Reset the keyboard hook state.  Locking the workstation with Win-L
+   leaves the Win key(s) "down" from the hook's point of view - the
+   keyup event is never seen.  Thus, this function must be called when
+   the system is locked.  */
+/// C 3229-3238: `void reset_w32_kbdhook_state (void)` - the third non-`static` definition of the
+/// family, inside the same `WINDOWSNT` arm.
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn reset_w32_kbdhook_state ()
+{
+  kbdhook.lwindown = 0;
+  kbdhook.rwindown = 0;
+  kbdhook.winsdown = 0;
+  kbdhook.send_win_up = 0;
+  kbdhook.suppress_lone = 0;
+  kbdhook.winseen = 0;
+}
+
+/* GetKeyState and MapVirtualKey on Windows 95 do not actually distinguish
+   between left and right keys as advertised.  We test for this
+   support dynamically, and set a flag when the support is absent.  If
+   absent, we keep track of the left and right control and alt keys
+   ourselves.  This is particularly necessary on keyboards that rely
+   upon the AltGr key, which is represented as having the left control
+   and right alt keys pressed.  For these keyboards, we need to know
+   when the left alt key has been pressed in addition to the AltGr key
+   so that we can properly support M-AltGr-key sequences (such as M-@
+   on Swedish keyboards).  */
+
+/// C 3252-3255: the four indices of C's `modifiers` array.  C's `#define`s are untyped; the port
+/// types them `usize` because every use is an array subscript (the `modifiers[i]` writes below
+/// and the four reads of `modifier_set`).
+/// C: #define EMACS_LCONTROL 0
+/// C: #define EMACS_RCONTROL 1
+/// C: #define EMACS_LMENU    2
+/// C: #define EMACS_RMENU    3
+#[cfg (feature = "have_ntgui")]
+pub const EMACS_LCONTROL: usize = 0;
+#[cfg (feature = "have_ntgui")]
+pub const EMACS_RCONTROL: usize = 1;
+#[cfg (feature = "have_ntgui")]
+pub const EMACS_LMENU: usize = 2;
+#[cfg (feature = "have_ntgui")]
+pub const EMACS_RMENU: usize = 3;
+
+/// C 3257-3259: the three file-scope `static int`s of the modifier family.
+/// C: static int modifiers[4];
+/// C: static int modifiers_recorded;
+/// C: static int modifier_key_support_tested;
+#[cfg (feature = "have_ntgui")]
+static mut modifiers: [c_int; 4] = [0; 4];
+#[cfg (feature = "have_ntgui")]
+static mut modifiers_recorded: c_int = 0;
+#[cfg (feature = "have_ntgui")]
+static mut modifier_key_support_tested: c_int = 0;
+
+/// C 3262-3283: `static void test_modifier_support (unsigned int wparam)`.  C's
+/// `GetKeyState (l) & 0x8000` promotes the SDK's 16-bit `SHORT` to `int`, which the port writes
+/// out (the `funhook` reading).
+#[cfg (feature = "have_ntgui")]
+unsafe fn test_modifier_support (wparam: c_uint)
+{
+  let mut l: c_uint = 0;
+  let mut r: c_uint = 0;
+
+  if wparam != VK_CONTROL as c_uint && wparam != VK_MENU as c_uint
+    { return; }
+  if wparam == VK_CONTROL as c_uint
+    {
+      l = VK_LCONTROL as c_uint;
+      r = VK_RCONTROL as c_uint;
+    }
+  else
+    {
+      l = VK_LMENU as c_uint;
+      r = VK_RMENU as c_uint;
+    }
+  if (GetKeyState (l as c_int) as c_int) & 0x8000 == 0
+      && (GetKeyState (r as c_int) as c_int) & 0x8000 == 0
+    { modifiers_recorded = 1; }
+  else
+    { modifiers_recorded = 0; }
+  modifier_key_support_tested = 1;
+}
+
+/// C 3285-3302: `static void record_keydown (unsigned int wparam, unsigned int lparam)`.  C's
+/// `int i` holds one of the four `EMACS_*` indices, so the port types it `usize`.
+#[cfg (feature = "have_ntgui")]
+unsafe fn record_keydown (wparam: c_uint, lparam: c_uint)
+{
+  let mut i: usize = 0;
+
+  if modifier_key_support_tested == 0
+    { test_modifier_support (wparam); }
+
+  if (wparam != VK_CONTROL as c_uint && wparam != VK_MENU as c_uint)
+      || modifiers_recorded == 0
+    { return; }
+
+  if wparam == VK_CONTROL as c_uint
+    { i = if lparam & 0x1000000 != 0 { EMACS_RCONTROL } else { EMACS_LCONTROL }; }
+  else
+    { i = if lparam & 0x1000000 != 0 { EMACS_RMENU } else { EMACS_LMENU }; }
+
+  modifiers[i] = 1;
+}
+
+/// C 3304-3318: `static void record_keyup (unsigned int wparam, unsigned int lparam)` - the same
+/// index arithmetic, storing 0.
+#[cfg (feature = "have_ntgui")]
+unsafe fn record_keyup (wparam: c_uint, lparam: c_uint)
+{
+  let mut i: usize = 0;
+
+  if (wparam != VK_CONTROL as c_uint && wparam != VK_MENU as c_uint) || modifiers_recorded == 0
+    { return; }
+
+  if wparam == VK_CONTROL as c_uint
+    { i = if lparam & 0x1000000 != 0 { EMACS_RCONTROL } else { EMACS_LCONTROL }; }
+  else
+    { i = if lparam & 0x1000000 != 0 { EMACS_RMENU } else { EMACS_LMENU }; }
+
+  modifiers[i] = 0;
+}
+
+/* Emacs can lose focus while a modifier key has been pressed.  When
+   it regains focus, be conservative and clear all modifiers since
+   we cannot reconstruct the left and right modifier state.  */
+/// C 3323-3365: `static void reset_modifiers (void)`.  The `CURRENT_STATE` `#define` of C 3349 is
+/// the port's `macro_rules!` at C's own position inside the block (its argument is evaluated once
+/// on each side, PORTING.md 2.1), and C's `BYTE keystate[256]` meets a pointer parameter, so the
+/// port passes `keystate.as_mut_ptr ()` where C's array decays.
+#[cfg (feature = "have_ntgui")]
+unsafe fn reset_modifiers ()
+{
+  let mut ctrl: SHORT = 0;
+  let mut alt: SHORT = 0;
+
+  if GetFocus ().is_null ()
+    /* Emacs doesn't have keyboard focus.  Do nothing.  */
+    { return; }
+
+  ctrl = GetAsyncKeyState (VK_CONTROL);
+  alt = GetAsyncKeyState (VK_MENU);
+
+  if (ctrl as c_int) & 0x08000 == 0
+    /* Clear any recorded control modifier state.  */
+    { modifiers[EMACS_RCONTROL] = 0; modifiers[EMACS_LCONTROL] = 0; }
+
+  if (alt as c_int) & 0x08000 == 0
+    /* Clear any recorded alt modifier state.  */
+    { modifiers[EMACS_RMENU] = 0; modifiers[EMACS_LMENU] = 0; }
+
+  /* Update the state of all modifier keys, because modifiers used in
+     hot-key combinations can get stuck on if Emacs loses focus as a
+     result of a hot-key being pressed.  */
+  {
+    let mut keystate: [BYTE; 256] = [0; 256];
+
+    /// C: #define CURRENT_STATE(key) ((GetAsyncKeyState (key) & 0x8000) >> 8)
+    macro_rules! CURRENT_STATE {
+      ($key:expr) => { ((GetAsyncKeyState ($key) as c_int & 0x8000) >> 8) };
+    }
+
+    memset (keystate.as_mut_ptr () as *mut c_void, 0, core::mem::size_of_val (&keystate));
+    GetKeyboardState (keystate.as_mut_ptr ());
+    keystate[VK_SHIFT as usize] = CURRENT_STATE! (VK_SHIFT) as BYTE;
+    keystate[VK_CONTROL as usize] = CURRENT_STATE! (VK_CONTROL) as BYTE;
+    keystate[VK_LCONTROL as usize] = CURRENT_STATE! (VK_LCONTROL) as BYTE;
+    keystate[VK_RCONTROL as usize] = CURRENT_STATE! (VK_RCONTROL) as BYTE;
+    keystate[VK_MENU as usize] = CURRENT_STATE! (VK_MENU) as BYTE;
+    keystate[VK_LMENU as usize] = CURRENT_STATE! (VK_LMENU) as BYTE;
+    keystate[VK_RMENU as usize] = CURRENT_STATE! (VK_RMENU) as BYTE;
+    keystate[VK_LWIN as usize] = CURRENT_STATE! (VK_LWIN) as BYTE;
+    keystate[VK_RWIN as usize] = CURRENT_STATE! (VK_RWIN) as BYTE;
+    keystate[VK_APPS as usize] = CURRENT_STATE! (VK_APPS) as BYTE;
+    SetKeyboardState (keystate.as_mut_ptr ());
+  }
+}
+
+/* Synchronize modifier state with what is reported with the current
+   keystroke.  Even if we cannot distinguish between left and right
+   modifier keys, we know that, if no modifiers are set, then neither
+   the left or right modifier should be set.  */
+/// C 3371-3382.
+#[cfg (feature = "have_ntgui")]
+unsafe fn sync_modifiers ()
+{
+  if modifiers_recorded == 0
+    { return; }
+
+  if (GetKeyState (VK_CONTROL) as c_int) & 0x8000 == 0
+    { modifiers[EMACS_RCONTROL] = 0; modifiers[EMACS_LCONTROL] = 0; }
+
+  if (GetKeyState (VK_MENU) as c_int) & 0x8000 == 0
+    { modifiers[EMACS_RMENU] = 0; modifiers[EMACS_LMENU] = 0; }
+}
+
+/// C 3384-3435: `static int modifier_set (int vkey)`.  C's comment is kept, and C 3415-3418's
+/// `#ifdef WINDOWSNT` arm is the port's `#[cfg (feature = "windowsnt")]` block inside the body
+/// (the file gate covers the item).
+#[cfg (feature = "have_ntgui")]
+unsafe fn modifier_set (vkey: c_int) -> c_int
+{
+  /* Warning: The fact that VK_NUMLOCK is not treated as the other 2
+     toggle keys is not an omission!  If you want to add it, you will
+     have to make changes in the default sub-case of the WM_KEYDOWN
+     switch, because if the NUMLOCK modifier is set, the code there
+     will directly convert any key that looks like an ASCII letter,
+     and also downcase those that look like upper-case ASCII.  */
+  if vkey == VK_CAPITAL
+    {
+      if NILP (Vw32_enable_caps_lock)
+	{ return 0; }
+      else
+	{ return GetKeyState (vkey) as c_int & 0x1; }
+    }
+  if vkey == VK_SCROLL
+    {
+      if NILP (Vw32_scroll_lock_modifier)
+	  /* w32-scroll-lock-modifier can be any non-nil value that is
+	     not one of the modifiers, in which case it shall be ignored.  */
+	  || ! (   EQ (Vw32_scroll_lock_modifier, Qhyper ())
+		|| EQ (Vw32_scroll_lock_modifier, Qsuper ())
+		|| EQ (Vw32_scroll_lock_modifier, Qmeta ())
+		|| EQ (Vw32_scroll_lock_modifier, Qalt ())
+		|| EQ (Vw32_scroll_lock_modifier, Qcontrol ())
+		|| EQ (Vw32_scroll_lock_modifier, Qshift ()))
+	{ return 0; }
+      else
+	{ return GetKeyState (vkey) as c_int & 0x1; }
+    }
+  #[cfg (feature = "windowsnt")]
+  {
+    if w32_kbdhook_active! () && (vkey == VK_LWIN || vkey == VK_RWIN)
+      { return check_w32_winkey_state (vkey); }
+  }
+
+  if modifiers_recorded == 0
+    { return GetKeyState (vkey) as c_int & 0x8000; }
+
+  match vkey
+    {
+    VK_LCONTROL =>
+      {
+	return modifiers[EMACS_LCONTROL];
+      }
+    VK_RCONTROL =>
+      {
+	return modifiers[EMACS_RCONTROL];
+      }
+    VK_LMENU =>
+      {
+	return modifiers[EMACS_LMENU];
+      }
+    VK_RMENU =>
+      {
+	return modifiers[EMACS_RMENU];
+      }
+    _ => {}
+    }
+  return GetKeyState (vkey) as c_int & 0x8000;
+}
+
+/* Convert between the modifier bits W32 uses and the modifier bits
+   Emacs uses.  */
+/* C 3437-3439: C's `unsigned int w32_key_to_modifier (int);` forward declaration has no Rust
+   counterpart (PORTING.md 0.1-12); the definition stands at C's position below.  */
+/// C 3441-3487: `unsigned int w32_key_to_modifier (int key)` - a non-`static` definition, so it
+/// carries `#[unsafe(no_mangle)]`.  C's `Lisp_Object key_mapping;` is assigned by every arm of
+/// the `switch` (its `default:` too), which Rust accepts as a deferred initialiser, and C's
+/// `int`-valued modifier constants convert to the declared `unsigned int` return, which the port
+/// writes out.
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_key_to_modifier (key: c_int) -> c_uint
+{
+  let mut key_mapping: Lisp_Object;
+
+  match key
+    {
+    VK_LWIN =>
+      {
+	key_mapping = Vw32_lwindow_modifier;
+      }
+    VK_RWIN =>
+      {
+	key_mapping = Vw32_rwindow_modifier;
+      }
+    VK_APPS =>
+      {
+	key_mapping = Vw32_apps_modifier;
+      }
+    VK_SCROLL =>
+      {
+	key_mapping = Vw32_scroll_lock_modifier;
+      }
+    _ =>
+      {
+	key_mapping = Qnil ();
+      }
+    }
+
+  /* NB. This code runs in the input thread, asynchronously to the lisp
+     thread, so we must be careful to ensure access to lisp data is
+     thread-safe.  The following code is safe because the modifier
+     variable values are updated atomically from lisp and symbols are
+     not relocated by GC.  Also, we don't have to worry about seeing GC
+     markbits here.  */
+  if EQ (key_mapping, Qhyper ())
+    { return hyper_modifier as c_uint; }
+  if EQ (key_mapping, Qsuper ())
+    { return super_modifier as c_uint; }
+  if EQ (key_mapping, Qmeta ())
+    { return meta_modifier as c_uint; }
+  if EQ (key_mapping, Qalt ())
+    { return alt_modifier as c_uint; }
+  if EQ (key_mapping, Qctrl ())
+    { return ctrl_modifier as c_uint; }
+  if EQ (key_mapping, Qcontrol ()) /* synonym for ctrl */
+    { return ctrl_modifier as c_uint; }
+  if EQ (key_mapping, Qshift ())
+    { return shift_modifier as c_uint; }
+
+  /* Don't generate any modifier if not explicitly requested.  */
+  return 0;
+}
+
+/// C 3489-3500: `static unsigned int w32_get_modifiers (void)` - C 380-383's forward declaration
+/// has no Rust counterpart (PORTING.md 0.1-12).
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_get_modifiers () -> c_uint
+{
+  return ((if modifier_set (VK_SHIFT) != 0 { shift_modifier as c_uint } else { 0 })
+	  | (if modifier_set (VK_CONTROL) != 0 { ctrl_modifier as c_uint } else { 0 })
+	  | (if modifier_set (VK_LWIN) != 0 { w32_key_to_modifier (VK_LWIN) } else { 0 })
+	  | (if modifier_set (VK_RWIN) != 0 { w32_key_to_modifier (VK_RWIN) } else { 0 })
+	  | (if modifier_set (VK_APPS) != 0 { w32_key_to_modifier (VK_APPS) } else { 0 })
+	  | (if modifier_set (VK_SCROLL) != 0 { w32_key_to_modifier (VK_SCROLL) } else { 0 })
+	  | (if modifier_set (VK_MENU) != 0
+	     { if NILP (Vw32_alt_is_meta) { alt_modifier as c_uint } else { meta_modifier as c_uint } }
+	     else { 0 }));
+}
+
+/* We map the VK_* modifiers into console modifier constants
+   so that we can use the same routines to handle both console
+   and window input.  */
+
+/// C 3506-3525: `static int w32_construct_console_modifiers (void)`.
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_construct_console_modifiers () -> c_int
+{
+  let mut mods: c_int;
+
+  mods = 0;
+  mods |= if modifier_set (VK_SHIFT) != 0 { SHIFT_PRESSED } else { 0 };
+  mods |= if modifier_set (VK_CAPITAL) != 0 { CAPSLOCK_ON } else { 0 };
+  mods |= if modifier_set (VK_SCROLL) != 0 { SCROLLLOCK_ON } else { 0 };
+  mods |= if modifier_set (VK_NUMLOCK) != 0 { NUMLOCK_ON } else { 0 };
+  mods |= if modifier_set (VK_LCONTROL) != 0 { LEFT_CTRL_PRESSED } else { 0 };
+  mods |= if modifier_set (VK_RCONTROL) != 0 { RIGHT_CTRL_PRESSED } else { 0 };
+  mods |= if modifier_set (VK_LMENU) != 0 { LEFT_ALT_PRESSED } else { 0 };
+  mods |= if modifier_set (VK_RMENU) != 0 { RIGHT_ALT_PRESSED } else { 0 };
+  mods |= if modifier_set (VK_LWIN) != 0 { LEFT_WIN_PRESSED } else { 0 };
+  mods |= if modifier_set (VK_RWIN) != 0 { RIGHT_WIN_PRESSED } else { 0 };
+  mods |= if modifier_set (VK_APPS) != 0 { APPS_PRESSED } else { 0 };
+
+  return mods;
+}
+
+/// C 3527-3536: `static int w32_get_key_modifiers (unsigned int wparam, unsigned int lparam)` -
+/// `w32term.h` 262's declaration takes C's `DWORD`/`WORD`, so C's two `unsigned int` arguments
+/// are narrowed at the call (the port writes C's implicit conversion out).
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_get_key_modifiers (wparam: c_uint, lparam: c_uint) -> c_int
+{
+  let mut mods: c_int;
+
+  /* Convert to emacs modifiers.  */
+  mods = w32_kbd_mods_to_emacs (w32_construct_console_modifiers () as DWORD, wparam as WORD);
+
+  return mods;
+}
+
+/* C 3538-3540: C's `unsigned int map_keypad_keys (unsigned int, unsigned int);` forward
+   declaration has no Rust counterpart (PORTING.md 0.1-12); the definition stands at C's
+   position below.  */
+/// C 3542-3566: `unsigned int map_keypad_keys (unsigned int virt_key, unsigned int extended)` -
+/// a non-`static` definition, so it carries `#[unsafe(no_mangle)]`; the five `VK_NUMPAD_*`
+/// constants come from the mirror and the SDK's `VK_*` from the section above, so C's `unsigned
+/// int` comparisons write the conversions out.
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn map_keypad_keys (virt_key: c_uint, extended: c_uint) -> c_uint
+{
+  if virt_key < VK_CLEAR as c_uint || virt_key > VK_DELETE as c_uint
+    { return virt_key; }
+
+  if virt_key == VK_RETURN as c_uint
+    { return (if extended != 0 { VK_NUMPAD_ENTER } else { VK_RETURN }) as c_uint; }
+
+  if virt_key >= VK_PRIOR as c_uint && virt_key <= VK_DOWN as c_uint
+    { return (if extended == 0 { VK_NUMPAD_PRIOR + (virt_key as c_int - VK_PRIOR) }
+	      else { virt_key as c_int }) as c_uint; }
+
+  if virt_key == VK_INSERT as c_uint || virt_key == VK_DELETE as c_uint
+    { return (if extended == 0 { VK_NUMPAD_INSERT + (virt_key as c_int - VK_INSERT) }
+	      else { virt_key as c_int }) as c_uint; }
+
+  if virt_key == VK_CLEAR as c_uint
+    { return (if extended == 0 { VK_NUMPAD_CLEAR } else { virt_key as c_int }) as c_uint; }
+
+  return virt_key;
+}
+
+/* List of special key combinations which w32 would normally capture,
+   but Emacs should grab instead.  Not directly visible to lisp, to
+   simplify synchronization.  Each item is an integer encoding a virtual
+   key code and modifier combination to capture.
+   Note: This code is not used if keyboard hooks are active
+   (Windows 2000 and later).  */
+/// C 3567: `static Lisp_Object w32_grabbed_keys;` - C's tentative definition with static storage
+/// duration, whose zero initialiser is `Qnil` (the `alloc.rs` 8006 `lisp_h_Qnil ()` reading).
+/// C: static Lisp_Object w32_grabbed_keys;
+#[cfg (feature = "have_ntgui")]
+static mut w32_grabbed_keys: Lisp_Object = lisp_h_Qnil ();
+
+/// C 3569-3574/3577-3590: the seven `#define`s of the hot-key encoding and `register_hot_keys`.
+/// Each macro's argument is evaluated once per use C makes of it (PORTING.md 2.1).
+/// C: #define HOTKEY(vk, mods)      make_fixnum (((vk) & 255) | ((mods) << 8))
+/// C: #define HOTKEY_ID(k)          (XFIXNAT (k) & 0xbfff)
+/// C: #define HOTKEY_VK_CODE(k)     (XFIXNAT (k) & 255)
+/// C: #define HOTKEY_MODIFIERS(k)   (XFIXNAT (k) >> 8)
+/// C: #define RAW_HOTKEY_ID(k)        ((k) & 0xbfff)
+/// C: #define RAW_HOTKEY_VK_CODE(k)   ((k) & 255)
+/// C: #define RAW_HOTKEY_MODIFIERS(k) ((k) >> 8)
+#[cfg (feature = "have_ntgui")]
+macro_rules! HOTKEY {
+  ($vk:expr, $mods:expr) => { make_fixnum ((($vk) & 255) | (($mods) << 8)) };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! HOTKEY_ID {
+  ($k:expr) => { (XFIXNAT ($k) & 0xbfff) };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! HOTKEY_VK_CODE {
+  ($k:expr) => { (XFIXNAT ($k) & 255) };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! HOTKEY_MODIFIERS {
+  ($k:expr) => { (XFIXNAT ($k) >> 8) };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! RAW_HOTKEY_ID {
+  ($k:expr) => { (($k) & 0xbfff) };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! RAW_HOTKEY_VK_CODE {
+  ($k:expr) => { (($k) & 255) };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! RAW_HOTKEY_MODIFIERS {
+  ($k:expr) => { (($k) >> 8) };
+}
+
+/* Register hot-keys for reserved key combinations when Emacs has
+   keyboard focus, since this is the only way Emacs can receive key
+   combinations like Alt-Tab which are used by the system.  */
+
+/// C 3581-3598: `static void register_hot_keys (HWND hwnd)`.  C's `Lisp_Object keylist;` and
+/// `Lisp_Object key = XCAR (keylist);` keep their scope, and the three macro arguments are the
+/// `RAW_HOTKEY_*`/`HOTKEY_*` families above.
+#[cfg (feature = "have_ntgui")]
+unsafe fn register_hot_keys (hwnd: HWND)
+{
+  let mut keylist: Lisp_Object;
+
+  /* Use CONSP, since we are called asynchronously.  */
+  keylist = w32_grabbed_keys;
+  while CONSP (keylist)
+    {
+      let key: Lisp_Object = XCAR (keylist);
+
+      /* Deleted entries get set to nil.  */
+      if ! FIXNUMP (key)
+	{
+	  keylist = XCDR (keylist);
+	  continue;
+	}
+
+      RegisterHotKey (hwnd, HOTKEY_ID! (key) as c_int, HOTKEY_MODIFIERS! (key) as UINT,
+		      HOTKEY_VK_CODE! (key) as UINT);
+
+      keylist = XCDR (keylist);
+    }
+}
+
+/// C 3600-3615: `static void unregister_hot_keys (HWND hwnd)` - the same walk, with the one
+/// `UnregisterHotKey` call.
+#[cfg (feature = "have_ntgui")]
+unsafe fn unregister_hot_keys (hwnd: HWND)
+{
+  let mut keylist: Lisp_Object;
+
+  keylist = w32_grabbed_keys;
+  while CONSP (keylist)
+    {
+      let key: Lisp_Object = XCAR (keylist);
+
+      if ! FIXNUMP (key)
+	{
+	  keylist = XCDR (keylist);
+	  continue;
+	}
+
+      UnregisterHotKey (hwnd, HOTKEY_ID! (key) as c_int);
+
+      keylist = XCDR (keylist);
+    }
+}
+
+/* C 3617-3673: `w32_name_of_message`, the `EMACSDEBUG` arm.  C 3617's `#if EMACSDEBUG` is the
+   feature `emacsdebug` (P-86 ①: C's macro lowercased), inside the file gate.  */
+/// C 3630-3632: C's function-local `static char buf[64]`, which the one `sprintf` writes and the
+/// return hands out; Rust has no function-scope `static`, so it stands at file scope (the
+/// `frame.rs` 4813 and `textconv.rs` 2026 readings, PORTING.md 1.5).
+/// C: static char buf[64];
+#[cfg (all (feature = "have_ntgui", feature = "emacsdebug"))]
+static mut buf: [c_char; 64] = [0; 64];
+
+/// C 3621-3671: `const char* w32_name_of_message (UINT msg)` - a non-`static` definition, so it
+/// carries `#[unsafe(no_mangle)]`.  C's local `struct { UINT msg; const char* name; } msgnames[]`
+/// is an anonymous record the port names after the object (P-67), its `#define M(msg) { msg, #
+/// msg }` is the port's `macro_rules!` over `stringify!`, and C's `static const` array is a local
+/// immutable array (the `kqueue.rs` 464 `nullts` reading - no address of it escapes).
+#[cfg (all (feature = "have_ntgui", feature = "emacsdebug"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_name_of_message (msg: UINT) -> *const c_char
+{
+  let mut i: c_uint;
+
+  /// C: static const struct { UINT msg; const char* name; } msgnames[] = { … };
+  #[repr(C)]
+  struct msgnames_s
+  {
+    msg: UINT,
+    name: *const c_char,
+  }
+
+  /// C: #define M(msg) { msg, # msg }
+  macro_rules! M {
+    ($msg:ident) => {
+      msgnames_s { msg: $msg as UINT,
+		   name: concat! (stringify! ($msg), "\0").as_ptr () as *const c_char } };
+  }
+
+  let msgnames: [msgnames_s; 35] = [
+    M! (WM_PAINT),
+    M! (WM_TIMER),
+    M! (WM_USER),
+    M! (WM_MOUSEMOVE),
+    M! (WM_LBUTTONUP),
+    M! (WM_KEYDOWN),
+    M! (WM_EMACS_KILL),
+    M! (WM_EMACS_CREATEWINDOW),
+    M! (WM_EMACS_DONE),
+    M! (WM_EMACS_CREATEVSCROLLBAR),
+    M! (WM_EMACS_CREATEHSCROLLBAR),
+    M! (WM_EMACS_SHOWWINDOW),
+    M! (WM_EMACS_SETWINDOWPOS),
+    M! (WM_EMACS_DESTROYWINDOW),
+    M! (WM_EMACS_TRACKPOPUPMENU),
+    M! (WM_EMACS_SETFOCUS),
+    M! (WM_EMACS_SETFOREGROUND),
+    M! (WM_EMACS_SETLOCALE),
+    M! (WM_EMACS_SETKEYBOARDLAYOUT),
+    M! (WM_EMACS_REGISTER_HOT_KEY),
+    M! (WM_EMACS_UNREGISTER_HOT_KEY),
+    M! (WM_EMACS_TOGGLE_LOCK_KEY),
+    M! (WM_EMACS_TRACK_CARET),
+    M! (WM_EMACS_DESTROY_CARET),
+    M! (WM_EMACS_SHOW_CARET),
+    M! (WM_EMACS_HIDE_CARET),
+    M! (WM_EMACS_SETCURSOR),
+    M! (WM_EMACS_SHOWCURSOR),
+    M! (WM_EMACS_PAINT),
+    M! (WM_EMACS_IME_STATUS),
+    M! (WM_CHAR),
+    M! (WM_EMACS_DRAGOVER),
+    M! (WM_EMACS_DROP),
+    M! (WM_EMACS_SET_TOOLKIT_THEME),
+    /* C's `#undef M` has no counterpart: the macro's scope ends with this block.  */
+    msgnames_s { msg: 0, name: core::ptr::null () },
+  ];
+
+  i = 0;
+  while ! msgnames[i as usize].name.is_null ()
+    {
+      if msgnames[i as usize].msg == msg
+	{ return msgnames[i as usize].name; }
+      i += 1;
+    }
+
+  sprintf (buf.as_mut_ptr (), c"message 0x%04x".as_ptr (), msg as c_uint);
+  return buf.as_ptr ();
+}
+
+/* C 3675-3704: the overview comment ("Here's an overview of how Emacs input works in GUI
+   sessions on MS-Windows.  …").  It names `w32_console_read_socket` (C 3677, in
+   `src/w32inevt.c`), `w32_msg_pump` (C 3706), `w32_wnd_proc` (C 4528, this file's, not yet
+   ported: P-91 ④'s class), `w32_read_socket` and `kbd_buffer_get_event`.  */
+
+/* Here's an overview of how Emacs input works in GUI sessions on
+   MS-Windows.  (For description of non-GUI input, see the commentary
+   before w32_console_read_socket in w32inevt.c.)
+
+   System messages are read and processed by w32_msg_pump below.  This
+   function runs in a separate thread.  It handles a small number of
+   custom WM_EMACS_* messages (posted by the main thread, look for
+   PostMessage calls), and dispatches the rest to w32_wnd_proc, which
+   is the main window procedure for the entire Emacs application.
+
+   w32_wnd_proc also runs in the same separate input thread.  It
+   handles some messages, mostly those that need GDI calls, by itself.
+   For the others, it calls my_post_msg, which inserts the messages
+   into the input queue serviced by w32_read_socket.
+
+   w32_read_socket runs in the main (a.k.a. "Lisp") thread, and is
+   called synchronously from keyboard.c when it is known or suspected
+   that some input is available.  w32_read_socket either handles
+   messages immediately, or converts them into Emacs input events and
+   stuffs them into kbd_buffer, where kbd_buffer_get_event can get at
+   them and process them when read_char and its callers require
+   input.
+
+   Under Cygwin with the W32 toolkit, the use of /dev/windows with
+   select(2) takes the place of w32_read_socket.
+
+   */
+
+/// C 3706-3838: `w32_msg_pump`'s message ids (the SDK's `<winuser.h>` half) and the entry points
+/// the three files of the family call.  C's `switch` compares them through C's `UINT msg.message`,
+/// and the port's message ids are typed `c_int` (the mirror's `WM_EMACS_*` are `c_int`, so the
+/// match's scrutinee writes C's conversion out); the ledger's Deviations record it.
+/// C: #define WM_NULL 0x0000 / #define WM_PAINT 0x000F / #define WM_KEYDOWN 0x0100 /
+/// C: #define WM_KEYUP 0x0101 / #define WM_CHAR 0x0102 / #define WM_SYSKEYDOWN 0x0104 /
+/// C: #define WM_SYSKEYUP 0x0105 / #define WM_TIMER 0x0113 / #define WM_MOUSEMOVE 0x0200 /
+/// C: #define WM_LBUTTONUP 0x0202 / #define WM_INITMENU 0x0116
+/// C: BOOL WINAPI GetMessageA (LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
+/// C: BOOL WINAPI GetMessageW (LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax);
+/// C: LRESULT WINAPI DispatchMessageA (const MSG *lpMsg);
+/// C: LRESULT WINAPI DispatchMessageW (const MSG *lpMsg);
+/// C: LONG WINAPI GetMessageTime (void);
+/// C: UINT WINAPI RegisterWindowMessageA (LPCSTR lpString);
+/// C: BOOL WINAPI RegisterHotKey (HWND hWnd, int id, UINT fsModifiers, UINT vk);
+/// C: BOOL WINAPI UnregisterHotKey (HWND hWnd, int id);
+/// C: LCID WINAPI SetThreadLocale (LCID Locale);
+/// C: HKL WINAPI ActivateKeyboardLayout (HKL hkl, UINT Flags);
+#[cfg (feature = "have_ntgui")]
+pub const WM_NULL: c_int = 0x0000;
+#[cfg (feature = "have_ntgui")]
+pub const WM_PAINT: c_int = 0x000F;
+#[cfg (feature = "have_ntgui")]
+pub const WM_KEYDOWN: c_int = 0x0100;
+#[cfg (feature = "have_ntgui")]
+pub const WM_KEYUP: c_int = 0x0101;
+#[cfg (feature = "have_ntgui")]
+pub const WM_CHAR: c_int = 0x0102;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SYSKEYDOWN: c_int = 0x0104;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SYSKEYUP: c_int = 0x0105;
+#[cfg (feature = "have_ntgui")]
+pub const WM_TIMER: c_int = 0x0113;
+#[cfg (feature = "have_ntgui")]
+pub const WM_INITMENU: c_int = 0x0116;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MOUSEMOVE: c_int = 0x0200;
+#[cfg (feature = "have_ntgui")]
+pub const WM_LBUTTONUP: c_int = 0x0202;
+#[cfg (feature = "have_ntgui")]
+pub type LCID = DWORD;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn GetMessageA (lpMsg: *mut MSG, hWnd: HWND, wMsgFilterMin: UINT,
+                      wMsgFilterMax: UINT) -> BOOL;
+  pub fn GetMessageW (lpMsg: *mut MSG, hWnd: HWND, wMsgFilterMin: UINT,
+                      wMsgFilterMax: UINT) -> BOOL;
+  pub fn DispatchMessageA (lpMsg: *const MSG) -> LRESULT;
+  pub fn DispatchMessageW (lpMsg: *const MSG) -> LRESULT;
+  pub fn GetMessageTime () -> LONG;
+  pub fn RegisterWindowMessage (lpString: *const c_char) -> UINT;
+  pub fn RegisterHotKey (hWnd: HWND, id: c_int, fsModifiers: UINT, vk: UINT) -> BOOL;
+  pub fn UnregisterHotKey (hWnd: HWND, id: c_int) -> BOOL;
+  pub fn SetThreadLocale (Locale: LCID) -> LCID;
+  pub fn ActivateKeyboardLayout (hkl: HKL, Flags: UINT) -> HKL;
+}
+
+/* Main message dispatch loop.  */
+
+/// C 3706-3838: `static void w32_msg_pump (deferred_msg * msg_buf)`.  C's
+/// `while ((w32_unicode_gui ? GetMessageW : GetMessageA) (&msg, NULL, 0, 0))` chooses the entry
+/// point with C's conditional operator, which the port binds to a local function pointer and
+/// tests per iteration; C 3827's `dispatch:` label is reached by the `else` branch and by the two
+/// `goto dispatch` sites (C 3812 and C 3822), which the port writes as the `dispatch` flag the
+/// ledger's Deviations and the `macro-body-notes.tsv` row record (PORTING.md 2.2's structured
+/// spelling for a `goto` into the other arm).  `msg`, `result` and `focus_window` are C's
+/// uninitialised locals (PORTING.md 1.5).
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_msg_pump (msg_buf: *mut deferred_msg)
+{
+  let mut msg: MSG = core::mem::zeroed ();
+  let mut result: WPARAM = 0;
+  let mut focus_window: HWND = core::ptr::null_mut ();
+
+  msh_mousewheel = RegisterWindowMessage (MSH_MOUSEWHEEL.as_ptr ());
+
+  let get_message: unsafe extern "system" fn (lpMsg: *mut MSG, hWnd: HWND,
+					      wMsgFilterMin: UINT, wMsgFilterMax: UINT) -> BOOL
+    = if w32_unicode_gui != 0 { GetMessageW } else { GetMessageA };
+
+  while get_message (&raw mut msg, core::ptr::null_mut (), 0, 0) != 0
+    {
+
+      /* DebPrint (("w32_msg_pump: %s time:%u\n", */
+      /*            w32_name_of_message (msg.message), msg.time)); */
+
+      let mut dispatch: bool = false;
+
+      if msg.hwnd.is_null ()
+	{
+	  /* C's `switch` arms that `break` fall out of the switch and reach the end of the `if`
+	     branch without dispatching; the label carries that exit (PORTING.md 2.2).  */
+	  'message_switch:
+	  {
+	  match msg.message as c_int
+	    {
+	    WM_NULL =>
+	      {
+		/* Produced by complete_deferred_msg; just ignore.  */
+	      }
+	    WM_EMACS_CREATEWINDOW =>
+	      {
+		/* Initialize COM for this window.  Needed for RegisterDragDrop.
+		   Some third party shell extensions can cause it to be used in
+		   system dialogs, which causes a crash if it is not initialized.
+		   This is a known bug in Windows, which was fixed long ago, but
+		   the patch for XP is not publicly available until XP SP3,
+		   and older versions will never be patched.  */
+		OleInitialize (core::ptr::null_mut ());
+
+		w32_createwindow (msg.wParam as *mut frame, msg.lParam as *mut c_int);
+		if PostThreadMessage (dwMainThreadId, WM_EMACS_DONE as UINT, 0, 0) == 0
+		  { emacs_abort (); }
+	      }
+	    WM_EMACS_SETLOCALE =>
+	      {
+		SetThreadLocale (msg.wParam as LCID);
+		/* Reply is not expected.  */
+	      }
+	    WM_EMACS_SETKEYBOARDLAYOUT =>
+	      {
+		result = ActivateKeyboardLayout (msg.wParam as HKL, 0) as WPARAM;
+		if PostThreadMessage (dwMainThreadId, WM_EMACS_DONE as UINT, result, 0) == 0
+		  { emacs_abort (); }
+	      }
+	    WM_EMACS_REGISTER_HOT_KEY =>
+	      {
+		focus_window = GetFocus ();
+		if ! focus_window.is_null ()
+		  { RegisterHotKey (focus_window, RAW_HOTKEY_ID! (msg.wParam) as c_int,
+				    RAW_HOTKEY_MODIFIERS! (msg.wParam) as UINT,
+				    RAW_HOTKEY_VK_CODE! (msg.wParam) as UINT); }
+		/* Reply is not expected.  */
+	      }
+	    WM_EMACS_UNREGISTER_HOT_KEY =>
+	      {
+		focus_window = GetFocus ();
+		if ! focus_window.is_null ()
+		  { UnregisterHotKey (focus_window, RAW_HOTKEY_ID! (msg.wParam) as c_int); }
+		/* Mark item as erased.  NB: this code must be
+		   thread-safe.  The next line is okay because the cons
+		   cell is never made into garbage and is not relocated by
+		   GC.  */
+		XSETCAR (make_lisp_ptr (msg.lParam as *mut c_void, Lisp_Type::Lisp_Cons),
+			 Qnil ());
+		if PostThreadMessage (dwMainThreadId, WM_EMACS_DONE as UINT, 0, 0) == 0
+		  { emacs_abort (); }
+	      }
+	    WM_EMACS_TOGGLE_LOCK_KEY =>
+	      {
+		let vk_code: c_int = msg.wParam as c_int;
+		let mut cur_state: c_int = GetKeyState (vk_code) as c_int & 1;
+		let new_state: c_int = msg.lParam as c_int;
+
+		if new_state == -1
+		    || ((new_state & 1) != cur_state)
+		  {
+		    one_w32_display_info.faked_key = vk_code;
+
+		    keybd_event (vk_code as BYTE,
+				 MapVirtualKey (vk_code as UINT, 0) as BYTE,
+				 KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+		    keybd_event (vk_code as BYTE,
+				 MapVirtualKey (vk_code as UINT, 0) as BYTE,
+				 KEYEVENTF_EXTENDEDKEY | 0, 0);
+		    keybd_event (vk_code as BYTE,
+				 MapVirtualKey (vk_code as UINT, 0) as BYTE,
+				 KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+		    cur_state = if cur_state == 0 { 1 } else { 0 };
+		  }
+		if PostThreadMessage (dwMainThreadId, WM_EMACS_DONE as UINT,
+				      cur_state as WPARAM, 0) == 0
+		  { emacs_abort (); }
+	      }
+	    WM_EMACS_IME_STATUS =>
+	      {
+		focus_window = GetFocus ();
+		if set_ime_open_status_fn.is_none () || focus_window.is_null ()
+		  /* C 3802-3803: `break` out of the switch - no dispatch.  */
+		  { break 'message_switch; }
+
+		let context: HIMC = (get_ime_context_fn.unwrap ()) (focus_window);
+		if context.is_null ()
+		  /* C 3806-3807: the same `break`.  */
+		  { break 'message_switch; }
+
+		(set_ime_open_status_fn.unwrap ()) (context, (msg.wParam != 0) as BOOL);
+		(release_ime_context_fn.unwrap ()) (focus_window, context);
+
+		/* C 3812: `goto dispatch`.  */
+		dispatch = true;
+	      }
+
+	    _ =>
+	      {
+		#[cfg (feature = "msg_debug")]
+		{
+		  /* Broadcast messages make it here, so you need to be looking
+		     for something in particular for this to be useful.  */
+		  DebPrint! ((c"msg %x not expected by w32_msg_pump\n".as_ptr (), msg.message));
+		}
+		/* Handle extra events for compatibility, preventing not dispatch.  */
+		/* C 3822: `goto dispatch`.  */
+		dispatch = true;
+	      }
+	    }
+	  }
+	}
+      else
+	{
+	  /* C 3827's `dispatch:` label; the `else` branch falls through to it.  */
+	  dispatch = true;
+	}
+
+      if dispatch
+	{
+	  if w32_unicode_gui != 0
+	    { DispatchMessageW (&raw const msg); }
+	  else
+	    { DispatchMessageA (&raw const msg); }
+	}
+
+      /* Exit nested loop when our deferred message has completed.  */
+      if (*msg_buf).completed != 0
+	{ break; }
+    }
+}
+
+/// C 3840: `static deferred_msg * deferred_msg_head;` - C's tentative definition (a null pointer
+/// until the first `send_deferred_msg`), which the extract-abi checklist asked for.
+/// C: static deferred_msg * deferred_msg_head;
+#[cfg (feature = "have_ntgui")]
+static mut deferred_msg_head: *mut deferred_msg = core::ptr::null_mut ();
+
+/// C 3842-3859: `static deferred_msg * find_deferred_msg (HWND hwnd, UINT msg)`.  C's
+/// `for (item = …; item != NULL; item = item->next) … break;` is the port's `while` with C's
+/// `break` (the step runs only when the loop body did not break), and the two `enter_crit ()`/
+/// `leave_crit ()` calls are commented out in C's own text, which the port keeps as comments.
+#[cfg (feature = "have_ntgui")]
+unsafe fn find_deferred_msg (hwnd: HWND, msg: UINT) -> *mut deferred_msg
+{
+  let mut item: *mut deferred_msg;
+
+  /* Don't actually need synchronization for read access, since
+     modification of single pointer is always atomic.  */
+  /* enter_crit (); */
+
+  item = deferred_msg_head;
+  while ! item.is_null ()
+    {
+      if (*item).w32msg.msg.hwnd == hwnd
+	  && (*item).w32msg.msg.message == msg
+	{ break; }
+      item = (*item).next;
+    }
+
+  /* leave_crit (); */
+
+  return item;
+}
+
+/// C 3861-3897: `static LRESULT send_deferred_msg (deferred_msg * msg_buf, HWND hwnd, UINT msg,
+/// WPARAM wParam, LPARAM lParam)` - the nested `w32_msg_pump` call is the recursion into the
+/// family's dispatcher.
+#[cfg (feature = "have_ntgui")]
+unsafe fn send_deferred_msg (msg_buf: *mut deferred_msg, hwnd: HWND, msg: UINT, wParam: WPARAM,
+			     lParam: LPARAM) -> LRESULT
+{
+  /* Only input thread can send deferred messages.  */
+  if GetCurrentThreadId () != dwWindowsThreadId
+    { emacs_abort (); }
+
+  /* It is an error to send a message that is already deferred.  */
+  if ! find_deferred_msg (hwnd, msg).is_null ()
+    { emacs_abort (); }
+
+  /* Enforced synchronization is not needed because this is the only
+     function that alters deferred_msg_head, and the following critical
+     section is guaranteed to only be serially reentered (since only the
+     input thread can call us).  */
+
+  /* enter_crit (); */
+
+  (*msg_buf).completed = 0;
+  (*msg_buf).next = deferred_msg_head;
+  deferred_msg_head = msg_buf;
+  my_post_msg (&raw mut (*msg_buf).w32msg, hwnd, msg, wParam, lParam);
+
+  /* leave_crit (); */
+
+  /* Start a new nested message loop to process other messages until
+     this one is completed.  */
+  w32_msg_pump (msg_buf);
+
+  deferred_msg_head = (*msg_buf).next;
+
+  return (*msg_buf).result;
+}
+
+/// C 3899-3913: `void complete_deferred_msg (HWND hwnd, UINT msg, LRESULT result)` - a non-
+/// `static` definition, so it carries `#[unsafe(no_mangle)]`.
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn complete_deferred_msg (hwnd: HWND, msg: UINT, result: LRESULT)
+{
+  let msg_buf: *mut deferred_msg = find_deferred_msg (hwnd, msg);
+
+  if msg_buf.is_null ()
+    /* Message may have been canceled, so don't abort.  */
+    { return; }
+
+  (*msg_buf).result = result;
+  (*msg_buf).completed = 1;
+
+  /* Ensure input thread is woken so it notices the completion.  */
+  PostThreadMessage (dwWindowsThreadId, WM_NULL as UINT, 0, 0);
+}
+
+/// C 3915-3933: `static void cancel_all_deferred_msgs (void)`.
+#[cfg (feature = "have_ntgui")]
+unsafe fn cancel_all_deferred_msgs ()
+{
+  let mut item: *mut deferred_msg;
+
+  /* Don't actually need synchronization for read access, since
+     modification of single pointer is always atomic.  */
+  /* enter_crit (); */
+
+  item = deferred_msg_head;
+  while ! item.is_null ()
+    {
+      (*item).result = 0;
+      (*item).completed = 1;
+      item = (*item).next;
+    }
+
+  /* leave_crit (); */
+
+  /* Ensure input thread is woken so it notices the completion.  */
+  PostThreadMessage (dwWindowsThreadId, WM_NULL as UINT, 0, 0);
+}
+
+/// C 3942: `PeekMessage (&msg, NULL, 0, 0, PM_NOREMOVE)` - `<winuser.h>`'s non-blocking peek and
+/// the flag C passes it.
+/// C: BOOL WINAPI PeekMessageA (LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax,
+/// C: UINT wRemoveMsg);
+/// C: #define PM_NOREMOVE 0x0000 / #define PM_REMOVE 0x0001
+#[cfg (feature = "have_ntgui")]
+pub const PM_NOREMOVE: UINT = 0x0000;
+#[cfg (feature = "have_ntgui")]
+pub const PM_REMOVE: UINT = 0x0001;
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn PeekMessage (lpMsg: *mut MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT,
+		      wRemoveMsg: UINT) -> BOOL;
+}
+
+/* C 3936: `DWORD WINAPI w32_msg_worker (void *);` - C's forward declaration, which has no Rust
+   counterpart (PORTING.md 0.1-12); the definition stands at C 3938.  */
+
+/// C 3938-3960: `DWORD WINAPI w32_msg_worker (void *arg)` - `WINAPI` is `__stdcall` and the
+/// definition is non-`static`, so it is an `unsafe extern "system"` item with
+/// `#[unsafe(no_mangle)]`.  C's `MSG msg;` and `deferred_msg dummy_buf;` are the two locals the
+/// `PeekMessage` call and the `memset` fill (PORTING.md 1.5: `msg` keeps a zero initialiser, and
+/// `dummy_buf`'s is the one C's `memset` writes anyway).
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "system" fn w32_msg_worker (arg: *mut c_void) -> DWORD
+{
+  let mut msg: MSG = core::mem::zeroed ();
+  let mut dummy_buf: deferred_msg = core::mem::zeroed ();
+
+  /* Ensure our message queue is created */
+
+  PeekMessage (&raw mut msg, core::ptr::null_mut (), 0, 0, PM_NOREMOVE);
+
+  if PostThreadMessage (dwMainThreadId, WM_EMACS_DONE as UINT, 0, 0) == 0
+    { emacs_abort (); }
+
+  memset (&raw mut dummy_buf as *mut c_void, 0, core::mem::size_of_val (&dummy_buf));
+  dummy_buf.w32msg.msg.hwnd = core::ptr::null_mut ();
+  dummy_buf.w32msg.msg.message = WM_NULL as UINT;
+
+  /* This is the initial message loop which should only exit when the
+     application quits.  */
+  w32_msg_pump (&raw mut dummy_buf);
+
+  return 0;
+}
+
+/// C 3962-3973: `static void signal_user_input (void)`.
+#[cfg (feature = "have_ntgui")]
+unsafe fn signal_user_input ()
+{
+  /* Interrupt any lisp that wants to be interrupted by input.  */
+  if ! NILP (Vthrow_on_input)
+    {
+      Vquit_flag = Vthrow_on_input;
+      /* Calling maybe_quit from this thread is a bad idea, since this
+	 unwinds the stack of the Lisp thread, and the Windows runtime
+	 rightfully barfs.  */
+    }
+}
+
+/// C 4001: C's function-local `static int force_quit_count;` (the triple-C-g feature's counter) -
+/// one object with static storage duration, which Rust spells at file scope (the `frame.rs` 4813
+/// reading, PORTING.md 1.5).
+/// C: static int force_quit_count;
+#[cfg (feature = "have_ntgui")]
+static mut force_quit_count: c_int = 0;
+
+/// C 3976-4041: `static void post_character_message (HWND hwnd, UINT msg, WPARAM wParam, LPARAM
+/// lParam, DWORD modifiers)`.  C's `int c = wParam;` narrows the parameter, `make_ctrl_char` is
+/// `keyboard.c`'s (no mirror carries it: the declaration below), and C's `msg = WM_NULL;` assigns
+/// the message id back through C's `UINT` parameter, which the port writes out.  C's parameter
+/// name `modifiers` shadows the file-scope `modifiers` array of the modifier family, which Rust
+/// forbids (E0530: a function parameter cannot shadow a static), so the port spells it with a
+/// trailing underscore (the `alloc.rs` 4334 and `w32.rs` 3199 readings); the token check folds
+/// the underscore.
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn make_ctrl_char (c: c_int) -> c_int;
+}
+#[cfg (feature = "have_ntgui")]
+unsafe fn post_character_message (hwnd: HWND, mut msg: UINT, wParam: WPARAM, lParam: LPARAM,
+				  modifiers_: DWORD)
+{
+  let mut wmsg: W32Msg = core::mem::zeroed ();
+
+  wmsg.dwModifiers = modifiers_;
+
+  /* Detect quit_char and set quit-flag directly.  Note that we
+     still need to post a message to ensure the main thread will be
+     woken up if blocked in sys_select, but we do NOT want to post
+     the quit_char message itself (because it will usually be as if
+     the user had typed quit_char twice).  Instead, we post a dummy
+     message that has no particular effect.  */
+  {
+    let mut c: c_int = wParam as c_int;
+    if c_isalpha (c) && wmsg.dwModifiers == ctrl_modifier as DWORD
+      { c = make_ctrl_char (c) & 0o377; }
+    if c == quit_char
+	|| (wmsg.dwModifiers == 0
+	    && w32_quit_key != 0 && wParam == w32_quit_key as WPARAM)
+      {
+	/* See keyboard.c:handle_interrupt.  We repeat the same code
+           here to support the triple-C-g feature.  */
+	let count: c_int = if NILP (Vquit_flag) { 1 } else { force_quit_count + 1 };
+	force_quit_count = count;
+	if count == 3
+	  { Vinhibit_quit = Qnil (); }
+	Vquit_flag = Qt ();
+
+	/* The choice of message is somewhat arbitrary, as long as
+	   the main thread handler just ignores it.  */
+	msg = WM_NULL as UINT;
+
+	/* Interrupt any blocking system calls.  */
+	signal_quit ();
+
+	/* As a safety precaution, forcibly complete any deferred
+	   messages.  This is a kludge, but I don't see any particularly
+	   clean way to handle the situation where a deferred message is
+	   "dropped" in the lisp thread, and will thus never be
+	   completed, eg. by the user trying to activate the menubar
+	   when the lisp thread is busy, and then typing C-g when the
+	   menubar doesn't open promptly (with the result that the
+	   menubar never responds at all because the deferred
+	   WM_INITMENU message is never completed).  Another problem
+	   situation is when the lisp thread calls SendMessage (to send
+	   a window manager command) when a message has been deferred;
+	   the lisp thread gets blocked indefinitely waiting for the
+	   deferred message to be completed, which itself is waiting for
+	   the lisp thread to respond.
+
+	   Note that we don't want to block the input thread waiting for
+	   a response from the lisp thread (although that would at least
+	   solve the deadlock problem above), because we want to be able
+	   to receive C-g to interrupt the lisp thread.  */
+	cancel_all_deferred_msgs ();
+      }
+    else
+      { signal_user_input (); }
+  }
+
+  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
 }
