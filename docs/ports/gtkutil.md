@@ -807,3 +807,61 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
 - The `take_body` arm chooser (Deviation 4), the two `ckd_*` macros' bodies (Deviation 11) and the
   pre-initialisations (Deviation 10) are **spelling** decisions this lane took and recorded; none of
   them is a claim that a GTK build compiles or behaves as C's does.
+
+## P-90 mirror round (2026-10-05): the surface moved out of this unit
+
+- **`femacs/src/include/gtk.rs` is now the third-party surface's single home** (P-90 ①/②/③; the
+  P-88 ⑤ move-back).  The 1407-line in-unit segment this ledger's slices 1-2 declared (C 44/49's
+  chain: GLib/GObject, cairo, GDK, GTK) was moved there verbatim and replaced, at the same C
+  position, by the two edges `#[cfg (feature = "use_gtk")] include!("include/gtk.rs");` and
+  `#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))] include!("include/pgtkterm.rs");`.
+  The unit now reads 2812 lines (was 4200) and `## C line ranges`, `## Gate mapping` and the
+  conditions are unchanged - the surface was never a C block of this file.
+- **Two `## Deviations` items were added**, both exposed by the moved mirror typing names the slice
+  had left untyped: (i) `FRAME_X_WINDOW! (f) = 0` in `xg_free_frame_widgets` (C 1961) is a `Window`
+  (`c_ulong`) in the X arm and a `GtkWidget *` in the pgtk one, so the port splits the arm
+  (`= 0` / `= std::ptr::null_mut ()`); (ii) `xg_wm_set_size_hint`'s `let mut size_hints: GdkGeometry;`
+  (C 1989) is pre-initialised to `std::mem::zeroed ()` (PORTING.md 0.1-13) - `E0381` otherwise,
+  because the port's `memset` takes `&raw mut size_hints` before any write.
+- **The arm readings moved as the mirror arrived** (`text-only`, materialised `_root.rs`, A = X11
+  GTK3, B = pgtk GTK3, C = GTK2): A **53 -> 53** (19 unit + 34 mirror), B **115 -> 38** (99 -> 21
+  unit; the 76 closed are the `include/pgtkterm.rs` placeholder's `FRAME_*`/`pgtk_output`/
+  `pgtk_display_info`/`x_display_list` errors), C **64 -> 66** (30 + 36).  **Correction
+  (2026-10-05, layout round): A and C reproduce exactly, but B re-reads `115 -> 29` (16 unit + 13
+  mirror + rustc's `aborting` row) on this revision - the `38` row is the outlier, not the code;
+  see the layout-round bullet below.**  The five remaining
+  arm-B unit errors that are not this unit's own are the mirror gaps the ledger already named
+  (`GtkSettings`/`gtk_settings_get_for_screen`/`gtk_tooltip_set_custom` were `not (have_pgtk)`-gated
+  and are now the surface's; `tooltip`/`new_size_p`/`toolbar_is_packed` are P-80's member
+  dispatch; `update_frame_tool_bar`/`update_theme_scrollbar_*`/`xg_win_to_widget`/
+  `emacs_menu_bar_*`/`redisplay_interface` stand as before).
+- **Owed 14 is closed**; **Owed 11's `update_frame_tool_bar` / `update_theme_scrollbar_*` /
+  `xg_get_widget_from_map` / `xg_widget_style_updated` / `xg_im_context_*` / `emacs_menu_bar_*`
+  rows remain** (they are `include/gtkutil.rs`'s and the remainder's, not the surface's).
+
+### Layout round (2026-10-05): the mirror's own compile, and this unit's two casts
+
+- **`xtask layout-check` is the mirror's own compile** (P-87 ③: all `src/include/*.rs` in one
+  crate, no feature on, so no includer to lend a name).  It read **5 `error[E0425]: cannot find
+  type`** on the mirror the P-90 round landed: `VisualID`, `x_display_info` twice,
+  `GtkStyleContext`, `GtkStyleProvider`.  All five are repaired *in the mirror*
+  (`c_ulong` / `*mut c_void` / the `have_gtk3` gate on
+  `gtk_style_context_remove_provider`); the table, the "why the unit saw them and the probe did
+  not" sentence and the readings are `docs/ports/include-gtk.md`'s `## Evidence`.  **No name was
+  deleted and no arm split was dropped.**
+- **The `x_display_info` stand-in costs this unit two inline casts**: C 1076/1082's
+  `x_display_pixel_width`/`x_display_pixel_height` call sites now pass
+  `FRAME_DISPLAY_INFO! (f) as *mut c_void`, because the mirror's parameter is P-55's
+  `*mut c_void` (the record is `include/xterm.rs`'s) - the `include/xsettings.rs` 12-14 rule that
+  the consumer converts at the call site (PORTING.md 0.1-9).  No line was added, C's expressions
+  and the arm chooser are untouched, and `## Gate mapping` is unchanged.
+- **Arm readings re-measured after the repair** (same `text-only` shape and `--cfg` sets as ②S2;
+  the totals below count rustc's trailing `error: aborting due to N previous errors` as one
+  span-less row, which is why they sit one above the numbers written for the round): A **53 -> 53**
+  (19 unit + 33 mirror + 1), B **30 -> 30** (16 + 13 + 1), C **66 -> 64** (30 + 33 + 1 - the same
+  two `GtkStyleContext`/`GtkStyleProvider` `E0425`s the probe found, closed in the GTK2 arm too).
+  `src/pgtkterm.rs`'s arm B is **19 -> 19** (2 + 16 + 1).  No regression; the GTK2 arm improves by
+  two.
+- **Budget**: this round used 3 `build-tu` runs (the cap) - `gtkutil.c` twice (the mirror's fix and
+  the unit's two casts) and `pgtkterm.c` once - and re-ran `layout-check` 3 times; the arm readings
+  were taken 5 times over the two states.

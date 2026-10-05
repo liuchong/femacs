@@ -14,72 +14,87 @@
 
 ## Decisions
 
-- **The whole body is dead text and is not transcribed** (PORTING.md P-08).  `HAVE_PGTK` is
-  `undef` in the frozen table, so the single `#ifdef HAVE_PGTK` at C 29 excludes C 29-680; the
-  mirror carries the guard only.  The condition reading is the evidence that the arm was decided
-  rather than assumed: `src/pgtkterm.h: 8 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
-- **The five live `#include` lines (C 23-27) are not mirrored**: they are unconditional C text,
-  but they introduce no name the header's live text uses (everything else is inside the guard),
-  and every one of those mirrors is either already present in the port or, for `sysselect.rs`,
-  unrelated to this header's declarations.  A PGTK target adds them with the region.
-- **The dead region's contents are listed by name and C line range** in the mirror and here, so
-  the eventual PGTK port starts from an inventory rather than from re-reading 681 lines: four
-  small records, the two large display/output records, the PGTK `struct x_output`, the selection
-  record, the colour and `FRAME_*`/`SELECTION_EVENT_*` macro families, `x_display_list` and the
-  prototype block.  No exclusion row is needed - the gate sees none of them, because the
-  inventory is the guard alone.
-- **No `include!` lines**, so the mirror names no GTK type and compiles as a crate root on its
-  own; that is what the two dead-by-construction mirrors (gtkutil.rs, gnutls.rs) do as well.
-- **`src/pgtkterm.c` is not in the frozen build** (docs/port-map.md 511-512), so the compile smoke
-  is the note-only placeholder unit `femacs/src/pgtkterm.rs` (docs/status.md 3.31).
+- **The body is transcribed, both arms** (PORTING.md P-86 ① - the P-08 "dead text, guard only"
+  decision this ledger carried until the P-90 round is withdrawn).  The header's body is one
+  `#ifdef HAVE_PGTK` (C 29-680), so every item below carries `#[cfg (feature = "have_pgtk")]` and
+  the empty `#else` arm is C's own: the frozen configuration compiles nothing of it, and
+  `src/pgtkterm.c`'s unit - which is not in the frozen build either - is what would.
+  `tools/check-cond-eval.py src/pgtkterm.h` reads `8 conditions, 0 unknown, 0 disagreements
+  [VERIFIED]`, so every condition the transcription crosses is *decided*.
+- **What the mirror now declares** (all of it gated `have_pgtk`): `pgtk_bitmap_record` (C 43-49),
+  `pgtk_device_t` (51-64), `pgtk_touch_point` (66-83), the six colour macros (85-91),
+  **`struct scroll_bar`** (93-144, this header's own tag - `xterm.h`'s same-named record lives in
+  `include/xterm.rs` and the two never share a TU, because `gtkutil.c` takes `xterm.h` under
+  `#ifndef HAVE_PGTK` and this header under `#else`), **`pgtk_display_info`** (146-281) with its
+  two anonymous structs named `pgtk_display_info_im`/`pgtk_display_info_scroll` (P-67),
+  `x_display_list` (284), **`pgtk_output`** (286-455) with the nested `relief` record (427-432),
+  the pgtk `struct x_output` (456-459), the anonymous `FOCUS_*` enumeration's three constants
+  (461-471), the ~33 `FRAME_*`/`DEFAULT_GDK_DISPLAY`/`XSCROLL_BAR`/`BLACK_PIX_DEFAULT` accessors
+  (474-529), `selection_input_event` (539-547), `SELECTION_EVENT_DISPLAY` (a body, because C's is
+  `INLINE`) and the six `SELECTION_EVENT_*` macros (550-567), and the whole prototype block
+  (569-679).
+- **The five `#include` lines at C 23-27 are mirrored as edges** (`dispextern.rs`, `frame.rs`,
+  `character.rs`, `font.rs`, `sysselect.rs`), together with the three mirrors the body's own names
+  need (`lisp.rs` for `Lisp_Object`/`vectorlike_header`/`ptrdiff_t`, `systime.rs` for `Time`,
+  `termhooks.rs` for `event_kind`/`EVENT_KIND_WIDTH`) and `xlib.rs` for `<X11/Xresource.h>`'s
+  `XrmDatabase`.  C 31's `<gtk/gtk.h>` is the edge to the surface's mirror, `include/gtk.rs`
+  (P-90 ②: at the referencing header's own `#include` line).
+- **The prototypes and `x_display_list` are in a `pub mod` with a glob import** (`declarations`,
+  `prototypes`, then `use …::*;`): C's "prototype in the header + definition in the .c" is
+  `E0428` in Rust when both land in one TU, and PORTING.md 0.1-10's measured remedy is the glob -
+  a definition in the unit shadows the glob-imported declaration (`src/pgtkterm.rs` defines
+  `x_display_list` and twelve `pgtk_*` entry points).  Measured: without the module wrap the
+  unit's arm read 13 `E0428`s; with it, 0.
+- **`ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH`** (`selection_input_event`'s first member) is
+  carried as the storage unit `include/termhooks.rs`'s `input_event` uses for the same bit-field
+  (P-80's member shape, `bits: c_uint`), because a Rust struct cannot carry a bit-field.
+- **The pgtk union member is spelled once**: C 154-161's *anonymous*
+  `union { GdkDisplay *gdpy; GdkDisplay *display; };` has two names for one pointer at offset 0,
+  and Rust cannot overlap two named fields, so `pgtk_display_info` keeps C's **first** member's
+  name (`gdpy`) and records the alias; the mirror's own `FRAME_X_DISPLAY` uses `.gdpy`, and a
+  consumer writing C's `->display` spells `.gdpy` (a recorded deviation).
+- **Every GDK/GTK record's size and offset is UNVERIFIED** (P-88 ②): no GTK tree exists here, so
+  no layout assertion is written for `pgtk_bitmap_record`, `pgtk_device_t`,
+  `pgtk_touch_point`, `scroll_bar`, `pgtk_display_info`, `pgtk_output`, `relief`,
+  `x_output` or `selection_input_event`, and each cites the header alone (no line).  The four
+  `bool_bf` members (`toolbar_in_hbox`, `toolbar_is_packed`, `relief_background_valid_p`) are
+  *recorded* rather than stored, the `include/xterm.rs` 752-754 shape (P-80's member dispatch).
+- **Both arms of the three cairo-surface probes (C 33-41) are carried** as C's text and comments;
+  the four `CAIRO_HAS_*` features are unregistered in `femacs/xtask/Cargo.toml` and no mirror
+  exists for `<cairo-pdf.h>`/`<cairo-ps.h>`/`<cairo-svg.h>` (Owed 2).
 
 ## Evidence
 
 - `python3 tools/check-cond-eval.py src/pgtkterm.h` ->
   `src/pgtkterm.h: 8 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
-- `python3 tools/extract-abi.py --check emacs/src/pgtkterm.h femacs/src/include/pgtkterm.rs`
-  -> `OK emacs/src/pgtkterm.h -> femacs/src/include/pgtkterm.rs` (no `- ` problem lines).
-- `CARGO_TARGET_DIR=/tmp/femacs-target-mir-pgtkterm cargo run -q -p xtask -- build-tu
-  src/pgtkterm.c` -> `built src/pgtkterm.rs -> ../build/femacs/pgtkterm.o`.
+- `cd femacs && CARGO_TARGET_DIR=/tmp/gtk3lane/cargo cargo run -q -p xtask -- build-tu
+  src/pgtkterm.c` -> `built src/pgtkterm.rs -> ../build/femacs/pgtkterm.o` (336 bytes, the frozen
+  empty object), exit 0.
+- **The unit's arm reading (P-86 ③⑵'s `text-only` shape; no GTK tree, so no arm can be
+  *compiled*)**, on the materialised `build/femacs/units/pgtkterm/_root.rs` with
+  `use_gtk + have_pgtk + have_window_system + have_gtk3 + use_cairo + have_xinput2`:
+  **before this round 158 errors (147 in the unit + 11 in mirrors); after it 18 (2 + 16)** - the
+  143 `pgtk_output`/`pgtk_display_info`/`pgtk_device_t` "cannot find type" errors are gone, and
+  the two that remain (`pgtk_new_focus_frame`, `pgtk_unlink_touch_points`) are this unit's own
+  functions the file defines at C 900+/1400+, which its slice has not carried yet.
+  `src/pgtkfns.rs`'s reading is unchanged at 68 (57 + 11): its segment and the records' edge are
+  its own lane's Owed 1/3.
+- **The layout round (2026-10-05)** touched only the GTK mirror (`include/gtk.rs`: the P-55
+  stand-ins `c_ulong`/`*mut c_void` and the `have_gtk3` gate on
+  `gtk_style_context_remove_provider`) plus two inline casts in `src/gtkutil.rs`
+  (`docs/ports/include-gtk.md` `## Evidence`); nothing in *this* header changed and its arm reading
+  re-measured the same: **19 -> 19** (2 in the unit + 16 in mirrors + rustc's `aborting` row - the
+  ledger's `18` counts that row out, the ④ round's table).
 
-# ----------------------------------------------------------------------
-## Why the pgtk records are still not here (2026-10-05, the `docs/ports/image.md` pgtk row)
+## Owed
 
-`docs/ports/image.md`'s configuration sweep reads eight error sites in `src/image.rs` under
-`+ have_pgtk + have_imagemagick + use_cairo` and names them "the `include/pgtkterm.rs`
-placeholder gap": five `FRAME_DISPLAY_INFO` bodies and `pgtk_display_info` / `pgtk_bitmap_record`
-(plus the two `E0428`s from the typedefs this batch landed in `dispextern.rs`).  They are **not**
-closed here, and the reason is a measurement, not a decision to defer:
-
-```
-$ ls -d /opt/homebrew/include/gtk-3.0 /opt/homebrew/include/gtk-4.0
-ls: /opt/homebrew/include/gtk-3.0: No such file or directory
-ls: /opt/homebrew/include/gtk-4.0: No such file or directory
-$ pkg-config --exists gtk+-3.0 && echo present || echo absent
-absent
-```
-
-`pgtkterm.h`'s body is one `#ifdef HAVE_PGTK` and it includes `<gtk/gtk.h>` (`cairo` *is* present -
-`/opt/homebrew/include/cairo` - GTK is not), so no clang probe can read any of the five records and
-no `(unit, shift)`/offset could be written as a *reading*; that is the same machine limit
-`docs/ports/include-dispextern.md`'s 3.278 4 already records for `pgtk_bitmap_record`,
-`pgtk_device_t`, `pgtk_touch_point`, `pgtk_display_info` and `pgtk_output`.  Their pointees are
-GTK's own (`GdkSeat`, `GdkDevice`, `GdkEventSequence`, `GtkWidget`, …), which no mirror in the tree
-declares, so the records cannot even be typed from what the port has.
-
-What *is* owed and named for the PGTK round: the five records and their measurements, the
-`FRAME_DISPLAY_INFO` macro this header defines (pgtkterm.h 477, `FRAME_X_OUTPUT (f)->display_info`)
-and the `Display_Info` arm in `include/dispextern.rs` that waits on the record - the arm is
-*absent* there (not spelled with a stand-in), so a pgtk configuration fails on the missing record
-rather than on a wrong alias.
-
-## Owed (2026-10-05, PORTING.md P-90)
-
-- **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
-  GDK and GTK declarations as in-unit segments because it was the surface's first (and, at that
-  moment, only) consumer.  With `gtkutil.c` as the second consumer, P-90 requires one dedicated
-  mirror - `femacs/src/include/gtk.rs` with its own ledger `docs/ports/include-gtk.md`, the
-  `include-xlib.rs` shape - and the in-unit segments moved into it (P-88 ⑤'s move-back).  The
-  mirror is not created yet: this file's own slice was landed without it, and the move-back is
-  owed to the round that creates it.  Until then the arm's readings carry the declarations twice
-  (once per unit), which is harmless across crates and wrong only inside one TU.
+1. **`src/pgtkterm.rs` still declares its `FRAME_*` copies of `frame.h`'s accessors**
+   (`FRAME_COLUMN_WIDTH`, `FRAME_LINE_HEIGHT`, `FRAME_TAB_BAR_HEIGHT`,
+   `FRAME_CONFIG_SCROLL_BAR_COLS/LINES`, `FRAME_NO_FOCUS_ON_MAP`, `FRAME_NO_ACCEPT_FOCUS`) - C
+   *writes* them here, and `include/frame.rs` carries only the getter arm, so the two-arm spelling
+   has no home there yet.  The nine `FRAME_*` macros this header owns *did* move (this round).
+2. **The four `cairo_has_*` feature names** (C 33-41) need `docs/baseline/feature-coverage.tsv`
+   rows, and the three cairo `<cairo-*.h>` headers have no mirror (nothing in the port's graph
+   takes a name from them).
+3. **The GDK/GTK layouts and the records' `bool_bf` dispatch** (P-80) are owed to a GTK3 toolchain
+   (Owed 2 of `docs/ports/include-gtk.md`).

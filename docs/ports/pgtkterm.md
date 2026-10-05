@@ -347,3 +347,29 @@ their assertions are owed.
   mirror is not created yet: this file's own slice was landed without it, and the move-back is
   owed to the round that creates it.  Until then the arm's readings carry the declarations twice
   (once per unit), which is harmless across crates and wrong only inside one TU.
+
+## P-90 mirror round (2026-10-05): the surface moved out of this unit
+
+- **`femacs/src/include/gtk.rs` is the third-party surface's single home** (P-90 ①/②/③).  The
+  in-unit segment this file carried (C 28's `<cairo.h>` plus C 48's chain: cairo, GLib/GObject,
+  GDK, GTK) was moved there verbatim; the missing declarations of the other two consumers went with
+  it, and this unit now reaches it through `#[cfg (feature = "have_pgtk")]
+  include!("include/gtk.rs");` at C 28's position.  It also gains the edge to the header it *is*
+  (`include!("include/pgtkterm.rs")`, at C 48's chain), which supplies `pgtk_output`,
+  `pgtk_display_info`, `pgtk_device_t`, `x_display_list` and the pgtk `FRAME_*` family: **the nine
+  `FRAME_*` macros C 474-516 owns were deleted from this unit in the same edit** (their two-arm
+  spelling is the mirror's now), while the seven `frame.h`-derived accessors stay (C writes them
+  here and `include/frame.rs` carries only the getter - Owed 5).
+- **Arm reading** (`text-only`, `use_gtk + have_pgtk + have_window_system + have_gtk3 +
+  use_cairo + have_xinput2`): **158 errors -> 18** (unit **147 -> 2**).  The 143 record errors are
+  gone; the two that remain are this file's own `pgtk_new_focus_frame`/`pgtk_unlink_touch_points`,
+  whose definitions sit at C 900+/1400+ and this slice has not reached.  Four unit-side defects the
+  mirror exposed were fixed in the same edit: `dpyinfo as gpointer` at the two
+  `g_signal_connect` sites, the `last_user_time` (`guint32`) comparisons against `Time`,
+  `has_been_visible != 0`, `FRAME_WIDGET! (f) as gpointer`, and the paren slip at C 993/1024
+  (`(*(*f).output_data.pgtk as *mut pgtk_output).field` -> `(*((…)))`).
+- **This unit's remaining `FRAME_*` copies** are Owed 1 of `docs/ports/include-pgtkterm.md`.
+- **The layout round (2026-10-05)** changed only the GTK mirror's own text (P-55 stand-ins and the
+  `have_gtk3` gate on `gtk_style_context_remove_provider`) and two inline casts in `src/gtkutil.rs`;
+  this unit's arm reading re-measured unchanged: **19** (2 unit + 16 mirror + rustc's `aborting`
+  row; `docs/ports/include-pgtkterm.md`'s `## Evidence` records the same pair).

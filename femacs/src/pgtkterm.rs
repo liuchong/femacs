@@ -71,32 +71,14 @@ include!("include/config.rs");                 // C 21: `#include <config.h>`
    `__GNUC__` is 4, so the guard is false on the frozen target; C's text is kept and no arm is
    written (the `window.rs` 14, `timefns.rs` 79 and `ccl.rs` 913 readings).  */
 
-/* ----------------------------------------------------------------------------------------------
-   C 28: `<cairo.h>`.  Third-party header, no file in the reference tree, no mirror; the
-   declarations this slice takes from it stand here (P-88 ①) and are read from this machine's
-   `/opt/homebrew/include/cairo/cairo.h` (cairo 1.18.4).
-   ---------------------------------------------------------------------------------------------- */
-/// C: cairo.h 135: `typedef struct _cairo cairo_t;`
+/* C 28's `<cairo.h>` and C 48's `"gtkutil.h"` chain (its 26 `<gtk/gtk.h>`, and under `HAVE_PGTK`
+   its 29 `"pgtkterm.h"`): the third-party surface now lives in its single mirror
+   `include/gtk.rs` (P-90 ①/②/③; the P-88 ⑤ move-back took the declarations this unit carried out
+   of it) and the pgtk records/accessors in `include/pgtkterm.rs`.  This unit reaches the surface
+   here; the *records'* mirror edge is not added yet - this unit's own `FRAME_*` accessors would
+   then land twice in one TU (see `## Owed` in `docs/ports/pgtkterm.md`).  */
 #[cfg (feature = "have_pgtk")]
-pub enum cairo_t {}
-/// C: cairo.h 164: `typedef struct _cairo_surface cairo_surface_t;`
-#[cfg (feature = "have_pgtk")]
-pub enum cairo_surface_t {}
-#[cfg (feature = "have_pgtk")]
-unsafe extern "C" {
-  /// C 273/278/281: `cairo_t *cr = FRAME_CR_ACTIVE_CONTEXT (f);` / `cairo_destroy (cr);` /
-  /// `cairo_reference (FRAME_CR_CONTEXT (f))`
-  /// C: cairo.h 543: `cairo_public cairo_t *cairo_reference (cairo_t *cr);`
-  pub fn cairo_reference (cr: *mut cairo_t) -> *mut cairo_t;
-  /// C: cairo.h 546: `cairo_public void cairo_destroy (cairo_t *cr);`
-  pub fn cairo_destroy (cr: *mut cairo_t);
-  /// C 74: `#define FRAME_CR_SURFACE(f) (cairo_get_target (FRAME_CR_CONTEXT (f)))`
-  /// C: cairo.h 2120: `cairo_public cairo_surface_t *cairo_get_target (cairo_t *cr);`
-  pub fn cairo_get_target (cr: *mut cairo_t) -> *mut cairo_surface_t;
-  /// C 583: `cairo_surface_destroy (FRAME_X_OUTPUT (f)->cr_surface_visible_bell);`
-  /// C: cairo.h 2489: `cairo_public void cairo_surface_destroy (cairo_surface_t *surface);`
-  pub fn cairo_surface_destroy (surface: *mut cairo_surface_t);
-}
+include!("include/gtk.rs");                    // C 28: `#include <cairo.h>` / C 48's chain
 
 /* C 31-42: `<pthread.h>`, `<dlfcn.h>` and the four gnulib headers.  `<pthread.h>` and `<dlfcn.h>`
    are third-party headers with no file in the reference tree either; this slice names nothing from
@@ -188,479 +170,8 @@ include!("include/dispextern.rs");
    comment (P-88 ①).  */
 // C 68-70: the arm is `all (feature = "have_pgtk", feature = "gdk_windowing_wayland")`; the
 // gated line is C 69: `#include <gdk/gdkwayland.h>` (no Rust item - nothing to include).
-
-/* ----------------------------------------------------------------------------------------------
-   C 48's chain: `<gtk/gtk.h>` and `<glib-object.h>`, reached through `"gtkutil.h"`
-   (`gtkutil.h` 25's `#include <gtk/gtk.h>` under `USE_GTK`, and its 29's `#include "pgtkterm.h"`
-   under `HAVE_PGTK`).  `gtkutil.h`'s mirror is a placeholder, so nothing in that chain arrives in
-   this unit; the third-party names this slice uses are declared here (P-88 ①), GLib and GObject
-   from this machine's headers with line citations, GDK and GTK from the header alone (absent).
-
-   GLib's own `GObject` checked-cast chain is **not** transcribed where C uses one of its wrapper
-   macros: `G_OBJECT` is glib-object's and the port keeps its name and its result type, recording
-   the chain as a deviation (the `src/xfns.rs` 1010-1015 treatment of `G_OBJECT_GET_CLASS`), while
-   the wrapper macros whose GLib text is a plain call (`g_signal_connect`,
-   `g_signal_handlers_disconnect_by_func`) keep GLib's own body and cite it line by line.
-   ---------------------------------------------------------------------------------------------- */
-/// C: gtypes.h 52/54/55/56/60/61: `typedef char gchar;` / `typedef long glong;` / `typedef int
-/// gint;` / `typedef gint gboolean;` / `typedef unsigned long gulong;` / `typedef unsigned int
-/// guint;`; `guint32` is `typedef unsigned int guint32;` in `glibconfig.h` (GLib 2.90.0).
 #[cfg (feature = "have_pgtk")]
-pub type gchar = c_char;
-#[cfg (feature = "have_pgtk")]
-pub type gboolean = c_int;
-#[cfg (feature = "have_pgtk")]
-pub type guint = c_uint;
-#[cfg (feature = "have_pgtk")]
-pub type gulong = c_ulong;
-#[cfg (feature = "have_pgtk")]
-pub type guint32 = c_uint;
-/// C: gtypes.h 109: `typedef void* gpointer;`
-#[cfg (feature = "have_pgtk")]
-pub type gpointer = *mut c_void;
-/// C: gmacros.h 966-972: `#define FALSE (0)` / `#define TRUE (!FALSE)`
-#[cfg (feature = "have_pgtk")]
-pub const FALSE: gboolean = 0;
-#[cfg (feature = "have_pgtk")]
-pub const TRUE: gboolean = 1;
-/// C: glist.h 39-46: `typedef struct _GList GList; struct _GList { gpointer data; GList *next;
-/// GList *prev; };`  Measured on this machine (Evidence ②): size 24, align 8, offsets 0/8/16.
-/// C 158/182/224/227/256/384 read `->next`/`->data`.
-#[cfg (feature = "have_pgtk")]
-pub type GList = _GList;
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-#[derive (Clone, Copy)]
-pub struct _GList
-{
-  pub data: gpointer,        // C: `gpointer data;`
-  pub next: *mut _GList,     // C: `GList *next;`
-  pub prev: *mut _GList,     // C: `GList *prev;`
-}
-#[cfg (feature = "have_pgtk")]
-const _: () = core::assert! (std::mem::size_of::<_GList> () == 24);
-#[cfg (feature = "have_pgtk")]
-const _: () = core::assert! (std::mem::align_of::<_GList> () == 8);
-#[cfg (feature = "have_pgtk")]
-const _: () = core::assert! (std::mem::offset_of! (_GList, data) == 0);
-#[cfg (feature = "have_pgtk")]
-const _: () = core::assert! (std::mem::offset_of! (_GList, next) == 8);
-#[cfg (feature = "have_pgtk")]
-const _: () = core::assert! (std::mem::offset_of! (_GList, prev) == 16);
-/// C: gobject.h 192: `typedef struct _GObject GObject;` - the checked-cast chain's target type; the
-/// port never allocates or dereferences one (the `src/xfns.rs` 1027-1032 shape).
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GObject
-{
-  _private: [u8; 0],
-}
-/// C: gclosure.h 77/92: `typedef struct _GClosure GClosure;` / `typedef void (*GCallback)
-/// (void);`.  C's function-pointer convention is `Option<unsafe extern "C" fn …>` (PORTING.md
-/// P-27), which is what `G_CALLBACK` below produces.
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GClosure
-{
-  _private: [u8; 0],
-}
-#[cfg (feature = "have_pgtk")]
-pub type GCallback = Option<unsafe extern "C" fn ()>;
-/// C: gmain.h 202: `typedef gboolean (*GSourceFunc) (gpointer user_data);`
-#[cfg (feature = "have_pgtk")]
-pub type GSourceFunc = Option<unsafe extern "C" fn (user_data: gpointer) -> gboolean>;
-/// C: gclosure.h: `typedef void (*GClosureNotify) (gpointer data, GClosure *closure);`
-#[cfg (feature = "have_pgtk")]
-pub type GClosureNotify =
-  Option<unsafe extern "C" fn (data: gpointer, closure: *mut GClosure)>;
-/// C: gsignal.h 225-228: `G_SIGNAL_MATCH_FUNC = 1 << 3` / `G_SIGNAL_MATCH_DATA = 1 << 4` in
-/// `typedef enum { … } GSignalMatchType;` (C's enum ABI is `c_int`, PORTING.md 1.3).
-#[cfg (feature = "have_pgtk")]
-pub type GSignalMatchType = c_int;
-#[cfg (feature = "have_pgtk")]
-pub const G_SIGNAL_MATCH_FUNC: GSignalMatchType = 1 << 3;
-#[cfg (feature = "have_pgtk")]
-pub const G_SIGNAL_MATCH_DATA: GSignalMatchType = 1 << 4;
-/// C: gsignal.h 184-206: `typedef enum { G_CONNECT_DEFAULT = 0, G_CONNECT_AFTER = 1 << 0,
-/// G_CONNECT_SWAPPED = 1 << 1 } GConnectFlags;`
-#[cfg (feature = "have_pgtk")]
-pub type GConnectFlags = c_int;
-/// C: gobject.h 54: `#define G_OBJECT(object) (G_TYPE_CHECK_INSTANCE_CAST ((object),
-/// G_TYPE_OBJECT, GObject))`, whose own body is `((GObject *) g_type_check_instance_cast
-/// ((GTypeInstance *) (object), (GType) (g_type)))` (gtype.h 528/2668-2672).  The port keeps the
-/// macro's name and its result type; GLib's checked-cast chain is recorded as a deviation (below).
-#[cfg (feature = "have_pgtk")]
-macro_rules! G_OBJECT {
-  ($object:expr) => { ($object) as *mut GObject };
-}
-/// C: gtk/gtk.h: `#define G_CALLBACK(f) ((GCallback) (f))` - GTK's, not GLib's, so the citation is
-/// the header and not a line.  C's cast reinterprets the function pointer; Rust refuses a
-/// signature-changing `as` cast between fn pointers (`error: non-primitive cast`, measured), so the
-/// port spells C's cast as the item address plus a pointer transmute, and every callback C passes
-/// through it is declared `unsafe extern "C" fn` (PORTING.md 1.4).
-#[cfg (feature = "have_pgtk")]
-macro_rules! G_CALLBACK {
-  ($f:expr) => {
-    Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn ()> ($f as *const ()) })
-  };
-}
-#[cfg (feature = "have_pgtk")]
-unsafe extern "C" {
-  /// C 162/179/212/215: `gdk_display_list_seats (…)` / `gdk_seat_get_slaves (…)` /
-  /// `g_list_free (devices_on_seat);` / `g_list_free (all_seats);`
-  /// C: glist.h 53: `void g_list_free (GList *list);`
-  pub fn g_list_free (list: *mut GList);
-  /// C 185/230: `rec->seat = g_object_ref (seat);` / `g_object_unref (last->seat);`
-  /// C: gobject.h 513/515: `gpointer g_object_ref (gpointer object);` / `void g_object_unref
-  /// (gpointer object);`
-  pub fn g_object_ref (object: gpointer) -> gpointer;
-  pub fn g_object_unref (object: gpointer);
-  /// C 537-551: `g_clear_object (&FRAME_X_OUTPUT (f)->text_cursor);` and the fourteen siblings.
-  /// C: gobject.h 694/695: `void g_clear_object (GObject **object_ptr);` with the macro
-  /// `#define g_clear_object(object_ptr) g_clear_pointer ((object_ptr), g_object_unref)` above it.
-  /// The port calls the **declared function** (same effect: unref and clear); GLib's
-  /// `g_clear_pointer` statement expression is recorded as a deviation (below).
-  pub fn g_clear_object (object_ptr: *mut *mut GObject);
-  /// C 817/829: `gulong id = g_signal_connect (FRAME_WIDGET (f), signal_name, …);` /
-  /// `g_signal_handler_disconnect (FRAME_WIDGET (f), id);`
-  /// C: gsignal.h 440-446: `gulong g_signal_connect_data (gpointer instance, const gchar
-  /// *detailed_signal, GCallback c_handler, gpointer data, GClosureNotify destroy_data,
-  /// GConnectFlags connect_flags);`
-  pub fn g_signal_connect_data (instance: gpointer, detailed_signal: *const gchar,
-                                c_handler: GCallback, data: gpointer,
-                                destroy_data: GClosureNotify,
-                                connect_flags: GConnectFlags) -> gulong;
-  /// C: gsignal.h 483-492: `guint g_signal_handlers_disconnect_matched (gpointer instance,
-  /// GSignalMatchType mask, guint signal_id, GQuark detail, GClosure *closure, GCallback func,
-  /// gpointer data);`
-  pub fn g_signal_handlers_disconnect_matched (instance: gpointer,
-                                               mask: GSignalMatchType,
-                                               signal_id: guint, detail: guint,
-                                               closure: *mut GClosure,
-                                               func: GCallback,
-                                               data: gpointer) -> guint;
-  /// C: gsignal.h ~ "void g_signal_handler_disconnect (gpointer instance, gulong handler_id);"
-  pub fn g_signal_handler_disconnect (instance: gpointer, handler_id: gulong);
-  /// C 822: `guint src = g_timeout_add (msec, pgtk_make_frame_visible_wait_for_event_timeout,
-  /// &timed_out);`
-  /// C: gmain.h 950-952: `guint g_timeout_add (guint interval, GSourceFunc function, gpointer
-  /// data);`
-  pub fn g_timeout_add (interval: guint, function: GSourceFunc, data: gpointer) -> guint;
-  /// C 832: `g_source_remove (src);`
-  /// C: gmain.h 855: `gboolean g_source_remove (guint tag);`
-  pub fn g_source_remove (tag: guint) -> gboolean;
-}
-/// C: gsignal.h 554-555: `#define g_signal_connect(instance, detailed_signal, c_handler, data)
-/// g_signal_connect_data ((instance), (detailed_signal), (c_handler), (data), NULL,
-/// (GConnectFlags) 0)` - GLib's own body, `NULL` being the port's null `GClosureNotify`.
-#[cfg (feature = "have_pgtk")]
-macro_rules! g_signal_connect {
-  ($instance:expr, $signal:expr, $handler:expr, $data:expr) => {
-    g_signal_connect_data (($instance) as gpointer, ($signal), ($handler), ($data),
-                           None, 0 as GConnectFlags)
-  };
-}
-/// C: gsignal.h 635-638: `#define g_signal_handlers_disconnect_by_func(instance, func, data)
-/// g_signal_handlers_disconnect_matched ((instance), (GSignalMatchType)
-/// (G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA), 0, 0, NULL, (func), (data))` - GLib's own body,
-/// and C 148-150 is the one call site.
-#[cfg (feature = "have_pgtk")]
-macro_rules! g_signal_handlers_disconnect_by_func {
-  ($instance:expr, $func:expr, $data:expr) => {
-    g_signal_handlers_disconnect_matched (($instance) as gpointer,
-                                          (G_SIGNAL_MATCH_FUNC | G_SIGNAL_MATCH_DATA)
-                                          as GSignalMatchType,
-                                          0, 0, std::ptr::null_mut (), ($func), ($data))
-  };
-}
-
-/* GDK and GTK.  Both trees are absent from this machine, so each declaration below cites the
-   header alone - no line, no probe, no layout reading (the `src/xfns.rs` 338-341 reading), and
-   `docs/ports/pgtkterm.md` owes every assertion to a GTK toolchain.  The opaque records are the
-   never-dereferenced `[u8; 0]` shape (`src/xfns.rs` 1004-1009's `GtkWidget`), because the port
-   only ever passes their pointers to GDK's and GTK's own entry points.  */
-/// C: gtk/gtkwidget.h: `typedef struct _GtkWidget GtkWidget;` (GTK3 spells it with
-/// `G_DECLARE_DERIVABLE_TYPE`; the pointer is all this slice handles).
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkWidget
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkwindow.h: `typedef struct _GtkWindow GtkWindow;`
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkWindow
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkcontainer.h: `typedef struct _GtkContainer GtkContainer;`
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkContainer
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkbox.h / gtk/gtkfixed.h: `GtkBox` and `GtkFixed` (`G_DECLARE_DERIVABLE_TYPE` /
-/// `G_DECLARE_FINAL_TYPE` over `GtkContainer`).
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkBox
-{
-  _private: [u8; 0],
-}
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkFixed
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkstylecontext.h / gtk/gtkcssprovider.h: `GtkStyleContext`, `GtkCssProvider`.
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkStyleContext
-{
-  _private: [u8; 0],
-}
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkCssProvider
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtktypes.h: `typedef struct { gint x, y; gint width, height; } GtkAllocation;`.  C 982
-/// declares one by value and C 1021-1022/1033 read its members.  **UNVERIFIED**: no GTK tree on
-/// this machine, so the four-`c_int` layout is spelled rather than measured, and the assertion is
-/// owed (`docs/ports/pgtkterm.md`, Owed).
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-#[derive (Clone, Copy)]
-pub struct GtkAllocation
-{
-  pub x: c_int,              // C: `gint x;`
-  pub y: c_int,              // C: `gint y;`
-  pub width: c_int,          // C: `gint width;`
-  pub height: c_int,         // C: `gint height;`
-}
-/// C: gdk/gdkwindow.h: `typedef struct _GdkWindow GdkWindow;`
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkWindow
-{
-  _private: [u8; 0],
-}
-/// C: gdk/gdkdisplay.h / gdk/gdkscreen.h / gdk/gdkseat.h / gdk/gdkdevice.h: `GdkDisplay`,
-/// `GdkScreen`, `GdkSeat`, `GdkDevice`.
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkDisplay
-{
-  _private: [u8; 0],
-}
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkScreen
-{
-  _private: [u8; 0],
-}
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkSeat
-{
-  _private: [u8; 0],
-}
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkDevice
-{
-  _private: [u8; 0],
-}
-/// C: gdk/gdkevents.h: `typedef union _GdkEvent GdkEvent;` and `typedef struct _GdkEventAny
-/// GdkEventAny;`
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkEvent
-{
-  _private: [u8; 0],
-}
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkEventAny
-{
-  _private: [u8; 0],
-}
-/// C: gdk/gdkdnd.h: `typedef struct _GdkDragContext GdkDragContext;`
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkDragContext
-{
-  _private: [u8; 0],
-}
-/// C: gdk/gdkdevice.h: `typedef enum { GDK_SOURCE_MOUSE, … } GdkInputSource;` (C 189/193 use it as
-/// a `%u` value).  C's enum ABI is `c_int` (PORTING.md 1.3), so no record measurement is owed.
-#[cfg (feature = "have_pgtk")]
-pub type GdkInputSource = c_int;
-/// C: gdk/gdkseat.h: `#define GDK_SEAT_CAPABILITY_ALL ((1 << 3) - 1)`; gdk/gdkseat.h,
-/// gdk/gdkdevice.h, gtk/gtkwindow.h, gtk/gtkbox.h, gtk/gtkfixed.h, gtk/gtkcontainer.h and
-/// gtk/gtkstylecontext.h: the eight checked-cast wrappers.  Each keeps the macro's name and its
-/// result type; GDK's and GTK's cast chains are GLib's `G_TYPE_CHECK_INSTANCE_CAST`, recorded as a
-/// deviation (below).
-#[cfg (feature = "have_pgtk")]
-pub const GDK_SEAT_CAPABILITY_ALL: c_uint = (1 << 3) - 1;
-#[cfg (feature = "have_pgtk")]
-macro_rules! GDK_SEAT {
-  ($o:expr) => { ($o) as *mut GdkSeat };
-}
-#[cfg (feature = "have_pgtk")]
-macro_rules! GDK_DEVICE {
-  ($o:expr) => { ($o) as *mut GdkDevice };
-}
-#[cfg (feature = "have_pgtk")]
-macro_rules! GTK_WINDOW {
-  ($o:expr) => { ($o) as *mut GtkWindow };
-}
-#[cfg (feature = "have_pgtk")]
-macro_rules! GTK_BOX {
-  ($o:expr) => { ($o) as *mut GtkBox };
-}
-#[cfg (feature = "have_pgtk")]
-macro_rules! GTK_FIXED {
-  ($o:expr) => { ($o) as *mut GtkFixed };
-}
-#[cfg (feature = "have_pgtk")]
-macro_rules! GTK_CONTAINER {
-  ($o:expr) => { ($o) as *mut GtkContainer };
-}
-/// C: gtk/gtkstylecontext.h: `#define GTK_STYLE_PROVIDER(provider) (G_TYPE_CHECK_INSTANCE_CAST
-/// ((provider), GTK_TYPE_STYLE_PROVIDER, GtkStyleProvider))` - the same treatment; the pointee is
-/// GTK's `GtkStyleProvider`, an opaque interface record this slice only passes on.
-#[cfg (feature = "have_pgtk")]
-macro_rules! GTK_STYLE_PROVIDER {
-  ($o:expr) => { ($o) as *mut GtkStyleProvider };
-}
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkStyleProvider
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkstylecontext.h: `#define GTK_STYLE_PROVIDER_PRIORITY_USER 800`
-#[cfg (feature = "have_pgtk")]
-pub const GTK_STYLE_PROVIDER_PRIORITY_USER: c_uint = 800;
-#[cfg (feature = "have_pgtk")]
-unsafe extern "C" {
-  /// C 141/146: `pgtk_regenerate_devices`' two callers pass `user_data`.
-  /// C: gdk/gdkseat.h: `GdkSeat *gdk_display_list_seats` is a `GDK_SEAT`-family entry point:
-  /// `GList *gdk_display_list_seats (GdkDisplay *display);`
-  pub fn gdk_display_list_seats (display: *mut GdkDisplay) -> *mut GList;
-  /// C 179: `devices_on_seat = gdk_seat_get_slaves (seat, GDK_SEAT_CAPABILITY_ALL);`
-  /// C: gdk/gdkseat.h: `GList *gdk_seat_get_slaves (GdkSeat *seat, GdkSeatCapabilities
-  /// capabilities);`
-  pub fn gdk_seat_get_slaves (seat: *mut GdkSeat, capabilities: c_uint) -> *mut GList;
-  /// C 193/194: `source = gdk_device_get_source (rec->device);` / `name = gdk_device_get_name
-  /// (rec->device);`
-  /// C: gdk/gdkdevice.h: `GdkInputSource gdk_device_get_source (GdkDevice *device);`
-  /// C: gdk/gdkdevice.h: `const gchar *gdk_device_get_name (GdkDevice *device);`
-  pub fn gdk_device_get_source (device: *mut GdkDevice) -> GdkInputSource;
-  pub fn gdk_device_get_name (device: *mut GdkDevice) -> *const gchar;
-  /// C 251: `device = gdk_event_get_source_device (event);`
-  /// C: gdk/gdkevents.h: `GdkDevice *gdk_event_get_source_device (const GdkEvent *event);`
-  pub fn gdk_event_get_source_device (event: *const GdkEvent) -> *mut GdkDevice;
-  /// C 393: `return gdk_keyval_name (keysym);`
-  /// C: gdk/gdkkeys.h: `gchar *gdk_keyval_name (guint keyval);`
-  pub fn gdk_keyval_name (keyval: guint) -> *mut gchar;
-  /// C 414/426: `gdk_window_raise (gtk_widget_get_window (FRAME_WIDGET (f)));` /
-  /// `gdk_window_lower (gtk_widget_get_window (FRAME_WIDGET (f)));`
-  /// C: gdk/gdkwindow.h: `void gdk_window_raise (GdkWindow *window);` / `void gdk_window_lower
-  /// (GdkWindow *window);`
-  pub fn gdk_window_raise (window: *mut GdkWindow);
-  pub fn gdk_window_lower (window: *mut GdkWindow);
-  /// C 941/950: `GdkScreen *gscr = gdk_display_get_default_screen (gdpy);`
-  /// C: gdk/gdkdisplay.h: `GdkScreen *gdk_display_get_default_screen (GdkDisplay *display);`
-  pub fn gdk_display_get_default_screen (display: *mut GdkDisplay) -> *mut GdkScreen;
-  /// C 943/952: `return gdk_screen_get_height (gscr);` / `gdk_screen_get_width (gscr);`
-  /// C: gdk/gdkscreen.h: `gint gdk_screen_get_height (GdkScreen *screen);` / `gint
-  /// gdk_screen_get_width (GdkScreen *screen);`
-  pub fn gdk_screen_get_height (screen: *mut GdkScreen) -> c_int;
-  pub fn gdk_screen_get_width (screen: *mut GdkScreen) -> c_int;
-  /// C 500/507: `gtk_widget_get_realized (FRAME_GTK_WIDGET (new_focus))` /
-  /// `gtk_widget_grab_focus (FRAME_GTK_WIDGET (new_focus));`
-  /// C: gtk/gtkwidget.h: `gboolean gtk_widget_get_realized (GtkWidget *widget);` / `void
-  /// gtk_widget_grab_focus (GtkWidget *widget);`
-  pub fn gtk_widget_get_realized (widget: *mut GtkWidget) -> gboolean;
-  pub fn gtk_widget_grab_focus (widget: *mut GtkWidget);
-  /// C 414/426: `gtk_widget_get_window (FRAME_WIDGET (f))`
-  /// C: gtk/gtkwidget.h: `GdkWindow *gtk_widget_get_window (GtkWidget *widget);`
-  pub fn gtk_widget_get_window (widget: *mut GtkWidget) -> *mut GdkWindow;
-  /// C 556/990/1038: `GtkStyleContext *ctxt = gtk_widget_get_style_context (…);`
-  /// C: gtk/gtkwidget.h: `GtkStyleContext *gtk_widget_get_style_context (GtkWidget *widget);`
-  pub fn gtk_widget_get_style_context (widget: *mut GtkWidget) -> *mut GtkStyleContext;
-  /// C 558/1043/1048: `gtk_style_context_remove_provider (ctxt, GTK_STYLE_PROVIDER (old));` /
-  /// `gtk_style_context_add_provider (ctxt, GTK_STYLE_PROVIDER (provider),
-  /// GTK_STYLE_PROVIDER_PRIORITY_USER);`
-  /// C: gtk/gtkstylecontext.h: `void gtk_style_context_add_provider (GtkStyleContext *context,
-  /// GtkStyleProvider *provider, guint priority);` / `void gtk_style_context_remove_provider
-  /// (GtkStyleContext *context, GtkStyleProvider *provider);`
-  pub fn gtk_style_context_add_provider (context: *mut GtkStyleContext,
-                                         provider: *mut GtkStyleProvider,
-                                         priority: guint);
-  pub fn gtk_style_context_remove_provider (context: *mut GtkStyleContext,
-                                            provider: *mut GtkStyleProvider);
-  /// C 579: `gtk_widget_destroy (FRAME_WIDGET (f));`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_destroy (GtkWidget *widget);`
-  pub fn gtk_widget_destroy (widget: *mut GtkWidget);
-  /// C 983: `gtk_widget_get_allocation (fixed, &alloc);`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_get_allocation (GtkWidget *widget, GtkAllocation
-  /// *allocation);`
-  pub fn gtk_widget_get_allocation (widget: *mut GtkWidget,
-                                    allocation: *mut GtkAllocation);
-  /// C 996: `GtkWidget *whbox_of_f = gtk_widget_get_parent (fixed);`
-  /// C: gtk/gtkwidget.h: `GtkWidget *gtk_widget_get_parent (GtkWidget *widget);`
-  pub fn gtk_widget_get_parent (widget: *mut GtkWidget) -> *mut GtkWidget;
-  /// C 744/1026: `gtk_widget_queue_resize (FRAME_WIDGET (f));`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_queue_resize (GtkWidget *widget);`
-  pub fn gtk_widget_queue_resize (widget: *mut GtkWidget);
-  /// C 843/857: `gtk_widget_show (FRAME_WIDGET (f));` / `gtk_widget_hide (FRAME_WIDGET (f));`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_show (GtkWidget *widget);` / `void gtk_widget_hide
-  /// (GtkWidget *widget);`
-  pub fn gtk_widget_show (widget: *mut GtkWidget);
-  pub fn gtk_widget_hide (widget: *mut GtkWidget);
-  /// C 770/1027/1034: `gtk_widget_show_all (FRAME_GTK_OUTER_WIDGET (f));`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_show_all (GtkWidget *widget);`
-  pub fn gtk_widget_show_all (widget: *mut GtkWidget);
-  /// C 1033: `gtk_widget_set_size_request (fixed, alloc.width, alloc.height);`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_set_size_request (GtkWidget *widget, gint width, gint
-  /// height);`
-  pub fn gtk_widget_set_size_request (widget: *mut GtkWidget, width: c_int,
-                                      height: c_int);
-  /// C 999: `gtk_container_remove (GTK_CONTAINER (whbox_of_f), fixed);`
-  /// C: gtk/gtkcontainer.h: `void gtk_container_remove (GtkContainer *container,
-  /// GtkWidget *widget);`
-  pub fn gtk_container_remove (container: *mut GtkContainer, widget: *mut GtkWidget);
-  /// C 1019: `gtk_box_pack_start (GTK_BOX (f->output_data.pgtk->hbox_widget), fixed, TRUE, TRUE,
-  /// 0);`
-  /// C: gtk/gtkbox.h: `void gtk_box_pack_start (GtkBox *box, GtkWidget *child, gboolean expand,
-  /// gboolean fill, guint padding);`
-  pub fn gtk_box_pack_start (box_: *mut GtkBox, child: *mut GtkWidget, expand: gboolean,
-                             fill: gboolean, padding: guint);
-  /// C 1032: `gtk_fixed_put (GTK_FIXED (fixed_of_p), fixed, f->left_pos, f->top_pos);`
-  /// C: gtk/gtkfixed.h: `void gtk_fixed_put (GtkFixed *fixed, GtkWidget *widget, gint x, gint y);`
-  pub fn gtk_fixed_put (fixed: *mut GtkFixed, widget: *mut GtkWidget, x: c_int, y: c_int);
-  /// C 723: `gtk_fixed_move (GTK_FIXED (parent), fixed, f->left_pos, f->top_pos);`
-  /// C: gtk/gtkfixed.h: `void gtk_fixed_move (GtkFixed *fixed, GtkWidget *widget, gint x, gint y);`
-  pub fn gtk_fixed_move (fixed: *mut GtkFixed, widget: *mut GtkWidget, x: c_int, y: c_int);
-  /// C 717/774/845: `gtk_window_move (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)), f->left_pos,
-  /// f->top_pos);` / `gtk_window_iconify (window);` / `gtk_window_deiconify (GTK_WINDOW (win));`
-  /// C: gtk/gtkwindow.h: `void gtk_window_move (GtkWindow *window, gint x, gint y);` / `void
-  /// gtk_window_iconify (GtkWindow *window);` / `void gtk_window_deiconify (GtkWindow *window);`
-  pub fn gtk_window_move (window: *mut GtkWindow, x: c_int, y: c_int);
-  pub fn gtk_window_iconify (window: *mut GtkWindow);
-  pub fn gtk_window_deiconify (window: *mut GtkWindow);
-  /// C 827: `while (!found && !timed_out) gtk_main_iteration ();`
-  /// C: gtk/gtkmain.h: `gboolean gtk_main_iteration (void);`
-  pub fn gtk_main_iteration () -> gboolean;
-}
-
+include!("include/pgtkterm.rs");               // C 48's chain: `"gtkutil.h"` 29's `"pgtkterm.h"`
 /* ----------------------------------------------------------------------------------------------
    The mirrors that own the Emacs-side names this slice uses and are placeholders today.  Each
    declaration keeps the reference's own prototype in a `/// C:` line and belongs in that mirror
@@ -779,46 +290,10 @@ macro_rules! FRAME_CR_SURFACE {
   ($f:expr) => { cairo_get_target (FRAME_CR_CONTEXT! ($f)) };
 }
 
-/* C 474-516's pgtk accessors, declared where this slice uses them (P-72 rule 4: `pgtkterm.h`'s
-   mirror is a placeholder, so the consumer spells the macro with the reference's own line and
-   `docs/ports/pgtkterm.md` asks for the move).  Their bodies name `pgtk_output` /
-   `pgtk_display_info`, the records that mirror owes - the named gap this unit cannot close
-   (`docs/ports/include-pgtkterm.md`).  */
-/// C: pgtkterm.h 474: `#define FRAME_X_OUTPUT(f) ((f)->output_data.pgtk)`
-#[cfg (feature = "have_pgtk")]
-macro_rules! FRAME_X_OUTPUT {
-  ($f:expr) => { ((*$f).output_data.pgtk as *mut pgtk_output) };
-}
-/// C: pgtkterm.h 474-516's accessors that C *writes*: the port gives each the two-arm form the
-/// `src/haikuterm.rs` 636-662 treatment uses, because `include/frame.rs` carries the frame.h ones
-/// as read-only getters and C's macro is an l-value.  The `!` in the invocation is the port's
-/// spelling of C's assignment (a recorded deviation).
-/// C: pgtkterm.h 482/514/516: `#define FRAME_FONT(f) (FRAME_X_OUTPUT (f)->font)` /
-/// `#define FRAME_FONTSET(f) (FRAME_X_OUTPUT (f)->fontset)` /
-/// `#define FRAME_BASELINE_OFFSET(f) (FRAME_X_OUTPUT (f)->baseline_offset)`
-#[cfg (feature = "have_pgtk")]
-macro_rules! FRAME_FONT {
-  ($f:expr) => { (*FRAME_X_OUTPUT! ($f)).font };
-  ($f:expr, $v:expr) => { (*FRAME_X_OUTPUT! ($f)).font = $v };
-}
-#[cfg (feature = "have_pgtk")]
-macro_rules! FRAME_FONTSET {
-  ($f:expr) => { (*FRAME_X_OUTPUT! ($f)).fontset };
-  ($f:expr, $v:expr) => { (*FRAME_X_OUTPUT! ($f)).fontset = $v };
-}
-#[cfg (feature = "have_pgtk")]
-macro_rules! FRAME_BASELINE_OFFSET {
-  ($f:expr) => { (*FRAME_X_OUTPUT! ($f)).baseline_offset };
-  ($f:expr, $v:expr) => { (*FRAME_X_OUTPUT! ($f)).baseline_offset = $v };
-}
-/// C: pgtkterm.h 483/485-487: `#define FRAME_GTK_OUTER_WIDGET(f) (FRAME_X_OUTPUT (f)->widget)` and
-/// `#define FRAME_WIDGET(f) (FRAME_GTK_OUTER_WIDGET (f) ? FRAME_GTK_OUTER_WIDGET (f) :
-/// FRAME_GTK_WIDGET (f))` - C writes the outer widget at C 1004.
-#[cfg (feature = "have_pgtk")]
-macro_rules! FRAME_GTK_OUTER_WIDGET {
-  ($f:expr) => { (*FRAME_X_OUTPUT! ($f)).widget };
-  ($f:expr, $v:expr) => { (*FRAME_X_OUTPUT! ($f)).widget = $v };
-}
+/* C 474-516's pgtk accessors now live in their mirror, `include/pgtkterm.rs` (P-90 ①/②/③); the
+   unit reaches them through the `include!` edge above.  The frame.h accessors C *writes* here stay
+   below (their mirror, `include/frame.rs`, carries only the getter arm - Owed 5 of
+   `docs/ports/pgtkterm.md`).  */
 /// C: frame.h 1091's `FRAME_TAB_BAR_HEIGHT` and its three siblings are *this* unit's problem
 /// because C assigns them here: the mirror's getter is the read arm, and the write arm is C's own
 /// member (`include/frame.rs` 1222-1231, 977-1001).  Same two-arm shape; the `!` invocation is the
@@ -864,32 +339,6 @@ macro_rules! FRAME_NO_ACCEPT_FOCUS {
   ($f:expr) => { FRAME_NO_ACCEPT_FOCUS ($f) };
   ($f:expr, $v:expr) => {
     frame_set_flag ($f, FRAME_NO_ACCEPT_FOCUS_UNIT, FRAME_NO_ACCEPT_FOCUS_SHIFT, $v as u32) };
-}
-/// C: pgtkterm.h 475: `#define FRAME_OUTPUT_DATA(f) FRAME_X_OUTPUT (f)` (C 1005-1011's seven
-/// sites).
-#[cfg (feature = "have_pgtk")]
-macro_rules! FRAME_OUTPUT_DATA {
-  ($f:expr) => { FRAME_X_OUTPUT! ($f) };
-}
-/// C: pgtkterm.h 477: `#define FRAME_DISPLAY_INFO(f) (FRAME_X_OUTPUT (f)->display_info)`
-#[cfg (feature = "have_pgtk")]
-macro_rules! FRAME_DISPLAY_INFO {
-  ($f:expr) => { (*FRAME_X_OUTPUT! ($f)).display_info };
-}
-/// C: pgtkterm.h 484: `#define FRAME_GTK_WIDGET(f) (FRAME_X_OUTPUT (f)->edit_widget)`
-#[cfg (feature = "have_pgtk")]
-macro_rules! FRAME_GTK_WIDGET {
-  ($f:expr) => { (*FRAME_X_OUTPUT! ($f)).edit_widget };
-}
-/// C: pgtkterm.h 485-487: `#define FRAME_WIDGET(f) (FRAME_GTK_OUTER_WIDGET (f) ?
-/// FRAME_GTK_OUTER_WIDGET (f) : FRAME_GTK_WIDGET (f))` - the accessor C evaluates twice, kept
-/// (PORTING.md 2.1's evaluation-count rule).
-#[cfg (feature = "have_pgtk")]
-macro_rules! FRAME_WIDGET {
-  ($f:expr) => {
-    if !FRAME_GTK_OUTER_WIDGET! ($f).is_null () { FRAME_GTK_OUTER_WIDGET! ($f) }
-    else { FRAME_GTK_WIDGET! ($f) }
-  };
 }
 
 /* C 76-79: "Non-zero means that a HELP_EVENT has been generated since Emacs start." */
@@ -1006,9 +455,9 @@ unsafe fn pgtk_enumerate_devices (dpyinfo: *mut pgtk_display_info, initial_p: bo
       if initial_p
         {
           g_signal_connect! (G_OBJECT! (seat), c"device-added".as_ptr (),
-                             G_CALLBACK! (pgtk_device_added_or_removal_cb), dpyinfo);
+                             G_CALLBACK! (pgtk_device_added_or_removal_cb), dpyinfo as gpointer);
           g_signal_connect! (G_OBJECT! (seat), c"device-removed".as_ptr (),
-                             G_CALLBACK! (pgtk_device_added_or_removal_cb), dpyinfo);
+                             G_CALLBACK! (pgtk_device_added_or_removal_cb), dpyinfo as gpointer);
         }
 
       /* We only want slaves, not master devices.  */
@@ -1176,9 +625,9 @@ unsafe fn evq_enqueue (ev: *mut buffered_input_event)
         {
           dpyinfo = FRAME_DISPLAY_INFO! (frame);
 
-          if (*dpyinfo).last_user_time < (*ev).ie.timestamp
+          if ((*dpyinfo).last_user_time as c_ulong) < (*ev).ie.timestamp
             {
-              (*dpyinfo).last_user_time = (*ev).ie.timestamp;
+              (*dpyinfo).last_user_time = (*ev).ie.timestamp as guint32;
             }
         }
     }
@@ -1541,7 +990,7 @@ unsafe fn pgtk_calc_absolute_position (f: *mut frame)
 
       /* A frame that has been visible at least once should have outer
 	 edges.  */
-      if (*(*f).output_data.pgtk as *mut pgtk_output).has_been_visible && p.is_null ()
+      if (*((*f).output_data.pgtk as *mut pgtk_output)).has_been_visible != 0 && p.is_null ()
 	{
 	  let mut frame: Lisp_Object = std::ptr::null_mut ();
 	  let mut edges: Lisp_Object = Qnil ();
@@ -1572,7 +1021,7 @@ unsafe fn pgtk_calc_absolute_position (f: *mut frame)
     {
       let mut height: c_int = FRAME_PIXEL_HEIGHT (f);
 
-      if (*(*f).output_data.pgtk as *mut pgtk_output).has_been_visible && p.is_null ()
+      if (*((*f).output_data.pgtk as *mut pgtk_output)).has_been_visible != 0 && p.is_null ()
 	{
 	  let mut frame: Lisp_Object = std::ptr::null_mut ();
 	  let mut edges: Lisp_Object = Qnil ();
@@ -1764,7 +1213,7 @@ unsafe fn pgtk_wait_for_event (f: *mut frame, signal_name: *const gchar)
 	  gtk_main_iteration ();
 	}
 
-      g_signal_handler_disconnect (FRAME_WIDGET! (f), id);
+      g_signal_handler_disconnect (FRAME_WIDGET! (f) as gpointer, id);
 
       if timed_out == 0
 	{
@@ -1825,7 +1274,7 @@ unsafe fn pgtk_make_frame_visible_invisible (f: *mut frame, visible: bool)
    `pgtk_frame_parm_handlers` table holds it - so the ABI is `extern "C"` (PORTING.md 1.4).  */
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" fn pgtk_new_font (f: *mut frame, font_object: Lisp_Object,
-				   fontset: c_int) -> Lisp_Object
+				   mut fontset: c_int) -> Lisp_Object
 {
   let font: *mut font = XFONT_OBJECT (font_object);
   let mut font_ascent: c_int = 0;
