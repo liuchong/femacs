@@ -9375,3 +9375,34 @@
   ⑧ **预算**：lane：`probe` **4 发**（限 3，超 1）、`build-tu` **2 发**（限内），另 2 次 `/tmp` 上的直接 `rustc --metadata`
      （桩读数与重建后复读）；集成者：gate 各 1 发、`--check`/tolerance 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；
      `/tmp/pgtkim-lane` 收工已删。
+
+- **3.493 `src/emacsgtkfixed.c`（C 1-210，整文件）落地：翻臂的 13 个错全在四个镜像文件上，末次没到 exit 0（2026-10-05）**：
+  ① **范围/块**：C 1-210 全部转写（16 行区间表；文件门 `all (use_gtk, have_gtk3)`，内层 C 25 的 `HAVE_PGTK`
+     两臂都带）；`build-tu` 冻结臂 **exit 0 / 336 字节空对象**。**无新增 feature**。
+  ② **行数**：`femacs/src/emacsgtkfixed.rs` **11 → 507**（md5 `fa389dc0f1ee609b8b6c9c9d72518326`）；台账 24 → **317**。
+  ③ **读数**：⑴ X11 活臂（`use_gtk`+`have_gtk3`+`have_x_windows`）→ **exit 1 / 13 error / 无 rlib**：`E0133`×10
+     （`include/xterm.rs` 三个 INLINE 体缺 `unsafe`）、`E0609`×1（`include/gtk.rs` 的 `GtkWidgetClass` 缺
+     `get_preferred_height`）、`E0428`×1（`include/emacsgtkfixed.rs` 把 `emacs_fixed_new` 原型放顶层 ⇒ P-39 那一类）、
+     `E0080`×1（`include/systime.rs` 27 的断言，**按设计**拒绝在 X11 目标存在前被翻）；13 条跨度里 12 条在镜像副本，
+     **第 13 条落在本单元的字段写上、成因也是镜像缺成员**；⑵ **/tmp 对照读数（关键证据）**：只在 `/tmp` 副本上做四处
+     镜像侧修改后，同一条 rustc 命令 → **exit 0 / 0 error / rlib 14,173,824 字节** ⇒ 本单元文本闭合；
+     ⑶ PGTK 臂 → 13 error 也全在镜像（`Window`×5、`XrmDatabase`×2、`atimer`×2、`XRectangle`×1、`pgtkterm.rs` 776 的
+     `expected item after doc comment`）；⑷ `extract-abi --check` 首读 1 条（行数）→ 我追加 `emacsgtkfixed` 容差行
+     （**1.43 / total**，210 vs 507 = 141.4%）后 **OK**；⑸ 三道文本闸门全绿（`check-mirror-dupes` 17/17/0、
+     `check-declarations` 10/0/0、`check-citations` 本单元 0 drift）。
+  ④ **集成者的账**：⑴ 容差行已写（**完成件**：C 1-210 全覆盖）；⑵ 台账 Owed 5/9 标 DONE；⑶ feature-coverage 重生成
+     （`use_gtk` 增站点）；⑷ pending 棘轮本件早已越阈值（53 行/0 stale）。
+  ⑤ **点名归属（镜像轮，两轮独立读数都指向同一批）**：`include/xterm.rs` 三个 INLINE 体补 `unsafe`（**卡住任何
+     `have_x_windows` 臂**）、`include/gtk.rs` 的 `GtkWidgetClass.get_preferred_height`、`include/emacsgtkfixed.rs`
+     的原型进 `pub mod …_decls {…} use …;`（另：它把两条记录挂在 `have_pgtk` 下而正文说"deferred"，
+     自相矛盾）、`include/xlib.rs` 的 `XSizeHints`/`XA_WM_*`/`PMinSize`/`PResizeInc`/`XChangeProperty`、
+     `include/systime.rs` 27 的断言（要 X11 目标或 `dead-arms` 才能翻）、`include/pgtkterm.rs` 776 的语法错
+     （**与 3.492 同一条**）。
+  ⑥ **必须纠正的第二条事实**：lane 独立实测 **GTK3/GDK 不在本机**（`/opt/homebrew/include/gtk-3.0` 不存在、
+     无 `pkg-config`、`find … -name gtkfixed.h` 为空；本机只有 glib 2.90.0 / cairo / X11）——与我 3.492 记的
+     Kierkegaard 读数一致，**"GTK 在本机"这个说法作废**；GDK/GTK 的每个记录与 `priv` 偏移全部 **UNVERIFIED**。
+  ⑦ **未声称**：**零运行证据**（没注册过 `GtkFixed` 子类、没建 widget、没设 size hint、没发
+     `XChangeProperty`）；两臂都只到 rustc，且在本机**连 rlib 都没到**；末次 exit 0 **未达成**，原因全在 ⑤ 的镜像。
+  ⑧ **预算**：lane：`build-tu` **2/3**、`probe` **4/3**（超 1，如实报；PGTK 臂/对照/空跑另有 3 次**直接 rustc**）；
+     集成者：`--check`/tolerance/feature-coverage/gate 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；
+     `/tmp/egf-lane` 已删。
