@@ -212,8 +212,8 @@ pub struct terminal
   pub display_info: display_info,                  // 542
 
   /* The coding systems used for terminal output and keyboard input.  */
-  pub terminal_coding: *mut coding_system,         // 549
-  pub keyboard_coding: *mut coding_system,         // 554
+  pub terminal_coding: *mut c_void,               // 549 (`coding.rs` 133's record; P-72 rule 3 stand-in)
+  pub keyboard_coding: *mut c_void,               // 554 (same stand-in)
 
   /* The terminal's redisplay interface (dispextern.h).  */
   pub rif: *mut c_void,                            /// C: `struct redisplay_interface *rif;`
@@ -351,10 +351,10 @@ pub fn tset_selection_alist (t: *mut terminal, val: Lisp_Object)
 // termhooks.h 927-928: the two `TERMINAL_*` accessors that need only `struct terminal`
 // (the rest of the `FRAME_*`/`TERMINAL_*` family dereferences `struct frame`).
 #[inline(always)]
-pub fn TERMINAL_TERMINAL_CODING (d: *mut terminal) -> *mut coding_system
+pub fn TERMINAL_TERMINAL_CODING (d: *mut terminal) -> *mut c_void
 { unsafe { (*d).terminal_coding } }
 #[inline(always)]
-pub fn TERMINAL_KEYBOARD_CODING (d: *mut terminal) -> *mut coding_system
+pub fn TERMINAL_KEYBOARD_CODING (d: *mut terminal) -> *mut c_void
 { unsafe { (*d).keyboard_coding } }
 
 /* Chain of all terminal devices currently in use.  */

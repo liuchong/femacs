@@ -2708,7 +2708,7 @@ unsafe fn read_decoded_event_from_main_queue (end_time: *mut timespec,
 		 (e.g. reading bytes sent by the xterm to specify the position
 		 of a mouse click).  */
 	      && !EQ (prev_event, Qt ())
-	      && (coding_bits! (common_flags, TERMINAL_KEYBOARD_CODING (terminal))
+	      && (coding_bits! (common_flags, TERMINAL_KEYBOARD_CODING (terminal) as *mut coding_system)
 		  & CODING_REQUIRE_DECODING_MASK) != 0)
 	  { return nextevt; }		/* No decoding needed.  */
 	else
@@ -2721,7 +2721,7 @@ unsafe fn read_decoded_event_from_main_queue (end_time: *mut timespec,
 		&& XFIXNUM (nextevt) < if meta_key == 1 { 0x80 } else { 0x100 }
 	      { /* An encoded byte sequence, let's try to decode it.  */
 		let coding: *mut coding_system
-		  = TERMINAL_KEYBOARD_CODING (terminal);
+		  = TERMINAL_KEYBOARD_CODING (terminal) as *mut coding_system;
 
 		if raw_text_coding_system_p (coding)
 		  {

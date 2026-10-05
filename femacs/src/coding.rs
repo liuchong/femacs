@@ -11233,7 +11233,7 @@ DEFUN! ("set-terminal-coding-system-internal", Fset_terminal_coding_system_inter
        (coding_system: Lisp_Object, terminal: Lisp_Object),
        {
 	 let term: *mut terminal = decode_live_terminal (terminal);
-	 let terminal_coding: *mut coding_system = TERMINAL_TERMINAL_CODING (term);
+	 let terminal_coding: *mut coding_system = TERMINAL_TERMINAL_CODING (term) as *mut coding_system;
 	 CHECK_SYMBOL (coding_system);
 	 setup_coding_system (Fcheck_coding_system (coding_system), terminal_coding);
 	 /* We had better not send unsafe characters to terminal.  */
@@ -11284,7 +11284,7 @@ DEFUN! ("terminal-coding-system", Fterminal_coding_system,
        (terminal: Lisp_Object),
        {
 	 let terminal_coding: *mut coding_system
-	   = TERMINAL_TERMINAL_CODING (decode_live_terminal (terminal));
+	   = TERMINAL_TERMINAL_CODING (decode_live_terminal (terminal)) as *mut coding_system;
 	 let coding_system: Lisp_Object = CODING_ID_NAME ((*terminal_coding).id as hash_idx_t);
 
 	 /* For backward compatibility, return nil if it is `undecided'.  */
@@ -11303,11 +11303,11 @@ DEFUN! ("set-keyboard-coding-system-internal", Fset_keyboard_coding_system_inter
 	   { coding_system = Qno_conversion (); }
 	 else
 	   { Fcheck_coding_system (coding_system); }
-	 setup_coding_system (coding_system, TERMINAL_KEYBOARD_CODING (t));
+	 setup_coding_system (coding_system, TERMINAL_KEYBOARD_CODING (t) as *mut coding_system);
 	 /* Character composition should be disabled.  */
-	 coding_bits_set (TERMINAL_KEYBOARD_CODING (t), CODING_SYSTEM_COMMON_FLAGS_SHIFT,
+	 coding_bits_set (TERMINAL_KEYBOARD_CODING (t) as *mut coding_system, CODING_SYSTEM_COMMON_FLAGS_SHIFT,
 			  CODING_SYSTEM_COMMON_FLAGS_MASK,
-			  (coding_bits_get (TERMINAL_KEYBOARD_CODING (t),
+			  (coding_bits_get (TERMINAL_KEYBOARD_CODING (t) as *mut coding_system,
 					    CODING_SYSTEM_COMMON_FLAGS_SHIFT,
 					    CODING_SYSTEM_COMMON_FLAGS_MASK)
 			   & ! CODING_ANNOTATE_COMPOSITION_MASK));
@@ -11319,8 +11319,8 @@ DEFUN! ("keyboard-coding-system",
        doc: "Return coding system specified for decoding keyboard input.",
        (terminal: Lisp_Object),
        {
-	 return CODING_ID_NAME ((*TERMINAL_KEYBOARD_CODING
-				 (decode_live_terminal (terminal))).id as hash_idx_t);
+	 return CODING_ID_NAME ((*(TERMINAL_KEYBOARD_CODING
+				    (decode_live_terminal (terminal)) as *mut coding_system)).id as hash_idx_t);
        });
 
 

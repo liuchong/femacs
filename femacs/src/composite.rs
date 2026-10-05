@@ -2001,9 +2001,9 @@ DEFUN! ("composition-get-gstring", Fcomposition_get_gstring,
       let coding: *mut coding_system;
       let terminal: *mut terminal = decode_live_terminal (font_object);
 
-      coding = if ((*TERMINAL_TERMINAL_CODING (terminal)).bits
+      coding = if ((*(TERMINAL_TERMINAL_CODING (terminal) as *mut coding_system)).bits
 		   & CODING_REQUIRE_ENCODING_MASK) != 0
-	{ TERMINAL_TERMINAL_CODING (terminal) }
+	{ TERMINAL_TERMINAL_CODING (terminal) as *mut coding_system }
 	/* the mirror packs coding_system's `common_flags` into `bits` (coding.rs 218-247);
 	   C 1929 reads the field, the port the same 14-bit window (docs/ports/composite.md) */
 	else { &raw mut safe_terminal_coding };

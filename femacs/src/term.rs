@@ -1106,9 +1106,9 @@ unsafe fn tty_write_glyphs_1 (f: *mut frame, mut string: *mut glyph, len: c_int)
      safe_terminal_coding.  We can't use CODING_REQUIRE_ENCODING here
      because it always return 1 if the member src_multibyte is 1.  */
   let coding: *mut coding_system
-    = if coding_common_flags! (common_flags, FRAME_TERMINAL_CODING! (f))
+    = if coding_common_flags! (common_flags, (FRAME_TERMINAL_CODING! (f) as *mut coding_system))
       & CODING_REQUIRE_ENCODING_MASK as c_int != 0
-      { FRAME_TERMINAL_CODING! (f) } else { &raw mut safe_terminal_coding };
+      { (FRAME_TERMINAL_CODING! (f) as *mut coding_system) } else { &raw mut safe_terminal_coding };
 
   /* The mode bit CODING_MODE_LAST_BLOCK should be set to 1 only at
      the tail.  */
@@ -1187,9 +1187,9 @@ unsafe fn tty_write_glyphs_with_face (f: *mut frame, string: *mut glyph,
   /* If terminal_coding does any conversion, use it, otherwise use
      safe_terminal_coding.  We can't use CODING_REQUIRE_ENCODING here
      because it always return 1 if the member src_multibyte is 1.  */
-  coding = if coding_common_flags! (common_flags, FRAME_TERMINAL_CODING! (f))
+  coding = if coding_common_flags! (common_flags, (FRAME_TERMINAL_CODING! (f) as *mut coding_system))
       & CODING_REQUIRE_ENCODING_MASK as c_int != 0
-    { FRAME_TERMINAL_CODING! (f) } else { &raw mut safe_terminal_coding };
+    { (FRAME_TERMINAL_CODING! (f) as *mut coding_system) } else { &raw mut safe_terminal_coding };
   /* The mode bit CODING_MODE_LAST_BLOCK should be set to 1 only at
      the tail.  */
   coding_mode! (mode, coding, coding_mode! (mode, coding) & ! CODING_MODE_LAST_BLOCK);
@@ -1248,9 +1248,9 @@ unsafe extern "C" fn tty_insert_glyphs (f: *mut frame, mut start: *mut glyph, mu
   /* If terminal_coding does any conversion, use it, otherwise use
      safe_terminal_coding.  We can't use CODING_REQUIRE_ENCODING here
      because it always return 1 if the member src_multibyte is 1.  */
-  coding = if coding_common_flags! (common_flags, FRAME_TERMINAL_CODING! (f))
+  coding = if coding_common_flags! (common_flags, (FRAME_TERMINAL_CODING! (f) as *mut coding_system))
       & CODING_REQUIRE_ENCODING_MASK as c_int != 0
-    { FRAME_TERMINAL_CODING! (f) } else { &raw mut safe_terminal_coding };
+    { (FRAME_TERMINAL_CODING! (f) as *mut coding_system) } else { &raw mut safe_terminal_coding };
   /* The mode bit CODING_MODE_LAST_BLOCK should be set to 1 only at
      the tail.  */
   coding_mode! (mode, coding, coding_mode! (mode, coding) & ! CODING_MODE_LAST_BLOCK);

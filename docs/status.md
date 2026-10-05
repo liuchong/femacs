@@ -8137,3 +8137,22 @@
   `*mut c_void`——同一镜像下方两行的 `rif` 字段与 `src/include/window.rs` 104 的 `current_matrix` 都是这么写的。
   **代价已量**：三个"有该类型"的单元要在使用点加转换——`femacs/src/coding.rs` 6 处、`composite.rs` 2 处、
   `keyboard.rs` 2 处；所以它是一次**独立的镜像轮**，不是某个单元落地时的顺手活。本条**只记录，不改代码**。
+
+- **3.455 镜像轮：`termhooks.rs` 的 `coding_system`×4 修掉（五个单元随之加转换），`have_haiku` 臂 5 条真错 → 1 条（2026-10-05）**：
+  ① **缺陷（3.454 诊断的那条）**：`femacs/src/include/termhooks.rs` 一行 `include!` 都没有，却四处点名 `*mut coding_system`
+     ——**镜像不得命名它的 includer 可能没有的类型**（P-87 ③），而 P-86 自己的笔记（3.413/3.431）把这四条列为
+     `have_android` 翻臂的阻塞项。
+  ② **处置（P-72 rule 3 的现成答案）**：镜像那四处改为 `*mut c_void`（215/216 的两个字段与 354/357 的两个访问器），
+     消费单元在使用点加回类型——**共 5 个单元、16 处**：`coding.rs` 6（含一处多行的 `CODING_ID_NAME` 解引用）、
+     `terminal.rs` 5（两个 `xmalloc` 赋值、两个 `setup_coding_system` 实参、一处 `.encoder` 解引用）、
+     `composite.rs` 2、`keyboard.rs` 2、`term.rs` 6（`FRAME_TERMINAL_CODING!` 的六处调用）。
+  ③ **读数**：**P-87 全树扫描 83/0 + 83/0**（这一轮跑了 **3 次**：第一次 1 failure=`src/terminal.c`、第二次
+     1 failure=`src/term.c`、第三次全绿——两处都是"消费单元没跟上镜像改动"，正是这条纪律要抓的东西）；
+     `haiku_io` 的翻臂读数由 **7 错（真错 5）→ 3 错（真错 1）**——四条 `coding_system` 消失，只剩 3.431 记过的
+     `Emacs_Cursor` 重复；四个受影响单元（`coding.c`/`composite.c`/`keyboard.c`/`terminal.c`/`term.c`）的冻结
+     `build-tu` 逐个 exit 0。
+  ④ **未声称**：本条是**拼写级**改动（把类型信息从镜像挪到使用点），不改变任何行为；`Emacs_Cursor` 重复仍在；
+     所有单元仍**零运行证据**；**预算如实**：本轮 `build-tu` 6 发（限 3）、`probe` 1 发、全树扫描 3 次。
+  ⑤ **留给下一轮**：两条 lane 的落地——`src/msdos.c` 切片 1（C 1-1295，24 → 1,767 行，`--check` **OK**）与
+     `src/xwidget.c` 切片 1（C 1-1180，11 → 2,321 行，85 行 `- ` 均为余下段）；两者各自点名了未注册的 feature
+     （msdos：`gnu_malloc`/`_use_lfn`/`_dos_ds`；xwidget：`webkit_check_version_ge_2_{16,26,34}`）与镜像缺口。

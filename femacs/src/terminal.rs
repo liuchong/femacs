@@ -379,9 +379,9 @@ pub unsafe extern "C" fn create_terminal (r#type: output_method, rif: *mut c_voi
   next_terminal_id += 1;
 
   (*terminal).keyboard_coding
-    = xmalloc (std::mem::size_of::<coding_system> ()) as *mut coding_system;
+    = xmalloc (std::mem::size_of::<coding_system> ()) as *mut c_void;
   (*terminal).terminal_coding
-    = xmalloc (std::mem::size_of::<coding_system> ()) as *mut coding_system;
+    = xmalloc (std::mem::size_of::<coding_system> ()) as *mut c_void;
 
   /* If default coding systems for the terminal and the keyboard are
      already defined, use them in preference to the defaults.  This is
@@ -403,8 +403,8 @@ pub unsafe extern "C" fn create_terminal (r#type: output_method, rif: *mut c_voi
     pub fn setup_coding_system (coding_system: Lisp_Object,
 				coding: *mut coding_system);
   }
-  setup_coding_system (keyboard_coding, (*terminal).keyboard_coding);
-  setup_coding_system (terminal_coding, (*terminal).terminal_coding);
+  setup_coding_system (keyboard_coding, (*terminal).keyboard_coding as *mut coding_system);
+  setup_coding_system (terminal_coding, (*terminal).terminal_coding as *mut coding_system);
 
   return terminal;
 }
@@ -695,7 +695,7 @@ pub unsafe extern "C" fn terminal_glyph_code (t: *mut terminal, ch: c_int) -> Li
     /* Heuristically assume that a terminal supporting glyph codes is in
        UTF-8 mode if and only if its coding system is UTF-8 (Bug#26396).  */
     if (*t).r#type == output_termcap
-	&& (*(*t).terminal_coding).encoder == Some (encode_coding_utf_8)
+	&& (*(*t).terminal_coding as *mut coding_system).encoder == Some (encode_coding_utf_8)
       {
 	/* As a hack, recompute the table when CH is the maximum
 	   character.  */
