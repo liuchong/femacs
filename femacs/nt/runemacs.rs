@@ -342,14 +342,11 @@ macro_rules! max {
   ($a:expr, $b:expr) => { if ($a) > ($b) { $a } else { $b } };
 }
 
-/// C: <string.h>: `void *memset (void *s, int c, size_t n);` - the target of `ZeroMemory!` above
-/// (`lib/include/string.rs` does not carry it; `src/w32.rs` 1163 reaches the same name through
-/// `lisp.h`'s chain, which this unit has no part of).
-#[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  pub fn memset (s: *mut c_void, c: c_int, n: usize) -> *mut c_void;
-}
-
+/* C: `<string.h>`'s `void *memset (void *s, int c, size_t n);` - the target of `ZeroMemory!`
+   above - is `lib/include/string.rs` 24, which this unit includes at C 47.  It used to be
+   declared here too, and that copy is `E0428` in this unit's own flip (measured by the
+   `nt/addpm.rs` lane's flip of this file, status 3.508): a mirror name a unit reaches through
+   its include graph is not the unit's to re-declare (P-39's other face).  */
 /* ----------------------------------------------------------------------------------------------
    C 53-190: `WinMain` and C 192-270: the two `static` helpers, in C's order.
    ---------------------------------------------------------------------------------------------- */
@@ -357,7 +354,10 @@ unsafe extern "C" {
 // C 53-54: `int WINAPI WinMain (HINSTANCE hSelf, HINSTANCE hPrev, LPSTR cmdline, int nShow)`
 #[cfg (feature = "windowsnt")]
 #[unsafe(no_mangle)]
-pub unsafe extern "system" fn WinMain (hSelf: HINSTANCE, hPrev: HINSTANCE, cmdline: LPSTR,
+/* C 53-54's `cmdline` is C's fourth parameter, and C *reassigns* it at C 127-146 (the
+   `-wait`/`-high`/`-low` scan does `cmdline = cmdline.offset (...)`), so the port binds it
+   `mut` - the flip read four `E0384`s without it (status 3.509).  */
+pub unsafe extern "system" fn WinMain (hSelf: HINSTANCE, hPrev: HINSTANCE, mut cmdline: LPSTR,
                                        nShow: c_int) -> c_int
 {
   // C 56-65: the locals.  PORTING.md 1.5: C leaves `start`/`sec_attrs`/`child` uninitialised (C 137
@@ -383,8 +383,9 @@ pub unsafe extern "system" fn WinMain (hSelf: HINSTANCE, hPrev: HINSTANCE, cmdli
   /* C 67-188: `goto error` jumps out of this sequence to C 190's label, which the port spells as a
      labelled block whose `break` is the `goto` (PORTING.md 2.2); the block's tail below is C 190-192.  */
   'error: {
-    // C 67-68: `if (!ensure_unicows_dll ()) goto error;`
-    if !ensure_unicows_dll ()
+    // C 67-68: `if (!ensure_unicows_dll ()) goto error;` - C's `!` on the `int` the helper
+    // returns is `== 0` in Rust (`!` is only defined for `bool`; the flip read `E0308`).
+    if ensure_unicows_dll () == 0
       {
         break 'error;
       }
@@ -542,7 +543,7 @@ pub unsafe extern "system" fn WinMain (hSelf: HINSTANCE, hPrev: HINSTANCE, cmdli
 
     /* C 172: `memset (&start, 0, sizeof (start));` - C writes `memset` here and the SDK's
        `ZeroMemory` in `ensure_unicows_dll` (C 239), so the port spells both as C does.  */
-    memset (&raw mut start, 0, core::mem::size_of::<STARTUPINFO> ());
+    memset ((&raw mut start).cast (), 0, core::mem::size_of::<STARTUPINFO> ());   /* C casts implicitly (P-72 3) */
     start.cb = core::mem::size_of::<STARTUPINFO> () as DWORD;
     start.dwFlags = STARTF_USESHOWWINDOW | STARTF_USECOUNTCHARS;
     start.wShowWindow = SW_HIDE;

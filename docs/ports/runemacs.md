@@ -148,3 +148,27 @@ C's own literal stays in `nt/runemacs.c` 206 and the deviation is item 7 of `## 
 Readings: `extract-abi --check emacs/nt/runemacs.c femacs/nt/runemacs.rs` -> **OK**, with the
 `runemacs` row in `docs/ports/line-drift-tolerance.tsv` moved `1.43 -> 1.46` (C 270 vs the port's
 659 = 144.1%; the unit grew 7 lines here, all of it prose around the constant).
+
+## 2026-10-05: the `windowsnt` arm type-checks now (3.509)
+
+This unit's ledger carried "cannot flip the arm" in Owed 3, so nothing had ever read its Windows
+side.  The `nt/addpm.rs` lane's flip of this same file read **three** errors; fixing them and
+re-reading found four more that the first three had masked.  All seven are this unit's own text,
+and the arm now reads **`exit 0`, 0 error, 86,456-byte rlib**:
+
+1. `memset` was declared here *and* by `lib/include/string.rs` 24, which this unit includes at
+   C 47 - `E0428`.  The local copy is gone; the mirror's is the one C's `ZeroMemory`/`memset`
+   calls resolve to.
+2. `if !ensure_unicows_dll ()` - C's `!` is on an `int`-returning helper, and Rust's `!` is
+   `bool`-only (`E0308`); the port writes `ensure_unicows_dll () == 0`, which is C's value.
+3. `memset (&raw mut start, …)` needed C's implicit `struct STARTUPINFO *` → `void *` as
+   `.cast ()` (P-72 rule 3, use-site).
+4. `cmdline` is C 53-54's fourth parameter and C 127-146 **reassigns** it (`-wait`/`-high`/`-low`
+   scan), so the binding is `mut` - four `E0384`s without it.
+
+Evidence: `rustc --edition 2024 --crate-type=lib -C panic=abort --cfg 'feature="windowsnt"
+nt/runemacs.rs` -> exit 0, 0 error, 86,456 bytes; the mutation reading (P-86 (7)) injects
+`let _mutation: c_int = c"injected".as_ptr ();` into `WinMain` and the same command reports
+`1 x E0308` at that line, so the zero is a live reading; the frozen arm is unchanged
+(`build-tu nt/runemacs.c` -> 336-byte empty object) and `extract-abi --check` stays **OK**
+(the unit is 660 lines; the `runemacs` drift row of 1.46 still covers 144.4%).

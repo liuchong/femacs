@@ -9901,3 +9901,21 @@
   ⑦ **未声称**：四件都**零运行证据**（没编过 Windows/cairo 上下文/任何 inotify 调用）；SDK 面、X11 记录布局、
      Linux 头的值都是 placeholder 或跨目标读数；十一个 feature 至今**没有任何配置启用**（`feature-coverage` 的
      884 从未启用里含它们）。
+
+- **3.509 `nt/runemacs.rs` 的 `windowsnt` 臂第一次被读通（2026-10-05）**：
+  ① **来源**：该文件台账 Owed 3 写的是"无法翻臂"，所以从来没人读过它的 Windows 面；`nt/addpm.rs` 的 lane
+     顺手翻它时读到 **3 条错误**，集成者修完复读又露出 **4 条**（被前 3 条遮住）。七条**全是本单元自己的文本**。
+  ② **改动**：⑴ `memset` 在本单元与 `lib/include/string.rs` 24（本单元 C 47 就 include 它）各声明一次 ⇒
+     `E0428`；删掉本单元那份，用镜像的；⑵ `if !ensure_unicows_dll ()`——C 的 `!` 作用在返回 `int` 的助手
+     上，Rust 的 `!` 只吃 `bool`（`E0308`）⇒ 写 `== 0`（与 C 同值）；⑶ `memset (&raw mut start, …)` 要 C 的
+     `struct STARTUPINFO *` → `void *` 隐式转换 ⇒ 用点 `.cast ()`（P-72 ③ 的使用点形状）；⑷ `cmdline` 是
+     C 53-54 的第四个形参、C 127-146 会**重赋**它（`-wait`/`-high`/`-low` 扫描）⇒ 绑定加 `mut`（四条 `E0384`）。
+  ③ **读数**：`rustc --edition 2024 --crate-type=lib -C panic=abort --cfg 'feature="windowsnt"' nt/runemacs.rs`
+     → **exit 0 / 0 error / 86,456 字节 rlib**；**变异实测**（P-86 ⑦）把 `let _mutation: c_int = c"injected".as_ptr ();`
+     注入 `WinMain` ⇒ 同一命令报 **1 × E0308 落在注入行** ⇒ 那个 0 是活读数；冻结臂不变
+     （`build-tu nt/runemacs.c` → 336 字节空对象）、`extract-abi --check emacs/nt/runemacs.c femacs/nt/runemacs.rs` 仍 **OK**
+     （本单元 660 行，`runemacs` 的 1.46 容差行仍覆盖 144.4%）。
+  ④ **未声称**：这只是**本机 rustc 的类型检查**，不是 Windows 编译——`<windows.h>`/CRT 的每个宽度、偏移、调用约定
+     仍是 placeholder 或 documented 值（该文件台账 Owed 2 原样成立）；零运行证据。
+  ⑤ **顺带**：本条证明"lane 顺手翻一个已入库文件"能抓到 ledger 自己声明"读不了"的地方——Owed 3 从"无法翻臂"
+     变成"臂已读到 0 错"，台账新段记了这次升级。
