@@ -9598,3 +9598,35 @@
   ⑦ **预算**：`build-tu` **2 发**、`probe` **4 发**、gate 脚本各 1 发、`--write-pending` 1 发
      （棘轮 53 → **51 文件 / 67,241 参考行**，0 stale）；未跑 `--all`/`gate-fast`/`cargo test`；
      `/tmp/ha*.log`、`/tmp/femacs-sweep/ha*.rlib` 收工删除。
+
+- **3.500 `lwlib/lwlib-Xlw.c`（C 1-271，整文件）落地：lwlib 树的第一件，且没有 X11 头也能证明这个臂 type-check（2026-10-05）**：
+  ① **范围/块**：C 1-271 全部转写（两个创建钩子、五个回调、创建表、四个 per-widget 入口点）；门 `use_lucid`
+     取**构建层**判据（`lwlib/Makefile.in` 52 的 `LUCID_OBJS = lwlib-Xlw.o xlwmenu.o lwlib-Xaw.o` +
+     `configure.ac` 7231 的 `AC_DEFINE ([USE_LUCID], [1], …)`）；C 34-58 的 `#if 0` 块
+     （`x_print_complete_resource_name`）**死文本、不转写**（`src/xfns.rs` 958 先例，台账记之）；
+     C 140-144 的 `#ifdef emacs` 是构建自己的 `-Demacs`，**活臂**。
+  ② **行数**：`femacs/lwlib/lwlib-Xlw.rs` **3 → 481**；台账 `docs/ports/lwlib-Xlw.md` 14 → **106**（P-86 ② 形状）。
+  ③ **读数**：⑴ 冻结 `build-tu ../emacs/lwlib/lwlib-Xlw.c` → **exit 0 / 336 字节空对象**；⑵ **翻臂
+     `probe lwlib/lwlib-Xlw.rs --cfg 'feature="use_lucid"'` → exit 0 / 0 error / 4 warning /
+     rlib 7,748,568 字节**（**没有 X11 头也能 type-check**——同 3.498/3.499 那档证据）；
+     ⑶ `extract-abi --check` 首读 3 条（两个 token 行：`compositewidget`/`xbutton`；一条行数）→ 两条 token 行用
+     **C 自己的类型名与联合体成员**消掉（`widget as CompositeWidget`、`XEvent` 改成带 `xbutton` 成员的
+     `union`）⇒ 加 `total`/0.80 行后 **OK**；⑷ 镜像改动两腿：`layout-check` **passed**、
+     `tools/check-all-units.sh` **83/0 + 83/0**；⑸ `check-mirror-dupes` 17/17/0、
+     `check-dead-file-coverage` **71 绑定 / 0 failure**、其余门见 3.501 的读数（本轮同批跑）。
+  ④ **镜像改动（P-39）**：`femacs/lwlib/include/lwlib-Xlw.rs` 的七条声明与两个静态搬进
+     `pub mod lwlib_Xlw_decls { use super::*; … } use lwlib_Xlw_decls::*;`——本单元**定义**这些名字，
+     Rust 不允许同作用域的重复（E0428），显式项遮蔽 glob 导入 ✓（`include/systhread.rs` 形状）。
+  ⑤ **我自造并修掉（都由编译读数抓到）**：`use std::ffi` 与镜像重复导入（E0252×5）、缺 `Window`/`Pixmap`/
+     `Cursor`/`GC`/`Pixel`/`Position`/`Dimension`/`XFontStruct`/`CoreClassPart`/`XtCallbackList`
+     （镜像明说这些 X11 名留给用它的单元）、`0L` 后缀、记录的 `Copy`/`Clone`、`_widget_creation_entry`
+     的字段名是 `type`/`function`（不是我写的第一版 `name`/`creator`）、`Boolean` 的真值测试写 `!= 0`、
+     `XtClass (*children)` 的解引用与 `XtCallActionProc (mw as Widget, …)` 的两处 C 强转。
+     另有**一次环境事故**：本机数据卷一度 100% 满（`No space left on device`，与并行的 lane 同时报错），
+     我删掉自己的 `/tmp` 中间物后恢复（现 3.0 GiB 可用），读数都在腾空后的卷上重跑。
+  ⑥ **未声称**：**零运行证据**（没链接、没跑；没有建过 widget、没有回调、没有弹过菜单）；
+     **没有查过任何 X11 头** ⇒ 每个类型/常量/布局都是 C 的拼法，记录里被省略的成员意味着这些偏移**明知**
+     不等于真实值（`## Owed` 1）。
+  ⑦ **预算**：`build-tu` **2 发**、`probe` **7 发**（逐轮修错，如实报）、`layout-check` 1 发、
+     `check-all-units.sh` **2 发**（第一次因磁盘满写不出日志，重跑）、gate 脚本各 1 发；
+     未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/xlw.log`、`/tmp/sweep-3500.log` 收工删除。

@@ -16,7 +16,14 @@ include!("lwlib-int.rs");   // lwlib-Xlw.h 4: `#include "lwlib-int.h"`
 // lwlib-Xlw.h 1-2: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const LWLIB_XLW_H: bool = true;
 
-unsafe extern "C" {
+/* The declarations live in `lwlib_Xlw_decls` + a glob import (the `include/systhread.rs`
+   shape, PORTING.md 0.1-10 / P-39): `lwlib/lwlib-Xlw.c`'s port *defines* every function below
+   (and `xlw_creation_table`), and a Rust definition cannot share a scope with the foreign
+   declaration of the same name (E0428) - an explicit item shadows a glob import instead.  */
+pub mod lwlib_Xlw_decls {
+  use super::*;
+
+  unsafe extern "C" {
   /// lwlib-Xlw.h 6: `extern widget_creation_entry xlw_creation_table [];` (an incomplete
   /// array; the port declares it with length 0, the lisp.h `my_edata` shape).
   pub static mut xlw_creation_table: [widget_creation_entry; 0];
@@ -38,4 +45,6 @@ unsafe extern "C" {
   pub fn xlw_pop_instance (instance: *mut widget_instance, up: Boolean);
   /// lwlib-Xlw.h 26-27: `void xlw_popup_menu (Widget widget, XEvent * event);`
   pub fn xlw_popup_menu (widget: Widget, event: *mut XEvent);
+  }
 }
+use lwlib_Xlw_decls::*;

@@ -32,3 +32,13 @@ no probe compiles it; the text gate is the whole acceptance (docs/status.md 3.31
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-Xlw.h
 femacs/lwlib/include/lwlib-Xlw.rs` -> `OK` (3 ledger item(s)).
+
+### status 3.500 (the mirror change this file took)
+
+`lwlib/lwlib-Xlw.c`'s port *defines* every function this header declares (and
+`xlw_creation_table`), and Rust forbids a definition and a foreign declaration of the same name in
+one scope (E0428).  The declarations therefore moved into
+`pub mod lwlib_Xlw_decls { use super::*; … } use lwlib_Xlw_decls::*;` - the
+`include/systhread.rs` shape (PORTING.md 0.1-10 / P-39) - and an explicit item now shadows the glob
+import instead of clashing with it.  `check-mirror-dupes` stays at 17 duplicates / 17 ratchet rows /
+0 failures, and `layout-check` passed; the unit's own readings are in `docs/status.md` 3.500.
