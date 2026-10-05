@@ -34,6 +34,17 @@ gates' pattern tables: prose whose subject is not a thing of this repository (`E
 deletes the part of the file name that matched REGEXP`) is not a declaration and is out of
 scope here, and `--selftest` has a case for exactly that line.
 
+The statement may be **wrapped across two lines**: the subject ends one line and the verb
+opens the next (`... the chapters included below` / `@c are part of the Emacs User
+manual.`).  A line-shaped reader cannot see those - the continuation carries no subject and
+the subject carries no membership phrase - so a wrapped declaration passes every earlier
+half of the rule and comes back with a re-copy, unannounced.  When a line *opens* with the
+verb (`is`/`are`/`was`/`were`, after whatever the file's line prefix is - `@c `, `;;`, `# `)
+it is read together with the line above it: the continuation's prefix is dropped, the two
+lines are joined with one space and the *joined* text is put through the shape above.  Such
+a candidate is keyed at the continuation line, and the text the two tables carry for it is
+that joined statement (status 3.666's fifteenth half).
+
 Readings: exit 1 on any unclassified candidate, on a keep row that does not match the
 tree, or on a keep row whose line is not a candidate (the table cannot collect prose).
 
@@ -78,7 +89,38 @@ NEGATION = re.compile(r"\bnot\b[^.;]{0,24}?\bpart of\b|\bnever\b[^.;]{0,24}?\bpa
 # `etc/HISTORY`); the classes and their readings are in the module docstring.
 HISTORY = re.compile(r"(?:^|/)ChangeLog(?:\.|$)|(?:^|/)(?:NEWS|NEWS\.[0-9][0-9.]*|HISTORY|"
                      r"MH-E-NEWS|ORG-NEWS|PROBLEMS|DEBUG)$")
+# A continuation line: the file's line prefix and then the statement's verb.  The prefixes
+# below are the measured ones (`@c ` in `doc/`, `;;` in `lisp/`, `# ` in the shell scripts);
+# a prefix with a *letter* in it (`@c `) is why this is a list and not `\W+`, which stops at
+# the `c` and makes the line open with `c are part of ...`.
+PREFIX = re.compile(r"^(?:\s*(?:@c|@comment|;;+|;|#+|//+|\*+|%)\s+|\s*)")
+CONTINUATION = re.compile(r"(?:is|are|was|were)\b", re.I)
 CLASSES = ("forbidden-tree", "history", "negation", "enumerated")
+
+
+def continuation_body(text: str) -> str | None:
+    """`text` minus its line prefix if it opens with a wrapped statement's verb, else None."""
+    m = PREFIX.match(text)
+    body = text[m.end():] if m else text
+    return body if CONTINUATION.match(body) else None
+
+
+def membership_object(text: str) -> str:
+    """The words the statement's first membership phrase points at (`part of <object>`).
+
+    The shape's second bound, and the one the manual-style prose needed: the phrase has to
+    point *at the product* (`part of GNU Emacs`, `part of the Emacs manual`), not merely sit
+    on a line that mentions it (`... (@pxref{Display Custom,,, emacs, The GNU Emacs
+    Manual}) do not count as decorations either; they are part of the window's body too.`).
+    Eight words is the measured width of the objects the trees write (`part of the standard
+    distribution of Emacs.` is five)."""
+    m = DECLARATION.search(text)
+    return " ".join(text[m.end():].split()[:8]) if m else ""
+
+
+def is_declaration(text: str) -> bool:
+    return bool(PRODUCT.search(text) and MEMBERSHIP.search(text) and DECLARATION.search(text)
+                and PRODUCT.search(membership_object(text)))
 
 
 def escape(text: str) -> str:
@@ -122,12 +164,13 @@ def tracked_files(repo: Path, prefix: str) -> list[str]:
 
 def census(repo: Path, subs: dict[str, list[tuple[int, str]]],
            keeps: dict[str, list[tuple[int, str]]],
-           trees: tuple[str, ...] = TREES) -> tuple[dict[str, int], list[str], int, int]:
-    """`(counts by class, failures, candidates, sanctioned)`."""
+           trees: tuple[str, ...] = TREES) -> tuple[dict[str, int], list[str], int, int, int]:
+    """`(counts by class, failures, candidates, sanctioned, wrapped candidates)`."""
     counts = {c: 0 for c in CLASSES}
     failures: list[str] = []
     candidates = 0
     sanctioned = 0
+    wrapped = 0
     used_keeps: set[str] = set()
     for tree in trees:
         prefix = f"{TARGET}/{tree}"
@@ -136,42 +179,57 @@ def census(repo: Path, subs: dict[str, list[tuple[int, str]]],
             sub_rows = {ln: txt for ln, txt in subs.get(rel, [])}
             keep_rows = {ln: txt for ln, txt in keeps.get(rel, [])}
             try:
-                with p.open("r", encoding="utf-8", errors="replace") as fh:
-                    for line_no, line in enumerate(fh, 1):
-                        text = line.rstrip("\n")
-                        if not (PRODUCT.search(text) and MEMBERSHIP.search(text)
-                                and DECLARATION.search(text)):
-                            continue
-                        candidates += 1
-                        if line_no in sub_rows:
-                            failures.append(
-                                f"{rel}:{line_no} a substitution row says this line carries this"
-                                f" repository's name, but the line still names the product:"
-                                f" {text!r} (row: {sub_rows[line_no]!r})")
-                            continue
-                        if tree == "test":
-                            counts["forbidden-tree"] += 1
-                            continue
-                        if HISTORY.search(rel):
-                            counts["history"] += 1
-                            continue
-                        if NEGATION.search(text):
-                            counts["negation"] += 1
-                            continue
-                        if line_no in keep_rows:
-                            # The row is *read* whatever its text says, so a mismatch is one
-                            # failure (the text) and not two (the text and "it went unread").
-                            used_keeps.add(f"{rel}:{line_no}")
-                            if keep_rows[line_no] != text:
-                                failures.append(f"{rel}:{line_no} the keep row's text is"
-                                                f" {keep_rows[line_no]!r}, the line is {text!r}")
-                                continue
-                            counts["enumerated"] += 1
-                            sanctioned += 1
-                            continue
-                        failures.append(f"{rel}:{line_no} unclassified declaration: {text!r}")
+                lines = p.read_text(encoding="utf-8", errors="replace").split("\n")
             except OSError as exc:
                 failures.append(f"{rel}: {exc}")
+                continue
+            for idx, line in enumerate(lines):
+                # A candidate is one line's text, or - when this line opens with the
+                # continuation's verb - the line above joined with it.
+                line_no = idx + 1
+                where = f"{rel}:{line_no}"
+                text = line
+                if not is_declaration(text):
+                    # A wrapped statement: the line above must *not* carry the phrase
+                    # already, or the join would merely glue two statements together and
+                    # report the one above a second time (`etc/images/README:45-46`).
+                    body = (continuation_body(line)
+                            if idx > 0 and not MEMBERSHIP.search(lines[idx - 1]) else None)
+                    if body is None:
+                        continue
+                    text = lines[idx - 1] + " " + body
+                    where = f"{rel}:{line_no - 1}-{line_no}"
+                    if not is_declaration(text):
+                        continue
+                    wrapped += 1
+                candidates += 1
+                if line_no in sub_rows:
+                    failures.append(
+                        f"{where} a substitution row says this line carries this repository's"
+                        f" name, but the statement still names the product: {text!r}"
+                        f" (row: {sub_rows[line_no]!r})")
+                    continue
+                if tree == "test":
+                    counts["forbidden-tree"] += 1
+                    continue
+                if HISTORY.search(rel):
+                    counts["history"] += 1
+                    continue
+                if NEGATION.search(text):
+                    counts["negation"] += 1
+                    continue
+                if line_no in keep_rows:
+                    # The row is *read* whatever its text says, so a mismatch is one
+                    # failure (the text) and not two (the text and "it went unread").
+                    used_keeps.add(f"{rel}:{line_no}")
+                    if keep_rows[line_no] != text:
+                        failures.append(f"{where} the keep row's text is"
+                                        f" {keep_rows[line_no]!r}, the statement is {text!r}")
+                        continue
+                    counts["enumerated"] += 1
+                    sanctioned += 1
+                    continue
+                failures.append(f"{where} unclassified declaration: {text!r}")
     scanned = tuple(f"{TARGET}/{tree}/" for tree in trees)
     for rel, rows in keeps.items():
         if not rel.startswith(scanned):
@@ -183,8 +241,7 @@ def census(repo: Path, subs: dict[str, list[tuple[int, str]]],
             if f"{rel}:{line_no}" not in used_keeps:
                 failures.append(f"{rel}:{line_no} the keep row is stale (or its line is not a"
                                 f" candidate)")
-    return counts, failures, candidates, sanctioned
-
+    return counts, failures, candidates, sanctioned, wrapped
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
@@ -195,12 +252,13 @@ def main() -> int:
         return selftest()
     subs = read_table(SUBSTITUTIONS)
     keeps = read_table(KEEPS)
-    counts, failures, candidates, sanctioned = census(REPO, subs, keeps)
+    counts, failures, candidates, sanctioned, wrapped = census(REPO, subs, keeps)
     for name in CLASSES:
         print(f"{name:15s} {counts[name]:6,d}")
     rows = sum(len(v) for v in subs.values())
-    print(f"read {len(TREES)} copied tree(s): {candidates} candidate(s), {sanctioned} "
-          f"enumerated keep(s), {sum(counts.values())} classified, {len(failures)} failure(s)")
+    print(f"read {len(TREES)} copied tree(s): {candidates} candidate(s) of which {wrapped} "
+          f"wrapped across two lines, {sanctioned} enumerated keep(s), {sum(counts.values())} "
+          f"classified, {len(failures)} failure(s)")
     print(f"the substitution table carries {rows} row(s) for these trees - the lines the tenth"
           f" to fourteenth halves renamed")
     for line in failures[:20]:
@@ -209,7 +267,7 @@ def main() -> int:
 
 
 def selftest() -> int:
-    """Nine readings with the fixed shape: the clean line passes, each mistake fires once."""
+    """Readings with the fixed shape: the clean line passes, each mistake fires once."""
     declaration = ";; This file is part of GNU Emacs."
     prose = "Emacs deletes the part of the file name that matched REGEXP"
     cases: list[tuple[str, str, dict, dict, int, int]] = [
@@ -226,6 +284,20 @@ def selftest() -> int:
         ("a keep row that is not a candidate", prose, {}, {"x.el": [(1, prose)]}, 1, 0),
         ("prose that is not a declaration", prose, {}, {}, 0, 0),
         ("a declaration under test/", declaration, {}, {}, 0, 1),
+        ("a declaration wrapped across two lines",
+         "the chapters included below\n@c are part of the Emacs User manual.", {}, {}, 1, 1),
+        ("a wrapped declaration a keep row enumerates",
+         "the chapters included below\n@c are part of the Emacs User manual.", {},
+         {"x.el": [(2, "the chapters included below are part of the Emacs User manual.")]},
+         0, 1),
+        ("a wrapped declaration that already carries this repository's name",
+         "the chapters included below\n@c are part of the femacs User manual.", {}, {}, 0, 0),
+        ("a wrapped continuation that names no product",
+         "the chapters included below\n@c are part of the manual.", {}, {}, 0, 0),
+        ("a wrapped line whose own line above already made the declaration",
+         ";; This file is part of GNU Emacs.\nare part of the manual.", {}, {}, 1, 1),
+        ("a statement whose object is not the product",
+         ";; like Emacs, they are part of the window's body", {}, {}, 0, 0),
     ]
     bad = 0
     with tempfile.TemporaryDirectory() as tmp:
@@ -242,7 +314,7 @@ def selftest() -> int:
             rel = f"{TARGET}/{tree}/x.el"
             sub_fix = {rel: rows for rows in subs.values()}
             keep_fix = {rel: rows for rows in keeps.values()}
-            counts, failures, cand, _ = census(root, sub_fix, keep_fix, trees=(tree,))
+            counts, failures, cand, _, _ = census(root, sub_fix, keep_fix, trees=(tree,))
             got_fail = len(failures)
             ok = got_fail == want_fail and cand == want_cand
             bad += 0 if ok else 1
@@ -253,10 +325,10 @@ def selftest() -> int:
     # here because a fixture cannot carry the two tables' own shapes (a `\t`-escaped row, a
     # 108-row keep class), and because the failure this gate exists for - a declaration that
     # survived a re-copy - is only visible on the real tree.
-    counts, failures, cand, _ = census(REPO, read_table(SUBSTITUTIONS), read_table(KEEPS),
-                                      trees=("lisp",))
-    print(f"{'ok  ' if not failures else 'FAIL'} the real lisp/ tree: {cand} candidate(s), "
-          f"{len(failures)} unclassified")
+    counts, failures, cand, _, wrapped = census(REPO, read_table(SUBSTITUTIONS),
+                                                read_table(KEEPS), trees=("lisp",))
+    print(f"{'ok  ' if not failures else 'FAIL'} the real lisp/ tree: {cand} candidate(s) "
+          f"({wrapped} wrapped), {len(failures)} unclassified")
     for line in failures[:5]:
         print(f"       {line}")
     bad += 0 if not failures else 1

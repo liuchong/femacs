@@ -13557,3 +13557,47 @@
   ⑤ **下一站（按优先）**：⑴ 上面 ④ 的对齐；⑵ 3.664 那个"`XTYPE (0)` 运行时值"的**修正版探针**（标记+定长头+对齐字）；⑶ 3.663 的池扫描年龄统计；⑷ `fringe.c` 后续切片（把 `init_fringe_once_for_pdumper` 这类钩子补齐）。
   ⑥ **未声称**：④ 未解决；②的 `init_fringe_once_for_pdumper` **是未移植而非缺陷**（不能算作"端口与 C 不一致的缺陷"）；**L3 稳定性仍未达成**（还原后 3 发 rc=0、0 失败——这一批偏运气，基线是 ~50%）。
   ⑦ **还原与预算**：`git show HEAD:femacs/src/alloc.rs` 还原（`git diff -- femacs/src` 为 0 行）、TU 重编 + 重链；`build-tu` 2 发、`check-link` 2 发、夹具 3 发、`lldb` **3** 发、`otool` 2 发、`nm` 4 发；`/tmp` 日志与脚本收工删。
+
+- **3.666 版本声明的第十五半：照抄树里的声明可以**换行**，而行形状的读者看不见它——本半把"续行"读成候选（3 处），1 处是真漏网（按机械字形实改）、2 处是同类手册成员句（逐行登记）；并量死两条界把假阳性挡在门外（2026-10-06）**：
+  ① **指令的读法不变**（3.90/3.134/3.226/3.250/3.269/3.295/3.318/3.340/3.413/3.433/3.462/3.476/3.503/3.599/3.613/3.619/3.632/3.641/3.648/3.656 共二十个半）：`版本声明不要再说是gnu emacs了`
+     与 38 秒之后的 `把之前的代码中的这种声明也去掉` 是同一条指令的前后两半，已写进树的产出物也要清。本轮入口不是
+     "哪一句还说自己是参照产品"，而是 **3.656 ⑤ 自己点名、却以"形状界外"结案的那两条**：`doc/emacs/emacs-xtra.texi:14`
+     与 `:87`——主语在上一行、本行只剩 `are part of the … manual.`，逐行读者一份读数都给不出，所以**从参照重拷一行
+     会静默把声明带回来**。
+  ② **门的三处改动（`tools/check-verbatim-declarations.py`）**：⑴ **续行读法**——一行以动词开头（`is`/`are`/`was`/`were`，
+     前面是文件自己的行首标记；标记表按实测列出 `@c`/`@comment`/`;;`/`#`/`//`/`*`/`%`，`@c ` 带字母正是不能用 `\W+`
+     一刀切的原因：它会把 `c are part of …` 当成行首）时，与**上一行合并**成一句再走同一套形状；候选按**续行**记名，
+     两张表里写合并后的那句话。⑵ **上一行已经带过 `part of` 的不算续行**——否则合并只是把两句粘起来、把上一行已经
+     报过的声明再报一遍（实测假阳性 `etc/images/README:45-46`、`lisp/minibuffer.el:4249-4250`）。⑶ **`part of` 的宾语
+     必须在 8 个词内点到产品名**——否则"行里提到产品、宾语却是别的东西"的散文会被误收（实测假阳性
+     `doc/lispref/windows.texi:201-202`：产品名只在 `@pxref` 里，宾语是 `the window's body too.`；8 词是实测宽度，
+     已见最长的宾语是 `part of the standard distribution of <参照产品>.`）。⑶ 对既有 818 处**一处未丢**（③）。
+  ③ **读数**：门 **`820 candidate(s) of which 2 wrapped across two lines, 116 enumerated keep(s), 820 classified,
+     0 failure(s)`**（改前 `818 / 114 / 0`；改后第一次跑是 `822 / 3 wrapped`，带 3 条未分类，正是下面 ⑤ 的三处）；
+     `--selftest` **15 例 / 0 失败**（新增 7 例：续行成候选、续行被登记行收下、续行已带本仓库名不算、续行不带产品名
+     不算、上一行已声明过只算一次、宾语不是产品不算，真树端到端那例照旧 `32 candidate(s) (0 wrapped), 0 unclassified`）。
+  ④ **变异实测（判别力）**：把 `femacs/doc/misc/modus-themes.org:3879` 改回参照的写法（等于从参照重拷一行）
+     ⇒ 用 **HEAD 的读者**（`git show HEAD:tools/check-verbatim-declarations.py` 跑）：**0 条提到 modus**，
+     读数 `818 candidate(s), 114 enumerated keep(s), 2 failure(s)`——那 2 条恰是本半新加的两行"登记行陈旧"，也就是
+     说除"它看不见我新加的登记行"之外，**老读者对这次重拷一声不响**；用**本半的读者**跑：`1 failure(s)`，逐字是
+     `femacs/doc/misc/modus-themes.org:3878-3879 a substitution row says this line carries this repository's name,
+     but the statement still names the product: '…are part of core Emacs…' (row: '…are part of core femacs…')`；
+     字节门同时报 `6 trees, 4604 files, 1819 sanctioned line(s), 1 failures`。三份读数在恢复后全部回到 0。
+  ⑤ **数据（一处不漏）**：⑴ 实改 **1 行**——`doc/misc/modus-themes.org:3879`，按第十半的机械字形**只换产品名那一个
+     token**（`core <参照产品>` → `core femacs`，其余字符一个不动），逐行记进 `docs/baseline/verbatim-substitutions.tsv`
+     （1,819 → **1,820** 行）；⑵ 登记 **2 行**——`doc/emacs/emacs-xtra.texi` 的 14 与 87（合并句写进"该行原文"列），
+     类 `manual-membership`，理由与第十四半那 108 行同构：宾语是同一棵树里逐字复制的那本手册，只换 token 会让文件
+     声称属于一本树里没有的书 ⇒ 登记表 114 → **116** 行。
+  ⑥ **仍未覆盖的形状，量过是空的**：把宾语写在下一行那一种（`… part of` / `<产品名>.`）——六棵树里"上一行以
+     `part of` 结尾"的行 **153 对**，其合并句是声明的 **0 对**。第十四半点名的另外两类不动（`test/` 的 653 处＝goal
+     文本禁止改测试文件；手册成员句 108 处＝理由不变）。
+  ⑦ **未声称**：本轮**一枚都没编译、一个程序都没跑**（`build-tu`/`probe`/`check-link`/`cargo` 全 0 发），以上全是
+     文本读数；续行读法只覆盖"主语收尾、动词起头"这一种换行，宾语行与跨三行以上的声明**没有**实现（只量到宾语行
+     这种是空的）；`docs/status.md` 自身与 `docs/acceptance.md` 按既有豁免仍在门外。
+  ⑧ **其余文本门现读全绿**：`check-verbatim` 6/4604/**1820**/0、`check-declarations` `17 declaration sites
+     (0 forbidden, 17 allowed literals), 0 failures`、`check-citations` 676/0 drift/0 range/1991 external/36 allowed/0 stale、
+     `check-carried` 11/11/4/0、`check-mirror-dupes` 16/16/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、
+     `check-target-names` 629/591/0、`check-defvar-carriers` 651/651/0、`check-dead-file-coverage` 145/0、
+     `check-do-while` 152/0、`check-octal-literals` 623/0。
+  ⑨ **预算**：门 6 发、字节门 3 发、自测 3 发、普查与量界脚本 4 发、其余文本门 12 发、变异 2 发（含 HEAD 读者）、
+     PORTING.md 一处的第十五半段落；`/tmp` 的脚本与读数文件收工删。

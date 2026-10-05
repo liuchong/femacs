@@ -317,6 +317,30 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     108 行，位置与理由都可复算）。同样点名两条**换行句**（`doc/emacs/emacs-xtra.texi:14` 与 `:87`：主语在上一行、
     本行只剩 `are part of the … manual.`）——它们落在本门的**形状界外**（界写在门的模块文档里），不当成已分类。
 
+    这条规则现在有第十五半（2026-10-06，status 3.666）：**照抄树里的声明可以**换行**，而行形状的读者看不见它**。
+    第十四半 ⑤ 点名了两条落在"形状界外"的句子（`doc/emacs/emacs-xtra.texi:14` 与 `:87`：主语在上一行、
+    本行只剩 `are part of the … manual.`），并把界写在门的模块文档里；本半把那个界推过去：**当一行以动词开头**
+    （`is`/`are`/`was`/`were`，前面是文件自己的行首标记）时，它与其上一行**合并成一句**再走同一套形状
+    （续行的行首标记先去掉——`@c ` 这种带字母的前缀正是不能用 `\W+` 一刀切的理由），候选按**续行**记名，
+    两张表里写的是合并后的那句话。同时量到两条界并写进门里：⑴ **上一行已经带过 `part of` 的不算续行**
+    （否则合并只是把两句粘起来、把上一行已经报过的声明再报一遍：实测 `etc/images/README:45-46` 与
+    `lisp/minibuffer.el:4249-4250` 就是这种假阳性），⑵ **`part of` 的宾语必须在 8 个词内点到产品名**
+    （否则 `... (@pxref{Display Custom,,, emacs, <参照产品> Manual}) … they are part of the window's body too.`
+    这种"行里提到产品、宾语却是别的东西"的散文会被误收；8 词是实测宽度，已见最长的宾语是
+    `part of the standard distribution of <参照产品>.`）。
+    读数：门 **`820 candidate(s) of which 2 wrapped across two lines, 116 enumerated keep(s),
+    820 classified, 0 failure(s)`**、`--selftest` **15 例 / 0 失败**；变异实测——把 `doc/misc/modus-themes.org:3879`
+    改回参照的写法（等于从参照重拷一行）⇒ **HEAD 的读者一份读数都不提这一行**（它报 `818 candidate(s), 114
+    enumerated keep(s), 2 failure(s)`，那 2 条还是本半新加的登记行"陈旧"），本半的读者报
+    `femacs/doc/misc/modus-themes.org:3878-3879 a substitution row says this line carries this repository's
+    name, but the statement still names the product …`，字节门同时报 `1819 sanctioned line(s), 1 failures`。
+    数据：替换表 **1,819 → 1,820** 行（`doc/misc/modus-themes.org:3879`，按第十半的机械字形只换产品名那一个
+    token），登记表 **114 → 116** 行（`doc/emacs/emacs-xtra.texi` 的 14 与 87 两处合并句，类 `manual-membership`，
+    理由与第十四半那 108 行相同：宾语是同一棵树里逐字复制的那本手册，改 token 会声称一本树里没有的书）。
+    **仍未覆盖的形状，量过是空的**：把宾语写在下一行（`… part of` / `<产品名>.`）这一种——六棵树里"上一行以
+    `part of` 结尾"的行共 **153 对**，其中合并句是声明的 **0 对**。第十四半点名的另外两类（`test/` 的 653 处、
+    手册成员句 108 处）不动，理由不变。
+
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
     因此不能调用排在它后面的宏——`call0` 按 lisp.h 3462-3471 的顺序挪到了 `calln!`

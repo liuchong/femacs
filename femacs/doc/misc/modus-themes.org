@@ -3876,7 +3876,7 @@ The Modus themes can be used as the basis for another theme. The
 ~ef-themes~ and ~standard-themes~ packages (also by Protesilaos), are
 two such case. Developers may build on top of Modus to benefit from
 the extensive customization of the Modus themes and the fact that they
-are part of core Emacs. Note that because the ~ef-themes~ and
+are part of core femacs. Note that because the ~ef-themes~ and
 ~standard-themes~ existed before they were redone on top of Modus,
 they have to provide lots of compatibility aliases. Whereas a new
 theme can be as simple as a single file that only calls
