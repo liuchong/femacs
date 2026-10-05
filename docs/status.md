@@ -11684,3 +11684,27 @@
      （`syms_of_xdisp` 未落），**今天还不能从 Lisp 侧调用**；台账 4 条新欠账（`include/keyboard.rs` 该收的
      `menu_separator_name_p`/`push_kboard`/`pop_kboard`、`include/dispextern.rs` 该收的 `fill_up_frame_row_with_spaces`）；
      脚手架函数 11 → 8。
+
+- **3.579 `gate-load` 此前根本取不到链接命令行——修好之后**L0 工作清单第一次被量出来**：205 个未解析符号（178 条新的），缺口由 `xdisp.c` 的余下正文主导（2026-10-05）**：
+  ① **症状**：`xtask gate-load` 报 `` `make -n temacs` has no `-o temacs.tmp` line ``。实测 `make -n temacs` 在
+     `build/emacs-ref/src` 只输出 6 行（admin/ 的子 make），**一条链接行都没有** —— 因为参照 `temacs` **已经链好了**，
+     make 对"最新"的目标**什么都不打印**。`-B` 不是答案：它会连 `config.status` 一起重做，而这台机器的 reconfigure
+     在 makeinfo 处就中止（`configure: error: You do not seem to have makeinfo >= 4.13`）。
+  ② **修法**：`make -n -W emacs.o temacs` —— `-W` 假装某个 `.o` 更新过，make 于是**打印链接配方**；`-n` 只打印不执行，
+     `-W` 也不碰任何文件（**参照检出与它的对象一个字节都没动**）。已写进 `femacs/xtask/src/main.rs` 的 `gate_load`，
+     连带把上面两条实测理由记在注释里。
+  ③ **读数（第一次）**：`gate-load --report` 跑到**链接器**并给出：
+     **`undefined symbols: 205`（referenced from 39 object(s)），其中 27 条已在棘轮里、**178 条是新的**；
+     另有 **355 条棘轮行已过期**（那些符号现在解析得掉了——`_malloc`/`_memcpy`/`_printf`/`___stdoutp` 这一大串 libc 名与
+     `core::panicking::*` 都在其中）。按**引用者**排：`window.o` 115、`dispnew.o` 97、`keyboard.o` 74、`timefns.o` 73、
+     `bignum.o` 37、`data.o` 32、`fns.o` 31、`indent.o` 26、`frame.o` 18、`emacs.o` 14。全表在 `build/load/undefined.txt`。
+  ④ **缺口是什么（逐名读的）**：新的 178 条里绝大多数是 **`src/xdisp.c` 还没落的正文所定义的符号**——
+     `_syms_of_xdisp`、`_init_xdisp`、`_count_lines`、`_display_tty_menu_item`、`_display_mode_line`、
+     `_get_font_ascent_descent`、`_invisible_prop`、`_note_mouse_highlight`、`_reset_mouse_highlight`、`_row_hash`、
+     `_scroll_margin`、`_max_redisplay_ticks`、`_composition_break_at_point`、`_automatic_hscrolling`、
+     `_Vwindow_scroll_functions` 等；另有一批是 `_specpdl`/`_specpdl_ptr`/`_specpdl_end`、`_current_buffer`、`_add_to_log`
+     这类**由别处定义、但定义方还没落或镜像还没给**的全局量。⇒ **L0 的下一个最大单项就是 xdisp.c**（它正是当前
+     在飞 lane 的目标），其次是 `xwidget.c`（`_syms_of_xwidget`）。
+  ⑤ **未声称**：这不是"能跑了"——只是**链接器把未解析符号数出来了**：`--report` 模式按设计`exit 0`，**没有产出 temacs**，
+     没有任何 Lisp 表达式被求值，`build/femacs/*.o` 里有 139 个对象（部分是 336 字节的空对象、部分是平台文件），
+     读数是**这一批对象的**读数、不是全量重编后的读数；205 条里 27 条沿用旧棘轮（说明清单本身也在演化）。

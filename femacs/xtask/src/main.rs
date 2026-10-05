@@ -1370,7 +1370,15 @@ fn probe_programs() -> Result<(), String> {
 /// and `-lncurses` all go through a response file.
 fn gate_load(arg: Option<&str>) -> i32 {
     let report = arg == Some("--report");
-    let out = match Command::new("make").args(["-C", "../build/emacs-ref/src", "-n", "temacs"]).output() {
+    // `-W emacs.o`: the frozen build's `temacs` is already linked, and make prints *nothing*
+    // for an up-to-date target - which is why this gate could not find the recipe at all
+    // (measured 2026-10-05: `make -n temacs` is six lines of admin/ sub-makes and no link).
+    // `-W` pretends one object is newer, so make prints the recipe; with `-n` it runs nothing,
+    // and it never writes a file, so the reference checkout is untouched.  `-B` is *not* the
+    // answer: it also remakes `config.status`, and the reconfigure aborts on this machine
+    // (no makeinfo) before make ever reaches the link.
+    let out = match Command::new("make").args(
+        ["-C", "../build/emacs-ref/src", "-n", "-W", "emacs.o", "temacs"]).output() {
         Ok(o) => o,
         Err(e) => return fail(format!("make -n temacs: {e}")),
     };
