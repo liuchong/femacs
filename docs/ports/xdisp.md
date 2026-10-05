@@ -3457,3 +3457,11 @@ readings above: `build-tu` again exit 0 (one invocation, the same six warnings),
 `T _Fbidi_find_overridden_directionality` and its `Sbidi_find_overridden_directionality` static;
 `extract-abi --check` **70 `- ` lines** (the round's HEAD baseline is 72) with no `does not
 mention` line and `line count drifted 34.9%`; `femacs/src/xdisp.rs` is now 25,909 lines.
+
+**One correction after the commit (3.422).**  The first version declared `validate_subarray`
+locally and `check-mirror-dupes` reported `FAIL femacs/src/xdisp.rs: validate_subarray is already
+declared by femacs/src/include/lisp.rs (in the include graph)` - the lisp.rs mirror carried it all
+along (3719-3721), so the local copy is gone and a comment records why; the gate is back to
+`19 duplicate declaration(s), 19 ratchet row(s), 0 failure(s)`.  The re-build after that is exit 0
+with the same six warnings and object md5 `e8f95d661dc6f5033c3543544f3bbe8b`; `extract-abi --check`
+stays at 70 with no `does not mention`.

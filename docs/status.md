@@ -7342,3 +7342,17 @@
      `CHECK_STRING`/`validate_region`/`decode_live_window`/`find_newline_no_quit` 早已可见的原因）；
      Gate evidence 追加本件读数。
   ⑥ **未声称**：同上一条——没有运行；`--cfg enable_checking` 那条腿本轮没跑；没有动镜像/`docs/baseline/**`/别人的文件。
+
+- **3.422 上一笔的自己咬到自己：`validate_subarray` 的单元内声明是重复声明（2026-10-05）**：
+  ① **发现**：3.421 提交后复跑门，`check-mirror-dupes` 报
+     `FAIL femacs/src/xdisp.rs: validate_subarray is already declared by femacs/src/include/lisp.rs
+     (in the include graph)`（读数 `20 duplicate / 19 ratchet / 1 failure`）。这是我自己的错：加声明前只查了
+     **单元内**有没有这个名字，没查**镜像链**——`include/lisp.rs` 3719-3721 早就带着同一条原型
+     （`(array, from, to, size, ifrom, ito)`）。
+  ② **处置**：删掉单元内那份声明，原位留一行注释写明理由（P-26 的"一个名字一个家"），**不加棘轮行**。
+  ③ **读数**：`check-mirror-dupes` 回到 **19 / 19 / 0**；重编 `build-tu src/xdisp.c` **exit 0**、警告仍是原有 6 条、
+     对象 md5 `e8f95d661dc6f5033c3543544f3bbe8b`（删声明前后的 `--check` 都是 **70 个 `- ` 行**、`does not mention` 0 条）。
+  ④ **教训（写下来）**：加 use-site 声明前必须同时查 `femacs/src/**` 与 `femacs/{src,lib}/include/**`；本轮台账的
+     use-site 第 18 项已按此改写（`validate_subarray` 从"本轮新增"改成"镜像已有，不声明"）。
+  ⑤ **未声称**：只是把这一个 finding 修平；`src/xfns.c` 的棘轮行已 stale（xfns lane 的在飞切片越过 10%），
+     留给批次收口时 `--write-pending`。

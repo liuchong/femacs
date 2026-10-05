@@ -618,14 +618,13 @@ unsafe extern "C" {
   /// C: dispextern.h 3559: `extern ptrdiff_t bidi_level_start (int);` (bidi.c defines
   /// it; `compute_stop_pos` needs it for the backward-scan stop position).
   pub fn bidi_level_start (level: c_int) -> ptrdiff_t;
+  /* `validate_subarray` (lisp.h 4261-4262, fns.c's) needs no declaration here: the included
+     lisp.rs mirror already carries it at its `unsafe extern "C"` block (the mirror-dupes gate
+     flags a second copy - the integrator's 3.421 finding).  */
   /// C: dispextern.h 3558: `extern ptrdiff_t bidi_find_first_overridden (struct bidi_it *);`
   /// (bidi.c defines it; `bidi-find-overridden-directionality` at C 27143 is this unit's first
   /// use).
   pub fn bidi_find_first_overridden (bidi_it: *mut bidi_it) -> ptrdiff_t;
-  /// C: lisp.h 4261-4262: `extern void validate_subarray (Lisp_Object, Lisp_Object, Lisp_Object,
-  /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);` (fns.c defines it; C 27107 is this unit's first use).
-  pub fn validate_subarray (array: Lisp_Object, from: Lisp_Object, to: Lisp_Object,
-			    size: ptrdiff_t, from_pos: *mut ptrdiff_t, to_pos: *mut ptrdiff_t);
   /// C: lisp.h 5031-5032: `extern ptrdiff_t fast_looking_at (Lisp_Object, ptrdiff_t, ptrdiff_t,
   /// ptrdiff_t, ptrdiff_t, Lisp_Object);` (search.c defines it; `current-bidi-paragraph-direction`
   /// at C 27007 is this unit's first use - the bidi.rs mirror declares the same prototype for its
