@@ -13662,3 +13662,24 @@
      C 1799 那条只是文本级补齐（端口 `pdumper_do_now_and_after_load` 站点 22 → **23**，同一 grep 下参照是 27）。
   ⑨ **预算**：TU 编译 4 发（fringe 2、abi_shim 2）、翻臂探针 10 发、重链 2 发、`--check` 4 发、`--all` 1 发、gen-port-map 1 发、
      其余文本门 12 发、`check-swift-imports` 2 发（各约 6 分钟）；`/tmp` 的脚本与读数文件收工删。
+
+- **3.670 `src/thread.h` 的那一条 `missing macro current_buffer` 收口：名字在树里，家不是那个镜像——按既有的 `excluded-macros.txt` 机制记一行 `hosted`（新类，理由写进表头），单元从 failing 变 `OK`（2026-10-06）**：
+  ① **读数（改前）**：`python3 tools/extract-abi.py --check emacs/src/thread.h femacs/src/include/thread.rs` → `FAIL`，唯一一条
+     `- missing macro current_buffer`（另一条只是"有多个配置分支、宏体不比对：HAVE_TZALLOC_BUG"的说明行）。
+  ② **判定（不是"没写"，是"家不在这里"）**：C `thread.h` 147 的 `#define current_buffer (current_thread->m_current_buffer)`
+     在端口里**同名存在**，定义在 `femacs/src/include/buffer.rs:42`（`((*current_thread).m_current_buffer as *mut buffer)`）。
+     定这个位置的理由已写在两处：`include/thread.rs` 162-164（thread.h 的字段是 `struct buffer *m_current_buffer`，thread.rs
+     不能命名 `struct buffer`——那个 header 里没有这个记录）与 `include/buffer.rs` 37-48（只有 buffer 镜像能写出 pointee 的强转，
+     外加写半边 `set_current_buffer!`，对应 C 的 `current_buffer = v;` 与取地址 `&current_buffer`，buffer.c 4929-4930）。
+     搬到 thread.rs 会写出第二个同名 `macro_rules!`（同一 TU 里 `E0428` 宏重定义），所以**记录**才是对的动作。
+  ③ **机制与改动面**：`docs/ports/excluded-macros.txt`（`extract-abi.py --excluded` 的默认输入，读法是
+     `name -> "kind: reason"`，从此不再计入 `missing macro`，而按"有记录的 Rust 对应物"单独打印）加一行
+     `current_buffer\thosted\t…`，并在表头补一个 `kind=hosted` 的说明（"C 的这个头声明它，端口用同名把它定义在另一个镜像里——
+     那个能命名它产出的类型的镜像"）。文件只改这两处；**没有**动 `femacs/{src,lib}/include/**`（那条共享镜像改动才要跑的
+     `check-all-units.sh` 因此不适用），也没有动任何行为代码。
+  ④ **读数（改后）**：`--check emacs/src/thread.h femacs/src/include/thread.rs` → **`OK`**，并照打
+     `  (1 C macros have a recorded Rust counterpart: current_buffer)`（记录被读到，不是被吞掉）；`--all` 的单元账
+     本轮由 **23 failing** 收成 **22 failing**（同一轮里 `src/fringe.c` 已由 3.669 收掉一台）。
+  ⑤ **未声称**：这**不是** P-19 的迁移（把四个线程局部宏的 `extern` 存储删掉、876 处调用点改写成 `current_buffer! ()`）——
+     P-19 的待办清单原样留着，本轮只把"这条 `missing macro` 为什么不是缺口"变成可复算的记录；也没有跑任何编译。
+  ⑥ **预算**：`--check` 3 发、`--all` 1 发、文本门 0 发；`/tmp` 的脚本收工删。

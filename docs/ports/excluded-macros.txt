@@ -7,6 +7,9 @@
 #                 it structurally.
 # kind=config   : the macro selects a configuration branch that the port fixes.
 # kind=debugger : the macro exists only so a debugger can see a value.
+# kind=hosted   : the C header declares the macro, and the port defines it by that same
+#                 name in another mirror - the one that can name the type the macro
+#                 yields (P-90 (2)'s one surface, one mirror, decided the other way)
 # kind=deferred : the macro is a control-flow construct whose Rust form is an
 #                 open design decision (see PORTING.md P-22); it must be
 #                 resolved before the files that use it are ported.
@@ -242,3 +245,4 @@ _GL_END_NAMESPACE	syntax	c++defs.h 21-27: C 23's C++ arm is `}`, which is not a 
 match	syntax	image.c 5093-5094 (`LA1 = xbm_scan (&s, end, buffer, &value)`): Rust reserves the name, so there is no macro to define and the port expands it at each use site
 expect	syntax	image.c 5096-5103 (`do { … goto failure; … } while (0)`): the body names `xbm_read_bitmap_data`'s own locals and its `failure:` label, which `macro_rules!` hygiene forbids (measured E0426/E0425), so the port expands it at each use site
 expect_ident	syntax	image.c 5105-5109 (`if (LA1 == XBM_TK_IDENT && strcmp (buffer, IDENT) == 0) match (); else goto failure`): same reading as `expect` - the body names the caller's locals and label
+current_buffer	hosted	thread.h 147's `#define current_buffer (current_thread->m_current_buffer)` is defined in `femacs/src/include/buffer.rs` 42, not in `include/thread.rs`: thread.h's field is `struct buffer *m_current_buffer`, and thread.rs cannot name `struct buffer` (no such record in that header), so the macro's pointee cast - `as *mut buffer` - can only be written by the mirror that owns the record.  The name is the same one C gives it, so every unit that reaches lisp.h (which includes thread.h, C 2289) sees it; `include/thread.rs` 162-164 and `include/buffer.rs` 37-48 are the two notes that record the placement, and `src/buffer.rs`'s `set_current_buffer!` (buffer.c 4929-4930's write and address-taking) is its write half
