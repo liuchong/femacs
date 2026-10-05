@@ -7800,3 +7800,23 @@
      没有跑过一条 Lisp）；59.6% 是**行数口径**的进度，不是"功能完成度"；`docs/goal.md` §8 的加载阶梯
      L0-L5、双向兼容、生成物逐字节、平台冒烟、性能**一条都未点亮**；四个 landing 各自的 `build-tu`/`probe`
      超支已在各自段落如实报（本批合计 `build-tu` 4+3+5+6 = 18 发，`probe` 0+0+5+3 = 8 发，限各 3 是**每轮**的额度）。
+
+- **3.439 P-90 定案：第三方 SDK 表面的声明只有一个家（2026-10-05）**：
+  ① **触发**：`pgtkterm`/`gtkutil`/`w32proc`/`sfntfont` 四条平台 lane 同时开工，GTK/GDK/GLib/cairo 表面第一次
+     出现**第二个消费者**——三个先例（`femacs/src/include/xlib.rs` 的 X11、`femacs/src/include/jni.rs` 的 NDK、
+     `femacs/lib/include/haiku_support.rs` 的 Haiku SDK）都是**专用 SDK 镜像**（首行声明 + 自己的台账），
+     而 P-88 ① 说"写在单元自己里"；两份同名声明进同一个 TU 就是 `E0428`，所以必须裁一次。
+  ② **规则**：判据是"这个表面有几个消费者"——只有一个 ⇒ 单元里就地声明（P-88 ① 的原意）；**两个及以上 ⇒
+     一个专用镜像 `femacs/src/include/<sdk>.rs`**（首行按 xlib 那一行写，台账 `docs/ports/include-<sdk>.md`）；
+     一个表面只许一个镜像；单元的段内副本按 P-88 ⑤ 搬进去并**在同一提交里删掉**（3.408→3.409 的 move-back 形状）；
+     SDK 不在本机的部分点名 `UNVERIFIED` 并写明缺哪个工具链（不许凭记忆写数字）。
+  ③ **本轮不追溯**：`src/pgtkterm.rs` 的 cairo/GLib/GDK/GTK 段是先落地的段内副本，搬运欠给"建
+     `include/gtk.rs`"的那一轮——已写进 `docs/ports/pgtkterm.md`、`docs/ports/include-pgtkterm.md`、
+     `docs/ports/include-gtkutil.md` 的 `## Owed`；在飞的四条 lane 已按"就地声明 + `## Owed` 点名"继续，
+     不会造出第二份镜像。
+  ④ **读数**：本段**不改任何代码**，只改 `PORTING.md` 与三个台账 ⇒ `check-declarations` **10 行 / 0 forbidden /
+     0 failures**、`check-ledger-ticks` **234 行 / 0 failure**、`check-dead-file-coverage` **29 ledger / 0 failure**，
+     与 3.438 同（这是"改动没碰到被这些门读的东西"的证据，不是新的功能读数）。
+  ⑤ **未声称**：这是一条**规则**，不是实现——`femacs/src/include/gtk.rs` 与那次 move-back **尚未落地**；
+     本机没有 GTK 头（`/opt/homebrew/include/gtk-3.0` 不存在、`pkg-config` 不存在），所以 GTK 侧布局在搬运
+     那一轮仍是 `UNVERIFIED`，PGTK 臂在此之前也编不动（`include/pgtkterm.rs` 欠的记录还在欠着）。

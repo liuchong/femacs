@@ -41,3 +41,14 @@
   -> `OK emacs/src/gtkutil.h -> femacs/src/include/gtkutil.rs` (no `- ` problem lines).
 - `CARGO_TARGET_DIR=/tmp/femacs-target-mir-gtkutil cargo run -q -p xtask -- build-tu src/gtkutil.c`
   -> `built src/gtkutil.rs -> ../build/femacs/gtkutil.o`.
+
+## Owed (2026-10-05, PORTING.md P-90)
+
+- **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
+  GDK and GTK declarations as in-unit segments because it was the surface's first (and, at that
+  moment, only) consumer.  With `gtkutil.c` as the second consumer, P-90 requires one dedicated
+  mirror - `femacs/src/include/gtk.rs` with its own ledger `docs/ports/include-gtk.md`, the
+  `include-xlib.rs` shape - and the in-unit segments moved into it (P-88 ⑤'s move-back).  The
+  mirror is not created yet: this file's own slice was landed without it, and the move-back is
+  owed to the round that creates it.  Until then the arm's readings carry the declarations twice
+  (once per unit), which is harmless across crates and wrong only inside one TU.

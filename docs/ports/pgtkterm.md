@@ -336,3 +336,14 @@ their assertions are owed.
   decide where they belong.
 - This slice says nothing about C 1080-7780 (`pgtk_set_z_group` onward): no part of it is ported here,
   and its rows are in the table only so the file is covered.
+
+## Owed (2026-10-05, PORTING.md P-90)
+
+- **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
+  GDK and GTK declarations as in-unit segments because it was the surface's first (and, at that
+  moment, only) consumer.  With `gtkutil.c` as the second consumer, P-90 requires one dedicated
+  mirror - `femacs/src/include/gtk.rs` with its own ledger `docs/ports/include-gtk.md`, the
+  `include-xlib.rs` shape - and the in-unit segments moved into it (P-88 ⑤'s move-back).  The
+  mirror is not created yet: this file's own slice was landed without it, and the move-back is
+  owed to the round that creates it.  Until then the arm's readings carry the declarations twice
+  (once per unit), which is harmless across crates and wrong only inside one TU.
