@@ -9438,3 +9438,34 @@
   ⑦ **预算**：lane：`probe` **7 发**（限 3，**超 4**，其中第 3、4 发因它的编辑脚本中途抛错而空跑，如实报）、
      `build-tu` 2/3；集成者：`--check`/tolerance/feature-coverage/gate 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；
      `/tmp/hbfont-lane` 已删。
+
+- **3.495 `src/termcap.c`（C 1-640，整文件）落地；翻臂卡在 `include/msdos.rs` 的一对 override 上（2026-10-05）**：
+  ① **范围/块**：C 1-640 全部转写（28 行区间表覆盖全文件）；文件门 `msdos`（判据：`configure.ac` 6179-6183 的
+     `TERMCAP_OBJ`、`emacs/msdos/sed1v2.inp` 91、`src/Makefile.in` 194/308/485；不在 `frozen-build-sources.txt`），
+     门下到 include 图（C 23-34 的 8 条 `include!` 全带门）；子门 `internal_terminal`、`is_ebcdic_host`、`bufsize`、
+     `termcap_file`、`debug`、`test`。
+  ② **行数**：`femacs/src/termcap.rs` **14 → 883**（md5 `b581da3898fbce63a4413d46ff2f986a`）；台账 24 → **343**。
+  ③ **读数**：⑴ 冻结 `build-tu` → **exit 0 / 336 字节空对象、无导出符号**（参照在本目标根本不编本文件，所以这不是
+     "参照对象"）；⑵ 翻臂（`--cfg 'feature="msdos"'`）→ **exit 1 / 17 error**，按文件：`buffer.rs` 8、`dispextern.rs` 4、
+     `termhooks.rs` 3、`msdos.rs` 2，**本单元自身 0**；在 `/tmp` 副本上补上镜像缺的两条边后 → **exit 0 /
+     rlib 14,089,712 字节**；⑶ **臂矩阵**（同一最终修订）：`msdos` / `+internal_terminal` / `+is_ebcdic_host` / `+debug` /
+     四门全开全 **exit 0**，`+bufsize` 与 `+termcap_file` **exit 1（`E0425`：C 的值来自构建 `-D`，端口没有对应对象）**；
+     ⑷ **变异实测**：注入类型错 → 同一命令 `E0308` 落在 `_root.rs`，证明该编译触达本单元语句；⑸ `extract-abi --check`
+     首读 1 条（行数 38.0%）→ 我追加 `termcap` 容差行（**0.39 / total**）后 **OK**。
+  ④ **集成者的账**：⑴ 容差行已写（**完成件**：C 1-640 全覆盖）；⑵ `femacs/xtask/Cargo.toml` 登记 **4 个 feature**
+     （`is_ebcdic_host`、`internal_terminal`、`bufsize`、`termcap_file`，各带 C 判据行）+ `feature-coverage`
+     重生成（866/859）；⑶ pending 棘轮已重生成（53 行 / 0 stale）；⑷ 台账 Owed 2/3/8 标 DONE。
+  ⑤ **点名归属**：⑴ **`include/msdos.rs` 232/241 的 `EINPROGRESS`/`O_CLOEXEC` 与 `errno.rs` 92、`fcntl.in.rs` 118
+     同 TU 撞 `E0428`**——**任何含 `msdos.h` 的单元今天都翻不了臂**（`docs/ports/msdos.md` Owed 2 同项）；
+     ⑵ 该镜像链缺 `character.h`（8 个名字）与 `systime.h`（`Time`）两条边；⑶ `lib/include/stdlib.rs` 缺 `atoi`；
+     ⑷ `include/lisp.rs` 链缺 lisp.h 30 的 `<string.h>`。
+  ⑥ **旁证（未改，值得登记）**：`femacs/src/sysdep.rs` 1104 的
+     `static aslr_disabled_option: [c_char; 19] = *b"--__aslr-disabled\0\0";` 是必然 `E0308`，但
+     `have_personality_addr_no_randomize` 从不被启用（`feature-coverage.tsv`：5 sites / 1 file / 无人启用）
+     ——**"死臂文本没人编"的盲区**，这正是 `feature-coverage` 这张表存在的理由。
+  ⑦ **未声称**：**零运行证据**（没查过任何 termcap 条目、没读 `/etc/termcap`、没调用 `tgetent/tgetstr/tputs`、
+     `PC` 从未当过填充字符）；**整体 flip 没通过**（17 个错全在镜像链上；只有 `/tmp` 桩那一档 exit 0，而桩只补了镜像
+     本该有的边）；本机无 DJGPP 工具链，`<dos.h>`/`<go32.h>` 全 UNVERIFIED。
+  ⑧ **预算**：lane：`probe` **3/3**、`build-tu` **3/3**，另用若干次直接 rustc 做臂矩阵与变异（不占工具口径）；
+     集成者：gate/`--check`/tolerance/feature-coverage 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；
+     `/tmp/termcap-lane` 已删（`/tmp/tclane` 是它留下的日志，收工一并清）。
