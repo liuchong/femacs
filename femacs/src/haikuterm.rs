@@ -27,7 +27,8 @@
 //     `femacs/xtask/Cargo.toml` registers for `USE_BE_CAIRO`).  `<cairo.h>` is a system header of
 //     the Haiku toolchain, not part of the reference tree, so it has no mirror (P-88) and no name
 //     it declares is used by this slice: the gate is carried as the record below and the ledger's
-//     table row (the `lwlib/include/lwlib-utils.rs` 48-49 reading of the same dead region);
+//     table row (the `lwlib/include/lwlib-utils.rs` 61-62 reading of the same dead region; the
+//     line numbers moved when 3.508 put that mirror's prototypes in its `_decls` module, P-39);
 //   * the file's other conditions are C 1330's `#ifdef GCC_LINT`, C 4148's `#if 0` and C 4772's /
 //     C 4895's `#ifdef USE_BE_CAIRO`, all of them **outside this slice** (C 1045 onward).  Every
 //     one of the five is decidable: `tools/check-cond-eval.py src/haikuterm.c` reads the file as

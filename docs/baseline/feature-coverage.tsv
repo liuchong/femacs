@@ -5,37 +5,40 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	1579	43	-	-
-have_android	1001	31	-	-
-have_window_system	902	19	-	-
+windowsnt	1663	44	-	-
+have_android	1003	32	-	-
+have_window_system	942	19	-	-
+have_x_windows	700	23	-	HAVE_X_WINDOWS
 not_android_stubify	700	11	-	-
-have_x_windows	697	23	-	HAVE_X_WINDOWS
 have_ntgui	595	14	-	-
 have_pgtk	546	22	-	-
-use_gtk	436	13	-	-
+use_gtk	442	14	-	-
 msdos	407	15	-	-
+dispextern_face_records	287	4	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
-dispextern_face_records	266	4	-	-
 have_ns	263	11	-	HAVE_NS
 have_gnutls	248	3	-	-
 have_haiku	248	14	xtask dead-arms	-
 have_freetype	215	3	-	-
 harfbuzz	192	7	-	-
 use_xcb	171	4	-	-
-have_gtk3	145	5	-	-
-use_x_toolkit	139	9	-	USE_X_TOOLKIT
+use_cairo	162	12	-	-
+have_gtk3	150	6	-	-
+use_x_toolkit	141	10	-	USE_X_TOOLKIT
 have_sound	135	1	-	-
 have_tree_sitter	133	7	-	HAVE_TREE_SITTER
-use_cairo	133	11	-	-
 threads_enabled	127	5	-	-
+use_lucid	118	6	-	-
+seccomp_filter	113	1	-	-
+have_x_sm	112	1	-	-
 mail_use_pop	109	1	-	-
 have_pthread	87	2	-	-
 windows	83	5	-	-
 have_ext_tool_bar	76	2	-	-
+have_inotify	76	1	-	-
 ns_impl_gnustep	70	2	-	-
 have_gnutls3	67	1	-	-
 have_sqlite3	63	1	-	-
-use_lucid	58	5	-	-
 have_lcms2	54	1	-	-
 have_ext_menu_bar	51	3	-	-
 have_xinput2	51	6	-	-
@@ -45,20 +48,22 @@ have_kqueue	49	1	-	-
 use_gamedir	44	1	-	-
 have_gfilenotify	38	1	-	-
 glyph_debug	36	5	xtask dead-arms	-
+use_linux_xattr	36	1	-	-
 have_alsa	34	1	-	-
 kerberos5	34	1	-	-
 dos_nt	30	5	-	-
 have_text_conversion	30	3	-	-
 kerberos	30	1	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
+use_acl_ace_getacl	30	2	-	-
 have_x_i18n	28	4	-	-
-use_acl_ace_getacl	28	1	-	-
+cygwin	27	12	-	-
 have_xcb_shape	26	2	-	-
+mingw_w64	25	5	-	-
 vm_ms_windows	25	1	-	-
-cygwin	24	11	-	-
 have_xrender	24	4	-	-
 have_xsync	24	1	-	-
-mingw_w64	24	4	-	-
+use_acl_have_acl_get_file	24	3	-	-
 have_modules	23	6	-	HAVE_MODULES
 libgccjit_have_gcc_jit_context_new_bitcast	22	1	-	-
 words_bigendian	22	10	-	-
@@ -67,10 +72,11 @@ have_glib	20	2	-	-
 use_android_assets	20	2	-	-
 android_api_lt_21	19	1	-	-
 have_xwidgets	19	7	-	-
+use_acl_have_getacl	18	2	-	-
 redirect	17	1	-	-
+use_acl_getacl	17	3	-	-
 openbsd	16	5	-	-
 unistd_h_have_winsock2_h	16	1	-	-
-use_acl_have_acl_get_file	16	2	-	-
 freebsd	15	1	-	-
 have_xshape	15	1	-	-
 unsigned	15	1	-	-
@@ -115,6 +121,7 @@ have_sys_soundcard_h	8	1	-	-
 have_xcomposite	8	2	-	-
 linux_no_android	8	2	-	-
 no_working_fstatat_zero_flag	8	1	-	-
+o_path	8	3	-	-
 openbsd_or_android_flags	8	1	-	-
 stat_time_member_absent	8	1	-	-
 treesit_language_version_ge_15	8	1	-	-
@@ -123,19 +130,27 @@ utmp_h	8	2	-	-
 win32_vista	8	1	-	-
 gc_malloc_check	7	1	-	-
 gnulib_openat2	7	1	-	-
+have_acl_extended_file	7	1	-	-
+have_acl_get_link_np	7	1	-	-
 have_dbus	7	1	-	-
 have_getaddrinfo_a	7	1	-	-
 have_x11	7	2	-	-
 msvc	7	2	-	-
 no_faccessat	7	2	-	-
 no_rint	7	1	xtask dead-arms	-
+old_paths	7	1	-	-
 sigdanger	7	3	-	-
+use_acl_have_aclsort	7	2	-	-
+use_acl_have_statacl	7	2	-	-
 use_cairo_or_have_xft	7	1	-	-
 use_file_notify	7	1	-	-
 win32_winnt_lt_0500	7	2	-	-
 windows_msvc	7	1	-	-
 exec_64	6	1	-	-
+have_acl_type_extended	6	1	-	-
+have_aclx_get	6	1	-	-
 have_getgroups	6	1	-	-
+have_smack	6	1	-	-
 have_xft	6	3	-	-
 have_xkb	6	2	-	-
 libc	6	3	-	-
@@ -147,7 +162,6 @@ no_use_lsb_tag	6	2	-	-
 no_utmp_x_ut_type	6	2	-	-
 no_value	6	1	-	-
 tandem	6	3	-	-
-use_acl_have_getacl	6	1	-	-
 use_fortify_level_3	6	1	-	-
 aix	5	3	-	-
 alignof_pthread_cond_t_le_alignof_max_align_t	5	1	-	-
@@ -165,7 +179,7 @@ no_system_malloc	5	2	-	-
 solaris2	5	1	-	-
 stat_time_stat_timespec_ns	5	1	-	-
 stdc_iso_10646	5	2	-	-
-use_acl_getacl	5	2	-	-
+use_acl	5	2	-	-
 use_horizontal_scroll_bars	5	2	-	-
 win32_windows_ge_0410	5	1	-	-
 window_system_no_ext_tool_bar	5	1	-	-
@@ -178,6 +192,7 @@ fc_color	4	1	-	-
 gnu_malloc	4	1	-	-
 gnuc_prereq_11_0	4	1	-	-
 gnulib_getpagesize	4	1	-	-
+have_acl_get_fd	4	1	-	-
 have_gif	4	1	-	-
 have_gnutls_compression_get	4	1	-	-
 have_gnutls_digest_list	4	1	-	-
@@ -218,6 +233,7 @@ have_x11_or_have_pgtk	3	1	-	-
 have_xdbe	3	2	-	-
 have_xfixes	3	1	-	-
 i386	3	2	-	-
+inotify_debug	3	1	-	-
 marker_debug	3	1	-	-
 mingw32_w32api_lt_3_15	3	1	-	-
 minix	3	1	-	-
@@ -237,7 +253,6 @@ no_signbit	3	2	xtask dead-arms	-
 no_typeof	3	1	-	-
 no_windows_stat_timespec	3	1	-	-
 no_working_ckdint	3	1	-	-
-o_path	3	2	-	-
 openssl_md5	3	2	-	-
 openssl_sha1	3	2	-	-
 openssl_sha256	3	2	-	-
@@ -247,13 +262,16 @@ replace_getusershell	3	1	-	-
 replace_struct_timeval	3	1	-	-
 sqlite3_dbconfig_enable_load_extension	3	1	-	-
 stdc_version_stdc_version_199901l_defined	3	1	-	-
-use_acl_have_aclsort	3	1	-	-
+use_selinux_selinux_h	3	1	-	-
 w32	3	1	-	-
 windows_stat_inodes	3	1	-	-
 xft_or_freetype	3	1	-	-
 xft_version_lt_2_3_6	3	1	-	-
+acl_aix_wip	2	1	-	-
+acl_no_trivial	2	1	-	-
 android_32bit	2	1	-	-
 android_64bit	2	1	-	-
+arch_cet_status	2	1	-	-
 bufsize	2	1	-	-
 choose_newest_exe	2	1	-	-
 cnew_rtscts	2	1	-	-
@@ -277,6 +295,7 @@ gnuc_prereq_3_2_glibc_has	2	1	-	-
 gnuc_prereq_4_3_glibc_has	2	1	-	-
 gnuc_prereq_4_6_defined_libc	2	1	-	-
 gnuc_prereq_4_9_glibc_has	2	1	-	-
+have_aclv_h	2	2	-	-
 have_clock_gettime	2	1	-	-
 have_decl_strmode	2	1	-	-
 have_glib_and_not_ns	2	1	-	-
@@ -288,6 +307,7 @@ have_gnutls_ext_get_name	2	1	-	-
 have_gnutls_mac_get_nonce_size	2	1	-	-
 have_gnutls_x509_system_trust	2	1	-	-
 have_ifreq_netmask	2	1	-	-
+have_inotify_init1	2	1	-	-
 have_jpeg	2	1	-	-
 have_langinfo_codeset	2	1	-	-
 have_madvise	2	2	-	-
@@ -308,6 +328,7 @@ libxml2	2	1	-	-
 linux_sysinfo_unit	2	1	-	-
 lisp_object_is_struct	2	1	-	-
 mailhost	2	1	-	-
+map_droppable	2	1	-	-
 mingw32_no_use_windows_threads	2	1	-	-
 mingw64	2	1	-	-
 mips_isa_rev_ge_6	2	1	-	-
@@ -345,6 +366,9 @@ no_have_gethostname	2	1	-	-
 no_have_random_no_lrand48	2	1	-	-
 no_have_sigset_t	2	1	-	-
 no_have_struct_timeval	2	1	-	-
+no_in_dont_follow	2	1	-	-
+no_in_excl_unlink	2	1	-	-
+no_in_onlydir	2	1	-	-
 no_interrupt_input	2	1	-	-
 no_login_process_defined	2	1	-	-
 no_malloc_ptrdiff	2	2	-	-
@@ -406,7 +430,6 @@ tcxonc	2	1	-	-
 tiocgsize	2	1	-	-
 tiocssize	2	1	-	-
 unicode	2	1	-	-
-use_acl_have_statacl	2	1	-	-
 use_be_cairo	2	1	-	-
 use_fortify_level_3_glibc_clang	2	1	-	-
 utmp_ut_name	2	1	-	-
@@ -436,6 +459,7 @@ xk_dead_ogonek	2	1	-	-
 xk_dead_semivoiced_sound	2	1	-	-
 xk_dead_tilde	2	1	-	-
 xk_dead_voiced_sound	2	1	-	-
+__nr_faccessat2	1	1	-	-
 _dos_ds	1	1	-	-
 _timezone_defined	1	1	-	-
 _use_lfn	1	1	-	-
@@ -545,7 +569,6 @@ gnulib_strstr	1	1	-	-
 gnulib_strtok_r	1	1	-	-
 gnulib_strverscmp	1	1	-	-
 gtk_check_version_ge_3_10	1	1	-	-
-have_aclv_h	1	1	-	-
 have_copy_file_range	1	1	-	-
 have_decl_sysinfo	1	1	-	-
 have_eaccess	1	1	-	-
@@ -811,6 +834,7 @@ replace_sleep	1	1	-	-
 replace_symlinkat	1	1	-	-
 replace_ttyname_r	1	1	-	-
 replace_usleep	1	1	-	-
+se_selinux_inline	1	1	-	-
 setup_slave_pty	1	1	-	-
 signal_sigbreak	1	1	-	-
 signal_sigcld	1	1	-	-
@@ -857,7 +881,6 @@ tiocsigsend	1	1	-	-
 traditional_uid_model	1	1	-	-
 tzset	1	1	-	-
 unipair_unicode	1	1	-	-
-use_acl	1	1	-	-
 use_cairo_xcb	1	1	-	-
 use_fortify_level_use_fortify_level	1	1	-	-
 use_ncurses	1	1	-	-

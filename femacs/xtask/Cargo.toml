@@ -162,6 +162,17 @@ mips_isa_rev_ge_6                          = []  # __mips_isa_rev >= 6 (src/exec
 no_value                                   = []  # the derived condition `!defined HAVE_X_WINDOWS && defined (NoValue)` (frame.c 6538; `NoValue` is the non-X `*gui.h` constant)
 mingw_w64                                  = []  # MINGW_W64 (w32fns.c 38 `#if !defined MINGW_W64 && !defined CYGWIN`, 63 `# ifndef MINGW_W64`)
 ns_self_contained                          = []  # NS_SELF_CONTAINED
+seccomp_filter                             = []  # HAVE_SECCOMP + HAVE_LIBSECCOMP + x86_64 + sizeof(long)==8 (lib-src/Makefile.in 232-250) (registered by the integrator in 3.508)
+arch_cet_status                            = []  # ARCH_CET_STATUS (lib-src/seccomp-filter.c 49/64-67) (registered by the integrator in 3.508)
+map_droppable                              = []  # MAP_DROPPABLE (lib-src/seccomp-filter.c 51/68-72) (registered by the integrator in 3.508)
+__nr_faccessat2                            = []  # __NR_faccessat2 (lib-src/seccomp-filter.c 259-261) (registered by the integrator in 3.508)
+have_inotify_init1                         = []  # HAVE_INOTIFY_INIT1 (src/inotify.c 443-451)
+inotify_debug                              = []  # INOTIFY_DEBUG (src/inotify.c 530-545/583-586)
+no_in_excl_unlink                          = []  # no fallback macro IN_EXCL_UNLINK (src/inotify.c 35-43)
+no_in_dont_follow                          = []  # no fallback macro IN_DONT_FOLLOW (src/inotify.c 35-43)
+no_in_onlydir                              = []  # no fallback macro IN_ONLYDIR (src/inotify.c 35-43)
+have_inotify                               = []  # HAVE_INOTIFY (src/inotify.c's file gate; registered by the integrator in 3.508)
+old_paths                                  = []  # OLD_PATHS (nt/addpm.c 59/89-99; registered by the integrator in 3.508)
 snd_sentry                                 = []  # SND_SENTRY
 sqlite3_dbconfig_enable_load_extension     = []  # the derived condition `SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION` (src/sqlite.c 40)
 sqlite_open_fullmutex                      = []  # SQLITE_OPEN_FULLMUTEX (src/sqlite.c 296)

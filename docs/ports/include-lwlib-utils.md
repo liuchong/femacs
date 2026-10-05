@@ -22,8 +22,12 @@
 
 Mirror of `lwlib/lwlib-utils.h`, complete for this target: the widget-tree helpers and the whole
 `USE_CAIRO` region.  The frozen configuration has `USE_CAIRO` and `HAVE_XRENDER` `undef`
-(docs/baseline/config/darwin-arm64.macros.tsv), so nothing includes this header and no probe
-compiles it; the text gate is the whole acceptance (docs/status.md 3.31/3.102).
+(docs/baseline/config/darwin-arm64.macros.tsv), so this header's text is outside the frozen
+units' checklists; the text gate was the whole acceptance when it landed (docs/status.md
+3.31/3.102).  **Since 3.508 that is no longer the whole story**: `lwlib/lwlib-utils.rs`
+includes this mirror under `use_lucid`, and its flip type-checks this file's eleven prototypes
+(they now live in a `lwlib_utils_decls` module the unit globs, P-39 - the `lwlib-Xlw.rs` 3.500
+shape, which is also what moved the `48-49` line numbers the `src/haikuterm.rs` note cites).
 
 ### Deviations
 
@@ -46,3 +50,6 @@ compiles it; the text gate is the whole acceptance (docs/status.md 3.31/3.102).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-utils.h
 femacs/lwlib/include/lwlib-utils.rs` -> `OK` (8 ledger item(s)).
+5. **The eleven prototypes moved into `lwlib_utils_decls` (3.508)** - P-39: `lwlib-utils.c` defines
+   every one of them, so a top-level copy in the mirror is `E0428` in that unit (measured on
+   `src/widget.rs`'s flip for `include/widget.rs`, status 3.496/3.504; the `lwlib-Xlw.rs` shape).

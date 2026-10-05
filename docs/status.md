@@ -9863,3 +9863,41 @@
      `dead-arms` 才编得动）；新基线是 C 侧 clang 的读数，端口侧只由断言覆盖。
   ⑤ **预算**：`probe` 4 发（本条内：3 次迭代 + 1 次复读）、`layout-check` 2 发、`check-all-units` 2 发
      （其中 1 发是磁盘满后的复读，见 3.506 ⑥）。
+
+- **3.508 四个整文件单元入库：`nt/addpm.c`、`lwlib/lwlib-utils.c`（含镜像）、`src/inotify.c`、`lib-src/seccomp-filter.c`（2026-10-05）**：
+  ① **四件一起入库的理由**：四件共享 `docs/ports/macro-body-notes.tsv`、`docs/ports/line-drift-tolerance.tsv`、
+     `docs/baseline/port-lines-pending.tsv`、`docs/baseline/feature-coverage.tsv`、`docs/port-map.md` 五本生成物
+     （与 3.504 同一条理由）；各自的 C 行号区间表、读数与缺陷归属在 `docs/ports/{addpm,lwlib-utils,inotify,seccomp-filter}.md`。
+  ② **行数**：`femacs/nt/addpm.rs` 3 → **957**（C 1-347 全落；C 266/297 的快捷方式描述按 3.503 的第七半写成本程序
+     自己的名字，C 原文留在参照树）、`femacs/lwlib/lwlib-utils.rs` 3 → **740**（C 1-291 全落，第一个 cairo 半边）
+     ＋ `femacs/lwlib/include/lwlib-utils.rs` 185 → **195**（11 条原型搬进 `lwlib_utils_decls`，P-39）、
+     `femacs/src/inotify.rs` 11 → **844**（C 1-590 全落）、`femacs/lib-src/seccomp-filter.rs` 12 → **1071**
+     （C 1-409 全落；Linux/`--with-seccomp` 面按 P-86 ③⑵ 如实记 `text-only`）。
+  ③ **集成者替三件落的账（点名）**：⑴ `line-drift-tolerance.tsv` 三行（`addpm 1.77`、`lwlib-utils 1.56`、
+     `inotify 0.44`、`seccomp-filter 1.63`，basis 全 `total`；加后四对的 `extract-abi --check` **全 OK**）；⑵ **十一个 feature**：
+     `old_paths`（addpm C 59/89-99）、`have_inotify`（文件门）、`have_inotify_init1`、`inotify_debug`、
+     `no_in_excl_unlink`、`no_in_dont_follow`、`no_in_onlydir`（inotify C 35-43 的三个兜底名与两条子门）、`seccomp_filter`（文件门：`lib-src/Makefile.in`
+     232-250 的 HAVE_SECCOMP+HAVE_LIBSECCOMP+x86_64+`sizeof(long)==8`）、`arch_cet_status`、`map_droppable`、
+     `__nr_faccessat2`（seccomp C 49/51/64-72/259-261）；
+     ⑶ 五本生成物重算：`port-lines-pending` **41 文件 / 62,097 参考行**、`feature-coverage` **891 / 884**、
+     `port-map`；⑷ 两处**已失效的散文**：`docs/ports/include-lwlib-utils.md` 的"nothing includes this header"
+     与 Deviations 5（原型已搬进 `_decls`，且 `lwlib-utils.rs` 现在真的在 `use_lucid` 下 type-check 它）、
+     `femacs/src/haikuterm.rs` 30 引用的行号 `48-49 → 61-62`（`_decls` 搬家造成，两个文件都不在 lane 白名单）。
+  ④ **读数（lane 的）**：四件的冻结档 `build-tu` **exit 0**（各 336 字节空对象）；臂：addpm `windowsnt` **0 error**
+     （另两个子门 `old_paths`/`mingw_w64` 直编 0 error）、lwlib-utils `use_lucid`(+`use_cairo`) **0 error**
+     （8,185,432 B rlib）、inotify `have_inotify` 与五个子门 **0 error**（13.8 MB rlib，`nm -u` 证明臂真被选中）、seccomp-filter
+     `seccomp_filter` + 三个子门 **0 error**（129,664 B rlib，同 root 只给文件门的第二臂 128,728 B）；
+     四件都做了**变异实测**（P-86 ⑦）。clang/跨目标探针：addpm 无（无 SDK）、lwlib-utils 对本机 cairo 1.18.4 实测并
+     **抓出自己 5 条声明缺陷**、inotify 对上游 glibc/Linux 头做探针、seccomp-filter 用本机 NDK 的
+     x86-64 sysroot 与抓取的 libseccomp v2.5.2 头做探针（并与 C 逐条比对 78/78 `SCMP_SYS` 顺序、
+     `RULE0` 57/57、`RULE` 21/21）——全部标 UNVERIFIED。
+  ⑤ **顺带记下的真缺陷（不是这三件的）**：addpm lane 量到**已入库的** `femacs/nt/runemacs.rs` 的 `windowsnt` 臂
+     **根本编不过**（3 条：`memset` 与 `lib/include/string.rs` 重复定义 `E0428`、`!ensure_unicows_dll ()` 的
+     `int`→`bool` `E0308`、`&raw mut start` 缺 `*mut c_void` 强转 `E0308`）——该文件台账的 Owed 3 写着"无法翻臂"，
+     所以这三条此前从未被读过；本条的三个 lane 都没碰它，**归下一批**（runemacs 的收尾或镜像轮）。
+  ⑥ **红线如实记**：当轮 `check-declarations` **1 forbidden**（`femacs/lib/file-has-acl.rs` 的 `recital`）、
+     `check-mirror-dupes` **7 failure**（同样全指 `femacs/lib/file-has-acl.rs`）、`check-citations` 1–2 drift
+     （`femacs/src/xsmfns.rs`）——**全部是仍在飞的两个 lane 的文本**，不是这三件的；两个 lane 收工后再复读。
+  ⑦ **未声称**：四件都**零运行证据**（没编过 Windows/cairo 上下文/任何 inotify 调用）；SDK 面、X11 记录布局、
+     Linux 头的值都是 placeholder 或跨目标读数；十一个 feature 至今**没有任何配置启用**（`feature-coverage` 的
+     884 从未启用里含它们）。
