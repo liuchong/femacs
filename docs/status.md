@@ -11867,3 +11867,26 @@
      本次刷新成 920；`src/w32select.rs` 同步 2,003 → 2,006。⇒ `w32` 家族里**由 `W32_OBJ` 两处赋值决定的门**现在逐件对上了：
      `have_ntgui` 一族（`w32fns`/`w32menu`/`w32reg`/`w32font`/`w32term`/`w32xfns`/`w32select`/`w32uniscribe`/`w32dwrite`）与
      `windowsnt` 一族（`w32`/`w32console`/`w32heap`/`w32image`/`w32inevt`/`w32proc`）。
+
+- **3.588 lane 产出收口：`src/xfns.c` 第二片落地（C 803-2,149；C 10,662 → Rust 3,051 行；`--check` 227 → 197）（2026-10-05）**：
+  ① **lane 的产出（Nash）**：`femacs/src/xfns.rs` 1,116 → **3,051 行**（md5 `125ed3ea…`；台账 `docs/ports/xfns.md` 387 → 610 行，
+     26 行真实区间覆盖到 C 2,149，remainder 写成 `2150-10662`）。落 28 个定义：tool-bar/parent/no-focus/no-accept/override-redirect/
+     undecorated 等参数 setter、`HAVE_XDBE` 双缓冲对、两个 `USE_GTK` 图标 setter、鼠标光标族（`enum mouse_cursor`、
+     `struct mouse_cursor_types` 与表、`struct mouse_cursor_data`、`x_set_mouse_color_handler`、`x_set_mouse_color`）、
+     border/cursor/icon 系列、menu/tab/tool-bar 行高 setter（两个非 `static` 的保留 linkage）、两个 scroll-bar 颜色 setter。
+  ② **读数**：`--check` **227 → 197**（`missing` 226 → 181）；`check-cond-eval.py src/xfns.c` **231 conditions / 0 disagreements
+     [VERIFIED]**；`build-tu` 1 发 exit 0（336 字节空对象）；`probe have_x_windows` 1 发 → **3 errors**（unit 内
+     `x_display_info_for_name`、`wait_for_wm` 都是 slice 1 的遗留；mirror 内 `include/systime.rs` 的 `HAVE_X_WINDOWS` 断言）；
+     另外八个臂（xdbe/xrender/x_i18n/glyph_debug/xinput2/xsync/toolkit-scroll-bars、use_gtk+have_gtk3、use_x_toolkit）**逐个有读数并记进
+     台账 `Evidence ②-⑧`**——**没有一个是 0 错**，lane 明确未声称任何臂可编。
+  ③ **lane 自己修掉的两处、值得记账**：首版把 `fset_redisplay` 又声明了一遍（`include/window.rs` 已有）⇒ `check-mirror-dupes` FAIL，
+     已删并改用镜像的 `*mut c_void` 形参；citation 把 `check_int_nonnegative` 引作 `lisp.h 615`（实为 607）⇒ `check-citations` drift，已改。
+  ④ **集成者登记（我）**：`macro-body-notes.tsv` 收下该 lane 的 **3 行**（`INSTALL_CURSOR` 与 `BLACK_PIX_DEFAULT`/`WHITE_PIX_DEFAULT`
+     的 `FRAME_X_DISPLAY`——后者是 mirror 宏体展开所需的名字在 use site 自声明时登记的）；`port-map.md` 刷新本件（在飞的
+     `xdisp`/`xwidget` 行回退成已提交值）；**不加容差行**（漂移仍是"还没落完"的真信号）。
+  ⑤ **门读数（本轮现读，全绿）**：`check-mirror-dupes` 17/17/0、`check-citations` 0 drift / 0 stale、`check-declarations` 0 failures、
+     `check-dead-file-coverage` 145/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0。
+  ⑥ **未声称**：**无任何运行时证据**（冻结配置不编本文件任何行）；各臂的 `rustc` 读数都**不是**"可运行配置"；`include/xlib.rs` 该收的
+     Xlib 面（`XSetWindowAttributes`/`XTextProperty`/`XErrorEvent` + 14 个入口点 + `CurrentTime` + 13 个 `XC_*`）、`include/xterm.rs`
+     的 `use_vsync_p`/`update_mode_line`、`include/gtk.rs` 的三个 GtkResizeMode 枚举、Xt 面（本机无 libXt）都记在 `## Owed`。
+     **下一段起点 C 2,167**（`x_encode_text`）。

@@ -1,4 +1,4 @@
-# emacs/src/xfns.c (10662 lines) — first slice: C 1-802
+# emacs/src/xfns.c (10662 lines) — slices: C 1-802 and C 803-2149
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -7,8 +7,9 @@
 > lists no `xfns.o`, so `extract-abi.py`'s checklist for the file is empty and its checkbox
 > sections cannot be coverage evidence.  What follows is P-86 ②'s substitute: the **C line-range
 > table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/xfns.rs` (**1,120 lines** after this slice, measured with `grep -c ''`), both arms of
-> every `#if` carried.
+> `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice -
+> C 803-2149, whose own ledger section is at the end of this file - measured with `grep -c ''`),
+> both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -96,7 +97,34 @@ defines both features.
 | 686-718 | the comment of `x_decode_color` and the function (C 699-706 the `#if false` region) | file gate; the `#if false` region is dead text, recorded not transcribed |
 | 719-730 | the comment of `x_set_wait_for_wm` and the function | file gate (the one statement's member is the mirror gap named below) |
 | 731-802 | `x_set_alpha_background` (C 742-756 the `HAVE_XRENDER` pair, C 764-771 the `USE_GTK` block, C 794-798 the `HAVE_GTK3` class walk, C 776-801 C's `#ifndef HAVE_GTK3` pair) | file gate; `have_xrender`, `use_gtk`, `have_gtk3` |
-| 803-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 9,860 lines, whose first live definition is `x_set_tool_bar_position` (C 805) - the next slice's first item | not ported in this slice |
+| 803-849 | the blank, `x_set_tool_bar_position` (C 804 its `static void`, C 809-847 the `USE_GTK` pair) | file gate; `use_gtk` for the GTK arm's `choice`, `Fmemq`, `xg_change_toolbar_position` and `wrong_choice` |
+| 850-880 | `#ifdef HAVE_XDBE` (C 850), `x_set_inhibit_double_buffering` (C 852-879) and the `#endif` | `have_xdbe`, nested in the file gate |
+| 881-923 | the doc comment of `x_set_undecorated` (C 882-894) and the function (C 895-923, C 900-921 the `USE_GTK` pair) | file gate; `use_gtk` for `xg_set_undecorated` |
+| 924-1005 | the doc comment of `x_set_parent_frame` (C 924-953) and the function (C 954-1005, C 977-990 the GTK/GTK3/XSYNC arms) | file gate; `use_gtk`, `have_gtk3`, `all (have_xsync, not (use_gtk), have_clock_gettime)` |
+| 1006-1036 | the doc comment of `x_set_no_focus_on_map` (C 1006-1017) and the function (C 1019-1036, C 1023-1033 the `USE_GTK` pair) | file gate; `use_gtk` |
+| 1037-1072 | the doc comment of `x_set_no_accept_focus` (C 1037-1044) and the function (C 1051-1072, C 1055-1069 the `USE_GTK`/`USE_X_TOOLKIT`/`#else` triple) | file gate; `use_gtk`, `use_x_toolkit` |
+| 1073-1104 | the doc comment of `x_set_override_redirect` (C 1073-1079) and the function (C 1084-1104, C 1092-1100 the `USE_GTK` pair) | file gate; `use_gtk` |
+| 1105-1177 | `#ifdef USE_GTK` (C 1107), `xg_set_icon` (C 1113-1144), `xg_set_icon_from_xpm_data` (C 1147-1174) and the `#endif` | `use_gtk`, nested in the file gate |
+| 1178-1220 | C's comment for the family (C 1179-1184) and `x_set_foreground_color` (C 1186-1220) | file gate |
+| 1221-1252 | `x_set_background_color` (C 1222-1252, C 1242-1244 the `USE_GTK` pair) | file gate; `use_gtk` |
+| 1253-1331 | `enum mouse_cursor` (C 1254-1272), `struct mouse_cursor_types` (C 1274-1286), the `mouse_cursor_types` table (C 1288-1306) and `struct mouse_cursor_data` (C 1308-1331) | file gate (the table's `XC_*` values are `<X11/cursorfont.h>`'s, reached through `xterm.h` 40) |
+| 1332-1350 | `x_set_mouse_color_handler` (C 1333-1350) | file gate |
+| 1351-1478 | `x_set_mouse_color` (C 1352-1478, C 1450-1470 C's `INSTALL_CURSOR` family) | file gate |
+| 1479-1545 | `x_set_cursor_color` (C 1480-1545) | file gate |
+| 1546-1581 | the comment of `x_set_border_pixel` (C 1547-1550) and the function (C 1551-1581, C 1557-1570 the `USE_X_TOOLKIT` arm) | file gate; `use_x_toolkit` |
+| 1582-1603 | the comment of `x_set_border_color` (C 1583-1592) and the function (C 1594-1603) | file gate |
+| 1604-1642 | `x_set_cursor_type` (C 1606-1610) and `x_set_icon_type` (C 1612-1642) | file gate |
+| 1643-1679 | `x_set_icon_name` (C 1644-1679) | file gate |
+| 1680-1766 | `x_set_menu_bar_lines` (C 1682-1766, C 1686-1688 the `! USE_X_TOOLKIT && ! USE_GTK` declaration, C 1705-1764 the toolkit/GTK pair) | file gate; `use_x_toolkit`, `use_gtk` |
+| 1767-1794 | the comment of `x_set_tab_bar_lines` (C 1769-1774) and the function (C 1776-1794) | file gate |
+| 1795-1859 | the comment of `x_change_tab_bar_height` (C 1797) and the function (C 1798-1859) | file gate |
+| 1860-1891 | the comment of `x_set_tool_bar_lines` (C 1862-1866) and the function (C 1868-1891, C 1876-1880 the `USE_GTK` pair) | file gate; `use_gtk` |
+| 1892-1964 | the comment of `x_change_tool_bar_height` (C 1894) and the function (C 1895-1964, C 1898-1963 the `USE_GTK` pair) | file gate; `use_gtk` |
+| 1965-1994 | `x_set_child_frame_border_width` (C 1966-1994, C 1982-1985 the `USE_X_TOOLKIT` pair) | file gate; `use_x_toolkit` |
+| 1995-2017 | `x_set_internal_border_width` (C 1996-2017, C 2005-2008 the `USE_X_TOOLKIT` pair) | file gate; `use_x_toolkit` |
+| 2018-2076 | the comment of `x_set_scroll_bar_foreground` (C 2020-2023) and the function (C 2025-2076, C 2030-2032 the `HAVE_GTK3` declarations, C 2055-2075 the `HAVE_GTK3` block) | file gate; `have_gtk3` |
+| 2077-2149 | the comment of `x_set_scroll_bar_background` (C 2079-2082) and the function (C 2084-2149, C 2088-2091 the `HAVE_GTK3` declarations, C 2101-2113 the `USE_LUCID && USE_TOOLKIT_SCROLL_BARS` pair, C 2128-2148 the `HAVE_GTK3` block) | file gate; `use_lucid`, `use_toolkit_scroll_bars`, `have_gtk3` |
+| 2150-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 8,513 lines, whose first live definition is `x_encode_text` (C 2167 is its `static unsigned char *` line, C 2168 the name) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -385,3 +413,198 @@ deleting the direct `include/gtk.rs` edges the consumers spell themselves (`src/
 `src/pgtkterm.rs` 81, `src/image.rs` 166, `src/xwidget.rs`, `src/pgtkfns.rs`) in the same round -
 otherwise gtk.rs is textually included twice in one translation unit.  That cascade is the next
 mirror round's, not this unit's.
+
+
+## Slice 2 (2026-10-05, status 3.582): C 803-2149
+
+**The slice is C 803-2149** (the table's middle rows).  It opens at C 803, the blank line after
+slice 1's `}`, and closes at C 2149, the `}` of `x_set_scroll_bar_background` - the last whole
+function whose boundary lies inside the 2,500-3,000 C lines the slice's brief asked for that this
+round had budget to carry.  The neighbouring boundary past it is **C 2167/2168, `x_encode_text`**
+(C 2167 is its `static unsigned char *` line, C 2168 the name), which is where the remainder row
+now starts and the next slice begins.  The range holds 28 definitions: the frame-parameter
+setters from `x_set_tool_bar_position` through `x_set_scroll_bar_background`, the `HAVE_XDBE`
+double-buffering pair, the two `USE_GTK` icon setters, the mouse-cursor family
+(`enum mouse_cursor`, `struct mouse_cursor_types`, the `mouse_cursor_types` table, `struct
+mouse_cursor_data`, `x_set_mouse_color_handler`, `x_set_mouse_color`), the border/cursor/icon
+setters, the menu/tab/tool-bar line and height setters (including the two non-`static`
+`x_change_tab_bar_height`/`x_change_tool_bar_height`, which keep their linkage), and the two
+scroll-bar colour setters.  Both arms of every `#if` are carried; the port's slice is **1,937
+Rust lines** (3,051 - 1,116), i.e. 1.44x the C slice's 1,347 - slice 1's ratio.
+
+**The gate is C's own `HAVE_WINDOW_SYSTEM` where the members live there.**  Slice 1 needed no
+additional gate because it wrote no `struct frame` flag.  This slice writes eleven of them, and
+`include/frame.rs`'s own flag run carries C's arms: `undecorated`, `no_accept_focus`,
+`tab_bar_resized`, `tool_bar_resized` and `tool_bar_redisplayed` exist in every arm, while
+`override_redirect`, `no_focus_on_map`, `external_menu_bar`, `external_tool_bar`,
+`horizontal_scroll_bars` and `menu_bar_window` exist only under `feature = "have_window_system"`
+(they sit inside C's `#ifdef HAVE_WINDOW_SYSTEM` in `frame.h` 452-471 and 246-268).  Those writes
+and reads therefore carry `have_window_system` in addition to the file gate - **a configuration C
+cannot produce without it** (`HAVE_X_WINDOWS` implies `HAVE_WINDOW_SYSTEM`), and the reading
+Evidence ③ records is what happens when a probe's `--cfg` set omits it.
+
+### Gate mapping (this slice's additions)
+
+| C `#if` / build condition | Port gate | Compiled when |
+| --- | --- | --- |
+| every item (the file gate slice 1 set) | `feature = "have_x_windows"` | an X11 configuration |
+| C 850/880 `#ifdef HAVE_XDBE` / `#endif` around `x_set_inhibit_double_buffering` | `feature = "have_xdbe"` | an X11 configuration with Xdbe |
+| C 900-921 `USE_GTK` / `#else` of `x_set_undecorated`; C 1023-1033 of `x_set_no_focus_on_map`; C 1055-1069 of `x_set_no_accept_focus` (its `#else` splits again at C 1058 `USE_X_TOOLKIT`); C 1092-1100 of `x_set_override_redirect`; C 1242-1244, C 1876-1880, C 1898-1963, C 2075's `USE_GTK` arms | `feature = "use_gtk"` / (for C 1058-1068) `feature = "use_x_toolkit"` | the GTK configuration / the X toolkit configuration |
+| C 1107-1175 `#ifdef USE_GTK` around `xg_set_icon`/`xg_set_icon_from_xpm_data` | `feature = "use_gtk"` | the GTK configuration |
+| C 957 `#ifdef HAVE_GTK3` (the `GdkWindow *window` declaration and C 984-990's walk) | `feature = "have_gtk3"` | the GTK3 configuration |
+| C 992-1000 `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME` | `all (feature = "have_xsync", not (feature = "use_gtk"), feature = "have_clock_gettime")` | an XSYNC X11 build with `clock_gettime` |
+| C 1557-1570 `#ifdef USE_X_TOOLKIT` in `x_set_border_pixel`; C 1982-1985 and C 2005-2008 | `feature = "use_x_toolkit"` | the X toolkit configuration |
+| C 1686-1688 `#if ! defined (USE_X_TOOLKIT) && ! defined (USE_GTK)` / C 1705-1764 the pair | `not (use_x_toolkit)`, `not (use_gtk)` | the plain-X11 configuration |
+| C 2030-2032/2055-2075 and C 2088-2091/2128-2148 `#ifdef HAVE_GTK3` | `feature = "have_gtk3"` | the GTK3 configuration |
+| C 2101-2113 `#if defined (USE_LUCID) && defined (USE_TOOLKIT_SCROLL_BARS)` | `all (feature = "use_lucid", feature = "use_toolkit_scroll_bars")` | a Lucid toolkit build with toolkit scroll bars |
+| the eleven flag members of `struct frame` this slice writes (C 917/1031/1065/1098/1706/1710/1719/1724/1822/1823/1899/1900/1927/1928/1847/1879/1916/1950) | the file gate, plus `feature = "have_window_system"` for the six members that only exist under C's `#ifdef HAVE_WINDOW_SYSTEM` | an X11 configuration (which always defines it) |
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged from slice 1: every item of this slice sits
+behind `have_x_windows`, so the frozen feature set compiles `include/config.rs` and the
+`#![allow]` attribute and nothing else - `build/femacs/xfns.o` stays the 336-byte empty object.
+
+**② The plain X11 arm.**  `rustc` over the unit's materialized include graph with
+`--cfg 'feature="have_x_windows"'` reads **3 errors**: two in the unit's own text and one in a
+mirror.
+- in-unit: `cannot find function x_display_info_for_name` (C 198, slice 1's call; the definition
+  is C 7613, in the remainder) and `no field wait_for_wm on type x_output` (C 729, the
+  `bool_bf` member `include/xterm.rs` records as a comment) - both are slice 1's recorded classes,
+  unchanged.
+- mirror: `include/systime.rs` 27's `const _: () = assert! (!cfg!(feature = "have_x_windows") ||
+  HAVE_X_WINDOWS)` fails to evaluate because the probe passes the feature without the macro.
+None of this slice's new text adds an error class.
+
+**③ The GTK3 arm** (`--cfg feature="use_gtk" --cfg feature="have_gtk3"` on top of the file gate)
+reads **10 errors**, all inherited: 5 `GDK_WINDOW_XID` in `include/xterm.rs`, 2 `no field
+update_mode_line on type window` at this slice's two `XWINDOW (...)->update_mode_line = true`
+writes (C 1713/1906 - the mirror's `struct window` bitfield, the same class as `wait_for_wm`),
+`wait_for_wm`, `x_display_info_for_name` and the `systime.rs` assertion.  The `USE_GTK` arms this
+slice wrote (`xg_set_icon`, `xg_set_icon_from_xpm_data`, `xg_change_toolbar_position`,
+`gtk_container_set_resize_mode`, `gdk_x11_window_set_frame_sync_enabled`,
+`gtk_css_provider_load_from_data`) all resolve.
+
+**④ The X toolkit arm** (`--cfg feature="use_x_toolkit"`) reads **14 errors**: `Boolean` (9, in
+`lwlib/include/lwlib.rs`), `WidgetClass` (1, `include/widget.rs`), `update_mode_line`,
+`wait_for_wm`, `x_display_info_for_name` and the `systime.rs` assertion.  The toolkit arms
+(`Arg`/`XtSetArg`/`XtSetValues`/`XtVaSetValues`, `XtNinput`/`XtNborderColor`, `Widget`,
+`widget_store_internal_border`) resolve through this unit's own declarations.
+
+**⑤ The rest of the plain-X11 family** (`have_xdbe`, `have_xrender`, `have_x_i18n`,
+`glyph_debug`, `have_xinput2`, `have_xsync`, `use_toolkit_scroll_bars`) reads the mirror's own
+XIM/XSync/XRender gap rows (`XIMStyle`, `XIMStatusNothing`, `xim_inst_t`, `XSyncValue`,
+`XSyncCounter`, ... in `include/xterm.rs`) plus the same three classes above.
+
+**⑥ `extract-abi.py --check`**: **227 findings before, 197 after** (`- ` rows; 226 -> 181
+`missing`), measured with the current tool on both sides.  The 30-row drop is this slice's
+definitions; the one row it *adds* is `function XScreenNumberOfScreen is not static in C but has
+no #[unsafe(no_mangle)] in the port (no C symbol to link)` - this slice declares that Xlib entry
+point at its use site (the mirror's `FRAME_X_SCREEN_NUMBER` macro body needs it, below), while
+C defines it in this same file at **C 7479**, so the remainder slice owes the `#[unsafe(no_mangle)]`
+definition and the row disappears with it.  The drift row stays (`C 10662 vs Rust 3051`, 71.4%).
+
+**⑦ The other gates** (all run at this revision): `check-dead-file-coverage.py` **0 failures** (55
+rows), `check-ledger-ticks.py` 238 ledgers bound / 0 failures, `check-citations.py` 0 drift (one
+citation this slice wrote was wrong - `check_int_nonnegative` cited at `lisp.h 615`, it is 607 -
+and was corrected), `check-declarations.py` 0 failures, `check-mirror-dupes.py` 0 failures (this
+slice's first revision re-declared `fset_redisplay`, which `include/window.rs` already carries;
+the declaration was removed and the three calls take the mirror's `*mut c_void` spelling with
+`as _`, the cast `SET_FRAME_GARBAGED!`'s note prescribes), `check-port-lines.py` 0 files under ten
+percent (the map's `src/xfns.c` row still reads its own stale 1,116 - the integrator's row).
+
+**⑧ The budgeted `xtask` readings.**  `build-tu src/xfns.c` (1 of the 3 allowed) exits 0 and
+writes the **336-byte** empty object - every item is behind `have_x_windows`, so the frozen feature
+set compiles `include/config.rs` and the `#![allow]` list only.  `probe src/xfns.rs
+/tmp/xfns-lane/x.rlib --crate-type=lib -C panic=abort --cfg 'feature="have_x_windows"'` (1 of the
+3 allowed) exits 1 with **3 errors**, and they are the same three Evidence ② names: in the unit's
+own text `x_display_info_for_name` (`build/probes/xfns/_root.rs` 387, C 198's call) and
+`wait_for_wm` (`_root.rs` 1005, C 729), and in a mirror `include/systime.rs`'s assertion.  That is
+the reading the ledger's other arms were taken with: Evidence ②-⑤ come from a `rustc` run over a
+*flattened* copy of the same include graph (the same file set `materialize` expands, deduped by
+canonical path), which is why ⑧ is recorded separately - it is the held-instrument check of that
+harness, not a second measurement of a different thing.
+
+### Deviations (this slice)
+
+- **C's convenience macros are expanded where C's own text is the only spelling.**  C's
+  `INSTALL_CURSOR` (C 1450-1454) is `#define INSTALL_CURSOR(FIELD, SHORT_INDEX) ... mouse_cursor_ ##
+  SHORT_INDEX ...`: `##` has no Rust equivalent, so the port's `macro_rules! INSTALL_CURSOR` takes
+  the pasted name as its own argument (`INSTALL_CURSOR! (x, cursor_data, text_cursor,
+  mouse_cursor_text as usize)`) and is invoked with the `!` every Rust macro needs.  Same for the
+  `TYPE_RANGED_FIXNUMP (int, value)` call at C 1697, which the port spells `TYPE_RANGED_FIXNUMP
+  (INT_MIN as EMACS_INT, value, INT_MAX as EMACS_INT)` (the mirror's own three-argument shape).
+- **`BlackPixel`/`WhitePixel`/`XScreenNumberOfScreen`/`FRAME_X_DISPLAY`/`FRAME_X_SCREEN_NUMBER`
+  are declared (or wrapped) at this unit's use site.**  `include/xterm.rs`'s
+  `BLACK_PIX_DEFAULT`/`WHITE_PIX_DEFAULT` bodies quote C's text verbatim
+  (`BlackPixel (FRAME_X_DISPLAY ($f), FRAME_X_SCREEN_NUMBER ($f))`), but the two sub-macros are
+  spelled as *calls*, and a `macro_rules!` needs its `!`: slice 1 never expanded either macro, so
+  its Owed list leaves them to the mirror.  This slice does expand them (C 1192/1228/1358/1490/1496/
+  1600/2035/2094), so the names are declared here - `BlackPixel`/`WhitePixel`/`XScreenNumberOfScreen`
+  in the Xlib extern block (the `src/xftfont.rs` 184 and `src/xsettings.rs` 1560 precedent for the
+  third), and `FRAME_X_DISPLAY`/`FRAME_X_SCREEN_NUMBER` as two small functions whose bodies are the
+  mirror's own expansions.  `FRAME_X_SCREEN_NUMBER`'s declaration is also what produces Evidence
+  ⑥'s one new `--check` row (C 7479 defines it in this file).
+- **`-1` in an `unsigned long` is spelled `(-1 as c_int) as c_ulong`** (C 2037/2096 and the four
+  comparisons): Rust infers the literal from the cast target and refuses to negate a `u64`.
+- **Variadic arguments are widened at the call site** (C 2066/2139's `sprintf`): C promotes
+  `unsigned short` to `int` for `...`, Rust requires `as c_int` (`E0617` otherwise - measured).
+- **`struct x_output` members are reached through the cast idiom** the frame mirror's untyped
+  `union output_data` needs: `(*(FRAME_X_OUTPUT! (f) as *mut x_output)).member`, the
+  `src/xmenu.rs` 1766 / `include/xterm.rs` 1231 shape.  `use_vsync_p` (C 999) and
+  `update_mode_line` (C 1713/1906) are members no mirror carries yet, so those two statements keep
+  C's own member name and their readings are Evidence ③'s `E0609` class.
+- **`frame_flag`/`frame_set_flag` write the flag run.**  Each two-arm `macro_rules!` this slice
+  adds (`FRAME_UNDECORATED`, `FRAME_NO_FOCUS_ON_MAP`, `FRAME_NO_ACCEPT_FOCUS`,
+  `FRAME_OVERRIDE_REDIRECT`, `FRAME_MENU_BAR_LINES`/`_HEIGHT`, `FRAME_TAB_BAR_LINES`/`_HEIGHT`,
+  `FRAME_TOOL_BAR_LINES`/`_HEIGHT`, `FRAME_EXTERNAL_MENU_BAR`, `FRAME_EXTERNAL_TOOL_BAR`,
+  `FRAME_FOREGROUND_PIXEL`/`FRAME_BACKGROUND_PIXEL`, `TAB_BAR_RESIZED`/`TAB_BAR_REDISPLAYED`/
+  `TOOL_BAR_RESIZED`/`TOOL_BAR_REDISPLAYED`) has the mirror's getter as its read arm and the
+  mirror's measured `UNIT`/`SHIFT` through `frame_set_flag` as its write arm - the
+  `src/pgtkfns.rs` 466-560 shape.  The six members that only exist under C's
+  `#ifdef HAVE_WINDOW_SYSTEM` carry that cfg at the write, as the Gate mapping's last row says.
+
+### Owed (this slice)
+
+- **`include/xlib.rs`**: `XSetWindowAttributes` (Xlib.h 283-302), `XTextProperty` (Xutil.h
+  163-168) and `XErrorEvent` (Xlib.h 920-928), each with this slice's measured layout; the four
+  Xlib entry points declared here - `XCreateFontCursor` (1572), `XDefineCursor` (2241),
+  `XDeleteProperty` (2247), `XFlush` (2517), `XFreeCursor` (2543), `XQueryColor` (2967),
+  `XRecolorCursor` (3070), `XReparentWindow` (3097), `XSetBackground` (3164), `XSetForeground`
+  (3237), `XSetWindowBackground` (3343), `XSetWindowBorder` (3355), `XNextRequest` (1806),
+  `XScreenNumberOfScreen` (1839-1842), `BlackPixel` (93), `WhitePixel` (94) - and the constants
+  `x11_constants` still lacks: `CurrentTime` (X.h 139), and the
+  thirteen `XC_*` shape numbers of `<X11/cursorfont.h>` (each measured, cited in the unit); plus
+  the edge `xterm.h` 40's `<X11/cursorfont.h>` is owed.
+- **`include/xterm.rs`**: the `FRAME_X_DISPLAY`/`FRAME_X_SCREEN_NUMBER` bodies that spell their
+  sub-macros as calls (this slice works around them), the `use_vsync_p` / `update_mode_line`
+  members (the P-80 class slice 1 recorded for `wait_for_wm`), and the GTK/GDK gap rows Evidence
+  ③ and ⑤ list (`GDK_WINDOW_XID`, `GtkCssProvider`'s consumers, ...).
+- **`include/gtk.rs`**: `gtk_container_set_resize_mode` and `GtkResizeMode`'s three enumerators
+  (`GTK_RESIZE_PARENT`/`QUEUE`/`IMMEDIATE`, whose values are **placeholders**, not GTK's - no GTK
+  tree on this machine), and `gdk_x11_window_set_frame_sync_enabled`; the unit declares them at
+  the use site under `use_gtk` in the meantime.
+- **`include/xlib.rs` / `include/widget.rs`**: the X toolkit surface this slice's `USE_X_TOOLKIT`
+  arms name (`Widget`, `Pixel`, `Arg`, `XtArgVal`, `String`, `XtSetArg`, `XtSetValues`,
+  `XtVaSetValues`, `XtDisplay`, `XtWindow`, `XtNinput`, `XtNborderColor`) - no libXt exists on
+  this machine, so each declaration names the header alone, as `include/gtk.rs`'s GDK/GTK rows do.
+- **`femacs/xtask/Cargo.toml`**: unchanged from slice 1's list (`use_motif`, `have_xaw3d`,
+  `have_xrandr`, `have_xinerama`); this slice adds no feature name.
+- **`src/xfns.c` itself**: `XScreenNumberOfScreen` (C 7479) must land with `#[unsafe(no_mangle)]`
+  before Evidence ⑥'s one new `--check` row can go away.
+- **`docs/ports/line-drift-tolerance.tsv`** still owes the `xfns.c` row slice 1 recorded.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind.**  The frozen configuration compiles nothing from this file,
+  so every statement above is a *text* port with *compile* readings of its arms: nothing here has
+  been executed, and no X11 display, X server, XCB connection, GTK toolkit or X toolkit was
+  involved (this machine has no GTK and no libXt at all).
+- **The arm readings are `rustc` exit readings, not acceptance.**  Evidence ③-⑤ count errors
+  inherited from mirrors this lane may not write; none of the arms is "0 errors" and none is
+  claimed as a working configuration.  In particular the `have_window_system` gate of Evidence ②'s
+  paragraph is what the probe's `--cfg` set omits, so the two `menu_bar_window`/`tab_bar_window`/
+  `tool_bar_window` members are absent there and their statements are cfg'd out of that reading.
+- **The slice stops at C 2149, short of the 2,500-3,000 C lines the brief asked for.**  The
+  remaining rounds of this unit can continue at C 2167 (`x_encode_text`) with the same recipe
+  (the table's last row is the boundary).
