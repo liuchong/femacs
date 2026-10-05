@@ -6,7 +6,7 @@
 // `static` helpers stay plain `unsafe fn` (none of this slice has its address taken).
 //
 // **This file is P-86's unit `src/ftfont.c` (3,243 lines) and is ported in slices; it now carries
-// slice 1 = C 1-1352 and slice 2 = C 1353-1725.**  Slice 1 ends on the `}` of
+// slice 1 = C 1-1352, slice 2 = C 1353-1725 and slice 3 = C 3088-3243.**  Slice 1 ends on the `}` of
 // `ftfont_entity_pattern` (C 1352), the last of the three entry points `ftfont.h` declares.  Slice
 // 2 carries C 1354's `#ifndef USE_CAIRO` arm (`ftfont_open` C 1357-1517 and `ftfont_close`
 // C 1520-1549), `ftfont_has_char` (C 1554-1581), C 1583's second `#ifndef USE_CAIRO`
@@ -14,9 +14,14 @@
 // `ftfont_get_bitmap` (C 1665-1705) with C 1675-1679's `FT_LOAD_TARGET_MONO` pair, and
 // `ftfont_anchor_point` (C 1708-1725).  **The next live definition is `ftfont_otf_features`
 // (C 1730), under C 1727's `#ifdef HAVE_LIBOTF`** - that arm's records are `otf.h`'s, which no
-// toolchain on this machine has (the file's next locally-compilable boundary is C 2986, the end of
+// toolchain on this machine has (the file's next locally-compilable boundary was C 2986, the end of
 // `ftfont_variation_glyphs`' block), so PORTING.md P-88 ② keeps this lane out of it and the
-// ledger's `## Owed` 8 carries the order from there.  The ledger `docs/ports/ftfont.md` carries
+// ledger's `## Owed` 8 carries the order from there.  **Slice 3 is the file's tail: C 3088-3243** -
+// the two font-property tables, `ftfont_filter_properties`, `ftfont_combining_capability`, the
+// `ftfont_driver` record and the two `syms_of_ftfont` functions - which closes the five names
+// `extract-abi.py --check` reported (`ftfont_filter_properties`, `ftfont_combining_capability`,
+// `ftfont_driver`, `syms_of_ftfont`, `syms_of_ftfont_for_pdumper`); C 1727-3087 stays owed and the
+// note at its own site names its rows.  The ledger `docs/ports/ftfont.md` carries
 // P-86 ②'s C line-range table for C 1-3243, the `## Evidence` readings (both slices') and the
 // `## Deviations`.
 //
@@ -2402,9 +2407,11 @@ unsafe fn ftfont_spec_pattern (spec: Lisp_Object, otlayout: *mut c_char,
      `harfbuzz` the two `hbotf_*` statics are defined at C 3006/3024 - outside this slice, so
      those two call sites are P-91 ④'s allowed class and the ledger names both C lines.  */
 /// C: 864-865: `static Lisp_Object` / `ftfont_list (struct frame *f, Lisp_Object spec)` (the
-/// `struct frame *` is the untyped pointer, see `ftfont_get_cache`).
+/// `struct frame *` is the untyped pointer, see `ftfont_get_cache`).  C's `static`, but its
+/// address is taken - C 3159's record member - so it carries the C ABI (P-52; the `xftfont_list`
+/// 1115 shape).
 #[cfg (feature = "have_freetype")]
-unsafe fn ftfont_list (f: *mut c_void, spec: Lisp_Object) -> Lisp_Object
+unsafe extern "C" fn ftfont_list (f: *mut c_void, spec: Lisp_Object) -> Lisp_Object
 {
   let mut val: Lisp_Object = Qnil ();
   let mut family: Lisp_Object = Qnil ();
@@ -2668,11 +2675,12 @@ pub unsafe extern "C" fn ftfont_list2 (f: *mut c_void, spec: Lisp_Object,
   list
 }
 
-/* C 1101-1149: `ftfont_match` - `static`, so a plain `unsafe fn`.  */
+/* C 1101-1149: `ftfont_match` - C's `static`, and its address is taken by C 3160's record member,
+   so it carries the C ABI (P-52; the `xftfont_match` shape).  */
 /// C: 1101-1102: `static Lisp_Object` / `ftfont_match (struct frame *f, Lisp_Object spec)` (the
 /// untyped pointer, see `ftfont_get_cache`).
 #[cfg (feature = "have_freetype")]
-unsafe fn ftfont_match (f: *mut c_void, spec: Lisp_Object) -> Lisp_Object
+unsafe extern "C" fn ftfont_match (f: *mut c_void, spec: Lisp_Object) -> Lisp_Object
 {
   let mut entity: Lisp_Object = Qnil ();
   let mut pattern: *mut FcPattern;
@@ -3469,3 +3477,239 @@ pub unsafe extern "C" fn ftfont_anchor_point (font: *mut font, code: c_uint, idx
    toolchain/mirror rather than on a layout this lane could write: PORTING.md P-88 ② forbids
    spelling a record's layout from memory, and P-90 ④ names that toolchain as the missing
    resource.  The ledger's `## Owed` 8 carries the order from here.  */
+
+/* ----------------------------------------------------------------------------------------------
+   C 1727-3087 is the file's **middle and it is owed**: C 1727's `HAVE_LIBOTF` arm (C 1730-1790),
+   C 1792's `HAVE_M17N_FLT` block (C 1794-2952), C 2954's `HAVE_OTF_GET_VARIATION_GLYPHS ||
+   HAVE_FT_FACE_GETCHARVARIANTINDEX` block (C 2956-2985) and C 2988's `HAVE_HARFBUZZ` block
+   (C 2991-3085, closing at C 3086-3087).  The ledger's `## C line ranges` names every one of those
+   rows and `## Owed` 8 carries the order; the reason is slice 1's and slice 2's: `otf.h` and
+   `m17n-flt.h` are on no toolchain on this machine (PORTING.md P-88 ② forbids spelling a record's
+   layout from memory, P-90 ④ names the missing toolchain).  What follows is the file's **tail**,
+   C 3088-3243 - locally typable, and the text that stops `extract-abi.py --check` reporting the
+   unit's five missing names.
+
+   Gates here: the file gate `have_freetype` on every item; C 3152's `#ifndef USE_CAIRO` on the
+   record as `not (feature = "use_cairo")`; the record's three C member arms as `#[cfg]`-selected
+   *fields* - which Rust allows on a struct expression, and the `xftfont.rs` 1818/`ftcrfont.rs`
+   1600 records are the precedent - written as the complementary pair the mirror's unconditional
+   fields force (`None` under the negated gate, the value under the gate); C 3143's
+   `HAVE_M17N_FLT` pair on `combining_capability` as two `#[cfg]`-selected statements.
+   ---------------------------------------------------------------------------------------------- */
+
+/* C 49-52: `static struct font_driver const ftfont_driver;` and, under C 50's `#ifdef
+   HAVE_HARFBUZZ`, `static struct font_driver fthbfont_driver;` - C's tentative declarations at the
+   top of the file.  A Rust `static` carries its initialiser where it is written and an item is
+   visible crate-wide, so `ftfont_driver`'s definition is C 3154's record below and
+   `fthbfont_driver`'s is here: C's tentative definition zero-initialises the record, which is what
+   `std::mem::zeroed ()` spells (the `android.rs` 458 precedent) - the `harfbuzz` arm of
+   `syms_of_ftfont_for_pdumper` is what fills it in, exactly as C does.  C 49's declaration has no
+   Rust text (PORTING.md 0.1-12: one item per crate root).  */
+#[cfg (all (feature = "have_freetype", feature = "harfbuzz"))]
+static mut fthbfont_driver: font_driver = unsafe { std::mem::zeroed () };
+
+/* The two names this slice calls that belong to `font.c`, declared where they are used (P-91 4;
+   the `haikufont.rs` 132-138 shape).  Their C prototypes are font.h 896 and font.h 927-930 and
+   the units that define them are `font.rs`'s (`register_font_driver` 4614,
+   `font_filter_properties` 4881).  `struct frame *` is the untyped pointer, as in the mirror's
+   `font_driver`.  */
+#[cfg (feature = "have_freetype")]
+unsafe extern "C" {
+  /// C: font.h 896: `extern void register_font_driver (struct font_driver const *,
+  /// struct frame *);`
+  pub fn register_font_driver (driver: *const font_driver, f: *mut c_void);
+  /// C: font.h 927-930: `extern void font_filter_properties (Lisp_Object font, Lisp_Object alist,
+  /// const char *const boolean_properties[], const char *const non_boolean_properties[]);`
+  pub fn font_filter_properties (font: Lisp_Object, alist: Lisp_Object,
+                                 boolean_properties: *const *const c_char,
+                                 non_boolean_properties: *const *const c_char);
+}
+
+/// C 3089-3100: `static const char *const ftfont_booleans []` - C's list plus its `NULL`
+/// terminator, which is an element of the array and not a terminator Rust adds.
+#[cfg (feature = "have_freetype")]
+static mut ftfont_booleans: [*const c_char; 10]
+  = [c":antialias".as_ptr (), c":hinting".as_ptr (), c":verticallayout".as_ptr (),
+     c":autohint".as_ptr (), c":globaladvance".as_ptr (), c":outline".as_ptr (),
+     c":scalable".as_ptr (), c":minspace".as_ptr (), c":embolden".as_ptr (),
+     std::ptr::null ()];
+
+/// C 3102-3131: `static const char *const ftfont_non_booleans []` (27 names and the `NULL`).
+#[cfg (feature = "have_freetype")]
+static mut ftfont_non_booleans: [*const c_char; 28]
+  = [c":family".as_ptr (), c":familylang".as_ptr (), c":style".as_ptr (),
+     c":stylelang".as_ptr (), c":fullname".as_ptr (), c":fullnamelang".as_ptr (),
+     c":slant".as_ptr (), c":weight".as_ptr (), c":size".as_ptr (), c":width".as_ptr (),
+     c":aspect".as_ptr (), c":pixelsize".as_ptr (), c":spacing".as_ptr (),
+     c":foundry".as_ptr (), c":hintstyle".as_ptr (), c":file".as_ptr (), c":index".as_ptr (),
+     c":ftface".as_ptr (), c":rasterizer".as_ptr (), c":scale".as_ptr (), c":dpi".as_ptr (),
+     c":rgba".as_ptr (), c":lcdfilter".as_ptr (), c":charset".as_ptr (), c":lang".as_ptr (),
+     c":fontversion".as_ptr (), c":capability".as_ptr (), std::ptr::null ()];
+
+/// C 3133-3137: `ftfont_filter_properties` - C's non-`static` definition, and one of the two
+/// functions of this file `ftfont.h`'s `struct font_driver` surface reaches through the record
+/// (C 3178 names it).
+#[cfg (feature = "have_freetype")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ftfont_filter_properties (font: Lisp_Object, alist: Lisp_Object)
+{
+  font_filter_properties (font, alist, ftfont_booleans.as_ptr (),
+			  ftfont_non_booleans.as_ptr ());      // C 3136
+}
+
+/// C 3140-3148: `ftfont_combining_capability` (C 3179's record member).  C's `#ifdef
+/// HAVE_M17N_FLT` / `#else` pair is two `#[cfg]`-selected statements: Rust cannot put a `#[cfg]`
+/// on the `else` of an `if`, and both arms are one `return` (the `ftfont_open` precedent above).
+#[cfg (feature = "have_freetype")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ftfont_combining_capability (font: *mut font) -> Lisp_Object
+{
+  #[cfg (feature = "have_m17n_flt")]
+  { return Qt (); }                                        // C 3144
+  #[cfg (not (feature = "have_m17n_flt"))]
+  { return Qnil (); }                                      // C 3146
+}
+
+/* C 3149-3150: the blank line and `static void syms_of_ftfont_for_pdumper (void);` - C's forward
+   declaration of the definition at C 3230, removed here (PORTING.md 0.1-12: a second same-named
+   item in one crate root is E0428), the `syms_of_xftfont` shape.  */
+
+/// C 3154-3180: `static struct font_driver const ftfont_driver` - C's designated initialiser, whose
+/// unnamed members are zero and which the port therefore names, in the mirror's own declaration
+/// order.  `.type = LISPSYM_INITIALLY (Qfreetype)`: the mirror's `LISPSYM_INITIALLY` is not a
+/// `const fn`, so the port writes the same constant expression over the generated `iQfreetype`
+/// index (the `xftfont.rs` 1822 precedent - and `extract-abi.py`'s static scan reads `&raw const X`
+/// as a static named `X`, so the uses spell the address with `std::ptr::addr_of!`, the note at
+/// C 1424-1429).
+#[cfg (all (feature = "have_freetype", not (feature = "use_cairo")))]
+static mut ftfont_driver: font_driver = font_driver {      // C 3154-3180
+  /* We can't draw a text without device dependent functions.  */
+  r#type: (((iQfreetype * std::mem::size_of::<Lisp_Symbol> ()) as EMACS_UINT
+	    + Lisp_Type::Lisp_Symbol as EMACS_UINT) as Lisp_Object),   // C 3157
+  case_sensitive: false,
+  get_cache: Some (ftfont_get_cache),                       // C 3158
+  list: Some (ftfont_list),                                 // C 3159
+  r#match: Some (ftfont_match),                             // C 3160
+  list_family: Some (ftfont_list_family),                    // C 3161
+  free_entity: None,
+  open_font: Some (ftfont_open),                            // C 3162
+  close_font: Some (ftfont_close),                          // C 3163
+  prepare_face: None,
+  done_face: None,
+  has_char: Some (ftfont_has_char),                         // C 3164
+  encode_char: Some (ftfont_encode_char),                   // C 3165
+  text_extents: Some (ftfont_text_extents),                 // C 3166
+  #[cfg (feature = "have_window_system")]
+  draw: None,
+  #[cfg (feature = "have_window_system")]
+  get_bitmap: Some (ftfont_get_bitmap),                     // C 3167
+  #[cfg (feature = "have_window_system")]
+  free_bitmap: None,
+  anchor_point: Some (ftfont_anchor_point),                 // C 3168
+  #[cfg (not (feature = "have_libotf"))]
+  otf_capability: None,
+  #[cfg (feature = "have_libotf")]
+  otf_capability: Some (ftfont_otf_capability),             // C 3170
+  otf_drive: None,
+  start_for_frame: None,
+  end_for_frame: None,
+  #[cfg (not (all (feature = "have_m17n_flt", feature = "have_libotf")))]
+  shape: None,
+  #[cfg (all (feature = "have_m17n_flt", feature = "have_libotf"))]
+  shape: Some (ftfont_shape),                               // C 3173
+  check: None,
+  #[cfg (not (any (feature = "have_otf_get_variation_glyphs",
+		   feature = "have_ft_face_getcharvariantindex")))]
+  get_variation_glyphs: None,
+  #[cfg (any (feature = "have_otf_get_variation_glyphs",
+	      feature = "have_ft_face_getcharvariantindex"))]
+  get_variation_glyphs: Some (ftfont_variation_glyphs),     // C 3176
+  filter_properties: Some (ftfont_filter_properties),       // C 3178
+  cached_font_ok: None,
+  combining_capability: Some (ftfont_combining_capability), // C 3179
+  drop_xrender_surfaces: None,
+  #[cfg (feature = "harfbuzz")]
+  begin_hb_font: None,
+  #[cfg (feature = "harfbuzz")]
+  end_hb_font: None,
+};
+
+/// C 3184-3227: `syms_of_ftfont`.  C's `DEFSYM`s have no Rust text - the port's symbols are the
+/// generated `globals.rs` accessors (P-23, `DEFSYM!`), so the notation is kept at C's lines and
+/// the calls that *use* a symbol are real (`Fput`, `list1`, `list3`, `Fcons`).
+#[cfg (feature = "have_freetype")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_ftfont ()
+{                                                          // C 3185-3227
+  /* Symbolic type of this font-driver.  */
+  DEFSYM! (Qfreetype, "freetype");                         // C 3188
+  #[cfg (feature = "harfbuzz")]
+  {
+    DEFSYM! (Qfreetypehb, "freetypehb");                   // C 3190
+    Fput (Qfreetype (), Qfont_driver_superseded_by (), Qfreetypehb ());   // C 3191
+  }
+
+  #[cfg (feature = "have_haiku")]
+  { DEFSYM! (Qmono, "mono"); }                             // C 3195
+
+  /* Fontconfig's generic families and their aliases.  */
+  DEFSYM! (Qmonospace, "monospace");                       // C 3199
+  DEFSYM! (Qsans_serif, "sans-serif");                     // C 3200
+  DEFSYM! (Qsans, "sans");                                 // C 3201
+  DEFSYM! (Qsans__serif, "sans serif");                    // C 3202
+
+  /* The boolean-valued font property key specifying the use of leading.  */
+  DEFSYM! (QCminspace, ":minspace");                       // C 3205
+
+  /* Fontconfig's rendering parameters.  */
+  DEFSYM! (QChinting, ":hinting");                         // C 3208
+  DEFSYM! (QCautohint, ":autohint");                       // C 3209
+  DEFSYM! (QChintstyle, ":hintstyle");                     // C 3210
+  DEFSYM! (QCrgba, ":rgba");                               // C 3211
+  DEFSYM! (QCembolden, ":embolden");                       // C 3212
+  DEFSYM! (QClcdfilter, ":lcdfilter");                     // C 3213
+
+  staticpro (&raw const freetype_font_cache);              // C 3215
+  freetype_font_cache = list1 (Qt ());                     // C 3216
+
+  staticpro (&raw const ftfont_generic_family_list);       // C 3218
+  ftfont_generic_family_list
+    = list3 (Fcons (Qmonospace (), Qt ()),                 // C 3219-3221
+	     Fcons (Qsans_serif (), Qt ()),
+	     Fcons (Qsans (), Qt ()));
+
+  staticpro (&raw const ft_face_cache);                    // C 3223
+  ft_face_cache = Qnil ();                                 // C 3224
+
+  pdumper_do_now_and_after_load (Some (syms_of_ftfont_for_pdumper));   // C 3226
+}
+
+/// C 3229-3243: `syms_of_ftfont_for_pdumper` - C's `static`, and the address of a `static` in
+/// this repository is taken through its name, so the definition stays a plain `unsafe fn` while
+/// the `register_font_driver` call hands over the object's address.
+#[cfg (feature = "have_freetype")]
+unsafe extern "C" fn syms_of_ftfont_for_pdumper ()
+{                                                          // C 3230-3243
+  PDUMPER_RESET_LV! (ft_face_cache, Qnil ());              // C 3232
+  /* C 3233's `&ftfont_driver` names the record C 3152-3182 puts under `#ifndef USE_CAIRO`: on the
+     Cairo branch C does not compile this statement either (the file is added to `FONT_OBJ` by the
+     X11/xft/freetype branches, `configure.ac` 7199-7213), so the port gives the statement the
+     record's own gate instead of an arm that cannot compile (Deviation 30).  */
+  #[cfg (not (feature = "use_cairo"))]
+  register_font_driver (std::ptr::addr_of! (ftfont_driver), std::ptr::null_mut ());   // C 3233
+  #[cfg (feature = "harfbuzz")]
+  {
+    fthbfont_driver = std::ptr::read (std::ptr::addr_of! (ftfont_driver));   // C 3235
+    fthbfont_driver.r#type = Qfreetypehb ();               // C 3236
+    /* C 3237-3240's four names live in the owed block above (`hbfont_otf_capability`,
+       `hbfont_shape` and `hbfont_combining_capability` are ported in `src/hbfont.rs`;
+       `fthbfont_begin_hb_font` is C 2991 and belongs to `ftfont.c`'s owed C 2988-3087 block), so
+       this arm is P-91 ④'s allowed class: it is C's text, and the ledger's `## Owed` names the C
+       lines.  */
+    fthbfont_driver.otf_capability = Some (hbfont_otf_capability);            // C 3237
+    fthbfont_driver.shape = Some (hbfont_shape);           // C 3238
+    fthbfont_driver.combining_capability = Some (hbfont_combining_capability);   // C 3239
+    fthbfont_driver.begin_hb_font = Some (fthbfont_begin_hb_font);            // C 3240
+    register_font_driver (std::ptr::addr_of! (fthbfont_driver), std::ptr::null_mut ());   // C 3241
+  }
+}

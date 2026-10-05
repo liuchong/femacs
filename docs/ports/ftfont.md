@@ -13,8 +13,14 @@
 > substitute is what follows: the **C line-range table**, the `## Evidence` readings and the
 > per-`#if` `## Deviations`.
 >
-> Port: `femacs/src/ftfont.rs`, **slice 1 = C 1-1352 and slice 2 = C 1353-1725**, both arms of every
-> `#if` carried.  Slice 1 ends on the `}` of `ftfont_entity_pattern` (C 1352) - the last of the
+> **Slice 3 is the file's tail, C 3088-3243** - the two font-property tables (C 3089/3102),
+> `ftfont_filter_properties` (C 3134), `ftfont_combining_capability` (C 3141), the `ftfont_driver`
+> record (C 3154-3180), `syms_of_ftfont` (C 3185-3227) and `syms_of_ftfont_for_pdumper`
+> (C 3230-3243) - and with it the unit's own gate reads **OK** (Evidence ⑮): the five names slice
+> 2's reading listed are gone.  C 1727-3087 stays owed exactly as the paragraph below says.
+>
+> Port: `femacs/src/ftfont.rs`, **slice 1 = C 1-1352, slice 2 = C 1353-1725 and slice 3 =
+> C 3088-3243**, both arms of every `#if` carried.  Slice 1 ends on the `}` of `ftfont_entity_pattern` (C 1352) - the last of the
 > three entry points `ftfont.h` 45-47 declares - and the old revision's conclusion ("not in the
 > frozen build, so the port is the empty unit plus a note") is P-86 ①'s "not started" case; its
 > measurements are still true and are still where the file gate comes from.  Slice 2 ends on the
@@ -181,12 +187,12 @@ later slice.  The `arm` cell gives the port gate, which `## Gate mapping` derive
 | 1791-2952 | C 1792's `#ifdef HAVE_M17N_FLT` block: the `MFLTGlyphFT`/`MFLTFont` records and the `M17N_FLT_USE_NEW_FEATURE` arms (C 1794-1800, C 1802-2757), `ftfont_get_glyph_id` (C 1824-1840), `ftfont_get_metrics` (C 1849-1903), `ftfont_check_otf` (C 1906-1976), `adjust_anchor` (C 1984-2009), `setup_otf_gstring` (C 2014-2026), `ftfont_drive_otf` (C 2044-2457), the `#else` arm's `ftfont_try_otf` (C 2460-2464) and `ftfont_drive_otf` (C 2469-2733), `ftfont_shape_by_flt` (C 2742-2937), `ftfont_shape` (C 2940-2948), C 2950's and C 2952's `#endif`s | `all (have_libotf, have_m17n_flt)` - **owed** |
 | 2953-2986 | C 2954's `#if defined HAVE_OTF_GET_VARIATION_GLYPHS || defined HAVE_FT_FACE_GETCHARVARIANTINDEX`, `ftfont_variation_glyphs` (C 2956-2985), C 2986's `#endif` | `any (have_otf_get_variation_glyphs, have_ft_face_getcharvariantindex)` - **owed** |
 | 2987-3087 | C 2988's `#ifdef HAVE_HARFBUZZ` block: `fthbfont_begin_hb_font` (C 2991-3000), C 3002-3003's `#ifndef HAVE_LIBOTF` + `<hb-ot.h>`, `hbotf_open` (C 3006-3021), `hbotf_check_features` (C 3024-3085), C 3086's and C 3087's `#endif`s | `harfbuzz` - **owed** (this is where C 3006/3024, the two call sites slice 1 waits on, live) |
-| 3088-3131 | the two `const char *const` tables `ftfont_booleans` (C 3089-3100) and `ftfont_non_booleans` (C 3102-3131) | file gate - **owed** |
-| 3132-3137 | `ftfont_filter_properties` (C 3134-3137) | file gate - **owed** (non-`static`) |
-| 3138-3148 | `ftfont_combining_capability` (C 3141-3148) with C 3143/3145's `#ifdef HAVE_M17N_FLT` pair | file gate; `have_m17n_flt` - **owed** (non-`static`) |
-| 3149-3182 | C 3150's `syms_of_ftfont_for_pdumper` prototype, C 3152's `#ifndef USE_CAIRO`, the `ftfont_driver` record (C 3154-3180) with C 3169/3172/3175's member arms and C 3182's `#endif` | file gate; `have_libotf`; `all (have_m17n_flt, have_libotf)`; `any (have_otf_get_variation_glyphs, have_ft_face_getcharvariantindex)` - **owed** (this row holds `ftfont_driver`, the object slice 1 owes) |
-| 3183-3227 | `syms_of_ftfont` (C 3185-3227) with C 3189-3192's `#ifdef HAVE_HARFBUZZ` and C 3194-3196's `#ifdef HAVE_HAIKU` | file gate; `harfbuzz`; `have_haiku` - **owed** |
-| 3228-3243 | `syms_of_ftfont_for_pdumper` (C 3230-3243) with C 3234-3242's `#ifdef HAVE_HARFBUZZ` (where `fthbfont_driver` is assigned and registered) | file gate; `harfbuzz` - **owed** |
+| 3088-3131 | the two `const char *const` tables `ftfont_booleans` (C 3089-3100) and `ftfont_non_booleans` (C 3102-3131) | file gate - **transcribed** (slice 3; C's `NULL` is the last array element) |
+| 3132-3137 | `ftfont_filter_properties` (C 3134-3137) | file gate - **transcribed** (slice 3; non-`static`) |
+| 3138-3148 | `ftfont_combining_capability` (C 3141-3148) with C 3143/3145's `#ifdef HAVE_M17N_FLT` pair | file gate; `have_m17n_flt` - **transcribed** (slice 3; the pair is two `#[cfg]`-selected `return`s, Deviation 32) |
+| 3149-3182 | C 3150's `syms_of_ftfont_for_pdumper` prototype, C 3152's `#ifndef USE_CAIRO`, the `ftfont_driver` record (C 3154-3180) with C 3169/3172/3175's member arms and C 3182's `#endif` | file gate; `not (use_cairo)`; `have_libotf`; `all (have_m17n_flt, have_libotf)`; `any (have_otf_get_variation_glyphs, have_ft_face_getcharvariantindex)` - **transcribed** (slice 3; the three member arms are `#[cfg]`-selected field *pairs*, Deviation 31 - this row holds `ftfont_driver`, the object slice 1 owed) |
+| 3183-3227 | `syms_of_ftfont` (C 3185-3227) with C 3189-3192's `#ifdef HAVE_HARFBUZZ` and C 3194-3196's `#ifdef HAVE_HAIKU` | file gate; `harfbuzz`; `have_haiku` - **transcribed** (slice 3; C's `DEFSYM`s are the `DEFSYM!` no-op - the symbols are `globals.rs`'s - while `Fput`/`list1`/`list3`/`Fcons`/`staticpro` are real calls) |
+| 3228-3243 | `syms_of_ftfont_for_pdumper` (C 3230-3243) with C 3234-3242's `#ifdef HAVE_HARFBUZZ` (where `fthbfont_driver` is assigned and registered) | file gate; `not (use_cairo)` on C 3233 (Deviation 30); `harfbuzz` - **transcribed** (slice 3) |
 
 ## Findings
 
@@ -465,6 +471,41 @@ threshold; the `drift` rows slice 1 reported in `femacs/src/include/dispextern.r
 current citations reading); `python3 tools/check-ledger-ticks.py` -> `234 ledger(s) bound (a function tick
 to compare), 0 failure(s), 0 carried by another file`; `python3 tools/check-carried.py` -> `11
 carried file(s), 11 baseline row(s), 0 failure(s)`.
+**⑬ Slice 3's frozen reading (`build-tu`).**  `cd femacs && cargo run -q -p xtask -- build-tu
+src/ftfont.c` -> `built src/ftfont.rs -> ../build/femacs/ftfont.o`, **exit 0**, and the object is the
+same **336 bytes**, md5 `dbed68837694579185377dbb0821ab62` slice 1 and slice 2 read: every item sits
+behind `have_freetype`, so the frozen feature set compiles the `config.rs` include and the
+`#![allow]` attribute and not one line of the new text (P-86 ⑧).
+
+**⑭ The arm flip, HEAD's own text as the baseline (P-86 ⑦).**  `cd femacs && cargo run -q -p xtask
+-- probe src/ftfont.rs /tmp/x.rlib --crate-type=lib -C panic=abort` with the five cfgs slice 2 used
+(`have_freetype` plus the four Fontconfig header macros this machine defines):
+  * **HEAD's file**: **26** errors - `cannot find type font_info` x16 and the ten `no field ...`
+    rows of the `font` record.  Every one of them is mirror-side.
+  * **slice 3**: **25** errors, and the kind diff against HEAD is exactly one line: `cannot find
+    value ftfont_driver` is **gone** (the record this slice writes - C 1429's statement and the
+    `harfbuzz` arm both name it).  **No new error of any kind.**
+  * the same pair with `--cfg 'feature="have_window_system"'` added, which is the arm the record's
+    `draw`/`get_bitmap`/`free_bitmap` members sit under: HEAD **21** -> slice 3 **20**, again the
+    single `ftfont_driver` line, so those three members cost no error of their own.
+  The `font_info` and `font`-field errors are the mirrors' own (Owed 3(a)) and are not this unit's
+  text; the ledger's older "exit 0, 0 errors" reading was taken before those two mirror regressions,
+  and this round's baseline shows they are still there.
+
+**⑮ The unit's own gate, and the ratchet row it needed.**  `python3 tools/extract-abi.py --check
+emacs/src/ftfont.c femacs/src/ftfont.rs` -> **`OK`**: the five names slice 2's reading listed
+(`ftfont_filter_properties`, `ftfont_combining_capability`, `ftfont_driver`, `syms_of_ftfont`,
+`syms_of_ftfont_for_pdumper`) are gone, and the one `- ` row left was the line count - the
+`ftfont 0.16 total` row of `docs/ports/line-drift-tolerance.tsv` now covers it (C 3243 vs the port's
+3715 = 14.6%).  `python3 tools/extract-abi.py --all` -> **`checked 590 ported files: 572 done, 2 in
+progress, 16 failing`** (571 done / 17 failing before this slice).
+
+**⑯ The other text gates this round.**  `check-declarations.py` `17 declaration sites (0 forbidden,
+17 allowed literals), 0 failures`; `check-citations.py` `676 file(s) scanned, 0 drift, 0 range, 2011
+external, 36 allowed, 0 stale`; `check-dead-file-coverage.py` `145 ledger(s) bound (a C range
+table), 0 failure(s)`; `check-ledger-ticks.py` `238 ledger(s) bound ..., 0 failure(s)`;
+`check-port-lines.py` `0 file(s) under ten percent, 0 ratchet row(s), 0 new, 0 stale`;
+`check-cond-eval.py src/ftfont.c` `62 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
 
 ## Deviations
 
@@ -590,6 +631,27 @@ carried file(s), 11 baseline row(s), 0 failure(s)`.
     read `const ftfont_driver` as a Rust `const` declaration and drop the `missing file-scope
     object ftfont_driver` row (Finding 12 - measured both ways this round).  The site carries the
     reason.
+30. **C 3233's `register_font_driver` carries the record's own gate.**  C 3233 stands **outside**
+    C 3152's `#ifndef USE_CAIRO` while the record it names (C 3154-3180) is inside it, so on the
+    Cairo branch C compiles a reference to an object it never declares - that branch does not build
+    this unit at all (`configure.ac` 7199-7213 adds `ftfont.o` only under
+    `HAVE_CAIRO`/`HAVE_XFT`/`HAVE_FREETYPE` with `HAVE_FREETYPE=yes`).  The port gives the statement
+    `#[cfg (not (feature = "use_cairo"))]`, with C's text and line number in the comment, rather
+    than leaving an arm that cannot compile.
+31. **The record's three C member arms are `#[cfg]`-selected field *pairs*.**  C 3169/3172/3175
+    guard a member's *initialiser*; the mirror declares `otf_capability`, `shape` and
+    `get_variation_glyphs` unconditionally (a `repr (C)` record cannot omit a field), so the port
+    writes each as `None` under the negated gate and the value under the gate - the shape the
+    `ftcrfont.rs` 1600 record uses.  The bytes are the same in every configuration and both arms are
+    in the text.
+32. **C 3143's `#ifdef HAVE_M17N_FLT` / `#else` pair is two `#[cfg]`-selected `return`s.**  Rust
+    cannot put a `#[cfg]` on the `else` of an `if`, and each arm is one statement (the
+    `ftfont_open` precedent, Deviation 28).
+33. **`fthbfont_driver`'s tentative definition is `unsafe { std::mem::zeroed () }`, and it sits with
+    slice 3.**  C 50-52 declares it at the top of the file as `static struct font_driver
+    fthbfont_driver;`, whose tentative definition zero-initialises every member; a Rust `static`
+    must carry its initialiser where it is written, so the object is defined beside the record it is
+    filled from (C 3235-3241).  The spelling is `android.rs` 458's.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
@@ -606,7 +668,10 @@ carried file(s), 11 baseline row(s), 0 failure(s)`.
    one is a slice with five unported items; the check's `4 missing function` + `missing file-scope
    object ftfont_driver` rows *are* that remainder's list, and a `total`/0.08 row would clear only
    the line-count reminder while leaving those five - the same disposition 3.490 (androidfns),
-   3.497 (ftfont slice 1) and 3.501 (fringe slice 1) recorded.
+   3.497 (ftfont slice 1) and 3.501 (fringe slice 1) recorded.  **CLOSED (status 3.680,
+   integrator)**: the row is in the table now - `ftfont	0.16	total`, C 3243 vs the port's 3715 - and
+   the condition 3.434 clause 5 asks for is met, because slice 3 makes this unit complete
+   (`extract-abi --check` reads `OK`, Evidence ⑮).
 2. `docs/baseline/port-lines-pending.tsv`: nothing to retire - the file has left P-86's
    under-ten-percent class (3,472 lines against a 324-line threshold) and the ratchet reads
    `50 file(s) under ten percent, 66,970 reference line(s); 51 ratchet row(s), 0 new, 1 stale`
@@ -675,7 +740,9 @@ carried file(s), 11 baseline row(s), 0 failure(s)`.
    first slice that reads it** (C 1429, `ftfont_open`), and the site is P-91 ④'s allowed class: the
    port spells the address as `std::ptr::addr_of! (ftfont_driver)` (Deviation 29) so that
    `extract-abi.py` keeps the row (Evidence ⑫), and C 1429's two arms name the C lines they wait
-   for at the site.
+   for at the site.  **CLOSED (status 3.680)**: the object is C 3154-3180's record in slice 3,
+   `fthbfont_driver` is C 50-52/Deviation 33, both `register_font_driver` calls are written, and the
+   unit's gate reads `OK`.
 8. **The next slice**: **C 1730's `ftfont_otf_features`**, under C 1727's `#ifdef HAVE_LIBOTF` -
    `text-only` until the libotf toolchain/mirror is here (P-86 ③⑵, P-90 ④: no `otf.h` on this
    machine, and P-88 ② forbids guessing its records' layouts).  The locally-compilable order after
@@ -684,8 +751,14 @@ carried file(s), 11 baseline row(s), 0 failure(s)`.
    then C 2991 `fthbfont_begin_hb_font` (which unblocks Deviation 16's two call sites), C 3134
    `ftfont_filter_properties`, C 3141 `ftfont_combining_capability` (`have_m17n_flt`, likewise
    unregistered), C 3154's `ftfont_driver` record, C 3185 `syms_of_ftfont` and C 3230
-   `syms_of_ftfont_for_pdumper`.  The C line-range table's `owed` rows are the authority for the
-   boundaries; the four `missing function` rows of Evidence ⑫ are exactly
+   `syms_of_ftfont_for_pdumper`.  **UPDATED (status 3.680)**: `ftfont_filter_properties`
+   (C 3134), `ftfont_combining_capability` (C 3141), the `ftfont_driver` record (C 3154),
+   `syms_of_ftfont` (C 3185) and `syms_of_ftfont_for_pdumper` (C 3230) are **done** (slice 3);
+   `have_otf_get_variation_glyphs` and `have_ft_face_getcharvariantindex` *are* in the tree's
+   feature table now (`femacs/xtask/Cargo.toml`), so the earlier note that they were unregistered is
+   stale.  What is still owed is C 1727-3087: C 1730/1774 (libotf), C 1794-2948 (m17n), C 2956
+   `ftfont_variation_glyphs` and C 2991 `fthbfont_begin_hb_font`.  The C line-range table's `owed`
+   rows are the authority for the boundaries; the four `missing function` rows of Evidence ⑫ were
    `ftfont_combining_capability`, `ftfont_filter_properties`, `syms_of_ftfont` and
    `syms_of_ftfont_for_pdumper` (the other functions C 1726-2985 holds are inside the two libotf
    arms the frozen configuration leaves false, which is why `--check` does not list them).
