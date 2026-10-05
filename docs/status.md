@@ -10760,3 +10760,30 @@
      一律 **UNVERIFIED**（本机没有这些头，布局断言欠着）。
   ⑥ **预算实报**：lane 侧 `build-tu` **3/3**、`probe` **4/3（超支 1，台账点名）**；集成者：生成物 4 发、
      `extract-abi --check` 1 发、特征表 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.547 镜像轮第二十批：`include/w32term.rs` 的五个名字进模块、裸 `font` 去类型（`w32menu` 臂 13 错 → 7）（2026-10-05）**：
+  ① **对象（`w32menu` lane 的臂读数逐条点到）**：⑴ 五个 **`src/w32menu.c` 定义**的名字——`current_popup_menu`、
+     `initialize_frame_menubar`、`w32_popup_dialog`、`syms_of_w32menu`、`globals_of_w32menu`——摆在这个镜像的
+     **crate 根**，而该镜像本来就有 `w32term_fn_decls`/`w32term_objs` 两个模块**专治这一类**（它自己的注释写着
+     "defined by `w32fns.c`, so their declarations live in `w32term_objs` below (E0428, P-21)"），只是这五个没搬
+     ⇒ 那个单元 include 本镜像时 5 × `E0428`。⑵ 裸 `font`：`w32_system_remap_font: *mut font` 命名了一个本镜像
+     **没有拉进来**的类型（C 的 `w32term.h` 也没 include `font.h`）⇒ 1 × `E0425`。
+  ② **改法**：五个名字搬进那两个模块的 `unsafe extern "C"` 里（P-21/P-39，与邻居同形，带 C 行引用）；`font` 按
+     P-72 rule 3 改 `*mut c_void` + `/// C:` 行——注释点明 `include/xterm.rs` 的 `font_fwd` 前向声明**借不到**
+     （那个模块挂在 `have_x_windows` 上，Windows 臂看不见它）。
+  ③ **过程中的两次自伤（同一轮内查出来并修好，照实记）**：第一版我把重排后的声明放到了模块的 `extern` 块**外面**
+     （`free function without a body` ×4、`free static item without body` ×1），另外 `w32_popup_dialog` 是**两行**
+     声明、我只删了头一行、留下一截 `-> Lisp_Object;`（`non-item in item list`）——**都是 probe 自己的错误清单
+     抓到的**，修好后读数才干净。
+  ④ **读数（主判据 = 臂）**：`probe src/w32menu.rs`（`have_ntgui` + `windowsnt`）：**13 条错误 → 7 条**（5 个
+     `E0428` 与 1 个 `E0425` 全消）；剩下 7 条 = **6 条单元自身的 `E0609 no field menubar_active on w32_output`**
+     + `include/frame.rs` 那条**自己写明**的 `compile_error!` + 2 行 rustc 包装行。那 6 条是 **位域**项：
+     `struct w32_output` 的六个 `bool_bf : 1` 按 P-80 **记而不装**（该镜像写明"要有真编译器的字节 dump 才准放存储
+     单元，而这条记录本机编不了"）⇒ 本轮**不动**，lane 的 `/tmp` 变体（只补 `menubar_active` 一个成员）读数
+     **8 条 / 单元侧 0 条**，证明那 6 条就是这一个缺口、且要 Windows 工具链才能正。
+     `extract-abi --check emacs/src/w32menu.c femacs/src/w32menu.rs` 仍 **OK**；`check-all-units` **83 unit(s),
+     0 failure(s)**（两腿）、`layout-check` passed、`check-mirror-dupes` 17/17/0、`check-citations` 0/0。
+  ⑤ **未声称**：仍是**编译**读数；`struct w32_output` 的布局本机不可测（P-80 的政策项）；本轮顺手修掉 3.546 里
+     我把 feature 名写成 `ngui_unicode` 的笔误（登记进 `Cargo.toml` 的名字一直是 `ntgui_unicode`）。
+  ⑥ **预算**：`probe` 4 发（两次是自伤后的复读）、`check-all-units` 1 发、`layout-check` 1 发、`check-citations` 2 发、
+     `check-mirror-dupes` 1 发、`extract-abi --check` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`；`/tmp/w32m547` 收工删。

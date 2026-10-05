@@ -286,7 +286,6 @@ pub struct w32_display_info
 unsafe extern "C" {
   // `x_display_list` (C 223), `one_w32_display_info` (C 224) and `menubar_in_use` (C 228) are
   // defined by `w32fns.c`, so their declarations live in `w32term_objs` below (E0428, P-21).
-  pub static mut current_popup_menu: HMENU;
 }
 
 /* C 230-274: the entry points, in C's order, ending with the frame-parameter handler table.  */
@@ -335,7 +334,6 @@ unsafe extern "C" {
                             make_index: bool) -> bool;
   // `w32_display_pixel_height`/`w32_display_pixel_width` (C 247-248) are defined by this
   // header's own unit: `w32term_fn_decls` below (E0428, P-21).
-  pub fn initialize_frame_menubar (f: *mut frame);
   pub fn w32_dialog_in_progress (in_progress: Lisp_Object);
   pub fn w32_query_frame_background_color (f: *mut frame, bgcolor: *mut Emacs_Color);
   pub fn w32_make_frame_visible (f: *mut frame);
@@ -1339,15 +1337,11 @@ macro_rules! GUI_SDATA {
 /// C 925: `extern void w32_init_main_thread (void);`
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn w32_popup_dialog (f: *mut frame, header: Lisp_Object, contents: Lisp_Object)
-                           -> Lisp_Object;
   pub fn w32_arrow_cursor ();
   // `w32_release_paint_buffer`/`w32_flip_buffers_if_dirty` (C 911-912) are this header's own
   // unit's definitions: `w32term_fn_decls` below (E0428, P-21).
   pub fn syms_of_w32term ();
-  pub fn syms_of_w32menu ();
   pub fn syms_of_w32fns ();
-  pub fn globals_of_w32menu ();
   pub fn globals_of_w32fns ();
   pub fn globals_of_w32notify ();
   pub fn syms_of_w32image ();
@@ -1406,7 +1400,20 @@ unsafe extern "C" {
 pub mod w32term_fn_decls {
   use super::*;
 
+
   unsafe extern "C" {
+  /* C 249's `initialize_frame_menubar` and C 909/914-918's `w32_popup_dialog`,
+     `syms_of_w32menu` and `globals_of_w32menu` - all defined by `src/w32menu.c`, all at this
+     mirror's crate root until status 3.547, where the `w32menu` arm read five `E0428`s for them
+     (the module is P-21/P-39's shape and this comment block's own neighbours already used it).  */
+  pub fn initialize_frame_menubar (f: *mut frame);
+  /// C 909: `extern Lisp_Object w32_popup_dialog (struct frame *, Lisp_Object, Lisp_Object);`
+  pub fn w32_popup_dialog (f: *mut frame, header: Lisp_Object, contents: Lisp_Object)
+                           -> Lisp_Object;
+  /// C 914: `extern void syms_of_w32menu (void);`
+  pub fn syms_of_w32menu ();
+  /// C 918: `extern void globals_of_w32menu (void);`
+  pub fn globals_of_w32menu ();
     pub fn XCreateGC (dpy: *mut c_void, hwnd: *mut c_void, valuemask: c_ulong,
                       values: *mut Emacs_GC) -> *mut Emacs_GC;
     /// C 77: `extern void w32_fullscreen_rect (HWND hwnd, int fsmode, RECT normal, RECT *rect);`
@@ -1443,7 +1450,12 @@ use w32term_fn_decls::*;
 pub mod w32term_objs {
   use super::*;
 
+
   unsafe extern "C" {
+  /// C 228's `extern HMENU current_popup_menu;` - `src/w32menu.c` defines it, so it sits here
+  /// (P-21/P-39; at this mirror's crate root it was `E0428` in that unit, measured on the
+  /// `w32menu` arm: five rows, status 3.547).
+  pub static mut current_popup_menu: HMENU;
     pub static mut x_display_list: *mut w32_display_info;
     pub static mut one_w32_display_info: w32_display_info;
     /// C 228: `extern int menubar_in_use;`
@@ -1453,7 +1465,10 @@ pub mod w32term_objs {
     pub static mut dwMainThreadId: DWORD;
     pub static mut hMainThread: HANDLE;
     pub static mut w32_keyboard_codepage: c_int;
-    pub static mut w32_system_remap_font: *mut font;
+    /// P-72 rule 3: `struct font` is `font.h`'s record and this mirror does not pull that header
+  /// (C's `w32term.h` does not include it either), so the pointer is untyped - the `xterm.rs`
+  /// `font_fwd` reading, which a Windows arm cannot borrow (that module is `have_x_windows`'s).
+  pub static mut w32_system_remap_font: *mut c_void;
     pub static mut w32_system_caret_hwnd: *mut c_void;   // C: `HWND` static (P-72 (3))
     pub static mut w32_system_caret_height: c_int;
     pub static mut w32_system_caret_x: c_int;
