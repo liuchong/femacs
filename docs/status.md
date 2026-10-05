@@ -10156,3 +10156,19 @@
   ④ **验收**：`layout-check` passed、`build-tu src/androidterm.c` exit 0（冻结臂仍能解析本单元文本）、
      `check-declarations` 17/0/0。
   ⑤ **未声称**：零运行证据（这些臂只是本机 rustc 的类型检查）；`androidterm.c` 的 1055-7117 未移植。
+
+- **3.523 一次"忠实但被工具挡住"的改动：`lisp.h` 30 的 `<string.h>` 边（试了、复读、撤回，2026-10-05）**：
+  ① **动机**：C 的 lisp.h 30 就是 `#include <string.h>`，而本树的链**没有它**——`src/ralloc.rs` 与
+     `src/widget.rs` 两条 lane 都只能在各自的 crate 根补 `../lib/include/string.rs`；`memcpy`/`memmove`/
+     `memset`/`memcmp` 在 C 里是**经 lisp.h** 到达单元的（P-90 ②：镜像自己的 include 列表）。
+  ② **改动与读数**：按 C 原样在 `femacs/src/include/lisp.rs` 加那条边 ⇒ **`check-all-units` 83 unit(s),
+     3 failure(s)**：`src/keyboard.rs` 的 crate 里 `lib/include/string.rs` 出现了**两次**（`E0428 memcpy/
+     memmove/memset defined multiple times`，两处都在该文件内）。根因是**物化器的 dedupe 比对 `include!`
+     的书写路径**（本文件从 `src/include/` 写 `../../lib/include/string.rs`，单元从 `src/` 写
+     `../lib/include/string.rs`），而**不是**解析后的同一个文件——P-89 的 `// [xtask dedupe]` 标记只认
+     它当时看到的那个拼法。
+  ③ **处置**：**撤回**该边（`git status` 干净、`build-tu src/keyboard.c` 恢复 exit 0），把它记成**欠工具**的
+     一项：dedupe 必须按**解析后的规范路径**去重，之后这条边才能落地；在此之前两条单元级的边就是本树的
+     变通写法。追记在 `docs/ports/include-lisp.md`。
+  ④ **未声称**：本条只说明"这条边今天加不进"，**不**说镜像的 include 列表已经与 C 一致（还差
+     `<stddef.h>`/`<limits.h>`/`<inttypes.h>`/`<stdarg.h>` 等同样的边）；也没有修工具。
