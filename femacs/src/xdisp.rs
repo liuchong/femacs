@@ -31989,7 +31989,7 @@ pub unsafe extern "C" fn cancel_mouse_face (f: *mut frame)
 
   window = (*hlinfo).mouse_face_window;
   if ! NILP (window) && XFRAME ((*XWINDOW (window)).frame) == f
-    { dispextern_unit_names::reset_mouse_highlight (hlinfo); }
+    { reset_mouse_highlight (hlinfo); }
 }
 
 /* ==================================================================== */

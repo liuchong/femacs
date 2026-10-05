@@ -2147,6 +2147,40 @@ pub fn set_mouse_face_defer (hlinfo: *mut Mouse_HLInfo, value: bool)
   }
 }
 
+// C 3026-3041 is an INLINE *header* function: every TU that calls it gets C's own body, so the
+// definition belongs at this level (a unit that declared it `extern` instead linked against a
+// symbol nothing defines - the executable link named `_reset_mouse_highlight`, status 3.610).
+/* C 3026-3041: the mouse-highlight resetter.  C's body is a list of member writes; the
+   record it writes into (`struct Mouse_HLInfo`) is this mirror's own and ungated.  */
+/// C: INLINE void reset_mouse_highlight (Mouse_HLInfo *hlinfo)
+#[inline(always)]
+pub fn reset_mouse_highlight (hlinfo: *mut Mouse_HLInfo)
+{
+  unsafe {
+    (*hlinfo).mouse_face_beg_row = -1;
+    (*hlinfo).mouse_face_beg_col = -1;
+    (*hlinfo).mouse_face_end_row = -1;
+    (*hlinfo).mouse_face_end_col = -1;
+    (*hlinfo).mouse_face_mouse_x = 0;
+    (*hlinfo).mouse_face_mouse_y = 0;
+    (*hlinfo).mouse_face_beg_x = 0;
+    (*hlinfo).mouse_face_end_x = 0;
+    (*hlinfo).mouse_face_face_id = DEFAULT_FACE_ID;
+    (*hlinfo).mouse_face_mouse_frame = std::ptr::null_mut ();
+    (*hlinfo).mouse_face_window = Qnil ();
+    (*hlinfo).mouse_face_overlay = Qnil ();
+    // C 3019-3023's three `bool_bf : 1` members (`mouse_face_past_end`, `mouse_face_defer`,
+    // `mouse_face_hidden`) are the mirror's single `bits` byte with the three masks below, so
+    // C's three `= false` writes are the mask clear; the three C names are bound to the
+    // `false`s C assigns them, the way `GLYPH_CHAR` names the value it returns.
+    let mouse_face_past_end = false;
+    let mouse_face_defer = false;
+    let mouse_face_hidden = false;
+    let _ = (mouse_face_past_end, mouse_face_defer, mouse_face_hidden);
+    (*hlinfo).bits &= !(MOUSE_FACE_PAST_END | MOUSE_FACE_DEFER | MOUSE_FACE_HIDDEN);
+  }
+}
+
 // dispextern.h 3966: `enum { SCROLL_INFINITY = 1000000 };`
 pub const SCROLL_INFINITY: c_int = 1000000;
 
@@ -3738,36 +3772,6 @@ const _: () = core::assert! (core::mem::offset_of! (it, min_width_start) == 4960
   /// C:   MOVE_TO_POS = 0x08 };
   pub const MOVE_TO_POS: c_int = 0x08;
 
-  /* C 3026-3041: the mouse-highlight resetter.  C's body is a list of member writes; the
-     record it writes into (`struct Mouse_HLInfo`) is this mirror's own and ungated.  */
-  /// C: INLINE void reset_mouse_highlight (Mouse_HLInfo *hlinfo)
-  #[inline(always)]
-  pub fn reset_mouse_highlight (hlinfo: *mut Mouse_HLInfo)
-  {
-    unsafe {
-      (*hlinfo).mouse_face_beg_row = -1;
-      (*hlinfo).mouse_face_beg_col = -1;
-      (*hlinfo).mouse_face_end_row = -1;
-      (*hlinfo).mouse_face_end_col = -1;
-      (*hlinfo).mouse_face_mouse_x = 0;
-      (*hlinfo).mouse_face_mouse_y = 0;
-      (*hlinfo).mouse_face_beg_x = 0;
-      (*hlinfo).mouse_face_end_x = 0;
-      (*hlinfo).mouse_face_face_id = DEFAULT_FACE_ID;
-      (*hlinfo).mouse_face_mouse_frame = std::ptr::null_mut ();
-      (*hlinfo).mouse_face_window = Qnil ();
-      (*hlinfo).mouse_face_overlay = Qnil ();
-      // C 3019-3023's three `bool_bf : 1` members (`mouse_face_past_end`, `mouse_face_defer`,
-      // `mouse_face_hidden`) are the mirror's single `bits` byte with the three masks below, so
-      // C's three `= false` writes are the mask clear; the three C names are bound to the
-      // `false`s C assigns them, the way `GLYPH_CHAR` names the value it returns.
-      let mouse_face_past_end = false;
-      let mouse_face_defer = false;
-      let mouse_face_hidden = false;
-      let _ = (mouse_face_past_end, mouse_face_defer, mouse_face_hidden);
-      (*hlinfo).bits &= !(MOUSE_FACE_PAST_END | MOUSE_FACE_DEFER | MOUSE_FACE_HIDDEN);
-    }
-  }
 
   /* ---- C 3067-3200: the window-based redisplay interface ------------------------------------
      Same arm and same measurement as the two blocks above.  C's `frame_parm_handler *` is

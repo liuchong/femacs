@@ -149,6 +149,7 @@ include!("include/intervals.rs");              // C 95: `#include "intervals.h"`
 include!("include/character.rs");              // C 96: `#include "character.h"`
 include!("include/buffer.rs");                 // C 97: `#include "buffer.h"`
 include!("include/window.rs");                 // C 98: `#include "window.h"`
+include!("include/xwidget.rs");                 // C 99: `#include "xwidget.h"` (its `#else` arm is the INLINE no-op C compiles here)
 include!("include/atimer.rs");                 // C 100: `#include "atimer.h"`
 include!("include/blockinput.rs");             // C 101: `#include "blockinput.h"`
 include!("include/syssignal.rs");              // C 102: `#include "syssignal.h"`
@@ -312,8 +313,6 @@ unsafe extern "C" {
 
   /* --- headers with no mirror at all (P-72's incomplete-type rule does not apply: these
          are plain functions the units own) ------------------------------------------ */
-  /// C: xwidget.h 185: `void syms_of_xwidget (void);`
-  fn syms_of_xwidget ();
 
   /* --- libc (the mirrors' own groups: <stdio.h>, <stdlib.h>, <unistd.h>, <string.h>,
          <locale.h>, <signal.h>) ---------------------------------------------------- */

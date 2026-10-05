@@ -350,6 +350,7 @@ use xwidget_decls::*;
    已按 `--macro-notes /tmp/s188/macro-body-notes.tsv` 实测，`--check` OK。  */
 // C 232: INLINE_HEADER_BEGIN
 /// C 233: `INLINE void syms_of_xwidget (void) {}`
+#[cfg (not (feature = "have_xwidgets"))]
 #[inline(always)]
 pub fn syms_of_xwidget ()
 {
@@ -358,6 +359,7 @@ pub fn syms_of_xwidget ()
   let _ = ();
 }
 /// C 234: `INLINE bool valid_xwidget_spec_p (Lisp_Object obj) { return false; }`
+#[cfg (not (feature = "have_xwidgets"))]
 #[inline(always)]
 pub fn valid_xwidget_spec_p (obj: Lisp_Object) -> bool
 {
@@ -365,12 +367,14 @@ pub fn valid_xwidget_spec_p (obj: Lisp_Object) -> bool
   false
 }
 /// C 235: `INLINE void xwidget_view_delete_all_in_window (struct window *w) {}`
+#[cfg (not (feature = "have_xwidgets"))]
 #[inline(always)]
 pub fn xwidget_view_delete_all_in_window (w: *mut c_void)
 {
   let _ = w;
 }
 /// C 236: `INLINE void x_draw_xwidget_glyph_string (struct glyph_string *s) { eassume (0); }`
+#[cfg (not (feature = "have_xwidgets"))]
 #[inline(always)]
 pub fn x_draw_xwidget_glyph_string (s: *mut c_void)
 {
@@ -378,6 +382,7 @@ pub fn x_draw_xwidget_glyph_string (s: *mut c_void)
   eassume! (false);
 }
 /// C 237: `INLINE struct xwidget *lookup_xwidget (Lisp_Object obj) { eassume (0); }`
+#[cfg (not (feature = "have_xwidgets"))]
 #[inline(always)]
 pub fn lookup_xwidget (obj: Lisp_Object) -> *mut c_void
 {
@@ -390,12 +395,14 @@ pub fn lookup_xwidget (obj: Lisp_Object) -> *mut c_void
   std::ptr::null_mut ()
 }
 /// C 238: `INLINE void xwidget_end_redisplay (struct window *w, struct glyph_matrix *m) {}`
+#[cfg (not (feature = "have_xwidgets"))]
 #[inline(always)]
 pub fn xwidget_end_redisplay (w: *mut c_void, m: *mut c_void)
 {
   let _ = (w, m);
 }
 /// C 239: `INLINE void kill_buffer_xwidgets (Lisp_Object buf) {}`
+#[cfg (not (feature = "have_xwidgets"))]
 #[inline(always)]
 pub fn kill_buffer_xwidgets (buf: Lisp_Object)
 {

@@ -218,8 +218,6 @@ unsafe extern "C" {
   /// C: dispextern.h 3588: `void mark_window_display_accurate (Lisp_Object, bool);`
   /// (dispnew.c).
   pub fn mark_window_display_accurate (window: Lisp_Object, accurate_p: bool);
-  /// C: dispextern.h 3026: `void reset_mouse_highlight (Mouse_HLInfo *);`.
-  pub fn reset_mouse_highlight (hlinfo: *mut Mouse_HLInfo);
   /// C: dispextern.h 3903: `void free_window_matrices (struct window *);`.
   pub fn free_window_matrices (w: *mut window);
   // indent.h 39-40's `vmotion` is the include/indent.rs mirror's now; the mirror spells
