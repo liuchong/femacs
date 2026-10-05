@@ -12181,3 +12181,51 @@
      `build-tu` 0、`probe` 0（只跑 `extract-abi --check` 1 发与文本门各 1 发）、`gen-port-map.py` 1 发、
      `feature-coverage.py` 2 发；未跑 `--all`/`gate-fast`/`cargo test`/`check-all-units.sh`/`layout-check`
      （**本件不碰任何镜像**，所以 P-87 的两腿不适用）；lane 的 `/tmp/sfnt-lane` 与集成者的临时文件已删。
+
+- **3.601 lane 产出收口：`src/xterm.c` 第九片落地（C 6990-9785；C 33,125 → Rust 10,952 行；`--check` 255 → 212）（2026-10-05）**：
+  ① **区间/块**：起点 C 6990-6993 的分节横幅与 C 6994 的
+     `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME`，首个定义 `x_if_event`（C 7002）；
+     终点收在函数边界（末项 `x_inside_rect_p` C 9771，其 `#ifndef USE_CAIRO` 的 `#endif` 在 C 9785），共
+     **2,796 行 C**。台账区间表由旧末行拆成 **48 行**（现 104 行，仍升序不重叠铺满 C 1-33125 与 `xterm.h`），
+     `## Gate mapping` 追加 12 行子门、新增 Decision 21。**下一段起点 = C 9786**（`x_draw_relief_rect` 的注释块；
+     `static void` 在 9796、函数名在 9797），需 `have_xrender`/`have_xdbe`/`use_cairo`/`use_x_toolkit`/
+     `have_xinput2*`/`have_xkb`/`have_gtk3` 等既有门。
+  ② **行数/md5（集成者复核，与 lane 声明逐字相符）**：`femacs/src/xterm.rs` **7,508 → 10,952 行**，
+     md5 `c6f1b725b1ffc98a2d5618cf61d4cef1`；`docs/ports/xterm.md` 2,327 → **2,633 行**，md5
+     `427ae62ba90c182fa9a96200771251dd`。
+  ③ **读数**：⑴ `extract-abi --check emacs/src/xterm.c femacs/src/xterm.rs`：**255 → 212 行**（−43 = 41 个
+     missing function + 1 个宏/常数两行，另 +3 新行 −3 已消行），行数漂移 `77.3% → 66.9%`；⑵ 冻结
+     `build-tu src/xterm.c` → `exit 0`（22 条 warning，与上一片同）；⑶ **翻臂 `probe`（`have_x_windows`）
+     `339 → 531`**——**数值上升是预期的、也是要报告的**：本片把大片尚未移植区域里的调用点搬了进来，
+     E0425 有 **327 条在本单元文本**（没有镜像的 X11/Xt/GTK 名按 Decision 15 保持 C 拼写 + 本文件后段
+     C 11344+/17833+/26249+ 的定义 + 别的单元的原型），另有 2 条在 `include/xterm.rs`、1 条在
+     `include/frame.rs`；E0423 **10 条全在 `include/dispextern.rs`**（`VCENTER_BASELINE_OFFSET` 宏体把
+     `FONT_DESCENT`/`FONT_HEIGHT`/`FRAME_FONT`/`FRAME_LINE_HEIGHT` 写成"调用"）；新增 15 条 E0609 是镜像
+     成员缺口（`frame.borders_respect_alpha_background` 11、`Mouse_HLInfo.mouse_face_defer` 1、
+     `color_name_cache_entry.valid` 3）；⑷ 七道文本门：`check-mirror-dupes` 17/17/**0**、
+     `check-citations` 676 文件/0 drift/1905 external/0 stale、`check-declarations`
+     **17 sites (0 forbidden, 17 allowed literals), 0 failures**、`check-ledger-ticks` 238/0、
+     `check-dead-file-coverage` 145/0（本件 104 行）、`check-port-lines` 0/0/0/0、`check-target-names`
+     629 文件/591 目标/0 finding。
+  ④ **集成者替它落的账**：⑴ `femacs/xtask/Cargo.toml` **新增 3 个 feature**：`have_clock_gettime`
+     （C 6994）、`frame_debug`（C 7101/7271）、`debug_x_colors`（C 9506/9562），各带 C 站点注释；
+     ⑵ `docs/port-map.md` 只收本件的 `src/xterm.c | 33,125 | femacs/src/xterm.rs | 7,508 → 10,952`，
+     **把在飞 xdisp 的那一行（33,330）退回已提交值 29,626**；⑶ `docs/ports/macro-body-notes.tsv`
+     **只收本件 2 行**（`x_alloc_nearest_color_1`、`x_draw_fringe_bitmap`），另 3 行属在飞 xdisp lane，
+     按"按行名切"留在工作树；⑷ **不加容差行**：本件仍是部分复刻（66.9% 漂移）；棘轮行本轮无 stale/new；
+     ⑸ 本件报告里的 6 个"用点声明"（P-55：`get_glyph_string_clip_rects`、`prepare_face_for_display`、
+     `x_free_colors`、`parse_color_spec`、`gamma_correct`、`x_free_dpy_colors`）与镜像缺口（`include/xterm.rs`
+     的 `color_name_cache_entry.valid`、`include/xlib.rs` 的 `XGCValues`/`XPoint`/`XdbeSwapInfo` 与 10 个
+     `x11_constants` 宏、`include/frame.rs` 的 `borders_respect_alpha_background`）**逐条记在台账 Owed 7**，
+     等镜像轮处理（本轮不改镜像，所以 P-87 的两腿不适用）。
+  ⑤ **未声称**：**没有 X11 目标编译、没有链接、没有运行**；冻结档不编本片任何一行；`have_xsync`/
+     `have_xdbe`/`use_cairo`/`have_xrender`/`use_x_toolkit`/`frame_debug`/`debug_x_colors` 各臂从未被任何
+     读数编译；`XtConvertArgRec` 本机无 libXt 头（text-only）、`glyph_string` 布局本机不可测（沿用镜像自述，
+     不发明数字）。**lane 自己声明的一条未实测**：最后一次 `probe` 之后还有三批修复（两份记录副本、
+     `(*(... as *mut face))` 分组、访问器 `unsafe` 与 `eassert` 的 `0`），它们只有静态核对
+     （`rustfmt --emit stdout` exit 0）与 `--check` 212 支撑，**没有翻臂读数**。
+  ⑥ **预算实报**：lane `build-tu` **5/3**（超 2：前两次是本片自己的语法错——注释里 C 的 `*/` 写成 `*\/`
+     造成 E0758、`x_draw_fringe_bitmap` 的 `if/else` 跨 `#[cfg]` 块；后三次成功）、`probe` **3/3**；
+     集成者 `build-tu` 0、`probe` 0（只跑 `extract-abi --check` 1 发 + 文本门各 1 发 + `gen-port-map.py` 1 发
+     + `feature-coverage.py` 1 发）。lane 的编译产物（`build/femacs/units/xterm`、`build/probes/xterm`、
+     `build/femacs/xterm.o`）已删，`/tmp/xterm-lane` 已删；集成者的 `/tmp/mbn-*.tsv` 已删。

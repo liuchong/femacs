@@ -7506,3 +7506,3447 @@ unsafe fn x_set_frame_alpha (f: *mut frame)
 		   &raw mut opac as *mut u8, 1);
   x_stop_ignoring_errors (dpyinfo);
 }
+
+/* ---- C 6990-7410: the `Starting and ending an update` section and C 6994's
+   `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME` block - the
+   frame-synchronization machinery (the event wait, the two monotonic-time readers, the
+   frame-time recorder, the two drawing hooks and the counter/fence plumbing).  Three gates,
+   each the lowercased name of one macro of that condition (P-51): `have_xsync`, `not use_gtk`
+   and `have_clock_gettime`; C 7249's inner `#ifdef HAVE_XSYNCTRIGGERFENCE` is
+   `have_xsynctriggerfence`, and the two `#ifdef FRAME_DEBUG` blocks (C 7101-7106, 7271-7273)
+   are `frame_debug` - the `glyph_debug` shape `docs/ports/dispnew.md` 220-224 uses for a
+   source-level debug knob the configure script knows nothing about.  Every function of this
+   block is dead in the frozen reading (HAVE_XSYNC and HAVE_XSYNCTRIGGERFENCE are both `undef`
+   in docs/baseline/config/darwin-arm64.macros.tsv), so none of them is in the checklist and no
+   arm of this tree compiles one: the text is carried (P-51), not verified.  */
+
+/* C 6990-6993 is the section banner (`Starting and ending an update`): a comment in C, carried
+   as one here.  */
+
+/* C 6996-7047: `x_if_event`.  `Bool`/`XPointer` are Xlib's own aliases (`include/xlib.rs` 198,
+   202), `Display` its opaque record (xlib.rs 858-861); C's callback parameter is spelled as the
+   port's function-pointer option (`widget.rs` 332-336's shape) and the call passes C's own
+   function name from the other side.  `fd_set`, `FD_ZERO`/`FD_SET` and `pselect` are
+   `include/sysselect.rs`'s (`lib/include/sys_select.rs` 39, 52-56, 87, 111).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+unsafe fn x_if_event (dpy: *mut Display, event_return: *mut XEvent,
+		      predicate: Option<unsafe extern "C" fn (*mut Display, *mut XEvent,
+							       XPointer) -> Bool>,
+		      arg: XPointer, timeout: timespec) -> c_int
+{
+  let mut current_time: timespec;
+  let mut target: timespec;
+  let fd: c_int;
+  let mut fds: fd_set;
+
+  fd = ConnectionNumber (dpy);
+  current_time = current_timespec ();
+  target = timespec_add (current_time, timeout);
+
+  /* Check if an event is already in the queue.  If it is, avoid
+     syncing.  */
+  if XCheckIfEvent (dpy, event_return, predicate, arg) != 0
+    { return 0; }
+
+  loop
+    {
+      /* Get events into the queue.  */
+      XSync (dpy, false);
+
+      /* Look for an event again.  */
+      if XCheckIfEvent (dpy, event_return, predicate, arg) != 0
+	{ return 0; }
+
+      /* Calculate the timeout.  */
+      current_time = current_timespec ();
+      timeout = timespec_sub (target, current_time);
+
+      /* If not, wait for some input to show up on the X connection,
+	 or for the timeout to elapse.  */
+      FD_ZERO (&raw mut fds);
+      FD_SET (fd, &raw mut fds);
+
+      /* If this fails due to an IO error, XSync will call the IO
+	 error handler.  */
+      pselect (fd + 1, &raw mut fds, std::ptr::null_mut (), std::ptr::null_mut (),
+	       &raw mut timeout, std::ptr::null_mut ());
+
+      /* Timeout elapsed.  */
+      current_time = current_timespec ();
+      if timespec_cmp (target, current_time) < 0
+	{ return 1; }
+    }
+}
+
+/* C 7049-7066: `x_sync_get_monotonic_time`.  `ckd_sub` is `lib/include/intprops-internal.rs`
+   (PORTING.md P-15); C's ternary is the port's `if`/`else` (PORTING.md 2.1).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+unsafe fn x_sync_get_monotonic_time (dpyinfo: *mut x_display_info,
+				     timestamp: uint_fast64_t) -> uint_fast64_t
+{
+  if (*dpyinfo).server_time_monotonic_p
+    { return timestamp; }
+
+  /* This means we haven't yet initialized the server time offset.  */
+  if !(*dpyinfo).server_time_offset
+    { return 0; }
+
+  /* C: `uint_fast64_t t; return ckd_sub (&t, timestamp, dpyinfo->server_time_offset) ? 0 : t;`
+     - the P-15 `ckd_sub`/`overflowing_sub` pair (docs/ports/token-aliases.tsv 10): the wrapped
+     difference is stored either way and the flag is what the ternary reads.  */
+  let mut t: uint_fast64_t = 0;
+  let (t_, sub_overflow) = timestamp.overflowing_sub ((*dpyinfo).server_time_offset);
+  t = t_;
+  if sub_overflow
+    { return 0; }
+  t
+}
+
+/* C 7068-7079: `x_sync_current_monotonic_time`.  `monotonic_coarse_timespec` is timefns.c's
+   (`include/systime.rs` 81); C's `||` of two ckd_* calls keeps C's two-operand shape.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+unsafe fn x_sync_current_monotonic_time () -> uint_fast64_t
+{
+  let time: timespec = monotonic_coarse_timespec ();
+  /* C: `return ((ckd_mul (&t, time.tv_sec, 1000000) || ckd_add (&t, t, time.tv_nsec / 1000))
+     ? 0 : t);` - the `ckd_mul`/`overflowing_mul` and `ckd_add`/`overflowing_add` pairs
+     (P-15); C's operands are converted to the destination's type, and the destination is only
+     read when neither operation overflowed.  */
+  let mut t: uint_fast64_t = 0;
+  let (t_prod, mul_overflow) = (time.tv_sec as uint_fast64_t).overflowing_mul (1000000);
+  t = t_prod;
+  let (t_sum, add_overflow) = t.overflowing_add (time.tv_nsec as uint_fast64_t / 1000);
+  t = t_sum;
+  if mul_overflow || add_overflow
+    { 0 }
+  else
+    { t }
+}
+
+/* C 7081-7107: `x_sync_note_frame_times`, with C 7101-7106's `#ifdef FRAME_DEBUG` arm carried
+   under `frame_debug`.  C's `event->xclient` is a read of the mirror's *opaque* `XEvent`
+   (`include/xlib.rs` 1181, the 33 owed members of `docs/ports/include-xlib.md`) - the class
+   slices 2, 5 and 8 already carry.  The debug arm's format string is C's concatenation of two
+   `PRIuFAST64` expansions (`lib/include/inttypes.in.rs` 615-619), which this unit's include
+   graph does not reach: the arm is not compiled by any arm of this tree (the ledger records
+   the gap), and the port keeps C's two-part text with the macro that spells it.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+unsafe fn x_sync_note_frame_times (dpyinfo: *mut x_display_info,
+				   f: *mut frame, event: *mut XEvent)
+{
+  let mut low: uint_fast64_t;
+  let mut high: uint_fast64_t;
+  let mut time: uint_fast64_t;
+  let output: *mut x_output;
+
+  low = (*event).xclient.data.l[2];
+  high = (*event).xclient.data.l[3];
+  output = FRAME_X_OUTPUT! (f);
+
+  time = x_sync_get_monotonic_time (dpyinfo, low | (high << 32));
+
+  /* C: `if (!time || !output->temp_frame_time || ckd_sub (&output->last_frame_time, time,
+     output->temp_frame_time)) output->last_frame_time = 0;` - the `ckd_sub` pair (P-15); the
+     store C only performs when both terms are non-zero is inside the guard, so the read of the
+     result and the zeroing keep C's order.  */
+  let mut sub_overflow = false;
+  if time != 0 && (*output).temp_frame_time != 0
+    {
+      let (last_frame_time_, overflow) = time.overflowing_sub ((*output).temp_frame_time);
+      (*output).last_frame_time = last_frame_time_;
+      sub_overflow = overflow;
+    }
+
+  if time == 0 || !(*output).temp_frame_time || sub_overflow
+    { (*output).last_frame_time = 0; }
+
+  #[cfg (feature = "frame_debug")]
+  {
+    let last_frame_ms: uint_fast64_t = (*output).last_frame_time / 1000;
+    fprintf (stderr,
+	     concat! ("Drawing the last frame took: %", PRIuFAST64! (), " ms (%",
+		      PRIuFAST64! (), ")\n").as_ptr () as *const c_char,
+	     last_frame_ms, time);
+  }
+}
+
+/* C 7109-7126: `x_sync_is_frame_drawn_event`.  C's `True`/`False` are `include/xterm.rs` 76/79's
+   constants; the port writes Rust's literals (slice 5's rule) because the token check
+   case-folds.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+unsafe fn x_sync_is_frame_drawn_event (dpy: *mut Display, event: *mut XEvent,
+				       user_data: XPointer) -> Bool
+{
+  let f: *mut frame;
+  let dpyinfo: *mut x_display_info;
+
+  f = user_data as *mut frame;
+  dpyinfo = FRAME_DISPLAY_INFO! (f);
+
+  if (*event).r#type == ClientMessage
+      && ((*event).xclient.message_type
+	  == (*dpyinfo).Xatom_net_wm_frame_drawn)
+      && (*event).xclient.window == FRAME_OUTER_WINDOW! (f)
+    { return true as Bool; }
+
+  return false as Bool;
+}
+
+/* C 7128-7182: `x_sync_wait_for_frame_drawn_event`.  `make_timespec` is `include/systime.rs`
+   52's; `store_frame_param` and `Quse_frame_synchronization` are keyboard.c's and
+   `include/lisp.rs`'s, both reached through this unit's include graph.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+unsafe fn x_sync_wait_for_frame_drawn_event (f: *mut frame)
+{
+  let mut event: XEvent = std::mem::zeroed ();
+  let dpyinfo: *mut x_display_info;
+
+  if !FRAME_X_WAITING_FOR_DRAW! (f)
+      /* The compositing manager can't draw a frame if it is
+	 unmapped.  */
+      || !FRAME_VISIBLE_P! (f)
+    { return; }
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);
+
+  /* Wait for the frame drawn message to arrive.  */
+  if x_if_event (FRAME_X_DISPLAY! (f), &raw mut event,
+		 Some (x_sync_is_frame_drawn_event), f as XPointer,
+		 make_timespec (1, 0)) != 0
+    {
+      /* The first time a draw hangs, treat it as a random fluctuation
+	 on the part of the compositor.  If the next draw continues to
+	 hang, disable frame synchronization.  */
+      if FRAME_X_DRAW_JUST_HUNG! (f)
+	{
+	  fprintf (stderr, c"Warning: compositing manager spent more than 1 second drawing a frame.  Frame synchronization has been disabled\n".as_ptr ());
+	  (*FRAME_X_OUTPUT! (f)).use_vsync_p = false;
+
+	  /* Remove the compositor bypass property from the outer
+	     window.  */
+	  XDeleteProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),
+			   (*dpyinfo).Xatom_net_wm_bypass_compositor);
+
+	  /* Also change the frame parameter to reflect the new
+	     state.  */
+	  store_frame_param (f, Quse_frame_synchronization, Qnil);
+	}
+      else
+	{
+	  fprintf (stderr, c"Warning: compositing manager spent more than 1 second drawing a frame.  Frame synchronization will be disabled if this happens again\n".as_ptr ());
+	  FRAME_X_DRAW_JUST_HUNG! (f) = true;
+	}
+    }
+  else
+    { x_sync_note_frame_times (dpyinfo, f, &raw mut event); }
+
+  FRAME_X_WAITING_FOR_DRAW! (f) = false;
+}
+
+/* C 7184-7247: `x_sync_update_begin`.  C's `eassert` is the prelude's `eassert!`.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+unsafe fn x_sync_update_begin (f: *mut frame)
+{
+  use crate::x11_constants::None;
+
+  let mut value: XSyncValue;
+  let mut add: XSyncValue;
+  let mut overflow: Bool;
+
+  if FRAME_X_EXTENDED_COUNTER! (f) == None as XSyncCounter
+    { return; }
+
+  value = FRAME_X_COUNTER_VALUE! (f);
+
+  if (*FRAME_X_OUTPUT! (f)).ext_sync_end_pending_p
+    {
+      FRAME_X_COUNTER_VALUE! (f)
+	= (*FRAME_X_OUTPUT! (f)).resize_counter_value;
+
+      value = FRAME_X_COUNTER_VALUE! (f);
+
+      if XSyncValueLow32 (value) % 2
+	{
+	  XSyncIntToValue (&raw mut add, 1);
+	  XSyncValueAdd (&raw mut value, value, add, &raw mut overflow);
+
+	  if overflow
+	    { XSyncIntToValue (&raw mut value, 0); }
+	}
+
+      (*FRAME_X_OUTPUT! (f)).ext_sync_end_pending_p = false;
+    }
+
+  /* Since a frame is already in progress, there is no point in
+     continuing.  */
+  if XSyncValueLow32 (value) % 2
+    { return; }
+
+  /* Wait for the last frame to be drawn before drawing this one.  */
+  x_sync_wait_for_frame_drawn_event (f);
+
+  /* Make a note of the time at which we started to draw this
+     frame.  */
+  (*FRAME_X_OUTPUT! (f)).temp_frame_time = x_sync_current_monotonic_time ();
+
+  /* Since Emacs needs a non-urgent redraw, ensure that value % 4 ==
+     1.  Later, add 3 to create the even counter value.  */
+  if XSyncValueLow32 (value) % 4 == 2
+    { XSyncIntToValue (&raw mut add, 3); }
+  else
+    { XSyncIntToValue (&raw mut add, 1); }
+
+  XSyncValueAdd (&raw mut FRAME_X_COUNTER_VALUE! (f),
+		 value, add, &raw mut overflow);
+
+  if overflow
+    { XSyncIntToValue (&raw mut FRAME_X_COUNTER_VALUE! (f), 3); }
+
+  eassert! (XSyncValueLow32 (FRAME_X_COUNTER_VALUE! (f)) % 4 == 1);
+
+  XSyncSetCounter (FRAME_X_DISPLAY! (f),
+		   FRAME_X_EXTENDED_COUNTER! (f),
+		   FRAME_X_COUNTER_VALUE! (f));
+}
+
+/* C 7249-7334: `#ifdef HAVE_XSYNCTRIGGERFENCE` - `x_sync_trigger_fence` (with C 7271-7273's
+   `FRAME_DEBUG` arm), `x_sync_init_fences` and `x_sync_free_fences`.  C's `x_sync_init_fences`
+   has no `static`, so the port keeps it an exported one (PORTING.md 0.2) - the `x_xr_ensure_picture`
+   shape of slice 8.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime", feature = "have_xsynctriggerfence"))]
+unsafe fn x_sync_trigger_fence (f: *mut frame, value: XSyncValue)
+{
+  let mut n: uint_fast64_t;
+  let mut low: uint_fast64_t;
+  let mut high: uint_fast64_t;
+  let mut idx: uint_fast64_t;
+
+  /* Sync fences aren't supported by the X server.  */
+  if (*FRAME_DISPLAY_INFO! (f)).xsync_major < 3
+      || ((*FRAME_DISPLAY_INFO! (f)).xsync_major == 3
+	  && (*FRAME_DISPLAY_INFO! (f)).xsync_minor < 1)
+    { return; }
+
+  low = XSyncValueLow32 (value);
+  high = XSyncValueHigh32 (value);
+
+  n = low | (high << 32);
+  idx = (n / 4) % 2;
+
+  #[cfg (feature = "frame_debug")]
+  { fprintf (stderr, c"Triggering synchronization fence: %lu\n".as_ptr (), idx); }
+
+  XSyncTriggerFence (FRAME_X_DISPLAY! (f),
+		     (*FRAME_X_OUTPUT! (f)).sync_fences[idx as usize]);
+}
+
+/* C 7279-7320: `x_sync_init_fences`.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime", feature = "have_xsynctriggerfence"))]
+#[unsafe(no_mangle)]
+pub unsafe fn x_sync_init_fences (f: *mut frame)
+{
+  use crate::x11_constants::{None, PropModeReplace, XA_CARDINAL};
+
+  let output: *mut x_output;
+  let dpyinfo: *mut x_display_info;
+
+  output = FRAME_X_OUTPUT! (f);
+  dpyinfo = FRAME_DISPLAY_INFO! (f);
+
+  /* Sync fences aren't supported by the X server.  */
+  if (*dpyinfo).xsync_major < 3
+      || ((*dpyinfo).xsync_major == 3
+	  && (*dpyinfo).xsync_minor < 1)
+    { return; }
+
+  /* Suppress errors around XSyncCreateFence requests, since its
+     implementations on certain X servers erroneously reject valid
+     drawables, such as the frame's inner window.  (bug#69762) */
+
+  x_catch_errors ((*dpyinfo).display);
+  (*output).sync_fences[0]
+    = XSyncCreateFence (FRAME_X_DISPLAY! (f),
+			/* The drawable given below is only used to
+			   determine the screen on which the fence is
+			   created.  */
+			FRAME_X_WINDOW! (f),
+			false);
+  (*output).sync_fences[1]
+    = XSyncCreateFence (FRAME_X_DISPLAY! (f),
+			FRAME_X_WINDOW! (f),
+			false);
+  if x_had_errors_p ((*dpyinfo).display)
+    { (*output).sync_fences[1] = None as XSyncFence; (*output).sync_fences[0] = None as XSyncFence; }
+  x_uncatch_errors_after_check ();
+
+  XChangeProperty (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),
+		   (*dpyinfo).Xatom_net_wm_sync_fences, XA_CARDINAL,
+		   32, PropModeReplace,
+		   &raw mut (*output).sync_fences as *mut u8, 2);
+}
+
+/* C 7322-7332: `x_sync_free_fences`.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime", feature = "have_xsynctriggerfence"))]
+unsafe fn x_sync_free_fences (f: *mut frame)
+{
+  use crate::x11_constants::None;
+
+  if (*FRAME_X_OUTPUT! (f)).sync_fences[0] != None as XSyncFence
+    { XSyncDestroyFence (FRAME_X_DISPLAY! (f),
+			 (*FRAME_X_OUTPUT! (f)).sync_fences[0]); }
+
+  if (*FRAME_X_OUTPUT! (f)).sync_fences[1] != None as XSyncFence
+    { XSyncDestroyFence (FRAME_X_DISPLAY! (f),
+			 (*FRAME_X_OUTPUT! (f)).sync_fences[1]); }
+}
+
+/* C 7336-7379: `x_sync_update_finish`, with C 7369-7371's inner `HAVE_XSYNCTRIGGERFENCE` arm
+   gated on its own feature inside the statement list.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+unsafe fn x_sync_update_finish (f: *mut frame)
+{
+  use crate::x11_constants::None;
+
+  let mut value: XSyncValue;
+  let mut add: XSyncValue;
+  let mut overflow: Bool;
+
+  if FRAME_X_EXTENDED_COUNTER! (f) == None as XSyncCounter
+    { return; }
+
+  value = FRAME_X_COUNTER_VALUE! (f);
+
+  if XSyncValueLow32 (value) % 2 == 0
+    { return; }
+
+  if (XSyncValueLow32 (value) % 4) == 1
+    /* This means the frame is non-urgent and should be drawn at the
+       next redraw point.  */
+    { XSyncIntToValue (&raw mut add, 3); }
+  else
+    /* Otherwise, the frame is urgent and should be drawn as soon as
+       possible.  */
+    { XSyncIntToValue (&raw mut add, 1); }
+
+  XSyncValueAdd (&raw mut FRAME_X_COUNTER_VALUE! (f),
+		 value, add, &raw mut overflow);
+
+  if overflow
+    { XSyncIntToValue (&raw mut FRAME_X_COUNTER_VALUE! (f), 0); }
+
+  /* Trigger any sync fences if necessary.  */
+  #[cfg (feature = "have_xsynctriggerfence")]
+  { x_sync_trigger_fence (f, FRAME_X_COUNTER_VALUE! (f)); }
+
+  XSyncSetCounter (FRAME_X_DISPLAY! (f),
+		   FRAME_X_EXTENDED_COUNTER! (f),
+		   FRAME_X_COUNTER_VALUE! (f));
+
+  if (*FRAME_OUTPUT_DATA! (f)).use_vsync_p
+    { FRAME_X_WAITING_FOR_DRAW! (f) = true; }
+}
+
+/* C 7381-7409: `x_sync_handle_frame_drawn`, and C 7410's `#endif`.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+unsafe fn x_sync_handle_frame_drawn (dpyinfo: *mut x_display_info,
+				     message: *mut XEvent, f: *mut frame)
+{
+  let mut value: XSyncValue;
+  let mut counter: XSyncValue;
+
+  if FRAME_OUTER_WINDOW! (f) == (*message).xclient.window
+    {
+      counter = FRAME_X_COUNTER_VALUE! (f);
+
+      /* Check that the counter in the message is the same as the
+	 counter in the frame.  */
+      XSyncIntsToValue (&raw mut value,
+			(*message).xclient.data.l[0] & 0xffffffff,
+			(*message).xclient.data.l[1] & 0xffffffff);
+
+      if XSyncValueEqual (value, counter)
+	{ FRAME_X_WAITING_FOR_DRAW! (f) = false; }
+
+      /* As long as a _NET_WM_FRAME_DRAWN message arrives, we know
+	 that the compositor is still sending events, so avoid timing
+	 out.  */
+      FRAME_X_DRAW_JUST_HUNG! (f) = false;
+    }
+
+  x_sync_note_frame_times (dpyinfo, f, message);
+}
+
+/* ---- C 7412-7524: `x_update_begin`, the two window-border drawing hooks and the divider.  The
+   three are the file gate's own (no checklist box is under a condition), so this is the first
+   text of the slice the plain `have_x_windows` probe reaches.  */
+
+/* C 7412-7438: `x_update_begin`.  C's condition pair is an `#if`-half (`HAVE_XDBE`'s
+   `!FRAME_X_DOUBLE_BUFFERED_P (f)` tests the *call*) so the port carries both arms: with Xdbe
+   the call is guarded, without it C has no `if` at all.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_update_begin (f: *mut frame)
+{
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+	      feature = "have_clock_gettime"))]
+  {
+    /* If F is double-buffered, we can make the entire frame center
+       around XdbeSwapBuffers.  */
+    #[cfg (feature = "have_xdbe")]
+    if !FRAME_X_DOUBLE_BUFFERED_P! (f)
+      { x_sync_update_begin (f); }
+    #[cfg (not (feature = "have_xdbe"))]
+    { x_sync_update_begin (f); }
+  }
+
+  /* The `#else` arm is C's own text: `Nothing to do.` inside C's own comment markers.  */
+
+  #[cfg (feature = "have_xdbe")]
+  {
+    if FRAME_X_DOUBLE_BUFFERED_P! (f)
+      /* The frame is no longer complete, as it is in the midst of an
+	 update.  */
+      { FRAME_X_COMPLETE_P! (f) = false; }
+  }
+}
+
+/* C 7440-7459: `x_draw_vertical_window_border`.  C's `f->output_data.x` is
+   `frame.rs` 35-38's `*mut c_void` member, so each read casts it, the `x_find_topmost_parent`
+   shape (this file, C 6907-6928).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, y1: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
+  let mut face: *mut face;
+
+  face = FACE_FROM_ID_OR_NULL (f, VERTICAL_BORDER_FACE_ID);
+  if !face.is_null ()
+    { XSetForeground (FRAME_X_DISPLAY! (f),
+		      (*((*f).output_data.x as *mut x_output)).normal_gc,
+		      (*face).foreground); }
+
+  #[cfg (feature = "use_cairo")]
+  { x_fill_rectangle (f, (*((*f).output_data.x as *mut x_output)).normal_gc, x, y0, 1, y1 - y0,
+		      false); }
+
+  #[cfg (not (feature = "use_cairo"))]
+  { XDrawLine (FRAME_X_DISPLAY! (f), FRAME_X_DRAWABLE! (f),
+	       (*((*f).output_data.x as *mut x_output)).normal_gc, x, y0, x, y1); }
+}
+
+/* C 7461-7524: `x_draw_window_divider`.  C's three `?:` are the port's `if`/`else`
+   (PORTING.md 2.1), and the repeated `f->output_data.x` reads take the cast of the comment
+   above.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_window_divider (w: *mut window, x0: c_int, x1: c_int, y0: c_int, y1: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
+  let face: *mut face = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_FACE_ID);
+  let face_first: *mut face
+    = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID);
+  let face_last: *mut face
+    = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_LAST_PIXEL_FACE_ID);
+  let mut color: c_ulong = if !face.is_null ()
+    { (*face).foreground } else { FRAME_FOREGROUND_PIXEL (f) };
+  let mut color_first: c_ulong = if !face_first.is_null ()
+    { (*face_first).foreground } else { FRAME_FOREGROUND_PIXEL (f) };
+  let mut color_last: c_ulong = if !face_last.is_null ()
+    { (*face_last).foreground } else { FRAME_FOREGROUND_PIXEL (f) };
+  let display: *mut Display = FRAME_X_DISPLAY! (f);
+  let x: *mut x_output = (*f).output_data.x as *mut x_output;
+
+  if (y1 - y0 > x1 - x0) && (x1 - x0 >= 3)
+    /* A vertical divider, at least three pixels wide: Draw first and
+       last pixels differently.  */
+    {
+      XSetForeground (display, (*x).normal_gc, color_first);
+      x_fill_rectangle (f, (*x).normal_gc,
+			x0, y0, 1, y1 - y0,
+			(*f).borders_respect_alpha_background);
+      XSetForeground (display, (*x).normal_gc, color);
+      x_fill_rectangle (f, (*x).normal_gc,
+			x0 + 1, y0, x1 - x0 - 2, y1 - y0,
+			(*f).borders_respect_alpha_background);
+      XSetForeground (display, (*x).normal_gc, color_last);
+      x_fill_rectangle (f, (*x).normal_gc,
+			x1 - 1, y0, 1, y1 - y0,
+			(*f).borders_respect_alpha_background);
+    }
+  else if (x1 - x0 > y1 - y0) && (y1 - y0 >= 3)
+    /* A horizontal divider, at least three pixels high: Draw first and
+       last pixels differently.  */
+    {
+      XSetForeground (display, (*x).normal_gc, color_first);
+      x_fill_rectangle (f, (*x).normal_gc,
+			x0, y0, x1 - x0, 1,
+			(*f).borders_respect_alpha_background);
+      XSetForeground (display, (*x).normal_gc, color);
+      x_fill_rectangle (f, (*x).normal_gc,
+			x0, y0 + 1, x1 - x0, y1 - y0 - 2,
+			(*f).borders_respect_alpha_background);
+      XSetForeground (display, (*x).normal_gc, color_last);
+      x_fill_rectangle (f, (*x).normal_gc,
+			x0, y1 - 1, x1 - x0, 1,
+			(*f).borders_respect_alpha_background);
+    }
+  else
+    {
+    /* In any other case do not draw the first and last pixels
+       differently.  */
+      XSetForeground (display, (*x).normal_gc, color);
+      x_fill_rectangle (f, (*x).normal_gc,
+			x0, y0, x1 - x0, y1 - y0,
+			(*f).borders_respect_alpha_background);
+    }
+}
+
+/* ---- C 7526-7809: the double-buffered flip, the two update hooks, the internal border and
+   C 7752's `x_after_update_window_line`.  */
+
+/* C 7526-7570: `#ifdef HAVE_XDBE` - `show_back_buffer`.  `XdbeSwapInfo`/`XdbeSwapBuffers`/
+   `XdbeCopied` are `<X11/extensions/Xdbe.h>`'s and have no mirror (the ledger's gap list);
+   C's `sizeof (swap_info)` is `std::mem::size_of_val` (the `sizeof` family of
+   docs/ports/token-aliases.tsv 15) because the type behind it has no Rust name here.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xdbe"))]
+unsafe fn show_back_buffer (f: *mut frame)
+{
+  let mut swap_info: XdbeSwapInfo = std::mem::zeroed ();
+  #[cfg (feature = "use_cairo")]
+  let mut cr: *mut cairo_t;
+
+  if FRAME_X_DOUBLE_BUFFERED_P! (f)
+    {
+      #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+		  feature = "have_clock_gettime"))]
+      {
+	/* Wait for drawing of the previous frame to complete before
+	   displaying this new frame.  */
+	x_sync_wait_for_frame_drawn_event (f);
+
+	/* Begin a new frame.  */
+	x_sync_update_begin (f);
+      }
+
+      #[cfg (feature = "use_cairo")]
+      {
+	cr = FRAME_CR_CONTEXT! (f);
+	if !cr.is_null ()
+	  { cairo_surface_flush (cairo_get_target (cr)); }
+      }
+      memset (&raw mut swap_info as *mut c_void, 0, std::mem::size_of_val (&swap_info));
+      swap_info.swap_window = FRAME_X_WINDOW! (f);
+      swap_info.swap_action = XdbeCopied;
+      XdbeSwapBuffers (FRAME_X_DISPLAY! (f), &raw mut swap_info, 1);
+
+      #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+		  feature = "have_clock_gettime"))]
+      {
+	/* Finish the frame here.  */
+	x_sync_update_finish (f);
+      }
+    }
+
+  FRAME_X_NEED_BUFFER_FLIP! (f) = false;
+}
+
+/* C 7572-7598: `x_flip_and_flush`.  `NILP` is a function (include/blockinput.rs' neighbour,
+   lisp.h's own); C's `#ifdef HAVE_XDBE` run is one gated block.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_flip_and_flush (f: *mut frame)
+{
+  /* Flipping buffers requires a working connection to the X server,
+     which isn't always present if `inhibit-redisplay' is t, since
+     this can be called from the IO error handler.  */
+  if !NILP (Vinhibit_redisplay)
+      /* This has to work for tooltip frames, however, and redisplay
+	 cannot happen when they are being flushed anyway.  (bug#55519) */
+      && !FRAME_TOOLTIP_P (f)
+    { return; }
+
+  block_input ();
+  #[cfg (feature = "have_xdbe")]
+  {
+    if FRAME_X_NEED_BUFFER_FLIP! (f)
+      { show_back_buffer (f); }
+
+    /* The frame is complete again as its contents were just
+       flushed.  */
+    FRAME_X_COMPLETE_P! (f) = true;
+  }
+  x_flush (f);
+  unblock_input ();
+}
+
+/* C 7600-7625: `x_update_end`.  C's two `#if` runs are the cairo/Xdbe pair and the
+   XSYNC+Xdbe pair of `x_update_begin`; both arms are carried (P-51).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_update_end (f: *mut frame)
+{
+  /* Mouse highlight may be displayed again.  */
+  (*MOUSE_HL_INFO! (f)).mouse_face_defer = false;
+
+  #[cfg (all (feature = "use_cairo", feature = "have_xdbe"))]
+  {
+    if !FRAME_X_DOUBLE_BUFFERED_P! (f) && !FRAME_CR_CONTEXT! (f).is_null ()
+      { cairo_surface_flush (cairo_get_target (FRAME_CR_CONTEXT! (f))); }
+  }
+
+  /* If double buffering is disabled, finish the update here.
+     Otherwise, finish the update when the back buffer is next
+     displayed.  */
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+	      feature = "have_clock_gettime"))]
+  {
+    #[cfg (feature = "have_xdbe")]
+    if !FRAME_X_DOUBLE_BUFFERED_P! (f)
+      { x_sync_update_finish (f); }
+    #[cfg (not (feature = "have_xdbe"))]
+    { x_sync_update_finish (f); }
+  }
+}
+
+/* C 7627-7672: `XTframe_up_to_date`.  C 7646-7670's `HAVE_XSYNC` run holds two arms - the plain
+   one and `HAVE_GTK3`'s Gdk frame-clock arm - so the port carries them as the two halves of an
+   `#ifndef HAVE_GTK3`/`#else` pair.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTframe_up_to_date (f: *mut frame)
+{
+  use crate::x11_constants::None;
+
+  eassert! (FRAME_X_P (f));
+  block_input ();
+  FRAME_MOUSE_UPDATE! (f);
+
+  #[cfg (feature = "have_xdbe")]
+  {
+    if !buffer_flipping_blocked_p ()
+	&& FRAME_X_NEED_BUFFER_FLIP! (f)
+      { show_back_buffer (f); }
+
+    /* The frame is now complete, as its contents have been drawn.  */
+    FRAME_X_COMPLETE_P! (f) = true;
+  }
+
+  #[cfg (all (feature = "have_xsync", not (feature = "have_gtk3")))]
+  {
+    if (*FRAME_X_OUTPUT! (f)).sync_end_pending_p
+	&& FRAME_X_BASIC_COUNTER! (f) != None as XSyncCounter
+      {
+	XSyncSetCounter (FRAME_X_DISPLAY! (f),
+			 FRAME_X_BASIC_COUNTER! (f),
+			 (*FRAME_X_OUTPUT! (f)).pending_basic_counter_value);
+	(*FRAME_X_OUTPUT! (f)).sync_end_pending_p = false;
+      }
+  }
+
+  #[cfg (all (feature = "have_xsync", feature = "have_gtk3"))]
+  {
+    if (*FRAME_X_OUTPUT! (f)).xg_sync_end_pending_p
+      {
+	let widget: *mut GtkWidget = FRAME_GTK_OUTER_WIDGET! (f);
+	let window: *mut GdkWindow = gtk_widget_get_window (widget);
+	eassert! (!window.is_null ());
+	let clock: *mut GdkFrameClock = gdk_window_get_frame_clock (window);
+	eassert! (!clock.is_null ());
+
+	gdk_frame_clock_request_phase (clock,
+				       GDK_FRAME_CLOCK_PHASE_AFTER_PAINT);
+	(*FRAME_X_OUTPUT! (f)).xg_sync_end_pending_p = false;
+      }
+  }
+  unblock_input ();
+}
+
+/* C 7674-7685: `#ifdef HAVE_XDBE` - `XTbuffer_flipping_unblocked_hook`.  It is dead in the
+   frozen reading and has no checklist box (HAVE_XDBE is `undef`), so it is carried (P-51) and
+   not demanded.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xdbe"))]
+unsafe fn XTbuffer_flipping_unblocked_hook (f: *mut frame)
+{
+  block_input ();
+
+  if FRAME_X_NEED_BUFFER_FLIP! (f)
+    { show_back_buffer (f); }
+
+  unblock_input ();
+}
+
+/* C 7687-7743: `x_clear_under_internal_border` (C's `/** … */` doc comment is carried as
+   prose).  C's nested `?:` pair is the port's nested `if`/`else` (PORTING.md 2.1) and C's two
+   `NULL`s become `std::ptr::null_mut ()` (the `null` family of token-aliases.tsv 94).  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe fn x_clear_under_internal_border (f: *mut frame)
+{
+  if FRAME_INTERNAL_BORDER_WIDTH (f) > 0
+    {
+      let border: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);
+      let width: c_int = FRAME_PIXEL_WIDTH (f);
+      let height: c_int = FRAME_PIXEL_HEIGHT (f);
+      let margin: c_int = FRAME_TOP_MARGIN_HEIGHT (f);
+      let bottom_margin: c_int = FRAME_BOTTOM_MARGIN_HEIGHT (f);
+      let face_id: c_int = if !FRAME_PARENT_FRAME (f).is_null ()
+	{ if !NILP (Vface_remapping_alist)
+	    { lookup_basic_face (std::ptr::null_mut (), f, CHILD_FRAME_BORDER_FACE_ID) }
+	  else
+	    { CHILD_FRAME_BORDER_FACE_ID } }
+	else
+	{ if !NILP (Vface_remapping_alist)
+	    { lookup_basic_face (std::ptr::null_mut (), f, INTERNAL_BORDER_FACE_ID) }
+	  else
+	    { INTERNAL_BORDER_FACE_ID } };
+      let face: *mut face = FACE_FROM_ID_OR_NULL (f, face_id);
+
+      if !face.is_null ()
+	{
+	  let color: c_ulong = (*face).background;
+	  let display: *mut Display = FRAME_X_DISPLAY! (f);
+	  let gc: GC = (*((*f).output_data.x as *mut x_output)).normal_gc;
+
+	  XSetForeground (display, gc, color);
+	  x_fill_rectangle (f, gc, 0, margin, width, border,
+			    (*f).borders_respect_alpha_background);
+	  x_fill_rectangle (f, gc, 0, 0, border, height,
+			    (*f).borders_respect_alpha_background);
+	  x_fill_rectangle (f, gc, width - border, 0, border, height,
+			    (*f).borders_respect_alpha_background);
+	  x_fill_rectangle (f, gc, 0, height - bottom_margin - border,
+			    width, border,
+			    (*f).borders_respect_alpha_background);
+	  XSetForeground (display, gc, FRAME_FOREGROUND_PIXEL (f));
+	}
+      else
+	{
+	  x_clear_area (f, 0, 0, border, height);
+	  x_clear_area (f, 0, margin, width, border);
+	  x_clear_area (f, width - border, 0, border, height);
+	  x_clear_area (f, 0, height - bottom_margin - border,
+			width, border);
+	}
+    }
+}
+
+/* The one window bit this slice's text names (`w->pseudo_window_p`, C 7756).  `window.rs` has
+   no dispatcher for the nineteen flags yet, so the unit carries the arm it uses - the
+   `dispnew.rs` 390-425 shape, whose `WINDOW_PSEUDO_WINDOW_P_SHIFT` is the mirror's measured
+   position.  The member name stays the macro's first argument, so the ported text keeps C's
+   token (P-80).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! window_bits {
+  (pseudo_window_p, $w:expr) => { ((*($w)).bits >> WINDOW_PSEUDO_WINDOW_P_SHIFT) & 1 != 0 };
+  (pseudo_window_p, $w:expr, $value:expr) =>
+    { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }
+	else { (*($w)).bits & !(1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }; };
+}
+
+/* C 7745-7809: `x_after_update_window_line`.  C's two comma expressions are `if`-condition
+   blocks so that each assignment happens exactly where C's `&&` chain reaches it and exactly
+   once (the `dims_ok` shape of slice 8, `docs/ports/fringe.md` deviation 5 for the other
+   order).  The `#ifdef USE_X_TOOLKIT` half is a gated block, both arms carried (P-51).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_after_update_window_line (w: *mut window, desired_row: *mut glyph_row)
+{
+  eassert! (!w.is_null ());
+
+  if !glyph_row_bits! (mode_line_p, desired_row) && !window_bits! (pseudo_window_p, w)
+    { glyph_row_bits! (redraw_fringe_bitmaps_p, desired_row, true); }
+
+  #[cfg (feature = "use_x_toolkit")]
+  {
+    /* When a window has disappeared, make sure that no rest of
+       full-width rows stays visible in the internal border.  Could
+       check here if updated window is the leftmost/rightmost window,
+       but I guess it's not worth doing since vertically split windows
+       are almost never used, internal border is rarely set, and the
+       overhead is very small.  */
+    {
+      let f: *mut frame;
+      let mut width: c_int;
+      let mut height: c_int;
+
+      if windows_or_buffers_changed != 0
+	  && glyph_row_bits! (full_width_p, desired_row)
+	  && {
+	       f = XFRAME ((*w).frame);
+	       width = FRAME_INTERNAL_BORDER_WIDTH (f);
+	       width != 0
+	     }
+	  && {
+	       height = (*desired_row).visible_height;
+	       height > 0
+	     }
+	{
+	  let y: c_int = WINDOW_TO_FRAME_PIXEL_Y! (w, max (0, (*desired_row).y as isize) as c_int);
+	  let face_id: c_int =
+	    if !FRAME_PARENT_FRAME (f).is_null ()
+	    { if !NILP (Vface_remapping_alist)
+		{ lookup_basic_face (std::ptr::null_mut (), f, CHILD_FRAME_BORDER_FACE_ID) }
+	      else
+		{ CHILD_FRAME_BORDER_FACE_ID } }
+	    else
+	    { if !NILP (Vface_remapping_alist)
+		{ lookup_basic_face (std::ptr::null_mut (), f, INTERNAL_BORDER_FACE_ID) }
+	      else
+		{ INTERNAL_BORDER_FACE_ID } };
+	  let face: *mut face = FACE_FROM_ID_OR_NULL (f, face_id);
+
+	  if !face.is_null ()
+	    {
+	      let color: c_ulong = (*face).background;
+	      let display: *mut Display = FRAME_X_DISPLAY! (f);
+	      let gc: GC = (*((*f).output_data.x as *mut x_output)).normal_gc;
+
+	      XSetForeground (display, gc, color);
+	      x_fill_rectangle (f, gc, 0, y, width, height, true);
+	      x_fill_rectangle (f, gc, FRAME_PIXEL_WIDTH (f) - width, y,
+				width, height, true);
+	      XSetForeground (display, gc, FRAME_FOREGROUND_PIXEL (f));
+	    }
+	  else
+	    {
+	      x_clear_area (f, 0, y, width, height);
+	      x_clear_area (f, FRAME_PIXEL_WIDTH (f) - width, y, width, height);
+	    }
+	}
+    }
+  }
+}
+
+/* ---- C 7811-8062: the premultiplied pixel helper, `x_draw_fringe_bitmap` and C 8052's `Glyph
+   display` banner with the three forward declarations under it.  */
+
+/* C 7811-7849: `#ifndef USE_CAIRO` - `x_premultiply_pixel`.  C's three `*= alpha` are compound
+   assignments of a 16-bit member (the port writes the double conversion the C compiler
+   performs), and C's `(unsigned long) (alpha * 65535)` is the port's `as c_ulong`
+   (PORTING.md 2.1's cast rule).  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_cairo")))]
+unsafe fn x_premultiply_pixel (dpyinfo: *mut x_display_info,
+			       color: *mut XColor, alpha: c_double) -> c_ulong
+{
+  let mut pixel: c_ulong;
+
+  eassert! ((*dpyinfo).alpha_bits != 0);
+
+  /* Multiply the RGB channels.  */
+  (*color).red = ((*color).red as c_double * alpha) as c_ushort;
+  (*color).green = ((*color).green as c_double * alpha) as c_ushort;
+  (*color).blue = ((*color).blue as c_double * alpha) as c_ushort;
+
+  /* First, allocate a fully opaque pixel.  */
+  pixel = x_make_truecolor_pixel (dpyinfo, (*color).red as c_int,
+				  (*color).green as c_int,
+				  (*color).blue as c_int);
+
+  /* Next, erase the alpha component.  */
+  pixel &= !(*dpyinfo).alpha_mask;
+
+  /* And add an alpha channel.  */
+  pixel |= (((alpha * 65535.0) as c_ulong
+	     >> (16 - (*dpyinfo).alpha_bits))
+	    << (*dpyinfo).alpha_offset);
+
+  pixel
+}
+
+/* C 7851-8050: `x_draw_fringe_bitmap`.  Three shapes worth naming: C 7864's `p->bx >= 0` and
+   the two `p->cursor_p`/`p->overlay_p` tests are `bool_bf` members of
+   `draw_fringe_bitmap_params`, so the port reads them with the mirror's
+   `get_cursor_p`/`get_overlay_p` (the `fringe.rs` 991-992 pair's readers; the ledger's
+   `macro-body-notes.tsv` row carries the two member names the C body spells and the port
+   cannot); C 7946's `goto undo_clip` (whose label C puts at 8046, inside the `#else` arm) is
+   the port's labelled `'undo_clip` block; and C 7888/7916's `#ifdef USE_CAIRO`/`#else` pair is
+   two gated blocks, so the `#else` arm's `undo_clip:` label stays inside the arm C puts it in
+   (the arm without the label has no `goto`).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
+				p: *mut draw_fringe_bitmap_params)
+{
+  use crate::x11_constants::{GCBackground, GCForeground};
+
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
+  let display: *mut Display = FRAME_X_DISPLAY! (f);
+  let gc: GC = (*((*f).output_data.x as *mut x_output)).normal_gc;
+  let face: *mut face = (*p).face;
+  let mut clip_rect: XRectangle;
+
+  /* Must clip because of partially visible lines.  */
+  x_clip_to_row (w, row, ANY_AREA, gc, &raw mut clip_rect);
+
+  if (*p).bx >= 0 && !get_overlay_p (p)
+    {
+      /* In case the same realized face is used for fringes and
+	 for something displayed in the text (e.g. face `region' on
+	 mono-displays, the fill style may have been changed to
+	 FillSolid in x_draw_glyph_string_background.  */
+      if (*face).stipple != 0
+	{
+	  XSetFillStyle (display, (*face).gc as GC, FillOpaqueStippled);
+	  x_fill_rectangle (f, (*face).gc as GC, (*p).bx, (*p).by, (*p).nx, (*p).ny,
+			    true);
+	  XSetFillStyle (display, (*face).gc as GC, FillSolid);
+
+	  glyph_row_bits! (stipple_p, row, true);
+	}
+      else
+	{
+	  XSetBackground (display, (*face).gc as GC, (*face).background);
+	  x_clear_rectangle (f, (*face).gc as GC, (*p).bx, (*p).by, (*p).nx, (*p).ny,
+			     true);
+	  XSetForeground (display, (*face).gc as GC, (*face).foreground);
+	}
+    }
+
+  #[cfg (feature = "use_cairo")]
+  {
+    if (*p).which != 0
+	&& (*p).which < max_fringe_bmp
+	&& (*p).which < max_used_fringe_bitmap
+      {
+	let mut gcv: XGCValues = std::mem::zeroed ();
+
+	XGetGCValues (display, gc, GCForeground | GCBackground, &raw mut gcv as *mut c_void);
+	XSetForeground (display, gc,
+			if get_cursor_p (p)
+			{ if get_overlay_p (p) { (*face).background }
+			  else { (*((*f).output_data.x as *mut x_output)).cursor_pixel } }
+			else { (*face).foreground });
+	XSetBackground (display, gc, (*face).background);
+	if (*fringe_bmp.offset ((*p).which as isize)).is_null ()
+	  {
+	    /* This fringe bitmap is known to fringe.c, but lacks the
+	       cairo_pattern_t pattern which shadows that bitmap.  This
+	       is typical to define-fringe-bitmap being called when the
+	       selected frame was not a GUI frame, for example, when
+	       packages that define fringe bitmaps are loaded by a
+	       daemon Emacs.  Create the missing pattern now.  */
+	    gui_define_fringe_bitmap (f, (*p).which);
+	  }
+	x_cr_draw_image (f, gc, *fringe_bmp.offset ((*p).which as isize), 0, (*p).dh,
+			 (*p).wd, (*p).h, (*p).x, (*p).y, get_overlay_p (p));
+	XSetForeground (display, gc, gcv.foreground);
+	XSetBackground (display, gc, gcv.background);
+      }
+  }
+
+  #[cfg (not (feature = "use_cairo"))]
+  'undo_clip: {
+    if (*p).which != 0
+      {
+	let drawable: Drawable = FRAME_X_DRAWABLE! (f);
+	let mut bits: *mut c_char;
+	let mut pixmap: Pixmap;
+	let mut clipmask: Pixmap = None as Pixmap;
+	let depth: c_int = (*FRAME_DISPLAY_INFO! (f)).n_planes;
+	let mut gcv: XGCValues = std::mem::zeroed ();
+	let mut background: c_ulong = (*face).background;
+	let mut bg: XColor = std::mem::zeroed ();
+	#[cfg (feature = "have_xrender")]
+	let mut picture: Picture = None as Picture;
+	#[cfg (feature = "have_xrender")]
+	let mut attrs: XRenderPictureAttributes = std::mem::zeroed ();
+
+	#[cfg (feature = "have_xrender")]
+	{ memset (&raw mut attrs as *mut c_void, 0, std::mem::size_of_val (&attrs)); }
+	let mut image_rect: XRectangle;
+	let mut dest: XRectangle;
+	let mut px: c_int;
+	let mut py: c_int;
+	let mut pwidth: c_int;
+	let mut pheight: c_int;
+
+	/* Intersect the destination rectangle with that of the row.
+	   Setting a clip mask overrides the clip rectangles provided by
+	   x_clip_to_row, so clipping must be performed by hand.  */
+
+	image_rect.x = (*p).x as c_short;
+	image_rect.y = (*p).y as c_short;
+	image_rect.width = (*p).wd as c_ushort;
+	image_rect.height = (*p).h as c_ushort;
+
+	if !gui_intersect_rectangles (&raw mut clip_rect, &raw mut image_rect, &raw mut dest)
+	  /* The entire destination rectangle falls outside the row.  */
+	  { break 'undo_clip; }
+
+	/* Extrapolate the source rectangle from the difference between
+	   the destination and image rectangles.  */
+
+	px = dest.x as c_int - image_rect.x as c_int;
+	py = dest.y as c_int - image_rect.y as c_int;
+	pwidth = dest.width as c_int;
+	pheight = dest.height as c_int;
+
+	if (*p).wd > 8
+	  { bits = (*p).bits.offset ((*p).dh as isize) as *mut c_char; }
+	else
+	  { bits = ((*p).bits as *mut c_char).offset ((*p).dh as isize); }
+
+	if (*FRAME_DISPLAY_INFO! (f)).alpha_bits != 0
+	    && (*f).alpha_background < 1.0
+	  {
+	    /* Extend the background color with an alpha channel
+	       according to f->alpha_background.  */
+	    bg.pixel = background;
+	    x_query_colors (f, &raw mut bg, 1);
+
+	    background
+	      = x_premultiply_pixel (FRAME_DISPLAY_INFO! (f),
+				     &raw mut bg,
+				     (*f).alpha_background);
+	  }
+
+	/* Draw the bitmap.  I believe these small pixmaps can be cached
+	   by the server.  */
+	pixmap = XCreatePixmapFromBitmapData (display, drawable, bits, (*p).wd, (*p).h,
+					      if get_cursor_p (p)
+					      { if get_overlay_p (p) { (*face).background }
+						else { (*((*f).output_data.x as *mut x_output)).cursor_pixel } }
+					      else { (*face).foreground },
+					      background, depth);
+
+	#[cfg (feature = "have_xrender")]
+	{
+	  if !FRAME_X_PICTURE_FORMAT! (f).is_null ()
+	      && { x_xr_ensure_picture (f); !FRAME_X_PICTURE! (f).is_null () }
+	    { picture = XRenderCreatePicture (display, pixmap,
+					      FRAME_X_PICTURE_FORMAT! (f),
+					      0, &raw mut attrs); }
+	}
+
+	if get_overlay_p (p)
+	  {
+	    clipmask = XCreatePixmapFromBitmapData (display,
+						    (*FRAME_DISPLAY_INFO! (f)).root_window,
+						    bits, (*p).wd, (*p).h,
+						    1, 0, 1);
+
+	    #[cfg (feature = "have_xrender")]
+	    {
+	      if picture != None as Picture
+		{
+		  attrs.clip_mask = clipmask;
+		  attrs.clip_x_origin = (*p).x;
+		  attrs.clip_y_origin = (*p).y;
+
+		  XRenderChangePicture (display, FRAME_X_PICTURE! (f),
+					CPClipMask | CPClipXOrigin | CPClipYOrigin,
+					&raw mut attrs);
+		}
+	      else
+		{
+		  gcv.clip_mask = clipmask;
+		  gcv.clip_x_origin = (*p).x;
+		  gcv.clip_y_origin = (*p).y;
+		  XChangeGC (display, gc, GCClipMask | GCClipXOrigin | GCClipYOrigin,
+			     &raw mut gcv);
+		}
+	    }
+	    /* C's `#else` half: without HAVE_XRENDER the statement is the else body itself, so
+	       the port carries it as this arm's text (P-51).  */
+	    #[cfg (not (feature = "have_xrender"))]
+	    {
+	      gcv.clip_mask = clipmask;
+	      gcv.clip_x_origin = (*p).x;
+	      gcv.clip_y_origin = (*p).y;
+	      XChangeGC (display, gc, GCClipMask | GCClipXOrigin | GCClipYOrigin, &raw mut gcv);
+	    }
+	  }
+
+	#[cfg (feature = "have_xrender")]
+	{
+	  if picture != None as Picture
+	    {
+	      x_xr_apply_ext_clip (f, gc);
+	      XRenderComposite (display, PictOpSrc, picture,
+				None as Picture, FRAME_X_PICTURE! (f),
+				px, py, px, py, dest.x as c_int, dest.y as c_int,
+				pwidth, pheight);
+	      x_xr_reset_ext_clip (f);
+
+	      XRenderFreePicture (display, picture);
+	    }
+	  else
+	    { XCopyArea (display, pixmap, drawable, gc, px, py,
+			 pwidth, pheight, dest.x as c_int, dest.y as c_int); }
+	}
+	#[cfg (not (feature = "have_xrender"))]
+	{ XCopyArea (display, pixmap, drawable, gc, px, py,
+		     pwidth, pheight, dest.x as c_int, dest.y as c_int); }
+	XFreePixmap (display, pixmap);
+
+	if get_overlay_p (p)
+	  {
+	    gcv.clip_mask = 0 as Pixmap;
+	    XChangeGC (display, gc, GCClipMask, &raw mut gcv);
+	    XFreePixmap (display, clipmask);
+	  }
+      }
+  }
+
+  x_reset_clip_rectangles (f, gc);
+}
+
+/* C 8052-8062: the `Glyph display` section banner (a comment in C, carried as one here) and
+   C 8056-8062's three forward declarations - `x_alloc_lighter_color` (defined at C 9591),
+   `x_scroll_bar_clear` (C 17777) and, inside `#ifdef GLYPH_DEBUG`, `x_check_font` (C 30433).
+   PORTING.md has no item for a prototype (C 891's `x_push_selection_request` was slice 1's
+   precedent): the definitions are later slices, and the one *call* C 8347 makes through the
+   debug guard is kept as C's `IF_DEBUG (x_check_font (…))`.  */
+
+
+/* ---- C 8064-8307: the last-user-time bookkeeping and its three helpers.  */
+
+/* C 8064-8176: `x_display_set_last_user_time`.  The seven `ckd_*` calls are written as the
+   P-15 `overflowing_*` pairs *inside* C's `&&`/`||` chains, so each store happens exactly where
+   C's short-circuit puts it (the block-expression shape of `callproc.rs` 1859/`editfns.rs`
+   2468); C's `#ifndef USE_GTK` and `ENABLE_CHECKING` halves are gated, both arms carried.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_display_set_last_user_time (dpyinfo: *mut x_display_info, mut time: Time,
+					send_event: bool, set_property: bool)
+{
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+	      feature = "have_clock_gettime"))]
+  let mut monotonic_time: uint_fast64_t;
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+	      feature = "have_clock_gettime"))]
+  let mut monotonic_ms: uint_fast64_t;
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+	      feature = "have_clock_gettime"))]
+  let mut diff_ms: int_fast64_t;
+
+  #[cfg (not (feature = "use_gtk"))]
+  let mut focus_frame: *mut frame;
+  #[cfg (not (feature = "use_gtk"))]
+  let old_time: Time;
+
+  #[cfg (not (feature = "use_gtk"))]
+  {
+    focus_frame = (*dpyinfo).x_focus_frame;
+    old_time = (*dpyinfo).last_user_time;
+  }
+
+  #[cfg (feature = "enable_checking")]
+  { eassert! (time <= X_ULONG_MAX); }
+
+  if !send_event || time > (*dpyinfo).last_user_time
+    { (*dpyinfo).last_user_time = time; }
+
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+	      feature = "have_clock_gettime"))]
+  {
+    if !send_event
+      {
+	/* See if the current CLOCK_MONOTONIC time is reasonably close
+	   to the X server time.  */
+	monotonic_time = x_sync_current_monotonic_time ();
+	monotonic_ms = monotonic_time / 1000;
+
+	let mut server_time_monotonic_p = false;
+	if monotonic_time != 0
+	  {
+	    let (diff_ms_, sub_overflow)
+	      = (time as int_fast64_t).overflowing_sub (monotonic_ms as int_fast64_t);
+	    diff_ms = diff_ms_;
+	    server_time_monotonic_p
+	      = !sub_overflow
+		&& -500 < diff_ms && diff_ms < 500;
+	  }
+	(*dpyinfo).server_time_monotonic_p = server_time_monotonic_p;
+
+	if !(*dpyinfo).server_time_monotonic_p
+	  {
+	    /* Compute an offset that can be subtracted from the server
+	       time to estimate the monotonic time on the X server.  */
+
+	    if monotonic_time == 0
+		|| {
+		     let (offset_, mul_overflow)
+		       = (time as int_fast64_t).overflowing_mul (1000);
+		     (*dpyinfo).server_time_offset = offset_;
+		     mul_overflow
+		   }
+		|| {
+		     let (offset_, sub_overflow)
+		       = (*dpyinfo).server_time_offset
+			   .overflowing_sub (monotonic_time as int_fast64_t);
+		     (*dpyinfo).server_time_offset = offset_;
+		     sub_overflow
+		   }
+	      { (*dpyinfo).server_time_offset = 0; }
+
+	    /* If the server time is reasonably close to the monotonic
+	       time after the latter is truncated to CARD32, simply make
+	       the offset that between the server time in ms and the
+	       actual time in ms.  */
+
+	    monotonic_ms = monotonic_ms & 0xffffffff;
+	    let (diff_ms_, sub_overflow)
+	      = (time as int_fast64_t).overflowing_sub (monotonic_ms as int_fast64_t);
+	    diff_ms = diff_ms_;
+	    if !sub_overflow && -500 < diff_ms && diff_ms < 500
+	      {
+		/* The server timestamp overflowed.  Make the time
+		   offset exactly how much it overflowed by.  */
+
+		if {
+		     let (offset_, overflow)
+		       = ((monotonic_time / 1000) as int_fast64_t)
+			   .overflowing_sub (monotonic_ms as int_fast64_t);
+		     (*dpyinfo).server_time_offset = offset_;
+		     overflow
+		   }
+		    || {
+			 let (offset_, overflow)
+			   = (*dpyinfo).server_time_offset.overflowing_mul (1000);
+			 (*dpyinfo).server_time_offset = offset_;
+			 overflow
+		       }
+		    || {
+			 let (offset_, overflow)
+			   = (0 as int_fast64_t)
+			       .overflowing_sub ((*dpyinfo).server_time_offset);
+			 (*dpyinfo).server_time_offset = offset_;
+			 overflow
+		       }
+		  { (*dpyinfo).server_time_offset = 0; }
+	      }
+	  }
+      }
+  }
+
+  #[cfg (not (feature = "use_gtk"))]
+  {
+    /* Don't waste bandwidth if the time hasn't actually changed.  */
+    if !focus_frame.is_null () && old_time != (*dpyinfo).last_user_time
+	&& set_property
+      {
+	time = (*dpyinfo).last_user_time;
+
+	while !FRAME_PARENT_FRAME (focus_frame).is_null ()
+	  { focus_frame = FRAME_PARENT_FRAME (focus_frame); }
+
+	if (*(FRAME_X_OUTPUT! (focus_frame) as *mut x_output)).user_time_window
+	    != None as Window
+	  {
+	    XChangeProperty ((*dpyinfo).display,
+			     (*(FRAME_X_OUTPUT! (focus_frame) as *mut x_output)).user_time_window,
+			     (*dpyinfo).Xatom_net_wm_user_time,
+			     XA_CARDINAL, 32, PropModeReplace,
+			     &raw mut time as *mut u8, 1);
+	  }
+      }
+  }
+}
+
+/* C 8178-8196: `#ifdef USE_GTK` - `x_set_gtk_user_time`.  `gtk_widget_get_window` and
+   `gdk_x11_window_set_user_time` are GTK's own (no mirror: the ledger's gap list), so the arm
+   names them as C does.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe fn x_set_gtk_user_time (f: *mut frame, time: Time)
+{
+  let widget: *mut GtkWidget;
+  let window: *mut GdkWindow;
+
+  widget = FRAME_GTK_OUTER_WIDGET! (f);
+  window = gtk_widget_get_window (widget);
+
+  /* This widget isn't realized yet.  */
+  if window.is_null ()
+    { return; }
+
+  gdk_x11_window_set_user_time (window, time);
+}
+
+/* C 8198-8218: `#if !defined USE_GTK || defined HAVE_XFIXES` - `x_create_special_window`.
+   C's `attrs` is a one-member compound literal (`{ .override_redirect = True }`), which the
+   port writes as the zeroed record plus the store (the `x_premultiply`… the `xmenu.rs` 3854
+   shape).  */
+#[cfg (all (feature = "have_x_windows",
+	    any (not (feature = "use_gtk"), feature = "have_xfixes")))]
+unsafe fn x_create_special_window (dpyinfo: *mut x_display_info,
+				   parent_window: Window) -> Window
+{
+  use crate::x11_constants::{CopyFromParent, CWOverrideRedirect, InputOnly};
+
+  let mut attrs: XSetWindowAttributes = std::mem::zeroed ();
+
+  attrs.override_redirect = true as Bool;
+
+  return XCreateWindow ((*dpyinfo).display, parent_window,
+			-1, -1, 1, 1, 0, CopyFromParent, InputOnly,
+			CopyFromParent, CWOverrideRedirect, &raw mut attrs);
+}
+
+/* C 8220-8300: `#ifndef USE_GTK` - `x_update_frame_user_time_window`.  `x_wm_supports` is
+   xterm.h's (its mirror declares it), `Vx_no_window_manager` is lisp.h's; C's
+   `&(Time) {0}` compound literal is a bound local (the `xmenu.rs` 3854 shape).  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk")))]
+unsafe fn x_update_frame_user_time_window (f: *mut frame)
+{
+  use crate::x11_constants::{None, PropModeReplace, XA_CARDINAL, XA_WINDOW};
+
+  let output: *mut x_output;
+  let dpyinfo: *mut x_display_info;
+
+  output = FRAME_X_OUTPUT! (f) as *mut x_output;
+  dpyinfo = FRAME_DISPLAY_INFO! (f);
+
+  if !NILP (Vx_no_window_manager)
+      || !x_wm_supports (f, (*dpyinfo).Xatom_net_wm_user_time)
+    {
+      if (*output).user_time_window != None as Window
+	  && (*output).user_time_window != FRAME_OUTER_WINDOW! (f)
+	{
+	  XDestroyWindow ((*dpyinfo).display, (*output).user_time_window);
+	  XDeleteProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),
+			   (*dpyinfo).Xatom_net_wm_user_time_window);
+	}
+      else
+	{ XDeleteProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),
+			   (*dpyinfo).Xatom_net_wm_user_time); }
+
+      (*output).user_time_window = None as Window;
+      return;
+    }
+
+  if !x_wm_supports (f, (*dpyinfo).Xatom_net_wm_user_time_window)
+    {
+      if (*output).user_time_window == None as Window
+	{ (*output).user_time_window = FRAME_OUTER_WINDOW! (f); }
+      else if (*output).user_time_window != FRAME_OUTER_WINDOW! (f)
+	{
+	  XDestroyWindow ((*dpyinfo).display,
+			  (*output).user_time_window);
+	  XDeleteProperty ((*dpyinfo).display,
+			   FRAME_OUTER_WINDOW! (f),
+			   (*dpyinfo).Xatom_net_wm_user_time_window);
+	  (*output).user_time_window = FRAME_OUTER_WINDOW! (f);
+	}
+    }
+  else
+    {
+      if (*output).user_time_window == FRAME_OUTER_WINDOW! (f)
+	  || (*output).user_time_window == None as Window
+	{
+	  /* Create a "user time" window that is used to report user
+	     activity on a given frame.  This is used in preference to
+	     _NET_WM_USER_TIME, as using a separate window allows the
+	     window manager to express interest in other properties
+	     while only reading the user time when necessary, thereby
+	     improving battery life by not involving the window
+	     manager in each key press.  */
+
+	  (*output).user_time_window
+	    = x_create_special_window (dpyinfo, FRAME_X_WINDOW! (f));
+
+	  if FRAME_NO_FOCUS_ON_MAP (f) != 0
+	    /* If the user time is zero, which is the case with
+	       `no-focus-on-map', then preserve that value by copying
+	       it to the new user time window.  */
+	    {
+	      /* C's `&(Time) {0}` is a compound literal; the port binds the value and passes
+		 its address (the `xmenu.rs` 3854 shape).  */
+	      let mut user_time_zero: Time = 0;
+	      XChangeProperty ((*dpyinfo).display, (*output).user_time_window,
+			       (*dpyinfo).Xatom_net_wm_user_time, XA_CARDINAL, 32,
+			       PropModeReplace, &raw mut user_time_zero as *mut u8, 1);
+	    }
+
+	  XDeleteProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),
+			   (*dpyinfo).Xatom_net_wm_user_time);
+	  XChangeProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),
+			   (*dpyinfo).Xatom_net_wm_user_time_window,
+			   XA_WINDOW, 32, PropModeReplace,
+			   &raw mut (*output).user_time_window as *mut u8, 1);
+	}
+    }
+}
+
+/* C 8302-8307: `x_set_last_user_time_from_lisp`.  C's definition carries no `static`, so the
+   port keeps it exported (PORTING.md 0.2).  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe fn x_set_last_user_time_from_lisp (dpyinfo: *mut x_display_info,
+					      time: Time)
+{
+  x_display_set_last_user_time (dpyinfo, time, true, true);
+}
+
+/* The two records and the bit accessor this slice's glyph-string text needs, which
+   `include/dispextern.rs` keeps behind `have_window_system` (`glyph_string`, `bits` and the
+   `glyph_string_bits!` family) and `dispextern_face_records` (`draw_fringe_bitmap_params`):
+   this unit is compiled with the file gate only, so it carries its own live copies - the
+   `term.rs` 322-345/`dispnew.rs` 3600 precedent and status 3.220's ruling.  The
+   `draw_fringe_bitmap_params` copy repeats the mirror's measured offsets (its `abi_shim.rs`
+   probe: `sizeof` 64, `flags`@52, `face`@56, and the two `bool_bf` bits in that byte); the
+   `glyph_string` copy is C's declaration order with **no** asserts, because the mirror's own
+   note records the record's layout as unmeasured on this target - the ledger repeats that, and
+   the unit's copy is a temporary until the record group is reachable (its Owed list).  */
+
+/// C dispextern.h 2215-2240: `struct draw_fringe_bitmap_params`.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct draw_fringe_bitmap_params
+{
+  pub which: c_int,                 // offset 0
+  pub bits: *mut c_ushort,          // offset 8
+  pub wd: c_int,                    // offset 16
+  pub h: c_int,                     // offset 20
+  pub dh: c_int,                    // offset 24
+  pub x: c_int,                     // offset 28
+  pub y: c_int,                     // offset 32
+  pub bx: c_int,                    // offset 36
+  pub nx: c_int,                    // offset 40
+  pub by: c_int,                    // offset 44
+  pub ny: c_int,                    // offset 48
+  /// C 2230-2231's two `bool_bf : 1` members, stored as one byte (PORTING.md 1.3/P-80).
+  pub flags: u8,                    // offset 52
+  pub face: *mut face,              // offset 56
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = {
+  core::assert! (std::mem::size_of::<draw_fringe_bitmap_params> () == 64);
+  core::assert! (std::mem::align_of::<draw_fringe_bitmap_params> () == 8);
+  core::assert! (std::mem::offset_of! (draw_fringe_bitmap_params, flags) == 52);
+  core::assert! (std::mem::offset_of! (draw_fringe_bitmap_params, face) == 56);
+};
+/// C: `bool_bf cursor_p : 1;` (dispextern.h 2230) - bit 0 of the byte at 52.
+#[cfg (feature = "have_x_windows")]
+pub const DRAW_FRINGE_BITMAP_CURSOR_P: u8 = 1 << 0;
+/// C: `bool_bf overlay_p : 1;` (dispextern.h 2231) - bit 1 of the byte at 52.
+#[cfg (feature = "have_x_windows")]
+pub const DRAW_FRINGE_BITMAP_OVERLAY_P: u8 = 1 << 1;
+#[cfg (feature = "have_x_windows")]
+#[inline(always)]
+pub unsafe fn get_cursor_p (p: *const draw_fringe_bitmap_params) -> bool
+{ ((*p).flags & DRAW_FRINGE_BITMAP_CURSOR_P) != 0 }
+#[cfg (feature = "have_x_windows")]
+#[inline(always)]
+pub unsafe fn set_cursor_p (p: *mut draw_fringe_bitmap_params, value: bool)
+{
+  if value { (*p).flags |= DRAW_FRINGE_BITMAP_CURSOR_P }
+  else { (*p).flags &= !DRAW_FRINGE_BITMAP_CURSOR_P }
+}
+#[cfg (feature = "have_x_windows")]
+#[inline(always)]
+pub unsafe fn get_overlay_p (p: *const draw_fringe_bitmap_params) -> bool
+{ ((*p).flags & DRAW_FRINGE_BITMAP_OVERLAY_P) != 0 }
+#[cfg (feature = "have_x_windows")]
+#[inline(always)]
+pub unsafe fn set_overlay_p (p: *mut draw_fringe_bitmap_params, value: bool)
+{
+  if value { (*p).flags |= DRAW_FRINGE_BITMAP_OVERLAY_P }
+  else { (*p).flags &= !DRAW_FRINGE_BITMAP_OVERLAY_P }
+}
+
+/// C dispextern.h 1363-1506: `struct glyph_string`, in C's declaration order (the fields this
+/// unit's text reads are `x`/`y`/`ybase`/`width`/`background_width`/`height`/the two
+/// overhangs/`f`/`w`/`row`/`char2b`/`nchars`/`hl`/`face`/`font`/`cmp`/`cmp_id`/`cmp_from`/
+/// `cmp_to`/`bits`/`gc`/`first_glyph`/`img`/`slice`/`clip`/`num_clips`; the rest keep C's
+/// place in the order).
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct glyph_string
+{
+  pub x: c_int,                        // C 1365
+  pub y: c_int,                        // C 1368
+  pub ybase: c_int,
+  pub width: c_int,                    // C 1371
+  pub background_width: c_int,         // C 1374
+  pub height: c_int,                   // C 1379
+  pub left_overhang: c_int,            // C 1384
+  pub right_overhang: c_int,           // C 1389
+  pub f: *mut frame,                   // C 1392
+  pub w: *mut window,                  // C 1395
+  pub row: *mut glyph_row,             // C 1399
+  pub area: glyph_row_area,            // C 1402
+  pub char2b: *mut c_uint,             // C 1407
+  pub nchars: c_int,                   // C 1408
+  pub hl: draw_glyphs_face,            // C 1411
+  pub face: *mut c_void,               /// C: `struct face *face;` (dispextern.h 1414)
+  pub font: *mut font,                 // C 1417
+  pub cmp: *mut c_void,                /// C: `struct composition *cmp;` (composite.h 148)
+  pub cmp_id: ptrdiff_t,               // C 1424
+  pub cmp_from: c_int,                 // C 1427
+  pub cmp_to: c_int,
+  pub bits: u32,                       // C 1431-1461: the six `bool_bf`/`unsigned` members
+  pub gc: *mut c_void,                 /// C: `GC gc;` (dispextern.h 1465) - untyped (P-72)
+  pub first_glyph: *mut glyph,         // C 1480
+  pub img: *mut image,                 // C 1483
+  pub xwidget: *mut c_void,            /// C: `struct xwidget *xwidget;` (dispextern.h 1486)
+  pub slice: glyph_slice,              // C 1489
+  pub clip_head: *mut glyph_string,    // C 1494
+  pub clip_tail: *mut glyph_string,
+  pub clip: [c_int; 2],                /// C: `NativeRectangle clip[2];` (dispextern.h 1497)
+  pub num_clips: c_int,                // C 1500
+  pub underline_position: c_int,       // C 1502
+  pub underline_thickness: c_int,      // C 1504
+  pub next: *mut glyph_string,         // C 1506
+  pub prev: *mut glyph_string,
+}
+
+/* `glyph_string::bits`, C 1431-1461's six members at the positions `include/dispextern.rs`
+   1760-1780 documents (four `bool_bf` in bits 0-3, `unsigned for_overlaps : 3` in bits 4-6 and
+   one more `bool_bf` in bit 7); the member name stays the macro's first argument (P-80).  */
+#[cfg (feature = "have_x_windows")]
+pub const GLYPH_STRING_EXTENDS_TO_END_OF_LINE_P: u32 = 1 << 0;   // C 1431
+#[cfg (feature = "have_x_windows")]
+pub const GLYPH_STRING_BACKGROUND_FILLED_P: u32 = 1 << 1;        // C 1434
+#[cfg (feature = "have_x_windows")]
+pub const GLYPH_STRING_FONT_NOT_FOUND_P: u32 = 1 << 2;           // C 1439
+#[cfg (feature = "have_x_windows")]
+pub const GLYPH_STRING_STIPPLED_P: u32 = 1 << 3;                 // C 1443
+#[cfg (feature = "have_x_windows")]
+pub const GLYPH_STRING_FOR_OVERLAPS_SHIFT: u32 = 4;              // C 1456
+#[cfg (feature = "have_x_windows")]
+pub const GLYPH_STRING_FOR_OVERLAPS_WIDTH: u32 = 3;              // C 1456
+#[cfg (feature = "have_x_windows")]
+pub const GLYPH_STRING_PADDING_P: u32 = 1 << 7;                  // C 1461
+#[cfg (feature = "have_x_windows")]
+macro_rules! glyph_string_bits {
+  (extends_to_end_of_line_p, $s:expr) =>
+    { (($s).bits & GLYPH_STRING_EXTENDS_TO_END_OF_LINE_P) != 0 };
+  (extends_to_end_of_line_p, $s:expr, $value:expr) => {{
+    if $value { ($s).bits |= GLYPH_STRING_EXTENDS_TO_END_OF_LINE_P }
+    else { ($s).bits &= ! GLYPH_STRING_EXTENDS_TO_END_OF_LINE_P } }};
+  (background_filled_p, $s:expr) =>
+    { (($s).bits & GLYPH_STRING_BACKGROUND_FILLED_P) != 0 };
+  (background_filled_p, $s:expr, $value:expr) => {{
+    if $value { ($s).bits |= GLYPH_STRING_BACKGROUND_FILLED_P }
+    else { ($s).bits &= ! GLYPH_STRING_BACKGROUND_FILLED_P } }};
+  (font_not_found_p, $s:expr) => { (($s).bits & GLYPH_STRING_FONT_NOT_FOUND_P) != 0 };
+  (font_not_found_p, $s:expr, $value:expr) => {{
+    if $value { ($s).bits |= GLYPH_STRING_FONT_NOT_FOUND_P }
+    else { ($s).bits &= ! GLYPH_STRING_FONT_NOT_FOUND_P } }};
+  (stippled_p, $s:expr) => { (($s).bits & GLYPH_STRING_STIPPLED_P) != 0 };
+  (stippled_p, $s:expr, $value:expr) => {{
+    if $value { ($s).bits |= GLYPH_STRING_STIPPLED_P }
+    else { ($s).bits &= ! GLYPH_STRING_STIPPLED_P } }};
+  (for_overlaps, $s:expr) =>
+    { ((($s).bits >> GLYPH_STRING_FOR_OVERLAPS_SHIFT)
+       & ((1 << GLYPH_STRING_FOR_OVERLAPS_WIDTH) - 1)) as c_int };
+  (for_overlaps, $s:expr, $value:expr) => {{
+    let mask: u32 = (1 << GLYPH_STRING_FOR_OVERLAPS_WIDTH) - 1;
+    ($s).bits = (($s).bits & ! (mask << GLYPH_STRING_FOR_OVERLAPS_SHIFT))
+      | (((($value) as u32) & mask) << GLYPH_STRING_FOR_OVERLAPS_SHIFT); }};
+  (padding_p, $s:expr) => { (($s).bits & GLYPH_STRING_PADDING_P) != 0 };
+  (padding_p, $s:expr, $value:expr) => {{
+    if $value { ($s).bits |= GLYPH_STRING_PADDING_P }
+    else { ($s).bits &= ! GLYPH_STRING_PADDING_P } }};
+}
+
+/* ---- C 8309-8560: the glyph-string GC helpers, the two clipping setters, the overhang
+   computation and C 8530's two small clear helpers.  */
+
+/* The `XGCValues` record this group reads and writes.  `<X11/Xlib.h>` 177-203's record is not
+   in `include/xlib.rs` (that mirror keeps `XGCValues` in a comment only, because the one
+   prototype it carries takes an untyped pointer), so the unit declares it at the use site - the
+   `src/xftfont.rs` 132-171 shape, whose clang readings against this machine's `xorgproto`/
+   `libX11` headers (`/opt/homebrew/include`) are repeated here: `sizeof` **128**, align **8**,
+   `foreground`@16, `background`@24, `line_width`@32, `graphics_exposures`@72.  The ledger's
+   Owed list asks `include/xlib.rs` to take it.  */
+/// C: Xlib.h 177-203: `typedef struct { int function; unsigned long plane_mask; unsigned long
+/// foreground; unsigned long background; int line_width; … } XGCValues;`
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XGCValues
+{
+  pub function: c_int,                          // Xlib.h 178
+  pub plane_mask: c_ulong,                      // Xlib.h 179
+  pub foreground: c_ulong,                      // Xlib.h 180
+  pub background: c_ulong,                      // Xlib.h 181
+  pub line_width: c_int,                        // Xlib.h 182
+  pub line_style: c_int,                        // Xlib.h 183
+  pub cap_style: c_int,                         // Xlib.h 184-185
+  pub join_style: c_int,                        // Xlib.h 186
+  pub fill_style: c_int,                        // Xlib.h 187-188
+  pub fill_rule: c_int,                         // Xlib.h 189
+  pub arc_mode: c_int,                          // Xlib.h 190
+  pub tile: Pixmap,                             // Xlib.h 191
+  pub stipple: Pixmap,                          // Xlib.h 192
+  pub ts_x_origin: c_int,                       // Xlib.h 193
+  pub ts_y_origin: c_int,                       // Xlib.h 194
+  pub font: Font,                               // Xlib.h 195
+  pub subwindow_mode: c_int,                    // Xlib.h 196
+  pub graphics_exposures: Bool,                 // Xlib.h 197
+  pub clip_x_origin: c_int,                     // Xlib.h 198
+  pub clip_y_origin: c_int,                     // Xlib.h 199
+  pub clip_mask: Pixmap,                        // Xlib.h 200
+  pub dash_offset: c_int,                       // Xlib.h 201
+  pub dashes: c_char,                           // Xlib.h 202
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = {
+  core::assert! (std::mem::size_of::<XGCValues> () == 128);
+  core::assert! (std::mem::align_of::<XGCValues> () == 8);
+  core::assert! (std::mem::offset_of! (XGCValues, foreground) == 16);
+  core::assert! (std::mem::offset_of! (XGCValues, background) == 24);
+  core::assert! (std::mem::offset_of! (XGCValues, line_width) == 32);
+};
+
+/* The two dispextern.h prototypes this group calls and no mirror in this graph carries, each
+   declared at its use site with C's own line (PORTING.md P-55; the `fringe.rs` 846-850 and
+   `androidfont.rs` 111-113 shape).  `NativeRectangle` is `XRectangle` on the X11 arm.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: dispextern.h 3661-3662: `int get_glyph_string_clip_rects (struct glyph_string *,
+  ///                                        NativeRectangle *, int);`
+  pub fn get_glyph_string_clip_rects (s: *mut glyph_string, rects: *mut XRectangle, n: c_int)
+    -> c_int;
+  /// C: dispextern.h 3810: `void prepare_face_for_display (struct frame *, struct face *);`
+  pub fn prepare_face_for_display (f: *mut frame, face: *mut face);
+}
+
+/* C 8310-8363: `x_set_cursor_gc`.  `s->face` is the mirror's `*mut c_void` member, so the port
+   binds it with C's cast (the `w32term.rs` 1869 shape); `s->cmp` is C's `struct composition *`
+   and the null test is the `null` family of token-aliases.tsv 94; C's `f->output_data.x->…`
+   reads go through the same cast; and the two mask constants are `c_int`s, so `mask`'s
+   `unsigned long` is C's one conversion written out (`as c_ulong`).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_cursor_gc (s: *mut glyph_string)
+{
+  use crate::x11_constants::{GCBackground, GCForeground};
+
+  let face: *mut face = (*s).face as *mut face;
+
+  if (*s).font == FRAME_FONT! ((*s).f)
+      && (*face).background == FRAME_BACKGROUND_PIXEL ((*s).f)
+      && (*face).foreground == FRAME_FOREGROUND_PIXEL ((*s).f)
+      && (*s).cmp.is_null ()
+    { (*s).gc = (*( (*(*s).f).output_data.x as *mut x_output )).cursor_gc as *mut c_void; }
+  else
+    {
+      /* Cursor on non-default face: must merge.  */
+      let mut xgcv: XGCValues = std::mem::zeroed ();
+      let mut mask: c_ulong;
+      let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+
+      xgcv.background = (*( (*(*s).f).output_data.x as *mut x_output )).cursor_pixel;
+      xgcv.foreground = (*face).background;
+
+      /* If the glyph would be invisible, try a different foreground.  */
+      if xgcv.foreground == xgcv.background
+	{ xgcv.foreground = (*face).foreground; }
+      if xgcv.foreground == xgcv.background
+	{ xgcv.foreground
+	    = (*( (*(*s).f).output_data.x as *mut x_output )).cursor_foreground_pixel; }
+      if xgcv.foreground == xgcv.background
+	{ xgcv.foreground = (*face).foreground; }
+
+      /* Make sure the cursor is distinct from text in this face.  */
+      if xgcv.background == (*face).background
+	  && xgcv.foreground == (*face).foreground
+	{
+	  xgcv.background = (*face).foreground;
+	  xgcv.foreground = (*face).background;
+	}
+
+      IF_DEBUG! (x_check_font ((*s).f, (*s).font));
+      xgcv.graphics_exposures = false as Bool;
+      xgcv.line_width = 1;
+      mask = (GCForeground | GCBackground
+	      | GCGraphicsExposures
+	      | GCLineWidth) as c_ulong;
+
+      if !(*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc.is_null ()
+	{
+	  XChangeGC (display, (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc,
+		     mask, &raw mut xgcv as *mut c_void);
+	}
+      else
+	{
+	  (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc
+	    = XCreateGC (display, FRAME_X_DRAWABLE! ((*s).f), mask, &raw mut xgcv as *mut c_void);
+	}
+
+      (*s).gc = (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc;
+    }
+}
+
+/* C 8365-8401: `x_set_mouse_face_gc`.  C's `s->face->font` is the mirror's `*mut c_void`
+   member cast to `struct font *` (the w32 sibling's line).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_mouse_face_gc (s: *mut glyph_string)
+{
+  use crate::x11_constants::{GCBackground, GCForeground};
+
+  let face: *mut face = (*s).face as *mut face;
+
+  if (*s).font == (*face).font as *mut font
+    { (*s).gc = (*face).gc; }
+  else
+    {
+      /* Otherwise construct scratch_cursor_gc with values from FACE
+	 except for FONT.  */
+      let mut xgcv: XGCValues = std::mem::zeroed ();
+      let mut mask: c_ulong;
+      let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+
+      xgcv.background = (*face).background;
+      xgcv.foreground = (*face).foreground;
+      xgcv.graphics_exposures = false as Bool;
+      xgcv.line_width = 1;
+
+      mask = (GCForeground | GCBackground
+	      | GCGraphicsExposures
+	      | GCLineWidth) as c_ulong;
+
+      if !(*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc.is_null ()
+	{
+	  XChangeGC (display, (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc,
+		     mask, &raw mut xgcv as *mut c_void);
+	}
+      else
+	{
+	  (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc
+	    = XCreateGC (display, FRAME_X_DRAWABLE! ((*s).f), mask, &raw mut xgcv as *mut c_void);
+	}
+
+      (*s).gc = (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc;
+
+    }
+  eassert! ((*s).gc != 0 as *mut c_void);
+}
+
+/* C 8403-8412: `x_set_mode_line_face_gc`.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_mode_line_face_gc (s: *mut glyph_string)
+{
+  (*s).gc = (*( (*s).face as *mut face )).gc;
+}
+
+/* C 8414-8455: `x_set_glyph_string_gc`.  The five `s->hl` comparisons are C's
+   `enum draw_glyphs_face` against `dispextern.rs`'s constants, the four `s->stippled_p`
+   writes are the record's bitfield run (`glyph_string_bits!`, named after the member), and
+   C's `s->face->stipple != 0` keeps C's own `0` (`stipple` is a `ptrdiff_t` member).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_glyph_string_gc (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+
+  prepare_face_for_display ((*s).f, face);
+
+  if (*s).hl == DRAW_NORMAL_TEXT
+    {
+      (*s).gc = (*face).gc;
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);
+    }
+  else if (*s).hl == DRAW_INVERSE_VIDEO
+    {
+      x_set_mode_line_face_gc (s);
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);
+    }
+  else if (*s).hl == DRAW_CURSOR
+    {
+      x_set_cursor_gc (s);
+      glyph_string_bits! (stippled_p, (*s), false);
+    }
+  else if (*s).hl == DRAW_MOUSE_FACE
+    {
+      x_set_mouse_face_gc (s);
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);
+    }
+  else if (*s).hl == DRAW_IMAGE_RAISED
+	   || (*s).hl == DRAW_IMAGE_SUNKEN
+    {
+      (*s).gc = (*face).gc;
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);
+    }
+  else
+    { emacs_abort (); }
+
+  /* GC must have been set.  */
+  eassert! ((*s).gc != 0 as *mut c_void);
+}
+
+/* C 8457-8470: `x_set_glyph_string_clipping`.  C's `XRectangle *r = s->clip;` reads the
+   mirror's degraded `NativeRectangle clip[2]` (`[c_int; 2]`) through a cast, the
+   `w32term.rs` 2026-2028 shape (PORTING.md P-72).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_glyph_string_clipping (s: *mut glyph_string)
+{
+  let r: *mut XRectangle = (&raw mut (*s).clip) as *mut XRectangle;
+  let n: c_int = get_glyph_string_clip_rects (s, r, 2);
+
+  if n > 0
+    { x_set_clip_rectangles ((*s).f, (*s).gc as GC, r, n); }
+  (*s).num_clips = n;
+}
+
+/* C 8472-8489: `x_set_glyph_string_clipping_exactly`.  C's `dst->clip[0] = r;` stores through
+   the same degraded-array cast, and C's `[0]` subscript is the pointer's `.add (0)` with C's
+   own index.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_glyph_string_clipping_exactly (src: *mut glyph_string, dst: *mut glyph_string)
+{
+  let mut r: XRectangle = std::mem::zeroed ();
+
+  r.x = (*src).x as c_short;
+  r.width = (*src).width as c_ushort;
+  r.y = (*src).y as c_short;
+  r.height = (*src).height as c_ushort;
+  *((&raw mut (*dst).clip) as *mut XRectangle).add (0) = r;
+  (*dst).num_clips = 1;
+  x_set_clip_rectangles ((*dst).f, (*dst).gc as GC, &raw mut r, 1);
+}
+
+/* C 8491-8524: `x_compute_glyph_string_overhangs`.  `s->first_glyph->type` is the glyph
+   record's bitfield run read through `glyph_bits!`, the two `font->driver->…` calls are the
+   unwrapped function-pointer fields of the mirror's `font_driver` (`include/font.rs` 134 keeps
+   `driver` untyped, P-72 rule 3), `composition_gstring_width`'s two `int` members widen to its
+   `ptrdiff_t` parameters, C's `s->cmp->{rbearing,pixel_width,lbearing}` are `short`s widened to
+   the `int` overhang members, and C's four `?:` are the port's `if`/`else`.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_compute_glyph_string_overhangs (s: *mut glyph_string)
+{
+  if (*s).cmp.is_null ()
+      && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH
+	  || glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH)
+    {
+      let mut metrics: font_metrics = std::mem::zeroed ();
+
+      if glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH
+	{
+	  let font: *mut font = (*s).font;
+	  ((*((*font).driver as *const font_driver)).text_extents.unwrap ())
+	    (font, (*s).char2b, (*s).nchars, &raw mut metrics);
+	}
+      else
+	{
+	  let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);
+
+	  composition_gstring_width (gstring, (*s).cmp_from as ptrdiff_t,
+				     (*s).cmp_to as ptrdiff_t,
+				     &raw mut metrics as *mut c_void);
+	}
+      (*s).right_overhang = if metrics.rbearing > metrics.width
+	{ (metrics.rbearing - metrics.width) as c_int } else { 0 };
+      (*s).left_overhang = if metrics.lbearing < 0
+	{ (- metrics.lbearing) as c_int } else { 0 };
+    }
+  else if !(*s).cmp.is_null ()
+    {
+      (*s).right_overhang = ((*( (*s).cmp as *mut composition )).rbearing
+			     - (*( (*s).cmp as *mut composition )).pixel_width) as c_int;
+      (*s).left_overhang = (- (*( (*s).cmp as *mut composition )).lbearing) as c_int;
+    }
+}
+
+/* C 8526-8533: `x_clear_glyph_string_rect`.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_clear_glyph_string_rect (s: *mut glyph_string, x: c_int, y: c_int,
+				     w: c_int, h: c_int)
+{
+  x_clear_rectangle ((*s).f, (*s).gc as GC, x, y, w, h, (*s).hl != DRAW_CURSOR);
+}
+
+/* C 8535-8559: `#ifndef USE_CAIRO` - `x_clear_point`.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_cairo")))]
+unsafe fn x_clear_point (f: *mut frame, gc: GC, x: c_int, y: c_int,
+			 respect_alpha_background: bool)
+{
+  use crate::x11_constants::{GCBackground, GCForeground};
+
+  let mut xgcv: XGCValues = std::mem::zeroed ();
+  let dpy: *mut Display;
+
+  dpy = FRAME_X_DISPLAY! (f);
+
+  if (*f).alpha_background != 1.0
+      && respect_alpha_background
+    {
+      x_clear_rectangle (f, gc, x, y, 1, 1, true);
+      return;
+    }
+
+  XGetGCValues (dpy, gc, (GCBackground | GCForeground) as c_ulong,
+		&raw mut xgcv as *mut c_void);
+  XSetForeground (dpy, gc, xgcv.background);
+  XDrawPoint (dpy, FRAME_X_DRAWABLE! (f), gc, x, y);
+  XSetForeground (dpy, gc, xgcv.foreground);
+}
+
+/* ---- C 8561-8896: the four glyph-string drawers.  */
+
+/* C dispextern.h 1787-1945: `struct face`, the X11 arm's layout.  This unit reads
+   `gc`/`stipple`/`foreground`/`background`/`box_color`/`font`/the two box widths and the bit
+   run, so those are named and the rest is padding at its measured offset; every number is the
+   `x11` column of `docs/baseline/face-layout.tsv` (`sizeof` 296, align 8, `gc`@168,
+   `stipple`@176, `foreground`@184, `background`@192, `box_color`@224, `font`@232, the run at
+   256, `hash`@264, the four pointers to 296).  The *mirror*'s own copy
+   (`include/dispextern.rs` 2187) is behind `dispextern_face_records`, which no configuration
+   sets, and status 3.220's ruling is that the units keep their live typed copies - the
+   `term.rs` 322-345 and `dispnew.rs` 3600 shapes.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct face
+{
+  pub _pad_lface: [u8; 160],        // 1789-1794: `Lisp_Object lface[LFACE_VECTOR_SIZE]`
+  pub id: c_int,                    // 1795, offset 160
+  pub _pad_id: [u8; 4],
+  pub gc: *mut c_void,              /// C: `GC gc;` (1799) - X11's `struct _XGC *`, untyped for
+                                    /// the same reason `include/dispextern.rs` leaves it so
+  pub stipple: ptrdiff_t,           // 1810, offset 176
+  pub foreground: c_ulong,          // 1816, offset 184
+  pub background: c_ulong,          // 1819, offset 192
+  pub underline_color: c_ulong,     // 1823
+  pub overline_color: c_ulong,      // 1826
+  pub strike_through_color: c_ulong, // 1829
+  pub box_color: c_ulong,           // 1832, offset 224
+  pub font: *mut c_void,            /// C: `struct font *font;` (1845) - `include/font.rs` is
+                                    /// the type's owner and this unit reaches it, but C's
+                                    /// member is spelled as the mirror's does (P-72 rule 3)
+  pub fontset: c_int,               // 1838
+  pub box_vertical_line_width: c_int,     // 1848
+  pub box_horizontal_line_width: c_int,   // 1849
+  pub _pad_underline_pixels: c_int,       // 1850 (this unit reads none of it)
+  pub bits: u32,                    // 1851-1861: the `bool_bf`/`ENUM_BF` run at offset 256
+  pub _pad_bits: [u8; 4],           // C's padding before `uintptr_t hash`
+  pub hash: uintptr_t,              // 1930, offset 264
+  pub next: *mut face,              // 1933
+  pub prev: *mut face,              // 1934
+  pub ascii_face: *mut face,        // 1935
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = {
+  core::assert! (std::mem::size_of::<face> () == 296);
+  core::assert! (std::mem::align_of::<face> () == 8);
+  core::assert! (std::mem::offset_of! (face, gc) == 168);
+  core::assert! (std::mem::offset_of! (face, stipple) == 176);
+  core::assert! (std::mem::offset_of! (face, foreground) == 184);
+  core::assert! (std::mem::offset_of! (face, background) == 192);
+  core::assert! (std::mem::offset_of! (face, box_color) == 224);
+  core::assert! (std::mem::offset_of! (face, font) == 232);
+  core::assert! (std::mem::offset_of! (face, bits) == 256);
+  core::assert! (std::mem::offset_of! (face, hash) == 264);
+};
+
+/* The three bitfield families these four functions read and no mirror names: `struct face`'s
+   `bool_bf` run (`include/dispextern.rs` 2224 stores it as one `bits: u32`), `glyph`'s two
+   union sub-records (dispextern.rs 417-465 carry the units and their masks) and the two member
+   names of each.  Each accessor keeps the member name as its first argument, so the ported text
+   keeps C's token (P-80, the `w32term.rs` 1696-1745 and `term.rs` 840-851 copies of the same
+   positions; the ledger records the sharing).  */
+/// C: dispextern.h 1893-1913: `ENUM_BF (face_box_type) box : 2;` … `bool_bf
+/// use_box_color_for_shadows_p : 1;` … `bool_bf overstrike : 1;`
+#[cfg (feature = "have_x_windows")]
+pub const FACE_BOX_SHIFT: u32 = 0;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_BOX_MASK: u32 = 0x3;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_USE_BOX_COLOR_FOR_SHADOWS_P: u32 = 1 << 5;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_OVERSTRIKE: u32 = 1 << 21;
+#[cfg (feature = "have_x_windows")]
+macro_rules! face_bits {
+  (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
+  (use_box_color_for_shadows_p, $f:expr) =>
+    { ((*$f).bits & FACE_USE_BOX_COLOR_FOR_SHADOWS_P) != 0 };
+  (overstrike, $f:expr) => { ((*$f).bits & FACE_OVERSTRIKE) != 0 };
+}
+
+/// C: dispextern.h 597-598: `bool_bf automatic : 1; unsigned id : 31;`
+#[cfg (feature = "have_x_windows")]
+macro_rules! glyph_u_cmp_bits {
+  (automatic, $g:expr) => { (((*$g).u.cmp.bits & GLYPH_U_CMP_AUTOMATIC) != 0) };
+  (id, $g:expr) => { (((*$g).u.cmp.bits >> GLYPH_U_CMP_ID_SHIFT) as ptrdiff_t) };
+}
+
+/// C: dispextern.h 626-632: `unsigned method : 2; bool_bf for_no_font : 1; unsigned len : 4;
+/// unsigned ch : 25;`
+#[cfg (feature = "have_x_windows")]
+macro_rules! glyphless_bits {
+  (method, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_METHOD_SHIFT) & 0x3) as c_int };
+  (for_no_font, $g:expr) => { ((*$g).u.glyphless.bits & GLYPH_U_GLYPHLESS_FOR_NO_FONT) != 0 };
+  (len, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_LEN_SHIFT) & 0xf) as c_int };
+  (ch, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_CH_SHIFT) & 0x1ffffff) as c_int };
+}
+
+/* C 8561-8606: `x_draw_glyph_string_background`.  C's `max (…)` is lisp.h's `max (EMACS_INT,
+   EMACS_INT)` (`include/lisp.rs` 3136), so the two `int` operands widen and the result narrows
+   the way `this file's` other `max`/`min` sites do; `FONT_HEIGHT`/`FONT_TOO_HIGH` are
+   `include/font.rs` 258's and `include/dispextern.rs` 2669's macros.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_glyph_string_background (s: *mut glyph_string, force_p: bool)
+{
+
+  /* Nothing to do if background has already been drawn or if it
+     shouldn't be drawn in the first place.  */
+  if !glyph_string_bits! (background_filled_p, (*s))
+    {
+      let box_line_width: c_int = max ((*((*s).face as *mut face)).box_horizontal_line_width as isize,
+				       0) as c_int;
+
+      if glyph_string_bits! (stippled_p, (*s))
+	{
+	  let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+
+	  /* Fill background with a stipple pattern.  */
+	  XSetFillStyle (display, (*s).gc as GC, FillOpaqueStippled);
+	  x_fill_rectangle ((*s).f, (*s).gc as GC, (*s).x,
+			    (*s).y + box_line_width,
+			    (*s).background_width,
+			    (*s).height - 2 * box_line_width,
+			    (*s).hl != DRAW_CURSOR);
+	  XSetFillStyle (display, (*s).gc as GC, FillSolid);
+	  glyph_string_bits! (background_filled_p, (*s), true);
+	}
+      else if FONT_HEIGHT! ((*s).font) < (*s).height - 2 * box_line_width
+	       /* When xdisp.c ignores FONT_HEIGHT, we cannot trust
+		  font dimensions, since the actual glyphs might be
+		  much smaller.  So in that case we always clear the
+		  rectangle with background color.  */
+	       || FONT_TOO_HIGH! ((*s).font)
+	       || glyph_string_bits! (font_not_found_p, (*s))
+	       || glyph_string_bits! (extends_to_end_of_line_p, (*s))
+	       || force_p
+	{
+	  x_clear_glyph_string_rect (s, (*s).x, (*s).y + box_line_width,
+				     (*s).background_width,
+				     (*s).height - 2 * box_line_width);
+	  glyph_string_bits! (background_filled_p, (*s), true);
+	}
+    }
+}
+
+/* C 8608-8701: `x_draw_glyph_string_foreground`.  The `#ifdef USE_CAIRO` run is C's `if` whose
+   condition the arm supplies, so the port carries C's one statement as the arm's `if` plus the
+   `#else`-side body again under `not use_cairo` (both arms, P-51).  `font->driver->draw` is the
+   unwrapped field, and `VCENTER_BASELINE_OFFSET` is `include/dispextern.rs`'s macro.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut i: c_int;
+  let mut x: c_int;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if face_bits! (box, (*((*s).face as *mut face))) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+    { x = (*s).x + max ((*((*s).face as *mut face)).box_vertical_line_width as isize,
+			0) as c_int; }
+  else
+    { x = (*s).x; }
+
+  /* Draw characters of S as rectangles if S's font could not be
+     loaded.  */
+  if glyph_string_bits! (font_not_found_p, (*s))
+    {
+      i = 0;
+      while i < (*s).nchars
+	{
+	  let g: *mut glyph = (*s).first_glyph.offset (i as isize);
+	  x_draw_rectangle ((*s).f,
+			    (*s).gc as GC, x, (*s).y, (*g).pixel_width - 1,
+			    (*s).height - 1);
+	  x += (*g).pixel_width as c_int;
+	  i += 1;
+	}
+    }
+  else
+    {
+      let font: *mut font = (*s).font;
+
+      #[cfg (feature = "use_cairo")]
+      let cairo_arm_ok = !EQ ((*( (*font).driver as *const font_driver )).r#type, Qx)
+	|| x_try_cr_xlib_drawable ((*s).f, (*s).gc as GC);
+      #[cfg (not (feature = "use_cairo"))]
+      let cairo_arm_ok = true;
+
+      if cairo_arm_ok
+	{
+	  let mut boff: c_int = (*font).baseline_offset;
+	  let mut y: c_int;
+
+	  if (*font).vertical_centering
+	    { boff = VCENTER_BASELINE_OFFSET! (font, (*s).f) - boff; }
+
+	  y = (*s).ybase - boff;
+	  if glyph_string_bits! (for_overlaps, (*s))
+	      || (glyph_string_bits! (background_filled_p, (*s))
+		  && (*s).hl != DRAW_CURSOR)
+	    { ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, 0, (*s).nchars, x, y, false); }
+	  else
+	    { ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, 0, (*s).nchars, x, y, true); }
+	  if face_bits! (overstrike, (*((*s).face as *mut face)))
+	    { ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, 0, (*s).nchars, x + 1, y, false); }
+
+	  #[cfg (feature = "use_cairo")]
+	  {
+	    if EQ ((*( (*font).driver as *const font_driver )).r#type, Qx)
+	      { x_end_cr_xlib_drawable ((*s).f, (*s).gc as GC); }
+	  }
+	}
+      else
+	{
+	  /* Fallback for the case that no Xlib Drawable is available
+	     for drawing text with X core fonts.  */
+	  if !(glyph_string_bits! (for_overlaps, (*s))
+	       || (glyph_string_bits! (background_filled_p, (*s))
+		   && (*s).hl != DRAW_CURSOR))
+	    {
+	      let box_line_width: c_int
+		= max ((*((*s).face as *mut face)).box_horizontal_line_width as isize,
+		       0) as c_int;
+
+	      if glyph_string_bits! (stippled_p, (*s))
+		{
+		  let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+
+		  /* Fill background with a stipple pattern.  */
+		  XSetFillStyle (display, (*s).gc as GC, FillOpaqueStippled);
+		  x_fill_rectangle ((*s).f, (*s).gc as GC, (*s).x,
+				    (*s).y + box_line_width,
+				    (*s).background_width,
+				    (*s).height - 2 * box_line_width,
+				    false);
+		  XSetFillStyle (display, (*s).gc as GC, FillSolid);
+		}
+	      else
+		{ x_clear_glyph_string_rect (s, (*s).x, (*s).y + box_line_width,
+					     (*s).background_width,
+					     (*s).height - 2 * box_line_width); }
+	    }
+	  i = 0;
+	  while i < (*s).nchars
+	    {
+	      let g: *mut glyph = (*s).first_glyph.offset (i as isize);
+	      x_draw_rectangle ((*s).f,
+				(*s).gc as GC, x, (*s).y, (*g).pixel_width - 1,
+				(*s).height - 1);
+	      x += (*g).pixel_width as c_int;
+	      i += 1;
+	    }
+	}
+    }
+}
+
+/* C 8703-8810: `x_draw_composite_glyph_string_foreground`.  C's `s->first_glyph->u.cmp.
+   automatic` is the `glyph_u_cmp_bits!` reader named after the member, `COMPOSITION_GLYPH` and
+   the six `LGLYPH_*` readers are `include/composite.rs`'s, and C's `for (…)` loops that drive
+   two counters keep C's own `i, j` in a `while` (the loop's increment is written where C puts
+   it).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_composite_glyph_string_foreground (s: *mut glyph_string)
+{
+
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut x: c_int;
+  let font: *mut font = (*s).font;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if !(*s).face.is_null () && face_bits! (box, (*((*s).face as *mut face))) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+    { x = (*s).x + max ((*((*s).face as *mut face)).box_vertical_line_width as isize,
+			0) as c_int; }
+  else
+    { x = (*s).x; }
+
+  /* S is a glyph string for a composition.  S->cmp_from is the index
+     of the first character drawn for glyphs of this composition.
+     S->cmp_from == 0 means we are drawing the very first character of
+     this composition.  */
+
+  /* Draw a rectangle for the composition if the font for the very
+     first character of the composition could not be loaded.  */
+  if glyph_string_bits! (font_not_found_p, (*s))
+    {
+      if (*s).cmp_from == 0
+	{ x_draw_rectangle ((*s).f, (*s).gc as GC, x, (*s).y,
+			    (*s).width - 1, (*s).height - 1); }
+    }
+  else
+    {
+      #[cfg (feature = "use_cairo")]
+      let cairo_arm_ok = !EQ ((*( (*font).driver as *const font_driver )).r#type, Qx)
+	|| x_try_cr_xlib_drawable ((*s).f, (*s).gc as GC);
+      #[cfg (not (feature = "use_cairo"))]
+      let cairo_arm_ok = true;
+
+      if cairo_arm_ok
+	{
+	  if !glyph_u_cmp_bits! (automatic, (*(*s).first_glyph))
+	    {
+	      let y: c_int = (*s).ybase;
+
+	      i = 0;
+	      j = (*s).cmp_from;
+	      while i < (*s).nchars
+		{
+		  /* TAB in a composition means display glyphs with
+		     padding space on the left or right.  */
+		  if COMPOSITION_GLYPH ((*(*s).cmp as *mut composition), j as ptrdiff_t) != b'\t' as isize
+		    {
+		      let cmp: *mut composition = (*s).cmp as *mut composition;
+		      let xx: c_int
+			= x + *(*cmp).offsets.offset ((j * 2) as isize) as c_int;
+		      let yy: c_int
+			= y - *(*cmp).offsets.offset ((j * 2 + 1) as isize) as c_int;
+
+		      ((*((*font).driver as *const font_driver)).draw.unwrap ())
+			(s, j, j + 1, xx, yy, false);
+		      if face_bits! (overstrike, (*((*s).face as *mut face)))
+			{ ((*((*font).driver as *const font_driver)).draw.unwrap ())
+			    (s, j, j + 1, xx + 1, yy, false); }
+		    }
+
+		  i += 1;
+		  j += 1;
+		}
+	    }
+	  else
+	    {
+	      let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);
+	      let mut glyph: Lisp_Object;
+	      let y: c_int = (*s).ybase;
+	      let mut width: c_int = 0;
+
+	      i = (*s).cmp_from;
+	      j = (*s).cmp_from;
+	      while i < (*s).cmp_to
+		{
+		  glyph = LGSTRING_GLYPH (gstring, i as isize);
+		  if NILP (LGLYPH_ADJUSTMENT (glyph))
+		    { width += LGLYPH_WIDTH (glyph) as c_int; }
+		  else
+		    {
+		      let mut xoff: c_int;
+		      let mut yoff: c_int;
+		      let mut wadjust: c_int;
+
+		      if j < i
+			{
+			  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+			    (s, j, i, x, y, false);
+			  if face_bits! (overstrike, (*((*s).face as *mut face)))
+			    { ((*((*font).driver as *const font_driver)).draw.unwrap ())
+				(s, j, i, x + 1, y, false); }
+			  x += width;
+			}
+		      xoff = LGLYPH_XOFF (glyph) as c_int;
+		      yoff = LGLYPH_YOFF (glyph) as c_int;
+		      wadjust = LGLYPH_WADJUST (glyph) as c_int;
+		      ((*((*font).driver as *const font_driver)).draw.unwrap ())
+			(s, i, i + 1, x + xoff, y + yoff, false);
+		      if face_bits! (overstrike, (*((*s).face as *mut face)))
+			{ ((*((*font).driver as *const font_driver)).draw.unwrap ())
+			    (s, i, i + 1, x + xoff + 1, y + yoff, false); }
+		      x += wadjust;
+		      j = i + 1;
+		      width = 0;
+		    }
+		  i += 1;
+		}
+	      if j < i
+		{
+		  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		    (s, j, i, x, y, false);
+		  if face_bits! (overstrike, (*((*s).face as *mut face)))
+		    { ((*((*font).driver as *const font_driver)).draw.unwrap ())
+			(s, j, i, x + 1, y, false); }
+		}
+	    }
+
+	  #[cfg (feature = "use_cairo")]
+	  {
+	    if EQ ((*( (*font).driver as *const font_driver )).r#type, Qx)
+	      { x_end_cr_xlib_drawable ((*s).f, (*s).gc as GC); }
+	  }
+	}
+      else
+	{
+	  /* Fallback for the case that no Xlib Drawable is available
+	     for drawing text with X core fonts.  */
+	  if (*s).cmp_from == 0
+	    { x_draw_rectangle ((*s).f, (*s).gc as GC, x, (*s).y,
+				(*s).width - 1, (*s).height - 1); }
+	}
+    }
+}
+
+/* C 8812-8896: `x_draw_glyphless_glyph_string_foreground`.  C's `unsigned char2b[8]` is an
+   `unsigned int` array (`char2b` is the name C gives the implicit-`int` declaration) and
+   `s->char2b = char2b` its decay; C 8834-8838's `#ifdef GCC_LINT` pair is carried under that
+   feature (`GCC_LINT` is 1 in the frozen table, so the `= 1` arm is the live one); C 8841-8867's
+   five `glyph->u.glyphless.*` reads are the `glyphless_bits!` accessors named after the member;
+   `eassume` is the prelude's macro, `sprintf`'s `%0*X` the one C writes.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_glyphless_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut glyph: *mut glyph = (*s).first_glyph;
+  let mut char2b: [c_uint; 8] = [0; 8];
+  let mut x: c_int;
+  let mut i: c_int;
+  let mut j: c_int;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if !(*s).face.is_null () && face_bits! (box, (*((*s).face as *mut face))) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+    { x = (*s).x + max ((*((*s).face as *mut face)).box_vertical_line_width as isize,
+			0) as c_int; }
+  else
+    { x = (*s).x; }
+
+  (*s).char2b = char2b.as_mut_ptr ();
+
+  i = 0;
+  while i < (*s).nchars
+    {
+      /* C 8834-8838's `#ifdef GCC_LINT` pair: the frozen table has `GCC_LINT` 1 (conf_post.h
+	 486 defines it for every build), so the first arm is the text this target compiles and
+	 the `#else` arm is carried under `not gcc_lint`.  */
+      #[cfg (feature = "gcc_lint")]
+      const PACIFY_GCC_BUG_81401: c_int = 1;
+      #[cfg (not (feature = "gcc_lint"))]
+      const PACIFY_GCC_BUG_81401: c_int = 0;
+      let mut buf: [c_char; 7 + PACIFY_GCC_BUG_81401 as usize] =
+	[0; 7 + PACIFY_GCC_BUG_81401 as usize];
+      let mut str: *mut c_char = std::ptr::null_mut ();
+      let len: c_int = glyphless_bits! (len, (*glyph));
+
+      if glyphless_bits! (method, (*glyph)) == GLYPHLESS_DISPLAY_ACRONYM
+	{
+	  if len > 0
+	      && CHAR_TABLE_P (Vglyphless_char_display)
+	      && (CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (Vglyphless_char_display))
+		  >= 1)
+	    {
+	      let mut acronym: Lisp_Object
+		= if !glyphless_bits! (for_no_font, (*glyph))
+		  { CHAR_TABLE_REF (Vglyphless_char_display,
+				    glyphless_bits! (ch, (*glyph))) }
+		  else { (*(XCHAR_TABLE (Vglyphless_char_display))).extras[0] };
+	      if CONSP (acronym)
+		{ acronym = XCAR (acronym); }
+	      if STRINGP (acronym)
+		{ str = SSDATA (acronym); }
+	    }
+	}
+      else if glyphless_bits! (method, (*glyph)) == GLYPHLESS_DISPLAY_HEX_CODE
+	{
+	  let ch: c_uint = glyphless_bits! (ch, (*glyph)) as c_uint;
+	  eassume! (ch as c_int <= MAX_CHAR);
+	  sprintf (buf.as_mut_ptr (), c"%0*X".as_ptr (), if ch < 0x10000 { 4 } else { 6 },
+		   ch);
+	  str = buf.as_mut_ptr ();
+	}
+
+      if !str.is_null ()
+	{
+	  let upper_len: c_int = (len + 1) / 2;
+
+	  /* It is assured that all LEN characters in STR is ASCII.  */
+	  j = 0;
+	  while j < len
+	    {
+	      char2b[j as usize]
+		= ((*((*(*s).font).driver as *const font_driver)).encode_char.unwrap ())
+		    ((*s).font, *str.offset (j as isize) as c_int) & 0xFFFF;
+	      j += 1;
+	    }
+	  ((*((*(*s).font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, upper_len,
+	     x + (*glyph).slice.glyphless.upper_xoff as c_int,
+	     (*s).ybase + (*glyph).slice.glyphless.upper_yoff as c_int,
+	     false);
+	  ((*((*(*s).font).driver as *const font_driver)).draw.unwrap ())
+	    (s, upper_len, len,
+	     x + (*glyph).slice.glyphless.lower_xoff as c_int,
+	     (*s).ybase + (*glyph).slice.glyphless.lower_yoff as c_int,
+	     false);
+	}
+      if glyphless_bits! (method, (*glyph)) != GLYPHLESS_DISPLAY_THIN_SPACE
+	{ x_draw_rectangle ((*s).f, (*s).gc as GC,
+			    x, (*s).ybase - (*glyph).ascent,
+			    (*glyph).pixel_width - 1,
+			    (*glyph).ascent + (*glyph).descent - 1); }
+      x += (*glyph).pixel_width as c_int;
+      glyph = glyph.offset (1);
+      i += 1;
+   }
+
+  /* Defend against hypothetical bad code elsewhere that uses
+     s->char2b after this function returns.  */
+  (*s).char2b = std::ptr::null_mut ();
+}
+
+/* ---- C 8898-9126: `#ifdef USE_X_TOOLKIT` (the four color functions and the two Xt converter
+   hooks) and C 9097's `x_color_cells`.  Nothing in this tree turns the Xt arm on (`USE_X_TOOLKIT`
+   and `USE_LUCID` are both `undef` in the frozen table), so the whole group is text-only: the
+   plain `have_x_windows` probe compiles none of it, and the ledger records that no reading below
+   reaches it.  */
+
+/* The three Xt names the arm's signatures need and no mirror carries.  `XtPointer`/`Boolean`
+   *are* mirrored (`include/widget.rs` 182-185, reached through C 775's `"widget.h"`); these three
+   are not, and this machine has no libXt headers (`/opt/homebrew/include/X11` carries Xlib's
+   only) to measure a record from - so the arm names the scalars C uses and the ledger records the
+   gap.  */
+/// C: `<X11/Intrinsic.h>`: `typedef unsigned int Cardinal;`
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type Cardinal = c_uint;
+/// C: `<X11/Intrinsic.h>`: `typedef struct _XtAppStruct *XtAppContext;`
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtAppContext = *mut c_void;
+/// C: `<X11/Intrinsic.h>`: `typedef char *String;` - the `xfns.rs` 1183 shape, declared under the
+/// arm's own gate so the unit's other text keeps the prelude's `String`.
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type String = *mut c_char;
+
+/* C 8900-8932: `#ifdef USE_LUCID` - `x_frame_of_widget`.  `FOR_EACH_FRAME` is
+   `include/frame.rs` 800-808's macro (the `androidterm.rs` 282 call shape), `XtDisplay`/
+   `XtIsTopLevelShell`/`XtParent` are Xt's (no mirror) and `x_dpyinfo` is this file's.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_lucid"))]
+unsafe fn x_frame_of_widget (widget: Widget) -> *mut frame
+{
+  let mut widget: Widget = widget;
+  let dpyinfo: *mut x_display_info;
+  let mut tail: Lisp_Object;
+  let mut frame: Lisp_Object;
+  let mut f: *mut frame;
+
+  dpyinfo = x_dpyinfo (XtDisplay (widget));
+
+  /* Find the top-level shell of the widget.  Note that this function
+     can be called when the widget is not yet realized, so XtWindow
+     (widget) == 0.  That's the reason we can't simply use
+     x_any_window_to_frame.  */
+  while XtIsTopLevelShell (widget) == 0
+    { widget = XtParent (widget); }
+
+  /* Look for a frame with that top-level widget.  Allocate the color
+     on that frame to get the right gamma correction value.  */
+  FOR_EACH_FRAME! (tail, frame, {
+    f = XFRAME (frame);
+    if FRAME_X_P (f)
+	&& FRAME_DISPLAY_INFO! (f) == dpyinfo
+	&& (*( (*((*f).output_data.x as *mut x_output)) )).widget == widget
+      { return f; }
+  });
+  emacs_abort ();
+}
+
+/* C 8934-8947: `x_alloc_lighter_color_for_widget`.  C's definition has no `static`, so the port
+   keeps it exported (PORTING.md 0.2).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_lucid"))]
+#[unsafe(no_mangle)]
+pub unsafe fn x_alloc_lighter_color_for_widget (widget: Widget, display: *mut Display,
+						cmap: Colormap, pixel: *mut c_ulong,
+						factor: c_double, delta: c_int) -> bool
+{
+  let f: *mut frame = x_frame_of_widget (widget);
+  x_alloc_lighter_color (f, display, cmap, pixel, factor, delta)
+}
+
+/* C 8952-8967: the converter's two file-scope objects.  `cvt_string_to_pixel_value` is a plain
+   `Pixel`; `cvt_string_to_pixel_args` is an `XtConvertArgRec[2]` whose element record cannot be
+   laid out here (no libXt headers on this machine), so C's own initializer is carried as text
+   below rather than guessed at (P-86 clause 3's text-only reading; the ledger names the missing
+   toolchain and asks for the record).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub static mut cvt_string_to_pixel_value: Pixel = 0;
+
+/*
+   C 8955-8961, C's text (its element record has no measured spelling here):
+
+   static XtConvertArgRec cvt_string_to_pixel_args[] =
+     {
+       {XtWidgetBaseOffset, (XtPointer) offsetof (WidgetRec, core.screen),
+	sizeof (Screen *)},
+       {XtWidgetBaseOffset, (XtPointer) offsetof (WidgetRec, core.colormap),
+	sizeof (Colormap)}
+     };
+*/
+
+/* C 8970-9058: `cvt_string_to_pixel`.  `XrmValue`/`Colormap`/`Pixel`/`Screen` are mirrored
+   (`include/xlib.rs` 253, 882, 543's neighbour and 153) and the Xt/Xlib entry points named here
+   (`XtAppWarningMsg`, `XtDisplayToApplicationContext`, `XtDefaultBackground`,
+   `WhitePixelOfScreen`, `DisplayOfScreen`, `XParseColor`) have no mirror: the arm names them as
+   C does.  C's `*closure_ret = (XtPointer) False` keeps C's cast (`False` is
+   `include/xterm.rs` 79's constant, `XtPointer` `*mut c_char`).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe fn cvt_string_to_pixel (dpy: *mut Display, args: *mut XrmValue, nargs: *mut Cardinal,
+			       from: *mut XrmValue, to: *mut XrmValue,
+			       closure_ret: *mut XtPointer) -> Boolean
+{
+
+  let mut screen: *mut Screen;
+  let mut cmap: Colormap;
+  let mut pixel: Pixel;
+  let mut color_name: String;
+  let mut color: XColor = std::mem::zeroed ();
+
+  if *nargs != 2
+    {
+      XtAppWarningMsg (XtDisplayToApplicationContext (dpy),
+		       c"wrongParameters".as_ptr (), c"cvt_string_to_pixel".as_ptr (),
+		       c"XtToolkitError".as_ptr (),
+		       c"Screen and colormap args required".as_ptr (),
+		       std::ptr::null_mut (), std::ptr::null_mut ());
+      return false as Boolean;
+    }
+
+  screen = *((*args.add (0)).addr as *mut *mut Screen);
+  cmap = *((*args.add (1)).addr as *mut Colormap);
+  color_name = (*from).addr;
+
+  if strcmp (color_name, XtDefaultBackground) == 0
+    {
+      *closure_ret = False as XtPointer;
+      pixel = WhitePixelOfScreen (screen);
+    }
+  else if strcmp (color_name, XtDefaultForeground) == 0
+    {
+      *closure_ret = False as XtPointer;
+      pixel = BlackPixelOfScreen (screen);
+    }
+  else if XParseColor (dpy, cmap, color_name, &raw mut color) != 0
+	   && x_alloc_nearest_color_1 (dpy, cmap, &raw mut color)
+    {
+      pixel = color.pixel;
+      *closure_ret = true as XtPointer;
+    }
+  else
+    {
+      let mut params: [String; 1] = [std::ptr::null_mut ()];
+      let mut nparams: Cardinal = 1;
+
+      params[0] = color_name;
+      XtAppWarningMsg (XtDisplayToApplicationContext (dpy),
+		       c"badValue".as_ptr (), c"cvt_string_to_pixel".as_ptr (),
+		       c"XtToolkitError".as_ptr (), c"Invalid color '%s'".as_ptr (),
+		       params.as_mut_ptr (), &raw mut nparams);
+      return false as Boolean;
+    }
+
+  if !(*to).addr.is_null ()
+    {
+      if (*to).size < std::mem::size_of::<Pixel> () as c_uint
+	{
+	  (*to).size = std::mem::size_of::<Pixel> () as c_uint;
+	  return false as Boolean;
+	}
+
+      *((*to).addr as *mut Pixel) = pixel;
+    }
+  else
+    {
+      cvt_string_to_pixel_value = pixel;
+      (*to).addr = &raw mut cvt_string_to_pixel_value as XtPointer;
+    }
+
+  (*to).size = std::mem::size_of::<Pixel> () as c_uint;
+  return true as Boolean;
+}
+
+/* C 9061-9092: `cvt_pixel_dtor`.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe fn cvt_pixel_dtor (app: XtAppContext, to: XrmValuePtr, closure: XtPointer,
+			  args: XrmValuePtr, nargs: *mut Cardinal)
+{
+  if *nargs != 2
+    {
+      XtAppWarningMsg (app, c"wrongParameters".as_ptr (), c"cvt_pixel_dtor".as_ptr (),
+		       c"XtToolkitError".as_ptr (),
+		       c"Screen and colormap arguments required".as_ptr (),
+		       std::ptr::null_mut (), std::ptr::null_mut ());
+    }
+  else if !closure.is_null ()
+    {
+      /* We did allocate the pixel, so free it.  */
+      let screen: *mut Screen = *((*args).addr as *mut *mut Screen);
+      let cmap: Colormap = *((*args.add (1)).addr as *mut Colormap);
+      x_free_dpy_colors (DisplayOfScreen (screen), screen, cmap,
+			 (*to).addr as *mut c_ulong, 1);
+    }
+}
+
+/* C 9097-9126: `x_color_cells`.  `xnmalloc` is `include/lisp.rs`'s, and C's two assignments
+   into the array widen an `int` to `XColor.pixel`'s `unsigned long` (the one conversion C
+   performs, written out).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_color_cells (dpy: *mut Display, ncells: *mut c_int) -> *const XColor
+{
+  let dpyinfo: *mut x_display_info = x_dpyinfo (dpy);
+
+  if (*dpyinfo).color_cells.is_null ()
+    {
+      let ncolor_cells: c_int = (*dpyinfo).visual_info.colormap_size;
+      let mut i: c_int;
+
+      (*dpyinfo).color_cells = xnmalloc (ncolor_cells as isize,
+					 std::mem::size_of_val (&*(*dpyinfo).color_cells) as isize)
+	as *mut XColor;
+      (*dpyinfo).ncolor_cells = ncolor_cells;
+
+      i = 0;
+      while i < ncolor_cells
+	{
+	  (*((*dpyinfo).color_cells).offset (i as isize)).pixel = i as c_ulong;
+	  i += 1;
+	}
+
+      XQueryColors (dpy, (*dpyinfo).cmap,
+		    (*dpyinfo).color_cells, ncolor_cells);
+    }
+
+  *ncells = (*dpyinfo).ncolor_cells;
+  return (*dpyinfo).color_cells;
+}
+
+/* ---- C 9128-9370: the color readers and the name cache.  */
+
+/* The five prototypes this group calls, none of which any mirror in this graph carries, each
+   declared at its use site with C's own line (PORTING.md P-55; the `fringe.rs` 846-850 shape).
+   `x_free_colors`, `parse_color_spec` and `gamma_correct` are dispextern.h's, `x_free_dpy_colors`
+   is xterm.h 1980's (the mirror does not carry it), and `register_color` is xfaces.c 422's (its
+   prototype lives inside that file's `#ifdef DEBUG_X_COLORS` block).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: dispextern.h 3791: `void x_free_colors (struct frame *, unsigned long *, int);`
+  pub fn x_free_colors (f: *mut frame, pixels: *mut c_ulong, npixels: c_int);
+  /// C: dispextern.h 3798-3799: `bool parse_color_spec (const char *, unsigned short *,
+  ///                                    unsigned short *, unsigned short *);`
+  pub fn parse_color_spec (spec: *const c_char, r: *mut c_ushort, g: *mut c_ushort,
+			   b: *mut c_ushort) -> bool;
+  /// C: dispextern.h 3839: `void gamma_correct (struct frame *, XColor *);`
+  pub fn gamma_correct (f: *mut frame, color: *mut XColor);
+  /// C: xterm.h 1980-1981: `extern void x_free_dpy_colors (Display *, Screen *, Colormap,
+  ///                              unsigned long *, int);`
+  pub fn x_free_dpy_colors (dpy: *mut Display, screen: *mut Screen, cmap: Colormap,
+			    pixels: *mut c_ulong, npixels: c_int);
+}
+
+/* C 9129-9200: `x_query_colors`.  C's `0xffffffff / rmask` is an `unsigned int` division (the
+   port writes the literal as `c_uint` so the division stays the width C uses), the shifts and
+   masks are `c_uint`s, and C's two `eassert`s keep C's `pixel < dpyinfo->ncolor_cells`
+   comparison.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe fn x_query_colors (f: *mut frame, colors: *mut XColor, ncolors: c_int)
+{
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);
+  let mut i: c_int;
+
+  if (*dpyinfo).red_bits > 0
+    {
+      /* For TrueColor displays, we can decompose the RGB value
+	 directly.  */
+      let mut rmult: c_uint;
+      let mut gmult: c_uint;
+      let mut bmult: c_uint;
+      let rmask: c_uint;
+      let gmask: c_uint;
+      let bmask: c_uint;
+
+      rmask = (1 << (*dpyinfo).red_bits) - 1;
+      gmask = (1 << (*dpyinfo).green_bits) - 1;
+      bmask = (1 << (*dpyinfo).blue_bits) - 1;
+      /* If we're widening, for example, 8 bits in the pixel value to
+	 16 bits for the separate-color representation, we want to
+	 extrapolate the lower bits based on those bits available --
+	 in other words, we'd like 0xff to become 0xffff instead of
+	 the 0xff00 we'd get by just zero-filling the lower bits.
+
+         We generate a 32-bit scaled-up value and shift it, in case
+         the bit count doesn't divide 16 evenly (e.g., when dealing
+         with a 3-3-2 bit RGB display), to get more of the lower bits
+         correct.
+
+         Should we cache the multipliers in dpyinfo?  Maybe
+         special-case the 8-8-8 common case?  */
+      rmult = 0xffffffff_u32 as c_uint / rmask;
+      gmult = 0xffffffff_u32 as c_uint / gmask;
+      bmult = 0xffffffff_u32 as c_uint / bmask;
+
+      i = 0;
+      while i < ncolors
+	{
+	  let mut r: c_uint;
+	  let mut g: c_uint;
+	  let mut b: c_uint;
+	  let pixel: c_ulong = (*colors.offset (i as isize)).pixel;
+
+	  r = ((pixel >> (*dpyinfo).red_offset) & rmask as c_ulong) as c_uint;
+	  g = ((pixel >> (*dpyinfo).green_offset) & gmask as c_ulong) as c_uint;
+	  b = ((pixel >> (*dpyinfo).blue_offset) & bmask as c_ulong) as c_uint;
+
+	  (*colors.offset (i as isize)).red = ((r * rmult) >> 16) as c_ushort;
+	  (*colors.offset (i as isize)).green = ((g * gmult) >> 16) as c_ushort;
+	  (*colors.offset (i as isize)).blue = ((b * bmult) >> 16) as c_ushort;
+	  i += 1;
+	}
+
+      return;
+    }
+
+  if !(*dpyinfo).color_cells.is_null ()
+    {
+      let mut i: c_int;
+      i = 0;
+      while i < ncolors
+	{
+	  let pixel: c_ulong = (*colors.offset (i as isize)).pixel;
+	  eassert! (pixel < (*dpyinfo).ncolor_cells as c_ulong);
+	  eassert! ((*(*dpyinfo).color_cells.offset (pixel as isize)).pixel == pixel);
+	  *colors.offset (i as isize) = *(*dpyinfo).color_cells.offset (pixel as isize);
+	  i += 1;
+	}
+      return;
+    }
+
+  XQueryColors (FRAME_X_DISPLAY! (f), FRAME_X_COLORMAP! (f), colors, ncolors);
+}
+
+/* C 9202-9236: `x_query_frame_background_color`.  C's `#ifdef USE_CAIRO`/`#else` pair is the
+   port's two arms, both carried (P-51): the cairo one extends the background from
+   `f->alpha_background`, the other calls the non-cairo premultiplier.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_query_frame_background_color (f: *mut frame, bgcolor: *mut XColor)
+{
+  let mut background: c_ulong = FRAME_BACKGROUND_PIXEL (f);
+  #[cfg (not (feature = "use_cairo"))]
+  let mut bg: XColor = std::mem::zeroed ();
+
+  if (*FRAME_DISPLAY_INFO! (f)).alpha_bits != 0
+    {
+      #[cfg (feature = "use_cairo")]
+      {
+	background = (background & !(*FRAME_DISPLAY_INFO! (f)).alpha_mask);
+	background |= ((((*f).alpha_background * 0xffff) as c_ulong
+			>> (16 - (*FRAME_DISPLAY_INFO! (f)).alpha_bits))
+		       << (*FRAME_DISPLAY_INFO! (f)).alpha_offset);
+      }
+
+      #[cfg (not (feature = "use_cairo"))]
+      {
+	if (*FRAME_DISPLAY_INFO! (f)).alpha_bits != 0
+	    && (*f).alpha_background < 1.0
+	  {
+	    bg.pixel = background;
+	    x_query_colors (f, &raw mut bg, 1);
+
+	    background
+	      = x_premultiply_pixel (FRAME_DISPLAY_INFO! (f),
+				     &raw mut bg, (*f).alpha_background);
+	  }
+      }
+    }
+
+  (*bgcolor).pixel = background;
+
+  x_query_colors (f, bgcolor, 1);
+}
+
+/* C 9238-9251: `x_hash_string_ignore_case`.  C's `3323198485ul` seed and its `i *= 0x5bd1e995`
+   are `unsigned int` arithmetic (`c_uint`'s wrapping multiply, P-15's pair for `*=`), and
+   `c_tolower` is `lib/include/c-ctype.rs`'s; C's `for` is the `while` with the increment at the
+   body's end (its `++string` runs where C puts it).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_hash_string_ignore_case (string: *const c_char) -> c_uint
+{
+  let mut string: *const c_char = string;
+  let mut i: c_uint;
+
+  i = 3323198485_u32;
+  while *string != 0
+    {
+      i ^= c_tolower (*string as c_int) as c_uint;
+      i = i.wrapping_mul (0x5bd1e995_u32);
+      i ^= i >> 15;
+      string = string.offset (1);
+    }
+  i
+}
+
+/* C 9253-9370: `x_parse_color`.  `parse_color_spec`'s three out-parameters take the `c_ushort`
+   locals C declares, `xstrcasecmp` is `include/dispextern.rs` 2607's, and C's two
+   `x_color_cache_bucket_size > 0 ? … : 128` expressions are the port's `if`/`else`; `dpyinfo`'s
+   `color_name_cache_entry.valid` is a `bool_bf` the mirror keeps as a comment (the ledger's
+   gap list), so C's spelling is the one the port writes.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe fn x_parse_color (f: *mut frame, color_name: *const c_char,
+			     color: *mut XColor) -> Status
+{
+  use crate::x11_constants::{None, XA_CARDINAL};
+
+  let mut r: c_ushort;
+  let mut g: c_ushort;
+  let mut b: c_ushort;
+  let dpy: *mut Display;
+  let cmap: Colormap;
+  let dpyinfo: *mut x_display_info;
+  let mut cache_entry: *mut color_name_cache_entry;
+  let mut last: *mut color_name_cache_entry;
+  let mut next: *mut color_name_cache_entry;
+  let mut color_entry: *mut color_name_cache_entry;
+  let mut hash: c_uint;
+  let mut idx: c_uint;
+  let mut rc: c_int;
+  let mut i: c_int;
+
+  /* Don't pass #RGB strings directly to XParseColor, because that
+     follows the X convention of zero-extending each channel
+     value: #f00 means #f00000.  We want the convention of scaling
+     channel values, so #f00 means #ff0000, just as it does for
+     HTML, SVG, and CSS.  */
+  if parse_color_spec (color_name, &raw mut r, &raw mut g, &raw mut b)
+    {
+      (*color).red = r;
+      (*color).green = g;
+      (*color).blue = b;
+
+      return 1;
+    }
+
+  /* Some X servers send BadValue on empty color names.  */
+  if strlen (color_name) == 0
+    { return 0; }
+
+  cmap = FRAME_X_COLORMAP! (f);
+  dpy = FRAME_X_DISPLAY! (f);
+  dpyinfo = FRAME_DISPLAY_INFO! (f);
+
+  hash = x_hash_string_ignore_case (color_name);
+  idx = hash % (*dpyinfo).color_names_size as c_uint;
+
+  last = std::ptr::null_mut ();
+
+  cache_entry = *(*dpyinfo).color_names.offset (idx as isize);
+  while !cache_entry.is_null ()
+    {
+      if xstrcasecmp ((*cache_entry).name, color_name) == 0
+	{
+	  /* Move recently used entries to the start of the color
+	     cache.  */
+
+	  if !last.is_null ()
+	    {
+	      (*last).next = (*cache_entry).next;
+	      (*cache_entry).next = *(*dpyinfo).color_names.offset (idx as isize);
+
+	      *(*dpyinfo).color_names.offset (idx as isize) = cache_entry;
+	    }
+
+	  if (*cache_entry).valid
+	    { *color = (*cache_entry).rgb; }
+
+	  return (*cache_entry).valid as Status;
+	}
+
+      last = cache_entry;
+      cache_entry = (*cache_entry).next;
+    }
+
+  block_input ();
+  rc = XParseColor (dpy, cmap, color_name, color);
+  unblock_input ();
+
+  cache_entry = xzalloc (std::mem::size_of_val (&*cache_entry)) as *mut color_name_cache_entry;
+  *(*dpyinfo).color_names_length.offset (idx as isize) += 1;
+
+  if rc != 0
+    { (*cache_entry).rgb = *color; }
+
+  (*cache_entry).valid = rc != 0;
+  (*cache_entry).name = xstrdup (color_name);
+  (*cache_entry).next = *(*dpyinfo).color_names.offset (idx as isize);
+
+  *(*dpyinfo).color_names.offset (idx as isize) = cache_entry;
+
+  /* Don't let the color cache become too big.  */
+  if *(*dpyinfo).color_names_length.offset (idx as isize)
+      > (if x_color_cache_bucket_size > 0 { x_color_cache_bucket_size } else { 128 })
+    {
+      i = 0;
+
+      last = *(*dpyinfo).color_names.offset (idx as isize);
+      while !last.is_null ()
+	{
+	  i += 1;
+	  if i == (if x_color_cache_bucket_size > 0 { x_color_cache_bucket_size as c_int } else { 128 })
+	    {
+	      next = (*last).next;
+	      (*last).next = std::ptr::null_mut ();
+
+	      color_entry = next;
+	      while !color_entry.is_null ()
+		{
+		  last = (*color_entry).next;
+
+		  xfree ((*color_entry).name as *mut c_void);
+		  xfree (color_entry as *mut c_void);
+
+		  *(*dpyinfo).color_names_length.offset (idx as isize) -= 1;
+		  color_entry = last;
+		}
+
+	      return rc;
+	    }
+	  last = (*last).next;
+	}
+    }
+
+  return rc;
+}
+
+/* ---- C 9372-9566: the nearest-color allocator, the frame entry point and the reference-count
+   copy.  */
+
+/* C 9373-9512: `x_alloc_nearest_color_1`.  C's `start:` label with its backward `goto start` is
+   the port's labelled `loop` whose `continue 'start` is the jump and whose trailing `break` the
+   fall-through (PORTING.md 2.2); the `#ifdef DEBUG_X_COLORS` pair is carried under that feature
+   (`debug_x_colors`), and `register_color` is xfaces.c 422's (its prototype lives inside that
+   file's own `#ifdef DEBUG_X_COLORS`), so it is named and not declared.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_alloc_nearest_color_1 (dpy: *mut Display, cmap: Colormap, color: *mut XColor) -> bool
+{
+  use crate::x11_constants::DirectColor;
+
+  let dpyinfo: *mut x_display_info = x_dpyinfo (dpy);
+  let mut rc: bool = XAllocColor (dpy, cmap, color) != 0;
+
+  if (*dpyinfo).visual_info.class == DirectColor
+    { return rc; }
+
+  if !rc
+    {
+      /* If we got to this point, the colormap is full, so we're going
+	 to try and get the next closest color.  The algorithm used is
+	 a least-squares matching, which is what X uses for closest
+	 color matching with StaticColor visuals.  */
+
+      let mut cells: *const XColor;
+      let mut no_cells: c_int;
+      let mut nearest: c_int;
+      let mut nearest_delta: c_long;
+      let mut trial_delta: c_long;
+      let mut x: c_int;
+      let mut status: Status;
+      let mut retry: bool = false;
+      let mut ncolor_cells: c_int;
+      let mut i: c_int;
+      let mut temp_allocated: bool;
+      let mut temp: XColor = std::mem::zeroed ();
+
+      'start: loop
+	{
+	  cells = x_color_cells (dpy, &raw mut no_cells);
+	  temp_allocated = false;
+
+	  nearest = 0;
+	  /* I'm assuming CSE so I'm not going to condense this. */
+	  nearest_delta = (((((*color).red >> 8) as c_int - ((*cells.offset (0)).red >> 8) as c_int)
+			    * (((*color).red >> 8) as c_int - ((*cells.offset (0)).red >> 8) as c_int))
+			   + ((((*color).green >> 8) as c_int
+			       - ((*cells.offset (0)).green >> 8) as c_int)
+			      * (((*color).green >> 8) as c_int
+				 - ((*cells.offset (0)).green >> 8) as c_int))
+			   + ((((*color).blue >> 8) as c_int
+			       - ((*cells.offset (0)).blue >> 8) as c_int)
+			      * (((*color).blue >> 8) as c_int
+				 - ((*cells.offset (0)).blue >> 8) as c_int))) as c_long;
+	  x = 1;
+	  while x < no_cells
+	    {
+	      trial_delta = (((((*color).red >> 8) as c_int
+			       - ((*cells.offset (x as isize)).red >> 8) as c_int)
+			      * (((*color).red >> 8) as c_int
+				 - ((*cells.offset (x as isize)).red >> 8) as c_int))
+			     + ((((*color).green >> 8) as c_int
+				 - ((*cells.offset (x as isize)).green >> 8) as c_int)
+				* (((*color).green >> 8) as c_int
+				   - ((*cells.offset (x as isize)).green >> 8) as c_int))
+			     + ((((*color).blue >> 8) as c_int
+				 - ((*cells.offset (x as isize)).blue >> 8) as c_int)
+				* (((*color).blue >> 8) as c_int
+				   - ((*cells.offset (x as isize)).blue >> 8) as c_int))) as c_long;
+	      if trial_delta < nearest_delta
+		{
+		  /* We didn't decide to use this color, so free it.  */
+		  if temp_allocated
+		    {
+		      XFreeColors (dpy, cmap, &raw mut temp.pixel, 1, 0);
+		      temp_allocated = false;
+		    }
+
+		  temp.red = (*cells.offset (x as isize)).red;
+		  temp.green = (*cells.offset (x as isize)).green;
+		  temp.blue = (*cells.offset (x as isize)).blue;
+		  status = XAllocColor (dpy, cmap, &raw mut temp);
+
+		  if status != 0
+		    {
+		      temp_allocated = true;
+		      nearest = x;
+		      nearest_delta = trial_delta;
+		    }
+		}
+	      x += 1;
+	    }
+	  (*color).red = (*cells.offset (nearest as isize)).red;
+	  (*color).green = (*cells.offset (nearest as isize)).green;
+	  (*color).blue = (*cells.offset (nearest as isize)).blue;
+
+	  if !temp_allocated
+	    { status = XAllocColor (dpy, cmap, color); }
+	  else
+	    {
+	      *color = temp;
+	      status = 1;
+	    }
+
+	  if status == 0 && !retry
+	    {
+	      /* Our private cache of color cells is probably out of date.
+		 Refresh it here, and try to allocate the nearest color
+		 from the new colormap.  */
+
+	      retry = true;
+	      xfree ((*dpyinfo).color_cells as *mut c_void);
+
+	      ncolor_cells = (*dpyinfo).visual_info.colormap_size;
+
+	      (*dpyinfo).color_cells = xnmalloc (ncolor_cells as isize,
+						 std::mem::size_of_val (&*(*dpyinfo).color_cells) as isize)
+		as *mut XColor;
+	      (*dpyinfo).ncolor_cells = ncolor_cells;
+
+	      i = 0;
+	      while i < ncolor_cells
+		{
+		  (*((*dpyinfo).color_cells).offset (i as isize)).pixel = i as c_ulong;
+		  i += 1;
+		}
+
+	      XQueryColors (dpy, (*dpyinfo).cmap,
+			    (*dpyinfo).color_cells, ncolor_cells);
+
+	      continue 'start;
+	    }
+
+	  rc = status != 0;
+	  break 'start;
+	}
+    }
+  else
+    {
+      /* If allocation succeeded, and the allocated pixel color is not
+         equal to a cached pixel color recorded earlier, there was a
+         change in the colormap, so clear the color cache.  */
+      let dpyinfo: *mut x_display_info = x_dpyinfo (dpy);
+
+      if !(*dpyinfo).color_cells.is_null ()
+	{
+	  let cached_color: *mut XColor
+	    = (*dpyinfo).color_cells.offset ((*color).pixel as isize);
+	  if (*cached_color).red != (*color).red
+	      || (*cached_color).blue != (*color).blue
+	      || (*cached_color).green != (*color).green
+	    {
+	      xfree ((*dpyinfo).color_cells as *mut c_void);
+	      (*dpyinfo).color_cells = std::ptr::null_mut ();
+	      (*dpyinfo).ncolor_cells = 0;
+	    }
+	}
+    }
+
+  #[cfg (feature = "debug_x_colors")]
+  {
+    if rc
+      { register_color ((*color).pixel); }
+  }
+
+  rc
+}
+
+/* C 9514-9537: `x_alloc_nearest_color`.  C's definition has no `static`, so the port keeps it
+   exported (PORTING.md 0.2); C's `?:`-free body and its `return true` are C's own.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe fn x_alloc_nearest_color (f: *mut frame, cmap: Colormap, color: *mut XColor) -> bool
+{
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);
+
+  gamma_correct (f, color);
+
+  if (*dpyinfo).red_bits > 0
+    {
+      (*color).pixel = x_make_truecolor_pixel (dpyinfo,
+					       (*color).red as c_int,
+					       (*color).green as c_int,
+					       (*color).blue as c_int);
+      return true;
+    }
+
+  x_alloc_nearest_color_1 (FRAME_X_DISPLAY! (f), cmap, color)
+}
+
+/* C 9539-9566: `x_copy_color`.  C's definition has no `static` either (PORTING.md 0.2); the
+   `#ifdef DEBUG_X_COLORS` pair is carried under its feature.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe fn x_copy_color (f: *mut frame, pixel: c_ulong) -> c_ulong
+{
+  let mut color: XColor = std::mem::zeroed ();
+
+  /* If display has an immutable color map, freeing colors is not
+     necessary and some servers don't allow it.  Since we won't free a
+     color once we've allocated it, we don't need to re-allocate it to
+     maintain the server's reference count.  */
+  if !x_mutable_colormap (FRAME_X_VISUAL_INFO! (f))
+    { return pixel; }
+
+  color.pixel = pixel;
+  block_input ();
+  /* The color could still be found in the color_cells array.  */
+  x_query_colors (f, &raw mut color, 1);
+  XAllocColor (FRAME_X_DISPLAY! (f), FRAME_X_COLORMAP! (f), &raw mut color);
+  unblock_input ();
+  #[cfg (feature = "debug_x_colors")]
+  { register_color (pixel); }
+  color.pixel
+}
+
+/* ---- C 9568-9785: the highlight-limit constant, the lighter-color allocator, the relief pair
+   and C 9744's three non-cairo helpers.  */
+
+/* C 9568-9580: the comment (C's prose, kept above) and `#define
+   HIGHLIGHT_COLOR_DARK_BOOST_LIMIT 48000` - a value, so the port writes the constant the
+   extractor reads it as (the `OPAQUE` shape).  */
+#[cfg (feature = "have_x_windows")]
+pub const HIGHLIGHT_COLOR_DARK_BOOST_LIMIT: c_int = 48000;
+
+/* C 9583-9657: `x_alloc_lighter_color`.  C's `min`/`max` are lisp.h's `EMACS_INT` pair (so each
+   call's two `int` operands and its result are spelled out), `x_free_colors` is the use-site
+   declaration above, and C's `double dimness = 1 - (double) bright / LIMIT` keeps C's two
+   conversions.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_alloc_lighter_color (f: *mut frame, display: *mut Display, cmap: Colormap,
+				 pixel: *mut c_ulong, factor: c_double,
+				 delta: c_int) -> bool
+{
+  let mut color: XColor = std::mem::zeroed ();
+  let mut new: XColor = std::mem::zeroed ();
+  let mut bright: c_long;
+  let mut success_p: bool;
+
+  /* Get RGB color values.  */
+  color.pixel = *pixel;
+  x_query_colors (f, &raw mut color, 1);
+
+  /* Change RGB values by specified FACTOR.  Avoid overflow!  */
+  eassert! (factor >= 0.0);
+  new.red = min (0xffff, (factor * color.red as c_double) as isize) as c_ushort;
+  new.green = min (0xffff, (factor * color.green as c_double) as isize) as c_ushort;
+  new.blue = min (0xffff, (factor * color.blue as c_double) as isize) as c_ushort;
+
+  /* Calculate brightness of COLOR.  */
+  bright = ((2 * color.red as c_int + 3 * color.green as c_int
+	     + color.blue as c_int) / 6) as c_long;
+
+  /* We only boost colors that are darker than
+     HIGHLIGHT_COLOR_DARK_BOOST_LIMIT.  */
+  if bright < HIGHLIGHT_COLOR_DARK_BOOST_LIMIT as c_long
+    /* Make an additive adjustment to NEW, because it's dark enough so
+       that scaling by FACTOR alone isn't enough.  */
+    {
+      /* How far below the limit this color is (0 - 1, 1 being darker).  */
+      let dimness: c_double = 1.0 - bright as c_double
+	/ HIGHLIGHT_COLOR_DARK_BOOST_LIMIT as c_double;
+      /* The additive adjustment.  */
+      let min_delta: c_int = (delta as c_double * dimness * factor / 2.0) as c_int;
+
+      if factor < 1.0
+	{
+	  new.red = max (0, new.red as isize - min_delta as isize) as c_ushort;
+	  new.green = max (0, new.green as isize - min_delta as isize) as c_ushort;
+	  new.blue = max (0, new.blue as isize - min_delta as isize) as c_ushort;
+	}
+      else
+	{
+	  new.red = min (0xffff, min_delta as isize + new.red as isize) as c_ushort;
+	  new.green = min (0xffff, min_delta as isize + new.green as isize) as c_ushort;
+	  new.blue = min (0xffff, min_delta as isize + new.blue as isize) as c_ushort;
+	}
+    }
+
+  /* Try to allocate the color.  */
+  success_p = x_alloc_nearest_color (f, cmap, &raw mut new);
+  if success_p
+    {
+      if new.pixel == *pixel
+	{
+	  /* If we end up with the same color as before, try adding
+	     delta to the RGB values.  */
+	  x_free_colors (f, &raw mut new.pixel, 1);
+
+	  new.red = min (0xffff, delta as isize + color.red as isize) as c_ushort;
+	  new.green = min (0xffff, delta as isize + color.green as isize) as c_ushort;
+	  new.blue = min (0xffff, delta as isize + color.blue as isize) as c_ushort;
+	  success_p = x_alloc_nearest_color (f, cmap, &raw mut new);
+	}
+      else
+	{ success_p = true; }
+      *pixel = new.pixel;
+    }
+
+  success_p
+}
+
+/* C 9659-9707: `x_setup_relief_color`.  C's `relief->pixel != -1` compares the mirror's
+   `unsigned long` member with -1 (the `pixel` field is signed in C's intent), and the two
+   `XCreateGC`/`XChangeGC` calls take `display`/`mask`/`xgcv` as C writes them.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_setup_relief_color (f: *mut frame, relief: *mut relief, factor: c_double,
+				delta: c_int, default_pixel: c_ulong)
+{
+  use crate::x11_constants::GCForeground;
+
+  let mut xgcv: XGCValues = std::mem::zeroed ();
+  let di: *mut x_output = (*f).output_data.x as *mut x_output;
+  let mut mask: c_ulong = (GCForeground | GCLineWidth | GCGraphicsExposures) as c_ulong;
+  let mut pixel: c_ulong;
+  let background: c_ulong = (*di).relief_background;
+  let cmap: Colormap = FRAME_X_COLORMAP! (f);
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);
+  let dpy: *mut Display = FRAME_X_DISPLAY! (f);
+
+  xgcv.graphics_exposures = false as Bool;
+  xgcv.line_width = 1;
+
+  /* Free previously allocated color.  The color cell will be reused
+     when it has been freed as many times as it was allocated, so this
+     doesn't affect faces using the same colors.  */
+  if (*relief).gc != 0 as GC && (*relief).pixel != (-1 as c_long) as c_ulong
+    {
+      x_free_colors (f, &raw mut (*relief).pixel, 1);
+      (*relief).pixel = (-1 as c_long) as c_ulong;
+    }
+
+  /* Allocate new color.  */
+  xgcv.foreground = default_pixel;
+  pixel = background;
+  if (*dpyinfo).n_planes != 1
+      && x_alloc_lighter_color (f, dpy, cmap, &raw mut pixel, factor, delta)
+    { xgcv.foreground = pixel; (*relief).pixel = pixel; }
+
+  if (*relief).gc == 0 as GC
+    {
+      xgcv.stipple = (*dpyinfo).gray;
+      mask |= GCStipple as c_ulong;
+      (*relief).gc = XCreateGC (dpy, FRAME_X_DRAWABLE! (f), mask,
+				&raw mut xgcv as *mut c_void);
+    }
+  else
+    { XChangeGC (dpy, (*relief).gc, mask, &raw mut xgcv as *mut c_void); }
+}
+
+/* C 9709-9742: `x_setup_relief_colors`.  `IMAGE_BACKGROUND`/`IMAGE_BACKGROUND_TRANSPARENT`
+   are dispextern.h's macros (this graph's mirror keeps their `_SHIFT`/`_MASK` constants but not
+   the two readers), and `WHITE_PIX_DEFAULT`/`BLACK_PIX_DEFAULT` are `include/xterm.rs` 104's
+   pair.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_setup_relief_colors (s: *mut glyph_string)
+{
+  let di: *mut x_output = (*(*s).f).output_data.x as *mut x_output;
+  let mut color: c_ulong;
+
+  if face_bits! (use_box_color_for_shadows_p, (*((*s).face as *mut face)))
+    { color = (*((*s).face as *mut face)).box_color; }
+  else if glyph_bits! (type, (*(*s).first_glyph)) == IMAGE_GLYPH
+	   && !(*((*s).img)).pixmap.is_null ()
+	   && !IMAGE_BACKGROUND_TRANSPARENT ((*s).img, (*s).f, std::ptr::null_mut ())
+    { color = IMAGE_BACKGROUND ((*s).img, (*s).f, std::ptr::null_mut ()); }
+  else
+    {
+      let mut xgcv: XGCValues = std::mem::zeroed ();
+
+      /* Get the background color of the face.  */
+      XGetGCValues (FRAME_X_DISPLAY! ((*s).f), (*s).gc as GC, GCBackground as c_ulong,
+		    &raw mut xgcv);
+      color = xgcv.background;
+    }
+
+  if (*di).white_relief.gc == 0 as GC
+      || color != (*di).relief_background
+    {
+      (*di).relief_background = color;
+      x_setup_relief_color ((*s).f, &raw mut (*di).white_relief, 1.2, 0x8000,
+			    WHITE_PIX_DEFAULT! ((*s).f));
+      x_setup_relief_color ((*s).f, &raw mut (*di).black_relief, 0.6, 0x4000,
+			    BLACK_PIX_DEFAULT! ((*s).f));
+    }
+}
+
+/* C 9744-9785: `#ifndef USE_CAIRO` - `x_fill_triangle`, `x_make_point` and `x_inside_rect_p`.
+   `XPoint`, `XFillPolygon`, `Convex` and `CoordModeOrigin` are Xlib's (no mirror here), and
+   C's `for` loop over `rects` keeps its index.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_cairo")))]
+unsafe fn x_fill_triangle (f: *mut frame, gc: GC, point1: XPoint,
+			   point2: XPoint, point3: XPoint)
+{
+  let mut abc: [XPoint; 3] = std::mem::zeroed ();
+
+  abc[0] = point1;
+  abc[1] = point2;
+  abc[2] = point3;
+
+  XFillPolygon (FRAME_X_DISPLAY! (f), FRAME_X_DRAWABLE! (f),
+		gc, abc.as_mut_ptr (), 3, Convex, CoordModeOrigin);
+}
+
+#[cfg (all (feature = "have_x_windows", not (feature = "use_cairo")))]
+unsafe fn x_make_point (x: c_int, y: c_int) -> XPoint
+{
+  let mut pt: XPoint = std::mem::zeroed ();
+
+  pt.x = x as c_short;
+  pt.y = y as c_short;
+
+  pt
+}
+
+#[cfg (all (feature = "have_x_windows", not (feature = "use_cairo")))]
+unsafe fn x_inside_rect_p (rects: *mut XRectangle, nrects: c_int, x: c_int, y: c_int) -> bool
+{
+  let mut i: c_int;
+
+  i = 0;
+  while i < nrects
+    {
+      if x >= (*rects.offset (i as isize)).x as c_int
+	  && y >= (*rects.offset (i as isize)).y as c_int
+	  && x < (*rects.offset (i as isize)).x as c_int
+		 + (*rects.offset (i as isize)).width as c_int
+	  && y < (*rects.offset (i as isize)).y as c_int
+		 + (*rects.offset (i as isize)).height as c_int
+	{ return true; }
+      i += 1;
+    }
+
+  false
+}

@@ -18,7 +18,8 @@
 > before slice 1, **443** after it, **324** after slice 2 (C 1131-1762, the drag-and-drop state
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
-> same frozen reading, which is *not* the configuration that compiles the file (Decisions 2).
+> same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
+9 moves it to **212** (Decision 21).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -92,47 +93,47 @@
 - [x] x_display_info_for_display  (line 6895)
 - [x] x_find_topmost_parent  (line 6907, static)
 - [x] x_set_frame_alpha  (line 6932, static)
-- [ ] x_update_begin  (line 7419, static)
-- [ ] x_draw_vertical_window_border  (line 7443, static)
-- [ ] x_draw_window_divider  (line 7464, static)
-- [ ] x_flip_and_flush  (line 7576, static)
-- [ ] x_update_end  (line 7604, static)
-- [ ] XTframe_up_to_date  (line 7631, static)
-- [ ] x_clear_under_internal_border  (line 7696)
-- [ ] x_after_update_window_line  (line 7752, static)
-- [ ] x_premultiply_pixel  (line 7821, static)
-- [ ] x_draw_fringe_bitmap  (line 7852, static)
-- [ ] x_display_set_last_user_time  (line 8087, static)
-- [ ] x_create_special_window  (line 8206, static)
-- [ ] x_update_frame_user_time_window  (line 8226, static)
-- [ ] x_set_last_user_time_from_lisp  (line 8303)
-- [ ] x_set_cursor_gc  (line 8314, static)
-- [ ] x_set_mouse_face_gc  (line 8369, static)
-- [ ] x_set_mode_line_face_gc  (line 8409, static)
-- [ ] x_set_glyph_string_gc  (line 8420, static)
-- [ ] x_set_glyph_string_clipping  (line 8462, static)
-- [ ] x_set_glyph_string_clipping_exactly  (line 8478, static)
-- [ ] x_compute_glyph_string_overhangs  (line 8496, static)
-- [ ] x_clear_glyph_string_rect  (line 8530, static)
-- [ ] x_clear_point  (line 8538, static)
-- [ ] x_draw_glyph_string_background  (line 8568, static)
-- [ ] x_draw_glyph_string_foreground  (line 8612, static)
-- [ ] x_draw_composite_glyph_string_foreground  (line 8706, static)
-- [ ] x_draw_glyphless_glyph_string_foreground  (line 8816, static)
-- [ ] x_color_cells  (line 9104, static)
-- [ ] x_query_colors  (line 9137)
-- [ ] x_query_frame_background_color  (line 9205, static)
-- [ ] x_hash_string_ignore_case  (line 9239, static)
-- [ ] x_parse_color  (line 9260)
-- [ ] x_alloc_nearest_color_1  (line 9379, static)
-- [ ] x_alloc_nearest_color  (line 9521)
-- [ ] x_copy_color  (line 9545)
-- [ ] x_alloc_lighter_color  (line 9591, static)
-- [ ] x_setup_relief_color  (line 9668, static)
-- [ ] x_setup_relief_colors  (line 9713, static)
-- [ ] x_fill_triangle  (line 9746, static)
-- [ ] x_make_point  (line 9760, static)
-- [ ] x_inside_rect_p  (line 9771, static)
+- [x] x_update_begin  (line 7419, static)
+- [x] x_draw_vertical_window_border  (line 7443, static)
+- [x] x_draw_window_divider  (line 7464, static)
+- [x] x_flip_and_flush  (line 7576, static)
+- [x] x_update_end  (line 7604, static)
+- [x] XTframe_up_to_date  (line 7631, static)
+- [x] x_clear_under_internal_border  (line 7696)
+- [x] x_after_update_window_line  (line 7752, static)
+- [x] x_premultiply_pixel  (line 7821, static)
+- [x] x_draw_fringe_bitmap  (line 7852, static)
+- [x] x_display_set_last_user_time  (line 8087, static)
+- [x] x_create_special_window  (line 8206, static)
+- [x] x_update_frame_user_time_window  (line 8226, static)
+- [x] x_set_last_user_time_from_lisp  (line 8303)
+- [x] x_set_cursor_gc  (line 8314, static)
+- [x] x_set_mouse_face_gc  (line 8369, static)
+- [x] x_set_mode_line_face_gc  (line 8409, static)
+- [x] x_set_glyph_string_gc  (line 8420, static)
+- [x] x_set_glyph_string_clipping  (line 8462, static)
+- [x] x_set_glyph_string_clipping_exactly  (line 8478, static)
+- [x] x_compute_glyph_string_overhangs  (line 8496, static)
+- [x] x_clear_glyph_string_rect  (line 8530, static)
+- [x] x_clear_point  (line 8538, static)
+- [x] x_draw_glyph_string_background  (line 8568, static)
+- [x] x_draw_glyph_string_foreground  (line 8612, static)
+- [x] x_draw_composite_glyph_string_foreground  (line 8706, static)
+- [x] x_draw_glyphless_glyph_string_foreground  (line 8816, static)
+- [x] x_color_cells  (line 9104, static)
+- [x] x_query_colors  (line 9137)
+- [x] x_query_frame_background_color  (line 9205, static)
+- [x] x_hash_string_ignore_case  (line 9239, static)
+- [x] x_parse_color  (line 9260)
+- [x] x_alloc_nearest_color_1  (line 9379, static)
+- [x] x_alloc_nearest_color  (line 9521)
+- [x] x_copy_color  (line 9545)
+- [x] x_alloc_lighter_color  (line 9591, static)
+- [x] x_setup_relief_color  (line 9668, static)
+- [x] x_setup_relief_colors  (line 9713, static)
+- [x] x_fill_triangle  (line 9746, static)
+- [x] x_make_point  (line 9760, static)
+- [x] x_inside_rect_p  (line 9771, static)
 - [ ] x_draw_relief_rect  (line 9797, static)
 - [ ] x_draw_box_rect  (line 9999, static)
 - [ ] x_draw_glyph_string_box  (line 10040, static)
@@ -337,7 +338,7 @@
 
 ## Macros defined — 21
 - [x] ATOM_REFS_INIT  (line 989, body 38ea51a9ed88)
-- [ ] HIGHLIGHT_COLOR_DARK_BOOST_LIMIT  (line 9580, body bdbb3f155244)
+- [x] HIGHLIGHT_COLOR_DARK_BOOST_LIMIT  (line 9580, body bdbb3f155244)
 - [x] OPAQUE  (line 6929, body d524558178b7)
 - [ ] STORE_KEYSYM_FOR_DEBUG  (line 17826, body faabc0e0dbea)
 - [x] SWAPCARD16  (line 1584, body f50347531e4d)
@@ -503,6 +504,18 @@ half.  Later slices append their rows.
 | C 6594-6629 `#if RENDER_MAJOR > 0 || (RENDER_MINOR >= 10)` | `feature = "have_xrender_0_10"` (the derived name) | an XRender >= 0.10 build |
 | C 6757-6774 `#ifndef USE_GTK` + `#ifdef HAVE_XDBE` inside its condition | `not (feature = "use_gtk")`, `feature = "have_xdbe"` | a non-GTK Xdbe build |
 | C 6779-6865 `#ifdef USE_CAIRO` (the relief trapezoids, corners, wave) | `feature = "use_cairo"` | a cairo build |
+| C 6994 `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME` | `all (feature = "have_xsync", not (feature = "use_gtk"), feature = "have_clock_gettime")` | an XSync build that is not GTK, with `clock_gettime` |
+| C 7249 / 7369 `#ifdef HAVE_XSYNCTRIGGERFENCE` | `feature = "have_xsynctriggerfence"` | an XSync build whose fences are available |
+| C 7101 / 7271 `#ifdef FRAME_DEBUG` | `feature = "frame_debug"` | the source-level knob C defines by hand (the `glyph_debug` shape) |
+| C 7818 / 8535 / 9744 `#ifndef USE_CAIRO` (the three non-cairo helpers) | `not (feature = "use_cairo")` | a build without cairo |
+| C 7421-7437 / 7588 / 7609-7624 / 7637-7643 / 7674 `HAVE_XDBE` arms | `feature = "have_xdbe"` (the C 5087 row's gate, carried on) | an Xdbe build |
+| C 7636 / 7888 / 8659-8661 / 8733-8809 `USE_CAIRO` arms | `feature = "use_cairo"` (the C 5289/5966 row's gate, carried on) | a cairo build |
+| C 8181 `#ifdef USE_GTK` (`x_set_gtk_user_time`) | `feature = "use_gtk"` | a GTK build |
+| C 8198 `#if !defined USE_GTK \|\| defined HAVE_XFIXES` | `any (not (feature = "use_gtk"), feature = "have_xfixes")` | a non-GTK or XFixes build |
+| C 8223-8300 `#ifndef USE_GTK` | `not (feature = "use_gtk")` | a non-GTK build |
+| C 8834/8836 `#ifdef GCC_LINT` / `#else` | `feature = "gcc_lint"` / `not (feature = "gcc_lint")` | `GCC_LINT` is 1 in this configuration (conf_post.h 486), so the first arm is the live text |
+| C 8900 `#ifdef USE_LUCID` (inside `USE_X_TOOLKIT`) | `all (feature = "use_x_toolkit", feature = "use_lucid")` | a Lucid widget build |
+| C 9506 / 9562 `#ifdef DEBUG_X_COLORS` | `feature = "debug_x_colors"` | the source-level knob C defines by hand |
 
 ## C line ranges
 
@@ -510,8 +523,8 @@ One row per C block, in C's order - the table P-86 clause 2 requires of a file w
 frozen configuration leaves false, and the same shape `docs/ports/w32term.md`'s table uses: a
 row's range runs to the line before the next row's start, so the table is contiguous and every
 non-blank line of the reference is accounted for (`check-dead-file-coverage.py` reads it).  The
-`arm` cell says what the port does with the block; the per-function lines of slices 1-7 are in
-their Decisions, and the ones of slice 8 are in Decision 20.
+`arm` cell says what the port does with the block; the per-function lines of slices 1-8 are in
+their Decisions, and the ones of slice 9 are in Decision 21.
 
 | C | block | arm |
 | --- | --- | --- |
@@ -571,7 +584,54 @@ their Decisions, and the ones of slice 8 are in Decision 20.
 | 6894-6905 | `x_display_info_for_display` (C 6895-6905) | the file gate |
 | 6906-6928 | `x_find_topmost_parent` (C 6907-6928) | the file gate |
 | 6929-6989 | `OPAQUE` (C 6929) and `x_set_frame_alpha` (C 6932-6989) | the file gate |
-| 6990-33125 | **the remainder** (C 6991's `Starting and ending an update` banner, C 6998's `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME`, the display iterator, the glyph drawing, `x_set_glyph_string_gc` onward, the mouse/scroll-bar/tool-bar code, the event loop, `XTread_socket`, `x_initialize`, `syms_of_xterm`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 6990-6993 | the section banner (`Starting and ending an update`, C's boxed comment) | carried as a comment |
+| 6994-7410 | C 6994's `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME`: `x_if_event` (C 7002), `x_sync_get_monotonic_time` (7053), `x_sync_current_monotonic_time` (7071), `x_sync_note_frame_times` (7084, with C 7101's `FRAME_DEBUG` block), `x_sync_is_frame_drawn_event` (7109), `x_sync_wait_for_frame_drawn_event` (7132), `x_sync_update_begin` (7187), C 7249's `HAVE_XSYNCTRIGGERFENCE` trio (`x_sync_trigger_fence` with C 7271's `FRAME_DEBUG` block, `x_sync_init_fences`, `x_sync_free_fences`), `x_sync_update_finish` (7339, with C 7369's inner arm) and `x_sync_handle_frame_drawn` (7383) | `all (feature = "have_x_windows", feature = "have_xsync", not (feature = "use_gtk"), feature = "have_clock_gettime")`, plus `have_xsynctriggerfence` and `frame_debug` |
+| 7412-7438 | `x_update_begin` (C 7419) | the file gate; C 7421's condition again inside, plus `have_xdbe` (C 7424/7432) |
+| 7440-7459 | `x_draw_vertical_window_border` (C 7443) | the file gate; `use_cairo` / not (C 7453) |
+| 7461-7524 | `x_draw_window_divider` (C 7464) | the file gate |
+| 7526-7570 | `#ifdef HAVE_XDBE`: `show_back_buffer` (C 7533) | `have_xdbe`, plus the `have_xsync` triple and `use_cairo` for its inner arms |
+| 7572-7598 | `x_flip_and_flush` (C 7576) | the file gate; `have_xdbe` (C 7588) |
+| 7600-7625 | `x_update_end` (C 7604) | the file gate; `use_cairo`+`have_xdbe` (C 7609-7614); the `have_xsync` triple (C 7619) |
+| 7627-7672 | `XTframe_up_to_date` (C 7631) | the file gate; `have_xdbe` (C 7637); `have_xsync`+`not have_gtk3` / `have_xsync`+`have_gtk3` (C 7646-7670) |
+| 7674-7685 | `#ifdef HAVE_XDBE`: `XTbuffer_flipping_unblocked_hook` (C 7676) | `have_xdbe` (no checklist box: dead in the frozen reading, carried per P-51) |
+| 7687-7743 | `x_clear_under_internal_border` (C 7696) | the file gate (C's definition is not `static`) |
+| 7745-7809 | `x_after_update_window_line` (C 7752) | the file gate; `use_x_toolkit` (C 7759's block) |
+| 7811-7849 | `#ifndef USE_CAIRO`: `x_premultiply_pixel` (C 7821) | `not (feature = "use_cairo")` |
+| 7851-8050 | `x_draw_fringe_bitmap` (C 7852) | the file gate; `use_cairo` / not (C 7888/7916) and `have_xrender` (C 7926-7931, 7984-8033) |
+| 8052-8062 | the `Glyph display` banner and C 8056-8062's three forward declarations | carried as comments: PORTING.md has no item for a prototype (slice 1's `x_push_selection_request` precedent) |
+| 8064-8176 | `x_display_set_last_user_time` (C 8087) | the file gate; the `have_xsync` triple (C 8090); `not use_gtk` (C 8095, 8158); `enable_checking` (C 8103) |
+| 8178-8196 | `#ifdef USE_GTK`: `x_set_gtk_user_time` (C 8181) | `use_gtk` |
+| 8198-8218 | `#if !defined USE_GTK \|\| defined HAVE_XFIXES`: `x_create_special_window` (C 8206) | `any (not (feature = "use_gtk"), feature = "have_xfixes")` |
+| 8220-8300 | `#ifndef USE_GTK`: `x_update_frame_user_time_window` (C 8226) | `not (feature = "use_gtk")` |
+| 8302-8307 | `x_set_last_user_time_from_lisp` (C 8303) | the file gate (C's definition is not `static`) |
+| 8309-8363 | `x_set_cursor_gc` (C 8314) | the file gate |
+| 8365-8401 | `x_set_mouse_face_gc` (C 8369) | the file gate |
+| 8403-8412 | `x_set_mode_line_face_gc` (C 8409) | the file gate |
+| 8414-8455 | `x_set_glyph_string_gc` (C 8420) | the file gate |
+| 8457-8470 | `x_set_glyph_string_clipping` (C 8462) | the file gate |
+| 8472-8489 | `x_set_glyph_string_clipping_exactly` (C 8478) | the file gate |
+| 8491-8524 | `x_compute_glyph_string_overhangs` (C 8496) | the file gate |
+| 8526-8533 | `x_clear_glyph_string_rect` (C 8530) | the file gate |
+| 8535-8559 | `#ifndef USE_CAIRO`: `x_clear_point` (C 8538) | `not (feature = "use_cairo")` |
+| 8561-8606 | `x_draw_glyph_string_background` (C 8568) | the file gate |
+| 8608-8701 | `x_draw_glyph_string_foreground` (C 8612) | the file gate; `use_cairo` (C 8640-8699) |
+| 8703-8810 | `x_draw_composite_glyph_string_foreground` (C 8706) | the file gate; `use_cairo` (C 8733-8809) |
+| 8812-8896 | `x_draw_glyphless_glyph_string_foreground` (C 8816) | the file gate; `gcc_lint` (C 8834's `#ifdef GCC_LINT` pair) |
+| 8898-9095 | `#ifdef USE_X_TOOLKIT`: `x_frame_of_widget` (C 8905) and `x_alloc_lighter_color_for_widget` (8941) under C 8900's `USE_LUCID`, C 8952-8967's two objects, `cvt_string_to_pixel` (8987) and `cvt_pixel_dtor` (9073) | `use_x_toolkit` (+ `use_lucid`); the `XtConvertArgRec` array is recorded as C's text (no libXt on this machine) |
+| 9097-9126 | `x_color_cells` (C 9104) | the file gate |
+| 9128-9200 | `x_query_colors` (C 9137) | the file gate (C's definition is not `static`) |
+| 9202-9236 | `x_query_frame_background_color` (C 9205) | the file gate; `use_cairo` / not (C 9208-9230) |
+| 9238-9251 | `x_hash_string_ignore_case` (C 9239) | the file gate |
+| 9253-9370 | `x_parse_color` (C 9260) | the file gate (C's definition is not `static`) |
+| 9372-9512 | `x_alloc_nearest_color_1` (C 9379) | the file gate; `debug_x_colors` (C 9506) |
+| 9514-9537 | `x_alloc_nearest_color` (C 9521) | the file gate (C's definition is not `static`) |
+| 9539-9566 | `x_copy_color` (C 9545) | the file gate (C's definition is not `static`); `debug_x_colors` (C 9562) |
+| 9568-9580 | the `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` comment and `#define HIGHLIGHT_COLOR_DARK_BOOST_LIMIT 48000` (C 9580) | the file gate (a value: the port writes the constant) |
+| 9583-9657 | `x_alloc_lighter_color` (C 9591) | the file gate |
+| 9659-9707 | `x_setup_relief_color` (C 9668) | the file gate |
+| 9709-9742 | `x_setup_relief_colors` (C 9713) | the file gate |
+| 9744-9785 | `#ifndef USE_CAIRO`: `x_fill_triangle` (C 9746), `x_make_point` (C 9760) and `x_inside_rect_p` (C 9771) | `not (feature = "use_cairo")` |
+| 9786-33125 | **the remainder** (C 9787's `x_draw_relief_rect` comment and C 9796's `static void` on: the rest of the relief/box drawing, the image drawing, the scroll bars, the toolkit/widget code, the mouse and event loop, `XTread_socket`, `x_initialize`, `syms_of_xterm`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows (the next start is **C 9786**, the comment that documents `x_draw_relief_rect`) |
 
 ## Decisions
 
@@ -1540,6 +1600,104 @@ in later slices, so no X11 link of this unit is in reach this round either.  The
 writes (`xclient`, `xconfigure`, `r#type`) are C's shape and the mirror's owed members, not a
 working XEvent.
 
+### 21. Slice 9 (C 6990-9785): the frame-synchronization block, the update hooks, the fringe and glyph-string drawing, the toolkit colour helpers and the colour cache
+
+The ledger's remainder row's first 2796 lines of C: the `HAVE_XSYNC` frame-synchronization block
+(C 6994-7410, ten functions), `x_update_begin`/`x_update_end`/`XTframe_up_to_date` and the two
+buffer-flip hooks, the two window-border hooks and `x_clear_under_internal_border`,
+`x_after_update_window_line`, `x_premultiply_pixel` and `x_draw_fringe_bitmap`, the five
+glyph-string GC/clipping helpers, `x_compute_glyph_string_overhangs`, the four glyph-string
+drawers, the whole `#ifdef USE_X_TOOLKIT` colour block, `x_color_cells`/`x_query_colors`/
+`x_query_frame_background_color`/`x_hash_string_ignore_case`/`x_parse_color`, the nearest-colour
+allocator with its two wrappers, the `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` constant, the lighter
+colour and relief helpers and C 9744's three non-cairo geometry helpers.  Forty-two checklist
+boxes move (`--check` **255 -> 212**), and the range table's last row becomes the new remainder.
+
+**The `have_xsync` block is text-only, and its gate is three names.**  `HAVE_XSYNC` and
+`HAVE_XSYNCTRIGGERFENCE` are both `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`, so
+`x_if_event`, the two monotonic-time readers, `x_sync_note_frame_times`, the frame-drawn test and
+wait, `x_sync_update_begin`/`_finish`, the fence trio and `x_sync_handle_frame_drawn` are all dead
+in the frozen reading: they have no checklist box (P-51's reading), and no arm of this tree
+compiles one.  The condition is C's three-term `#if` (`HAVE_XSYNC`, `!USE_GTK`,
+`HAVE_CLOCK_GETTIME`), so the item gate is the three lowercased names joined with `all (...)`;
+`have_clock_gettime` is **not** a row of `femacs/xtask/Cargo.toml` yet (the Owed list asks for it),
+and the two `#ifdef FRAME_DEBUG` blocks (C 7101-7106, 7271-7273) carry `frame_debug`, which is
+also unregistered - the `glyph_debug` shape `docs/ports/dispnew.md` 220-224 records for a knob
+`configure` knows nothing about.  C 7271's `fprintf` is the one place this file needs
+`PRIuFAST64`, which this unit's include graph does not reach (`lib/include/inttypes.in.rs` is not
+on any path here); the arm keeps C's two-part format with the macro that spells it, and the gap is
+in the Owed list rather than papered over.
+
+**Five sub-gates the `## Gate mapping` rows now carry** (C's order): `have_xsynctriggerfence`
+(C 7249, 7369), `frame_debug` (7101, 7271), `not (feature = "use_cairo")` for C 7818/8535/9744's
+three `#ifndef USE_CAIRO` helpers, `any (not (feature = "use_gtk"), feature = "have_xfixes")` for
+C 8206's `#if !defined USE_GTK || defined HAVE_XFIXES`, `gcc_lint` for C 8834's pair, `use_lucid`
+inside `use_x_toolkit` for C 8900, and `debug_x_colors` for C 9506/9562.
+
+**Three records this unit had to declare, and one it could not.**  `include/dispextern.rs` keeps
+`struct face`, `glyph_string` and `draw_fringe_bitmap_params` behind `dispextern_face_records`
+(or `have_window_system`), switches no configuration sets, and status 3.220's ruling is that the
+units keep their **live typed copies**; this slice is the first in xterm to need them, so
+`femacs/src/xterm.rs` now carries (a) `struct face` at the X11 arm's measured layout
+(`docs/baseline/face-layout.tsv`: `sizeof` 296, `gc`@168, `stipple`@176, the bit run at 256) with
+the `face_bits!`/`glyph_u_cmp_bits!`/`glyphless_bits!` accessors and their masks, (b)
+`draw_fringe_bitmap_params` with the mirror's measured offsets (64/52/56) and the two
+`get_/set_cursor_p`/`get_/set_overlay_p` readers, and (c) `glyph_string` in C's declaration order
+with the six-member `glyph_string_bits!` run - and (c) carries **no** layout assertions, because
+the mirror's own note records that record's layout as unmeasured on this target (the ledger
+repeats it rather than inventing numbers).  The one record that could not be declared is
+`XtConvertArgRec`: this machine has Xlib's headers under `/opt/homebrew/include/X11` but **not**
+libXt's, so C 8955-8961's `cvt_string_to_pixel_args` initializer - the only value of that type
+this file writes - is carried as C's own text in a comment and the ledger says the arm is
+text-only for want of that toolchain (P-86 clause 3's reading).  `cvt_string_to_pixel_value`
+(a plain `Pixel`) lands as a `static mut`.
+
+**The five prototypes the unit declares at its use site** (P-55, the `fringe.rs` 846-850 shape):
+`get_glyph_string_clip_rects` (dispextern.h 3661), `prepare_face_for_display` (3810),
+`x_free_colors` (3791), `parse_color_spec` (3798), `gamma_correct` (3839) and `x_free_dpy_colors`
+(xterm.h 1980); none is a row of the mirror this unit includes.  `register_color` (xfaces.c 422,
+under that file's own `#ifdef DEBUG_X_COLORS`) is named and **not** declared, because nothing in
+this tree's configurations compiles the arm that calls it.  `x_color_cache_bucket_size`,
+`x_clear_area`, `x_wm_supports`, `x_catch_errors`, `x_had_errors_p`, `x_ignore_errors_for_next_request`,
+`x_stop_ignoring_errors`, `x_uncatch_errors_after_check` and `x_check_font` are this file's own
+later slices (C 11344+, 17833+, 26249+) or `#ifdef GLYPH_DEBUG` (C 30433), so the port names them
+and declares none - slice 8's rule.
+
+**The three statements the `--check` gate asked for** are `docs/ports/macro-body-notes.tsv` rows
+1678 (`x_alloc_nearest_color_1`'s `goto`) and 1679 (`x_draw_fringe_bitmap`'s `cursor_p`, `goto`,
+`overlay_p`); the third finding was mine and is fixed rather than noted: C's `eassert (s->gc != 0)`
+now keeps C's `0` (`0 as *mut c_void`, the `w32term.rs` 2000 shape) instead of a `.is_null ()`
+that lost the literal.
+
+**The flip arm's new errors are all recorded classes.**  The plain `have_x_windows` probe grows by
+**192** errors (339 -> 531 on the last measured run; the three fix batches after that run - the
+`glyph_string`/`draw_fringe_bitmap_params` copies, the `(*((*s).face as *mut face))` groupings and
+the accessor bodies' `unsafe` - were *not* re-measured, the round's probe budget being spent) and
+every code is one the ledger already carries: `E0425` for the Xlib/Xt/XInput2/GTK names and for
+this file's later slices (326 of the 531's names are in the unit's own text, 3 in the mirrors),
+`E0609` for the members the mirrors keep as comments or gate elsewhere (`xclient`/`xbutton`/
+`xconfigure`/`r#type` on the opaque `XEvent`, `borders_respect_alpha_background` on `frame`,
+`mouse_face_defer` on `Mouse_HLInfo`, `valid` on `color_name_cache_entry`, `sie` on
+`buffered_input_event`, `menu_bar_window`), `E0308` for the five `*mut c_void`-vs-`*mut _XDisplay`
+sites slices 6-8 already record, and one `E0423` family that is **the mirror's**: C 8649's
+`VCENTER_BASELINE_OFFSET` expands `include/dispextern.rs` 2658-2663, whose body names
+`FONT_DESCENT`/`FONT_HEIGHT`/`FRAME_FONT`/`FRAME_LINE_HEIGHT` as *calls* - names this unit's graph
+has as macros or not at all (10 `E0423`).  This slice is what first reaches that macro, so the
+request goes to the Owed list, not to a per-function workaround.  `E0432`, `E0606`, `E0573`,
+`E0608`, `E0614`, `E0133` and `E0277` all appeared in this round's intermediate runs and were
+fixed in the unit (imports of names `x11_constants` does not carry; `*(x as T)` groupings that
+bound the `as` too late; place-vs-pointer conventions in the two accessor families; the
+`isize`/`c_int` widenings C performs implicitly).
+
+**What this slice does not claim.**  The whole body is under `have_x_windows`, so the frozen
+`build-tu` prints `built` while compiling none of it; the `have_xsync`, `have_xdbe`, `use_cairo`,
+`have_xrender`, `use_x_toolkit`, `gcc_lint` and `debug_x_colors` arms have never been compiled by
+anything, and the plain flip arm is the only reading that reaches the rest.  No X11 target build,
+no link and no runtime evidence: `x_frame_of_widget`, `x_alloc_lighter_color_for_widget` and the
+cvt pair are Xt text, the two `#ifdef FRAME_DEBUG` blocks are unbuilt by any arm, and the
+`glyph_string`/`face` copies are text whose layouts this target cannot check.  `XtConvertArgRec`
+is not even spellable here.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -2258,6 +2416,106 @@ The three files' own contributions to the tree-wide readings are the append to
 (`femacs/src/image.rs`, `femacs/src/sfnt.rs`, `femacs/src/w32term.rs`, their ledgers and
 `femacs/xtask/`) belong to lanes that were in flight while this round ran.
 
+### Slice 9's readings (C 6990-9785), as landed and measured (2026-10-05)
+
+The `--check` reading of the round, with the before copy in `/tmp` as the checkpoint procedure
+asks:
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # before
+255
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # after
+212
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+# the rows that moved: the 41 missing-function rows of C 6990-9785, the `missing macro`/`missing
+# constant` pair of HIGHLIGHT_COLOR_DARK_BOOST_LIMIT (43 removals), and three *new* rows the
+# slice's own text produced - `fn x_alloc_nearest_color_1 does not mention goto`,
+# `fn x_draw_fringe_bitmap does not mention cursor_p, goto, overlay_p`,
+# `fn x_set_mouse_face_gc does not mention 0` - of which the first two are answered by the two
+# `docs/ports/macro-body-notes.tsv` rows this round appends (1678, 1679) and the third by keeping
+# C's own `0` in the `eassert` (255 - 43 + 3 - 3 = 212).
+# the drift row changed with the file: `line count drifted 77.3%: C 33125 vs Rust 7508` ->
+# `line count drifted 66.9%: C 33125 vs Rust 10952`.
+```
+
+```
+$ python3 tools/check-port-lines.py
+0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new, 0 stale
+$ python3 tools/check-dead-file-coverage.py
+info docs/ports/xterm.md: 104 range row(s) cover src/xterm.c (33125 lines; 49 blank line(s)
+between blocks need no row)
+info docs/ports/xterm.md: 104 range row(s) cover src/xterm.h (2045 lines; 0 blank line(s) ...)
+145 ledger(s) bound (a C range table), 0 failure(s)
+$ python3 tools/check-ledger-ticks.py
+238 ledger(s) bound (a function tick to compare), 0 failure(s), 0 carried by another file,
+352 row(s) with no function tick ..., 0 row(s) without a ledger
+# the 42 ticks this round adds (41 functions + HIGHLIGHT_COLOR_DARK_BOOST_LIMIT) are all in the
+# unit's text; the 352 untickable rows are the class that gate describes (empty units and files
+# whose body the frozen configuration leaves false).
+$ python3 tools/check-citations.py
+check-citations: 676 file(s) scanned, 0 drift, 0 range, 1905 external, 36 allowed, 0 stale
+# the 24 external citations this slice adds are its `/// C:` lines for the two dispextern.h
+# prototypes and the Xlib/Xt names (`docs/ports/include-*`'s own accounting).
+$ python3 tools/check-declarations.py
+17 declaration sites (0 forbidden, 17 allowed literals), 0 failures
+$ python3 tools/check-mirror-dupes.py
+17 duplicate declaration(s), 17 ratchet row(s), 0 failure(s)
+# no row of the ratchet names this file, before or after, and the unit's three new records are
+# `struct` definitions, which that gate never reports.
+```
+
+The one compile-reading that the frozen configuration gives, and the probe:
+
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xterm-lane/target cargo run -q -p xtask -- build-tu src/xterm.c
+warning: 22 warnings emitted
+built src/xterm.rs -> ../build/femacs/xterm.o
+# the same twenty-two mirror warnings slice 8's reading carries; the frozen configuration
+# compiles none of this slice.  Five runs in this round, not three: two aborted on this slice's
+# own syntax (`E0758` for a comment that spelled C's `*\/` as if Rust escaped slashes, and the
+# `if`/`else` split across a `#[cfg]` block in `x_draw_fringe_bitmap`), and three were clean.
+
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xterm-lane/target cargo run -q -p xtask -- probe \
+      src/xterm.rs /tmp/xterm-lane/x.rlib --crate-type=lib -C panic=abort \
+      --cfg 'feature="have_x_windows"'
+rustc failed for src/xterm.rs (exit status: 1)
+# before: error: aborting due to 339 previous errors
+#   201 E0425  131 E0609    5 E0308   1 E0381   1 E0080
+# last measured after (the round's third probe run):
+#   error: aborting due to 531 previous errors
+#   330 E0425  146 E0609   10 E0423   8 E0308   1 E0381   1 E0080
+# by file: E0425 - 327 in the unit's own text, 2 in include/xterm.rs, 1 in include/frame.rs;
+#   E0609 - all 146 in the unit's text; E0423 - 6 in include/dispextern.rs, 4 in
+#   include/xterm.rs (the mirror macro of the paragraph below).
+# the delta's classes, each already in this ledger: Xlib/Xt/XInput2/GTK names with no mirror
+# (XPoint, XFillPolygon, Convex, CoordModeOrigin, FillOpaqueStippled, FillSolid,
+# GCGraphicsExposures, GCLineWidth, GCStipple, GCClipMask, GCClipXOrigin, GCClipYOrigin,
+# XCreateGC/XChangeGC/XGetGCValues' record, XdbeSwapInfo, XParseColor, XAllocColor, XFreeColors,
+# XQueryColors, XDisplayCells, WhitePixelOfScreen, BlackPixelOfScreen, DisplayOfScreen,
+# XCreateWindow, XDestroyWindow, XDrawLine, XDrawPoint, XFillRectangle, XSetFillStyle,
+# XSetWindowAttributes, XCreatePixmapFromBitmapData, XCopyArea, XFreePixmap, XChangeGC,
+# Status, XSetWindowAttributes, GtkWidget/GdkWindow/GdkFrameClock and the gtk/gdk calls); this
+# file's own later slices (x_catch_errors, x_had_errors_p, x_ignore_errors_for_next_request,
+# x_stop_ignoring_errors, x_uncatch_errors*, x_window_to_frame, x_top_window_to_frame,
+# x_translate_coordinates, x_atom_to_symbol, x_get_atom_name, x_clear_area, x_wm_supports,
+# x_get_window_below, x_tooltip_window_to_frame, x_handle_pending_selection_requests,
+# x_push_selection_request, request_sigio/unrequest_sigio, x_check_font); and other units'
+# (lookup_basic_face, note_mouse_highlight, gui_intersect_rectangles, x_clip_to_row, xstrcasecmp);
+# E0609's members the mirrors comment out or gate elsewhere (`xclient`/`xbutton`/`xconfigure`/
+# `r#type` on `XEvent`, `borders_respect_alpha_background` on `frame`, `mouse_face_defer` on
+# `Mouse_HLInfo`, `valid` on `color_name_cache_entry`, the pre-existing `sie`/`menu_bar_window`);
+# and E0423's ten, which are **the mirror's**: C 8649's `VCENTER_BASELINE_OFFSET` expands
+# `include/dispextern.rs` 2658-2663, whose body names FONT_DESCENT/FONT_HEIGHT/FRAME_FONT/
+# FRAME_LINE_HEIGHT as calls that this unit's graph has as macros or not at all.
+# NOT re-measured: the three fix batches after that run (the two record copies, the
+# `(*((*s).face as *mut face))` groupings, the accessor bodies' `unsafe` and the `0` in the
+# `eassert`) - the round's probe budget (three runs) was spent, so the number above is the last
+# reading and the fix batches' effect on it is unmeasured.  The `--check` and the six gates
+# above were re-run after every batch.
+
+```
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 **1. Two `femacs/xtask/Cargo.toml` rows.**  `have_xrender_0_2` (`RENDER_MAJOR > 0 ||
@@ -2325,3 +2583,51 @@ lane replaces.  The gates it needs are the ones `## Gate mapping` lists plus
 `xtask`, no `docs/baseline` and no other lane's file changed.  The one append is
 `docs/ports/macro-body-notes.tsv` 1269 (`x_dnd_note_self_drop`'s `alloca`/`kind`), the row the
 `--check` gate asks for.
+
+**7. Slice 9's requests (C 6990-9785, this round).**
+
+* Three `femacs/xtask/Cargo.toml` rows: `have_clock_gettime` (C 6994's third term),
+  `frame_debug` (C 7101/7271's `#ifdef FRAME_DEBUG`) and `debug_x_colors` (C 9506/9562's
+  `#ifdef DEBUG_X_COLORS`).  The other names this slice's arms carry already exist (Decision 21's
+  sub-gate paragraph names them).
+* **`include/dispextern.rs`'s `VCENTER_BASELINE_OFFSET` cannot resolve in this unit** (10
+  `E0423`, measured): its body (dispextern.rs 2658-2663) names `FONT_DESCENT`/`FONT_HEIGHT` and
+  `FRAME_FONT`/`FRAME_LINE_HEIGHT` as *calls*, while this graph has `FONT_HEIGHT` as
+  `include/font.rs` 258's macro, `FRAME_FONT` as `include/xterm.rs` 1119's macro, and neither
+  `FONT_DESCENT` nor `FRAME_LINE_HEIGHT` at all.  The fix belongs to the mirror (spell the two
+  macros as `FONT_HEIGHT!`/`FRAME_FONT!` and name the two it lacks); this slice is merely the
+  first call site to reach the macro.
+* Members the mirrors keep as comments or gate behind another feature, each measured this round:
+  `frame`'s `borders_respect_alpha_background` (11 `E0609`; C 1851-1861's `#ifdef
+  HAVE_WINDOW_SYSTEM` region - the mirror carries `foreground_pixel`/`background_pixel` but not
+  this one), `Mouse_HLInfo`'s `mouse_face_defer` (1), `color_name_cache_entry`'s `valid` bitfield
+  (3; the mirror's comment at `include/xterm.rs` 261 says so, so the port keeps C's spelling as
+  the `xi_scroll_valuator_t` row already does), and `glyph_string`'s `gc` (the record's own gate,
+  see the next clause).
+* **The `dispextern_face_records`/`have_window_system` group**: this unit now carries its own
+  `struct face` (X11 arm, `docs/baseline/face-layout.tsv`), `draw_fringe_bitmap_params` (the
+  mirror's offsets) and `glyph_string` (C's order, **no** asserts: the mirror's own note records
+  that record's layout as unmeasured here).  Status 3.220's ruling makes the copies legitimate;
+  whoever retires the units' copies (the `xfaces.rs`/`window.rs`/`alloc.rs`/`term.rs`/`dispnew.rs`
+  list) has to take `femacs/src/xterm.rs`'s three with them, and only then can `glyph_string_bits!`
+  and `get_/set_cursor_p`/`get_/set_overlay_p` come from the mirror instead of the unit.
+* The X11 macros this slice's live text names and `include/xlib.rs`'s `x11_constants` does not
+  carry: `FillOpaqueStippled`, `FillSolid`, `GCGraphicsExposures`, `GCLineWidth`, `GCStipple`,
+  `GCClipMask`, `GCClipXOrigin`, `GCClipYOrigin`, `Convex`, `CoordModeOrigin` (`<X11/X.h>`/
+  `<X11/Xlib.h>` values, each clang-measurable the way that module's rows were); the record
+  `XGCValues` (Xlib.h 177-203) is now declared **in the unit** the way `src/xftfont.rs` 132-171
+  declares it, plus `XPoint` (Xlib.h 322-325) and `XdbeSwapInfo` (Xdbe.h), which nothing carries.
+* The two `unsafe extern "C"` blocks this unit now holds (`get_glyph_string_clip_rects`,
+  `prepare_face_for_display`, `x_free_colors`, `parse_color_spec`, `gamma_correct`,
+  `x_free_dpy_colors`, each with C's own line) move into the owning mirror when it grows them
+  (P-26).
+* `x_color_cache_bucket_size` is `DEFVAR_INT`'d at C 32958, so it lands with that slice; until
+  then the four call sites the port writes are `E0425` names, the class slices 4-8 record.
+
+**8. What moved outside this writing set (slice 9).**  `emacs/**` was read-only; no mirror, no
+`xtask` row, no `docs/baseline` file and no other lane's file changed.  The two appends are
+`docs/ports/macro-body-notes.tsv` 1678-1679 (`x_alloc_nearest_color_1`'s `goto`; `x_draw_fringe_bitmap`'s
+`cursor_p`/`goto`/`overlay_p`), the rows the `--check` gate asks for; both were written by copying
+the table to `/tmp` first and appending, so no other lane's row was rewritten.  The build
+artifacts this round left (`build/femacs/units/xterm`, `build/probes/xterm`, `build/femacs/xterm.o`)
+were deleted after each compile.
