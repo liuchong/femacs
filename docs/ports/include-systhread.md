@@ -23,12 +23,18 @@ macro alone; the types are compared through the unit that uses them).
   `#else` arm is the text: `typedef int sys_mutex_t/sys_cond_t/sys_thread_t` - and that is what
   `femacs/src/systhread.rs` compiles against, including `sys_thread_self`'s `return 0` and
   `sys_thread_create`'s `false`.
-- **Dead text (recorded, not transcribed).**  C 22's `#include <attribute.h>` IS kept (the same
-  header's `NODISCARD` token, see the unit's ledger); C 24-128 is the threaded arm:
-  `#include <pthread.h>`, the `ALIGNOF_PTHREAD_{COND,MUTEX}_T` comparison with
-  `SYSTHREAD_ALIGN_ROOM`/`SYSTHREAD_ALIGN_PTR` (the 32-bit HPPA alignment workaround), the
-  `pthread_mutex_t`/`pthread_cond_t`/`pthread_t` typedefs, the WINDOWSNT `w32thread_critsect` /
-  `CONDV_*` / `w32thread_cond_t` records and the `#error port me` fallback for other targets.
+- **C 24-128 is transcribed now** (status 3.491): both `THREADS_ENABLED` arms and the `#error
+  port me` fallback are carried under the lower-cased feature of the macro their own `#if` tests
+  (`all (threads_enabled, have_pthread)` for the pthread arm, `all (threads_enabled,
+  not (have_pthread), windowsnt)` for the WINDOWSNT records, `compile_error!` for C's fallback) -
+  the `ALIGNOF_PTHREAD_{COND,MUTEX}_T <= ALIGNOF_MAX_ALIGN_T` comparison with
+  `SYSTHREAD_ALIGN_ROOM`/`SYSTHREAD_ALIGN_PTR` (the 32-bit HPPA alignment workaround, carried as
+  the two derived features), the `pthread_mutex_t`/`pthread_cond_t`/`pthread_t` typedefs, and the
+  WINDOWSNT `w32thread_critsect`/`CONDV_*`/`w32thread_cond_t` records.
+- **The `<pthread.h>` surface itself is NOT here** (P-88 clause 1): `src/android.rs` and
+  `src/sysdep.rs` declare those names for their own arms, so a mirror-side spelling is the
+  duplicate `tools/check-mirror-dupes.py` fails on (measured: 10 failures while it sat here).
+  It lives in the one unit this header's pthread arm has, `src/systhread.rs`.
 - **`thread_creation_function`** (C 139) is the one live typedef besides the three dummy types;
   C's function type becomes `Option<unsafe extern "C" fn (arg: *mut c_void) -> *mut c_void>`
   (P-27, the atimer_callback shape).

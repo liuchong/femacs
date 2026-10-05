@@ -20,9 +20,127 @@ pub const SYSTHREAD_H: bool = true;
 
 include!("../../lib/include/attribute.rs");   // C 22: `#include <attribute.h>` (`NODISCARD`)
 
+/* C 24-128: `#ifdef THREADS_ENABLED`'s two arms and the `#error` fallback.  The frozen
+   configuration leaves `THREADS_ENABLED` undefined (docs/baseline/config/darwin-arm64.macros.tsv
+   3678), so C 130-137's dummy arm below is the text this machine compiles; each arm here is
+   carried under the lower-cased feature of the macro its own `#if` tests (P-86 clause 8), so a
+   `threads_enabled` build reads the arm C would read.  The `<pthread.h>` surface itself
+   (`pthread_mutex_t` and the 22 entry points) is *not* here: the tree already has two units that
+   declare those names for their own arms (`src/android.rs`, `src/sysdep.rs`), and a second
+   spelling in a mirror would be the duplicate `tools/check-mirror-dupes.py` fails on - the
+   declaration lives in the one consumer this header's pthread arm has, `src/systhread.rs`
+   (P-88 clause 1).  */
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread"))]
+pub type sys_thread_t = pthread_t;   // C 84-85
+
+/* C 46-67: the `ALIGNOF_PTHREAD_{COND,MUTEX}_T <= ALIGNOF_MAX_ALIGN_T` comparison pair.  Both
+   macros are measured 8 on this target (macros.tsv 71-73), so C takes the *identity* arm; the
+   other arm exists for the over-aligning platforms C's comment names (32-bit HPPA with glibc
+   2.42) and is carried under the two derived features (P-86 clause 1).  */
+/* C 51-67's `#else` branch defines `SYSTHREAD_ALIGN_ROOM (type)` as well as the pointer macro;
+   the typical branch defines only the pointer macro, so neither the room type nor a room macro
+   exists in the arm this machine reads.  The two `sys_*_t` arm unions below are that macro's
+   expansion for the two types C applies it to.  */
+
+/* C 46-50/60: the typical case's macro - `# define SYSTHREAD_ALIGN_PTR(type, ptr) (ptr)`.  */
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            feature = "alignof_pthread_cond_t_le_alignof_max_align_t",
+            feature = "alignof_pthread_mutex_t_le_alignof_max_align_t"))]
+macro_rules! SYSTHREAD_ALIGN_PTR { ($type:ty, $ptr:expr) => { $ptr }; }
+
+/* C 56-61/64-66: the unusual case's macro, with `alignof (double)` = 8 spelled out.  */
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (all (feature = "alignof_pthread_cond_t_le_alignof_max_align_t",
+                      feature = "alignof_pthread_mutex_t_le_alignof_max_align_t"))))]
+macro_rules! SYSTHREAD_ALIGN_PTR {
+  ($type:ty, $ptr:expr) => {
+    ((($ptr).room.as_ptr () as usize
+      + (core::mem::align_of::<$type> () - 8))
+     & !(core::mem::align_of::<$type> () - 8)) as *mut $type
+  };
+}
+
+/* C 70-81: `sys_mutex_t`/`sys_cond_t` for the pthread arm.  Each inner `#if` is the same measured
+   comparison, so on this target both are the plain typedefs.  */
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            feature = "alignof_pthread_mutex_t_le_alignof_max_align_t"))]
+pub type sys_mutex_t = pthread_mutex_t;
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "alignof_pthread_mutex_t_le_alignof_max_align_t")))]
+#[repr (C)]
+pub union Systhread_align_room_mutex_t {
+  pub i: f64,
+  pub room: [c_char; core::mem::size_of::<pthread_mutex_t> ()
+                    + core::mem::align_of::<pthread_mutex_t> () - 8],
+}
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "alignof_pthread_mutex_t_le_alignof_max_align_t")))]
+pub type sys_mutex_t = Systhread_align_room_mutex_t;
+
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            feature = "alignof_pthread_cond_t_le_alignof_max_align_t"))]
+pub type sys_cond_t = pthread_cond_t;
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "alignof_pthread_cond_t_le_alignof_max_align_t")))]
+#[repr (C)]
+pub union Systhread_align_room_cond_t {
+  pub i: f64,
+  pub room: [c_char; core::mem::size_of::<pthread_cond_t> ()
+                    + core::mem::align_of::<pthread_cond_t> () - 8],
+}
+#[cfg (all (feature = "threads_enabled", feature = "have_pthread",
+            not (feature = "alignof_pthread_cond_t_le_alignof_max_align_t")))]
+pub type sys_cond_t = Systhread_align_room_cond_t;
+
+/* C 88-121: the WINDOWSNT arm - C's own declaration of the six windows.h data types under
+   different names, the `CONDV_*` enum and the three typedefs.  Text only on this machine (no
+   Windows toolchain: `which -a x86_64-w64-mingw32-gcc` is empty), so every width is C's own
+   spelling, not a measurement.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[repr (C)]
+#[derive (Copy, Clone)]
+pub struct w32thread_critsect {
+  pub DebugInfo: *mut c_void,       // C: `struct _CRITICAL_SECTION_DEBUG *`
+  pub LockCount: c_long,
+  pub RecursionCount: c_long,
+  pub OwningThread: *mut c_void,
+  pub LockSemaphore: *mut c_void,
+  pub SpinCount: c_ulong,
+}
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const CONDV_SIGNAL: c_int = 0;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const CONDV_BROADCAST: c_int = 1;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const CONDV_MAX: c_int = 2;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[repr (C)]
+#[derive (Copy, Clone)]
+pub struct w32thread_cond_t {
+  pub wait_count: c_uint,
+  pub wait_count_lock: w32thread_critsect,
+  pub events: [*mut c_void; CONDV_MAX as usize],
+  pub initialized: bool,
+}
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type sys_mutex_t = w32thread_critsect;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type sys_cond_t = w32thread_cond_t;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type sys_thread_t = c_ulong;
+
+/* C 123-127: `#else /* !WINDOWSNT */` -> `#error port me`.  C's own fallback, spelled with the
+   port's `compile_error!` (the `include/frame.rs` 319-321 precedent).  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"),
+            not (feature = "windowsnt")))]
+compile_error! ("port me");
+
 /* For the no-threads case we can simply use dummy definitions.  */
+#[cfg (not (feature = "threads_enabled"))]
 pub type sys_mutex_t = c_int;   // C 133
+#[cfg (not (feature = "threads_enabled"))]
 pub type sys_cond_t = c_int;    // C 134
+#[cfg (not (feature = "threads_enabled"))]
 pub type sys_thread_t = c_int;  // C 135
 
 // C 139: `typedef void *(thread_creation_function) (void *);` - a function *type* in C, which

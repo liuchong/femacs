@@ -5,26 +5,29 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	1373	39	-	-
+windowsnt	1382	40	-	-
 have_android	1001	31	-	-
 have_window_system	816	18	-	-
 not_android_stubify	700	11	-	-
 have_x_windows	682	22	-	HAVE_X_WINDOWS
-have_ntgui	500	13	-	-
-have_pgtk	467	18	-	-
-use_gtk	380	12	-	-
-msdos	376	14	-	-
+have_ntgui	595	14	-	-
+have_pgtk	542	20	-	-
+use_gtk	436	13	-	-
+msdos	407	15	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
 dispextern_face_records	266	4	-	-
-have_ns	261	10	-	HAVE_NS
+have_ns	263	11	-	HAVE_NS
 have_gnutls	248	3	-	-
 have_haiku	211	13	xtask dead-arms	-
+harfbuzz	176	6	-	-
 use_xcb	171	4	-	-
+have_gtk3	145	5	-	-
 have_sound	135	1	-	-
 have_tree_sitter	133	7	-	HAVE_TREE_SITTER
 use_cairo	128	10	-	-
+have_freetype	117	3	-	-
 mail_use_pop	109	1	-	-
-have_gtk3	89	4	-	-
+threads_enabled	86	5	-	-
 windows	83	5	-	-
 have_ext_tool_bar	76	2	-	-
 ns_impl_gnustep	70	2	-	-
@@ -34,8 +37,9 @@ have_lcms2	54	1	-	-
 have_ext_menu_bar	51	3	-	-
 have_xinput2	51	6	-	-
 have_zlib	51	2	-	-
+test	50	5	-	-
 have_kqueue	49	1	-	-
-test	49	4	-	-
+have_pthread	46	2	-	-
 use_gamedir	44	1	-	-
 have_gfilenotify	38	1	-	-
 glyph_debug	36	5	xtask dead-arms	-
@@ -53,7 +57,6 @@ vm_ms_windows	25	1	-	-
 cygwin	24	11	-	-
 have_xrender	24	4	-	-
 have_xsync	24	1	-	-
-threads_enabled	24	3	-	-
 have_modules	23	6	-	HAVE_MODULES
 libgccjit_have_gcc_jit_context_new_bitcast	22	1	-	-
 words_bigendian	22	10	-	-
@@ -92,9 +95,9 @@ windows_native	10	5	-	-
 ccl_debug	9	1	-	-
 clang_major_clang_major_5	9	1	-	-
 cygwin_win32	9	3	-	-
+enable_checking	9	2	-	-
 glibc_time_bits_64	9	1	-	-
 gnulib_sigprocmask	9	1	-	-
-harfbuzz	9	5	-	-
 have_xinput2_1	9	1	-	-
 macos_sdk	9	1	-	-
 no_have_builtin_unwind_init	9	1	-	-
@@ -144,10 +147,13 @@ tandem	6	3	-	-
 use_acl_have_getacl	6	1	-	-
 use_fortify_level_3	6	1	-	-
 aix	5	3	-	-
+alignof_pthread_cond_t_le_alignof_max_align_t	5	1	-	-
+alignof_pthread_mutex_t_le_alignof_max_align_t	5	1	-	-
 have_android_mmap	5	1	-	-
 have_gpm	5	4	-	-
 have_gsettings	5	1	-	-
 have_personality_addr_no_randomize	5	1	-	-
+have_pthread_setname_np	5	1	-	-
 have_xcomposite_overlay	5	1	-	-
 hpux	5	3	-	-
 no_generic_bogus	5	2	-	-
@@ -163,20 +169,22 @@ window_system_no_ext_tool_bar	5	1	-	-
 android	4	1	-	-
 android_api_ge_9	4	1	-	-
 builtin_overflow_p	4	2	-	-
+debug	4	2	-	-
 dragonfly	4	1	-	-
-enable_checking	4	1	-	-
 gnu_malloc	4	1	-	-
 gnuc_prereq_11_0	4	1	-	-
 gnulib_getpagesize	4	1	-	-
-have_freetype	4	2	-	-
 have_gif	4	1	-	-
 have_gnutls_compression_get	4	1	-	-
 have_gnutls_digest_list	4	1	-	-
+have_pthread_setname_np_1arg	4	1	-	-
+have_pthread_setname_np_3arg	4	1	-	-
 have_renameat2	4	1	-	-
 have_rsvg	4	1	-	-
 have_ts_tree_cursor_goto_previous_sibling	4	1	-	-
 have_webp	4	1	-	-
 hesiod	4	1	-	-
+is_ebcdic_host	4	1	-	-
 klibc	4	2	-	-
 no_cplusplus_gnuc_prereq_2_8_clang_major_4	4	1	-	-
 no_djgpp_2_4	4	1	-	-
@@ -242,6 +250,7 @@ windows_stat_inodes	3	1	-	-
 xft_or_freetype	3	1	-	-
 android_32bit	2	1	-	-
 android_64bit	2	1	-	-
+bufsize	2	1	-	-
 choose_newest_exe	2	1	-	-
 cnew_rtscts	2	1	-	-
 cplusplus_201103l	2	1	-	-
@@ -276,6 +285,7 @@ have_langinfo_codeset	2	1	-	-
 have_madvise	2	2	-	-
 have_png	2	1	-	-
 have_procfs	2	1	-	-
+have_pthread_set_name_np	2	1	-	-
 have_setitimer	2	1	-	-
 have_so_bindtodevice	2	1	-	-
 have_tiff	2	1	-	-
@@ -283,6 +293,7 @@ have_timerfd	2	2	-	-
 have_xft	2	2	-	-
 have_xinput2_4	2	2	-	-
 have_xpm	2	1	-	-
+internal_terminal	2	1	-	-
 iuclc	2	1	-	-
 libgccjit_have_gcc_jit_global_set_initializer	2	1	-	-
 libgccjit_have_reflection	2	1	-	-
@@ -450,7 +461,6 @@ cairo_has_svg_surface	1	1	-	-
 chdir	1	1	-	-
 clang_lt_21	1	1	-	-
 cplusplus_defined_stdc_version_stdc_version	1	1	-	-
-debug	1	1	-	-
 decl_fflush_unlocked	1	1	-	-
 decl_fgets_unlocked	1	1	-	-
 decl_fputc_unlocked	1	1	-	-
@@ -463,6 +473,8 @@ econnreset	1	1	-	-
 eff_only_ok	1	1	-	-
 emsgsize	1	1	-	-
 eoverflow	1	1	-	-
+fc_fontformat	1	1	-	-
+fc_variable	1	1	-	-
 gc_cdr_count	1	1	-	-
 gc_check_string_free_list	1	1	-	-
 gc_mark_secondary_stack	1	1	-	-
@@ -831,6 +843,7 @@ sqlite_open_uri	1	1	-	-
 stat_time_birthtime_nsec_arm	1	1	-	-
 stat_time_no_birthtime	1	1	-	-
 stdc_version_stdc_version_199901l	1	1	-	-
+termcap_file	1	1	-	-
 thread_safe_utmp_data	1	1	-	-
 tiocnotty	1	1	-	-
 tiocsigsend	1	1	-	-

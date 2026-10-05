@@ -9292,3 +9292,53 @@
   ⑦ **预算**：lane：`build-tu` **4/3**、`probe` **8/3**（**如实报超支**，逐发理由写在台账 Evidence ②；另用 10 余次
      本地 rustc 复现物化器做判读）；集成者：gate 脚本各 1 发、`build-tu`/`probe` 0 发；未跑 `--all`/`gate-fast`/
      `cargo test`/`check-all-units.sh`；`/tmp/androidfns-lane` 收工已删（本轮另清 `/tmp` 里 kq-measure 两个残留）。
+
+- **3.491 `src/systhread.c` 片 2：`HAVE_PTHREAD` 臂（C 104-278）连同头镜像的两个臂一起转写，翻臂是**真编译**（本机有 pthreads）（2026-10-05）**：
+  ① **范围/块**：C 104-278 = `#elif defined (HAVE_PTHREAD)` 臂的十三个定义（`sys_mutex_init` 的
+     `pthread_mutexattr_init`/`settype (PTHREAD_MUTEX_ERRORCHECK)` 对、`sys_cond_wait`、`sys_cond_broadcast` 的
+     `HAVE_NS` 块、`sys_thread_set_name` 的三个 `pthread_setname_np` 拼法与 `pthread_set_name_np`、
+     `sys_thread_create` 的属性/栈大小/`pthread_create` 体（含 C 的 `out:` 标签）、`sched_yield`）；
+     同时把头 `src/systhread.h` 的 C 24-128（`<pthread.h>` 面 + `ALIGNOF_*` 比较 + `SYSTHREAD_ALIGN_ROOM/PTR`
+     + 三个 typedef + WINDOWSNT 的 `w32thread_critsect`/`CONDV_*`/`w32thread_cond_t` 记录）+ C 125 的
+     `#error port me`（→ `compile_error!`）一并转写。**仍欠 = C 280-548 的 WINDOWSNT 臂**（本机无 Windows 工具链，
+     `text-only`）。台账新表 8 行、连续覆盖 C 1-553（`check-dead-file-coverage` 绑定本台账、0 failure）。
+  ② **行数**：`femacs/src/systhread.rs` **106 → 462**；镜像 `femacs/src/include/systhread.rs` **57 → 176**；
+     台账 `docs/ports/systhread.md` 66 → **160**；镜像台账 `docs/ports/include-systhread.md` 39 → 47。
+  ③ **读数（我自己跑的）**：⑴ 冻结 `build-tu src/systhread.c` → **exit 0 / `systhread.o` 2600 字节**，
+     `nm -g` **恰好 13 个 `_sys_*` 符号、0 个 `pthread*`/`sched_yield`** ⇒ 新臂确实在门后（P-86 ⑧）；
+     ⑵ **翻臂（真编译：本机 pthreads）** `probe` + `threads_enabled`、`have_pthread`、
+     `have_pthread_setname_np`、`have_pthread_setname_np_1arg`、`enable_checking`、两个
+     `alignof_pthread_*_t_le_alignof_max_align_t` → **6 个错，全部是镜像副本里的 `E0080` 布局断言**
+     （`thread_state` 472 / `not_holding_lock` 432 / `bc` 448 / `lisp_mutex_t` 16 / `Lisp_Mutex` 32 /
+     `Lisp_CondVar` 32），**本单元自身 0 错**；⑶ **变异实测**（往 `sys_mutex_lock` 注入类型错）6 → **9 错**，
+     随后按变异前副本还原（md5 `85375026454b2e80737ba32cc23a055b`）；⑷ **clang 实测**（本机 pthread.h，arm64）：
+     `pthread_mutex_t` 64/align 8、`pthread_cond_t` 48/align 8、`pthread_attr_t` 64、`pthread_mutexattr_t` 16、
+     `pthread_t` 8、`PTHREAD_MUTEX_ERRORCHECK` 1、`PTHREAD_CREATE_DETACHED` 2、三个 `ALIGNOF_*` 全 8；
+     ⑸ `extract-abi --check emacs/src/systhread.c femacs/src/systhread.rs` → **FAIL 且只剩行数一条**
+     （`C 101 live (of 553) vs Rust 462`）——**这是刻意的**：切片文件不写容差行（3.434 ⑤ 的裁决，3.489 已经为
+     gnutls 撤回过一次同类行），那条读数就是"WINDOWSNT 臂还欠着"的自动化提醒；⑹ 镜像改动的两腿必跑：
+     `layout-check` **passed**、`tools/check-all-units.sh` **83/0 + 83/0**；⑺ 全树门（本提交相关）：
+     `check-mirror-dupes` **17/17/0**、`check-declarations` 10/0/0、`check-ledger-ticks` 234/0、
+     `check-dead-file-coverage` **61 绑定 / 0 failure**（含本台账）、`check-port-lines`
+     **53 文件 / 0 new / 5 stale**（新的 stale 全是别的 lane 在飞件）、`check-target-names` 629/591/0。
+  ④ **我自己造、又被读数抓出的三条（都已修，如实记）**：⑴ 把 `<pthread.h>` 面放进**镜像**后，
+     `check-mirror-dupes` 立刻从 17/17/0 变 **27/17/10**——10 条全是 `src/android.rs`/`src/sysdep.rs`
+     里同名的单元内声明与镜像撞（那两个单元各自为**它们自己的臂**声明这些名字，且用的是 bionic 的数）⇒ 按 P-88 ①
+     把面**搬回单元**（唯一消费者是 `src/systhread.rs`），门回到 0；⑵ 搬回时漏了 `pthread_t` → 4 条 `E0425`；
+     ⑶ `sys_mutex_init` 的 `pthread_mutexattr_t attr`（只在 `ENABLE_CHECKING` 下有）没初始化 → `enable_checking`
+     臂上 1 条 `E0381`。三条都在提交前修掉并有复测读数。
+  ⑤ **点名归属（不在本轮做）**：⑴ **C 280-548 的 WINDOWSNT 臂**（临界区互斥、事件条件变量、
+     `_THREADNAME_INFO`/`SetThreadDescription`、`_beginthread`）——`text-only`，本机
+     `which -a x86_64-w64-mingw32-gcc` 为空；⑵ **镜像副本的逐臂布局值**：`include/thread.rs` 的
+     `thread_state`/`lisp_mutex_t`/`Lisp_Mutex`/`Lisp_CondVar` 记的是冻结臂（dummy 类型）的数，所以 `have_pthread`
+     构建会踩那 6 条 `E0080`——镜像轮要把两个臂的值都带上。
+  ⑥ **未声称**：**零运行证据**——没有创建过线程/互斥量/条件变量/属性对象，没有链接，冻结对象就是那十三个空函数；
+     翻臂是**编译读数**且**没到 exit 0**（6 条镜像缺口在 ⑤）;WINDOWSNT 臂**一个类型/常量/宽度都没测过**；
+     `alignof_*` 与 room 臂是本机实测，换平台两者都要动。
+  ⑦ **顺带记（别的 lane 在飞的读数，不是本提交的账）**：`check-citations` 现在报 **2 drift**（`femacs/src/ftfont.rs`
+     65/66 的 `font.h` 行号）、`check-dead-file-coverage` 报 **1 failure**（`docs/ports/emacsgtkfixed.md` 5 行不覆盖）
+     ——两笔都属正在写的 lane，提交里没带。
+  ⑧ **预算**：`build-tu` **2 发**（冻结臂 + 搬面后复核，同一读数）、`probe` **7 发**（含 2 发 `enable_checking` 臂、
+     1 发变异；**如实报，超 lane 口径**）、`layout-check` 1 发、`check-all-units.sh` 1 发（镜像改动必跑）、
+     gate 脚本各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/systhread-lane` 与 `/tmp/systhread-measure*`
+     收工删除。
