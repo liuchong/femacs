@@ -9027,3 +9027,25 @@
   ⑥ **预算**：`probe` 1 发（pop 的 windowsnt 臂）、`layout-check` 0 发（本轮只改一个镜像文本，
   两腿里 `check-all-units.sh` 覆盖了它）、`check-all-units.sh` 1 发；两条 lane（`src/sqlite.c` 与
   `src/gnutls.c` 片 1）已按"最强证据档"派出。
+
+- **3.484 P-90 第四条：`src/xfns.rs` 的三条 GTK 声明搬进 `include/gtk.rs` 的边，臂读数 40 → 25 错（2026-10-05）**：
+  ① **改动**：`src/xfns.rs` 的 C 63 链（`"gtkutil.h"` 26 的 `<gtk/gtk.h>`）上补
+  `include!("include/gtk.rs")`，并删掉三条与镜像重名的声明——`gtk_widget_set_app_paintable` 的原型、
+  `GtkWidget` 与 `GtkWidgetClass` 两个记录（1,126 → **1,116** 行）；那段"这四个名字就地声明"的散文
+  改写成"镜像已接管、本单元只剩 `GObjectClass`（gtk.rs 没有这个记录）、两个 GLib 转换宏
+  （`G_OBJECT_GET_CLASS`/`GTK_WIDGET_CLASS`）与 `gtkutil.h` 自己的 `xg_check_special_colors`"。
+  ② **读数（我自己跑的）**：该单元的臂（`have_x_windows, use_gtk, have_gtk3`）**40 → 25 错**
+  （`E0425` 29 → 14，`E0133`/`E0609` 两类不变，**0 `E0428`**）——省下的 15 条是镜像能解析、而原段内副本
+  解析不到的跨镜像名字；`extract-abi --check` 只剩 226 `- missing` 与漂移（未落 remainder），
+  **无 `does not mention`、无 invented export**；`layout-check` **passed**；
+  `tools/check-all-units.sh` **83/0 + 83/0**。
+  ③ **明确不做（留给下一批镜像轮，理由写全）**：`include/gtkutil.rs` 的 C 26 与
+  `include/pgtkterm.rs` 的 C 31 两条**镜像内**的边仍未落。落它们意味着**同一批**删掉消费单元自己
+  直接拼的 gtk.rs 边（`src/gtkutil.rs` 174、`src/pgtkterm.rs` 81、`src/image.rs` 166、`src/xwidget.rs`
+  与 `src/pgtkfns.rs` 各一条），否则 gtk.rs 会在同一个 TU 里被文本包含两次（每个项都 `E0428`）。
+  这是"边归参照头、消费单元不再自己拼"的整批搬运，本条不做。
+  ④ **未声称**：GTK 树不在本机 ⇒ 仍是 `text-only`；`GtkWidgetClass` 的成员与偏移、以及镜像里那批
+  GDK/GTK 记录的值仍欠一次 GTK 工具链测量（P-80 的证明要求）；`xfns.rs` 的 25 错全是未落 remainder
+  与镜像缺名，**不是编译通过**；零运行证据。
+  ⑤ **预算**：`probe` 2 发（臂的前后各一）、`build-tu` 0 发、`layout-check` 1 发、
+  `check-all-units.sh` 1 发；两条 lane（`src/sqlite.c`、`src/gnutls.c` 片 1）仍在飞。

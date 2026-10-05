@@ -363,3 +363,25 @@ paragraph came after ④).  Both objects are single `--emit obj` outputs of a fe
   it.
 - The `## Evidence` numbers are from the revisions named there; the tree's `femacs/src/xfns.rs`
   may move under a later slice, and `docs/port-map.md`'s row is stale by design.
+
+## P-90's fourth step (2026-10-05, status 3.484): the GTK names move to the mirror
+
+The in-unit segment the Evidence section describes (the `GtkWidget`, `GtkWidgetClass` and
+`gtk_widget_set_app_paintable` declarations this unit carried because "no mirror carried them")
+is gone: C 63's chain (`"gtkutil.h"` 26's `<gtk/gtk.h>`) now carries `include!("include/gtk.rs")`
+- the SDK surface's one mirror (P-90 ②) - and the three declarations were deleted in the same
+round.  What stays here is what the mirror does not carry: `GObjectClass` (gtk.rs has no such
+record), the two GLib cast macros (`G_OBJECT_GET_CLASS`/`GTK_WIDGET_CLASS`), and
+`xg_check_special_colors` (gtkutil.h's own prototype).
+
+Measured (my own): the unit's arm (`have_x_windows, use_gtk, have_gtk3`) went from **40 errors to
+25** - 29 -> 14 `E0425`, the `E0133`/`E0609` classes unchanged and **no `E0428`** - because the
+mirror supplies fifteen names the in-unit segment could not resolve to the rest of the graph;
+`extract-abi --check` leaves 226 `- missing` rows and the drift (the unported remainder) and no
+`does not mention` row; `layout-check` passed; `tools/check-all-units.sh` 83/0 + 83/0.
+What is **not** done: the two *mirror-internal* edges (`include/gtkutil.rs` C 26 and
+`include/pgtkterm.rs` C 31) still stand as comments in those two files, and landing them means
+deleting the direct `include/gtk.rs` edges the consumers spell themselves (`src/gtkutil.rs` 174,
+`src/pgtkterm.rs` 81, `src/image.rs` 166, `src/xwidget.rs`, `src/pgtkfns.rs`) in the same round -
+otherwise gtk.rs is textually included twice in one translation unit.  That cascade is the next
+mirror round's, not this unit's.

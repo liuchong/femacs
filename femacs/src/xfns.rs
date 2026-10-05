@@ -105,6 +105,12 @@ include!("include/xsettings.rs");              // C 53: `#include "xsettings.h"`
    comment (P-88 ①, `docs/ports/xfns.md`'s Owed).  */
 #[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
 include!("include/gtkutil.rs");                // C 63: `#include "gtkutil.h"`
+/* C 63's chain: `"gtkutil.h"` 26's `<gtk/gtk.h>` - the SDK surface's one
+   mirror (P-90 ②).  The in-unit segment that declared `GtkWidget`,
+   `GtkWidgetClass` and `gtk_widget_set_app_paintable` is deleted in the same
+   round (status 3.484).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+include!("include/gtk.rs");
 
 /* C 66-72: `<X11/extensions/Xdbe.h>` (HAVE_XDBE, C 67) and `<X11/extensions/XInput2.h>`
    (HAVE_XINPUT2, C 71) - the X11 extensions' own headers again, with no mirror in this tree; the
@@ -335,10 +341,6 @@ unsafe extern "C" {
   /// const char *color_name, Emacs_Color *color);`
   pub fn xg_check_special_colors (f: *mut frame, color_name: *const c_char,
                                   color: *mut Emacs_Color) -> bool;
-  /// C: `<gtk/gtkwidget.h>`: `extern void gtk_widget_set_app_paintable (GtkWidget *widget,
-  /// gboolean app_paintable);` - GTK's own header, with no file in the reference tree and no
-  /// mirror; this machine has no GTK tree, so the citation is the header and not a line.
-  pub fn gtk_widget_set_app_paintable (widget: *mut GtkWidget, app_paintable: c_int);
 }
 
 /* Let the user specify an X display with a Lisp object.
@@ -997,16 +999,14 @@ unsafe fn x_set_wait_for_wm (f: *mut frame, new_value: Lisp_Object, old_value: L
 }
 
 /* C 124-126 and 736-802: `x_set_alpha_background`'s GTK-side names.  GTK's headers are the
-   toolchain's own and this machine has no GTK tree (P-86 ③⑵'s second tier: `text-only`), so the
-   four names the `USE_GTK`/`HAVE_GTK3` arms reach are declared here, each with the SDK header it
-   comes from (P-88 ①).  `GtkWidget` is also the type `include/xterm.rs`'s `FRAME_GTK_OUTER_WIDGET`
-   names bare (xterm.rs 378 lists it among that mirror's un-mirrored names).  */
-/// C: gtk/gtkwidget.h: `typedef struct _GtkWidget GtkWidget;`
-#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
-pub struct GtkWidget
-{
-  _private: [u8; 0],
-}
+   toolchain's own and this machine has no GTK tree (P-86 ③②'s second tier: `text-only`):
+   the `GtkWidget`/`GtkWidgetClass`/`gtk_widget_set_app_paintable` declarations are the SDK
+   mirror's now (`include/gtk.rs`, reached through C 63's chain above; P-90 ②'s
+   one-surface-one-mirror), and what stays here is the two GLib cast macros below - their
+   names and result types the port keeps, their cast chains stay owed to a GTK toolchain.
+   `GtkWidget` is also the type `include/xterm.rs`'s `FRAME_GTK_OUTER_WIDGET` names bare
+   (xterm.rs 378 lists it among that mirror's un-mirrored names); the edge above supplies
+   it.  */
 /// C: `<gobject/gobject.h>`: `#define G_OBJECT_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS
 /// ((object), G_TYPE_OBJECT, GObjectClass))`, whose own body is `((GObjectClass *)
 /// g_type_check_instance_cast ((GTypeInstance *) (instance), (g_type)))`.  The port keeps the
@@ -1030,16 +1030,6 @@ macro_rules! GTK_WIDGET_CLASS {
 pub struct GObjectClass
 {
   _private: [u8; 0],
-}
-/// C: gtk/gtkwidget.h's `GtkWidgetClass`.  C 797-798 reads exactly one member of it; the port
-/// carries that member and owes the record's other members and this one's offset to a GTK
-/// toolchain measurement (P-80's proof requirement) - `docs/ports/xfns.md` records it.
-#[cfg (all (feature = "have_x_windows", feature = "use_gtk", feature = "have_gtk3"))]
-#[repr(C)]
-pub struct GtkWidgetClass
-{
-  /// C: gtk/gtkwidget.h: `void (*style_updated) (GtkWidget *widget);`
-  pub style_updated: Option<unsafe extern "C" fn (widget: *mut GtkWidget) -> ()>,
 }
 
 /* C 732-802.  */
