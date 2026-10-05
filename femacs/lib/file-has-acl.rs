@@ -152,10 +152,8 @@ unsafe extern "C" {
   pub fn freecon (con: *mut c_char);
 }
 
-/* C 117/134's `E2BIG` is `<errno.h>`'s and the frozen `<errno.h>` mirror does not carry it:
-   the unit declares it (P-72 clause 4).  Measured on this machine's own header: 7.  */
-#[cfg (feature = "use_linux_xattr")]
-pub const E2BIG: c_int = 7;
+/* C 117/134's `E2BIG` is `<errno.h>`'s; the mirror carries it since status 3.514 (it used to be
+   declared here under P-72 clause 4 - P-88 (5)'s moved-back shape).  */
 
 /* C 57-71: five `# ifndef XATTR_NAME_* / #  define XATTR_NAME_* "..."` arms.  The header that
    would define them is `<linux/xattr.h>`, which is not carried, so the arm C would keep on a
@@ -1466,6 +1464,14 @@ pub unsafe extern "C" fn file_has_acl (name: *const c_char, sb: *const stat) -> 
     { flags |= _GL_DT_NOTDIR; }
   let mut ai: aclinfo = std::mem::zeroed ();
   let r: c_int = file_has_aclinfo (name, &mut ai, flags);
+  /* C 985: `aclinfo_free (&ai);` - a *function* under C 88's `HAVE_LINUX_XATTR_H &&
+     HAVE_LISTXATTR` (this unit defines it above) and `<acl.h>` 99-104's `#else` *macro*
+     otherwise.  Each arm spells what its own arm of C spells; the two share a name in Rust
+     (macros live in their own namespace), so only the call site has to say which one it means -
+     status 3.511 measured the macro silently answering this live call site before.  */
+  #[cfg (feature = "use_linux_xattr")]
+  aclinfo_free (&mut ai);
+  #[cfg (not (feature = "use_linux_xattr"))]
   aclinfo_free! (&mut ai);
   return r;
 }

@@ -10007,3 +10007,21 @@
   ⑥ **未声称**：零运行证据（两条臂都只是本机 rustc 的类型检查）；`include/xterm.rs` 774 的 `font`、
      `signal.rs` vs MinGW 的 22 个名字、`mode_t`/`pid_t` 的落点、`include/widgetprv.rs` 的 by-value
      `CorePart`、`include/dispextern.rs` 的 `character.h` 边仍是欠账（各自台账点名）。
+
+- **3.514 镜像轮第五批之二：`mode_t`/`pid_t` 写宽度、`E2BIG` 搬回镜像、宏的活调用点（2026-10-05）**：
+  ① **三处改动**：⑴ `femacs/src/include/w32.rs` 的四个原型（`fchmod`/`fchmodat`/`register_child`/`lchmod`）
+     把 C 的 `mode_t`/`pid_t` 写成**它们就是的宽度**（`u16`/`c_int`，`sys_types.in.rs` 70/64 的实测
+     `__uint16_t`/`int`）——**镜像不得命名它的 includer 可能没有的类型**（P-87 ③ 的 `window_part` 读法），
+     w32heap 的翻臂因此少了 6 条 `E0425`（**27 → 21**）；⑵ `femacs/lib/include/errno.rs` 补 `E2BIG`（值 7，
+     实测），`femacs/lib/file-has-acl.rs` 按 P-88 ⑤ 把就地声明删掉（"搬回镜像"形状）；⑶ 同单元的
+     `aclinfo_free` 调用点（C 985）按臂分开写：`use_linux_xattr` 臂写 C 的**函数**调用、另一臂写 `<acl.h>`
+     `#else` 的**宏**调用——这是 3.511 把宏加门之后暴露出来的（加门前宏一直在**静默回答**这个活调用点，
+     而 C 在那个臂里调的是会**释放**的函数）。
+  ② **读数**：`lib/file-has-acl.rs` 两条臂（xattr 臂与 macOS/Cygwin 臂）**exit 0 / 0 error**；
+     `src/w32heap.rs` 的翻臂 **27 → 21**（剩下的按类：`lib/include/signal.rs` 与 MinGW `<signal.h>` 的
+     `SIG_*`/`sigaction` 一类 4+ 条、其余见该台账 Owed）。
+  ③ **验收**：`layout-check` **passed**、`check-all-units` **83 unit(s), 0 failure(s)**、`check-mirror-dupes`
+     17/17/0、`check-declarations` **17/0/0**、`check-citations` **0 drift / 0 stale**。
+  ④ **下一批第一项（点名，带指针）**：`lib/include/signal.rs` 与 `nt/inc` 的 MinGW `<signal.h>` 镜像**同刻在
+     Rust 里共存**，`SIG_BLOCK`/`SIG_UNBLOCK`/`SIG_SETMASK`/`sigaction`/`SIGTRAP`… 一类共 **22 个名字**的
+     `E0428`——`docs/ports/w32proc.md` 134-135 **已经逐条记过**，本批照它给的清单继续。

@@ -100,8 +100,8 @@ pub mod w32_system_names {
   }
 
   unsafe extern "C" {
-    pub fn fchmod (fd: c_int, mode: mode_t) -> c_int;
-    pub fn fchmodat (fd: c_int, path: *const c_char, mode: mode_t, flags: c_int) -> c_int;
+    pub fn fchmod (fd: c_int, mode: u16) -> c_int;
+    pub fn fchmodat (fd: c_int, path: *const c_char, mode: u16, flags: c_int) -> c_int;
   }
 }
 #[cfg (feature = "windowsnt")]
@@ -413,9 +413,11 @@ unsafe extern "C" {
   pub fn ansi_encode_filename (filename: Lisp_Object) -> Lisp_Object;
 
   /// C 218-236: the file operations the Windows build provides.  `ptrdiff_t` is `isize`
-  /// (PORTING.md 1.1); `mode_t`/`pid_t` come from `lib/include/sys_types.in.rs`, which the mirror
-  /// includes for them (C's units reach `<sys/types.h>` through their own includes, PORTING.md
-  /// 0.1-9); the four names the port's system mirrors also declare carry the feature (file note).
+  /// (PORTING.md 1.1).  **`mode_t` and `pid_t` are written as the widths they are** - `u16` and
+  /// `c_int`, `lib/include/sys_types.in.rs` 70/64's measured `__uint16_t`/`int` - because a mirror
+  /// may not name a type its includers may lack (PORTING.md P-87 (3), the `window_part` reading);
+  /// C's units reach `<sys/types.h>` through their own includes (PORTING.md 0.1-9).  The four names
+  /// the port's system mirrors also declare carry the feature (file note).
   /// C: extern int  w32_copy_file (const char *, const char *, int, int, int);
   /// C: extern int  w32_accessible_directory_p (const char *, ptrdiff_t);
   /// C: extern void w32_init_current_directory (void);
@@ -454,7 +456,7 @@ unsafe extern "C" {
   pub fn set_process_dir (dir: *const c_char);
   pub fn sys_spawnve (mode: c_int, cmdname: *mut c_char, argv: *mut *mut c_char,
                       envp: *mut *mut c_char) -> c_int;
-  pub fn register_child (pid: pid_t, fd: c_int);
+  pub fn register_child (pid: c_int, fd: c_int);
   pub fn sys_sleep (seconds: c_int);
   pub fn sys_link (old: *const c_char, new: *const c_char) -> c_int;
   #[cfg (feature = "windowsnt")]
@@ -462,7 +464,7 @@ unsafe extern "C" {
   // `fchmodat` (C 265) is declared in `w32_system_names` above (E0428 against
   // `lib/include/sys_stat.in.rs` 185).
   #[cfg (feature = "windowsnt")]
-  pub fn lchmod (path: *const c_char, mode: mode_t) -> c_int;
+  pub fn lchmod (path: *const c_char, mode: u16) -> c_int;
   pub fn symlinks_supported (file: *const c_char) -> bool;
   pub fn w32_fix_tzset ();
 

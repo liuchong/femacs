@@ -217,3 +217,19 @@ declaration of the predicate sat in the `use_acl_getacl` block while the type is
 `cannot find type ace_t` (status 3.510); it now has its own `#[cfg (feature = "use_acl_ace_getacl")]`
 block.  With that and `docs/ports/include-acl-internal.md`'s mutuality fix, all three arms read
 **exit 0, 0 error**.
+
+## 2026-10-05: the macro's live call site, and `E2BIG` moving back to the mirror (3.514)
+
+Two follow-ups of status 3.511/3.510, both proven by re-running this unit's arms:
+
+* **`aclinfo_free` (C 985) is a function in one arm and `<acl.h>`'s `#else` macro in the other.**
+  3.511 gated the mirror's macro so it cannot answer where the function lives - which exposed that
+  this call site used the *macro* form: the xattr arm stopped compiling (`cannot find macro
+  aclinfo_free`), and before that gate the macro had been silently answering it (C's function
+  *frees*, the macro does nothing - the rewrite the lane reported).  The site now spells each
+  arm's own C text (`aclinfo_free (...)` under `use_linux_xattr`, `aclinfo_free! (...)` otherwise).
+* **`E2BIG` is back in `lib/include/errno.rs`** (P-88 (5)'s moved-back shape): the unit declared it
+  in place only because the mirror lacked it (`E2BIG = 7`, measured).
+
+Both arms read **exit 0, 0 error** after this - including the xattr arm, which is now the *function*
+that C compiles there.

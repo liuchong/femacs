@@ -113,3 +113,7 @@ pub const ENOEXEC: c_int = 8;
 pub const ESRCH: c_int = 3;
 /// <errno.h>: `#define EFAULT 14`.
 pub const EFAULT: c_int = 14;
+/// <errno.h>: `#define E2BIG 7`.  The mirror did not carry it, so `lib/file-has-acl.rs` declared
+/// it in place (P-72 clause 4) until status 3.514 moved it back here (P-88 (5)); the value is
+/// measured on this machine's own header, and the same 7 every ABI `lib/` targets.
+pub const E2BIG: c_int = 7;

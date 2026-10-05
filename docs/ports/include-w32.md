@@ -221,3 +221,13 @@ through the glob.
 **Evidence.**  `extract-abi --check emacs/src/w32.h femacs/src/include/w32.rs` -> `OK`;
 `xtask layout-check` passed; the `w32term` flip above falls from 26 to 0 `E0428`;
 `check-all-units.sh` 83/0 both legs.
+
+## 2026-10-05: `mode_t`/`pid_t` are written as the widths they are (3.514)
+
+This mirror used C's type names in four prototypes (`fchmod`, `fchmodat`, `register_child`,
+`lchmod`) and relied on `lib/include/sys_types.in.rs` being in the includer's scope.  That is not
+guaranteed - a mirror may not name a type its includers may lack (PORTING.md P-87 (3), the
+`window_part` reading) - and the `src/w32heap.rs` flip read six `cannot find type mode_t` /
+`pid_t` errors for it.  The four sites now write **the widths those names are** (`u16`, `c_int`:
+`sys_types.in.rs` 70/64's measured `__uint16_t`/`int`), which is the same type without the name.
+Same flip: 27 -> 21 errors.
