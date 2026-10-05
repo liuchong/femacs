@@ -2214,8 +2214,10 @@ unsafe fn save_current_matrix (f: *mut frame) -> *mut glyph_matrix
 	* core::mem::size_of::<glyph> () as ptrdiff_t;
 
       (*to).glyphs [TEXT_AREA as usize] = xmalloc (nbytes as usize) as *mut glyph;
-      std::ptr::copy_nonoverlapping ((*from).glyphs [TEXT_AREA as usize],
-				     (*to).glyphs [TEXT_AREA as usize], nbytes as usize);
+      /* C's `memcpy (to->glyphs[TEXT_AREA], from->glyphs[TEXT_AREA], nbytes)` counts bytes;
+	 `copy_nonoverlapping` counts `T`s (PORTING.md P-93), so both pointers go through `u8`.  */
+      std::ptr::copy_nonoverlapping ((*from).glyphs [TEXT_AREA as usize] as *const u8,
+				     (*to).glyphs [TEXT_AREA as usize] as *mut u8, nbytes as usize);
       (*to).used [TEXT_AREA as usize] = (*from).used [TEXT_AREA as usize];
       glyph_row_bits! (enabled_p, to, glyph_row_bits! (enabled_p, from));
       (*to).hash = (*from).hash;
@@ -2224,8 +2226,8 @@ unsafe fn save_current_matrix (f: *mut frame) -> *mut glyph_matrix
 	  nbytes = (*from).used [LEFT_MARGIN_AREA as usize] as ptrdiff_t
 	    * core::mem::size_of::<glyph> () as ptrdiff_t;
 	  (*to).glyphs [LEFT_MARGIN_AREA as usize] = xmalloc (nbytes as usize) as *mut glyph;
-	  std::ptr::copy_nonoverlapping ((*from).glyphs [LEFT_MARGIN_AREA as usize],
-					 (*to).glyphs [LEFT_MARGIN_AREA as usize],
+	  std::ptr::copy_nonoverlapping ((*from).glyphs [LEFT_MARGIN_AREA as usize] as *const u8,
+					 (*to).glyphs [LEFT_MARGIN_AREA as usize] as *mut u8,
 					 nbytes as usize);
 	  (*to).used [LEFT_MARGIN_AREA as usize] = (*from).used [LEFT_MARGIN_AREA as usize];
 	}
@@ -2234,8 +2236,8 @@ unsafe fn save_current_matrix (f: *mut frame) -> *mut glyph_matrix
 	  nbytes = (*from).used [RIGHT_MARGIN_AREA as usize] as ptrdiff_t
 	    * core::mem::size_of::<glyph> () as ptrdiff_t;
 	  (*to).glyphs [RIGHT_MARGIN_AREA as usize] = xmalloc (nbytes as usize) as *mut glyph;
-	  std::ptr::copy_nonoverlapping ((*from).glyphs [RIGHT_MARGIN_AREA as usize],
-					 (*to).glyphs [RIGHT_MARGIN_AREA as usize],
+	  std::ptr::copy_nonoverlapping ((*from).glyphs [RIGHT_MARGIN_AREA as usize] as *const u8,
+					 (*to).glyphs [RIGHT_MARGIN_AREA as usize] as *mut u8,
 					 nbytes as usize);
 	  (*to).used [RIGHT_MARGIN_AREA as usize] = (*from).used [RIGHT_MARGIN_AREA as usize];
 	}
@@ -2262,16 +2264,16 @@ unsafe fn restore_current_matrix (f: *mut frame, saved: *mut glyph_matrix)
       let mut nbytes: ptrdiff_t = (*from).used [TEXT_AREA as usize] as ptrdiff_t
 	* core::mem::size_of::<glyph> () as ptrdiff_t;
 
-      std::ptr::copy_nonoverlapping ((*from).glyphs [TEXT_AREA as usize],
-				     (*to).glyphs [TEXT_AREA as usize], nbytes as usize);
+      std::ptr::copy_nonoverlapping ((*from).glyphs [TEXT_AREA as usize] as *const u8,
+				     (*to).glyphs [TEXT_AREA as usize] as *mut u8, nbytes as usize);
       (*to).used [TEXT_AREA as usize] = (*from).used [TEXT_AREA as usize];
       xfree ((*from).glyphs [TEXT_AREA as usize] as *mut c_void);
       nbytes = (*from).used [LEFT_MARGIN_AREA as usize] as ptrdiff_t
 	* core::mem::size_of::<glyph> () as ptrdiff_t;
       if nbytes != 0
 	{
-	  std::ptr::copy_nonoverlapping ((*from).glyphs [LEFT_MARGIN_AREA as usize],
-					 (*to).glyphs [LEFT_MARGIN_AREA as usize],
+	  std::ptr::copy_nonoverlapping ((*from).glyphs [LEFT_MARGIN_AREA as usize] as *const u8,
+					 (*to).glyphs [LEFT_MARGIN_AREA as usize] as *mut u8,
 					 nbytes as usize);
 	  (*to).used [LEFT_MARGIN_AREA as usize] = (*from).used [LEFT_MARGIN_AREA as usize];
 	  xfree ((*from).glyphs [LEFT_MARGIN_AREA as usize] as *mut c_void);
@@ -2282,8 +2284,8 @@ unsafe fn restore_current_matrix (f: *mut frame, saved: *mut glyph_matrix)
 	* core::mem::size_of::<glyph> () as ptrdiff_t;
       if nbytes != 0
 	{
-	  std::ptr::copy_nonoverlapping ((*from).glyphs [RIGHT_MARGIN_AREA as usize],
-					 (*to).glyphs [RIGHT_MARGIN_AREA as usize],
+	  std::ptr::copy_nonoverlapping ((*from).glyphs [RIGHT_MARGIN_AREA as usize] as *const u8,
+					 (*to).glyphs [RIGHT_MARGIN_AREA as usize] as *mut u8,
 					 nbytes as usize);
 	  (*to).used [RIGHT_MARGIN_AREA as usize] = (*from).used [RIGHT_MARGIN_AREA as usize];
 	  xfree ((*from).glyphs [RIGHT_MARGIN_AREA as usize] as *mut c_void);
@@ -3197,7 +3199,7 @@ unsafe fn mirror_make_current (w: *mut window, frame_row: c_int)
   /* Make a copy of the original rows.  */
   USE_SAFE_ALLOCA! (sa_avail, sa_count);
   SAFE_NALLOCA! (sa_avail, old_rows, 1, nlines);
-  std::ptr::copy_nonoverlapping (new_rows, old_rows,
+  std::ptr::copy_nonoverlapping (new_rows as *const u8, old_rows as *mut u8,
 				 nlines as usize * core::mem::size_of::<glyph_row> ());
 
   /* Assign new rows, maybe clear lines.  */
@@ -3322,7 +3324,7 @@ unsafe fn mirror_line_dance (w: *mut window, unchanged_at_top: c_int, nlines: c_
 	  /* Make a copy of the original rows of matrix m.  */
 	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
 	  SAFE_NALLOCA! (sa_avail, old_rows, 1, (*m).nrows);
-	  std::ptr::copy_nonoverlapping ((*m).rows, old_rows,
+	  std::ptr::copy_nonoverlapping ((*m).rows as *const u8, old_rows as *mut u8,
 					 (*m).nrows as usize
 					 * core::mem::size_of::<glyph_row> ());
 
@@ -3927,7 +3929,8 @@ unsafe fn prepare_desired_root_row (root: *mut frame, y: c_int) -> *mut glyph_ro
 	  i += 1;
 	}
       }
-      std::ptr::copy_nonoverlapping ((*current_row).glyphs [0], (*desired_row).glyphs [0],
+      std::ptr::copy_nonoverlapping ((*current_row).glyphs [0] as *const u8,
+				     (*desired_row).glyphs [0] as *mut u8,
 				     (*( (*root).current_matrix as *mut glyph_matrix )).matrix_w
 				     as usize * core::mem::size_of::<glyph> ());
       glyph_row_bits! (enabled_p, desired_row, true);
@@ -4159,8 +4162,8 @@ unsafe fn copy_child_glyphs (root: *mut frame, child: *mut frame)
       let child_row: *mut glyph_row =
 	MATRIX_ROW! ((*child).current_matrix as *mut glyph_matrix, child_y);
       if glyph_row_bits! (enabled_p, child_row)
-	{ std::ptr::copy_nonoverlapping ((*child_row).glyphs [0].offset (child_x as isize),
-					 (*root_row).glyphs [0].offset (r.x as isize),
+	{ std::ptr::copy_nonoverlapping ((*child_row).glyphs [0].offset (child_x as isize) as *const u8,
+					 (*root_row).glyphs [0].offset (r.x as isize) as *mut u8,
 					 r.w as usize * core::mem::size_of::<glyph> ()); }
 
       /* Compute a new hash since we changed glyphs.  */

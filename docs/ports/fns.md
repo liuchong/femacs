@@ -417,3 +417,19 @@ command gets past it and stops on a *Lisp-level* error instead -
 `Error: file-missing ("Cannot open load file" ... "charscript")` - i.e. on the port's `lisp` tree
 lacking the reference build's *generated* Lisp files, which is an environment/harness issue and
 not a defect in this unit.
+
+## 2026-10-06: `copy_hash_table`'s four copies counted elements, not bytes (status 3.631)
+
+C's `copy_hash_table` (fns.c 4931-4945) copies four parallel vectors with `memcpy` and a *byte*
+count (`kv_bytes`, `hash_bytes`, `next_bytes`, `index_bytes`); the port handed each byte count to
+`std::ptr::copy_nonoverlapping` with a typed pointer, whose third argument counts `T`s.  The overrun
+is 8x for `key_and_value` (`Lisp_Object`) and 4x for `hash` (`hash_hash_t` = `unsigned int`) and for
+`next`/`index` (`hash_idx_t` = `int_least32_t`) - a single copy of a hash table wrote three vectors'
+worth past each freshly allocated block and corrupted the heap.  This is the third instance of
+PORTING.md P-93 and the sibling of the site 3.618 fixed (`maybe_resize_hash_table`); the same `u8`
+form is used here now.  The unit's other `memcpy`-family sites were checked one by one against the
+third argument of C's call: `Fconcat`'s vector copy (port 3760) needed the cast, while
+`append_to_vector` (port 1251) and `Fvconcat` (port 1308) and the vector-growth copy (port 4842)
+already passed element counts - C writes `size * sizeof *dst` - and the `c_void`/`c_char` sites were
+always byte-correct.  Readings: `build-tu src/fns.c` -> `built`, `extract-abi --check` -> `OK`,
+`check-all-units.sh` -> `83/0` on both legs.

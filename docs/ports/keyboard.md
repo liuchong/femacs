@@ -1670,3 +1670,10 @@ no_interrupt_input                          = []  # !INTERRUPT_INPUT
 no_usable_sigio_or_sigpoll                  = []  # !(USABLE_SIGIO || USABLE_SIGPOLL)
 use_lucid                                   = []  # USE_LUCID
 ```
+
+## 2026-10-06: the memcpy family's element-vs-byte sweep (status 3.631)
+
+`record_unwind_protect`'s argument copy (C 1958 `memcpy (newargs + 2, args + 2,
+(nargs - 2) * word_size)`, port 2199) handed a byte count to `std::ptr::copy_nonoverlapping` with
+`*mut Lisp_Object` pointers; it now goes through `u8` pointers, so the count is bytes as in C
+(PORTING.md P-93).  Readings: `build-tu src/keyboard.c` -> `built`, `extract-abi --check` -> `OK`.

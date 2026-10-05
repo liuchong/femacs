@@ -293,3 +293,10 @@ The unit declared `fn dir_warning (...) -> !` at its own use-site block; C's pro
 `init_callproc` was followed by unreachable code - the first run of the data-directory warning
 aborted in the UB check right after printing it.  The declaration now returns `()`, and the
 mirror gap it was standing in for stays owed (the mirror's ledger records it).
+
+## 2026-10-06: the memcpy family's element-vs-byte sweep (status 3.631)
+
+`Fcall_process`'s argument shift (C 1034 `memcpy (args2 + 1, args, nargs * sizeof *args)`, port
+1247) handed a byte count to `std::ptr::copy_nonoverlapping` with `*mut Lisp_Object` pointers; it
+now goes through `u8` pointers, so the count is bytes as in C (PORTING.md P-93).  Readings:
+`build-tu src/callproc.c` -> `built`, `extract-abi --check` -> `OK`.

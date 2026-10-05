@@ -390,3 +390,13 @@ from the port's set and no callee is renamed.
   `docs/ports/include-window.md`'s "Decisions (third slice, 2026-10-04: the geometry family)"
   has the full list and the reason the family keeps C's `macro_rules!` shape).  Call sites keep
   C's text; `estimate_mode_line_height` (dispextern.h 3582) stays a use-site declaration here.
+
+## 2026-10-06: the memcpy family's element-vs-byte sweep (status 3.631)
+
+Ten `memcpy`s of this unit handed C's *byte* count to `std::ptr::copy_nonoverlapping` with a typed
+pointer, whose third argument counts `T`s (PORTING.md P-93): the glyph copies and their margin arms
+(C 1974/1982/1990 and C 2014/2020/2030, port 2219/2229/2239 and 2267/2275/2287), the two
+`glyph_row` array copies (C 2909/3025, port 3202/3327) and the two glyph ranges (C 3579/3819, port
+3932/4165).  Every one of them now casts both pointers to `u8`, so the count is bytes exactly as in
+C.  Readings: `build-tu src/dispnew.c` -> `built`, `extract-abi --check` -> `OK`,
+`check-all-units.sh` -> `83/0` on both legs.

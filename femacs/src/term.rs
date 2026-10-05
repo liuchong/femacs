@@ -3648,8 +3648,8 @@ unsafe fn save_and_enable_current_matrix (f: *mut frame) -> *mut glyph_matrix
 	* std::mem::size_of::<glyph> () as ptrdiff_t;
 
       (*to).glyphs [TEXT_AREA as usize] = xmalloc (nbytes as usize).cast::<glyph> ();
-      std::ptr::copy_nonoverlapping ((*from).glyphs [TEXT_AREA as usize],
-				     (*to).glyphs [TEXT_AREA as usize], nbytes as usize);
+      std::ptr::copy_nonoverlapping ((*from).glyphs [TEXT_AREA as usize] as *const u8,
+				     (*to).glyphs [TEXT_AREA as usize] as *mut u8, nbytes as usize);
       (*to).used [TEXT_AREA as usize] = (*from).used [TEXT_AREA as usize];
       /* Make sure every row is enabled, or else update_frame will not
 	 redraw them.  (Rows that are identical to what is already on
@@ -3676,8 +3676,8 @@ unsafe fn restore_desired_matrix (f: *mut frame, saved: *mut glyph_matrix)
 	* std::mem::size_of::<glyph> () as ptrdiff_t;
 
       eassert! ((*to).glyphs [TEXT_AREA as usize] != (*from).glyphs [TEXT_AREA as usize]);
-      std::ptr::copy_nonoverlapping ((*from).glyphs [TEXT_AREA as usize],
-				     (*to).glyphs [TEXT_AREA as usize], nbytes as usize);
+      std::ptr::copy_nonoverlapping ((*from).glyphs [TEXT_AREA as usize] as *const u8,
+				     (*to).glyphs [TEXT_AREA as usize] as *mut u8, nbytes as usize);
       (*to).used [TEXT_AREA as usize] = (*from).used [TEXT_AREA as usize];
       glyph_row_bits! (enabled_p, to, glyph_row_bits! (enabled_p, from));
 

@@ -1243,7 +1243,8 @@ unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
       USE_SAFE_ALLOCA! (sa_avail, sa_count);
       SAFE_NALLOCA! (sa_avail, args2, 1, nargs + 1);
       *args2 = Qcall_process_region ();
-      std::ptr::copy_nonoverlapping (args, args2.offset (1),
+      /* C's `memcpy (args2 + 1, args, nargs * word_size)` counts bytes (PORTING.md P-93).  */
+      std::ptr::copy_nonoverlapping (args as *const u8, args2.offset (1) as *mut u8,
 				     (nargs * std::mem::size_of::<Lisp_Object> () as ptrdiff_t) as usize);
       coding_systems = Ffind_operation_coding_system (nargs + 1, args2);
       val = if CONSP (coding_systems) { XCDR (coding_systems) } else { Qnil () };

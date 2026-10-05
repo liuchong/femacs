@@ -2196,7 +2196,7 @@ unsafe extern "C" fn safe_run_hook_funcall (nargs: ptrdiff_t, args: *mut Lisp_Ob
   SAFE_ALLOCA_LISP! (sa_avail, newargs, nargs);
   *newargs.offset (0) = hook;
   *newargs.offset (1) = fun;
-  std::ptr::copy_nonoverlapping (args.offset (2), newargs.offset (2),
+  std::ptr::copy_nonoverlapping (args.offset (2) as *const u8, newargs.offset (2) as *mut u8,
 				 ((nargs - 2) * word_size) as usize);
   internal_condition_case_n (safe_run_hooks_1, nargs, newargs,
                              Qt (), safe_run_hooks_error);

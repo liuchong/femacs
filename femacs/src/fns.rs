@@ -3755,8 +3755,11 @@ DEFUN! ("mapconcat", Fmapconcat, Smapconcat, 2, 3, 0,
 	}
       else if VECTORP (sequence)
 	{
-	  std::ptr::copy_nonoverlapping ((*XVECTOR (sequence)).contents.as_mut_ptr (),
-					 args, (leni * std::mem::size_of::<Lisp_Object> () as EMACS_INT) as usize);
+	  /* C's `memcpy (args, XVECTOR (sequence)->contents, leni * word_size)` counts bytes;
+	     `copy_nonoverlapping` counts `T`s (PORTING.md P-93), so both pointers go through `u8`.  */
+	  std::ptr::copy_nonoverlapping ((*XVECTOR (sequence)).contents.as_mut_ptr () as *const u8,
+					 args as *mut u8,
+					 (leni * std::mem::size_of::<Lisp_Object> () as EMACS_INT) as usize);
 	  jumped_to_concat = true;
 	}
     }
@@ -5159,22 +5162,30 @@ unsafe fn copy_hash_table (h1: *mut Lisp_Hash_Table) -> Lisp_Object
       let kv_bytes: ptrdiff_t
 	= 2 * (*h1).table_size as ptrdiff_t * std::mem::size_of::<Lisp_Object> () as ptrdiff_t;
       (*h2).key_and_value = hash_table_alloc_bytes (kv_bytes as ptrdiff_t) as *mut Lisp_Object;
-      std::ptr::copy_nonoverlapping ((*h1).key_and_value, (*h2).key_and_value, kv_bytes as usize);
+      /* C's `memcpy (h2->key_and_value, h1->key_and_value, kv_bytes)` is a *byte* copy; Rust's
+	 `copy_nonoverlapping::<T>` counts T-sized elements, so the byte count must go through
+	 `*mut u8` (PORTING.md P-93: the typed form copies `sizeof *T` times the bytes).  */
+      std::ptr::copy_nonoverlapping ((*h1).key_and_value as *const u8,
+				     (*h2).key_and_value as *mut u8, kv_bytes as usize);
 
       let hash_bytes: ptrdiff_t
 	= (*h1).table_size as ptrdiff_t * std::mem::size_of::<hash_hash_t> () as ptrdiff_t;
       (*h2).hash = hash_table_alloc_bytes (hash_bytes as ptrdiff_t) as *mut hash_hash_t;
-      std::ptr::copy_nonoverlapping ((*h1).hash, (*h2).hash, hash_bytes as usize);
+      /* same: C's byte count, through `*mut u8` (P-93).  */
+      std::ptr::copy_nonoverlapping ((*h1).hash as *const u8, (*h2).hash as *mut u8,
+				     hash_bytes as usize);
 
       let next_bytes: ptrdiff_t
 	= (*h1).table_size as ptrdiff_t * std::mem::size_of::<hash_idx_t> () as ptrdiff_t;
       (*h2).next = hash_table_alloc_bytes (next_bytes as ptrdiff_t) as *mut hash_idx_t;
-      std::ptr::copy_nonoverlapping ((*h1).next, (*h2).next, next_bytes as usize);
+      std::ptr::copy_nonoverlapping ((*h1).next as *const u8, (*h2).next as *mut u8,
+				     next_bytes as usize);
 
       let index_bytes: ptrdiff_t
 	= hash_table_index_size (h1) * std::mem::size_of::<hash_idx_t> () as ptrdiff_t;
       (*h2).index = hash_table_alloc_bytes (index_bytes as ptrdiff_t) as *mut hash_idx_t;
-      std::ptr::copy_nonoverlapping ((*h1).index, (*h2).index, index_bytes as usize);
+      std::ptr::copy_nonoverlapping ((*h1).index as *const u8, (*h2).index as *mut u8,
+				     index_bytes as usize);
     }
   return make_lisp_hash_table (h2);
 }

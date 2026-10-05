@@ -239,3 +239,10 @@
   `docs/ports/include-window.md`'s "Decisions (third slice, 2026-10-04: the geometry family)"
   has the full list and the reason the family keeps C's `macro_rules!` shape).  Call sites keep
   C's text; `estimate_mode_line_height` (dispextern.h 3582) stays a use-site declaration here.
+
+## 2026-10-06: the memcpy family's element-vs-byte sweep (status 3.631)
+
+The two glyph copies of this unit (C 3456 and C 3481, port 3651 and 3679) passed C's *byte* count
+`nbytes` to `std::ptr::copy_nonoverlapping` with `*mut glyph` pointers, whose third argument counts
+`T`s (PORTING.md P-93).  Both now go through `u8` pointers, so the count is bytes as in C.
+Readings: `build-tu src/term.c` -> `built`, `extract-abi --check` -> `OK`.

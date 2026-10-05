@@ -13008,3 +13008,11 @@
      ① 只说明了"值被写坏成 Lisp 对象"这一事实与其位置，**没有**指认写者。
   ⑤ **收口**：`bytecode.rs` 的临时仪表已删、用 `git show HEAD:` 还原并重建（同一条错误复现）；工作树除 4 条 lane 的在飞产出外干净。
   ⑥ **预算**：`build-tu` 4 发、`check-link --executable` 3 发、端口运行 4 次（都在夹具 load-path 下）。
+- **3.631 P-93 的扫尾：第三处真缺陷（`copy_hash_table` 的四处拷贝）修好，其余站点逐处对 C 的第三参核对完（2026-10-06）**：
+  ① **判据**：C 的 `memcpy` 第三参是**字节数**，而端口写成的 `std::ptr::copy_nonoverlapping` 第三参是 **`T` 的个数** ⇒ 凡“带类型的指针 + 字节数”都必须经 `u8` 指针（前两例：3.618 的 `maybe_resize_hash_table`、3.626 的 `Fcopy_sequence`）。
+     本轮把 P-93 行里“尚未核对且形状可疑”的那批逐处对 C 核完：`dispnew.rs` 的 6 处 glyph 拷贝（2219/2229/2239、2267/2275/2287）、2 处 `glyph_row` 数组（C 2909/3025）、2 处 glyph 区间（C 3579/3819）、`term.rs:3651/3679`、`keyboard.rs:2199`、`callproc.rs:1247`、`fns.rs:3760` —— 都改成“经 `u8` + 字节数”；`fns.rs` 590/1044/1247/1304/1569/4835 与 `callint.rs:336` 核对后**本来就是元素数**（C 写的是 `size * sizeof *dst`，或指针是 `c_void`/`c_char`）。
+  ② **第三处真缺陷（本轮修的就是它）**：`copy_hash_table`（`fns.rs` 5159-5180，C `fns.c` 4931-4945）四处 `memcpy` 的第三参是 `kv_bytes`/`hash_bytes`/`next_bytes`/`index_bytes`（**字节数**），端口却把它们交给带类型的指针 ⇒ `key_and_value` 实拷 **8 倍**、`hash`（`hash_hash_t` = `unsigned int`）与 `next`/`index`（`hash_idx_t` = `int_least32_t`）各 **4 倍**——一次 `copy-hash-table` 就把三块刚分配的向量写穿。同一函数的**兄弟**（`maybe_resize_hash_table`）在 3.618 修过，这四处当时漏了。四处一并改成 `u8` 指针。
+  ③ **读数**：`build-tu src/fns.c` → `built`；`extract-abi --check emacs/src/fns.c femacs/src/fns.rs` → **OK**；`CARGO_TARGET_DIR=/tmp/sweep tools/check-all-units.sh` → **`checked 83 unit(s), 0 failure(s)` + `checking 83 unit(s), 0 unit failure(s)`**（两腿）；八道文本门：`check-citations` 676 文件 / 0 drift / 0 stale、`check-carried` 11/11/4/0、`check-mirror-dupes` 16/16/0、`check-ledger-ticks` 238/0、`check-dead-file-coverage` 145/0、`check-port-lines` 0/0/0、`check-target-names` 591 目标 / 0 finding、`check-declarations` `6 declaration sites (0 forbidden, 6 allowed literals), 0 failures`。
+  ④ **未声称**：本件**没有运行读数**——修复的证据只到“编译 + ABI + 83 单元两腿”，没有“`copy-hash-table` 跑通”的读数（端口仍停在 `loaddefs` 的 `Bytecode stack overflow`，见 3.628 与 3.630）；① 里“本来就对”的判断也只有文本（逐处对 C 的第三参）。
+  ⑤ **收口**：台账 `docs/ports/{dispnew,term,keyboard,callproc,fns}.md` 各加一节，`PORTING.md` P-93 行的“尚未核对”清单从此清零；`/tmp/sweep` 是 `CARGO_TARGET_DIR`，收工删。
+
