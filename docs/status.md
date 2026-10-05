@@ -7250,6 +7250,10 @@
      **6 树 / 4,604 文件 / 0 failure**；`check-citations` **675 / 0 drift / 0 stale**；`check-target-names`
      **591 目标 / 0 finding**；`check-swift-units` **0 new / 0 stale**；`extract-abi --all`
      **`582 done, 2 in progress, 6 failing`**（那 6 个是切片中的 P-86 单元，验收要求的是全部落完后零差异）。
+  ⑧ **补充读数（`MallocScribble=1`）**：同一个二进制在 `MallocScribble=1` 下崩点**移动**——从
+     `print_object` 的 `SYMBOL_NAME`（`+6184`，即 ①）移到同函数的 `+2772`（另一条读路径），
+     而 fault 地址仍是 ASLR 随机的高位地址（不是 `0x55`/`0xAA` 填充值）⇒ 读到的是**已被归还给系统**的内存里的旧
+     Lisp_Object（整页被 `madvise` 收回，所以填充看不出来），而不是"从未初始化过的新块"。
   ⑤ **下一步（点名）**：`image.c` 第四片 = `lookup_image`（C 3556）；`w32fns.c` 的 **C 4127-4139**（3.414 恢复
      的文本）要重核进它的对照面与区间表；`android.c` 第二片（C 1038 起）；`include/signal.rs` 的 bionic
      `sa_sigaction`（镜像轮）；`docs/ports/include-xlib.md` 建页。
@@ -12754,3 +12758,41 @@
      参照二进制在同样位置也会进那个处理器。本件没动 `femacs/{src,lib}/include/**`，P-87 ① 的 `check-all-units` 两腿按规矩照跑。
   ⑤ **预算**：`build-tu` 2 发、`check-link --executable` 1 发、`check-all-units.sh` 1 发（两腿，1m36s）、文本门 9 发、
      参照/端口 elisp 运行约 130 次（含定位 `match-string`/`defun` 的二分）；`/tmp` 的探针与临时脚本已清。
+
+- **3.621 加载链停住的那处崩溃是 **GC 相关**的：关掉 `maybe_gc` 之后链从 17 个文件推进到 34 个文件（随后因内存耗尽 abort），而宏展开/backquote 一侧本轮被证明是**对的**（2026-10-05）**：
+  ① **症状**：`env EMACSLOADPATH=$PWD/femacs/lisp ./build/femacs/emacs --batch` 现在稳定加载 17 个文件
+     （`loadup.el → debug-early → byte-run → backquote → subr → keymap → version → widget → custom → map-ynp → mule →
+     mule-conf → env → format → bindings → window → files.el → macroexp.el`），停在 `macroexp.el`：
+     先是一串 `void-variable`（`custom-safe-themes`、`window-min-height`、`display-buffer-alist` …，见 ②），
+     随后 `macroexp.el:947` 的 `(error "Eager macro-expansion failure: %S" err)` 在**格式化那条错误对象时崩**——
+     `print_object` 里 `SYMBOL_NAME (sym)` 读到野指针，`EXC_BAD_ACCESS (code=2)`（lldb 帧：
+     `print::SYMBOL_NAME ... lisp_rs.rs:1520 [inlined]`，`sym` 是个"堆区间之外"的偏移）。
+  ② **第一手读数（本轮用临时仪表取得，仪表已全部删除）**：⑴ 在 `Fsignal` 里记前 60 个信号：
+     全部是 `void-variable`，参数是 `custom.el`/`window.el` 自己的 `defcustom` 变量名——**这些错误是被接住的**
+     （`custom-initialize-*` 一族本来就用 `condition-case` 探"变量是否已经有值"），C 里同样会发生、只是没人记它；
+     所以它们本身**不是**缺陷。⑵ 在 `styled_format` 的 `%S` 处记格式串：崩溃时格式串正是
+     `Eager macro-expansion failure: %S`，被打印的对象是 `/tmp/pre3.el` 那个 `err`。
+  ③ **关掉 GC 的对照实验（本轮最有价值的一步）**：把 `eval.rs`/`bytecode.rs` 的 4 处 `maybe_gc ()` 临时短路后，
+     同一条命令的加载链**从 17 个文件推进到 34 个**（多出 `cus-face → faces → ldefs-boot → button → cl-preloaded →
+     oclosure → obarray → abbrev → help → jka-cmpr-hook → epa-hook → mule-cmds → case-table → characters …`），
+     9.9 秒后 `SIGABRT`（峰值 437 MB——不回收内存，属于预期）。⇒ **那次崩溃是 GC 相关**：
+     要么 GC 回收了仍可达的对象，要么它把内存交还后**被别人当 Lisp_Object 读到了**（本轮新证据见 ④）。
+  ④ **本轮排除的错路（记下来免得重走）**：⑴ **宏展开/backquote 一侧是对的**——用参照二进制逐字节对照过三件事：
+     `\`(a ,(+ 1 1))`、`` `(a ,(b)) ``、`` `(funcall #',(lambda nil X)) ``，以及 `defcustom` 的**真展开**：
+     两边都是 `(custom-declare-variable 'foo `(funcall #',(lambda nil 1)) "doc")`，`(defcustom foo 7 "doc")` 之后
+     `(symbol-value 'foo)` 两边都是 7（探针先 `(load "emacs-lisp/debug-early")`…`(load "custom")`，与 loadup 同序）。
+     ⇒ 不要把力气花在 `custom.el`/`backquote.el` 上。⑵ **保守栈扫描是工作的**：给 `mark_memory` 与
+     `mark_maybe_pointer` 加计数后一次 GC 读到 `candidates=10818 found=721`（扫了 43,272 字节的 C 栈，
+     找到了 721 个对象），`mem_find` 有货、`mark_memory` 的循环也真的在推进（`pp += GC_POINTER_ALIGNMENT`）。
+     ⇒ 不是"栈没扫"或"mem 树是空的"。
+  ⑤ **下一步（点名）**：把"回收后的内存"变成可读的读数——在 GC 的 sweep 里把被释放的块按 `0x55`/`0xde`
+     这类**毒化模式**填一遍（或直接用 `MallocScribble=1`），再看那 33 个"多出来的"文件里第一个崩点读到的毒化值出现在哪个槽；
+     判据是：若毒化后崩点**更早且更稳定**，就能顺着那个槽找到"某处分配了对象却没把 C 会写的字段写全"的那一行
+     （本轮已把排查范围缩小到"打印错误对象时读到的符号名字段"，且已排除宏展开一侧）。
+  ⑥ **未声称**：本件**没有修好任何东西**——GC 仍是开的，加载链仍是 17 个文件；③ 的 34 个文件是**关掉 GC 的读数**，
+     不能当作"进度"；④ 的两条是对照实验（参照侧对照 + 计数器），不是 GC 正确性的证明。
+     本件所有临时仪表（`Fsignal`/`styled_format`/`print_object`/`readevalloop_eager_expand_eval` 的打印、
+     GC 的 `DBG gc`/`DBG markmem` 计数、`xtask` 的 `-g`）**已全部删除**，`alloc/eval/bytecode/editfns/lread/print`
+     六个单元与 `xtask` 已用 `git show HEAD:` 还原并重建（读数回到 18 行 `Loading`、停在 `macroexp.el`）。
+  ⑦ **预算**：`build-tu` 约 20 发（含还原后的 6 发重建）、`check-link --executable` 约 10 发、`lldb` 5 次、
+     两端 elisp 探针约 25 次、GC 对照运行 2 次（一次带 `time -l`）；`/tmp` 的探针（`bq*.el`、`pre*.el`、`not.el`、`fs2.el`、`fset.el`、`dc.el`）与日志已清。
