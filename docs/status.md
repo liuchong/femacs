@@ -10267,3 +10267,36 @@
      `DBUS_EVENT`、`include/systime.rs` 27 的"特性↔配置常量"断言（机制性，忠实读法是 `xtask dead-arms`）。
   ⑤ **预算与清理**：`probe` 1 发、`check-all-units` 2 发、`layout-check` 2 发、直接 rustc 2 发（变异实测）；
      未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.527 镜像轮第八批：两条 C 的 include 边，`dbusbind` 臂 10 错 → 0（2026-10-05）**：
+  ① **对象**：两条都是 C 自己的 `#include`，镜像链里缺；成因是 `probe`/`build-tu` 只展开**文件自己的**
+     include 图，而 `xtask layout-check` 会把 foundation 镜像强制提前（`buffer.rs` 的注释此前正是按后者的
+     行为写的）：
+     ⑴ `include/buffer.rs` 缺 C 26 的 `#include "character.h"` ⇒ `dbusbind` 臂 8 × `E0425`
+        （`STRING_CHAR` ×2、`UNIBYTE_TO_CHAR` ×2、`string_char_and_length` ×2、`BYTES_BY_CHAR_HEAD`、
+        `raw_prev_char_len`；`include/buffer.rs` 1498/1512/1524/1593/1921/1947/1965/1985），按 C 26 补边
+        （P-72 rule 4）。
+     ⑵ `include/termhooks.rs` 缺 C 27 的 `#include "dispextern.h"` ⇒ `dbusbind` 臂 2 × `E0425`
+        （`Emacs_Color`，`include/termhooks.rs` 248/251；`struct terminal` 的三个颜色参数 C 594/613/620），
+        按 C 27 补边（`include/dispextern.rs` 25 就是该名字的家）。
+  ② **读数（主判据 = 臂）**：`probe src/dbusbind.rs`（`have_dbus` + 十二个子门全设）：
+     **改前 exit 1 / 10 错（全在镜像）→ 改后 exit 0 / 0 error / rlib 14,176,648 字节**。
+     **变异实测（P-86 ⑦）**：把物化结果（`build/probes/dbusbind/_root.rs`，3005 行、9 条 `include!`）
+     **原地**用仓库钉住的工具链 + 同一串 `--cfg` 编 → exit 0 / 0 error；同目录放一份注入了一个类型错的副本
+     → **恰 1 条 `E0308` 且点名 `_mut.rs:538`** ⇒ 0 是真读数（副本用完即删）。
+  ③ **其余门**：`check-all-units` **83 unit(s), 0 failure(s)**（两腿；两条边会改写大量单元的图，这是主判据）、
+     `layout-check` passed、`check-citations` 2 drift / 1 stale → **0 / 0**（`termhooks.rs` 的 include 行按
+     include-line 类记一行理由，原 `:371` 的 `tty_display_info` 行随 +5 挪到 `:376`）、`check-mirror-dupes`
+     17/17/0、`check-declarations` 17/0/0、`check-ledger-ticks` 0、`check-dead-file-coverage` 96/0、
+     `check-port-lines` 0 new/0 stale（`src/xsettings.rs` 的行按"已越过阈值"退役——那条 lane 正在写正文，
+     它的文件不在本提交里）、`check-target-names` 0。
+  ④ **未声称与仍欠**：两条边是**编译**读数不是运行读数（本机无 libdbus、无 D-Bus 会话；冻结档仍是 336 字节
+     空对象）；`termhooks.rs` 仍是 WIP 切片镜像——它**缺 C 248-355 里全部带门的 enum 成员**（`DBUS_EVENT`、
+     `THREAD_EVENT`、`MULTIMEDIA_KEY_EVENT`、`NS_TEXT_EVENT`/`NS_NONKEY_EVENT`、`XWIDGET_EVENT`/
+     `XWIDGET_DISPLAY_EVENT`、`FILE_NOTIFY_EVENT`、`NOTIFICATION_CLICKED_EVENT`、`NOTIFICATION_EVENT`），
+     而这些成员正是 C 隐式编号的位移来源；`dbusbind.rs` 现在在单元里就地声明 `DBUS_EVENT = 27`（台账
+     Deviation），要把它搬回镜像就得把门后编号写成 `cfg!` 算术（本树尚无 `cfg!` 先例，属设计决定）⇒ **本轮不做**，
+     已点名。同理 `include/dispextern.rs` 自己缺的 C 25 `character.h` 边未加（`layout-check` 的 foundation
+     掩盖了它，`probe` 才看得见）。
+  ⑤ **预算与清理**：`probe` 1 发、`check-all-units` 1 发、`layout-check` 1 发、直接 rustc 2 发（变异实测）、
+     六道文本门各 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`；`build/probes/dbusbind/_mut.rs` 已删。

@@ -14,13 +14,19 @@
 // system mirrors the same way (both are WIP partial mirrors, PORTING.md P-26).
 include!("../../lib/include/sys_types.in.rs");
 include!("../../lib/include/time.in.rs");
-// buffer.h 26-28 also include character.h, lisp.h and itree.h.  `character.rs` and `lisp.rs`
-// are foundation mirrors every unit puts first (xtask's include graph forces them there), but
-// `itree.rs` is only reached by the units that ask for it - and this mirror names
+// buffer.h 26-28 also include character.h, lisp.h and itree.h.  `lisp.rs` is the enclosing
+// unit's (PORTING.md 0.1-9); the other two are carried here (P-72 rule 4) because the units
+// that reach this mirror do not all put them in scope: `xtask layout-check` forces the
+// foundation mirrors to the front, but `build-tu`/`probe` expand only the file's own include
+// graph - and the `dbusbind` arm read 8 x `E0425` for `character.h`'s inline family
+// (`STRING_CHAR`, `UNIBYTE_TO_CHAR`, `string_char_and_length`, `BYTES_BY_CHAR_HEAD`,
+// `raw_prev_char_len`) for exactly that difference (status 3.527).  `itree.rs` earns its edge
+// the same way: this mirror names
 // `itree_node`/`itree_tree` in `overlay_start`/`overlay_end` (C's `itree_node_end` call there is
 // buffer.h 1488) and in the `OVERLAY_*` inlines C writes with `XOVERLAY (ov)->interval` (buffer.h
 // 1529-1537), so it carries the include here (P-72 rule ④; `src/androidmenu.c` reaches this
 // mirror through `keyboard.h`).
+include!("character.rs");                     // C 26: `#include "character.h"`
 include!("itree.rs");                         // C 28: `#include "itree.h"`
 
 // C's include guard `EMACS_BUFFER_H` has no Rust counterpart; the constant below exists

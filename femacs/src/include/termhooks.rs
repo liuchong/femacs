@@ -10,6 +10,11 @@
 // termhooks.h 22: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_TERMHOOKS_H: bool = true;
 
+/* termhooks.h 27: `#include "dispextern.h"`.  `struct terminal`'s color parameters (C 594,
+   613, 620) name `Emacs_Color`, which dispextern.h defines, and the `dbusbind` arm read 2 x
+   `E0425 Emacs_Color` here without the edge (status 3.527).  */
+include!("dispextern.rs");
+
 /* termhooks.h 28: `#include "systime.h" /* for Time */`.  It was not materialized while this
    mirror was the `struct input_event` slice, and every X11 unit that reaches `Time` through
    here (as C does) read `cannot find type Time`: `include/xterm.rs` names it 6 times and this
