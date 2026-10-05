@@ -141,7 +141,15 @@ pub mod signal_decls {
       { 1u32 << (signo - 1) }
   }
 
-  /// C: `#define sigemptyset(set) (*(set) = 0, 0)`
+  /* C 125-129's two macros have one body per `sigset_t` arm, because the *type* does: the
+     Darwin record takes the struct literal, MinGW's `_sigset_t` scalar takes a plain `0` and a
+     plain `|=` (the file note at C 52-56 records `src/w32proc.c`'s `*set = 0` /
+     `*set |= 1U << signo` for that arm).  Ungated, these two bodies spelled `__val` in *both*
+     arms, and the `w32font` arm read `E0610`/`E0071` on it - `u32` has no fields (status 3.541).
+     No MinGW header exists on this machine, so the scalar arm's bodies are the mirror's own
+     recorded evidence and carry that mark.  */
+  /// C: `#define sigemptyset(set) (*(set) = 0, 0)` (Darwin arm)
+  #[cfg (not (feature = "windowsnt"))]
   #[inline(always)]
   pub unsafe fn sigemptyset (set: *mut sigset_t) -> c_int
   {
@@ -149,11 +157,30 @@ pub mod signal_decls {
     0
   }
 
-  /// C: `#define sigaddset(set, signo) (*(set) |= __sigbits (signo), 0)`
+  /// C: `#define sigemptyset(set) (*(set) = 0, 0)` (MinGW arm; **UNVERIFIED** reading)
+  #[cfg (feature = "windowsnt")]
+  #[inline(always)]
+  pub unsafe fn sigemptyset (set: *mut sigset_t) -> c_int
+  {
+    *set = 0;
+    0
+  }
+
+  /// C: `#define sigaddset(set, signo) (*(set) |= __sigbits (signo), 0)` (Darwin arm)
+  #[cfg (not (feature = "windowsnt"))]
   #[inline(always)]
   pub unsafe fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int
   {
     (*set).__val |= __sigbits (signo);
+    0
+  }
+
+  /// C: the MinGW arm's `*set |= 1U << signo` (`src/w32proc.c`'s reading; **UNVERIFIED**)
+  #[cfg (feature = "windowsnt")]
+  #[inline(always)]
+  pub unsafe fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int
+  {
+    *set |= 1u32 << (signo as u32);
     0
   }
 

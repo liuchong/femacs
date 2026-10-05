@@ -99,6 +99,46 @@ macro_rules! get_w32_minor_version { () => { w32_minor_version }; }
 pub mod w32common_decls {
   use super::*;
 
+  /* C 24's two `<windows.h>` records, declared here on the Windows target's behalf (P-88 (1)):
+     the header's own file note names them among the deferrals, and `src/w32fns.c` 10070-10076
+     reads `dwPageSize` / `dwOSVersionInfoSize` / `dwBuildNumber` off the two caches below, so
+     the *members* have to exist for that arm to compile.  The members and their order are the
+     SDK's documented ones; **no `<windows.h>` exists on this machine**, so both records are
+     **UNVERIFIED** and carry no layout assertion (the widths are the documented 32/64-bit
+     ones - status 3.541).  */
+  /// C: `<windows.h>`: `typedef struct _SYSTEM_INFO { union { DWORD dwOemId; struct { WORD
+  /// wProcessorArchitecture, wReserved; }; }; DWORD dwPageSize; LPVOID
+  /// lpMinimumApplicationAddress, lpMaximumApplicationAddress; DWORD_PTR dwActiveProcessorMask;
+  /// DWORD dwNumberOfProcessors, dwProcessorType, dwAllocationGranularity; WORD
+  /// wProcessorLevel, wProcessorRevision; } SYSTEM_INFO;`
+  #[repr(C)]
+  pub struct SYSTEM_INFO
+  {
+    pub dwOemId: DWORD,
+    pub dwPageSize: DWORD,
+    pub lpMinimumApplicationAddress: LPVOID,
+    pub lpMaximumApplicationAddress: LPVOID,
+    pub dwActiveProcessorMask: DWORD_PTR,
+    pub dwNumberOfProcessors: DWORD,
+    pub dwProcessorType: DWORD,
+    pub dwAllocationGranularity: DWORD,
+    pub wProcessorLevel: WORD,
+    pub wProcessorRevision: WORD,
+  }
+  /// C: `<windows.h>`: `typedef struct _OSVERSIONINFOA { DWORD dwOSVersionInfoSize,
+  /// dwMajorVersion, dwMinorVersion, dwBuildNumber, dwPlatformId; CHAR szCSDVersion[128]; }
+  /// OSVERSIONINFOA;`
+  #[repr(C)]
+  pub struct OSVERSIONINFO
+  {
+    pub dwOSVersionInfoSize: DWORD,
+    pub dwMajorVersion: DWORD,
+    pub dwMinorVersion: DWORD,
+    pub dwBuildNumber: DWORD,
+    pub dwPlatformId: DWORD,
+    pub szCSDVersion: [c_char; 128],
+  }
+
   unsafe extern "C" {
     pub static mut syspage_mask: DWORD_PTR;
     pub static mut w32_major_version: c_int;

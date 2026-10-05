@@ -10601,3 +10601,33 @@
      它们是下一批（记录值只有 documented 可用 ⇒ 必须标 UNVERIFIED）。
   ⑥ **预算**：`probe` 5 发（其中三次是撤回前那次尝试的复读）、`check-all-units` 3 发、`check-mirror-dupes` 4 发、
      `check-citations` 2 发、`extract-abi --check` 5 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.541 镜像轮第十七批：`sigset_t` 的操作按臂分开、`w32common.h` 的两条 SDK 记录落地——`w32font` 臂只剩那条"故意不编"的 `compile_error!`（2026-10-05）**：
+  ① **对象**（两条都是 `w32font` 臂最后可修的行，lane 早已点名）：
+     ⑴ `lib/include/signal.rs` 的 `sigset_t` 本来就**一臂一形**（`windowsnt` 是 MinGW 的 32 位标量，
+     否则是 Darwin 的 `struct { __val: u32 }`），但 `sigemptyset`/`sigaddset` 两个**宏体**只在**记录那一形**上写
+     （`*set = sigset_t { __val: 0 }`、`(*set).__val |= …`）且**没有门** ⇒ 标量臂里 `u32` 没有字段
+     （`E0610`/`E0071`，2 行）。
+     ⑵ `include/w32common.rs` 的文件注释**故意把** `<windows.h>` 的 `SYSTEM_INFO`/`OSVERSIONINFO` 列为 deferral，
+     可是 `src/w32fns.c` 10070-10076 就在这两个缓存上读 `dwPageSize`/`dwOSVersionInfoSize`/`dwBuildNumber`
+     ⇒ 那个臂读 2 × `E0425`。
+  ② **改法**：⑴ 两个函数**按臂各写一份体**（`#[cfg (not (feature = "windowsnt"))]` / `#[cfg (feature = "windowsnt")]`），
+     标量臂的体**标 UNVERIFIED** 并写明依据（该镜像自己记的 MinGW 形状：`*set = 0` / `*set |= 1U << signo`；
+     本机没有任何 MinGW 头）。
+     ⑵ 两条记录按 SDK 的**文档成员与顺序**声明在 `w32common_decls` 里（`SYSTEM_INFO` 十个成员、`OSVERSIONINFO`
+     的 `dw*` 五个 + `szCSDVersion[128]`），**标 UNVERIFIED 且不写任何布局断言**——本机没有 `<windows.h>`，
+     写断言就是发明数字。
+  ③ **读数（主判据 = 臂）**：`probe src/w32font.rs`（`have_ntgui` + `windowsnt` + `have_window_system`）：
+     **5 条错误行 → 3 条**，其中**唯一的真错**是 `include/frame.rs` 那条**自己写明**的 `compile_error!`
+     （"the HAVE_NTGUI arm of `struct frame`'s flag run is unmeasured on this machine"）——也就是说**本臂所有可修的
+     镜像行都关掉了**（本轮起点是 **21 条**：3.539 的十条 `E0428` + 3.540 的四条 `HWND` + 本条的两条 `E0610`/`E0071`
+     与两条 `E0425`，剩下的 1 条是**门**不是缺陷，要 Windows 工具链才能量那段 flag run）。
+     `extract-abi --check emacs/src/w32font.c femacs/src/w32font.rs` **OK**；`check-all-units` **83 unit(s),
+     0 failure(s)**（两腿；两个改动的门在冻结档为假或模块被遮蔽，冻结读数不动）；`check-mirror-dupes` 的 9 条失败
+     与 `check-citations` 的 1 条 `range` **全在三条在飞 lane 的文件里**（8 × `haikufns.rs`、1 × `w32menu.rs`、
+     `haikufns.rs:861`），本条 0 条。
+  ④ **未声称**：仍是**编译**读数；本机无 Windows SDK、无 MinGW 头 ⇒ 标量臂的两个体与两条记录都是**端口自己的读数**
+     （已按树里的做法标 UNVERIFIED，并把依据写在注释里）；`frame.rs` 那条 `compile_error!` **是设计**不是待修的缺陷，
+     它要的是一次真正的 Windows 目标测量。
+  ⑤ **预算**：`probe` 3 发（其中一发是 `/tmp` 目录没建导致的空跑）、`check-all-units` 2 发、`check-mirror-dupes` 2 发、
+     `check-citations` 2 发、`extract-abi --check` 2 发；未跑 `xtask --all`/`gate-fast`/`cargo test`；`/tmp/sig541` 收工删。
