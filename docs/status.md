@@ -7452,3 +7452,28 @@
      mman/setjmp/X11 三类）。
   ⑦ **未声称**：本片**没有任何运行证据**（没打开过字体、没读 table directory、没解析过一次 cmap）；
      ② 连目标文件都没产出（错全在镜像），翻臂读数取自与最终修订仅差注释的修订；C 1113-21,215 **未移植**。
+
+- **3.426 w32term 切片 2（C 1004-1949）：GC 选择、各种 glyph string 的绘制与 relief（2026-10-05）**：
+  ① **区间**：C 1004-1949（946 行，收在 `w32_draw_glyph_string_box` 的 `}`）；**下一个活定义 = C 1952
+     `w32_image_rotations_p`**。22 个函数 + 1 个宏（`HIGHLIGHT_COLOR_DARK_BOOST_LIMIT`）；本片自身无 `#if`
+     （只有两处 `#if 0` 死文本，按 C 原文搬进注释）；台账区间表 59 → **84 行**。
+  ② **行数**：`femacs/src/w32term.rs` 1,592 → **2,941**（+1,349）；`docs/ports/w32term.md` 389 → **614**。
+  ③ **读数**：⑴ 冻结 `build-tu` **exit 0 / 336 字节空对象**（3 发用满）；⑵ `extract-abi --check` **134 → 110 个 `- ` 行**
+     （102 缺函数 + 1 缺宏 `LOAD_PROC` + 6 缺文件级对象 + 行数漂移 65.0%），**`does not mention` 0 行**；
+     ⑶ 臂触达：frozen（无 cfg）**0 error**；base 集（`have_ntgui+windowsnt+have_window_system+
+     dispextern_face_records`）首轮 **70 error / 单元 44 / 本片 26**，修好后 **42 / 单元 16 / 本片 0**；
+     `have_ntgui` 单门 108 error（与切片 1 同类，锚点 110）；⑷ `check-dead-file-coverage` 84 行覆盖 .c/.h、0 failure。
+  ④ **真缺陷（本片抓到 26 个自己的错，冻结门完全看不到——臂读数为什么值钱）**：Rust 裸指针字段访问不自动解引用
+     ⇒ C 的 `s->f->output_data.w32->cursor_gc->foreground` 每跳要 `(*…)`、`as *mut w32_output` 必须自带括号
+     （9 处 `E0606/E0609`）；4 处 `glyph_u_cmp_bits!` 传值而宏内解引用（`E0614`）；`RGB!` 体内 `u8|u16`
+     （`E0277`，4 次展开）；`composition_gstring_width` 的 `ptrdiff_t` 形参收到 `c_int`（`E0308`）；
+     `FillRect` 与切片 1 的 `<windows.h>` 段**重复声明**（`E0428`，删本片那份并点名）；并**顺带修掉切片 1 的 C 970 行**
+     （同样缺一对括号，2 个错）——这是本批唯一改动的切片 1 文本，已记明。
+  ⑤ **仍未解决（点名）**：`include/w32term.rs` 340 行处声明了 `w32_query_frame_background_color` 而未做 owed 4 的
+     `*_decls` 模块化 ⇒ 单元定义 `E0428`（实测）；`include/lisp.rs` 缺 `min`/`max`；`include/dispextern.rs` 缺
+     一批访问器/宏/入口点；`<windows.h>` 整体无镜像（`POINT`/`RECT`/`W32Msg` 的布局仍 UNVERIFIED）；
+     base 臂仍有 24 个 frozen-only `E0080` 布局断言、`include/frame.rs` 329 的 `have_ntgui compile_error!`、
+     `include/w32common.rs` 111 的 `SYSTEM_INFO`；文件余下 **C 1950-8,414** 未移植。
+  ⑥ **未声称**：**零运行证据**（无 Windows、无 `windows.h`、无 mingw、无布局测量、无对拍/ERT/设备）；
+     "本片 0 错"只等于"该臂下没有锚在本片文本上的名字解析/类型错误"，**不等于该单元可编译、更不等于 Windows 配置可用**；
+     `--check` 依旧 FAIL（110 行里 109 是余下部分 + 行数行），本文件按 P-86 ② 用区间表 + 读数代替清单通过。

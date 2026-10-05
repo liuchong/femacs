@@ -1550,7 +1550,7 @@ unsafe fn w32_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
 	{
 	  SetTextColor (hdc, (*face).background as COLORREF);
 	  SetBkColor (hdc, (if (*p).cursor_p != 0
-			    { (*(*f).output_data.w32 as *mut w32_output).cursor_pixel }
+			    { (*( (*f).output_data.w32 as *mut w32_output )).cursor_pixel }
 			    else { (*face).foreground as COLORREF }));
 
 	  BitBlt (hdc, (*p).x, (*p).y, (*p).wd, (*p).h,
@@ -1589,4 +1589,1353 @@ unsafe fn w32_define_fringe_bitmap (which: c_int, bits: *mut c_ushort, h: c_int,
     }
 
   *fringe_bmp.add (which as usize) = CreateBitmap (wd, h, 1, 1, bits as *const c_void);
+}
+
+/* ==============================================================================================
+   **Slice 2: C 1004-1949.**  The `Display Iterator` page (its banner is C 1015-1017), the glyph
+   string drawing that fills it, and the relief/box drawing C 1709-1949 that follows - down to
+   `w32_draw_glyph_string_box`'s closing brace at **C 1949**.  The ledger `docs/ports/w32term.md`
+   records the boundary and its neighbours: the next definition is **`w32_image_rotations_p`**
+   (C 1952-1955), the first item of the image page, which the next lane's slice opens.
+
+   Everything below carries the same readings the file note above records - the file gate is
+   `feature = "have_ntgui"`, both arms of every `#if` are carried, the `#if 0` regions are C's own
+   text inside a comment, the `<windows.h>` declarations are spelled (this machine has no
+   `windows.h` to measure against) and every `#[repr(C)]` record stays **UNVERIFIED** here.  The
+   ledger's `## Evidence` is the frozen `build-tu`, the `extract-abi --check` reading and the two
+   inventory gates.
+   ============================================================================================== */
+
+/* ----------------------------------------------------------------------------------------------
+   The `<windows.h>` / `<wingdi.h>` names **this slice** adds to the section C 25's chain opened
+   above, at the same declaration site and by the same reading (P-88 clause 1: the site is the
+   chain's include line, and no file is added under `femacs/src/include/`).  `PALETTERGB` and the
+   three `Get*Value` accessors are the macros `include/w32term.rs`'s `BLACK_PIX_DEFAULT` /
+   `WHITE_PIX_DEFAULT` already *expand to* (the ledger's owed 7); this slice is the first that
+   expands them, so the pair stands here.  No measurement was possible: every value is
+   `<wingdi.h>`'s own text and every scalar PORTING.md 1.1's fixed width.
+   ---------------------------------------------------------------------------------------------- */
+
+/// C 1637-1659's `PALETTERGB`/`Get*Value` family needs `<windef.h>`'s `WORD` (`typedef
+/// unsigned short WORD;`); the unit's type section above carries the other scalar typedefs.
+/// C: typedef unsigned short WORD;
+#[cfg (feature = "have_ntgui")]
+pub type WORD = c_ushort;
+
+/// C 1637-1639 and 1644-1646: `RGB` and `PALETTERGB` (`<wingdi.h>`), the two macros the four
+/// `PALETTERGB (…)` calls of `w32_alloc_lighter_color` expand through - and the ones
+/// `include/w32term.rs`'s `BLACK_PIX_DEFAULT`/`WHITE_PIX_DEFAULT` bodies name (owed 7).
+/// C: #define RGB(r,g,b) ((COLORREF)(((BYTE)(r)|((WORD)((BYTE)(g))<<8))|(((DWORD)(BYTE)(b))<<16)))
+/// C: #define PALETTERGB(r,g,b) (0x02000000 | RGB(r,g,b))
+#[cfg (feature = "have_ntgui")]
+macro_rules! RGB {
+  ($r:expr, $g:expr, $b:expr) =>
+    { ((((($r) as BYTE) as DWORD) | ((((($g) as BYTE) as WORD) as DWORD) << 8))
+       | (((($b) as BYTE) as DWORD) << 16)) as COLORREF };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! PALETTERGB {
+  ($r:expr, $g:expr, $b:expr) => { 0x02000000 | RGB! ($r, $g, $b) };
+}
+
+/// C 1637-1659's three channel accessors (`<wingdi.h>`'s `GetRValue`/`GetGValue`/`GetBValue`).
+/// C: #define GetRValue(rgb) ((BYTE)(rgb))
+/// C: #define GetGValue(rgb) ((BYTE)(((WORD)(rgb)) >> 8))
+/// C: #define GetBValue(rgb) ((BYTE)((rgb) >> 16))
+#[cfg (feature = "have_ntgui")]
+macro_rules! GetRValue { ($rgb:expr) => { (($rgb) as BYTE) }; }
+#[cfg (feature = "have_ntgui")]
+macro_rules! GetGValue { ($rgb:expr) => { (((($rgb) as WORD) >> 8) as BYTE) }; }
+#[cfg (feature = "have_ntgui")]
+macro_rules! GetBValue { ($rgb:expr) => { ((($rgb) >> 16) as BYTE) }; }
+
+/// C's font handle (`<wingdi.h>`'s `DECLARE_HANDLE (HFONT)`, i.e. a `void *` object handle);
+/// `w32_draw_glyph_string_foreground` and `w32_draw_glyphless_glyph_string_foreground` walk it
+/// through `FONT_HANDLE` (`include/w32font.rs` 80, whose `hfont` member names this type) and
+/// hand it to `SelectObject`.  It is an alias of `HGDIOBJ` so C's implicit conversion at those
+/// call sites needs no cast, the `HBITMAP`/`HBRUSH` reading of the section above.
+/// C: DECLARE_HANDLE (HFONT);
+#[cfg (feature = "have_ntgui")]
+pub type HFONT = HGDIOBJ;
+
+/// C 1300-1320/1370-1420/1531-1600's two `<wingdi.h>` entry points and the two text-alignment
+/// flags of C 1390/1431/1541's `SetTextAlign (s->hdc, TA_BASELINE | TA_LEFT);`.  `FillRect`
+/// (C 1314/1535) is **not** declared here: slice 1's own section above already carries it (its
+/// C 551 site), and a second declaration of the same name would be `E0428`.
+/// C: HBRUSH WINAPI CreatePatternBrush (HBITMAP hbm);
+/// C: UINT WINAPI SetTextAlign (HDC hdc, UINT align);
+/// C: #define TA_LEFT 0
+/// C: #define TA_BASELINE 24
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn CreatePatternBrush (hbm: HBITMAP) -> HBRUSH;
+  pub fn SetTextAlign (hdc: HDC, align: UINT) -> UINT;
+}
+#[cfg (feature = "have_ntgui")]
+pub const TA_LEFT: UINT = 0;
+#[cfg (feature = "have_ntgui")]
+pub const TA_BASELINE: UINT = 24;
+
+/// C 1329-1363/1368-1421/1520-1601's `min`/`max`: `lisp.h`'s two object-like macros (lisp.h
+/// 71-73, `#undef min`/`#undef max` then the two `?:` definitions).  `include/lisp.rs` does not
+/// carry them and the only mirror that does - `lib/include/min-max.rs`, the mirror of
+/// `lib/min-max.h` - is not on this unit's include graph, so the pair is declared here at the
+/// use site and the ledger's `## Owed` records it.  The bodies are C's tokens: each expands its
+/// argument twice, which the call sites here all survive (they pass plain members and literals).
+/// C: #define max(a, b) ((a) > (b) ? (a) : (b))
+/// C: #define min(a, b) ((a) < (b) ? (a) : (b))
+#[cfg (feature = "have_ntgui")]
+macro_rules! max { ($a:expr, $b:expr) => { if ($a) > ($b) { $a } else { $b } }; }
+#[cfg (feature = "have_ntgui")]
+macro_rules! min { ($a:expr, $b:expr) => { if ($a) < ($b) { $a } else { $b } }; }
+
+/// C 1754-1760/1887-1900's `s->face->use_box_color_for_shadows_p`, `->box` and `->overstrike`:
+/// `struct face`'s bitfield run (dispextern.h 1893-1935), which `include/dispextern.rs` stores as
+/// one `bits: u32` (PORTING.md 1.3/P-80) but does not name.  `src/xfaces.rs` 351-435 is the
+/// sibling copy of the same accessors; the masks below are that unit's measured positions and
+/// are repeated here (a unit may only name what it declares or includes, P-72), and the ledger
+/// records the sharing.  The member name stays the macro's first argument, so the ported text
+/// keeps C's token.
+/// C: ENUM_BF (face_box_type) box : 2;   (dispextern.h 1893)
+/// C: bool_bf use_box_color_for_shadows_p : 1;   (dispextern.h 1900)
+/// C: bool_bf overstrike : 1;   (dispextern.h 1913)
+#[cfg (feature = "have_ntgui")]
+pub const FACE_BOX_SHIFT: u32 = 0;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_BOX_MASK: u32 = 0x3;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_USE_BOX_COLOR_FOR_SHADOWS_P: u32 = 1 << 5;
+#[cfg (feature = "have_ntgui")]
+pub const FACE_OVERSTRIKE: u32 = 1 << 21;
+#[cfg (feature = "have_ntgui")]
+macro_rules! face_bits {
+  (box, $f:expr) =>
+    { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
+  (use_box_color_for_shadows_p, $f:expr) =>
+    { ((*$f).bits & FACE_USE_BOX_COLOR_FOR_SHADOWS_P) != 0 };
+  (overstrike, $f:expr) => { ((*$f).bits & FACE_OVERSTRIKE) != 0 };
+}
+
+/// C 1440/1448-1456/1570-1584's `glyph->u.cmp.automatic` and `glyph->u.glyphless.*`: the two
+/// `glyph` union members' bitfield units (dispextern.h 596-602 and 624-634).  The mirror carries
+/// the units and their masks (`include/dispextern.rs` 417-443) but no accessor, so the pair is
+/// declared here at the use site; `src/term.rs` 840-851 is the sibling copy of the first (the
+/// `glyph_u_cmp_bits!` shape) and the ledger records the sharing.
+/// C: bool_bf automatic : 1; unsigned id : 31;   (dispextern.h 597-598)
+/// C: unsigned method : 2; bool_bf for_no_font : 1; unsigned len : 4; unsigned ch : 25;
+/// C:                                                          (dispextern.h 626-632)
+#[cfg (feature = "have_ntgui")]
+macro_rules! glyph_u_cmp_bits {
+  (automatic, $g:expr) => { (((*$g).u.cmp.bits & GLYPH_U_CMP_AUTOMATIC) != 0) };
+  (id, $g:expr) => { (((*$g).u.cmp.bits >> GLYPH_U_CMP_ID_SHIFT) as ptrdiff_t) };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! glyphless_bits {
+  (method, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_METHOD_SHIFT) & 0x3) as c_int };
+  (for_no_font, $g:expr) => { ((*$g).u.glyphless.bits & GLYPH_U_GLYPHLESS_FOR_NO_FONT) != 0 };
+  (len, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_LEN_SHIFT) & 0xf) as c_int };
+  (ch, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_CH_SHIFT) & 0x1ffffff) as c_int };
+}
+
+/// C 1197/1331/1789/1853's five display entry points the mirrors do not carry yet: the unit
+/// declares each at its use site (the `androidterm.rs` 160-175 / `dispins.rs` 257-259 precedent,
+/// and slice 1's five of the same class) and the ledger records the gap.
+/// C: dispextern.h 3581: `int window_box_right (struct window *, enum glyph_row_area);`
+/// C: dispextern.h 3661-3662: `extern int get_glyph_string_clip_rects (struct glyph_string *,
+/// C:                                        NativeRectangle *, int);`
+/// C: dispextern.h 3810: `void prepare_face_for_display (struct frame *, struct face *);`
+/// C: dispextern.h 3769-3770: `RGB_PIXEL_COLOR image_background (struct image *, struct frame *,
+/// C:                                  Emacs_Pix_Context img);`
+/// C: dispextern.h 3771-3772: `int image_background_transparent (struct image *, struct frame *,
+/// C:                                  Emacs_Pix_Context mask);`
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub fn window_box_right (w: *mut window, area: glyph_row_area) -> c_int;
+  pub fn get_glyph_string_clip_rects (s: *mut glyph_string, nr: *mut RECT, n: c_int) -> c_int;
+  pub fn prepare_face_for_display (f: *mut frame, face: *mut face);
+  pub fn image_background (image: *mut image, f: *mut frame, img: Emacs_Pix_Context)
+    -> RGB_PIXEL_COLOR;
+  pub fn image_background_transparent (image: *mut image, f: *mut frame, mask: Emacs_Pix_Context)
+    -> c_int;
+}
+
+/// dispextern.h 136-139's `HAVE_NTGUI` arm of the `Emacs_Pix_*` trio: C's `typedef XImage
+/// *Emacs_Pix_Container;` (X11's `XImage`, absent here), `typedef HDC Emacs_Pix_Context;` and
+/// `#define PIX_CONTAINER_TO_CONTEXT(c) ((Emacs_Pix_Context) (c))`.  The mirror carries the other
+/// four arms and gates this one away (its `Emacs_Pix_Context` is `not (have_ntgui)`), so the two
+/// names stand here.
+/// C: typedef HDC Emacs_Pix_Context;   (dispextern.h 138)
+/// C: #define RGB_PIXEL_COLOR COLORREF   (dispextern.h 3766)
+#[cfg (feature = "have_ntgui")]
+pub type Emacs_Pix_Context = HDC;
+#[cfg (feature = "have_ntgui")]
+pub type RGB_PIXEL_COLOR = COLORREF;
+
+/// C 1758-1760's `IMAGE_BACKGROUND`/`IMAGE_BACKGROUND_TRANSPARENT` (dispextern.h 3860-3872, the
+/// close of the `HAVE_WINDOW_SYSTEM` block at 3874).  The mirror keeps the record's three masks
+/// but not the two macros, so each is defined here at the use site - the `image.rs` 2197-2214 and
+/// `haikuterm.rs` 215-233 copies of the same pair.
+/// C: #define IMAGE_BACKGROUND(img, f, ximg) ((img)->background_valid ? (img)->background : image_background (img, f, ximg))
+/// C: #define IMAGE_BACKGROUND_TRANSPARENT(img, f, mask) ((img)->background_transparent_valid ? (img)->background_transparent : image_background_transparent (img, f, mask))
+#[cfg (feature = "have_ntgui")]
+macro_rules! IMAGE_BACKGROUND {
+  ($img:expr, $f:expr, $ximg:expr) =>
+    {
+      (if (*$img).bits & IMAGE_BACKGROUND_VALID_MASK != 0
+	 { (*$img).background }
+       else
+	 { image_background ($img, $f, $ximg) as c_ulong })
+    };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! IMAGE_BACKGROUND_TRANSPARENT {
+  ($img:expr, $f:expr, $mask:expr) =>
+    {
+      (if (*$img).bits & IMAGE_BACKGROUND_TRANSPARENT_VALID_MASK != 0
+	 { ((*$img).bits >> IMAGE_BACKGROUND_TRANSPARENT_SHIFT & 1) as c_int }
+       else
+	 { image_background_transparent ($img, $f, $mask) })
+    };
+}
+
+/* C 1004-1013: the close of the fringe-bitmap pair C 989 opened - `w32_define_fringe_bitmap` is
+   the last item of slice 1, this is the first of slice 2.  C's `fringe_bmp[which]` truth test is
+   the port's null test, and the `0` C stores is the port's `0 as HBITMAP` (the same value).  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_destroy_fringe_bitmap (which: c_int)
+{
+  if which >= max_fringe_bmp
+    { return; }
+
+  if ! (*fringe_bmp.add (which as usize)).is_null ()
+    { DeleteObject (*fringe_bmp.add (which as usize)); }
+  *fringe_bmp.add (which as usize) = 0 as HBITMAP;
+}
+
+/* C 1015-1017 is the page banner (`Display Iterator`): a comment in C, carried as one here.  */
+
+/* C 1019-1046 is "Function prototypes of this page." - C's frozen `static` prototype block, the
+   same class as C 218-257 above: dropped (PORTING.md 0.1-12), each line recorded here with the
+   place its definition lands.  Fifteen of the twenty name functions this slice defines, so the
+   definition below is the only declaration they get; the five that do not are named as such and
+   are *not* declared here, so this slice's call sites - `w32_draw_glyph_string_box`'s
+   `w32_draw_box_rect`/`w32_draw_relief_rect` are the only intra-slice ones - never reach them.
+
+   * C 1021 `w32_set_glyph_string_clipping`  - defined at C 1195 (this slice);
+   * C 1022 `w32_set_glyph_string_gc`        - defined at C 1153 (this slice);
+   * C 1023 `w32_draw_glyph_string_background` - defined at C 1329 (this slice);
+   * C 1025 `w32_draw_glyph_string_foreground` - defined at C 1368 (this slice);
+   * C 1026 `w32_draw_composite_glyph_string_foreground` - defined at C 1425 (this slice);
+   * C 1027 `w32_draw_glyph_string_box`      - defined at C 1886 (this slice);
+   * C 1028 `w32_draw_glyph_string`          - **outside**: defined at C 2720, the next lane's;
+   * C 1029 `w32_set_cursor_gc`               - defined at C 1052 (this slice);
+   * C 1030 `w32_set_mode_line_face_gc`       - defined at C 1142 (this slice);
+   * C 1031 `w32_set_mouse_face_gc`           - defined at C 1106 (this slice);
+   * C 1032 `w32_alloc_lighter_color`         - defined at C 1625 (this slice);
+   * C 1033 `w32_setup_relief_color`          - defined at C 1716 (this slice);
+   * C 1035 `w32_setup_relief_colors`         - defined at C 1752 (this slice);
+   * C 1036 `w32_draw_image_glyph_string`     - **outside**: defined at C 2417;
+   * C 1037 `w32_draw_image_relief`           - **outside**: defined at C 2207;
+   * C 1038 `w32_draw_image_foreground`       - **outside**: defined at C 1975;
+   * C 1039 `w32_draw_image_foreground_1`     - **outside**: defined at C 2299;
+   * C 1040 `w32_clear_glyph_string_rect`     - defined at C 1270 (this slice);
+   * C 1042 `w32_draw_relief_rect`            - defined at C 1787 (this slice);
+   * C 1045 `w32_draw_box_rect`               - defined at C 1851 (this slice).
+
+   The four "outside" ones are the image page's own statics; none of them is called by this
+   slice, so no name here reaches a definition the port does not yet carry (`w32_clip_to_row`'s
+   case, slice 1's `## Owed`/`## Deviations`, is the only one of that shape and it stays there).  */
+
+/* C 1049-1101: "Set S->gc to a suitable GC for drawing glyph string S in cursor face."  C's
+   `s->f->output_data.w32->cursor_gc` chain is written the way the reference writes it (the
+   `w32_output` pointer is the use-site cast P-72 rule 3, as in slice 1's C 970 read), `s->cmp`
+   is the port's null test, and the `unsigned long` members of `Emacs_GC` (dispextern.h 74-75)
+   take C's implicit widening from `COLORREF`/`int` written out (`as c_ulong`).  C's `NULL` is
+   `core::ptr::null_mut ()` and `mask`'s two mask constants are `dispextern.rs`'s `c_int`s, so the
+   one conversion C performs is spelled `as c_ulong`.  `IF_DEBUG (w32_check_font (…))` keeps C's
+   tokens; `w32_check_font`'s definition is C 7747's, in a later slice, and its C 256 prototype is
+   dropped with the C 218-257 block - the same open name `w32_clip_to_row` is (slice 1's
+   `## Owed`/`## Deviations`), so this slice names it and does not declare it.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_cursor_gc (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+
+  if (*s).font == FRAME_FONT! ((*s).f)
+      && (*face).background == FRAME_BACKGROUND_PIXEL ((*s).f)
+      && (*face).foreground == FRAME_FOREGROUND_PIXEL ((*s).f)
+      /* Sometimes we are not called for each change in the default
+	 face's background color (e.g., bug#26851), so the additional
+	 test in the next line gives us a chance to resync.  */
+      && (*(*( (*(*s).f).output_data.w32 as *mut w32_output )).cursor_gc).foreground
+	 == (*face).background
+      && (*s).cmp.is_null ()
+    { (*s).gc = (*( (*(*s).f).output_data.w32 as *mut w32_output )).cursor_gc; }
+  else
+    {
+      /* Cursor on non-default face: must merge.  */
+      let mut egc: Emacs_GC = core::mem::zeroed ();
+      let mut mask: c_ulong = 0;
+
+      egc.background
+	= (*( (*(*s).f).output_data.w32 as *mut w32_output )).cursor_pixel as c_ulong;
+      egc.foreground = (*face).background;
+
+      /* If the glyph would be invisible, try a different foreground.  */
+      if egc.foreground == egc.background
+	{ egc.foreground = (*face).foreground; }
+      if egc.foreground == egc.background
+	{
+	  egc.foreground
+	    = (*( (*(*s).f).output_data.w32 as *mut w32_output )).cursor_foreground_pixel
+	      as c_ulong;
+	}
+      if egc.foreground == egc.background
+	{ egc.foreground = (*face).foreground; }
+
+      /* Make sure the cursor is distinct from text in this face.  */
+      if egc.background == (*face).background
+	  && egc.foreground == (*face).foreground
+	{
+	  egc.background = (*face).foreground;
+	  egc.foreground = (*face).background;
+	}
+
+      IF_DEBUG! (w32_check_font ((*s).f, (*s).font));
+      mask = (GCForeground | GCBackground) as c_ulong;
+
+      if ! (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc.is_null ()
+	{
+	  XChangeGC (core::ptr::null_mut (),
+		     (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc, mask, &raw mut egc);
+	}
+      else
+	{
+	  (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc
+	    = XCreateGC (core::ptr::null_mut (), FRAME_W32_WINDOW! ((*s).f), mask,
+			 &raw mut egc);
+	}
+
+      (*s).gc = (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc;
+    }
+}
+
+/* C 1104-1135: "Set up S->gc of glyph string S for drawing text in mouse face."  The same
+   scratch-GC pair as above, with `s->face->font`'s `*mut c_void` mirror member cast to C's
+   `struct font *`, and C's `eassert (s->gc != 0)` written as the null-pointer comparison the
+   0 spells (`0 as *mut Emacs_GC`, the `indent.rs` 730 shape).  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_mouse_face_gc (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+
+  /* If font in this face is same as S->font, use it.  */
+  if (*s).font == (*face).font as *mut font
+    { (*s).gc = (*face).gc; }
+  else
+    {
+      /* Otherwise construct scratch_cursor_gc with values from FACE
+	 but font FONT.  */
+      let mut egc: Emacs_GC = core::mem::zeroed ();
+      let mut mask: c_ulong = 0;
+
+      egc.background = (*face).background;
+      egc.foreground = (*face).foreground;
+      IF_DEBUG! (w32_check_font ((*s).f, (*s).font));
+      mask = (GCForeground | GCBackground) as c_ulong;
+
+      if ! (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc.is_null ()
+	{
+	  XChangeGC (core::ptr::null_mut (),
+		     (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc, mask, &raw mut egc);
+	}
+      else
+	{
+	  (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc
+	    = XCreateGC (core::ptr::null_mut (), FRAME_W32_WINDOW! ((*s).f), mask,
+			 &raw mut egc);
+	}
+
+      (*s).gc = (*FRAME_DISPLAY_INFO! ((*s).f)).scratch_cursor_gc;
+    }
+
+  eassert! ((*s).gc != 0 as *mut Emacs_GC);
+}
+
+/* C 1138-1146: "Set S->gc of glyph string S to a GC suitable for drawing a mode line. …"  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_mode_line_face_gc (s: *mut glyph_string)
+{
+  (*s).gc = (*( (*s).face as *mut face )).gc;
+}
+
+/* C 1149-1189: "Set S->gc of glyph string S for drawing that glyph string.  Set S->stippled_p to
+   a non-zero value if the face of S has a stipple pattern."  The five `s->hl` comparisons are C's
+   `enum draw_glyphs_face` against `dispextern.rs`'s constants; the four `s->stippled_p` writes
+   are the record's bitfield run, so each is `glyph_string_bits!` named after the member; the
+   `s->face->stipple != 0` test keeps C's `0` (`stipple` is a `ptrdiff_t` member of the mirror's
+   `face`), and C's final `emacs_abort ()` is the port's.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_glyph_string_gc (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+
+  prepare_face_for_display ((*s).f, face);
+
+  if (*s).hl == DRAW_NORMAL_TEXT
+    {
+      (*s).gc = (*face).gc;
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);
+    }
+  else if (*s).hl == DRAW_INVERSE_VIDEO
+    {
+      w32_set_mode_line_face_gc (s);
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);
+    }
+  else if (*s).hl == DRAW_CURSOR
+    {
+      w32_set_cursor_gc (s);
+      glyph_string_bits! (stippled_p, (*s), false);
+    }
+  else if (*s).hl == DRAW_MOUSE_FACE
+    {
+      w32_set_mouse_face_gc (s);
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);
+    }
+  else if (*s).hl == DRAW_IMAGE_RAISED
+	   || (*s).hl == DRAW_IMAGE_SUNKEN
+    {
+      (*s).gc = (*face).gc;
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);
+    }
+  else
+    { emacs_abort (); }
+
+  /* GC must have been set.  */
+  eassert! ((*s).gc != 0 as *mut Emacs_GC);
+}
+
+/* C 1192-1213: "Set clipping for output of glyph string S.  S may be part of a mode line or menu
+   if we don't have X toolkit support."  C's `RECT *r = s->clip;` reads the mirror's degraded
+   `NativeRectangle clip[2]` (`[c_int; 2]`) through the same cast slice 1's
+   `w32_restore_glyph_string_clip` uses; `r + 1` is `r.add (1)`, `s->hdc` is the mirror's untyped
+   member cast to `HDC`, and `s->num_clips = n` is C's trailing assignment (outside the `if`).  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_glyph_string_clipping (s: *mut glyph_string)
+{
+  let r: *mut RECT = (&raw mut (*s).clip) as *mut RECT;
+  let n: c_int = get_glyph_string_clip_rects (s, r, 2);
+
+  if n == 1
+    { w32_set_clip_rectangle ((*s).hdc as HDC, r); }
+  else if n > 1
+    {
+      let clip1: HRGN = CreateRectRgnIndirect (r);
+      let clip2: HRGN = CreateRectRgnIndirect (r.add (1));
+      if CombineRgn (clip1, clip1, clip2, RGN_OR) != ERROR
+	{ SelectClipRgn ((*s).hdc as HDC, clip1); }
+      DeleteObject (clip1);
+      DeleteObject (clip2);
+    }
+  (*s).num_clips = n;
+}
+
+/* C 1215-1232: "Set SRC's clipping for output of glyph string DST. …"  The `dst->clip[0] = r;`
+   store goes through the same degraded-array cast as the read above, and C's `[0]` subscript
+   is the pointer's `.add (0)`, so the source keeps C's own index.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_set_glyph_string_clipping_exactly (src: *mut glyph_string, dst: *mut glyph_string)
+{
+  let mut r: RECT = core::mem::zeroed ();
+
+  r.left = (*src).x;
+  r.right = r.left + (*src).width;
+  r.top = (*src).y;
+  r.bottom = r.top + (*src).height;
+  *((&raw mut (*dst).clip) as *mut RECT).add (0) = r;
+  (*dst).num_clips = 1;
+  w32_set_clip_rectangle ((*dst).hdc as HDC, &raw mut r);
+}
+
+/* C 1234-1266: "RIF: Compute left and right overhang of glyph string S."  `metrics` is C's
+   uninitialized local, zeroed and named (PORTING.md 1.5); `s->first_glyph->type` is the glyph
+   record's bitfield run read through `glyph_bits!`, `s->font_not_found_p` the glyph string's;
+   the two `font->driver->text_extents (…)`/`->draw (…)` calls are the two hops of C's chain, cast
+   at the use site (`include/font.rs` 133 keeps `driver` untyped, P-72 rule 3).  `s->cmp` is
+   `*mut composition` and the three metric members are `short`s, so C's assignment to the `int`
+   overhang members widens with `as c_int`.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_compute_glyph_string_overhangs (s: *mut glyph_string)
+{
+  if (*s).cmp.is_null ()
+    {
+      let mut metrics: font_metrics = core::mem::zeroed ();
+
+      if glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH
+	  && ! glyph_string_bits! (font_not_found_p, (*s))
+	{
+	  let font: *mut font = (*s).font;
+	  ((*((*font).driver as *const font_driver)).text_extents.unwrap ())
+	    (font, (*s).char2b, (*s).nchars, &raw mut metrics);
+	  (*s).right_overhang = (if metrics.rbearing > metrics.width
+				 { (metrics.rbearing - metrics.width) as c_int }
+				 else { 0 });
+	  (*s).left_overhang = (if metrics.lbearing < 0
+				{ (- metrics.lbearing) as c_int } else { 0 });
+	}
+      else if glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH
+	{
+	  let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);
+
+	  composition_gstring_width (gstring, (*s).cmp_from as ptrdiff_t,
+				     (*s).cmp_to as ptrdiff_t, &raw mut metrics as *mut c_void);
+	  (*s).right_overhang = (if metrics.rbearing > metrics.width
+				 { (metrics.rbearing - metrics.width) as c_int }
+				 else { 0 });
+	  (*s).left_overhang = (if metrics.lbearing < 0
+				{ (- metrics.lbearing) as c_int } else { 0 });
+	}
+    }
+  else
+    {
+      (*s).right_overhang = ((*(*s).cmp).rbearing - (*(*s).cmp).pixel_width) as c_int;
+      (*s).left_overhang = (- (*(*s).cmp).lbearing) as c_int;
+    }
+}
+
+/* C 1268-1292: "Fill rectangle X, Y, W, H with background color of glyph string S."  The four
+   `real_*` locals are C's uninitialized (but always assigned) copies; C 1274-1287 is `#if 0`
+   ("Take clipping into account."), dead in every configuration and carried as C's own text.  C's
+   `s->gc->background` is `unsigned long` while `w32_fill_area`'s pixel parameter is a `COLORREF`
+   (`DWORD`, the unit's `u32`), so C narrows implicitly - the ledger's recorded cast class.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_clear_glyph_string_rect (s: *mut glyph_string, x: c_int, y: c_int, w: c_int,
+				       h: c_int)
+{
+  let real_x: c_int = x;
+  let real_y: c_int = y;
+  let real_w: c_int = w;
+  let real_h: c_int = h;
+/* C 1274-1287 is `#if 0` ("Take clipping into account."): C's own preprocessor never compiles it,
+   so the port keeps C's text as a comment (the `cm.rs` 86 reading).
+
+#if 0
+  /* Take clipping into account.  */
+  if (s->gc->clip_mask == Rect)
+    {
+      real_x = max (real_x, s->gc->clip_rectangle.left);
+      real_y = max (real_y, s->gc->clip_rectangle.top);
+      real_w = min (real_w, s->gc->clip_rectangle.right
+                    - s->gc->clip_rectangle.left);
+      real_h = min (real_h, s->gc->clip_rectangle.bottom
+                    - s->gc->clip_rectangle.top);
+    }
+#endif
+*/
+  w32_fill_area! ((*s).f, (*s).hdc as HDC, (*(*s).gc).background as COLORREF,
+		  real_x, real_y, real_w, real_h);
+}
+
+/* C 1294-1321: "Fill background with bitmap pattern from S at specified position given by X and
+   Y. …"  C's `FRAME_DISPLAY_INFO (s->f)->bitmaps[s->face->stipple - 1].stipple` is the display
+   info's bitmap table read at the face's stipple index (the `s->face->stipple - 1` subscript is
+   `ptrdiff_t`, so the pointer's `add` takes it widened), and the two `Emacs_GC` members widen to
+   `COLORREF` (`SetTextColor`/`SetBkColor` take it) the way the section above records.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_fill_stipple_pattern (hdc: HDC, s: *mut glyph_string, gc: *mut Emacs_GC,
+				    x: c_int, y: c_int, width: c_uint, height: c_uint)
+{
+  SetTextColor (hdc, (*gc).foreground as COLORREF);
+  SetBkColor (hdc, (*gc).background as COLORREF);
+
+  let mut r: RECT = core::mem::zeroed ();
+  let bm: Emacs_Pixmap;
+  let hb: HBRUSH;
+
+  r.left = x;
+  r.top = y;
+  r.right = x + width as c_int;
+  r.bottom = y + height as c_int;
+
+  bm = (*(*FRAME_DISPLAY_INFO! ((*s).f)).bitmaps
+	  .add ((((*( (*s).face as *mut face )).stipple - 1) as usize))).stipple;
+
+  hb = CreatePatternBrush (bm);
+  FillRect (hdc, &raw mut r, hb);
+
+  DeleteObject (hb);
+}
+
+/* C 1323-1363: "Draw the background of glyph_string S.  If S->background_filled_p is non-zero
+   don't draw it.  FORCE_P non-zero means draw the background even if it wouldn't be drawn
+   normally. …"  `s->background_filled_p`/`s->stippled_p`/`s->font_not_found_p`/
+   `s->extends_to_end_of_line_p` are the record's bitfield run, each through `glyph_string_bits!`
+   named after the member; `box_line_width` is C's `max (…, 0)`; `FONT_HEIGHT`/`FONT_TOO_HIGH` are
+   the two macros `include/font.rs` 231 and `include/dispextern.rs` 2601 carry.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_glyph_string_background (s: *mut glyph_string, force_p: bool)
+{
+  let face: *mut face = (*s).face as *mut face;
+
+  /* Nothing to do if background has already been drawn or if it
+     shouldn't be drawn in the first place.  */
+  if ! glyph_string_bits! (background_filled_p, (*s))
+    {
+      let box_line_width: c_int = max! ((*face).box_horizontal_line_width, 0);
+
+      if glyph_string_bits! (stippled_p, (*s))
+	{
+	  /* Fill background with a stipple pattern.  */
+	  w32_fill_stipple_pattern ((*s).hdc as HDC, s, (*s).gc, (*s).x,
+				    (*s).y + box_line_width,
+				    (*s).background_width as c_uint,
+				    ((*s).height - 2 * box_line_width) as c_uint);
+	  glyph_string_bits! (background_filled_p, (*s), true);
+	}
+      else if FONT_HEIGHT! ((*s).font) < (*s).height - 2 * box_line_width
+	       /* When xdisp.c ignores FONT_HEIGHT, we cannot trust
+		  font dimensions, since the actual glyphs might be
+		  much smaller.  So in that case we always clear the
+		  rectangle with background color.  */
+	       || FONT_TOO_HIGH! ((*s).font)
+	       || glyph_string_bits! (font_not_found_p, (*s))
+	       || glyph_string_bits! (extends_to_end_of_line_p, (*s))
+	       || force_p
+	{
+	  w32_clear_glyph_string_rect (s, (*s).x, (*s).y + box_line_width,
+				       (*s).background_width,
+				       (*s).height - 2 * box_line_width);
+	  glyph_string_bits! (background_filled_p, (*s), true);
+	}
+    }
+}
+
+/* C 1366-1421: "Draw the foreground of glyph string S."  The glyph walk is C's `for (i = 0;
+   i < s->nchars; ++i)` written as the header's statement plus a `while` whose last statement is
+   C's increment (`w32_define_fringe_bitmap`'s C 997-1001 reading); `g->pixel_width` is a `short`
+   that C's arithmetic widens; `s->for_overlaps`/`s->background_filled_p` are the bitfield run,
+   `s->face->overstrike` is the `face_bits!` accessor declared above, and the four
+   `font->driver->draw (…)` calls are C's two-hop chain cast at the use site.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_glyph_string_foreground (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+  let mut i: c_int = 0;
+  let mut x: c_int = 0;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if face_bits! (box, face) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+    { x = (*s).x + max! ((*face).box_vertical_line_width, 0); }
+  else
+    { x = (*s).x; }
+
+  SetTextColor ((*s).hdc as HDC, (*(*s).gc).foreground as COLORREF);
+  SetBkColor ((*s).hdc as HDC, (*(*s).gc).background as COLORREF);
+  SetTextAlign ((*s).hdc as HDC, TA_BASELINE | TA_LEFT);
+
+  /* Draw characters of S as rectangles if S's font could not be
+     loaded. */
+  if glyph_string_bits! (font_not_found_p, (*s))
+    {
+      i = 0;
+      while i < (*s).nchars
+        {
+          let g: *mut glyph = (*s).first_glyph.add (i as usize);
+
+          w32_draw_rectangle ((*s).hdc as HDC, (*s).gc, x, (*s).y,
+			      (*g).pixel_width as c_int - 1, (*s).height - 1);
+          x += (*g).pixel_width as c_int;
+          i += 1;
+        }
+    }
+  else
+    {
+      let font: *mut font = (*s).font;
+      let mut boff: c_int = (*font).baseline_offset;
+      let y: c_int;
+      let old_font: HFONT;
+
+      old_font = SelectObject ((*s).hdc as HDC, FONT_HANDLE! (font));
+
+      if (*font).vertical_centering
+	{ boff = VCENTER_BASELINE_OFFSET! ((*font), (*s).f) - boff; }
+
+      y = (*s).ybase - boff;
+      if glyph_string_bits! (for_overlaps, (*s)) != 0
+	  || (glyph_string_bits! (background_filled_p, (*s)) && (*s).hl != DRAW_CURSOR)
+	{
+	  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, (*s).nchars, x, y, false);
+	}
+      else
+	{
+	  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, (*s).nchars, x, y, true);
+	}
+      if face_bits! (overstrike, face)
+	{
+	  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, (*s).nchars, x + 1, y, false);
+	}
+
+      SelectObject ((*s).hdc as HDC, old_font);
+    }
+}
+
+/* C 1423-1515: "Draw the foreground of composite glyph string S."  `s->first_glyph->u.cmp.automatic`
+   is the glyph union's first bitfield unit (`glyph_u_cmp_bits!` above), `COMPOSITION_GLYPH` is
+   `include/composite.rs`'s function of the same name and its `'\t'` test is C's TAB code point
+   written as `9`; `s->cmp->offsets[j * 2]`/`[j * 2 + 1]` are the record's `short` table read
+   through `add`; `LGLYPH_*` are `composite.h`'s own accessors (`include/composite.rs` 323-393),
+   returning `EMACS_INT`s that C's `int` locals narrow; `gstring`/`glyph` are C's
+   `Lisp_Object`s and the loop headers are C's `for (i = 0, j = s->cmp_from; …; i++, j++)` and
+   `for (i = j = s->cmp_from; …; i++)` written as their statements plus a `while`.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_composite_glyph_string_foreground (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+  let font: *mut font = (*s).font;
+  let mut i: c_int = 0;
+  let mut j: c_int = 0;
+  let mut x: c_int = 0;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if ! (*s).face.is_null ()
+      && face_bits! (box, face) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+    { x = (*s).x + max! ((*face).box_vertical_line_width, 0); }
+  else
+    { x = (*s).x; }
+
+  /* S is a glyph string for a composition.  S->cmp_from is the index
+     of the first character drawn for glyphs of this composition.
+     S->cmp_from == 0 means we are drawing the very first character of
+     this composition.  */
+
+  SetTextColor ((*s).hdc as HDC, (*(*s).gc).foreground as COLORREF);
+  SetBkColor ((*s).hdc as HDC, (*(*s).gc).background as COLORREF);
+  SetTextAlign ((*s).hdc as HDC, TA_BASELINE | TA_LEFT);
+
+  /* Draw a rectangle for the composition if the font for the very
+     first character of the composition could not be loaded.  */
+  if glyph_string_bits! (font_not_found_p, (*s))
+    {
+      if (*s).cmp_from == 0
+        {
+	  w32_draw_rectangle ((*s).hdc as HDC, (*s).gc, x, (*s).y,
+			      (*s).width - 1, (*s).height - 1);
+	}
+    }
+  else if ! glyph_u_cmp_bits! (automatic, (*s).first_glyph)
+    {
+      let mut y: c_int = (*s).ybase;
+      let old_font: HFONT;
+
+      old_font = SelectObject ((*s).hdc as HDC, FONT_HANDLE! (font));
+
+      i = 0;
+      j = (*s).cmp_from;
+      while i < (*s).nchars
+	{
+	  /* TAB in a composition means display glyphs with padding
+	     space on the left or right.  */
+	  if COMPOSITION_GLYPH ((*s).cmp, j as ptrdiff_t) != 9
+	    {
+	      let xx: c_int = x + (*(*(*s).cmp).offsets.add ((j * 2) as usize)) as c_int;
+	      let yy: c_int = y - (*(*(*s).cmp).offsets.add ((j * 2 + 1) as usize)) as c_int;
+
+	      ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, j, j + 1, xx, yy, false);
+	      if face_bits! (overstrike, face)
+		{
+		  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		    (s, j, j + 1, xx + 1, yy, false);
+		}
+	    }
+	  i += 1;
+	  j += 1;
+	}
+      SelectObject ((*s).hdc as HDC, old_font);
+    }
+  else
+    {
+      let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);
+      let mut glyph: Lisp_Object = core::mem::zeroed ();
+      let mut y: c_int = (*s).ybase;
+      let mut width: c_int = 0;
+      let old_font: HFONT;
+
+      old_font = SelectObject ((*s).hdc as HDC, FONT_HANDLE! (font));
+
+      j = (*s).cmp_from;
+      i = j;
+      while i < (*s).cmp_to
+	{
+	  glyph = LGSTRING_GLYPH (gstring, i as ptrdiff_t);
+	  if NILP (LGLYPH_ADJUSTMENT (glyph))
+	    { width += LGLYPH_WIDTH (glyph) as c_int; }
+	  else
+	    {
+	      let mut xoff: c_int = 0;
+	      let mut yoff: c_int = 0;
+	      let mut wadjust: c_int = 0;
+
+	      if j < i
+		{
+		  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		    (s, j, i, x, y, false);
+		  x += width;
+		}
+	      xoff = LGLYPH_XOFF (glyph) as c_int;
+	      yoff = LGLYPH_YOFF (glyph) as c_int;
+	      wadjust = LGLYPH_WADJUST (glyph) as c_int;
+	      ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, i, i + 1, x + xoff, y + yoff, false);
+	      x += wadjust;
+	      j = i + 1;
+	      width = 0;
+	    }
+	  i += 1;
+	}
+      if j < i
+	{
+	  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, j, i, x, y, false);
+	}
+
+      SelectObject ((*s).hdc as HDC, old_font);
+    }
+}
+
+/* C 1518-1601: "Draw the foreground of glyph string S for glyphless characters."  C's function
+   local `static unsigned char2b[8]` is a `static mut` array in the port (the value `s->char2b`
+   points at for the duration of the call, which is C's lifetime too); `buf` and `str` are C's
+   uninitialized `char buf[7], *str = NULL` pair, so `buf` is zeroed and `str` is the null pointer
+   (PORTING.md 1.5).  `glyph->u.glyphless.*` is the glyph union's second bitfield unit
+   (`glyphless_bits!` above), `glyph->slice.glyphless.*` the four `short` offsets of that union
+   member, and the acronym branch is the same accessor sequence `src/xdisp.rs` 9286-9305 spells
+   for `lookup_glyphless_char_display` (`CHAR_TABLE_REF`'s no-font arm is `FAM_ELEM!` on
+   `extras[0]`).  `sprintf`'s format is `<stdio.h>`'s own, the loop header is C's
+   `for (i = 0; i < s->nchars; i++, glyph++)` written as statements plus a `while` (the increment
+   pair last, C's order), and `with_background` is C's `(…) == 0` truth test on the `int` its
+   `||` builds, which the port writes against `false`.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_glyphless_glyph_string_foreground (s: *mut glyph_string)
+{
+  static mut char2b: [c_uint; 8] = [0; 8];
+
+  let face: *mut face = (*s).face as *mut face;
+  let mut glyph: *mut glyph = (*s).first_glyph;
+  let mut x: c_int = 0;
+  let mut i: c_int = 0;
+  let mut j: c_int = 0;
+  let mut with_background: bool = false;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if face_bits! (box, face) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+    { x = (*s).x + max! ((*face).box_vertical_line_width, 0); }
+  else
+    { x = (*s).x; }
+
+  SetTextColor ((*s).hdc as HDC, (*(*s).gc).foreground as COLORREF);
+  SetBkColor ((*s).hdc as HDC, (*(*s).gc).background as COLORREF);
+  SetTextAlign ((*s).hdc as HDC, TA_BASELINE | TA_LEFT);
+
+  (*s).char2b = &raw mut char2b as *mut c_uint;
+  with_background = (glyph_string_bits! (for_overlaps, (*s)) != 0
+		     || (glyph_string_bits! (background_filled_p, (*s))
+			 && (*s).hl != DRAW_CURSOR)) == false;
+  i = 0;
+  while i < (*s).nchars
+    {
+      let mut buf: [c_char; 7] = [0; 7];
+      let mut str: *mut c_char = core::ptr::null_mut ();
+      let len: c_int = glyphless_bits! (len, glyph);
+
+      if glyphless_bits! (method, glyph) == GLYPHLESS_DISPLAY_ACRONYM
+	{
+	  if len > 0
+	      && CHAR_TABLE_P (Vglyphless_char_display)
+	      && (CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (Vglyphless_char_display))
+		  >= 1)
+	    {
+	      let mut acronym: Lisp_Object
+		= (if ! glyphless_bits! (for_no_font, glyph)
+		   { CHAR_TABLE_REF (Vglyphless_char_display,
+				     glyphless_bits! (ch, glyph) as isize) }
+		   else { FAM_ELEM! ((*XCHAR_TABLE (Vglyphless_char_display)).extras, 0) });
+	      if CONSP (acronym)
+		{ acronym = XCAR (acronym); }
+	      if STRINGP (acronym)
+		{ str = SSDATA (acronym); }
+	    }
+	}
+      else if glyphless_bits! (method, glyph) == GLYPHLESS_DISPLAY_HEX_CODE
+	{
+	  sprintf (&raw mut buf as *mut c_char, c"%0*X".as_ptr (),
+		   (if glyphless_bits! (ch, glyph) < 0x10000 { 4 } else { 6 }) as c_int,
+		   glyphless_bits! (ch, glyph) as c_uint & 0xffffff);
+	  str = &raw mut buf as *mut c_char;
+	}
+
+      if glyphless_bits! (method, glyph) != GLYPHLESS_DISPLAY_THIN_SPACE
+	{
+	  w32_draw_rectangle ((*s).hdc as HDC, (*s).gc,
+			      x, (*s).ybase - (*glyph).ascent as c_int,
+			      (*glyph).pixel_width as c_int - 1,
+			      ((*glyph).ascent + (*glyph).descent) as c_int - 1);
+	}
+      if ! str.is_null ()
+	{
+	  let font: *mut font = (*s).font;
+	  let upper_len: c_int = (len + 1) / 2;
+	  let old_font: HFONT;
+
+	  old_font = SelectObject ((*s).hdc as HDC, FONT_HANDLE! (font));
+	  /* It is certain that all LEN characters in STR are ASCII.  */
+	  j = 0;
+	  while j < len
+            {
+	      char2b[j as usize]
+		= ((*((*font).driver as *const font_driver)).encode_char.unwrap ())
+		    (font, (*str.add (j as usize)) as c_int) & 0xFFFF;
+	      j += 1;
+	    }
+	  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, upper_len, x + (*glyph).slice.glyphless.upper_xoff as c_int,
+	     (*s).ybase + (*glyph).slice.glyphless.upper_yoff as c_int, with_background);
+	  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, upper_len, len, x + (*glyph).slice.glyphless.lower_xoff as c_int,
+	     (*s).ybase + (*glyph).slice.glyphless.lower_yoff as c_int, with_background);
+	  SelectObject ((*s).hdc as HDC, old_font);
+	}
+      x += (*glyph).pixel_width as c_int;
+      i += 1;
+      glyph = glyph.add (1);
+   }
+}
+
+/* C 1603-1615: "Brightness beyond which a color won't have its highlight brightness boosted. …"
+   - C's comment carried as C's own text, then the object-like macro's one value.  `w32_alloc_lighter_color`'s
+   `long bright` is the only reader, so the constant is a `c_long` (C's `187` has type `int`, and
+   C's comparison widens it; the port writes the width the comparison needs).  */
+/* C 1604-1614: the comment above the macro, verbatim.
+   Brightness beyond which a color won't have its highlight brightness
+   boosted.
+
+   Nominally, highlight colors for `3d' faces are calculated by
+   brightening an object's color by a constant scale factor, but this
+   doesn't yield good results for dark colors, so for colors whose
+   brightness is less than this value (on a scale of 0-255) have to
+   use an additional additive factor.
+
+   The value here is set so that the default menu-bar/mode-line color
+   (grey75) will not have its highlights changed at all.  */
+/// C 1615: `#define HIGHLIGHT_COLOR_DARK_BOOST_LIMIT 187`
+/// C: #define HIGHLIGHT_COLOR_DARK_BOOST_LIMIT 187
+#[cfg (feature = "have_ntgui")]
+pub const HIGHLIGHT_COLOR_DARK_BOOST_LIMIT: c_long = 187;
+
+/* C 1618-1680: "Allocate a color which is lighter or darker than *COLOR by FACTOR or DELTA. …"
+   The four `PALETTERGB` calls and their `min`/`max` nests are the two macros declared above:
+   C's `min (0xff, factor * GetRValue (*color))` mixes an `int` with a `double`, so the int side
+   is written `0xff as c_double` and each channel widens with `as c_double` (the recorded cast
+   class); the two `int`-valued nests take `as c_int` on the channel side only.  `bright`'s
+   expression is C's `int` arithmetic summed before the `/ 6` and widened after it, and C's
+   `dimness` is the `double` its division produces.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_alloc_lighter_color (f: *mut frame, color: *mut COLORREF, factor: c_double,
+				  delta: c_int) -> c_int
+{
+  let mut new: COLORREF = 0;
+  let mut bright: c_long = 0;
+
+  /* On Windows, RGB values are 0-255, not 0-65535, so scale delta. */
+  delta /= 256;
+
+  /* Change RGB values by specified FACTOR.  Avoid overflow!  */
+  eassert! (factor >= 0 as c_double);
+  new = PALETTERGB! (min! (0xff as c_double, factor * GetRValue (*color) as c_double),
+                    min! (0xff as c_double, factor * GetGValue (*color) as c_double),
+                    min! (0xff as c_double, factor * GetBValue (*color) as c_double));
+
+  /* Calculate brightness of COLOR.  */
+  bright = ((2 * GetRValue (*color) as c_int + 3 * GetGValue (*color) as c_int
+	     + GetBValue (*color) as c_int) / 6) as c_long;
+
+  /* We only boost colors that are darker than
+     HIGHLIGHT_COLOR_DARK_BOOST_LIMIT.  */
+  if bright < HIGHLIGHT_COLOR_DARK_BOOST_LIMIT
+    /* Make an additive adjustment to NEW, because it's dark enough so
+       that scaling by FACTOR alone isn't enough.  */
+    {
+      /* How far below the limit this color is (0 - 1, 1 being darker).  */
+      let dimness: c_double
+	= 1 as c_double - bright as c_double / HIGHLIGHT_COLOR_DARK_BOOST_LIMIT as c_double;
+      /* The additive adjustment.  */
+      let min_delta: c_int = (delta as c_double * dimness * factor / 2 as c_double) as c_int;
+
+      if factor < 1 as c_double
+        { new = PALETTERGB! (max! (0, min! (0xff, min_delta - GetRValue (*color) as c_int)),
+                            max! (0, min! (0xff, min_delta - GetGValue (*color) as c_int)),
+                            max! (0, min! (0xff, min_delta - GetBValue (*color) as c_int))); }
+      else
+        { new = PALETTERGB! (max! (0, min! (0xff, min_delta + GetRValue (*color) as c_int)),
+                            max! (0, min! (0xff, min_delta + GetGValue (*color) as c_int)),
+                            max! (0, min! (0xff, min_delta + GetBValue (*color) as c_int))); }
+    }
+
+  if new == *color
+    { new = PALETTERGB! (max! (0, min! (0xff, delta + GetRValue (*color) as c_int)),
+                        max! (0, min! (0xff, delta + GetGValue (*color) as c_int)),
+                        max! (0, min! (0xff, delta + GetBValue (*color) as c_int))); }
+
+  /* TODO: Map to palette and retry with delta if same? */
+  /* TODO: Free colors (if using palette)? */
+
+  if new == *color
+    { return 0; }
+
+  *color = new;
+
+  return 1;
+}
+
+/* C 1682-1698: "On frame F, translate pixel colors to RGB values for the NCOLORS colors in
+   COLORS.  On W32, we no longer try to map colors to a palette."  `colors[i].pixel` narrows from
+   `unsigned long` to C's local `DWORD`, and each channel widens from the `BYTE` its accessor
+   returns to the `int` of C's `* 257`, then narrows into the record's `unsigned short`.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_query_colors (f: *mut frame, colors: *mut Emacs_Color, ncolors: c_int)
+{
+  let mut i: c_int;
+
+  i = 0;
+  while i < ncolors
+    {
+      let pixel: DWORD = (*colors.add (i as usize)).pixel as DWORD;
+      /* Convert to a 16 bit value in range 0 - 0xffff. */
+      (*colors.add (i as usize)).red = (GetRValue (pixel) as c_int * 257) as c_ushort;
+      (*colors.add (i as usize)).green = (GetGValue (pixel) as c_int * 257) as c_ushort;
+      (*colors.add (i as usize)).blue = (GetBValue (pixel) as c_int * 257) as c_ushort;
+      i += 1;
+    }
+}
+
+/* C 1700-1707: "Store F's background color into *BGCOLOR."  */
+#[cfg (feature = "have_ntgui")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_query_frame_background_color (f: *mut frame,
+							  bgcolor: *mut Emacs_Color)
+{
+  (*bgcolor).pixel = FRAME_BACKGROUND_PIXEL (f);
+  w32_query_colors (f, bgcolor, 1);
+}
+
+/* C 1709-1747: "Set up the foreground color for drawing relief lines of glyph string S. …"  The
+   two `#if 0` regions C 1719-1721 and 1731-1734 are dead in every configuration and are carried
+   as C's own text; `f->output_data.w32` is the use-site cast; `relief->pixel` is the record's
+   `unsigned long` member, so C's widening from `COLORREF` is written `as c_ulong`; the
+   `relief->gc == 0` test is the null-pointer comparison the `0` spells; and C's chained
+   `egc.foreground = relief->pixel = pixel;` is one statement per assignment in C's right-to-left
+   order (PORTING.md 0.3, slice 1's recorded reading).  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_setup_relief_color (f: *mut frame, relief: *mut relief, factor: c_double,
+				  delta: c_int, default_pixel: COLORREF)
+{
+  let mut egc: Emacs_GC = core::mem::zeroed ();
+  let di: *mut w32_output = (*f).output_data.w32 as *mut w32_output;
+  let mut mask: c_ulong = GCForeground as c_ulong;
+  let mut pixel: COLORREF = 0;
+  let background: COLORREF = (*di).relief_background as COLORREF;
+/* C 1719-1721 is `#if 0` (the `dpyinfo` local the stipple code below would read):
+
+#if 0
+  struct w32_display_info *dpyinfo = FRAME_DISPLAY_INFO (f);
+#endif
+*/
+  /* TODO: Free colors (if using palette)? */
+
+  /* Allocate new color.  */
+  egc.foreground = default_pixel as c_ulong;
+  pixel = background;
+  if w32_alloc_lighter_color (f, &raw mut pixel, factor, delta) != 0
+    {
+      (*relief).pixel = pixel as c_ulong;
+      egc.foreground = (*relief).pixel;
+    }
+
+  if (*relief).gc == 0 as *mut Emacs_GC
+    {
+/* C 1731-1734 is `#if 0 /* TODO: stipple */` (the two statements an unported stipple path would
+   add); C's own preprocessor never compiles them, so the port keeps C's text as a comment.
+
+#if 0 /* TODO: stipple */
+      egc.stipple = dpyinfo->gray;
+      mask |= GCStipple;
+#endif
+*/
+      (*relief).gc = XCreateGC (core::ptr::null_mut (), FRAME_W32_WINDOW! (f), mask,
+				&raw mut egc);
+    }
+  else
+    { XChangeGC (core::ptr::null_mut (), (*relief).gc, mask, &raw mut egc); }
+}
+
+/* C 1750-1776: "Set up colors for the relief lines around glyph string S."  The three-arm colour
+   choice is C's `if`/`else if`/`else`: `use_box_color_for_shadows_p` is the `face_bits!` accessor,
+   `s->first_glyph->type` is `glyph_bits!`, `s->img->pixmap` is the null test C's truth test
+   spells, and the two image macros are the pair declared above (their third argument is C's `0`,
+   an `Emacs_Pix_Context` for this configuration).  `di->white_relief.gc == 0` is the same
+   null-pointer comparison `w32_setup_relief_color` uses, and C's `color != di->relief_background`
+   widens the `COLORREF` to the member's `unsigned long`.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_setup_relief_colors (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+  let di: *mut w32_output = (*(*s).f).output_data.w32 as *mut w32_output;
+  let mut color: COLORREF = 0;
+
+  if face_bits! (use_box_color_for_shadows_p, face)
+    { color = (*face).box_color as COLORREF; }
+  else if glyph_bits! (type, (*(*s).first_glyph)) == IMAGE_GLYPH
+	   && ! (*(*s).img).pixmap.is_null ()
+	   && IMAGE_BACKGROUND_TRANSPARENT! ((*s).img, (*s).f, 0 as Emacs_Pix_Context) == 0
+    { color = IMAGE_BACKGROUND! ((*s).img, (*s).f, 0 as Emacs_Pix_Context) as COLORREF; }
+  else
+    { color = (*(*s).gc).background as COLORREF; }
+
+  if (*di).white_relief.gc == 0 as *mut Emacs_GC
+      || color as c_ulong != (*di).relief_background
+    {
+      (*di).relief_background = color as c_ulong;
+      w32_setup_relief_color ((*s).f, &raw mut (*di).white_relief, 1.2, 0x8000,
+                              WHITE_PIX_DEFAULT! ((*s).f));
+      w32_setup_relief_color ((*s).f, &raw mut (*di).black_relief, 0.6, 0x4000,
+                              BLACK_PIX_DEFAULT! ((*s).f));
+    }
+}
+
+/* C 1779-1841: "Draw a relief on frame F inside the rectangle given by LEFT_X, TOP_Y, RIGHT_X,
+   and BOTTOM_Y. …"  The four side blocks are C's `for (i = 0; i < hwidth; ++i)` (and `vwidth`)
+   written as the header's assignment plus a `while` whose last statement is C's increment; the
+   other seven parameters are C's `int` flags, so each test is C's `!= 0`; `clip_rect` is C's
+   `RECT *` and `NULL` the port's null pointer.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_relief_rect (f: *mut frame, left_x: c_int, top_y: c_int, right_x: c_int,
+				bottom_y: c_int, hwidth: c_int, vwidth: c_int,
+				raised_p: c_int, top_p: c_int, bot_p: c_int,
+				left_p: c_int, right_p: c_int, clip_rect: *mut RECT)
+{
+  let mut i: c_int;
+  let mut gc: Emacs_GC = core::mem::zeroed ();
+  let hdc: HDC = get_frame_dc (f);
+
+  if raised_p != 0
+    { gc.foreground
+	= (*(*( (*f).output_data.w32 as *mut w32_output )).white_relief.gc).foreground; }
+  else
+    { gc.foreground
+	= (*(*( (*f).output_data.w32 as *mut w32_output )).black_relief.gc).foreground; }
+
+  w32_set_clip_rectangle (hdc, clip_rect);
+
+  /* Top.  */
+  if top_p != 0
+    {
+      i = 0;
+      while i < hwidth
+	{
+	  w32_fill_area! (f, hdc, gc.foreground as COLORREF,
+			  left_x + i * left_p, top_y + i,
+			  right_x - left_x - i * (left_p + right_p ) + 1, 1);
+	  i += 1;
+	}
+    }
+
+  /* Left.  */
+  if left_p != 0
+    {
+      i = 0;
+      while i < vwidth
+	{
+	  w32_fill_area! (f, hdc, gc.foreground as COLORREF,
+			  left_x + i, top_y + (i + 1) * top_p, 1,
+			  bottom_y - top_y - (i + 1) * (bot_p + top_p) + 1);
+	  i += 1;
+	}
+    }
+
+  if raised_p != 0
+    { gc.foreground
+	= (*(*( (*f).output_data.w32 as *mut w32_output )).black_relief.gc).foreground; }
+  else
+    { gc.foreground
+	= (*(*( (*f).output_data.w32 as *mut w32_output )).white_relief.gc).foreground; }
+
+  /* Bottom.  */
+  if bot_p != 0
+    {
+      i = 0;
+      while i < hwidth
+	{
+	  w32_fill_area! (f, hdc, gc.foreground as COLORREF,
+			  left_x + i * left_p, bottom_y - i,
+			  right_x - left_x - i * (left_p + right_p) + 1, 1);
+	  i += 1;
+	}
+    }
+
+  /* Right.  */
+  if right_p != 0
+    {
+      i = 0;
+      while i < vwidth
+	{
+	  w32_fill_area! (f, hdc, gc.foreground as COLORREF,
+			  right_x - i, top_y + (i + 1) * top_p, 1,
+			  bottom_y - top_y - (i + 1) * (bot_p + top_p) + 1);
+	  i += 1;
+	}
+    }
+
+  w32_set_clip_rectangle (hdc, core::ptr::null_mut ());
+
+  release_frame_dc (f, hdc);
+}
+
+/* C 1844-1881: "Draw a box on frame F inside the rectangle given by LEFT_X, TOP_Y, RIGHT_X, and
+   BOTTOM_Y. …"  The four `w32_fill_area` calls take the face's `box_color`, an `unsigned long`
+   that C narrows into the `COLORREF` parameter.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_box_rect (s: *mut glyph_string, left_x: c_int, top_y: c_int, right_x: c_int,
+			     bottom_y: c_int, hwidth: c_int, vwidth: c_int, left_p: bool,
+			     right_p: bool, clip_rect: *mut RECT)
+{
+  let face: *mut face = (*s).face as *mut face;
+
+  w32_set_clip_rectangle ((*s).hdc as HDC, clip_rect);
+
+  /* Top.  */
+  w32_fill_area! ((*s).f, (*s).hdc as HDC, (*face).box_color as COLORREF,
+		  left_x, top_y, right_x - left_x + 1, hwidth);
+
+  /* Left.  */
+  if left_p
+    {
+      w32_fill_area! ((*s).f, (*s).hdc as HDC, (*face).box_color as COLORREF,
+                     left_x, top_y, vwidth, bottom_y - top_y + 1);
+    }
+
+  /* Bottom.  */
+  w32_fill_area! ((*s).f, (*s).hdc as HDC, (*face).box_color as COLORREF,
+                 left_x, bottom_y - hwidth + 1, right_x - left_x + 1, hwidth);
+
+  /* Right.  */
+  if right_p
+    {
+      w32_fill_area! ((*s).f, (*s).hdc as HDC, (*face).box_color as COLORREF,
+                     right_x - vwidth + 1, top_y, vwidth, bottom_y - top_y + 1);
+    }
+
+  w32_set_clip_rectangle ((*s).hdc as HDC, core::ptr::null_mut ());
+}
+
+/* C 1884-1949: "Draw a box around glyph string S." - the last item of this slice, and the point
+   the ledger's boundary is drawn at.  `last_x`'s choice is C's `?:` over the row's
+   `full_width_p` bit and the window's `pseudo_window_p` bit (the mirror's `glyph_row_bits!` and
+   the `window_bits!` slice 1 declared); the automatic-composition walk is C's
+   `for (last_glyph = g++; …; last_glyph = g++)` with an empty body, written as a `while` whose
+   body is empty and whose last two statements are C's two assignments in C's order (`last_glyph
+   = g` then `g = g + 1`, which is what `last_glyph = g++` does); `g->u.cmp.id` is the union
+   member's second accessor arm; `eabs` is `lisp.rs`'s macro; `min` the one declared above; and
+   the last three tests are `face_bits! (box, …)` against `FACE_RAISED_BOX`/`FACE_SIMPLE_BOX`.  */
+#[cfg (feature = "have_ntgui")]
+unsafe fn w32_draw_glyph_string_box (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+  let mut hwidth: c_int;
+  let mut vwidth: c_int;
+  let left_x: c_int;
+  let right_x: c_int;
+  let top_y: c_int;
+  let bottom_y: c_int;
+  let mut last_x: c_int;
+  let mut left_p: bool;
+  let mut right_p: bool;
+  let raised_p: bool;
+  let mut last_glyph: *mut glyph;
+  let mut clip_rect: RECT = core::mem::zeroed ();
+
+  last_x = (if glyph_row_bits! (full_width_p, (*s).row)
+	       && ! window_bits! (pseudo_window_p, (*s).w)
+	    { WINDOW_RIGHT_EDGE_X! ((*s).w) }
+	    else { window_box_right ((*s).w, (*s).area) });
+
+  /* The glyph that may have a right box line.  For static
+     compositions and images, the right-box flag is on the first glyph
+     of the glyph string; for other types it's on the last glyph.  */
+  if ! (*s).cmp.is_null () || ! (*s).img.is_null ()
+    { last_glyph = (*s).first_glyph; }
+  else if glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH
+	   && glyph_u_cmp_bits! (automatic, (*s).first_glyph)
+    {
+      /* For automatic compositions, we need to look up the last glyph
+	 in the composition.  */
+      let end: *mut glyph
+	= (*(*s).row).glyphs[(*s).area as usize].add ((*(*s).row).used[(*s).area as usize]
+						      as usize);
+      let mut g: *mut glyph = (*s).first_glyph;
+      last_glyph = g;
+      g = g.add (1);
+      while g < end
+	  && glyph_u_cmp_bits! (automatic, g)
+	  && glyph_u_cmp_bits! (id, g) == (*s).cmp_id
+	  && (*g).slice.cmp.to < (*s).cmp_to
+	{
+	  last_glyph = g;
+	  g = g.add (1);
+	}
+    }
+  else
+    { last_glyph = (*s).first_glyph.add (((*s).nchars - 1) as usize); }
+
+  vwidth = eabs! ((*face).box_vertical_line_width);
+  hwidth = eabs! ((*face).box_horizontal_line_width);
+  raised_p = face_bits! (box, face) == FACE_RAISED_BOX;
+  left_x = (*s).x;
+  right_x = (if glyph_row_bits! (full_width_p, (*s).row)
+		&& glyph_string_bits! (extends_to_end_of_line_p, (*s))
+	     { last_x - 1 }
+	     else { min! (last_x, (*s).x + (*s).background_width) - 1 });
+  top_y = (*s).y;
+  bottom_y = top_y + (*s).height - 1;
+
+  left_p = (glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+	    || ((*s).hl == DRAW_MOUSE_FACE
+		&& ((*s).prev.is_null () || (*(*s).prev).hl != (*s).hl)));
+  right_p = (glyph_bits! (right_box_line_p, (*last_glyph))
+	     || ((*s).hl == DRAW_MOUSE_FACE
+		 && ((*s).next.is_null () || (*(*s).next).hl != (*s).hl)));
+
+  get_glyph_string_clip_rect (s, &raw mut clip_rect);
+
+  if face_bits! (box, face) == FACE_SIMPLE_BOX
+    { w32_draw_box_rect (s, left_x, top_y, right_x, bottom_y, hwidth, vwidth, left_p, right_p,
+			 &raw mut clip_rect); }
+  else
+    {
+      w32_setup_relief_colors (s);
+      w32_draw_relief_rect ((*s).f, left_x, top_y, right_x, bottom_y, hwidth, vwidth, raised_p
+			    as c_int, 1, 1, left_p as c_int, right_p as c_int,
+			    &raw mut clip_rect);
+    }
 }
