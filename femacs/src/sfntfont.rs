@@ -1960,3 +1960,297 @@ unsafe fn sfntfont_registries_compatible_p (a: Lisp_Object, b: Lisp_Object) -> b
 
   return EQ (a, b);                                        // C 1602
 }
+
+/* ----------------------------------------------------------------------------------------------
+   C 1605-1871: `sfntfont_list_1` (C 1613-1824, under C 1605-1611's comment), the two file-scope
+   statics it sits between (C 1826-1830) and `sfntfont_registry_for_desc` (C 1841-1871) with its
+   C 1832-1839 comment.  **The next live definition is C 1879's `sfntfont_desc_to_entity`** (whose
+   comment is C 1873-1877), and the ledger's `## C line ranges` names both boundaries.  C's
+   `FOR_EACH_TAIL_SAFE` is `include/lisp.rs` 4389's macro and its `break`/`continue` are the loop's
+   (the `fns.rs` 375 shape); `goto fail` is the labelled block below (PORTING.md 2.2).
+   ---------------------------------------------------------------------------------------------- */
+/* Return whether or not the font description DESC satisfactorily
+   matches the font specification FONT_SPEC.
+
+   Value is 0 if there is no match, -1 if there is a match against
+   DESC itself, and the number of matching instances if the style
+   matches one or more instances defined in DESC.  Return the index
+   of each matching instance in INSTANCES; it should be SIZE big.  */
+
+/// C 1613-1824: `sfntfont_list_1`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_list_1 (desc: *mut sfnt_font_desc, spec: Lisp_Object,
+			   instances: *mut c_int, size: c_int) -> c_int
+{                                                          // C 1614-1824
+  let mut tem: Lisp_Object;
+  let mut extra: Lisp_Object;
+  let mut tail: Lisp_Object;
+  /* C 1618's `cmap` is C 1754's `cmap = NULL;`; the initialiser is that NULL.  */
+  let mut cmap: *mut sfnt_cmap_encoding_subtable_data = std::ptr::null_mut ();
+  let mut i: size_t;
+  /* C 1620's `struct sfnt_cmap_encoding_subtable subtable;` is uninitialised in C and is copied
+     into `desc->subtable` at C 1815 only when a cmap was read; zero-initialised here (PORTING.md
+     1.5, Deviation 10).  */
+  let mut subtable: sfnt_cmap_encoding_subtable = std::mem::zeroed ();
+  let mut instance: c_int;
+  let mut num_instance: c_int;
+  let mut item: Lisp_Object;
+  let mut matching: bool;
+
+  /* cmap and subtable are caches for sfntfont_lookup_char.  */
+
+  /* Check that the family name in SPEC matches DESC->family if it is
+     specified.  */
+
+  tem = AREF (spec, FONT_FAMILY_INDEX as isize);           // C 1630
+
+  /* If TEM is a family listed in Vsfnt_default_family_alist,
+     then use that instead.  */
+
+  if SYMBOLP (tem) && CONSP (Vsfnt_default_family_alist)   // C 1635
+    {
+      tail = Vsfnt_default_family_alist;
+      FOR_EACH_TAIL_SAFE! (tail, {
+	  if !CONSP (XCAR (tail))
+	    { continue; }                                  // C 1641
+
+	  if STRINGP (XCAR (XCAR (tail)))
+	     && STRINGP (XCDR (XCAR (tail)))
+	     && !NILP (Fstring_equal (SYMBOL_NAME (tem),
+				      XCAR (XCAR (tail))))  // C 1645-1646
+	    {
+	      /* Special family found.  */
+	      tem = Fintern (XCDR (XCAR (tail)), Qnil ());  // C 1649
+	      break;
+	    }
+      });
+    }
+
+  if !NILP (tem) && NILP (Fstring_equal (SYMBOL_NAME (tem),
+					 (*desc).family))   // C 1655-1656
+    { return 0; }
+
+  instance = -1;                                           // C 1659
+
+  /* If a registry is set and wrong, then reject the font desc
+     immediately.  This detects 50% of mismatches from fontset.c.
+
+     If DESC->registry is nil, then the registry couldn't be
+     determined beforehand.  */
+
+  tem = AREF (spec, FONT_REGISTRY_INDEX as isize);         // C 1667
+  if !NILP (tem) && !NILP ((*desc).registry)
+     && !sfntfont_registries_compatible_p (tem, (*desc).registry)
+    { return 0; }                                          // C 1670
+
+  /* If the font spacings disagree, reject this font also.  */
+
+  tem = AREF (spec, FONT_SPACING_INDEX as isize);          // C 1674
+  if FIXNUMP (tem) && (XFIXNUM (tem) != (*desc).spacing as EMACS_INT)
+    { return 0; }                                          // C 1676
+
+  /* Check the style.  If DESC is a fixed font, just check once.
+     Otherwise, check each instance.  */
+
+  'fail: {
+  if NILP ((*desc).instances)                              // C 1681
+    {
+      tem = AREF (spec, FONT_ADSTYLE_INDEX as isize);      // C 1683
+      if !NILP (tem) && !EQ (tem, (*desc).adstyle)
+	{ return 0; }                                      // C 1685
+
+      /* C compares the macro's `long` with the record's `int` member after the usual arithmetic
+	 conversions, so the port widens the member rather than narrowing the macro (Deviation
+	 19).  */
+      if FONT_WIDTH_NUMERIC! (spec) != -1
+	 && FONT_WIDTH_NUMERIC! (spec) != (*desc).width as isize
+	{ return 0; }                                      // C 1689
+
+      if FONT_WEIGHT_NUMERIC! (spec) != -1
+	 && FONT_WEIGHT_NUMERIC! (spec) != (*desc).weight as isize
+	{ return 0; }                                      // C 1693
+
+      if FONT_SLANT_NUMERIC! (spec) != -1
+	 && FONT_SLANT_NUMERIC! (spec) != (*desc).slant as isize
+	{ return 0; }                                      // C 1697
+    }
+  else
+    {
+      num_instance = 0;                                    // C 1701
+
+      /* Find the indices of instances in this distortable font which
+	 match the given font spec.  */
+
+      i = 0;
+      while i < ASIZE ((*desc).instances) as usize         // C 1706
+	{
+	  item = AREF ((*desc).instances, i as isize);     // C 1708
+
+	  if NILP (item)
+	    { i += 1; continue; }                          // C 1711
+
+	  /* Check that the adstyle specified matches.  */
+
+	  tem = AREF (spec, FONT_ADSTYLE_INDEX as isize);  // C 1715
+	  if !NILP (tem) && NILP (Fequal (tem, AREF (item, 1)))
+	    { i += 1; continue; }                          // C 1717
+
+	  /* Check the style.  */
+
+	  if FONT_WIDTH_NUMERIC! (spec) != -1
+	     && (FONT_WIDTH_NUMERIC! (spec)
+		 != XFIXNUM (AREF (item, 2)))              // C 1721-1723
+	    { i += 1; continue; }
+
+	  if FONT_WEIGHT_NUMERIC! (spec) != -1
+	     && (FONT_WEIGHT_NUMERIC! (spec)
+		 != XFIXNUM (AREF (item, 3)))              // C 1726-1728
+	    { i += 1; continue; }
+
+	  if FONT_SLANT_NUMERIC! (spec) != -1
+	     && (FONT_SLANT_NUMERIC! (spec)
+		 != XFIXNUM (AREF (item, 4)))              // C 1731-1733
+	    { i += 1; continue; }
+
+	  if num_instance == size
+	    { break; }                                     // C 1737
+
+	  /* A matching instance has been found.  Set its index, then
+	     go back to the rest of the font matching.  */
+	  *instances.offset (num_instance as isize) = i as c_int;   // C 1741
+	  num_instance += 1;                               /* C 1741's `num_instance++`.  */
+	  i += 1;
+	}
+
+      instance = num_instance;                             // C 1744
+    }
+
+  /* Handle extras.  */
+  extra = AREF (spec, FONT_EXTRA_INDEX as isize);          // C 1748
+
+  if NILP (extra)
+    { return instance; }                                   // C 1751
+
+  tem = assq_no_quit (QCscript (), extra);                 // C 1753
+  cmap = std::ptr::null_mut ();                            // C 1754
+
+  if !NILP (tem)
+    {
+      /* If a script has been specified, look up its representative
+	 characters and see if they are present in the font.  This
+	 requires reading the cmap.  */
+      tem = assq_no_quit (XCDR (tem), Vscript_representative_chars);   // C 1761
+
+      if CONSP (tem) && VECTORP (XCDR (tem))               // C 1763
+	{
+	  tem = XCDR (tem);                                // C 1765
+
+	  /* The vector contains characters, of which one must be
+	     present in the font.  */
+	  matching = false;                                // C 1769
+	  i = 0;
+	  while i < ASIZE (tem) as usize                   // C 1770
+	    {
+	      if FIXNUMP (AREF (tem, i as isize))          // C 1772
+		{
+		  if sfntfont_lookup_char (desc, AREF (tem, i as isize),
+					   &raw mut cmap, &raw mut subtable)   // C 1774-1775
+		    {
+		      matching = true;                     // C 1777
+		      break;
+		    }
+		}
+	      i += 1;
+	    }
+	  if !matching
+	    { break 'fail; }                               // C 1783: `goto fail;`.  */
+	}
+      else if CONSP (tem) && CONSP (XCDR (tem))            // C 1785
+	{
+	  tem = XCDR (tem);                                // C 1787
+
+	  /* tem is a list of each characters, all of which must be
+	     present in the font.  */
+	  FOR_EACH_TAIL_SAFE! (tem, {
+	      if FIXNUMP (XCAR (tem))
+		 && !sfntfont_lookup_char (desc, XCAR (tem), &raw mut cmap,
+					   &raw mut subtable)   // C 1793-1795
+		{ break 'fail; }                           // C 1796: `goto fail;`.  */
+	  });
+
+	  /* One or more characters are missing.  */
+	  if !NILP (tem)
+	    { break 'fail; }                               // C 1801: `goto fail;`.  */
+	}
+      /* Fail if there are no matching fonts at all.  */
+      else if NILP (tem)
+	{ break 'fail; }                                   // C 1805: `goto fail;`.  */
+    }
+
+  /* Now check that the language is supported.  */
+  tem = assq_no_quit (QClang (), extra);                   // C 1809
+  if !NILP (tem) && NILP (Fmemq (tem, (*desc).languages))
+    { break 'fail; }                                       // C 1811: `goto fail;`.  */
+
+  /* Set desc->subtable if cmap was specified.  */
+  if !cmap.is_null ()                                      // C 1814
+    { (*desc).subtable = subtable; }                       // C 1815
+
+  xfree (cmap as *mut c_void);                             // C 1817
+  return instance;                                         // C 1818
+  }                                                        /* C 1820: `fail:`.  */
+
+  /* The cmap might've been read in and require deallocation.  */
+  xfree (cmap as *mut c_void);                             // C 1822
+  return 0;                                                // C 1823
+}
+
+/* Type of font entities and font objects created.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut sfnt_vendor_name: Lisp_Object = std::ptr::null_mut ();        // C 1827
+
+/* Font driver used in font objects created.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut sfnt_font_driver: *const font_driver = std::ptr::null ();     // C 1830
+
+/* Return the font registry corresponding to the font descriptor DESC.
+   Under X, the font registry is an atom registered with the Open
+   Group uniquely identifying the organization which defines the
+   font's character set.
+
+   In practice, the registry overlaps with the character set itself.
+   So Emacs just uses the ``registry'' field to represent both
+   instead.  */
+
+/// C 1841-1871: `sfntfont_registry_for_desc`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_registry_for_desc (desc: *mut sfnt_font_desc) -> Lisp_Object
+{                                                          // C 1842-1871
+  let mut cmap: *mut sfnt_cmap_encoding_subtable_data;
+
+  cmap = std::ptr::null_mut ();                            // C 1846
+
+  if (*desc).bits & SFNT_FONT_DESC_CMAP_INVALID != 0       // C 1848
+    { return Qnil (); }
+
+  if (*desc).subtable.platform_id == 500                   // C 1851
+    {
+      /* Read in the cmap to determine the registry.  */
+      sfntfont_read_cmap (desc, &raw mut cmap, &raw mut (*desc).subtable);   // C 1854
+
+      if cmap.is_null ()                                   // C 1856
+	{
+	  (*desc).bits |= SFNT_FONT_DESC_CMAP_INVALID;     // C 1858
+	  return Qnil ();                                  // C 1859
+	}
+    }
+
+  xfree (cmap as *mut c_void);                             // C 1863
+
+  if (*desc).subtable.platform_id != 500                   // C 1865
+    /* desc->subtable.platform_id is now set.  CMAP is already free,
+       because it is not actually used.  */
+    { return sfnt_registry_for_subtable (&raw mut (*desc).subtable); }   // C 1868
+
+  return Qnil ();                                          // C 1870
+}

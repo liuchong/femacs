@@ -6,7 +6,7 @@
 > one line earlier at 2598; 2605-2606 is the other branch, where `ANDROID_STUBIFY` is defined), and
 > `docs/baseline/frozen-build-sources.txt` lists no `sfntfont.o`.  What follows is P-86 ②'s **C
 > line-range table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/sfntfont.rs` (**1,962 lines** after slice 3, `grep -c ''`), both arms of every `#if`
+> `femacs/src/sfntfont.rs` (**2,256 lines** after slice 4, `grep -c ''`), both arms of every `#if`
 > carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
@@ -42,9 +42,15 @@
 > **Slice 3 is C 1427-1604** - the cmap reader and the character lookup: `sfntfont_read_cmap`
 > (C 1431-1496), `sfntfont_glyph_valid` (C 1502-1515), `sfntfont_lookup_char` (C 1524-1585) and
 > `sfntfont_registries_compatible_p` (C 1596-1603), with C 1427-1430's, C 1498-1501's, C 1517-1522's
-> and C 1587-1594's comments.  The boundary is C 1604's blank line: C 1605-1611's comment belongs to
-> C 1613's `sfntfont_list_1`.  **The next live definition is C 1613's `sfntfont_list_1`**, and the
-> table's last row carries it.
+> and C 1587-1594's comments.
+>
+> **Slice 4 is C 1605-1871** - the specification matcher and the registry helper: `sfntfont_list_1`
+> (C 1613-1824, under C 1605-1611's comment, with its five `goto fail` legs, the instance loop and
+> the extras block), the two file-scope statics `sfnt_vendor_name` (C 1827) and `sfnt_font_driver`
+> (C 1830), and `sfntfont_registry_for_desc` (C 1841-1871, under C 1832-1839's comment).  The
+> boundary is C 1871's `}`: C 1873-1877's comment belongs to C 1879's `sfntfont_desc_to_entity`.
+> **The next live definition is C 1879's `sfntfont_desc_to_entity`**, and the table's last row
+> carries it.
 
 ## Gate mapping
 
@@ -90,7 +96,8 @@ this tree has not registered yet is `HAVE_HB_FONT_SET_VAR_NAMED_INSTANCE` (C 409
 | 1154-1240 | C 1155-1161's comment and `sfnt_enum_font` (C 1163-1240; C 1182's `(T *) -1` TTC probe and C 1206-1211's re-test, C 1197-1217 the TTC `ttc->offset_table[i]` loop, C 1236-1239's `bail0:`/`bail:` pair) | file gate |
 | 1241-1426 | C 1241's blank, C 1242's form feed, C 1244's banner and the three cmap selectors: `sfntfont_charset_for_name` (C 1246-1264), `sfntfont_charset_for_cmap` (C 1269-1334) and `sfntfont_select_cmap` (C 1344-1425; the three `num_subtables` scans and the two format 14 searches) | file gate - **transcribed** (slice 2; the only structural rewrite is the `switch`/`match` pair of `sfntfont_charset_for_cmap`, Deviation 17) |
 | 1427-1604 | C 1427-1430's comment and `sfntfont_read_cmap` (C 1431-1496), C 1498-1501's comment and `sfntfont_glyph_valid` (C 1502-1515), C 1517-1522's comment and `sfntfont_lookup_char` (C 1524-1585, the cache and the cmap fallback), C 1587-1594's comment and `sfntfont_registries_compatible_p` (C 1596-1603), and C 1604's blank | file gate - **transcribed** (slice 3; the three shapes are Deviation 18, and the `limits.in.rs` edge at C 25 is this slice's `INT_MAX`) |
-| 1605-4222 | **the remainder** — C 1605-1611's comment and from C 1613 (`sfntfont_list_1`, **the next live definition**) to C 4222: the entity/registry helpers (C 1613-2057), the outline/raster caches (C 2059-2563), `struct sfnt_font_info` and the open/close machinery (C 2565-3470), the eight driver callbacks (C 3483-3960), the mmap sigbus pair (C 3961-3983) and the HarfBuzz entry points (C 3989-4110), and the three initialization subrs (C 4115-4222) | not this slice |
+| 1605-1871 | C 1605-1611's comment and `sfntfont_list_1` (C 1613-1824: the family/registry/spacing/style checks, the instance loop, and the extras block with its five `goto fail` legs), the two statics `sfnt_vendor_name` (C 1827) and `sfnt_font_driver` (C 1830), and C 1832-1839's comment with `sfntfont_registry_for_desc` (C 1841-1871) | file gate - **transcribed** (slice 4; Deviation 19's four shapes, and the token rows for `goto` and `cmap_invalid,true`) |
+| 1872-4222 | **the remainder** — C 1873-1877's comment and from C 1879 (`sfntfont_desc_to_entity`, **the next live definition**) to C 4222: the entity/registry helpers (C 1879-2057), the outline/raster caches (C 2059-2563), `struct sfnt_font_info` and the open/close machinery (C 2565-3470), the eight driver callbacks (C 3483-3960), the mmap sigbus pair (C 3961-3983) and the HarfBuzz entry points (C 3989-4110), and the three initialization subrs (C 4115-4222) | not this slice |
 
 The 23 rows above tile C 1-1240 **contiguously** (blank lines included) rather than skipping
 the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
@@ -272,6 +279,33 @@ forbidden, 17 allowed literals), 0 failures`; `check-citations.py` `676 file(s) 
 range, 2011 external, 36 allowed, 0 stale`; `check-port-lines.py` `0 file(s) under ten percent, 0
 ratchet row(s), 0 new, 0 stale`; `check-cond-eval.py src/sfntfont.c` `27 conditions, 0 unknown, 0
 disagreements [VERIFIED]` (slice 3 adds no `#if`).
+**⑪ Slice 4's frozen reading and its arm flip (HEAD as the baseline, P-86 ⑦).**
+`cd femacs && cargo run -q -p xtask -- build-tu src/sfntfont.c` -> `built src/sfntfont.rs ->
+../build/femacs/sfntfont.o`, exit 0, **336 bytes**, md5 `dbed68837694579185377dbb0821ab62`.  Evidence
+④'s arm flip as a baseline pair: HEAD (this round's HEAD, i.e. slice 3's revision) **0 errors / 6
+warnings** and slice 4 **0 errors / 6 warnings**, the two outputs **byte-identical**.  The first run
+of this slice read **3 `E0308` errors** - `FONT_WIDTH/WEIGHT/SLANT_NUMERIC!` return the macro's
+`long` while `sfnt_font_desc`'s members are `int` - and the fix is Deviation 19 (widen the member,
+which is what C's usual arithmetic conversions do); the second run is the 0-error reading above, i.e.
+**the arm flip caught a real defect this slice that `--check` and `build-tu` cannot see** (the file
+is gated off in the frozen build).  The emitted object is 14,800 bytes in both runs - no signal, as
+before, because nothing calls these functions yet.
+
+**⑫ Slice 4's `--check` and the gates.**  `python3 tools/extract-abi.py --check
+emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **38** `- ` rows: **33** `- missing
+function …`, 2 `- missing constant …`, 2 `- missing file-scope object …` and the line-count row,
+now `46.6%: C 4222 vs Rust 2256` (slice 3 read 42 rows and `53.5%: C 4222 vs Rust 1962`).  The
+four that left the function list are `sfntfont_list_1` and `sfntfont_registry_for_desc`, plus the
+two file-scope objects `sfnt_vendor_name` and `sfnt_font_driver` - the last two are **objects**,
+so the `missing file-scope object` class is now 2 (it was 4; `sfnt_put_glyphs` and `open_fonts`
+remain).  Two more token rows were needed to keep the `does not mention` class at 0:
+`sfntfont_list_1 goto` (the five `goto fail` legs are the `'fail:` labelled block) and
+`sfntfont_registry_for_desc cmap_invalid,true` (the 1-bit member's mask, and C 1858's `true` as its
+value).  The other gates: `check-dead-file-coverage.py` `145 ledger(s) bound (a C range table), 0
+failure(s)`; `check-declarations.py` `17 declaration sites (0 forbidden, 17 allowed literals), 0
+failures`; `check-citations.py` `676 file(s) scanned, 0 drift, 0 range, 2011 external, 36 allowed, 0
+stale`; `check-port-lines.py` `0 file(s) under ten percent, 0 ratchet row(s), 0 new, 0 stale`;
+`check-cond-eval.py src/sfntfont.c` `27 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
 
 ## Deviations
 
@@ -365,6 +399,20 @@ disagreements [VERIFIED]` (slice 3 adds no `#if`).
     `sfntfont_lookup_char` row in `macro-body-notes.tsv` - and C 1543's `?:` is the `if`/`else`
     expression of Deviation 9, and the two out-parameter locals of C 1437-1438 are Deviation 10's
     zero-initialisation.
+19. **Slice 4's four shapes.**  (a) **C's implicit promotions are written out**: in `sfntfont_list_1`
+    C compares `FONT_WIDTH_NUMERIC (spec)` (the macro yields `long`) with `desc->width`
+    (`int`), and `xfnum` with `XFIXNUM (AREF (item, 2))` - the port widens the *member*
+    (`(*desc).width as isize`) rather than narrowing the macro, which is C's usual arithmetic
+    conversion; the arm flip read three `E0308` errors before the casts were there, so this is a
+    measured shape rather than a style choice.  (b) **`goto fail` is the `'fail:` labelled block**
+    (PORTING.md 2.2, the `androidselect.rs` 414 shape): C's five legs are `break 'fail;`, and the
+    block ends where C's `fail:` label sits, so the function's tail (C 1822-1823) is the label's
+    body.  (c) **C 1618's `cmap` and C 1620's `subtable` are zero-initialised** (Deviation 10's
+    class): `cmap` is set to `NULL` at C 1754 on every path that reaches `xfree`, and `subtable` is
+    copied into `desc->subtable` at C 1815 only when a cmap was read.  (d) **`FOR_EACH_TAIL_SAFE`
+    is `include/lisp.rs` 4389's macro**, whose `break`/`continue` are the loop's - C 1650's `break`
+    and C 1711/1717/1724/1729/1734's `continue`s are written inside the macro body exactly as C has
+    them.
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
@@ -416,10 +464,11 @@ object (①) is 336 bytes of nothing, and the arm reading (④) never produced a
 flip stops at the mirror's `E0428`.  So there is **no runtime evidence of any kind** for this port:
 no font file was opened, no name table was decoded, no style was parsed, no cmap was identified, no
 `lseek`/`read`/`memmem` returned.  The reading above is slice 1's, and it still holds item for item;
-**slices 2 and 3 add no runtime evidence either** (Evidence ⑦ and ⑨: both arm flips' diagnostics are
-unchanged and their object size carries no signal while nothing references the new functions).  C
-1605-4222 is **not ported here**; the 35 `- missing function` rows, the 2 constants, the 4 objects
-and the 53.5% drift of Evidence ⑩ are that boundary, not a defect of these three slices.  The clang probe's
+**slices 2, 3 and 4 add no runtime evidence either** (Evidence ⑦/⑨/⑪: every arm flip's diagnostics
+are unchanged and their object size carries no signal while nothing references the new functions).
+C 1872-4222 is **not ported here**; the 33 `- missing function` rows, the 2 constants, the 2
+remaining objects and the 46.6% drift of Evidence ⑫ are that boundary, not a defect of these four
+slices.  The clang probe's
 numbers are layout, not behavior.  The one feature this unit uses besides the file gate's pair
 (`harfbuzz`) is the tree's registered name, not this lane's invention, and `have_mmap` is
 deliberately unused (the condition has no second arm).
