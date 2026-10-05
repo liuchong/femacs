@@ -13601,3 +13601,27 @@
      `check-do-while` 152/0、`check-octal-literals` 623/0。
   ⑨ **预算**：门 6 发、字节门 3 发、自测 3 发、普查与量界脚本 4 发、其余文本门 12 发、变异 2 发（含 HEAD 读者）、
      PORTING.md 一处的第十五半段落；`/tmp` 的脚本与读数文件收工删。
+
+- **3.667 上一轮留在树里的开关式探针被跑掉并按纪律撤回：两条读数（A：同一调用里两个 8 字节 tag 落地、中间 32 字节的负载一个字节都没落地；B：改成逐字 tag 的变体一次都没命中，崩点从 `_root.rs:7130` 搬到 `7126`），第二变体再次复现 3.659 的方法学结论；探针已 `git show HEAD:` 还原、TU 重建、重链，基线复测 3 发 = 2 abort / 1 ok（2026-10-06）**：
+  ① **A 读数（照实记，不下结论）**：3.664 留的定长记录式探针（记录 8 字节 tag1 + n×8 字 + 8 字节 tag2）在
+     `process_mark_stack` 的 `mark_stack_pop ()` 之后命中**一次**，日志里 `P666A__\n` 与 `P666Z__\n` **相邻**
+     （`P666Z__` 就在 tag1 之后第 8 个字节），中间 32 字节的负载**一个字节都没有**；同一函数里三个
+     `emacs_write (2, …)` 的前后两个（`.rodata` 指针、8 字节）都落地了。**已排除**：`emacs_write` 的实现
+     （`sysdep.rs:3976-4016`，`emacs_full_write` 的循环、`min (nbyte, SYS_BUFSIZE_MAX)` 与 `SYS_BUFSIZE_MAX =
+     MAX_ALLOCA` 都正确）、`write` 只是 `<unistd.h>` 的声明（`lib/include/unistd.in.rs:68`）。**本轮没有解释**，
+     点名留着：负载指针是**栈数组**，两个 tag 是 `.rodata`；同期那次运行崩在 `units/alloc/_root.rs:7130:19`
+     （`null pointer dereference`），即 3.663/3.664 的基线站点。
+  ② **B 读数**：把记录改成"每个元素前各写 8 字节 tag、元素后写 8 字节返回值"（不再有任何超过 8 字节的写）⇒
+     一次都没命中，崩点在 `units/alloc/_root.rs:7126:9`（同样是 `null pointer dereference`，但位置比 A 更早）。
+     ⇒ 3.659 的结论在同一 TU 上第二次复现：**改这个 TU 就会搬走确定性崩点**，"在崩点加探针读值"这条路仍然走不通；
+     A 那次之所以能命中，是因为它正好落在搬移后的那个布局上。
+  ③ **撤回与复测**：`git show HEAD:femacs/src/alloc.rs > femacs/src/alloc.rs`（`git status --short` 干净）⇒
+     `build-tu src/alloc.c` → `built`；`check-link.py --executable` → `linked build/femacs/emacs - the program has
+     no undefined reference`（它 print 的 `STALE _unibyte_display_via_language_environment` 与
+     `STALE _word_wrap_by_category` 两行**两次构建都在**，不是本轮引入）；夹具复测 **3 发：rc=134 / rc=0 / rc=134**，
+     abort 的末行仍是 `null pointer dereference occurred` ⇒ 基线的站点与失败率形状回来了。
+  ④ **未声称**：A 的"负载不见了"**没有**解释成端口缺陷（也没有排除它），它只说明"崩点附近的写入不可信"；
+     B 的"没命中"不构成"探针逻辑错"的证据（崩点在命中之前）；本轮**没有**得到 `XTYPE (0)` 的运行时值，
+     3.660-3.665 的"派发与 untag 矛盾"仍未决。
+  ⑤ **预算**：TU 编译 2 发、重链 2 发、夹具 8 发（含 2 发探针与 3 发复测）、解码/探针改写的 python 3 发、
+     lldb 0 发、`otool`/`nm` 0 发；`/tmp` 的日志、探针补丁与解码脚本收工删。
