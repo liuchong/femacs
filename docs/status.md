@@ -8200,3 +8200,13 @@
      `webkit_*`/`gtk_*` 调用被观察）；**GDK/GTK/WebKit 的布局与 22 个枚举/掩码值是占位 `UNVERIFIED`**（保持分臂互不相同
      而已，台账 `## Deviations` 7 已记）；C 1181-4,304 未移植；lane 的预算：`build-tu` 2/3、`probe` 0/3（臂读数是物化根上的
      裸 `rustc`，已声明不是 `xtask probe` 读数）。
+
+- **3.458 本批收口：msdos/xwidget 两件落地，进度 63.1%（2026-10-05）**：
+  ① **本批入库**：3.455 `termhooks.rs` 的 `coding_system` 镜像轮、3.456 `src/msdos.c` 切片 1（C 1-1295，+1,743 行）、
+     3.457 `src/xwidget.c` 切片 1（C 1-1180，+2,310 行）。三条 lane 里最后一条（`pgtkfns.c`）仍在写。
+  ② **进度**：`gen-port-map.py` → **63.1%**；`check-port-lines --write-pending` → 见命令输出；`gen-port-inventory.py`
+     → 590 files，done/wip/todo 见输出。**口径**：含 `pgtkfns.rs` 的半成品。
+  ③ **门**：本批的镜像改动（`termhooks.rs`）已在 3.455 扫过 **83/0 + 83/0**；3.456/3.457 只动单元、`Cargo.toml` 与台账
+     ⇒ 不需要再扫；`check-declarations` 10/0/0、`check-mirror-dupes` 19/19/0、`check-dead-file-coverage` **44 ledger / 0 failure**。
+  ④ **未声称**：本批**零运行证据**（所有对象只到 `.o`）；63.1% 是行数口径；§8 的加载阶梯/双向兼容/生成物逐字节/
+     平台冒烟/性能一条未点亮。
