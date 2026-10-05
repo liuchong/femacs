@@ -11,7 +11,8 @@
 // **GLib, GObject and GIO are on this machine** (`/opt/homebrew/include/glib-2.0`, GLib 2.90.0),
 // so the GIO surface this file needs is quoted from the headers and its values are clang
 // measurements (`## Evidence` in `docs/ports/gfilenotify.md`); the GLib/GObject half
-// (`GError`, `g_object_unref`, `g_signal_connect`, `g_free`, `GType`, `GCallback`) lives in
+// (`GError`, `g_object_unref`, `g_signal_connect`'s macro and `g_signal_connect_data`, `g_free`,
+// `GType`, `GCallback`) lives in
 // `include/gtk.rs` (P-90 ②: one surface, one mirror).  `<gio/gio.h>` itself has no mirror in
 // this tree and this is its only consumer, so its declarations stand at C 21's position
 // (P-88 ①); if a second consumer appears they move into a mirror of their own in the same
@@ -166,14 +167,6 @@ unsafe extern "C" {
 /// owed to the mirror round (`## Owed` in `docs/ports/gfilenotify.md`).
 #[cfg (feature = "have_gfilenotify")]
 pub const FILE_NOTIFY_EVENT: c_int = 28;
-/// C: gobject/gsignal.h: `gulong g_signal_connect (gpointer instance, const gchar
-/// *detailed_signal, GCallback c_handler, gpointer data);` - `include/gtk.rs` carries the
-/// variadic `g_signal_connect_data` but not this entry point.
-#[cfg (feature = "have_gfilenotify")]
-unsafe extern "C" {
-  pub fn g_signal_connect (instance: gpointer, detailed_signal: *const c_char,
-                           c_handler: GCallback, data: gpointer) -> gulong;
-}
 /// C: lisp.h's `INLINE bool FUNCTIONP (Lisp_Object a) { return !NILP (Ffunctionp (a)); }` - no
 /// mirror carries it (`include/globals.rs` has `Ffunctionp`), so the port spells the predicate
 /// here, exactly as lisp.h's inline does.
@@ -345,9 +338,12 @@ DEFUN! ("gfile-add-watch", Fgfile_add_watch, Sgfile_add_watch, 3, 3, 0,
   g_file_monitor_set_rate_limit (monitor, 100);
 
   /* Subscribe to the "changed" signal.  C 219 spells the handler with a cast,
-     `(GCallback) dir_monitor_callback`; the port's `G_CALLBACK!` is that cast.  */
-  g_signal_connect (monitor as gpointer, c"changed".as_ptr (),
-                    G_CALLBACK! (dir_monitor_callback), core::ptr::null_mut ());
+     `(GCallback) dir_monitor_callback`, and `g_signal_connect` itself is GLib's *macro*
+     (gsignal.h 554-556) rather than an entry point: `include/gtk.rs` carries the macro
+     (it applies `G_CALLBACK!` itself) and `g_signal_connect_data` underneath, so the call
+     below goes through the mirror (P-90 ②).  */
+  g_signal_connect! (monitor as gpointer, c"changed".as_ptr (),
+                     dir_monitor_callback, core::ptr::null_mut ());
 
   /* Store watch object in watch list.  */
   watch_object = list4 (watch_descriptor, file, flags, callback);

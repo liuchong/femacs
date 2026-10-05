@@ -7,9 +7,7 @@
 femacs/lib/euidaccess.rs	femacs/lib/include/libc-config.rs	weak_alias	glibc's `#define weak_alias(...)`; C's own spelling of the alias, not a duplicate of the mirror's
 femacs/lib/euidaccess.rs	femacs/lib/include/sys_stat.in.rs	stat	euidaccess.c 57-69's `#ifdef _LIBC` rename block - C's own `#define stat __xstat` shape
 femacs/lib/euidaccess.rs	femacs/lib/include/unistd.in.rs	access	euidaccess.c 57-69's `#ifdef _LIBC` rename block (`#define access euidaccess` and friends): C defines the unit-side macro itself, so one construct has two spellings by C's own design (status 3.332 ③)
-femacs/lib/euidaccess.rs	femacs/lib/include/unistd.in.rs	getegid	euidaccess.c 57-69's `#ifdef _LIBC` rename block - C's own shape
 femacs/lib/euidaccess.rs	femacs/lib/include/unistd.in.rs	geteuid	euidaccess.c 57-69's `#ifdef _LIBC` rename block - C's own shape
-femacs/lib/euidaccess.rs	femacs/lib/include/unistd.in.rs	getgid	euidaccess.c 57-69's `#ifdef _LIBC` rename block - C's own shape
 femacs/lib/euidaccess.rs	femacs/lib/include/unistd.in.rs	getuid	euidaccess.c 57-69's `#ifdef _LIBC` rename block - C's own `#define getuid __getuid` shape
 femacs/lib/faccessat.rs	femacs/lib/include/unistd.in.rs	access	faccessat.c 46-51's `#ifndef HAVE_ACCESS` -> `# undef access / # define access euidaccess` (live in this configuration): C defines both spellings
 femacs/lib/ftoastr.rs	femacs/lib/include/ftoastr.rs	DBL_BUFSIZE_BOUND	ftoastr.h 152-155: the unit's `usize` const is an array length, and a `macro_rules!` cannot be one in Rust - the mirror keeps C's macro and the unit needs the const, so both spellings are load-bearing

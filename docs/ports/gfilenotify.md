@@ -40,9 +40,9 @@
 - **Names no mirror carries**: `FILE_NOTIFY_EVENT` (termhooks.h 291, inside `#ifdef
   USE_FILE_NOTIFY` - this file's own gate implies it; the frozen `include/termhooks.rs` carries
   the *frozen* configuration's members, so this one is declared in-unit and its value (28) is
-  owed to the mirror round, `## Owed` 1), `g_signal_connect` (GObject's non-variadic entry point;
-  `include/gtk.rs` carries `g_signal_connect_data` only) and `FUNCTIONP` (lisp.h's inline
-  predicate over `Ffunctionp`, spelled here as lisp.h spells it).
+  owed to the mirror round, `## Owed` 1) and `FUNCTIONP` (lisp.h's inline predicate over
+  `Ffunctionp`, spelled here as lisp.h spells it).  `g_signal_connect` is **not** in that list:
+  it is GLib's macro and `include/gtk.rs` carries it (`## Findings` 1).
 
 ## C line ranges
 
@@ -63,6 +63,18 @@ reference has no `src/gfilenotify.h`), so the table covers C 1-336.
 | 298-305 | `globals_of_gfilenotify` (C 301-303's `#if ! GLIB_CHECK_VERSION (2, 36, 0)`) | file gate + `glib_check_version_lt_2_36` (both arms carried, P-51) |
 | 307-336 | `syms_of_gfilenotify` (twelve `DEFSYM`s, `staticpro`, `Fprovide`) | file gate |
 
+## Findings
+
+1. **The reference has no `g_signal_connect` symbol, and the port's first edition declared one.**
+   C 219's `g_signal_connect (monitor, "changed", …)` is GLib's *macro* (gsignal.h 554-556:
+   `#define g_signal_connect(instance, detailed_signal, c_handler, data) g_signal_connect_data
+   (…, NULL, (GConnectFlags) 0)`), so the reference program calls `g_signal_connect_data` and
+   nothing else.  `tools/check-mirror-dupes.py` failed the tree over the in-unit
+   `unsafe extern "C" { fn g_signal_connect … }` this ledger's first edition had put at C 219's
+   position (a second spelling of what `include/gtk.rs` already carries as the macro); the fix is
+   C's own spelling - the call goes through the mirror's `g_signal_connect!`, and `nm` on the
+   flipped rlib shows `U _g_signal_connect_data` and no `_g_signal_connect` (status 3.486).
+
 ## Evidence
 
 - frozen `build-tu src/gfilenotify.c` -> exit 0, `build/femacs/gfilenotify.o` **336 bytes** (the
@@ -72,6 +84,11 @@ reference has no `src/gfilenotify.h`), so the table covers C 1-336.
   -> **exit 0, 0 errors, 19 warnings, a 13,070,856-byte rlib**.  The warnings are the house
   classes (`unnecessary parentheses` around the C's parenthesised conditions, `unused doc comment`
   on the `extern` blocks); none is in the unit's own statements' semantics.
+- **re-run after the `g_signal_connect` fix (status 3.486)**: the same flip -> **exit 0, 0 errors,
+  18 warnings, a 13,069,752-byte rlib**; `nm` on that rlib is `U _g_signal_connect_data` with no
+  `_g_signal_connect` at all - the emitted reference is C's own macro expansion;
+  `python3 tools/check-mirror-dupes.py` -> **17 duplicate declaration(s), 17 ratchet row(s),
+  0 failure(s)**.
 - **clang measurements** (`/opt/homebrew/include/glib-2.0`, GIO 2.90.0):
   `G_FILE_MONITOR_EVENT_*` = 0..7 in declaration order (CHANGED 0, CHANGES_DONE_HINT 1,
   DELETED 2, CREATED 3, ATTRIBUTE_CHANGED 4, PRE_UNMOUNT 5, UNMOUNTED 6, MOVED 7);
@@ -107,9 +124,6 @@ reference has no `src/gfilenotify.h`), so the table covers C 1-336.
    (value 28 for this configuration).
 2. **The `<gio/gio.h>` surface**: if a second consumer appears, move the in-unit section into
    `include/gio.rs` in the same commit (P-88 ⑤).
-3. **`GCallback`'s cast shape**: `G_CALLBACK!` (include/gtk.rs) and this file's `g_signal_connect`
-   declaration are the port's reading of C's `(GCallback)` cast; the *variadic* sibling is in the
-   mirror and the two are not unified yet.
 
 ## Not claimed
 

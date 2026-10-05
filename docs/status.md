@@ -9092,3 +9092,36 @@
   ⑧ **预算**：`probe` **4 发**（首轮 28 错 → 11 错 → 1 错 → exit 0，每发都对应一次真实缺陷修复）、
   `build-tu` **1 发**、`check-all-units.sh` 1 发；`/tmp/femacs-gf` 收工删除；三条 lane（sqlite、gnutls 片 1、
   androidfns 片 1）仍在飞。
+
+- **3.486 `g_signal_connect` 的镜像重复与两条棘轮陈行一并结案，`check-mirror-dupes` 回到 0（2026-10-05）**：
+  ① **三笔失败都不是本轮新造的，是前两轮落下的账**：3.485 之后 `check-mirror-dupes` 的读数是
+     **18 duplicate / 19 ratchet row / 3 failure**——⑴ `FAIL femacs/src/gfilenotify.rs: g_signal_connect is
+     already declared by femacs/src/include/gtk.rs (in the include graph)`：3.485 落地的单元在 C 219 位置
+     自造了一条 `unsafe extern "C" { fn g_signal_connect … }`，而参照的 `g_signal_connect` **不是一个函数**——
+     它是 GLib 的宏（`gsignal.h` 554-556：`#define g_signal_connect(instance, detailed_signal, c_handler,
+     data) g_signal_connect_data (…, NULL, (GConnectFlags) 0)`），`include/gtk.rs` 早按宏携带
+     （`macro_rules! g_signal_connect`，体内自带 `G_CALLBACK!`）；⑵⑶ `STALE femacs/lib/euidaccess.rs: getgid /
+     getegid from femacs/lib/include/unistd.in.rs is gone - drop the row`：3.483 把那两个名字在 `windowsnt`
+     下掩给 `ntlib.rs` 之后，棘轮里属于它们的两行成了陈行。
+  ② **处置**：⑴ 单元里那条假入口点连同它的 doc 注释删掉，调用点改成镜像的宏 `g_signal_connect!`（C 219 的
+     `(GCallback)` cast 由宏自己承担，这一点写进注释与台账 `## Findings` 1）；⑵ `docs/baseline/mirror-dupes.tsv`
+     撤下 `getgid`/`getegid` 两行，`geteuid` 的**活命中**行原样保留（第一次撤行时我误伤了它，见 ④）。
+  ③ **读数（我自己跑的）**：⑴ 翻臂 `probe src/gfilenotify.rs … --cfg 'feature="have_gfilenotify"'`
+     → **exit 0 / 0 error / 18 warnings / rlib 13,069,752 字节**（3.485 同臂是 13,070,856 字节，差额来自删掉的那条
+     声明与注释）；⑵ `nm` 该 rlib → **`U _g_signal_connect_data`，全库没有 `_g_signal_connect`**——这正是参照 C 的
+     宏展开，所以这条修正不只是过门，是把符号改对了；⑶ `check-mirror-dupes` **17 duplicate / 17 ratchet /
+     0 failure**；⑷ `extract-abi --check emacs/src/gfilenotify.c femacs/src/gfilenotify.rs` → **OK**（0 条 `-` 行）；
+     `check-citations` 676 文件 / 0 drift、`check-declarations` 10 declaration sites / 0 forbidden / 0 failures、
+     `check-dead-file-coverage` **56 绑定 / 0 failure**、`check-ledger-ticks` 234 / 0。
+  ④ **自造缺陷一条（如实记）**：撤棘轮行时我按 `gete` 前缀匹配，把**活命中** `geteuid` 的行也撤了，复跑立刻报
+     `FAIL … geteuid is already declared by … unistd.in.rs`（2 failures）；随后按原文本补回该行、只撤 `getgid`，
+     才回到 17/17/0。机械改共享棘轮文件必须按**完整行**匹配——这是本轮最小的教训。
+  ⑤ **点名归属（不在本轮做）**：`FILE_NOTIFY_EVENT` 的逐配置取值仍欠 `include/termhooks.rs`（`docs/ports/gfilenotify.md`
+     `## Owed` 1）；`<gio/gio.h>` 面按 P-88 ① 仍暂居单元内（`## Owed` 2：出现第二个消费者时同批进镜像）；
+     `include/gtk.rs` 那两条镜像内的边与六个消费单元自己拼的 `include/gtk.rs` 边仍是 3.484 记下的下一轮活。
+  ⑥ **未声称**：零运行证据（没有创建 `GFileMonitor`、没有事件、没有回调）；`nm` 只证明"引用的是哪个符号"，
+     不证明链接得上或行为一致；`glib_check_version_lt_2_36` 臂仍未编译过；本段不动逐字节复制树与 `docs/baseline/`
+     的实测表（除棘轮那两行）。
+  ⑦ **预算**：`probe` **1 发**（限 3）、`build-tu` **0 发**本段；未跑 `--all`/`gate-fast`/`cargo test`/
+     `check-all-units.sh`（本段改的是单元与棘轮，不是镜像）；`/tmp/femacs-sweep` 复用作 `CARGO_TARGET_DIR`，
+     只多出一只 `gfn.rlib`/`gfn.log`，收工前删。
