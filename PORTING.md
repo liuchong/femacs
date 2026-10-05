@@ -340,6 +340,35 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     **仍未覆盖的形状，量过是空的**：把宾语写在下一行（`… part of` / `<产品名>.`）这一种——六棵树里"上一行以
     `part of` 结尾"的行共 **153 对**，其中合并句是声明的 **0 对**。第十四半点名的另外两类（`test/` 的 653 处、
     手册成员句 108 处）不动，理由不变。
+    这条规则现在有第十六半（2026-10-06，status 3.679）：**"台账目录"这一面自己也有后缀界**。第一到第十五半
+    分别推到了被移植树、台账、本仓库散文、工具写出的身份行、程序的自我声明、照抄树的每一句话；而
+    `tools/check-declarations.py` 的台账走法是 `rglob("*.md")`——**同目录下的表格与代码草稿没有任何读者**：
+    `docs/ports/` 的 7 个 `.txt`、4 个 `.tsv` 与 1 个 `.rs`（`tools/emit-mirror.py` 写出的镜像草稿
+    `lisp-draft.rs`）既不在台账走法的后缀里，也不在散文/工具走法里，而**覆盖行从不打印这一界的规模**
+    （3.250/3.462 的同一形状，只是落在唯一没有自报边界的面上）。处置（只动门与那一行台账）：
+    ⑴ 台账面新增 `DOC_SUFFIXES = (".md", ".txt", ".tsv")` 与 `DOC_SRC_SUFFIXES = (".rs",)`：表格走散文
+    模型（一格是散文、不是字面量），草稿走源码模型（`literal` 类要进白名单）；⑵ 根 `.gitignore` 与
+    `LIFETIMES.tsv` 按名字进 `PROSE_FILES`，`docs/reviews/*.sha256` 由散文后缀表收下；⑶ 台账/散文两面的
+    **边界行现在会打印**，且每个后缀集合只在**自己那组目录**里生效（`.tsv` 在 `docs/ports/` 是"读到"、在
+    `docs/baseline/` 是"豁免"——全局判后缀会把后者误记成读过）。
+    读数：门 `17 declaration sites (0 forbidden, 17 allowed literals), 0 failures`（**不变**）、`--selftest`
+    **51 → 58 例 / 0 失败**、覆盖行新增 `read 618 ledger-scope file(s) (606 .md 7 .txt 4 .tsv 1 .rs)`、
+    `walked past 0 file(s) of an unscanned kind: none`、`left under a sanctioned prefix: 53 file(s)`
+    （`docs/baseline/` 的实测值、日志与验收记录，逐条点名而不是静默）。
+    这半量出**一处真漏网**（`docs/ports/excluded-macros.txt` 的 `NATIVE_NAME` 行）：它仍写着参照的 JNI 前缀
+    （`Java_org_<参照包名>_EmacsNative_##name`），并把本仓库的替换写成"definition site carries the C symbol
+    name"——而 `femacs/src/android.rs` 从第五半（3.503）起导出的就是**本仓库自己的类名**
+    `Java_org_femacs_EmacsNative_<name>`（`android.rs` 的 1,663/1,690/1,926 三处 `#[unsafe(export_name = …)]`
+    为证）。那一行既**陈述错误**（描述的端口写法与树里不符）又**带着产品名**，而它所在的文件对每一道门都
+    不可见，所以两件事都没人发现。改法：按树里的实况重写那一行（保留 C 的站点 `src/android.h` 344 与"Java
+    文件"这类路径说法），其余字段与机械字形不动；`tools/extract-abi.py --check emacs/src/android.c
+    femacs/src/android.rs` 的读数在改前改后**逐字节相同**（那张表只被名字/类别两列驱动）。
+    变异实测（判别力）：把那一行改回旧写法 ⇒ **HEAD 的读者报
+    `17 declaration sites (0 forbidden, 17 allowed literals), 0 failures`**（看不见），本半的读者报
+    `18 declaration sites (1 forbidden, 17 allowed literals), 1 failures`；给 `docs/ports/lisp-draft.rs`
+    加一行 `const P16: &CStr = c"<参照产品>";` ⇒ HEAD 的读者 `0 failures` 看不见，本半的读者报
+    `18 declaration sites (0 forbidden, 18 allowed literals), 1 failures`（`literal` 没有白名单行 ⇒ 必须失败）。
+    两处变异还原后，两端读者都回到 `17 / 0 / 17 / 0`。
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体

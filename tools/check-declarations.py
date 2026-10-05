@@ -49,9 +49,14 @@ exists to keep out:
            wherever it is written, so it belongs in docs/status.md and the
            file's ledger, never in the ported unit (status 3.90, 3.100).
 
-`docs/ports/*.md` - the per-unit ledgers - are scanned too, for the `decl`,
-`version` and `title` classes (`recital` never: a ledger is the *sanctioned* home
-for a licence remark, status 3.90/3.100).  A ledger quotes C, so it is exactly
+`docs/ports/` - the per-unit ledgers - is scanned too, for the `decl`, `version`
+and `title` classes (`recital` never: a ledger is the *sanctioned* home for a
+licence remark, status 3.90/3.100).  That walk was `rglob("*.md")` until the
+sixteenth half (status 3.679), so the tables that sit beside the ledgers (`.txt`,
+`.tsv`) and the one `.rs` code draft `tools/emit-mirror.py` writes there were read
+by nobody - and no coverage line named that bound, which is the 3.250 failure shape
+in the one scope that had no printed bound of its own.  The tables take the prose
+model (a cell is prose, not a literal), the draft the source model.  A ledger quotes C, so it is exactly
 where the reference's opening block or its version parenthetical can come back
 without a ported unit ever carrying it; 3.100 found `lib-src/hexl.rs` doing that
 in a tree no gate read, and a ledger is that tree's successor.
@@ -67,6 +72,11 @@ unchanged.  One file is exempt by class: `tools/check-declarations.py` is the ru
 table, so `literal` is the pattern it has to write down and `version` is the form it
 exists to find - being notation, not a statement about this repository, while `decl`,
 `title` and `recital` still bind it.
+
+Three of this repository's own files are read by name for the same reason (status
+3.679): `LIFETIMES.tsv` and `.gitignore` sit at the root, where no `PROSE_DIRS`
+walk reaches, and `docs/reviews/*.sha256` is a record whose header is our prose,
+so the prose suffix set gained `.sha256`.
 
 This repository's own prose is a scope of its own (status 3.340).  The walk above is
 bounded by *suffix* over the ported trees and by `DOC_DIRS` over the ledgers, so the
@@ -134,12 +144,25 @@ RECITAL_TREES = SCAN_DIRS[:-1]
 # product name is prose in this tree, not ported semantics - the ported unit is where the
 # literal lives and where it is allowlisted.
 DOC_DIRS = ("docs/ports",)
+# The ledger walk bound *two* suffixes from the first round (`rglob("*.md")`), and the
+# file kinds it left are the ones this scope could not say it was reading (status 3.679).
+# The tables take the prose model - they have no literals, and a cell that names the
+# product is a `decl`/`version`/`title` the same way a ledger line is - while the one
+# `.rs` draft takes the source model, so a product-name literal in it is counted and
+# needs an allowlist row like any other.
+DOC_SUFFIXES = (".md", ".txt", ".tsv")
+DOC_SRC_SUFFIXES = (".rs",)
 DOC_CLASSES = ("decl", "version", "title")
 ALLOWLIST = REPO / "docs/baseline/declarations-allowlist.tsv"
 
 # This repository's own prose and manifests (status 3.340).  `PROSE_FILES` is named file by
 # file so a manifest that a walk would miss is still read; `PROSE_DIRS` is walked by suffix.
+# `.gitignore` and `LIFETIMES.tsv` are the two root files no walk reached (status 3.679):
+# the first has no suffix at all and the second is a table of this repository's own - both
+# are manifests of ours, so they are read by name rather than by a suffix that would have
+# to be invented for them.
 PROSE_FILES = ("README.md", "PORTING.md", "LICENSE", "femacs/README.md",
+               ".gitignore", "LIFETIMES.tsv",
                "femacs/Cargo.toml", "femacs/xtask/Cargo.toml", "femacs/rust-toolchain.toml",
                "femacs/Cargo.lock")
 # `spikes` is here for the reason the run's own last line exists (status 3.476): the tool walk
@@ -153,7 +176,9 @@ PROSE_DIRS = ("docs", "spikes")
 # name, for the reason in the docstring; `header_only` is what keeps the measured records below
 # the header out of the rule.
 BASELINE_PROSE = ("docs/baseline/l0-reference.txt", "docs/baseline/l1-reference.txt")
-PROSE_SUFFIXES = (".md", ".toml", ".lock")
+# `.sha256` is `docs/reviews/`'s record kind (status 3.679): a hash list whose header is
+# this repository's own prose.
+PROSE_SUFFIXES = (".md", ".toml", ".lock", ".sha256")
 PROSE_CLASSES = ("version", "title")
 # The sanctioned homes, each with the reason it is left out.  They are counted and named in the
 # run output so an exemption is a reading rather than a silence: the log quotes the user's
@@ -164,8 +189,9 @@ PROSE_CLASSES = ("version", "title")
 PROSE_EXEMPT = (
     ("docs/status.md", "the running log: quotes the instructions and the reference's output"),
     ("docs/acceptance.md", "records the reference program's own --version output as evidence"),
-    ("docs/baseline/", "measured values of the frozen reference build (the two acceptance "
-                       "goldens' own headers are read by name - BASELINE_PROSE)"),
+    ("docs/baseline/", "measured values of the frozen reference build (counted on the "
+                       "\"left under a sanctioned prefix\" line; the two acceptance goldens' "
+                       "own headers are read by name - BASELINE_PROSE)"),
     ("docs/ports/", "the per-unit ledgers (already the DOC_DIRS scope)"),
 )
 
@@ -454,6 +480,36 @@ def unread_files(root: Path) -> list[str]:
         for path in sorted((root / base).rglob("*")):
             if path.is_file() and path.suffix not in TOOL_SUFFIXES:
                 out.append(path.relative_to(root).as_posix())
+    # The ledger and prose scopes' bound, printed from 3.679 on: their walks bind a suffix
+    # set too, so a file of another kind under them was read by nobody *and* was named by no
+    # coverage line - `docs/ports/lisp-draft.rs` stood in that hole for the rule's whole
+    # history.  The sanctioned prefixes are subtracted by the caller, not here: this function
+    # reports what the walk passed over, and the run says which of it is an exemption.
+    seen = set(out)
+    for base in DOC_DIRS + PROSE_DIRS:
+        for path in sorted((root / base).rglob("*")):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root).as_posix()
+            if rel in PROSE_FILES or rel in seen:
+                continue
+            # Each scope's suffix set is scoped to its own directories: `.tsv` is read
+            # under `docs/ports/` (DOC_DIRS) and is *not* read under `docs/baseline/`
+            # (sanctioned), so a global suffix test would mark the second kind read when
+            # nothing reads it - the same silence this walk exists to break.
+            if (any(rel == d or rel.startswith(d + "/") for d in DOC_DIRS)
+                    and path.suffix in DOC_SUFFIXES + DOC_SRC_SUFFIXES):
+                continue
+            if (any(rel == d or rel.startswith(d + "/") for d in PROSE_DIRS)
+                    and path.suffix in PROSE_SUFFIXES):
+                continue
+            # `spikes/` is in both scopes; its 22 `.rs`/17 `.sh`/6 `.py`/6 `.c` members are
+            # the tool walk's (status 3.462), not this one's hole.
+            if (any(rel == t or rel.startswith(t + "/") for t in TOOL_DIRS)
+                    and path.suffix in TOOL_SUFFIXES):
+                continue
+            seen.add(rel)
+            out.append(rel)
     return out
 
 
@@ -558,6 +614,45 @@ def baseline_prose_findings(path: Path) -> list[tuple[str, str]]:
     return prose_findings_text(header_only(path.read_text(encoding="utf-8", errors="replace")))
 
 
+def doc_files(root: Path) -> list[tuple[str, Path]]:
+    """`(rel path, path)` for the ledger directory's files (status 3.679).
+
+    Both kinds: the ledgers and tables by `DOC_SUFFIXES`, the code drafts by
+    `DOC_SRC_SUFFIXES`.  The suffix set, not the directory name, is what decides whether a
+    file in a directory this gate claims to read is read at all - the 3.250/3.462 lesson,
+    applied to the one scope whose bound the run did not print.
+    """
+    out: list[tuple[str, Path]] = []
+    for base in DOC_DIRS:
+        for path in sorted((root / base).rglob("*")):
+            if path.is_file() and path.suffix in DOC_SUFFIXES + DOC_SRC_SUFFIXES:
+                out.append((path.relative_to(root).as_posix(), path))
+    return out
+
+
+def ledger_findings_text(text: str, suffix: str) -> list[tuple[str, str]]:
+    """`(class, line)` for one ledger-scope file body: the tables' prose model, the
+    drafts' source model (status 3.679)."""
+    out: list[tuple[str, str]] = []
+    if suffix in DOC_SRC_SUFFIXES:
+        code, comment = scan(text, suffix)
+        raw_lines = text.split("\n")
+        for line_no in range(max(len(code), len(comment))):
+            c = comment[line_no] if line_no < len(comment) else ""
+            k = code[line_no] if line_no < len(code) else ""
+            snippet = (" ".join(raw_lines[line_no].split())[:240]
+                       if line_no < len(raw_lines) else "")
+            klass = classify(k, c, recital=False)
+            if klass:
+                out.append((klass, snippet))
+        return out
+    for raw_line in text.split("\n"):
+        klass = classify("", raw_line, recital=False)
+        if klass in DOC_CLASSES:
+            out.append((klass, " ".join(raw_line.split())[:240]))
+    return out
+
+
 def findings(root: Path) -> list[tuple[str, str, str]]:
     """`(path, class, line)` for every declaration this gate knows about."""
     out: list[tuple[str, str, str]] = []
@@ -574,14 +669,10 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
             klass = classify(k, c, recital=not rel.startswith("femacs/xtask/"))
             if klass:
                 out.append((rel, klass, snippet))
-    for base in DOC_DIRS:
-        for path in sorted((root / base).rglob("*.md")):
-            rel = path.relative_to(root).as_posix()
-            text = path.read_text(encoding="utf-8", errors="replace")
-            for raw_line in text.split("\n"):
-                klass = classify("", raw_line, recital=False)
-                if klass in DOC_CLASSES:
-                    out.append((rel, klass, " ".join(raw_line.split())[:240]))
+    for rel, path in doc_files(root):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for klass, snippet in ledger_findings_text(text, path.suffix):
+            out.append((rel, klass, snippet))
     for rel, path in prose_files(root)[0]:
         for klass, snippet in prose_findings(path):
             out.append((rel, klass, snippet))
@@ -784,6 +875,23 @@ SELFTEST_TOOL = (
 )
 
 
+# The ledger scope's other kinds (status 3.679).  One case per reader the suffix selects:
+# the tables' three classes and the draft's source model, plus the provenance note that must
+# stay a note - if the walk or the dispatch were dropped, the first four would come back empty.
+SELFTEST_LEDGER = (
+    ("a table row carrying the copied title", ".tsv",
+     "# This file is part of GNU Emacs.\n", ["title"]),
+    ("a table row carrying the removed version form", ".txt",
+     "# femacs: port of src/x.c @ fd7afced403 (GNU Emacs 32.0.50).\n", ["version"]),
+    ("a table row carrying the ownership prose", ".tsv",
+     "C 1: GNU Emacs is free software: you can redistribute it.\n", ["decl"]),
+    ("a draft's product-name literal", ".rs",
+     'const P: &CStr = c"GNU Emacs";\n', ["literal"]),
+    ("a draft's provenance note is not a version line", ".rs",
+     "// femacs: port of src/lisp.h @ fd7afced403.\n", []),
+)
+
+
 def selftest() -> int:
     bad = 0
     for name, source, want in SELFTEST:
@@ -816,6 +924,11 @@ def selftest() -> int:
         ok = got == sorted(want)
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
         bad += 0 if ok else 1
+    for name, suffix, source, want in SELFTEST_LEDGER:
+        got = sorted({k for k, _ in ledger_findings_text(source, suffix)})
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
     for leader, source, want_code, want_comment in SELFTEST_ASM_SPLIT:
         code, comment = scan(source + "\n", ".s")
         ok = code[0].strip() == want_code.strip() and comment[0] == want_comment
@@ -823,7 +936,8 @@ def selftest() -> int:
               f"code={code[0]!r} comment={comment[0]!r}")
         bad += 0 if ok else 1
     total = (len(SELFTEST) + len(SELFTEST_DOC) + len(SELFTEST_PROSE) + len(SELFTEST_ASM)
-             + len(SELFTEST_ASM_SPLIT) + len(SELFTEST_BASELINE) + len(SELFTEST_TOOL))
+             + len(SELFTEST_ASM_SPLIT) + len(SELFTEST_BASELINE) + len(SELFTEST_TOOL)
+             + len(SELFTEST_LEDGER))
     print(f"{total} cases, {bad} failures")
     return 1 if bad else 0
 
@@ -857,6 +971,7 @@ def main() -> int:
     read = scanned_files(root)
     skip = unread_files(root)
     prose, exempt = prose_files(root)
+    doc = doc_files(root)
     tool = tool_files(root)
     _, tool_left = tool_findings(root)
     by_suffix: dict[str, int] = {}
@@ -898,6 +1013,11 @@ def main() -> int:
         kinds[path.suffix or "(no suffix)"] = kinds.get(path.suffix or "(no suffix)", 0) + 1
     span = " ".join(f"{n} {ext}" for ext, n in sorted(kinds.items(), key=lambda kv: -kv[1]))
     print(f"read {len(prose)} own prose/manifest file(s) ({span})")
+    dkinds: dict[str, int] = {}
+    for _, path in doc:
+        dkinds[path.suffix] = dkinds.get(path.suffix, 0) + 1
+    dspan = " ".join(f"{n} {ext}" for ext, n in sorted(dkinds.items(), key=lambda kv: -kv[1]))
+    print(f"read {len(doc)} ledger-scope file(s) ({dspan})")
     print(f"read {len(BASELINE_PROSE)} baseline header(s) by name "
           f"({', '.join(BASELINE_PROSE)}), records below the header left to the exemption")
     if exempt:
@@ -915,11 +1035,19 @@ def main() -> int:
     # The bound the walk prints last: `skip` is what the *suffix* walk passed over, and a
     # file the prose scope reads is no longer part of that hole (3.340 closed its one member,
     # `femacs/xtask/Cargo.toml`), so the line stays printed with the count it now reads.
-    covered = {rel for rel, _ in prose}
-    rest = [s for s in skip if s not in covered]
+    covered = {rel for rel, _ in prose} | {rel for rel, _ in doc}
+    sanctioned = tuple(prefix for prefix, _ in PROSE_EXEMPT)
+    sanctioned_left = [s for s in skip
+                       if any(s == p or s.startswith(p) for p in sanctioned)]
+    rest = [s for s in skip if s not in covered and s not in sanctioned_left]
     print(f"walked past {len(rest)} file(s) of an unscanned kind: "
           + (", ".join(sorted(rest)[:8]) + (" ..." if len(rest) > 8 else "") if rest else "none")
-          + (f" ({len(skip) - len(rest)} of them read above)" if len(rest) != len(skip) else ""))
+          + (f" ({len(skip) - len(rest) - len(sanctioned_left)} of them read above)"
+             if len(rest) != len(skip) - len(sanctioned_left) else ""))
+    if sanctioned_left:
+        print(f"left under a sanctioned prefix (the log, the acceptance record, the "
+              f"reference's measured values - not a hole): {len(sanctioned_left)} file(s) "
+              f"- e.g. {sorted(sanctioned_left)[0]}")
     return 1 if failures else 0
 
 
