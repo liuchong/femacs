@@ -684,9 +684,9 @@ pub mod haiku_support_decls {
     pub fn EmacsWindow_unparent (arg0: *mut c_void);
     pub fn EmacsWindow_move_weak_child (arg0: *mut c_void, arg1: *mut c_void, arg2: c_int, arg3: c_int);
     pub fn be_get_version_string (arg0: *mut c_char, arg1: c_int);
-    pub fn be_get_display_planes ();
-    pub fn be_get_display_color_cells ();
-    pub fn be_is_display_grayscale ();
+    pub fn be_get_display_planes () -> c_int;   // C 689: `extern int be_get_display_planes (void);`
+    pub fn be_get_display_color_cells () -> c_int;   // C 690: `extern int …`
+    pub fn be_is_display_grayscale () -> bool;   // C 691: `extern bool …`
     pub fn be_warp_pointer (arg0: c_int, arg1: c_int);
     pub fn haiku_should_pass_control_tab_to_system ();
     pub fn EmacsView_set_up_double_buffering (arg0: *mut c_void);
@@ -697,11 +697,11 @@ pub mod haiku_support_decls {
     pub fn BMenuBar_start_tracking (arg0: *mut c_void) -> bool;
     pub fn BBitmap_bytes_length (arg0: *mut c_void) -> size_t;
     pub fn BMenu_add_title (arg0: *mut c_void, arg1: *const c_char);
-    pub fn be_plain_font_height ();
+    pub fn be_plain_font_height () -> c_int;   // C 723: `extern int …`
     pub fn be_string_width_with_plain_font (arg0: *const c_char) -> c_int;
     pub fn be_init_font_data ();
     pub fn be_evict_font_cache ();
-    pub fn be_get_display_screens ();
+    pub fn be_get_display_screens () -> c_int;   // C 727: `extern int …`
     pub fn be_use_subpixel_antialiasing ();
     pub fn be_find_setting (arg0: *const c_char) -> *const c_char;
     pub fn be_list_font_families (arg0: *mut size_t) -> *mut haiku_font_family_or_style;

@@ -471,7 +471,7 @@ pub mod haikuterm_decls {
     pub fn haiku_clear_under_internal_border (arg0: *mut frame);
     pub fn haiku_set_name (arg0: *mut frame, arg1: Lisp_Object, arg2: bool);
     pub fn haiku_message_to_lisp (arg0: *mut c_void) -> Lisp_Object;
-    pub fn haiku_term_init ();
+    pub fn haiku_term_init () -> *mut haiku_display_info;   // C haikuterm.h 321
     pub fn mark_haiku_display ();
     pub fn haiku_get_color (arg0: *const c_char, arg1: *mut Emacs_Color) -> c_int;
     pub fn haiku_set_background_color (arg0: *mut frame, arg1: Lisp_Object, arg2: Lisp_Object);

@@ -2057,38 +2057,9 @@ macro_rules! flush_frame {
 }
 
 
-/// The eight mirror-carried prototypes whose mirrored copies carry no return type.  A module-local
-/// declaration is a different scope for `check-mirror-dupes.py` (P-26/P-39), and the named `use`
-/// below keeps C's call sites unqualified.
-#[cfg (feature = "have_haiku")]
-mod haikufns_mirror_fixes {
-  use super::*;
-
-  unsafe extern "C" {
-    /// C: haiku_support.h 689: `extern int be_get_display_planes (void);`
-    pub fn be_get_display_planes () -> c_int;
-    /// C: haiku_support.h 690: `extern int be_get_display_color_cells (void);`
-    pub fn be_get_display_color_cells () -> c_int;
-    /// C: haiku_support.h 691: `extern bool be_is_display_grayscale (void);`
-    pub fn be_is_display_grayscale () -> bool;
-    /// C: haiku_support.h 699: `extern int EmacsView_double_buffered_p (void *);`
-    pub fn EmacsView_double_buffered_p (view: *mut c_void) -> c_int;
-    /// C: haiku_support.h 723: `extern int be_plain_font_height (void);`
-    pub fn be_plain_font_height () -> c_int;
-    /// C: haiku_support.h 724: `extern int be_string_width_with_plain_font (const char *);`
-    pub fn be_string_width_with_plain_font (text: *const c_char) -> c_int;
-    /// C: haiku_support.h 727: `extern int be_get_display_screens (void);`
-    pub fn be_get_display_screens () -> c_int;
-    /// C: haikuterm.h 321: `extern struct haiku_display_info *haiku_term_init (void);` - the
-    /// mirror `include/haikuterm.rs` 449 declares it returning `()`.
-    pub fn haiku_term_init () -> *mut haiku_display_info;
-  }
-}
-#[cfg (feature = "have_haiku")]
-use haikufns_mirror_fixes::{be_get_display_planes, be_get_display_color_cells,
-                            be_is_display_grayscale, EmacsView_double_buffered_p,
-                            be_plain_font_height, be_string_width_with_plain_font,
-                            be_get_display_screens, haiku_term_init};
+/* (status 3.545) the eight prototypes this unit used to re-declare in a module-local block
+   are the mirror's now, with C's return types (`include/haiku_support.rs` 689-727 and
+   `include/haikuterm.rs` 474); the workaround and its named `use` are gone.  */
 
 /* C: dispextern.h 291-294: the text-position setters C 2590 expands (`BYTEPOS`/`CHARPOS`/
    `SET_TEXT_POS`).  `include/dispextern.rs` keeps them inside its `dispextern_unit_names`

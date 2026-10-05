@@ -10708,3 +10708,25 @@
   ⑥ **预算实报**：lane 侧 `build-tu` **3** 发（1 次失败 + 2 次相同读数）、`probe` **3** 发（全部用在前两次修订，
      终稿的四组臂读数是 `/tmp` 复现），它自己报了；集成者：生成物 3 发、门 4 发、`extract-abi --check` 1 发；
      未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.545 镜像轮第十九批：Haiku 的八个原型在镜像里带上 C 的返回类型，单元里的临时块退休（2026-10-05）**：
+  ① **对象**：`haikufns` lane 点名 **八个原型在镜像里丢了返回类型**——`include/haiku_support.rs` 的
+     `be_get_display_planes` / `be_get_display_color_cells` / `be_plain_font_height` / `be_get_display_screens`
+     （C 689/690/723/727 都返回 `int`）、`be_is_display_grayscale`（C 691 返回 **`bool`**），以及
+     `include/haikuterm.rs` 的 `haiku_term_init`（C haikuterm.h 321 返回 `struct haiku_display_info *`）；
+     该单元当时用一个 **module-local 块 + 具名 `use`** 顶上（它自己的注释写明这是 P-26/P-39 的 scope 手法，
+     所以没被 `check-mirror-dupes` 抓）。
+  ② **改法**：镜像按**参照头文件**（本机就有，不需要 Haiku SDK）改正这六处（含 `-> bool`）；单元里那个
+     `haikufns_mirror_fixes` 模块与它的 `use` **撤掉**（P-88 ⑤ 的"一个面一个家"）——`femacs/src/haikufns.rs`
+     净减 32 行。
+  ③ **读数（主判据 = 臂）**：`probe src/haikufns.rs`（`have_haiku` + `have_window_system` + `have_ext_menu_bar`）：
+     **1 错、单元自身 0 条**（那条是 `include/systime.rs` 28 的 `HAIKU` 断言），**与搬移前逐字相同**——这正是
+     "镜像的签名已经对了"的**证明**：若返回类型仍错，单元的调用点会立刻报 `E0308`。
+     `extract-abi --check emacs/src/haikufns.c femacs/src/haikufns.rs` 仍 **OK**；`check-all-units` **83 unit(s),
+     0 failure(s)**（两腿；这两处是**声明面**，冻结档根本不编 Haiku 单元，故冻结读数不动）、`check-citations`
+     0/0、`check-mirror-dupes` 17/17/0、`check-dead-file-coverage` 107/0。
+  ④ **未声称**：仍是**编译**读数；本机没有 Haiku SDK/工具链，返回类型来自参照头文件的文本（不是目标平台实测）；
+     `include/systime.rs` 28 那条**还没动**——它是"手设 cfg 必然触发"的机制项，忠实读法是 `xtask dead-arms`
+     把配置常量一起翻，而 `dead-arms` 会重编每个已落单元，所以我继续等这批 lane 收口后的安静窗口。
+  ⑤ **预算**：`probe` 3 发（两次是复读）、`check-all-units` 1 发、`check-citations` 2 发、`extract-abi --check` 2 发、
+     `check-mirror-dupes` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`；`/tmp/hkf545` 收工删。
