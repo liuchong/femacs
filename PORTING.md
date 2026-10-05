@@ -203,6 +203,25 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     **一条点名的表面缺口**：`tools/check-declarations.py` 的 `PRODUCT` 表收的是产品名与注册名的**可读形态**，
     `SOFTWARE\GNU\Emacs` 与 `GNUEmacs_PlaySound_Device` 这两种**路径/别名片段**不在表里，因此它们不会出现在
     它报告的站点列表里（2026-10-05 的读数是 18 条）——这是**已知且点名**的（用"没有命中"冒充"不存在"
+    这条规则现在有第九半（2026-10-05，status 3.613）：**"本程序向外报出的身份"里剩下的那一半也改成本仓库自己的名字**。
+    第八半把"本程序默认叫什么"（默认显示名/帧名/帧标题）量清之后，字面量豁免表里还剩两类主语是"本程序"的行，本轮一次收口：
+    ⑴ **报缺陷的去处**——参照的实测 bug 地址（冻结 `config.h` 的 `PACKAGE_BUGREPORT`）正是本程序对用户说的"有 bug 请报到这里"，
+    照抄等于把用户送去参照产品的邮件列表，本身也是一句"本程序是参照产品"的声明；本仓库真实的去处是自己的 issue 页，于是
+    **7 个站点**（`src/emacs.rs` 的身份常量、`--help` 里的那一句、`report-emacs-bug-address` 的 `DEFVAR_LISP` docstring、
+    `src/android.rs` 的宏、`lib-src/etags.rs` 的 `--help` 行、`lib-src/asset-directory-tool.rs` 的报错句、Kotlin 目标的
+    错误提示）都写成 `https://github.com/liuchong/femacs/issues`；参照的**实测值**仍原样留在 `docs/baseline/config/`
+    （那是关于参照的实测数据，第三半的范围不变）。⑵ **Haiku 的 bundle 签名**——它是操作系统把**正在运行的程序**登记在哪个名字下的那个值
+    （`BApplication` 的构造、写进可执行文件的签名、通知点击交给谁），照抄就是让本程序在 Haiku 上顶着参照的名字注册；四处
+    （`platform/haiku/{be_resources,haiku_select,haiku_support}.cc`）改成本仓库自己的 `application/x-vnd.femacs`。
+    **这四行是"逐字节携带"这条规则的第一个例外，而且必须是可读的例外**：`docs/baseline/carried-substitutions.tsv` 逐行记下
+    被替换的那一行与理由，`tools/check-carried.py` 读它——默认仍是逐字节相同，一行要不同就必须有行、有行就必被读（行错、行过时、
+    没有行却是差异，三种都失败）；读数 `11 carried file(s), 11 baseline row(s), 4 sanctioned substitution(s), 0 failure(s)`，
+    `--selftest` 9 例（含"把被替换的行改回参照的值"这一例）。**收口后字面量豁免表只剩一类不是自称**：许可方署名与许可正文
+    （`COPYRIGHT`、版本横幅里那句 GPL）——把它改成别的名字就是写一句假署名，所以它留着；读数 `check-declarations` 从
+    `17 allowed literals` 降到 **6**、`0 forbidden`、`0 failures`。
+    **仍然关不掉的一个洞（点名，不冒充"没有"）**：运行期 `M-x emacs-version` 打出的那行文本来自 `lisp/version.el` 的 `format`，
+    而 `lisp/` 是**逐字节照抄的六棵树**之一（`tools/check-verbatim.py` 逐字节守，goal 也这么要求）——那个名字因此在**参照的 elisp 正文**里，
+    要动它得先动"六棵树逐字节"这条规则；本半不动它，也不把它算作"已清"。
     是不允许的写法）。
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体

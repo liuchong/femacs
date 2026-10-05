@@ -1148,7 +1148,7 @@ unsafe extern "C" fn print_help (mut argbuffer: *mut argument) -> !
   print_language_names ();
 
   puts (c"".as_ptr ());
-  puts (c"Report bugs to bug-gnu-emacs@gnu.org".as_ptr ());
+  puts (c"Report bugs to https://github.com/liuchong/femacs/issues".as_ptr ());
 
   exit (EXIT_SUCCESS);
 }

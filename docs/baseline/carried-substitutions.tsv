@@ -1,0 +1,14 @@
+# The lines a carried file does not carry verbatim, one per line.
+# `tools/check-carried.py` pins the Kept and C++ classes to the reference's text, body byte
+# for byte; the default stays byte identity, and this table is the only way a line may differ.
+# Its subject is *this program's outward identity*: the Haiku bundle signature is the name the
+# OS registers the running program under, and the reference's value names the reference product
+# (PORTING.md 0.1-19's ninth half, status 3.613).  Columns:
+# <path>\t<line>\t<target line>\t<reason>.  `line` is the target file's own line number, so the
+# reference line it replaces is `removed_lines + line - 1` from `carried-files.tsv`; the check
+# reads the target line and the reason is what makes the row a reading rather than a hole.
+path	line	target	reason
+femacs/platform/haiku/be_resources.cc	68	  BApplication app ("application/x-vnd.femacs-resource-helper");	this program's Haiku bundle signature, the name the OS registers the resource helper under; it named the reference product before 3.613 and the `.cc` body is otherwise byte-identical
+femacs/platform/haiku/be_resources.cc	141	  info.SetSignature ("application/x-vnd.femacs");	the signature written into the built executable (BAppFileInfo), i.e. this program's own name in the OS registry
+femacs/platform/haiku/haiku_select.cc	640	  notification.SetOnClickApp ("application/x-vnd.femacs");	the application a notification click is handed to - this program, not the reference product
+femacs/platform/haiku/haiku_support.cc	601	  Emacs (void) : BApplication ("application/x-vnd.femacs"),	the BApplication constructor of the port's Haiku support object: the registration name of the running program

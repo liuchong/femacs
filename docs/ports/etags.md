@@ -484,3 +484,10 @@ reappear.  They are owed note rows (see the end of this file), not port work.
 banner literal C builds from it (`"etags (" PACKAGE_NAME " " PACKAGE_VERSION ")\n" COPYRIGHT`)
 follows that value; the frozen configuration's measured value stays in `docs/baseline/config/`
 (PORTING.md 0.1-19's name half).  The banner's shape, the version number and `COPYRIGHT` are C's.
+
+## 2026-10-05: the `--help` bug line is this repository's own (status 3.613)
+
+`main`'s `--help` ends with "Report bugs to ...", which is this program speaking to its user, so
+the line now spells this repository's issue page (PORTING.md 0.1-19's ninth half).  The banner,
+`COPYRIGHT` and the rest of the `--help` text are C's; the frozen configuration's measured address
+stays in `docs/baseline/config/`.

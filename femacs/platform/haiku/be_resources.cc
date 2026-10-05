@@ -65,7 +65,7 @@ be_perror (status_t code, char *arg)
 int
 main (int argc, char **argv)
 {
-  BApplication app ("application/x-vnd.GNU-emacs-resource-helper");
+  BApplication app ("application/x-vnd.femacs-resource-helper");
   BFile file;
   BBitmap *icon;
   BBitmap scale32 (BRect (0, 0, 31, 31), B_RGBA32, true);
@@ -138,7 +138,7 @@ main (int argc, char **argv)
 
   info.SetIcon (&scale16, B_MINI_ICON);
   info.SetIcon (&scale32, B_LARGE_ICON);
-  info.SetSignature ("application/x-vnd.GNU-emacs");
+  info.SetSignature ("application/x-vnd.femacs");
 
   v = strtok (v, ".");
   vinfo.major = atoi (v);

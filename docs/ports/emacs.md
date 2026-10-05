@@ -288,3 +288,13 @@ configuration's measured one, and `RCS_Id` spells it where C's literal carried t
 The measured value is a measurement of the reference build and stays in `docs/baseline/config/`
 (PORTING.md 0.1-19's name half).  Nothing else moved: the use sites, C's `printf` shapes, the
 `#[unsafe(no_mangle)]` on the object and the other `PACKAGE_*`/`COPYRIGHT` constants are C's.
+
+## 2026-10-05: the bug-report destination is this repository's own (status 3.613)
+
+`PACKAGE_BUGREPORT` is what this program tells its users to do with a bug, and the sentence C
+builds from it (`--help`'s "Report bugs to ...", `Vreport_emacs_bug_address`'s docstring, whose
+subject was the reference's mailing list) is a statement *by this program* -- so the constant now
+spells this repository's issue page, and the docstring says this program's own name.  The frozen
+configuration's measured address stays in `docs/baseline/config/` (a measurement of the reference
+build; PORTING.md 0.1-19's ninth half).  Nothing else moved: `emacs_bugreport`'s shape, the use
+sites, the `--help` array's other lines and `COPYRIGHT` are C's.

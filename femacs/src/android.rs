@@ -1405,7 +1405,7 @@ unsafe extern "C" {
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 macro_rules! PACKAGE_STRING { () => { "femacs 32.0.50" }; }
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-macro_rules! PACKAGE_BUGREPORT { () => { "bug-gnu-emacs@gnu.org" }; }
+macro_rules! PACKAGE_BUGREPORT { () => { "https://github.com/liuchong/femacs/issues" }; }
 /* C 1116-1117's two `case` labels need patterns; `case '/'` cannot be written `b'/' as c_char`
    (a Rust pattern holds no cast - the `data.rs` 2938 shape is a value site), so the character
    is the constant `config.h` 120 defines for it.  */

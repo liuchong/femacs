@@ -357,7 +357,7 @@ unsafe extern "C" {
    and `build/emacs-ref/src/config.h`).  */
 const PACKAGE_NAME: &CStr = c"femacs";
 const PACKAGE_VERSION: &CStr = c"32.0.50";
-const PACKAGE_BUGREPORT: &CStr = c"bug-gnu-emacs@gnu.org";
+const PACKAGE_BUGREPORT: &CStr = c"https://github.com/liuchong/femacs/issues";
 const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";
 const EMACS_CONFIGURATION: &CStr = c"aarch64-apple-darwin25.6.0";
 const EMACS_CONFIG_FEATURES: &CStr = c"PDUMPER";
@@ -610,7 +610,7 @@ abbreviation for a --option.
 Various environment variables and window system resources also affect
 the operation of Emacs.  See the main documentation.
 
-Report bugs to bug-gnu-emacs@gnu.org.  First, please see the Bugs
+Report bugs to https://github.com/liuchong/femacs/issues.  First, please see the Bugs
 section of the Emacs manual or the file BUGS.
 ",
 ];
@@ -2932,7 +2932,7 @@ pub unsafe fn syms_of_emacs ()
   Vemacs_version = build_string (emacs_version.as_ptr ());
 
   DEFVAR_LISP! (c"report-emacs-bug-address", Vreport_emacs_bug_address,
-	       "Address of mailing list for GNU Emacs bugs.  ");
+	       "Address of mailing list for femacs bugs.  ");
   Vreport_emacs_bug_address = build_string (emacs_bugreport.as_ptr ());
 
   DEFVAR_LISP! (c"dump-mode", Vdump_mode,

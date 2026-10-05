@@ -12443,3 +12443,42 @@
      每次 1 秒级）、链接尝试 ≈10 发（每次 ~10 秒）、`check-all-units.sh` 1 发、`layout-check` 1 发、`lldb` ≈10 次、
      `sample` 3 次；临时诊断（两处 `fprintf` 与一处 head_table 打印）**已全部删除**，`keyboard.rs` 已还原到 HEAD；
      `/tmp` 的临时件已清，`build/femacs/emacs` 与对象集保留（链接集要用）。
+
+- **3.613 版本声明的第九半：本程序"向外报出的身份"收口——报缺陷的去处与 Haiku 的 bundle 签名都改成本仓库自己的名字（2026-10-05）**：
+  ① **来源与判据**：用户的长期指令（"版本声明不要再说是 gnu emacs 了……**把之前的代码中的这种声明也去掉**"）经第五（3.433）、
+     第七（3.503）、第八半（3.599）逐面推进后，`docs/baseline/declarations-allowlist.tsv` 里剩下的 **17 行字面量**中，主语仍是"本程序"
+     的有两类：**报缺陷的去处**（参照的实测 bug 地址，`config.h` 的 `PACKAGE_BUGREPORT`）与 **Haiku 的 bundle 签名**（操作系统把正在运行的
+     程序登记在哪个名字下的那个值）；其余全是许可方署名与许可正文。判据不变——"这句话说的是谁"：这两类说的是**本程序**，所以它们改成本仓库的名字；
+     许可方署名说的是**许可方**，改它就是写一句假署名，留着。（上一轮把这两类挂在"下一句话的事"上，本轮就是那句话。）
+  ② **改动（11 处 / 6 个文件，逐行等长、行数不变，citation 行号不受影响）**：
+     ⑴ **报缺陷的去处 7 处** → `https://github.com/liuchong/femacs/issues`（本仓库真实的 issue 页）：
+     `femacs/src/emacs.rs` 360 的 `PACKAGE_BUGREPORT` 常量、405/613 的 `--help` 那句"Report bugs to …"、
+     2935 的 `report-emacs-bug-address` 的 `DEFVAR_LISP` docstring（"…for GNU Emacs bugs." → "…for femacs bugs."）、
+     `femacs/src/android.rs` 1408 的 `macro_rules! PACKAGE_BUGREPORT`、`femacs/lib-src/etags.rs` 1151 的 `--help` 行、
+     `femacs/lib-src/asset-directory-tool.rs` 301 的报错句、`femacs/platform/android/kotlin/EmacsNoninteractive.kt` 183 的错误提示。
+     参照的**实测值**仍原样留在 `docs/baseline/config/`（第三半的范围不变，那是关于参照的数据）。
+     ⑵ **Haiku bundle 签名 4 处** → `application/x-vnd.femacs`（`be_resources.cc` 68/141、`haiku_select.cc` 640、`haiku_support.cc` 601）。
+  ③ **"逐字节携带"的第一个例外，写成可读的例外**：`.cc` 由 `tools/check-carried.py` 钉成参照原文，所以这四行必须先有一条规则。
+     新增 `docs/baseline/carried-substitutions.tsv`（`<path>\t<line>\t<target line>\t<reason>`，4 行）：目标文件自己的行号 +
+     该行的文本 + 理由；`check_one` 逐行读它，被替换的行从逐字节比较里跳过，其余仍逐字节。**默认不变**：一行要不同就必须有行、
+     有行就必被读——行指错、行里的文本对不上、行过时（文件不在 map 里）、没有行却是差异，四种都失败。读数
+     `11 carried file(s), 11 baseline row(s), 4 sanctioned substitution(s), 0 failure(s)`；`--selftest` **9 例 / 0 失败**
+     （新增第 9 例"把被替换的行改回参照的值"：只有那一行失配，因为放进参照的值后正文反而与参照逐字节相同——两种读法都测到）。
+  ④ **规则落地**：`PORTING.md` 0.1-19 新增**第九半**（判据、11 处站点、携带文件例外的形状、收口后唯一剩下的非自称一类、
+     以及**点名关不掉的洞**）。`docs/baseline/declarations-allowlist.tsv` 删掉 11 行（表头重写，记第九半），
+     `17 → 6` 行。
+  ⑤ **读数（全部实测）**：⑴ `check-declarations` **`6 declaration sites (0 forbidden, 6 allowed literals), 0 failures`**、
+     `--selftest` **51 例 / 0 失败**；⑵ `check-carried` 上一行读数 + `--selftest` 9 例 0 失败；
+     ⑶ 其余七道文本门全绿：`check-mirror-dupes` 16/16/0、`check-citations` 676 文件/0 drift/0 range/36 allowed/0 stale、
+     `check-ledger-ticks` 238 绑定/0 failure、`check-dead-file-coverage` 145/0、`check-port-lines` 0/0/0/0、`check-target-names` 629 文件/591 目标/0 finding；
+     ⑷ 四对 `extract-abi --check`：`src/emacs.c` **OK**、`lib-src/etags.c` **OK**、`lib-src/asset-directory-tool.c` **OK**、
+     `src/android.c` 仍 **FAIL**——但**与本次改动无关**：把 HEAD 的 `android.rs` 取出来单跑，同一类读数就在（`Java_org_femacs_EmacsNative_*`
+     两个导出名按 JNI 命名规则被判"参照没有这个非 static 函数"，加 72.2% 行数漂移），是这条长期欠账，不在本件记功。
+  ⑥ **未声称**：本轮**一枚都没编译、一个程序都没跑**（`build-tu`/`probe`/`check-all-units`/`layout-check`/`check-link` 全 0 发）；
+     改的是**文本与门**，所以：⑴ `--help`、`report-emacs-bug-address`、etags 的 `--help` 从此与参照**不同**（与 3.413 记的版本横幅同类代价，
+     没有人运行过）；⑵ Haiku 的四处与 Kotlin 那处**本机没有 SDK/编译器**（P-86 的 `text-only` 档），只有文本读数；
+     ⑶ 静态门只说明"文件里不再有这个串"，不证明运行期不会从别处打出它——**那个洞就有一个，点名在这里**：`M-x emacs-version` 的文本来自
+     `lisp/version.el` 的 `format`，而 `lisp/` 属于逐字节照抄的六棵树（`check-verbatim` 守、goal 也这么要求），本轮**没有动它**，
+     也没有做"从可执行文件里 grep 那个名字"的运行期验收（本机唯一的可执行件是 3.611 链接出来的旧产物，尚未重链）。
+  ⑦ **预算**：`check-declarations` 4 发、`check-carried` 5 发（含自测与两轮修复）、其余六道文本门 6 发、`extract-abi` 5 发（含 HEAD 对照 1 发）、
+     `sed/grep` 若干；`build-tu` 0、`probe` 0、`/tmp` 0 残留（HEAD 对照用的 `/tmp/android_head.rs` 已删）。

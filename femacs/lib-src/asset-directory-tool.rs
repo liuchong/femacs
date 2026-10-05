@@ -298,7 +298,7 @@ unsafe fn main_2 (fd: c_int, tree: *mut directory_tree, offset: *mut size_t)
   if (*tree).offset != *offset
     {
       fprintf (stderr,
-	       c"asset-directory-tool: invalid offset: expected %tu, got %tu.\nPlease report this bug to bug-gnu-emacs@gnu.org, along\nwith an archive containing the contents of the java/install_temp directory.\n".as_ptr (),
+	       c"asset-directory-tool: invalid offset: expected %tu, got %tu.\nPlease report this bug to https://github.com/liuchong/femacs/issues, along\nwith an archive containing the contents of the java/install_temp directory.\n".as_ptr (),
 	       (*tree).offset, *offset);
       abort ();
     }

@@ -19,6 +19,13 @@ keeps true is the part that has to stay: the body.
     python3 tools/check-carried.py --selftest   # prove the readings fire
     python3 tools/check-carried.py --write      # rewrite docs/baseline/carried-files.tsv
 
+`docs/baseline/carried-substitutions.tsv` is the one way a body line may differ, and its
+subject is *this program's outward identity*: the Haiku bundle signature is the name the OS
+registers the running program under, and the reference's value names the reference product
+(PORTING.md 0.1-19's ninth half, status 3.613).  Columns `<path>\t<line>\t<target line>\t<reason>`;
+each row is read - the target's line `line` must be the recorded text - and a row for a file the
+map does not carry, or a difference with no row, is a failure.  The default stays byte identity.
+
 `docs/baseline/carried-files.tsv`, columns
 `<class>\\t<path>\\t<reference>\\t<ref_sha256>\\t<removed_lines>\\t<header>`:
 `ref_sha256` pins the reference's whole file, `removed_lines` is the number of reference
@@ -47,6 +54,9 @@ REPO = Path(__file__).resolve().parent.parent
 REFERENCE = REPO / "emacs"
 MAP = REPO / "docs/port-map.md"
 BASELINE = REPO / "docs/baseline/carried-files.tsv"
+# The lines whose text is this program's own name rather than the reference's (0.1-19's
+# ninth half).  Hand-written, with a reason per row; see the module docstring.
+SUBSTITUTIONS = REPO / "docs/baseline/carried-substitutions.tsv"
 # The two sections of the generated map this gate owns.
 CLASSES = ("Kept", "C++")
 # The origin line, in the file's own comment leader (`//` in the Swift/Kotlin and most C++
@@ -84,13 +94,30 @@ def read_baseline() -> dict[str, tuple[str, str, str, int, str]]:
     return rows
 
 
+def read_substitutions() -> dict[str, list[tuple[int, str, str]]]:
+    """`target -> [(line, target line, reason)]` for the sanctioned differences."""
+    rows: dict[str, list[tuple[int, str, str]]] = {}
+    if not SUBSTITUTIONS.is_file():
+        return rows
+    for raw in SUBSTITUTIONS.read_text(encoding="utf-8").splitlines():
+        if not raw.strip() or raw.startswith("#") or raw.startswith("path\t"):
+            continue
+        parts = raw.split("\t")
+        if len(parts) < 4 or not parts[1].strip().isdigit():
+            print(f"BAD ROW {SUBSTITUTIONS.name}: {raw!r}")
+            continue
+        rows.setdefault(parts[0], []).append((int(parts[1]), parts[2], parts[3]))
+    return rows
+
+
 def phrase_of(klass: str, reference: str, target: str) -> str:
     """`kept from` when the path is preserved, `port of` when it moves."""
     return "kept from" if target == f"femacs/{reference}" else "port of"
 
 
 def check_one(root: Path, klass: str, path: str, reference: str, ref_sha: str,
-              removed: int, header: str) -> list[str]:
+              removed: int, header: str,
+              substitutions: dict[str, list[tuple[int, str, str]]] | None = None) -> list[str]:
     """The readings for one row, as failure messages (empty when it holds)."""
     bad: list[str] = []
     ref = root / REFERENCE.name / reference
@@ -118,15 +145,29 @@ def check_one(root: Path, klass: str, path: str, reference: str, ref_sha: str,
         bad.append(f"{path}: first line is {target_lines[0]!r}, baseline says {header!r}")
     if removed < 0 or removed > len(ref_lines):
         return bad + [f"{path}: removed_lines {removed} is outside the reference"]
-    if target_lines[1:] != ref_lines[removed:]:
-        for i, (a, b) in enumerate(zip(target_lines[1:], ref_lines[removed:])):
-            if a != b:
-                bad.append(f"{path}: body line {i + 1} differs from {reference} "
-                           f"line {removed + i + 1}: {a[:60]!r} != {b[:60]!r}")
-                break
-        else:
-            bad.append(f"{path}: body is {len(target_lines) - 1} lines, the reference's "
-                       f"body from line {removed + 1} is {len(ref_lines) - removed}")
+    subs = read_substitutions() if substitutions is None else substitutions
+    allowed: set[int] = set()
+    for line_no, target_text, _reason in subs.get(path, ()):
+        i = line_no - 2                      # the body index of the target's line `line_no`
+        if i < 0 or line_no > len(target_lines):
+            bad.append(f"{path}: substitution line {line_no} is outside the file")
+            continue
+        got = target_lines[line_no - 1].decode("utf-8", "replace")
+        if got != target_text:
+            bad.append(f"{path}: substitution line {line_no} is {got!r}, "
+                       f"baseline says {target_text!r}")
+            continue
+        allowed.add(i)
+    body, want_body = target_lines[1:], ref_lines[removed:]
+    diff = next(((i, a, b) for i, (a, b) in enumerate(zip(body, want_body))
+                 if a != b and i not in allowed), None)
+    if diff is not None:
+        i, a, b = diff
+        bad.append(f"{path}: body line {i + 1} differs from {reference} "
+                   f"line {removed + i + 1}: {a[:60]!r} != {b[:60]!r}")
+    elif len(body) != len(want_body):
+        bad.append(f"{path}: body is {len(body)} lines, the reference's "
+                   f"body from line {removed + 1} is {len(want_body)}")
     return bad
 
 
@@ -160,6 +201,7 @@ def selftest() -> int:
     # One row of each class: the phrase rule is what the pair proves.
     rows = [next(r for r in map_rows() if r[0] == "Kept"),
             next(r for r in map_rows() if r[0] == "C++")]
+    cases_run = 0
     for klass, reference, target in rows:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -190,11 +232,26 @@ def selftest() -> int:
 
             # Removing the origin line fires twice, on purpose: the first line is no longer the
             # recorded header, *and* the body it left behind is shifted against the reference's.
+            def unreplace(r: Path, line_no: int) -> None:
+                """Put the reference's value back on a line a substitution row covers."""
+                lines = (r / target).read_bytes().split(b"\n")
+                lines[line_no - 1] = lines[line_no - 1].replace(b"femacs", b"GNU-emacs")
+                (r / target).write_bytes(b"\n".join(lines))
+
+            # The rows a file may carry (`carried-substitutions.tsv`).  They change two of the
+            # expectations below: removing the origin line shifts the body, so every sanctioned
+            # row stops matching as well (one reading each), and putting the reference's value
+            # back leaves the body *equal* to the reference, so only the row fires.
+            sub_rows = read_substitutions().get(target, ())
             cases = [("the carried file", lambda r: None, 0),
                      ("one body byte flipped", flip, 1),
-                     ("the origin line removed", unheader, 2),
+                     ("the origin line removed", unheader, 2 + len(sub_rows)),
                      ("the phrase of the other class", rephrase, 1)]
+            if sub_rows:
+                cases.append(("the sanctioned line put back",
+                              lambda r: unreplace(r, sub_rows[0][0]), 1))
             for name, mutate, want in cases:
+                cases_run += 1
                 mutate(root)
                 got = len(check_one(root, klass, target, reference, ref_sha, removed, header))
                 ok = got == want
@@ -203,7 +260,7 @@ def selftest() -> int:
                 shutil.copyfile(source / target, root / target)
                 shutil.copyfile(source / REFERENCE.name / reference,
                                 root / REFERENCE.name / reference)
-    print(f"{len(rows) * 4} cases, {bad} failures")
+    print(f"{cases_run} cases, {bad} failures")
     return 1 if bad else 0
 
 
@@ -221,6 +278,7 @@ def main() -> int:
     if args.write:
         return write_baseline(root)
     rows = read_baseline()
+    subs = read_substitutions()
     failures = 0
     wanted = map_rows()
     for klass, reference, target in wanted:
@@ -233,14 +291,19 @@ def main() -> int:
             print(f"FAIL {target}: baseline says {got_class} {got_ref}, the map says {klass} {reference}")
             failures += 1
             continue
-        for message in check_one(root, klass, target, reference, ref_sha, removed, header):
+        for message in check_one(root, klass, target, reference, ref_sha, removed, header, subs):
             print(f"FAIL {message}")
             failures += 1
     carried = {target for _, _, target in wanted}
     for target in sorted(set(rows) - carried):
         print(f"STALE {target}: a baseline row for a file the map does not carry")
         failures += 1
-    print(f"{len(carried)} carried file(s), {len(rows)} baseline row(s), {failures} failure(s)")
+    for target in sorted(set(subs) - carried):
+        print(f"STALE {target}: a substitution row for a file the map does not carry")
+        failures += 1
+    n_subs = sum(len(v) for v in subs.values())
+    print(f"{len(carried)} carried file(s), {len(rows)} baseline row(s), "
+          f"{n_subs} sanctioned substitution(s), {failures} failure(s)")
     return 1 if failures else 0
 
 

@@ -598,7 +598,7 @@ public:
   bool settings_valid_p;
   EmacsScreenChangeMonitor *monitor;
 
-  Emacs (void) : BApplication ("application/x-vnd.GNU-emacs"),
+  Emacs (void) : BApplication ("application/x-vnd.femacs"),
 		 settings_valid_p (false)
   {
     BPath settings_path;

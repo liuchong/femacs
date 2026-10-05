@@ -78,3 +78,10 @@ empty (measured: a 336-byte object).
   was never produced or read (see `docs/status.md` 3.450).
 * The arm's 17 warnings are all in the included mirrors (`unistd.in.rs`'s runtime-`read`/`write` lint
   and the `unused doc comment` pair), which the mirror round owns.
+
+## 2026-10-05: the message's bug address is this repository's own (status 3.613)
+
+The `fprintf` that reports a bad offset sends the user to a bug address, so the literal now spells
+this repository's issue page (PORTING.md 0.1-19's ninth half).  The rest of the message, its
+arguments and the `abort ()` are C's; the frozen configuration's measured address stays in
+`docs/baseline/config/`.

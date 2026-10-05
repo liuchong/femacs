@@ -180,7 +180,7 @@ class EmacsNoninteractive {
         System.err.println("This means that the Android platform changed,")
         System.err.println("and that Emacs needs adjustments in order to")
         System.err.println("obtain required system internal resources.")
-        System.err.println("Please report this bug to bug-gnu-emacs@gnu.org.")
+        System.err.println("Please report this bug to https://github.com/liuchong/femacs/issues.")
         e.printStackTrace()
 
         System.exit(1)

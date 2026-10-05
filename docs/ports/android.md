@@ -489,3 +489,10 @@ still a real compile; measured 3.503, `JAVA_TOOL_OPTIONS=-Xmx2g`).  The Rust sid
 this machine for the `have_android` arm (the mirror blockers of P-86 (7)), so its evidence is textual
 plus the descriptor-by-descriptor `grep`.  `PACKAGE_BUGREPORT` is untouched: the address is the
 reference's and points upstream (the 3.433 boundary).
+
+## 2026-10-05: `PACKAGE_BUGREPORT` is this repository's own (status 3.613)
+
+The macro is what the Android side tells a user with a bug, so it now spells this repository's
+issue page (PORTING.md 0.1-19's ninth half, which replaces the 3.433 boundary recorded above for
+this one constant).  The Kotlin target's own message moved with it; the frozen configuration's
+measured address stays in `docs/baseline/config/`.

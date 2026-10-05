@@ -637,7 +637,7 @@ be_display_notification (const char *title, const char *body,
      probably because arguments are only passed to applications if
      they are not yet running.  */
 #if 0
-  notification.SetOnClickApp ("application/x-vnd.GNU-emacs");
+  notification.SetOnClickApp ("application/x-vnd.femacs");
   notification.AddOnClickArg (BString ("-Notification,") += buffer);
 #endif /* 0 */
 
