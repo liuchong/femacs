@@ -7038,3 +7038,25 @@
      （3.401 三处、3.402 一处、3.407 三处在**上一片**的宏体里），已是这个项目里可复用的动作。
   ⑦ **未声称**：两腿都是类型检查级；棘轮量参照行数、port-map 的 57.0% 是行数比；§8 八条里仍只有第 5 条有判据与读数；
      镜像轮的翻臂对比是**名字解析级**（`font.rs` 的 `E0080` 与 haiku/android 的单元文本缺陷在被挡住的后面）。
+
+- **3.411 xdisp 第三十一轮：`display_line` 整函数（C 25864-26935，1,072 行）（2026-10-05）**：
+  ① **区间**：整函数一次落完，C 内**无任何 `#if`**（唯一预处理行是 C 26934 的 `#undef RECORD_MAX_MIN_POS`、无 Rust 位点）；
+     随函数落地 `RECORD_MAX_MIN_POS`（C 26105-26134，函数内 `do{…}while(false)` 语句宏 → 函数作用域 `macro_rules!`）、
+     `back_to_wrap:`/`at_end_of_line:` 两个标号与三个 `goto`。覆盖区间现为 **C 468-26935**；
+     **下一个活定义 = C 26937 `current-bidi-paragraph-direction`（DEFUN）**。
+  ② **行数**：`femacs/src/xdisp.rs` 24,435 → **25,692（+1,257）**；台账 3,220 → **3,364**；
+     勾选 `Functions 249/302`、合计 **345/415**；scaffold 12 → 11。
+  ③ **读数**：`build-tu` 3 发（第 3 发绿；如实记）→ 对象 **2,661,656 字节**（上轮 2,358,272），警告仍同样六条；
+     **`--check` `^- ` 77 → 77（退 `display_line` 与 `RECORD_MAX_MIN_POS` 两条 missing，进两条 `does not mention`）**，
+     集成者补 **2 行** `macro-body-notes` 后复读 **75**；**`--cfg enable_checking` 探针 exit 0 / 0 error**（本轮 5 条 `eassert!` 真的被编到）；
+     `nm` 新增 4 个 `t` 符号（`display_line` + 因此可达的 `find_row_edges`/`unproduce_glyphs`/`row_text_area_empty`）与 1 条
+     `U _prepare_desired_row`；`check-citations` 675/0/0、`check-declarations` 13/0/0、`check-carried` 11/11/0、
+     `check-ledger-ticks` 235/0。报告里的两条红（`check-dead-file-coverage` 2 failure）**落在别人在飞台账 `docs/ports/android.md`**。
+  ④ **集成者动作**：补 `macro-body-notes.tsv` 两行——`display_line`（`goto,uninit`：C 26331/26368 的两个 `goto` + C 26415 标号
+     → 旗标 + `break 'end_of_continued_line`；C 25870-25883 的 8 个 `UNINIT` → 零值，PORTING 1.5/2.2）与
+     `RECORD_MAX_MIN_POS`（`false`：`do{…}while(false)` 的收尾条件在 `macro_rules!` 里无对应物）。
+  ⑤ **未解决（点名）**：`prepare_desired_row`（dispextern.h 3917）应进镜像链（本单元按 P-72 规则 3 自持）；
+     台账待办 78 记下一条**烧掉的 scaffold 条目引用写错**（写的是 `dispextern.h 3595`，C 自己的前向声明是 **C 1167**）；
+     待办 79 记下 `dispextern.rs` 里 `dispextern_face_records` 门后的 `struct it` 与单元自有 `[u8; 12]` 臂**一旦开该门要一起重裁**。
+  ⑥ **未声称**：只声称"文本 1:1 + 冻结配置编过 + `enable_checking` 臂编过"；**不声称任何运行/显示正确性**
+     （没跑过重显示、没生成过 glyph matrix、`eassert!` 只被编译未求值）；两个 `goto` 的改写只声称"按读检查的语义等价"。

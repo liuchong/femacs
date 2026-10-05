@@ -886,6 +886,10 @@ unsafe extern "C" {
   /// glyph_matrix *, int, int, int);` (dispnew.c defines it).
   pub fn shift_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix, start: c_int,
                              end: c_int, dy: c_int);
+  /// C: dispextern.h 3917: `void prepare_desired_row (struct window *, struct glyph_row *,
+  /// bool);` (dispnew.c defines it; `display_line` at C 25906 is this unit's first use —
+  /// the mirror chain does not carry the prototype).
+  pub fn prepare_desired_row (w: *mut window, row: *mut glyph_row, mode_line_p: bool);
 }
 
 /* C 348-351: `termopts.h`'s two objects (that header has a mirror, but no unit `include!`s
@@ -1754,6 +1758,7 @@ pub const IT_GLYPH_NOT_AVAILABLE_P: u8 = 1 << 7;
 pub const IT_CONSTRAIN_ROW_ASCENT_DESCENT_P: u8 = 1 << 2; // byte 2217
 pub const IT_LINE_NUMBER_PRODUCED_P: u8 = 1 << 3;
 pub const IT_ALIGN_VISUALLY_P: u8 = 1 << 4;
+pub const IT_STARTS_IN_MIDDLE_OF_CHAR_P: u8 = 1 << 0;    // byte 2217
 pub const IT_BIDI_P: u8 = 1 << 4;                         // byte 2614
 
 macro_rules! it_bits {
@@ -1847,6 +1852,52 @@ macro_rules! it_bits {
   (align_visually_p, $it:expr, $v:expr) => {
     (*$it).bits2 [1] = ((*$it).bits2 [1] & ! IT_ALIGN_VISUALLY_P)
                        | (if $v { IT_ALIGN_VISUALLY_P } else { 0 }) };
+  /* C 2691: `bool_bf starts_in_middle_of_char_p : 1;` — byte 2217 bit 0, the member
+     `display_line` reads (C 25911) and writes (C 26461).  */
+  (starts_in_middle_of_char_p, $it:expr) =>
+    { ((*$it).bits2 [1] & IT_STARTS_IN_MIDDLE_OF_CHAR_P != 0) };
+  (starts_in_middle_of_char_p, $it:expr, $v:expr) => {
+    (*$it).bits2 [1] = ((*$it).bits2 [1] & ! IT_STARTS_IN_MIDDLE_OF_CHAR_P)
+                       | (if $v { IT_STARTS_IN_MIDDLE_OF_CHAR_P } else { 0 }) };
+  /* C 2908-2929's four `unsigned` fringe members of the 96-bit `bits3` run (the measured
+     bytes 2604 … 2616): the two 16-bit bitmap numbers in bytes 0 and 2, the two 20-bit face
+     ids in bytes 4 and 8.  `display_line` is the first body to touch them (C 26872-26880).  */
+  (left_user_fringe_bitmap, $it:expr) => { it_bits3_get ($it, 0, 16) };
+  (left_user_fringe_bitmap, $it:expr, $v:expr) => { it_bits3_set ($it, 0, 16, $v) };
+  (right_user_fringe_bitmap, $it:expr) => { it_bits3_get ($it, 2, 16) };
+  (right_user_fringe_bitmap, $it:expr, $v:expr) => { it_bits3_set ($it, 2, 16, $v) };
+  (left_user_fringe_face_id, $it:expr) => { it_bits3_get ($it, 4, 20) };
+  (left_user_fringe_face_id, $it:expr, $v:expr) => { it_bits3_set ($it, 4, 20, $v) };
+  (right_user_fringe_face_id, $it:expr) => { it_bits3_get ($it, 8, 20) };
+  (right_user_fringe_face_id, $it:expr, $v:expr) => { it_bits3_set ($it, 8, 20, $v) };
+}
+
+/* `struct it`'s four `unsigned` fringe members (C 2908-2929) are stored little-endian in
+   the twelve bytes at 2604 (`bits3`): the two 16-bit fringe bitmap numbers in bytes 0 and
+   2, the two 20-bit face ids in bytes 4 and 8 (`bidi_p` follows the last of them in bit 4
+   of byte 10).  `BYTE` is the member's first byte, `WIDTH` its bit width, and the two
+   functions are C's `it->MEMBER` read and write: only the member's own bits change, as
+   C's bitfield assignment leaves the rest of the allocation unit alone (PORTING.md
+   1.3/P-80, the `glyph_row_bits_get`/`glyph_row_bits_set` shape).  */
+#[inline(always)]
+pub unsafe fn it_bits3_get (it: *const it, byte: usize, width: u32) -> c_int
+{
+  let mask: u32 = if width >= 32 { u32::MAX } else { (1u32 << width) - 1 };
+  let raw: u32 = ((*it).bits3[byte] as u32)
+    | (((*it).bits3[byte + 1] as u32) << 8)
+    | (((*it).bits3[byte + 2] as u32) << 16);
+  (raw & mask) as c_int
+}
+#[inline(always)]
+pub unsafe fn it_bits3_set (it: *mut it, byte: usize, width: u32, value: c_int)
+{
+  let mask: u32 = if width >= 32 { u32::MAX } else { (1u32 << width) - 1 };
+  let v: u32 = (value as u32) & mask;
+  (*it).bits3[byte] = (v & 0xff) as u8;
+  (*it).bits3[byte + 1] = ((v >> 8) & 0xff) as u8;
+  let hi_mask: u8 = (mask >> 16) as u8;
+  (*it).bits3[byte + 2] = ((*it).bits3[byte + 2] & ! hi_mask)
+    | (((v >> 16) as u8) & hi_mask);
 }
 
 /* C: dispextern.h 286-287, 291-294 and 2940-2943: the text-position accessors every
@@ -20815,7 +20866,7 @@ pub unsafe extern "C" fn try_window (window: Lisp_Object, pos: text_pos, flags: 
     {
       let last_row_scale: c_int = (*it.w).nrows_scale_factor;
       let last_col_scale: c_int = (*it.w).ncols_scale_factor;
-      if display_line (&raw mut it, cursor_vpos) != 0
+      if display_line (&raw mut it, cursor_vpos)
 	{ last_text_row = it.glyph_row.offset (-1); }
       if frame_bits! (fonts_changed, f)
 	  && !((flags & TRY_WINDOW_IGNORE_FONTS_CHANGE) != 0
@@ -21041,7 +21092,7 @@ try_window_reusing_current_matrix (w: *mut window) -> bool
 	    { break; }
 
 	  glyph_row_bits! (reversed_p, it.glyph_row, false);
-	  if display_line (&raw mut it, -1) != 0
+	  if display_line (&raw mut it, -1)
 	    { last_text_row = it.glyph_row.offset (-1); }
 
 	}
@@ -21235,7 +21286,7 @@ try_window_reusing_current_matrix (w: *mut window) -> bool
       last_text_row = core::ptr::null_mut ();
       while it.current_y < it.last_visible_y && !frame_bits! (fonts_changed, f)
         {
-	if display_line (&raw mut it, (*w).cursor.vpos) != 0
+	if display_line (&raw mut it, (*w).cursor.vpos)
 	  { last_text_row = it.glyph_row.offset (-1); }
         }
 
@@ -22157,7 +22208,7 @@ try_window_id (w: *mut window) -> c_int
 	 && (first_unchanged_at_end_row.is_null ()
 	     || IT_CHARPOS! (it) < stop_pos)
     {
-      if display_line (&raw mut it, -1) != 0
+      if display_line (&raw mut it, -1)
 	{ last_text_row = it.glyph_row.offset (-1); }
     }
 
@@ -22452,7 +22503,7 @@ try_window_id (w: *mut window) -> c_int
 	     enabled_p flag to false.  */
 	  SET_MATRIX_ROW_ENABLED_P! ((*w).current_matrix as *mut glyph_matrix,
 				     it.vpos, false);
-	  if display_line (&raw mut it, (*w).cursor.vpos) != 0
+	  if display_line (&raw mut it, (*w).cursor.vpos)
 	    { last_text_row_at_end = it.glyph_row.offset (-1); }
 	}
     }
@@ -24368,6 +24419,1215 @@ row_text_area_empty (row: *mut glyph_row) -> bool
   true
 }
 
+/* Construct the glyph row IT->glyph_row in the desired matrix of
+   IT->w from text at the current position of IT.  See dispextern.h
+   for an overview of struct it.  Value is true if
+   IT->glyph_row displays text, as opposed to a line displaying ZV
+   only.  CURSOR_VPOS is the window-relative vertical position of
+   the glyph row displaying the cursor, or -1 if unknown.  (C 25864-26935)  */
+
+unsafe fn
+display_line (it: *mut it, cursor_vpos: c_int) -> bool
+{
+  let row: *mut glyph_row = (*it).glyph_row;
+  /* C leaves `overlay_arrow_string` to the comma expression in the `if` below (C 26790);
+     Rust has no partially initialised locals (PORTING.md 1.5, deviation 1's rule).  */
+  let mut overlay_arrow_string: Lisp_Object = Qnil ();
+  /* C leaves the two iterator snapshots to `SAVE_IT` (PORTING.md 1.5, the
+     `move_it_in_display_line_to` shape).  */
+  let mut wrap_it: it = core::mem::zeroed ();
+  let mut prev_it: it = core::mem::zeroed ();
+  let mut wrap_data: *mut c_void = core::ptr::null_mut ();
+  let mut prev_data: *mut c_void = core::ptr::null_mut ();
+  let mut may_wrap: bool = false;
+  /* C's `UNINIT` (conf_post.h 369, the frozen `= {0,}`) is the port's 0 for each of the
+     eight scalars that carry it (PORTING.md 1.5, deviation 1's rule).  */
+  let mut wrap_x: c_int = 0;		/* UNINIT */
+  let mut wrap_row_used: c_int = -1;
+  let mut wrap_row_ascent: c_int = 0;	/* UNINIT */
+  let mut wrap_row_height: c_int = 0;	/* UNINIT */
+  let mut wrap_row_phys_ascent: c_int = 0;	/* UNINIT */
+  let mut wrap_row_phys_height: c_int = 0;	/* UNINIT */
+  let mut wrap_row_extra_line_spacing: c_int = 0;	/* UNINIT */
+  let mut wrap_row_min_pos: ptrdiff_t = 0;	/* UNINIT */
+  let mut wrap_row_min_bpos: ptrdiff_t = 0;	/* UNINIT */
+  let mut wrap_row_max_pos: ptrdiff_t = 0;	/* UNINIT */
+  let mut wrap_row_max_bpos: ptrdiff_t = 0;	/* UNINIT */
+  let mut wrap_face_id: c_int = 0;	/* UNINIT */
+  /* C leaves `prev_face_id` to the wrap block below; Rust cannot prove that read is
+     reached only after the write (PORTING.md 1.5, deviation 1's rule).  */
+  let mut prev_face_id: c_int = 0;
+  let mut cvpos: c_int;
+  let mut min_pos: ptrdiff_t = ZV! () + 1;
+  let mut max_pos: ptrdiff_t = 0;
+  let mut min_bpos: ptrdiff_t = 0;	/* UNINIT */
+  let mut max_bpos: ptrdiff_t = 0;	/* UNINIT */
+  let mut pending_handle_line_prefix: bool = false;
+  let tab_line: c_int = window_wants_tab_line ((*it).w) as c_int;
+  let header_line: c_int = window_wants_header_line ((*it).w) as c_int;
+  let hscroll_this_line: bool = (cursor_vpos >= 0
+				 && (*it).vpos == cursor_vpos - tab_line - header_line
+				 && hscrolling_current_line_p ((*it).w));
+  let first_visible_x: c_int = (*it).first_visible_x;
+  let last_visible_x: c_int = (*it).last_visible_x;
+  let mut x_incr: c_int = 0;
+  let mut this_line_subject_to_line_prefix: c_int = 0;
+
+  /* We always start displaying at hpos zero even if hscrolled.  */
+  eassert! ((*it).hpos == 0 && (*it).current_x == 0);
+
+  if (MATRIX_ROW_VPOS! (row, (*(*it).w).desired_matrix as *mut glyph_matrix) as c_int
+      >= (*((*(*it).w).desired_matrix as *mut glyph_matrix)).nrows)
+    {
+      (*(*it).w).nrows_scale_factor += 1;
+      frame_bits! (fonts_changed, (*it).f, true);
+      return false;
+    }
+
+  /* Clear the result glyph row and enable it.  */
+  prepare_desired_row ((*it).w, row, false);
+
+  (*row).y = (*it).current_y;
+  (*row).start = (*it).start;
+  (*row).continuation_lines_width = (*it).continuation_lines_width;
+  glyph_row_bits! (displays_text_p, row, true);
+  glyph_row_bits! (starts_in_middle_of_char_p, row,
+		   it_bits! (starts_in_middle_of_char_p, it));
+  it_bits! (starts_in_middle_of_char_p, it, false);
+  (*it).stretch_adjust = 0;
+  it_bits! (line_number_produced_p, it, false);
+
+  /* If we are going to display the cursor's line, account for the
+     hscroll of that line.  We subtract the window's min_hscroll,
+     because that was already accounted for in init_iterator.  */
+  if hscroll_this_line
+    {
+      x_incr =
+	((window_hscroll_limited ((*it).w, (*it).f) as ptrdiff_t
+	  - (*(*it).w).min_hscroll)
+	 * FRAME_COLUMN_WIDTH ((*it).f) as ptrdiff_t) as c_int;
+    }
+
+  let line_number_needed: bool = should_produce_line_number (it);
+
+  /* Move over display elements that are not visible because we are
+     hscrolled.  This may stop at an x-position < first_visible_x
+     if the first glyph is partially visible or if we hit a line end.  */
+  if (*it).current_x < (*it).first_visible_x + x_incr
+    {
+      let move_result: move_it_result;
+
+      this_line_min_pos = (*row).start.pos;
+      if hscroll_this_line
+	{
+	  (*it).first_visible_x += x_incr;
+	  (*it).last_visible_x  += x_incr;
+	}
+      if buffer_bits! (long_line_optimizations_p, current_buffer)
+	  && (*it).line_wrap == TRUNCATE
+	  && window_hscroll_limited ((*it).w, (*it).f) as ptrdiff_t > large_hscroll_threshold
+	{
+	  /* Special optimization for very long and truncated lines
+	     which are hscrolled far to the left: jump directly to the
+	     (approximate) position that is visible, instead of slowly
+	     walking there.  */
+	  let chars_to_skip: ptrdiff_t =
+	    ((*it).first_visible_x / FRAME_COLUMN_WIDTH ((*it).f)) as ptrdiff_t;
+	  move_result = fast_move_it_horizontally (it, chars_to_skip);
+
+	  if move_result == MOVE_X_REACHED
+	    { (*it).current_x = (*it).first_visible_x; }
+	  else	/* use arbitrary value < first_visible_x */
+	    { (*it).current_x = (*it).first_visible_x - FRAME_COLUMN_WIDTH ((*it).f); }
+	}
+      else
+	{
+	  move_result = move_it_in_display_line_to (it, ZV! (), (*it).first_visible_x,
+						    MOVE_TO_POS | MOVE_TO_X);
+	}
+      /* If we are under a large hscroll, move_it_in_display_line_to
+	 could hit the end of the line without reaching
+	 first_visible_x.  Pretend that we did reach it.  This is
+	 especially important on a TTY, where we will call
+	 extend_face_to_end_of_line, which needs to know how many
+	 blank glyphs to produce.  */
+      if (*it).current_x < (*it).first_visible_x
+	  && (move_result == MOVE_NEWLINE_OR_CR
+	      || move_result == MOVE_POS_MATCH_OR_ZV)
+	{
+	  (*it).current_x = (*it).first_visible_x;
+	  (*it).wrap_prefix_width = 0;
+	}
+
+      /* In case move_it_in_display_line_to above "produced" the line
+	 number.  */
+      it_bits! (line_number_produced_p, it, false);
+
+      /* Record the smallest positions seen while we moved over
+	 display elements that are not visible.  This is needed by
+	 redisplay_internal for optimizing the case where the cursor
+	 stays inside the same line.  The rest of this function only
+	 considers positions that are actually displayed, so
+	 RECORD_MAX_MIN_POS will not otherwise record positions that
+	 are hscrolled to the left of the left edge of the window.  */
+      min_pos = CHARPOS! (this_line_min_pos);
+      min_bpos = BYTEPOS! (this_line_min_pos);
+
+      /* Produce line number, if needed.  */
+      if line_number_needed
+	{ maybe_produce_line_number (it); }
+    }
+  else if (*it).area == TEXT_AREA
+    {
+      /* Line numbers should precede the line-prefix or wrap-prefix.  */
+      if line_number_needed
+	{ maybe_produce_line_number (it); }
+
+      /* We only do this when not calling move_it_in_display_line_to
+	 above, because that function calls itself handle_line_prefix.  */
+      handle_line_prefix (it);
+      this_line_subject_to_line_prefix
+	= it_bits! (string_from_prefix_prop_p, it) as c_int;
+    }
+  else
+    {
+      /* Line-prefix and wrap-prefix are always displayed in the text
+	 area.  But if this is the first call to display_line after
+	 init_iterator, the iterator might have been set up to write
+	 into a marginal area, e.g. if the line begins with some
+	 display property that writes to the margins.  So we need to
+	 wait with the call to handle_line_prefix until whatever
+	 writes to the margin has done its job.  */
+      pending_handle_line_prefix = true;
+    }
+
+  /* Get the initial row height.  This is either the height of the
+     text hscrolled, if there is any, or zero.  */
+  (*row).ascent = (*it).max_ascent;
+  (*row).height = (*it).max_ascent + (*it).max_descent;
+  (*row).phys_ascent = (*it).max_phys_ascent;
+  (*row).phys_height = (*it).max_phys_ascent + (*it).max_phys_descent;
+  (*row).extra_line_spacing = (*it).max_extra_line_spacing;
+
+  /* C defines this right here, inside the function; the port keeps a function-scoped
+     `macro_rules!` in the same place (its body reads the enclosing `it` and the four
+     position locals).  C's trailing `#undef RECORD_MAX_MIN_POS` (C 26934) has no Rust
+     site: a `macro_rules!`'s scope is its block (the `move_it_in_display_line_to`
+     `BUFFER_POS_REACHED_P` shape).  */
+  macro_rules! RECORD_MAX_MIN_POS {
+    ($IT:expr) => {
+      {
+	let composition_p: bool
+	  = !STRINGP ((*$IT).string) && ((*$IT).what == IT_COMPOSITION);
+	let current_pos: ptrdiff_t
+	  = if composition_p { (*$IT).cmp_it.charpos } else { IT_CHARPOS! (*$IT) };
+	let current_bpos: ptrdiff_t
+	  = if composition_p { CHAR_TO_BYTE (current_pos) } else { IT_BYTEPOS! (*$IT) };
+	if current_pos < min_pos
+	  {
+	    min_pos = current_pos;
+	    min_bpos = current_bpos;
+	  }
+	if IT_CHARPOS! (*it) > max_pos
+	  {
+	    max_pos = IT_CHARPOS! (*it);
+	    max_bpos = IT_BYTEPOS! (*it);
+	  }
+      }
+    };
+  }
+
+  /* Loop generating characters.  The loop is left with IT on the next
+     character to display.  */
+  wrap_face_id = -1;
+  /* C's unlabelled `while (true)` is named because the `at_end_of_line` inner loop below
+     must leave it the way C's own `break`s do (PORTING.md 2.2).  */
+  'row: loop
+    {
+      let mut n_glyphs_before: c_int;
+      let mut hpos_before: c_int;
+      let mut x_before: c_int;
+      let mut x: c_int;
+      let mut nglyphs: c_int;
+      let mut ascent: c_int = 0;
+      let mut descent: c_int = 0;
+      let mut phys_ascent: c_int = 0;
+      let mut phys_descent: c_int = 0;
+
+      /* Retrieve the next thing to display.  Value is false if end of
+	 buffer reached.  */
+      if !get_next_display_element (it)
+	{
+	  let mut row_has_glyphs: bool = false;
+	  /* Maybe add a space at the end of this line that is used to
+	     display the cursor there under X.  Set the charpos of the
+	     first glyph of blank lines not corresponding to any text
+	     to -1.  */
+	  if IT_OVERFLOW_NEWLINE_INTO_FRINGE! (it)
+	    { glyph_row_bits! (exact_window_width_line_p, row, true); }
+	  /* C's third disjunct is C's `row_has_glyphs = row_text_area_empty (row)`
+	     assignment-in-condition; the port keeps it as the condition's own block
+	     (PORTING.md 0.3, deviation 2's comma-expression shape).  */
+	  else if (append_space_for_newline (it, true)
+		   && (*row).used[TEXT_AREA as usize] == 1)
+		  || (*row).used[TEXT_AREA as usize] == 0
+		  || { row_has_glyphs = row_text_area_empty (row); row_has_glyphs }
+	    {
+	      (*(*row).glyphs[TEXT_AREA as usize]).charpos = -1;
+	      /* Don't reset the displays_text_p flag if we are
+		 displaying line numbers or line-prefix.  */
+	      if !row_has_glyphs
+		{ glyph_row_bits! (displays_text_p, row, false); }
+
+	      if !NILP (BVAR! (XBUFFER ((*(*it).w).contents), indicate_empty_lines_))
+		  && !MINI_WINDOW_P ((*it).w)
+		{ glyph_row_bits! (indicate_empty_line_p, row, true); }
+	    }
+
+	  (*it).continuation_lines_width = 0;
+	  /* Reset those iterator values set from display property
+	     values.  This is for the case when the display property
+	     ends at ZV, and is not a replacing property, so pop_it is
+	     not called.  */
+	  (*it).font_height = Qnil ();
+	  (*it).voffset = 0;
+	  glyph_row_bits! (ends_at_zv_p, row, true);
+	  /* A row that displays right-to-left text must always have its
+	     last face extended all the way to the end of line, even if
+	     this row ends in ZV, because we still write to the screen
+	     left to right.  We also need to extend the last face if the
+	     default face is remapped to some different face, otherwise
+	     the functions that clear portions of the screen will clear
+	     with the default face's background color.  We also call
+	     extend_face_to_end_of_line when the window has a left or
+	     right margin so that the empty areas of the margins are
+	     filled with the 'margin' face background.  */
+	  if glyph_row_bits! (reversed_p, row)
+	      || lookup_basic_face ((*it).w, (*it).f, DEFAULT_FACE_ID) != DEFAULT_FACE_ID
+	      || WINDOW_LEFT_MARGIN_WIDTH! ((*it).w) > 0
+	      || WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) > 0
+	    { extend_face_to_end_of_line (it); }
+	  break 'row;
+	}
+
+      /* Now, get the metrics of what we want to display.  This also
+	 generates glyphs in `row' (which is IT->glyph_row).  */
+      n_glyphs_before = (*row).used[(*it).area as usize] as c_int;
+      x = (*it).current_x;
+
+      /* Remember the line height so far in case the next element doesn't
+	 fit on the line.  */
+      if (*it).line_wrap != TRUNCATE
+	{
+	  ascent = (*it).max_ascent;
+	  descent = (*it).max_descent;
+	  phys_ascent = (*it).max_phys_ascent;
+	  phys_descent = (*it).max_phys_descent;
+
+	  if (*it).line_wrap == WORD_WRAP && (*it).area == TEXT_AREA
+	    {
+              let mut next_may_wrap: bool = may_wrap;
+              /* Can we wrap after this character?  */
+              if char_can_wrap_after (it)
+		{ next_may_wrap = true; }
+              else
+                { next_may_wrap = false; }
+	      /* Can we wrap here? */
+	      if may_wrap && char_can_wrap_before (it)
+		{
+		  SAVE_IT! (wrap_it, *it, wrap_data);
+		  wrap_x = x;
+		  wrap_row_used = (*row).used[TEXT_AREA as usize] as c_int;
+		  wrap_row_ascent = (*row).ascent;
+		  wrap_row_height = (*row).height;
+		  wrap_row_phys_ascent = (*row).phys_ascent;
+		  wrap_row_phys_height = (*row).phys_height;
+		  wrap_row_extra_line_spacing = (*row).extra_line_spacing;
+		  wrap_row_min_pos = min_pos;
+		  wrap_row_min_bpos = min_bpos;
+		  wrap_row_max_pos = max_pos;
+		  wrap_row_max_bpos = max_bpos;
+		  wrap_face_id = prev_face_id;
+		}
+	      /* Update may_wrap for the next iteration.  */
+              may_wrap = next_may_wrap;
+	      if may_wrap
+		{
+		  prev_face_id = (*it).face_id;
+		  SAVE_IT! (prev_it, *it, prev_data);
+		}
+	      else
+		{ prev_face_id = -1; }
+	    }
+	}
+
+      PRODUCE_GLYPHS! (it);
+
+      /* If this display element was in marginal areas, continue with
+	 the next one.  */
+      if (*it).area != TEXT_AREA
+	{
+	  let area: glyph_row_area = (*it).area;
+	  (*row).ascent = max ((*row).ascent as isize, (*it).max_ascent as isize) as c_int;
+	  (*row).height = max ((*row).height as isize,
+			       ((*it).max_ascent + (*it).max_descent) as isize) as c_int;
+	  (*row).phys_ascent = max ((*row).phys_ascent as isize,
+				    (*it).max_phys_ascent as isize) as c_int;
+	  (*row).phys_height = max ((*row).phys_height as isize,
+				     ((*it).max_phys_ascent
+				      + (*it).max_phys_descent) as isize) as c_int;
+	  (*row).extra_line_spacing = max ((*row).extra_line_spacing as isize,
+					   (*it).max_extra_line_spacing as isize) as c_int;
+	  set_iterator_to_next (it, true);
+	  /* TTY frames cannot clip character glyphs that extend past the
+	     end of the marginal areas, so we must do that here "by hand".  */
+	  if !FRAME_WINDOW_P ((*it).f)
+	      /* If we exhausted the glyphs of the marginal area...	 */
+	      && (*it).area != area
+	      /* ...and the last character was multi-column...	*/
+	      && (*it).nglyphs > 1
+	      /* ...and not all of its glyphs fit in the marginal area... */
+	      && ((*row).used[area as usize] as c_int) < n_glyphs_before + (*it).nglyphs
+	      /* ...then reset back to the previous character.	*/
+	    { (*row).used[area as usize] = n_glyphs_before as c_short; }
+	  /* If we didn't handle the line/wrap prefix above, and the
+	     call to set_iterator_to_next just switched to TEXT_AREA,
+	     process the prefix now.  */
+	  if (*it).area == TEXT_AREA && pending_handle_line_prefix
+	    {
+	      /* Line numbers should precede the line-prefix or
+		 wrap-prefix.  */
+	      if line_number_needed
+		{ maybe_produce_line_number (it); }
+
+	      pending_handle_line_prefix = false;
+	      handle_line_prefix (it);
+	      this_line_subject_to_line_prefix
+		= it_bits! (string_from_prefix_prop_p, it) as c_int;
+	    }
+	  continue 'row;
+	}
+
+      /* Does the display element fit on the line?  If we truncate
+	 lines, we should draw past the right edge of the window.  If
+	 we don't truncate, we want to stop so that we can display the
+	 continuation glyph before the right margin.  If lines are
+	 continued, there are two possible strategies for characters
+	 resulting in more than 1 glyph (e.g. tabs): Display as many
+	 glyphs as possible in this line and leave the rest for the
+	 continuation line, or display the whole element in the next
+	 line.  Original redisplay did the former, so we do it also.  */
+      nglyphs = (*row).used[TEXT_AREA as usize] as c_int - n_glyphs_before;
+      hpos_before = (*it).hpos;
+      x_before = x;
+
+      if (/* Not a newline.  */
+	  nglyphs > 0
+	  /* Glyphs produced fit entirely in the line.  */
+	  && ((*it).current_x < (*it).last_visible_x
+	      /* Or a line or wrap prefix is in effect, and not
+		 truncating the glyph produced immediately after it
+		 would cause an infinite cycle.  */
+	      || ((*it).line_wrap != TRUNCATE
+		  /* This code is not valid if multiple glyphs were
+		     produced, as some of these glyphs might remain
+		     within this line.  */
+		  && nglyphs == 1
+		  && this_line_subject_to_line_prefix != 0)))
+	{
+	  (*it).hpos += nglyphs;
+	  (*row).ascent = max ((*row).ascent as isize, (*it).max_ascent as isize) as c_int;
+	  (*row).height = max ((*row).height as isize,
+			       ((*it).max_ascent + (*it).max_descent) as isize) as c_int;
+	  (*row).phys_ascent = max ((*row).phys_ascent as isize,
+				    (*it).max_phys_ascent as isize) as c_int;
+	  (*row).phys_height = max ((*row).phys_height as isize,
+				     ((*it).max_phys_ascent
+				      + (*it).max_phys_descent) as isize) as c_int;
+	  (*row).extra_line_spacing = max ((*row).extra_line_spacing as isize,
+					   (*it).max_extra_line_spacing as isize) as c_int;
+	  if (*it).current_x - (*it).pixel_width < (*it).first_visible_x
+	      /* When line numbers are displayed, row->x should not be
+		 offset, as the first glyph after the line number can
+		 never be partially visible.  */
+	      && !line_number_needed
+	      /* In R2L rows, we arrange in extend_face_to_end_of_line
+		 to add a right offset to the line, by a suitable
+		 change to the stretch glyph that is the leftmost
+		 glyph of the line.  */
+	      && !glyph_row_bits! (reversed_p, row)
+	    { (*row).x = x - (*it).first_visible_x; }
+	  /* Record the maximum and minimum buffer positions seen so
+	     far in glyphs that will be displayed by this row.  */
+	  if it_bits! (bidi_p, it)
+	    { RECORD_MAX_MIN_POS! (it); }
+	}
+      else
+	{
+	  let mut i: c_int;
+	  let mut new_x: c_int;
+	  let mut glyph: *mut glyph;
+
+	  i = 0;
+	  while i < nglyphs
+	    {
+	      /* Identify the glyphs added by the last call to
+		 PRODUCE_GLYPHS.  In R2L rows, they are prepended to
+		 the previous glyphs.  */
+	      if !glyph_row_bits! (reversed_p, row)
+		{ glyph = (*row).glyphs[TEXT_AREA as usize]
+		    .offset ((n_glyphs_before + i) as isize); }
+	      else
+		{ glyph = (*row).glyphs[TEXT_AREA as usize]
+		    .offset ((nglyphs - 1 - i) as isize); }
+	      new_x = x + (*glyph).pixel_width as c_int;
+
+	      if /* Lines are continued.  */
+		 (*it).line_wrap != TRUNCATE
+		 && (/* Glyph doesn't fit on the line.  */
+		     new_x > (*it).last_visible_x
+		     /* Or it fits exactly on a window system frame.  */
+		     || (new_x == (*it).last_visible_x
+			 && FRAME_WINDOW_P ((*it).f)
+			 && (if glyph_row_bits! (reversed_p, row)
+			     { WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) }
+			     else { WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }) != 0))
+		 /* There is no line prefix, next to which the
+		    iterator _must_ produce a minimum of one actual
+		    glyph.  */
+		 && (this_line_subject_to_line_prefix == 0
+		     /* Or this is the second glyph to be produced
+			beyond the confines of the line.  */
+		     || (i != 0
+			 && (x > (*it).last_visible_x
+			     || (x == (*it).last_visible_x
+				 && FRAME_WINDOW_P ((*it).f)
+				 && (if glyph_row_bits! (reversed_p, row)
+				     { WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) }
+				     else
+				       { WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }) != 0))))
+		{
+		  /* End of a continued line.  */
+
+		  /* C's `back_to_wrap:` label is the head of the `else if (wrap_row_used > 0)`
+		     arm's body (C 26415), and the two `goto back_to_wrap` sites (C 26331,
+		     C 26368) skip branch B's tail to enter it.  The port marks the jump with
+		     `back_to_wrap` and leaves the chain through a labelled block, so the arm
+		     body runs once, after the chain, on either entry (PORTING.md 2.2, the
+		     `consider_string_end` shape).  */
+		  let mut back_to_wrap: bool = false;
+		  'end_of_continued_line: {
+		  if /* Current glyph is the only one on the line or
+			fits exactly on the line.  */
+		     (*it).hpos == 0 + (if (*it).lnum_width != 0
+					{ (*it).lnum_width + 2 } else { 0 })
+		     || (new_x == (*it).last_visible_x
+			 && FRAME_WINDOW_P ((*it).f)
+			 && (if glyph_row_bits! (reversed_p, row)
+			     { WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) }
+			     else { WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }) != 0)
+		    {
+		      /* Current glyph is the only one on the line or
+			 fits exactly on the line.  We must continue
+			 the line because we can't draw the cursor
+			 after the glyph.  */
+		      glyph_row_bits! (continued_p, row, true);
+		      (*it).current_x = new_x;
+		      (*it).continuation_lines_width += new_x;
+		      (*it).hpos += 1;
+		      if i == nglyphs - 1
+			{
+			  /* If line-wrap is on, check if a previous
+			     wrap point was found.  */
+			  if !IT_OVERFLOW_NEWLINE_INTO_FRINGE! (it)
+			      && wrap_row_used > 0 /* Found.  */
+			      /* Even if there is a previous wrap
+				 point, continue the line here as
+				 usual, if (i) the previous character
+				 allows wrapping after it, AND (ii)
+				 the current character allows wrapping
+				 before it.  Because this is a valid
+				 break point, we can just continue to
+				 the next line at here, there is no
+				 need to wrap early at the previous
+				 wrap point.  */
+			      && (!may_wrap || !char_can_wrap_before (it))
+			    { back_to_wrap = true; break 'end_of_continued_line; }
+
+			  /* Record the maximum and minimum buffer
+			     positions seen so far in glyphs that will be
+			     displayed by this row.  */
+			  if it_bits! (bidi_p, it)
+			    { RECORD_MAX_MIN_POS! (it); }
+			  set_iterator_to_next (it, true);
+			  if IT_OVERFLOW_NEWLINE_INTO_FRINGE! (it)
+			    {
+			      if !get_next_display_element (it)
+				{
+				  glyph_row_bits! (exact_window_width_line_p, row, true);
+				  (*it).continuation_lines_width = 0;
+				  (*it).font_height = Qnil ();
+				  (*it).voffset = 0;
+				  glyph_row_bits! (continued_p, row, false);
+				  glyph_row_bits! (ends_at_zv_p, row, true);
+				}
+			      else if ITERATOR_AT_END_OF_LINE_P! (it)
+				{
+				  glyph_row_bits! (continued_p, row, false);
+				  glyph_row_bits! (exact_window_width_line_p, row, true);
+				}
+			      /* If line-wrap is on, check if a
+				 previous wrap point was found.  */
+			      else if wrap_row_used > 0
+				       /* Even if there is a previous
+					  wrap point, continue the
+					  line here as usual, if (i)
+					  the previous character was a
+					  space or tab AND (ii) the
+					  current character is not,
+					  AND (iii) the current
+					  character allows wrapping
+					  before it.  */
+				       && (!may_wrap || !char_can_wrap_before (it))
+				{ back_to_wrap = true; break 'end_of_continued_line; }
+
+			    }
+			}
+		      else if it_bits! (bidi_p, it)
+			{ RECORD_MAX_MIN_POS! (it); }
+		      if WINDOW_LEFT_MARGIN_WIDTH! ((*it).w) > 0
+			  || WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) > 0
+			{ extend_face_to_end_of_line (it); }
+		    }
+		  else if CHAR_GLYPH_PADDING_P! (*glyph)
+			   && !FRAME_WINDOW_P ((*it).f)
+		    {
+		      /* A padding glyph that doesn't fit on this line.
+			 This means the whole character doesn't fit
+			 on the line.  */
+		      if glyph_row_bits! (reversed_p, row)
+			{ unproduce_glyphs (it, (*row).used[TEXT_AREA as usize] as c_int
+						- n_glyphs_before); }
+		      (*row).used[TEXT_AREA as usize] = n_glyphs_before as c_short;
+
+		      /* Fill the rest of the row with continuation
+			 glyphs like in 20.x.  */
+		      while (*row).glyphs[TEXT_AREA as usize]
+			      .offset ((*row).used[TEXT_AREA as usize] as isize)
+			    < (*row).glyphs[(1 + TEXT_AREA) as usize]
+				.offset (-((if !WINDOW_RIGHTMOST_P! ((*it).w)
+					    && WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) == 0
+					   { 1 } else { 0 }) as isize))
+			{ produce_special_glyphs (it, IT_CONTINUATION,
+						  (*it).bidi_it.paragraph_dir, false); }
+
+		      glyph_row_bits! (continued_p, row, true);
+		      (*it).current_x = x_before;
+		      (*it).continuation_lines_width += x_before;
+
+		      /* Restore the height to what it was before the
+			 element not fitting on the line.  */
+		      (*it).max_ascent = ascent;
+		      (*it).max_descent = descent;
+		      (*it).max_phys_ascent = phys_ascent;
+		      (*it).max_phys_descent = phys_descent;
+		      if WINDOW_LEFT_MARGIN_WIDTH! ((*it).w) > 0
+			  || WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) > 0
+			{ extend_face_to_end_of_line (it); }
+		    }
+		  else if wrap_row_used > 0
+		    {
+		      /* C's `back_to_wrap:` arm; its body runs below, after the chain.  */
+		      back_to_wrap = true;
+		    }
+		  else if ((*it).what == IT_CHARACTER
+			   || (*it).what == IT_STRETCH
+			   || (*it).what == IT_COMPOSITION)
+			  && (*it).c == '\t' as c_int && FRAME_WINDOW_P ((*it).f)
+		    {
+		      /* A TAB that extends past the right edge of the
+			 window.  This produces a single glyph on
+			 window system frames.  We leave the glyph in
+			 this row and let it fill the row, but don't
+			 consume the TAB.  */
+		      if (if glyph_row_bits! (reversed_p, row)
+			  { WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) }
+			  else { WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }) == 0
+			{ produce_special_glyphs (it, IT_CONTINUATION,
+						  (*it).bidi_it.paragraph_dir, false); }
+		      (*it).continuation_lines_width += (*it).last_visible_x;
+		      glyph_row_bits! (ends_in_middle_of_char_p, row, true);
+		      glyph_row_bits! (continued_p, row, true);
+		      (*glyph).pixel_width = ((*it).last_visible_x - x) as c_short;
+		      it_bits! (starts_in_middle_of_char_p, it, true);
+		      if WINDOW_LEFT_MARGIN_WIDTH! ((*it).w) > 0
+			  || WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) > 0
+			{ extend_face_to_end_of_line (it); }
+		    }
+		  else
+		    {
+		      /* Something other than a TAB that draws past
+			 the right edge of the window.  Restore
+			 positions to values before the element.  */
+		      if glyph_row_bits! (reversed_p, row)
+			{ unproduce_glyphs (it, (*row).used[TEXT_AREA as usize] as c_int
+						- (n_glyphs_before + i)); }
+		      (*row).used[TEXT_AREA as usize] = (n_glyphs_before + i) as c_short;
+
+		      /* Display continuation glyphs.  */
+		      (*it).current_x = x_before;
+		      (*it).continuation_lines_width += x;
+		      if !FRAME_WINDOW_P ((*it).f)
+			  || (if glyph_row_bits! (reversed_p, row)
+			      { WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) }
+			      else { WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }) == 0
+			{ produce_special_glyphs (it, IT_CONTINUATION,
+						  (*it).bidi_it.paragraph_dir, false); }
+		      glyph_row_bits! (continued_p, row, true);
+
+		      extend_face_to_end_of_line (it);
+
+		      if nglyphs > 1 && i > 0
+			{
+			  glyph_row_bits! (ends_in_middle_of_char_p, row, true);
+			  it_bits! (starts_in_middle_of_char_p, it, true);
+			}
+
+		      /* Restore the height to what it was before the
+			 element not fitting on the line.  */
+		      (*it).max_ascent = ascent;
+		      (*it).max_descent = descent;
+		      (*it).max_phys_ascent = phys_ascent;
+		      (*it).max_phys_descent = phys_descent;
+		    }
+		  }	/* 'end_of_continued_line */
+
+		  if back_to_wrap
+		    {
+		      /* C's `back_to_wrap:` body.  */
+		      if glyph_row_bits! (reversed_p, row)
+			{ unproduce_glyphs (it,
+					    (*row).used[TEXT_AREA as usize] as c_int
+					    - wrap_row_used); }
+		      /* We need to extend the face of the display
+                         element _before_ the wrap point.  */
+		      eassert! (wrap_face_id >= 0);
+		      RESTORE_IT! (it, &raw mut prev_it, prev_data);
+		      (*row).used[TEXT_AREA as usize] = wrap_row_used as c_short;
+		      (*row).ascent = wrap_row_ascent;
+		      (*row).height = wrap_row_height;
+		      (*row).phys_ascent = wrap_row_phys_ascent;
+		      (*row).phys_height = wrap_row_phys_height;
+		      (*row).extra_line_spacing = wrap_row_extra_line_spacing;
+		      min_pos = wrap_row_min_pos;
+		      min_bpos = wrap_row_min_bpos;
+		      max_pos = wrap_row_max_pos;
+		      max_bpos = wrap_row_max_bpos;
+		      glyph_row_bits! (continued_p, row, true);
+		      glyph_row_bits! (ends_at_zv_p, row, false);
+		      glyph_row_bits! (exact_window_width_line_p, row, false);
+		      /* Make sure that a non-default face is extended
+			 up to the right margin of the window.  */
+		      extend_face_to_end_of_line (it);
+		      RESTORE_IT! (it, &raw mut wrap_it, wrap_data);
+		      (*it).continuation_lines_width += wrap_x;
+		    }
+
+		  break;
+		}
+	      else if new_x > (*it).first_visible_x
+		{
+		  /* Increment number of glyphs actually displayed.  */
+		  (*it).hpos += 1;
+
+		  /* Record the maximum and minimum buffer positions
+		     seen so far in glyphs that will be displayed by
+		     this row.  */
+		  if it_bits! (bidi_p, it)
+		    { RECORD_MAX_MIN_POS! (it); }
+
+		  if x < (*it).first_visible_x && !glyph_row_bits! (reversed_p, row)
+		      && !line_number_needed
+		    /* Glyph is partially visible, i.e. row starts at
+		       negative X position.  Don't do that in R2L
+		       rows, where we arrange to add a right offset to
+		       the line in extend_face_to_end_of_line, by a
+		       suitable change to the stretch glyph that is
+		       the leftmost glyph of the line.  */
+		    { (*row).x = x - (*it).first_visible_x; }
+		  /* When the last glyph of an R2L row only fits
+		     partially on the line, we need to set row->x to a
+		     negative offset, so that the leftmost glyph is
+		     the one that is partially visible.  But if we are
+		     going to produce the truncation glyph, this will
+		     be taken care of in produce_special_glyphs.  */
+		  if glyph_row_bits! (reversed_p, row)
+		      && new_x > (*it).last_visible_x
+		      && !line_number_needed
+		      && !((*it).line_wrap == TRUNCATE
+			   && WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) == 0)
+		    {
+		      eassert! (FRAME_WINDOW_P ((*it).f));
+		      (*row).x = (*it).last_visible_x - new_x;
+		    }
+		}
+	      else
+		{
+		  /* Glyph is completely off the left margin of the
+		     window.  This should not happen because of the
+		     move_it_in_display_line at the start of this
+		     function, unless the text display area of the
+		     window is empty.  */
+		  eassert! ((*it).first_visible_x <= (*it).last_visible_x);
+		}
+	      i += 1;
+	      x = new_x;
+	    }
+	  /* Even if this display element produced no glyphs at all,
+	     we want to record its position.  */
+	  if it_bits! (bidi_p, it) && nglyphs == 0
+	    { RECORD_MAX_MIN_POS! (it); }
+
+	  (*row).ascent = max ((*row).ascent as isize, (*it).max_ascent as isize) as c_int;
+	  (*row).height = max ((*row).height as isize,
+			       ((*it).max_ascent + (*it).max_descent) as isize) as c_int;
+	  (*row).phys_ascent = max ((*row).phys_ascent as isize,
+				    (*it).max_phys_ascent as isize) as c_int;
+	  (*row).phys_height = max ((*row).phys_height as isize,
+				     ((*it).max_phys_ascent
+				      + (*it).max_phys_descent) as isize) as c_int;
+	  (*row).extra_line_spacing = max ((*row).extra_line_spacing as isize,
+					   (*it).max_extra_line_spacing as isize) as c_int;
+
+	  /* End of this display line if row is continued.  */
+	  if glyph_row_bits! (continued_p, row) || glyph_row_bits! (ends_at_zv_p, row)
+	    { break 'row; }
+	}
+
+      /* C's `at_end_of_line:` label (C 26569) is entered by falling out of the chain
+	 above and by the backward `goto at_end_of_line` (C 26702), so the port names the
+	 labelled loop and ends it with a plain `break` (the next `'row` iteration), with
+	 the label's body as its first statement (PORTING.md 2.2).  */
+      'at_end_of_line: loop
+	{
+	  /* at_end_of_line: */
+	  /* Is this a line end?  If yes, we're also done, after making
+	     sure that a non-default face is extended up to the right
+	     margin of the window.  */
+	  if ITERATOR_AT_END_OF_LINE_P! (it)
+	    {
+	      let used_before: c_int = (*row).used[TEXT_AREA as usize] as c_int;
+
+	      glyph_row_bits! (ends_in_newline_from_string_p, row,
+			       STRINGP ((*it).object));
+
+	      /* Add a space at the end of the line that is used to
+		 display the cursor there.  */
+	      if !IT_OVERFLOW_NEWLINE_INTO_FRINGE! (it)
+		{ append_space_for_newline (it, false); }
+
+	      /* Extend the face to the end of the line.  */
+	      extend_face_to_end_of_line (it);
+
+	      /* Make sure we have the position.  */
+	      if used_before == 0
+		{ (*(*row).glyphs[TEXT_AREA as usize]).charpos = CHARPOS! ((*it).position); }
+
+	      /* Record the position of the newline, for use in
+		 find_row_edges.  */
+	      (*it).eol_pos = (*it).current.pos;
+
+	      /* Consume the line end.  This skips over invisible lines.  */
+	      set_iterator_to_next (it, true);
+	      (*it).continuation_lines_width = 0;
+	      break 'row;
+	    }
+
+	  /* Proceed with next display element.  Note that this skips
+	     over lines invisible because of selective display.  */
+	  set_iterator_to_next (it, true);
+
+	  /* If IT has just finished producing glyphs for the wrap prefix
+	     and is proceeding to the next method, there might not be
+	     sufficient space remaining in this line to accommodate its
+	     glyphs, and one real glyph must be produced to prevent an
+	     infinite loop.  Next, clear this flag if such a glyph has
+	     already been produced.  */
+
+	  if this_line_subject_to_line_prefix == 1
+	      && !it_bits! (string_from_prefix_prop_p, it)
+	    { this_line_subject_to_line_prefix = 2; }
+	  else if this_line_subject_to_line_prefix == 2
+		   && !it_bits! (string_from_prefix_prop_p, it)
+	    { this_line_subject_to_line_prefix = 0; }
+
+	  /* If we truncate lines, we are done when the last displayed
+	     glyphs reach past the right margin of the window.  */
+	  if (*it).line_wrap == TRUNCATE
+	      && (if FRAME_WINDOW_P ((*it).f)
+		  /* Images are preprocessed in produce_image_glyph such
+		     that they are cropped at the right edge of the
+		     window, so an image glyph will always end exactly at
+		     last_visible_x, even if there's no right fringe.  */
+		  && ((if glyph_row_bits! (reversed_p, row)
+		       { WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) }
+		       else { WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }) != 0
+		      || (*it).what == IT_IMAGE)
+		  { (*it).current_x >= (*it).last_visible_x }
+		  else
+		  { (*it).current_x > (*it).last_visible_x })
+	    {
+	      /* Maybe add truncation glyphs.  */
+	      if !FRAME_WINDOW_P ((*it).f)
+		  || (if glyph_row_bits! (reversed_p, row)
+		      { WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) }
+		      else { WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }) == 0
+		{
+		  let mut i: c_int;
+		  let mut n: c_int;
+
+		  if !glyph_row_bits! (reversed_p, row)
+		    {
+		      i = (*row).used[TEXT_AREA as usize] as c_int - 1;
+		      while i > 0
+			{
+			  if !CHAR_GLYPH_PADDING_P! (*(*row).glyphs[TEXT_AREA as usize]
+						     .offset (i as isize))
+			    { break; }
+			  i -= 1;
+			}
+		    }
+		  else
+		    {
+		      i = 0;
+		      while i < (*row).used[TEXT_AREA as usize] as c_int
+			{
+			  if !CHAR_GLYPH_PADDING_P! (*(*row).glyphs[TEXT_AREA as usize]
+						     .offset (i as isize))
+			    { break; }
+			  i += 1;
+			}
+		      /* Remove any padding glyphs at the front of ROW, to
+			 make room for the truncation glyphs we will be
+			 adding below.  The loop below always inserts at
+			 least one truncation glyph, so also remove the
+			 last glyph added to ROW.  */
+		      unproduce_glyphs (it, i + 1);
+		      /* Adjust i for the loop below.  */
+		      i = (*row).used[TEXT_AREA as usize] as c_int - (i + 1);
+		    }
+
+		  /* produce_special_glyphs overwrites the last glyph, so
+		     we don't want that if we want to keep that last
+		     glyph, which means it's an image.  */
+		  if (*it).current_x > (*it).last_visible_x
+		    {
+		      (*it).current_x = x_before;
+		      if !FRAME_WINDOW_P ((*it).f)
+			{
+			  n = (*row).used[TEXT_AREA as usize] as c_int;
+			  while i < n
+			    {
+			      (*row).used[TEXT_AREA as usize] = i as c_short;
+			      produce_special_glyphs (it, IT_TRUNCATION,
+						      (*it).bidi_it.paragraph_dir, false);
+			      i += 1;
+			    }
+			}
+		      else
+			{
+			  (*row).used[TEXT_AREA as usize] = i as c_short;
+			  produce_special_glyphs (it, IT_TRUNCATION,
+						  (*it).bidi_it.paragraph_dir, false);
+			}
+		      (*it).hpos = hpos_before;
+		    }
+		}
+	      else if IT_OVERFLOW_NEWLINE_INTO_FRINGE! (it)
+		{
+		  /* Don't truncate if we can overflow newline into fringe.  */
+		  if !get_next_display_element (it)
+		    {
+		      (*it).continuation_lines_width = 0;
+		      (*it).font_height = Qnil ();
+		      (*it).voffset = 0;
+		      glyph_row_bits! (ends_at_zv_p, row, true);
+		      glyph_row_bits! (exact_window_width_line_p, row, true);
+		      break 'row;
+		    }
+		  if ITERATOR_AT_END_OF_LINE_P! (it)
+		    {
+		      glyph_row_bits! (exact_window_width_line_p, row, true);
+		      continue 'at_end_of_line;
+		    }
+		  (*it).current_x = x_before;
+		  (*it).hpos = hpos_before;
+		}
+
+	      /* If the default face is remapped or the 'margin' face has a
+		 non-default background, and the window has display margins,
+		 extend the face in the margin area so that the margins use
+		 the correct background.  This handles all three truncation
+		 paths: TTY/no-fringe truncation glyph, GUI
+		 newline-overflow-into-fringe, and GUI regular truncation
+		 where the indicator is drawn as a fringe bitmap.  */
+	      {
+		let margin_face_id: c_int
+		  = lookup_basic_face ((*it).w, (*it).f, MARGIN_FACE_ID);
+		if (lookup_basic_face ((*it).w, (*it).f, DEFAULT_FACE_ID)
+		    != DEFAULT_FACE_ID
+		    || (*(FACE_FROM_ID ((*it).f, margin_face_id))).background
+		       != FRAME_BACKGROUND_PIXEL ((*it).f))
+		    && (WINDOW_LEFT_MARGIN_WIDTH! ((*it).w) > 0
+			|| WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) > 0)
+		  { extend_face_to_end_of_line (it); }
+	      }
+
+	      glyph_row_bits! (truncated_on_right_p, row, true);
+	      (*it).continuation_lines_width = 0;
+	      reseat_at_next_visible_line_start (it, false);
+	      /* We insist below that IT's position be at ZV because in
+		 bidi-reordered lines the character at visible line start
+		 might not be the character that follows the newline in
+		 the logical order.  */
+	      if IT_BYTEPOS! (*it) > BEG_BYTE as ptrdiff_t
+		{
+		  glyph_row_bits! (ends_at_zv_p, row,
+				   IT_BYTEPOS! (*it) >= ZV_BYTE! ()
+				   && (ZV_BYTE! () <= 1
+				       || FETCH_BYTE! (ZV_BYTE! () - 1) != b'\n'));
+		}
+	      else
+		{ glyph_row_bits! (ends_at_zv_p, row, false); }
+	      break 'row;
+	    }
+	  break;
+	}
+    }
+
+  if !wrap_data.is_null ()
+    { bidi_unshelve_cache (wrap_data, true); }
+  if !prev_data.is_null ()
+    { bidi_unshelve_cache (prev_data, true); }
+
+  /* If line is not empty and hscrolled, maybe insert truncation glyphs
+     at the left window margin.  */
+  if (*it).first_visible_x != 0
+      && IT_CHARPOS! (*it) != CHARPOS! ((*row).start.pos)
+    {
+      if !FRAME_WINDOW_P ((*it).f)
+	  || ((if glyph_row_bits! (reversed_p, row)
+	       { WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }
+	       else { WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) }) == 0
+	      /* Don't let insert_left_trunc_glyphs overwrite the
+		 first glyph of the row if it is an image.  */
+	      && glyph_bits! (type, *(*row).glyphs[TEXT_AREA as usize]) != IMAGE_GLYPH)
+	{ insert_left_trunc_glyphs (it); }
+      glyph_row_bits! (truncated_on_left_p, row, true);
+    }
+
+  /* Remember the position at which this line ends.
+
+     BIDI Note: any code that needs MATRIX_ROW_START/END_CHARPOS
+     cannot be before the call to find_row_edges below, since that is
+     where these positions are determined. */
+  (*row).end = (*it).current;
+  if !it_bits! (bidi_p, it)
+    {
+      (*row).minpos = (*row).start.pos;
+      (*row).maxpos = (*row).end.pos;
+    }
+  else
+    {
+      /* ROW->minpos and ROW->maxpos must be the smallest and
+	 `1 + the largest' buffer positions in ROW.  But if ROW was
+	 bidi-reordered, these two positions can be anywhere in the
+	 row, so we must determine them now.  */
+      find_row_edges (it, row, min_pos, min_bpos, max_pos, max_bpos);
+    }
+
+  /* If the start of this line is the overlay arrow-position, then
+     mark this glyph row as the one containing the overlay arrow.
+     This is clearly a mess with variable size fonts.  It would be
+     better to let it be displayed like cursors under X.  */
+  /* C's comma expression in the test assigns `overlay_arrow_string` and then tests it;
+     the port keeps the assignment inside the condition's own block (PORTING.md 0.3).  */
+  if (MATRIX_ROW_DISPLAYS_TEXT_P! (row) || !overlay_arrow_seen)
+      && { overlay_arrow_string = overlay_arrow_at_row (it, row);
+	   !NILP (overlay_arrow_string) }
+    {
+      /* Overlay arrow in window redisplay is a fringe bitmap.  */
+      if STRINGP (overlay_arrow_string)
+	{
+	  let left_margin_glyphs: c_short
+	    = (*row).glyphs[TEXT_AREA as usize]
+		.offset_from ((*row).glyphs[LEFT_MARGIN_AREA as usize]) as c_short;
+	  let mut arrow_row: *mut glyph_row
+	    = get_overlay_arrow_glyph_row ((*it).w, overlay_arrow_string,
+					   MARGIN_FACE_ID);
+	  let mut arrow_used_glyphs: c_short = (*arrow_row).used[TEXT_AREA as usize];
+	  let mut glyph: *mut glyph;
+	  let arrow_end: *mut glyph;
+	  let mut p: *mut glyph;
+	  let mut p2: *mut glyph;
+	  let end: *mut glyph;
+	  let where_: *mut glyph;
+	  let p_used: *mut c_short;
+	  let area: glyph_row_area;
+
+	  /* When possible, put the arrow glyphs at the start of the
+	     left margin.  Otherwise put them at the start of the text
+	     area.  Also privilege the margin face in the margin.  */
+	  if left_margin_glyphs >= arrow_used_glyphs
+	    { area = LEFT_MARGIN_AREA; }
+	  else
+	    {
+	      arrow_row = get_overlay_arrow_glyph_row ((*it).w,
+						       overlay_arrow_string,
+						       DEFAULT_FACE_ID);
+	      arrow_used_glyphs = (*arrow_row).used[TEXT_AREA as usize];
+	      area = TEXT_AREA;
+	    }
+	  glyph = (*arrow_row).glyphs[TEXT_AREA as usize];
+	  arrow_end = glyph.offset (arrow_used_glyphs as isize);
+	  /* C's chain `p = where = row->glyphs[area];`: the port keeps C's order.  */
+	  where_ = (*row).glyphs[area as usize];
+	  p = where_;
+	  p_used = &raw mut (*row).used[area as usize];
+
+	  /* Copy the arrow glyphs.  */
+	  while glyph < arrow_end
+	    {
+	      *p = *glyph;
+	      p = p.offset (1);
+	      glyph = glyph.offset (1);
+	    }
+
+	  /* Update the 'used' count of the area where we copied the
+	     arrow.  */
+	  (*row).used[area as usize]
+	    = max ((*row).used[area as usize] as isize, arrow_used_glyphs as isize)
+	      as c_short;
+
+	  /* Throw away padding glyphs.  */
+	  p2 = p;
+	  end = where_.offset (*p_used as isize);
+	  while p2 < end && CHAR_GLYPH_PADDING_P! (*p2)
+	    { p2 = p2.offset (1); }
+	  if p2 > p
+	    {
+	      while p2 < end
+		{
+		  *p = *p2;
+		  p = p.offset (1);
+		  p2 = p2.offset (1);
+		}
+	      *p_used = p2.offset_from (where_) as c_short;
+	    }
+	}
+      else
+	{
+	  eassert! (FIXNUMP (overlay_arrow_string));
+	  (*row).overlay_arrow_bitmap = XFIXNUM (overlay_arrow_string) as c_int;
+	}
+      overlay_arrow_seen = true;
+    }
+
+  /* Highlight trailing whitespace.  */
+  if !NILP (Vshow_trailing_whitespace)
+    { highlight_trailing_whitespace (it); }
+
+  /* Compute pixel dimensions of this line.  */
+  compute_line_metrics (it);
+
+  /* Implementation note: No changes in the glyphs of ROW or in their
+     faces can be done past this point, because compute_line_metrics
+     computes ROW's hash value and stores it within the glyph_row
+     structure.  */
+
+  /* Record whether this row ends inside an ellipsis.  */
+  glyph_row_bits! (ends_in_ellipsis_p, row,
+		   (*it).method == GET_FROM_DISPLAY_VECTOR
+		   && it_bits! (ellipsis_p, it));
+
+  /* Save fringe bitmaps in this row.  */
+  glyph_row_bits! (left_user_fringe_bitmap, row,
+		   it_bits! (left_user_fringe_bitmap, it));
+  glyph_row_bits! (left_user_fringe_face_id, row,
+		   it_bits! (left_user_fringe_face_id, it));
+  glyph_row_bits! (right_user_fringe_bitmap, row,
+		   it_bits! (right_user_fringe_bitmap, it));
+  glyph_row_bits! (right_user_fringe_face_id, row,
+		   it_bits! (right_user_fringe_face_id, it));
+
+  it_bits! (left_user_fringe_bitmap, it, 0);
+  it_bits! (left_user_fringe_face_id, it, 0);
+  it_bits! (right_user_fringe_bitmap, it, 0);
+  it_bits! (right_user_fringe_face_id, it, 0);
+
+  /* When they turn off tooltip-mode on a GUI frame, we call 'message'
+     with message-truncate-lines bound to non-nil, which produces
+     truncation bitmaps on the fringe.  Force redrawing of the fringes
+     in that case, to make sure the fringe bitmaps are removed when a
+     shorter message is displayed.  */
+  if MINI_WINDOW_P ((*it).w) && (*it).line_wrap == TRUNCATE
+      && FRAME_WINDOW_P ((*it).f) && !cursor_in_echo_area
+    { glyph_row_bits! (redraw_fringe_bitmaps_p, row, true); }
+
+  /* Maybe set the cursor.  */
+  cvpos = (*(*it).w).cursor.vpos;
+  if (cvpos < 0
+      /* In bidi-reordered rows, keep checking for proper cursor
+	 position even if one has been found already, because buffer
+	 positions in such rows change non-linearly with ROW->VPOS,
+	 when a line is continued.  One exception: when we are at ZV,
+	 display cursor on the first suitable glyph row, since all
+	 the empty rows after that also have their position set to ZV.  */
+      /* FIXME: Revisit this when glyph ``spilling'' in continuation
+	 lines' rows is implemented for bidi-reordered rows.  */
+      || (it_bits! (bidi_p, it)
+	  && !glyph_row_bits! (ends_at_zv_p,
+			       MATRIX_ROW! ((*(*it).w).desired_matrix
+					    as *mut glyph_matrix, cvpos))))
+      && PT! () >= MATRIX_ROW_START_CHARPOS! (row)
+      && PT! () <= MATRIX_ROW_END_CHARPOS! (row)
+      && cursor_row_p (row)
+    { set_cursor_from_row ((*it).w, row,
+			   (*(*it).w).desired_matrix as *mut glyph_matrix,
+			   0, 0, 0, 0); }
+
+  /* Prepare for the next line.  This line starts horizontally at (X
+     HPOS) = (0 0).  Vertical positions are incremented.  As a
+     convenience for the caller, IT->glyph_row is set to the next
+     row to be used.  */
+  /* C's chain `it->wrap_prefix_width = it->current_x = it->hpos = 0;` — the port keeps
+     C's order: the innermost store runs first.  */
+  (*it).hpos = 0;
+  (*it).current_x = (*it).hpos;
+  (*it).wrap_prefix_width = (*it).current_x;
+  (*it).current_y += (*row).height;
+  /* Restore the first and last visible X if we adjusted them for
+     current-line hscrolling.  */
+  if hscroll_this_line
+    {
+      (*it).first_visible_x = first_visible_x;
+      (*it).last_visible_x  = last_visible_x;
+    }
+  SET_TEXT_POS! ((*it).eol_pos, 0, 0);
+  (*it).vpos += 1;
+  (*it).glyph_row = (*it).glyph_row.offset (1);
+  /* The next row should by default use the same value of the
+     reversed_p flag as this one.  set_iterator_to_next decides when
+     it's a new paragraph, and PRODUCE_GLYPHS recomputes the value of
+     the flag accordingly.  */
+  if (*it).glyph_row
+     < MATRIX_BOTTOM_TEXT_ROW! ((*(*it).w).desired_matrix as *mut glyph_matrix, (*it).w)
+    { glyph_row_bits! (reversed_p, (*it).glyph_row, glyph_row_bits! (reversed_p, row)); }
+  (*it).start = (*row).end;
+  MATRIX_ROW_DISPLAYS_TEXT_P! (row)
+
+}
+
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */
@@ -24419,9 +25679,6 @@ unsafe extern "C" {
   /// this unit, at C 29914; C's is non-`static`).
   fn display_count_lines (start_byte: ptrdiff_t, limit_byte: ptrdiff_t, count: ptrdiff_t,
 			  byte_pos_ptr: *mut ptrdiff_t) -> ptrdiff_t;
-  /// C: dispextern.h 3595: `int display_line (struct it *, int);` (xdisp.c defines it at
-  /// C 25865).
-  fn display_line (it: *mut it, cursor_vpos: c_int) -> c_int;
   /// C: xdisp.c 1170-1171: `static int display_mode_element (struct it *, int, int, int,
   /// Lisp_Object, Lisp_Object, bool);` (defined later in this unit).
   fn display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: c_int,

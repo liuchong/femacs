@@ -276,7 +276,7 @@
 - [x] maybe_produce_line_number  (line 25499, static)
 - [x] should_produce_line_number  (line 25800, static)
 - [x] row_text_area_empty  (line 25835, static)
-- [ ] display_line  (line 25865, static)
+- [x] display_line  (line 25865, static)
 - [ ] display_menu_bar  (line 27761, static)
 - [ ] deep_copy_glyph_row  (line 27924, static)
 - [ ] display_tty_menu_separator_char  (line 27954, static)
@@ -431,7 +431,35 @@
 
 ### Progress (this lane is incremental)
 
-`src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
+`src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds
+C 25865-26935** — `display_line` (C 25864-26935, `static bool`, 1,072 C lines), the whole of
+the round: the prologue's measured locals (the eight `UNINIT` scalars, `hscroll_this_line`,
+the `MATRIX_ROW_VPOS`/`nrows` guard, `prepare_desired_row`'s clear-and-enable, the two
+`SAVE_IT` snapshots' `wrap_*`/`prev_*` registers), the hscrolled-entry walk
+(`fast_move_it_horizontally` behind `long_line_optimizations_p` and the
+`large_hscroll_threshold` test, else `move_it_in_display_line_to`, then the
+`MOVE_NEWLINE_OR_CR`/`MOVE_POS_MATCH_OR_ZV` pretend-reached fixup and
+`this_line_min_pos`'s `min_pos`/`min_bpos`), the three line-number/line-prefix entry arms
+(`maybe_produce_line_number`/`handle_line_prefix`/
+`pending_handle_line_prefix`), the in-function `RECORD_MAX_MIN_POS` macro, the glyph loop
+with its `WORD_WRAP` wrap snapshots (`char_can_wrap_after`/`char_can_wrap_before`,
+`SAVE_IT`/`RESTORE_IT` over `wrap_it`/`prev_it`), `PRODUCE_GLYPHS` and the marginal-area arm
+with its TTY clip fixup, the fit test and the whole `else` branch — the per-glyph `for` with
+the four "End of a continued line" arms (`back_to_wrap`'s two `goto`s at C 26331/26368, the
+padding-glyph continuation fill, the `wrap_row_*` restore, the TAB arm, the generic
+restore) — then the `at_end_of_line` label with its backward `goto` (C 26702), the `TRUNCATE`
+block's truncation-glyph loops (`produce_special_glyphs (IT_TRUNCATION)`), the
+`margin_face_id` extend and the `BEG_BYTE`/`ZV_BYTE`/`FETCH_BYTE` end-at-ZV tail, the
+`bidi_unshelve_cache` pair, the hscrolled-left `insert_left_trunc_glyphs`, `row->end` and
+`find_row_edges`, the overlay-arrow copy/padding sweep (`overlay_arrow_at_row`,
+`get_overlay_arrow_glyph_row`), `highlight_trailing_whitespace` and `compute_line_metrics`,
+the ellipsis record (`ends_in_ellipsis_p`), the four `*_user_fringe_*` copies,
+`set_cursor_from_row`'s test and the next-row epilogue.  The covered range is now
+**C 468-26935**.  The next live definition is **C 26937's `current-bidi-paragraph-direction`**
+(`Fcurrent_bidi_paragraph_direction`/`Scurrent_bidi_paragraph_direction`, a `DEFUN`); the
+round after it opens there.
+
+`src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **The round before this one added C
 25077-25863** — the "line numbers and line prefixes" group, the eleven definitions between the
 previous round's `cursor_row_p` and `display_line` (the two `^L` page breaks at C 25067 and
 C 25251 are dropped: neither opens a section banner, and the port keeps a `^L` only where the
@@ -461,33 +489,31 @@ its face choices (`Qline_number`, `Qline_number_current_line`, the major/minor t
 the `lnum_pixel_width`/`max_ascent`-family copy-out); `should_produce_line_number` (C 25800,
 the `MINI_WINDOW_P` and `Qdisplay_line_numbers_disable` tests plus
 `disable_line_numbers_overlay_at_eob`) and `row_text_area_empty` (C 25835, the two
-`glyphs[TEXT_AREA]` walks).  The covered range is now **C 468-25863**.  The next live definition
-is **C 25865's `display_line`** (`static bool`, 1,072 C lines to C 26935) — the whole of the
-next round, the `redisplay_internal` precedent.
+`glyphs[TEXT_AREA]` walks).  The covered range became **C 468-25863**, and the round that
+followed transcribed **C 25864-26935**'s `display_line` (the opening paragraph above).
 Ticked in the ledger above, bucket by bucket — **measured** with `grep -c '^- \[x\]'` over each
-section (`Subrs` 4/13, `Functions` 248/302, `Macros` 31/38, `Types and their fields` 2/2,
-`File-scope objects` 59/60) — **344 of the 415 boxes** (248+4+31+2+59); the remaining 71 are
-untouched.  **The scaffold shrinks 13 -> 12** (measured with
-`git show HEAD:femacs/src/xdisp.rs | awk '/TEMPORARY SCAFFOLD/{f=1} f' | grep -c '^  fn '` = 13):
-the three entries whose definitions land
-(`handle_line_prefix` C 1132, `maybe_produce_line_number` C 1165, `should_produce_line_number`
-C 1166) are deleted and two are added — `pint2str` (xdisp.c 1178, defined at C 29193) and
-`display_count_lines` (lisp.h 4404-4407, defined here at C 29914); every other name the round's
-eleven bodies reach is already defined in the unit, defined before use in C, or the include
-graph's.
-**One `docs/ports/macro-body-notes.tsv` row is owed** (the integrator appends it; item 4 of the
-to-do list): `maybe_produce_line_number` / `alloca,int_strlen_bound` — C's bare
-`char *lnum_buf = alloca (max (it->lnum_width, INT_STRLEN_BOUND (ptrdiff_t)) + 2 + 1)` is the
-port's `SAFE_ALLOCA` family (PORTING.md P-05) with gnulib's `INT_STRLEN_BOUND (ptrdiff_t)`
-measured 20 on the frozen target (deviation 229; the `message_dolog` row's shape).  So
-`--check`'s `does not mention` set goes **3 -> 4** (the three pre-existing
-`redisplay_internal`/`set_cursor_from_row`/`redisplay_window` rows plus
-`maybe_produce_line_number`); every other token of the eleven bodies is transcribed.
-`--check`'s `^- ` count drops **87 -> 78**: the round retires the eleven `missing function`
-rows it defines, and the two rows it adds are that one `does not mention` row and
-`display_count_lines`'s `is not static in C but has no #[unsafe(no_mangle)]` (the scaffold
-declaration, the `produce_stretch_glyph`/`gui_clear_window_mouse_face` class, which disappears
-when C 29914's definition lands).  `src/xdisp.rs` is 24,435 lines.
+section (`Subrs` 4/13, `Functions` 249/302, `Macros` 31/38, `Types and their fields` 2/2,
+`File-scope objects` 59/60) — **345 of the 415 boxes** (249+4+31+2+59); the remaining 70 are
+untouched.  **The scaffold shrinks 12 -> 11** (measured with
+`git show HEAD:femacs/src/xdisp.rs | awk '/TEMPORARY SCAFFOLD/{f=1} f' | grep -c '^  fn '` = 12):
+`display_line`'s entry is deleted and none is added — every name the round's body reaches is
+already defined in the unit, defined before use in C, the include graph's, or one of the eleven
+entries that remain.  (The burned entry's citation was wrong: it said `dispextern.h 3595`, but
+dispextern.h has no `display_line`; C's own declaration is `static bool display_line (struct
+it *, int);` at C 1167 — see to-do item 78.)
+**Two `docs/ports/macro-body-notes.tsv` rows are owed** (the integrator appends them; item 4 of
+the to-do list): `display_line` / `goto,uninit` — C's two `goto back_to_wrap` (C 26331, C 26368)
+are the port's `back_to_wrap` flag and `break 'end_of_continued_line`, and the eight `UNINIT`
+initialisers (C 25870-25883) are the port's 0 (PORTING.md 1.5/2.2, deviations 236/238/245) —
+and `RECORD_MAX_MIN_POS` / `false` — C's in-function `do { … } while (false)` statement macro
+(C 26105-26134) is the port's function-scope `macro_rules!`, whose closing brace cannot spell
+the trailing test (the `RECORD_OVERLAY_STRING` row's shape; deviation 236).  So `--check`'s
+`does not mention` set goes **3 -> 5**; every other token of the body is transcribed.
+`--check`'s `^- ` count is **77 -> 77** (both revisions measured): the round retires
+`missing function display_line` (44 -> 43) and `missing macro RECORD_MAX_MIN_POS` (5 -> 4), and
+adds the two `does not mention` rows above (3 -> 5).  With the two notes rows appended the
+`does not mention` set returns to 3 and the reading drops to **75**.  `src/xdisp.rs` is 25,692
+lines.
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -966,7 +992,10 @@ C 5773).
   (C 25450), `maybe_produce_line_number` (C 25499, scaffold entry retired) and
   `should_produce_line_number` (C 25800, scaffold entry retired), the round's two dead `#if`
   blocks are in the dead-arm list below, and it owes the one `macro-body-notes.tsv` row named
-  in the Progress section.  `display_line` (C 25865) opens the next round.
+  in the Progress section.  `display_line` (C 25864-26935) was the round after it.
+* C 25864-26935 — `display_line` (the opening paragraph names every arm); its two `goto
+  back_to_wrap` sites and its `at_end_of_line` label are the round's only control-flow work,
+  and its `#undef RECORD_MAX_MIN_POS` (C 26934) has no Rust site (the dead-arm list below).
 ### The transcription that is in place
 
 The ledger above is the checklist.  Its tick boxes read 248 of the C file's 302 functions
@@ -1168,6 +1197,13 @@ Both keep a pointer comment at the site (the standing shape, deviations 170/178)
 `--check` owes no `does not mention` row for `IMAGEP`/`lookup_image`/`FRAME_TOOLTIP_P`/
 `XFRAME`/`WINDOW_FRAME`.
 
+The thirtieth round's range (C 25864-26935, `display_line`) holds **no `#if` at all** (the
+function is one straight body in every configuration), so nothing new is recorded here for it.
+Its one preprocessor line is C's `#undef RECORD_MAX_MIN_POS` (C 26934), which has no Rust site:
+the in-function `#define` becomes a function-scope `macro_rules!` whose scope is its block (the
+`IT_RESET_X_ASCENT_DESCENT`/`GIVE_UP` class), and the note owed for its un-spellable
+`while (false)` tail is named in the Progress section.
+
 ### Use-site declarations (headers without a mirror, or mirror gaps; each keeps C's prototype in a `/// C:` line)
 
 1. **`window.h`'s accessor macros — retired to the mirror.**  `include/window.rs` was WIP and
@@ -1278,6 +1314,11 @@ Both keep a pointer comment at the site (the standing shape, deviations 170/178)
     defined at C 29193) and `display_count_lines` (lisp.h 4404-4407, defined at C 29914) — C's
     own forward declarations, dropped in the port because a declaration plus the definition is
     E0428 (PORTING.md 0.1-12).
+16. **One more use-site declaration this round**: `prepare_desired_row` (dispextern.h 3917,
+    defined by dispnew.c) joins the unit's `unsafe extern "C"` block next to
+    `clear_glyph_matrix_rows`/`shift_glyph_matrix`, C's prototype in a `/// C:` line; the
+    mirror chain carries none of the three, and `display_line` (C 25906) is this unit's first
+    use.  `nm build/femacs/xdisp.o` reads `U _prepare_desired_row`.
 
 ### Deviations (each one also named in the report)
 
@@ -2749,6 +2790,73 @@ Both keep a pointer comment at the site (the standing shape, deviations 170/178)
      release build's `#[cfg (enable_checking)]` arm only, so `build-tu` does not compile them;
      the Gate evidence section's probe is what reads them.
 
+### Deviations, continued (the round's thirtieth pass: `display_line`)
+
+236. **C's `#define RECORD_MAX_MIN_POS` is a function-scope `macro_rules!`** (PORTING.md 2.1; the
+     `BUFFER_POS_REACHED_P`/`IT_RESET_X_ASCENT_DESCENT` shape).  C's `#define` text is dropped and
+     its trailing `#undef` (C 26934) has no Rust site; the macro's body reads the enclosing `it`
+     and the four position locals, exactly as C's does, and the `macro-body-notes.tsv` row it owes
+     (`RECORD_MAX_MIN_POS` / `false`) is named in the Progress section.
+237. **Three zero-initialised locals** (deviation 1's rule / PORTING.md 1.5): the eight `UNINIT`
+     scalars C declares at C 25870-25883 (`wrap_x`, `wrap_row_ascent`/`height`/`phys_ascent`/
+     `phys_height`/`extra_line_spacing`, `wrap_row_min_pos`/`min_bpos`/`max_pos`/`max_bpos`,
+     `wrap_face_id`, `min_bpos`, `max_bpos`), plus `prev_face_id` (C reads it only after the wrap
+     block writes it) and `overlay_arrow_string` (C's comma assignment at C 26790) — Rust cannot
+     prove either read is reached after the write, so each starts at 0/`Qnil ()`, marked
+     `/* UNINIT */` where C's macro is what supplies it.
+238. **C's two `goto back_to_wrap` (C 26331, C 26368) are a flag**, not a label: the port sets
+     `back_to_wrap` and leaves C's `if`-chain through `break 'end_of_continued_line`, and C's
+     `back_to_wrap:` body (C 26415-26441) runs once, after the chain, guarded by that flag.  C's
+     `else if (wrap_row_used > 0)` arm is the flag set.  C's `at_end_of_line:` label (C 26569)
+     with its backward `goto` (C 26702) is the port's `'at_end_of_line: loop`, whose `continue` is
+     the `goto` and whose trailing `break` is the next iteration of the outer loop; C's unlabelled
+     `while (true)` is named `'row` so that the two `break`s inside that inner loop leave it the
+     way C's `break`s leave the `while` (PORTING.md 2.2 — the `buffer_pos_reached`/
+     `move_further_back` shapes).  `--check` therefore owes the `display_line` / `goto,uninit` row
+     (deviation 245).
+239. **Type spellings and cast points this round** (deviation 213/230/232's classes):
+     `MATRIX_ROW_VPOS`'s `isize` against `nrows`'s `c_int` (`as c_int`); C's implicit `int` ->
+     `ptrdiff_t` promotion in `x_incr`'s product (`as ptrdiff_t` … `as c_int`); `min_hscroll`'s
+     and `large_hscroll_threshold`'s `ptrdiff_t` (the latter `EMACS_INT`, so `as ptrdiff_t`);
+     `max`'s `isize` arguments; `glyph->pixel_width`'s `short` (C widens it in
+     `x + glyph->pixel_width` and truncates `it->last_visible_x - x` into it); `XFIXNUM`'s
+     `ptrdiff_t` into `overlay_arrow_bitmap`'s `int`; `window_wants_tab_line`/`_header_line`'s
+     `bool` into C's `int`; and `BVAR`'s buffer member, which the mirror spells
+     `indicate_empty_lines_`.
+240. **`(*(*it).w).desired_matrix as *mut glyph_matrix` needs its parentheses**:
+     `(*((*(*it).w).desired_matrix as *mut glyph_matrix))`.  Rust's unary `*` binds tighter than
+     `as`, so the bare form dereferences the `*mut c_void` before the cast (`E0606 casting c_void
+     as *mut glyph_matrix`) — the `redisplay_window`/`MATRIX_ROW_VPOS` precedent (deviation 231).
+241. **The round's bitfield spellings** (PORTING.md 1.3/P-80): `struct it`'s four `unsigned` fringe
+     members (C 2908-2929) are 16- and 20-bit fields of the measured 96-bit `bits3` run, so the
+     round adds `IT_STARTS_IN_MIDDLE_OF_CHAR_P` (byte 2217 bit 0) and the `it_bits3_get`/
+     `it_bits3_set` pair plus eight `it_bits!` arms (the two bitmap numbers at bytes 0/2, the two
+     face ids at bytes 4/8); the four `row->*_user_fringe_*` copies use `glyph_row_bits!`'s
+     existing 16/20-bit arms, `glyph->type` is `glyph_bits! (type, …)`, and every other flag is an
+     existing arm (`displays_text_p`, `continued_p`, `ends_at_zv_p`, `reversed_p`, …).
+242. **The five call sites of `display_line` in this unit lose their `!= 0`.**  C's
+     `if (display_line (&it, …))` is truthiness (C 21708, C 21927, C 22110, C 23031, C 23306) and
+     C's definition returns `bool`; earlier rounds wrote `!= 0` because the burned scaffold entry
+     declared the function `c_int` (the same stale typing to-do item 78 names).  C 17699's
+     statement keeps discarding the value.  They are `E0308`s the definition landing exposed, and
+     they are the port's only edits outside the new function.
+243. **C's comma/chain expressions in the round** (deviation 2/226's shape): the overlay-arrow
+     test keeps its assignment inside the condition as
+     `&& { overlay_arrow_string = overlay_arrow_at_row (it, row); !NILP (overlay_arrow_string) }`
+     (deviation 135/174's shape), C's three-way chain `it->wrap_prefix_width = it->current_x =
+     it->hpos = 0;` becomes the three stores in C's order, `p = where = row->glyphs[area]` becomes
+     `where_` then `p`, and the two `*p++ = *x++` walks become the store followed by the two
+     increments (C's post-increment order).
+244. **The round's `eassert!`s** (C 25883's `hpos`/`current_x` pair, C 26421's `wrap_face_id >= 0`,
+     C 26537's `FRAME_WINDOW_P`, C 26548's `first_visible_x <= last_visible_x` and C 26848's
+     `FIXNUMP`) live in the release build's `#[cfg (enable_checking)]` arm only, so `build-tu` does
+     not compile them; the Gate evidence section's probe is what reads them.
+245. **C's `if (!get_next_display_element (it))`/`if (!wrapped)` arms and the `IT_IMAGE` disjunct
+     are transcribed as C writes them**, so the round's two `goto`s are the only tokens
+     `--check` misses (deviation 238); the `uninit` token is the second one, and it is the
+     `/* UNINIT */` markers' job to say where the C initialisers went (deviation 237), not a
+     Rust token.
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -3146,75 +3254,111 @@ Both keep a pointer comment at the site (the standing shape, deviations 170/178)
     `labeled_restrictions_remove_in_current_buffer` (lisp.h 4931) and
     `disable_line_numbers_overlay_at_eob` (lisp.h 4937) and `strcat` (`<string.h>`) — belong in
     the mirror chain next to their siblings (the `labeled_narrow_to_region` family, item 29).
+77. `docs/ports/macro-body-notes.tsv`: **this round owes two rows** (also listed in item 4 and
+    the Progress section) — `display_line` / `goto,uninit` (C 25865-26935's two `goto
+    back_to_wrap` and its eight `UNINIT` initialisers) and `RECORD_MAX_MIN_POS` / `false` (C
+    26105-26134's in-function `do { … } while (false)` macro, which the port writes as a
+    function-scope `macro_rules!`).  They are the round's only new `does not mention` rows
+    (`--check` 3 -> 5), and with them appended the reading is 75.  Every other token of the body
+    is transcribed.
+78. **The burned scaffold entry's citation was wrong** (deviation 83's class): the unit's
+    `display_line` prototype said `/// C: dispextern.h 3595: int display_line (struct it *, int);`
+    — dispextern.h has no `display_line` (its 3595 line is inside the `move_it_*` batch), C's own
+    forward declaration is `static bool display_line (struct it *, int);` at C 1167, and the
+    definition's return type is `bool`.  The entry is deleted with the definition, and the five
+    in-unit call sites that had been typed against it dropped their `!= 0` (deviation 242).
+79. **Text-vs-machine gap (item 69/72/75's class), this round's share.**  `display_line` is called
+    from five already-transcribed sites, so `nm build/femacs/xdisp.o` now gives it a local `t`
+    symbol; the three helpers that were unreachable before it landed (`find_row_edges`,
+    `unproduce_glyphs`, `row_text_area_empty` — item 75) get theirs too, so the round adds four `t`
+    symbols and one undefined reference (`U _prepare_desired_row`, item 76's class: the new
+    use-site declaration belongs in the mirror chain next to `clear_glyph_matrix_rows`/
+    `shift_glyph_matrix`).
 
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  Every
 reading below is from this round's own run, against `femacs/src/xdisp.rs` md5
-`2dfccc2064374bf490a90e128db01dbe` (24,435 lines = HEAD's 23,569 plus the round's 866 net
+`25a1231b6aa5e72965c02096b8c3ce02` (25,692 lines = HEAD's 24,435 plus the round's 1,257 net
 inserted lines) and the mirrors it includes: `include/dispextern.rs`, `include/window.rs`,
 `include/buffer.rs`, `include/lisp.rs` (the last three are other lanes' and mutable).  The
-`^- ` baseline is the same file measured before the edit (87 lines, the previous round's
-post-follow-up reading).
+`^- ` baseline is the same file's **HEAD revision** measured with this round's extractor
+(`git show HEAD:femacs/src/xdisp.rs` into a scratch path, 77 lines: 44 `missing function`,
+5 `missing macro`, 6 `missing subr`, 13 `missing defsubr`, 2 `missing file-scope object`,
+3 `does not mention`, 3 `is not static`, 1 `line count drifted`).
 
 * `cd femacs && cargo run -q -p xtask -- build-tu src/xdisp.c` = `built src/xdisp.rs ->
-  ../build/femacs/xdisp.o`, **exit 0**, object `build/femacs/xdisp.o` **2,358,272 bytes**, md5
-  `75bd6b392b9cb28a75368916a49642ae`.  The build emits **the same six warnings as every previous
+  ../build/femacs/xdisp.o`, **exit 0**, object `build/femacs/xdisp.o` **2,661,656 bytes**, md5
+  `2a2e940f0960a293ff33b8c234787b7b` (HEAD's object, for the delta: 2,358,272 bytes, md5
+  `75bd6b392b9cb28a75368916a49642ae`).  The build emits **the same six warnings as every previous
   round** (three `unused doc comment`s in mirrors, the two `while true` lint notes in
-  `produce_stretch_glyph`/`move_it_to`, one `unused attribute`); this round adds none, and it
-  took **one** `build-tu` invocation (the brief's budget is three).  The round's six error
-  rounds were diagnosed against the materialised `build/femacs/units/xdisp/_root.rs` with a
-  `rustc` invocation of the same flags (not a `build-tu` call): the chained assignments
-  (`E0308`), the `glyph_matrix` cast's parenthesisation (`E0609`/`E0606`), the `static mut
-  glyph_row` dereference (`E0614`), the part-initialised `from` (`E0381`) and the two `int` vs
-  `ptrdiff_t` returns;
+  `produce_stretch_glyph`/`move_it_to`, one `unused attribute`); this round adds none, and the
+  clean build took **the third** of this round's `build-tu` invocations (the brief's budget is
+  three; the second's seven errors are in the next bullet).  **Cross-lane note**: the object
+  above is the reading at the mirror state this round compiled against; `git status` shows
+  `include/dispextern.rs` and `include/frame.rs` modified **after** that run by the mirror lane
+  (`femacs/src/include/dispextern.rs` is the header this unit includes at C 482 and carries the
+  measured `struct it` the round reads), so a later re-run may read differently — the standing
+  "the mirrors are other lanes' and mutable" caveat, and the reason the ledger pins the md5s it
+  measured against;
+* the first invocation's 33 errors and the second's 7 were diagnosed against the materialised
+  `build/femacs/units/xdisp/_root.rs` with `rustc` invocations of the same flags (not `build-tu`
+  calls, and the sanctioned `--cfg enable_checking` probe below is one of them): the C `#define`
+  text left in the file (`unknown start of token: \`), the `*ptr as T` parenthesisation
+  (`E0606`/`E0609`), the `c_int`/`ptrdiff_t` promotions (`E0308`/`E0277`), the buffer member's
+  mirror spelling (`E0609 indicate_empty_lines`), `glyph->pixel_width`'s `short` (`E0308`), the
+  `XFIXNUM` store into `overlay_arrow_bitmap` (`E0308`) and the five `display_line` call sites
+  the scaffold's `c_int` typing had given `!= 0` (`E0308`);
 * `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its last
-  two lines are `- line count drifted 38.6%: C 39805 vs Rust 24435` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The `^- ` count is **87 -> 78**: the round
-  retires the eleven `missing function` rows it defines (`missing function` 55 -> 44) and adds
-  two — the `does not mention` row `maybe_produce_line_number` / `alloca,int_strlen_bound`
-  (`does not mention` 3 -> 4, the owed `macro-body-notes.tsv` row) and
-  `display_count_lines is not static in C but has no #[unsafe(no_mangle)] in the port` (the
-  scaffold-declaration class, 2 -> 3 with `produce_stretch_glyph`/
-  `gui_clear_window_mouse_face`).  `missing macro` 5, `missing subr` 6, `missing defsubr` 13 and
-  `missing file-scope object` 2 are unchanged, and there is still no `stub or empty body` line;
-* `python3 tools/check-citations.py` = `675 file(s) scanned, 1 drift, 0 range, 494 external,
-  33 allowed, 0 stale`; **`femacs/src/xdisp.rs` has no finding** (this round adds five `/// C:`
-  lines for the use-site declarations and one for each scaffold entry).  The count moved during
-  the round as other lanes' files changed (1, naming `femacs/src/include/frame.rs:1591` against
-  `frame.h 1268-1271`, on an earlier run of the same round; 0 on the last), which is the
-  previous round's cross-lane note; no reading of it ever named this unit;
+  two lines are `- line count drifted 35.5%: C 39805 vs Rust 25692` and
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The `^- ` count is **77 -> 77**: the round
+  retires `missing function display_line` (44 -> 43) and `missing macro RECORD_MAX_MIN_POS`
+  (5 -> 4) and adds the two `does not mention` rows the Progress section names
+  (`does not mention` 3 -> 5, of which one is the `macro … does not mention false` family).
+  `missing subr` 6, `missing defsubr` 13, `missing file-scope object` 2 and `is not static` 3
+  are unchanged, and there is still no `stub or empty body` line.  With the two owed
+  `macro-body-notes.tsv` rows appended the `does not mention` set returns to 3 and the reading
+  drops to **75**;
+* `python3 tools/check-citations.py` = `675 file(s) scanned, 0 drift, 0 range, 499 external,
+  33 allowed, 0 stale`; **`femacs/src/xdisp.rs` has no finding** (this round adds one `/// C:`
+  line for the new use-site declaration);
 * `python3 tools/check-declarations.py` = `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures`; its final line is `walked past 0 file(s) of an unscanned kind: none
   (1 of them read above)`.  No finding from this unit;
 * `python3 tools/check-carried.py` = `11 carried file(s), 11 baseline row(s), 0 failure(s)`;
-* `python3 tools/check-dead-file-coverage.py` = `13 ledger(s) bound (a C range table), 0
-  failure(s)` (the two `androidterm.md` failures the previous round saw are gone).  This unit is
-  not a P-86 file; the gate is run because the brief's reading list names it;
+* `python3 tools/check-dead-file-coverage.py` = `17 ledger(s) bound (a C range table), 2
+  failure(s)`; both failures name `docs/ports/android.md` (`4 reference line(s) with text are not
+  in any range (141, 386, 464, 669)` and `7 reference line(s) with text are not in any range (21,
+  141, 272, 309, 313, 334, 340)`), which is another lane's in-flight ledger — `git status` shows
+  `docs/ports/android.md`, `femacs/src/android.rs` and `femacs/src/image.rs` modified but
+  uncommitted, and this unit touches none of them.  This unit is not a P-86 file; the gate is run
+  because the brief's reading list names it;
 * `python3 tools/check-ledger-ticks.py` = `235 ledger(s) bound (a function tick to compare), 0
-  failure(s), 0 carried by another file, 355 row(s) with no function tick - ... , 0 row(s)
-  without a ledger` — the round's eleven new ticks are all carried.
+  failure(s), 0 carried by another file, 355 row(s) with no function tick - a unit with no
+  function at all, or one whose body the frozen configuration leaves under a false condition
+  (check-port-lines.py is that class's gate), 0 row(s) without a ledger` — the round's one new
+  tick (`display_line`) is carried.
 
-**Symbol-table reading** (`nm`, run by hand): `build/femacs/xdisp.o` gains eight `t` symbols this
-round — `push_prefix_prop`, `get_it_property`, `get_line_prefix_it_property`,
-`handle_line_prefix`, `display_count_lines_logically`, `display_count_lines_visually`,
-`maybe_produce_line_number` and `should_produce_line_number` (their callers are already
-transcribed) — and keeps `U _display_count_lines` (the scaffold declaration).  The round's other
-three definitions (`find_row_edges`, `unproduce_glyphs`, `row_text_area_empty`) are unreachable
-from the transcribed text (their callers are `display_line` and the code past it), so they still
-have **no machine symbol** — item 75 of the to-do list.
+**Symbol-table reading** (`nm`, run by hand): `build/femacs/xdisp.o` gains four `t` symbols this
+round — `display_line` itself (five transcribed callers: C 17699, 21708, 21927, 22110, 23031,
+23306's sites) and the three helpers that were unreachable before it landed, `find_row_edges`,
+`unproduce_glyphs` and `row_text_area_empty` (item 75's gap closes for those three) — and one new
+undefined reference, `U _prepare_desired_row` (the round's new use-site declaration).
 
 **The `enable_checking` probe** (not one of the four gates): `cd femacs && rustup run
-nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj --crate-name xdisp --cfg
-enable_checking -C panic=abort -C codegen-units=1 -C opt-level=0
-build/femacs/units/xdisp/_root.rs -o /tmp/xdsp/probe/xdisp.checking.o` = **exit 0, 0 errors**,
-the same six warnings, object **2,930,272 bytes**.  It matters here because `build-tu` does
-**not** compile the `#[cfg (enable_checking)]` arm (`xtask`'s single-unit `build_tu` runs one
-rustc pass), so this round's ten `eassert!`s (deviation 235) were checked only by this probe.  The
-probe is run from `femacs/` with `rustup run nightly-2026-10-01` because a bare `rustc` from the
-repository root falls through to stable and reports spurious `E0658 c_variadic` errors.
+nightly-2026-10-01 rustc --edition 2024 --crate-type=lib -C panic=abort -C codegen-units=1
+-C opt-level=0 --cfg enable_checking --crate-name xdisp --emit=metadata -o
+/tmp/dline-port/probe/xdisp.rmeta ../build/femacs/units/xdisp/_root.rs` = **exit 0, 0 errors**,
+the same six warnings.  It matters here because `build-tu` does **not** compile the
+`#[cfg (enable_checking)]` arm (`xtask`'s single-unit `build_tu` runs one rustc pass), so this
+round's five `eassert!`s (deviation 244) were checked only by this probe.  The probe is run from
+`femacs/` with `rustup run nightly-2026-10-01`, over the materialised `_root.rs` `build-tu` has
+just written and with the same flags `tools/check-all-units.sh`'s checking leg uses (with
+`--emit=metadata` instead of `--emit=obj`, into a scratch directory, so no `.rlib` is left
+behind); a bare `rustc` from the repository root falls through to stable and reports spurious
+`E0658 c_variadic` errors.
 
-`xtask layout-check` was **not** re-run this round: the unit's text adds no `struct` (naming
-`it.eol_pos` replaces an existing measured pad with the same 16 bytes) and no new layout family —
-the one `const _` assertion is an `offset_of` on that member — and the task's reading list is
-`build-tu` plus the text gates above.
+`xtask layout-check` was **not** re-run this round: the unit adds no `struct` and no new layout
+family — the round's only type-level work is the `it_bits!`/`it_bits3_*` accessors over the
+already-measured 96-bit `bits3` run (`struct it`'s byte 2604, whose `const _` assertions are
+unchanged) — and the task's reading list is `build-tu` plus the text gates above.
