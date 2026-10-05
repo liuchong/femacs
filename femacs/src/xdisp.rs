@@ -918,6 +918,28 @@ unsafe extern "C" {
   /// struct glyph_row *, int);` (dispnew.c defines it; `deep_copy_glyph_row` at C 27945 is
   /// this unit's first use — the dispextern.h mirror is a WIP prefix, P-66).
   pub fn fill_up_frame_row_with_spaces (f: *mut frame, row: *mut glyph_row, n: c_int);
+  /// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);`
+  /// (intervals.c defines it; the lisp.h mirror the chain carries does not have it -
+  /// intervals.rs and coding.rs each declare the same prototype at their own use site, and
+  /// `display_mode_element` at C 28507 is this unit's first use).
+  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+  /// C: lisp.h 4281-4282: `extern Lisp_Object plist_put (Lisp_Object plist, Lisp_Object
+  /// prop, Lisp_Object val);` (intervals.c defines it; same mirror gap as `plist_get`,
+  /// first use at C 28510).
+  pub fn plist_put (plist: Lisp_Object, prop: Lisp_Object, val: Lisp_Object) -> Lisp_Object;
+  /// C: lisp.h 4426-4427: `extern void parse_str_as_multibyte (const unsigned char *,
+  /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);` (character.c defines it; the lisp.h mirror
+  /// chain does not carry it - font.rs/fns.rs/alloc.rs each declare it at their own use
+  /// site, and `display_mode_element` at C 28722 is this unit's first use).
+  pub fn parse_str_as_multibyte (str_: *const c_uchar, len: ptrdiff_t,
+				 nchars: *mut ptrdiff_t, nbytes: *mut ptrdiff_t);
+  /// C: <string.h>: `void *memrchr (void const *, int, size_t);` (`lib/include/string.rs`
+  /// keeps only the functions the earlier units reached; `display_count_lines` at C 29961
+  /// is this unit's first use).
+  pub fn memrchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void;
+  /// C: <string.h>: `size_t strnlen (char const *__s, size_t __maxlen);` (same mirror gap
+  /// as `memrchr`; `store_mode_line_string` at C 28993 is this unit's first use).
+  pub fn strnlen (s: *const c_char, maxlen: usize) -> usize;
 }
 
 /* C 348-351: `termopts.h`'s two objects (that header has a mirror, but no unit `include!`s
@@ -2429,6 +2451,10 @@ macro_rules! frame_bits {
   (cursor_type_changed, $f:expr, $v:expr) =>
     { set_frame_flag1! ($f, FRAME_CURSOR_TYPE_CHANGED_SHIFT, $v); };
   (after_make_frame, $f:expr) => { ((*$f).bits1 >> FRAME_AFTER_MAKE_FRAME_SHIFT & 1) != 0 };
+  /* frame.h 417's `bool_bf explicit_name : 1` (bit 15 of `bits1`, the mirror's
+     `FRAME_EXPLICIT_NAME_SHIFT`); the mirror carries the shift but no accessor for this
+     member.  */
+  (explicit_name, $f:expr) => { ((*$f).bits1 >> FRAME_EXPLICIT_NAME_SHIFT & 1) != 0 };
 }
 
 /* frame.h 300-341's two packed-flag units: the writer behind the `frame_bits!` arms above
@@ -25676,38 +25702,16 @@ unsafe extern "C" {
   /// display_element_type, bidi_dir_t direction, bool left_edge_p);`
   fn produce_special_glyphs (it: *mut it, what: display_element_type,
 			     direction: bidi_dir_t, left_edge_p: bool);
-  /// C: xdisp.c 859-860: `static bool calc_pixel_width_or_height (double *, struct it *,
-  /// Lisp_Object, struct font *, bool, int *, bool *);` (defined later in this unit; the
-  /// `struct font *` is `include/font.rs`'s mirror of font.h 275-418, which this unit
-  /// includes at C 496).
-  fn calc_pixel_width_or_height (res: *mut c_double, it: *mut it,
-				 prop: Lisp_Object, font: *mut font,
-				 width_p: bool, align_to: *mut c_int,
-				 lnum_added: *mut bool) -> bool;
   /// C: dispextern.h 3627: `extern void produce_stretch_glyph (struct it *);` (defined
   /// later in this unit; C's is non-`static`).
   fn produce_stretch_glyph (it: *mut it);
   /// C: dispextern.h 3689: `extern void gui_clear_window_mouse_face (struct window *);`
   /// (defined later in this unit, at C 37705).
   fn gui_clear_window_mouse_face (w: *mut window);
-  /// C: xdisp.c 1178: `static void pint2str (register char *, register int, register
-  /// ptrdiff_t);` (defined later in this unit, at C 29193; C's is `static`).
-  fn pint2str (buf: *mut c_char, width: c_int, d: ptrdiff_t);
-  /// C: lisp.h 4404-4407: `extern ptrdiff_t display_count_lines (ptrdiff_t start_byte,
-  /// ptrdiff_t limit_byte, ptrdiff_t count, ptrdiff_t *byte_pos_ptr);` (defined later in
-  /// this unit, at C 29914; C's is non-`static`).
-  fn display_count_lines (start_byte: ptrdiff_t, limit_byte: ptrdiff_t, count: ptrdiff_t,
-			  byte_pos_ptr: *mut ptrdiff_t) -> ptrdiff_t;
-  /// C: xdisp.c 1170-1171: `static int display_mode_element (struct it *, int, int, int,
-  /// Lisp_Object, Lisp_Object, bool);` (defined later in this unit).
-  fn display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: c_int,
-			   elt: Lisp_Object, props: Lisp_Object, risky: bool) -> c_int;
-  /// C: xdisp.c 1180-1182: `static int display_string (const char *, Lisp_Object,
-  /// Lisp_Object, ptrdiff_t, ptrdiff_t, struct it *, int, int, int, int);` (defined later).
-  fn display_string (string: *const c_char, lisp_string: Lisp_Object, face_string: Lisp_Object,
-		     face_string_pos: ptrdiff_t, start: ptrdiff_t, it: *mut it,
-		     field_width: c_int, precision: c_int, max_x: c_int,
-		     multibyte: c_int) -> c_int;
+  /// C: xdisp.c 33405-33406: `static void pad_mode_line (struct it *, bool);` (defined
+  /// later in this unit's glyph-producer group, at C 33406; `display_string` at C 30244 is
+  /// this unit's first use).
+  fn pad_mode_line (it: *mut it, mode_line_p: bool);
 }
 
 DEFUN! ("current-bidi-paragraph-direction", Fcurrent_bidi_paragraph_direction,
@@ -27157,4 +27161,2466 @@ safe_set_text_properties (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Obje
   eassert! (nargs == 4);
   return Fset_text_properties (*args.offset (0), *args.offset (1),
 			       *args.offset (2), *args.offset (3));
+}
+
+/* Contribute ELT to the mode line for window IT->w.  How it
+   translates into text depends on its data type.
+
+   IT describes the display environment in which we display, as usual.
+
+   DEPTH is the depth in recursion.  It is used to prevent
+   infinite recursion here.
+
+   FIELD_WIDTH is the number of characters the display of ELT should
+   occupy in the mode line, and PRECISION is the maximum number of
+   characters to display from ELT's representation.  See
+   display_string for details.
+
+   Returns the hpos of the end of the text generated by ELT.
+
+   PROPS is a property list to add to any string we encounter.
+
+   If RISKY, remove (disregard) any properties in any string
+   we encounter, and ignore :eval and :propertize.
+
+   The global variable `mode_line_target' determines whether the
+   output is passed to `store_mode_line_noprop',
+   `store_mode_line_string', or `display_string'.  (C 28438-28462)  */
+
+unsafe fn
+display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: c_int,
+		      elt: Lisp_Object, props: Lisp_Object, risky: bool) -> c_int
+{
+  /* C's `int n = 0, field, prec;` - `field` and `prec` are C's uninitialised locals,
+     zero-initialised here (PORTING.md 1.5, deviation 280).  The five names C mutates
+     (`elt`, `props`, `risky`, `depth`, `field_width`, `precision`) take C's own spelling as
+     `let mut` shadows (PORTING.md 0.3).  */
+  let mut n: c_int = 0;
+  let mut field: c_int = 0;
+  let mut prec: c_int = 0;
+  let mut literal: bool = false;
+  let mut elt: Lisp_Object = elt;
+  let mut props: Lisp_Object = props;
+  let mut risky: bool = risky;
+  let mut depth: c_int = depth;
+  let mut field_width: c_int = field_width;
+  let mut precision: c_int = precision;
+
+  /* C's `tail_recurse:` label; the four `goto tail_recurse`s are the port's
+     `continue 'tail_recurse` and C's trailing `return n` (C 28976) is the loop's only exit
+     (deviation 281).  */
+  'tail_recurse: loop
+    {
+      if depth > 100
+	{ elt = build_string (c"*too-deep*".as_ptr ()); }
+
+      /* NOTE: Increment the number only for 'MODE_LINE_STRING', because for
+	 other cases this variable is not used.  So we do not need to reset
+	 the variable in every callers of this function.
+
+	 NOTE: This might result in gaps in the stored element numbers
+	 because some elements are processed recursively.  However, we
+	 cannot increment this number when the number is stored because an
+	 element could be stored by parts.  For example, "a%b" is stored as
+	 two elements in the 'mode_line_string_list', but they should be
+	 considered as one element, so we cannot increment this number when
+	 "a" is stored.  */
+      if mode_line_target == MODE_LINE_STRING
+	{ mode_line_elt_no += 1; }
+
+      depth += 1;
+
+      /* C's `switch (XTYPE (elt))` with its `default:`/`invalid:` label pair: the outer
+	 block is the switch (C's `break` becomes `break 'switch`) and the inner one is the
+	 `invalid:` entry point (C's `goto invalid` becomes `break 'invalid`, which lands on
+	 the `invalid:` text below it) (deviation 282).  */
+      'switch: {
+	'invalid: {
+	  match XTYPE (elt)
+	    {
+	    Lisp_Type::Lisp_String =>
+	      {
+		/* A string: output it and check for %-constructs within it.  */
+		let mut c: c_int = 0;	/* C's uninitialised `int c` (PORTING.md 1.5).  */
+		let mut offset: ptrdiff_t = 0;
+
+		if SCHARS (elt) > 0
+		    && (!NILP (props) || risky)
+		  {
+		    let mut oprops: Lisp_Object = Qnil ();
+		    let mut aelt: Lisp_Object = Qnil ();
+		    oprops = Ftext_properties_at (make_fixnum (0), elt);
+
+		    /* If the starting string's properties are not what
+		       we want, translate the string.  Also, if the string
+		       is risky, do that anyway.  */
+
+		    if NILP (Fequal (props, oprops)) || risky
+		      {
+			/* If the starting string has properties,
+			   merge the specified ones onto the existing ones.  */
+			if !NILP (oprops) && !risky
+			  {
+			    let mut tem: Lisp_Object = Qnil ();
+
+			    oprops = Fcopy_sequence (oprops);
+			    tem = props;
+			    while CONSP (tem) && CONSP (XCDR (tem))
+			      {
+				oprops = plist_put (oprops, XCAR (tem),
+						    XCAR (XCDR (tem)));
+				tem = XCDR (XCDR (tem));
+			      }
+			    props = oprops;
+			  }
+
+			aelt = Fassoc (elt, mode_line_proptrans_alist, Qnil ());
+			if !NILP (aelt) && !NILP (Fequal (props, XCDR (aelt)))
+			  {
+			    /* AELT is what we want.  Move it to the front
+			       without consing.  */
+			    elt = XCAR (aelt);
+			    mode_line_proptrans_alist
+			      = move_elt_to_front (aelt, mode_line_proptrans_alist);
+			  }
+			else
+			  {
+			    let mut tem: Lisp_Object = Qnil ();
+
+			    /* If AELT has the wrong props, it is useless.
+			       so get rid of it.  */
+			    if !NILP (aelt)
+			      { mode_line_proptrans_alist
+				  = Fdelq (aelt, mode_line_proptrans_alist); }
+
+			    elt = Fcopy_sequence (elt);
+			    /* PROPS might cause set-text-properties to signal
+			       an error, so we call it via internal_condition_case_n,
+			       to avoid an infloop in redisplay due to the error.  */
+			    /* FIXME: Use 'SAFE_CALLMANY'?  */
+			    /* C's compound literal `(Lisp_Object []) {…}` has block scope; the
+			       port keeps the four-element local array it stands for (the
+			       `dbusbind.rs`/`keyboard.rs` shape, deviation 283).  */
+			    let mut args: [Lisp_Object; 4]
+			      = [make_fixnum (0), Flength (elt), props, elt];
+			    internal_condition_case_n (safe_set_text_properties,
+						       4,
+						       args.as_mut_ptr (),
+						       Qt (), dsafe_eval_handler);
+			    /* Add this item to mode_line_proptrans_alist.  */
+			    mode_line_proptrans_alist
+			      = Fcons (Fcons (elt, props),
+				       mode_line_proptrans_alist);
+			    /* Truncate mode_line_proptrans_alist
+			       to at most 50 elements.  */
+			    tem = Fnthcdr (make_fixnum (50),
+					   mode_line_proptrans_alist);
+			    if !NILP (tem)
+			      { XSETCDR (tem, Qnil ()); }
+			  }
+		      }
+		  }
+
+		offset = 0;
+
+		if literal
+		  {
+		    prec = precision - n;
+		    match mode_line_target
+		      {
+			MODE_LINE_NOPROP | MODE_LINE_TITLE =>
+			  { n += store_mode_line_noprop (SSDATA (elt), -1, prec); }
+			MODE_LINE_STRING =>
+			  {
+			    AUTO_LIST2! (src, Qmode_line_elt_no (),
+					 make_fixnum (mode_line_elt_no));
+			    n += store_mode_line_string (core::ptr::null (), elt, true,
+							 0, prec, src);
+			  }
+			MODE_LINE_DISPLAY =>
+			  { n += display_string (core::ptr::null (), elt, Qnil (),
+						 0, 0, it,
+						 0, prec, 0, STRING_MULTIBYTE (elt) as c_int); }
+			_ => { }
+		      }
+
+		    break 'switch;
+		  }
+
+		/* Handle the non-literal case.  */
+
+		while (precision <= 0 || n < precision)
+		      && SREF (elt, offset as usize) != 0
+		      && (mode_line_target != MODE_LINE_DISPLAY
+			  || (*it).current_x < (*it).last_visible_x)
+		  {
+		    let mut last_offset: ptrdiff_t = offset;
+
+		    /* Advance to end of string or next format specifier.  */
+		    while { c = SREF (elt, offset as usize) as c_int;
+			    offset += 1;
+			    c != '\0' as c_int && c != '%' as c_int }
+		      { }
+
+		    if offset - 1 != last_offset
+		      {
+			let mut nchars: ptrdiff_t = 0;
+			let mut nbytes: ptrdiff_t = 0;
+
+			/* Output to end of string or up to '%'.  Field width
+			   is length of string.  Don't output more than
+			   PRECISION allows us.  */
+			offset -= 1;
+
+			prec = c_string_width (SDATA (elt).offset (last_offset),
+					       offset - last_offset, precision - n,
+					       &raw mut nchars, &raw mut nbytes) as c_int;
+
+			match mode_line_target
+			  {
+			    MODE_LINE_NOPROP | MODE_LINE_TITLE =>
+			      { n += store_mode_line_noprop (SSDATA (elt).offset (last_offset),
+							     0, prec); }
+			    MODE_LINE_STRING =>
+			      {
+				let bytepos: ptrdiff_t = last_offset;
+				let charpos: ptrdiff_t = string_byte_to_char (elt, bytepos);
+				let endpos: ptrdiff_t
+				  = if precision <= 0
+				    { string_byte_to_char (elt, offset) }
+				    else
+				    { charpos + nchars };
+				let mode_string: Lisp_Object
+				  = Fsubstring (elt, make_fixnum (charpos),
+						make_fixnum (endpos));
+				AUTO_LIST2! (src, Qmode_line_elt_no (),
+					     make_fixnum (mode_line_elt_no));
+				n += store_mode_line_string (core::ptr::null (),
+							     mode_string, false,
+							     0, 0, src);
+			      }
+			    MODE_LINE_DISPLAY =>
+			      {
+				let bytepos: ptrdiff_t = last_offset;
+				let charpos: ptrdiff_t = string_byte_to_char (elt, bytepos);
+
+				if precision <= 0
+				  { nchars = string_byte_to_char (elt, offset) - charpos; }
+				n += display_string (core::ptr::null (), elt, Qnil (),
+						     0, charpos, it, 0,
+						     nchars as c_int, 0,
+						     STRING_MULTIBYTE (elt) as c_int);
+			      }
+			    _ => { }
+			  }
+		      }
+		    else /* c == '%' */
+		      {
+			let percent_position: ptrdiff_t = offset;
+
+			/* Get the specified minimum width.  Zero means
+			   don't pad.  */
+			field = 0;
+			while { c = SREF (elt, offset as usize) as c_int;
+				offset += 1;
+				c >= '0' as c_int && c <= '9' as c_int }
+			  { field = field * 10 + c - '0' as c_int; }
+
+			/* "%" could be followed by a multibyte character.  */
+			if STRING_MULTIBYTE (elt)
+			  {
+			    let mut length: c_int = 0;
+			    offset -= 1;
+			    c = string_char_and_length (SDATA (elt).offset (offset),
+						       &raw mut length);
+			    offset += length as ptrdiff_t;
+			  }
+
+			/* Don't pad beyond the total padding allowed.  */
+			if field_width - n > 0 && field > field_width - n
+			  { field = field_width - n; }
+
+			/* Note that either PRECISION <= 0 or N < PRECISION.  */
+			prec = precision - n;
+
+			if c == 'M' as c_int
+			  { n += display_mode_element (it, depth, field, prec,
+						       Vglobal_mode_string, props,
+						       risky); }
+			else if c != 0
+			  {
+			    let mut multibyte: bool = false;
+			    let mut bytepos: ptrdiff_t = 0;
+			    let mut charpos: ptrdiff_t = 0;
+			    let mut string: Lisp_Object = Qnil ();
+			    let spec: *const c_char;
+
+			    bytepos = percent_position;
+			    charpos = if STRING_MULTIBYTE (elt)
+			      { string_byte_to_char (elt, bytepos) }
+			      else
+			      { bytepos };
+			    spec = decode_mode_spec ((*it).w, c, field, &raw mut string);
+			    eassert! (NILP (string) || STRINGP (string));
+			    multibyte = !NILP (string) && STRING_MULTIBYTE (string);
+			    /* Non-ASCII characters in SPEC should cause mode-line
+			       element be displayed as a multibyte string.  */
+			    let nbytes: ptrdiff_t = strlen (spec) as ptrdiff_t;
+			    let mut nchars: ptrdiff_t = 0;
+			    let mut mb_nbytes: ptrdiff_t = 0;
+			    parse_str_as_multibyte (spec as *const c_uchar, nbytes,
+						    &raw mut nchars, &raw mut mb_nbytes);
+			    if !(nbytes == nchars || nbytes != mb_nbytes)
+			      { multibyte = true; }
+
+			    match mode_line_target
+			      {
+				MODE_LINE_NOPROP | MODE_LINE_TITLE =>
+				  { n += store_mode_line_noprop (spec, field, prec); }
+				MODE_LINE_STRING =>
+				  {
+				    let tem: Lisp_Object = build_string (spec);
+				    props = Ftext_properties_at (make_fixnum (charpos), elt);
+				    props = plist_put (props, Qmode_line_elt_no (),
+						       make_fixnum (mode_line_elt_no));
+				    /* Should only keep face property in props */
+				    n += store_mode_line_string (core::ptr::null (), tem,
+								 false, field, prec, props);
+				  }
+				MODE_LINE_DISPLAY =>
+				  {
+				    let mut nglyphs_before: c_int = 0;
+				    let mut nwritten: c_int = 0;
+
+				    nglyphs_before = (*(*it).glyph_row)
+				      .used[TEXT_AREA as usize] as c_int;
+				    nwritten = display_string (spec, string, elt,
+							       charpos, 0, it,
+							       field, prec, 0,
+							       multibyte as c_int);
+
+				    /* Assign to the glyphs written above the
+				       string where the `%x' came from, position
+				       of the `%'.  */
+				    if nwritten > 0
+				      {
+					let glyph: *mut glyph
+					  = (*(*it).glyph_row).glyphs[TEXT_AREA as usize]
+					    .offset (nglyphs_before as isize);
+					let mut i: c_int = 0;
+
+					while i < nwritten
+					  {
+					    (*glyph.offset (i as isize)).object = elt;
+					    (*glyph.offset (i as isize)).charpos = charpos;
+					    i += 1;
+					  }
+
+					n += nwritten;
+				      }
+				  }
+				_ => { }
+			      }
+			  }
+			else /* c == 0 */
+			  { break; }
+		      }
+		  }
+
+		break 'switch;
+	      }
+
+	    Lisp_Type::Lisp_Symbol =>
+	      {
+		/* A symbol: process the value of the symbol recursively
+		   as if it appeared here directly.  Avoid error if symbol void.
+		   Special case: if value of symbol is a string, output the string
+		   literally.  */
+		let mut tem: Lisp_Object = Qnil ();
+
+		/* If the variable is not marked as risky to set
+		   then its contents are risky to use.  */
+		if NILP (Fget (elt, Qrisky_local_variable ()))
+		  { risky = true; }
+
+		tem = Fboundp (elt);
+		if !NILP (tem)
+		  {
+		    tem = Fsymbol_value (elt);
+		    /* If value is a string, output that string literally:
+		       don't check for % within it.  */
+		    if STRINGP (tem)
+		      { literal = true; }
+
+		    if !EQ (tem, elt)
+		      {
+			/* Give up right away for nil or t.  */
+			elt = tem;
+			continue 'tail_recurse;
+		      }
+		  }
+
+		break 'switch;
+	      }
+
+	    Lisp_Type::Lisp_Cons =>
+	      {
+		let mut car: Lisp_Object = Qnil ();
+		let mut tem: Lisp_Object = Qnil ();
+
+		/* A cons cell: five distinct cases.
+		   If first element is :eval or :propertize, do something special.
+		   If first element is a string or a cons, process all the elements
+		   and effectively concatenate them.
+		   If first element is a negative number, truncate displaying cdr to
+		   at most that many characters.  If positive, pad (with spaces)
+		   to at least that many characters.
+		   If first element is a symbol, process the cadr or caddr recursively
+		   according to whether the symbol's value is non-nil or nil.  */
+		car = XCAR (elt);
+		if EQ (car, QCeval ())
+		  {
+		    /* An element of the form (:eval FORM) means evaluate FORM
+		       and use the result as mode line elements.  */
+
+		    if risky
+		      { break 'switch; }
+
+		    if CONSP (XCDR (elt))
+		      {
+			let spec: Lisp_Object = dsafe_eval (XCAR (XCDR (elt)));
+			/* The :eval form could delete the frame stored in the
+			   iterator, which will cause a crash if we try to
+			   access faces and other fields (e.g., FRAME_KBOARD)
+			   on that frame.  This is a nonsensical thing to do,
+			   and signaling an error from redisplay might be
+			   dangerous, but we cannot continue with an invalid frame.  */
+			if !FRAME_LIVE_P ((*it).f)
+			  { signal_error (c":eval deleted the frame being displayed".as_ptr (),
+					  elt); }
+			n += display_mode_element (it, depth, field_width - n,
+						   precision - n, spec, props,
+						   risky);
+		      }
+		  }
+		else if EQ (car, QCpropertize ())
+		  {
+		    /* An element of the form (:propertize ELT PROPS...)
+		       means display ELT but applying properties PROPS.  */
+
+		    if risky
+		      { break 'switch; }
+
+		    if CONSP (XCDR (elt))
+		      { n += display_mode_element (it, depth, field_width - n,
+						   precision - n, XCAR (XCDR (elt)),
+						   XCDR (XCDR (elt)), risky); }
+		  }
+		else if SYMBOLP (car)
+		  {
+		    tem = Fboundp (car);
+		    elt = XCDR (elt);
+		    if !CONSP (elt)
+		      { break 'invalid; }
+		    /* elt is now the cdr, and we know it is a cons cell.
+		       Use its car if CAR has a non-nil value.  */
+		    if !NILP (tem)
+		      {
+			tem = Fsymbol_value (car);
+			if !NILP (tem)
+			  {
+			    elt = XCAR (elt);
+			    continue 'tail_recurse;
+			  }
+		      }
+		    /* Symbol's value is nil (or symbol is unbound)
+		       Get the cddr of the original list
+		       and if possible find the caddr and use that.  */
+		    elt = XCDR (elt);
+		    if NILP (elt)
+		      { break 'switch; }
+		    else if !CONSP (elt)
+		      { break 'invalid; }
+		    elt = XCAR (elt);
+		    continue 'tail_recurse;
+		  }
+		else if FIXNUMP (car)
+		  {
+		    let mut lim: c_int = XFIXNUM (car) as c_int;
+		    elt = XCDR (elt);
+		    if lim < 0
+		      {
+			/* Negative int means reduce maximum width.  */
+			if precision <= 0
+			  { precision = -lim; }
+			else
+			  { precision = min (precision as isize, -lim as isize) as c_int; }
+		      }
+		    else if lim > 0
+		      {
+			/* Padding specified.  Don't let it be more than
+			   current maximum.  */
+			if precision > 0
+			  { lim = min (precision as isize, lim as isize) as c_int; }
+
+			/* If that's more padding than already wanted, queue it.
+			   But don't reduce padding already specified even if
+			   that is beyond the current truncation point.  */
+			field_width = max (lim as isize, field_width as isize) as c_int;
+		      }
+		    continue 'tail_recurse;
+		  }
+		else if STRINGP (car) || CONSP (car)
+		  {
+		    FOR_EACH_TAIL_SAFE! (elt, {
+		      if 0 < precision && precision <= n
+			{ break; }
+		      n += display_mode_element (it, depth,
+						 /* Pad after only the last
+						    list element.  */
+						 if !CONSP (XCDR (elt))
+						 { field_width - n }
+						 else
+						 { 0 },
+						 precision - n, XCAR (elt),
+						 props, risky);
+		    });
+		  }
+
+		break 'switch;
+	      }
+
+	    _ =>
+	      {
+		/* C's `default:` label falls through to `invalid:`.  */
+		break 'invalid;
+	      }
+	    }
+	}
+	/* invalid: */
+	elt = build_string (c"*invalid*".as_ptr ());
+	continue 'tail_recurse;
+      }
+
+      /* Pad to FIELD_WIDTH.  */
+      if field_width > 0 && n < field_width
+	{
+	  match mode_line_target
+	    {
+	    MODE_LINE_NOPROP | MODE_LINE_TITLE =>
+	      { n += store_mode_line_noprop (c"".as_ptr (), field_width - n, 0); }
+	    MODE_LINE_STRING =>
+	      {
+		/* NOTE: Padding implicitly has 'mode-line-elt-no' property
+		   to be nil.  Normally padding spaces are between two real
+		   elements, so this should be good. */
+		n += store_mode_line_string (c"".as_ptr (), Qnil (), false,
+					     field_width - n, 0, Qnil ());
+	      }
+	    MODE_LINE_DISPLAY =>
+	      { n += display_string (c"".as_ptr (), Qnil (), Qnil (), 0, 0, it,
+				     field_width - n, 0, 0, 0); }
+	    _ => { }
+	    }
+	}
+
+      return n;
+    }
+}
+
+/* Store a mode-line string element in mode_line_string_list.
+
+   If STRING is non-null, display that C string.  Otherwise, the Lisp
+   string LISP_STRING is displayed.
+
+   FIELD_WIDTH is the minimum number of output glyphs to produce.
+   If STRING has fewer characters than FIELD_WIDTH, pad to the right
+   with spaces.  FIELD_WIDTH <= 0 means don't pad.
+
+   PRECISION is the maximum number of characters to output from
+   STRING.  PRECISION <= 0  means don't truncate the string.
+
+   If COPY_STRING, make a copy of LISP_STRING before adding
+   properties to the string.
+
+   PROPS are the properties to add to the string.
+   The mode_line_string_face face property is always added to the string.  (C 28966-28976)  */
+
+unsafe fn
+store_mode_line_string (string: *const c_char, lisp_string: Lisp_Object,
+			copy_string: bool,
+			field_width: c_int, precision: c_int, props: Lisp_Object) -> c_int
+{
+  /* C's `ptrdiff_t len;` - assigned by each branch of the `if` below before its single
+     read (PORTING.md 1.5).  */
+  let mut len: ptrdiff_t;
+  let mut n: c_int = 0;
+  let mut lisp_string: Lisp_Object = lisp_string;
+  let mut props: Lisp_Object = props;
+  let mut field_width: c_int = field_width;
+  let mut precision: c_int = precision;
+
+  if !string.is_null ()
+    {
+      len = strnlen (string, if precision <= 0 { SIZE_MAX } else { precision as usize })
+	    as ptrdiff_t;
+      lisp_string = make_string (string, len);
+      if NILP (props)
+	{ props = mode_line_string_face_prop; }
+      else if !NILP (mode_line_string_face)
+	{
+	  let mut face: Lisp_Object = plist_get (props, Qface ());
+	  props = Fcopy_sequence (props);
+	  if NILP (face)
+	    { face = mode_line_string_face; }
+	  else
+	    { face = list2 (face, mode_line_string_face); }
+	  props = plist_put (props, Qface (), face);
+	}
+      Fadd_text_properties (make_fixnum (0), make_fixnum (len),
+			    props, lisp_string);
+    }
+  else
+    {
+      len = SCHARS (lisp_string);
+      if precision > 0 && len > precision as ptrdiff_t
+	{
+	  len = precision as ptrdiff_t;
+	  lisp_string = Fsubstring (lisp_string, make_fixnum (0), make_fixnum (len));
+	  precision = -1;
+	}
+      if !NILP (mode_line_string_face)
+	{
+	  let mut face: Lisp_Object;
+	  let string_face: Lisp_Object
+	    = plist_get (Ftext_properties_at (make_fixnum (0), lisp_string),
+			 Qface ());
+	  /* Use the face in PROPS, if any, falling back to the face of
+	     LISP_STRING.  */
+	  face = string_face;
+	  if !NILP (props)
+	    {
+	      let propface: Lisp_Object = plist_get (props, Qface ());
+	      if !NILP (propface)
+		{ face = propface; }
+	    }
+	  if NILP (face)
+	    { face = mode_line_string_face; }
+	  else
+	    { face = list2 (face, mode_line_string_face); }
+	  props = Fcopy_sequence (props);
+	  props = plist_put (props, Qface (), face);
+	  if copy_string
+	    { lisp_string = Fcopy_sequence (lisp_string); }
+	}
+      if !NILP (props)
+	{ Fadd_text_properties (make_fixnum (0), make_fixnum (len),
+				props, lisp_string); }
+    }
+
+  if len > 0
+    {
+      mode_line_string_list = Fcons (lisp_string, mode_line_string_list);
+      n += len as c_int;
+    }
+
+  if field_width as ptrdiff_t > len
+    {
+      field_width -= len as c_int;
+      lisp_string = Fmake_string (make_fixnum (field_width as EMACS_INT),
+				  make_fixnum (b' ' as c_int as EMACS_INT), Qnil ());
+      if !NILP (props)
+	{ Fadd_text_properties (make_fixnum (0), make_fixnum (field_width as EMACS_INT),
+				props, lisp_string); }
+      mode_line_string_list = Fcons (lisp_string, mode_line_string_list);
+      n += field_width;
+    }
+
+  return n;
+}
+
+
+DEFUN! ("format-mode-line", Fformat_mode_line, Sformat_mode_line,
+       1, 4, 0,
+       doc: "Return a string formatted according to mode-line format specification.\nFirst arg FORMAT specifies the mode line format (see `mode-line-format'\nfor details) to use.\n\nBy default, the format is evaluated for the currently selected window.\n\nOptional second arg FACE specifies the face property to put on all\ncharacters for which no face is specified.  The value nil means the\ndefault face.  The value t means whatever face the window's mode line\ncurrently uses (either `mode-line-active' or `mode-line-inactive',\ndepending on whether the window is the selected window or not).\nAn integer value means the value string has no text\nproperties.\n\nOptional third and fourth args WINDOW and BUFFER specify the window\nand buffer to use as the context for the formatting (defaults\nare the selected window and the WINDOW's buffer).",
+       (format: Lisp_Object, face: Lisp_Object,
+	window: Lisp_Object, buffer: Lisp_Object),
+       {
+  let mut it: it = core::mem::zeroed ();
+  let len: c_int;
+  let mut window: Lisp_Object = window;
+  let w: *mut window;
+  let mut old_buffer: *mut buffer = core::ptr::null_mut ();
+  let face_id: face_id;
+  let mut face: Lisp_Object = face;
+  let mut buffer: Lisp_Object = buffer;
+  let no_props: bool = INTEGERP (face);
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  let str: Lisp_Object;
+  let mut string_start: c_int = 0;
+
+  w = decode_any_window (window);
+  XSETWINDOW! (window, w);
+
+  if NILP (buffer)
+    { buffer = (*w).contents; }
+  CHECK_BUFFER (buffer);
+  if !BUFFER_LIVE_P (XBUFFER (buffer))
+    { error (c"Attempt to format a mode line for a dead buffer".as_ptr ()); }
+
+  /* Make formatting the modeline a non-op when noninteractive, otherwise
+     there will be problems later caused by a partially initialized frame.  */
+  if NILP (format) || noninteractive
+    { return empty_unibyte_string; }
+
+  if no_props
+    { face = Qnil (); }
+
+  /* C's chained ternary over `enum face_id`; the port keeps C's test order as an
+     `if`/`else if` chain.  */
+  face_id = if NILP (face) || EQ (face, Qdefault ()) { DEFAULT_FACE_ID }
+	    else if EQ (face, Qt ())
+	      {
+		if EQ (window, selected_window)
+		  { MODE_LINE_ACTIVE_FACE_ID }
+		else
+		  { MODE_LINE_INACTIVE_FACE_ID }
+	      }
+	    else if EQ (face, Qmode_line_active ()) { MODE_LINE_ACTIVE_FACE_ID }
+	    else if EQ (face, Qmode_line_inactive ()) { MODE_LINE_INACTIVE_FACE_ID }
+	    else if EQ (face, Qheader_line_active ()) { HEADER_LINE_ACTIVE_FACE_ID }
+	    else if EQ (face, Qheader_line_inactive ()) { HEADER_LINE_INACTIVE_FACE_ID }
+	    else if EQ (face, Qtab_line_active ()) { TAB_LINE_ACTIVE_FACE_ID }
+	    else if EQ (face, Qtab_line_inactive ()) { TAB_LINE_INACTIVE_FACE_ID }
+	    else if EQ (face, Qtab_bar ()) { TAB_BAR_FACE_ID }
+	    else if EQ (face, Qtool_bar ()) { TOOL_BAR_FACE_ID }
+	    else { DEFAULT_FACE_ID };
+
+  if EQ (face, Qt ())
+    { face = if EQ (window, selected_window) { Qmode_line_active () } else { Qmode_line_inactive () }; }
+  else if EQ (face, Qdefault ())
+    { face = Qnil (); }
+
+  old_buffer = current_buffer;
+
+  /* Save things including mode_line_proptrans_alist,
+     and set that to nil so that we don't alter the outer value.  */
+  record_unwind_protect (Some (unwind_format_mode_line),
+			 format_mode_line_unwind_data (XFRAME (WINDOW_FRAME! (w)),
+						       old_buffer, selected_window, true));
+  mode_line_proptrans_alist = Qnil ();
+
+  Fselect_window (window, Qt ());
+  set_buffer_internal_1 (XBUFFER (buffer));
+
+  init_iterator (&raw mut it, w, -1, -1, core::ptr::null_mut (), face_id);
+  dont_resize_frames += 1;
+
+  /* Make sure `base_line_number` is fresh in case we encounter a `%l`.  */
+  if current_buffer == XBUFFER ((*w).contents)
+      && !BASE_LINE_NUMBER_VALID_P! (w)
+    { (*w).base_line_number = 0; }
+
+  if no_props
+    {
+      mode_line_target = MODE_LINE_NOPROP;
+      mode_line_string_face_prop = Qnil ();
+      mode_line_string_list = Qnil ();
+      string_start = MODE_LINE_NOPROP_LEN! (0) as c_int;
+    }
+  else
+    {
+      mode_line_target = MODE_LINE_STRING;
+      mode_line_string_list = Qnil ();
+      mode_line_string_face = face;
+      mode_line_string_face_prop
+	= if NILP (face) { Qnil () } else { list2 (Qface (), face) };
+    }
+
+  push_kboard (FRAME_KBOARD (it.f) as *mut kboard);
+  mode_line_elt_no = 0;
+  display_mode_element (&raw mut it, 0, 0, 0, format, Qnil (), false);
+  pop_kboard ();
+
+  if no_props
+    {
+      len = MODE_LINE_NOPROP_LEN! (string_start) as c_int;
+      str = make_string (mode_line_noprop_buf.offset (string_start as isize),
+			 len as ptrdiff_t);
+    }
+  else
+    {
+      mode_line_string_list = Fnreverse (mode_line_string_list);
+      str = Fmapconcat (Qidentity (), mode_line_string_list,
+			empty_unibyte_string);
+    }
+
+  return unbind_to (count, str);
+});
+
+/* Write a null-terminated, right justified decimal representation of
+   the positive integer D to BUF using a minimal field width WIDTH.  (C 29190-29192)  */
+
+unsafe fn
+pint2str (buf: *mut c_char, width: c_int, d: ptrdiff_t)
+{
+  /* C's `register char *p = buf; register int width; register ptrdiff_t d` are the port's
+     `let mut` shadows of the parameters (PORTING.md 0.3).  */
+  let mut width: c_int = width;
+  let mut d: ptrdiff_t = d;
+  let mut buf: *mut c_char = buf;
+  let mut p: *mut c_char = buf;
+
+  if d <= 0
+    { *p = b'0' as c_char; p = p.offset (1); }
+  else
+    {
+      while d > 0
+	{
+	  *p = (d % 10 + b'0' as ptrdiff_t) as c_char;
+	  p = p.offset (1);
+	  d /= 10;
+	}
+    }
+
+  /* C's `for (width -= p - buf; width > 0; --width) *p++ = ' ';`.  */
+  width -= p.offset_from (buf) as c_int;
+  while width > 0
+    {
+      *p = b' ' as c_char;
+      p = p.offset (1);
+      width -= 1;
+    }
+  *p = 0;
+  p = p.offset (-1);
+  while p > buf
+    {
+      d = *buf as ptrdiff_t;
+      *buf = *p;
+      buf = buf.offset (1);
+      *p = d as c_char;
+      p = p.offset (-1);
+    }
+}
+
+/* Write a null-terminated, right justified decimal and "human
+   readable" representation of the nonnegative integer D to BUF using
+   a minimal field width WIDTH.  D should be smaller than 999.5e24. (C 29234-29238)  */
+
+/* C 29230's `static const char power_letter[]`; the port keeps the array and each of its
+   eleven C element spellings (`0` is the "no letter" entry).  The extractor's object list
+   does not track it, but `pint2hrstr` below reads it.  */
+static power_letter: [c_char; 11] =
+  [0, b'k' as c_char, b'M' as c_char, b'G' as c_char, b'T' as c_char, b'P' as c_char,
+   b'E' as c_char, b'Z' as c_char, b'Y' as c_char, b'R' as c_char, b'Q' as c_char];
+
+unsafe fn
+pint2hrstr (buf: *mut c_char, width: c_int, d: ptrdiff_t)
+{
+  /* We aim to represent the nonnegative integer D as
+     QUOTIENT.TENTHS * 10 ^ (3 * EXPONENT). */
+  let mut quotient: ptrdiff_t = d;
+  let mut remainder: c_int = 0;
+  /* -1 means: do not use TENTHS. */
+  let mut tenths: c_int = -1;
+  let mut exponent: c_int = 0;
+
+  /* Length of QUOTIENT.TENTHS as a string. */
+  let mut length: c_int = 0;
+
+  /* C's `char *psuffix; char *p;` - both assigned by the chain below (PORTING.md 1.5).  */
+  let mut psuffix: *mut c_char;
+  let mut p: *mut c_char;
+
+  if quotient >= 1000
+    {
+      /* Scale to the appropriate EXPONENT. */
+      loop
+	{
+	  remainder = (quotient % 1000) as c_int;
+	  quotient /= 1000;
+	  exponent += 1;
+	  if !(quotient >= 1000)
+	    { break; }
+	}
+
+      /* Round to nearest and decide whether to use TENTHS or not. */
+      if quotient <= 9
+	{
+	  tenths = remainder / 100;
+	  if remainder % 100 >= 50
+	    {
+	      if tenths < 9
+		{ tenths += 1; }
+	      else
+		{
+		  quotient += 1;
+		  if quotient == 10
+		    { tenths = -1; }
+		  else
+		    { tenths = 0; }
+		}
+	    }
+	}
+      else
+	if remainder >= 500
+	  {
+	    if quotient < 999
+	      { quotient += 1; }
+	    else
+	      {
+		quotient = 1;
+		exponent += 1;
+		tenths = 0;
+	      }
+	  }
+    }
+
+  /* Calculate the LENGTH of QUOTIENT.TENTHS as a string. */
+  if tenths == -1 && quotient <= 99
+    {
+      /* C's dangling `else` binds to this inner `if`; Rust needs the block.  */
+      if quotient <= 9
+	{ length = 1; }
+      else
+	{ length = 2; }
+    }
+  else
+    { length = 3; }
+  /* C's chain `p = psuffix = buf + max (width, length);`.  */
+  psuffix = buf.offset (max (width as isize, length as isize));
+  p = psuffix;
+
+  /* Print EXPONENT. */
+  *psuffix = power_letter[exponent as usize];
+  psuffix = psuffix.offset (1);
+  *psuffix = 0;
+
+  /* Print TENTHS. */
+  if tenths >= 0
+    {
+      p = p.offset (-1);
+      *p = (b'0' as c_int + tenths) as c_char;
+      p = p.offset (-1);
+      *p = b'.' as c_char;
+    }
+
+  /* Print QUOTIENT. */
+  loop
+    {
+      let digit: c_int = (quotient % 10) as c_int;
+      p = p.offset (-1);
+      *p = (b'0' as c_int + digit) as c_char;
+      quotient /= 10;
+      if !(quotient != 0)
+	{ break; }
+    }
+
+  /* Print leading spaces. */
+  while buf < p
+    {
+      p = p.offset (-1);
+      *p = b' ' as c_char;
+    }
+}
+
+/* Set a mnemonic character for coding_system (Lisp symbol) in BUF.
+   If EOL_FLAG, set also a mnemonic character for end-of-line
+   type of CODING_SYSTEM.  Return updated pointer into BUF.  (C 29332-29335)  */
+
+/* C 29336's `static unsigned char invalid_eol_type[] = "(*invalid*)";` - the array keeps C's
+   `sizeof` (twelve bytes, the NUL included) for `decode_mode_spec_coding`'s length.  */
+static mut invalid_eol_type: [u8; 12] = *b"(*invalid*)\0";
+
+unsafe fn
+decode_mode_spec_coding (coding_system: Lisp_Object, buf: *mut c_char,
+			 eol_flag: bool) -> *mut c_char
+{
+  let mut buf: *mut c_char = buf;
+  let val: Lisp_Object = CODING_SYSTEM_SPEC (coding_system);
+  let multibyte: bool = !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  /* C's `const unsigned char *eol_str; int eol_str_len;` - both are written by the
+     branches below before their single read (PORTING.md 1.5).  */
+  let mut eol_str: *const u8 = core::ptr::null ();
+  let mut eol_str_len: c_int = 0;
+  /* The EOL conversion we are using.  */
+  let mut eoltype: Lisp_Object;
+
+  eoltype = Qnil ();
+
+  if !VECTORP (val)		/* Not yet decided.  */
+    {
+      *buf = if multibyte { b'-' as c_char } else { b' ' as c_char };
+      buf = buf.offset (1);
+      if eol_flag
+	{ eoltype = eol_mnemonic_undecided; }
+      /* Don't mention EOL conversion if it isn't decided.  */
+    }
+  else
+    {
+      let attrs: Lisp_Object = AREF (val, 0);
+      let eolvalue: Lisp_Object = AREF (val, 2);
+
+      if multibyte
+	{ buf = buf.offset (CHAR_STRING (XFIXNAT (CODING_ATTR_MNEMONIC (attrs)) as c_int,
+					 buf as *mut u8) as isize); }
+      else
+	{
+	  *buf = b' ' as c_char;
+	  buf = buf.offset (1);
+	}
+
+      if eol_flag
+	{
+	  /* The EOL conversion that is normal on this system.  */
+
+	  if NILP (eolvalue)	/* Not yet decided.  */
+	    { eoltype = eol_mnemonic_undecided; }
+	  else if VECTORP (eolvalue) /* Not yet decided.  */
+	    { eoltype = eol_mnemonic_undecided; }
+	  else			/* eolvalue is Qunix, Qdos, or Qmac.  */
+	    {
+	      eoltype = if EQ (eolvalue, Qunix ())
+		{ eol_mnemonic_unix }
+		else if EQ (eolvalue, Qdos ())
+		{ eol_mnemonic_dos }
+		else
+		{ eol_mnemonic_mac };
+	    }
+	}
+    }
+
+  if eol_flag
+    {
+      /* Mention the EOL conversion if it is not the usual one.  */
+      if STRINGP (eoltype)
+	{
+	  eol_str = SDATA (eoltype);
+	  eol_str_len = SBYTES (eoltype) as c_int;
+	}
+      else if CHARACTERP (eoltype)
+	{
+	  let c: c_int = XFIXNAT (eoltype) as c_int;
+	  return buf.offset (CHAR_STRING (c, buf as *mut u8) as isize);
+	}
+      else
+	{
+	  eol_str = invalid_eol_type.as_ptr ();
+	  eol_str_len = std::mem::size_of_val (&invalid_eol_type) as c_int - 1;
+	}
+      memcpy (buf as *mut c_void, eol_str as *const c_void, eol_str_len as usize);
+      buf = buf.offset (eol_str_len as isize);
+    }
+
+  return buf;
+}
+
+/* Return the approximate percentage N is of D (rounding upward), or 99,
+   whichever is less.  Assume 0 < D and 0 <= N <= D * INT_MAX / 100.  (C 29414-29416)  */
+
+unsafe fn
+percent99 (n: ptrdiff_t, d: ptrdiff_t) -> c_int
+{
+  let percent: c_int = (((d - 1) as f64 + 100.0 * n as f64) / d as f64) as c_int;
+  return min (percent as isize, 99) as c_int;
+}
+
+/* Return a string for the output of a mode line %-spec for window W,
+   generated by character C.  FIELD_WIDTH > 0 means pad the string
+   returned with spaces to that value.  Set *STRING to be a Lisp
+   string if the resulting string is taken from that Lisp string;
+   otherwise, set *STRING to Qnil.
+
+   Note we operate on the current buffer for most purposes.  (C 29419-29430)  */
+
+/* C 29431's `static char lots_of_dashes[]` - the port keeps the array and C's terminator
+   (so `sizeof` below is `size_of_val`); a `b"-…"` byte string cannot initialize a
+   `[c_char; 141]`, hence the C element list the `fileio.rs` `appended` row uses.  */
+static mut lots_of_dashes: [c_char; 141] = [
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char, b'-' as c_char,
+  0];
+
+unsafe fn
+decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
+		  string: *mut Lisp_Object) -> *const c_char
+{
+  let mut obj: Lisp_Object = Qnil ();
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
+  let decode_mode_spec_buf: *mut c_char = (*f).decode_mode_spec_buffer;
+  /* We are going to use f->decode_mode_spec_buffer as the buffer to
+     produce strings from numerical values, so limit preposterously
+     large values of FIELD_WIDTH to avoid overrunning the buffer's
+     end.  The size of the buffer is enough for FRAME_MESSAGE_BUF_SIZE
+     bytes plus the terminating null.  */
+  let width: c_int = min (field_width as isize,
+			  FRAME_MESSAGE_BUF_SIZE (f) as isize) as c_int;
+  let b: *mut buffer = current_buffer;
+
+  obj = Qnil ();
+  *string = Qnil ();
+
+  /* C's `switch (c)` on a `register int c`; Rust matches the c_int itself, so each case is
+     C's character code with the character in the comment (the `indent.rs` spelling - a
+     `b'x' as c_int` cast is not a pattern, and `c as u8` would silently fold a multibyte
+     character onto a one-byte case).  */
+  match c
+    {
+      0x2a =>			/* '*' */
+	{
+	  if !NILP (BVAR! (b, read_only_))
+	    { return c"%".as_ptr (); }
+	  if BUF_MODIFF! (b) > BUF_SAVE_MODIFF! (b)
+	    { return c"*".as_ptr (); }
+	  return c"-".as_ptr ();
+	}
+
+      0x2b =>			/* '+' */
+	{
+	  /* This differs from %* only for a modified read-only buffer.  */
+	  if BUF_MODIFF! (b) > BUF_SAVE_MODIFF! (b)
+	    { return c"*".as_ptr (); }
+	  if !NILP (BVAR! (b, read_only_))
+	    { return c"%".as_ptr (); }
+	  return c"-".as_ptr ();
+	}
+
+      0x26 =>			/* '&' */
+	{
+	  /* This differs from %* in ignoring read-only-ness.  */
+	  if BUF_MODIFF! (b) > BUF_SAVE_MODIFF! (b)
+	    { return c"*".as_ptr (); }
+	  return c"-".as_ptr ();
+	}
+
+      0x25 =>			/* '%' */
+	{ return c"%".as_ptr (); }
+
+      0x5b =>			/* '[' */
+	{
+	  let mut i: c_int = 0;
+
+	  if command_loop_level > 5
+	    { return c"[[[... ".as_ptr (); }
+	  let mut p: *mut c_char = decode_mode_spec_buf;
+	  while i < command_loop_level as c_int
+	    {
+	      *p = b'[' as c_char;
+	      p = p.offset (1);
+	      i += 1;
+	    }
+	  *p = 0;
+	  return decode_mode_spec_buf;
+	}
+
+      0x5d =>			/* ']' */
+	{
+	  let mut i: c_int = 0;
+
+	  if command_loop_level > 5
+	    { return c" ...]]]".as_ptr (); }
+	  let mut p: *mut c_char = decode_mode_spec_buf;
+	  while i < command_loop_level as c_int
+	    {
+	      *p = b']' as c_char;
+	      p = p.offset (1);
+	      i += 1;
+	    }
+	  *p = 0;
+	  return decode_mode_spec_buf;
+	}
+
+      0x2d =>			/* '-' */
+	{
+	  let mut i: c_int = 0;
+
+	  /* Let lots_of_dashes be a string of infinite length.  */
+	  if mode_line_target == MODE_LINE_NOPROP
+	      || mode_line_target == MODE_LINE_STRING
+	    { return c"--".as_ptr (); }
+	  if field_width <= 0
+	      || field_width as usize > std::mem::size_of_val (&lots_of_dashes)
+	    {
+	      while i < FRAME_MESSAGE_BUF_SIZE (f) - 1
+		{
+		  *decode_mode_spec_buf.offset (i as isize) = b'-' as c_char;
+		  i += 1;
+		}
+	      *decode_mode_spec_buf.offset (i as isize) = 0;
+	      return decode_mode_spec_buf;
+	    }
+	  else
+	    { return lots_of_dashes.as_ptr (); }
+	}
+
+      0x62 =>			/* 'b' */
+	{ obj = BVAR! (b, name_); }
+				/* C's `break`.  */
+
+      0x63 | 0x43 =>		/* 'c' 'C' */
+	{
+	  /* %c, %C, and %l are ignored in `frame-title-format'.
+	     (In redisplay_internal, the frame title is drawn _before_ the
+	     windows are updated, so the stuff which depends on actual
+	     window contents (such as %l) may fail to render properly, or
+	     even crash emacs.)  */
+	  if mode_line_target == MODE_LINE_TITLE
+	    { return c"".as_ptr (); }
+	  else
+	    {
+	      let col: ptrdiff_t = current_column ();
+	      let disp_col: c_int = (if c == 0x43 { col + 1 } else { col }) as c_int;
+	      (*w).column_number_displayed = col;
+	      pint2str (decode_mode_spec_buf, width, disp_col as ptrdiff_t);
+	      return decode_mode_spec_buf;
+	    }
+	}
+
+      0x65 =>			/* 'e' */
+	{
+	  /* C's `#if !defined SYSTEM_MALLOC` arm (the `Vmemory_full` test) is dead on this
+	     target, which defines SYSTEM_MALLOC = 1 (P-08); the frozen arm is C 29557's
+	     `return "";`.  */
+	  return c"".as_ptr ();
+	}
+
+      0x46 =>			/* 'F' */
+	{
+	  /* %F displays the frame name.  */
+	  if !NILP ((*f).title)
+	    { return SSDATA ((*f).title); }
+	  if frame_bits! (explicit_name, f) || !FRAME_WINDOW_P (f)
+	    { return SSDATA ((*f).name); }
+	  return c"Emacs".as_ptr ();
+	}
+
+      0x66 =>			/* 'f' */
+	{ obj = BVAR! (b, filename_); }
+				/* C's `break`.  */
+
+      0x69 =>			/* 'i' */
+	{
+	  let size: ptrdiff_t = ZV! () - BEGV! ();
+	  pint2str (decode_mode_spec_buf, width, size);
+	  return decode_mode_spec_buf;
+	}
+
+      0x49 =>			/* 'I' */
+	{
+	  let size: ptrdiff_t = ZV! () - BEGV! ();
+	  pint2hrstr (decode_mode_spec_buf, width, size);
+	  return decode_mode_spec_buf;
+	}
+
+      0x6c =>			/* 'l' */
+	{
+	  let mut startpos: ptrdiff_t = 0;
+	  let mut startpos_byte: ptrdiff_t = 0;
+	  let mut line: ptrdiff_t = 0;
+	  let mut linepos: ptrdiff_t = 0;
+	  let mut linepos_byte: ptrdiff_t = 0;
+	  let mut topline: ptrdiff_t = 0;
+	  let mut nlines: ptrdiff_t = 0;
+	  let mut height: ptrdiff_t = 0;
+	  let mut junk: ptrdiff_t = 0;
+
+	  /* C's `no_value:` label is the port's `'no_value` block and the two `goto
+	     no_value`s are its two `break 'no_value`s (deviation 284).  */
+	  'no_value: {
+	  /* %c, %C, and %l are ignored in `frame-title-format'.  */
+	  if mode_line_target == MODE_LINE_TITLE
+	    { return c"".as_ptr (); }
+
+	  startpos = marker_position ((*w).start);
+	  startpos_byte = marker_byte_position ((*w).start);
+	  height = WINDOW_TOTAL_LINES (w) as ptrdiff_t;
+	  /* We cannot cope with w->start being outside of the
+	     accessible portion of the buffer; in particular,
+	     display_count_lines call below might infloop if called with
+	     startpos_byte outside of the [BEGV_BYTE..ZV_BYTE] region.
+	     Such w->start means we were called in some "creative" way
+	     when the buffer's restriction was changed, but the window
+	     wasn't yet redisplayed after that.  If that happens, we
+	     need to determine a new base line.  */
+	  if current_buffer != XBUFFER ((*w).contents)
+	      || !(BUF_BEGV_BYTE (b) <= startpos_byte
+		   && startpos_byte <= BUF_ZV_BYTE (b))
+	    {
+	      startpos = BUF_BEGV (b);
+	      startpos_byte = BUF_BEGV_BYTE (b);
+	    }
+
+	  /* If we decided that this buffer isn't suitable for line numbers,
+	     don't forget that too fast.
+	     FIXME: What if `current_buffer != w->contents`?  */
+	  if (*w).base_line_pos == -1
+	    { break 'no_value; }
+
+	  /* If the buffer is very big, don't waste time.  */
+	  if FIXNUMP (Vline_number_display_limit)
+	      && BUF_ZV (b) - BUF_BEGV (b) > XFIXNUM (Vline_number_display_limit)
+	    { break 'no_value; }
+
+	  /* Callers of `display_mode_element` are in charge of flushing
+	     any stale `base_line_number` cache.  */
+	  if current_buffer == XBUFFER ((*w).contents)
+	      && (*w).base_line_number > 0
+	      && (*w).base_line_pos > 0
+	      && (*w).base_line_pos <= startpos
+	    {
+	      line = (*w).base_line_number;
+	      linepos = (*w).base_line_pos;
+	      linepos_byte = buf_charpos_to_bytepos (b as *mut c_void, linepos);
+	    }
+	  else
+	    {
+	      line = 1;
+	      linepos = BUF_BEGV (b);
+	      linepos_byte = BUF_BEGV_BYTE (b);
+	    }
+
+	  /* Count lines from base line to window start position.  */
+	  nlines = display_count_lines (linepos_byte,
+					startpos_byte,
+					startpos, &raw mut junk);
+
+	  topline = nlines + line;
+
+	  /* Determine a new base line, if the old one is too close
+	     or too far away, or if we did not have one.
+	     "Too close" means it's plausible a scroll-down would
+	     go back past it.  */
+	  if current_buffer != XBUFFER ((*w).contents)
+	    { }			/* The base line is for another buffer, don't touch it!  */
+	  else if startpos == BUF_BEGV (b)
+	    {
+	      (*w).base_line_number = topline;
+	      (*w).base_line_pos = BUF_BEGV (b);
+	    }
+	  else if nlines < height + 25 || nlines > height * 3 + 50
+		   || linepos == BUF_BEGV (b)
+	    {
+	      let mut limit: ptrdiff_t = BUF_BEGV (b);
+	      let mut limit_byte: ptrdiff_t = BUF_BEGV_BYTE (b);
+	      let mut position: ptrdiff_t = 0;
+	      /* C's chain `(line_number_display_limit_width < 0 ? 0 : ckd_mul
+		 (&distance, line_number_display_limit_width, height * 2 + 30)
+		 ? PTRDIFF_MAX : distance)` becomes statements in C's order (the store then
+		 the overflow test, P-15/the `casefiddle.rs` shape).  */
+	      let mut distance: ptrdiff_t = 0;
+
+	      if line_number_display_limit_width < 0
+		{ distance = 0; }
+	      else
+		{
+		  let (mul, mul_overflowed)
+		    = (line_number_display_limit_width as isize)
+		      .overflowing_mul (height * 2 + 30);
+		  distance = mul;
+		  if mul_overflowed
+		    { distance = PTRDIFF_MAX; }
+		}
+
+	      if startpos - distance > limit
+		{
+		  limit = startpos - distance;
+		  limit_byte = CHAR_TO_BYTE (limit);
+		}
+
+	      nlines = display_count_lines (startpos_byte,
+					    limit_byte,
+					    - (height * 2 + 30),
+					    &raw mut position);
+	      /* If we couldn't find the lines we wanted within
+		 line_number_display_limit_width chars per line,
+		 give up on line numbers for this window.  */
+	      if position == limit_byte && limit == startpos - distance
+		{
+		  (*w).base_line_pos = -1;
+		  (*w).base_line_number = 0;
+		  break 'no_value;
+		}
+
+	      /* NOTE: if `clip_changed` is set or if `BEG_UNCHANGED` is
+		 before `position`, this new cached value may get flushed
+		 soon needlessly, because we can't reset `BEG_UNCHANGED` or
+		 `clip_changed` from here (since they reflect the changes
+		 since the last redisplay so they can only be reset from
+		 `mark_window_display_accurate_1`).  :-(  */
+	      (*w).base_line_number = topline - nlines;
+	      (*w).base_line_pos = BYTE_TO_CHAR (position);
+	    }
+
+	  /* Now count lines from the start pos to point.  */
+	  nlines = display_count_lines (startpos_byte,
+					PT_BYTE! (), PT! (), &raw mut junk);
+
+	  /* Record that we did display the line number.  */
+	  line_number_displayed = true;
+
+	  /* Make the string to show.  */
+	  pint2str (decode_mode_spec_buf, width, topline + nlines);
+	  return decode_mode_spec_buf;
+	  }
+	  /* no_value: */
+	  {
+	    let mut p: *mut c_char = decode_mode_spec_buf;
+	    let mut pad: c_int = width - 2;
+	    while { let t: bool = pad > 0; pad -= 1; t }
+	      {
+		*p = b' ' as c_char;
+		p = p.offset (1);
+	      }
+	    *p = b'?' as c_char;
+	    p = p.offset (1);
+	    *p = b'?' as c_char;
+	    p = p.offset (1);
+	    *p = 0;
+	    return decode_mode_spec_buf;
+	  }
+	}
+
+      0x6d =>			/* 'm' */
+	{ obj = BVAR! (b, mode_name_); }
+				/* C's `break`.  */
+
+      0x6e =>			/* 'n' */
+	{
+	  if BUF_BEGV (b) > BUF_BEG (b) || BUF_ZV (b) < BUF_Z! (b)
+	    { return c" Narrow".as_ptr (); }
+	}
+				/* C's `break`.  */
+
+      /* Display the "degree of travel" of the window through the buffer.  */
+      0x6f =>			/* 'o' */
+	{
+	  let toppos: ptrdiff_t = marker_position ((*w).start);
+	  let botpos: ptrdiff_t = BUF_Z! (b) - (*w).window_end_pos;
+	  let begv: ptrdiff_t = BUF_BEGV (b);
+	  let zv: ptrdiff_t = BUF_ZV (b);
+
+	  if zv <= botpos
+	    { return if toppos <= begv { c"All".as_ptr () } else { c"Bottom".as_ptr () }; }
+	  else if toppos <= begv
+	    { return c"Top".as_ptr (); }
+	  else
+	    {
+	      sprintf (decode_mode_spec_buf, c"%2d%%".as_ptr (),
+		       percent99 (toppos - begv, (toppos - begv) + (zv - botpos)));
+	      return decode_mode_spec_buf;
+	    }
+	}
+
+      /* Display percentage of buffer above the top of the screen.  */
+      0x70 =>			/* 'p' */
+	{
+	  let pos: ptrdiff_t = marker_position ((*w).start);
+	  let begv: ptrdiff_t = BUF_BEGV (b);
+	  let zv: ptrdiff_t = BUF_ZV (b);
+
+	  if (*w).window_end_pos <= BUF_Z! (b) - zv
+	    { return if pos <= begv { c"All".as_ptr () } else { c"Bottom".as_ptr () }; }
+	  else if pos <= begv
+	    { return c"Top".as_ptr (); }
+	  else
+	    {
+	      sprintf (decode_mode_spec_buf, c"%2d%%".as_ptr (),
+		       percent99 (pos - begv, zv - begv));
+	      return decode_mode_spec_buf;
+	    }
+	}
+
+      /* Display percentage of size above the bottom of the screen.  */
+      0x50 =>			/* 'P' */
+	{
+	  let toppos: ptrdiff_t = marker_position ((*w).start);
+	  let botpos: ptrdiff_t = BUF_Z! (b) - (*w).window_end_pos;
+	  let begv: ptrdiff_t = BUF_BEGV (b);
+	  let zv: ptrdiff_t = BUF_ZV (b);
+
+	  if zv <= botpos
+	    { return if toppos <= begv { c"All".as_ptr () } else { c"Bottom".as_ptr () }; }
+	  else
+	    {
+	      /* C's `&"Top%2d%%"[begv < toppos ? sizeof "Top" - 1 : 0]`: the offset is
+		 `strlen ("Top")` when the anchor is set and 0 otherwise.  */
+	      sprintf (decode_mode_spec_buf,
+		       c"Top%2d%%".as_ptr ().offset (if begv < toppos
+						     { (c"Top").to_bytes ().len () as isize }
+						     else
+						     { 0 }),
+		       percent99 (botpos - begv, zv - begv));
+	      return decode_mode_spec_buf;
+	    }
+	}
+
+      /* Display percentage offsets of top and bottom of the window,
+	 using "All" (but not "Top" or "Bottom") where appropriate.  */
+      0x71 =>			/* 'q' */
+	{
+	  let toppos: ptrdiff_t = marker_position ((*w).start);
+	  let botpos: ptrdiff_t = BUF_Z! (b) - (*w).window_end_pos;
+	  let begv: ptrdiff_t = BUF_BEGV (b);
+	  let zv: ptrdiff_t = BUF_ZV (b);
+
+	  if toppos <= begv && zv <= botpos
+	    { return c"All   ".as_ptr (); }
+
+	  let top_perc: c_int = if toppos <= begv
+	    { 0 }
+	    else
+	    { percent99 (toppos - begv, zv - begv) };
+	  let bot_perc: c_int = if zv <= botpos
+	    { 100 }
+	    else
+	    { percent99 (botpos - begv, zv - begv) };
+
+	  if top_perc == bot_perc
+	    { sprintf (decode_mode_spec_buf, c"%d%%".as_ptr (), top_perc); }
+	  else
+	    { sprintf (decode_mode_spec_buf, c"%d-%d%%".as_ptr (), top_perc, bot_perc); }
+
+	  return decode_mode_spec_buf;
+	}
+
+      0x73 =>			/* 's' */
+	{
+	  /* status of process */
+	  obj = Fget_buffer_process (Fcurrent_buffer ());
+	  if NILP (obj)
+	    { return c"no process".as_ptr (); }
+	  /* C's `#ifndef MSDOS` arm; MSDOS is undefined on this target, so the arm is
+	     live.  */
+	  obj = Fsymbol_name (Fprocess_status (obj));
+	}
+				/* C's `break`.  */
+
+      0x40 =>			/* '@' */
+	{
+	  let count: specpdl_ref = inhibit_garbage_collection ();
+	  let curdir: Lisp_Object = BVAR! (current_buffer, directory_);
+	  let mut val: Lisp_Object = Qnil ();
+
+	  if STRINGP (curdir)
+	    { val = dsafe_call1 (Qfile_remote_p (), curdir); }
+
+	  val = unbind_to (count, val);
+
+	  if NILP (val)
+	    { return c"-".as_ptr (); }
+	  else
+	    { return c"@".as_ptr (); }
+	}
+
+      0x7a | 0x5a =>		/* 'z' 'Z' */
+	{
+	  let eol_flag: bool = c == 0x5a;
+	  let mut p: *mut c_char = decode_mode_spec_buf;
+
+	  if !FRAME_WINDOW_P (f)
+	    {
+	      /* No need to mention EOL here--the terminal never needs
+		 to do EOL conversion.  */
+	      p = decode_mode_spec_coding (CODING_ID_NAME
+					   ((*(FRAME_KEYBOARD_CODING! (f)
+					       as *mut coding_system)).id as hash_idx_t),
+					   p, false);
+	      p = decode_mode_spec_coding (CODING_ID_NAME
+					   ((*(FRAME_TERMINAL_CODING! (f)
+					       as *mut coding_system)).id as hash_idx_t),
+					   p, false);
+	    }
+	  p = decode_mode_spec_coding (BVAR! (b, buffer_file_coding_system_),
+				       p, eol_flag);
+
+	  /* C 29867-29878's `#if false` block (`subprocesses`'s two process codings) is dead
+	     in every configuration; the ledger records it.  */
+	  *p = 0;
+	  return decode_mode_spec_buf;
+	}
+
+      _ => { }
+    }
+
+  if STRINGP (obj)
+    {
+      *string = obj;
+      return SSDATA (obj);
+    }
+  else
+    { return c"".as_ptr (); }
+}
+
+/* Return the number of lines between start_byte and end_byte in the
+   current buffer. (C 29894-29896)  */
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t
+{
+  let mut ignored: ptrdiff_t = 0;
+  return display_count_lines (start_byte, end_byte, ZV! (), &raw mut ignored);
+}
+
+/* Count up to COUNT lines starting from START_BYTE.  COUNT negative
+   means count lines back from START_BYTE.  But don't go beyond
+   LIMIT_BYTE.  Return the number of lines thus found (always
+   nonnegative).
+
+   Set *BYTE_POS_PTR to the byte position where we stopped.  This is
+   either the position COUNT lines after/before START_BYTE, if we
+   found COUNT lines, or LIMIT_BYTE if we hit the limit before finding
+   COUNT lines.  (C 29898-29913)  */
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn
+display_count_lines (start_byte: ptrdiff_t,
+		     limit_byte: ptrdiff_t, count: ptrdiff_t,
+		     byte_pos_ptr: *mut ptrdiff_t) -> ptrdiff_t
+{
+  let mut start_byte: ptrdiff_t = start_byte;
+  /* C's `register unsigned char *cursor; unsigned char *base;` and the two `register
+     ptrdiff_t ceiling`/`register unsigned char *ceiling_addr` (PORTING.md 1.5).  */
+  let mut cursor: *mut u8 = core::ptr::null_mut ();
+  let mut base: *mut u8 = core::ptr::null_mut ();
+  let mut ceiling: ptrdiff_t = 0;
+  let mut ceiling_addr: *mut u8 = core::ptr::null_mut ();
+  let mut count: ptrdiff_t = count;
+  let orig_count: ptrdiff_t = count;
+
+  /* If we are not in selective display mode,
+     check only for newlines.  */
+  let selective_display: bool
+    = !NILP (BVAR! (current_buffer, selective_display_))
+      && !FIXNUMP (BVAR! (current_buffer, selective_display_));
+
+  if count > 0
+    {
+      while start_byte < limit_byte
+	{
+	  ceiling = BUFFER_CEILING_OF (start_byte);
+	  ceiling = min (limit_byte - 1, ceiling);
+	  ceiling_addr = BYTE_POS_ADDR (ceiling).offset (1);
+	  cursor = BYTE_POS_ADDR (start_byte);
+	  base = cursor;
+
+	  loop
+	    {
+	      if selective_display
+		{
+		  while *cursor != b'\n' as u8 && *cursor != 015
+			  && { cursor = cursor.offset (1); cursor != ceiling_addr }
+		    { }
+		  if cursor == ceiling_addr
+		    { break; }
+		}
+	      else
+		{
+		  cursor = memchr (cursor as *const c_void, b'\n' as c_int,
+				   ceiling_addr.offset_from (cursor) as usize) as *mut u8;
+		  if cursor.is_null ()
+		    { break; }
+		}
+
+	      cursor = cursor.offset (1);
+
+	      count -= 1;
+	      if count == 0
+		{
+		  start_byte += cursor.offset_from (base);
+		  *byte_pos_ptr = start_byte;
+		  return orig_count;
+		}
+	      if !(cursor < ceiling_addr)
+		{ break; }
+	    }
+
+	  start_byte += ceiling_addr.offset_from (base);
+	}
+    }
+  else
+    {
+      while start_byte > limit_byte
+	{
+	  ceiling = BUFFER_FLOOR_OF (start_byte - 1);
+	  ceiling = max (limit_byte, ceiling);
+	  ceiling_addr = BYTE_POS_ADDR (ceiling);
+	  cursor = BYTE_POS_ADDR (start_byte - 1).offset (1);
+	  base = cursor;
+	  loop
+	    {
+	      if selective_display
+		{
+		  while { cursor = cursor.offset (-1);
+			  cursor >= ceiling_addr && *cursor != b'\n' as u8 && *cursor != 015 }
+		    { }
+		  if cursor < ceiling_addr
+		    { break; }
+		}
+	      else
+		{
+		  cursor = memrchr (ceiling_addr as *const c_void, b'\n' as c_int,
+				    cursor.offset_from (ceiling_addr) as usize) as *mut u8;
+		  if cursor.is_null ()
+		    { break; }
+		}
+
+	      count += 1;
+	      if count == 0
+		{
+		  start_byte += cursor.offset_from (base) + 1;
+		  *byte_pos_ptr = start_byte;
+		  /* When scanning backwards, we should
+		     not count the newline posterior to which we stop.  */
+		  return - orig_count - 1;
+		}
+	    }
+	  start_byte += ceiling_addr.offset_from (base);
+	}
+    }
+
+  *byte_pos_ptr = limit_byte;
+
+  if count < 0
+    { return - orig_count + count; }
+  return orig_count - count;
+}
+
+/***********************************************************************
+			 Displaying strings
+ ***********************************************************************/
+
+/* Display a NUL-terminated string, starting with index START.
+
+   If STRING is non-null, display that C string.  Otherwise, the Lisp
+   string LISP_STRING is displayed.  There's a case that STRING is
+   non-null and LISP_STRING is not nil.  It means STRING is a string
+   data of LISP_STRING.  In that case, we display LISP_STRING while
+   ignoring its text properties.
+
+   If FACE_STRING is not nil, FACE_STRING_POS is a position in
+   FACE_STRING.  Display STRING or LISP_STRING with the face at
+   FACE_STRING_POS in FACE_STRING:
+
+   Display the string in the environment given by IT, but use the
+   standard display table, temporarily.
+
+   FIELD_WIDTH is the minimum number of output glyphs to produce.
+   If STRING has fewer characters than FIELD_WIDTH, pad to the right
+   with spaces.  If STRING has more characters, more than FIELD_WIDTH
+   glyphs will be produced.  FIELD_WIDTH <= 0 means don't pad.
+
+   PRECISION is the maximum number of characters to output from
+   STRING.  PRECISION < 0  means don't truncate the string.
+
+   This is roughly equivalent to printf format specifiers:
+
+   FIELD_WIDTH	PRECISION	PRINTF
+   ----------------------------------------
+   -1		-1		%s
+   -1		10		%.10s
+   10		-1		%10s
+   20		10		%20.10s
+
+   MULTIBYTE zero means do not display multibyte chars, > 0 means do
+   display them, and < 0 means obey the current buffer's value of
+   enable_multibyte_characters.
+
+   Value is the number of columns displayed.  (C 30030-30061)  */
+
+unsafe fn
+display_string (string: *const c_char, lisp_string: Lisp_Object, face_string: Lisp_Object,
+		face_string_pos: ptrdiff_t, start: ptrdiff_t, it: *mut it,
+		field_width: c_int, precision: c_int, max_x: c_int, multibyte: c_int)
+  -> c_int
+{
+  let mut max_x: c_int = max_x;
+  let hpos_at_start: c_int = (*it).hpos;
+  let saved_face_id: c_int = (*it).face_id;
+  let row: *mut glyph_row = (*it).glyph_row;
+  /* C's `ptrdiff_t it_charpos;` - written by the two branches before its single read
+     (PORTING.md 1.5).  */
+  let mut it_charpos: ptrdiff_t = 0;
+
+  /* Initialize the iterator IT for iteration over STRING beginning
+     with index START.  */
+  reseat_to_string (it, if NILP (lisp_string) { string } else { core::ptr::null () },
+		    lisp_string, start, precision as ptrdiff_t, field_width, multibyte);
+
+  if !string.is_null () && STRINGP (lisp_string)
+    /* LISP_STRING is the one returned by decode_mode_spec.  We should
+       ignore its text properties.  */
+    { (*it).stop_charpos = (*it).end_charpos; }
+
+  /* If displaying STRING, set up the face of the iterator from
+     FACE_STRING, if that's given.  */
+  if STRINGP (face_string)
+    {
+      let mut endptr: ptrdiff_t = 0;
+      let face: *mut face;
+
+      (*it).face_id
+	= face_at_string_position ((*it).w, face_string, face_string_pos,
+	                           0, &raw mut endptr, (*it).base_face_id, false, 0);
+      face = FACE_FROM_ID ((*it).f, (*it).face_id);
+      it_bits! (face_box_p, it, face_bits! (box, face) as face_box_type != FACE_NO_BOX);
+
+      /* If we have a display spec, but there's no Lisp string being
+	 displayed, then check whether we've got one from the
+	 :propertize being passed in and use that.  */
+      if NILP (lisp_string)
+	{
+	  let display: Lisp_Object = Fget_text_property (make_fixnum (0), Qdisplay (),
+							 face_string);
+	  if !NILP (display)
+	    {
+	      let min_width: Lisp_Object = plist_get (display, Qmin_width ());
+	      if !NILP (min_width)
+		{ display_min_width (it, 0, face_string, min_width); }
+	    }
+	}
+    }
+
+  /* Set max_x to the maximum allowed X position.  Don't let it go
+     beyond the right edge of the window.  */
+  if max_x <= 0
+    { max_x = (*it).last_visible_x; }
+  else
+    { max_x = min (max_x as isize, (*it).last_visible_x as isize) as c_int; }
+
+  /* Skip over display elements that are not visible because IT->w is
+     hscrolled.  */
+  if (*it).current_x < (*it).first_visible_x
+    { move_it_in_display_line_to (it, 100000, (*it).first_visible_x,
+				  MOVE_TO_POS | MOVE_TO_X); }
+
+  (*row).ascent = (*it).max_ascent;
+  (*row).height = (*it).max_ascent + (*it).max_descent;
+  (*row).phys_ascent = (*it).max_phys_ascent;
+  (*row).phys_height = (*it).max_phys_ascent + (*it).max_phys_descent;
+  (*row).extra_line_spacing = (*it).max_extra_line_spacing;
+
+  if STRINGP ((*it).string)
+    { it_charpos = IT_STRING_CHARPOS! (*it); }
+  else
+    { it_charpos = IT_CHARPOS! (*it); }
+
+  /* This condition is for the case that we are called with current_x
+     past last_visible_x.  */
+  while (*it).current_x < max_x
+    {
+      let mut x_before: c_int = 0;
+      let mut x: c_int = 0;
+      let mut n_glyphs_before: c_int = 0;
+      let mut i: c_int = 0;
+      let mut nglyphs: c_int = 0;
+
+      /* Get the next display element.  */
+      if !get_next_display_element (it)
+	{ break; }
+
+      /* Produce glyphs.  */
+      x_before = (*it).current_x;
+      n_glyphs_before = (*row).used[TEXT_AREA as usize] as c_int;
+      PRODUCE_GLYPHS! (it);
+
+      nglyphs = (*row).used[TEXT_AREA as usize] as c_int - n_glyphs_before;
+      i = 0;
+      x = x_before;
+      while i < nglyphs
+	{
+	  let glyph: *mut glyph
+	    = (*row).glyphs[TEXT_AREA as usize].offset ((n_glyphs_before + i) as isize);
+
+	  if (*it).line_wrap != TRUNCATE
+	      && x + (*glyph).pixel_width as c_int > max_x
+	    {
+	      /* End of continued line or max_x reached.  */
+	      if CHAR_GLYPH_PADDING_P! (*glyph)
+		{
+		  /* A wide character is unbreakable.  */
+		  if glyph_row_bits! (reversed_p, row)
+		    { unproduce_glyphs (it, (*row).used[TEXT_AREA as usize] as c_int
+					    - n_glyphs_before); }
+		  (*row).used[TEXT_AREA as usize] = n_glyphs_before as c_short;
+		  (*it).current_x = x_before;
+		}
+	      else
+		{
+		  if glyph_row_bits! (reversed_p, row)
+		    { unproduce_glyphs (it, (*row).used[TEXT_AREA as usize] as c_int
+					    - (n_glyphs_before + i)); }
+		  (*row).used[TEXT_AREA as usize] = (n_glyphs_before + i) as c_short;
+		  (*it).current_x = x;
+		}
+	      break;
+	    }
+	  else if x + (*glyph).pixel_width as c_int >= (*it).first_visible_x
+	    {
+	      /* Glyph is at least partially visible.  */
+	      (*it).hpos += 1;
+	      if x < (*it).first_visible_x
+		{ (*row).x = x - (*it).first_visible_x; }
+	    }
+	  else
+	    {
+	      /* Glyph is off the left margin of the display area.
+		 Should not happen.  */
+	      emacs_abort ();
+	    }
+
+	  (*row).ascent = max ((*row).ascent as isize, (*it).max_ascent as isize) as c_int;
+	  (*row).height = max ((*row).height as isize,
+			       ((*it).max_ascent + (*it).max_descent) as isize) as c_int;
+	  (*row).phys_ascent = max ((*row).phys_ascent as isize,
+				    (*it).max_phys_ascent as isize) as c_int;
+	  (*row).phys_height
+	    = max ((*row).phys_height as isize,
+		   ((*it).max_phys_ascent + (*it).max_phys_descent) as isize) as c_int;
+	  (*row).extra_line_spacing
+	    = max ((*row).extra_line_spacing as isize,
+		   (*it).max_extra_line_spacing as isize) as c_int;
+	  x += (*glyph).pixel_width as c_int;
+	  i += 1;
+	}
+
+      /* Stop if max_x reached.  */
+      if i < nglyphs
+	{ break; }
+
+      /* Stop at line ends.  */
+      if ITERATOR_AT_END_OF_LINE_P! (it)
+	{
+	  (*it).continuation_lines_width = 0;
+	  break;
+	}
+
+      set_iterator_to_next (it, true);
+      if STRINGP ((*it).string)
+	{ it_charpos = IT_STRING_CHARPOS! (*it); }
+      else
+	{ it_charpos = IT_CHARPOS! (*it); }
+
+      /* Stop if truncating at the right edge.  */
+      if (*it).line_wrap == TRUNCATE
+	  && (*it).current_x >= (*it).last_visible_x
+	{
+	  /* Add truncation mark, but don't do it if the line is
+	     truncated at a padding space.  */
+	  /* Need to do the below for the last string character as
+	     well, since it could be a double-width character, in
+	     which case the previous character ends before
+	     last_visible_x.  Thus, comparison with <=, not <.  */
+	  if it_charpos <= (*it).string_nchars
+	    {
+	      if !FRAME_WINDOW_P ((*it).f)
+		{
+		  let mut ii: c_int = 0;
+		  let mut n: c_int = 0;
+
+		  if (*it).current_x > (*it).last_visible_x
+		    {
+		      /* This flag is true if we are displaying mode
+			 line, false for header-line or tab-line.  */
+		      let mut mode_line_p: bool = false;
+
+		      /* ROW->mode_line_p is true if we display mode
+			 line or header-line or tab-line.  */
+		      if glyph_row_bits! (mode_line_p, row)
+			{
+			  let w: *mut window = (*it).w;
+			  if row == MATRIX_MODE_LINE_ROW! ((*w).desired_matrix
+							   as *mut glyph_matrix)
+			    { mode_line_p = true; }
+			}
+		      if !glyph_row_bits! (reversed_p, row)
+			{
+			  ii = (*row).used[TEXT_AREA as usize] as c_int - 1;
+			  while ii > 0
+			    {
+			      if !CHAR_GLYPH_PADDING_P! (*((*row).glyphs[TEXT_AREA as usize])
+							 .offset (ii as isize))
+				{ break; }
+			      ii -= 1;
+			    }
+			}
+		      else
+			{
+			  ii = 0;
+			  while ii < (*row).used[TEXT_AREA as usize] as c_int
+			    {
+			      if !CHAR_GLYPH_PADDING_P! (*((*row).glyphs[TEXT_AREA as usize])
+							 .offset (ii as isize))
+				{ break; }
+			      ii += 1;
+			    }
+			  unproduce_glyphs (it, ii + 1);
+			  ii = (*row).used[TEXT_AREA as usize] as c_int - (ii + 1);
+			}
+		      n = (*row).used[TEXT_AREA as usize] as c_int;
+		      while ii < n
+			{
+			  (*row).used[TEXT_AREA as usize] = ii as c_short;
+			  if glyph_row_bits! (mode_line_p, row)
+			    { pad_mode_line (it, mode_line_p); }
+			  else
+			    { produce_special_glyphs (it, IT_TRUNCATION,
+						      (*it).bidi_it.paragraph_dir,
+						      false); }
+			  ii += 1;
+			}
+		    }
+		  produce_special_glyphs (it, IT_TRUNCATION,
+					  (*it).bidi_it.paragraph_dir, false);
+		}
+	      glyph_row_bits! (truncated_on_right_p, row, true);
+	    }
+	  break;
+	}
+    }
+
+  /* Maybe insert a truncation at the left.  */
+  if (*it).first_visible_x != 0
+      && it_charpos > 0
+    {
+      if !FRAME_WINDOW_P ((*it).f)
+	  || (if glyph_row_bits! (reversed_p, row)
+	      { WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }
+	      else
+	      { WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) }) == 0
+	{ insert_left_trunc_glyphs (it); }
+      glyph_row_bits! (truncated_on_left_p, row, true);
+    }
+
+  (*it).face_id = saved_face_id;
+
+  /* Value is number of columns displayed.  */
+  return (*it).hpos - hpos_at_start;
+}
+
+/* This is like a combination of memq and assq.  Return 1/2 if PROPVAL
+   appears as an element of LIST or as the car of an element of LIST.
+   If PROPVAL is a list, compare each element against LIST in that
+   way, and return 1/2 if any element of PROPVAL is found in LIST.
+   Otherwise return 0.  This function cannot quit.
+   The return value is 2 if the text is invisible but with an ellipsis
+   and 1 if it's invisible and without an ellipsis.  (C 30302-30313)  */
+
+/* C's `invisible_prop` (C 30302-30348) is *this unit's* definition, but
+   `include/intervals.rs` declares the name at its own top level (intervals.h 289), so a
+   second top-level definition here is `E0428`; it lives in `pub mod xdisp_defined_decls` +
+   `use ...::*;` (PORTING.md 0.1-10/P-21, the `xdisp_defined_globals` deviation-7 shape,
+   deviation 285).  The symbol is the one C defines.  */
+pub mod xdisp_defined_decls {
+  use super::*;
+
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn invisible_prop (propval: Lisp_Object, list: Lisp_Object) -> c_int
+  {
+    let mut tail: Lisp_Object;
+    let mut proptail: Lisp_Object;
+
+    tail = list;
+    while CONSP (tail)
+      {
+        let tem: Lisp_Object = XCAR (tail);
+        if EQ (propval, tem)
+  	{ return 1; }
+        if CONSP (tem) && EQ (propval, XCAR (tem))
+  	{ return if NILP (XCDR (tem)) { 1 } else { 2 }; }
+        tail = XCDR (tail);
+      }
+
+    if CONSP (propval)
+      {
+        proptail = propval;
+        while CONSP (proptail)
+  	{
+  	  let propelt: Lisp_Object = XCAR (proptail);
+  	  tail = list;
+  	  while CONSP (tail)
+  	    {
+  	      let tem: Lisp_Object = XCAR (tail);
+  	      if EQ (propelt, tem)
+  		{ return 1; }
+  	      if CONSP (tem) && EQ (propelt, XCAR (tem))
+  		{ return if NILP (XCDR (tem)) { 1 } else { 2 }; }
+  	      tail = XCDR (tail);
+  	    }
+  	  proptail = XCDR (proptail);
+  	}
+      }
+
+    return 0;
+  }
+
+}
+use xdisp_defined_decls::*;
+
+DEFUN! ("invisible-p", Finvisible_p, Sinvisible_p, 1, 1, 0,
+       doc: "Non-nil if text properties at POS cause text there to be currently invisible.\nPOS should be a marker or a buffer position; the value of the `invisible'\nproperty at that position in the current buffer is examined.\nPOS can also be the actual value of the `invisible' text or overlay\nproperty of the text of interest, in which case the value itself is\nexamined.\n\nThe non-nil value returned can be t for currently invisible text that is\nentirely hidden on display, or some other non-nil, non-t value if the\ntext is replaced by an ellipsis.\n\nNote that whether text with `invisible' property is actually hidden on\ndisplay may depend on `buffer-invisibility-spec', which see.",
+       (pos: Lisp_Object),
+       {
+  let prop: Lisp_Object
+    = if FIXNATP (pos) || MARKERP (pos)
+      { Fget_char_property (pos, Qinvisible (), Qnil ()) }
+      else
+      { pos };
+  let invis: c_int = TEXT_PROP_MEANS_INVISIBLE! (prop);
+  return if invis == 0 { Qnil () }
+	 else if invis == 1 { Qt () }
+	 else { make_fixnum (invis as EMACS_INT) };
+});
+
+/* Calculate a width or height in pixels from a specification using
+   the following elements:
+
+   SPEC ::=
+     NUM      - a (fractional) multiple of the default font width/height
+     (NUM)    - specifies exactly NUM pixels
+     UNIT     - a fixed number of pixels, see below.
+     ELEMENT  - size of a display element in pixels, see below.
+     (NUM . SPEC) - equals NUM * SPEC
+     (+ SPEC SPEC ...)  - add pixel values
+     (- SPEC SPEC ...)  - subtract pixel values
+     (- SPEC)           - negate pixel value
+
+   NUM ::=
+     INT or FLOAT   - a number constant
+     SYMBOL         - use symbol's (buffer local) variable binding.
+
+   UNIT ::=
+     in       - pixels per inch  *)
+     mm       - pixels per 1/1000 meter  *)
+     cm       - pixels per 1/100 meter   *)
+     width    - width of current font in pixels.
+     height   - height of current font in pixels.
+
+     *) using the ratio(s) defined in display-pixels-per-inch.
+
+   ELEMENT ::=
+
+     left-fringe          - left fringe width in pixels
+     right-fringe         - right fringe width in pixels
+
+     left-margin          - left margin width in pixels
+     right-margin         - right margin width in pixels
+
+     scroll-bar           - scroll-bar area width in pixels
+
+   Examples:
+
+   Pixels corresponding to 5 inches:
+     (5 . in)
+
+   Total width of non-text areas on left side of window (if scroll-bar is on left):
+     '(space :width (+ left-fringe left-margin scroll-bar))
+
+   Align to first text column (in header line):
+     '(space :align-to 0)
+
+   Align to middle of text area minus half the width of variable `my-image'
+   containing a loaded image:
+     '(space :align-to (0.5 . (- text my-image)))
+
+   Width of left margin minus width of 1 character in the default font:
+     '(space :width (- left-margin 1))
+
+   Width of left margin minus width of 2 characters in the current font:
+     '(space :width (- left-margin (2 . width)))
+
+   Center 1 character over left-margin (in header line):
+     '(space :align-to (+ left-margin (0.5 . left-margin) -0.5))
+
+   Different ways to express width of left fringe plus left margin minus one pixel:
+     '(space :width (- (+ left-fringe left-margin) (1)))
+     '(space :width (+ left-fringe left-margin (- (1))))
+     '(space :width (+ left-fringe left-margin (-1)))
+
+   If ALIGN_TO is NULL, returns the result in *RES.  If ALIGN_TO is
+   non-NULL, the value of *ALIGN_TO is a window-relative pixel
+   coordinate, and *RES is the additional pixel width from that point
+   till the end of the stretch glyph.  *ALIGN_TO starts at -1 and stays
+   negative until a window element (e.g. 'left' or 'center') contributes
+   an anchor position, at which point it holds that non-negative
+   coordinate.
+
+   LNUM_ADDED, if non-NULL, must point to a flag initialized to false.
+   The default text-area base, which includes the line-number width,
+   must contribute to the alignment exactly once; whichever term first
+   establishes that base adds the line-number width and sets
+   *LNUM_ADDED, so it is never counted more than once per alignment.
+   Because of the recursive nature of the function, the state needs to
+   be managed with a pointer: if the code flow branches into subcalls of
+   the same function and one of the subcalls applies the line-number
+   width offset, the change of state needs to propagate to the sibling
+   subcalls to avoid applying the offset once again.
+
+   WIDTH_P non-zero means take the width dimension or X coordinate of
+   the object specified by PROP, WIDTH_P zero means take the height
+   dimension or the Y coordinate.  (Therefore, if ALIGN_TO is non-NULL,
+   WIDTH_P should be non-zero.)
+
+   FONT is the font of the face of the surrounding text.
+
+   The return value is non-zero if width or height were successfully
+   calculated, i.e. if PROP is a valid spec.  (C 30372-30469)  */
+
+unsafe fn
+calc_pixel_width_or_height (res: *mut c_double, it: *mut it,
+			    prop: Lisp_Object, font: *mut font,
+			    width_p: bool, align_to: *mut c_int,
+			    lnum_added: *mut bool) -> bool
+{
+  /* Don't adjust for line number if we didn't yet produce it for this
+     screen line.  This is for when this function is called from
+     move_it_in_display_line_to that was called by display_line to get
+     past the glyphs hscrolled off the left side of the window.  */
+  let lnum_pixel_width: c_int = if it_bits! (line_number_produced_p, it)
+    { (*it).lnum_pixel_width } else { 0 };
+  let mut pixels: c_double = 0.0;
+  let mut prop: Lisp_Object = prop;
+
+  /* C 30481-30485's three in-function macros: each names the locals just declared, so they
+     are local `macro_rules!` (the `RECORD_MAX_MIN_POS` shape; the ledger's `## Macros
+     defined` rows are satisfied by these definitions).  */
+  /* # define OK_PIXELS(val) (*res = (val), true)  */
+  macro_rules! OK_PIXELS {
+    ($val:expr) => { { *res = ($val); true } };
+  }
+  /* # define OK_ALIGN_TO(val) (*align_to = (val), true)  */
+  macro_rules! OK_ALIGN_TO {
+    ($val:expr) => { { *align_to = ($val); true } };
+  }
+  /* Add the line-number width to an alignment base only once;
+     LNUM_ONCE yields it the first time and 0 after.  */
+  /* # define LNUM_ONCE (lnum_added && !*lnum_added ? (*lnum_added = true, lnum_pixel_width) : 0)  */
+  macro_rules! LNUM_ONCE {
+    () => { if !lnum_added.is_null () && !*lnum_added
+	     { *lnum_added = true; lnum_pixel_width }
+	   else
+	     { 0 } };
+  }
+
+  if NILP (prop)
+    { return OK_PIXELS! (0.0); }
+
+  eassert! (FRAME_LIVE_P ((*it).f));
+
+  if SYMBOLP (prop)
+    {
+      if SCHARS (SYMBOL_NAME (prop)) == 2
+	{
+	  let unit: *mut c_char = SSDATA (SYMBOL_NAME (prop));
+
+	  /* The UNIT expression, e.g. as part of (NUM . UNIT).  */
+	  if *unit.offset (0) == b'i' as c_char && *unit.offset (1) == b'n' as c_char
+	    { pixels = 1.0; }
+	  else if *unit.offset (0) == b'm' as c_char && *unit.offset (1) == b'm' as c_char
+	    { pixels = 25.4; }
+	  else if *unit.offset (0) == b'c' as c_char && *unit.offset (1) == b'm' as c_char
+	    { pixels = 2.54; }
+	  else
+	    { pixels = 0.0; }
+	  if pixels > 0.0
+	    {
+	      let ppi: c_double = if width_p
+		{ FRAME_RES_X ((*it).f) }
+		else
+		{ FRAME_RES_Y ((*it).f) };
+
+	      if ppi > 0.0
+		{ return OK_PIXELS! (ppi / pixels); }
+	      return false;
+	    }
+	}
+
+      /* C 30520-30536's `HAVE_WINDOW_SYSTEM` arm here (the `Qheight`/`Qwidth` font
+	 measurements) is dead on this target (P-08); the frozen arm is C 30533-30536's
+	 `if (EQ (prop, Qheight) || EQ (prop, Qwidth)) return OK_PIXELS (1);`.  */
+      if EQ (prop, Qheight ()) || EQ (prop, Qwidth ())
+	{ return OK_PIXELS! (1.0); }
+
+      /* 'text': the width or height of the text area.  */
+      if EQ (prop, Qtext ())
+	{ return OK_PIXELS! (if width_p
+			     { (window_box_width ((*it).w, TEXT_AREA)
+				- lnum_pixel_width) as c_double }
+			     else
+			     { WINDOW_BOX_HEIGHT_NO_MODE_LINE! ((*it).w) as c_double }); }
+
+      /* ':align_to'.  First time we compute the value, window
+	 elements are interpreted as the position of the element's
+	 left edge.  */
+      if !align_to.is_null () && *align_to < 0
+	{
+	  *res = 0.0;
+	  /* 'left': left edge of the text area.  */
+	  if EQ (prop, Qleft ())
+	    { return OK_ALIGN_TO! (window_box_left_offset ((*it).w, TEXT_AREA)
+				   + LNUM_ONCE! ()); }
+	  /* 'right': right edge of the text area.  */
+	  if EQ (prop, Qright ())
+	    { return OK_ALIGN_TO! (window_box_right_offset ((*it).w, TEXT_AREA)); }
+	  /* 'center': the center of the editable text area, i.e. the text
+	     area excluding the line-number display.  */
+	  if EQ (prop, Qcenter ())
+	    { return OK_ALIGN_TO! (window_box_left_offset ((*it).w, TEXT_AREA)
+				   + (LNUM_ONCE! ()
+				      + window_box_width ((*it).w, TEXT_AREA)) / 2); }
+	  /* 'left-fringe': left edge of the left fringe.  */
+	  if EQ (prop, Qleft_fringe ())
+	    { return OK_ALIGN_TO! (if WINDOW_HAS_FRINGES_OUTSIDE_MARGINS ((*it).w)
+				   { WINDOW_LEFT_SCROLL_BAR_AREA_WIDTH! ((*it).w) }
+				   else
+				   { window_box_right_offset ((*it).w, LEFT_MARGIN_AREA) }); }
+	  /* 'right-fringe': left edge of the right fringe.  */
+	  if EQ (prop, Qright_fringe ())
+	    { return OK_ALIGN_TO! (if WINDOW_HAS_FRINGES_OUTSIDE_MARGINS ((*it).w)
+				   { window_box_right_offset ((*it).w, RIGHT_MARGIN_AREA) }
+				   else
+				   { window_box_right_offset ((*it).w, TEXT_AREA) }); }
+	  /* 'left-margin': left edge of the left display margin.  */
+	  if EQ (prop, Qleft_margin ())
+	    { return OK_ALIGN_TO! (window_box_left_offset ((*it).w, LEFT_MARGIN_AREA)); }
+	  /* 'right-margin': left edge of the right display margin.  */
+	  if EQ (prop, Qright_margin ())
+	    { return OK_ALIGN_TO! (window_box_left_offset ((*it).w, RIGHT_MARGIN_AREA)); }
+	  /* 'scroll-bar': left edge of the vertical scroll bar.  */
+	  if EQ (prop, Qscroll_bar ())
+	    { return OK_ALIGN_TO! (if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_LEFT! ((*it).w)
+				   { 0 }
+				   else
+				   { window_box_right_offset ((*it).w, RIGHT_MARGIN_AREA)
+				     + (if WINDOW_HAS_FRINGES_OUTSIDE_MARGINS ((*it).w)
+					{ WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) }
+					else
+					{ 0 }) }); }
+	}
+      else
+	{
+	  /* Otherwise, the elements stand for their width.  */
+	  if EQ (prop, Qleft_fringe ())
+	    { return OK_PIXELS! (WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) as c_double); }
+	  if EQ (prop, Qright_fringe ())
+	    { return OK_PIXELS! (WINDOW_RIGHT_FRINGE_WIDTH! ((*it).w) as c_double); }
+	  if EQ (prop, Qleft_margin ())
+	    { return OK_PIXELS! (WINDOW_LEFT_MARGIN_WIDTH! ((*it).w) as c_double); }
+	  if EQ (prop, Qright_margin ())
+	    { return OK_PIXELS! (WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) as c_double); }
+	  if EQ (prop, Qscroll_bar ())
+	    { return OK_PIXELS! (WINDOW_SCROLL_BAR_AREA_WIDTH! ((*it).w) as c_double); }
+	}
+
+      prop = buffer_local_value (prop, (*(*it).w).contents);
+      if BASE_EQ (prop, Qunbound ())
+	{ prop = Qnil (); }
+    }
+
+  if NUMBERP (prop)
+    {
+      let base_unit: c_int = if width_p
+	{ FRAME_COLUMN_WIDTH ((*it).f) }
+	else
+	{ FRAME_LINE_HEIGHT ((*it).f) };
+      /* A numeric value is measured from the text area's left edge
+	 until a window element sets an anchor.  While *align_to < 0,
+	 include the line-number width, but only once per alignment via
+	 the macro LNUM_ONCE.  */
+      if width_p && !align_to.is_null () && *align_to < 0
+	{ return OK_PIXELS! (XFLOATINT (prop) * base_unit as c_double + LNUM_ONCE! () as c_double); }
+      return OK_PIXELS! (XFLOATINT (prop) * base_unit as c_double);
+    }
+
+  if CONSP (prop)
+    {
+      let mut car: Lisp_Object = XCAR (prop);
+      let mut cdr: Lisp_Object = XCDR (prop);
+
+      if SYMBOLP (car)
+	{
+	  /* C 30630-30646's `HAVE_WINDOW_SYSTEM` arm here (the `(image …)`/`(xwidget …)`
+	     handlers) is dead on this target (P-08).  */
+	  /* '(+ EXPR...)' or '(- EXPR...)' add or subtract
+	     recursively calculated values.  */
+	  if EQ (car, Qplus ()) || EQ (car, Qminus ())
+	    {
+	      let mut first: bool = true;
+	      let mut px: c_double = 0.0;
+
+	      pixels = 0.0;
+	      while CONSP (cdr)
+		{
+		  if !calc_pixel_width_or_height (&raw mut px, it, XCAR (cdr),
+						  font, width_p, align_to,
+						  lnum_added)
+		    { return false; }
+		  if first
+		    {
+		      /* C's chain `pixels = (EQ (car, Qplus) ? px : -px), first = false;` —
+			 the port keeps C's order.  */
+		      pixels = if EQ (car, Qplus ()) { px } else { -px };
+		      first = false;
+		    }
+		  else
+		    { pixels += px; }
+		  cdr = XCDR (cdr);
+		}
+	      if EQ (car, Qminus ())
+		{ pixels = -pixels; }
+	      return OK_PIXELS! (pixels);
+	    }
+
+	  car = buffer_local_value (car, (*(*it).w).contents);
+	  if BASE_EQ (car, Qunbound ())
+	    { car = Qnil (); }
+	}
+
+      /* '(NUM)': absolute number of pixels.  */
+      if NUMBERP (car)
+	{
+	  let mut fact: c_double = 0.0;
+	  /* As in the NUMBERP case above: while *align_to < 0, add the
+	     line-number width, but only once per alignment via the macro
+	     LNUM_ONCE.  */
+	  let offset: c_int = if width_p && !align_to.is_null () && *align_to < 0
+	    { LNUM_ONCE! () }
+	    else
+	    { 0 };
+	  pixels = XFLOATINT (car);
+	  if NILP (cdr)
+	    { return OK_PIXELS! (pixels + offset as c_double); }
+	  if calc_pixel_width_or_height (&raw mut fact, it, cdr,
+					  font, width_p, align_to,
+					  lnum_added)
+	    { return OK_PIXELS! (pixels * fact + offset as c_double); }
+	  return false;
+	}
+
+      return false;
+    }
+
+  return false;
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int,
+						  descent: *mut c_int)
+{
+  /* C 30704-30709's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead on this target (P-08); the
+     frozen arm is C 30707-30708's `*ascent = 1; *descent = 0;`.  */
+  let _ = font;
+  *ascent = 1;
+  *descent = 0;
 }

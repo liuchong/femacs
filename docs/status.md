@@ -11971,3 +11971,29 @@
      台账 `## Owed` 8-13 记了镜像缺的 GDK event 成员（ARM A11 那 84 条的字段级清单）、`gtk_check_version_ge_3_18` 等门、
      `XWIDGET_EVENT`/`XWIDGET_DISPLAY_EVENT` 该落 `include/termhooks.rs`、PGTK 臂 slice 1 的 10 条。
      **下一段起点 C 2,718**（`xwidget_init_view`；L0 的 `syms_of_xwidget` 在 **C 3,928**，本轮**未闭合**）。
+
+- **3.593 lane 产出收口：`src/xdisp.c` 又一段落地（C 28,463-30,710；C 39,805 → Rust 29,626 行；`--check` 58 → 37，未勾框 44 → 24）——L0 的三个名字被本对象提供（2026-10-05）**：
+  ① **lane 的产出（Faraday）**：`femacs/src/xdisp.rs` 27,160 → **29,626 行**（+2,466，md5 `9c171c3f…`；台账 3,849 → 4,023 行）。
+     一次落完 20 个框：`display_mode_element`、`store_mode_line_string`、**`format-mode-line`（DEFUN）**、`pint2str`、`power_letter`、
+     `pint2hrstr`、`invalid_eol_type`、`decode_mode_spec_coding`、`percent99`、`lots_of_dashes`、`decode_mode_spec`（458 行 C）、
+     `count_lines`、`display_count_lines`、`display_string`（240 行 C）、`invisible_prop`、**`invisible-p`（DEFUN）**、
+     `calc_pixel_width_or_height`（含 3 个函数内 `macro_rules!`）与 `get_font_ascent_descent`。
+  ② **与 L0 的关系（本件的重点）**：`build/load/undefined.txt` 直接命中的三个名字 —— **`_count_lines`（第 21 行）、
+     `_invisible_prop`（第 57 行）、`_get_font_ascent_descent`（第 43 行）** —— 现在**都由 `xdisp.o` 定义**（`nm` 实测：
+     `T _count_lines`、`T _invisible_prop`、`T _get_font_ascent_descent`，另加 `T _Fformat_mode_line`、`T _Finvisible_p`）。
+     **但 L0 清单不会因此变短**：`build/load/link-args.rsp` 里**不含 `xdisp.o`**（链接集是上次生成的），要等重生成链接集
+     之后这三个名字才会从 205 条里消失。本件只证明"**本对象提供这三个符号**"。
+  ③ **读数**：`--check` **58 → 37**（退掉 13 `missing function` + 2 `missing subr` + 3 `missing macro` + 2 `missing file-scope object`
+     + 1 条 `is not static`；新增 3 条 `does not mention` 已由 tsv 行抵掉）；未勾框 **44 → 24**；
+     `build-tu` 3/3（前两发各抓到**本单元自身**的真错：`DEFUN!` 缺 `);` 的 unclosed delimiter、6 条类型/名字错，第三发 exit 0，
+     `xdisp.o` 3,076,904 字节）；`probe` 2/3（首发 `pint2hrstr` 的 C 悬垂 `else`，第二发 **exit 0**，rlib 22,643,048 B）；
+     `check-cond-eval.py src/xdisp.c` 196 conditions / 0 disagreements [VERIFIED]；行数漂移 **31.8% → 25.6%**。
+  ④ **集成者登记（我）**：`macro-body-notes.tsv` 收下该 lane 的 **3 行**（`display_mode_element`/`decode_mode_spec`/`display_count_lines`）；
+     `port-map.md` 刷新本件（**不加容差行**——漂移 25.6% 仍是"没落完"的真信号）；台账新增欠账 83-87
+     （`include/intervals.rs` 的 `invisible_prop` 顶层声明逼出 `pub mod xdisp_defined_decls` 包装——镜像搬进 glob 模块后可拆、
+     `include/lisp.rs` 该收的 `plist_get`/`plist_put`/`parse_str_as_multibyte`/`memrchr`/`strnlen`、scaffold 8 → 4 等）。
+  ⑤ **未声称**：证据层级是**文本同构 + 编译通过 + 符号表核对**，**没有**任何行为级验证（未跑 ERT/差分/mutation）；
+     `invisible_prop` 走的是 `xdisp_defined_decls` 包装（句法上 crate 根的外来声明在名字解析上优先于模块 glob），
+     **语义等价但不是拓扑上的顶层定义**；`power_letter` 无机械门（工具对象表本就不跟踪它）。
+     **下一段 C 32,972 `produce_stretch_glyph`**（C 30,717-32,938 是 `HAVE_WINDOW_SYSTEM` 的死臂，记录不转抄）；
+     行数目标 37,815，现 29,626，差 **8,189**。
