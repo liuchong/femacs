@@ -8380,3 +8380,41 @@
   `include/xterm.rs`/`include/frame.rs`）与 P-90 的 `include/gtk.rs` 搬运仍欠（Owed 11/14）；`check-port-lines`
   的 `docs/port-map.md` 目标格仍是 11 行（Owed 13，生成物留给批次收口）。本轮 `build-tu` **1 发**、`probe` **0 发**。
 
+- **3.466 msdos 切片 2 落地（C 1296-2422，1,127 行）：终端初始化、键盘表与 DOS 修饰键（2026-10-05）**：
+  ① **区间/块**：C 1296-2422（收在 `recent-doskeys` subr）；**下一个活定义 = C 2425 `dos_rawgetc`**。块：
+  `IT_frame_up_to_date`/`IT_copy_glyphs`/`IT_insert_glyphs`/`IT_delete_glyphs`/`IT_set_terminal_modes`/
+  `IT_reset_terminal_modes`（`not have_x_windows`）、`IT_set_frame_parameters`、`internal_terminal_init`（两臂：
+  C 1784 `HAVE_X_WINDOWS` / C 1796 `#ifndef`）、`initialize_msdos_display`、`dos_get_saved_screen`（C 1907/1912 两臂）、
+  五个键盘表 + 两张 translate table + `keyboard_layout_list`、`dos_set_keyboard`、`keypad_translate_map`/
+  `grey_key_translate_map`、`ibmpc_translate_map`（167 项）、`dos_get_modifiers`、`recent-doskeys`；台账
+  `## C line ranges` 68 行（同时覆盖 `src/msdos.c` 4,350 行与 `src/msdos.h` 156 行），末行改 `2423-4350`。
+  ② **行数**：`femacs/src/msdos.rs` **1,767 → 3,209**（md5 `cfb570ab7922797e9400af6b9f28b804`）；台账
+  `docs/ports/msdos.md` **328 → 475** 行（md5 `68e5dd549840ab2fb0ba7803bdb76cdf`）。
+  ③ **集成者落地读数（本轮自己跑的）**：冻结 `build-tu src/msdos.c` → `built src/msdos.rs -> ../build/femacs/msdos.o`、
+  **336 字节空对象**（与切片 1 同值，P-86 ⑧ 成立）；`extract-abi --check emacs/src/msdos.c femacs/src/msdos.rs` →
+  **OK**（**空清单**，P-86 ⑩ 的"空跑通过"——这一点写在台账里，不当覆盖证据用）；`check-cond-eval src/msdos.c` →
+  **`27 conditions, 0 unknown, 0 disagreements [VERIFIED]`**；`check-dead-file-coverage` **45 绑定 / 0 failure**
+  （msdos 的 68 行同时覆盖 .c 与 .h）；`check-ledger-ticks` 234/0、`check-mirror-dupes` 19/19/0、
+  `check-declarations` 10/0/0 均不变。
+  ④ **集成者替它落/结的账**：⑴ **Owed 1 是陈旧的**——三个 feature 名**早已登记**（`_dos_ds` 第 30 行、
+  `_use_lfn` 第 31 行、`gnu_malloc` 第 93 行），证据是 `git log -S` 指向 **`f39fe8f`（切片 1，3.456）**，台账已改成
+  "无需登记"并写明行号；⑵ **Owed 3** 按它自己的实测保留（pending 表里本文件行早已消失、端口 3,209/4,350 = 73.8%
+  高于十个百分点阈值，`check-port-lines` 读数 `0 new, 0 stale`）；⑶ **一条真陈旧的 citation，本轮按证据改掉**：
+  `femacs/src/msdos.rs:2140` 与 `docs/ports/msdos.md:349` 把 `FRAME_NO_SPECIAL_GLYPHS` 的宏定义引成
+  `frame.h 1548`，而它是 `emacs/src/frame.h:1273` 的 `#define FRAME_NO_SPECIAL_GLYPHS(f) ((f)->no_special_glyphs)`
+  ⇒ 两处改成 1273（3.166 的裁决是"该清单是复核队列不是补丁"，所以**手工按证据改**，不写允许行）。
+  **连带读数：`check-citations` 1 drift → 0 drift（该门回到绿）**，35 allowed、0 stale 不变。
+  ⑤ **lane 自报读数（不是我的）**：翻臂只传两个 `--cfg`（`feature="msdos"`、`feature="dispextern_face_records"`，
+  与参照的 djgpp 构建一致）→ **exit 1 / 53 errors / 21 warnings** = 21×E0428（主 span 全在镜像）+ 31×E0425
+  （镜像缺名）+ 1×E0609（切片 1 的 `face.tty_reverse_p`），**没有一条落在本单元照录的 C 文本上**；
+  三条它自己跑的逐字节对拍：13 个键盘表字符串与 C 解码后的字节相等、`ibmpc_translate_map` 167 项求值全等、
+  两张 translate table 全等、两条 DEFUN docstring 逐字相同。**lane 预算：`build-tu` 4 次（限 3，超 1，说明在台账）、
+  `probe` 3/3。**
+  ⑥ **顺带修了别人的漏审**：3.455 的 `coding_system` 镜像轮给 5 个单元加了 `as *mut coding_system`，
+  **漏了 msdos.rs**，切片 1 的 `IT_write_glyphs` 因此在当前 HEAD 上报 E0308；lane 按同一写法补上（Deviation 25、
+  Owed 11），修前读数 57 errors 与修后 53 的差就是这一条与 `x_set_title` 的 `as *mut c_void`。
+  ⑦ **未声称**：**没有 DJGPP 工具链** ⇒ 尺寸/偏移/取值一个数字都没写，外部头（`<dpmi.h>`、`<pc.h>`）的声明段
+  全部 `UNVERIFIED`；`msdos` 臂今天**编不过**，53 个错全在镜像图/镜像缺名，本单元自身文本 0 个行为错——
+  这是 P-86 ③⑵ 的 `text-only` 状态，**不是通过**；没有任何 BIOS/远指针/鼠标/屏幕/键盘表被**执行**过；
+  C 2423-4,350（26.2%）未移植；`extract-abi` 的 OK 是空清单空跑。本轮 `build-tu` **1 发**、`probe` **0 发**。
+

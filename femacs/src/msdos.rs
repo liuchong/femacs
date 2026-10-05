@@ -98,6 +98,11 @@ include!("include/config.rs");                 // C 32: `#include <config.h>`
 /* C 35's `#include <setjmp.h>` has no mirror of its own: `jmp_buf` and `sys_setjmp` are
    `include/lisp.rs`'s (C 36, the `src/thread.rs` 31-32 / `src/image.rs` 78-79 reading), and this
    unit reaches them through C 36.  */
+/* C 36's `lisp.h` 30 is `#include <string.h>`, and this unit's `strcmp` (C 1794) is that
+   header's; the mirror does not carry the edge, so the unit spells it here (the C 36
+   `<stdcountof.h>` edge below is the same shape - Deviations 13).  */
+#[cfg (feature = "msdos")]
+include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>` (`strcmp`)
 #[cfg (feature = "msdos")]
 include!("include/lisp.rs");                   // C 36: `#include "lisp.h"`
 #[cfg (feature = "msdos")]
@@ -206,6 +211,42 @@ pub union __dpmi_regs
 unsafe extern "C" {
   pub fn __dpmi_int (vector: c_int, regs: *mut __dpmi_regs) -> c_int;
 }
+/// C 57's `<dpmi.h>`: `_go32_dpmi_registers`, the *dpmi* register block (a different header type
+/// from `__dpmi_regs` above) that `dos_set_keyboard` (C 2055) and `dos_rawgetc` (C 2429) use.
+/// **UNVERIFIED**: no DJGPP toolchain, so the record's size and the view order are unmeasured;
+/// slice 2 carries only the members its own call sites touch (C 2060-2063: `x.ax`, `x.ss`, `x.sp`,
+/// `x.flags`, `h.al`).
+/// C: struct _go32_dpmi_registers { struct { unsigned short ax, …, ss, sp, flags; } x; struct { unsigned char al, ah, …; } h; … };
+#[cfg (feature = "msdos")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct Go32DpmiRegsX
+{
+  pub ax: c_ushort,                     // C 2060: `regs.x.ax`
+  pub ss: c_ushort,                     // C 2061: `regs.x.ss`
+  pub sp: c_ushort,                     // C 2061: `regs.x.sp`
+  pub flags: c_ushort,                  // C 2061: `regs.x.flags`
+}
+#[cfg (feature = "msdos")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct Go32DpmiRegsH
+{
+  pub al: c_uchar,                      // C 2063: `regs.h.al`
+}
+#[cfg (feature = "msdos")]
+#[repr(C)]
+pub union _go32_dpmi_registers
+{
+  pub x: Go32DpmiRegsX,
+  pub h: Go32DpmiRegsH,
+}
+/// C 57's `<dpmi.h>`: the real-mode interrupt simulator (C 2062).
+/// C: int _go32_dpmi_simulate_int (int, _go32_dpmi_registers *);
+#[cfg (feature = "msdos")]
+unsafe extern "C" {
+  pub fn _go32_dpmi_simulate_int (vector: c_int, regs: *mut _go32_dpmi_registers);
+}
 // C 58: `#include <sys/farptr.h>` (`/* for _farsetsel, _farnspokeb */`) - the header this
 // section stands for.
 /// C 58's `<sys/farptr.h>`: the far-memory accessors.  `<sys/farptr.h>` spells them as inlines
@@ -234,6 +275,12 @@ include!("../lib/include/errno.rs");           // C 48: `#include <errno.h>`
 include!("../lib/include/sys_stat.in.rs");     // C 49: `#include <sys/stat.h>`
 #[cfg (feature = "msdos")]
 include!("../lib/include/unistd.in.rs");       // C 50: `#include <unistd.h>`
+/* C 50's `<unistd.h>` is gnulib's, and `lib/unistd.in.h` 122-125 includes `<stdlib.h>` for
+   every non-glibc target; this unit's `getenv` (C 1780/1808/1834) is that header's.  The
+   mirror does not carry the edge, so the unit spells it here (the C 36 `<stdcountof.h>`
+   shape - Deviations 13).  */
+#[cfg (feature = "msdos")]
+include!("../lib/include/stdlib.rs");          // unistd.in.h 122-125: `#include <stdlib.h>` (`getenv`)
 /* C 51's `<dir.h>` (`getdisk`), C 52's `#pragma pack(0)` and C 53's `#undef opendir` (C 56's
    `<io.h>`, `setmode`) belong to names past this slice: the pragma has no Rust counterpart and
    the `#undef` has none either (the port never spells `opendir` as `<dirent.h>`'s macro).  Two
@@ -341,6 +388,7 @@ unsafe extern "C" {
 /// C: int ScreenRows (void); int ScreenCols (void); void ScreenGetCursor (int *, int *);
 /// C: void ScreenSetCursor (int, int); void ScreenClear (void); void ScreenVisualBell (void);
 /// C: void _set_screen_lines (int); int dosmemput (const void *, int, int);
+/// C: int ScreenMode (void); void ScreenRetrieve (void *);
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
   pub static mut ScreenPrimary: c_ulong;
@@ -352,6 +400,8 @@ unsafe extern "C" {
   pub fn ScreenVisualBell ();
   pub fn _set_screen_lines (lines: c_int);
   pub fn dosmemput (buffer: *const c_void, length: c_int, offset: c_int) -> c_int;
+  pub fn ScreenMode () -> c_int;
+  pub fn ScreenRetrieve (memory: *mut c_void);
 }
 
 /* C 89-93: the `spawnve` the local `<process.h>` would have supplied (which C 90-91's comment
@@ -1308,7 +1358,10 @@ unsafe fn IT_write_glyphs (f: *mut frame, mut str: *mut glyph, str_len: c_int)  
   /* If terminal_coding does any conversion, use it, otherwise use
      safe_terminal_coding.  We can't use CODING_REQUIRE_ENCODING here
      because it always returns 1 if terminal_coding.src_multibyte is 1.  */
-  let mut coding: *mut coding_system = FRAME_TERMINAL_CODING! (f);
+  /* The 3.455 mirror round (`include/termhooks.rs` 420's macro) spells the two coding fields
+     `*mut c_void`, and every consumer casts at its use site; this unit is the one consumer
+     the round left behind.  One `## Deviations` entry.  */
+  let mut coding: *mut coding_system = FRAME_TERMINAL_CODING! (f) as *mut coding_system;
 
   if ((*coding).bits as c_int & CODING_REQUIRE_ENCODING_MASK as c_int) == 0
     { coding = &raw mut safe_terminal_coding; }
@@ -1765,3 +1818,1392 @@ unsafe fn IT_update_end (f: *mut frame)            // C 1287-1288
     { fprintf ((*dpyinfo).termscript, c"\n<UPDATE_END\n".as_ptr ()); }
   set_mouse_face_defer (&raw mut (*dpyinfo).mouse_highlight, false);
 }
+
+/* ----------------------------------------------------------------------------------------------
+   C 1296-1771: the rest of the second `#ifndef HAVE_X_WINDOWS` block (C 480's).  Every item in
+   this span carries `not (feature = "have_x_windows")` on top of the file gate; C 1771's `#endif`
+   closes it, so the items after that line (`internal_terminal_init` onward) are file-gated only.
+   Both arms of every `#if` in the span are carried: C 1784's `#ifdef HAVE_X_WINDOWS`, C 1796's
+   `#ifndef HAVE_X_WINDOWS` and C 1907's `#ifndef`/C 1912's `#else`.
+   ---------------------------------------------------------------------------------------------- */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_frame_up_to_date (f: *mut frame)      // C 1297-1298
+{
+  let frame_desired_cursor: Lisp_Object;
+  let new_cursor: Lisp_Object;
+  let sw: *mut window;
+
+  FRAME_MOUSE_UPDATE! (f);
+
+  /* Set the cursor type to whatever they wanted.  In a minibuffer
+     window, we want the cursor to appear only if we are reading input
+     from this window, and we want the cursor to be taken from the
+     frame parameters.  For the selected window, we use either its
+     buffer-local value or the value from the frame parameters if the
+     buffer doesn't define its local value for the cursor type.  */
+  sw = XWINDOW ((*f).selected_window);
+  frame_desired_cursor = Fcdr (Fassq (Qcursor_type (), (*f).param_alist));
+  if cursor_in_echo_area
+      && FRAME_HAS_MINIBUF_P (f)
+      && EQ (FRAME_MINIBUF_WINDOW (f), echo_area_window)
+      && sw == XWINDOW (echo_area_window)
+    { new_cursor = frame_desired_cursor; }
+  else
+    {
+      let b: *mut buffer = XBUFFER ((*sw).contents);
+
+      if EQ (BVAR! (b, cursor_type_), Qt ())
+	{ new_cursor = frame_desired_cursor; }
+      else if NILP (BVAR! (b, cursor_type_)) /* nil means no cursor */
+	{ new_cursor = Fcons (Qbar (), make_fixnum (0)); }
+      else
+	{ new_cursor = BVAR! (b, cursor_type_); }
+    }
+
+  IT_set_cursor_type (f, new_cursor);
+
+  IT_cmgoto (f);  /* position cursor when update is done */
+}
+
+/* Copy LEN glyphs displayed on a single line whose vertical position
+   is YPOS, beginning at horizontal position XFROM to horizontal
+   position XTO, by moving blocks in the video memory.  Used by
+   functions that insert and delete glyphs.  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_copy_glyphs (xfrom: c_int, xto: c_int, mut len: usize, ypos: c_int)  // C 1339-1340
+{
+  /* The offsets of source and destination relative to the
+     conventional memory selector.  */
+  let mut from: c_int = 2 * (xfrom + screen_size_X * ypos) + ScreenPrimary as c_int;
+  let mut to: c_int = 2 * (xto + screen_size_X * ypos) + ScreenPrimary as c_int;
+
+  if from == to || len <= 0
+    { return; }
+
+  _farsetsel (_dos_ds! () as c_ushort);
+
+  /* The source and destination might overlap, so we need to move
+     glyphs non-destructively.  */
+  if from > to
+    {
+      while len != 0
+	{
+	  _farnspokew (to as c_ulong, _farnspeekw (from as c_ulong));
+	  from += 2;
+	  to += 2;
+	  len -= 1;
+	}
+    }
+  else
+    {
+      from += ((len - 1) * 2) as c_int;
+      to += ((len - 1) * 2) as c_int;
+      while len != 0
+	{
+	  _farnspokew (to as c_ulong, _farnspeekw (from as c_ulong));
+	  from -= 2;
+	  to -= 2;
+	  len -= 1;
+	}
+    }
+  if screen_virtual_segment != 0
+    { dosv_refresh_virtual_screen (ypos * screen_size_X * 2, screen_size_X); }
+}
+
+/* Insert and delete glyphs.  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_insert_glyphs (f: *mut frame, start: *mut glyph, len: c_int)   // C 1371-1372
+{
+  let shift_by_width: c_int = screen_size_X - (new_pos_X + len);
+
+  /* Shift right the glyphs from the nominal cursor position to the
+     end of this line.  */
+  IT_copy_glyphs (new_pos_X, new_pos_X + len, shift_by_width as usize, new_pos_Y);
+
+  /* Now write the glyphs to be inserted.  */
+  IT_write_glyphs (f, start, len);
+}
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_delete_glyphs (f: *mut frame, n: c_int)   // C 1384-1385
+{
+  emacs_abort ();
+}
+
+/* This was copied from xfaces.c  */
+
+/* IT_set_terminal_modes is called when emacs is started,
+   resumed, and whenever the screen is redrawn!  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_set_terminal_modes (term: *mut terminal)   // C 1395-1396
+{
+  let mut tty: *mut tty_display_info;
+
+  /* If called with initial terminal, it's too early to do anything
+     useful.  */
+  if (*term).r#type == output_initial
+    { return; }
+
+  tty = (*term).display_info.tty as *mut tty_display_info;
+
+  if !(*tty).termscript.is_null ()
+    { fprintf ((*tty).termscript, c"\n<SET_TERM>".as_ptr ()); }
+
+  screen_size_X = ScreenCols ();
+  screen_size_Y = ScreenRows ();
+  screen_size = screen_size_X * screen_size_Y;
+
+  /* C's `new_pos_X = new_pos_Y = 0;` and `current_pos_X = current_pos_Y = -1;` are chained
+     assignments; the port writes the two stores of each (the `haikuterm.rs` 1255 shape).  */
+  new_pos_Y = 0;
+  new_pos_X = 0;
+  current_pos_Y = -1;
+  current_pos_X = -1;
+
+  if term_setup_done != 0
+    { return; }
+  term_setup_done = 1;
+
+  startup_screen_size_X = screen_size_X;
+  startup_screen_size_Y = screen_size_Y;
+  startup_screen_attrib = ScreenAttrib;
+
+  /* Is DOS/V (or any other RSIS software which relocates
+     the screen) installed?  */
+  {
+    let mut es_value: c_ushort;
+    let mut regs: __dpmi_regs = std::mem::zeroed ();
+
+    regs.h.ah = 0xfe;	/* get relocated screen address */
+    if ScreenPrimary == 0xb0000 || ScreenPrimary == 0xb8000
+      { regs.x.es = ((ScreenPrimary >> 4) & 0xffff) as c_ushort; }
+    else if screen_old_address != 0 /* already switched to Japanese mode once */
+      { regs.x.es = ((screen_old_address >> 4) & 0xffff) as c_ushort; }
+    else
+      { regs.x.es = if ScreenMode () == 7 { 0xb000 } else { 0xb800 }; }
+    regs.x.di = 0;
+    es_value = regs.x.es;
+    __dpmi_int (0x10, &raw mut regs);
+
+    if regs.x.es != es_value
+      {
+	/* screen_old_address is only set if ScreenPrimary does NOT
+	   already point to the relocated buffer address returned by
+	   the Int 10h/AX=FEh call above.  DJGPP v2.02 and later sets
+	   ScreenPrimary to that address at startup under DOS/V.  */
+	if regs.x.es != ((ScreenPrimary >> 4) & 0xffff) as c_ushort
+	  { screen_old_address = ScreenPrimary; }
+	screen_virtual_segment = regs.x.es;
+	screen_virtual_offset  = regs.x.di;
+	ScreenPrimary = ((screen_virtual_segment << 4) + screen_virtual_offset) as c_ulong;
+      }
+  }
+
+  ScreenGetCursor (&raw mut startup_pos_Y, &raw mut startup_pos_X);
+  /* C's `ScreenRetrieve (startup_screen_buffer = xmalloc (screen_size * 2))`: the store and the
+     call, with the assignment's value kept (the `xrdb.rs` 368 chained-assignment shape).  */
+  startup_screen_buffer = xmalloc ((screen_size * 2) as usize);
+  ScreenRetrieve (startup_screen_buffer);
+
+  bright_bg ();
+}
+
+/* IT_reset_terminal_modes is called when emacs is
+   suspended or killed.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_reset_terminal_modes (term: *mut terminal)   // C 1465-1466
+{
+  let mut display_row_start: c_int = ScreenPrimary as c_int;
+  let saved_row_len: c_int     = startup_screen_size_X * 2;
+  let mut update_row_len: c_int    = ScreenCols () * 2;
+  let mut current_rows: c_int = ScreenRows ();
+  let to_next_row: c_int       = update_row_len;
+  let mut saved_row: *mut c_uchar = startup_screen_buffer as *mut c_uchar;
+  let mut cursor_pos_X: c_int = ScreenCols () - 1;
+  let mut cursor_pos_Y: c_int = ScreenRows () - 1;
+  let tty: *mut tty_display_info = (*term).display_info.tty as *mut tty_display_info;
+
+  if !(*tty).termscript.is_null ()
+    { fprintf ((*tty).termscript, c"\n<RESET_TERM>".as_ptr ()); }
+
+  if term_setup_done == 0
+    { return; }
+
+  mouse_off ();
+
+  /* Leave the video system in the same state as we found it,
+     as far as the blink/bright-background bit is concerned.  */
+  maybe_enable_blinking ();
+
+  /* We have a situation here.
+     We cannot just do ScreenUpdate(startup_screen_buffer) because
+     the luser could have changed screen dimensions inside Emacs
+     and failed (or didn't want) to restore them before killing
+     Emacs.  ScreenUpdate() uses the *current* screen dimensions and
+     thus will happily use memory outside what was allocated for
+     `startup_screen_buffer'.
+     Thus we only restore as much as the current screen dimensions
+     can hold, and clear the rest (if the saved screen is smaller than
+     the current) with the color attribute saved at startup.  The cursor
+     is also restored within the visible dimensions.  */
+
+  ScreenAttrib = startup_screen_attrib;
+
+  /* Don't restore the screen if we are exiting less than 2 seconds
+     after startup: we might be crashing, and the screen might show
+     some vital clues to what's wrong.  */
+  if clock () - startup_time >= 2*CLOCKS_PER_SEC
+    {
+      ScreenClear ();
+      if screen_virtual_segment != 0
+	{ dosv_refresh_virtual_screen (0, screen_size); }
+
+      if update_row_len > saved_row_len
+	{ update_row_len = saved_row_len; }
+      if current_rows > startup_screen_size_Y
+	{ current_rows = startup_screen_size_Y; }
+
+      if !(*tty).termscript.is_null ()
+	{ fprintf ((*tty).termscript, c"<SCREEN RESTORED (dimensions=%dx%d)>\n".as_ptr (),
+		   update_row_len / 2, current_rows); }
+
+      while current_rows != 0   /* C's `while (current_rows--)` test */
+	{
+	  current_rows -= 1;
+	  dosmemput (saved_row as *const c_void, update_row_len, display_row_start);
+	  if screen_virtual_segment != 0
+	    { dosv_refresh_virtual_screen (display_row_start - ScreenPrimary as c_int,
+					   update_row_len / 2); }
+	  saved_row         = saved_row.offset (saved_row_len as isize);
+	  display_row_start += to_next_row;
+	}
+    }
+  if startup_pos_X < cursor_pos_X
+    { cursor_pos_X = startup_pos_X; }
+  if startup_pos_Y < cursor_pos_Y
+    { cursor_pos_Y = startup_pos_Y; }
+
+  ScreenSetCursor (cursor_pos_Y, cursor_pos_X);
+  xfree (startup_screen_buffer as *mut c_void);
+  startup_screen_buffer = core::ptr::null_mut ();
+
+  term_setup_done = 0;
+}
+
+/* Remember the screen colors of the current frame, to serve as the
+   default colors for newly-created frames.  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+DEFUN! ("msdos-remember-default-colors", Fmsdos_remember_default_colors,
+       Smsdos_remember_default_colors, 1, 1, 0,
+       doc: "Remember the screen colors of the current frame.  ",   // C 1544-1546
+       (frame: Lisp_Object),
+       {
+  let mut f: *mut frame;
+
+  CHECK_FRAME! (frame);
+  f = XFRAME (frame);
+
+  /* This function is called after applying default-frame-alist to the
+     initial frame.  At that time, if reverse-colors option was
+     specified in default-frame-alist, it was already applied, and
+     frame colors are reversed.  */
+  initial_screen_colors[0] = FRAME_FOREGROUND_PIXEL (f) as c_int;
+  initial_screen_colors[1] = FRAME_BACKGROUND_PIXEL (f) as c_int;
+
+  return Qnil ();
+});
+
+/* `FRAME_FOREGROUND_PIXEL`/`FRAME_BACKGROUND_PIXEL` are C's plain field macros (frame.h
+   1375-1376): `include/frame.rs` declares the readers as functions (1274/1276) and the tree
+   spells the write form per consuming unit (`src/frame.rs` 134/137, `src/dispnew.rs`
+   7369-7370).  This unit's copy carries the file gate; C 1584-1585/1638/1648/1668/1678/1747/1754
+   are its uses.  One `## Deviations` entry.  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+macro_rules! FRAME_FOREGROUND_PIXEL {
+  ($f:expr) => { (*$f).foreground_pixel };
+}
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+macro_rules! FRAME_BACKGROUND_PIXEL {
+  ($f:expr) => { (*$f).background_pixel };
+}
+/* C's `f->default_face_done_p` (frame.h 340, a `bool_bf`): the same per-unit reader/writer the
+   `mouse_moved!` pair above is (`include/frame.rs` 343-344 carries the measured shift and unit,
+   and the field's unit is 1 on every arm, so the `set_frame_flag1!` helper serves it).  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+macro_rules! default_face_done_p {
+  ($f:expr) => { (*$f).bits1 >> FRAME_DEFAULT_FACE_DONE_P_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_DEFAULT_FACE_DONE_P_SHIFT, $v) };
+}
+/* frame.h 1273's `FRAME_NO_SPECIAL_GLYPHS` (`f->no_special_glyphs`): `include/frame.rs` 1218
+   declares the reader, and C 1738 writes it, so this unit adds the writer arm (the
+   `src/frame.rs` 382 shape, one `## Deviations` entry).  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+macro_rules! FRAME_NO_SPECIAL_GLYPHS {
+  ($f:expr) => { FRAME_NO_SPECIAL_GLYPHS ($f) };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_NO_SPECIAL_GLYPHS_SHIFT, $v) };
+}
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+#[unsafe(no_mangle)]
+pub unsafe fn IT_set_frame_parameters (f: *mut frame, alist: Lisp_Object)   // C 1564-1565
+{
+  let mut tail: Lisp_Object;
+  let mut i: c_int;
+  let mut j: c_int;
+  let length: c_int = XFIXNUM (Flength (alist)) as c_int;
+  /* C's two `alloca (length * word_size)` requests (C 1569-1572): the port has no `alloca`
+     (PORTING.md P-05), so each block comes from the stack pool `sa_stack_alloc` serves - the
+     C 1050 deviation's shape.  C accounts neither request against `sa_avail` and neither does
+     the port.  */
+  let parms: *mut Lisp_Object
+    = sa_stack_alloc ((length as isize * word_size) as usize) as *mut Lisp_Object;
+  let values: *mut Lisp_Object
+    = sa_stack_alloc ((length as isize * word_size) as usize) as *mut Lisp_Object;
+  /* Do we have to reverse the foreground and background colors?  */
+  let mut reverse: c_int = EQ (Fcdr (Fassq (Qreverse (), (*f).param_alist)), Qt ()) as c_int;
+  let mut redraw: c_int = 0;
+  let mut fg_set: c_int = 0;
+  let mut bg_set: c_int = 0;
+  let mut orig_fg: c_ulong;
+  let mut orig_bg: c_ulong;
+  let tty = FRAME_TTY! (f);
+
+  /* If we are creating a new frame, begin with the original screen colors
+     used for the initial frame.  */
+  if !default_face_done_p! (f)
+      && initial_screen_colors[0] != -1 && initial_screen_colors[1] != -1
+    {
+      FRAME_FOREGROUND_PIXEL! (f) = initial_screen_colors[0] as c_ulong;
+      FRAME_BACKGROUND_PIXEL! (f) = initial_screen_colors[1] as c_ulong;
+      init_frame_faces (f);
+      default_face_done_p! (f, 1);
+    }
+  orig_fg = if reverse != 0 { FRAME_BACKGROUND_PIXEL (f) } else { FRAME_FOREGROUND_PIXEL (f) };
+  orig_bg = if reverse != 0 { FRAME_FOREGROUND_PIXEL (f) } else { FRAME_BACKGROUND_PIXEL (f) };
+
+  /* Extract parm names and values into those vectors.  */
+  i = 0;
+  tail = alist;
+  while CONSP (tail)
+    {
+      let elt: Lisp_Object = XCAR (tail);
+      *parms.add (i as usize) = Fcar (elt);
+      CHECK_SYMBOL (*parms.add (i as usize));
+      *values.add (i as usize) = Fcdr (elt);
+      i += 1;
+      tail = XCDR (tail);
+    }
+
+  j = i;
+
+  i = 0;
+  while i < j
+    {
+      let prop: Lisp_Object;
+      let val: Lisp_Object;
+
+      prop = *parms.add (i as usize);
+      val  = *values.add (i as usize);
+
+      if EQ (prop, Qreverse ())
+	{ reverse = EQ (val, Qt ()) as c_int; }
+      i += 1;
+    }
+
+  if !(*tty).termscript.is_null () && reverse != 0
+    { fprintf ((*tty).termscript, c"<INVERSE-VIDEO>\n".as_ptr ()); }
+
+  /* Now process the alist elements in reverse of specified order.  */
+  i -= 1;
+  while i >= 0
+    {
+      let prop: Lisp_Object;
+      let val: Lisp_Object;
+
+      prop = *parms.add (i as usize);
+      val  = *values.add (i as usize);
+
+      if EQ (prop, Qforeground_color ())
+	{
+	  let new_color: c_ulong = load_color (f, std::ptr::null_mut::<face> (), val,
+					       if reverse != 0 { LFACE_BACKGROUND_INDEX }
+					       else { LFACE_FOREGROUND_INDEX });
+	  if new_color !=  FACE_TTY_DEFAULT_COLOR
+	      && new_color != FACE_TTY_DEFAULT_FG_COLOR
+	      && new_color != FACE_TTY_DEFAULT_BG_COLOR
+	    {
+	      if reverse == 0
+		{
+		  FRAME_FOREGROUND_PIXEL! (f) = new_color;
+		  /* Make sure the foreground of the default face for
+		     this frame is changed as well.  */
+		  update_face_from_frame_parameter (f, Qforeground_color (), val);
+		  fg_set = 1;
+		  if !(*tty).termscript.is_null ()
+		    { fprintf ((*tty).termscript, c"<FGCOLOR %lu>\n".as_ptr (), new_color); }
+		}
+	      else
+		{
+		  FRAME_BACKGROUND_PIXEL! (f) = new_color;
+		  update_face_from_frame_parameter (f, Qbackground_color (), val);
+		  bg_set = 1;
+		  if !(*tty).termscript.is_null ()
+		    { fprintf ((*tty).termscript, c"<BGCOLOR %lu>\n".as_ptr (), new_color); }
+		}
+	      redraw = 1;
+	    }
+	}
+      else if EQ (prop, Qbackground_color ())
+	{
+	  let new_color: c_ulong = load_color (f, std::ptr::null_mut::<face> (), val,
+					       if reverse != 0 { LFACE_FOREGROUND_INDEX }
+					       else { LFACE_BACKGROUND_INDEX });
+	  if new_color != FACE_TTY_DEFAULT_COLOR
+	      && new_color != FACE_TTY_DEFAULT_FG_COLOR
+	      && new_color != FACE_TTY_DEFAULT_BG_COLOR
+	    {
+	      if reverse == 0
+		{
+		  FRAME_BACKGROUND_PIXEL! (f) = new_color;
+		  /* Make sure the background of the default face for
+		     this frame is changed as well.  */
+		  bg_set = 1;
+		  update_face_from_frame_parameter (f, Qbackground_color (), val);
+		  if !(*tty).termscript.is_null ()
+		    { fprintf ((*tty).termscript, c"<BGCOLOR %lu>\n".as_ptr (), new_color); }
+		}
+	      else
+		{
+		  FRAME_FOREGROUND_PIXEL! (f) = new_color;
+		  fg_set = 1;
+		  update_face_from_frame_parameter (f, Qforeground_color (), val);
+		  if !(*tty).termscript.is_null ()
+		    { fprintf ((*tty).termscript, c"<FGCOLOR %lu>\n".as_ptr (), new_color); }
+		}
+	      redraw = 1;
+	    }
+	}
+      else if EQ (prop, Qtitle ())
+	{
+	  x_set_title (f as *mut c_void, val);
+	  if !(*tty).termscript.is_null ()
+	    { fprintf ((*tty).termscript, c"<TITLE: %s>\n".as_ptr (), SDATA (val)); }
+	}
+      else if EQ (prop, Qcursor_type ())
+	{
+	  IT_set_cursor_type (f, val);
+	  if !(*tty).termscript.is_null ()
+	    { fprintf ((*tty).termscript, c"<CTYPE: %s>\n".as_ptr (),
+		       if EQ (val, Qbar ())
+			  || EQ (val, Qhbar ())
+			  || (CONSP (val) && (EQ (XCAR (val), Qbar ())
+					      || EQ (XCAR (val), Qhbar ())))
+			 { c"bar".as_ptr () } else { c"box".as_ptr () }); }
+	}
+      else if EQ (prop, Qtty_type ())
+	{
+	  internal_terminal_init ();
+	  if !(*tty).termscript.is_null ()
+	    { fprintf ((*tty).termscript, c"<TERM_INIT done, TTY_TYPE: %.*s>\n".as_ptr (),
+		       SBYTES (val), SDATA (val)); }
+	}
+      store_frame_param (f, prop, val);
+      i -= 1;
+    }
+
+  /* If this frame has become a child frame, process its visibility and
+     a nuumber of other flags.  */
+  if is_tty_child_frame (f)
+    {
+      let w: c_int = tty_child_size_param (f, Qwidth (), alist, (*f).total_cols);
+      let h: c_int = tty_child_size_param (f, Qheight (), alist, (*f).total_lines);
+      if w != (*f).total_cols || h != (*f).total_lines
+	{ change_frame_size (f, w, h, false, false, false); }
+
+      let x: c_int = tty_child_pos_param (f, Qleft (), alist, (*f).left_pos, w);
+      let y: c_int = tty_child_pos_param (f, Qtop (), alist, (*f).top_pos, h);
+      if x != (*f).left_pos || y != (*f).top_pos
+	{
+	  (*f).left_pos = x;
+	  (*f).top_pos = y;
+	  SET_FRAME_GARBAGED! (root_frame (f));
+	}
+
+      let visible: Lisp_Object = Fassq (Qvisibility (), alist);
+      if CONSP (visible)
+	{ SET_FRAME_VISIBLE! (f, !NILP (Fcdr (visible))); }
+
+      let no_special: Lisp_Object = Fassq (Qno_special_glyphs (), alist);
+      if CONSP (no_special)
+	{ FRAME_NO_SPECIAL_GLYPHS! (f, !NILP (Fcdr (no_special)) as u32); }
+    }
+
+  /* If they specified "reverse", but not the colors, we need to swap
+     the current frame colors.  */
+  if reverse != 0
+    {
+      if fg_set == 0
+	{
+	  FRAME_FOREGROUND_PIXEL! (f) = orig_bg;
+	  update_face_from_frame_parameter (f, Qforeground_color (),
+					    tty_color_name (f, orig_bg));
+	  redraw = 1;
+	}
+      if bg_set == 0
+	{
+	  FRAME_BACKGROUND_PIXEL! (f) = orig_fg;
+	  update_face_from_frame_parameter (f, Qbackground_color (),
+					    tty_color_name (f, orig_fg));
+	  redraw = 1;
+	}
+    }
+
+  if redraw != 0
+    {
+      face_change = true;	/* forces xdisp.c to recompute basic faces */
+      if f == SELECTED_FRAME ()
+	{ redraw_frame (f); }
+    }
+}
+
+/* C 1769's `extern void init_frame_faces (struct frame *);` is C's own re-declaration of
+   `dispextern.h` 3821's prototype (the call at C 1586 and C 1867); the port does not repeat a
+   declaration the mirror carries, so the line is dropped (PORTING.md 0.1-12).  One `## Deviations`
+   entry.  */
+
+/* C 1771: `#endif` - the C 480 `#ifndef HAVE_X_WINDOWS` block ends here.  Everything below this
+   line is gated by the file alone, plus each item's own conditions.  */
+
+/* The `hook!` cast this unit's hook assignments need is `src/term.rs` 140-144's: C stores the
+   address of a function whose Rust ABI is "Rust" in an `Option<unsafe extern "C" fn …>` field, so
+   each assignment transmutes the address (the P-90 ① per-unit helper shape).  */
+#[cfg (feature = "msdos")]
+macro_rules! hook {
+  ($target:ty, $f:expr) => { unsafe {
+    let p: *const c_void = $f as *const c_void;
+    std::mem::transmute::<*const c_void, Option<$target>> (p) } };
+}
+/* C's `f->output_method = …` writes frame.h 446's four-bit field: `include/frame.rs` 1360
+   declares the reader (`output_method (f)`), and this unit adds the writer arm (the
+   `src/dispnew.rs` 7349 / `src/frame.rs` 342 `set_output_method!` shape).  C 1799/1805 are its
+   uses.  */
+#[cfg (feature = "msdos")]
+macro_rules! output_method {
+  ($f:expr) => { output_method ($f) };
+  ($f:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (FRAME_OUTPUT_METHOD_MASK << FRAME_OUTPUT_METHOD_SHIFT))
+      | ((($v) as u32) << FRAME_OUTPUT_METHOD_SHIFT) };
+}
+
+/* Do we need the internal terminal?  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn internal_terminal_init ()            // C 1776-1777
+{
+  static mut init_needed: c_int = 1;
+  let term: *mut c_char = getenv (c"TERM".as_ptr ());
+  let mut colors: *mut c_char;
+  let sf: *mut frame = SELECTED_FRAME ();
+  let mut tty: *mut tty_display_info;
+
+  /* C 1784-1787: `#ifdef HAVE_X_WINDOWS` - both arms (the `#else` arm is empty in C).  */
+  #[cfg (feature = "have_x_windows")]
+  {
+  if !inhibit_window_system
+    { return; }
+  }
+
+  /* If this is the initial terminal, we are done here.  */
+  if FRAME_INITIAL_P (sf)
+    { return; }
+
+  internal_terminal
+    = ((!noninteractive) && !term.is_null () && strcmp (term, c"internal".as_ptr ()) == 0) as c_int;
+
+  /* C 1796-1870: `#ifndef HAVE_X_WINDOWS` - both arms (the `#else` arm is empty in C).  */
+  #[cfg (not (feature = "have_x_windows"))]
+  {
+  if internal_terminal == 0 || inhibit_window_system
+    {
+      output_method! (sf, output_termcap);
+      return;
+    }
+
+  tty = FRAME_TTY! (sf);
+  kset_window_system (current_kboard, Qpc ());
+  output_method! (sf, output_msdos_raw);
+  if init_needed != 0
+    {
+      if (*tty).termscript.is_null () && !getenv (c"EMACSTEST".as_ptr ()).is_null ()
+	{ (*tty).termscript = fopen (getenv (c"EMACSTEST".as_ptr ()), c"wt".as_ptr ()); }
+      if !(*tty).termscript.is_null ()
+	{
+	  let mut now: time_t = time (std::ptr::null_mut ());
+	  let tnow: *mut tm = localtime (&raw mut now);
+	  let mut tbuf: [c_char; 100] = [0; 100];
+
+	  strftime (&raw mut tbuf[0], countof! (tbuf) - 1,
+		    c"%a %b %e %Y %H:%M:%S %Z".as_ptr (), tnow);
+	  fprintf ((*tty).termscript, c"\nEmacs session started at %s\n".as_ptr (),
+		   tbuf.as_mut_ptr ());
+	  fprintf ((*tty).termscript,   c"=====================\n\n".as_ptr ());
+	}
+
+      Vinitial_window_system = Qpc ();
+      (*(*tty).terminal).r#type = output_msdos_raw;
+
+      /* If Emacs was dumped on DOS/V machine, forget the stale VRAM
+	 address.  */
+      screen_old_address = 0;
+
+      /* Forget the stale screen colors as well.  */
+      /* C's `initial_screen_colors[0] = initial_screen_colors[1] = -1;` is a chained
+	 assignment; the port writes the two stores (the `haikuterm.rs` 1255 shape).  */
+      initial_screen_colors[1] = -1;
+      initial_screen_colors[0] = -1;
+
+      FRAME_BACKGROUND_PIXEL! (SELECTED_FRAME ()) = 7; /* White */
+      FRAME_FOREGROUND_PIXEL! (SELECTED_FRAME ()) = 0; /* Black */
+      bright_bg ();
+      colors = getenv (c"EMACSCOLORS".as_ptr ());
+      if !colors.is_null () && strlen (colors) >= 2
+	{
+	  /* The colors use 4 bits each (we enable bright background).  */
+	  if isdigit (*colors.offset (0) as c_int) != 0
+	    { *colors.offset (0) -= b'0' as c_char; }
+	  else if isxdigit (*colors.offset (0) as c_int) != 0
+	    { *colors.offset (0) = (*colors.offset (0) as c_int
+				   - ((if isupper (*colors.offset (0) as c_int) != 0
+				       { b'A' } else { b'a' }) as c_int - 10)) as c_char; }
+	  if (*colors.offset (0) as c_int) >= 0 && (*colors.offset (0) as c_int) < 16
+	    { FRAME_FOREGROUND_PIXEL! (SELECTED_FRAME ()) = *colors.offset (0) as c_ulong; }
+	  if isdigit (*colors.offset (1) as c_int) != 0
+	    { *colors.offset (1) -= b'0' as c_char; }
+	  else if isxdigit (*colors.offset (1) as c_int) != 0
+	    { *colors.offset (1) = (*colors.offset (1) as c_int
+				   - ((if isupper (*colors.offset (1) as c_int) != 0
+				       { b'A' } else { b'a' }) as c_int - 10)) as c_char; }
+	  if (*colors.offset (1) as c_int) >= 0 && (*colors.offset (1) as c_int) < 16
+	    { FRAME_BACKGROUND_PIXEL! (SELECTED_FRAME ()) = *colors.offset (1) as c_ulong; }
+	}
+
+      reset_mouse_highlight (&raw mut the_only_display_info.mouse_highlight);
+
+      if have_mouse != 0	/* detected in dos_ttraw, which see */
+	{
+	  have_mouse = 1;	/* enable mouse */
+	  mouse_visible = 0;
+	  mouse_setup_buttons (mouse_button_count);
+	  (*(*tty).terminal).mouse_position_hook
+	    = hook! (unsafe extern "C" fn (*mut *mut c_void, c_int, *mut Lisp_Object,
+					   *mut scroll_bar_part, *mut Lisp_Object,
+					   *mut Lisp_Object, *mut Time), mouse_get_pos);
+	  mouse_init ();
+	}
+
+      if !(*tty).termscript.is_null () && screen_size != 0
+	{ fprintf ((*tty).termscript, c"<SCREEN SAVED (dimensions=%dx%d)>\n".as_ptr (),
+		   screen_size_X, screen_size_Y); }
+
+      init_frame_faces (sf);
+      init_needed = 0;
+    }
+  }
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn initialize_msdos_display (term: *mut terminal)   // C 1873-1874
+{
+  (*term).rif = std::ptr::null_mut ();	/* we don't support window-based display */
+  /* C's chained assignment here is `cursor_to_hook` = (`raw_cursor_to_hook` = IT_cursor_to);
+     the port writes the two stores (the `haikuterm.rs` 1255 shape).  */
+  (*(term)).raw_cursor_to_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int), IT_cursor_to);
+  (*(term)).cursor_to_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int), IT_cursor_to);
+  (*term).clear_to_end_hook = hook! (unsafe extern "C" fn (*mut c_void), IT_clear_to_end);
+  (*term).clear_frame_hook = hook! (unsafe extern "C" fn (*mut c_void), IT_clear_screen);
+  (*term).clear_end_of_line_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), IT_clear_end_of_line);
+  (*term).ins_del_lines_hook = None;
+  (*term).insert_glyphs_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut c_void, c_int), IT_insert_glyphs);
+  (*term).write_glyphs_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut c_void, c_int), IT_write_glyphs);
+  (*term).delete_glyphs_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), IT_delete_glyphs);
+  (*term).ring_bell_hook = hook! (unsafe extern "C" fn (*mut c_void), IT_ring_bell);
+  (*term).reset_terminal_modes_hook
+    = hook! (unsafe extern "C" fn (*mut terminal), IT_reset_terminal_modes);
+  (*term).set_terminal_modes_hook
+    = hook! (unsafe extern "C" fn (*mut terminal), IT_set_terminal_modes);
+  (*term).set_terminal_window_hook = None;
+  (*term).update_begin_hook = hook! (unsafe extern "C" fn (*mut c_void), IT_update_begin);
+  (*term).update_end_hook = hook! (unsafe extern "C" fn (*mut c_void), IT_update_end);
+  (*term).frame_up_to_date_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), IT_frame_up_to_date);
+  (*term).mouse_position_hook = None; /* set later by dos_ttraw */
+  (*term).menu_show_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int, Lisp_Object,
+				   *mut *const c_char) -> Lisp_Object, x_menu_show);
+  (*term).frame_rehighlight_hook = None;
+  (*term).frame_raise_lower_hook = None;
+  (*term).set_vertical_scroll_bar_hook = None;
+  (*term).condemn_scroll_bars_hook = None;
+  (*term).redeem_scroll_bar_hook = None;
+  (*term).judge_scroll_bars_hook = None;
+  (*term).read_socket_hook
+    = hook! (unsafe extern "C" fn (*mut terminal, *mut input_event) -> c_int, tty_read_avail_input);
+                                                    /* from keyboard.c */
+  (*term).defined_color_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *mut Emacs_Color, bool, bool)
+	     -> bool, tty_defined_color);           /* from xfaces.c */
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn dos_get_saved_screen (screen: *mut *mut c_char, rows: *mut c_int,
+				    cols: *mut c_int) -> c_int   // C 1904-1905
+{
+  /* C 1907-1914: `#ifndef HAVE_X_WINDOWS` / `#else` / `#endif` - both arms.  */
+  #[cfg (not (feature = "have_x_windows"))]
+  {
+  *screen = startup_screen_buffer as *mut c_char;
+  *cols = startup_screen_size_X;
+  *rows = startup_screen_size_Y;
+  return (*screen != std::ptr::null_mut ()) as c_int;
+  }
+  #[cfg (feature = "have_x_windows")]
+  {
+  return 0;
+  }
+}
+
+/* C 1916-1927: the keyboard-control banner.  C 1917 is a form feed (the reference's page
+   separator); the coverage table's blank-line rule leaves it out and the port carries no line
+   for it (one `## Deviations` entry).  */
+
+/* ----------------------- Keyboard control ----------------------
+ *
+ * Keymaps reflect the following keyboard layout:
+ *
+ *    0  1  2  3  4  5  6  7  8  9  10 11 12  BS
+ *    TAB 15 16 17 18 19 20 21 22 23 24 25 26 (41)
+ *    CLOK 30 31 32 33 34 35 36 37 38 39 40 (41) RET
+ *    SH () 45 46 47 48 49 50 51 52 53 54  SHIFT
+ *                    SPACE
+ */
+
+/* C 1929-1940: the ten scan-code class bits (`#define`s in C, so the port carries them as
+   `pub const` of C's own type; the `unsigned short` tables below cast each combination).  */
+/// C: #define Ignore	0x0000
+#[cfg (feature = "msdos")]
+pub const Ignore: c_int = 0x0000;
+/// C: #define Normal	0x0000	/* normal key - alt changes scan-code */
+#[cfg (feature = "msdos")]
+pub const Normal: c_int = 0x0000;	/* normal key - alt changes scan-code */
+/// C: #define FctKey	0x1000	/* func key if c == 0, else c */
+#[cfg (feature = "msdos")]
+pub const FctKey: c_int = 0x1000;	/* func key if c == 0, else c */
+/// C: #define Special	0x2000	/* func key even if c != 0 */
+#[cfg (feature = "msdos")]
+pub const Special: c_int = 0x2000;	/* func key even if c != 0 */
+/// C: #define ModFct	0x3000	/* special if mod-keys, else 'c' */
+#[cfg (feature = "msdos")]
+pub const ModFct: c_int = 0x3000;	/* special if mod-keys, else 'c' */
+/// C: #define Map	0x4000	/* alt scan-code, map to unshift/shift key */
+#[cfg (feature = "msdos")]
+pub const Map: c_int = 0x4000;	/* alt scan-code, map to unshift/shift key */
+/// C: #define KeyPad	0x5000	/* map to insert/kp-0 depending on c == 0xe0 */
+#[cfg (feature = "msdos")]
+pub const KeyPad: c_int = 0x5000;	/* map to insert/kp-0 depending on c == 0xe0 */
+/// C: #define Grey	0x6000	/* Grey keypad key */
+#[cfg (feature = "msdos")]
+pub const Grey: c_int = 0x6000;	/* Grey keypad key */
+/// C: #define Alt	0x0100	/* alt scan-code */
+#[cfg (feature = "msdos")]
+pub const Alt: c_int = 0x0100;	/* alt scan-code */
+/// C: #define Ctrl	0x0200	/* ctrl scan-code */
+#[cfg (feature = "msdos")]
+pub const Ctrl: c_int = 0x0200;	/* ctrl scan-code */
+/// C: #define Shift	0x0400	/* shift scan-code */
+#[cfg (feature = "msdos")]
+pub const Shift: c_int = 0x0400;	/* shift scan-code */
+
+/// C 1942: `static int extended_kbd; /* 101 (102) keyboard present. */`
+#[cfg (feature = "msdos")]
+static mut extended_kbd: c_int = 0;
+
+/// C 1944-1948: `struct kbd_translate { unsigned char sc; unsigned char ch; unsigned short code; };`
+#[cfg (feature = "msdos")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct kbd_translate {
+  pub sc: c_uchar,
+  pub ch: c_uchar,
+  pub code: c_ushort,
+}
+
+/* C 1950-1956: `struct dos_keyboard_map`.  C spells the three string slots `char *`; the port
+   writes `*const c_char` for a slot that only ever holds a literal (the `include/termchar.rs`
+   178 `TS_orig_pair` reading) - one `## Deviations` entry.  */
+#[cfg (feature = "msdos")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct dos_keyboard_map
+{
+  pub unshifted: *const c_char,
+  pub shifted: *const c_char,
+  pub alt_gr: *const c_char,
+  pub translate_table: *mut kbd_translate,
+}
+
+/* C 1959-1967: `us_keyboard`.  */
+#[cfg (feature = "msdos")]
+static mut us_keyboard: dos_keyboard_map = dos_keyboard_map {
+/* 0         1         2         3         4         5      */
+/* 01234567890123456789012345678901234567890 123 45678901234 */
+  unshifted: c"`1234567890-=  qwertyuiop[]   asdfghjkl;'\\  \\zxcvbnm,./  ".as_ptr (),
+/* 0123456789012345678901234567890123456789 012345678901234 */
+  shifted: c"~!@#$%^&*()_+  QWERTYUIOP{}   ASDFGHJKL:\"|  |ZXCVBNM<>?  ".as_ptr (),
+  alt_gr: std::ptr::null (),			/* no Alt-Gr key */
+  translate_table: std::ptr::null_mut ()	/* no translate table */
+};
+
+/* C 1969-1978: `fr_keyboard` - the file's non-ASCII text (DOS codepage 850; the file note at
+   C 23-28 says why).  The port spells each byte as `\xNN`, so the port's own text stays ASCII
+   and the bytes are C's exactly.  */
+#[cfg (feature = "msdos")]
+static mut fr_keyboard: dos_keyboard_map = dos_keyboard_map {
+/* 0         1         2         3         4         5      */
+/* 012 3456789012345678901234567890123456789012345678901234 */
+  unshifted: c"\xfd&\x82\"'(-\x8a_\x80\x85)=  azertyuiop^$   qsdfghjklm\x97*  <wxcvbn,;:!  ".as_ptr (),
+/* 0123456789012345678901234567890123456789012345678901234 */
+  shifted: c" 1234567890\xf8+  AZERTYUIOP\xf9\x9c   QSDFGHJKLM%\xe6  >WXCVBN?./\xf5  ".as_ptr (),
+/* 01234567 89012345678901234567890123456789012345678901234 */
+  alt_gr: c"  ~#{[|`\\^@]}             \xcf                              ".as_ptr (),
+  translate_table: std::ptr::null_mut ()	/* no translate table */
+};
+
+/*
+ * Italian keyboard support, country code 39.
+ * '<' 56:3c*0000
+ * '>' 56:3e*0000
+ * added also {,},` as, respectively, AltGr-8, AltGr-9, AltGr-'
+ * Donated by Stefano Brozzi <brozzis@mag00.cedi.unipr.it>
+ */
+
+#[cfg (feature = "msdos")]
+static mut it_kbd_translate_table: [kbd_translate; 3] = [
+  kbd_translate { sc: 0x56, ch: 0x3c, code: (Normal | 13) as c_ushort },
+  kbd_translate { sc: 0x56, ch: 0x3e, code: (Normal | 27) as c_ushort },
+  kbd_translate { sc: 0, ch: 0, code: 0 }
+];
+#[cfg (feature = "msdos")]
+static mut it_keyboard: dos_keyboard_map = dos_keyboard_map {
+/* 0          1         2         3         4         5     */
+/* 0 123456789012345678901234567890123456789012345678901234 */
+  unshifted: c"\\1234567890'\x8d< qwertyuiop\x8a+>  asdfghjkl\x95\x85\x97  <zxcvbnm,.-  ".as_ptr (),
+/* 01 23456789012345678901234567890123456789012345678901234 */
+  shifted: c"|!\"\x9c$%&/()=?^> QWERTYUIOP\x82*   ASDFGHJKL\x87\xf8\xf5  >ZXCVBNM;:_  ".as_ptr (),
+/* 0123456789012345678901234567890123456789012345678901234 */
+  alt_gr: c"        {}~`             []             @#               ".as_ptr (),
+  translate_table: unsafe { &raw mut it_kbd_translate_table[0] }
+};
+
+#[cfg (feature = "msdos")]
+static mut dk_keyboard: dos_keyboard_map = dos_keyboard_map {
+/* 0         1         2         3         4         5      */
+/* 0123456789012345678901234567890123456789012345678901234 */
+  unshifted: c"\xab1234567890+|  qwertyuiop\x86~   asdfghjkl\x91\x9b'  <zxcvbnm,.-  ".as_ptr (),
+/* 01 23456789012345678901234567890123456789012345678901234 */
+  shifted: c"\xf5!\"#$%&/()=?`  QWERTYUIOP\x8f^   ASDFGHJKL\x92\x9d*  >ZXCVBNM;:_  ".as_ptr (),
+/* 0123456789012345678901234567890123456789012345678901234 */
+  alt_gr: c"  @\x9c$  {[]} |                                             ".as_ptr (),
+  translate_table: std::ptr::null_mut ()	/* no translate table */
+};
+
+#[cfg (feature = "msdos")]
+static mut jp_kbd_translate_table: [kbd_translate; 7] = [
+  kbd_translate { sc: 0x73, ch: 0x5c, code: (Normal | 0) as c_ushort },
+  kbd_translate { sc: 0x73, ch: 0x5f, code: (Normal | 0) as c_ushort },
+  kbd_translate { sc: 0x73, ch: 0x1c, code: (Map | 0) as c_ushort },
+  kbd_translate { sc: 0x7d, ch: 0x5c, code: (Normal | 13) as c_ushort },
+  kbd_translate { sc: 0x7d, ch: 0x7c, code: (Normal | 13) as c_ushort },
+  kbd_translate { sc: 0x7d, ch: 0x1c, code: (Map | 13) as c_ushort },
+  kbd_translate { sc: 0, ch: 0, code: 0 }
+];
+#[cfg (feature = "msdos")]
+static mut jp_keyboard: dos_keyboard_map = dos_keyboard_map {
+/*  0         1          2         3         4         5     */
+/*  0123456789012 345678901234567890123456789012345678901234 */
+  unshifted: c"\\1234567890-^\\ qwertyuiop@[   asdfghjkl;:]   zxcvbnm,./  ".as_ptr (),
+/*  01 23456789012345678901234567890123456789012345678901234 */
+  shifted: c"_!\"#$%&'()~=~| QWERTYUIOP`{   ASDFGHJKL+*}   ZXCVBNM<>?  ".as_ptr (),
+  alt_gr: std::ptr::null (),			/* no Alt-Gr key */
+  translate_table: unsafe { &raw mut jp_kbd_translate_table[0] }
+};
+
+/* C 2034-2045: the layout list.  C's `struct keyboard_layout_list` is a tag and the array of
+   the same name; Rust keeps both names (they live in different namespaces).  */
+#[cfg (feature = "msdos")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct keyboard_layout_list
+{
+  pub country_code: c_int,
+  pub keyboard_map: *mut dos_keyboard_map,
+}
+#[cfg (feature = "msdos")]
+static mut keyboard_layout_list: [keyboard_layout_list; 5] =
+[
+  keyboard_layout_list { country_code: 1, keyboard_map: &raw mut us_keyboard },
+  keyboard_layout_list { country_code: 33, keyboard_map: &raw mut fr_keyboard },
+  keyboard_layout_list { country_code: 39, keyboard_map: &raw mut it_keyboard },
+  keyboard_layout_list { country_code: 45, keyboard_map: &raw mut dk_keyboard },
+  keyboard_layout_list { country_code: 81, keyboard_map: &raw mut jp_keyboard }
+];
+
+/// C 2047: `static struct dos_keyboard_map *keyboard;`
+#[cfg (feature = "msdos")]
+static mut keyboard: *mut dos_keyboard_map = std::ptr::null_mut ();
+/// C 2048: `static int keyboard_map_all;`
+#[cfg (feature = "msdos")]
+static mut keyboard_map_all: c_int = 0;
+/// C 2049: `static int international_keyboard;`
+#[cfg (feature = "msdos")]
+static mut international_keyboard: c_int = 0;
+
+
+/* C 2051-2080: `dos_set_keyboard`.  C's `_go32_dpmi_registers` block is declared in the C 57
+   `<dpmi.h>` section above (P-88 ①).  */
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn dos_set_keyboard (code: c_int, always: c_int) -> c_int   // C 2051-2052
+{
+  let mut i: c_int;
+  let mut regs: _go32_dpmi_registers = std::mem::zeroed ();
+
+  /* See if Keyb.Com is installed (for international keyboard support).
+     Note: calling Int 2Fh via int86 wedges the DOS box on some versions
+     of Windows 9X!  So don't do that!  */
+  regs.x.ax = 0xad80;
+  /* C's `regs.x.ss = regs.x.sp = regs.x.flags = 0;` is a chained assignment; the port writes
+     the three stores, innermost first (the `haikuterm.rs` 1255 shape).  */
+  regs.x.flags = 0;
+  regs.x.sp = 0;
+  regs.x.ss = 0;
+  _go32_dpmi_simulate_int (0x2f, &raw mut regs);
+  if regs.h.al == 0xff
+    { international_keyboard = 1; }
+
+  /* Initialize to US settings, for countries that don't have their own.  */
+  keyboard = keyboard_layout_list[0].keyboard_map;
+  keyboard_map_all = always;
+  dos_keyboard_layout = 1;
+
+  i = 0;
+  while i < countof! (keyboard_layout_list) as c_int	/* C's int-vs-size_t comparison */
+    {
+    if code == keyboard_layout_list[i as usize].country_code
+      {
+	keyboard = keyboard_layout_list[i as usize].keyboard_map;
+	keyboard_map_all = always;
+	dos_keyboard_layout = code as EMACS_INT;
+	return 1;
+      }
+    i += 1;
+    }
+  return 0;
+}
+
+/* C 2082-2100: `keypad_translate_map`.  C's struct type is anonymous; the port names its
+   element type (PORTING.md 1.3, the `src/charset.rs` 386 `charset_map_entry` shape) - one
+   `## Deviations` entry.  */
+#[cfg (feature = "msdos")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct keypad_translate_map_entry
+{
+	pub char_code: c_uchar,	/* normal code	*/
+	pub meta_code: c_uchar,	/* M- code	*/
+	pub keypad_code: c_uchar,	/* keypad code	*/
+	pub editkey_code: c_uchar,	/* edit key	*/
+}
+#[cfg (feature = "msdos")]
+static mut keypad_translate_map: [keypad_translate_map_entry; 11] = [
+  keypad_translate_map_entry { char_code: b'0', meta_code: b'0', keypad_code: 0xb0, /* kp-0 */	editkey_code: 0x63 /* insert */ },
+  keypad_translate_map_entry { char_code: b'1', meta_code: b'1', keypad_code: 0xb1, /* kp-1 */	editkey_code: 0x57 /* end */    },
+  keypad_translate_map_entry { char_code: b'2', meta_code: b'2', keypad_code: 0xb2, /* kp-2 */	editkey_code: 0x54 /* down */   },
+  keypad_translate_map_entry { char_code: b'3', meta_code: b'3', keypad_code: 0xb3, /* kp-3 */	editkey_code: 0x56 /* next */   },
+  keypad_translate_map_entry { char_code: b'4', meta_code: b'4', keypad_code: 0xb4, /* kp-4 */	editkey_code: 0x51 /* left */   },
+  keypad_translate_map_entry { char_code: b'5', meta_code: b'5', keypad_code: 0xb5, /* kp-5 */	editkey_code: 0xb5 /* kp-5 */   },
+  keypad_translate_map_entry { char_code: b'6', meta_code: b'6', keypad_code: 0xb6, /* kp-6 */	editkey_code: 0x53 /* right */  },
+  keypad_translate_map_entry { char_code: b'7', meta_code: b'7', keypad_code: 0xb7, /* kp-7 */	editkey_code: 0x50 /* home */   },
+  keypad_translate_map_entry { char_code: b'8', meta_code: b'8', keypad_code: 0xb8, /* kp-8 */	editkey_code: 0x52 /* up */     },
+  keypad_translate_map_entry { char_code: b'9', meta_code: b'9', keypad_code: 0xb9, /* kp-9 */	editkey_code: 0x55 /* prior */  },
+  keypad_translate_map_entry { char_code: b'.', meta_code: b'-', keypad_code: 0xae, /* kp-decimal */	editkey_code: 0xff  /* delete */}
+];
+
+/* C 2102-2112: `grey_key_translate_map` (the same anonymous-struct shape; the element type is
+   named here).  */
+#[cfg (feature = "msdos")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct grey_key_translate_map_entry
+{
+	pub char_code: c_uchar,	/* normal code	*/
+	pub keypad_code: c_uchar,	/* keypad code	*/
+}
+#[cfg (feature = "msdos")]
+static mut grey_key_translate_map: [grey_key_translate_map_entry; 5] = [
+  grey_key_translate_map_entry { char_code: b'/',  keypad_code: 0xaf /* kp-decimal */  },
+  grey_key_translate_map_entry { char_code: b'*',  keypad_code: 0xaa /* kp-multiply */ },
+  grey_key_translate_map_entry { char_code: b'-',  keypad_code: 0xad /* kp-subtract */ },
+  grey_key_translate_map_entry { char_code: b'+',  keypad_code: 0xab /* kp-add */      },
+  grey_key_translate_map_entry { char_code: b'\r', keypad_code: 0x8d  /* kp-enter */   }
+];
+
+/* C 2114-2305: `ibmpc_translate_map` - the file's one big table (167 entries, scan codes 00
+   through a6).  C's element type is `unsigned short`, so every combination's `int` value
+   needs C's implicit conversion spelled (`as c_ushort`) - one `## Deviations` entry.  */
+#[cfg (feature = "msdos")]
+static mut ibmpc_translate_map: [c_ushort; 167] =
+[
+  /* --------------- 00 to 0f --------------- */
+  (Normal | 0xff) as c_ushort,	/* Ctrl Break + Alt-NNN */
+  (Alt | ModFct | 0x1b) as c_ushort,	/* Escape */
+  (Normal | 1) as c_ushort,	/* '1' */
+  (Normal | 2) as c_ushort,	/* '2' */
+  (Normal | 3) as c_ushort,	/* '3' */
+  (Normal | 4) as c_ushort,	/* '4' */
+  (Normal | 5) as c_ushort,	/* '5' */
+  (Normal | 6) as c_ushort,	/* '6' */
+  (Normal | 7) as c_ushort,	/* '7' */
+  (Normal | 8) as c_ushort,	/* '8' */
+  (Normal | 9) as c_ushort,	/* '9' */
+  (Normal | 10) as c_ushort,	/* '0' */
+  (Normal | 11) as c_ushort,	/* '-' */
+  (Normal | 12) as c_ushort,	/* '=' */
+  (Special | 0x08) as c_ushort,	/* Backspace */
+  (ModFct | 0x74) as c_ushort,	/* Tab/Backtab */
+
+  /* --------------- 10 to 1f --------------- */
+  (Map | 15) as c_ushort,	/* 'q' */
+  (Map | 16) as c_ushort,	/* 'w' */
+  (Map | 17) as c_ushort,	/* 'e' */
+  (Map | 18) as c_ushort,	/* 'r' */
+  (Map | 19) as c_ushort,	/* 't' */
+  (Map | 20) as c_ushort,	/* 'y' */
+  (Map | 21) as c_ushort,	/* 'u' */
+  (Map | 22) as c_ushort,	/* 'i' */
+  (Map | 23) as c_ushort,	/* 'o' */
+  (Map | 24) as c_ushort,	/* 'p' */
+  (Map | 25) as c_ushort,	/* '[' */
+  (Map | 26) as c_ushort,	/* ']' */
+  (ModFct | 0x0d) as c_ushort,	/* Return */
+  (Ignore) as c_ushort,	/* Ctrl */
+  (Map | 30) as c_ushort,	/* 'a' */
+  (Map | 31) as c_ushort,	/* 's' */
+
+  /* --------------- 20 to 2f --------------- */
+  (Map | 32) as c_ushort,	/* 'd' */
+  (Map | 33) as c_ushort,	/* 'f' */
+  (Map | 34) as c_ushort,	/* 'g' */
+  (Map | 35) as c_ushort,	/* 'h' */
+  (Map | 36) as c_ushort,	/* 'j' */
+  (Map | 37) as c_ushort,	/* 'k' */
+  (Map | 38) as c_ushort,	/* 'l' */
+  (Map | 39) as c_ushort,	/* ';' */
+  (Map | 40) as c_ushort,	/* '\'' */
+  (Map |  0) as c_ushort,	/* '`' */
+  (Ignore) as c_ushort,	/* Left shift */
+  (Map | 41) as c_ushort,	/* '\\' */
+  (Map | 45) as c_ushort,	/* 'z' */
+  (Map | 46) as c_ushort,	/* 'x' */
+  (Map | 47) as c_ushort,	/* 'c' */
+  (Map | 48) as c_ushort,	/* 'v' */
+
+  /* --------------- 30 to 3f --------------- */
+  (Map | 49) as c_ushort,	/* 'b' */
+  (Map | 50) as c_ushort,	/* 'n' */
+  (Map | 51) as c_ushort,	/* 'm' */
+  (Map | 52) as c_ushort,	/* ',' */
+  (Map | 53) as c_ushort,	/* '.' */
+  (Map | 54) as c_ushort,	/* '/' */
+  (Ignore) as c_ushort,	/* Right shift */
+  (Grey | 1) as c_ushort,	/* Grey * */
+  (Ignore) as c_ushort,	/* Alt */
+  (Normal | 55) as c_ushort,	/* ' ' */
+  (Ignore) as c_ushort,	/* Caps Lock */
+  (FctKey | 0xbe) as c_ushort,	/* F1 */
+  (FctKey | 0xbf) as c_ushort,	/* F2 */
+  (FctKey | 0xc0) as c_ushort,	/* F3 */
+  (FctKey | 0xc1) as c_ushort,	/* F4 */
+  (FctKey | 0xc2) as c_ushort,	/* F5 */
+
+  /* --------------- 40 to 4f --------------- */
+  (FctKey | 0xc3) as c_ushort,	/* F6 */
+  (FctKey | 0xc4) as c_ushort,	/* F7 */
+  (FctKey | 0xc5) as c_ushort,	/* F8 */
+  (FctKey | 0xc6) as c_ushort,	/* F9 */
+  (FctKey | 0xc7) as c_ushort,	/* F10 */
+  (Ignore) as c_ushort,	/* Num Lock */
+  (Ignore) as c_ushort,	/* Scroll Lock */
+  (KeyPad | 7) as c_ushort,	/* Home */
+  (KeyPad | 8) as c_ushort,	/* Up */
+  (KeyPad | 9) as c_ushort,	/* Page Up */
+  (Grey | 2) as c_ushort,	/* Grey - */
+  (KeyPad | 4) as c_ushort,	/* Left */
+  (KeyPad | 5) as c_ushort,	/* Keypad 5 */
+  (KeyPad | 6) as c_ushort,	/* Right */
+  (Grey | 3) as c_ushort,	/* Grey + */
+  (KeyPad | 1) as c_ushort,	/* End */
+
+  /* --------------- 50 to 5f --------------- */
+  (KeyPad | 2) as c_ushort,	/* Down */
+  (KeyPad | 3) as c_ushort,	/* Page Down */
+  (KeyPad | 0) as c_ushort,	/* Insert */
+  (KeyPad | 10) as c_ushort,	/* Delete */
+  (Shift | FctKey | 0xbe) as c_ushort,	/* (Shift) F1 */
+  (Shift | FctKey | 0xbf) as c_ushort,	/* (Shift) F2 */
+  (Shift | FctKey | 0xc0) as c_ushort,	/* (Shift) F3 */
+  (Shift | FctKey | 0xc1) as c_ushort,	/* (Shift) F4 */
+  (Shift | FctKey | 0xc2) as c_ushort,	/* (Shift) F5 */
+  (Shift | FctKey | 0xc3) as c_ushort,	/* (Shift) F6 */
+  (Shift | FctKey | 0xc4) as c_ushort,	/* (Shift) F7 */
+  (Shift | FctKey | 0xc5) as c_ushort,	/* (Shift) F8 */
+  (Shift | FctKey | 0xc6) as c_ushort,	/* (Shift) F9 */
+  (Shift | FctKey | 0xc7) as c_ushort,	/* (Shift) F10 */
+  (Ctrl | FctKey | 0xbe) as c_ushort,	/* (Ctrl) F1 */
+  (Ctrl | FctKey | 0xbf) as c_ushort,	/* (Ctrl) F2 */
+
+  /* --------------- 60 to 6f --------------- */
+  (Ctrl | FctKey | 0xc0) as c_ushort,	/* (Ctrl) F3 */
+  (Ctrl | FctKey | 0xc1) as c_ushort,	/* (Ctrl) F4 */
+  (Ctrl | FctKey | 0xc2) as c_ushort,	/* (Ctrl) F5 */
+  (Ctrl | FctKey | 0xc3) as c_ushort,	/* (Ctrl) F6 */
+  (Ctrl | FctKey | 0xc4) as c_ushort,	/* (Ctrl) F7 */
+  (Ctrl | FctKey | 0xc5) as c_ushort,	/* (Ctrl) F8 */
+  (Ctrl | FctKey | 0xc6) as c_ushort,	/* (Ctrl) F9 */
+  (Ctrl | FctKey | 0xc7) as c_ushort,	/* (Ctrl) F10 */
+  (Alt | FctKey | 0xbe) as c_ushort,	/* (Alt) F1 */
+  (Alt | FctKey | 0xbf) as c_ushort,	/* (Alt) F2 */
+  (Alt | FctKey | 0xc0) as c_ushort,	/* (Alt) F3 */
+  (Alt | FctKey | 0xc1) as c_ushort,	/* (Alt) F4 */
+  (Alt | FctKey | 0xc2) as c_ushort,	/* (Alt) F5 */
+  (Alt | FctKey | 0xc3) as c_ushort,	/* (Alt) F6 */
+  (Alt | FctKey | 0xc4) as c_ushort,	/* (Alt) F7 */
+  (Alt | FctKey | 0xc5) as c_ushort,	/* (Alt) F8 */
+
+  /* --------------- 70 to 7f --------------- */
+  (Alt | FctKey | 0xc6) as c_ushort,	/* (Alt) F9 */
+  (Alt | FctKey | 0xc7) as c_ushort,	/* (Alt) F10 */
+  (Ctrl | FctKey | 0x6d) as c_ushort,	/* (Ctrl) Sys Rq */
+  (Ctrl | KeyPad | 4) as c_ushort,	/* (Ctrl) Left */
+  (Ctrl | KeyPad | 6) as c_ushort,	/* (Ctrl) Right */
+  (Ctrl | KeyPad | 1) as c_ushort,	/* (Ctrl) End */
+  (Ctrl | KeyPad | 3) as c_ushort,	/* (Ctrl) Page Down */
+  (Ctrl | KeyPad | 7) as c_ushort,	/* (Ctrl) Home */
+  (Alt | Map | 1) as c_ushort,	/* '1' */
+  (Alt | Map | 2) as c_ushort,	/* '2' */
+  (Alt | Map | 3) as c_ushort,	/* '3' */
+  (Alt | Map | 4) as c_ushort,	/* '4' */
+  (Alt | Map | 5) as c_ushort,	/* '5' */
+  (Alt | Map | 6) as c_ushort,	/* '6' */
+  (Alt | Map | 7) as c_ushort,	/* '7' */
+  (Alt | Map | 8) as c_ushort,	/* '8' */
+
+  /* --------------- 80 to 8f --------------- */
+  (Alt | Map | 9) as c_ushort,	/* '9' */
+  (Alt | Map | 10) as c_ushort,	/* '0' */
+  (Alt | Map | 11) as c_ushort,	/* '-' */
+  (Alt | Map | 12) as c_ushort,	/* '=' */
+  (Ctrl | KeyPad | 9) as c_ushort,	/* (Ctrl) Page Up */
+  (FctKey | 0xc8) as c_ushort,	/* F11 */
+  (FctKey | 0xc9) as c_ushort,	/* F12 */
+  (Shift | FctKey | 0xc8) as c_ushort,	/* (Shift) F11 */
+  (Shift | FctKey | 0xc9) as c_ushort,	/* (Shift) F12 */
+  (Ctrl | FctKey | 0xc8) as c_ushort,	/* (Ctrl) F11 */
+  (Ctrl | FctKey | 0xc9) as c_ushort,	/* (Ctrl) F12 */
+  (Alt | FctKey | 0xc8) as c_ushort,	/* (Alt) F11 */
+  (Alt | FctKey | 0xc9) as c_ushort,	/* (Alt) F12 */
+  (Ctrl | KeyPad | 8) as c_ushort,	/* (Ctrl) Up */
+  (Ctrl | Grey | 2) as c_ushort,	/* (Ctrl) Grey - */
+  (Ctrl | KeyPad | 5) as c_ushort,	/* (Ctrl) Keypad 5 */
+
+  /* --------------- 90 to 9f --------------- */
+  (Ctrl | Grey | 3) as c_ushort,	/* (Ctrl) Grey + */
+  (Ctrl | KeyPad | 2) as c_ushort,	/* (Ctrl) Down */
+  (Ctrl | KeyPad | 0) as c_ushort,	/* (Ctrl) Insert */
+  (Ctrl | KeyPad | 10) as c_ushort,	/* (Ctrl) Delete */
+  (Ctrl | FctKey | 0x09) as c_ushort,	/* (Ctrl) Tab */
+  (Ctrl | Grey | 0) as c_ushort,	/* (Ctrl) Grey / */
+  (Ctrl | Grey | 1) as c_ushort,	/* (Ctrl) Grey * */
+  (Alt | FctKey | 0x50) as c_ushort,	/* (Alt) Home */
+  (Alt | FctKey | 0x52) as c_ushort,	/* (Alt) Up */
+  (Alt | FctKey | 0x55) as c_ushort,	/* (Alt) Page Up */
+  (Ignore) as c_ushort,	/* NO KEY */
+  (Alt | FctKey | 0x51) as c_ushort,	/* (Alt) Left */
+  (Ignore) as c_ushort,	/* NO KEY */
+  (Alt | FctKey | 0x53) as c_ushort,	/* (Alt) Right */
+  (Ignore) as c_ushort,	/* NO KEY */
+  (Alt | FctKey | 0x57) as c_ushort,	/* (Alt) End */
+
+  /* --------------- a0 to af --------------- */
+  (Alt | KeyPad | 2) as c_ushort,	/* (Alt) Down */
+  (Alt | KeyPad | 3) as c_ushort,	/* (Alt) Page Down */
+  (Alt | KeyPad | 0) as c_ushort,	/* (Alt) Insert */
+  (Alt | KeyPad | 10) as c_ushort,	/* (Alt) Delete */
+  (Alt | Grey | 0) as c_ushort,	/* (Alt) Grey / */
+  (Alt | FctKey | 0x09) as c_ushort,	/* (Alt) Tab */
+  (Alt | Grey | 4) as c_ushort,	/* (Alt) Keypad Enter */
+];
+
+/* C 2307-2316: the BIOS modifier bit positions.  */
+#[cfg (feature = "msdos")]
+pub const SHIFT_P: c_int = 0x0003;	/* two bits! */
+#[cfg (feature = "msdos")]
+pub const CTRL_P: c_int = 0x0004;
+#[cfg (feature = "msdos")]
+pub const ALT_P: c_int = 0x0008;
+#[cfg (feature = "msdos")]
+pub const SCRLOCK_P: c_int = 0x0010;
+#[cfg (feature = "msdos")]
+pub const NUMLOCK_P: c_int = 0x0020;
+#[cfg (feature = "msdos")]
+pub const CAPSLOCK_P: c_int = 0x0040;
+#[cfg (feature = "msdos")]
+pub const ALT_GR_P: c_int = 0x0800;
+#[cfg (feature = "msdos")]
+pub const SUPER_P: c_int = 0x4000;	/* pseudo */
+#[cfg (feature = "msdos")]
+pub const HYPER_P: c_int = 0x8000;	/* pseudo */
+
+
+/* These bit-positions corresponds to values returned by BIOS */
+#[cfg (feature = "msdos")]
+unsafe fn dos_get_modifiers (keymask: *mut c_int) -> c_int   // C 2318-2319
+{
+  let mut regs: REGS = std::mem::zeroed ();
+  let mut mask: c_int;
+  let mut modifiers: c_int = 0;
+
+  /* Calculate modifier bits */
+  regs.h.ah = if extended_kbd != 0 { 0x12 } else { 0x02 };
+  int86 (0x16, &raw mut regs, &raw mut regs);
+
+  if extended_kbd == 0
+    {
+      mask = regs.h.al as c_int & (SHIFT_P | CTRL_P | ALT_P |
+				   SCRLOCK_P | NUMLOCK_P | CAPSLOCK_P);
+    }
+  else
+    {
+      mask = regs.h.al as c_int & (SHIFT_P |
+				   SCRLOCK_P | NUMLOCK_P | CAPSLOCK_P);
+
+      /* Do not break international keyboard support.   */
+      /* When Keyb.Com is loaded, the right Alt key is  */
+      /* used for accessing characters like { and }  */
+      if (regs.h.ah as c_int & 2) != 0		/* Left ALT pressed ? */
+	{ mask |= ALT_P; }
+
+      if (regs.h.ah as c_int & 8) != 0		/* Right ALT pressed ? */
+	{
+	  mask |= ALT_GR_P;
+	  if dos_hyper_key == 1
+	    {
+	      mask |= HYPER_P;
+	      modifiers |= hyper_modifier;
+	    }
+	  else if dos_super_key == 1
+	    {
+	      mask |= SUPER_P;
+	      modifiers |= super_modifier;
+	    }
+	  else if international_keyboard == 0
+	    {
+	      /* If Keyb.Com is NOT installed, let Right Alt behave
+		 like the Left Alt.  */
+	      mask &= ! ALT_GR_P;
+	      mask |= ALT_P;
+	    }
+	}
+
+      if (regs.h.ah as c_int & 1) != 0		/* Left CTRL pressed ? */
+	{ mask |= CTRL_P; }
+
+      if (regs.h.ah as c_int & 4) != 0		/* Right CTRL pressed ? */
+	{
+	  if dos_hyper_key == 2
+	    {
+	      mask |= HYPER_P;
+	      modifiers |= hyper_modifier;
+	    }
+	  else if dos_super_key == 2
+	    {
+	      mask |= SUPER_P;
+	      modifiers |= super_modifier;
+	    }
+	  else
+	    { mask |= CTRL_P; }
+	}
+    }
+
+  if (mask & SHIFT_P) != 0
+    { modifiers |= shift_modifier; }
+  if (mask & CTRL_P) != 0
+    { modifiers |= ctrl_modifier; }
+  if (mask & ALT_P) != 0
+    { modifiers |= meta_modifier; }
+
+  if !keymask.is_null ()
+    { *keymask = mask; }
+  return modifiers;
+}
+
+/// C 2398: `#define NUM_RECENT_DOSKEYS (100)`
+#[cfg (feature = "msdos")]
+pub const NUM_RECENT_DOSKEYS: c_int = (100);
+/// C 2399: `int recent_doskeys_index;	/* Index for storing next element into recent_doskeys */`
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub static mut recent_doskeys_index: c_int = 0;
+/// C 2400: `int total_doskeys;		/* Total number of elements stored into recent_doskeys */`
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub static mut total_doskeys: c_int = 0;
+/// C 2401: `Lisp_Object recent_doskeys;	/* A vector, holding the last 100 keystrokes */`
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub static mut recent_doskeys: Lisp_Object = unsafe { std::mem::zeroed () };
+
+#[cfg (feature = "msdos")]
+DEFUN! ("recent-doskeys", Frecent_doskeys, Srecent_doskeys, 0, 0, 0,
+       doc: "Return vector of last 100 keyboard input values seen in dos_rawgetc.\nEach input key receives two values in this vector: first the ASCII code,\nand then the scan code.  ",   // C 2403-2406
+       (),
+       {
+  let mut val: Lisp_Object;
+  let keys: *mut Lisp_Object = (*XVECTOR (recent_doskeys)).contents.as_mut_ptr ();
+
+  if total_doskeys < NUM_RECENT_DOSKEYS
+    { return Fvector (total_doskeys as ptrdiff_t, keys); }
+  else
+    {
+      val = Fvector (NUM_RECENT_DOSKEYS as ptrdiff_t, keys);
+      vcopy (val, 0, keys.offset (recent_doskeys_index as isize),
+	     (NUM_RECENT_DOSKEYS - recent_doskeys_index) as isize);
+      vcopy (val, (NUM_RECENT_DOSKEYS - recent_doskeys_index) as isize,
+	     keys, recent_doskeys_index as isize);
+      return val;
+    }
+});
+
+/* C 2423 is the blank line and C 2424-2426 the banner of `dos_rawgetc`, the next live
+   definition; C 2423-4350 is the unported remainder (see `docs/ports/msdos.md`).  */

@@ -1,4 +1,4 @@
-# emacs/src/msdos.c (4,350 lines) — first slice: C 1-1295
+# emacs/src/msdos.c (4,350 lines) — slices 1-2: C 1-2422
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  The whole body sits
 > inside C 34's `#ifdef MSDOS`; `MSDOS` is `undef` in
@@ -11,8 +11,8 @@
 > `## Types and their fields — 0`, `## File-scope objects — 0`, and `--check` therefore passes
 > vacuously — P-86 ②/⑩).  What follows is P-86 ②'s substitute: the **C line-range table**, the
 > `## Evidence` readings and the `## Deviations`.  Port: `femacs/src/msdos.rs`
-> (**1767 lines**, 69,140 bytes, md5 `32ace155550390f10b2135538e1b6c79`), carrying **C 1-1295**
-> with **both arms of every `#if`**.
+> (**3209 lines**, 127,437 bytes, md5 `cfb570ab7922797e9400af6b9f28b804`), carrying **C 1-2422**
+> with **both arms of every `#if`** (slice 1: C 1-1295; slice 2: C 1296-2422).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the
 > frozen configuration does not compile the file ⇒ the port is the empty unit plus the note that
@@ -21,24 +21,40 @@
 > 336-byte object) is unchanged and still true — it is the *conclusion* that is withdrawn, exactly
 > as `docs/ports/w32proc.md`, `docs/ports/w32.md` and `docs/ports/androidvfs.md` record for their
 > own files.  The reference is **not valid UTF-8** (it is `coding: cp850`); it is read with
-> `errors="replace"` and the eight non-ASCII lines are all at C 1972-2011, far past this slice.
+> `errors="replace"` and the eight non-ASCII lines are all at C 1972-2011 — slice 2's keyboard
+> maps, which the port carries as `\xNN` escapes so that its own text stays ASCII (Deviations 14).
 >
-> **This slice is C 1-1295**, from the file's first line through `IT_update_end`'s closing brace
-> (C 1288-1295): the notes and the include list, the `SYS_ENVIRON` pair, the allocator triple, the
-> whole mouse-control half (`event_timestamp`, `mouse_on`/`mouse_off`, `mouse_setup_buttons`, the
-> `msdos-set-mouse-buttons` subr, `mouse_get_xy`, `mouse_moveto`, `mouse_pressed`/`mouse_released`/
-> `mouse_button_depressed`, `mouse_get_pos`, `mouse_check_moved`, `mouse_clear_clicks`,
-> `mouse_init`) and the first half of the screen half (both `#ifndef HAVE_X_WINDOWS` blocks'
-> opening items, `dosv_refresh_virtual_screen`, `dos_direct_output`, `bright_bg`,
-> `maybe_enable_blinking`, `vga_installed`, `dos_set_window_size`, `mouse_off_maybe`,
-> `msdos_set_cursor_shape`, `IT_set_cursor_type`, `IT_ring_bell`, `IT_set_face`,
-> `IT_write_glyphs`, `mouse_preempted`, `popup_activated`, `IT_write_glyphs_with_face`,
-> `tty_draw_row_with_mouse_face`, `IT_clear_end_of_line`, `IT_clear_screen`, `IT_clear_to_end`,
-> `IT_cursor_to`, `IT_display_cursor`, `IT_cmgoto`, `IT_update_begin`, `IT_update_end`).
-> **The next live definition is C 1297-1333's `IT_frame_up_to_date`** (C 1296 is its blank
-> line), and the remainder (C 1296-4350) is the table's last row: the keyboard maps, the
-> DOS/V screen buffer, the file-name layer (`unixtodos_filename` and friends), the subprocess
-> layer and `syms_of_msdos`, none of it ported here.
+> **These are P-86 ④'s first two slices: C 1-1295 and C 1296-2422.**  Slice 1 runs from the
+> file's first line through `IT_update_end`'s closing brace (C 1288-1295): the notes and the
+> include list, the `SYS_ENVIRON` pair, the allocator triple, the whole mouse-control half
+> (`event_timestamp`, `mouse_on`/`mouse_off`, `mouse_setup_buttons`, the `msdos-set-mouse-buttons`
+> subr, `mouse_get_xy`, `mouse_moveto`, `mouse_pressed`/`mouse_released`/`mouse_button_depressed`,
+> `mouse_get_pos`, `mouse_check_moved`, `mouse_clear_clicks`, `mouse_init`) and the first half of
+> the screen half (both `#ifndef HAVE_X_WINDOWS` blocks' opening items,
+> `dosv_refresh_virtual_screen`, `dos_direct_output`, `bright_bg`, `maybe_enable_blinking`,
+> `vga_installed`, `dos_set_window_size`, `mouse_off_maybe`, `msdos_set_cursor_shape`,
+> `IT_set_cursor_type`, `IT_ring_bell`, `IT_set_face`, `IT_write_glyphs`, `mouse_preempted`,
+> `popup_activated`, `IT_write_glyphs_with_face`, `tty_draw_row_with_mouse_face`,
+> `IT_clear_end_of_line`, `IT_clear_screen`, `IT_clear_to_end`, `IT_cursor_to`,
+> `IT_display_cursor`, `IT_cmgoto`, `IT_update_begin`, `IT_update_end`).
+>
+> **Slice 2 is C 1296-2422.**  It opens with C 1296's blank line and runs through the closing brace
+> of the `recent-doskeys` subr (C 2403-2422): the rest of the second `#ifndef HAVE_X_WINDOWS`
+> block (`IT_frame_up_to_date`, `IT_copy_glyphs`, `IT_insert_glyphs`, `IT_delete_glyphs`,
+> `IT_set_terminal_modes`, `IT_reset_terminal_modes`, the `msdos-remember-default-colors` subr and
+> `IT_set_frame_parameters`), then the file-gated `internal_terminal_init`,
+> `initialize_msdos_display` and `dos_get_saved_screen`, then the whole keyboard-control half: the
+> ten scan-code class bits, `extended_kbd`, `struct kbd_translate`, `struct dos_keyboard_map`, the
+> five keyboard maps (`us`, `fr`, `it`, `dk`, `jp`), the two translate tables,
+> `keyboard_layout_list`, `keyboard`/`keyboard_map_all`/`international_keyboard`,
+> `dos_set_keyboard`, `keypad_translate_map`, `grey_key_translate_map`, the 167-entry
+> `ibmpc_translate_map`, the nine BIOS modifier bits, `dos_get_modifiers`, `NUM_RECENT_DOSKEYS`,
+> the three `recent_doskeys` objects and the `recent-doskeys` subr.
+> **The next live definition is C 2425-2759's `dos_rawgetc`** (C 2423 is its blank line and C 2424
+> its banner), and the remainder (C 2423-4350) is the table's last row: `dos_rawgetc`,
+> `dos_keysns`/`dos_keyread`, the menu simulation, the DOS/V screen buffer, the file-name layer
+> (`unixtodos_filename` and friends), the subprocess layer and `syms_of_msdos`, none of it ported
+> here.
 >
 > **The file gate is `feature = "msdos"`** (C 34's `MSDOS`), on every item *and on the include
 > graph* (P-86 ⑧: an ungated `include!` breaks the frozen build at once, which is why the reading
@@ -69,8 +85,16 @@
 | C 111 `#ifdef GNU_MALLOC` | `feature = "gnu_malloc"` (**not registered** — Owed 1); no `#else` in C | `GNU_MALLOC` |
 | C 119 `#ifdef REL_ALLOC` / C 121 `#else` | `feature = "rel_alloc"` (registered, Cargo.toml 490) / `not (feature = "rel_alloc")` | `REL_ALLOC` on/off |
 | C 402 `#ifndef HAVE_X_WINDOWS` … C 478 `#endif` | `all (feature = "msdos", not (feature = "have_x_windows"))` | no window system (the MS-DOS build's case) |
-| C 480 `#ifndef HAVE_X_WINDOWS` … C 1771 `#endif` | the same pair, on every item of C 482-1295 | the same |
+| C 480 `#ifndef HAVE_X_WINDOWS` … C 1771 `#endif` | the same pair, on every item of C 482-1771 (slices 1 and 2) | the same |
 | C 1171 `#if 0` … C 1211 `#endif` (inside `IT_cmgoto`) | dead in *every* configuration; C's text is kept as a comment (the `src/cm.rs` 86 / `src/character.rs` 118 `#if 0` shape) | never |
+| C 1784 `#ifdef HAVE_X_WINDOWS` … C 1787 `#endif` (inside `internal_terminal_init`) | `all (feature = "msdos", feature = "have_x_windows")`; C has no `#else` arm, so the other side is empty text | a window-system build |
+| C 1796 `#ifndef HAVE_X_WINDOWS` … C 1870 `#endif` (the same function's body) | `all (feature = "msdos", not (feature = "have_x_windows"))`; no `#else` in C | the MS-DOS build |
+| C 1907 `#ifndef HAVE_X_WINDOWS` / C 1912 `#else` / C 1914 `#endif` (inside `dos_get_saved_screen`) | **both arms carried**: `not (feature = "have_x_windows")` and `feature = "have_x_windows"` | either build |
+
+**Thirteen of the file's 27 conditions are inside the ported span** — C 34, C 62, C 95, C 99,
+C 109, C 111, C 119, C 402, C 480 and C 1171 (slice 1's ten) plus slice 2's C 1784, C 1796 and
+C 1907; the remaining fourteen are past C 2422 and each is named in Owed 9.  C 1171's `#if 0` is
+the one with no arm at all (see its row).
 
 `have_x_windows` (Cargo.toml 182), `rel_alloc` (490), `msdos` (223) and `no_system_malloc` (438)
 are registered; `gnu_malloc`, `_use_lfn` and `_dos_ds` are not (Owed 1).  The arm flip also needs
@@ -132,77 +156,116 @@ shape as `docs/ports/w32proc.md`'s "the file gate is `windowsnt` **and** the sam
 | 1162-1230 | `IT_cmgoto` (C 1162-1228; C 1171-1211 is the `#if 0`) | `not have_x_windows`; the `#if 0` is dead in every configuration |
 | 1231-1287 | `IT_update_begin` (C 1231-1285) | `not have_x_windows` |
 | 1288-1295 | `IT_update_end` (C 1288-1295) | `not have_x_windows` |
-| 1296-4350 | the unported remainder (C 1297-4350; `IT_frame_up_to_date` onward) | not ported this batch |
+| 1296-1333 | C 1296's blank line and `IT_frame_up_to_date` (C 1297-1333) | `not have_x_windows` |
+| 1334-1382 | `IT_copy_glyphs` (C 1339-1368) and `IT_insert_glyphs` (C 1371-1382) | `not have_x_windows` |
+| 1383-1388 | `IT_delete_glyphs` (C 1384-1388) | `not have_x_windows` |
+| 1389-1460 | the `xfaces.c` note (C 1390-1393) and `IT_set_terminal_modes` (C 1395-1460) | `not have_x_windows` |
+| 1461-1540 | `IT_reset_terminal_modes` (C 1462-1540) | `not have_x_windows` |
+| 1541-1562 | the `msdos-remember-default-colors` subr (C 1542-1562) | `not have_x_windows` |
+| 1563-1767 | `IT_set_frame_parameters` (C 1564-1767) | `not have_x_windows` |
+| 1768-1771 | C 1769's `extern void init_frame_faces (struct frame *);` (dropped, PORTING.md 0.1-12) and C 1771's `#endif` (the C 480 block ends) | `not have_x_windows` |
+| 1772-1871 | `internal_terminal_init` (C 1774-1871) | file gate; arms C 1784 `#ifdef HAVE_X_WINDOWS` and C 1796 `#ifndef HAVE_X_WINDOWS` |
+| 1872-1902 | `initialize_msdos_display` (C 1873-1902) | file gate |
+| 1903-1915 | `dos_get_saved_screen` (C 1904-1915) | file gate; arms C 1907 `#ifndef` / C 1912 `#else` |
+| 1916-1958 | the keyboard banner (C 1917-1927), the ten scan-code `#define`s (C 1929-1940), `extended_kbd` (C 1942), `struct kbd_translate` (C 1944-1948), `struct dos_keyboard_map` (C 1950-1956) | file gate |
+| 1959-2045 | the five keyboard maps and their translate tables (C 1959-2032) and `keyboard_layout_list` (C 2034-2045) | file gate |
+| 2046-2080 | `keyboard`/`keyboard_map_all`/`international_keyboard` (C 2047-2049) and `dos_set_keyboard` (C 2051-2080) | file gate |
+| 2081-2112 | `keypad_translate_map` (C 2082-2100) and `grey_key_translate_map` (C 2102-2112) | file gate |
+| 2113-2305 | `ibmpc_translate_map` (C 2114-2305; 167 entries) | file gate |
+| 2306-2316 | C 2306's form feed and the nine BIOS modifier bit `#define`s (C 2308-2316) | file gate |
+| 2317-2396 | `dos_get_modifiers` (C 2318-2396) | file gate |
+| 2397-2422 | `NUM_RECENT_DOSKEYS` and the three `recent_doskeys` objects (C 2398-2401) and the `recent-doskeys` subr (C 2403-2422) | file gate |
+| 2423-4350 | the unported remainder (C 2424-4350; `dos_rawgetc` onward) | not ported this batch |
 
 ## Evidence
 
 **① The frozen configuration (`build-tu`).**
-`cd femacs && CARGO_TARGET_DIR=/tmp/msdos1/cargo cargo run -q -p xtask -- build-tu src/msdos.c`
+`cd femacs && CARGO_TARGET_DIR=/tmp/msdos2/cargo cargo run -q -p xtask -- build-tu src/msdos.c`
 → `built src/msdos.rs -> ../build/femacs/msdos.o`, **exit 0**, and `build/femacs/msdos.o` is
-**336 bytes** (sha256 `d1ea88b2fe3d9609…`) — an empty object.  That is the expected reading, not a
-proof of the new text: every item sits behind a `msdos` gate, so under the frozen feature set
-rustc compiles only `include/config.rs` and the `#![allow]` attribute.  (It is also the P-86 ⑧
-reading: an `include!` outside the gate would break this compile at once.)
+**336 bytes** (sha256 `d1ea88b2fe3d960975d134e566e6593217e9ad67abdc2db5a451ea9620edd0ed` — the same
+reading slice 1 took, which is what P-86 ⑧ predicts).  Every item of C 1-2422 sits behind a `msdos`
+gate, so under the frozen feature set rustc compiles only `include/config.rs` and the `#![allow]`
+attribute; an `include!` outside the gate would break this compile at once.
 
 **② The `msdos` arm flip, as a per-file error census (P-86 ③⑴/⑦).**  There is no DJGPP target to
 compile for, so this is rustc on *this* machine with the derived feature set:
-`cd femacs && CARGO_TARGET_DIR=/tmp/msdos1/cargo cargo run -q -p xtask -- probe src/msdos.rs
-/tmp/msdos_arm6.rlib --crate-type=lib -C panic=abort --cfg 'feature="msdos"' --cfg
-'feature="dispextern_face_records"'` → **exit 1, 21 errors, 20 warnings**, and **not one of the
-errors is a behaviour bug in this unit's text**:
+`cd femacs && CARGO_TARGET_DIR=/tmp/msdos2/cargo cargo run -q -p xtask -- probe src/msdos.rs
+/tmp/msdos_arm9.rlib --crate-type=lib -C panic=abort --cfg 'feature="msdos"' --cfg
+'feature="dispextern_face_records"'` → **exit 1, 53 errors, 21 warnings**, and **not one of the
+errors is a behaviour bug in the unit's text**:
 
-* **16 × `E0428` "defined multiple times", all with the mirror as the *primary* span**: eight are
-  `include/msdos.rs` against this unit — `dos_set_window_size` (88), `have_mouse` (116),
-  `mouse_init` (117), `mouse_on` (118), `mouse_off` (119), `mouse_moveto` (120),
-  `the_only_display_info` (250), `the_only_tty_output` (251) — i.e. C's "prototype in `msdos.h`,
+* **21 × `E0428` "defined multiple times", every one with a *mirror* file as the primary span.**
+  Thirteen are `include/msdos.rs` against this unit: slice 1's eight (`dos_set_window_size` 88,
+  `have_mouse` 116, `mouse_init` 117, `mouse_on` 118, `mouse_off` 119, `mouse_moveto` 120,
+  `the_only_display_info` 250, `the_only_tty_output` 251) and slice 2's five
+  (`dos_get_saved_screen` 85, `dos_set_keyboard` 87, `internal_terminal_init` 105,
+  `initialize_msdos_display` 106, `IT_set_frame_parameters` 126) — C's "prototype in `msdos.h`,
   definition in `msdos.c`" pair, which Rust spells only if the declaration sits in a
-  glob-imported module (PORTING.md 0.1-10's `syssignal_decls` shape; Owed 3).  The other eight are
-  `include/msdos.rs`'s *overrides* against the port's system mirrors —
+  glob-imported module (PORTING.md 0.1-10's `syssignal_decls` shape; Owed 2).  The other eight are
+  that mirror's *overrides* against the port's system mirrors —
   `readlinkat`/`fstatat`/`faccessat`/`fchmodat`/`futimens`/`utimensat` (`lib/include/unistd.in.rs`
   39-41, `lib/include/sys_stat.in.rs` 181-196), `EINPROGRESS` (`lib/include/errno.rs` 92) and
-  `O_CLOEXEC` (`lib/include/fcntl.in.rs` 118) — the class `docs/ports/w32proc.md` Owed 5(a)
-  records for its own graph (Owed 2).
-* **5 × `E0425` "cannot find", and each is a *mirror* gap, named**: `clock_t` (C 422; no mirror in
-  this tree declares it at all — `lib/include/time.in.rs` is the `<time.h>` mirror and does not
-  carry it), `make_formatted_string` (C 555; `lisp.h`'s mirror omits it), `cursor_to` (C 1016;
-  `dispextern.h`'s mirror omits it), `clear_mouse_face` (C 1276; `dispextern.h`'s mirror omits it)
-  and `face.tty_reverse_p` (C 835; the `struct face` copy omits the flag) — Owed 4.
+  `O_CLOEXEC` (`lib/include/fcntl.in.rs` 118) — the `docs/ports/w32proc.md` Owed 5(a) class
+  (Owed 2).
+* **31 × `E0425` "cannot find", and every one names a *mirror* gap**: 22 distinct names.  Five are
+  slice 1's (`clock_t` C 422, `make_formatted_string` C 555, `cursor_to` C 1016,
+  `clear_mouse_face` C 1276, and `face.tty_reverse_p` C 835 — the last is the reading's one
+  `E0609`); slice 2 adds seventeen: `update_face_from_frame_parameter` (six call sites,
+  C 1641-1755; `dispextern.h` 3794), `load_color` (C 1629/1659; `dispextern.h` 3804),
+  `init_frame_faces` (C 1586/1867; `dispextern.h` 3821), `tty_color_name` (C 1749/1756;
+  `dispextern.h` 3801), `tty_defined_color` (C 1901; `dispextern.h` 3796), `change_frame_size`
+  (C 1721; `dispextern.h` 3924), `redraw_frame` (C 1765; `dispextern.h` 3896),
+  `is_tty_child_frame` (C 1716; `dispextern.h` 4013), `note_mouse_highlight` (C 1303, through
+  `include/frame.rs` 1658's `FRAME_MOUSE_UPDATE!`; `dispextern.h` 3688, which that mirror's own
+  note at 3913 records as **owed, not declared**), `tty_child_size_param` (C 1718/1719;
+  `frame.h` 1483), `tty_child_pos_param` (C 1723/1724; `frame.h` 1481), `root_frame` (C 1729;
+  `frame.h` 1508), `store_frame_param` (C 1711; `lisp.h` 5117), `tty_read_avail_input` (C 1900;
+  `keyboard.h` 520), `x_menu_show` (C 1893; `menu.h` 48, inside
+  `#if defined (HAVE_X_WINDOWS) || defined (MSDOS)` — a declaration the mirror drops with the
+  frozen configuration's dead text), and `<time.h>`'s `clock` and `CLOCKS_PER_SEC` (both C 1505;
+  `lib/include/time.in.rs`) — Owed 4/5.
 
-So the unit's own text contributes **0 errors** to that reading *beyond those 5 mirror gaps*, and
-the 16 `E0428`s cannot be decided from this file: the mirror graph has never been compiled with
-`msdos` on.  Progression, for the record: the first flip (no `dispextern_face_records`) read 66
-errors, the second 38, the third 32, the fourth 24, and the final pair-with-`countof`-and-`use`
-edits 21 — every drop came from a *unit-side* spelling fix (the bit-field accessors the tree keeps
-per consumer unit, `used[]`'s `c_short`, the untyped pointers the P-72 ③ mirrors carry, `mut` on
-the two C parameters the port mutates, `countof!`'s `usize`-vs-`int` comparison, and the two
-`use` edges Owed 5/6 describe), not from a change of behaviour.
+So the unit's own text contributes **0 errors** to that reading *beyond those mirror gaps*, and
+the 21 `E0428`s cannot be decided from this file: the mirror graph has never been compiled with
+`msdos` on.  **Two repairs this batch made, both outside slice 2's new text and both named**:
+(a) `IT_write_glyphs`'s `FRAME_TERMINAL_CODING! (f)` needed the `as *mut coding_system` cast that
+commit `56f55bb` (status 3.455's coding_system mirror round) added to its other sixteen consumers
+and missed in this file; (b) `x_set_title (f as *mut c_void, val)` spells the parameter the
+`dosfns.h` mirror declares (P-72 rule ③).  Before them the same command read **57 errors, 21
+warnings** (the two extra were an `E0308` at each site).
 
 **③ The `#if` verdicts.**  `python3 tools/check-cond-eval.py src/msdos.c` reads
 **`src/msdos.c: 27 conditions, 0 unknown, 0 disagreements [VERIFIED]`** — every one of the file's
-27 conditions is decided by the frozen table *and* agrees with clang.  Nine of them are in this
-slice: C 34 (`MSDOS`), C 62 (the djgpp pair), C 95 (`_USE_LFN`), C 99 (`_dos_ds`), C 109
-(`SYSTEM_MALLOC`), C 111 (`GNU_MALLOC`), C 119 (`REL_ALLOC`), C 402 and C 480 (`HAVE_X_WINDOWS`);
-the other eighteen are past C 1295.  Both arms of each are carried in the port and each row of
-the `## Gate mapping` table names the reading it came from.  The per-condition answer for this
-file is *"the false arm, for all 27"*, because C 34 is the outermost condition — the reading was
-taken with the evaluator's own `dead_branch_map` (`-1` meaning "the frozen configuration compiles
-the else/dead side"), not from memory.
+27 conditions is decided by the frozen table *and* agrees with clang.  Thirteen are inside the
+ported span (slice 1's C 34/62/95/99/109/111/119/402/480/1171 and slice 2's C 1784/1796/1907);
+both arms of each are carried in the port and each row of the `## Gate mapping` table names the
+reading it came from.  The per-condition answer for this file is *"the false arm, for all 27"*,
+because C 34 is the outermost condition — the reading was taken with the evaluator's own
+`dead_branch_map` (`-1` meaning "the frozen configuration compiles the else/dead side"), not from
+memory.
 
 **④ `extract-abi.py --check` (vacuous here, and said so).**
 `python3 tools/extract-abi.py --check emacs/src/msdos.c femacs/src/msdos.rs` → `OK
 emacs/src/msdos.c -> femacs/src/msdos.rs`, exit 0.  This is P-86 ⑩'s empty checklist (the
-reference's own live-item lists are all zero, Evidence above), *not* a comparison of the 36 functions and the
-one subr the port carries.
+reference's own live-item lists are all zero, Evidence ①), *not* a comparison of the functions
+and the subrs the port carries.
 
 **⑤ The other gates.**
-`python3 tools/check-declarations.py` → exit 0 (0 findings; 682 files read).
+`python3 tools/check-declarations.py` → exit 0 (`10 declaration sites (0 forbidden, 10 allowed
+literals), 0 failures`).
 `python3 tools/check-mirror-dupes.py` → `19 duplicate declaration(s), 19 ratchet row(s), 0 failure(s)`.
 `python3 tools/check-ledger-ticks.py` → `234 ledger(s) bound …, 0 failure(s)` (this ledger ticks
 nothing: its checklist is empty, so it is not bound).
-`python3 tools/check-port-lines.py` → `70 file(s) under ten percent …, 0 new, 1 stale`
-(`src/haiku_io.c`, another lane's): `src/msdos.c` is no longer under the threshold — this port
-carries 1767/4350 = **40.6%** of the reference's lines.  `tools/check-dead-file-coverage.py` binds
-this ledger through the `## C line ranges` section (its reading is in ⑥ below).
+`python3 tools/check-port-lines.py` → `69 file(s) under ten percent …, 0 new, 0 stale`;
+`src/msdos.c` is not among them — this port carries 3209/4350 = **73.8%** of the reference's
+lines.
+
+**⑥ The range table (P-86 ②'s machine gate).**
+`python3 tools/check-dead-file-coverage.py` → `info docs/ports/msdos.md: 68 range row(s) cover
+src/msdos.c (4350 lines; 0 blank line(s) between blocks need no row)` and
+`45 ledger(s) bound (a C range table), 0 failure(s)` — every non-blank line of C 1-4350 is inside
+a row, the rows ascend without overlapping, and the last one reaches C 4350.  (The same ledger is
+also the one the msdos.h *mirror* resolves to, and the tool reads that pair too: `156 lines`.)
 
 ## Deviations
 
@@ -263,36 +326,111 @@ this ledger through the `## C line ranges` section (its reading is in ⑥ below)
     a separate edge in this tree (`src/abi_shim.rs` 26, `src/alloc.rs` 64 spell it the same way),
     so the `include!` sits under C 36's `#include "lisp.h"` line.
 
+**Slice 2's deviations** (numbers continue the list above):
+
+14. **The two DJGPP stand-in sections grew for slice 2, and every new item is UNVERIFIED
+    (P-88 ①).**  The C 57 `<dpmi.h>` section gains `_go32_dpmi_registers` (with `Go32DpmiRegsX`/
+    `Go32DpmiRegsH`) and `_go32_dpmi_simulate_int` (C 2055/2062), and the C 87 `<pc.h>` section
+    gains `ScreenMode` (C 1436) and `ScreenRetrieve` (C 1457).  No DJGPP header exists here, so
+    the record's size, its two views and the two prototypes follow this file's own call sites;
+    the ledger's Owed list names the missing toolchain (Owed 8).
+15. **The keyboard maps' non-ASCII bytes (C 1972-2011) are spelled `\xNN`.**  The reference is
+    codepage 850 and the port's own text stays ASCII, so each of the eight lines carries C's
+    bytes as escapes (e.g. C 1972's `"\xfd&\x82\"'(-\x8a_\x80\x85)=  azertyuiop^$…"`); the
+    decoded length of every line matches C's (57 bytes, and 58 for C 2011).
+16. **`alloca` (C 1569-1572) is spelled with the port's stack pool**, the C 1050 reading again
+    (Deviations 5): C's two `alloca (length * word_size)` requests become two `sa_stack_alloc`
+    calls, and C accounts neither against `sa_avail` nor does the port.
+17. **The per-unit helpers slice 2 needs are defined in this unit.**  `hook!` (the `src/term.rs`
+    140-144 transmute for a Rust-ABI function stored in an `Option<unsafe extern "C" fn …>`
+    field), `output_method!` (frame.h 446's four-bit field, the `src/dispnew.rs` 7349 /
+    `src/frame.rs` 342 shape), `FRAME_FOREGROUND_PIXEL`/`FRAME_BACKGROUND_PIXEL` (frame.h
+    1375-1376's field macros, the `src/frame.rs` 134/137 shape),
+    `FRAME_NO_SPECIAL_GLYPHS` (frame.h 1273's writer arm) and `default_face_done_p!` (frame.h
+    340's flag, the unit's own `mouse_moved!` shape).  Every one carries the file gate.
+18. **The two file-scope anonymous structs are named.**  C 2082-2088 and C 2102-2106 declare
+    anonymous `struct { … } keypad_translate_map[]`/`grey_key_translate_map[]`; the port names
+    their element types `keypad_translate_map_entry` and `grey_key_translate_map_entry`
+    (PORTING.md 1.3, the `src/charset.rs` 386 `charset_map_entry` shape).
+19. **`struct dos_keyboard_map`'s three `char *` slots are `*const c_char`.**  Each only ever
+    holds a string literal, which is how this tree spells that C field (`include/termchar.rs`
+    178's `TS_orig_pair`).
+20. **C's implicit numeric conversions inside the tables are spelled.**  `ibmpc_translate_map`'s
+    element type is C's `unsigned short`, so each `int` combination carries `as c_ushort` (167 of
+    them, C 2118-2304); the two translate tables' `code` fields likewise; `countof
+    (keyboard_layout_list)` carries `as c_int` (C 2071, the C 953 reading again).
+21. **Chained assignments are written as their stores**, keeping C's order: C 1414-1415
+    (`new_pos_X = new_pos_Y = 0`, C 1415's `current_pos_X = current_pos_Y = -1`), C 1457
+    (`ScreenRetrieve (startup_screen_buffer = xmalloc (…))`), C 1829
+    (`initial_screen_colors[0] = initial_screen_colors[1] = -1`), C 1877
+    (`cursor_to_hook = raw_cursor_to_hook = IT_cursor_to`) and C 2061
+    (`regs.x.ss = regs.x.sp = regs.x.flags = 0`).
+22. **C 1769's `extern void init_frame_faces (struct frame *);` is dropped** — it re-declares
+    `dispextern.h` 3821's prototype, and the port does not repeat a declaration the mirror owns
+    (PORTING.md 0.1-12).  C 1771's `#endif` is carried as the comment that closes the C 480 block:
+    every item after it (`internal_terminal_init` onward) is gated by the file alone.
+23. **C 1917's and C 2306's form-feed lines carry no port line.**  They are the reference's page
+    separators, the coverage gate's blank-line rule leaves them out (Evidence ⑥), and two of the
+    reference's neighbours (`src/keyboard.rs` 5470-5477, `src/xdisp.rs`) show the other reading.
+24. **Two include edges are written at their C include lines** (the C 36 reading, Deviations 13):
+    `include!("../lib/include/string.rs")` under C 36 (lisp.h 30's `#include <string.h>`, for
+    C 1794's `strcmp`) and `include!("../lib/include/stdlib.rs")` under C 50 (gnulib's
+    `lib/unistd.in.h` 122-125 includes `<stdlib.h>` for every non-glibc target, for C 1780's
+    `getenv`).  Neither mirror carries its own edge (Owed 10).
+25. **Two repairs outside slice 2's new text**, both forced by committed mirror changes and both
+    in this file: `IT_write_glyphs`'s `FRAME_TERMINAL_CODING! (f) as *mut coding_system` (commit
+    `56f55bb`, status 3.455, whose message lists the sixteen sites it fixed in five other units
+    and missed this one) and `x_set_title (f as *mut c_void, val)` (the `dosfns.h` mirror's
+    parameter type).  Evidence ② records both readings.
+
 ## Owed (nothing here is claimed as done)
 
 1. **`femacs/xtask/Cargo.toml`**: three feature names this unit uses are registered nowhere —
    `gnu_malloc` (C 111), `_use_lfn` (C 95) and `_dos_ds` (C 99).  (`msdos`, `no_system_malloc`,
    `rel_alloc`, `have_x_windows` and `djgpp_2_3` are precedents that are registered.)
-2. **`include/msdos.rs` must move its prototypes into a glob-imported module.**  Eight `E0428`s
-   come from that mirror's top-level `extern "C"` blocks against this unit's definitions
-   (`dos_set_window_size`, `have_mouse`, `mouse_init`, `mouse_on`, `mouse_off`, `mouse_moveto`,
-   `the_only_display_info`, `the_only_tty_output`); the shape is `include/syssignal.rs` 29-52
+   ✅ **Stale, closed by the integrator in 3.466**: all three *are* registered on this revision —
+   `_dos_ds` line 30, `_use_lfn` line 31, `gnu_malloc` line 93 of `femacs/xtask/Cargo.toml`, each
+   with its C site in the comment (`_dos_ds (src/msdos.c)`, `_USE_LFN`, `GNU_MALLOC`), and
+   `tools/feature-coverage.py` lists all three with their sites.  Nothing to register.
+2. **`include/msdos.rs` must move its prototypes into a glob-imported module.**  **Thirteen**
+   `E0428`s come from that mirror's top-level `extern "C"` blocks against this unit's definitions:
+   slice 1's eight (`dos_set_window_size`, `have_mouse`, `mouse_init`, `mouse_on`, `mouse_off`,
+   `mouse_moveto`, `the_only_display_info`, `the_only_tty_output`) and slice 2's five
+   (`internal_terminal_init`, `initialize_msdos_display`, `dos_set_keyboard`,
+   `dos_get_saved_screen`, `IT_set_frame_parameters`).  The shape is `include/syssignal.rs` 29-52
    (`pub mod syssignal_decls` + `use syssignal_decls::*;`) and the rule is PORTING.md 0.1-10.
    Until it lands, **every** `msdos` translation unit that includes `msdos.h` and defines one of
-   those names reports `E0428`.  The other eight `E0428`s of the same reading are that mirror's
-   *overrides* against `lib/include/unistd.in.rs` 39-41, `sys_stat.in.rs` 181-196, `errno.rs` 92
-   and `fcntl.in.rs` 118 (the `docs/ports/w32proc.md` Owed 5(a) class): the MS-DOS side is a
-   *deliberate re-declaration* of the same name, so the reconciliation is the mirror round's
-   (feature-mask the MS-DOS copy, as `include/msdos.rs` already does for `EINPROGRESS`/`O_CLOEXEC`
-   at 84-87/80 — the pattern exists but the two files' rows have not been made consistent).
-3. **`docs/baseline/port-lines-pending.tsv`**: this file's row (`src/msdos.c 4350 24 435`) is now
-   stale — the port carries 40.6%, above the ten-percent threshold; the integrator's
-   `check-port-lines.py --write-pending` re-run drops it.  (That file is not in this lane's
-   writable set.)
-4. **`lib/include/time.in.rs` (or `time.rs`): `clock_t`.**  C 422's `static clock_t startup_time;`
-   has no counterpart — no mirror in this tree declares `clock_t` at all, and C reaches it through
-   C 38's `#include <time.h>`, whose mirror is `time.in.rs`.  Until it lands the `msdos` arm
-   reports `E0425` for the name.
-5. **`include/dispextern.rs`: `cursor_to` and `clear_mouse_face` are missing**, and the header's
-   own `struct face` copy lacks `tty_reverse_p` (C 835).  All three are declared in
-   `dispextern.h`; the mirror carries neither function and its `face` copy omits the flag, so the
-   arm reports three `E0425`s (plus one `E0609`).  `cursor_to` is `struct redisplay_interface`'s
-   member in the reference, which is likely why it is absent.
+   those names reports `E0428`, and the count grows with every slice this file gains.  The other
+   eight `E0428`s of the same reading are that mirror's *overrides* against
+   `lib/include/unistd.in.rs` 39-41, `sys_stat.in.rs` 181-196, `errno.rs` 92 and `fcntl.in.rs`
+   118 (the `docs/ports/w32proc.md` Owed 5(a) class): the MS-DOS side is a *deliberate
+   re-declaration* of the same name, so the reconciliation is the mirror round's (feature-mask
+   the MS-DOS copy, as `include/msdos.rs` already does for `EINPROGRESS`/`O_CLOEXEC` at 84-87/80 —
+   the pattern exists but the two files' rows have not been made consistent).
+3. **`docs/baseline/port-lines-pending.tsv`: closed, and said so.**  Slice 1's row
+   (`src/msdos.c 4350 24 435`) is gone — `grep msdos docs/baseline/port-lines-pending.tsv` is
+   empty on this revision and `check-port-lines.py` reads `0 new, 0 stale`, with the port at
+   3209/4350 = 73.8%, above the ten-percent threshold.  Nothing is owed here; the line is kept so
+   the next reader knows the row was measured rather than forgotten.
+4. **`lib/include/time.in.rs` (or `time.rs`): `clock_t`, `clock` and `CLOCKS_PER_SEC`.**  C 422's
+   `static clock_t startup_time;` has no counterpart — no mirror in this tree declares `clock_t`
+   at all — and slice 2's C 1505 (`clock () - startup_time >= 2*CLOCKS_PER_SEC`) adds the
+   function and the macro to the same gap.  C reaches all three through C 38's `#include <time.h>`,
+   whose mirror is `time.in.rs`.  Until they land the `msdos` arm reports three `E0425`s.
+5. **`include/dispextern.rs` and its neighbours: eighteen names the mirrors lack.**  Slice 1's
+   five are `cursor_to` (C 1016), `clear_mouse_face` (C 1276), `face.tty_reverse_p` (C 835, the
+   reading's one `E0609`) and the pair Owed 6/4 name (`make_formatted_string`, `clock_t`); slice 2
+   adds, each with the reference line that declares it: `update_face_from_frame_parameter`
+   (`dispextern.h` 3794), `load_color` (3804), `init_frame_faces` (3821), `tty_color_name` (3801),
+   `tty_defined_color` (3796), `change_frame_size` (3924), `redraw_frame` (3896),
+   `is_tty_child_frame` (4013), `note_mouse_highlight` (3688 — which `include/dispextern.rs`
+   itself records as *owed, not declared* at 3913, because four other units already declare it at
+   their crate roots), `tty_child_size_param` (`frame.h` 1483), `tty_child_pos_param` (1481),
+   `root_frame` (1508), `store_frame_param` (`lisp.h` 5117), `tty_read_avail_input`
+   (`keyboard.h` 520) and `x_menu_show` (`menu.h` 48).  `x_menu_show` is its own case: the
+   declaration is live for MSDOS (`#if defined (HAVE_X_WINDOWS) || defined (MSDOS)`) while the
+   mirror keeps only the frozen configuration's dead text, so it is an **arm**, not a missing row
+   — the `docs/ports/menu.md` round decides the gate.
 6. **`make_formatted_string` (`lisp.h`) is missing from `include/lisp.rs`** — C 555's only use.
 7. **The mirror round's reconciliation of the `dispextern_unit_names`/`frame_face_accessors`
    edges.**  Both modules are `pub mod`s inside a mirror that never glob-imports them
@@ -301,28 +439,41 @@ this ledger through the `## C line ranges` section (its reading is in ⑥ below)
    convention; the decision is the mirror round's, and until it is made every consumer names them
    itself.
 8. **The layout assertions for the DJGPP records this unit spells** (`REGS`, `RegsX`, `RegsH`,
-   `__dpmi_regs`, `_go32_info_block`) and the values of `_CRT0_FLAG_*`: `xtask layout-asserts`
-   reads a C compiler's readings, and no DJGPP toolchain exists here, so not one `core::assert!`
-   is written for them and the two flag constants stay `= 0` placeholders (Deviations 4).
-9. **The next lane's slice: C 1296-4350**, whose first live definition is C 1297-1333's
-   `IT_frame_up_to_date`, with the second `#ifndef HAVE_X_WINDOWS` arm running to C 1771 and the
-   file's own new conditions starting at C 1784 (`#ifdef HAVE_X_WINDOWS`), C 1907/2433/2465/2787
-   (`#ifndef HAVE_X_WINDOWS`), C 3565/3671 (`#ifdef HAVE_X_WINDOWS`), C 3691/3716
-   (`#ifndef HAVE_X_WINDOWS`), C 3895/4135 (`__DJGPP__ == 2 && __DJGPP_MINOR__ < 4`), C 4128
-   (`__DJGPP__ > 2 || __DJGPP_MINOR__ > 3`), C 4158 (`!HAVE_SELECT`), C 4252 (`#ifdef chdir`),
-   C 4281 (`#ifdef tzset`) and C 4326 (`#ifndef HAVE_X_WINDOWS`).  Its keyboard maps are the file's only non-ASCII text
-   (C 1972-2011).
+   `__dpmi_regs`, `_go32_info_block`, and slice 2's `_go32_dpmi_registers` with its two views) and
+   the values of `_CRT0_FLAG_*`: `xtask layout-asserts` reads a C compiler's readings, and no
+   DJGPP toolchain exists here, so not one `core::assert!` is written for them and the two flag
+   constants stay `= 0` placeholders (Deviations 4/14).
+9. **The next lane's slice: C 2423-4350**, whose first live definition is C 2425-2759's
+   `dos_rawgetc` (C 2424 is its banner).  Its own conditions are C 2433 and C 2465
+   (`#ifndef HAVE_X_WINDOWS`, both inside `dos_rawgetc`), C 2787 (`#ifndef HAVE_X_WINDOWS`), C 3565
+   and C 3671 (`#ifdef HAVE_X_WINDOWS`), C 3691 and C 3716 (`#ifndef HAVE_X_WINDOWS`), C 3895 and
+   C 4135 (`__DJGPP__ == 2 && __DJGPP_MINOR__ < 4`), C 4128 (`__DJGPP__ > 2 || __DJGPP_MINOR__ > 3`),
+   C 4158 (`!HAVE_SELECT`), C 4252 (`#ifdef chdir`), C 4281 (`#ifdef tzset`) and C 4326
+   (`#ifndef HAVE_X_WINDOWS`) — fourteen of the file's 27, and **the file's only non-ASCII text
+   (C 1972-2011) is now behind this ledger** rather than in front of it.
+10. **The two include edges this unit writes for itself** (Deviations 24): `string.rs` under C 36
+    and `stdlib.rs` under C 50.  Both are edges C reaches through gnulib headers (`lisp.h` 30's
+    `<string.h>`, `lib/unistd.in.h` 122-125's `<stdlib.h>`) that the mirrors do not carry, so the
+    mirror round either adds them to `include/lisp.rs`/`lib/include/unistd.in.rs` or the
+    per-consumer spelling becomes the convention (the same question Deviations 13 raised).
+11. **Status 3.455's coding_system mirror round missed this file.**  Commit `56f55bb` cast
+    `FRAME_TERMINAL_CODING!` at its sixteen call sites in `coding.rs`/`terminal.rs`/`composite.rs`/
+    `keyboard.rs`/`term.rs` and not in `msdos.rs`, whose `IT_write_glyphs` is the one consumer
+    left (Deviations 25).  The repair is in this batch; the round's own audit is what should say
+    whether any other file was missed.
 
 ## Not claimed
 
-Every line of this slice sits behind gates the frozen configuration leaves false: ① is an empty
-object, and the readings of ②-⑥ are compile-level or textual.  **Nothing here was executed** — no
-`int86`/`intdos`/`__dpmi_int`, no BIOS call, no far-pointer store, no mouse, no screen write, no
-`IT_*` entry point was ever called.  There is **no DJGPP-target compile and no layout
-measurement**: the arm flip is rustc on this machine with two `--cfg`s, and its 21 errors are
-**all** in the mirror graph or five names the mirrors lack — the unit's own text contributes none
-of its own.  The file's `#if` verdicts are `tools/check-cond-eval.py`'s (and it is `[VERIFIED]`
-for this file), not clang's.  C 1296-4350 is **not ported here**; the vacuously-passing
-`extract-abi.py --check`, the 5 missing names of Evidence ②, the 8 owed feature/row items and the
-59.4% of the file left are that boundary, not defects.  The `msdos` arm does not compile today,
-and that is the mirror graph's state, not this slice's.
+Every line of both slices sits behind gates the frozen configuration leaves false: Evidence ① is
+an empty object, and the readings of ②-⑥ are compile-level or textual.  **Nothing here was
+executed** — no `int86`/`intdos`/`__dpmi_int`/`_go32_dpmi_simulate_int`, no BIOS call, no
+far-pointer store, no mouse, no screen write, no keyboard map was ever consulted and no `IT_*`
+entry point was ever called.  There is **no DJGPP-target compile and no layout measurement**: the
+arm flip is rustc on this machine with two `--cfg`s, and its 53 errors are **all** in the mirror
+graph or the 22 names the mirrors lack — the unit's own text contributes none of its own (Evidence
+②).  The two `E0308`s that repair left behind are named in Deviations 25 rather than hidden.  The
+file's `#if` verdicts are `tools/check-cond-eval.py`'s (and it is `[VERIFIED]` for this file), not
+clang's.  C 2423-4350 is **not ported here**; the vacuously-passing `extract-abi.py --check`, the
+22 missing names of Evidence ②, the 11 owed items and the 26.2% of the file left are that
+boundary, not defects.  The `msdos` arm does not compile today, and that is the mirror graph's
+state, not these slices'.
