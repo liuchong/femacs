@@ -16,6 +16,8 @@ probe asks clang for one type's record layout in the arms below and prints what 
     spikes/gated-layout-probe.py 'struct frame' frame.h
     spikes/gated-layout-probe.py 'struct ns_display_info' nsterm.h objc
     spikes/gated-layout-probe.py 'struct frame' frame.h --write docs/baseline/frame-layout.tsv
+    spikes/gated-layout-probe.py 'struct font' font.h c --prelude lisp.h \
+        --write docs/baseline/font-layout.tsv      # `font.h` needs `lisp.h` first
 
 Arms: `frozen` (the baseline's own configuration), `x11` (`HAVE_WINDOW_SYSTEM` +
 `HAVE_X_WINDOWS`, through the machine's own X11 headers), `x11_ext` (the same plus the
@@ -102,10 +104,21 @@ def include_flags(lang: str, defs: tuple[str, ...]) -> list[str]:
     return out
 
 
-def run_clang(type_name: str, header: str, lang: str, defs: tuple[str, ...]) -> tuple[str, str]:
-    """`(layout-or-empty, errors)` for one arm."""
-    src = (f'#include <config.h>\n#include "{header}"\nint probe_size (void);\n'
-           f"int probe_size (void) {{ return (int) sizeof ({type_name}); }}\n")
+def run_clang(type_name: str, header: str, lang: str, defs: tuple[str, ...],
+              preludes: tuple[str, ...] = ()) -> tuple[str, str]:
+    """`(layout-or-empty, errors)` for one arm.
+
+    `preludes` are headers included between `config.h` and the probed header, in the order given:
+    some headers only parse after another one (`font.h` uses `Lisp_Object` and
+    `union vectorlike_header` from `lisp.h`, so `struct font` is unreadable without it - measured
+    3.505: `font.h` alone reports 20 errors in every arm).  The prelude is *C's own order* from
+    the file that includes it (`configure`/`lisp.h`), not an invention of the probe; which
+    translation unit reaches the type is the caller's judgement, and the run prints it.
+    """
+    src = ('#include <config.h>\n'
+           + "".join(f'#include "{h}"\n' for h in preludes)
+           + f'#include "{header}"\nint probe_size (void);\n'
+           + f"int probe_size (void) {{ return (int) sizeof ({type_name}); }}\n")
     with tempfile.TemporaryDirectory(prefix="gated-layout-") as tmp:
         unit = Path(tmp) / ("probe.m" if lang == "objc" else "probe.c")
         unit.write_text(src, encoding="utf-8")
@@ -213,6 +226,9 @@ def main() -> int:
                     help="derive each arm's (unit, shift, width) per flag member, plus the "
                          "member's nesting depth (0 = this record, >0 = a record nested in it), "
                          "instead of writing the raw byte:bits table")
+    ap.add_argument("--prelude", action="append", default=[], metavar="HEADER",
+                    help="a header included between config.h and the probed one, in "
+                         "the order given (C's own order where the probed header needs it)")
     ap.add_argument("--define", action="append", default=[], metavar="MACRO[=VALUE]",
                     help="add a third arm built from the frozen configuration plus these")
     ap.add_argument("--write", metavar="FILE", help="write the readings as a TSV")
@@ -228,7 +244,8 @@ def main() -> int:
     bit_table: list[tuple[str, str, str, str, str]] = []
     any_ok = False
     for arm, defs in arms:
-        block, errors = run_clang(args.type_name, args.header, args.lang, defs)
+        block, errors = run_clang(args.type_name, args.header, args.lang, defs,
+                                  tuple(args.prelude))
         print(f"## {arm}  {' '.join(defs)}".rstrip())
         if block:
             print(block)

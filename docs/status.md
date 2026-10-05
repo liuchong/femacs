@@ -9811,3 +9811,32 @@
      本条**不为它们的正确性说话**；`struct face` 的窗口臂断言用的是 `face-layout.tsv` 的**已测值**
      （clang 对 `x11`/`ns_cocoa`/`x11_ext` 三个臂），本条只把断言改成按臂取值，没有新测任何布局。
   ⑤ **预算**：`probe` 2 发、`layout-check` 2 发、`check-all-units` 1 发；`/tmp/mirror.py` 与两份日志收工删。
+
+- **3.506 镜像轮第三批之二：`struct font`/`struct font_driver` 的窗口臂断言按臂取值（2026-10-05）**：
+  ① **范围**：两条记录**已经**带着 C 323-395 / C 676-698 的 `HAVE_WINDOW_SYSTEM` 成员（`have_window_system`
+     门内），错的只是**断言**：窗口臂在 `src/fringe.rs` 的翻臂里读 `8 × E0080`（`size_of::<font>() == 184`、
+     `offset_of!(font, driver) == 176`、`size_of::<font_driver>() == 208` 与五个成员偏移）。读数的**来源**是新增
+     的两个实测基线（见 ②），不是猜的。
+  ② **工具与基线**：`spikes/gated-layout-probe.py` 新增 `--prelude HEADER`（**C 自己的 include 顺序**：
+     `font.h` 要用 `lisp.h` 的 `Lisp_Object`/`union vectorlike_header`，单读 `font.h` 在每个臂都报 20 条错——
+     3.505 实测），并用它产出 **`docs/baseline/font-layout.tsv`**（80 行）与
+     **`docs/baseline/font_driver-layout.tsv`**（121 行）：`font` 冻结 184/8 `driver`@176 → 三个窗口臂 216/8 @208，
+     八个成员 176/180/184/188/192/196/200/204；`font_driver` 冻结 208/8 `anchor_point`@112 → 三个窗口臂 232/8 @136，
+     三个成员 112/120/128（`harfbuzz` 的两个成员仍在最末，208 → 224，所以两个位移相加）。
+  ③ **改动**：断言加 `FONT_WS_SHIFT`（0/32）与 `FONT_DRIVER_WS_SHIFT`（0/24），臂内独有的成员另按实测偏移断言——
+     即 3.505 在 `dispextern.rs` 立下的 `FACE_WS_SHIFT` 形状。
+  ④ **读数**：同一条翻臂，**依次 38 → 24 → 13 → 5**（本条把 8 条 `E0080` 清零）；剩的 5 条是
+     `include/dispextern.rs` 四个延后的 X11 typedef（下一项，已在 `docs/ports/include-dispextern.md` 写明它与
+     需要的那条裁定）与 `include/systime.rs` 的一条——后者**不是镜像缺陷**：它断言的正是"feature 与 `config.rs`
+     常量同动"，忠实的翻法是 `xtask dead-arms`（3.434 已记）。
+  ⑤ **验收**：`layout-check` **passed**（冻结臂零位移，数字与改前逐条相同）、`check-all-units`
+     **83 unit(s), 0 failure(s)**、`check-mirror-dupes` 17/17/0、`check-declarations` 除两个 lane 的在飞行外 0 新增
+     （它当轮报的 1 条 `recital` 在 `femacs/lib/file-has-acl.rs`，是 ACL lane 的在飞文本）、`check-citations` 唯一 1 条
+     drift 在 `femacs/src/xsmfns.rs:428`（xsmfns lane 的在飞文本）、`check-dead-file-coverage` 77/0。
+  ⑥ **磁盘事故（如实记）**：本轮 `check-all-units` 首读 **26/30 failure(s)**，全部是
+     `No space left on device (os error 28)`（与本条改动无关；同轮六个 lane 也在写）；集成者清掉**本项目自己的可重建产物**
+     `build/femacs/units`（170 MB）与 `build/probes`（46 MB）后复跑 **83/0**（`build/emacs-ref` 的 61 MB
+     **未动**——那是验收基线的实测物）。当时 `/` 只剩 665 MB，其中 11 GB 在 `/tmp` 下**别的项目**的目录里
+     （`termini-*`、`intent-*`），本条**没有**碰它们。
+  ⑦ **未声称**：零运行证据；臂读数只是本机 rustc 的类型检查，本条不为那 5 条剩余错误说话；两个新基线是**C 侧**
+     clang 的读数（`--write` 的产物），端口侧的对应数字由断言覆盖，但**没有任何运行**验证过字体记录的真机行为。

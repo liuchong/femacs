@@ -134,7 +134,34 @@ pub struct font
   pub driver: *const c_void,
 }
 
-const _: () = core::assert! (std::mem::size_of::<font> () == 184);
+/* C 323-395's `HAVE_WINDOW_SYSTEM` members (`underline_thickness` … `repertory_charset`, the
+   eight the mirror already carries behind `have_window_system`) sit between `descent` and
+   `driver`, so `driver` and the record are thirty-two bytes further along in a window-system
+   build (`docs/baseline/font-layout.tsv`: `frozen` 184/8 with `driver`@176, `x11`/`ns_cocoa`/
+   `x11_ext` 216/8 with `driver`@208; the members themselves measure 176/180/184/188/192/196/
+   200/204).  The assertions add this shift rather than repeating a second table - the
+   `include/dispextern.rs` `FACE_WS_SHIFT` shape, status 3.505.  */
+#[cfg (not (feature = "have_window_system"))]
+const FONT_WS_SHIFT: usize = 0;
+#[cfg (feature = "have_window_system")]
+const FONT_WS_SHIFT: usize = 32;
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font, underline_thickness) == 176);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font, underline_position) == 180);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font, vertical_centering) == 184);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font, baseline_offset) == 188);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font, relative_compose) == 192);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font, default_ascent) == 196);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font, encoding_charset) == 200);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font, repertory_charset) == 204);
+const _: () = core::assert! (std::mem::size_of::<font> () == 184 + FONT_WS_SHIFT);
 const _: () = core::assert! (std::mem::align_of::<font> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (font, header) == 0);
 const _: () = core::assert! (std::mem::offset_of! (font, props) == 8);
@@ -146,7 +173,7 @@ const _: () = core::assert! (std::mem::offset_of! (font, space_width) == 160);
 const _: () = core::assert! (std::mem::offset_of! (font, average_width) == 164);
 const _: () = core::assert! (std::mem::offset_of! (font, ascent) == 168);
 const _: () = core::assert! (std::mem::offset_of! (font, descent) == 172);
-const _: () = core::assert! (std::mem::offset_of! (font, driver) == 176);
+const _: () = core::assert! (std::mem::offset_of! (font, driver) == 176 + FONT_WS_SHIFT);
 
 /* font.h 434-472: the predicates.  */
 #[inline(always)]
@@ -580,10 +607,27 @@ pub struct font_driver_list
 /// The two members above are the arm's only additions to the record, and both are function
 /// pointers: the record is 208 bytes without them and 224 with them.  Both numbers are clang
 /// measurements against the reference's own font.h (`-DHAVE_HARFBUZZ=1`, status 3.496).
+/* C 676-698's `HAVE_WINDOW_SYSTEM` members (`draw`, `get_bitmap`, `free_bitmap`, already carried
+   behind `have_window_system`) sit between `text_extents` and `anchor_point`, so every member
+   from `anchor_point` on - and the record - are twenty-four bytes further along in a
+   window-system build (`docs/baseline/font_driver-layout.tsv`: `frozen` 208/8 with
+   `anchor_point`@112, `x11`/`ns_cocoa`/`x11_ext` 232/8 with `anchor_point`@136; the three
+   members measure 112/120/128).  The `harfbuzz` arm's two members are last and add sixteen to
+   the size on top, so the two shifts compose.  */
+#[cfg (not (feature = "have_window_system"))]
+const FONT_DRIVER_WS_SHIFT: usize = 0;
+#[cfg (feature = "have_window_system")]
+const FONT_DRIVER_WS_SHIFT: usize = 24;
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font_driver, draw) == 112);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font_driver, get_bitmap) == 120);
+#[cfg (feature = "have_window_system")]
+const _: () = core::assert! (std::mem::offset_of! (font_driver, free_bitmap) == 128);
 #[cfg (not (feature = "harfbuzz"))]
-const _: () = core::assert! (std::mem::size_of::<font_driver> () == 208);
+const _: () = core::assert! (std::mem::size_of::<font_driver> () == 208 + FONT_DRIVER_WS_SHIFT);
 #[cfg (feature = "harfbuzz")]
-const _: () = core::assert! (std::mem::size_of::<font_driver> () == 224);
+const _: () = core::assert! (std::mem::size_of::<font_driver> () == 224 + FONT_DRIVER_WS_SHIFT);
 const _: () = core::assert! (std::mem::align_of::<font_driver> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, r#type) == 0);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, get_cache) == 16);
@@ -591,11 +635,11 @@ const _: () = core::assert! (std::mem::offset_of! (font_driver, list) == 24);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, r#match) == 32);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, close_font) == 64);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, text_extents) == 104);
-const _: () = core::assert! (std::mem::offset_of! (font_driver, otf_capability) == 120);
-const _: () = core::assert! (std::mem::offset_of! (font_driver, shape) == 152);
-const _: () = core::assert! (std::mem::offset_of! (font_driver, check) == 160);
-const _: () = core::assert! (std::mem::offset_of! (font_driver, cached_font_ok) == 184);
-const _: () = core::assert! (std::mem::offset_of! (font_driver, combining_capability) == 192);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, otf_capability) == 120 + FONT_DRIVER_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, shape) == 152 + FONT_DRIVER_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, check) == 160 + FONT_DRIVER_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, cached_font_ok) == 184 + FONT_DRIVER_WS_SHIFT);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, combining_capability) == 192 + FONT_DRIVER_WS_SHIFT);
 const _: () = core::assert! (std::mem::size_of::<font_driver_list> () == 24);
 const _: () = core::assert! (std::mem::align_of::<font_driver_list> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (font_driver_list, driver) == 8);

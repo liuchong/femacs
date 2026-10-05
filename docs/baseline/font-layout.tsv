@@ -1,0 +1,88 @@
+# struct font from font.h (c), read by
+# `spikes/gated-layout-probe.py struct font font.h c`:
+# the frozen build's generated config.h plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tdepth\toffset-or-bits.
+# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a
+# record nested inside it (the row is that record's, not this one's); `-` = not a
+# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.
+arm	member	depth	offset-or-bits
+frozen	sizeof struct font	-	184
+frozen	align struct font	-	8
+frozen	union vectorlike_header header	0	0
+frozen	ptrdiff_t size	1	0
+frozen	Lisp_Object[17] props	0	8
+frozen	int min_width	0	144
+frozen	int max_width	0	148
+frozen	int pixel_size	0	152
+frozen	int height	0	156
+frozen	int space_width	0	160
+frozen	int average_width	0	164
+frozen	int ascent	0	168
+frozen	int descent	0	172
+frozen	const struct font_driver * driver	0	176
+x11	sizeof struct font	-	216
+x11	align struct font	-	8
+x11	union vectorlike_header header	0	0
+x11	ptrdiff_t size	1	0
+x11	Lisp_Object[17] props	0	8
+x11	int min_width	0	144
+x11	int max_width	0	148
+x11	int pixel_size	0	152
+x11	int height	0	156
+x11	int space_width	0	160
+x11	int average_width	0	164
+x11	int ascent	0	168
+x11	int descent	0	172
+x11	int underline_thickness	0	176
+x11	int underline_position	0	180
+x11	_Bool vertical_centering	0	184
+x11	int baseline_offset	0	188
+x11	int relative_compose	0	192
+x11	int default_ascent	0	196
+x11	int encoding_charset	0	200
+x11	int repertory_charset	0	204
+x11	const struct font_driver * driver	0	208
+ns_cocoa	sizeof struct font	-	216
+ns_cocoa	align struct font	-	8
+ns_cocoa	union vectorlike_header header	0	0
+ns_cocoa	ptrdiff_t size	1	0
+ns_cocoa	Lisp_Object[17] props	0	8
+ns_cocoa	int min_width	0	144
+ns_cocoa	int max_width	0	148
+ns_cocoa	int pixel_size	0	152
+ns_cocoa	int height	0	156
+ns_cocoa	int space_width	0	160
+ns_cocoa	int average_width	0	164
+ns_cocoa	int ascent	0	168
+ns_cocoa	int descent	0	172
+ns_cocoa	int underline_thickness	0	176
+ns_cocoa	int underline_position	0	180
+ns_cocoa	_Bool vertical_centering	0	184
+ns_cocoa	int baseline_offset	0	188
+ns_cocoa	int relative_compose	0	192
+ns_cocoa	int default_ascent	0	196
+ns_cocoa	int encoding_charset	0	200
+ns_cocoa	int repertory_charset	0	204
+ns_cocoa	const struct font_driver * driver	0	208
+x11_ext	sizeof struct font	-	216
+x11_ext	align struct font	-	8
+x11_ext	union vectorlike_header header	0	0
+x11_ext	ptrdiff_t size	1	0
+x11_ext	Lisp_Object[17] props	0	8
+x11_ext	int min_width	0	144
+x11_ext	int max_width	0	148
+x11_ext	int pixel_size	0	152
+x11_ext	int height	0	156
+x11_ext	int space_width	0	160
+x11_ext	int average_width	0	164
+x11_ext	int ascent	0	168
+x11_ext	int descent	0	172
+x11_ext	int underline_thickness	0	176
+x11_ext	int underline_position	0	180
+x11_ext	_Bool vertical_centering	0	184
+x11_ext	int baseline_offset	0	188
+x11_ext	int relative_compose	0	192
+x11_ext	int default_ascent	0	196
+x11_ext	int encoding_charset	0	200
+x11_ext	int repertory_charset	0	204
+x11_ext	const struct font_driver * driver	0	208

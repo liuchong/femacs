@@ -239,3 +239,32 @@
   **exit 0**: `src/pgtkim.rs` (`have_pgtk` + `have_gtk3`, 14,083,208-byte rlib) and
   `src/hbfont.rs` (`harfbuzz`, 14,580,952-byte rlib); `layout-check` passes and
   `tools/check-all-units.sh` is **83/0 + 83/0**.
+
+## 2026-10-05: the two records' window-system arms are read per arm (3.506)
+
+`struct font` and `struct font_driver` already carried C 323-395's and C 676-698's
+`HAVE_WINDOW_SYSTEM` members behind `have_window_system`; what was frozen-only was the
+*assertions*: the arm read `8 x E0080` on them (`size_of::<font>() == 184`,
+`offset_of!(font, driver) == 176`, `size_of::<font_driver>() == 208` and five member offsets),
+which is every window-system arm's reading (`src/fringe.rs`'s flip, status 3.501/3.505).
+
+The numbers were not in the tree, so they were measured with the tree's own producer:
+`spikes/gated-layout-probe.py` gained `--prelude HEADER` (C's own include order - `font.h` uses
+`Lisp_Object` and `union vectorlike_header` from `lisp.h`, so `struct font` is unreadable without
+it: the header alone reports 20 errors in every arm), and the two readings are pinned as
+`docs/baseline/font-layout.tsv` and `docs/baseline/font_driver-layout.tsv`:
+
+* `struct font`: `frozen` 184/8 with `driver`@176; `x11`/`ns_cocoa`/`x11_ext` 216/8 with
+  `driver`@208, the eight members at 176/180/184/188/192/196/200/204.
+* `struct font_driver`: `frozen` 208/8 with `anchor_point`@112; the three arms 232/8 with
+  `anchor_point`@136, the three members at 112/120/128.  The `harfbuzz` members stay last
+  (208 -> 224), so the two shifts compose.
+
+The assertions now add `FONT_WS_SHIFT` (0/32) and `FONT_DRIVER_WS_SHIFT` (0/24), with the
+arm-only members asserted at their measured offsets - the `include/dispextern.rs`
+`FACE_WS_SHIFT` shape of status 3.505.  Same flip, in order: `38` errors when `src/fringe.rs`
+landed, `24` after 3.505's two `dispextern.rs` fixes, `13` after its `estimate_mode_line_height`
+decl, and `5` after this one - the five are the four deferred X11 typedefs of
+`include/dispextern.rs` (next item, `docs/ports/include-dispextern.md`) and one `E0080` in
+`include/systime.rs` whose faithful form is `xtask dead-arms` (it asserts that the feature and
+the `config.rs` constant move together), not a mirror defect.
