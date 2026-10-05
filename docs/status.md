@@ -9125,3 +9125,43 @@
   ⑦ **预算**：`probe` **1 发**（限 3）、`build-tu` **0 发**本段；未跑 `--all`/`gate-fast`/`cargo test`/
      `check-all-units.sh`（本段改的是单元与棘轮，不是镜像）；`/tmp/femacs-sweep` 复用作 `CARGO_TARGET_DIR`，
      只多出一只 `gfn.rlib`/`gfn.log`，收工前删。
+
+- **3.487 `src/sqlite.c` 整文件落地（C 1-933，最"看不见"的那类文件之一），集成者替 lane 落账（2026-10-05）**：
+  ① **范围与块**：`femacs/src/sqlite.rs` **76 → 1311 行**（md5 `ba31bdb4a3b52241987f50b1985df81e`），台账
+     `docs/ports/sqlite.md` 42 → 406 行；`emacs/src/sqlite.c` 未动（933 行 / md5 `562721b531a2037eceae53b5ce9d8ace`）。
+     32 行 C 区间表连续覆盖 C 1-933；文件门 `have_sqlite3`（macros.tsv 1551 = undef），**正文整身照录**（P-86 ①），
+     `<sqlite3.h>` 的 28 个入口 + 3 类型 + 18 常量按 P-88 ① 就地声明并 clang 实测（`Lisp_SQLite` = 48/8，
+     `db`@8 `stmt`@16 `name`@24 `finalizer`@32 `eof`@40 `is_statement`@41）。
+     **旧 P-08 的"正文不必写"结论撤回**——`sqlite.c` 的尾巴 C 858-933 是**活的**（`sqlitep`/`sqlite-available-p`/
+     `syms_of_sqlite`），参照自己冻结编出的对象是 **7736 字节、五个符号**，不是空对象。
+  ② **读数（lane 跑的，我复跑了两条关键的）**：⑴ lane：冻结 `build-tu` exit 0 / `build/femacs/sqlite.o`
+     **3640 字节**，且改写前后**同尺寸同 sha256**；翻臂
+     `probe src/sqlite.rs … --cfg 'feature="have_sqlite3"' …（8 个门全开）` → **exit 0 / 0 error / 4 warnings /
+     rlib 8,624,064 字节**；变异实测（把 `row_to_value` 的 `sqlite3_column_count` 返回类型改错）→ 2 × `E0308`、
+     无 rlib，证明"0 错"不是空读数。⑵ **我复跑**：`build-tu src/sqlite.c` → **exit 0 / 3640 字节 /
+     sha256 `f7a85883d822bccb…`**，与 lane 的读数逐字节一致；`extract-abi --check emacs/src/sqlite.c
+     femacs/src/sqlite.rs` → **OK（0 条 `-` 行）**。
+  ③ **集成者替 lane 落的账（本轮全清）**：⑴ `femacs/xtask/Cargo.toml` 登记 **8 个 feature**
+     （`have_sqlite3`、`have_sqlite3_load_extension`、`sqlite3_dbconfig_enable_load_extension`、
+     `sqlite_version_number_ge_3007015`/`…3006005`、`sqlite_open_fullmutex`/`_uri`/`_memory`）；
+     **同时预登记 `src/kqueue.c` 那条 lane 的 5 个**（`have_kqueue`、`no_getrlimit`、`no_o_evtonly`、
+     `no_o_symlink`、`no_ev_enable`）——lane 不许动 `xtask/**`，而那条 lane 的翻臂要用它们。
+     ⑵ `docs/ports/line-drift-tolerance.tsv` 追加 **`sqlite` 0.41 / `total`** 行（C 933 total vs Rust 1311，
+     40.5% 漂移，本表 `measured + 0.01` 形状；旧的 `live` 0.3 行按 append-only 留着，最新行说话）。
+     ⑶ `check-port-lines --write-pending`：61 行/3 陈 → **58 行/0 陈、58 文件/74,423 参考行**
+     （`src/sqlite.c` 本来就不在清单里；撤下的是三条在飞 lane 文件的行，见 `docs/ports/sqlite.md` `## Owed` 3）。
+     ⑷ `feature-coverage.py --write` → **848 feature(s)、841 never enabled**（也收进了在飞单元的 cfg 面）。
+  ④ **门读数**：`check-mirror-dupes` **17/17/0**、`check-declarations` **10 declaration sites / 0 forbidden /
+     0 failures**、`check-citations` **676 文件 / 0 drift / 731 external / 35 allowed**、
+     `check-dead-file-coverage` **56 绑定 / 0 failure**、`check-ledger-ticks` **234 / 0**、
+     `check-target-names` **629 .rs / 591 targets / 0 finding**、`check-port-lines` 58/0。
+  ⑤ **点名归属（不在本轮做）**：`encode_string_utf_8` → `include/coding.rs`；`strcasecmp` → `<strings.h>` 的
+     镜像轮（三处消费单元：`src/term.rs` 209、`src/sysdep.rs` 731、本件）；**下一个活定义 `load_dll_functions`
+     （C 159-195，28 条 `LOAD_DLL_FN`）**卡在 P-22（`DEF_DLL_FN` 的 Rust 形状，`include/w32common.rs` 173-183
+     已 deferred）；`<sqlite3.h>`/`<windows.h>` 按设计无镜像（P-88 ① / `nt/inc/include/` 惯例）。
+  ⑥ **未声称**：**零运行证据**——没有开库、没有 prepare/bind/step/finalize、没有 `load_extension`、没有一次
+     Lisp 调用；翻臂编的是单元自带的 `<sqlite3.h>` 替身面，**没有链接 `libsqlite3`**，所以那个 "0 error" 是
+     名字+类型读数（弱于对真库的构建）；`windowsnt` 臂 C 46-196 / 201-221 / 874-882 仍是 **`text-only`**
+     （本机没有 Windows/mingw 工具链）；冻结对象那 3640 字节是"整身都在门内"的读数，对正文一字未证。
+  ⑦ **预算**：lane：`build-tu` 3/3、`probe` 3/3；集成者：`build-tu` **1 发**（复跑复核）、gate 脚本各 1 发；
+     未跑 `--all`/`gate-fast`/`cargo test`/`check-all-units.sh`（本段改的是单元+登记+棘轮，不是镜像）。
