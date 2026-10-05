@@ -1370,6 +1370,70 @@ def c_live_lines(c_path: Path, total: int) -> int:
     return n or total
 
 
+_REFERENCE_SYMBOLS: dict[str, set[str]] | None = None
+_REFERENCE_RENAMES: list[tuple[str, str]] | None = None
+
+
+def reference_source_key(path: Path) -> str:
+    """The reference-relative key the two `docs/baseline/reference-*` tables use."""
+    parts = path.as_posix().split("/")
+    if "emacs" in parts:
+        parts = parts[parts.index("emacs") + 1:]
+    return "/".join(parts)
+
+
+def reference_object_symbols(path: Path) -> set[str]:
+    """The symbols the frozen build's own object for `path` exports.
+
+    The authoritative answer to "does the reference define this symbol": gnulib's wrapper
+    shape (`lib/endian.c` is eleven lines that include the header whose inline definitions
+    the object exports), the `_gl_*` renames of `lib/malloc/*.c` and the `#include`d
+    translation units of `lib/regex.c` all put the definition somewhere the source text of
+    the file does not show.  `tools/gen-reference-symbols.py` harvests the table from the
+    objects and their deps; `docs/status.md` 3.67 gives the object that authority.
+    """
+    global _REFERENCE_SYMBOLS
+    if _REFERENCE_SYMBOLS is None:
+        _REFERENCE_SYMBOLS = {}
+        table = HERE.parent / "docs" / "baseline" / "reference-symbols.tsv"
+        try:
+            text = table.read_text(encoding="utf-8")
+        except OSError:
+            text = ""
+        for line in text.splitlines():
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                _REFERENCE_SYMBOLS.setdefault(parts[0], set()).add(parts[1])
+    return _REFERENCE_SYMBOLS.get(reference_source_key(path), set())
+
+
+def reference_rename_pairs() -> list[tuple[str, str]]:
+    """`(name, rpl_name)` for the renames the frozen build's generated headers spell.
+
+    Answers for a source the frozen build does not compile at all (`lib/gettimeofday.c`,
+    `lib/pthread_sigmask.c`): their rename lives in the generated `<sys/time.h>`/`<signal.h>`,
+    never in the file's own text.  The caller still requires the left-hand name to be a
+    function the reference itself defines, so this cannot accept an arbitrary macro.
+    """
+    global _REFERENCE_RENAMES
+    if _REFERENCE_RENAMES is None:
+        _REFERENCE_RENAMES = []
+        table = HERE.parent / "docs" / "baseline" / "reference-renames.tsv"
+        try:
+            text = table.read_text(encoding="utf-8")
+        except OSError:
+            text = ""
+        for line in text.splitlines():
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                _REFERENCE_RENAMES.append((parts[0], parts[1]))
+    return _REFERENCE_RENAMES
+
+
 def line_drift_rule(rs_path: Path, default: float = 0.05) -> tuple[float, str]:
     """The line-count tolerance and baseline for a ported file.
 
@@ -2183,10 +2247,19 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             # Neither name appears in the raw text as a definition, so a rename target counts as
             # a real symbol when the word it replaces is itself a function the reference defines
             # (that is what keeps this from accepting every macro in the tree).
-            for word, target in re.findall(r"#\s*define\s+(\w+)\s+(\w+)\s*$", c_source, re.M):
+            renames = re.findall(r"#\s*define\s+(\w+)\s+(\w+)\s*$", c_source, re.M)
+            # ... and the same rename spelled by the frozen build's *generated* headers, for the
+            # sources whose own text has it nowhere (`lib/pthread_sigmask.c`).
+            renames += reference_rename_pairs()
+            for word, target in renames:
                 if word in known:
                     known.add(target)
             invented -= known
+        # The object the frozen build produced is the authority wherever one exists (status
+        # 3.67): it is what the linker sees, and it names the symbol even when no source text
+        # in the reference tree does (the gnulib wrapper/rename shapes above).
+        if invented:
+            invented -= reference_object_symbols(c_path)
         for symbol in sorted(invented):
             name = symbols[symbol]
             where = (f"fn {name} carries #[unsafe(no_mangle)] and exports `{symbol}`, but the "

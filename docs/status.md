@@ -11605,3 +11605,33 @@
      `WHITE_PIX_DEFAULT`/`enter_crit!`/`leave_crit!` 展开所需的三个 `<windows.h>` 名（Owed 7）、以及 `w32output` 之外
      其余镜像族（`w32gdiplus.rs` 29 处、`w32inevt.rs` 19/27/28、`frame.rs` 329 的 `compile_error!`、`character.rs` 的
      `lisp.h` 边、`systime.rs`/`htfont.rs`/`haiku_support.rs`/`msdos.rs` 四件）**本批未动**。
+
+- **3.576 工具更正 + 两条新基线：`invented exported symbol` 这一类是**工具的假阳性**，由冻结构建自己的目标文件作证（`--all` 从 532 done/55 failing → 555 done/32 failing）（2026-10-05）**：
+  ① **症状**：`--all` 里有 **50 条 `carries #[unsafe(no_mangle)] and exports … but the reference does not
+     define a non-static function of either name`**，散在 **23 件**里（`lib/endian.c` 12 条、`lib/regcomp.c`/`lib/regexec.c`
+     各 6、`src/regex-emacs.c` 5、`lib/malloc/*` 8、其余 12 件各 1-2）。
+  ② **判据（不是推理，是量出来的）**：对每条 finding 的名字跑 `nm -g build/emacs-ref/<同名>.o`，**36/36 个符号都在参考对象里**
+     （`T _rpl_endian_be16toh`、`T _rpl_regcomp`、`T _gl_dynarray_at_failure` …）⇒ **端口是对的，是检查器的源文本模型不够**：
+     ⑴ `lib/endian.c` 只有 11 行，真正的定义在它 include 的头部里（`_GL_EXTERN_INLINE` 那个模式），而重命名
+     `# define be16toh rpl_endian_be16toh` 写在**生成的** `build/emacs-ref/lib/endian.h` 里，参照树里没有；
+     ⑵ `lib/regcomp.c`/`lib/regexec.c` 被 `lib/regex.c` 包含，符号在 `regex.o` 里；
+     ⑶ `lib/gettimeofday.c`/`lib/pthread_sigmask.c` **根本不在冻结构建的源表里**（无对象），它们的重命名在生成的
+     `<sys/time.h>`/`<signal.h>` 里（`# define pthread_sigmask rpl_pthread_sigmask`）。
+     `--check` 原有的两条启发（`_GL_*_INLINE` 分支只读**参照树**的头部；rename 链只扫**本文件文本**）因此都够不着。
+  ③ **修法（两条基线 + 一个生成器，`tools/` 与 `docs/baseline/` 属集成者）**：
+     ⑴ 新增 `tools/gen-reference-symbols.py --write`，从 `build/emacs-ref` 的 **162 个对象 + 它们的 `deps/*.d`**
+     生成 **`docs/baseline/reference-symbols.tsv`**（`<参照源路径>\t<该对象导出的符号>`，Mach-O 前导 `_` 去掉；
+     `deps` 段按对象自己的位置还原，所以 `lib/deps/malloc/x.d` → `lib/malloc/x.o`）——**169 个源、4,799 行**；
+     并从生成的头部生成 **`docs/baseline/reference-renames.tsv`**（`<名字>\t<rpl_* 新名>`，252 行）。
+     ⑵ `tools/extract-abi.py`：invented 判定的两条启发之后**再查对象符号表**（"冻结构建自己的对象是权威"，与
+     `docs/status.md` 3.67 给对象的口径一致），rename 链**并上生成头部的重命名对**（仍然要求左边的名字**是参照自己定义的函数**，
+     所以它不可能放过一个随意的宏）。
+  ④ **读数**：这 23 件**逐个复跑 `--check`：23 OK / 0 FAIL**（改前 23 FAIL）；`--all` 由 **532 done / 3 wip / 55 failing**
+     → **555 done / 3 wip / 32 failing**；`extract-abi --selftest` **12 case + 4 token case / 0 failure**（改前改后同）；
+     七道文本门现读全绿（`check-mirror-dupes` 17/17/0、`check-citations` 0 drift/0 stale、`check-declarations` 0 failures、
+     `check-dead-file-coverage` 143/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0）。
+     **本提交没有改任何一个移植文件** —— 是工具把对的东西判错了。
+  ⑤ **未声称**：基线只覆盖**冻结构建编出来的东西**（169 个源；590 件里的大多数对象不存在）；那 2 件无对象的源是**由重命名表**
+     兜住的（不是对象读数）；本件**没有编译、没有链接、没有运行任何东西**（读数全是 `nm` 与文本分析）；
+     剩下的 **32 件 failing + 3 件 WIP** 才是真正的移植欠账（`image.rs`/`sfnt.rs`/`w32term.rs`/`xdisp.rs`/`xterm.rs`
+     等五条 lane 正在落）。
