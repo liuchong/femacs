@@ -1,4 +1,4 @@
-locate.rnc, relaxng.rnc, and schemas.xml are part of Emacs.  They are
+locate.rnc, relaxng.rnc, and schemas.xml are part of femacs.  They are
 used by nXML mode for mapping schemas to documents.
 
 The remaining files in this directory are schema for a variety of

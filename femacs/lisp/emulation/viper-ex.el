@@ -1901,7 +1901,7 @@ reversed."
 	     (princ "
 The Info file for Viper does not seem to be installed.
 
-This file is part of the standard distribution of Emacs.
+This file is part of the standard distribution of femacs.
 Please contact your system administrator. ")))))
 
 (defun ex-adjust-window ()

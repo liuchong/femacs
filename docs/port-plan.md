@@ -274,4 +274,6 @@ python3 tools/extract-abi.py --all
 git -C emacs status --short          # 必须为空
 diff -r emacs/lisp femacs/lisp       # 必须无差异（原样复制校验）
 python3 tools/check-verbatim.py      # 同一件事的机器门：六棵照抄树，清单 + 内容
+python3 tools/check-verbatim-declarations.py
+                                     # 同一件事的另一半：照抄树里的归属声明普查（改名/登记/失败，0.1-19 第十四半）
 ```

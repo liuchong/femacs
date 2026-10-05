@@ -13379,3 +13379,53 @@
   ④ **⇒ 下一步（有现成 oracle 了）**：⑴ **把"端口 dump 可复现"当成新增的验收判据**（连做两次 dump ⇒ `cmp` 必须 0；现在 302）——它便宜、确定、不需要跑起来；⑵ 从 ⑶⑷ 两类入手找写侧：**无序容器的遍历顺序**（`ctx->hash_tables` 的 `Fvconcat` 顺序、或某处对 *hash 表* 的遍历）与**同一个字段里的每跑值**（像 **hash 缓存/`sxhash` 之类**被写进了 dump：C 既然能 0 差异，说明 C 不会把这些写进去）；⑶ 再对 COLD 段那两串核对是不是端口**多写了**某些字段（例如把 `Lisp_Symbol`/`Lisp_Hash_Table` 的"运行期缓存字段"C 不 dump 而端口 dump 了）。**修好后 ① 的 `cmp` 就是回归测试。**
   ⑤ **未声称**：**没有**定位到具体写侧代码（只有 ②③ 的段/形状读数）；**没有**证明"修好 dump 可复现"就等于"L3 稳定"（3.654 的 `index_bits` 被写坏是**发生在装载之后**，与 dump 内容**同类但不必然同因**）；L3 稳定性仍未达成；`.elc`/`make check`/L4-L5 未动；本轮**无源码改动**（`git diff` 为空）。
   ⑥ **预算**：`temacs` 2 发（参照侧）、端口 dump 2 发、`cmp`/解码 3 发；`/tmp/a.pdmp`、`/tmp/b.pdmp`、`/tmp/ref_dump_*.pdmp`、`/tmp/refdump*.log` 收工删；`build/femacs/emacs.pdmp` 仍是与二进制配对的那一份。
+
+- **3.656 版本声明的第十四半：照抄树这一面第一次有"声明"读者——818 处候选逐条归类、4 处漏网收口、108 处手册成员句登记为"真声明"（2026-10-06）**：
+  ① **来源与入口**：用户的长期指令（"版本声明不要再说是 gnu emacs 了……**把之前的代码中的这种声明也去掉**"）经第五（3.433）、
+     第七（3.503）、第八（3.599）、第九（3.613）、第十（3.619）、第十一（3.632）、第十二（3.641）、第十三（3.648）半逐面推进后，
+     本半的入口不是"哪一句还说自己是参照产品"，而是**"照抄树这一面根本没有声明读者"**：`tools/check-verbatim.py` 只问
+     "逐字节相同吗"（它读替换表只为了"一行要不同就必须有行"），于是"照抄文件里的一句归属声明没被改名"对每一道门都不可见；
+     更糟的一半是**重新从参照拷一份文件回来会静默通过**（逐字节相同），同时把那句声明带回来。
+  ② **普查（本轮现读）**：判据=**形状**，不是单词——"产品名（含裸 `Emacs`）+ 归属谓词（`part of`/`annex of`/`belongs to`）
+     + 主语是本仓库的某样东西（`This`/`These`/`The following`/`They`/某个文件名）"。六棵照抄树共 **818 处候选**，逐条归类：
+     **653 处**在 `test/`（goal 文本禁止改测试文件）、**38 处**在 `ChangeLog*`/`NEWS*`/`HISTORY`（把这句话当**历史**引用）、
+     **13 处**是否定句（`is not a part of …` / `not considered part of …`——改它就是写一句假话）、
+     **114 处**是**真声明**（见 ④）、**0 处未分类**。
+  ③ **实改 4 处（这条规则的漏网）**：第十一半/第十二半的匹配是**逐行精确**（`This file is part of <参照产品>.` 一族），
+     主语换成别的词就整片漏掉。本轮实改的四行是 ⑴ `etc/images/README:23` 与 `etc/images/gnus/README:3`
+     （`* The following icons are part of Emacs.  All are licensed under the`——主语是"这些图标"）、
+     ⑵ `etc/schema/README:1`（`locate.rnc, relaxng.rnc, and schemas.xml are part of Emacs.  They are`——主语是文件名清单）、
+     ⑶ `lisp/emulation/viper-ex.el:1904`（Viper 的 `ex` 在 Info 文件缺失时**打印**给用户的那句话
+     `This file is part of the standard distribution of Emacs.`——属第十半"程序自己打印/写出的名字"那一类）。
+     字形与第十一半**逐字同形**（**只换产品名那一个 token，其余字符一个都不动**），四行逐行写进
+     `docs/baseline/verbatim-substitutions.tsv`（1,815 → **1,819** 行）；读数 `python3 tools/check-verbatim.py` →
+     **`6 trees, 4604 files, 1819 sanctioned line(s), 0 failures`**（`lisp` 1,612→**1,613**、`etc` 119→**122**，其余三棵不变），
+     `--selftest` 7 例 / 0 失败。
+  ④ **新门与第二张表**：`tools/check-verbatim-declarations.py`（照抄树这一面第一台**声明**读者）+
+     `docs/baseline/verbatim-declaration-keeps.tsv`（**114 行**，五列：路径/行号/该行原文/类/理由）。门的四类判定是
+     `forbidden-tree`/`history`/`negation`/`enumerated`，此外**还看得见字节门看不见的那一种**：某一行已被替换表覆盖、
+     却仍然写着产品名（"文件被重新拷回来了"，替换表与树此刻互相矛盾）；两条方向都读——候选必须被归类，**登记行也必须被读到**
+     （原文对不上、行不再存在、或那一行根本不是候选，三种都失败）。读数 **`818 candidate(s), 114 enumerated keep(s),
+     818 classified, 0 failure(s)`**、`--selftest` **9 例 / 0 失败**（含一例**真树端到端**读数：真 `lisp/` 树 32 处候选、0 未分类）。
+     判别力实测：把一行的原文改一个字符 ⇒ `the keep row's text is …`；把某行改回参照的写法 ⇒ 该行重新成为候选、命中
+     "替换表与树矛盾"那条。另一侧 `tools/check-declarations.py` 把它加进 `TOOL_EXEMPT`（**只放 `literal` 一类**：
+     它的模式表与自测夹具按本职必须写出产品名；`decl`/`title`/`recital` 仍绑它——首轮真跑就报了 1 条 `title`，
+     那句注释已改写），读数不变 **`17 declaration sites (0 forbidden, 17 allowed literals), 0 failures`**、`--selftest` 53 例 / 0 失败。
+  ⑤ **按判据"不动"的一类，点名，不冒充已清**：**手册成员句 108 处**——`@c This is part of the Emacs manual.` **54**
+     （`doc/emacs/` 53 + `doc/misc/trampver.texi` 1）、`@c This is part of the GNU Emacs Lisp Reference Manual.` **52**（`doc/lispref/`）、
+     `doc/emacs/maintaining.texi:1` 一行里的**两句**、`doc/misc/autotype.texi:2` 的 `@c This is an annex of the Emacs manual.`（**1**）。
+     理由（第十二半 3.641 判过，本轮复量后维持）：这句话的主语是**本文件**、宾语是**手册这一文档**，而那本手册**逐字摆在
+     同一棵树里**、它自己的 `@settitle`（`doc/emacs/emacs.texi:4` 与 `doc/lispref/elisp.texi:19/127`）写着自己的名字 ⇒
+     **只换这句话的 token** 会让文件声称属于一本**树里没有的书**，并把参照的手册说成本仓库的（`改它就是写一句假署名`）。
+     要清这一类，动的是**手册自己的标题**，而 `doc/` 里带产品名的叙述有 **934 行** ⇒ 属第九、第十半的"叙述"那一类。
+     本半把它**逐行登记**（`manual-membership` 类 108 行），位置、原文、理由都能复算——**决定留给你**。
+     同样点名两条**换行句**（`doc/emacs/emacs-xtra.texi:14` 与 `:87`，主语在上一行、本行只剩 `are part of the … manual.`）：
+     它们落在本门的**形状界外**（界写在门的模块文档里），不当成已分类。
+  ⑥ **未声称**：本轮**一枚都没编译、一个程序都没跑**（`build-tu`/`probe`/`check-link`/`cargo` 全 0 发），以上全是**文本读数**；
+     `test/` 的 651 处按 goal 文本**不动**；`ChangeLog*`/`NEWS*` 的 38 处是历史引用；⑸ 的 108 处**仍在树里**。
+  ⑦ **其余文本门（本轮现读，全绿）**：`check-citations` 676 文件/0 drift/0 range/1991 external/36 allowed/0 stale、
+     `check-carried` 11 文件/11 行/4 例外/0、`check-mirror-dupes` 16/16/0、`check-ledger-ticks` 238 绑定/0/352 无 tick 行、
+     `check-port-lines` 0/0/0/0、`check-target-names` 629 文件/591 目标/0、`check-defvar-carriers` 651/651/0、
+     `check-dead-file-coverage` 145/0、`check-do-while` 152 单元/0、`check-octal-literals` 623 文件/0。
+  ⑧ **预算**：`check-verbatim` 2 发、`check-verbatim-declarations` 12 发（含自测与三轮修复）、`check-declarations` 4 发、
+     其余文本门 10 发、普查脚本 4 发；`/tmp` 的 3 个脚本与读数文件收工删；**无源码/无门解释器改动进入被移植树**。

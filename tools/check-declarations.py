@@ -245,7 +245,12 @@ TOOL_CLASSES = ("decl", "version", "title", "literal")
 # notation, not a statement about this repository; `decl`, `title` and `recital` still bind
 # both files, and every run prints what was left rather than dropping it silently.
 TOOL_EXEMPT = {"tools/check-declarations.py": ("literal", "version"),
-               "tools/cinventory.py": ("literal",)}
+               "tools/cinventory.py": ("literal",),
+               # 3.656: the census over the six copied trees filters on the product's
+               # readable names, so its pattern table and its selftest fixture write them
+               # down; `decl`, `title` and `recital` still bind the file (the run below
+               # showed both - the two literals are this row, the comment was reworded).
+               "tools/check-verbatim-declarations.py": ("literal",)}
 # `// femacs: port of src/buffer.c @ fd7afced403 (GNU Emacs 32.0.50).` - the form
 # 0.1-19 removed.  The rule keeps the revision and drops the parenthetical.
 # The removed form: the revision followed by a parenthetical that names the

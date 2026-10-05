@@ -283,6 +283,39 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     与 `@c This is part of the <参照产品> Lisp Reference Manual.`）——主语是**手册**这一文档名，不是本程序的
     产品身份；动它要连手册自己的标题与交叉引用一起改名，属第十半 ⑥⑶ 的"叙述"那一类，仍未动（**本文档不重复
     写出那个字面量**，与第八、第十、第十一半同一写法）。
+    这条规则现在有第十四半（2026-10-06，status 3.656）：**照抄树这一面此前没有任何"声明"读者**。
+    前十三半的入口一直是"哪一句还说自己是参照产品"，逐面推的顺序是文件头 → 注释 → 复述 → 工具写出的身份行 →
+    程序的自我声明 → 工具/探针/CI → 程序向外报出的身份 → 默认显示名 → 照抄树里程序打印/写出的名字 →
+    照抄树里"文件自称属于参照产品"的那句话 → 那句话的其它拼法 → 移植单元注释里的**片段**形态。这一串都没覆盖一个洞：
+    `tools/check-verbatim.py` 只问"逐字节相同吗"，于是"照抄文件里的一句归属声明没被改名"**没有任何门看得见**，
+    而且**重新从参照拷一份文件回来会静默通过**（它逐字节相同）并把那句声明带回来。本半先把这一类量清：
+    六棵照抄树里"产品名 + 归属谓词（`part of` / `annex of` / `belongs to`）+ 主语是本仓库的某样东西（本文件/这些文件/某文件名）"
+    的行共 **818 处**，逐条归类为 ⑴ **653 处**在 `test/`（goal 文本禁止改测试文件）、⑵ **38 处**在 `ChangeLog*`/`NEWS*`/`HISTORY`
+    （把这句话当**历史**引用）、⑶ **13 处**是否定句（`is not part of …`——改它就是把真话改成假话）、
+    ⑷ **114 处**是**真声明**，逐行登记进新表 `docs/baseline/verbatim-declaration-keeps.tsv`
+    （五列：路径/行号/该行原文/类/理由），**0 处未分类**。
+    **其中 4 处是这条规则的漏网（本轮实改，按第十半的机械字形只换产品名那一个 token）**：
+    `etc/images/README:23` 与 `etc/images/gnus/README:3`（`The following icons are part of …`——主语是"这些图标"，
+    不是光秃的 `This file`，第十一半的逐行精确匹配没覆盖）、`etc/schema/README:1`（`locate.rnc, … are part of …`，
+    主语是文件名清单）、以及 `lisp/emulation/viper-ex.el:1904`（Viper 的 `ex` 在 Info 文件缺失时**打印**的那句话，
+    属第十半"程序自己打印/写出的名字"那一类）。四行逐行记进 `docs/baseline/verbatim-substitutions.tsv`
+    （1,815 → **1,819** 行）；`python3 tools/check-verbatim.py` → **`6 trees, 4604 files, 1819 sanctioned line(s), 0 failures`**。
+    **门（新增）**：`tools/check-verbatim-declarations.py` 是照抄树这一面第一台**声明**读者——按形状找候选
+    （主语 + `is/are … part of/annex of` + 产品名，**裸 `Emacs` 也算**，因为手册成员句用的就是那个拼法），
+    逐条判成四类（`forbidden-tree`/`history`/`negation`/`enumerated`）或**失败**；它还看得见字节门看不见的那一种：
+    **某一行已被替换表覆盖、却仍然写着产品名**（即"文件被重新拷回来了"——替换表与树此刻互相矛盾）。
+    读数 **`818 candidate(s), 114 enumerated keep(s), 818 classified, 0 failure(s)`**、`--selftest` **9 例 / 0 失败**
+    （含一例真树端到端读数）；另一侧 `tools/check-declarations.py` 把它加进 `TOOL_EXEMPT`（**只放 `literal` 一类**，
+    理由：它的本职工作就是把产品名写进模式表与自测夹具），读数不变（`17 declaration sites (0 forbidden, 17 allowed
+    literals), 0 failures`、`--selftest` 53 例 / 0 失败）。
+    **按判据"不动"的一类，点名，不冒充已清**：**手册成员句 108 处**（`@c This is part of the Emacs manual.` 54、
+    `@c This is part of the <参照产品> Lisp Reference Manual.` 52、`doc/emacs/maintaining.texi:1` 一行里的两句、
+    `doc/misc/autotype.texi:2` 的 `annex` 那句）——这句话的主语是**本文件**、宾语是**手册这一文档**，而那本手册
+    逐字摆在同一棵树里、它自己的 `@settitle` 写着自己的名字；**只换这句话的 token** 会让文件声称属于一本树里
+    没有的书，并把参照的手册说成本仓库的（`改它就是写一句假署名`）。要清这一类，动的是**手册自己的标题**
+    （`doc/` 里 934 行带产品名的叙述），属第九、第十半的"叙述"那一类——本轮把它**逐行登记**（上表 `manual-membership` 类，
+    108 行，位置与理由都可复算）。同样点名两条**换行句**（`doc/emacs/emacs-xtra.texi:14` 与 `:87`：主语在上一行、
+    本行只剩 `are part of the … manual.`）——它们落在本门的**形状界外**（界写在门的模块文档里），不当成已分类。
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
