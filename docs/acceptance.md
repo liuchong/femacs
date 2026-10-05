@@ -277,3 +277,24 @@ OK      admin: 253 files, byte-identical
 
 **未声称**：这只是"复制"这一条的读数；§8 的其余各条（清单/layout/符号/subr、L0-L5、双向互换与
 生成物、平台冒烟、性能）**一条都还没点亮**。
+
+### 参照树比 `femacs/` 多的 1,867 个文件，全部是**构建产物**（2026-10-05 现测，status 3.583）
+
+上面那条"逐文件 `cmp`"只覆盖**已复制的** 4,604 个文件。参照树里另外还有 **1,867** 个文件在 `femacs/` 里没有，
+逐条对过参照检出自己的索引（`git -C emacs ls-files`）：
+
+| 类 | 数量 | 例 |
+| --- | ---: | --- |
+| `.elc`（字节编译产物） | 1,645 | `lisp/abbrev.elc`、`admin/unidata/unidata-gen.elc` |
+| 生成的 `.el` | 82 | `lisp/loaddefs.el`、`lisp/subdirs.el`、`lisp/international/uni-*.el`、`lisp/leim/**`、`lisp/cedet/**/*-by.el`/`*-wy.el`、各 `*-loaddefs.el` |
+| `etc/charsets/*.map` + 1 `.tex` | 132 | `etc/charsets/8859-10.map` |
+| `doc/`（生成的 texi/man） | 4 | `doc/emacs/emacsver.texi`、`doc/misc/org.texi`、`doc/misc/modus-themes.texi`、`doc/man/emacs.1` |
+| `admin/`（产物与 stamp） | 4 | `admin/charsets/charsets.stamp`、`admin/unidata/uvs.elc`、`admin/charsets/jisx2131-filter` |
+
+**实测判据**：这 1,867 个路径在参照检出里**全部未被 git 跟踪**（`git -C emacs ls-files` 命中 0 个），
+反过来**没有任何一个被跟踪的源文件缺失**。⇒ §8 那条 `diff -r emacs/lisp femacs/lisp 无差异` 的**复制那一半已经做完**；
+`diff -r` 现在仍显示出来的，恰好就是**构建输出**，属于同一条里的"**生成物逐字节一致**"（只能等移植端自己的生成步骤
+——L3 的 `loadup`/`dump` 与 `admin/unidata`、`admin/charsets` —— 跑起来之后才可能出现）。
+`femacs/lisp` 里**没有任何手写或被改过的 `.el`/`.elc`**。
+
+**未声称**：这是"复制"与"参照树多出来的到底是什么"的读数，**不是**生成物一致性的读数——生成物一致性今天**一条都没有**。
