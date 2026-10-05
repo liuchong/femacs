@@ -3465,6 +3465,11 @@ macro_rules! DEFVAR_LISP {
             r#type: Lisp_Fwd_Obj,
             u: Lisp_Fwd_u { objvar: std::ptr::null_mut () },
         };
+        /* The name argument is C's NUL-terminated string: a plain Rust `&str` carries no
+           terminating NUL, and `defvar_lisp`/`defvar_int`/... read one - 141 sites registered
+           their variable under a name that ran into the next literal (status 3.617).  The
+           binding below makes a plain `"..."` a compile error; use `c"..."`.  */
+        let _: &core::ffi::CStr = $lname;
         unsafe {
             O_FWD.u.objvar = std::ptr::addr_of_mut! ($vname);
             defvar_lisp (&raw const O_FWD, $lname.as_ptr () as *const c_char);
@@ -3478,6 +3483,11 @@ macro_rules! DEFVAR_LISP_NOPRO {
             r#type: Lisp_Fwd_Obj,
             u: Lisp_Fwd_u { objvar: std::ptr::null_mut () },
         };
+        /* The name argument is C's NUL-terminated string: a plain Rust `&str` carries no
+           terminating NUL, and `defvar_lisp`/`defvar_int`/... read one - 141 sites registered
+           their variable under a name that ran into the next literal (status 3.617).  The
+           binding below makes a plain `"..."` a compile error; use `c"..."`.  */
+        let _: &core::ffi::CStr = $lname;
         unsafe {
             O_FWD.u.objvar = std::ptr::addr_of_mut! ($vname);
             defvar_lisp_nopro (&raw const O_FWD, $lname.as_ptr () as *const c_char);
@@ -3491,6 +3501,11 @@ macro_rules! DEFVAR_INT {
             r#type: Lisp_Fwd_Int,
             u: Lisp_Fwd_u { intvar: std::ptr::null_mut () },
         };
+        /* The name argument is C's NUL-terminated string: a plain Rust `&str` carries no
+           terminating NUL, and `defvar_lisp`/`defvar_int`/... read one - 141 sites registered
+           their variable under a name that ran into the next literal (status 3.617).  The
+           binding below makes a plain `"..."` a compile error; use `c"..."`.  */
+        let _: &core::ffi::CStr = $lname;
         unsafe {
             // C: `.u.intvar = &V` with `intmax_t *intvar` and `EMACS_INT` = intmax_t; the
             // port spells the union with C's intmax_t (i64) and EMACS_INT as isize.
@@ -3506,6 +3521,11 @@ macro_rules! DEFVAR_BOOL {
             r#type: Lisp_Fwd_Bool,
             u: Lisp_Fwd_u { boolvar: std::ptr::null_mut () },
         };
+        /* The name argument is C's NUL-terminated string: a plain Rust `&str` carries no
+           terminating NUL, and `defvar_lisp`/`defvar_int`/... read one - 141 sites registered
+           their variable under a name that ran into the next literal (status 3.617).  The
+           binding below makes a plain `"..."` a compile error; use `c"..."`.  */
+        let _: &core::ffi::CStr = $lname;
         unsafe {
             B_FWD.u.boolvar = std::ptr::addr_of_mut! ($vname);
             defvar_bool (&raw const B_FWD, $lname.as_ptr () as *const c_char);
@@ -3520,6 +3540,11 @@ macro_rules! DEFVAR_KBOARD {
             r#type: Lisp_Fwd_Kboard_Obj,
             u: Lisp_Fwd_u { kbdoffset: 0 },
         };
+        /* The name argument is C's NUL-terminated string: a plain Rust `&str` carries no
+           terminating NUL, and `defvar_lisp`/`defvar_int`/... read one - 141 sites registered
+           their variable under a name that ran into the next literal (status 3.617).  The
+           binding below makes a plain `"..."` a compile error; use `c"..."`.  */
+        let _: &core::ffi::CStr = $lname;
         unsafe {
             KO_FWD.u.kbdoffset = $vname as c_int;
             defvar_kboard (&raw const KO_FWD, $lname.as_ptr () as *const c_char);

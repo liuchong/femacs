@@ -1935,7 +1935,7 @@ pub unsafe extern "C" fn syms_of_haikufont ()
   DEFSYM! (Qfont_name, "font-name");                              // C 1456
   DEFSYM! (Qdynamic_setting, "dynamic-setting");                   // C 1457
 
-  DEFVAR_BOOL! ("font-use-system-font", use_system_font,
+  DEFVAR_BOOL! (c"font-use-system-font", use_system_font,
 		"SKIP: real doc in xsettings.c.  ");              // C 1459-1460
   use_system_font = false;                                        // C 1461
 

@@ -4252,40 +4252,40 @@ pub unsafe extern "C" fn syms_of_haikufns ()
   tip_dy = Qnil ();
   staticpro (&raw mut tip_dy);
 
-  DEFVAR_LISP! ("x-max-tooltip-size", Vx_max_tooltip_size,
+  DEFVAR_LISP! (c"x-max-tooltip-size", Vx_max_tooltip_size,
 	       "SKIP: real doc in xfns.c.  ");
   Vx_max_tooltip_size = Qnil ();
 
-  DEFVAR_LISP! ("x-cursor-fore-pixel", Vx_cursor_fore_pixel,
+  DEFVAR_LISP! (c"x-cursor-fore-pixel", Vx_cursor_fore_pixel,
 	       "SKIP: real doc in xfns.c.  ");
   Vx_cursor_fore_pixel = Qnil ();
 
-  DEFVAR_LISP! ("x-pointer-shape", Vx_pointer_shape,
+  DEFVAR_LISP! (c"x-pointer-shape", Vx_pointer_shape,
 	       "SKIP: real doc in xfns.c.  ");
   Vx_pointer_shape = Qnil ();
 
-  DEFVAR_LISP! ("x-hourglass-pointer-shape", Vx_hourglass_pointer_shape,
+  DEFVAR_LISP! (c"x-hourglass-pointer-shape", Vx_hourglass_pointer_shape,
 	       "SKIP: real doc in xfns.c.  ");
   Vx_hourglass_pointer_shape = Qnil ();
 
-  DEFVAR_LISP! ("x-sensitive-text-pointer-shape",
+  DEFVAR_LISP! (c"x-sensitive-text-pointer-shape",
 	       Vx_sensitive_text_pointer_shape,
 	       "SKIP: real doc in xfns.c.  ");
   Vx_sensitive_text_pointer_shape = Qnil ();
 
-  DEFVAR_BOOL! ("haiku-pass-control-tab-to-system",
+  DEFVAR_BOOL! (c"haiku-pass-control-tab-to-system",
 	       haiku_pass_control_tab_to_system,
 	       "Whether or not to pass C-TAB to the system.\nSetting this variable will cause Emacs to pass C-TAB to the system\n(allowing window switching on the Haiku operating system), rather than\nintercepting it.  ");
   haiku_pass_control_tab_to_system = true;
 
-  DEFVAR_LISP! ("haiku-allowed-ui-colors", Vhaiku_allowed_ui_colors,
+  DEFVAR_LISP! (c"haiku-allowed-ui-colors", Vhaiku_allowed_ui_colors,
 	       "Vector of UI colors that Emacs can look up from the system.\nIf this is set up incorrectly, Emacs can crash when encountering an\ninvalid color.  ");
   Vhaiku_allowed_ui_colors = Qnil ();
 
   /* C 3311-3321: `#ifdef USE_BE_CAIRO` around the `cairo-version-string` DEFVAR.  */
   #[cfg (feature = "be_cairo")]
   {
-    DEFVAR_LISP! ("cairo-version-string", Vcairo_version_string,
+    DEFVAR_LISP! (c"cairo-version-string", Vcairo_version_string,
                  "Version info for cairo.  ");
     {
       /* C's `sizeof ".." + 3 * INT_STRLEN_BOUND (int)` is 36 for this target's `int`.  */

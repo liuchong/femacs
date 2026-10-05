@@ -1945,12 +1945,12 @@ pub unsafe extern "C" fn syms_of_xftfont ()
     Fput (Qxft (), Qfont_driver_superseded_by (), Qxfthb ());   // C 795
   }
 
-  DEFVAR_BOOL! ("xft-font-ascent-descent-override",        // C 798-801
+  DEFVAR_BOOL! (c"xft-font-ascent-descent-override",        // C 798-801
 		xft_font_ascent_descent_override,
 		"Non-nil means override the ascent and descent values for Xft font driver.\nThis is needed with some fonts to correct vertical overlap of glyphs.  ");
   xft_font_ascent_descent_override = false;                // C 802
 
-  DEFVAR_LISP! ("xft-color-font-whitelist", Vxft_color_font_whitelist,   // C 804-810
+  DEFVAR_LISP! (c"xft-color-font-whitelist", Vxft_color_font_whitelist,   // C 804-810
 		"List of \"color\" font families that don't actually have color glyphs.\nSome fonts (such as Source Code Pro) are reported as color fonts, but\ndo not actually have glyphs with colors that can cause Xft crashes.\n\nThe font families in this list will not be ignored when\n`xft-ignore-color-fonts' is non-nil.  ");
   Vxft_color_font_whitelist
     = list1 (build_string (c"Source Code Pro".as_ptr ()));   // C 811

@@ -41,3 +41,12 @@
   `n -= 1` last; `while (n-- > 0)` becomes `while n > 0 { n -= 1; … }`, which is C's
   test-then-decrement order.
 - **Call-relationship differences (D7)**: none.  The unit calls nothing.
+
+## 2026-10-05: C's wrap-around must be spelled out - the first `message` panicked (status 3.617)
+
+`memrchr`'s haszero trick subtracts `repeated_one` from `longword1` and *relies* on the wrap-around:
+in C the subtraction is unsigned and defined to wrap.  The port wrote C's expression verbatim, and
+Rust's `-` panics on underflow in a debug build - which is how the unit is compiled - so the first
+`(message ...)` (through `message_dolog -> scan_newline -> find_newline -> memrchr`) aborted with
+`attempt to subtract with overflow` instead of searching.  Now `longword1.wrapping_sub (repeated_one)`,
+per PORTING.md 1.1 ("凡 C 里依赖二进制补码回绕的表达式，必须显式写 wrapping_*").

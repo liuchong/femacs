@@ -1593,19 +1593,19 @@ pub static mut Vhaiku_drag_wheel_function: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_haikuselect ()
 {
-  DEFVAR_BOOL! ("haiku-signal-invalid-refs", haiku_signal_invalid_refs,
+  DEFVAR_BOOL! (c"haiku-signal-invalid-refs", haiku_signal_invalid_refs,
     "If nil, silently ignore invalid file names in system messages.\nOtherwise, an error will be signaled if adding a file reference to a\nsystem message failed.  ");
   haiku_signal_invalid_refs = true;
 
-  DEFVAR_LISP! ("haiku-drag-track-function", Vhaiku_drag_track_function,
+  DEFVAR_LISP! (c"haiku-drag-track-function", Vhaiku_drag_track_function,
     "If non-nil, a function to call upon mouse movement while dragging a message.\nThe function is called without any arguments.  `mouse-position' can be\nused to retrieve the current position of the mouse.  ");
   Vhaiku_drag_track_function = Qnil ();
 
-  DEFVAR_LISP! ("haiku-lost-selection-functions", Vhaiku_lost_selection_functions,
+  DEFVAR_LISP! (c"haiku-lost-selection-functions", Vhaiku_lost_selection_functions,
     "A list of functions to be called when Emacs loses an X selection.\nThese are only called if a connection to the Haiku display was opened.  ");
   Vhaiku_lost_selection_functions = Qnil ();
 
-  DEFVAR_LISP! ("haiku-drag-wheel-function", Vhaiku_drag_wheel_function,
+  DEFVAR_LISP! (c"haiku-drag-wheel-function", Vhaiku_drag_wheel_function,
     "Function called upon wheel movement while dragging a message.\nIf non-nil, it is called with 6 arguments when the mouse wheel moves\nwhile a drag-and-drop operation is in progress: the frame where the\nmouse moved, the frame-relative X and Y positions where the mouse\nmoved, whether or not the wheel movement was horizontal, whether or\nnot the wheel moved up (or left, if the movement was horizontal), and\nkeyboard modifiers currently held down.  ");
   Vhaiku_drag_wheel_function = Qnil ();
 

@@ -12613,3 +12613,33 @@
      `lread.rs` 的 Fload 打印、`xtask` 的 `-g`）**已全部删除并复建验证**。
   ⑦ **预算**：`build-tu` 约 12 发（含三次把仪表清掉后的重建）、`check-link --executable` 约 8 发、`lldb` 10 次、
      `sample` 1 次；`build/femacs/units/*`、`/tmp` 的临时文件已清。
+
+- **3.617 两处系统性缺陷：C 的回绕被 Rust 的调试溢出检查打断（第一次 `message` 就炸）＋ 141 个 `DEFVAR_*` 把名字当普通 `&str` 传（变量注册在垃圾名字下）（2026-10-05）**：
+  ① **里程碑（可复跑）**：把 3.616 那处内存/崩溃类症状消掉之后，`env EMACSLOADPATH=<repo>/femacs/lisp
+     build/femacs/emacs --batch` 的加载链**稳定通过 5 个文件**（`loadup.el → debug-early → byte-run → backquote → subr`），
+     并且错误从"内存破坏/UB"变成**干净的 Lisp 层错误**；本轮又把其中一个 Lisp 层错误（void-variable）消掉，
+     现在是下一处（堆损坏类）在 `subr` 里打断（③）。
+  ② **缺陷一：`memrchr` 把 C 的回绕写成了 Rust 的 `-`**。haszero 惯用法里 `longword1 - repeated_one` 在 C 里是
+     **无符号回绕**（有定义），而 Rust 的 `-` 在调试构建里 **underflow 就 panic**（本项目的单元正是 `opt-level=0` +
+     调试断言）⇒ 第一次 `(message …)` 经 `message3 → log_message → message_dolog → scan_newline → find_newline →
+     memrchr` 就 abort（`attempt to subtract with overflow`，现场 `s` 合法、`n=48`）。改成
+     `longword1.wrapping_sub (repeated_one)`，即 PORTING.md 1.1 明文要求的那条。
+  ③ **缺陷二（更大）：`DEFVAR_LISP!`/`DEFVAR_BOOL!`/`DEFVAR_INT!` 的名字参数没有 NUL**。宏把名字按
+     `$lname.as_ptr () as *const c_char` 交给 C 的 `defvar_lisp`，而 C 用 `strlen` 读它：`c"…"` 字面量自带 NUL ✓，
+     **普通 `"…"`（Rust `&str`）不带** ⇒ 名字会读进二进制里相邻的下一段字面量，变量被注册在**垃圾名字**下。
+     全树 **141 处**（keyboard 86、alloc 18、dosfns 11、haikufns 8、keymap 6、haikuselect 4、w16select 2、
+     w32select 2、xftfont 2、haikufont 1、msdos 1）都是这种写法；`(boundp 'minibuffer-local-map)` /
+     `(boundp 'prefix-help-command)` 因此为 nil，加载 `subr` 时第一次碰到就停。修法：141 处全改 `c"…"`，
+     并给五个 `DEFVAR_*` 宏加一行 `let _: &core::ffi::CStr = $lname;`——**普通 `"…"` 从此是编译错误**，
+     而 `check-all-units.sh` 的 83/0 两腿就是"这 141 处已扫干净"的机器证据（③ 的同一轮读数）。
+  ④ **读数（全部实测）**：⑴ `(boundp 'minibuffer-local-map)`、`'minor-mode-map-alist`、`'prefix-help-command`、
+     `'keymap` 从 **VOID → BOUND**（`-nl -l` 的探针：`/tmp/chk.el`、`/tmp/chk2.el`；`load-path`/`emacs-version`
+     一直是 BOUND，它们的调用点本来就写 `c"…"`）；⑵ `check-all-units.sh` **83/0 + 83/0**（改过镜像，P-87 两腿）、
+     `layout-check` **passed**、`check-link --executable` **0 undefined**；⑶ 加载链 5 个文件（①）；⑷ 八道文本门 +
+     `check-carried` 全绿，`check-citations` 随 `include/lisp.rs` 的 +25 行把三条允许项行号同步（0 drift/0 stale）。
+  ⑤ **未声称**：没有 dump、没有 L1 验收；③ 之后的现场**仍是内存破坏类**（`xmalloc ← hash_table_alloc_bytes ←
+     maybe_resize_hash_table ← hash_put ← Fputhash`，SEGV/EXC_BAD_ACCESS，堆元数据被打坏）——**原因未定位**，
+     `MallocScribble`/`libgmalloc` 两个读数都指向"更早的一次越界写或未初始化读"，这是下一轮的第一件事。
+     临时仪表（`memrchr` 的 `DBG`、`xtask` 的 `-g`）**已全部删除并复建验证**。
+  ⑥ **预算**：`build-tu` 约 8 发、`check-all-units.sh` 1 发（两腿）、`layout-check` 1 发、
+     `check-link --executable` 3 发、`lldb` 8 次、`atos` 1 次；`build/femacs/units/*`、`/tmp` 的探针与日志已清。

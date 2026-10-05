@@ -291,3 +291,15 @@ own body-token rule is the mechanical version of this claim: it runs `body_token
 66 C bodies (37 functions + 29 subrs) and their port counterparts, and after the nineteen rows
 above have exempted the `0`/`1`/`goto`/`kvar`/`doc` tokens, every one of the 66 missing-token
 sets is empty.
+
+## 2026-10-05: the DEFVAR name is a C string - a plain Rust `&str` has no NUL (status 3.617)
+
+`DEFVAR_LISP!`/`DEFVAR_BOOL!`/`DEFVAR_INT!` handed the name to C's `defvar_lisp` as
+`$lname.as_ptr () as *const c_char`, and C reads it with `strlen`: a `c"..."` literal is
+NUL-terminated and was fine, but a plain `"..."` (a Rust `&str`) is not - the name ran into the
+next literal in the binary's data and the variable was registered under a *garbage* name.  Six of
+this unit's DEFVARs were written that way (`minibuffer-local-map`, `minor-mode-map-alist`, ...), so
+`(boundp 'minibuffer-local-map)` was nil and the first elisp that touched one stopped the load of
+`subr`.  All 141 such sites across 11 units now pass `c"..."`, and the five `DEFVAR_*` macros bind
+the argument as `&core::ffi::CStr` so a plain `"..."` is a compile error (the 83-unit gate is what
+proves the sweep is complete).

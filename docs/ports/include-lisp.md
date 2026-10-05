@@ -32,3 +32,11 @@ tree is back at HEAD.
    into every empty bucket as if it held a symbol and skipped the `nil` symbol itself; the first
    `map_obarray` (from `harmonize_variable_watchers`) died in `XSYMBOL`.  The test is now C's
    `!BASE_EQ (obj, make_fixnum (0))` and the conversion is C's `XBARE_SYMBOL` (not `XSYMBOL`).
+
+## 2026-10-05: the `DEFVAR_*` macros type-check their name argument (status 3.617)
+
+Each of the five `DEFVAR_*` macros now starts its body with `let _: &core::ffi::CStr = $lname;`
+before the `unsafe` block: C's `defvar_lisp` reads the name with `strlen`, so it must be a
+NUL-terminated C string, and a `c"..."` literal is the port's spelling of one.  A plain `"..."` -
+which 141 call sites used, registering their variable under a name that ran into the next literal -
+is now a compile error rather than a silent defect.

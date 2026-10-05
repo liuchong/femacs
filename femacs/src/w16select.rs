@@ -972,11 +972,11 @@ pub unsafe extern "C" fn syms_of_win16select ()              // C 674-675
   defsubr (&raw mut Sw16_get_clipboard_data);                 // C 678
   defsubr (&raw mut Sw16_selection_exists_p);                 // C 679
 
-  DEFVAR_LISP! ("selection-coding-system", Vselection_coding_system,
+  DEFVAR_LISP! (c"selection-coding-system", Vselection_coding_system,
 		"SKIP: real doc in select.el.");              // C 681-682
   Vselection_coding_system = intern (c"iso-latin-1-dos".as_ptr ());   // C 683
 
-  DEFVAR_LISP! ("next-selection-coding-system", Vnext_selection_coding_system,
+  DEFVAR_LISP! (c"next-selection-coding-system", Vnext_selection_coding_system,
 		"SKIP: real doc in select.el.");              // C 685-686
   Vnext_selection_coding_system = Qnil ();                    // C 687
 

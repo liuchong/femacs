@@ -5709,7 +5709,7 @@ pub unsafe fn syms_of_msdos ()                     // C 4320-4321
   /* The following two are from xfns.c:  */
   DEFSYM! (Qreverse, "reverse");
 
-  DEFVAR_LISP! ("dos-unsupported-char-glyph", Vdos_unsupported_char_glyph,
+  DEFVAR_LISP! (c"dos-unsupported-char-glyph", Vdos_unsupported_char_glyph,
 		"Glyph to display instead of chars not supported by current codepage.\nThis variable is used only by MS-DOS terminals.  ");
   Vdos_unsupported_char_glyph = make_fixnum ('\u{7f}' as EMACS_INT);
   }

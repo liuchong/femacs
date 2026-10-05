@@ -1958,12 +1958,12 @@ pub unsafe extern "C" fn syms_of_w32select ()
   defsubr (&raw mut Sw32_selection_exists_p);             // C 1320
   defsubr (&raw mut Sw32_selection_targets);              // C 1321
 
-  DEFVAR_LISP! ("selection-coding-system", Vselection_coding_system,
+  DEFVAR_LISP! (c"selection-coding-system", Vselection_coding_system,
 		"SKIP: real doc in select.el.");         // C 1323-1325
   /* C 1326-1327: "The actual value is set dynamically in the dumped Emacs, see below."  */
   Vselection_coding_system = Qnil ();                    // C 1328
 
-  DEFVAR_LISP! ("next-selection-coding-system", Vnext_selection_coding_system,
+  DEFVAR_LISP! (c"next-selection-coding-system", Vnext_selection_coding_system,
 		"SKIP: real doc in select.el.");         // C 1330-1331
   Vnext_selection_coding_system = Qnil ();               // C 1332
 

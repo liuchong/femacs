@@ -1168,46 +1168,46 @@ pub unsafe extern "C" fn syms_of_dosfns ()          // C 699-700
   #[cfg (not (feature = "have_x_windows"))]
   { defsubr (&raw mut Smsdos_mouse_p); }
 
-  DEFVAR_INT! ("dos-country-code", dos_country_code,
+  DEFVAR_INT! (c"dos-country-code", dos_country_code,
 	      "The country code returned by Dos when Emacs was started.\nUsually this is the international telephone prefix.  ");   // C 716-717
 
-  DEFVAR_INT! ("dos-codepage", dos_codepage,
+  DEFVAR_INT! (c"dos-codepage", dos_codepage,
 	      "The codepage active when Emacs was started.\nThe following are known:\n\t437\tUnited States\n\t850\tMultilingual (Latin I)\n\t852\tSlavic (Latin II)\n\t857\tTurkish\n\t860\tPortugal\n\t861\tIceland\n\t863\tCanada (French)\n\t865\tNorway/Denmark  ");   // C 720-729
 
-  DEFVAR_INT! ("dos-timezone-offset", dos_timezone_offset,
+  DEFVAR_INT! (c"dos-timezone-offset", dos_timezone_offset,
 	      "The current timezone offset to UTC in minutes.\nImplicitly modified when the TZ variable is changed.  ");   // C 732-733
 
-  DEFVAR_LISP! ("dos-version", Vdos_version,
+  DEFVAR_LISP! (c"dos-version", Vdos_version,
 	       "The (MAJOR . MINOR) Dos version (subject to modification with setver).  ");   // C 736
 
   #[cfg (not (feature = "have_x_windows"))]
   {
-  DEFVAR_LISP! ("dos-windows-version", Vdos_windows_version,
+  DEFVAR_LISP! (c"dos-windows-version", Vdos_windows_version,
 	       "The (MAJOR . MINOR) Windows version for DOS session on MS-Windows.  ");   // C 740
   }
 
-  DEFVAR_LISP! ("dos-display-scancodes", Vdos_display_scancodes,
+  DEFVAR_LISP! (c"dos-display-scancodes", Vdos_display_scancodes,
 	       "Whether DOS raw keyboard events are displayed as you type.\nWhen non-nil, the keyboard scan-codes are displayed at the bottom right\ncorner of the display (typically at the end of the mode line).\nThe output format is: scan code:char code*modifiers.  ");   // C 744-747
 
   Vdos_display_scancodes = Qnil ();
 
-  DEFVAR_INT! ("dos-hyper-key", dos_hyper_key,
+  DEFVAR_INT! (c"dos-hyper-key", dos_hyper_key,
 	      "If set to 1, use right ALT key as hyper key.\nIf set to 2, use right CTRL key as hyper key.  ");   // C 752-753
   dos_hyper_key = 0;
 
-  DEFVAR_INT! ("dos-super-key", dos_super_key,
+  DEFVAR_INT! (c"dos-super-key", dos_super_key,
 	      "If set to 1, use right ALT key as super key.\nIf set to 2, use right CTRL key as super key.  ");   // C 757-758
   dos_super_key = 0;
 
-  DEFVAR_INT! ("dos-keypad-mode", dos_keypad_mode,
+  DEFVAR_INT! (c"dos-keypad-mode", dos_keypad_mode,
 	      "Controls what key code is returned by a key in the numeric keypad.\nThe `numlock ON' action is only taken if no modifier keys are pressed.\nThe value is an integer constructed by adding the following bits together:\n\n  0x00\tDigit key returns digit    (if numlock ON)\n  0x01\tDigit key returns kp-digit (if numlock ON)\n  0x02\tDigit key returns M-digit  (if numlock ON)\n  0x03\tDigit key returns edit key (if numlock ON)\n\n  0x00\tGrey key returns char      (if numlock ON)\n  0x04\tGrey key returns kp-key    (if numlock ON)\n\n  0x00\tDigit key returns digit    (if numlock OFF)\n  0x10\tDigit key returns kp-digit (if numlock OFF)\n  0x20\tDigit key returns M-digit  (if numlock OFF)\n  0x30\tDigit key returns edit key (if numlock OFF)\n\n  0x00\tGrey key returns char      (if numlock OFF)\n  0x40\tGrey key returns kp-key    (if numlock OFF)\n\n  0x200\tALT-0..ALT-9 in top-row produces shifted codes.  ");   // C 762-782
   dos_keypad_mode = 0x75;
 
-  DEFVAR_INT! ("dos-keyboard-layout", dos_keyboard_layout,
+  DEFVAR_INT! (c"dos-keyboard-layout", dos_keyboard_layout,
 	      "Contains the country code for the current keyboard layout.\nUse msdos-set-keyboard to select another keyboard layout.  ");   // C 786-787
   dos_keyboard_layout = 1;	/* US */
 
-  DEFVAR_INT! ("dos-decimal-point", dos_decimal_point,
+  DEFVAR_INT! (c"dos-decimal-point", dos_decimal_point,
 	      "The character to produce when kp-decimal key is pressed.\nIf non-zero, this variable contains the character to be returned when the\ndecimal point key in the numeric keypad is pressed when Num Lock is on.\nIf zero, the decimal point key returns the country code specific value.  ");   // C 791-794
   dos_decimal_point = 0;
   DEFSYM! (Qbefore_init_time, "before-init-time");

@@ -8040,51 +8040,51 @@ pub static mut integer_width: EMACS_INT = 0;
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_alloc ()
 {
-  DEFVAR_INT! ("gc-cons-threshold", gc_cons_threshold,
+  DEFVAR_INT! (c"gc-cons-threshold", gc_cons_threshold,
 	      "Number of bytes of consing between garbage collections.\nGarbage collection can happen automatically once this many bytes have been\nallocated since the last garbage collection.  All data types count.\n\nGarbage collection happens automatically only when `eval' is called.\n\nBy binding this temporarily to a large number, you can effectively\nprevent garbage collection during a part of the program.  But be\nsure to get back to the normal value soon enough, to avoid system-wide\nmemory pressure, and never use a too-high value for prolonged periods of\ntime.\nSee also `gc-cons-percentage'.");
 
-  DEFVAR_LISP! ("gc-cons-percentage", Vgc_cons_percentage,
+  DEFVAR_LISP! (c"gc-cons-percentage", Vgc_cons_percentage,
 	      "Portion of the heap used for allocation.\nGarbage collection can happen automatically once this portion of the heap\nhas been allocated since the last garbage collection.\n\nBy binding this temporarily to a large number, you can effectively\nprevent garbage collection during a part of the program.  But be\nsure to get back to the normal value soon enough, to avoid system-wide\nmemory pressure, and never use a too-high value for prolonged periods of\ntime.\n\nIf this portion is smaller than `gc-cons-threshold', this is ignored.");
   Vgc_cons_percentage = make_float (0.1);
 
-  DEFVAR_INT! ("pure-bytes-used", pure_bytes_used,
+  DEFVAR_INT! (c"pure-bytes-used", pure_bytes_used,
 	      "No longer used.  ");
 
-  DEFVAR_INT! ("cons-cells-consed", cons_cells_consed,
+  DEFVAR_INT! (c"cons-cells-consed", cons_cells_consed,
 	      "Number of cons cells that have been consed so far.  ");
 
-  DEFVAR_INT! ("floats-consed", floats_consed,
+  DEFVAR_INT! (c"floats-consed", floats_consed,
 	      "Number of floats that have been consed so far.  ");
 
-  DEFVAR_INT! ("vector-cells-consed", vector_cells_consed,
+  DEFVAR_INT! (c"vector-cells-consed", vector_cells_consed,
 	      "Number of vector cells that have been consed so far.  ");
 
-  DEFVAR_INT! ("symbols-consed", symbols_consed,
+  DEFVAR_INT! (c"symbols-consed", symbols_consed,
 	      "Number of symbols that have been consed so far.  ");
   symbols_consed += countof! (lispsym) as EMACS_INT;
 
-  DEFVAR_INT! ("string-chars-consed", string_chars_consed,
+  DEFVAR_INT! (c"string-chars-consed", string_chars_consed,
 	      "Number of string characters that have been consed so far.  ");
 
-  DEFVAR_INT! ("intervals-consed", intervals_consed,
+  DEFVAR_INT! (c"intervals-consed", intervals_consed,
 	      "Number of intervals that have been consed so far.  ");
 
-  DEFVAR_INT! ("strings-consed", strings_consed,
+  DEFVAR_INT! (c"strings-consed", strings_consed,
 	      "Number of strings that have been consed so far.  ");
 
-  DEFVAR_LISP! ("purify-flag", Vpurify_flag,
+  DEFVAR_LISP! (c"purify-flag", Vpurify_flag,
 	      "Non-nil means loading Lisp code in order to dump an executable.\nThis used to mean that certain objects should be allocated in shared\n(pure) space, but objects are not allocated in pure storage any more.\nThis flag is still used in a few places, not to decide where objects are\nallocated, but to know if we're in the preload phase of Emacs's\nbuild.  ");
 
-  DEFVAR_BOOL! ("garbage-collection-messages", garbage_collection_messages,
+  DEFVAR_BOOL! (c"garbage-collection-messages", garbage_collection_messages,
 	      "Non-nil means display messages at start and end of garbage collection.  ");
   garbage_collection_messages = false;
 
-  DEFVAR_LISP! ("post-gc-hook", Vpost_gc_hook,
+  DEFVAR_LISP! (c"post-gc-hook", Vpost_gc_hook,
 	      "Hook run after garbage collection has finished.  ");
   Vpost_gc_hook = Qnil ();
   DEFSYM! (Qpost_gc_hook, "post-gc-hook");
 
-  DEFVAR_LISP! ("memory-signal-data", Vmemory_signal_data,
+  DEFVAR_LISP! (c"memory-signal-data", Vmemory_signal_data,
 	      "Precomputed `signal' argument for memory-full error.  ");
   /* We build this in advance because if we wait until we need it, we might
      not be able to allocate the memory to hold it.  */
@@ -8092,7 +8092,7 @@ pub unsafe extern "C" fn syms_of_alloc ()
     = list! (Qerror (),
 	    build_string (c"Memory exhausted--use M-x save-some-buffers then exit and restart Emacs".as_ptr ()));
 
-  DEFVAR_LISP! ("memory-full", Vmemory_full,
+  DEFVAR_LISP! (c"memory-full", Vmemory_full,
 	      "Non-nil means Emacs cannot get much more Lisp memory.  ");
   Vmemory_full = Qnil ();
 
@@ -8114,12 +8114,12 @@ pub unsafe extern "C" fn syms_of_alloc ()
   DEFSYM! (Qgc_cons_threshold, "gc-cons-threshold");
   DEFSYM! (Qchar_table_extra_slots, "char-table-extra-slots");
 
-  DEFVAR_LISP! ("gc-elapsed", Vgc_elapsed,
+  DEFVAR_LISP! (c"gc-elapsed", Vgc_elapsed,
 	      "Accumulated time elapsed in garbage collections.\nThe time is in seconds as a floating point value.  ");
-  DEFVAR_INT! ("gcs-done", gcs_done,
+  DEFVAR_INT! (c"gcs-done", gcs_done,
 	      "Accumulated number of garbage collections done.  ");
 
-  DEFVAR_INT! ("integer-width", integer_width,
+  DEFVAR_INT! (c"integer-width", integer_width,
 	      "Maximum number N of bits in safely-calculated integers.\nIntegers with absolute values less than 2**N do not signal a range error.\nN should be nonnegative.  ");
 
   defsubr (&raw mut Scons);

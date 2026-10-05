@@ -3356,28 +3356,28 @@ pub unsafe extern "C" fn syms_of_keymap ()
      Fcons (build_string (c"SPC".as_ptr ()), build_string (c" ".as_ptr ())));
   staticpro (&raw const exclude_keys);
 
-  DEFVAR_LISP! ("minibuffer-local-map", Vminibuffer_local_map,
+  DEFVAR_LISP! (c"minibuffer-local-map", Vminibuffer_local_map,
 	       "Default keymap to use when reading from the minibuffer.");
   Vminibuffer_local_map = Fmake_sparse_keymap (Qnil ());
 
-  DEFVAR_LISP! ("minor-mode-map-alist", Vminor_mode_map_alist,
+  DEFVAR_LISP! (c"minor-mode-map-alist", Vminor_mode_map_alist,
 	       "Alist of keymaps to use for minor modes.\nEach element looks like (VARIABLE . KEYMAP); KEYMAP is used to read\nkey sequences and look up bindings if VARIABLE's value is non-nil.\nIf two active keymaps bind the same key, the keymap appearing earlier\nin the list takes precedence.");
   Vminor_mode_map_alist = Qnil ();
 
-  DEFVAR_LISP! ("minor-mode-overriding-map-alist", Vminor_mode_overriding_map_alist,
+  DEFVAR_LISP! (c"minor-mode-overriding-map-alist", Vminor_mode_overriding_map_alist,
 	       "Alist of keymaps to use for minor modes, in current major mode.\nThis variable is an alist just like `minor-mode-map-alist', and it is\nused the same way (and before `minor-mode-map-alist'); however,\nit is provided for major modes to bind locally.");
   Vminor_mode_overriding_map_alist = Qnil ();
 
-  DEFVAR_LISP! ("emulation-mode-map-alists", Vemulation_mode_map_alists,
+  DEFVAR_LISP! (c"emulation-mode-map-alists", Vemulation_mode_map_alists,
 	       "List of keymap alists to use for emulation modes.\nIt is intended for modes or packages using multiple minor-mode keymaps.\nEach element is a keymap alist just like `minor-mode-map-alist', or a\nsymbol with a variable binding which is a keymap alist, and it is used\nthe same way.  The \"active\" keymaps in each alist are used before\n`minor-mode-map-alist' and `minor-mode-overriding-map-alist'.");
   Vemulation_mode_map_alists = Qnil ();
 
-  DEFVAR_LISP! ("where-is-preferred-modifier", Vwhere_is_preferred_modifier,
+  DEFVAR_LISP! (c"where-is-preferred-modifier", Vwhere_is_preferred_modifier,
 	       "Preferred modifier key to use for `where-is'.\nWhen a single binding is requested, `where-is' will return one that\nuses this modifier key if possible.  If nil, or if no such binding\nexists, bindings using keys without modifiers (or only with meta) will\nbe preferred.");
   Vwhere_is_preferred_modifier = Qnil ();
   where_is_preferred_modifier = 0;
 
-  DEFVAR_LISP! ("describe-bindings-check-shadowing-in-ranges",
+  DEFVAR_LISP! (c"describe-bindings-check-shadowing-in-ranges",
 	       Vdescribe_bindings_check_shadowing_in_ranges,
 	       "If non-nil, consider command shadowing when describing ranges of keys.\nIf the value is t, describing bindings of consecutive keys will not\nreport them as a single range if they are shadowed by different\nminor-mode commands.\nIf the value is `ignore-self-insert', assume that consecutive keys\nbound to `self-insert-command' are not all shadowed; this speeds up\ncommands such as \\[describe-bindings] and \\[describe-mode], but could miss some shadowing.\nAny other non-nil value is treated is t.\n\nBeware: setting this non-nil could potentially slow down commands\nthat describe key bindings.  That is why the default is nil.");
   Vdescribe_bindings_check_shadowing_in_ranges = Qnil ();

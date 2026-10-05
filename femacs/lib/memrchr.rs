@@ -108,7 +108,10 @@ pub unsafe extern "C" fn __memrchr (s: *const c_void, c_in: c_int, mut n: usize)
         longword_ptr = longword_ptr.sub (1);
         let longword1: longword = *longword_ptr ^ repeated_c;
 
-        if ((((longword1 - repeated_one) & !longword1)
+        /* C's `longword1 - repeated_one` *is* a wrapping subtraction (the haszero trick), and
+           PORTING.md 1.1 requires C's wrap-around to be spelled out: in a debug build Rust's
+           `-` panics on underflow, which is what stopped the first `message` (status 3.617).  */
+        if ((((longword1.wrapping_sub (repeated_one)) & !longword1)
              & (repeated_one << 7)) != 0)
           {
             longword_ptr = longword_ptr.add (1);
