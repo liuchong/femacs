@@ -8256,3 +8256,44 @@
   ⑥ **未声称**：**零运行证据**（本机无 GTK 树、无 PGTK 目标，冻结读数是空对象）；翻臂只是 `rustc` 的**名字/类型错误清单**，
      被未声明记录挡住后 rustc 停止检查所在函数体，所以"本单元自身语句 0 错"是**很弱**的读数（P-86 ⑦）；C 1148-3,906 未移植；
      lane 的预算：`build-tu` 3/3、`probe` 3/3（无超支）。
+
+- **3.462 版本声明这条长期指令的第六半：扫描面推到我们自己的工具、探针与 CI（2026-10-05）**：
+  ① **指令的读法不变**（3.90/3.134/3.226/3.250/3.295/3.318/3.340/3.413/3.433）：`版本声明不要再说是gnu emacs了`
+  与 38 秒之后那句是**同一条指令的前后两半**——不只对新写的文件生效，**已写进树的代码也要清**。
+  ② **本轮找到的洞是"覆盖"而不是"落点"**：五半分别推到了被移植树、台账、本仓库散文、工具写出的身份行、
+  程序的自我声明；而 `tools/`（45 `.py` + 16 `.sh`）、`spikes/`（22 `.rs` + 6 `.c` + 2 `.h`）、
+  `.github/workflows/ci.yml` **从第一轮起没有任何门读过**——它们既不在 `SCAN_DIRS`（那是被移植树），
+  也不在 `DOC_DIRS`/`PROSE_DIRS`（那是台账与计划集）。失败形状与 3.250（`femacs/platform` 只按名字被扫、
+  七个 `.swift` 一个没读）、3.413（两个写身份行的工具靠手找）相同：**没人读过的文件 = 没有门读过的文件**。
+  ③ **处置（只动门，不动任何被移植文本）**：`tools/check-declarations.py` 新增 `TOOL_DIRS`/`TOOL_SUFFIXES`
+  （`.py`/`.sh`/`.rs`/`.c`/`.h`/`.cc`/`.s`/`.S`/`.toml`/`.yml`/`.yaml`，仍按**后缀**判读）、
+  `HASH_LINE_ANYWHERE`（`.py`/`.sh`/TOML/YAML 的 `#` 是任意位置的注释前缀；汇编的列首规则不动）、
+  `TOOL_CLASSES`（`decl`/`version`/`title`/`literal` 四类，**不判 `recital`**——工具要讲它执行的是什么规则、
+  要引用它剥掉的 C 散文，与 `femacs/xtask` 被排除在 `recital` 外是同一条理由）、`TOOL_EXEMPT`
+  （**一条豁免规则**：以识别或剥掉参照许可散文为本职的工具必须把它写下来 ⇒ `tools/check-declarations.py` 的
+  `literal`/`version`、`tools/cinventory.py` 的 `literal`；两处的 `decl`/`title`/`recital` 照旧生效），
+  并把覆盖行与 `unread_files` 各延伸一行（工具树的边界也要打印）。
+  ④ **读数**：⑴ `--selftest` **46 → 51 例 / 0 失败**（5 例全在新扫描面：Python 注释里的产品名 `title`、
+  Python 注释里的旧版本括注 `version`、shell 注释里的许可散文 `decl`、工具里的字面量 `literal`、
+  字符串里的 `#` 仍是字面量——最后两例同时钉住"字面量优先于注释"与"`#` 只在代码态才是注释前缀"）；
+  ⑵ 全树 `10 declaration sites (0 forbidden, 10 allowed literals), 0 failures` **不变**，工具面 **0 forbidden**；
+  ⑶ 覆盖行新增 `read 93 own tool/probe file(s) (45 .py 22 .rs 16 .sh 6 .c 2 .h 1 .toml 1 .yml)`，豁免按规模打印
+  （`check-declarations.py` `literal` 41 + `version` 1、`cinventory.py` `literal` 1，合计 43）；
+  ⑷ `walked past` 现在也报工具树的边界：`spikes/miri/Cargo.lock`、`spikes/shim/README.md`；
+  ⑸ **变异实测**（临时落一个两行的 `tools/__probe.py`）→ `12 declaration sites (1 forbidden, 11 allowed literals),
+  2 failures`（`literal x1` + `title x1`），删掉后回到 `10 / 0 / 0`——工具面不是空跑；
+  ⑹ `check-mirror-dupes` `19/19/0`、`check-ledger-ticks` `234/0` 不变。
+  ⑤ **顺带改正（文档写错，判据没动）**：模块 docstring 的 `decl` 条目此前把 `"part of GNU"` 列为该类短语，
+  而 `DECL_PROSE` 的五条里没有它；新增的 shell 例子把它量了出来（只写标题行 `This file is part of GNU Emacs.`
+  的块回来是 `title`）。docstring 改成实际的五条并写明"只有标题行 ⇒ `title`"，`DECL_PROSE` 一个字没改。
+  ⑥ **顺路读数（不是本轮造成的，如实记）**：`check-citations` 现在 **exit 1：675 文件 / 3 drift / 0 stale**
+  ——`femacs/src/gtkutil.rs:92`（`lisp.h 30` 引的是 `#include <string.h>` 那一行、名字在同一文件别处）、
+  `femacs/src/w32proc.rs:474`（同形）、`femacs/src/msdos.rs:2087`（`frame.h 1548` vs `FRAME_NO_SPECIAL_GLYPHS`
+  实际在 1273）。前两条在已提交文件里、第三条在**在飞**的 `msdos.rs`；按 3.166 的裁决（自动 `--fix` 已撤回，
+  该清单是**复核队列不是补丁**），这一面留给批次收口逐条判（加 allowlist 行或按证据改引用），本轮不顺手改。
+  ⑦ **未声称**：**零行为证据**——工具面 0 命中只说明"文本里没有"，不证明工具的**行为**不会写出产品名
+  （3.413 那类只能读它写出的产物，`BASELINE_PROSE` 就是那个读法）；`spikes/**/*.md`、`spikes/miri/Cargo.lock`
+  与工具树以外的散文仍在外（名字已打印）；`build-tu`/`probe` **0 发**（限 3，本轮没有编译任何东西）；
+  3.433 点名保留的四类（C 的 docstring、`COPYRIGHT` 与许可证文本、`PACKAGE_BUGREPORT`、Haiku bundle 签名）
+  **未动**——不重开已裁决的问题，产品身份层的口径仍留待全面验收期判决（3.226 ⑤）。
+

@@ -145,6 +145,22 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     后者是对外注册名，两者都不是"本程序叫什么"；本轮由 `docs/status.md` 3.433 点名，未改）。
     机器门仍是 `tools/check-declarations.py`：本半落地后读数 `14 → 10` 行、`0 forbidden`、`0 failures`。
 
+    这条规则现在有第六半（2026-10-05，status 3.462）：**我们自己写下的工具、探针与 CI 也在规则之内**。
+    第一到第五半逐面推到"被移植树、台账、本仓库散文、工具写出的身份行、程序的自我声明"，但 `tools/`
+    （45 `.py` + 16 `.sh`）、`spikes/`（22 `.rs` + 6 `.c` + 2 `.h`）、`.github/workflows/` 从第一轮起
+    **没有任何门读过**：它们不在 `SCAN_DIRS`（那是被移植树），也不在 `DOC_DIRS`/`PROSE_DIRS`（那是台账与
+    计划集），失败的形状与 3.250（`femacs/platform` 只按名字被扫）和 3.413（两个写身份行的工具靠手找）
+    相同。处置：`tools/check-declarations.py` 新增第三个扫描面 `TOOL_DIRS`（仍按**后缀**判读，
+    `.py`/`.sh`/`.rs`/`.c`/`.h`/`.cc`/`.s`/`.toml`/`.yml`/`.yaml`），判 `decl`/`version`/`title`/`literal`
+    **四类、不判 `recital`**（工具要讲它执行的是什么规则、要引用它剥掉的 C 散文，与 `femacs/xtask` 被
+    排除在 `recital` 外同一条理由）；`.py`/`.sh`/TOML/YAML 的注释前缀是 `#` 而不是 C 的，扫描器为此新增
+    `HASH_LINE_ANYWHERE`（汇编的列首规则不变，`spikes/` 里的 `.c`/`.rs` 照旧走 C 的规则）。
+    **一条豁免规则**（按文件+类，且每次运行**打印规模**）：**以识别或剥掉参照许可散文为本职的工具，必须把
+    那段散文写下来**——`tools/check-declarations.py` 的模式表与自测表（`literal`）与它要找到的版本括注旧写法
+    （`version`）、`tools/cinventory.py` 说明提取器剥掉哪个短语（`literal`）；两处的 `decl`/`title`/`recital`
+    照旧生效。读数：工具面 `93` 个文件、**0 forbidden**（全树 `10 declaration sites (0 forbidden, 10 allowed
+    literals), 0 failures` 不变），豁免合计 43 处并打印；`--selftest` **46 → 51 例 / 0 失败**；
+    `walked past` 现在也报工具树的边界（`spikes/miri/Cargo.lock`、`spikes/shim/README.md`）。
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
     因此不能调用排在它后面的宏——`call0` 按 lisp.h 3462-3471 的顺序挪到了 `calln!`

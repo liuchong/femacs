@@ -30,9 +30,11 @@ leaders are `LINE_COMMENTS`/`HASH_LINE_START` below (status 3.295).  3.250 found
 the comments of `src/*.m`, whose first twenty lines are the product-name prose this gate
 exists to keep out:
 
-  decl     the copied ownership/licence prose (FSF, "General Public License",
-           "part of GNU", "is free software", "Copyright (C)") inside a comment.
-           Every one of the 268 blocks 3.58 deleted was this class.
+  decl     the copied ownership/licence prose ("Free Software Foundation",
+           "General Public License", "is free software", "along with GNU",
+           "Copyright (C)") inside a comment.  Every one of the 268 blocks 3.58
+           deleted was this class.  A block whose only line is the title ("This
+           file is part of GNU Emacs.") holds none of the five and is `title`.
   version  the parenthetical 0.1-19 removed: `@ <rev> (<product> x.y.z)`.
   title    the product name in any *other* comment - a copied first-line title
            ("... subroutines for GNU Emacs.") or a doc comment quoting one of
@@ -53,6 +55,18 @@ for a licence remark, status 3.90/3.100).  A ledger quotes C, so it is exactly
 where the reference's opening block or its version parenthetical can come back
 without a ported unit ever carrying it; 3.100 found `lib-src/hexl.rs` doing that
 in a tree no gate read, and a ledger is that tree's successor.
+
+Our own tooling, probes and CI are a scope of their own too (status 3.462).  They were
+written from the first round and no walk ever read them: `SCAN_DIRS` is the *ported*
+trees, `DOC_DIRS`/`PROSE_DIRS` are the ledgers and the plan set, so `tools/`, `spikes/`
+and `.github/` were read by nobody - which is how 3.413's two identity-line writers had
+to be found by hand, and one scope out from that is every probe and gate in the tree.
+`.py`/`.sh`/TOML/YAML comments are `#`, not C's, so `HASH_LINE_ANYWHERE` teaches the
+scanner that; the `spikes/**` files that are `.c`/`.rs`/`.s` go through the C rules
+unchanged.  One file is exempt by class: `tools/check-declarations.py` is the rule's own
+table, so `literal` is the pattern it has to write down and `version` is the form it
+exists to find - being notation, not a statement about this repository, while `decl`,
+`title` and `recital` still bind it.
 
 This repository's own prose is a scope of its own (status 3.340).  The walk above is
 bounded by *suffix* over the ported trees and by `DOC_DIRS` over the ledgers, so the
@@ -174,6 +188,33 @@ PRODUCT = ("GNU Emacs", "gnu emacs")
 #     indented `#` comment; both are testable, and both are in `--selftest`.
 LINE_COMMENTS = {".s": ("@",), ".S": ("@",)}
 HASH_LINE_START = (".s", ".S")
+
+# This repository's own tooling, probes and CI (status 3.462).  Bound by *suffix* for the
+# reason 3.250 wrote down: a tree named in a list whose files no suffix matches is a tree the
+# gate only claims to read, and this one spans four languages (Python, shell, the probes'
+# Rust/C, the CI's YAML).
+TOOL_DIRS = ("tools", "spikes", ".github")
+TOOL_SUFFIXES = (".py", ".sh", ".rs", ".c", ".h", ".cc", ".s", ".S", ".toml", ".yml", ".yaml")
+# Suffixes whose comment leader is `#` *anywhere* in the line, not only at column zero (which
+# is the assembly dialects' rule above).  Python has no other use of `#`; shell's is a comment
+# at a word start (`${x#y}` and `a#b` are the two exceptions, and a finding still has to
+# contain the product name); TOML and YAML have no `#` operator at all.  The bound is written
+# down because it is a model, and the two shell exceptions are what it does not model.
+HASH_LINE_ANYWHERE = (".py", ".sh", ".toml", ".yml", ".yaml")
+# What binds a tool: the four classes a ported unit gets, minus `recital`.  A gate or a probe
+# has to say what it enforces (`tools/check-declarations.py`'s own docstring is the largest
+# instance) and to quote C's prose it strips, which is the `femacs/xtask` shape - that tree is
+# out of `RECITAL_TREES` for the same reason.
+TOOL_CLASSES = ("decl", "version", "title", "literal")
+# One exemption rule, by file and class: **a tool whose job is to recognise or strip the
+# reference's licence prose has to write that prose down** - `tools/check-declarations.py` is
+# the rule's own table (`literal` is the pattern list and the selftest table, `version` is the
+# form it exists to find; status 3.226 named this file as one of the boundary's homes) and
+# `tools/cinventory.py` says which phrase its extractor strips.  Writing it down there is
+# notation, not a statement about this repository; `decl`, `title` and `recital` still bind
+# both files, and every run prints what was left rather than dropping it silently.
+TOOL_EXEMPT = {"tools/check-declarations.py": ("literal", "version"),
+               "tools/cinventory.py": ("literal",)}
 # `// femacs: port of src/buffer.c @ fd7afced403 (GNU Emacs 32.0.50).` - the form
 # 0.1-19 removed.  The rule keeps the revision and drops the parenthetical.
 # The removed form: the revision followed by a parenthetical that names the
@@ -215,6 +256,7 @@ def scan(text: str, suffix: str = "") -> tuple[list[str], list[str]]:
     comment_line: list[str] = []
     extra_leaders = LINE_COMMENTS.get(suffix, ())
     hash_at_line_start = suffix in HASH_LINE_START
+    hash_anywhere = suffix in HASH_LINE_ANYWHERE
     i, n = 0, len(text)
     state = "code"          # code | line | block | string | char | raw
     raw_hashes = 0
@@ -242,7 +284,8 @@ def scan(text: str, suffix: str = "") -> tuple[list[str], list[str]]:
                 state = "line"
                 i += 1
                 continue
-            if hash_at_line_start and ch == "#" and not "".join(code_line).strip():
+            if ch == "#" and (hash_anywhere
+                              or (hash_at_line_start and not "".join(code_line).strip())):
                 state = "line"
                 i += 1
                 continue
@@ -368,7 +411,51 @@ def unread_files(root: Path) -> list[str]:
         for path in sorted((root / base).rglob("*")):
             if path.is_file() and path.suffix not in SRC_SUFFIXES:
                 out.append(path.relative_to(root).as_posix())
+    # The tool scope's own bound, printed the same way (status 3.462): a `.md` or a
+    # `Cargo.lock` under `tools/`/`spikes/` is not read by the tool walk either.
+    for base in TOOL_DIRS:
+        for path in sorted((root / base).rglob("*")):
+            if path.is_file() and path.suffix not in TOOL_SUFFIXES:
+                out.append(path.relative_to(root).as_posix())
     return out
+
+
+def tool_files(root: Path) -> list[tuple[str, Path]]:
+    """`(rel path, path)` for this repository's own tools, probes and CI (status 3.462)."""
+    out: list[tuple[str, Path]] = []
+    for base in TOOL_DIRS:
+        for path in sorted((root / base).rglob("*")):
+            if path.is_file() and path.suffix in TOOL_SUFFIXES:
+                out.append((path.relative_to(root).as_posix(), path))
+    return out
+
+
+def tool_findings(root: Path) -> tuple[list[tuple[str, str, str]], list[tuple[str, str, int]]]:
+    """The tool scope's findings, and what `TOOL_EXEMPT` left behind (counted, not dropped).
+
+    The exemption is reported as `(rel path, class, count)` so a run says which file is
+    speaking in the rule's own notation, the way `PROSE_EXEMPT` reports the size it did not
+    read - an exemption that is a reading rather than a silence.
+    """
+    out: list[tuple[str, str, str]] = []
+    left: dict[tuple[str, str], int] = {}
+    for rel, path in tool_files(root):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        code, comment = scan(text, path.suffix)
+        raw_lines = text.split("\n")
+        exempt = TOOL_EXEMPT.get(rel, ())
+        for line_no in range(max(len(code), len(comment))):
+            c = comment[line_no] if line_no < len(comment) else ""
+            k = code[line_no] if line_no < len(code) else ""
+            klass = classify(k, c, recital=False)
+            if klass not in TOOL_CLASSES:
+                continue
+            if klass in exempt:
+                left[(rel, klass)] = left.get((rel, klass), 0) + 1
+                continue
+            snippet = " ".join(raw_lines[line_no].split())[:240] if line_no < len(raw_lines) else ""
+            out.append((rel, klass, snippet))
+    return out, [(rel, k, n) for (rel, k), n in sorted(left.items())]
 
 
 def prose_files(root: Path) -> tuple[list[tuple[str, Path]], dict[str, tuple[int, str]]]:
@@ -461,6 +548,7 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
     for rel, path in prose_files(root)[0]:
         for klass, snippet in prose_findings(path):
             out.append((rel, klass, snippet))
+    out.extend(tool_findings(root)[0])
     for rel in BASELINE_PROSE:
         path = root / rel
         if not path.is_file():
@@ -639,6 +727,22 @@ SELFTEST_BASELINE = (
 )
 
 
+# The tool scope (status 3.462).  The `#` cases are also the split's proof: if a `#` were not
+# read as a comment leader for these suffixes the first two would come back `literal`/nothing,
+# and if it were read inside a string the last one would come back `title` instead of `literal`.
+SELFTEST_TOOL = (
+    ("a Python comment naming the product", "# the reference's GNU Emacs build\n", ["title"]),
+    ("a Python comment carrying the removed form",
+     "# was `// femacs: port of src/x.c @ fd7afced403 (GNU Emacs 32.0.50).`\n", ["version"]),
+    ("a shell comment carrying the copied block",
+     "#!/bin/sh\n# GNU Emacs is free software: you can redistribute it.\n", ["decl"]),
+    ("a literal in a tool is this repository speaking",
+     'IDENTITY = "GNU Emacs 32.0.50"\n', ["literal"]),
+    ("a `#` inside a Python string stays a literal",
+     'P = r"# GNU Emacs"\n', ["literal"]),
+)
+
+
 def selftest() -> int:
     bad = 0
     for name, source, want in SELFTEST:
@@ -666,6 +770,11 @@ def selftest() -> int:
         ok = got == sorted(want)
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
         bad += 0 if ok else 1
+    for name, source, want in SELFTEST_TOOL:
+        got = sorted({k for _, k, _ in findings_text(source, ".py")})
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
     for leader, source, want_code, want_comment in SELFTEST_ASM_SPLIT:
         code, comment = scan(source + "\n", ".s")
         ok = code[0].strip() == want_code.strip() and comment[0] == want_comment
@@ -673,7 +782,7 @@ def selftest() -> int:
               f"code={code[0]!r} comment={comment[0]!r}")
         bad += 0 if ok else 1
     total = (len(SELFTEST) + len(SELFTEST_DOC) + len(SELFTEST_PROSE) + len(SELFTEST_ASM)
-             + len(SELFTEST_ASM_SPLIT) + len(SELFTEST_BASELINE))
+             + len(SELFTEST_ASM_SPLIT) + len(SELFTEST_BASELINE) + len(SELFTEST_TOOL))
     print(f"{total} cases, {bad} failures")
     return 1 if bad else 0
 
@@ -707,6 +816,8 @@ def main() -> int:
     read = scanned_files(root)
     skip = unread_files(root)
     prose, exempt = prose_files(root)
+    tool = tool_files(root)
+    _, tool_left = tool_findings(root)
     by_suffix: dict[str, int] = {}
     for _, path in read:
         by_suffix[path.suffix] = by_suffix.get(path.suffix, 0) + 1
@@ -752,6 +863,14 @@ def main() -> int:
         print("left out (sanctioned, counted): "
               + "; ".join(f"{prefix} {n} file(s) - {reason}"
                           for prefix, (n, reason) in exempt.items()))
+    tkinds: dict[str, int] = {}
+    for _, path in tool:
+        tkinds[path.suffix or "(no suffix)"] = tkinds.get(path.suffix or "(no suffix)", 0) + 1
+    tspan = " ".join(f"{n} {ext}" for ext, n in sorted(tkinds.items(), key=lambda kv: -kv[1]))
+    print(f"read {len(tool)} own tool/probe file(s) ({tspan})"
+          + ("; left to the rule's own notation: "
+             + ", ".join(f"{rel} {k} x{n}" for rel, k, n in tool_left)
+             if tool_left else ""))
     # The bound the walk prints last: `skip` is what the *suffix* walk passed over, and a
     # file the prose scope reads is no longer part of that hole (3.340 closed its one member,
     # `femacs/xtask/Cargo.toml`), so the line stays printed with the count it now reads.
