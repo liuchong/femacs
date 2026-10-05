@@ -206,7 +206,8 @@ block, and the union covers C 1-4304 without a gap.
 | 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
 | 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
 | 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
-| 3548-4304 | **the remainder**: C 3549's `xwidget-webkit-search` family, the store/kill helpers and `syms_of_xwidget` (C 3928-4035) | file gate - **owed** |
+| 3548-3770 | `xwidget-webkit-search` (C 3549-3607), `xwidget-webkit-next-result` (C 3609-3640), `xwidget-webkit-previous-result` (C 3642-3673), `xwidget-webkit-finish-search` (C 3675-3712), `kill-xwidget` (C 3714-3731) and `xwidget-webkit-load-html` (C 3734-3769, under C 3733's `#ifdef USE_GTK`, which is this file's gate) | file gate - **transcribed** (slice 6, status 3.674) |
+| 3771-4304 | **the remainder**: `xwidget-webkit-back-forward-list` (C 3771-3865), `xwidget-webkit-set-cookie-storage-file` (C 3866-3898), `xwidget-webkit-stop-loading` (C 3899-3925), `syms_of_xwidget` (C 3928-4035) and the store/kill helpers from C 4037 | file gate - **owed** |
 
 ## Evidence` readings and the `## Deviations`.
 >
@@ -355,7 +356,8 @@ Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861)
 | 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
 | 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
 | 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
-| 3548-4304 | **the remainder**: C 3549's `xwidget-webkit-search` family, the store/kill helpers and `syms_of_xwidget` (C 3928-4035) | file gate - **owed** |
+| 3548-3770 | `xwidget-webkit-search` (C 3549-3607), `xwidget-webkit-next-result` (C 3609-3640), `xwidget-webkit-previous-result` (C 3642-3673), `xwidget-webkit-finish-search` (C 3675-3712), `kill-xwidget` (C 3714-3731) and `xwidget-webkit-load-html` (C 3734-3769, under C 3733's `#ifdef USE_GTK`, which is this file's gate) | file gate - **transcribed** (slice 6, status 3.674) |
+| 3771-4304 | **the remainder**: `xwidget-webkit-back-forward-list` (C 3771-3865), `xwidget-webkit-set-cookie-storage-file` (C 3866-3898), `xwidget-webkit-stop-loading` (C 3899-3925), `syms_of_xwidget` (C 3928-4035) and the store/kill helpers from C 4037 | file gate - **owed** |
 
 ## Evidence
 
@@ -719,6 +721,47 @@ Readings: `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
 change: `145 ledger(s), 0 failure(s)`.
 
 
+**⑬ Slice 6 (C 3548-3770): the readings of the round that landed it (2026-10-06, status 3.674).**
+
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **56 -> 51**
+rows.  The subr rows this slice retires are `Fxwidget_webkit_search`, `Fxwidget_webkit_next_result`,
+`Fxwidget_webkit_previous_result`, `Fxwidget_webkit_finish_search`, `Fkill_xwidget` and
+`Fxwidget_webkit_load_html`; their `defsubr (&raw const S… )` rows stay for `syms_of_xwidget` (⑩ a).
+**`missing function kill_xwidget` also stays**: this slice calls C 4247's `static` definition, and a
+use-site declaration (which is what the port needs for the arm to resolve the name) does not
+satisfy the "function" row - only C 4247's body does.  Drift row: `32.3%: C 4304 vs Rust 5694`.
+
+b) **The frozen reading.**  `build-tu src/xwidget.c` -> built, `build/femacs/xwidget.o` **336
+bytes** - the empty object of the P-86 class.
+
+c) **The three arm flips against HEAD's own file** (HEAD is exactly "before slice 6"):
+
+| arm (`use_gtk` + `have_gtk3` + `have_xwidgets` + …) | own-text rows, HEAD | this slice | added |
+| --- | --- | --- | --- |
+| A: `have_x_windows` + `have_window_system` | 52 | **51** | **0** (and one row *removed*) |
+| B: `have_pgtk` + `have_window_system` | 14 | **13** | **0** (idem) |
+| C: (no window system) | 25 | **24** | **0** (idem) |
+
+Every arm is one row *lower* than before: the pre-existing `cannot find function kill_xwidget`
+row is gone, because this slice declares the name at the use site with C's own prototype (C 96)
+while C 4247's definition waits.  That is the first slice in this unit to leave an arm reading
+better than it found it, and nothing else moved.
+
+d) **Three fix iterations behind c.**  Run 1: thirty `E0425`s - the slice first wrote C's
+`#ifdef USE_GTK` locals *inside* an inner `#[cfg]` block, which hides them from the body; this
+file's gate **is** `USE_GTK` (the ledger's `## Gate mapping`), so those declarations belong at
+function scope with no inner block (Deviation 1).  Run 2: one `E0308` - C 3602 passes its
+`WebKitFindOptions opt` to the `guint32 find_options` parameter, so the port casts (`as guint32`).
+Run 3 is the table above.
+
+e) **No mirror was edited this round**, so P-87 ①'s legs do not apply: the WebKit find-controller
+surface (`WebKitFindController`, `WebKitFindOptions` and its four enumerator placeholders) and the
+five WebKit entry points go into this unit's own WebKit block (553-900), and `G_MAXUINT` sits
+beside `G_MAXINT32` in the unit's GLib constant section - both are where this file's third-party
+surface already lives.  `check-dead-file-coverage.py` re-read after the table change:
+`145 ledger(s), 0 failure(s)`.
+
+
 ## Deviations
 
 1. **Include order.**  C's list starts at `"buffer.h"` (C 22) and reaches `"lisp.h"` at C 25;
@@ -960,6 +1003,35 @@ change: `145 ledger(s), 0 failure(s)`.
    failed arm run.
 
 
+### Slice 6 (C 3548-3770, status 3.674)
+
+1. **C's `#ifdef USE_GTK` locals stand at function scope with no inner `#[cfg]`**: this file's gate
+   is `USE_GTK` (the ledger's `## Gate mapping`), so an inner block would only hide them from the
+   body - measured on the first arm run (thirty `E0425`s), and the fix is structural, not a
+   suppression (Evidence ⑬ d).
+2. **`opt as guint32`** at C 3602: C passes `WebKitFindOptions` (its enum, `c_int` here) to the
+   `guint32 find_options` parameter.
+3. **`kill_xwidget` is declared at the use site** with C 96's own prototype (`static void
+   kill_xwidget (struct xwidget *);`) because C 4247's definition is a later slice's; the
+   declaration carries the file gate, and the checker's `missing function kill_xwidget` row stays
+   until the definition lands (the declaration is what the *arm* needs).
+4. **The WebKit find-controller surface**: `WebKitFindController` is the `[u8; 0]` record shape the
+   block's other records use, `WebKitFindOptions` is `c_int` (the port's enum spelling), and its
+   four members are **distinct placeholders that keep C's bit shifts** (`1 << 0`, `1 << 3`,
+   `1 << 4`), because C 3586-3594 OR's them - the values themselves are Owed 2/8's (no WebKit tree
+   on this machine).  **UNVERIFIED**, as the block's note says.
+5. **`G_MAXUINT`** (`glib/gmacros.h`'s `((guint) 0xffffffff)`) is declared beside the unit's
+   `G_MAXINT32`, not in a mirror: it is the GLib constant section this unit already keeps
+   (`include/xwidget.rs`'s arm has no GTK/GLib mirror to own it).
+6. **`xwidget-webkit-load-html`'s three assignable parameters** (`base_uri` at C 3751, `text` at
+   C 3756) are rebound at the top of the body- the `window.rs` 4267 shape.
+7. **`xwidget-webkit-search`'s `query`** (C 3585) is rebound the same way, and the function's five
+   `#ifdef USE_GTK` locals are declared at function scope (Deviation 1).
+8. **The three `G_MAXUINT`-adjacent types are the mirror's**: `guint`/`guint32`/`gchar` come from
+   `include/gtk.rs`, and `xstrdup`/`ENCODE_UTF_8`/`SSDATA`/`xfree`/`build_string` from the mirrors
+   this unit includes - no new cross-unit declaration beyond `kill_xwidget` (Deviation 3).
+
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. `femacs/xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
@@ -1021,15 +1093,15 @@ change: `145 ledger(s), 0 failure(s)`.
    only; **slice 2 flips them** (ARM A11 sets `have_xinput2`/`have_xinput2_4`, Evidence ⑧) but the
    arm cannot *resolve* until `XIEventMask`/`x_display_info` land in `include/xterm.rs` (owed 10),
    so the reading is still a name-resolution one and not a compile.
-7. **The next slices.**  Slices 3-5 (status 3.671, 3.672, 3.673) landed C 2717-2790, C 3042-3116,
-   C 3117-3307 and C 3308-3547; what is left is **C 2791-3041** (C 2793's
+7. **The next slices.**  Slices 3-6 (status 3.671-3.674) landed C 2717-2790, C 3042-3116,
+   C 3117-3307, C 3308-3547 and C 3548-3770; what is left is **C 2791-3041** (C 2793's
    `x_draw_xwidget_glyph_string`, the densest function in the file: the
    `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms, `XCreateWindow`/`XISelectEvents`/
-   `cairo_xlib_surface_create`) and **C 3548-4304** (the `xwidget-webkit-search` family, the
-   store/kill helpers and `syms_of_xwidget`, C 3928-4035).  **`syms_of_xwidget` is what retires the
-   `defsubr (&raw const S… )` rows of the twenty-two subrs now ported**, so it is the single row
-   that moves the most names - and it must land *after* the subrs it registers.  The C line-range
-   table carries both fronts as its **owed** rows.
+   `cairo_xlib_surface_create`) and **C 3771-4304** (`xwidget-webkit-back-forward-list`,
+   `xwidget-webkit-set-cookie-storage-file`, `xwidget-webkit-stop-loading`, `syms_of_xwidget`
+   C 3928-4035, and the store/kill helpers from C 4037 - including C 4247's `kill_xwidget`, whose
+   *definition* is what retires the row slice 6's use-site declaration could not).  The C
+   line-range table carries both fronts as its **owed** rows.
 
 
 8. **The mirror's GDK event records need the members this slice reads.**  The ARM A11 reading's 84

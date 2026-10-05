@@ -13773,3 +13773,26 @@
      那 2 行已知缺口是**照实带**的（不许 stub），不是"已修"；没有跑任何行为。
   ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 12 发（本片 3 + 中间迭代 3 + HEAD 基线 3 + 复跑 3）、`--check` 4 发、
      `check-all-units.sh` 1 发（约 2.5 分钟）、`layout-check` 1 发、文本门 2 发；`/tmp` 脚本收工删。
+
+- **3.674 `src/xwidget.c` 的第六片：C 3548-3770（WebKit 搜索族 5 个 subr + `xwidget-webkit-load-html`）落地——`--check` 的 `- ` 行 56 → **51**；三组翻臂对 HEAD **新增 0，而且每组反而少 1 行**（`cannot find function kill_xwidget` 被使用点声明消掉）；本轮零镜像改动，P-87 不适用（2026-10-06）**：
+  ① **范围**：`xwidget-webkit-search`（C 3549-3607，五个 `#ifdef USE_GTK` 局部量 + `WebKitFindOptions` 的 `|=` 组合）、
+     `xwidget-webkit-next-result`（C 3609-3640）、`xwidget-webkit-previous-result`（C 3642-3673）、
+     `xwidget-webkit-finish-search`（C 3675-3712，含 `find_text` 的释放与置空）、`kill-xwidget`（C 3714-3731）、
+     `xwidget-webkit-load-html`（C 3734-3769，C 3733 的 `#ifdef USE_GTK` 就是本文件的门）。
+  ② **读数**：`extract-abi --check` **56 → 51**（退场的是六条 subr 行；它们的 `defsubr` 行照旧等 `syms_of_xwidget`）。
+     **`missing function kill_xwidget` 仍在**——本片调用的是 C 4247 的 `static` 定义，使用点声明只能让**手臂**解析通过，
+     不能顶替"函数"那一行（定义随 C 4247 落地）。行数棘轮 `32.3%: C 4304 vs Rust 5694`；冻结档仍是 **336 字节空对象**。
+  ③ **三组翻臂（对 HEAD 的同名文件）**：A 52 → **51**、B 14 → **13**、C 25 → **24**——**每组新增 0，且每组比之前少 1 行**：
+     少掉的正是既有的 `cannot find function kill_xwidget`（本片按 C 96 的原型在使用点声明了它）。
+     这是本单元第一个"离开时手臂读数比进来时更好"的片，别的东西一行都没动。
+  ④ **三次修复**：第一发 30 条 `E0425`——本片先把 C 的 `#ifdef USE_GTK` 局部量写进了内层 `#[cfg]` 块，块把名字藏起来；
+     而**这个文件的门就是 `USE_GTK`**（账里的 `## Gate mapping`），所以那些声明要放在函数作用域、不带内层块（偏离 1，结构性的修，不是压制）；
+     第二发 1 条 `E0308`——C 3602 把 `WebKitFindOptions opt` 传给 `guint32 find_options`，端口补 `as guint32`；第三发即 ③。
+  ⑤ **零镜像改动 ⇒ P-87 两条腿不适用**（写进账，不含糊）：WebKit 的查找控制器表面（记录 + `WebKitFindOptions` 类型 + 四个**保留 C 位次**的占位枚举）
+     与五个 WebKit 入口都在本单元自己的 WebKit 段；`G_MAXUINT` 放在本单元的 GLib 常量段（挨着 `G_MAXINT32`）。
+     `check-dead-file-coverage` 复读 **145 ledger(s), 0 failure(s)**。
+  ⑥ **账目**：C 区间表两处副本把"3548-4304 一整行"拆成 **3548-3770 transcribed / 3771-4304 owed**；新增 Evidence ⑬（a-e，含 HEAD 对照表与
+     "为什么少的正是那一行"的说明）、`### Slice 6` 的 8 条偏离；Owed 7 更新（下一片两处前沿，并点名 C 4247 的定义是消掉那一行的东西）。
+  ⑦ **未声称**：C 2791-3041 与 C 3771-4304 一行未动；冻结档编译不到这个文件；三组翻臂都是**编译**不是链接/加载；
+     WebKit 那几个类型与枚举值仍是 **UNVERIFIED**（本机没有 WebKit 树）；没有跑任何行为。
+  ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 12 发（本片 3 + 迭代 6 + HEAD 基线 3）、`--check` 3 发、文本门 2 发；`/tmp` 脚本收工删。

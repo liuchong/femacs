@@ -639,6 +639,18 @@ pub struct WebKitDownload
 {
   _private: [u8; 0],
 }
+/// C: webkit2/WebKitFindController.h: `typedef struct _WebKitFindController
+/// WebKitFindController;` - C 3571/3621/3654/3687's `controller` (slice 6).  **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[repr (C)]
+pub struct WebKitFindController
+{
+  _private: [u8; 0],
+}
+/// C: webkit2/WebKitFindController.h: `typedef enum { WEBKIT_FIND_OPTIONS_NONE, … }
+/// WebKitFindOptions;` - the type C 3572's `opt` is OR'd into (slice 6).  **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub type WebKitFindOptions = c_int;
 /// C: webkit2/WebKitPolicyDecision.h: `typedef enum { WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION,
 /// WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION, WEBKIT_POLICY_DECISION_TYPE_RESPONSE }
 /// WebKitPolicyDecisionType;` - the type C 110's forward declaration names.  **UNVERIFIED**.
@@ -800,6 +812,35 @@ unsafe extern "C" {
   pub fn webkit_web_view_run_javascript (web_view: *mut WebKitWebView, script: *const gchar,
 					 cancellable: *mut c_void,
 					 callback: GAsyncReadyCallback, user_data: gpointer);
+  /// C 3601/3634/3667/3700: `controller = webkit_web_view_get_find_controller (webview);`
+  /// C: webkit2/WebKitWebView.h: `WebKitFindController *webkit_web_view_get_find_controller
+  /// (WebKitWebView *web_view);`
+  pub fn webkit_web_view_get_find_controller (web_view: *mut WebKitWebView)
+    -> *mut WebKitFindController;
+  /// C 3602: `webkit_find_controller_search (controller, g_query, opt, G_MAXUINT);`
+  /// C: webkit2/WebKitFindController.h: `void webkit_find_controller_search
+  /// (WebKitFindController *find_controller, const gchar *search_text, guint32 find_options,
+  /// guint max_match_count);`
+  pub fn webkit_find_controller_search (find_controller: *mut WebKitFindController,
+					search_text: *const gchar, find_options: guint32,
+					max_match_count: guint);
+  /// C 3635: `webkit_find_controller_search_next (controller);`
+  /// C: webkit2/WebKitFindController.h: `void webkit_find_controller_search_next
+  /// (WebKitFindController *find_controller);`
+  pub fn webkit_find_controller_search_next (find_controller: *mut WebKitFindController);
+  /// C 3668: `webkit_find_controller_search_previous (controller);`
+  /// C: webkit2/WebKitFindController.h: `void webkit_find_controller_search_previous
+  /// (WebKitFindController *find_controller);`
+  pub fn webkit_find_controller_search_previous (find_controller: *mut WebKitFindController);
+  /// C 3701: `webkit_find_controller_search_finish (controller);`
+  /// C: webkit2/WebKitFindController.h: `void webkit_find_controller_search_finish
+  /// (WebKitFindController *find_controller);`
+  pub fn webkit_find_controller_search_finish (find_controller: *mut WebKitFindController);
+  /// C 3765: `webkit_web_view_load_html (webview, data, uri);`
+  /// C: webkit2/WebKitWebView.h: `void webkit_web_view_load_html (WebKitWebView *web_view, const
+  /// gchar *content, const gchar *base_uri);`
+  pub fn webkit_web_view_load_html (web_view: *mut WebKitWebView, content: *const gchar,
+				    base_uri: *const gchar);
 }
 
 /* C 56-59: the file's four file-scope objects.  The first three are C's tentative definitions
@@ -2159,6 +2200,10 @@ pub const GDK_TOUCHPAD_PINCH: GdkEventType = 12;            // placeholder, not 
 /// value is `INT32_MAX`, the header's own expression.
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const G_MAXINT32: c_int = 2147483647;
+/// C: glib/gmacros.h: `#define G_MAXUINT ((guint) 0xffffffff)` - C 3602's fourth argument to
+/// `webkit_find_controller_search`.  The header's own expression.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub const G_MAXUINT: guint = 4294967295;
 /// C: glib/gasyncresult.h: `typedef struct _GAsyncResult GAsyncResult;` - `webkit_web_view_
 /// run_javascript_finish`'s second parameter (C 2533).
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
@@ -2412,6 +2457,17 @@ pub const WEBKIT_SCRIPT_DIALOG_PROMPT: WebKitScriptDialogType = 2;              
 pub const WEBKIT_SCRIPT_DIALOG_BEFORE_UNLOAD_CONFIRM: WebKitScriptDialogType = 3;   // placeholder
 /// C: webkit2/WebKitWebView.h: the four `WebKitLoadEvent` members C 2436-2449 switches over
 /// (the type itself is declared at C 627's surface above).  Distinct placeholders.  **UNVERIFIED**.
+/// C: webkit2/WebKitFindController.h: the four `WebKitFindOptions` members C 3586-3594 OR's
+/// together (the type itself is declared at C 627's surface above).  Distinct placeholders, and
+/// the bit *positions* are what C's `|=` needs, so they keep C's shifts.  **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub const WEBKIT_FIND_OPTIONS_NONE: WebKitFindOptions = 0;          // C's `0`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub const WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE: WebKitFindOptions = 1 << 0;  // C's `1 << 0`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub const WEBKIT_FIND_OPTIONS_BACKWARDS: WebKitFindOptions = 1 << 3;         // C's `1 << 3`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub const WEBKIT_FIND_OPTIONS_WRAP_AROUND: WebKitFindOptions = 1 << 4;       // C's `1 << 4`
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_LOAD_STARTED: WebKitLoadEvent = 0;      // placeholder, not WebKit's value
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
@@ -5406,4 +5462,233 @@ DEFUN! ("xwidget-query-on-exit-flag", Fxwidget_query_on_exit_flag,
   CHECK_LIVE_XWIDGET (xwidget);
   /* The same mirror gap as the setter above (Owed 9).  */
   return if (*XXWIDGET (xwidget)).kill_without_query { Qnil () } else { Qt () };
+});
+
+/* C 3549's `DEFUN ("xwidget-webkit-search", …)` on: slice 6 (C 3548-3770).  The C line-range
+   table's owed row is now 3548-4304; this slice lands its first six items, and C 3771 on (the
+   `xwidget-webkit-back-forward-list` and the two remaining WebKit subrs, then `syms_of_xwidget`
+   and the store/kill helpers) is next.  */
+
+/// C 3549-3565: `DEFUN ("xwidget-webkit-search", Fxwidget_webkit_search, Sxwidget_webkit_search,
+/// 2, 5, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-search", Fxwidget_webkit_search, Sxwidget_webkit_search, 2, 5, 0,
+       doc: "Begin an incremental search operation in an xwidget.\nQUERY should be a string containing the text to search for.  XWIDGET\nshould be a WebKit xwidget where the search will take place.  When the\nsearch operation is complete, callers should also call\n`xwidget-webkit-finish-search' to complete the search operation.\n\nCASE-INSENSITIVE, when non-nil, will cause the search to ignore the\ncase of characters inside QUERY.  BACKWARDS, when non-nil, will cause\nthe search to proceed towards the beginning of the widget's contents.\nWRAP-AROUND, when nil, will cause the search to stop upon hitting the\nend of the widget's contents.\n\nIt is OK to call this function even when a search is already in\nprogress.  In that case, the previous search query will be replaced\nwith QUERY.",
+       (query: Lisp_Object, xwidget: Lisp_Object, case_insensitive: Lisp_Object,
+	backwards: Lisp_Object, wrap_around: Lisp_Object),
+       {
+  /* C 3570-3574's `#ifdef USE_GTK` locals: this file's gate *is* `USE_GTK` (the ledger's
+     `## Gate mapping`), so they stand at function scope with no inner `#[cfg]`.  */
+  let mut webview: *mut WebKitWebView;
+  let mut controller: *mut WebKitFindController;
+  let mut opt: WebKitFindOptions;
+  let mut xw: *mut xwidget;
+  let mut g_query: *mut c_char;
+  /* C 3585 assigns its own `query` parameter (`query = ENCODE_UTF_8 (query);`).  */
+  let mut query: Lisp_Object = query;
+
+  CHECK_STRING (query);
+  CHECK_LIVE_XWIDGET (xwidget);
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  xw = XXWIDGET (xwidget);
+  CHECK_WEBKIT_WIDGET! (xw);
+
+  webview = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  query = ENCODE_UTF_8 (query);
+  opt = WEBKIT_FIND_OPTIONS_NONE;
+  g_query = xstrdup (SSDATA (query));
+
+  if !NILP (case_insensitive)
+    { opt |= WEBKIT_FIND_OPTIONS_CASE_INSENSITIVE; }
+  if !NILP (backwards)
+    { opt |= WEBKIT_FIND_OPTIONS_BACKWARDS; }
+  if !NILP (wrap_around)
+    { opt |= WEBKIT_FIND_OPTIONS_WRAP_AROUND; }
+
+  if !(*xw).find_text.is_null ()
+    { xfree ((*xw).find_text as *mut c_void); }
+  (*xw).find_text = g_query;
+
+  block_input ();
+  controller = webkit_web_view_get_find_controller (webview);
+  /* C 3602 passes its `WebKitFindOptions opt` to the `guint32 find_options` parameter.  */
+  webkit_find_controller_search (controller, g_query, opt as guint32, G_MAXUINT as guint);
+  unblock_input ();
+  }
+
+  return Qnil ();
+});
+
+/// C 3609-3615: `DEFUN ("xwidget-webkit-next-result", Fxwidget_webkit_next_result,
+/// Sxwidget_webkit_next_result, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-next-result", Fxwidget_webkit_next_result,
+       Sxwidget_webkit_next_result, 1, 1, 0,
+       doc: "Show the next result matching the current search query.\n\nXWIDGET should be an xwidget that currently has a search query.\nBefore calling this function, you should start a search operation\nusing `xwidget-webkit-search'.",
+       (xwidget: Lisp_Object),
+       {
+  let mut xw: *mut xwidget;
+  /* C 3619-3622 / 3652-3655 / 3685-3688's `#ifdef USE_GTK` locals (the file gate, as above).  */
+  let mut webview: *mut WebKitWebView;
+  let mut controller: *mut WebKitFindController;
+
+  CHECK_LIVE_XWIDGET (xwidget);
+  xw = XXWIDGET (xwidget);
+  CHECK_WEBKIT_WIDGET! (xw);
+
+  if (*xw).find_text.is_null ()
+    { error (c"Widget has no ongoing search operation".as_ptr ()); }
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  block_input ();
+  webview = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  controller = webkit_web_view_get_find_controller (webview);
+  webkit_find_controller_search_next (controller);
+  unblock_input ();
+  }
+
+  return Qnil ();
+});
+
+/// C 3642-3648: `DEFUN ("xwidget-webkit-previous-result", Fxwidget_webkit_previous_result,
+/// Sxwidget_webkit_previous_result, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-previous-result", Fxwidget_webkit_previous_result,
+       Sxwidget_webkit_previous_result, 1, 1, 0,
+       doc: "Show the previous result matching the current search query.\n\nXWIDGET should be an xwidget that currently has a search query.\nBefore calling this function, you should start a search operation\nusing `xwidget-webkit-search'.",
+       (xwidget: Lisp_Object),
+       {
+  let mut xw: *mut xwidget;
+  /* C 3619-3622 / 3652-3655 / 3685-3688's `#ifdef USE_GTK` locals (the file gate, as above).  */
+  let mut webview: *mut WebKitWebView;
+  let mut controller: *mut WebKitFindController;
+
+  CHECK_LIVE_XWIDGET (xwidget);
+  xw = XXWIDGET (xwidget);
+  CHECK_WEBKIT_WIDGET! (xw);
+
+  if (*xw).find_text.is_null ()
+    { error (c"Widget has no ongoing search operation".as_ptr ()); }
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  block_input ();
+  webview = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  controller = webkit_web_view_get_find_controller (webview);
+  webkit_find_controller_search_previous (controller);
+  unblock_input ();
+  }
+
+  return Qnil ();
+});
+
+/// C 3675-3681: `DEFUN ("xwidget-webkit-finish-search", Fxwidget_webkit_finish_search,
+/// Sxwidget_webkit_finish_search, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-finish-search", Fxwidget_webkit_finish_search,
+       Sxwidget_webkit_finish_search, 1, 1, 0,
+       doc: "Finish XWIDGET's search operation.\n\nXWIDGET should be an xwidget that currently has a search query.\nBefore calling this function, you should start a search operation\nusing `xwidget-webkit-search'.",
+       (xwidget: Lisp_Object),
+       {
+  let mut xw: *mut xwidget;
+  /* C 3619-3622 / 3652-3655 / 3685-3688's `#ifdef USE_GTK` locals (the file gate, as above).  */
+  let mut webview: *mut WebKitWebView;
+  let mut controller: *mut WebKitFindController;
+
+  CHECK_LIVE_XWIDGET (xwidget);
+  xw = XXWIDGET (xwidget);
+  CHECK_WEBKIT_WIDGET! (xw);
+
+  if (*xw).find_text.is_null ()
+    { error (c"Widget has no ongoing search operation".as_ptr ()); }
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  block_input ();
+  webview = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  controller = webkit_web_view_get_find_controller (webview);
+  webkit_find_controller_search_finish (controller);
+
+  if !(*xw).find_text.is_null ()
+    {
+      xfree ((*xw).find_text as *mut c_void);
+      (*xw).find_text = core::ptr::null_mut ();
+    }
+  unblock_input ();
+  }
+
+  return Qnil ();
+});
+
+/// C 3714-3718: `DEFUN ("kill-xwidget", Fkill_xwidget, Skill_xwidget, 1, 1, 0, doc: ...)`.  Its
+/// call to `kill_xwidget` (C 4247's `static` definition, a later slice) is one of the names that
+/// unit's `## Owed` carries until then - C's text is carried as it stands.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("kill-xwidget", Fkill_xwidget, Skill_xwidget, 1, 1, 0,
+       doc: "Kill the specified XWIDGET.\nThis releases all window system resources associated with XWIDGET,\nremoves it from `xwidget-list', and detaches it from its buffer.",
+       (xwidget: Lisp_Object),
+       {
+  let mut xw: *mut xwidget;
+
+  CHECK_LIVE_XWIDGET (xwidget);
+  xw = XXWIDGET (xwidget);
+
+  block_input ();
+  kill_xwidget (xw);
+  unblock_input ();
+
+  return Qnil ();
+});
+
+/// C 3714's callee: C 4247's `static void kill_xwidget (struct xwidget *xw)` is the remaining
+/// slice's, so the unit declares it at the use site (P-72 rule 4) the way the C 96 prototype
+/// makes it visible in C.  The definition lands with C 4247 and this declaration goes with it.
+/// C: xwidget.c 96: `static void kill_xwidget (struct xwidget *);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn kill_xwidget (xw: *mut xwidget);
+}
+
+/// C 3734-3741: `DEFUN ("xwidget-webkit-load-html", Fxwidget_webkit_load_html,
+/// Sxwidget_webkit_load_html, 2, 3, 0, doc: ...)` - C 3733's `#ifdef USE_GTK` is this file's
+/// gate (the ledger's `## Gate mapping`), so the DEFUN carries it like every other item.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-load-html", Fxwidget_webkit_load_html, Sxwidget_webkit_load_html,
+       2, 3, 0,
+       doc: "Make XWIDGET's WebKit widget render TEXT.\nXWIDGET should be a WebKit xwidget, that will receive TEXT.  TEXT\nshould be a string that will be displayed by XWIDGET as HTML markup.\nBASE-URI should be a string containing a URI that is used to locate\nresources with relative URLs, and if not specified, defaults\nto \"about:blank\".",
+       (xwidget: Lisp_Object, text: Lisp_Object, base_uri: Lisp_Object),
+       {
+  let mut xw: *mut xwidget;
+  let mut webview: *mut WebKitWebView;
+  let mut data: *mut c_char;
+  let mut uri: *mut c_char;
+
+  /* C 3751/3755-3756 assign their own `base_uri` and `text` parameters.  */
+  let mut base_uri: Lisp_Object = base_uri;
+  let mut text: Lisp_Object = text;
+
+  CHECK_LIVE_XWIDGET (xwidget);
+  CHECK_STRING (text);
+  if NILP (base_uri)
+    { base_uri = build_string (c"about:blank".as_ptr ()); }
+  else
+    { CHECK_STRING (base_uri); }
+
+  base_uri = ENCODE_UTF_8 (base_uri);
+  text = ENCODE_UTF_8 (text);
+  xw = XXWIDGET (xwidget);
+  CHECK_WEBKIT_WIDGET! (xw);
+
+  data = SSDATA (text);
+  uri = SSDATA (base_uri);
+  webview = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+
+  block_input ();
+  webkit_web_view_load_html (webview, data, uri);
+  unblock_input ();
+
+  return Qnil ();
 });
