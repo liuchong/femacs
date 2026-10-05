@@ -10883,3 +10883,31 @@
      （五件 × 两轮）、文本门 2 轮全跑；未跑 `xtask --all`/`gate-fast`/`cargo test`/`dead-arms`/`check-all-units.sh`
      ——本轮**没碰** `femacs/{src,lib}/include/**`，动的是 `oldXMenu/include/**`，它的受影响集就是六个 oldXMenu 单元，
      已逐条探过；`/tmp/f548` 收工删。
+
+- **3.551 lane 产出收口：`src/w32uniscribe.c` 整文件落地（C 1628 → Rust 2,766）（2026-10-05）**：
+  ① **lane 的产出（Kuhn）**：`femacs/src/w32uniscribe.rs` 11 → **2,766** 行，台账 `docs/ports/w32uniscribe.md`
+     24 → **358** 行，42 行区间表覆盖 C 1-1628（含 `^L` 与空行）；文件门 `have_ntgui` 压在每个项**与整张 include 图**上，
+     C 的 11 个条件全部两臂都带（`harfbuzz` 的 C 33/54/191/207/1241/1513/1592、`#if 0` 的 C 1060、
+     `GNUC_PREREQ` 的 C 1288、`windowsnt`/Cygwin 的 C 1541/1599），`check-cond-eval` 读 **11 conditions / 0 unknown /
+     0 disagreements [VERIFIED]**；`<windows.h>`/`<usp10.h>`/`<hb.h>` 的表面就地声明（P-88 ①，无 SDK ⇒ 全部 UNVERIFIED）。
+  ② **读数**：冻结 `build-tu` 三发（一发先撞 `E0758` 未闭合块注释，后两发 exit 0）对象 **336 字节**；
+     臂（`have_ntgui`+`windowsnt`+`have_window_system`+`harfbuzz`）**单元侧 0 错**，唯一 1 条是
+     `include/frame.rs` 329 那条**自己写明**的 `compile_error!`（既有欠账，属 frame 镜像）；变异实测
+     （`free_cb` 注入类型错）证明读数不空跑、`shasum` 前后一致；`extract-abi --check` **17 条 → 1 条**（只剩行数漂移）。
+  ③ **集成者登记（本提交）**：`line-drift-tolerance.tsv` 加 `w32uniscribe 0.70`（C 1628 vs 2,766，69.9%）⇒
+     `extract-abi --check emacs/src/w32uniscribe.c femacs/src/w32uniscribe.rs` **FAIL → OK**；`macro-body-notes.tsv`
+     收 8 行（`uniscribe_*` 5 条 + `OTF_*_VAL` 3 条，**按行名切片**：pgtkselect/gmalloc 在飞的行不进本提交）；
+     `port-map.md` 刷新 `w32uniscribe.rs` 2,766（gmalloc/pgtkselect/textconv 三条**在飞 lane** 的行回退成已提交值）。
+  ④ **一条如实留白**：`docs/baseline/feature-coverage.tsv` 本轮**没有**提交我生成的结果——它是按**工作树**写的，
+     会把三条在飞 lane 的站点算进去（gmalloc 的 `no_system_malloc`/`gc_*` 族、pgtkselect 的 `have_pgtk`、
+     textconv 的站点），提交后无法从 HEAD 复算。留到三条 lane 落地时一次性重生成，登记为集成者欠账。
+  ⑤ **门读数（本轮现读）**：`check-declarations` 17/0/0；`check-citations` **4 drift——4 条全在 `femacs/src/textconv.rs`**
+     （在飞 lane，已把四条原文发给该 lane 要求改对），其余 0 drift/0 stale；`check-mirror-dupes` 18/17/**1 failure**
+     （`femacs/src/gmalloc.rs`，在飞 lane）；`check-dead-file-coverage` **117 台账 / 0 failure**（本件 42 行表被读）；
+     `check-ledger-ticks` 233/0；`check-port-lines` 20 文件 / 21,243 参照行 / 0 new / 1 stale（数字随在飞 lane 浮动）；
+     `check-target-names` 591 目标 / 0 finding。
+  ⑥ **未声称**：这是**文本 + 编译**证据，不是 Windows 编译（本机没有 `windows.h`/`usp10.h`/`hb.h`）：
+     `<windows.h>`/`<usp10.h>`/`<hb.h>` 的每一条记录与值 **UNVERIFIED**；没有任何运行/差分/ERT/设备证据；
+     本件 `extract-abi` 的清单按 P-86 ② 天然是空的。**预算**：本轮我只跑 `extract-abi --check` 1 发、
+     `check-port-lines --write-pending` 1 发、`feature-coverage --write` 1 发、文本门 1 轮全跑；**零 `build-tu`/零 `probe`**
+     （编译都是 lane 做的）；临时文件 `/tmp/mbn-full-551.tsv` 收工删。
