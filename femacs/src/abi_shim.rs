@@ -2211,37 +2211,19 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_void) ->
    batch-5 `have_ns` exports and batch 11's ten took).
    --------------------------------------------------------------------------------------------- */
 
-/// C: `void gui_define_fringe_bitmap (struct frame *f, int n)` (defined src/fringe.c 1853,
-/// declared src/dispextern.h 3711) - C's call is `gui_define_fringe_bitmap (f, p->which);`
-/// (src/nsterm.m 3206's `ns_draw_fringe_bitmap`, called at 3263), which is why the Swift lane imports it
-/// (`nsterm.swift` 3794).
-///
-/// **The gate is the configuration that owns the file.**  `src/fringe.c` is not compiled by the
-/// frozen configuration at all - the Makefile's `WINDOW_SYSTEM_OBJ` is empty
-/// (`build/emacs-ref/src/Makefile` 303/478, the authority being
-/// `docs/baseline/frozen-build-sources.txt`), no `fringe.o` exists in `build/emacs-ref/src`, and
-/// the port's unit is the empty `femacs/src/fringe.rs` (status 3.31) - so the name is owed to a
-/// `HAVE_WINDOW_SYSTEM` build, and an ungated export would claim a symbol the frozen
-/// configuration has no definition for (P-08).
-///
-/// **The body stops at C's second guard, and that boundary is named rather than hidden.**  C's
-/// remaining statements are `struct fringe_bitmap *fb = fringe_bitmaps[n];` and
-/// `if (fb) rif->define_fringe_bitmap (n, fb->bits, fb->height, fb->width);`, whose two pieces
-/// have no home in this tree yet: `fringe_bitmaps` is src/fringe.c 496's file-scope `static
-/// struct fringe_bitmap **fringe_bitmaps;` and `struct fringe_bitmap` is declared in fringe.c
-/// itself - both belong to that unported unit (they are not in any mirror, nor in
-/// `include/dispextern.rs`), and the slot read `rif->define_fringe_bitmap` needs
-/// `struct redisplay_interface`, which the mirror carries behind `dispextern_face_records`
-/// (`include/dispextern.rs` 3506-3509).  So this export's purpose today is the **symbol** the
-/// Swift seam imports; the two statements land with the unit, and the row stays as the recorded
-/// debt (`## Decisions`).
-#[cfg (feature = "have_window_system")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn gui_define_fringe_bitmap (f: *mut c_void, n: c_int)
-{
-  let rif: *mut c_void = unsafe { FRAME_RIF! (f.cast::<frame> ()) };
-  if rif.is_null () || n >= unsafe { max_used_fringe_bitmap } { return; }
-}
+/* ---------------------------------------------------------------------------------------------
+   **Moved back to the unit that owns the name (P-88 (5), status 3.669).**  This shim used to
+   define two fringe exports whose unit did not exist yet: `gui_define_fringe_bitmap` (C's
+   `void gui_define_fringe_bitmap (struct frame *f, int n)`, src/fringe.c 1852-1863) and
+   `draw_fringe_bitmap` (C's `void draw_fringe_bitmap (struct window *w, struct glyph_row
+   *row, int left_p)`, src/fringe.c 838's function).  `femacs/src/fringe.rs` now carries
+   both - the first landed with slice 2 (C 1365-1880), the second with slice 1 - each
+   `#[unsafe(no_mangle)] pub unsafe extern "C" fn` under the same `have_window_system` gate,
+   so a second copy here is a duplicate definition in the configuration that compiles both
+   (`E0428`, and two `_gui_define_fringe_bitmap` symbols at link time).  The Swift seam's two
+   imports (`nsterm.swift` 3794 and 4115) are satisfied by the unit's own exports; the rows in
+   `docs/ports/abi_shim.md` and `docs/ports/fringe.md` (Owed 4) record the move.
+   --------------------------------------------------------------------------------------------- */
 
 /* ---------------------------------------------------------------------------------------------
    Batch 13, group 2: `struct window`'s cursor members, `struct glyph_row`'s and `struct glyph`'s
@@ -2529,24 +2511,3 @@ pub unsafe extern "C" fn draw_phys_cursor_glyph (w: *mut c_void, row: *mut c_voi
   }
 }
 
-/// C: `void draw_fringe_bitmap (struct window *w, struct glyph_row *row, int left_p)` (defined
-/// src/fringe.c 838-905) - the fringe name the frozen configuration owes exactly as it owes
-/// `gui_define_fringe_bitmap` (batch 12): `fringe.c` is in no configuration's source list
-/// (`build/emacs-ref/src/Makefile` 303/478, `WINDOW_SYSTEM_OBJ` empty; `docs/baseline/
-/// frozen-build-sources.txt`), and the port's unit is the empty `femacs/src/fringe.rs`
-/// (status 3.31).  So the export carries the gate of the configuration that owns the file, and
-/// **no statement of C's body is carried**: its first statement switches on
-/// `w->phys_cursor_type` and then calls `STANDARD_BITMAP_HEIGHT (hollow_rectangle_bits)`
-/// (fringe.c 849's `STANDARD_BITMAP_HEIGHT`, over that file's own `standard_bitmaps` table at
-/// 460), `get_logical_cursor_bitmap`
-/// (fringe.c's own function) and `draw_fringe_bitmap_1` (idem) with `struct
-/// draw_fringe_bitmap_params` - pieces no mirror and no unit carries.  The entry's purpose today
-/// is the symbol the Swift seam imports (its call site is `nsterm.swift` 4115).
-/// Swift `nsterm.swift` 4068-4069.
-#[cfg (feature = "have_window_system")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn draw_fringe_bitmap (w: *mut c_void, row: *mut c_void, left_p: c_int)
-{
-  let _ = (w, row, left_p);
-  /* C's body (src/fringe.c 840-905) is not carried - see the comment above.  */
-}

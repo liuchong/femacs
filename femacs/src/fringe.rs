@@ -5,10 +5,13 @@
 // model.  The C non-`static` definitions carry `#[unsafe(no_mangle)]` (PORTING.md 0.2); the C
 // `static` helpers stay plain `unsafe fn` (none of this slice has its address taken).
 //
-// **This file is P-86's unit `src/fringe.c` (1880 lines) and is ported in slices; this is slice 1
-// = C 1-1364.**  The slice ends on the `}` of `update_window_fringes` (C 1364); **the next
-// definition is `destroy_fringe_bitmap` (C 1370-1371)**.  The ledger `docs/ports/fringe.md`
-// carries P-86 ②'s C line-range table, the `## Evidence` readings and the `## Deviations`.
+// **This file is P-86's unit `src/fringe.c` (1880 lines), and it is transcribed in full: slice 1
+// is C 1-1364 (ending on the `}` of `update_window_fringes`) and slice 2 is C 1365-1880 (from
+// C 1368's comment and `destroy_fringe_bitmap` through C 1880's `#endif`) - status 3.669.**  The
+// ledger `docs/ports/fringe.md` carries P-86 ②'s C line-range table, the `## Evidence` readings
+// (slice 2's are ⑨: the `--check` reading, the frozen `build-tu`, the six arm flips with this
+// unit's own-text count of 0, and the P-88 (5) move-back) and the `## Deviations` (16-22 are
+// slice 2's).
 //
 // The *build-level* file gate is `feature = "have_window_system"` (P-86 ⑧), on every item *and on
 // C 20-31's include graph*.  It is measured, not inferred: `configure.ac` 7513-7521 defines
@@ -23,12 +26,13 @@
 // **in full** (P-86 ①), because every window-system configuration compiles it (the `kqueue.rs` /
 // `gfilenotify.rs` shape).
 //
-// The file's own `#if`s in this slice are one: C 33-35's `#ifdef HAVE_PGTK` + `pgtkterm.h`, whose
-// gate is `feature = "have_pgtk"` (`docs/baseline/feature-coverage.tsv`; `femacs/xtask/Cargo.toml`).
-// The four remaining arms - C 1433's `HAVE_X_WINDOWS || HAVE_PGTK || HAVE_ANDROID` (`have_x_windows`
-// / `have_pgtk` / `have_android`), C 1448's `HAVE_X_WINDOWS || HAVE_ANDROID`, C 1498's
-// `!HAVE_X_WINDOWS && HAVE_PGTK` and C 1517/1865's `HAVE_NTGUI` (`have_ntgui`) - are C 1433's and
-// later, i.e. slice 2.
+// The file's own `#if`s: slice 1 carries one (C 33-35's `#ifdef HAVE_PGTK` + `pgtkterm.h`, gate
+// `feature = "have_pgtk"`, `docs/baseline/feature-coverage.tsv`; `femacs/xtask/Cargo.toml`), and
+// slice 2 carries the six the C line-range table lists - C 1433's `HAVE_X_WINDOWS || HAVE_PGTK ||
+// HAVE_ANDROID` (`have_x_windows` / `have_pgtk` / `have_android`), C 1448's `HAVE_X_WINDOWS ||
+// HAVE_ANDROID`, C 1452's `USE_CAIRO` (`use_cairo`), C 1456/1489/1505's `WORDS_BIGENDIAN`
+// (`words_bigendian`), C 1498's `!HAVE_X_WINDOWS && HAVE_PGTK` and C 1517/1865's `HAVE_NTGUI`
+// (`have_ntgui`).
 //
 // The records this slice needs (`draw_fringe_bitmap_params`, `redisplay_interface`, `face`,
 // `glyph_row`, `glyph_matrix`, `window`) are the mirror's, and the first three sit under
@@ -1898,4 +1902,618 @@ pub unsafe extern "C" fn update_window_fringes (w: *mut window, keep_current_p: 
   unbind_to (count, Qnil ());
 
   return redraw_p && !keep_current_p;
+}
+
+/* ==========================================================================================
+   Slice 2: C 1365-1880 - the rest of the unit (`docs/ports/fringe.md`'s `## C line ranges`
+   carries each row's gate; the `## Evidence` readings and the `## Deviations` are there too).
+
+   This slice adds the file's own `#if`s after C 1364, in C's order: C 1433's `#if defined
+   (HAVE_X_WINDOWS) || defined (HAVE_PGTK) || defined (HAVE_ANDROID)`, C 1448's
+   `#if defined (HAVE_X_WINDOWS) || defined (HAVE_ANDROID)`, C 1452's `#ifdef USE_CAIRO`,
+   C 1456/1489/1505's `#ifdef WORDS_BIGENDIAN`, C 1498's `#if !defined(HAVE_X_WINDOWS) &&
+   defined (HAVE_PGTK)`, and C 1517/1865's `#ifdef HAVE_NTGUI`.  Each one carries the feature
+   `docs/baseline/feature-coverage.tsv` derives for that macro, on top of the file gate
+   (`have_window_system`), which is measured in the file's head comment above.
+   ========================================================================================== */
+
+/* Free resources used by a user-defined bitmap.  */
+
+/// C: 1370-1371: `static void` / `destroy_fringe_bitmap (int n)`.
+#[cfg (feature = "have_window_system")]
+unsafe fn destroy_fringe_bitmap (mut n: c_int)
+{
+  let mut fbp: *mut *mut fringe_bitmap;
+
+  *fringe_faces.add (n as usize) = Qnil ();
+
+  fbp = fringe_bitmaps.add (n as usize);
+  if !(*fbp).is_null () && fringe_bitmap_bits! (dynamic, *fbp)
+    {
+      /* XXX Is SELECTED_FRAME OK here?  */
+      let rif: *mut redisplay_interface
+	= FRAME_RIF! (SELECTED_FRAME ()) as *mut redisplay_interface;
+      if !rif.is_null () && ((*rif).destroy_fringe_bitmap).is_some ()
+	{ ((((*rif).destroy_fringe_bitmap)).unwrap ()) (n); }
+      xfree (*fbp as *mut c_void);
+      *fbp = core::ptr::null_mut ();
+    }
+
+  while max_used_fringe_bitmap > MAX_STANDARD_FRINGE_BITMAPS
+	 && (*fringe_bitmaps.add ((max_used_fringe_bitmap - 1) as usize)).is_null ()
+    { max_used_fringe_bitmap -= 1; }
+}
+
+/// C: 1394-1398: `DEFUN ("destroy-fringe-bitmap", Fdestroy_fringe_bitmap,
+/// Sdestroy_fringe_bitmap, 1, 1, 0, doc: ...)`.
+#[cfg (feature = "have_window_system")]
+DEFUN! ("destroy-fringe-bitmap", Fdestroy_fringe_bitmap, Sdestroy_fringe_bitmap, 1, 1, 0,
+       doc: "Destroy fringe bitmap BITMAP.\nIf BITMAP overrides a standard fringe bitmap, the original bitmap is restored.",
+       (bitmap: Lisp_Object),
+       {
+  let mut n: c_int;
+
+  CHECK_SYMBOL (bitmap);
+  n = lookup_fringe_bitmap (bitmap);
+  if n == 0
+    { return Qnil (); }
+
+  destroy_fringe_bitmap (n);
+
+  if n >= MAX_STANDARD_FRINGE_BITMAPS
+    {
+      Vfringe_bitmaps = Fdelq (bitmap, Vfringe_bitmaps);
+      /* It would be better to remove the fringe property.  */
+      Fput (bitmap, Qfringe (), Qnil ());
+    }
+
+  return Qnil ();
+});
+
+/* Initialize bitmap bit.
+
+   On X, we bit-swap the built-in bitmaps and reduce bitmap
+   from short to char array if width is <= 8 bits.
+
+   The Android port tries to follow X as closely as possible, so do
+   that there too.
+
+   On MAC with big-endian CPU, we need to byte-swap each short.
+
+   On W32 and MAC (little endian), there's no need to do this.
+*/
+
+/// C: 1434-1440: `static const unsigned char swap_nibble[16] = { ... };` - `static const`, so
+/// internal linkage and no symbol (PORTING.md 0.2); its gate is C 1433's.
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_x_windows", feature = "have_pgtk",
+		 feature = "have_android")))]
+static swap_nibble: [c_uchar; 16] =
+[
+  0x0, 0x8, 0x4, 0xc,           /* 0000 1000 0100 1100 */
+  0x2, 0xa, 0x6, 0xe,           /* 0010 1010 0110 1110 */
+  0x1, 0x9, 0x5, 0xd,           /* 0001 1001 0101 1101 */
+  0x3, 0xb, 0x7, 0xf,           /* 0011 1011 0111 1111 */
+];
+
+/// C: 1443-1444: `static void` / `init_fringe_bitmap (int which, struct fringe_bitmap *fb,
+/// int once_p)`.
+#[cfg (feature = "have_window_system")]
+unsafe fn init_fringe_bitmap (which: c_int, fb: *mut fringe_bitmap, once_p: c_int)
+{
+  if once_p != 0 || fringe_bitmap_bits! (dynamic, fb)
+    {
+      #[cfg (any (feature = "have_x_windows", feature = "have_android"))]
+      {
+      let mut bits: *mut c_ushort = (*fb).bits;
+      let mut j: c_int;
+
+      #[cfg (feature = "use_cairo")]
+      {
+      j = 0;
+      while j < fringe_bitmap_bits! (height, fb) as c_int
+	{
+	  let mut b: c_ushort = *bits;
+	  #[cfg (feature = "words_bigendian")]
+	  {
+	    *bits = b << (16 - fringe_bitmap_bits! (width, fb) as c_int);
+	  }
+	  #[cfg (not (feature = "words_bigendian"))]
+	  {
+	    b = ((swap_nibble [(b & 0xf) as usize] as c_ushort) << 12)
+		| ((swap_nibble [((b >> 4) & 0xf) as usize] as c_ushort) << 8)
+		| ((swap_nibble [((b >> 8) & 0xf) as usize] as c_ushort) << 4)
+		| ((swap_nibble [((b >> 12) & 0xf) as usize] as c_ushort));
+	    *bits = b >> (16 - fringe_bitmap_bits! (width, fb) as c_int);
+	  }
+	  bits = bits.add (1);
+	  j += 1;
+	}
+      }
+      #[cfg (not (feature = "use_cairo"))]
+      {
+      if fringe_bitmap_bits! (width, fb) <= 8
+	{
+	  let mut cbits: *mut c_uchar = (*fb).bits as *mut c_uchar;
+	  j = 0;
+	  while j < fringe_bitmap_bits! (height, fb) as c_int
+	    {
+	      let b: c_ushort = *bits;
+	      bits = bits.add (1);
+	      let c: c_uchar
+		= (((swap_nibble [(b & 0xf) as usize] as c_ushort) << 4)
+		   | ((swap_nibble [((b >> 4) & 0xf) as usize] as c_ushort))) as c_uchar;
+	      *cbits = c >> (8 - fringe_bitmap_bits! (width, fb) as c_int);
+	      cbits = cbits.add (1);
+	      j += 1;
+	    }
+	}
+      else
+	{
+	  j = 0;
+	  while j < fringe_bitmap_bits! (height, fb) as c_int
+	    {
+	      let mut b: c_ushort = *bits;
+	      b = ((swap_nibble [(b & 0xf) as usize] as c_ushort) << 12)
+		  | ((swap_nibble [((b >> 4) & 0xf) as usize] as c_ushort) << 8)
+		  | ((swap_nibble [((b >> 8) & 0xf) as usize] as c_ushort) << 4)
+		  | ((swap_nibble [((b >> 12) & 0xf) as usize] as c_ushort));
+	      b >>= 16 - fringe_bitmap_bits! (width, fb) as c_int;
+	      #[cfg (feature = "words_bigendian")]
+	      { b = bswap_16 (b); }
+	      *bits = b;
+	      bits = bits.add (1);
+	      j += 1;
+	    }
+	}
+      }
+      }
+
+      #[cfg (all (not (feature = "have_x_windows"), feature = "have_pgtk"))]
+      {
+      let mut bits: *mut c_ushort = (*fb).bits;
+      let mut j: c_int;
+
+      j = 0;
+      while j < fringe_bitmap_bits! (height, fb) as c_int
+	{
+	  let mut b: c_ushort = *bits;
+	  #[cfg (feature = "words_bigendian")]
+	  {
+	    *bits = b << (16 - fringe_bitmap_bits! (width, fb) as c_int);
+	  }
+	  #[cfg (not (feature = "words_bigendian"))]
+	  {
+	    b = ((swap_nibble [(b & 0xf) as usize] as c_ushort) << 12)
+		| ((swap_nibble [((b >> 4) & 0xf) as usize] as c_ushort) << 8)
+		| ((swap_nibble [((b >> 8) & 0xf) as usize] as c_ushort) << 4)
+		| ((swap_nibble [((b >> 12) & 0xf) as usize] as c_ushort));
+	    *bits = b >> (16 - fringe_bitmap_bits! (width, fb) as c_int);
+	  }
+	  bits = bits.add (1);
+	  j += 1;
+	}
+      }
+
+      #[cfg (feature = "have_ntgui")]
+      {
+      let mut bits: *mut c_ushort = (*fb).bits;
+      let mut j: c_int;
+      j = 0;
+      while j < fringe_bitmap_bits! (height, fb) as c_int
+	{
+	  let mut b: c_ushort = *bits;
+	  b <<= 16 - fringe_bitmap_bits! (width, fb) as c_int;
+	  /* Windows is little-endian, so the next line is always
+	     needed.  */
+	  b = (b >> 8) | (b << 8);
+	  *bits = b;
+	  bits = bits.add (1);
+	  j += 1;
+	}
+      }
+    }
+
+  if once_p == 0
+    {
+      /* XXX Is SELECTED_FRAME OK here?  */
+      let rif: *mut redisplay_interface
+	= FRAME_RIF! (SELECTED_FRAME ()) as *mut redisplay_interface;
+
+      destroy_fringe_bitmap (which);
+
+      if !rif.is_null () && ((*rif).define_fringe_bitmap).is_some ()
+	{ ((((*rif).define_fringe_bitmap)).unwrap ()) (which, (*fb).bits,
+						      fringe_bitmap_bits! (height, fb) as c_int,
+						      fringe_bitmap_bits! (width, fb) as c_int); }
+
+      *fringe_bitmaps.add (which as usize) = fb;
+      if which >= max_used_fringe_bitmap
+	{ max_used_fringe_bitmap = which + 1; }
+    }
+}
+
+/// C: 1549-1563: `DEFUN ("define-fringe-bitmap", Fdefine_fringe_bitmap,
+/// Sdefine_fringe_bitmap, 2, 5, 0, doc: ...)`.
+#[cfg (feature = "have_window_system")]
+DEFUN! ("define-fringe-bitmap", Fdefine_fringe_bitmap, Sdefine_fringe_bitmap, 2, 5, 0,
+       doc: "Define fringe bitmap BITMAP from BITS of size HEIGHT x WIDTH.\nBITMAP is a symbol identifying the new fringe bitmap.\nBITS is either a string or a vector of integers.\nHEIGHT is height of bitmap.  If HEIGHT is nil, use length of BITS.\nWIDTH must be an integer from 1 to 16, or nil which defaults to 8.  An\nerror is signaled if WIDTH is outside this range.\nOptional fifth arg ALIGN may be one of `top', `center', or `bottom',\nindicating the positioning of the bitmap relative to the rows where it\nis used; the default is to center the bitmap.  Fifth arg may also be a\nlist (ALIGN PERIODIC) where PERIODIC non-nil specifies that the bitmap\nshould be repeated.\nIf BITMAP already exists, the existing definition is replaced.",
+       (bitmap: Lisp_Object, bits: Lisp_Object, height: Lisp_Object, width: Lisp_Object,
+	align: Lisp_Object),
+       {
+  let mut n: c_int;
+  let mut h: c_int;
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut b: *mut c_ushort;
+  let mut fb: fringe_bitmap = core::mem::zeroed ();
+  let mut xfb: *mut fringe_bitmap;
+  let mut fill1: c_int = 0;
+  let mut fill2: c_int = 0;
+
+  /* C 1611 assigns its own `align` parameter (`align = XCAR (align);`); a Rust parameter is
+     not a place, so the port rebinds it (the `window.rs` 4267 / `bidi.rs` 1580 shape).  */
+  let mut align: Lisp_Object = align;
+
+  CHECK_SYMBOL (bitmap);
+  h = CHECK_VECTOR_OR_STRING (bits) as c_int;
+
+  if NILP (height)
+    { fringe_bitmap_bits! (height, &raw mut fb, h as c_uint); }
+  else
+    {
+      CHECK_FIXNUM (height);
+      fringe_bitmap_bits! (height, &raw mut fb,
+			   max (0, min (XFIXNUM (height), 255)) as c_uint);
+      if fringe_bitmap_bits! (height, &raw mut fb) as c_int > h
+	{
+	  fill1 = (fringe_bitmap_bits! (height, &raw mut fb) as c_int - h) / 2;
+	  fill2 = fringe_bitmap_bits! (height, &raw mut fb) as c_int - h - fill1;
+	}
+    }
+
+  if NILP (width)
+    { fringe_bitmap_bits! (width, &raw mut fb, 8); }
+  else
+    {
+      CHECK_FIXNUM (width);
+      fringe_bitmap_bits! (width, &raw mut fb,
+			   max (1, min (XFIXNUM (width), 16)) as c_uint);
+      if fringe_bitmap_bits! (width, &raw mut fb) as EMACS_INT != XFIXNUM (width)
+        { args_out_of_range (width, build_string (c"Width must be from 1 to 16".as_ptr ())); }
+    }
+
+  fringe_bitmap_bits! (period, &raw mut fb, 0);
+  fringe_bitmap_bits! (align, &raw mut fb, ALIGN_BITMAP_CENTER as c_uint);
+
+  if CONSP (align)
+    {
+      let mut period: Lisp_Object = XCDR (align);
+      if CONSP (period)
+	{
+	  period = XCAR (period);
+	  if !NILP (period)
+	    {
+	      fringe_bitmap_bits! (period, &raw mut fb,
+				   fringe_bitmap_bits! (height, &raw mut fb));
+	      fringe_bitmap_bits! (height, &raw mut fb, 255);
+	    }
+	}
+      align = XCAR (align);
+    }
+  if EQ (align, Qtop ())
+    { fringe_bitmap_bits! (align, &raw mut fb, ALIGN_BITMAP_TOP as c_uint); }
+  else if EQ (align, Qbottom ())
+    { fringe_bitmap_bits! (align, &raw mut fb, ALIGN_BITMAP_BOTTOM as c_uint); }
+  else if !NILP (align) && !EQ (align, Qcenter ())
+    { error (c"Bad align argument".as_ptr ()); }
+
+  n = lookup_fringe_bitmap (bitmap);
+  if n == 0
+    {
+      if max_used_fringe_bitmap < max_fringe_bitmaps
+	{ n = max_used_fringe_bitmap; max_used_fringe_bitmap += 1; }
+      else
+	{
+	  n = MAX_STANDARD_FRINGE_BITMAPS;
+	  while n < max_fringe_bitmaps
+	    {
+	      if (*fringe_bitmaps.add (n as usize)).is_null ()
+		{ break; }
+	      n += 1;
+	    }
+
+	  if n == max_fringe_bitmaps
+	    {
+	      let mut bitmaps: c_int = max_fringe_bitmaps + 20;
+	      if MAX_FRINGE_BITMAPS < bitmaps
+		{ error (c"No free fringe bitmap slots".as_ptr ()); }
+
+	      i = max_fringe_bitmaps;
+	      fringe_bitmaps = xrealloc (fringe_bitmaps as *mut c_void,
+					 bitmaps as usize
+					 * core::mem::size_of::<*mut fringe_bitmap> ())
+			      as *mut *mut fringe_bitmap;
+	      fringe_faces = xrealloc (fringe_faces as *mut c_void,
+				       bitmaps as usize * core::mem::size_of::<Lisp_Object> ())
+			     as *mut Lisp_Object;
+
+	      while i < bitmaps
+		{
+		  *fringe_bitmaps.add (i as usize) = core::ptr::null_mut ();
+		  *fringe_faces.add (i as usize) = Qnil ();
+		  i += 1;
+		}
+
+	      max_fringe_bitmaps = bitmaps;
+	    }
+	}
+
+      Vfringe_bitmaps = Fcons (bitmap, Vfringe_bitmaps);
+      Fput (bitmap, Qfringe (), make_fixnum (n as EMACS_INT));
+    }
+
+  fringe_bitmap_bits! (dynamic, &raw mut fb, true);
+
+  xfb = xmalloc (core::mem::size_of::<fringe_bitmap> ()
+		 + fringe_bitmap_bits! (height, &raw mut fb) as usize * BYTES_PER_BITMAP_ROW! ())
+	as *mut fringe_bitmap;
+  b = xfb.add (1) as *mut c_ushort;
+  fb.bits = b;
+
+  j = 0;
+  while j < fringe_bitmap_bits! (height, &raw mut fb) as c_int
+    {
+      i = 0;
+      while i < fill1 && j < fringe_bitmap_bits! (height, &raw mut fb) as c_int
+	{ *b.add (j as usize) = 0; j += 1; i += 1; }
+      i = 0;
+      while i < h && j < fringe_bitmap_bits! (height, &raw mut fb) as c_int
+	{
+	  let elt: Lisp_Object = Faref (bits, make_fixnum (i as EMACS_INT));
+	  *b.add (j as usize) = if FIXNUMP (elt) { XFIXNUM (elt) as c_ushort } else { 0 };
+	  j += 1;
+	  i += 1;
+	}
+      i = 0;
+      while i < fill2 && j < fringe_bitmap_bits! (height, &raw mut fb) as c_int
+	{ *b.add (j as usize) = 0; j += 1; i += 1; }
+    }
+
+  *xfb = fb;
+
+  init_fringe_bitmap (n, xfb, 0);
+
+  return bitmap;
+});
+
+/// C: 1685-1690: `DEFUN ("set-fringe-bitmap-face", Fset_fringe_bitmap_face,
+/// Sset_fringe_bitmap_face, 1, 2, 0, doc: ...)`.
+#[cfg (feature = "have_window_system")]
+DEFUN! ("set-fringe-bitmap-face", Fset_fringe_bitmap_face, Sset_fringe_bitmap_face, 1, 2, 0,
+       doc: "Set face for fringe bitmap BITMAP to FACE.\nFACE is merged with the `fringe' face, so normally FACE should specify\nonly the foreground color.\nIf FACE is nil, reset face to default fringe face.",
+       (bitmap: Lisp_Object, face: Lisp_Object),
+       {
+  let mut n: c_int;
+
+  CHECK_SYMBOL (bitmap);
+  n = lookup_fringe_bitmap (bitmap);
+  if n == 0
+    { error (c"Undefined fringe bitmap".as_ptr ()); }
+
+  /* We used to check, as a convenience to callers, for basic face
+     validity here, but since validity can depend on the specific
+     _window_ in which this buffer is being displayed, defer the check
+     to redisplay, which can cope with bad face specifications.  */
+  *fringe_faces.add (n as usize) = face;
+  return Qnil ();
+});
+
+/// C: 1708-1717: `DEFUN ("fringe-bitmaps-at-pos", Ffringe_bitmaps_at_pos,
+/// Sfringe_bitmaps_at_pos, 0, 2, 0, doc: ...)`.
+#[cfg (feature = "have_window_system")]
+DEFUN! ("fringe-bitmaps-at-pos", Ffringe_bitmaps_at_pos, Sfringe_bitmaps_at_pos, 0, 2, 0,
+       doc: "Return fringe bitmaps of row containing position POS in window WINDOW.\nIf WINDOW is nil, use selected window.  If POS is nil, use value of point\nin that window.  Return value is a list (LEFT RIGHT OV), where LEFT\nis the symbol for the bitmap in the left fringe (or nil if no bitmap),\nRIGHT is similar for the right fringe, and OV is non-nil if there is an\noverlay arrow in the left fringe.\nReturn nil if POS is not visible in WINDOW.",
+       (pos: Lisp_Object, window: Lisp_Object),
+       {
+  let mut w: *mut window;
+  let mut row: *mut glyph_row;
+  let mut textpos: ptrdiff_t;
+
+  /* C 1724's `XSETWINDOW (window, w)` writes its own `window` parameter; the mirror's
+     `XSETWINDOW!` assigns its first argument, so the port rebinds it (the `window.rs` 4267
+     shape).  */
+  let mut window: Lisp_Object = window;
+
+  w = decode_any_window (window);
+  XSETWINDOW! (window, w);
+
+  if !NILP (pos)
+    {
+      let mut p: EMACS_INT = fix_position (pos);
+      if !(BEGV! () <= p && p <= ZV! ())
+	{ args_out_of_range (window, pos); }
+      textpos = p as ptrdiff_t;
+    }
+  else if w == XWINDOW (selected_window)
+    { textpos = PT! () as ptrdiff_t; }
+  else
+    { textpos = marker_position ((*w).pointm) as ptrdiff_t; }
+
+  row = MATRIX_FIRST_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix);
+  row = row_containing_pos (w as *mut c_void, textpos, row, core::ptr::null_mut (), 0);
+  if !row.is_null ()
+    { return list3 (get_fringe_bitmap_name (glyph_row_bits! (left_fringe_bitmap, row)),
+		    get_fringe_bitmap_name (glyph_row_bits! (right_fringe_bitmap, row)),
+		    (if (*row).overlay_arrow_bitmap == 0 { Qnil () }
+		     else if (*row).overlay_arrow_bitmap < 0 { Qt () }
+		     else { get_fringe_bitmap_name ((*row).overlay_arrow_bitmap) })); }
+  else
+    { return Qnil (); }
+});
+
+/***********************************************************************
+			    Initialization
+ ***********************************************************************/
+
+/// C: 1755-1756: `void` / `syms_of_fringe (void)` - non-`static`, so exported.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_fringe ()
+{
+  DEFSYM! (Qtruncation, c"truncation");
+  DEFSYM! (Qcontinuation, c"continuation");
+  DEFSYM! (Qoverlay_arrow, c"overlay-arrow");
+  DEFSYM! (Qempty_line, c"empty-line");
+  DEFSYM! (Qtop_bottom, c"top-bottom");
+  DEFSYM! (Qhollow_small, c"hollow-small");
+
+  defsubr (&raw mut Sdestroy_fringe_bitmap);
+  defsubr (&raw mut Sdefine_fringe_bitmap);
+  defsubr (&raw mut Sfringe_bitmaps_at_pos);
+  defsubr (&raw mut Sset_fringe_bitmap_face);
+
+  DEFVAR_LISP! (c"overflow-newline-into-fringe", Voverflow_newline_into_fringe,
+    "Non-nil means that newline may flow into the right fringe.\nThis means that display lines that are exactly as wide as the window\n\\(not counting the final newline) will occupy only one screen line, by\nshowing (or hiding) the final newline in the right fringe; when point\nis at the final newline, the cursor is shown in the right fringe.\nIf nil, also continue lines which are exactly as wide as the window.");
+  Voverflow_newline_into_fringe = Qt ();
+
+  DEFVAR_LISP! (c"fringe-bitmaps", Vfringe_bitmaps,
+    "List of fringe bitmap symbols.");
+  Vfringe_bitmaps = Qnil ();
+}
+
+/* Garbage collection hook */
+
+/// C: 1786-1787: `void` / `mark_fringe_data (void)`.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mark_fringe_data ()
+{
+  mark_objects (fringe_faces, max_fringe_bitmaps as ptrdiff_t);
+}
+
+/* Initialize this module when Emacs starts.  */
+
+/* C 1794's `static void init_fringe_once_for_pdumper (void);` is C's forward declaration, and
+   Rust has no function prototype: the port drops it and keeps the definition below at the
+   position C defines it (PORTING.md 0.1-12's "delete C's forward declarations"; P-91).  The
+   definition is `extern "C"` because `pdumper_do_now_and_after_load` takes an
+   `unsafe extern "C" fn ()` - C's `static void (void)` has that type, and the same
+   correction is what `init_alloc_once_for_pdumper` (femacs/src/alloc.rs 7994) carries.  */
+
+/// C: 1796-1797: `void` / `init_fringe_once (void)`.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn init_fringe_once ()
+{
+  pdumper_do_now_and_after_load (Some (init_fringe_once_for_pdumper));
+}
+
+/// C: 1802-1803: `static void` / `init_fringe_once_for_pdumper (void)`.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" fn init_fringe_once_for_pdumper ()
+{
+  let mut bt: c_int = NO_FRINGE_BITMAP + 1;
+  while bt < MAX_STANDARD_FRINGE_BITMAPS
+    {
+      init_fringe_bitmap (bt, core::ptr::addr_of_mut! (standard_bitmaps [bt as usize]), 1);
+      bt += 1;
+    }
+}
+
+/// C: 1809-1810: `void` / `init_fringe (void)`.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn init_fringe ()
+{
+  max_fringe_bitmaps = MAX_STANDARD_FRINGE_BITMAPS + 20;
+
+  fringe_bitmaps = xzalloc (max_fringe_bitmaps as usize
+			    * core::mem::size_of::<*mut fringe_bitmap> ())
+		   as *mut *mut fringe_bitmap;
+
+  static_assert! (NIL_IS_ZERO);
+  fringe_faces = xzalloc (max_fringe_bitmaps as usize * core::mem::size_of::<Lisp_Object> ())
+		 as *mut Lisp_Object;
+}
+
+/// C: 1820-1821: `void` / `gui_init_fringe (struct redisplay_interface *rif)`.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_init_fringe (rif: *mut redisplay_interface)
+{
+  let mut bt: c_int;
+
+  if rif.is_null () || ((*rif).define_fringe_bitmap).is_none ()
+    { return; }
+
+  /* Set up the standard fringe bitmaps.  */
+  bt = NO_FRINGE_BITMAP + 1;
+  while bt < MAX_STANDARD_FRINGE_BITMAPS
+    {
+      let fb: *mut fringe_bitmap = core::ptr::addr_of_mut! (standard_bitmaps [bt as usize]);
+      if (*fringe_bitmaps.add (bt as usize)).is_null ()
+        { ((((*rif).define_fringe_bitmap)).unwrap ()) (bt, (*fb).bits,
+						       fringe_bitmap_bits! (height, fb) as c_int,
+						       fringe_bitmap_bits! (width, fb) as c_int); }
+      bt += 1;
+    }
+
+  /* Set up user-defined fringe bitmaps that might have been defined
+     before the frame of this kind was initialized.  This can happen
+     if Emacs is started as a daemon and the init files define fringe
+     bitmaps.  */
+  bt = NO_FRINGE_BITMAP + 1;
+  while bt < max_used_fringe_bitmap
+    {
+      let fb: *mut fringe_bitmap = *fringe_bitmaps.add (bt as usize);
+      if !fb.is_null ()
+	{ ((((*rif).define_fringe_bitmap)).unwrap ()) (bt, (*fb).bits,
+						       fringe_bitmap_bits! (height, fb) as c_int,
+						       fringe_bitmap_bits! (width, fb) as c_int); }
+      bt += 1;
+    }
+}
+
+/* Call frame F's specific define_fringe_bitmap method for a fringe
+   bitmap number N.  Called by various *term.c functions when they
+   need to display a fringe bitmap whose terminal-specific data is not
+   available.  */
+
+/// C: 1852-1853: `void` / `gui_define_fringe_bitmap (struct frame *f, int n)`.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_define_fringe_bitmap (f: *mut frame, n: c_int)
+{
+  let rif: *mut redisplay_interface = FRAME_RIF! (f) as *mut redisplay_interface;
+
+  if rif.is_null () || ((*rif).define_fringe_bitmap).is_none () || n >= max_used_fringe_bitmap
+    { return; }
+
+  let fb: *mut fringe_bitmap = *fringe_bitmaps.add (n as usize);
+  if !fb.is_null ()
+    { ((((*rif).define_fringe_bitmap)).unwrap ()) (n, (*fb).bits,
+						   fringe_bitmap_bits! (height, fb) as c_int,
+						   fringe_bitmap_bits! (width, fb) as c_int); }
+}
+
+/// C: 1866-1867: `void` / `w32_reset_fringes (void)` - C 1865's `#ifdef HAVE_NTGUI`.
+#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn w32_reset_fringes ()
+{
+  /* Destroy row bitmaps.  */
+  let mut bt: c_int;
+  let rif: *mut redisplay_interface
+    = FRAME_RIF! (SELECTED_FRAME ()) as *mut redisplay_interface;
+
+  if rif.is_null () || ((*rif).destroy_fringe_bitmap).is_none ()
+    { return; }
+
+  bt = NO_FRINGE_BITMAP + 1;
+  while bt < max_used_fringe_bitmap
+    {
+      ((((*rif).destroy_fringe_bitmap)).unwrap ()) (bt);
+      bt += 1;
+    }
 }

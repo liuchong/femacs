@@ -13625,3 +13625,40 @@
      3.660-3.665 的"派发与 untag 矛盾"仍未决。
   ⑤ **预算**：TU 编译 2 发、重链 2 发、夹具 8 发（含 2 发探针与 3 发复测）、解码/探针改写的 python 3 发、
      lldb 0 发、`otool`/`nm` 0 发；`/tmp` 的日志、探针补丁与解码脚本收工删。
+
+- **3.669 `src/fringe.c` 的末片落地：C 1365-1880（516 行）逐行转写，P-86 的这台单元从 3 行的头注释变成整份端口——`extract-abi --check` OK、单元自己的文本在七组翻臂里 0 条错误行、`--all` 的单元账 564 done/24 failing → **565 done/23 failing**；`femacs/src/abi_shim.rs` 里的两个替身按 P-88 ⑤ 搬回单元（2026-10-06）**：
+  ① **范围（C 1365-1880，逐段可查）**：`destroy_fringe_bitmap`（C 1370-1392）；四个 `DEFUN`——`destroy-fringe-bitmap`（1394-1417）、
+     `define-fringe-bitmap`（1549-1683，动态位图分配器）、`set-fringe-bitmap-face`（1685-1706）、`fringe-bitmaps-at-pos`（1708-1749）；
+     `syms_of_fringe`（1755-1782：六个 `DEFSYM`、四个 `defsubr`、两个 `DEFVAR_LISP`）；`mark_fringe_data`（1786-1790）；
+     `init_fringe_once` / `init_fringe_once_for_pdumper`（1796-1807，C 1794 的前向声明按 0.1-12 丢掉）、`init_fringe`（1809-1818）、
+     `gui_init_fringe`（1820-1847）、`gui_define_fringe_bitmap`（1852-1863）、`w32_reset_fringes`（1866-1878，`have_ntgui`）。
+  ② **门（改前 → 改后）**：`extract-abi.py --check emacs/src/fringe.c femacs/src/fringe.rs` 17 条 `- `（9 缺函数 / 4 缺 subr / 4 缺 defsubr）
+     → **`OK`**。中间那两条读数照实记：`- function syms_of_fringe does not mention doc`（C 1770/1779 的 `DEFVAR_LISP` 带 `doc:` 标签，
+     镜像的宏参数是位置式的 `$doc` ⇒ 按 `syms_of_data` 先例写进 `docs/ports/macro-body-notes.tsv`）与
+     `- line count drifted 33.1%: C 1880 vs Rust 2502`（写进 `docs/ports/line-drift-tolerance.tsv`：`fringe 0.34 total`，理由逐条列在行里）。
+  ③ **翻臂（P-86 ③⑴，判据是"单元自己的文本 0 条错误行"）**：在 `have_window_system`+`dispextern_face_records` 之上分别加
+     `have_x_windows`（1 错，全在 `include/systime.rs` 27）、`+use_cairo`（2，dispextern）、`+words_bigendian`（3，dispextern）、
+     `use_cairo+words_bigendian`（2）、`have_pgtk`（41，pgtkterm）、`have_android`（4，dispextern）、`have_ntgui`（3，frame+dispextern）——
+     **`build/probes/fringe/_root.rs` 的错误行数七组全是 0**。冻结档 `build-tu src/fringe.c` → built、`fringe.o` 仍是 **336 字节空对象**
+     （P-86 类读数：证明冻结配置编译不到这个文件，不是证明新文本）。
+  ④ **四次自己咬到自己（照实记，全部修完）**：第一发在单元文本里报 `E0428`+"free function without a body"（C 1794 的前向声明）、
+     `E0308`（C 1662 的链式赋值 `fb.bits = b = …`）、`E0423`（`XSETWINDOW` 在镜像是宏）、`E0609`×2（`glyph_row` 的两个 fringe 字段是位域
+     ⇒ `glyph_row_bits!`）；第二发报 `E0384`×2（C 把 `align`/`window` 形参当变量重赋 ⇒ 端口同名 `let mut` 重绑定）；第三发即 ③ 的 0 行。
+  ⑤ **P-88 ⑤ 的搬回（同一次提交）**：`femacs/src/abi_shim.rs` 里 `gui_define_fringe_bitmap` / `draw_fringe_bitmap` 两个替身删除，
+     改由单元自己的定义提供（`femacs/src/fringe.rs` 2482 / 1276，同一条 `have_window_system` 门），原地留一段说明；
+     `build-tu src/abi_shim.rs` → built、`check-link.py --executable` → linked（无未解析名）。`check-swift-imports.py` 的读数是
+     **按已构建的对象**（它自己第 15 行的 `nm -g build/femacs/**/*.o`）算的：本轮构建前 `136 failure(s)`、构建后 `9 failure(s)`——
+     **这个落差是对象集合**（本轮建了 abi_shim 与 fringe 两个 .o），不是搬回本身（两个替身都挂在 `have_window_system` 下，
+     冻结配置根本不编它们）；该门本身因 159 条待裁决的棘轮名在 HEAD 就是红的。
+  ⑥ **账目**：`docs/ports/fringe.md` 的 15 行 C 区间表从 owed 全部改成 transcribed（**0 行 owed**）、新增 Evidence ⑨（a-e）、
+     Deviations 16-22、Owed 1/3/4/6 更新、`## Not claimed` 重写（旧文那句"C 1365-1880 is unported"已经不成立）；
+     `docs/ports/abi_shim.md` 的两行 + 一段新记录；`docs/port-map.md` 重新生成。
+  ⑦ **其余文本门现读全绿**：`check-verbatim` 6/4604/1820/0、`check-declarations` `17 declaration sites (0 forbidden, 17 allowed
+     literals), 0 failures`、`check-dead-file-coverage` 145/0、`check-port-lines` 0/0/0/0、`check-ledger-ticks` 238/0、
+     `check-mirror-dupes` 16/16/0、`check-target-names` 629/591/0、`check-do-while` 152/0、`check-octal-literals` 623/0、
+     `check-carried` 11/11/4/0。
+  ⑧ **未跑/未声称**：没有跑任何行为（冻结档编译不到这个文件）；七组翻臂都是**编译**、不是链接或加载，且每一组都停在 include 图里
+     （行数在 ③ 逐组点名）；冻结配置下 `init_fringe_once` 与整文件一起被 cfg 掉 ⇒ 端口"已注册的 dump hook 集合"没有移动，
+     C 1799 那条只是文本级补齐（端口 `pdumper_do_now_and_after_load` 站点 22 → **23**，同一 grep 下参照是 27）。
+  ⑨ **预算**：TU 编译 4 发（fringe 2、abi_shim 2）、翻臂探针 10 发、重链 2 发、`--check` 4 发、`--all` 1 发、gen-port-map 1 发、
+     其余文本门 12 发、`check-swift-imports` 2 发（各约 6 分钟）；`/tmp` 的脚本与读数文件收工删。

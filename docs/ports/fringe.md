@@ -124,22 +124,21 @@ slice.  The `arm` cell gives the port gate, which `## Gate mapping` derives.
 | 885-905 | `draw_row_fringe_bitmaps` (C 890-905) with C 887-888's comment | file gate - **transcribed** (non-`static`) |
 | 906-963 | `draw_window_fringes` (C 919-963) with C 907-917's comment | file gate - **transcribed** (non-`static`; Deviation 6) |
 | 964-1364 | `update_window_fringes` (C 965-1364), C 977's `#define MAX_BITMAP_CACHE (8*4)` and C 1068-1078's `LEFT_FRINGE`/`RIGHT_FRINGE` - **the slice's last row** | file gate - **transcribed** (non-`static`; Deviations 3, 7, 9 and 13) |
-| 1365-1392 | C 1368's comment and `destroy_fringe_bitmap` (C 1370-1392) | file gate - **owed** (**the next slice starts at C 1370**) |
-| 1393-1432 | `DEFUN ("destroy-fringe-bitmap", …)` (C 1394-1432) | file gate - **owed** (subr `Sdestroy_fringe_bitmap`) |
-| 1433-1442 | C 1433's `#if defined (HAVE_X_WINDOWS) || defined (HAVE_PGTK) || defined (HAVE_ANDROID)` and `swap_nibble` (C 1434-1440) | `any (have_x_windows, have_pgtk, have_android)` - **owed** |
-| 1443-1548 | `init_fringe_bitmap` (C 1443-1546), with C 1448-1496's `HAVE_X_WINDOWS || HAVE_ANDROID` arm (C 1452's `USE_CAIRO`, C 1456/1489's `WORDS_BIGENDIAN`), C 1498-1515's `!HAVE_X_WINDOWS && HAVE_PGTK` arm and C 1517-1529's `HAVE_NTGUI` arm | file gate; `any (have_x_windows, have_android)`; `use_cairo`; `windowsnt`; `have_ntgui` - **owed** |
-| 1549-1684 | `DEFUN ("define-fringe-bitmap", …)` (C 1549-1683) | file gate - **owed** (subr `Sdefine_fringe_bitmap`; the dynamic-bitmap allocator) |
-| 1685-1707 | `DEFUN ("set-fringe-bitmap-face", …)` (C 1685-1706) | file gate - **owed** (subr `Sset_fringe_bitmap_face`) |
-| 1708-1750 | `DEFUN ("fringe-bitmaps-at-pos", …)` (C 1708-1749) | file gate - **owed** (subr `Sfringe_bitmaps_at_pos`; calls this slice's `get_fringe_bitmap_name`) |
-| 1751-1783 | C 1751-1753's Initialization banner and `syms_of_fringe` (C 1755-1782) | file gate - **owed** (owns `Qtruncation`…`Qhollow_small`, `Vfringe_bitmaps`, `Voverflow_newline_into_fringe` and the four `defsubr`s) |
-| 1784-1791 | C 1784's comment and `mark_fringe_data` (C 1786-1790) | file gate - **owed** |
-| 1792-1801 | C 1792's comment, C 1794's `static` prototype and `init_fringe_once` (C 1796-1800) | file gate - **owed** (`pdumper_do_now_and_after_load`) |
-| 1802-1808 | `init_fringe_once_for_pdumper` (C 1802-1807) | file gate - **owed** (`static`; waits on C 1443's `init_fringe_bitmap`) |
-| 1809-1819 | `init_fringe` (C 1809-1818) | file gate - **owed** (`xzalloc` of the two tables) |
-| 1820-1851 | `gui_init_fringe` (C 1820-1847) with C 1848-1851's comment | file gate - **owed** (the first user of the `redisplay_interface` hooks) |
-| 1852-1864 | `gui_define_fringe_bitmap` (C 1852-1863) | file gate - **owed** (its ABI shim exists in `src/abi_shim.rs`, which must drop that copy in the same commit - Owed 3) |
-| 1865-1880 | C 1865's `#ifdef HAVE_NTGUI`, `w32_reset_fringes` (C 1866-1878) and C 1880's `#endif` | `have_ntgui` - **owed** (the file's last row) |
-
+| 1365-1392 | C 1368's comment and `destroy_fringe_bitmap` (C 1370-1392) | file gate - **transcribed** (slice 2) |
+| 1393-1432 | `DEFUN ("destroy-fringe-bitmap", …)` (C 1394-1432) | file gate - **transcribed** (subr `Sdestroy_fringe_bitmap`) |
+| 1433-1442 | C 1433's `#if defined (HAVE_X_WINDOWS) || defined (HAVE_PGTK) || defined (HAVE_ANDROID)` and `swap_nibble` (C 1434-1440) | `any (have_x_windows, have_pgtk, have_android)` - **transcribed** |
+| 1443-1548 | `init_fringe_bitmap` (C 1443-1546), with C 1448-1496's `HAVE_X_WINDOWS || HAVE_ANDROID` arm (C 1452's `USE_CAIRO`, C 1456/1489's `WORDS_BIGENDIAN`), C 1498-1515's `!HAVE_X_WINDOWS && HAVE_PGTK` arm and C 1517-1529's `HAVE_NTGUI` arm | file gate; `any (have_x_windows, have_android)`; `use_cairo`; `words_bigendian`; `all (not have_x_windows, have_pgtk)`; `have_ntgui` - **transcribed** |
+| 1549-1684 | `DEFUN ("define-fringe-bitmap", …)` (C 1549-1683) | file gate - **transcribed** (subr `Sdefine_fringe_bitmap`; the dynamic-bitmap allocator; `MAX_FRINGE_BITMAPS`) |
+| 1685-1707 | `DEFUN ("set-fringe-bitmap-face", …)` (C 1685-1706) | file gate - **transcribed** (subr `Sset_fringe_bitmap_face`) |
+| 1708-1750 | `DEFUN ("fringe-bitmaps-at-pos", …)` (C 1708-1749) | file gate - **transcribed** (subr `Sfringe_bitmaps_at_pos`; the two `glyph_row` fringe fields are a bit run, so they are read with `glyph_row_bits!`) |
+| 1751-1783 | C 1751-1753's Initialization banner and `syms_of_fringe` (C 1755-1782) | file gate - **transcribed** (owns `Qtruncation`…`Qhollow_small`, `Vfringe_bitmaps`, `Voverflow_newline_into_fringe` and the four `defsubr`s) |
+| 1784-1791 | C 1784's comment and `mark_fringe_data` (C 1786-1790) | file gate - **transcribed** |
+| 1792-1801 | C 1792's comment, C 1794's `static` prototype (dropped - Deviation 7) and `init_fringe_once` (C 1796-1800) | file gate - **transcribed** (`pdumper_do_now_and_after_load`) |
+| 1802-1808 | `init_fringe_once_for_pdumper` (C 1802-1807) | file gate - **transcribed** (`extern "C"`, the hook’s type - Deviation 12) |
+| 1809-1819 | `init_fringe` (C 1809-1818) | file gate - **transcribed** (`xzalloc` of the two tables) |
+| 1820-1851 | `gui_init_fringe` (C 1820-1847) with C 1848-1851's comment | file gate - **transcribed** (the first user of the `redisplay_interface` hooks) |
+| 1852-1864 | `gui_define_fringe_bitmap` (C 1852-1863) | file gate - **transcribed**; the `src/abi_shim.rs` copy is **gone** in the same commit (P-88 (5) move-back, Owed 4) |
+| 1865-1880 | C 1865's `#ifdef HAVE_NTGUI`, `w32_reset_fringes` (C 1866-1878) and C 1880's `#endif` | `have_ntgui` - **transcribed** (the file's last row) |
 ## Findings
 
 1. **P-89's first-edge trap bites this file, and its remedy is *position*, not an ungated edge.**
@@ -297,6 +296,68 @@ and width 8 (bits 8-15) - C's `{ FRBITS (question_mark_bits), 8, 0, ALIGN_BITMAP
 and the reason `STANDARD_BITMAP_HEIGHT` keeps C's division while its `sizeof` becomes
 `size_of_val_raw` (a static initialiser cannot take `&` of a `static mut`).
 
+**⑨ Slice 2 (C 1365-1880): the readings of the round that landed it (2026-10-06, status 3.669).**
+
+a) `python3 tools/extract-abi.py --check emacs/src/fringe.c femacs/src/fringe.rs` -> **OK**.  The three
+readings before it: the 17 `- ` rows of Evidence ⑥ (9 `missing function`, 4 `missing subr`,
+4 `missing defsubr`); after the text landed, `- function syms_of_fringe does not mention doc` and
+`- line count drifted 33.1%: C 1880 vs Rust 2502`.  The first is the `doc:` label of C 1770/1779's
+`DEFVAR_LISP` invocations, which the mirror's macro takes positionally (`$doc`) - the
+`syms_of_data` class, written as a row in `docs/ports/macro-body-notes.tsv` this round (the
+docstrings themselves stay compared by the constants rule).  The second is the row in
+`docs/ports/line-drift-tolerance.tsv` (`fringe 0.34 total`, Owed 1).
+
+b) **The frozen configuration, one reading.**
+
+    cd femacs && CARGO_TARGET_DIR=/tmp/sweep cargo run -q -p xtask -- build-tu src/fringe.c
+
+-> `built src/fringe.rs -> ../build/femacs/fringe.o`, **exit 0**, and `build/femacs/fringe.o` is
+**336 bytes** - the same empty object Evidence ① read (every item is behind `have_window_system`).
+It is *not* a proof of the new text; it is the reading that says the frozen configuration still
+compiles nothing from this file.
+
+c) **The arm flip, six arm sets** (P-86 ③⑴; the command shape is Evidence ②'s `probe`, with the
+file gate plus `dispextern_face_records` - the feature the records the file reads sit behind -
+and one added cfg per row):
+
+| arm (in addition to `have_window_system` + `dispextern_face_records`) | exit | errors | in `build/probes/fringe/_root.rs` (this unit's text) | in the include graph |
+| --- | --- | --- | --- | --- |
+| `have_x_windows` | 1 | 1 | **0** | `include/systime.rs` 27 (`E0080`, the feature x config-constant pair) |
+| `have_x_windows` + `use_cairo` | 1 | 2 | **0** | `include/dispextern.rs` x2 |
+| `have_x_windows` + `words_bigendian` | 1 | 3 | **0** | `include/dispextern.rs` x3 |
+| `have_x_windows` + `use_cairo` + `words_bigendian` | 1 | 2 | **0** | `include/dispextern.rs` x2 |
+| `have_pgtk` (without `have_x_windows`) | 1 | 41 | **0** | `include/pgtkterm.rs` x41 |
+| `have_android` | 1 | 4 | **0** | `include/dispextern.rs` x4 |
+| `have_ntgui` | 1 | 3 | **0** | `include/frame.rs` x1, `include/dispextern.rs` x2 |
+
+Every arm's own text type-checks; each arm's exit is the include graph's, and the graph rows are
+mirror debt (Owed 3).  The four arms C 1433+ selects on are compiled **by these flips** and by
+nothing else; the arm set of Evidence ② (`have_x_windows`) now reads 1 row instead of the 38 that
+round recorded, because the mirror fixes since then cleared the rest.
+
+d) **Four fix iterations behind c (the own-text rows, in order, all of them repaired).**  Run 1
+(published as the first flip): `E0428` + "free function without a body" on C 1794's forward
+declaration (Rust has no prototype - Deviation 7), `E0308` on C 1662's chained assignment
+`fb.bits = b = ...;` (Deviation 8), `E0423` on `XSETWINDOW` (the mirror has it as a macro), `E0609`
+x2 on `glyph_row`'s two fringe fields (a bit run - `glyph_row_bits!`).  Run 2: `E0384` x2 on the two
+C parameters the body assigns (`align`, `window` - Deviation 9).  Run 3: the table above, 0 rows in
+this unit's text in all six arms.
+
+e) **The P-88 (5) move-back (Owed 4), in the same commit.**  `src/abi_shim.rs`'s two stand-ins
+(`gui_define_fringe_bitmap` at 2214-2240 and `draw_fringe_bitmap`) were removed and replaced by a
+note that names the unit that owns them now.  Readings: `build-tu src/abi_shim.rs` -> `built`;
+`check-link.py --executable` -> `linked build/femacs/emacs - the program has no undefined
+reference`; `check-swift-imports.py` reads its providers from the **built objects**
+(`nm -g build/femacs/**/*.o`, its own line 15), so its number moves with which units have been built,
+not with this edit: the reading taken before this round's builds is `1145 import(s) in 7 Swift
+file(s), 5529 core export(s), 919 unprovided, 801 ratchet row(s), 136 failure(s)`, and after
+`build-tu src/abi_shim.rs` + `build-tu src/fringe.c` it is `1145 import(s) in 7 Swift file(s), 5680
+core export(s), 792 unprovided, 801 ratchet row(s), 9 failure(s)`.  The two deleted stand-ins were
+`#[unsafe(no_mangle)]` under `have_window_system`, which the frozen configuration does not compile, so
+they were never providers in this reading - the **9 vs 136 is the object set**, and the claim this
+round makes is only that the two Swift imports at `nsterm.swift` 3794 and 4115 name a unit that
+carries them (`femacs/src/fringe.rs` 2482 / 1276, same gate).
+
 ## Deviations
 
 1. **`FRBITS` takes C's four remaining members** (`($bits, $width, $period, $align, $dynamic)`) and
@@ -355,16 +416,49 @@ and the reason `STANDARD_BITMAP_HEIGHT` keeps C's division while its `sizeof` be
     writer arm (the mirror has `window_bit` for reads only).  Each is the tree's per-unit copy shape
     for an `INLINE`/macro with no external symbol.
 
+16. **C 1794's `static void init_fringe_once_for_pdumper (void);` is dropped** (Rust has no function
+    prototype, PORTING.md 0.1-12 / P-91); the definition stays where C defines it.  The definition is
+    `unsafe extern "C" fn`, because `pdumper_do_now_and_after_load` takes an
+    `unsafe extern "C" fn ()` and C's `static void (void)` has that type - the same correction
+    `init_alloc_once_for_pdumper` (`femacs/src/alloc.rs` 7994) carries.
+17. **C 1662's chained assignment `fb.bits = b = (unsigned short *) (xfb + 1);` is two statements**
+    (`b = ...; fb.bits = b;`): Rust's `=` is not an expression, so C's right-to-left chain has no
+    single-statement spelling.
+18. **The two C parameters the body assigns are rebound** - C 1611's `align = XCAR (align);` and
+    C 1724's `XSETWINDOW (window, w)`, whose mirror macro assigns its first argument - as
+    `let mut align: Lisp_Object = align;` / `let mut window: Lisp_Object = window;` (the
+    `window.rs` 4267 and `bidi.rs` 1580 shapes; a Rust parameter is not a place).
+19. **C's `for (j = 0; j < fb->height; j++)` loops, and every `*bits++`/`b[j++]` in them, are
+    `while` loops with an explicit index plus an increment** - Rust has no post-increment - which is
+    part of why this file's line count sits over C's (the tolerance row, Owed 1).
+20. **C 1433's one `#if` chain is more blocks than C has braces**: `USE_CAIRO` x `WORDS_BIGENDIAN`
+    write the `else` arm twice where C writes `#ifdef`/`#else` inside one loop, and C 1498's PGTK arm
+    and C 1517's NTGUI arm each declare their own `bits`/`j` pair where C's are shared.
+21. **The `glyph_row` fringe fields are read with `glyph_row_bits!`** (`right_fringe_bitmap` has no
+    field in the mirror - the bit run is `include/dispextern.rs` 1116-1120), and `row_containing_pos`
+    takes the mirror's `*mut c_void` for `struct window` (its own C 3910 note).
+22. **`w32_reset_fringes` is `#[unsafe(no_mangle)] pub unsafe extern "C" fn` under
+    `all (have_window_system, have_ntgui)`** - C 1865's `#ifdef HAVE_NTGUI`; its `while` loop is
+    Deviation 19's shape.
+
+
 ## Owed by the integrator (nothing here is claimed as done)
 
-1. **`docs/ports/line-drift-tolerance.tsv`: nothing to write.**  The unit is **1,895 lines** against C's
-   1,880, i.e. *over*, and `extract-abi.py --check` asks for no tolerance row; its 17 `- ` rows are the
-   unported remainder's, which is a different statement and stays visible.
+1. **`docs/ports/line-drift-tolerance.tsv`: one row written this round** - `fringe	0.34	total`.
+   The unit is now **2,502 lines** against C's 1,880 (33.1%), over the 5% the rule allows every file;
+   the row names the measured causes (the file gate on every item and on the include graph, the five
+   `#if`s after C 1364 expanded into the `#[cfg]` combinations Rust needs, `*bits++`/`b[j++]` written
+   as an explicit index plus an increment, a `/// C:` line per item, C's comment blocks carried as
+   prose).  Slice 1's reading ("1,895 against 1,880, nothing to write") was right for a 73%-ported
+   file and is superseded.
+
 2. **`docs/baseline/port-lines-pending.tsv`: nothing to retire.**  The file has left P-86's
    under-ten-percent class (1,895 lines against a 188-line threshold) and the ratchet already reads
    `0 new, 0 stale` (Evidence ⑦).  Named because P-86 ④'s closing step asks for the reading, not
    because a row moved.
-3. **The mirror items the flip names**, each in the file that owns it:
+3. **The mirror items the flip names**, each in the file that owns it - the readings of this
+   round's six flips (Evidence ⑨ c) put every one of them in the include graph, none in this unit's
+   text:
    (a) `femacs/src/include/dispextern.rs` 2661-2669: the three globals of C 3617-3618/3710
    (`last_tab_bar_item`, `last_tool_bar_item`, `max_used_fringe_bitmap`) sit at the mirror's top
    level, so this unit's C-faithful definition is an `E0428` (Finding 2).  They belong in a module the
@@ -381,38 +475,42 @@ and the reason `STANDARD_BITMAP_HEIGHT` keeps C's division while its `sizeof` be
    (`docs/baseline/feature-coverage.tsv`'s "config constant" column is what says so);
    (e) `femacs/src/include/dispextern.rs`'s X11 arm has no `estimate_mode_line_height` edge either -
    its definition is `src/xdisp.rs`'s export (three rows of the flip's 29).
-4. **The two ABI-shim copies that must go with C 1852's row** (slice 2): `src/abi_shim.rs` 2214-2260
-   defines `gui_define_fringe_bitmap` and 2533-2552 defines `draw_fringe_bitmap` as empty
-   `#[unsafe(no_mangle)]` bodies *because* this unit did not exist, and 1390-1403 defines
-   `max_used_fringe_bitmap = 25` for the same reason.  This slice now defines the third of those
-   (C 497) and, in slice 2, the other two; the shim's copies are duplicates and belong to whoever lands
-   the slice that collides with them (P-88 ⑤'s move-back).
+4. **The two ABI-shim copies: done in this round** (P-88 (5)'s move-back, Evidence ⑨ e).
+   `src/abi_shim.rs`'s stand-ins for `gui_define_fringe_bitmap` (2214-2240) and `draw_fringe_bitmap`
+   are gone; the file carries a note where the first of them was, and `femacs/src/fringe.rs` provides
+   both names - `draw_fringe_bitmap` (slice 1, C 838) and `gui_define_fringe_bitmap` (slice 2,
+   C 1852-1863) - each `#[unsafe(no_mangle)] pub unsafe extern "C" fn` under `have_window_system`.
+   `docs/ports/abi_shim.md`'s two rows name the unit now.
+
 5. **The six `docs/ports/macro-body-notes.tsv` rows this slice needs** - **written** (that file is in
    this lane's scope), one per `goto`/`switch`/bitfield/`countof` deviation, each naming the C line and
    the reason the token cannot reappear.
-6. **The next slice**: **C 1370's `destroy_fringe_bitmap`**, then C 1394 `Fdestroy_fringe_bitmap`
-   (`DEFUN`), C 1443 `init_fringe_bitmap` (with the four window-system arms the table lists), C 1549
-   `Fdefine_fringe_bitmap`, C 1685 `Fset_fringe_bitmap_face`, C 1708 `Ffringe_bitmaps_at_pos` (the
-   only caller of this slice's `get_fringe_bitmap_name`), C 1755 `syms_of_fringe` (which owns
-   `Vfringe_bitmaps` and `Voverflow_newline_into_fringe`, the two `DEFVAR_LISP` variables
-   `check-globals.py` will then require definitions for) and C 1786-1878's five initializers.
+6. **The unit has no next slice.**  C 1-1,880 is transcribed; what is left for the integrator is
+   item 3's mirror gaps (the flip reads them) and the arm readings that will follow them.
+
 7. **No feature name to register** (Finding 8): the file gate and its four inner arms are registered
    already, so the integrator's list is Owed 3's mirror items, not `femacs/xtask/Cargo.toml`.
 
 ## Not claimed
 
 - **No behaviour.**  The frozen configuration compiles nothing from this file (the 336-byte object is
-  empty), and the flip reading is a *compile* that stops with 38 mirror-side errors: no bitmap was
-  looked up, drawn, aligned, extended or culled, and no face, window or row was read.
-- The arm flip is `have_window_system` + `have_x_windows` + `dispextern_face_records` (Evidence ②).
-  It is not a link, not a load, and not a P-86 ③⑴ "the class can be verified" claim: three mirror
-  files stop it, and the four arms C 1433+ selects on are **not compiled at all** (they are slice 2's).
+  empty), and every arm reading is a *compile*: no bitmap was looked up, drawn, aligned, extended or
+  culled, and no face, window or row was read.  Nothing in this ledger is a run.
+- **The arm flips are not links.**  Each of the six stops in the include graph (Evidence ⑨ c names the
+  file and its rows); the useful reading is that **this unit's own text contributes 0 error rows in
+  every one of them**, not that an arm builds.
+- **The dump hook is registered but not exercised.**  Slice 2 adds the port's 23rd
+  `pdumper_do_now_and_after_load` site (C 1799; `grep -rn` over `femacs/src/*.rs` reads 22 -> 23,
+  against the reference's 27 by the same grep over `emacs/src/*.c`), and status 3.665's hook walk -
+  "the port registers 22, C 26, and `init_fringe_once` is the unported one" - is what this closes at
+  the text level.  Under the frozen configuration `init_fringe_once` is compiled out with the rest of
+  the file, so the port's **registered** hook set does not move and no dump was taken this round.
 - The layout and constants in Evidence ⑤ are this machine's clang readings of C 78-85's own text; the
   frozen configuration compiles no such record, so nothing here is a claim about another target.
-- C 1365-1880 is unported: nothing in this ledger speaks for those 516 lines, which are exactly the
-  9 `missing function`, 4 `missing subr` and 4 `missing defsubr` rows of Evidence ⑥.
-- Only `femacs/src/fringe.rs`, `docs/ports/fringe.md` and six rows of
-  `docs/ports/macro-body-notes.tsv` were written by this lane.
+- The files this round wrote are `femacs/src/fringe.rs`, `femacs/src/abi_shim.rs` (the P-88 (5)
+  move-back), `docs/ports/fringe.md`, `docs/ports/abi_shim.md`,
+  `docs/ports/line-drift-tolerance.tsv` and `docs/ports/macro-body-notes.tsv`.  `docs/port-map.md`
+  was regenerated (it is a generated file).
 
 ## 2026-10-05: the arm's `estimate_mode_line_height` was the calling unit's decl (3.505)
 
