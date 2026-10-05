@@ -350,9 +350,14 @@ fn dump_get_max_page_size () -> c_int
 
 /* `ptrdiff_t_to_dump_off (offsetof (type, member))`; `offsetof` is
    `core::mem::offset_of!` (PORTING.md 2.1).  */
+/* C's `#define dump_offsetof (type, member) (ptrdiff_t_to_dump_off (offsetof (type, member)))`
+   (C 177-178): the member is a *path* (`own_text.beg`, `u.s.data`), and the sites below spell
+   C's path in full.  Taking one identifier here is what let three sites collapse to the
+   *union's* offset - 0 - and write the fixup into the wrong field: `Lisp_String`'s interval
+   tree over `size`, and `dump_cold_string`'s data pointer over `size` (status 3.644).  */
 macro_rules! dump_offsetof {
-    ($type:ty, $member:ident) => {
-        ptrdiff_t_to_dump_off (core::mem::offset_of! ($type, $member) as ptrdiff_t)
+    ($type:ty, $($member:ident).+) => {
+        ptrdiff_t_to_dump_off (core::mem::offset_of! ($type, $($member).+) as ptrdiff_t)
     };
 }
 
@@ -2399,7 +2404,7 @@ fn dump_string (ctx: *mut dump_context, string: *const Lisp_String) -> dump_off
     if !(*string).u.s.intervals.is_null ()
       { dump_remember_fixup_ptr_raw
         (ctx,
-         offset + dump_offsetof! (Lisp_String, u),
+         offset + dump_offsetof! (Lisp_String, u.s.intervals),
          dump_interval_tree (ctx, (*string).u.s.intervals as INTERVAL, 0)); }
 
     return offset;
@@ -2816,7 +2821,7 @@ fn dump_symbol (ctx: *mut dump_context, object: Lisp_Object, offset: dump_off) -
           => {
 	    aux_offset = dump_recall_symbol_aux (ctx, make_lisp_symbol (symbol));
 	    dump_remember_fixup_ptr_raw (ctx,
-                                         offset + dump_offsetof! (Lisp_Symbol, u) as dump_off,
+                                         offset + dump_offsetof! (Lisp_Symbol, u.s.val.blv) as dump_off,
 				   (if aux_offset != 0
 				    { aux_offset }
 				    else { dump_blv (ctx, (*symbol).u.s.val.blv
@@ -3247,7 +3252,7 @@ fn dump_buffer (ctx: *mut dump_context, in_buffer: *const buffer) -> dump_off
     if (*buffer).base_buffer.is_null () && !(*buffer).own_text.intervals.is_null ()
       { dump_remember_fixup_ptr_raw
         (ctx,
-         offset + dump_offsetof! (buffer, own_text) as dump_off,
+         offset + dump_offsetof! (buffer, own_text.intervals) as dump_off,
          dump_interval_tree (ctx, (*buffer).own_text.intervals as INTERVAL, 0)); }
 
     return offset;
@@ -3853,7 +3858,7 @@ fn dump_cold_string (ctx: *mut dump_context, string: Lisp_Object)
   eassert! (total_size > 0);
   dump_remember_fixup_ptr_raw
     (ctx,
-     string_offset + dump_offsetof! (Lisp_String, u) as dump_off,
+     string_offset + dump_offsetof! (Lisp_String, u.s.data) as dump_off,
      unsafe { (*ctx).offset });
   dump_write (ctx, unsafe { (*XSTRING (string)).u.s.data } as *const c_void, total_size);
 }
@@ -3890,7 +3895,7 @@ fn dump_cold_buffer (ctx: *mut dump_context, data: Lisp_Object)
     { unsafe { error (c"buffer too large".as_ptr ()); } }
   dump_remember_fixup_ptr_raw
     (ctx,
-     buffer_offset + dump_offsetof! (buffer, own_text) as dump_off,
+     buffer_offset + dump_offsetof! (buffer, own_text.beg) as dump_off,
      unsafe { (*ctx).offset });
   dump_write (ctx, unsafe { (*b).own_text.beg } as *const c_void,
               ptrdiff_t_to_dump_off (nbytes));

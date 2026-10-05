@@ -40,3 +40,9 @@ before the `unsafe` block: C's `defvar_lisp` reads the name with `strlen`, so it
 NUL-terminated C string, and a `c"..."` literal is the port's spelling of one.  A plain `"..."` -
 which 141 call sites used, registering their variable under a name that ran into the next literal -
 is now a compile error rather than a silent defect.
+
+The five `DEFVAR_*` macros now build their forwarding object in the **static initializer**
+(`u: Lisp_Fwd_u { objvar: std::ptr::addr_of_mut! ($vname) }`, and `kbdoffset: $vname as c_int`),
+the way C's macros do with `.u.objvar = &globals.f_##vname`.  A run-time assignment is invisible to
+a process that has just *loaded a dump* - `syms_of_*` never runs again - and left every one of these
+objects NULL (status 3.644); `tools/check-fwd-static-init.py` holds the shape.

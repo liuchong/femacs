@@ -506,3 +506,27 @@ re-implemented here.
   from both reference dumps (`emacs-32.0.50.1.pdmp`, `bootstrap-emacs.pdmp`), so loading a reference
   dump in the port would be rejected by the gate first.  A cross-check therefore needs a temporary
   fingerprint substitution (a semantic change, not done).
+
+- **The dump is loadable now: two write-side defects, both found by reading the load (3.644).**
+  (1) `dump_offsetof!` took a single identifier, so every site whose C path goes through a union
+  collapsed to the union's offset: `Lisp_String.u.s.data` (C 3405) was written at 0 instead of 24,
+  `Lisp_String.u.s.intervals` (C 2118) at 0 instead of 16, `Lisp_Symbol.u.s.val.blv` (C 2484-2485)
+  at 0 instead of 16, and `buffer.own_text.intervals` (C 2877) lost its `intervals` segment.  Every
+  dumped cold string therefore had its data pointer written over `size`, with `data` left NULL -
+  exactly the 32 bytes the load showed (`ptr, -1, 0, 0`), and what made `hash_char_array (NULL,
+  huge)` abort in `thaw_hash_tables`.  The macro now takes C's *path*;
+  `tools/check-dump-offsets.py` pairs all 19 sites with C's.
+  (2) The `DEFVAR_*` forwarding objects were initialized at run time, so after a dump load they all
+  held NULL (`syms_of_*` never runs again): `do_symval_forwarding` dereferenced `*XOBJVAR` and died.
+  They are now static initializers, as C's macros are; `tools/check-fwd-static-init.py` holds it.
+- **Reading after both fixes**: the dump still completes (`Dump complete`, 13,025,304 bytes), and
+  the *load* runs into the normal startup: it prints the reference's `Warning: arch-dependent data
+  dir …`, executes byte-code out of the dump (`exec_byte_code` on the stack) and stops in
+  `print_object` while formatting an error message (`print_error_message` <- `Ferror_message_string`
+  <- `signal_or_quit` <- `Fdirectory_files`).  That is the next site, not a load failure.
+- **Cross-loading a reference dump is impossible by construction (3.644, negative result).**
+  A dump's Emacs-side offsets are `emacs_offset` values relative to `emacs_basis ()`, i.e. they
+  describe the *build that wrote them*; C guards exactly this with the fingerprint check.  Loading
+  the reference's `.pdmp` in the port (fingerprint temporarily substituted) therefore wrote into a
+  read-only `__DATA_CONST` page and bus-errored - the expected outcome, not a loader defect.  Do not
+  spend another round on that experiment.
