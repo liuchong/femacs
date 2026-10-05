@@ -7,10 +7,10 @@
 // `unsafe extern "C" fn` items (PORTING.md 1.4; the androidselect.rs `close_asset_fd` shape).
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
-// C 1241-1426 and C 1427-1604.**  The next live definition is `sfntfont_list_1` (C 1613-1825,
-// under C 1605-1611's comment).  The ledger `docs/ports/sfntfont.md` carries P-86 ②'s C line-range
-// table for C 1-4222 (the transcribed rows and the remaining one), the `## Evidence` readings and
-// the `## Deviations`.
+// C 1241-1426, C 1427-1604, C 1605-1871 and C 1873-2050.**  The next live definition is
+// `sfntfont_get_glyph` (C 2108, the caching subsystem's).  The ledger `docs/ports/sfntfont.md`
+// carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
+// the `## Evidence` readings and the `## Deviations`.
 //
 // `configure.ac` 2645 adds `sfntfont.o` to `ANDROID_OBJ` only inside the `XCONFIGURE = android`
 // branch (the `REALLY_ANDROID` one, 2620-2654: `sfnt.o` is on the same line and `android.o` one
@@ -2254,3 +2254,250 @@ unsafe fn sfntfont_registry_for_desc (desc: *mut sfnt_font_desc) -> Lisp_Object
 
   return Qnil ();                                          // C 1870
 }
+
+/* `font_make_entity` (C 1883) and `font_style_to_value` (C 1904's `FONT_SET_STYLE` macro) are two
+   names `font.h` declares and no mirror carries; both are declared here at their use sites (the
+   `src/ftfont.rs` 1306 and `src/haikufont.rs` 127 shapes, P-91 4).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: font.h 842: `extern Lisp_Object font_make_entity (void);` (font.c defines it).
+  pub fn font_make_entity () -> Lisp_Object;
+  /// C: font.h 854: `extern int font_style_to_value (enum font_property_index prop, Lisp_Object
+  /// name, bool noerror);`
+  pub fn font_style_to_value (prop: font_property_index, name: Lisp_Object, noerror: bool)
+    -> c_int;
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 1873-2050: the entity builder and the two driver entry points, in C's order - C 1873-1877's
+   comment and `sfntfont_desc_to_entity` (C 1879-1933), C 1935-1937's comment and
+   `sfntfont_compare_font_entities` (C 1939-1959), C 1961-1963's comment and the subr record
+   `Scompare_font_entities` (C 1964-1971), C 1973-1976's comment and `sfntfont_list` (C 1977-2027),
+   C 2029-2031's comment and `sfntfont_match` (C 2032-2042), and C 2044's form feed with C 2046-2050's
+   anonymous enum (the two cache sizes).  **The next live definition is C 2108's
+   `sfntfont_get_glyph`** (the caching subsystem's comment is C 2052-2058); the ledger's `## C line
+   ranges` names both boundaries.  `font_make_entity` is the one name of this slice no mirror
+   carries - it is declared at its use site below (the `ftfont.rs` 1306 shape, font.h 842) - and
+   `Scompare_font_entities` is the `Aligned_Lisp_Subr` initialiser `alloc.rs` 8175 spells.
+   ---------------------------------------------------------------------------------------------- */
+/// C 1879-1933: `sfntfont_desc_to_entity` - C's `static Lisp_Object`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_desc_to_entity (desc: *mut sfnt_font_desc, instance: c_int) -> Lisp_Object
+{                                                          // C 1880-1933
+  let mut entity: Lisp_Object;
+  let mut vector: Lisp_Object;
+
+  entity = font_make_entity ();                            // C 1883
+
+  ASET (entity, FONT_TYPE_INDEX as isize, sfnt_vendor_name);   // C 1885
+  ASET (entity, FONT_FOUNDRY_INDEX as isize, (*desc).designer);   // C 1886
+  ASET (entity, FONT_FAMILY_INDEX as isize, Fintern ((*desc).family, Qnil ()));   // C 1887
+  ASET (entity, FONT_ADSTYLE_INDEX as isize, Qnil ());     // C 1888
+  ASET (entity, FONT_REGISTRY_INDEX as isize,
+	sfntfont_registry_for_desc (desc));                // C 1889-1890
+
+  /* Size of 0 means the font is scalable.  */
+  ASET (entity, FONT_SIZE_INDEX as isize, make_fixnum (0));   // C 1893
+  ASET (entity, FONT_AVGWIDTH_INDEX as isize, make_fixnum (0));   // C 1894
+  ASET (entity, FONT_SPACING_INDEX as isize,
+	make_fixnum ((*desc).spacing as EMACS_INT));       // C 1895
+
+  if instance >= 1
+    {
+      if NILP ((*desc).instances)
+	 || (instance as isize) > ASIZE ((*desc).instances)   // C 1899-1900
+	{ emacs_abort (); }                                // C 1901
+
+      vector = AREF ((*desc).instances, (instance - 1) as isize);   // C 1903
+      FONT_SET_STYLE! (entity, FONT_WIDTH_INDEX,
+		       AREF (vector, 2));                  // C 1904-1905
+      FONT_SET_STYLE! (entity, FONT_WEIGHT_INDEX,
+		       AREF (vector, 3));                  // C 1906-1907
+      FONT_SET_STYLE! (entity, FONT_SLANT_INDEX,
+		       AREF (vector, 4));                  // C 1908-1909
+      ASET (entity, FONT_ADSTYLE_INDEX as isize, AREF (vector, 1));   // C 1910
+    }
+  else
+    {
+      FONT_SET_STYLE! (entity, FONT_WIDTH_INDEX,
+		       make_fixnum ((*desc).width as EMACS_INT));   // C 1914-1915
+      FONT_SET_STYLE! (entity, FONT_WEIGHT_INDEX,
+		       make_fixnum ((*desc).weight as EMACS_INT));   // C 1916-1917
+      FONT_SET_STYLE! (entity, FONT_SLANT_INDEX,
+		       make_fixnum ((*desc).slant as EMACS_INT));   // C 1918-1919
+      ASET (entity, FONT_ADSTYLE_INDEX as isize, (*desc).adstyle);   // C 1920
+    }
+
+  /* Set FONT_EXTRA_INDEX to a pointer to the font description.  Font
+     descriptions are never supposed to be freed.  */
+
+  ASET (entity, FONT_EXTRA_INDEX as isize,
+	/* C 1927-1930's `instance >= 1 ? … : …` is the `if`/`else` expression (Deviation 9).
+	   */
+	if instance >= 1
+	{ list2 (Fcons (Qfont_entity (), make_mint_ptr (desc as *mut c_void)),
+		 Fcons (Qfont_instance (), make_fixnum ((instance - 1) as EMACS_INT))) }
+	else
+	{ list1 (Fcons (Qfont_entity (), make_mint_ptr (desc as *mut c_void))) });
+
+  return entity;                                           // C 1932
+}
+
+/// C 1939-1959: `sfntfont_compare_font_entities` - C's `static`, and its address is the subr
+/// record's below, so it carries the C ABI (P-52, the `ftfont_list` shape).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfntfont_compare_font_entities (a: Lisp_Object, b: Lisp_Object)
+  -> Lisp_Object
+{                                                          // C 1940-1959
+  let mut count_a: ptrdiff_t;
+  let mut count_b: ptrdiff_t;
+  let mut i: ptrdiff_t;
+
+  count_a = 0;                                             // C 1943
+  count_b = 0;                                             // C 1944
+
+  i = 0;
+  while i < FONT_ENTITY_MAX as ptrdiff_t                   // C 1946
+    {
+      if !NILP (AREF (a, i))
+	{ count_a += 1; }                                  // C 1949
+      i += 1;
+    }
+
+  i = 0;
+  while i < FONT_ENTITY_MAX as ptrdiff_t                   // C 1952
+    {
+      if !NILP (AREF (b, i))
+	{ count_b += 1; }                                  // C 1955
+      i += 1;
+    }
+
+  return if count_a < count_b { Qt () } else { Qnil () };  // C 1958
+}
+
+/* Function that compares two font entities to return whether fewer
+   fields are set within the first than in the second.  */
+
+/// C 1964-1971: `static union Aligned_Lisp_Subr Scompare_font_entities` - C's record, whose
+/// `defsubr` call lives in the unported `syms_of_sfntfont` (C 4142) and which `sfntfont_list`
+/// below hands to `Fsort` through `XSETSUBR`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut Scompare_font_entities: Aligned_Lisp_Subr =
+  Aligned_Lisp_Subr { s: Lisp_Subr {
+    header: vectorlike_header {
+      size: PSEUDOVECTOR_FLAG
+	| ((pvec_type::PVEC_SUBR as isize) << PSEUDOVECTOR_AREA_BITS),
+    },
+    function: Lisp_Subr_function {
+      a2: subr_function_pointer! (Lisp_Object, sfntfont_compare_font_entities,
+				  (Lisp_Object, Lisp_Object)),
+    },
+    min_args: 2, max_args: 2,
+    symbol_name: c"sfntfont_compare_font_entities".as_ptr (),
+    intspec: Lisp_Subr_intspec { string: std::ptr::null () },
+    command_modes: lisp_h_Qnil (),
+    doc: 0,
+    #[cfg (feature = "have_native_comp")]
+    native_comp_u: lisp_h_Qnil (),
+    #[cfg (feature = "have_native_comp")]
+    native_c_name: std::ptr::null_mut (),
+    #[cfg (feature = "have_native_comp")]
+    lambda_list: lisp_h_Qnil (),
+    #[cfg (feature = "have_native_comp")]
+    r#type: lisp_h_Qnil (),
+  } };
+
+/* Return a list of font-entities matching the specified
+   FONT_SPEC.  */
+
+/// C 1977-2027: `sfntfont_list` - C's non-`static` driver entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_list (f: *mut c_void, font_spec: Lisp_Object) -> Lisp_Object
+{                                                          // C 1978-2027
+  let mut matching: Lisp_Object;
+  let mut tem: Lisp_Object;
+  let mut compare_font_entities: Lisp_Object;
+  let mut desc: *mut sfnt_font_desc;
+  let mut i: c_int;
+  let mut rc: c_int;
+  /* C 1981's `int instances[100]` is written by `sfntfont_list_1` and only read as far as that
+     call's return value says, so the zeroing is PORTING.md 1.5's / Deviation 10's class.  */
+  let mut instances: [c_int; 100] = [0; 100];
+
+  matching = Qnil ();                                      // C 1983
+
+  block_input ();                                          // C 1985
+  /* Returning irrelevant results on receiving an OTF form will cause
+     fontset.c to loop over and over, making displaying some
+     characters very slow.  */
+  tem = assq_no_quit (QCotf (), AREF (font_spec, FONT_EXTRA_INDEX as isize));   // C 1989
+  if CONSP (tem) && !NILP (XCDR (tem))
+    {
+      unblock_input ();                                    // C 1992
+      return Qnil ();                                      // C 1993
+    }
+
+  /* Loop through known system fonts and add them one-by-one.  */
+
+  desc = system_fonts;                                     // C 1998
+  while !desc.is_null ()
+    {
+      rc = sfntfont_list_1 (desc, font_spec, &raw mut instances[0],
+			    countof! (instances) as c_int);   // C 2000-2001
+
+      if rc < 0
+	{ matching = Fcons (sfntfont_desc_to_entity (desc, 0),
+			    matching); }                   // C 2004-2005
+      else if rc != 0
+	{
+	  /* Add each matching instance.  */
+
+	  i = 0;
+	  while i < rc                                      // C 2010
+	    {
+	      matching = Fcons (sfntfont_desc_to_entity (desc,
+							 instances[i as usize] + 1),   // C 2011-2012
+				matching);
+	      i += 1;
+	    }
+	}
+
+      desc = (*desc).next;                                 // C 1998's `desc = desc->next`.
+    }
+  unblock_input ();                                        // C 2016
+
+  /* Sort matching by the number of fields set inside each element, so
+     that values of FONT_SPECs that leave a number of fields
+     unspecified will yield a list with the closest matches (that is
+     to say, those whose fields are precisely as specified by the
+     caller) ordered first.  */
+
+  XSETSUBR! (compare_font_entities, &raw mut Scompare_font_entities.s);   // C 2024
+  matching = CALLN! (Fsort, matching, compare_font_entities);   // C 2025
+  return matching;                                         // C 2026
+}
+
+/* Return the first font-entity matching the specified FONT_SPEC.  */
+
+/// C 2032-2042: `sfntfont_match` - C's non-`static` driver entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_match (f: *mut c_void, font_spec: Lisp_Object) -> Lisp_Object
+{                                                          // C 2033-2042
+  let mut matches: Lisp_Object;
+
+  matches = sfntfont_list (f, font_spec);                  // C 2036
+
+  if !NILP (matches)
+    { return XCAR (matches); }                             // C 2039
+
+  return Qnil ();                                          // C 2041
+}
+
+/* C 2044: the form feed.  C 2046-2050 is the file's anonymous enum - two cache sizes, both
+   `int` (the constants the caching subsystem below sizes its tables with).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const SFNT_OUTLINE_CACHE_SIZE: c_int = 256;            // C 2048
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const SFNT_RASTER_CACHE_SIZE: c_int = 128;             // C 2049
