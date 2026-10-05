@@ -54,10 +54,15 @@ tolerance row.
   it - `src/android.rs`/`src/sysdep.rs` declare the same names for their own arms and a mirror-side
   second spelling is the duplicate `tools/check-mirror-dupes.py` fails on), with clang
   measurements of this target's `<pthread.h>`.
-- **Still owed: C 280-548, the `WINDOWSNT` arm** (the critical-section mutexes, the event-based
-  condition variable, the `_THREADNAME_INFO`/`SetThreadDescription` name path and `_beginthread`),
-  text-only here: there is no Windows toolchain on this machine (`which -a x86_64-w64-mingw32-gcc`
-  is empty).  C 549-551's `#else`/`#error port me` is carried as the port's `compile_error!` under
+- **C 280-548 (the `WINDOWSNT` arm) is transcribed** (status 3.498), under
+  `all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt")`: the
+  critical-section mutexes, the event-based condition variable (`CreateEvent`/`WaitForMultipleObjects`/
+  `SetEvent`/`ResetEvent`/`CloseHandle`), `GetCurrentThreadId`, the `_THREADNAME_INFO`/
+  `SetThreadDescription` name path with `_getmbcp`/`GetACP`/`pMultiByteToWideChar`/`RaiseException`,
+  and `_beginthread` with `w32_beginthread_wrapper`.  **No Windows toolchain is on this machine**
+  (`which -a x86_64-w64-mingw32-gcc` is empty), so no Windows API was executed or measured - but the
+  arm **type-checks** under its own features, which the `## Evidence` reading below records.
+  C 549-551's `#else`/`#error port me` is carried as the port's `compile_error!` under
   `all (threads_enabled, not (have_pthread), not (windowsnt))`; C 25-27's `#include "nsterm.h"`
   and C 29-31's `#include <pthread_np.h>` are dead for the same reason (`HAVE_NS` is `undef` and
   `HAVE_PTHREAD_SET_NAME_NP` is `undef`, macros.tsv 1481/1507); `ns_run_loop_break` is declared
@@ -93,7 +98,7 @@ The rows are contiguous and ascending; `docs/port-map.md` binds this ledger to `
 | 29-32 | `#ifdef HAVE_PTHREAD_SET_NAME_NP` -> `#include <pthread_np.h>` | dead both ways (`HAVE_PTHREAD_SET_NAME_NP` undef, macros.tsv 1507) |
 | 33-103 | `#ifndef THREADS_ENABLED`: the thirteen no-op definitions | `not (threads_enabled)` (live here) |
 | 104-279 | `#elif defined (HAVE_PTHREAD)`: the thirteen pthread definitions | `threads_enabled` + `have_pthread` (**transcribed 3.491**) |
-| 280-548 | `#elif defined (WINDOWSNT)`: the critical-section/event implementations | `threads_enabled` + `not (have_pthread)` + `windowsnt` - **owed** (text-only) |
+| 280-548 | `#elif defined (WINDOWSNT)`: the critical-section/event implementations | `threads_enabled` + `not (have_pthread)` + `windowsnt` - **transcribed 3.498** (type-checks; no Windows target to run it on) |
 | 549-553 | `#else` / `#error port me` / `#endif` | `compile_error!` under the fallback gate |
 
 ## Evidence
@@ -119,6 +124,18 @@ The rows are contiguous and ascending; `docs/port-map.md` binds this ledger to `
   `check-declarations` 10 sites / 0 failures; `check-citations` 0 drift;
   `check-dead-file-coverage` binds the table above with 0 failures.
 
+- **the `WINDOWSNT` arm's reading (status 3.498)**: `extract-abi --check`'s only row for this file
+  is the line-count one, i.e. every C definition and object of C 1-553 is present; the frozen
+  `build-tu` object is **still 2600 bytes with exactly the thirteen `_sys_*` symbols** (the new arm
+  is behind its gate); and
+  `probe src/systhread.rs --cfg 'feature="threads_enabled"' --cfg 'feature="windowsnt"'` reports
+  **8 errors, none of them in this unit's text** - two in a mirror copy (`sigset_t` is `u32` under
+  `windowsnt` while the mirror's `sigaddset` body builds a record: `E0071`/`E0610`) and six `E0080`
+  layout assertions in `include/thread.rs`'s records (the same six the pthread arm meets), i.e. the
+  arm **type-checks**.  Three defects of my own were caught and fixed on the way: an `if let` that
+  shadowed the `set_thread_description` static (`E0530`), a missing `GetCurrentThread` declaration
+  (`E0425`) and C's implicit `DWORD` -> `DWORD_PTR` widening (`E0308`).
+
 ## Deviations
 
 1. **`attr`/`stack_size` are zeroed before their `&raw mut` borrow** (C declares them
@@ -137,10 +154,9 @@ The rows are contiguous and ascending; `docs/port-map.md` binds this ledger to `
 
 ## Owed
 
-1. **C 280-548, the `WINDOWSNT` arm** (text-only here): the critical-section mutexes, the
-   event-based condition variable, the `_THREADNAME_INFO`/`SetThreadDescription` name path and
-   `_beginthread`, plus the `w32thread_critsect`/`w32thread_cond_t` records the header mirror
-   already carries under `windowsnt`.
+1. **C 280-548, the `WINDOWSNT` arm**: **DONE (status 3.498)** - and its compile reading names the
+   mirrors its type-check trips: `include/signal.rs`'s `sigaddset` body under `windowsnt`
+   (`sigset_t` is `u32` there) and `include/thread.rs`'s six `E0080` layout assertions (item 2).
 2. **The mirror copies' per-arm layout values** (`include/thread.rs`'s `thread_state`,
    `lisp_mutex_t`, `Lisp_Mutex`, `Lisp_CondVar`): they record the frozen arm's dummy-type sizes, so
    a `have_pthread` build trips their assertions (the six `E0080`s above).  A mirror round must
@@ -154,7 +170,8 @@ The rows are contiguous and ascending; `docs/port-map.md` binds this ledger to `
   created; nothing was linked; the frozen object is the thirteen no-ops and it is never executed.
 - The flip is a **compile reading** and it does not reach `exit 0`: the six `E0080`s are the mirror
   gap named in `## Owed` 2, not a claim that the arm is verified.
-- The `WINDOWSNT` arm is **text only**: no Windows API type, constant or width in it has been
-  measured or compiled.
+- The `WINDOWSNT` arm **type-checks but was never run or measured**: no `CreateEvent`, critical
+  section, `_beginthread`, `RaiseException` or `_getmbcp` call was executed, and every Windows type
+  width in it is C's spelling rather than a measurement (there is no Windows target here).
 - The `alignof_*` comparisons and the room-allocating arm are measured for **this** target;
   another platform's numbers would move both the features and the records.

@@ -460,3 +460,386 @@ pub unsafe extern "C" fn sys_thread_yield ()
 {
   sched_yield ();
 }
+
+/* ------------------------------------------------------------------------------------------
+   C 280-547: `#elif defined (WINDOWSNT)` - the critical-section arm.  **Text only on this
+   machine** (no Windows toolchain: `which -a x86_64-w64-mingw32-gcc` is empty), but the arm does
+   *type check* under its own features, which is the second reading `docs/ports/systhread.md`
+   `## Evidence` records.  The mutex/cond records, the `CONDV_*` enum and the three typedefs come
+   from the header mirror (`include/systhread.rs`, C 88-121); the `<windows.h>` surface the arm
+   names is declared here, because no mirror in this tree carries it and this arm is its only
+   consumer (P-88 clause 1).  Every width below is C's own spelling, not a measurement.
+   ------------------------------------------------------------------------------------------ */
+
+/// C: w32term.h: `#define ALIGN_STACK __attribute__ ((__force_align_arg_pointer__))` - a
+/// declaration attribute with no Rust counterpart (PORTING.md 0.3), so it is a no-op macro and is
+/// not written at the declaration site (the `NODISCARD` shape).
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+macro_rules! ALIGN_STACK { () => { () }; }
+
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type LPCRITICAL_SECTION = *mut w32thread_critsect;   // C: `typedef CRITICAL_SECTION *LPCRITICAL_SECTION;`
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type HANDLE = *mut c_void;      // src/w32fns.rs 232's spelling
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type BOOL = c_int;              // src/w32fns.rs 222's spelling
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type DWORD = u32;               // src/w32fns.rs 212's spelling
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type DWORD_PTR = usize;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type ULONG_PTR = usize;         // src/w32fns.rs 429's spelling
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type UINT = c_uint;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type HRESULT = c_long;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type LPCSTR = *const c_char;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type LPWSTR = *mut c_ushort;    // C's `wchar_t *` on Windows is 16-bit: src/w32.rs 1413-1414
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type PCWSTR = *const c_ushort;  // ... the same reading for the `const wchar_t *`
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const FALSE: BOOL = 0;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const TRUE: BOOL = 1;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const INFINITE: DWORD = 0xFFFFFFFF;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const WAIT_OBJECT_0: DWORD = 0;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const S_OK: HRESULT = 0;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const MB_ERR_INVALID_CHARS: DWORD = 0x00000008;
+/// C 425-427: `#define MS_VC_EXCEPTION 0x406d1388UL`
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub const MS_VC_EXCEPTION: DWORD = 0x406d1388;
+
+/* C 282-283's `<mbctype.h>` and `"w32term.h"` entry points, plus C 287's `_beginthread`, which the
+   file declares itself (`<process.h>` cannot be included - C's own comment).  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+unsafe extern "C" {
+  /* LPCWSTR/LPARAM-free subset: exactly the calls C 293-547 makes.  */
+  pub fn InitializeCriticalSection (critical_section: LPCRITICAL_SECTION);
+  pub fn EnterCriticalSection (critical_section: LPCRITICAL_SECTION);
+  pub fn LeaveCriticalSection (critical_section: LPCRITICAL_SECTION);
+  pub fn DeleteCriticalSection (critical_section: LPCRITICAL_SECTION);
+  pub fn CreateEvent (attributes: *mut c_void, manual_reset: BOOL, initial_state: BOOL,
+                      name: LPCSTR) -> HANDLE;
+  pub fn WaitForMultipleObjects (count: DWORD, handles: *const HANDLE, wait_all: BOOL,
+                                 milliseconds: DWORD) -> DWORD;
+  pub fn SetEvent (event: HANDLE) -> BOOL;
+  pub fn ResetEvent (event: HANDLE) -> BOOL;
+  pub fn CloseHandle (object: HANDLE) -> BOOL;
+  pub fn GetCurrentThreadId () -> DWORD;
+  pub fn GetCurrentThread () -> HANDLE;
+  pub fn Sleep (milliseconds: DWORD);
+  pub fn RaiseException (code: DWORD, flags: DWORD, nargs: DWORD, args: *const ULONG_PTR);
+  pub fn GetACP () -> UINT;
+  /// C: mbctype.h: `int _getmbcp (void);`
+  pub fn _getmbcp () -> c_int;
+  /// C 287: `uintptr_t _beginthread (void (__cdecl *)(void *), unsigned, void *);`
+  pub fn _beginthread (start: Option<unsafe extern "C" fn (*mut c_void)>, stack_size: c_uint,
+                       arg: *mut c_void) -> usize;
+}
+
+/* C 293-297: `sys_mutex_init` - mutexes are critical sections here.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_mutex_init (r#mutex: *mut sys_mutex_t)
+{
+  InitializeCriticalSection (r#mutex as LPCRITICAL_SECTION);
+}
+
+/* C 299-305: `sys_mutex_lock`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_mutex_lock (r#mutex: *mut sys_mutex_t)
+{
+  /* FIXME: What happens if the owning thread exits without releasing the mutex?  According to
+     MSDN, the result is undefined behavior.  */
+  EnterCriticalSection (r#mutex as LPCRITICAL_SECTION);
+}
+
+/* C 307-311: `sys_mutex_unlock`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_mutex_unlock (r#mutex: *mut sys_mutex_t)
+{
+  LeaveCriticalSection (r#mutex as LPCRITICAL_SECTION);
+}
+
+/* C 313-326: `sys_cond_init`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_cond_init (cond: *mut sys_cond_t)
+{
+  (*cond).initialized = false;
+  (*cond).wait_count = 0;
+  /* Auto-reset event for signal.  */
+  (*cond).events[CONDV_SIGNAL as usize] =
+    CreateEvent (core::ptr::null_mut (), FALSE, FALSE, core::ptr::null ());
+  /* Manual-reset event for broadcast.  */
+  (*cond).events[CONDV_BROADCAST as usize] =
+    CreateEvent (core::ptr::null_mut (), TRUE, FALSE, core::ptr::null ());
+  if (*cond).events[CONDV_SIGNAL as usize].is_null ()
+    || (*cond).events[CONDV_BROADCAST as usize].is_null ()
+    { return; }
+  InitializeCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+  (*cond).initialized = true;
+}
+
+/* C 328-363: `sys_cond_wait`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_cond_wait (cond: *mut sys_cond_t, r#mutex: *mut sys_mutex_t)
+{
+  let wait_result: DWORD;
+  let mut last_thread_waiting: bool;
+
+  if !(*cond).initialized
+    { return; }
+
+  /* Increment the wait count avoiding race conditions.  */
+  EnterCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+  (*cond).wait_count += 1;
+  LeaveCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+
+  /* Release the mutex and wait for either the signal or the broadcast event.  */
+  LeaveCriticalSection (r#mutex as LPCRITICAL_SECTION);
+  wait_result = WaitForMultipleObjects (2, (*cond).events.as_ptr (), FALSE, INFINITE);
+
+  /* Decrement the wait count and see if we are the last thread waiting on the condition
+     variable.  */
+  EnterCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+  (*cond).wait_count -= 1;
+  last_thread_waiting =
+    wait_result == WAIT_OBJECT_0 + CONDV_BROADCAST as DWORD
+    && (*cond).wait_count == 0;
+  LeaveCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+
+  /* Broadcast uses a manual-reset event, so when the last thread is released, we must manually
+     reset that event.  */
+  if last_thread_waiting
+    { ResetEvent ((*cond).events[CONDV_BROADCAST as usize]); }
+
+  /* Per the API, re-acquire the mutex.  */
+  EnterCriticalSection (r#mutex as LPCRITICAL_SECTION);
+}
+
+/* C 365-379: `sys_cond_signal`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_cond_signal (cond: *mut sys_cond_t)
+{
+  let mut threads_waiting: bool;
+
+  if !(*cond).initialized
+    { return; }
+
+  EnterCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+  threads_waiting = (*cond).wait_count > 0;
+  LeaveCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+
+  if threads_waiting
+    { SetEvent ((*cond).events[CONDV_SIGNAL as usize]); }
+}
+
+/* C 381-395: `sys_cond_broadcast`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_cond_broadcast (cond: *mut sys_cond_t)
+{
+  let mut threads_waiting: bool;
+
+  if !(*cond).initialized
+    { return; }
+
+  EnterCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+  threads_waiting = (*cond).wait_count > 0;
+  LeaveCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+
+  if threads_waiting
+    { SetEvent ((*cond).events[CONDV_BROADCAST as usize]); }
+}
+
+/* C 397-411: `sys_cond_destroy`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_cond_destroy (cond: *mut sys_cond_t)
+{
+  if !(*cond).events[CONDV_SIGNAL as usize].is_null ()
+    { CloseHandle ((*cond).events[CONDV_SIGNAL as usize]); }
+  if !(*cond).events[CONDV_BROADCAST as usize].is_null ()
+    { CloseHandle ((*cond).events[CONDV_BROADCAST as usize]); }
+
+  if !(*cond).initialized
+    { return; }
+
+  /* FIXME: What if wait_count is non-zero, i.e. there are still threads waiting on this condition
+     variable?  */
+  DeleteCriticalSection (&raw mut (*cond).wait_count_lock as LPCRITICAL_SECTION);
+}
+
+/* C 413-417: `sys_thread_self`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_thread_self () -> sys_thread_t
+{
+  return GetCurrentThreadId () as sys_thread_t;
+}
+
+/* C 419-423: `sys_thread_equal`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_thread_equal (t: sys_thread_t, u: sys_thread_t) -> bool
+{
+  return t == u;
+}
+
+/* C 429-436: `typedef struct _THREADNAME_INFO { … } THREADNAME_INFO;` - the record used to
+   communicate the thread name to a debugger.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[repr (C)]
+pub struct THREADNAME_INFO
+{
+  pub r#type: DWORD_PTR,     // C 432: `DWORD_PTR  type;`
+  pub name: LPCSTR,          // C 433: `LPCSTR name;`
+  pub thread_id: DWORD_PTR,  // C 434: `DWORD_PTR  thread_id;`
+  pub reserved: DWORD_PTR,   // C 435: `DWORD_PTR  reserved;`
+}
+
+/* C 438-443: the three function pointers `w32term.c` defines.  C 438/441-442 spell the two
+   `typedef`s; C 439/440/443 declare the objects (`is_debugger_present` may be NULL, which C 471
+   tests for, so it is an `Option` here; the other two are called only inside the branch that
+   proves they were loaded).  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type IsDebuggerPresent_Proc = Option<unsafe extern "system" fn () -> BOOL>;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type SetThreadDescription_Proc = Option<unsafe extern "system" fn (thread: HANDLE,
+                                                                     description: PCWSTR) -> HRESULT>;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub type MultiByteToWideChar_Proc = unsafe extern "system" fn (codepage: UINT, flags: DWORD,
+                                                              input: LPCSTR, input_len: c_int,
+                                                              output: LPWSTR,
+                                                              output_len: c_int) -> c_int;
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+unsafe extern "C" {
+  pub static mut is_debugger_present: IsDebuggerPresent_Proc;
+  pub static mut pMultiByteToWideChar: MultiByteToWideChar_Proc;
+  pub static mut set_thread_description: SetThreadDescription_Proc;
+}
+
+/* C 446-482: `w32_set_thread_name` (static).  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+unsafe fn w32_set_thread_name (thread_id: DWORD, name: *const c_char)
+{
+  if name.is_null () || *name == 0
+    { return; }
+
+  /* Use the new API provided since Windows 10, if available.  */
+  if let Some (set_description) = set_thread_description
+    {
+      /* GDB pulls only the first 1024 characters of thread's name.  */
+      let mut name_w: [c_ushort; 1025] = [0; 1025];
+      /* The thread name is encoded in locale's encoding, but SetThreadDescription wants a
+         `wchar_t` string.  */
+      let mut codepage: c_int = _getmbcp ();
+      if codepage == 0
+        { codepage = GetACP () as c_int; }
+      let cnv_result = pMultiByteToWideChar (codepage as UINT, MB_ERR_INVALID_CHARS, name, -1,
+                                             name_w.as_mut_ptr (), 1025);
+      if cnv_result != 0
+        && set_description (GetCurrentThread (), name_w.as_ptr ()) == S_OK
+        { return; }
+    }
+  /* We can only support this fallback method when Emacs is being debugged.  */
+  let debugged = match is_debugger_present
+    {
+      Some (f) => f () != 0,
+      None => false,
+    };
+  if !debugged
+    { return; }
+
+  let mut tninfo: THREADNAME_INFO = core::mem::zeroed ();   // C declares it uninitialized (E0381)
+
+  tninfo.r#type = 0x1000;	/* magic constant */
+  tninfo.name = name;
+  tninfo.thread_id = thread_id as DWORD_PTR;   // C: `DWORD` widens to the record's `DWORD_PTR`
+  tninfo.reserved = 0;
+  RaiseException (MS_VC_EXCEPTION, 0,
+                  (core::mem::size_of::<THREADNAME_INFO> () / core::mem::size_of::<ULONG_PTR> ())
+                  as DWORD,
+                  &raw const tninfo as *const ULONG_PTR);
+}
+
+/* C 484: `static thread_creation_function *thread_start_address;`  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+pub static mut thread_start_address: thread_creation_function = None;
+
+/* C 486-490: `sys_thread_set_name`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_thread_set_name (name: *const c_char)
+{
+  w32_set_thread_name (GetCurrentThreadId (), name);
+}
+
+/* C 495-499: `w32_beginthread_wrapper` (static).  C's `ALIGN_STACK` is a declaration attribute
+   with no Rust counterpart, so it is the no-op macro above and is not written here.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+unsafe extern "C" fn w32_beginthread_wrapper (arg: *mut c_void)
+{
+  match thread_start_address
+    {
+      Some (f) => { f (arg); }
+      None => {}
+    }
+}
+
+/* C 501-541: `sys_thread_create`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_thread_create (thread_ptr: *mut sys_thread_t,
+                                           func: thread_creation_function,
+                                           arg: *mut c_void) -> bool
+{
+  /* FIXME: Do threads that run Lisp require some minimum amount of stack?  Zero here means each
+     thread will get the same amount as the main program.  On GNU/Linux, it seems like the stack
+     is 2MB by default, overridden by RLIMIT_STACK at program start time.  Not sure what to do
+     with this.  See also the comment in w32proc.c:new_child.  */
+  const stack_size: c_uint = 0;
+  let thandle: usize;
+
+  thread_start_address = func;
+
+  /* We use `_beginthread` rather than `CreateThread` because the former arranges for the thread
+     handle to be automatically closed when the thread exits, thus preventing handle leaks and/or
+     the need to track all the threads and close their handles when they exit.  Also, MSDN seems
+     to imply that code which uses CRT _must_ call `_beginthread`, although if that is true, we
+     already violate that rule in many places...  */
+  thandle = _beginthread (Some (w32_beginthread_wrapper), stack_size, arg);
+  if thandle == usize::MAX    /* C: `(uintptr_t) -1L` */
+    { return false; }
+
+  /* Kludge alert!  We use the Windows thread ID, an unsigned 32-bit number, as the `sys_thread_t`
+     type, because that ID is the only unique identifier of a thread on Windows.  But
+     `_beginthread` returns a handle of the thread, and there's no easy way of getting the thread
+     ID given a handle (`GetThreadId` is available only since Vista, so we cannot use it
+     portably).  Fortunately, the value returned by `sys_thread_create` is not used by its
+     callers; instead, `run_thread`, which runs in the context of the new thread, calls
+     `sys_thread_self` and uses its return value; `sys_thread_self` in this implementation calls
+     `GetCurrentThreadId`.  Therefore, we return some more or less arbitrary value of the thread
+     ID from this function.  */
+  *thread_ptr = (thandle & 0xFFFFFFFF) as sys_thread_t;
+  return true;
+}
+
+/* C 543-547: `sys_thread_yield`.  */
+#[cfg (all (feature = "threads_enabled", not (feature = "have_pthread"), feature = "windowsnt"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sys_thread_yield ()
+{
+  Sleep (0);
+}

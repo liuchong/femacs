@@ -9546,3 +9546,29 @@
      C 1353-3243（1,891 行）未移植，本段不为它们背书。
   ⑦ **预算**：lane：`probe` **6 发**（限 3，**超 3**，如实报）＋在物化根上 **4 次直接 rustc**、`build-tu` **2 发**；
      集成者：gate/`--check`/feature-coverage 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/ftfont-lane` 已删。
+
+- **3.498 `src/systhread.c` 片 3（C 280-548，WINDOWSNT 臂）落地：这个文件**完成**了，且该臂真的 type-check（2026-10-05）**：
+  ① **范围/块**：C 280-548 全部转写（临界区互斥、事件式条件变量、`_THREADNAME_INFO`/`SetThreadDescription`
+     名字路径、`_beginthread` 包装）；加上 3.491 的 pthread 臂与 C 33-102 的空臂，`src/systhread.c` 的
+     **C 1-553 全覆盖**，台账 8 行区间表**没有任何 owed 行** ⇒ **完成件**。
+  ② **行数**：`femacs/src/systhread.rs` **462 → 845**；台账 `docs/ports/systhread.md` 160 → **178**。
+  ③ **读数（我自己跑的）**：⑴ 冻结 `build-tu` → **exit 0 / 仍是 2600 字节 / `nm -g` 仍恰好 13 个 `_sys_*` 符号**
+     ⇒ 新臂完全在门后（P-86 ⑧）；⑵ **`probe`（`--cfg 'feature="threads_enabled"' --cfg 'feature="windowsnt"'`）
+     → 8 个错，没有一条在本单元文本里**：2 条在镜像副本（`include/signal.rs` 的 `sigaddset` 体在 `windowsnt` 下
+     把 `sigset_t` 当记录用，而它那里是 `u32`：`E0071`/`E0610`）、6 条是 `include/thread.rs` 的 `E0080` 布局断言
+     （与 pthread 臂遇的是同一批）⇒ **该臂 type-check 通过**——比"纯 text-only"强一档；
+     ⑶ `extract-abi --check` 的唯一一条是行数 ⇒ 追加 **`systhread` `total`/0.54** 行（C 553 vs Rust 845 = 52.8%）
+     后 **OK**（**完成件才写容差行**，3.434 ⑤ 的裁决在这里第一次被正面使用）；
+     ⑷ 我自造并被读数抓出的 3 条已修：`if let` 遮蔽了 `set_thread_description` 静态（`E0530`）、漏声明
+     `GetCurrentThread`（`E0425`）、C 的 `DWORD` → `DWORD_PTR` 隐式加宽（`E0308`）。
+  ④ **集成者的账**：⑴ 容差行（见 ③⑶）；⑵ 台账：`## C line ranges` 的 280-548 行改成 transcribed、Evidence 增
+     "WINDOWSNT 臂的读数"、Owed 1 标 DONE、Not claimed 改成"type-check 过但从未运行/测量"；
+     ⑶ pending 棘轮无需动（845 行远超阈值）。
+  ⑤ **点名归属（镜像轮）**：`include/signal.rs` 的 `sigaddset`/`sigismember` 体在 `windowsnt` 下不可编
+     （`sigset_t` 是 `u32`）；`include/thread.rs` 的六条布局断言要按臂取值（与 pthread 臂同一笔账，
+     `## Owed` 2）。
+  ⑥ **未声称**：该臂**从未运行、从未测量**——没有调用过 `CreateEvent`/临界区/`_beginthread`/`RaiseException`/
+     `_getmbcp`，每个 Windows 类型宽度都是 C 的拼法而非实测（本机没有 Windows 目标）；冻结对象那 13 个空函数
+     也不说明正文。
+  ⑦ **预算**：`probe` **4 发**、`build-tu` **1 发**、gate 脚本各 1 发；未跑 `--all`/`gate-fast`/`cargo test`/
+     `check-all-units.sh`（本轮没改镜像）；`/tmp/st-w32*.log` 收工删除。
