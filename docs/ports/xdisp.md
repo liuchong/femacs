@@ -2,9 +2,9 @@
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 13
-- [ ] set-buffer-redisplay  (Fset_buffer_redisplay, 4/4, doc 5c281f24209d, line 922)
-- [ ] line-pixel-height  (Fline_pixel_height, 0/0, doc a1c4fe180f27, line 1545)
-- [ ] get-display-property  (Fget_display_property, 2/4, doc ebee6e28fe94, line 5877)
+- [x] set-buffer-redisplay  (Fset_buffer_redisplay, 4/4, doc 5c281f24209d, line 922)
+- [x] line-pixel-height  (Fline_pixel_height, 0/0, doc a1c4fe180f27, line 1545)
+- [x] get-display-property  (Fget_display_property, 2/4, doc ebee6e28fe94, line 5877)
 - [x] window-text-pixel-size  (Fwindow_text_pixel_size, 0/7, doc 24dfcb0ed7db, line 12078)
 - [x] buffer-text-pixel-size  (Fbuffer_text_pixel_size, 0/6, doc 8ad2cd85d9f9, line 12158)
 - [x] display--line-is-continued-p  (Fdisplay__line_is_continued_p, 0/0, doc 198c6180dfb2, line 12216)
@@ -299,26 +299,26 @@
 - [x] invisible_prop  (line 30314)
 - [x] calc_pixel_width_or_height  (line 30470, static)
 - [x] get_font_ascent_descent  (line 30702)
-- [ ] produce_stretch_glyph  (line 32972)
-- [ ] produce_special_glyphs  (line 33192, static)
-- [ ] pad_mode_line  (line 33406, static)
-- [ ] get_specified_cursor_type  (line 34731, static)
-- [ ] set_frame_cursor_types  (line 34779)
-- [ ] draw_row_with_mouse_face  (line 35477, static)
-- [ ] show_mouse_face  (line 35497, static)
-- [ ] clear_mouse_face  (line 35662)
-- [ ] coords_in_mouse_face_p  (line 35678, static)
-- [ ] cursor_in_mouse_face_p  (line 35727)
-- [ ] rows_from_pos_range  (line 35759, static)
-- [ ] mouse_face_from_buffer_pos  (line 35915, static)
-- [ ] mouse_face_from_string_pos  (line 36327, static)
-- [ ] define_frame_cursor1  (line 36586, static)
-- [ ] note_line_or_margin_highlight  (line 36633, static)
-- [ ] note_mouse_highlight  (line 37056)
-- [ ] gui_clear_window_mouse_face  (line 37706)
-- [ ] cancel_mouse_face  (line 37724)
-- [ ] syms_of_xdisp  (line 38410)
-- [ ] init_xdisp  (line 39542)
+- [x] produce_stretch_glyph  (line 32972)
+- [x] produce_special_glyphs  (line 33192, static)
+- [x] pad_mode_line  (line 33406, static)
+- [x] get_specified_cursor_type  (line 34731, static)
+- [x] set_frame_cursor_types  (line 34779)
+- [x] draw_row_with_mouse_face  (line 35477, static)
+- [x] show_mouse_face  (line 35497, static)
+- [x] clear_mouse_face  (line 35662)
+- [x] coords_in_mouse_face_p  (line 35678, static)
+- [x] cursor_in_mouse_face_p  (line 35727)
+- [x] rows_from_pos_range  (line 35759, static)
+- [x] mouse_face_from_buffer_pos  (line 35915, static)
+- [x] mouse_face_from_string_pos  (line 36327, static)
+- [x] define_frame_cursor1  (line 36586, static)
+- [x] note_line_or_margin_highlight  (line 36633, static)
+- [x] note_mouse_highlight  (line 37056)
+- [x] gui_clear_window_mouse_face  (line 37706)
+- [x] cancel_mouse_face  (line 37724)
+- [x] syms_of_xdisp  (line 38410)
+- [x] init_xdisp  (line 39542)
 
 ## Macros defined — 38
 - [x] AINC  (line 17604, body 27cb0e150c56)
@@ -431,6 +431,33 @@
 ## Decisions
 
 ### Progress (this lane is incremental)
+
+**This round adds C 32971-39805** - the unit's last slice: the glyph producers, the mouse-face
+family, `syms_of_xdisp` and `init_xdisp`.  In C's order: `produce_stretch_glyph`
+(C 32971-33181, the unit's first non-`static` definition of the round, `#[unsafe(no_mangle)]`;
+the `(space …)` plist's `:width`/`:relative-width`/`:align-to` arms with their
+`calc_pixel_width_or_height` recursion, the `PRODUCE_GLYPHS` probe of the first character and
+the TTY `tty_append_glyph` fill), `produce_special_glyphs` (C 33191-33395: the continuation
+and truncation glyphs, the `DISP_CONTINUE_GLYPH`/`DISP_TRUNC_GLYPH` display-table lookups with
+their `bidi_mirror_char`/`Vspecial_mirror_table` mirroring and `spec_glyph_lookup_face`),
+`pad_mode_line` (C 33405-33427), then the cursor-type pair `get_specified_cursor_type`
+(C 34730-34775) and `set_frame_cursor_types` (C 34778-34801), the mouse-face family
+`draw_row_with_mouse_face` (C 35476-35492), `show_mouse_face` (C 35496-35654),
+`clear_mouse_face` (C 35661-35673, non-`static`), `coords_in_mouse_face_p` (C 35677-35720),
+`cursor_in_mouse_face_p` (C 35726-35748, non-`static`), `rows_from_pos_range`
+(C 35758-35903), `mouse_face_from_buffer_pos` (C 35914-36235), `mouse_face_from_string_pos`
+(C 36326-36441), `define_frame_cursor1` (C 36585-36624, whose whole body is one dead
+`HAVE_WINDOW_SYSTEM` arm), `note_line_or_margin_highlight` (C 36632-36964),
+`note_mouse_highlight` (C 37055-37697, non-`static`), `gui_clear_window_mouse_face`
+(C 37705-37716, non-`static`) and `cancel_mouse_face` (C 37723-37732, non-`static`); then
+`syms_of_xdisp` (C 38409-39540) and `init_xdisp` (C 39540-39591).  C 33429-34717,
+C 34804-35037, C 35045-35471, C 36241-36318, C 36443-36580, C 36588-36622, C 36966-37044,
+C 37740-38401 and C 39593-39804 are dead `HAVE_WINDOW_SYSTEM` (or `#if false`) arms and are
+recorded, not transcribed; the round's exact dead list is in this ledger's Dead arms section.
+The covered range is now **C 468-39805 minus the C 15616-16624 hole**, i.e. the whole unit
+except `tty_handle_tab_bar_click` (which stays the one unchecked box in `## Owed`).
+`src/xdisp.rs` is 33,330 lines (the readings are in the Evidence section, the round's own
+deviations are 289-298, and what is left is in `## Owed`).
 
 **This round adds C 28463-30710** - the mode-line element/%-spec group, the
 `count_lines`/`display_string`/`invisible_prop` definitions and the pixel-width and
@@ -1294,6 +1321,69 @@ the in-function `#define` becomes a function-scope `macro_rules!` whose scope is
 `IT_RESET_X_ASCENT_DESCENT`/`GIVE_UP` class), and the note owed for its un-spellable
 `while (false)` tail is named in the Progress section.
 
+The thirty-fifth round's range (C 32971-39805, the last slice) holds forty-two dead blocks,
+all `undef` in `docs/baseline/config/darwin-arm64.macros.tsv` except where noted; the seven
+large ones carry whole functions that the round therefore records rather than transcribes:
+
+* C 32981-32991, C 33028-33032, C 33095-33129, C 33138-33141, C 33154-33157 and C 33170-33178 -
+  `produce_stretch_glyph`'s six arms (the `face`/`font`/`FRAME_FONT` setup, the
+  `FACE_FOR_CHAR` face fixup, the `FRAME_WINDOW_P` height/`:ascent` computation with
+  `normal_char_height`/`FRAME_LINE_HEIGHT`/`FONT_BASE`/`FONT_HEIGHT`, the one-pixel truncation
+  adjustment, the `append_stretch_glyph` branch and the ascent/descent +
+  `take_vertical_position_into_account` tail).
+* C 33260-33272 and C 33330-33342 - the two `FRAME_WINDOW_P` face adjustments of
+  `produce_special_glyphs` (`GLYPH_CHAR`/`GLYPH_FACE`/`SET_GLYPH_FACE`).
+* C 33349-33383 - the same function's right-fringe stretch-glyph arm
+  (`WINDOW_LEFT_FRINGE_WIDTH`/`WINDOW_RIGHT_FRINGE_WIDTH`, `FONT_BASE`/`FONT_HEIGHT`,
+  `append_stretch_glyph`).
+* C 33429-34717 - the whole GUI glyph-producing half: `calc_line_height_property`,
+  `append_glyphless_glyph`, `produce_glyphless_glyph`, `gui_produce_glyphs`, `gui_write_glyphs`,
+  `gui_insert_glyphs` and `gui_clear_end_of_line`, with their nested `#ifdef GLYPH_DEBUG` and
+  `#ifdef HAVE_NTGUI` arms (C 33720-33725, C 33844-33849, C 33566-33570).
+* C 34804-35037 - `get_window_cursor_type` and `notice_overwritten_cursor` with their bodies.
+* C 35045-35471 - `gui_fix_overlapping_area`, `draw_phys_cursor_glyph`, `erase_phys_cursor`,
+  `display_and_set_cursor`, `update_window_cursor`, `update_cursor_in_window_tree`,
+  `gui_update_cursor` and `gui_clear_cursor`.
+* C 35481-35486 - `draw_row_with_mouse_face`'s `FRAME_WINDOW_P`/`draw_glyphs` arm.
+* C 35522-35523, C 35598-35605, C 35614-35633 and C 35638-35652 - four arms of
+  `show_mouse_face` (`int mouse_off`, `get_cursor_offset_for_mouse_face`, the
+  `display_and_set_cursor` re-display and the `FRAME_RIF` mouse-cursor change).
+* C 36241-36318 - `#if false /* not used */`'s `fast_find_string_pos` (dead in every
+  configuration, the `CHECK_IT` class).
+* C 36443-36580 - `on_hot_spot_p`, `find_hot_spot` and `Ffind_hot_spot`.
+* C 36588-36622 - the whole body of `define_frame_cursor1` (the `FRAME_OUTPUT_DATA` cursor
+  shapes, `FRAME_DISPLAY_INFO`'s `vertical_scroll_bar_cursor` under `HAVE_X_WINDOWS`, and
+  `FRAME_RIF (f)->define_frame_cursor`).
+* C 36692-36726 and C 36766-36817 - `note_line_or_margin_highlight`'s image-map/hot-spot arm
+  and its `FRAME_OUTPUT_DATA` pointer-shape arm.
+* C 36966-37044 - `note_fringe_highlight`.
+* C 37067-37070 and C 37073-37075 - `note_mouse_highlight`'s two `popup_activated` guards
+  (`HAVE_X_WINDOWS`/`HAVE_NS`/`MSDOS`/`HAVE_ANDROID` and `HAVE_HAIKU`).
+* C 37127-37178, C 37189-37196, C 37199-37218, C 37221-37229, C 37238-37245, C 37250-37283,
+  C 37305-37346, C 37372-37376 and C 37647-37686 - the same function's nine further arms (the
+  draggable internal border, the menu-bar, tab-bar and tool-bar windows, the margin cursor, the
+  `ON_VERTICAL_BORDER`/`ON_RIGHT_DIVIDER`/`ON_BOTTOM_DIVIDER`/`ON_*_FRINGE`/
+  `ON_*_SCROLL_BAR` switch, the `IMAGE_GLYPH` `:pointer` lookup, the void-text-area pointer and
+  the `:pointer` property lookup).
+* C 37740-38401 - the whole exposure-event half: `expose_area`, `expose_line`,
+  `expose_overlaps`, `phys_cursor_in_rect_p`, `gui_draw_vertical_border`,
+  `gui_draw_right_divider`, `gui_draw_bottom_divider`, `expose_window`, `expose_window_tree`,
+  `expose_frame`, `gui_intersect_rectangles` and `gui_union_rectangles`.
+* C 38448-38455 (the seven `GLYPH_DEBUG` `defsubr`s), C 38457-38461 (the four
+  `HAVE_WINDOW_SYSTEM` `defsubr`s), C 38637-38642 (`x-stretch-cursor`'s `DEFVAR_BOOL` and its
+  assignment), C 38769-38770 (the `GLYPH_DEBUG` `debug-end-pos` `DEFVAR_INT`), C 39287-39298
+  (the three `GLYPH_DEBUG` `inhibit-try-*` `DEFVAR_BOOL`s), C 39327-39329
+  (`hourglass_atimer`/`hourglass_shown_p`).
+* C 39593-39804 - the file's tail: `show_hourglass`, `start_hourglass`, `cancel_hourglass`,
+  `adjust_glyph_width_for_mouse_face` and `get_cursor_offset_for_mouse_face`.
+
+The small arms keep a pointer comment at the site (the standing shape, deviations 170/178); the
+seven function-sized ones are recorded here only, which is why `--check` owes no `does not
+mention` row for `normal_char_height`, `FONT_BASE`, `FONT_HEIGHT`, `append_stretch_glyph`,
+`take_vertical_position_into_account`, `draw_glyphs`, `display_and_set_cursor`,
+`IMAGE_OPT_FROM_ID`, `note_tab_bar_highlight`, `note_tool_bar_highlight`,
+`note_fringe_highlight`, `x_stretch_cursor_p` or `hourglass_shown_p`.
+
 ### Use-site declarations (headers without a mirror, or mirror gaps; each keeps C's prototype in a `/// C:` line)
 
 1. **`window.h`'s accessor macros — retired to the mirror.**  `include/window.rs` was WIP and
@@ -1431,6 +1521,23 @@ the in-function `#define` becomes a function-scope `macro_rules!` whose scope is
     `explicit_name` arm (frame.h 417) as this unit's own accessor family (item 2).
     `include/intervals.rs`'s top-level `invisible_prop` declaration is what forces the
     `xdisp_defined_decls` wrapper (item 83).
+
+12. **Six more use-site declarations and four macro families this round.**  The mouse-face
+   family reads six cross-unit entry points the mirror chain does not carry, each declared in
+   the unit's `unsafe extern "C"` block with C's prototype in a `/// C:` line (PORTING.md
+   0.1-2/P-72 rule 3; integrator item 84): `tty_draw_row_with_mouse_face` (dispextern.h
+   3693-3695, term.c), `mouse_face_overlay_overlaps` (lisp.h 4936, buffer.c - the mirror's own
+   "Defined in buffer.c" block stops before it), `mode_line_string` (dispextern.h 3886-3890,
+   dispnew.c), `marginal_area_string` (dispextern.h 3892-3895, dispnew.c),
+   `spec_glyph_lookup_face` (dispextern.h 3928, dispnew.c) and `tty_append_glyph`
+   (dispextern.h 3961, term.c) for the glyph producers.  `mode_line_string`'s and
+   `marginal_area_string`'s `window_part` parameter is the mirror's own enumeration alias, and
+   their `dx`/`dy`/`charpos` out-parameters are the zeroed locals deviation 292 lists.  The
+   mirror *does* carry `SET_GLYPH_FROM_GLYPH_CODE` (dispextern.h 414-422) and
+   `reset_mouse_highlight` (dispextern.h 3026-3041), but inside the `dispextern_unit_names`
+   module, which no unit imports (only `Display_Info` is reached through it by qualified path),
+   so this unit keeps its own copy of the macro and names the resetter as
+   `dispextern_unit_names::reset_mouse_highlight` (deviation 294).
 
 ### Deviations (each one also named in the report)
 
@@ -3212,6 +3319,104 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
      `pad_mode_line` (C 33406, `display_string`'s TTY truncation helper), which is the only
      name this round's text calls that the unit does not define yet (integrator item 86).
 
+### Deviations, continued (the round's thirty-fifth pass: the glyph producers, the mouse-face family, `syms_of_xdisp` and `init_xdisp`)
+
+289. **`Mouse_HLInfo::mouse_face_mouse_frame` is the mirror's `*mut c_void`** (P-72 rule 3; C's
+     member is `struct frame *`), so C's `f != hlinfo->mouse_face_mouse_frame`
+     (`show_mouse_face`, C 35509) and `hlinfo->mouse_face_mouse_frame = f`
+     (`note_mouse_highlight`, C 37084) spell the conversion at the site
+     (`f as *mut c_void` on the store, the same cast on the comparison).  The record is
+     otherwise C's own.
+290. **The round's local macro families** (PORTING.md 2.1/P-26: one spelling per construct, and
+     these are the four the mirrors do not carry at the top level).  `SET_GLYPH_FROM_GLYPH_CODE`
+     (dispextern.h 414-422) is a local copy because the mirror's own copy lives inside
+     `dispextern_unit_names`, a module no unit imports (the `dispnew.rs` 241 shape; integrator
+     item 10); the `mouse_face_past_end!`/`mouse_face_defer!`/`mouse_face_hidden!` read/write
+     pairs name the three `bool_bf` members of `Mouse_HLInfo` (`bits` plus the mirror's
+     `MOUSE_FACE_*` masks; `mouse_face_defer`'s value pair exists as
+     `get_/set_mouse_face_defer`, but a function of another name would drop the C token from
+     the body check, so the pair keeps C's own member name - the `msdos.rs`
+     `mouse_face_hidden!` shape), and the four `FRAME_DESIRED_CURSOR!`/`FRAME_CURSOR_WIDTH!`/
+     `FRAME_BLINK_OFF_CURSOR!`/`FRAME_BLINK_OFF_CURSOR_WIDTH!` place macros stand for frame.h
+     1371-1374's l-value macros, whose `set_frame_cursor_types` stores (C 34784-34794) the
+     mirror reaches only through value-returning accessors of the same names (the
+     `FRAME_SELECTED_WINDOW`/`FRAME_WINDOW_CHANGE` precedent in this file).
+291. **Two accessor arms this round is the first to need.**  `it_bits!` gains the
+     `align_visually_p` *reader* (byte 2217 bit 4, `IT_ALIGN_VISUALLY_P`) for C 33051's
+     `it->align_visually_p ? 0 : it->continuation_lines_width` (the store arm arrived with
+     `display_line`), and `frame_bits!` gains the `pointer_invisible` reader (frame.h 437, bit
+     19 of `bits1`, frame.rs 542's `FRAME_POINTER_INVISIBLE_SHIFT`) for C 37079's
+     `f->pointer_invisible` test.  Both mirrors carry the shifts but no accessor for the
+     member.
+292. **The round's C-uninitialised locals** (PORTING.md 1.5, deviation 280's rule) are the
+     port's zeroed bindings, because each is written through a pointer argument or a macro and
+     read afterwards, which a Rust `let x: T;` cannot express: `produce_stretch_glyph`'s `tem`,
+     `produce_special_glyphs`' and `pad_mode_line`'s `glyph` (`core::mem::zeroed ()`, the
+     `scratch_glyph_row` shape - `SET_GLYPH` writes only two of the record's members),
+     `mouse_face_from_buffer_pos`'s out-parameters `r1`/`r2` and `ignore`,
+     `note_line_or_margin_highlight`'s `dx`/`dy`/`width`/`height`/`charpos` (the five
+     `mode_line_string`/`marginal_area_string` out-parameters) plus its `pos`/`row` (C's
+     `UNINIT`), `note_mouse_highlight`'s `hpos`/`vpos`/`dx`/`dy` (`x_y_to_hpos_vpos`),
+     `prop_idx`/`ignore` (`tty_get_tab_bar_item`) and `ignore` (`face_at_string_position`).
+     `produce_stretch_glyph`'s `prop` and `plist`, `get_specified_cursor_type`'s `type` and
+     `syms_of_xdisp`'s `icon_title_name_format` stay *deferred* (`let x: T;`), because every
+     path assigns before the single read.
+293. **The round's two labelled blocks** (the `casefiddle.rs`/`display_mode_element` shape) for
+     `note_mouse_highlight`'s live labels: `'set_cursor` (C 37695's `set_cursor:`) takes the
+     three live `goto set_cursor`s (C 37379, C 37385, C 37389 - the other eleven C writes are
+     inside the dead arms the Dead arms section lists) and `'check_help_echo` (C 37578's
+     `check_help_echo:`) takes C 37418's and C 37451's, so no `goto` can reappear.  The two
+     `uninit` token sets and the `goto` token of that function and of
+     `note_line_or_margin_highlight`, and `syms_of_xdisp`'s `doc:` label, are named in three
+     appended `docs/ports/macro-body-notes.tsv` rows (the
+     `syms_of_data`/`Fmake_variable_buffer_local` precedents).
+294. **`reset_mouse_highlight`** (dispextern.h 3026-3041) is an INLINE the mirror carries inside
+     `dispextern_unit_names`; `cancel_mouse_face` (C 37731) names it by qualified path
+     (`dispextern_unit_names::reset_mouse_highlight`), the `Display_Info` spelling in this same
+     mirror (integrator item 10).
+295. **`syms_of_xdisp`'s storage and its chained assignments.**  The 93 `DEFVAR_LISP`/
+     `DEFVAR_INT`/`DEFVAR_BOOL` objects the function registers are *defined* in this unit (the
+     `buffer.rs` shape and its comment: C's `DEFVAR_*` name a field of the single `globals`
+     object, whose declaration the port mirrors in `include/globals.rs`'s `variables` module),
+     so `src/xdisp.rs` gains 93 `#[unsafe(no_mangle)] pub static mut` definitions with C's own
+     zero initialisers - which is also what retires the nine `V…` link-debt names.  C's three
+     chained assignments are two statements each, in C's store order:
+     `Vicon_title_format = Vframe_title_format = list (…)` (C 38677-38679, so the store into
+     `Vframe_title_format` comes first), `echo_buffer[0] = echo_buffer[1] = Qnil` (C 38594) and
+     `echo_area_buffer[0] = echo_area_buffer[1] = Qnil` (C 38598).
+296. **The round's mechanical Rust spellings** (PORTING.md 1.1/P-15 and the standing shapes):
+     `MATRIX_ROW!`/`BUF_Z!`/`list!` for the three macros of those names, `BEG as ptrdiff_t` for
+     C's `BEG` (the mirror's `BEGV! ()`/`Z! ()` have no `BEG` twin), `MATRIX_ROW_VPOS! (…) as
+     c_int` where C assigns the difference to an `int` member,
+     `(*( (*w).current_matrix as *mut glyph_matrix )).nrows` (`window.rs` degrades the two
+     matrices to `*mut c_void`, P-72 rule 3), `f as *mut c_void` for the mirror's untyped
+     `window_from_coordinates` parameter, `w as *mut c_void` for `sort_overlays`,
+     `ASCII_CHAR_P (it2.c as isize)` (`character.rs`'s parameter is `isize`), the four
+     `DEFAULT_*` `as isize`/`as EMACS_INT` conversions of the tab-bar/tool-bar/hourglass
+     defaults, `intern (c"ignore".as_ptr ())` for C 39500's keyword call (so the `intern` token
+     stays), and `Fmake_hash_table (0, core::ptr::null_mut ())` for C 39408/C 39419 - C's own
+     direct variadic call, kept rather than `CALLN!` so the `null` token family's occurrence
+     check sees the two uses C has.
+297. **`syms_of_xdisp`'s DEFVAR docstrings are positional** (the mirror's macro parameter is
+     `$doc`), which is the one `docs/ports/macro-body-notes.tsv` row this function needs (the
+     `syms_of_data` precedent, the same row class 146/151/152 already record).
+298. **Two identity strings carry this repository's name, not the reference's** (the
+     integrator's instruction of this round; PORTING.md 0.1-19's name half, the
+     `androidfns.rs` 1271 precedent, `docs/status.md` 3.490): C 38856's frame-title format
+     string in `icon_title_name_format`'s `list (…)` - the reference's own name inside one of
+     its two title templates (`src/xdisp.rs` 32712-32716, now
+     `build_string (c"%b - femacs at ".as_ptr ())`) and C 29565's default frame name in
+     `decode_mode_spec`'s `%F` arm (`src/xdisp.rs` 28423-28427, now
+     `return c"femacs".as_ptr ()`).  Both are string literals a running program prints *about
+     itself* - the TTY frame title and the `%F` frame-name default - and PORTING.md 0.1-19
+     keeps the reference's text for what the port *accepts* while making what it *says about
+     itself* this tree's own name; neither C literal is repeated in this ledger or in the
+     unit's comments, since both are in the `title` class's scan.  **This is a deliberate
+     runtime difference from the reference** (the same class as `docs/status.md` 3.413's
+     version-banner cost): a port built from this tree prints its own name where the reference
+     prints its own.  Tests that compare a *title string* against the reference's literal would
+     see the difference; nothing else in redisplay reads these two strings.
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -3264,6 +3469,37 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
    keyboard.c unit, not a mirror).  This unit declares them at the use site for now
    (deviation 21); they belong in the mirror (the `other_units` block) once another unit needs
    them too.
+
+9. `include/dispextern.rs`: the `Mouse_HLInfo` flag accessors.  The mirror carries the
+   `mouse_face_defer` value pair (its own 2084-2095 note records that `docs/ports/w32term.md`'s
+   owed 5 asks for it) but not `mouse_face_past_end`/`mouse_face_hidden`; this unit names all
+   three with local read/write macro pairs so C's tokens survive (deviation 290), and the three
+   pairs can go once the mirror carries the accessors under C's member names.
+
+10. `include/dispextern.rs`: the `dispextern_unit_names` module holds
+   `SET_GLYPH_FROM_GLYPH_CODE` (414-422) and `reset_mouse_highlight` (3026-3041) but nothing
+   imports it (only `Display_Info` is reached as `dispextern_unit_names::x_display_info`), so
+   this unit defines its own copy of the macro and calls the resetter by qualified path
+   (deviations 290/294).  Either re-export the module or move the two out; `dispnew.rs` 241
+   carries the same macro duplicate.
+
+11. `docs/ports/line-drift-tolerance.tsv` (the integrator's file, not touched here): with the
+   whole unit's live text now ported, the drift row reads `C 39805 vs Rust 33330` (16.3%) on the
+   `total` basis, because the port records the unit's dead C lines as ledger rows and site
+   comments instead of text.  C's live text is 29,836 lines (`tools/extract-abi.py`'s own
+   `c_live_lines`) and the port is 11.7% *longer* than that baseline, so a row with basis `live`
+   (tolerance >= 0.12) is the reading that would keep the signal meaningful; the decision is
+   yours.
+
+12. `src/xdisp.c`'s C 15616-16624 hole (`tty_handle_tab_bar_click`) is still the unit's one
+   unchecked box and the only `--check` row of the `missing function` class.  It is an earlier
+   round's miss, not this slice's, and `## Owed` is where the next lane finds it.
+
+13. The two identity strings of deviation 298 (`icon_title_name_format`'s
+   `"%b - femacs at "` and `decode_mode_spec`'s `%F` fallback) are deliberate; if any acceptance
+   test compares a frame title or the `%F` value against the reference's literal, the difference
+   is this one and has to be recorded as a known delta rather than fixed.
+
 
 10. `include/dispextern.rs`: the members `struct it` now names beyond its batch-II prefix
     (`stop_charpos`, `prev_stop`, `base_level_stop`, `end_charpos`, the four narrowing
@@ -3865,6 +4101,115 @@ assertions are compile-time only and comments are not code).
   declare them).
 
 
+## Evidence (this round: C 32971-39805; all commands from `cwd=/Users/liu/projects/src/github.com/liuchong/femacs`)
+
+**Before the round.**  The working tree's `femacs/src/xdisp.rs` was `HEAD`'s
+(`git show HEAD:femacs/src/xdisp.rs`, 29,626 lines, md5 `9c171c3f48f6bf7107bbfe61a2c4fbb6`).
+
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` (saved to
+  `/tmp`): **37** `- ` lines, last line `- line count drifted 25.6%: C 39805 vs Rust 29626`,
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The row classes were 22 `missing function`
+  (this slice's own 22 - the 20 functions plus `syms_of_xdisp` and `init_xdisp`), 13
+  `missing defsubr` and the two `not static` rows.
+* `python3 tools/check-cond-eval.py src/xdisp.c`: `196 conditions, 0 unknown, 0 disagreements
+  [VERIFIED]` - the ledger's `#if` verdicts stand, so the round transcribed the live arms only.
+* The round's dead ranges (3,682 C lines of the 6,835 in C 32971-39805) were measured with the
+  frozen table before transcribing; C's live text for the whole file is **29,836** lines and
+  the tail's live text is **3,153**.
+* `git status --short` = ` M femacs/src/xwidget.rs` (that lane's in-flight file); no other
+  unit's file was touched, and no other lane's file was edited.
+
+**After the round.**
+
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs`: **2** `- `
+  lines (`37 -> 2`): `missing function tty_handle_tab_bar_click` (the C 15616-16624 hole, not
+  this slice's) and the drift row `- line count drifted 16.3%: C 39805 vs Rust 33330`.  The 35
+  retired rows are the 22 `missing function` rows, the 13 `missing defsubr` rows and the two
+  `not static` rows (`produce_stretch_glyph`, `gui_clear_window_mouse_face`).  The three
+  `does not mention` rows the round's bodies would leave (`note_line_or_margin_highlight`
+  `uninit`; `note_mouse_highlight` `uninit,goto`; `syms_of_xdisp` `doc`) are retired by the
+  three `macro-body-notes.tsv` rows appended this round (the table was saved to `/tmp` first).
+* `femacs/src/xdisp.rs`: 33,330 lines, md5 `7719c0dbe8a3cb6e07879b359bafe56b`
+  (`29,626 -> 33,330`, +3,704).
+* `docs/ports/xdisp.md`: **1** unchecked box (`24 -> 1`: the 23 boxes ticked are this slice's
+  20 functions, `init_xdisp`, and the three subrs `set-buffer-redisplay`, `line-pixel-height`
+  and `get-display-property`, whose `F…` definitions already existed and whose `defsubr` calls
+  `syms_of_xdisp` now carries).  The two append-only tables both changed: three
+  `macro-body-notes.tsv` rows appended, and nothing else in the tree outside this unit.
+* `cd femacs && CARGO_TARGET_DIR=/tmp/xdisp-lane/target cargo run -q -p xtask -- build-tu
+  src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, **exit 0**, on the **third**
+  invocation (the brief's budget is three): the first stopped on `it_bits!`'s missing
+  `align_visually_p` reader, the second on the 57-error batch the probe runs below worked
+  through, and the third was clean.  Object `build/femacs/xdisp.o` **3,386,240 bytes**, md5
+  `e0691a8d4542f23ffe5e1dfa814296aa` (HEAD's object was 2,738,320 bytes, for the delta).  It
+  emits **6 warnings, the same classes as every previous round** (three mirror
+  `unused doc comment`s, the two `while true` lint notes, one `unused attribute`).
+* The third invocation ran with `KEEP_UNITS=1` so the object could be inspected with `nm`
+  before it was deleted: **the ten L0 names the brief names are now defined in it** -
+  `S _Vglobal_mode_string`, `S _Vline_number_display_limit`, `S _Vline_prefix`,
+  `S _Vmode_line_compact`, `S _Vwrap_prefix`, `S _Vdisplay_line_numbers_current_absolute`,
+  `S _Vdisplay_line_numbers_width`, `S _Vdisplay_fill_column_indicator_character`,
+  `S _Vdisplay_fill_column_indicator_column`, `S _display_fill_column_indicator`,
+  `S _display_line_numbers_major_tick`, `S _display_line_numbers_minor_tick`,
+  `S _display_line_numbers_offset`, `S _display_line_numbers_widen`,
+  `S _line_number_display_limit_width` and `t _pad_mode_line` - so **the L0 list only shortens
+  when the integrator regenerates the link set**; this object's `nm` reading is not a claim
+  about the current link set.  The object also carries the round's nine non-`static`
+  definitions (`T _produce_stretch_glyph`, `T _clear_mouse_face`, `T _cursor_in_mouse_face_p`,
+  `T _set_frame_cursor_types`, `T _note_mouse_highlight`, `T _gui_clear_window_mouse_face`,
+  `T _cancel_mouse_face`, `T _syms_of_xdisp`, `T _init_xdisp`) and 300 `S…` DEFUN records (the
+  thirteen `missing defsubr` rows' records among them).
+* **No new undefined name**: the object's `U` set (381 names) was diffed against the reference
+  TU's (`build/emacs-ref/src/xdisp.o`, 325 names) and against the definitions of the port's
+  link set (`build/load/link-args.rsp`'s 74 objects plus `build/load/libgnu-port.a`, 5,534
+  defined names).  Every name this slice newly references - the `V…` carriers of other units
+  (`_Vdeactivate_mark`, `_Vface_remapping_alist`, `_Vmouse_highlight`, `_Vlong_line_threshold`,
+  `_Vstandard_display_table`, `_Vmemory_full`, …), `_cons_to_signed`/`_cons_to_unsigned`,
+  `_sa_stack_alloc`/`_sa_stack_release`, `_smaller_face`, `_face_with_height`,
+  `_symbols_with_pos_enabled`, `_track_mouse`, `_mode_line_in_non_selected_windows`,
+  `_minibuffer_auto_raise`, `_update_single_window`, `_resize_mini_frames` and
+  `_backtrace_on_redisplay_error` - is defined by an object in that set.  The 24 names that
+  remain unresolved are the Rust panic runtime (nine `__RNvNtCshIDsKH5exNL_4core…` symbols,
+  provided by the driver) and libc (`memmove`/`memchr`/`memcpy`/`memset`/`strcat`/`strchr`/
+  `strcmp`/`strncmp`/`strnlen`/`strtoimax`/`sprintf`/`vfprintf`/`qsort`/`putc`/`bzero`/
+  `fflush`/`log10`/`setjmp` plus `__stderrp`), i.e. the same families the previous rounds'
+  readings had.
+* `python3 tools/check-mirror-dupes.py`: **17 duplicate declaration(s), 17 ratchet row(s),
+  0 failure(s)** - unchanged (the round's six use-site declarations and its local macros are
+  not in any mirror's scope, deviations 290/294).
+* `python3 tools/check-declarations.py`: `17 declaration sites (0 forbidden, 17 allowed
+  literals), 0 failures` - it was red before the round (the two identity strings of deviation
+  298); both are this tree's own name now and neither C literal appears in the unit or in this
+  ledger.
+* `python3 tools/check-citations.py`: `676 file(s) scanned, 0 drift, 0 range, 1905 external,
+  36 allowed, 0 stale` (`1881 -> 1905`: the round's `/// C:` declaration lines).
+* `python3 tools/check-ledger-ticks.py`: `238 ledger(s) bound (a function tick to compare),
+  0 failure(s), 0 carried by another file, 352 row(s) with no function tick, 0 row(s) without a
+  ledger` - the round's 23 ticks sit under `## Subrs (DEFUN)` and `## Functions defined`.
+* `python3 tools/check-dead-file-coverage.py`: `145 ledger(s) bound (a C range table),
+  0 failure(s)` - this unit's ledger is a checkbox ledger, not a range table.
+* `python3 tools/check-port-lines.py`: `0 file(s) under ten percent, 0 reference line(s);
+  0 ratchet row(s), 0 new, 0 stale`.
+* Machine artifacts (`build/femacs/units/xdisp`, `build/probes/xdisp`, `build/femacs/xdisp.o`)
+  were deleted after the last compile (measured: `ls build/femacs | grep -c xdisp` = 0,
+  `ls build/probes` = 1 entry, the pre-existing `xwidget` one), and no other unit's object was
+  touched.
+
+**The compile iterations** (`CARGO_TARGET_DIR=/tmp/xdisp-lane/target cargo run -q -p xtask --
+probe src/xdisp.rs /tmp/xdisp-lane/x.rlib --crate-type=lib -C panic=abort`; the brief's probe
+budget is three and **four** were used - the third repeated the second because the fix script
+for the second's errors aborted before writing the file, so it reported the same seven errors
+and cost nothing but a slot): the *first* reported twelve errors (`it_bits!`'s missing reader;
+`MATRIX_ROW (`, `BUF_Z (`, `list (` and `reset_mouse_highlight` without the macro bang or the
+qualified path; `defsubr (&raw const …)` against `*mut Lisp_Subr`; the `*mut c_void`-typed
+`current_matrix` and `window_from_coordinates`/`sort_overlays` parameters; `BEG`); the *second*
+reported seven (the uninitialised out-parameters `r1`/`r2`/`ignore`/`prop_idx` and
+`dx`/`dy`/`width`/`height`/`charpos`, `frame_to_window_pixel_xy`'s `&raw mut x`/`y` against
+by-value parameters, and `obj`'s second assignment); the *fourth* was clean.  A metadata-only
+`rustc --emit metadata` run on the materialised `_root.rs` (no object produced, not one of the
+brief's two budgeted commands, disclosed here) supplied the full 57-error list for the second
+`build-tu` batch.
+
 ## Evidence (this round: C 28463-30710; all commands from `cwd=/Users/liu/projects/src/github.com/liuchong/femacs`)
 
 **Before the round.**  The working tree's `femacs/src/xdisp.rs` was `HEAD`'s
@@ -3967,57 +4312,31 @@ the intervening `probe` run compiled the same unit to an rlib with no error.
 
 ## Owed
 
-The 24 unchecked boxes, in C order (and the rows that are not boxes).
+The **1** unchecked box, and the rows that are not boxes.
 
-**Functions (21).**
+**Functions (1).**
 
 | C | box | why not yet |
 | --- | --- | --- |
-| 15616 | `tty_handle_tab_bar_click` | the earlier hole inside the covered range (C 15616-16624, ~1008 C lines, the TTY tab-bar click handler); `--check` reports it |
-| 32972 | `produce_stretch_glyph` | the next live definition; C's is non-`static`, so it also wants `#[unsafe(no_mangle)]` (the `--check` row) |
-| 33192 | `produce_special_glyphs` | in the scaffold; `display_string` (this round) and `display_line` both call it |
-| 33406 | `pad_mode_line` | in the scaffold (the round's one *new* entry, deviation 288); `display_string` calls it |
-| 34731 | `get_specified_cursor_type` | |
-| 34779 | `set_frame_cursor_types` | |
-| 35477 | `draw_row_with_mouse_face` | |
-| 35497 | `show_mouse_face` | |
-| 35662 | `clear_mouse_face` | |
-| 35678 | `coords_in_mouse_face_p` | |
-| 35727 | `cursor_in_mouse_face_p` | |
-| 35759 | `rows_from_pos_range` | |
-| 35915 | `mouse_face_from_buffer_pos` | |
-| 36327 | `mouse_face_from_string_pos` | |
-| 36586 | `define_frame_cursor1` | |
-| 36633 | `note_line_or_margin_highlight` | |
-| 37056 | `note_mouse_highlight` | |
-| 37706 | `gui_clear_window_mouse_face` | C's is non-`static` (the `--check` row); in the scaffold |
-| 37724 | `cancel_mouse_face` | |
-| 38410-39541 | `syms_of_xdisp` | the single item that retires the **twelve** `missing defsubr` rows below plus the three of the missing subrs |
-| 39542-39805 | `init_xdisp` | the unit's last definition |
+| 15616 | `tty_handle_tab_bar_click` | the earlier hole inside the covered range (C 15616-16624, ~1008 C lines, the TTY tab-bar click handler); it is the only `missing function` row `--check` still reports, and the next lane's whole job |
 
-**Subrs (3).**  `format-mode-line` and `invisible-p` were this round's; what is left is
-`set-buffer-redisplay` (C 922), `line-pixel-height` (C 1545) and `get-display-property`
-(C 5877) — all three have their `F…` definitions already and await `syms_of_xdisp`'s
-`defsubr`.
-
-**Macros (0) and file-scope objects (0).**  `OK_PIXELS`, `OK_ALIGN_TO` and `LNUM_ONCE` landed
-with `calc_pixel_width_or_height` (as local `macro_rules!`, deviation 287) and
-`invalid_eol_type`/`lots_of_dashes` with their neighbours, so both sections are now empty.  One
-object the tool's list does not track is *also* defined now: C 29230's
-`static const char power_letter[]`, which `pint2hrstr` reads — the checklist's 60 rows never
-had it (the extractor's object list skips it), so `--check` reports nothing either way, and the
-port defines it as `static power_letter: [c_char; 11]` with C's eleven element spellings.
+**Subrs (0), macros (0) and file-scope objects (0).**  `syms_of_xdisp` (C 38409-39540) landed
+with its `defsubr` calls, so the thirteen `missing defsubr` rows are gone; the three subr boxes
+(`set-buffer-redisplay`, `line-pixel-height`, `get-display-property`) were ticked with it.  The
+macro sections' boxes were already ticked, and the file-scope-object boxes are complete (the 93
+`DEFVAR_*`-owned objects this round added are not boxes of their own: the extractor's object
+list is C's own *definitions*, and the checklist's 60 rows were ticked by the rounds that needed
+them - `echo_area_buffer` at C 785 and its neighbours).  One object the tool's list does not
+track is *also* defined now: C 29230's `static const char power_letter[]` (the previous round).
 
 **Rows that are not boxes.**  The unit's line count must reach **37,815** lines (C 39,805 minus
-the 5% tolerance, `tools/extract-abi.py`'s `line count drifted` row): at 29,626 today that is
-**8,189 lines** away, which is the rest of C 15616-16624, C 30717-32938 (the dead
-`HAVE_WINDOW_SYSTEM` half) and C 32971-39805 minus their dead arms; the twelve
-`missing defsubr` rows (`Sbidi_find_overridden_directionality`, `Sbidi_resolved_levels`,
-`Sbuffer_text_pixel_size`, `Scurrent_bidi_paragraph_direction`,
-`Sdisplay__line_is_continued_p`, `Sformat_mode_line`, `Sget_display_property`, `Sinvisible_p`,
-`Sline_pixel_height`, `Slong_line_optimizations_p`, `Smove_point_visually`,
-`Sset_buffer_redisplay`, `Swindow_text_pixel_size` — thirteen rows, of which
-`Smove_point_visually` is the one this ledger already listed as retiring with `syms_of_xdisp`)
-are the same item seen from the other side.  The three `does not mention` rows this round
-added are retired by item 85's appended `macro-body-notes.tsv` rows, so the reading is the
-**37** the Evidence section quotes.
+the 5% tolerance, `tools/extract-abi.py`'s `line count drifted` row) on the `total` basis: at
+33,330 today that is **4,485 lines** away, and the gap is structural - the port records the
+unit's dead C lines (3,682 of them inside this round's range) as ledger rows and site comments
+instead of text (P-08), while C's *live* text is 29,836 lines, so the port is 11.7% *longer*
+than the live baseline.  The row's reading therefore depends on the tolerance table's basis for
+this file; integrator item 11 has the numbers and the decision is the integrator's.  The one
+`missing function` row (`tty_handle_tab_bar_click`) is the C 15616-16624 hole seen from the
+other side, and the three `does not mention` rows this round's bodies would otherwise leave are
+retired by the appended `macro-body-notes.tsv` rows, so the reading is the **2** the Evidence
+section quotes.

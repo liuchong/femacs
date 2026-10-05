@@ -12229,3 +12229,60 @@
      集成者 `build-tu` 0、`probe` 0（只跑 `extract-abi --check` 1 发 + 文本门各 1 发 + `gen-port-map.py` 1 发
      + `feature-coverage.py` 1 发）。lane 的编译产物（`build/femacs/units/xterm`、`build/probes/xterm`、
      `build/femacs/xterm.o`）已删，`/tmp/xterm-lane` 已删；集成者的 `/tmp/mbn-*.tsv` 已删。
+
+- **3.602 lane 产出收口：`src/xdisp.c` 第十片落地（C 32971-39805，含 `syms_of_xdisp` 与 `pad_mode_line`）——L0 链接缺口从 17 条失败降到 1 条（2026-10-05）**：
+  ① **区间/块**：**C 32971-39805**（6,835 行 C；其中死臂 3,682 行按 P-08 只记台账，活文本 3,153 行），含
+     `produce_stretch_glyph`（非 static）、`produce_special_glyphs`、**`pad_mode_line`**、
+     `get_/set_frame_cursor_types`、`show_mouse_face`/`clear_mouse_face`/`gui_clear_window_mouse_face`/
+     `cancel_mouse_face`、`coords_/cursor_in_mouse_face_p`、`rows_from_pos_range`、
+     `mouse_face_from_buffer_pos`、`mouse_face_from_string_pos`、`define_frame_cursor1`、
+     **`note_line_or_margin_highlight`**、`note_mouse_highlight`（非 static）、**`syms_of_xdisp`（93 个
+     `DEFVAR_*` 载体 + 23 个 `defsubr` + `staticpro`）与 `init_xdisp`**。台账未勾框 **24 → 1**
+     （唯一剩下的是早前一轮的洞 `tty_handle_tab_bar_click`，C 15616-16624）。
+  ② **行数/md5（集成者复核，与 lane 声明逐字相符）**：`femacs/src/xdisp.rs` **29,626 → 33,330 行**，
+     md5 `7719c0dbe8a3cb6e07879b359bafe56b`；`docs/ports/xdisp.md` 4,023 → **4,342 行**。
+  ③ **读数**：⑴ `extract-abi --check emacs/src/xdisp.c femacs/src/xdisp.rs`：**37 → 2 行**（1 条
+     `missing function tty_handle_tab_bar_click` + 行数漂移 25.6% → **16.3%**）；⑵ 冻结
+     `build-tu src/xdisp.c`：**3 发**（1 发失败 / 2 发失败 / 3 发干净），对象 **3,386,240 字节**，
+     md5 `e0691a8d4542f23ffe5e1dfa814296aa`，6 条告警与历轮同类；⑶ `nm` 复核：**点名的 10 个 L0 名字全部
+     成为对象里的定义符号**（`_Vglobal_mode_string`、`_Vline_number_display_limit`、`_Vline_prefix`、
+     `_Vmode_line_compact`、`_Vwrap_prefix`、`_Vdisplay_line_numbers_current_absolute`、
+     `_Vdisplay_line_numbers_width`、`_Vdisplay_fill_column_indicator_character`、
+     `_Vdisplay_fill_column_indicator_column`、`_t_pad_mode_line`），另有 9 个非 static 定义与 300 条
+     `S…` DEFUN 记录，**无新增未定义名**；⑷ 七道文本门：`check-declarations` **17 sites (0 forbidden,
+     17 allowed literals), 0 failures**（本片顺带清掉 3.599 交办的两处自称字面量：`%F` 默认帧名与
+     `icon_title_name_format` 已写 `femacs`，注释按 `androidfns.rs` 1271 的样板改写，`recital`/`title`
+     两类归零）、`check-citations` 676 文件/0 drift/1905 external/0 stale、`check-mirror-dupes` 17/17/0、
+     `check-ledger-ticks` 238/0、`check-dead-file-coverage` 145/0、`check-port-lines` 0/0/0/0、
+     `check-target-names` 629 文件/591 目标/0 finding。
+  ④ **L0 链接读数（本条的判据，集成者实测）**：重建 `build/femacs/xdisp.o`（保留，供链接集）后跑
+     `python3 tools/check-link.py`：**381 undefined / 17 failure → 309 undefined / 1 failure**；
+     `port-owed` 5 → **0**；`--report` 显示 309 = **libc-or-platform 283 + rust-runtime 20 + unknown 6**
+     （6 个 unknown 逐条点名：`_current_buffer`、`_specpdl`、`_specpdl_end`、`_specpdl_ptr`、
+     `_reset_mouse_highlight`、`_syms_of_xwidget`——都是尚未移植单元的负债，已在棘轮里）。
+     **剩下那 1 条失败 `_strcat` 不是端口的债**：C `xdisp.c` 25665 确实调用它、端口也照抄
+     （`femacs/src/xdisp.rs` 24309），只是 clang 在参照自己的对象里把这个调用折掉了，于是它进不了
+     "参照用过"那一半；而 `tools/check-link.py` 的 SDK 符号表解析器**从来只认 tbd 的逐行 `- _name` 形式**，
+     本机 SDK 写的是 tbd-version 4 的内联数组 ⇒ 那个解析结果一直是 **0 个符号**。两处都在 3.603 修掉后
+     本条读数变为 **309 undefined / 0 failure**（判据见下条）。
+  ⑤ **台账表述的更正（这条是集成者的裁决，不是新缺陷）**：3.594 把 6 个 `HAVE_WINDOW_SYSTEM` 名字记成
+     "端口的 `xdisp.o` 引用而参照不引用的助手、要复核 `#[cfg]` 是否与 C 的门一致"。本片实测裁定：
+     **它们不是 static 助手、也不受任何 `HAVE_WINDOW_SYSTEM` 门控**——它们是 C `xdisp.c` 自己
+     `DEFVAR_BOOL`/`DEFVAR_INT` 注册的**全局对象字段**（`globals.f_x`，C 38818/38822/39208/39214/39223/
+     39251/39258），参照对象只引用 `_globals`，端口把每个载体定义成自己的符号，所以"参照不引用"是定义方式
+     的差别；6 个用点逐行判定都落在冻结配置的活文本里，端口 `xdisp.rs` 的 `#[cfg]` 计数为 **0**
+     ⇒ **不存在多开的门，未按 C 做任何修正**（结论写进台账）。**L0 清单因此不再有"待复核的助手"这一项**。
+  ⑥ **集成者替它落的账**：⑴ `docs/ports/macro-body-notes.tsv` **只收本片 3 行**
+     （`note_line_or_margin_highlight`、`note_mouse_highlight`、`syms_of_xdisp`）；⑵ `docs/port-map.md`
+     只收 `src/xdisp.c | 39,805 | femacs/src/xdisp.rs | 29,626 → 33,330`；⑶ **不加容差行**：本件仍未完成
+     （1 个洞 §①），lane 提的 `live` 基线行（活文本 29,836 行、端口比它长 11.7%，容差 ≥0.12）**记在案、
+     待 xdisp 全绿时一并裁决**；⑷ 该 lane 的 Owed 9-10（`Mouse_HLInfo` 的两个访问器、`dispextern_unit_names`
+     里两个没人 import 的宏）留给镜像轮，本提交不改镜像 ⇒ P-87 两腿不适用。
+  ⑦ **未声称**：本片**零运行证据**——冻结 `build-tu` 只是编译、`nm` 是本对象的读数**不是链接集的读数**、
+     光标/鼠标脸/`syms_of_xdisp` 的运行语义没有差分或变异测试；`--check` 仍 `FAIL`（漂移行 + 那个
+     C 15616 洞），**不要说"xdisp 已全绿"**；台账 Deviations 289-298 是自述、待对齐评审；两处自称字面量
+     是**有意与参照不一致**（TTY 帧标题与 `%F` 默认帧名）。
+  ⑧ **预算实报**：lane `build-tu` **3/3**、`probe` **4/3**（超 1，lane 逐发说明：第 3 发是重复读数）、
+     另 1 次非预算内 `rustc --emit metadata`（已在 lane 报告里披露）；集成者 `build-tu` **1 发**
+     （重建 xdisp.o）、`probe` 0 发、`check-link.py` 4 发、`gen-port-map.py` 1 发、文本门各 1 发。
+     lane 的 `/tmp/xdisp-lane` 与集成者的临时文件已删。
