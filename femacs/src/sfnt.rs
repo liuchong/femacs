@@ -8,7 +8,8 @@
 // select.
 //
 // **This file is P-86's largest unit (C 21,215 lines) and is being ported in slices.**  The
-// slices so far are C 1-6306 plus slice 7's two out-of-order ranges: slice 1 (C 1-1112, through
+// slices so far are C 1-6306 plus slice 7's two out-of-order ranges and slice 8: slice 1
+// (C 1-1112, through
 // `sfnt_read_cmap_table`), slice 2 (the glyph lookup routines, the table readers and the two glyph
 // outline readers, C 1113-2407), slice 3 (the glyph outline decomposition, C 2408-3594), slice 4
 // (the outline builders and the "ragged" rasterizer, C 3595-4543), slice 5 (the "exact coverage
@@ -18,12 +19,17 @@
 // variation readers - two ranges at their own C positions, chosen by PORTING.md **P-91 ①**'s
 // dependency closure rather than by walking C's order, because Rust has no prototype for a
 // `static` function: C 6316's `sfnt_init_graphics_state` calls `sfnt_validate_gs`, whose
-// definition C 10538 had to land first).  **The next live definition is C 6316's
-// `sfnt_init_graphics_state`, now unblocked**: its callee is in the file at C 10538's text, and
-// only Owed 12's second half (`sfnt_make_interpreter`'s C 6427-6431 `#ifdef TEST` hooks) and the
-// C 6316-10224 block itself remain.  The ledger `docs/ports/sfnt.md` carries the C line-range
-// table for the fifty-four rows (up to C 21215), the `## Evidence` readings and the
-// `## Deviations`.
+// definition C 10538 had to land first), and slice 8 (C 14555-16447: the rest of the
+// glyph-variation group - `sfnt_read_packed_deltas`, `sfnt_read_cvar_table`, the three blend
+// helpers, the `gvar` glyph header record, `sfnt_compute_tuple_scale`, the three interpolators,
+// the two appliers, `sfnt_vary_interpreter` and the `OS/2`/`post` readers - which is this file's
+// **last non-TEST block**: C 16448's `#ifdef TEST` opens the test programme and runs to C 21215).
+// **The next live definition is still C 6316's `sfnt_init_graphics_state`**, unblocked: its callee
+// is in the file at C 10538's text, and only Owed 12's second half (`sfnt_make_interpreter`'s
+// C 6427-6431 `#ifdef TEST` hooks) and the C 6316-10224 block itself remain; the next range after
+// slice 8 is C 16448-21215, the TEST programme (the ledger's Owed 21).  The ledger
+// `docs/ports/sfnt.md` carries the C line-range table for the fifty-five rows (up to C 21215), the
+// `## Evidence` readings and the `## Deviations`.
 //
 // The frozen configuration compiles no `sfnt.o`: `configure.ac` 2645 adds `sfnt.o` to
 // `ANDROID_OBJ` only inside the `XCONFIGURE = android` branch (the `REALLY_ANDROID` one,
@@ -8445,3 +8451,2313 @@ unsafe fn sfnt_read_packed_points (mut data: *mut c_uchar, npoints_return: *mut 
   return std::ptr::null_mut ();
 }
 
+
+/* C 14555's blank line and C 14556-14560's comment stand above.  C's two `unsigned char
+   *restrict` parameters drop the `restrict` (no Rust spelling, the C 14445 reading); C's `fail:`
+   label is the port's `'fail: { … }` block (PORTING.md 2.2).  */
+
+/* Read and return N packed deltas from DATA.  Set *DATA_RETURN to
+   DATA plus the number of bytes read.
+
+   END is the end of the glyph variation data.  Value is an array of N
+   deltas upon success, and NULL upon failure.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_read_packed_deltas (mut data: *mut c_uchar, end: *mut c_uchar,
+				   n: c_int, data_return: *mut *mut c_uchar)
+  -> *mut sfnt_fword                                     // C 14562-14618
+{
+  let mut deltas: *mut sfnt_fword;
+  let mut i: c_int;
+  let mut count: c_int;
+  let mut control: c_uchar;
+  let mut value: uint16_t;
+
+  if data >= end
+    { return std::ptr::null_mut (); }
+
+  deltas = xnmalloc (n as isize, std::mem::size_of::<sfnt_fword> () as isize)
+    as *mut sfnt_fword;
+  i = 0;
+
+  'fail: {
+    while i < n
+      {
+	if data >= end
+	  { break 'fail; }
+
+	control = *data;
+	data = data.offset (1);
+	count = (control as c_int) & 0x3f;
+
+	while count != -1 && i < n
+	  {
+	    if ((control as c_int) & 0x80) != 0
+	      { *deltas.offset (i as isize) = 0; i += 1; }
+	    else if ((control as c_int) & 0x40) != 0
+	      {
+		if data.offset (1) >= end
+		  { break 'fail; }
+
+		value = ((*data as c_uint) << 8u32) as uint16_t;
+		data = data.offset (1);
+		value |= *data as uint16_t;
+		data = data.offset (1);
+		*deltas.offset (i as isize) = value as sfnt_fword;
+		i += 1;
+	      }
+	    else
+	      {
+		if data >= end
+		  { break 'fail; }
+
+		*deltas.offset (i as isize) = *data as int8_t as sfnt_fword;
+		data = data.offset (1);
+		i += 1;
+	      }
+
+	    count -= 1;
+	  }
+      }
+
+    *data_return = data;
+    return deltas;
+  } /* 'fail (C 14615) */
+
+  /* fail: */
+  xfree (deltas as *mut c_void);
+  return std::ptr::null_mut ();
+}
+
+/* Read a cvar table from the given font FD.  Use the table directory
+   specified in SUBTABLE, axis information provided in the fvar table
+   FVAR, and CVT information provided in the cvt table CVT.
+
+   Return the cvar table upon success, else NULL.  */
+
+/* The `bail`/`bail1`/`bail2` cascade is three nested blocks, so each `break` lands on the same
+   cleanup text C's three labels do (PORTING.md 2.2).  `while (ntuples--)` keeps C's
+   decrement-before-test order in the `while { … }` form.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_cvar_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable,
+					       fvar: *mut sfnt_fvar_table,
+					       cvt: *mut sfnt_cvt_table)
+  -> *mut sfnt_cvar_table                                // C 14626-14950
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut cvar: *mut sfnt_cvar_table;
+  let mut rc: ssize_t;
+  let mut ntuples: size_t;
+  let mut size: size_t;
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut coords: *mut sfnt_f2dot14;
+  let mut local: *mut uint16_t;
+  let mut points: *mut uint16_t;
+  let mut npoints: uint16_t;
+  let mut data_size: uint16_t = 0;
+  let mut min_size: uint16_t;
+  let mut index: uint16_t = 0;
+  let mut buffer: *mut c_uchar;
+  let mut data: *mut c_uchar;
+  let mut end: *mut c_uchar;
+  let mut tuple: *mut c_uchar;
+  let mut data_offset: ptrdiff_t;
+  let mut deltas: *mut sfnt_fword;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_CVAR);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  min_size = SFNT_ENDOF! (sfnt_cvar_table, data_offset, uint16_t) as uint16_t;
+
+  /* Check that the length is at least min_size.  */
+  if ((*directory).length as size_t) < min_size as size_t
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough to hold the cvar table header.  */
+  cvar = xmalloc (std::mem::size_of::<sfnt_cvar_table> ()) as *mut sfnt_cvar_table;
+
+  /* Read the cvar table header.  */
+  'bail: {
+    rc = read (fd, cvar as *mut c_void, min_size as size_t);
+    if rc != min_size as ssize_t
+      { break 'bail; }
+
+    /* Swap what was read.  */
+    sfnt_swap32! (&raw mut (*cvar).version);
+    sfnt_swap16! (&raw mut (*cvar).tuple_count);
+    sfnt_swap16! (&raw mut (*cvar).data_offset);
+
+    /* Read the rest of the table.  */
+    size = (*directory).length as size_t - min_size as size_t;
+    buffer = xmalloc (size) as *mut c_uchar;
+    rc = read (fd, buffer as *mut c_void, size);
+    if rc == -1 || rc != size as ssize_t
+      { break 'bail; }
+
+    /* Now figure out how large cvar must be by reading the tuples.  */
+
+    ntuples = ((*cvar).tuple_count & 0x0fff) as size_t;
+    data_offset = ((*cvar).data_offset as ptrdiff_t) - (min_size as ptrdiff_t);
+    end = buffer.offset (size as isize);
+
+    'bail1: {
+      if data_offset < 0
+	{ break 'bail1; }
+
+      /* See if there are shared points, and read them if there are.  */
+
+      data = buffer.offset (data_offset);
+      tuple = buffer;
+      points = std::ptr::null_mut ();
+
+      /* Initialize `npoints' to zero.  The specification doesn't say what
+	 should happen with tuples using shared point numbers if it is not
+	 set later on; simply assume no points at all apply to such a
+	 tuple.  */
+
+      npoints = 0;
+
+      /* Initialize `size' to 0.  */
+      size = 0;
+
+      if ((*cvar).tuple_count & 0x8000) != 0
+	{
+	  points = sfnt_read_packed_points (data, &raw mut npoints, end,
+					    &raw mut tuple);
+	  if points.is_null ()
+	    { break 'bail1; }
+
+	  /* Add npoints words to the size.  If npoints is UINT16_MAX, no
+	     coordinates will actually be allocated.  */
+
+	  if npoints != UINT16_MAX as uint16_t
+	    { size = (npoints as size_t) * std::mem::size_of::<uint16_t> (); }
+	}
+
+      'bail2: {
+	while { ntuples = ntuples.wrapping_sub (1); ntuples != SIZE_MAX }
+	  {
+	    data = buffer.offset (data_offset);
+
+	    /* Read the tuple.  */
+	    if tuple.offset (3) >= end
+	      { break 'bail2; }
+
+	    memcpy (&raw mut data_size as *mut c_void,
+		    tuple as *const c_void,
+		    std::mem::size_of::<uint16_t> ());
+	    tuple = tuple.offset (std::mem::size_of::<uint16_t> () as isize);
+	    memcpy (&raw mut index as *mut c_void,
+		    tuple as *const c_void,
+		    std::mem::size_of::<uint16_t> ());
+	    tuple = tuple.offset (std::mem::size_of::<uint16_t> () as isize);
+	    sfnt_swap16! (&raw mut data_size);
+	    sfnt_swap16! (&raw mut index);
+
+	    /* Increment the offset to the data by the data size specified
+	       here.  */
+	    data_offset += data_size as ptrdiff_t;
+
+	    if (index & 0x8000) != 0
+	      {
+		/* Embedded coordinates are present.  Read each coordinate
+		   and add it to the size.  */
+
+		if tuple.offset (((*fvar).axis_count as isize)
+				 * (std::mem::size_of::<sfnt_f2dot14> () as isize)
+				 - 1) >= end
+		  { break 'bail2; }
+
+		tuple = tuple.offset ((std::mem::size_of::<sfnt_f2dot14> ()
+				       * (*fvar).axis_count as usize) as isize);
+		let (ckd_size, add_overflow) = size.overflowing_add (
+		  std::mem::size_of::<sfnt_f2dot14> () * (*fvar).axis_count as usize);
+		size = ckd_size;
+		if add_overflow
+		  { break 'bail2; }
+	      }
+	    else
+	      /* This table is invalid, as cvar tables don't have global
+		 coordinates.  */
+	      { break 'bail2; }
+
+	    /* Now read indeterminate tuples if required.  */
+	    if (index & 0x4000) != 0
+	      {
+		tuple = tuple.offset (((*fvar).axis_count * 4) as isize);
+		let (ckd_size, add_overflow)
+		  = size.overflowing_add (((*fvar).axis_count * 4) as usize);
+		size = ckd_size;
+		if add_overflow
+		  { break 'bail2; }
+	      }
+
+	    /* Add one point and one delta for each CVT element.  */
+	    let (ckd_size, add_overflow)
+	      = size.overflowing_add ((*cvt).num_elements * 4);
+	    size = ckd_size;
+	    if add_overflow
+	      { break 'bail2; }
+
+	    /* Now add the size of the tuple.  */
+	    let (ckd_size, add_overflow)
+	      = size.overflowing_add (std::mem::size_of::<sfnt_tuple_variation> ());
+	    size = ckd_size;
+	    if add_overflow
+	      { break 'bail2; }
+	  }
+
+	let (ckd_size, add_overflow)
+	  = size.overflowing_add (std::mem::size_of::<sfnt_cvar_table> ());
+	size = ckd_size;
+	if add_overflow
+	  { break 'bail2; }
+
+	/* Reallocate cvar.  */
+	cvar = xrealloc (cvar as *mut c_void, size) as *mut sfnt_cvar_table;
+	ntuples = ((*cvar).tuple_count & 0x0fff) as size_t;
+	(*cvar).variation = cvar.offset (1) as *mut sfnt_tuple_variation;
+	coords = (*cvar).variation.offset (ntuples as isize) as *mut sfnt_f2dot14;
+	tuple = buffer;
+
+	data_offset = ((*cvar).data_offset as ptrdiff_t) - (min_size as ptrdiff_t);
+
+	/* Start reading the tuples into cvar.  */
+	i = 0;
+	while (i as size_t) < ntuples
+	  {
+	    data = buffer.offset (data_offset);
+
+	    /* Read the tuple.  */
+	    if tuple.offset (3) >= end
+	      { break 'bail2; }
+
+	    memcpy (&raw mut data_size as *mut c_void,
+		    tuple as *const c_void,
+		    std::mem::size_of::<uint16_t> ());
+	    tuple = tuple.offset (std::mem::size_of::<uint16_t> () as isize);
+	    memcpy (&raw mut index as *mut c_void,
+		    tuple as *const c_void,
+		    std::mem::size_of::<uint16_t> ());
+	    tuple = tuple.offset (std::mem::size_of::<uint16_t> () as isize);
+	    sfnt_swap16! (&raw mut data_size);
+	    sfnt_swap16! (&raw mut index);
+
+	    /* Increment the offset to the data by the data size specified
+	       here.  */
+	    data_offset += data_size as ptrdiff_t;
+
+	    (*(*cvar).variation.offset (i as isize)).intermediate_start
+	      = std::ptr::null_mut ();
+	    (*(*cvar).variation.offset (i as isize)).intermediate_end
+	      = std::ptr::null_mut ();
+
+	    if (index & 0x8000) != 0
+	      {
+		/* Embedded coordinates are present.  Read each
+		   coordinate.  */
+		(*(*cvar).variation.offset (i as isize)).coordinates = coords;
+
+		j = 0;
+		while j < (*fvar).axis_count as c_int
+		  {
+		    if tuple.offset (1) >= end
+		      { break 'bail2; }
+
+		    memcpy (coords as *mut c_void, tuple as *const c_void,
+			    std::mem::size_of::<sfnt_f2dot14> ());
+		    coords = coords.offset (1);
+		    tuple = tuple.offset (std::mem::size_of::<sfnt_f2dot14> () as isize);
+		    sfnt_swap16! (coords);
+		    j += 1;
+		  }
+	      }
+	    else
+	      { break 'bail2; }
+
+	    /* Now read indeterminate tuples if required.  */
+	    if (index & 0x4000) != 0
+	      {
+		(*(*cvar).variation.offset (i as isize)).intermediate_start = coords;
+
+		j = 0;
+		while j < (*fvar).axis_count as c_int
+		  {
+		    if tuple.offset (1) >= end
+		      { break 'bail2; }
+
+		    memcpy (coords as *mut c_void, tuple as *const c_void,
+			    std::mem::size_of::<sfnt_f2dot14> ());
+		    coords = coords.offset (1);
+		    tuple = tuple.offset (std::mem::size_of::<sfnt_f2dot14> () as isize);
+		    sfnt_swap16! (coords);
+		    j += 1;
+		  }
+
+		(*(*cvar).variation.offset (i as isize)).intermediate_end = coords;
+
+		j = 0;
+		while j < (*fvar).axis_count as c_int
+		  {
+		    if tuple.offset (1) >= end
+		      { break 'bail2; }
+
+		    memcpy (coords as *mut c_void, tuple as *const c_void,
+			    std::mem::size_of::<sfnt_f2dot14> ());
+		    coords = coords.offset (1);
+		    tuple = tuple.offset (std::mem::size_of::<sfnt_f2dot14> () as isize);
+		    sfnt_swap16! (coords);
+		    j += 1;
+		  }
+	      }
+
+	    /* Finally, read private ``point'' numbers.  If this flag is not
+	       set, use shared point numbers previously read.
+
+	       Read at most CVT->num_elements points, as that is all the
+	       storage allocated.  */
+
+	    if (index & 0x2000) != 0
+	      {
+		local = sfnt_read_packed_points (
+		  data,
+		  &raw mut (*(*cvar).variation.offset (i as isize)).num_points,
+		  end, &raw mut data);
+		if local.is_null ()
+		  { break 'bail2; }
+
+		/* If points apply to all CVT indices, skip this part.  */
+
+		if (*(*cvar).variation.offset (i as isize)).num_points
+		  != UINT16_MAX as uint16_t
+		  {
+		    if ((*(*cvar).variation.offset (i as isize)).num_points as size_t)
+		      > (*cvt).num_elements
+		      {
+			(*(*cvar).variation.offset (i as isize)).num_points
+			  = (*cvt).num_elements as uint16_t;
+		      }
+
+		    (*(*cvar).variation.offset (i as isize)).points
+		      = coords as *mut uint16_t;
+		    j = 0;
+		    while j < (*(*cvar).variation.offset (i as isize)).num_points as c_int
+		      {
+			*coords = *local.offset (j as isize) as sfnt_f2dot14;
+			coords = coords.offset (1);
+			j += 1;
+		      }
+		    xfree (local as *mut c_void);
+		  }
+		else
+		  { (*(*cvar).variation.offset (i as isize)).points = std::ptr::null_mut (); }
+	      }
+	    else
+	      {
+		/* Copy in the shared point numbers instead.  */
+		(*(*cvar).variation.offset (i as isize)).num_points = npoints;
+
+		if !points.is_null () && npoints != UINT16_MAX as uint16_t
+		  {
+		    if ((*(*cvar).variation.offset (i as isize)).num_points as size_t)
+		      > (*cvt).num_elements
+		      {
+			(*(*cvar).variation.offset (i as isize)).num_points
+			  = (*cvt).num_elements as uint16_t;
+		      }
+
+		    (*(*cvar).variation.offset (i as isize)).points
+		      = coords as *mut uint16_t;
+		    j = 0;
+		    while j < (*(*cvar).variation.offset (i as isize)).num_points as c_int
+		      {
+			*coords = *points.offset (j as isize) as sfnt_f2dot14;
+			coords = coords.offset (1);
+			j += 1;
+		      }
+		  }
+		else
+		  { (*(*cvar).variation.offset (i as isize)).points = std::ptr::null_mut (); }
+	      }
+
+	    /* And read packed deltas.  If cvar->variation[i].num_points is
+	       UINT16_MAX, then there is one delta for each CVT entry.
+	       Otherwise, there are that many deltas.  */
+
+	    if (*(*cvar).variation.offset (i as isize)).num_points
+	      == UINT16_MAX as uint16_t
+	      {
+		deltas = sfnt_read_packed_deltas (data, end,
+						  (*cvt).num_elements as c_int,
+						  &raw mut data);
+
+		if deltas.is_null ()
+		  { break 'bail2; }
+
+		(*(*cvar).variation.offset (i as isize)).deltas = coords;
+
+		j = 0;
+		while j < (*cvt).num_elements as c_int
+		  {
+		    *coords = *deltas.offset (j as isize);
+		    coords = coords.offset (1);
+		    j += 1;
+		  }
+		xfree (deltas as *mut c_void);
+	      }
+	    else
+	      {
+		deltas = sfnt_read_packed_deltas (
+		  data, end,
+		  (*(*cvar).variation.offset (i as isize)).num_points as c_int,
+		  &raw mut data);
+		if deltas.is_null ()
+		  { break 'bail2; }
+
+		(*(*cvar).variation.offset (i as isize)).deltas = coords;
+
+		j = 0;
+		while j < (*(*cvar).variation.offset (i as isize)).num_points as c_int
+		  {
+		    *coords = *deltas.offset (j as isize);
+		    coords = coords.offset (1);
+		    j += 1;
+		  }
+		xfree (deltas as *mut c_void);
+	      }
+
+	    i += 1;
+	  }
+
+	/* Free data and return the read cvar table.  */
+	if points != (usize::MAX as *mut uint16_t)
+	  { xfree (points as *mut c_void); }
+	xfree (buffer as *mut c_void);
+	return cvar;
+      } /* 'bail2 (C 14942) */
+
+      if points != (usize::MAX as *mut uint16_t)
+	{ xfree (points as *mut c_void); }
+    } /* 'bail1 (C 14945) */
+
+    xfree (buffer as *mut c_void);
+  } /* 'bail (C 14947) */
+
+  /* bail: */
+  xfree (cvar as *mut c_void);
+  return std::ptr::null_mut ();
+}
+
+/* Initialize the specified BLEND with the given FVAR and GVAR tables.
+   If non-NULL, adjust normalized coordinates using the axis variation
+   table AVAR; similarly, adjust interpreter CVT values using CVAR, if
+   specified.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_init_blend (blend: *mut sfnt_blend,
+					  fvar: *mut sfnt_fvar_table,
+					  gvar: *mut sfnt_gvar_table,
+					  avar: *mut sfnt_avar_table,
+					  cvar: *mut sfnt_cvar_table)
+{                                                          // C 14959-14975
+  let mut size: size_t;
+
+  (*blend).fvar = fvar;
+  (*blend).gvar = gvar;
+  (*blend).avar = avar;
+  (*blend).cvar = cvar;
+
+  /* Allocate a single array to hold both coords and norm_coords.  */
+  size = ((*fvar).axis_count as size_t) * std::mem::size_of::<sfnt_fixed> () * 2;
+  (*blend).coords = xmalloc (size) as *mut sfnt_fixed;
+  (*blend).norm_coords
+    = (*blend).coords.offset ((*fvar).axis_count as isize);
+}
+
+/* Free what was initialized in the specified BLEND.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_free_blend (blend: *mut sfnt_blend)
+{                                                          // C 14979-14983
+  xfree ((*blend).coords as *mut c_void);
+}
+
+/* Normalize BLEND->fvar->axis_count coordinates in BLEND->coords and
+   place the result in BLEND->norm_coords.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_normalize_blend (blend: *mut sfnt_blend)
+{                                                          // C 14988-15074
+  let mut axis: *mut sfnt_variation_axis;
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut from: sfnt_fixed;
+  let mut coord: sfnt_fixed;
+  let mut j0: sfnt_fixed;
+  let mut j1: sfnt_fixed;
+  let mut j2: sfnt_fixed;
+  let mut from_last: sfnt_fixed;
+  let mut coord_last: sfnt_fixed;
+  let mut segment: *mut sfnt_short_frac_segment;
+
+  /* For each axis... */
+  i = 0;
+  while i < (*((*blend).fvar)).axis_count as c_int
+    {
+      /* Normalize based on [min, default, max], into [-1, 0, 1].  */
+      axis = (*((*blend).fvar)).axis.offset (i as isize);
+
+      /* Load the current design coordinate.  */
+      coord = *(*blend).coords.offset (i as isize);
+
+      /* Keep it within bounds.  */
+
+      if coord > (*axis).max_value
+	{ coord = (*axis).max_value; }
+      else if coord < (*axis).min_value
+	{ coord = (*axis).min_value; }
+
+      if coord > (*axis).default_value
+	{
+	  /* Avoid division by 0.  */
+	  if (*axis).max_value != (*axis).default_value
+	    {
+	      *(*blend).norm_coords.offset (i as isize)
+		= sfnt_div_fixed (sfnt_sub! (coord, (*axis).default_value),
+				  sfnt_sub! ((*axis).max_value,
+					     (*axis).default_value));
+	    }
+	  else
+	    { *(*blend).norm_coords.offset (i as isize) = 0; }
+	}
+      else if coord < (*axis).default_value
+	{
+	  if (*axis).default_value != (*axis).min_value
+	    {
+	      *(*blend).norm_coords.offset (i as isize)
+		= sfnt_div_fixed (sfnt_sub! (coord, (*axis).default_value),
+				  sfnt_sub! ((*axis).default_value,
+					     (*axis).min_value));
+	    }
+	  else
+	    { *(*blend).norm_coords.offset (i as isize) = 0; }
+	}
+      else
+	{ *(*blend).norm_coords.offset (i as isize) = 0; }
+
+      i += 1;
+    }
+
+  /* Now, apply axis variations, but only if the avar table has the
+     right number of axes.  */
+
+  if !(*blend).avar.is_null ()
+    && ((*((*blend).fvar)).axis_count as c_int == (*((*blend).avar)).axis_count)
+    {
+      i = 0;
+      while i < (*((*blend).fvar)).axis_count as c_int
+	{
+	  segment = (*((*blend).avar)).segments.offset (i as isize);
+
+	  /* Search for a correspondence record above the normalized
+	     coordinate of this axis.  */
+
+	  j = 1;
+	  while j < (*segment).pair_count as c_int
+	    {
+	      from = (*(*segment).correspondence.offset (j as isize)).from_coord
+		as sfnt_fixed * 4;
+	      coord = (*(*segment).correspondence.offset (j as isize)).to_coord
+		as sfnt_fixed * 4;
+
+	      if *(*blend).norm_coords.offset (i as isize) < from
+		{
+		  from_last
+		    = (*(*segment).correspondence.offset (j as isize - 1)).from_coord
+		    as sfnt_fixed * 4;
+		  coord_last
+		    = (*(*segment).correspondence.offset (j as isize - 1)).to_coord
+		    as sfnt_fixed * 4;
+
+		  j0 = *(*blend).norm_coords.offset (i as isize) - from_last;
+		  j1 = coord - coord_last;
+		  j2 = from - from_last;
+
+		  *(*blend).norm_coords.offset (i as isize)
+		    = (sfnt_multiply_divide_signed (j0, j1, j2) + coord_last);
+		  break;
+		}
+
+	      j += 1;
+	    }
+
+	  i += 1;
+	}
+    }
+}
+
+/* C 15076's form feed is dropped.  */
+
+/* C 15078-15088 defines this record in the .c file (it is not in sfnt.h), so the port defines it
+   here rather than in the mirror.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sfnt_gvar_glyph_header
+{
+  /* A packed field. The high 4 bits are flags and the low 12 bits are
+     the number of tuples for this glyph.  The number of tuples can be
+     any number between 1 and 4095.  */
+  pub tuple_count: uint16_t,
+
+  /* Offset from the start of the GlyphVariationData table to the
+     serialized data.  */
+  pub data_offset: uint16_t,
+}
+
+/* Given a BLEND containing normalized coordinates, an array of
+   BLEND->gvar->axis_count tuple coordinates, and, if INTERMEDIATE_P,
+   a range of tuple coordinates from INTERMEDIATE_START to
+   INTERMEDIATE_END, return the scaling factor to apply to deltas for
+   each corresponding point.  */
+
+/* C 15103's `start UNINIT, end UNINIT` are zeroed (PORTING.md 1.5); they are read only when
+   `intermediate_p` is set, which is the same guard that writes them.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_compute_tuple_scale (blend: *mut sfnt_blend, intermediate_p: bool,
+				    coords: *mut sfnt_f2dot14,
+				    intermediate_start: *mut sfnt_f2dot14,
+				    intermediate_end: *mut sfnt_f2dot14)
+  -> sfnt_fixed                                          // C 15096-15174
+{
+  let mut i: c_int;
+  let mut coord: sfnt_fixed;
+  let mut start: sfnt_fixed = 0;
+  let mut end: sfnt_fixed = 0;
+  let mut scale: sfnt_fixed;
+
+  /* scale is initially 1.0.  */
+  scale = 0o200000;
+
+  i = 0;
+  while i < (*((*blend).gvar)).axis_count as c_int
+    {
+      /* Load values for this axis, scaled up to sfnt_fixed.  */
+      coord = *coords.offset (i as isize) as sfnt_fixed * 4;
+
+      /* GCC warns about start and end being used when uninitialized,
+	 but they are used only if intermediate_p.  */
+
+      if intermediate_p
+	{
+	  start = *intermediate_start.offset (i as isize) as sfnt_fixed * 4;
+	  end = *intermediate_end.offset (i as isize) as sfnt_fixed * 4;
+	}
+
+      /* Ignore tuples that can be skipped.  */
+
+      if coord == 0
+	{ i += 1; continue; }
+
+      /* If the coordinate is set to 0, then deltas should not be
+	 applied.  Return 0.  */
+
+      if *(*blend).norm_coords.offset (i as isize) == 0
+	{ return 0; }
+
+      /* If no scaling need take place, continue.  */
+
+      if *(*blend).norm_coords.offset (i as isize) == coord
+	{ i += 1; continue; }
+
+      if !intermediate_p
+	{
+	  /* Not an intermediate tuple; if coord is less than 0 and
+	     blend->norm_coords[i] < coord, or coord is more than 0
+	     and blend->norm_coords[i] > coord, then it doesn't fit,
+	     so return.  */
+
+	  if *(*blend).norm_coords.offset (i as isize) < MIN! (0, coord)
+	      || *(*blend).norm_coords.offset (i as isize) > MAX! (0, coord)
+	    { return 0; }
+
+	  scale = sfnt_multiply_divide_signed (scale,
+					       *(*blend).norm_coords.offset (i as isize),
+					       coord);
+	}
+      else
+	{
+	  /* Otherwise, renormalize between start and end.  */
+
+	  if *(*blend).norm_coords.offset (i as isize) < start
+	      || *(*blend).norm_coords.offset (i as isize) > end
+	    { return 0; }
+
+	  if *(*blend).norm_coords.offset (i as isize) < coord
+	    {
+	      scale = sfnt_multiply_divide (
+		scale as c_uint,
+		(*(*blend).norm_coords.offset (i as isize) - start) as c_uint,
+		(coord - start) as c_uint) as sfnt_fixed;
+	    }
+	  else
+	    {
+	      scale = sfnt_multiply_divide (
+		scale as c_uint,
+		(end - *(*blend).norm_coords.offset (i as isize)) as c_uint,
+		(end - coord) as c_uint) as sfnt_fixed;
+	    }
+	}
+
+      i += 1;
+    }
+
+  return scale;
+}
+
+/* Move each point in the simple glyph GLYPH between PAIR_START and
+   PAIR_END to agree with the positions of those two anchor points as
+   compared with their initial positions recorded within the arrays X
+   and Y.
+
+   The range formed between PAIR_START and PAIR_END may encompass the
+   upper extreme of the contour between START and END.  */
+
+/* C's two `goto` labels (`consider_y` and `next`) are the port's `'consider_y`/`'next` blocks
+   (PORTING.md 2.2); the X-axis body's `break 'consider_y` is C's `goto consider_y`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_infer_deltas_2 (glyph: *mut sfnt_glyph, pair_start: size_t,
+			       pair_end: size_t, start: size_t, end: size_t,
+			       x: *mut sfnt_fword, y: *mut sfnt_fword)
+							   // C 15184-15356
+{
+  let mut j: size_t;
+  let mut min_pos: sfnt_fword;
+  let mut max_pos: sfnt_fword;
+  let mut position: sfnt_fword;
+  let mut d1: sfnt_fword;
+  let mut d2: sfnt_fword;
+  let mut ratio: sfnt_fixed;
+  let mut delta: sfnt_fixed;
+
+  j = pair_start + 1;
+
+  while j != pair_end
+    {
+      /* Reset j to the contour's start position if it is about to
+	 overrun this contour.  */
+
+      if j > end
+	{
+	  /* The start of the contour might also be the end of this
+	     reference point.  */
+	  if start == pair_end
+	    { return; }
+
+	  j = start;
+	}
+
+      /* Consider the X axis.  Set min_pos and max_pos to the
+	 smallest and greatest values along that axis.  */
+      min_pos = MIN! (*x.offset (pair_start as isize),
+		      *x.offset (pair_end as isize));
+      max_pos = MAX! (*x.offset (pair_start as isize),
+		      *x.offset (pair_end as isize));
+
+      /* Now see if the current point lies between min and
+	 max...
+
+	 GX interpolation differs from IUP in one important detail:
+	 points are shifted to follow the movement of their reference
+	 points if their positions are identical to those of any of
+	 their reference points, whereas IUP considers such points to
+	 fall within their reference points.  */
+      'consider_y: {
+	if *x.offset (j as isize) > min_pos && *x.offset (j as isize) < max_pos
+	  {
+	    /* Interpolate between min_pos and max_pos.  */
+	    ratio = sfnt_div_fixed ((sfnt_sub! (*x.offset (j as isize), min_pos)
+				     * 65536),
+				    (sfnt_sub! (max_pos, min_pos)
+				     * 65536));
+
+	    /* Load the current positions of pair_start and pair_end
+	       along this axis.  */
+	    min_pos = MIN! (*(*(*glyph).simple).x_coordinates.offset (pair_start as isize),
+			    *(*(*glyph).simple).x_coordinates.offset (pair_end as isize));
+	    max_pos = MAX! (*(*(*glyph).simple).x_coordinates.offset (pair_start as isize),
+			    *(*(*glyph).simple).x_coordinates.offset (pair_end as isize));
+
+	    /* Lerp in between.  */
+	    delta = sfnt_sub! (max_pos, min_pos);
+	    delta = sfnt_mul_fixed (ratio, delta);
+	    *(*(*glyph).simple).x_coordinates.offset (j as isize)
+	      = (min_pos as sfnt_fixed + delta) as int16_t;
+	  }
+	else
+	  {
+	    /* ... otherwise, move point j by the delta of the
+	       nearest touched point.  */
+
+	    /* If min_pos and max_pos are the same, apply
+	       pair_start's delta if it is identical to that of
+	       pair_end, or apply nothing at all otherwise.  */
+
+	    if min_pos == max_pos
+	      {
+		d1 = (*(*(*glyph).simple).x_coordinates.offset (pair_start as isize)
+		      as c_int - *x.offset (pair_start as isize) as c_int) as sfnt_fword;
+		d2 = (*(*(*glyph).simple).x_coordinates.offset (pair_end as isize)
+		      as c_int - *x.offset (pair_end as isize) as c_int) as sfnt_fword;
+
+		if d1 == d2
+		  {
+		    *(*(*glyph).simple).x_coordinates.offset (j as isize)
+		      = (*(*(*glyph).simple).x_coordinates.offset (j as isize)
+			 as c_int + d1 as c_int) as int16_t;
+		  }
+
+		break 'consider_y;
+	      }
+
+	    if *x.offset (j as isize) >= max_pos
+	      {
+		position = MAX! (*(*(*glyph).simple).x_coordinates.offset (pair_start as isize),
+				 *(*(*glyph).simple).x_coordinates.offset (pair_end as isize));
+		delta = position as sfnt_fixed - max_pos as sfnt_fixed;
+	      }
+	    else
+	      {
+		position = MIN! (*(*(*glyph).simple).x_coordinates.offset (pair_start as isize),
+				 *(*(*glyph).simple).x_coordinates.offset (pair_end as isize));
+		delta = position as sfnt_fixed - min_pos as sfnt_fixed;
+	      }
+
+	    *(*(*glyph).simple).x_coordinates.offset (j as isize)
+	      = (*x.offset (j as isize) as sfnt_fixed + delta) as int16_t;
+	  }
+      } /* 'consider_y (C 15281) */
+
+      /* consider_y: */
+
+      /* Now, consider the Y axis.  */
+      'next: {
+	min_pos = MIN! (*y.offset (pair_start as isize),
+			*y.offset (pair_end as isize));
+	max_pos = MAX! (*y.offset (pair_start as isize),
+			*y.offset (pair_end as isize));
+
+	if *y.offset (j as isize) > min_pos && *y.offset (j as isize) < max_pos
+	  {
+	    /* Interpolate between min_pos and max_pos.  */
+	    ratio = sfnt_div_fixed ((sfnt_sub! (*y.offset (j as isize), min_pos)
+				     * 65536),
+				    (sfnt_sub! (max_pos, min_pos)
+				     * 65536));
+
+	    /* Load the current positions of pair_start and pair_end
+	       along this axis.  */
+	    min_pos = MIN! (*(*(*glyph).simple).y_coordinates.offset (pair_start as isize),
+			    *(*(*glyph).simple).y_coordinates.offset (pair_end as isize));
+	    max_pos = MAX! (*(*(*glyph).simple).y_coordinates.offset (pair_start as isize),
+			    *(*(*glyph).simple).y_coordinates.offset (pair_end as isize));
+
+	    /* Lerp in between.  */
+	    delta = sfnt_sub! (max_pos, min_pos);
+	    delta = sfnt_mul_fixed (ratio, delta);
+	    *(*(*glyph).simple).y_coordinates.offset (j as isize)
+	      = (min_pos as sfnt_fixed + delta) as int16_t;
+	  }
+	else
+	  {
+	    /* ... otherwise, move point j by the delta of the
+	       nearest touched point.  */
+
+	    /* If min_pos and max_pos are the same, apply
+	       pair_start's delta if it is identical to that of
+	       pair_end, or apply nothing at all otherwise.  */
+
+	    if min_pos == max_pos
+	      {
+		d1 = (*(*(*glyph).simple).y_coordinates.offset (pair_start as isize)
+		      as c_int - *y.offset (pair_start as isize) as c_int) as sfnt_fword;
+		d2 = (*(*(*glyph).simple).y_coordinates.offset (pair_end as isize)
+		      as c_int - *y.offset (pair_end as isize) as c_int) as sfnt_fword;
+
+		if d1 == d2
+		  {
+		    *(*(*glyph).simple).y_coordinates.offset (j as isize)
+		      = (*(*(*glyph).simple).y_coordinates.offset (j as isize)
+			 as c_int + d1 as c_int) as int16_t;
+		  }
+
+		break 'next;
+	      }
+
+	    if *y.offset (j as isize) >= max_pos
+	      {
+		position = MAX! (*(*(*glyph).simple).y_coordinates.offset (pair_start as isize),
+				 *(*(*glyph).simple).y_coordinates.offset (pair_end as isize));
+		delta = position as sfnt_fixed - max_pos as sfnt_fixed;
+	      }
+	    else
+	      {
+		position = MIN! (*(*(*glyph).simple).y_coordinates.offset (pair_start as isize),
+				 *(*(*glyph).simple).y_coordinates.offset (pair_end as isize));
+		delta = position as sfnt_fixed - min_pos as sfnt_fixed;
+	      }
+
+	    *(*(*glyph).simple).y_coordinates.offset (j as isize)
+	      = (*y.offset (j as isize) as sfnt_fixed + delta) as int16_t;
+	  }
+      } /* 'next (C 15353) */
+
+      /* next: */
+      j += 1;
+    }
+}
+
+/* Infer point positions for points that have been partially moved
+   within the contour in GLYPH denoted by START and END.  */
+
+/* C's `goto next` is the port's `break 'next` (PORTING.md 2.2); the `continue` carries the
+   `for`-loop increment C's `++i` would skip (the ledger's Deviation 27 reading).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_infer_deltas_1 (glyph: *mut sfnt_glyph, start: size_t,
+			       end: size_t, touched: *mut bool,
+			       x: *mut sfnt_fword, y: *mut sfnt_fword)
+							   // C 15361-15406
+{
+  let mut i: size_t;
+  let mut pair_start: size_t;
+  let mut pair_end: size_t;
+  let mut pair_first: size_t;
+
+  pair_first = SIZE_MAX;
+  pair_start = SIZE_MAX;
+
+  /* Look for pairs of touched points.  */
+
+  i = start;
+  while i <= end
+    {
+      if !*touched.offset (i as isize)
+	{ i += 1; continue; }
+
+      'next: {
+	if pair_start == SIZE_MAX
+	  {
+	    pair_first = i;
+	    break 'next;
+	  }
+
+	pair_end = i;
+
+	/* pair_start to pair_end are now a pair of points whose
+	   intermediates should be interpolated.  */
+	sfnt_infer_deltas_2 (glyph, pair_start, pair_end,
+			     start, end, x, y);
+      } /* 'next (C 15390) */
+
+      /* next: */
+      pair_start = i;
+
+      i += 1;
+    }
+
+  /* If pair_start is set, then lerp points between it and
+     pair_first.  */
+
+  if pair_start != (SIZE_MAX as size_t)
+    {
+      pair_end = pair_first;
+
+      /* pair_start to pair_end are now a pair of points whose
+	 intermediates should be interpolated.  */
+      sfnt_infer_deltas_2 (glyph, pair_start, pair_end,
+			   start, end, x, y);
+    }
+}
+
+/* Infer point positions for contours that have been partially moved
+   by variation.  For each contour in GLYPH, find pairs of points
+   which have had deltas applied.  For each such pair, interpolate
+   points between the first point in the pair and the second by
+   considering each point along every one of the two axes (X and Y)
+   like so:
+
+     - For each point that lies between the first point and the last
+       on the axis currently being considered, interpolate its
+       position in that axis so that the ratio formed by its position
+       relative to the first and last points of the pair in the
+       original outline still holds.
+
+     - For each point that lies to the left or top of the first point
+       on the axis being considered, use the delta of the first point.
+
+     - And finally, for each point that lies to the right or bottom of
+       the last point on that axis, use the delta of the last
+       point.
+
+   X and Y contain the original positions of each point.
+   TOUCHED contains whether or not each point within GLYPH has been
+   changed through variation.
+
+   Apply the inferred deltas back to GLYPH.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_infer_deltas (glyph: *mut sfnt_glyph, touched: *mut bool,
+			     x: *mut sfnt_fword, y: *mut sfnt_fword)
+							   // C 15434-15457
+{
+  let mut i: size_t;
+  let mut point: c_int;
+  let mut first: c_int;
+  let mut end: c_int;
+
+  point = 0;
+  i = 0;
+  while i < (*glyph).number_of_contours as usize
+    {
+      first = point;
+      end = *(*(*glyph).simple).end_pts_of_contours.offset (i as isize) as c_int;
+
+      /* Return if the glyph is invalid.  */
+
+      if (first as size_t) >= (*(*glyph).simple).number_of_points
+	  || (end as size_t) >= (*(*glyph).simple).number_of_points
+	  || first > end
+	{ return; }
+
+      sfnt_infer_deltas_1 (glyph, first as size_t, end as size_t, touched, x, y);
+      point = end + 1;
+
+      i += 1;
+    }
+}
+
+/* Read the glyph variation data for the specified glyph ID from
+   BLEND's gvar table.  Apply the offsets to each point in the
+   specified simple GLYPH, based on the specified BLEND.
+
+   Value is 0 upon success, else 1.
+
+   The glyph variation data consists of a number of elements, each of
+   which has its own associated point numbers and deltas, and a list
+   of one or two coordinates for each axis.  Each such list is
+   referred to as a ``tuple''.
+
+   The deltas, one for each point, are multiplied by the normalized
+   value of each axis and applied to those points for each tuple that
+   is found to be applicable.
+
+   Each element of the glyph variation data is applicable to an axis
+   if its list of coordinates:
+
+     - contains one element for each axis, and its axis has a value
+       between 0 and that element.
+
+     - contains two elements for each axis, and its axis has a value
+       between the first element and the second.
+
+   Return the deltas that would normally be applied to the two phantom
+   points describing horizontal bounds in *DISTORTION.  Do not
+   transform the outline to reflect adjustments to the origin
+   point.  */
+
+/* C 15494's `struct sfnt_gvar_glyph_header header;` is `memcpy`ed into whole, and the port
+   zeroes it first (PORTING.md 1.5, the C 1180 `sfnt_cmap_encoding_subtable_data` shape);
+   the three `alloca`s are P-05's `sa_stack_alloc` (the ledger's Deviation 47).  C's `fail3:`
+   and `fail1:` are the port's nested `'fail3`/`'fail1` blocks, so `break 'fail3` runs the
+   three frees and then the `fail1` tail while `break 'fail1` skips them (PORTING.md 2.2).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_vary_simple_glyph (blend: *mut sfnt_blend,
+						 id: sfnt_glyph_index,
+						 glyph: *mut sfnt_glyph,
+						 distortion: *mut sfnt_metrics_distortion)
+  -> c_int                                                // C 15488-15851
+{
+  let mut offset: uint32_t;
+  let mut header: sfnt_gvar_glyph_header = std::mem::zeroed ();
+  let mut points: *mut uint16_t;
+  let mut npoints: uint16_t;
+  let mut i: c_int;
+  let mut ntuples: c_int;
+  let mut j: c_int;
+  let mut point_count: c_int;
+  let mut tuple: *mut c_uchar = std::ptr::null_mut ();
+  let mut end: *mut c_uchar;
+  let mut data: *mut c_uchar;
+  let mut data_size: uint16_t = 0;
+  let mut index: uint16_t = 0;
+  let mut glyph_points: *mut uint16_t;
+  let mut coords: *mut sfnt_f2dot14;
+  let mut intermediate_start: *mut sfnt_f2dot14;
+  let mut intermediate_end: *mut sfnt_f2dot14;
+  let mut dx: *mut sfnt_fword;
+  let mut dy: *mut sfnt_fword;
+  let mut fword: sfnt_fword;
+  let mut gvar: *mut sfnt_gvar_table;
+  let mut local_points: *mut uint16_t;
+  let mut n_local_points: uint16_t = 0;
+  let mut scale: sfnt_fixed;
+  let mut data_offset: ptrdiff_t;
+  let mut touched: *mut bool;
+  let mut original_x: *mut sfnt_fword;
+  let mut original_y: *mut sfnt_fword;
+
+  gvar = (*blend).gvar;
+
+  if (*gvar).axis_count as c_int != (*((*blend).fvar)).axis_count as c_int
+    { return 1; }
+
+  if ((*gvar).glyph_count as sfnt_glyph_index) <= id
+    { return 1; }
+
+  if ((*gvar).flags & 1) != 0
+    { offset = *(*gvar).u.offset_long.offset (id as isize); }
+  else
+    { offset = (*(*gvar).u.offset_word.offset (id as isize) as uint32_t) * 2u32; }
+
+  if (offset as size_t) >= (*gvar).data_size
+    { return 1; }
+
+  end = (*gvar).glyph_variation_data.offset ((*gvar).data_size as isize);
+
+  /* Start reading the header.  */
+
+  if (offset as size_t) + std::mem::size_of::<sfnt_gvar_glyph_header> ()
+      > (*gvar).data_size
+    { return 1; }
+
+  /* Clear the distortion.  */
+  (*distortion).origin = 0;
+  (*distortion).advance = 0;
+
+  memcpy (&raw mut header as *mut c_void,
+	  (*gvar).glyph_variation_data.offset (offset as isize) as *const c_void,
+	  std::mem::size_of::<sfnt_gvar_glyph_header> ());
+
+  /* Swap the header.  */
+  sfnt_swap16! (&raw mut header.tuple_count);
+  sfnt_swap16! (&raw mut header.data_offset);
+
+  /* Prepare to read each tuple.  */
+  ntuples = (header.tuple_count & 0x0fff) as c_int;
+
+  /* Initialize the data offset.  This is incremented with each tuple
+     read.  */
+  data_offset = header.data_offset as ptrdiff_t;
+
+  /* If gvar->flags & tuples_share_point_numbers, read the shared
+     point numbers.  Initialize `npoints' to zero.  The specification
+     doesn't say what should happen with tuples using shared point
+     numbers if it is not set later on; simply assume no points at all
+     apply to such a tuple.  */
+
+  npoints = 0;
+
+  if (header.tuple_count & 0x8000) != 0
+    {
+      data = (*gvar).glyph_variation_data
+	.offset ((offset as isize) + data_offset);
+      points = sfnt_read_packed_points (data, &raw mut npoints, end,
+					&raw mut tuple);
+
+      if points.is_null ()
+	{ return 1; }
+
+      /* Shared point numbers are part of the data after the tuple
+	 array.  Thus, increment data_offset by tuple - data.  `tuple'
+	 here holds no relation to a pointer to the current part of
+	 the tuple array that is being read later on.  */
+      data_offset += (tuple as isize) - (data as isize);
+    }
+  else
+    { points = std::ptr::null_mut (); }
+
+  /* Start reading each tuple.  */
+  tuple = (*gvar).glyph_variation_data
+    .offset ((offset as isize) + (std::mem::size_of::<sfnt_gvar_glyph_header> () as isize));
+
+  let mut coords_alloc: *mut c_void = std::ptr::null_mut ();
+  if ((*gvar).axis_count as size_t)
+      < 1024 * 16 / (3 * std::mem::size_of::<sfnt_f2dot14> ())
+    {
+      coords = sa_stack_alloc ((*gvar).axis_count as size_t
+			       * std::mem::size_of::<sfnt_f2dot14> () * 3)
+	as *mut sfnt_f2dot14;
+    }
+  else
+    {
+      coords_alloc = xnmalloc ((*gvar).axis_count as isize,
+			       (3 * std::mem::size_of::<sfnt_f2dot14> ()) as isize);
+      coords = coords_alloc as *mut sfnt_f2dot14;
+    }
+
+  intermediate_start = coords.offset ((*gvar).axis_count as isize);
+  intermediate_end = intermediate_start.offset ((*gvar).axis_count as isize);
+
+  /* Allocate arrays of booleans and fwords to keep track of which
+     points have been touched.  */
+  touched = std::ptr::null_mut ();
+  original_x = std::ptr::null_mut ();
+  original_y = std::ptr::null_mut ();
+  let mut touched_alloc: *mut c_void = std::ptr::null_mut ();
+  let mut original_x_alloc: *mut c_void = std::ptr::null_mut ();
+
+  'fail1: {
+    'fail3: {
+      while { ntuples = ntuples.wrapping_sub (1); ntuples != -1 }
+	{
+	  data = (*gvar).glyph_variation_data
+	    .offset ((offset as isize) + data_offset);
+
+	  if tuple.offset (3) >= end
+	    { break 'fail1; }
+
+	  memcpy (&raw mut data_size as *mut c_void,
+		  tuple as *const c_void,
+		  std::mem::size_of::<uint16_t> ());
+	  tuple = tuple.offset (std::mem::size_of::<uint16_t> () as isize);
+	  memcpy (&raw mut index as *mut c_void,
+		  tuple as *const c_void,
+		  std::mem::size_of::<uint16_t> ());
+	  tuple = tuple.offset (std::mem::size_of::<uint16_t> () as isize);
+	  sfnt_swap16! (&raw mut data_size);
+	  sfnt_swap16! (&raw mut index);
+
+	  /* Increment the offset to the data by the data size specified
+	     here.  */
+	  data_offset += data_size as ptrdiff_t;
+
+	  if (index & 0x8000) != 0
+	    {
+	      /* Embedded coordinates are present.  Read each
+		 coordinate and add it to the tuple.  */
+	      j = 0;
+	      while j < (*gvar).axis_count as c_int
+		{
+		  if tuple.offset (1) >= end
+		    { break 'fail1; }
+
+		  memcpy (coords.offset (j as isize) as *mut c_void,
+			  tuple as *const c_void,
+			  std::mem::size_of::<sfnt_f2dot14> ());
+		  tuple = tuple.offset (std::mem::size_of::<sfnt_f2dot14> () as isize);
+		  sfnt_swap16! (coords.offset (j as isize));
+		  j += 1;
+		}
+	    }
+	  else if (*gvar).shared_coord_count <= (index & 0x0fff)
+	    /* The index is too large.  */
+	    { break 'fail1; }
+	  else
+	    /* index points into gvar->axis_count coordinates making up
+	       the tuple.  */
+	    {
+	      memcpy (coords as *mut c_void,
+		      (*gvar).global_coords.offset (
+			(((index & 0x0fff) as isize)
+			 * ((*gvar).axis_count as isize))) as *const c_void,
+		      ((*gvar).axis_count as usize)
+		      * std::mem::size_of::<sfnt_f2dot14> ());
+	    }
+
+	  /* Now read indeterminate tuples if required.  */
+	  if (index & 0x4000) != 0
+	    {
+	      j = 0;
+	      while j < (*gvar).axis_count as c_int
+		{
+		  if tuple.offset (1) >= end
+		    { break 'fail1; }
+
+		  memcpy (intermediate_start.offset (j as isize) as *mut c_void,
+			  tuple as *const c_void,
+			  std::mem::size_of::<sfnt_f2dot14> ());
+		  tuple = tuple.offset (std::mem::size_of::<sfnt_f2dot14> () as isize);
+		  sfnt_swap16! (intermediate_start.offset (j as isize));
+		  j += 1;
+		}
+
+	      j = 0;
+	      while j < (*gvar).axis_count as c_int
+		{
+		  if tuple.offset (1) >= end
+		    { break 'fail1; }
+
+		  memcpy (intermediate_end.offset (j as isize) as *mut c_void,
+			  tuple as *const c_void,
+			  std::mem::size_of::<sfnt_f2dot14> ());
+		  tuple = tuple.offset (std::mem::size_of::<sfnt_f2dot14> () as isize);
+		  sfnt_swap16! (intermediate_end.offset (j as isize));
+		  j += 1;
+		}
+	    }
+
+	  /* See whether or not the tuple applies to the current variation
+	     configuration, and how much to scale them by.  */
+
+	  scale = sfnt_compute_tuple_scale (blend, (index & 0x4000) != 0,
+					    coords, intermediate_start,
+					    intermediate_end);
+
+	  if scale == 0
+	    { continue; }
+
+	  local_points = std::ptr::null_mut ();
+
+	  /* Finally, read private point numbers.
+	     Set local_points to those numbers; it will be freed
+	     once the loop ends.  */
+
+	  if (index & 0x2000) != 0
+	    {
+	      local_points = sfnt_read_packed_points (data, &raw mut n_local_points,
+						      end, &raw mut data);
+	      if local_points.is_null ()
+		{ break 'fail1; }
+
+	      point_count = n_local_points as c_int;
+	      glyph_points = local_points;
+	    }
+	  else
+	    {
+	      /* If there are no private point numbers, use global
+		 points.  */
+	      point_count = npoints as c_int;
+	      glyph_points = points;
+	    }
+
+	  /* Now, read packed deltas.  */
+
+	  dx = std::ptr::null_mut ();
+	  dy = std::ptr::null_mut ();
+
+	  match point_count
+	    {
+	      UINT16_MAX =>
+		{
+		  /* Deltas are provided for all points in the glyph.
+		     No glyph should have more than 65535 points.  */
+
+		  /* Add 4 phantom points to each end.  */
+		  dx = sfnt_read_packed_deltas (
+		    data, end,
+		    ((*(*glyph).simple).number_of_points + 4) as c_int,
+		    &raw mut data);
+		  dy = sfnt_read_packed_deltas (
+		    data, end,
+		    ((*(*glyph).simple).number_of_points + 4) as c_int,
+		    &raw mut data);
+
+		  if dx.is_null () || dy.is_null ()
+		    { break 'fail3; }
+
+		  /* Apply each delta to the simple glyph.  */
+
+		  i = 0;
+		  while i < (*(*glyph).simple).number_of_points as c_int
+		    {
+		      fword = sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+						    scale) as sfnt_fword;
+		      *(*(*glyph).simple).x_coordinates.offset (i as isize)
+			= (*(*(*glyph).simple).x_coordinates.offset (i as isize)
+			   as c_int + fword as c_int) as int16_t;
+		      fword = sfnt_mul_fixed_round (*dy.offset (i as isize) as sfnt_fixed,
+						    scale) as sfnt_fword;
+		      *(*(*glyph).simple).y_coordinates.offset (i as isize)
+			= (*(*(*glyph).simple).y_coordinates.offset (i as isize)
+			   as c_int + fword as c_int) as int16_t;
+		      i += 1;
+		    }
+
+		  /* Apply the deltas for the two phantom points.  */
+		  (*distortion).origin
+		    = ((*distortion).origin as c_int).wrapping_add (
+			sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+					      scale)) as sfnt_fword;
+		  i += 1;
+		  (*distortion).advance
+		    = ((*distortion).advance as c_int).wrapping_add (
+			sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+					      scale)) as sfnt_fword;
+		}
+
+	      _ =>
+		{
+		  dx = sfnt_read_packed_deltas (data, end, point_count, &raw mut data);
+		  dy = sfnt_read_packed_deltas (data, end, point_count, &raw mut data);
+
+		  if dx.is_null () || dy.is_null ()
+		    { break 'fail3; }
+
+		  /* Deltas are only applied for each point number read.  */
+
+		  if original_x.is_null ()
+		    {
+		      if (*(*glyph).simple).number_of_points
+			  < 1024 * 16 / std::mem::size_of::<bool> ()
+			{
+			  touched = sa_stack_alloc (
+			    std::mem::size_of::<bool> ()
+			    * (*(*glyph).simple).number_of_points) as *mut bool;
+			}
+		      else
+			{
+			  touched_alloc = xnmalloc (
+			    (*(*glyph).simple).number_of_points as isize,
+			    std::mem::size_of::<bool> () as isize);
+			  touched = touched_alloc as *mut bool;
+			}
+
+		      if (*(*glyph).simple).number_of_points
+			  < 1024 * 16 / (2 * std::mem::size_of::<sfnt_fword> ())
+			{
+			  original_x = sa_stack_alloc (
+			    std::mem::size_of::<sfnt_fword> () * 2
+			    * (*(*glyph).simple).number_of_points) as *mut sfnt_fword;
+			}
+		      else
+			{
+			  original_x_alloc = xnmalloc (
+			    (*(*glyph).simple).number_of_points as isize,
+			    (2 * std::mem::size_of::<sfnt_fword> ()) as isize);
+			  original_x = original_x_alloc as *mut sfnt_fword;
+			}
+
+		      original_y
+			= original_x.offset ((*(*glyph).simple).number_of_points as isize);
+		    }
+
+		  /* The array of original coordinates should reflect the
+		     state of the glyph immediately before deltas from this
+		     tuple are applied, in contrast to the state before any
+		     deltas are applied.  */
+
+		  memcpy (original_x as *mut c_void,
+			  (*(*glyph).simple).x_coordinates as *const c_void,
+			  std::mem::size_of::<sfnt_fword> ()
+			  * (*(*glyph).simple).number_of_points);
+		  memcpy (original_y as *mut c_void,
+			  (*(*glyph).simple).y_coordinates as *const c_void,
+			  std::mem::size_of::<sfnt_fword> ()
+			  * (*(*glyph).simple).number_of_points);
+
+		  memset (touched as *mut c_void, 0,
+			  std::mem::size_of::<bool> ()
+			  * (*(*glyph).simple).number_of_points);
+
+		  i = 0;
+		  while i < point_count
+		    {
+		      /* Apply deltas to phantom points.  */
+
+		      if *glyph_points.offset (i as isize) as size_t
+			  == (*(*glyph).simple).number_of_points
+			{
+			  (*distortion).origin
+			    = ((*distortion).origin as c_int).wrapping_add (
+				sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+						      scale)) as sfnt_fword;
+			  i += 1;
+			  continue;
+			}
+
+		      if *glyph_points.offset (i as isize) as size_t
+			  == (*(*glyph).simple).number_of_points + 1
+			{
+			  (*distortion).advance
+			    = ((*distortion).advance as c_int).wrapping_add (
+				sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+						      scale)) as sfnt_fword;
+			  i += 1;
+			  continue;
+			}
+
+		      /* Make sure the point doesn't end up out of bounds.  */
+		      if *glyph_points.offset (i as isize) as size_t
+			  >= (*(*glyph).simple).number_of_points
+			{ i += 1; continue; }
+
+		      fword = sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+						    scale) as sfnt_fword;
+		      *(*(*glyph).simple).x_coordinates.offset (
+			  *glyph_points.offset (i as isize) as isize)
+			= (*(*(*glyph).simple).x_coordinates.offset (
+			     *glyph_points.offset (i as isize) as isize)
+			   as c_int + fword as c_int) as int16_t;
+		      fword = sfnt_mul_fixed_round (*dy.offset (i as isize) as sfnt_fixed,
+						    scale) as sfnt_fword;
+		      *(*(*glyph).simple).y_coordinates.offset (
+			  *glyph_points.offset (i as isize) as isize)
+			= (*(*(*glyph).simple).y_coordinates.offset (
+			     *glyph_points.offset (i as isize) as isize)
+			   as c_int + fword as c_int) as int16_t;
+		      *touched.offset (*glyph_points.offset (i as isize) as isize) = true;
+
+		      i += 1;
+		    }
+
+		  sfnt_infer_deltas (glyph, touched, original_x,
+				     original_y);
+		}
+	    }
+
+	  xfree (dx as *mut c_void);
+	  xfree (dy as *mut c_void);
+
+	  if local_points != (usize::MAX as *mut uint16_t)
+	    { xfree (local_points as *mut c_void); }
+	}
+
+      /* Return success.  */
+
+      xfree (touched_alloc);
+      xfree (coords_alloc);
+      xfree (original_x_alloc);
+
+      if points != (usize::MAX as *mut uint16_t)
+	{ xfree (points as *mut c_void); }
+
+      /* Set the glyph metrics distortion as well.  */
+      (*glyph).advance_distortion = (*distortion).advance;
+      (*glyph).origin_distortion = (*distortion).origin;
+
+      return 0;
+    } /* 'fail3 (C 15837) */
+
+    /* fail3: */
+    xfree (dx as *mut c_void);
+    xfree (dy as *mut c_void);
+    xfree (local_points as *mut c_void);
+  } /* 'fail1 (C 15841) */
+
+  /* fail1: */
+
+  xfree (touched_alloc);
+  xfree (coords_alloc);
+  xfree (original_x_alloc);
+
+  if points != (usize::MAX as *mut uint16_t)
+    { xfree (points as *mut c_void); }
+
+  return 1;
+}
+
+/* Read the glyph variation data for the specified glyph ID from
+   BLEND's gvar table.  Apply the deltas specified within to each
+   component with offsets in the specified compound GLYPH, based on
+   the specified BLEND.  Return distortions to phantom points in
+   *DISTORTION.
+
+   Value is 0 upon success, 1 otherwise.  */
+
+/* Same cleanup shape as `sfnt_vary_simple_glyph` above: `'fail3` holds the loop, `'fail1`
+   wraps it, and `break 'fail3`/`break 'fail1` are C's two labels (PORTING.md 2.2).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_vary_compound_glyph (blend: *mut sfnt_blend,
+						   id: sfnt_glyph_index,
+						   glyph: *mut sfnt_glyph,
+						   distortion: *mut sfnt_metrics_distortion)
+  -> c_int                                                // C 15861-16212
+{
+  let mut offset: uint32_t;
+  let mut header: sfnt_gvar_glyph_header = std::mem::zeroed ();
+  let mut points: *mut uint16_t;
+  let mut npoints: uint16_t;
+  let mut i: c_int;
+  let mut ntuples: c_int;
+  let mut j: c_int;
+  let mut point_count: c_int;
+  let mut tuple: *mut c_uchar = std::ptr::null_mut ();
+  let mut end: *mut c_uchar;
+  let mut data: *mut c_uchar;
+  let mut data_size: uint16_t = 0;
+  let mut index: uint16_t = 0;
+  let mut glyph_points: *mut uint16_t;
+  let mut coords: *mut sfnt_f2dot14;
+  let mut intermediate_start: *mut sfnt_f2dot14;
+  let mut intermediate_end: *mut sfnt_f2dot14;
+  let mut dx: *mut sfnt_fword;
+  let mut dy: *mut sfnt_fword;
+  let mut fword: sfnt_fword;
+  let mut word: sfnt_fword;
+  let mut gvar: *mut sfnt_gvar_table;
+  let mut local_points: *mut uint16_t;
+  let mut n_local_points: uint16_t = 0;
+  let mut scale: sfnt_fixed;
+  let mut data_offset: ptrdiff_t;
+  let mut component: *mut sfnt_compound_glyph_component;
+
+  gvar = (*blend).gvar;
+
+  if (*gvar).axis_count as c_int != (*((*blend).fvar)).axis_count as c_int
+    { return 1; }
+
+  if ((*gvar).glyph_count as sfnt_glyph_index) <= id
+    { return 1; }
+
+  if ((*gvar).flags & 1) != 0
+    { offset = *(*gvar).u.offset_long.offset (id as isize); }
+  else
+    { offset = (*(*gvar).u.offset_word.offset (id as isize) as uint32_t) * 2u32; }
+
+  if (offset as size_t) >= (*gvar).data_size
+    { return 1; }
+
+  end = (*gvar).glyph_variation_data.offset ((*gvar).data_size as isize);
+
+  /* Start reading the header.  */
+
+  if (offset as size_t) + std::mem::size_of::<sfnt_gvar_glyph_header> ()
+      > (*gvar).data_size
+    { return 1; }
+
+  /* Clear the distortion.  */
+  (*distortion).origin = 0;
+  (*distortion).advance = 0;
+
+  memcpy (&raw mut header as *mut c_void,
+	  (*gvar).glyph_variation_data.offset (offset as isize) as *const c_void,
+	  std::mem::size_of::<sfnt_gvar_glyph_header> ());
+
+  /* Swap the header.  */
+  sfnt_swap16! (&raw mut header.tuple_count);
+  sfnt_swap16! (&raw mut header.data_offset);
+
+  /* Prepare to read each tuple.  */
+  ntuples = (header.tuple_count & 0x0fff) as c_int;
+
+  /* Initialize the data offset.  This is incremented with each tuple
+     read.  */
+  data_offset = header.data_offset as ptrdiff_t;
+
+  /* If gvar->flags & tuples_share_point_numbers, read the shared
+     point numbers.  */
+
+  npoints = 0;
+
+  if (header.tuple_count & 0x8000) != 0
+    {
+      data = (*gvar).glyph_variation_data
+	.offset ((offset as isize) + data_offset);
+      points = sfnt_read_packed_points (data, &raw mut npoints, end,
+					&raw mut tuple);
+
+      if points.is_null ()
+	{ return 1; }
+
+      /* Shared point numbers are part of the data after the tuple
+	 array.  Thus, increment data_offset by tuple - data.  `tuple'
+	 here holds no relation to a pointer to the current part of
+	 the tuple array that is being read later on.  */
+      data_offset += (tuple as isize) - (data as isize);
+    }
+  else
+    { points = std::ptr::null_mut (); }
+
+  /* Start reading each tuple.  */
+  tuple = (*gvar).glyph_variation_data
+    .offset ((offset as isize) + (std::mem::size_of::<sfnt_gvar_glyph_header> () as isize));
+
+  let mut coords_alloc: *mut c_void = std::ptr::null_mut ();
+  if ((*gvar).axis_count as size_t)
+      < 1024 * 16 / (3 * std::mem::size_of::<sfnt_f2dot14> ())
+    {
+      coords = sa_stack_alloc ((*gvar).axis_count as size_t
+			       * std::mem::size_of::<sfnt_f2dot14> () * 3)
+	as *mut sfnt_f2dot14;
+    }
+  else
+    {
+      coords_alloc = xnmalloc ((*gvar).axis_count as isize,
+			       (3 * std::mem::size_of::<sfnt_f2dot14> ()) as isize);
+      coords = coords_alloc as *mut sfnt_f2dot14;
+    }
+
+  intermediate_start = coords.offset ((*gvar).axis_count as isize);
+  intermediate_end = intermediate_start.offset ((*gvar).axis_count as isize);
+
+  'fail1: {
+    'fail3: {
+      while { ntuples = ntuples.wrapping_sub (1); ntuples != -1 }
+	{
+	  data = (*gvar).glyph_variation_data
+	    .offset ((offset as isize) + data_offset);
+
+	  if tuple.offset (3) >= end
+	    { break 'fail1; }
+
+	  memcpy (&raw mut data_size as *mut c_void,
+		  tuple as *const c_void,
+		  std::mem::size_of::<uint16_t> ());
+	  tuple = tuple.offset (std::mem::size_of::<uint16_t> () as isize);
+	  memcpy (&raw mut index as *mut c_void,
+		  tuple as *const c_void,
+		  std::mem::size_of::<uint16_t> ());
+	  tuple = tuple.offset (std::mem::size_of::<uint16_t> () as isize);
+	  sfnt_swap16! (&raw mut data_size);
+	  sfnt_swap16! (&raw mut index);
+
+	  /* Increment the offset to the data by the data size specified
+	     here.  */
+	  data_offset += data_size as ptrdiff_t;
+
+	  if (index & 0x8000) != 0
+	    {
+	      /* Embedded coordinates are present.  Read each
+		 coordinate and add it to the tuple.  */
+	      j = 0;
+	      while j < (*gvar).axis_count as c_int
+		{
+		  if tuple.offset (1) >= end
+		    { break 'fail1; }
+
+		  memcpy (coords.offset (j as isize) as *mut c_void,
+			  tuple as *const c_void,
+			  std::mem::size_of::<sfnt_f2dot14> ());
+		  tuple = tuple.offset (std::mem::size_of::<sfnt_f2dot14> () as isize);
+		  sfnt_swap16! (coords.offset (j as isize));
+		  j += 1;
+		}
+	    }
+	  else if (*gvar).shared_coord_count <= (index & 0x0fff)
+	    /* The index is too large.  */
+	    { break 'fail1; }
+	  else
+	    /* index points into gvar->axis_count coordinates making up
+	       the tuple.  */
+	    {
+	      memcpy (coords as *mut c_void,
+		      (*gvar).global_coords.offset (
+			(((index & 0x0fff) as isize)
+			 * ((*gvar).axis_count as isize))) as *const c_void,
+		      ((*gvar).axis_count as usize)
+		      * std::mem::size_of::<sfnt_f2dot14> ());
+	    }
+
+	  /* Now read indeterminate tuples if required.  */
+	  if (index & 0x4000) != 0
+	    {
+	      j = 0;
+	      while j < (*gvar).axis_count as c_int
+		{
+		  if tuple.offset (1) >= end
+		    { break 'fail1; }
+
+		  memcpy (intermediate_start.offset (j as isize) as *mut c_void,
+			  tuple as *const c_void,
+			  std::mem::size_of::<sfnt_f2dot14> ());
+		  tuple = tuple.offset (std::mem::size_of::<sfnt_f2dot14> () as isize);
+		  sfnt_swap16! (intermediate_start.offset (j as isize));
+		  j += 1;
+		}
+
+	      j = 0;
+	      while j < (*gvar).axis_count as c_int
+		{
+		  if tuple.offset (1) >= end
+		    { break 'fail1; }
+
+		  memcpy (intermediate_end.offset (j as isize) as *mut c_void,
+			  tuple as *const c_void,
+			  std::mem::size_of::<sfnt_f2dot14> ());
+		  tuple = tuple.offset (std::mem::size_of::<sfnt_f2dot14> () as isize);
+		  sfnt_swap16! (intermediate_end.offset (j as isize));
+		  j += 1;
+		}
+	    }
+
+	  /* See whether or not the tuple applies to the current variation
+	     configuration, and how much to scale them by.  */
+
+	  scale = sfnt_compute_tuple_scale (blend, (index & 0x4000) != 0,
+					    coords, intermediate_start,
+					    intermediate_end);
+
+	  if scale == 0
+	    { continue; }
+
+	  local_points = std::ptr::null_mut ();
+
+	  /* Finally, read private point numbers.
+	     Set local_points to those numbers; it will be freed
+	     once the loop ends.  */
+
+	  if (index & 0x2000) != 0
+	    {
+	      local_points = sfnt_read_packed_points (data, &raw mut n_local_points,
+						      end, &raw mut data);
+	      if local_points.is_null ()
+		{ break 'fail1; }
+
+	      point_count = n_local_points as c_int;
+	      glyph_points = local_points;
+	    }
+	  else
+	    {
+	      /* If there are no private point numbers, use global
+		 points.  */
+	      point_count = npoints as c_int;
+	      glyph_points = points;
+	    }
+
+	  /* Now, read packed deltas.  */
+
+	  dx = std::ptr::null_mut ();
+	  dy = std::ptr::null_mut ();
+
+	  match point_count
+	    {
+	      UINT16_MAX =>
+		{
+		  /* Deltas are provided for all components in the glyph.  */
+
+		  /* Add 4 phantom points to each end.  */
+		  dx = sfnt_read_packed_deltas (
+		    data, end,
+		    ((*(*glyph).compound).num_components + 4) as c_int,
+		    &raw mut data);
+		  dy = sfnt_read_packed_deltas (
+		    data, end,
+		    ((*(*glyph).compound).num_components + 4) as c_int,
+		    &raw mut data);
+
+		  if dx.is_null () || dy.is_null ()
+		    { break 'fail3; }
+
+		  /* Apply each delta to the compound glyph.  */
+
+		  i = 0;
+		  while i < (*(*glyph).compound).num_components as c_int
+		    {
+		      component = (*(*glyph).compound).components.offset (i as isize);
+
+		      /* Check if the component uses deltas at all.  */
+		      if ((*component).flags & 0o2) == 0
+			{ i += 1; continue; }
+
+		      /* Vary the X offset.  */
+
+		      if ((*component).flags & 0o1) == 0
+			{ word = (*component).argument1.b as sfnt_fword; }
+		      else
+			{ word = (*component).argument1.d; }
+
+		      fword = sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+						    scale) as sfnt_fword;
+		      (*component).argument1.d
+			= (word as c_int + fword as c_int) as int16_t;
+
+		      /* Vary the Y offset.  */
+
+		      if ((*component).flags & 0o1) == 0
+			{ word = (*component).argument2.b as sfnt_fword; }
+		      else
+			{ word = (*component).argument2.d; }
+
+		      fword = sfnt_mul_fixed_round (*dy.offset (i as isize) as sfnt_fixed,
+						    scale) as sfnt_fword;
+
+		      /* Set the flag that says offsets are words.  */
+		      (*component).flags |= 0o1;
+		      (*component).argument2.d
+			= (word as c_int + fword as c_int) as int16_t;
+
+		      i += 1;
+		    }
+
+		  /* Apply the deltas for the two phantom points.  */
+		  (*distortion).origin
+		    = ((*distortion).origin as c_int).wrapping_add (
+			sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+					      scale)) as sfnt_fword;
+		  i += 1;
+		  (*distortion).advance
+		    = ((*distortion).advance as c_int).wrapping_add (
+			sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+					      scale)) as sfnt_fword;
+		}
+
+	      _ =>
+		{
+		  dx = sfnt_read_packed_deltas (data, end, point_count, &raw mut data);
+		  dy = sfnt_read_packed_deltas (data, end, point_count, &raw mut data);
+
+		  if dx.is_null () || dy.is_null ()
+		    { break 'fail3; }
+
+		  /* Deltas are only applied for each point number read.  */
+
+		  i = 0;
+		  while i < point_count
+		    {
+		      /* Apply deltas to phantom points.  */
+
+		      if *glyph_points.offset (i as isize) as size_t
+			  == (*(*glyph).compound).num_components
+			{
+			  (*distortion).origin
+			    = ((*distortion).origin as c_int).wrapping_add (
+				sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+						      scale)) as sfnt_fword;
+			  i += 1;
+			  continue;
+			}
+
+		      if *glyph_points.offset (i as isize) as size_t
+			  == (*(*glyph).compound).num_components + 1
+			{
+			  (*distortion).advance
+			    = ((*distortion).advance as c_int).wrapping_add (
+				sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+						      scale)) as sfnt_fword;
+			  i += 1;
+			  continue;
+			}
+
+		      /* Make sure the point doesn't end up out of bounds.  */
+		      if *glyph_points.offset (i as isize) as size_t
+			  >= (*(*glyph).compound).num_components
+			{ i += 1; continue; }
+
+		      component = (*(*glyph).compound).components.offset (
+			*glyph_points.offset (i as isize) as isize);
+
+		      /* Check if the component uses deltas at all.  */
+		      if ((*component).flags & 0o2) == 0
+			{ i += 1; continue; }
+
+		      /* Vary the X offset.  */
+
+		      if ((*component).flags & 0o1) == 0
+			{ word = (*component).argument1.b as sfnt_fword; }
+		      else
+			{ word = (*component).argument1.d; }
+
+		      fword = sfnt_mul_fixed_round (*dx.offset (i as isize) as sfnt_fixed,
+						    scale) as sfnt_fword;
+		      (*component).argument1.d
+			= (word as c_int + fword as c_int) as int16_t;
+
+		      /* Vary the Y offset.  */
+
+		      if ((*component).flags & 0o1) == 0
+			{ word = (*component).argument2.b as sfnt_fword; }
+		      else
+			{ word = (*component).argument2.d; }
+
+		      fword = sfnt_mul_fixed_round (*dy.offset (i as isize) as sfnt_fixed,
+						    scale) as sfnt_fword;
+
+		      /* Set the flag that says offsets are words.  */
+		      (*component).flags |= 0o1;
+		      (*component).argument2.d
+			= (word as c_int + fword as c_int) as int16_t;
+
+		      i += 1;
+		    }
+		}
+	    }
+
+	  xfree (dx as *mut c_void);
+	  xfree (dy as *mut c_void);
+
+	  if local_points != (usize::MAX as *mut uint16_t)
+	    { xfree (local_points as *mut c_void); }
+	}
+
+      /* Return success.  */
+
+      xfree (coords_alloc);
+      if points != (usize::MAX as *mut uint16_t)
+	{ xfree (points as *mut c_void); }
+
+      /* Set the glyph metrics distortion as well.  */
+      (*glyph).advance_distortion = (*distortion).advance;
+      (*glyph).origin_distortion = (*distortion).origin;
+
+      return 0;
+    } /* 'fail3 (C 16201) */
+
+    /* fail3: */
+    xfree (dx as *mut c_void);
+    xfree (dy as *mut c_void);
+    xfree (local_points as *mut c_void);
+  } /* 'fail1 (C 16205) */
+
+  /* fail1: */
+
+  xfree (coords_alloc);
+  if points != (usize::MAX as *mut uint16_t)
+    { xfree (points as *mut c_void); }
+
+  return 1;
+}
+
+/* Vary the specified INTERPRETER's control value table using the
+   variations in BLEND's CVT variations table, then record the blend's
+   normalized coordinates and axis count in the interpreter.
+
+   The CVT table used to create INTERPRETER must be the same used
+   to read BLEND->cvar.  If not, behavior is undefined.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_vary_interpreter (interpreter: *mut sfnt_interpreter,
+						blend: *mut sfnt_blend)
+{                                                          // C 16221-16277
+  let mut scale: sfnt_fixed;
+  let mut i: c_int;
+  let mut variation: *mut sfnt_tuple_variation;
+  let mut ndeltas: size_t;
+  let mut j: size_t;
+  let mut index: size_t;
+  let mut delta: sfnt_f26dot6;
+
+  /* Return if there's no cvar table.  */
+  if (*blend).cvar.is_null ()
+    { return; }
+
+  /* For each tuple in the cvar table... */
+  i = 0;
+  while i < ((*((*blend).cvar)).tuple_count & 0x0fff) as c_int
+    {
+      /* See if the tuple applies.  */
+      variation = (*((*blend).cvar)).variation.offset (i as isize);
+      scale = sfnt_compute_tuple_scale (blend,
+					!(*variation).intermediate_start.is_null (),
+					(*variation).coordinates,
+					(*variation).intermediate_start,
+					(*variation).intermediate_end);
+      if scale == 0
+	{ i += 1; continue; }
+
+      /* Figure out how many deltas there are.  If variation->points,
+	 there are num_points deltas.  Otherwise, there are
+	 interpreter->cvt_size deltas.  */
+
+      ndeltas = if !(*variation).points.is_null ()
+	{ (*variation).num_points as size_t }
+      else
+	{ (*interpreter).cvt_size };
+
+      j = 0;
+      while j < ndeltas
+	{
+	  /* Figure out which CVT entry this applies to.  */
+	  index = if !(*variation).points.is_null ()
+	    { *(*variation).points.offset (j as isize) as size_t }
+	  else
+	    { j };
+
+	  if index > (*interpreter).cvt_size
+	    { j += 1; continue; }
+
+	  /* Multiply the delta by the interpreter scale factor and
+	     then the tuple scale factor.  */
+	  delta = sfnt_mul_f26dot6_fixed (
+	    *(*variation).deltas.offset (j as isize) as sfnt_f26dot6,
+	    (*interpreter).scale);
+	  delta = sfnt_mul_fixed_round (delta, scale);
+
+	  /* Apply the delta to the control value table.  */
+	  *(*interpreter).cvt.offset (i as isize)
+	    = (*(*interpreter).cvt.offset (i as isize)).wrapping_add (delta);
+
+	  j += 1;
+	}
+
+      i += 1;
+    }
+
+  (*interpreter).n_axis = (*((*blend).fvar)).axis_count as c_int;
+  (*interpreter).norm_coords = (*blend).norm_coords;
+}
+
+/* OS/2 metadata retrieval.
+
+   A font's `OS/2' table incorporates some miscellaneous information
+   that is consulted by the font scaler on MS-Windows.  Emacs requires
+   one fragment of this information: the font foundry name.  */
+
+/* Read an OS/2 table from the given font FD.  Use the table directory
+   provided in SUBTABLE.
+
+   Return the OS/2 table if successful, NULL otherwise.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_OS_2_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_OS_2_table                                  // C 16292-16381
+{
+  let mut OS_2: *mut sfnt_OS_2_table;
+  let mut directory: *mut sfnt_table_directory;
+  let mut rc: ssize_t;
+  let mut minimum: size_t;
+  let mut wanted: size_t;
+
+  /* Search for the OS/2 table within SUBTABLE.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_OS_2);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Calculate how large the table must be.  The field `panose' is the
+     last field aligned to natural boundaries, and thus contents must
+     be read twice: once to populate the table with information up to
+     `panose', and once again to retrieve the information
+     afterwards.  */
+
+  minimum = (SFNT_ENDOF! (sfnt_OS_2_table, panose, [u8; 10])
+	     + SFNT_ENDOF! (sfnt_OS_2_table, fs_last_char_index, uint16_t)
+	     - std::mem::offset_of! (sfnt_OS_2_table, ul_unicode_range));
+
+  /* If the table is too short, return.  */
+  if ((*directory).length as size_t) < minimum
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  OS_2 = xmalloc (std::mem::size_of::<sfnt_OS_2_table> ()) as *mut sfnt_OS_2_table;
+
+  /* Read data up to the end of `panose'.  */
+
+  wanted = SFNT_ENDOF! (sfnt_OS_2_table, panose, [u8; 10]);
+  rc = read (fd, OS_2 as *mut c_void, wanted);
+
+  if rc == -1 || rc != wanted as ssize_t
+    {
+      xfree (OS_2 as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Byte swap that data.  */
+
+  sfnt_swap16! (&raw mut (*OS_2).version);
+  sfnt_swap16! (&raw mut (*OS_2).x_avg_char_width);
+  sfnt_swap16! (&raw mut (*OS_2).us_weight_class);
+  sfnt_swap16! (&raw mut (*OS_2).us_width_class);
+  sfnt_swap16! (&raw mut (*OS_2).fs_type);
+  sfnt_swap16! (&raw mut (*OS_2).y_subscript_x_size);
+  sfnt_swap16! (&raw mut (*OS_2).y_subscript_y_size);
+  sfnt_swap16! (&raw mut (*OS_2).y_subscript_x_offset);
+  sfnt_swap16! (&raw mut (*OS_2).y_subscript_y_offset);
+  sfnt_swap16! (&raw mut (*OS_2).y_superscript_x_size);
+  sfnt_swap16! (&raw mut (*OS_2).y_superscript_y_size);
+  sfnt_swap16! (&raw mut (*OS_2).y_superscript_x_offset);
+  sfnt_swap16! (&raw mut (*OS_2).y_superscript_y_offset);
+  sfnt_swap16! (&raw mut (*OS_2).y_strikeout_size);
+  sfnt_swap16! (&raw mut (*OS_2).y_strikeout_position);
+  sfnt_swap16! (&raw mut (*OS_2).s_family_class);
+
+  /* Read fields between ul_unicode_range and fs_last_char_index.  */
+  wanted = (SFNT_ENDOF! (sfnt_OS_2_table, fs_last_char_index, uint16_t)
+	    - std::mem::offset_of! (sfnt_OS_2_table, ul_unicode_range));
+  rc = read (fd, (&raw mut (*OS_2).ul_unicode_range) as *mut c_void, wanted);
+
+  if rc == -1 || rc != wanted as ssize_t
+    {
+      xfree (OS_2 as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap the remainder and return the table.  */
+  sfnt_swap32! (&raw mut (*OS_2).ul_unicode_range[0]);
+  sfnt_swap32! (&raw mut (*OS_2).ul_unicode_range[1]);
+  sfnt_swap32! (&raw mut (*OS_2).ul_unicode_range[2]);
+  sfnt_swap32! (&raw mut (*OS_2).ul_unicode_range[3]);
+  sfnt_swap16! (&raw mut (*OS_2).fs_selection);
+  sfnt_swap16! (&raw mut (*OS_2).fs_first_char_index);
+  sfnt_swap16! (&raw mut (*OS_2).fs_last_char_index);
+  return OS_2;
+}
+
+/* C 16383's form feed is dropped.  */
+
+/* PostScript metadata retrieval.
+
+   TrueType fonts electively incorporate a table of miscellaneous
+   information concerning such matters as the underline position or
+   whether the font is fixed pitch.  This table also assigns
+   human-readable names to glyphs, subject to the table format, but
+   these names are not read by the functions defined below.  */
+
+/* Read the header of a post table from the given font FD.  Refer to
+   the table directory SUBTABLE for its location.
+
+   Return the post table header if successful, NULL otherwise.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_post_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_post_table                                  // C 16398-16444
+{
+  let mut post: *mut sfnt_post_table;
+  let mut directory: *mut sfnt_table_directory;
+  let mut rc: ssize_t;
+
+  /* Search for the post table within SUBTABLE.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_POST);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Although the size of the table is affected by its format, this
+     function is meant to read only its header; guarantee that the
+     directory is that large.  */
+
+  if ((*directory).length as size_t) < std::mem::size_of::<sfnt_post_table> ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  post = xmalloc (std::mem::size_of::<sfnt_post_table> ()) as *mut sfnt_post_table;
+  rc = read (fd, post as *mut c_void, std::mem::size_of::<sfnt_post_table> ());
+
+  if rc == -1 || rc != std::mem::size_of::<sfnt_post_table> () as ssize_t
+    {
+      xfree (post as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Byte swap the data retrieved.  */
+  sfnt_swap32! (&raw mut (*post).format);
+  sfnt_swap32! (&raw mut (*post).italic_angle);
+  sfnt_swap16! (&raw mut (*post).underline_position);
+  sfnt_swap16! (&raw mut (*post).underline_thickness);
+  sfnt_swap32! (&raw mut (*post).is_fixed_pitch);
+  sfnt_swap32! (&raw mut (*post).min_mem_type_42);
+  sfnt_swap32! (&raw mut (*post).max_mem_type_42);
+  sfnt_swap32! (&raw mut (*post).min_mem_type_1);
+  sfnt_swap32! (&raw mut (*post).max_mem_type_1);
+
+  return post;
+}

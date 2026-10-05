@@ -11708,3 +11708,22 @@
   ⑤ **未声称**：这不是"能跑了"——只是**链接器把未解析符号数出来了**：`--report` 模式按设计`exit 0`，**没有产出 temacs**，
      没有任何 Lisp 表达式被求值，`build/femacs/*.o` 里有 139 个对象（部分是 336 字节的空对象、部分是平台文件），
      读数是**这一批对象的**读数、不是全量重编后的读数；205 条里 27 条沿用旧棘轮（说明清单本身也在演化）。
+
+- **3.580 lane 产出收口：`src/sfnt.c` 第八片落地（C 14,555-16,447；C 21,215 → Rust 10,763 行；`--check` 244 → 230）（2026-10-05）**：
+  ① **lane 的产出（Euler）**：`femacs/src/sfnt.rs` 8,447 → **10,763 行**（+2,316，md5 `387c378e…`；台账
+     `docs/ports/sfnt.md` 945 → 1,234 行）。落 14 个定义：`sfnt_read_packed_deltas`、`sfnt_read_cvar_table`、
+     `sfnt_init_blend`/`sfnt_free_blend`/`sfnt_normalize_blend`、`struct sfnt_gvar_glyph_header`、`sfnt_compute_tuple_scale`、
+     `sfnt_infer_deltas_2`/`_1`/`sfnt_infer_deltas`、`sfnt_vary_simple_glyph`/`sfnt_vary_compound_glyph`、`sfnt_vary_interpreter`、
+     `sfnt_read_OS_2_table`、`sfnt_read_post_table`；区间表的末行改成 `16448-21215` 的 remainder。
+  ② **读数**：`extract-abi --check` **244 → 230**（退掉的正是这 14 个函数，macro/constant 计数不变）；
+     `check-cond-eval.py src/sfnt.c` **31 conditions / 0 disagreements [VERIFIED]**；`build-tu` 3 发（首发 2 条新记录漏闸门，
+     末发 exit 0，336 字节空对象）；`probe`（`have_android`+`not_android_stubify`）3 发——首发 **17 错全属本片**（4×E0308、8×E0381、
+     2×E0425）已修，末发只剩 **5 条 mirror `E0425`（`time_t`/`timespec`）**，且**改前版同命令复现同样 5 条** ⇒ 与 scoped 于镜像。
+  ③ **集成者登记（我）**：本件 `--check` 仍 **FAIL**（余下 `missing macro` 147 条是文件其余部分的宏），**不加容差行**（行数漂移 49.3%
+     是"还没落完"的真信号）；`macro-body-notes.tsv` 收下该 lane 的 **8 行**（7 行 token note + 1 行段注释）。
+  ④ **门读数（本轮现读，全绿）**：`check-mirror-dupes` 17/17/0、`check-citations` 0 drift / 0 stale、`check-declarations` 0 failures、
+     `check-dead-file-coverage` 143/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0。
+  ⑤ **未声称**：本片**无任何运行期证据**（冻结态 336 字节空对象；某些修订下连对象都产不出）；**TEST 程序段（C 16448-21215）无闸门**
+     —— 该段挂在 `#ifdef TEST` 下，`build-tu` 与 flip 的 feature 集都不含 `test`，进去只能得到"仅解析过"的文本，所以本片**停在该边界**并
+     把裁决记为 Owed 21；`sfnt_gvar_glyph_header` 安放在 unit（Owed 20）、`sfnt_vary_interpreter` C 16271 的 `cvt[i]` 是 C 自己的怪癖、
+     按原文保留（Deviation 56/Owed 19）。

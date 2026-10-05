@@ -1,4 +1,4 @@
-# emacs/src/sfnt.c (21,215 lines) — slices 1-7: C 1-6306 plus C 10225-10663 and C 13918-14554
+# emacs/src/sfnt.c (21,215 lines) — slices 1-8: C 1-6306 plus C 10225-10663, C 13918-14554 and C 14555-16447
 
 > **P-86's largest unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 2645 adds `sfnt.o` to `ANDROID_OBJ` only inside the `XCONFIGURE = android`
@@ -6,8 +6,8 @@
 > 2598, which is why `src/android.c`'s file gate is `have_android` alone and this one is the
 > pair — and `docs/baseline/frozen-build-sources.txt` lists no `sfnt.o`.  What follows is P-86
 > ②'s **C line-range table** for these slices, the `## Evidence` readings and the
-> `## Deviations`.  Port: `femacs/src/sfnt.rs` (8,447 lines, `grep -c ''`; `extract-abi.py`'s
-> own count, 8,447, is the same newline count), both arms of every `#if` carried.
+> `## Deviations`.  Port: `femacs/src/sfnt.rs` (10,763 lines, `grep -c ''`; `extract-abi.py`'s
+> own count, 10,763, is the same newline count), both arms of every `#if` carried.
 >
 > **This file's ledger replaces the previous revision's conclusion** ("the file is not in the
 > frozen build, so the port is the empty unit plus a note"), exactly as `docs/ports/android.md`
@@ -106,7 +106,23 @@
 > (PORTING.md 0.1-12) and its only callee, `sfnt_validate_gs`, is in the file at C 10538's text.
 > What still gates the C 6316-10224 block is Owed 12's second half (`sfnt_make_interpreter`'s
 > C 6427-6431 `#ifdef TEST` hooks, whose three members the mirror deliberately does not declare).
-> The table's last row is "the remainder".
+>
+> **Slice 8 is C 14555-16447**, the rest of the glyph-variation group and the file's **last
+> non-TEST block**: the packed-delta reader `sfnt_read_packed_deltas` (C 14562-14618), the `cvar`
+> reader `sfnt_read_cvar_table` (C 14626-14950), the three blend helpers `sfnt_init_blend`
+> (C 14959-14975), `sfnt_free_blend` (C 14979-14983) and `sfnt_normalize_blend` (C 14988-15074),
+> the `gvar` glyph header record `sfnt_gvar_glyph_header` (C 15078-15088, defined in the `.c`,
+> not in `sfnt.h`), `sfnt_compute_tuple_scale` (C 15096-15174), the three interpolators
+> `sfnt_infer_deltas_2` (C 15184-15356), `sfnt_infer_deltas_1` (C 15361-15406) and
+> `sfnt_infer_deltas` (C 15434-15457), the two appliers `sfnt_vary_simple_glyph` (C 15488-15851)
+> and `sfnt_vary_compound_glyph` (C 15861-16212), `sfnt_vary_interpreter` (C 16221-16277) and the
+> two metadata readers `sfnt_read_OS_2_table` (C 16292-16381) and `sfnt_read_post_table`
+> (C 16398-16444).  The range **stops at C 16447** because C 16448's `#ifdef TEST` opens the test
+> harness and runs to C 21215 — measured: that `#ifdef TEST` matches the file's last `#endif` at
+> C 21215 — so C 16448-21215 is the remainder, and no gate type-checks it (the arm flip's feature
+> set carries no `test`, so every `sfnt_test_*`/`sfnt_check_*` item there would be parse-only
+> text).  **The next live definition after this range is C 16450's `struct sfnt_test_dcontext`**,
+> i.e. the TEST programme.  The table's last two rows are this range and "the remainder".
 
 ## Gate mapping
 
@@ -124,6 +140,7 @@
 | C 4547-4554's three file-scope `#define`s (`sfnt_add`/`sfnt_sub`/`sfnt_mul`), C 4959's `APPEND_STEP`, C 5011's `TRAPEZOID_AREA` and C 5083's `TRIANGLE_AREA` (the last three inside `sfnt_poly_edges_exact`), and their `#undef`s (C 5262, C 5265-5266) | `macro_rules!` at the same scope: file scope for the first three, the enclosing block for the three function-local ones — Rust's macros are textually scoped, so the `#undef`s have no text (Deviation 35) | every configuration (C's macros are unconditional) |
 | C 4322 `#ifndef NDEBUG` … C 4429 (`sfnt_fill_span`'s `row_end` and its four `eassert`s) | `feature = "no_ndebug"` — the frozen configuration **defines** `NDEBUG` (`docs/baseline/config/darwin-arm64.macros.tsv` 2892), so this is dead text and P-51's rule names the feature after the non-frozen side (the `no_signbit`/`no_rint` shape); C's `#else` is empty, so there is no second arm.  The name is **not registered** yet — Owed 8 | a configuration with `NDEBUG` undefined |
 | C 1837 / C 1891 (`sfnt_map_glyf_table`/`sfnt_unmap_glyf_table` are not `TEST_STATIC`: sfnt.h declares them `extern` at C 1490-1491) | plain `#[unsafe(no_mangle)] pub unsafe extern "C"` under the file gate + `not (feature = "test")` — no `cfg_attr` | a real Android non-TEST configuration |
+| C 16448 `#ifdef TEST` … C 21215 (the file's **last** `#endif`; the whole test programme) | **not ported** — the range table's last row is this range, and Owed 21 records why (the tree has no `<X11/Xlib.h>` mirror for C 57-58, and neither current gate sets `test`); when a lane takes it the gate is `all (file gate, feature = "test")`, the same `TEST` name C 49 already uses | nothing, today (the port carries no text behind it) |
 | C 34's `#include <stdlib.h>` / C 2451's `abort ()` and slice 4's `abs` (C 3712-3713, C 3812, C 4134) | the file gate; the unit carries C's two prototypes in use-site blocks at C 34's site (`lib/include/stdlib.rs` has `malloc` and friends but neither name, the `androidvfs.rs` 228-234 shape) | a real Android configuration |
 
 `not_android_stubify` is the feature the tree registered for C's `HAVE_ANDROID && !defined
@@ -189,9 +206,10 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 | 10225-10663 | the **graphics-state validation family**, placed at its own C position (P-91 ②): `sfnt_round_none` (C 10230-10234), `sfnt_round_to_grid` (C 10239-10243), `sfnt_round_to_double_grid` (C 10248-10253; C 10246's `020`/`037` octal pair), `sfnt_round_down_to_grid` (C 10258-10263), `sfnt_round_up_to_grid` (C 10268-10273), `sfnt_round_to_half_grid` (C 10278-10283), `sfnt_round_super` (C 10288-10305; the two `sfnt_add` sites and the `phase` ternary), `sfnt_round_super45` (C 10311-10330), `sfnt_project_onto_x_axis_vector` (C 10338-10343), `sfnt_project_onto_y_axis_vector` (C 10351-10356), `sfnt_dot_fix_14` (C 10360-10376; the compound-literal casts and the straddling shift), `sfnt_project_onto_any_vector` (C 10384-10391), `sfnt_dual_project_onto_any_vector` (C 10403-10410), `sfnt_move_x` (C 10417-10430), `sfnt_move_y` (C 10437-10450), `sfnt_move` (C 10456-10521; `vector_dot_product`, the two `versor` tests and the two `sfnt_multiply_divide_signed` calls), `sfnt_short_frac_dot` (C 10526-10530), `sfnt_validate_gs` (C 10537-10633; the eight-arm `switch` on `round_state`, the two `0o40000` projection tests, the `vector_dot_product` computation and the three `move` arms) and `sfnt_set_freedom_vector` (C 10639-10647) / `sfnt_set_projection_vector` (C 10653-10663) | file gate |
 | 10664-13917 | **the second unported block** — the remaining interpreter instructions (through the `#if defined HAVE_MMAP && !defined TEST` block at C 13795-13867), then C 13871-13917's `#ifndef TEST` arm: `sfnt_read_table` (C 13880-13915) and its `#endif /* !TEST */` | not this slice |
 | 13918-14554 | the **glyph-variation readers**: C 13919's form feed (dropped) and the "Glyph variations." banner (C 13921-13933); `sfnt_read_fvar_table` (C 13940-14155; C 13959 the `SFNT_ENDOF` minimum, C 14009-14015 the two `ckd_mul`/`ckd_add` pairs, C 14045-14046 the `alignof (struct sfnt_instance)` pad, C 14064-14068 the two derived pointers, C 14096-14098 the `alloca`/`xmalloc` fork, C 14100-14123 the per-instance read and `coords` walk, C 14133-14139 the PostScript-name arm, C 14143/14150 the two `xfree (buffer)` guards); `sfnt_read_gvar_table` (C 14164-14318; C 14220-14225 the long/short offset fork, C 14239-14241 the `ckd_add` pair, C 14271-14272 the `global_coords` pointer, C 14276/14300 the two `ckd_add`+`lseek` pairs, C 14293-14296 the `glyph_variation_data` pointer); `sfnt_read_avar_table` (C 14327-14443; C 14373-14377 the rest-of-table read, C 14396-14399 the two `ckd_add`s, C 14404 the bounds test, C 14414-14418 the realloc and the `correspondences` split, C 14420-14432 the second pass) and `sfnt_read_packed_points` (C 14460-14554; C 14473/14493 the two `data >= end` bails, C 14483's `(uint16_t *) -1`, C 14488-14497 the two-byte count, C 14519/14524-14525 and C 14534/14539-14540 the two unpacking walks) | file gate / `TEST_STATIC` on the three table readers |
-| 14555-21215 | **the remainder** — C 14556-14618's `sfnt_read_packed_deltas` (**the next live definition of this slice's own group**, which the slice stops one function short of), `sfnt_read_cvar_table` (C 14620+), the rest of the bytecode interpreter, `sfnt_interpret_*`, and the `#ifdef TEST` programs | not this slice |
+| 14555-16447 | **slice 8, the file's last non-TEST block**: C 14556-14561's comment and `sfnt_read_packed_deltas` (C 14562-14618; C 14573's `data >= end` bail, C 14584's `*data++` control byte, C 14593/14602 the two more bails, C 14596-14597's two-byte value, C 14612's write-back); the `cvar` reader `sfnt_read_cvar_table` (C 14626-14950; C 14649-14650 the `SFNT_ENDOF` minimum, C 14682's `& 0x0fff`, C 14683-14684 the signed `data_offset`, C 14692-14704 the three pointer initialisers and the zeroed `size`, C 14706-14717 the shared-point read, C 14720-14771 the size-computation walk with its five `ckd_add`s, C 14777-14780 the realloc and the two derived pointers, C 14787-14934 the second pass and its four `sfnt_read_packed_points`/`sfnt_read_packed_deltas` calls plus the four `cvt->num_elements` clamps, C 14937/14943 the two `(void *) -1` guards); the three blend helpers `sfnt_init_blend` (C 14959-14975; C 14972's `axis_count * sizeof *coords * 2` and the two pointers), `sfnt_free_blend` (C 14979-14983) and `sfnt_normalize_blend` (C 14988-15074; C 14998-15036 the three-way normalize with its two `sfnt_div_fixed` pairs, C 15041-15073 the avar walk and its `sfnt_multiply_divide_signed`); the record `struct sfnt_gvar_glyph_header` (C 15078-15088); `sfnt_compute_tuple_scale` (C 15096-15174; C 15103's two `UNINIT`, C 15107's `0200000`, C 15146-15148 the `MIN`/`MAX` fit test, C 15163/15167 the two `sfnt_multiply_divide` calls); the three interpolators `sfnt_infer_deltas_2` (C 15184-15356; C 15195's `j != pair_end` walk, C 15200-15208 the contour wrap, C 15262's `goto consider_y`, C 15334's `goto next`), `sfnt_infer_deltas_1` (C 15361-15406; C 15368's two `SIZE_MAX`, C 15380's `goto next`, C 15397's trailing pair) and `sfnt_infer_deltas` (C 15434-15457; C 15442-15456 the contour walk and its three-way bounds return); the two appliers `sfnt_vary_simple_glyph` (C 15488-15851; C 15518-15521 the offset fork, C 15530's `sizeof header` test, C 15559-15573 the shared-point read, C 15580-15587 the `alloca`/`xnmalloc` fork, C 15615-15663 the coordinate and intermediate reads, C 15668-15673 the scale test, C 15704-15813 the `switch (point_count)` with its `UINT16_MAX` and `default` arms, the touched/original arrays and the `sfnt_infer_deltas` call) and `sfnt_vary_compound_glyph` (C 15861-16212; the same walk against `num_components`, C 16152-16176 the two `flags` tests and the `argument1`/`argument2` writes); `sfnt_vary_interpreter` (C 16221-16277; C 16252-16254 the `ndeltas` ternary, C 16259's `points ? points[j] : j`, C 16261's `index > cvt_size` test, C 16271's `cvt[i] += delta`); and the two metadata readers `sfnt_read_OS_2_table` (C 16292-16381; C 16313-16317 the `minimum` sum with its `offsetof`, C 16331-16333 the read up to `panose`, C 16361-16364 the second read, the 23 swaps) and `sfnt_read_post_table` (C 16398-16444; C 16416's `sizeof *post` gate, the nine swaps) | file gate / `TEST_STATIC` on the fourteen public definitions |
+| 16448-21215 | **the remainder** — C 16448's `#ifdef TEST` (whose matching `#endif` is C 21215, the file's last line) and everything it opens: `struct sfnt_test_dcontext` (C 16450-16460, **the next definition**), the `sfnt_test_move_to`/`_line_to`/`_curve_to`/`_get_glyph`/`_free_glyph`/`_get_metrics`/`_span`/`_edge_ignore` callbacks (C 16465-16595), the X11 debugger `sfnt_setup_debugger`/`sfnt_test_edges`/`sfnt_debug_edges`/`sfnt_test_edge` (C 16596-16704, whose `<X11/Xlib.h>`/`<X11/extensions/Xrender.h>` mirrors the tree does not have — C 57-58), `sfnt_x_raster`/`sfnt_test_raster` (C 16705-16889), the interpreter test programme `sfnt_make_test_interpreter`/`sfnt_run_interpreter_test`/`sfnt_generic_check`/`sfnt_check_*` and its 166 `_test_args` objects (C 16890-21214) | not this slice |
 
-The fifty-four rows above tile C 1-21215 **contiguously** (blank lines included) rather than
+The fifty-five rows above tile C 1-21215 **contiguously** (blank lines included) rather than
 skipping the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
 `femacs/src/include/sfnt.rs` (this file's header's mirror) to this same `sfnt.md` through its
 bare-stem fallback, so a table with gaps at blanks would leave `src/sfnt.h`'s non-blank lines
@@ -396,6 +414,104 @@ failure(s)**, the same numbers slice 6 read. —
 [VERIFIED]**, unchanged (the C file is frozen; neither new range carries a `#if` - `awk` over
 C 10225-10663 and C 13918-14554 prints no line starting with `#` - so this slice adds nothing to
 the evaluator's set).
+
+**Slice 8's readings.**  The slice's `build-tu` used all **three of three** and its arm flip
+**three of three** (the third is the pre-slice control below): each reading had to identify its
+errors before the delivered revision could be the one measured, and the last `build-tu` run
+re-measures the file this ledger's header names.
+
+**① The frozen configuration (`build-tu`).**
+`cd femacs && CARGO_TARGET_DIR=/tmp/sfnt-lane/target cargo run -q -p xtask -- build-tu src/sfnt.c`
+→ `built src/sfnt.rs -> ../build/femacs/sfnt.o`, **exit 0**, and `build/femacs/sfnt.o` is
+**336 bytes** — the same empty object slices 1-7 measured, for the same reason (every item sits
+behind the file gate, so the frozen feature set compiles only `include/config.rs` and the
+`#![allow]` attribute).  The first run is a **type** reading of this unit's own new text, and of a
+class only the frozen build can produce: because the file's own `include!`s are behind the file
+gate, `uint16_t` is not in scope in that configuration, so an item written without the gate fails
+there — `2 × E0425: cannot find type uint16_t` at `_root.rs` 9117 and 9121, the two fields of
+`struct sfnt_gvar_glyph_header`, which had been spliced in without
+`#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]`; the second run is the
+clean reading above, and the third re-measures the **delivered** revision (md5
+`387c378e9e25d7ce54ec1d297aeae8cb`) — exit 0 and the same 336 bytes — because the unit's header
+comment was rewritten after the second run.  That header is comment text outside every gate (the
+slice-4 note above), and `diff` shows it is the **only** difference between the revision the arm
+flip measured (md5 `18fb814ec04a3fcf125a8633fa93795b`) and the delivered one.
+
+**② The arm flip (P-86 ③⑴ — this machine has the NDK, so `text-only` is not allowed).**
+`cargo run -q -p xtask -- probe src/sfnt.rs /tmp/sfnt-lane/sfnt_arm.o --crate-type lib --emit obj
+--cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'`
+→ **exit 1, and five of the seven `error` lines are not this unit's text**: `2 × E0425: cannot find
+type time_t` (`lib/include/sys_time.rs` 44 and 90) and `3 × E0425: cannot find type timespec`
+(`lib/include/sys_select.rs` 56, `src/include/thread.rs` 300 and 318).  **This slice's own text is
+clean in that reading.**  The first run of it was **17 errors, all of them this unit's**:
+`4 × E0308` — `*coords = *local.offset (j as isize)` and its `*points` twin needed
+`as sfnt_f2dot14` (C 14878/14896 assign `uint16_t` into `sfnt_f2dot14 *coords`), and the two
+`scale = sfnt_multiply_divide (…)` sites of `sfnt_compute_tuple_scale` needed `as sfnt_fixed`
+(that helper returns `c_uint`, C 15163/15167's implicit conversion) — and `8 × E0381`: `tuple`,
+`data_size`, `index` and `n_local_points` in `sfnt_vary_simple_glyph` and
+`sfnt_vary_compound_glyph` are C locals that precede any write but are read by `&raw mut` in the
+`sfnt_read_packed_points` call (C's declaration block, C 15497-15504/15870-15877); PORTING.md 1.5
+zeroes them (Deviation 53).  Every one of the 17 is retired in the delivered revision, and what
+remains is the mirror trio.  **That trio reproduces without this slice** — the third run of this
+budget: `cp /tmp/sfnt-lane/sfnt.rs.before femacs/src/sfnt.rs` (md5
+`80aed2e1701986817a5de1b3172e313c`, the revision slice 7's Evidence ⑤ records) and the same
+command → the *same five* `E0425`s at the same five sites, and `error: aborting due to 5 previous
+errors` again.  The cause is structural and belongs to the mirror graph: the probe's crate carries
+exactly one `pub type time_t` (`lib/include/time.in.rs` 36) and one `timespec`, and **both
+mirrors are included under C 52-53's `#ifdef TEST` arm** (`_root.rs` 175-178), which the arm flip's
+feature set does not enable, while `src/include/thread.rs` 33 includes `lib/include/sys_select.rs`
+unconditionally (C's `thread.h` 40 includes `sysselect.h` unconditionally) and `sys_select.rs` 27
+includes `sys_time.rs`.  It is Owed 16, not a defect of C 14555-16447.  The two warnings are the
+`lib/include/stdbit.in.rs` 644 "unused doc comment" and `src/include/lisp.rs` 3934 reading the
+earlier slices recorded.  This reading's revision is md5 `18fb814ec04a3fcf125a8633fa93795b`; the
+delivered revision (`387c378e9e25d7ce54ec1d297aeae8cb`) differs from it by the header comment's
+prose alone (①), so the reading is of this slice's code with a staler header comment.
+
+**③ The inventory check (`extract-abi.py --check`).**
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` → **230 missing rows**
+(`/tmp/sfnt-lane/abi-after.txt`), **down from 244** (`/tmp/sfnt-lane/abi-before.txt` taken before
+the first edit): **exactly the fourteen functions this range defines** — `sfnt_read_packed_deltas`,
+`sfnt_read_cvar_table`, `sfnt_init_blend`, `sfnt_free_blend`, `sfnt_normalize_blend`,
+`sfnt_compute_tuple_scale`, `sfnt_infer_deltas_2`, `sfnt_infer_deltas_1`, `sfnt_infer_deltas`,
+`sfnt_vary_simple_glyph`, `sfnt_vary_compound_glyph`, `sfnt_vary_interpreter`,
+`sfnt_read_OS_2_table`, `sfnt_read_post_table` — with the macro count (147) and the constant count
+(3) unchanged (the range defines no macro and no constant, and `awk` over C 14555-16447 prints no
+line starting with `#`).  The reading's other line is `- line count drifted 49.3%: C 21215 vs Rust
+10763` (slice 7's was 60.2%/8,447; the ladder is now 93.9%/1,298, 86.7%/2,811, 80.6%/4,113,
+75.6%/5,181, 70.5%/6,251, 66.1%/7,191, 60.2%/8,447, 49.3%/10,763).  **The eight `does not mention`
+rows the range's first reading produced are written by this lane** and the reading is re-taken
+(the ledger's Owed 17): `sfnt_read_packed_deltas` → `goto`, `sfnt_read_cvar_table` → `goto`,
+`sfnt_compute_tuple_scale` → `uninit`, `sfnt_infer_deltas_2` → `goto`, `sfnt_infer_deltas_1` →
+`goto`, `sfnt_vary_simple_glyph` → `alloca,case,default,goto,restrict,switch` and
+`sfnt_vary_compound_glyph` → the same six, each with its C lines and the port's spelling
+(`docs/ports/macro-body-notes.tsv`).  The delivered reading therefore has **no `does not mention`
+row at all**: 230 `- missing …` rows and the line-count row, nothing else.
+
+**④ Other gates (repo root, the delivered revision).**
+`python3 tools/check-dead-file-coverage.py` → **143 ledger(s) bound (a C range table), 0
+failure(s)**, and this ledger's own line is `info docs/ports/sfnt.md: 55 range row(s) cover
+src/sfnt.c (21215 lines; 0 blank line(s) between blocks need no row)` plus the same 55 rows over
+`src/sfnt.h` (2151 lines, the bare-stem fallback) — the table's last row, `14555-21215`, is now
+two (`14555-16447`, `16448-21215`), so the rows still tile C 1-21215 contiguously and the last row
+still reaches C 21215. —
+`python3 tools/check-port-lines.py` → **0 file(s) under ten percent, 0 reference line(s); 0
+ratchet row(s), 0 new, 0 stale** (this file's `docs/ports/line-drift-tolerance.tsv` row is still
+Owed 6's stale one, untouched; the ratio this slice moves is C 21,215 -> 10,763, 49.3% drift). —
+`python3 tools/check-ledger-ticks.py` → **238 ledger(s) bound (a function tick to compare), 0
+failure(s), 0 carried by another file, 352 row(s) with no function tick**, 0 row(s) without a
+ledger (unchanged: this ledger carries a range table, not a tick list; the reading would fail if
+one of this slice's fourteen `// C a-b` comments sat outside its row). —
+`python3 tools/check-declarations.py` → **17 declaration sites (0 forbidden, 17 allowed
+literals), 0 failures**; this slice adds none (every name it calls is already declared by an
+earlier slice or by the mirror). —
+`python3 tools/check-mirror-dupes.py` → **17 duplicate declaration(s), 17 ratchet row(s), 0
+failure(s)** (the count moves with the parallel lanes; this slice adds no mirror declaration — the
+one new record, `sfnt_gvar_glyph_header`, is defined in the unit precisely because `sfnt.h` does
+not have it). —
+`python3 tools/check-citations.py` → **676 file(s) scanned, 0 drift, 0 range, 1814 external, 36
+allowed, 0 stale**. —
+`python3 tools/check-cond-eval.py src/sfnt.c` → **31 conditions, 0 unknown, 0 disagreements
+[VERIFIED]**, unchanged (the C file is frozen and neither new range carries a `#if`).
 
 ## Deviations
 
@@ -761,6 +877,90 @@ the evaluator's set).
     the `_ => {}` arm Rust requires for exhaustiveness.  The `break,case,switch` row this owes
     `docs/ports/macro-body-notes.tsv` is Owed 14.
 
+53. **C's four pre-write locals in the two appliers are zeroed** (PORTING.md 1.5, Deviation 3's
+    class; measured: the arm flip's first run reports **8 × E0381**, Evidence ②).  `tuple` (read by
+    `data_offset += tuple - data` at C 15572/15941, where C passes `&tuple` as an out-parameter at
+    C 15562/15931), `data_size` and `index` (the tuple header's two `memcpy` destinations, whose
+    values `sfnt_swap16` then reads in place at C 15608-15609/15969-15970) and `n_local_points`
+    (the out-parameter at C 15683/16044) in `sfnt_vary_simple_glyph`/`sfnt_vary_compound_glyph`.
+    `sfnt_read_cvar_table`'s `data_size`/`index` (C 14637) are zeroed for the same reason even
+    though rustc's analysis accepts them (they are written by the `memcpy` before any value is
+    read); in every case the read follows a full write, so the zero is unobservable.
+
+54. **C's `int`-wide sums that narrow back are widened and wrapped.**  `distortion->origin +=
+    sfnt_mul_fixed_round (…)` (C 15732-15733, 15789, 15795, 16116-16117, 16135, 16141) is the
+    port's `(*distortion).origin = ((*distortion).origin as c_int).wrapping_add (…) as sfnt_fword`:
+    C adds at `int` width and converts back into the `sfnt_fword` (int16) member, and
+    `wrapping_add` is that machine arithmetic with no Rust overflow check; `interpreter->cvt[i] +=
+    delta` (C 16271) is `(*(*interpreter).cvt.offset (i as isize)).wrapping_add (delta)` for the
+    same reason (both operands are already `sfnt_f26dot6`).  The `x_coordinates[i] += fword`,
+    `d1 = (x_coordinates[..] - x[..])` and `position - max_pos` sites keep the plain form with
+    `as c_int` on each `int16_t` operand, because two `int16_t`s cannot overflow an `int32_t`
+    (Deviation 9's cast class); `delta = sfnt_sub! (max_pos, min_pos)` is `c_int` already.
+
+55. **`sfnt_multiply_divide` returns `c_uint`.**  C 15163/15167 assign it into the `sfnt_fixed
+    scale`; the port writes `as sfnt_fixed` at both sites (Deviation 9's cast class).
+    `sfnt_multiply_divide_signed` takes and returns `c_int`, so its three call sites (C 15068,
+    15150, 15226-15229's pair is `sfnt_div_fixed`) need no cast.
+
+56. **`sfnt_vary_interpreter`'s `cvt[i] += delta` keeps C's `i`** (Owed 19): C 16271 indexes the
+    control value table with the *tuple* index `i`, not the CVT index `index` it has just computed
+    at C 16259 — and C 16252's `ndeltas`/C 16259's `index` exist only for the loop bound and the
+    bounds test.  It is C's text, copied as it stands and recorded so that a later reviewer does
+    not "fix" it into a behaviour change.
+
+57. **C's mid-function declarations sit at C's positions.**  `void *coords_alloc` (C 15580/15949)
+    and `void *touched_alloc`/`original_x_alloc` (C 15594-15595) are `let mut …` at exactly those
+    lines of the port, which Rust allows (the C 3644 `size_t size;` precedent in this unit's own
+    slice-4 text, where a `let mut size: size_t;` also stands mid-body).  No initialiser moves and
+    no declaration is hoisted.
+
+58. **The `bail`/`fail` cascades are nested blocks.**  C's `goto bail2` lands on `bail2:` (frees
+    `points`), which falls into `bail1:` (frees `buffer`), which falls into `bail:` (frees `cvar`);
+    the port expresses that as `'bail: { … 'bail1: { … 'bail2: { … return cvar; } if points … }
+    xfree (buffer) } xfree (cvar)`, so every `break` lands on the same cleanup text C's three
+    labels do (PORTING.md 2.2, the `sfnt_read_avar_table` precedent).  The two appliers use the same
+    shape one level deeper — `'fail1: { 'fail3: { <loop> <success tail> } <fail3's three frees> }`
+    — with `'fail1` *outside* `'fail3`: `break 'fail1` (C's `goto fail1`, nine sites in
+    `sfnt_vary_simple_glyph` and eight in the compound twin) skips C 15837-15840/16201-16204's
+    three `xfree`s, while falling out of `'fail3` runs them and then C 15841/16205's `fail1` tail —
+    C's fall-through, with no cleanup text duplicated and no `goto` left.
+
+59. **`while (ntuples--)` keeps C's decrement-before-test order.**  C 14720, 15597 and 15958 are the
+    port's `while { ntuples = ntuples.wrapping_sub (1); ntuples != -1 }` (size_t: `!= SIZE_MAX`), so
+    the body sees the decremented value and the loop runs once per original unit, exactly as C's
+    post-decrement does.  The `for`-loop equivalents keep the `while i < ….as c_int { …; i += 1; }`
+    shape, with `i += 1; continue;` at each `continue` (Deviation 27's rule) — the sites are
+    C 15226's and C 15818's `continue`s (`sfnt_infer_deltas`'s `i` still gets its plain `i += 1` at
+    the loop's end), and in the appliers C 15673, 15790, 15796, 15801, 16034, 16137, 16143, 16147.
+
+60. **C's ternaries and boolean arguments are `if`/`else` expressions and comparisons.**
+    `ndeltas = (variation->points ? variation->num_points : interpreter->cvt_size)` (C 16252-16254)
+    and `index = variation->points ? variation->points[j] : j` (C 16259) are the port's
+    `if !(*variation).points.is_null () { … } else { … }` with `as size_t` on the `uint16_t` arm;
+    C's `index & 0x4000` boolean argument (C 15668/16029) is `(index & 0x4000) != 0`; and C's
+    `!scale` (C 15672/16033/16245) is `scale == 0`.
+
+61. **`(void *) -1` / `(uint16_t *) -1` / `(size_t) -1`.**  C 14937, 14943, 15818, 15828, 15848,
+    16185, 16192 and 16208's pointer tests are `!= (usize::MAX as *mut uint16_t)` (Deviation 4's
+    spelling; `sfnt_read_packed_points`' no-points return, Owed 2's row), and C 15368/15397's
+    `SIZE_MAX`/`(size_t) -1` pair is the port's `SIZE_MAX` (`include/stdint.in.rs` 244 spells it
+    `usize::MAX`).
+
+62. **The record `sfnt_gvar_glyph_header` is defined in the unit, not the mirror** (Owed 20).  C
+    15078-15088 declares it in the `.c`; the port defines it in `femacs/src/sfnt.rs` under the file
+    gate with `#[repr(C)]`, `Clone, Copy` and `pub` fields in C's order, so the mirror carries
+    nothing (`check-mirror-dupes` accordingly sees no new duplicate).  Its two `uint16_t` fields
+    have C's alignment; the frozen arm cannot measure it (nothing compiles the file) and the arm
+    flip only type-checks it.  The first `build-tu` reading's two `E0425`s were this item's: the
+    record needs the file gate like every other item in this file.
+
+63. **`(signed char) *data++` is `*data as int8_t as sfnt_fword`.**  C 14605 sign-extends the byte
+    into `sfnt_fword deltas[i]`, where `sfnt_read_packed_points`' own byte walk (C 14519, 14534)
+    reads the same byte *unsigned*; the port spells the two differently so the sign extension is on
+    the page (the `unsigned char`/`signed char` class the `sfntfont_android_*` rows record), and
+    C 14596's two-byte value is `((*data as c_uint) << 8u32) as uint16_t` for the same reason.
+
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
 1. **`TEST_STATIC`'s Rust form** — either a `docs/ports/excluded-macros.txt` row (`kind=syntax`,
@@ -902,6 +1102,64 @@ the evaluator's set).
     two extra runs bought a claim about md5 `80aed2e1701986817a5de1b3172e313c` rather than a
     different result.  `build-tu` used its whole budget (3 of 3) for the same reason.
 
+16. **The arm flip's five mirror `E0425`s** (Evidence ②'s second and third run, md5
+    `80aed2e1701986817a5de1b3172e313c` for the control): `2 × cannot find type time_t`
+    (`lib/include/sys_time.rs` 44/90) and `3 × cannot find type timespec`
+    (`lib/include/sys_select.rs` 56, `src/include/thread.rs` 300/318).  The probe's crate has
+    exactly one definition of each — `lib/include/time.in.rs` 36 / `timespec.rs` — and **both
+    mirrors are included under C 52-53's `#ifdef TEST` arm** (`build/probes/sfnt/_root.rs`
+    175-178), which the arm flip's feature set (`have_android`, `not_android_stubify`) does not
+    enable, while `src/include/thread.rs` 33 includes `sys_select.rs` unconditionally and
+    `sys_select.rs` 27 includes `sys_time.rs`.  **This reproduces on the pre-slice revision**, so it
+    is not this slice's text; but it *does* mean the arm flip's reading is no longer the "exit 0"
+    slice 7's Evidence ⑤ recorded, and one of two things has to give: either the probe for this
+    unit carries `--cfg 'feature="test"'` (which would also start type-checking the C 16448-21215
+    TEST programme, Owed 21), or `lib/include/time.in.rs`/`timespec.rs` need an include edge that
+    the non-TEST arm reaches (C's non-TEST `lisp.h` chain does reach `<sys/time.h>` through
+    `thread.h` 40's `sysselect.h`, so the mirror edge is the missing half of a real C edge).
+
+17. **`docs/ports/macro-body-notes.tsv` rows for slice 8** — the eight `does not mention` rows
+    Evidence ③'s first reading produced.  ✅ **Written by this lane** (appended, with the C lines
+    and the port's spelling): `sfnt_read_packed_deltas` → `goto`; `sfnt_read_cvar_table` → `goto`;
+    `sfnt_compute_tuple_scale` → `uninit` (Deviation 53's zeroing of C 15103's two `UNINIT`);
+    `sfnt_infer_deltas_2` → `goto`; `sfnt_infer_deltas_1` → `goto`; and
+    `sfnt_vary_simple_glyph`/`sfnt_vary_compound_glyph` → `alloca,case,default,goto,restrict,switch`
+    (Deviation 47's `sa_stack_alloc`, Deviation 8's `match`, Deviation 58's two blocks, and the
+    `restrict` qualifier, the `sfntfont_android_put_glyphs` row's class).  The re-taken reading has
+    no `does not mention` row left.  **It is the integrator's to review**: this lane wrote to an
+    append-only table, and `docs/ports/excluded-macros.txt` needed nothing (the range defines no
+    macro).
+
+18. **This lane's budgets**: `build-tu` **3 of 3** and `probe` **3 of 3**, and the overrun the
+    earlier slices reported does not recur — every run bought a distinct reading.  The three
+    `build-tu` runs are (i) the `2 × E0425: cannot find type uint16_t` reading of the new record's
+    missing gate (Deviation 62), (ii) the first clean reading, (iii) the re-measure of the
+    delivered revision after the header comment changed (Evidence ①).  The three `probe` runs are
+    (i) the 17-error reading of this slice's own text, (ii) the clean reading (five mirror
+    `E0425`s and nothing else), (iii) the pre-slice control that shows those same five reproduce on
+    md5 `80aed2e1701986817a5de1b3172e313c` (Evidence ②, Owed 16).  The first `build-tu` reading
+    and every `probe` reading are reported above, not hidden.
+
+19. **`sfnt_vary_interpreter`'s C-level indexing oddity** (Deviation 56) — recorded, not fixed:
+    C 16271 writes `cvt[i]` with the tuple index.  If the integrator decides this is a genuine
+    reference bug to be repaired, it is a *behaviour change* to C's text and needs its own decision
+    (this lane's read is that PORTING.md 0.3's "one statement = one statement, same order" keeps it
+    as it is).
+
+20. **The new record's home.**  `sfnt_gvar_glyph_header` is defined in the unit (Deviation 62)
+    because `sfnt.h` does not carry it; if the integrator prefers every record in a mirror, the
+    move is mechanical but changes this file's delivered bytes and would need a fresh arm reading.
+    Nothing else in the slice defines a type.
+
+21. **C 16448-21215 (the TEST programme) is the next lane's range, and no gate type-checks it.**
+    C 16448's `#ifdef TEST` matches the file's last `#endif` at C 21215, so everything from
+    `struct sfnt_test_dcontext` to the end is test-only text; the arm flip's feature set carries no
+    `test`, `build-tu` compiles nothing, and the tree has no `<X11/Xlib.h>`/`<X11/extensions/Xrender.h>`
+    mirror for C 57-58's include or C 16596-16690's `Display`/`Window`/`GC` statics.  A lane that
+    takes it needs a considered ruling (P-86 ③'s feature set, or an explicit
+    `docs/ports/excluded-macros.txt`-class exclusion for the X11 half), not a silent splice.  Owed
+    12's `sfnt_make_interpreter` TEST hook block (C 6427-6431) is the same class.
+
 ### Not claimed
 
 Every line of these slices is behind gates the frozen configuration leaves false: **① is an
@@ -943,3 +1201,34 @@ added, the 3,424 bytes the arm object grew (36,240 → 39,664) are a compile art
 `(uint16_t *) -1` return of `sfnt_read_packed_points` (C 14483) has never been compared against
 anything, and the `fail`-tail defect Deviation 51 reports is a *reading of the source*, not
 something this lane ran.
+
+Slice 8's fourteen definitions are the same kind of statement, one group further along.  The
+**`cvar` reader** `sfnt_read_cvar_table` (C 14626-14950) and the two appliers
+`sfnt_vary_simple_glyph`/`sfnt_vary_compound_glyph` (C 15488-15851, C 15861-16212) are C's public
+table reader and its glyph-variation entry points, and **nothing in the port calls them**: their C
+callers (`sfntfont.c`, `sfnt_init_blend`'s caller, the interpreter's variation setup and C
+16448+'s TEST programme) are all in the remainder, so no font file was opened, no `read`/`lseek`/
+`xmalloc`/`xrealloc`/`sa_stack_alloc` call inside them was executed, no `cvar` tuple was read, no
+packed delta was unpacked, no `sfnt_swap16` touched a byte of a real table, and no tuple scale,
+`gvar` outline or `OS/2`/`post` header was ever computed.  `sfnt_init_blend`/`sfnt_free_blend`/
+`sfnt_normalize_blend` (C 14959-15074) are the same: the `xmalloc`-and-split of `coords`/
+`norm_coords`, the three-way normalize and the `avar` walk have never run — nothing allocates a
+`struct sfnt_blend` in the port yet.  `sfnt_compute_tuple_scale` (C 15096-15174) and the three
+interpolators (C 15184-15457) are reached only from the two appliers and from
+`sfnt_vary_interpreter`, so their `MIN`/`MAX` fit tests, their `sfnt_multiply_divide*` calls and
+their contour wrap-around have never been evaluated; `sfnt_infer_deltas`'s three-way bounds
+`return` (C 15449-15452) is the only early exit of that group and has never been taken either.
+`sfnt_vary_interpreter` (C 16221-16277) needs `struct sfnt_interpreter`, which the port does not
+build (C 6316's `sfnt_init_graphics_state` and C 6358-6522's `sfnt_make_interpreter` are still the
+remainder's first block), so its `cvt[i] += delta` (Deviation 56) has never been executed and the
+C-level index oddity there is a *reading of the source*, not something this lane ran.
+`sfnt_read_OS_2_table`/`sfnt_read_post_table` (C 16292-16444) are readers whose callers
+(`sfntfont.c`'s font-attribute code) are in the remainder, so neither has opened a table.
+The **frozen reading (①) is an empty 336-byte object and the arm reading (②) produced an object
+that nothing ran** — and on this revision ② does not even reach an object: its five `E0425`s are
+the mirror graph's (Owed 16), with **this slice's own text clean of all 17 errors the first run
+reported** (Evidence ②).  The `.offset (… as isize)` / `&raw mut` / `wrapping_*` / `as` rewrites
+are compile-level and were measured by the compiler, not by a running program, and this file still
+has **no runtime evidence of any kind**.  C 16448-21215 is **not ported here**; the 230
+`- missing …` rows of Evidence ③, the 80 missing functions and the 49.3% drift are that boundary
+(C 14555-16447 moved fourteen functions and 2,316 Rust lines out of it).
