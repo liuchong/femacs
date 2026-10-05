@@ -205,7 +205,8 @@ block, and the union covers C 1-4304 without a gap.
 | 2791-3041 | **the remainder between the slices**: C 2793's `x_draw_xwidget_glyph_string` (C 2792-3041) and C 3042's blank | file gate - **owed** |
 | 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
 | 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
-| 3308-4304 | **the remainder**: C 3308's `xwidget-size-request` on to C 4304 - the rest of the ~50 subrs, the store/kill helpers and `syms_of_xwidget` (C 3928-4035, which owns the `defsubr`s and `DEFVAR`s) | file gate - **owed** |
+| 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
+| 3548-4304 | **the remainder**: C 3549's `xwidget-webkit-search` family, the store/kill helpers and `syms_of_xwidget` (C 3928-4035) | file gate - **owed** |
 
 ## Evidence` readings and the `## Deviations`.
 >
@@ -353,7 +354,8 @@ Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861)
 | 2791-3041 | **the remainder between the slices**: C 2793's `x_draw_xwidget_glyph_string` (C 2792-3041) and C 3042's blank | file gate - **owed** |
 | 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
 | 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
-| 3308-4304 | **the remainder**: C 3308's `xwidget-size-request` on to C 4304 - the rest of the ~50 subrs, the store/kill helpers and `syms_of_xwidget` (C 3928-4035, which owns the `defsubr`s and `DEFVAR`s) | file gate - **owed** |
+| 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
+| 3548-4304 | **the remainder**: C 3549's `xwidget-webkit-search` family, the store/kill helpers and `syms_of_xwidget` (C 3928-4035) | file gate - **owed** |
 
 ## Evidence
 
@@ -675,6 +677,48 @@ unit, which is where the file's third-party surface already is (its WebKit block
 `check-dead-file-coverage.py` re-read after the table change: `145 ledger(s), 0 failure(s)`.
 
 
+**⑫ Slice 5 (C 3308-3547): the readings of the round that landed it (2026-10-06, status 3.673).**
+
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **71 -> 56**
+rows.  The fifteen retired are the fifteen subrs this slice writes
+(`Fxwidget_size_request`, `Fxwidgetp`, `Fxwidget_view_p`, `Fxwidget_info`, `Fxwidget_view_info`,
+`Fxwidget_view_model`, `Fxwidget_view_window`, `Fdelete_xwidget_view`, `Fxwidget_view_lookup`,
+`Fxwidget_plist`, `Fxwidget_buffer`, `Fset_xwidget_buffer`, `Fset_xwidget_plist`,
+`Fset_xwidget_query_on_exit_flag`, `Fxwidget_query_on_exit_flag`); their `defsubr (&raw const S… )`
+rows stay until `syms_of_xwidget` lands (⑩ a).  Drift row: `25.7%: C 4304 vs Rust 5409`.
+
+b) **The frozen reading.**  `build-tu src/xwidget.c` -> built, `build/femacs/xwidget.o` **336
+bytes** - the empty object of the P-86 class.
+
+c) **The three arm flips against HEAD's own files** (HEAD is exactly "before slice 5"):
+
+| arm (`use_gtk` + `have_gtk3` + `have_xwidgets` + …) | own-text rows, HEAD | this slice | added | what the added rows are |
+| --- | --- | --- | --- | --- |
+| A: `have_x_windows` + `have_window_system` | 50 | 52 | **+2** | `no field kill_without_query` x2 (the registered class below) |
+| B: `have_pgtk` + `have_window_system` | 12 | 14 | **+2** | idem |
+| C: (no window system) | 23 | 25 | **+2** | idem |
+
+Every added row is the **one registered mirror-gap class** this file already carries (Owed 9, the
+P-80 storage unit for C 99's `bool_bf kill_without_query : 1`): C 3535 and C 3546 are the second and
+third sites of it, C 319 the first.  Nothing else in this slice adds a row in any arm.
+
+d) **The fix iterations behind c (four edits).**  Run 1: three `E0308`s - `g_signal_handler_disconnect`'s
+first parameter is the port's `*mut c_void` (`include/gtk.rs`), so C 3415/3422/3424's three calls
+cast their pointer.  Run 2: ARM C's one extra row (`no field widget on type xwidget_view`) showed
+that C 3429-3430's `#else` (USE_GTK *without* HAVE_X_WINDOWS) must be spelled `have_pgtk` in this
+tree: it is the arm in which the record's `widget` member exists (`include/xwidget.rs` 145-148 gates
+`dpyinfo`/`widget` on `all (use_gtk, have_pgtk)`) - the port follows the record's own reading of the
+arm, as Deviations 4 does for the Cocoa arms.  Run 3 is the table above.
+
+e) **One mirror edit, and P-87's two legs.**  `gtk_widget_size_request` (C 3319's call; GTK3's
+deprecated alias of `gtk_widget_get_preferred_size`, which `xterm.h` 1434-1445's GTK2 arm redefines)
+was added to `femacs/src/include/gtk.rs` beside that twin - the P-90 ② home of the GTK surface.
+Readings: `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
+`cargo run -q -p xtask -- layout-check` -> `layout-check passed (see build/femacs/layout_asserts.rs)`
+(both run because the edit is a mirror edit; P-87 ①).  `check-dead-file-coverage.py` re-read after the table
+change: `145 ledger(s), 0 failure(s)`.
+
+
 ## Deviations
 
 1. **Include order.**  C's list starts at `"buffer.h"` (C 22) and reaches `"lisp.h"` at C 25;
@@ -754,11 +798,15 @@ unit, which is where the file's third-party surface already is (its WebKit block
    `widget_search_data new_data` (C 994) needs the record to be `Copy`, which the unit's own copy
    derives.  `Fget_buffer_xwidgets`'s `buffer` parameter is reassigned at C 706, so the port rebinds
    it (`let mut buffer = buffer;`, the `src/androidmenu.rs` `contents` shape).
-9. **Two C statements cannot be carried and are named rather than stubbed.**  `(*xw).kill_without_query
-   = false;` (C 319) has no field to write - `include/xwidget.rs` records the bitfield instead of
-   storing it - and the arm compile reports it (Evidence ②); `XG_XWIDGET`/`XG_XWIDGET_VIEW` are
-   `&CStr` constants in that mirror, so C's string macro arrives as `XG_XWIDGET.as_ptr ()` at
-   C 436-437.
+9. **C statements the mirror has no field for, carried and named rather than stubbed.**  The
+   `kill_without_query` one now has **three sites**: `(*xw).kill_without_query = false;` (C 319),
+   `(*XXWIDGET (xwidget)).kill_without_query = NILP (flag);` (C 3535) and the getter's read
+   (C 3546).  `include/xwidget.rs` records C 99's `bool_bf … : 1` instead of storing it (P-80
+   requires the record's byte dump first, and this record cannot be compiled here), and the arm
+   compile reports `no field kill_without_query` for each site (Evidence ⑫ c: two of the three are
+   this round's).  **P-80's storage unit for `struct xwidget` is the fix, and it now unblocks three
+   sites.**  Separately and unchanged: `XG_XWIDGET`/`XG_XWIDGET_VIEW` are `&CStr` constants in that
+   mirror, so C's string macro arrives as `XG_XWIDGET.as_ptr ()` at C 436-437.
 10. **`xw_forward_event_translate` returns C's `int`, not a Rust `bool`.**  C 217 assigns it to a
     `bool`, and the port keeps the C type on the function and spells the conversion `!= 0` at the
     call site (the `src/androidmenu.rs` `popup_activated_flag` shape).
@@ -887,6 +935,31 @@ unit, which is where the file's third-party surface already is (its WebKit block
    should carry it, and this unit's Owed list says so.
 
 
+### Slice 5 (C 3308-3547, status 3.673)
+
+1. **C 3429-3430's `#else` is spelled `have_pgtk`** (the arm in which `include/xwidget.rs` 145-148
+   declares `dpyinfo`/`widget`), not `not (feature = "have_x_windows")` - see Evidence ⑫ d.
+2. **C 3535 and C 3546 are carried as C writes them** (`(*XXWIDGET (xwidget)).kill_without_query =
+   NILP (flag);` and the read in the getter), with the same comment the C 319 site carries: the
+   record's `bool_bf … : 1` is **recorded, not packed** by the mirror, so there is no field to write
+   and the arm compile reports `no field kill_without_query` - neither stubbed nor dropped
+   (goal constraint 3).  **Owed 9 now names three sites** (C 319, C 3535, C 3546), which is the case
+   for landing P-80's storage unit for this record.
+3. **Three EMACS_INT casts**: `list2i` (lisp.h 2078) and `make_fixed_natnum` (lisp.h 781) take
+   `EMACS_INT`, and C 3320/3354/3366-3368 pass `gint`/`c_int`/`EMACS_INT` mixes implicitly.
+4. **`GtkRequisition requisition;`** (C 3318) is C's *uninitialised* local, so the port writes
+   `core::mem::zeroed ()` (PORTING.md 1.5 / P-13) and passes `&mut requisition`.
+5. **`g_signal_handler_disconnect`'s first parameter** is the port's `*mut c_void`; C 3415/3422/
+   3424 pass `GdkWindow *`/`GtkWidget *`, so each call casts.
+6. **`XDestroyWindow`** (C 3410) is declared at the use site (X11/Xlib.h's prototype in a `/// C:`
+   line, the `XMoveWindow` family's shape at line 2694-2710).
+7. **`nsxwidget_get_size`** (C 3322, nsxwidget.h 47) and **`nsxwidget_delete_view`** (C 3443,
+   nsxwidget.h 48) are declared at the use site under the file gate + `ns_impl_cocoa` (P-72 rule 4).
+8. **`xwidget-view-lookup`'s `window` parameter is rebound** (`let mut window = window;`) because
+   C 3463 assigns it - the `window.rs` 4267 shape, spelled from the start rather than after a
+   failed arm run.
+
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. `femacs/xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
@@ -948,14 +1021,15 @@ unit, which is where the file's third-party surface already is (its WebKit block
    only; **slice 2 flips them** (ARM A11 sets `have_xinput2`/`have_xinput2_4`, Evidence ⑧) but the
    arm cannot *resolve* until `XIEventMask`/`x_display_info` land in `include/xterm.rs` (owed 10),
    so the reading is still a name-resolution one and not a compile.
-7. **The next slices.**  Slices 3 and 4 (status 3.671, 3.672) landed C 2717-2790, C 3042-3116 and
-   C 3117-3307; what is left is **C 2791-3041** (C 2793's `x_draw_xwidget_glyph_string`, the
-   densest function in the file: the `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms,
-   `XCreateWindow`/`XISelectEvents`/`cairo_xlib_surface_create`) and **C 3308-4304** (the remaining
-   ~50 subrs, the store/kill helpers and `syms_of_xwidget`, C 3928-4035).  **`syms_of_xwidget` is
-   what retires the `defsubr (&raw const S… )` rows of the seven subrs already ported**, so it is
-   the single row that moves the most names.  The C line-range table carries both fronts as its
-   **owed** rows.
+7. **The next slices.**  Slices 3-5 (status 3.671, 3.672, 3.673) landed C 2717-2790, C 3042-3116,
+   C 3117-3307 and C 3308-3547; what is left is **C 2791-3041** (C 2793's
+   `x_draw_xwidget_glyph_string`, the densest function in the file: the
+   `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms, `XCreateWindow`/`XISelectEvents`/
+   `cairo_xlib_surface_create`) and **C 3548-4304** (the `xwidget-webkit-search` family, the
+   store/kill helpers and `syms_of_xwidget`, C 3928-4035).  **`syms_of_xwidget` is what retires the
+   `defsubr (&raw const S… )` rows of the twenty-two subrs now ported**, so it is the single row
+   that moves the most names - and it must land *after* the subrs it registers.  The C line-range
+   table carries both fronts as its **owed** rows.
 
 
 8. **The mirror's GDK event records need the members this slice reads.**  The ARM A11 reading's 84

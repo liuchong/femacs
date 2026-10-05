@@ -1381,6 +1381,12 @@ unsafe extern "C" {
   /// C: gtk/gtkwidget.h: `void gtk_widget_get_preferred_size (GtkWidget *widget, GtkRequisition
   /// *minimum_size, GtkRequisition *natural_size);` (xterm.h 1434-1445's GTK2 arm redefines the
   /// name as `gtk_widget_size_request`, which `include/xterm.rs` 1016-1021 carries).
+  /// C 3319 (src/xwidget.c): `gtk_widget_size_request (XXWIDGET (xwidget)->widget_osr,
+  /// &requisition);` - GTK3's deprecated alias of `gtk_widget_get_preferred_size` above
+  /// (`xterm.h` 1434-1445's GTK2 arm redefines the name; GTK3 declares both).
+  /// C: gtk/gtkwidget.h: `void gtk_widget_size_request (GtkWidget *widget, GtkRequisition
+  /// *requisition);`
+  pub fn gtk_widget_size_request (widget: *mut GtkWidget, requisition: *mut GtkRequisition);
   pub fn gtk_widget_get_preferred_size (widget: *mut GtkWidget,
                                         minimum_size: *mut GtkRequisition,
                                         natural_size: *mut GtkRequisition);

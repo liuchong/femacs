@@ -5112,3 +5112,298 @@ DEFUN! ("xwidget-resize", Fxwidget_resize, Sxwidget_resize, 3, 3, 0,
 unsafe extern "C" {
   pub fn nsxwidget_resize (xw: *mut xwidget);
 }
+
+/* C 3308's `DEFUN ("xwidget-size-request", …)` on: slice 5.  The C line-range table's row
+   3308-4304 is still the owed remainder, and this slice lands C 3308-3547; C 3548 on (the
+   `xwidget-webkit-search` family, the store/kill helpers and `syms_of_xwidget`) is next.  */
+
+/// C 3308-3313: `DEFUN ("xwidget-size-request", Fxwidget_size_request, Sxwidget_size_request, 1,
+/// 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-size-request", Fxwidget_size_request, Sxwidget_size_request, 1, 1, 0,
+       doc: "Return the desired size of the XWIDGET.\nThis can be used to read the xwidget desired size, and resizes the\nEmacs allocated area accordingly.",
+       (xwidget: Lisp_Object),
+       {
+  CHECK_LIVE_XWIDGET (xwidget);
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  let mut requisition: GtkRequisition = core::mem::zeroed ();
+  gtk_widget_size_request ((*XXWIDGET (xwidget)).widget_osr, &mut requisition);
+  return list2i (requisition.width as EMACS_INT, requisition.height as EMACS_INT);
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  return nsxwidget_get_size (XXWIDGET (xwidget));
+  }
+});
+
+/// C 3321-3322's `#elif defined NS_IMPL_COCOA` arm's callee.
+/// C: nsxwidget.h 47: `Lisp_Object nsxwidget_get_size (struct xwidget *xw);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_get_size (xw: *mut xwidget) -> Lisp_Object;
+}
+
+/// C 3326-3328: `DEFUN ("xwidgetp", Fxwidgetp, Sxwidgetp, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidgetp", Fxwidgetp, Sxwidgetp, 1, 1, 0,
+       doc: "Return t if OBJECT is an xwidget.",
+       (object: Lisp_Object),
+       {
+  return if XWIDGETP (object) { Qt () } else { Qnil () };
+});
+
+/// C 3335-3338: `DEFUN ("xwidget-view-p", Fxwidget_view_p, Sxwidget_view_p, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-view-p", Fxwidget_view_p, Sxwidget_view_p, 1, 1, 0,
+       doc: "Return t if OBJECT is an xwidget-view.",
+       (object: Lisp_Object),
+       {
+  return if XWIDGET_VIEW_P (object) { Qt () } else { Qnil () };
+});
+
+/// C 3344-3348: `DEFUN ("xwidget-info", Fxwidget_info, Sxwidget_info, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-info", Fxwidget_info, Sxwidget_info, 1, 1, 0,
+       doc: "Return XWIDGET properties in a vector.\nCurrently [TYPE TITLE WIDTH HEIGHT].",
+       (xwidget: Lisp_Object),
+       {
+  CHECK_LIVE_XWIDGET (xwidget);
+  let xw: *mut xwidget = XXWIDGET (xwidget);
+  return CALLN! (Fvector, (*xw).r#type, (*xw).title,
+		 make_fixed_natnum ((*xw).width as EMACS_INT),
+		 make_fixed_natnum ((*xw).height as EMACS_INT));
+});
+
+/// C 3357-3361: `DEFUN ("xwidget-view-info", Fxwidget_view_info, Sxwidget_view_info, 1, 1, 0,
+/// doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-view-info", Fxwidget_view_info, Sxwidget_view_info, 1, 1, 0,
+       doc: "Return properties of XWIDGET-VIEW in a vector.\nCurrently [X Y CLIP_RIGHT CLIP_BOTTOM CLIP_TOP CLIP_LEFT].",
+       (xwidget_view: Lisp_Object),
+       {
+  CHECK_XWIDGET_VIEW (xwidget_view);
+  let xv: *mut xwidget_view = XXWIDGET_VIEW (xwidget_view);
+  return CALLN! (Fvector, make_fixnum ((*xv).x as EMACS_INT), make_fixnum ((*xv).y as EMACS_INT),
+		 make_fixnum ((*xv).clip_right as EMACS_INT),
+		 make_fixnum ((*xv).clip_bottom as EMACS_INT),
+		 make_fixnum ((*xv).clip_top as EMACS_INT),
+		 make_fixnum ((*xv).clip_left as EMACS_INT));
+});
+
+/// C 3371-3374: `DEFUN ("xwidget-view-model", Fxwidget_view_model, Sxwidget_view_model, 1, 1, 0,
+/// doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-view-model", Fxwidget_view_model, Sxwidget_view_model, 1, 1, 0,
+       doc: "Return the model associated with XWIDGET-VIEW.",
+       (xwidget_view: Lisp_Object),
+       {
+  CHECK_XWIDGET_VIEW (xwidget_view);
+  return (*XXWIDGET_VIEW (xwidget_view)).model;
+});
+
+/// C 3381-3384: `DEFUN ("xwidget-view-window", Fxwidget_view_window, Sxwidget_view_window, 1, 1,
+/// 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-view-window", Fxwidget_view_window, Sxwidget_view_window, 1, 1, 0,
+       doc: "Return the window of XWIDGET-VIEW.",
+       (xwidget_view: Lisp_Object),
+       {
+  CHECK_XWIDGET_VIEW (xwidget_view);
+  return (*XXWIDGET_VIEW (xwidget_view)).w;
+});
+
+/// C 3392-3395: `DEFUN ("delete-xwidget-view", Fdelete_xwidget_view, Sdelete_xwidget_view, 1, 1,
+/// 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("delete-xwidget-view", Fdelete_xwidget_view, Sdelete_xwidget_view, 1, 1, 0,
+       doc: "Delete the XWIDGET-VIEW.",
+       (xwidget_view: Lisp_Object),
+       {
+  CHECK_XWIDGET_VIEW (xwidget_view);
+  let xv: *mut xwidget_view = XXWIDGET_VIEW (xwidget_view);
+
+  block_input ();
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  let xw: *mut xwidget = XXWIDGET ((*xv).model);
+  let mut w: *mut GdkWindow;
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+  {
+  use x11_constants::None;
+  if (*xv).wdesc != None as Window
+    {
+      cairo_destroy ((*xv).cr_context);
+      cairo_surface_destroy ((*xv).cr_surface);
+      XDestroyWindow ((*xv).dpy, (*xv).wdesc);
+      Fremhash (make_fixnum ((*xv).wdesc as EMACS_INT), x_window_to_xwv_map);
+    }
+
+  if !(*xv).last_crossing_window.is_null ()
+    {
+      g_signal_handler_disconnect ((*xv).last_crossing_window as *mut c_void,
+				   (*xv).last_crossing_cursor_signal as gulong);
+    }
+  g_clear_pointer! (&raw mut (*xv).last_crossing_window,
+		    g_object_unref);
+
+  if !(*xv).passive_grab.is_null ()
+    {
+      g_signal_handler_disconnect ((*xv).passive_grab as *mut c_void,
+				   (*xv).passive_grab_destruction_signal as gulong);
+      g_signal_handler_disconnect ((*xv).passive_grab as *mut c_void,
+				   (*xv).passive_grab_drag_signal as gulong);
+      (*xv).passive_grab = core::ptr::null_mut ();
+    }
+  }
+  /* C 3429-3430's `#else`: USE_GTK *without* HAVE_X_WINDOWS.  The port spells that arm
+     `have_pgtk`, because it is the arm in which the record's `widget` member exists
+     (`include/xwidget.rs` 145-148 gates `dpyinfo`/`widget` on `all (use_gtk, have_pgtk)`) -
+     the same "follow the mirror's own reading of the arm" shape Deviations 4 records.  */
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
+  {
+  gtk_widget_destroy ((*xv).widget);
+  }
+
+  if (*xw).embedder_view == xv as *mut c_void && !NILP ((*xw).buffer)
+    {
+      w = gtk_widget_get_window ((*xw).widgetwindow_osr);
+
+      (*XXWIDGET ((*xv).model)).embedder_view = core::ptr::null_mut ();
+      (*XXWIDGET ((*xv).model)).embedder = core::ptr::null_mut ();
+
+      gdk_offscreen_window_set_embedder (w, core::ptr::null_mut ());
+    }
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  nsxwidget_delete_view (xv);
+  }
+
+  internal_xwidget_view_list = Fdelq (xwidget_view, internal_xwidget_view_list);
+  Vxwidget_view_list = Fcopy_sequence (internal_xwidget_view_list);
+  unblock_input ();
+  return Qnil ();
+});
+
+/// C 3442-3443's `#elif defined NS_IMPL_COCOA` arm's callee.
+/// C: nsxwidget.h 48: `void nsxwidget_delete_view (struct xwidget_view *xv);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_delete_view (xv: *mut xwidget_view);
+}
+
+/// C 3392-3395's `XDestroyWindow`: X11/Xlib.h's declaration, at the use site (this unit's
+/// X11 surface, P-72 rule 4; the `XMoveWindow` family at line 2694-2710 is the same shape).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+unsafe extern "C" {
+  /// C 3410: `XDestroyWindow (xv->dpy, xv->wdesc);`
+  /// C: X11/Xlib.h: `int XDestroyWindow (Display *display, Window w);`
+  pub fn XDestroyWindow (display: *mut Display, w: Window) -> c_int;
+}
+
+/// C 3452-3457: `DEFUN ("xwidget-view-lookup", Fxwidget_view_lookup, Sxwidget_view_lookup, 1, 2,
+/// 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-view-lookup", Fxwidget_view_lookup, Sxwidget_view_lookup, 1, 2, 0,
+       doc: "Return the xwidget-view associated with XWIDGET in WINDOW.\nIf WINDOW is unspecified or nil, use the selected window.\nReturn nil if no association is found.",
+       (xwidget: Lisp_Object, window: Lisp_Object),
+       {
+  let mut window: Lisp_Object = window;
+  CHECK_XWIDGET (xwidget);
+
+  if NILP (window)
+    { window = Fselected_window (); }
+  CHECK_WINDOW (window);
+
+  let mut tail: Lisp_Object = internal_xwidget_view_list;
+  while CONSP (tail)
+    {
+      let xwidget_view: Lisp_Object = XCAR (tail);
+      if EQ (Fxwidget_view_model (xwidget_view), xwidget)
+          && EQ (Fxwidget_view_window (xwidget_view), window)
+        { return xwidget_view; }
+      tail = XCDR (tail);
+    }
+
+  return Qnil ();
+});
+
+/// C 3478-3481: `DEFUN ("xwidget-plist", Fxwidget_plist, Sxwidget_plist, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-plist", Fxwidget_plist, Sxwidget_plist, 1, 1, 0,
+       doc: "Return the plist of XWIDGET.",
+       (xwidget: Lisp_Object),
+       {
+  CHECK_LIVE_XWIDGET (xwidget);
+  return (*XXWIDGET (xwidget)).plist;
+});
+
+/// C 3488-3491: `DEFUN ("xwidget-buffer", Fxwidget_buffer, Sxwidget_buffer, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-buffer", Fxwidget_buffer, Sxwidget_buffer, 1, 1, 0,
+       doc: "Return the buffer of XWIDGET.",
+       (xwidget: Lisp_Object),
+       {
+  CHECK_XWIDGET (xwidget);
+  return (*XXWIDGET (xwidget)).buffer;
+});
+
+/// C 3498-3501: `DEFUN ("set-xwidget-buffer", Fset_xwidget_buffer, Sset_xwidget_buffer, 2, 2, 0,
+/// doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("set-xwidget-buffer", Fset_xwidget_buffer, Sset_xwidget_buffer, 2, 2, 0,
+       doc: "Set XWIDGET's buffer to BUFFER.",
+       (xwidget: Lisp_Object, buffer: Lisp_Object),
+       {
+  CHECK_LIVE_XWIDGET (xwidget);
+  CHECK_BUFFER (buffer);
+
+  (*XXWIDGET (xwidget)).buffer = buffer;
+  return Qnil ();
+});
+
+/// C 3511-3515: `DEFUN ("set-xwidget-plist", Fset_xwidget_plist, Sset_xwidget_plist, 2, 2, 0,
+/// doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("set-xwidget-plist", Fset_xwidget_plist, Sset_xwidget_plist, 2, 2, 0,
+       doc: "Replace the plist of XWIDGET with PLIST.\nReturns PLIST.",
+       (xwidget: Lisp_Object, plist: Lisp_Object),
+       {
+  CHECK_LIVE_XWIDGET (xwidget);
+  CHECK_LIST (plist);
+
+  (*XXWIDGET (xwidget)).plist = plist;
+  return plist;
+});
+
+/// C 3525-3531: `DEFUN ("set-xwidget-query-on-exit-flag", Fset_xwidget_query_on_exit_flag,
+/// Sset_xwidget_query_on_exit_flag, 2, 2, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("set-xwidget-query-on-exit-flag", Fset_xwidget_query_on_exit_flag,
+       Sset_xwidget_query_on_exit_flag, 2, 2, 0,
+       doc: "Specify if query is needed for XWIDGET when Emacs is exited.\nIf the second argument FLAG is non-nil, Emacs will query the user before\nexiting or killing a buffer if XWIDGET is running.\nThis function returns FLAG.",
+       (xwidget: Lisp_Object, flag: Lisp_Object),
+       {
+  CHECK_LIVE_XWIDGET (xwidget);
+  /* C 99's `bool_bf kill_without_query : 1` is recorded, not packed, by `include/xwidget.rs`
+     (its own note; P-80 requires the record's byte dump before a storage unit may stand for a
+     bitfield, and this record cannot be compiled here).  C's statement is carried as C writes
+     it - neither stubbed nor dropped - and the arm compile reports `no field
+     kill_without_query` for the line below - the registered mirror-gap class (Owed 9).  */
+  (*XXWIDGET (xwidget)).kill_without_query = NILP (flag);
+  return flag;
+});
+
+/// C 3539-3542: `DEFUN ("xwidget-query-on-exit-flag", Fxwidget_query_on_exit_flag,
+/// Sxwidget_query_on_exit_flag, 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-query-on-exit-flag", Fxwidget_query_on_exit_flag,
+       Sxwidget_query_on_exit_flag, 1, 1, 0,
+       doc: "Return the current value of the query-on-exit flag for XWIDGET.",
+       (xwidget: Lisp_Object),
+       {
+  CHECK_LIVE_XWIDGET (xwidget);
+  /* The same mirror gap as the setter above (Owed 9).  */
+  return if (*XXWIDGET (xwidget)).kill_without_query { Qnil () } else { Qt () };
+});

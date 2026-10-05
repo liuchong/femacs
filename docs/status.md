@@ -13744,3 +13744,32 @@
   ⑦ **未声称**：C 2791-3041（`x_draw_xwidget_glyph_string`）与 C 3308-4304 一行未动；冻结档仍编译不到这个文件；
      三组翻臂都是**编译**不是链接/加载；没有跑任何行为。
   ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 7 发（本片 3 + HEAD 基线 3 + 一次目录用）、`--check` 4 发、文本门 2 发；`/tmp` 脚本收工删。
+
+- **3.673 `src/xwidget.c` 的第五片：C 3308-3547（15 个 subr，含 `delete-xwidget-view` 的三条手臂）落地——`--check` 的 `- ` 行 71 → **56**（一次退场 15 条）；三组翻臂对 HEAD **各新增 2 行，且两行都是本文件已登记的那一个镜像缺口类**（`kill_without_query`，Owed 9）；一处镜像改动，P-87 两条腿都跑了（2026-10-06）**：
+  ① **范围**：`xwidget-size-request`（C 3308-3324，`GtkRequisition` + `gtk_widget_size_request` / `list2i`）、
+     `xwidgetp`、`xwidget-view-p`、`xwidget-info`、`xwidget-view-info`、`xwidget-view-model`、`xwidget-view-window`、
+     `delete-xwidget-view`（C 3392-3450：`USE_GTK` × `HAVE_X_WINDOWS` 的 cairo/X11 段、`HAVE_PGTK` 的 `gtk_widget_destroy`、
+     `NS_IMPL_COCOA` 的 `nsxwidget_delete_view`）、`xwidget-view-lookup`、`xwidget-plist`、`xwidget-buffer`、
+     `set-xwidget-buffer`、`set-xwidget-plist`、`set-xwidget-query-on-exit-flag`、`xwidget-query-on-exit-flag`。
+  ② **读数**：`extract-abi --check` **71 → 56**（15 条 subr 行退场；它们的 `defsubr (&raw const S… )` 行照旧等
+     `syms_of_xwidget`，那一行现在能退 **22 个**已落地 subr 的注册行）；行数棘轮 `25.7%: C 4304 vs Rust 5409`；
+     冻结档 `build-tu` 仍是 **336 字节空对象**。
+  ③ **三组翻臂（对 HEAD 的同名文件）**：A 50 → **52**、B 12 → **14**、C 23 → **25**，**每组新增的都是同两行**：
+     `no field kill_without_query on type xwidget`（C 3535 与 C 3546，Owed 9 那一个已登记类；C 319 是第一处，现在共三处）。
+     除此之外本片在任何手臂里**零新增**。
+  ④ **修复迭代（四处）**：三处 `E0308`——`g_signal_handler_disconnect` 的第一个形参在端口是 `*mut c_void`，
+     C 3415/3422/3424 传的是 `GdkWindow *`/`GtkWidget *`，各补一次 cast；C 组的第 3 行（`no field widget on type xwidget_view`）
+     量出 C 3429-3430 的 `#else`（USE_GTK **而没有** HAVE_X_WINDOWS）在本树里要写成 `have_pgtk`——那是记录里
+     `dpyinfo`/`widget` 两个成员**存在**的那条手臂（`include/xwidget.rs` 145-148 的门是 `all (use_gtk, have_pgtk)`），
+     端口因此按记录自己的读法写手臂（与 Deviations 4 的 Cocoa 手臂同一形状）。
+  ⑤ **一处镜像改动 + P-87 两条腿**：`gtk_widget_size_request`（C 3319 的调用；GTK3 里是 `gtk_widget_get_preferred_size`
+     的弃用别名，`xterm.h` 1434-1445 的 GTK2 手臂重定义过它）按 P-90 ② 加进 `femacs/src/include/gtk.rs`，紧挨它的 GTK3 孪生；
+     `tools/check-all-units.sh` → **`checked 83 unit(s), 0 failure(s)`**、`cargo run -q -p xtask -- layout-check` → **`layout-check passed`**。
+  ⑥ **账目**：C 区间表两处副本把"3308-4304 一整行"拆成 **3308-3547 transcribed / 3548-4304 owed**；新增 Evidence ⑫（a-e，
+     含 HEAD 对照表与"新增两行是哪两行"的逐行点名）、`### Slice 5` 的 8 条偏离；Owed 7 更新（下一片两处前沿，
+     并点名 `syms_of_xwidget` 现在能退 22 条注册行）、**Owed 9 更新为"三处站点"**（C 319/3535/3546，P-80 的存储单元是解药）；
+     `check-dead-file-coverage` 复读 **145 ledger(s), 0 failure(s)**。
+  ⑦ **未声称**：C 2791-3041 与 C 3548-4304 一行未动；冻结档编译不到这个文件；三组翻臂都是**编译**不是链接/加载；
+     那 2 行已知缺口是**照实带**的（不许 stub），不是"已修"；没有跑任何行为。
+  ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 12 发（本片 3 + 中间迭代 3 + HEAD 基线 3 + 复跑 3）、`--check` 4 发、
+     `check-all-units.sh` 1 发（约 2.5 分钟）、`layout-check` 1 发、文本门 2 发；`/tmp` 脚本收工删。
