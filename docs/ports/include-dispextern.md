@@ -1277,3 +1277,41 @@ note at its position records the same measurement for it (`FAIL femacs/src/frame
   **exit 0**: `src/pgtkim.rs` (`have_pgtk` + `have_gtk3`, 14,083,208-byte rlib) and
   `src/hbfont.rs` (`harfbuzz`, 14,580,952-byte rlib); `layout-check` passes and
   `tools/check-all-units.sh` is **83/0 + 83/0**.
+
+## 2026-10-05: the mirror's share of the window-system arm (3.505)
+
+Two items the arms had been reading as *this* file's errors are fixed here, both measured on
+`src/fringe.rs`'s flip (`--cfg feature="have_window_system" --cfg feature="have_x_windows"
+--cfg feature="dispextern_face_records"`, the arm 3.501 used):
+
+1. **The three globals left the top level** (`last_tab_bar_item`, `last_tool_bar_item`,
+   `max_used_fringe_bitmap`, C 3617/3618/3710) and joined `dispextern_unit_names`.  A unit that
+   includes this mirror *defines* them (`src/fringe.c` 497, `keyboard.c`), and a top-level
+   `extern` copy is `E0428` in exactly that unit: 3.501 read `1 x E0428
+   max_used_fringe_bitmap` in `src/fringe.rs`'s flip, and the same shape would hit `abi_shim.rs`,
+   which also defines one.  The module already carried the 102 names of this class; these three
+   were the ones the file's own comment at 2661 had left outside it.
+2. **The `struct face` layout assertions are arm-aware.**  C 1797-1811's two
+   `HAVE_WINDOW_SYSTEM` members (`gc`, `stipple`) sit between `id` and `foreground`, so every
+   member from `foreground` on is sixteen bytes further along in a window-system build -
+   `docs/baseline/face-layout.tsv` already holds both readings (`frozen` 280/8 with
+   `foreground`@168; `x11`/`ns_cocoa`/`x11_ext` 296/8 with `foreground`@184).  The assertions now
+   add `FACE_WS_SHIFT` (0 in the frozen configuration, 16 with `have_window_system`), so one set
+   of measured numbers covers every arm, and the two members have assertions of their own
+   (168/176, measured in both window-system arms).  The arm read `13 x E0080` on the frozen
+   values before this.
+
+Readings, same command, before -> after: `38 -> 13` errors overall, of which *this* file's share
+falls `29 -> 4` (1 x `E0428` and 13 x `E0080` gone; the 3 `E0425` for `estimate_mode_line_height`
+were never this file's - the decl belongs to the calling unit, see `docs/ports/fringe.md`).
+`layout-check` still passes (the frozen arm reads the same numbers as before: the shift is 0
+there), `check-all-units` is 83/0, `check-mirror-dupes` 17/17/0.
+
+What is **left, and why** (the four `E0425` in the flip - `x_display_info`, `Emacs_Pix_Container`,
+`Emacs_Cursor` x2): the X11 arms of C 39/116-118 are deferred in this mirror with a written
+reason (see the comment above `Display_Info`), and their precondition has since been met
+(`include/xlib.rs` now has `Cursor` at 862 and `XImage` around 1000).  What they need is a ruling
+on where the *tag* `x_display_info` lives: at the mirror's top level it collides with
+`include/xterm.rs`'s own record in a unit that includes both (`E0428`), and inside the module
+`pub type Display_Info = x_display_info;` cannot see it.  That ruling is the next mirror round's
+first item, not a defect of the arms.

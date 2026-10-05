@@ -2184,36 +2184,54 @@ pub struct face
   pub ascii_face: *mut face,
 }
 
+/* C 1797-1811's two `HAVE_WINDOW_SYSTEM` members sit between `id` and `foreground`, so every
+   member from `foreground` on is sixteen bytes further along in a window-system build
+   (`docs/baseline/face-layout.tsv`: `frozen` 280/8 with `foreground`@168, `x11`/`ns_cocoa`/
+   `x11_ext` 296/8 with `foreground`@184 - the same two members, measured in both).  The
+   assertions below add this shift rather than repeating a second table, so the one set of
+   measured numbers covers every arm; status 3.505 added it after `src/fringe.rs`'s flip read
+   `13 x E0080` on the frozen values.  */
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::size_of::<face> () == 280);
+#[cfg (not (feature = "have_window_system"))]
+const FACE_WS_SHIFT: usize = 0;
+#[cfg (feature = "dispextern_face_records")]
+#[cfg (feature = "have_window_system")]
+const FACE_WS_SHIFT: usize = 16;
+
+#[cfg (feature = "dispextern_face_records")]
+const _: () = core::assert! (std::mem::size_of::<face> () == 280 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
 const _: () = core::assert! (std::mem::align_of::<face> () == 8);
 #[cfg (feature = "dispextern_face_records")]
 const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (std::mem::offset_of! (face, gc) == 168);
+#[cfg (all (feature = "dispextern_face_records", feature = "have_window_system"))]
+const _: () = core::assert! (std::mem::offset_of! (face, stipple) == 176);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, background) == 176);
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 176 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184);
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192);
+const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200);
+const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208);
+const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224);
+const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248);
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, next) == 256);
+const _: () = core::assert! (std::mem::offset_of! (face, next) == 256 + FACE_WS_SHIFT);
 #[cfg (feature = "dispextern_face_records")]
-const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272);
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272 + FACE_WS_SHIFT);
 
 /// C 1991-2009: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0, `f`@8,
 /// `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf menu_face_changed_p : 1` in
@@ -2659,14 +2677,11 @@ pub const TRY_WINDOW_CHECK_MARGINS: c_int = 1 << 0;
 /// C: #define TRY_WINDOW_IGNORE_FONTS_CHANGE (1 << 1)
 pub const TRY_WINDOW_IGNORE_FONTS_CHANGE: c_int = 1 << 1;
 
-unsafe extern "C" {
-  /// C 3617: `extern int last_tab_bar_item;` (the unit that defines it is keyboard.c's).
-  pub static mut last_tab_bar_item: c_int;
-  /// C 3618: `extern int last_tool_bar_item;`
-  pub static mut last_tool_bar_item: c_int;
-  /// C 3710: `extern int max_used_fringe_bitmap;`
-  pub static mut max_used_fringe_bitmap: c_int;
-}
+/* C 3617-3710's three globals live in the module below, not here: a unit that includes this
+   mirror *defines* them (`src/fringe.c` 497 defines `max_used_fringe_bitmap`; `keyboard.c`
+   defines the other two), and a top-level `extern` copy is `E0428` in exactly that unit -
+   status 3.505 measured it on `src/fringe.rs`'s flip (`1 x E0428 max_used_fringe_bitmap`).
+   A unit that only *reads* one spells the path (P-39), the way the module's other names work.  */
 
 // =============================================================================================
 // C 286-3834: the names of this header that the port's *units* declare themselves.
@@ -2811,6 +2826,18 @@ pub mod dispextern_unit_names {
   unsafe extern "C" {
     /// C: extern bool face_change;
     pub static mut face_change: bool;
+  }
+
+  /* C 3617-3710: the three globals this header declares.  They are here rather than at the
+     mirror's top level for the reason in the module's own doc: the including unit defines them
+     (`src/fringe.c` 497, `keyboard.c`), so a top-level copy collides (status 3.505).  */
+  unsafe extern "C" {
+    /// C 3617: `extern int last_tab_bar_item;` (the unit that defines it is keyboard.c's).
+    pub static mut last_tab_bar_item: c_int;
+    /// C 3618: `extern int last_tool_bar_item;`
+    pub static mut last_tool_bar_item: c_int;
+    /// C 3710: `extern int max_used_fringe_bitmap;` (defined by `src/fringe.c` 497).
+    pub static mut max_used_fringe_bitmap: c_int;
   }
 
   /* C 2204-2207: the base-embedding-level test.  */

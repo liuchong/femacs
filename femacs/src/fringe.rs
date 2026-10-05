@@ -831,6 +831,12 @@ use dispextern_unit_names::*;
    on the file gate like everything else.  */
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
+  /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);` (the
+  /// definition is `src/xdisp.rs` 3740).  It belongs in this block rather than in the mirror: the
+  /// mirror cannot reach `struct frame` (P-72 rule 3), so its copy would take an untyped pointer
+  /// and every call site would need a cast - the reading `src/dispnew.rs` 256, `src/keyboard.rs`
+  /// 603, `src/menu.rs` 99 and `src/window.rs` 179 already follow.
+  pub fn estimate_mode_line_height (f: *mut frame, face_id: face_id) -> c_int;
   /// C: dispextern.h 3577: `int window_text_bottom_y (struct window *);`
   pub fn window_text_bottom_y (w: *mut window) -> c_int;
   /// C: dispextern.h 3579: `int window_box_left (struct window *, enum glyph_row_area);`

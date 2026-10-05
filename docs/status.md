@@ -9780,3 +9780,34 @@
      `c_longlong`、`src/include/w32common.rs` 的 `SYSTEM_INFO`/`OSVERSIONINFO`、`lib-src/include/ntlib.rs`
      的 module+glob 形状、`uid_t`/`gid_t` 的双声明、`<sys/stat.h>` 的两份镜像；以及三件各自的真平台验收
      （装 mingw / 有 Xt/Xaw 头的 X11 目标 / Haiku SDK）。
+
+- **3.505 镜像轮第三批之一：`struct face` 的布局断言按臂取值，三个全局搬进模块（2026-10-05）**：
+  ① **范围与判据**：两条都是各 lane 的臂读数反复点名、且**归属明确在 `femacs/src/include/dispextern.rs`**
+     的镜像缺陷（3.501 的 `1 × E0428 max_used_fringe_bitmap` + `13 × E0080 face 断言`）。
+     ⑴ **C 3617/3618/3710 的三个全局从顶层搬进 `dispextern_unit_names`**：包括本镜像的单元**定义**它们
+     （`src/fringe.c` 497、`keyboard.c`），顶层的 `extern` 副本在那种单元里就是 `E0428`（3.501 实测；
+     `src/abi_shim.rs` 1403 也自己定义了一个，同形）；模块里那 102 个同类名字本来就是这条形状，
+     这三个是本文件 2661 的注释自己留在门外的。
+     ⑵ **`struct face` 的布局断言改成按臂取值**：C 1797-1811 的两个 `HAVE_WINDOW_SYSTEM` 成员
+     （`gc`、`stipple`）夹在 `id` 与 `foreground` 之间，于是窗口系统臂里从 `foreground` 起的每个成员都
+     后移 16 字节——两组读数**`docs/baseline/face-layout.tsv` 早就有**（`frozen` 280/8、`foreground`@168；
+     `x11`/`ns_cocoa`/`x11_ext` 296/8、@184）。断言改成 `值 + FACE_WS_SHIFT`（frozen 0、`have_window_system` 16），
+     两个成员另有 168/176 的断言（两个窗口臂都实测过），于是**一组实测数字覆盖每个臂**。
+  ② **读数**：同一条臂命令（`src/fringe.rs`，`have_window_system`+`have_x_windows`+`dispextern_face_records`）
+     **38 → 24 → 13** 条错误：先是本镜像的两项（`E0428` 1 → 0、`E0080` 13 → 0）把 38 降到 24，再把
+     `estimate_mode_line_height` 的声明落进**调用单元**（C 3582 的那条不该住镜像：镜像够不到
+     `struct frame`，P-72 ③，照 `dispnew.rs` 256 / `keyboard.rs` 603 / `menu.rs` 99 / `window.rs` 179 的先例）
+     把 24 降到 **13**。剩下 13 条**一条都不在 fringe.rs**：`include/font.rs` 8 × `E0080`、
+     `include/systime.rs` 1 × `E0080`、`include/dispextern.rs` **四个延后的 X11 typedef**（`x_display_info`、
+     `Emacs_Pix_Container`、`Emacs_Cursor` ×2）——延后的理由原本是 `include/xlib.rs` 没有 `XImage`/`Cursor`，
+     **该前提已经不存在**（3.500 的 `Cursor` @862 与 `XImage` 已在），它们要的是**一条裁定**：tag
+     `x_display_info` 住哪儿（顶层会被 `include/xterm.rs` 自己的记录撞 `E0428`，进模块则 `Display_Info`
+     的别名指不到）——这是下一批镜像轮的第一项，不是臂的缺陷。
+  ③ **验收**：`layout-check` **passed**（冻结臂的位移是 0，断言数字与改前逐条相同）、`check-all-units`
+     **83 unit(s), 0 failure(s)**（P-87 ① 要求：动过 `femacs/src/include/*.rs` 必跑）、`check-mirror-dupes`
+     **17/17/0**、`check-declarations` **17/0/0**、`check-citations` **676 文件 / 0 drift / 0 range / 0 stale**、
+     `check-dead-file-coverage` **77 绑定 / 0**、`check-target-names` **629 / 591 / 0**。
+  ④ **未声称**：零运行证据；臂读数只是**本机 rustc 的类型检查**，`13` 条剩余错误全在别的镜像文件里，
+     本条**不为它们的正确性说话**；`struct face` 的窗口臂断言用的是 `face-layout.tsv` 的**已测值**
+     （clang 对 `x11`/`ns_cocoa`/`x11_ext` 三个臂），本条只把断言改成按臂取值，没有新测任何布局。
+  ⑤ **预算**：`probe` 2 发、`layout-check` 2 发、`check-all-units` 1 发；`/tmp/mirror.py` 与两份日志收工删。

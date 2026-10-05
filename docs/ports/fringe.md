@@ -413,3 +413,16 @@ and the reason `STANDARD_BITMAP_HEIGHT` keeps C's division while its `sizeof` be
   9 `missing function`, 4 `missing subr` and 4 `missing defsubr` rows of Evidence ⑥.
 - Only `femacs/src/fringe.rs`, `docs/ports/fringe.md` and six rows of
   `docs/ports/macro-body-notes.tsv` were written by this lane.
+
+## 2026-10-05: the arm's `estimate_mode_line_height` was the calling unit's decl (3.505)
+
+`estimate_mode_line_height` (C 3582) is declared by the *units that call it*, not by the mirror:
+the mirror cannot reach `struct frame` (P-72 rule 3), so a copy there would take an untyped
+pointer and every call site would need a cast - the reading `src/dispnew.rs` 256,
+`src/keyboard.rs` 603, `src/menu.rs` 99 and `src/window.rs` 179 already follow.  This unit's own
+`unsafe extern "C"` block (the one that declares `window_text_bottom_y`/`lookup_named_face`) now
+carries it with C's line, so the flip no longer reports it.  Same arm, in order (all three
+readings on the command in this ledger's `## Evidence`): `38` errors when this unit landed,
+`24` after the two `include/dispextern.rs` fixes of status 3.505, `13` after this decl - and the
+13 are all in other files (`include/font.rs` 8 x `E0080`, `include/systime.rs` 1 x `E0080`, and
+the four deferred X11 typedefs of `include/dispextern.rs`).
