@@ -8,14 +8,14 @@
 // select.
 //
 // **This file is P-86's largest unit (C 21,215 lines) and is being ported in slices.**  The
-// slices so far are C 1-4543: slice 1 (C 1-1112, through `sfnt_read_cmap_table`), slice 2 (the
+// slices so far are C 1-5451: slice 1 (C 1-1112, through `sfnt_read_cmap_table`), slice 2 (the
 // glyph lookup routines, the table readers and the two glyph outline readers, C 1113-2407),
-// slice 3 (the glyph outline decomposition, C 2408-3594) and slice 4 (the outline builders and
-// the "ragged" rasterizer, C 3595-4543).  **The next live definition is C 4726's
-// `sfnt_build_outline_fedges`** - C 4545-4554's three `sfnt_add`/`sfnt_sub`/`sfnt_mul` macros and
-// the `struct sfnt_step` family (C 4651-4725) open the *exact* rasterizer.  The ledger
-// `docs/ports/sfnt.md` carries the C line-range table for C 1-4543 plus the "the remainder" row,
-// the `## Evidence` readings and the `## Deviations`.
+// slice 3 (the glyph outline decomposition, C 2408-3594), slice 4 (the outline builders and the
+// "ragged" rasterizer, C 3595-4543) and slice 5 (the "exact coverage scaler", C 4544-5451).
+// **The next live definition is C 5468's `sfnt_read_hmtx_table`** - C 5455's "Glyph metrics
+// computation." banner opens the metrics readers.  The ledger `docs/ports/sfnt.md` carries the C
+// line-range table for C 1-5451 plus the "the remainder" row, the `## Evidence` readings and the
+// `## Deviations`.
 //
 // The frozen configuration compiles no `sfnt.o`: `configure.ac` 2645 adds `sfnt.o` to
 // `ANDROID_OBJ` only inside the `XCONFIGURE = android` branch (the `REALLY_ANDROID` one,
@@ -5175,6 +5175,1076 @@ pub unsafe extern "C" fn sfnt_raster_glyph_outline (outline: *mut sfnt_glyph_out
      the raster.  */
   sfnt_build_outline_edges (outline, Some (sfnt_raster_edge),
 			    data as *mut c_void);
+
+  /* All done.  */
+  return data;
+}
+
+/* C 4545-4554: the three wrapping-arithmetic macros the interpreter section uses.  C's casts are
+   the port's `as`, and the `unsigned int` arithmetic C relies on is `wrapping_*` (PORTING.md
+   1.1); they stand here in C's order and stay unused until the interpreter lands (the crate
+   allows `unused_macros`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! sfnt_add {
+  ($a:expr, $b:expr) => { ((($a) as c_uint).wrapping_add (($b) as c_uint) as c_int) };
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! sfnt_sub {
+  ($a:expr, $b:expr) => { ((($a) as c_uint).wrapping_sub (($b) as c_uint) as c_int) };
+}
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! sfnt_mul {
+  ($a:expr, $b:expr) => { ((($a) as c_uint).wrapping_mul (($b) as c_uint) as c_int) };
+}
+
+
+/* Exact coverage scaler.
+
+   The foregoing routines calculate partial coverage for each pixel by
+   increasing each span in increments finer than a single pixel, then
+   merging active spans into the raster.
+
+   Experience has proven this yields imperfect display results,
+   particularly when combined with glyph instruction code which aligns
+   points in a certain and as yet undetermined manner.
+
+   The scaler implemented in this page attains greater precision,
+   generating at length an array of scanlines, in which each is
+   represented by a list of steps.  Each step holds an X coordinate
+   and a coverage value, which contributes to the coverage of each
+   pixel within the scanline rightwards or equal to the pixel with its
+   X coordinate.
+
+   Such a coverage value can be positive or negative; when the winding
+   direction of the span it derives from is positive, so is the
+   coverage value, that the pixels to its right (thus further into the
+   polygon it demarcates) might be painted in.  In the other case, the
+   value is negative, thus negating the effect of preceding steps and
+   marking the outer boundary of the section of the polygon's
+   intersection with the scanline.
+
+   The procedure for producing this array of scanlines is largely an
+   adaptation of that which sfnt_poly_edges implements; in particular
+   the process of sorting and filtering edges remains untouched.
+
+   Rather than advancing through the edges SFNT_POLY_STEP at a time,
+   the edges are iterated over scanline-by-scanline.  Every edge
+   overlapping with a particular scanline is considered piecemeal to
+   generate its array of steps.
+
+   An edge might overlap pixels within the scanline in one of four
+   fashions; each is illustrated with a graphic below:
+
+   +--------ee-----+------------------------------------------------+ (I)
+   |      ee.......|................................................|
+   |    ee.........|................................................|
+   |  ee...........|................................................|
+   |ee.............|................................................|
+  ee---------------+------------------------------------------------+
+
+   In this instance, the edge partially overlaps its first pixel, but
+   the remainder all receive complete coverage.
+
+   +---------------+---------eeeeee+--------------------------------+ (II)
+   |               |   eeeeee......|................................|
+   |   	          eeeee............|................................|
+   |        eeeeee.|...............|................................|
+   |  eeeeee.......|...............|................................|
+   eee-------------+---------------+--------------------------------+
+
+   In this instance, the edge partially overlaps two or more pixels on
+   this scanline.  These pixels are referred to as a run.
+
+   +---------------+---------------+----------------+---------------+ (III)
+   |       eeeeeee.|...............|................|...............|
+   |   	 eeeeeeee..|...............|................|...............|
+   |   eeeeeeee....|...............|................|...............|
+   |  eeeeeee......|...............|................|...............|
+   +---------------+---------------+----------------+---------------+
+
+   This instance is much like the first instance, save that the
+   covered vertical area does not span the entire scanline.
+
+   +---------------+---------------+----------------+---------------+ (IV)
+   |               |               |                | eeeeeeeeeee...|
+   |   	           |              eeeeeeeeeeeeeeeeeeeeeeeeeeeeeee...|
+   |          eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee|...............|
+   |eeeeeeeeeeeeeeeeeeeeeee........|................|...............|
+   +---------------+---------------+----------------+---------------+
+
+   And this the second, again with the same distinction therefrom.
+
+   In each of these instances, a trapezoid is formed within every
+   pixel of the scanline, between:
+
+     - The point of the span's entry into the first pixel, either that
+       point itself or, for subsequent pixels, its projection onto
+       those pixels.
+
+     - The point of the span's exit or its termination.
+
+     - Both those points projected into the outer boundary of the
+       pertinent pixel.
+
+   The proportion formed by the area of this trapezoid and that of the
+   pixel then constitutes the coverage value to be recorded.  */
+
+/* Structure representing a step, as above.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct sfnt_step
+{
+  /* The next step in this list.  */
+  pub next: *mut sfnt_step,
+
+  /* X coordinate of the step.  This value affects all pixels at and
+     beyond this X coordinate.  */
+  pub x: c_int,
+
+  /* Coverage value between -1 and 1.  */
+  pub coverage: f32,
+}
+
+/* Structure representing an array of steps, one for each
+   scanline.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct sfnt_step_raster
+{
+  /* Number of scanlines within this raster.  */
+  pub scanlines: size_t,
+
+  /* Array of steps with one element for each scanline.  */
+  pub steps: *mut *mut sfnt_step,
+
+  /* Linked list of chunks of steps allocated for this raster.  */
+  pub chunks: *mut sfnt_step_chunk,
+}
+
+/* C 4679-4682: C's anonymous enum, so the port declares the same one constant (`c_int`); it is
+   the last of the four constants the checker listed as missing after slice 4.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const SFNT_BLOCK_STEPS: c_int = 128;
+
+/* Structure representing a block of steps, which are allocated
+   SFNT_BLOCK_STEPS at a time.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct sfnt_step_chunk
+{
+  /* The next chunk in this list, or NULL.  */
+  pub next: *mut sfnt_step_chunk,
+
+  /* Number of steps used within this chunk thus far.  */
+  pub nused: size_t,
+
+  /* The steps themselves.  */
+  pub steps: [sfnt_step; SFNT_BLOCK_STEPS as usize],
+}
+
+/* Structure representing an edge as consumed by the exact coverage
+   scaler.  This structure is much like struct sfnt_edge, albeit with
+   all fractionals replaced by floating point numbers and an extra
+   field holding a Y delta.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct sfnt_fedge
+{
+  /* Next edge in this chain.  */
+  pub next: *mut sfnt_fedge,
+
+  /* Winding direction.  1 if clockwise, -1 if counterclockwise.  */
+  pub winding: c_int,
+
+  /* X position, top and bottom of edges.  */
+  /* C's `float x, top, bottom;` and `float step_x, step_y;` are one declaration per line here:
+     `extract-abi.py`'s field check reads `pub name: type,` lines, so a shared line is three
+     "missing field" rows (the layout is the same either way).  */
+  pub x: f32,
+  pub top: f32,
+  pub bottom: f32,
+
+  /* Amount to move X by upon each change of Y, and vice versa.  */
+  pub step_x: f32,
+  pub step_y: f32,
+}
+
+/* C 4719-4720: C's function-pointer typedef for the edge consumer (P-27's `Option` shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type sfnt_fedge_proc =
+  Option<unsafe extern "C" fn (*mut sfnt_fedge, size_t, *mut c_void)>;
+
+/* Build a list of edges for each contour in OUTLINE, displacing each
+   edge by xmin and ymin.  Call EDGE_PROC with DCONTEXT and the edges
+   produced as arguments.  */
+
+/* C 4735-4739's `edges_alloc`/`alloca` pair is slice 4's C 4068-4072 in the `fedge` flavour:
+   the port has no `alloca`, so the small-outline arm goes to the stack pool (PORTING.md P-05,
+   Deviation 23), C's `edges_alloc` stays `NULL` there and C 4825's `xfree` is the same no-op.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_build_outline_fedges (outline: *mut sfnt_glyph_outline,
+				     edge_proc: sfnt_fedge_proc, dcontext: *mut c_void)
+{                                                          // C 4726-4826
+  let mut edges: *mut sfnt_fedge;
+  let mut i: size_t;
+  let mut edge: size_t;
+  let mut next_vertex: size_t;
+  let mut dx: sfnt_fixed;
+  let mut dy: sfnt_fixed;
+  let mut step_x: sfnt_fixed;
+  let mut step_y: sfnt_fixed;
+  let mut ymin: sfnt_fixed;
+  let mut xmin: sfnt_fixed;
+  let mut top: size_t;
+  let mut bottom: size_t;
+
+  let mut edges_alloc: *mut c_void = std::ptr::null_mut ();
+  if (*outline).outline_used < 1024 * 16 / std::mem::size_of::<sfnt_fedge> ()
+    { edges = sa_stack_alloc ((*outline).outline_used
+			      * std::mem::size_of::<sfnt_fedge> ()) as *mut sfnt_fedge; }
+  else
+    {
+      edges_alloc = xnmalloc ((*outline).outline_used as isize,
+			      std::mem::size_of::<sfnt_fedge> () as isize);
+      edges = edges_alloc as *mut sfnt_fedge;
+    }
+
+  edge = 0;
+
+  /* ymin and xmin must be the same as the offset used to set offy and
+     offx in rasters.  */
+  ymin = sfnt_floor_fixed ((*outline).ymin);
+  xmin = sfnt_floor_fixed ((*outline).xmin);
+
+  i = 0;
+  while i < (*outline).outline_used
+    {
+      /* Set NEXT_VERTEX to the next point (vertex) in this contour.
+
+	 If i is past the end of the contour, then don't build edges
+	 for this point.  */
+      next_vertex = i + 1;
+
+      if next_vertex == (*outline).outline_used
+	  || ((*(*outline).outline.offset (next_vertex as isize)).flags
+	      & SFNT_GLYPH_OUTLINE_LINETO) == 0
+	{ i += 1; continue; }
+
+      /* Skip past horizontal vertices.  */
+      if (*(*outline).outline.offset (next_vertex as isize)).y
+	== (*(*outline).outline.offset (i as isize)).y
+	{ i += 1; continue; }
+
+      /* Figure out the winding direction.  */
+      if (*(*outline).outline.offset (next_vertex as isize)).y
+	< (*(*outline).outline.offset (i as isize)).y
+	/* Vector will cross imaginary ray from its bottom from the
+	   left of the ray.  Winding is thus 1.  */
+	{ (*(edges.offset (edge as isize))).winding = 1; }
+      else
+	/* Moving clockwise.  Winding is thus -1.  */
+	{ (*(edges.offset (edge as isize))).winding = -1; }
+
+      /* Figure out the top and bottom values of this edge.  If the
+	 next edge is below, top is here and bot is the edge below.
+	 If the next edge is above, then top is there and this is the
+	 bottom.  */
+
+      if (*(*outline).outline.offset (next_vertex as isize)).y
+	< (*(*outline).outline.offset (i as isize)).y
+	{
+	  /* End of edge is below this one (keep in mind this is a
+	     cartesian coordinate system, so smaller values are below
+	     larger ones.) */
+	  top = i;
+	  bottom = next_vertex;
+	}
+      else
+	{
+	  /* End of edge is above this one.  */
+	  bottom = i;
+	  top = next_vertex;
+	}
+
+      /* Record the edge.  Rasterization happens from bottom to
+	 up, so record the X at the bottom.  */
+      dx = ((*(*outline).outline.offset (top as isize)).x
+	    - (*(*outline).outline.offset (bottom as isize)).x);
+      dy = abs ((*(*outline).outline.offset (top as isize)).y
+		- (*(*outline).outline.offset (bottom as isize)).y);
+
+      /* Compute the step X.  This is how much X changes for each
+	 increase in Y.  */
+      step_x = sfnt_div_fixed (dx, dy);
+
+      /* And the step Y, which is the amount of movement to Y an
+	 increase in X will incur.  */
+      step_y = if dx != 0 { sfnt_div_fixed (dy, dx) } else { 0 };
+
+      /* Save information computed above into the edge.  */
+      (*(edges.offset (edge as isize))).top
+	= sfnt_fixed_float ((*(*outline).outline.offset (top as isize)).y - ymin);
+      (*(edges.offset (edge as isize))).bottom
+	= sfnt_fixed_float ((*(*outline).outline.offset (bottom as isize)).y - ymin);
+      (*(edges.offset (edge as isize))).x
+	= sfnt_fixed_float ((*(*outline).outline.offset (bottom as isize)).x - xmin);
+      (*(edges.offset (edge as isize))).step_x = sfnt_fixed_float (step_x);
+      (*(edges.offset (edge as isize))).step_y = sfnt_fixed_float (step_y);
+      (*(edges.offset (edge as isize))).next = std::ptr::null_mut ();
+
+      /* Increment the edge index.  */
+      edge += 1;
+      i += 1;
+    }
+
+  if edge != 0
+    { edge_proc.unwrap () (edges, edge, dcontext); }
+  xfree (edges_alloc);
+}
+
+/* C 4828: C's function-pointer typedef for the step consumer.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type sfnt_step_raster_proc =
+  Option<unsafe extern "C" fn (*mut sfnt_step_raster, *mut c_void)>;
+
+/* Append a step with the supplied COVERAGE at X to the sorted list of
+   scanline steps within the container RASTER.  Y is the scanline to
+   append to.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_insert_raster_step (raster: *mut sfnt_step_raster,
+				   mut x: c_int, coverage: f32, scanline: size_t)
+{                                                          // C 4834-4883
+  let mut chunk: *mut sfnt_step_chunk;
+  let mut step: *mut sfnt_step;
+  let mut p_next: *mut *mut sfnt_step;
+
+  if scanline >= (*raster).scanlines
+    { return; }
+
+  if x < 0
+    { x = 0; }
+
+  /* Search within RASTER->steps[scanline] for a step at X.  */
+
+  'found: {
+    p_next = (*raster).steps.offset (scanline as isize);
+
+    while { step = *p_next; !step.is_null () }
+      {
+        if (*step).x > x
+	  { break; }
+
+        if (*step).x == x
+	  { break 'found; }
+
+        p_next = &raw mut (*step).next;
+      }
+
+    if (*raster).chunks.is_null ()
+        || (*(*raster).chunks).nused == SFNT_BLOCK_STEPS as size_t
+      {
+        /* All chunks have been consumed, and consequently a new chunk
+	   must be allocated.  */
+        chunk = xmalloc (std::mem::size_of::<sfnt_step_chunk> ()) as *mut sfnt_step_chunk;
+        (*chunk).next = (*raster).chunks;
+        (*chunk).nused = 0;
+        (*raster).chunks = chunk;
+      }
+    else
+      { chunk = (*raster).chunks; }
+
+    step		 = &raw mut (*chunk).steps[(*chunk).nused];
+    (*chunk).nused	+= 1;
+    (*step).next	 = *p_next;
+    *p_next		 = step;
+    (*step).x	 = x;
+    (*step).coverage = 0.0;
+  } /* 'found (C 4881) */
+
+  /* found: */
+  (*step).coverage += coverage;
+}
+
+/* Draw EDGES, an unsorted array of polygon edges of size NEDGES.
+
+   Transform EDGES into an array of steps representing a raster with
+   HEIGHT scanlines, then call POLY_FUNC with DCONTEXT and the
+   resulting struct sfnt_step_raster to transfer it onto an actual
+   raster.
+
+   WIDTH must be the width of the raster.  Although there is no
+   guarantee that no steps generated extend past WIDTH, steps starting
+   after width might be omitted, and as such it must be accurate.  */
+
+/* C 4903's `sentinel` is an uninitialised local used only through its address (the active list's
+   terminator), so the port zeroes it (PORTING.md 1.5, the Deviation 30 class).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_poly_edges_exact (edges: *mut sfnt_fedge, nedges: size_t,
+				 height: size_t, width: size_t,
+				 proc: sfnt_step_raster_proc, dcontext: *mut c_void)
+{                                                          // C 4896-5303
+  let mut y: c_int;
+  let mut e: size_t;
+  let mut edges_processed: size_t;
+  let mut active: *mut sfnt_fedge;
+  let mut prev: *mut *mut sfnt_fedge;
+  let mut a: *mut sfnt_fedge;
+  let mut sentinel: sfnt_fedge = std::mem::zeroed ();
+  let mut raster: sfnt_step_raster = std::mem::zeroed ();
+  let mut next: *mut sfnt_step_chunk;
+  let mut last: *mut sfnt_step_chunk;
+
+  if height == 0
+    { return; }
+
+  /* Step down line by line.  Find active edges.  */
+
+  y = sfnt_floor_fixed ((MAX! (0.0f32, (*(edges.offset (0))).bottom)) as sfnt_fixed);
+  edges_processed = 0;
+  e = 0;
+  active = &raw mut sentinel;
+
+  /* Allocate the array of edges.  */
+
+  raster.scanlines = height;
+  raster.chunks    = std::ptr::null_mut ();
+  raster.steps = xcalloc (height,
+			  std::mem::size_of::<*mut sfnt_step> ()) as *mut *mut sfnt_step;
+
+  while (y as size_t) != height
+    {
+      /* Run over the whole array on each iteration of this loop;
+	 experiments demonstrate this is faster for the majority of
+	 glyphs.  */
+      e = 0;
+      while e < nedges
+	{
+	  /* Although edges is unsorted, edges which have already been
+	     processed will see their next fields set, and can thus be
+	     disregarded.  */
+	  if (*(edges.offset (e as isize))).next.is_null ()
+	      && ((*(edges.offset (e as isize))).bottom < (y + 1) as f32)
+	      && ((*(edges.offset (e as isize))).top > y as f32)
+	    {
+	      /* As steps generated from each edge are sorted at the
+		 time of their insertion, sorting the list of active
+		 edges itself is redundant.  */
+	      (*(edges.offset (e as isize))).next = active;
+	      active = edges.offset (e as isize);
+
+	      /* Increment the counter recording the number of edges
+		 processed, which is used to terminate this loop early
+		 once all have been processed.  */
+	      edges_processed += 1;
+	    }
+	  e += 1;
+	}
+
+      /* Iterate through each active edge, appending steps for it, and
+	 removing it if it does not overlap with the next
+	 scanline.  */
+
+      prev = &raw mut active;
+      while { a = *prev; a != &raw mut sentinel }
+	{
+	  'next: {
+	    let mut x_top: f32;
+	    let mut x_bot: f32;
+	    let mut x_min: f32;
+	    let mut x_max: f32;
+	    let mut y_top: f32;
+	    let mut y_bot: f32;
+	    let mut x_pixel_min: c_int;
+	    let mut x_pixel_max: c_int;
+
+	    macro_rules! APPEND_STEP {
+	      ($x:expr, $coverage:expr) => {
+	        sfnt_insert_raster_step (&raw mut raster, $x as c_int, $coverage, y as size_t);
+	      };
+	    }
+
+	    /* Calculate several values to establish which overlap
+	       category this edge falls into.  */
+
+	    y_top = (y + 1) as f32; /* Topmost coordinate covered by this
+					edge in this scanline.  */
+	    y_bot = y as f32;     /* Bottom-most coordinate covered by this
+				   edge in this scanline.  */
+
+	    /* III or IV?  If the edge terminates before the next
+	       scanline, make its terminus y_top.  */
+
+	    if y_top > (*a).top
+	      { y_top = (*a).top; }
+
+	    /* Same goes for y_bottom.  */
+
+	    if (*a).bottom > y_bot
+	      { y_bot = (*a).bottom; }
+
+	    /* y_top should never equal y_bottom, but check to be on the
+	       safe side.  */
+	    if y_top == y_bot
+	      { break 'next; }
+	    /* x_top and x_bot are the X positions where the edge enters
+	       and exits this scanline.  */
+
+	    /*
+	      (x_top)
+     +--------ee-----+------------------------------------------------+ (y_top)
+     |      ee.......|................................................|
+     |    ee.........|................................................|
+     |  ee...........|................................................|
+     |ee.............|................................................|
+    ee---------------+------------------------------------------------+ (y_bot)
+  (x_bot)
+              (y_bot might be further below.)
+	    */
+	    x_top = (y_top - (*a).bottom) * (*a).step_x + (*a).x;
+	    x_bot = (y_bot - (*a).bottom) * (*a).step_x + (*a).x;
+
+	    x_min = MIN! (x_top, x_bot);
+	    x_max = MAX! (x_top, x_bot);
+
+	    /* Pixels containing x_bot and x_top respectively.  */
+	    x_pixel_min = x_min as c_int;
+	    x_pixel_max = x_max as c_int;
+
+	    macro_rules! TRAPEZOID_AREA {
+	      ($height:expr, $top_start:expr, $top_end:expr, $bot_start:expr,
+	       $bot_end:expr) => {
+	      (((($top_end) as f32 - ($top_start) as f32)
+		+ (($bot_end) as f32 - ($bot_start) as f32))
+	       / 2.0f32 * ($height) as f32)
+	      };
+	    }
+
+	    /* I, III?  These two instances' criteria are that the edge
+	       enters and exits within one pixel.  */
+
+	    if x_pixel_min == x_pixel_max
+	      {
+	        let mut xmin: f32;
+	        let mut xmax: f32;
+	        let mut ytop: f32;
+	        let mut ybot: f32;
+	        let mut height: f32;
+	        let mut coverage: f32;
+	        let mut delta: f32;
+
+	        /* Partial coverage for the first pixel.  */
+
+	        xmin = x_min;
+	        xmax = x_max;
+	        ytop = y_top;
+	        ybot = y_bot;
+	        height = ytop - ybot;
+	        /* The trapezoid here is one of the following two:
+
+    ytop+------xmax--+-----------+---------------------------------------------+
+        |     /................................................................|
+        |    /.......|...........|.............................................|
+        |   /........|...........|.............................................|
+        |  /.........|...........|.............................................|
+        | / ...................................................................|
+    xmin+------------+-----------+---------------------------------------------+
+        ybot
+    ytop+------------+-----------+---------------------------------------------+
+        |\ xmin................................................................|
+        | \..........|...........|.............................................|
+        |  \.........|...........|.............................................|
+        |   \........|...........|.............................................|
+        |    \.......|...........|.............................................|
+        |     \................................................................|
+        +------xmax--+-----------+---------------------------------------------+
+
+                   In either situation, the first pixel's coverage is
+                   the space occupied by a trapezoid whose corners are
+                   xmin and x_pixel_min + 1 and xmax and x_pixel_min +
+                   1, and whose height is ytop - ybot.  The coverage for
+                   the remainder is the height alone.  */
+	        coverage = (TRAPEZOID_AREA! (height,
+					    xmin, xmin as c_int + 1,
+					    xmax, xmax as c_int + 1)
+			    * (*a).winding as f32);
+	        APPEND_STEP! (x_pixel_min, coverage);
+
+	        /* Then if the next pixel isn't beyond the raster,
+		   append complete coverage for it.  */
+
+	        if ((x_pixel_min + 1) as size_t) < width
+		  {
+		    delta = (y_top - y_bot) * (*a).winding as f32;
+		    APPEND_STEP! (x_pixel_max + 1, delta - coverage);
+		  }
+	      }
+	    else
+	      {
+	        let mut dy: f32;
+	        let mut y_crossing: f32;
+	        let mut coverage: f32;
+	        let mut ytop: f32;
+	        let mut ybot: f32;
+	        let mut xtop: f32;
+	        let mut xbot: f32;
+	        let mut increment: f32;
+	        let mut x: f32;
+	        let mut last: f32;
+	        let mut here: f32;
+
+	        ytop = y_top;
+	        ybot = y_bot;
+	        xtop = x_top;
+	        xbot = x_bot;
+
+	        macro_rules! TRIANGLE_AREA {
+		  ($width:expr, $height:expr) => { (($width) * ($height) / 2.0f32) };
+	        }
+
+	        /* II, IV.  Coverage must be computed for each pixel
+		   from x_pixel_min to x_pixel_max, with the latter
+		   treated much as in I or III.  */
+
+	        if x_bot < x_top
+		  {
+		    /*
+
+
+    y_top                                                         x_top
+         +-----------+-----------+-----------+------------+-------/------+-------------------------------+
+         |           |           |           |            |    /--.......|...............................|
+         |x_pixel_min|           |           |            | /--..........|...............................|
+         |           |           |           |           /+-y_crossing...|...............................|
+         |           |           |           |        /--.|..............|...............................|
+         |           |           |           |      /-....|..............|...............................|
+         |           |           |           |   /--......|..x_pixel_max.|...............................|
+         |           |           |           |/--.........|..............|...............................|
+         |           |           |         /-+............|..............|...............................|
+         |           |           |      /--..|............|..............|...............................|
+         |           |           |   /--.....|............|..............|...............................|
+         |           |           |/--........|............|..............|...............................|
+         |           |         /-+...........|............|..............|...............................|
+         |           |      /--..|...........|............|..............|...............................|
+         |           |   /--.....|...........|............|..............|...............................|
+         |           | /-........|...........|............|..............|...............................|
+         |          /+-y_crossing|...........|............|..............|...............................|
+         |       /--.|...........|...........|............|..............|...............................|
+         |    /--....|...........|...........|............|..............|...............................|
+         | /--.......|...........|...........|............|..............|...............................|
+         +-----------+-----------+-----------+------------+--------------+-------------------------------+
+    y_bot x_bot
+
+
+  The purpose of this code is to calculate the area occupied by dots of
+  each pixel in between x_pixel_min and x_pixel_max + 1.
+
+  The area occupied in the first pixel is a triangle comprising [x_bot,
+  y_bot], [x_bot + 1, y_bot], and [x_bot + 1, y_crossing].
+
+  The area occupied in the second pixel through x_pixel_max - 1 is that
+  of a rectangle comprising [y_bot, pixel], [the previous rectangle's
+  y_crossing, pixel], [the previous rectangle's y_crossing, pixel + 1],
+  and [pixel + 1, y_bot] summed with the area the remaining triangle.
+
+  The area occupied in the last pixel is a trapezoid proper.
+
+  Thus the procedure is roughly as follows: dy is computed, which is the
+  increase to the Y of the edge for each increase in scanline X.  */
+		    dy = (*a).step_y;
+
+		    /* As is y_crossing for the first pixel.  */
+		    y_crossing = ybot + dy * (xbot as c_int + 1) as f32 - xbot;
+
+		    /* And the area of the first triangle.
+
+		       The width is (int) xbot + 1 - xbot, and the
+		       height is y_crossing - ybot.  */
+		    last = (TRIANGLE_AREA! (y_crossing - ybot,
+					    (xbot as c_int + 1) as f32 - xbot)
+			    * (*a).winding as f32);
+		    APPEND_STEP! (x_pixel_min, last);
+
+		    /* Coverage value for subsequent rectangles.  The
+		       value set here is for the next pixel, which is
+		       filled from ybot to y_crossing.  */
+
+		    coverage = (y_crossing - ybot) * (*a).winding as f32;
+		    increment = dy * (*a).winding as f32;
+
+		    x = (x_pixel_min + 1) as f32;
+		    while x < x_pixel_max as f32
+		      {
+		        here = coverage + increment / 2.0f32;
+		        APPEND_STEP! (x, here - last);
+		        last = here;
+		        coverage += increment;
+		        x += 1.0;
+		      }
+
+		    /* The y_crossing for the last pixel.  */
+		    y_crossing = ybot + dy * (xtop as c_int) as f32 - xbot;
+
+		    /* And calculate the area of the trapezoid in the
+		       last pixel.  */
+
+		    coverage += (*a).winding as f32
+		      * TRAPEZOID_AREA! (ytop - y_crossing,
+				         xtop,
+				         xtop as c_int + 1,
+				         xtop as c_int,
+				         xtop as c_int + 1);
+		    here = coverage;
+		    APPEND_STEP! (x_pixel_max, here - last);
+		    last = here;
+
+		    /* Fill the remainder of the scanline with
+		       height-derived coverage.  */
+
+		    if ((x_pixel_max + 1) as size_t) < width
+		      { APPEND_STEP! (x_pixel_max + 1, ((y_top - y_bot) * (*a).winding as f32 - last)); }
+		  }
+	        else /* if (x_bot > x_top) */
+		  {
+		    /*
+
+    y_top   x_top
+      +----------------+----------------+-----------------+-----------------+-----------------------------+
+      |     \--........|................|.................|.................|.............................|
+      |        \--.....|................|.................|.................|.............................|
+      |           \--..|................|.................|.................|.............................|
+      |              \-+.y_crossing.....|.................|.................|.............................|
+      |                |\--.............|.................|.................|.............................|
+      |                |   \--..........|.................|.................|.............................|
+      |  x_pixel_min   |      \---......|.................|.................|.............................|
+      |                |          \--...|.................|.................|.............................|
+      |                |             \--|y_crossing.......|.................|.............................|
+      |                |                \--...............|.................|.............................|
+      |                |                |  \--............|.................|.............................|
+      |                |                |     \--.........|.................|.............................|
+      |                |                |        \--......|.................|.............................|
+      +----------------+----------------+-----------\-----+-----------------+-----------------------------+
+    y_bot                                        x_bot
+
+  Whereas in this situation the trapezoid is inverted, and the code must
+  be as well.  */
+		    /* The edge's Y decreases as the edge's X increases,
+		       yielding a negative a->step_x.  */
+		    dy = (*a).step_y;
+
+		    /* Calculate y_crossing for the first pixel.  */
+		    y_crossing = ytop + dy * (xtop as c_int + 1) as f32 - xtop;
+
+		    /* And the area of the first triangle.  */
+		    last = (TRIANGLE_AREA! ((xtop as c_int + 1) as f32 - xtop,
+					    ytop - y_crossing)
+			    * (*a).winding as f32);
+		    APPEND_STEP! (x_pixel_min, last);
+
+		    /* Coverage value for subsequent rectangles.  The
+		       value set here is for the next pixel, which is
+		       filled from ytop to y_crossing.  */
+		    coverage = (ytop - y_crossing) * (*a).winding as f32;
+		    increment = -dy * (*a).winding as f32;
+
+		    x = (x_pixel_min + 1) as f32;
+		    while x < x_pixel_max as f32
+		      {
+		        here = coverage + increment / 2.0f32;
+		        APPEND_STEP! (x, here - last);
+		        last = here;
+		        coverage += increment;
+		        x += 1.0;
+		      }
+
+		    /* The y_crossing for the last pixel.  */
+		    y_crossing = ytop + dy * (xbot as c_int) as f32 - xtop;
+
+		    /* And calculate the area of the trapezoid in the
+		       last pixel.  */
+
+		    coverage += (*a).winding as f32
+		      * TRAPEZOID_AREA! (y_crossing - ybot,
+				         xbot as c_int,
+				         xbot as c_int + 1,
+				         xbot,
+				         xbot as c_int + 1);
+		    here = coverage;
+		    APPEND_STEP! (x_pixel_max, here - last);
+		    last = here;
+
+		    /* Fill the remainder of the scanline with
+		       height-derived coverage.  */
+
+		    if ((x_pixel_max + 1) as size_t) < width
+		      { APPEND_STEP! (x_pixel_max + 1, ((y_top - y_bot) * (*a).winding as f32 - last)); }
+		  }
+	      } /* C's `#undef TRIANGLE_AREA` (C 5262) has no Rust text: `TRIANGLE_AREA` is a
+		   `macro_rules!` scoped to this block, so it dies at the block's end.  */
+	  /* C's `#undef APPEND_STEP`/`#undef TRAPEZOID_AREA` (C 5265-5266) are the same
+	     block-scope ending.  */
+
+	    /* When an edge is created, its a->bottom (and by extension
+	       a->y) is not aligned to a->x.  Since this iteration can
+	       only affect the scan line Y, align a to the next
+	       scanline, that the next iteration of this loop to
+	       consider it might consider its entire intersection.  */
+	    (*a).x += (*a).step_x * ((y + 1) as f32 - (*a).bottom);
+	  (*a).bottom = (y + 1) as f32;
+	  } /* 'next (C 5275) */
+
+	/* next: */
+	if (*a).top < (y + 1) as f32
+	  { *prev = (*a).next; }
+	else
+	    /* This edge doesn't intersect with the next scanline;
+	       remove it from the list.  After the edge at hand is so
+	       deleted from the list, its next field remains set,
+	       excluding it from future consideration.  */
+	  { prev = &raw mut (*a).next; }
+	}
+
+      /* Break if all is done.  */
+      if active == &raw mut sentinel && edges_processed == nedges
+	{ break; }
+
+      y += 1;
+    }
+
+  proc.unwrap () (&raw mut raster, dcontext);
+  xfree (raster.steps as *mut c_void);
+
+  /* Free each block of steps allocated.  */
+  next = raster.chunks;
+  while !next.is_null ()
+    {
+      last = next;
+      next = (*next).next;
+      xfree (last as *mut c_void);
+    }
+}
+
+/* Apply winding rule to the coverage value VALUE.  Convert VALUE to a
+   number between 0 and 255.  If VALUE is negative, invert it.  If it
+   exceeds 255 afterwards, truncate it to 255.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_compute_fill (mut value: f32) -> c_int
+{                                                          // C 5309-5316
+  if value < 0.0f32
+    { value = -value; }
+
+  return (MIN! (value * 255.0f32, 255.0f32)) as c_int;
+}
+
+/* Set N pixels at DATA to the value VALUE.  If N is large, call
+   memset; otherwise set this by hand.  */
+
+/* C 5327-5354's `switch (n)` is a Duff's-device ladder: every `case` falls through into the next,
+   so each `match` arm carries the statements of the arms below it and keeps C's `FALLTHROUGH;`
+   token at its site (the `regcomp.rs` 2044/2080 shape - the token survives because the shared
+   statements follow it).  `case 0:'s `break` is the arm's end, and `default:` is `_`.  The
+   `switch`/`case`/`default`/`break`/`fallthrough` row this owes `docs/ports/macro-body-notes.tsv`
+   is the ledger's Owed 10.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_poly_set_steps (data: *mut c_uchar, value: c_int, n: c_int)
+{                                                          // C 5321-5355
+  let mut p: *mut c_uchar;
+
+  p = data;
+  match n
+    {
+      7 =>
+	{
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	}
+      6 =>
+	{
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	}
+      5 =>
+	{
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	}
+      4 =>
+	{
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	}
+      3 =>
+	{
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	}
+      2 =>
+	{
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	  *p = value as c_uchar; p = p.offset (1);
+	}
+      1 =>
+	{
+	  *p = value as c_uchar; p = p.offset (1);
+	  FALLTHROUGH! ();
+	}
+      0 => {}
+      _ =>
+	{ memset (data as *mut c_void, value, n as size_t); }
+    }
+}
+
+/* Transfer steps generated by sfnt_poly_edges_exact from STEPS to the
+   provided raster RASTER.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_poly_steps (steps: *mut sfnt_step_raster, raster: *mut sfnt_raster)
+{                                                          // C 5360-5396
+  let mut y: c_int;
+  let mut data: *mut c_uchar;
+  let mut x: c_int;
+  let mut xend: c_int;
+  let mut fill: c_int;
+  let mut total: f32;
+  let mut step: *mut sfnt_step;
+
+  y = 0; /* This y is an X-style coordinate in RASTER's space.
+
+	    Its counterpart array of steps is STEPS->steps[
+	    raster->height - y - 1].  */
+  data = (*raster).cells;
+
+  y = 0;
+  while y < (*raster).height as c_int
+    {
+      x = 0;
+      total = 0.0;
+      fill = 0;
+
+      step = *(*steps).steps.offset (((*raster).height as c_int - y - 1) as isize);
+      while !step.is_null () && x < (*raster).width as c_int
+	{
+	  xend = MIN! ((*step).x, (*raster).width as c_int);
+
+	  if fill != 0
+	    { sfnt_poly_set_steps (data.offset (x as isize), fill, xend - x); }
+
+	  total += (*step).coverage;
+	  fill = sfnt_compute_fill (total);
+	  x = xend;
+	  step = (*step).next;
+	}
+
+      if x < (*raster).width as c_int
+	{ sfnt_poly_set_steps (data.offset (x as isize), fill,
+			       (*raster).width as c_int - x); }
+      y += 1;
+      data = data.offset ((*raster).stride as isize);
+    }
+}
+
+/* Poly each edge in EDGES onto the raster supplied in DCONTEXT.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_raster_steps (steps: *mut sfnt_step_raster, dcontext: *mut c_void)
+{                                                          // C 5400-5404
+  sfnt_poly_steps (steps, dcontext as *mut sfnt_raster);
+}
+
+/* Call sfnt_poly_edges_exact with suitable arguments for polying
+   EDGES onto DCONTEXT, a raster structure.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_raster_edges_exact (edges: *mut sfnt_fedge, size: size_t,
+					      dcontext: *mut c_void)
+{                                                          // C 5409-5419
+  let mut raster: *mut sfnt_raster;
+
+  raster = dcontext as *mut sfnt_raster;
+  sfnt_poly_edges_exact (edges, size, (*raster).height as size_t,
+			 (*raster).width as size_t, Some (sfnt_raster_steps),
+			 dcontext);
+}
+
+/* Generate an alpha mask for the glyph outline OUTLINE by means of
+   the exact coverage scaler.  Value is the alpha mask upon success,
+   NULL upon failure.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_raster_glyph_outline_exact (outline: *mut sfnt_glyph_outline)
+  -> *mut sfnt_raster                                     // C 5425-5451
+{
+  let mut raster: sfnt_raster = std::mem::zeroed ();
+  let mut data: *mut sfnt_raster;
+  let mut size: size_t;
+
+  /* Get the raster parameters.  */
+  sfnt_prepare_raster (&raw mut raster, outline);
+
+  /* Allocate the raster data.  Clear the raster; it is easier to use
+     xcalloc and clear everything.  */
+  let (ckd_size, mul_overflow) = (raster.stride as size_t)
+    .overflowing_mul (raster.height as size_t);
+  size = ckd_size;
+  if mul_overflow
+    { return std::ptr::null_mut (); }
+  let (ckd_size, add_overflow) = size
+    .overflowing_add (std::mem::size_of::<sfnt_raster> ());
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+  data = xcalloc (1, size) as *mut sfnt_raster;
+  if data.is_null ()
+    { return std::ptr::null_mut (); }
+  *data = raster;
+  (*data).cells = data.offset (1) as *mut u8;
+
+  /* Generate edges for the outline, polying each array of edges to
+     the raster.  */
+  sfnt_build_outline_fedges (outline, Some (sfnt_raster_edges_exact),
+			     data as *mut c_void);
 
   /* All done.  */
   return data;

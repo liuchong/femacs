@@ -1,4 +1,4 @@
-# emacs/src/sfnt.c (21,215 lines) — slices 1-4: C 1-4543
+# emacs/src/sfnt.c (21,215 lines) — slices 1-5: C 1-5451
 
 > **P-86's largest unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 2645 adds `sfnt.o` to `ANDROID_OBJ` only inside the `XCONFIGURE = android`
@@ -6,8 +6,8 @@
 > 2598, which is why `src/android.c`'s file gate is `have_android` alone and this one is the
 > pair — and `docs/baseline/frozen-build-sources.txt` lists no `sfnt.o`.  What follows is P-86
 > ②'s **C line-range table** for these slices, the `## Evidence` readings and the
-> `## Deviations`.  Port: `femacs/src/sfnt.rs` (5,181 lines, `grep -c ''`; `extract-abi.py`'s
-> own count, 5,181, is the same newline count), both arms of every `#if` carried.
+> `## Deviations`.  Port: `femacs/src/sfnt.rs` (6,251 lines, `grep -c ''`; `extract-abi.py`'s
+> own count, 6,251, is the same newline count), both arms of every `#if` carried.
 >
 > **This file's ledger replaces the previous revision's conclusion** ("the file is not in the
 > frozen build, so the port is the empty unit plus a note"), exactly as `docs/ports/android.md`
@@ -27,7 +27,7 @@
 > it is this ledger's account of what the slices *do* carry, next to the tool's account of what
 > the file still owes.
 >
-> **The slices are C 1-4543.**  Slice 1 is C 1-1112 (through the `}` of `sfnt_read_cmap_table`
+> **The slices are C 1-5451.**  Slice 1 is C 1-1112 (through the `}` of `sfnt_read_cmap_table`
 > at C 1112): the include graph and the TEST harness (C 20-139), `xaddmalloc`/`xaddrealloc`/
 > `MIN`/`MAX` (C 141-160), the file's own note (C 162-191), `sfnt_table_names` (C 195-219), the
 > two swap helpers and their macros (C 221-238), `sfnt_read_table_directory` (C 248-323),
@@ -60,10 +60,21 @@
 > `sfnt_build_outline_edges` (C 4059-4167), `sfnt_edge_sort` (C 4175-4194), `sfnt_poly_edges`
 > (C 4220-4296), `sfnt_saturate_short` (C 4301-4308), `sfnt_fill_span` (C 4313-4435),
 > `sfnt_poly_span` (C 4442-4489), `sfnt_raster_span` (C 4498-4503), `sfnt_raster_edge`
-> (C 4508-4514) and `sfnt_raster_glyph_outline` (C 4519-4543).  **The next live definition is
-> C 4726's `sfnt_build_outline_fedges`** - C 4545-4554's three `sfnt_add`/`sfnt_sub`/`sfnt_mul`
-> macros, C 4558-4650's "Exact coverage scaler." comment and the `struct sfnt_step` family
-> (C 4651-4725) open the *exact* rasterizer - and the table's last row is "the remainder".
+> (C 4508-4514) and `sfnt_raster_glyph_outline` (C 4519-4543).  Slice 5 is C 4544-5451: the
+> three wrapping-arithmetic macros `sfnt_add`/`sfnt_sub`/`sfnt_mul` (C 4547-4554), the "Exact
+> coverage scaler." note (C 4558-4647), the records `struct sfnt_step` (C 4651-4662),
+> `struct sfnt_step_raster` (C 4667-4677), the anonymous enum's `SFNT_BLOCK_STEPS` (C 4679-4682),
+> `struct sfnt_step_chunk` (C 4687-4697) and `struct sfnt_fedge` (C 4704-4717) with the
+> `sfnt_fedge_proc` typedef (C 4719-4720), `sfnt_build_outline_fedges` (C 4726-4826), the
+> `sfnt_step_raster_proc` typedef (C 4828), `sfnt_insert_raster_step` (C 4834-4883; C 4857's
+> `goto found`), the whole **exact rasterizer** `sfnt_poly_edges_exact` (C 4896-5303, with C 4959's
+> `APPEND_STEP`, C 5011's `TRAPEZOID_AREA`, C 5083's `TRIANGLE_AREA` and C 4984's `goto next`),
+> `sfnt_compute_fill` (C 5309-5316), `sfnt_poly_set_steps` (C 5321-5355, the `FALLTHROUGH`
+> ladder), `sfnt_poly_steps` (C 5360-5396), `sfnt_raster_steps` (C 5400-5404),
+> `sfnt_raster_edges_exact` (C 5409-5419) and the `TEST_STATIC` `sfnt_raster_glyph_outline_exact`
+> (C 5425-5451).  **The next live definition is C 5468's `sfnt_read_hmtx_table`** - C 5453's form
+> feed and C 5455's "Glyph metrics computation." banner open the metrics readers - and the table's
+> last row is "the remainder".
 
 ## Gate mapping
 
@@ -78,6 +89,7 @@
 | C 224 / C 232 `#ifndef WORDS_BIGENDIAN` (the two swap helpers' bodies) | `not (feature = "words_bigendian")` (`femacs/xtask/Cargo.toml` 614); the other arm is C's empty body — the big-endian byte order needs no swap, so it is not a branch the port invents | little-endian |
 | C 1827 `#if defined HAVE_MMAP && !defined TEST` … C 1906 `#endif` | `all (file gate, not (feature = "test"))`: `HAVE_MMAP` is 1 on this target and no `have_mmap` feature is registered, so the port carries that half live (C 41's ruling, above) and gates C's `!defined TEST` half.  **C's `#if` has no `#else`**, so the other arm is empty text | a real Android non-TEST configuration |
 | C 1871 `#ifdef HAVE_POSIX_MADVISE` … C 1874 `#elif defined HAVE_MADVISE` … C 1876 `#endif` | `not (feature = "no_have_posix_madvise")` for the live `posix_madvise` arm; `feature = "no_have_posix_madvise"` + `cfg! (feature = "have_madvise")` for the `madvise` arm (the `pdumper.rs` 5281-5284 shape; `docs/baseline/feature-coverage.tsv` 241/436 register both names).  The third arm — neither macro — has no text in C | `posix_madvise`: always on this target (`HAVE_POSIX_MADVISE` is 1, 1492; `HAVE_MADVISE` is 1 too, 1445) |
+| C 4547-4554's three file-scope `#define`s (`sfnt_add`/`sfnt_sub`/`sfnt_mul`), C 4959's `APPEND_STEP`, C 5011's `TRAPEZOID_AREA` and C 5083's `TRIANGLE_AREA` (the last three inside `sfnt_poly_edges_exact`), and their `#undef`s (C 5262, C 5265-5266) | `macro_rules!` at the same scope: file scope for the first three, the enclosing block for the three function-local ones — Rust's macros are textually scoped, so the `#undef`s have no text (Deviation 35) | every configuration (C's macros are unconditional) |
 | C 4322 `#ifndef NDEBUG` … C 4429 (`sfnt_fill_span`'s `row_end` and its four `eassert`s) | `feature = "no_ndebug"` — the frozen configuration **defines** `NDEBUG` (`docs/baseline/config/darwin-arm64.macros.tsv` 2892), so this is dead text and P-51's rule names the feature after the non-frozen side (the `no_signbit`/`no_rint` shape); C's `#else` is empty, so there is no second arm.  The name is **not registered** yet — Owed 8 | a configuration with `NDEBUG` undefined |
 | C 1837 / C 1891 (`sfnt_map_glyf_table`/`sfnt_unmap_glyf_table` are not `TEST_STATIC`: sfnt.h declares them `extern` at C 1490-1491) | plain `#[unsafe(no_mangle)] pub unsafe extern "C"` under the file gate + `not (feature = "test")` — no `cfg_attr` | a real Android non-TEST configuration |
 | C 34's `#include <stdlib.h>` / C 2451's `abort ()` and slice 4's `abs` (C 3712-3713, C 3812, C 4134) | the file gate; the unit carries C's two prototypes in use-site blocks at C 34's site (`lib/include/stdlib.rs` has `malloc` and friends but neither name, the `androidvfs.rs` 228-234 shape) | a real Android configuration |
@@ -139,9 +151,10 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 | 3294-3433 | `sfnt_decompose_glyph_2` (C 3306-3433, the same body over `sfnt_fixed`/`sfnt_f26dot6` instead of `sfnt_fword`) | file gate |
 | 3434-3594 | `sfnt_decompose_glyph` (C 3470-3594; C 3479-3512 the simple-glyph walk, C 3516 the `memset (&context, 0, sizeof context)`, C 3526 the `compound_metrics` save, C 3538-3556 the two `goto`s, C 3581/3588 the `early:`/`fail:` tails with their four `xfree`s each) | file gate |
 | 3595-4543 | the blank at C 3595, then `struct sfnt_build_glyph_outline_context` (C 3596-3606) and the `build_outline_context` object (C 3610); `sfnt_build_append` (C 3616-3674; C 3645's `ckd_mul`, C 3647's `xaddrealloc`, C 3662-3663 the two chained bounding-box assignments); `sfnt_multiply_divide`/`_rounded`/`_signed` (C 3678-3714), `sfnt_mul_fixed`/`_round` (C 3719-3733), `sfnt_move_to_and_build`/`sfnt_line_to_and_build` (C 3738-3767), `sfnt_div_fixed`/`sfnt_ceil_fixed`/`sfnt_floor_fixed` (C 3772-3792; C 3783/3791's octal masks), `sfnt_curve_is_flat` (C 3798-3815; C 3812's `abs`), `sfnt_curve_to_and_build_1` (C 3822-3854; the three `sfnt_lerp_half` calls), `sfnt_curve_to_and_build` (C 3860-3879) and `sfnt_build_glyph_outline` (C 3902-3971; C 3918's two `sizeof`s, C 3942-3943 the two distortion terms, C 3946-3951 the `Some (…)` callback pair); the form feed and the "Glyph rasterization." banner, `sfnt_poly_coverage` (C 3983-3993), `sfnt_poly_grid_ceil` (C 3998-4003), the anonymous enum's `SFNT_POLY_ALIGNMENT` (C 4005-4008), `sfnt_prepare_raster` (C 4015-4038), the `sfnt_edge_proc`/`sfnt_span_proc` typedefs (C 4040-4042), `sfnt_step_edge` (C 4047-4052), `sfnt_build_outline_edges` (C 4059-4167; C 4069-4072 the `alloca`/`xnmalloc` fork, C 4134's `abs`, the three `continue`s at C 4092/4096/4144), `sfnt_edge_sort` (C 4175-4194), `sfnt_poly_edges` (C 4220-4296; the three pointer-to-pointer walks and the `(a = *prev) && (n = a->next)` condition), `sfnt_saturate_short` (C 4301-4308), `sfnt_fill_span` (C 4313-4435; C 4322-4324's `#ifndef NDEBUG` declaration and the four `eassert`s at C 4367/4385/4414/4428, C 4342's coverage subscript, C 4400/4418/4433 the three `*start++`), `sfnt_poly_span` (C 4442-4489; C 4452's and C 4476's chained assignments), the "Main entry point for outline rasterization." banner and `sfnt_raster_span` (C 4498-4503), `sfnt_raster_edge` (C 4508-4514) and `sfnt_raster_glyph_outline` (C 4519-4543; C 4530-4532 the `ckd` pair, C 4535's `(data + 1)` cell pointer) | file gate / `TEST_STATIC` on `sfnt_build_glyph_outline`, `sfnt_prepare_raster` and `sfnt_raster_glyph_outline`; `feature = "no_ndebug"` inside C 4322 |
-| 4544-21215 | **the remainder** — C 4545-4554's three `sfnt_add`/`sfnt_sub`/`sfnt_mul` macros, C 4558-4650's "Exact coverage scaler." comment and the `struct sfnt_step` family from C 4651 (whose `SFNT_BLOCK_STEPS` is the next missing constant), the exact rasterizer (C 4726's `sfnt_build_outline_fedges` is **the next live definition**, through C 5467), the metrics and name-table readers from C 5468 (`sfnt_read_hmtx_table`, `sfnt_lookup_glyph_metrics`, `sfnt_scale_metrics`, `sfnt_get_scale`, `sfnt_read_name_table`, `sfnt_find_name`) and the whole TrueType interpreter, `sfnt_interpret_*` (through C 21215, including the `#ifdef TEST` programs) | not this slice |
+| 4544-5451 | the blank at C 4544 and C 4547-4554's three macros; the "Exact coverage scaler." note (C 4558-4647); `struct sfnt_step` (C 4651-4662), `struct sfnt_step_raster` (C 4667-4677), the anonymous enum's `SFNT_BLOCK_STEPS` (C 4679-4682), `struct sfnt_step_chunk` (C 4687-4697), `struct sfnt_fedge` (C 4704-4717) and `typedef void (*sfnt_fedge_proc)` (C 4719-4720); `sfnt_build_outline_fedges` (C 4726-4826; C 4735-4739 the `alloca`/`xnmalloc` fork, C 4796-4798 `dx`/`dy`, C 4806 the `step_y = dx ? … : 0` ternary, C 4810-4816 the five `sfnt_fixed_float` stores); `typedef void (*sfnt_step_raster_proc)` (C 4828); `sfnt_insert_raster_step` (C 4834-4883; C 4849-4860 the sorted-list search with `goto found`, C 4862-4873 the chunk allocation, C 4875 the `nused++` subscript); `sfnt_poly_edges_exact` (C 4896-5303; C 4912 the `MAX`/`sfnt_floor_fixed` floor, C 4920 the `xcalloc`, C 4922 the scanline loop, C 4927-4947 the unsorted sweep, C 4953-5285 the active-edge loop with C 4959's `APPEND_STEP`, C 5011's `TRAPEZOID_AREA` and C 5083's `TRIANGLE_AREA`, C 5019-5071 the one-pixel case, C 5090-5260 the two multi-pixel cases, C 5262/5265-5266 the three `#undef`s, C 5273-5274 the scanline alignment, C 5275-5284 the `next:` tail, C 5292 the `proc` call, C 5296-5302 the chunk-freeing walk); `sfnt_compute_fill` (C 5309-5316); `sfnt_poly_set_steps` (C 5321-5355; the seven-armed `FALLTHROUGH` ladder); `sfnt_poly_steps` (C 5360-5396; C 5376 the two-increment `for` head, C 5380-5391 the step walk); `sfnt_raster_steps` (C 5400-5404); `sfnt_raster_edges_exact` (C 5409-5419) and `sfnt_raster_glyph_outline_exact` (C 5425-5451; C 5436-5438 the `ckd` pair, C 5439 the `xcalloc`, C 5443 the cell pointer) | file gate / `TEST_STATIC` on `sfnt_raster_glyph_outline_exact` |
+| 5452-21215 | **the remainder** — C 5453's form feed, C 5455's "Glyph metrics computation." banner and the metrics/name-table readers from C 5468 (`sfnt_read_hmtx_table` - **the next live definition** - `sfnt_lookup_glyph_metrics`, `sfnt_scale_metrics`, `sfnt_get_scale`, `sfnt_read_name_table`, `sfnt_find_name`) and the whole TrueType interpreter, `sfnt_interpret_*` (through C 21215, including the `#ifdef TEST` programs; the three `SFNT_RUN_CONTEXT_*` constants are its) | not this slice |
 
-The forty-eight rows above tile C 1-4543 **contiguously** (blank lines included) rather than
+The forty-nine rows above tile C 1-5451 **contiguously** (blank lines included) rather than
 skipping the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
 `femacs/src/include/sfnt.rs` (this file's header's mirror) to this same `sfnt.md` through its
 bare-stem fallback, so a table with gaps at blanks would leave `src/sfnt.h`'s non-blank lines
@@ -169,12 +182,17 @@ the class only the frozen build can see, because it parses every item and compil
 struct field), `Rust has no postfix increment operator` ×1 (`_root.rs` 4758 - C 4151's `edge++`)
 and \`<\` is interpreted as a start of generic arguments for \`c_int\`` ×2 (`_root.rs` 5089,
 5105 - C 4473/4487's `raster->height << 16` directly after a cast).  The second run is the clean
-reading above.
+reading above.  **Slice 5 needed three runs, two of them syntax readings of its own new text**:
+`unexpected closing delimiter: \`}\`` ×1 (`_root.rs` 6022, against the `while` at 5648 - the
+port's `'next:` block had one brace too many where C 5265-5266's `#undef`s stand) and
+`struct fields are separated by \`,\`` ×8 (`_root.rs` 5299, 5303, 5317, 5320, 5339, 5342,
+5358, 5361 - C's `;` after the four new records' fields).  The third run is the clean reading
+above.
 
 **② The arm flip (P-86 ③⑴ — this machine has the NDK, so `text-only` is not allowed).**
 `cargo run -q -p xtask -- probe src/sfnt.rs /tmp/sfnt-lane/sfnt_arm.o --crate-type lib --emit obj
 --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'`
-→ **exit 0**, `0 errors`, and the object is **25,856 bytes** (slice 3's reading was 12,632); the
+→ **exit 0**, `0 errors`, and the object is **31,288 bytes** (slice 4's reading was 25,856); the
 four warnings are all in *included mirrors*, none in this unit's own text:
 1. `lib/include/stdbit.in.rs` 644 — "unused doc comment";
 2. `src/include/lisp.rs` 3934 — "unused doc comment";
@@ -182,7 +200,17 @@ four warnings are all in *included mirrors*, none in this unit's own text:
 4. `lib/include/unistd.in.rs` 55 — the same for `write`.
 
 (The last two are a rustc lint that fires on the mirror's own declarations; they are not this
-unit's text and this slice cannot remove them.)  **Slice 4's own control reading is the 3-error
+unit's text and this slice cannot remove them.)  **Slice 5's own control readings are the two
+3-error runs the fixes below retired**: `3 × E0308` at `_root.rs` 5877, 5952 and 6032 - the two
+`APPEND_STEP!` sites (`x` is the `float` loop variable of C 5157/5231 where `sfnt_insert_raster_step`
+takes an `int`, and the macro's `y` is an `int` where that function's `scanline` is `size_t`) and
+`sfnt_compute_fill`'s `if value < 0` (an `f32` against an integer literal) - and then `3 × E0308`
+again (`TRAPEZOID_AREA!`'s `bot_start`/`top_start` were passed uncast, so an `int` met an `f32` at
+`_root.rs` 5715, plus the same two `APPEND_STEP!` sites once the first fix was in).  Every one is
+at a `_root.rs` line inside this unit's own text.  **A fourth `probe` run re-verified the revision**
+after `struct sfnt_fedge`'s two shared C declarations were split one field per line for the
+inventory's field check (Deviation 36) - i.e. this slice used **four of the three-run budget**,
+reported in the lane's receipt and recorded in Owed 11.  **Slice 4's own control reading is the 3-error
 run the fixes below retired**: `2 × E0308` (`y >= edges[edge].top` compared a `size_t` with an
 `sfnt_fixed`, `_root.rs` 4739, and `edges[edge].bottom = y`, 4756, wrote the `size_t` into an
 `sfnt_fixed` - both are C's implicit conversions, written `as size_t`/`as sfnt_fixed`) and
@@ -215,48 +243,59 @@ unit's names, so that run is recorded as a blocked reading and **not** as a read
 
 **③ Inventory (the live checklist).**
 `python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` → **FAIL**, with
-**304 `- missing …` lines — 147 functions, 153 macros, 4 constants (`SFNT_BLOCK_STEPS` and the
-three `SFNT_RUN_CONTEXT_*`), 0 file-scope objects** — down from 333 (174/153/5/1) at the end of
-slice 3, i.e. **all 27 of slice 4's own functions match** (`sfnt_build_append`,
-`sfnt_multiply_divide`, `sfnt_multiply_divide_rounded`, `sfnt_multiply_divide_signed`,
-`sfnt_mul_fixed`, `sfnt_mul_fixed_round`, `sfnt_move_to_and_build`, `sfnt_line_to_and_build`,
-`sfnt_div_fixed`, `sfnt_ceil_fixed`, `sfnt_floor_fixed`, `sfnt_curve_is_flat`,
-`sfnt_curve_to_and_build_1`, `sfnt_curve_to_and_build`, `sfnt_build_glyph_outline`,
-`sfnt_poly_grid_ceil`, `sfnt_prepare_raster`, `sfnt_step_edge`, `sfnt_build_outline_edges`,
-`sfnt_edge_sort`, `sfnt_poly_edges`, `sfnt_saturate_short`, `sfnt_fill_span`, `sfnt_poly_span`,
-`sfnt_raster_span`, `sfnt_raster_edge`, `sfnt_raster_glyph_outline`; the function count falls by
-exactly 27), and the two names the checker listed as missing that this slice defines are gone:
-the constant `SFNT_POLY_ALIGNMENT` (C 4005-4008) and the file-scope object `build_outline_context`
-(C 3610) — the file-scope-object class is now empty.  **One named row is this slice's**:
-`- function sfnt_build_outline_edges does not mention alloca` (C 4070's `alloca` is the port's
-`sa_stack_alloc`, Deviation 23; the row is owed to `docs/ports/macro-body-notes.tsv`, Owed 3).
-The other non-`missing` line is `- line count drifted 75.6%: C 21215 vs Rust 5181` (the whole
-file against four slices; slice 1's reading was 93.9%/1,298, slice 2's 86.7%/2,811, slice 3's
-80.6%/4,113).  The nine `- function … is not static in C but has no #[unsafe(no_mangle)]` rows
-and slice 3's five `does not mention` rows are **gone from this reading** (`3.442` wrote slice 3's
-six rows; `3.441` taught the tool to read the `cfg_attr` export, so this slice's three new
-`TEST_STATIC` readers - `sfnt_build_glyph_outline`, `sfnt_prepare_raster`,
-`sfnt_raster_glyph_outline` - produce no row either).
+**291 `- missing …` lines — 138 functions, 147 macros, 3 constants (the three
+`SFNT_RUN_CONTEXT_*`), 0 file-scope objects, 0 fields** — down from 304 (147/153/4/0/0) at the end
+of slice 4, i.e. **all 9 of slice 5's own functions match** (`sfnt_build_outline_fedges`,
+`sfnt_insert_raster_step`, `sfnt_poly_edges_exact`, `sfnt_compute_fill`, `sfnt_poly_set_steps`,
+`sfnt_poly_steps`, `sfnt_raster_steps`, `sfnt_raster_edges_exact`,
+`sfnt_raster_glyph_outline_exact`; the function count falls by exactly 9), the **macro count falls
+by six** (the three `sfnt_add`/`sfnt_sub`/`sfnt_mul` plus the function-local `APPEND_STEP`,
+`TRAPEZOID_AREA` and `TRIANGLE_AREA`) and the constant count by one (`SFNT_BLOCK_STEPS`, C
+4679-4682), leaving the three `SFNT_RUN_CONTEXT_*` as the file's whole constant debt.  **Seven
+named rows are this slice's**: `- function sfnt_build_outline_fedges does not mention alloca`
+(C 4737's `alloca` is the port's `sa_stack_alloc`, Deviation 23 - the `fedge` twin of the row the
+integrator wrote in 3.463 for `sfnt_build_outline_edges`), `- function sfnt_insert_raster_step
+does not mention goto` (C 4857's `goto found`), `- function sfnt_poly_edges_exact does not mention
+float, goto` (C's `float` locals are PORTING.md 1.1's `f32`, and C 4984's `goto next` is a labelled
+block), `- function sfnt_poly_steps does not mention float`, `- function sfnt_poly_set_steps does
+not mention break, case, default, switch` (the `FALLTHROUGH` ladder of Deviation 38), `- macro
+TRAPEZOID_AREA does not mention f, float` and `- macro TRIANGLE_AREA does not mention f` (C's
+`(float)` casts and its `2.0f` suffixes; `TRIANGLE_AREA`'s `f` could be kept instead with the
+`sfnt_fixed_float` mirror's `let f: f32 = 2.0;` spelling, if the tree prefers the token to the
+row).  The seven are owed to `docs/ports/macro-body-notes.tsv` (Owed 10).  The other non-`missing`
+line is `- line count drifted 70.5%: C 21215 vs Rust 6251` (the whole file against five slices;
+slice 1's reading was 93.9%/1,298, slice 2's 86.7%/2,811, slice 3's 80.6%/4,113, slice 4's
+75.6%/5,181).  **One row this slice introduced and closed before delivery**: `- struct sfnt_fedge:
+missing fields ['top', 'bottom', 'step_y']`, read while those declarations shared C's own lines
+(C 4713's `float x, top, bottom;` and C 4716's `float step_x, step_y;`) - Deviation 36 spells the
+split, and the field class is empty again.  The nine `- function … is not static in C but has no
+#[unsafe(no_mangle)]` rows and slice 4's `does not mention alloca` row are **gone from this
+reading** (the integrator wrote the latter in 3.463; `3.441` taught the tool to read the `cfg_attr`
+export, so this slice's new `TEST_STATIC` reader - `sfnt_raster_glyph_outline_exact` - produces no
+row either).
 
 **④ Other gates (repo root, final revision).**
-`python3 tools/check-dead-file-coverage.py` → **45 ledger(s) bound (a C range table), 0
-failure(s)** (that count moves as the parallel lanes land their ledgers: slice 3's reading was
-37), and this ledger is one of them: `info docs/ports/sfnt.md: 48 range row(s) cover
-src/sfnt.c (21215 lines; 0 blank line(s) between blocks need no row)` plus the same 48 rows over
+`python3 tools/check-dead-file-coverage.py` → **46 ledger(s) bound (a C range table), 0
+failure(s)** (that count moves as the parallel lanes land their ledgers: it read 45 earlier in
+this run), and this ledger is one of them: `info docs/ports/sfnt.md: 49 range row(s) cover
+src/sfnt.c (21215 lines; 0 blank line(s) between blocks need no row)` plus the same 49 rows over
 `src/sfnt.h` (2151 lines, the bare-stem fallback above) — the row added by this slice is
-`3595-4543`, and the old `3595-21215` row is now `4544-21215`. —
+`4544-5451`, and the old `4544-21215` row is now `5452-21215`. —
 `python3 tools/check-declarations.py` → **10 declaration sites (0 forbidden, 10 allowed
-literals), 0 failures** (slice 4's `abs` block is the eleventh `unsafe extern "C"` site; the
-count is sites-with-forbidden/with-allowed hits, not blocks). —
+literals), 0 failures** (this slice adds no use-site block: every name it calls is already in this
+unit's include graph, Deviation 39). —
 `python3 tools/check-ledger-ticks.py` → **234 ledger(s) bound (a function tick to compare), 0
 failure(s), 0 carried by another file, 356 row(s) with no function tick**, 0 row(s) without a
-ledger. —
-`python3 tools/check-mirror-dupes.py` → **19 duplicate declaration(s), 19 ratchet row(s), 0
-failure(s)**. —
+ledger (this ledger carries a range table, not a tick list). —
+`python3 tools/check-mirror-dupes.py` → **43 duplicate declaration(s), 19 ratchet row(s), 24
+failure(s)** — **not this unit**: every failure line names another lane's **in-flight, untracked**
+`femacs/src/include/gtk.rs`, which re-declares cairo/GTK names `femacs/src/image.rs` and
+`femacs/src/xwidget.rs` declare too; the same run read **19/19/0** a few minutes earlier, before
+that file appeared, and neither of this lane's two files appears in any failure line. —
 `python3 tools/check-cond-eval.py src/sfnt.c` → **31 conditions, 0 unknown, 0 disagreements
 [VERIFIED]**, unchanged (the C file is frozen, so the evaluator's table cannot move with a port
-change; C 4322's `#ifndef NDEBUG` is the third `#if` inside the ported ranges and the first that
-is not a whole-item gate - it sits inside `sfnt_fill_span`'s body).
+change; C 4322's `#ifndef NDEBUG` is still the third `#if` inside the ported ranges, and slice 5's
+range carries no `#if` at all - only `#define`/`#undef`, Deviation 35).
 
 ## Deviations
 
@@ -472,6 +511,62 @@ is not a whole-item gate - it sits inside `sfnt_fill_span`'s body).
     depth limit, which C's own comment ("Maybe apply a recursion limit here?") acknowledges - the
     port keeps the recursion as it stands.
 
+33. **C 4547-4554's three macros are `macro_rules!`.**  `sfnt_add`/`sfnt_sub`/`sfnt_mul` are
+    `((int) ((unsigned int) (a) … (unsigned int) (b)))` - `unsigned int` arithmetic whose wrap C
+    relies on - so the port writes `wrapping_add`/`wrapping_sub`/`wrapping_mul` around C's two
+    casts (PORTING.md 1.1), and each argument is evaluated once, as in C.  They have no call site
+    until the interpreter lands (which is why no use moved), and `unused_macros` is allowed at the
+    crate root.
+34. **C's statement macro `APPEND_STEP` keeps its semicolon.**  C 4959-4960's body is
+    `sfnt_insert_raster_step (&raster, x, coverage, y);` *including* the `;`, and every call site
+    adds another; the port's `macro_rules!` rule ends with `;` too, so `APPEND_STEP! (…)` expands
+    to a statement whose extra `;` is Rust's empty statement.  C's implicit conversions at that
+    call - the `float` `x` of C 5157/5231's loop into the `int` parameter, and the `int` `y` into
+    `size_t scanline` - are the `as c_int`/`as size_t` the macro body carries (measured:
+    `3 × E0308` without them, Evidence ②).
+35. **The `#undef`s have no Rust text.**  `TRIANGLE_AREA` (C 5083, `#undef` at C 5262),
+    `APPEND_STEP` (C 4959, `#undef` at C 5265) and `TRAPEZOID_AREA` (C 5011, `#undef` at C 5266)
+    are `macro_rules!` inside the enclosing block, and Rust's macros are textually scoped: the
+    block's end *is* the `#undef`.  The three sites carry a comment naming the C directive.
+36. **`struct sfnt_fedge`'s two shared C declarations are one field per line.**  C 4713's
+    `float x, top, bottom;` and C 4716's `float step_x, step_y;` declare four fields the port
+    needs, but `tools/extract-abi.py`'s field check reads `pub name: type,` lines: written the way
+    C groups them it reported `- struct sfnt_fedge: missing fields ['top', 'bottom', 'step_y']`.
+    The layout is identical either way; the split is recorded here because the inventory reading is
+    what found it (Evidence ③), and because it forced the fourth `probe` run (Owed 11).
+37. **C's two `goto`s are labelled blocks** (PORTING.md 2.2): `sfnt_insert_raster_step`'s
+    `goto found`/`found:` (C 4857/4881) and `sfnt_poly_edges_exact`'s `goto next`/`next:`
+    (C 4984/5275).  The second wraps a region C indents at columns 10-14, so that region is carried
+    at C's columns **+2** (the `'fail`/`'exit` shape of slice 3) - its interior comment art
+    therefore sits two columns right of C's, the only place in five slices where a carried
+    comment's leading whitespace is not C's own.  The `next:` tail stays at C's columns.
+38. **C's `switch (n)` ladder in `sfnt_poly_set_steps`** (C 5327-5354) is a `match` whose arms
+    carry the statements of the arms below them, with C's `FALLTHROUGH;` kept as `FALLTHROUGH! ()`
+    at each site - one copy per entry point, the `regcomp.rs` 2044/2080 shape and the rule
+    `docs/ports/etags.md` 414 states - so the ladder is spelled seven arms deep; `case 0:`'s
+    `break` is the arm's end and `default:` is `_`.  The `switch`/`case`/`default`/`break` tokens
+    have no Rust site (Owed 10).
+39. **This slice adds no use-site declaration.**  The two new external names it calls are already
+    in this unit's include graph: `sfnt_fixed_float` (the mirror's `f32` function for C 126's macro,
+    `femacs/src/include/sfnt.rs` 192) and `xcalloc` (`src/include/lisp.rs` 3984's `(usize, usize)`
+    declaration, reached through C 138's `lisp.h`; C 5439's `xcalloc (1, size)` needs no cast).
+    `memset` (C 5353) is `lib/include/string.rs` 24's and `FALLTHROUGH` (C 5331 etc.) is
+    `lib/include/attribute.rs` 154's no-op macro, whose token therefore survives at its sites.
+40. **Line count**: slice 5 is C 908 lines (C 4544-5451) against the port's +1,070
+    (5,181 → 6,251, +17.8%): the per-item gates, the C-line comments, the ladder's repeated arms,
+    the `'next` block's extra level, the `.offset (…)`/`&raw mut` spellings and the `as` casts
+    C's implicit conversions become.  The whole-file drift falls from 75.6% to 70.5%.
+41. **Three of C's own arithmetic edges are carried, not smoothed over** (the reference's bugs are
+    kept, per P-86 ①, the slice-4 Deviation 32's class): C 4912's `sfnt_floor_fixed (MAX (0,
+    edges[0].bottom))` reads `edges[0]` **before** any `nedges` test - the function only checks
+    `height`, so a `nedges == 0` call reads past the array, and this port keeps it as written
+    (`(*(edges.offset (0))).bottom`; the only protection is `sfnt_build_outline_fedges`'s
+    `if (edge)` gate at C 4823); C 4922's `for (; y != height; y += 1)` compares an `int` with a
+    `size_t`, so a negative `y` (which `sfnt_floor_fixed` can produce) becomes a huge value and the
+    loop would run `2^64 - height` times - carried as `(y as size_t) != height`; and C 5008-5009's
+    `(int) (x_min)`/`(int) (x_max)` truncate *toward zero*, so `x_pixel_min`/`x_pixel_max` are not
+    floors (the trapezoid arithmetic of C 5019-5260 compensates), carried as `as c_int`.
+
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
 1. **`TEST_STATIC`'s Rust form** — either a `docs/ports/excluded-macros.txt` row (`kind=syntax`,
@@ -544,26 +639,49 @@ is not a whole-item gate - it sits inside `sfnt_fill_span`'s body).
    the P-86 ③⑴ arm flip passes only the file gate), so this is an owed, unmeasured reading rather
    than a failed one: the lane that first builds `feature = "test"` here owns it.
 
+10. **`docs/ports/macro-body-notes.tsv` rows for slice 5** — the seven Evidence ③ names:
+    `sfnt_build_outline_fedges` → `alloca` (the `fedge` twin of the row the integrator wrote in
+    3.463), `sfnt_insert_raster_step` → `goto` and `sfnt_poly_edges_exact` → `float,goto`
+    (Deviation 37's labelled blocks; C's `float` locals are PORTING.md 1.1's `f32`),
+    `sfnt_poly_steps` → `float`, `sfnt_poly_set_steps` → `break,case,default,switch` (Deviation
+    38), `TRAPEZOID_AREA` → `f,float` and `TRIANGLE_AREA` → `f` (C's `(float)` casts and its
+    `2.0f` suffixes against the port's `as f32`/`2.0f32`).  **The `TRIANGLE_AREA` row can be
+    avoided instead of written** by taking the `sfnt_fixed_float` mirror's `let f: f32 = 2.0;`
+    spelling - the tree's own way of keeping an `f` token - but that changes a line of this lane's
+    verified revision, so it is left as the integrator's choice.  ✅ **All seven written by the
+    integrator in 3.470** (`docs/ports/macro-body-notes.tsv`); Evidence ③'s `--check` reading now has
+    **no `does not mention` row at all**.  The `TRIANGLE_AREA` alternative (taking the
+    `sfnt_fixed_float` mirror's `let f: f32 = 2.0;` spelling, which keeps an `f` token) was **not**
+    taken: it would edit a line of the lane's verified revision for a manifest's convenience, and the
+    row records the same fact without touching text.
+11. **The lane's `probe` budget overrun (4 of 3)** — reported rather than hidden: the fourth run
+    re-verified the delivered revision after `struct sfnt_fedge`'s fields were split one per line
+    (Deviation 36), so that the file this ledger's Evidence ② describes is the file the reading
+    measured.  `build-tu` stayed inside its budget (3 of 3).
+
 ### Not claimed
 
 Every line of these slices is behind gates the frozen configuration leaves false: **① is an
-empty object and the arm reading (②) produced a 25,856-byte object that nothing ran**, so there
+empty object and the arm reading (②) produced a 31,288-byte object that nothing ran**, so there
 is **no runtime evidence of any kind** for this port — no font was opened, no cmap subtable was
-parsed, no table directory was read, no glyph was outlined, no curve was flattened, no span was
-filled, no mapping was `mmap`'d, and no `read`/`lseek` returned.  C 4544-21215 is **not ported
-here**; the 304 `- missing …` lines of Evidence ③, the 147 missing functions and the 75.6% drift
-are that boundary.  The `.offset (i as isize)` / `size_of_val` / `wrapping_*` / `overflowing_*` /
-`&raw mut` / cast rewrites are compile-level and were measured by the compiler, not by a running
-program, and so is the whole `feature = "no_ndebug"` arm (nothing flips it yet — Owed 8).  Slice
-4's 27 new definitions are **called only from inside the slice**: `sfnt_build_glyph_outline` and
-`sfnt_raster_glyph_outline` have no caller in the port yet (`sfntfont.c` 2353/2492 call them, and
-`femacs/src/sfntfont.rs` has not reached those lines), the three callback builders are passed to
-`sfnt_decompose_glyph` from `sfnt_build_glyph_outline`, and the rasterizer's two `Some (…)`
-values are the `sfnt_edge_proc` `sfnt_raster_glyph_outline` hands to `sfnt_build_outline_edges`
-and the `sfnt_span_proc` `sfnt_raster_edge` hands to `sfnt_poly_edges`.  Slice 3's
-`sfnt_read_glyph`/`sfnt_free_glyph` are **still** called by nothing in the port either:
-`sfnt_build_glyph_outline` receives them as its `get_glyph`/`free_glyph` arguments, and *its*
-caller is out of slice (`sfntfont.rs`).  `sfnt_map_glyf_table`/`sfnt_unmap_glyf_table` are still
-behind `not (feature = "test")`, which the frozen configuration leaves false as well.  The
-`E0308`/`E0381` control reading of Evidence ② is a *compiler* reading of the errors this slice
-retired, not a behaviour test.
+parsed, no table directory was read, no glyph was outlined, no curve was flattened, no span or
+step was filled, no coverage value was computed, no mapping was `mmap`'d, and no `read`/`lseek`
+returned.  C 5452-21215 is **not ported here**; the 291 `- missing …` lines of Evidence ③, the
+138 missing functions and the 70.5% drift are that boundary.  The `.offset (i as isize)` /
+`&raw mut` / `wrapping_*` / `overflowing_*` / `as` rewrites are compile-level and were measured by
+the compiler, not by a running program; so is the whole `feature = "no_ndebug"` arm (nothing flips
+it yet — Owed 8), and so is every floating-point op in the scaler (the arm flip only *compiles*
+them).  Slice 5's nine new definitions are **wired only inside the slice**: `sfnt_poly_edges_exact`
+is called by `sfnt_raster_edges_exact`, `sfnt_raster_edges_exact` and `sfnt_poly_steps` reach
+`sfnt_raster_glyph_outline_exact`/`sfnt_raster_steps` as `Some (…)` values, `sfnt_compute_fill`
+and `sfnt_poly_set_steps` are `sfnt_poly_steps`' helpers, `sfnt_insert_raster_step` is reached only
+through `APPEND_STEP!`'s expansions, and `sfnt_build_outline_fedges` only from
+`sfnt_raster_glyph_outline_exact` — whose C caller (`sfntfont.c` 2494) is outside the port so far;
+`sfnt_raster_glyph_outline_exact` is a `TEST_STATIC` export no other unit names yet.  The three
+`sfnt_add`/`sfnt_sub`/`sfnt_mul` macros have **no call site at all**: the interpreter that expands
+them (C 7257 onwards) is in the remainder.  Slice 3's `sfnt_read_glyph`/`sfnt_free_glyph` and
+slice 4's `sfnt_build_glyph_outline`/`sfnt_raster_glyph_outline` are still called from nowhere in
+the port (`sfntfont.rs` has not reached `sfntfont.c` 2353/2492/2494).  The `E0308` control
+readings of Evidence ② are *compiler* readings of the errors this slice retired, not behaviour
+tests, and the 5,432 bytes the arm object grew (25,856 → 31,288) are a compile artefact, not
+evidence that anything runs.

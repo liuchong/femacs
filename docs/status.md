@@ -8500,3 +8500,42 @@
   ③ **未声称**：这张表是**快照**，含在飞 lane 当时的站点数；它是**信息性**读数（不在 `gate-fast` 里），
   "没有任何配置启用"不等于"写错了"——P-51 正是**故意**携带这些臂；本条不改变任何移植物的判定。
 
+- **3.470 sfnt 切片 5 落地（C 4544-5451，908 行）：精确覆盖光栅化器与 `sfnt_step` 家族（2026-10-05）**：
+  ① **区间/块**：C 4544-5451（收在 `sfnt_raster_glyph_outline_exact` 的 `}`）；**下一个活定义 = C 5468
+  `sfnt_read_hmtx_table`**。块：`sfnt_add`/`sfnt_sub`/`sfnt_mul` 三个文件级宏、"Exact coverage scaler." 的长说明
+  （含四张 ASCII 图）、`struct sfnt_step`/`sfnt_step_raster`/`sfnt_step_chunk`/`sfnt_fedge` 与两个 typedef、
+  `sfnt_build_outline_fedges`、`sfnt_insert_raster_step`、`sfnt_poly_edges_exact`（C 4896-5303，含三个函数内宏
+  `APPEND_STEP`/`TRAPEZOID_AREA`/`TRIANGLE_AREA` 与三处 `#undef`）、`sfnt_compute_fill`、`sfnt_poly_set_steps`
+  （`FALLTHROUGH` 阶梯）、`sfnt_poly_steps`、`sfnt_raster_steps`、`sfnt_raster_edges_exact`、
+  `sfnt_raster_glyph_outline_exact`。**本片没有任何 `#if`**：条件文本只有三个文件级 `#define` 与三个函数内
+  `#define`（+ 三处 `#undef`），端口写成同作用域的 `macro_rules!`（`#undef` 无对应文本，Rust 宏按文本作用域）。
+  ② **行数**：`femacs/src/sfnt.rs` **5,181 → 6,251**（md5 `339e0b8268f73b0708bfbd341b3e93f0`）；台账
+  **569 → 682** 行（区间表 48 → **49** 行，末行改 `5452-21215`）。
+  ③ **集成者落地读数（本轮自己跑的）**：冻结 `build-tu src/sfnt.c` → `built src/sfnt.rs ->
+  ../build/femacs/sfnt.o`、**336 字节空对象**；`extract-abi --check`：`- missing` **304 → 291**
+  （函数 147→138、宏 153→147、常量 4→**3**，只剩三个 `SFNT_RUN_CONTEXT_*`；字段类 0）、漂移
+  **75.6% → 70.5%**，**且 `does not mention` 行由 7 → 0**（见 ④）；`check-dead-file-coverage`
+  **46 绑定 / 0 failure**（sfnt 的 49 行同时覆盖 `sfnt.c` 21,215 行与 `sfnt.h` 2,151 行）。
+  ④ **集成者替它落的账（Owed 10，七行）**：`sfnt_build_outline_fedges → alloca`、
+  `sfnt_insert_raster_step → goto`、`sfnt_poly_edges_exact → float,goto`、`sfnt_poly_steps → float`、
+  `sfnt_poly_set_steps → break,case,default,switch`、`TRAPEZOID_AREA → f,float`、`TRIANGLE_AREA → f`
+  ——全部写进 `docs/ports/macro-body-notes.tsv`（C 的 `(float)` 铸型/`2.0f` 后缀/`goto` 标签块/`switch` 阶梯
+  在端口的对应物是 `as f32`/`2.0f32`/标签块/`match`）。**Lane 提的替代方案（改用
+  `sfnt_fixed_float` 镜像的 `let f: f32 = 2.0;` 拼法，从而不必写 `TRIANGLE_AREA` 行）我没采纳**：那要改
+  lane 已验证修订里的一行文本去迁就清单，写行记录同一事实而不动文本（理由已写回台账）。
+  Owed 11（lane 的 `probe` 4/3 超支 1）按它自己的记录保留。
+  ⑤ **lane 自报读数（不是我的）**：翻臂 `probe … --cfg 'feature="have_android"' --cfg
+  'feature="not_android_stubify"'` 第 3 次 **exit 0 / 0 error / 对象 31,288 字节**（第 1、2 次各抓到 3 条
+  `E0308`：`APPEND_STEP!` 的 float/int 形参、`TRAPEZOID_AREA!` 的 `bot_start` 转换）；它自查另抓到
+  `TRAPEZOID_AREA!` **缺 C 的最外层括号**（会造成 `(w*A)/2*H`）与 `struct sfnt_fedge` 两行合并声明被
+  `extract-abi` 读成 3 个 missing field（拆成一行一字段后重跑复验）。**lane 预算：`build-tu` 3/3、
+  `probe` 4/3（超 1，如实报）。**
+  ⑥ **在飞件造成的红读数（不是本单元）**：`check-mirror-dupes` 终读数 **43 重复 / 19 棘轮 / 24 failure**，
+  24 条**全部**点名其它 lane 未入库的 `femacs/src/include/gtk.rs`（P-90 镜像轮进行中，对
+  `image.rs`/`xwidget.rs` 重声明 cairo/GTK 名）；同一命令几分钟前是 `19/19/0`，本单元的两个文件不出现在任何
+  failure 行（已写进台账 Evidence ④）。
+  ⑦ **未声称**：**零运行证据**——①是空对象、②那个 31,288 字节对象没人运行；翻臂只是**编译**读数，光栅化器里
+  每一个浮点运算、每一条边、每一次 `alloca`、任何一个 `goto` 都没被执行；C 5452-21,215 未移植（291 条
+  `- missing`、70.5% 漂移即边界）；`extract-abi --check` 仍 **FAIL 属预期**（该文件只落 29.5%）。
+  本轮 `build-tu` **1 发**、`probe` 0 发。
+
