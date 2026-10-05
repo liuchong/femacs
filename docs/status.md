@@ -9963,3 +9963,26 @@
      emacs/lib/file-has-acl.c femacs/lib/file-has-acl.rs` 仍 **OK**。
   ⑤ **未声称**：零行为证据（这三条臂只是**类型检查**）；`acl-internal.rs` 的 `acl_nontrivial` 四份声明、
      `acl.rs` 的其余平台宏、`errno` 的 `E2BIG`、`sys_acl.rs` 缺的六个名字仍是台账 Owed（下一批镜像轮）。
+
+- **3.512 `src/xsmfns.c` 整文件入库（2026-10-05）**：
+  ① **范围**：`femacs/src/xsmfns.rs` 12 → **1035** 行（C 1-581 全落，整身挂在文件门 `have_x_sm` 上）；
+     台账 `docs/ports/xsmfns.md` 22 → **317** 行（45 行 C 区间表，升序连续覆盖 1-581）。
+  ② **读数**：冻结 `build-tu` **exit 0**（336 字节空对象，三轮同读数）；两条臂**本单元 0 错**——臂 A（`have_x_sm`+
+     `have_x_windows`+`use_x_toolkit`）只剩 `include/systime.rs` 27 的 `E0080`（那是"feature 与 `config.rs` 常量同动"
+     的机制，忠实读数是 `xtask dead-arms`）、臂 B（`use_gtk`）剩同一条 + `include/xterm.rs` 的 12 条 GTK 类型
+     `E0425`；臂 A 修程读数 **23 → 12 → 2 → 1**；**变异实测**（P-86 ⑦）注入后本单元行报 `E0308` ⇒ 0 错是活读数。
+     clang 实测：`XClassHint` 16（res_name@0、res_class@8）、`XA_STRING` 31、`SmPropValue` 16、`SmProp` 32、
+     `SmcCallbacks` 64，端口内的布局断言与之一致。
+  ③ **集成者登记**：feature **`have_x_sm`**（未注册，而整个单元挂在它上面）；容差行**追加 `xsmfns 0.80`**
+     （C 581 vs 1035 = 78.1%）——**旧行 `0.99` 的理由已经假**（它写的是"端口 0 行代码"），按本文件"最新的行生效"
+     的惯例用新行覆写理由；`port-lines-pending` / `port-map` / `feature-coverage` 重算。
+  ④ **lane 量到的（点名，归下一批）**：`include/xterm.rs` 的 `use_gtk` 字段缺 6 个 GTK/GDK 类型名（臂 B 的 12 条
+     `E0425`）、同文件 774 行的 `*mut font` 要求把 `include/font.rs` 拼进图、730-737 的 `Widget` 全树无声明
+     （本单元按 P-88 ① 就地声明）、`xterm.h` 1998-2000 的 `x_session_*` 三条原型将来补进镜像时必须走
+     `pub mod`+glob（P-39，否则本单元定义处 `E0428`）；XSMP/ICE 段需有 libSM/libICE 的机器才能实测。
+  ⑤ **自查过的地方**：lane 的报告指出 3.507（`861cf20`）往 `include/dispextern.rs` 插了 83 行、把一条引文从
+     :593 挪到 :600 却没挪 `citations-allowlist` 的行——本轮**已修**（行号 593 → 600），`check-citations`
+     回到 **676 文件 / 0 drift / 0 range / 0 stale**。这是"机器门比人眼先发现回归"的一个实例，记在 3.511 的
+     提交信息里。
+  ⑥ **未声称**：零运行证据（没链接、没连会话管理器；本机无 libSM/libICE ⇒ XSMP 半身无法在此机执行）；
+     两臂停在 rustc 错误上（无 `.rlib`）；镜像侧的错误点名不修。

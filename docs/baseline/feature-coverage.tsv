@@ -46,24 +46,24 @@ have_zlib	51	2	-	-
 test	50	5	-	-
 have_kqueue	49	1	-	-
 use_gamedir	44	1	-	-
+use_linux_xattr	39	2	-	-
 have_gfilenotify	38	1	-	-
 glyph_debug	36	5	xtask dead-arms	-
-use_linux_xattr	36	1	-	-
 have_alsa	34	1	-	-
 kerberos5	34	1	-	-
+use_acl_ace_getacl	31	2	-	-
 dos_nt	30	5	-	-
 have_text_conversion	30	3	-	-
 kerberos	30	1	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
-use_acl_ace_getacl	30	2	-	-
 have_x_i18n	28	4	-	-
 cygwin	27	12	-	-
 have_xcb_shape	26	2	-	-
+use_acl_have_acl_get_file	26	3	-	-
 mingw_w64	25	5	-	-
 vm_ms_windows	25	1	-	-
 have_xrender	24	4	-	-
 have_xsync	24	1	-	-
-use_acl_have_acl_get_file	24	3	-	-
 have_modules	23	6	-	HAVE_MODULES
 libgccjit_have_gcc_jit_context_new_bitcast	22	1	-	-
 words_bigendian	22	10	-	-
@@ -72,9 +72,9 @@ have_glib	20	2	-	-
 use_android_assets	20	2	-	-
 android_api_lt_21	19	1	-	-
 have_xwidgets	19	7	-	-
+use_acl_getacl	18	3	-	-
 use_acl_have_getacl	18	2	-	-
 redirect	17	1	-	-
-use_acl_getacl	17	3	-	-
 openbsd	16	5	-	-
 unistd_h_have_winsock2_h	16	1	-	-
 freebsd	15	1	-	-
@@ -134,6 +134,7 @@ have_acl_extended_file	7	1	-	-
 have_acl_get_link_np	7	1	-	-
 have_dbus	7	1	-	-
 have_getaddrinfo_a	7	1	-	-
+have_smack	7	2	-	-
 have_x11	7	2	-	-
 msvc	7	2	-	-
 no_faccessat	7	2	-	-
@@ -150,7 +151,6 @@ exec_64	6	1	-	-
 have_acl_type_extended	6	1	-	-
 have_aclx_get	6	1	-	-
 have_getgroups	6	1	-	-
-have_smack	6	1	-	-
 have_xft	6	3	-	-
 have_xkb	6	2	-	-
 libc	6	3	-	-
@@ -217,6 +217,7 @@ no_subprocesses	4	2	-	-
 sco	4	1	-	-
 sun	4	2	-	-
 sys_renameat2	4	1	-	-
+use_selinux_selinux_h	4	2	-	-
 vswtch	4	2	-	-
 ztrillion_mpz	4	1	-	-
 android_stubify	3	1	-	-
@@ -262,7 +263,6 @@ replace_getusershell	3	1	-	-
 replace_struct_timeval	3	1	-	-
 sqlite3_dbconfig_enable_load_extension	3	1	-	-
 stdc_version_stdc_version_199901l_defined	3	1	-	-
-use_selinux_selinux_h	3	1	-	-
 w32	3	1	-	-
 windows_stat_inodes	3	1	-	-
 xft_or_freetype	3	1	-	-
