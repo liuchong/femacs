@@ -39,3 +39,14 @@ and no probe compiles it; the text gate is the whole acceptance (docs/status.md 
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-int.h
 femacs/lwlib/include/lwlib-int.rs` -> `OK` (1 ledger item(s), the include guard).
+
+## 2026-10-05: the tag's stand-in and the field's gate (3.517)
+
+`struct widget_xft_data;` (C 26) is an incomplete type whose *owner* is `lwlib/lwlib-Xaw.c` 62-70 -
+and that unit includes this mirror, so the ungated zero-size stand-in was `E0428` in it and its
+cairo/Xft arms could not be built at all (the `lwlib-Xaw` lane measured it and had to prove the
+unit's text with a `/tmp` preflight instead).  The stand-in and the `xft_data` field now carry the
+same condition (`use_cairo_or_have_xft`, C 33-35's `#if defined USE_CAIRO || defined HAVE_XFT`),
+so the stand-in exists exactly when no unit defines the tag; the field's own gate had said
+`use_cairo` alone, which a `have_xft`-without-cairo build reads as `cannot find field xft_data`.
+With both changes `lwlib/lwlib-Xaw.rs`'s cairo+xaw3d arm reads **exit 0, 0 error**.

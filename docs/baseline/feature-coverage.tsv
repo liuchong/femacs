@@ -8,7 +8,7 @@ feature	sites	files	enabled_by	config_constant
 windowsnt	1817	46	-	-
 have_android	1003	32	-	-
 have_window_system	947	20	-	-
-have_x_windows	754	24	-	HAVE_X_WINDOWS
+have_x_windows	759	24	-	HAVE_X_WINDOWS
 not_android_stubify	700	11	-	-
 have_ntgui	595	14	-	-
 have_pgtk	546	22	-	-
@@ -22,7 +22,7 @@ have_haiku	248	14	xtask dead-arms	-
 use_lucid	236	7	-	-
 have_freetype	215	3	-	-
 harfbuzz	194	8	-	-
-use_cairo	189	13	-	-
+use_cairo	188	12	-	-
 use_xcb	171	4	-	-
 have_gtk3	150	6	-	-
 use_x_toolkit	142	10	-	USE_X_TOOLKIT
@@ -49,8 +49,8 @@ test	50	5	-	-
 have_kqueue	49	1	-	-
 use_gamedir	44	1	-	-
 use_linux_xattr	40	2	-	-
+use_cairo_or_have_xft	39	3	-	-
 have_gfilenotify	38	1	-	-
-use_cairo_or_have_xft	37	2	-	-
 glyph_debug	36	5	xtask dead-arms	-
 have_alsa	34	1	-	-
 have_xrender	34	5	-	-
@@ -60,8 +60,8 @@ dos_nt	30	5	-	-
 have_text_conversion	30	3	-	-
 kerberos	30	1	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
-cygwin	29	13	-	-
 have_x_i18n	28	4	-	-
+cygwin	27	12	-	-
 have_xcb_shape	26	2	-	-
 use_acl_have_acl_get_file	26	3	-	-
 mingw_w64	25	5	-	-

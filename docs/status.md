@@ -10068,3 +10068,26 @@
   ④ **下一批（点名）**：`Mouse_HLInfo` 的同款折叠（dispextern.rs）、`include/w32select.rs` 的三条声明搬 `_decls`、
      `lwlib/include/lwlib-int.rs` 的 `widget_xft_data` stand-in 与 `xft_data` 门（两条都由 lwlib-Xaw lane 量到）、
      `signal.rs` vs MinGW 的 15-22 个名字、`include/lisp.rs` 缺的两条系统头边。
+
+- **3.517 / 3.518 两个整文件单元入库：`lwlib/lwlib-Xaw.c`、`src/w32select.c`（含两处镜像修）（2026-10-05）**：
+  ① **行数**：`femacs/lwlib/lwlib-Xaw.rs` 3 → **1483**（C 1-844 全落；镜像 39 → 49）、`femacs/src/w32select.rs`
+     63 → **2003**（C 1-1370 全落）。
+  ② **集成者替两件落的账**：容差行 **`lwlib-Xaw 0.79`**（C 844 vs 1483）与 **`w32select 0.47`**（C 1370 vs 2003，
+     各 basis `total`）；**两个 feature**（`cf_dibv5`、`trace`）；四本生成物重算。
+  ③ **两处镜像修（lane 量到、集成者落）**：⑴ `femacs/lwlib/include/lwlib-int.rs`：`widget_xft_data` 的
+     零尺寸 stand-in 此前**无门**，而它的定义者 `lwlib/lwlib-Xaw.c` 62-70 正在同一 crate 里 ⇒ `E0428`
+     （该单元的 cairo/Xft 臂**根本编不过**）；现在 stand-in 与字段用**同一个条件**
+     `use_cairo_or_have_xft`（字段的门此前误写 `use_cairo`，`have_xft` 无 cairo 的构建会编不到字段）；
+     ⑵ `femacs/src/include/w32select.rs`：三条入口点的声明搬进 `w32select_decls` + glob（P-39，P-86 ⑩ 的
+     "P-39 形状"缺在镜像里）。
+  ④ **读数**：`lwlib/lwlib-Xaw.rs` 的 cairo+xaw3d 臂 **exit 0 / 0 error**（改前是该镜像的 `E0428`，lane 只能
+     用 `/tmp` 预检验证）；`src/w32select.rs` 的 `windowsnt` 臂 **97 → 94 条**（本单元 0 条，剩下的按文件：
+     `w32term.rs` 53、`signal.rs` 13、`buffer.rs` 8…全部归各自镜像轮）；两件的 `extract-abi --check` 在容差行
+     落地后即 OK；`layout-check` **passed**。
+  ⑤ **未声称**：两件都**零运行证据**（没为 X11/Windows 编过、没弹过 dialog、没碰过剪贴板）；`w32select` 的臂
+     读数是**名字解析相位**（lane 用两次变异证明：类型变异不改变输出、名字变异改变），不是类型检查；
+     Xaw/Xft/Windows SDK 的每个宽度与常量都是就地声明 + `UNVERIFIED`。
+  ⑥ **欠账（点名）**：`use_cairo_or_have_xft` 是**派生**名，没有任何构建会设它 ⇒ 需要在 xtask 按
+     `use_cairo || have_xft` 派生（lane 点名）；`w32select` 的其余镜像缺口（`w32term.rs` 的 7 个类型、
+     `signal.rs` 与 MinGW 的 `E0428` 对、`errno` 的 `ENOTSUP`/`EOPNOTSUPP` 等）与 `lwlib-int.rs` 的
+     `<X11/*>` 真形状实测一并归下一批。

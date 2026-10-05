@@ -18,8 +18,13 @@ include!("lwlib.rs");   // lwlib-int.h 24: `#include "lwlib.h"`
 pub const LWLIB_INTERNAL_H: bool = true;
 
 /// lwlib-int.h 26: `struct widget_xft_data;` - an incomplete type C only ever points at; the
-/// port's stand-in is the zero-size unit struct (PORTING.md P-70).  The field that names it
-/// (C 33-35) is dead in the frozen configuration and carried below.
+/// port's stand-in is the zero-size unit struct (PORTING.md P-70).  **Gated off where the tag's
+/// owner is in the same crate**: `lwlib/lwlib-Xaw.c` 62-70 defines the complete `struct
+/// widget_xft_data`, and `lwlib/lwlib-Xaw.rs` includes this mirror - an ungated stand-in was
+/// `E0428` there, which made that unit's cairo/Xft arms unbuildable (measured by the lane,
+/// status 3.517).  The gate is the same condition the field below uses, so the stand-in exists
+/// exactly when nothing defines the tag.
+#[cfg (not (feature = "use_cairo_or_have_xft"))]
 pub struct widget_xft_data;
 
 /// lwlib-int.h 28-38: `typedef struct _widget_instance { ... } widget_instance;`
@@ -30,9 +35,10 @@ pub struct _widget_instance
   pub widget: Widget,
   pub parent: Widget,
   pub pop_up_p: Boolean,
-  /* C 33-35: `#if defined USE_CAIRO || defined HAVE_XFT` - dead in the frozen
-     configuration, carried.  */
-  #[cfg (feature = "use_cairo")]
+  /* C 33-35: `#if defined USE_CAIRO || defined HAVE_XFT` - dead in the frozen configuration for
+     cairo and live for Xft, which is why the gate is the derived name and not `use_cairo` alone
+     (the lane's D2: a `have_xft`-without-cairo build read `cannot find field xft_data`).  */
+  #[cfg (feature = "use_cairo_or_have_xft")]
   pub xft_data: *mut widget_xft_data,
   pub info: *mut _widget_info,
   pub next: *mut _widget_instance,

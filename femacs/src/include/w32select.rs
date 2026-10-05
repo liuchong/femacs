@@ -20,8 +20,19 @@ pub const W32SELECT_H: bool = true;
 /// C: void syms_of_w32select (void);
 /// C: void globals_of_w32select (void);
 /// C: void term_w32select (void);
-unsafe extern "C" {
-  pub fn syms_of_w32select ();
-  pub fn globals_of_w32select ();
-  pub fn term_w32select ();
+/* The three entry points are defined by `src/w32select.c`, so a top-level copy is `E0428` in
+   that unit (measured: three of them on its flip, status 3.518).  They sit in a module the mirror
+   glob-imports (P-39), whose items an including unit's own definitions shadow.  */
+pub mod w32select_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: void syms_of_w32select (void);
+    pub fn syms_of_w32select ();
+    /// C: void globals_of_w32select (void);
+    pub fn globals_of_w32select ();
+    /// C: void term_w32select (void);
+    pub fn term_w32select ();
+  }
 }
+use w32select_decls::*;

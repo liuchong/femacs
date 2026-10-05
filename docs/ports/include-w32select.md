@@ -54,3 +54,12 @@
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-mirror-dupes` 0 failures; `check-globals` 283 units / 0; `check-verbatim` 6 trees
   / 4607 files / 0; `check-target-names` 0 findings.
+
+## 2026-10-05: the three entry points move into `w32select_decls` (3.518)
+
+`src/w32select.c` defines all three names this header declares (C 24-26), so their top-level copies
+were `E0428` in that unit - three of its flip's errors (status 3.518).  They sit in a module the
+mirror glob-imports (P-39), the `include/w32heap.rs` 3.513 shape: a glob import is shadowed by the
+including unit's own definition, while an `extern` item is not.  The unit's own remaining 94
+errors are other mirrors' (w32term.rs 53, signal.rs 13, buffer.rs 8 …), named in
+`docs/ports/w32select.md`.
