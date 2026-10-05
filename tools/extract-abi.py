@@ -56,7 +56,13 @@ R_FN_BODY = re.compile(r"\bfn\s+(?P<name>[A-Za-z_]\w*)[^{;]*\{(?P<body>[^{}]*)\}
 R_MACRO = re.compile(r"macro_rules!\s*(?P<name>[A-Za-z_]\w*)", re.M)
 R_STRUCT = re.compile(r"(?:pub\s+)?(?:unsafe\s+)?(?:struct|union)\s+(?P<name>[A-Za-z_]\w*)"
                       r"[^{;]*\{(?P<body>[^{}]*)\}", re.S)
-R_FIELD = re.compile(r"^\s*(?:pub\s+)?(?:r#)?(?P<name>[A-Za-z_]\w*)\s*:", re.M)
+# Several fields may share one physical line (`pub documentation: Lisp_Object, pub
+# interactive_form: Lisp_Object,` in emacs-module.rs's `Lisp_Module_Function`), and a
+# line-anchored rule read only the first of them - two `missing field` rows on a struct that
+# was complete (docs/status.md 3.555).  A field is recognised by what precedes it instead:
+# the body's start, a `{`, a `,` or a `;`.  That is also what keeps the punctuation inside a
+# field's type (`Option<unsafe extern "C" fn(*mut c_void, c_int)>`) from reading as fields.
+R_FIELD = re.compile(r"(?:\A|[{,;])\s*(?:pub\s+)?(?:r#)?(?P<name>[A-Za-z_]\w*)\s*:", re.M)
 # `(?:r#)?` as in R_FIELD: C's `static char *in;` is only `r#in` in Rust, and the gate used to
 # report the object as missing (status 3.126's second tool finding).
 R_STATIC = re.compile(r"\b(?:pub\s+)?(?:static|const)\s+(?:mut\s+)?(?:r#)?"
@@ -713,7 +719,14 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
             i += 1
         body = text[m.end(): i - 1]
         fields = [f.group("name").removeprefix("r#") for f in R_FIELD.finditer(body)]
-        if fields or name not in structs:
+        # The *longest* definition wins.  A mirror may only be able to show C's "only
+        # pointers to it appear here" placeholder and says so in a comment next to it
+        # (`figure Lisp_Module_Function { _private: [u8; 0] }`, include/lisp.rs 2350-2355),
+        # while the unit that owns the record defines it in full inside its own module; both
+        # are found by this flat scan, and the one-field placeholder comes later in the
+        # mirrored text, so "the last non-empty wins" let it erase nine real fields
+        # (measured on emacs-module.c: ten `missing field` rows, docs/status.md 3.555).
+        if len(fields) > len(structs.get(name, [])):
             structs[name] = fields
         for f in re.finditer(r"^\s*(?:pub\s+)?(?:r#)?(\w+)\s*:\s*([A-Za-z_]\w*)", body, re.M):
             struct_types[(name, f.group(1))] = f.group(2)
@@ -1211,15 +1224,22 @@ def split_top_level(text: str) -> list[str]:
 
 
 def body_is_empty(c_path: Path, name: str) -> bool:
-    """True when the reference function's body has no live statements."""
+    """True when the reference function's body has no live statements.
+
+    The body's comments are removed before the test, whole comments included: the old rule
+    only recognised a line that *starts* with `/*`, `*` or `//`, so a comment whose second
+    line begins mid-sentence read as code.  `finalize_runtime_unwind` (emacs-module.c
+    1648-1652) is exactly that shape - its whole body is a two-line comment - and the port,
+    which carries the same comment, was reported as a stub for it (docs/status.md 3.555).
+    """
     text = _text_for(c_path)
     window = _lines_for(text)
     for span in _spans_for(text):
         if span["name"] == name:
             body = _rows_for(text)[span["body_start"] - 1: span["body_end"]]
             live = window.live[span["body_start"] - 1: span["body_end"]]
-            return all(not l.strip("\t ;{}") or l.strip().startswith(("/*", "*", "//"))
-                       for l, ok in zip(body, live) if ok)
+            kept = "\n".join(l for l, ok in zip(body, live) if ok)
+            return not strip_comments(kept).strip("\t ;{}\n")
     return False
 
 

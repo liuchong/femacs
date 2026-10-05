@@ -11030,3 +11030,38 @@
      3 发、夹具 `probe` 3 发（旧规则 1、新规则 2）、`build-tu src/gmalloc.c` 1 发（回归）、`check-all-units` 1 发、
      `layout-check` 1 发、文本门 2 轮、`--selftest` 0 发；**没有启动大内存任务**；已清 `build/probes` 13 个单元的目录与
      `build/femacs/units` 7 个目录（磁盘 1.8 GiB 可用，紧；大头是别的项目的 `/tmp`，未碰）。
+
+- **3.555 lane 产出收口：`src/emacs-module.c` 整文件落地（C 1798 → Rust 2,010），抽取器三处误判一并修掉（2026-10-05）**：
+  ① **lane 的产出（Rawls）**：`femacs/src/emacs-module.rs` 67 → **2,010** 行，台账 64 行区间表覆盖 C 1-1798
+     （66 个空行按规则豁免）；文件门 `have_modules` 压在每个项**与整张 include 图**上，C 的四个条件两臂都带
+     （`WINDOWSNT`、`HAVE_WINDOW_SYSTEM`、`GCC_LINT && __GNUC__ && !__clang__`）。**读数**：冻结 `build-tu` **3 发**
+     （一发是自己缺分号）+ 336 字节空对象；翻臂（`have_modules`+`have_window_system`+`gcc_lint_not_clang`，nightly）
+     **单元侧 0 错**，唯一 1 条在镜像副本 `include/dispextern.rs` 796（`Emacs_Pix_Container` 的臂洞）；
+     `windowsnt` 臂 text-only（本机无 Windows SDK），98 条全在 `include/w32term.rs`。
+  ② **抽取器三处误判（本轮我修，都是"门读错了自己的树"这一类）**：
+     ⑴ **同名结构体取"最长定义"**：`rust_inventory` 原规则是"最后一条非空的定义胜"，于是镜像 `include/lisp.rs`
+     2350-2355 的**不完整占位**（`struct Lisp_Module_Function { _private: [u8; 0] }`，C 的"只以指针出现"形状）
+     把单元自己模块里的**九字段**真定义覆盖掉 ⇒ 10 条 `missing field`。改成"字段更多的那条胜"后归零。
+     ⑵ **"只有注释的函数体"算空体**：`body_is_empty` 原来只认"行首是 `/*`/`*`/`//`"，而
+     `finalize_runtime_unwind`（C 1648-1652）整个函数体是一段两行注释、第二行从句子中间开始 ⇒ 端口的同形被读成
+     `stub or empty body`。改成**先剥注释再看是否为空**（用文件里既有的 `strip_comments`）。
+     ⑶ **一行多个字段**：`R_FIELD` 原按行首匹配，`pub documentation: Lisp_Object, pub interactive_form: Lisp_Object,`
+      `pub min_arity: ptrdiff_t, pub max_arity: ptrdiff_t,` 里的第二个字段读不到 ⇒ 2 条 `missing field`。
+     改成按**前导符**（体首 / `{` / `,` / `;`）识别字段。
+     **读数**：`--check emacs/src/emacs-module.c femacs/src/emacs-module.rs` 从 **12 行 → 1 行**（只剩行数漂移，
+     加容差行后 **OK**）；`--selftest` **12 例 + 4 token 例、0 失败**；**回归扫描**（gmalloc / textconv / lwlib /
+     alloc / w32menu）全部 **OK**，无新增行。
+  ③ **集成者登记**：容差行 `emacs-module 0.12`（1798 vs 2010 = 11.8%）；`port-map.md` 刷新本件
+     （在飞的 `xmenu` 行回退成已提交值）；`port-lines-pending.tsv` 去掉本件的行（在飞的 `xmenu` 行同样回退）；
+     `macro-body-notes.tsv` 收下该 lane 追加的 1 条注释 + 9 条行（**只追加、不重写**——上轮那次整文件重写事故的规矩照旧）。
+  ④ **门读数（本轮现读）**：`check-mirror-dupes` 17/17/0、`check-dead-file-coverage` **122/0**、
+     `check-ledger-ticks` 234/0、`check-port-lines` 17 文件 / 15,183 参照行 / **0 new / 0 stale**、
+     `check-target-names` 0 finding；**剩下的失败全在在飞的 `femacs/src/xmenu.rs`**：`check-declarations` 2 条
+     （`title` = C 的标题句被整句抄进首注释、`recital` = "licence" 措辞）、`check-citations` 1 条 drift
+     （874 行把 `src/xterm.h 55` 写成 65）、`check-mirror-dupes` 1 条（`XGetGeometry` 与 `include/msdos.rs` 重复）
+     ——四条原文已合并发给该 lane。
+  ⑤ **未声称**：本件是**编译/文本**证据：`windowsnt` 臂未翻（无 SDK）、`have_window_system` 的干净翻臂需要 GUI 后端
+     （带 `have_x_windows` 会撞 `include/systime.rs` 27 的断言，属 `xtask dead-arms` 的活），
+     `emacs_env_private`/`emacs_value_frame`/`Lisp_Module_Function` 等记录的布局断言与字段偏移**未实测**，
+     没有链接、没有加载任何 module host、没有端到端验证。**预算**：我本轮跑 `--check` 约 8 发（同一条命令的复读）、
+     `--selftest` 2 发、文本门 2 轮、`--write-pending`/`gen-port-map` 各 1 发；**零 `build-tu`/零 `probe`**。
