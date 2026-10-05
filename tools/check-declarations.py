@@ -142,7 +142,13 @@ ALLOWLIST = REPO / "docs/baseline/declarations-allowlist.tsv"
 PROSE_FILES = ("README.md", "PORTING.md", "LICENSE", "femacs/README.md",
                "femacs/Cargo.toml", "femacs/xtask/Cargo.toml", "femacs/rust-toolchain.toml",
                "femacs/Cargo.lock")
-PROSE_DIRS = ("docs",)
+# `spikes` is here for the reason the run's own last line exists (status 3.476): the tool walk
+# binds `TOOL_SUFFIXES`, which has no `.md` and no `.lock`, so the two files the coverage line
+# had been naming as walked past - `spikes/shim/README.md` and `spikes/miri/Cargo.lock` - were
+# read by nobody.  A prose file has no literals and no comments, so the suffix walk of this
+# scope is the right reader for them, and the `walked past` line then reports their count as
+# read rather than as a hole (the machinery already subtracts what this scope read).
+PROSE_DIRS = ("docs", "spikes")
 # The two files whose *header* is our own prose inside an exempt tree (status 3.413).  Read by
 # name, for the reason in the docstring; `header_only` is what keeps the measured records below
 # the header out of the rule.
