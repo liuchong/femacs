@@ -129,3 +129,11 @@ Evidence: `build-tu src/term.c` and `src/keyboard.c` exit 0; `xtask layout-check
 set against the previous revision is `+query_colors +activate_menubar_hook +free_pixmap
 +any_grab_hook`, nothing lost; `check-declarations` 13/0, `check-globals` 284/0,
 `check-mirror-dupes` 0 failures.
+
+## 2026-10-05: C 28's `systime.h` include is materialized (3.520)
+
+`termhooks.h` 28 is `#include "systime.h" /* for Time */`, and it was not in this mirror - which
+was harmless while the mirror was only the `struct input_event` slice, and stopped being harmless
+the moment any unit reached `Time` through it: `include/xterm.rs` names `Time` six times and this
+file three, so every X11 flip read `cannot find type Time` (nine of `src/xfont.rs`'s arm, status
+3.519).  The edge is now here, with C's own comment.  Same flip after it: 9 -> 0 for that class.

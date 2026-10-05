@@ -35,7 +35,7 @@ femacs/src/include/lisp.rs:2770	lisp.h 5276-5280 is right; the condition is at 5
 femacs/src/include/lisp.rs:3859	lisp.h 759 is the `lispfwd` typedef; `KBOARD` is the type named in the second half
 femacs/src/include/lisp.rs:3988	lisp.h 4654 is right; `struct buffer` belongs to the third citation on the line
 femacs/src/include/termchar.rs:13	termhooks.h 533-542 is `union display_info`; `FRAME_TTY` is the macro that reads it
-femacs/src/include/termhooks.rs:365	termhooks.h 920-921 is right; `tty_display_info` is the type being read
+femacs/src/include/termhooks.rs:371	termhooks.h 920-921 is right; `tty_display_info` is the type being read
 femacs/src/include/pgtkgui.rs:15	dispextern.h 179 is right (the `#ifndef NativeRectangle` / `#define NativeRectangle int` fallback the comment is about); the quoted `HAVE_PGTK` is the feature that makes both fallbacks dead, named in the same sentence (dispextern.h 149)
 femacs/src/w32proc.rs:474	lisp.h 30 is an #include line; `memset` is what that include brings in
 femacs/src/gtkutil.rs:92	lisp.h 30 is an #include line; `strlen` is what that include brings in

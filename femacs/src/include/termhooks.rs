@@ -10,6 +10,12 @@
 // termhooks.h 22: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_TERMHOOKS_H: bool = true;
 
+/* termhooks.h 28: `#include "systime.h" /* for Time */`.  It was not materialized while this
+   mirror was the `struct input_event` slice, and every X11 unit that reaches `Time` through
+   here (as C does) read `cannot find type Time`: `include/xterm.rs` names it 6 times and this
+   file 3 (measured on `src/xfont.rs`'s flip, status 3.520).  */
+include!("systime.rs");
+
 // termhooks.h 72-355: `enum event_kind`.  C's members carry no initialiser, so their values
 // are the declaration order (the constant gate compares them).
 pub type event_kind = c_int;

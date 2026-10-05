@@ -340,3 +340,14 @@ records are the one gap left, with C's measured size (192 bytes) and the members
   **exit 0**: `src/pgtkim.rs` (`have_pgtk` + `have_gtk3`, 14,083,208-byte rlib) and
   `src/hbfont.rs` (`harfbuzz`, 14,580,952-byte rlib); `layout-check` passes and
   `tools/check-all-units.sh` is **83/0 + 83/0**.
+
+## 2026-10-05: the XRender members were missing from `x_display_info` (3.520)
+
+C 898-902's `#ifdef HAVE_XRENDER` block (`xrender_supported_p`, `xrender_major`,
+`xrender_minor`) was not in this mirror, so this file's *own* `FRAME_CHECK_XR_VERSION!` (C
+1504-1510) read `E0609` in any `have_xrender` arm - five of `src/xfont.rs`'s.  They are carried
+now, gated on the feature.  `pict_format` (C 464) also named `XRenderPictFormat`, a type whose
+header has no mirror here: the member is the P-72 rule 3 untyped pointer, with a unit that has
+the header's names casting at its use site.  Same flip: the XRender arm goes **14 -> 1**, and the
+one that is left is `include/systime.rs`'s feature/config assertion (whose faithful arm is
+`xtask dead-arms`, status 3.434/3.506).

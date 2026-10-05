@@ -10111,3 +10111,22 @@
      双定义（status 3.220 的老账）。
   ⑤ **未声称**：零运行时证据（没连过 X server，没渲染过字形）；两个臂都**停在镜像错误上**，本机没有任何配置
      能端到端编过本单元；XRender 臂是**本地 rustc 读数**（非 `xtask probe`），台账按诊断标注。
+
+- **3.520 镜像轮第六批：`Time` 的来源与 `x_display_info` 的 XRender 成员（2026-10-05）**：
+  ① **来源**：`src/xfont.c` 的 X11 臂（9 条）与 XRender 臂（14 条）**全在镜像里**，逐条点名到两处。
+  ② **改动**：⑴ `femacs/src/include/termhooks.rs`：C 28 的 `#include "systime.h" /* for Time */`
+     **此前没有物化**——本镜像长期只是 `struct input_event` 那一小片，一旦有单元经它取 `Time` 就报
+     `cannot find type Time`（`include/xterm.rs` 自己用了 6 次、本文件 3 次）；现在按 C 的原样补上这条边；
+     ⑵ `femacs/src/include/xterm.rs`：C 898-902 的 `#ifdef HAVE_XRENDER` 三成员（`xrender_supported_p`/
+     `xrender_major`/`xrender_minor`）**此前不在 mirror 里**，于是该镜像**自己的** `FRAME_CHECK_XR_VERSION!`
+     （C 1504-1510）在任何 `have_xrender` 臂里都 `E0609`；同时 `pict_format`（C 464）不再命名够不到的
+     `XRenderPictFormat`，按 P-72 ③ 写成无类型指针（P-87 ③：镜像不得命名 includer 可能没有的类型）。
+  ③ **读数**：`src/xfont.rs` 的 **XRender 臂 14 → 1**、X11 臂的 `Time` 类 9 → 0；剩下那 1 条是
+     `include/systime.rs` 的 feature↔常量断言（忠实翻法是 `xtask dead-arms`，3.434/3.506 已记），**不是镜像缺陷**。
+  ④ **验收**：`layout-check` **passed**、`check-all-units` **83 unit(s), 0 failure(s)**（P-87 ①：动过
+     `femacs/src/include/*.rs` 且**加了一条 include 边**）、`check-mirror-dupes` 17/17/0、
+     `check-declarations` 17/0/0、`check-dead-file-coverage` 90/0。
+  ⑤ **顺带**：`include/termhooks.rs` 顶部插边后，行号整体下移 ⇒ `citations-allowlist.tsv` 里那行
+     `:365` 变 stale（`check-citations` 的 drift+stale 抓的），已挪到 `:371`，读数回到 **0 drift / 0 stale**。
+     ——这是"改镜像会把引用行号推走"的第三次实例（3.507 的 `dispextern.rs`、3.511 的修法同型），台账记下。
+  ⑥ **未声称**：零运行证据（两条臂都只是本机 rustc 的类型检查；XRender 臂仍停在那一处机制性错误上）。

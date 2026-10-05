@@ -395,7 +395,10 @@ pub struct x_display_info
   pub visual: *mut Visual,   // C: Visual *visual;
   pub visual_info: XVisualInfo,   // C: XVisualInfo visual_info;
   #[cfg (feature = "have_xrender")]
-  pub pict_format: *mut XRenderPictFormat,   // C: XRenderPictFormat *pict_format;
+  /* P-72 rule 3: `<X11/extensions/Xrender.h>` has no mirror here, so this mirror writes the
+     untyped pointer rather than naming a type its includers may lack (P-87 (3)) - a unit that
+     has the header's own names casts at its use site (the `face.font` precedent).  */
+  pub pict_format: *mut c_void,   // C: XRenderPictFormat *pict_format;
   pub cmap: Colormap,   // C: Colormap cmap;
   pub n_planes: c_int,   // C: int n_planes;
   pub grabbed: c_int,   // C: int grabbed;
@@ -676,6 +679,15 @@ pub struct x_display_info
   pub quit_keysym: KeySym,   // C: KeySym quit_keysym;
   pub quit_keysym_time: Time,   // C: Time quit_keysym_time;
 
+  /* C 898-902: `#ifdef HAVE_XRENDER` - the XRender version probe.  Missing from this mirror
+     until status 3.520, which is why `include/xterm.rs`'s own `FRAME_CHECK_XR_VERSION!` (C
+     1504-1510) read `E0609` in any `have_xrender` arm.  */
+  #[cfg (feature = "have_xrender")]
+  pub xrender_supported_p: bool,   // C 899: bool xrender_supported_p;
+  #[cfg (feature = "have_xrender")]
+  pub xrender_major: c_int,   // C 900: int xrender_major;
+  #[cfg (feature = "have_xrender")]
+  pub xrender_minor: c_int,   // C 901: int xrender_minor;
 }
 
 /* C 740-745's anonymous enum, written as the constants its members are (PORTING.md 1.3);
