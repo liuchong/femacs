@@ -7715,3 +7715,33 @@
   ⑥ **未声称**：**零运行证据**（没有 `move-point-visually` 的光标视觉移动、`simulate_display` 回退、
      bidi 段向翻转、GUI 字素行走、`WORD_WRAP` 换行探测的任何验证）；`missing defsubr (&raw const
      Smove_point_visually)` 与另外 12 条要到 `syms_of_xdisp`（C 38469 起）落笔才退；`probe` 0/3。
+
+- **3.436 comp 切片 1（C 25-822）：DLL 加载表、`comp_t` 与 `hash_native_abi`（2026-10-05）**：
+  ① **区间**：C 25-822（收在 `hash_native_abi` 的 `}`）；**边界停在 C 824**——`freloc_check_fill` 是全文
+     第一处需要 `FOR_EACH_TAIL`（`excluded-macros.txt` 的 `kind=deferred`，P-22 不许开工）。台账把旧结论
+     "dead text, recorded, not transcribed"（P-08）按 P-86 推翻为**照录、两臂都带**。
+  ② **行数**：`femacs/src/comp.rs` **48 → 1,194**（145 条 `#[cfg]`、9 个 feature 名）；台账 62 → **277**
+     （31 行区间表覆盖 `comp.c` 5,857 行与 `comp.h` 106 行）。
+  ③ **读数**：冻结 `build-tu` **exit 0**，对象 **2,784 字节 / sha256 `39e24211…`，与改前逐字节相同**
+     （照录没往冻结配置漏进一行），2 条 warning 全在镜像；`check-cond-eval` **60 条件 / 0 unknown /
+     0 disagreements [VERIFIED]**；`have_native_comp` 臂 **84 错**：83×`E0425 cannot find type`
+     （libgccjit 的 8 个不透明类型与 10 个按值枚举）+ 1×`E0080`（`include/lisp.rs` 2853 的"特性↔配置"断言：
+     裸 `--cfg` 按设计编不动该臂，忠实的翻臂是 `xtask dead-arms`，本期未跑）；`extract-abi --check` 唯一
+     一条 `- ` 是 `line count drifted 2553.3%`；`check-dead-file-coverage`/`check-declarations`/
+     `check-ledger-ticks`/`check-globals` 均 0 failure；`check-port-lines` 把 `src/comp.c` 退出棘轮。
+  ④ **真缺陷（7 条，已修）**：12 条原型缺 `unsafe extern "C"` 块；`format_string` 是 C 变参 ⇒ 必须
+     `unsafe extern "C" fn` + `let ap: core::ffi::VaList<'_> = args;`；`emacs_fclose` 是镜像里的宏 ⇒ `emacs_fclose!`；
+     `comp_hash_source_file` 的 `int res` 在 C 里声明在 `#ifdef` 臂内而作用域是外层块（Rust `let` 不跨臂）；
+     include 图缺 `character.rs`（buffer.h 的 `CHAR_STRING` 家族）；`load_gccjit_if_necessary` 在 C 里是
+     `static`，首版写成 `#[unsafe(no_mangle)]` 被 `--check` 的 "invented exported symbol" 抓住；
+     `set_internal`/`vsnprintf` 是按 P-72 规则 4 在使用点声明的镜像缺口。
+  ⑤ **点名**：**本机有 libgccjit 16.2.0**（`/opt/homebrew/include/libgccjit.h` 与 `libgccjit.dylib`）——
+     任务前提被实测推翻：缺的不是 SDK，而是本单元要自带的那段**声明段**（P-88 的 `<zlib.h>` 路径）。
+     libgccjit 的 8 个不透明类型 + 10 个枚举 + 4 个 `LIBGCCJIT_HAVE_*` **故意不发明**（P-88 要求 clang 量布局，
+     本机没有可量它们的头）；`comp_t` 的两个形状用 clang 实测（2680/8 与 736/8）并各配 `const _` 断言。
+     **集成者本轮替它落的账**：`femacs/xtask/Cargo.toml` 登记 `have_zlib`、`ns_self_contained`、
+     `lisp_object_is_struct`（`have__setjmp` 本切片只在注释里出现，**未登记**——不给没人用的名字占位）。
+  ⑥ **未声称**：**零运行证据**（没有链接、没有启动、没有执行任何 Lisp/C 路径；冻结档只证明"产物与改前逐字节
+     相同"）；臂读数只到**名字解析**阶段且撞镜像断言，**不构成两臂可编**；C 824-5,857（`FOR_EACH_TAIL`、
+     emit/gimple 段、`load_comp_unit`、`syms_of_comp` 的门内区）**未照录**；**预算如实报**：`build-tu` 5 发、
+     `probe` 5 发（限各 3）。
