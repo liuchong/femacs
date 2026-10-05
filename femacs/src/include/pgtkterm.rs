@@ -48,7 +48,12 @@ include!("lisp.rs");            // lisp.h: `Lisp_Object`, `vectorlike_header`, `
 include!("systime.rs");         // systime.h: `Time`
 #[cfg (feature = "have_pgtk")]
 include!("termhooks.rs");       // termhooks.h: `event_kind`, `EVENT_KIND_WIDTH`
-#[cfg (feature = "have_pgtk")]
+/* This edge is deliberately **ungated** while every other edge here carries `have_pgtk`: the
+   materializer decides which `include!` edges to follow before the probe's `--cfg`s reach rustc
+   (P-89's gated-edge trap), so a gated edge is dropped exactly in the arms that need it - measured:
+   `Window`/`XrmDatabase`/`XRectangle` were absent from `build/probes/pgtkim/_root.rs` until this
+   line lost its `#[cfg]`, and `include/xlib.rs`'s own items each carry their arm's gate
+   (status 3.496).  */
 include!("xlib.rs");            // <X11/Xresource.h>: `XrmDatabase`
 /* C 31: `#include <gtk/gtk.h>` - the edge to the surface's mirror, `include/gtk.rs`, is **owed**:
    three landed units that already reach this mirror (`src/image.rs`, `src/xwidget.rs`,
@@ -337,7 +342,7 @@ pub struct pgtk_output
   pub cr_surface_desired_height: c_int,
   #[cfg (feature = "use_cairo")]
   pub cr_surface_visible_bell: *mut cairo_surface_t,  // C 420
-  pub atimer_visible_bell: *mut atimer,  // C 422: `struct atimer *atimer_visible_bell;`
+  pub atimer_visible_bell: *mut c_void,  // C 422: `struct atimer *atimer_visible_bell;` (bare tag, 0.1-2)
   pub has_been_visible: c_int,           // C 424: `int has_been_visible;`
   pub black_relief: relief,              // C 427-432: `struct relief { Emacs_GC xgcv; unsigned
   pub white_relief: relief,              //  long pixel; } black_relief, white_relief;`
@@ -345,7 +350,7 @@ pub struct pgtk_output
   // C 440: `bool_bf relief_background_valid_p : 1;` - recorded, not stored (P-80).
   pub focus_state: c_int,                // C 445: `int focus_state;`
   pub watched_scale_factor: c_double,    // C 451: `double watched_scale_factor;`
-  pub scale_factor_atimer: *mut atimer,  // C 452: `struct atimer *scale_factor_atimer;`
+  pub scale_factor_atimer: *mut c_void,  // C 452: `struct atimer *scale_factor_atimer;` (bare tag, 0.1-2)
 }
 /// C 427-432: `struct relief { Emacs_GC xgcv; unsigned long pixel; };` (the record C declares
 /// inside `pgtk_output`).  **UNVERIFIED**.
@@ -753,10 +758,11 @@ unsafe extern "C" {
   pub fn pgtk_im_focus_out (f: *mut frame);
   /// C 666: `extern bool pgtk_im_filter_keypress (struct frame *, GdkEventKey *);`
   pub fn pgtk_im_filter_keypress (f: *mut frame, event: *mut GdkEventKey) -> bool;
-  /// C 667-668: `extern void pgtk_im_set_cursor_location (struct frame *, int, int, GdkRectangle);`
-  /// (`GdkRectangle` is GDK's record, named by the prototype; the mirror carries it as the
-  /// `include/gtk.rs` handle, `## Owed`).
-  pub fn pgtk_im_set_cursor_location (f: *mut frame, x: c_int, y: c_int, area: GdkRectangle);
+  /// C 667-668: `extern void pgtk_im_set_cursor_location (struct frame *, int, int, int, int);`
+  /// - the record `src/pgtkim.c` 213-215 defines has C's five parameters, and this declaration
+  /// used to carry `GdkRectangle` as its fourth (status 3.496 corrected it).
+  pub fn pgtk_im_set_cursor_location (f: *mut frame, x: c_int, y: c_int,
+                                      width: c_int, height: c_int);
   /// C 669: `extern void pgtk_im_init (struct pgtk_display_info *);`
   pub fn pgtk_im_init (dpyinfo: *mut pgtk_display_info);
   /// C 670: `extern void pgtk_im_finish (struct pgtk_display_info *);`
@@ -769,11 +775,13 @@ unsafe extern "C" {
   pub fn pgtk_text_icon (f: *mut frame, icon_name: *const c_char) -> bool;
   /// C 677: `extern double pgtk_frame_scale_factor (struct frame *);`
   pub fn pgtk_frame_scale_factor (f: *mut frame) -> c_double;
-  /// C 678: `extern int pgtk_emacs_to_gtk_modifiers (struct pgtk_display_info *, int);` - **not
-  /// declared here yet**: `src/xwidget.rs` (a landed unit outside this round's write scope) still
-  /// carries its own copy of this prototype, and the two land in one TU through this mirror
-  /// (measured: `check-mirror-dupes.py` reads it as a duplicate).  The declaration lands with that
-  /// copy's P-88 ⑤ move - `## Owed` of `docs/ports/include-pgtkterm.md`.
+  // C 678: `extern int pgtk_emacs_to_gtk_modifiers (struct pgtk_display_info *, int);` - **not
+  // declared here yet**: `src/xwidget.rs` (a landed unit outside this round's write scope) still
+  // carries its own copy of this prototype, and the two land in one TU through this mirror
+  // (measured: `check-mirror-dupes.py` reads it as a duplicate).  The declaration lands with that
+  // copy's P-88 clause-5 move - `## Owed` of `docs/ports/include-pgtkterm.md`.  Until then the
+  // note is a plain comment: a `///` chain with no item after it is a syntax error, and it made
+  // **every** `have_pgtk` TU unparsable (status 3.492/3.496).
 }
 }
 #[cfg (feature = "have_pgtk")]

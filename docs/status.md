@@ -9469,3 +9469,44 @@
   ⑧ **预算**：lane：`probe` **3/3**、`build-tu` **3/3**，另用若干次直接 rustc 做臂矩阵与变异（不占工具口径）；
      集成者：gate/`--check`/tolerance/feature-coverage 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；
      `/tmp/termcap-lane` 已删（`/tmp/tclane` 是它留下的日志，收工一并清）。
+
+- **3.496 镜像轮：三条 lane 点名的 7 处镜像缺陷一次结案——两个被堵死的翻臂回到 `exit 0`（2026-10-05）**：
+  ① **范围**：7 个镜像文件 + 1 行 allowlist：`include/dispextern.rs`、`include/xlib.rs`、`include/pgtkterm.rs`、
+     `include/font.rs`、`include/xterm.rs`、`include/gtk.rs`、`include/emacsgtkfixed.rs`，以及
+     `docs/baseline/citations-allowlist.tsv` 的一行（我的插入把 `dispextern.rs` 的一条引用从 587 顶到 593）。
+  ② **逐条改动与判据**：⑴ **`include/dispextern.rs` 的 `include!("xlib.rs")` 去掉门控**（下 ④ 是原因）；
+     ⑵ `include/xlib.rs` 的 `XRectangle`/`Window`/`XrmDatabase`/`XID` 四个名字的门改成
+     `any (have_x_windows, have_pgtk)`（C 的 pgtk 构建仍编 `<X11/Xlib.h>`/`<X11/Xresource.h>`）；
+     ⑶ `include/pgtkterm.rs`：**776 的悬空 `///` 链改成 `//`**（那是语法错，让**每一个**含该镜像的 `have_pgtk` TU
+     不可解析——3.492 与 3.493 两条 lane 独立报同一处）、`pgtk_im_set_cursor_location` 的原型改成 C 的
+     **五个参数**（`pgtkterm.h` 667-668、`pgtkim.c` 213-215，原来错写成 `GdkRectangle`）、340/348 的裸
+     `atimer` 标签按 0.1-2 写 `*mut c_void`；⑷ `include/font.rs` 的 `size_of::<font_driver>()` 断言加
+     **`harfbuzz` 臂**（**clang 实测**：不带 `HAVE_HARFBUZZ` 208、带 224）；
+     ⑸ `include/xterm.rs` 三个 INLINE 体（`SELECTION_EVENT_DISPLAY`/`x_make_truecolor_pixel`/`x_mutable_colormap`）
+     从 `pub fn` 改 `pub unsafe fn`（它们解引用实参，10 × `E0133` 卡住**任何** `have_x_windows` 臂）；
+     ⑹ `include/gtk.rs` 的 `GtkWidgetClass` 补 `get_preferred_height`（C 73 调用它）；
+     ⑺ `include/emacsgtkfixed.rs` 的 `emacs_fixed_new` 原型进 `emacs_fixed_new_decls` 形状的
+     `pub mod … { … } use …::*;`（P-39：单元定义它，同作用域的第二份声明是 `E0428`）。
+  ③ **读数**：⑴ **两个被堵死的翻臂回到 `exit 0`**：`probe src/pgtkim.rs`（`have_pgtk` + `have_gtk3`）
+     **10 错 → exit 0 / rlib 14,083,208 字节**；`probe src/hbfont.rs`（`harfbuzz`）**1 错 → exit 0 /
+     rlib 14,580,952 字节**；⑵ 镜像改动两腿必跑：`layout-check` **passed**、
+     `tools/check-all-units.sh` **83/0 + 83/0**（本轮跑了 2 次，最后一次覆盖全部 7 处改动）；
+     ⑶ `check-mirror-dupes` **17/17/0**（去门控的边没有引入重复声明）、`check-declarations` 10/0/0、
+     `check-citations` **0 stale**（allowlist 那行已随位移改到 593；剩下 1 drift 是别的 lane 在飞的 `ftfont.rs`）、
+     `check-dead-file-coverage` **67 绑定 / 0 failure**、`check-ledger-ticks` 234/0、`check-port-lines` 53/0/0。
+  ④ **本轮学到的机制（P-89 的"占槽"新证据，值得记）**：`xtask` 物化 include 图时对边**去重**——**第一条边占槽**，
+     后来的同名边被写成 `// [xtask dedupe] … already included`。于是**一条带门的边会把槽占掉**：`pgtkim` 的链
+     先经 `dispextern.rs` 的 `have_x_windows` 门控边到达 `xlib.rs`，pgtk 臂上那条边为假 ⇒ `Window`/`XrmDatabase`/
+     `XRectangle` 在 TU 里根本不存在（实测 9 × `E0425`）。**处方（本轮采用）**：**边不加门、内容自带门**
+     （`xlib.rs` 的每一项已经各自带门）。这是继 3.481/3.484 之后，P-89 第二次在真读数上现身。
+  ⑤ **仍未做（点名）**：⑴ `include/systime.rs` 27 的断言按设计拒绝在 X11 目标存在前被翻（要目标或 `dead-arms`）；
+     ⑵ `include/msdos.rs` 232/241 的 override 类（3.483 的处置形状，需 PORTING.md §11 裁定）；
+     ⑶ `include/pgtkterm.rs` C 31 的 `<gtk/gtk.h>` 边仍欠（等 `src/image.rs`/`src/xwidget.rs`/`src/pgtkfns.rs`
+     的副本按 P-88 ⑤ 搬完，同批删）；⑷ `include/w32common.rs` 的 `pub mod` 搬运；⑸ `include/xlib.rs` 的
+     `XSizeHints`/`XA_WM_*`/`PMinSize`/`PResizeInc`/`XChangeProperty`（`emacsgtkfixed` 的 X11 臂需要，3.493 点名）。
+  ⑥ **未声称**：这些改动只让**编译**通过——GTK/GDK/Pango 的每个值仍是占位、**UNVERIFIED**；`pgtkim` 与 `hbfont`
+     的两个 rlib 是编译产物，**没有链接、没有运行**；`include/xterm.rs` 的 `unsafe` 标注不改语义，只让类型检查
+     能走完；`include/font.rs` 的 224 是 clang 实测值，别的平台要重测。
+  ⑦ **预算**：`check-all-units.sh` **2 次**（每次两腿，镜像改动必跑）、`layout-check` **2 发**、
+     `probe` **4 发**（pgtkim 3、hbfont 1）、`clang` 探针 **2 次**（`font_driver` 208/224）、gate 脚本各 1–2 发；
+     未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/fd-probe*`、`/tmp/pk*.log`、`/tmp/hb.log` 等中间物收工删除。

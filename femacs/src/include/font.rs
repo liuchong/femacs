@@ -574,7 +574,14 @@ pub struct font_driver_list
   pub next: *mut font_driver_list,
 }
 
+/* C: font.h 562-565's two `HAVE_HARFBUZZ` members (`begin_hb_font`, `end_hb_font`) are two
+   function pointers, so the same record is 224 bytes in that arm.  Both numbers are clang
+   measurements against the reference's own font.h (`-DHAVE_HARFBUZZ=1`, status 3.496):
+   `sizeof (struct font_driver)` = 208 without it and 224 with it.  */
+#[cfg (not (feature = "harfbuzz"))]
 const _: () = core::assert! (std::mem::size_of::<font_driver> () == 208);
+#[cfg (feature = "harfbuzz")]
+const _: () = core::assert! (std::mem::size_of::<font_driver> () == 224);
 const _: () = core::assert! (std::mem::align_of::<font_driver> () == 8);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, r#type) == 0);
 const _: () = core::assert! (std::mem::offset_of! (font_driver, get_cache) == 16);

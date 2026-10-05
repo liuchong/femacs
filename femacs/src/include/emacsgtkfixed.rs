@@ -46,9 +46,14 @@ pub const EMACSGTKFIXED_H: bool = true;
 /// header (`struct frame *` is P-55's untyped pointer; `GtkWidget *` is GTK's, which the platform
 /// target owns).
 /// C: extern GtkWidget *emacs_fixed_new (struct frame *f);
-unsafe extern "C" {
-  pub fn emacs_fixed_new (f: *mut c_void) -> *mut c_void;
+pub mod emacsgtkfixed_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn emacs_fixed_new (f: *mut c_void) -> *mut c_void;
+  }
 }
+use emacsgtkfixed_decls::*;
 
 /* src/emacsgtkfixed.h 37-50: the GTK widget's records - `struct _EmacsFixed { GtkFixed
    container; EmacsFixedPrivate *priv; }` and `struct _EmacsFixedClass { GtkFixedClass

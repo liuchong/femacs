@@ -1435,7 +1435,7 @@ pub struct selection_input_event
 /// C: ev->dpyinfo->display; }
 #[cfg (feature = "have_x_windows")]
 #[inline(always)]
-pub fn SELECTION_EVENT_DISPLAY (ev: *mut selection_input_event) -> *mut Display
+pub unsafe fn SELECTION_EVENT_DISPLAY (ev: *mut selection_input_event) -> *mut Display
 {
   (*(*ev).dpyinfo).display
 }
@@ -1502,7 +1502,7 @@ macro_rules! DEFER_SELECTIONS {
 /// C: int b) { unsigned long pr, pg, pb, pa = dpyinfo->alpha_mask; ... return pr | pg | pb | pa; }
 #[cfg (feature = "have_x_windows")]
 #[inline(always)]
-pub fn x_make_truecolor_pixel (dpyinfo: *mut x_display_info, r: c_int, g: c_int,
+pub unsafe fn x_make_truecolor_pixel (dpyinfo: *mut x_display_info, r: c_int, g: c_int,
                                b: c_int) -> c_ulong
 {
   let mut pr: c_ulong;
@@ -1528,7 +1528,7 @@ pub fn x_make_truecolor_pixel (dpyinfo: *mut x_display_info, r: c_int, g: c_int,
 /// C: (class != StaticColor && class != StaticGray && class != TrueColor); }
 #[cfg (feature = "have_x_windows")]
 #[inline(always)]
-pub fn x_mutable_colormap (visual: *mut XVisualInfo) -> bool
+pub unsafe fn x_mutable_colormap (visual: *mut XVisualInfo) -> bool
 {
   let class: c_int = (*visual).class;
   return class != StaticColor && class != StaticGray && class != TrueColor;

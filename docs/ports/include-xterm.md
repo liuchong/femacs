@@ -325,3 +325,18 @@ functions with C's bodies (a `macro_rules!` first draft was rejected: the call s
 call shape, and `E0423` is what a macro answers there).  The whole section is a glob-imported
 module (`xlib_surface`) because `src/image.rs` 232 declares `Pixmap` itself.  `XEvent`'s 33 member
 records are the one gap left, with C's measured size (192 bytes) and the members recorded as owed.
+
+### status 3.496 (the mirror round this file took part in)
+
+- The edge/declaration changes are recorded in `docs/status.md` 3.496: `include/dispextern.rs`'s
+  `include!("xlib.rs")` edge lost its `#[cfg]` (the `xtask` dedupe gives the first edge the slot),
+  `include/xlib.rs` widened `XRectangle`/`Window`/`XrmDatabase`/`XID` to
+  `any (have_x_windows, have_pgtk)`, `include/pgtkterm.rs` fixed a dangling `///` (a syntax error
+  that made every `have_pgtk` TU unparsable), its `pgtk_im_set_cursor_location` prototype and its
+  two bare `atimer` tags, `include/font.rs` gained the `harfbuzz` arm of the `font_driver` size
+  assertion (clang-measured 208/224), `include/xterm.rs`'s three INLINE bodies became `unsafe fn`,
+  `include/gtk.rs` gained `GtkWidgetClass.get_preferred_height`, and `include/emacsgtkfixed.rs`
+  moved `emacs_fixed_new` into a `_decls` module.  The two arm flips that were blocked now read
+  **exit 0**: `src/pgtkim.rs` (`have_pgtk` + `have_gtk3`, 14,083,208-byte rlib) and
+  `src/hbfont.rs` (`harfbuzz`, 14,580,952-byte rlib); `layout-check` passes and
+  `tools/check-all-units.sh` is **83/0 + 83/0**.

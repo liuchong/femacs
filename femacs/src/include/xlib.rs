@@ -30,7 +30,9 @@
 // the whole unit, so a consumer imports the few names it needs where it needs them.
 
 /// Xlib.h 426-429: `typedef struct { short x, y; unsigned short width, height; } XRectangle;`
-#[cfg (feature = "have_x_windows")]
+/// - its consumers are the X11 arms *and* the pgtk arms (`src/pgtkim.c` passes one to
+/// `pgtk_im_set_cursor_location`), so the gate is the union (status 3.496).
+#[cfg (any (feature = "have_x_windows", feature = "have_pgtk"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct XRectangle
@@ -193,7 +195,7 @@ pub type Bool = c_int;
 /// `include/pgtkgui.rs` 122 is unreachable - nothing in the tree `include!`s that mirror (measured
 /// 3.334) - and it belongs to the PGTK line to move, not to this one to duplicate.  C's pointee is
 /// an incomplete tag, so the port keeps C's text in this comment and the untyped pointer (rule 3).
-#[cfg (feature = "have_x_windows")]
+#[cfg (any (feature = "have_x_windows", feature = "have_pgtk"))]
 pub type XrmDatabase = *mut c_void;
 
 /// Xresource.h 84: `typedef int XrmQuark, *XrmQuarkList;`
@@ -829,8 +831,9 @@ pub mod xlib_surface {
    `include/xterm.rs` 789's `*mut XEvent`), so the type keeps C's measured size and the members
    are owed (see the ledger).  */
 
-/// X11/X.h 66: `typedef unsigned long XID;`
-#[cfg (feature = "have_x_windows")]
+/// X11/X.h 66: `typedef unsigned long XID;` - its consumer is `Window` below, which the pgtk
+/// arm needs too, so the gate is the union (status 3.496).
+#[cfg (any (feature = "have_x_windows", feature = "have_pgtk"))]
 pub type XID = c_ulong;
 /// X11/X.h 70: `typedef unsigned long Mask;`
 #[cfg (feature = "have_x_windows")]
@@ -843,7 +846,7 @@ pub type Atom = XID;
 #[cfg (feature = "have_x_windows")]
 pub type VisualID = XID;
 /// X11/X.h 96: `typedef XID Window;`
-#[cfg (feature = "have_x_windows")]
+#[cfg (any (feature = "have_x_windows", feature = "have_pgtk"))]
 pub type Window = XID;
 /// X11/X.h 97: `typedef XID Drawable;`
 #[cfg (feature = "have_x_windows")]

@@ -545,6 +545,12 @@ pub struct GtkWidgetClass
   /// and the unit both declare this class record (status 3.481).  The class record's layout is
   /// GTK's and **UNVERIFIED** here; like the field above, only the members the reference reads
   /// are carried.
+  /// C: gtk/gtkwidget.h: `void (*get_preferred_height) (GtkWidget *widget, gint *minimum, gint
+  /// *natural);` - C 73 calls it, and `src/emacsgtkfixed.rs` (status 3.493) is its reader; the
+  /// record's offsets are GTK's and **UNVERIFIED** here (P-88 ②), which is why only the members
+  /// the reference reads are carried and no size assertion is made on this record.
+  pub get_preferred_height:
+    Option<unsafe extern "C" fn (widget: *mut GtkWidget, minimum: *mut gint, natural: *mut gint)>,
   pub style_updated: Option<unsafe extern "C" fn (widget: *mut GtkWidget)>,
 }
 /// C: gtk/gtktooltip.h: `typedef struct _GtkTooltip GtkTooltip;`

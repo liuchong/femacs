@@ -39,7 +39,13 @@ pub const No_Cursor: *mut c_void = std::ptr::null_mut ();
    is 32 bytes in the x11 arm and 48 in `ns_cocoa`
    (`spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h`, docs/ports/xterm.md Decision 16).
    `<X11/Xlib.h>` is where C's alias comes from (C 29), and `include/xlib.rs` is its mirror.  */
-#[cfg (feature = "have_x_windows")]
+/* This edge is deliberately **ungated** although C 29's `#include <X11/Xlib.h>` sits in the X11
+   arm: `xtask` dedupes `include!` edges (first edge wins, later ones become
+   `// [xtask dedupe] … already included`), so a gated edge here takes the slot away from every
+   later one - measured: with it gated, the pgtk arm's consumers saw
+   `cannot find type Window/XrmDatabase/XRectangle` although `include/xlib.rs` itself is reachable.
+   `include/xlib.rs`'s own items each carry their arm's gate (`any (have_x_windows, have_pgtk)`
+   where both arms need the name), so nothing leaks into an arm C does not compile (status 3.496).  */
 include!("xlib.rs");                            // C 29: `#include <X11/Xlib.h>` (XRectangle)
 
 /// C 44: the X11 arm aliases Xlib's record instead of defining one.
