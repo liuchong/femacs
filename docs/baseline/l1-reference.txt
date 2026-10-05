@@ -3,7 +3,9 @@
 # docs/acceptance.md).  `--check <binary>` re-runs the same 110 compilations in
 # `build/lisp-l1` and compares (exit code, diagnostics) per file, byte for byte.
 # binary: build/emacs-ref/src/emacs
-# version: GNU Emacs 32.0.50
+# version: 32.0.50
+#   the number only; PORTING.md 0.1-19: the name the reference prints is quoted in
+#   docs/acceptance.md as evidence about the reference, and is not repeated here
 # sha256[0:16]: a959f1d7a8bb4e11
 
 @@ advice.el

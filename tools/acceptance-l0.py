@@ -66,6 +66,31 @@ def binary_identity(binary: Path) -> tuple[str, str]:
     return first, digest
 
 
+def version_number(first: str) -> str:
+    """The reference's version *number*, out of its `--version` first line.
+
+    `PORTING.md` 0.1-19: a version declaration this repository writes carries the revision and
+    the version number, never the product's name - the reference prints `<name> <version>`, so
+    the last whitespace-separated token is the number.  A line with no separate token (a build
+    that prints the number alone) stays as it is, so the golden shows the difference instead of
+    an empty field.
+    """
+    tokens = first.split()
+    return tokens[-1] if len(tokens) > 1 else first
+
+
+def version_header_lines(first: str) -> list[str]:
+    """The `# version:` header line this repository writes into the golden, and why it is bare.
+
+    The reference's own banner is quoted in `docs/acceptance.md`, where it is evidence *about*
+    the reference; repeating the name it carries in a file of ours is the declaration 0.1-19
+    removes.  The revision and the sha256 below identify the measured binary without it.
+    """
+    return [f"# version: {version_number(first)}",
+            "#   the number only; PORTING.md 0.1-19: the name the reference prints is quoted in",
+            "#   docs/acceptance.md as evidence about the reference, and is not repeated here"]
+
+
 def write_golden(binary: Path) -> int:
     first, digest = binary_identity(binary)
     lines = ["# L0 golden: the self-check expressions' outputs on the reference program.",
@@ -74,7 +99,7 @@ def write_golden(binary: Path) -> int:
              "# as `<binary> -Q --batch --eval <program>` and compares (exit code, stdout, stderr)",
              "# byte for byte.  One record per expression, in this order.",
              f"# binary: {binary}",
-             f"# version: {first}",
+             *version_header_lines(first),
              f"# sha256[0:16]: {digest}",
              ""]
     for label, program in EXPRESSIONS:
@@ -83,7 +108,7 @@ def write_golden(binary: Path) -> int:
                   "--- stdout:", out, "--- end stdout", "--- stderr:", err, "--- end stderr"]
     GOLDEN.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {GOLDEN.relative_to(REPO)}: {len(EXPRESSIONS)} expression(s) "
-          f"(reference {first!r}, sha256[0:16] {digest})")
+          f"(reference {version_number(first)!r}, sha256[0:16] {digest})")
     return 0
 
 
@@ -136,7 +161,7 @@ def read_golden() -> dict[str, tuple[int, str, str]]:
 def check(binary: Path) -> int:
     golden = read_golden()
     first, digest = binary_identity(binary)
-    print(f"binary: {binary}\n  version: {first}\n  sha256[0:16]: {digest}")
+    print(f"binary: {binary}\n  version: {version_number(first)}\n  sha256[0:16]: {digest}")
     failures = 0
     for label, program in EXPRESSIONS:
         want = golden.get(label)

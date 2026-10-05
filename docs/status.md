@@ -7088,3 +7088,43 @@
      `line-drift-tolerance` 的 `android` 行留到末片。
   ⑦ **未声称**：本片每一行都挂在冻结配置为假的门下——④ 是**打了补丁的替代读数**，②③ 都是**编译级**，
      **没有执行过任何东西**（无线程、无信号量、无 JNI、无事件、无 select）；C 1038-7,594 未移植。
+
+- **3.413 版本声明这条长期指令的第四半：写出身份行的两个工具，和它们落进的豁免树（2026-10-05）**：
+  ① **指令的读法不变**（3.90/3.134/3.226/3.250/3.269/3.295/3.318/3.340）：`版本声明不要再说是gnu emacs了`
+     与 38 秒之后的 `把之前的代码中的这种声明也去掉` 是同一条指令的前后两半——不只对新写的文件生效，
+     **已写进树的产出物也要清**。本轮不改口径，改按**产出物**（而不是按后缀）再复算一遍：
+     端口树（`femacs/` 的 `src`/`lib`/`lib-src`/`exec`/`lwlib`/`oldXMenu`/`nt`/`msdos`/`platform`/`xtask`）
+     与 `docs/ports/**` 的 **682 + 602 个文件，`decl`/`version`/`title`/`recital` 四类 0 命中**；
+     许可短语（`is part of …`/`is free software`/`along with …`/`Free Software Foundation`）在全仓
+     （除逐字节复制树）只出现在**门自己的自测例**与 `docs/status.md` 的引文里。
+  ② **本轮量的真洞：两处金标头部，写在"整棵树被豁免"的文件里**。`docs/baseline/l{0,1}-reference.txt`
+     的 `# version:` 行是 `--golden` 用参照 `--version` 的第一行**原文**写的（3.261/3.265 记的就是
+     `GNU Emacs 32.0.50`）；这两个文件是 `.txt`、不在 `PROSE_SUFFIXES` 里，而 `docs/baseline/` 按
+     "冻结参照的实测值"整棵豁免 ⇒ **这一行对每一道门都不可见**，重新记录就会把产品名原样写回来。
+     这与 3.250（`.swift` 只按名字被扫）、3.295（`.s` 的 36 行声明）是**同一类失败模式**：门声称读了，
+     其实一个文件都没读。
+  ③ **处置（工具 + 数据 + 门，一处不漏）**：⑴ `tools/acceptance-l{0,1}.py` 增 `version_number()`
+     （取 `--version` 末段=版本号）与 `version_header_lines()`（在头部写明为什么不重复那个名字），
+     `--golden`/`--check` 的打印同步换成版本号；⑵ 两个金标头部重写——L0 用 `--golden` **重新生成**，
+     L1 手工改后用**同一函数**回算比对（逐字节相同）；⑶ `check-declarations.py` 新增 `BASELINE_PROSE`，
+     **按名字**读这两个文件的**头部块**（`header_only()`：遇第一条非 `#` 行即停，记录部分仍归豁免），
+     并把这条读法打进覆盖行。
+  ④ **读数**：`--selftest` **46 例 / 0 失败**（新增 3 例：旧写法=`title`、新写法=无、**记录里出现产品名
+     不算我们的散文**）；全量扫描 **13 declaration sites（0 forbidden / 13 allowed literals），0 failures**，
+     新覆盖行 `read 2 baseline header(s) by name …` 照打。**变异实测**：把 `# version: 32.0.50` 改回
+     `GNU Emacs 32.0.50` ⇒ `FAIL docs/baseline/l0-reference.txt: title x1`、**exit 1**、读数变
+     `14 declaration sites (1 forbidden …), 1 failures`；还原后回到 0 ⇒ 这条规则**写不回旧写法了**。
+  ⑤ **顺带量到的一条（照实记，不掩盖）**：L0 金标记的 `sha256[0:16]` 是 `ea7514dca1b463f5`，而当前
+     `build/emacs-ref/src/emacs` 是 `a959f1d7a8bb4e11`（= L1 在 3.265 记的值）⇒ **L0 金标是对更早一次构建
+     记录的**。`--golden` 重跑后 `diff` **只有头部 3 行**：19 条表达式记录（exit/stdout/stderr）**逐字节未变**，
+     两条读数同时成立——记录值现在有效，而身份行此前指的不是当前这个二进制；现在一致了。
+  ⑥ **仍未解决（点名，且这是留给用户的裁决）**：`docs/baseline/config/darwin-arm64.macros.tsv` 的
+     `PACKAGE_NAME "GNU Emacs"`/`PACKAGE_STRING` 是**实测值**（PORTING.md 0.1-19 明确"必须原样保留"）；
+     `docs/acceptance.md`、`docs/status.md` 里是**参照自己的输出与用户指令的引文**；端口单元里 **13 条字面量**
+     是 C 的 `PACKAGE_NAME`、`RCS_Id`、etags/ebrowse 版本横幅与 4 条 docstring ⇒ **移植语义**，docstring 门
+     与 L0 对拍要求它们与参照逐字一致，改它们等于让端口与参照在 `--version` 上分叉。
+     ⇒ 是否在**最终验收阶段**把端口的 `--version`/横幅改成不主张身份（代价：L0/L5 与 docstring 门要改成
+     "除身份行外一致"），需要用户一句话；本轮**不擅自改语义**。
+  ⑦ **未声称**：本轮只扫"我们写下的东西"并修掉其中的身份行，**没有**动逐字节复制树（`lisp/`/`test/`/`doc/`/
+     `etc/`/`admin/`/`leim/`——它们就是参照的原文，产品名在原文里）；`docs/baseline/` 其余实测表未动；
+     ⑥ 里的字面量与那两处引文**仍在原处**。

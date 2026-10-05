@@ -62,6 +62,15 @@ translations, the manifests - were read by nobody; every run printed that bound 
 so the classes that bind it are `version` and `title`: naming *our own* licence is not a
 finding, but a document here may not declare this repository to be the reference product.
 
+The two acceptance goldens are read by name (status 3.413).  `docs/baseline/` is
+exempt as *measured values*, and `docs/baseline/l{0,1}-reference.txt` are two of
+those - but each opens with a header this repository writes, and
+`tools/acceptance-l{0,1}.py --golden` rewrites it, so a version line naming the
+product can come back in a file no walk of ours read (they are `.txt`, outside
+`PROSE_SUFFIXES`, and the blanket exemption covered them).  `BASELINE_PROSE` reads
+their leading `#` block and stops there: the records below it are the reference
+program's own output, the same kind of data as the rest of `docs/baseline/`.
+
 Every site, of every class, must be named in
 `docs/baseline/declarations-allowlist.tsv` with a reason, the way
 `symbol-pending.txt` counts a deviation instead of hiding it; the four classes
@@ -120,6 +129,10 @@ PROSE_FILES = ("README.md", "PORTING.md", "LICENSE", "femacs/README.md",
                "femacs/Cargo.toml", "femacs/xtask/Cargo.toml", "femacs/rust-toolchain.toml",
                "femacs/Cargo.lock")
 PROSE_DIRS = ("docs",)
+# The two files whose *header* is our own prose inside an exempt tree (status 3.413).  Read by
+# name, for the reason in the docstring; `header_only` is what keeps the measured records below
+# the header out of the rule.
+BASELINE_PROSE = ("docs/baseline/l0-reference.txt", "docs/baseline/l1-reference.txt")
 PROSE_SUFFIXES = (".md", ".toml", ".lock")
 PROSE_CLASSES = ("version", "title")
 # The sanctioned homes, each with the reason it is left out.  They are counted and named in the
@@ -131,7 +144,8 @@ PROSE_CLASSES = ("version", "title")
 PROSE_EXEMPT = (
     ("docs/status.md", "the running log: quotes the instructions and the reference's output"),
     ("docs/acceptance.md", "records the reference program's own --version output as evidence"),
-    ("docs/baseline/", "measured values of the frozen reference build"),
+    ("docs/baseline/", "measured values of the frozen reference build (the two acceptance "
+                       "goldens' own headers are read by name - BASELINE_PROSE)"),
     ("docs/ports/", "the per-unit ledgers (already the DOC_DIRS scope)"),
 )
 
@@ -401,6 +415,25 @@ def prose_findings(path: Path) -> list[tuple[str, str]]:
     return prose_findings_text(path.read_text(encoding="utf-8", errors="replace"))
 
 
+def header_only(text: str) -> str:
+    """The leading `#` comment block of a file, up to the first line that is not one.
+
+    The goldens open with a header this repository writes and then hold the reference program's
+    measured output; only the header is prose of ours, so the scan stops at the blank line that
+    separates them (a record can quote the reference's diagnostics, product name included).
+    """
+    out: list[str] = []
+    for line in text.split("\n"):
+        if not line.startswith("#"):
+            break
+        out.append(line)
+    return "\n".join(out)
+
+
+def baseline_prose_findings(path: Path) -> list[tuple[str, str]]:
+    return prose_findings_text(header_only(path.read_text(encoding="utf-8", errors="replace")))
+
+
 def findings(root: Path) -> list[tuple[str, str, str]]:
     """`(path, class, line)` for every declaration this gate knows about."""
     out: list[tuple[str, str, str]] = []
@@ -427,6 +460,12 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
                     out.append((rel, klass, " ".join(raw_line.split())[:240]))
     for rel, path in prose_files(root)[0]:
         for klass, snippet in prose_findings(path):
+            out.append((rel, klass, snippet))
+    for rel in BASELINE_PROSE:
+        path = root / rel
+        if not path.is_file():
+            continue
+        for klass, snippet in baseline_prose_findings(path):
             out.append((rel, klass, snippet))
     return out
 
@@ -574,7 +613,28 @@ SELFTEST_PROSE = (
     ("our own licence sentence is not a finding",
      "femacs is distributed under the **GNU General Public License, version 3 or later**.",
      []),
+    ("golden header names the product", "# version: GNU Emacs 32.0.50", ["title"]),
+    ("golden header keeps the number", "# version: 32.0.50", []),
     ("prose that records the revision in a title", "# GOAL: femacs - the C source of the reference tree, one to one",
+     []),
+)
+
+
+# The header-only reading the two goldens get (status 3.413): the header is ours, the records
+# below it are measured output, and the third case is what proves the scan stops in between.
+SELFTEST_BASELINE = (
+    ("golden header names the product",
+     "# L0 golden: the self-check expressions' outputs on the reference program.\n"
+     "# version: GNU Emacs 32.0.50\n# sha256[0:16]: a959f1d7a8bb4e11\n\n@@ arith\n",
+     ["title"]),
+    ("golden header keeps the number only",
+     "# binary: build/emacs-ref/src/emacs\n# version: 32.0.50\n"
+     "#   the number only; PORTING.md 0.1-19: the name the reference prints is quoted in\n"
+     "# sha256[0:16]: a959f1d7a8bb4e11\n\n@@ arith\n",
+     []),
+    ("a record that recites the product name is the reference's output, not our prose",
+     "# version: 32.0.50\n\n@@ advice.el\n--- exit: 0\n--- diagnostics:\n"
+     "Warning: GNU Emacs 32.0.50 reports this\n--- end diagnostics\n",
      []),
 )
 
@@ -601,6 +661,11 @@ def selftest() -> int:
         ok = got == sorted(want)
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
         bad += 0 if ok else 1
+    for name, source, want in SELFTEST_BASELINE:
+        got = sorted({k for k, _ in prose_findings_text(header_only(source))})
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
     for leader, source, want_code, want_comment in SELFTEST_ASM_SPLIT:
         code, comment = scan(source + "\n", ".s")
         ok = code[0].strip() == want_code.strip() and comment[0] == want_comment
@@ -608,7 +673,7 @@ def selftest() -> int:
               f"code={code[0]!r} comment={comment[0]!r}")
         bad += 0 if ok else 1
     total = (len(SELFTEST) + len(SELFTEST_DOC) + len(SELFTEST_PROSE) + len(SELFTEST_ASM)
-             + len(SELFTEST_ASM_SPLIT))
+             + len(SELFTEST_ASM_SPLIT) + len(SELFTEST_BASELINE))
     print(f"{total} cases, {bad} failures")
     return 1 if bad else 0
 
@@ -681,6 +746,8 @@ def main() -> int:
         kinds[path.suffix or "(no suffix)"] = kinds.get(path.suffix or "(no suffix)", 0) + 1
     span = " ".join(f"{n} {ext}" for ext, n in sorted(kinds.items(), key=lambda kv: -kv[1]))
     print(f"read {len(prose)} own prose/manifest file(s) ({span})")
+    print(f"read {len(BASELINE_PROSE)} baseline header(s) by name "
+          f"({', '.join(BASELINE_PROSE)}), records below the header left to the exemption")
     if exempt:
         print("left out (sanctioned, counted): "
               + "; ".join(f"{prefix} {n} file(s) - {reason}"

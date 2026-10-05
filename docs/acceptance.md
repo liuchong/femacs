@@ -94,10 +94,13 @@ closures and `mapcar`, `condition-case`, `unwind-protect`, string mutation and `
 round trip, a `message` that goes to stderr, `error-message-string`, and `(kill-emacs 3)` so the
 *exit code* is part of the comparison.
 
-The golden (`docs/baseline/l0-reference.txt`) records the reference binary's path, its `--version`
-first line and the first 16 hex digits of its sha256, so a golden whose reference has moved is
-visible rather than silent; each stream sits between explicit `--- stdout`/`--- end stdout`
-markers, which is what makes its bytes readable without guessing about the last newline.
+The golden (`docs/baseline/l0-reference.txt`) records the reference binary's path, the version
+number out of its `--version` first line and the first 16 hex digits of its sha256, so a golden
+whose reference has moved is visible rather than silent (the name that line carries is quoted
+above as evidence about the reference; `PORTING.md` 0.1-19 keeps it out of files we write, and
+`tools/check-declarations.py` reads these two headers by name so it cannot come back, 3.413);
+each stream sits between explicit `--- stdout`/`--- end stdout` markers, which is what makes its
+bytes readable without guessing about the last newline.
 
 **Readings (2026-10-05).**  The reference answers all nineteen (`19 expression(s), 0 failure(s)`,
 a self-test of the harness against its own golden), and the negative control is the dump-less

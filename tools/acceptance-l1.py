@@ -133,6 +133,31 @@ def records(binary: Path) -> list[tuple[str, int, str]]:
     return out
 
 
+def version_number(first: str) -> str:
+    """The reference's version *number*, out of its `--version` first line.
+
+    `PORTING.md` 0.1-19: a version declaration this repository writes carries the revision and
+    the version number, never the product's name - the reference prints `<name> <version>`, so
+    the last whitespace-separated token is the number.  A line with no separate token (a build
+    that prints the number alone) stays as it is, so the golden shows the difference instead of
+    an empty field.
+    """
+    tokens = first.split()
+    return tokens[-1] if len(tokens) > 1 else first
+
+
+def version_header_lines(first: str) -> list[str]:
+    """The `# version:` header line this repository writes into the golden, and why it is bare.
+
+    The reference's own banner is quoted in `docs/acceptance.md`, where it is evidence *about*
+    the reference; repeating the name it carries in a file of ours is the declaration 0.1-19
+    removes.  The revision and the sha256 below identify the measured binary without it.
+    """
+    return [f"# version: {version_number(first)}",
+            "#   the number only; PORTING.md 0.1-19: the name the reference prints is quoted in",
+            "#   docs/acceptance.md as evidence about the reference, and is not repeated here"]
+
+
 def write_golden(binary: Path) -> int:
     first, digest = binary_identity(binary)
     rows = records(binary)
@@ -141,7 +166,7 @@ def write_golden(binary: Path) -> int:
              "# docs/acceptance.md).  `--check <binary>` re-runs the same 110 compilations in",
              "# `build/lisp-l1` and compares (exit code, diagnostics) per file, byte for byte.",
              f"# binary: {binary}",
-             f"# version: {first}",
+             *version_header_lines(first),
              f"# sha256[0:16]: {digest}",
              ""]
     for name, code, diag in rows:
@@ -150,7 +175,7 @@ def write_golden(binary: Path) -> int:
     errors = sum(1 for _, code, _ in rows if code != 0)
     warned = sum(1 for _, _, d in rows if d.strip())
     print(f"wrote {GOLDEN.relative_to(REPO)}: {len(rows)} file(s), {errors} non-zero exit(s), "
-          f"{warned} file(s) with diagnostics (reference {first!r})")
+          f"{warned} file(s) with diagnostics (reference {version_number(first)!r})")
     return 0
 
 
@@ -180,7 +205,7 @@ def read_golden() -> dict[str, tuple[int, str]]:
 def check(binary: Path) -> int:
     golden = read_golden()
     first, digest = binary_identity(binary)
-    print(f"binary: {binary}\n  version: {first}\n  sha256[0:16]: {digest}")
+    print(f"binary: {binary}\n  version: {version_number(first)}\n  sha256[0:16]: {digest}")
     failures = 0
     for name, code, diag in records(binary):
         want = golden.get(name)
