@@ -11416,3 +11416,31 @@
   ⑦ **未声称**：**零运行证据**——冻结点对象是 336 字节空对象；翻臂读数只是类型检查/代码生成（12,624 字节对象），
      **没有**链 `liblog`/`libjnigraphics`、没出 APK、没有设备或模拟器、没枚举字体、没合成栅格、没发过 JNI 调用；
      NDK 读数是**头文件 ABI/常量**而非设备运行值；C 250-260 恒死；行数容差不是保真声明（保真是函数体 token 对照）。
+
+- **3.569 lane 产出收口：`src/w16select.c` 整文件落地（C 692 → Rust 988），并重新推导两条已落地 MSDOS 家族容差行（2026-10-05）**：
+  ① **lane 的产出（Noether）**：`femacs/src/w16select.rs` 19 → **988 行**（50,738 B，md5 `3f978335…`；台账
+     `docs/ports/w16select.md` 22 → 343 行，md5 `514e0aea…`）。**门映射**：文件门 `msdos`（`emacs/src/Makefile.in` 306 的
+     `MSDOS_OBJ` 留空 + `emacs/msdos/sed1v2.inp` 136 改写为 `dosfns.o msdos.o w16select.o`；宏 `MSDOS`，`configure.ac` 6953
+     `AH_TEMPLATE`）压在**每个项与整张 include 图**上（P-86 ⑧）；C 31 `#include <config.h>` 是无门边。该文件**只有 1 个 `#if`**
+     （C 29/C 692），逐条查证后**没有任何 `WINDOWSNT`/`HAVE_X_WINDOWS` 子门**；`check-cond-eval.py src/w16select.c` →
+     **1 conditions / 0 unknown / 0 disagreements [VERIFIED]**。30 行区间表连续覆盖 C 1-692。
+  ② **读数**：冻结 `build-tu` 2 发 → 各 `exit 0`，`build/femacs/w16select.o` **336 B / md5 `dbed6883…`**（与 `dosfns`、
+     `w32inevt`、`w32select` 的空对象同 md5，P-86 ⑧ 的预期）。翻臂（`--cfg 'feature="msdos"'`）3 念：**3 errors → 0 → 0**；
+     3 个 error **全在本单元自身**（`E0308` 的 u32/u64 比较一处、bool 进 `c_uint` 一处报 2 次），**镜像副本 0 error**；终版
+     **exit 0 / 0 error / 10 warning**（全是 extern 块上的 `unused doc comment` 与既有的 `#[inline(always)]` 行）。
+  ③ **诊断价值**：`extract-abi --check` 对本文件是 **P-86 ②/⑩ 的空中**（`MSDOS` undef ⇒ checklist 为空），**区间表就是那条
+     条款的替代**；`check-declarations` 17 sites / 0 failures；`check-mirror-dupes` 17/17/0。
+  ④ **集成者登记（我）**：容差行**重新推导**——appending `w16select 0.45`（692 vs 988 = 42.8%）**与 `dosfns 0.55`**
+     （798 vs 1218 = 52.6%）。两行原本都是"空单元"期的 `0.99`（"C 694 vs the port's 0 code lines"），落地后该理由已失效且
+     0.99 会**静音**该门；按容差表"只追加、最新行生效"的读法补上，两件 `--check` 都 **OK**（`dosfns` 行是连带纠正——3.566 落地时
+     漏了重推导）。`port-map.md` 刷新本件（在飞的 `Create`/`w32image` 行**回退成已提交值** 3/13）；`port-lines-pending.tsv`
+     去掉本件行 ⇒ **pending 只剩 4 文件 / 813 参照行**。
+  ⑤ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **2 drift / 0 stale**（两条 `w32image.rs`
+     :76/:812 都是**别的在飞 lane** 的，本单元 0）、`check-declarations` 0 failures、`check-dead-file-coverage` **141/0**、
+     `check-ledger-ticks` **238/0**、`check-port-lines` **0 new / 2 stale**、`check-target-names` 0 finding。
+  ⑥ **未声称**：C 1-692 是**转写**，转写 ≠ 编译/测量/可用。本机**没有 DJGPP 工具链**（`which -a …djgpp-gcc` 为空、无
+     `djgpp`/`go32`/`dpmi` 头），所以**没有 DJGPP 目标编译、没有 layout 测量**；翻臂读数只是本机 `rustc` 加一个 `--cfg`。
+     `__dpmi_regs`/`_go32_info_block`/`__tb`/`_dos_ds`/`__dpmi_int`/farptr/`dosmem*` 与 4 个 Lisp 侧原型全部 **UNVERIFIED**；
+     **没有** Int 2Fh/21h 剪贴板调用、far-memory 存取、编码系统、kill-ring 或消息被运行。该 lane 的 7 条欠账记在
+     `docs/ports/w16select.md` 的 `## Owed`；**本单元不 include `msdos.h`/`dosfns.h`**，故 `include/msdos.rs` 的 `EINPROGRESS`
+     等镜像债**未被本 lane 暴露、也未修**（勿把本件 0 error 误读成已修）。
