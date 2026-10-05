@@ -2306,7 +2306,15 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
 		pos += 1;
 		pos_byte += nbytes as ptrdiff_t;
 		rarely_quit (pos as u64);
-		if ! unsafe { parse_sexp_lookup_properties } || pos < unsafe { gl_state.e_property }
+		/* C: `do { ... } while (!parse_sexp_lookup_properties
+		   || pos < gl_state.e_property);` - a `do`/`while` keeps looping while its
+		   condition holds, so the trampoline breaks on the *negation* (PORTING.md P-95;
+		   the un-negated form broke out of the fast scan at the first character whenever
+		   syntax properties are off, and the unguarded
+		   `update_syntax_table_forward (pos, gl_state.object)` that follows then asked for
+		   syntax at a charpos the interval cache had already left NULL).  */
+		if ! (! unsafe { parse_sexp_lookup_properties }
+		      || pos < unsafe { gl_state.e_property })
 		  { break; }
 	      }
 

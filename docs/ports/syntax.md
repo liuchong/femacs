@@ -239,5 +239,5 @@ intervals`.  That `error` fires only when the *cached* interval is NULL (`i = co
 gl_state.forward_i : gl_state.backward_i`).  The sentinel (`uninitialized_interval`, syntax.rs 282 /
 syntax.c 239) and the four `parse_sexp_lookup_properties` sites match C one for one, so the divergence
 is in the callers that drive the cache (`scan-sexps`/`scan_lists`/`SETUP_SYNTAX_TABLE` family) or in
-the interval data itself - not in this function.  Not localized yet; recorded so the next round starts
-here rather than re-deriving it.
+the interval data itself - not in this function.  Localized and fixed in 3.635 (the un-negated `do`/`while` trampoline in the fast scan); the rest
+of that class is the next round's sweep (PORTING.md P-95).

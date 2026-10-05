@@ -13043,3 +13043,12 @@
   ⑤ **未声称**：100 行是**夹具读数**（含参照树的生成物与 `.el` 源），**不是**端口进度数字；本件**没有改任何端口代码**、没有编译、没有 dump/L1。
   ⑥ **预算**：夹具运行 3 发、`grep` 若干；`/tmp/f1.log`、`/tmp/f2.err`、`/tmp/g1.err` 收工删；无编译产物。
 
+- **3.635 `syntax.c` 快扫里 `do`/`while` 的 `break` 条件没取反：语法属性一关就跳出快扫，随后无守卫地去问一个缓存为 NULL 的位置（2026-10-06）**：
+  ① **定位链**（接 3.634 的 Owed）：夹具停在 `Error in syntax_table logic for-to-the-end intervals` ⇒ 在 `update_syntax_table` 的报错点装**只打印一次**的定位打印 ⇒ 读到 `object=nil`（当前缓冲区）、`interval_of(229, nil)=NULL`（该缓冲区**没有区间**）、状态 `b=1 e=711 forward_i=backward_i=NULL`（正是 C 的“一个区间都没有”早退路径留下的状态）；再用 16 条事件的环把**直接调用点**收窄到 `SETUP_SYNTAX_TABLE`、`parse_sexp_propertize`、`scan_lists` 一族与三条宏（宏不打日志）四者之一。
+  ② **根因**：C 的快扫是 `do { … } while (!parse_sexp_lookup_properties || pos < gl_state.e_property);`（条件为真就**继续**），端口把它转写成 `loop { …; if <同一个条件> { break; } }`——**没有取反** ⇒ `parse_sexp_lookup_properties` 为假（默认）时**第一次循环就跳出**，紧随其后**无守卫**的 `update_syntax_table_forward (pos, gl_state.object)` 于是拿一个窗口内的 charpos 去问语法 ⇒ 缓存为 NULL ⇒ 报错。
+  ③ **修法**：按 `do { B } while (C);` → `loop { B; if !C { break; } }` 取反（C 的整句留在注释里便于逐字复核）；`PORTING.md` 记作 **P-95**（真 `do`/`while` 循环的转写规则；`while (0)` 宏惯用法仍走既有的“块表达式”那条）。
+  ④ **读数**：`build-tu src/syntax.c` → `built`；`extract-abi --check emacs/src/syntax.c femacs/src/syntax.rs` → **OK**；夹具 `tools/loadup-fixture.sh --batch`：`^Loading` **100 → 110** 且 **`rc=0`**——**非 dump 的 `loadup` 完整跑完、命令行被执行**（`--eval '(princ (list (fboundp 'add-change-log-entry) (fboundp 'custom-autoload) (featurep 'cus-edit) (boundp 'load-file-name)))'` 打出 `(t t nil t)`：`loaddefs` 已加载、`cus-edit` 尚未（它在 loadup 之后按需加载，与参照一致））。
+  ⑤ **未声称**：110 行是**夹具读数**（端口侧的 `.el` 源 + 参照树的生成物）；**没有** dump（`Dump mode: nil`——dump 那条路径本轮没走到）、**没有** `.elc` 装载、**没有** `make check`；本件的证据是“`syntax.c` 的编译 + ABI + 夹具跑完 loadup 并执行命令行”。
+  ⑥ **同类盘点（未做，点名）**：端口里 **82 处**引用了 `} while (`（多数是 `while (0)` 宏惯用法，少数是真循环）——按 P-95 逐处复核并配一道机器门是下一轮的第一件事。
+  ⑦ **预算**：`build-tu src/syntax.c` 3 发、`check-link --executable` 3 发、夹具运行 6 发；临时仪表（定位打印 + 事件环）已用 `git show HEAD:` + 只重放该修复清掉（`syntax.rs` 现为 HEAD + 1 处修复）；`/tmp` 日志收工删。
+
