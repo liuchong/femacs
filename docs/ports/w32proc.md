@@ -324,3 +324,16 @@ pre-flight is a text walk of the include graph.  The file's `#if` verdicts are
 constants of Evidence ③, the four token rows of Owed 4 and the 68.4% drift are that boundary, not
 defects.  The `windowsnt`+`have_ntgui` arm does not compile today, and that is the mirror graph's
 state, not this slice's: the unit's own text contributes **0 errors** to that reading (Evidence ②).
+
+## Owed 3 corrected (2026-10-05, status 3.451)
+
+The three mirror rows this slice asked for are not one job:
+
+* `errno.rs`'s `ESRCH`/`EFAULT` - **done** in 3.446, together with `ENOEXEC` (all three measured).
+* `sys_types.in.rs`'s `ssize_t` - **must not be added**.  `femacs/lib/include/unistd.in.rs` already
+  includes `sys_types.in.rs` (31) and declares `pub type ssize_t = c_long;` (34), so a second copy
+  there would be `E0428` in every unit that includes both - the same tree-wide class 3.444's own
+  mis-placed attribute produced (74 units).  A unit that needs `ssize_t` includes `unistd.in.rs`.
+* `stdlib.rs`'s `exit` - the "no mirror carries it yet" class; P-90's seventh half (3.449) is what
+  keeps the 26 in-unit declarations across a dozen files lawful, and moving them into a mirror is one
+  deliberate move-back round, not a row this file can add on its own.

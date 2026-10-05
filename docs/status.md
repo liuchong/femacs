@@ -8083,3 +8083,14 @@
      目录树文件一个字节都没产出过、更没被读过）；`WORDS_BIGENDIAN` 那一臂从未被编过；`have_android` 的臂编译
      不等于 Android 目标可跑。**预算如实**：`build-tu` 2 发、**`probe` 4 发（限 3，超 1）**。本轮无镜像改动
      ⇒ 不需要全树扫描。
+
+- **3.451 收口一条**欠账的**口径：`ssize_t` 不要加进 `sys_types.in.rs`（2026-10-05）**：
+  3.444 的 w32proc 台账把三件事记成了一条 owed；本条件逐条核过：⑴ `errno.rs` 的 `ESRCH`/`EFAULT` **已在 3.446 连同
+  `ENOEXEC` 一起加进去**（三者都是实测值），该条**关闭**；⑵ `sys_types.in.rs` 的 `ssize_t` **不能加**——
+  `femacs/lib/include/unistd.in.rs` 31 已经 `include!` 了 `sys_types.in.rs`，并在 34 声明了
+  `pub type ssize_t = c_long;`，在 `sys_types.in.rs` 再加一份就是**每个同时包含两者的单元各撞一次 `E0428`**，
+  与 3.444 那次 `sigset_t` 属性错位同一类（当时全树 74 个单元失败）；需要 `ssize_t` 的单元就 include `unistd.in.rs`；
+  ⑶ `stdlib.rs` 的 `exit` 属"镜像还没有"的条目，按 **P-90 第七半**（3.449）留在各单元就地声明是合法的
+  （实测 26 处、跨 12 个文件），搬进镜像是一次独立的 move-back 轮。**判据**：以上三条都来自镜像里**已存在**的
+  `include!` 关系与声明（一条 `rg` 即可复算），不是记忆。**未声称**：本条只改台账与本记录，**没有改任何代码**，
+  也没有让任何单元更接近参照；w32proc 的臂读数因此不变（43 条错，全在镜像）。
