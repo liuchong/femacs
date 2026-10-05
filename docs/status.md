@@ -8228,3 +8228,31 @@
   `--cfg`，且"剩下的错"要先按"探针 cfg 是否与参照的门组合一致"筛一遍**，否则会把 P-86 ⑥ 的坑记成镜像缺陷。
   **未声称**：本条不改变任何臂读数的原始数字（`haiku_io` 3 / `xwidget` 52/43/40 / `msdos` 21），只改**归类**；
   那些读数里其余各条（缺名、`E0133`、`E0425`）仍按原样留在各自台账的 `## Owed`。
+
+- **3.461 pgtkfns 切片 1（C 1-1147）：二十三个 setter、`x-export-frames` 与帧参数表（2026-10-05）**：
+  ① **区间**：C 1-1147（收在 `update_watched_scale_factor` 的 `}`）；**下一个活定义 = C 1155 `Fpgtk_set_monitor_scale_factor`**。
+     51 行区间表覆盖 C 1-3,906；文件门 `have_pgtk`（挂每个 item 与 include 图，P-86 ⑧）；切片内 11 条条件全判 false
+     （含四条 `CAIRO_HAS_*` 导出类型链），两臂都带。
+  ② **行数**：`femacs/src/pgtkfns.rs` **11 → 1,899**；台账 24 → **366**。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**（第 1 发两条 parse error，见 ④）；`check-cond-eval` **11 条件 / 0 unknown /
+     [VERIFIED]**；`extract-abi --check` **109 条 `- `**＝101 missing（全是未落切片）+ 7 token（集成者已补行，现只剩 missing 与漂移）
+     + 51.4% 漂移；`check-dead-file-coverage` **45 ledger / 0 failure**；`check-mirror-dupes` 19/19/0。
+     **翻臂**（无 GTK 树 ⇒ 名字/类型读数）：narrow（`have_pgtk`+`have_window_system`）**66 错，其中 57 在单元自身**——
+     **43 条 `pgtk_output` + 9 条 `pgtk_display_info` 全来自 `include/pgtkterm.rs` 的 36 行占位**，其余是 `frame.rs` 的臂、
+     `font.rs` 的 8 条 `E0080`、`lisp.rs` 的 `c_variadic`；加宽到 `use_gtk` 等七门后 **62 错**，四条 `FRAME_EXTERNAL_*_FLAG_*`
+     消失（证明那组是镜像臂问题）。
+  ④ **真缺陷（自造 7 类，全修）**：两条 use-site 声明把参数写成 `type`（parse error）→ `r#type`；23 个 setter 原写
+     `unsafe fn`、但取地址进 `pgtk_frame_parm_handlers[]` ⇒ `E0308 expected "C" fn` → 改 `unsafe extern "C" fn`；
+     漏声明 `decode_live_terminal`；`fset_redisplay` 要 `as *mut c_void`；`g_object_unref` 要 `as gpointer`；
+     `Time` 的来源（`termhooks.h 28` 的 `systime.h`）没接进图；flag 写臂宏的 `$v as u32` → `($v) as u32`。
+     **参照自己的照录不改**：`pgtk_set_mouse_color` 的空体本来就是空的（不是端口塞的 stub）、导出链四条 `#ifdef` 的**悬空 else**
+     （用 arm-chooser 复刻）、C 963 对自己下一行定义的重复 `extern` 声明（Rust 会 `E0428`，只写定义）。
+  ⑤ **集成者替它落的账**：`femacs/xtask/Cargo.toml` 登记 **`cairo_has_pdf_surface`/`cairo_has_png_functions`/
+     `cairo_has_ps_surface`/`cairo_has_svg_surface`**；`macro-body-notes.tsv` **7 行**（`check_pgtk_display_info`/
+     `pgtk_display_info_for_name`/`pgtk_set_cursor_color` → `0`；`pgtk_explicitly_set_name` → `true`；
+     `pgtk_implicitly_set_name` → `false`；`pgtk_set_menu_bar_lines`/`x_change_tool_bar_height` → `update_mode_line`），
+     补后本单元 token 行**归零**。**点名**：`include/pgtkterm.rs` 的 52 条缺记录（`pgtk_output`/`pgtk_display_info`/8 个
+     `FRAME_*`/16 个 `pgtk_*` 原型/`x_display_list`）与 `include/gtkutil.rs` 的 6 个 `xg_*`，正是 **P-90 + pgtkterm 转录轮**的活。
+  ⑥ **未声称**：**零运行证据**（本机无 GTK 树、无 PGTK 目标，冻结读数是空对象）；翻臂只是 `rustc` 的**名字/类型错误清单**，
+     被未声明记录挡住后 rustc 停止检查所在函数体，所以"本单元自身语句 0 错"是**很弱**的读数（P-86 ⑦）；C 1148-3,906 未移植；
+     lane 的预算：`build-tu` 3/3、`probe` 3/3（无超支）。
