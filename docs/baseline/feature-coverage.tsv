@@ -5,41 +5,42 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	1382	40	-	-
+windowsnt	1480	42	-	-
 have_android	1001	31	-	-
-have_window_system	816	18	-	-
+have_window_system	902	19	-	-
 not_android_stubify	700	11	-	-
 have_x_windows	681	22	-	HAVE_X_WINDOWS
 have_ntgui	595	14	-	-
-have_pgtk	545	21	-	-
+have_pgtk	546	22	-	-
 use_gtk	436	13	-	-
 msdos	407	15	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
 dispextern_face_records	266	4	-	-
 have_ns	263	11	-	HAVE_NS
 have_gnutls	248	3	-	-
-have_haiku	211	13	xtask dead-arms	-
-harfbuzz	188	7	-	-
+have_haiku	248	14	xtask dead-arms	-
+have_freetype	215	3	-	-
+harfbuzz	192	7	-	-
 use_xcb	171	4	-	-
 have_gtk3	145	5	-	-
 have_sound	135	1	-	-
-have_freetype	134	3	-	-
 have_tree_sitter	133	7	-	HAVE_TREE_SITTER
-use_cairo	128	10	-	-
+use_cairo	133	11	-	-
+threads_enabled	127	5	-	-
 mail_use_pop	109	1	-	-
-threads_enabled	86	5	-	-
+have_pthread	87	2	-	-
 windows	83	5	-	-
 have_ext_tool_bar	76	2	-	-
 ns_impl_gnustep	70	2	-	-
 have_gnutls3	67	1	-	-
 have_sqlite3	63	1	-	-
+use_lucid	58	5	-	-
 have_lcms2	54	1	-	-
 have_ext_menu_bar	51	3	-	-
 have_xinput2	51	6	-	-
 have_zlib	51	2	-	-
 test	50	5	-	-
 have_kqueue	49	1	-	-
-have_pthread	46	2	-	-
 use_gamedir	44	1	-	-
 have_gfilenotify	38	1	-	-
 glyph_debug	36	5	xtask dead-arms	-
@@ -57,15 +58,15 @@ vm_ms_windows	25	1	-	-
 cygwin	24	11	-	-
 have_xrender	24	4	-	-
 have_xsync	24	1	-	-
+mingw_w64	24	4	-	-
 have_modules	23	6	-	HAVE_MODULES
 libgccjit_have_gcc_jit_context_new_bitcast	22	1	-	-
 words_bigendian	22	10	-	-
+have_libotf	21	1	-	-
 have_glib	20	2	-	-
 use_android_assets	20	2	-	-
 android_api_lt_21	19	1	-	-
-have_libotf	19	1	-	-
 have_xwidgets	19	7	-	-
-mingw_w64	19	3	-	-
 redirect	17	1	-	-
 openbsd	16	5	-	-
 unistd_h_have_winsock2_h	16	1	-	-
@@ -201,7 +202,6 @@ no_subprocesses	4	2	-	-
 sco	4	1	-	-
 sun	4	2	-	-
 sys_renameat2	4	1	-	-
-use_lucid	4	4	-	-
 vswtch	4	2	-	-
 ztrillion_mpz	4	1	-	-
 android_stubify	3	1	-	-
@@ -266,6 +266,7 @@ fc_fontformat	2	1	-	-
 fc_variable	2	1	-	-
 fortify_use_clang	2	1	-	-
 freetype	2	1	-	-
+ft_load_target_mono	2	1	-	-
 gc_check_string_overrun	2	1	-	-
 glibc_io_eof_seen	2	1	-	-
 gnuc	2	1	-	-

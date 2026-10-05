@@ -9658,3 +9658,34 @@
      集成者：gate 脚本各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/fringe-lane` 与 `/tmp/fringe-probe`
      已删。**环境事故记一笔**：本轮池卷一度 100% 满（本 lane 与我都被 `No space left on device` 打断过一次），
      各自的中间物删除后恢复。
+
+- **3.502 `src/ftfont.c` 片 2（C 1353-1725）落地：`--check` 的 `-` 行从 17 条降到 6 条（2026-10-05）**：
+  ① **范围/块**：C 1353-1725（三块：`ftfont_open`/`ftfont_close`（`not (use_cairo)` 臂）、
+     `ftfont_has_char` + `encode_char`/`glyph_metrics`/`text_extents`、`get_bitmap`/`anchor_point`）；
+     **下一片起点 = C 1730 `ftfont_otf_features`**——但 C 1726-2952 的两条臂要 `otf.h`/`m17n-flt.h` 的记录布局
+     （本机与参照树都没有），所以下一个**可编译**边界是 C 2953（台账 `## Owed` 8 记名）。
+  ② **行数**：`femacs/src/ftfont.rs` **2304 → 3472**（md5 `04d52f821331faf4474a51e3352df96f`）；台账 489 → **729**。
+  ③ **读数**：⑴ 冻结 `build-tu` → **exit 0 / 336 字节空对象**（片 1 同 md5）；⑵ **翻臂 → exit 1 / 26 error
+     全在镜像**：15 × `E0425 font_info`（`include/ftfont.rs` 的 `have_x_windows` 门 ⇒ 文件门下**根本没有这个名**）、
+     11 × `E0609 no field … on type font`（`include/font.rs` 的 `have_window_system` 门）、1 × `E0425
+     ftfont_driver`（未落对象，P-91 ④）；**没有一行在本片文本里**（行号全落 2989-3444 = 本片七个函数）；
+     P-86 ⑦ 的桩化预检（`/tmp` 副本补三处桩）→ **exit 0 / 10,762,368 字节**，同副本注入类型错 → **1 错** ⇒ 该 0 读的是本单元；
+     ⑶ **clang 实测**（FreeType 2.14.3 / Fontconfig 2.18.3）：`FT_FaceRec` 248 及各字段偏移
+     （`underline_position`@148、`underline_thickness`@150、`driver`@176…）、`FT_Load_*`、`FC_PROPORTIONAL/DUAL/MONO/CHARCELL`
+     ——每条读数写成声明旁的断言；⑷ `extract-abi --check` → **6 条 `- `**（4 `missing function` + 1 `missing
+     file-scope object ftfont_driver` + 行数 7.1%）= C 1726-3243 的剩余工作清单 ⇒ **不写容差行**（见 ④）。
+  ④ **集成者的账**：⑴ `femacs/xtask/Cargo.toml` 登记 **`ft_load_target_mono`**（C 1675-1679 的
+     `#ifdef FT_LOAD_TARGET_MONO`，台账 Gate mapping 76 行）+ `feature-coverage` 重生成（**867 / 860**）；
+     ⑵ **拒绝容差行**（lane 请求过 `>= 0.08`）：这是**切片**（C 1726-3243 未移植），按 3.434 ⑤ 不写，
+     理由写进台账 Owed 1——那条行只会清掉"行数"提示而留下 5 条 missing；
+     ⑶ 台账 Owed 1/5 标 DONE/DECLINED；pending 无本文件行。
+  ⑤ **点名归属（镜像轮 + 工具缺口）**：`include/ftfont.rs` 的 `font_info` 门（本片 15 错）、
+     `include/font.rs` 的 `struct font` 八个成员门（11 错）与其缺 `font_build_object`、`ftfont_driver`（C 3154）、
+     **`tools/extract-abi.py` 的 `&raw const` 正则缺口**（lane 发现：`&raw const X` 会被当成 `const X` 声明，
+     `missing file-scope object` 行因此**消失**；它改用 `std::ptr::addr_of!` 才让那行回来——这是一条**工具**缺陷，
+     不是移植缺陷）。
+  ⑥ **未声称**：**零行为证据**；**翻臂不是 exit 0**（26 条全是那两类镜像门 + 一个未落对象）；
+     `have_libotf`/`harfbuzz` 语句在本机**一次都没被编译**；C 1726-3243（1,518 行）未移植；两文件"前"版 md5 未取。
+  ⑦ **预算**：lane：`build-tu` **4 发**（超 1，其中一次 `exit 101` 是磁盘满）、`probe` **4 发**（超 1）、
+     另有 6 次直接 `rustc` 与 2 次 clang 探针；集成者：feature 登记 1 发、gate 各 1 发；
+     未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/ftfont2-lane` 已删。

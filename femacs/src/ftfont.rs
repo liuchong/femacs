@@ -5,11 +5,20 @@
 // model.  The C non-`static` definitions carry `#[unsafe(no_mangle)]` (PORTING.md 0.2); the C
 // `static` helpers stay plain `unsafe fn` (none of this slice has its address taken).
 //
-// **This file is P-86's unit `src/ftfont.c` (3,243 lines) and is ported in slices; this is slice 1
-// = C 1-1352.**  The slice ends on the `}` of `ftfont_entity_pattern` (C 1352), which is the last
-// of the three entry points `ftfont.h` declares; **the next definition is `ftfont_open` (C 1357),
-// whose `#ifndef USE_CAIRO` arm opens at C 1354**.  The ledger `docs/ports/ftfont.md` carries P-86
-// ②'s C line-range table for C 1-3243, the `## Evidence` readings and the `## Deviations`.
+// **This file is P-86's unit `src/ftfont.c` (3,243 lines) and is ported in slices; it now carries
+// slice 1 = C 1-1352 and slice 2 = C 1353-1725.**  Slice 1 ends on the `}` of
+// `ftfont_entity_pattern` (C 1352), the last of the three entry points `ftfont.h` declares.  Slice
+// 2 carries C 1354's `#ifndef USE_CAIRO` arm (`ftfont_open` C 1357-1517 and `ftfont_close`
+// C 1520-1549), `ftfont_has_char` (C 1554-1581), C 1583's second `#ifndef USE_CAIRO`
+// (`ftfont_encode_char`, the `static` `ftfont_glyph_metrics`, `ftfont_text_extents`),
+// `ftfont_get_bitmap` (C 1665-1705) with C 1675-1679's `FT_LOAD_TARGET_MONO` pair, and
+// `ftfont_anchor_point` (C 1708-1725).  **The next live definition is `ftfont_otf_features`
+// (C 1730), under C 1727's `#ifdef HAVE_LIBOTF`** - that arm's records are `otf.h`'s, which no
+// toolchain on this machine has (the file's next locally-compilable boundary is C 2986, the end of
+// `ftfont_variation_glyphs`' block), so PORTING.md P-88 ② keeps this lane out of it and the
+// ledger's `## Owed` 8 carries the order from there.  The ledger `docs/ports/ftfont.md` carries
+// P-86 ②'s C line-range table for C 1-3243, the `## Evidence` readings (both slices') and the
+// `## Deviations`.
 //
 // The frozen configuration compiles no `ftfont.o`: `configure.ac` 7199-7203 adds it to `FONT_OBJ`
 // only inside the X11 branch under `HAVE_CAIRO`, `HAVE_XFT` or `HAVE_FREETYPE`, and 7208/7213 do
@@ -305,11 +314,11 @@ pub struct FT_LibraryRec_ { _private: [u8; 0] }
 /// C: freetype/freetype.h 557: the pointer type C spells `FT_Library`.
 #[cfg (feature = "have_freetype")]
 pub type FT_Library = *mut FT_LibraryRec_;
-/// C: freetype/freetype.h 641: `typedef struct FT_FaceRec_*  FT_Face;`
-#[cfg (feature = "have_freetype")]
-#[repr(C)]
-pub struct FT_FaceRec_ { _private: [u8; 0] }
-/// C: freetype/freetype.h 641: the pointer type C spells `FT_Face`.
+/// C: freetype/freetype.h 641: `typedef struct FT_FaceRec_*  FT_Face;` - slice 1 needed the pointer
+/// only and declared the record as the zero-sized stand-in; slice 2 reads the record's own fields
+/// (`face_flags`, `units_per_EM`, `ascender`, `size`, `glyph`, …), so `FT_FaceRec_` is written out
+/// below with the rest of the FreeType surface, from the header's own lines and this machine's
+/// measured layout.  This is the pointer type C spells `FT_Face`.
 #[cfg (feature = "have_freetype")]
 pub type FT_Face = *mut FT_FaceRec_;
 /// C: freetype.h 395-398: `typedef unsigned long  FT_ULong;` / `typedef unsigned int   FT_UInt;`
@@ -382,6 +391,644 @@ unsafe extern "C" {
   /// C: ftbdf.h 206-208 (the line quoted above).
   pub fn FT_Get_BDF_Property (face: FT_Face, prop_name: *const c_char,
                               aproperty: *mut BDF_PropertyRec) -> FT_Error;
+}
+
+
+/* ----------------------------------------------------------------------------------------------
+   C 23-24 (continued): the FreeType records and entry points C 1353-1725 reads.  Slice 1's note
+   above stands: this is P-88 ①'s use-site segment for `<ft2build.h>`/`FT_FREETYPE_H` (the header
+   chain `src/ftfont.h` 25-31 pulls in), because the reference tree has no `freetype` file and no
+   mirror for it exists yet; when `femacs/src/include/freetype.rs` lands (Owed 4) this segment moves
+   into it and disappears from here (P-88 ⑤/P-90 ③).
+
+   Slice 1 named four entry points and two records; **slice 2 (C 1353-1725) reads `FT_FaceRec_`'s
+   own fields** (`face_flags`, `units_per_EM`, `ascender`/`descender`/`height`,
+   `max_advance_width`, `underline_position`/`underline_thickness`, `glyph`, `size`), so the
+   record can no longer stay the pointer-only stand-in slice 1 declared: it is written out below
+   with the records it names, and the layouts are clang readings from this machine's headers
+   (`/opt/homebrew/include/freetype2`, `FREETYPE_MAJOR` 2 `FREETYPE_MINOR` 14 `FREETYPE_PATCH` 3;
+   the probe and its verbatim output are in the ledger's `## Evidence` ⑤).  Measured:
+   `sizeof (FT_FaceRec)` **248** align **8** (`face_flags`@16, `units_per_EM`@136, `ascender`@138,
+   `descender`@140, `height`@142, `max_advance_width`@144, `underline_position`@148,
+   `underline_thickness`@150, `glyph`@152, `size`@160, `driver`@176, `internal`@240);
+   `sizeof (FT_SizeRec)` **88** align **8** (`face`@0, `generic`@8, `metrics`@24, `internal`@80);
+   `sizeof (FT_GlyphSlotRec)` **304** align **8** (`metrics`@48, `format`@144, `bitmap`@152,
+   `bitmap_left`@192, `bitmap_top`@196, `outline`@200, `internal`@296);
+   `sizeof (FT_Glyph_Metrics)` **64**, `FT_Size_Metrics` **56** (`ascender`@24, `descender`@32,
+   `height`@40, `max_advance`@48), `FT_Bitmap` **40** (`rows`@0, `width`@4, `pitch`@8,
+   `buffer`@16, `num_grays`@24, `pixel_mode`@26, `palette_mode`@27, `palette`@32),
+   `FT_Outline` **40** (`n_contours`@0, `n_points`@2, `points`@8, `tags`@16, `contours`@24,
+   `flags`@32), `FT_Vector` **16**, `FT_BBox` **32**, `FT_Generic` **16** (`data`@0,
+   `finalizer`@8), `FT_Bitmap_Size` **32** (`height`@0, `width`@2, `size`@8, `x_ppem`@16,
+   `y_ppem`@24), `FT_ListRec` **16**, `FT_Glyph_Format` **4** align **4**.  The scalars are
+   fttypes.h's own spellings (`FT_Pos` `signed long`, `FT_Fixed` `signed long`, `FT_Short`
+   `signed short`, `FT_Byte`/`FT_Bool` `unsigned char`, `FT_String` `char`), and `FT_Int32` is
+   `config/integer-types.h` 164's `signed int`.  Every value belongs to the FreeType headers, which
+   the frozen configuration does not have; the numbers will move with the mirror (Owed 4).  */
+
+/// C: ftimage.h 57: `typedef signed long  FT_Pos;`
+#[cfg (feature = "have_freetype")]
+pub type FT_Pos = c_long;
+/// C: fttypes.h 111: `typedef unsigned char  FT_Bool;`
+#[cfg (feature = "have_freetype")]
+pub type FT_Bool = c_uchar;
+/// C: fttypes.h 157: `typedef unsigned char  FT_Byte;`
+#[cfg (feature = "have_freetype")]
+pub type FT_Byte = c_uchar;
+/// C: fttypes.h 190: `typedef char  FT_String;`
+#[cfg (feature = "have_freetype")]
+pub type FT_String = c_char;
+/// C: fttypes.h 201: `typedef signed short  FT_Short;`
+#[cfg (feature = "have_freetype")]
+pub type FT_Short = c_short;
+/// C: fttypes.h 212: `typedef unsigned short  FT_UShort;`
+#[cfg (feature = "have_freetype")]
+pub type FT_UShort = c_ushort;
+/// C: fttypes.h 223: `typedef signed int  FT_Int;`
+#[cfg (feature = "have_freetype")]
+pub type FT_Int = c_int;
+/// C: fttypes.h 234: `typedef unsigned int  FT_UInt;` - the pair `FT_ULong`/`FT_UInt` above is
+/// the same header's 256/234; the slice-1 comment there records both.
+#[cfg (feature = "have_freetype")]
+pub type FT_Long = c_long;
+/// C: fttypes.h 290: `typedef signed long  FT_Fixed;`
+#[cfg (feature = "have_freetype")]
+pub type FT_Fixed = c_long;
+/// C: config/integer-types.h 164: `typedef signed int      FT_Int32;`
+#[cfg (feature = "have_freetype")]
+pub type FT_Int32 = c_int;
+/// C: fttypes.h 438: `typedef void  (*FT_Generic_Finalizer)( void*  object );`
+#[cfg (feature = "have_freetype")]
+pub type FT_Generic_Finalizer = Option<unsafe extern "C" fn (object: *mut c_void)>;
+/// C: fttypes.h 525: `typedef struct FT_ListNodeRec_*  FT_ListNode;` - an incomplete record named
+/// only through a pointer (PORTING.md 0.1-2; the `_FcCharSet` stand-in above).
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+pub struct FT_ListNodeRec_ { _private: [u8; 0] }
+/// C: fttypes.h 525: the pointer type C spells `FT_ListNode`.
+#[cfg (feature = "have_freetype")]
+pub type FT_ListNode = *mut FT_ListNodeRec_;
+/// C: freetype.h 747: `typedef struct FT_CharMapRec_*  FT_CharMap;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+pub struct FT_CharMapRec_ { _private: [u8; 0] }
+/// C: freetype.h 747: the pointer type C spells `FT_CharMap`.
+#[cfg (feature = "have_freetype")]
+pub type FT_CharMap = *mut FT_CharMapRec_;
+/// C: freetype.h 589: `typedef struct FT_DriverRec_*  FT_Driver;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+pub struct FT_DriverRec_ { _private: [u8; 0] }
+/// C: freetype.h 589: the pointer type C spells `FT_Driver`.
+#[cfg (feature = "have_freetype")]
+pub type FT_Driver = *mut FT_DriverRec_;
+/// C: ftsystem.h 198: `typedef struct FT_StreamRec_*  FT_Stream;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+pub struct FT_StreamRec_ { _private: [u8; 0] }
+/// C: ftsystem.h 198: the pointer type C spells `FT_Stream`.
+#[cfg (feature = "have_freetype")]
+pub type FT_Stream = *mut FT_StreamRec_;
+/// C: fttypes.h 427-429 (`FT_MemoryRec_`) and 470's chain: `typedef struct FT_MemoryRec_*
+/// FT_Memory;` - the record is `FT_FaceRec_`'s `memory` field, which C 1353-1725 never reads.
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+pub struct FT_MemoryRec_ { _private: [u8; 0] }
+/// C: the pointer type C spells `FT_Memory`.
+#[cfg (feature = "have_freetype")]
+pub type FT_Memory = *mut FT_MemoryRec_;
+/// C: freetype.h 1042: `typedef struct FT_Face_InternalRec_*  FT_Face_Internal;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+pub struct FT_Face_InternalRec_ { _private: [u8; 0] }
+/// C: freetype.h 1042: the pointer type C spells `FT_Face_Internal`.
+#[cfg (feature = "have_freetype")]
+pub type FT_Face_Internal = *mut FT_Face_InternalRec_;
+/// C: freetype.h 1860: `typedef struct FT_Size_InternalRec_*  FT_Size_Internal;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+pub struct FT_Size_InternalRec_ { _private: [u8; 0] }
+/// C: freetype.h 1860: the pointer type C spells `FT_Size_Internal`.
+#[cfg (feature = "have_freetype")]
+pub type FT_Size_Internal = *mut FT_Size_InternalRec_;
+/// C: freetype.h 2056: `typedef struct FT_Slot_InternalRec_*  FT_Slot_Internal;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+pub struct FT_Slot_InternalRec_ { _private: [u8; 0] }
+/// C: freetype.h 2056: the pointer type C spells `FT_Slot_Internal`.
+#[cfg (feature = "have_freetype")]
+pub type FT_Slot_Internal = *mut FT_Slot_InternalRec_;
+/// C: freetype.h 2044: `typedef struct FT_SubGlyphRec_*  FT_SubGlyph;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+pub struct FT_SubGlyphRec_ { _private: [u8; 0] }
+/// C: freetype.h 2044: the pointer type C spells `FT_SubGlyph`.
+#[cfg (feature = "have_freetype")]
+pub type FT_SubGlyph = *mut FT_SubGlyphRec_;
+/// C: freetype.h 706: `typedef struct FT_GlyphSlotRec_*  FT_GlyphSlot;`
+#[cfg (feature = "have_freetype")]
+pub type FT_GlyphSlot = *mut FT_GlyphSlotRec_;
+/// C: freetype.h 680: `typedef struct FT_SizeRec_*  FT_Size;`
+#[cfg (feature = "have_freetype")]
+pub type FT_Size = *mut FT_SizeRec_;
+
+/// C: fttypes.h 470-475: `typedef struct  FT_Generic_ { void* data; FT_Generic_Finalizer
+/// finalizer; } FT_Generic;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_Generic
+{
+  /// C: fttypes.h 472: `void*                 data;`
+  pub data: *mut c_void,
+  /// C: fttypes.h 473: `FT_Generic_Finalizer  finalizer;`
+  pub finalizer: FT_Generic_Finalizer,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_Generic> () == 16);
+  core::assert! (std::mem::offset_of! (FT_Generic, finalizer) == 8);
+};
+/// C: fttypes.h 575-587: `typedef struct  FT_ListRec_ { FT_ListNode head; FT_ListNode tail; }
+/// FT_ListRec;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_ListRec
+{
+  /// C: fttypes.h 585: `FT_ListNode  head;`
+  pub head: FT_ListNode,
+  /// C: fttypes.h 586: `FT_ListNode  tail;`
+  pub tail: FT_ListNode,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_ListRec> () == 16);
+  core::assert! (std::mem::offset_of! (FT_ListRec, tail) == 8);
+};
+/// C: ftimage.h 118-124: `typedef struct  FT_BBox_ { FT_Pos xMin, yMin; FT_Pos xMax, yMax; }
+/// FT_BBox;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_BBox
+{
+  /// C: ftimage.h 122: `FT_Pos  xMin, yMin;`
+  pub xMin: FT_Pos,
+  pub yMin: FT_Pos,
+  /// C: ftimage.h 123: `FT_Pos  xMax, yMax;`
+  pub xMax: FT_Pos,
+  pub yMax: FT_Pos,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_BBox> () == 32);
+  core::assert! (std::mem::offset_of! (FT_BBox, yMax) == 24);
+};
+/// C: fttypes.h 393-400: `typedef struct  FT_Matrix_ { FT_Fixed xx, xy; FT_Fixed yx, yy; }
+/// FT_Matrix;` - the record `struct font_info`'s `matrix` member is.
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_Matrix
+{
+  /// C: fttypes.h 396: `FT_Fixed  xx, xy;`
+  pub xx: FT_Fixed,
+  pub xy: FT_Fixed,
+  /// C: fttypes.h 397: `FT_Fixed  yx, yy;`
+  pub yx: FT_Fixed,
+  pub yy: FT_Fixed,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_Matrix> () == 32);
+  core::assert! (std::mem::align_of::<FT_Matrix> () == 8);
+  core::assert! (std::mem::offset_of! (FT_Matrix, xy) == 8);
+  core::assert! (std::mem::offset_of! (FT_Matrix, yx) == 16);
+  core::assert! (std::mem::offset_of! (FT_Matrix, yy) == 24);
+};
+/// C: ftimage.h 75-81: `typedef struct  FT_Vector_ { FT_Pos x; FT_Pos y; } FT_Vector;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_Vector
+{
+  /// C: ftimage.h 79: `FT_Pos  x;`
+  pub x: FT_Pos,
+  /// C: ftimage.h 80: `FT_Pos  y;`
+  pub y: FT_Pos,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_Vector> () == 16);
+  core::assert! (std::mem::offset_of! (FT_Vector, y) == 8);
+};
+/// C: ftimage.h 275-288: `typedef struct  FT_Bitmap_ { unsigned int rows; unsigned int width; int
+/// pitch; unsigned char* buffer; unsigned short num_grays; unsigned char pixel_mode; unsigned char
+/// palette_mode; void* palette; } FT_Bitmap;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_Bitmap
+{
+  /// C: ftimage.h 279: `unsigned int    rows;`
+  pub rows: c_uint,
+  /// C: ftimage.h 280: `unsigned int    width;`
+  pub width: c_uint,
+  /// C: ftimage.h 281: `int             pitch;`
+  pub pitch: c_int,
+  /// C: ftimage.h 282: `unsigned char*  buffer;`
+  pub buffer: *mut c_uchar,
+  /// C: ftimage.h 283: `unsigned short  num_grays;`
+  pub num_grays: c_ushort,
+  /// C: ftimage.h 284: `unsigned char   pixel_mode;`
+  pub pixel_mode: c_uchar,
+  /// C: ftimage.h 285: `unsigned char   palette_mode;`
+  pub palette_mode: c_uchar,
+  /// C: ftimage.h 286: `void*           palette;`
+  pub palette: *mut c_void,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_Bitmap> () == 40);
+  core::assert! (std::mem::align_of::<FT_Bitmap> () == 8);
+  core::assert! (std::mem::offset_of! (FT_Bitmap, rows) == 0);
+  core::assert! (std::mem::offset_of! (FT_Bitmap, width) == 4);
+  core::assert! (std::mem::offset_of! (FT_Bitmap, pitch) == 8);
+  core::assert! (std::mem::offset_of! (FT_Bitmap, buffer) == 16);
+  core::assert! (std::mem::offset_of! (FT_Bitmap, num_grays) == 24);
+  core::assert! (std::mem::offset_of! (FT_Bitmap, pixel_mode) == 26);
+  core::assert! (std::mem::offset_of! (FT_Bitmap, palette) == 32);
+};
+/// C: ftimage.h 351-361: `typedef struct  FT_Outline_ { unsigned short n_contours; unsigned short
+/// n_points; FT_Vector* points; unsigned char* tags; unsigned short* contours; int flags; }
+/// FT_Outline;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_Outline
+{
+  /// C: ftimage.h 353: `unsigned short   n_contours;`
+  pub n_contours: c_ushort,
+  /// C: ftimage.h 354: `unsigned short   n_points;`
+  pub n_points: c_ushort,
+  /// C: ftimage.h 356: `FT_Vector*       points;`
+  pub points: *mut FT_Vector,
+  /// C: ftimage.h 357: `unsigned char*   tags;`
+  pub tags: *mut c_uchar,
+  /// C: ftimage.h 358: `unsigned short*  contours;`
+  pub contours: *mut c_ushort,
+  /// C: ftimage.h 360: `int              flags;`
+  pub flags: c_int,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_Outline> () == 40);
+  core::assert! (std::mem::offset_of! (FT_Outline, n_points) == 2);
+  core::assert! (std::mem::offset_of! (FT_Outline, points) == 8);
+  core::assert! (std::mem::offset_of! (FT_Outline, flags) == 32);
+};
+/// C: freetype.h 444-458: `typedef struct  FT_Glyph_Metrics_ { FT_Pos width; FT_Pos height; FT_Pos
+/// horiBearingX; FT_Pos horiBearingY; FT_Pos horiAdvance; FT_Pos vertBearingX; FT_Pos
+/// vertBearingY; FT_Pos vertAdvance; } FT_Glyph_Metrics;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_Glyph_Metrics
+{
+  /// C: freetype.h 448: `FT_Pos  width;`
+  pub width: FT_Pos,
+  /// C: freetype.h 449: `FT_Pos  height;`
+  pub height: FT_Pos,
+  /// C: freetype.h 451: `FT_Pos  horiBearingX;`
+  pub horiBearingX: FT_Pos,
+  /// C: freetype.h 452: `FT_Pos  horiBearingY;`
+  pub horiBearingY: FT_Pos,
+  /// C: freetype.h 453: `FT_Pos  horiAdvance;`
+  pub horiAdvance: FT_Pos,
+  /// C: freetype.h 455-456: `FT_Pos  vertBearingX; FT_Pos  vertBearingY;`
+  pub vertBearingX: FT_Pos,
+  pub vertBearingY: FT_Pos,
+  /// C: freetype.h 457: `FT_Pos  vertAdvance;`
+  pub vertAdvance: FT_Pos,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_Glyph_Metrics> () == 64);
+  core::assert! (std::mem::offset_of! (FT_Glyph_Metrics, height) == 8);
+  core::assert! (std::mem::offset_of! (FT_Glyph_Metrics, horiBearingX) == 16);
+  core::assert! (std::mem::offset_of! (FT_Glyph_Metrics, horiBearingY) == 24);
+  core::assert! (std::mem::offset_of! (FT_Glyph_Metrics, horiAdvance) == 32);
+  core::assert! (std::mem::offset_of! (FT_Glyph_Metrics, vertAdvance) == 56);
+};
+/// C: freetype.h 506-514: `typedef struct  FT_Bitmap_Size_ { FT_Short height; FT_Short width;
+/// FT_Pos size; FT_Pos x_ppem; FT_Pos y_ppem; } FT_Bitmap_Size;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_Bitmap_Size
+{
+  /// C: freetype.h 508: `FT_Short  height;`
+  pub height: FT_Short,
+  /// C: freetype.h 509: `FT_Short  width;`
+  pub width: FT_Short,
+  /// C: freetype.h 511: `FT_Pos    size;`
+  pub size: FT_Pos,
+  /// C: freetype.h 513-514: `FT_Pos    x_ppem; FT_Pos    y_ppem;`
+  pub x_ppem: FT_Pos,
+  pub y_ppem: FT_Pos,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_Bitmap_Size> () == 32);
+  core::assert! (std::mem::offset_of! (FT_Bitmap_Size, width) == 2);
+  core::assert! (std::mem::offset_of! (FT_Bitmap_Size, size) == 8);
+  core::assert! (std::mem::offset_of! (FT_Bitmap_Size, x_ppem) == 16);
+  core::assert! (std::mem::offset_of! (FT_Bitmap_Size, y_ppem) == 24);
+};
+/// C: freetype.h 1974-1987: `typedef struct  FT_Size_Metrics_ { FT_UShort x_ppem; FT_UShort y_ppem;
+/// FT_Fixed x_scale; FT_Fixed y_scale; FT_Pos ascender; FT_Pos descender; FT_Pos height; FT_Pos
+/// max_advance; } FT_Size_Metrics;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_Size_Metrics
+{
+  /// C: freetype.h 1976: `FT_UShort  x_ppem;`
+  pub x_ppem: FT_UShort,
+  /// C: freetype.h 1977: `FT_UShort  y_ppem;`
+  pub y_ppem: FT_UShort,
+  /// C: freetype.h 1979-1980: `FT_Fixed   x_scale; FT_Fixed   y_scale;`
+  pub x_scale: FT_Fixed,
+  pub y_scale: FT_Fixed,
+  /// C: freetype.h 1982: `FT_Pos     ascender;`
+  pub ascender: FT_Pos,
+  /// C: freetype.h 1983: `FT_Pos     descender;`
+  pub descender: FT_Pos,
+  /// C: freetype.h 1984: `FT_Pos     height;`
+  pub height: FT_Pos,
+  /// C: freetype.h 1985: `FT_Pos     max_advance;`
+  pub max_advance: FT_Pos,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_Size_Metrics> () == 56);
+  core::assert! (std::mem::offset_of! (FT_Size_Metrics, y_ppem) == 2);
+  core::assert! (std::mem::offset_of! (FT_Size_Metrics, x_scale) == 8);
+  core::assert! (std::mem::offset_of! (FT_Size_Metrics, ascender) == 24);
+  core::assert! (std::mem::offset_of! (FT_Size_Metrics, descender) == 32);
+  core::assert! (std::mem::offset_of! (FT_Size_Metrics, height) == 40);
+  core::assert! (std::mem::offset_of! (FT_Size_Metrics, max_advance) == 48);
+};
+/// C: freetype.h 1229-1281: `typedef struct  FT_FaceRec_ { … } FT_FaceRec;` - the record slice 1
+/// left as the pointer-only stand-in.  C 1353-1725 reads the fields marked below; the private
+/// ones after `size` are written out so the record's size is C's own (`VECSIZE (struct font_info)`
+/// at C 1407 is the size of a record that *contains* an `FT_Size`, not this one, but a record
+/// declared short of its C text is a different type, P-86 ①).
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_FaceRec_
+{
+  /// C: freetype.h 1231-1240: `FT_Long num_faces; FT_Long face_index; FT_Long face_flags;
+  /// FT_Long style_flags; FT_Long num_glyphs;`
+  pub num_faces: FT_Long,
+  pub face_index: FT_Long,
+  pub face_flags: FT_Long,
+  pub style_flags: FT_Long,
+  pub num_glyphs: FT_Long,
+  /// C: freetype.h 1242-1243: `FT_String* family_name; FT_String* style_name;`
+  pub family_name: *mut FT_String,
+  pub style_name: *mut FT_String,
+  /// C: freetype.h 1245-1246: `FT_Int num_fixed_sizes; FT_Bitmap_Size* available_sizes;`
+  pub num_fixed_sizes: FT_Int,
+  pub available_sizes: *mut FT_Bitmap_Size,
+  /// C: freetype.h 1248-1249: `FT_Int num_charmaps; FT_CharMap* charmaps;`
+  pub num_charmaps: FT_Int,
+  pub charmaps: *mut FT_CharMap,
+  /// C: freetype.h 1251: `FT_Generic generic;`
+  pub generic: FT_Generic,
+  /// C: freetype.h 1256: `FT_BBox bbox;`
+  pub bbox: FT_BBox,
+  /// C: freetype.h 1258-1261: `FT_UShort units_per_EM; FT_Short ascender; FT_Short descender;
+  /// FT_Short height;`
+  pub units_per_EM: FT_UShort,
+  pub ascender: FT_Short,
+  pub descender: FT_Short,
+  pub height: FT_Short,
+  /// C: freetype.h 1263-1264: `FT_Short max_advance_width; FT_Short max_advance_height;`
+  pub max_advance_width: FT_Short,
+  pub max_advance_height: FT_Short,
+  /// C: freetype.h 1266-1267: `FT_Short underline_position; FT_Short underline_thickness;`
+  pub underline_position: FT_Short,
+  pub underline_thickness: FT_Short,
+  /// C: freetype.h 1269-1271: `FT_GlyphSlot glyph; FT_Size size; FT_CharMap charmap;`
+  pub glyph: FT_GlyphSlot,
+  pub size: FT_Size,
+  pub charmap: FT_CharMap,
+  /// C: freetype.h 1275-1277: `FT_Driver driver; FT_Memory memory; FT_Stream stream;`
+  pub driver: FT_Driver,
+  pub memory: FT_Memory,
+  pub stream: FT_Stream,
+  /// C: freetype.h 1279: `FT_ListRec sizes_list;`
+  pub sizes_list: FT_ListRec,
+  /// C: freetype.h 1281-1282: `FT_Generic autohint; void* extensions;`
+  pub autohint: FT_Generic,
+  pub extensions: *mut c_void,
+  /// C: freetype.h 1284: `FT_Face_Internal internal;`
+  pub internal: FT_Face_Internal,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_FaceRec_> () == 248);
+  core::assert! (std::mem::align_of::<FT_FaceRec_> () == 8);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, face_flags) == 16);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, style_flags) == 24);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, generic) == 88);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, bbox) == 104);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, units_per_EM) == 136);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, ascender) == 138);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, descender) == 140);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, height) == 142);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, max_advance_width) == 144);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, underline_position) == 148);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, underline_thickness) == 150);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, glyph) == 152);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, size) == 160);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, driver) == 176);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, sizes_list) == 200);
+  core::assert! (std::mem::offset_of! (FT_FaceRec_, internal) == 240);
+};
+/// C: freetype.h 2011-2018: `typedef struct  FT_SizeRec_ { FT_Face face; FT_Generic generic;
+/// FT_Size_Metrics metrics; FT_Size_Internal internal; } FT_SizeRec;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_SizeRec_
+{
+  /// C: ftimage.h 2013: `FT_Face           face;`
+  pub face: FT_Face,
+  /// C: ftimage.h 2014: `FT_Generic        generic;`
+  pub generic: FT_Generic,
+  /// C: ftimage.h 2015: `FT_Size_Metrics   metrics;`
+  pub metrics: FT_Size_Metrics,
+  /// C: ftimage.h 2016: `FT_Size_Internal  internal;`
+  pub internal: FT_Size_Internal,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_SizeRec_> () == 88);
+  core::assert! (std::mem::offset_of! (FT_SizeRec_, generic) == 8);
+  core::assert! (std::mem::offset_of! (FT_SizeRec_, metrics) == 24);
+  core::assert! (std::mem::offset_of! (FT_SizeRec_, metrics.ascender) == 48);
+  core::assert! (std::mem::offset_of! (FT_SizeRec_, metrics.descender) == 56);
+  core::assert! (std::mem::offset_of! (FT_SizeRec_, metrics.height) == 64);
+  core::assert! (std::mem::offset_of! (FT_SizeRec_, metrics.max_advance) == 72);
+  core::assert! (std::mem::offset_of! (FT_SizeRec_, internal) == 80);
+};
+/// C: freetype.h 2264-2306: `typedef struct  FT_GlyphSlotRec_ { … } FT_GlyphSlotRec;`
+#[cfg (feature = "have_freetype")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct FT_GlyphSlotRec_
+{
+  /// C: freetype.h 2266-2268: `FT_Library library; FT_Face face; FT_GlyphSlot next;`
+  pub library: FT_Library,
+  pub face: FT_Face,
+  pub next: FT_GlyphSlot,
+  /// C: freetype.h 2269: `FT_UInt glyph_index;`
+  pub glyph_index: FT_UInt,
+  /// C: freetype.h 2270: `FT_Generic generic;`
+  pub generic: FT_Generic,
+  /// C: freetype.h 2272-2277: `FT_Glyph_Metrics metrics; FT_Fixed linearHoriAdvance; FT_Fixed
+  /// linearVertAdvance; FT_Vector advance; FT_Glyph_Format format;`
+  pub metrics: FT_Glyph_Metrics,
+  pub linearHoriAdvance: FT_Fixed,
+  pub linearVertAdvance: FT_Fixed,
+  pub advance: FT_Vector,
+  pub format: FT_Glyph_Format,
+  /// C: freetype.h 2279-2281: `FT_Bitmap bitmap; FT_Int bitmap_left; FT_Int bitmap_top;`
+  pub bitmap: FT_Bitmap,
+  pub bitmap_left: FT_Int,
+  pub bitmap_top: FT_Int,
+  /// C: freetype.h 2283: `FT_Outline outline;`
+  pub outline: FT_Outline,
+  /// C: freetype.h 2285-2286: `FT_UInt num_subglyphs; FT_SubGlyph subglyphs;`
+  pub num_subglyphs: FT_UInt,
+  pub subglyphs: FT_SubGlyph,
+  /// C: freetype.h 2288-2289: `void* control_data; long control_len;`
+  pub control_data: *mut c_void,
+  pub control_len: c_long,
+  /// C: freetype.h 2291-2292: `FT_Pos lsb_delta; FT_Pos rsb_delta;`
+  pub lsb_delta: FT_Pos,
+  pub rsb_delta: FT_Pos,
+  /// C: freetype.h 2294: `void* other;`
+  pub other: *mut c_void,
+  /// C: freetype.h 2296: `FT_Slot_Internal internal;`
+  pub internal: FT_Slot_Internal,
+}
+#[cfg (feature = "have_freetype")]
+const _: () = {
+  core::assert! (std::mem::size_of::<FT_GlyphSlotRec_> () == 304);
+  core::assert! (std::mem::align_of::<FT_GlyphSlotRec_> () == 8);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, glyph_index) == 24);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, generic) == 32);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, metrics) == 48);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, metrics.width) == 48);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, metrics.height) == 56);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, metrics.horiBearingX) == 64);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, metrics.horiBearingY) == 72);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, metrics.horiAdvance) == 80);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, linearHoriAdvance) == 112);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, advance) == 128);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, format) == 144);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, bitmap) == 152);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, bitmap.rows) == 152);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, bitmap.width) == 156);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, bitmap.pitch) == 160);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, bitmap.buffer) == 168);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, bitmap.pixel_mode) == 178);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, bitmap_left) == 192);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, bitmap_top) == 196);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, outline) == 200);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, outline.n_points) == 202);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, outline.points) == 208);
+  core::assert! (std::mem::offset_of! (FT_GlyphSlotRec_, internal) == 296);
+};
+
+/* C 23-24 (continued): FreeType's constants.  Values measured from this machine's headers
+   (Evidence ⑤): `FT_LOAD_DEFAULT` **0**, `FT_LOAD_RENDER` **4** (`1L << 2`),
+   `FT_LOAD_MONOCHROME` **4096** (`1L << 12`), `FT_LOAD_TARGET_MONO` **131072**
+   (`FT_RENDER_MODE_MONO << 16`), `FT_FACE_FLAG_SFNT` **8** (`1L << 3`).  */
+/// C: freetype.h 3298: `#define FT_LOAD_DEFAULT                      0x0`
+#[cfg (feature = "have_freetype")]
+pub const FT_LOAD_DEFAULT: FT_Int32 = 0;
+/// C: freetype.h 3304: `#define FT_LOAD_RENDER                       ( 1L << 2 )`
+#[cfg (feature = "have_freetype")]
+pub const FT_LOAD_RENDER: FT_Int32 = 4;
+/// C: freetype.h 3375: `#define FT_LOAD_MONOCHROME                   ( 1L << 12 )`
+#[cfg (feature = "have_freetype")]
+pub const FT_LOAD_MONOCHROME: FT_Int32 = 4096;
+/// C: freetype.h 3399: `#define FT_LOAD_TARGET_MONO                  ( FT_RENDER_MODE_MONO << 16 )`
+#[cfg (feature = "have_freetype")]
+pub const FT_LOAD_TARGET_MONO: FT_Int32 = 131072;
+/// C: freetype.h 1391: `#define FT_FACE_FLAG_SFNT       ( 1L <<  3 )`
+#[cfg (feature = "have_freetype")]
+pub const FT_FACE_FLAG_SFNT: FT_Long = 8;
+/// C: ftimage.h 764-775: `typedef enum FT_Glyph_Format_ { FT_IMAGE_TAG (FT_GLYPH_FORMAT_NONE, 0,
+/// 0, 0, 0), FT_IMAGE_TAG (FT_GLYPH_FORMAT_COMPOSITE, 'c', 'o', 'm', 'p'), FT_IMAGE_TAG
+/// (FT_GLYPH_FORMAT_BITMAP, 'b', 'i', 't', 's'), FT_IMAGE_TAG (FT_GLYPH_FORMAT_OUTLINE, 'o',
+/// 'u', 't', 'l'), … } FT_Glyph_Format;` - measured `sizeof (FT_Glyph_Format)` **4**, and
+/// `FT_GLYPH_FORMAT_OUTLINE` is **1869968492** (`'o'<<24|'u'<<16|'t'<<8|'l'`), so the enum's C ABI
+/// here is `c_int` (PORTING.md 1.3).
+#[cfg (feature = "have_freetype")]
+pub type FT_Glyph_Format = c_int;
+#[cfg (feature = "have_freetype")]
+pub const FT_GLYPH_FORMAT_NONE: FT_Glyph_Format = 0;
+#[cfg (feature = "have_freetype")]
+pub const FT_GLYPH_FORMAT_OUTLINE: FT_Glyph_Format = 1869968492;
+/// C: ftimage.h 145-158: `typedef enum  FT_Pixel_Mode_ { FT_PIXEL_MODE_NONE = 0,
+/// FT_PIXEL_MODE_MONO, FT_PIXEL_MODE_GRAY, FT_PIXEL_MODE_GRAY2, FT_PIXEL_MODE_GRAY4,
+/// FT_PIXEL_MODE_LCD, FT_PIXEL_MODE_LCD_V, FT_PIXEL_MODE_BGRA, FT_PIXEL_MODE_MAX } FT_Pixel_Mode;`
+/// - measured **1**, **2**, **5**, **6** for the four members C 1688-1692 tests.
+#[cfg (feature = "have_freetype")]
+pub type FT_Pixel_Mode = c_int;
+#[cfg (feature = "have_freetype")]
+pub const FT_PIXEL_MODE_NONE: FT_Pixel_Mode = 0;
+#[cfg (feature = "have_freetype")]
+pub const FT_PIXEL_MODE_MONO: FT_Pixel_Mode = 1;
+#[cfg (feature = "have_freetype")]
+pub const FT_PIXEL_MODE_GRAY: FT_Pixel_Mode = 2;
+#[cfg (feature = "have_freetype")]
+pub const FT_PIXEL_MODE_LCD: FT_Pixel_Mode = 5;
+#[cfg (feature = "have_freetype")]
+pub const FT_PIXEL_MODE_LCD_V: FT_Pixel_Mode = 6;
+
+/* C 23-24 (continued): the seven FreeType entry points C 1353-1725 calls and slice 1 did not.
+   Every prototype is the header's own lines.  */
+#[cfg (feature = "have_freetype")]
+unsafe extern "C" {
+  /// C: ftsizes.h 98-100: `FT_EXPORT( FT_Error ) FT_New_Size( FT_Face face, FT_Size* size );`
+  pub fn FT_New_Size (face: FT_Face, size: *mut FT_Size) -> FT_Error;
+  /// C: ftsizes.h 119-120: `FT_EXPORT( FT_Error ) FT_Done_Size( FT_Size size );`
+  pub fn FT_Done_Size (size: FT_Size) -> FT_Error;
+  /// C: ftsizes.h 148-149: `FT_EXPORT( FT_Error ) FT_Activate_Size( FT_Size size );`
+  pub fn FT_Activate_Size (size: FT_Size) -> FT_Error;
+  /// C: freetype.h 3175-3178: `FT_EXPORT( FT_Error ) FT_Set_Pixel_Sizes( FT_Face face, FT_UInt
+  /// pixel_width, FT_UInt pixel_height );`
+  pub fn FT_Set_Pixel_Sizes (face: FT_Face, pixel_width: FT_UInt,
+                             pixel_height: FT_UInt) -> FT_Error;
+  /// C: freetype.h 3230-3234: `FT_EXPORT( FT_Error ) FT_Load_Glyph( FT_Face face, FT_UInt
+  /// glyph_index, FT_Int32 load_flags );`
+  pub fn FT_Load_Glyph (face: FT_Face, glyph_index: FT_UInt,
+                        load_flags: FT_Int32) -> FT_Error;
+  /// C: freetype.h 3280-3283: `FT_EXPORT( FT_Error ) FT_Load_Char( FT_Face face, FT_ULong
+  /// char_code, FT_Int32 load_flags );`
+  pub fn FT_Load_Char (face: FT_Face, char_code: FT_ULong,
+                       load_flags: FT_Int32) -> FT_Error;
+  /// C: freetype.h 4197-4200: `FT_EXPORT( FT_UInt ) FT_Get_Char_Index( FT_Face face, FT_ULong
+  /// charcode );`
+  pub fn FT_Get_Char_Index (face: FT_Face, charcode: FT_ULong) -> FT_UInt;
 }
 
 /* ----------------------------------------------------------------------------------------------
@@ -586,6 +1233,15 @@ pub const FC_VARIABLE: *const c_char = c"variable".as_ptr ();
 /// C: fontconfig.h 112: `#define FC_COLOR                "color"          /* Bool */`
 #[cfg (feature = "have_freetype")]
 pub const FC_COLOR: *const c_char = c"color".as_ptr ();
+/// C: fontconfig.h 194: `#define FC_PROPORTIONAL         FC_SPACING_PROPORTIONAL` - the two
+/// *integer* macros of the `FC_SPACING` family C 1468/1471 compares with (the 25 members above are
+/// the string properties).  Measured against this machine's header (Evidence ⑤):
+/// `FC_PROPORTIONAL` **0**, `FC_DUAL` **90** (`FC_MONO` 100, `FC_CHARCELL` 110).
+#[cfg (feature = "have_freetype")]
+pub const FC_PROPORTIONAL: c_int = 0;
+/// C: fontconfig.h 195: `#define FC_DUAL                 FC_SPACING_DUAL`
+#[cfg (feature = "have_freetype")]
+pub const FC_DUAL: c_int = 90;
 
 /* C 26-28: `These two blocks are here because this file is built when using XFT and when using
    Cairo, so struct font_info in ftfont.h needs access to the appropriate types.`
@@ -628,13 +1284,19 @@ include!("include/ftfont.rs");                 // C 46: `#include "ftfont.h"`
 #[cfg (feature = "have_freetype")]
 include!("include/pdumper.rs");                // C 47: `#include "pdumper.h"`
 
-/* Five declarations this slice calls that the mirrors it includes do not carry yet (P-72 rule 4 /
-   P-88 ①: a mirror must reach what it needs through its own `include!`s; the four Emacs ones are
+/* Six declarations this unit calls that the mirrors it includes do not carry yet (P-72 rule 4 /
+   P-88 ①: a mirror must reach what it needs through its own `include!`s; the five Emacs ones are
    `font.h` declarations whose mirror `include/font.rs` has no function-declaration section at all,
    so their consumers declare them - the `src/androidfont.rs` 99-120 shape).  Each line names the
-   reference header it comes from, and the ledger's Owed 3 names the mirror it belongs in.  */
+   reference header it comes from, and the ledger's Owed 3 names the mirror it belongs in.
+   `font_build_object` is slice 2's (C 1407); the other five are slice 1's.  */
 #[cfg (feature = "have_freetype")]
 unsafe extern "C" {
+  /// C: font.h 848: `extern Lisp_Object font_build_object (int, Lisp_Object, Lisp_Object,
+  /// double);` (font.c 250-259 defines it; slice 2's C 1407 calls it with
+  /// `VECSIZE (struct font_info)`).  `include/font.rs` carries no function declarations yet.
+  pub fn font_build_object (vectorsize: c_int, r#type: Lisp_Object, entity: Lisp_Object,
+                            pixelsize: c_double) -> Lisp_Object;
   /// C: font.h 842: `extern Lisp_Object font_make_entity (void);` (font.c defines it).
   pub fn font_make_entity () -> Lisp_Object;
   /// C: font.h 885-886: `extern Lisp_Object font_intern_prop (const char *str, ptrdiff_t len,
@@ -662,11 +1324,13 @@ unsafe extern "C" {
 
 /* C 49-52: `static struct font_driver const ftfont_driver;` and, under `#ifdef HAVE_HARFBUZZ`,
    `static struct font_driver fthbfont_driver;`.  These are C *tentative definitions* of two
-   file-scope objects whose real definitions (with the driver record's initialiser) are at C 3098
-   (`fthbfont_driver`, inside the file's `HAVE_HARFBUZZ` block) and C 3102 (`ftfont_driver`);
+   file-scope objects whose real definitions are at C 3235-3241 (`fthbfont_driver`, inside the
+   file's `HAVE_HARFBUZZ` block, assigned from `ftfont_driver` and registered) and at C 3154
+   (`ftfont_driver`'s record, under C 3150-3152's `#ifndef USE_CAIRO`; C 3233 registers it);
    Rust has no tentative definition, so the two lines are recorded here and the objects land with
    their C initialisers (PORTING.md 0.1-12's object half, the P-91 ④ bookkeeping class).  Nothing
-   in C 1-1352 reads either object.  */
+   in C 1-1352 reads either object; C 1429 (slice 2's `ftfont_open`) is the first site that does,
+   and it stays P-91 ④'s class until C 3154's row lands.  */
 
 /* C 54-64: the file's four state objects and the FreeType library handle.  C's definitions have no
    initialiser, so each is C's zero value: `bool` false, a null `FT_Library`, and `Qnil` (which is
@@ -2302,3 +2966,507 @@ pub unsafe extern "C" fn ftfont_entity_pattern (entity: Lisp_Object, pixel_size:
 
   pat
 }
+
+/* ----------------------------------------------------------------------------------------------
+   C 1353-1551: C 1354's `#ifndef USE_CAIRO`, `ftfont_open` (C 1357-1517), `ftfont_close`
+   (C 1520-1549) and C 1551's `#endif`.
+
+   `ftfont_open` is the file's largest function and one of the driver entry points C 3154's
+   `ftfont_driver` record names, so both are C's non-`static` definitions and carry
+   `#[unsafe(no_mangle)]` (PORTING.md 0.2/P-52).  The two `#ifdef` pairs inside it
+   (`HAVE_LIBOTF` C 1414-1417, `HAVE_HARFBUZZ` C 1418-1420/1424-1429) are `#[cfg]`-selected
+   *statements*, because C's `#if` sits between two statements and Rust cannot put a `#[cfg]` on
+   the `else` of an `if` (the `harfbuzz` arm is written as two whole statements instead, one per
+   gate; the `#else` arm is the one without the feature).
+   ---------------------------------------------------------------------------------------------- */
+/// C: 1355-1357: `Lisp_Object` / `ftfont_open (struct frame *f, Lisp_Object entity, int
+/// pixel_size)` - `struct frame *` is the untyped pointer, as `ftfont_get_cache` above.
+#[cfg (all (feature = "have_freetype", not (feature = "use_cairo")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ftfont_open (f: *mut c_void, entity: Lisp_Object, pixel_size: c_int)
+  -> Lisp_Object
+{
+  let mut ftfont_info: *mut font_info;
+  let mut font: *mut font;
+  let mut cache_data: *mut ftfont_cache_data;
+  let ft_face: FT_Face;
+  /* C declares `FT_Size ft_size;` uninitialised and C 1385 passes its address; the port
+     zero-initialises it (PORTING.md 0.1-13).  */
+  let mut ft_size: FT_Size = std::ptr::null_mut ();
+  let mut size: FT_UInt = 0;
+  let mut val: Lisp_Object;
+  let filename: Lisp_Object;
+  let idx: Lisp_Object;
+  let cache: Lisp_Object;
+  let font_object: Lisp_Object;
+  let mut scalable: bool = false;
+  let mut spacing: c_int = 0;
+  let mut i: c_int;
+  let mut upEM: c_double = 0.0;
+
+  val = assq_no_quit (QCfont_entity (), AREF (entity, FONT_EXTRA_INDEX as isize));
+  if ! CONSP (val)
+    { return Qnil (); }
+  val = XCDR (val);
+  cache = ftfont_lookup_cache (entity, FTFONT_CACHE_FOR_FACE);
+  if NILP (cache)
+    { return Qnil (); }
+  filename = XCAR (val);
+  idx = XCDR (val);
+  cache_data = xmint_pointer (XCDR (cache)) as *mut ftfont_cache_data;
+  ft_face = (*cache_data).ft_face;
+  if (*cache_data).face_refcount > 0
+    {
+      /* FT_Face in this cache is already used by the different size.  */
+      if FT_New_Size (ft_face, &raw mut ft_size) != 0
+        { return Qnil (); }
+      if FT_Activate_Size (ft_size) != 0
+        {
+          FT_Done_Size (ft_size);
+          return Qnil ();
+        }
+    }
+  size = XFIXNUM (AREF (entity, FONT_SIZE_INDEX as isize)) as FT_UInt;
+  if size == 0
+    { size = pixel_size as FT_UInt; }
+  if FT_Set_Pixel_Sizes (ft_face, size, size) != 0
+    {
+      if (*cache_data).face_refcount == 0
+        {
+          FT_Done_Face (ft_face);
+          (*cache_data).ft_face = std::ptr::null_mut ();
+        }
+      return Qnil ();
+    }
+  (*cache_data).face_refcount += 1;
+
+  font_object = font_build_object (VECSIZE (std::mem::size_of::<font_info> ()) as c_int,
+                                   Qfreetype (), entity, size as c_double);
+  ASET (font_object, FONT_FILE_INDEX as isize, filename);
+  font = XFONT_OBJECT (font_object);
+  ftfont_info = font as *mut font_info;
+  (*ftfont_info).ft_size = (*ft_face).size;
+  (*ftfont_info).index = XFIXNUM (idx) as c_int;
+  /* C 1414-1417: `#ifdef HAVE_LIBOTF` (the record's own arm; `include/ftfont.rs` records the
+     member as dead text under its `have_x_windows` gate - Owed 3 (a)).  */
+  #[cfg (feature = "have_libotf")]
+  {
+    (*ftfont_info).maybe_otf = ((*ft_face).face_flags & FT_FACE_FLAG_SFNT) != 0;
+    (*ftfont_info).otf = std::ptr::null_mut ();
+  }
+  /* C 1418-1420: `#ifdef HAVE_HARFBUZZ`.  */
+  #[cfg (feature = "harfbuzz")]
+  { (*ftfont_info).hb_font = std::ptr::null_mut (); }
+  /* This means that there's no need of transformation.  */
+  (*ftfont_info).matrix.xx = 0;
+  (*font).pixel_size = size as c_int;
+  /* C 1424-1429: `#ifdef HAVE_HARFBUZZ`'s `if (EQ (…)) … else` before the plain assignment.  C's
+     `font->driver` is `struct font_driver const *` and the port's `struct font` carries it as the
+     untyped `*const c_void` (font.rs's own note), so each arm casts.  Both objects' definitions
+     are later in the file: `fthbfont_driver` at C 3235-3241 and `ftfont_driver` at C 3154 - the
+     second is P-91 ④'s allowed class (the ledger's Owed 7 names it; C 49-52's tentative
+     declarations are recorded at their site above).  */
+  /* C's `&ftfont_driver` is the address of a `const` object; the port spells it with
+     `std::ptr::addr_of!` rather than `&raw const` because `tools/extract-abi.py`'s static scan
+     reads the `const` keyword of the `&raw const X` spelling as a Rust static named `X`, which
+     hides the `missing file-scope object ftfont_driver` row (measured: with `&raw const` the row
+     disappears from `--check`; the ledger's Owed 7 carries the object either way).  */
+  #[cfg (feature = "harfbuzz")]
+  {
+    if EQ (AREF (font_object, FONT_TYPE_INDEX as isize), Qfreetypehb ())
+      { (*font).driver = &raw mut fthbfont_driver as *const c_void; }
+    else
+      { (*font).driver = std::ptr::addr_of! (ftfont_driver) as *const c_void; }
+  }
+  #[cfg (not (feature = "harfbuzz"))]
+  { (*font).driver = std::ptr::addr_of! (ftfont_driver) as *const c_void; }
+  /* C 1430: the chained assignment is two statements (PORTING.md 0.1-13).  */
+  (*font).encoding_charset = -1;
+  (*font).repertory_charset = -1;
+
+  val = assq_no_quit (QCminspace (), AREF (entity, FONT_EXTRA_INDEX as isize));
+  let no_leading_p: bool = ! (CONSP (val) && NILP (XCDR (val)));
+  upEM = (*ft_face).units_per_EM as c_double;
+  scalable = FIXNUMP (AREF (entity, FONT_AVGWIDTH_INDEX as isize))
+             && XFIXNUM (AREF (entity, FONT_AVGWIDTH_INDEX as isize)) == 0;
+  if scalable
+    {
+      /* C 1439/1442/1447: `ascender`/`descender`/`height` are `FT_Short` and `size` is `FT_UInt`,
+         so C's product is the *unsigned* one (PORTING.md §1.1's wrapping rule).  */
+      (*font).ascent = (((*ft_face).ascender as c_uint).wrapping_mul (size) as c_double / upEM
+                        + 0.5) as c_int;
+      if no_leading_p
+        {
+          (*font).descent = (((- ((*ft_face).descender as c_int)) as c_uint).wrapping_mul (size)
+                             as c_double / upEM + 0.5) as c_int;
+          (*font).height = (*font).ascent + (*font).descent;
+        }
+      else
+        {
+          (*font).height = (((*ft_face).height as c_uint).wrapping_mul (size) as c_double / upEM
+                            + 0.5) as c_int;
+          (*font).descent = (*font).height - (*font).ascent;
+        }
+    }
+  else
+    {
+      (*font).ascent = ((*(*ft_face).size).metrics.ascender >> 6) as c_int;
+      if no_leading_p
+        {
+          (*font).descent = (- (*(*ft_face).size).metrics.descender >> 6) as c_int;
+          (*font).height = (*font).ascent + (*font).descent;
+        }
+      else
+        {
+          (*font).height = ((*(*ft_face).size).metrics.height >> 6) as c_int;
+          (*font).descent = (*font).height - (*font).ascent;
+        }
+    }
+  if FIXNUMP (AREF (entity, FONT_SPACING_INDEX as isize))
+    { spacing = XFIXNUM (AREF (entity, FONT_SPACING_INDEX as isize)) as c_int; }
+  else
+    { spacing = FC_PROPORTIONAL; }
+  /* C 1469-1473: `#ifdef FC_DUAL` … `#endif` - `fontconfig.h` 195 defines the macro whenever the
+     header is in, so the second test is C's text here and not a port gate (Deviation 5's shape,
+     which the two `#ifndef` members of `FC_HINT_STYLE`/`FC_LCD_FILTER` already follow).  */
+  if spacing != FC_PROPORTIONAL
+      && spacing != FC_DUAL
+    {
+      /* C 1474-1476: the chained assignment is three statements, in C's right-to-left order
+         (PORTING.md 0.1-13).  */
+      (*font).space_width = if scalable
+        { (((*ft_face).max_advance_width as c_uint).wrapping_mul (size) as c_double / upEM
+           + 0.5) as c_int }
+        else
+        { ((*(*ft_face).size).metrics.max_advance >> 6) as c_int };
+      (*font).average_width = (*font).space_width;
+      (*font).min_width = (*font).space_width;
+    }
+  else
+    {
+      let mut n: c_int;
+
+      /* C 1481: the chained assignment is three statements (PORTING.md 0.1-13).  */
+      (*font).space_width = 0;
+      (*font).average_width = 0;
+      (*font).min_width = 0;
+      /* C 1482: the `for` head's comma expression is C's two initialisations, and the
+         increment is the loop body's last statement (Deviation 15's shape).  */
+      i = 32;
+      n = 0;
+      while i < 127
+        {
+          if FT_Load_Char (ft_face, i as FT_ULong, FT_LOAD_DEFAULT) == 0
+            {
+              let this_width: c_int
+                = ((*(*ft_face).glyph).metrics.horiAdvance >> 6) as c_int;
+
+              if this_width > 0
+                  && ((*font).min_width == 0 || (*font).min_width > this_width)
+                { (*font).min_width = this_width; }
+              if i == 32
+                { (*font).space_width = this_width; }
+              (*font).average_width += this_width;
+              n += 1;
+            }
+          i += 1;
+        }
+      if n > 0
+        { (*font).average_width /= n; }
+    }
+
+  (*font).baseline_offset = 0;
+  (*font).relative_compose = 0;
+  (*font).default_ascent = 0;
+  /* C 1502: `font->vertical_centering = 0;` - C's `0` is the port's `false` (Deviation 8).  */
+  (*font).vertical_centering = false;
+  if scalable
+    {
+      (*font).underline_position = (((- ((*ft_face).underline_position as c_int)) as c_uint)
+                                     .wrapping_mul (size) as c_double / upEM + 0.5) as c_int;
+      (*font).underline_thickness = (((*ft_face).underline_thickness as c_uint)
+                                       .wrapping_mul (size) as c_double / upEM + 0.5) as c_int;
+    }
+  else
+    {
+      (*font).underline_position = -1;
+      (*font).underline_thickness = 0;
+    }
+
+  font_object
+}
+
+/* C 1519-1549: `ftfont_close`.  Its `#ifdef HAVE_LIBOTF`/`HAVE_HARFBUZZ` pair sits between two
+   statements of the `if` body, so the two `#[cfg]`-selected statements stand for the two `#if`
+   blocks.  */
+/// C: 1519-1520: `void` / `ftfont_close (struct font *font)`.
+#[cfg (all (feature = "have_freetype", not (feature = "use_cairo")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ftfont_close (font: *mut font)
+{
+  if font_data_structures_may_be_ill_formed ()
+    { return; }
+
+  let ftfont_info: *mut font_info = font as *mut font_info;
+  let mut val: Lisp_Object;
+  let cache: Lisp_Object;
+
+  val = Fcons ((*font).props[FONT_FILE_INDEX as usize],
+               make_fixnum ((*ftfont_info).index as EMACS_INT));
+  cache = ftfont_lookup_cache (val, FTFONT_CACHE_FOR_FACE);
+  eassert! (CONSP (cache));
+  val = XCDR (cache);
+  let cache_data: *mut ftfont_cache_data = xmint_pointer (val) as *mut ftfont_cache_data;
+  (*cache_data).face_refcount -= 1;
+  if (*cache_data).face_refcount == 0
+    {
+      FT_Done_Face ((*cache_data).ft_face);
+      /* C 1537-1540: `#ifdef HAVE_LIBOTF`.  */
+      #[cfg (feature = "have_libotf")]
+      {
+        if ! (*ftfont_info).otf.is_null ()
+          { OTF_close ((*ftfont_info).otf); }
+      }
+      /* C 1541-1544: `#ifdef HAVE_HARFBUZZ`.  */
+      #[cfg (feature = "harfbuzz")]
+      {
+        if ! (*ftfont_info).hb_font.is_null ()
+          { hb_font_destroy ((*ftfont_info).hb_font); }
+      }
+      (*cache_data).ft_face = std::ptr::null_mut ();
+    }
+  else
+    { FT_Done_Size ((*ftfont_info).ft_size); }
+}
+
+/* C 1551: `#endif /* !USE_CAIRO */` - the arm's end; the next definition is `ftfont_has_char`
+   (C 1554), which is *outside* both `USE_CAIRO` arms.  */
+
+/* ----------------------------------------------------------------------------------------------
+   C 1552-1662: `ftfont_has_char` (C 1554-1581), which C 1551's `#endif` leaves *outside* the
+   `USE_CAIRO` arms; then C 1583's second `#ifndef USE_CAIRO`, `ftfont_encode_char` (C 1586-1594),
+   the file's `static` `ftfont_glyph_metrics` (C 1597-1618), `ftfont_text_extents` (C 1621-1660)
+   and C 1662's `#endif`.
+   ---------------------------------------------------------------------------------------------- */
+/// C: 1553-1554: `int` / `ftfont_has_char (Lisp_Object font, int c)`.
+#[cfg (feature = "have_freetype")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ftfont_has_char (font: Lisp_Object, c: c_int) -> c_int
+{
+  let mut cs: *mut charset = std::ptr::null_mut ();
+
+  if EQ (AREF (font, FONT_ADSTYLE_INDEX as isize), Qja ())
+      && charset_jisx0208 >= 0
+    { cs = CHARSET_FROM_ID! (charset_jisx0208); }
+  else if EQ (AREF (font, FONT_ADSTYLE_INDEX as isize), Qko ())
+      && charset_ksc5601 >= 0
+    { cs = CHARSET_FROM_ID! (charset_ksc5601); }
+  if ! cs.is_null ()
+    { return (ENCODE_CHAR! (cs, c) != CHARSET_INVALID_CODE! (cs)) as c_int; }
+
+  if FONT_ENTITY_P (font)
+    {
+      let charset: *mut FcCharSet = ftfont_get_fc_charset (font);
+
+      return (FcCharSetHasChar (charset, c as FcChar32) == FcTrue) as c_int;
+    }
+  else
+    {
+      let ftfont_info: *mut font_info = XFONT_OBJECT (font) as *mut font_info;
+
+      return (FT_Get_Char_Index ((*(*ftfont_info).ft_size).face, c as FT_ULong) != 0) as c_int;
+    }
+}
+
+/* C 1583: `#ifndef USE_CAIRO` - the arm `ftfont_encode_char`, the `static` `ftfont_glyph_metrics`
+   and `ftfont_text_extents` sit in; C 1662 closes it after `ftfont_text_extents`.  */
+/// C: 1585-1586: `unsigned` / `ftfont_encode_char (struct font *font, int c)`.
+#[cfg (all (feature = "have_freetype", not (feature = "use_cairo")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ftfont_encode_char (font: *mut font, c: c_int) -> c_uint
+{
+  let ftfont_info: *mut font_info = font as *mut font_info;
+  let ft_face: FT_Face = (*(*ftfont_info).ft_size).face;
+  let charcode: FT_ULong = c as FT_ULong;
+  let code: FT_UInt = FT_Get_Char_Index (ft_face, charcode);
+
+  if code > 0 { code } else { FONT_INVALID_CODE }
+}
+
+/// C: 1596-1598: `static bool` / `ftfont_glyph_metrics (FT_Face ft_face, int c, int *advance,
+/// int *lbearing, int *rbearing, int *ascent, int *descent)` - a `static` helper, so no
+/// `#[unsafe(no_mangle)]` (PORTING.md 0.2).
+#[cfg (all (feature = "have_freetype", not (feature = "use_cairo")))]
+unsafe fn ftfont_glyph_metrics (ft_face: FT_Face, c: c_int, advance: *mut c_int,
+                                lbearing: *mut c_int, rbearing: *mut c_int,
+                                ascent: *mut c_int, descent: *mut c_int) -> bool
+{
+  if FT_Load_Glyph (ft_face, c as FT_UInt, FT_LOAD_DEFAULT) == 0
+    {
+      let m: *mut FT_Glyph_Metrics = &raw mut (*(*ft_face).glyph).metrics;
+
+      /* At first glance this might appear to truncate the glyph's
+	 horizontal advance, but FreeType internally rounds the
+	 advance width to a pixel boundary prior to returning these
+	 metrics.  */
+
+      *advance = ((*m).horiAdvance >> 6) as c_int;
+      *lbearing = ((*m).horiBearingX >> 6) as c_int;
+      *rbearing = (((*m).horiBearingX + (*m).width) >> 6) as c_int;
+      *ascent = ((*m).horiBearingY >> 6) as c_int;
+      *descent = (((*m).height - (*m).horiBearingY) >> 6) as c_int;
+      return true;
+    }
+
+  false
+}
+
+/// C: 1620-1622: `void` / `ftfont_text_extents (struct font *font, const unsigned int *code,
+/// int nglyphs, struct font_metrics *metrics)`.
+#[cfg (all (feature = "have_freetype", not (feature = "use_cairo")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ftfont_text_extents (font: *mut font, code: *const c_uint,
+                                              nglyphs: c_int, metrics: *mut font_metrics)
+{
+  let ftfont_info: *mut font_info = font as *mut font_info;
+  let ft_face: FT_Face = (*(*ftfont_info).ft_size).face;
+  let mut i: c_int = 0;
+  let mut width: c_int = 0;
+  let mut first: bool = false;
+
+  if (*ftfont_info).ft_size != (*ft_face).size
+    { FT_Activate_Size ((*ftfont_info).ft_size); }
+
+  /* C 1632: the `for` head's comma expression is C's two initialisations, and the increment is
+     the loop body's last statement (Deviation 15's shape).  `metrics`' fields are `short`
+     (font.h 419-429), so the comparisons are C's `int` ones and the stores truncate
+     (PORTING.md §1.1's implicit-conversion rule).  */
+  i = 0;
+  first = true;
+  while i < nglyphs
+    {
+      let mut advance: c_int = 0;
+      let mut lbearing: c_int = 0;
+      let mut rbearing: c_int = 0;
+      let mut ascent: c_int = 0;
+      let mut descent: c_int = 0;
+
+      if ftfont_glyph_metrics (ft_face, *code.add (i as usize) as c_int,
+                               &raw mut advance, &raw mut lbearing, &raw mut rbearing,
+                               &raw mut ascent, &raw mut descent)
+	{
+	  if first
+	    {
+	      (*metrics).lbearing = lbearing as c_short;
+	      (*metrics).rbearing = rbearing as c_short;
+	      (*metrics).ascent = ascent as c_short;
+	      (*metrics).descent = descent as c_short;
+	      first = false;
+	    }
+	  if ((*metrics).lbearing as c_int) > width + lbearing
+	    { (*metrics).lbearing = (width + lbearing) as c_short; }
+	  if ((*metrics).rbearing as c_int) < width + rbearing
+	    { (*metrics).rbearing = (width + rbearing) as c_short; }
+	  if ((*metrics).ascent as c_int) < ascent
+	    { (*metrics).ascent = ascent as c_short; }
+	  if ((*metrics).descent as c_int) > descent
+	    { (*metrics).descent = descent as c_short; }
+	  width += advance;
+	}
+      else
+	{ width += (*font).space_width; }
+      i += 1;
+    }
+  (*metrics).width = width as c_short;
+}
+
+/* C 1662: `#endif /* !USE_CAIRO */` - the arm's end; the next definition is `ftfont_get_bitmap`
+   (C 1665), which is outside it.  */
+
+/* ----------------------------------------------------------------------------------------------
+   C 1663-1725: `ftfont_get_bitmap` (C 1665-1705), with C 1675-1679's
+   `#ifdef FT_LOAD_TARGET_MONO` / `#else` pair, and `ftfont_anchor_point` (C 1708-1725).  Both are
+   outside the `USE_CAIRO` arms (the file gate is the only one that covers them).
+   ---------------------------------------------------------------------------------------------- */
+/// C: 1664-1665: `int` / `ftfont_get_bitmap (struct font *font, unsigned int code,
+/// struct font_bitmap *bitmap, int bits_per_pixel)`.
+#[cfg (feature = "have_freetype")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ftfont_get_bitmap (font: *mut font, code: c_uint,
+                                            bitmap: *mut font_bitmap, bits_per_pixel: c_int)
+  -> c_int
+{
+  let ftfont_info: *mut font_info = font as *mut font_info;
+  let ft_face: FT_Face = (*(*ftfont_info).ft_size).face;
+  let mut load_flags: FT_Int32 = FT_LOAD_RENDER;
+
+  if (*ftfont_info).ft_size != (*ft_face).size
+    { FT_Activate_Size ((*ftfont_info).ft_size); }
+  if bits_per_pixel == 1
+    {
+      /* C 1675-1679: `#ifdef FT_LOAD_TARGET_MONO` / `#else` - the FreeType header's own macro, so
+         the gate is the derived `ft_load_target_mono` (the `fc_*` names' shape; it is **not** in
+         the tree's feature table yet, and the ledger's Owed 5 names it).  */
+      #[cfg (feature = "ft_load_target_mono")]
+      { load_flags |= FT_LOAD_TARGET_MONO; }
+      #[cfg (not (feature = "ft_load_target_mono"))]
+      { load_flags |= FT_LOAD_MONOCHROME; }
+    }
+  else if bits_per_pixel != 8
+    /* We don't support such a rendering.  */
+    { return -1; }
+
+  if FT_Load_Glyph (ft_face, code, load_flags) != 0
+    { return -1; }
+  /* C 1687-1692: the nested conditional expression is C's; `pixel_mode` is `unsigned char` and
+     the four constants are `int`s, so each test promotes it (PORTING.md §1.1).  */
+  (*bitmap).bits_per_pixel
+    = if (*(*ft_face).glyph).bitmap.pixel_mode as c_int == FT_PIXEL_MODE_MONO { 1 }
+      else if (*(*ft_face).glyph).bitmap.pixel_mode as c_int == FT_PIXEL_MODE_GRAY { 8 }
+      else if (*(*ft_face).glyph).bitmap.pixel_mode as c_int == FT_PIXEL_MODE_LCD { 8 }
+      else if (*(*ft_face).glyph).bitmap.pixel_mode as c_int == FT_PIXEL_MODE_LCD_V { 8 }
+      else { -1 };
+  if (*bitmap).bits_per_pixel < 0
+    /* We don't support that kind of pixel mode.  */
+    { return -1; }
+  (*bitmap).rows = (*(*ft_face).glyph).bitmap.rows as c_int;
+  (*bitmap).width = (*(*ft_face).glyph).bitmap.width as c_int;
+  (*bitmap).pitch = (*(*ft_face).glyph).bitmap.pitch;
+  (*bitmap).buffer = (*(*ft_face).glyph).bitmap.buffer;
+  (*bitmap).left = (*(*ft_face).glyph).bitmap_left;
+  (*bitmap).top = (*(*ft_face).glyph).bitmap_top;
+  (*bitmap).advance = ((*(*ft_face).glyph).metrics.horiAdvance >> 6) as c_int;
+
+  0
+}
+
+/// C: 1707-1709: `int` / `ftfont_anchor_point (struct font *font, unsigned int code, int idx,
+/// int *x, int *y)`.
+#[cfg (feature = "have_freetype")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ftfont_anchor_point (font: *mut font, code: c_uint, idx: c_int,
+                                              x: *mut c_int, y: *mut c_int) -> c_int
+{
+  let ftfont_info: *mut font_info = font as *mut font_info;
+  let ft_face: FT_Face = (*(*ftfont_info).ft_size).face;
+
+  if (*ftfont_info).ft_size != (*ft_face).size
+    { FT_Activate_Size ((*ftfont_info).ft_size); }
+  if FT_Load_Glyph (ft_face, code, FT_LOAD_DEFAULT) != 0
+    { return -1; }
+  if (*(*ft_face).glyph).format != FT_GLYPH_FORMAT_OUTLINE
+    { return -1; }
+  if idx >= (*(*ft_face).glyph).outline.n_points as c_int
+    { return -1; }
+  *x = (*(*(*ft_face).glyph).outline.points.add (idx as usize)).x as c_int;
+  *y = (*(*(*ft_face).glyph).outline.points.add (idx as usize)).y as c_int;
+  0
+}
+
+/* C 1726-1727: the blank line and `#ifdef HAVE_LIBOTF`, which opens the arm `ftfont_otf_features`
+   (C 1730) and `ftfont_otf_capability` (C 1774) sit in - the next slice's start.  That arm's
+   records come from `otf.h`, which this machine has not got (`/opt/homebrew/include` has no
+   `otf.h`, and the reference tree carries none either), so the two functions wait on the libotf
+   toolchain/mirror rather than on a layout this lane could write: PORTING.md P-88 ② forbids
+   spelling a record's layout from memory, and P-90 ④ names that toolchain as the missing
+   resource.  The ledger's `## Owed` 8 carries the order from here.  */
