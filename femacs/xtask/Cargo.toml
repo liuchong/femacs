@@ -27,6 +27,8 @@ license.workspace = true
 # gnulib-derived names such as `cplusplus`, the `@PLACEHOLDER@` templates), the first site that
 # uses the feature.
 [features]
+_dos_ds                                    = []  # _dos_ds (src/msdos.c)
+_use_lfn                                   = []  # _USE_LFN
 b1152000                                   = []  # B1152000
 b1500000                                   = []  # B1500000
 b2500000                                   = []  # B2500000
@@ -84,6 +86,7 @@ glibc_io_eof_seen                          = []  # see femacs/lib/include/stdio-
 glyph_debug                                = []  # GLYPH_DEBUG
 gnu_linux                                  = []  # GNU_LINUX
 gnu_linux_glibc                            = []  # see femacs/src/alloc.rs:7759
+gnu_malloc                                 = []  # GNU_MALLOC
 gnu_noreturn_attribute                     = []  # see femacs/lib/include/_Noreturn.rs:37
 gnu_warn_unused_result                     = []  # see femacs/lib/include/ignore-value.rs:33
 gnulib_defined_setlocale                   = []  # GNULIB_defined_setlocale

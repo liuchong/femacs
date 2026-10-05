@@ -8156,3 +8156,25 @@
   ⑤ **留给下一轮**：两条 lane 的落地——`src/msdos.c` 切片 1（C 1-1295，24 → 1,767 行，`--check` **OK**）与
      `src/xwidget.c` 切片 1（C 1-1180，11 → 2,321 行，85 行 `- ` 均为余下段）；两者各自点名了未注册的 feature
      （msdos：`gnu_malloc`/`_use_lfn`/`_dos_ds`；xwidget：`webkit_check_version_ge_2_{16,26,34}`）与镜像缺口。
+
+- **3.456 msdos 切片 1（C 1-1295）：鼠标、屏幕刷新与 `IT_*` 终端接口的前半（2026-10-05）**：
+  ① **区间**：C 1-1295（收在 `IT_update_end` 的 `}`）；**下一个活定义 = C 1297 `IT_frame_up_to_date`**。49 行区间表铺满
+     C 1-4,350（升序不重叠）；文件门 `msdos`，内层 `djgpp_2_3`/`no_system_malloc`/`gnu_malloc`/`rel_alloc`/
+     `not have_x_windows` 等 9 个条件逐条取自 `check-cond-eval`（本文件 27 条件 / 0 unknown / [VERIFIED]）。
+  ② **行数**：`femacs/src/msdos.rs` **24 → 1,767**；台账 25 → **328**。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**；`extract-abi --check` **OK**（P-86 ⑩ 的空清单空跑，不是逐项比对）；
+     **臂读数 21 错、全部在镜像图或镜像缺名，本单元文本自身 0 条**（66 → 38 → 32 → 24 → 21，每次下降都是单元侧拼写修正）；
+     `check-dead-file-coverage` 44 ledger / 0 failure；`check-mirror-dupes` 19/19/0。
+  ④ **真缺陷（自造 11 类，全被编译门抓出并修）**：`static unsafe fn` 非法（28 处）、忘加 `#[cfg]`（冻结 75 错）、
+     自己发明过 `XFRAME(…).as_lisp()` 的比较（改回 C 的 `XFRAME ((*XWINDOW (window)).frame) == f`）、丢掉 C 20-30 的
+     四段自注、30+ 处 `// C n` 引文系统性偏移、`mut` 漏在被改写的参数上、把镜像里的 `bool` 全局当 `c_int` 比 `!= 0`、
+     P-72 ③ 的未定型指针漏转、位域/访问器按镜像形状改写、`countof!` 的 `usize` 与 `c_int` 比较、链式赋值与参数内赋值
+     的求值顺序。**参照自己的**：本切片未发现可判定 bug；一处**观察**（`mouse_pressed`/`mouse_released` 减 `left_pos`/`top_pos`
+     而 `mouse_button_depressed` 不减）按 bug-for-bug 照录。
+  ⑤ **集成者本轮替它落的账**：`femacs/xtask/Cargo.toml` 登记 **`_dos_ds` / `_use_lfn` / `gnu_malloc`**。
+     **欠账（点名）**：`include/msdos.rs` 要把 `dos_*`/`mouse_*`/`the_only_*` 原型搬进 glob 模块（否则每个含 `msdos.h`
+     的 TU 8 条 `E0428`）；镜像缺名 `clock_t`/`make_formatted_string`/`cursor_to`/`clear_mouse_face`/`face.tty_reverse_p`；
+     DJGPP 工具链缺失（本机无），`<dos.h>`/`<dpmi.h>`/`<sys/farptr.h>`/`<go32.h>`/`<pc.h>`/`<crt0.h>` 的记录全 **UNVERIFIED**。
+  ⑥ **未声称**：**零运行证据**（没有 `int86`/`intdos`/`__dpmi_int`，没有 BIOS 调用、远指针读写、鼠标、写屏，没有任何
+     `IT_*` 入口被调用；没有 DJGPP 目标编译、没有布局测量）；C 1296-4,350 未移植；lane 的预算如实：`build-tu` 6 发、
+     臂翻 6 发（限各 3，超支全部花在"臂翻普查→修正→再普查"的迭代上）。
