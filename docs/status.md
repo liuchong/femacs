@@ -10844,3 +10844,42 @@
   ④ **未声称**：容差行只放宽"行数"这一条粗信号，不改变任何 token 级判据（`extract-abi` 的逐函数门照旧逐条比）；
      `port-map.md` 是在飞树生成的，四条被回退的行**不代表**它们的目标没在推进——只代表它们的数字要等各自 lane 落地
      后再生成。**本轮零编译**（`build-tu`/`probe`/`check-all-units` 全 0 发；改的是 .tsv 与生成物，不碰镜像）。
+
+- **3.550 五件 XMenu 小单元、`XMenuInt.h` 的 Xlib 边，以及 lane 的 `haikuselect` 整文件（2026-10-05）**：
+  ① **我这一半（集成者直接写）**：`oldXMenu/{SetAEQ,SetFrz,SetPane,SetSel,insque}.c`（C 48/47/62/69/57）从 3 行骨架
+     落成 **58/58/81/80/97** 行的端口；文件门 `feature = "have_x_windows"`（P-86 ⑧：`oldXMenu/Makefile.in` 的
+     `OBJS` 块无条件列出这些对象、`configure.ac` 7287-7295 决定整个库是否存在，**参照文本自己没有宏**）；五份台账
+     各带 `## C line ranges`（3/3/3/3/6 行，覆盖整个参照文件；`check-dead-file-coverage` 116 台账 / **0 failure**）。
+  ② **本轮真正的收获是镜像那一刀**：`oldXMenu/include/XMenuInt.rs` 补上它自己 C 46 的边
+     `include!("../../src/include/xlib.rs")`（P-90 ①）。此前 `X10.rs`/`XMenu.rs`/`XMenuInt.rs` 把
+     `Display`/`XID`/`Window`/`Pixmap`/`GC`/`XEvent`/`Cursor` 写成"留给用到这个头的单元提供"，**而单元在 crate 根提供的
+     名字进不了 `include!` 那个嵌套模块的作用域** ⇒ 臂读数里一大半错落在镜像自己的正文上。补边后：`insque` 臂
+     **247 → 4**、`SetAEQ` **121 → 4**（另四件同为 4），已落单元 `Internal` 的同一读数 **54**。剩下那 4 条是**同一个名字**：
+     `E0425 cannot find type XFontStruct`（`oldXMenu/include/XMenu.rs` 274/288——XMenu.h 自己的公开 API 用它），
+     **这是 `include/xlib.rs` 的欠账**，已写进五份台账的 `## Owed`。
+  ③ **两条自伤教训（照实记）**：⑴ `#[unsafe(no_mangle)]` **中间不能有空格**——第一版我按 `#[cfg (feature = …)]` 的风格
+     写成 `#[unsafe (no_mangle)]`，`extract-abi --check` 立刻报 `function XMenuSetAEQ is not static in C but has no
+     #[unsafe(no_mangle)] in the port`，改成无空格后五件全 **OK**；⑵ `check-declarations` 把 insque 头注释里的
+     "the … licence" 判成 `recital`（1 forbidden / 1 failure），改写措辞后全树回到 **0 forbidden / 0 failures**。
+  ④ **读数（逐条实测）**：`build-tu` 五件各 exit 0、对象各 **336 字节**（P-08 空对象）；臂
+     `--cfg 'feature="have_x_windows"'` 五发各 **4 条 = 4 × `E0425 XFontStruct`**；`extract-abi --check` 五件 **OK**
+     （各自的 `line count drifted` 由本提交的 5 条容差行收掉）；`check-declarations` 17/0/0、`check-citations` 676 文件
+     0 drift 0 stale、`check-mirror-dupes` 17/17/0、`check-ledger-ticks` 233/0、`check-port-lines` 21 文件 / 25 棘轮 /
+     0 new / 4 stale、`check-target-names` 591 目标 / 0 finding。
+  ⑤ **lane 那一半（Linnaeus，`src/haikuselect.c` 整文件）**：`femacs/src/haikuselect.rs` 11 → **1,660** 行、台账
+     24 → **310** 行；37 行区间表覆盖 C 1-1450；文件门 `have_haiku`（67 个项 / 76 个 `#[cfg]`）压在每个项与整张 include
+     图上；冻结 `build-tu` exit 0 / **336 字节**；臂（`have_haiku`+`have_window_system`+`have_ext_menu_bar`）
+     **单元侧 0 错**，唯一一条在 `include/systime.rs` 28 的 HAIKU 断言（既有欠账）；注入变异证明读数不空跑；
+     15 个函数（7 个 `static`）/9 个 `DEFUN`/4 个文件级对象/15 个 `DEFSYM`/9 个 `defsubr` 按 C 落全。它同时点名四条
+     真缺陷（`lread.rs` 1059 的 `continue` 在 `FOR_EACH_TAIL!` 里会死循环、`include/lisp.rs` 3761 的 `VaList` 要 1.99+、
+     `include/blockinput.rs` 24 的 ABI、`check-dead-file-coverage.py` 对 `src/include/` 目标的台账命名），**都记进各自
+     台账，本提交不动别人的文件**。
+  ⑥ **集成者登记**：`line-drift-tolerance.tsv` 加 6 行（五件 XMenu + `haikuselect`）；`check-port-lines.py --write-pending`
+     从 25 行 → **21 行 / 23,883 参照行**（`gmalloc`/`haikuselect`/`pgtkselect`/`w32uniscribe` 四行退出——**前三条是还在飞的
+     lane，行数还会动**，如实记）；`port-map.md` 重新生成，三条在飞 lane 的行手工回退成已提交值，只留本轮落地的那几行。
+  ⑦ **未声称**：XMenu 五件的臂读数**不是构建、更不是运行**（本机没有 X11 窗系统，整库没有链接）；那 4 条 `XFontStruct`
+     说明这五个单元**今天还进不了完整整板编译**；`haikuselect` 没有任何 Haiku 编译/运行证据（本机无 Haiku SDK），
+     所有 Haiku 宽度与常量值一律 **UNVERIFIED**。**预算**：`build-tu` 10 发（五件 × 冻结 + 复读）、`probe` 12 发
+     （五件 × 两轮）、文本门 2 轮全跑；未跑 `xtask --all`/`gate-fast`/`cargo test`/`dead-arms`/`check-all-units.sh`
+     ——本轮**没碰** `femacs/{src,lib}/include/**`，动的是 `oldXMenu/include/**`，它的受影响集就是六个 oldXMenu 单元，
+     已逐条探过；`/tmp/f548` 收工删。

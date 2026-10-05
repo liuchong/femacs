@@ -29,7 +29,15 @@
 /* C 38's `#include <config.h>`, C 40's `#include <attribute.h>` and C 45's
    `#include <stdio.h>`: this header uses nothing from any of them (the C comment below says
    why `<stdio.h>` is there at all), so none of their mirrors is pulled in (PORTING.md P-26).
-   C 46's `#include <X11/Xlib.h>` has no mirror.  */
+   C 46's `#include <X11/Xlib.h>` is `include/xlib.rs` now.  */
+/* P-90 clause 1: the X11 surface is one mirror, not a per-unit guess.  Until this line existed the
+   three records below spelled `Display`, `XID`, `Window`, ... as names "left for the unit that
+   eventually uses this header to supply", and a unit that did supply them (oldXMenu/Internal.rs 58,
+   the five `SetAEQ`-class units) read dozens of `E0425 cannot find type` rows in this header's own
+   text because a name declared at a unit's crate root is not in scope inside the nested module that
+   `include!`s this file.  With the mirror reachable from here, the arm reads the mirror's measured
+   records.  */
+include!("../../src/include/xlib.rs");  // XMenuInt.h 46: `#include <X11/Xlib.h>`
 include!("X10.rs");   // XMenuInt.h 47: `#include "X10.h"`
 include!("XMenu.rs"); // XMenuInt.h 48: `#include "XMenu.h"`
 
