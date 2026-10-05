@@ -97,6 +97,10 @@ android_api_le_30                          = []  # the derived condition `__ANDR
 android_api_lt_21                          = []  # the port's name for the *other* arm of android.c 972's `#if __ANDROID_API__ >= 21`
 no_value                                   = []  # the derived condition `!defined HAVE_X_WINDOWS && defined (NoValue)` (frame.c 6538; `NoValue` is the non-X `*gui.h` constant)
 mingw_w64                                  = []  # MINGW_W64 (w32fns.c 38 `#if !defined MINGW_W64 && !defined CYGWIN`, 63 `# ifndef MINGW_W64`)
+unicode                                    = []  # _UNICODE (w32.c 385's `#ifdef _UNICODE`, the `…W`/`…A` name pair)
+win32_winnt_lt_0501                        = []  # the derived condition `_WIN32_WINNT < 0x0501` (w32.c 248/552, the iphlpapi level raise and the console font arm)
+mingw32_w32api_ge_5_2                      = []  # the derived condition `__MINGW32_MAJOR_VERSION >= 5 && __MINGW32_MINOR_VERSION >= 2` (w32.c 553, the `CONSOLE_FONT_INFO` arm)
+mingw32_w32api_lt_3_15                     = []  # the derived condition `__MINGW32_MAJOR_VERSION < 3 || (== 3 && __MINGW32_MINOR_VERSION < 15)` (w32.c 141, the old-SDK `PROCESS_MEMORY_COUNTERS_EX` arm)
 win32_windows_ge_0410                      = []  # the derived condition `_WIN32_WINDOWS >= 0x0410` (w32fns.c 167)
 have_gif                                   = []  # HAVE_GIF (image.c 244 `#if defined (HAVE_WEBP) || defined (HAVE_GIF)`)
 have_imagemagick                           = []  # HAVE_IMAGEMAGICK (image.c 104 `#if defined HAVE_PGTK && defined HAVE_IMAGEMAGICK`)

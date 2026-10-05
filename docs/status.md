@@ -7542,3 +7542,35 @@
      并保留 ① ② 两条纪律（加带门边前先确认目标有无门路径；被咬先按 ② 绕开）。
   ⑤ **未声称**：本改动只让"带门边不再抢位"，**不声称**任何配置可运行；P-87 两腿是冻结构建，它不覆盖被门挡住的文本；
      上面那个 4,784 字节对象**从未运行**。
+
+- **3.430 w32 切片 1（C 1-1197）：SDK 装载、安全描述符与系统时间（2026-10-05）**：
+  ① **区间**：C 1-1197（收在 `get_system_times` 的 `}`）；**下一个活定义 = C 1199 `create_symbolic_link`**。
+     文件门是 **`feature = "windowsnt"`（不是 `have_ntgui`）**：`configure.ac` 3051 只在非 Cygwin 臂把 `w32.o`
+     放进 `W32_OBJ`，而 `nt/inc/ms-w32.h` 正是 `#define WINDOWSNT` 的地方；门下到整条 include 图（P-86 ⑧）。
+     56 行区间表连续覆盖 C 1-11,362；本片含 44 个 `g_b_init_*`、约 100 个 SDK 入口 typedef、
+     `w32_get_internal_run_time`（唯一导出定义）与 18 个 security-descriptor helper。
+  ② **行数**：`femacs/src/w32.rs` **15 → 1,846**；台账 `docs/ports/w32.md` 24 → **350**。
+  ③ **读数**：⑴ 冻结 `build-tu` **exit 0 / 336 字节空对象**（4 发，**超预算 1**；首发是注释里
+     `include/*.rs` 打开 Rust 嵌套块注释的 `E0758`——真缺陷，已修）；⑵ **`windowsnt` 臂**：修正本单元那条
+     `ltime` 引用后 **111 个错误站点全部在镜像**（socket 70 / ms-w32 17 / signal 14 / errno 13 / fcntl 6 /
+     dirent 5 / dispextern 4 / time 4 …），**本单元与 `include/w32.rs` 各 0 条**；⑶ 打桩预检 harness
+     **exit 0 / 0 error / 15,224 字节对象** + **2 条变异测试**（`== 0`→`== "x"`、`LoadLibrary (1)` 都 exit 1）；
+     ⑷ `extract-abi --check` **277 → 271 行**（集成者补 2 行 token-aliases + 2 行 excluded-macros 后；
+     余下 4 条 `missing macro` 是 remainder 里的 `DIR_FIND_DATA_A/W`、`DRIVE_INDEX`、`FILETIME_TO_U64`）；
+     漂移 83.8%；⑸ `check-dead-file-coverage` **23 ledger / 0 failure**（覆盖 `w32.c` 11,362 行与 `w32.h` 273 行）。
+  ④ **真缺陷（7 条）**：注释里的 `include/*.rs` 触发 `E0758`；缺 `LPFILETIME`/`LPMEMORYSTATUS`（10 处 E0425）；
+     漏 `get_process_times_fn`（C 383）；`c_longlong` 不在 lisp.rs 的 use 名单（改 `i64`）；三处 C 隐式转换与
+     `(-1 as c_int) as DWORD`（`-1 as DWORD` 直接 `E0600`）；`REPARSE_DATA_BUFFER.DUMMYUNIONNAME` 要按 C 拼写；
+     归属注释里的"不是 licence 块"触发 `recital` 类（改中性表述）。
+  ⑤ **集成者本轮替它落的账**：`femacs/xtask/Cargo.toml` 补 **4 个门名**（`unicode`、`win32_winnt_lt_0501`、
+     `mingw32_w32api_ge_5_2`、`mingw32_w32api_lt_3_15`）；`docs/ports/excluded-macros.txt` 两行
+     （`DEFER_MS_W32_H`、`ORIG_WIN32_WINNT`，皆 kind=config）；`docs/ports/token-aliases.tsv` 两族
+     （`wchar_t`→`c_ushort`；`NULL`→`None`/`is_none ()`/`is_some ()`/`null_mut`/`is_null`）；
+     **`include/w32.rs` 的 4 项声明模块化**（`w32_objs`/`w32_fn_decls` + glob 导入，`window.rs` 302-367 形状）
+     ⇒ 臂里那 4 条 `E0428` 消失。
+  ⑥ **未解决（点名）**：上面 111 条镜像错各自的镜像轮（socket 那 70 条尤其大，且各头自己的台账要写）；
+     9 条 SDK 记录的布局断言需 mingw 工具链；`SYSTEM_INFO`/`OSVERSIONINFO` 与 `w32common.rs`/`w32fns.rs` 的
+     推迟决定要调和 + PORTING.md §11 条目；`check-cond-eval` 对该文件仍 `[NOT VERIFIED]`（35 条件 / 5 unknown）。
+  ⑦ **未声称**：**零运行证据**（没有 `LoadLibrary`/`GetVersionEx`/注册表/套接字/文件调用，没有 Windows 目标编译、
+     没有布局实测）；打桩 harness 的对象**从未运行**，变异测试只证明 harness 真的在编本单元正文；
+     C 1198-11,362 **未移植**（271 行读数与 83.8% 漂移是那条边界）。

@@ -361,9 +361,6 @@ pub type WideCharToMultiByte_Proc
 /// C: extern WideCharToMultiByte_Proc pWideCharToMultiByte;
 /// C: extern DWORD multiByteToWideCharFlags;
 unsafe extern "C" {
-  pub static mut pMultiByteToWideChar: MultiByteToWideChar_Proc;
-  pub static mut pWideCharToMultiByte: WideCharToMultiByte_Proc;
-  pub static mut multiByteToWideCharFlags: c_ulong;
 
   /// C 195-197: the executable's own name, the relocation table and the `realpath` the Windows
   /// build provides (the name is also declared by the port's system mirrors, hence the feature -
@@ -416,7 +413,6 @@ unsafe extern "C" {
   pub fn filename_to_ansi (fn_in: *const c_char, fn_out: *mut c_char) -> c_int;
   pub fn filename_from_utf16 (fn_in: *const c_ushort, fn_out: *mut c_char) -> c_int;
   pub fn filename_to_utf16 (fn_in: *const c_char, fn_out: *mut c_ushort) -> c_int;
-  pub fn w32_get_internal_run_time () -> Lisp_Object;
   pub fn w32_init_file_name_codepage ();
   pub fn codepage_for_filenames (cp_info: *mut c_void) -> c_int;
   pub fn ansi_encode_filename (filename: Lisp_Object) -> Lisp_Object;
@@ -495,6 +491,31 @@ unsafe extern "C" {
   pub fn w32_reexec_emacs (cmd_line: *mut c_char, wdir: *const c_char) -> c_int;
   pub fn free_wait_pool ();
 }
+
+/* C 207-217's `w32_get_internal_run_time` is defined by `src/w32.c`, so its declaration sits in
+   a glob-imported module for the same reason as `w32_objs` above.  */
+pub mod w32_fn_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn w32_get_internal_run_time () -> Lisp_Object;
+  }
+}
+use w32_fn_decls::*;
+
+/* C 191-193's three objects live in a module with a glob import, because `src/w32.c` *defines*
+   them: a crate-root definition shadows a glob import, so the unit is not an `E0428` against the
+   mirror's declaration (the `window.rs` 302-367 shape, P-21; docs/ports/include-w32.md owed 4).  */
+pub mod w32_objs {
+  use super::*;
+
+  unsafe extern "C" {
+    pub static mut pMultiByteToWideChar: MultiByteToWideChar_Proc;
+    pub static mut pWideCharToMultiByte: WideCharToMultiByte_Proc;
+    pub static mut multiByteToWideCharFlags: c_ulong;
+  }
+}
+use w32_objs::*;
 
 /// C 269-277: the `HAVE_GNUTLS` arm - dead text on this target (the feature macro is `undef`),
 /// carried under the feature that names the other side (PORTING.md P-51).  C's
