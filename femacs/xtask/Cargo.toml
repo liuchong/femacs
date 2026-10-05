@@ -151,6 +151,7 @@ android_api_le_11                          = []  # the derived condition `__ANDR
 android_api_le_30                          = []  # the derived condition `__ANDROID_API__ <= 30` (androidselect.c 478)
 android_api_lt_21                          = []  # the port's name for the *other* arm of android.c 972's `#if __ANDROID_API__ >= 21`
 android_api_ge_9                            = []  # the derived condition `__ANDROID_API__ >= 9` (androidvfs.c 46's arm, the asset-manager half)
+alloc_xpm_colors                           = []  # ALLOC_XPM_COLORS (image.c 5993-5995's derivation: `!defined HAVE_NS || defined NS_IMPL_COCOA`)
 bufsize                                    = []  # BUFSIZE (src/termcap.c 43's `#ifndef BUFSIZE`; C 49's fallback is 2048)
 ft_load_target_mono                        = []  # FT_LOAD_TARGET_MONO (src/ftfont.c 1675-1679)
 have_com_err_h                             = []  # HAVE_COM_ERR_H

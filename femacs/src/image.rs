@@ -20,9 +20,10 @@
 // table (P-86 ②), the readings of this round (`## Evidence`) and the per-`#if` verdicts
 // (`## Deviations`).
 //
-// **Three slices are ported: C 1-1095, C 1096-2211 and C 2212-3550** (the file is 13,805
-// lines).  **The next live definition is `lookup_image` (C 3556)** - the next slice's first item;
-// C 3550 closes the transformation gate the third slice's `image_set_transform` sits in.  The
+// **Five slices are ported: C 1-1095, C 1096-2211, C 2212-3550, C 3552-4623 and C 4620-6161**
+// (the file is 13,805 lines).  **The next live definition is `xpm_valid_color_symbols_p`
+// (C 6213)**, after the `HAVE_XPM || HAVE_NS || HAVE_PGTK || HAVE_ANDROID` prototype pair at
+// C 5913-5919.  The
 // first slice (C 1-1095) ends at the `}` of `image_create_bitmap_from_file` (C 1095) and holds:
 // the include graph and the
 // per-platform macro/type sections (C 20-222), the forward-declaration block (C 224-246), the six
@@ -95,6 +96,12 @@ include!("../lib/include/limits.in.rs");       // C 295/636/790: `CHAR_BIT`
 include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcountof.h>` (`countof`)
 #[cfg (feature = "have_window_system")]
 include!("include/lisp.rs");                   // C 41: `#include "lisp.h"`
+/* lisp.h 41 is its `byteswap` include (`#include <byteswap.h>`), whose `bswap_32` this file's
+   `canvas_apply_data` (C 5592/5651) reads.  The mirror that owns C 41's chain
+   (`include/lisp.rs`) does not carry the edge yet, so it stands here at the C position - the
+   P-90 ③ shape the cairo edge above uses.  */
+#[cfg (feature = "have_window_system")]
+include!("../lib/include/byteswap.in.rs");     // lisp.h 41: `byteswap` (`bswap_32`)
 #[cfg (feature = "have_window_system")]
 include!("../lib/include/mini-gmp.rs");        // lisp.h's `bignum.h` chain (`bignum.rs`'s members)
 #[cfg (feature = "have_window_system")]
@@ -1260,16 +1267,9 @@ pub type image_fd = c_int;
    slice - `slurp_file` (C 4529), `image_find_image_fd` (C 4457) and `xbm_read_bitmap_data`
    (C 5080).  The first slice calls them from its platform arms, so the declarations were kept
    here (C's own signature, in a `/// C:` line) until their slices land.  The fourth slice's
-   C 4457 and C 4529 **are** the definitions of the first two, so those two prototypes are
-   dropped (PORTING.md 0.1-12) and only C 751-752's stays.  */
-// C: C 751-752: `static bool xbm_read_bitmap_data (struct frame *, char *, char *, int *, int *, char **, bool);`
-#[cfg (all (feature = "have_window_system", any (feature = "have_haiku", feature = "have_ns", feature = "have_pgtk",
-            feature = "have_android", feature = "have_ntgui")))]
-unsafe extern "C" {
-  pub fn xbm_read_bitmap_data (f: *mut frame, contents: *mut c_char, end: *mut c_char,
-                               width: *mut c_int, height: *mut c_int, data: *mut *mut c_char,
-                               inhibit_image_error: bool) -> bool;
-}
+   C 4457 and C 4529 **are** the definitions of the first two and the fifth slice's C 5080 is
+   `xbm_read_bitmap_data`'s, so all three prototypes are dropped (PORTING.md 0.1-12) and the
+   definitions keep C's place.  */
 
 /* Create bitmap from file FILE for frame F.  */
 
@@ -2126,14 +2126,11 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn x_free_colors (f: *mut frame, pixels: *mut c_ulong, npixels: c_int);
 }
-// C: C 126-127: `static void canvas_prepare_for_display (struct frame *, struct image *);` - the
-// first slice dropped C's prototype pair because its definition was outside that slice; this
-// slice's `prepare_image_for_display` is the call, so the declaration stands here until C 2438's
-// definition lands (the same commit deletes it).
-#[cfg (feature = "have_window_system")]
-unsafe extern "C" {
-  pub fn canvas_prepare_for_display (f: *mut frame, img: *mut image);
-}
+// C 126-127: `static void canvas_prepare_for_display (struct frame *f, struct image *img);` /
+// `static void canvas_free_unused (void);` - the first slice dropped C's prototype pair because
+// their definitions were outside it, and the two declarations `prepare_image_for_display` and
+// `clear_image_caches` call stood here until the fifth slice's C 5742 / C 5535 landed them
+// (PORTING.md 0.1-12).  The file's canvas-section note carries the same pair.
 // C: dispextern.h 3760-3766: `# define RGB_PIXEL_COLOR unsigned long` (C 3762) and the
 // `HAVE_NTGUI` arm `# define RGB_PIXEL_COLOR COLORREF` (C 3766).  Mirror gap; the `haikuterm.rs`
 // 202-207 shape.  `COLORREF` is `<windows.h>`'s and no mirror declares it (the ledger's
@@ -3729,11 +3726,6 @@ unsafe extern "C" {
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
   pub fn clear_current_matrices (f: *mut frame);
-}
-/// C: C 127: `static void canvas_free_unused (void);`
-#[cfg (feature = "have_window_system")]
-unsafe extern "C" {
-  pub fn canvas_free_unused ();
 }
 /// C: math.h 1172-1173: `extern float sinf (float __x) __THROW;` / `extern float cosf (float __x) __THROW;`
 /// `lib/include/math.rs` carries the `double` family only; this file's `HAVE_ANDROID` arm is their
@@ -6180,3 +6172,2250 @@ unsafe fn slurp_image (filename: Lisp_Object, size: *mut ptrdiff_t, image_type: 
   return result;
 }
 
+
+/* ----------------------------------------------------------------------------------------------
+   C 4620-6161: the file's fifth slice.
+
+   It holds the "XBM images" banner (C 4620-4622), C 4624's `static bool xbm_file_p (Lisp_Object);`
+   prototype (dropped: PORTING.md 0.1-12 - its definition is C 5301, inside this slice), the
+   `xbm_keyword_index`/`xbm_token` enums and the `xbm_format` table (C 4629-4679), `xbm_image_p`
+   (C 4710-4797), `xbm_scan` (C 4805-4934), the `HAVE_NTGUI` pair
+   `w32_create_pixmap_from_bitmap_data` (C 4938-4969) and `convert_mono_to_color_image`
+   (C 4971-5001), `Create_Pixmap_From_Bitmap_Data` (C 5005-5066), `xbm_read_bitmap_data`
+   (C 5076-5216), `xbm_load_image` (C 5238-5295), `xbm_file_p` (C 5300-5308) and `xbm_load`
+   (C 5313-5451); the "Canvas" banner (C 5453-5456), the `canvas_keyword_index` enum and
+   `canvas_format` table (C 5460-5492), the `canvas_map`/`canvas_list` objects (C 5502-5509),
+   `canvas_parse` (C 5520-5520 + C 5522-5530), `canvas_image_p` (C 5525-5529), `canvas_free_unused`
+   (C 5533-5558), `canvas_apply_data` (C 5566-5659), `canvas_get` (C 5662-5710), `canvas_load`
+   (C 5713-5737), `canvas_prepare_for_display` (C 5740-5849), `canvas_data` (C 5853-5864) and
+   `DEFUN ("canvas-refresh")` (C 5866-5906); and the XPM section's head (C 5909-6161): the banner,
+   C 5913-5919's prototype pair (dropped: both definitions are C 6635/6704's region, outside this
+   slice), C 5921-5942's `<X11/xpm.h>` (the P-88 declaration section), C 5944-5984's
+   `xpm_keyword_index`/`xpm_format`, C 5986-5996's `ALLOC_XPM_COLORS` derivation and C 5998-6161's
+   colour cache (`xpm_cached_color` and the seven functions).
+
+   The per-`#if` verdicts, the C line-range rows and this round's readings are in
+   `docs/ports/image.md` (`## C line ranges`, `## Evidence`, `## Deviations`).  Names the mirrors
+   this unit includes do not carry stand at the use site with C's own prototype in a `/// C:` line
+   (PORTING.md P-55/P-72 rule 3); names the platform SDKs supply (`<X11/Xlib.h>`, `<X11/xpm.h>`,
+   Xrender, cairo, `<windows.h>`, Haiku's `<Bitmap.h>`, the NDK) keep C's tokens or, where the
+   header has no file in the reference tree, carry the P-88 section.
+   ---------------------------------------------------------------------------------------------- */
+
+/***********************************************************************
+			      XBM images
+ ***********************************************************************/
+
+/* C 4624: `static bool xbm_file_p (Lisp_Object);` - a `static` prototype whose definition is
+   C 5301's, *inside* this slice, so C's prototype-plus-definition pair in one translation unit is
+   dropped (PORTING.md 0.1-12) and the definition keeps C's place.  */
+
+/* Indices of image specification fields in xbm_format, below.  */
+
+/* C 4629-4647: `enum xbm_keyword_index` - the port's `c_int` type plus one constant per member
+   (`image_value_type`'s C 1461-1477 shape).  */
+/// C: C 4629-4647: `enum xbm_keyword_index`
+#[cfg (feature = "have_window_system")]
+pub const XBM_TYPE: c_int = 0;
+#[cfg (feature = "have_window_system")]
+pub const XBM_FILE: c_int = 1;
+#[cfg (feature = "have_window_system")]
+pub const XBM_WIDTH: c_int = 2;
+#[cfg (feature = "have_window_system")]
+pub const XBM_HEIGHT: c_int = 3;
+#[cfg (feature = "have_window_system")]
+pub const XBM_STRIDE: c_int = 4;
+#[cfg (feature = "have_window_system")]
+pub const XBM_DATA: c_int = 5;
+#[cfg (feature = "have_window_system")]
+pub const XBM_FOREGROUND: c_int = 6;
+#[cfg (feature = "have_window_system")]
+pub const XBM_BACKGROUND: c_int = 7;
+#[cfg (feature = "have_window_system")]
+pub const XBM_ASCENT: c_int = 8;
+#[cfg (feature = "have_window_system")]
+pub const XBM_MARGIN: c_int = 9;
+#[cfg (feature = "have_window_system")]
+pub const XBM_RELIEF: c_int = 10;
+#[cfg (feature = "have_window_system")]
+pub const XBM_ALGORITHM: c_int = 11;
+#[cfg (feature = "have_window_system")]
+pub const XBM_HEURISTIC_MASK: c_int = 12;
+#[cfg (feature = "have_window_system")]
+pub const XBM_MASK: c_int = 13;
+#[cfg (feature = "have_window_system")]
+pub const XBM_DATA_WIDTH: c_int = 14;
+#[cfg (feature = "have_window_system")]
+pub const XBM_DATA_HEIGHT: c_int = 15;
+#[cfg (feature = "have_window_system")]
+pub const XBM_LAST: c_int = 16;
+
+/* Rust requires an immutable `static`'s type to be `Sync`, and a raw pointer is not; C's
+   `struct image_keyword` is immutable data (every `name` points at a string literal in this
+   unit), so the port states that with an explicit impl - the same reason the three tables below
+   stay ordinary `static`s rather than becoming `static mut` (`src/font.rs` 529's `table_entry`
+   impl).  */
+#[cfg (feature = "have_window_system")]
+unsafe impl Sync for image_keyword {}
+
+/* Vector of image_keyword structures describing the format
+   of valid XBM image specifications.  */
+
+/* C 4649-4669: the table.  C's initialisers name three of the record's five members, so the
+   trailing `count`/`value` are C's implicit zeros written out (PORTING.md 1.5).  */
+/// C: C 4652-4653: `static const struct image_keyword xbm_format [XBM_LAST]`
+#[cfg (feature = "have_window_system")]
+static xbm_format: [image_keyword; XBM_LAST as usize] =
+[
+  image_keyword { name: c":type".as_ptr (), r#type: IMAGE_SYMBOL_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":file".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":width".as_ptr (), r#type: IMAGE_POSITIVE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":height".as_ptr (), r#type: IMAGE_POSITIVE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":stride".as_ptr (), r#type: IMAGE_POSITIVE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":foreground".as_ptr (), r#type: IMAGE_STRING_OR_NIL_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":background".as_ptr (), r#type: IMAGE_STRING_OR_NIL_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":ascent".as_ptr (), r#type: IMAGE_ASCENT_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":margin".as_ptr (), r#type: IMAGE_NON_NEGATIVE_INTEGER_VALUE_OR_PAIR,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":relief".as_ptr (), r#type: IMAGE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":conversion".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":heuristic-mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data-width".as_ptr (), r#type: IMAGE_POSITIVE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data-height".as_ptr (), r#type: IMAGE_POSITIVE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+];
+
+/* Tokens returned from xbm_scan.  */
+
+/* C 4674-4679: `enum xbm_token` - the port's `c_int` constants.  */
+/// C: C 4674-4679: `enum xbm_token`
+#[cfg (feature = "have_window_system")]
+pub const XBM_TK_IDENT: c_int = 256;
+#[cfg (feature = "have_window_system")]
+pub const XBM_TK_NUMBER: c_int = 257;
+#[cfg (feature = "have_window_system")]
+pub const XBM_TK_OVERFLOW: c_int = 258;
+
+/* Return true if OBJECT is a valid XBM-type image specification.
+   A valid specification is a list starting with the symbol `image'.
+   The rest of the list is a property list which must contain an
+   entry `:type xbm'.
+
+   If the specification specifies a file to load, it must contain
+   an entry `:file FILENAME' where FILENAME is a string.
+
+   If the specification is for a bitmap loaded from memory it must
+   contain `:data-width WIDTH', `:data-height HEIGHT', and `:data DATA',
+   where WIDTH and HEIGHT are integers > 0.  DATA may be:
+
+   1. a string large enough to hold the bitmap data, i.e. it must
+   have a size >= (WIDTH + 7) / 8 * HEIGHT
+
+   2. a bool-vector of size >= WIDTH * HEIGHT
+
+   3. a vector of strings or bool-vectors, one for each line of the
+   bitmap.
+
+   4. a string containing an in-memory XBM file.
+
+   Both the file and data forms may contain the additional entries
+   `:background COLOR' and `:foreground COLOR'.  If not present,
+   the foreground and background of the frame on which the image is
+   displayed are used.  */
+
+/// C: C 4710-4711: `static bool xbm_image_p (Lisp_Object object)`
+#[cfg (feature = "have_window_system")]
+unsafe fn xbm_image_p (object: Lisp_Object) -> bool
+{
+  /* C's `struct image_keyword kw[XBM_LAST];` filled by the `memcpy` below - zeroed first
+     (PORTING.md 1.5/0.1-13).  */
+  let mut kw: [image_keyword; XBM_LAST as usize] = core::mem::zeroed ();
+
+  /* C's `memcpy (kw, xbm_format, sizeof kw);`.  */
+  memcpy (kw.as_mut_ptr () as *mut c_void, xbm_format.as_ptr () as *const c_void,
+	  core::mem::size_of::<[image_keyword; XBM_LAST as usize]> ());
+  if !parse_image_spec (object, kw.as_mut_ptr (), XBM_LAST, Qxbm ())
+    { return false; }
+
+  eassert! (EQ (kw [XBM_TYPE as usize].value, Qxbm ()));
+
+  if kw [XBM_FILE as usize].count
+    {
+      if kw [XBM_DATA as usize].count
+	{ return false; }
+    }
+  else if ! (kw [XBM_DATA as usize].count && xbm_file_p (kw [XBM_DATA as usize].value))
+    /* Not an in-memory XBM file.  */
+    {
+      let data: Lisp_Object;
+      let mut width: c_int;
+      let mut height: c_int;
+      let stride: c_int;
+
+      /* Entries for `:data-width', `:data-height', and `:data' must be
+	 present.  */
+      if !kw [XBM_DATA_WIDTH as usize].count
+	  || !kw [XBM_DATA_HEIGHT as usize].count
+	  || !kw [XBM_DATA as usize].count
+	{ return false; }
+
+      data = kw [XBM_DATA as usize].value;
+      width = XFIXNAT (kw [XBM_DATA_WIDTH as usize].value) as c_int;
+      height = XFIXNAT (kw [XBM_DATA_HEIGHT as usize].value) as c_int;
+
+      if !kw [XBM_STRIDE as usize].count
+	{ stride = width; }
+      else
+	{ stride = XFIXNAT (kw [XBM_STRIDE as usize].value) as c_int; }
+
+      /* Check type of data, and width and height against contents of
+	 data.  */
+      if VECTORP (data)
+	{
+	  let mut i: EMACS_INT;
+
+	  /* Number of elements of the vector must be >= height.  */
+	  if ASIZE (data) < height as isize
+	    { return false; }
+
+	  /* Each string or bool-vector in data must be large enough
+	     for one line of the image.  */
+	  i = 0;
+	  while i < height as EMACS_INT
+	    {
+	      let elt: Lisp_Object = AREF (data, i as isize);
+
+	      if STRINGP (elt)
+		{
+		  if SCHARS (elt) < (stride / CHAR_BIT) as isize
+		    { return false; }
+		}
+	      else if BOOL_VECTOR_P (elt)
+		{
+		  if bool_vector_size (elt) < width as EMACS_INT
+		    { return false; }
+		}
+	      else
+		{ return false; }
+	      i += 1;
+	    }
+	}
+      else if STRINGP (data)
+	{
+	  if SCHARS (data) < (stride / CHAR_BIT * height) as isize
+	    { return false; }
+	}
+      else if BOOL_VECTOR_P (data)
+	{
+	  /* C's `height > 1 && stride != (width + CHAR_BIT - 1) / CHAR_BIT * CHAR_BIT`.  */
+	  if height > 1
+	      && stride != (width + CHAR_BIT - 1) / CHAR_BIT * CHAR_BIT
+	    { return false; }
+
+	  if bool_vector_size (data) / (height as EMACS_INT) < stride as EMACS_INT
+	    { return false; }
+	}
+      else
+	{ return false; }
+    }
+
+  return true;
+}
+
+/* The names this slice calls that the mirrors this unit includes do not carry, declared at the
+   use site with C's own line (PORTING.md P-55/P-72 rule 3); `docs/ports/image.md` names the file
+   each belongs in, and the same commit that lands a definition deletes its copy here.  */
+
+/* `<stdio.h>`'s `BUFSIZ`: C 4807's `sval_end` and C 5095's `buffer` are its two readers, and
+   `lib/include/stdio.rs` does not carry it.  The value is the one this machine's `<stdio.h>`
+   measures (clang: **1024**; the `androidselect.rs` 95 shape).  */
+/// C: C 4807: `char *sval_end = sval + BUFSIZ;` - the first reader.
+#[cfg (feature = "have_window_system")]
+pub const BUFSIZ: c_int = 1024;
+
+/* C 231-232's two `static` prototypes (`init_color_table`, `lookup_rgb_color`) and C 234-235's
+   pair (`free_color_table`, `colors_in_color_table`, behind C 169-173's derived
+   `COLOR_TABLE_SUPPORT`) - the first slice dropped all four because their definitions are
+   outside it (PORTING.md 0.1-12).  Their definitions are C 7172-7395, still outside this slice,
+   so the four are declared here (P-91 ④: the same file's `static`, C line known, definition not
+   yet ported) and each declaration disappears with the slice that lands C 7150-7395.  */
+// C: C 231: `static void init_color_table (void);` - the definition is C 7172-7177's.
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe extern "C" {
+  pub fn init_color_table ();
+}
+// C: C 234: `static void free_color_table (void);` - the definition is C 7183-7197's.
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe extern "C" {
+  pub fn free_color_table ();
+}
+// C: C 232: `static unsigned long lookup_rgb_color (struct frame *f, int r, int g, int b);` -
+// the definitions are C 7206-7290's (and its two other arms at C 7379/7393).  The gate is the
+// union of this slice's call sites: `Create_Pixmap_From_Bitmap_Data`'s cairo, X and Android arms
+// and `canvas_prepare_for_display`'s X, Android and `#else` arms - the last of which is C 5856's
+// "every other platform", i.e. `not (use_cairo || have_x_windows || have_android || have_ns)`.
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "use_cairo", feature = "have_x_windows", feature = "have_android",
+		 not (any (feature = "use_cairo", feature = "have_x_windows",
+			   feature = "have_android", feature = "have_ns")))))]
+unsafe extern "C" {
+  pub fn lookup_rgb_color (f: *mut frame, r: c_int, g: c_int, b: c_int) -> c_ulong;
+}
+
+/* The mirror gaps this slice's XPM half reads, each with the file that owns it.  */
+// C: xterm.h 391: `extern Status x_parse_color (struct frame *, const char *, XColor *);` - the
+// definition is `xterm.c`'s; `include/xterm.rs` does not carry the declaration.  `Status` is
+// `<X11/Xlib.h>`'s `int`.
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe extern "C" {
+  pub fn x_parse_color (f: *mut frame, color_name: *const c_char, color: *mut XColor) -> c_int;
+}
+// C: lisp.h 4249: `EMACS_UINT hash_char_array (char const *, ptrdiff_t);` - the definition is
+// `fns.c` 5349's; `include/lisp.rs` does not carry the declaration.
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe extern "C" {
+  pub fn hash_char_array (ptr: *const c_char, len: ptrdiff_t) -> EMACS_UINT;
+}
+// C: dispextern.h 3635: `extern void redraw_image_glyphs (Lisp_Object);` - the definition is
+// `xdisp.c`'s; `include/dispextern.rs` does not carry the declaration.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn redraw_image_glyphs (spec: Lisp_Object);
+}
+
+/* The three Xlib entry points this slice (and the fourth slice's `x_create_x_image_and_pixmap`)
+   call and that `include/xlib.rs` does not carry: Xlib.h 1437-1447's `XCreateImage`, Xlib.h
+   1593-1600's `XCreatePixmap` and Xlib.h 1607-1616's `XCreatePixmapFromBitmapData`.  The
+   declarations belong in that mirror; the ledger names them.  */
+// C: Xlib.h 1437-1447: `extern XImage *XCreateImage (Display *, Visual *, unsigned int, int, int, char *, unsigned int, unsigned int, int, int);`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
+unsafe extern "C" {
+  pub fn XCreateImage (display: *mut Display, visual: *mut Visual, depth: c_uint, format: c_int,
+		       offset: c_int, data: *mut c_char, width: c_uint, height: c_uint,
+		       bitmap_pad: c_int, bytes_per_line: c_int) -> *mut XImage;
+}
+// C: Xlib.h 1593-1600: `extern Pixmap XCreatePixmap (Display *, Drawable, unsigned int, unsigned int, unsigned int);`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
+unsafe extern "C" {
+  pub fn XCreatePixmap (display: *mut Display, d: Drawable, width: c_uint, height: c_uint,
+			depth: c_uint) -> Pixmap;
+}
+// C: Xlib.h 1607-1616: `extern Pixmap XCreatePixmapFromBitmapData (Display *, Drawable, char *, unsigned int, unsigned int, unsigned long, unsigned long, unsigned int);`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
+unsafe extern "C" {
+  pub fn XCreatePixmapFromBitmapData (display: *mut Display, d: Drawable, data: *mut c_char,
+				      width: c_uint, height: c_uint, fg: c_ulong, bg: c_ulong,
+				      depth: c_uint) -> Pixmap;
+}
+
+/* Scan a bitmap file.  FP is the stream to read from.  Value is
+   either an enumerator from enum xbm_token, or a character for a
+   single-character token, or 0 at end of file.  If scanning an
+   identifier, store the lexeme of the identifier in SVAL.  If
+   scanning a number, store its value in *IVAL.  */
+
+/// C: C 4805-4807: `static int xbm_scan (char **s, char *end, char *sval, int *ival)`
+#[cfg (feature = "have_window_system")]
+unsafe fn xbm_scan (s: *mut *mut c_char, end: *mut c_char, mut sval: *mut c_char,
+		    ival: *mut c_int) -> c_int
+{
+  /* C's `unsigned char c UNINIT;` - zeroed (PORTING.md 1.5/0.1-13).  */
+  let mut c: c_uchar = 0;
+  let sval_end: *mut c_char = sval.offset (BUFSIZ as isize);
+
+  /* C's `loop:` label and its `goto loop` are the labelled loop below: the only other exit is
+     C's own `return c;` at the end of the body (PORTING.md 2.2 - the `image_compute_scale`
+     loop shape).  */
+  'loop_: loop
+    {
+      /* Skip white space.  C's `while (*s < end && (c = *(*s)++, c_isspace (c)))` is the
+	 short-circuit `&&` whose second operand is the comma expression (the `frame.rs` 5789
+	 shape).  */
+      while *s < end
+	    && { let ch: c_char = *(*s); *s = (*s).offset (1); c = ch as c_uchar;
+		 c_isspace (c as c_int) }
+	{ }
+
+      if *s >= end
+	{ c = 0; }
+      else if c_isdigit (c as c_int)
+	{
+	  let mut value: c_int = 0;
+	  let mut digit: c_int;
+	  let mut overflow: bool = false;
+
+	  if c == b'0' as c_uchar && *s < end
+	    {
+	      c = *(*s) as c_uchar;
+	      *s = (*s).offset (1);
+	      if c == b'x' as c_uchar || c == b'X' as c_uchar
+		{
+		  while *s < end
+		    {
+		      c = *(*s) as c_uchar;
+		      *s = (*s).offset (1);
+		      digit = char_hexdigit (c as c_int);
+		      if digit < 0
+			{ break; }
+		      /* C's `overflow |= ckd_mul (&value, value, 16);` (P-15: the wrapped product
+			 and the flag).  */
+		      let (wrapped, over) = value.overflowing_mul (16);
+		      value = wrapped;
+		      overflow |= over;
+		      value += digit;
+		    }
+		}
+	      else if b'0' as c_uchar <= c && c <= b'7' as c_uchar
+		{
+		  value = c as c_int - b'0' as c_int;
+		  while *s < end
+			&& { let ch: c_char = *(*s); *s = (*s).offset (1); c = ch as c_uchar;
+			     b'0' as c_uchar <= c && c <= b'7' as c_uchar }
+		    {
+		      let (wrapped, over) = value.overflowing_mul (8);
+		      value = wrapped;
+		      overflow |= over;
+		      value += c as c_int - b'0' as c_int;
+		    }
+		}
+	    }
+	  else
+	    {
+	      value = c as c_int - b'0' as c_int;
+	      while *s < end
+		    && { let ch: c_char = *(*s); *s = (*s).offset (1); c = ch as c_uchar;
+			 c_isdigit (c as c_int) }
+		{
+		  let (wrapped, over) = value.overflowing_mul (10);
+		  value = wrapped;
+		  overflow |= over;
+		  /* C's `overflow |= ckd_add (&value, value, c - '0');`.  */
+		  let (sum, over2) = value.overflowing_add (c as c_int - b'0' as c_int);
+		  value = sum;
+		  overflow |= over2;
+		}
+	    }
+
+	  if *s < end
+	    { *s = (*s).offset (-1); }
+	  *ival = value;
+	  return if overflow { XBM_TK_OVERFLOW } else { XBM_TK_NUMBER };
+	}
+      /* Character literal.  XBM images typically contain hex escape
+	 sequences and not actual characters, so we only try to handle
+	 that here.  */
+      else if c == b'\'' as c_uchar
+	{
+	  let mut value: c_int = 0;
+	  let mut digit: c_int;
+	  let mut overflow: bool = false;
+
+	  if *s == end
+	    { return 0; }
+
+	  c = *(*s) as c_uchar;
+	  *s = (*s).offset (1);
+
+	  if c != b'\\' as c_uchar || *s == end
+	    { return 0; }
+
+	  c = *(*s) as c_uchar;
+	  *s = (*s).offset (1);
+
+	  if c == b'x' as c_uchar
+	    {
+	      while *s < end
+		{
+		  c = *(*s) as c_uchar;
+		  *s = (*s).offset (1);
+
+		  if c == b'\'' as c_uchar
+		    {
+		      *ival = value;
+		      return if overflow { XBM_TK_OVERFLOW } else { XBM_TK_NUMBER };
+		    }
+
+		  digit = char_hexdigit (c as c_int);
+
+		  if digit < 0
+		    { return 0; }
+
+		  let (wrapped, over) = value.overflowing_mul (16);
+		  value = wrapped;
+		  overflow |= over;
+		  value += digit;
+		}
+	    }
+
+	  return 0;
+	}
+      else if c_isalpha (c as c_int) || c == b'_' as c_uchar
+	{
+	  *sval = c as c_char;
+	  sval = sval.offset (1);
+	  while *s < end && sval < sval_end
+		&& { let ch: c_char = *(*s); *s = (*s).offset (1); c = ch as c_uchar;
+		     c_isalnum (c as c_int) || c == b'_' as c_uchar }
+	    {
+	      *sval = c as c_char;
+	      sval = sval.offset (1);
+	    }
+	  *sval = 0;
+	  if *s < end
+	    { *s = (*s).offset (-1); }
+	  return XBM_TK_IDENT;
+	}
+      else if c == b'/' as c_uchar && **s == b'*' as c_char
+	{
+	  /* C-style comment.  */
+	  *s = (*s).offset (1);
+	  while **s != 0 && ! (**s == b'*' as c_char && *(*s).offset (1) == b'/' as c_char)
+	    { *s = (*s).offset (1); }
+	  if **s != 0
+	    {
+	      *s = (*s).offset (2);
+	      continue 'loop_;
+	    }
+	}
+
+      return c as c_int;
+    }
+}
+
+/* C 4936-5003: `#ifdef HAVE_NTGUI`.  Both definitions are text-only on this machine (no
+   `x86_64-w64-mingw32-gcc`), so `<windows.h>`'s names stay C's tokens (the file's own C 226-235
+   note and the ledger's SDK-name class).  */
+
+/* Create a Windows bitmap from X bitmap data.  */
+/* C's `static HBITMAP w32_create_pixmap_from_bitmap_data (int width, int height, char *data)`
+   (C 239's prototype, which the first slice left undeclared for the same reason).  */
+/// C: C 4938-4940: `static HBITMAP w32_create_pixmap_from_bitmap_data (int width, int height, char *data)`
+#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+unsafe fn w32_create_pixmap_from_bitmap_data (width: c_int, height: c_int, data: *mut c_char)
+  -> HBITMAP
+{
+  #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+  static mut swap_nibble: [c_uchar; 16] =
+    [0x0, 0x8, 0x4, 0xc,    /* 0000 1000 0100 1100 */
+     0x2, 0xa, 0x6, 0xe,    /* 0010 1010 0110 1110 */
+     0x1, 0x9, 0x5, 0xd,    /* 0001 1001 0101 1101 */
+     0x3, 0xb, 0x7, 0xf];   /* 0011 1011 0111 1111 */
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut w1: c_int;
+  let mut w2: c_int;
+  let mut bits: *mut c_uchar;
+  let mut p: *mut c_uchar;
+  let bmp: HBITMAP;
+
+  w1 = (width + 7) / 8;         /* nb of 8bits elt in X bitmap */
+  w2 = ((width + 15) / 16) * 2; /* nb of 16bits elt in W32 bitmap */
+  /* C's `bits = alloca (height * w2);` - no `alloca` (PORTING.md P-05), so the block comes
+     from the stack pool `sa_stack_alloc` serves (the `dosfns.rs` 438 shape).  */
+  bits = sa_stack_alloc ((height * w2) as usize) as *mut c_uchar;
+  memset (bits as *mut c_void, 0, (height * w2) as usize);
+  i = 0;
+  while i < height
+    {
+      p = bits.offset ((i * w2) as isize);
+      j = 0;
+      while j < w1
+	{
+	  /* Bitswap XBM bytes to match how Windows does things.  */
+	  let c: c_uchar = *data as c_uchar;
+	  data = data.offset (1);
+	  *p = ((*swap_nibble.as_ptr ().offset ((c & 0xf) as isize) << 4)
+		| *swap_nibble.as_ptr ().offset (((c >> 4) & 0xf) as isize)) as c_uchar;
+	  p = p.offset (1);
+	  j += 1;
+	}
+      i += 1;
+    }
+  bmp = CreateBitmap (width, height, 1, 1, bits as *mut c_char);
+
+  return bmp;
+}
+
+/// C: C 4971-4973: `static void convert_mono_to_color_image (struct frame *f, struct image *img, COLORREF foreground, COLORREF background)`
+#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+unsafe fn convert_mono_to_color_image (f: *mut frame, img: *mut image, foreground: COLORREF,
+				       background: COLORREF)
+{
+  let mut hdc: HDC;
+  let mut old_img_dc: HDC;
+  let mut new_img_dc: HDC;
+  let mut old_prev: HGDIOBJ;
+  let mut new_prev: HGDIOBJ;
+  let mut new_pixmap: HBITMAP;
+
+  hdc = get_frame_dc (f);
+  old_img_dc = CreateCompatibleDC (hdc);
+  new_img_dc = CreateCompatibleDC (hdc);
+  new_pixmap = CreateCompatibleBitmap (hdc, (*img).width, (*img).height);
+  release_frame_dc (f, hdc);
+  old_prev = SelectObject (old_img_dc, (*img).pixmap as HGDIOBJ);
+  new_prev = SelectObject (new_img_dc, new_pixmap as HGDIOBJ);
+  SetTextColor (new_img_dc, foreground);
+  SetBkColor (new_img_dc, background);
+
+  BitBlt (new_img_dc, 0, 0, (*img).width, (*img).height, old_img_dc, 0, 0, SRCCOPY);
+
+  SelectObject (old_img_dc, old_prev);
+  SelectObject (new_img_dc, new_prev);
+  DeleteDC (old_img_dc);
+  DeleteDC (new_img_dc);
+  DeleteObject ((*img).pixmap as HGDIOBJ);
+  if new_pixmap == 0
+    { fputs (c"Failed to convert image to color.\n".as_ptr (), stderr); }
+  else
+    { (*img).pixmap = new_pixmap as *mut c_void; }
+}
+
+/// C: C 5005-5007: `static void Create_Pixmap_From_Bitmap_Data (struct frame *f, struct image *img, char *data, RGB_PIXEL_COLOR fg, RGB_PIXEL_COLOR bg, bool non_default_colors)`
+#[cfg (feature = "have_window_system")]
+unsafe fn Create_Pixmap_From_Bitmap_Data (f: *mut frame, img: *mut image, mut data: *mut c_char,
+					  mut fg: RGB_PIXEL_COLOR, mut bg: RGB_PIXEL_COLOR,
+					  non_default_colors: bool)
+{
+  /* C 5011-5016: `#ifdef USE_CAIRO`.  */
+  #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
+  {
+    /* C's `Emacs_Color fgbg[] = {{.pixel = fg}, {.pixel = bg}};` - C's designated initialisers
+       leave the three channel members zero (PORTING.md 1.5).  */
+    let mut fgbg: [Emacs_Color; 2]
+      = [Emacs_Color { pixel: fg, red: 0, green: 0, blue: 0 },
+	 Emacs_Color { pixel: bg, red: 0, green: 0, blue: 0 }];
+    (*FRAME_TERMINAL! (f)).query_colors.unwrap () (f as *mut c_void, fgbg.as_mut_ptr (),
+						  countof! (fgbg) as c_int);
+    fg = lookup_rgb_color (f, fgbg[0].red as c_int, fgbg[0].green as c_int, fgbg[0].blue as c_int);
+    bg = lookup_rgb_color (f, fgbg[1].red as c_int, fgbg[1].green as c_int, fgbg[1].blue as c_int);
+    (*img).pixmap
+      = image_pix_container_create_from_bitmap_data (data, (*img).width as c_uint,
+						     (*img).height as c_uint, fg, bg)
+	as *mut c_void;
+  }
+  /* C 5017-5026: `#elif defined HAVE_X_WINDOWS`.  */
+  #[cfg (all (feature = "have_window_system",
+	      not (feature = "use_cairo"), feature = "have_x_windows"))]
+  {
+    (*img).pixmap
+      = XCreatePixmapFromBitmapData (FRAME_X_DISPLAY! (f), FRAME_X_DRAWABLE! (f), data,
+				     (*img).width as c_uint, (*img).height as c_uint,
+				     fg, bg, (*FRAME_DISPLAY_INFO! (f)).n_planes as c_uint)
+	as *mut c_void;
+    /* C 5027-5030: the nested `# if !defined USE_CAIRO && defined HAVE_XRENDER`.  */
+    #[cfg (all (feature = "have_window_system", not (feature = "use_cairo"),
+		feature = "have_xrender"))]
+    if !(*img).pixmap.is_null ()
+      { (*img).picture = x_create_xrender_picture (f, (*img).pixmap as Emacs_Pixmap, 0)
+			  as *mut c_void; }
+  }
+  /* C 5031-5040: `#elif defined HAVE_ANDROID`, with C 5033-5039's `ANDROID_STUBIFY` pair.  */
+  #[cfg (all (feature = "have_window_system",
+	      not (any (feature = "use_cairo", feature = "have_x_windows")),
+	      feature = "have_android"))]
+  {
+    #[cfg (all (feature = "have_window_system", feature = "not_android_stubify"))]
+    {
+      (*img).pixmap
+	= android_create_pixmap_from_bitmap_data (data, (*img).width as c_uint,
+						  (*img).height as c_uint, fg, bg,
+						  (*FRAME_DISPLAY_INFO! (f)).n_image_planes as c_uint)
+	  as *mut c_void;
+    }
+    #[cfg (all (feature = "have_window_system", not (feature = "not_android_stubify")))]
+    { emacs_abort (); }
+  }
+  /* C 5041-5047: `#elif defined HAVE_NTGUI` (text-only).  */
+  #[cfg (all (feature = "have_window_system",
+	      not (any (feature = "use_cairo", feature = "have_x_windows", feature = "have_android")),
+	      feature = "have_ntgui"))]
+  {
+    (*img).pixmap = w32_create_pixmap_from_bitmap_data ((*img).width, (*img).height, data)
+		    as *mut c_void;
+
+    /* If colors were specified, transfer the bitmap to a color one.  */
+    if non_default_colors
+      { convert_mono_to_color_image (f, img, fg, bg); }
+  }
+  /* C 5048-5049: `#elif defined HAVE_NS`.  */
+  #[cfg (all (feature = "have_window_system",
+	      not (any (feature = "use_cairo", feature = "have_x_windows", feature = "have_android",
+			feature = "have_ntgui")),
+	      feature = "have_ns"))]
+  { (*img).pixmap = ns_image_from_XBM (data, (*img).width, (*img).height, fg, bg); }
+  /* C 5050-5063: `#elif defined HAVE_HAIKU` (text-only).  */
+  #[cfg (all (feature = "have_window_system",
+	      not (any (feature = "use_cairo", feature = "have_x_windows", feature = "have_android",
+			feature = "have_ntgui", feature = "have_ns")),
+	      feature = "have_haiku"))]
+  {
+    (*img).pixmap = BBitmap_new ((*img).width, (*img).height, 0);
+
+    if !(*img).pixmap.is_null ()
+      {
+	let bytes_per_line: c_int = ((*img).width + 7) / 8;
+	let mut y: c_int = 0;
+	while y < (*img).height
+	  {
+	    let mut x: c_int = 0;
+	    while x < (*img).width
+	      {
+		PUT_PIXEL! ((*img).pixmap, x, y,
+			    if (*data.offset ((x / 8) as isize) as c_uchar >> (x % 8) & 1) != 0
+			      { fg } else { bg });
+		x += 1;
+	      }
+	    data = data.offset (bytes_per_line as isize);
+	    y += 1;
+	  }
+      }
+  }
+}
+
+/* Replacement for XReadBitmapFileData which isn't available under old
+   X versions.  CONTENTS is a pointer to a buffer to parse; END is the
+   buffer's end.  Set *WIDTH and *HEIGHT to the width and height of
+   the image.  Return in *DATA the bitmap data allocated with xmalloc.
+   Value is true if successful.  DATA null means just test if
+   CONTENTS looks like an in-memory XBM file.  If INHIBIT_IMAGE_ERROR,
+   inhibit the call to image_error when the image size is invalid (the
+   bitmap remains unread).  */
+
+/// C: C 5076-5079: `static bool xbm_read_bitmap_data (struct frame *f, char *contents, char *end, int *width, int *height, char **data, bool inhibit_image_error)`
+#[cfg (feature = "have_window_system")]
+unsafe fn xbm_read_bitmap_data (f: *mut frame, contents: *mut c_char, end: *mut c_char,
+				width: *mut c_int, height: *mut c_int, data: *mut *mut c_char,
+				inhibit_image_error: bool) -> bool
+{
+  let mut s: *mut c_char = contents;
+  let mut buffer: [c_char; BUFSIZ as usize] = [0; BUFSIZ as usize];
+  let mut padding_p: bool = false;
+  let mut v10: bool = false;
+  let mut bytes_per_line: c_int;
+  let mut i: c_int;
+  let mut nbytes: c_int;
+  let mut p: *mut c_char;
+  /* C's `int value;` and `int LA1;` are written before any read (PORTING.md 1.5).  */
+  let mut value: c_int = 0;
+  let mut LA1: c_int;
+
+  /* C 5093-5111's three macros are local to this function and close over its locals (`s`,
+     `end`, `buffer`, `value`, `LA1`), which `macro_rules!` hygiene does not permit (measured:
+     `E0426` for the label and `E0425` for the locals), so each use site below carries the
+     expansion C's preprocessor produces - `match ()` is `LA1 = xbm_scan (&s, end, buffer,
+     &value)`, `expect (TOKEN)` is `do { if (LA1 != (TOKEN)) goto failure; match (); } while
+     (0)`, and `expect_ident (IDENT)` is the `if`/`else` pair.  C's `goto failure` is
+     `break 'failure` and `goto success` is `break 'success` (PORTING.md 2.2); C 5210-5212's
+     three `#undef`s have no Rust counterpart (the block's end is the macro's scope).  */
+
+  *width = -1;
+  *height = -1;
+  if !data.is_null ()
+    { *data = core::ptr::null_mut (); }
+  LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+
+  'failure: {
+    /* Parse defines for width, height and hot-spots.  */
+    while LA1 == b'#' as c_int
+      {
+	LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+	if LA1 == XBM_TK_IDENT && strcmp (buffer.as_ptr (), c"define".as_ptr ()) == 0
+	  { LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value); }
+	else
+	  { break 'failure; }
+	if LA1 != XBM_TK_IDENT
+	  { break 'failure; }
+	LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+
+	if LA1 == XBM_TK_NUMBER
+	  {
+	    /* C's `char *q = strrchr (buffer, '_'); q = q ? q + 1 : buffer;`.  */
+	    let q0: *mut c_char = strrchr (buffer.as_ptr (), b'_' as c_int);
+	    let q: *mut c_char
+	      = if !q0.is_null () { q0.offset (1) } else { buffer.as_mut_ptr () };
+	    if strcmp (q, c"width".as_ptr ()) == 0
+	      { *width = value; }
+	    else if strcmp (q, c"height".as_ptr ()) == 0
+	      { *height = value; }
+	  }
+	if LA1 != XBM_TK_NUMBER
+	  { break 'failure; }
+	LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+      }
+
+    'success: {
+      if !check_image_size (f, *width, *height)
+	{
+	  if !inhibit_image_error
+	    { image_size_error (); }
+	  break 'failure;
+	}
+      else if data.is_null ()
+	{ break 'success; }
+
+      /* Parse bits.  Must start with `static'.  */
+      if LA1 == XBM_TK_IDENT && strcmp (buffer.as_ptr (), c"static".as_ptr ()) == 0
+	{ LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value); }
+      else
+	{ break 'failure; }
+      if LA1 == XBM_TK_IDENT
+	{
+	  if strcmp (buffer.as_ptr (), c"unsigned".as_ptr ()) == 0
+	    {
+	      LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+	      if LA1 == XBM_TK_IDENT && strcmp (buffer.as_ptr (), c"char".as_ptr ()) == 0
+		{ LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value); }
+	      else
+		{ break 'failure; }
+	    }
+	  else if strcmp (buffer.as_ptr (), c"short".as_ptr ()) == 0
+	    {
+	      LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+	      v10 = true;
+	      if *width % 16 != 0 && *width % 16 < 9
+		{ padding_p = true; }
+	    }
+	  else if strcmp (buffer.as_ptr (), c"char".as_ptr ()) == 0
+	    { LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value); }
+	  else
+	    { break 'failure; }
+	}
+      else
+	{ break 'failure; }
+
+      /* C's `expect (XBM_TK_IDENT); expect ('['); expect (']'); expect ('='); expect ('{');`.  */
+      if LA1 != XBM_TK_IDENT
+	{ break 'failure; }
+      LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+      if LA1 != b'[' as c_int
+	{ break 'failure; }
+      LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+      if LA1 != b']' as c_int
+	{ break 'failure; }
+      LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+      if LA1 != b'=' as c_int
+	{ break 'failure; }
+      LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+      if LA1 != b'{' as c_int
+	{ break 'failure; }
+      LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+
+      if ! image_check_image_size (core::ptr::null_mut (), *width, *height)
+	{
+	  if !inhibit_image_error
+	    { image_error (c"Image too large (%dx%d)".as_ptr (), make_fixnum (*width as EMACS_INT),
+			   make_fixnum (*height as EMACS_INT)); }
+	  break 'failure;
+	}
+      bytes_per_line = (*width + 7) / 8 + padding_p as c_int;
+      nbytes = bytes_per_line * *height;
+      p = xmalloc (nbytes as usize) as *mut c_char;
+      *data = p;
+
+      if v10
+	{
+	  i = 0;
+	  while i < nbytes
+	    {
+	      let val: c_int = value;
+	      if LA1 != XBM_TK_NUMBER
+		{ break 'failure; }
+	      LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+
+	      /* C's `*p++ = XBM_BIT_SHUFFLE (val);` narrows the macro's `int` result to `char`
+		 on assignment; the port writes the conversion out (the file's "C's implicit
+		 conversions are written out" class).  */
+	      *p = XBM_BIT_SHUFFLE! (val) as c_char;
+	      p = p.offset (1);
+	      if !padding_p || ((i + 2) % bytes_per_line) != 0
+		{
+		  *p = XBM_BIT_SHUFFLE! (value >> 8) as c_char;
+		  p = p.offset (1);
+		}
+
+	      if LA1 == b',' as c_int || LA1 == b'}' as c_int
+		{ LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value); }
+	      else
+		{ break 'failure; }
+	      i += 2;
+	    }
+	}
+      else
+	{
+	  i = 0;
+	  while i < nbytes
+	    {
+	      let val: c_int = value;
+	      if LA1 != XBM_TK_NUMBER
+		{ break 'failure; }
+	      LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value);
+
+	      *p = XBM_BIT_SHUFFLE! (val) as c_char;
+	      p = p.offset (1);
+
+	      if LA1 == b',' as c_int || LA1 == b'}' as c_int
+		{ LA1 = xbm_scan (&raw mut s, end, buffer.as_mut_ptr (), &raw mut value); }
+	      else
+		{ break 'failure; }
+	      i += 1;
+	    }
+	}
+    }
+
+    /* C's `success: return 1;`.  */
+    return true;
+  }
+
+  /* C's `failure:`.  */
+  if !data.is_null () && !(*data).is_null ()
+    {
+      xfree (*data as *mut c_void);
+      *data = core::ptr::null_mut ();
+    }
+  return false;
+}
+
+/* Load XBM image IMG which will be displayed on frame F from buffer
+   CONTENTS.  END is the end of the buffer.  Value is true if
+   successful.  */
+
+/// C: C 5238-5239: `static bool xbm_load_image (struct frame *f, struct image *img, char *contents, char *end)`
+#[cfg (feature = "have_window_system")]
+unsafe fn xbm_load_image (f: *mut frame, img: *mut image, contents: *mut c_char,
+			  end: *mut c_char) -> bool
+{
+  let rc: bool;
+  let mut data: *mut c_char = core::ptr::null_mut ();
+  let mut success_p: bool = false;
+
+  rc = xbm_read_bitmap_data (f, contents, end, &raw mut (*img).width, &raw mut (*img).height,
+			     &raw mut data, false);
+
+  if rc
+    {
+      let mut foreground: c_ulong = (*img).face_foreground;
+      let mut background: c_ulong = (*img).face_background;
+      let mut non_default_colors: bool = false;
+      let mut value: Lisp_Object;
+
+      eassert! ((*img).width > 0 && (*img).height > 0);
+
+      /* Get foreground and background colors, maybe allocate colors.  */
+      value = image_spec_value ((*img).spec, QCforeground (), core::ptr::null_mut ());
+      if !NILP (value)
+	{
+	  foreground = image_alloc_image_color (f, img, value, foreground);
+	  non_default_colors = true;
+	}
+      value = image_spec_value ((*img).spec, QCbackground (), core::ptr::null_mut ());
+      if !NILP (value)
+	{
+	  background = image_alloc_image_color (f, img, value, background);
+	  (*img).background = background;
+	  /* C's `img->background_valid = 1;` - the bit member's storage unit (P-80).  */
+	  (*img).bits = (*img).bits & !IMAGE_BACKGROUND_VALID_MASK
+			| ((1 as u32) << IMAGE_BACKGROUND_VALID_SHIFT);
+	  non_default_colors = true;
+	}
+
+      if image_check_image_size (core::ptr::null_mut (), (*img).width, (*img).height)
+	{ Create_Pixmap_From_Bitmap_Data (f, img, data, foreground, background,
+					  non_default_colors); }
+      else
+	{ (*img).pixmap = NO_PIXMAP! () as *mut c_void; }
+      xfree (data as *mut c_void);
+
+      if (*img).pixmap as Emacs_Pixmap == NO_PIXMAP! () as Emacs_Pixmap
+	{
+	  image_clear_image (f, img);
+	  image_error (c"Unable to create X pixmap for `%s'".as_ptr (), (*img).spec);
+	}
+      else
+	{ success_p = true; }
+    }
+  else
+    { image_error (c"Error loading XBM image `%s'".as_ptr (), (*img).spec); }
+
+  return success_p;
+}
+
+/* Value is true if DATA looks like an in-memory XBM file.  */
+
+/// C: C 5300-5301: `static bool xbm_file_p (Lisp_Object data)`
+#[cfg (feature = "have_window_system")]
+unsafe fn xbm_file_p (data: Lisp_Object) -> bool
+{
+  let mut w: c_int = 0;
+  let mut h: c_int = 0;
+  return STRINGP (data)
+    && xbm_read_bitmap_data (core::ptr::null_mut (), SSDATA (data),
+			     SSDATA (data).offset (SBYTES (data) as isize),
+			     &raw mut w, &raw mut h, core::ptr::null_mut (), true);
+}
+
+/* Fill image IMG which is used on frame F with pixmap data.  Value is
+   true if successful.  */
+
+/// C: C 5313-5314: `static bool xbm_load (struct frame *f, struct image *img)`
+#[cfg (feature = "have_window_system")]
+unsafe fn xbm_load (f: *mut frame, img: *mut image) -> bool
+{
+  let mut success_p: bool = false;
+  let file_name: Lisp_Object;
+
+  eassert! (xbm_image_p ((*img).spec));
+
+  /* If IMG->spec specifies a file name, create a non-file spec from it.  */
+  file_name = image_spec_value ((*img).spec, QCfile (), core::ptr::null_mut ());
+  if STRINGP (file_name)
+    {
+      let mut size: ptrdiff_t = 0;
+      let contents: *mut c_char = slurp_image (file_name, &raw mut size, c"XBM".as_ptr ());
+      if contents.is_null ()
+	{ return false; }
+      success_p = xbm_load_image (f, img, contents, contents.offset (size as isize));
+      xfree (contents as *mut c_void);
+    }
+  else
+    {
+      let mut fmt: [image_keyword; XBM_LAST as usize] = core::mem::zeroed ();
+      let data: Lisp_Object;
+      let mut foreground: c_ulong = (*img).face_foreground;
+      let mut background: c_ulong = (*img).face_background;
+      let mut non_default_colors: bool = false;
+      /* lisp.rs's `SAFE_NALLOCA!` note: the macro passes `$buf` by value, so a buffer C leaves
+	 uninitialized takes C's zero here (PORTING.md 1.5/0.1-13).  */
+      let mut bits: *mut c_char = core::ptr::null_mut ();
+      let parsed_p: bool;
+      let mut in_memory_file_p: bool = false;
+
+      /* See if data looks like an in-memory XBM file.  */
+      data = image_spec_value ((*img).spec, QCdata (), core::ptr::null_mut ());
+      in_memory_file_p = xbm_file_p (data);
+
+      /* Parse the image specification.  */
+      memcpy (fmt.as_mut_ptr () as *mut c_void, xbm_format.as_ptr () as *const c_void,
+	      core::mem::size_of::<[image_keyword; XBM_LAST as usize]> ());
+      parsed_p = parse_image_spec ((*img).spec, fmt.as_mut_ptr (), XBM_LAST, Qxbm ());
+      eassert! (parsed_p);
+
+      /* Get specified width, and height.  */
+      if !in_memory_file_p
+	{
+	  (*img).width = XFIXNAT (fmt [XBM_DATA_WIDTH as usize].value) as c_int;
+	  (*img).height = XFIXNAT (fmt [XBM_DATA_HEIGHT as usize].value) as c_int;
+	  eassert! ((*img).width > 0 && (*img).height > 0);
+	  if !check_image_size (f, (*img).width, (*img).height)
+	    {
+	      image_size_error ();
+	      return false;
+	    }
+	}
+
+      /* Get foreground and background colors, maybe allocate colors.  */
+      if fmt [XBM_FOREGROUND as usize].count
+	  && STRINGP (fmt [XBM_FOREGROUND as usize].value)
+	{
+	  foreground = image_alloc_image_color (f, img, fmt [XBM_FOREGROUND as usize].value,
+						foreground);
+	  non_default_colors = true;
+	}
+
+      if fmt [XBM_BACKGROUND as usize].count
+	  && STRINGP (fmt [XBM_BACKGROUND as usize].value)
+	{
+	  background = image_alloc_image_color (f, img, fmt [XBM_BACKGROUND as usize].value,
+						background);
+	  non_default_colors = true;
+	}
+
+      if in_memory_file_p
+	{ success_p = xbm_load_image (f, img, SSDATA (data),
+				      SSDATA (data).offset (SBYTES (data) as isize)); }
+      else
+	{
+	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+
+	  if VECTORP (data)
+	    {
+	      let mut i: c_int;
+	      let mut p: *mut c_char;
+	      let nbytes: c_int = ((*img).width + CHAR_BIT - 1) / CHAR_BIT;
+
+	      SAFE_NALLOCA! (sa_avail, bits, nbytes, (*img).height);
+	      p = bits;
+	      i = 0;
+	      while i < (*img).height
+		{
+		  let line: Lisp_Object = AREF (data, i as isize);
+		  if STRINGP (line)
+		    { memcpy (p as *mut c_void, SDATA (line) as *const c_void, nbytes as usize); }
+		  else
+		    { memcpy (p as *mut c_void, bool_vector_data (line) as *const c_void,
+			      nbytes as usize); }
+		  i += 1;
+		  p = p.offset (nbytes as isize);
+		}
+	    }
+	  else if STRINGP (data)
+	    { bits = SSDATA (data); }
+	  else
+	    { bits = bool_vector_data (data) as *mut c_char; }
+
+	  /* C 5416-5427: `#ifdef HAVE_NTGUI` (text-only).  */
+	  #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+	  {
+	    let invertedBits: *mut c_char;
+	    let nbytes: c_int;
+	    let mut i: c_int;
+	    /* Windows mono bitmaps are reversed compared with X.  */
+	    invertedBits = bits;
+	    nbytes = ((*img).width + CHAR_BIT - 1) / CHAR_BIT * (*img).height;
+	    SAFE_NALLOCA! (sa_avail, bits, 1, nbytes);
+	    i = 0;
+	    while i < nbytes
+	      {
+		*bits.offset (i as isize) = XBM_BIT_SHUFFLE! (*invertedBits.offset (i as isize));
+		i += 1;
+	      }
+	  }
+	  /* Create the pixmap.  */
+
+	  if image_check_image_size (core::ptr::null_mut (), (*img).width, (*img).height)
+	    { Create_Pixmap_From_Bitmap_Data (f, img, bits, foreground, background,
+					      non_default_colors); }
+	  else
+	    { (*img).pixmap = NO_PIXMAP! () as *mut c_void; }
+
+	  if (*img).pixmap as Emacs_Pixmap != NO_PIXMAP! () as Emacs_Pixmap
+	    { success_p = true; }
+	  else
+	    {
+	      image_error (c"Unable to create pixmap for XBM image `%s'".as_ptr (), (*img).spec);
+	      image_clear_image (f, img);
+	    }
+
+	  SAFE_FREE! (sa_count);
+	}
+    }
+
+  return success_p;
+}
+
+/***********************************************************************
+			      Canvas
+ ***********************************************************************/
+
+/* Indices of image specification fields in canvas_format, below.  */
+
+/* C 5460-5471: `enum canvas_keyword_index` - the port's `c_int` constants.  */
+/// C: C 5460-5471: `enum canvas_keyword_index`
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_TYPE: c_int = 0;
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_ID: c_int = 1;
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_FILE: c_int = 2;
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_DATA: c_int = 3;
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_WIDTH: c_int = 4;
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_HEIGHT: c_int = 5;
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_ASCENT: c_int = 6;
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_MARGIN: c_int = 7;
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_RELIEF: c_int = 8;
+#[cfg (feature = "have_window_system")]
+pub const CANVAS_LAST: c_int = 9;
+
+/* Vector of image_keyword structures describing the format
+   of valid user-defined image specifications.  */
+
+/* C 5476-5489: the table, with C's implicit trailing zeros written out (the `xbm_format`
+   shape).  */
+/// C: C 5476-5477: `static const struct image_keyword canvas_format [CANVAS_LAST]`
+#[cfg (feature = "have_window_system")]
+static canvas_format: [image_keyword; CANVAS_LAST as usize] =
+[
+  image_keyword { name: c":type".as_ptr (), r#type: IMAGE_SYMBOL_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":id".as_ptr (), r#type: IMAGE_SYMBOL_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":file".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data-width".as_ptr (), r#type: IMAGE_POSITIVE_INTEGER_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data-height".as_ptr (), r#type: IMAGE_POSITIVE_INTEGER_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":ascent".as_ptr (), r#type: IMAGE_ASCENT_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":margin".as_ptr (), r#type: IMAGE_NON_NEGATIVE_INTEGER_VALUE_OR_PAIR,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":relief".as_ptr (), r#type: IMAGE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+];
+
+/* Weak hash map associating canvas image specs with the canvas objects.
+
+   As long as a canvas image spec object is alive, the canvas object
+   backing it, will stay alive.  As soon as the GC runs and frees
+   unreferenced canvas image specs, the specs are are also removed from
+   the weak canvas_map.  Then canvas_free_unused will check the
+   canvas_map and free the backing canvas objects.   */
+
+/* C 5502: `static Lisp_Object canvas_map;` - C's tentative definition, i.e. `Qnil` (0).  */
+#[cfg (feature = "have_window_system")]
+static mut canvas_map: Lisp_Object = core::ptr::null_mut ();
+
+/* Linked list of all canvas objects.  */
+
+/* C 5506: `static struct canvas* canvas_list = 0;`  */
+#[cfg (feature = "have_window_system")]
+static mut canvas_list: *mut canvas = core::ptr::null_mut ();
+
+/* Parse canvas specification OBJECT and return true if valid.  */
+
+/// C: C 5512-5513: `static bool canvas_parse (Lisp_Object object, struct image_keyword *fmt)`
+#[cfg (feature = "have_window_system")]
+unsafe fn canvas_parse (object: Lisp_Object, fmt: *mut image_keyword) -> bool
+{
+  memcpy (fmt as *mut c_void, canvas_format.as_ptr () as *const c_void,
+	  core::mem::size_of::<[image_keyword; CANVAS_LAST as usize]> ());
+
+  /* Check that only one of :data or :file is present.  */
+  if !parse_image_spec (object, fmt, CANVAS_LAST, Qcanvas ())
+      || (*fmt.offset (CANVAS_FILE as isize)).count as c_int
+	   + (*fmt.offset (CANVAS_DATA as isize)).count as c_int > 1
+    { return false; }
+
+  let w: ptrdiff_t = XFIXNAT ((*fmt.offset (CANVAS_WIDTH as isize)).value);
+  let h: ptrdiff_t = XFIXNAT ((*fmt.offset (CANVAS_HEIGHT as isize)).value);
+
+  /* Check that w*h*4 does not overflow */
+  return w <= INT_MAX as ptrdiff_t / 4 / h;
+}
+
+/* Return true if OBJECT is a valid canvas image specification.  */
+
+/// C: C 5525-5526: `static bool canvas_image_p (Lisp_Object object)`
+#[cfg (feature = "have_window_system")]
+unsafe fn canvas_image_p (object: Lisp_Object) -> bool
+{
+  let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
+  return canvas_parse (object, fmt.as_mut_ptr ());
+}
+
+/* Clear canvas list.  All canvases which are not referenced anymore in
+   the weak hash table canvas_map are freed.  */
+
+/// C: C 5533-5534: `static void canvas_free_unused (void)`
+#[cfg (feature = "have_window_system")]
+unsafe fn canvas_free_unused ()
+{
+  /* Mark all referenced canvases as used (negative width).  */
+  DOHASH! (XHASH_TABLE (canvas_map), k, v, {
+    (*(XFIXNUMPTR (v) as *mut canvas)).width *= -1;
+  });
+
+  /* Free unreferenced canvases and remove them from the list.  */
+  let mut p: *mut *mut canvas = &raw mut canvas_list;
+  while !(*p).is_null ()
+    {
+      let c: *mut canvas = *p;
+      if (*c).width < 0
+        {
+	  p = &raw mut (*c).next;
+	  (*c).width *= -1;
+	}
+      else
+	{
+	  *p = (*c).next;
+	  xfree ((*c).data as *mut c_void);
+	  xfree (c as *mut c_void);
+        }
+    }
+}
+
+/* Copy pixel data into canvas C from a parsed image keyword array FMT.
+
+   :data must be an unibyte string of exactly 4*WIDTH*HEIGHT bytes, or a
+   vector of size WIDTH*HEIGHT in row-major order, where each element is
+   a 32 bit integer.  :file names a binary file with size 4*WIDTH*HEIGHT
+   bytes.  */
+
+/// C: C 5566-5567: `static void canvas_apply_data (struct canvas *c, struct image_keyword *fmt)`
+#[cfg (feature = "have_window_system")]
+unsafe fn canvas_apply_data (c: *mut canvas, fmt: *mut image_keyword)
+{
+  /* C's compound literal `(ptrdiff_t) {c->width}` is the cast below.  */
+  let expected_size: ptrdiff_t = ((*c).width as ptrdiff_t) * ((*c).height as ptrdiff_t);
+
+  let data: Lisp_Object = (*fmt.offset (CANVAS_DATA as isize)).value;
+  let file: Lisp_Object = (*fmt.offset (CANVAS_FILE as isize)).value;
+
+  if STRINGP (data) /* Unibyte string data in ARGB32 format.  */
+    {
+      if STRING_MULTIBYTE (data)
+	{
+          image_error (c"Canvas :data string must be unibyte".as_ptr ());
+	  return;
+	}
+
+      if SBYTES (data) != 4 * expected_size
+	{
+          image_error (c"Canvas :data size mismatch".as_ptr ());
+	  return;
+	}
+
+      let buf: *const uint32_t = SDATA (data) as *const uint32_t;
+      /* C 5590-5596: `#ifdef WORDS_BIGENDIAN` / `#else`.  */
+      #[cfg (feature = "words_bigendian")]
+      {
+	let mut i: ptrdiff_t = 0;
+	while i < expected_size
+	  {
+	    *(*c).data.offset (i as isize) = bswap_32 (*buf.offset (i as isize));
+	    i += 1;
+	  }
+      }
+      #[cfg (not (feature = "words_bigendian"))]
+      {
+	let mut i: ptrdiff_t = 0;
+	while i < expected_size
+	  {
+	    *(*c).data.offset (i as isize) = *buf.offset (i as isize);
+	    i += 1;
+	  }
+      }
+    }
+  else if VECTORP (data) /* Vector of ARGB32 integers.  */
+    {
+      if ASIZE (data) != expected_size
+	{
+	  image_error (c"Canvas :data size mismatch".as_ptr ());
+	  return;
+	}
+
+      let mut i: ptrdiff_t = 0;
+      while i < expected_size
+	{
+          let pixel: Lisp_Object = AREF (data, i as isize);
+	  let mut pix: uint32_t = 0;
+	  let mut bigpix: intmax_t = 0;
+	  /* C's `FIXNUMP (pixel) ? ckd_add (&pix, XFIXNUM (pixel), 0) : (…)`: the sum is
+	     formed in the wider type and range-checked into the `uint32_t` result (P-15's
+	     family).  */
+	  let bad: bool
+	    = if FIXNUMP (pixel)
+		{
+		  let (sum, over) = XFIXNUM (pixel).overflowing_add (0);
+		  let fits: bool = !over && 0 <= sum && sum <= UINT32_MAX as EMACS_INT;
+		  pix = sum as uint32_t;
+		  !fits
+		}
+	      else
+		{
+		  UINT32_MAX as EMACS_INT <= MOST_POSITIVE_FIXNUM
+		    || !BIGNUMP (pixel)
+		    || { bigpix = bignum_to_intmax (pixel); bigpix == 0 }
+		    || { let (sum, over) = bigpix.overflowing_add (0);
+			 let fits: bool
+			   = !over && 0 <= sum && sum <= UINT32_MAX as intmax_t;
+			 pix = sum as uint32_t;
+			 !fits }
+		};
+	  if bad
+	    {
+	      image_error (c"Expected 0 <= datum < 2**32 in the canvas :data vector".as_ptr ());
+	      return;
+	    }
+	  *(*c).data.offset (i as isize) = pix;
+	  i += 1;
+	}
+    }
+  else if STRINGP (file) /* Binary file with ARGB32 data.  */
+    {
+      let mut fd: image_fd = core::mem::zeroed ();
+      let found: Lisp_Object = image_find_image_fd (file, &raw mut fd);
+      if !STRINGP (found)
+	{
+	  image_error (c"Cannot open image :file for canvas %s".as_ptr (), file);
+	  return;
+	}
+
+      let mut nbytes: ptrdiff_t = 0;
+      let buf: *mut uint32_t = slurp_file (fd, &raw mut nbytes) as *mut uint32_t;
+      if buf.is_null ()
+	{
+	  image_error (c"Cannot read image :file for canvas %s".as_ptr (), file);
+	  return;
+	}
+
+      if nbytes != 4 * expected_size
+	{
+	  image_error (c"Canvas :file size mismatch for %s".as_ptr (), file);
+	  xfree (buf as *mut c_void);
+	  return;
+	}
+
+      #[cfg (feature = "words_bigendian")]
+      {
+	let mut i: ptrdiff_t = 0;
+	while i < expected_size
+	  {
+	    *(*c).data.offset (i as isize) = bswap_32 (*buf.offset (i as isize));
+	    i += 1;
+	  }
+      }
+      #[cfg (not (feature = "words_bigendian"))]
+      {
+	let mut i: ptrdiff_t = 0;
+	while i < expected_size
+	  {
+	    *(*c).data.offset (i as isize) = *buf.offset (i as isize);
+	    i += 1;
+	  }
+      }
+
+      xfree (buf as *mut c_void);
+    }
+}
+
+/* Get canvas object for IMAGE specification.  Returns NULL on error.  */
+
+/// C: C 5662-5663: `static struct canvas* canvas_get (Lisp_Object image, struct image_keyword *fmt)`
+#[cfg (feature = "have_window_system")]
+unsafe fn canvas_get (image: Lisp_Object, fmt: *mut image_keyword) -> *mut canvas
+{
+  if !canvas_parse (image, fmt)
+    {
+      image_error (c"Not a canvas image specification".as_ptr ());
+      return core::ptr::null_mut ();
+    }
+
+  let canvas_ptr: Lisp_Object = Fgethash (image, canvas_map, Qnil ());
+  let mut c: *mut canvas = if NILP (canvas_ptr) { core::ptr::null_mut () }
+			   else { XFIXNUMPTR (canvas_ptr) as *mut canvas };
+  let width: c_int = XFIXNAT ((*fmt.offset (CANVAS_WIDTH as isize)).value) as c_int;
+  let height: c_int = XFIXNAT ((*fmt.offset (CANVAS_HEIGHT as isize)).value) as c_int;
+
+  if c.is_null ()
+    {
+      /* Free old canvases now, when allocating a new one, to keep
+         memory usage low.  */
+      canvas_free_unused ();
+
+      c = xzalloc (core::mem::size_of::<canvas> ()) as *mut canvas;
+      (*c).refresh = 2; /* 2 in order to enforce first refresh.  */
+      (*c).width = width;
+      (*c).height = height;
+      (*c).data = xzalloc ((4 * width * height) as usize) as *mut uint32_t;
+
+      /* Register the canvas in the list and the map.  */
+      (*c).next = canvas_list;
+      canvas_list = c;
+      Fputhash (image, make_pointer_integer (c as *mut c_void), canvas_map);
+
+      /* Initialize pixel buffer from :data or :file if supplied.  */
+      canvas_apply_data (c, fmt);
+    }
+  else if (*c).width != width || (*c).height != height
+    {
+      /* Resize canvas.  */
+      (*c).width = width;
+      (*c).height = height;
+      (*c).data = xrealloc ((*c).data as *mut c_void, (4 * width * height) as usize)
+		  as *mut uint32_t;
+      memset ((*c).data as *mut c_void, 0, (4 * width * height) as usize);
+
+      /* Initialize pixel buffer from :data or :file if supplied.  */
+      canvas_apply_data (c, fmt);
+    }
+
+  return c;
+}
+
+/* Create canvas IMG in frame F.  Value is true if successful.  */
+
+/// C: C 5713-5714: `static bool canvas_load (struct frame *f, struct image *img)`
+#[cfg (feature = "have_window_system")]
+unsafe fn canvas_load (f: *mut frame, img: *mut image) -> bool
+{
+  let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
+  let c: *mut canvas = canvas_get ((*img).spec, fmt.as_mut_ptr ());
+
+  if c.is_null ()
+    { return false; }
+
+  (*img).lisp_data = make_pointer_integer (c as *mut c_void);
+  (*img).refresh = 1; /* refresh is always > 0 for canvas images */
+  (*img).width = (*c).width;
+  (*img).height = (*c).height;
+  /* C's `img->background_valid = 1;` and `img->background_transparent_valid = 1;` - the two
+     bit members' storage units (P-80).  */
+  (*img).bits = (*img).bits & !IMAGE_BACKGROUND_VALID_MASK
+		| ((1 as u32) << IMAGE_BACKGROUND_VALID_SHIFT);
+  (*img).bits = (*img).bits & !IMAGE_BACKGROUND_TRANSPARENT_VALID_MASK
+		| ((1 as u32) << IMAGE_BACKGROUND_TRANSPARENT_VALID_SHIFT);
+
+  let mut ximg: Emacs_Pix_Container = core::ptr::null_mut ();
+  if !image_create_x_image_and_pixmap (f, img, (*c).width, (*c).height, 0, &raw mut ximg, false)
+    { return false; }
+
+  image_put_x_image (f, img, ximg, false);
+
+  return true;
+}
+
+/* Prepare image IMG from canvas for display.  */
+
+/// C: C 5740-5741: `static void canvas_prepare_for_display (struct frame *f, struct image *img)`
+#[cfg (feature = "have_window_system")]
+unsafe fn canvas_prepare_for_display (f: *mut frame, img: *mut image)
+{
+  let c: *mut canvas = XFIXNUMPTR ((*img).lisp_data) as *mut canvas;
+  (*img).refresh = (*c).refresh;
+  let src: *mut uint32_t = (*c).data;
+  let width: c_int = (*c).width;
+  let height: c_int = (*c).height;
+
+  /* If canvas has been resized in the meantime and the image is stale,
+     mark frame as garbaged and wait for redisplay.  See also
+     uncache_image which handles stale images.  */
+  if width != (*img).original_width || height != (*img).original_height
+    {
+      SET_FRAME_GARBAGED! (f);
+      return;
+    }
+
+  block_input ();
+
+  /* C 5760-5826: `#ifdef USE_CAIRO`.  */
+  #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
+  {
+    /* Cairo: Optimized canvas reloading.  Reuse the existing Cairo surface.  */
+    /* C's `cairo_surface_t* surface;` - written by the call below before any read
+       (PORTING.md 1.5).  */
+    let mut surface: *mut cairo_surface_t = core::ptr::null_mut ();
+    if !(*img).cr_data.is_null ()
+	/* prepare_image_for_display ensures that cr_data is a surface pattern */
+	&& cairo_pattern_get_type ((*img).cr_data as *mut cairo_pattern_t)
+	   == CAIRO_PATTERN_TYPE_SURFACE
+	&& cairo_pattern_get_surface ((*img).cr_data as *mut cairo_pattern_t,
+				      &raw mut surface) == 0
+      {
+	cairo_surface_flush (surface);
+	let stride: c_int = cairo_image_surface_get_stride (surface);
+	let dst: *mut c_uchar = cairo_image_surface_get_data (surface);
+	/* Alpha channel is preserved here.  Potentially preserve it when
+	   drawing the image in x_draw_image_glyph_string?  */
+	if stride == 4 * width /* Fast path */
+	  {
+	    memcpy (dst as *mut c_void, src as *const c_void, (stride * height) as usize);
+	  }
+	else
+	  {
+	    let mut y: c_int = 0;
+	    while y < height
+	      {
+		memcpy (dst.offset ((y * stride) as isize) as *mut c_void,
+			src.offset ((y * width) as isize) as *const c_void,
+			(4 * width) as usize);
+		y += 1;
+	      }
+	  }
+	cairo_surface_mark_dirty (surface);
+      }
+  }
+  /* C 5827-5845: `#elif defined HAVE_X_WINDOWS`.  */
+  #[cfg (all (feature = "have_window_system",
+	      not (feature = "use_cairo"), feature = "have_x_windows"))]
+  {
+    /* X11: Optimized canvas reloading.  Reuse the existing pixmap.  */
+    let depth: c_int = (*FRAME_DISPLAY_INFO! (f)).n_planes;
+    let ximg: *mut XImage
+      = XCreateImage (FRAME_X_DISPLAY! (f), FRAME_X_VISUAL! (f), depth as c_uint, ZPixmap, 0,
+		      core::ptr::null_mut (), width as c_uint, height as c_uint,
+		      if depth > 16 { 32 } else if depth > 8 { 16 } else { 8 }, 0);
+    if !ximg.is_null ()
+      {
+	(*ximg).data = xmalloc (((*ximg).bytes_per_line * height) as usize) as *mut c_char;
+	let mut y: c_int = 0;
+	while y < height
+	  {
+	    let mut x: c_int = 0;
+	    while x < width
+	      {
+		let c: uint32_t = *src.offset ((y * width + x) as isize);
+		let r: uint32_t = (c >> 16) & 255;
+		let g: uint32_t = (c >> 8) & 255;
+		let b: uint32_t = c & 255;
+		PUT_PIXEL! (ximg, x, y,
+			    lookup_rgb_color (f, (r << 8) as c_int, (g << 8) as c_int,
+					      (b << 8) as c_int));
+		x += 1;
+	      }
+	    y += 1;
+	  }
+	gui_put_x_image (f, ximg as Emacs_Pix_Container, (*img).pixmap as Emacs_Pixmap,
+			 width, height);
+	x_destroy_x_image (ximg);
+      }
+  }
+  /* C 5846-5848's `#elif defined HAVE_ANDROID` sits between the two below.  */
+  #[cfg (all (feature = "have_window_system",
+	      not (any (feature = "use_cairo", feature = "have_x_windows")),
+	      feature = "have_android"))]
+  {
+    /* Android: Optimized canvas reloading.  Reuse the existing pixmap.  */
+    let ximg: *mut android_image
+      = android_create_image ((*FRAME_DISPLAY_INFO! (f)).n_planes as c_uint, ANDROID_Z_PIXMAP,
+			      core::ptr::null_mut (), width as c_uint, height as c_uint);
+    if !ximg.is_null ()
+      {
+	(*ximg).data = xmalloc (((*ximg).bytes_per_line * height) as usize) as *mut c_char;
+	let mut y: c_int = 0;
+	while y < height
+	  {
+	    let mut x: c_int = 0;
+	    while x < width
+	      {
+		PUT_PIXEL! (ximg, x, y,
+			    (*src.offset ((y * width + x) as isize) & 0x00FFFFFF) as c_ulong);
+		x += 1;
+	      }
+	    y += 1;
+	  }
+	gui_put_x_image (f, ximg as Emacs_Pix_Container, (*img).pixmap as Emacs_Pixmap,
+			 width, height);
+	image_destroy_x_image (ximg as Emacs_Pix_Container);
+      }
+  }
+  /* C 5850-5855: `#elif defined HAVE_NS`.  */
+  #[cfg (all (feature = "have_window_system",
+	      not (any (feature = "use_cairo", feature = "have_x_windows", feature = "have_android")),
+	      feature = "have_ns"))]
+  {
+    /* NS: Recreates and fills the pixmap.  This is a workaround, ideally
+       we'd like to recache the NSImage instead.  */
+    (*img).pixmap = ns_image_reset ((*img).pixmap, width, height);
+    let mut y: c_int = 0;
+    while y < height
+      {
+	let mut x: c_int = 0;
+	while x < width
+	  {
+	    PUT_PIXEL! ((*img).pixmap, x, y, *src.offset ((y * width + x) as isize) as c_ulong);
+	    x += 1;
+	  }
+	y += 1;
+      }
+  }
+  /* C 5856-5875: `#else`.  */
+  #[cfg (not (any (feature = "use_cairo", feature = "have_x_windows", feature = "have_android",
+		   feature = "have_ns")))]
+  {
+    /* Platform independent canvas reloading.  Less efficient, since it
+       recreates images and pixmaps.  */
+    (*FRAME_TERMINAL! (f)).free_pixmap.unwrap () (f as *mut c_void, (*img).pixmap);
+    (*img).pixmap = NO_PIXMAP! () as *mut c_void;
+    let mut ximg: Emacs_Pix_Container = core::ptr::null_mut ();
+    if image_create_x_image_and_pixmap (f, img, width, height, 0, &raw mut ximg, false)
+      {
+	let mut y: c_int = 0;
+	while y < height
+	  {
+	    let mut x: c_int = 0;
+	    while x < width
+	      {
+		let c: uint32_t = *src.offset ((y * width + x) as isize);
+		let r: uint32_t = (c >> 16) & 255;
+		let g: uint32_t = (c >> 8) & 255;
+		let b: uint32_t = c & 255;
+		PUT_PIXEL! (ximg, x, y,
+			    lookup_rgb_color (f, (r << 8) as c_int, (g << 8) as c_int,
+					      (b << 8) as c_int));
+		x += 1;
+	      }
+	    y += 1;
+	  }
+	image_put_x_image (f, img, ximg, false);
+      }
+  }
+
+  unblock_input ();
+}
+
+/* Access canvas buffer.  Note that the pixel buffer
+ is valid only as long as its dimensions have not been changed.*/
+
+/// C: C 5853-5854: `uint32_t * canvas_data (Lisp_Object image)` - non-static.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn canvas_data (image: Lisp_Object) -> *mut uint32_t
+{
+  let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
+  let c: *mut canvas = canvas_get (image, fmt.as_mut_ptr ());
+
+  if c.is_null ()
+    { error (c"Not a canvas".as_ptr ()); }
+
+  return (*c).data;
+}
+
+#[cfg (feature = "have_window_system")]
+DEFUN! ("canvas-refresh", Fcanvas_refresh, Scanvas_refresh, 1, 2, 0,
+       doc: "Refresh canvas IMAGE and update it on screen.\n\nIf RELOAD-DATA is non-nil, reload the :data or :file from the image\nspecification before redrawing the canvas.\n\nWhen `canvas-refresh' is called from a timer or a command, `redisplay'\nwill be called implicitly after the timer or command.  `redisplay' must\nbe called explicitly after `canvas-refresh' only when the redraw should\nhappen from a loop.  See Info node `(elisp) Canvas Images' for\nexamples.",
+       (image: Lisp_Object, reload_data: Lisp_Object),
+       {
+  let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
+  let c: *mut canvas = canvas_get (image, fmt.as_mut_ptr ());
+
+  if c.is_null ()
+    { error (c"Not a canvas".as_ptr ()); }
+
+  /* Reload :data or :file from the image specification.  */
+  if !NILP (reload_data)
+    { canvas_apply_data (c, fmt.as_mut_ptr ()); }
+
+  /* Increment refresh counter; reset to one on overflow, since the
+     refresh counter must always be greater than zero.  */
+  (*c).refresh = (*c).refresh + 1;
+  if (*c).refresh == 0
+    { (*c).refresh = 1; }
+
+  /* C 5894-5903: `#ifdef HAVE_WINDOW_SYSTEM`.  */
+  #[cfg (feature = "have_window_system")]
+  {
+    /* Redraw all image glyphs.  */
+    block_input ();
+    redraw_image_glyphs (image);
+    /* We do not call `redisplay' or `flush_frame' here.  This means the
+       canvas images are not updated immediately on screen, since the
+       double buffer won't be flipped immediately.  The next call to
+       `redisplay' will flip the double buffer.  */
+    unblock_input ();
+  }
+
+  return Qnil ();
+});
+
+/***********************************************************************
+			      XPM images
+ ***********************************************************************/
+
+/* C 5913-5919: `#if defined (HAVE_XPM) || defined (HAVE_NS) || defined (HAVE_PGTK) ||
+   defined (HAVE_ANDROID)`'s two `static` prototypes - `xpm_image_p` (C 6231) and `xpm_load`
+   (C 6307), both outside this slice, so the pair is dropped (PORTING.md 0.1-12; nothing here
+   calls them).  */
+
+/* C 5921-5942: `#ifdef HAVE_XPM`'s `#include "X11/xpm.h"` (C 5939/5941) and its `HAVE_NTGUI`
+   arm (C 5922-5936), whose `noX/xpm.h` renames Xlib's `XColor`/`XImage`/`Display` (C 5925-5929)
+   and which no file in the reference tree carries.  `<X11/xpm.h>` has no file in the reference
+   tree and no mirror either, so the declarations this slice reads from it stand here (P-88 ①) -
+   the X11 arm's, so they carry `have_x_windows` on top of C's own `have_xpm`; the Windows arm's
+   declarations are owed with that arm (its `<windows.h>` names and the `xpm_*` shims are the
+   text-only Windows class of `docs/ports/image.md`).  Every number below is measured with this
+   machine's clang against the upstream header (`docs/ports/image.md`, Evidence 21): the header
+   is `X11 xpm.h` (libXpm, sha256 652b9aa9…), `sizeof (XpmAttributes)` **224** with
+   `valuemask` 0, `visual` 8, `colormap` 16, `depth` 24, `width` 28, `npixels` 56, `colorsymbols`
+   64, `numsymbols` 72, `nalloc_pixels` 184, `alloc_close_colors` 188, `alloc_color` 200,
+   `free_colors` 208, `color_closure` 216, and `sizeof (XpmColorSymbol)` **24** with `name` 0,
+   `value` 8, `pixel` 16.  */
+
+/// C: xpm.h 62-65: `#if ! defined(_XtIntrinsic_h) && ! defined(PIXEL_ALREADY_TYPEDEFED)` /
+/// `typedef unsigned long Pixel;` (`include/xlib.rs` carries no `Pixel`).
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+pub type Pixel = c_ulong;
+
+/// C: xpm.h 77-81: `typedef struct { char *name; char *value; Pixel pixel; } XpmColorSymbol;`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+#[repr(C)]
+pub struct XpmColorSymbol
+{
+  pub name: *mut c_char,		/* Symbolic color name */
+  pub value: *mut c_char,		/* Color value */
+  pub pixel: Pixel,			/* Color pixel */
+}
+
+/// C: xpm.h 83-87: `typedef struct { char *name; unsigned int nlines; char **lines; } XpmExtension;`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+#[repr(C)]
+pub struct XpmExtension
+{
+  pub name: *mut c_char,		/* name of the extension */
+  pub nlines: c_uint,			/* number of lines in this extension */
+  pub lines: *mut *mut c_char,		/* pointer to the extension array of strings */
+}
+
+/// C: xpm.h 89-96: `typedef struct { char *string; char *symbolic; char *m_color; char *g4_color; char *g_color; char *c_color; } XpmColor;`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+#[repr(C)]
+pub struct XpmColor
+{
+  pub string: *mut c_char,		/* characters string */
+  pub symbolic: *mut c_char,		/* symbolic name */
+  pub m_color: *mut c_char,		/* monochrom default */
+  pub g4_color: *mut c_char,		/* 4 level grayscale default */
+  pub g_color: *mut c_char,		/* other level grayscale default */
+  pub c_color: *mut c_char,		/* color default */
+}
+
+/// C: xpm.h 112-117: `typedef int (*XpmAllocColorFunc)(Display*, Colormap, char*, XColor*, void*);`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+pub type XpmAllocColorFunc = Option<unsafe extern "C" fn (display: *mut Display,
+							  colormap: Colormap,
+							  colorname: *mut c_char,
+							  xcolor: *mut XColor,
+							  closure: *mut c_void) -> c_int>;
+/// C: xpm.h 119-126: `typedef int (*XpmFreeColorsFunc)(Display*, Colormap, Pixel*, int, void*);`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+pub type XpmFreeColorsFunc = Option<unsafe extern "C" fn (display: *mut Display,
+							  colormap: Colormap,
+							  pixels: *mut Pixel,
+							  npixels: c_int,
+							  closure: *mut c_void) -> c_int>;
+
+/* C 132-197: `struct XpmAttributes` - C's members and their order; the record's members are
+   Xlib's `Visual`/`Colormap`/`Bool`/`XColor`, which `include/xlib.rs` carries under
+   `have_x_windows` (the section's own gate above).  */
+/// C: xpm.h 132-197: `typedef struct { unsigned long valuemask; Visual *visual; Colormap colormap; … } XpmAttributes;`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+#[repr(C)]
+pub struct XpmAttributes
+{
+  /// C 138: `unsigned long valuemask;`
+  pub valuemask: c_ulong,
+  /// C 140: `Visual *visual;`
+  pub visual: *mut Visual,
+  /// C 141: `Colormap colormap;`
+  pub colormap: Colormap,
+  /// C 142: `unsigned int depth;`
+  pub depth: c_uint,
+  /// C 143: `unsigned int width;`
+  pub width: c_uint,
+  /// C 144: `unsigned int height;`
+  pub height: c_uint,
+  /// C 145: `unsigned int x_hotspot;`
+  pub x_hotspot: c_uint,
+  /// C 147: `unsigned int y_hotspot;`
+  pub y_hotspot: c_uint,
+  /// C 149: `unsigned int cpp;`
+  pub cpp: c_uint,
+  /// C 150: `Pixel *pixels;`
+  pub pixels: *mut Pixel,
+  /// C 151: `unsigned int npixels;`
+  pub npixels: c_uint,
+  /// C 152: `XpmColorSymbol *colorsymbols;`
+  pub colorsymbols: *mut XpmColorSymbol,
+  /// C 153: `unsigned int numsymbols;`
+  pub numsymbols: c_uint,
+  /// C 154: `char *rgb_fname;`
+  pub rgb_fname: *mut c_char,
+  /// C 155: `unsigned int nextensions;`
+  pub nextensions: c_uint,
+  /// C 156: `XpmExtension *extensions;`
+  pub extensions: *mut XpmExtension,
+  /// C 158: `unsigned int ncolors;`
+  pub ncolors: c_uint,
+  /// C 159: `XpmColor *colorTable;`
+  pub colorTable: *mut XpmColor,
+  /// C 161: `char *hints_cmt;`
+  pub hints_cmt: *mut c_char,
+  /// C 162: `char *colors_cmt;`
+  pub colors_cmt: *mut c_char,
+  /// C 163: `char *pixels_cmt;`
+  pub pixels_cmt: *mut c_char,
+  /// C 165: `unsigned int mask_pixel;`
+  pub mask_pixel: c_uint,
+  /// C 169: `Bool exactColors;`
+  pub exactColors: Bool,
+  /// C 170: `unsigned int closeness;`
+  pub closeness: c_uint,
+  /// C 171: `unsigned int red_closeness;`
+  pub red_closeness: c_uint,
+  /// C 172: `unsigned int green_closeness;`
+  pub green_closeness: c_uint,
+  /// C 173: `unsigned int blue_closeness;`
+  pub blue_closeness: c_uint,
+  /// C 174: `int color_key;`
+  pub color_key: c_int,
+  /// C 176: `Pixel *alloc_pixels;`
+  pub alloc_pixels: *mut Pixel,
+  /// C 177: `int nalloc_pixels;`
+  pub nalloc_pixels: c_int,
+  /// C 180: `Bool alloc_close_colors;`
+  pub alloc_close_colors: Bool,
+  /// C 181: `int bitmap_format;`
+  pub bitmap_format: c_int,
+  /// C 184: `XpmAllocColorFunc alloc_color;`
+  pub alloc_color: XpmAllocColorFunc,
+  /// C 185: `XpmFreeColorsFunc free_colors;`
+  pub free_colors: XpmFreeColorsFunc,
+  /// C 186: `void *color_closure;`
+  pub color_closure: *mut c_void,
+}
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::size_of::<XpmAttributes> () == 224);
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::align_of::<XpmAttributes> () == 8);
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XpmAttributes, colorsymbols) == 64);
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XpmAttributes, numsymbols) == 72);
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XpmAttributes, nalloc_pixels) == 184);
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XpmAttributes, alloc_color) == 200);
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XpmAttributes, color_closure) == 216);
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::size_of::<XpmColorSymbol> () == 24);
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XpmColorSymbol, value) == 8);
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XpmColorSymbol, pixel) == 16);
+
+/* C 199-221: `XpmAttributes value masks bits` - the four this slice reads.  */
+/// C: xpm.h 206: `#define XpmColorSymbols	   (1L<<6)`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+pub const XpmColorSymbols: c_long = 1 << 6;
+/// C: xpm.h 228: `#define XpmAllocColor      (1L<<19)`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+pub const XpmAllocColor: c_long = 1 << 19;
+/// C: xpm.h 229: `#define XpmFreeColors      (1L<<20)`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+pub const XpmFreeColors: c_long = 1 << 20;
+/// C: xpm.h 230: `#define XpmColorClosure    (1L<<21)`
+#[cfg (all (feature = "have_window_system", feature = "have_xpm", feature = "have_x_windows"))]
+pub const XpmColorClosure: c_long = 1 << 21;
+
+/* C 5944-5984: `#if defined HAVE_XPM || defined USE_CAIRO || defined HAVE_NS || defined
+   HAVE_HAIKU || defined HAVE_ANDROID`'s keyword table, with C 5965's inner condition on the table
+   itself.  */
+
+/* Indices of image specification fields in xpm_format, below.  */
+
+/// C: C 5948-5962: `enum xpm_keyword_index`
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_TYPE: c_int = 0;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_FILE: c_int = 1;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_DATA: c_int = 2;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_ASCENT: c_int = 3;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_MARGIN: c_int = 4;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_RELIEF: c_int = 5;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_ALGORITHM: c_int = 6;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_HEURISTIC_MASK: c_int = 7;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_MASK: c_int = 8;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_COLOR_SYMBOLS: c_int = 9;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_BACKGROUND: c_int = 10;
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "use_cairo",
+						  feature = "have_ns", feature = "have_haiku",
+						  feature = "have_android")))]
+pub const XPM_LAST: c_int = 11;
+
+/* Vector of image_keyword structures describing the format
+   of valid XPM image specifications.  */
+
+/// C: C 5968-5969: `static const struct image_keyword xpm_format [XPM_LAST]`
+#[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "have_ns",
+						  feature = "have_haiku", feature = "have_pgtk",
+						  feature = "have_android")))]
+static xpm_format: [image_keyword; XPM_LAST as usize] =
+[
+  image_keyword { name: c":type".as_ptr (), r#type: IMAGE_SYMBOL_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":file".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":ascent".as_ptr (), r#type: IMAGE_ASCENT_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":margin".as_ptr (), r#type: IMAGE_NON_NEGATIVE_INTEGER_VALUE_OR_PAIR,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":relief".as_ptr (), r#type: IMAGE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":conversion".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":heuristic-mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":color-symbols".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":background".as_ptr (), r#type: IMAGE_STRING_OR_NIL_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+];
+
+/* C 5986-5996: `#if defined HAVE_X_WINDOWS && !defined USE_CAIRO`'s derivation of
+   `ALLOC_XPM_COLORS` (C 5993-5995's `#if defined XpmAllocColor && defined XpmFreeColors &&
+   defined XpmColorClosure`).  The three are `<X11/xpm.h>`'s own names, so the port spells the
+   derived condition as the feature `alloc_xpm_colors` (P-51's "name the macro"; the manifest does
+   not carry it yet - the ledger's owed list).  */
+
+/* C 5998-6161: `#ifdef ALLOC_XPM_COLORS`, the colour cache.  */
+
+/// C: C 6000-6001: `static struct xpm_cached_color *xpm_cache_color (struct frame *, char *, XColor *, int);`
+/// - a `static` prototype whose definition is C 6089-6102's, inside this slice: dropped
+/// (PORTING.md 0.1-12).
+
+/* An entry in a hash table used to cache color definitions of named
+   colors.  This cache is necessary to speed up XPM image loading in
+   case we do color allocations ourselves.  Without it, we would need
+   a call to XParseColor per pixel in the image.
+
+   FIXME Now that we're using x_parse_color and its cache, reevaluate
+   the need for this caching layer.  */
+
+/// C: C 6012-6018: `struct xpm_cached_color`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+#[repr(C)]
+pub struct xpm_cached_color
+{
+  /* Next in collision chain.  */
+  pub next: *mut xpm_cached_color,
+
+  /* Color definition (RGB and pixel color).  */
+  pub color: XColor,
+
+  /* Color name.  */
+  pub name: [c_char; 0],               // FLEXIBLE_ARRAY_MEMBER
+}
+
+/* The hash table used for the color cache, and its bucket vector
+   size (which should be prime).  */
+
+/// C: C 6023: `#define XPM_COLOR_CACHE_BUCKETS 1009`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+pub const XPM_COLOR_CACHE_BUCKETS: c_int = 1009;
+/// C: C 6024: `static struct xpm_cached_color **xpm_color_cache;` - C's tentative definition.
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+static mut xpm_color_cache: *mut *mut xpm_cached_color = core::ptr::null_mut ();
+
+/* Initialize the color cache.  */
+
+/// C: C 6028-6029: `static void xpm_init_color_cache (struct frame *f, XpmAttributes *attrs)`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe fn xpm_init_color_cache (f: *mut frame, attrs: *mut XpmAttributes)
+{
+  let nbytes: ptrdiff_t = XPM_COLOR_CACHE_BUCKETS as ptrdiff_t
+			  * core::mem::size_of::<*mut xpm_cached_color> () as ptrdiff_t;
+  xpm_color_cache = xzalloc (nbytes as usize) as *mut *mut xpm_cached_color;
+  init_color_table ();
+
+  if (*attrs).valuemask & XpmColorSymbols as c_ulong != 0
+    {
+      let mut i: c_int;
+      /* C's `XColor color;` - zeroed (PORTING.md 1.5).  */
+      let mut color: XColor = core::mem::zeroed ();
+
+      i = 0;
+      while (i as c_uint) < (*attrs).numsymbols
+	{
+	  if x_parse_color (f, (*(*attrs).colorsymbols.offset (i as isize)).value,
+			    &raw mut color) != 0
+	    {
+	      color.pixel = lookup_rgb_color (f, color.red as c_int, color.green as c_int,
+					      color.blue as c_int);
+	      xpm_cache_color (f, (*(*attrs).colorsymbols.offset (i as isize)).name,
+			       &raw mut color, -1);
+	    }
+	  i += 1;
+	}
+    }
+}
+
+/* Free the color cache.  */
+
+/// C: C 6053-6054: `static void xpm_free_color_cache (void)`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe fn xpm_free_color_cache ()
+{
+  let mut p: *mut xpm_cached_color;
+  let mut next: *mut xpm_cached_color;
+  let mut i: c_int;
+
+  i = 0;
+  while i < XPM_COLOR_CACHE_BUCKETS
+    {
+      p = *xpm_color_cache.offset (i as isize);
+      while !p.is_null ()
+	{
+	  next = (*p).next;
+	  xfree (p as *mut c_void);
+	  p = next;
+	}
+      i += 1;
+    }
+
+  xfree (xpm_color_cache as *mut c_void);
+  xpm_color_cache = core::ptr::null_mut ();
+  free_color_table ();
+}
+
+/* Return the bucket index for color named COLOR_NAME in the color
+   cache.  */
+
+/// C: C 6074-6075: `static int xpm_color_bucket (char *color_name)`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe fn xpm_color_bucket (color_name: *mut c_char) -> c_int
+{
+  let hash: EMACS_UINT = hash_char_array (color_name, strlen (color_name) as ptrdiff_t);
+  return (hash % XPM_COLOR_CACHE_BUCKETS as EMACS_UINT) as c_int;
+}
+
+/* On frame F, cache values COLOR for color with name COLOR_NAME.
+   BUCKET, if >= 0, is a precomputed bucket index.  Value is the cache
+   entry added.  */
+
+/// C: C 6086-6088: `static struct xpm_cached_color * xpm_cache_color (struct frame *f, char *color_name, XColor *color, int bucket)`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe fn xpm_cache_color (f: *mut frame, color_name: *mut c_char, color: *mut XColor,
+			   mut bucket: c_int) -> *mut xpm_cached_color
+{
+  if bucket < 0
+    { bucket = xpm_color_bucket (color_name); }
+
+  let len: ptrdiff_t = strlen (color_name) as ptrdiff_t + 1;
+  let nbytes: ptrdiff_t = FLEXSIZEOF! (xpm_cached_color, name, len);
+  let p: *mut xpm_cached_color = xmalloc (nbytes as usize) as *mut xpm_cached_color;
+  memcpy (fam_base (core::ptr::addr_of_mut! ((*p).name)) as *mut c_void,
+	  color_name as *const c_void, len as usize);
+  (*p).color = *color;
+  (*p).next = *xpm_color_cache.offset (bucket as isize);
+  *xpm_color_cache.offset (bucket as isize) = p;
+  return p;
+}
+
+/* Look up color COLOR_NAME for frame F in the color cache.  If found,
+   return the cached definition in *COLOR.  Otherwise, make a new
+   entry in the cache and allocate the color.  Value is false if color
+   allocation failed.  */
+
+/// C: C 6108-6109: `static bool xpm_lookup_color (struct frame *f, char *color_name, XColor *color)`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe fn xpm_lookup_color (f: *mut frame, color_name: *mut c_char, color: *mut XColor) -> bool
+{
+  let mut p: *mut xpm_cached_color;
+  let h: c_int = xpm_color_bucket (color_name);
+
+  p = *xpm_color_cache.offset (h as isize);
+  while !p.is_null ()
+    {
+      if strcmp (fam_base (core::ptr::addr_of_mut! ((*p).name)), color_name) == 0
+	{ break; }
+      p = (*p).next;
+    }
+
+  if !p.is_null ()
+    { *color = (*p).color; }
+  else if x_parse_color (f, color_name, color) != 0
+    {
+      (*color).pixel = lookup_rgb_color (f, (*color).red as c_int, (*color).green as c_int,
+					 (*color).blue as c_int);
+      p = xpm_cache_color (f, color_name, color, h);
+    }
+  /* You get `opaque' at least from ImageMagick converting pbm to xpm
+     with transparency, and it's useful.  */
+  else if strcmp (c"opaque".as_ptr (), color_name) == 0
+    {
+      memset (color as *mut c_void, 0, core::mem::size_of::<XColor> ());  /* Is this necessary/correct?  */
+      (*color).pixel = FRAME_FOREGROUND_PIXEL (f);
+      p = xpm_cache_color (f, color_name, color, h);
+    }
+
+  return !p.is_null ();
+}
+
+/* Callback for allocating color COLOR_NAME.  Called from the XPM lib.
+   CLOSURE is a pointer to the frame on which we allocate the
+   color.  Return in *COLOR the allocated color.  Value is non-zero
+   if successful.  */
+
+/// C: C 6143-6145: `static int xpm_alloc_color (Display *dpy, Colormap cmap, char *color_name, XColor *color, void *closure)`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe fn xpm_alloc_color (dpy: *mut Display, cmap: Colormap, color_name: *mut c_char,
+			   color: *mut XColor, closure: *mut c_void) -> c_int
+{
+  return xpm_lookup_color (closure as *mut frame, color_name, color) as c_int;
+}
+
+/* Callback for freeing NPIXELS colors contained in PIXELS.  CLOSURE
+   is a pointer to the frame on which we allocate the color.  Value is
+   non-zero if successful.  */
+
+/// C: C 6154-6156: `static int xpm_free_colors (Display *dpy, Colormap cmap, Pixel *pixels, int npixels, void *closure)`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "alloc_xpm_colors"))]
+unsafe fn xpm_free_colors (dpy: *mut Display, cmap: Colormap, pixels: *mut Pixel, npixels: c_int,
+			   closure: *mut c_void) -> c_int
+{
+  return 1;
+}

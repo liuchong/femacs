@@ -1,7 +1,8 @@
 # emacs/src/image.c (13805 lines)
 
-> **The largest file in P-86's class.  Four slices are ported: C 1-1095 (the first batch),
-> C 1096-2211 (the second), C 2212-3550 (the third) and C 3552-4623 (this one).**
+> **The largest file in P-86's class.  Five slices are ported: C 1-1095 (the first batch),
+> C 1096-2211 (the second), C 2212-3550 (the third), C 3552-4623 (the fourth) and
+> C 4620-6163 (this one).**
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
 > `HAVE_WINDOW_SYSTEM`, that macro is `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`
 > (1678), and `docs/baseline/frozen-build-sources.txt` lists no `image.o`, so the frozen
@@ -68,10 +69,26 @@
 > `image_unget_x_image` (C 4391-4442), the "File Handling" banner (C 4446-4448),
 > `image_find_image_fd` (C 4456-4501), `image_find_image_file` (C 4507-4511), the Android
 > `close_android_fd` (C 4515-4519), `slurp_file` (C 4528-4595) and `slurp_image` (C 4601-4617).
-> **The next live definition is C 4624's `static bool xbm_file_p (Lisp_Object);`**, whose
-> prototype plus the "XBM images" banner (C 4620-4622) it follows - the next slice's first item,
-> and the 17 prototypes this slice turned into definitions were dropped in place (PORTING.md
-> 0.1-12; each is named in Deviations).
+> **This batch is the fifth slice: C 4620-6163**, ending at C 6161's `}` of `xpm_free_colors`
+> (C 6163's `#endif` closes the `ALLOC_XPM_COLORS` block the slice opened, so it is the slice's
+> last C line).  It holds the **XBM section** (C 4620-5451: C 4624's dropped prototype, the
+> `xbm_keyword_index`/`xbm_token` enums with the `xbm_format` table, `xbm_image_p`, `xbm_scan`,
+> the `HAVE_NTGUI` pair `w32_create_pixmap_from_bitmap_data`/`convert_mono_to_color_image`,
+> `Create_Pixmap_From_Bitmap_Data`, `xbm_read_bitmap_data`, `xbm_load_image`, `xbm_file_p` and
+> `xbm_load`), the **whole Canvas section** (C 5453-5906: `canvas_keyword_index`/`canvas_format`,
+> the `canvas_map`/`canvas_list` objects, `canvas_parse`, `canvas_image_p`, `canvas_free_unused`,
+> `canvas_apply_data`, `canvas_get`, `canvas_load`, `canvas_prepare_for_display`, `canvas_data`
+> and `DEFUN ("canvas-refresh")`) and the **XPM section's head** (C 5909-6161: the banner,
+> C 5913-5919's dropped prototype pair, C 5921-5942's `<X11/xpm.h>` - this slice's one P-88
+> declaration section, the only place in this file that takes an external header's *layout* -
+> C 5944-5984's `xpm_keyword_index`/`xpm_format`, C 5986-5996's `ALLOC_XPM_COLORS` derivation and
+> C 5998-6163's colour cache).
+> **The next live definition is `xpm_valid_color_symbols_p` (C 6213)**, after C 6166's
+> `#ifdef WINDOWSNT` DLL block and `xpm_load`'s two arms (C 6307, C 7087); C 6000-6001's
+> prototype and C 5913-5919's pair were dropped in place (PORTING.md 0.1-12), and the kept
+> declarations of the three functions this slice *defines* - `xbm_read_bitmap_data`
+> (C 751-752, the second slice's block), `canvas_prepare_for_display` and `canvas_free_unused`
+> (C 126-127, the first/second slices' blocks) - are gone with it.
 >
 > **The second slice is `text-only` for five of the six platform arms** (P-86 3-2).  The machine has no
 > Windows toolchain and no Haiku/GTK SDK (`which x86_64-w64-mingw32-gcc i686-w64-mingw32-gcc` is
@@ -277,7 +294,34 @@ above checkable rather than asserted.
 | 4513-4521 | C 4513's `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY`, `close_android_fd` (C 4515-4519), C 4521's `#endif` | file gate + that pair; `text-only` |
 | 4523-4595 | the comment (C 4523-4526) and `slurp_file` (C 4531-4559's first arm, C 4560-4592's `#else`) | file gate; both arms; C 749's prototype drops here |
 | 4597-4617 | the comment (C 4597-4599) and `slurp_image` (C 4601-4602) | file gate (`static`); **this slice's last item** |
-| 4620-13805 | **the remainder of the file** (C 4624 `static bool xbm_file_p (Lisp_Object);` onward, after the "XBM images" banner at C 4620-4622) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4620-4624 | the "XBM images" banner (C 4620-4622) and C 4624's `static bool xbm_file_p (Lisp_Object);` | file gate; the prototype is dropped (PORTING.md 0.1-12) and its definition is C 5301's, inside this slice |
+| 4627-4680 | C 4627's comment, C 4629-4647's `enum xbm_keyword_index`, C 4649-4669's `xbm_format` table and C 4671-4680's `enum xbm_token` | file gate; each enumerator is a `c_int` constant (`image_value_type`'s C 1461 shape), and C's three-member initialisers spell their two implicit zeros out |
+| 4682-4797 | C 4682-4709's comment and `xbm_image_p` (C 4710-4797) | file gate (`static`); C's `memcpy` of the table and the four data shapes |
+| 4800-4934 | C 4800-4804's comment and `xbm_scan` (C 4805-4934) | file gate (`static`); C 4810's `loop:` label plus C 4924's backward `goto loop` are the port's labelled loop, and the three `ckd_*` calls are the `overflowing_*` pair (P-15) |
+| 4936-5003 | C 4936's `#ifdef HAVE_NTGUI`, C 4938-4969's `w32_create_pixmap_from_bitmap_data` (with C 4941-4945's `swap_nibble` table and C 4953's `alloca`), C 4971-5001's `convert_mono_to_color_image` and C 5003's `#endif` | `have_ntgui`; `text-only` on this machine (no Windows toolchain), so `<windows.h>`'s names stay C's tokens |
+| 5005-5066 | `Create_Pixmap_From_Bitmap_Data` (C 5011-5016 `USE_CAIRO`, C 5017-5030 `HAVE_X_WINDOWS` incl. C 5027-5030's nested `HAVE_XRENDER`, C 5031-5040 `HAVE_ANDROID` incl. C 5033-5039's `ANDROID_STUBIFY` pair, C 5041-5047 `HAVE_NTGUI`, C 5048-5049 `HAVE_NS`, C 5050-5063 `HAVE_HAIKU`) | file gate (`static`) + those six conditions, each arm carried |
+| 5068-5216 | C 5068-5075's comment and `xbm_read_bitmap_data` (C 5093-5111's three function-local macros, C 5148/C 5149's two `goto`s, C 5210-5212's three `#undef`s) | file gate (`static`); the three macros are expanded at each use site (see the Deviations), the two `goto`s are two labelled blocks |
+| 5218-5295 | C 5218-5236's comment and `xbm_load_image` (C 5238-5295) | file gate (`static`) |
+| 5297-5308 | C 5297-5299's comment and `xbm_file_p` (C 5300-5308) | file gate (`static`) |
+| 5310-5451 | C 5310-5312's comment and `xbm_load` (C 5313-5451, with C 5416-5427's `HAVE_NTGUI` block and C 5433's `USE_SAFE_ALLOCA`) | file gate (`static`) + `have_ntgui` |
+| 5453-5456 | the "Canvas" banner (C 5453-5456) | file gate (C's own banner text, kept) |
+| 5457-5487 | C 5457's comment, C 5460-5471's `enum canvas_keyword_index` and C 5473-5487's `canvas_format` | file gate |
+| 5489-5501 | C 5489-5495's comment, C 5497's `canvas_map`, C 5499's comment and C 5501's `canvas_list` | file gate; the two file-scope objects (`--check`'s two `missing file-scope object` rows) |
+| 5503-5520 | C 5503's comment and `canvas_parse` (C 5505-5520) | file gate (`static`) |
+| 5522-5529 | C 5522-5524's comment and `canvas_image_p` (C 5525-5529) | file gate (`static`) |
+| 5531-5558 | C 5531-5532's comment and `canvas_free_unused` (C 5533-5558) | file gate (`static`); the `DOHASH` walk and the list rewrite |
+| 5560-5659 | C 5560-5565's comment and `canvas_apply_data` (C 5576-5596's first `WORDS_BIGENDIAN` pair, C 5598-5638's vector arm, C 5640-5659's file arm with its own pair) | file gate (`static`) + `words_bigendian` at each of the two pairs |
+| 5661-5710 | C 5661's comment and `canvas_get` (C 5662-5710) | file gate (`static`) |
+| 5712-5737 | C 5712's comment and `canvas_load` (C 5713-5737) | file gate (`static`) |
+| 5739-5849 | C 5739's comment and `canvas_prepare_for_display` (C 5760-5826 `USE_CAIRO`, C 5827-5845 `HAVE_X_WINDOWS`, C 5846-5848 `HAVE_ANDROID`, C 5850-5855 `HAVE_NS`, C 5856-5875's `#else`) | file gate (`static`) + those five conditions; the `#else` arm is the port's `not (any (…))` |
+| 5851-5864 | C 5851-5852's comment and `canvas_data` (C 5853-5864) | file gate; **non-`static`, so `#[unsafe(no_mangle)]`** |
+| 5866-5906 | `DEFUN ("canvas-refresh", Fcanvas_refresh, Scanvas_refresh, 1, 2, 0, …)` (C 5894-5903's `HAVE_WINDOW_SYSTEM` block) | file gate (`DEFUN!`) |
+| 5909-5919 | the "XPM images" banner (C 5909-5911) and C 5913-5919's prototype pair under `#if defined (HAVE_XPM) || defined (HAVE_NS) || defined (HAVE_PGTK) || defined (HAVE_ANDROID)` | those four conditions; the pair is dropped (PORTING.md 0.1-12: both definitions are outside this slice, and nothing here calls them) |
+| 5921-5942 | C 5921's `#ifdef HAVE_XPM`, C 5922-5936's `HAVE_NTGUI` arm (its `noX/xpm.h` and the three `xpm_*` renames) and C 5938-5942's `#include "X11/xpm.h"` pair | `have_xpm`; the X11 arm's declarations are the port's P-88 section (the Deviations) |
+| 5944-5984 | C 5944's `#if defined HAVE_XPM \|\| …`, C 5948-5962's `xpm_keyword_index`, C 5964-5984's inner `xpm_format` table and C 5984's `#endif` | those five conditions, plus the table's own inner one |
+| 5986-5996 | C 5986's `#if defined HAVE_X_WINDOWS && !defined USE_CAIRO`, its comment, C 5993-5995's `ALLOC_XPM_COLORS` derivation and C 5996's `#endif` | `all (have_x_windows, not (use_cairo))`; the derived macro is the feature `alloc_xpm_colors` (P-51) |
+| 5998-6163 | C 5998's `#ifdef ALLOC_XPM_COLORS`, C 6000-6001's prototype (dropped), the `xpm_cached_color` record (C 6012-6018), `XPM_COLOR_CACHE_BUCKETS` (C 6023), C 6024's `xpm_color_cache`, `xpm_init_color_cache` (C 6028-6051), `xpm_free_color_cache` (C 6053-6071), `xpm_color_bucket` (C 6074-6081), `xpm_cache_color` (C 6086-6102), `xpm_lookup_color` (C 6108-6137), `xpm_alloc_color` (C 6143-6150), `xpm_free_colors` (C 6154-6161) and C 6163's `#endif` | `all (have_x_windows, not (use_cairo), alloc_xpm_colors)`; **this slice's last item** |
+| 6166-13805 | **the remainder of the file**: C 6166's `#ifdef WINDOWSNT` and its `DEF_DLL_FN` block, `xpm_valid_color_symbols_p` (C 6213), `xpm_image_p` (C 6231), `x_create_bitmap_from_xpm_data` (C 6249), `xpm_load` (C 6307), the NS/cairo alternate implementation (C 6615-7120), the "Color table" section (C 7126-7398), "Algorithms" (C 7399-7969), "PBM" (C 7970-8353) and everything after it | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -762,6 +806,118 @@ tree's `docs/ports/macro-body-notes.tsv` class - Owed 14).  The thirty-four miss
 the XBM / XPM / canvas / PNG / JPEG / TIFF / GIF / WebP / SVG / ImageMagick readers from C 4624
 onward; the nearest is C 4637's `xbm_image_p` region (whose prototype line C 4624 is).
 
+**21. The XPM surface's layout (P-88 ②), measured with this machine's clang.**
+`<X11/xpm.h>` has no file in the reference tree and none on this machine (`ls
+/opt/homebrew/include/X11/xpm.h` is empty), so the upstream header was fetched *for the
+measurement only* - the unit declares the surface itself and needs no header at build time:
+```
+$ curl -sSL -o /tmp/xpm.h https://gitlab.freedesktop.org/xorg/lib/libxpm/-/raw/master/include/X11/xpm.h
+$ sha256sum /tmp/xpm.h
+652b9aa90b3c5a516b367c1a4bed0658920505290657ea0d9362152a3e7c6388
+$ clang -I/opt/homebrew/include -o p p.c && ./p     # sizeof/offsetof of every member
+```
+-> `XpmColorSymbol` **24** (name 0, value 8, pixel 16); `XpmAttributes` **224**, align **8**
+(valuemask 0, visual 8, colormap 16, depth 24, width 28, height 32, x_hotspot 36, y_hotspot 40,
+cpp 44, pixels 48, npixels 56, colorsymbols 64, numsymbols 72, rgb_fname 80, nextensions 88,
+extensions 96, ncolors 104, colorTable 112, hints_cmt 120, colors_cmt 128, pixels_cmt 136,
+mask_pixel 144, exactColors 148, closeness 152, red_closeness 156, green_closeness 160,
+blue_closeness 164, color_key 168, alloc_pixels 176, nalloc_pixels 184, alloc_close_colors 188,
+bitmap_format 192, alloc_color 200, free_colors 208, color_closure 216); `Pixel` 8 bytes,
+`Bool` 4; `XpmSuccess` 0, `XpmOpenFailed` -1, `XpmFileInvalid` -2, `XpmNoMemory` -3,
+`XpmColorFailed` -4; `XpmColorSymbols` 64, `XpmAllocColor` 524288, `XpmFreeColors` 1048576,
+`XpmColorClosure` 2097152.  The unit's `#[repr(C)]` records repeat every one of those numbers as
+a `const _: () = core::assert! (…)`, so the declaration is machine-checked rather than asserted.
+
+**22. The frozen configuration (`build-tu`), and what it actually checks.**
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/img-lane cargo run -q -p xtask -- build-tu src/image.c
+built src/image.rs -> ../build/femacs/image.o     (exit 0; `build/femacs/image.o` is **336 bytes**
+- the empty object, Evidence 1's reading: every item sits behind `have_window_system`)
+```
+`build-tu` passes no `--cfg` at all (`xtask` 1031-1037), so it *compiles* nothing of this file -
+but it does **parse** the whole text, and that is what this round's first two iterations caught:
+7 syntax sites, all of them the `as T <` generic-argument ambiguity (`bool_vector_size (data) /
+height as EMACS_INT <…`, `while i as c_uint < (*attrs).numsymbols`), plus 2 x `E0277` for the two
+`image_keyword` tables (a `static`'s type must be `Sync`, and a raw pointer is not; fixed with
+`unsafe impl Sync for image_keyword` - `src/font.rs` 529's `table_entry` shape).  A direct
+`rustc --edition 2024 --crate-type lib --emit=metadata` of the unit text with that same feature
+set reads **exit 0, 0 errors, 0 warnings**.
+
+**23. The required probe reading (the file gate).**
+```
+$ CARGO_TARGET_DIR=/tmp/img-lane cargo run -q -p xtask -- probe src/image.rs /tmp/img-lane/x.rlib \
+    --crate-type=lib -C panic=abort --cfg 'feature="have_window_system"'
+-> exit 1, 60 `error` lines, 86 error sites: **10 in this slice's text**, 76 in the text of the
+four earlier slices and the mirrors
+```
+All ten of this slice's sites are **one class** - `NO_PIXMAP` (5), `Emacs_Pixmap` (2),
+`Emacs_Pix_Container` (2) and `PUT_PIXEL` (1): the platform typedefs and macros C defines inside
+its `#ifdef HAVE_X_WINDOWS`/`HAVE_NTGUI`/`HAVE_NS`/`HAVE_HAIKU`/`HAVE_ANDROID`/`USE_CAIRO` arms
+(C 67-222).  `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ` only under `HAVE_WINDOW_SYSTEM`, which
+configure sets *from* those platform macros, and C 64's `TERM_HEADER` has no arm for a
+window-system build without one - so **this feature set is not a configuration C builds**, and
+the 76 pre-existing sites are the same class (56 in `_root.rs` before this slice's first line, 20
+in `include/dispextern.rs`/`frame.rs`/`termhooks.rs`/`lisp.rs`/`stdbit.in.rs`).  The same reading
+is what makes this slice's two `NO_PIXMAP`-comparison `E0308`s (C 5271's and C 5443's arms)
+recovery noise rather than type errors.
+
+**24. The arm flips (P-86 3), this round.**  One `xtask probe` configuration and a twelve-row
+sweep over the platform arms, all on this machine:
+```
+$ CARGO_TARGET_DIR=/tmp/img-lane cargo run -q -p xtask -- probe src/image.rs /tmp/img-lane/ns.rlib \
+    --crate-type=lib -C panic=abort --cfg 'feature="have_window_system"' --cfg 'feature="have_ns"' \
+    --cfg 'feature="dispextern_face_records"'
+-> exit 0, **0 errors** (11 warnings, all of them the mirrors' `unused doc comment` class)
+```
+The sweep is the ledger's Evidence 14 shape (`build/probes/image/_root.rs` + a direct `rustc`;
+the second column counts the `error` lines, the third the sites *in this slice's own text* - the
+materialized root's line 6185 is where this slice starts):
+
+| configuration | `error` lines | sites in this slice's text |
+| --- | --- | --- |
+| `have_window_system` + `have_ns` + `dispextern_face_records` | 0 (exit 0) | 0 |
+| + `have_haiku` + `dispextern_face_records` | 3 | 0 |
+| + `have_android` + `dispextern_face_records` | 9 | 0 |
+| + `have_android` + `not_android_stubify` + `dispextern_face_records` | 2 | 0 |
+| + `have_ntgui` + `windowsnt` + `dispextern_face_records` | 51 | 0 |
+| + `have_x_windows` + `dispextern_face_records` | 2 | 0 |
+| + `have_x_windows` + `have_xpm` + `alloc_xpm_colors` + `dispextern_face_records` | 2 | 0 |
+| + `have_x_windows` + `have_xrender` + `dispextern_face_records` | 15 | 0 |
+| + `have_x_windows` + `use_cairo` + `dispextern_face_records` | 68 | 0 |
+| + `have_pgtk` + `use_cairo` + `dispextern_face_records` | 9 | 0 |
+| + `use_cairo` + `dispextern_face_records` (no platform) | 23 | 1 (the degenerate class of Evidence 23: C's `terminal.query_colors` is gated on `have_x_windows`/`have_ntgui`/`have_pgtk`/`have_android` in `termhooks.h` 615-621, so C would not build this either) |
+| `have_window_system` + `have_xpm` (no platform) | 59 | 10 (Evidence 23's class) |
+
+The first four iterations of the sweep **did** find four sites in this slice's text, all fixed
+before the table above: `let value` assigned twice in `xbm_load_image` (now `mut value`), the
+`SAFE_NALLOCA!` buffer `bits` read before assignment (`lisp.rs`'s own note says the call site must
+initialize it; now C's zero), the Android canvas arm's `PUT_PIXEL` pixel (`uint32_t` ->
+`unsigned long`, written out) and the Haiku arm's `data += bytes_per_line` (the parameter is
+`mut data`).  Two more came from the same runs: `lookup_rgb_color`'s use-site declaration had to
+carry the *union* of its call sites (including `canvas_prepare_for_display`'s platform-independent
+`#else` arm) and not just the three named platforms.  The remaining third-column cells are the
+earlier slices' registered classes (Evidence 16/17's `Emacs_Pix_Container` `E0428`,
+`x_display_info`'s opaque `Display_Info`, the pgtk placeholder, the text-only `<windows.h>`
+names), and two of the previous rounds' own classes are **gone**: `XCreateImage`/`XCreatePixmap`
+(Evidence 19's two errors - this slice declares them) and the Xrender surface of Evidence 15's
+`x_render` row (`XRenderFreePicture`/`RepeatPad` are still missing, the row is 15 lines, 0 in this
+slice's text).
+
+**25. What `--check` reads now.**
+`python3 tools/extract-abi.py --check emacs/src/image.c femacs/src/image.rs` reads **54 `- ` rows**
+(102 before, so this batch cleared **48**): 19 missing functions (the PNG/JPEG/TIFF/GIF/WebP/SVG/
+ImageMagick/ImageMagick readers and `syms_of_image` and the colour table's five), 12 missing
+constants (all `PBM_*`, the Algorithms section's), 7 missing macros (`COLOR`, `COLOR_INTENSITY`,
+`CrossForeground`, `MaskForeground` - the Algorithms section's - and **`match`/`expect`/
+`expect_ident`, the three function-local macros of `xbm_read_bitmap_data`**, owed below), 4 missing
+subrs, 10 missing `defsubr` records (`syms_of_image` is C 13xxx's), the line-count row
+(`C 13805 vs Rust 8420`), and the one pre-existing kept-declaration row
+(`image_prune_animation_caches`).  Five rows this slice's own definitions first produced are
+**cleared by this round's `docs/ports/macro-body-notes.tsv` append** (that file is in this
+slice's writable set): `xbm_scan` - `goto,uninit`; `xbm_read_bitmap_data` -
+`expect,expect_ident,ident,match,token,goto`; `xbm_load_image` - `background_valid`;
+`xbm_file_p` - `1`; `canvas_load` - `background_valid,background_transparent_valid`.
+
 ## Deviations
 
 - **The two object-like `#define` families are written as `macro_rules!`, one per arm, with C's
@@ -1141,6 +1297,75 @@ onward; the nearest is C 4637's `xbm_image_p` region (whose prototype line C 462
   with a handful of platform arms, and it carries C's comments and the `/// C:` citations.  The
   `docs/ports/line-drift-tolerance.tsv` row is still owed (item 3).
 
+### The fifth slice's verdicts and deviations (C 4620-6163)
+
+- **C's three function-local macros cannot be `macro_rules!`, and one of them cannot be spelled at
+  all.**  C 5093-5111's `match ()`/`expect (TOKEN)`/`expect_ident (IDENT)` close over the
+  function's own locals (`s`, `end`, `buffer`, `value`, `LA1`) *and* its `failure:` label;
+  `macro_rules!` hygiene does not let a macro body name a call site's locals or labels (measured:
+  `E0426` for `break 'failure` inside a macro whose call site has the label, `E0425` for `s`/`L1`
+  in the same shape), and `match` is a reserved word besides.  Each use site therefore carries the
+  expansion C's preprocessor produces, and the macro-body-notes row (Evidence 25) records it.  The
+  two `goto`s become two labelled blocks: `'failure` (C 5148's `goto failure`) and `'success`
+  (C 5149's `goto success`, which skips the bit parsing and reaches `success: return 1;`), the
+  `android.rs` 1601/1605 shape.  C 5210-5212's three `#undef`s have no Rust counterpart.
+- **A `static` of a pointer-bearing record needs `Sync`.**  `xbm_format`/`canvas_format`/
+  `xpm_format` are C's `static const struct image_keyword[]`, and `image_keyword`'s `name` is a raw
+  pointer, so an ordinary `static` is `E0277` (a shared static must be `Sync`).  The port keeps
+  them immutable `static`s and states the property with `unsafe impl Sync for image_keyword {}` -
+  the `src/font.rs` 529 `table_entry` shape, which is also why they do not become `static mut`.
+- **C's implicit conversions are written out** (the first slice's class): `XBM_BIT_SHUFFLE`'s `int`
+  result narrowed to `char` on assignment (C 5183/5187/5198, three sites), the Android canvas
+  arm's `uint32_t` pixel into `PUT_PIXEL`'s `unsigned long` (C 5840), the NS canvas arm's
+  `uint32_t` into `XPutPixel`'s `unsigned long` (C 5854), the `c_uint` arguments of
+  `image_pix_container_create_from_bitmap_data` (C 5013) and
+  `android_create_pixmap_from_bitmap_data` (C 5035), and the `bool` members of `image_keyword`.
+- **`#define n_planes n_image_planes` (C 219-221) applies to this slice's Android arm**, which
+  reads `(*FRAME_DISPLAY_INFO! (f)).n_image_planes` (C 5036) - the arm is written the way C's
+  preprocessor leaves it, the first slice's C 219-221 note.
+- **`goto` shapes.**  `xbm_scan`'s C 4810 label and C 4924 backward `goto loop` are the port's
+  labelled loop with `continue 'loop_` (the `image_compute_scale` shape); `xbm_read_bitmap_data`'s
+  two forward `goto`s are the two labelled blocks above, and every `expect`'s `goto failure`
+  is the expansion's `break 'failure`.
+- **Uninitialised locals are zeroed** (PORTING.md 1.5/0.1-13): `xbm_scan`'s `c UNINIT`, `value`
+  and `LA1`; `xbm_read_bitmap_data`'s `value`/`LA1`; `xbm_load_image`'s `data`; `xbm_load`'s
+  `size`; `canvas_apply_data`'s `fd`/`nbytes`; `Create_Pixmap_From_Bitmap_Data`'s cairo
+  `fgbg`/`surface` and `canvas_prepare_for_display`'s `surface`; the `image_keyword` arrays of
+  `xbm_image_p`/`xbm_load`/`canvas_image_p`/`canvas_load`/`canvas_data`/`canvas-refresh`, whose
+  values C's `memcpy` overwrites.  `xbm_load`'s `bits` is the one C also leaves uninitialised and
+  cannot stay that way: `SAFE_NALLOCA!` passes its buffer by value (the mirror's own note), so it
+  takes C's zero.
+- **`alloca` has no port** (P-05): `w32_create_pixmap_from_bitmap_data`'s `bits = alloca (height *
+  w2)` is the stack pool `sa_stack_alloc` serves, the `dosfns.rs` 438 shape (that arm is
+  `text-only` here anyway - no Windows toolchain).
+- **The Haiku arm increments the `data` parameter** (C 5060's `data += bytes_per_line`), so
+  `Create_Pixmap_From_Bitmap_Data`'s third parameter is `mut data`, C's own mutation of a
+  parameter.
+- **The XPM surface is the X11 arm's.**  C's `#ifdef HAVE_XPM` has two arms: C 5938-5942's
+  `#include "X11/xpm.h"` and C 5922-5936's `noX/xpm.h` for `HAVE_NTGUI`, whose `#define`s rename
+  Xlib's `XColor`/`XImage`/`Display` to the shim's `xpm_*` names.  The declarations this slice
+  reads (`XpmAttributes`, `XpmColorSymbol`, `XpmColor`, `XpmExtension`, `XpmAllocColorFunc`,
+  `XpmFreeColorsFunc`, `Pixel` and the four masks) are therefore the X11 arm's and carry
+  `have_x_windows` on top of C's own `have_xpm`; the Windows arm's declarations are owed with it
+  (the `noX` shim's types and `<windows.h>`'s names are that text-only arm's registered class).
+  `<X11/xpm.h>` itself stays C's token - nothing here includes it.
+- **The colour cache is the derived macro's arm only.**  `ALLOC_XPM_COLORS` (C 5993-5995) is
+  `XpmAllocColor && XpmFreeColors && XpmColorClosure` - three `<X11/xpm.h>` names - so the port
+  names the macro as the feature `alloc_xpm_colors` (P-51) and every item of C 5998-6163 carries
+  `all (have_x_windows, not (use_cairo), alloc_xpm_colors)`.  Both of C 5996's terms are the C
+  condition, so the block is off in every configuration this tree can flip until the manifest
+  carries the feature (owed below); the sweep's `alloc_xpm_colors` row is its reading.
+- **The `xpm_cached_color` record's flexible array member** is `name: [c_char; 0]` with
+  `// FLEXIBLE_ARRAY_MEMBER`, and its two readers/writers go through the mirror's `fam_base`
+  (`lisp.rs` 1306) - `comp.rs` 884's `data` and `xterm.rs` 1099's `targets` are the shape.
+- **Three files besides the unit changed, all inside this lane's writable set**: the two
+  `canvas_prepare_for_display`/`canvas_free_unused` and one `xbm_read_bitmap_data` kept
+  declarations were deleted from the second/fourth slices' use-site blocks (PORTING.md 0.1-12 -
+  this slice *is* their definition, Evidence 24), the C 41 `byteswap.h` edge was added at
+  `include/lisp.rs`'s reach (`src/frame.rs` 58's in-unit-edge shape: the mirror that owns C 41's
+  chain does not carry it), and the file head's stale slice sentence now names five slices.  No
+  file outside this lane's writable set was touched.
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. **`docs/ports/macro-body-notes.tsv`: nine rows for the tokens this slice's own definitions
@@ -1285,6 +1510,39 @@ onward; the nearest is C 4637's `xbm_image_p` region (whose prototype line C 462
    "XBM images" banner at C 4620-4622), C 4624-13805 - 9,182 lines, of which the XBM section
    (C 4624-5505), the canvas section (C 5506-5915), the XPM section (C 5916-6613) and everything
    after it remain.
+
+20. **`docs/ports/excluded-macros.txt`: three rows for `xbm_read_bitmap_data`'s function-local
+   macros** (that file is not in this lane's writable set), each with the C body and the rule:
+   `match` - C 5093-5094 (`LA1 = xbm_scan (&s, end, buffer, &value)`), kind=syntax: Rust reserves
+   the name, so the port expands it at each use site and there is no macro to define;
+   `expect` - C 5096-5103 (`do { … goto failure; … } while (0)`), kind=syntax: the body names the
+   function's own locals and its `failure:` label, which `macro_rules!` hygiene forbids (measured
+   `E0426`/`E0425`), so it too is expanded at each use site; `expect_ident` - C 5105-5109
+   (`if (LA1 == XBM_TK_IDENT && strcmp (buffer, IDENT) == 0) match (); else goto failure`), same
+   reading.  The five *token* rows this batch produced are already in
+   `docs/ports/macro-body-notes.tsv` (Evidence 25); these three are the name-level half.
+21. **`femacs/xtask/Cargo.toml`: the feature `alloc_xpm_colors`** (C 5993-5995's derivation) with
+   `docs/baseline/feature-coverage.tsv` and `docs/port-map.md` regenerated - the third such
+   registration this file asks for (item 7's four and item 10's one).
+22. **The mirror gaps this slice proves**, each with the file that owns it: `lib/include/stdio.rs`
+   - `BUFSIZ` (this machine's `<stdio.h>` measures **1024**; the `androidselect.rs` 95 shape);
+   `include/xlib.rs` - `XCreateImage` (Xlib.h 1437-1447), `XCreatePixmap` (Xlib.h 1593-1600) and
+   `XCreatePixmapFromBitmapData` (Xlib.h 1607-1616), declared at this slice's use site; these
+   three also close Evidence 19's two X-arm errors and Evidence 15's `x_render` row's
+   `XCreatePixmap`/`XGetImage` note, so item 15's list shrinks by three names;
+   `include/xterm.rs` - `x_parse_color` (xterm.h 391); `include/lisp.rs` - `hash_char_array`
+   (lisp.h 4249) and the `<byteswap.h>` edge C 41's `lisp.h` line owns;
+   `include/dispextern.rs` - `redraw_image_glyphs` (dispextern.h 3635).
+23. **Three in-unit declarations die with the slice that lands C 7172-7395** (P-91 ④): the
+   `init_color_table`/`free_color_table`/`lookup_rgb_color` declarations this slice added before
+   the colour cache (their definitions are that section's, still outside every slice).  The other
+   three declarations this slice carried - `xbm_read_bitmap_data` (C 751-752),
+   `canvas_prepare_for_display` and `canvas_free_unused` (C 126-127) - are **gone**: item 13's
+   list and item 2's `lookup_image` row now read as closed for this file.
+24. **The `line-drift-tolerance.tsv` row is still owed** (item 3).  This slice's numbers: C 1,542
+   lines (C 4620-6163) against **2,239 Rust lines added** (6,182 -> 8,421), density **1.45** - the
+   third slice's reading, because this slice is mostly ungated code with C's comments and the
+   `/// C:` citations.
 
 ## P-90's second step (2026-10-05): the cairo names the mirror shares moved out
 
