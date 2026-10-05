@@ -7060,3 +7060,31 @@
      待办 79 记下 `dispextern.rs` 里 `dispextern_face_records` 门后的 `struct it` 与单元自有 `[u8; 12]` 臂**一旦开该门要一起重裁**。
   ⑥ **未声称**：只声称"文本 1:1 + 冻结配置编过 + `enable_checking` 臂编过"；**不声称任何运行/显示正确性**
      （没跑过重显示、没生成过 glyph matrix、`eassert!` 只被编译未求值）；两个 `goto` 的改写只声称"按读检查的语义等价"。
+
+- **3.412 P-86 第七件：`android.c` 第一片 C 1-1037（2026-10-05）**：
+  ① **区间**：收在 `android_select` 的闭括号；**下一个活定义 = C 1041 `android_run_debug_thread`（C 1041-1078）**。
+     落点 **13 个函数**（三个 thread-events 初始化/终结、`android_get_poll_thread`、`android_set_task_name`、
+     `android_run_select_thread`、`android_handle_poll_signal`、`android_init_events`、`android_pending`、
+     `android_wait_event`/`android_next_event`/`android_check_if_event`/`android_write_event`、`android_select`）、
+     **9 个 struct**（7 个 class 记录 + 三个事件队列记录）、约 40 个文件级对象与 `SELECT_SIGNAL`/`INT_STRLEN_BOUND` 等宏；
+     台账 28 行区间表连续铺满 C 1-1,037 + 余量行。
+  ② **行数**：`femacs/src/android.rs` **11 → 1,311 行**；台账 24 → **345 行**。
+  ③ **读数（四档，分得很清）**：⑴ 冻结 `build-tu` 3 发都 exit 0 / **336 字节空对象**；⑵ **翻臂**（`have_android`+`not_android_stubify`）
+     **exit 1，只有 1 条错，且在镜像副本**（`lib/include/signal.rs` 的 `sigaction` 是冻结 Darwin 形、缺 bionic 的 `sa_sigaction`，报在单元 C 749）——
+     **单元文本 0 条**；⑶ 追加子门 `+ android_api_lt_21`（`<` 那一臂不碰 `sa_sigaction`）→ **exit 0 / 5,232 字节，未打任何补丁**；
+     ⑷ **臂触达预检**（只补 `signal.rs` 的 `sa_sigaction` 一类）→ 六配置全 exit 0（23,888…37,968 字节）+ **变异实测**证明非空读数。
+     **多配置扫描**：base/lt21/thr/lt21+thr/aarch64/i386 六档，只有上述那一处镜像缺口。
+     NDK 量测全部实测（NDK 29.0.14206865 / aarch64-linux-android24）：mutex 40、cond 48、`sem_t` 16、`sigaction` 32（`sa_flags`@0/`sa_mask`@16）、
+     `siginfo_t` 128、`sigset_t` 8、`SA_SIGINFO 0x4`、`SIGUSR1 10`、`SIGIO 29`、`ANDROID_LOG_INFO/WARN/FATAL 4/5/7` 等。
+  ④ **集成者这一轮的动作**：⑴ `Cargo.toml` 补 feature **`android_api_lt_21`**（我实读核过行号：C **972** 是 `#if __ANDROID_API__ >= 21`，
+     所以这个名字是**另一臂**的端口名，注释按实读改写）；⑵ `macro-body-notes.tsv` 补 **1 行**——`android_write_event` 的
+     `switch/case/default/break`（C 868-909 的 switch 落成 `match`）。**刻意不为 `android_set_task_name` 加行**（见 ⑤）。
+  ⑤ **本轮抓到一条工具缺陷（照实记，不用豁免掩盖）**：`extract-abi.py` 把 C 470-471 的字面量 `"/proc/self/task//comm"` 里的 `//`
+     当成注释起点，`c_body_text` 于是把该行后段挖空、引号不闭合，产出假阳性
+     `function android_set_task_name does not mention comm, failed, proc, self, set, task`（lane 已实测复现）。
+     ⇒ **那一行留给工具修**（修在 `extract-abi.py` 的扫描器里），不是加 notes 行；本条与 3.404 的"验证表陈旧"是两条独立的工具工作单。
+  ⑥ **未解决（点名）**：`lib/include/signal.rs` 的 bionic `sa_sigaction`（镜像轮，需 `check-all-units.sh`）；
+     本单元内那批外部头声明（`<pthread.h>`/`<semaphore.h>`/`gettid`/`pipe2`/`kill`/`sig*`/`__android_log_print` 等，P-88 就地声明）日后搬进镜像；
+     `line-drift-tolerance` 的 `android` 行留到末片。
+  ⑦ **未声称**：本片每一行都挂在冻结配置为假的门下——④ 是**打了补丁的替代读数**，②③ 都是**编译级**，
+     **没有执行过任何东西**（无线程、无信号量、无 JNI、无事件、无 select）；C 1038-7,594 未移植。
