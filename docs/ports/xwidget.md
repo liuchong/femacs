@@ -1,4 +1,4 @@
-# emacs/src/xwidget.c (4,304 lines) — first slice: C 1-1180
+# emacs/src/xwidget.c (4,304 lines) — slices C 1-1180 and C 1181-2716
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `xwidget.o` joins the
 > build's object list only when xwidgets are on - `configure.ac` 4422 starts `HAVE_XWIDGETS=no`,
@@ -83,6 +83,47 @@
 > mirror (`femacs/src/include/gtk.rs`, PORTING.md P-90) is owed (`## Owed` 2), and this unit's copy
 > plus the segment copies in `src/gtkutil.rs` and `src/pgtkterm.rs` are the ones to drop there.
 
+> **Slice 2 (C 1181-2716) — the `HAVE_X_WINDOWS` arm, the WebKit callbacks and the script
+> dialog.**  This round took `femacs/src/xwidget.rs` from **2,014 to 4,492 lines**: C 1181's blank
+> and C 1182's `#ifdef HAVE_X_WINDOWS` through C 2716's `#endif /* USE_GTK */` — the X11
+> drag/button/motion and crossing machinery (C 1184-2105), `synthesize_focus_in_event` (C 2110),
+> `xwidget_view_from_window` (C 2137), the show/hide pair (C 2150/2169),
+> `xv_do_draw`/`xwidget_view_draw_cb` (C 2182/2214), `offscreen_damage_event` (C 2247),
+> `xwidget_expose` (C 2274), the three `store_xwidget_*_event` helpers (C 2284-2331) and the seven
+> WebKit callbacks (C 2333-2714).  It stops at C 2716; **C 2718's `xwidget_init_view` is the next
+> slice's first definition** (the C line-range rows 1181-2107 / 2108-2281 / 2282-2331 /
+> 2332-2716 are this slice's; 2717-4304 is the remainder).  Both arms of every `#if` are carried:
+> `have_x_windows` (all of C 1182-2105), `have_xinput2` (C 1387-1553 and C 1555-1575),
+> `have_xinput2_4` + `gtk_check_version_ge_3_18` (C 1489-1553), `have_pgtk` (C 2180-2242 and
+> C 2155-2166/2173-2176/2259-2267's `#else` arms), `not (have_pgtk)` (C 2180-2210),
+> `not (have_x_windows)` (the same three `#else` arms) and `webkit_check_version_ge_2_34`
+> (C 1786-1789).
+>
+> **This slice reads a second, larger toolkit surface (P-88 ①; the P-90 ③ move is still owed).**
+> The names stand at the head of the slice's text, each with a `/// C:` citation: GDK's notify/
+> crossing/scroll/touchpad enumerations and `GdkEventType`'s two missing members
+> (`GDK_FOCUS_CHANGE`, `GDK_TOUCHPAD_PINCH`), `GdkScrollDirection`, `GdkTouchpadGesturePhase`,
+> `GdkNotifyType`, `GDK_BUTTON{1,2,3}_MASK`, `G_MAXINT32`, `GAsyncResult`; WebKit's navigation/
+> policy/script-dialog enumerations and `WebKitJavascriptResult`, `WebKitURIRequest`,
+> `WebKitNavigationPolicyDecision`, `WebKitResponsePolicyDecision`, `WebKitScriptDialogType` and
+> `JSCValue` with the eleven `jsc_value_*` entry points; the six GDK/GLib calls and the eleven GTK
+> calls (plus `GtkOffscreenWindow`/`GtkEntry`/`GtkDialog` and their three `GTK_*` casts); cairo's
+> `save`/`restore`/`translate`; the XInput2 records
+> `XIEnterEvent`/`XIGesturePinchEvent`/`XIAddData`/`XIButtonState` with `XIMaskIsSet!` and the five
+> `XINotify*`/five `XI_*` values; and the X11 `XEvent` member records
+> (`XAnyEvent`/`XMotionEvent`/`XCrossingEvent`/`XGenericEventCookie`, **measured** - Evidence ⑥)
+> plus the six `XMoveWindow`-family entry points.  Every GDK/GTK/WebKit/XInput2 value and layout is
+> **UNVERIFIED** here (no tree on this machine); the X11 ones are measured.  `XWIDGET_EVENT`/
+> `XWIDGET_DISPLAY_EVENT` - termhooks.h's two `HAVE_XWIDGETS` `enum event_kind` members, which
+> `include/termhooks.rs` does not carry - are declared here at the values a `HAVE_XWIDGETS` build
+> gives them (28/29; `## Owed` 11).
+>
+> **The arm flip this round is `direct rustc` on the materialised root, not a GTK compile.**  GDK,
+> GTK and WebKit still have no tree here, so the readings are rustc's name-resolution and type
+> errors on the materialised `_root.rs` under hand-set `--cfg`s (Evidence ⑦/⑧), and
+> `HAVE_X_WINDOWS`/`HAVE_PGTK` cannot be flipped together (they are mutually exclusive in
+> `configure.ac`, and the combination aborts on a mirror `E0428`, Evidence ⑧).
+
 ## Gate mapping
 
 | C `#if` / build condition | Port gate | Compiled when |
@@ -110,6 +151,14 @@
 | C 1027 `#ifdef HAVE_X_WINDOWS` (the passive-grab arm of `find_widget_at_pos`) | `feature = "have_x_windows"` | X11 GTK |
 | C 1064 `#ifdef HAVE_PGTK` (C 1065-1119 `cursor_for_hit`/`define_cursors`/`mouse_target_changed`) | `all (feature = "use_gtk", feature = "have_pgtk")` | PGTK |
 | the records this slice reads: `include/xwidget.rs` gates `struct xwidget`/`struct xwidget_view`/`XXWIDGET`/`XXWIDGET_VIEW`/`CHECK_LIVE_XWIDGET` … on `have_xwidgets` (the header's own `#ifdef HAVE_XWIDGETS`, xwidget.h 31) | the mirror's gate; the port adds nothing (`## Deviations` 6) | xwidgets enabled |
+| C 1182 `#ifdef HAVE_X_WINDOWS` (C 1184-2105) | `all (feature = "use_gtk", feature = "have_x_windows")` | X11 GTK |
+| C 1387/1555 `#ifdef HAVE_XINPUT2` (C 1389-1553, 1557-1573) | `all (…, feature = "have_xinput2")` | XInput2 |
+| C 1489 `#ifdef HAVE_XINPUT2_4` + C 1493 `#if GTK_CHECK_VERSION (3, 18, 0)` (C 1491-1550) | `all (…, have_xinput2, have_xinput2_4)` + `feature = "gtk_check_version_ge_3_18"` (**not registered** - `## Owed` 9) | XI 2.4 with GTK >= 3.18 |
+| C 1782 `#if WEBKIT_CHECK_VERSION (2, 34, 0)` (C 1786-1789) | `feature = "webkit_check_version_ge_2_34"` (`## Owed` 1) | WebKit >= 2.34 |
+| C 2135/2153/2172/2258/2272 `#ifdef HAVE_X_WINDOWS` (C 2137-2145, 2155-2166, 2173-2176, 2259-2267, 2274-2279) | `feature = "have_x_windows"` (`all (use_gtk, …)` where C's item is the file's own) | X11 GTK |
+| C 2180 `#ifndef HAVE_PGTK` … C 2212 `#else` … C 2242 | `all (use_gtk, not (have_pgtk))` / `all (use_gtk, have_pgtk)` | X11 GTK / PGTK |
+| the two GTK3-only names this slice reads (`GTK_ORIENTATION_VERTICAL` C 2691, `gtk_box_new` C 2684) | the mirror `include/gtk.rs`'s `feature = "have_gtk3"` gate, so the arm flip must set it too (P-86 ⑥) | GTK3 (`HAVE_GTK3 undef` in the frozen table, 1385) |
+| `HAVE_X_WINDOWS` and `HAVE_PGTK` are mutually exclusive (`configure.ac`'s GTK branches) | the two arms **cannot** be flipped together: the combination aborts on a *mirror* `E0428 Emacs_Cursor` (`## Evidence` ⑧) | - |
 
 Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861), `HAVE_PGTK undef`
 (1489), `HAVE_XINPUT2 undef` (1702), `HAVE_X_WINDOWS undef` (1720), `NS_IMPL_COCOA undef` (2996),
@@ -145,7 +194,11 @@ block, and the union covers C 1-4304 without a gap.
 | 720-725 | the blank and `xwidget_hidden` | file gate |
 | 726-737 | the blank and `xwidget_from_id` | file gate |
 | 738-1180 | the blank and C 739 `#ifdef USE_GTK` (whose `#endif` is C 2281): `pick_embedded_child` (C 740-764), `record_osr_embedder` (C 766-782), `find_xwidget_for_offscreen_window` (C 784-804), `from_embedder` (C 806-841), `to_embedder` (C 843-878), `find_suitable_pointer` (C 880-909), `find_suitable_keyboard` (C 911-921), `find_widget_cb` (C 923-927), `find_widget` (C 929-1018), `find_widget_at_pos` (C 1020-1062), C 1064 `#ifdef HAVE_PGTK`'s `cursor_for_hit` (C 1065-1082), `define_cursors` (C 1084-1111), `mouse_target_changed` (C 1113-1119) and `run_file_chooser_cb` (C 1122-1180) | `use_gtk` arm (+ `have_pgtk`/`have_x_windows` inside it) |
-| 1181-4304 | **the remainder** - the blank and C 1182's `#ifdef HAVE_X_WINDOWS` through C 4304: the X11 drag/button/motion machinery (`xv_drag_begin_cb`, `xwidget_button_1`, `xwidget_button`, the XI2 group `xwidget_motion_notify`/`xwidget_scroll`/`xwidget_pinch`, the crossing machinery `window_coords_from_toplevel`/`xw_find_common_ancestor`/`xw_notify_virtual_upwards_until`/`xw_notify_virtual_downwards_until`/`xw_update_cursor_for_view`/`xw_last_crossing_cursor_cb`/`xw_maybe_synthesize_crossing`/`xwidget_motion_or_crossing`), the four `#else`/`#elif` arms of C 739 at C 2159/2175/2212/2261, the WebKit callbacks (`offscreen_damage_event`, `synthesize_focus_in_event`, `webkit_view_load_changed_cb`, `webkit_create_cb`, `webkit_javascript_finished_cb`, `webkit_download_cb`, `webkit_decide_policy_cb`, `webkit_script_dialog_cb`), the `NS_IMPL_COCOA`/`HAVE_PGTK` `#elif` bodies (C 2758-3321), the store/kill/redisplay helpers, the remaining ~60 subrs (`xwidget_resize` … `xwidget-webkit-stop-loading`) and the `DEFVAR`s and `syms_of_xwidget` at the end | not this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 1181-2107 | **slice 2, the `HAVE_X_WINDOWS` arm** - C 1181's blank and C 1182's `#ifdef`: `xv_drag_begin_cb` (C 1184-1200), `xwidget_button_1` (C 1202-1326), `xwidget_button` (C 1328-1385), the XI2 trio `xwidget_motion_notify`/`xwidget_scroll`/`xwidget_pinch` (C 1389-1550; C 1387/1489's `#ifdef`s, C 1493's `GTK_CHECK_VERSION (3, 18, 0)`), `xi_translate_notify_detail` (C 1557-1573), `window_coords_from_toplevel` (C 1578-1607), `xw_find_common_ancestor` (C 1609-1648), `xw_notify_virtual_upwards_until`/`_downwards_until` (C 1650-1736), `xw_update_cursor_for_view` (C 1738-1759), `xw_last_crossing_cursor_cb` (C 1761-1767), `xw_maybe_synthesize_crossing` (C 1769-1943, C 1782's version arm) and `xwidget_motion_or_crossing` (C 1945-2105) plus C 2107's `#endif /* HAVE_X_WINDOWS */` | `all (feature = "use_gtk", feature = "have_x_windows")` (+ `have_xinput2`, `have_xinput2_4`, `gtk_check_version_ge_3_18`, `webkit_check_version_ge_2_34`) |
+| 2108-2281 | `synthesize_focus_in_event` (C 2110-2133), `xwidget_view_from_window` (C 2137-2145), `xwidget_show_view`/`xwidget_hide_view` (C 2150-2178, C 2153/2172's `#ifdef`/`#else`), `xv_do_draw`/`xwidget_view_draw_cb` (C 2182-2242, C 2180's `#ifndef HAVE_PGTK`), `offscreen_damage_event` (C 2247-2270, C 2258's arm), `xwidget_expose` (C 2274-2279) and C 2281's `#endif /* USE_GTK */` | `feature = "use_gtk"` (+ the `have_x_windows`/`have_pgtk` arms) |
+| 2282-2331 | C 2283's blank and the three `store_xwidget_*_event` helpers (`store_xwidget_event_string` C 2284-2296, `store_xwidget_download_callback_event` C 2298-2316, `store_xwidget_js_callback_event` C 2318-2331) | file gate |
+| 2332-2716 | C 2333's `#ifdef USE_GTK`: `store_xwidget_display_event` (C 2335-2349), `webkit_ready_to_show` (C 2351-2379), `webkit_create_cb_1`/`webkit_create_cb` (C 2381-2425), `webkit_view_load_changed_cb` (C 2427-2451), `webkit_js_to_lisp` (C 2453-2518), `webkit_javascript_finished_cb` (C 2520-2559), `webkit_download_cb` (C 2561-2574), `webkit_decide_policy_cb` (C 2576-2645), `webkit_script_dialog_cb` (C 2647-2714) and C 2716's `#endif` | `feature = "use_gtk"` |
+| 2717-4304 | **the remainder** - C 2717's blank and C 2718's `xwidget_init_view` through C 4304: the store/kill/redisplay helpers, the remaining ~60 subrs and `syms_of_xwidget`'s `DEFVAR`s - **由下一 lane 接手** (the next slice opens at C 2718) | not these two slices: recorded so the table covers the reference |
 
 ## Evidence` readings and the `## Deviations`.
 >
@@ -244,6 +297,14 @@ block, and the union covers C 1-4304 without a gap.
 | C 1027 `#ifdef HAVE_X_WINDOWS` (the passive-grab arm of `find_widget_at_pos`) | `feature = "have_x_windows"` | X11 GTK |
 | C 1064 `#ifdef HAVE_PGTK` (C 1065-1119 `cursor_for_hit`/`define_cursors`/`mouse_target_changed`) | `all (feature = "use_gtk", feature = "have_pgtk")` | PGTK |
 | the records this slice reads: `include/xwidget.rs` gates `struct xwidget`/`struct xwidget_view`/`XXWIDGET`/`XXWIDGET_VIEW`/`CHECK_LIVE_XWIDGET` … on `have_xwidgets` (the header's own `#ifdef HAVE_XWIDGETS`, xwidget.h 31) | the mirror's gate; the port adds nothing (`## Deviations` 6) | xwidgets enabled |
+| C 1182 `#ifdef HAVE_X_WINDOWS` (C 1184-2105) | `all (feature = "use_gtk", feature = "have_x_windows")` | X11 GTK |
+| C 1387/1555 `#ifdef HAVE_XINPUT2` (C 1389-1553, 1557-1573) | `all (…, feature = "have_xinput2")` | XInput2 |
+| C 1489 `#ifdef HAVE_XINPUT2_4` + C 1493 `#if GTK_CHECK_VERSION (3, 18, 0)` (C 1491-1550) | `all (…, have_xinput2, have_xinput2_4)` + `feature = "gtk_check_version_ge_3_18"` (**not registered** - `## Owed` 9) | XI 2.4 with GTK >= 3.18 |
+| C 1782 `#if WEBKIT_CHECK_VERSION (2, 34, 0)` (C 1786-1789) | `feature = "webkit_check_version_ge_2_34"` (`## Owed` 1) | WebKit >= 2.34 |
+| C 2135/2153/2172/2258/2272 `#ifdef HAVE_X_WINDOWS` (C 2137-2145, 2155-2166, 2173-2176, 2259-2267, 2274-2279) | `feature = "have_x_windows"` (`all (use_gtk, …)` where C's item is the file's own) | X11 GTK |
+| C 2180 `#ifndef HAVE_PGTK` … C 2212 `#else` … C 2242 | `all (use_gtk, not (have_pgtk))` / `all (use_gtk, have_pgtk)` | X11 GTK / PGTK |
+| the two GTK3-only names this slice reads (`GTK_ORIENTATION_VERTICAL` C 2691, `gtk_box_new` C 2684) | the mirror `include/gtk.rs`'s `feature = "have_gtk3"` gate, so the arm flip must set it too (P-86 ⑥) | GTK3 (`HAVE_GTK3 undef` in the frozen table, 1385) |
+| `HAVE_X_WINDOWS` and `HAVE_PGTK` are mutually exclusive (`configure.ac`'s GTK branches) | the two arms **cannot** be flipped together: the combination aborts on a *mirror* `E0428 Emacs_Cursor` (`## Evidence` ⑧) | - |
 
 Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861), `HAVE_PGTK undef`
 (1489), `HAVE_XINPUT2 undef` (1702), `HAVE_X_WINDOWS undef` (1720), `NS_IMPL_COCOA undef` (2996),
@@ -274,7 +335,11 @@ Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861)
 | 721-725 | `xwidget_hidden` | file gate |
 | 727-737 | `xwidget_from_id` | file gate |
 | 739-1180 | C 739 `#ifdef USE_GTK` (whose `#endif` is C 2281): `pick_embedded_child` (C 740-764), `record_osr_embedder` (C 766-782), `find_xwidget_for_offscreen_window` (C 784-804), `from_embedder` (C 806-841), `to_embedder` (C 843-878), `find_suitable_pointer` (C 880-909), `find_suitable_keyboard` (C 911-921), `find_widget_cb` (C 923-927), `find_widget` (C 929-1018), `find_widget_at_pos` (C 1020-1062), C 1064 `#ifdef HAVE_PGTK`'s `cursor_for_hit` (C 1065-1082), `define_cursors` (C 1084-1111), `mouse_target_changed` (C 1113-1119) and `run_file_chooser_cb` (C 1122-1180) | `use_gtk` arm (+ `have_pgtk`/`have_x_windows` inside it) |
-| 1182-4304 | **the remainder** — C 1182's `#ifdef HAVE_X_WINDOWS` through C 4304: the X11 drag/button/motion machinery (`xv_drag_begin_cb`, `xwidget_button_1`, `xwidget_button`, the XI2 group `xwidget_motion_notify`/`xwidget_scroll`/`xwidget_pinch`, the crossing machinery `window_coords_from_toplevel`/`xw_find_common_ancestor`/`xw_notify_virtual_upwards_until`/`xw_notify_virtual_downwards_until`/`xw_update_cursor_for_view`/`xw_last_crossing_cursor_cb`/`xw_maybe_synthesize_crossing`/`xwidget_motion_or_crossing`), the two `#else` arms of C 739 at C 2159/2175/2212/2261, the WebKit callbacks (`offscreen_damage_event`, `synthesize_focus_in_event`, `webkit_view_load_changed_cb`, `webkit_create_cb`, `webkit_javascript_finished_cb`, `webkit_download_cb`, `webkit_decide_policy_cb`, `webkit_script_dialog_cb`), the `NS_IMPL_COCOA`/`HAVE_PGTK` `#elif` bodies (C 2758-3321), the store/kill/redisplay helpers, the remaining ~60 subrs and `syms_of_xwidget`/`syms_of_xwidget`'s `DEFVAR`s at the end | not this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 1181-2107 | **slice 2, the `HAVE_X_WINDOWS` arm** - C 1181's blank and C 1182's `#ifdef`: `xv_drag_begin_cb` (C 1184-1200), `xwidget_button_1` (C 1202-1326), `xwidget_button` (C 1328-1385), the XI2 trio `xwidget_motion_notify`/`xwidget_scroll`/`xwidget_pinch` (C 1389-1550; C 1387/1489's `#ifdef`s, C 1493's `GTK_CHECK_VERSION (3, 18, 0)`), `xi_translate_notify_detail` (C 1557-1573), `window_coords_from_toplevel` (C 1578-1607), `xw_find_common_ancestor` (C 1609-1648), `xw_notify_virtual_upwards_until`/`_downwards_until` (C 1650-1736), `xw_update_cursor_for_view` (C 1738-1759), `xw_last_crossing_cursor_cb` (C 1761-1767), `xw_maybe_synthesize_crossing` (C 1769-1943, C 1782's version arm) and `xwidget_motion_or_crossing` (C 1945-2105) plus C 2107's `#endif /* HAVE_X_WINDOWS */` | `all (feature = "use_gtk", feature = "have_x_windows")` (+ `have_xinput2`, `have_xinput2_4`, `gtk_check_version_ge_3_18`, `webkit_check_version_ge_2_34`) |
+| 2108-2281 | `synthesize_focus_in_event` (C 2110-2133), `xwidget_view_from_window` (C 2137-2145), `xwidget_show_view`/`xwidget_hide_view` (C 2150-2178, C 2153/2172's `#ifdef`/`#else`), `xv_do_draw`/`xwidget_view_draw_cb` (C 2182-2242, C 2180's `#ifndef HAVE_PGTK`), `offscreen_damage_event` (C 2247-2270, C 2258's arm), `xwidget_expose` (C 2274-2279) and C 2281's `#endif /* USE_GTK */` | `feature = "use_gtk"` (+ the `have_x_windows`/`have_pgtk` arms) |
+| 2282-2331 | C 2283's blank and the three `store_xwidget_*_event` helpers (`store_xwidget_event_string` C 2284-2296, `store_xwidget_download_callback_event` C 2298-2316, `store_xwidget_js_callback_event` C 2318-2331) | file gate |
+| 2332-2716 | C 2333's `#ifdef USE_GTK`: `store_xwidget_display_event` (C 2335-2349), `webkit_ready_to_show` (C 2351-2379), `webkit_create_cb_1`/`webkit_create_cb` (C 2381-2425), `webkit_view_load_changed_cb` (C 2427-2451), `webkit_js_to_lisp` (C 2453-2518), `webkit_javascript_finished_cb` (C 2520-2559), `webkit_download_cb` (C 2561-2574), `webkit_decide_policy_cb` (C 2576-2645), `webkit_script_dialog_cb` (C 2647-2714) and C 2716's `#endif` | `feature = "use_gtk"` |
+| 2717-4304 | **the remainder** - C 2717's blank and C 2718's `xwidget_init_view` through C 4304: the store/kill/redisplay helpers, the remaining ~60 subrs and `syms_of_xwidget`'s `DEFVAR`s - **由下一 lane 接手** (the next slice opens at C 2718) | not these two slices: recorded so the table covers the reference |
 
 ## Evidence
 
@@ -400,6 +465,102 @@ declarations **cite the header alone, with no line** (no such tree here, `## Dev
 readings are the probes quoted in the file note (clang: *function-like macro … is not defined*;
 evaluator: `0 disagreements`).
 
+
+**⑥ The X11 records this slice declares are *measured*, unlike the GDK/GTK/WebKit ones.**
+`clang -o /tmp/xwidget-lane/xprobe /tmp/xwidget-lane/xprobe.c -I/opt/homebrew/include` over
+`<X11/Xlib.h>` printed `XAnyEvent 40 type@0 serial@8 send_event@16 display@24 window@32`,
+`XMotionEvent 96 x@64 y@68 x_root@72 y_root@76 state@80 time@56`,
+`XCrossingEvent 104 x@64 y@68 x_root@72 y_root@76 mode@80 detail@84 focus@92 state@96 time@56`,
+`XGenericEventCookie 56 evtype@36 data@48` and `XEvent 192`; those are the `const _` assertions the
+unit writes for the four member records, and they agree with `include/xlib.rs`'s measured `XEvent`.
+The two XInput2 records (`XIEnterEvent`, `XIGesturePinchEvent`) have **no header on this machine**
+and are reconstructed from C's use sites (C 1497-1507, C 1993-2040) - **UNVERIFIED** (`## Owed` 10).
+
+**⑦ The frozen reading - `build-tu` (the P-86 ⑧ gate check), run twice.**
+`cd femacs && CARGO_TARGET_DIR=/tmp/xwidget-lane/target cargo run -q -p xtask -- build-tu src/xwidget.c`
+-> `built src/xwidget.rs -> ../build/femacs/xwidget.o`, **exit 0**, and `build/femacs/xwidget.o` is
+**336 bytes** - an empty object, which is the expected reading and not a proof of the new text:
+every item sits behind `use_gtk`, so under the frozen feature set rustc compiles only
+`include/config.rs` and the `#![allow]` attribute.  Both runs (before and after the fix passes)
+returned the same 336 bytes, and each run also materialises `build/femacs/units/xwidget/_root.rs`
+(the unit's text plus every mirror it reaches), which is what reading ⑧ compiles.
+
+**⑧ The arm readings (direct `rustc` on the materialised root; `text-only`, P-86 ③④⑤).**
+There is still no GDK/GTK/WebKit tree on this machine, so no arm can be *compiled against GTK*;
+each reading is rustc's name-resolution/type errors under a hand-set `--cfg` set, counted **by
+file** (P-86 ⑦):
+
+```
+$ rustc --edition 2024 --crate-type=lib --emit=metadata -C panic=abort \
+        --cfg 'feature="use_gtk"' --cfg 'feature="have_xwidgets"' \
+        --cfg 'feature="have_x_windows"' --cfg 'feature="have_window_system"' \
+        --cfg 'feature="have_gtk3"' --cfg 'feature="have_xinput2"' \
+        --cfg 'feature="have_xinput2_4"' --cfg 'feature="gtk_check_version_ge_3_18"' \
+        --cfg 'feature="webkit_check_version_ge_2_34"' \
+        --cfg 'feature="webkit_check_version_ge_2_26"' \
+        --cfg 'feature="webkit_check_version_ge_2_16"' \
+        build/femacs/units/xwidget/_root.rs                        # ARM A11
+$ rustc … --cfg 'feature="use_gtk"' --cfg 'feature="have_xwidgets"' \
+        --cfg 'feature="have_pgtk"' --cfg 'feature="have_window_system"' \
+        --cfg 'feature="have_gtk3"' build/femacs/units/xwidget/_root.rs   # ARM PG
+```
+
+- **ARM A11: 85 errors anchored in this unit**, and **all of them are registered gaps**: 84 `E0609`
+  (the mirror's `GdkEvent`/`GdkEventButton`/`GdkEventScroll`/`GdkEventMotion`/`GdkEventCrossing`
+  records carry only the members slice 1 read - the field-by-field list is in `## Owed` 8 - plus
+  `xwidget.kill_without_query`, the P-80 bitfield slice 1 records) and 1 `E0425` (`kill_xwidget`,
+  C 3727's definition, the unported remainder).  **No error is anchored in this slice's own text.**
+  4 more are anchored in mirrors: `E0425 XIEventMask` (`include/xterm.rs` 919), `E0133`
+  (`include/xwidget.rs` 204, `XWIDGET_LIVE_P`'s pointer deref), `E0080` (`include/systime.rs`'s
+  `Time` assertion fires because `feature = "have_x_windows"` is set while the frozen
+  `include/config.rs`'s `HAVE_X_WINDOWS` is false) and `E0658` (`VaList` in `include/lisp.rs`, an
+  artefact of plain `rustc` without the probe's bootstrap flags).
+- **ARM PG: 12 errors in this unit**, of which only **2 are this slice's**
+  (`GdkEvent.focus_change` twice, `synthesize_focus_in_event`, C 2127-2128, mirror gap `## Owed` 8)
+  and 10 are slice 1's latent defects that only this arm can see: `cursor_for_hit`/`define_cursors`
+  (C 1065-1119) read `(*FRAME_OUTPUT_DATA! (frame) as *mut pgtk_output).nontext_cursor` and three
+  siblings, measured as 5 `E0609` + 4 `E0605` (`pgtk_output` is a record in `include/pgtkterm.rs`,
+  not a pointer) - `## Owed` 13.  Two mirror errors (`E0658` as above, `E0133` in the `xwidget`
+  mirror).
+- **The pre-fix reading (this round's own defects).**  The first `xtask probe` arm
+  (`use_gtk,have_xwidgets,have_x_windows,have_window_system`) reported **70 errors**: 50 `E0609` +
+  11 `E0308` + 3 `E0425` + 1 `E0606` + 1 `E0384` + 1 `E0133` + 1 `E0080`.  Of those, **13 were
+  this round's own defects and were fixed**: eleven implicit `Time` (`c_ulong`) -> `guint32`
+  narrowings onto the GDK records' `time` members, the missing parenthesisation of the
+  `(* (FRAME_OUTPUT_DATA! (…) as *mut x_output)).nontext_cursor` cast (C 1756), and the `mut window`
+  parameter of `window_coords_from_toplevel` (C 1585's loop reassigns it).  Two more were the
+  mirror's `have_gtk3` gate on `GTK_ORIENTATION_VERTICAL`/`gtk_box_new` (which a real xwidgets build
+  has set, and which ARM A11 sets).  A further pass moved the two `gdk_x11_cursor_*` declarations
+  behind `have_x_windows` (their `Cursor`/`Display` return types) after ARM PG showed them
+  unresolved there.
+- **A combination reading is *vacuous* and is recorded as such** (P-86 ⑦): flipping
+  `have_x_windows` **together with** `have_pgtk` (through `xtask probe`) aborts at
+  `E0428 the name Emacs_Cursor is defined multiple times` (`include/pgtkgui.rs`'s
+  `Emacs_Cursor = *mut c_void` against `include/dispextern.rs`'s `= Cursor`), so the run reports 7
+  errors and never reaches this unit's text.  The two configurations are mutually exclusive in
+  `configure.ac`; the ARM A11/ARM PG readings above are the ones this ledger counts.
+
+**⑨ `extract-abi --check`: 84 -> 81 `missing` rows.**  Before: `- line count drifted 53.5%:
+C 4304 vs Rust 2000`, 84 `- missing` rows (35 `defsubr`, 34 `subr`, 13 `function`, 2 `macro`), 0
+`does not mention` rows.  After: **81 `- missing` rows** - the three that left are
+`store_xwidget_event_string`, `store_xwidget_download_callback_event` and
+`store_xwidget_js_callback_event`, the only names this slice's C range defines that the checklist
+carried (the `xwidget_*`/`webkit_*` callbacks it adds are declared in `include/xwidget.rs`'s
+`xwidget_decls`, so the checklist never listed them) - **0 `does not mention` rows**, and the
+`line count drifted` row is **gone** (the port is 4,492 lines against C's 4,304, 4.4%, under the 5%
+rule; see `## Owed` 12).
+
+**⑩ The other gates (repo root, final revision).**  `python3 tools/check-cond-eval.py
+src/xwidget.c` -> `121 conditions, 0 unknown, 0 disagreements [VERIFIED]`, exit 0.  `python3
+tools/check-dead-file-coverage.py` -> `145 ledger(s) bound, 0 failure(s)`, with `docs/ports/
+xwidget.md: 26 range row(s) cover src/xwidget.c (4304 lines; 0 blank line(s) between blocks need no
+row)` and the same 26 covering `src/xwidget.h (243 lines)`.  `python3 tools/check-ledger-ticks.py`
+-> `238 ledger(s) bound, 0 failure(s)`.  `python3 tools/check-citations.py` -> `676 file(s)
+scanned, 0 drift, 0 range, 1881 external, 36 allowed, 0 stale` (this unit's citations are in the
+`external` class, as slice 1's were).  `python3 tools/check-declarations.py` -> exit 0, no xwidget
+row.  `python3 tools/check-mirror-dupes.py` -> `17 duplicate declaration(s), 17 ratchet row(s), 0
+failure(s)` - none of them this unit's (the in-unit surface does not repeat the mirror).
+
 ## Deviations
 
 1. **Include order.**  C's list starts at `"buffer.h"` (C 22) and reaches `"lisp.h"` at C 25;
@@ -488,6 +649,80 @@ evaluator: `0 disagreements`).
     `bool`, and the port keeps the C type on the function and spells the conversion `!= 0` at the
     call site (the `src/androidmenu.rs` `popup_activated_flag` shape).
 
+
+### Slice 2 (C 1181-2716)
+
+- **The toolkit surface this slice reads is declared in the unit** (P-88 ①; the P-90 ③/④ move into
+  `femacs/src/include/gtk.rs` is still owed, `## Owed` 2), each name with the `/// C:` citation its
+  header and the C line that reads it.  **GDK, GTK, WebKit and XInput2 are not on this machine**, so
+  every record carries only the members C reads, every enumerator is a *distinct placeholder* (the
+  real values are `## Owed` 2/8), and no layout assertion is written for them; **X11 is**, so the
+  four `XEvent` member records carry `clang`-measured layouts and `const _` assertions
+  (`## Evidence` ⑥) and the `XMoveWindow` family's prototypes are the header's own.  Two of the
+  slice's names were **already** in the mirror under a `have_gtk3` gate
+  (`GTK_ORIENTATION_VERTICAL`, `gtk_box_new`), which is why the arm flip sets that feature
+  (`## Gate mapping`).
+- **C's `#ifdef`-split `if`/`else if`/`else` is the port's `match` with the `#ifdef` arm gated**, in
+  `xwidget_motion_or_crossing`: C 1951-1976 (`if (event->type != GenericEvent) … else …`) and
+  C 1977-2105 (`if (MotionNotify) … else if (GenericEvent) … else …`) both become a `match` on
+  `event->type` with a `#[cfg (feature = "have_xinput2")]` arm; the order and the conditions are
+  C's, and the arms are braced blocks (a `#[cfg]` cannot sit between `if` and `else`, and
+  duplicating C's shared block would be a second copy of it).
+- **C's `switch` is the port's `match` with braced arms**, and a `switch` *without* `default` gets
+  an empty `_` arm - C's own fall-through, not invented behaviour: `xi_translate_notify_detail`
+  (C 1557-1573), `xwidget_pinch` (C 1531-1549), `webkit_create_cb` (C 2415-2422),
+  `webkit_view_load_changed_cb` (C 2436-2450) and `webkit_decide_policy_cb` (C 2578-2643).
+- **C's implicit conversions are explicit `as` casts** (PORTING.md 1.1), and the three the first arm
+  reading measured as `E0308`/`E0606`/`E0384` were the fixes of this round (`## Evidence` ⑧):
+  eleven `Time` (`c_ulong`) -> the GDK records' `guint32` `time` members; `c_int` -> `c_double` for
+  every coordinate/member write (`x`/`y`/`x_root`/`y_root`/`delta_x`/`delta_y`/`clip_*`); `c_int` ->
+  `c_uint` for `state`/`modifier_state`; the `lrint` results -> `c_int`; the `double` arguments C
+  passes to `xw_maybe_synthesize_crossing`'s `int x`/`int y` (C 1703-1710, C 2161-2166) -> `as
+  c_int`; `Window` -> `EMACS_INT` at C 2140's `make_fixnum`; `gpointer` <-> `*mut GdkWindow`/
+  `*mut xwidget` at the `g_object_ref`/`g_object_unref`/`g_signal_handler_disconnect`/
+  `g_signal_connect` sites; and `(*xev).mods.effective as c_uint`.
+- **C's `XEvent` union member reads go through casts to the member record** C names
+  (`XAnyEvent`/`XMotionEvent`/`XCrossingEvent`/`XGenericEventCookie`), because `include/xlib.rs`'s
+  `XEvent` is the measured 192-byte **opaque** record (its 33 member records are owed in
+  `docs/ports/include-xlib.md`) - the `src/xmenu.rs` 1086 `event->xcookie` shape.  The four records
+  and their measured layouts stand in the unit (`## Evidence` ⑥), so the reading is a
+  name-resolution one, not a claim that the union is spelled.
+- **C's uninitialised locals are seeded and named** (PORTING.md 0.1-13/1.5): `x_out`/`y_out`
+  (C 1581-1582), `cursor` (C 1741), `entry` (C 2660) and every `struct input_event`/`GdkEvent` C
+  leaves for `EVENT_INIT`/field assignments.
+- **C's `for` loops become `while` with the step at the end, in C's order**
+  (`window_coords_from_toplevel` C 1586-1599, `xw_find_common_ancestor`'s two C 1615-1626,
+  `xw_notify_virtual_upwards_until` C 1657-1661, `xw_notify_virtual_downwards_until` C 1697-1703,
+  `offscreen_damage_event` C 2254, `webkit_ready_to_show` C 2362, `webkit_js_to_lisp` C 2485/2504),
+  and C's `while ((parent = gdk_window_get_parent (window)) != toplevel)` (C 1585) is the assignment
+  before the loop with the same step at the end - the `## Evidence` ⑧ `E0384` is what caught the
+  missing `mut`.
+- **`min (5, …)` is `min! (5, …)`** (lisp.h 71-73, `lib/include/min-max.rs`, the
+  `src/w32console.rs` 346 shape; `include/lisp.rs` carries only the `isize` *functions* of the same
+  names, with which the macro coexists), and **`event.kind = …` is the per-unit `input_event_bits!`
+  macro** (P-80 member dispatch; the `src/gfilenotify.rs` 183-189 shape, body-identical).
+  `XIMaskIsSet` (XInput2.h 183) and `g_clear_pointer` (gmem.h 135-145) keep C's names as
+  `macro_rules!` with the headers' own bodies, because calling them as functions would name symbols
+  the libraries do not export (the mirror's `g_clear_object` precedent, `include/gtk.rs` 813).
+- **`XWIDGET_EVENT`/`XWIDGET_DISPLAY_EVENT` are declared in the unit**, at the values a
+  `HAVE_XWIDGETS` build gives them (28/29): `include/termhooks.rs` carries the frozen
+  configuration's members and stops before termhooks.h's `#ifdef HAVE_XWIDGETS` pair, so the port
+  spells them (the `src/gfilenotify.rs` 161-169 `FILE_NOTIFY_EVENT` precedent), and the mirror round
+  that adds them owns the real values (`## Owed` 11).
+- **C's `focus_change.in` is `r#in`** (a Rust keyword), and both the union member and the record it
+  names are mirror gaps (`## Owed` 8).
+- **`memory_full` is declared in the unit** (C 2499's call): no mirror carries it -
+  `include/lisp.rs` has only `memory_full_up`, which C 2483's call uses - so the prototype stands at
+  its use site (P-72 rule 4) and joins `## Owed` 3's list.
+- **The XInput2 records' member order and every type is a reading of C's use sites, not of a
+  header**: this machine has `X11/extensions/XI2.h` (the constants and `XIMaskIsSet` are cited from
+  its lines) but **not** `XInput2.h`, which is where `XIEnterEvent`/`XIGesturePinchEvent` are
+  defined.  C 1993-2040 reads `event_x`/`event_y`/`root_x`/`root_y`/`time`/`focus`/`mode`/`detail`/
+  `mods.effective`/`buttons.mask_len`/`buttons.mask`, and C 1497-1507 reads `event_x`/`event_y`/
+  `delta_x`/`delta_y`/`delta_angle`/`scale`/`root_x`/`root_y`/`mods.effective`/`evtype`; those
+  member names are C's, the records are **UNVERIFIED** and their measurements are owed (`## Owed`
+  10).
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. `femacs/xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
@@ -533,18 +768,68 @@ evaluator: `0 disagreements`).
    `typedef Cursor Emacs_Cursor;` under `HAVE_WINDOW_SYSTEM`) and `include/xterm.rs`'s sixteen
    `pub fn` bodies that dereference raw pointers (20 `E0133` in Evidence ②; the same reading
    appears on `src/gtkutil.rs`'s root) are the other two.
-4. **A first arm flip that can actually link.**  With ③'s gaps closed, ARM A should be re-run; the
-   eight unit-anchored errors of Evidence ② are the only errors this slice can remove on its own,
-   and seven of them need the remainder (C 1182-4304) ported.
-5. `docs/ports/line-drift-tolerance.tsv`: one row, stem `xwidget`, `total`, with the basis from
-   Evidence ③ (C 4,304 vs Rust 2,321 is the *whole file* against a one-slice port; this slice's own
-   ratio is C 1,180 → 2,321 lines, i.e. the P-86 per-item `#[cfg]` gates, the ~600 lines of
-   third-party declarations the class requires, and Rust's explicit casts).
-6. `HAVE_XINPUT2`'s four blocks (C 519-522/537-548/624-631/684-689) are carried as text but were
-   never flipped: this machine has no XInput2 headers for the GTK lane, so the reading is owed to a
-   configuration that can compile them.
-7. **The next slice.**  C 1182-4304, opening at `#ifdef HAVE_X_WINDOWS` with `xv_drag_begin_cb`
-   (C 1184-1200); this table's last row is the placeholder for it.
+4. **An arm flip that can actually link.**  With ③'s (and 8-10's) gaps closed the arm readings
+   should be re-run; **slice 2 has now been flipped** (Evidence ⑦/⑧: ARM A11 leaves 85 errors
+   anchored in the unit, *none of them this slice's own text*, and ARM PG leaves 12, of which 10
+   are slice 1's `cursor_for_hit`/`define_cursors` - owed 13), and **C 2718-4304 is still
+   unported**, which is the other half of item 7.
+5. `docs/ports/line-drift-tolerance.tsv`: **the row this item used to promise is not in the file**
+   (`grep -n xwidget docs/ports/line-drift-tolerance.tsv` is empty, checked this round), and none
+   is needed yet: the port is 4,492 Rust lines against C's 4,304 (4.4%, under the 5% rule), so
+   `extract-abi --check`'s `line count drifted` row is gone (Evidence ⑨).  The row - stem
+   `xwidget`, basis `total`, the basis being the per-item `#[cfg]` gates, the ~1,700 lines of
+   third-party declarations this class requires and Rust's explicit casts - becomes necessary when
+   the remainder lands (owed 12).
+6. `HAVE_XINPUT2`'s four slice-1 blocks (C 519-522/537-548/624-631/684-689) were carried as text
+   only; **slice 2 flips them** (ARM A11 sets `have_xinput2`/`have_xinput2_4`, Evidence ⑧) but the
+   arm cannot *resolve* until `XIEventMask`/`x_display_info` land in `include/xterm.rs` (owed 10),
+   so the reading is still a name-resolution one and not a compile.
+7. **The next slice.**  **C 2717-4304**, opening at C 2718's `xwidget_init_view` and running
+   through the store/kill/redisplay helpers, the remaining ~60 subrs and `syms_of_xwidget`'s
+   `DEFVAR`s (the C line-range table's last row is the placeholder for it, **由下一 lane
+   接手**).  C 1182-2716 is this round's (the four rows above it).
+
+
+8. **The mirror's GDK event records need the members this slice reads.**  The ARM A11 reading's 84
+   `E0609`s are that list field by field: `GdkEvent`'s union needs `focus_change` (a
+   `GdkEventFocus` with `window`/`in`) and `touchpad_pinch` (a `GdkEventTouchpadPinch` with
+   `x`/`y`/`dx`/`dy`/`angle_delta`/`scale`/`x_root`/`y_root`/`state`/`n_fingers`/`phase`);
+   `GdkEventScroll` needs `direction`/`device`/`x_root`/`y_root`/`state`/`delta_x`/`delta_y`/
+   `is_stop`; `GdkEventMotion` needs `x_root`/`y_root`/`state`/`device`; `GdkEventCrossing` needs
+   `x_root`/`y_root`/`mode`/`detail`/`focus`/`state`; `GdkEventButton` needs `x_root`/`y_root`/
+   `button`/`state`/`device`.  With them, the real enumerator values of
+   `GdkScrollDirection`/`GdkTouchpadGesturePhase`/`GdkNotifyType`/`GdkEventType`'s two new members.
+   `femacs/src/include/gtk.rs` is outside this lane's write scope (`## Not claimed`).
+9. **`femacs/xtask/Cargo.toml`'s `[features]` table** gains **`gtk_check_version_ge_3_18`** (the
+   `gtk_check_version_ge_3_10` naming; C 1493's `GTK_CHECK_VERSION (3, 18, 0)`) on top of item 1's
+   three `webkit_check_version_*` names - without it the C 1491-1550 body cannot be selected.
+10. **The mirror gaps the arm flip trips** (all outside this lane's write scope): `XIEventMask` is
+    unresolved in `include/xterm.rs` 919 (so the XInput2 arm cannot resolve at all), `x_display_info`
+    is unresolved where the same mirror's `xw_translate_x_modifiers` names it, the two XInput2
+    records have no mirror and their layouts are unmeasured (`## Evidence` ⑥), and
+    `include/systime.rs`'s `Time` assertion (`const _: () = assert! (!cfg! (feature = "have_x_windows")
+    || HAVE_X_WINDOWS);`) fails whenever `feature = "have_x_windows"` is set, because
+    `include/config.rs`'s `HAVE_X_WINDOWS` const is the *frozen* `undef`.  A real arm flip needs the
+    port's `HAVE_X_WINDOWS`/`HAVE_XINPUT2`/`HAVE_GTK3` constants to be true in `include/config.rs`.
+11. **`XWIDGET_EVENT`/`XWIDGET_DISPLAY_EVENT` belong in `include/termhooks.rs`** under
+    `have_xwidgets` (termhooks.h 273-281): this unit and `src/keyboard.rs` 4761/7973 both read them,
+    and the unit's declaration (`## Deviations`) is a stand-in until they land there with the
+    `HAVE_XWIDGETS` build's values.
+12. **`docs/ports/line-drift-tolerance.tsv`: the `xwidget` row the old item 5 promised does not
+    exist** (`grep -n xwidget docs/ports/line-drift-tolerance.tsv` is empty, checked this round).
+    With the port at 4,492 Rust lines against C's 4,304 the 5% rule passes, so no row is needed
+    *this round*; the remainder (C 2717-4304, 1,588 lines) will need the row, derived from a
+    finished prefix the way that table's own note describes.
+13. **The PGTK arm's 12 unit-anchored errors** (`## Evidence` ⑧, ARM PG): 2 are this slice's
+    (`GdkEvent.focus_change`, item 8) and 10 are slice 1's latent defects, visible only under
+    `have_pgtk` - `cursor_for_hit`/`define_cursors` (C 1065-1119) cast
+    `(*FRAME_OUTPUT_DATA! (frame) as *mut pgtk_output)` where `pgtk_output` is a record in
+    `include/pgtkterm.rs` rather than a pointer, measured as 4 `E0605` (non-primitive cast) + 5
+    `E0609` (`nontext_cursor`/`text_cursor`/`vertical_drag_cursor`/`hand_cursor`) + the shared
+    `kill_without_query` (item 8's P-80 bitfield).  The line is
+    `(*FRAME_OUTPUT_DATA! (frame) as *mut pgtk_output).nontext_cursor`, whose correct spelling needs
+    either the mirror's `x_output`-style pointer or the explicit parens the X11 arm's site now
+    carries.
 
 ## P-90's second step (2026-10-05): the move is blocked, and the blocker is measured
 
@@ -589,3 +874,32 @@ comment as unterminated (it swallowed 43 lines; `rustc`'s `unexpected closing de
 it), and a forgotten `GdkEventKey` record after the placeholder became a comment
 (`layout-check`'s `cannot find type GdkEventKey` caught it).  The records' layout and member
 order stay **UNVERIFIED** - no GDK tree here, and no layout assertion is written.
+
+## Not claimed
+
+- **No runtime evidence of any kind.**  The frozen configuration compiles nothing from this file
+  (Evidence ⑦: a 336-byte empty object), so this is a *text* port: nothing here has been executed,
+  and no GTK/WebKit window, offscreen surface, X11 window or input device was involved.  There is
+  no behavioural test, no differential run, no ERT and no device evidence; the C 1181-2716 text has
+  never been compiled against a real GDK/GTK/WebKit tree.
+- **The arm readings are not GTK compiles.**  This machine has no `gtk-3.0`/`gtk-4.0`/
+  `webkit2gtk-*`/`JavaScriptCore` tree and no `pkg-config`, so Evidence ⑦/⑧ are `rustc`
+  name-resolution and type-check readings of the materialised root under hand-set `--cfg`s: 85
+  errors anchored in this unit for ARM A11 (84 of them the mirror's GDK record members, 1 the
+  unported `kill_xwidget`) and 12 for ARM PG (10 of them slice 1's).  "0 anchored in this slice's
+  own text" means exactly that - not that the unit compiles, and not that either arm is a working
+  GTK configuration.  The `have_x_windows` + `have_pgtk` combination is *not* a reading at all
+  (Evidence ⑧'s vacuous run).
+- **Every GDK/GTK/WebKit/XInput2 record in this slice stays unmeasured.**  No `#[repr (C)]` record
+  of theirs carries a size or an offset: they carry the members C reads and nothing else, their
+  enumerators are distinct placeholders (not the toolkit's values), and no layout assertion is
+  written (owed 2/8/10).  Only the four X11 member records are measured (Evidence ⑥).
+- **`extract-abi --check` still FAILs for the file**, by construction: 81 `- missing` rows remain
+  (34 `subr`, 34 `defsubr`, 11 `function`, 2 `macro`) - they are C 2718-4304's and the header's
+  Subrs.  The `line count drifted` row is gone (4.4%), which is a *totals* signal and not a
+  statement that the remainder is ported; `## Owed` 7 names the C range that is still owed.
+- **This ledger carries its Gate-mapping and C-line-range sections twice** (a
+  pre-existing duplication from an earlier round, left in place this round: `python3
+  tools/check-dead-file-coverage.py` reads the first table and both were updated identically).
+- **Nothing in this round is committed**: no git write of any kind was performed (the lane's
+  mandate), so this ledger's readings describe the working tree, not a revision.

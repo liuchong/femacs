@@ -1998,3 +1998,2495 @@ unsafe extern "C" fn run_file_chooser_cb (webview: *mut WebKitWebView,
   return TRUE;
 }
 /* C 1181 is the blank line the next slice's `#ifdef HAVE_X_WINDOWS` (C 1182) follows.  */
+
+/* ----------------------------------------------------------------------------------------------
+   C 1182-2716's newly-read toolkit surface: the `HAVE_X_WINDOWS` drag/button/motion/crossing
+   machinery, the WebKit callbacks and the script dialog.  Same treatment as the surface at the
+   top of this file (P-88 ①, which P-90 ① keeps for this round): the names stand here until the
+   P-90 ③ move into `femacs/src/include/gtk.rs`, each citation naming its header and the C line
+   that reads it.  **GDK, GTK, WebKit and XInput2 have no tree on this machine** (the file note
+   above), so every record below carries exactly the members C reads, its layout is
+   **UNVERIFIED**, and every enumerator is a *distinct placeholder* whose only job is to keep C's
+   arms distinct; the real values are owed (`## Owed` 2).  **X11 is on this machine**, so the
+   `XMoveWindow` family's prototypes below are the header's own.
+   ---------------------------------------------------------------------------------------------- */
+
+/* GDK, continued.  */
+/// C: gdk/gdktypes.h: `typedef enum { GDK_NOTIFY_ANCESTOR, GDK_NOTIFY_VIRTUAL,
+/// GDK_NOTIFY_INFERIOR, GDK_NOTIFY_NONLINEAR, GDK_NOTIFY_NONLINEAR_VIRTUAL } GdkNotifyType;` -
+/// `xi_translate_notify_detail`'s return type (C 1557) and the type of the `detail` C 1855-1861
+/// and C 1885-1891 write.  **UNVERIFIED**: the five names are distinct placeholders.
+#[cfg (feature = "use_gtk")]
+pub type GdkNotifyType = c_int;
+#[cfg (feature = "use_gtk")]
+pub const GDK_NOTIFY_ANCESTOR: GdkNotifyType = 0;           // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_NOTIFY_VIRTUAL: GdkNotifyType = 1;            // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_NOTIFY_INFERIOR: GdkNotifyType = 2;           // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_NOTIFY_NONLINEAR: GdkNotifyType = 3;          // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_NOTIFY_NONLINEAR_VIRTUAL: GdkNotifyType = 4;  // placeholder, not GDK's value
+/// C: gdk/gdktypes.h: `typedef enum { GDK_CROSSING_NORMAL, GDK_CROSSING_SELECTION,
+/// GDK_CROSSING_GTK_GRAB, GDK_CROSSING_GTK_UNGRAB, GDK_CROSSING_STATE_CHANGED } GdkCrossingMode;`
+/// - the four names C 1344/2056/2068/2096 pass as `entry_crossing`/`exit_crossing`.  The type
+/// itself is declared at C 244-263's surface above.  **UNVERIFIED**: distinct placeholders.
+#[cfg (feature = "use_gtk")]
+pub const GDK_CROSSING_NORMAL: GdkCrossingMode = 0;         // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_CROSSING_GTK_GRAB: GdkCrossingMode = 1;       // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_CROSSING_GTK_UNGRAB: GdkCrossingMode = 2;     // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_CROSSING_STATE_CHANGED: GdkCrossingMode = 3;  // placeholder, not GDK's value
+/// C: gdk/gdktypes.h: `GDK_BUTTON1_MASK = 1 << 8` (GLib's `GdkModifierType`) - the three C 2038-
+/// 2046 ORs into `xg_event->crossing.state`.  **UNVERIFIED**: distinct placeholder bits.
+#[cfg (feature = "use_gtk")]
+pub const GDK_BUTTON1_MASK: GdkModifierType = 1 << 8;       // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_BUTTON2_MASK: GdkModifierType = 1 << 9;       // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_BUTTON3_MASK: GdkModifierType = 1 << 10;      // placeholder, not GDK's value
+/// C: gdk/gdktypes.h: `typedef enum { GDK_SCROLL_UP, GDK_SCROLL_DOWN, GDK_SCROLL_LEFT,
+/// GDK_SCROLL_RIGHT, GDK_SCROLL_SMOOTH } GdkScrollDirection;` - C 1370-1377's four writes and
+/// C 1463's.  **UNVERIFIED**: distinct placeholders.
+#[cfg (feature = "use_gtk")]
+pub type GdkScrollDirection = c_int;
+#[cfg (feature = "use_gtk")]
+pub const GDK_SCROLL_UP: GdkScrollDirection = 0;            // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_SCROLL_DOWN: GdkScrollDirection = 1;          // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_SCROLL_LEFT: GdkScrollDirection = 2;          // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_SCROLL_RIGHT: GdkScrollDirection = 3;         // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_SCROLL_SMOOTH: GdkScrollDirection = 4;        // placeholder, not GDK's value
+/// C: gdk/gdktypes.h: `typedef enum { GDK_TOUCHPAD_GESTURE_PHASE_BEGIN,
+/// GDK_TOUCHPAD_GESTURE_PHASE_UPDATE, GDK_TOUCHPAD_GESTURE_PHASE_END,
+/// GDK_TOUCHPAD_GESTURE_PHASE_CANCELED } GdkTouchpadGesturePhase;` - C 1537-1547's three writes.
+/// **UNVERIFIED**: distinct placeholders.
+#[cfg (feature = "use_gtk")]
+pub type GdkTouchpadGesturePhase = c_int;
+#[cfg (feature = "use_gtk")]
+pub const GDK_TOUCHPAD_GESTURE_PHASE_BEGIN: GdkTouchpadGesturePhase = 0;   // placeholder
+#[cfg (feature = "use_gtk")]
+pub const GDK_TOUCHPAD_GESTURE_PHASE_UPDATE: GdkTouchpadGesturePhase = 1;  // placeholder
+#[cfg (feature = "use_gtk")]
+pub const GDK_TOUCHPAD_GESTURE_PHASE_END: GdkTouchpadGesturePhase = 2;     // placeholder
+/// C: gdk/gdktypes.h: `GDK_FOCUS_CHANGE` / `GDK_TOUCHPAD_PINCH` - the two `GdkEventType` members
+/// C 2121 and C 1521 ask `gdk_event_new` for.  Distinct placeholders (the values above C's list
+/// at C 278-296 stops at 10).  **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+pub const GDK_FOCUS_CHANGE: GdkEventType = 11;              // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_TOUCHPAD_PINCH: GdkEventType = 12;            // placeholder, not GDK's value
+/// C: glib/gmacros.h: `#define G_MAXINT32 2147483647` - C 2483's bounds test on `dlen`.  The
+/// value is `INT32_MAX`, the header's own expression.
+#[cfg (feature = "use_gtk")]
+pub const G_MAXINT32: c_int = 2147483647;
+/// C: glib/gasyncresult.h: `typedef struct _GAsyncResult GAsyncResult;` - `webkit_web_view_
+/// run_javascript_finish`'s second parameter (C 2533).
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct GAsyncResult
+{
+  _private: [u8; 0],
+}
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C 1585: `children = g_list_prepend (children, window);`
+  /// C: glib/glist.h: `GList *g_list_prepend (GList *list, gpointer data);`
+  pub fn g_list_prepend (list: *mut GList, data: gpointer) -> *mut GList;
+  /// C 1092/1603/1934: `g_clear_pointer (&view->last_crossing_window, g_object_unref);`
+  /// C: glib/gmem.h 135-145's `g_clear_pointer` macro - modelled as a `macro_rules!` (below),
+  /// because C's name is a macro and calling it as a function would name a symbol GLib does not
+  /// export (the mirror's `g_clear_object` precedent, `include/gtk.rs` 813).
+  /// C 1585/1591/1654/1686/1698/1730: `gdk_window_get_parent (…);`
+  /// C: gdk/gdkwindow.h: `GdkWindow *gdk_window_get_parent (GdkWindow *window);` (already
+  /// declared above at C 982's surface).
+  /// C 1795/1803: `gdk_window_is_destroyed (…);`
+  /// C: gdk/gdkwindow.h: `gboolean gdk_window_is_destroyed (GdkWindow *window);`
+  pub fn gdk_window_is_destroyed (window: *mut GdkWindow) -> gboolean;
+  /// C 1589: `gdk_window_coords_from_parent (l->data, x, y, &x_out, &y_out);`
+  /// C: gdk/gdkwindow.h: `void gdk_window_coords_from_parent (GdkWindow *window, gdouble
+  /// parent_x, gdouble parent_y, gdouble *x, gdouble *y);`
+  pub fn gdk_window_coords_from_parent (window: *mut GdkWindow, parent_x: c_double,
+                                        parent_y: c_double, x: *mut c_double, y: *mut c_double);
+  /// C 1743: `xg_cursor = gdk_window_get_cursor (crossing_window);`
+  /// C: gdk/gdkwindow.h: `GdkCursor *gdk_window_get_cursor (GdkWindow *window);`
+  pub fn gdk_window_get_cursor (window: *mut GdkWindow) -> *mut GdkCursor;
+  /// C 2499: `memory_full (n);` - lisp.h's `extern AVOID memory_full (size_t);` (alloc.c).  No
+  /// mirror carries it (`include/lisp.rs` has only `memory_full_up`, used at C 2483), so the
+  /// prototype stands here (P-72 rule 4) and is owed (`## Owed` 3).
+  pub fn memory_full (size: usize) -> !;
+  /// C 2478: `g_strfreev (properties_names);`
+  /// C: glib/gstrfuncs.h: `void g_strfreev (gchar **str_array);`
+  pub fn g_strfreev (str_array: *mut *mut gchar);
+  /// C 2477: `guint n = g_strv_length (properties_names);`
+  /// C: glib/gstrfuncs.h: `guint g_strv_length (gchar **str_array);`
+  pub fn g_strv_length (str_array: *mut *mut gchar) -> guint;
+}
+/// C: glib/gmem.h 135-145: `#define g_clear_pointer(pp, destroy)` - take the pointer, null the
+/// slot, then `destroy` the old value when it was non-NULL (the `__GNUC__` arm this machine
+/// takes; the mirror's `g_clear_object` is the same body, `include/gtk.rs` 813).  C 1934's
+/// `destroy` is `g_object_unref`.
+/* The two `gdk/gdkx.h` entry points C 1747-1749 calls: X11-specific (they name `Cursor` and
+   `Display`, which this tree carries only under `have_x_windows`), so their declarations carry
+   that arm's gate.  */
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe extern "C" {
+  /// C 1747: `cursor = gdk_x11_cursor_get_xcursor (xg_cursor);`
+  /// C: gdk/gdkx.h: `Cursor gdk_x11_cursor_get_xcursor (GdkCursor *cursor);`
+  pub fn gdk_x11_cursor_get_xcursor (cursor: *mut GdkCursor) -> Cursor;
+  /// C 1749: `if (gdk_x11_cursor_get_xdisplay (xg_cursor) == xv->dpy)`
+  /// C: gdk/gdkx.h: `Display *gdk_x11_cursor_get_xdisplay (GdkCursor *cursor);`
+  pub fn gdk_x11_cursor_get_xdisplay (cursor: *mut GdkCursor) -> *mut Display;
+}
+
+#[cfg (feature = "use_gtk")]
+macro_rules! g_clear_pointer {
+  ($pp:expr, $destroy:expr) => {
+    {
+      let pp = ($pp);
+      let ptr: *mut c_void = *pp as *mut c_void;
+      *pp = std::ptr::null_mut ();
+      if ! ptr.is_null () { $destroy (ptr as gpointer); }
+    }
+  };
+}
+
+/* GTK, continued.  */
+/// C: gtk/gtkwindow.h: `typedef struct _GtkOffscreenWindow GtkOffscreenWindow;` (a `GtkBin`;
+/// `GTK_OFFSCREEN_WINDOW` casts to it) - C 2185/2226 and C 2230.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct GtkOffscreenWindow
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkoffscreenwindow.h: `#define GTK_OFFSCREEN_WINDOW(obj) (G_TYPE_CHECK_INSTANCE_CAST
+/// ((obj), GTK_TYPE_OFFSCREEN_WINDOW, GtkOffscreenWindow))` - the `GTK_WIDGET` treatment
+/// (C 429): the port keeps the macro's name and its result type.
+#[cfg (feature = "use_gtk")]
+macro_rules! GTK_OFFSCREEN_WINDOW {
+  ($o:expr) => { ($o) as *mut GtkOffscreenWindow };
+}
+/// C: gtk/gtkentry.h: `typedef struct _GtkEntry GtkEntry;` (a `GtkWidget`; `GTK_ENTRY` casts to
+/// it) - C 2704-2713's entry.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct GtkEntry
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkentry.h: `#define GTK_ENTRY(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), GTK_TYPE_ENTRY,
+/// GtkEntry))` - the `GTK_WIDGET` treatment.
+#[cfg (feature = "use_gtk")]
+macro_rules! GTK_ENTRY {
+  ($o:expr) => { ($o) as *mut GtkEntry };
+}
+/// C: gtk/gtkdialog.h: `typedef struct _GtkDialog GtkDialog;` (a `GtkWindow`; `GTK_DIALOG` casts
+/// to it) - C 2686/2687/2698/2699/2713.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct GtkDialog
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkdialog.h: `#define GTK_DIALOG(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), GTK_TYPE_DIALOG,
+/// GtkDialog))` - the `GTK_WIDGET` treatment.
+#[cfg (feature = "use_gtk")]
+macro_rules! GTK_DIALOG {
+  ($o:expr) => { ($o) as *mut GtkDialog };
+}
+/// C: gtk/gtkenums.h: `GTK_DIALOG_MODAL = 1 << 0` (one of `GtkDialogFlags`) - C 2687/2699's
+/// flags argument.  **UNVERIFIED**: the value is the header's, the flag's task being to differ
+/// from `GTK_DIALOG_DESTROY_WITH_PARENT`.
+#[cfg (feature = "use_gtk")]
+pub const GTK_DIALOG_MODAL: c_int = 1 << 0;
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C 2186/2227: `wnd = GTK_OFFSCREEN_WINDOW (w->widgetwindow_osr);`
+  /// C: gtk/gtkoffscreenwindow.h: `cairo_surface_t *gtk_offscreen_window_get_surface
+  /// (GtkOffscreenWindow *offscreen_window);`
+  pub fn gtk_offscreen_window_get_surface (offscreen_window: *mut GtkOffscreenWindow)
+    -> *mut cairo_surface_t;
+  /// C 1226/1231: `g_signal_connect (G_OBJECT (view->passive_grab), "destroy", G_CALLBACK
+  /// (gtk_widget_destroyed), &view->passive_grab);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_destroyed (GtkWidget *widget, GtkWidget **widget_pointer);`
+  pub fn gtk_widget_destroyed (widget: *mut GtkWidget, widget_pointer: *mut *mut GtkWidget);
+  /// C 2268: `gtk_widget_queue_draw (view->widget);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_queue_draw (GtkWidget *widget);`
+  pub fn gtk_widget_queue_draw (widget: *mut GtkWidget);
+  /// C 2686: `dialog = gtk_dialog_new_with_buttons ("Alert", GTK_WINDOW (widget), GTK_DIALOG_MODAL,
+  /// "Dismiss", 1, NULL);`
+  /// C: gtk/gtkdialog.h: `GtkWidget *gtk_dialog_new_with_buttons (const gchar *title, GtkWindow
+  /// *parent, GtkDialogFlags flags, const gchar *first_button_text, ...);`
+  pub fn gtk_dialog_new_with_buttons (title: *const gchar, parent: *mut GtkWindow, flags: c_int,
+                                      first_button_text: *const gchar, ...) -> *mut GtkWidget;
+  /// C 2693: `content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));`
+  /// C: gtk/gtkdialog.h: `GtkWidget *gtk_dialog_get_content_area (GtkDialog *dialog);`
+  pub fn gtk_dialog_get_content_area (dialog: *mut GtkDialog) -> *mut GtkWidget;
+  /// C 2704: `result = gtk_dialog_run (GTK_DIALOG (dialog));`
+  /// C: gtk/gtkdialog.h: `gint gtk_dialog_run (GtkDialog *dialog);`
+  pub fn gtk_dialog_run (dialog: *mut GtkDialog) -> gint;
+  /// C 2705: `entry = gtk_entry_new ();`
+  /// C: gtk/gtkentry.h: `GtkWidget *gtk_entry_new (void);`
+  pub fn gtk_entry_new () -> *mut GtkWidget;
+  /// C 2708: `gtk_entry_set_text (GTK_ENTRY (entry), message);`
+  /// C: gtk/gtkentry.h: `void gtk_entry_set_text (GtkEntry *entry, const gchar *text);`
+  pub fn gtk_entry_set_text (entry: *mut GtkEntry, text: *const gchar);
+  /// C 2711-2712: `webkit_script_dialog_prompt_set_text (script_dialog, gtk_entry_get_text
+  /// (GTK_ENTRY (entry)));`
+  /// C: gtk/gtkentry.h: `const gchar *gtk_entry_get_text (GtkEntry *entry);`
+  pub fn gtk_entry_get_text (entry: *mut GtkEntry) -> *const gchar;
+  /// C 2702: `gtk_box_pack_end (GTK_BOX (box), entry, TRUE, TRUE, 0);`
+  /// C: gtk/gtkbox.h: `void gtk_box_pack_end (GtkBox *box, GtkWidget *child, gboolean expand,
+  /// gboolean fill, guint padding);`
+  pub fn gtk_box_pack_end (box_: *mut GtkBox, child: *mut GtkWidget, expand: gboolean,
+                           fill: gboolean, padding: guint);
+}
+
+/* WebKit, continued.  */
+/// C: webkit2/WebKitJavascriptResult.h: `typedef struct _WebKitJavascriptResult
+/// WebKitJavascriptResult;` - C 2530/2537/2552's value.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct WebKitJavascriptResult
+{
+  _private: [u8; 0],
+}
+/// C: webkit2/WebKitURIRequest.h: `typedef struct _WebKitURIRequest WebKitURIRequest;` - C 2565
+/// and C 2601/2608/2637's request.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct WebKitURIRequest
+{
+  _private: [u8; 0],
+}
+/// C: webkit2/WebKitNavigationPolicyDecision.h: `typedef struct _WebKitNavigationPolicyDecision
+/// WebKitNavigationPolicyDecision;` (a `WebKitPolicyDecision`) - C 2586 and C 2624.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct WebKitNavigationPolicyDecision
+{
+  _private: [u8; 0],
+}
+/// C: webkit2/WebKitResponsePolicyDecision.h: `typedef struct _WebKitResponsePolicyDecision
+/// WebKitResponsePolicyDecision;` (a `WebKitPolicyDecision`) - C 2582.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct WebKitResponsePolicyDecision
+{
+  _private: [u8; 0],
+}
+/// C: webkit2/WebKitNavigationAction.h: `#define WEBKIT_NAVIGATION_POLICY_DECISION(obj)
+/// (G_TYPE_CHECK_INSTANCE_CAST ((obj), WEBKIT_TYPE_NAVIGATION_POLICY_DECISION,
+/// WebKitNavigationPolicyDecision))` - the `WEBKIT_WEB_VIEW` treatment (C 637): the port keeps
+/// the macro's name and its result type.
+#[cfg (feature = "use_gtk")]
+macro_rules! WEBKIT_NAVIGATION_POLICY_DECISION {
+  ($o:expr) => { ($o) as *mut WebKitNavigationPolicyDecision };
+}
+/// C: webkit2/WebKitResponsePolicyDecision.h: `#define WEBKIT_RESPONSE_POLICY_DECISION(obj)
+/// (G_TYPE_CHECK_INSTANCE_CAST ((obj), WEBKIT_TYPE_RESPONSE_POLICY_DECISION,
+/// WebKitResponsePolicyDecision))` - the `WEBKIT_WEB_VIEW` treatment.
+#[cfg (feature = "use_gtk")]
+macro_rules! WEBKIT_RESPONSE_POLICY_DECISION {
+  ($o:expr) => { ($o) as *mut WebKitResponsePolicyDecision };
+}
+/// C: webkit2/WebKitNavigationAction.h: `typedef enum { WEBKIT_NAVIGATION_TYPE_LINK_CLICKED,
+/// WEBKIT_NAVIGATION_TYPE_FORM_SUBMITTED, WEBKIT_NAVIGATION_TYPE_BACK_FORWARD,
+/// WEBKIT_NAVIGATION_TYPE_RELOAD, WEBKIT_NAVIGATION_TYPE_FORM_RESUBMITTED,
+/// WEBKIT_NAVIGATION_TYPE_OTHER } WebKitNavigationType;` - C 2415-2422's five cases.  The six
+/// names are distinct placeholders.  **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+pub type WebKitNavigationType = c_int;
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_NAVIGATION_TYPE_LINK_CLICKED: WebKitNavigationType = 0;      // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_NAVIGATION_TYPE_FORM_SUBMITTED: WebKitNavigationType = 1;    // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_NAVIGATION_TYPE_BACK_FORWARD: WebKitNavigationType = 2;      // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_NAVIGATION_TYPE_RELOAD: WebKitNavigationType = 3;            // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_NAVIGATION_TYPE_FORM_RESUBMITTED: WebKitNavigationType = 4;  // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_NAVIGATION_TYPE_OTHER: WebKitNavigationType = 5;             // placeholder
+/// C: webkit2/WebKitScriptDialog.h: `typedef enum { WEBKIT_SCRIPT_DIALOG_ALERT,
+/// WEBKIT_SCRIPT_DIALOG_CONFIRM, WEBKIT_SCRIPT_DIALOG_PROMPT,
+/// WEBKIT_SCRIPT_DIALOG_BEFORE_UNLOAD_CONFIRM } WebKitScriptDialogType;` - C 2683/2701/2709's
+/// four tests.  Distinct placeholders.  **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+pub type WebKitScriptDialogType = c_int;
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_SCRIPT_DIALOG_ALERT: WebKitScriptDialogType = 0;                   // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_SCRIPT_DIALOG_CONFIRM: WebKitScriptDialogType = 1;                 // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_SCRIPT_DIALOG_PROMPT: WebKitScriptDialogType = 2;                  // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_SCRIPT_DIALOG_BEFORE_UNLOAD_CONFIRM: WebKitScriptDialogType = 3;   // placeholder
+/// C: webkit2/WebKitWebView.h: the four `WebKitLoadEvent` members C 2436-2449 switches over
+/// (the type itself is declared at C 627's surface above).  Distinct placeholders.  **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_LOAD_STARTED: WebKitLoadEvent = 0;      // placeholder, not WebKit's value
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_LOAD_REDIRECTED: WebKitLoadEvent = 1;   // placeholder, not WebKit's value
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_LOAD_COMMITTED: WebKitLoadEvent = 2;    // placeholder, not WebKit's value
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_LOAD_FINISHED: WebKitLoadEvent = 3;     // placeholder, not WebKit's value
+/// C: webkit2/WebKitPolicyDecision.h: the three `WebKitPolicyDecisionType` members C 2579-2621
+/// switches over (the type itself is declared at C 622's surface above).  Distinct placeholders.
+/// **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION: WebKitPolicyDecisionType = 0;  // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION: WebKitPolicyDecisionType = 1;  // placeholder
+#[cfg (feature = "use_gtk")]
+pub const WEBKIT_POLICY_DECISION_TYPE_RESPONSE: WebKitPolicyDecisionType = 2;           // placeholder
+/// C: javascriptcore/JSValue.h: `typedef struct _JSCValue JSCValue;` - `webkit_js_to_lisp`'s
+/// parameter (C 2454) and C 2544's value.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct JSCValue
+{
+  _private: [u8; 0],
+}
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C 2531-2535: `webkit_web_view_run_javascript_finish (WEBKIT_WEB_VIEW (webview), result,
+  /// &error);`
+  /// C: webkit2/WebKitWebView.h: `WebKitJavascriptResult *webkit_web_view_run_javascript_finish
+  /// (WebKitWebView *web_view, GAsyncResult *result, GError **error);`
+  pub fn webkit_web_view_run_javascript_finish (web_view: *mut WebKitWebView,
+                                                result: *mut GAsyncResult,
+                                                error: *mut *mut GError)
+    -> *mut WebKitJavascriptResult;
+  /// C 2544: `JSCValue *value = webkit_javascript_result_get_js_value (js_result);`
+  /// C: webkit2/WebKitJavascriptResult.h: `JSCValue *webkit_javascript_result_get_js_value
+  /// (WebKitJavascriptResult *js_result);`
+  pub fn webkit_javascript_result_get_js_value (js_result: *mut WebKitJavascriptResult)
+    -> *mut JSCValue;
+  /// C 2552: `webkit_javascript_result_unref (js_result);`
+  /// C: webkit2/WebKitJavascriptResult.h: `void webkit_javascript_result_unref
+  /// (WebKitJavascriptResult *js_result);`
+  pub fn webkit_javascript_result_unref (js_result: *mut WebKitJavascriptResult);
+  /// C 2564: `WebKitWebView *view = webkit_download_get_web_view (arg1);`
+  /// C: webkit2/WebKitDownload.h: `WebKitWebView *webkit_download_get_web_view (WebKitDownload
+  /// *download);`
+  pub fn webkit_download_get_web_view (download: *mut WebKitDownload) -> *mut WebKitWebView;
+  /// C 2565: `WebKitURIRequest *request = webkit_download_get_request (arg1);`
+  /// C: webkit2/WebKitDownload.h: `WebKitURIRequest *webkit_download_get_request (WebKitDownload
+  /// *download);`
+  pub fn webkit_download_get_request (download: *mut WebKitDownload) -> *mut WebKitURIRequest;
+  /// C 2571: `webkit_uri_request_get_uri (request)` - and C 2637-2638's.
+  /// C: webkit2/WebKitURIRequest.h: `const gchar *webkit_uri_request_get_uri (WebKitURIRequest
+  /// *request);`
+  pub fn webkit_uri_request_get_uri (request: *mut WebKitURIRequest) -> *const gchar;
+  /// C 2584-2585: `if (!webkit_response_policy_decision_is_mime_type_supported (response))`
+  /// C: webkit2/WebKitResponsePolicyDecision.h: `gboolean
+  /// webkit_response_policy_decision_is_mime_type_supported (WebKitResponsePolicyDecision
+  /// *decision);`
+  pub fn webkit_response_policy_decision_is_mime_type_supported
+    (decision: *mut WebKitResponsePolicyDecision) -> gboolean;
+  /// C 2587: `webkit_policy_decision_download (decision);`
+  /// C: webkit2/WebKitPolicyDecision.h: `void webkit_policy_decision_download (WebKitPolicyDecision
+  /// *decision);`
+  pub fn webkit_policy_decision_download (decision: *mut WebKitPolicyDecision);
+  /// C 2590-2591: `webkit_navigation_policy_decision_get_navigation_action (navigation_decision);`
+  /// C: webkit2/WebKitNavigationPolicyDecision.h: `WebKitNavigationAction *
+  /// webkit_navigation_policy_decision_get_navigation_action (WebKitNavigationPolicyDecision
+  /// *decision);`
+  pub fn webkit_navigation_policy_decision_get_navigation_action
+    (decision: *mut WebKitNavigationPolicyDecision) -> *mut WebKitNavigationAction;
+  /// C 2415: `switch (webkit_navigation_action_get_navigation_type (nav_action))`
+  /// C: webkit2/WebKitNavigationAction.h: `WebKitNavigationType
+  /// webkit_navigation_action_get_navigation_type (WebKitNavigationAction *navigation_action);`
+  pub fn webkit_navigation_action_get_navigation_type (navigation_action: *mut WebKitNavigationAction)
+    -> WebKitNavigationType;
+  /// C 2602: `WebKitURIRequest *request = webkit_navigation_action_get_request (navigation_action);`
+  /// C: webkit2/WebKitNavigationAction.h: `WebKitURIRequest *webkit_navigation_action_get_request
+  /// (WebKitNavigationAction *navigation_action);`
+  pub fn webkit_navigation_action_get_request (navigation_action: *mut WebKitNavigationAction)
+    -> *mut WebKitURIRequest;
+  /// C 2617: `webkit_web_view_load_request (newview, request);`
+  /// C: webkit2/WebKitWebView.h: `void webkit_web_view_load_request (WebKitWebView *web_view,
+  /// WebKitURIRequest *request);`
+  pub fn webkit_web_view_load_request (web_view: *mut WebKitWebView, request: *mut WebKitURIRequest);
+  /// C 2683: `type = webkit_script_dialog_get_dialog_type (script_dialog);`
+  /// C: webkit2/WebKitScriptDialog.h: `WebKitScriptDialogType webkit_script_dialog_get_dialog_type
+  /// (WebKitScriptDialog *dialog);`
+  pub fn webkit_script_dialog_get_dialog_type (dialog: *mut WebKitScriptDialog)
+    -> WebKitScriptDialogType;
+  /// C 2685: `content = webkit_script_dialog_get_message (script_dialog);`
+  /// C: webkit2/WebKitScriptDialog.h: `const gchar *webkit_script_dialog_get_message
+  /// (WebKitScriptDialog *dialog);`
+  pub fn webkit_script_dialog_get_message (dialog: *mut WebKitScriptDialog) -> *const gchar;
+  /// C 2706: `message = webkit_script_dialog_prompt_get_default_text (script_dialog);`
+  /// C: webkit2/WebKitScriptDialog.h: `const gchar *webkit_script_dialog_prompt_get_default_text
+  /// (WebKitScriptDialog *dialog);`
+  pub fn webkit_script_dialog_prompt_get_default_text (dialog: *mut WebKitScriptDialog)
+    -> *const gchar;
+  /// C 2711-2712: `webkit_script_dialog_prompt_set_text (script_dialog, …);`
+  /// C: webkit2/WebKitScriptDialog.h: `void webkit_script_dialog_prompt_set_text
+  /// (WebKitScriptDialog *dialog, const gchar *text);`
+  pub fn webkit_script_dialog_prompt_set_text (dialog: *mut WebKitScriptDialog, text: *const gchar);
+  /// C 2709-2710: `webkit_script_dialog_confirm_set_confirmed (script_dialog, result == 0);`
+  /// C: webkit2/WebKitScriptDialog.h: `void webkit_script_dialog_confirm_set_confirmed
+  /// (WebKitScriptDialog *dialog, gboolean confirmed);`
+  pub fn webkit_script_dialog_confirm_set_confirmed (dialog: *mut WebKitScriptDialog,
+                                                     confirmed: gboolean);
+}
+
+/* JavaScriptCore: the eleven `jsc_value_*` entry points `webkit_js_to_lisp` calls (C 2455-2490).
+   No JavaScriptCore tree on this machine, so each citation names the header alone and every
+   return/argument shape is **UNVERIFIED**.  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C 2455: `if (jsc_value_is_string (value))`
+  /// C: javascriptcore/JSValue.h: `gboolean jsc_value_is_string (JSCValue *value);`
+  pub fn jsc_value_is_string (value: *mut JSCValue) -> gboolean;
+  /// C 2457: `gchar *str_value = jsc_value_to_string (value);`
+  /// C: javascriptcore/JSValue.h: `gchar *jsc_value_to_string (JSCValue *value);`
+  pub fn jsc_value_to_string (value: *mut JSCValue) -> *mut gchar;
+  /// C 2464: `else if (jsc_value_is_boolean (value))`
+  /// C: javascriptcore/JSValue.h: `gboolean jsc_value_is_boolean (JSCValue *value);`
+  pub fn jsc_value_is_boolean (value: *mut JSCValue) -> gboolean;
+  /// C 2466: `return (jsc_value_to_boolean (value)) ? Qt : Qnil;`
+  /// C: javascriptcore/JSValue.h: `gboolean jsc_value_to_boolean (JSCValue *value);`
+  pub fn jsc_value_to_boolean (value: *mut JSCValue) -> gboolean;
+  /// C 2468: `else if (jsc_value_is_number (value))`
+  /// C: javascriptcore/JSValue.h: `gboolean jsc_value_is_number (JSCValue *value);`
+  pub fn jsc_value_is_number (value: *mut JSCValue) -> gboolean;
+  /// C 2470: `return make_fixnum (jsc_value_to_int32 (value));`
+  /// C: javascriptcore/JSValue.h: `gint32 jsc_value_to_int32 (JSCValue *value);`
+  pub fn jsc_value_to_int32 (value: *mut JSCValue) -> c_int;
+  /// C 2472: `else if (jsc_value_is_array (value))`
+  /// C: javascriptcore/JSValue.h: `gboolean jsc_value_is_array (JSCValue *value);`
+  pub fn jsc_value_is_array (value: *mut JSCValue) -> gboolean;
+  /// C 2474: `JSCValue *len = jsc_value_object_get_property (value, "length");`
+  /// C: javascriptcore/JSValue.h: `JSCValue *jsc_value_object_get_property (JSCValue *object,
+  /// const char *name);`
+  pub fn jsc_value_object_get_property (object: *mut JSCValue, name: *const c_char) -> *mut JSCValue;
+  /// C 2489: `webkit_js_to_lisp (jsc_value_object_get_property_at_index (value, i));`
+  /// C: javascriptcore/JSValue.h: `JSCValue *jsc_value_object_get_property_at_index (JSCValue
+  /// *object, guint index);`
+  pub fn jsc_value_object_get_property_at_index (object: *mut JSCValue, index: guint)
+    -> *mut JSCValue;
+  /// C 2493: `else if (jsc_value_is_object (value))`
+  /// C: javascriptcore/JSValue.h: `gboolean jsc_value_is_object (JSCValue *value);`
+  pub fn jsc_value_is_object (value: *mut JSCValue) -> gboolean;
+  /// C 2495: `char **properties_names = jsc_value_object_enumerate_properties (value);`
+  /// C: javascriptcore/JSValue.h: `char **jsc_value_object_enumerate_properties (JSCValue
+  /// *object);`
+  pub fn jsc_value_object_enumerate_properties (object: *mut JSCValue) -> *mut *mut gchar;
+}
+
+/* XInput2.  No XInput2 header on this machine, so the two records carry the members C reads and
+   their layouts are **UNVERIFIED**; the block's four `HAVE_XINPUT2` arms are carried as text
+   (P-51) but never flipped (`## Owed` 6).  */
+/// C: X11/extensions/XInput2.h: `typedef struct { int type; unsigned long serial; Bool
+/// send_event; Display *display; Window window; Window root; Window subwindow; Time time; int x,
+/// y; int x_root, y_root; int mode; int detail; Window same_screen; Window focus; unsigned int
+/// state; unsigned int buttons_len; XIAddData mods; ... } XIEnterEvent;` - C 1993-2035 reads
+/// `event_x`/`event_y`/`root_x`/`root_y`/`time`/`focus`/`mode`/`detail`/`mods.effective`/
+/// `buttons.mask_len`/`buttons.mask`.  **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[repr (C)]
+pub struct XIEnterEvent
+{
+  pub r#type: c_int,                    // C: XInput2.h: `int type;`
+  pub serial: c_ulong,                  // C: XInput2.h: `unsigned long serial;`
+  pub send_event: c_int,                // C: XInput2.h: `Bool send_event;`
+  pub display: *mut Display,            // C: XInput2.h: `Display *display;`
+  pub window: Window,                   // C: XInput2.h: `Window window;`
+  pub root: Window,                     // C: XInput2.h: `Window root;`
+  pub subwindow: Window,                // C: XInput2.h: `Window subwindow;`
+  pub time: Time,                       // C: XInput2.h: `Time time;`
+  pub x: c_int,                         // C: XInput2.h: `int x, y;`
+  pub y: c_int,
+  pub root_x: c_int,                    // C: XInput2.h: `int root_x, root_y;` (C 2018-2019)
+  pub root_y: c_int,
+  pub mode: c_int,                      // C: XInput2.h: `int mode;`
+  pub detail: c_int,                    // C: XInput2.h: `int detail;`
+  pub same_screen: Window,              // C: XInput2.h: `Window same_screen;`
+  pub focus: c_int,                     // C: XInput2.h: `Bool focus;`
+  pub state: c_uint,                    // C: XInput2.h: `unsigned int state;`
+  pub buttons_len: c_uint,              // C: XInput2.h: `unsigned int buttons_len;`
+  pub mods: XIAddData,                  // C: XInput2.h: `XIAddData mods;`
+  // C 2023-2024 reads `xev->buttons.mask_len` / `xev->buttons.mask`, which the real header spells
+  // through `XIButtonState`; the two members stand here (see the file note: no XInput2 header).
+  pub buttons: XIButtonState,
+  // C: XInput2.h: `int event_x, event_y;` (C 2001-2002)
+  pub event_x: c_double,
+  pub event_y: c_double,
+}
+/// C: X11/extensions/XInput2.h: `typedef struct { int effective; int mask; ... } XIAddData;` -
+/// the `mods` member above (C 2030's `xev->mods.effective`).  **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[repr (C)]
+pub struct XIAddData
+{
+  pub effective: c_int,                 // C: XInput2.h: `int effective;`
+  pub mask: c_int,                      // C: XInput2.h: `int mask;`
+}
+/// C: X11/extensions/XInput2.h: `typedef struct { int mask_len; unsigned char *mask; }
+/// XIButtonState;` - C 2023-2024's `xev->buttons.mask_len`/`buttons.mask`.  **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[repr (C)]
+pub struct XIButtonState
+{
+  pub mask_len: c_int,                  // C: XInput2.h: `int mask_len;`
+  pub mask: *mut c_uchar,               // C: XInput2.h: `unsigned char *mask;`
+}
+/// C: X11/extensions/XInput2.h: `typedef struct { int type; unsigned long serial; Bool
+/// send_event; Display *display; Window window; Window root; ... Time time; int event_x, event_y;
+/// ... double delta_x, delta_y; double delta_angle; double scale; ... Time root_x, root_y? ...;
+/// XIAddData mods; int evtype; ... } XIGesturePinchEvent;` - C 1497-1507 reads `event_x`/
+/// `event_y`/`delta_x`/`delta_y`/`delta_angle`/`scale`/`root_x`/`root_y`/`mods.effective`/`evtype`.
+/// **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2",
+            feature = "have_xinput2_4"))]
+#[repr (C)]
+pub struct XIGesturePinchEvent
+{
+  pub r#type: c_int,                    // C: XInput2.h: `int type;`
+  pub serial: c_ulong,                  // C: XInput2.h: `unsigned long serial;`
+  pub send_event: c_int,                // C: XInput2.h: `Bool send_event;`
+  pub display: *mut Display,            // C: XInput2.h: `Display *display;`
+  pub window: Window,                   // C: XInput2.h: `Window window;`
+  pub root: Window,                     // C: XInput2.h: `Window root;`
+  pub subwindow: Window,                // C: XInput2.h: `Window subwindow;`
+  pub time: Time,                       // C: XInput2.h: `Time time;`
+  pub event_x: c_double,                // C: XInput2.h: `double event_x, event_y;`
+  pub event_y: c_double,
+  pub root_x: c_double,                 // C: XInput2.h: `double root_x, root_y;`
+  pub root_y: c_double,
+  pub delta_x: c_double,                // C: XInput2.h: `double delta_x, delta_y;`
+  pub delta_y: c_double,
+  pub delta_angle: c_double,            // C: XInput2.h: `double delta_angle;`
+  pub scale: c_double,                  // C: XInput2.h: `double scale;`
+  pub mods: XIAddData,                  // C: XInput2.h: `XIAddData mods;`
+  pub evtype: c_int,                    // C: XInput2.h: `int evtype;`
+}
+/// C: X11/extensions/XInput2.h 183: `#define XIMaskIsSet(ptr, event) (((unsigned char*)(ptr))
+/// [(event)>>3] & (1 << ((event) & 7)))` - the header's own body (XInput2.h 183, cited from the
+/// `X11/extensions/XI2.h` this machine has).
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+macro_rules! XIMaskIsSet {
+  ($ptr:expr, $event:expr) => {
+    ((* ($ptr as *const c_uchar).offset ((($event) >> 3) as isize) as c_int)
+     & (1 << (($event) & 7))) };
+}
+/// C: X11/extensions/XI2.h 197-198 and 217-219: `XI_Enter 7`, `XI_Leave 8`,
+/// `XI_GesturePinchBegin 27`, `XI_GesturePinchUpdate 28`, `XI_GesturePinchEnd 29` - the values
+/// are the header's (measured on this machine's `/opt/homebrew/include/X11/extensions/XI2.h`).
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_Enter: c_int = 7;                 // XI2.h 197
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_Leave: c_int = 8;                 // XI2.h 198
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_GesturePinchBegin: c_int = 27;    // XI2.h 217
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_GesturePinchUpdate: c_int = 28;   // XI2.h 218
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_GesturePinchEnd: c_int = 29;      // XI2.h 219
+
+/* X11, continued: the six entry points C 1219/1225/2160/2170/2188/2193 calls.  X11 *is* on this
+   machine, so the prototypes are the header's own; `include/xlib.rs` carries only the ten
+   procedures its own consumers read, so these stand here (P-72 rule 4).  */
+/// C: X11/X.h 216-217: `#define MotionNotify 6` / `#define EnterNotify 7` / `#define LeaveNotify
+/// 8`; X11/X.h 223: `#define GenericEvent 35` - the four event types `xwidget_motion_or_crossing`
+/// compares (C 1951-2065).  Values measured on this machine.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+pub const MotionNotify: c_int = 6;             // X.h 216
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+pub const EnterNotify: c_int = 7;              // X.h 217
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+pub const LeaveNotify: c_int = 8;              // X.h 218
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+pub const GenericEvent: c_int = 35;            // X.h 223
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe extern "C" {
+  /// C 2160: `XMoveWindow (xv->dpy, xv->wdesc, xv->x + xv->clip_left, xv->y + xv->clip_top);`
+  /// C: X11/Xlib.h: `int XMoveWindow (Display *display, Window w, int x, int y);`
+  pub fn XMoveWindow (display: *mut Display, w: Window, x: c_int, y: c_int) -> c_int;
+  /// C 2161: `XMapWindow (xv->dpy, xv->wdesc);`
+  /// C: X11/Xlib.h: `int XMapWindow (Display *display, Window w);`
+  pub fn XMapWindow (display: *mut Display, w: Window) -> c_int;
+  /// C 2171: `XUnmapWindow (xv->dpy, xv->wdesc);`
+  /// C: X11/Xlib.h: `int XUnmapWindow (Display *display, Window w);`
+  pub fn XUnmapWindow (display: *mut Display, w: Window) -> c_int;
+  /// C 2162/2172: `XFlush (xv->dpy);`
+  /// C: X11/Xlib.h: `int XFlush (Display *display);`
+  pub fn XFlush (display: *mut Display) -> c_int;
+  /// C 1758: `XDefineCursor (xv->dpy, xv->wdesc, xv->cursor);`
+  /// C: X11/Xlib.h: `int XDefineCursor (Display *display, Window w, Cursor cursor);`
+  pub fn XDefineCursor (display: *mut Display, w: Window, cursor: Cursor) -> c_int;
+  /// C 2188: `XClearWindow (xw->dpy, xw->wdesc);`
+  /// C: X11/Xlib.h: `int XClearWindow (Display *display, Window w);`
+  pub fn XClearWindow (display: *mut Display, w: Window) -> c_int;
+}
+
+/* termhooks.h's two `HAVE_XWIDGETS` `enum event_kind` members.  The mirror carries the frozen
+   configuration's members and stops before the gated ones (`include/termhooks.rs` 27-58), so
+   their values in a build that *has* xwidgets are declared here (P-88 ①, the `src/gfilenotify.rs`
+   161-169 `FILE_NOTIFY_EVENT` precedent): `SAVE_SESSION_EVENT` (26) is followed by
+   `CONFIG_CHANGED_EVENT` (27, the frozen `HAVE_DBUS`/`THREADS_ENABLED` arms absent), so
+   `XWIDGET_EVENT` is 28 and `XWIDGET_DISPLAY_EVENT` 29.  Owed to the mirror (`## Owed` 3).  */
+/// C: termhooks.h 273-281: `#ifdef HAVE_XWIDGETS … , XWIDGET_EVENT … , XWIDGET_DISPLAY_EVENT`.
+#[cfg (feature = "use_gtk")]
+pub const XWIDGET_EVENT: c_int = 28;
+#[cfg (feature = "use_gtk")]
+pub const XWIDGET_DISPLAY_EVENT: c_int = 29;
+/// termhooks.h 373-412's `enum event_kind kind : 16` shares `include/termhooks.rs`'s
+/// `input_event::bits` with `part : 16` (PORTING.md 1.3/P-80).  C 2285/2300/2320/2341 write
+/// `event.kind = …`, so the port keeps C's field name in a per-unit macro - the
+/// `src/gfilenotify.rs` 183-189 shape, body-identical.
+#[cfg (feature = "use_gtk")]
+macro_rules! input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+}
+/// lisp.h 71-73's `min`/`max` macros (the `src/w32console.rs` 346 shape): C 2069's
+/// `min (5, event->xcrossing.detail)`.  `include/lisp.rs` carries only the `isize` *functions*
+/// of the same names, which the macro coexists with (the `src/alloc.rs` 127 note).
+#[cfg (feature = "use_gtk")]
+include!("../lib/include/min-max.rs");
+
+/* gtkutil.h's tooltip preparer (gtkutil.h 207), read by C 1786.  `include/gtkutil.rs` is a
+   placeholder that carries the guard alone, so the prototype stands here (P-72 rule 4) and is
+   owed (`## Owed` 3).  */
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe extern "C" {
+  /// C 1786: `xg_prepare_tooltip (view->frame, dummy_tooltip_string, &tooltip_width,
+  /// &tooltip_height);`
+  /// C: gtkutil.h 207-208: `extern bool xg_prepare_tooltip (struct frame *f, Lisp_Object string,
+  /// int *width, int *height);`
+  pub fn xg_prepare_tooltip (f: *mut frame, string: Lisp_Object, width: *mut c_int,
+                             height: *mut c_int) -> bool;
+}
+
+/* X11, continued: the `XEvent` union's member records `xwidget_motion_or_crossing` reads
+   (C 1945-2105).  `include/xlib.rs`'s `XEvent` is the measured 192-byte record with an opaque
+   body (its 33 member records are owed, `docs/ports/include-xlib.md`), so the port casts the
+   `XEvent *` to the member record C names - the `src/xmenu.rs` 1086 `event->xcookie` shape.
+   **X11 is on this machine**, so each layout below is measured (Evidence ⑥).  */
+/// C: X11/Xlib.h 395-403: `typedef struct { int type; unsigned long serial; Bool send_event;
+/// Display *display; Window window; } XAnyEvent;` - C 1951-2065's `event->type`.  Measured:
+/// `sizeof` 40, `type`@0, `serial`@8, `send_event`@16, `display`@24, `window`@32.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[repr (C)]
+pub struct XAnyEvent
+{
+  pub r#type: c_int,                    // C: Xlib.h: `int type;`
+  pub serial: c_ulong,                  // C: Xlib.h: `unsigned long serial;`
+  pub send_event: c_int,                // C: Xlib.h: `Bool send_event;`
+  pub display: *mut Display,            // C: Xlib.h: `Display *display;`
+  pub window: Window,                   // C: Xlib.h: `Window window;`
+}
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::size_of::<XAnyEvent> () == 40);
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XAnyEvent, window) == 32);
+/// C: X11/Xlib.h 527-547: the `XMotionEvent` record - C 1963-1987/2078-2085's `event->xmotion`.
+/// Measured: `sizeof` 96, `time`@56, `x`@64, `y`@68, `x_root`@72, `y_root`@76, `state`@80.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[repr (C)]
+pub struct XMotionEvent
+{
+  pub r#type: c_int,                    // C: Xlib.h: `int type;`
+  pub serial: c_ulong,                  // C: Xlib.h: `unsigned long serial;`
+  pub send_event: c_int,                // C: Xlib.h: `Bool send_event;`
+  pub display: *mut Display,            // C: Xlib.h: `Display *display;`
+  pub window: Window,                   // C: Xlib.h: `Window window;`
+  pub root: Window,                     // C: Xlib.h: `Window root;`
+  pub subwindow: Window,                // C: Xlib.h: `Window subwindow;`
+  pub time: Time,                       // C: Xlib.h: `Time time;`
+  pub x: c_int,                         // C: Xlib.h: `int x, y;`
+  pub y: c_int,
+  pub x_root: c_int,                    // C: Xlib.h: `int x_root, y_root;`
+  pub y_root: c_int,
+  pub state: c_uint,                    // C: Xlib.h: `unsigned int state;`
+  pub is_hint: c_char,                  // C: Xlib.h: `char is_hint;`
+  pub same_screen: c_int,               // C: Xlib.h: `Bool same_screen;`
+}
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::size_of::<XMotionEvent> () == 96);
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XMotionEvent, x) == 64);
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XMotionEvent, state) == 80);
+/// C: X11/Xlib.h 564-593: the `XCrossingEvent` record - C 1964-1969/2053-2065's
+/// `event->xcrossing`.  Measured: `sizeof` 104, `time`@56, `x`@64, `mode`@80, `detail`@84,
+/// `focus`@92, `state`@96.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[repr (C)]
+pub struct XCrossingEvent
+{
+  pub r#type: c_int,                    // C: Xlib.h: `int type;`
+  pub serial: c_ulong,                  // C: Xlib.h: `unsigned long serial;`
+  pub send_event: c_int,                // C: Xlib.h: `Bool send_event;`
+  pub display: *mut Display,            // C: Xlib.h: `Display *display;`
+  pub window: Window,                   // C: Xlib.h: `Window window;`
+  pub root: Window,                     // C: Xlib.h: `Window root;`
+  pub subwindow: Window,                // C: Xlib.h: `Window subwindow;`
+  pub time: Time,                       // C: Xlib.h: `Time time;`
+  pub x: c_int,                         // C: Xlib.h: `int x, y;`
+  pub y: c_int,
+  pub x_root: c_int,                    // C: Xlib.h: `int x_root, y_root;`
+  pub y_root: c_int,
+  pub mode: c_int,                      // C: Xlib.h: `int mode;`
+  pub detail: c_int,                    // C: Xlib.h: `int detail;`
+  pub same_screen: c_int,               // C: Xlib.h: `Bool same_screen;`
+  pub focus: c_int,                     // C: Xlib.h: `Bool focus;`
+  pub state: c_uint,                    // C: Xlib.h: `unsigned int state;`
+}
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::size_of::<XCrossingEvent> () == 104);
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XCrossingEvent, mode) == 80);
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XCrossingEvent, state) == 96);
+/// C: X11/Xlib.h 1168-1180: the `XGenericEventCookie` record - C 1993-1995's
+/// `event->xcookie.evtype`/`data`.  Measured: `sizeof` 56, `evtype`@36, `data`@48 (the same
+/// record `src/xmenu.rs` 417-437 declares).
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[repr (C)]
+pub struct XGenericEventCookie
+{
+  pub r#type: c_int,                    // C: Xlib.h: `int type;`
+  pub serial: c_ulong,                  // C: Xlib.h: `unsigned long serial;`
+  pub send_event: c_int,                // C: Xlib.h: `Bool send_event;`
+  pub display: *mut Display,            // C: Xlib.h: `Display *display;`
+  pub extension: c_int,                 // C: Xlib.h: `int extension;`
+  pub evtype: c_int,                    // C: Xlib.h: `int evtype;`
+  pub cookie: c_uint,                   // C: Xlib.h: `unsigned int cookie;`
+  pub data: *mut c_void,                // C: Xlib.h: `void *data;`
+}
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::size_of::<XGenericEventCookie> () == 56);
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XGenericEventCookie, evtype) == 36);
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XGenericEventCookie, data) == 48);
+/// C: X11/extensions/XI2.h 57-61: `#define XINotifyAncestor 0`, `XINotifyVirtual 1`,
+/// `XINotifyInferior 2`, `XINotifyNonlinear 3`, `XINotifyNonlinearVirtual 4` - the five values
+/// `xi_translate_notify_detail` maps (C 1560-1572).  Measured on this machine's
+/// `/opt/homebrew/include/X11/extensions/XI2.h`.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XINotifyAncestor: c_int = 0;             // XI2.h 57
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XINotifyVirtual: c_int = 1;              // XI2.h 58
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XINotifyInferior: c_int = 2;             // XI2.h 59
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XINotifyNonlinear: c_int = 3;            // XI2.h 60
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XINotifyNonlinearVirtual: c_int = 4;     // XI2.h 61
+
+/* cairo, continued: the three entry points `xv_do_draw`/`xwidget_view_draw_cb` call (C 2191-2199,
+   C 2232-2238).  cairo *is* on this machine; the prototypes are the header's own, and
+   `include/gtk.rs` carries `cairo_paint`/`cairo_set_source_surface`/`cairo_set_operator` but not
+   these three.  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C 2191/2233: `cairo_save (xw->cr_context);`
+  /// C: cairo.h: `void cairo_save (cairo_t *cr);`
+  pub fn cairo_save (cr: *mut cairo_t);
+  /// C 2199/2238: `cairo_restore (xw->cr_context);`
+  /// C: cairo.h: `void cairo_restore (cairo_t *cr);`
+  pub fn cairo_restore (cr: *mut cairo_t);
+  /// C 2193/2235: `cairo_translate (xw->cr_context, -xw->clip_left, -xw->clip_top);`
+  /// C: cairo.h: `void cairo_translate (cairo_t *cr, double tx, double ty);`
+  pub fn cairo_translate (cr: *mut cairo_t, tx: c_double, ty: c_double);
+}
+
+/* ==============================================================================================
+   C 1182-2716: the `HAVE_X_WINDOWS` drag/button/motion/crossing machinery, the WebKit callbacks
+   and the script dialog.  C's statements in C's order, C's names; `->` is `.`, C's implicit
+   conversions are explicit `as` casts (Deviation 5).  Where C reads a member of a union whose
+   body this tree does not transcribe (`XEvent`, `GdkEvent`), the pointer is cast to the member
+   record C names first (the `src/xmenu.rs` 1086 shape) and the gap is recorded (`## Owed`).
+   ============================================================================================== */
+
+/* C 1182-2107: `#ifdef HAVE_X_WINDOWS`.  */
+/// C 1184-1200: the `"drag-begin"` handler `xwidget_button_1` connects.  `view = user_data`.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe extern "C" fn xv_drag_begin_cb (widget: *mut GtkWidget, context: *mut GdkDragContext,
+                                       user_data: gpointer)  // C 1184-1200
+{
+  let view: *mut xwidget_view = user_data as *mut xwidget_view;
+
+  if ! (*view).passive_grab.is_null ()
+    {
+      g_signal_handler_disconnect ((*view).passive_grab as gpointer,
+				   (*view).passive_grab_destruction_signal as gulong);
+      g_signal_handler_disconnect ((*view).passive_grab as gpointer,
+				   (*view).passive_grab_drag_signal as gulong);
+      (*view).passive_grab = std::ptr::null_mut ();
+    }
+}
+
+/// C 1202-1326: the press/release synthesiser `xwidget_button` shares with the scroll arm.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe fn xwidget_button_1 (view: *mut xwidget_view, down_p: bool, mut x: c_int, mut y: c_int,
+                            button: c_int, modifier_state: c_int, time: Time)  // C 1202-1326
+{
+  let mut xg_event: *mut GdkEvent;
+  let model: *mut xwidget = XXWIDGET ((*view).model);
+  let mut target: *mut GtkWidget;
+  let mut ungrab_target: *mut GtkWidget;
+  let mut toplevel: *mut GdkWindow;
+  let mut target_window: *mut GdkWindow;
+  let mut view_x: c_int;
+  let mut view_y: c_int;
+
+  /* X and Y should be relative to the origin of view->wdesc.  */
+  x += (*view).clip_left;
+  y += (*view).clip_top;
+
+  view_x = x;
+  view_y = y;
+
+  target = find_widget_at_pos ((*model).widgetwindow_osr, x, y, &raw mut x, &raw mut y,
+			       true, view);
+
+  if target.is_null ()
+    { target = (*model).widget_osr; }
+
+  xg_event = gdk_event_new (if down_p { GDK_BUTTON_PRESS } else { GDK_BUTTON_RELEASE });
+
+  (*xg_event).any.window = gtk_widget_get_window (target);
+  g_object_ref ((*xg_event).any.window as gpointer); /* The window will be unrefed
+							later by gdk_event_free.  */
+
+  (*xg_event).button.x = x as c_double;
+  (*xg_event).button.x_root = x as c_double;
+  (*xg_event).button.y = y as c_double;
+  (*xg_event).button.y_root = y as c_double;
+  (*xg_event).button.button = button as c_uint;
+  (*xg_event).button.state = modifier_state as c_uint;
+  (*xg_event).button.time = time as c_uint;
+  (*xg_event).button.device = find_suitable_pointer ((*view).frame as *mut frame, false);
+
+  gtk_main_do_event (xg_event);
+  gdk_event_free (xg_event);
+
+
+  if down_p && (*view).passive_grab.is_null ()
+    {
+      (*view).passive_grab = target;
+      (*view).passive_grab_destruction_signal =
+	g_signal_connect! (G_OBJECT! ((*view).passive_grab),
+			   c"destroy".as_ptr (), G_CALLBACK! (gtk_widget_destroyed),
+			   &raw mut (*view).passive_grab) as guint;
+      (*view).passive_grab_drag_signal =
+	g_signal_connect! (G_OBJECT! ((*view).passive_grab),
+			   c"drag-begin".as_ptr (), G_CALLBACK! (xv_drag_begin_cb),
+			   view as gpointer) as guint;
+    }
+  else
+    {
+      ungrab_target = find_widget_at_pos ((*model).widgetwindow_osr,
+					  view_x, view_y, &raw mut x, &raw mut y,
+					  false, std::ptr::null_mut ());
+
+      if ! (*view).last_crossing_window.is_null () && ! ungrab_target.is_null ()
+	{
+	  xw_maybe_synthesize_crossing (view, gtk_widget_get_window (ungrab_target),
+					view_x, view_y, XW_CROSSING_NONE,
+					time, modifier_state as c_uint, GDK_CROSSING_GTK_UNGRAB,
+					GDK_CROSSING_GTK_UNGRAB);
+	}
+      else
+	{
+	  toplevel = gtk_widget_get_window ((*model).widgetwindow_osr);
+	  xg_event = gdk_event_new (GDK_LEAVE_NOTIFY);
+	  target_window = gtk_widget_get_window (target);
+	  window_coords_from_toplevel (target_window, toplevel, view_x,
+				       view_y, &raw mut x, &raw mut y);
+
+	  (*xg_event).crossing.x = x as c_double;
+	  (*xg_event).crossing.y = y as c_double;
+	  (*xg_event).crossing.time = time as c_uint;
+	  (*xg_event).crossing.focus = FALSE;
+	  (*xg_event).crossing.detail = GDK_NOTIFY_ANCESTOR;
+	  (*xg_event).crossing.mode = GDK_CROSSING_GTK_UNGRAB;
+	  (*xg_event).crossing.window = g_object_ref (target_window as gpointer) as *mut GdkWindow;
+	  gdk_event_set_device (xg_event,
+				find_suitable_pointer ((*view).frame as *mut frame, false));
+
+	  gtk_main_do_event (xg_event);
+	  gdk_event_free (xg_event);
+
+	  xw_notify_virtual_upwards_until (view, target_window, toplevel, toplevel,
+					   modifier_state as c_uint, view_x, view_y, time,
+					   GDK_LEAVE_NOTIFY, false,
+					   GDK_CROSSING_GTK_UNGRAB);
+
+	  if target_window != toplevel
+	    {
+	      xg_event = gdk_event_new (GDK_LEAVE_NOTIFY);
+
+	      (*xg_event).crossing.x = view_y as c_double;
+	      (*xg_event).crossing.y = view_y as c_double;
+	      (*xg_event).crossing.time = time as c_uint;
+	      (*xg_event).crossing.focus = FALSE;
+	      (*xg_event).crossing.detail = GDK_NOTIFY_VIRTUAL;
+	      (*xg_event).crossing.mode = GDK_CROSSING_GTK_UNGRAB;
+	      (*xg_event).crossing.window = g_object_ref (toplevel as gpointer) as *mut GdkWindow;
+
+	      gdk_event_set_device (xg_event,
+				    find_suitable_pointer ((*view).frame as *mut frame, false));
+	      gtk_main_do_event (xg_event);
+	      gdk_event_free (xg_event);
+	    }
+
+	}
+
+      if ! (*view).passive_grab.is_null ()
+	{
+	  g_signal_handler_disconnect ((*view).passive_grab as gpointer,
+				       (*view).passive_grab_destruction_signal as gulong);
+	  g_signal_handler_disconnect ((*view).passive_grab as gpointer,
+				       (*view).passive_grab_drag_signal as gulong);
+	  (*view).passive_grab = std::ptr::null_mut ();
+	}
+    }
+}
+
+/* C 1328-1385: `xwidget_button` is one of the file's non-`static` definitions (xwidget.h 217
+   declares it `extern`), so it carries `#[unsafe(no_mangle)]` (PORTING.md 0.2).  */
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xwidget_button (view: *mut xwidget_view, down_p: bool, mut x: c_int,
+                                         mut y: c_int, button: c_int, modifier_state: c_int,
+                                         time: Time)  // C 1328-1385
+{
+  if NILP ((*XXWIDGET ((*view).model)).buffer)
+    { return; }
+
+  record_osr_embedder (view);
+
+  if button < 4 || button > 8
+    { xwidget_button_1 (view, down_p, x, y, button, modifier_state, time); }
+  else
+    {
+      if ! down_p
+	{
+	  let mut xg_event: *mut GdkEvent = gdk_event_new (GDK_SCROLL);
+	  let model: *mut xwidget = XXWIDGET ((*view).model);
+	  let mut target: *mut GtkWidget;
+
+	  x += (*view).clip_left;
+	  y += (*view).clip_top;
+
+	  target = find_widget_at_pos ((*model).widgetwindow_osr, x, y, &raw mut x, &raw mut y,
+				       true, view);
+
+	  if target.is_null ()
+	    { target = (*model).widget_osr; }
+
+	  (*xg_event).any.window = gtk_widget_get_window (target);
+	  g_object_ref ((*xg_event).any.window as gpointer); /* The window will be unrefed
+								later by gdk_event_free.  */
+	  if button == 4
+	    { (*xg_event).scroll.direction = GDK_SCROLL_UP; }
+	  else if button == 5
+	    { (*xg_event).scroll.direction = GDK_SCROLL_DOWN; }
+	  else if button == 6
+	    { (*xg_event).scroll.direction = GDK_SCROLL_LEFT; }
+	  else
+	    { (*xg_event).scroll.direction = GDK_SCROLL_RIGHT; }
+
+	  (*xg_event).scroll.device = find_suitable_pointer ((*view).frame as *mut frame,
+							     false);
+
+	  (*xg_event).scroll.x = x as c_double;
+	  (*xg_event).scroll.x_root = x as c_double;
+	  (*xg_event).scroll.y = y as c_double;
+	  (*xg_event).scroll.y_root = y as c_double;
+	  (*xg_event).scroll.state = modifier_state as c_uint;
+	  (*xg_event).scroll.time = time as c_uint;
+
+	  (*xg_event).scroll.delta_x = 0 as c_double;
+	  (*xg_event).scroll.delta_y = 0 as c_double;
+
+	  gtk_main_do_event (xg_event);
+	  gdk_event_free (xg_event);
+	}
+    }
+}
+
+/* C 1387-1553: `#ifdef HAVE_XINPUT2` - `xwidget_motion_notify`, `xwidget_scroll` and (inside
+   C 1489's `#ifdef HAVE_XINPUT2_4` and C 1493's `#if GTK_CHECK_VERSION (3, 18, 0)`)
+   `xwidget_pinch`.  The three are the file's non-`static` definitions (xwidget.h 222-227), so
+   they carry `#[unsafe(no_mangle)]`; the XInput2 text is carried but never flipped here
+   (`## Owed` 6).  */
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xwidget_motion_notify (view: *mut xwidget_view, x: c_double, y: c_double,
+                                                 root_x: c_double, root_y: c_double,
+                                                 state: c_uint, time: Time)  // C 1389-1440
+{
+  let mut xg_event: *mut GdkEvent;
+  let mut target: *mut GtkWidget;
+  let model: *mut xwidget = XXWIDGET ((*view).model);
+  let mut target_x: c_int;
+  let mut target_y: c_int;
+
+  if NILP ((*model).buffer)
+    { return; }
+
+  record_osr_embedder (view);
+
+  target = find_widget_at_pos ((*model).widgetwindow_osr,
+			       lrint (x + (*view).clip_left as c_double) as c_int,
+			       lrint (y + (*view).clip_top as c_double) as c_int,
+			       &raw mut target_x, &raw mut target_y,
+			       true, view);
+
+  if target.is_null ()
+    {
+      target_x = lrint (x + (*view).clip_left as c_double) as c_int;
+      target_y = lrint (y + (*view).clip_top as c_double) as c_int;
+      target = (*model).widget_osr;
+    }
+  else if xw_maybe_synthesize_crossing (view, gtk_widget_get_window (target),
+					(x + (*view).clip_left as c_double) as c_int,
+					(y + (*view).clip_top as c_double) as c_int,
+					XW_CROSSING_NONE, time, state,
+					(if ! (*view).passive_grab.is_null ()
+					 { GDK_CROSSING_GTK_GRAB }
+					 else { GDK_CROSSING_NORMAL }),
+					GDK_CROSSING_NORMAL)
+    { return; }
+
+  xg_event = gdk_event_new (GDK_MOTION_NOTIFY);
+  (*xg_event).any.window = gtk_widget_get_window (target);
+  (*xg_event).motion.x = target_x as c_double;
+  (*xg_event).motion.y = target_y as c_double;
+  (*xg_event).motion.x_root = root_x;
+  (*xg_event).motion.y_root = root_y;
+  (*xg_event).motion.time = time as c_uint;
+  (*xg_event).motion.state = state;
+  (*xg_event).motion.device = find_suitable_pointer ((*view).frame as *mut frame, false);
+
+  g_object_ref ((*xg_event).any.window as gpointer);
+
+  gtk_main_do_event (xg_event);
+  gdk_event_free (xg_event);
+}
+
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xwidget_scroll (view: *mut xwidget_view, x: c_double, y: c_double,
+                                         dx: c_double, dy: c_double, state: c_uint, time: Time,
+                                         stop_p: bool)  // C 1442-1487
+{
+  let mut xg_event: *mut GdkEvent;
+  let mut target: *mut GtkWidget;
+  let model: *mut xwidget = XXWIDGET ((*view).model);
+  let mut target_x: c_int;
+  let mut target_y: c_int;
+
+  if NILP ((*model).buffer)
+    { return; }
+
+  record_osr_embedder (view);
+
+  target = find_widget_at_pos ((*model).widgetwindow_osr,
+			       lrint (x + (*view).clip_left as c_double) as c_int,
+			       lrint (y + (*view).clip_top as c_double) as c_int,
+			       &raw mut target_x, &raw mut target_y,
+			       true, view);
+
+  if target.is_null ()
+    {
+      target_x = lrint (x) as c_int;
+      target_y = lrint (y) as c_int;
+      target = (*model).widget_osr;
+    }
+
+  xg_event = gdk_event_new (GDK_SCROLL);
+  (*xg_event).any.window = gtk_widget_get_window (target);
+  (*xg_event).scroll.direction = GDK_SCROLL_SMOOTH;
+  (*xg_event).scroll.x = target_x as c_double;
+  (*xg_event).scroll.y = target_y as c_double;
+  (*xg_event).scroll.x_root = lrint (x) as c_double;
+  (*xg_event).scroll.y_root = lrint (y) as c_double;
+  (*xg_event).scroll.time = time as c_uint;
+  (*xg_event).scroll.state = state;
+  (*xg_event).scroll.delta_x = dx;
+  (*xg_event).scroll.delta_y = dy;
+  (*xg_event).scroll.device = find_suitable_pointer ((*view).frame as *mut frame, true);
+  (*xg_event).scroll.is_stop = stop_p;
+
+  g_object_ref ((*xg_event).any.window as gpointer);
+
+  gtk_main_do_event (xg_event);
+  gdk_event_free (xg_event);
+}
+
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2",
+	    feature = "have_xinput2_4"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xwidget_pinch (view: *mut xwidget_view,
+                                        xev: *mut XIGesturePinchEvent)  // C 1491-1550
+{
+  #[cfg (feature = "gtk_check_version_ge_3_18")]
+  {
+    let mut xg_event: *mut GdkEvent;
+    let mut target: *mut GtkWidget;
+    let model: *mut xwidget = XXWIDGET ((*view).model);
+    let mut target_x: c_int;
+    let mut target_y: c_int;
+    let x: c_double = (*xev).event_x;
+    let y: c_double = (*xev).event_y;
+
+    if NILP ((*model).buffer)
+      { return; }
+
+    record_osr_embedder (view);
+
+    target = find_widget_at_pos ((*model).widgetwindow_osr,
+				 lrint (x + (*view).clip_left as c_double) as c_int,
+				 lrint (y + (*view).clip_top as c_double) as c_int,
+				 &raw mut target_x, &raw mut target_y,
+				 true, view);
+
+    if target.is_null ()
+      {
+	target_x = lrint (x) as c_int;
+	target_y = lrint (y) as c_int;
+	target = (*model).widget_osr;
+      }
+
+    xg_event = gdk_event_new (GDK_TOUCHPAD_PINCH);
+    (*xg_event).any.window = gtk_widget_get_window (target);
+    (*xg_event).touchpad_pinch.x = target_x as c_double;
+    (*xg_event).touchpad_pinch.y = target_y as c_double;
+    (*xg_event).touchpad_pinch.dx = (*xev).delta_x;
+    (*xg_event).touchpad_pinch.dy = (*xev).delta_y;
+    (*xg_event).touchpad_pinch.angle_delta = (*xev).delta_angle;
+    (*xg_event).touchpad_pinch.scale = (*xev).scale;
+    (*xg_event).touchpad_pinch.x_root = (*xev).root_x;
+    (*xg_event).touchpad_pinch.y_root = (*xev).root_y;
+    (*xg_event).touchpad_pinch.state = (*xev).mods.effective as c_uint;
+    (*xg_event).touchpad_pinch.n_fingers = 2;
+
+    match (*xev).evtype
+      {
+      XI_GesturePinchBegin =>
+	{
+	  (*xg_event).touchpad_pinch.phase = GDK_TOUCHPAD_GESTURE_PHASE_BEGIN;
+	}
+      XI_GesturePinchUpdate =>
+	{
+	  (*xg_event).touchpad_pinch.phase = GDK_TOUCHPAD_GESTURE_PHASE_UPDATE;
+	}
+      XI_GesturePinchEnd =>
+	{
+	  (*xg_event).touchpad_pinch.phase = GDK_TOUCHPAD_GESTURE_PHASE_END;
+	}
+      _ => {}
+      }
+
+    gdk_event_set_device (xg_event, find_suitable_pointer ((*view).frame as *mut frame, false));
+
+    g_object_ref ((*xg_event).any.window as gpointer);
+    gtk_main_do_event (xg_event);
+    gdk_event_free (xg_event);
+  }
+}
+
+/* C 1555-1575: `#ifdef HAVE_XINPUT2` - the XI notify-detail translator, `GdkNotifyType`'s one
+   producer.  */
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe fn xi_translate_notify_detail (detail: c_int) -> GdkNotifyType  // C 1557-1573
+{
+  match detail
+    {
+    XINotifyInferior =>
+      {
+	return GDK_NOTIFY_INFERIOR;
+      }
+    XINotifyAncestor =>
+      {
+	return GDK_NOTIFY_ANCESTOR;
+      }
+    XINotifyVirtual =>
+      {
+	return GDK_NOTIFY_VIRTUAL;
+      }
+    XINotifyNonlinear =>
+      {
+	return GDK_NOTIFY_NONLINEAR;
+      }
+    XINotifyNonlinearVirtual =>
+      {
+	return GDK_NOTIFY_NONLINEAR_VIRTUAL;
+      }
+    _ =>
+      {
+	emacs_abort ();
+      }
+    }
+}
+
+/// C 1578-1607: the window-coordinate walk the crossing machinery shares.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe fn window_coords_from_toplevel (mut window: *mut GdkWindow, toplevel: *mut GdkWindow,
+                                       x: c_int, y: c_int, out_x: *mut c_int,
+                                       out_y: *mut c_int)  // C 1578-1607
+{
+  let mut parent: *mut GdkWindow;
+  let mut children: *mut GList;
+  let mut l: *mut GList;
+  let mut x_out: c_double = 0 as c_double;
+  let mut y_out: c_double = 0 as c_double;
+
+  if window == toplevel
+    {
+      *out_x = x;
+      *out_y = y;
+      return;
+    }
+
+  children = std::ptr::null_mut ();
+  parent = gdk_window_get_parent (window);
+  while parent != toplevel
+    {
+      children = g_list_prepend (children, window as gpointer);
+      window = parent;
+      parent = gdk_window_get_parent (window);
+    }
+
+  l = children;
+  while ! l.is_null ()
+    {
+      gdk_window_coords_from_parent ((*l).data as *mut GdkWindow, x as c_double, y as c_double,
+				     &raw mut x_out, &raw mut y_out);
+      l = (*l).next;
+    }
+
+  g_list_free (children);
+
+  *out_x = x_out as c_int;
+  *out_y = y_out as c_int;
+}
+
+/// C 1609-1648: the common-ancestor search `xw_maybe_synthesize_crossing` uses.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe fn xw_find_common_ancestor (window: *mut GdkWindow, other: *mut GdkWindow,
+                                   toplevel: *mut GdkWindow) -> *mut GdkWindow  // C 1609-1648
+{
+  let mut tem: *mut GdkWindow;
+  let mut l1: *mut GList = std::ptr::null_mut ();
+  let mut l2: *mut GList = std::ptr::null_mut ();
+  let mut i1: *mut GList;
+  let mut i2: *mut GList;
+
+  tem = window;
+  while ! tem.is_null () && tem != toplevel
+    {
+      l1 = g_list_prepend (l1, tem as gpointer);
+      tem = gdk_window_get_parent (tem);
+    }
+
+  tem = other;
+  while ! tem.is_null () && tem != toplevel
+    {
+      l2 = g_list_prepend (l2, tem as gpointer);
+      tem = gdk_window_get_parent (tem);
+    }
+
+  tem = std::ptr::null_mut ();
+  i1 = l1;
+  i2 = l2;
+
+  while ! i1.is_null () && ! i2.is_null () && ((*i1).data == (*i2).data)
+    {
+      tem = (*i1).data as *mut GdkWindow;
+      i1 = (*i1).next;
+      i2 = (*i2).next;
+    }
+
+  g_list_free (l1);
+  g_list_free (l2);
+
+  return tem;
+}
+
+/// C 1650-1687: the virtual-notify walk towards the toplevel.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe fn xw_notify_virtual_upwards_until (xv: *mut xwidget_view, window: *mut GdkWindow,
+                                           until: *mut GdkWindow, toplevel: *mut GdkWindow,
+                                           state: c_uint, x: c_int, y: c_int, time: Time,
+                                           type_: GdkEventType, nonlinear_p: bool,
+                                           crossing: GdkCrossingMode)  // C 1650-1687
+{
+  let mut xg_event: *mut GdkEvent;
+  let mut tem: *mut GdkWindow;
+  let mut cx: c_int;
+  let mut cy: c_int;
+
+  tem = gdk_window_get_parent (window);
+  while ! tem.is_null () && (tem != until)
+    {
+      xg_event = gdk_event_new (type_);
+
+      gdk_event_set_device (xg_event,
+			    find_suitable_pointer ((*xv).frame as *mut frame, false));
+      window_coords_from_toplevel (tem, toplevel, x, y, &raw mut cx, &raw mut cy);
+      (*xg_event).crossing.x = cx as c_double;
+      (*xg_event).crossing.y = cy as c_double;
+      (*xg_event).crossing.time = time as c_uint;
+      (*xg_event).crossing.focus = FALSE;
+      (*xg_event).crossing.detail = (if nonlinear_p
+				     { GDK_NOTIFY_NONLINEAR_VIRTUAL }
+				     else { GDK_NOTIFY_VIRTUAL });
+      (*xg_event).crossing.mode = crossing;
+      (*xg_event).crossing.window = g_object_ref (tem as gpointer) as *mut GdkWindow;
+
+      gtk_main_do_event (xg_event);
+      gdk_event_free (xg_event);
+
+      tem = gdk_window_get_parent (tem);
+    }
+}
+
+/// C 1689-1736: the same walk, collected into a path first so it runs top-down.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe fn xw_notify_virtual_downwards_until (xv: *mut xwidget_view, window: *mut GdkWindow,
+                                             until: *mut GdkWindow, toplevel: *mut GdkWindow,
+                                             state: c_uint, x: c_int, y: c_int, time: Time,
+                                             type_: GdkEventType, nonlinear_p: bool,
+                                             crossing: GdkCrossingMode)  // C 1689-1736
+{
+  let mut xg_event: *mut GdkEvent;
+  let mut tem: *mut GdkWindow;
+  let mut cx: c_int;
+  let mut cy: c_int;
+  let mut path: *mut GList = std::ptr::null_mut ();
+  let mut it: *mut GList;
+
+  tem = gdk_window_get_parent (window);
+
+  while ! tem.is_null () && tem != until
+    {
+      path = g_list_prepend (path, tem as gpointer);
+      tem = gdk_window_get_parent (tem);
+    }
+
+  it = path;
+  while ! it.is_null ()
+    {
+      tem = (*it).data as *mut GdkWindow;
+      xg_event = gdk_event_new (type_);
+
+      gdk_event_set_device (xg_event,
+			    find_suitable_pointer ((*xv).frame as *mut frame, false));
+      window_coords_from_toplevel (tem, toplevel, x, y, &raw mut cx, &raw mut cy);
+      (*xg_event).crossing.x = cx as c_double;
+      (*xg_event).crossing.y = cy as c_double;
+      (*xg_event).crossing.time = time as c_uint;
+      (*xg_event).crossing.focus = FALSE;
+      (*xg_event).crossing.detail = (if nonlinear_p
+				     { GDK_NOTIFY_NONLINEAR_VIRTUAL }
+				     else { GDK_NOTIFY_VIRTUAL });
+      (*xg_event).crossing.mode = crossing;
+      (*xg_event).crossing.window = g_object_ref (tem as gpointer) as *mut GdkWindow;
+
+      gtk_main_do_event (xg_event);
+      gdk_event_free (xg_event);
+
+      it = (*it).next;
+    }
+
+  g_list_free (path);
+}
+
+/// C 1738-1759: the `"notify::cursor"` handler's worker.  C's `Cursor cursor;` is assigned on
+/// both paths before use; the port seeds it for Rust's definite-initialisation (PORTING.md
+/// 0.1-13).
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe fn xw_update_cursor_for_view (xv: *mut xwidget_view,
+                                     crossing_window: *mut GdkWindow)  // C 1738-1759
+{
+  use x11_constants::None;
+
+  let mut xg_cursor: *mut GdkCursor;
+  let mut cursor: Cursor = 0;
+
+  xg_cursor = gdk_window_get_cursor (crossing_window);
+
+  if ! xg_cursor.is_null ()
+    {
+      cursor = gdk_x11_cursor_get_xcursor (xg_cursor);
+
+      if gdk_x11_cursor_get_xdisplay (xg_cursor) == (*xv).dpy
+	{ (*xv).cursor = cursor; }
+    }
+  else
+    { (*xv).cursor = (* (FRAME_OUTPUT_DATA! ((*xv).frame as *mut frame) as *mut x_output))
+		       .nontext_cursor; }
+
+  if (*xv).wdesc != None as Window
+    { XDefineCursor ((*xv).dpy, (*xv).wdesc, (*xv).cursor); }
+}
+
+/// C 1761-1767: the `"notify::cursor"` handler `xw_maybe_synthesize_crossing` connects.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe extern "C" fn xw_last_crossing_cursor_cb (window: *mut GdkWindow, spec: *mut GParamSpec,
+                                                 user_data: gpointer)  // C 1761-1767
+{
+  xw_update_cursor_for_view (user_data as *mut xwidget_view, window);
+}
+
+/// C 1769-1943: the crossing synthesiser - the file's widest helper, and C 1945's
+/// `xwidget_motion_or_crossing`'s worker.
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+unsafe fn xw_maybe_synthesize_crossing (view: *mut xwidget_view,
+                                        current_window: *mut GdkWindow,
+                                        x: c_int, y: c_int, crossing: c_int,
+                                        time: Time, state: c_uint,
+                                        entry_crossing: GdkCrossingMode,
+                                        exit_crossing: GdkCrossingMode) -> bool  // C 1769-1943
+{
+  let mut last_crossing: *mut GdkWindow;
+  let mut toplevel: *mut GdkWindow;
+  let mut ancestor: *mut GdkWindow;
+  let mut xg_event: *mut GdkEvent;
+  let mut cx: c_int;
+  let mut cy: c_int;
+  let mut nonlinear_p: bool;
+  let mut retention_flag: bool;
+
+  #[cfg (feature = "webkit_check_version_ge_2_34")]
+  {
+    /* Work around a silly bug in WebKitGTK+ that tries to make tooltip
+       windows transient for our offscreen window.  */
+    let mut tooltip_width: c_int = 0;
+    let mut tooltip_height: c_int = 0;
+
+    xg_prepare_tooltip ((*view).frame as *mut frame, dummy_tooltip_string,
+			&raw mut tooltip_width, &raw mut tooltip_height);
+  }
+
+  toplevel = gtk_widget_get_window ((*XXWIDGET ((*view).model)).widgetwindow_osr);
+  retention_flag = false;
+
+  if crossing == XW_CROSSING_LEFT
+      && (! (*view).last_crossing_window.is_null ()
+	  && gdk_window_is_destroyed ((*view).last_crossing_window) == 0)
+    {
+      xw_notify_virtual_upwards_until (view, (*view).last_crossing_window,
+				       toplevel, toplevel,
+				       state, x, y, time,
+				       GDK_LEAVE_NOTIFY, false,
+				       exit_crossing);
+    }
+
+  if ! (*view).last_crossing_window.is_null ()
+      && (gdk_window_is_destroyed ((*view).last_crossing_window) != 0
+	  || crossing == XW_CROSSING_LEFT)
+    {
+      if gdk_window_is_destroyed ((*view).last_crossing_window) == 0
+	  && (*view).last_crossing_window != toplevel
+	{
+	  xg_event = gdk_event_new (GDK_LEAVE_NOTIFY);
+	  window_coords_from_toplevel ((*view).last_crossing_window,
+				       toplevel, x, y, &raw mut cx, &raw mut cy);
+
+	  (*xg_event).crossing.x = cx as c_double;
+	  (*xg_event).crossing.y = cy as c_double;
+	  (*xg_event).crossing.time = time as c_uint;
+	  (*xg_event).crossing.focus = FALSE;
+	  (*xg_event).crossing.detail = GDK_NOTIFY_ANCESTOR;
+	  (*xg_event).crossing.mode = exit_crossing;
+	  (*xg_event).crossing.window =
+	    g_object_ref ((*view).last_crossing_window as gpointer) as *mut GdkWindow;
+	  gdk_event_set_device (xg_event,
+				find_suitable_pointer ((*view).frame as *mut frame, false));
+
+	  gtk_main_do_event (xg_event);
+	  gdk_event_free (xg_event);
+
+	  xw_notify_virtual_upwards_until (view, (*view).last_crossing_window,
+					   gdk_window_get_parent (toplevel),
+					   toplevel, state, x, y, time,
+					   GDK_LEAVE_NOTIFY, false, exit_crossing);
+	  retention_flag = true;
+	}
+
+      g_signal_handler_disconnect ((*view).last_crossing_window as gpointer,
+				   (*view).last_crossing_cursor_signal as gulong);
+      g_clear_pointer! (&raw mut (*view).last_crossing_window, g_object_unref);
+    }
+  last_crossing = (*view).last_crossing_window;
+
+  if last_crossing.is_null ()
+    {
+      if ! current_window.is_null ()
+	{
+	  (*view).last_crossing_window = g_object_ref (current_window as gpointer)
+					   as *mut GdkWindow;
+	  xw_update_cursor_for_view (view, current_window);
+	  (*view).last_crossing_cursor_signal =
+	    g_signal_connect! (G_OBJECT! (current_window), c"notify::cursor".as_ptr (),
+			       G_CALLBACK! (xw_last_crossing_cursor_cb), view as gpointer) as guint;
+
+	  xw_notify_virtual_downwards_until (view, current_window,
+					     toplevel, toplevel,
+					     state, x, y, time,
+					     GDK_ENTER_NOTIFY,
+					     false, entry_crossing);
+	}
+      return retention_flag;
+    }
+
+  if last_crossing != current_window
+    {
+      (*view).last_crossing_window = g_object_ref (current_window as gpointer)
+				       as *mut GdkWindow;
+      g_signal_handler_disconnect (last_crossing as gpointer,
+				   (*view).last_crossing_cursor_signal as gulong);
+
+      xw_update_cursor_for_view (view, current_window);
+      (*view).last_crossing_cursor_signal =
+	g_signal_connect! (G_OBJECT! (current_window), c"notify::cursor".as_ptr (),
+			   G_CALLBACK! (xw_last_crossing_cursor_cb), view as gpointer) as guint;
+
+      ancestor = xw_find_common_ancestor (last_crossing, current_window, toplevel);
+
+      if ancestor.is_null ()
+	{ emacs_abort (); }
+
+      nonlinear_p = (last_crossing != ancestor) && (current_window != ancestor);
+
+      if nonlinear_p || (last_crossing != ancestor)
+	{
+	  xw_notify_virtual_upwards_until (view, last_crossing,
+					   ancestor, toplevel,
+					   state, x, y, time,
+					   GDK_LEAVE_NOTIFY,
+					   nonlinear_p,
+					   exit_crossing);
+	}
+
+      xg_event = gdk_event_new (GDK_LEAVE_NOTIFY);
+      gdk_event_set_device (xg_event,
+			    find_suitable_pointer ((*view).frame as *mut frame, false));
+      window_coords_from_toplevel (last_crossing, toplevel,
+				   x, y, &raw mut cx, &raw mut cy);
+      (*xg_event).crossing.x = cx as c_double;
+      (*xg_event).crossing.y = cy as c_double;
+      (*xg_event).crossing.time = time as c_uint;
+      (*xg_event).crossing.focus = FALSE;
+      (*xg_event).crossing.state = state;
+      (*xg_event).crossing.detail = (if nonlinear_p
+				     { GDK_NOTIFY_NONLINEAR }
+				     else { (if last_crossing == ancestor
+					       { GDK_NOTIFY_INFERIOR }
+					       else { GDK_NOTIFY_ANCESTOR }) });
+      (*xg_event).crossing.mode = exit_crossing;
+      (*xg_event).crossing.window = g_object_ref (last_crossing as gpointer) as *mut GdkWindow;
+
+      gtk_main_do_event (xg_event);
+      gdk_event_free (xg_event);
+
+      if nonlinear_p || (current_window != ancestor)
+	{
+	  xw_notify_virtual_downwards_until (view, current_window,
+					     ancestor, toplevel,
+					     state, x, y, time,
+					     GDK_ENTER_NOTIFY,
+					     nonlinear_p,
+					     entry_crossing);
+	}
+
+      xg_event = gdk_event_new (GDK_ENTER_NOTIFY);
+      gdk_event_set_device (xg_event,
+			    find_suitable_pointer ((*view).frame as *mut frame, false));
+      window_coords_from_toplevel (current_window, toplevel,
+				   x, y, &raw mut cx, &raw mut cy);
+      (*xg_event).crossing.x = cx as c_double;
+      (*xg_event).crossing.y = cy as c_double;
+      (*xg_event).crossing.time = time as c_uint;
+      (*xg_event).crossing.focus = FALSE;
+      (*xg_event).crossing.state = state;
+      (*xg_event).crossing.detail = (if nonlinear_p
+				     { GDK_NOTIFY_NONLINEAR }
+				     else { (if current_window == ancestor
+					       { GDK_NOTIFY_INFERIOR }
+					       else { GDK_NOTIFY_ANCESTOR }) });
+      (*xg_event).crossing.mode = entry_crossing;
+      (*xg_event).crossing.window = g_object_ref (current_window as gpointer) as *mut GdkWindow;
+
+      gtk_main_do_event (xg_event);
+      gdk_event_free (xg_event);
+      g_object_unref (last_crossing as gpointer);
+
+      return true;
+    }
+
+  return false;
+}
+
+/* C 1945-2105: the motion/crossing entry point.  C's `#ifdef`-split `if`/`else if`/`else`
+   (C 1951-1961 and C 1990-1997) is the port's `match` on `event->type`, its middle arm gated by
+   `have_xinput2` (Deviation 9); the `XEvent` union's members are read through casts to the member
+   records (the file note above, and `docs/ports/include-xlib.md`).  */
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xwidget_motion_or_crossing (view: *mut xwidget_view,
+                                                     event: *const XEvent)  // C 1945-2105
+{
+  let mut xg_event: *mut GdkEvent;
+  let model: *mut xwidget = XXWIDGET ((*view).model);
+  let mut x: c_int;
+  let mut y: c_int;
+  let mut toplevel_x: c_int;
+  let mut toplevel_y: c_int;
+  let mut target: *mut GtkWidget;
+  #[cfg (feature = "have_xinput2")]
+  let mut xev: *mut XIEnterEvent = std::ptr::null_mut ();
+  /* C reads members of the `XEvent` union; `include/xlib.rs`'s `XEvent` is opaque, so the port
+     casts the pointer to the member record C names (the `src/xmenu.rs` 1086 shape).  */
+  let xany: *const XAnyEvent = event as *const XAnyEvent;
+  let xmotion: *const XMotionEvent = event as *const XMotionEvent;
+  let xcrossing: *const XCrossingEvent = event as *const XCrossingEvent;
+  let xcookie: *const XGenericEventCookie = event as *const XGenericEventCookie;
+
+  if NILP ((*model).buffer)
+    { return; }
+
+  /* C 1951-1976's `#ifdef HAVE_XINPUT2`-split `if (event->type != GenericEvent) … else …` is
+     the port's `match` on `event->type`, its `GenericEvent` arm gated by `have_xinput2`
+     (Deviation 9): the C build without XI2 has one unconditional block, the XI2 build adds the
+     `else`.  */
+  match (*xany).r#type
+    {
+      #[cfg (feature = "have_xinput2")]
+      GenericEvent =>
+	{
+	  eassert! ((*xcookie).evtype == XI_Enter
+		    || (*xcookie).evtype == XI_Leave);
+
+	  xev = (*xcookie).data as *mut XIEnterEvent;
+	  xg_event = gdk_event_new (if (*xany).r#type == XI_Enter
+				    { GDK_ENTER_NOTIFY }
+				    else { GDK_LEAVE_NOTIFY });
+	  toplevel_x = lrint ((*xev).event_x + (*view).clip_left as c_double) as c_int;
+	  toplevel_y = lrint ((*xev).event_y + (*view).clip_top as c_double) as c_int;
+	  target = find_widget_at_pos ((*model).widgetwindow_osr,
+				       toplevel_x,
+				       toplevel_y,
+				       &raw mut x, &raw mut y, true, view);
+	}
+      _ =>
+	{
+	  xg_event = gdk_event_new (if (*xany).r#type == MotionNotify
+				    { GDK_MOTION_NOTIFY }
+				    else { (if (*xany).r#type == LeaveNotify
+					      { GDK_LEAVE_NOTIFY }
+					      else { GDK_ENTER_NOTIFY }) });
+	  toplevel_x = (if (*xany).r#type == MotionNotify
+			{ (*xmotion).x + (*view).clip_left }
+			else { (*xcrossing).x + (*view).clip_left });
+	  toplevel_y = (if (*xany).r#type == MotionNotify
+			{ (*xmotion).y + (*view).clip_top }
+			else { (*xcrossing).y + (*view).clip_top });
+	  target = find_widget_at_pos ((*model).widgetwindow_osr,
+				       toplevel_x, toplevel_y, &raw mut x, &raw mut y,
+				       true, view);
+	}
+    }
+
+  if target.is_null ()
+    { target = (*model).widget_osr; }
+
+  record_osr_embedder (view);
+  (*xg_event).any.window = gtk_widget_get_window (target);
+  g_object_ref ((*xg_event).any.window as gpointer); /* The window will be unrefed
+							later by gdk_event_free.  */
+
+  /* C 1977-2105's event-kind dispatch: `if (MotionNotify) … #ifdef XI2 else if (GenericEvent) …
+     #endif else …` is the port's `match`, the middle arm gated (Deviation 9).  */
+  match (*xany).r#type
+    {
+      MotionNotify =>
+	{
+	  if ! xw_maybe_synthesize_crossing (view, (*xg_event).any.window,
+					     toplevel_x, toplevel_y,
+					     XW_CROSSING_NONE, (*xmotion).time,
+					     (*xmotion).state,
+					     (if ! (*view).passive_grab.is_null ()
+					      { GDK_CROSSING_GTK_GRAB }
+					      else { GDK_CROSSING_NORMAL }),
+					     GDK_CROSSING_NORMAL)
+	    {
+	      (*xg_event).motion.x = x as c_double;
+	      (*xg_event).motion.y = y as c_double;
+	      (*xg_event).motion.x_root = (*xmotion).x_root as c_double;
+	      (*xg_event).motion.y_root = (*xmotion).y_root as c_double;
+	      (*xg_event).motion.time = (*xmotion).time as c_uint;
+	      (*xg_event).motion.state = (*xmotion).state;
+	      (*xg_event).motion.device
+		= find_suitable_pointer ((*view).frame as *mut frame, false);
+	    }
+	  else
+	    {
+	      gdk_event_free (xg_event);
+	      return;
+	    }
+	}
+      #[cfg (feature = "have_xinput2")]
+      GenericEvent =>
+	{
+	  (*xg_event).crossing.x = x as c_double;
+	  (*xg_event).crossing.y = y as c_double;
+	  (*xg_event).crossing.x_root = (*xev).root_x as c_double;
+	  (*xg_event).crossing.y_root = (*xev).root_y as c_double;
+	  (*xg_event).crossing.time = (*xev).time as c_uint;
+	  (*xg_event).crossing.focus = (*xev).focus;
+	  (*xg_event).crossing.mode = (*xev).mode;
+	  (*xg_event).crossing.detail = xi_translate_notify_detail ((*xev).detail);
+	  (*xg_event).crossing.state = (*xev).mods.effective;
+
+	  if (*xev).buttons.mask_len != 0
+	    {
+	      if XIMaskIsSet! ((*xev).buttons.mask, 1) != 0
+		{ (*xg_event).crossing.state |= GDK_BUTTON1_MASK as c_uint; }
+	      if XIMaskIsSet! ((*xev).buttons.mask, 2) != 0
+		{ (*xg_event).crossing.state |= GDK_BUTTON2_MASK as c_uint; }
+	      if XIMaskIsSet! ((*xev).buttons.mask, 3) != 0
+		{ (*xg_event).crossing.state |= GDK_BUTTON3_MASK as c_uint; }
+	    }
+
+	  if ! (*view).passive_grab.is_null ()
+	      || xw_maybe_synthesize_crossing (view, (*xg_event).any.window,
+					       toplevel_x, toplevel_y,
+					       (if (*xev).r#type == XI_Enter
+						{ XW_CROSSING_ENTERED }
+						else { XW_CROSSING_LEFT }),
+					       (*xev).time, (*xg_event).crossing.state,
+					       (if ! (*view).passive_grab.is_null ()
+						{ GDK_CROSSING_GTK_GRAB }
+						else { GDK_CROSSING_NORMAL }),
+					       GDK_CROSSING_NORMAL)
+	    {
+	      gdk_event_free (xg_event);
+	      return;
+	    }
+
+	  gdk_event_set_device (xg_event,
+				find_suitable_pointer ((*view).frame as *mut frame, false));
+	}
+      _ =>
+	{
+	  if ! (*view).passive_grab.is_null ()
+	      || xw_maybe_synthesize_crossing (view, (*xg_event).any.window,
+					       toplevel_x, toplevel_y,
+					       (if (*xany).r#type == EnterNotify
+						{ XW_CROSSING_ENTERED }
+						else { XW_CROSSING_LEFT }),
+					       (*xcrossing).time,
+					       (*xcrossing).state,
+					       (if ! (*view).passive_grab.is_null ()
+						{ GDK_CROSSING_GTK_GRAB }
+						else { GDK_CROSSING_NORMAL }),
+					       GDK_CROSSING_NORMAL)
+	    {
+	      gdk_event_free (xg_event);
+	      return;
+	    }
+
+	  (*xg_event).crossing.detail = min! (5, (*xcrossing).detail);
+	  (*xg_event).crossing.time = (*xcrossing).time as c_uint;
+	  (*xg_event).crossing.x = x as c_double;
+	  (*xg_event).crossing.y = y as c_double;
+	  (*xg_event).crossing.x_root = (*xcrossing).x_root as c_double;
+	  (*xg_event).crossing.y_root = (*xcrossing).y_root as c_double;
+	  (*xg_event).crossing.focus = (*xcrossing).focus;
+	  gdk_event_set_device (xg_event,
+				find_suitable_pointer ((*view).frame as *mut frame, false));
+	}
+    }
+
+  gtk_main_do_event (xg_event);
+  gdk_event_free (xg_event);
+}
+/* C 2107: `#endif /* HAVE_X_WINDOWS */` — the HAVE_X_WINDOWS arm ends here.  */
+
+/* C 2110-2133: `synthesize_focus_in_event` (inside the C 739 `USE_GTK` block).  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn synthesize_focus_in_event (offscreen_window: *mut GtkWidget)  // C 2110-2133
+{
+  let mut wnd: *mut GdkWindow;
+  let mut focus_event: *mut GdkEvent;
+
+  if gtk_widget_get_realized (offscreen_window) == 0
+    { gtk_widget_realize (offscreen_window); }
+
+  wnd = gtk_widget_get_window (offscreen_window);
+
+  focus_event = gdk_event_new (GDK_FOCUS_CHANGE);
+  (*focus_event).focus_change.window = wnd;
+  (*focus_event).focus_change.r#in = TRUE;
+
+  if FRAME_WINDOW_P (SELECTED_FRAME ())
+    { gdk_event_set_device (focus_event,
+			    find_suitable_pointer (SELECTED_FRAME (), false)); }
+
+  g_object_ref (wnd as gpointer);
+
+  gtk_main_do_event (focus_event);
+  gdk_event_free (focus_event);
+}
+
+/* C 2135-2147: `#ifdef HAVE_X_WINDOWS`.  `xwidget_view_from_window` is the header's `extern`
+   definition (xwidget.h 209), so it carries `#[unsafe(no_mangle)]`.  */
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xwidget_view_from_window (wdesc: Window) -> *mut xwidget_view  // C 2137-2145
+{
+  let key: Lisp_Object = make_fixnum (wdesc as EMACS_INT);
+  let xwv: Lisp_Object = Fgethash (key, x_window_to_xwv_map, Qnil ());
+
+  if NILP (xwv)
+    { return std::ptr::null_mut (); }
+
+  return XXWIDGET_VIEW (xwv);
+}
+
+/// C 2150-2167: the two arms C 2153's `#ifdef HAVE_X_WINDOWS` splits.
+#[cfg (feature = "use_gtk")]
+unsafe fn xwidget_show_view (xv: *mut xwidget_view)  // C 2150-2167
+{
+  (*xv).hidden = false;
+  #[cfg (feature = "have_x_windows")]
+  {
+    XMoveWindow ((*xv).dpy, (*xv).wdesc,
+		 (*xv).x + (*xv).clip_left,
+		 (*xv).y + (*xv).clip_top);
+    XMapWindow ((*xv).dpy, (*xv).wdesc);
+    XFlush ((*xv).dpy);
+  }
+  #[cfg (not (feature = "have_x_windows"))]
+  {
+    gtk_fixed_move (GTK_FIXED! (FRAME_GTK_WIDGET! ((*xv).frame as *mut frame)),
+		    (*xv).widget, (*xv).x + (*xv).clip_left,
+		    (*xv).y + (*xv).clip_top);
+    gtk_widget_show_all ((*xv).widget);
+  }
+}
+
+/// C 2169-2178: the same split for hiding.
+#[cfg (feature = "use_gtk")]
+unsafe fn xwidget_hide_view (xv: *mut xwidget_view)  // C 2169-2178
+{
+  (*xv).hidden = true;
+  #[cfg (feature = "have_x_windows")]
+  {
+    XUnmapWindow ((*xv).dpy, (*xv).wdesc);
+    XFlush ((*xv).dpy);
+  }
+  #[cfg (not (feature = "have_x_windows"))]
+  {
+    gtk_widget_hide ((*xv).widget);
+  }
+}
+
+/* C 2180-2242: `#ifndef HAVE_PGTK`'s `xv_do_draw` and `#else`'s `xwidget_view_draw_cb`.  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe fn xv_do_draw (xw: *mut xwidget_view, w: *mut xwidget)  // C 2182-2210
+{
+  let mut wnd: *mut GtkOffscreenWindow;
+  let mut surface: *mut cairo_surface_t;
+
+  if (*xw).just_resized != 0
+    { return; }
+
+  if NILP ((*w).buffer)
+    {
+      XClearWindow ((*xw).dpy, (*xw).wdesc);
+      return;
+    }
+
+  block_input ();
+  wnd = GTK_OFFSCREEN_WINDOW! ((*w).widgetwindow_osr);
+  surface = gtk_offscreen_window_get_surface (wnd);
+
+  cairo_save ((*xw).cr_context);
+  if ! surface.is_null ()
+    {
+      cairo_translate ((*xw).cr_context, -((*xw).clip_left as c_double),
+		       -((*xw).clip_top as c_double));
+      cairo_set_source_surface ((*xw).cr_context, surface, 0 as c_double, 0 as c_double);
+      cairo_set_operator ((*xw).cr_context, CAIRO_OPERATOR_SOURCE);
+      cairo_paint ((*xw).cr_context);
+    }
+  cairo_restore ((*xw).cr_context);
+
+  unblock_input ();
+}
+
+#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+unsafe extern "C" fn xwidget_view_draw_cb (widget: *mut GtkWidget, cr: *mut cairo_t,
+                                           data: gpointer)  // C 2214-2240
+{
+  let view: *mut xwidget_view = data as *mut xwidget_view;
+  let w: *mut xwidget = XXWIDGET ((*view).model);
+  let mut wnd: *mut GtkOffscreenWindow;
+  let mut surface: *mut cairo_surface_t;
+
+  if NILP ((*w).buffer)
+    { return; }
+
+  block_input ();
+  wnd = GTK_OFFSCREEN_WINDOW! ((*w).widgetwindow_osr);
+  surface = gtk_offscreen_window_get_surface (wnd);
+
+  cairo_save (cr);
+  if ! surface.is_null ()
+    {
+      cairo_translate (cr, -((*view).clip_left as c_double),
+		       -((*view).clip_top as c_double));
+      cairo_set_source_surface (cr, surface, 0 as c_double, 0 as c_double);
+      cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
+      cairo_paint (cr);
+    }
+  cairo_restore (cr);
+
+  unblock_input ();
+}
+
+/* C 2247-2270: the off-screen master view's damage handler, with C 2258's
+   `#ifdef HAVE_X_WINDOWS` arm.  */
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn offscreen_damage_event (widget: *mut GtkWidget, event: *mut GdkEvent,
+                                             xwidget: gpointer) -> gboolean  // C 2247-2270
+{
+  block_input ();
+
+  let mut tail: Lisp_Object = internal_xwidget_view_list;
+  while CONSP (tail)
+    {
+      if XWIDGET_VIEW_P (XCAR (tail))
+	{
+	  let view: *mut xwidget_view = XXWIDGET_VIEW (XCAR (tail));
+	  #[cfg (feature = "have_x_windows")]
+	  if (*view).wdesc != 0 && XXWIDGET ((*view).model) == xwidget as *mut xwidget
+	    { xv_do_draw (view, XXWIDGET ((*view).model)); }
+	  #[cfg (not (feature = "have_x_windows"))]
+	  gtk_widget_queue_draw ((*view).widget);
+	}
+      tail = XCDR (tail);
+    }
+
+  unblock_input ();
+
+  return FALSE;
+}
+
+/* C 2272-2280: `#ifdef HAVE_X_WINDOWS` around `xwidget_expose`, the header's `extern` definition
+   (xwidget.h 210).  */
+#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xwidget_expose (xv: *mut xwidget_view)  // C 2274-2279
+{
+  let xw: *mut xwidget = XXWIDGET ((*xv).model);
+
+  xv_do_draw (xv, xw);
+}
+/* C 2281: `#endif /* USE_GTK */` — the C 739 block ends here.  */
+
+/* C 2284-2331: the three event-string store helpers, all of them the header's `extern`
+   definitions (xwidget.h 193-204), so each carries `#[unsafe(no_mangle)]`.  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn store_xwidget_event_string (xw: *mut xwidget, eventname: *const c_char,
+                                                     eventstr: *const c_char)  // C 2284-2296
+{
+  let mut event: input_event = std::mem::zeroed ();
+  let mut xwl: Lisp_Object;
+  XSETXWIDGET! (xwl, xw);
+  EVENT_INIT (&raw mut event);
+  input_event_bits! (kind, &raw mut event, XWIDGET_EVENT);
+  event.frame_or_window = Qnil ();
+  event.arg = list3 (intern (eventname), xwl, build_string (eventstr));
+  kbd_buffer_store_event (&raw mut event as *mut c_void);
+}
+
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn store_xwidget_download_callback_event (xw: *mut xwidget,
+                                                                url: *const c_char,
+                                                                mimetype: *const c_char,
+                                                                filename: *const c_char)  // C 2298-2316
+{
+  let mut event: input_event = std::mem::zeroed ();
+  let mut xwl: Lisp_Object;
+  XSETXWIDGET! (xwl, xw);
+  EVENT_INIT (&raw mut event);
+  input_event_bits! (kind, &raw mut event, XWIDGET_EVENT);
+  event.frame_or_window = Qnil ();
+  event.arg = list5 (Qdownload_callback (),
+                     xwl,
+                     build_string (url),
+                     build_string (mimetype),
+                     build_string (filename));
+  kbd_buffer_store_event (&raw mut event as *mut c_void);
+}
+
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn store_xwidget_js_callback_event (xw: *mut xwidget, proc_: Lisp_Object,
+                                                          argument: Lisp_Object)  // C 2318-2331
+{
+  let mut event: input_event = std::mem::zeroed ();
+  let mut xwl: Lisp_Object;
+  XSETXWIDGET! (xwl, xw);
+  EVENT_INIT (&raw mut event);
+  input_event_bits! (kind, &raw mut event, XWIDGET_EVENT);
+  event.frame_or_window = Qnil ();
+  event.arg = list4 (Qjavascript_callback (), xwl, proc_, argument);
+  kbd_buffer_store_event (&raw mut event as *mut c_void);
+}
+
+/* C 2333-2716: `#ifdef USE_GTK` - the display-event store and the six WebKit callbacks.  */
+/// C 2335-2349: the display-event store (static).
+#[cfg (feature = "use_gtk")]
+unsafe fn store_xwidget_display_event (xw: *mut xwidget, src: *mut xwidget)  // C 2335-2349
+{
+  let mut evt: input_event = std::mem::zeroed ();
+  let mut val: Lisp_Object;
+  let mut src_val: Lisp_Object;
+
+  XSETXWIDGET! (val, xw);
+  XSETXWIDGET! (src_val, src);
+  EVENT_INIT (&raw mut evt);
+  input_event_bits! (kind, &raw mut evt, XWIDGET_DISPLAY_EVENT);
+  evt.frame_or_window = Qnil ();
+  evt.arg = list2 (val, src_val);
+  kbd_buffer_store_event (&raw mut evt as *mut c_void);
+}
+
+/// C 2351-2379: the `"ready-to-show"` handler `webkit_create_cb_1` connects.
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn webkit_ready_to_show (new_view: *mut WebKitWebView,
+                                           user_data: gpointer)  // C 2351-2379
+{
+  let mut tem: Lisp_Object;
+  let mut xw: *mut xwidget;
+  let src: *mut xwidget;
+
+  src = find_xwidget_for_offscreen_window (GDK_WINDOW! (user_data));
+
+  tem = internal_xwidget_list;
+  while CONSP (tem)
+    {
+      if XWIDGETP (XCAR (tem))
+	{
+	  xw = XXWIDGET (XCAR (tem));
+
+	  if EQ ((*xw).r#type, Qwebkit ())
+	      && WEBKIT_WEB_VIEW! ((*xw).widget_osr) == new_view
+	    {
+	      /* The source widget was destroyed before we had a
+		 chance to display the new widget.  */
+	      if src.is_null ()
+		{ kill_xwidget (xw); }
+	      else
+		{ store_xwidget_display_event (xw, src); }
+	    }
+	}
+      tem = XCDR (tem);
+    }
+}
+
+/// C 2381-2405: the `"create"` handler's first half (static).
+#[cfg (feature = "use_gtk")]
+unsafe fn webkit_create_cb_1 (webview: *mut WebKitWebView, xv: *mut xwidget) -> *mut GtkWidget  // C 2381-2405
+{
+  let mut related: Lisp_Object;
+  let mut xwidget: Lisp_Object;
+  let mut widget: *mut GtkWidget;
+
+  XSETXWIDGET! (related, xv);
+  xwidget = Fmake_xwidget (Qwebkit (), Qnil (), make_fixnum (0),
+			   make_fixnum (0), Qnil (),
+			   build_string (c" *detached xwidget buffer*".as_ptr ()),
+			   related);
+
+  if NILP (xwidget)
+    { return std::ptr::null_mut (); }
+
+  widget = (*XXWIDGET (xwidget)).widget_osr;
+
+  g_signal_connect! (G_OBJECT! (widget), c"ready-to-show".as_ptr (),
+		     G_CALLBACK! (webkit_ready_to_show),
+		     gtk_widget_get_window ((*xv).widgetwindow_osr) as gpointer);
+
+  return widget;
+}
+
+/// C 2407-2425: the `"create"` handler itself (static).
+#[cfg (feature = "use_gtk")]
+unsafe fn webkit_create_cb (webview: *mut WebKitWebView,
+                            nav_action: *mut WebKitNavigationAction,
+                            user_data: gpointer) -> *mut GtkWidget  // C 2407-2425
+{
+  match webkit_navigation_action_get_navigation_type (nav_action)
+    {
+      WEBKIT_NAVIGATION_TYPE_OTHER =>
+	{
+	  return webkit_create_cb_1 (webview, user_data as *mut xwidget);
+	}
+      WEBKIT_NAVIGATION_TYPE_BACK_FORWARD
+      | WEBKIT_NAVIGATION_TYPE_RELOAD
+      | WEBKIT_NAVIGATION_TYPE_FORM_SUBMITTED
+      | WEBKIT_NAVIGATION_TYPE_FORM_RESUBMITTED
+      | WEBKIT_NAVIGATION_TYPE_LINK_CLICKED
+      | _ =>
+	{
+	  return std::ptr::null_mut ();
+	}
+    }
+}
+
+/* C 2427-2451: the `"load-changed"` handler.  C's `switch` without `default` is the port's
+   `match` with an empty `_` arm (C's own fall-through; Deviation 9), and the definition is
+   non-`static`, so it carries `#[unsafe(no_mangle)]`.  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn webkit_view_load_changed_cb (webkitwebview: *mut WebKitWebView,
+                                                      load_event: WebKitLoadEvent,
+                                                      data: gpointer)  // C 2427-2451
+{
+  let xw: *mut xwidget = g_object_get_data (G_OBJECT! (webkitwebview),
+					    XG_XWIDGET.as_ptr ()) as *mut xwidget;
+
+  match load_event
+    {
+      WEBKIT_LOAD_FINISHED =>
+	{
+	  store_xwidget_event_string (xw, c"load-changed".as_ptr (),
+				      c"load-finished".as_ptr ());
+	}
+      WEBKIT_LOAD_STARTED =>
+	{
+	  store_xwidget_event_string (xw, c"load-changed".as_ptr (),
+				      c"load-started".as_ptr ());
+	}
+      WEBKIT_LOAD_REDIRECTED =>
+	{
+	  store_xwidget_event_string (xw, c"load-changed".as_ptr (),
+				      c"load-redirected".as_ptr ());
+	}
+      WEBKIT_LOAD_COMMITTED =>
+	{
+	  store_xwidget_event_string (xw, c"load-changed".as_ptr (),
+				      c"load-committed".as_ptr ());
+	}
+      _ => {}
+    }
+}
+
+/* Recursively convert a JavaScript value to a Lisp value. */
+/// C 2453-2518: `webkit_js_to_lisp` (static).
+#[cfg (feature = "use_gtk")]
+unsafe fn webkit_js_to_lisp (value: *mut JSCValue) -> Lisp_Object  // C 2453-2518
+{
+  if jsc_value_is_string (value) != 0
+    {
+      let mut str_value: *mut gchar = jsc_value_to_string (value);
+      let ret: Lisp_Object = build_string (str_value);
+      g_free (str_value as gpointer);
+
+      return ret;
+    }
+  else if jsc_value_is_boolean (value) != 0
+    {
+      return (if jsc_value_to_boolean (value) != 0 { Qt () } else { Qnil () });
+    }
+  else if jsc_value_is_number (value) != 0
+    {
+      return make_fixnum (jsc_value_to_int32 (value) as EMACS_INT);
+    }
+  else if jsc_value_is_array (value) != 0
+    {
+      let len: *mut JSCValue = jsc_value_object_get_property (value, c"length".as_ptr ());
+      let dlen: c_int = jsc_value_to_int32 (len);
+
+      let mut obj: Lisp_Object;
+      if ! (0 <= dlen && dlen < G_MAXINT32)
+	{ memory_full_up (); }
+
+      let n: ptrdiff_t = dlen as ptrdiff_t;
+      let p: *mut Lisp_Vector = allocate_nil_vector (n);
+
+      let mut i: ptrdiff_t = 0;
+      while i < n
+	{
+	  (*p).contents[i as usize] =
+	    webkit_js_to_lisp (jsc_value_object_get_property_at_index (value, i as guint));
+	  i += 1;
+	}
+      XSETVECTOR! (obj, p);
+      return obj;
+    }
+  else if jsc_value_is_object (value) != 0
+    {
+      let properties_names: *mut *mut gchar = jsc_value_object_enumerate_properties (value);
+      let mut n: guint = g_strv_length (properties_names);
+
+      let mut obj: Lisp_Object;
+      if PTRDIFF_MAX < n as isize
+	{ memory_full (n as usize); }
+      let p: *mut Lisp_Vector = allocate_nil_vector (n as isize);
+
+      let mut i: ptrdiff_t = 0;
+      while i < n as isize
+	{
+	  let name: *const c_char = *properties_names.offset (i as isize);
+	  let property: *mut JSCValue = jsc_value_object_get_property (value, name);
+
+	  (*p).contents[i as usize] =
+	    Fcons (build_string (name), webkit_js_to_lisp (property));
+	  i += 1;
+	}
+
+      g_strfreev (properties_names);
+
+      XSETVECTOR! (obj, p);
+      return obj;
+    }
+
+  return Qnil ();
+}
+
+/// C 2520-2559: the `run-javascript` completion callback (static).
+#[cfg (feature = "use_gtk")]
+unsafe fn webkit_javascript_finished_cb (webview: *mut GObject, result: *mut GAsyncResult,
+                                         arg: gpointer)  // C 2520-2559
+{
+  let mut error: *mut GError = std::ptr::null_mut ();
+  let xw: *mut xwidget = g_object_get_data (G_OBJECT! (webview),
+					    XG_XWIDGET.as_ptr ()) as *mut xwidget;
+
+  let script_idx: ptrdiff_t = arg as intptr_t as ptrdiff_t;
+  let script_callback: Lisp_Object = AREF ((*xw).script_callbacks, script_idx);
+  ASET ((*xw).script_callbacks, script_idx, Qnil ());
+  if ! NILP (script_callback)
+    { xfree (xmint_pointer (XCAR (script_callback))); }
+
+  let js_result: *mut WebKitJavascriptResult =
+    webkit_web_view_run_javascript_finish
+    (WEBKIT_WEB_VIEW! (webview), result, &raw mut error);
+
+  if js_result.is_null ()
+    {
+      if ! error.is_null ()
+	{ g_error_free (error); }
+      return;
+    }
+
+  if ! NILP (script_callback) && ! NILP (XCDR (script_callback))
+    {
+      let value: *mut JSCValue = webkit_javascript_result_get_js_value (js_result);
+
+      let lisp_value: Lisp_Object = webkit_js_to_lisp (value);
+
+      /* Register an xwidget event here, which then runs the callback.
+	 This ensures that the callback runs in sync with the Emacs
+	 event loop.  */
+      store_xwidget_js_callback_event (xw, XCDR (script_callback), lisp_value);
+    }
+
+  webkit_javascript_result_unref (js_result);
+}
+
+/// C 2561-2574: the `"download-started"` handler.  Non-`static`, so `#[unsafe(no_mangle)]`.
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn webkit_download_cb (webkitwebcontext: *mut WebKitWebContext,
+                                             arg1: *mut WebKitDownload,
+                                             data: gpointer) -> gboolean  // C 2561-2574
+{
+  let view: *mut WebKitWebView = webkit_download_get_web_view (arg1);
+  let request: *mut WebKitURIRequest = webkit_download_get_request (arg1);
+  let xw: *mut xwidget = g_object_get_data (G_OBJECT! (view),
+					    XG_XWIDGET.as_ptr ()) as *mut xwidget;
+
+  store_xwidget_event_string (xw, c"download-started".as_ptr (),
+			      webkit_uri_request_get_uri (request));
+  return FALSE;
+}
+
+/// C 2576-2645: the `"decide-policy"` handler (static).
+#[cfg (feature = "use_gtk")]
+unsafe fn webkit_decide_policy_cb (web_view: *mut WebKitWebView,
+                                   decision: *mut WebKitPolicyDecision,
+                                   type_: WebKitPolicyDecisionType,
+                                   user_data: gpointer) -> gboolean  // C 2576-2645
+{
+  match type_
+    {
+      WEBKIT_POLICY_DECISION_TYPE_RESPONSE =>
+	{
+	  /* This function makes webkit send a download signal for all unknown
+	     mime types.  TODO: Defer the decision to Lisp, so that it's
+	     possible to make Emacs handle mime text for instance.  */
+	  let response: *mut WebKitResponsePolicyDecision =
+	    WEBKIT_RESPONSE_POLICY_DECISION! (decision);
+	  if webkit_response_policy_decision_is_mime_type_supported (response) == 0
+	    {
+	      webkit_policy_decision_download (decision);
+	      return TRUE;
+	    }
+	  else
+	    { return FALSE; }
+	}
+      WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION =>
+	{
+	  let navigation_decision: *mut WebKitNavigationPolicyDecision =
+	    WEBKIT_NAVIGATION_POLICY_DECISION! (decision);
+	  let navigation_action: *mut WebKitNavigationAction =
+	    webkit_navigation_policy_decision_get_navigation_action (navigation_decision);
+	  let request: *mut WebKitURIRequest =
+	    webkit_navigation_action_get_request (navigation_action);
+	  let mut newview: *mut WebKitWebView;
+	  let xw: *mut xwidget = g_object_get_data (G_OBJECT! (web_view),
+						    XG_XWIDGET.as_ptr ()) as *mut xwidget;
+	  let mut val: Lisp_Object;
+	  let mut new_xwidget: Lisp_Object;
+
+	  XSETXWIDGET! (val, xw);
+
+	  new_xwidget = Fmake_xwidget (Qwebkit (), Qnil (), make_fixnum (0),
+				       make_fixnum (0), Qnil (),
+				       build_string (c" *detached xwidget buffer*".as_ptr ()),
+				       val);
+
+	  if NILP (new_xwidget)
+	    { return FALSE; }
+
+	  newview = WEBKIT_WEB_VIEW! ((*XXWIDGET (new_xwidget)).widget_osr);
+	  webkit_web_view_load_request (newview, request);
+
+	  store_xwidget_display_event (XXWIDGET (new_xwidget), xw);
+	  return TRUE;
+	}
+      WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION =>
+	{
+	  let navigation_decision: *mut WebKitNavigationPolicyDecision =
+	    WEBKIT_NAVIGATION_POLICY_DECISION! (decision);
+	  let navigation_action: *mut WebKitNavigationAction =
+	    webkit_navigation_policy_decision_get_navigation_action (navigation_decision);
+	  let request: *mut WebKitURIRequest =
+	    webkit_navigation_action_get_request (navigation_action);
+
+	  let xw: *mut xwidget = g_object_get_data (G_OBJECT! (web_view),
+						    XG_XWIDGET.as_ptr ()) as *mut xwidget;
+	  store_xwidget_event_string (xw, c"decide-policy".as_ptr (),
+				      webkit_uri_request_get_uri (request));
+	  return FALSE;
+	}
+      _ =>
+	{
+	  return FALSE;
+	}
+    }
+}
+
+/// C 2647-2714: the `"script-dialog"` handler (static).  `entry` is C's uninitialised local,
+/// assigned before its only reads; Rust seeds it (PORTING.md 0.1-13).
+#[cfg (feature = "use_gtk")]
+unsafe fn webkit_script_dialog_cb (webview: *mut WebKitWebView,
+                                   script_dialog: *mut WebKitScriptDialog,
+                                   user: gpointer) -> gboolean  // C 2647-2714
+{
+  let f: *mut frame = SELECTED_FRAME ();
+  let mut type_: WebKitScriptDialogType;
+  let widget: *mut GtkWidget;
+  let mut dialog: *mut GtkWidget;
+  let mut entry: *mut GtkWidget = std::ptr::null_mut ();
+  let mut content_area: *mut GtkWidget;
+  let mut box_: *mut GtkWidget;
+  let mut label: *mut GtkWidget;
+  let content: *const gchar;
+  let mut message: *const gchar;
+  let mut result: gint;
+
+  /* Return TRUE to prevent WebKit from showing the default script
+     dialog in the offscreen window, which runs a nested main loop
+     Emacs can't respond to, and as such can't pass X events to.  */
+  if ! FRAME_WINDOW_P (f)
+    { return TRUE; }
+
+  type_ = webkit_script_dialog_get_dialog_type (script_dialog);
+  widget = FRAME_GTK_OUTER_WIDGET! (f);
+  content = webkit_script_dialog_get_message (script_dialog);
+
+  if type_ == WEBKIT_SCRIPT_DIALOG_ALERT
+    {
+      dialog = gtk_dialog_new_with_buttons (c"Alert".as_ptr (), GTK_WINDOW! (widget),
+					    GTK_DIALOG_MODAL,
+					    c"Dismiss".as_ptr (), 1, std::ptr::null_mut::<c_void> ());
+    }
+  else
+    {
+      dialog = gtk_dialog_new_with_buttons (c"Question".as_ptr (), GTK_WINDOW! (widget),
+					    GTK_DIALOG_MODAL,
+					    c"OK".as_ptr (), 0, c"Cancel".as_ptr (), 1,
+					    std::ptr::null_mut::<c_void> ());
+    }
+
+  box_ = gtk_box_new (GTK_ORIENTATION_VERTICAL, 8);
+  label = gtk_label_new (content);
+  content_area = gtk_dialog_get_content_area (GTK_DIALOG! (dialog));
+  gtk_container_add (GTK_CONTAINER! (content_area), box_);
+
+  gtk_widget_show (box_);
+  gtk_widget_show (label);
+
+  gtk_box_pack_start (GTK_BOX! (box_), label, TRUE, TRUE, 0);
+
+  if type_ == WEBKIT_SCRIPT_DIALOG_PROMPT
+    {
+      entry = gtk_entry_new ();
+      message = webkit_script_dialog_prompt_get_default_text (script_dialog);
+
+      gtk_widget_show (entry);
+      gtk_entry_set_text (GTK_ENTRY! (entry), message);
+      gtk_box_pack_end (GTK_BOX! (box_), entry, TRUE, TRUE, 0);
+    }
+
+  result = gtk_dialog_run (GTK_DIALOG! (dialog));
+
+  if type_ == WEBKIT_SCRIPT_DIALOG_CONFIRM
+      || type_ == WEBKIT_SCRIPT_DIALOG_BEFORE_UNLOAD_CONFIRM
+    { webkit_script_dialog_confirm_set_confirmed (script_dialog, (result == 0) as gboolean); }
+
+  if type_ == WEBKIT_SCRIPT_DIALOG_PROMPT
+    {
+      webkit_script_dialog_prompt_set_text (script_dialog,
+					    gtk_entry_get_text (GTK_ENTRY! (entry)));
+    }
+
+  gtk_widget_destroy (GTK_WIDGET! (dialog));
+
+  return TRUE;
+}
+/* C 2716: `#endif /* USE_GTK */` — the second `USE_GTK` block ends here; C 2718's
+   `xwidget_init_view` is the next lane's first definition.  */

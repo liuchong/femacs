@@ -11946,3 +11946,28 @@
   ⑤ **未声称**：本件**没有**任何 arm 读数（Haiku/Android 都编不了），证据是"逐行对拍 C 原型"；七道文本门本轮现读全绿
      （`check-mirror-dupes` 17/17/0、`check-citations` 0 drift、`check-declarations` 0 failures、`check-dead-file-coverage` 145/0、
      `check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0）。
+
+- **3.592 lane 产出收口：`src/xwidget.c` 第二片落地（C 1,181-2,716；C 4,304 → Rust 4,492 行；`--check` 84 → 81）——行数漂移降到 5% 以内（2026-10-05）**：
+  ① **lane 的产出（Descartes）**：`femacs/src/xwidget.rs` 2,000 → **4,492 行**（md5 `42670a6d…`；台账 `docs/ports/xwidget.md`
+     591 → 905 行，26 行区间覆盖到 C 2,716）。落 C 1,181-2,716（约 1,536 行 C）：`HAVE_X_WINDOWS` 臂的拖放/按钮/XI2 三件
+     （`xwidget_motion_notify`/`scroll`/`pinch`）、`xi_translate_notify_detail`、窗口坐标三件、`xw_notify_virtual_upwards_until`/
+     `_downwards_until`、光标交叉五件、`xwidget_motion_or_crossing`，以及 `synthesize_focus_in_event`、
+     `xwidget_view_from_window`、`xwidget_show_view`/`hide_view` 两臂、`xv_do_draw`/`xwidget_view_draw_cb`、
+     `offscreen_damage_event`、`xwidget_expose`、三个 `store_xwidget_*_event`、`webkit_*` 回调族（9 个）。
+     每条 `#if` 两臂都带（`have_x_windows`/`have_xinput2`/`have_xinput2_4`+`gtk_check_version_ge_3_18`/`have_pgtk` 及其否定/
+     `webkit_check_version_ge_2_34`）。
+  ② **读数**：`--check` **84 → 81**（退掉 3 条；**`line count drifted` 那一行消失了**——4,492 vs 4,304 = 4.4% < 5%，
+     本树**第一件**把漂移压进 5% 的部分复刻件）；`check-cond-eval.py src/xwidget.c` 121 conditions / 0 disagreements [VERIFIED]；
+     `build-tu` 3/3 全 exit 0（336 字节空对象）；`probe` 3/3（其中一发是 `have_x_windows`+`have_pgtk` 互斥组合的**空读数**，
+     lane 如实标注）；另用 4 次**直接 rustc** 编物化 `_root.rs` 做臂读数（不占 xtask 预算）：ARM A11 unit 85 条
+     **没有一条锚在本轮文本**（84 条是镜像 GDK event 记录缺成员、1 条是剩余段的 `kill_xwidget`），ARM PG unit 12 条里 2 条是本件的。
+  ③ **集成者登记（我）**：**注册 4 个派生门**（`gtk_check_version_ge_3_18` 新增；`webkit_check_version_ge_2_34`/`_2_26`/`_2_16` 已在）
+     并重生成 `docs/baseline/feature-coverage.tsv`（977 feature）；`port-map.md` 刷新本件 + **补上 3.590/3.591 两件镜像改动的行**
+     （`src/dosfns.h` 67→76、`src/w32inevt.h` 33→45——那两次我忘了重生成）；本件 `macro-body-notes.tsv` **无需新行**。
+  ④ **门读数（本轮现读，全绿）**：`check-mirror-dupes` 17/17/0、`check-citations` 0 drift / 0 stale、`check-declarations` 0 failures、
+     `check-dead-file-coverage` 145/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0。
+  ⑤ **未声称**：**无运行期证据**（冻结配置编出 336 字节空对象）；两条臂读数都**不是 GTK 编译**（只是手工 `--cfg` 下 `rustc` 的
+     解析/类型读数），"本件 0 条"只指**没有错误锚在本轮文本上**；`--check` 仍 **FAIL**（81 条 missing，全在剩余段与头部 Subr）；
+     台账 `## Owed` 8-13 记了镜像缺的 GDK event 成员（ARM A11 那 84 条的字段级清单）、`gtk_check_version_ge_3_18` 等门、
+     `XWIDGET_EVENT`/`XWIDGET_DISPLAY_EVENT` 该落 `include/termhooks.rs`、PGTK 臂 slice 1 的 10 条。
+     **下一段起点 C 2,718**（`xwidget_init_view`；L0 的 `syms_of_xwidget` 在 **C 3,928**，本轮**未闭合**）。

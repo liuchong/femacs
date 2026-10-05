@@ -5,21 +5,21 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	2420	54	-	-
-have_x_windows	1712	39	-	HAVE_X_WINDOWS
-have_ntgui	1402	19	-	-
+windowsnt	2239	54	-	-
+have_x_windows	1853	39	-	HAVE_X_WINDOWS
+have_ntgui	1662	21	-	-
 have_android	1288	36	-	-
-have_window_system	1114	28	-	-
-have_pgtk	984	27	-	-
+have_window_system	1123	29	-	-
+have_pgtk	986	27	-	-
 not_android_stubify	768	12	-	-
+use_gtk	698	16	-	-
 have_haiku	632	21	xtask dead-arms	-
-use_gtk	546	16	-	-
-msdos	539	19	-	-
-use_lucid	496	11	-	-
+msdos	540	20	-	-
+use_lucid	497	11	-	-
 use_cairo	449	16	-	-
+use_x_toolkit	295	12	-	USE_X_TOOLKIT
 dispextern_face_records	289	5	-	-
 harfbuzz	286	16	-	-
-use_x_toolkit	286	12	-	USE_X_TOOLKIT
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
 have_ns	277	13	-	HAVE_NS
 have_gnutls	248	3	-	-
@@ -29,7 +29,7 @@ no_system_malloc	222	5	-	-
 have_freetype	215	3	-	-
 doug_lea_malloc	177	3	-	-
 use_xcb	174	4	-	-
-have_gtk3	165	8	-	-
+have_gtk3	171	8	-	-
 have_modules	161	7	-	HAVE_MODULES
 have_dbus	158	2	-	-
 be_cairo	143	4	-	-
@@ -37,11 +37,11 @@ have_sound	135	1	-	-
 have_text_conversion	133	4	-	-
 have_tree_sitter	133	7	-	HAVE_TREE_SITTER
 threads_enabled	127	5	-	-
+have_xinput2	119	8	-	-
 seccomp_filter	113	1	-	-
 have_x_sm	112	1	-	-
 mail_use_pop	109	1	-	-
 mingw_w64	100	8	-	-
-have_xinput2	97	8	-	-
 have_pthread	88	3	-	-
 windows	83	5	-	-
 use_cairo_or_have_xft	77	4	-	-
@@ -56,7 +56,7 @@ have_seccomp	59	1	-	-
 test	59	5	-	-
 aarch64	57	4	-	-
 have_lcms2	54	1	-	-
-have_ext_menu_bar	51	3	-	-
+have_ext_menu_bar	52	4	-	-
 have_zlib	51	2	-	-
 have_kqueue	49	1	-	-
 have_x_i18n	44	5	-	-
@@ -68,7 +68,7 @@ have_gfilenotify	38	1	-	-
 glyph_debug	36	5	xtask dead-arms	-
 have_alsa	34	1	-	-
 kerberos5	34	1	-	-
-cygwin	31	14	-	-
+cygwin	32	14	-	-
 use_acl_ace_getacl	31	2	-	-
 dos_nt	30	5	-	-
 kerberos	30	1	-	-
@@ -90,6 +90,7 @@ have_glib	20	2	-	-
 use_android_assets	20	2	-	-
 android_api_lt_21	19	1	-	-
 have_xwidgets	19	7	-	-
+ntgui_unicode	18	2	-	-
 open_syscall	18	1	-	-
 use_acl_getacl	18	3	-	-
 use_acl_have_getacl	18	2	-	-
@@ -102,7 +103,6 @@ enable_checking	15	4	-	-
 energize	15	1	-	-
 freebsd	15	1	-	-
 have_xshape	15	1	-	-
-ntgui_unicode	15	1	-	-
 unsigned	15	1	-	-
 cplusplus_gnulib_namespace	14	1	-	-
 emacs	14	1	-	-
@@ -142,6 +142,7 @@ libc	9	4	-	-
 macos_sdk	9	1	-	-
 no_have_builtin_unwind_init	9	1	-	-
 no_usable_sigio	9	3	-	-
+use_toolkit_scroll_bars	9	5	-	-
 win64	9	2	-	-
 windows_stat_timespec	9	2	-	-
 gnu_linux	8	1	-	-
@@ -160,7 +161,6 @@ o_path	8	3	-	-
 openbsd_or_android_flags	8	1	-	-
 stat_time_member_absent	8	1	-	-
 treesit_language_version_ge_15	8	1	-	-
-use_toolkit_scroll_bars	8	4	-	-
 utmp_h	8	2	-	-
 win32_vista	8	1	-	-
 arm	7	1	-	-
@@ -214,6 +214,7 @@ have_otf_get_variation_glyphs	5	2	-	-
 have_personality_addr_no_randomize	5	1	-	-
 have_pthread_setname_np	5	1	-	-
 have_xcomposite_overlay	5	1	-	-
+have_xinput2_4	5	4	-	-
 hpux	5	3	-	-
 no_generic_bogus	5	2	-	-
 no_ieee_floating_point	5	1	-	-
@@ -294,7 +295,6 @@ have_select	3	1	-	-
 have_shared_game_dir	3	1	-	-
 have_sqlite3_load_extension	3	1	-	-
 have_x11_or_have_pgtk	3	1	-	-
-have_xinput2_4	3	3	-	-
 have_xrender_0_2	3	1	-	-
 i386	3	2	-	-
 inotify_debug	3	1	-	-
@@ -520,6 +520,7 @@ utmp_ut_name	2	1	-	-
 utxdb_active	2	1	-	-
 v_dsusp	2	1	-	-
 vietnamese_charset	2	1	-	-
+webkit_check_version_ge_2_34	2	1	-	-
 windows_no_mingw32_no_use_windows_threads	2	1	-	-
 windows_nt	2	1	-	-
 xft_or_freetype_or_ns	2	1	-	-
@@ -649,6 +650,7 @@ gnulib_strstr	1	1	-	-
 gnulib_strtok_r	1	1	-	-
 gnulib_strverscmp	1	1	-	-
 gtk_check_version_ge_3_10	1	1	-	-
+gtk_check_version_ge_3_18	1	1	-	-
 have_copy_file_range	1	1	-	-
 have_decl_sysinfo	1	1	-	-
 have_eaccess	1	1	-	-
@@ -973,7 +975,6 @@ utmp_h_ut_exit_no_utmpx_ut_exit	1	1	-	-
 vax	1	1	-	-
 webkit_check_version_ge_2_16	1	1	-	-
 webkit_check_version_ge_2_26	1	1	-	-
-webkit_check_version_ge_2_34	1	1	-	-
 win32	1	1	-	-
 windows_64_bit_off_t	1	1	-	-
 windows_64_bit_st_size	1	1	-	-
