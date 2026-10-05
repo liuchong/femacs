@@ -13052,3 +13052,10 @@
   ⑥ **同类盘点（未做，点名）**：端口里 **82 处**引用了 `} while (`（多数是 `while (0)` 宏惯用法，少数是真循环）——按 P-95 逐处复核并配一道机器门是下一轮的第一件事。
   ⑦ **预算**：`build-tu src/syntax.c` 3 发、`check-link --executable` 3 发、夹具运行 6 发；临时仪表（定位打印 + 事件环）已用 `git show HEAD:` + 只重放该修复清掉（`syntax.rs` 现为 HEAD + 1 处修复）；`/tmp` 日志收工删。
 
+- **3.636 P-95 的同盘点与机器门：82 处 `} while (` 逐个分类、9 处真循环核完，新增 `tools/check-do-while.py`（并证明它能抓到 3.635 那个形状）（2026-10-06）**：
+  ① **盘点**：端口里引用 `} while (` 的 82 处中 **73 处**是 `while (0)`/`while (false)` 宏惯用法（走 PORTING.md 449 行“块表达式”那条），**9 处**是真循环，逐个核完：`ccl.rs:2071`（`while (1)` → 无 trampoline 的 `loop` ✔）、`coding.rs:9911`（`if ! (SCHARS (val) == 0) { break; }` ✔）、`keyboard.rs:9372`（`if !((*p).npending > 0) { break; }` ✔）、`pgtkfns.rs:655-659`（`*++p != '\0'` 改写为 `p.add (1)` 后 `if *p == 0 { break; }` ✔）、`pgtkim.rs:314`（注释即写明取反 ✔）、`syntax.rs:2313`（3.635 修的那处 ✔）、`emacs.rs:1139`（`while (*path++ != '\0')` 的改写 ✔）、`termcap.rs:744`（`if !(!(*bufp).ateof && …) { break; }` ✔）、`regex-emacs.rs:36`（宏惯用法 ✔）⇒ **8 处本就正确 + 1 处已修**。
+  ② **新门**：`tools/check-do-while.py`——按**文本**判（机械转写保留 C 的 token）：某处 `if COND { break; }` 的 COND 与 C 的 `do { … } while (COND);` 逐 token 相同（剥掉空白/`unsafe`/花括号/分号/下划线后）⇒ **红**；写成 `!(COND)` ⇒ 绿；**改写**过的条件配不上 ⇒ 计入“未检查”并在覆盖行报出（**可靠但非完备**，写进了工具文档串）。读数：**152 个单元 / 221 条 C 条件 / 73 条配对 / 0 failure**，`--selftest` 5 例（含 `while (0)` 惯用法两种写法）。
+  ③ **门有判别力的证据（本件最重要一条）**：拿**修复前**的 `syntax.rs`（`git show e1274fec:`）喂给它 ⇒ **1 candidate**，正对 `syntax.c:2187`（3.635 那处）✔。门按单元配对，合法的**内层** `break` 可能与同单元另一个循环的条件同文本 ⇒ 这类逐行进 `docs/baseline/do-while-allowlist.tsv` 复核（现 2 行：`xdisp.rs:5216` 对 C 的 `if (handled == HANDLED_RECOMPUTE_PROPS) break;`，其循环真正的取反 trampoline 在 `xdisp.rs:5280`；`xdisp.rs:28963` 对反向分支的内层判断，两条分支的取反 trampoline 在 `xdisp.rs:28942` 与同函数的镜像处）。
+  ④ **未声称**：本件**没有改任何端口代码**（只加 `tools/` 与两份台账/状态）、**没有编译**、没有运行读数；门的完备性有限（改写过的条件不下判），这与覆盖行一起写在工具文档串与 P-95 行里。
+  ⑤ **收口**：新增 `tools/check-do-while.py`、`docs/baseline/do-while-allowlist.tsv`；十道文本门复跑全绿（含本道）。
+
