@@ -1809,6 +1809,36 @@ fn materialize(root: &Path, out: &Path) -> Result<PathBuf, String> {
 
 /// The in-place expansion state: the file the walk started from (whose text is the crate
 /// root) and the files already expanded, in the order the preprocessor would see them.
+/// Walk TRIM from bracket depth DEPTH, ignoring brackets inside string literals, and return
+/// the depth when the line ends if the attribute closed, or `None` when it is still open (the
+/// next line continues it).  The `attr_open`/`attr_depth` pair this serves is `render`'s gate
+/// bookkeeping (see the note there).
+fn scan_brackets(trim: &str, depth: i32) -> (i32, bool) {
+    let mut depth = depth;
+    let mut in_string = false;
+    let mut escaped = false;
+    // `depth == 0` before the first `[` means "the attribute has not opened yet", not "it
+    // closed": returning closed on the `#` of `#[cfg …` is what made every attribute read as
+    // an empty one.
+    let mut opened = depth > 0;
+    for ch in trim.chars() {
+        if in_string {
+            if escaped { escaped = false; }
+            else if ch == '\\' { escaped = true; }
+            else if ch == '"' { in_string = false; }
+            continue;
+        }
+        match ch {
+            '"' => in_string = true,
+            '[' | '(' | '{' => { depth += 1; opened = true; }
+            ']' | ')' | '}' => depth -= 1,
+            _ => {}
+        }
+        if opened && depth == 0 { return (0, true); }
+    }
+    (depth, opened && depth == 0)
+}
+
 struct Expand {
     out: PathBuf,
     root: PathBuf,
@@ -1836,23 +1866,29 @@ impl Expand {
         let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let dir = path.parent().unwrap_or(Path::new(".")).to_path_buf();
         let mut out = String::with_capacity(text.len() + 64);
-        // `true` while the lines just read are attributes (blank lines skipped), so the next
-        // `include!` is known to be inside a `#[cfg…]`.
-        let mut attr_run = false;
-        for line in text.split_inclusive('\n') {
+        // Whether the `include!` on each line is under an attribute (`gate_states`), so this
+        // walk and `ungated_reachable` cannot disagree about which edge is gated.
+        let gates = gate_states(&text);
+        for (line_no, line) in text.split_inclusive('\n').enumerate() {
             let (body, newline) = match line.strip_suffix('\n') {
                 Some(b) => (b, "\n"),
                 None => (line, ""),
             };
             // Whether *this* line's own edge is gated; `path_gated` carries the same fact for
             // every edge above it on the path from the root.
-            let gated_here = attr_run;
+            let gated_here = gates[line_no];
             match include_target(line).map(|name| canonical(&dir.join(name))) {
                 Some(target) if target.is_file() => {
                     if self.seen.contains(&target) {
                         out.push_str(&format!("// [xtask dedupe] {} already included{newline}",
                                               target.display()));
-                    } else if (attr_run || path_gated)
+                        // A comment is not an item, so an attribute that was written for this
+                        // `include!` would attach to whatever comes next - with the gate off,
+                        // that is the file the ungated reach put after it (measured on the
+                        // zz_mlgate fixture: the ungated edge's items disappeared).  The
+                        // anonymous const consumes the attribute and is dropped with it.
+                        out.push_str(&format!("const _: () = ();{newline}"));
+                    } else if (gated_here || path_gated)
                         && target != self.root
                         && self.ungated.contains(&target)
                     {
@@ -1867,6 +1903,9 @@ impl Expand {
                         out.push_str(&format!(
                             "// [xtask dedupe] {} expands at its ungated reach (this include is under a #[cfg]){newline}",
                             target.display()));
+                        // Same reason as the branch above: the attribute written for this edge
+                        // must be consumed by an item, not by a comment.
+                        out.push_str(&format!("const _: () = ();{newline}"));
                     } else {
                         self.seen.push(target.clone());
                         let copy = self.copy_path(&target);
@@ -1892,12 +1931,6 @@ impl Expand {
                     }
                 }
             }
-            let trimmed = body.trim_start();
-            if trimmed.starts_with("#[") {
-                attr_run = true;
-            } else if !trimmed.is_empty() {
-                attr_run = false;
-            }
         }
         Ok(out)
     }
@@ -1907,22 +1940,54 @@ impl Expand {
 /// line is preceded (blank lines skipped) by a `#[cfg…]`/`#[cfg_attr…]` attribute.  A mirror's
 /// comment describing an include is not one: only a real `include!(` line counts.
 fn include_edges(text: &str, dir: &Path) -> Vec<(bool, PathBuf)> {
+    let gates = gate_states(text);
+    let mut out = Vec::new();
+    for (i, line) in text.lines().enumerate() {
+        if let Some(name) = include_target(line) {
+            out.push((gates[i], canonical(&dir.join(name))));
+        }
+    }
+    out
+}
+
+/// Whether an `include!` written on each line of TEXT sits under an attribute.  The rule is
+/// "the attribute run that reaches this line", where a run is opened by `#[…]`/`#![…]`, may
+/// span several lines (a multi-line `#[cfg (all (…, not (…)))]`), is not interrupted by a
+/// blank line or a `//` comment, and is consumed by the first real item after it.
+///
+/// Reading only the previous line was a real defect with a real cost: a multi-line gate read as
+/// no gate at all, so the gated edge claimed the file's single expansion slot away from the
+/// reach that is live in every configuration, and a frozen build that must produce the empty
+/// object produced code instead (measured on gmalloc's first draft: 1240 bytes holding
+/// `flush_stack_barrier`/`cons_to_integer`, docs/status.md 3.553; the SetAEQ-class units write
+/// their gates as two or three `#[cfg]` lines).  `render` and `ungated_reachable` both read this
+/// one function now, so the two readings cannot disagree again.
+fn gate_states(text: &str) -> Vec<bool> {
     let mut out = Vec::new();
     let mut attr_run = false;
+    let mut attr_open = false;
+    let mut depth = 0i32;
     for line in text.lines() {
-        match include_target(line) {
-            Some(name) => {
-                out.push((attr_run, canonical(&dir.join(name))));
-                attr_run = false;
+        out.push(attr_run);
+        let trimmed = line.trim_start();
+        if attr_open {
+            let (d, closed) = scan_brackets(trimmed, depth);
+            depth = d;
+            if closed {
+                attr_open = false;
+                attr_run = true;
             }
-            None => {
-                let trimmed = line.trim_start();
-                if trimmed.starts_with("#[") {
-                    attr_run = true;
-                } else if !trimmed.is_empty() {
-                    attr_run = false;
-                }
-            }
+        } else if trimmed.starts_with("#[") || trimmed.starts_with("#![") {
+            let (d, closed) = scan_brackets(trimmed, 0);
+            depth = d;
+            attr_open = !closed;
+            attr_run = true;
+        } else if trimmed.is_empty() || trimmed.starts_with("//") {
+            // A blank line or a line comment does not end the run: the attribute still
+            // belongs to the next item.
+        } else {
+            // A real item: whatever run reached this line applied to it and is consumed.
+            attr_run = false;
         }
     }
     out

@@ -50,3 +50,20 @@ same condition (`use_cairo_or_have_xft`, C 33-35's `#if defined USE_CAIRO || def
 so the stand-in exists exactly when no unit defines the tag; the field's own gate had said
 `use_cairo` alone, which a `have_xft`-without-cairo build reads as `cannot find field xft_data`.
 With both changes `lwlib/lwlib-Xaw.rs`'s cairo+xaw3d arm reads **exit 0, 0 error**.
+
+## 2026-10-05: the four prototypes move into a module (P-39)
+
+`lwlib/lwlib.c`'s port *defines* `lw_get_widget_info`, `lw_get_widget_instance`,
+`lw_get_widget_value_for_widget` and `lw_internal_update_other_instances`, which this mirror declares
+at its top level: declaration + `#[unsafe(no_mangle)]` definition in one scope is `E0428` (measured
+on a 5-line probe).  The four now sit in `lwlib_int_decls` with `pub use lwlib_int_decls::*;` - the
+`include/lwlib.rs` / `lwlib-Xlw.rs` shape - and the `pub use` is the half `lwlib/xlwmenu.c`'s flip
+required, because that unit `include!`s this mirror **inside** its own `xlwmenu_decls` module and a
+private glob import is not re-exported to a downstream glob (`docs/ports/lwlib.md` `## Evidence` ④
+and `## Deviations` 13).
+
+Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/lwlib-int.h
+femacs/lwlib/include/lwlib-int.rs` -> `OK`; `lwlib/lwlib-Xlw.rs` (5,240 bytes), `lwlib/lwlib-utils.rs`
+(3,008 bytes) and `lwlib/xlwmenu.rs` (36,424 bytes) each re-read under their own gates with **exit 0
+and 0 errors**, and `src/widget.rs`'s `use_x_toolkit` flip reports no error from either mirror
+(docs/ports/lwlib.md `## Evidence` ④).

@@ -81,17 +81,26 @@ pub struct _widget_creation_entry
 /// lwlib-int.h 61: `typedef struct _widget_creation_entry { ... } widget_creation_entry;`
 pub type widget_creation_entry = _widget_creation_entry;
 
-unsafe extern "C" {
-  /* update all other instances of a widget.  Can be used in a callback when
-     a widget has been used by the user */
-  /// lwlib-int.h 65-66: `void lw_internal_update_other_instances (Widget, XtPointer, XtPointer);`
-  pub fn lw_internal_update_other_instances (w: Widget, a: XtPointer, b: XtPointer);
-  /* get the widget_value for a widget in a given instance */
-  /// lwlib-int.h 69-70: `widget_value* lw_get_widget_value_for_widget (widget_instance *, Widget);`
-  pub fn lw_get_widget_value_for_widget (instance: *mut widget_instance,
-                                         w: Widget) -> *mut widget_value;
-  /// lwlib-int.h 72: `widget_info *lw_get_widget_info (LWLIB_ID);`
-  pub fn lw_get_widget_info (id: LWLIB_ID) -> *mut widget_info;
-  /// lwlib-int.h 73: `widget_instance * lw_get_widget_instance (Widget);`
-  pub fn lw_get_widget_instance (w: Widget) -> *mut widget_instance;
+/* The declarations live in `lwlib_int_decls` + a glob import (the `include/lwlib.rs` /
+   `lwlib-Xlw.rs` shape, PORTING.md 0.1-10 / P-39): three of the four are *defined* by
+   `lwlib/lwlib.c`'s port, and a Rust definition cannot share a scope with the foreign
+   declaration of the same name (E0428) - an explicit item shadows a glob import instead.  */
+pub mod lwlib_int_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /* update all other instances of a widget.  Can be used in a callback when
+       a widget has been used by the user */
+    /// lwlib-int.h 65-66: `void lw_internal_update_other_instances (Widget, XtPointer, XtPointer);`
+    pub fn lw_internal_update_other_instances (w: Widget, a: XtPointer, b: XtPointer);
+    /* get the widget_value for a widget in a given instance */
+    /// lwlib-int.h 69-70: `widget_value* lw_get_widget_value_for_widget (widget_instance *, Widget);`
+    pub fn lw_get_widget_value_for_widget (instance: *mut widget_instance,
+                                           w: Widget) -> *mut widget_value;
+    /// lwlib-int.h 72: `widget_info *lw_get_widget_info (LWLIB_ID);`
+    pub fn lw_get_widget_info (id: LWLIB_ID) -> *mut widget_info;
+    /// lwlib-int.h 73: `widget_instance * lw_get_widget_instance (Widget);`
+    pub fn lw_get_widget_instance (w: Widget) -> *mut widget_instance;
+  }
 }
+pub use lwlib_int_decls::*;

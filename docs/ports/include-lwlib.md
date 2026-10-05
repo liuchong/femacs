@@ -33,8 +33,13 @@ and no probe compiles it: `xtask layout-check` reaches only `src/include` and `l
    The nine lwlib mirrors and the four oldXMenu ones all follow this one convention.
 2. `lw_callback` (C 89) is a nullable C function pointer, so the port's type is
    `Option<unsafe extern "C" fn (...)>` (P-27).
-3. The 23 prototypes are declarations inside one `unsafe extern "C"` block; a header mirror
-   defines no symbol (PORTING.md 0.1-2), so there is nothing for the layout probes to link.
+3. The 23 prototypes are declarations inside one `unsafe extern "C"` block, and since
+   2026-10-05 that block sits in `lwlib_decls` with `pub use lwlib_decls::*;` (PORTING.md
+   0.1-10 / P-39): `lwlib/lwlib.c`'s port *defines* all 23, and a definition cannot share a
+   scope with the foreign declaration of the same name (`E0428` - measured; `docs/ports/lwlib.md`
+   `## Evidence` ④ also records the `pub use` half, which the `lwlib/xlwmenu.c` flip is what
+   required).  A header mirror defines no symbol (PORTING.md 0.1-2), so there is nothing for the
+   layout probes to link.
 4. The ledger's "Macros defined" section prints `tools/cinventory.py`'s `macros` map alone, so
    the thirteen `SEPARATOR_*` members of `enum menu_separator` (C 64-86) are not checklist rows
    even though the `--check` constants rule compares them; all thirteen are mirrored, in C's

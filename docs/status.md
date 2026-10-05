@@ -10987,3 +10987,46 @@
      `pthread_mutex_t`/`PROT_*`/`mprotect` 是本机 clang 读数而非第二个 SDK 的引文。**预算**：本轮我只跑
      `extract-abi --check`（多次，同一命令）+ `--selftest` 1 发 + `gen-layout-fields` 2 发 + `cargo check -p xtask` 1 发
      + 文本门 2 轮；**零 `build-tu`/零 `probe`**（编译都是 lane 做的）；`/tmp/femacs-ck` 收工删。
+
+- **3.554 两条 lane 收口（`lwlib/lwlib.c`、`src/textconv.c`），`xtask` 的"多行门"读数修好，以及一次共享台账的自伤与修复（2026-10-05）**：
+  ① **lane 产出（Pauli，`lwlib/lwlib.c`）**：`femacs/lwlib/lwlib.rs` 3 → **1,641** 行，台账 24 → 335 行（64 行区间表覆盖
+     C 1-1330，其中 8 行同时覆盖 `lwlib.h` 的非空行——`port-map.md` 把两个参照绑到这一本台账）；文件门 `use_x_toolkit`
+     压在每个项与四条 include 边上，C 的条件全部两臂都带（`use_lucid`/`use_motif`/`use_xaw`/`have_xaw3d` 与
+     C 52 的 `#error`）。**读数**：翻臂三套配置各 **exit 0 / 0 error**（lucid 17,200 / motif 17,848 / lucid+xaw 17,824 字节），
+     消费者 `xlwmenu.rs`（lucid+use_x_toolkit）36,424、`lwlib-Xlw` 5,240、`lwlib-utils` 3,008 全 exit 0；
+     `use_x_toolkit` 单开配置按 C 自己的 `#error` **编译失败**（这是 C 的语义，不是缺陷）。它另做了 P-39 的镜像改动：
+     `femacs/lwlib/include/{lwlib,lwlib-int}.rs` 各 +9 行（`…_decls` 模块 + `pub use`），台账同步。
+  ② **lane 产出（Herschel，`src/textconv.c`）**：`femacs/src/textconv.rs` 24 → **3,048** 行，台账 323 行（61 行区间表覆盖
+     C 1-2640）；文件门 `have_text_conversion`（`configure.ac` 7521-7526；冻结 macros 里 `undef`、`WINDOW_SYSTEM_OBJ` 为空）；
+     四个条件两臂都带（Android 段、两处 `#if 0` 原位记录、`#ifndef TEXTCONV_DEBUG`）。**读数**：`build-tu` 2 发 exit 0 /
+     336 字节；翻臂（三臂同开）与基础臂**都是 exit 0 / 0 error**，即**没有一条错属于本单元或镜像**；clang 实测
+     `struct window` 528/8 与 `last_point` 352 / `ephemeral_last_point` 360 等，用来站住就地访问器。
+     它同时报了 `include/frame.rs:867` 的 `FRAME_WINDOW_P` 只有冻结臂这条镜像缺口（记在它的台账里）。
+  ③ **`xtask` 的读数缺陷（cite: Cicero 报的"多行门"；本轮我修）**：`materialize` 判断"这条 `include!` 是否在 `#[cfg]` 下"
+     用的是"上一行是否以 `#[` 开头"，于是**多行属性**（`#[cfg (all (…,\n not (…)))]`）被读成没有门——而一条被误判为
+     "无门"的边会抢走该文件唯一的展开槽，让**冻结配置本该产出的空对象变成有代码的对象**（gmalloc 初版 1240 字节即此）。
+     改法：新增 `gate_states(text)`（同时给 `render` 与 `ungated_reachable` 读，两处**不可能再不一致**），它是一个真正的
+     括号扫描：属性可跨行、`//` 注释与空行不打断、被第一个真 item 消费；顺带修掉"把门控边替换成注释会让属性落到**下一条
+     include** 上"的第二处洞（现在补一条 `const _: () = ();` 承接属性）。**读数（我在 `/tmp` 造的临时夹具，已删）**：
+     单元 A 以多行门 include 镜像、单元 B 无门 include 同一镜像 ⇒ **旧规则 3 条错（`E0425 W32COMMON_H`，正是"无门那条
+     边被饿死"），新规则 0 条错**；`cargo check -p xtask` exit 0、`build-tu src/gmalloc.c` 仍 **336 字节**（无回归）。
+  ④ **一次自伤与修复（共享台账）**：`docs/ports/macro-body-notes.tsv` 被我上一轮的"按行名切片 + 事后合并"弄坏——
+     合并把**同一段 73 行重复追加**到文件尾（文件 1561 → 1634 行），而两条 lane 自己追加的行**在切片时已被丢弃**。
+     本轮：先**去重**（保留首次出现）把文件还原成 HEAD 的 1561 行，再复测 `extract-abi --check`——`lwlib/lwlib` 与
+     `src/textconv` **都是 OK**（即它们今天不需要那些行），`pgtkselect`/`gmalloc` 的行早已随各自主提交入库。
+     **流程改动（从本条起生效）**：这个文件**只允许追加，禁止任何整文件重写/切片**；集成者要收自己那几行时，
+     用 `git add -p` 或另存索引副本，绝不再重写工作树文件。
+  ⑤ **集成者登记**：容差行 2 条（`lwlib 0.24`、`textconv 0.16`）⇒ 两条 `extract-abi --check` 均 **OK**；
+     feature 2 个（`use_xaw`、`textconv_debug`，各带 C 行号注释）；`port-map.md` 刷新两条（xmenu 的行回退成已提交值）、
+     `port-lines-pending.tsv` 去掉两条已落地的行（xmenu 的行同样回退）。
+     **P-87 ① 的连带验证**（本轮动了两个 lwlib 镜像）：`check-all-units.sh` **83/0（两腿）**、`layout-check` **passed**。
+  ⑥ **门读数**：`check-mirror-dupes` 17/17/**0**、`check-declarations` 0 failures、`check-dead-file-coverage` **121/0**、
+     `check-ledger-ticks` 234/0、`check-port-lines` 17 文件 / 15,183 参照行 / 0 new / 2 stale、`check-target-names` 0 finding；
+     `check-citations` **1 drift，唯一一条在在飞的 `femacs/src/emacs-module.rs:145`（termhooks.h 27 → 应为 564）**，
+     原文已转给该 lane。
+  ⑦ **未声称**：两条都是**编译**读数（lwlib 的翻臂不是真 X11/Xt/Motif/Xaw 构建——本机没有那些头；textconv 的 Android 半
+     没有 SDK、没有设备），没有链接、没有运行、没有差分/ERT/设备证据；两条 surface 里每个宽度/偏移/枚举值都是 C 的拼法，
+     值为 **UNVERIFIED**；`lwlib` 的 `src/xfns.rs` 同一门的臂本轮未测。**预算**：我本轮跑了 `cargo check/build -p xtask`
+     3 发、夹具 `probe` 3 发（旧规则 1、新规则 2）、`build-tu src/gmalloc.c` 1 发（回归）、`check-all-units` 1 发、
+     `layout-check` 1 发、文本门 2 轮、`--selftest` 0 发；**没有启动大内存任务**；已清 `build/probes` 13 个单元的目录与
+     `build/femacs/units` 7 个目录（磁盘 1.8 GiB 可用，紧；大头是别的项目的 `/tmp`，未碰）。
