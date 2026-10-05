@@ -7,8 +7,8 @@
 // `unsafe extern "C" fn` items (PORTING.md 1.4; the androidselect.rs `close_asset_fd` shape).
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
-// C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050 and C 2051-2172.**  The next live definition
-// is `sfntfont_get_glyph_outline` (C 2198, the caching subsystem's).  The ledger `docs/ports/sfntfont.md`
+// C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172 and C 2173-2559.**  The next live
+// definition is `sfnt_open_tables` (C 2633, after `struct sfnt_font_info`).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -2683,4 +2683,414 @@ unsafe fn sfntfont_dereference_outline (outline: *mut sfnt_glyph_outline)
     { return; }                                            // C 2169
 
   xfree (outline as *mut c_void);                          // C 2171
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 2173-2559: the rest of the caching subsystem, in C's order - C 2174-2196's comment and
+   `sfntfont_get_glyph_outline` (C 2198-2412, the ring cache's hit move, the instruction path with
+   `goto fail`, the outline build and the LRU eviction), C 2414-2416's comment and
+   `sfntfont_free_outline_cache` (C 2418-2437), C 2439-2441's comment and
+   `sfntfont_dereference_raster` (C 2443-2451), C 2453-2456's comment and `sfntfont_get_glyph_raster`
+   (C 2458-2534, which keeps C 2518's `SFNT_OUTLINE_CACHE_SIZE` test in the *raster* cache exactly
+   as C writes it), and C 2536-2538's comment with `sfntfont_free_raster_cache` (C 2540-2559).
+   **The next live definition is C 2633's `sfnt_open_tables`** (the "Opening fonts" banner is
+   C 2563 and `struct sfnt_font_info` is C 2565-2631); the ledger's `## C line ranges` names both
+   boundaries.  All five are `static` and every call site is by name (C 3512/3658-3659/3699/3722/
+   3749), so none carries an address and none needs the C ABI (P-52).
+   ---------------------------------------------------------------------------------------------- */
+/// C 2198-2412: `sfntfont_get_glyph_outline`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_get_glyph_outline (glyph_code: sfnt_glyph_index,
+				      cache: *mut sfnt_outline_cache,
+				      scale: sfnt_fixed, cache_size: *mut c_int,
+				      blend: *mut sfnt_blend,
+				      index: c_int,
+				      glyf: *mut sfnt_glyf_table,
+				      head: *mut sfnt_head_table,
+				      hmtx: *mut sfnt_hmtx_table,
+				      hhea: *mut sfnt_hhea_table,
+				      maxp: *mut sfnt_maxp_table,
+				      loca_short: *mut sfnt_loca_table_short,
+				      loca_long: *mut sfnt_loca_table_long,
+				      interpreter: *mut sfnt_interpreter,
+				      metrics: *mut sfnt_glyph_metrics,
+				      state: *mut sfnt_graphics_state)
+  -> *mut sfnt_glyph_outline
+{                                                          // C 2198-2412
+  let mut start: *mut sfnt_outline_cache;
+  let mut outline: *mut sfnt_glyph_outline;
+  let mut glyph: *mut sfnt_glyph;
+  /* C 2217's `dcontext` is assigned field by field from C 2283 on; zero-initialised because Rust
+     wants the whole binding before the first field write (PORTING.md 1.5, Deviation 10).  */
+  let mut dcontext: sfntfont_get_glyph_outline_dcontext = std::mem::zeroed ();
+  /* C 2218's `value` is the out-parameter of the two interpret calls and is read only after one of
+     them assigned it; zero-initialised because its address is taken (PORTING.md 1.5, Deviation
+     10).  C 2316/C 2358's `&dcontext` is the untyped `void *` in the mirror (P-72 (3)), so both
+     sites cast.  */
+  let mut value: *mut sfnt_instructed_outline = std::ptr::null_mut ();
+  /* C 2219's `error` is assigned by both arms of C 2296's `if` before C 2319 reads it.  */
+  let error: *const c_char;
+  /* C 2220's `temp` is filled by `sfnt_lookup_glyph_metrics` (C 2293) and read from C 2305 on;
+     C 2221's `distortion` gets `advance = 0` at C 2225 and its address is passed at C 2265/2272.  */
+  let mut temp: sfnt_glyph_metrics = std::mem::zeroed ();
+  let mut distortion: sfnt_metrics_distortion = std::mem::zeroed ();
+  /* C 2222's `advance` is the out-parameter of C 2326's `sfnt_build_instructed_outline`;
+     zero-initialised because its address is taken (PORTING.md 1.5, Deviation 10).  */
+  let mut advance: sfnt_fixed = 0;
+
+  start = (*cache).next;                                   // C 2224
+  distortion.advance = 0;                                  // C 2225
+
+  /* See if the outline is already cached.  */
+  while start != cache                                     // C 2228
+    {
+      if (*start).glyph == glyph_code                      // C 2230
+	{
+	  /* Move start to the start of the ring.  Then increase
+	     start->outline->refcount and return it.  */
+
+	  (*(*start).last).next = (*start).next;             // C 2235
+	  (*(*start).next).last = (*start).last;             // C 2236
+
+	  (*start).next = (*cache).next;                     // C 2238
+	  (*start).last = cache;                             // C 2239
+	  (*(*start).next).last = start;                     // C 2240
+	  (*(*start).last).next = start;                     // C 2241
+	  (*((*start).outline)).refcount += 1;               // C 2242
+
+	  if !metrics.is_null ()
+	    { *metrics = (*start).metrics; }                 // C 2245
+
+	  return (*start).outline;                           // C 2247
+	}
+      start = (*start).next;                                 // C 2228's step
+    }
+
+  /* Not already cached.  Get the glyph.  */
+  glyph = sfnt_read_glyph (glyph_code, glyf,
+			   loca_short, loca_long);           // C 2252-2253
+
+  if glyph.is_null ()
+    { return std::ptr::null_mut (); }                      // C 2256
+
+  /* Distort the glyph if necessary.  */
+
+  if index != -1                                           // C 2260
+    {
+      if !(*glyph).simple.is_null ()                       // C 2262
+	{
+	  if sfnt_vary_simple_glyph (blend, glyph_code,
+				     glyph, &raw mut distortion) != 0   // C 2264-2265
+	    {
+	      sfnt_free_glyph (glyph);                         // C 2267
+	      return std::ptr::null_mut ();                    // C 2268
+	    }
+	}
+      else if sfnt_vary_compound_glyph (blend, glyph_code,
+					glyph, &raw mut distortion) != 0   // C 2271-2272
+	{
+	  sfnt_free_glyph (glyph);                             // C 2274
+	  return std::ptr::null_mut ();                        // C 2275
+	}
+    }
+
+  /* Try to instruct the glyph if INTERPRETER is specified.  */
+
+  outline = std::ptr::null_mut ();                         // C 2281
+
+  dcontext.loca_long = loca_long;                          // C 2283
+  dcontext.loca_short = loca_short;                        // C 2284
+  dcontext.glyf = glyf;                                    // C 2285
+  dcontext.hhea = hhea;                                    // C 2286
+  dcontext.hmtx = hmtx;                                    // C 2287
+  dcontext.maxp = maxp;                                    // C 2288
+  /* C 2289's `index != -1 ? blend : NULL` is the `if`/`else` expression (Deviation 9).  */
+  dcontext.blend = if index != -1 { blend } else { std::ptr::null_mut () };
+
+  /* Now load the glyph's unscaled metrics into TEMP.  */
+
+  'fail: {
+  if sfnt_lookup_glyph_metrics (glyph_code, &raw mut temp,
+				hmtx, hhea, maxp) != 0    // C 2293
+    { break 'fail; }                                       // C 2294: `goto fail;`.  */
+
+  if !interpreter.is_null ()                               // C 2296
+    {
+      if !(*glyph).simple.is_null ()                       // C 2298
+	{
+	  /* Restore the interpreter state from the snapshot taken
+	     after loading the preprogram.  */
+	  (*interpreter).state = *state;                     // C 2302
+
+	  error = sfnt_interpret_simple_glyph (glyph, interpreter,
+					       &raw mut temp, &raw mut value);   // C 2304-2305
+	}
+      else
+	/* Restoring the interpreter state is done by
+	   sfnt_interpret_compound_glyph; all that must be done here
+	   is to give the graphics state to that function.  */
+	{
+	  error = sfnt_interpret_compound_glyph (glyph, interpreter,
+						 state,
+						 Some (sfntfont_get_glyph),
+						 Some (sfntfont_free_glyph),
+						 hmtx, hhea, maxp,
+						 &raw mut temp,
+						 (&raw mut dcontext) as *mut c_void,
+						 &raw mut value);   // C 2311-2317
+	}
+
+      if error.is_null ()                                  // C 2319
+	{
+	  /* Now record the advance with that measured from the
+	     phantom points within the instructed glyph outline, and
+	     subsequently replace it once metrics are scaled.  */
+
+	  outline = sfnt_build_instructed_outline (value,
+						   &raw mut advance);   // C 2325-2326
+	  xfree (value as *mut c_void);                      // C 2327
+
+	  if !outline.is_null ()                             // C 2329
+	    {
+	      /* Save the new advance width.  This advance width is
+		 rounded again, as the instruction code executed might
+		 have moved both phantom points such that they no
+		 longer measure a fractional distance.  */
+	      temp.advance = SFNT_ROUND_FIXED (advance);     // C 2335
+
+	      /* Finally, adjust the left side bearing of the glyph
+		 metrics by the origin point of the outline, should a
+		 transformation have been applied by either
+		 instruction code or glyph variation.  The left side
+		 bearing is the distance from the origin point to the
+		 left most point on the X axis.  */
+	      temp.lbearing
+		= SFNT_FLOOR_FIXED ((*outline).xmin - (*outline).origin);   // C 2343-2344
+	    }
+	}
+    }
+
+  if outline.is_null ()                                    // C 2349
+    {
+      /* Build the outline.  This will apply GX offsets within *GLYPH
+	 to TEMP.  */
+      outline = sfnt_build_glyph_outline (glyph, scale,
+					  &raw mut temp,
+					  Some (sfntfont_get_glyph),
+					  Some (sfntfont_free_glyph),
+					  Some (sfntfont_get_metrics),
+					  (&raw mut dcontext) as *mut c_void);   // C 2353-2358
+
+      /* At this point, the glyph metrics are unscaled.  Scale them
+	 up.  If INTERPRETER is set, use the scale placed within.  */
+      sfnt_scale_metrics (&raw mut temp, scale);             // C 2362
+    }
+  }                                                        /* C 2365: `fail:`.  */
+
+  xfree (glyph as *mut c_void);                            // C 2367
+
+  if outline.is_null ()
+    { return std::ptr::null_mut (); }                      // C 2370
+
+  start = xmalloc (std::mem::size_of::<sfnt_outline_cache> ()) as *mut sfnt_outline_cache;   // C 2372
+  (*start).glyph = glyph_code;                             // C 2373
+  (*start).outline = outline;                              // C 2374
+  (*start).metrics = temp;                                 // C 2375
+
+  /* One reference goes to the cache.  The second reference goes to
+     the caller.  */
+  (*outline).refcount = 2;                                 // C 2379
+
+  /* Link start onto the cache.  */
+  (*start).next = (*cache).next;                           // C 2382
+  (*start).last = cache;                                   // C 2383
+  (*(*start).next).last = start;                           // C 2384
+  (*(*start).last).next = start;                           // C 2385
+
+  /* Update the cache size.  */
+  *cache_size += 1;                                        // C 2388
+
+  /* Figure out if the least recently used element has to be
+     evicted.  */
+  if *cache_size > SFNT_OUTLINE_CACHE_SIZE                 // C 2392
+    {
+      start = (*cache).last;                               // C 2394
+      eassert! (start != cache);                           // C 2395
+
+      /* Free the least recently used entry in the cache.  */
+      (*(*start).last).next = (*start).next;                // C 2398
+      (*(*start).next).last = (*start).last;                // C 2399
+      sfntfont_dereference_outline ((*start).outline);      // C 2400
+      xfree (start as *mut c_void);                         // C 2401
+
+      *cache_size -= 1;                                     // C 2403
+    }
+
+  /* Return the cached outline and metrics.  */
+
+  if !metrics.is_null ()
+    { *metrics = temp; }                                    // C 2409
+
+  return outline;                                           // C 2411
+}
+
+/* Free the outline cache referred to by CACHE.  Dereference each
+   outline contained therein.  */
+
+/// C 2418-2437: `sfntfont_free_outline_cache`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_free_outline_cache (cache: *mut sfnt_outline_cache)
+{                                                          // C 2418-2437
+  let mut next: *mut sfnt_outline_cache;
+  let mut last: *mut sfnt_outline_cache;
+
+  /* Handle partly initialized fonts.  */
+  if (*cache).next.is_null ()                              // C 2423
+    { return; }
+
+  next = (*cache).next;                                    // C 2426
+  while next != cache
+    {
+      last = next;                                         // C 2428
+      next = (*next).next;                                 // C 2429
+
+      sfntfont_dereference_outline ((*last).outline);       // C 2431
+      xfree (last as *mut c_void);                          // C 2432
+    }
+
+  (*cache).next = cache;                                   // C 2435
+  (*cache).last = cache;                                   // C 2436
+}
+
+/* Dereference the raster RASTER.  Free it once refcount reaches
+   0.  */
+
+/// C 2443-2451: `sfntfont_dereference_raster`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_dereference_raster (raster: *mut sfnt_raster)
+{                                                          // C 2443-2451
+  eassert! ((*raster).refcount > 0);                       // C 2445
+
+  (*raster).refcount -= 1;                                 // C 2447's `--raster->refcount`
+
+  if (*raster).refcount != 0
+    { return; }                                            // C 2448
+
+  xfree (raster as *mut c_void);                           // C 2450
+}
+
+/* Get the raster corresponding to the specified GLYPH_CODE in CACHE.
+   Use the outline named OUTLINE.  Keep *CACHE_SIZE updated with the
+   number of elements in the cache.  */
+
+/// C 2458-2534: `sfntfont_get_glyph_raster`.  C 2518's eviction test names
+/// `SFNT_OUTLINE_CACHE_SIZE` even though this is the raster cache - the port keeps C's text (the
+/// constant is the one the file has).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_get_glyph_raster (glyph_code: sfnt_glyph_index,
+				     cache: *mut sfnt_raster_cache,
+				     outline: *mut sfnt_glyph_outline,
+				     cache_size: *mut c_int)
+  -> *mut sfnt_raster
+{                                                          // C 2458-2534
+  let mut start: *mut sfnt_raster_cache;
+  let mut raster: *mut sfnt_raster;
+
+  /* See if the raster is already cached.  */
+  start = (*cache).next;                                   // C 2467
+
+  while start != cache                                     // C 2469
+    {
+      if (*start).glyph == glyph_code                      // C 2471
+	{
+	  /* Move start to the start of the ring.  Them, increase
+	     start->raster->refcount and return it.  */
+
+	  (*(*start).last).next = (*start).next;             // C 2476
+	  (*(*start).next).last = (*start).last;             // C 2477
+
+	  (*start).next = (*cache).next;                     // C 2479
+	  (*start).last = cache;                             // C 2480
+	  (*(*start).next).last = start;                     // C 2481
+	  (*(*start).last).next = start;                     // C 2482
+	  (*((*start).raster)).refcount += 1;                // C 2483
+
+	  return (*start).raster;                            // C 2485
+	}
+      start = (*start).next;                                 // C 2469's step
+    }
+
+  /* Not already cached.  Raster the outline.  */
+
+  if !sfnt_raster_glyphs_exactly                            // C 2491
+    { raster = sfnt_raster_glyph_outline (outline); }      // C 2492
+  else
+    { raster = sfnt_raster_glyph_outline_exact (outline); }   // C 2494
+
+  if raster.is_null ()
+    { return std::ptr::null_mut (); }                      // C 2497
+
+  start = xmalloc (std::mem::size_of::<sfnt_raster_cache> ()) as *mut sfnt_raster_cache;   // C 2499
+  (*start).glyph = glyph_code;                             // C 2500
+  (*start).raster = raster;                                // C 2501
+
+  /* One reference goes to the cache.  The second reference goes to
+     the caller.  */
+  (*raster).refcount = 2;                                  // C 2505
+
+  /* Link start onto the cache.  */
+  (*start).next = (*cache).next;                           // C 2508
+  (*start).last = cache;                                   // C 2509
+  (*(*start).next).last = start;                           // C 2510
+  (*(*start).last).next = start;                           // C 2511
+
+  /* Update the cache size.  */
+  *cache_size += 1;                                        // C 2514
+
+  /* Figure out if the least recently used element has to be
+     evicted.  */
+  if *cache_size > SFNT_OUTLINE_CACHE_SIZE                 // C 2518
+    {
+      start = (*cache).last;                               // C 2520
+      eassert! (start != cache);                           // C 2521
+
+      /* Free the least recently used entry in the cache.  */
+      (*(*start).last).next = (*start).next;                // C 2524
+      (*(*start).next).last = (*start).last;                // C 2525
+      sfntfont_dereference_raster ((*start).raster);        // C 2526
+      xfree (start as *mut c_void);                         // C 2527
+
+      *cache_size -= 1;                                     // C 2529
+    }
+
+  /* Return the cached raster.  */
+  return raster;                                           // C 2533
+}
+
+/* Free the raster cache referred to by CACHE.  Dereference each
+   raster contained therein.  */
+
+/// C 2540-2559: `sfntfont_free_raster_cache`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_free_raster_cache (cache: *mut sfnt_raster_cache)
+{                                                          // C 2540-2559
+  let mut next: *mut sfnt_raster_cache;
+  let mut last: *mut sfnt_raster_cache;
+
+  /* Handle partly initialized fonts.  */
+  if (*cache).next.is_null ()                              // C 2545
+    { return; }
+
+  next = (*cache).next;                                    // C 2548
+  while next != cache
+    {
+      last = next;                                         // C 2550
+      next = (*next).next;                                 // C 2551
+
+      sfntfont_dereference_raster ((*last).raster);         // C 2553
+      xfree (last as *mut c_void);                          // C 2554
+    }
+
+  (*cache).next = cache;                                   // C 2557
+  (*cache).last = cache;                                   // C 2558
 }

@@ -1324,6 +1324,7 @@ sfntfont_charset_for_cmap	case,default,switch	the cmap platform dispatch `switch
 sfntfont_glyph_valid	sfnt_glyph	C 1507's `sfnt_glyph glyph` is the *scalar typedef* (`unsigned int`), and the port spells that type `sfnt_glyph_index` because `sfnt_glyph` is `struct sfnt_glyph`'s name here (the `sfnt_lookup_glyph_4` row above; status 3.682)
 sfntfont_lookup_char	cmap_invalid	C 1546 reads and C 1554 writes C 164's `bool cmap_invalid : 1`, one of the two 1-bit members the mirror packs into `sfnt_font_desc.bits`; the port reads and writes the `SFNT_FONT_DESC_CMAP_INVALID` mask instead (the `sfnt_enum_font_1` row's shape; status 3.682)
 sfntfont_list_1	goto	C 1783/1796/1801/1805/1811's five `goto fail` legs are one `'fail:` labelled block's exits in the port (the `sfnt_grok_registry` row's class; status 3.683)
+sfntfont_get_glyph_outline	goto	C 2294's `goto fail` (the metrics lookup) and C 2365's `fail:` label are one `'fail:` labelled block in the port (status 3.686)
 sfntfont_registry_for_desc	cmap_invalid,true	C 1848 reads and C 1858 writes C 164's `bool cmap_invalid : 1` (the `SFNT_FONT_DESC_CMAP_INVALID` mask in the port), and C 1858's `true` is that bit's value rather than a Rust `bool` (status 3.683)
 sfnt_grok_registry	goto	C's `goto fail` legs are a labelled block in the port (status 3.443)
 sfnt_replace_fonts_p	goto	C's `goto next_instance` is a labelled `continue` (status 3.443)
