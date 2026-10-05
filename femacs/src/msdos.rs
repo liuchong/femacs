@@ -90,6 +90,21 @@
 /* Note: some of the stuff here was taken from end of sysdep.c in demacs. */
 
 include!("include/config.rs");                 // C 32: `#include <config.h>`
+/* `IS_DIRECTORY_SEP`/`IS_DEVICE_SEP` are `config.h` macros the *DOS* build defines - not by a
+   header, but by `emacs/msdos/sed2v2.inp` 86-87, which rewrites the generated `src/config.h`
+   (`#define IS_DIRECTORY_SEP(_c_) ((_c_) == '/' || (_c_) == '\\')` and
+   `#define IS_DEVICE_SEP(_c_) ((_c_) == ':')`).  `include/config.rs` is the *frozen* target's
+   value set, so the tree declares these two at their use sites instead (`src/callproc.rs`
+   293-296's non-DOS pair, `src/buffer.rs` 4849-4853), and this unit carries the DOS values with
+   their C source cited.  One `## Deviations` entry.  */
+/// C: config.h (via `emacs/msdos/sed2v2.inp` 86): `#define IS_DIRECTORY_SEP(_c_) ((_c_) == '/' || (_c_) == '\\')`
+#[cfg (feature = "msdos")]
+#[inline(always)]
+fn IS_DIRECTORY_SEP (_c_: c_int) -> bool { _c_ == b'/' as c_int || _c_ == b'\\' as c_int }
+/// C: config.h (via `emacs/msdos/sed2v2.inp` 87): `#define IS_DEVICE_SEP(_c_) ((_c_) == ':')`
+#[cfg (feature = "msdos")]
+#[inline(always)]
+fn IS_DEVICE_SEP (_c_: c_int) -> bool { _c_ == b':' as c_int }
 
 /* C 34: `#ifdef MSDOS` - the file gate.  C 35 through the end of the file sit inside it, and
    every `include!` below carries it (P-86 ⑧); the C 20-30 notes and C 32's `<config.h>` are the
@@ -98,11 +113,33 @@ include!("include/config.rs");                 // C 32: `#include <config.h>`
 /* C 35's `#include <setjmp.h>` has no mirror of its own: `jmp_buf` and `sys_setjmp` are
    `include/lisp.rs`'s (C 36, the `src/thread.rs` 31-32 / `src/image.rs` 78-79 reading), and this
    unit reaches them through C 36.  */
+/* Three `lisp.h` names no mirror in this unit's graph declares, declared here the way the tree's
+   other units declare them (`src/emacs.rs` 242-243 and `src/keyboard.rs` 652-653 are the same
+   three-row shape; `docs/ports/w32proc.md` Owed 3 counts this class).  */
+/// C: lisp.h 5095: `extern bool detect_input_pending (void);`
+/// C: lisp.h 5099: `extern void cmd_error_internal (Lisp_Object, const char *);`
+/// C: lisp.h 5293: `extern void reset_all_sys_modes (void);`
+#[cfg (feature = "msdos")]
+unsafe extern "C" {
+  pub fn detect_input_pending () -> bool;
+  pub fn cmd_error_internal (data: Lisp_Object, context: *const c_char);
+  pub fn reset_all_sys_modes ();
+}
+
 /* C 36's `lisp.h` 30 is `#include <string.h>`, and this unit's `strcmp` (C 1794) is that
    header's; the mirror does not carry the edge, so the unit spells it here (the C 36
    `<stdcountof.h>` edge below is the same shape - Deviations 13).  */
 #[cfg (feature = "msdos")]
 include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>` (`strcmp`)
+/* The mirror declares `strlen`/`strcmp`/`strncmp`/`strcpy` but not `strcat`, which C 3465-3466
+   needs; the tree declares that name at its use sites (`src/callproc.rs` 175,
+   `src/pdumper.rs` 135, `src/xdisp.rs` 711), and the integrator's 3.449 ruling (this ledger's
+   Owed 12) is that this unit does the same rather than waiting for the mirror.  */
+/// C: <string.h> `extern char *strcat (char *, const char *);`
+#[cfg (feature = "msdos")]
+unsafe extern "C" {
+  pub fn strcat (dest: *mut c_char, src: *const c_char) -> *mut c_char;
+}
 #[cfg (feature = "msdos")]
 include!("include/lisp.rs");                   // C 36: `#include "lisp.h"`
 #[cfg (feature = "msdos")]
@@ -136,9 +173,8 @@ include!("../lib/include/sys_time.rs");        // C 40: `#include <sys/time.h>`
    **No measurement was possible**: this machine has no DJGPP toolchain (see the file note), so no
    size, offset, value or prototype below was read from a header - each is spelled from this
    file's own *call sites* and is **UNVERIFIED**; the ledger's Owed list names the toolchain.
-   `<dir.h>`'s `getdisk`, `<io.h>`'s `setmode` and `<conio.h>`'s `cputs` (C 51/56/60's own
-   comments) are the names of those headers this slice does *not* use, so nothing is declared for
-   them here.  ---------------------------------------------------------------------------------- */
+   Every section below now carries the names its slices use; `<io.h>`'s section (C 56) is new in
+   slice 4 and its `setmode` is the only name the file takes from that header.  ---------------- */
 // C 45: `#include <dos.h>` - the header this section stands for.
 /// C: `union REGS { struct { unsigned short …, ax, … } x; struct { unsigned char …, al, ah, … } h; … };`
 /// C 45's `<dos.h>`: `union REGS`, the register block `int86`/`intdos` pass to the BIOS/DOS.
@@ -156,6 +192,7 @@ pub struct RegsX
   pub dx: c_ushort,                     // C 245/259/261/…: `regs.x.dx`
   pub es: c_ushort,                     // C 458/1433: `regs.x.es`
   pub di: c_ushort,                     // C 459/1438: `regs.x.di`
+  pub cflag: c_ushort,                  // C 3666: `outregs.x.cflag` (slice 4)
   pub flags: c_ushort,                  // C 2442: `regs.x.flags` (slice 3)
 }
 /// C 45's `<dos.h>`: the 8-bit halves (`regs.h.…`) of the same block.  **UNVERIFIED** for the
@@ -177,20 +214,82 @@ pub union REGS
   pub x: RegsX,
   pub h: RegsH,
 }
-/// C 45's `<dos.h>`: the two interrupt entry points this slice calls, and `delay` (slice 3's
-/// `dos_rawgetc`, C 2736).  `delay` has no declaration anywhere in the reference tree (it is a
-/// DJGPP runtime function, like the `Screen*` family), so which DJGPP header supplies it is
-/// unmeasured; the section is `<dos.h>` because that is where this unit's runtime names live.
-/// **UNVERIFIED** for the same missing toolchain (the return type is the call's own use, a
-/// statement).
+/// C 45's `<dos.h>`: the interrupt entry points `int86`/`intdos`, `delay` (slice 3's
+/// `dos_rawgetc`, C 2736), the Ctrl-Break pair `getcbrk`/`setcbrk` (slice 4's `dos_ttraw`,
+/// C 3659-3660), `struct ftime` with `setftime` (slice 4's `futimens`, C 4012/4031) and the
+/// `system` flags `__system_flags` and its six bits (slice 4's `run_msdos_command`, C 3823-3832).
+/// None of them has a declaration anywhere in the reference tree (they are DJGPP runtime names,
+/// like the `Screen*` family), so which DJGPP header supplies each is unmeasured; the section is
+/// `<dos.h>` because that is where this unit's runtime names live.  **UNVERIFIED** for the same
+/// missing toolchain (each return type is the call's own use).
 /// C: int int86 (int, union REGS *, union REGS *);
 /// C: int intdos (union REGS *, union REGS *);
 /// C: void delay (unsigned);
+/// C: int getcbrk (void); int setcbrk (int);
+/// C: struct ftime { unsigned ft_tsec : 5, ft_min : 6, ft_hour : 5, ft_day : 5, ft_month : 4, ft_year : 7; };
+/// C: int setftime (int, struct ftime *);
+/// C: int __system_flags; (and the six `__system_*` bits below)
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
   pub fn int86 (intno: c_int, inregs: *mut REGS, outregs: *mut REGS) -> c_int;
   pub fn intdos (inregs: *mut REGS, outregs: *mut REGS) -> c_int;
   pub fn delay (msec: c_uint);
+  pub fn getcbrk () -> c_int;
+  pub fn setcbrk (value: c_int) -> c_int;
+  pub fn setftime (handle: c_int, time: *mut ftime) -> c_int;
+}
+/// C 45's `<dos.h>`: DJGPP's `struct ftime`, the bit-packed DOS time `futimens` fills.  The
+/// port spells every member as C's bit-fields' shared byte (PORTING.md 1.3) - **UNVERIFIED**,
+/// and only the six fields C 4023-4028 writes are carried.
+#[cfg (feature = "msdos")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct ftime
+{
+  pub bits: c_ushort,	/* ft_tsec:5 | ft_min:6 | ft_hour:5 */
+  pub bits2: c_ushort,	/* ft_day:5 | ft_month:4 | ft_year:7 */
+}
+/* C 4023-4028's six writes are `ftime`'s bit-fields; the port keeps C's member names in a
+   per-unit accessor pair (the `mouse_moved!` shape), with the widths the header declares
+   (`ft_tsec : 5`, `ft_min : 6`, `ft_hour : 5`, `ft_day : 5`, `ft_month : 4`, `ft_year : 7`).  */
+#[cfg (feature = "msdos")]
+macro_rules! ftime_bits {
+  (tsec, $f:expr) => { (*$f).bits & 0x1f };
+  (tsec, $f:expr, $v:expr) => { (*$f).bits = ((*$f).bits & !0x1fu16) | (($v as u16) & 0x1f) };
+  (min, $f:expr) => { ((*$f).bits >> 5) & 0x3f };
+  (min, $f:expr, $v:expr) => {
+    (*$f).bits = ((*$f).bits & !(0x3fu16 << 5)) | ((($v as u16) & 0x3f) << 5) };
+  (hour, $f:expr) => { ((*$f).bits >> 11) & 0x1f };
+  (hour, $f:expr, $v:expr) => {
+    (*$f).bits = ((*$f).bits & !(0x1fu16 << 11)) | ((($v as u16) & 0x1f) << 11) };
+  (day, $f:expr) => { (*$f).bits2 & 0x1f };
+  (day, $f:expr, $v:expr) => { (*$f).bits2 = ((*$f).bits2 & !0x1fu16) | (($v as u16) & 0x1f) };
+  (month, $f:expr) => { ((*$f).bits2 >> 5) & 0x0f };
+  (month, $f:expr, $v:expr) => {
+    (*$f).bits2 = ((*$f).bits2 & !(0x0fu16 << 5)) | ((($v as u16) & 0x0f) << 5) };
+  (year, $f:expr) => { ((*$f).bits2 >> 9) & 0x7f };
+  (year, $f:expr, $v:expr) => {
+    (*$f).bits2 = ((*$f).bits2 & !(0x7fu16 << 9)) | ((($v as u16) & 0x7f) << 9) };
+}
+/// C 45's `<dos.h>`: the six `__system_*` bits `run_msdos_command` ORs together, and the flag
+/// word they go into (C 3823-3832).  **UNVERIFIED** (no DJGPP header); the values are not
+/// readings and the ledger owes them.
+/// C: int __system_flags = __system_redirect | __system_use_shell | __system_allow_multiple_cmds | …;
+#[cfg (feature = "msdos")]
+pub const __system_redirect: c_int = 0;
+#[cfg (feature = "msdos")]
+pub const __system_use_shell: c_int = 0;
+#[cfg (feature = "msdos")]
+pub const __system_allow_multiple_cmds: c_int = 0;
+#[cfg (feature = "msdos")]
+pub const __system_allow_long_cmds: c_int = 0;
+#[cfg (feature = "msdos")]
+pub const __system_handle_null_commands: c_int = 0;
+#[cfg (feature = "msdos")]
+pub const __system_emulate_chdir: c_int = 0;
+#[cfg (feature = "msdos")]
+unsafe extern "C" {
+  pub static mut __system_flags: c_int;
 }
 // C 57: `#include <dpmi.h>` (`/* for __dpmi_xxx stuff */`) - the header this section stands for.
 /// C 57's `<dpmi.h>`: `__dpmi_regs`, the DPMI register block `__dpmi_int` passes to a real-mode
@@ -287,9 +386,16 @@ unsafe extern "C" {
   pub fn _farnspokeb (offset: c_ulong, value: c_uchar);
   pub fn _farnspokew (offset: c_ulong, value: c_ushort);
 }
-/* C 59's `<libc/dosio.h>` (`/* for _USE_LFN */`) and C 60's `<conio.h>` (`/* for cputs */`): the
-   only name this slice takes from either is the `_USE_LFN` *test* at C 95, which is carried at
-   C 95 below.  */
+/* C 59's `<libc/dosio.h>` (`/* for _USE_LFN */`): the only name this unit takes from it is the
+   `_USE_LFN` *test* at C 95, which is carried at C 95 below.  */
+// C 60: `#include <conio.h>` (`/* for cputs */`) - the header this section stands for.
+/// C 60's `<conio.h>`: `cputs`, which `msdos_abort` writes its message with (C 4306).
+/// **UNVERIFIED** (no DJGPP toolchain); the return type is the call's own use (a statement).
+/// C: int cputs (const char *);
+#[cfg (feature = "msdos")]
+unsafe extern "C" {
+  pub fn cputs (string: *const c_char) -> c_int;
+}
 
 #[cfg (feature = "msdos")]
 include!("../lib/include/errno.rs");           // C 48: `#include <errno.h>`
@@ -301,25 +407,63 @@ include!("../lib/include/unistd.in.rs");       // C 50: `#include <unistd.h>`
    every non-glibc target; this unit's `getenv` (C 1780/1808/1834) is that header's.  The
    mirror does not carry the edge, so the unit spells it here (the C 36 `<stdcountof.h>`
    shape - Deviations 13).  */
+/* Slice 2 took the *system* half (`stdlib.rs`, `getenv`).  Slice 4 needs gnulib's own additions
+   `setenv` (C 3519) and `putenv` (C 4151), and the natural edge would be `stdlib.in.rs` - but
+   that mirror has never been compiled by any unit on this revision and names two types nothing
+   in its scope supplies (`c_float`/`c_longlong`, its 235/240), so the measured choice is to keep
+   this edge and declare the two names here, exactly as `src/android.rs` 1369 does for `setenv`
+   (the "declared at its use site" class, `docs/ports/w32proc.md`'s Owed 3).  The mirror's own
+   two unresolved types are recorded in this ledger's Owed 5.  One `## Deviations` entry.  */
 #[cfg (feature = "msdos")]
-include!("../lib/include/stdlib.rs");          // unistd.in.h 122-125: `#include <stdlib.h>` (`getenv`)
+include!("../lib/include/stdlib.rs");          // unistd.in.h 122-125: `#include <stdlib.h>`
+/* `system` (C 3835) and `exit` (C 3881/4308) are `<stdlib.h>`'s and no mirror in this tree
+   declares either; the tree declares them at their use sites (`src/sysdep.rs` 776/954 and the
+   twelve `exit` declarations `docs/ports/w32proc.md`'s Owed 3 counts), so this unit does too.  */
+/// C: <stdlib.h> `extern int system (const char *);`
+/// C: <stdlib.h> `_Noreturn void exit (int);`
+/// C: <stdlib.h> `extern int setenv (const char *, const char *, int);`
+/// C: <stdlib.h> `extern int putenv (char *);`
+#[cfg (feature = "msdos")]
+unsafe extern "C" {
+  pub fn system (command: *const c_char) -> c_int;
+  pub fn exit (status: c_int) -> !;
+  pub fn setenv (name: *const c_char, value: *const c_char, replace: c_int) -> c_int;
+  pub fn putenv (string: *mut c_char) -> c_int;
+}
 // C 51: `#include <dir.h>` (`/* for getdisk */`) - the header this section stands for.
 /// C 51's `<dir.h>`: `getdisk` (C 3377) and `_fixpath` (C 3360).  **UNVERIFIED**: no DJGPP
 /// toolchain, so neither prototype is read from a header; the argument types follow this file's
 /// own call sites (`_fixpath`'s first argument is `in_path`, a `char[4]`).
-/// C: int getdisk (void); int _fixpath (const char *, char *);
+/// C 51's `<dir.h>`: `setdisk` (slice 4's `sys_chdir`, C 4265) and the `access` mode `D_OK`
+/// (slice 4's `faccessat`, C 4094, and `init_environment`, C 3517).  **UNVERIFIED** with the
+/// same toolchain note as the two above; C's `<dir.h>` is also where DJGPP puts `D_OK`'s
+/// sibling `X_OK`/`W_OK`/`R_OK`, which this file does not use.
+/// C: int getdisk (void); int _fixpath (const char *, char *); int setdisk (int);
+/// C: #define D_OK 0x10
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
   pub fn getdisk () -> c_int;
   pub fn _fixpath (path: *const c_char, resolved: *mut c_char) -> c_int;
+  pub fn setdisk (drive: c_int) -> c_int;
 }
-/* C 52's `#pragma pack(0)` and C 53's `#undef opendir` (C 56's `<io.h>`, `setmode`) still have
-   no counterpart: the pragma has none in Rust and neither does the `#undef` (the port never
-   spells `opendir` as `<dirent.h>`'s macro).  Two `## Deviations` entries.  */
+/// C 51's `<dir.h>`: `D_OK`.  C's value is the header's; **UNVERIFIED** (no DJGPP header).
+#[cfg (feature = "msdos")]
+pub const D_OK: c_int = 0x10;
+/* C 52's `#pragma pack(0)` and C 53's `#undef opendir` still have no counterpart: the pragma has
+   none in Rust and neither does the `#undef` (the port never spells `opendir` as `<dirent.h>`'s
+   macro).  Two `## Deviations` entries.  */
 #[cfg (feature = "msdos")]
 include!("../lib/include/dirent.in.rs");       // C 54: `#include <dirent.h>`
 #[cfg (feature = "msdos")]
 include!("../lib/include/fcntl.in.rs");        // C 55: `#include <fcntl.h>`
+// C 56: `#include <io.h>` (`/* for setmode */`) - the header this section stands for.
+/// C 56's `<io.h>`: `setmode`, which `dos_ttraw`/`dos_ttcooked` call (C 3699-3726).
+/// **UNVERIFIED** (no DJGPP toolchain).
+/// C: int setmode (int, int);
+#[cfg (feature = "msdos")]
+unsafe extern "C" {
+  pub fn setmode (handle: c_int, mode: c_int) -> c_int;
+}
 
 /* C 62-66: `#if (__DJGPP__ + (__DJGPP_MINOR__ > 3)) >= 3` - `SYS_ENVIRON` (the `environ` the
    environment setup at the end of the file reads).  The reference's two arms pick `_environ` for
@@ -337,6 +481,23 @@ macro_rules! SYS_ENVIRON { () => { _environ } }
 #[cfg (feature = "msdos")]
 #[cfg (feature = "djgpp_2_3")]
 macro_rules! SYS_ENVIRON { () => { environ } }
+/* The two objects the arms above name are the DJGPP runtime's (`<stdlib.h>`'s `_environ` and
+   its 2.3-era `environ`), and C 3822-3837's `run_msdos_command` reads and writes whichever the
+   arm selected - so slice 4 is the first text that reaches them.  **UNVERIFIED** (no DJGPP
+   toolchain); only the arm the default feature set selects is declared, because the mirror's
+   `unistd.in.rs` carries the *frozen* target's `environ` (its 87-90 macOS arm).  */
+/// C: extern char **_environ;
+#[cfg (feature = "msdos")]
+#[cfg (not (feature = "djgpp_2_3"))]
+unsafe extern "C" {
+  pub static mut _environ: *mut *mut c_char;
+}
+/// C: extern char **environ; (the 2.3-and-older arm)
+#[cfg (feature = "msdos")]
+#[cfg (feature = "djgpp_2_3")]
+unsafe extern "C" {
+  pub static mut environ: *mut *mut c_char;
+}
 
 #[cfg (feature = "msdos")]
 include!("include/msdos.rs");                  // C 68: `#include "msdos.h"`
@@ -4560,3 +4721,996 @@ pub unsafe fn rootrelativepath (rel: *mut c_char) -> *mut c_char   // C 3459-346
 /* C 3470-3473 is `init_environment`'s own banner and C 3475 its first line: that function is
    the next live definition, and C 3469-4350 is the unported remainder (see
    `docs/ports/msdos.md`).  */
+
+/* ----------------------------------------------------------------------------------------------
+   C 3469-4350: slice 4, the file's remainder — `init_environment` (C 3475-3638), the tty mode
+   pair, `run_msdos_command`, the gnulib emulations (`readlink`, `sys_opendir`, the `*at`
+   family, `futimens`, `careadlinkat`), the `sys_select` arm, `sys_chdir`, `init_gettimeofday`
+   and `syms_of_msdos`, through C 4350's `#endif /* MSDOS */`, which closes the file gate.
+   ---------------------------------------------------------------------------------------------- */
+
+/* Define a lot of environment variables if not already defined.  Don't
+   remove anything unless you know what you're doing -- lots of code will
+   break if one or more of these are missing.  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn init_environment (argc: c_int, argv: *mut *mut c_char,
+				skip_args: c_int)   // C 3474-3475
+{
+  let mut s: *mut c_char;
+  let mut t: *mut c_char;
+  let mut root: *mut c_char;
+  let mut len: c_int;
+  let mut i: c_int;
+  /* C's `static const char * const tempdirs[]` is a *local* static; the port keeps C's
+     initializer and scope but not the storage class, because a Rust `static` of raw pointers is
+     not `Sync` (E0277, measured) - the array is only read, so the two are behaviourally the
+     same.  One `## Deviations` entry.  */
+  let tempdirs: [*const c_char; 4] =
+    [c"$TMPDIR".as_ptr (), c"$TEMP".as_ptr (), c"$TMP".as_ptr (), c"c:/".as_ptr ()];
+  let imax: c_int = countof! (tempdirs) as c_int;	/* C's int-vs-size_t (Deviations 20) */
+
+  /* Make sure they have a usable $TMPDIR.  Many Emacs functions use
+     temporary files and assume "/tmp" if $TMPDIR is unset, which
+     will break on DOS/Windows.  Refuse to work if we cannot find
+     a directory, not even "c:/", usable for that purpose.  */
+  i = 0;
+  while i < imax
+    {
+      let mut tmp: *const c_char = tempdirs[i as usize];
+      let mut buf: [c_char; FILENAME_MAX] = [0; FILENAME_MAX];
+
+      if *tmp == b'$' as c_char
+	{
+	  let mut tmp_len: c_int;
+
+	  tmp = getenv (tmp.offset (1));
+	  if tmp.is_null ()
+	    { i += 1; continue; }
+
+	  /* Some lusers set TMPDIR=e:, probably because some losing
+	     programs cannot handle multiple slashes if they use e:/.
+	     e: fails in `access' below, so we interpret e: as e:/.  */
+	  tmp_len = strlen (tmp) as c_int;
+	  if *tmp.offset ((tmp_len - 1) as isize) != b'/' as c_char
+	      && *tmp.offset ((tmp_len - 1) as isize) != b'\\' as c_char
+	    {
+	      strcpy (&raw mut buf[0], tmp);
+	      *(&raw mut buf[0]).offset (tmp_len as isize) = b'/' as c_char;
+	      tmp_len += 1;
+	      *(&raw mut buf[0]).offset (tmp_len as isize) = 0;
+	      tmp = &raw mut buf[0];
+	    }
+	}
+
+      /* Note that `access' can lie to us if the directory resides on a
+	 read-only filesystem, like CD-ROM or a write-protected floppy.
+	 The only way to be really sure is to actually create a file and
+	 see if it succeeds.  But I think that's too much to ask.  */
+      if !tmp.is_null () && access (tmp, D_OK) == 0
+	{
+	  setenv (c"TMPDIR".as_ptr (), tmp, 1);
+	  break;
+	}
+      i += 1;
+    }
+  if i >= imax
+    { cmd_error_internal (Fcons (Qerror (),
+				Fcons (build_string (c"no usable temporary directories found!!".as_ptr ()),
+				       Qnil ())),
+			  c"While setting TMPDIR: ".as_ptr ()); }
+
+  /* Note the startup time, so we know not to clear the screen if we
+     exit immediately; see IT_reset_terminal_modes.
+     (Yes, I know `clock' returns zero the first time it's called, but
+     I do this anyway, in case some wiseguy changes that at some point.)  */
+  startup_time = clock ();
+
+  /* Find our root from argv[0].  Assuming argv[0] is, say,
+     "c:/emacs/bin/emacs.exe" our root will be "c:/emacs".  */
+  /* C's `alloca` requests are the port's stack pool (Deviations 32).  */
+  root = sa_stack_alloc (MAXPATHLEN + 20) as *mut c_char;
+  _fixpath (*argv.offset (0), root);
+  msdos_downcase_filename (root as *mut c_uchar);
+  len = strlen (root) as c_int;
+  while len > 0 && *root.offset (len as isize) != b'/' as c_char
+      && *root.offset (len as isize) != b':' as c_char
+    { len -= 1; }
+  *root.offset (len as isize) = 0;	/* '\0' */
+  if len > 4
+      && (strcmp (root.offset ((len - 4) as isize), c"/bin".as_ptr ()) == 0
+	  || strcmp (root.offset ((len - 4) as isize), c"/src".as_ptr ()) == 0)
+    { *root.offset ((len - 4) as isize) = 0; }	/* under a debugger */
+  else
+    { strcpy (root, c"c:/emacs".as_ptr ()); }	/* let's be defensive */
+  len = strlen (root) as c_int;
+  strcpy (&raw mut emacsroot[0], root);
+
+  /* We default HOME to our root.  */
+  setenv (c"HOME".as_ptr (), root, 0);
+
+  /* We default EMACSPATH to root + "/bin".  */
+  strcpy (root.offset (len as isize), c"/bin".as_ptr ());
+  setenv (c"EMACSPATH".as_ptr (), root, 0);
+
+  /* I don't expect anybody to ever use other terminals so the internal
+     terminal is the default.  */
+  setenv (c"TERM".as_ptr (), c"internal".as_ptr (), 0);
+
+  /* C 3565-3568: `#ifdef HAVE_X_WINDOWS` - both arms (the `#else` arm is empty in C).  */
+  #[cfg (feature = "have_x_windows")]
+  {
+  /* Emacs expects DISPLAY to be set.  */
+  setenv (c"DISPLAY".as_ptr (), c"unix:0.0".as_ptr (), 0);
+  }
+
+  /* SHELL is a bit tricky -- COMSPEC is the closest we come, but we must
+     downcase it and mirror the backslashes.  */
+  s = getenv (c"COMSPEC".as_ptr ());
+  if s.is_null () { s = c"c:/command.com".as_ptr () as *mut c_char; }
+  t = sa_stack_alloc (strlen (s) + 1) as *mut c_char;
+  strcpy (t, s);
+  dostounix_filename (t);
+  setenv (c"SHELL".as_ptr (), t, 0);
+
+  /* PATH is also downcased and backslashes mirrored.  */
+  s = getenv (c"PATH".as_ptr ());
+  if s.is_null () { s = c"".as_ptr () as *mut c_char; }
+  t = sa_stack_alloc (strlen (s) + 3) as *mut c_char;
+  /* Current directory is always considered part of MsDos's path but it is
+     not normally mentioned.  Now it is.  */
+  strcat (strcpy (t, c".;".as_ptr ()), s);
+  dostounix_filename (t); /* Not a single file name, but this should work.  */
+  setenv (c"PATH".as_ptr (), t, 1);
+
+  /* In some sense all dos users have root privileges, so...  */
+  setenv (c"USER".as_ptr (), c"root".as_ptr (), 0);
+  setenv (c"NAME".as_ptr (), getenv (c"USER".as_ptr ()), 0);
+
+  /* Time zone determined from country code.  To make this possible, the
+     country code may not span more than one time zone.  In other words,
+     in the USA, you lose.  */
+  if getenv (c"TZ".as_ptr ()).is_null ()
+    {
+      match dos_country_code
+	{
+	31 | 32 | 33 | 34 | 36 | 38 | 39 | 41 | 42 | 45 | 46 | 47 | 48 | 49 =>
+	  {		/* Belgium, Netherlands, France, Spain, Hungary, Yugoslavia,
+			   Italy, Switzerland, Tjekia, Denmark, Sweden, Norway,
+			   Poland, Germany */
+	    /* Daylight saving from last Sunday in March to last Sunday in
+	       September, both at 2AM.  */
+	    setenv (c"TZ".as_ptr (), c"MET-01METDST-02,M3.5.0/02:00,M9.5.0/02:00".as_ptr (), 0);
+	  }
+	44 | 351 | 354 =>
+	  {		/* United Kingdom, Portugal, Iceland */
+	    setenv (c"TZ".as_ptr (), c"GMT+00".as_ptr (), 0);
+	  }
+	81 | 82 =>
+	  {		/* Japan, Korea */
+	    setenv (c"TZ".as_ptr (), c"JST-09".as_ptr (), 0);
+	  }
+	90 | 358 =>
+	  {		/* Turkey, Finland */
+	    setenv (c"TZ".as_ptr (), c"EET-02".as_ptr (), 0);
+	  }
+	972 =>
+	  {		/* Israel */
+	    /* This is an approximation.  (For exact rules, use the
+	       `zoneinfo/israel' file which comes with DJGPP, but you need
+	       to install it in `/usr/share/zoneinfo/' directory first.)  */
+	    setenv (c"TZ".as_ptr (), c"IST-02IDT-03,M4.1.6/00:00,M9.5.6/01:00".as_ptr (), 0);
+	  }
+	_ => {}
+	}
+    }
+  tzset ();
+}
+
+/// C 3642: `static int break_stat;	 /* BREAK check mode status.	*/`
+#[cfg (feature = "msdos")]
+static mut break_stat: c_int = 0;
+/// C 3643: `static int stdin_stat;	 /* stdin IOCTL status.		*/`
+#[cfg (feature = "msdos")]
+static mut stdin_stat: c_int = 0;
+
+/* Turn off Dos' Ctrl-C checking and inhibit interpretation of
+   control chars by DOS.   Determine the keyboard type.  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn dos_ttraw (tty: *mut tty_display_info) -> c_int   // C 3648-3649
+{
+  let mut inregs: REGS = std::mem::zeroed ();
+  let mut outregs: REGS = std::mem::zeroed ();
+  static mut first_time: c_int = 1;
+
+  /* If we are called for the initial terminal, it's too early to do
+     anything, and termscript isn't set up.  */
+  if (*(*tty).terminal).r#type == output_initial
+    { return 2; }
+
+  break_stat = getcbrk ();
+  setcbrk (0);
+
+  if first_time != 0
+    {
+      inregs.h.ah = 0xc0;
+      int86 (0x15, &raw mut inregs, &raw mut outregs);
+      extended_kbd = (outregs.x.cflag == 0 && outregs.h.ah == 0) as c_int;
+
+      have_mouse = 0;
+
+      /* C 3670-3674's `if (1 #ifdef HAVE_X_WINDOWS && inhibit_window_system #endif )` is C's
+	 "always, unless the window-system build says otherwise"; the port keeps both arms with
+	 the `cfg!` idiom (`src/androidselect.rs` 585's shape) - one `## Deviations` entry.  */
+      if !cfg! (feature = "have_x_windows") || inhibit_window_system
+	{
+	  inregs.x.ax = 0x0021;
+	  int86 (0x33, &raw mut inregs, &raw mut outregs);
+	  have_mouse = ((outregs.x.ax & 0xffff) == 0xffff) as c_int;
+	  if have_mouse == 0
+	    {
+	      /* Reportedly, the above doesn't work for some mouse drivers.  There
+		 is an additional detection method that should work, but might be
+		 a little slower.  Use that as an alternative.  */
+	      inregs.x.ax = 0x0000;
+	      int86 (0x33, &raw mut inregs, &raw mut outregs);
+	      have_mouse = ((outregs.x.ax & 0xffff) == 0xffff) as c_int;
+	    }
+	  if have_mouse != 0
+	    { mouse_button_count = outregs.x.bx as c_int; }
+
+	  /* C 3691-3694: `#ifndef HAVE_X_WINDOWS` - both arms (the `#else` arm is empty).  */
+	  #[cfg (not (feature = "have_x_windows"))]
+	  {
+	  /* Save the cursor shape used outside Emacs.  */
+	  outside_cursor = _farpeekw (_dos_ds! () as c_ushort, 0x460);
+	  }
+	}
+
+      first_time = 0;
+
+      stdin_stat = setmode (fileno (stdin), O_BINARY);
+      return (stdin_stat != -1) as c_int;
+    }
+  else
+    { return (setmode (fileno (stdin), O_BINARY) != -1) as c_int; }
+}
+
+/*  Restore status of standard input and Ctrl-C checking.  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn dos_ttcooked () -> c_int             // C 3708-3709
+{
+  let mut inregs: REGS = std::mem::zeroed ();
+  let mut outregs: REGS = std::mem::zeroed ();
+
+  setcbrk (break_stat);
+  mouse_off ();
+
+  /* C 3716-3724: `#ifndef HAVE_X_WINDOWS` - both arms (the `#else` arm is empty in C).  */
+  #[cfg (not (feature = "have_x_windows"))]
+  {
+  /* Restore the cursor shape we found on startup.  */
+  if outside_cursor != 0
+    {
+      inregs.h.ah = 1;
+      inregs.x.cx = outside_cursor;
+      int86 (0x10, &raw mut inregs, &raw mut outregs);
+    }
+  }
+
+  return (setmode (fileno (stdin), stdin_stat) != -1) as c_int;
+}
+
+/* Run command as specified by ARGV in directory DIR.
+   The command is run with input from TEMPIN, output to
+   file TEMPOUT and stderr to TEMPERR.  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn run_msdos_command (argv: *mut *mut c_char, working_dir: *const c_char,
+				 tempin: c_int, tempout: c_int, temperr: c_int,
+				 envv: *mut *mut c_char) -> c_int   // C 3734-3736
+{
+  let mut saveargv1: *mut c_char;
+  let mut saveargv2: *mut c_char;
+  let mut lowcase_argv0: *mut c_char;
+  let mut pa: *mut c_char;
+  let mut pl: *mut c_char;
+  let mut oldwd: [c_char; MAXPATHLEN + 1] = [0; MAXPATHLEN + 1]; /* Fixed size is safe on MSDOS.  */
+  let mut msshell: c_int;
+  let mut result: c_int = -1;
+  let mut inbak: c_int;
+  let mut outbak: c_int;
+  let mut errbak: c_int;
+  let mut x: c_int = 0;
+  let mut y: c_int = 0;
+  let mut cmd: Lisp_Object;
+
+  /* Get current directory as MSDOS cwd is not per-process.  */
+  getwd (&raw mut oldwd[0]);
+
+  /* If argv[0] is the shell, it might come in any lettercase.
+     Since `Fmember' is case-sensitive, we need to downcase
+     argv[0], even if we are on case-preserving filesystems.  */
+  lowcase_argv0 = sa_stack_alloc (strlen (*argv.offset (0)) + 1) as *mut c_char;
+  pa = *argv.offset (0);
+  pl = lowcase_argv0;
+  while *pa != 0
+    {
+      *pl = *pa;
+      pa = pa.offset (1);
+      if *pl >= b'A' as c_char && *pl <= b'Z' as c_char
+	{ *pl += (b'a' - b'A') as c_char; }
+      pl = pl.offset (1);
+    }
+  *pl = 0;		/* '\0' */
+
+  cmd = Ffile_name_nondirectory (build_string (lowcase_argv0));
+  msshell = (!NILP (Fmember (cmd, Fsymbol_value (Qmsdos_shells ())))
+	     && strcmp (c"-c".as_ptr (), *argv.offset (1)) == 0) as c_int;
+  if msshell != 0
+    {
+      saveargv1 = *argv.offset (1);
+      saveargv2 = *argv.offset (2);
+      *argv.offset (1) = c"/c".as_ptr () as *mut c_char;
+      /* We only need to mirror slashes if a DOS shell will be invoked
+	 not via `system' (which does the mirroring itself).  Yes, that
+	 means DJGPP v1.x will lose here.  */
+      if !(*argv.offset (2)).is_null () && !(*argv.offset (3)).is_null ()
+	{
+	  let mut p: *mut c_char
+	    = sa_stack_alloc (strlen (*argv.offset (2)) + 1) as *mut c_char;
+
+	  /* C's `strcpy (argv[2] = p, saveargv2)`: the store and the call (Deviations 21).  */
+	  *argv.offset (2) = p;
+	  strcpy (p, saveargv2);
+	  while *p != 0 && isspace (*p as c_int) != 0
+	    { p = p.offset (1); }
+	  while *p != 0
+	    {
+	      if *p == b'/' as c_char
+		{
+		  *p = b'\\' as c_char;
+		  p = p.offset (1);
+		}
+	      else
+		{ p = p.offset (1); }
+	    }
+	}
+    }
+
+  /* C 3791's `goto done` is this labelled block (the `src/casefiddle.rs` 149 `'done:` shape).  */
+  'done: {
+  chdir (working_dir);
+  inbak = dup (0);
+  outbak = dup (1);
+  errbak = dup (2);
+  if inbak < 0 || outbak < 0 || errbak < 0
+    { break 'done; } /* Allocation might fail due to lack of descriptors.  */
+
+  if have_mouse > 0
+    { mouse_get_xy (&raw mut x, &raw mut y); }
+
+  if !noninteractive
+    { dos_ttcooked (); }	/* do it here while 0 = stdin */
+
+  dup2 (tempin, 0);
+  dup2 (tempout, 1);
+  dup2 (temperr, 2);
+
+  if msshell != 0 && (*argv.offset (3)).is_null ()
+    {
+      /* MS-DOS native shells are too restrictive.  For starters, they
+	 cannot grok commands longer than 126 characters.  In DJGPP v2
+	 and later, `system' is much smarter, so we'll call it instead.  */
+
+      let mut cmnd: *const c_char;
+
+      /* A shell gets a single argument--its full command
+	 line--whose original was saved in `saveargv2'.  */
+
+      /* Don't let them pass empty command lines to `system', since
+	 with some shells it will try to invoke an interactive shell,
+	 which will hang Emacs.  */
+      cmnd = saveargv2;
+      while *cmnd != 0 && isspace (*cmnd as c_int) != 0
+	{ cmnd = cmnd.offset (1); }
+      if *cmnd != 0
+	{
+	  let save_env: *mut *mut c_char = SYS_ENVIRON! ();
+	  let save_system_flags: c_int = __system_flags;
+
+	  /* Request the most powerful version of `system'.  We need
+	     all the help we can get to avoid calling stock DOS shells.  */
+	  __system_flags = (__system_redirect
+			     | __system_use_shell
+			     | __system_allow_multiple_cmds
+			     | __system_allow_long_cmds
+			     | __system_handle_null_commands
+			     | __system_emulate_chdir);
+
+	  SYS_ENVIRON! () = envv;
+	  result = system (cmnd);
+	  __system_flags = save_system_flags;
+	  SYS_ENVIRON! () = save_env;
+	}
+      else
+	{ result = 0; }	/* emulate Unixy shell behavior with empty cmd line */
+    }
+  else
+    { result = spawnve (P_WAIT, *argv.offset (0), argv, envv); }
+
+  dup2 (inbak, 0);
+  dup2 (outbak, 1);
+  dup2 (errbak, 2);
+  emacs_close (inbak);
+  emacs_close (outbak);
+  emacs_close (errbak);
+
+  if !noninteractive
+    { dos_ttraw (CURTTY! ()); }
+  if have_mouse > 0
+    {
+      mouse_init ();
+      mouse_moveto (x, y);
+    }
+
+  /* Some programs might change the meaning of the highest bit of the
+     text attribute byte, so we get blinking characters instead of the
+     bright background colors.  Restore that.  */
+  if !noninteractive
+    { bright_bg (); }
+  }	/* 'done */
+
+  chdir (&raw mut oldwd[0]);
+  if msshell != 0
+    {
+      *argv.offset (1) = saveargv1;
+      *argv.offset (2) = saveargv2;
+    }
+  return result;
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn croak (badfunc: *mut c_char)         // C 3876-3877
+{
+  fprintf (stderr, c"%s not yet implemented\r\n".as_ptr (), badfunc);
+  reset_all_sys_modes ();
+  exit (1);
+}
+
+/*
+ * A few unimplemented functions that we silently ignore.
+ */
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn tcgetpgrp (fd: c_int) -> pid_t { return 0; }   // C 3887
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn setpgid (pid: c_int, pgid: c_int) -> c_int { return 0; }   // C 3888
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn setpriority (x: c_int, y: c_int, z: c_int) -> c_int { return 0; }   // C 3889
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn setsid () -> pid_t { return 0; }     // C 3890
+
+/* Gnulib support and emulation.  */
+
+/* C 3895-3904: `#if __DJGPP__ == 2 && __DJGPP_MINOR__ < 4` - the djgpp 2.3-and-older arm, the
+   registered `djgpp_2_3` feature slice 1 named for the same condition (`include/msdos.rs` 26).
+   The other arm is C's `#else`, i.e. the *system* `readlink`, which `unistd.in.rs` 39 already
+   declares - so only the older arm defines anything here, and under that feature the definition
+   and the mirror's declaration are the E0428 pair this ledger's Owed 2 records.  */
+#[cfg (all (feature = "msdos", feature = "djgpp_2_3"))]
+#[unsafe(no_mangle)]
+pub unsafe fn readlink (name: *const c_char, dummy1: *mut c_char, dummy2: usize) -> ssize_t
+{                                          // C 3896-3897
+  /* `access' is much faster than `stat' on MS-DOS.  */
+  if access (name, F_OK) == 0
+    { *errno () = EINVAL; }
+  return -1;
+}
+
+/* dir_pathname is set by sys_opendir and used in readlinkat and in
+   fstatat, when they get a special FD of zero, which means use the
+   last directory opened by opendir.  */
+#[cfg (feature = "msdos")]
+static mut dir_pathname: [c_char; MAXPATHLEN] = [0; MAXPATHLEN];
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn sys_opendir (dirname: *const c_char) -> *mut DIR   // C 3910-3911
+{
+  _fixpath (dirname, &raw mut dir_pathname[0]);
+  return opendir (dirname);
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn readlinkat (fd: c_int, mut name: *const c_char, buffer: *mut c_char,
+			  buffer_size: usize) -> ssize_t   // C 3917-3918
+{
+  /* Rely on a hack: an open directory is modeled as file descriptor 0,
+     as in fstatat.  FIXME: Add proper support for readlinkat.  */
+  let mut fullname: [c_char; MAXPATHLEN] = [0; MAXPATHLEN];
+
+  if fd != AT_FDCWD
+    {
+      if strlen (&raw mut dir_pathname[0]) + strlen (name) + 1 >= MAXPATHLEN
+	{
+	  *errno () = ENAMETOOLONG;
+	  return -1;
+	}
+      sprintf (&raw mut fullname[0], c"%s/%s".as_ptr (), &raw mut dir_pathname[0], name);
+      name = &raw mut fullname[0];
+    }
+
+  return readlink (name, buffer, buffer_size);
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn openat (fd: c_int, mut path: *const c_char, oflag: c_int,
+		      mode: c_int) -> c_int      // C 3939-3940
+{
+  /* Rely on a hack: an open directory is modeled as file descriptor 0,
+     as in fstatat.  FIXME: Add proper support for openat.  */
+  let mut fullname: [c_char; MAXPATHLEN] = [0; MAXPATHLEN];
+
+  if fd != AT_FDCWD
+    {
+      if strlen (&raw mut dir_pathname[0]) + strlen (path) + 1 >= MAXPATHLEN
+	{
+	  *errno () = ENAMETOOLONG;
+	  return -1;
+	}
+      sprintf (&raw mut fullname[0], c"%s/%s".as_ptr (), &raw mut dir_pathname[0], path);
+      path = &raw mut fullname[0];
+    }
+
+  return open (path, oflag, mode);
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn fchmodat (fd: c_int, mut path: *const c_char, mode: mode_t,
+			flags: c_int) -> c_int   // C 3960-3961
+{
+  /* Rely on a hack: an open directory is modeled as file descriptor 0,
+     as in fstatat.  FIXME: Add proper support for openat.  */
+  let mut fullname: [c_char; MAXPATHLEN] = [0; MAXPATHLEN];
+
+  if fd != AT_FDCWD
+    {
+      if strlen (&raw mut dir_pathname[0]) + strlen (path) + 1 >= MAXPATHLEN
+	{
+	  *errno () = ENAMETOOLONG;
+	  return -1;
+	}
+
+      sprintf (&raw mut fullname[0], c"%s/%s".as_ptr (), &raw mut dir_pathname[0], path);
+      path = &raw mut fullname[0];
+    }
+
+  return chmod (path, mode);
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn careadlinkat (fd: c_int, filename: *const c_char, mut buffer: *mut c_char,
+			    buffer_size: usize, alloc: *const allocator,
+			    preadlinkat: Option<unsafe extern "C" fn (c_int, *const c_char,
+								      *mut c_char,
+								      usize) -> ssize_t>)
+			    -> *mut c_char         // C 3982-3986
+{
+  if buffer.is_null ()
+    {
+      /* We don't support the fancy auto-allocation feature.  */
+      if buffer_size == 0
+	{ *errno () = ENOSYS; }
+      else
+	{ *errno () = EINVAL; }
+      buffer = std::ptr::null_mut ();
+    }
+  else
+    {
+      let len: ssize_t = (preadlinkat.unwrap ()) (fd, filename, buffer, buffer_size);
+
+      /* C's `len == buffer_size` compares a `ssize_t` with a `size_t`, i.e. as size_t
+	 (Deviations 20); the `len < 0` arm short-circuits it.  */
+      if len < 0 || len as usize == buffer_size
+	{ buffer = std::ptr::null_mut (); }
+      else
+	{ *buffer.offset (len as isize) = 0; }	/* '\0' */
+    }
+  return buffer;
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn futimens (fd: c_int, times: *const timespec) -> c_int   // C 4009-4010
+{
+  let mut tm: *mut tm;
+  let mut ft: ftime = std::mem::zeroed ();
+  let mut t: time_t;
+
+  block_input ();
+  if (*times.offset (1)).tv_sec == UTIME_NOW
+    { t = time (std::ptr::null_mut ()); }
+  else
+    { t = (*times.offset (1)).tv_sec; }
+
+  tm = localtime (&raw mut t);
+  ftime_bits! (tsec, &raw mut ft, min (29, ((*tm).tm_sec / 2) as isize) as c_int);
+  ftime_bits! (min, &raw mut ft, (*tm).tm_min);
+  ftime_bits! (hour, &raw mut ft, (*tm).tm_hour);
+  ftime_bits! (day, &raw mut ft, (*tm).tm_mday);
+  ftime_bits! (month, &raw mut ft, (*tm).tm_mon + 1);
+  ftime_bits! (year, &raw mut ft, max (0, ((*tm).tm_year - 80) as isize) as c_int);
+  unblock_input ();
+
+  return setftime (fd, &raw mut ft);
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn utimensat (dirfd: c_int, mut pathname: *const c_char, times: *const timespec,
+			 flags: c_int) -> c_int   // C 4034-4036
+{
+  let mut fd: c_int;
+  let mut ret: c_int;
+  let mut fullname: [c_char; MAXPATHLEN] = [0; MAXPATHLEN];
+
+  /* Rely on a hack: dirfd in its current usage in Emacs is always
+     AT_FDCWD.  */
+
+  if dirfd != AT_FDCWD
+    {
+      if strlen (&raw mut dir_pathname[0]) + strlen (pathname) + 1 >= MAXPATHLEN
+	{
+	  *errno () = ENAMETOOLONG;
+	  return -1;
+	}
+      sprintf (&raw mut fullname[0], c"%s/%s".as_ptr (), &raw mut dir_pathname[0], pathname);
+      pathname = &raw mut fullname[0];
+    }
+
+  fd = open (pathname, O_WRONLY);
+
+  if fd < 0
+    { return -1; }
+
+  ret = futimens (fd, times);
+  close (fd);
+
+  return ret;
+}
+
+/* Emulate faccessat(2).  */
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn faccessat (dirfd: c_int, mut path: *const c_char, mut mode: c_int,
+			 mut flags: c_int) -> c_int   // C 4067-4068
+{
+  let mut fullname: [c_char; MAXPATHLEN] = [0; MAXPATHLEN];
+
+  /* We silently ignore FLAGS.  */
+  flags = flags;
+
+  if dirfd != AT_FDCWD
+      && !(IS_DIRECTORY_SEP (*path as c_int)
+	   || IS_DEVICE_SEP (*path.offset (1) as c_int))
+    {
+      let lastc: c_char = dir_pathname[(strlen (&raw mut dir_pathname[0]) - 1) as usize];
+
+      if strlen (&raw mut dir_pathname[0]) + strlen (path)
+	  + (IS_DIRECTORY_SEP (lastc as c_int)) as usize >= MAXPATHLEN
+	{
+	  *errno () = ENAMETOOLONG;
+	  return -1;
+	}
+
+      sprintf (&raw mut fullname[0], c"%s%s%s".as_ptr (), &raw mut dir_pathname[0],
+	       if IS_DIRECTORY_SEP (lastc as c_int) { c"".as_ptr () }
+	       else { c"/".as_ptr () }, path);
+      path = &raw mut fullname[0];
+    }
+
+  if (mode & F_OK) != 0
+      && IS_DIRECTORY_SEP (*path.offset ((strlen (path) - 1) as isize) as c_int)
+    { mode |= D_OK; }
+
+  return access (path, mode);
+}
+
+/* Emulate fstatat.  */
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn fstatat (fd: c_int, mut name: *const c_char, st: *mut stat,
+		       mut flags: c_int) -> c_int   // C 4100-4101
+{
+  /* Rely on a hack: an open directory is modeled as file descriptor 0.
+     This is good enough for the current usage in Emacs, but is fragile.
+
+     FIXME: Add proper support for fdopendir, fstatat, readlinkat.
+     Gnulib does this and can serve as a model.  */
+  let mut fullname: [c_char; MAXPATHLEN] = [0; MAXPATHLEN];
+
+  flags = flags;
+
+  if fd != AT_FDCWD
+    {
+      let lastc: c_char = dir_pathname[(strlen (&raw mut dir_pathname[0]) - 1) as usize];
+
+      if strlen (&raw mut dir_pathname[0]) + strlen (name)
+	  + (IS_DIRECTORY_SEP (lastc as c_int)) as usize >= MAXPATHLEN
+	{
+	  *errno () = ENAMETOOLONG;
+	  return -1;
+	}
+
+      sprintf (&raw mut fullname[0], c"%s%s%s".as_ptr (), &raw mut dir_pathname[0],
+	       if IS_DIRECTORY_SEP (lastc as c_int) { c"".as_ptr () }
+	       else { c"/".as_ptr () }, name);
+      name = &raw mut fullname[0];
+    }
+
+  /* C 4128-4132: `#if __DJGPP__ > 2 || __DJGPP_MINOR__ > 3` / `#else` - both arms.  The
+     `#else` side is the djgpp 2.3-and-older one (the registered `djgpp_2_3`).  */
+  #[cfg (not (feature = "djgpp_2_3"))]
+  {
+  return if (flags & AT_SYMLINK_NOFOLLOW) != 0 { lstat (name, st) } else { stat (name, st) };
+  }
+  #[cfg (feature = "djgpp_2_3")]
+  {
+  return stat (name, st);
+  }
+}
+
+/* C 4135-4155: `#if __DJGPP__ == 2 && __DJGPP_MINOR__ < 4` - the same `djgpp_2_3` arm as
+   C 3895's `readlink`.  */
+/* Emulate the Posix unsetenv.  DJGPP v2.04 has this in the library.  */
+#[cfg (all (feature = "msdos", feature = "djgpp_2_3"))]
+#[unsafe(no_mangle)]
+pub unsafe fn unsetenv (name: *const c_char) -> c_int   // C 4137-4138
+{
+  let var: *mut c_char;
+  let name_len: usize;
+  let retval: c_int;
+
+  if name.is_null () || *name == 0 || !strchr (name, b'=' as c_int).is_null ()
+    {
+      *errno () = EINVAL;
+      return -1;
+    }
+
+  /* DJGPP's 'putenv' deletes the entry if it doesn't include '='.  */
+  putenv (name as *mut c_char);
+
+  return 0;
+}
+
+/* C 4158-4242: `#ifndef HAVE_SELECT` - the MS-DOS `select` emulation.  Both arms are carried:
+   the `#else` side is the system `select` (`lib/include/sys_select.rs` 39-50 already declares
+   it), so nothing but this arm defines anything.  The feature `have_select` is **not registered**
+   in `femacs/xtask/Cargo.toml` on this revision (the frozen table has `HAVE_SELECT 1`, so the
+   other arm is the frozen configuration's) - this ledger's Owed 1 names it.  */
+#[cfg (all (feature = "msdos", not (feature = "have_select")))]
+include!("include/sysselect.rs");              // C 4159: `#include "sysselect.h"`
+
+/* This yields the rest of the current time slice to the task manager.
+   It should be called by any code which knows that it has nothing
+   useful to do except idle.
+
+   I don't use __dpmi_yield here, since versions of library before 2.02
+   called Int 2Fh/AX=1680h there in a way that would wedge the DOS box
+   on some versions of Windows 9X.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_select")))]
+#[unsafe(no_mangle)]
+pub unsafe fn dos_yield_time_slice ()              // C 4169-4170
+{
+  let mut r: _go32_dpmi_registers = std::mem::zeroed ();
+
+  r.x.ax = 0x1680;
+  /* C's `r.x.ss = r.x.sp = r.x.flags = 0;` is a chained assignment (Deviations 21).  */
+  r.x.flags = 0;
+  r.x.sp = 0;
+  r.x.ss = 0;
+  _go32_dpmi_simulate_int (0x2f, &raw mut r);
+  if r.h.al == 0x80
+    { *errno () = ENOSYS; }
+}
+
+/* Only event queue is checked.  */
+/* We don't have to call timer_check here
+   because wait_reading_process_output takes care of that.  */
+#[cfg (all (feature = "msdos", not (feature = "have_select")))]
+#[unsafe(no_mangle)]
+pub unsafe fn sys_select (nfds: c_int, rfds: *mut fd_set, wfds: *mut fd_set, efds: *mut fd_set,
+			  timeout: *mut timespec, ignored: *mut c_void) -> c_int   // C 4184-4186
+{
+  let mut check_input: c_int;
+  let mut t: timespec = std::mem::zeroed ();
+
+  check_input = 0;
+  if !rfds.is_null ()
+    {
+      check_input = FD_ISSET (0, rfds) as c_int;
+      FD_ZERO (rfds);
+    }
+  if !wfds.is_null ()
+    { FD_ZERO (wfds); }
+  if !efds.is_null ()
+    { FD_ZERO (efds); }
+
+  if nfds != 1
+    { emacs_abort (); }
+
+  /* If we are looking only for the terminal, with no timeout,
+     just read it and wait -- that's more efficient.  */
+  if timeout.is_null ()
+    {
+      while !detect_input_pending ()
+	{
+	  dos_yield_time_slice ();
+	}
+    }
+  else
+    {
+      let mut clnow: timespec;
+      let mut cllast: timespec;
+      let mut cldiff: timespec;
+
+      gettime (&raw mut t);
+      cllast = make_timespec (t.tv_sec, t.tv_nsec);
+
+      while check_input == 0 || !detect_input_pending ()
+	{
+	  gettime (&raw mut t);
+	  clnow = make_timespec (t.tv_sec, t.tv_nsec);
+	  cldiff = timespec_sub (clnow, cllast);
+	  /* Stop when timeout value is about to cross zero.  */
+	  if timespec_cmp (*timeout, cldiff) <= 0
+	    {
+	      (*timeout).tv_sec = 0;
+	      (*timeout).tv_nsec = 0;
+	      return 0;
+	    }
+	  *timeout = timespec_sub (*timeout, cldiff);
+	  cllast = clnow;
+	  dos_yield_time_slice ();
+	}
+    }
+
+  FD_SET (0, rfds);
+  return 1;
+}
+
+/*
+ * Define overlaid functions:
+ *
+ *	chdir -> sys_chdir
+ *	tzset -> init_gettimeofday
+ *	abort -> dos_abort
+ */
+
+/* C 4252-4279: `#ifdef chdir` - the condition tests gnulib's *macro* of that name, so the port
+   spells it with the feature the macro's name lowercases to (P-86 ①); it is **not registered**
+   on this revision and this ledger's Owed 1 names it.  Both arms are carried: the `#else` side
+   is the mirror's own `chdir` declaration (`unistd.in.rs` 49), so only this arm defines
+   anything, and C's `#undef chdir` has no counterpart (the port never spells `chdir` as a
+   macro - one `## Deviations` entry).  */
+#[cfg (all (feature = "msdos", feature = "chdir"))]
+#[unsafe(no_mangle)]
+pub unsafe fn sys_chdir (path: *const c_char) -> c_int   // C 4256-4257
+{
+  let mut len: c_int = strlen (path) as c_int;
+  let mut tmp: *mut c_char = path as *mut c_char;
+
+  if *tmp != 0 && *tmp.offset (1) == b':' as c_char
+    {
+      if getdisk () != tolower (*tmp as c_int) - b'a' as c_int
+	{ setdisk (tolower (*tmp as c_int) - b'a' as c_int); }
+      tmp = tmp.offset (2);	/* strip drive: KFS 1995-07-06 */
+      len -= 2;
+    }
+
+  if len > 1 && (*tmp.offset ((len - 1) as isize) == b'/' as c_char)
+    {
+      let tmp1: *mut c_char = sa_stack_alloc (len as usize + 1) as *mut c_char;
+      strcpy (tmp1, tmp);
+      *tmp1.offset ((len - 1) as isize) = 0;
+      tmp = tmp1;
+    }
+  return chdir (tmp);
+}
+
+/* C 4281-4299: `#ifdef tzset` - the same shape as C 4252's arm, for gnulib's `tzset` macro
+   (`lib/include/time.in.rs` 119 declares the function the `#else` arm uses).  */
+#[cfg (all (feature = "msdos", feature = "tzset"))]
+#[unsafe(no_mangle)]
+pub unsafe fn init_gettimeofday ()                 // C 4285-4286
+{
+  let mut ltm: time_t;
+  let mut gtm: time_t;
+  let mut lstm: *mut tm;
+
+  tzset ();
+  /* C's `ltm = gtm = time (NULL);` is a chained assignment (Deviations 21).  */
+  gtm = time (std::ptr::null_mut ());
+  ltm = gtm;
+  /* C's `mktime (lstm = localtime (&ltm))` hoists the store (Deviations 31).  */
+  lstm = localtime (&raw mut ltm);
+  ltm = mktime (lstm);
+  gtm = mktime (gmtime (&raw mut gtm));
+  /* `time_rec` is a DJGPP `<time.h>` global with no mirror in this tree (Owed 5).  */
+  time_rec.tm_hour = 99;	/* force gettimeofday to get date */
+  time_rec.tm_isdst = (*lstm).tm_isdst;
+  /* C's `dos_timezone_offset = time_rec.tm_gmtoff = (int)(gtm - ltm) / 60;` is a chained
+     assignment (Deviations 21).  */
+  time_rec.tm_gmtoff = ((gtm - ltm) as c_int / 60) as c_long;
+  dos_timezone_offset = time_rec.tm_gmtoff as EMACS_INT;
+}
+
+#[cfg (feature = "msdos")]
+unsafe fn msdos_abort ()                           // C 4301-4302
+{
+  dos_ttcooked ();
+  ScreenSetCursor (10, 0);
+  cputs (c"\r\n\nEmacs aborted!\r\n".as_ptr ());
+  raise (SIGABRT);
+  exit (2);
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn msdos_fatal_signal (sig: c_int)      // C 4311-4312
+{
+  if sig == SIGABRT
+    { msdos_abort (); }
+  else
+    { raise (sig); }
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn syms_of_msdos ()                     // C 4320-4321
+{
+  recent_doskeys = Fmake_vector (make_fixnum (NUM_RECENT_DOSKEYS as EMACS_INT), Qnil ());
+  staticpro (&raw mut recent_doskeys);
+
+  /* C 4326-4336: `#ifndef HAVE_X_WINDOWS` - both arms (the `#else` arm is empty in C).  */
+  #[cfg (not (feature = "have_x_windows"))]
+  {
+  /* The following two are from xfns.c:  */
+  DEFSYM! (Qreverse, "reverse");
+
+  DEFVAR_LISP! ("dos-unsupported-char-glyph", Vdos_unsupported_char_glyph,
+		"Glyph to display instead of chars not supported by current codepage.\nThis variable is used only by MS-DOS terminals.  ");
+  Vdos_unsupported_char_glyph = make_fixnum ('\u{7f}' as EMACS_INT);
+  }
+
+  defsubr (&raw mut Srecent_doskeys);
+  defsubr (&raw mut Smsdos_long_file_names);
+  defsubr (&raw mut Smsdos_downcase_filename);
+  defsubr (&raw mut Smsdos_remember_default_colors);
+  defsubr (&raw mut Smsdos_set_mouse_buttons);
+
+  DEFSYM! (Qmsdos_menu_passive_face, "msdos-menu-passive-face");
+  DEFSYM! (Qmsdos_menu_active_face, "msdos-menu-active-face");
+  DEFSYM! (Qmsdos_menu_select_face, "msdos-menu-select-face");
+  DEFSYM! (Qmsdos_shells, "msdos-shells");
+}
+
+/* C 4350: `#endif /* MSDOS */` - the file gate's own closing line.  Every item of this unit
+   carries `#[cfg (feature = "msdos")]` instead, so the line has no counterpart; it is the end
+   of `emacs/src/msdos.c` and of this port.  */

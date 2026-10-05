@@ -122,13 +122,40 @@ pub mod msdos_decls {
                         help_callback: Option<unsafe extern "C" fn (*const c_char, c_int,
                                                                     c_int)>);
     pub fn XMenuDestroy (foo: *mut Display, menu: *mut XMenu);
+
+  /* The MS-DOS side's own prototypes for the names *this* file's unit and its DJGPP arm
+     define, plus the slice-4 declarations that stayed at the crate root until now: a
+     definition at this scope collides with a same-named declaration (`E0428`), while an
+     explicit item shadows a glob import - the `include/syssignal.rs` 29-52 shape and
+     PORTING.md 0.1-10.  The *override* half of the family (the copies the system mirrors
+     `lib/include/unistd.in.rs`/`fcntl.in.rs`/`sys_stat.in.rs`/`errno.rs` also carry) is
+     not here: that pair still collides with these definitions and is owed to the mirror
+     round (docs/ports/msdos.md `## Owed` 2, status 3.478).  */
+
+    pub fn dos_ttraw (tty: *mut tty_display_info) -> c_int;
+    pub fn dos_ttcooked () -> c_int;
+    pub fn init_environment (argc: c_int, argv: *mut *mut c_char, skip_args: c_int);
+    pub fn readlinkat (fd: c_int, name: *const c_char, buffer: *mut c_char,
+                       buffer_size: usize) -> c_long;
+    pub fn fstatat (fd: c_int, name: *const c_char, st: *mut c_void, flags: c_int) -> c_int;
+    pub fn unsetenv (name: *const c_char) -> c_int;
+    pub fn faccessat (dirfd: c_int, path: *const c_char, mode: c_int, flags: c_int) -> c_int;
+    pub fn openat (fd: c_int, path: *const c_char, oflag: c_int, mode: c_int) -> c_int;
+    pub fn fchmodat (fd: c_int, path: *const c_char, mode: mode_t, flags: c_int) -> c_int;
+    pub fn futimens (fd: c_int, times: *const c_void) -> c_int;
+    pub fn utimensat (dirfd: c_int, pathname: *const c_char, times: *const c_void,
+                      flags: c_int) -> c_int;
+    pub fn msdos_fatal_signal (sig: c_int);
+    pub fn syms_of_msdos ();
+    pub fn run_msdos_command (argv: *mut *mut c_char, working_dir: *const c_char,
+                              tempin: c_int, tempout: c_int, temperr: c_int,
+                              envv: *mut *mut c_char) -> c_int;
+    pub fn syms_of_win16select ();
   }
 }
 use msdos_decls::*;
 
 unsafe extern "C" {
-  pub fn dos_ttraw (tty: *mut tty_display_info) -> c_int;
-  pub fn dos_ttcooked () -> c_int;
 }
 
 /// C 36-42: the MS-DOS file-name primitives and the environment/terminal initializers.
@@ -140,7 +167,6 @@ unsafe extern "C" {
 /// C: void internal_terminal_init (void);
 /// C: void initialize_msdos_display (struct terminal *);
 unsafe extern "C" {
-  pub fn init_environment (argc: c_int, argv: *mut *mut c_char, skip_args: c_int);
 }
 
 /// C 44-48: the mouse.  C 44's `have_mouse` is the one object this header owns here.
@@ -183,16 +209,6 @@ unsafe extern "C" {
 /// C: int pthread_sigmask (int, const sigset_t *, sigset_t *);
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
-  pub fn readlinkat (fd: c_int, name: *const c_char, buffer: *mut c_char,
-                     buffer_size: usize) -> c_long;
-  pub fn fstatat (fd: c_int, name: *const c_char, st: *mut c_void, flags: c_int) -> c_int;
-  pub fn unsetenv (name: *const c_char) -> c_int;
-  pub fn faccessat (dirfd: c_int, path: *const c_char, mode: c_int, flags: c_int) -> c_int;
-  pub fn openat (fd: c_int, path: *const c_char, oflag: c_int, mode: c_int) -> c_int;
-  pub fn fchmodat (fd: c_int, path: *const c_char, mode: mode_t, flags: c_int) -> c_int;
-  pub fn futimens (fd: c_int, times: *const c_void) -> c_int;
-  pub fn utimensat (dirfd: c_int, pathname: *const c_char, times: *const c_void,
-                    flags: c_int) -> c_int;
   pub fn pthread_sigmask (how: c_int, set: *const c_void, oset: *mut c_void) -> c_int;
 }
 
@@ -204,12 +220,6 @@ unsafe extern "C" {
 /// C: int run_msdos_command (char **, const char *, int, int, int, char **);
 /// C: void syms_of_win16select (void);
 unsafe extern "C" {
-  pub fn msdos_fatal_signal (sig: c_int);
-  pub fn syms_of_msdos ();
-  pub fn run_msdos_command (argv: *mut *mut c_char, working_dir: *const c_char,
-                            tempin: c_int, tempout: c_int, temperr: c_int,
-                            envv: *mut *mut c_char) -> c_int;
-  pub fn syms_of_win16select ();
 }
 
 /* Constants.  */
