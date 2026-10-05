@@ -119,6 +119,9 @@ include!("include/xsettings.rs");              // C 39: `#include "xsettings.h"`
 #[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
 type xp_output = pgtk_output;                  // C 40: `typedef struct pgtk_output xp_output;`
 
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+include!("include/emacsgtkfixed.rs");          // C 63: `#include "emacsgtkfixed.h"`
+
 /* C 42-47: the rest of the Emacs headers.  `gtkutil.h`'s mirror is a placeholder (it carries the
    include guard alone), so the `xg_*` names this unit uses are declared where C's text uses them -
    `xg_list_node` at C 619-630 and `xg_wm_set_size_hint` at C 1209 (P-72 rule 4), both owed to that
@@ -986,6 +989,510 @@ unsafe extern "C" {
   /// C: gtk/gtkmain.h: `gboolean gtk_events_pending (void);`
   pub fn gtk_events_pending () -> gboolean;
 }
+// C 49 / C 44's chain: `#include <gdk/gdkkeysyms.h>` and `"gtkutil.h"` 26's `<gtk/gtk.h>` - the
+// same third-party surface as the section above, for the names C 1297-2281 needs.
+
+/* ----------------------------------------------------------------------------------------------
+   C 1297-2281's additions to the toolkit surface: the GDK/GTK/GLib names this slice's text needs
+   that C 44/49's chain above did not carry.  Same rule as that section (P-88 ①; the P-90 ③ move
+   into `femacs/src/include/gtk.rs` is owed and covers these too): the reference tree has no file
+   for any of them, so they stand here.  GLib *is* on this machine and its lines are quoted;
+   **GDK and GTK are not**, so their citations name the header alone and **every size, offset and
+   constant value of theirs is UNVERIFIED** - no layout assertion is written for a GDK or GTK
+   record and each enumerator/flag the C text names carries a *placeholder* value (the
+   `src/xwidget.rs` 495-520 rule: the toolkit's values are not measurable here, so the port keeps
+   the arms and the bit tests distinct rather than inventing behaviour, and `## Owed` 6 names the
+   real values as owed).  */
+
+/* GLib/GObject, continued (gsignal.h, gobject.h, gmem.h).  */
+/// C: gsignal.h 218-226: `typedef enum { G_SIGNAL_MATCH_ID = 1 << 0, G_SIGNAL_MATCH_DETAIL =
+/// 1 << 1, G_SIGNAL_MATCH_CLOSURE = 1 << 2, G_SIGNAL_MATCH_FUNC = 1 << 3, … } GSignalMatchType;`
+/// - C 1813/1916 pass `G_SIGNAL_MATCH_FUNC` as `g_signal_handler_find`'s `mask`.  Measured on
+/// this machine (GLib 2.90.0): the enumerator is `1 << 3`.
+#[cfg (feature = "use_gtk")]
+pub type GSignalMatchType = c_int;
+#[cfg (feature = "use_gtk")]
+pub const G_SIGNAL_MATCH_FUNC: GSignalMatchType = 1 << 3;
+/// C: gsignal.h 458-465: `gulong g_signal_handler_find (gpointer instance, GSignalMatchType
+/// mask, guint signal_id, GQuark detail, GClosure *closure, gpointer func, gpointer data);`
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C 1812/1915: `if (! g_signal_handler_find (G_OBJECT (gs), G_SIGNAL_MATCH_FUNC, 0, 0, 0,
+  /// (gpointer) G_CALLBACK (style_changed_cb), 0))`
+  pub fn g_signal_handler_find (instance: gpointer, mask: GSignalMatchType, signal_id: guint,
+				detail: GQuark, closure: *mut GClosure, func: gpointer,
+				data: gpointer) -> gulong;
+}
+/// C: gobject.h 695: `#define g_clear_object(object_ptr) g_clear_pointer ((object_ptr),
+/// g_object_unref)` - whose own body is gmem.h 135-145 (the `__GNUC__` arm this machine takes):
+/// take the pointer, null the slot, then `g_object_unref` the old value when it was non-NULL.
+/// C 1450 is the one call site; the port carries the semantics and records GLib's macro chain
+/// here rather than inventing a second `g_clear_pointer` name C never writes.
+#[cfg (feature = "use_gtk")]
+macro_rules! g_clear_object {
+  ($object_ptr:expr) => {
+    {
+      let pp = ($object_ptr);
+      let ptr: *mut c_void = *pp as *mut c_void;
+      *pp = std::ptr::null_mut ();
+      if ! ptr.is_null () { g_object_unref (ptr); }
+    }
+  };
+}
+
+/* GDK, continued.  G_DECLARE-style opaque handles, then the event records, the hint/gravity and
+   event-mask enumerations and the entry points.  */
+/// C: gdk/gdktypes.h: `typedef enum { GDK_NOTHING, GDK_DELETE, GDK_DESTROY, … } GdkEventType;` - C
+/// 1414 writes `GDK_NOTHING`.  C's enum ABI is `c_int` (PORTING.md 1.3); **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+pub type GdkEventType = c_int;
+#[cfg (feature = "use_gtk")]
+pub const GDK_NOTHING: GdkEventType = 0;              // placeholder, not GDK's value
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventAny GdkEventAny;` with `GdkEventType type;
+/// GdkWindow *window; gint8 send_event;`, and `typedef union _GdkEvent GdkEvent;` with `any`
+/// among its members.  C 1412-1414 sets `event.any.window` and `event.any.type`, and C 1566 takes
+/// a `GdkEvent *`.  **UNVERIFIED**: no GDK header on this machine.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventAny
+{
+  pub r#type: GdkEventType,        // C: gdk/gdktypes.h: `GdkEventType type;`
+  pub window: *mut GdkWindow,      // C: gdk/gdktypes.h: `GdkWindow *window;`
+  pub send_event: i8,         // C: gdk/gdktypes.h: `gint8 send_event;`
+}
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub union GdkEvent
+{
+  pub r#type: GdkEventType,        // C: gdk/gdktypes.h: `GdkEventType type;`
+  pub any: GdkEventAny,            // C: gdk/gdktypes.h: `GdkEventAny any;`
+}
+/// C: gdk/gdktypes.h: `typedef struct _GdkVisual GdkVisual;` (C 1735/1741/1745 hold one).
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct GdkVisual
+{
+  _private: [u8; 0],
+}
+/// C: gdk/gdktypes.h: `typedef struct _GdkColormap GdkColormap;` (GTK2's GDK; C 1454 holds one).
+/// **UNVERIFIED** (and GTK2's GDK is a second, separate surface).
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+#[repr (C)]
+pub struct GdkColormap
+{
+  _private: [u8; 0],
+}
+/// C: gdk/gdktypes.h: `typedef enum { GDK_EXPOSURE_MASK = 1 << 1, GDK_POINTER_MOTION_MASK =
+/// 1 << 2, … GDK_BUTTON_PRESS_MASK = 1 << 8, GDK_BUTTON_RELEASE_MASK = 1 << 9, GDK_KEY_PRESS_MASK
+/// = 1 << 10, GDK_ENTER_NOTIFY_MASK = 1 << 12, GDK_LEAVE_NOTIFY_MASK = 1 << 13,
+/// GDK_FOCUS_CHANGE_MASK = 1 << 14, GDK_STRUCTURE_MASK = 1 << 15, GDK_VISIBILITY_NOTIFY_MASK =
+/// 1 << 17, GDK_SCROLL_MASK = 1 << 21, GDK_TOUCH_MASK = 1 << 22, GDK_SMOOTH_SCROLL_MASK =
+/// 1 << 23, GDK_ALL_EVENTS_MASK = 0x3FFFFF } GdkEventMask;` - C 1607/1713-1730/1845 pass these to
+/// `gtk_widget_add_events`.  **UNVERIFIED**: each name carries a placeholder bit (`## Owed` 6).
+#[cfg (feature = "use_gtk")]
+pub type GdkEventMask = c_int;
+#[cfg (feature = "use_gtk")]
+pub const GDK_EXPOSURE_MASK: GdkEventMask = 1 << 1;             // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_POINTER_MOTION_MASK: GdkEventMask = 1 << 2;       // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_BUTTON_PRESS_MASK: GdkEventMask = 1 << 8;         // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_BUTTON_RELEASE_MASK: GdkEventMask = 1 << 9;       // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_KEY_PRESS_MASK: GdkEventMask = 1 << 10;           // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_ENTER_NOTIFY_MASK: GdkEventMask = 1 << 12;        // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_LEAVE_NOTIFY_MASK: GdkEventMask = 1 << 13;        // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_FOCUS_CHANGE_MASK: GdkEventMask = 1 << 14;        // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_STRUCTURE_MASK: GdkEventMask = 1 << 15;           // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_VISIBILITY_NOTIFY_MASK: GdkEventMask = 1 << 17;   // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_SCROLL_MASK: GdkEventMask = 1 << 21;              // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_TOUCH_MASK: GdkEventMask = 1 << 22;               // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_SMOOTH_SCROLL_MASK: GdkEventMask = 1 << 23;       // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_ALL_EVENTS_MASK: GdkEventMask = 0x3FFFFF;         // placeholder, not GDK's value
+/// C: gdk/gdkwindow.h: `typedef enum { GDK_HINT_POS = 1 << 0, GDK_HINT_MIN_SIZE = 1 << 1,
+/// GDK_HINT_MAX_SIZE = 1 << 2, GDK_HINT_BASE_SIZE = 1 << 3, GDK_HINT_ASPECT = 1 << 4,
+/// GDK_HINT_RESIZE_INC = 1 << 5, GDK_HINT_WIN_GRAVITY = 1 << 6, GDK_HINT_USER_POS = 1 << 7,
+/// GDK_HINT_USER_SIZE = 1 << 8 } GdkWindowHints;` - C 2031-2103 builds `hint_flags` from these.
+/// **UNVERIFIED**: each name carries a placeholder bit (`## Owed` 6).
+#[cfg (feature = "use_gtk")]
+pub type GdkWindowHints = c_int;
+#[cfg (feature = "use_gtk")]
+pub const GDK_HINT_POS: GdkWindowHints = 1 << 0;                // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_HINT_MIN_SIZE: GdkWindowHints = 1 << 1;           // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_HINT_BASE_SIZE: GdkWindowHints = 1 << 3;          // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_HINT_RESIZE_INC: GdkWindowHints = 1 << 5;         // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_HINT_WIN_GRAVITY: GdkWindowHints = 1 << 6;        // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_HINT_USER_POS: GdkWindowHints = 1 << 7;           // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_HINT_USER_SIZE: GdkWindowHints = 1 << 8;          // placeholder, not GDK's value
+/// C: gdk/gdkwindow.h: `typedef enum { GDK_GRAVITY_NORTH_WEST = 1, GDK_GRAVITY_NORTH,
+/// GDK_GRAVITY_NORTH_EAST, GDK_GRAVITY_WEST, GDK_GRAVITY_CENTER, GDK_GRAVITY_EAST,
+/// GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_SOUTH, GDK_GRAVITY_SOUTH_EAST, GDK_GRAVITY_STATIC }
+/// GdkGravity;` and `GdkGravity gtk_window_get_gravity (GtkWindow *window);` - C 1711/1894/2054-
+/// 2076 read and build these.  **UNVERIFIED**: each name carries a placeholder value
+/// (`## Owed` 6), distinct so the ten comparisons stay ten.
+#[cfg (feature = "use_gtk")]
+pub type GdkGravity = c_int;
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_NORTH_WEST: GdkGravity = 1;               // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_NORTH: GdkGravity = 2;                    // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_NORTH_EAST: GdkGravity = 3;               // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_WEST: GdkGravity = 4;                     // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_CENTER: GdkGravity = 5;                   // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_EAST: GdkGravity = 6;                     // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_SOUTH_WEST: GdkGravity = 7;               // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_SOUTH: GdkGravity = 8;                    // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_SOUTH_EAST: GdkGravity = 9;               // placeholder, not GDK's value
+#[cfg (feature = "use_gtk")]
+pub const GDK_GRAVITY_STATIC: GdkGravity = 10;                  // placeholder, not GDK's value
+/// C: gdk/gdkwindow.h: `typedef struct _GdkGeometry GdkGeometry;` with `gint min_width;
+/// gint min_height; gint max_width; gint max_height; gint base_width; gint base_height; gint
+/// width_inc; gint height_inc; gdouble min_aspect; gdouble max_aspect; GdkGravity win_gravity;`.
+/// C 1989-2099 `memset`s the whole record, writes seven of the members and `memcmp`s the whole
+/// record, so the port carries all eleven members rather than the seven (a partial record would
+/// make C's `sizeof` span wrong).  **UNVERIFIED**: no GDK header on this machine, so no size or
+/// offset assertion is written.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkGeometry
+{
+  pub min_width: c_int,            // C: gdk/gdkwindow.h: `gint min_width;`
+  pub min_height: c_int,           // C: gdk/gdkwindow.h: `gint min_height;`
+  pub max_width: c_int,            // C: gdk/gdkwindow.h: `gint max_width;`
+  pub max_height: c_int,           // C: gdk/gdkwindow.h: `gint max_height;`
+  pub base_width: c_int,           // C: gdk/gdkwindow.h: `gint base_width;`
+  pub base_height: c_int,          // C: gdk/gdkwindow.h: `gint base_height;`
+  pub width_inc: c_int,            // C: gdk/gdkwindow.h: `gint width_inc;`
+  pub height_inc: c_int,           // C: gdk/gdkwindow.h: `gint height_inc;`
+  pub min_aspect: c_double,        // C: gdk/gdkwindow.h: `gdouble min_aspect;`
+  pub max_aspect: c_double,        // C: gdk/gdkwindow.h: `gdouble max_aspect;`
+  pub win_gravity: GdkGravity,     // C: gdk/gdkwindow.h: `GdkGravity win_gravity;`
+}
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C 1408: `gdkwin = gdk_x11_window_lookup_for_display (gdk_x11_lookup_xdisplay (dpy), wdesc);`
+  /// C: gdk/gdkx.h: `gpointer gdk_x11_window_lookup_for_display (GdkDisplay *display, Window
+  /// window);`
+  pub fn gdk_x11_window_lookup_for_display (display: *mut GdkDisplay, window: Window) -> gpointer;
+  /// C 1352/1365: `gdk_window_move_resize (gwin, x, y, outer_width, outer_height);`
+  /// C: gdk/gdkwindow.h: `void gdk_window_move_resize (GdkWindow *window, gint x, gint y, gint
+  /// width, gint height);`
+  pub fn gdk_window_move_resize (window: *mut GdkWindow, x: gint, y: gint, width: gint,
+				 height: gint);
+  /// C 1782/1903/2255: `gdk_window_set_override_redirect (gwin, TRUE);`
+  /// C: gdk/gdkwindow.h: `void gdk_window_set_override_redirect (GdkWindow *window, gboolean
+  /// override_redirect);`
+  pub fn gdk_window_set_override_redirect (window: *mut GdkWindow, override_redirect: gboolean);
+  /// C 2174: `gdk_window_restack (gwin1, gwin2, above_flag as gboolean);`
+  /// C: gdk/gdkwindow.h: `void gdk_window_restack (GdkWindow *window, GdkWindow *sibling,
+  /// gboolean above);`
+  pub fn gdk_window_restack (window: *mut GdkWindow, sibling: *mut GdkWindow, above: gboolean);
+  /// C 2192/2197: `gdk_window_set_skip_taskbar_hint (…, NILP (skip_taskbar) ? FALSE : TRUE);`
+  /// C: gdk/gdkwindow.h: `void gdk_window_set_skip_taskbar_hint (GdkWindow *window, gboolean
+  /// skips_taskbar);`
+  pub fn gdk_window_set_skip_taskbar_hint (window: *mut GdkWindow, skips_taskbar: gboolean);
+  /// C 1515: `const char *display_name = gdk_display_get_name (gdpy);`
+  /// C: gdk/gdkdisplay.h: `const gchar *gdk_display_get_name (GdkDisplay *display);`
+  pub fn gdk_display_get_name (display: *mut GdkDisplay) -> *const c_char;
+  /// C 1820/1923: `gdk_screen_get_display (screen)`
+  /// C: gdk/gdkscreen.h: `GdkDisplay *gdk_screen_get_display (GdkScreen *screen);`
+  pub fn gdk_screen_get_display (screen: *mut GdkScreen) -> *mut GdkDisplay;
+  /// C 1741: `GdkVisual *visual = gdk_screen_get_rgba_visual (screen);`
+  /// C: gdk/gdkscreen.h: `GdkVisual *gdk_screen_get_rgba_visual (GdkScreen *screen);`
+  pub fn gdk_screen_get_rgba_visual (screen: *mut GdkScreen) -> *mut GdkVisual;
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  /// C 1735: `GdkVisual *visual = gdk_x11_screen_lookup_visual (screen,
+  /// XVisualIDFromVisual (FRAME_X_VISUAL (f)));`
+  /// C: gdk/gdkx.h: `GdkVisual *gdk_x11_screen_lookup_visual (GdkScreen *screen,
+  /// VisualID xvisualid);`
+  pub fn gdk_x11_screen_lookup_visual (screen: *mut GdkScreen, xvisualid: VisualID)
+				       -> *mut GdkVisual;
+}
+/// C: gdk/gdkcolor.h (GTK2's GDK): `void gdk_colormap_query_color (GdkColormap *colormap,
+/// gulong pixel, GdkColor *result);` - C 1455's one call.  **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+unsafe extern "C" {
+  pub fn gdk_colormap_query_color (colormap: *mut GdkColormap, pixel: gulong,
+				   result: *mut GdkColor);
+}
+
+/* GTK, continued.  */
+/// C: gtk/gtkwindow.h: `typedef enum { GTK_WINDOW_TOPLEVEL, GTK_WINDOW_POPUP } GtkWindowType;` -
+/// C 1588/1604/1839 read these.  **UNVERIFIED**: placeholders (`## Owed` 6).
+#[cfg (feature = "use_gtk")]
+pub type GtkWindowType = c_int;
+#[cfg (feature = "use_gtk")]
+pub const GTK_WINDOW_TOPLEVEL: GtkWindowType = 0;               // placeholder, not GTK's value
+#[cfg (feature = "use_gtk")]
+pub const GTK_WINDOW_POPUP: GtkWindowType = 1;                  // placeholder, not GTK's value
+/// C: gtk/gtkenums.h (GTK3's): `typedef enum { GTK_ORIENTATION_HORIZONTAL, GTK_ORIENTATION_VERTICAL
+/// } GtkOrientation;` - C 1627/1628/1849/1850 pass these to `gtk_box_new`.  The GTK2 arm's same
+/// names are the GTK2 header's and stay owed (`## Owed` 6); this arm is GTK3's, and the values are
+/// **UNVERIFIED** placeholders.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub type GtkOrientation = c_int;
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub const GTK_ORIENTATION_HORIZONTAL: GtkOrientation = 0;       // placeholder, not GTK's value
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub const GTK_ORIENTATION_VERTICAL: GtkOrientation = 1;         // placeholder, not GTK's value
+/// C: gtk/gtkstyle.h (GTK2's): `typedef struct _GtkRcStyle GtkRcStyle;` - C 1583/1763-1767 hold
+/// one and write its `bg_pixmap_name` array.  **UNVERIFIED** (GTK2's own surface).
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+#[repr (C)]
+pub struct GtkRcStyle
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkimmulticontext.h / gtk/gtkimcontext.h: `typedef struct _GtkIMContext GtkIMContext;`
+/// - C 1586/1793-1802 hold one and pass it to `g_signal_connect` and `FRAME_X_OUTPUT (f)`.
+/// **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct GtkIMContext
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkcssprovider.h (GTK3's): `typedef struct _GtkCssProvider GtkCssProvider;` - C 1445-
+/// 1450 hold one.  **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[repr (C)]
+pub struct GtkCssProvider
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkstylecontext.h (GTK3's): `typedef struct _GtkStyleProvider GtkStyleProvider;` - the
+/// pointee of `GTK_STYLE_PROVIDER` C 1448 hands to `gtk_style_context_add_provider`.
+/// **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[repr (C)]
+pub struct GtkStyleProvider
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkbox.h: `typedef struct _GtkBox GtkBox;` - the pointee of `GTK_BOX` C 1629/1630/
+/// 1677/1678/1851/1852/1878 pass to `gtk_box_set_homogeneous`/`gtk_box_pack_start`.
+/// **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct GtkBox
+{
+  _private: [u8; 0],
+}
+/// C: gobject/gparam.h: `typedef struct _GParamSpec GParamSpec;` - C 1510's callback parameter.
+/// **UNVERIFIED**.
+#[cfg (feature = "use_gtk")]
+#[repr (C)]
+pub struct GParamSpec
+{
+  _private: [u8; 0],
+}
+/// C: gtk/gtkenums.h (GTK2's): `GTK_STATE_NORMAL` (C 1456's `gtk_widget_modify_bg`, C 1766's
+/// `bg_pixmap_name` index).  **UNVERIFIED**: placeholder (`## Owed` 6).
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+pub const GTK_STATE_NORMAL: GtkStateType = 0;                   // placeholder, not GTK's value
+/// C: gtk/gtkstylecontext.h: `#define GTK_STYLE_PROVIDER_PRIORITY_APPLICATION 600` - C 1449's
+/// one use.  **UNVERIFIED**: placeholder (`## Owed` 6, alongside `src/pgtkterm.rs` 547's same
+/// family).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub const GTK_STYLE_PROVIDER_PRIORITY_APPLICATION: c_uint = 0;  // placeholder, not GTK's value
+/// C: gtk/gtkbox.h / gtk/gtkstylecontext.h: the two checked-cast wrappers C 1629/1630/1677/1678/
+/// 1851/1852/1878/1448 use, each keeping the macro's name and its result type (the GLib cast
+/// chains are owed, as above).
+#[cfg (feature = "use_gtk")]
+macro_rules! GTK_BOX {
+  ($o:expr) => { ($o) as *mut GtkBox };
+}
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+macro_rules! GTK_STYLE_PROVIDER {
+  ($o:expr) => { ($o) as *mut GtkStyleProvider };
+}
+/// C: gtk/gtk.h: `GtkWidget *gtk_box_new (GtkOrientation orientation, gint spacing);` - GTK3's
+/// function (the GTK2 arm's `gtk_box_new` is C 119-121's macro, carried above).  C's call sites
+/// (`xg_create_frame_widgets` C 1627/1628 and `xg_create_frame_outer_widgets` C 1849/1850) keep
+/// C's text in both arms, so the port's uniform spelling is the macro form, which forwards to
+/// this function here (the `src/image.rs` 1849-1872 `image_get_x_image_or_dc` shape).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+macro_rules! gtk_box_new {
+  ($ori:expr, $spacing:expr) => { gtk_box_new ($ori, $spacing) };
+}
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" {
+  /// C 1600/1606/1844: `wtop = gtk_window_new (type);`
+  /// C: gtk/gtkwindow.h: `GtkWidget *gtk_window_new (GtkWindowType type);`
+  pub fn gtk_window_new (type_: GtkWindowType) -> *mut GtkWidget;
+  /// C 1607/1713/1845: `gtk_widget_add_events (wtop, GDK_ALL_EVENTS_MASK);` / `… (wfixed, …)`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_add_events (GtkWidget *widget, gint events);`
+  pub fn gtk_widget_add_events (widget: *mut GtkWidget, events: gint);
+  /// C 1610: `gtk_widget_set_app_paintable (wtop, f->alpha_background != 1.0);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_set_app_paintable (GtkWidget *widget, gboolean
+  /// app_paintable);`
+  pub fn gtk_widget_set_app_paintable (widget: *mut GtkWidget, app_paintable: gboolean);
+  /// C 1650/1651/1652/1855/1856: `gtk_widget_set_name (wtop, EMACS_CLASS);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_set_name (GtkWidget *widget, const gchar *name);`
+  pub fn gtk_widget_set_name (widget: *mut GtkWidget, name: *const gchar);
+  /// C 1640-1643/1949/1960/1974: `gtk_widget_destroy (wtop);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_destroy (GtkWidget *widget);`
+  pub fn gtk_widget_destroy (widget: *mut GtkWidget);
+  /// C 1674: `gtk_widget_set_has_window (wfixed, TRUE);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_set_has_window (GtkWidget *widget, gboolean
+  /// has_window);`
+  pub fn gtk_widget_set_has_window (widget: *mut GtkWidget, has_window: gboolean);
+  /// C 1676/1877: `gtk_container_add (GTK_CONTAINER (wtop), wvbox);`
+  /// C: gtk/gtkcontainer.h: `void gtk_container_add (GtkContainer *container, GtkWidget *widget);`
+  pub fn gtk_container_add (container: *mut GtkContainer, widget: *mut GtkWidget);
+  /// C 1677/1678/1878: `gtk_box_pack_start (GTK_BOX (wvbox), whbox, TRUE, TRUE, 0);`
+  /// C: gtk/gtkbox.h: `void gtk_box_pack_start (GtkBox *box, GtkWidget *child, gboolean expand,
+  /// gboolean fill, guint padding);`
+  pub fn gtk_box_pack_start (box_: *mut GtkBox, child: *mut GtkWidget, expand: gboolean,
+			     fill: gboolean, padding: guint);
+  /// C 1629/1630/1851/1852: `gtk_box_set_homogeneous (GTK_BOX (wvbox), FALSE);`
+  /// C: gtk/gtkbox.h: `void gtk_box_set_homogeneous (GtkBox *box, gboolean homogeneous);`
+  pub fn gtk_box_set_homogeneous (box_: *mut GtkBox, homogeneous: gboolean);
+  /// C 1710/1893: `f->win_gravity = gtk_window_get_gravity (GTK_WINDOW (…));`
+  /// C: gtk/gtkwindow.h: `GdkGravity gtk_window_get_gravity (GtkWindow *window);`
+  pub fn gtk_window_get_gravity (window: *mut GtkWindow) -> GdkGravity;
+  /// C 1665/1869/2152: `gtk_window_set_decorated (GTK_WINDOW (wtop), FALSE);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_decorated (GtkWindow *window, gboolean setting);`
+  pub fn gtk_window_set_decorated (window: *mut GtkWindow, setting: gboolean);
+  /// C 1774/1896: `gtk_window_set_resizable (GTK_WINDOW (wtop), TRUE);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_resizable (GtkWindow *window, gboolean resizable);`
+  pub fn gtk_window_set_resizable (window: *mut GtkWindow, resizable: gboolean);
+  /// C 1732/1912: `GdkScreen *screen = gtk_widget_get_screen (wtop);`
+  /// C: gtk/gtkwidget.h: `GdkScreen *gtk_widget_get_screen (GtkWidget *widget);`
+  pub fn gtk_widget_get_screen (widget: *mut GtkWidget) -> *mut GdkScreen;
+  /// C 1744/1745: `gtk_widget_set_visual (wtop, visual);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_set_visual (GtkWidget *widget, GdkVisual *visual);`
+  pub fn gtk_widget_set_visual (widget: *mut GtkWidget, visual: *mut GdkVisual);
+  /// C 1768/1770/2233: `gtk_widget_set_can_focus (wfixed, TRUE);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_set_can_focus (GtkWidget *widget, gboolean can_focus);`
+  pub fn gtk_widget_set_can_focus (widget: *mut GtkWidget, can_focus: gboolean);
+  /// C 2102: `gtk_window_set_geometry_hints (GTK_WINDOW (…), NULL, &size_hints, hint_flags);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_geometry_hints (GtkWindow *window, GtkWidget
+  /// *geometry_widget, GdkGeometry *geometry, GdkWindowHints geom_mask);`
+  pub fn gtk_window_set_geometry_hints (window: *mut GtkWindow, geometry_widget: *mut GtkWidget,
+					geometry: *mut GdkGeometry, geom_mask: GdkWindowHints);
+  /// C 1415: `gwdesc = gtk_get_event_widget (&event);`
+  /// C: gtk/gtkmain.h: `GtkWidget *gtk_get_event_widget (GdkEvent *event);`
+  pub fn gtk_get_event_widget (event: *mut GdkEvent) -> *mut GtkWidget;
+  /// C 2219: `gtk_window_set_focus_on_map (gwin, g_no_focus_on_map);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_focus_on_map (GtkWindow *window, gboolean
+  /// setting);`
+  pub fn gtk_window_set_focus_on_map (window: *mut GtkWindow, setting: gboolean);
+  /// C 2241: `gtk_window_set_accept_focus (gwin, g_no_accept_focus);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_accept_focus (GtkWindow *window, gboolean
+  /// setting);`
+  pub fn gtk_window_set_accept_focus (window: *mut GtkWindow, setting: gboolean);
+  /// C 2276: `gtk_window_set_icon (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)), gp);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_icon (GtkWindow *window, GdkPixbuf *icon);`
+  pub fn gtk_window_set_icon (window: *mut GtkWindow, icon: *mut GdkPixbuf);
+}
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe extern "C" {
+  /// C 1627/1628/1849/1850: `wvbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);` (the GTK2 arm's
+  /// `gtk_box_new` is C 119-121's macro above; this is GTK3's function, which the forwarding macro
+  /// also names)
+  /// C: gtk/gtkbox.h: `GtkWidget *gtk_box_new (GtkOrientation orientation, gint spacing);`
+  pub fn gtk_box_new (orientation: GtkOrientation, spacing: gint) -> *mut GtkWidget;
+  /// C 1445-1446: `GtkCssProvider *provider = gtk_css_provider_new ();` /
+  /// `gtk_css_provider_load_from_data (provider, buffer, -1, NULL);`
+  /// C: gtk/gtkcssprovider.h: `GtkCssProvider *gtk_css_provider_new (void);` / `void
+  /// gtk_css_provider_load_from_data (GtkCssProvider *css_provider, const gchar *data, gssize
+  /// length, GError **error);`
+  pub fn gtk_css_provider_new () -> *mut GtkCssProvider;
+  pub fn gtk_css_provider_load_from_data (css_provider: *mut GtkCssProvider, data: *const gchar,
+					  length: isize, error: *mut *mut GError);
+  /// C 1447-1449: `gtk_style_context_add_provider (gtk_widget_get_style_context (w),
+  /// GTK_STYLE_PROVIDER (provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);`
+  /// C: gtk/gtkstylecontext.h: `void gtk_style_context_add_provider (GtkStyleContext *context,
+  /// GtkStyleProvider *provider, guint priority);`
+  pub fn gtk_style_context_add_provider (context: *mut GtkStyleContext,
+					 provider: *mut GtkStyleProvider, priority: guint);
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  /// C 1597: `wtop = gtk_plug_new_for_display (gdpy, f->output_data.xp->parent_desc);`
+  /// C: gtk/gtkx.h: `GtkWidget *gtk_plug_new_for_display (GdkDisplay *display, Window socket_id);`
+  pub fn gtk_plug_new_for_display (display: *mut GdkDisplay, socket_id: Window) -> *mut GtkWidget;
+  /// C 1793-1794: `imc = gtk_im_multicontext_new ();` /
+  /// `gtk_im_context_set_use_preedit (imc, TRUE);`
+  /// C: gtk/gtkimmulticontext.h: `GtkIMContext *gtk_im_multicontext_new (void);` /
+  /// gtk/gtkimcontext.h: `void gtk_im_context_set_use_preedit (GtkIMContext *context, gboolean
+  /// use_preedit);`
+  pub fn gtk_im_multicontext_new () -> *mut GtkIMContext;
+  pub fn gtk_im_context_set_use_preedit (context: *mut GtkIMContext, use_preedit: gboolean);
+  /// C 1690: `gtk_widget_set_double_buffered (wfixed, FALSE);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_set_double_buffered (GtkWidget *widget, gboolean
+  /// double_buffered);`
+  pub fn gtk_widget_set_double_buffered (widget: *mut GtkWidget, double_buffered: gboolean);
+  /// C 1625: `if (!gtk_window_parse_geometry ...)`'s sibling - the GTK2 arm's resize grip:
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_has_resize_grip (GtkWindow *window, gboolean
+  /// setting);` (`HAVE_GTK_WINDOW_SET_HAS_RESIZE_GRIP`)
+  pub fn gtk_window_set_has_resize_grip (window: *mut GtkWindow, setting: gboolean);
+}
+#[cfg (all (feature = "use_gtk", not (feature = "gtk_check_version_ge_3_22")))]
+unsafe extern "C" {
+  /// C 1694/1884: `gtk_window_set_wmclass (GTK_WINDOW (wtop), SSDATA (Vx_resource_name),
+  /// SSDATA (Vx_resource_class));`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_wmclass (GtkWindow *window, const gchar
+  /// *wmclass_name, const gchar *wmclass_class);`
+  pub fn gtk_window_set_wmclass (window: *mut GtkWindow, wmclass_name: *const gchar,
+				 wmclass_class: *const gchar);
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  /// C 1772: `gtk_widget_grab_focus (wfixed);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_grab_focus (GtkWidget *widget);`
+  pub fn gtk_widget_grab_focus (widget: *mut GtkWidget);
+}
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3")))]
+unsafe extern "C" {
+  /// C 1635: `wfixed = gtk_fixed_new ();` (GTK2's)
+  /// C: gtk/gtkfixed.h: `GtkWidget *gtk_fixed_new (void);`
+  pub fn gtk_fixed_new () -> *mut GtkWidget;
+  /// C 1763: `style = gtk_widget_get_modifier_style (wfixed);`
+  /// C: gtk/gtkwidget.h: `GtkRcStyle *gtk_widget_get_modifier_style (GtkWidget *widget);`
+  pub fn gtk_widget_get_modifier_style (widget: *mut GtkWidget) -> *mut GtkRcStyle;
+  /// C 1767: `gtk_widget_modify_style (wfixed, style);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_modify_style (GtkWidget *widget, GtkRcStyle *style);`
+  pub fn gtk_widget_modify_style (widget: *mut GtkWidget, style: *mut GtkRcStyle);
+  /// C 1456: `gtk_widget_modify_bg (FRAME_GTK_WIDGET (f), GTK_STATE_NORMAL, &bg);`
+  /// C: gtk/gtkwidget.h: `void gtk_widget_modify_bg (GtkWidget *widget, GtkStateType state,
+  /// const GdkColor *color);`
+  pub fn gtk_widget_modify_bg (widget: *mut GtkWidget, state: GtkStateType,
+			       color: *const GdkColor);
+  /// C 1454: `GdkColormap *map = gtk_widget_get_colormap (w);`
+  /// C: gtk/gtkwidget.h: `GdkColormap *gtk_widget_get_colormap (GtkWidget *widget);`
+  pub fn gtk_widget_get_colormap (widget: *mut GtkWidget) -> *mut GdkColormap;
+}
+
 /* The GTK/GDK entry points whose C *uses* sit inside an arm: C 207-221 and the three
    display functions' X branches call the two `gdk_x11_*` lookups and the two
    `x_display_pixel_*` measurements only under `#ifndef HAVE_PGTK`, and C 824-942's tooltip
@@ -1093,6 +1600,56 @@ unsafe extern "C" {
                        x_return: *mut c_int, y_return: *mut c_int,
                        width_return: *mut c_uint, height_return: *mut c_uint,
                        border_width_return: *mut c_uint, depth_return: *mut c_uint) -> c_int;
+}
+
+/* X11 names the second slice (C 1297-2281) calls that `include/xlib.rs` does not carry yet, plus
+   the `XSizeHints` flag and the ten `*Gravity` ids its common bodies test.  X11 *is* on this
+   machine (`/opt/homebrew/include/X11`), so each quotes its line, and each is owed to that mirror
+   (the `src/xfns.rs` 210-218 shape).  */
+/// C: Xutil.h 103: `#define USSize (1L << 1)` - C 1342's `flags |= USSize;` and C 2082's
+/// `if (flags & USSize)`.  `flags`/`size_hint_flags` are C's `int` (frame.h 610), so every use
+/// site writes C's usual-arithmetic conversion (with `USPosition` at Xutil.h 102, below).
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const USSize: c_long = 1 << 1;
+/// C: X.h 422-431: `#define NorthWestGravity 1` / `NorthGravity 2` / `NorthEastGravity 3` /
+/// `WestGravity 4` / `CenterGravity 5` / `EastGravity 6` / `SouthWestGravity 7` /
+/// `SouthGravity 8` / `SouthEastGravity 9` / `StaticGravity 10` - the ten `win_gravity`
+/// comparisons C 2054-2072 makes.  (A pgtk build reads the same ten from `pgtkgui.h`; the mirror
+/// is the placeholder, so the arm is owed - `## Owed`.)
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const NorthWestGravity: c_int = 1;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const NorthGravity: c_int = 2;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const NorthEastGravity: c_int = 3;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const WestGravity: c_int = 4;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const CenterGravity: c_int = 5;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const EastGravity: c_int = 6;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const SouthWestGravity: c_int = 7;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const SouthGravity: c_int = 8;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const SouthEastGravity: c_int = 9;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+pub const StaticGravity: c_int = 10;
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  /// C 1432: `if (XQueryColor (FRAME_X_DISPLAY (f), FRAME_X_COLORMAP (f), &xbg))`
+  /// C: Xlib.h 2967-2969: `extern int XQueryColor (Display *, Colormap, XColor *);` (C's
+  /// `Emacs_Color` is `XColor` in this arm, dispextern.h 46-48, so the pointer is C's).
+  pub fn XQueryColor (display: *mut Display, colormap: Colormap, def_in_out: *mut Emacs_Color)
+		      -> c_int;
+  /// C 1736: `XVisualIDFromVisual (FRAME_X_VISUAL (f))`
+  /// C: Xlib.h 1724-1726: `extern VisualID XVisualIDFromVisual (Visual *);`
+  pub fn XVisualIDFromVisual (visual: *mut Visual) -> VisualID;
+  /// C 2176: `XSync (FRAME_X_DISPLAY (f1), False);`
+  /// C: Xlib.h 3419-3421: `extern int XSync (Display *, Bool);` (`False` is Xlib.h 81's `0` and
+  /// `include/xlib.rs` 68 already carries it).
+  pub fn XSync (display: *mut Display, discard: c_int) -> c_int;
 }
 
 /* ----------------------------------------------------------------------------------------------
@@ -1218,7 +1775,7 @@ macro_rules! XG_BIN_CHILD {
 
 /// C 132: `#define TB_INFO_KEY "xg_frame_tb_info"`
 #[cfg (feature = "use_gtk")]
-pub const TB_INFO_KEY: &CStr = c"xg_frame_tb_info";
+pub const TB_INFO_KEY: &core::ffi::CStr = c"xg_frame_tb_info";
 /// C 133-140: `struct xg_frame_tb_info`.  C's record, whose `dir` member is GTK's
 /// `GtkTextDirection` (above).
 #[cfg (feature = "use_gtk")]
@@ -2590,4 +3147,1054 @@ pub unsafe extern "C" fn xg_frame_set_char_size (f: *mut frame, mut width: c_int
 			 FRAME_PIXEL_TO_TEXT_HEIGHT (f, height),
 			 5, false, Qxg_frame_set_char_size ());
     }
+}
+/* ============================================================================================== */
+
+/* The Emacs-side names the second slice's text uses that the mirrors do not carry yet (P-72
+   rule 4: the unit declares them at the use site and the ledger owes the move).  */
+/// C: frame.h 1840: `#define EMACS_CLASS "Emacs"` - C 1650/1855 pass it to `gtk_widget_set_name`.
+/// `include/frame.rs` does not carry it, so it stands here; `## Owed` records the move.
+#[cfg (feature = "use_gtk")]
+pub const EMACS_CLASS: &core::ffi::CStr = c"Emacs";
+/// termhooks.h 373-412's `enum event_kind kind : 16` shares `include/termhooks.rs`'s
+/// `input_event::bits` with `part : 16` (PORTING.md 1.3/P-80).  C 1488/1528 write `inev.kind = x;`
+/// and `event.kind = x;`, so the port keeps C's field name in a per-unit macro - the
+/// `src/androidterm.rs` 201-207 shape, body-identical.
+#[cfg (feature = "use_gtk")]
+macro_rules! input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+                 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
+}
+/* ==============================================================================================
+   C 1297-2281: the second slice.  It opens with the dead `#if 0` block's text (recorded as a
+   comment, P-86 ①) and runs through `xg_set_frame_icon`'s `#endif` - the next live definition is
+   `get_dialog_title` (C 2288), which the dialog section (C 2282's banner) opens.
+   ============================================================================================== */
+
+/* C 1298-1300: C's comment above the dead block:
+   "Handle height/width changes (i.e. add/remove/move menu/toolbar).
+    The policy is to keep the number of editable lines."  */
+
+/* C 1301-1311: `#if 0` / `static void xg_height_or_width_changed (struct frame *f)` / its body /
+   `#endif` - dead text C itself excludes (both of C's arms are this text and the empty `#else`).
+   Recorded as a comment; every line is C's own.  */
+/*
+#if 0
+static void
+xg_height_or_width_changed (struct frame *f)
+{
+  gtk_window_resize (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)),
+                     FRAME_TOTAL_PIXEL_WIDTH (f),
+                     FRAME_TOTAL_PIXEL_HEIGHT (f));
+  f->output_data.xp->hint_flags = 0;
+  x_wm_set_size_hint (f, 0, 0);
+}
+#endif
+*/
+
+/** Move and resize the outer window of frame F.  WIDTH and HEIGHT are
+    the new native pixel sizes of F.  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_frame_set_size_and_position (f: *mut frame, mut width: c_int,
+							 mut height: c_int)
+{                                                        // C 1316-1391
+  let mut outer_height: c_int
+    = height + FRAME_TOOLBAR_HEIGHT! (f) + FRAME_MENUBAR_HEIGHT! (f);
+  let mut outer_width: c_int = width + FRAME_TOOLBAR_WIDTH! (f);
+  let scale: c_int = xg_get_scale (f);
+  let mut x: c_int = (*f).left_pos;
+  let mut y: c_int = (*f).top_pos;
+  let mut gwin: *mut GdkWindow = std::ptr::null_mut ();
+  let mut flags: c_int = 0;
+
+  if ! FRAME_GTK_OUTER_WIDGET! (f).is_null ()
+    { gwin = gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET! (f)); }
+  else
+    { gwin = gtk_widget_get_window (FRAME_GTK_WIDGET! (f)); }
+
+  outer_height /= scale;
+  outer_width /= scale;
+  height = height / scale * scale;
+  width = width / scale * scale;
+
+  x /= scale;
+  y /= scale;
+
+  /* Full force ahead.  For top-level frames the gravity will get reset
+     to NorthWestGravity anyway.  */
+  flags |= USSize as c_int;
+  if (*f).win_gravity == 3 || (*f).win_gravity == 9
+    { flags |= XNegative; }
+  if (*f).win_gravity == 6 || (*f).win_gravity == 9
+    { flags |= YNegative; }
+  flags |= USPosition as c_int;
+
+  xg_wm_set_size_hint (f, flags as c_long, true);
+
+  #[cfg (not (feature = "have_pgtk"))]
+  {
+    gdk_window_move_resize (gwin, x, y, outer_width, outer_height);
+    if ! FRAME_PARENT_FRAME (f).is_null ()
+      {
+	/* Resize all inner widgets and Cairo surface right away so the
+	   next redisplay drawing isn't clipped to the old size.  */
+	let mut alloc: GtkAllocation = GtkAllocation { x: 0, y: 0, width: outer_width,
+						       height: outer_height };
+	gtk_widget_size_allocate (FRAME_GTK_OUTER_WIDGET! (f), &raw mut alloc);
+	#[cfg (feature = "use_cairo")]
+	{ x_cr_update_surface_desired_size (f, width, height); }
+      }
+  }
+  #[cfg (feature = "have_pgtk")]
+  {
+    if ! FRAME_GTK_OUTER_WIDGET! (f).is_null ()
+      { gdk_window_move_resize (gwin, x, y, outer_width, outer_height); }
+    else				/* PGTK child frame.  */
+      { gtk_widget_set_size_request (FRAME_GTK_WIDGET! (f),
+				     outer_width, outer_height); }
+  }
+
+  SET_FRAME_GARBAGED! (f);
+  cancel_mouse_face (f);
+
+  /* For child frames, don't wait for events — that would flush the X
+     buffer and might show outdated contents in the frame.  Same for
+     invisible frames: this way is faster and x_make_frame_visible will
+     wait for event anyway.  */
+  if FRAME_VISIBLE_P (f) && FRAME_PARENT_FRAME (f).is_null ()
+    {
+      /* Must call this to flush out events */
+      gtk_events_pending ();
+      gdk_flush ();
+      #[cfg (not (feature = "have_pgtk"))]
+      { x_wait_for_event (f, ConfigureNotify); }
+    }
+  else
+    {
+      adjust_frame_size (f, FRAME_PIXEL_TO_TEXT_WIDTH (f, width),
+			 FRAME_PIXEL_TO_TEXT_HEIGHT (f, height),
+			 5, false, Qxg_frame_set_char_size ());
+    }
+}
+
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+/* Convert an X Window WSESC on display DPY to its corresponding GtkWidget.
+   Must be done like this, because GtkWidget:s can have "hidden"
+   X Window that aren't accessible.
+
+   Return 0 if no widget match WDESC.  */
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_win_to_widget (dpy: *mut Display, wdesc: Window) -> *mut GtkWidget
+{                                                        // C 1401-1420
+  let mut gdkwin: gpointer;
+  let mut gwdesc: *mut GtkWidget = std::ptr::null_mut ();
+
+  block_input ();
+
+  gdkwin = gdk_x11_window_lookup_for_display (gdk_x11_lookup_xdisplay (dpy), wdesc);
+  if ! gdkwin.is_null ()
+    {
+      let mut event: GdkEvent = GdkEvent { any: GdkEventAny {
+	  r#type: GDK_NOTHING, window: std::ptr::null_mut (), send_event: 0 } };
+      event.any.window = gdkwin as *mut GdkWindow;
+      event.any.r#type = GDK_NOTHING;
+      gwdesc = gtk_get_event_widget (&raw mut event);
+    }
+
+  unblock_input ();
+  return gwdesc;
+}
+
+/* Set the background of widget W to PIXEL.  */
+
+#[cfg (feature = "use_gtk")]
+unsafe fn xg_set_widget_bg (f: *mut frame, w: *mut GtkWidget, pixel: c_ulong)   // C 1426-1458
+{
+  #[cfg (feature = "have_gtk3")]
+  {
+    let mut xbg: Emacs_Color = Emacs_Color { pixel: 0, red: 0, green: 0, blue: 0 };
+    xbg.pixel = pixel;
+    /* C 1431/1433: the two arms of `#ifndef HAVE_PGTK` fill `xbg` differently but share C 1441-
+       1451's block.  C's X arm makes the block the body of `if (XQueryColor (...))`; the pgtk
+       arm runs its six assignments and then the block unconditionally.  The port puts the arm's
+       truth value in one `cond` and keeps the block once (the `xg_set_geometry` `take_body`
+       shape, `## Deviations`).  */
+    #[cfg (not (feature = "have_pgtk"))]
+    let cond: bool = XQueryColor (FRAME_X_DISPLAY! (f), FRAME_X_COLORMAP! (f),
+				  &raw mut xbg) != 0;
+    #[cfg (feature = "have_pgtk")]
+    let cond: bool = {
+      xbg.red = ((pixel >> 16) & 0xff) as c_ushort;
+      xbg.green = ((pixel >> 8) & 0xff) as c_ushort;
+      xbg.blue = ((pixel >> 0) & 0xff) as c_ushort;
+      xbg.red |= xbg.red << 8;
+      xbg.green |= xbg.green << 8;
+      xbg.blue |= xbg.blue << 8;
+      true
+    };
+    if cond
+      {
+	/* C 1442-1443: `static char const format[] = "* { background-color: #%02x%02x%02x; }";` /
+	   `char buffer[sizeof format + 3 * INT_STRLEN_BOUND (xbg.red)];` - `format` keeps C's name
+	   and `sizeof format` is the array's size including the NUL, which a const byte-string's
+	   length gives (`xg_set_geometry`'s 1113 shape).  */
+	const format: &[u8] = b"* { background-color: #%02x%02x%02x; }";
+	let mut buffer: [c_char; format.len () + 1 + 3 * INT_STRLEN_BOUND! (c_ushort)]
+	  = [0; format.len () + 1 + 3 * INT_STRLEN_BOUND! (c_ushort)];
+	sprintf (buffer.as_mut_ptr (), format.as_ptr () as *const c_char,
+		 (xbg.red >> 8) as c_int, (xbg.green >> 8) as c_int, (xbg.blue >> 8) as c_int);
+	let mut provider: *mut GtkCssProvider = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (provider, buffer.as_ptr (), -1, std::ptr::null_mut ());
+	gtk_style_context_add_provider (gtk_widget_get_style_context (w),
+					GTK_STYLE_PROVIDER! (provider),
+					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	g_clear_object! (&raw mut provider);
+      }
+  }
+  #[cfg (not (feature = "have_gtk3"))]
+  {
+    let mut bg: GdkColor = GdkColor { pixel: 0, red: 0, green: 0, blue: 0 };
+    let map: *mut GdkColormap = gtk_widget_get_colormap (w);
+    gdk_colormap_query_color (map, pixel, &raw mut bg);
+    gtk_widget_modify_bg (FRAME_GTK_WIDGET! (f), GTK_STATE_NORMAL, &raw mut bg);
+  }
+}
+
+/* Apply dark mode preference to GTK window decorations.  */
+
+#[cfg (all (feature = "use_gtk", feature = "have_pgtk", feature = "have_gsettings"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_gtk_theme_dark_mode (dark_mode_p: bool,
+						     settings: *mut GtkSettings)
+{                                                        // C 1464-1468
+  g_object_set (settings, c"gtk-application-prefer-dark-theme".as_ptr (),
+		(if dark_mode_p { TRUE } else { FALSE }) as c_int, std::ptr::null_mut ());
+}
+
+/* Update all frames' dark mode based on system setting.  */
+
+#[cfg (all (feature = "use_gtk", feature = "have_pgtk", feature = "have_gsettings"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_update_dark_mode_for_all_displays (dark_mode_p: bool)
+{                                                        // C 1473-1492
+   let mut dpyinfo: *mut pgtk_display_info;
+   dpyinfo = x_display_list;
+   while ! dpyinfo.is_null ()
+     {
+       let screen: *mut GdkScreen
+	 = gdk_display_get_default_screen ((*dpyinfo).gdpy);
+       let settings: *mut GtkSettings
+	 = gtk_settings_get_for_screen (screen);
+       xg_set_gtk_theme_dark_mode (dark_mode_p, settings);
+       dpyinfo = (*dpyinfo).next;
+     }
+
+   {
+     let mut inev: input_event = std::mem::zeroed ();
+     EVENT_INIT (&raw mut inev);
+     input_event_bits! (kind, &raw mut inev, TOOLKIT_THEME_CHANGED_EVENT);
+     inev.arg = if dark_mode_p { Qdark () } else { Qlight () };
+     kbd_buffer_store_event (&raw mut inev as *mut c_void);
+   }
+}
+
+/* Set initial dark mode for a new frame (called during frame
+ * creation).  */
+
+#[cfg (all (feature = "use_gtk", feature = "have_pgtk", feature = "have_gsettings"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_initial_dark_mode (f: *mut frame)   // C 1498-1502
+{
+  let dark_mode_p: bool = xg_get_system_dark_mode ();
+  xg_update_dark_mode_for_all_displays (dark_mode_p);
+}
+
+/* Callback called when the gtk theme changes.
+   We notify lisp code so it can fix faces used for region for example.  */
+
+#[cfg (feature = "use_gtk")]
+unsafe extern "C" fn style_changed_cb (go: *mut GObject, spec: *mut GParamSpec,
+				       user_data: gpointer)   // C 1509-1559
+{
+  let mut event: input_event;
+  let gdpy: *mut GdkDisplay = user_data as *mut GdkDisplay;
+  let mut display_name: *const c_char = gdk_display_get_name (gdpy);
+  #[cfg (not (feature = "have_pgtk"))]
+  let dpy: *mut Display = GDK_DISPLAY_XDISPLAY! (gdpy);
+  #[cfg (feature = "have_pgtk")]
+  let dpy: *mut GdkDisplay = gdpy;
+
+  #[cfg (not (feature = "have_pgtk"))]
+  { if display_name.is_null () { display_name = c"".as_ptr (); } }
+
+  EVENT_INIT (&raw mut event);
+  input_event_bits! (kind, &raw mut event, CONFIG_CHANGED_EVENT);
+  event.frame_or_window = build_string (display_name);
+  event.arg = Qtheme_name ();
+  kbd_buffer_store_event (&raw mut event as *mut c_void);
+
+  update_theme_scrollbar_width ();
+  update_theme_scrollbar_height ();
+
+  /* If scroll bar width changed, we need set the new size on all frames
+     on this display.  */
+  if ! dpy.is_null ()
+    {
+      let mut rest: Lisp_Object;
+      let mut frame: Lisp_Object;
+      FOR_EACH_FRAME! (rest, frame, {
+	  let f: *mut frame = XFRAME (frame);
+	  /* C 1546/1548: `#ifndef HAVE_PGTK` tests `FRAME_X_P (f)`, the `#else` `FRAME_PGTK_P
+	     (f)`; the arm's predicate is one `let` so C's `if` stays one statement.  */
+	  #[cfg (not (feature = "have_pgtk"))]
+	  let frame_p: bool = FRAME_X_P (f);
+	  #[cfg (feature = "have_pgtk")]
+	  let frame_p: bool = FRAME_PGTK_P (f);
+	  if FRAME_LIVE_P (f)
+	      && frame_p
+	      && FRAME_X_DISPLAY! (f) == dpy
+	    {
+	      ((*FRAME_TERMINAL! (f)).set_scroll_bar_default_width_hook.unwrap_unchecked ())
+		(f as *mut c_void);
+	      ((*FRAME_TERMINAL! (f)).set_scroll_bar_default_height_hook.unwrap_unchecked ())
+		(f as *mut c_void);
+	      xg_frame_set_char_size (f, FRAME_PIXEL_WIDTH (f),
+				      FRAME_PIXEL_HEIGHT (f));
+	    }
+	});
+    }
+}
+
+/* Called when a delete-event occurs on WIDGET.  */
+
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" fn delete_cb (widget: *mut GtkWidget, event: *mut GdkEvent,
+				user_data: gpointer) -> gboolean   // C 1564-1570
+{
+  return TRUE;
+}
+/* Create and set up the GTK widgets for frame F.
+   Return true if creation succeeded.  */
+
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_create_frame_widgets (f: *mut frame) -> bool   // C 1577-1831
+{
+  let mut wtop: *mut GtkWidget = std::ptr::null_mut ();
+  let mut wvbox: *mut GtkWidget = std::ptr::null_mut ();
+  let mut whbox: *mut GtkWidget = std::ptr::null_mut ();
+  let mut wfixed: *mut GtkWidget = std::ptr::null_mut ();
+  #[cfg (not (feature = "have_gtk3"))]
+  let mut style: *mut GtkRcStyle = std::ptr::null_mut ();
+  #[cfg (not (feature = "have_pgtk"))]
+  let mut imc: *mut GtkIMContext = std::ptr::null_mut ();
+  let mut r#type: GtkWindowType = GTK_WINDOW_TOPLEVEL;
+  let mut title: *mut c_char = std::ptr::null_mut ();
+
+  block_input ();
+
+  #[cfg (not (feature = "have_pgtk"))]  /* gtk_plug not found. */
+  {
+    if FRAME_X_EMBEDDED_P! (f)
+      {
+	let gdpy: *mut GdkDisplay = gdk_x11_lookup_xdisplay (FRAME_X_DISPLAY! (f));
+	wtop = gtk_plug_new_for_display (gdpy,
+					 (*((*f).output_data.x as *mut xp_output)).parent_desc);
+      }
+    else
+      { wtop = gtk_window_new (r#type); }
+  }
+  #[cfg (feature = "have_pgtk")]
+  {
+    if (*f).tooltip
+      { r#type = GTK_WINDOW_POPUP; }
+    wtop = gtk_window_new (r#type);
+    gtk_widget_add_events (wtop, GDK_ALL_EVENTS_MASK);
+  }
+
+  gtk_widget_set_app_paintable (wtop, ((*f).alpha_background != 1.0) as gboolean);
+  #[cfg (feature = "gtk_check_version_ge_3_10")]
+  {
+    g_signal_connect! (G_OBJECT! (wtop), c"style-updated".as_ptr (), xg_widget_style_updated,
+		       f as gpointer);
+  }
+
+  /* gtk_window_set_has_resize_grip is a Gtk+ 3.0 function but Ubuntu
+     has backported it to Gtk+ 2.0 and they add the resize grip for
+     Gtk+ 2.0 applications also.  But it has a bug that makes Emacs loop
+     forever, so disable the grip.  */
+  #[cfg (all (not (feature = "have_gtk3"), feature = "have_gtk_window_set_has_resize_grip"))]
+  { gtk_window_set_has_resize_grip (GTK_WINDOW! (wtop), FALSE); }
+
+  xg_set_screen (wtop, f);
+
+  wvbox = gtk_box_new! (GTK_ORIENTATION_VERTICAL, 0);
+  whbox = gtk_box_new! (GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_box_set_homogeneous (GTK_BOX! (wvbox), FALSE);
+  gtk_box_set_homogeneous (GTK_BOX! (whbox), FALSE);
+
+  #[cfg (feature = "have_gtk3")]
+  { wfixed = emacs_fixed_new (f as *mut c_void) as *mut GtkWidget; }
+  #[cfg (not (feature = "have_gtk3"))]
+  { wfixed = gtk_fixed_new (); }
+
+  if wtop.is_null () || wvbox.is_null () || whbox.is_null () || wfixed.is_null ()
+    {
+      if ! wtop.is_null () { gtk_widget_destroy (wtop); }
+      if ! wvbox.is_null () { gtk_widget_destroy (wvbox); }
+      if ! whbox.is_null () { gtk_widget_destroy (whbox); }
+      if ! wfixed.is_null () { gtk_widget_destroy (wfixed); }
+
+      unblock_input ();
+      return false;
+    }
+
+  /* Use same names as the Xt port does.  I.e. Emacs.pane.emacs by default */
+  gtk_widget_set_name (wtop, EMACS_CLASS.as_ptr ());
+  gtk_widget_set_name (wvbox, c"pane".as_ptr ());
+  gtk_widget_set_name (wfixed, SSDATA (Vx_resource_name));
+
+  /* If this frame has a title or name, set it in the title bar.  */
+  if ! NILP ((*f).title)
+    { title = SSDATA (ENCODE_UTF_8 ((*f).title)); }
+  else if ! NILP ((*f).name)
+    { title = SSDATA (ENCODE_UTF_8 ((*f).name)); }
+
+  if ! title.is_null ()
+    { gtk_window_set_title (GTK_WINDOW! (wtop), title); }
+
+  if FRAME_UNDECORATED (f) != 0
+    {
+      gtk_window_set_decorated (GTK_WINDOW! (wtop), FALSE);
+      store_frame_param (f, Qundecorated (), Qt ());
+    }
+
+  FRAME_GTK_OUTER_WIDGET! (f) = wtop;
+  FRAME_GTK_WIDGET! (f) = wfixed;
+  (*((*f).output_data.x as *mut xp_output)).vbox_widget = wvbox;
+  (*((*f).output_data.x as *mut xp_output)).hbox_widget = whbox;
+
+  gtk_widget_set_has_window (wfixed, TRUE);
+
+  gtk_container_add (GTK_CONTAINER! (wtop), wvbox);
+  gtk_box_pack_start (GTK_BOX! (wvbox), whbox, TRUE, TRUE, 0);
+  gtk_box_pack_start (GTK_BOX! (whbox), wfixed, TRUE, TRUE, 0);
+
+  if FRAME_EXTERNAL_TOOL_BAR (f)
+    { update_frame_tool_bar (f); }
+
+  /* We don't want this widget double buffered, because we draw on it
+     with regular X drawing primitives, so from a GTK/GDK point of
+     view, the widget is totally blank.  When an expose comes, this
+     will make the widget blank, and then Emacs redraws it.  This flickers
+     a lot, so we turn off double buffering.  */
+
+  #[cfg (not (feature = "have_pgtk"))]
+  { gtk_widget_set_double_buffered (wfixed, FALSE); }
+
+  #[cfg (not (feature = "gtk_check_version_ge_3_22"))]
+  {
+    gtk_window_set_wmclass (GTK_WINDOW! (wtop),
+			    SSDATA (Vx_resource_name),
+			    SSDATA (Vx_resource_class));
+  }
+
+  #[cfg (not (feature = "have_pgtk"))]
+  {
+    /* Add callback to do nothing on WM_DELETE_WINDOW.  The default in
+       GTK is to destroy the widget.  We want Emacs to do that instead.  */
+    g_signal_connect! (G_OBJECT! (wtop), c"delete-event".as_ptr (), delete_cb, f as gpointer);
+  }
+
+  /* Convert our geometry parameters into a geometry string
+     and specify it.
+     GTK will itself handle calculating the real position this way.  */
+  xg_set_geometry (f);
+  (*f).win_gravity
+    = gtk_window_get_gravity (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)));
+
+  /* C 1714-1730: C's one `gtk_widget_add_events` splits by arm around `GDK_EXPOSURE_MASK`
+     (`#ifndef HAVE_PGTK`) and the three scroll/touch masks (`#ifdef HAVE_PGTK`); the port adds
+     the arm's terms to one `events` and calls once (the arm-chooser shape).  */
+  let mut events: c_int = GDK_POINTER_MOTION_MASK;
+  #[cfg (not (feature = "have_pgtk"))]
+  { events |= GDK_EXPOSURE_MASK; }
+  events |= GDK_BUTTON_PRESS_MASK
+    | GDK_BUTTON_RELEASE_MASK
+    | GDK_KEY_PRESS_MASK
+    | GDK_ENTER_NOTIFY_MASK
+    | GDK_LEAVE_NOTIFY_MASK
+    | GDK_FOCUS_CHANGE_MASK
+    | GDK_STRUCTURE_MASK;
+  #[cfg (feature = "have_pgtk")]
+  {
+    events |= GDK_SCROLL_MASK
+      | GDK_SMOOTH_SCROLL_MASK
+      | GDK_TOUCH_MASK;
+  }
+  events |= GDK_VISIBILITY_NOTIFY_MASK;
+  gtk_widget_add_events (wfixed, events);
+
+  let screen: *mut GdkScreen = gtk_widget_get_screen (wtop);
+
+  #[cfg (not (feature = "have_pgtk"))]
+  let visual: *mut GdkVisual
+    = gdk_x11_screen_lookup_visual (screen,
+				    XVisualIDFromVisual (FRAME_X_VISUAL! (f)));
+  #[cfg (feature = "have_pgtk")]
+  let visual: *mut GdkVisual = gdk_screen_get_rgba_visual (screen);
+
+  if visual.is_null ()
+    { emacs_abort (); }
+
+  gtk_widget_set_visual (wtop, visual);
+  gtk_widget_set_visual (wfixed, visual);
+
+  #[cfg (not (feature = "have_pgtk"))]
+  {
+    /* Must realize the windows so the X window gets created.  It is used
+       by callers of this function.  */
+    gtk_widget_realize (wfixed);
+    FRAME_X_WINDOW! (f) = GTK_WIDGET_TO_X_WIN! (wfixed);
+    initial_set_up_x_back_buffer (f);
+  }
+
+  /* Since GTK clears its window by filling with the background color,
+     we must keep X and GTK background in sync.  */
+  xg_set_widget_bg (f, wfixed, FRAME_BACKGROUND_PIXEL (f));
+
+  #[cfg (not (feature = "have_gtk3"))]
+  {
+    /* Also, do not let any background pixmap to be set, this looks very
+       bad as Emacs overwrites the background pixmap with its own idea
+       of background color.  */
+    style = gtk_widget_get_modifier_style (wfixed);
+
+    /* Must use g_strdup because gtk_widget_modify_style does g_free.  */
+    (*style).bg_pixmap_name[GTK_STATE_NORMAL] = g_strdup (c"<none>".as_ptr ());
+    gtk_widget_modify_style (wfixed, style);
+    gtk_widget_set_can_focus (wfixed, TRUE);
+  }
+  #[cfg (feature = "have_gtk3")]
+  {
+    gtk_widget_set_can_focus (wfixed, TRUE);
+    #[cfg (feature = "have_pgtk")]
+    { gtk_widget_grab_focus (wfixed); }
+    gtk_window_set_resizable (GTK_WINDOW! (wtop), TRUE);
+  }
+
+  if FRAME_OVERRIDE_REDIRECT (f) != 0
+    {
+      let gwin: *mut GdkWindow = gtk_widget_get_window (wtop);
+
+      if ! gwin.is_null ()
+	{ gdk_window_set_override_redirect (gwin, TRUE); }
+    }
+
+  /* Steal a tool tip window we can move ourselves.  */
+  (*((*f).output_data.x as *mut xp_output)).ttip_widget = std::ptr::null_mut ();
+  (*((*f).output_data.x as *mut xp_output)).ttip_lbl = std::ptr::null_mut ();
+  (*((*f).output_data.x as *mut xp_output)).ttip_window = std::ptr::null_mut ();
+  #[cfg (not (feature = "have_pgtk"))]
+  {
+    gtk_widget_set_tooltip_text (wtop, c"Dummy text".as_ptr ());
+    g_signal_connect! (wtop, c"query-tooltip".as_ptr (), qttip_cb, f as gpointer);
+
+    imc = gtk_im_multicontext_new ();
+    gtk_im_context_set_use_preedit (imc, TRUE);
+
+    g_signal_connect! (G_OBJECT! (imc), c"commit".as_ptr (), xg_im_context_commit, f as gpointer);
+    g_signal_connect! (G_OBJECT! (imc), c"preedit-changed".as_ptr (),
+		       xg_im_context_preedit_changed, std::ptr::null_mut ());
+    g_signal_connect! (G_OBJECT! (imc), c"preedit-end".as_ptr (),
+		       xg_im_context_preedit_end, std::ptr::null_mut ());
+    (*(FRAME_X_OUTPUT! (f) as *mut xp_output)).im_context = imc;
+
+    g_signal_connect! (G_OBJECT! (wfixed), c"key-press-event".as_ptr (),
+		       xg_widget_key_press_event_cb, std::ptr::null_mut ());
+  }
+
+  {
+    let gs: *mut GtkSettings = gtk_settings_get_for_screen (screen);
+    /* Only connect this signal once per screen.  */
+    if g_signal_handler_find (G_OBJECT! (gs) as gpointer,
+			      G_SIGNAL_MATCH_FUNC,
+			      0, 0, std::ptr::null_mut (),
+			      core::mem::transmute::<GCallback, gpointer> (G_CALLBACK! (style_changed_cb)),
+			      std::ptr::null_mut ()) == 0
+      {
+        g_signal_connect! (G_OBJECT! (gs), c"notify::gtk-theme-name".as_ptr (),
+			   style_changed_cb, gdk_screen_get_display (screen) as gpointer);
+      }
+  }
+
+  #[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+  { xg_set_initial_dark_mode (f); }
+
+  unblock_input ();
+
+  return true;
+}
+
+#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_create_frame_outer_widgets (f: *mut frame)   // C 1835-1932
+{
+  let mut wtop: *mut GtkWidget;
+  let mut wvbox: *mut GtkWidget;
+  let mut whbox: *mut GtkWidget;
+  let mut r#type: GtkWindowType = GTK_WINDOW_TOPLEVEL;
+  let mut title: *mut c_char = std::ptr::null_mut ();
+
+  block_input ();
+
+  wtop = gtk_window_new (r#type);
+  gtk_widget_add_events (wtop, GDK_ALL_EVENTS_MASK);
+
+  xg_set_screen (wtop, f);
+
+  wvbox = gtk_box_new! (GTK_ORIENTATION_VERTICAL, 0);
+  whbox = gtk_box_new! (GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_box_set_homogeneous (GTK_BOX! (wvbox), FALSE);
+  gtk_box_set_homogeneous (GTK_BOX! (whbox), FALSE);
+
+  /* Use same names as the Xt port does.  I.e. Emacs.pane.emacs by default */
+  gtk_widget_set_name (wtop, EMACS_CLASS.as_ptr ());
+  gtk_widget_set_name (wvbox, c"pane".as_ptr ());
+
+  /* If this frame has a title or name, set it in the title bar.  */
+  if ! NILP ((*f).title)
+    { title = SSDATA (ENCODE_UTF_8 ((*f).title)); }
+  else if ! NILP ((*f).name)
+    { title = SSDATA (ENCODE_UTF_8 ((*f).name)); }
+
+  if ! title.is_null ()
+    { gtk_window_set_title (GTK_WINDOW! (wtop), title); }
+
+  if FRAME_UNDECORATED (f) != 0
+    {
+      gtk_window_set_decorated (GTK_WINDOW! (wtop), FALSE);
+      store_frame_param (f, Qundecorated (), Qt ());
+    }
+
+  FRAME_GTK_OUTER_WIDGET! (f) = wtop;
+  (*((*f).output_data.x as *mut xp_output)).vbox_widget = wvbox;
+  (*((*f).output_data.x as *mut xp_output)).hbox_widget = whbox;
+
+  gtk_container_add (GTK_CONTAINER! (wtop), wvbox);
+  gtk_box_pack_start (GTK_BOX! (wvbox), whbox, TRUE, TRUE, 0);
+
+  if FRAME_EXTERNAL_TOOL_BAR (f)
+    { update_frame_tool_bar (f); }
+
+  #[cfg (not (feature = "gtk_check_version_ge_3_22"))]
+  {
+    gtk_window_set_wmclass (GTK_WINDOW! (wtop),
+			    SSDATA (Vx_resource_name),
+			    SSDATA (Vx_resource_class));
+  }
+
+  /* Convert our geometry parameters into a geometry string
+     and specify it.
+     GTK will itself handle calculating the real position this way.  */
+  xg_set_geometry (f);
+  (*f).win_gravity
+    = gtk_window_get_gravity (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)));
+
+  gtk_window_set_resizable (GTK_WINDOW! (wtop), TRUE);
+
+  if FRAME_OVERRIDE_REDIRECT (f) != 0
+    {
+      let gwin: *mut GdkWindow = gtk_widget_get_window (wtop);
+
+      if ! gwin.is_null ()
+	{ gdk_window_set_override_redirect (gwin, TRUE); }
+    }
+
+  /* Steal a tool tip window we can move ourselves.  */
+  (*((*f).output_data.x as *mut xp_output)).ttip_widget = std::ptr::null_mut ();
+  (*((*f).output_data.x as *mut xp_output)).ttip_lbl = std::ptr::null_mut ();
+  (*((*f).output_data.x as *mut xp_output)).ttip_window = std::ptr::null_mut ();
+
+  {
+    let screen: *mut GdkScreen = gtk_widget_get_screen (wtop);
+    let gs: *mut GtkSettings = gtk_settings_get_for_screen (screen);
+    /* Only connect this signal once per screen.  */
+    if g_signal_handler_find (G_OBJECT! (gs) as gpointer,
+			      G_SIGNAL_MATCH_FUNC,
+			      0, 0, std::ptr::null_mut (),
+			      core::mem::transmute::<GCallback, gpointer> (G_CALLBACK! (style_changed_cb)),
+			      std::ptr::null_mut ()) == 0
+      {
+        g_signal_connect! (G_OBJECT! (gs), c"notify::gtk-theme-name".as_ptr (),
+			   style_changed_cb, gdk_screen_get_display (screen) as gpointer);
+      }
+  }
+
+  #[cfg (feature = "have_gsettings")]
+  { xg_set_initial_dark_mode (f); }
+
+  unblock_input ();
+}
+
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_free_frame_widgets (f: *mut frame)   // C 1936-1976
+{
+  if ! FRAME_GTK_OUTER_WIDGET! (f).is_null ()
+    {
+      let x: *mut xp_output = (*f).output_data.x as *mut xp_output;
+      let tbinfo: *mut xg_frame_tb_info
+        = g_object_get_data (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)),
+			     TB_INFO_KEY.as_ptr ()) as *mut xg_frame_tb_info;
+      if ! tbinfo.is_null ()
+        { xfree (tbinfo as *mut c_void); }
+
+      if ! (*x).toolbar_widget.is_null () && ! (*x).toolbar_is_packed
+	{
+	  gtk_widget_destroy ((*x).toolbar_widget);
+	  (*x).toolbar_widget = std::ptr::null_mut ();
+	}
+
+      /* x_free_frame_resources should have taken care of it */
+      #[cfg (not (feature = "have_pgtk"))]
+      {
+	#[cfg (feature = "have_xdbe")]
+	{ eassert! (! FRAME_X_DOUBLE_BUFFERED_P! (f)); }
+	g_object_unref ((*(FRAME_X_OUTPUT! (f) as *mut xp_output)).im_context as gpointer);
+      }
+      gtk_widget_destroy (FRAME_GTK_OUTER_WIDGET! (f));
+      FRAME_X_WINDOW! (f) = 0; /* Set to avoid XDestroyWindow in xterm.c */
+      #[cfg (not (feature = "have_pgtk"))]
+      { FRAME_X_RAW_DRAWABLE! (f) = 0; }
+      FRAME_GTK_OUTER_WIDGET! (f) = std::ptr::null_mut ();
+      if ! (*x).ttip_widget.is_null ()
+        {
+          /* Remove ttip_lbl from ttip_widget's custom slot before
+             destroying it, to avoid double-free (Bug#41239).  */
+          gtk_tooltip_set_custom ((*x).ttip_widget, std::ptr::null_mut ());
+          g_object_unref (G_OBJECT! ((*x).ttip_widget) as gpointer);
+        }
+      if ! (*x).ttip_lbl.is_null ()
+        { gtk_widget_destroy ((*x).ttip_lbl); }
+    }
+}
+
+/* Set the normal size hints for the window manager, for frame F.
+   FLAGS is the flags word to use--or 0 meaning preserve the flags
+   that the window now has.
+   If USER_POSITION, set the User Position
+   flag (this is useful when FLAGS is 0).  */
+
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_wm_set_size_hint (f: *mut frame, mut flags: c_long,
+					       user_position: bool)   // C 1985-2108
+{
+  /* Must use GTK routines here, otherwise GTK resets the size hints
+     to its own defaults.  */
+  let mut size_hints: GdkGeometry;
+  let mut hint_flags: gint = 0;
+  let mut base_width: c_int;
+  let mut base_height: c_int;
+  let win_gravity: c_int = (*f).win_gravity;
+  let mut fs_state: Lisp_Object;
+  let mut frame: Lisp_Object;
+  let scale: c_int = xg_get_scale (f);
+
+  /* Don't set size hints during initialization; that apparently leads
+     to a race condition.  See the thread at
+     https://lists.gnu.org/r/emacs-devel/2008-10/msg00033.html  */
+  if NILP (Vafter_init_time)
+      || FRAME_GTK_OUTER_WIDGET! (f).is_null ()
+      || ! FRAME_PARENT_FRAME (f).is_null ()
+    { return; }
+
+  XSETFRAME! (frame, f);
+  fs_state = Fframe_parameter (frame, Qfullscreen ());
+  /* C 2006-2011: the fold's `#ifndef HAVE_PGTK` adds the two `x_wm_supports` tests to the
+     maximized/fullscreen test; the port hoists the arm's term (the arm-chooser shape).  */
+  let mut suppressed: bool = EQ (fs_state, Qmaximized ()) || EQ (fs_state, Qfullboth ());
+  #[cfg (not (feature = "have_pgtk"))]
+  {
+    suppressed = suppressed
+      && (x_wm_supports (f, (*FRAME_DISPLAY_INFO! (f)).Xatom_net_wm_state)
+	  || x_wm_supports (f, (*FRAME_DISPLAY_INFO! (f)).Xatom_net_wm_state_fullscreen));
+  }
+  if suppressed
+    {
+      /* Don't set hints when maximized or fullscreen.  Apparently KWin and
+         Gtk3 don't get along and the frame shrinks (!).
+      */
+      return;
+    }
+
+  if flags != 0
+    {
+      memset (&raw mut size_hints as *mut c_void, 0, core::mem::size_of::<GdkGeometry> ());
+      (*((*f).output_data.x as *mut xp_output)).size_hints = size_hints;
+      (*((*f).output_data.x as *mut xp_output)).hint_flags = hint_flags as c_long;
+    }
+  else
+    { flags = (*f).size_hint_flags as c_long; }
+
+  size_hints = (*((*f).output_data.x as *mut xp_output)).size_hints;
+  hint_flags = (*((*f).output_data.x as *mut xp_output)).hint_flags as c_int;
+
+  hint_flags |= GDK_HINT_RESIZE_INC | GDK_HINT_MIN_SIZE;
+  size_hints.width_inc = if frame_resize_pixelwise { 1 } else { FRAME_COLUMN_WIDTH (f) };
+  size_hints.height_inc = if frame_resize_pixelwise { 1 } else { FRAME_LINE_HEIGHT (f) };
+
+  hint_flags |= GDK_HINT_BASE_SIZE;
+  /* Use one row/col here so base_height/width does not become zero.
+     Gtk+ and/or Unity on Ubuntu 12.04 can't handle it.
+     Obviously this makes the row/col value displayed off by 1.  */
+  base_width = FRAME_TEXT_COLS_TO_PIXEL_WIDTH (f, 1) + FRAME_TOOLBAR_WIDTH! (f);
+  base_height = FRAME_TEXT_LINES_TO_PIXEL_HEIGHT (f, 1)
+    + FRAME_MENUBAR_HEIGHT! (f) + FRAME_TOOLBAR_HEIGHT! (f);
+
+  size_hints.base_width = base_width;
+  size_hints.base_height = base_height;
+  size_hints.min_width  = base_width;
+  size_hints.min_height = base_height;
+
+  /* These currently have a one to one mapping with the X values, but I
+     don't think we should rely on that.  */
+  if ! FRAME_PARENT_FRAME (f).is_null ()
+    {
+      hint_flags |= GDK_HINT_WIN_GRAVITY;
+      size_hints.win_gravity = 0;
+      if win_gravity == NorthWestGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_NORTH_WEST; }
+      else if win_gravity == NorthGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_NORTH; }
+      else if win_gravity == NorthEastGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_NORTH_EAST; }
+      else if win_gravity == WestGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_WEST; }
+      else if win_gravity == CenterGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_CENTER; }
+      else if win_gravity == EastGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_EAST; }
+      else if win_gravity == SouthWestGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_SOUTH_WEST; }
+      else if win_gravity == SouthGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_SOUTH; }
+      else if win_gravity == SouthEastGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_SOUTH_EAST; }
+      else if win_gravity == StaticGravity
+	{ size_hints.win_gravity = GDK_GRAVITY_STATIC; }
+    }
+  else
+    { size_hints.win_gravity = GDK_GRAVITY_NORTH_WEST; }
+
+  if (flags & PPosition) != 0
+    { hint_flags |= GDK_HINT_POS; }
+  if (flags & USPosition) != 0
+    { hint_flags |= GDK_HINT_USER_POS; }
+  if (flags & USSize) != 0
+    { hint_flags |= GDK_HINT_USER_SIZE; }
+
+  if user_position
+    {
+      hint_flags &= ! GDK_HINT_POS;
+      hint_flags |= GDK_HINT_USER_POS;
+    }
+
+  size_hints.base_width /= scale;
+  size_hints.base_height /= scale;
+  size_hints.width_inc /= scale;
+  size_hints.height_inc /= scale;
+
+  if hint_flags as c_long != (*((*f).output_data.x as *mut xp_output)).hint_flags
+      || memcmp (&raw const size_hints as *const c_void,
+		 &raw const (*((*f).output_data.x as *mut xp_output)).size_hints as *const c_void,
+		 core::mem::size_of::<GdkGeometry> ()) != 0
+    {
+      block_input ();
+      gtk_window_set_geometry_hints (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+                                     std::ptr::null_mut (), &raw mut size_hints, hint_flags);
+      (*((*f).output_data.x as *mut xp_output)).size_hints = size_hints;
+      (*((*f).output_data.x as *mut xp_output)).hint_flags = hint_flags as c_long;
+      unblock_input ();
+    }
+}
+
+/* Change background color of a frame.
+   Since GTK uses the background color to clear the window, we must
+   keep the GTK and X colors in sync.
+   F is the frame to change,
+   BG is the pixel value to change to.  */
+
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_background_color (f: *mut frame, bg: c_ulong)   // C 2117-2138
+{
+  if ! FRAME_GTK_WIDGET! (f).is_null ()
+    {
+      block_input ();
+      xg_set_widget_bg (f, FRAME_GTK_WIDGET! (f), FRAME_BACKGROUND_PIXEL (f));
+
+      #[cfg (feature = "use_toolkit_scroll_bars")]
+      {
+	let mut bar: Lisp_Object;
+	bar = FRAME_SCROLL_BARS (f);
+	while ! NILP (bar)
+	  {
+	    let scrollbar: *mut GtkWidget
+	      = xg_get_widget_from_map ((*XSCROLL_BAR! (bar)).x_window, FRAME_X_DISPLAY! (f));
+	    let webox: *mut GtkWidget = gtk_widget_get_parent (scrollbar);
+	    xg_set_widget_bg (f, webox, FRAME_BACKGROUND_PIXEL (f));
+	    bar = (*XSCROLL_BAR! (bar)).next;
+	  }
+      }
+      unblock_input ();
+    }
+}
+
+/* Change the frame's decoration (title bar + resize borders).  This
+   might not work with all window managers.  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_undecorated (f: *mut frame, undecorated: Lisp_Object)
+{                                                        // C 2143-2156
+  #[cfg (feature = "have_pgtk")]
+  { if FRAME_GTK_OUTER_WIDGET! (f).is_null () { return; } }
+  if ! FRAME_GTK_WIDGET! (f).is_null ()
+    {
+      block_input ();
+      gtk_window_set_decorated (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+				if NILP (undecorated) { TRUE } else { FALSE });
+      unblock_input ();
+    }
+}
+
+
+/* Restack F1 below F2, above if ABOVE_FLAG is true.  This might not
+   work with all window managers.  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_frame_restack (f1: *mut frame, f2: *mut frame, above_flag: bool)
+{                                                        // C 2162-2182
+  block_input ();
+  if ! FRAME_GTK_OUTER_WIDGET! (f1).is_null () && ! FRAME_GTK_OUTER_WIDGET! (f2).is_null ()
+    {
+      let gwin1: *mut GdkWindow = gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET! (f1));
+      let gwin2: *mut GdkWindow = gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET! (f2));
+      let mut frame1: Lisp_Object;
+      let mut frame2: Lisp_Object;
+
+      XSETFRAME! (frame1, f1);
+      XSETFRAME! (frame2, f2);
+
+      gdk_window_restack (gwin1, gwin2, above_flag as gboolean);
+      #[cfg (not (feature = "have_pgtk"))]
+      { XSync (FRAME_X_DISPLAY! (f1), False); }
+      #[cfg (feature = "have_pgtk")]
+      { gdk_flush (); }
+    }
+  unblock_input ();
+}
+
+
+/* Don't show frame in taskbar, don't ALT-TAB to it.  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_skip_taskbar (f: *mut frame, skip_taskbar: Lisp_Object)
+{                                                        // C 2187-2202
+  block_input ();
+  /* C 2190/2196: C's `#ifndef HAVE_PGTK` tests `FRAME_GTK_WIDGET (f)`, the `#else`
+     `FRAME_GTK_OUTER_WIDGET (f)`, around one shared body (the arm-chooser shape).  */
+  #[cfg (not (feature = "have_pgtk"))]
+  let cond: bool = ! FRAME_GTK_WIDGET! (f).is_null ();
+  #[cfg (feature = "have_pgtk")]
+  let cond: bool = ! FRAME_GTK_OUTER_WIDGET! (f).is_null ();
+  if cond
+    {
+      gdk_window_set_skip_taskbar_hint
+	(gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET! (f)),
+	 if NILP (skip_taskbar) { FALSE } else { TRUE });
+    }
+  unblock_input ();
+}
+
+
+/* Don't give frame focus.  */
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_no_focus_on_map (f: *mut frame, no_focus_on_map: Lisp_Object)
+{                                                        // C 2207-2222
+  #[cfg (feature = "have_pgtk")]
+  { if FRAME_GTK_OUTER_WIDGET! (f).is_null () { return; } }
+  block_input ();
+  if ! FRAME_GTK_WIDGET! (f).is_null ()
+    {
+      let gwin: *mut GtkWindow = GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f));
+      let g_no_focus_on_map: gboolean = if NILP (no_focus_on_map) { TRUE } else { FALSE };
+
+      gtk_window_set_focus_on_map (gwin, g_no_focus_on_map);
+    }
+  unblock_input ();
+}
+
+
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_no_accept_focus (f: *mut frame, no_accept_focus: Lisp_Object)
+{                                                        // C 2226-2244
+  let g_no_accept_focus: gboolean = if NILP (no_accept_focus) { TRUE } else { FALSE };
+  #[cfg (feature = "have_pgtk")]
+  {
+    if FRAME_GTK_OUTER_WIDGET! (f).is_null ()
+      {
+	if ! FRAME_WIDGET! (f).is_null ()
+	  { gtk_widget_set_can_focus (FRAME_WIDGET! (f), g_no_accept_focus); }
+	return;
+      }
+  }
+  block_input ();
+  if ! FRAME_GTK_WIDGET! (f).is_null ()
+    {
+      let gwin: *mut GtkWindow = GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f));
+      gtk_window_set_accept_focus (gwin, g_no_accept_focus);
+    }
+  unblock_input ();
+}
+
+#[cfg (feature = "use_gtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_override_redirect (f: *mut frame,
+						   override_redirect: Lisp_Object)
+{                                                        // C 2247-2259
+  block_input ();
+
+  if ! FRAME_GTK_OUTER_WIDGET! (f).is_null ()
+    {
+      let gwin: *mut GdkWindow = gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET! (f));
+
+      gdk_window_set_override_redirect (gwin, if NILP (override_redirect) { FALSE } else { TRUE });
+    }
+
+  unblock_input ();
+}
+
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+/* Set the frame icon to ICON_PIXMAP/MASK.  This must be done with GTK
+   functions so GTK does not overwrite the icon.  */
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xg_set_frame_icon (f: *mut frame, icon_pixmap: Pixmap,
+					    icon_mask: Pixmap)   // C 2266-2277
+{
+  #[cfg (feature = "have_pgtk")]
+  { if FRAME_GTK_OUTER_WIDGET! (f).is_null () { return; } }
+  let gp: *mut GdkPixbuf = xg_get_pixbuf_from_pix_and_mask (f, icon_pixmap, icon_mask);
+  if ! gp.is_null ()
+    { gtk_window_set_icon (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)), gp); }
 }

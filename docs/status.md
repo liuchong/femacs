@@ -8344,3 +8344,39 @@
   的形态，等 Hegel 落地后按证据改引用或写允许行——两者都不动别人的在飞文件）。
   ④ **未声称**：只处理了 1 条；门仍未回到 0 drift，且该门现在是**红**的（exit 1），红的原因就是上面两条在飞站点。
 
+- **3.465 gtkutil 切片 2 落地（C 1297-2281，985 行）：frame 几何、暗色主题、widget 树与七个参数 setter（2026-10-05）**：
+  ① **区间/块**：C 1297-2281（含 C 1298-1312 的 `#if 0` 死块 `xg_height_or_width_changed`，照录为注释）；
+  **下一个活定义 = C 2288 `get_dialog_title`**（C 2282 是 `/* Menu functions */` 的 banner）。块：`xg_frame_set_size_and_position`、
+  `xg_win_to_widget`、`xg_set_widget_bg`（暗色/亮色两臂 + GTK2 `#else`）、`xg_set_gtk_theme_dark_mode` 三件、
+  `style_changed_cb`/`delete_cb`、`xg_create_frame_widgets`（15 条臂）、`xg_create_frame_outer_widgets`、
+  `xg_free_frame_widgets`、`xg_wm_set_size_hint`、`xg_set_background_color` 与七个 frame 参数 setter；台账
+  `## Gate mapping` 新增 9 行。
+  ② **行数**：`femacs/src/gtkutil.rs` **2,593 → 4,200**（md5 `8c978f8c2301b1419b060c094d7093c7`）；台账
+  `docs/ports/gtkutil.md` **528 → 802** 行（46 条区间行，覆盖 `src/gtkutil.c` 6,753 行与 `src/gtkutil.h` 245 行）。
+  ③ **集成者落地读数（本轮自己跑的）**：冻结 `build-tu src/gtkutil.c` →
+  `built src/gtkutil.rs -> ../build/femacs/gtkutil.o`、**336 字节空对象**；`extract-abi --check` 的 `- ` 行
+  **124 → 122**，且 `does not mention` 行**清零**（见 ④）；`check-dead-file-coverage` **45 绑定 / 0 failure**
+  （gtkutil 的 46 行同时覆盖 .c 与 .h）；`check-ledger-ticks` 234/0、`check-mirror-dupes` 19/19/0 不变。
+  ④ **集成者替它落的三条账**：⑴ **Owed 9** 登记三个 feature 名——`have_gsettings`（C 1462/1824/1927）、
+  `have_gtk_window_set_has_resize_grip`（C 1620）、`use_toolkit_scroll_bars`（C 2124），按字母序插进
+  `femacs/xtask/Cargo.toml` 并各带 C 站点注释，`feature-coverage.py --write` 重录表（`use_toolkit_scroll_bars`
+  6 sites/3 files、`have_gsettings` 5/1、`have_gtk_window_set_has_resize_grip` 1/1）；⑵ **Owed 10** 写
+  `macro-body-notes.tsv` 的 `xg_create_frame_widgets → have_gtk_window_set_has_resize_grip` 行（该 token 来自
+  C 1620-1621 的 `#if` 续行，而 token 比对会先剥掉 `#[…]` 属性）；⑶ **同一条读数里还量出第二条**：`gtk_box_new`
+  的 `false,gtk_hbox_new,gtk_orientation_horizontal,gtk_vbox_new`——C 119-121 是 `#ifndef HAVE_GTK3` 那条臂，
+  而端口把**两臂各写成一个 `#[cfg]` 门控的 `macro_rules!`**（`have_gtk3` 那份是 Deviation 18 的转发形），
+  比对读到的是转发那份，所以 GTK2 的名字不可能出现在其中；**点名一条门的盲区**：比对只读同名宏的一份定义，
+  端口照 C 把两臂各写一份时，另一份的 token 供不上——这一条按行记进 `macro-body-notes.tsv`，不是改文本。
+  ⑤ **顺带清一条 `check-citations` 的已落地 drift**：`femacs/src/gtkutil.rs:92` 属"引 include 行、括号里点名它带来的
+  名字"的类（`lisp.h 30/33` 的 `<string.h>` 链），写进 `docs/baseline/citations-allowlist.tsv`（34 → 35 allowed）。
+  ⑥ **lane 自报读数（不是我的）**：三条臂形状 `rustc` 直编 4,200 行 `_root.rs`——arm A 53 错（本单元 19 + 镜像 34）、
+  arm B 115 错（99 + 16，其中 71 条是 `include/pgtkterm.rs` 占位宏）、arm C 64 错（30 + 34，GTK2 工具链缺口）；
+  lab 自评"本单元错误全是镜像欠账，没有一条是 C 语句照录的缺陷"；`check-cond-eval src/gtkutil.c` =
+  `212 conditions, 1 unknown, 1 disagreements [NOT VERIFIED]`（唯一分歧 C 6652 的 `GTK_CHECK_VERSION (3,16,0)`，
+  既有记录、远在切片之外）。**lane 预算：`build-tu` 5 次（限 3，超 2，逐条在台账 Evidence ①S2 说明）、`probe` 0 次。**
+  ⑦ **未声称**：**没有任何 GTK/GTK2 构建或设备上的编译/运行**——本机无 GTK 树，证据只有 336 字节空对象 +
+  rustc 的名字/类型错误；"本单元错误只有那几类"是**弱读数**（P-86 ⑦）；GDK/GTK 的占位值与 `GdkGeometry` 布局
+  一律 `UNVERIFIED`；C 2282-6,753 未移植；6 处镜像缺口（`include/gtkutil.rs`/`include/pgtkterm.rs`/
+  `include/xterm.rs`/`include/frame.rs`）与 P-90 的 `include/gtk.rs` 搬运仍欠（Owed 11/14）；`check-port-lines`
+  的 `docs/port-map.md` 目标格仍是 11 行（Owed 13，生成物留给批次收口）。本轮 `build-tu` **1 发**、`probe` **0 发**。
+
