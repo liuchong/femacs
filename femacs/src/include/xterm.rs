@@ -1445,22 +1445,57 @@ macro_rules! VERTICAL_SCROLL_BAR_MIN_HANDLE { () => { (5) }; }
 #[cfg (feature = "have_x_windows")]
 macro_rules! HORIZONTAL_SCROLL_BAR_MIN_HANDLE { () => { (5) }; }
 
+/* C's xterm.h names `struct font` as a **pointer only** (`struct x_output`'s `font` member
+   below, C 1691) and does **not** include font.h, so C compiles it as an incomplete type.  In
+   Rust the name still has to exist: `src/xselect.rs` reaches this mirror at C 37 without pulling
+   `include/font.rs` and read `E0425 cannot find type font` (status 3.538).  The stand-in below is
+   a forward declaration in the module + glob shape (PORTING.md 0.1-10 / P-39, the `coding.rs`
+   `ccl_spec` precedent): a unit that *does* pull `include/font.rs` gets that mirror's real record
+   at its crate root, which shadows this - so nothing that dereferences the pointer changes, and
+   `include/font.rs` remains the type's single owner.  Zero-sized on purpose: it is not C's record
+   and no layout may be asserted of it.  */
+#[cfg (feature = "have_x_windows")]
+pub mod font_fwd {
+  /// C: `struct font;` - the tag xterm.h names (font.h defines it).
+  #[repr(C)]
+  pub struct font
+  {
+    _opaque: [u8; 0],
+  }
+}
+#[cfg (feature = "have_x_windows")]
+use font_fwd::*;
+
 /* C 1699-1714: "For an event of kind SELECTION_REQUEST_EVENT, this structure really describes the
-   contents."  Its first member is the `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH` bitfield,
-   recorded rather than packed (P-80).  */
+   contents."  Its first member is the `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH` bitfield -
+   the same one `struct input_event` carries (termhooks.h 360: `EVENT_KIND_WIDTH` is 16), so it is
+   one storage unit here, named through the accessor macro below (PORTING.md 1.3 / P-80's
+   member-named reading, the `input_event_bits!` shape; status 3.538).  It used to be recorded
+   without a unit, which cost two things: `src/xselect.rs` C 1385's `event->kind` was `E0609`, and
+   every member after it sat one storage unit too early.  */
 /// C: struct selection_input_event { ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH; struct
 /// C: x_display_info *dpyinfo; Window requestor; Atom selection, target, property; Time time; };
 #[cfg (feature = "have_x_windows")]
 #[repr(C)]
 pub struct selection_input_event
 {
-  // C: ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH;
+  pub bits: u32,                      // kind:16 - C: `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH;`
   pub dpyinfo: *mut x_display_info,   // C: struct x_display_info *dpyinfo;
   pub requestor: Window,   // C: Window requestor;
   pub selection: Atom,   // C: Atom selection, target, property;
   pub target: Atom,   // C: Atom selection, target, property;
   pub property: Atom,   // C: Atom selection, target, property;
   pub time: Time,   // C: Time time;
+}
+
+/// P-80: the `kind` member of the storage unit above, the `input_event_bits!` shape (the mask is
+/// termhooks.h's `EVENT_KIND_WIDTH`, `0xFFFF`).  C reads this member only - the one reader is
+/// `src/xselect.rs` C 1385 - and the file's single assignment of a `kind` is `struct
+/// input_event`'s (`bufp->kind = DRAG_N_DROP_EVENT`), not this member's, so the macro has no
+/// setter arm.
+#[cfg (feature = "have_x_windows")]
+macro_rules! selection_input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
 }
 /// C 1715-1718: "Unlike macros below, this can't be used as an lvalue."  C's body reads
 /// `ev->dpyinfo->display`, which the port keeps as C's field chain.

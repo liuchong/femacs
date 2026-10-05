@@ -10519,3 +10519,35 @@
      真值）；`USE_CAIRO` 而无 `HAVE_X_I18N` 的组合在端口里与 C 一样**编译不过**（Finding 1，不是端口缺陷）。
   ⑤ **预算实报**：lane 侧 `build-tu` **1/3**、`probe` **4/3**（超支 1，lane 在台账 ⑦ 报了）；集成者：
      `check-all-units` 1 发、生成物 3 发、门 6 发、`extract-abi --check` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.538 镜像轮第十四批：`selection_input_event` 的 `kind` 位域补上存储单元、`*mut font` 补可被遮蔽的前向声明（`xselect` 臂 3 错 → 1）（2026-10-05）**：
+  ① **对象**（两条都是 `xselect` lane 臂读数逐条点到的镜像缺陷，各自给出文件+行）：
+     ⑴ `include/xterm.rs` 的 `struct selection_input_event` 把 C 1703 的首成员
+     `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH` **当注释记着、没有存储单元**（P-80 的"记而不装"）——
+     后果有两层：`src/xselect.rs` C 1385 的 `event->kind` 是 `E0609`，而且该成员之后的**每个**成员都早了一个
+     存储单元。
+     ⑵ 同一个镜像 807 行（`struct x_output` 的）`pub font: *mut font` 命名了一个它**没有拉进来的**类型：C 的
+     `xterm.h` **不** include `font.h`（C 1691 只有 `struct font *`，是不完整类型），而 `src/xselect.c` 的
+     include 表里也没有 `font.h` ⇒ 经 xterm.h 到达这里的单元读 `E0425 cannot find type font`。
+  ② **改法**：⑴ 按 P-80 的成员命名形状补 `pub bits: u32`（复用 `include/termhooks.rs` 128 的
+     `INPUT_EVENT_KIND_MASK`，`EVENT_KIND_WIDTH` 是 termhooks.h 360 的 16）与新宏
+     `selection_input_event_bits! (kind, $e)`——**只有读臂**，因为 C 从不给这个成员赋值（文件里唯一的
+     `kind = …` 是 `struct input_event` 的 `bufp->kind`，单元里另有它自己的 `input_event_bits!`）；`xselect.rs` 的
+     唯一读点改成调这个宏。
+     ⑵ 给 `font` 一个**可被遮蔽的前向声明**：`pub mod font_fwd { #[repr(C)] pub struct font { _opaque: [u8; 0] } }`
+     + `use font_fwd::*;`（module+glob 形状，PORTING.md 0.1-10 / P-39，`coding.rs` 的 `ccl_spec` 先例），门与
+     `x_output` 同为 `have_x_windows`，注释写明它是**前向声明不是 C 的记录**（因此不写任何布局断言），并且
+     **拉了 `include/font.rs` 的单元会在 crate 根拿到真记录、把它遮蔽** ⇒ 13 处 `FRAME_FONT!` 与所有解引用点
+     **一处都不用改**（`font.rs` 仍是这个类型唯一的家）。
+  ③ **读数（主判据 = 臂）**：`probe src/xselect.rs`（`have_x_windows` + `have_sys_types_h` + `trace_selection` +
+     `have_xfixes`）：**3 错 → 1 错**（剩下那条是 `include/systime.rs` 27 的手翻断言语，机制项）；
+     `extract-abi --check emacs/src/xselect.c femacs/src/xselect.rs` 仍 **OK**；`check-all-units` **83 unit(s),
+     0 failure(s)**（两腿；前向声明对冻结读数不可见——`have_x_windows` 在冻结档为假，而有 `font.rs` 的单元遮蔽它）、
+     `layout-check` passed、`check-mirror-dupes` 17/17/0、`check-citations` **1 drift → 0/0**：那条 drift 是**我自己写的
+     一句话**里出现了 `xselect.c 3211` 这种"文件+行"形式，被工具读成对那一行的断言（而那句话说的是"那个赋值属于
+     `input_event`"）——**改写句子**而不是加豁免行，因为那句本就不是引用。
+  ④ **未声称**：仍是**编译**读数；`font` 的 stand-in 是**端口的装置**（P-39/P-70 形状）而不是 C 的构造，它故意零大小、
+     不承载任何布局；android/w32/haiku 的死臂不受影响（它们要么有 `font.rs`、要么用这个 stand-in，两条路都能编译，
+     但本机**没有**那些 SDK 去读它们）。
+  ⑤ **预算**：`probe` 2 发（含一次 `/tmp` 目录没建导致的空跑）、`check-all-units` 1 发、`layout-check` 1 发、
+     `check-citations` 3 发、`check-mirror-dupes` 2 发、`extract-abi --check` 2 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。

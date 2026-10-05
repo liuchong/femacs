@@ -1822,7 +1822,7 @@ unsafe fn x_handle_selection_clear (event: *mut selection_input_event)   // C 13
 pub unsafe extern "C" fn x_handle_selection_event (event: *mut selection_input_event)  // C 1381-1389
 {
   TRACE0! ("x_handle_selection_event");                          // C 1384
-  if (*event).kind as c_int != SELECTION_REQUEST_EVENT
+  if selection_input_event_bits! (kind, event) != SELECTION_REQUEST_EVENT
     { x_handle_selection_clear (event); }
   else
     { x_handle_selection_request (event); }
