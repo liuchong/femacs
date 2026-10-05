@@ -480,3 +480,29 @@ re-implemented here.
   *is* opened, so this is the next site - not a regression of the dump run.  C's `uintptr_t`
   addition there wraps where Rust's checked arithmetic panics (PORTING.md P-96's family), which is
   the first thing to check.
+
+- **The load path's four wrapping additions (3.643).**  C 5328 and C 5358 add `emacs_basis ()` to a
+  `uintptr_t` read out of the dump; the word is `emacs_offset (ptr)` (C 717-725), i.e. a *signed*
+  offset, so a negative one is a huge unsigned here and C's addition *relies on wrapping* (PORTING.md
+  P-96).  C 5535 and C 5539 (`pval = reloc.u.<off> + <base>`) are the same conversion, and the port
+  had narrowed the base to `dump_off` (int32) before adding - truncating the address, not just
+  wrapping it.  All four are now `(x as uintptr_t).wrapping_add (base) as ptrdiff_t`, C's own
+  arithmetic.  Reading: the load stops one stage later (below), and the dump run is unchanged
+  (`Dump complete`, 13,025,304-byte `emacs.pdmp`).
+- **Owed (named, with a backtrace): the load stops in `hash_char_array` on a NULL string data
+  pointer.**  `thaw_hash_tables` -> `hash_table_thaw` -> `hashfn_equal` -> `sxhash` -> `sxhash_obj`
+  -> `hash_char_array (ptr = NULL, len = 0x106284100)`; the UB check reports
+  `copy_nonoverlapping`'s precondition.  `hash_table_thaw`/`thaw_hash_tables` match C 5045-5089 /
+  5781-5787 statement for statement, and the reloc phases match C's seven sites, so the question is
+  the *key*: either the frozen table's `key_and_value` contents were not written correctly by the
+  dump, or the loader reads them before their relocations are applied.  Next: an instrument that
+  prints that table's `h`/`count`/`key_and_value` and the bad key's bits (two attempts this round
+  tripped *other* UB checks inside the instrument itself - recorded in the status entry, not
+  hidden).
+- **Cross-checking against the reference's dump is blocked by the fingerprint (3.643, negative
+  result).**  `pdumper_load` compares the dump's fingerprint with the executable's before anything
+  else, and the port's `lib/fingerprint.rs` carries the frozen placeholder value
+  (`DE 86 BB 99 ... B0`): that 32-byte sequence is present in `build/femacs/emacs.pdmp` and absent
+  from both reference dumps (`emacs-32.0.50.1.pdmp`, `bootstrap-emacs.pdmp`), so loading a reference
+  dump in the port would be rejected by the gate first.  A cross-check therefore needs a temporary
+  fingerprint substitution (a semantic change, not done).

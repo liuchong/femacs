@@ -6002,7 +6002,10 @@ fn dump_make_lv_from_reloc (dump_base: uintptr_t, reloc: dump_reloc) -> Lisp_Obj
       eassert! (r#type < dump_reloc_type::RELOC_DUMP_TO_EMACS_LV as c_int + 8);
       lisp_type = unsafe { core::mem::transmute::<c_int, Lisp_Type> (
                              r#type - dump_reloc_type::RELOC_DUMP_TO_EMACS_LV as c_int) };
-      value += emacs_basis ();
+      /* PORTING.md P-96: C's `uintptr_t` addition *relies on wrapping* - the word in the
+         dump is `emacs_offset (ptr)`, a signed offset, so a negative one is a huge unsigned
+         here and adding the basis wraps back to the pointer (status 3.643).  */
+      value = value.wrapping_add (emacs_basis ());
     }
 
   eassert! (lisp_type != Lisp_Type::Lisp_Int0 && lisp_type != Lisp_Type::Lisp_Int1);
@@ -6080,7 +6083,10 @@ fn dump_do_dump_relocation (dump_base: uintptr_t, reloc: dump_reloc)
       => {
         let mut value: uintptr_t = dump_read_word_from_dump (dump_base, reloc_offset);
         eassert! (dump_reloc_size (reloc) as usize == core::mem::size_of_val (&value));
-        value += emacs_basis ();
+        /* PORTING.md P-96: C's `uintptr_t` addition *relies on wrapping* - the word in the
+         dump is `emacs_offset (ptr)`, a signed offset, so a negative one is a huge unsigned
+         here and adding the basis wraps back to the pointer (status 3.643).  */
+      value = value.wrapping_add (emacs_basis ());
         dump_write_word_to_dump (dump_base, reloc_offset, value);
       }
       x if x == dump_reloc_type::RELOC_DUMP_TO_DUMP_PTR_RAW as c_int
@@ -6291,7 +6297,11 @@ fn dump_do_emacs_relocation (dump_base: uintptr_t, reloc: emacs_reloc)
       }
       x if x == emacs_reloc_type::RELOC_EMACS_DUMP_PTR_RAW as c_int
       => {
-        pval = (unsafe { reloc.u.dump_offset } + dump_base as dump_off) as ptrdiff_t;
+        /* C 5535: `pval = reloc.u.dump_offset + dump_base;` - `dump_off` (int32) converts to
+           `uintptr_t` and the sum wraps (P-96); the port must not narrow `dump_base` to
+           `dump_off` (that truncates the address) nor add the two in 32 bits.  */
+        pval = (unsafe { reloc.u.dump_offset } as uintptr_t)
+          .wrapping_add (dump_base) as ptrdiff_t;
         unsafe {
           memcpy (emacs_ptr_at (reloc.emacs_offset as ptrdiff_t), (&raw const pval) as *const c_void,
                   core::mem::size_of_val (&pval));
@@ -6299,7 +6309,10 @@ fn dump_do_emacs_relocation (dump_base: uintptr_t, reloc: emacs_reloc)
       }
       x if x == emacs_reloc_type::RELOC_EMACS_EMACS_PTR_RAW as c_int
       => {
-        pval = (unsafe { reloc.u.emacs_offset2 } + emacs_basis () as dump_off) as ptrdiff_t;
+        /* C 5539: `pval = reloc.u.emacs_offset2 + emacs_basis ();` - the same conversion and
+           the same wrap as C 5535 (P-96).  */
+        pval = (unsafe { reloc.u.emacs_offset2 } as uintptr_t)
+          .wrapping_add (emacs_basis ()) as ptrdiff_t;
         unsafe {
           memcpy (emacs_ptr_at (reloc.emacs_offset as ptrdiff_t), (&raw const pval) as *const c_void,
                   core::mem::size_of_val (&pval));
