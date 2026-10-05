@@ -109,8 +109,9 @@ unsafe extern "C" {
   /// C: Lisp_Object decode_env_path (const char *, const char *, bool)   (lisp.h 5135)
   fn decode_env_path (envvar: *const c_char, deflt: *const c_char,
                       empty_is_default: bool) -> Lisp_Object;
-  /// C: void dir_warning (const char *, Lisp_Object) AVOID   (lisp.h 4750)
-  fn dir_warning (format: *const c_char, argument: Lisp_Object) -> !;
+  /// C: void dir_warning (const char *, Lisp_Object)   (lisp.h 4750; the definition is
+  /// src/lread.rs's, and the header carries no AVOID - it returns after warning)
+  fn dir_warning (format: *const c_char, argument: Lisp_Object);
   /// C: Lisp_Object write_region (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object,
   ///                              Lisp_Object, Lisp_Object, Lisp_Object, int)  (lisp.h 4973)
   fn write_region (start: Lisp_Object, end: Lisp_Object, filename: Lisp_Object,

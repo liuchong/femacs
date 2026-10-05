@@ -253,3 +253,13 @@ collapsing C's comment lines into literals.
    mirror's ledger (`docs/ports/include-systime.md`) records the change.
 2. `docs/ports/macro-body-notes.tsv`: the eleven rows above (appended).
 3. `docs/ports/line-drift-tolerance.tsv`: the `timefns` row above (appended).
+
+## 2026-10-05: `sizeof "literal"` includes C's NUL (status 3.614)
+
+Four sites wrote C's `sizeof "..."` as `std::mem::size_of_val (&*b"...")` and kept C's `-1`/`+0`
+arithmetic.  A C string literal's array carries the terminating NUL; a Rust byte-string literal
+does not, so every one of the four was one byte short: `tzeqlen` came out 2 instead of 3 (which
+shifted the whole `TZ=` buffer and made `putenv` fail on the first `tzlookup`), the trailing
+format pointer was off by one, and the two stack buffers were one byte smaller than C's.  The
+literals now spell the NUL (`b"TZ=\0"`, `b"<%+.*ld\0"`, `b"Mon Apr 30 12:49:17 \0"`, `b"5959\0"`)
+so the arithmetic is C's verbatim.

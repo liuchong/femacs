@@ -237,7 +237,7 @@ DEFUN! ("random", Frandom, Srandom, 0, 1, 0,
 /* Return LIST's length.  Signal an error if LIST is not a proper list.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn list_length (list: Lisp_Object) -> ptrdiff_t
+pub unsafe extern "C" fn list_length (mut list: Lisp_Object) -> ptrdiff_t
 {
   let mut i: ptrdiff_t = 0;
   /* The port's FOR_EACH_TAIL! cannot hand C's terminating non-cons back to the caller (the
@@ -283,6 +283,9 @@ DEFUN! ("safe-length", Fsafe_length, Ssafe_length, 1, 1, 0,
        doc: "Return the length of a list, but avoid error or infinite loop.\nThis function never gets an error.  If LIST is not really a list,\nit returns 0.  If LIST is circular, it returns an integer that is at\nleast the number of distinct elements.",
        (list: Lisp_Object),
        {
+  /* C assigns to the parameter through `FOR_EACH_TAIL_SAFE`; Rust needs the binding declared
+     mutable, and a `DEFUN!` parameter list cannot carry `mut` (status 3.612).  */
+  let mut list = list;
   let mut len: ptrdiff_t = 0;
   FOR_EACH_TAIL_SAFE! (list, {
     len += 1;
@@ -829,16 +832,12 @@ DEFUN! ("copy-sequence", Fcopy_sequence, Scopy_sequence, 1, 1, 0,
       let val: Lisp_Object = Fcons (XCAR (arg), Qnil ());
       let mut prev: Lisp_Object = val;
       let mut tail: Lisp_Object = XCDR (arg);
-      /* C's FOR_EACH_TAIL leaves the terminating non-cons in TAIL, which the port's macro
-	 cannot hand back; the body records it (docs/ports/fns.md, Decisions).  */
-      let mut tail_end: Lisp_Object = tail;
       FOR_EACH_TAIL! (tail, {
 	let c: Lisp_Object = Fcons (XCAR (tail), Qnil ());
 	XSETCDR (prev, c);
 	prev = c;
-	tail_end = XCDR (tail);
       });
-      CHECK_LIST_END (tail_end, tail_end);
+      CHECK_LIST_END (tail, tail);
       return val;
     }
 
@@ -2025,13 +2024,11 @@ DEFUN! ("member", Fmember, Smember, 2, 2, 0,
   let mut tail: Lisp_Object = list;
   /* C's FOR_EACH_TAIL leaves the terminating non-cons in TAIL; the port's macro cannot hand
      it back, so the body records it (docs/ports/fns.md, Decisions).  */
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
     if ! NILP (Fequal (elt, XCAR (tail)))
       { return tail; }
-    tail_end = XCDR (tail);
   });
-  CHECK_LIST_END (tail_end, list);
+  CHECK_LIST_END (tail, list);
   return Qnil ();
 });
 
@@ -2040,13 +2037,11 @@ DEFUN! ("memq", Fmemq, Smemq, 2, 2, 0,
        (elt: Lisp_Object, list: Lisp_Object),
        {
   let mut tail: Lisp_Object = list;
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
     if EQ (XCAR (tail), elt)
       { return tail; }
-    tail_end = XCDR (tail);
   });
-  CHECK_LIST_END (tail_end, list);
+  CHECK_LIST_END (tail, list);
   return Qnil ();
 });
 
@@ -2071,7 +2066,6 @@ DEFUN! ("memql", Fmemql, Smemql, 2, 2, 0,
   let mut tail: Lisp_Object = list;
   /* C's FOR_EACH_TAIL leaves the terminating non-cons in TAIL; the port's macro cannot hand
      it back, so the body records it (docs/ports/fns.md, Decisions).  */
-  let mut tail_end: Lisp_Object = tail;
 
   if FLOATP (elt)
     {
@@ -2079,7 +2073,6 @@ DEFUN! ("memql", Fmemql, Smemql, 2, 2, 0,
 	  let tem: Lisp_Object = XCAR (tail);
 	  if FLOATP (tem) && same_float (elt, tem)
 	    { return tail; }
-	  tail_end = XCDR (tail);
       });
     }
   else if BIGNUMP (elt)
@@ -2089,13 +2082,12 @@ DEFUN! ("memql", Fmemql, Smemql, 2, 2, 0,
 	  if BIGNUMP (tem)
 	      && mpz_cmp (xbignum_val (elt), xbignum_val (tem)) == 0
 	    { return tail; }
-	  tail_end = XCDR (tail);
       });
     }
   else
     { return Fmemq (elt, list); }
 
-  CHECK_LIST_END (tail_end, list);
+  CHECK_LIST_END (tail, list);
   return Qnil ();
 });
 
@@ -2104,13 +2096,11 @@ DEFUN! ("assq", Fassq, Sassq, 2, 2, 0,
        (key: Lisp_Object, alist: Lisp_Object),
        {
   let mut tail: Lisp_Object = alist;
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
     if CONSP (XCAR (tail)) && EQ (XCAR (XCAR (tail)), key)
       { return XCAR (tail); }
-    tail_end = XCDR (tail);
   });
-  CHECK_LIST_END (tail_end, alist);
+  CHECK_LIST_END (tail, alist);
   return Qnil ();
 });
 
@@ -2155,7 +2145,6 @@ DEFUN! ("assoc", Fassoc, Sassoc, 2, 3, 0,
   if eq_comparable_value (key) && NILP (testfn)
     { return Fassq (key, alist); }
   let mut tail: Lisp_Object = alist;
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
       let car: Lisp_Object = XCAR (tail);
       if !CONSP (car)
@@ -2168,9 +2157,8 @@ DEFUN! ("assoc", Fassoc, Sassoc, 2, 3, 0,
 	        { !NILP (calln! (testfn, XCAR (car), key)) })
 	    { return car; }
 	}
-      tail_end = XCDR (tail);
   });
-  CHECK_LIST_END (tail_end, alist);
+  CHECK_LIST_END (tail, alist);
   return Qnil ();
 });
 
@@ -2199,13 +2187,11 @@ DEFUN! ("rassq", Frassq, Srassq, 2, 2, 0,
        (key: Lisp_Object, alist: Lisp_Object),
        {
   let mut tail: Lisp_Object = alist;
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
     if CONSP (XCAR (tail)) && EQ (XCDR (XCAR (tail)), key)
       { return XCAR (tail); }
-    tail_end = XCDR (tail);
   });
-  CHECK_LIST_END (tail_end, alist);
+  CHECK_LIST_END (tail, alist);
   return Qnil ();
 });
 
@@ -2216,15 +2202,13 @@ DEFUN! ("rassoc", Frassoc, Srassoc, 2, 2, 0,
   if eq_comparable_value (key)
     { return Frassq (key, alist); }
   let mut tail: Lisp_Object = alist;
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
       let car: Lisp_Object = XCAR (tail);
       if CONSP (car)
 	  && (EQ (XCDR (car), key) || !NILP (Fequal (XCDR (car), key)))
 	{ return car; }
-      tail_end = XCDR (tail);
   });
-  CHECK_LIST_END (tail_end, alist);
+  CHECK_LIST_END (tail, alist);
   return Qnil ();
 });
 
@@ -2237,7 +2221,6 @@ DEFUN! ("delq", Fdelq, Sdelq, 2, 2, 0,
   let mut list: Lisp_Object = list;
   let mut tail: Lisp_Object = list;
 
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
       let tem: Lisp_Object = XCAR (tail);
       if EQ (elt, tem)
@@ -2249,9 +2232,8 @@ DEFUN! ("delq", Fdelq, Sdelq, 2, 2, 0,
 	}
       else
 	{ prev = tail; }
-      tail_end = XCDR (tail);
   });
-  CHECK_LIST_END (tail_end, list);
+  CHECK_LIST_END (tail, list);
   return list;
 });
 
@@ -2296,7 +2278,6 @@ DEFUN! ("delete", Fdelete, Sdelete, 2, 2, 0,
       let mut prev: Lisp_Object = Qnil ();
       let mut tail: Lisp_Object = seq;
 
-      let mut tail_end: Lisp_Object = tail;
       FOR_EACH_TAIL! (tail, {
 	  if !NILP (Fequal (elt, XCAR (tail)))
 	    {
@@ -2307,9 +2288,8 @@ DEFUN! ("delete", Fdelete, Sdelete, 2, 2, 0,
 	    }
 	  else
 	    { prev = tail; }
-	  tail_end = XCDR (tail);
       });
-      CHECK_LIST_END (tail_end, seq);
+      CHECK_LIST_END (tail, seq);
     }
   else if VECTORP (seq)
     {
@@ -2852,7 +2832,6 @@ DEFUN! ("plist-put", Fplist_put, Splist_put, 3, 4, 0,
     { return plist_put (plist, prop, val); }
   let mut prev: Lisp_Object = Qnil ();
   let mut tail: Lisp_Object = plist;
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
       if ! CONSP (XCDR (tail))
 	{ break; }
@@ -2865,9 +2844,8 @@ DEFUN! ("plist-put", Fplist_put, Splist_put, 3, 4, 0,
 
       prev = tail;
       tail = XCDR (tail);
-      tail_end = tail;
   });
-  CHECK_TYPE (NILP (tail_end), Qplistp (), plist);
+  CHECK_TYPE (NILP (tail), Qplistp (), plist);
   let newcell: Lisp_Object
     = Fcons (prop, Fcons (val, if NILP (prev) { plist } else { XCDR (XCDR (prev)) }));
   if NILP (prev)
@@ -2884,7 +2862,6 @@ pub unsafe extern "C" fn plist_put (plist: Lisp_Object, prop: Lisp_Object,
 {
   let mut prev: Lisp_Object = Qnil ();
   let mut tail: Lisp_Object = plist;
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
       if ! CONSP (XCDR (tail))
 	{ break; }
@@ -2897,9 +2874,8 @@ pub unsafe extern "C" fn plist_put (plist: Lisp_Object, prop: Lisp_Object,
 
       prev = tail;
       tail = XCDR (tail);
-      tail_end = tail;
   });
-  CHECK_TYPE (NILP (tail_end), Qplistp (), plist);
+  CHECK_TYPE (NILP (tail), Qplistp (), plist);
   let newcell: Lisp_Object
     = Fcons (prop, Fcons (val, if NILP (prev) { plist } else { XCDR (XCDR (prev)) }));
   if NILP (prev)
@@ -2925,16 +2901,14 @@ DEFUN! ("plist-member", Fplist_member, Splist_member, 2, 3, 0,
   if NILP (predicate)
     { return plist_member (plist, prop); }
   let mut tail: Lisp_Object = plist;
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
       if !NILP (calln! (predicate, XCAR (tail), prop))
 	{ return tail; }
       tail = XCDR (tail);
-      tail_end = tail;
       if ! CONSP (tail)
 	{ break; }
   });
-  CHECK_TYPE (NILP (tail_end), Qplistp (), plist);
+  CHECK_TYPE (NILP (tail), Qplistp (), plist);
   return Qnil ();
 });
 
@@ -2944,16 +2918,14 @@ DEFUN! ("plist-member", Fplist_member, Splist_member, 2, 3, 0,
 pub unsafe extern "C" fn plist_member (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object
 {
   let mut tail: Lisp_Object = plist;
-  let mut tail_end: Lisp_Object = tail;
   FOR_EACH_TAIL! (tail, {
       if EQ (XCAR (tail), prop)
 	{ return tail; }
       tail = XCDR (tail);
-      tail_end = tail;
       if ! CONSP (tail)
 	{ break; }
   });
-  CHECK_TYPE (NILP (tail_end), Qplistp (), plist);
+  CHECK_TYPE (NILP (tail), Qplistp (), plist);
   return Qnil ();
 }
 

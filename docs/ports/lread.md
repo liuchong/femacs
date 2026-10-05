@@ -406,3 +406,14 @@ shared**.  Every callee C's *source text* names is in the port's set.  The diffe
    (status 3.9), and the ten features above are platform/compiler predicates, so nothing in this
    tree compiles the Android, module, native-comp, Windows or DOS arms - they are text plus a
    syntax check, exactly as in `print.rs`/`callproc.rs`.
+
+## 2026-10-05: the obarray iterator's empty-bucket marker is the fixnum zero (status 3.614)
+
+`obarray_iter_at_end` is a lisp.h INLINE, so it lives in the mirror; the port wrote its test as
+`!NILP (obj)`.  C's test is `!BASE_EQ (obj, make_fixnum (0))`, and the two are not the same
+predicate: an empty bucket holds the *fixnum* zero (C writes `make_fixnum (0)` in `make_obarray`,
+`grow_obarray`, `obarray-clear` and reads it back in `oblookup`), while `Qnil` is the symbol at
+offset 0 of `lispsym`.  The port therefore walked into every empty bucket as if it held a symbol
+and skipped the real `nil` symbol; the first `map_obarray` (from `harmonize_variable_watchers`)
+died in `XSYMBOL`'s `eassume`.  The mirror's ledger records the fix; this file's own sites
+(`oblookup` 5273, the unintern path 5231, the value check 5038) were already C's.

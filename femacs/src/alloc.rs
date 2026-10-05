@@ -7195,7 +7195,7 @@ unsafe fn process_mark_stack (base_sp: ptrdiff_t)
 	    eassert! (valid_lisp_object_p ((*ptr).u.s.function) != 0);
 	    mark_stack_push_value ((*ptr).u.s.function);
 	    mark_stack_push_value ((*ptr).u.s.plist);
-	    match (*ptr).u.s.bits & SYMBOL_REDIRECT_MASK >> SYMBOL_REDIRECT_SHIFT
+	    match ((*ptr).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
 	      {
 	      SYMBOL_PLAINVAL =>
 		{ mark_stack_push_value (SYMBOL_VAL (ptr)); }
@@ -7585,7 +7585,7 @@ unsafe fn sweep_symbols ()
         {
           if (*sym).u.s.bits & SYMBOL_GC_MARK_BIT == 0
             {
-              if (*sym).u.s.bits & SYMBOL_REDIRECT_MASK >> SYMBOL_REDIRECT_SHIFT
+              if (((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT)
 		  == SYMBOL_LOCALIZED
 		{
                   xfree (SYMBOL_BLV (sym));

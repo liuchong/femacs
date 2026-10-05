@@ -2412,8 +2412,11 @@ pub fn obarray_iter_at_end (it: *mut obarray_iter_t) -> bool {
             return true;
         }
         let obj = unsafe { *(*((*it).o)).buckets.add ((*it).idx as usize) };
-        if !NILP (obj) {
-            unsafe { (*it).symbol = XSYMBOL (obj) };
+        /* C lisp.h 2477: `!BASE_EQ (obj, make_fixnum (0))` - an empty bucket holds the
+           *fixnum* zero (C 5038/5231/5273 write it), which is not `Qnil`: reading it as nil
+           is what sent the fixnum into `XSYMBOL` on the first run (status 3.614).  */
+        if !BASE_EQ (obj, make_fixnum (0)) {
+            unsafe { (*it).symbol = XBARE_SYMBOL (obj) };
             return false;
         }
     }
@@ -4360,8 +4363,11 @@ static_assert! ((FOR_EACH_TAIL_THRESHOLD & (FOR_EACH_TAIL_THRESHOLD - 1)) == 0);
 macro_rules! FOR_EACH_TAIL_SAFE {
     ($state:ident, $body:block) => {
         {
-            /* C: `struct for_each_tail_internal li = { tail, 0 };` */
-            let mut $state: Lisp_Object = $state;
+            /* C: `struct for_each_tail_internal li = { tail, 0 };` — the loop variable is the
+               *caller's*: C's post-loop `NILP (tail)` reads what the stepper left, and the body's
+               own `tail = XCDR (tail)` adds to it.  The port used to shadow it with a local, which
+               left the caller's copy stale and made the call sites invent `tail_end` - and then
+               check the wrong side of the step (status 3.612, `plist_put`).  */
             let mut li: for_each_tail_internal = for_each_tail_internal {
                 tortoise: $state,
                 l: 0,
@@ -4400,8 +4406,11 @@ macro_rules! FOR_EACH_TAIL_SAFE {
 macro_rules! FOR_EACH_TAIL {
     ($state:ident, $body:block) => {
         {
-            /* C: `struct for_each_tail_internal li = { tail, 0 };` */
-            let mut $state: Lisp_Object = $state;
+            /* C: `struct for_each_tail_internal li = { tail, 0 };` — the loop variable is the
+               *caller's*: C's post-loop `NILP (tail)` reads what the stepper left, and the body's
+               own `tail = XCDR (tail)` adds to it.  The port used to shadow it with a local, which
+               left the caller's copy stale and made the call sites invent `tail_end` - and then
+               check the wrong side of the step (status 3.612, `plist_put`).  */
             let mut li: for_each_tail_internal = for_each_tail_internal {
                 tortoise: $state,
                 l: 0,

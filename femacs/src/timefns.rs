@@ -293,7 +293,7 @@ unsafe fn tm_diff (a: *mut tm, b: *mut tm) -> c_int
 }
 
 /* C 193: `enum { tzeqlen = sizeof "TZ=" - 1 };` (`sizeof` is skipped by the token check).  */
-pub const tzeqlen: c_int = (std::mem::size_of_val (&*b"TZ=") - 1) as c_int;
+pub const tzeqlen: c_int = (std::mem::size_of_val (&*b"TZ=\0") - 1) as c_int;
 
 /* Time zones equivalent to current local time and to UTC, respectively.  */
 static mut local_tz: timezone_t = std::ptr::null_mut ();
@@ -335,7 +335,7 @@ unsafe fn tzlookup (mut zone: Lisp_Object, settz: bool) -> timezone_t
 {
   const tzbuf_format: [u8; 24] = *b"<%+.*ld>%s%ld:%02d:%02d\0";
   let trailing_tzbuf_format: *const c_char =
-    (tzbuf_format.as_ptr () as *const c_char).add (std::mem::size_of_val (&*b"<%+.*ld") - 1);
+    (tzbuf_format.as_ptr () as *const c_char).add (std::mem::size_of_val (&*b"<%+.*ld\0") - 1);
   const TZBUF_LEN: usize = std::mem::size_of_val (&tzbuf_format)
     + 2 * INT_STRLEN_BOUND! (EMACS_INT);
   let mut tzbuf: [c_char; TZBUF_LEN] = [0; TZBUF_LEN];
@@ -1904,7 +1904,7 @@ DEFUN! ("current-time-string", Fcurrent_time_string, Scurrent_time_string, 0, 2,
     [ *b"Jan\0", *b"Feb\0", *b"Mar\0", *b"Apr\0", *b"May\0", *b"Jun\0",
       *b"Jul\0", *b"Aug\0", *b"Sep\0", *b"Oct\0", *b"Nov\0", *b"Dec\0" ];
   let year_base: intmax_t = TM_YEAR_BASE as intmax_t;
-  const BUF_LEN: usize = std::mem::size_of_val (&*b"Mon Apr 30 12:49:17 ")
+  const BUF_LEN: usize = std::mem::size_of_val (&*b"Mon Apr 30 12:49:17 \0")
     + INT_STRLEN_BOUND! (c_int) + 1;
   let mut buf: [c_char; BUF_LEN] = [0; BUF_LEN];
   let len: c_int = sprintf (buf.as_mut_ptr (), c"%s %s%3d %02d:%02d:%02d %jd".as_ptr (),
@@ -1948,7 +1948,7 @@ DEFUN! ("current-time-zone", Fcurrent_time_zone, Scurrent_time_zone, 0, 2, 0,
 	  let hour: c_long = offset / 3600;
 	  let min_sec: c_int = (offset % 3600) as c_int;
 	  const BUF2_LEN: usize = INT_STRLEN_BOUND! (c_long)
-	    + std::mem::size_of_val (&*b"5959");
+	    + std::mem::size_of_val (&*b"5959\0");
 	  let mut buf: [c_char; BUF2_LEN] = [0; BUF2_LEN];
 	  let mut buflen: c_int = 0;
 	  buf[buflen as usize] = (if offset < 0 { b'-' } else { b'+' }) as c_char;

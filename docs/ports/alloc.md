@@ -605,3 +605,14 @@
   `python3 tools/extract-abi.py --check emacs/src/alloc.c femacs/src/alloc.rs` -> `OK`, and
   `build-tu src/alloc.c` -> `built src/alloc.rs -> ../build/femacs/alloc.o` (the frozen build
   is unchanged; the two fixes are inside the checking-gated item and its declaration).
+
+## 2026-10-05: two precedence defects in the redirect-bitfield emulation (status 3.614)
+
+C switches on the `ptr->u.s.redirect` *field*; the port has one `bits` word and emulates the
+field by masking, so the mask has to be parenthesised before the shift.  In Rust `&` binds
+*tighter* than `>>`, so C's arithmetic spelling written without parentheses - `bits &
+SYMBOL_REDIRECT_MASK >> SYMBOL_REDIRECT_SHIFT` - shifts the mask, not the bits.  Two sites were
+written that way (`process_mark_stack`'s symbol case and `sweep_symbols`); the first one made GC
+take the VARALIAS arm for non-alias symbols, which aborted in `SYMBOL_ALIAS`'s `eassume`.  Both
+now read `((*ptr).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT`, which is what the
+other 30-odd sites in the tree already write.

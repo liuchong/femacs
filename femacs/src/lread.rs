@@ -1048,9 +1048,9 @@ DEFUN! ("get-load-suffixes", Fget_load_suffixes, Sget_load_suffixes, 0, 0, 0,
        (),
        {
 	 let mut lst: Lisp_Object = Qnil ();
-	 let suffixes: Lisp_Object = Vload_suffixes;
+	 let mut suffixes: Lisp_Object = Vload_suffixes;
 	 FOR_EACH_TAIL! (suffixes, {
-	   let exts: Lisp_Object = Vload_file_rep_suffixes;
+	   let mut exts: Lisp_Object = Vload_file_rep_suffixes;
 	   let suffix: Lisp_Object = XCAR (suffixes);
 	   FOR_EACH_TAIL! (exts, {
 	     let ext: Lisp_Object = XCAR (exts);
@@ -1459,7 +1459,7 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	    the general case; the second load may do something different.  */
 	 {
 	   let mut load_count: c_int = 0;
-	   let tem: Lisp_Object = Vloads_in_progress;
+	   let mut tem: Lisp_Object = Vloads_in_progress;
 	   FOR_EACH_TAIL_SAFE! (tem, {
 	     if !NILP (Fequal (found, XCAR (tem)))
 	       {
@@ -1824,7 +1824,7 @@ unsafe fn maybe_swap_for_eln (no_native: bool, filename: *mut Lisp_Object,
       { return; }
 
     /* Search eln in the eln-cache directories.  */
-    let eln_path_tail: Lisp_Object = Vnative_comp_eln_load_path;
+    let mut eln_path_tail: Lisp_Object = Vnative_comp_eln_load_path;
     let mut src_name: Lisp_Object
       = Fsubstring (*filename, Qnil (), make_fixnum (-1));
     if NILP (Ffile_exists_p (src_name))
@@ -2272,7 +2272,7 @@ unsafe fn readevalloop_eager_expand_eval (val: Lisp_Object, macroexpand: Lisp_Ob
   val = calln! (macroexpand, val, Qnil ());
   if EQ (CAR_SAFE (val), Qprogn ())
     {
-      let subforms: Lisp_Object = XCDR (val);
+      let mut subforms: Lisp_Object = XCDR (val);
       val = Qnil ();
       FOR_EACH_TAIL! (subforms, {
 	val = readevalloop_eager_expand_eval (XCAR (subforms), macroexpand);
@@ -5295,7 +5295,7 @@ unsafe fn oblookup_considering_shorthand (obarray: Lisp_Object, mut in_: *const 
 					  out: *mut *mut c_char, size_out: *mut ptrdiff_t,
 					  size_byte_out: *mut ptrdiff_t) -> Lisp_Object
 {
-  let tail: Lisp_Object = Vread_symbol_shorthands;
+  let mut tail: Lisp_Object = Vread_symbol_shorthands;
 
   /* First, assume no transformation will take place.  */
   *out = std::ptr::null_mut ();

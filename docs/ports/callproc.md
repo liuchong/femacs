@@ -285,3 +285,11 @@ Readings: `extract-abi --check emacs/src/callproc.c femacs/src/callproc.rs` stay
 could be deleted rather than re-reasoned: `check-declarations` falls 10 -> 7 rows on this change
 alone, and the corrected reason for the one docstring that *stays* (`src/emacs.rs`,
 `Vemacs_bugreport`) is recorded in the same commit.
+
+## 2026-10-05: `dir_warning` is not noreturn (status 3.614)
+
+The unit declared `fn dir_warning (...) -> !` at its own use-site block; C's prototype
+(lisp.h 4750) is a plain `void` and the definition (src/lread.c 5500) returns, so the call in
+`init_callproc` was followed by unreachable code - the first run of the data-directory warning
+aborted in the UB check right after printing it.  The declaration now returns `()`, and the
+mirror gap it was standing in for stays owed (the mirror's ledger records it).

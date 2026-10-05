@@ -1062,7 +1062,7 @@ DEFUN! ("let*", FletX, SletX, 1, UNEVALLED, 0,
 
   lexenv = Vinternal_interpreter_environment;
 
-  let varlist: Lisp_Object = XCAR (args);
+  let mut varlist: Lisp_Object = XCAR (args);
   FOR_EACH_TAIL! (varlist, {
       elt = XCAR (varlist);
       if SYMBOLP (elt)

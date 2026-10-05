@@ -12482,3 +12482,58 @@
      也没有做"从可执行文件里 grep 那个名字"的运行期验收（本机唯一的可执行件是 3.611 链接出来的旧产物，尚未重链）。
   ⑦ **预算**：`check-declarations` 4 发、`check-carried` 5 发（含自测与两轮修复）、其余六道文本门 6 发、`extract-abi` 5 发（含 HEAD 对照 1 发）、
      `sed/grep` 若干；`build-tu` 0、`probe` 0、`/tmp` 0 残留（HEAD 对照用的 `/tmp/android_head.rs` 已删）。
+
+- **3.614 第一次运行的排错（续 3.612）：四处缺陷按 C 的语义修好，程序第一次**跑完 `--version` 并正常退出**，命令循环与 GC 走通；下一站是"批处理的错误为什么看不见"（2026-10-05）**：
+  ① **里程碑（可复跑）**：`build/femacs/emacs --version` **exit 0**，输出
+     `femacs 32.0.50` / `Copyright (C) 2026 Free Software Foundation, Inc.` / `femacs comes with
+     ABSOLUTELY NO WARRANTY.` …（两条 `Warning: … No such file or directory` 是数据目录与 Lisp 目录不在
+     安装位置时的 C 行为）。**"链接成功"到"程序能跑完一条路径"之间差的是这一条**。
+  ② **3.612（上一轮的工作树，随本提交入库）：`FOR_EACH_TAIL`/`FOR_EACH_TAIL_SAFE` 的影子变量**。
+     C 的 `struct for_each_tail_internal li = { tail, 0 };` 读的是**调用者的** `tail`，循环体自己
+     `tail = XCDR (tail)` 推进它，循环之后的 `NILP (tail)` 因此看到步进后的值；端口多写了一句
+     `let mut $state: Lisp_Object = $state;` **遮蔽了调用者的变量** ⇒ 调用点为了自洽发明了 `tail_end`（44 处），
+     其中 `plist_put` 把边界判据写在了步进的**另一侧**。影子行删除、`tail_end` 删除、`mut` 落到调用者绑定上
+     （`DEFUN!` 的参数表不能写 `mut`，用函数体内 `let mut x = x;`）。
+  ③ **3.614 的第一处：`obarray_iter_at_end` 把"空桶"判成了 `nil`**（`include/lisp.rs`，C 是 lisp.h 2477 的 INLINE）。
+     C 的判据是 `!BASE_EQ (obj, make_fixnum (0))`——空桶里放的是**定数零**（`make_obarray`/`grow_obarray`/
+     `obarray-clear` 都写 `make_fixnum (0)`，`oblookup` 也按它读），而 `Qnil` 是 `lispsym` 偏移 0 的**符号**：
+     端口写成 `!NILP (obj)` ⇒ 每个空桶都被当成符号走进去、真的 `nil` 反而被跳过；`harmonize_variable_watchers`
+     的第一次 `map_obarray` 就死在 `XSYMBOL` 的 `eassume`（lldb 现场：`map_obarray ← Fadd_variable_watcher`）。
+     改成 C 的判据，并把 `XSYMBOL` 改回 C 的 `XBARE_SYMBOL`。
+  ④ **第二处：`dir_warning` 被声明成 noreturn**。`callproc.rs` 自己的 use-site 声明写着
+     `fn dir_warning (…) -> !`（注释还抄了一个并不存在的 `AVOID`）；C 的原型（lisp.h 4750）是普通 `void`、
+     定义（src/lread.c 5500）返回。于是 `init_callproc` 里那次调用之后是编译器插入的不可达点——**第一次打
+     "arch-dependent data dir" 警告之后立刻在 UB 检查里 abort**（现场：`panic … null pointer dereference`，
+     行号正是那一行）。声明改回返回 `()`；它顶着的镜像缺口照旧欠着（`include-lisp.md` 记）。
+  ⑤ **第三处：`sizeof "字面量"` 丢了 C 的 NUL**（`timefns.rs` 四处）。C 的字符串字面量数组**带结尾 NUL**，
+     `size_of_val (&*b"…")` 不带，而端口把 C 的 `-1`/`+0` 算术照抄 ⇒ 四处都**少一个字节**：
+     `tzeqlen` 算出 **2** 而不是 3（`TZ=` 缓冲整体错位 ⇒ `putenv` 第一次就失败 ⇒ `emacs_setenv_TZ → xputenv →
+     memory_full`，"emacs: memory exhausted"），另外三处是尾部格式指针与两个栈缓冲各少一字节。
+     字面量改成把 NUL 写出来（`b"TZ=\0"` 等），算术就是 C 的原式。
+  ⑥ **第四处：掩码与移位的优先级**（`alloc.rs` 两处）。C 是 `switch (ptr->u.s.redirect)`（**字段**），
+     端口用一个 `bits` 字模拟、必须先把掩码括起来；Rust 里 `&` **比 `>>` 紧**，写成
+     `bits & SYMBOL_REDIRECT_MASK >> SYMBOL_REDIRECT_SHIFT` 等于移位掩码。`process_mark_stack` 的符号臂因此
+     对非 alias 的符号走了 VARALIAS 分支，在 `SYMBOL_ALIAS` 的 `eassume` 里 abort（现场：GC ← `eval_sub`）；
+     `sweep_symbols` 同错。两处都补上括号（树里另外 30 余处本来就这么写）。**附带全树扫描**：`& MASK >>`
+     这一形态只剩 base64 解码的三处（C 的优先级与 Rust 相同，正确）与 `FIXNUM` 检查的两处（左结合，正确）。
+  ⑦ **读数（全部实测）**：⑴ `tools/check-all-units.sh` **83/0 + 83/0**（改过镜像，P-87 两腿）、
+     `layout-check` **passed**；⑵ `check-link.py --executable` → `linked … no undefined reference`（产物
+     14,587,144 B）；⑶ 程序侧：`--version` exit 0（①），`--batch -l <file>` 进命令循环并求值顶层表单（lldb：
+     `Feval ← keyboard::top_level_2 ← internal_condition_case ← top_level_1 ← command_loop ← Frecursive_edit`）；
+     ⑷ 八道文本门 + `check-carried` 全绿：`check-declarations` 6 站点/0 forbidden/0 failures、`check-citations`
+     676 文件/0 drift/0 stale（`include/lisp.rs` 四条允许项行号 +4 随本提交更新）、`check-carried`
+     11/11/4/0、`check-mirror-dupes` 16/16/0、`check-ledger-ticks` 238/0、`check-dead-file-coverage` 145/0、
+     `check-port-lines` 0/0/0/0、`check-target-names` 0 finding。
+  ⑧ **下一站（点名，不冒充"到了 L1"）**：顶层表单是 `(load "loadup.el")`（`-l` 与默认两条路径都写 `Vtop_level`），
+     求值它时 lldb 抓到 **`Fsignal ← xsignal1 ← eval_sub`**（错误被 `top_level_1` 的 condition-case 吃掉），
+     但**批处理下没有打印任何 `Error: …`**——所以现在看不见"load 为什么失败"。下一步按这个顺序：
+     ⑴ 让批处理的错误路径可见（C 的 `cmd_error`/`message` 一线，本机无图形、`--batch` 是最短路径）；
+     ⑵ 用 `EMACSLOADPATH=<repo>/femacs/lisp` 让 `loadup.el` 真的能找到（Lisp 目录警告已随之消失，但**没有**
+     任何 loadup 输出——即"它没跑到"这点也是读数）；⑶ 才谈 L1 的验收档（`tools/acceptance-l1.py`）。
+     **未声称**：没有 `loadup`、没有一行 elisp 的语义验收、没有跑 L0/L1 金标；`link-exec-pending.txt`
+     仍是 3.611 之前的旧棘轮（`--executable --strict` 会报 STALE，按 3.253 的"取一格"惯例留给收口轮）；
+     Haiku/Windows/GTK 目标一个都没编译。
+  ⑨ **预算**：`build-tu` 5 发（callproc/timefns/alloc 各 1-2 发）、`check-link --executable` 4 发、`lldb` 7 次、
+     `check-all-units.sh` 1 发（两腿）、`layout-check` 1 发、文本门 2 轮；`build/femacs/units/*` 与 `/tmp` 的
+     临时件（`probe.el`、四份 `.out`）**已清**，`build/femacs/*.o`（226 个）与 `build/femacs/emacs` 保留
+     （链接集要用）；磁盘 41 GiB 可用。

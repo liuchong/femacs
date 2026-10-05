@@ -2154,7 +2154,7 @@ unsafe extern "C" fn safe_run_hooks_error (error: Lisp_Object, nargs: ptrdiff_t,
     {
       let mut found: bool = false;
       let mut newval: Lisp_Object = Qnil ();
-      let val: Lisp_Object = find_symbol_value (hook);
+      let mut val: Lisp_Object = find_symbol_value (hook);
       FOR_EACH_TAIL! (val, {
 	if EQ (fun, XCAR (val))
 	  { found = true; }
@@ -2166,7 +2166,7 @@ unsafe extern "C" fn safe_run_hooks_error (error: Lisp_Object, nargs: ptrdiff_t,
       /* Not found in the local part of the hook.  Let's look at the global
 	 part.  */
       newval = Qnil ();
-      let val2: Lisp_Object = if NILP (Fdefault_boundp (hook)) { Qnil () } else { Fdefault_value (hook) };
+      let mut val2: Lisp_Object = if NILP (Fdefault_boundp (hook)) { Qnil () } else { Fdefault_value (hook) };
       FOR_EACH_TAIL! (val2, {
 	if EQ (fun, XCAR (val2))
 	  { found = true; }
@@ -8565,6 +8565,9 @@ DEFUN! ("event-convert-list", Fevent_convert_list, Sevent_convert_list, 1, 1, 0,
        doc: "Convert the event description list EVENT-DESC to an event type.\nEVENT-DESC should contain one base event type (a character or symbol)\nand zero or more modifier names (control, meta, hyper, super, shift, alt,\ndrag, down, double or triple).  The base must be last.\n\nThe return value is an event type (a character or symbol) which has\nessentially the same base event type and all the specified modifiers.\n(Some compatibility base types, like symbols that represent a\ncharacter, are not returned verbatim.)",
        (event_desc: Lisp_Object),
        {
+  /* C assigns to the parameter through `FOR_EACH_TAIL_SAFE`, and a `DEFUN!` parameter list
+     cannot carry `mut` (status 3.612).  */
+  let mut event_desc = event_desc;
   let mut base: Lisp_Object = Qnil ();
   let mut modifiers: c_int = 0;
 
@@ -8722,7 +8725,7 @@ pub unsafe extern "C" fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int
 
 /* C 8010-8040: `bool lucid_event_type_list_p (Lisp_Object object);`  */
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn lucid_event_type_list_p (object: Lisp_Object) -> bool
+pub unsafe extern "C" fn lucid_event_type_list_p (mut object: Lisp_Object) -> bool
 {
   if ! CONSP (object)
     { return false; }
