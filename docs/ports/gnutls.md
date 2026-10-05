@@ -131,7 +131,9 @@ generated file, `tools/feature-coverage.py --write`).
   C 646-649, 657, 762, 786, 815, 843, 860-861, 888, 953, 960, 966.
 - **The two `#if 0`-style dead conditions in this slice's neighbourhood (C 2340-2356, 2454-2464)
   are outside it**; the slice's own conditions are the 54 the evaluator lists.
-- **Line-count basis**: `docs/ports/line-drift-tolerance.tsv`'s `gnutls` row is still the old
+- **Line-count basis (decided 2026-10-06, status 3.678)**: that table's newest `gnutls` row is
+  `gnutls 0.41 total` (the measured shortfall against the file's total, the two owed ranges named);
+  the `live` row this note called "still the old" is superseded.  The note as it stood: the old
   `live`/0.10 reading (124 live vs 122).  With the P-86 transcription the row must move to the
   `total` basis (C 3196 vs the port's 1897 = 40.7% drift, so tolerance 0.41) — Owed 1, and
   `extract-abi --check` cannot pass until it does (P-86 ⑩: the baseline files are outside this

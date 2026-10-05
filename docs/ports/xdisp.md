@@ -3534,7 +3534,13 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
    (deviations 290/294).  Either re-export the module or move the two out; `dispnew.rs` 241
    carries the same macro duplicate.
 
-11. `docs/ports/line-drift-tolerance.tsv` (the integrator's file, not touched here): with the
+11. **Decided 2026-10-06 (status 3.678): the row this item asks for is written** -
+    `xdisp 0.13 live`, with the measured numbers (the evaluator's live baseline 29836 against the
+    port's 33404, i.e. 12.0% longer) and the reason this table's header gives for a unit whose dead
+    region is recorded in its ledger.  `extract-abi --check emacs/src/xdisp.c femacs/src/xdisp.rs`
+    reads **OK** now; transcribing the `HAVE_WINDOW_SYSTEM` half (P-86 ①) would move the row again
+    and remains the larger, separate job this item named.  The note as it stood:
+    `docs/ports/line-drift-tolerance.tsv` (the integrator's file, not touched here): with the
    whole unit's live text now ported, the drift row reads `C 39805 vs Rust 33330` (16.3%) on the
    `total` basis, because the port records the unit's dead C lines as ledger rows and site
    comments instead of text.  C's live text is 29,836 lines (`tools/extract-abi.py`'s own

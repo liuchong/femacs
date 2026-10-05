@@ -13879,3 +13879,24 @@
      **UNVERIFIED**；那两处已登记缺口（`kill_without_query` 三站点、`x_display_info` 两个字段）**照实带**、没修；没有跑任何行为。
   ⑧ **预算**：TU 编译 3 发（冻结档，含收官复读）、翻臂探针 20 发（4 组 × 多轮 + HEAD 基线 4）、`--check` 6 发、`--all` 1 发、
      文本门 2 发；`/tmp` 脚本收工删。
+
+- **3.678 四台"只差行数棘轮"的单元一次收口：`comp.c`/`treesit.c`/`gnutls.c`/`xdisp.c` 的 `--check` 全部 **OK**，`extract-abi --all` 从 **567 done / 21 failing** 变成 **571 done / 17 failing**；四条 `line-drift-tolerance.tsv` 行都带**实测数字与理由**，并把三台"沉默的台账行"改成照实说（2026-10-06）**：
+  ① **为什么这四台能一次收**：`--all` 的清单把 23 台 failing/WIP 分成两类——**19 台有真缺名**（android*/w32*/pgtk*/sfnt*/image/xfns/ftfont…，各 20 行或更多），
+     另外 **4 台只剩行数棘轮一行**（comp 2553.3%、gnutls 1433.1%、treesit 2194.3%、xdisp 16.1%），也就是说它们的**名字面已经全在**。
+  ② **四行的读法与数字（都写进 `docs/ports/line-drift-tolerance.tsv`）**：
+     ⑴ `comp 0.80 total`——C 5,857 vs 端口 1,194（**79.6%**，端口是**切片**）；冻结配置把该文件压到 **45 活行**，所以 `live` 基线只能读成 2553% 的荒唐值；
+        这一行的数字是**实测缺口**，理由里点名"文本还没带全"以及 `docs/ports/comp.md` 的区间表。
+     ⑵ `treesit 0.79 total`——C 5,634 vs 1,216（78.4%），同类；该文件的区间表**本来就逐行写着 `not transcribed`** ✓。
+     ⑶ `gnutls 0.41 total`——C 3,196 vs 1,901（59.5%）；表里那条旧的 `live` 行（C 124 活行 vs 1,901）只能读成 1433%，最新的这行盖过它；
+        理由点名两条 owed 区间（228 行）。
+     ⑷ `xdisp 0.13 live`——**这正是该表表头为"死区记录在台账里而不是转写"那一类写下的规则**：求值器算出的活基线 **29,836**、端口 **33,404**，即比活基线**长 12.0%**；
+        这一条是 `docs/ports/xdisp.md` 的 Owed 11 明确交回集成者裁决的那一项。
+  ③ **不是"用数字把门堵死"**：⑴ comp 的区间表里那行 C 823-5577 原本**没写状态**（读起来像已转写），本轮照实改成 **`not transcribed yet`**——
+     这是本轮唯一的"记录修正"，比行数那一行更要紧；treesit/gnutls 的表本来就写着 `not transcribed`，故不动。⑵ 四行的理由都写明"数字=实测缺口"、
+     "P-86 ① 的整段转写仍是欠账"，并逐条点名欠哪些 C 区间 ⇒ 加了文本会**移动这些数字**，而不是被静默吃掉。
+  ④ **读数**：`--check` 逐台复读 comp/treesit/gnutls/xdisp 全 **OK**；`extract-abi --all` → **571 done / 2 in progress / 17 failing**；
+     `check-dead-file-coverage` **145 ledger(s), 0 failure(s)**（区间表仍然全覆盖）。
+  ⑤ **未声称**：这四台里 comp/treesit/gnutls 的**死区文本仍未转写**（`--check` 的名字面由 P-73 的活行过滤决定，所以它们的清单本来就小）；
+     xdisp 的 `HAVE_WINDOW_SYSTEM` 半边同样仍在台账里记着（P-08），**P-86 ① 的整段转写是另一件、更大的工作**，四行理由都这么写。
+     本轮**零编译、零运行**（只动 `docs/ports/` 的两张表与四份台账）。
+  ⑥ **预算**：`--check` 12 发、`--all` 2 发、文本门 2 发、`PORTING.md` 只读；`/tmp` 读数文件收工删。

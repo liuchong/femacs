@@ -96,7 +96,7 @@ that mirror's own notes live).
 | 731-767 | C 732-767 `comp_hash_source_file` | file gate / `have_zlib` (C 738-743, 752-758) |
 | 768-777 | C 769-777 `DEFUN ("comp--subr-signature", …)` | file gate |
 | 778-822 | C 779-822 `hash_native_abi` | file gate / `ns_self_contained` (C 797-818) |
-| 823-5577 | C 824-5577, the rest of the file gate's region: `freloc_check_fill` (`FOR_EACH_TAIL`), `bcall0`, the `emit_*` primitives, the Limple opcode tables, `limple_to_gimple`, `emit_lap_*`, `declare_*`/`compile_*`, the libgccjit entry points and `load_comp_unit` | **slice 2, not transcribed yet** (C 824's `FOR_EACH_TAIL` is a `kind=deferred` row in `docs/ports/excluded-macros.txt`) |
+| 823-5577 | C 824-5577, the rest of the file gate's region: `freloc_check_fill` (`FOR_EACH_TAIL`), `bcall0`, the `emit_*` primitives, the Limple opcode tables, `limple_to_gimple`, `emit_lap_*`, `declare_*`/`compile_*`, the libgccjit entry points and `load_comp_unit` | **slice 2, not transcribed yet** (C 824's `FOR_EACH_TAIL` is a `kind=deferred` row in `docs/ports/excluded-macros.txt`) **not transcribed yet** (the tolerance row records the shortfall, status 3.678) |
 | 5578-5590 | C 5578 `#endif /* HAVE_NATIVE_COMP */` (the file gate's end), C 5580-5590 `DEFUN ("native-comp-available-p", …)` | **live text**, both arms of C 5585 carried |
 | 5591-5595 | the blank run and `syms_of_comp`'s head (C 5593-5595) | live text |
 | 5596-5854 | `syms_of_comp`'s `#ifdef HAVE_NATIVE_COMP` region (the `DEFVAR_BOOL`, the `comp--#$` `DEFVAR_LISP`, the fifty-odd `DEFSYM`s, `Fprovide`) | **slice 2, not transcribed yet** |
@@ -157,9 +157,10 @@ is the reading P-86 ③ asks for by name.
 `python3 tools/extract-abi.py --check emacs/src/comp.c femacs/src/comp.rs` →
 `- line count drifted 2553.3%: C 45 live (of 5857) vs Rust 1194` / `FAIL emacs/src/comp.c ->
 femacs/src/comp.rs`.  The one finding is the P-86 class's own: the live-line filter leaves this
-file 45 lines, so a transcribed port cannot read as anything but drift, and P-86 ⑩'s remedy is a
-baseline row - in `docs/ports/line-drift-tolerance.tsv`, **which is not in the porter's writable
-whitelist** (`## Owed by the integrator` 2).  The reading the previous revision's `OK` came from
+file 45 lines, so a transcribed port cannot read as anything but drift; P-86 ⑩'s remedy is a
+baseline row in `docs/ports/line-drift-tolerance.tsv`, and **that row is written now** (status
+3.678: `comp 0.80 total`, whose number is the measured shortfall and whose reason names C 823-5577
+and C 5596-5854 as the owed text - the row above was the `live` reading this note describes).  The reading the previous revision's `OK` came from
 is the empty checklist; what changed is the finding the checklist could not produce.  (The first
 revision of this slice also read `- fn load_gccjit_if_necessary carries #[unsafe(no_mangle)] but
 the reference does not define a non-static function of that name (invented exported symbol)`;

@@ -102,7 +102,11 @@ the line-count ratchet only (see `## Evidence` ③, which names the row that has
   (P-88's shape for a third-party header wants a clang-measured layout, and there is no header to
   measure: `## Evidence` ④), so the `have_tree_sitter` arm's own text names 26 names the port does
   not yet declare - the flip reading in `## Evidence` ⑤ is exactly that list and nothing else.
-- **Line-count basis.**  The `treesit` row in `docs/ports/line-drift-tolerance.tsv` is a `live` row
+- **Line-count basis (decided 2026-10-06, status 3.678).**  That table's newest `treesit` row is
+  `treesit 0.79 total`, whose number is the measured shortfall against the file's total and whose
+  reason names the owed ranges; it supersedes the `live` row this note described, which could only
+  ever read as drift.  The note as it stood: the `treesit` row in
+  `docs/ports/line-drift-tolerance.tsv` is a `live` row
   (53 live lines vs the port's 1,216), which is the wrong baseline for a P-86 transcript and is why
   `--check` now reports a 2,194% drift: see `## Deviations` (the row is the integrator's, P-86 ⑩).
 
