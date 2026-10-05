@@ -8126,3 +8126,14 @@
   ⑤ **未声称**：**零运行证据**——两个对象都**没链接、没启动**（没有一次 `create_port`/`read_port`/`write_port`，
      一条消息都没发过或收过）；`<OS.h>` 的签名/常量是 **UNVERIFIED**（本机没有 Haiku SDK）；臂的 5 条真错属镜像轮，
      不是本件的；**预算如实**：`build-tu` 2 发、**`probe` 4 发（限 3，超 1）**。本轮无镜像改动 ⇒ 不需要全树扫描。
+
+- **3.454 把 `coding_system` 那 4 条臂错诊断成可执行项（2026-10-05）**：
+  3.453 的 `haiku_io` 臂读数里"真错 5 条"有 4 条是**同一个缺陷**，值一条记录：`femacs/src/include/termhooks.rs`
+  **一行 `include!` 都没有**，却四处点名 `*mut coding_system`（215/216 的 `struct terminal` 两个字段、354/357 的
+  `TERMINAL_TERMINAL_CODING`/`TERMINAL_KEYBOARD_CODING`）；该类型定义在 `femacs/src/include/coding.rs` 133，
+  **不在该镜像的图上** ⇒ 任何 include `termhooks.rs` 而没有 `coding.rs` 的单元都会挂在这四处——`haiku_io.rs` 是其一，
+  而 P-86 自己的笔记（3.413/3.431）已经把"`termhooks.rs` 的 `coding_system`×4"列为 **`have_android` 翻臂的阻塞项**。
+  **处置（P-87 ③ 的两个现成答案）**：镜像写底层类型（`window_part` → `c_int` 的先例）或按 P-72 rule 3 写
+  `*mut c_void`——同一镜像下方两行的 `rif` 字段与 `src/include/window.rs` 104 的 `current_matrix` 都是这么写的。
+  **代价已量**：三个"有该类型"的单元要在使用点加转换——`femacs/src/coding.rs` 6 处、`composite.rs` 2 处、
+  `keyboard.rs` 2 处；所以它是一次**独立的镜像轮**，不是某个单元落地时的顺手活。本条**只记录，不改代码**。

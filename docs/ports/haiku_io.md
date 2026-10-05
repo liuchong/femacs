@@ -68,3 +68,24 @@ values are use-site declarations with the standing `UNVERIFIED` mark (P-88 ①/�
   the mirror round's, not this file's.
 * No runtime evidence: no `create_port`, no `read_port`/`write_port`, no message ever sent or received
   (see `docs/status.md` 3.453).
+
+### The `coding_system` diagnosis (2026-10-05, status 3.454)
+
+The arm reading above names five real mirror errors; four of them are one defect and it is worth
+stating exactly, because it blocks every platform arm that includes `src/termhooks.h`:
+
+* `femacs/src/include/termhooks.rs` **has no `include!` lines at all**, and names `*mut coding_system`
+  four times (215/216, the two `struct terminal` fields, and 354/357, `TERMINAL_TERMINAL_CODING` /
+  `TERMINAL_KEYBOARD_CODING`).  The type is defined in `femacs/src/include/coding.rs` 133, which is
+  *not* in that mirror's graph, so any unit that includes `termhooks.rs` without `coding.rs` fails on
+  it - `haiku_io.rs` is one, and P-86's own notes list these four errors as the blocker for the
+  `have_android` flip arms (status 3.413/3.431).
+* The sanctioned remedy is P-87 ③'s: a mirror must not name a type its includers may not have, and the
+  two worked answers are "spell the underlying type" (`window_part` -> `c_int`) or P-72 rule 3's
+  `*mut c_void` - the shape `src/include/window.rs` 104 already carries for `current_matrix`, and the
+  `rif` field two lines below this one carries for `struct redisplay_interface *`.
+* The cost is churn in the three units that *do* have the type and use the accessors today -
+  `femacs/src/coding.rs` (6 sites), `femacs/src/composite.rs` (2) and `femacs/src/keyboard.rs` (2) -
+  each needing a cast at its use site; that is why this is a mirror round of its own rather than a
+  line in this file's landing, and why it is recorded here with the counts instead of being attempted
+  half-way.
