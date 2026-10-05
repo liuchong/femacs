@@ -86,6 +86,15 @@ include!("../lib/include/stdint.in.rs");               // C 32: `#include <stdin
 include!("../lib/include/stdio.rs");                   // C 33: `#include <stdio.h>` (SEEK_SET)
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 include!("../lib/include/stdlib.rs");                  // C 34: `#include <stdlib.h>` (malloc, abort)
+
+/* `<stdlib.h>`: C's one use in this slice is C 2451's `abort` (`sfnt_read_glyph`'s
+   neither-`loca` arm).  `lib/include/stdlib.rs` carries `malloc` and friends but not
+   `abort` (the `androidvfs.rs` 228-234 reading of the same header).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `_Noreturn void abort (void);`
+  pub fn abort () -> !;
+}
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 include!("../lib/include/string.rs");                  // C 35: `#include <string.h>` (memcpy)
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -2808,4 +2817,1297 @@ unsafe fn sfnt_read_compound_glyph (glyph: *mut sfnt_glyph,
 
   /* Data read successfully.  */
   return;
+}
+
+/* Read the description of the glyph GLYPH_CODE from the specified
+   glyf table, using the offsets of LOCA_SHORT or LOCA_LONG, depending
+   on which is non-NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_glyph (glyph_code: sfnt_glyph_index,
+					   glyf: *mut sfnt_glyf_table,
+					   loca_short: *mut sfnt_loca_table_short,
+					   loca_long: *mut sfnt_loca_table_long)
+  -> *mut sfnt_glyph                                // C 2413-2525
+{
+  let mut glyph: sfnt_glyph = std::mem::zeroed ();
+  let mut memory: *mut sfnt_glyph;
+  let mut offset: size_t;
+  let mut next_offset: size_t;
+
+  /* Check the glyph code is within bounds.  */
+  if glyph_code > 65535
+    { return std::ptr::null_mut (); }
+
+  if !loca_short.is_null ()
+    {
+      /* Check that the glyph is within bounds.  glyph_code + 1 is the
+	 entry in the table which defines the length of the glyph.  */
+      if ((glyph_code + 1) as size_t) >= (*loca_short).num_offsets
+	{ return std::ptr::null_mut (); }
+
+      offset = ((*(*loca_short).offsets.offset (glyph_code as isize)) as c_int * 2)
+	as size_t;
+      next_offset
+	= ((*(*loca_short).offsets.offset ((glyph_code + 1) as isize)) as c_int * 2)
+	  as size_t;
+    }
+  else if !loca_long.is_null ()
+    {
+      if ((glyph_code + 1) as size_t) >= (*loca_long).num_offsets
+	{ return std::ptr::null_mut (); }
+
+      offset = *(*loca_long).offsets.offset (glyph_code as isize) as size_t;
+      next_offset
+	= *(*loca_long).offsets.offset ((glyph_code + 1) as isize) as size_t;
+    }
+  else
+    { abort (); }
+
+  /* If offset - next_offset is 0, then the glyph is empty.  Its
+     horizontal advance may still be provided by the hmtx table.  */
+
+  if offset == next_offset
+    {
+      glyph.number_of_contours = 0;
+      glyph.xmin = 0;
+      glyph.ymin = 0;
+      glyph.xmax = 0;
+      glyph.ymax = 0;
+      glyph.advance_distortion = 0;
+      glyph.origin_distortion = 0;
+      glyph.simple
+	= xzalloc (std::mem::size_of::<sfnt_simple_glyph> ()) as *mut sfnt_simple_glyph;
+      glyph.compound = std::ptr::null_mut ();
+      memory = xmalloc (std::mem::size_of::<sfnt_glyph> ()) as *mut sfnt_glyph;
+      *memory = glyph;
+      return memory;
+    }
+
+  /* Verify that GLYF is big enough to hold a glyph at OFFSET.  */
+  if (*glyf).size < offset + SFNT_ENDOF! (sfnt_glyph, ymax, sfnt_fword)
+    { return std::ptr::null_mut (); }
+
+  /* Copy over the glyph data.  */
+  memcpy (&raw mut glyph as *mut c_void,
+	  (*glyf).glyphs.offset (offset as isize) as *const c_void,
+	  SFNT_ENDOF! (sfnt_glyph, ymax, sfnt_fword));
+
+  /* Swap the glyph data.  */
+  sfnt_swap16! (&mut glyph.number_of_contours);
+  sfnt_swap16! (&mut glyph.xmin);
+  sfnt_swap16! (&mut glyph.ymin);
+  sfnt_swap16! (&mut glyph.xmax);
+  sfnt_swap16! (&mut glyph.ymax);
+
+  /* This is set later on after `sfnt_vary_X_glyph'.  */
+  glyph.advance_distortion = 0;
+  glyph.origin_distortion = 0;
+
+  /* Figure out what needs to be read based on
+     glyph.number_of_contours.  */
+  if glyph.number_of_contours >= 0
+    {
+      /* Read the simple glyph.  */
+
+      glyph.compound = std::ptr::null_mut ();
+      sfnt_read_simple_glyph (&raw mut glyph, glyf,
+			      offset + SFNT_ENDOF! (sfnt_glyph, ymax, sfnt_fword));
+
+      if !glyph.simple.is_null ()
+	{
+	  memory = xmalloc (std::mem::size_of::<sfnt_glyph> ()) as *mut sfnt_glyph;
+	  *memory = glyph;
+
+	  return memory;
+	}
+    }
+  else
+    {
+      /* Read the compound glyph.  */
+
+      glyph.simple = std::ptr::null_mut ();
+      sfnt_read_compound_glyph (&raw mut glyph, glyf,
+				offset + SFNT_ENDOF! (sfnt_glyph, ymax, sfnt_fword));
+
+      if !glyph.compound.is_null ()
+	{
+	  memory = xmalloc (std::mem::size_of::<sfnt_glyph> ()) as *mut sfnt_glyph;
+	  *memory = glyph;
+
+	  return memory;
+	}
+    }
+
+  return std::ptr::null_mut ();
+}
+
+/* Free a glyph returned from sfnt_read_glyph.  GLYPH may be NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_free_glyph (glyph: *mut sfnt_glyph)   // C 2529-2538
+{
+  if glyph.is_null ()
+    { return; }
+
+  xfree ((*glyph).simple as *mut c_void);
+  xfree ((*glyph).compound as *mut c_void);
+  xfree (glyph as *mut c_void);
+}
+
+
+/* Glyph outline decomposition.  */
+
+/* Apply the transform in the compound glyph component COMPONENT to
+   the array of points of length NUM_COORDINATES given as X and Y.
+
+   Also, apply the fixed point offsets X_OFF and Y_OFF to each X and Y
+   coordinate after transforms within COMPONENT are effected.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_transform_coordinates (component: *mut sfnt_compound_glyph_component,
+				      x: *mut sfnt_fixed, y: *mut sfnt_fixed,
+				      num_coordinates: size_t,
+				      x_off: sfnt_fixed, y_off: sfnt_fixed)
+                                                          // C 2550-2618
+{
+  let mut m1: f64;
+  let mut m2: f64;
+  let mut m3: f64;
+  let mut m4: f64;
+  let mut m5: f64;
+  let mut m6: f64;
+  let mut i: size_t;
+
+  if ((*component).flags as c_int & 0o10) != 0		/* WE_HAVE_A_SCALE */
+    {
+      m1 = (*component).u.scale as f64 / 16384.0;
+      m2 = 0.0; m3 = 0.0; m4 = 0.0;
+      m5 = (*component).u.scale as f64 / 16384.0;
+      m6 = 0.0;
+    }
+  else if ((*component).flags as c_int & 0o100) != 0	/* WE_HAVE_AN_X_AND_Y_SCALE */
+    {
+      m1 = (*component).u.a.xscale as f64 / 16384.0;
+      m2 = 0.0; m3 = 0.0; m4 = 0.0;
+      m5 = (*component).u.a.yscale as f64 / 16384.0;
+      m6 = 0.0;
+    }
+  else if ((*component).flags as c_int & 0o200) != 0	/* WE_HAVE_A_TWO_BY_TWO */
+    {
+      m1 = (*component).u.b.xscale as f64 / 16384.0;
+      m2 = (*component).u.b.scale01 as f64 / 16384.0;
+      m3 = 0.0;
+      m4 = (*component).u.b.scale10 as f64 / 16384.0;
+      m5 = (*component).u.b.yscale as f64 / 16384.0;
+      m6 = 0.0;
+    }
+  else							/* No scale, just apply x_off and y_off.  */
+    {
+      i = 0;
+      while i < num_coordinates
+	{
+	  *(x.offset (i as isize)) += x_off;
+	  *(y.offset (i as isize)) += y_off;
+	  i += 1;
+	}
+
+      return;
+    }
+
+  m3 = x_off as f64;
+  m6 = y_off as f64;
+
+  /* Apply the specified affine transformation.
+     A transform looks like:
+
+     M1 M2 M3     X
+     M4 M5 M6   * Y
+
+     =
+
+     M1*X + M2*Y + M3*1 = X1
+     M4*X + M5*Y + M6*1 = Y1
+
+     (In most transforms, there is another row at the bottom for
+     mathematical reasons.  Since Z1 is always 1.0, the row is simply
+     implied to be 0 0 1, because 0 * x + 0 * y + 1 * 1 = 1.0.  See
+     the definition of matrix3x3 in image.c for some more explanations
+     about this.) */
+
+  i = 0;
+  while i < num_coordinates
+    {
+      let xi: sfnt_fixed = (m1 * (*(x.offset (i as isize)) as f64)
+			    + m2 * (*(y.offset (i as isize)) as f64)
+			    + m3 * 1.0) as sfnt_fixed;
+      let yi: sfnt_fixed = (m4 * (*(x.offset (i as isize)) as f64)
+			    + m5 * (*(y.offset (i as isize)) as f64)
+			    + m6 * 1.0) as sfnt_fixed;
+      *(x.offset (i as isize)) = xi;
+      *(y.offset (i as isize)) = yi;
+      i += 1;
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+pub struct sfnt_compound_glyph_context             // C 2620-2647
+{
+  /* Arrays of points.  The underlying type is actually sfnt_f26dot6
+     when instructing a compound glyph.  */
+  pub x_coordinates: *mut sfnt_fixed,
+  pub y_coordinates: *mut sfnt_fixed,
+
+  /* Array of flags for the points.  */
+  pub flags: *mut c_uchar,
+
+  /* Number of points in that array, and the size of that array.  */
+  pub num_points: size_t,
+  pub points_size: size_t,
+
+  /* Array of contour end points.  */
+  pub contour_end_points: *mut size_t,
+
+  /* Number of elements in and the size of that array.  */
+  pub num_end_points: size_t,
+  pub end_points_size: size_t,
+
+  /* The X positions of two phantom points marking this glyph's origin
+     and advance position, only used while interpreting the glyph.  */
+  pub phantom_point_1_x: sfnt_f26dot6,
+  pub phantom_point_2_x: sfnt_f26dot6,
+
+  /* Y positions.  */
+  pub phantom_point_1_y: sfnt_f26dot6,
+  pub phantom_point_2_y: sfnt_f26dot6,
+
+  /* Unrounded X positions.  */
+  pub phantom_point_1_s: sfnt_f26dot6,
+  pub phantom_point_2_s: sfnt_f26dot6,
+}
+
+/* Extend the arrays inside the compound glyph decomposition context
+   CONTEXT.  NUMBER_OF_CONTOURS is the number of contours to add.
+   NUMBER_OF_POINTS is the number of points to add.
+
+   Return pointers to the beginning of the extension in *X_BASE,
+   *Y_BASE, *FLAGS_BASE and *CONTOUR_BASE.  Value zero upon success,
+   and something else on failure.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_expand_compound_glyph_context (context: *mut sfnt_compound_glyph_context,
+					      number_of_contours: size_t,
+					      number_of_points: size_t,
+					      x_base: *mut *mut sfnt_fixed,
+					      y_base: *mut *mut sfnt_fixed,
+					      flags_base: *mut *mut c_uchar,
+					      contour_base: *mut *mut size_t)
+  -> c_int                                        // C 2657-2723
+{
+  let mut size_bytes: size_t;
+
+  /* Add each field while checking for overflow.  */
+  let (ckd_num_end_points, add_overflow)
+    = number_of_contours.overflowing_add ((*context).num_end_points);
+  (*context).num_end_points = ckd_num_end_points;
+  if add_overflow
+    { return 1; }
+
+  let (ckd_num_points, add_overflow)
+    = number_of_points.overflowing_add ((*context).num_points);
+  (*context).num_points = ckd_num_points;
+  if add_overflow
+    { return 1; }
+
+  /* Reallocate each array to the new size if necessary.  */
+  if (*context).points_size < (*context).num_points
+    {
+      let (ckd_points_size, mul_overflow)
+	= (*context).num_points.overflowing_mul (2);
+      (*context).points_size = ckd_points_size;
+      if mul_overflow
+	{ (*context).points_size = (*context).num_points; }
+
+      let (ckd_size_bytes, mul_overflow)
+	= (*context).points_size.overflowing_mul (
+	    std::mem::size_of_val (&*(*context).x_coordinates));
+      size_bytes = ckd_size_bytes;
+      if mul_overflow
+	{ return 1; }
+
+      (*context).x_coordinates
+	= xrealloc ((*context).x_coordinates as *mut c_void, size_bytes)
+	  as *mut sfnt_fixed;
+      (*context).y_coordinates
+	= xrealloc ((*context).y_coordinates as *mut c_void, size_bytes)
+	  as *mut sfnt_fixed;
+      (*context).flags
+	= xrealloc ((*context).flags as *mut c_void, (*context).points_size)
+	  as *mut c_uchar;
+    }
+
+  /* Set x_base and y_base.  */
+  *x_base = (*context).x_coordinates
+    .offset ((*context).num_points as isize)
+    .offset (-(number_of_points as isize));
+  *y_base = (*context).y_coordinates
+    .offset ((*context).num_points as isize)
+    .offset (-(number_of_points as isize));
+  *flags_base = (*context).flags
+    .offset ((*context).num_points as isize)
+    .offset (-(number_of_points as isize));
+
+  if (*context).end_points_size < (*context).num_end_points
+    {
+      let (ckd_end_points_size, mul_overflow)
+	= (*context).num_end_points.overflowing_mul (2);
+      (*context).end_points_size = ckd_end_points_size;
+      if mul_overflow
+	{ (*context).end_points_size = (*context).num_end_points; }
+
+      let (ckd_size_bytes, mul_overflow)
+	= (*context).end_points_size.overflowing_mul (
+	    std::mem::size_of_val (&*(*context).contour_end_points));
+      size_bytes = ckd_size_bytes;
+      if mul_overflow
+	{ return 1; }
+
+      (*context).contour_end_points
+	= xrealloc ((*context).contour_end_points as *mut c_void, size_bytes)
+	  as *mut size_t;
+    }
+
+  /* Set contour_base.  */
+  *contour_base = (*context).contour_end_points
+    .offset ((*context).num_end_points as isize)
+    .offset (-(number_of_contours as isize));
+  return 0;
+}
+
+/* Round the 16.16 fixed point number NUMBER to the nearest integral
+   value.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_round_fixed (mut number: int32_t) -> int32_t  // C 2728-2736
+{
+  /* Add 0.5... */
+  number += 1 << 15;
+
+  /* Remove the fractional.  */
+  return number & !0xffff;
+}
+
+/* Decompose GLYPH, a compound glyph, into an array of points and
+   contours.
+
+   CONTEXT should be zeroed and put on the stack. RECURSION_COUNT
+   should be initialized to 0.  GET_GLYPH, FREE_GLYPH, and
+   GET_METRICS, along with DCONTEXT, mean the same as in
+   sfnt_decompose_glyph.
+
+   If it has been arranged that a component's metrics (or those of an
+   innermore component also with the flag set) replace the metrics of
+   GLYPH, set *METRICS_RETURN to those metrics.  Mind that such
+   metrics are not scaled in any manner.
+
+   Value is 1 upon failure, else 0.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_decompose_compound_glyph (glyph: *mut sfnt_glyph,
+					 context: *mut sfnt_compound_glyph_context,
+					 metrics_return: *mut sfnt_glyph_metrics,
+					 get_glyph: sfnt_get_glyph_proc,
+					 free_glyph: sfnt_free_glyph_proc,
+					 get_metrics: sfnt_get_metrics_proc,
+					 recursion_count: c_int,
+					 dcontext: *mut c_void)
+  -> c_int                                        // C 2753-3145
+{
+  let mut subglyph: *mut sfnt_glyph;
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut rc: c_int;
+  let mut need_free: bool = false;
+  let mut component: *mut sfnt_compound_glyph_component;
+  let mut x: sfnt_fixed = 0;
+  let mut y: sfnt_fixed = 0;
+  let mut xtemp: sfnt_fixed;
+  let mut ytemp: sfnt_fixed;
+  let mut point: size_t = 0;
+  let mut point2: size_t = 0;
+  let mut index: size_t;
+  let mut last_point: uint16_t;
+  let mut number_of_contours: uint16_t;
+  let mut x_base: *mut sfnt_fixed = std::ptr::null_mut ();
+  let mut y_base: *mut sfnt_fixed = std::ptr::null_mut ();
+  let mut contour_base: *mut size_t = std::ptr::null_mut ();
+  let mut flags_base: *mut c_uchar = std::ptr::null_mut ();
+  let mut base_index: size_t;
+  let mut contour_start: size_t;
+  let mut defer_offsets: bool;
+  let mut sub_metrics: sfnt_glyph_metrics = std::mem::zeroed ();
+  let mut f1: sfnt_fixed;
+  let mut f2: sfnt_fixed;
+
+  /* Set up the base index.  This is the index from where on point
+     renumbering starts.
+
+     In other words, point 0 in this glyph will be 0 + base_index,
+     point 1 will be 1 + base_index, and so on.  */
+  base_index = (*context).num_points;
+
+  /* Prevent infinite loops.  Simply limit the level of nesting to the
+     maximum valid value of `max_component_depth', which is 16.  */
+
+  if recursion_count > 16
+    { return 1; }
+
+  j = 0;
+  while (j as size_t) < (*(*glyph).compound).num_components
+    {
+      /* Look up the associated subglyph.  */
+      component = (*(*glyph).compound).components.offset (j as isize);
+      subglyph = get_glyph.unwrap () ((*component).glyph_index as sfnt_glyph_index,
+				      dcontext, &raw mut need_free);
+
+      if subglyph.is_null ()
+	{ return 1; }
+
+      /* Don't defer offsets.  This variable is set if the component
+	 glyph is a compound glyph that is anchored to a previously
+	 decomposed point, and needs its coordinates adjusted after
+	 decomposition completes.  */
+      defer_offsets = false;
+
+      /* Record the size of the point array before expansion.  This
+	 will be the base to apply to all points coming from this
+	 subglyph.  */
+      contour_start = (*context).num_points;
+
+      /* Compute the offset for the component.  */
+      if ((*component).flags as c_int & 0o2) != 0	/* ARGS_ARE_XY_VALUES */
+	{
+	  /* Component offsets are X/Y values as opposed to points
+	     GLYPH.  */
+
+	  if ((*component).flags as c_int & 0o1) == 0	/* ARG_1_AND_2_ARE_WORDS */
+	    {
+	      /* X and Y are signed bytes.  */
+	      x = ((*component).argument1.b as c_int) * 65536;
+	      y = ((*component).argument2.b as c_int) * 65536;
+	    }
+	  else
+	    {
+	      /* X and Y are signed words.  */
+	      x = ((*component).argument1.d as c_int) * 65536;
+	      y = ((*component).argument2.d as c_int) * 65536;
+	    }
+
+	  /* If there is some kind of scale and component offsets are
+	     scaled, then apply the transform to the offset.  */
+	  if ((*component).flags as c_int & 0o4000) != 0	/* SCALED_COMPONENT_OFFSET */
+	    { sfnt_transform_coordinates (component, &raw mut x, &raw mut y, 1, 0, 0); }
+	}
+      else
+	{
+	  /* The offset is determined by matching a point location in
+	     a preceding component with a point location in the
+	     current component.  The index of the point in the
+	     previous component can be determined by adding
+	     component->argument1.a or component->argument1.c to
+	     point.  argument2 contains the index of the point in the
+	     current component.  */
+
+	  if ((*component).flags as c_int & 0o1) == 0	/* ARG_1_AND_2_ARE_WORDS */
+	    {
+	      point = base_index + (*component).argument1.a as size_t;
+	      point2 = (*component).argument2.a as size_t;
+	    }
+	  else
+	    {
+	      point = base_index + (*component).argument1.c as size_t;
+	      point2 = (*component).argument2.c as size_t;
+	    }
+
+	  /* Now, check that the anchor point specified lies inside
+	     the glyph.  */
+
+	  if point >= contour_start
+	    {
+	      if need_free
+		{ free_glyph.unwrap () (subglyph, dcontext); }
+
+	      return 1;
+	    }
+
+	  if (*subglyph).compound.is_null ()
+	    {
+	      'skip_computation: {
+		if point2 >= (*(*subglyph).simple).number_of_points
+		  {
+		    if point2 < (*(*subglyph).simple).number_of_points + 2
+		      {
+			/* POINT2 is one of SUBGLYPH's phantom points.
+			   Retrieve the glyph's metrics.  */
+
+			if get_metrics.unwrap () ((*component).glyph_index as sfnt_glyph_index,
+						  &raw mut sub_metrics,
+						  dcontext) != 0
+			  {
+			    if need_free
+			      { free_glyph.unwrap () (subglyph, dcontext); }
+
+			    return 1;
+			  }
+
+			/* Derive the phantom points from those metrics.  */
+			f1 = (*glyph).xmin as sfnt_fixed - sub_metrics.lbearing;
+			f2 = f1 + sub_metrics.advance;
+
+			/* Apply the metrics distortion.  */
+			f1 += (*glyph).origin_distortion as sfnt_fixed;
+			f2 += (*glyph).advance_distortion as sfnt_fixed;
+
+			/* Get the points and use them to compute the offsets.  */
+
+			if (point2 - (*(*subglyph).simple).number_of_points) == 0
+			  { x = f1 * 65536; }
+			else
+			  { x = f2 * 65536; }
+
+			x = *((*context).x_coordinates.offset (point as isize)) - x;
+			y = *((*context).y_coordinates.offset (point as isize));
+
+			/* X and Y offsets have been ascertained.  */
+			break 'skip_computation;
+		      }
+
+		    if need_free
+		      { free_glyph.unwrap () (subglyph, dcontext); }
+
+		    return 1;
+		  }
+
+		/* Get the points and use them to compute the offsets.  */
+		xtemp = *((*context).x_coordinates.offset (point as isize));
+		ytemp = *((*context).y_coordinates.offset (point as isize));
+		x = xtemp
+		  - ((*(*(*subglyph).simple).x_coordinates.offset (point2 as isize)) as c_int
+		     * 65536);
+		y = ytemp
+		  - ((*(*(*subglyph).simple).y_coordinates.offset (point2 as isize)) as c_int
+		     * 65536);
+	      }
+	      /* skip_computation: */
+	    }
+	  else
+	    {
+	      /* First, set offsets to 0, because it is not yet
+		 possible to determine the position of the anchor
+		 point in the child.  */
+	      x = 0;
+	      y = 0;
+
+	      /* Set a flag which indicates that offsets must be
+		 resolved from the child glyph after it is loaded, but
+		 before it is incorporated into the parent glyph.  */
+	      defer_offsets = true;
+	    }
+	}
+
+      if !(*subglyph).simple.is_null ()
+	{
+	  /* Simple subglyph.  Copy over the points and contours, and
+	     transform them.  */
+	  if (*subglyph).number_of_contours != 0
+	    {
+	      index = ((*subglyph).number_of_contours - 1) as size_t;
+	      last_point
+		= *((*(*subglyph).simple).end_pts_of_contours.offset (index as isize));
+	      number_of_contours = (*subglyph).number_of_contours as uint16_t;
+
+
+	      /* Grow various arrays.  */
+	      rc = sfnt_expand_compound_glyph_context (context,
+						       /* Number of
+							  new contours
+							  required.  */
+						       number_of_contours as size_t,
+						       /* Number of new
+							  points
+							  required.  */
+						       (last_point as c_int + 1) as size_t,
+						       &raw mut x_base,
+						       &raw mut y_base,
+						       &raw mut flags_base,
+						       &raw mut contour_base);
+	      if rc != 0
+		{
+		  if need_free
+		    { free_glyph.unwrap () (subglyph, dcontext); }
+
+		  return 1;
+		}
+
+	      i = 0;
+	      while i <= (last_point as c_int)
+		{
+		  *(x_base.offset (i as isize))
+		    = ((*(*(*subglyph).simple).x_coordinates.offset (i as isize)) as c_int
+		       * 65536);
+		  *(y_base.offset (i as isize))
+		    = ((*(*(*subglyph).simple).y_coordinates.offset (i as isize)) as c_int
+		       * 65536);
+		  *(flags_base.offset (i as isize))
+		    = *(*(*subglyph).simple).flags.offset (i as isize);
+		  i += 1;
+		}
+
+	      /* Apply the transform to the points.  */
+	      sfnt_transform_coordinates (component, x_base, y_base,
+					  (last_point as c_int + 1) as size_t, x, y);
+
+	      /* Copy over the contours.  */
+	      i = 0;
+	      while i < (number_of_contours as c_int)
+		{
+		  *(contour_base.offset (i as isize))
+		    = contour_start
+		      + (*(*(*subglyph).simple).end_pts_of_contours.offset (i as isize))
+			as size_t;
+		  i += 1;
+		}
+
+	      /* If USE_MY_METRICS is present within this component,
+		 save its metrics within *METRICS_RETURN.  */
+
+	      if ((*component).flags as c_int & 0o1000) != 0	/* USE_MY_METRICS */
+		{
+		  if get_metrics.unwrap () ((*component).glyph_index as sfnt_glyph_index,
+					    metrics_return, dcontext) != 0
+		    {
+		      if need_free
+			{ free_glyph.unwrap () (subglyph, dcontext); }
+
+		      return 1;
+		    }
+
+		  /* Refer to the comment above sfnt_decompose_glyph
+		     for reasons and manner in which these offsets are
+		     applied.  */
+		  (*metrics_return).lbearing
+		    -= (*subglyph).origin_distortion as sfnt_fixed;
+		  (*metrics_return).advance
+		    += (*subglyph).advance_distortion as sfnt_fixed;
+		}
+	    }
+	}
+      else
+	{
+	  /* If USE_MY_METRICS, save this subglyph's metrics within
+	     sub_metrics; they might be overwritten by metrics for
+	     subglyphs of this compound subglyph in turn.  */
+
+	  if ((*component).flags as c_int & 0o1000) != 0	/* USE_MY_METRICS */
+	    {
+	      if get_metrics.unwrap () ((*component).glyph_index as sfnt_glyph_index,
+					&raw mut sub_metrics, dcontext) != 0
+		{
+		  if need_free
+		    { free_glyph.unwrap () (subglyph, dcontext); }
+
+		  return 1;
+		}
+
+	      /* Refer to the comment above sfnt_decompose_glyph for
+		 reasons and manner in which these offsets are
+		 applied.  */
+	      sub_metrics.lbearing -= (*subglyph).origin_distortion as sfnt_fixed;
+	      sub_metrics.advance += (*subglyph).advance_distortion as sfnt_fixed;
+	    }
+
+	  /* Compound subglyph.  Decompose the glyph recursively, and
+	     then apply the transform.  */
+	  rc = sfnt_decompose_compound_glyph (subglyph,
+					      context,
+					      &raw mut sub_metrics,
+					      get_glyph,
+					      free_glyph,
+					      get_metrics,
+					      recursion_count + 1,
+					      dcontext);
+
+	  if rc != 0
+	    {
+	      if need_free
+		{ free_glyph.unwrap () (subglyph, dcontext); }
+
+	      return 1;
+	    }
+
+	  if ((*component).flags as c_int & 0o1000) != 0	/* USE_MY_METRICS */
+	    /* Save sub_metrics inside *metrics_return as stated
+	       above.  */
+	    { *metrics_return = sub_metrics; }
+
+	  /* When an anchor point is being used to translate the
+	     glyph, and the subglyph in question is actually a
+	     compound glyph, it is impossible to know which offset to
+	     use until the compound subglyph has actually been loaded.
+
+	     defer_offsets is set to true if these conditions apply,
+	     whereupon the offset is calculated here, using the points
+	     in the loaded child compound glyph.  */
+
+	  if defer_offsets
+	    {
+	      'skip_computation_from_defer_offsets: {
+		/* Renumber the non renumbered point2 to point into the
+		   decomposed component.  */
+		point2 += contour_start;
+
+		/* Next, check that the non-renumbered point being
+		   anchored lies inside the glyph data that was
+		   decomposed.  */
+
+		if point2 >= (*context).num_points
+		  {
+		    /* POINT2 might fall within the phantom points of
+		       that glyph.  */
+
+		    'error_in_defer_offsets: {
+		      if point2 - (*context).num_points < 2
+			{
+			  if get_metrics.unwrap () (
+				 (*component).glyph_index as sfnt_glyph_index,
+				 &raw mut sub_metrics, dcontext) != 0
+			    { break 'error_in_defer_offsets; }
+
+			  /* Derive the phantom points from those metrics.  */
+			  f1 = (*glyph).xmin as sfnt_fixed - sub_metrics.lbearing;
+			  f2 = f1 + sub_metrics.advance;
+
+			  /* Apply the metrics distortion.  */
+			  f1 += (*glyph).origin_distortion as sfnt_fixed;
+			  f2 += (*glyph).advance_distortion as sfnt_fixed;
+
+			  /* Get the points and use them to compute the offsets.  */
+
+			  if (point2 - (*context).num_points) == 0
+			    { x = f1 * 65536; }
+			  else
+			    { x = f2 * 65536; }
+
+			  x = *((*context).x_coordinates.offset (point as isize)) - x;
+			  y = *((*context).y_coordinates.offset (point as isize));
+
+			  /* X and Y offsets have been ascertained.  */
+			  break 'skip_computation_from_defer_offsets;
+			}
+		    }
+
+		    /* error_in_defer_offsets: */
+		    if need_free
+		      { free_glyph.unwrap () (subglyph, dcontext); }
+
+		    return 1;
+		  }
+
+		/* Get the points and use them to compute the
+		   offsets.  */
+
+		xtemp = *((*context).x_coordinates.offset (point as isize));
+		ytemp = *((*context).y_coordinates.offset (point as isize));
+		x = xtemp - *((*context).x_coordinates.offset (point2 as isize));
+		y = ytemp - *((*context).y_coordinates.offset (point2 as isize));
+	      }
+	      /* skip_computation_from_defer_offsets: */
+	    }
+
+	  sfnt_transform_coordinates (component,
+				      (*context).x_coordinates.offset (contour_start as isize),
+				      (*context).y_coordinates.offset (contour_start as isize),
+				      (*context).num_points - contour_start,
+				      x, y);
+	}
+
+      if need_free
+	{ free_glyph.unwrap () (subglyph, dcontext); }
+
+      j += 1;
+    }
+
+  /* Decomposition is complete.  CONTEXT now contains the adjusted
+     outlines of the entire compound glyph.  */
+  return 0;
+}
+
+/* Linear-interpolate to a point halfway between the points specified
+   by CONTROL1 and CONTROL2.  Put the result in RESULT.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_lerp_half (control1: *mut sfnt_point, control2: *mut sfnt_point,
+			  result: *mut sfnt_point)               // C 3150-3156
+{
+  (*result).x = (*control1).x + (((*control2).x - (*control1).x) / 2);
+  (*result).y = (*control1).y + (((*control2).y - (*control1).y) / 2);
+}
+
+/* Decompose contour data inside X, Y and FLAGS, between the indices
+   HERE and LAST.  Call LINE_TO, CURVE_TO and MOVE_TO as appropriate,
+   with DCONTEXT as an argument.  Apply SCALE to each point; SCALE
+   should be the factor necessary to turn points into 16.16 fixed
+   point.
+
+   Value is 1 upon failure, else 0.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_decompose_glyph_1 (mut here: size_t, mut last: size_t,
+				  move_to: sfnt_move_to_proc,
+				  line_to: sfnt_line_to_proc,
+				  curve_to: sfnt_curve_to_proc,
+				  dcontext: *mut c_void,
+				  x: *mut sfnt_fword,
+				  y: *mut sfnt_fword, flags: *mut c_uchar,
+				  scale: c_int)
+  -> c_int                                        // C 3166-3293
+{
+  let mut control1: sfnt_point = std::mem::zeroed ();
+  let mut control2: sfnt_point = std::mem::zeroed ();
+  let mut start: sfnt_point = std::mem::zeroed ();
+  let mut mid: sfnt_point = std::mem::zeroed ();
+  let mut i: size_t;
+
+  /* The contour is empty.  */
+
+  if here == last
+    /* An empty contour, if redundant, is not necessarily invalid.  */
+    { return 0; }
+
+  /* Move the pen to the start of the contour.  Apparently some fonts
+     have off the curve points as the start of a contour, so when that
+     happens lerp between the first and last points.  */
+
+  if (*flags.offset (here as isize) as c_int & 0o1) != 0	/* On Curve */
+    {
+      control1.x = (*(x.offset (here as isize)) as c_int) * scale;
+      control1.y = (*(y.offset (here as isize)) as c_int) * scale;
+      start = control1;
+    }
+  else if (*flags.offset (last as isize) as c_int & 0o1) != 0
+    {
+      /* Start at the last point if it is on the curve.  Here, the
+         start really becomes the middle of a spline.  */
+      control1.x = (*(x.offset (last as isize)) as c_int) * scale;
+      control1.y = (*(y.offset (last as isize)) as c_int) * scale;
+      start = control1;
+
+      /* Curve back one point early.  */
+      last = last.wrapping_sub (1);
+      here = here.wrapping_sub (1);
+    }
+  else
+    {
+      /* Lerp between the start and the end.  */
+      control1.x = (*(x.offset (here as isize)) as c_int) * scale;
+      control1.y = (*(y.offset (here as isize)) as c_int) * scale;
+      control2.x = (*(x.offset (last as isize)) as c_int) * scale;
+      control2.y = (*(y.offset (last as isize)) as c_int) * scale;
+      sfnt_lerp_half (&raw mut control1, &raw mut control2, &raw mut start);
+
+      /* In either of these cases, start iterating from just here as
+	 opposed to here + 1, since logically the contour now starts
+	 from the last curve.  */
+      here = here.wrapping_sub (1);
+    }
+
+  /* Move to the start.  */
+  move_to.unwrap () (start, dcontext);
+
+  /* Now handle each point between here + 1 and last.  */
+
+  'exit: {
+    i = here;
+    'continue_loop: while { i = i.wrapping_add (1); i <= last }
+      {
+	/* If the point is on the curve, then draw a line here from the
+	   last control point.  */
+
+	if (*flags.offset (i as isize) as c_int & 0o1) != 0
+	  {
+	    control1.x = (*(x.offset (i as isize)) as c_int) * scale;
+	    control1.y = (*(y.offset (i as isize)) as c_int) * scale;
+
+	    line_to.unwrap () (control1, dcontext);
+
+	    /* Move to the next point.  */
+	    continue;
+	  }
+
+	/* Off the curve points are more interesting.  They are handled
+	   one by one, with points in between being interpolated, until
+	   either the last point is reached or an on-curve point is
+	   processed.  First, load the initial control points.  */
+
+	control1.x = (*(x.offset (i as isize)) as c_int) * scale;
+	control1.y = (*(y.offset (i as isize)) as c_int) * scale;
+
+	while { i = i.wrapping_add (1); i <= last }
+	  {
+	    /* Load this point.  */
+	    control2.x = (*(x.offset (i as isize)) as c_int) * scale;
+	    control2.y = (*(y.offset (i as isize)) as c_int) * scale;
+
+	    /* If this point is on the curve, curve directly to this
+	       point.  */
+
+	    if (*flags.offset (i as isize) as c_int & 0o1) != 0
+	      {
+		curve_to.unwrap () (control1, control2, dcontext);
+		continue 'continue_loop;    /* C's `goto continue_loop` */
+	      }
+
+	    /* Calculate the point between here and the previous
+	       point.  */
+	    sfnt_lerp_half (&raw mut control1, &raw mut control2, &raw mut mid);
+
+	    /* Curve over there.  */
+	    curve_to.unwrap () (control1, mid, dcontext);
+
+	    /* Reload the control point.  */
+	    control1 = control2;
+	  }
+
+	/* Close the contour by curving back to start.  */
+	curve_to.unwrap () (control1, start, dcontext);
+
+	/* Don't close the contour twice.  */
+	break 'exit;                    /* C's `goto exit` */
+      }
+  } /* 'exit (C 3291) */
+
+  /* Close the contour with a line back to start.  */
+  line_to.unwrap () (start, dcontext);
+
+  /* exit: */
+  return 0;
+}
+
+/* Decompose contour data inside X, Y and FLAGS, between the indices
+   HERE and LAST.  Call LINE_TO, CURVE_TO and MOVE_TO as appropriate,
+   with DCONTEXT as an argument.  Apply SCALE to each point; SCALE
+   should be the factor necessary to turn points into 16.16 fixed
+   point.
+
+   This is the version of sfnt_decompose_glyph_1 which takes
+   sfnt_fixed (or sfnt_f26dot6) as opposed to sfnt_fword.
+
+   Value is 1 upon failure, else 0.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_decompose_glyph_2 (mut here: size_t, mut last: size_t,
+				  move_to: sfnt_move_to_proc,
+				  line_to: sfnt_line_to_proc,
+				  curve_to: sfnt_curve_to_proc,
+				  dcontext: *mut c_void,
+				  x: *mut sfnt_fixed,
+				  y: *mut sfnt_fixed, flags: *mut c_uchar,
+				  scale: c_int)
+  -> c_int                                        // C 3306-3433
+{
+  let mut control1: sfnt_point = std::mem::zeroed ();
+  let mut control2: sfnt_point = std::mem::zeroed ();
+  let mut start: sfnt_point = std::mem::zeroed ();
+  let mut mid: sfnt_point = std::mem::zeroed ();
+  let mut i: size_t;
+
+  /* The contour is empty.  */
+
+  if here == last
+    /* An empty contour, if redundant, is not necessarily invalid.  */
+    { return 0; }
+
+  /* Move the pen to the start of the contour.  Apparently some fonts
+     have off the curve points as the start of a contour, so when that
+     happens lerp between the first and last points.  */
+
+  if (*flags.offset (here as isize) as c_int & 0o1) != 0	/* On Curve */
+    {
+      control1.x = *(x.offset (here as isize)) * scale;
+      control1.y = *(y.offset (here as isize)) * scale;
+      start = control1;
+    }
+  else if (*flags.offset (last as isize) as c_int & 0o1) != 0
+    {
+      /* Start at the last point if it is on the curve.  Here, the
+         start really becomes the middle of a spline.  */
+      control1.x = *(x.offset (last as isize)) * scale;
+      control1.y = *(y.offset (last as isize)) * scale;
+      start = control1;
+
+      /* Curve back one point early.  */
+      last = last.wrapping_sub (1);
+      here = here.wrapping_sub (1);
+    }
+  else
+    {
+      /* Lerp between the start and the end.  */
+      control1.x = *(x.offset (here as isize)) * scale;
+      control1.y = *(y.offset (here as isize)) * scale;
+      control2.x = *(x.offset (last as isize)) * scale;
+      control2.y = *(y.offset (last as isize)) * scale;
+      sfnt_lerp_half (&raw mut control1, &raw mut control2, &raw mut start);
+
+      /* In either of these cases, start iterating from just here as
+	 opposed to here + 1, since logically the contour now starts
+	 from the last curve.  */
+      here = here.wrapping_sub (1);
+    }
+
+  /* Move to the start.  */
+  move_to.unwrap () (start, dcontext);
+
+  /* Now handle each point between here + 1 and last.  */
+
+  'exit: {
+    i = here;
+    'continue_loop: while { i = i.wrapping_add (1); i <= last }
+      {
+	/* If the point is on the curve, then draw a line here from the
+	   last control point.  */
+
+	if (*flags.offset (i as isize) as c_int & 0o1) != 0
+	  {
+	    control1.x = *(x.offset (i as isize)) * scale;
+	    control1.y = *(y.offset (i as isize)) * scale;
+
+	    line_to.unwrap () (control1, dcontext);
+
+	    /* Move to the next point.  */
+	    continue;
+	  }
+
+	/* Off the curve points are more interesting.  They are handled
+	   one by one, with points in between being interpolated, until
+	   either the last point is reached or an on-curve point is
+	   processed.  First, load the initial control points.  */
+
+	control1.x = *(x.offset (i as isize)) * scale;
+	control1.y = *(y.offset (i as isize)) * scale;
+
+	while { i = i.wrapping_add (1); i <= last }
+	  {
+	    /* Load this point.  */
+	    control2.x = *(x.offset (i as isize)) * scale;
+	    control2.y = *(y.offset (i as isize)) * scale;
+
+	    /* If this point is on the curve, curve directly to this
+	       point.  */
+
+	    if (*flags.offset (i as isize) as c_int & 0o1) != 0
+	      {
+		curve_to.unwrap () (control1, control2, dcontext);
+		continue 'continue_loop;    /* C's `goto continue_loop` */
+	      }
+
+	    /* Calculate the point between here and the previous
+	       point.  */
+	    sfnt_lerp_half (&raw mut control1, &raw mut control2, &raw mut mid);
+
+	    /* Curve over there.  */
+	    curve_to.unwrap () (control1, mid, dcontext);
+
+	    /* Reload the control point.  */
+	    control1 = control2;
+	  }
+
+	/* Close the contour by curving back to start.  */
+	curve_to.unwrap () (control1, start, dcontext);
+
+	/* Don't close the contour twice.  */
+	break 'exit;                    /* C's `goto exit` */
+      }
+  } /* 'exit (C 3431) */
+
+  /* Close the contour with a line back to start.  */
+  line_to.unwrap () (start, dcontext);
+
+  /* exit: */
+  return 0;
+}
+
+/* Decompose GLYPH into its individual components.  Call MOVE_TO to
+   move to a specific location.  For each line encountered, call
+   LINE_TO to draw a line to that location.  For each spline
+   encountered, call CURVE_TO to draw the curves comprising the
+   spline.
+
+   If GLYPH is compound, use GET_GLYPH to obtain subglyphs.  PROC must
+   return whether or not FREE_GLYPH will be called with the glyph
+   after sfnt_decompose_glyph is done with it.  If GLYPH moreover
+   incorporates components whose anchor points are phantom points, use
+   GET_METRICS to obtain glyph metrics prerequisite for establishing
+   their coordinates.
+
+   When glyphs originate from a GX font with an active set of
+   transforms, the correct manner of applying such transforms is to
+   apply them within GET_GLYPH, while returning unaltered metrics from
+   GET_METRICS.
+
+   If there is a component glyph within GLYPH whose metrics have been
+   indicated as replacing those of its parent glyph, the variable
+   *METRICS_RETURN will be set to its metrics with GX-induced offsets
+   applied.
+
+   *METRICS_RETURN must initially hold metrics with GX offsets
+   applied, if any.
+
+   All functions will be called with DCONTEXT as an argument.
+
+   The winding rule used to fill the resulting lines is described in
+   chapter 2 of the TrueType reference manual, under the heading
+   "distinguishing the inside from the outside of a glyph."
+
+   Value is 0 upon success, or some non-zero value upon failure, which
+   can happen if the glyph is invalid.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_decompose_glyph (glyph: *mut sfnt_glyph,
+				metrics_return: *mut sfnt_glyph_metrics,
+				move_to: sfnt_move_to_proc,
+				line_to: sfnt_line_to_proc,
+				curve_to: sfnt_curve_to_proc,
+				get_glyph: sfnt_get_glyph_proc,
+				free_glyph: sfnt_free_glyph_proc,
+				get_metrics: sfnt_get_metrics_proc,
+				dcontext: *mut c_void)
+  -> c_int                                        // C 3470-3594
+{
+  let mut here: size_t;
+  let mut last: size_t;
+  let mut n: size_t;
+  let mut context: sfnt_compound_glyph_context = std::mem::zeroed ();
+  let mut compound_metrics: sfnt_glyph_metrics;
+
+  if !(*glyph).simple.is_null ()
+    {
+      if (*glyph).number_of_contours == 0
+	/* No contours.  Nothing needs to be decomposed.  */
+	{ return 0; }
+
+      here = 0;
+
+      n = 0;
+      while n < (*glyph).number_of_contours as size_t
+	{
+	  /* here is the first index into the glyph's point arrays
+	     belonging to the contour in question.  last is the index
+	     of the last point in the contour.  */
+	  last = *((*(*glyph).simple).end_pts_of_contours.offset (n as isize)) as size_t;
+
+	  /* Make sure here and last make sense.  */
+
+	  if here > last || last >= (*(*glyph).simple).number_of_points
+	    { return 1; }
+
+	  /* Now perform the decomposition.  */
+	  if sfnt_decompose_glyph_1 (here, last, move_to,
+				     line_to, curve_to,
+				     dcontext,
+				     (*(*glyph).simple).x_coordinates,
+				     (*(*glyph).simple).y_coordinates,
+				     (*(*glyph).simple).flags,
+				     65536) != 0
+	    { return 1; }
+
+	  /* Move forward to the start of the next contour.  */
+	  here = last + 1;
+	  n += 1;
+	}
+
+      return 0;
+    }
+
+  /* Decompose the specified compound glyph.  */
+  std::ptr::write_bytes (&raw mut context as *mut u8, 0,
+			 std::mem::size_of_val (&context));
+
+  /* Rather than handing METRICS_RETURN over to
+     sfnt_decompose_compound_glyph, save metrics within a temporary
+     variable and postpone returning them until it is certain the
+     decomposition has succeeded.  */
+
+  compound_metrics = *metrics_return;
+
+  'early: {
+    if sfnt_decompose_compound_glyph (glyph, &raw mut context,
+				      &raw mut compound_metrics,
+				      get_glyph, free_glyph,
+				      get_metrics, 0,
+				      dcontext) != 0
+      {
+	xfree (context.x_coordinates as *mut c_void);
+	xfree (context.y_coordinates as *mut c_void);
+	xfree (context.flags as *mut c_void);
+	xfree (context.contour_end_points as *mut c_void);
+
+	return 1;
+      }
+
+    *metrics_return = compound_metrics;
+
+    /* Now, generate the outlines.  */
+
+    if context.num_end_points == 0
+      /* No contours.  */
+      { break 'early; }
+
+    here = 0;
+
+    'fail: {
+      n = 0;
+      while n < context.num_end_points
+	{
+	  /* here is the first index into the glyph's point arrays
+	     belonging to the contour in question.  last is the index
+	     of the last point in the contour.  */
+	  last = *context.contour_end_points.offset (n as isize);
+
+	  /* Make sure here and last make sense.  */
+
+	  if here > last || last >= context.num_points
+	    { break 'fail; }
+
+	  /* Now perform the decomposition.  */
+	  if sfnt_decompose_glyph_2 (here, last, move_to,
+				     line_to, curve_to,
+				     dcontext,
+				     context.x_coordinates,
+				     context.y_coordinates,
+				     context.flags, 1) != 0
+	    { break 'fail; }
+
+	  /* Move forward.  */
+	  here = last + 1;
+	  n += 1;
+	}
+    }
+  } /* 'early (C 3581) */
+
+  /* early: */
+  xfree (context.x_coordinates as *mut c_void);
+  xfree (context.y_coordinates as *mut c_void);
+  xfree (context.flags as *mut c_void);
+  xfree (context.contour_end_points as *mut c_void);
+  return 0;
+
+  /* fail: */
+  xfree (context.x_coordinates as *mut c_void);
+  xfree (context.y_coordinates as *mut c_void);
+  xfree (context.flags as *mut c_void);
+  xfree (context.contour_end_points as *mut c_void);
+  return 1;
 }

@@ -7991,3 +7991,31 @@
      没有任何 `determine_fpu_mode` 的调用）；`exec/` 在冻结配置里一行都不编；`mipsfpu` 的 `#else` 臂（本机没有
      `__mips_isa_rev`）是有意选择，`mips_isa_rev_ge_6` 那一臂从未被编过；参照自己的两处 bug（C 241 的 `abiflags1`/`abiflags`
      笔误、C 3200 的 `size_t` 回绕依赖）**照录不改**。`build-tu` 2 发 + `probe` 0 发 + 全树扫描 1 次（本轮）。
+
+- **3.447 sfnt 切片 3（C 2408-3594）：glyph 读取、复合轮廓分解与三个 decompose 入口（2026-10-05）**：
+  ① **区间**：C 2408-3594（收在 `sfnt_decompose_glyph` 的 `}`）；**下一个活定义 = C 3616 `sfnt_build_append`**。
+     11 个块：`sfnt_read_glyph`、`sfnt_free_glyph`、`sfnt_transform_coordinates`、`sfnt_compound_glyph_context`（**定义在
+     `sfnt.c` 而非头文件**）、`sfnt_expand_compound_glyph_context`、`sfnt_round_fixed`、`sfnt_decompose_compound_glyph`、
+     `sfnt_lerp_half`、`sfnt_decompose_glyph_{1,2}` 与 `sfnt_decompose_glyph`；本区间**没有任何 `#if`**（`check-cond-eval`
+     仍是 **31 条件 / 0 unknown**），区间表 36 → **47 行**，仍连续铺满 C 1-21,215。
+  ② **行数**：`femacs/src/sfnt.rs` **2,811 → 4,113**（md5 `e16503bb…`）；台账 320 → **430**。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**；**翻臂 exit 0 / 0 error / 12,632 字节对象**（上一片 10,128；
+     4 条 warning 全在镜像）；`extract-abi --check` 的 `- missing` **343 → 333**（本片 10 个自有函数全部对上，174 函数 /
+     153 宏 / 5 常量 / 1 对象是余量）+ 80.6% 漂移；上一片的 9 条 `no_mangle` 行与 2 条 `does not mention` 行已消失
+     （3.441 教会工具读 `cfg_attr`），本片新增的两个 `TEST_STATIC` 读者也不再产生该行；`check-dead-file-coverage` 37/0。
+  ④ **真缺陷**：自造 41 条编译错**全数修掉**（`E0614` 两类：context 指针多解引用、`sfnt_decompose_glyph` 的 `context` 是
+     **值**不是指针；`E0384` 形参可变；`E0277` 的 `int` 常量要写 `1.0`；`E0425` 的 `abort`；`E0308` 的 `u16` 进 `size_t`；
+     4 条 `E0381` 要先初始化）。**参照自己的照录不改**（已记台账）：C 3200-3208 的 `last -= 1; here -= 1;` **依赖 `size_t`
+     回绕**（端口写 `wrapping_sub`/`wrapping_add`，否则 debug 构建会 panic——那是 C 没有的行为）；C 3516 的 `memset (&context, 0,
+     sizeof context)` 对已清零的局部量是冗余的；C 2622-2623 的注释与字段类型不一致；C 2511/2517 的 `sizeof glyph` 与
+     `sizeof *memory` 混用同一类型。
+  ⑤ **集成者本轮替它落的账**：`macro-body-notes.tsv` **5 行**（`sfnt_transform_coordinates` → `double`；
+     `sfnt_decompose_compound_glyph` → `goto,uninit`；`sfnt_decompose_glyph_{1,2}` 与 `sfnt_decompose_glyph` → `goto`），
+     补后本片 5 条 `does not mention` **全部归零**。**点名未解决**：`femacs/lib/include/stdlib.rs` 没有 `abort`
+     （单元按 P-88 ① 自带声明；`exit`/`fork` 是同一类"镜像还没有"的缺口，搬进镜像是一次 move-back 轮，不是本片）；
+     `have_mmap` 的裁决（`feature-coverage.tsv` 无该行，3.442 已按 `test` 门带并记录）；棘轮 `--write-pending` 留给批处理。
+  ⑥ **未声称**：**零运行证据**（12,632 字节的翻臂对象**没有任何东西运行过**：没有字体被打开、没有 cmap 被解析、没有
+    轮廓被产出、没有 `read`/`lseek` 返回）；本片 10 个新定义在端口内**无人调用**；C 3595-21,215 **未移植**（333 条 missing
+     与 80.6% 漂移就是那条边界）；lane 的预算如实：`build-tu` 2/3、**`probe` 5 发（限 3，超 2）**，其中第 1-3 发是同一条
+     命令的三种输出过滤。另记一条**跨 lane 的事实**：它中途有一发 probe 停在**我正在飞的** `lib/include/signal.rs` 上
+     （3.444 的 `sigset_t` 属性错位，全树 74 个单元失败），那发读数不是对它的判定；该缺陷已在 3.444 修掉。
