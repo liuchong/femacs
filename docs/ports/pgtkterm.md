@@ -65,6 +65,10 @@ The features this slice **names but the tree has not registered** (`femacs/xtask
 `docs/baseline/config/darwin-arm64.macros.tsv`, so `tools/check-cond-eval.py` decides the `#ifdef`
 on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `have_xwidgets` (183),
 `use_gtk` (589), `have_gtk3` (132) and `glyph_debug` (83) are registered - owed, below.
+  ✅ **Stale for the names that matter here (3.474)**: `use_lucid` (line 626) and
+  `use_toolkit_scroll_bars` (line 628) are registered, as are `gdk_windowing_wayland` and
+  `have_xwidgets`; `tools/feature-coverage.py` lists all of them with their sites.
+
 
 ## C line ranges
 

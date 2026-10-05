@@ -96,5 +96,9 @@
 2. **The four `cairo_has_*` feature names** (C 33-41) need `docs/baseline/feature-coverage.tsv`
    rows, and the three cairo `<cairo-*.h>` headers have no mirror (nothing in the port's graph
    takes a name from them).
+   ✅ **Stale, closed by the integrator in 3.474**: all four are registered on this revision -
+   `femacs/xtask/Cargo.toml` 41 (`cairo_has_pdf_surface`), 42 (`cairo_has_png_functions`),
+   43 (`cairo_has_ps_surface`) and 44 (`cairo_has_svg_surface`), each with its C site in the comment;
+   `tools/feature-coverage.py` lists them with their sites.  Nothing to register.
 3. **The GDK/GTK layouts and the records' `bool_bf` dispatch** (P-80) are owed to a GTK3 toolchain
    (Owed 2 of `docs/ports/include-gtk.md`).

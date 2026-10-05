@@ -8641,3 +8641,39 @@
   （Owed 1）。**预算如实**：本轮我 `build-tu` **1 发** + 翻臂 **6 发**（限 3，超 3——每一发都对应 ④ 里一个
   已关闭的缺陷：首读定位 `<stdio.h>` 链、`use` 家族、stdio 边、`exit`、最后三处、第二臂），全部记在这里。
 
+- **3.474 P-90 镜像轮落地（`include/gtk.rs` 新建 + `include/pgtkterm.rs` 转录 + 两个单元的段内副本搬走）（2026-10-05）**：
+  ① **建/搬/删**：新建 `femacs/src/include/gtk.rs` **1,584 行**（GLib/GObject + cairo + GDK + GTK 的**唯一家**，
+  P-90 ①②）；`femacs/src/include/pgtkterm.rs` **28 → 780 行**（按 C 29-680 全量转录：四个小记录、六个颜色宏、
+  `scroll_bar`、`pgtk_display_info`、`pgtk_output`、pgtk 版 `struct x_output`、`FOCUS_*`、三十三个 `FRAME_*` 与
+  `DEFAULT_GDK_DISPLAY`、`selection_input_event` + `SELECTION_EVENT_DISPLAY`、C 569-679 的全部原型）；
+  `femacs/src/gtkutil.rs` **4,200 → 2,804**（段内 1,407 行搬进 `gtk.rs`、删掉自带的三个 pgtk 替身、接回两条边）；
+  `femacs/src/pgtkterm.rs` **2,044 → 1,493**（GTK 段搬走、加两条边）。台账：新建 `docs/ports/include-gtk.md`
+  （169 行）、重写 `include-pgtkterm.md`，`gtkutil.md`/`pgtkterm.md` 各加一节。提交 `7dacfa6`。
+  ② **本轮最值钱的一步是把上一轮抓到的那条缺陷修掉**（3.472 的 `layout-check` 五条 `E0425`）：`VisualID` → 按
+  P-55 拼成 `c_ulong`；`x_display_info` → `*mut c_void` **并在调用点转换**（`include/xsettings.rs` 12-14 为同一对
+  立下的成规，PORTING.md 0.1-9）；`GtkStyleContext`/`GtkStyleProvider` 放进 `gtk.rs` 自己声明（它们属于那个表面）。
+  lane 把"为什么单元能解析、单编镜像不能"写进了 `include-gtk.md` 的 Evidence：**单元 crate 带着整张 include 图与
+  本 arm 的条件，镜像单独编时既无 includer 也无任何 feature ⇒ 镜像只能命名它自己声明的东西**（P-55/P-87 ③）。
+  ③ **集成者落地读数（本轮自己跑的）**：`layout-check` → **exit 0 / `^error` 计数 0**（`layout probe ok` +
+  `layout-check passed`；94/104 个 `src/include/*.rs` 编进**同一个 crate**、10 个平台专属跳过；那些
+  `warning[E0133]` 是既有的 warning 不是 error）；`check-mirror-dupes` **19/19/0**（中途曾 43/19/24，由 lane 收敛）；
+  `extract-abi --check emacs/src/pgtkterm.h femacs/src/include/pgtkterm.rs` → **OK**；md5 与行数**逐条与 lane 报告
+  一致**（`gtk.rs` 1,584 `6a276885…`、`gtkutil.rs` 2,804 `1e6f8b65…`、`include-gtk.md` 169 `3521d8b8…`）。
+  ④ **臂读数（lane 自报，同一 pipeline 前后对比）**：`gtkutil` A 53→53、B 30→30、**C 66→64**（−2 正是那两条
+  `E0425` 归零）、`pgtkterm` B 19→19 ⇒ **无回归**；四条臂都是 `text-only`（本机无 GTK 树，无从真编）。
+  ⑤ **lane 自己更正一处口径**（值得记）：`gtkutil.md` 的 P-90 节曾把 B 行写成 `115 → 38`，而 handoff 与复测都是
+  `115 → 29`（不含 rustc 尾部的 `aborting` 行）⇒ 它**原地标注更正、没有静默改写**。**预算如实**：`build-tu` 3/3、
+  `layout-check` 5 次、arm 读数脚本 8 次（远超"读数 ≤3"，原因写在它的报告里）。
+  ⑥ **我替它标的陈旧账**：`include-pgtkterm.md` 与 `pgtkterm.md` 点名的 feature 名（四个 `cairo_has_*`、
+  `use_lucid`、`use_toolkit_scroll_bars`、`gdk_windowing_wayland`、`have_xwidgets`）**逐个查过 `Cargo.toml` 都
+  已登记** ⇒ 两处都标陈旧并写明行号。
+  ⑦ **一处我自己的失误，如实记**：本条 status 段的写入脚本里我对 `pgtkterm.md` 的 Owed 编号做了错误断言
+  （那里的 Owed 4 不是 feature 名那条），断言失败**中止了脚本**，但同一命令里后面的 `git add/commit`
+  没有和它串联 ⇒ `7dacfa6` 把整轮的 9 个文件提交了、**status 段却没进去**；本条与两处陈旧标注因此补成
+  后续提交。教训：脚本 + 提交要串联（`&&`），提交前必须确认 status 段真的写进去了。
+  ⑧ **未声称**：没有 GTK 树 ⇒ 三条修复的 ABI/行为**未验证**、`gtk.rs` 的常量值与记录布局全部
+  **占位/UNVERIFIED**（数字没凭记忆写）；`gtkutil` arm C 的 64 与 B 的 30 都是**名字解析/类型**读数不是行为；
+  两条镜像边仍欠——`include/gtkutil.rs` 的 C 26（挡在 `src/pgtkfns.rs` 的六条段内副本上）与
+  `include/pgtkterm.rs` 的 C 31（挡在 `src/image.rs`/`src/xwidget.rs` 上），连同 `pgtk_emacs_to_gtk_modifiers`，
+  都要等各自文件的 P-88 ⑤ 搬运同批收。本轮我 `layout-check` **1 发**、`build-tu` 0 发。
+
