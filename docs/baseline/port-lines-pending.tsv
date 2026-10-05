@@ -4,7 +4,6 @@
 # unit gates cannot see that it is unported; this list is what sees it.  Columns:
 # <reference>	<C lines>	<target lines>	<threshold>	<reason>.
 reference	c_lines	target_lines	threshold	reason
-exec/exec.c	1185	3	118	known-unported target (plan batch F)
 lib/c++defs.h	367	22	36	known-unported target (plan batch F)
 nt/cmdproxy.c	965	3	96	known-unported target (plan batch F)
 oldXMenu/Activate.c	642	3	64	known-unported target (plan batch F)
@@ -14,7 +13,6 @@ src/ftcrfont.c	826	11	82	known-unported target (plan batch F)
 src/haikumenu.c	845	11	84	known-unported target (plan batch F)
 src/sfntfont-android.c	821	11	82	known-unported target (plan batch F)
 src/w16select.c	692	19	69	known-unported target (plan batch F)
-src/w32console.c	1262	19	126	known-unported target (plan batch F)
 src/w32image.c	717	13	71	known-unported target (plan batch F)
 src/w32inevt.c	862	16	86	known-unported target (plan batch F)
 src/w32xfns.c	447	11	44	known-unported target (plan batch F)

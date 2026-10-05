@@ -201,13 +201,16 @@ libgccjit_have_gcc_jit_global_set_initializer = []  # LIBGCCJIT_HAVE_gcc_jit_glo
 libgccjit_have_gcc_jit_version             = []  # LIBGCCJIT_HAVE_gcc_jit_version
 libgccjit_have_reflection                  = []  # LIBGCCJIT_HAVE_REFLECTION
 lisp_object_is_struct                      = []  # LISP_OBJECT_IS_STRUCT
+lp64                                       = []  # lp64 (exec/exec.c 234; registered by the integrator in 3.560)
 mail_use_pop                               = []  # MAIL_USE_POP
 mailhost                                   = []  # MAILHOST
 makedev                                     = []  # makedev (src/w32menu.c 49 `#ifndef`)
 menu_debug                                  = []  # MENU_DEBUG (src/w32menu.c 1546/1767)
 mingw32_version_ge_5000002                 = []  # __MINGW32_VERSION >= 5000002L
 mingw64                                    = []  # __MINGW64__
+mips                                       = []  # mips (exec/exec.c 35 and exec/trace.rs; registered by the integrator in 3.560)
 mips_isa_rev_ge_6                          = []  # __mips_isa_rev >= 6 (src/exec/mipsfpu.c 140)
+mips_nabi                                  = []  # mips_nabi (exec/exec.c 402; registered by the integrator in 3.560)
 no_stack_grows_downwards                    = []  # NO_STACK_GROWS_DOWNWARDS (exec/trace.c)
 no_value                                   = []  # the derived condition `!defined HAVE_X_WINDOWS && defined (NoValue)` (frame.c 6538; `NoValue` is the non-X `*gui.h` constant)
 mingw_w64                                  = []  # MINGW_W64 (w32fns.c 38 `#if !defined MINGW_W64 && !defined CYGWIN`, 63 `# ifndef MINGW_W64`)
@@ -215,6 +218,7 @@ not_lesstif_version                         = []  # !LESSTIF_VERSION (lwlib/lwli
 ns_self_contained                          = []  # NS_SELF_CONTAINED
 ntgui_unicode                               = []  # NTGUI_UNICODE (src/w32menu.c 43/143/191/1493/1519/1579/1838)
 open_syscall                                = []  # OPEN_SYSCALL (exec/trace.c)
+page_mask                                  = []  # page_mask (exec/exec.c 295 and 305; registered by the integrator in 3.560)
 ptrace_event_seccomp                        = []  # PTRACE_EVENT_SECCOMP (exec/trace.c)
 ptrace_geteventmsg                          = []  # PTRACE_GETEVENTMSG (exec/trace.c)
 ptrace_o_traceseccomp                       = []  # PTRACE_O_TRACESECCOMP (exec/trace.c)

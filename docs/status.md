@@ -11196,3 +11196,38 @@
      `docs/ports/macro-body-notes.tsv` 该 lane 的两行已随 3.558 的提交入库（同样只追加）。
   ⑦ **未声称**：pgtkmenu 无任何行为读数（本机没有 GTK 树、没有 PGTK 目标可跑），336 字节空对象里没有本文件任何符号，
      所以没有 symbols/ABI 主张；GTK/GDK 与 `gtkutil.h` 的记录全是占位或不可编译的转写，**布局一律 UNVERIFIED**。
+
+- **3.560 两条 lane 收口（`exec/exec.c`、`src/w32console.c`），且 `check-all-units.sh` 终于跑通 83/0——3.558 那条欠账的门补上了（2026-10-05）**：
+  ① **lane 的产出（Ptolemy，`exec/exec.c`）**：`femacs/exec/exec.rs` 3 → **1,552 行**（md5 `a2560ed5…`），台账 303 行 /
+     26 行无缝区间表覆盖 C 1-1185；**本文件没有整身门**（排除它的是构建列表本身，不是预处理条件），所以端口按同目录
+     `exec1.rs`/`test.rs`/`mipsfpu.rs` 的先例**不加文件门**，冻结 `build-tu` 因此是**真对象 49,472 字节**（不是 336 字节空物）；
+     22 条内部条件两臂都带（`check-cond-eval` 读 `22 conditions / 0 disagreements`）。**读数**：`build-tu` 3 发（首读 15 条
+     全是端口侧写法问题，修毕后 0 error）；`probe` 3 发（最大臂集与两组 P1/P2 组合各 exit 0 / 0 error）；另在物化的
+     `_root.rs` 上直编 4 组剩余臂组合各 0 error ⇒ 全部臂覆盖；**变异实测**恰好 +1 条 `E0308` 且报在注入行。
+  ② **lane 的产出（Hilbert，`src/w32console.c`）**：`femacs/src/w32console.rs` 19 → **1,995 行**（md5 `af0c3a19…`），
+     台账 280 行 / 51 行区间表覆盖 C 1-1262；**文件门是 `windowsnt` 而不是 `have_ntgui`**（依据：`configure.ac` 3051 的
+     非 Cygwin 臂才把 `w32console.o` 放进 `W32_OBJ`，即 `nt/inc/ms-w32.h` 23-25 那个构建；同族的 `src/w32.rs`/`w32heap.rs`/
+     `w32proc.rs` 同门），`check-cond-eval` 读 `4 conditions / 0 disagreements`。**读数**：`build-tu` 4 发（首发 5 处
+     `as T <` 解析错——cfg 剥离发生在解析之后，门内语法错照样挂；修毕后三次 336 字节空对象）；臂（`have_ntgui`+
+     `windowsnt`+`have_window_system`）**单元自身 0 锚点**，10 条错全在镜像：`include/w32term.rs` 8 条
+     （3×`E0428`：`w32con_hide_cursor`/`w32con_show_cursor`/`initialize_w32_display` 正是本单元定义的名字，加上
+     5×`E0425` 的 `RECT`/`HDC`/`COLORREF`）＋`include/w32inevt.rs` 1 条（`E0428 w32_console_unicode_input`）＋
+     `include/frame.rs` 那条自己写明的 `compile_error!`；**变异实测**把错误锚回单元自身行 ⇒ 读数非空。
+     它自己修掉的两处：5 处解析错、以及 `Fget_screen_color` docstring 的**一字符**复制错（C 1191 自己的是反引号，
+     姊妹句 C 1162 是撇号；`extract-abi` 的 doc 摘要比对抓到）。
+  ③ **`check-all-units.sh` 跑通了（P-87 ① 的门补上）**：`checked 83 unit(s), 0 failure(s)` +
+     `checking 83 unit(s), 0 unit failure(s)`，**两腿全绿**。⇒ **3.558 那次 `include/frame.rs` 镜像改动（平台谓词补 `#else`
+     臂 + `FRAME_WINDOW_P` 链）从此有全量单元扫描背书**，不再只是 `layout-check` + 三条臂读数；那条欠账结清。
+     这一轮能跑通的原因：磁盘在开工时回到 **1.6 GiB 可用**，加上 3.559 把脚本改成**逐单元清理**（同一轮里 units 目录只到
+     19 MB，而不是 75 MB+）。本轮读数期间的空间：1.4–1.6 GiB / 89–90%。
+  ④ **集成者登记**：容差行 2 条（`exec 0.32`、`w32console 0.59`）⇒ 两件 `extract-abi --check` 均 **OK**；
+     **feature 4 个**（`mips`（`exec/trace.rs` 共用）、`mips_nabi`、`lp64`、`page_mask`；`no_ndebug` 早已在表里）；
+     `port-map.md` 只改这两行（**没有在飞 lane**，无需回退任何行）；`port-lines-pending.tsv` 去掉这两行
+     （**12 文件 / 8,734 参照行，0 stale**）；`macro-body-notes.tsv` 收下两条 lane 的追加行（只追加）。
+  ⑤ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、
+     `check-declarations` 0 failures、`check-dead-file-coverage` **130/0**、`check-ledger-ticks` 234/0、
+     `check-port-lines` 12 文件 / 8,734 行 / 0 new / **0 stale**、`check-target-names` 0 finding。
+  ⑥ **未声称**：exec 的臂读数是本机 `rustc` 类型检查、**不是** Linux/Android 构建，`USER_REGS_STRUCT` 的大小/偏移、
+     mips 的 `mips_elf_abi_flags`/`struct mipsel_regs`、`page_mask` 的 `PAGE_SHIFT/PAGE_SIZE/PAGE_MASK` 全是文档值
+     **UNVERIFIED**；w32console 的所有 `<windows.h>` 记录与 18 个常量同样 UNVERIFIED（本机无 SDK）；
+     两件都**没有链接、没有启动**，零运行证据。
