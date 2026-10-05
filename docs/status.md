@@ -13429,3 +13429,20 @@
      `check-dead-file-coverage` 145/0、`check-do-while` 152 单元/0、`check-octal-literals` 623 文件/0。
   ⑧ **预算**：`check-verbatim` 2 发、`check-verbatim-declarations` 12 发（含自测与三轮修复）、`check-declarations` 4 发、
      其余文本门 10 发、普查脚本 4 发；`/tmp` 的 3 个脚本与读数文件收工删；**无源码/无门解释器改动进入被移植树**。
+
+- **3.657 3.655 的 oracle 被推翻：**参照 C 自己的 dump 也不可复现**（233/255/256/257 字节，同样的偏移与形状），所以"端口 dump 每跑 302 字节不同"**不是缺陷**；L3 的判据回到"跑起来的失败率"，本轮重测 40 发 ⇒ rc0=20 / spin=7 / abort=13（2026-10-06）**：
+  ① **怎么发现的**：本轮为下一步准备解码器时，先在**参照侧**复核 3.655 ① 的读数（"连做两次 dump ⇒ 0 字节差异"）。直接对 `build/emacs-ref/src/` 里**相邻编号**的 dump 做 `cmp`：**`.2` vs `.3` = 255**、`.3` vs `.4` = **257**、`.4` vs `.5` = **233** 个差异字节；`ls -li` 确认三次比较的**两侧 inode 各不相同**（260628795 vs 260628929…），并把 `emacs-32.0.50.*.pdmp` **清空后连跑两发**得 `.6`/`.7` ⇒ **256 字节差异**（不是"历史文件残留"造成的）。⇒ **C 的 dump 本来就每跑不同**；3.655 ① 的 0 字节只能是**测法错**（`emacs.pdmp` 与新生成的 `emacs-32.0.50.N.pdmp` 是**硬链接**（link count 2），"各存一份再 cmp"很容易存到同一个 inode）。
+  ② **形状逐条对上（新工具** `tools/decode-dump-diff.py`**，本轮入库）**：读 dump 自带的头部（`magic[16]`=`DUMPEDGNUEMACS`、`fingerprint[32]`、三个 `dump_relocs` 定位符、`object_starts`、`emacs_relocs`、`discardable_start`/`cold_start`/`hash_list`），用 `object_starts` 把差异偏移**归到对象**（`struct dump_reloc`：低 27 位 ×8 = 偏移、高 5 位 = 类型，Lisp 类型 = 类型 − `RELOC_DUMP_TO_DUMP_LV`）。同一工具跑参照对与端口对，**四处形状完全同类**：
+     ⑴ `off 0xe490`（HOT，**两侧同一个偏移**）：一个 64 位量，**高 32 位每次运行恒定、低半每次不同**（参照 `0x636ef411…`、端口 `0x636ef2fb…`）；
+     ⑵ `off 1787144/1787145`（HOT，第二个差异点，两侧同址）——同一种量；
+     ⑶ **HOT 里一张"偏移表"被旋转**：参照 `0x416cb0..` 与端口 `0x412d20..` 都是**同一批 dump 内偏移按 4 环轮转**（参照 `0x415620/0x416e38/0x3e29f8/0x1bf688`，端口 `0x1a2340/0x411690/0x1ee1f8/0x157480`）；
+     ⑷ **COLD 尾部一簇**（参照 201 字节 / 端口 178 字节，都判成 `Int0` 容器内、都在 `object_starts` 最后一个对象之后）；
+     ⑸ 连**重定位表自己**都有差异：参照 `table:emacs_relocs` **3** 字节、端口 `table:dump_relocs[0]` **4** 字节。
+     ⑹ 还有一个**递增计数器**：参照 `off 0x24ba28` = `0x1a → 0x1e`（**每跑 +4**，与日志里每跑"Adding name emacs-32.0.50.N[/.pdmp]"两条名字对应）。
+  ③ **两边的规模同一个量级**：端口 239 字节/101 段，参照 233–257 字节/91–102 段（同一对同一工具，`--max` 打印的前几条偏移**逐条对得上**）。⇒ **"dump 不可复现"这件事本身是 Emacs dumper 在这个环境下**固有的**（它把每跑量写进 dump：地址派生的值、遍历顺序、计数与名字），**C 带着这种 dump 正常跑**（参照侧 L0/L3 一直绿）。
+  ④ **端口 dump 与参照 dump 的结构差异（新的正面读数）**：`cold_start` **两侧完全相同**（`0x8b0000`）、`discardable_start` 端口早 **768** 字节（`0x880ce0` vs `0x880fe0`）、`hash_list` 同差 768、总长 13,025,304 vs 13,060,296（差 34,992）⇒ 布局是**接近的**，不是"结构跑飞"。（逐字节 `cmp` 当然差 5.4 MB——两边的代码布局、sanctioned 字符串长度都不同，这不是判据。）
+  ⑤ **判据换回失败率，并重测基线（当前这一对二进制+dump）**：`FEMACS_CWD=$PWD/build/emacs-ref/src tools/loadup-fixture.sh --batch` 连跑 **40** 发 ⇒ **rc0=20、rc124(spin)=7、rc134(abort)=13**（≈50% 失败，与 3.649 的 ~50% 一致）；所有 abort 的现场**同一条**：`femacs/src/alloc.rs:2067` = `(*data).string = s;`，而 `data = b->next_free`，即 **`struct sblock` 的 `next_free` 是 NULL**（`b != NULL` 且刚判过"还有空间"）。
+  ⑥ **一条被实测排除的机制**：`MallocGuardEdges=1 MallocScribble=1 MallocPreScribble=1` 下连跑 10 发（rc0=4、134=5、124=1）**没有任何 SIGSEGV**（rc 里没有 139）⇒ 这次损坏**不是"越过 malloc 块尾"的越界写**（那种写法在 guard page 下会立刻崩在写点），而更像**读到了被回收/被复用的块**：`current_sblock` 指向的块已被释放（或它的内存被别人 memset/分配掉），于是 `next_free` 读成 0。这与 3.649 ①（`MallocScribble` 把失败率从 ~40% 抬到 ~83%）以及"装载后窗口才坏、装载返回时完好"（3.652 ②）都相容。
+  ⑦ **下一站（点名，按优先）**：⑴ **读 `b`/`current_sblock`/`oldest_sblock` 的来龙去脉**：在 panic 点（`alloc.rs:2067`）起 lldb 停住，打印 `b`、`current_sblock`、`(*b).next_free`、`(*b).next`，并用 `mem_find` 那一族的判据看 `b` 是否仍在**活着的 mem_node** 里（若不在 ⇒ 块被释放后仍被使用，去找 `sweep_strings`/`free_sblock`/`lisp_free` 的记账）；⑵ 同时逐句对照 `sweep_strings`、`free_sblock`/`free_sblocks`、`lisp_malloc`/`lisp_free` 的 `mem_node` 记账与 C（3.649 ⑤ 的崩溃报告 `xmalloc ← hash_table_alloc_bytes ← maybe_resize_hash_table` 是同一个"堆记账"面）；⑶ **不再以 dump 字节相差为判据**，改用 ⑤ 的 40 发计数（它是便宜的、有分布的读数）。
+  ⑧ **未声称**：**L3 稳定性仍未达成**（40 发里 20 发失败）；② 的"每跑量"**没有**逐个定位到写入点（只到"偏移+对象+形状"）；**没有**证明 ⑦⑴ 的假设（只是排除了一条、并把下一条做成可跑的判据）；**本轮 0 编译**（无源码改动，`git diff -- femacs/src` 为空）；`.elc`/`make check`/L4-L5 未动。
+  ⑨ **预算**：参照侧 `temacs` dump 6 发、端口 dump 3 发、`cmp`/解码 12 发、夹具运行 40 + 10 发、lldb 0 发；`/tmp` 里的 dump 副本、`guard.*.log`、`refdump*.log` 收工删（参照侧 `.6`/`.7` 留在 `build/emacs-ref/src/`，是本条读数的证据）。
