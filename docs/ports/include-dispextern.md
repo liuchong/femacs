@@ -1129,3 +1129,95 @@ with `include-treesit.md` recording it.
   femacs/src/include/dispextern.rs`.
 - `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 351 external,
   33 allowed, 0 stale`.
+
+# ----------------------------------------------------------------------
+## The window-system half of the typedefs (2026-10-05)
+
+**What landed.**  `dispextern.h` 113-198's per-platform types, each with C's own condition (and
+`have_window_system` on top of the platform's, so a unit that sets a platform feature without the
+window system - `xtask`'s own `have_haiku` flip is exactly that shape - reaches no record it may
+not have; P-87 3):
+
+1. **C 143/150/158's `#include`s of the platform `gui.h` headers** (`nsgui.h`, `pgtkgui.h`,
+   `haikugui.h`), carried as `include!`s under their platform feature **plus**
+   `have_window_system`.  This is the repair for the 18 `E0425 cannot find type Emacs_Cursor` the
+   NS configuration reported: C reaches `nsgui.h` 64's `typedef void *Emacs_Cursor` (and NS's
+   `Window`, `Emacs_Pixmap`) *through this header*, so the mirror does too - no unit has to
+   invent the names.  **Two of C 135/143/150/158/164's five edges are deliberately not carried**,
+   each with a measurement behind it: `w32gui.h` (C 135) and `androidgui.h` (C 164).  Both bring
+   more than themselves into `xtask`'s materializer, whose nested-`include!` dedupe is by *file*
+   and ignores the `#[cfg]` on the edge that first reaches it:
+   * `androidgui.rs` includes `lib/include/wchar.rs`; with the edge here, `build-tu src/sysdep.c`
+     read `// [xtask dedupe] …/lib/include/wchar.rs already included` at the top level and the
+     only `wchar.rs` copy left sat inside the `have_android` arm - `wint_t` vanished and
+     `check-all-units.sh` read `83 unit(s), 1 failure(s)`.  (The Android units reach the file
+     through C's own edge anyway: `androidterm.h` 23 → `include/androidterm.rs` 41.)
+   * `w32gui.rs` is inside `layout-check`'s compiled set (not one of the ten platform-exclusive
+     mirrors that probe skips), and the same dedupe moved its one inclusion into a `have_ntgui`
+     arm, so `include/msdos.rs` 349-362 - which spells `Display`/`Window` ungated and was
+     borrowing both from there - failed: six `E0425 cannot find type Display` + one `Window`,
+     `error: layout probe failed to compile`.  At HEAD the same probe passes, so this was a
+     regression, and the W32 units lose nothing: C's own edge `w32term.h` 21 is already in
+     `include/w32term.rs` 49.
+2. **The six `Display_Info` arms** (C 115/136/145/152/159/165): x11, w32, NS, haiku and android
+   alias the term mirror's record (`xterm.rs` 355, `w32term.rs` 154, `nsterm.rs` 318,
+   `haikuterm.rs` 89, `androidterm.rs` 86) - the same relation C has, where the complete record
+   arrives from `TERM_HEADER` (`frame.h` 31-33).  `pgtk_display_info` is **not** here:
+   `include/pgtkterm.rs` has no record yet and no arm on this machine can read one (no GTK
+   headers - the same measurement that defers the five pgtk records under 3.278 4).
+3. **`Emacs_Pix_Container`/`Emacs_Pix_Context`/`Emacs_Pixmap`**: C 122-131's `USE_CAIRO` arm
+   (the anonymous record, named `emacs_pix_container`, with the four layout assertions the
+   `image.md` clang reading gives: sizeof 24, align 8, `data` 8, `bytes_per_line` 16,
+   `bits_per_pixel` 20), C 146's NS arm, C 160's haiku arm, C 166's android arm, and C 196-197's
+   default `Emacs_Pix_Context`/`PIX_CONTAINER_TO_CONTEXT` pair.  **Deferred with a reason**: C
+   116-118's X11 arm needs `XImage` and C 41's `Emacs_Pixmap` needs `Pixmap`, which
+   `include/xlib.rs` does not carry yet (its two names are part of the X11 round the x+cairo flip
+   measures - 230 error lines, 124 of them `Atom`); C 137-139's `HAVE_NTGUI` arm is the
+   unmeasured Windows arm (see `docs/ports/include-frame.md`'s section of the same date).
+4. **C 184-190's `WINDOW_HANDLE_UINTPTR` default is deliberately not spelled**: it is a macro and
+   `haikugui.rs` 53 / `pgtkgui.rs` 116 already own the name with the same cast, so a second
+   `macro_rules!` of it is `E0659` ambiguity in `layout-check`'s single crate - the reason this
+   file already gives for `NativeRectangle` above.
+
+**Not landed, and why (each a named item).**
+
+- `check_x_display_info` (C 3993): `femacs/src/frame.rs` 6155-6156 declares it at its crate root,
+  so a declaration here makes `tools/check-mirror-dupes.py` fail (`FAIL femacs/src/frame.rs:
+  check_x_display_info is already declared by femacs/src/include/dispextern.rs (in the include
+  graph)` - measured).  It lands with the commit that deletes that copy and adds the ratchet row;
+  `docs/ports/w32fns.md` owed 9 stays owed.
+- C 169-172's `#include "fontset.h"`: `femacs/src/font.rs` 362/448/450/5027 declares four of
+  `fontset.rs`'s names at its own crate root (`face_for_char`, `fs_query_fontset`,
+  `fontset_ascii`, `font_for_char`), so the edge would be four `E0428`s in that unit until they
+  retire - and the units that need the names already carry the include themselves
+  (`src/haikuterm.rs` 75 does exactly that, citing this line).  The edge lands with those
+  copies' commit.
+
+**Evidence.**
+
+- `python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs`
+  -> `OK emacs/src/dispextern.h -> femacs/src/include/dispextern.rs`.
+- `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
+  0 failure(s)`.
+- `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (`docs/baseline/
+  citations-allowlist.tsv` 33's key at `dispextern.rs:587` is **unmoved**: the new block was
+  inserted below it, so no shared-table retarget is owed for it).
+- The flip: `src/image.rs` with `--cfg 'feature="have_window_system"' --cfg 'feature="have_ns"'`
+  -> `55` `error` lines before, `11` after; the 18 `Emacs_Cursor` errors are gone and what remains
+  is the unit's own text plus four `E0428`s from copies that must retire (listed in
+  `docs/ports/include-frame.md`'s section).  It is a **name-resolution reading**: `E0428` stops
+  rustc before type-checking, so `include/font.rs`'s eight `E0080`s are hidden behind it, not
+  fixed (P-86 7).
+- Frozen units (`build-tu`, `CARGO_TARGET_DIR=/tmp/mirror-lane/cargo`): `src/dispnew.c`,
+  `src/window.c`, `src/xfaces.c`, `src/xdisp.c`, `src/editfns.c`, `src/lread.c` -> `built …`.
+- `xtask layout-check` -> `layout-check passed (see build/femacs/layout_asserts.rs)` (this is also
+  the gate that caught the `w32gui.rs` edge above; the first version of this block failed it).
+- `build-tu src/sysdep.c`, `src/syntax.c`, `src/frame.c`, `src/window.c`, `src/term.c` ->
+  `built …` (the first two are the `<wchar.h>` users the `androidgui.rs` edge broke).
+- **`tools/check-all-units.sh` (P-87, both legs), the batch's final revision**:
+  `checked 83 unit(s), 0 failure(s)` / `checking 83 unit(s), 0 unit failure(s)`.  One run covers
+  every mirror this lane touched.  It is the *main working tree* reading, so it contains the other
+  lanes' in-flight units (`xdisp.rs`, `w32term.rs`, `image.rs` are modified in the tree); the
+  recorded HEAD reading is the same 83/0 (`docs/status.md` 3.402), and the batch's one intermediate
+  run - `83 unit(s), 1 failure(s)` on `src/sysdep.c` - was this lane's own `androidgui.rs` edge,
+  fixed and re-measured (the failure is named in the block above).

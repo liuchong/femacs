@@ -618,3 +618,202 @@ gated arm was compiled as a cut-out probe - the record above plus `assert!`s on 
 - `python3 tools/extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` -> `OK
   emacs/src/frame.h -> femacs/src/include/frame.rs`.
 - `python3 tools/check-citations.py` -> `0 drift`, `0 stale`.
+
+# ----------------------------------------------------------------------
+## The window-system flag numbering lands, and the two arms this file did not have (2026-10-05)
+
+**Status 3.273/3.274 asked for this and left it "the next step"**: the flag run's constants were
+the frozen arm's alone, gated `not (feature = "have_window_system")` so that a window-system
+configuration failed to compile rather than reading the wrong bit.  This round writes the numbers
+for every arm, so the four ledgers that named the gap (`docs/ports/frame.md` owed 1,
+`docs/ports/haikuterm.md` owed 4, `docs/ports/androidterm.md` owed 5, `docs/ports/w32fns.md`
+owed 8) now have a mirror to compile against.
+
+**The measurement.**  `spikes/gated-layout-probe.py --bits 'struct frame' frame.h` (P-82) reads
+each arm's `(unit, shift, width)` from the C compiler.  The frozen, `x11` and `ns_cocoa` arms were
+already in `docs/baseline/frame-bits.tsv`; this round read the two the file does not have, with the
+probe's own `--define` arm:
+
+```
+$ python3 spikes/gated-layout-probe.py --bits 'struct frame' frame.h \
+    --write /tmp/frame-bits-haiku.tsv --define HAVE_WINDOW_SYSTEM=1 --define HAVE_HAIKU=1
+  -> exit 0; `sizeof struct frame` **632**, align 8, 230 rows written
+$ python3 spikes/gated-layout-probe.py --bits 'struct frame' frame.h \
+    --write /tmp/frame-bits-android.tsv --define HAVE_WINDOW_SYSTEM=1 --define HAVE_ANDROID=1
+  -> exit 0; `sizeof struct frame` **648**, align 8, 229 rows written
+```
+
+The Android arm's 48 flag rows are **bit for bit identical to the `x11` arm's** (asserted when the
+constant table was generated: `all (x11[k] == android[k]) and len(x11) == 48`), which is why one
+`#[cfg]` covers both; the Haiku arm differs from it by exactly the `HAVE_EXT_MENU_BAR` bit
+(`external_menu_bar` at `1:11`, everything after it one bit later).  The four arms:
+
+| C | member | frozen | A (x11/pgtk/android/w32) | B (haiku/X-toolkit) | C (NS/GTK) |
+| ---: | --- | --- | --- | --- | --- |
+| C | member | frozen | A (x11/pgtk/android/w32) | B (haiku/X-toolkit) | C (NS/GTK) |
+| ---: | --- | --- | --- | --- | --- |
+| 331 | `glyphs_initialized_p` | 1:0 | 1:0 | 1:0 | 1:0 |
+| 335 | `resized_p` | 1:1 | 1:1 | 1:1 | 1:1 |
+| 340 | `default_face_done_p` | 1:2 | 1:2 | 1:2 | 1:2 |
+| 344 | `already_hscrolled_p` | 1:3 | 1:3 | 1:3 | 1:3 |
+| 347 | `updated_p` | 1:4 | 1:4 | 1:4 | 1:4 |
+| 352 | `minimize_tab_bar_window_p` | - | 1:5 | 1:5 | 1:5 |
+| 358 | `minimize_tool_bar_window_p` | - | 1:6 | 1:6 | - |
+| 362 | `tool_bar_wraps_p` | - | 1:7 | 1:7 | - |
+| 367 | `external_tool_bar` | - | - | - | 1:6 |
+| 372 | `fonts_changed` | 1:5 | 1:8 | 1:8 | 1:7 |
+| 375 | `cursor_type_changed` | 1:6 | 1:9 | 1:9 | 1:8 |
+| 378 | `redisplay` | 1:7 | 1:10 | 1:10 | 1:9 |
+| 382 | `external_menu_bar` | - | - | 1:11 | 1:10 |
+| 390 | `visible` | 1:8 | 1:11 | 1:12 | 1:11 |
+| 394 | `iconified` | 1:9 | 1:12 | 1:13 | 1:12 |
+| 398 | `garbaged` | 1:10 | 1:13 | 1:14 | 1:13 |
+| 402 | `wants_modeline` | 1:11 | 1:14 | 1:15 | 1:14 |
+| 405 | `auto_raise` | 1:12 | 1:15 | 1:16 | 1:15 |
+| 408 | `auto_lower` | 1:13 | 1:16 | 1:17 | 1:16 |
+| 411 | `no_split` | 1:14 | 1:17 | 1:18 | 1:17 |
+| 417 | `explicit_name` | 1:15 | 1:18 | 1:19 | 1:18 |
+| 426 | `window_change` | 1:16 | 1:19 | 1:20 | 1:19 |
+| 430 | `window_state_change` | 1:17 | 1:20 | 1:21 | 1:20 |
+| 434 | `mouse_moved` | 1:18 | 1:21 | 1:22 | 1:21 |
+| 437 | `pointer_invisible` | 1:19 | 1:22 | 1:23 | 1:22 |
+| 441 | `frozen_window_starts` | 1:20 | 1:23 | 1:24 | 1:23 |
+| 446 | `output_method` | 1:21/4 | 1:24/4 | 1:25/4 | 1:24/4 |
+| 449 | `undecorated` | 1:25 | 1:28 | 1:29 | 1:28 |
+| 453 | `no_accept_focus` | 1:26 | 1:29 | 1:30 | 1:29 |
+| 457 | `tooltip` | - | 1:30 | 1:31 | 1:30 |
+| 460 | `want_fullscreen` | - | 2:0/4 | 2:0/4 | 2:0/4 |
+| 464 | `vertical_scroll_bar_type` | - | 2:4/2 | 2:4/2 | 2:4/2 |
+| 467 | `horizontal_scroll_bars` | - | 2:6 | 2:6 | 2:6 |
+| 471 | `override_redirect` | - | 2:7 | 2:7 | 2:7 |
+| 475 | `skip_taskbar` | - | 2:8 | 2:8 | 2:8 |
+| 479 | `no_focus_on_map` | - | 2:9 | 2:9 | 2:9 |
+| 482 | `z_group` | - | 2:10/2 | 2:10/2 | 2:10/2 |
+| 487 | `no_special_glyphs` | 1:27 | 2:12 | 2:12 | 2:12 |
+| 491 | `can_set_window_size` | 1:28 | 2:13 | 2:13 | 2:13 |
+| 494 | `after_make_frame` | 1:29 | 2:14 | 2:14 | 2:14 |
+| 503 | `tab_bar_redisplayed` | 1:30 | 2:15 | 2:15 | 2:15 |
+| 504 | `tab_bar_resized` | 1:31 | 2:16 | 2:16 | 2:16 |
+| 513 | `tool_bar_redisplayed` | 2:0 | 2:17 | 2:17 | 2:17 |
+| 514 | `tool_bar_resized` | 2:1 | 2:18 | 2:18 | 2:18 |
+| 517 | `face_change` | 2:2 | 2:19 | 2:19 | 2:19 |
+| 521 | `inhibit_clear_image_cache` | 2:3 | 2:20 | 2:20 | 2:20 |
+| 526 | `new_size_p` | 2:4 | 2:21 | 2:21 | 2:21 |
+| 530 | `was_invisible` | 2:5 | 2:22 | 2:22 | 2:22 |
+| 536 | `select_mini_window_flag` | 2:6 | 2:23 | 2:23 | 2:23 |
+| 540 | `borders_respect_alpha_background` | 2:7 | 2:24 | 2:24 | 2:24 |
+
+(The `A` column is the `x11` reading, which the `android` arm reproduces exactly; `-` = the arm
+has no such field.)
+
+**The arms' `#[cfg]`.**  C's three shapes come from `lisp.h` 3931-3939 - `HAVE_EXT_MENU_BAR` for
+`USE_X_TOOLKIT || HAVE_NTGUI || HAVE_NS || USE_GTK || HAVE_HAIKU`, `HAVE_EXT_TOOL_BAR` for
+`USE_GTK || HAVE_NS` - and the mirror names them:
+
+| arm | feature expression | which configurations |
+| --- | --- | --- |
+| frozen | `not (feature = "have_window_system")` | every unit in the frozen build |
+| A | `all (have_window_system, not (have_ext_tool_bar), not (have_ext_menu_bar), not (have_ntgui))` | x11, pgtk, android, w32 |
+| B | `all (have_window_system, not (have_ext_tool_bar), feature = "have_ext_menu_bar")` | haiku, `USE_X_TOOLKIT` |
+| C | `all (have_window_system, feature = "have_ext_tool_bar")` | NS (`ns_impl_cocoa`), GTK |
+
+**`HAVE_NTGUI` is refused, not approximated.**  `frame.h` 471's `# ifndef HAVE_NTGUI` removes
+`override_redirect` from the run, so every bit after it moves one place and the Windows arm is
+*not* arm A.  No clang probe can read it here (no `<windows.h>`; the same absence
+`docs/ports/w32fns.md` owed 10 records), so:
+
+* arm A (and the `A and B` pair) carries `not (feature = "have_ntgui")`;
+* `#[cfg (feature = "have_ntgui")] compile_error! (...)` refuses the configuration with the reason
+  and the fix (a clang probe with a Windows/mingw SDK), instead of letting it take another arm's
+  bits - the same "fail loudly" rule the frozen constants used to carry.
+
+**The unit is data now.**  A flag's *unit* moves too: five flags (`no_special_glyphs`,
+`can_set_window_size`, `after_make_frame`, `tab_bar_redisplayed`, `tab_bar_resized`) are `1:27-31`
+frozen and `2:12-16` under every window system, and everything from `want_fullscreen` on lives in
+unit 2 once the run crosses the four-byte boundary (measured; the last byte of unit 1 is padding
+under every window system).  Each flag therefore carries a `FRAME_*_UNIT` beside its
+`FRAME_*_SHIFT`, and the mirror's ten flag readers read through
+`frame_flag (f, FRAME_X_UNIT, FRAME_X_SHIFT)` - no reader picks a unit by hand.  `frame_bit1` is
+gone (it read `bits1` unconditionally, which under arm B would have answered `iconified` for
+`no_special_glyphs`).
+
+**Also in this batch, each a ledger item of its own:**
+
+1. `enum fullscreen_type` and its five members (C 47-59), with `FULLSCREEN_WAIT` under
+   `have_ntgui` - `src/frame.rs` 4755-4765 and `src/w32fns.rs` 1184-1192 carry use-site copies of
+   the enum that **must be deleted in the commit that flips them** (`E0428` otherwise); this
+   mirror's copy is the one `docs/ports/w32fns.md` owed 8 asked for.
+2. `FRAME_W32_P`'s pair (C 935-939): the frozen arm's `false` and the `HAVE_NTGUI` arm's
+   `output_method == output_w32`.
+3. The window-system arms of `FRAME_VERTICAL_SCROLL_BAR_TYPE`/`FRAME_HAS_VERTICAL_SCROLL_BARS*`
+   (C 1218-1223), `FRAME_OVERRIDE_REDIRECT` (C 1240-1246, with C's `HAVE_NTGUI` sub-arm),
+   `FRAME_SKIP_TASKBAR`/`FRAME_NO_FOCUS_ON_MAP`/`FRAME_NO_ACCEPT_FOCUS` (C 1247-1250),
+   `FRAME_TOOLTIP_P` (C 1256), the five `FRAME_Z_GROUP*` (C 1251-1255, including
+   `FRAME_Z_GROUP_ABOVE_SUSPENDED`, which had no port copy at all), `FRAME_EXTERNAL_MENU_BAR`/
+   `FRAME_EXTERNAL_TOOL_BAR` (C 1078-1083/1093-1098), `FRAME_HAS_HORIZONTAL_SCROLL_BARS` (C 1275-1280)
+   and the two Cocoa members (C 1257-1260).  The frozen arms come first in the file: the
+   extractor's body check reads the first definition of a name, and C's *live* arm for the frozen
+   configuration is the `#else` one (measured: with the window-system arm first,
+   `extract-abi --check` reported 15 `does not mention …` rows).
+4. `MOUSE_HL_INFO`'s three arms (C 1023-1039), including C 1034-1035's Android arm - the
+   `docs/ports/androidterm.md` owed 5 item.
+5. The masks of the run's multi-bit fields (`FRAME_OUTPUT_METHOD_MASK` was already here; the
+   other three are new next to it).
+
+**Evidence (this round, all on the batch's own revision).**
+
+- `python3 tools/extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` -> `OK
+  emacs/src/frame.h -> femacs/src/include/frame.rs`.
+- `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
+  0 failure(s)` (the same 18/18/0 as before the batch).
+- `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 494 external,
+  33 allowed, 0 stale` (one wrong range this batch wrote - `frame.h 1268-1271` for the Cocoa pair,
+  which is really 1257-1260 - was caught by the gate and fixed).
+- `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures`.
+- Frozen units (`build-tu`, `CARGO_TARGET_DIR=/tmp/mirror-lane/cargo`): `src/frame.c`,
+  `src/term.c`, `src/window.c`, `src/coding.c`, `src/dispnew.c`, `src/xfaces.c`, `src/buffer.c`,
+  `src/editfns.c`, `src/lread.c`, `src/xdisp.c`, `src/keyboard.c` -> `built …` (eleven, all
+  unchanged read text).
+- **The flip that this work was for** - `src/image.rs`, the NS configuration (the command
+  `docs/ports/image.md`'s Evidence 2 uses): `55` `error` lines before, **`11` after**; the
+  mirror's own `include_frame.rs` contributed **45 sites before and 0 errors after** (2 warnings,
+  the pre-existing doubled `#[inline(always)]`).  The residual 11 are the unit's text plus the
+  four `E0428`s named above.  **Read them as a name-resolution reading**: with `E0428` present
+  rustc stops before type-checking, so `include/font.rs`'s eight `E0080` layout assertions are
+  hidden behind it rather than fixed (P-86 7's classification).
+- The other three configurations of that unit, same harness: `+ have_haiku` 6 error lines,
+  `+ have_android + not_android_stubify` 6, `+ have_pgtk + have_imagemagick + use_cairo` 12 - each
+  now stopping at its own `E0428`/`FRAME_DISPLAY_INFO` list (before: 29/28/35 lines in
+  `docs/ports/image.md`'s sweep).
+- **The ledger this work was measured against** - `docs/ports/haikuterm.md`'s arm-reach pre-flight,
+  re-run on the fresh materialization (`rustup run nightly-2026-10-01 rustc --edition 2024
+  --crate-type lib --emit obj -C panic=abort --cfg 'feature="have_haiku"'
+  --cfg 'feature="have_window_system"' -o /tmp/…/arm.o build/femacs/units/haikuterm/_root.rs`):
+  **78 error lines before, 42 after**; this mirror's sites fell from 12 `FRAME_*_SHIFT` /
+  `FRAME_HAS_VERTICAL_SCROLL_BARS*` "not found" rows to 7 rows of classes that were already there
+  (5 × `cannot find macro` - the `eassert`/`XUNTAG` include-order class `docs/ports/haikuterm.md`
+  owed 5 names - plus one `E0308` and one `E0425`).  `no field tooltip`, `FRAME_TOOLTIP_P`,
+  `FRAME_AUTO_RAISE_SHIFT` and `FRAME_AUTO_LOWER_SHIFT` are gone from that unit's own text.
+- `tools/check-all-units.sh` (P-87, both legs) - see the batch's own reading in
+  `docs/ports/include-dispextern.md`'s section of the same date (one run covers every mirror this
+  lane touched).
+
+**Handed to the integrator (exact, not implied).**
+
+1. `src/image.rs` 155-180 (the six `Display_Info` arms), 211-245 (the container/context pair) and
+   `src/frame.rs` 4755-4765 + `src/w32fns.rs` 1184-1192 (the `fullscreen_type` enum) must drop
+   their use-site copies in the commit that flips them; until then those configurations report
+   `E0428` at the two sites and the readings above are resolution-stage ones.
+2. `src/haikuterm.rs` 1423-1441's three `WINDOW_BUFFER_LOCAL_VALUE (w, v)` calls must swap their
+   arguments (see `docs/ports/include-window.md`'s section of the same date).
+3. `src/haikuterm.rs` 476's `if (*f).tooltip` is the *unit's* own spelling of a C bit-field
+   member, and it is now the unit text that carries the remaining `E0609` (`no field tooltip on
+   type frame`) - the mirror cannot answer it with a field: the run lives in `bits1`/`bits2` and
+   the accessor is `FRAME_TOOLTIP_P (f)` (this round landed it and its numbering).  The three
+   call sites of `WINDOW_BUFFER_LOCAL_VALUE` above are the same class of handoff.
+4. `src/frame.rs` 6155-6156's `check_x_display_info` copy blocks the mirror's declaration: adding
+   it to `include/dispextern.rs` makes `check-mirror-dupes` fail
+   (`FAIL femacs/src/frame.rs: check_x_display_info is already declared by
+   femacs/src/include/dispextern.rs (in the include graph)`), so it is deliberately **not** added
+   (`docs/ports/w32fns.md` owed 9 stays owed).

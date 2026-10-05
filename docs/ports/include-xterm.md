@@ -246,3 +246,54 @@ mirror-level declaration is the `True`/`False` second home (3.270).  Registered,
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-target-names` 621 .rs files / 593 map targets / 0 findings; `check-mirror-dupes`
   1 duplicate declaration(s) / 1 ratchet row(s) / 0 failures.
+
+# ----------------------------------------------------------------------
+## `x_bitmap_stipple` moves into a declaration module (2026-10-05)
+
+**C.**  C 214-216: `#ifdef USE_CAIRO / extern cairo_pattern_t *x_bitmap_stipple (struct frame *,
+Pixmap); / #endif`.  It is a *declaration* in the header and a **definition** in `image.c` 416
+(non-`static`), so the mirror's crate-root declaration collides with the unit's definition the
+moment the unit is compiled with `have_x_windows` + `use_cairo`: `error[E0428]: the name
+x_bitmap_stipple is defined multiple times` was one of the six sites
+`docs/ports/image.md`'s Evidence 3 measured in the unit's own text.
+
+**The move.**  The declaration now sits in `pub mod xterm_bitmap_decls` with
+`use xterm_bitmap_decls::*;` - the `window.rs` 302-367 `window_fn_decls` and `androidterm.rs`
+513-537 `androidterm_objs` shape (PORTING.md 0.1-10 / P-21): a glob import is *shadowed* by a
+crate-root definition, so the unit's definition stays the live one and no ratchet row is needed
+(`tools/check-mirror-dupes.py` counts a declaration with a body as a definition and never as a
+copy).
+
+**Evidence.**
+
+- `python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs` -> `OK
+  emacs/src/xterm.h -> femacs/src/include/xterm.rs`.
+- `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
+  0 failure(s)`.
+- The flip the item exists for: `src/image.rs` with `--cfg 'feature="have_window_system"'
+  --cfg 'feature="have_x_windows"' --cfg 'feature="use_cairo"'` -> the `E0428` is gone; the error
+  lines move `233 -> 234` only because four *other* `E0428`s (the `dispextern.h` typedefs this
+  batch landed and the unit's use-site copies of them) now report at the resolution stage, and
+  because `E0428` stops rustc before type-checking, the arm's `Atom`/`Cursor`/`XGetPixel` list
+  (`include/xlib.rs`'s gap, 124 + 19 + 13 + 13 of the 223 `E0425`s) is the reading that remains -
+  a name-resolution reading, not a type-check one (P-86 7).
+
+## `cairo` is a unit-side declaration, not a mirror (the P-88 judgement, 2026-10-05)
+
+`docs/ports/image.md`'s `/// C:` list carries sixteen cairo entry points, six constants and two
+records that clang measured there.  `ls femacs/src/include | grep -i cairo` is empty and no file in
+the tree has a `/// C: #include <cairo…` section, because **`<cairo.h>` is an external library
+header the reference tree does not contain** - exactly P-88 1's case.  The judgement is therefore:
+**the declarations belong to the unit that includes the header, and no `femacs/src/include/` file
+is created for them.**  Two facts make it a live question rather than a formality:
+
+* the machine *does* have cairo (`/opt/homebrew/include/cairo`, 1.18.4), so a clang probe can
+  measure its records - and `src/image.rs` 363-431 already carries the three opaque tags
+  (`cairo_t`/`cairo_surface_t`/`cairo_pattern_t` as `pub enum … {}`), the ten prototypes, the
+  constants and the two records with their `/// C:` lines and four layout assertions, so the arm
+  compiles from the unit's own text;
+* this mirror's `use_cairo` **record member** (`x_bitmap_record.stipple: *mut cairo_pattern_t`,
+  C 186-188) is a *use* of the name, not a declaration of it - it resolves because the unit that
+  sets `use_cairo` brings the tag (the "a macro body is resolved only where it is expanded" shape,
+  applied to a record field).  A mirror must not declare it: P-88 1's rule keeps the reference
+  tree's own headers in `femacs/src/include/`, and nothing there corresponds to `cairo.h`.

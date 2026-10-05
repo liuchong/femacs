@@ -186,11 +186,22 @@ pub struct x_gc_ext_data
 /// C 214-216: `#ifdef USE_CAIRO / extern cairo_pattern_t *x_bitmap_stipple (struct frame *,
 /// Pixmap); / #endif`
 /// C: extern cairo_pattern_t *x_bitmap_stipple (struct frame *, Pixmap);
-#[cfg (feature = "have_x_windows")]
-#[cfg (feature = "use_cairo")]
-unsafe extern "C" {
-  pub fn x_bitmap_stipple (f: *mut frame, pixmap: Pixmap) -> *mut cairo_pattern_t;
+// The declaration sits in a module this mirror glob-imports because its *definition* is a
+// unit's: `image.c` 416 defines it non-`static`, so `src/image.rs` (or any other X11 unit that
+// defines it) collides with a crate-root declaration (`E0428`) - measured in the x+cairo arm
+// flip, where `image.rs`'s own definition is the unit text the reading could not reach.  The
+// unit's definition shadows the glob import instead (PORTING.md 0.1-10; the `window.rs`
+// 302-367 `window_fn_decls` and `androidterm.rs` 513-537 `androidterm_objs` precedents).
+pub mod xterm_bitmap_decls {
+  use super::*;
+
+  #[cfg (feature = "have_x_windows")]
+  #[cfg (feature = "use_cairo")]
+  unsafe extern "C" {
+    pub fn x_bitmap_stipple (f: *mut frame, pixmap: Pixmap) -> *mut cairo_pattern_t;
+  }
 }
+use xterm_bitmap_decls::*;
 
 /* C 219-232: the colour-name cache record.  Its `valid` member is a 1-bit `bool_bf`, recorded
    rather than packed (PORTING.md 1.3 / P-80, the `include/w32term.rs` reading of the same

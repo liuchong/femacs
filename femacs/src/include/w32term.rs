@@ -583,9 +583,15 @@ macro_rules! FRAME_BASELINE_OFFSET {
   ($f:expr) => { ((*((*$f).output_data.w32 as *mut w32_output)).baseline_offset) };
 }
 /// C: #define FRAME_DISPLAY_INFO(f) ((void) (f), (&one_w32_display_info))
+// C's `(void) (f)` is the "evaluate and discard" cast, and Rust has no such cast: a body that
+// kept C's punctuation was a syntax error (`(void) ($f)`) rather than a macro, so every consumer
+// of this macro failed before its own text was read (docs/ports/w32fns.md, owed item 6).  The
+// port's spelling is `let _ = ($f);`, the shape the frozen `FRAME_*` accessors use for C's
+// `((void) (f), …)` arms (include/frame.rs); the discard still evaluates the argument, which is
+// what C's cast guarantees.
 #[cfg (feature = "windowsnt")]
 macro_rules! FRAME_DISPLAY_INFO {
-  ($f:expr) => { { (void) ($f); (&raw mut one_w32_display_info) } };
+  ($f:expr) => { { let _ = ($f); (&raw mut one_w32_display_info) } };
 }
 /// C: #define FRAME_NORMAL_PLACEMENT(F) ((F)->output_data.w32->normal_placement)
 #[cfg (feature = "windowsnt")]
@@ -1128,11 +1134,22 @@ unsafe extern "C" {
    (`#define w32_kbdhook_active 0`) is recorded - C's own two values are kept where C keeps them
    (`w32_kbdhook_active` is the one name whose definition the two arms disagree on).  */
 // C: #ifdef WINDOWSNT
+/* C 809: `#define w32_kbdhook_active (os_subtype != OS_SUBTYPE_9X)` - a *macro over a mutable
+   global* (`w32common.h` 48's `extern int os_subtype`), and the three call sites C has
+   (`w32inevt.c` 153/157/194/211/278, `w32fns.c` 3080/3088) read it as a value.  A `pub const`
+   cannot read a global (measured: `E0080`/`E0133` on the arm compile, docs/ports/w32fns.md owed
+   item 7), so the name is a `macro_rules!` like C's `#define` and the call sites write it the
+   way C does - bare, which is why the macro takes no parentheses (the `w32select.rs`/`frame.rs`
+   nullary-macro shape).  C 811-812's `#else` arm (`#define w32_kbdhook_active 0`) is recorded
+   below rather than carried: the file is the Windows side, and a crate that sets `windowsnt`
+   is the arm C 809 is under.  */
 /// C: extern void setup_w32_kbdhook (HWND); extern void remove_w32_kbdhook (void); extern void
 /// C: reset_w32_kbdhook_state (void); extern int check_w32_winkey_state (int);
 /// C: #define w32_kbdhook_active (os_subtype != OS_SUBTYPE_9X)
 #[cfg (feature = "windowsnt")]
-pub const w32_kbdhook_active: c_int = (os_subtype != OS_SUBTYPE_9X) as c_int;
+macro_rules! w32_kbdhook_active {
+  () => { (unsafe { os_subtype } != OS_SUBTYPE_9X) };
+}
 /// C 811-812: `#else / #define w32_kbdhook_active 0 / #endif` - recorded (this file is the
 /// Windows side; the non-WindowsNT value is what C gives a compile that omits the arm above).
 // C: #define w32_kbdhook_active 0

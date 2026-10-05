@@ -41,3 +41,34 @@
   -> `OK emacs/src/pgtkterm.h -> femacs/src/include/pgtkterm.rs` (no `- ` problem lines).
 - `CARGO_TARGET_DIR=/tmp/femacs-target-mir-pgtkterm cargo run -q -p xtask -- build-tu
   src/pgtkterm.c` -> `built src/pgtkterm.rs -> ../build/femacs/pgtkterm.o`.
+
+# ----------------------------------------------------------------------
+## Why the pgtk records are still not here (2026-10-05, the `docs/ports/image.md` pgtk row)
+
+`docs/ports/image.md`'s configuration sweep reads eight error sites in `src/image.rs` under
+`+ have_pgtk + have_imagemagick + use_cairo` and names them "the `include/pgtkterm.rs`
+placeholder gap": five `FRAME_DISPLAY_INFO` bodies and `pgtk_display_info` / `pgtk_bitmap_record`
+(plus the two `E0428`s from the typedefs this batch landed in `dispextern.rs`).  They are **not**
+closed here, and the reason is a measurement, not a decision to defer:
+
+```
+$ ls -d /opt/homebrew/include/gtk-3.0 /opt/homebrew/include/gtk-4.0
+ls: /opt/homebrew/include/gtk-3.0: No such file or directory
+ls: /opt/homebrew/include/gtk-4.0: No such file or directory
+$ pkg-config --exists gtk+-3.0 && echo present || echo absent
+absent
+```
+
+`pgtkterm.h`'s body is one `#ifdef HAVE_PGTK` and it includes `<gtk/gtk.h>` (`cairo` *is* present -
+`/opt/homebrew/include/cairo` - GTK is not), so no clang probe can read any of the five records and
+no `(unit, shift)`/offset could be written as a *reading*; that is the same machine limit
+`docs/ports/include-dispextern.md`'s 3.278 4 already records for `pgtk_bitmap_record`,
+`pgtk_device_t`, `pgtk_touch_point`, `pgtk_display_info` and `pgtk_output`.  Their pointees are
+GTK's own (`GdkSeat`, `GdkDevice`, `GdkEventSequence`, `GtkWidget`, …), which no mirror in the tree
+declares, so the records cannot even be typed from what the port has.
+
+What *is* owed and named for the PGTK round: the five records and their measurements, the
+`FRAME_DISPLAY_INFO` macro this header defines (pgtkterm.h 477, `FRAME_X_OUTPUT (f)->display_info`)
+and the `Display_Info` arm in `include/dispextern.rs` that waits on the record - the arm is
+*absent* there (not spelled with a stand-in), so a pgtk configuration fails on the missing record
+rather than on a wrong alias.

@@ -624,6 +624,142 @@ macro_rules! GLYPH_EQUAL_P {
   };
 }
 
+/* -------------------------------------------------------------------------------------------------
+   dispextern.h 113-198: the per-platform display types.  C's own `#include`s of the platform
+   `gui.h` headers (C 135/143/150/158/164) are carried here as `include!`s, because C reaches
+   three of the six `Emacs_Cursor`s, NS's `Window` and the two `Emacs_Pixmap`-based containers
+   through *this* header, not through the term header (a unit's `TERM_HEADER` include is
+   `frame.h` 31-33's, and it is the second path to the same mirrors).  Everything in the block
+   is gated with `have_window_system` on top of the platform's own feature, so no unit that sets
+   a platform feature without the window system reaches a record it may not have (P-87 3:
+   `xtask`'s `have_haiku` flip is exactly that shape).
+
+   The six `Display_Info` arms are C 115/136/145/152/159/165; each aliases the *term* mirror's
+   record (`xterm.rs` 355, `w32term.rs` 154, `nsterm.rs` 318, `haikuterm.rs` 89,
+   `androidterm.rs` 86), which C's own text reaches through `TERM_HEADER` - so the alias resolves
+   in a unit that has the term header, the same condition C has.  `pgtk_display_info` is the one
+   that does not land: `include/pgtkterm.rs` carries no record yet and no arm on this machine can
+   read it (no GTK headers - `docs/ports/include-dispextern.md`'s 3.278 4 defers the five pgtk
+   records with that measurement).
+   ------------------------------------------------------------------------------------------------- */
+
+// C: dispextern.h 135: `#include "w32gui.h"` is **not** carried here, although C has the line.
+// `w32gui.rs` is *inside* `xtask layout-check`'s compiled set (it is not one of the ten
+// platform-exclusive mirrors that probe skips), and the materializer's dedupe is by *file* with no
+// regard for the `#[cfg]` on the edge that first reaches it - so this line moved the file's one
+// inclusion into a `have_ntgui` arm, and `include/msdos.rs` 349-362 (`XMenuCreate` and its
+// neighbours, which spell `Display`/`Window` without a gate) lost the two names it was borrowing
+// from there: `error[E0425]: cannot find type `Display` in this scope` x6 + `Window` x1,
+// `error: layout probe failed to compile` (measured; at HEAD the same probe passes).  The edge
+// the W32 units use is C's own from the term header - `include/w32term.rs` 49 carries
+// `w32term.h` 21's `#include "w32gui.h"` - so nothing is lost by leaving this one out.
+/// C: dispextern.h 143: `#include "nsgui.h"`
+#[cfg (all (feature = "have_window_system", feature = "have_ns"))]
+include!("nsgui.rs");
+/// C: dispextern.h 150: `#include "pgtkgui.h"`
+#[cfg (all (feature = "have_window_system", feature = "have_pgtk"))]
+include!("pgtkgui.rs");
+/// C: dispextern.h 158: `#include "haikugui.h"`
+#[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+include!("haikugui.rs");
+// C: dispextern.h 164: `#include "androidgui.h"` is **not** carried here, although C has the line.
+// `androidgui.rs` is the one gui mirror with `include!`s of its own (`stdint.in.rs`,
+// `lib/include/wchar.rs`), and `xtask`'s materializer dedupes nested `include!`s by *file*, with
+// no regard for the `#[cfg]` on the edge that reaches them (measured: `build-tu src/sysdep.c`
+// after the first version of this block read `// [xtask dedupe] …/lib/include/wchar.rs already
+// included` at the top level, and the only `wchar.rs` copy left in the root sat inside this
+// `have_android` arm - so `sysdep.rs` lost `wint_t` and eight `E0425`s appeared; `checks
+// 83 unit(s), 1 failure(s)`).  The Android units do not need the edge: `androidterm.h` 23
+// includes `androidgui.h` for them (`include/androidterm.rs` 41/44 carries it), which is how
+// `docs/ports/include-androidgui.md`'s 3.370 ruling already resolves the `Emacs_Cursor` pair.
+// The edge can land when the materializer follows a *live* path only.
+
+/// C: dispextern.h 115: `typedef struct x_display_info Display_Info;`
+#[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
+pub type Display_Info = x_display_info;
+/// C: dispextern.h 136: `typedef struct w32_display_info Display_Info;`
+#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+pub type Display_Info = w32_display_info;
+/// C: dispextern.h 145: `typedef struct ns_display_info Display_Info;`
+#[cfg (all (feature = "have_window_system", feature = "have_ns"))]
+pub type Display_Info = ns_display_info;
+/// C: dispextern.h 159: `typedef struct haiku_display_info Display_Info;`
+#[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+pub type Display_Info = haiku_display_info;
+/// C: dispextern.h 165: `typedef struct android_display_info Display_Info;`
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+pub type Display_Info = android_display_info;
+// C 152: `typedef struct pgtk_display_info Display_Info;` - deferred with the pgtk records
+// (`include/pgtkterm.rs` has no `pgtk_display_info` and no arm can read one here).
+// C 116-118's X11 arm (`typedef XImage *Emacs_Pix_Container;`), C 137-139's `HAVE_NTGUI` arm
+// (`XImage`/`HDC`) are deferred with `include/xlib.rs`'s `XImage`/`Cursor` (the x+cairo flip's
+// 230-error reading is that gap) and with the unmeasured Windows arm; both C texts are quoted in
+// the ledger's Evidence rather than guessed at here.
+
+/* C 122-131: the `USE_CAIRO` arm - "Minimal version of XImage".  C's record is anonymous and
+   the port names it after the typedef's object (PORTING.md 1.3).  Measured with this machine's
+   clang against `dispextern.h` 122-131 (the record's own text): sizeof 24, align 8, `data` at
+   8, `bytes_per_line` 16, `bits_per_pixel` 20 - the same reading `docs/ports/image.md` carries,
+   which is why the four assertions below are in the `use_cairo` arm.  */
+/// C: dispextern.h 122-131: `typedef struct { int width, height; char *data; int bytes_per_line; int bits_per_pixel; } *Emacs_Pix_Container;`
+#[cfg (feature = "use_cairo")]
+#[repr(C)]
+pub struct emacs_pix_container
+{
+  pub width: c_int,                                   // C 126
+  pub height: c_int,
+  pub data: *mut c_char,                              // C 127
+  pub bytes_per_line: c_int,                          // C 128
+  pub bits_per_pixel: c_int,                          // C 129
+}
+#[cfg (feature = "use_cairo")]
+const _: () = assert! (core::mem::size_of::<emacs_pix_container> () == 24);
+#[cfg (feature = "use_cairo")]
+const _: () = assert! (core::mem::offset_of! (emacs_pix_container, data) == 8);
+#[cfg (feature = "use_cairo")]
+const _: () = assert! (core::mem::offset_of! (emacs_pix_container, bytes_per_line) == 16);
+#[cfg (feature = "use_cairo")]
+const _: () = assert! (core::mem::offset_of! (emacs_pix_container, bits_per_pixel) == 20);
+/// C: dispextern.h 130: `} *Emacs_Pix_Container;`
+#[cfg (feature = "use_cairo")]
+pub type Emacs_Pix_Container = *mut emacs_pix_container;
+/// C: dispextern.h 131: `typedef Emacs_Pix_Container Emacs_Pixmap;`
+#[cfg (all (feature = "use_cairo", not (feature = "have_ns"), not (feature = "have_haiku")))]
+pub type Emacs_Pixmap = Emacs_Pix_Container;
+
+/// C: dispextern.h 146: `typedef Emacs_Pixmap Emacs_Pix_Container;` (NS's `Emacs_Pixmap` is
+/// `nsgui.h` 58's)
+#[cfg (all (feature = "have_window_system", feature = "have_ns"))]
+pub type Emacs_Pix_Container = Emacs_Pixmap;
+/// C: dispextern.h 160: `typedef Emacs_Pixmap Emacs_Pix_Container;` (`haikugui.h` 58)
+#[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+pub type Emacs_Pix_Container = Emacs_Pixmap;
+/// C: dispextern.h 166: `typedef struct android_image *Emacs_Pix_Container;` (`androidgui.h` 883)
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+pub type Emacs_Pix_Container = *mut android_image;
+
+/* C 182-198: the `HAVE_WINDOW_SYSTEM` block whose `# ifndef PIX_CONTAINER_TO_CONTEXT` gives the
+   default pair.  `PIX_CONTAINER_TO_CONTEXT` is a macro C's platform headers override (C 139 for
+   w32); the port spells the default as a macro over the container, and the arms that override it
+   (w32's `HDC`) are deferred with the Windows arm.  */
+// C 184-190's `WINDOW_HANDLE_UINTPTR` default (`((uintptr_t) {(h)})`) is deliberately **not**
+// spelled here: it is a macro, and the platform mirrors already own the name with the same cast
+// (`haikugui.rs` 53, `pgtkgui.rs` 116), so a second `macro_rules!` of one name is `E0659`
+// ambiguity in `layout-check`'s single crate - the same reason this file gives for
+// `NativeRectangle` above.  The `#ifndef` default exists in C for platforms whose header does
+// not define it, and none of the five the port has needs it.
+/// C: dispextern.h 196: `typedef Emacs_Pix_Container Emacs_Pix_Context;`
+#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui"),
+           not (feature = "have_pgtk")))]
+pub type Emacs_Pix_Context = Emacs_Pix_Container;
+/// C: dispextern.h 197: `#  define PIX_CONTAINER_TO_CONTEXT(c) (c)`
+#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui"),
+           not (feature = "have_pgtk")))]
+macro_rules! PIX_CONTAINER_TO_CONTEXT {
+  ($c:expr) => { $c };
+}
+
+
 /* Are character codes, faces, padding_ps of glyphs *X and *Y equal?  */
 
 macro_rules! GLYPH_CHAR_AND_FACE_EQUAL_P {
@@ -3705,6 +3841,14 @@ pub mod dispextern_late_decls {
     /// C: dispextern.h 3914: `void blank_row (struct window *, struct glyph_row *, int);`
     /// (dispnew.c defines it; the same `*mut c_void` spelling and reason as above).
     pub fn blank_row (w: *mut c_void, row: *mut glyph_row, vpos: c_int);
+    // C: dispextern.h 3993: `extern Display_Info *check_x_display_info (Lisp_Object);` is **not**
+    // declared here: `femacs/src/frame.rs` 6155-6156 already declares it at its crate root (the
+    // unit's own use-site copy, reached through the `HAVE_WINDOW_SYSTEM` arm of
+    // `gui_display_get_resource`), and placing it in this mirror's glob-imported
+    // `dispextern_late_decls` makes `tools/check-mirror-dupes.py` report the pair - measured:
+    // `FAIL femacs/src/frame.rs: check_x_display_info is already declared by
+    // femacs/src/include/dispextern.rs (in the include graph)`.  It lands in the commit that
+    // deletes that copy (with its ratchet row); `docs/ports/w32fns.md` owed item 9 stays owed.
   }
 }
 use dispextern_late_decls::*;

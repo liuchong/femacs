@@ -187,9 +187,14 @@ macro_rules! STORE_NATIVE_RECT {
 
 /* src/w32gui.h 38-44: "Windows equivalent of XImage",
    `typedef struct _XImage { unsigned char *data; BITMAPINFO info; } XImage;`.
-   Dead platform text on the frozen target (no `_WIN32`), carried under `windows` (P-51/3.9);
-   `BITMAPINFO` is C's spelling, which nothing compiles here.  */
-#[cfg (feature = "windows")]
+   Dead platform text on the frozen target, carried under the feature that makes the file
+   reachable at all: its only two includers are `dispextern.h` 135 and `w32term.h` 21, and both
+   sit inside a `HAVE_NTGUI` guard, so `have_ntgui` is the gate - the `windows` feature it used
+   to carry (`WINDOWS`, an unrelated macro) answered a question this header never asks, and the
+   Windows GUI build is the one configuration that needs the record (docs/ports/w32fns.md's
+   consumption of `XImage` is what reads it).  `BITMAPINFO` is C's spelling, which nothing
+   compiles here.  */
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 pub struct _XImage
 {
@@ -198,5 +203,5 @@ pub struct _XImage
   /* BITMAPINFO info;  */
   pub info: *mut c_void,
 }
-#[cfg (feature = "windows")]
+#[cfg (feature = "have_ntgui")]
 pub type XImage = _XImage;

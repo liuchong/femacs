@@ -457,3 +457,40 @@ through it, for the platform mirrors `androidterm.rs`, `haikuterm.rs`, `nsterm.r
 (`spikes/haiku_inc_probe.rs` is the one spike that includes `window.rs` directly).  They were
 checked statically (no shared top-level name with `buffer.rs`/`itree.rs`) and are **not**
 claimed green.
+
+# ----------------------------------------------------------------------
+## `WINDOW_BUFFER_LOCAL_VALUE`'s parameter order (2026-10-05)
+
+**C is `(V, W)`, value first.**  window.h 631-635:
+
+```c
+/* Local value of variable V in window W's buffer.  Nil if W has no
+   buffer.  */
+#define WINDOW_BUFFER_LOCAL_VALUE(V, W)		\
+  (BUFFERP ((W)->contents)			\
+   ? buffer_local_value(V, (W)->contents)	\
+   : Qnil)
+```
+
+The mirror's `#[inline(always)] fn` had the two the other way round (`(w, v)`) since it was
+written - a silent divergence no gate could see, because both parameters are one word wide and the
+body passed them to `buffer_local_value` in C's order, so the function *compiled* and answered
+correctly only for callers that also wrote them backwards.  The signature is now
+`(v: Lisp_Object, w: *mut window)`, and the function reads like C's macro at a call site.
+
+**Handed over: three call sites in another lane's in-flight unit.**  `src/haikuterm.rs` 1423-1441
+calls it as `WINDOW_BUFFER_LOCAL_VALUE ((*s).w, <value>)` - the old order - and that unit's own
+comment at 1423-1424 already records the discrepancy.  It is **not** touched here (the file is
+another lane's, this batch is the mirrors'), so the three calls have to swap their arguments in the
+commit that flips `have_haiku`; the mirror's ledger names them and nothing in the frozen
+configuration can see them (the calls sit inside `#[cfg (feature = "have_haiku")]`).
+
+**Evidence.**
+
+- `python3 tools/extract-abi.py --check emacs/src/window.h femacs/src/include/window.rs` -> `OK
+  emacs/src/window.h -> femacs/src/include/window.rs`.
+- `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
+  0 failure(s)`.
+- Frozen includers (`build-tu`): `src/window.c`, `src/xdisp.c`, `src/editfns.c`,
+  `src/dispnew.c` -> `built …` (the frozen build never calls this function; `src/haikuterm.rs` is
+  the only caller in the tree).

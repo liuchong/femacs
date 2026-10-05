@@ -6962,3 +6962,41 @@
      ⑸ `frame.rs` 的 `FRAME_IMAGE_CACHE!` 返回 `*mut c_void`、消费方要 `*mut image_cache`。
   ⑦ **未声称**：Windows/Haiku/GTK/Android 臂**仍 text-only**；预检不是行为验证（loader/DEFUN/`free_image` 从未运行）；
      `--check`/扫描/预检都不是语义证明；probe 的 NS 读数**停在名字解析阶段**、没到本单元类型检查。
+
+- **3.408 镜像轮：把四件 P-86 文件翻臂卡住的那批缺口修掉（2026-10-05）**：
+  ① **改动（6 个镜像 + 7 份 `include-*.md` 台账，1350 insertions）**：
+     ⑴ **`frame.rs`**：`struct frame` 的 flag run 现在按**实测的四臂**落（frozen / A=`not ext_tool_bar && not ext_menu_bar`（x11/pgtk/android/w32）/
+     B=`not ext_tool_bar && ext_menu_bar`（haiku、USE_X_TOOLKIT）/ C=`ext_tool_bar`（NS/GTK）），每个 flag 同时给 `FRAME_*_UNIT` 与 `FRAME_*_SHIFT`，
+     并新增 `frame_word`/`frame_flag`/`frame_set_flag`/`frame_field` 四个读取器（旧的 `frame_bit1` 只读 `bits1`，在 B 臂会把 `no_special_glyphs`
+     读成 `iconified`，已删）；另落 `enum fullscreen_type` + 5 成员、`FRAME_W32_P` 的 `HAVE_NTGUI` 对臂、`MOUSE_HL_INFO` 三臂（含 Android 臂）。
+     **编号不是推的**：`spikes/gated-layout-probe.py --bits 'struct frame' frame.h` 新读了 haiku（sizeof 632）与 android（648）两臂，
+     android 的 48 行 flag 与 x11 **逐位相同**（生成时逐位断言）。**`have_ntgui` 是拒编**（frame.h 471 的 `#ifndef HAVE_NTGUI` 把 `override_redirect` 从 run 里拿掉，
+     本机无 `<windows.h>` 量不了）⇒ A 臂带 `not (feature = "have_ntgui")` + 一条 `compile_error!` 说明该读哪把探针。
+     ⑵ **`dispextern.rs`**：window-system 半（三条平台 `gui.h` 边 gated、六份 `Display_Info` 落 5 份、`USE_CAIRO` 的匿名容器带 **clang 实测**
+     sizeof 24 / data 8 / bytes_per_line 16 / bits_per_pixel 20 四条断言、NS/haiku/android 三份 `Emacs_Pix_Container`、默认 `Emacs_Pix_Context`）。
+     ⑶ **`xterm.rs`**：`x_bitmap_stipple` 声明搬进 `xterm_bitmap_decls` 模块（glob 导入被 crate-root 定义遮蔽 ⇒ x+cairo 臂的 `E0428` 消失，且不需要 ratchet 行）。
+     ⑷ **`window.rs`**：`WINDOW_BUFFER_LOCAL_VALUE` 形参序改回 C 的 `(V, W)`（C window.h 631-635 实读）。
+     ⑸ **`w32term.rs`**：`FRAME_DISPLAY_INFO` 宏体从 `{ (void) ($f); … }`（**不是合法 Rust**，消费者全挂）改成 `{ let _ = ($f); … }`；
+     `w32_kbdhook_active` 从 `pub const` 改成**零元 `macro_rules!`**（C 是 `#define`）。
+     ⑹ **`w32gui.rs`**：`XImage` 的门由 `windows` 改成 `have_ntgui`（C 依据：该头无 `#if`，两个 includer 都在 `HAVE_NTGUI` 里）。
+     ⑺ **cairo 的判断**：`<cairo.h>` 是参照树里没有的外部头 ⇒ 按 **P-88** 声明留在**单元内**，**不新建** `include/cairo.h`（判断与依据写进 `include-xterm.md`）。
+     ⑻ **`pgtkterm.rs` 本轮不能修**（实测：本机无 GTK 头、`pkg-config --exists gtk+-3.0` 为 absent ⇒ PGTK 臂没有任何一臂能被 clang 读到），
+     5 个记录留给 PGTK round。
+  ② **读数**：`check-mirror-dupes` **18/18/0 未动**；7 个镜像的 `extract-abi --check` **7/7 OK**；**`xtask layout-check` → `layout-check passed`**
+     （它就是抓出 `w32gui.rs` 那条边的门）；`check-citations` 675/0 drift/0 stale（`citations-allowlist.tsv` 的 `dispextern.rs:587` 行号刻意未动）；
+     `check-declarations` 13/0/0；**P-87 全量扫描两腿 `83/0` + `83/0`**（中途红过一次 `src/sysdep.c`，是 lane 自己引入并修掉的，见 ③）。
+  ③ **翻臂前后对比（都是"名字解析级"读数，不是类型检查级）**：`image.rs`+NS：**55 → 11**（`frame.rs` 45 → 0、18 条 `Emacs_Cursor` 消失）；
+     `image.rs`+x+cairo：233 → 230（`x_bitmap_stipple` 的 E0428 消失，余为 `xlib.rs` 缺口）；`image.rs`+haiku：29 → 6；
+     `image.rs`+android：28 → 6；`image.rs`+pgtk：35 → 12；`haikuterm.rs` 臂触达：**78 → 42**（台账点名的 `no field tooltip`/`FRAME_TOOLTIP_P`/
+     `FRAME_AUTO_*_SHIFT`/`FRAME_HAS_VERTICAL_SCROLL_BARS*`/`fontset_from_font` **全部归零**）；`androidterm.rs` 那条带 `have_android` 而不带
+     `have_window_system`，故不受本轮编号影响（17 未动），其 blocker 在 `include/androidterm.rs` 的 `bits` 折叠。
+     **口径必须一起读**：后四个配置现在**在名字解析阶段就停**（`E0428`），所以 `font.rs` 的 8 条 `E0080` 与 haiku/android 扫描里那些**单元文本**缺陷
+     （`!(STRINGP(…) != 0)`、`c_uint` 形参、`foreground_pixel & 0xffffffff`）是**被挡在后面，不是被修好**。
+  ④ **新增规则 P-89（来自本轮两次事故）**：`xtask` 的 `materialize` 对嵌套 `include!` **按文件去重、且不看边上的 `#[cfg]`** ⇒
+     任何"共享镜像里带门的 include 边"都会把目标文件**唯一的一次包含**挪进死臂（实测两起：`sysdep.rs`×`wchar.rs`、`layout-check`×`lib/msdos.rs`）。
+     规则写进 PORTING.md：加带门 include 边前先确认还有无门路径；被咬了就在镜像里绕开并记账；根因在 xtask，是独立工作。
+  ⑤ **交接给集成者（下一条提交）**：**单元侧副本必须与镜像同批删除**（P-26 的搬运规则；本提交因 lane 不许碰单元而欠着）——
+     `src/image.rs` 155-180（六 `Display_Info` 臂）+ 211-245（容器/上下文对）、`src/frame.rs` 4755-4765 与 `src/w32fns.rs` 1184-1192
+     （`fullscreen_type` + `FULLSCREEN_*`）；另 `src/haikuterm.rs` 1423-1441 三处 `WINDOW_BUFFER_LOCAL_VALUE` 调用序与 476 的 `(*f).tooltip`
+     要按新镜像对齐。`check_x_display_info` **镜像未落**（加了会让 `check-mirror-dupes` 报与 `frame.rs` 的重复声明，而 ratchet 行在 `docs/baseline/**`），
+     故 `src/frame.rs` 6155-6156 的副本**保留**。

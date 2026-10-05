@@ -395,8 +395,16 @@ pub fn WINDOW_PSEUDO_P (w: *mut window) -> bool
 pub fn WINDOW_BUFFER (w: *mut window) -> Lisp_Object
 { if WINDOW_LEAF_P (w) { unsafe { (*w).contents } } else { lisp_h_Qnil () } }
 
+// window.h 633: `#define WINDOW_BUFFER_LOCAL_VALUE(V, W) (BUFFERP ((W)->contents) ?
+// buffer_local_value(V, (W)->contents) : Qnil)` - **C's parameter order is `(V, W)`**, value
+// first, window second, and the function takes it in that order so a call site reads like C's.
+// The first version had it the other way round (`(w, v)`), which is the kind of silent
+// divergence a mirror must not keep: every caller would pass the two where the other expected
+// them.  `src/haikuterm.rs` 1423-1441's three calls carry that shape today and are the
+// integrator's to align (that unit is another lane's in-flight file; the ledger names them).
+/// C: #define WINDOW_BUFFER_LOCAL_VALUE(V, W) (BUFFERP ((W)->contents) ? buffer_local_value(V, (W)->contents) : Qnil)
 #[inline(always)]
-pub fn WINDOW_BUFFER_LOCAL_VALUE (w: *mut window, v: Lisp_Object) -> Lisp_Object
+pub fn WINDOW_BUFFER_LOCAL_VALUE (v: Lisp_Object, w: *mut window) -> Lisp_Object
 {
   if BUFFERP (unsafe { (*w).contents })
     { unsafe { buffer_local_value (v, (*w).contents) } }

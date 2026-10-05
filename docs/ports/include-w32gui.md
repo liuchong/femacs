@@ -152,3 +152,19 @@ position rather than by name - corrected here).
     layout-check passed (see build/femacs/layout_asserts.rs)
 
 (**before** this pass: 1 unchecked box(es); **after**: 0)
+
+# ----------------------------------------------------------------------
+## `XImage`'s gate: `windows` becomes `have_ntgui` (2026-10-05, `docs/ports/w32fns.md` owed 8's neighbour)
+
+C 38-44's record was carried under `#[cfg (feature = "windows")]` - the `WINDOWS` macro, a name
+this header never asks about.  The file has no `#if` of its own, and its only two includers are
+`dispextern.h` 135 and `w32term.h` 21, both inside a `HAVE_NTGUI` guard; the item is therefore
+reachable **only** in a Windows GUI build, and that is the gate it now carries.  Consequence,
+stated: under the frozen configuration nothing changes (the item is still compiled out), and the
+`have_ntgui` arm is the one place a consumer can read it - `docs/ports/w32fns.md`'s
+`w32_create_pixmap_from_bitmap_data` call chain is that consumer.
+
+**Evidence.** `python3 tools/extract-abi.py --check emacs/src/w32gui.h
+femacs/src/include/w32gui.rs` -> `OK emacs/src/w32gui.h -> femacs/src/include/w32gui.rs`;
+`python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
+0 failure(s)`.

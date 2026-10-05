@@ -267,3 +267,33 @@
   evidence for this mirror is `layout-check`.
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failures.
+
+# ----------------------------------------------------------------------
+## Two spellings that could not compile at all (2026-10-05, `docs/ports/w32fns.md` owed 6 and 7)
+
+**1. `FRAME_DISPLAY_INFO`'s body (C 472).**  C's `((void) (f), (&one_w32_display_info))` had been
+transcribed as `{ (void) ($f); (&raw mut one_w32_display_info) }`, and `(void) ($f)` is not Rust:
+the macro was a *syntax* error at every consumer, so three of `docs/ports/w32fns.md`'s arm-compile
+errors (`x = FRAME_DISPLAY_INFO (f)->…`) were this line rather than the unit's text.  It is now
+`{ let _ = ($f); (&raw mut one_w32_display_info) }` - the `let _ =` shape the frozen
+`include/frame.rs` accessors use for C's `((void) (f), …)` arms, which still evaluates the
+argument.
+
+**2. `w32_kbdhook_active` (C 809).**  C: `#define w32_kbdhook_active (os_subtype !=
+OS_SUBTYPE_9X)` - a macro over a **mutable global** (`w32common.h` 48's `extern int os_subtype`),
+read as a value at its call sites (`w32inevt.c` 153/157/194/211/278, `w32fns.c` 3080/3088).  The
+mirror had a `pub const` whose value read that global: `E0080`/`E0133` at the arm compile (the
+`w32fns.md` reading), because a `const` may not evaluate a mutable static.  It is now a nullary
+`macro_rules!` like C's `#define` (body `(unsafe { os_subtype } != OS_SUBTYPE_9X)`), so the name
+answers per call site, exactly as C's does; `os_subtype` is the same shield's crate-root object
+(`include/w32common.rs` 95) that the unit reaches through C 26's include.  C 811-812's `#else` arm
+(`#define w32_kbdhook_active 0`) stays recorded, as before.
+
+**Evidence.**
+
+- `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK
+  emacs/src/w32term.h -> femacs/src/include/w32term.rs`.
+- `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures`.
+- No arm compile is possible here (no Windows toolchain); the two fixes are text-level and their
+  reading is `docs/ports/w32fns.md`'s next arm run.

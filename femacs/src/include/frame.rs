@@ -43,6 +43,30 @@ pub union output_data
   pub android: *mut c_void,    // C: `struct android_output *android;`
 }
 
+/* frame.h 47-59: `enum fullscreen_type`, C's other `HAVE_WINDOW_SYSTEM` enum (the `#ifdef` at
+   C 47 opens the region both this and `z_group` sit in).  C's `FULLSCREEN_WAIT` is the
+   `HAVE_NTGUI` member (C 56-58) and carries that gate; `want_fullscreen` is the four-bit
+   `ENUM_BF` field these name (the flag table below).  `src/frame.rs` 4755-4765 and
+   `src/w32fns.rs` 1184-1192 each carry a use-site copy of this enum today (P-72 rule 4); both
+   must be deleted in the commit that flips their unit - `E0428` otherwise.  C's enum ABI is
+   `c_int` (PORTING.md 1.3).  */
+/// C: enum fullscreen_type { FULLSCREEN_NONE, FULLSCREEN_WIDTH = 0x1, ... };
+#[cfg (feature = "have_window_system")]
+pub type fullscreen_type = c_int;
+#[cfg (feature = "have_window_system")]
+pub const FULLSCREEN_NONE: fullscreen_type = 0;                 // C 51
+#[cfg (feature = "have_window_system")]
+pub const FULLSCREEN_WIDTH: fullscreen_type = 0x1;              // C 52
+#[cfg (feature = "have_window_system")]
+pub const FULLSCREEN_HEIGHT: fullscreen_type = 0x2;             // C 53
+#[cfg (feature = "have_window_system")]
+pub const FULLSCREEN_BOTH: fullscreen_type = 0x3;               // C 54
+#[cfg (feature = "have_window_system")]
+pub const FULLSCREEN_MAXIMIZED: fullscreen_type = 0x4;          // C 55
+/// C: #ifdef HAVE_NTGUI / FULLSCREEN_WAIT = 0x8 / #endif
+#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+pub const FULLSCREEN_WAIT: fullscreen_type = 0x8;               // C 57
+
 /* frame.h 69-76: `enum ns_appearance_type`, inside C's `#ifdef HAVE_WINDOW_SYSTEM` and its own
    `#ifdef NS_IMPL_COCOA`.  */
 #[cfg (feature = "ns_impl_cocoa")]
@@ -146,11 +170,11 @@ pub struct frame
   pub desired_tab_bar_string: Lisp_Object,                 // 257
   #[cfg (feature = "have_window_system")]
   pub current_tab_bar_string: Lisp_Object,                 // 258
-  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
   pub tool_bar_window: Lisp_Object,                        // 263
-  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
   pub desired_tool_bar_string: Lisp_Object,                // 266
-  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
   pub current_tool_bar_string: Lisp_Object,                // 267
   pub tool_bar_position: Lisp_Object,
   #[cfg (any (feature = "have_xft", feature = "have_freetype"))]
@@ -162,7 +186,7 @@ pub struct frame
   pub image_cache: *mut c_void,   /// C: `struct image_cache *image_cache` (frame.h 290-292)
   pub id: EMACS_UINT,
   pub last_tab_bar_item: c_int,
-  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
   pub last_tool_bar_item: c_int,                           // 303
   pub menu_bar_items_used: c_int,
   #[cfg (any (feature = "use_x_toolkit", feature = "have_ntgui"))]
@@ -253,97 +277,486 @@ pub struct frame
   pub z_order: c_int,
 }
 
-// The flag members of those two units, in C's declaration order (frame.h 300-341 and the
-// window-system flags C inserts *inside* the run).  `output_method` is the four-bit
-// `ENUM_BF (output_method)` field in the middle of unit 1.
+// frame.h 327-541: the flag run C packs into four-byte units, in C's declaration order (the
+// `bits1`/`bits2` fields above are its two units).  C's compiler inserts a window system's own
+// flags *into* the run and pushes an `ENUM_BF` that does not fit in what is left of a unit to
+// the next one, so the numbering is *per configuration*; `want_fullscreen` is the case that
+// proves it (`316:0-3` under X11, one past `tooltip` at `315:6`, while the frozen arm has no
+// such field at all).
 //
-// The numbering is *per configuration*: C's compiler packs the flags into four-byte units, a
-// window system inserts its own flags, and an `ENUM_BF` that does not fit in what is left of a
-// unit is pushed to the next one (measured: `want_fullscreen` sits at 316:0-3 under X11, one bit
-// past `tooltip` at 315:6).  The readings for both window-system arms are in
-// `docs/baseline/frame-layout.tsv`, written by `spikes/gated-layout-probe.py 'struct frame'
-// frame.h` (P-82) - `frozen` 568, `x11` 648, `ns_cocoa` 608, every member's byte:bits.
+// **Every number below is a reading, not a derivation.**  `spikes/gated-layout-probe.py
+// --bits 'struct frame' frame.h` (PORTING.md P-82) asks the C compiler for each arm's packing;
+// the frozen, `x11` and `ns_cocoa` arms are in `docs/baseline/frame-bits.tsv` (status 3.273)
+// and this round read the two arms that file does not have - `-DHAVE_WINDOW_SYSTEM=1
+// -DHAVE_HAIKU=1` (`632` bytes) and `-DHAVE_WINDOW_SYSTEM=1 -DHAVE_ANDROID=1` (`648`, the `x11`
+// arm's shape bit for bit) - with both readings and the command in
+// docs/ports/include-frame.md's Evidence.
 //
-// The constants below are the *frozen* arm's numbers, and they are gated with it: a
-// window-system configuration has no numbering here yet, so it fails to compile at the first
-// accessor instead of silently reading the wrong bit.  Writing the measured arms out (or
-// deriving them from C's order and checking the derivation against the table) is the next step;
-// the numbers are a table, not a guess.
+// C's run therefore has three window-system shapes, and the `#[cfg]` below names each one:
+//
+//   A  `not (have_ext_tool_bar) && not (have_ext_menu_bar)`  x11, pgtk, android, w32 (measured)
+//   B  `not (have_ext_tool_bar) && have_ext_menu_bar`        haiku, USE_X_TOOLKIT (measured)
+//   C  `have_ext_tool_bar`                                   NS and GTK; C's own lisp.h
+//                                                            3931-3939 defines this one only
+//                                                            for `USE_GTK`/`HAVE_NS`, both of
+//                                                            which define the menu bar too
+//
+// The two `HAVE_EXT_*_BAR` names are C's `lisp.h` 3931-3939 switches: the run's shortest arm is
+// the one with both (`ns_cocoa`), the longest the one with the menu bar alone (haiku).  `A`, `B`
+// and `C` are C's three *shapes*; a fourth combination (`have_ext_tool_bar` without the menu
+// bar) is not a configuration lisp.h can emit, and the `compile_error!` below says so rather
+// than letting a hand-written `--cfg` silently take an arm.
+//
+// Each flag gets a `_SHIFT` (the bit within its unit) and a `_UNIT` (`1` for `bits1`, `2` for
+// `bits2`).  The unit is data because five flags *move* between the arms - `no_special_glyphs`,
+// `can_set_window_size`, `after_make_frame`, `tab_bar_redisplayed` and `tab_bar_resized` are
+// `1:27-31` frozen and `2:12-16` under every window system (measured) - and because
+// `want_fullscreen` onward start in unit 2 once the run crosses the four-byte boundary
+// (measured: the rest of unit 1's last byte is padding).  The mirror's own readers never pick a
+// unit by hand: `frame_flag (f, FRAME_X_UNIT, FRAME_X_SHIFT)` reads whichever unit the arm
+// gives.  Every other flag keeps one unit in every arm, which is why its `_UNIT` is one line.
+
+#[cfg (all (feature = "have_ext_tool_bar", not (feature = "have_ext_menu_bar")))]
+compile_error! ("HAVE_EXT_TOOL_BAR without HAVE_EXT_MENU_BAR is not a configuration C's lisp.h 3931-3939 can emit: `USE_GTK` and `HAVE_NS` define both.  The flag run's arm C would have no numbering here (see the note above), so this build is refused instead of taking another arm's bits.");
+
+// The Windows GUI arm is the one shape of the run this machine cannot read: frame.h 471's
+// `# ifndef HAVE_NTGUI` takes `override_redirect` out of the run, so every bit after it moves one
+// place, and `HAVE_NTGUI` is not `HAVE_EXT_MENU_BAR`'s arm A.  Measuring it needs `<windows.h>`
+// and this machine has no Windows toolchain (`x86_64-w64-mingw32-gcc` is absent; the `w32fns.md`
+// ledger's item 10 records the same absence for its records).  Refused rather than guessed: the
+// arm's numbering has to come from a clang probe with that SDK, exactly as the other three did.
+#[cfg (feature = "have_ntgui")]
+compile_error! ("the HAVE_NTGUI arm of `struct frame`'s flag run is unmeasured on this machine: frame.h 471's `# ifndef HAVE_NTGUI` removes `override_redirect`, so it is not arm A - a Windows/mingw clang probe has to measure it (see docs/ports/include-frame.md's Evidence and the w32fns.md owed list).");
+
+
+// The flag run, C's declaration order.  The comment on each line is the measured `unit:shift`
+// of every arm that has the field (`/N` marks a multi-bit field's width).
+// frame.h 331: `bool_bf glyphs_initialized_p : 1;`  - frozen 1:0; A 1:0; B 1:0; C 1:0 (measured)
+pub const FRAME_GLYPHS_INITIALIZED_P_SHIFT: u32 = 0;   // every arm
+pub const FRAME_GLYPHS_INITIALIZED_P_UNIT: u32 = 1;
+
+// frame.h 335: `bool_bf resized_p : 1;`  - frozen 1:1; A 1:1; B 1:1; C 1:1 (measured)
+pub const FRAME_RESIZED_P_SHIFT: u32 = 1;   // every arm
+pub const FRAME_RESIZED_P_UNIT: u32 = 1;
+
+// frame.h 340: `bool_bf default_face_done_p : 1;`  - frozen 1:2; A 1:2; B 1:2; C 1:2 (measured)
+pub const FRAME_DEFAULT_FACE_DONE_P_SHIFT: u32 = 2;   // every arm
+pub const FRAME_DEFAULT_FACE_DONE_P_UNIT: u32 = 1;
+
+// frame.h 344: `bool_bf already_hscrolled_p : 1;`  - frozen 1:3; A 1:3; B 1:3; C 1:3 (measured)
+pub const FRAME_ALREADY_HSCROLLED_P_SHIFT: u32 = 3;   // every arm
+pub const FRAME_ALREADY_HSCROLLED_P_UNIT: u32 = 1;
+
+// frame.h 347: `bool_bf updated_p : 1;`  - frozen 1:4; A 1:4; B 1:4; C 1:4 (measured)
+pub const FRAME_UPDATED_P_SHIFT: u32 = 4;   // every arm
+pub const FRAME_UPDATED_P_UNIT: u32 = 1;
+
+// frame.h 352: `bool_bf minimize_tab_bar_window_p : 1;`  - A 1:5; B 1:5; C 1:5 (measured)
+#[cfg (feature = "have_window_system")]
+pub const FRAME_MINIMIZE_TAB_BAR_WINDOW_P_SHIFT: u32 = 5;   // A, B and C: one number
+#[cfg (feature = "have_window_system")]
+pub const FRAME_MINIMIZE_TAB_BAR_WINDOW_P_UNIT: u32 = 1;
+
+// frame.h 358: `bool_bf minimize_tool_bar_window_p : 1;`  - A 1:6; B 1:6 (measured)
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_MINIMIZE_TOOL_BAR_WINDOW_P_SHIFT: u32 = 6;   // A and B (C has no such bit)
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_MINIMIZE_TOOL_BAR_WINDOW_P_UNIT: u32 = 1;
+
+// frame.h 362: `bool_bf tool_bar_wraps_p : 1;`  - A 1:7; B 1:7 (measured)
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_TOOL_BAR_WRAPS_P_SHIFT: u32 = 7;   // A and B (C has no such bit)
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_TOOL_BAR_WRAPS_P_UNIT: u32 = 1;
+
+// frame.h 367: `bool_bf external_tool_bar : 1;`  - C 1:6 (measured)
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_EXTERNAL_TOOL_BAR_FLAG_SHIFT: u32 = 6;   // C: NS/GTK
+#[cfg (feature = "have_window_system")]
+pub const FRAME_EXTERNAL_TOOL_BAR_FLAG_UNIT: u32 = 1;
+
+// frame.h 372: `bool_bf fonts_changed : 1;`  - frozen 1:5; A 1:8; B 1:8; C 1:7 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_GLYPHS_INITIALIZED_P_SHIFT: u32 = 0;
+pub const FRAME_FONTS_CHANGED_SHIFT: u32 = 5;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_FONTS_CHANGED_SHIFT: u32 = 8;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_FONTS_CHANGED_SHIFT: u32 = 8;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_FONTS_CHANGED_SHIFT: u32 = 7;   // C: NS/GTK
+pub const FRAME_FONTS_CHANGED_UNIT: u32 = 1;
+
+// frame.h 375: `bool_bf cursor_type_changed : 1;`  - frozen 1:6; A 1:9; B 1:9; C 1:8 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_RESIZED_P_SHIFT: u32 = 1;
+pub const FRAME_CURSOR_TYPE_CHANGED_SHIFT: u32 = 6;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_CURSOR_TYPE_CHANGED_SHIFT: u32 = 9;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_CURSOR_TYPE_CHANGED_SHIFT: u32 = 9;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_CURSOR_TYPE_CHANGED_SHIFT: u32 = 8;   // C: NS/GTK
+pub const FRAME_CURSOR_TYPE_CHANGED_UNIT: u32 = 1;
+
+// frame.h 378: `bool_bf redisplay : 1;`  - frozen 1:7; A 1:10; B 1:10; C 1:9 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_DEFAULT_FACE_DONE_P_SHIFT: u32 = 2;
+pub const FRAME_REDISPLAY_SHIFT: u32 = 7;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_REDISPLAY_SHIFT: u32 = 10;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_REDISPLAY_SHIFT: u32 = 10;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_REDISPLAY_SHIFT: u32 = 9;   // C: NS/GTK
+pub const FRAME_REDISPLAY_UNIT: u32 = 1;
+
+// frame.h 382: `bool_bf external_menu_bar : 1;`  - B 1:11; C 1:10 (measured)
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_EXTERNAL_MENU_BAR_FLAG_SHIFT: u32 = 11;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_EXTERNAL_MENU_BAR_FLAG_SHIFT: u32 = 10;   // C: NS/GTK
+#[cfg (feature = "have_window_system")]
+pub const FRAME_EXTERNAL_MENU_BAR_FLAG_UNIT: u32 = 1;
+
+// frame.h 390: `unsigned visible : 1;`  - frozen 1:8; A 1:11; B 1:12; C 1:11 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_ALREADY_HSCROLLED_P_SHIFT: u32 = 3;
+pub const FRAME_VISIBLE_SHIFT: u32 = 8;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_VISIBLE_SHIFT: u32 = 11;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_VISIBLE_SHIFT: u32 = 12;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_VISIBLE_SHIFT: u32 = 11;   // C: NS/GTK
+pub const FRAME_VISIBLE_UNIT: u32 = 1;
+
+// frame.h 394: `bool_bf iconified : 1;`  - frozen 1:9; A 1:12; B 1:13; C 1:12 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_UPDATED_P_SHIFT: u32 = 4;
+pub const FRAME_ICONIFIED_SHIFT: u32 = 9;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_ICONIFIED_SHIFT: u32 = 12;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_ICONIFIED_SHIFT: u32 = 13;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_ICONIFIED_SHIFT: u32 = 12;   // C: NS/GTK
+pub const FRAME_ICONIFIED_UNIT: u32 = 1;
+
+// frame.h 398: `bool_bf garbaged : 1;`  - frozen 1:10; A 1:13; B 1:14; C 1:13 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_FONTS_CHANGED_SHIFT: u32 = 5;
+pub const FRAME_GARBAGED_SHIFT: u32 = 10;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_GARBAGED_SHIFT: u32 = 13;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_GARBAGED_SHIFT: u32 = 14;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_GARBAGED_SHIFT: u32 = 13;   // C: NS/GTK
+pub const FRAME_GARBAGED_UNIT: u32 = 1;
+
+// frame.h 402: `bool_bf wants_modeline : 1;`  - frozen 1:11; A 1:14; B 1:15; C 1:14 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_CURSOR_TYPE_CHANGED_SHIFT: u32 = 6;
+pub const FRAME_WANTS_MODELINE_SHIFT: u32 = 11;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_WANTS_MODELINE_SHIFT: u32 = 14;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_WANTS_MODELINE_SHIFT: u32 = 15;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_WANTS_MODELINE_SHIFT: u32 = 14;   // C: NS/GTK
+pub const FRAME_WANTS_MODELINE_UNIT: u32 = 1;
+
+// frame.h 405: `bool_bf auto_raise : 1;`  - frozen 1:12; A 1:15; B 1:16; C 1:15 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_REDISPLAY_SHIFT: u32 = 7;
+pub const FRAME_AUTO_RAISE_SHIFT: u32 = 12;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_AUTO_RAISE_SHIFT: u32 = 15;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_AUTO_RAISE_SHIFT: u32 = 16;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_AUTO_RAISE_SHIFT: u32 = 15;   // C: NS/GTK
+pub const FRAME_AUTO_RAISE_UNIT: u32 = 1;
+
+// frame.h 408: `bool_bf auto_lower : 1;`  - frozen 1:13; A 1:16; B 1:17; C 1:16 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_VISIBLE_SHIFT: u32 = 8;
+pub const FRAME_AUTO_LOWER_SHIFT: u32 = 13;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_AUTO_LOWER_SHIFT: u32 = 16;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_AUTO_LOWER_SHIFT: u32 = 17;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_AUTO_LOWER_SHIFT: u32 = 16;   // C: NS/GTK
+pub const FRAME_AUTO_LOWER_UNIT: u32 = 1;
+
+// frame.h 411: `bool_bf no_split : 1;`  - frozen 1:14; A 1:17; B 1:18; C 1:17 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_ICONIFIED_SHIFT: u32 = 9;
+pub const FRAME_NO_SPLIT_SHIFT: u32 = 14;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_NO_SPLIT_SHIFT: u32 = 17;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_NO_SPLIT_SHIFT: u32 = 18;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_NO_SPLIT_SHIFT: u32 = 17;   // C: NS/GTK
+pub const FRAME_NO_SPLIT_UNIT: u32 = 1;
+
+// frame.h 417: `bool_bf explicit_name : 1;`  - frozen 1:15; A 1:18; B 1:19; C 1:18 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_GARBAGED_SHIFT: u32 = 10;
+pub const FRAME_EXPLICIT_NAME_SHIFT: u32 = 15;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_EXPLICIT_NAME_SHIFT: u32 = 18;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_EXPLICIT_NAME_SHIFT: u32 = 19;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_EXPLICIT_NAME_SHIFT: u32 = 18;   // C: NS/GTK
+pub const FRAME_EXPLICIT_NAME_UNIT: u32 = 1;
+
+// frame.h 426: `bool_bf window_change : 1;`  - frozen 1:16; A 1:19; B 1:20; C 1:19 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_WANTS_MODELINE_SHIFT: u32 = 11;
+pub const FRAME_WINDOW_CHANGE_SHIFT: u32 = 16;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_WINDOW_CHANGE_SHIFT: u32 = 19;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_WINDOW_CHANGE_SHIFT: u32 = 20;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_WINDOW_CHANGE_SHIFT: u32 = 19;   // C: NS/GTK
+pub const FRAME_WINDOW_CHANGE_UNIT: u32 = 1;
+
+// frame.h 430: `bool_bf window_state_change : 1;`  - frozen 1:17; A 1:20; B 1:21; C 1:20 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_AUTO_RAISE_SHIFT: u32 = 12;
+pub const FRAME_WINDOW_STATE_CHANGE_SHIFT: u32 = 17;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_WINDOW_STATE_CHANGE_SHIFT: u32 = 20;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_WINDOW_STATE_CHANGE_SHIFT: u32 = 21;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_WINDOW_STATE_CHANGE_SHIFT: u32 = 20;   // C: NS/GTK
+pub const FRAME_WINDOW_STATE_CHANGE_UNIT: u32 = 1;
+
+// frame.h 434: `bool_bf mouse_moved : 1;`  - frozen 1:18; A 1:21; B 1:22; C 1:21 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_AUTO_LOWER_SHIFT: u32 = 13;
+pub const FRAME_MOUSE_MOVED_SHIFT: u32 = 18;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_MOUSE_MOVED_SHIFT: u32 = 21;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_MOUSE_MOVED_SHIFT: u32 = 22;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_MOUSE_MOVED_SHIFT: u32 = 21;   // C: NS/GTK
+pub const FRAME_MOUSE_MOVED_UNIT: u32 = 1;
+
+// frame.h 437: `bool_bf pointer_invisible : 1;`  - frozen 1:19; A 1:22; B 1:23; C 1:22 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_NO_SPLIT_SHIFT: u32 = 14;
+pub const FRAME_POINTER_INVISIBLE_SHIFT: u32 = 19;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_POINTER_INVISIBLE_SHIFT: u32 = 22;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_POINTER_INVISIBLE_SHIFT: u32 = 23;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_POINTER_INVISIBLE_SHIFT: u32 = 22;   // C: NS/GTK
+pub const FRAME_POINTER_INVISIBLE_UNIT: u32 = 1;
+
+// frame.h 441: `bool_bf frozen_window_starts : 1;`  - frozen 1:20; A 1:23; B 1:24; C 1:23 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_EXPLICIT_NAME_SHIFT: u32 = 15;
+pub const FRAME_FROZEN_WINDOW_STARTS_SHIFT: u32 = 20;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_FROZEN_WINDOW_STARTS_SHIFT: u32 = 23;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_FROZEN_WINDOW_STARTS_SHIFT: u32 = 24;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_FROZEN_WINDOW_STARTS_SHIFT: u32 = 23;   // C: NS/GTK
+pub const FRAME_FROZEN_WINDOW_STARTS_UNIT: u32 = 1;
+
+// frame.h 446: `ENUM_BF (output_method) output_method : 4;`  - frozen 1:21/4; A 1:24/4; B 1:25/4; C 1:24/4 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_WINDOW_CHANGE_SHIFT: u32 = 16;
+pub const FRAME_OUTPUT_METHOD_SHIFT: u32 = 21;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_OUTPUT_METHOD_SHIFT: u32 = 24;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_OUTPUT_METHOD_SHIFT: u32 = 25;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_OUTPUT_METHOD_SHIFT: u32 = 24;   // C: NS/GTK
+pub const FRAME_OUTPUT_METHOD_UNIT: u32 = 1;
+
+// frame.h 449: `bool_bf undecorated : 1;`  - frozen 1:25; A 1:28; B 1:29; C 1:28 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_WINDOW_STATE_CHANGE_SHIFT: u32 = 17;
+pub const FRAME_UNDECORATED_SHIFT: u32 = 25;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_UNDECORATED_SHIFT: u32 = 28;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_UNDECORATED_SHIFT: u32 = 29;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_UNDECORATED_SHIFT: u32 = 28;   // C: NS/GTK
+pub const FRAME_UNDECORATED_UNIT: u32 = 1;
+
+// frame.h 453: `bool_bf no_accept_focus : 1;`  - frozen 1:26; A 1:29; B 1:30; C 1:29 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_MOUSE_MOVED_SHIFT: u32 = 18;
+pub const FRAME_NO_ACCEPT_FOCUS_SHIFT: u32 = 26;   // frozen
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_NO_ACCEPT_FOCUS_SHIFT: u32 = 29;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_NO_ACCEPT_FOCUS_SHIFT: u32 = 30;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_NO_ACCEPT_FOCUS_SHIFT: u32 = 29;   // C: NS/GTK
+pub const FRAME_NO_ACCEPT_FOCUS_UNIT: u32 = 1;
+
+// frame.h 457: `bool_bf tooltip : 1;`  - A 1:30; B 1:31; C 1:30 (measured)
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), not (feature = "have_ext_menu_bar"), not (feature = "have_ntgui")))]
+pub const FRAME_TOOLTIP_SHIFT: u32 = 30;   // A: x11/pgtk/android/w32
+#[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar"), feature = "have_ext_menu_bar"))]
+pub const FRAME_TOOLTIP_SHIFT: u32 = 31;   // B: haiku/X-toolkit
+#[cfg (all (feature = "have_window_system", feature = "have_ext_tool_bar"))]
+pub const FRAME_TOOLTIP_SHIFT: u32 = 30;   // C: NS/GTK
+#[cfg (feature = "have_window_system")]
+pub const FRAME_TOOLTIP_UNIT: u32 = 1;
+
+// frame.h 460: `ENUM_BF (fullscreen_type) want_fullscreen : 4;`  - A 2:0/4; B 2:0/4; C 2:0/4 (measured)
+#[cfg (feature = "have_window_system")]
+pub const FRAME_WANT_FULLSCREEN_SHIFT: u32 = 0;   // A, B and C: one number
+#[cfg (feature = "have_window_system")]
+pub const FRAME_WANT_FULLSCREEN_UNIT: u32 = 2;
+
+// frame.h 464: `ENUM_BF (vertical_scroll_bar_type) vertical_scroll_bar_type : 2;`  - A 2:4/2; B 2:4/2; C 2:4/2 (measured)
+#[cfg (feature = "have_window_system")]
+pub const FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_SHIFT: u32 = 4;   // A, B and C: one number
+#[cfg (feature = "have_window_system")]
+pub const FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_UNIT: u32 = 2;
+
+// frame.h 467: `bool_bf horizontal_scroll_bars : 1;`  - A 2:6; B 2:6; C 2:6 (measured)
+#[cfg (feature = "have_window_system")]
+pub const FRAME_HORIZONTAL_SCROLL_BARS_SHIFT: u32 = 6;   // A, B and C: one number
+#[cfg (feature = "have_window_system")]
+pub const FRAME_HORIZONTAL_SCROLL_BARS_UNIT: u32 = 2;
+
+// frame.h 471: `bool_bf override_redirect : 1;`  - A 2:7; B 2:7; C 2:7 (measured)
+#[cfg (feature = "have_window_system")]
+pub const FRAME_OVERRIDE_REDIRECT_FLAG_SHIFT: u32 = 7;   // A, B and C: one number
+#[cfg (feature = "have_window_system")]
+pub const FRAME_OVERRIDE_REDIRECT_FLAG_UNIT: u32 = 2;
+
+// frame.h 475: `bool_bf skip_taskbar : 1;`  - A 2:8; B 2:8; C 2:8 (measured)
+#[cfg (feature = "have_window_system")]
+pub const FRAME_SKIP_TASKBAR_SHIFT: u32 = 8;   // A, B and C: one number
+#[cfg (feature = "have_window_system")]
+pub const FRAME_SKIP_TASKBAR_UNIT: u32 = 2;
+
+// frame.h 479: `bool_bf no_focus_on_map : 1;`  - A 2:9; B 2:9; C 2:9 (measured)
+#[cfg (feature = "have_window_system")]
+pub const FRAME_NO_FOCUS_ON_MAP_SHIFT: u32 = 9;   // A, B and C: one number
+#[cfg (feature = "have_window_system")]
+pub const FRAME_NO_FOCUS_ON_MAP_UNIT: u32 = 2;
+
+// frame.h 482: `ENUM_BF (z_group) z_group : 2;`  - A 2:10/2; B 2:10/2; C 2:10/2 (measured)
+#[cfg (feature = "have_window_system")]
+pub const FRAME_Z_GROUP_FLAG_SHIFT: u32 = 10;   // A, B and C: one number
+#[cfg (feature = "have_window_system")]
+pub const FRAME_Z_GROUP_FLAG_UNIT: u32 = 2;
+
+// frame.h 487: `bool_bf no_special_glyphs : 1;`  - frozen 1:27; A 2:12; B 2:12; C 2:12 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_POINTER_INVISIBLE_SHIFT: u32 = 19;
+pub const FRAME_NO_SPECIAL_GLYPHS_SHIFT: u32 = 27;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_NO_SPECIAL_GLYPHS_SHIFT: u32 = 12;   // A, B and C: one number
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_FROZEN_WINDOW_STARTS_SHIFT: u32 = 20;
+pub const FRAME_NO_SPECIAL_GLYPHS_UNIT: u32 = 1;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_NO_SPECIAL_GLYPHS_UNIT: u32 = 2;   // every window-system arm
+
+// frame.h 491: `bool_bf can_set_window_size : 1;`  - frozen 1:28; A 2:13; B 2:13; C 2:13 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_OUTPUT_METHOD_SHIFT: u32 = 21;
-pub const FRAME_OUTPUT_METHOD_MASK: u32 = 0x0F;   // 4 bits
+pub const FRAME_CAN_SET_WINDOW_SIZE_SHIFT: u32 = 28;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_CAN_SET_WINDOW_SIZE_SHIFT: u32 = 13;   // A, B and C: one number
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_UNDECORATED_SHIFT: u32 = 25;
+pub const FRAME_CAN_SET_WINDOW_SIZE_UNIT: u32 = 1;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_CAN_SET_WINDOW_SIZE_UNIT: u32 = 2;   // every window-system arm
+
+// frame.h 494: `bool_bf after_make_frame : 1;`  - frozen 1:29; A 2:14; B 2:14; C 2:14 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_NO_ACCEPT_FOCUS_SHIFT: u32 = 26;
+pub const FRAME_AFTER_MAKE_FRAME_SHIFT: u32 = 29;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_AFTER_MAKE_FRAME_SHIFT: u32 = 14;   // A, B and C: one number
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_NO_SPECIAL_GLYPHS_SHIFT: u32 = 27;
+pub const FRAME_AFTER_MAKE_FRAME_UNIT: u32 = 1;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_AFTER_MAKE_FRAME_UNIT: u32 = 2;   // every window-system arm
+
+// frame.h 503: `bool_bf tab_bar_redisplayed : 1;`  - frozen 1:30; A 2:15; B 2:15; C 2:15 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_CAN_SET_WINDOW_SIZE_SHIFT: u32 = 28;
+pub const FRAME_TAB_BAR_REDISPLAYED_SHIFT: u32 = 30;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_TAB_BAR_REDISPLAYED_SHIFT: u32 = 15;   // A, B and C: one number
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_AFTER_MAKE_FRAME_SHIFT: u32 = 29;
+pub const FRAME_TAB_BAR_REDISPLAYED_UNIT: u32 = 1;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_TAB_BAR_REDISPLAYED_UNIT: u32 = 2;   // every window-system arm
+
+// frame.h 504: `bool_bf tab_bar_resized : 1;`  - frozen 1:31; A 2:16; B 2:16; C 2:16 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_TAB_BAR_REDISPLAYED_SHIFT: u32 = 30;
+pub const FRAME_TAB_BAR_RESIZED_SHIFT: u32 = 31;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_TAB_BAR_RESIZED_SHIFT: u32 = 16;   // A, B and C: one number
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_TAB_BAR_RESIZED_SHIFT: u32 = 31;
+pub const FRAME_TAB_BAR_RESIZED_UNIT: u32 = 1;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_TAB_BAR_RESIZED_UNIT: u32 = 2;   // every window-system arm
+
+// frame.h 513: `bool_bf tool_bar_redisplayed : 1;`  - frozen 2:0; A 2:17; B 2:17; C 2:17 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_TOOL_BAR_REDISPLAYED_SHIFT: u32 = 0;   // unit 2
+pub const FRAME_TOOL_BAR_REDISPLAYED_SHIFT: u32 = 0;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_TOOL_BAR_REDISPLAYED_SHIFT: u32 = 17;   // A, B and C: one number
+pub const FRAME_TOOL_BAR_REDISPLAYED_UNIT: u32 = 2;
+
+// frame.h 514: `bool_bf tool_bar_resized : 1;`  - frozen 2:1; A 2:18; B 2:18; C 2:18 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_TOOL_BAR_RESIZED_SHIFT: u32 = 1;   // unit 2
+pub const FRAME_TOOL_BAR_RESIZED_SHIFT: u32 = 1;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_TOOL_BAR_RESIZED_SHIFT: u32 = 18;   // A, B and C: one number
+pub const FRAME_TOOL_BAR_RESIZED_UNIT: u32 = 2;
+
+// frame.h 517: `bool_bf face_change : 1;`  - frozen 2:2; A 2:19; B 2:19; C 2:19 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_FACE_CHANGE_SHIFT: u32 = 2;   // unit 2
+pub const FRAME_FACE_CHANGE_SHIFT: u32 = 2;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_FACE_CHANGE_SHIFT: u32 = 19;   // A, B and C: one number
+pub const FRAME_FACE_CHANGE_UNIT: u32 = 2;
+
+// frame.h 521: `bool_bf inhibit_clear_image_cache : 1;`  - frozen 2:3; A 2:20; B 2:20; C 2:20 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_INHIBIT_CLEAR_IMAGE_CACHE_SHIFT: u32 = 3;   // unit 2
+pub const FRAME_INHIBIT_CLEAR_IMAGE_CACHE_SHIFT: u32 = 3;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_INHIBIT_CLEAR_IMAGE_CACHE_SHIFT: u32 = 20;   // A, B and C: one number
+pub const FRAME_INHIBIT_CLEAR_IMAGE_CACHE_UNIT: u32 = 2;
+
+// frame.h 526: `bool_bf new_size_p : 1;`  - frozen 2:4; A 2:21; B 2:21; C 2:21 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_NEW_SIZE_P_SHIFT: u32 = 4;   // unit 2
+pub const FRAME_NEW_SIZE_P_SHIFT: u32 = 4;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_NEW_SIZE_P_SHIFT: u32 = 21;   // A, B and C: one number
+pub const FRAME_NEW_SIZE_P_UNIT: u32 = 2;
+
+// frame.h 530: `bool_bf was_invisible : 1;`  - frozen 2:5; A 2:22; B 2:22; C 2:22 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_WAS_INVISIBLE_SHIFT: u32 = 5;   // unit 2
+pub const FRAME_WAS_INVISIBLE_SHIFT: u32 = 5;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_WAS_INVISIBLE_SHIFT: u32 = 22;   // A, B and C: one number
+pub const FRAME_WAS_INVISIBLE_UNIT: u32 = 2;
+
+// frame.h 536: `bool_bf select_mini_window_flag : 1;`  - frozen 2:6; A 2:23; B 2:23; C 2:23 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_SELECT_MINI_WINDOW_FLAG_SHIFT: u32 = 6;   // unit 2
+pub const FRAME_SELECT_MINI_WINDOW_FLAG_SHIFT: u32 = 6;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_SELECT_MINI_WINDOW_FLAG_SHIFT: u32 = 23;   // A, B and C: one number
+pub const FRAME_SELECT_MINI_WINDOW_FLAG_UNIT: u32 = 2;
+
+// frame.h 540: `bool_bf borders_respect_alpha_background : 1;`  - frozen 2:7; A 2:24; B 2:24; C 2:24 (measured)
 #[cfg (not (feature = "have_window_system"))]
-pub const FRAME_BORDERS_RESPECT_ALPHA_BACKGROUND_SHIFT: u32 = 7;   // unit 2
+pub const FRAME_BORDERS_RESPECT_ALPHA_BACKGROUND_SHIFT: u32 = 7;   // frozen
+#[cfg (feature = "have_window_system")]
+pub const FRAME_BORDERS_RESPECT_ALPHA_BACKGROUND_SHIFT: u32 = 24;   // A, B and C: one number
+pub const FRAME_BORDERS_RESPECT_ALPHA_BACKGROUND_UNIT: u32 = 2;
+
+// The masks of the run's multi-bit fields.  C writes each width in the declaration (`: 4`,
+// `: 2`); the port's packed words keep it as a mask, and `output_method`'s is the one the frozen
+// arm already needed.
+pub const FRAME_OUTPUT_METHOD_MASK: u32 = 0x0F;        // C 446: `output_method : 4`
+pub const FRAME_WANT_FULLSCREEN_MASK: u32 = 0x0F;      // C 460: `want_fullscreen : 4`
+pub const FRAME_VERTICAL_SCROLL_BAR_MASK: u32 = 0x03;  // C 464: `vertical_scroll_bar_type : 2`
+pub const FRAME_Z_GROUP_MASK: u32 = 0x03;              // C 482: `z_group : 2`
 
 // frame.h 27-44: `enum vertical_scroll_bar_type`.
 pub type vertical_scroll_bar_type = c_int;
@@ -428,9 +841,18 @@ pub fn FRAME_TERMCAP_P (f: *mut frame) -> bool
 pub fn FRAME_X_P (f: *mut frame) -> bool
 { frame_output_method (f) == output_x_window }
 
-// frame.h 846-880: the platforms this target is not.
+// frame.h 933-959: the platform predicates.  Each is C's `#ifndef <platform>` / `#else` pair, and
+// the port carries the platform side under that platform's feature: `FRAME_W32_P` is the one
+// `src/w32fns.rs` names (its ledger's item 8), and the arm reads the same `output_method` field
+// `FRAME_X_P` above does.
+/// C: #ifndef HAVE_NTGUI / #define FRAME_W32_P(f) false
+#[cfg (not (feature = "have_ntgui"))]
 #[inline(always)]
 pub fn FRAME_W32_P (f: *mut frame) -> bool { let _ = f; false }
+/// C: #else / #define FRAME_W32_P(f) ((f)->output_method == output_w32)
+#[cfg (feature = "have_ntgui")]
+#[inline(always)]
+pub fn FRAME_W32_P (f: *mut frame) -> bool { frame_output_method (f) == output_w32 }
 #[inline(always)]
 pub fn FRAME_MSDOS_P (f: *mut frame) -> bool { let _ = f; false }
 #[inline(always)]
@@ -449,9 +871,42 @@ pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { let _ = f; false }
 // F.  We need to define two versions because a TTY-only build does not have
 // FRAME_DISPLAY_INFO."  It is a macro in C and stays one here: its body names `tty_output`'s
 // `display_info` and `tty_display_info`'s `mouse_highlight`, which the *including* unit brings in
-// through `termchar.rs` (frame.rs cannot include it - termchar.rs includes frame.rs).  The frozen
-// configuration has no window system, so C 1037-1039's TTY arm is the live one and the
-// HAVE_WINDOW_SYSTEM/HAVE_ANDROID arms are recorded in docs/ports/include-frame.md (P-08).
+// through `termchar.rs` (frame.rs cannot include it - termchar.rs includes frame.rs).
+//
+// All three of C's arms are carried now, each with C's own condition.  The window-system body is
+// `FRAME_WINDOW_P (F) ? &FRAME_DISPLAY_INFO (F)->mouse_highlight : &(F)->output_data.tty->…`, and
+// `FRAME_DISPLAY_INFO` is the *platform* term header's macro (`xterm.h` 1481, `w32term.h` 472,
+// `nsterm.h` 1032, `haikuterm.h` 289, `androidterm.h` 322, `pgtkterm.h` 477 - the two the port
+// has, `include/androidterm.rs` 542 and `include/w32term.rs` 587, are both `macro_rules!`), while
+// the member's record `Mouse_HLInfo` is `include/dispextern.rs` 1917's.  A macro body is resolved
+// only where it is expanded, so no arm needs a name this mirror cannot see.
+//
+// C 1034-1035's Android arm is the third one: "There is no `struct tty_output` on Android at
+// all".  The `not (have_window_system)` arm is the frozen configuration's (C 1037-1039).
+/// C: #ifdef HAVE_WINDOW_SYSTEM / #ifndef HAVE_ANDROID / #define MOUSE_HL_INFO(F) (FRAME_WINDOW_P (F) ? &FRAME_DISPLAY_INFO (F)->mouse_highlight : &(F)->output_data.tty->display_info->mouse_highlight)
+#[cfg (all (feature = "have_window_system", not (feature = "have_android")))]
+macro_rules! MOUSE_HL_INFO {
+  ($f:expr) => {{
+    let f = $f;
+    if FRAME_WINDOW_P (f) { unsafe { std::ptr::addr_of_mut! ((*FRAME_DISPLAY_INFO! (f)).mouse_highlight) } }
+    else {
+      unsafe {
+        let tty: *mut tty_output = (*f).output_data.tty as *mut tty_output;
+        std::ptr::addr_of_mut! ((*(*tty).display_info).mouse_highlight)
+      }
+    }
+  }};
+}
+/// C: #else /* HAVE_ANDROID */ / #define MOUSE_HL_INFO(F) (&FRAME_DISPLAY_INFO(F)->mouse_highlight)
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+macro_rules! MOUSE_HL_INFO {
+  ($f:expr) => {{
+    let f = $f;
+    unsafe { std::ptr::addr_of_mut! ((*FRAME_DISPLAY_INFO! (f)).mouse_highlight) }
+  }};
+}
+/// C: #else /* not HAVE_WINDOW_SYSTEM */ / #define MOUSE_HL_INFO(F) (&(F)->output_data.tty->display_info->mouse_highlight)
+#[cfg (not (feature = "have_window_system"))]
 macro_rules! MOUSE_HL_INFO {
   ($f:expr) => {{
     let f = $f;
@@ -503,9 +958,18 @@ pub fn FRAME_COLS (f: *mut frame) -> c_int { unsafe { (*f).text_cols } }
 pub fn FRAME_LINES (f: *mut frame) -> c_int { unsafe { (*f).text_lines } }
 
 // frame.h 950-1010: the menu-bar, tab-bar and tool-bar margins.
+// frame.h 1078-1083 / 1093-1098: C spells this pair twice, and the arm that reads the member is
+// the one the flag table above numbers (`external_menu_bar` is `1:11` in arm B, `1:10` in C -
+// arm A has no such bit and takes C's `false`).
+/// C: #else / #define FRAME_EXTERNAL_MENU_BAR(f) false
 #[cfg (not (feature = "have_ext_menu_bar"))]
 #[inline(always)]
 pub fn FRAME_EXTERNAL_MENU_BAR (f: *mut frame) -> bool { let _ = f; false }
+/// C: #ifdef HAVE_EXT_MENU_BAR / #define FRAME_EXTERNAL_MENU_BAR(f) (f)->external_menu_bar
+#[cfg (feature = "have_ext_menu_bar")]
+#[inline(always)]
+pub fn FRAME_EXTERNAL_MENU_BAR (f: *mut frame) -> bool
+{ frame_flag (f, FRAME_EXTERNAL_MENU_BAR_FLAG_UNIT, FRAME_EXTERNAL_MENU_BAR_FLAG_SHIFT) }
 #[inline(always)]
 pub fn FRAME_MENU_BAR_LINES (f: *mut frame) -> c_int { unsafe { (*f).menu_bar_lines } }
 #[inline(always)]
@@ -514,9 +978,15 @@ pub fn FRAME_MENU_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).menu_bar_h
 pub fn FRAME_TAB_BAR_LINES (f: *mut frame) -> c_int { unsafe { (*f).tab_bar_lines } }
 #[inline(always)]
 pub fn FRAME_TAB_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).tab_bar_height } }
+/// C: #else / #define FRAME_EXTERNAL_TOOL_BAR(f) false
 #[cfg (not (feature = "have_ext_tool_bar"))]
 #[inline(always)]
 pub fn FRAME_EXTERNAL_TOOL_BAR (f: *mut frame) -> bool { let _ = f; false }
+/// C: #ifdef HAVE_EXT_TOOL_BAR / #define FRAME_EXTERNAL_TOOL_BAR(f) (f)->external_tool_bar
+#[cfg (feature = "have_ext_tool_bar")]
+#[inline(always)]
+pub fn FRAME_EXTERNAL_TOOL_BAR (f: *mut frame) -> bool
+{ frame_flag (f, FRAME_EXTERNAL_TOOL_BAR_FLAG_UNIT, FRAME_EXTERNAL_TOOL_BAR_FLAG_SHIFT) }
 #[inline(always)]
 pub fn FRAME_TOOL_BAR_POSITION (f: *mut frame) -> Lisp_Object { unsafe { (*f).tool_bar_position } }
 #[inline(always)]
@@ -562,26 +1032,26 @@ pub fn FRAME_VISIBLE_P (f: *mut frame) -> bool
      flag is packed at - the family's occurrence check asks for one occurrence per C use, and
      `FRAME_VISIBLE_SHIFT` (one token) does not answer it.  */
   let visible = FRAME_VISIBLE_SHIFT;
-  frame_bit1 (f, visible)
+  frame_flag (f, FRAME_VISIBLE_UNIT, visible)
 }
 #[inline(always)]
-pub fn FRAME_ICONIFIED_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_ICONIFIED_SHIFT) }
+pub fn FRAME_ICONIFIED_P (f: *mut frame) -> bool { frame_flag (f, FRAME_ICONIFIED_UNIT, FRAME_ICONIFIED_SHIFT) }
 #[inline(always)]
-pub fn FRAME_GARBAGED_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_GARBAGED_SHIFT) }
+pub fn FRAME_GARBAGED_P (f: *mut frame) -> bool { frame_flag (f, FRAME_GARBAGED_UNIT, FRAME_GARBAGED_SHIFT) }
 #[inline(always)]
-pub fn FRAME_NO_SPLIT_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_NO_SPLIT_SHIFT) }
+pub fn FRAME_NO_SPLIT_P (f: *mut frame) -> bool { frame_flag (f, FRAME_NO_SPLIT_UNIT, FRAME_NO_SPLIT_SHIFT) }
 #[inline(always)]
-pub fn FRAME_WANTS_MODELINE_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_WANTS_MODELINE_SHIFT) }
+pub fn FRAME_WANTS_MODELINE_P (f: *mut frame) -> bool { frame_flag (f, FRAME_WANTS_MODELINE_UNIT, FRAME_WANTS_MODELINE_SHIFT) }
 #[inline(always)]
-pub fn FRAME_WINDOWS_FROZEN (f: *mut frame) -> bool { frame_bit1 (f, FRAME_FROZEN_WINDOW_STARTS_SHIFT) }
+pub fn FRAME_WINDOWS_FROZEN (f: *mut frame) -> bool { frame_flag (f, FRAME_FROZEN_WINDOW_STARTS_UNIT, FRAME_FROZEN_WINDOW_STARTS_SHIFT) }
 #[inline(always)]
-pub fn FRAME_WINDOW_CHANGE (f: *mut frame) -> bool { frame_bit1 (f, FRAME_WINDOW_CHANGE_SHIFT) }
+pub fn FRAME_WINDOW_CHANGE (f: *mut frame) -> bool { frame_flag (f, FRAME_WINDOW_CHANGE_UNIT, FRAME_WINDOW_CHANGE_SHIFT) }
 #[inline(always)]
 pub fn FRAME_WINDOW_STATE_CHANGE (f: *mut frame) -> bool
-{ frame_bit1 (f, FRAME_WINDOW_STATE_CHANGE_SHIFT) }
+{ frame_flag (f, FRAME_WINDOW_STATE_CHANGE_UNIT, FRAME_WINDOW_STATE_CHANGE_SHIFT) }
 #[inline(always)]
 pub fn FRAME_UNDECORATED (f: *mut frame) -> c_int
-{ frame_bit1 (f, FRAME_UNDECORATED_SHIFT) as c_int }
+{ frame_flag (f, FRAME_UNDECORATED_UNIT, FRAME_UNDECORATED_SHIFT) as c_int }
 
 // frame.h 1090-1130: the windows and the scroll-bar bookkeeping.
 #[inline(always)]
@@ -611,45 +1081,121 @@ pub fn FRAME_CONDEMNED_SCROLL_BARS (f: *mut frame) -> Lisp_Object
 #[inline(always)]
 pub fn FRAME_MENU_BAR_ITEMS (f: *mut frame) -> Lisp_Object { unsafe { (*f).menu_bar_items } }
 
-// frame.h 1078-1098 and 1215-1230: four macros whose C `#if` arm reads a member and whose
-// `#else` arm is what the port spells.  Like frame.h 1240-1271's family, they are gated with the
-// arm whose body they are: the window-system body needs the flag numbering measured in
-// `docs/baseline/frame-bits.tsv`, and a window-system configuration fails to compile here until
-// that numbering is written rather than answering with the frozen arm's constant.
+// frame.h 1215-1281: the scroll-bar and window-management family.  C spells each of these twice
+// and the port carries **both** arms, now that the flag table above has every arm's numbering:
+// the `#ifdef HAVE_WINDOW_SYSTEM` body reads the member (through its `_UNIT`/`_SHIFT` pair), the
+// `#else` body is `((void) (f), …)`.  One member is a two-bit `ENUM_BF` (`vertical_scroll_bar_type`,
+// `z_group`) and one is four (`want_fullscreen`), so those readers mask the field's own width.
+
+/// C: #else / #define FRAME_VERTICAL_SCROLL_BAR_TYPE(f) ((void) (f), vertical_scroll_bar_none)
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_VERTICAL_SCROLL_BAR_TYPE (f: *mut frame) -> vertical_scroll_bar_type
 { let _ = f; vertical_scroll_bar_none }
+/// C: #define FRAME_VERTICAL_SCROLL_BAR_TYPE(f) ((f)->vertical_scroll_bar_type)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_VERTICAL_SCROLL_BAR_TYPE (f: *mut frame) -> vertical_scroll_bar_type
+{
+  frame_field (f, FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_UNIT, FRAME_VERTICAL_SCROLL_BAR_TYPE_FLAG_SHIFT,
+               FRAME_VERTICAL_SCROLL_BAR_MASK) as vertical_scroll_bar_type
+}
+
+/// C: #else / #define FRAME_HAS_VERTICAL_SCROLL_BARS(f) ((void) (f), 0)
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_HAS_VERTICAL_SCROLL_BARS (f: *mut frame) -> c_int { let _ = f; 0 }
+/// C: #define FRAME_HAS_VERTICAL_SCROLL_BARS(f) ((f)->vertical_scroll_bar_type != vertical_scroll_bar_none)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_HAS_VERTICAL_SCROLL_BARS (f: *mut frame) -> c_int
+{ (FRAME_VERTICAL_SCROLL_BAR_TYPE (f) != vertical_scroll_bar_none) as c_int }
+
+/// C: #else / #define FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT(f) ((void) (f), 0)
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f: *mut frame) -> c_int { let _ = f; 0 }
+/// C: #define FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT(f) ((f)->vertical_scroll_bar_type == vertical_scroll_bar_left)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f: *mut frame) -> c_int
+{ (FRAME_VERTICAL_SCROLL_BAR_TYPE (f) == vertical_scroll_bar_left) as c_int }
+
+/// C: #else / #define FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT(f) ((void) (f), 0)
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f: *mut frame) -> c_int { let _ = f; 0 }
+/// C: #define FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT(f) ((f)->vertical_scroll_bar_type == vertical_scroll_bar_right)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f: *mut frame) -> c_int
+{ (FRAME_VERTICAL_SCROLL_BAR_TYPE (f) == vertical_scroll_bar_right) as c_int }
+
+/// C: #else / #define FRAME_HAS_HORIZONTAL_SCROLL_BARS(f) ((void) (f), 0)
 #[cfg (not (feature = "use_horizontal_scroll_bars"))]
 #[inline(always)]
 pub fn FRAME_HAS_HORIZONTAL_SCROLL_BARS (f: *mut frame) -> c_int { let _ = f; 0 }
+/// C: #if USE_HORIZONTAL_SCROLL_BARS / #define FRAME_HAS_HORIZONTAL_SCROLL_BARS(f) ((f)->horizontal_scroll_bars)
+#[cfg (feature = "use_horizontal_scroll_bars")]
+#[inline(always)]
+pub fn FRAME_HAS_HORIZONTAL_SCROLL_BARS (f: *mut frame) -> c_int
+{ frame_flag (f, FRAME_HORIZONTAL_SCROLL_BARS_UNIT, FRAME_HORIZONTAL_SCROLL_BARS_SHIFT) as c_int }
+
+/// C: #else /* not HAVE_WINDOW_SYSTEM */ / #define FRAME_OVERRIDE_REDIRECT(f) ((void) (f), 0)
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_OVERRIDE_REDIRECT (f: *mut frame) -> c_int { let _ = f; 0 }
+// frame.h 1239-1252: the window-management family, inside `#if defined (HAVE_WINDOW_SYSTEM)` (C
+// 1237) with the `HAVE_NTGUI` sub-arm C 1241-1245 gives `override_redirect`.
+/// C: #ifdef HAVE_NTGUI / #define FRAME_OVERRIDE_REDIRECT(f) ((void) (f), 0)
+#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+#[inline(always)]
+pub fn FRAME_OVERRIDE_REDIRECT (f: *mut frame) -> c_int { let _ = f; 0 }
+/// C: #else / #define FRAME_OVERRIDE_REDIRECT(f) ((f)->override_redirect)
+#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
+#[inline(always)]
+pub fn FRAME_OVERRIDE_REDIRECT (f: *mut frame) -> c_int
+{ frame_flag (f, FRAME_OVERRIDE_REDIRECT_FLAG_UNIT, FRAME_OVERRIDE_REDIRECT_FLAG_SHIFT) as c_int }
+
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_SKIP_TASKBAR (f: *mut frame) -> c_int { let _ = f; 0 }
+/// C: #define FRAME_SKIP_TASKBAR(f) ((f)->skip_taskbar)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_SKIP_TASKBAR (f: *mut frame) -> c_int
+{ frame_flag (f, FRAME_SKIP_TASKBAR_UNIT, FRAME_SKIP_TASKBAR_SHIFT) as c_int }
+
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_NO_FOCUS_ON_MAP (f: *mut frame) -> c_int { let _ = f; 0 }
+/// C: #define FRAME_NO_FOCUS_ON_MAP(f) ((f)->no_focus_on_map)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_NO_FOCUS_ON_MAP (f: *mut frame) -> c_int
+{ frame_flag (f, FRAME_NO_FOCUS_ON_MAP_UNIT, FRAME_NO_FOCUS_ON_MAP_SHIFT) as c_int }
+
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_NO_ACCEPT_FOCUS (f: *mut frame) -> c_int { let _ = f; 0 }
+/// C: #define FRAME_NO_ACCEPT_FOCUS(f) ((f)->no_accept_focus)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_NO_ACCEPT_FOCUS (f: *mut frame) -> c_int
+{ frame_flag (f, FRAME_NO_ACCEPT_FOCUS_UNIT, FRAME_NO_ACCEPT_FOCUS_SHIFT) as c_int }
+
+/// C: #else /* not HAVE_WINDOW_SYSTEM */ / #define FRAME_TOOLTIP_P(f) ((void) f, false)
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_TOOLTIP_P (f: *mut frame) -> bool { let _ = f; false }
+/// C: #define FRAME_TOOLTIP_P(f) ((f)->tooltip)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_TOOLTIP_P (f: *mut frame) -> bool
+{ frame_flag (f, FRAME_TOOLTIP_UNIT, FRAME_TOOLTIP_SHIFT) }
 #[inline(always)]
 pub fn FRAME_NO_SPECIAL_GLYPHS (f: *mut frame) -> bool
-{ frame_bit1 (f, FRAME_NO_SPECIAL_GLYPHS_SHIFT) }
+{ frame_flag (f, FRAME_NO_SPECIAL_GLYPHS_UNIT, FRAME_NO_SPECIAL_GLYPHS_SHIFT) }
 
 #[inline(always)]
 pub fn FRAME_CONFIG_SCROLL_BAR_WIDTH (f: *mut frame) -> c_int
@@ -779,8 +1325,7 @@ pub fn window_system_available (f: *mut frame) -> bool { let _ = f; false }
 pub fn SET_FRAME_ICONIFIED (f: *mut frame, i: c_int)
 {
   eassert! (0 <= i && i <= 1);
-  let mask = 1u32 << FRAME_ICONIFIED_SHIFT;
-  unsafe { (*f).bits1 = ((*f).bits1 & !mask) | ((i as u32) << FRAME_ICONIFIED_SHIFT); }
+  frame_set_flag (f, FRAME_ICONIFIED_UNIT, FRAME_ICONIFIED_SHIFT, i as u32);
 }
 
 // The readers the accessors above share: `output_method` is the four-bit field in the middle of
@@ -795,10 +1340,30 @@ pub fn SET_FRAME_ICONIFIED (f: *mut frame, i: c_int)
 pub fn output_method (f: *mut frame) -> output_method { frame_output_method (f) }
 
 fn frame_output_method (f: *mut frame) -> output_method
-{ ((unsafe { (*f).bits1 }) >> FRAME_OUTPUT_METHOD_SHIFT & FRAME_OUTPUT_METHOD_MASK) as output_method }
+{ frame_field (f, FRAME_OUTPUT_METHOD_UNIT, FRAME_OUTPUT_METHOD_SHIFT, FRAME_OUTPUT_METHOD_MASK) as output_method }
+
+// The readers the accessors share.  `frame_flag`/`frame_set_flag` take the flag's *unit* as well
+// as its shift because five flags move from `bits1` to `bits2` under a window system (the table
+// above is per arm): every reader names its flag's `_UNIT` and `_SHIFT` constants, so no reader
+// picks a unit by hand and no arm can read the wrong word.
+#[inline(always)]
+fn frame_word (f: *mut frame, unit: u32) -> u32
+{ if unit == 2 { unsafe { (*f).bits2 } } else { unsafe { (*f).bits1 } } }
 
 #[inline(always)]
-fn frame_bit1 (f: *mut frame, shift: u32) -> bool { (unsafe { (*f).bits1 }) >> shift & 1 != 0 }
+fn frame_flag (f: *mut frame, unit: u32, shift: u32) -> bool { frame_word (f, unit) >> shift & 1 != 0 }
+
+#[inline(always)]
+fn frame_set_flag (f: *mut frame, unit: u32, shift: u32, v: u32)
+{
+  let mask = 1u32 << shift;
+  let word = if unit == 2 { unsafe { &mut (*f).bits2 } } else { unsafe { &mut (*f).bits1 } };
+  *word = (*word & ! mask) | ((v & 1) << shift);
+}
+
+#[inline(always)]
+fn frame_field (f: *mut frame, unit: u32, shift: u32, mask: u32) -> u32
+{ frame_word (f, unit) >> shift & mask }
 
 // frame.h 1428-1521: the file-scope objects (the .c files define them).
 unsafe extern "C" { pub static mut frame_next_id: EMACS_UINT; }              // 1428
@@ -971,23 +1536,71 @@ macro_rules! SET_FRAME_GARBAGED {
   }};
 }
 
-/* frame.h 1240-1271: C spells *two* bodies for this family - the `#if defined (HAVE_WINDOW_SYSTEM)`
-   arm reads the members (through the window-system numbering the port has measured but not yet
-   written out, P-82), the `#else` arm is `((void) (f), …)`.  The port carries the `#else` bodies
-   and gates them with the frozen arm, so a window-system configuration fails to compile here
-   rather than returning the frozen answer for a frame that has the members.  */
+/* frame.h 1257-1267: the `z_group` family and `FRAME_TOOLTIP_P`, both arms of C's
+   `#ifdef HAVE_WINDOW_SYSTEM` (C 1237).  `z_group` is a two-bit `ENUM_BF`, so its reader masks
+   the field; the four predicates are C's comparisons against the enumerators the mirror carries
+   above.  C 1262-1263's `FRAME_Z_GROUP_ABOVE_SUSPENDED` is one of the family and had no port
+   copy at all until this round.  */
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_Z_GROUP (f: *mut frame) -> z_group { let _ = f; z_group_none }
+/// C: #define FRAME_Z_GROUP(f) ((f)->z_group)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_Z_GROUP (f: *mut frame) -> z_group
+{
+  frame_field (f, FRAME_Z_GROUP_FLAG_UNIT, FRAME_Z_GROUP_FLAG_SHIFT, FRAME_Z_GROUP_MASK) as z_group
+}
+
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_Z_GROUP_NONE (f: *mut frame) -> bool { let _ = f; true }
+/// C: #define FRAME_Z_GROUP_NONE(f) ((f)->z_group == z_group_none)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_Z_GROUP_NONE (f: *mut frame) -> bool { FRAME_Z_GROUP (f) == z_group_none }
+
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_Z_GROUP_ABOVE (f: *mut frame) -> bool { let _ = f; false }
+/// C: #define FRAME_Z_GROUP_ABOVE(f) ((f)->z_group == z_group_above)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_Z_GROUP_ABOVE (f: *mut frame) -> bool { FRAME_Z_GROUP (f) == z_group_above }
+
+/// C: #define FRAME_Z_GROUP_ABOVE_SUSPENDED(f) ((f)->z_group == z_group_above_suspended)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_Z_GROUP_ABOVE_SUSPENDED (f: *mut frame) -> bool
+{ FRAME_Z_GROUP (f) == z_group_above_suspended }
+/// C: #else arm: `FRAME_Z_GROUP_ABOVE_SUSPENDED` is not part of the frozen arm's family, and C's
+/// `#else` block (C 1268-1271) leaves it undefined - so neither arm here takes the name but the
+/// window-system one (a `#else` body would be invented, not C's).
+#[cfg (not (feature = "have_window_system"))]
+#[inline(always)]
+pub fn FRAME_Z_GROUP_ABOVE_SUSPENDED (f: *mut frame) -> bool { let _ = f; false }
+
 #[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_Z_GROUP_BELOW (f: *mut frame) -> bool { let _ = f; false }
+/// C: #define FRAME_Z_GROUP_BELOW(f) ((f)->z_group == z_group_below)
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+pub fn FRAME_Z_GROUP_BELOW (f: *mut frame) -> bool { FRAME_Z_GROUP (f) == z_group_below }
+
+// frame.h 1257-1260 (the window-system arm's own `NS_IMPL_COCOA` block): the two Cocoa members
+// the record carries under the same feature.  `ns_appearance_type` is the enum next to this
+// mirror's `ns_appearance` member.
+/// C: #define FRAME_NS_APPEARANCE(f) ((f)->ns_appearance)
+#[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa"))]
+#[inline(always)]
+pub fn FRAME_NS_APPEARANCE (f: *mut frame) -> ns_appearance_type { unsafe { (*f).ns_appearance } }
+
+/// C: #define FRAME_NS_TRANSPARENT_TITLEBAR(f) ((f)->ns_transparent_titlebar)
+#[cfg (all (feature = "have_window_system", feature = "ns_impl_cocoa"))]
+#[inline(always)]
+pub fn FRAME_NS_TRANSPARENT_TITLEBAR (f: *mut frame) -> c_uint
+{ unsafe { (*f).ns_transparent_titlebar } }
 
 /* frame.h 1387-1391: `CHECK_FRAME`/`CHECK_LIVE_FRAME`.  C calls `CHECK_TYPE (…)`, which the port
    has as a function (lisp.rs 528); the names stay macros because every call site writes
