@@ -5,10 +5,10 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	1662	44	-	-
+windowsnt	1817	46	-	-
 have_android	1003	32	-	-
-have_window_system	942	19	-	-
-have_x_windows	700	23	-	HAVE_X_WINDOWS
+have_window_system	947	20	-	-
+have_x_windows	754	24	-	HAVE_X_WINDOWS
 not_android_stubify	700	11	-	-
 have_ntgui	595	14	-	-
 have_pgtk	546	22	-	-
@@ -19,16 +19,16 @@ have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
 have_ns	263	11	-	HAVE_NS
 have_gnutls	248	3	-	-
 have_haiku	248	14	xtask dead-arms	-
+use_lucid	236	7	-	-
 have_freetype	215	3	-	-
-harfbuzz	192	7	-	-
+harfbuzz	194	8	-	-
+use_cairo	189	13	-	-
 use_xcb	171	4	-	-
-use_cairo	162	12	-	-
 have_gtk3	150	6	-	-
-use_x_toolkit	141	10	-	USE_X_TOOLKIT
+use_x_toolkit	142	10	-	USE_X_TOOLKIT
 have_sound	135	1	-	-
 have_tree_sitter	133	7	-	HAVE_TREE_SITTER
 threads_enabled	127	5	-	-
-use_lucid	118	6	-	-
 seccomp_filter	113	1	-	-
 have_x_sm	112	1	-	-
 mail_use_pop	109	1	-	-
@@ -38,7 +38,9 @@ have_ext_tool_bar	76	2	-	-
 have_inotify	76	1	-	-
 ns_impl_gnustep	70	2	-	-
 have_gnutls3	67	1	-	-
+rel_alloc	66	5	-	-
 have_sqlite3	63	1	-	-
+no_system_malloc	63	3	-	-
 have_lcms2	54	1	-	-
 have_ext_menu_bar	51	3	-	-
 have_xinput2	51	6	-	-
@@ -46,28 +48,30 @@ have_zlib	51	2	-	-
 test	50	5	-	-
 have_kqueue	49	1	-	-
 use_gamedir	44	1	-	-
-use_linux_xattr	39	2	-	-
+use_linux_xattr	40	2	-	-
 have_gfilenotify	38	1	-	-
+use_cairo_or_have_xft	37	2	-	-
 glyph_debug	36	5	xtask dead-arms	-
 have_alsa	34	1	-	-
+have_xrender	34	5	-	-
 kerberos5	34	1	-	-
 use_acl_ace_getacl	31	2	-	-
 dos_nt	30	5	-	-
 have_text_conversion	30	3	-	-
 kerberos	30	1	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
+cygwin	29	13	-	-
 have_x_i18n	28	4	-	-
-cygwin	27	12	-	-
 have_xcb_shape	26	2	-	-
 use_acl_have_acl_get_file	26	3	-	-
 mingw_w64	25	5	-	-
 vm_ms_windows	25	1	-	-
-have_xrender	24	4	-	-
 have_xsync	24	1	-	-
 have_modules	23	6	-	HAVE_MODULES
 libgccjit_have_gcc_jit_context_new_bitcast	22	1	-	-
 words_bigendian	22	10	-	-
 have_libotf	21	1	-	-
+doug_lea_malloc	20	2	-	-
 have_glib	20	2	-	-
 use_android_assets	20	2	-	-
 android_api_lt_21	19	1	-	-
@@ -83,16 +87,15 @@ unsigned	15	1	-	-
 cplusplus	14	3	-	-
 have_imagemagick	14	1	-	-
 stdc_iso_10646_no_newlocale	14	1	-	-
-doug_lea_malloc	13	1	-	-
 use_motif	13	3	-	-
 djgpp_2_3	12	3	-	-
 have_native_transforms	12	1	-	-
 have_xcb_shape_input_rects	12	1	-	-
+have_xft	12	4	-	-
 have_xinput2_2	12	1	-	-
 poll_for_input	12	2	-	-
 gc_asan_poison_objects	11	1	-	-
 no_cygwin	11	2	-	-
-rel_alloc	11	4	-	-
 window_system_no_ext_menu_bar	11	2	-	-
 gc_check_string_bytes	10	1	-	-
 gnulib_sigaction	10	1	-	-
@@ -143,15 +146,14 @@ old_paths	7	1	-	-
 sigdanger	7	3	-	-
 use_acl_have_aclsort	7	2	-	-
 use_acl_have_statacl	7	2	-	-
-use_cairo_or_have_xft	7	1	-	-
 use_file_notify	7	1	-	-
 win32_winnt_lt_0500	7	2	-	-
 windows_msvc	7	1	-	-
+debug	6	3	-	-
 exec_64	6	1	-	-
 have_acl_type_extended	6	1	-	-
 have_aclx_get	6	1	-	-
 have_getgroups	6	1	-	-
-have_xft	6	3	-	-
 have_xkb	6	2	-	-
 libc	6	3	-	-
 libgccjit_have_gcc_jit_version	6	1	-	-
@@ -175,7 +177,6 @@ have_xcomposite_overlay	5	1	-	-
 hpux	5	3	-	-
 no_generic_bogus	5	2	-	-
 no_ieee_floating_point	5	1	-	-
-no_system_malloc	5	2	-	-
 solaris2	5	1	-	-
 stat_time_stat_timespec_ns	5	1	-	-
 stdc_iso_10646	5	2	-	-
@@ -186,9 +187,10 @@ window_system_no_ext_tool_bar	5	1	-	-
 android	4	1	-	-
 android_api_ge_9	4	1	-	-
 builtin_overflow_p	4	2	-	-
-debug	4	2	-	-
+cf_dibv5	4	1	-	-
 dragonfly	4	1	-	-
 fc_color	4	1	-	-
+gcc_lint	4	3	-	-
 gnu_malloc	4	1	-	-
 gnuc_prereq_11_0	4	1	-	-
 gnulib_getpagesize	4	1	-	-
@@ -225,7 +227,6 @@ ckd	3	1	-	-
 clang_major_9	3	1	-	-
 clock_monotonic_coarse	3	1	-	-
 cplusplus_gnuc_prereq_2_8_clang	3	1	-	-
-gcc_lint	3	2	-	-
 gnuc_prereq_4_3	3	1	-	-
 have_select	3	1	-	-
 have_shared_game_dir	3	1	-	-
@@ -311,6 +312,7 @@ have_inotify_init1	2	1	-	-
 have_jpeg	2	1	-	-
 have_langinfo_codeset	2	1	-	-
 have_madvise	2	2	-	-
+have_malloc_h	2	1	-	-
 have_png	2	1	-	-
 have_procfs	2	1	-	-
 have_pthread_set_name_np	2	1	-	-
@@ -318,6 +320,7 @@ have_setitimer	2	1	-	-
 have_so_bindtodevice	2	1	-	-
 have_tiff	2	1	-	-
 have_timerfd	2	2	-	-
+have_xaw3d	2	1	-	-
 have_xinput2_4	2	2	-	-
 have_xpm	2	1	-	-
 internal_terminal	2	1	-	-
@@ -429,6 +432,7 @@ sqlite_version_number_ge_3007015	2	1	-	-
 tcxonc	2	1	-	-
 tiocgsize	2	1	-	-
 tiocssize	2	1	-	-
+trace	2	1	-	-
 unicode	2	1	-	-
 use_be_cairo	2	1	-	-
 use_fortify_level_3_glibc_clang	2	1	-	-
@@ -801,6 +805,7 @@ rand_2g	1	1	-	-
 rand_32767	1	1	-	-
 regex_debug_re_str	1	1	-	-
 regex_libc_weight	1	1	-	-
+render_version_ge_0_2	1	1	-	-
 replace_copy_file_range	1	1	-	-
 replace_dirfd	1	1	-	-
 replace_dup3	1	1	-	-

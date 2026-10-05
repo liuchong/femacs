@@ -10025,3 +10025,24 @@
   ④ **下一批第一项（点名，带指针）**：`lib/include/signal.rs` 与 `nt/inc` 的 MinGW `<signal.h>` 镜像**同刻在
      Rust 里共存**，`SIG_BLOCK`/`SIG_UNBLOCK`/`SIG_SETMASK`/`sigaction`/`SIGTRAP`… 一类共 **22 个名字**的
      `E0428`——`docs/ports/w32proc.md` 134-135 **已经逐条记过**，本批照它给的清单继续。
+
+- **3.515 `src/ralloc.c` 整文件入库（2026-10-05）**：
+  ① **范围**：`femacs/src/ralloc.rs` 17 → **1570** 行（C 1-1214 全落；18 个函数、7 个宏、2 个结构体 +
+     2 个 typedef、13 个文件级对象）；台账 `docs/ports/ralloc.md` 24 → **287** 行（31 行 C 区间表，覆盖 1-1214）。
+  ② **门**：文件门 `all (rel_alloc, no_system_malloc)`（`configure.ac` 7320-7326 + `Makefile.in` 495 的
+     `RALLOC_OBJ`），子门 `have_malloc_h`/`doug_lea_malloc`/`debug`/`no_system_malloc` 各自两臂；
+     `check-cond-eval.py` → `9 conditions, 0 unknown, 0 disagreements [VERIFIED]`。
+  ③ **读数**：冻结 `build-tu` **exit 0**（336 字节空对象）；臂 `rel_alloc+no_system_malloc` **exit 0 / 0 error**
+     （7,879,024 B rlib，错误 0 条、本单元 0 条 warning 之外的都由镜像产生）；**变异实测**（P-86 ⑦）注入后
+     报 `E0308` 落在注入行 ⇒ 0 错是真读数；`extract-abi --check` **只剩行数行**（29.3%）。
+  ④ **集成者登记**：容差行 **`ralloc 0.30`**（加后 `--check` 即 OK）；`port-lines-pending` /`port-map`/
+     `feature-coverage` 重算（本件给 `rel_alloc` 加了 55 处、`no_system_malloc` 十余处站点）。
+  ⑤ **lane 量到的镜像缺口（点名，归镜像轮）**：⑴ `include/lisp.rs` **未带 `<string.h>`/`<stdlib.h>`**
+     （C 经 lisp.h 链到达 `memmove`/`memset`/`malloc`/`free`；本单元按 `buffer.rs` 38/41 的读法在单元内补边）；
+     ⑵ 同镜像 3756 行用不稳定的 `core::ffi::VaList`（`c_variadic`）——仓库 pin 的 nightly 下无害，本机 stable
+     下任何含该镜像的单元 **E0658**（`include/jni.rs` 167+ 同类）；⑶ `lib/include/unistd.in.rs` 未声明 `sbrk`；
+     ⑷ `refill_memory_reserve` 的声明/定义 ABI 不一致（`lisp.h` 4437-4439 是 `extern void (void)`，
+     `src/alloc.rs` 4557 是纯 Rust `unsafe fn`）——`rel_alloc` 真链接时会暴露，入双方 Owed。
+  ⑥ **未声称**：零行为证据（堆/blob 链、迁移滞回、`extra_bytes` 记账、`sbrk` 语义都只做转写与类型检查）；
+     `M_TOP_PAD`/`mallopt`/`sbrk` 的原型是文档值 **UNVERIFIED**（本机无 glibc `<malloc.h>`）；两结构体无布局断言
+     （该文件不在冻结基线里，没有可比的对侧读数）。
