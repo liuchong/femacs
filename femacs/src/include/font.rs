@@ -518,7 +518,10 @@ pub fn font_data_structures_may_be_ill_formed () -> bool
 {
   #[cfg (any (feature = "use_cairo", feature = "use_be_cairo"))]
   {
-    gc_in_progress
+    /* C 1023-1026 reads the global bare; the port's is a `static mut` (the mirror's own
+       declaration), so the read needs the `unsafe` block - without it the Cairo/pgtk arms read
+       `E0133 use of mutable static` (measured on the `xsettings` pgtk-only arm, status 3.542).  */
+    unsafe { gc_in_progress }
   }
   #[cfg (not (any (feature = "use_cairo", feature = "use_be_cairo")))]
   {

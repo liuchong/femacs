@@ -32,7 +32,14 @@
 /// Xlib.h 426-429: `typedef struct { short x, y; unsigned short width, height; } XRectangle;`
 /// - its consumers are the X11 arms *and* the pgtk arms (`src/pgtkim.c` passes one to
 /// `pgtk_im_set_cursor_location`), so the gate is the union (status 3.496).
-#[cfg (any (feature = "have_x_windows", feature = "have_pgtk"))]
+/* X11-only, *not* `any (have_x_windows, have_pgtk)`: C's pgtk builds have no Xlib and get these
+   two names from `pgtkgui.h`'s own definitions (a 16-byte `{ int x, y; unsigned width, height; }`
+   and a `void *`), which `include/pgtkgui.rs` carries under `all (have_pgtk, not
+   (have_x_windows))` (status 3.533).  With the `any` gate both were live in a pgtk arm and it read
+   `E0428` for `XRectangle` and `XrmDatabase` (measured on the `xsettings` pgtk-only arm, status
+   3.542).  This file's own note at `XrmDatabase` below already says the name "belongs to the PGTK
+   line to move, not to this one to duplicate".  */
+#[cfg (feature = "have_x_windows")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct XRectangle
@@ -205,7 +212,7 @@ pub type Bool = c_int;
 /// `include/pgtkgui.rs` 122 is unreachable - nothing in the tree `include!`s that mirror (measured
 /// 3.334) - and it belongs to the PGTK line to move, not to this one to duplicate.  C's pointee is
 /// an incomplete tag, so the port keeps C's text in this comment and the untyped pointer (rule 3).
-#[cfg (any (feature = "have_x_windows", feature = "have_pgtk"))]
+#[cfg (feature = "have_x_windows")]
 pub type XrmDatabase = *mut c_void;
 
 /// Xresource.h 84: `typedef int XrmQuark, *XrmQuarkList;`

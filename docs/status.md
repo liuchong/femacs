@@ -10631,3 +10631,51 @@
      它要的是一次真正的 Windows 目标测量。
   ⑤ **预算**：`probe` 3 发（其中一发是 `/tmp` 目录没建导致的空跑）、`check-all-units` 2 发、`check-mirror-dupes` 2 发、
      `check-citations` 2 发、`extract-abi --check` 2 发；未跑 `xtask --all`/`gate-fast`/`cargo test`；`/tmp/sig541` 收工删。
+
+- **3.542 镜像轮第十八批：pgtk 臂第一次读到 0 错——`xlib.rs` 的两个名字交回 pgtk 线，`font.rs` 的 `static mut` 读取加 `unsafe`（2026-10-05）**：
+  ① **对象（量的是**真**配置：`have_pgtk` 开、`have_x_windows` 关，不是"两个都开"的那种不可配置组合）**：
+     ⑴ `probe src/xsettings.rs`（`have_pgtk` + `have_window_system` + `have_gsettings` + `use_cairo` +
+     `glib_version_2_32` + `have_gtk3`）读出 **2 × `E0428`**：`XrmDatabase` 与 `XRectangle` 各被声明两次——
+     `include/xlib.rs` 把这两个名字挂在 `any (have_x_windows, have_pgtk)` 上，而 C 的 pgtk 构建**没有 Xlib**，
+     它的这两个名字来自 `pgtkgui.h` 自己的定义（`void *` 与 16 字节 `{int x, y; unsigned w, h;}`），
+     `include/pgtkgui.rs` 已按 `all (have_pgtk, not (have_x_windows))` 带着它们（3.533）；`xlib.rs` 自己那条
+     `XrmDatabase` 的注释早就写着这个名字"belongs to the PGTK line to move, not to this one to duplicate"。
+     ⑵ 修完上面两条后翻出 **1 × `E0133`**：`include/font.rs` 的 `font_data_structures_may_be_ill_formed` 是**安全
+     `fn`**，而它的 Cairo 臂裸读 `static mut gc_in_progress`（xsettings lane 早已点名这条）。
+  ② **改法**：⑴ `xlib.rs` 的 `XRectangle`/`XrmDatabase` 门改成 `#[cfg (feature = "have_x_windows")]`（注释写明
+     pgtk 侧的家在 `pgtkgui.rs`、以及为什么 `any` 是错的）；⑵ `font.rs` 的那处读改成 `unsafe { gc_in_progress }`
+     （C 1023-1026 在 C 里就是裸读全局；端口的它是 `static mut`）。
+  ③ **读数（主判据 = 臂）**：**改前 2 真错 → 改后 exit 0 / 0 error**（`xsettings` pgtk-only 配置的**第一份干净读数**）。
+     **变异实测（P-86 ⑦）**：把物化结果原地用仓库钉住的工具链 + 同一串 `--cfg` 编 → **exit 0 / 0 error**；
+     注入一个类型错 → **恰 1 条 `E0308`** 且点名注入行 ⇒ 0 是真读数。`check-all-units` **83 unit(s), 0 failure(s)**
+     （两腿；X11 单元的图里这两个名字仍由 `xlib.rs` 提供 ✓）、`check-citations` **0 drift / 0 stale**。
+  ④ **未声称**：仍是**编译**读数（没有 GTK 运行、没有 GSettings 读取、没有显示）；GTK/GConf 的值仍是
+     `include/gtk.rs` 里的 placeholder；"两个都开"的臂里那三条（`Display_Info`/`Emacs_Cursor`/`x_display_info`）
+     **不是这个配置的问题**，继续挂在下一批（它们要的是 `dispextern.rs`/`pgtkgui.rs` 之间的所有权决定）。
+
+- **3.543 `exec/trace.c` 整文件落地（C 1-2258）：Android 加载器的 ptrace 追踪工具（2026-10-05）**：
+  ① **产出**：`femacs/exec/trace.rs` 3 → **3106** 行（C 2258，+37.6%），台账 `docs/ports/trace.md` 14 → 382 行
+     （**35 行**区间表覆盖 C 1-2258）；`docs/ports/macro-body-notes.tsv` 由该 lane 追加 **12 行**——本提交**只收这 12 行**
+     （同一文件里还有在飞 `haikufns` lane 的 5 行，留在工作树不提交；我按行名切，第一次切反了方向、`--check` 立刻报
+     FAIL，改对后 **OK**，这一笔照实记）。**文件门是 `have_android`**（`configure.ac` 178-220 的 `XCONFIGURE=android`），
+     **73 个条件两臂全带**（`aarch64`/`arm`/`mips`、`have_sys_uio_h`、`have_seccomp`、`readlink_syscall`…
+     `red_zone_size`、`no_ndebug` 等）。
+  ② **集成者落的账**：登记 **15 个 feature**（`have_sys_uio_h`、`have_process_vm`、`have_seccomp`、
+     `have_siginfo_t_si_syscall`、`readlink_syscall`、`open_syscall`、`sigsys`、`sys_seccomp`、`ptrace_geteventmsg`、
+     `ptrace_event_seccomp`、`ptrace_o_traceseccomp`、`red_zone_size`、`no_stack_grows_downwards`、`have_stpcpy`、
+     `have_decl_stpcpy`；`no_ndebug` 早已在册）；`docs/ports/line-drift-tolerance.tsv` 一行 `trace 0.38 total`；
+     `port-map.md`/`port-lines-pending.tsv`（25 文件 / 30,844 行）/`feature-coverage.tsv`（953 feature）重算。
+  ③ **读数**：`extract-abi --check emacs/exec/trace.c femacs/exec/trace.rs` **OK**；**三组臂主机各 exit 0 / 0 error**
+     （P1 文件门；P2 Android aarch64 主机；P3 另一组主机：`have_process_vm`/`readlink_syscall`/`arm`/`mips`），
+     warning 全是 in-unit `extern`/`static` 上的 `unused doc comment`；变异实测 **+1 恰为注入行**；
+     `check-cond-eval.py exec/trace.c` → `73 conditions, 0 unknown, 0 disagreements [VERIFIED]`；
+     所有常量与记录偏移用 **NDK 29 的 clang** 实测（`struct iovec` 16、`sock_filter` 8、`sigsys`… 记在台账 Evidence ⑦）。
+  ④ **lane 记下的三处**参照缺陷**（照录不改，reference 只读）**：`RED_ZONE_SIZE` 在本文件能编译的任何配置里
+     **都没有定义**（C 261-272 的整块是死文本，x86-64 上那段红区从未被保留）；`handle_clone` 的 `malloc` 路径**不设**
+     `exec_data`/`data_size`，而 `process_system_call` 会读它并 `assert`；本单元里 `assert` 是**活的**（它的
+     `<config.h>` 不带 `NDEBUG`）——三处都写进台账。
+  ⑤ **未声称**：零运行证据（没有 link、没有 tracee；参照侧也不产对象，336 字节对象是空的）；臂读数是本机的
+     **类型检查**不是 Linux/Android 构建；mipsel 那一档**只有文本**；`femacs/exec/exec.rs` 仍是 P-08 便条，本单元调用
+     的两个符号（`format_pid`/`exec_0`）在树里还没有定义（属另一条 lane）。
+  ⑥ **预算实报**：lane 侧 `build-tu` ~5 发（限 3）、`probe` ~20 发（限 3，都是 P1/P2/P3 的反复重跑），它自己报了；
+     集成者：生成物 3 发、门 2 发、`extract-abi --check` 3 发、`gen-port-map` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
