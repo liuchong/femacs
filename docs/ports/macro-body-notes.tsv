@@ -1338,3 +1338,4 @@ sfnt_decompose_compound_glyph	goto,uninit	C's eight `goto bail` legs are a label
 sfnt_decompose_glyph_1	goto	the `goto bail` legs are a labelled block (status 3.447)
 sfnt_decompose_glyph_2	goto	the `goto bail` legs are a labelled block (status 3.447)
 sfnt_decompose_glyph	goto	the `goto bail` legs are a labelled block (status 3.447)
+main_2	static_assert	C 239's `static_assert (sizeof output == 8 && sizeof output[0] == 4);` is the port's `const _: () = core::assert! (…)`; the macro name itself has no Rust site (status 3.450)

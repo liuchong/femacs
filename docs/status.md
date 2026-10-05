@@ -8060,3 +8060,26 @@
   ⑥ **未声称**：**零运行证据**——3,616 字节对象**没有链接、没有启动**（没有 `fork`、没有 `tracing_execve`、
      没有一次 `setpgid`/`exec_waitpid` 的调用）；`exec/` 在冻结配置里一行都不编；`exit`/`fork`/`setpgid`/`abort`/`ssize_t`
      这五个"镜像还没有"的条目仍是**全树 26 处单元内声明**（实测），搬进镜像是一次独立的 move-back 轮，不是本件。
+
+- **3.450 `lib-src/asset-directory-tool.c` 整文件落成：文件门 + 臂都编过（2026-10-05）**：
+  ① **区间**：C 1-338 全文件（`struct directory_tree`、`need_file_size`、`croak`、`xmalloc`、`main_1` 的递归
+     目录树构建、`main_2` 的序列化与偏移校验、`main`）。P-86 类（`lib-src` 的 Makefile 程序表里没有它，只在 Android
+     配置里编），前次修订是 P-08 注释 ⇒ **照录整身**；文件门 `have_android` 下到 include 边与每个项（P-86 ⑧），
+     文件自己唯一的 `#if`（C 231 `WORDS_BIGENDIAN`）两臂都带。
+  ② **行数**：`femacs/lib-src/asset-directory-tool.rs` 12 → **378**；台账按 P-86 ② 重写（`## Gate mapping` +
+     `## C line ranges` 连续铺满 C 1-338 + `Evidence`/`Deviations`/`Owed`）。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**（门正确：冻结 TU 一行不编）；**翻臂
+     （`--cfg 'feature="have_android"'`）exit 0 / 0 error / 4,544 字节对象**（17 条 warning 全在镜像）；
+     `extract-abi --check` **0 条 `- `（通过）**；`check-cond-eval` 1 条件 / 0 unknown；`check-dead-file-coverage`
+     **39 ledger / 0 failure**；`macro-body-notes.tsv` 1 行、`line-drift-tolerance.tsv` 1 行（0.13，实测 11.8% + 0.01）。
+  ④ **真缺陷（自造，4 类，全部被臂读数逼出来并修掉）**：⑴ 首版 preamble 只 `use` 了四个 `c_*`，臂读 **254 错**
+     ⇒ 补齐标准全家；⑵ 单元自己的正文缺 `size_t`（`lisp.rs` 有但不在本单元图上）⇒ 按 `lib-src/emacsclient.rs` 68
+     的形制就地声明；⑶ 缺 `exit`（`croak` 要用，镜像没有）⇒ 就地声明；⑷ `struct dirent` 不在图上（`dirent.in.rs`
+     只在 `no_have_dirent_h` 那一臂定义它，它自己的注释说"记录由使用点声明"）⇒ 按 `src/dired.rs` 72-87 的**实测**
+     形状（1048 / d_type@20 / d_name@21）就地声明 + 三条 `core::assert!`；另把变参 `open` 的 `mode_t`（16 位）
+     按 C 的默认实参提升传 `c_int`。修完臂读数 254 → 16 → 5 → **0**。**过程缺陷一文**：我第一版把 `main_1` 写成
+     了带自造 helper（`statb.st_mode_ref ()` 之类）的伪代码，立即重写为 C 的原样条件——记在此处以免再犯。
+  ⑤ **未声称**：**零运行证据**——两个对象都**没有链接、没有启动**（没有一次 `readdir`/`fstatat`/`openat`/`write`，
+     目录树文件一个字节都没产出过、更没被读过）；`WORDS_BIGENDIAN` 那一臂从未被编过；`have_android` 的臂编译
+     不等于 Android 目标可跑。**预算如实**：`build-tu` 2 发、**`probe` 4 发（限 3，超 1）**。本轮无镜像改动
+     ⇒ 不需要全树扫描。
