@@ -74,3 +74,12 @@
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures;
   `check-target-names` 576 .rs files / 592 map targets / 0 findings (the file count includes mirrors other lanes landed in the same session).
+
+## 2026-10-05: the five entry points move into `w32heap_decls` (3.513)
+
+C 36-38/41-45's `mmap_realloc`/`mmap_free`/`mmap_alloc`/`sbrk`/`init_heap` are the five names
+`src/w32heap.c` defines (C 100-151, 300-310), so their top-level copies were `E0428` in that unit
+(the lane's flip, status 3.504: five of its 33 errors).  They live in a `w32heap_decls` module the
+mirror glob-imports (P-39; `get_data_start`/`get_data_end`/`report_temacs_memory_usage`/
+`reserved_heap_size` stay at the top level - that unit does not define them).  Same flip after the
+move: **33 -> 27 errors**, the rest named in `docs/ports/w32heap.md`'s Owed.

@@ -45,20 +45,37 @@ unsafe extern "C" {
   pub fn get_data_start () -> *mut u8;
   pub fn get_data_end () -> *mut u8;
   pub static mut reserved_heap_size: usize;
-  pub fn mmap_realloc (block: *mut *mut c_void, size: usize) -> *mut c_void;
-  pub fn mmap_free (block: *mut *mut c_void);
-  pub fn mmap_alloc (block: *mut *mut c_void, size: usize) -> *mut c_void;
 
   /// C 39: `report_temacs_memory_usage` prints the heap's state for the `temacs` build.
   /// C: extern void report_temacs_memory_usage (void);
   pub fn report_temacs_memory_usage ();
 
-  /// C 41-45: the Unix emulation and its one-time initializer.
-  /// C: extern void *sbrk (ptrdiff_t size);
-  /// C: extern void init_heap (void);
-  pub fn sbrk (size: isize) -> *mut c_void;
-  pub fn init_heap ();
 }
+
+/* C 36-38/41-45's five entry points `src/w32heap.c` **defines** (C 300-310's `sbrk`, C 100-151's
+   `init_heap` and the three mmap-shaped allocators) are declared in a module the mirror
+   glob-imports (P-39): a copy at the top level is `E0428` in that unit - measured: five of them
+   on `src/w32heap.rs`'s flip (status 3.504).  A glob import is shadowed by the including unit's
+   own definition, which is the property this class needs.  */
+#[cfg (feature = "windowsnt")]
+pub mod w32heap_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: extern void *mmap_realloc (void **, size_t);
+    pub fn mmap_realloc (block: *mut *mut c_void, size: usize) -> *mut c_void;
+    /// C: extern void  mmap_free (void **);
+    pub fn mmap_free (block: *mut *mut c_void);
+    /// C: extern void *mmap_alloc (void **, size_t);
+    pub fn mmap_alloc (block: *mut *mut c_void, size: usize) -> *mut c_void;
+    /// C: extern void *sbrk (ptrdiff_t size);
+    pub fn sbrk (size: isize) -> *mut c_void;
+    /// C: extern void init_heap (void);
+    pub fn init_heap ();
+  }
+}
+#[cfg (feature = "windowsnt")]
+use w32heap_decls::*;
 
 /* ----------------------------------------------------------------- */
 /* Useful routines for manipulating memory-mapped files.  */

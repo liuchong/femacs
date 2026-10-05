@@ -81,3 +81,14 @@
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failures;
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures.
+
+## 2026-10-05: the four entry points move into `widget_decls` (3.513)
+
+C 88-90 declares four names `src/widget.c` **defines** (C 146-514), and an `unsafe extern` item at
+this mirror's top level is `E0428` in that unit - measured: four of them on `src/widget.rs`'s flip
+(status 3.504's reading of 5 errors, 4 of them this).  They now sit in a `widget_decls` module the
+mirror glob-imports, the `include/lwlib-Xlw.rs` 3.500 / `include/emacsgtkfixed.rs` 3.496 shape:
+**a glob import is shadowed by the including unit's own definition, while an `extern` item is
+not** - which is exactly the property this class of name needs, and why P-39 reads the way it
+does.  Same flip after the move: **1 error**, `cannot find type font` in `include/xterm.rs` 774
+(the next item, named there).

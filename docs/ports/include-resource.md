@@ -30,3 +30,11 @@ no clang measurement: they are literals and typedefs from the Windows SDK's own 
 Evidence: `python3 tools/extract-abi.py --check emacs/nt/inc/sys/resource.h
 femacs/nt/inc/sys/include/resource.rs` -> `OK`.
   `../spikes/f_inc_probe.rs` compiles this mirror: it is the only compiler it has.
+
+## 2026-10-05: `getrlimit`/`setrlimit` move into `resource_decls` and the mirror names its own types (3.513)
+
+C 50-51's two entry points are defined by `src/w32heap.c` (C 483-554), so their top-level copies
+were `E0428` there, and the file's `rlim_t = c_longlong` named a type nothing imported (`E0412`/
+`E0425` in the same flip).  Both fixes land together: the two prototypes sit in a
+`resource_decls` module the mirror glob-imports (P-39), and the file's `use core::ffi::*;` supplies
+C's own scalar names (P-70's rule for a mirror whose header the port does not carry).

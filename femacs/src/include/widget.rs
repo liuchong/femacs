@@ -156,10 +156,22 @@ pub type EmacsFrame = *mut c_void;
 #[cfg (feature = "use_x_toolkit")]
 pub type EmacsFrameClass = *mut c_void;
 
+/* C 88-90 declares four entry points that `src/widget.c` **defines** (C 146-514), so a copy at
+   this mirror's top level is `E0428` in that unit - measured: four of them on `src/widget.rs`'s
+   flip (status 3.504).  They sit in a module the mirror glob-imports afterwards (P-39, the
+   `include/lwlib-Xlw.rs` 3.500 and `include/emacsgtkfixed.rs` 3.496 shapes): a *glob* import is
+   shadowed by a definition in the including unit, while an `unsafe extern` item is not, which is
+   exactly the difference this class needs.  */
 #[cfg (feature = "use_x_toolkit")]
-unsafe extern "C" {
-  pub fn emacsFrameClass () -> WidgetClass;
-  pub fn EmacsFrameSetCharSize (w: Widget, columns: c_int, rows: c_int);
-  pub fn widget_store_internal_border (widget: Widget);
-  pub fn widget_update_wm_size_hints (widget: Widget, frame: Widget) -> bool;
+pub mod widget_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn emacsFrameClass () -> WidgetClass;
+    pub fn EmacsFrameSetCharSize (w: Widget, columns: c_int, rows: c_int);
+    pub fn widget_store_internal_border (widget: Widget);
+    pub fn widget_update_wm_size_hints (widget: Widget, frame: Widget) -> bool;
+  }
 }
+#[cfg (feature = "use_x_toolkit")]
+use widget_decls::*;

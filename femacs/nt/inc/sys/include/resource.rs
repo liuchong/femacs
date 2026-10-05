@@ -5,6 +5,10 @@
 // compiled by the layout probe; the enum keeps C's shape (PORTING.md 1.3: the C type plus one
 // constant per member) and the two prototypes stay declarations.
 
+// C 17-19's `<sys/types.h>` chain gives this header C's own names; the port names the ones
+// it uses (PORTING.md P-70's rule for a mirror whose header is not carried).
+use core::ffi::*;
+
 // C 21: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const INC_SYS_RESOURCE_H_: bool = true;
 
@@ -37,9 +41,18 @@ pub struct rlimit
   pub rlim_max: rlim_t,   /* hard limit */
 }
 
-unsafe extern "C" {
-  /// C 50: `extern int getrlimit (rlimit_resource_t, struct rlimit *);`
-  pub fn getrlimit (resource: rlimit_resource_t, rlp: *mut rlimit) -> c_int;
-  /// C 51: `extern int setrlimit (rlimit_resource_t, const struct rlimit *);`
-  pub fn setrlimit (resource: rlimit_resource_t, rlp: *const rlimit) -> c_int;
+/* C 50-51's two entry points `src/w32heap.c` **defines** (C 483-554), so a copy at this mirror's
+   top level is `E0428` in that unit - measured: two of them on `src/w32heap.rs`'s flip
+   (status 3.504).  They sit in a module the mirror glob-imports (P-39), whose items an including
+   unit's own definitions shadow.  */
+pub mod resource_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C 50: `extern int getrlimit (rlimit_resource_t, struct rlimit *);`
+    pub fn getrlimit (resource: rlimit_resource_t, rlp: *mut rlimit) -> c_int;
+    /// C 51: `extern int setrlimit (rlimit_resource_t, const struct rlimit *);`
+    pub fn setrlimit (resource: rlimit_resource_t, rlp: *const rlimit) -> c_int;
+  }
 }
+use resource_decls::*;

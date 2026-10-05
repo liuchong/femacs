@@ -9986,3 +9986,24 @@
      提交信息里。
   ⑥ **未声称**：零运行证据（没链接、没连会话管理器；本机无 libSM/libICE ⇒ XSMP 半身无法在此机执行）；
      两臂停在 rustc 错误上（无 `.rlib`）；镜像侧的错误点名不修。
+
+- **3.513 镜像轮第五批：三条声明面搬进 `_decls`（widget / w32heap / resource）（2026-10-05）**：
+  ① **改动**：⑴ `femacs/src/include/widget.rs`：C 88-90 的四个入口点（`src/widget.c` C 146-514 **定义**
+     它们）搬进 `widget_decls` + glob；⑵ `femacs/src/include/w32heap.rs`：C 36-38/41-45 的五个
+     （`mmap_realloc`/`mmap_free`/`mmap_alloc`/`sbrk`/`init_heap`，`src/w32heap.c` 定义）搬进
+     `w32heap_decls` + glob；⑶ `femacs/nt/inc/sys/include/resource.rs`：C 50-51 的两条搬进
+     `resource_decls` + glob，并补 `use core::ffi::*;`（`rlim_t = c_longlong` 此前无名可用，P-70）。
+  ② **形状的理由写进了三处注释**（这是本批的核心）：**glob 导入会被包含单元的自身定义遮蔽，而
+     `unsafe extern` 项不会**——所以 P-39 的"模块 + glob"正是这一类名字要的；否则镜像一有同名定义就 `E0428`。
+  ③ **读数**：`src/widget.rs` 的翻臂 **5 → 1**（剩下 `include/xterm.rs` 774 的 `cannot find type font`，见 ④）；
+     `src/w32heap.rs` 的翻臂 **33 → 27**（去掉本批的 7 条，剩下的按类：`mode_t`/`pid_t` 6 条、
+     `lib/include/signal.rs` 与 MinGW `<signal.h>` 镜像的 4 条 `E0428`（`SIG_BLOCK`/`SIG_UNBLOCK`/`SIG_SETMASK`/
+     `sigaction`）——**最后这一类的 22 个名字 `docs/ports/w32proc.md` 134-135 已记**，是下一批的第一项）。
+  ④ **本批自己踩的坑（已修，记下来）**：改 `w32heap.rs` 时留下一条悬空的 `///`（文档注释没有可注释的项）⇒
+     `layout-check` 报 `E0584`；以及第一版没删干净 `mmap_realloc` 的旧声明（会与模块的 glob 撞名）。
+  ⑤ **验收**：`layout-check` **passed**、`check-all-units` **83 unit(s), 0 failure(s)**（P-87 ①：动过
+     `femacs/{src,lib}/include/*.rs` 与 `nt/inc/**` 必跑）、`check-mirror-dupes` 17/17/0、
+     `check-declarations` **17/0/0**、`check-citations` **0 drift / 0 stale**、`check-dead-file-coverage` 84/0。
+  ⑥ **未声称**：零运行证据（两条臂都只是本机 rustc 的类型检查）；`include/xterm.rs` 774 的 `font`、
+     `signal.rs` vs MinGW 的 22 个名字、`mode_t`/`pid_t` 的落点、`include/widgetprv.rs` 的 by-value
+     `CorePart`、`include/dispextern.rs` 的 `character.h` 边仍是欠账（各自台账点名）。
