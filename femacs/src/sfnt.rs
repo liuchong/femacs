@@ -23,13 +23,34 @@
 // glyph-variation group - `sfnt_read_packed_deltas`, `sfnt_read_cvar_table`, the three blend
 // helpers, the `gvar` glyph header record, `sfnt_compute_tuple_scale`, the three interpolators,
 // the two appliers, `sfnt_vary_interpreter` and the `OS/2`/`post` readers - which is this file's
-// **last non-TEST block**: C 16448's `#ifdef TEST` opens the test programme and runs to C 21215).
-// **The next live definition is still C 6316's `sfnt_init_graphics_state`**, unblocked: its callee
-// is in the file at C 10538's text, and only Owed 12's second half (`sfnt_make_interpreter`'s
-// C 6427-6431 `#ifdef TEST` hooks) and the C 6316-10224 block itself remain; the next range after
-// slice 8 is C 16448-21215, the TEST programme (the ledger's Owed 21).  The ledger
-// `docs/ports/sfnt.md` carries the C line-range table for the fifty-five rows (up to C 21215), the
+// **last non-TEST block**: C 16448's `#ifdef TEST` opens the test programme and runs to C 21215),
+// and slice 9 (C 6312-6557: `sfnt_init_graphics_state`, `sfnt_make_interpreter`, the
+// `sfnt_interpreter_run_context` enum and `sfnt_interpret_trap`; and C 8161-10224: the whole
+// interpreter-helpers block - the zone addressing/storing/moving family, the projection and
+// rounding helpers, `sfnt_interpret_utp` through `sfnt_interpret_else` - with the C 6559-8159
+// macro region left to `sfnt_interpret_run`'s slice, above).
+// **What is left after slice 9** is C 6559-8159 (the interpreter macros, whose home is
+// `sfnt_interpret_run`'s slice, above), C 10664-13917 (the rest of the interpreter -
+// `sfnt_interpret_shz` through the instructed-outline builders, the three compound-glyph
+// interpreters and the UVS family) and C 16448-21215, the TEST programme (the ledger's Owed 21);
+// C 9832's `sfnt_interpret_call` is the one landed call whose callee (`sfnt_interpret_run`) is
+// still unported
+// (P-91 ④ names it).  The ledger
+// `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
+//
+// **Slice 9 takes C 6312-6557 and C 8161-10224** - the two halves of the C 6307-10224 block that
+// stand *outside* C 6559-8159 - and leaves that middle region to the lane that ports
+// `sfnt_interpret_run` (C 11396), for the reason P-57 gives: C's ~130 interpreter-instruction
+// macros are file scope in C but their bodies name the *caller's* `interpreter` (and `is_prep`,
+// and `sfnt_interpret_run`'s own labels - `ELSE`'s `goto skip_step`, `CALL`'s
+// `goto next_instruction`, the six `goto deltac1_start`-family jumps of the DELTA instructions),
+// which a `macro_rules!` resolves at its **definition** site.  The tree's answer (PORTING.md
+// P-57, `src/coding.rs` / `src/ccl.rs`) is one in-function copy per using function, and the only
+// four of those macros the two ranges here *use* are `TRAP` (C 6562), `POP` (C 6597, C's live
+// `#ifndef TEST` arm), `PROJECT` (C 7777) and `DUAL_PROJECT` (C 7780) - each is defined inside
+// every function that calls it, and every call site keeps C's own spelling.  The rest of
+// C 6559-8159 has no Rust text yet, and the ledger's range table says so at its own C position.
 //
 // The frozen configuration compiles no `sfnt.o`: `configure.ac` 2645 adds `sfnt.o` to
 // `ANDROID_OBJ` only inside the `XCONFIGURE = android` branch (the `REALLY_ANDROID` one,
@@ -132,7 +153,17 @@ include!("../lib/include/unistd.in.rs");               // C 36: `#include <unist
 include!("../lib/include/sys_types.in.rs");            // unistd.h 40: `#include <sys/types.h>` (off_t)
 /* C 37's `#include <setjmp.h>`: this tree has no setjmp mirror, and the member it exists for
    (`struct sfnt_interpreter`'s `trap`, sfnt.h 2010) is lisp.rs 1058's 192-byte array type.
-   C 1-1112 names neither.  */
+   C 1-1112 names neither.  C 6556's `longjmp` is this tree's first *plain* one (image.c's two go
+   through C's own `sys_longjmp` spelling), so the name stands here with C's own prototype (P-88
+   ①).  **Measured, not assumed**: a program calling `setjmp`/`longjmp` on this target links
+   `_setjmp`/`_longjmp` in `nm -u`'s notation - i.e. the two plain functions, *not* the
+   `_setjmp`/`_longjmp` pair `lisp.rs` 3618/3623's `sys_*` wrappers call - and
+   `sizeof (jmp_buf)` prints **192**, which is the array width lisp.rs 1068 declares.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `<setjmp.h>`'s `void longjmp (jmp_buf, int) __attribute__((noreturn));`
+  pub fn longjmp (env: *mut jmp_buf, val: c_int) -> !;
+}
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 include!("../lib/include/errno.in.rs");                // C 38: `#include <errno.h>`
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -7200,6 +7231,2386 @@ unsafe fn sfnt_round_f26dot6 (mut x: sfnt_f26dot6) -> sfnt_f26dot6
 
   /* Remove the fractional.  */
   return x & !0o77;
+}
+
+/* C 6307's blank line, then C 6308-6309's comment "Needed by sfnt_init_graphics_state." and
+   C 6310's `static void sfnt_validate_gs (struct sfnt_graphics_state *);`.  Rust has no
+   prototype for a `static` function (PORTING.md 0.1-12 deletes C's forward declarations), and
+   the definition this prototype names stands in this unit at C 10538's own position (slice 7,
+   P-91 ①) - which is why the two items below can call it.  */
+
+/* Set up default values for the interpreter graphics state.  Return
+   them in STATE.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_init_graphics_state (state: *mut sfnt_graphics_state)
+{                                                          // C 6316-6344
+  (*state).auto_flip = true;
+  (*state).cvt_cut_in = 0o104;
+  (*state).delta_base = 9;
+  (*state).delta_shift = 3;
+  (*state).dual_projection_vector.x = 0o40000; /* 1.0 */
+  (*state).dual_projection_vector.y = 0;
+  (*state).freedom_vector.x = 0o40000; /* 1.0 */
+  (*state).freedom_vector.y = 0;
+  (*state).instruct_control = 0;
+  (*state).r#loop = 1;
+  (*state).minimum_distance = 0o100;
+  (*state).projection_vector.x = 0o40000; /* 1.0 */
+  (*state).projection_vector.y = 0;
+  (*state).round_state = 1;
+  (*state).rp0 = 0;
+  (*state).rp1 = 0;
+  (*state).rp2 = 0;
+  (*state).scan_control = 0;
+  (*state).sw_cut_in = 0;
+  (*state).single_width_value = 0;
+  (*state).zp0 = 1;
+  (*state).zp1 = 1;
+  (*state).zp2 = 1;
+
+  /* Validate the graphics state.  */
+  sfnt_validate_gs (state);
+}
+
+/* Set up an interpreter to be used with a font.  Use the resource
+   limits specified in the MAXP table, the values specified in the
+   CVT, HEAD and FVAR tables, the pixel size PIXEL_SIZE, and the point
+   size POINT_SIZE.  CVT may be NULL, in which case the interpreter
+   will not have access to a control value table.
+
+   POINT_SIZE should be PIXEL_SIZE, converted to 1/72ths of an inch.
+
+   Value is the interpreter, with all state initialized to default
+   values, or NULL upon failure.  */
+
+/* C 6427-6431's `#ifdef TEST` arm assigns `interpreter->run_hook`/`push_hook`/`pop_hook` - the
+   three members `include/sfnt.rs` 2153-2157 deliberately does not transcribe (C 2026-2038's
+   `#ifdef TEST` is dead text there).  The arm has no Rust text until the mirror carries the
+   members; the ledger's Owed 12(b) records the ruling and this lane's `## Deviations`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_make_interpreter (maxp: *mut sfnt_maxp_table,
+						cvt: *mut sfnt_cvt_table,
+						head: *mut sfnt_head_table,
+						fvar: *mut sfnt_fvar_table,
+						pixel_size: c_int, point_size: c_int)
+  -> *mut sfnt_interpreter                                // C 6358-6522
+{
+  let mut size: size_t;
+  let mut temp: size_t;
+  let mut i: size_t;
+  let mut storage_size: size_t;
+  let mut pad: size_t;
+  let mut interpreter: *mut sfnt_interpreter;
+
+  /* Detect CFF maxp tables.  */
+  if (*maxp).version != 0x00010000
+    { return std::ptr::null_mut (); }
+
+  /* Use the contents of the MAXP table to determine the size of the
+     interpreter structure.  */
+  size = std::mem::size_of::<sfnt_interpreter> ();
+
+  /* Add program stack.  */
+  let (ckd_size, add_overflow)
+    = size.overflowing_add ((*maxp).max_stack_elements as size_t
+			    * std::mem::size_of::<uint32_t> ());
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  /* Add twilight zone.  */
+
+  let (ckd_size, add_overflow)
+    = size.overflowing_add ((*maxp).max_twilight_points as size_t
+			    * std::mem::size_of::<sfnt_f26dot6> ());
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  let (ckd_size, add_overflow)
+    = size.overflowing_add ((*maxp).max_twilight_points as size_t
+			    * std::mem::size_of::<sfnt_f26dot6> ());
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  let (ckd_size, add_overflow)
+    = size.overflowing_add ((*maxp).max_twilight_points as size_t
+			    * std::mem::size_of::<sfnt_f26dot6> ());
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  let (ckd_size, add_overflow)
+    = size.overflowing_add ((*maxp).max_twilight_points as size_t
+			    * std::mem::size_of::<sfnt_f26dot6> ());
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  /* Add the storage area.  */
+  storage_size = (*maxp).max_storage as size_t * std::mem::size_of::<uint32_t> ();
+  let (ckd_size, add_overflow) = size.overflowing_add (storage_size);
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  /* Add padding for the storage area.  */
+  pad = std::mem::align_of::<sfnt_interpreter_definition> ();
+  pad -= size & (pad - 1);
+  let (ckd_size, add_overflow) = size.overflowing_add (pad);
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  /* Add function and instruction definitions.  */
+  let (ckd_size, add_overflow)
+    = size.overflowing_add ((((*maxp).max_instruction_defs as c_int
+			      + (*maxp).max_function_defs as c_int) as size_t)
+			    * std::mem::size_of::<sfnt_interpreter_definition> ());
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  /* Add control value table.  */
+
+  if !cvt.is_null ()
+    {
+      let (ckd_temp, mul_overflow)
+	= (*cvt).num_elements.overflowing_mul (std::mem::size_of::<sfnt_f26dot6> ());
+      temp = ckd_temp;
+      if mul_overflow
+	{ return std::ptr::null_mut (); }
+      let (ckd_size, add_overflow) = size.overflowing_add (temp);
+      size = ckd_size;
+      if add_overflow
+	{ return std::ptr::null_mut (); }
+    }
+
+  /* Allocate the interpreter.  */
+  interpreter = xmalloc (size) as *mut sfnt_interpreter;
+
+  /* Fill in pointers and default values.  */
+  (*interpreter).max_stack_elements = (*maxp).max_stack_elements;
+  (*interpreter).num_instructions = 0;
+  (*interpreter).IP = 0;
+  (*interpreter).storage_size = (*maxp).max_storage;
+  (*interpreter).function_defs_size = (*maxp).max_function_defs;
+  (*interpreter).instruction_defs_size = (*maxp).max_instruction_defs;
+  (*interpreter).twilight_zone_size = (*maxp).max_twilight_points;
+  (*interpreter).scale = 0; /* This should be set later.  */
+
+  (*interpreter).stack = interpreter.offset (1) as *mut uint32_t;
+  (*interpreter).SP = (*interpreter).stack;
+  (*interpreter).instructions = std::ptr::null_mut ();
+  (*interpreter).twilight_x
+    = (*interpreter).stack.offset ((*maxp).max_stack_elements as isize)
+      as *mut sfnt_f26dot6;
+  (*interpreter).twilight_y = (*interpreter).twilight_x
+			      .offset ((*maxp).max_twilight_points as isize);
+  (*interpreter).twilight_original_x = (*interpreter).twilight_y
+				      .offset ((*maxp).max_twilight_points as isize);
+  (*interpreter).twilight_original_y
+    = (*interpreter).twilight_original_x
+      .offset ((*maxp).max_twilight_points as isize);
+  (*interpreter).glyph_zone = std::ptr::null_mut ();
+  (*interpreter).advance_width = 0;
+  (*interpreter).storage
+    = (*interpreter).twilight_original_y
+      .offset ((*maxp).max_twilight_points as isize) as *mut uint32_t;
+  (*interpreter).function_defs
+    = (*interpreter).storage.offset ((*maxp).max_storage as isize)
+      as *mut sfnt_interpreter_definition;
+  (*interpreter).function_defs
+    = ((*interpreter).function_defs as *mut u8).offset (pad as isize)
+      as *mut sfnt_interpreter_definition;
+  (*interpreter).instruction_defs = (*interpreter).function_defs
+				   .offset ((*maxp).max_function_defs as isize);
+  (*interpreter).cvt
+    = (*interpreter).instruction_defs
+      .offset ((*maxp).max_instruction_defs as isize) as *mut sfnt_f26dot6;
+
+  if !cvt.is_null ()
+    { (*interpreter).cvt_size = (*cvt).num_elements as usize; }
+  else
+    { (*interpreter).cvt_size = 0; }
+
+  /* Now compute the scale.  Then, scale up the control value table
+     values.  */
+  (*interpreter).scale
+    = sfnt_div_fixed (pixel_size * 64, (*head).units_per_em as sfnt_fixed);
+
+  /* Set the PPEM.  */
+  (*interpreter).ppem = pixel_size;
+  (*interpreter).point_size = point_size;
+
+  /* Zero out the interpreter state from the stack to the end of the
+     instruction definitions.  */
+  memset ((*interpreter).stack as *mut c_void, 0,
+	  size - std::mem::size_of::<sfnt_interpreter> ());
+
+  /* Initialize the interpreter graphics state.  */
+  sfnt_init_graphics_state (&raw mut (*interpreter).state);
+
+  /* Load the control value table.  */
+  i = 0;
+  while i < (*interpreter).cvt_size
+    {
+      *(*interpreter).cvt.offset (i as isize)
+	= sfnt_mul_f26dot6_fixed (*(*cvt).values.offset (i as isize) as sfnt_f26dot6,
+				  (*interpreter).scale);
+      i += 1;
+    }
+
+  /* Fill in the default values for phase, period and threshold.  */
+  (*interpreter).period = 64;
+  (*interpreter).phase = 0;
+  (*interpreter).threshold = 0;
+
+  /* Fill in the current call depth.  */
+  (*interpreter).call_depth = 0;
+
+  /* Clear variation axes.  They will be set upon a call to
+     `sfnt_vary_interpreter'.  */
+  (*interpreter).n_axis = 0;
+  (*interpreter).norm_coords = std::ptr::null_mut ();
+
+  /* Set n_axis now if a fvar table was provided.  This way, GXAXIS
+     pushes the correct number of values even if no blend is
+     provided.  */
+
+  if !fvar.is_null ()
+    { (*interpreter).n_axis = (*fvar).axis_count as c_int; }
+
+  /* Return the interpreter.  */
+  return interpreter;
+}
+
+/* These enums are used to determine why the interpreter is being
+   run.  They have the following meanings:
+
+     - The interpreter is being run to interpret a font program.
+     - The interpreter is being run to interpret the control
+       value program.
+     - The interpreter is being run to fit a glyph.
+     - The interpreter is being run as part of an automated test.  */
+
+/// C 6533-6541: C's `enum sfnt_interpreter_run_context`, both arms; the
+/// `SFNT_RUN_CONTEXT_TEST` member sits behind C 6538's `#ifdef TEST`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type sfnt_interpreter_run_context = c_int;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const SFNT_RUN_CONTEXT_FONT_PROGRAM: sfnt_interpreter_run_context = 0;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const SFNT_RUN_CONTEXT_CONTROL_VALUE_PROGRAM: sfnt_interpreter_run_context = 1;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const SFNT_RUN_CONTEXT_GLYPH_PROGRAM: sfnt_interpreter_run_context = 2;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+pub const SFNT_RUN_CONTEXT_TEST: sfnt_interpreter_run_context = 3;
+
+/* Cancel execution of the program in INTERPRETER with the specified
+   error REASON and reset the loop counter to 1.
+
+   After this is called, it is probably okay to reuse INTERPRETER.
+   However, instructions must always be reloaded.  */
+
+/* C 6549's `static AVOID` is `_Noreturn ATTRIBUTE_COLD void` (lisp.h 153; the port writes
+   `-> !`, `docs/ports/excluded-macros.txt`'s `AVOID` row).  C 6556's `longjmp` is the first
+   plain `longjmp` in this tree: `<setjmp.h>` has no mirror, so the name is declared in this
+   unit at C 37's site above (P-88 ①) - the call keeps C's name and C's argument.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_trap (interpreter: *mut sfnt_interpreter,
+			       reason: *const c_char) -> !
+{                                                          // C 6550-6557
+  (*interpreter).trap_reason = reason;
+  (*interpreter).call_depth = 0;
+  (*interpreter).state.r#loop = 1;
+  longjmp (&raw mut (*interpreter).trap, 1);
+}
+
+/* Multiply the specified MAGNITUDE by the contents of INTERPRETER's
+   freedom vector and return the result in *DX and *DY.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_scale_by_freedom_vector (interpreter: *mut sfnt_interpreter,
+					magnitude: sfnt_f26dot6, dx: *mut sfnt_f26dot6,
+					dy: *mut sfnt_f26dot6)
+{                                                          // C 8162-8171
+  let mut vector: *mut sfnt_unit_vector;
+
+  vector = &raw mut (*interpreter).state.freedom_vector;
+  *dx = sfnt_mul_f2dot14 ((*vector).x, magnitude);
+  *dy = sfnt_mul_f2dot14 ((*vector).y, magnitude);
+}
+
+/* Interpret a UTP instruction with the point P in INTERPRETER.
+   Unset any ``touched'' flag inside the point P, relative to the
+   zone in INTERPRETER's ZP0 register.
+
+   Trap upon encountering an out of bounds point.  */
+
+/* C 6562's `#define TRAP(why) sfnt_interpret_trap (interpreter, why)` is a `macro_rules!`
+   *here*, not at C's file scope: its body names the `interpreter` parameter of this function, and
+   a `macro_rules!` resolves local names at its **definition** site (PORTING.md P-57, the
+   `coding.rs`/`ccl.rs` shape).  Every using function carries its own copy and every call site
+   keeps C's own `TRAP (…)` spelling (with the `!` every `macro_rules!` call needs).  C's argument
+   is a string literal that reaches the `const char *` parameter through C's array decay, so each
+   site writes `c"…".as_ptr ()` - the tree's spelling for that decay (`alloc.rs` 2342).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_utp (interpreter: *mut sfnt_interpreter,
+			      p: uint32_t)
+{                                                          // C 8180-8223
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut mask: c_uchar;
+
+  if (*interpreter).state.zp0 == 0
+    {
+      if p >= (*interpreter).twilight_zone_size as uint32_t
+	{ TRAP! (c"UTP[] p lies outside twilight zone".as_ptr ()); }
+
+      /* There are no flags in the twilight zone.  */
+      return;
+    }
+
+  if (*interpreter).glyph_zone.is_null ()
+      || (p as usize) >= (*(*interpreter).glyph_zone).num_points
+    { TRAP! (c"UTP[] p lies outside glyph zone".as_ptr ()); }
+
+  /* The flags unset by UTP are subject to which axes in the freedom
+     vector are significant, as stated in the TrueType reference
+     manual by this needless mouthful:
+
+       A point may be touched in the x-direction, the y-direction, or
+       in both the x and y-directions.  The position of the freedom
+       vector determines whether the point is untouched in the
+       x-direction, the y-direction, or both.  If the vector is set to
+       the x-axis, the point will be untouched in the x-direction.  If
+       the vector is set to the y-axis, the point will be untouched in
+       the y-direction.  Otherwise the point will be untouched in both
+       directions.
+
+       A points that is marked as untouched will be moved by an IUP[]
+       instruction even if the point was previously touched.  */
+
+  mask = 0xff;
+
+  if (*interpreter).state.freedom_vector.x != 0
+    { mask &= !(SFNT_POINT_TOUCHED_X as c_uchar); }
+
+  if (*interpreter).state.freedom_vector.y != 0
+    { mask &= !(SFNT_POINT_TOUCHED_Y as c_uchar); }
+
+  *(*(*interpreter).glyph_zone).flags.offset (p as isize) &= mask;
+}
+
+/* Save the specified unit VECTOR into INTERPRETER's graphics state as
+   both the projection and the dual projection vectors.
+
+   If not DUAL_ONLY, set VECTOR as both the projection and dual
+   projection vectors.  Otherwise, only set VECTOR as the dual
+   projection vector.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_save_projection_vector (interpreter: *mut sfnt_interpreter,
+				       vector: *mut sfnt_unit_vector,
+				       dual_only: bool)
+{                                                          // C 8233-8243
+  if !dual_only
+    { (*interpreter).state.projection_vector = *vector; }
+
+  (*interpreter).state.dual_projection_vector = *vector;
+
+  sfnt_validate_gs (&raw mut (*interpreter).state);
+}
+
+/* Save the specified unit VECTOR into INTERPRETER's graphics
+   state.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_save_freedom_vector (interpreter: *mut sfnt_interpreter,
+				    vector: *mut sfnt_unit_vector)
+{                                                          // C 8249-8255
+  (*interpreter).state.freedom_vector = *vector;
+
+  sfnt_validate_gs (&raw mut (*interpreter).state);
+}
+
+/* Return the values of the point NUMBER in the zone pointed to by
+   INTERPRETER's ZP2 register.
+
+   If X_ORG and Y_ORG are set, return the original values (prior to
+   any instruction interpretations) in those two locations.
+
+   Trap if NUMBER is out of bounds or the zone is inaccessible.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_address_zp2 (interpreter: *mut sfnt_interpreter,
+			    number: uint32_t,
+			    x: *mut sfnt_f26dot6, y: *mut sfnt_f26dot6,
+			    x_org: *mut sfnt_f26dot6, y_org: *mut sfnt_f26dot6)
+{                                                          // C 8266-8313
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  if (*interpreter).state.zp2 == 0
+    {
+      /* Address the twilight zone.  */
+      if number >= (*interpreter).twilight_zone_size as uint32_t
+	{ TRAP! (c"address to ZP2 (twilight zone) out of bounds".as_ptr ()); }
+
+      'next: {
+	if !x.is_null () && !y.is_null ()
+	  {
+	    *x = *(*interpreter).twilight_x.offset (number as isize);
+	    *y = *(*interpreter).twilight_y.offset (number as isize);
+	  }
+      }
+
+      if x_org.is_null () || y_org.is_null ()
+	{ return; }
+
+      /* The twilight zone is initially all zero, but initial
+	 positions can still be changed.  */
+      *x_org = *(*interpreter).twilight_original_x.offset (number as isize);
+      *y_org = *(*interpreter).twilight_original_y.offset (number as isize);
+      return;
+    }
+
+  /* Address the glyph zone.  */
+  if (*interpreter).glyph_zone.is_null ()
+    { TRAP! (c"address to ZP2 (glyph zone) points into unset zone".as_ptr ()); }
+
+  if (number as usize) >= (*(*interpreter).glyph_zone).num_points
+    { TRAP! (c"address to ZP2 (glyph zone) out of bounds".as_ptr ()); }
+
+  if !x.is_null () && !y.is_null ()
+    {
+      *x = *(*(*interpreter).glyph_zone).x_current.offset (number as isize);
+      *y = *(*(*interpreter).glyph_zone).y_current.offset (number as isize);
+    }
+
+  if !x_org.is_null () && !y_org.is_null ()
+    {
+      *x_org = *(*(*interpreter).glyph_zone).x_points.offset (number as isize);
+      *y_org = *(*(*interpreter).glyph_zone).y_points.offset (number as isize);
+    }
+}
+
+/* Return the values of the point NUMBER in the zone pointed to by
+   INTERPRETER's ZP1 register.
+
+   Trap if NUMBER is out of bounds or the zone is inaccessible.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_address_zp1 (interpreter: *mut sfnt_interpreter,
+			    number: uint32_t,
+			    x: *mut sfnt_f26dot6, y: *mut sfnt_f26dot6,
+			    x_org: *mut sfnt_f26dot6, y_org: *mut sfnt_f26dot6)
+{                                                          // C 8321-8368
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  if (*interpreter).state.zp1 == 0
+    {
+      /* Address the twilight zone.  */
+      if number >= (*interpreter).twilight_zone_size as uint32_t
+	{ TRAP! (c"address to ZP1 (twilight zone) out of bounds".as_ptr ()); }
+
+      'next: {
+	if !x.is_null () && !y.is_null ()
+	  {
+	    *x = *(*interpreter).twilight_x.offset (number as isize);
+	    *y = *(*interpreter).twilight_y.offset (number as isize);
+	  }
+      }
+
+      if x_org.is_null () || y_org.is_null ()
+	{ return; }
+
+      /* The twilight zone is initially all zero, but initial
+	 positions can still be changed.  */
+      *x_org = *(*interpreter).twilight_original_x.offset (number as isize);
+      *y_org = *(*interpreter).twilight_original_y.offset (number as isize);
+      return;
+    }
+
+  /* Address the glyph zone.  */
+  if (*interpreter).glyph_zone.is_null ()
+    { TRAP! (c"address to ZP1 (glyph zone) points into unset zone".as_ptr ()); }
+
+  if (number as usize) >= (*(*interpreter).glyph_zone).num_points
+    { TRAP! (c"address to ZP1 (glyph zone) out of bounds".as_ptr ()); }
+
+  if !x.is_null () && !y.is_null ()
+    {
+      *x = *(*(*interpreter).glyph_zone).x_current.offset (number as isize);
+      *y = *(*(*interpreter).glyph_zone).y_current.offset (number as isize);
+    }
+
+  if !x_org.is_null () && !y_org.is_null ()
+    {
+      *x_org = *(*(*interpreter).glyph_zone).x_points.offset (number as isize);
+      *y_org = *(*(*interpreter).glyph_zone).y_points.offset (number as isize);
+    }
+}
+
+/* Return the values of the point NUMBER in the zone pointed to by
+   INTERPRETER's ZP0 register.
+
+   Trap if NUMBER is out of bounds or the zone is inaccessible.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_address_zp0 (interpreter: *mut sfnt_interpreter,
+			    number: uint32_t,
+			    x: *mut sfnt_f26dot6, y: *mut sfnt_f26dot6,
+			    x_org: *mut sfnt_f26dot6, y_org: *mut sfnt_f26dot6)
+{                                                          // C 8376-8423
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  if (*interpreter).state.zp0 == 0
+    {
+      /* Address the twilight zone.  */
+      if number >= (*interpreter).twilight_zone_size as uint32_t
+	{ TRAP! (c"address to ZP0 (twilight zone) out of bounds".as_ptr ()); }
+
+      'next: {
+	if !x.is_null () && !y.is_null ()
+	  {
+	    *x = *(*interpreter).twilight_x.offset (number as isize);
+	    *y = *(*interpreter).twilight_y.offset (number as isize);
+	  }
+      }
+
+      if x_org.is_null () || y_org.is_null ()
+	{ return; }
+
+      /* The twilight zone is initially all zero, but initial
+	 positions can still be changed.  */
+      *x_org = *(*interpreter).twilight_original_x.offset (number as isize);
+      *y_org = *(*interpreter).twilight_original_y.offset (number as isize);
+      return;
+    }
+
+  /* Address the glyph zone.  */
+  if (*interpreter).glyph_zone.is_null ()
+    { TRAP! (c"address to ZP0 (glyph zone) points into unset zone".as_ptr ()); }
+
+  if (number as usize) >= (*(*interpreter).glyph_zone).num_points
+    { TRAP! (c"address to ZP0 (glyph zone) out of bounds".as_ptr ()); }
+
+  if !x.is_null () && !y.is_null ()
+    {
+      *x = *(*(*interpreter).glyph_zone).x_current.offset (number as isize);
+      *y = *(*(*interpreter).glyph_zone).y_current.offset (number as isize);
+    }
+
+  if !x_org.is_null () && !y_org.is_null ()
+    {
+      *x_org = *(*(*interpreter).glyph_zone).x_points.offset (number as isize);
+      *y_org = *(*(*interpreter).glyph_zone).y_points.offset (number as isize);
+    }
+}
+
+/* Set the point NUMBER in the zone referenced by INTERPRETER's ZP2
+   register to the specified X and Y.
+
+   Apply FLAGS to NUMBER's flags in that zone.  Trap if NUMBER is out
+   of bounds.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_store_zp2 (interpreter: *mut sfnt_interpreter,
+			  number: uint32_t, x: sfnt_f26dot6, y: sfnt_f26dot6,
+			  flags: c_int)
+{                                                          // C 8432-8458
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  if (*interpreter).state.zp2 == 0
+    {
+      /* Address the twilight zone.  */
+      if number >= (*interpreter).twilight_zone_size as uint32_t
+	{ TRAP! (c"address to ZP2 (twilight zone) out of bounds".as_ptr ()); }
+
+      *(*interpreter).twilight_x.offset (number as isize) = x;
+      *(*interpreter).twilight_y.offset (number as isize) = y;
+      return;
+    }
+
+  /* Address the glyph zone.  */
+  if (*interpreter).glyph_zone.is_null ()
+    { TRAP! (c"address to ZP0 (glyph zone) points into unset zone".as_ptr ()); }
+
+  if (number as usize) >= (*(*interpreter).glyph_zone).num_points
+    { TRAP! (c"address to ZP0 (glyph zone) out of bounds".as_ptr ()); }
+
+  *(*(*interpreter).glyph_zone).x_current.offset (number as isize) = x;
+  *(*(*interpreter).glyph_zone).y_current.offset (number as isize) = y;
+  *(*(*interpreter).glyph_zone).flags.offset (number as isize) |= flags as u8;
+}
+
+/* C 8460-8487: `#if 0` around `sfnt_line_to_standard_form` - dead in every configuration, so the
+   port records the region instead of carrying it (P-86 ①; the `android.md` 1125-1360 /
+   `androidfns.md` 1015-1022 precedent).  `tools/cinventory.py` skips `#if 0` unconditionally.  */
+
+/* Check that the specified POINT lies within the zone addressed by
+   INTERPRETER's ZP2 register.  Trap if it does not.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_check_zp2 (interpreter: *mut sfnt_interpreter, point: uint32_t)
+{                                                          // C 8492-8502
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  if (*interpreter).state.zp2 == 0
+    {
+      if point >= (*interpreter).twilight_zone_size as uint32_t
+	{ TRAP! (c"point lies outside twilight zone (ZP2)".as_ptr ()); }
+    }
+  else if (*interpreter).glyph_zone.is_null ()
+	   || (point as usize) >= (*(*interpreter).glyph_zone).num_points
+    { TRAP! (c"point lies outside glyph zone (ZP2)".as_ptr ()); }
+}
+
+/* Check that the specified POINT lies within the zone addressed by
+   INTERPRETER's ZP0 register.  Trap if it does not.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_check_zp0 (interpreter: *mut sfnt_interpreter, point: uint32_t)
+{                                                          // C 8508-8518
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  if (*interpreter).state.zp0 == 0
+    {
+      if point >= (*interpreter).twilight_zone_size as uint32_t
+	{ TRAP! (c"point lies outside twilight zone (ZP0)".as_ptr ()); }
+    }
+  else if (*interpreter).glyph_zone.is_null ()
+	   || (point as usize) >= (*(*interpreter).glyph_zone).num_points
+    { TRAP! (c"point lies outside glyph zone (ZP0)".as_ptr ()); }
+}
+
+/* Check that the specified POINT lies within the zone addressed by
+   INTERPRETER's ZP1 register.  Trap if it does not.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_check_zp1 (interpreter: *mut sfnt_interpreter, point: uint32_t)
+{                                                          // C 8524-8534
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  if (*interpreter).state.zp1 == 0
+    {
+      if point >= (*interpreter).twilight_zone_size as uint32_t
+	{ TRAP! (c"point lies outside twilight zone (ZP0)".as_ptr ()); }
+    }
+  else if (*interpreter).glyph_zone.is_null ()
+	   || (point as usize) >= (*(*interpreter).glyph_zone).num_points
+    { TRAP! (c"point lies outside glyph zone (ZP0)".as_ptr ()); }
+}
+
+/* Move N points starting from the specified POINT in the zone
+   addressed by INTERPRETER's ZP0 register by the given DISTANCE along
+   the freedom vector.
+
+   No checking is done to ensure that POINT lies inside the zone, or
+   even that the zone exists at all.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_move_zp0 (interpreter: *mut sfnt_interpreter, point: uint32_t,
+			 n: size_t, distance: sfnt_f26dot6)
+{                                                          // C 8544-8556
+  if (*interpreter).state.zp0 == 0
+    { (*interpreter).state.r#move.unwrap () (
+	&raw mut *(*interpreter).twilight_x.offset (point as isize),
+	&raw mut *(*interpreter).twilight_y.offset (point as isize),
+	n, interpreter, distance, std::ptr::null_mut ()); }
+  else
+    { (*interpreter).state.r#move.unwrap () (
+	&raw mut *(*(*interpreter).glyph_zone).x_current.offset (point as isize),
+	&raw mut *(*(*interpreter).glyph_zone).y_current.offset (point as isize),
+	n, interpreter, distance,
+	&raw mut *(*(*interpreter).glyph_zone).flags.offset (point as isize)); }
+}
+
+/* Move N points starting from the specified POINT in the zone
+   addressed by INTERPRETER's ZP1 register by the given DISTANCE along
+   the freedom vector.
+
+   No checking is done to ensure that POINT lies inside the zone, or
+   even that the zone exists at all.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_move_zp1 (interpreter: *mut sfnt_interpreter, point: uint32_t,
+			 n: size_t, distance: sfnt_f26dot6)
+{                                                          // C 8566-8578
+  if (*interpreter).state.zp1 == 0
+    { (*interpreter).state.r#move.unwrap () (
+	&raw mut *(*interpreter).twilight_x.offset (point as isize),
+	&raw mut *(*interpreter).twilight_y.offset (point as isize),
+	n, interpreter, distance, std::ptr::null_mut ()); }
+  else
+    { (*interpreter).state.r#move.unwrap () (
+	&raw mut *(*(*interpreter).glyph_zone).x_current.offset (point as isize),
+	&raw mut *(*(*interpreter).glyph_zone).y_current.offset (point as isize),
+	n, interpreter, distance,
+	&raw mut *(*(*interpreter).glyph_zone).flags.offset (point as isize)); }
+}
+
+/* Move N points starting from the specified POINT in the zone
+   addressed by INTERPRETER's ZP2 register by the given DISTANCE along
+   the freedom vector.
+
+   No checking is done to ensure that POINT lies inside the zone, or
+   even that the zone exists at all.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_move_zp2 (interpreter: *mut sfnt_interpreter, point: uint32_t,
+			 n: size_t, distance: sfnt_f26dot6)
+{                                                          // C 8588-8600
+  if (*interpreter).state.zp2 == 0
+    { (*interpreter).state.r#move.unwrap () (
+	&raw mut *(*interpreter).twilight_x.offset (point as isize),
+	&raw mut *(*interpreter).twilight_y.offset (point as isize),
+	n, interpreter, distance, std::ptr::null_mut ()); }
+  else
+    { (*interpreter).state.r#move.unwrap () (
+	&raw mut *(*(*interpreter).glyph_zone).x_current.offset (point as isize),
+	&raw mut *(*(*interpreter).glyph_zone).y_current.offset (point as isize),
+	n, interpreter, distance,
+	&raw mut *(*(*interpreter).glyph_zone).flags.offset (point as isize)); }
+}
+
+/* Move N points from the specified POINT in INTERPRETER's glyph zone
+   by the given DISTANCE along the freedom vector.
+
+   Do not touch the points that are moved.
+
+   No checking is done to ensure that POINT lies inside the zone, or
+   even that the zone exists at all.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_move_glyph_zone (interpreter: *mut sfnt_interpreter, point: uint32_t,
+				n: size_t, distance: sfnt_f26dot6)
+{                                                          // C 8611-8617
+  (*interpreter).state.r#move.unwrap () (
+    &raw mut *(*(*interpreter).glyph_zone).x_current.offset (point as isize),
+    &raw mut *(*(*interpreter).glyph_zone).y_current.offset (point as isize),
+    n, interpreter, distance, std::ptr::null_mut ());
+}
+
+/* Move N points from the specified POINT in INTERPRETER's twilight
+   zone by the given DISTANCE along the freedom vector.
+
+   Do not touch the points that are moved.
+
+   No checking is done to ensure that POINT lies inside the zone, or
+   even that the zone exists at all.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_move_twilight_zone (interpreter: *mut sfnt_interpreter, point: uint32_t,
+				   n: size_t, distance: sfnt_f26dot6)
+{                                                          // C 8628-8634
+  (*interpreter).state.r#move.unwrap () (
+    &raw mut *(*interpreter).twilight_x.offset (point as isize),
+    &raw mut *(*interpreter).twilight_y.offset (point as isize),
+    n, interpreter, distance, std::ptr::null_mut ());
+}
+
+/* Move the point P in the zone pointed to by the ZP2 register in
+   INTERPRETER's graphics state by DX, and DY.
+
+   Touch the point P in the directions of the movement.
+
+   Check that P is valid; if not, trap.  Else, perform the move
+   directly without converting it from the projection vector or to the
+   freedom vector.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_direct_move_zp2 (interpreter: *mut sfnt_interpreter, p: uint32_t,
+				dx: sfnt_f26dot6, dy: sfnt_f26dot6)
+{                                                          // C 8646-8676
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  if (*interpreter).state.zp2 == 0
+    {
+      if p >= (*interpreter).twilight_zone_size as uint32_t
+	{ TRAP! (c"point out of bounds".as_ptr ()); }
+
+      *(*interpreter).twilight_x.offset (p as isize)
+	= sfnt_add! (*(*interpreter).twilight_x.offset (p as isize), dx);
+      *(*interpreter).twilight_y.offset (p as isize)
+	= sfnt_add! (*(*interpreter).twilight_y.offset (p as isize), dy);
+    }
+  else
+    {
+      if (*interpreter).glyph_zone.is_null ()
+	  || (p as usize) >= (*(*interpreter).glyph_zone).num_points
+	{ TRAP! (c"point out of bounds".as_ptr ()); }
+
+      *(*(*interpreter).glyph_zone).x_current.offset (p as isize)
+	= sfnt_add! (*(*(*interpreter).glyph_zone).x_current.offset (p as isize), dx);
+      *(*(*interpreter).glyph_zone).y_current.offset (p as isize)
+	= sfnt_add! (*(*(*interpreter).glyph_zone).y_current.offset (p as isize), dy);
+
+      if dx != 0
+	{ *(*(*interpreter).glyph_zone).flags.offset (p as isize)
+	    |= SFNT_POINT_TOUCHED_X as u8; }
+
+      if dy != 0
+	{ *(*(*interpreter).glyph_zone).flags.offset (p as isize)
+	    |= SFNT_POINT_TOUCHED_Y as u8; }
+    }
+}
+
+/* Project the vector VX, VY onto INTERPRETER's projection vector.
+   Return the magnitude of the projection.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_project_vector (interpreter: *mut sfnt_interpreter,
+			       vx: sfnt_f26dot6, vy: sfnt_f26dot6)
+  -> sfnt_f26dot6                                        // C 8682-8686
+{
+  return (*interpreter).state.project.unwrap () (vx, vy, interpreter);
+}
+
+/* Project the vector VX, VY onto INTERPRETER's dual projection
+   vector.  Return the magnitude of the projection.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_dual_project_vector (interpreter: *mut sfnt_interpreter,
+				    vx: sfnt_f26dot6, vy: sfnt_f26dot6)
+  -> sfnt_f26dot6                                        // C 8692-8696
+{
+  return (*interpreter).state.dual_project.unwrap () (vx, vy, interpreter);
+}
+
+/* Interpret a FLIPRGOFF instruction in INTERPRTER.  Make each point
+   in ZP0 between L and H an off-curve point.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_fliprgoff (interpreter: *mut sfnt_interpreter,
+				    h: uint32_t, l: uint32_t)
+{                                                          // C 8702-8715
+  let mut i: uint32_t;
+
+  sfnt_check_zp0 (interpreter, l);
+  sfnt_check_zp0 (interpreter, h);
+
+  if (*interpreter).state.zp0 == 0
+    { return; }
+
+  i = l;
+  while i <= h
+    {
+      *(*(*interpreter).glyph_zone).flags.offset (i as isize) &= !0o1;
+      i += 1;
+    }
+}
+
+/* Interpret a FLIPRGON instruction in INTERPRTER.  Make each point in
+   ZP0 between L and H an on-curve point.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_fliprgon (interpreter: *mut sfnt_interpreter,
+				   h: uint32_t, l: uint32_t)
+{                                                          // C 8721-8734
+  let mut i: uint32_t;
+
+  sfnt_check_zp0 (interpreter, l);
+  sfnt_check_zp0 (interpreter, h);
+
+  if (*interpreter).state.zp0 == 0
+    { return; }
+
+  i = l;
+  while i <= h
+    {
+      *(*(*interpreter).glyph_zone).flags.offset (i as isize) |= 0o1;
+      i += 1;
+    }
+}
+
+/* Interpret a FLIPPT instruction in INTERPRETER.  For loop times, pop
+   a point in ZP0.  If it is an on-curve point, make it an off-curve
+   one, and vice versa.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_flippt (interpreter: *mut sfnt_interpreter)
+{                                                          // C 8741-8768
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+  /* C 6597-6601's `#define POP()` - the live `#ifndef TEST` arm; the `#else` arm's body names
+     the TEST-only `pop_hook` member (see this file's header).  */
+  macro_rules! POP { () => {
+    if (*interpreter).SP == (*interpreter).stack
+      { TRAP! (c"stack underflow".as_ptr ()); 0 }
+    else
+      { (*interpreter).SP = (*interpreter).SP.offset (-1); *(*interpreter).SP }
+  } }
+
+  let mut point: uint32_t;
+
+  while { (*interpreter).state.r#loop = (*interpreter).state.r#loop.wrapping_sub (1);
+	  (*interpreter).state.r#loop != 0xffff }
+    {
+      point = POP! ();
+
+      /* There are no flags in the twilight zone.
+         But first check that the point is within bounds.  */
+
+      sfnt_check_zp0 (interpreter, point);
+
+      if (*interpreter).state.zp0 == 0
+	{ continue; }
+
+      /* If POINT is on the curve, make it off the curve and vice
+	 versa.  */
+
+      if (*(*(*interpreter).glyph_zone).flags.offset (point as isize) & 0o1) != 0
+	{ *(*(*interpreter).glyph_zone).flags.offset (point as isize) &= !0o1; }
+      else
+	{ *(*(*interpreter).glyph_zone).flags.offset (point as isize) |= 0o1; }
+    }
+
+  /* Restore loop.  */
+  (*interpreter).state.r#loop = 1;
+}
+
+/* Interpret an SCFS instruction.
+   Move P in ZP2 along the freedom vector until its projection is
+   equal to C.
+
+   If ZP2 is the twilight zone, ``create'' P by setting its original
+   position to the projection.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_scfs (interpreter: *mut sfnt_interpreter,
+			       p: uint32_t, c: sfnt_f26dot6)
+{                                                          // C 8778-8792
+  /* C 7777-7778's `#define PROJECT(x, y)`: the P-57 in-function copy.  */
+  macro_rules! PROJECT { ($x:expr, $y:expr) => {
+    sfnt_project_vector (interpreter, $x, $y)
+  } }
+
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut distance: sfnt_f26dot6;
+
+  sfnt_address_zp2 (interpreter, p, &raw mut x, &raw mut y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+  distance = PROJECT! (x, y);
+  sfnt_move_zp2 (interpreter, p, 1, sfnt_sub! (c, distance));
+
+  if (*interpreter).state.zp2 == 0
+    {
+      *(*interpreter).twilight_original_x.offset (p as isize)
+	= *(*interpreter).twilight_x.offset (p as isize);
+      *(*interpreter).twilight_original_y.offset (p as isize)
+	= *(*interpreter).twilight_y.offset (p as isize);
+    }
+}
+
+/* Symmetrically round the 26.6 fixed point value X using the rounding
+   mode in INTERPRETER.  Return the result.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_round_symmetric (interpreter: *mut sfnt_interpreter, mut x: sfnt_f26dot6)
+  -> sfnt_f26dot6                                        // C 8798-8811
+{
+  let mut sign: c_int;
+
+  sign = 1;
+
+  if x < 0
+    {
+      sign = -1;
+      x = -x;
+    }
+
+  return (*interpreter).state.round.unwrap () (x, interpreter) * sign;
+}
+
+/* Interpret an MIAP (``Move Indirect Absolute Point'') instruction
+   using INTERPRETER.
+
+   Move P in ZP0 along the freedom vector until its projection on the
+   projection vector is equal to CVT units in the projection vector.
+
+   Finally, set RP0 and RP1 to P.
+
+   If ZP0 is the twilight zone, then first create that point in the
+   twilight zone by setting its ``original position'' to the
+   projection of the value.
+
+   If OPCODE is 0x3f, then in addition check the CVT value against the
+   control value cut-in, and round the magnitudes of the movement.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_miap (interpreter: *mut sfnt_interpreter,
+			       cvt: uint32_t, p: uint32_t, opcode: c_uchar)
+{                                                          // C 8829-8888
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut distance: sfnt_f26dot6;
+  let mut value: sfnt_f26dot6;
+  let mut delta: sfnt_f26dot6;
+
+  /* Read the cvt value.  */
+
+  if (cvt as usize) >= (*interpreter).cvt_size
+    { TRAP! (c"out of bounds read to cvt".as_ptr ()); }
+
+  value = *(*interpreter).cvt.offset (cvt as isize);
+
+  /* Now load the point.  */
+  sfnt_address_zp0 (interpreter, p, &raw mut x, &raw mut y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+
+  /* Create the twilight zone point if necessary.
+     Note that the value used is not rounded.  */
+
+  if (*interpreter).state.zp0 == 0
+    {
+      *(*interpreter).twilight_original_x.offset (p as isize)
+	= sfnt_mul_f2dot14 ((*interpreter).state.projection_vector.x,
+			    value);
+      *(*interpreter).twilight_x.offset (p as isize)
+	= *(*interpreter).twilight_original_x.offset (p as isize);
+      x = *(*interpreter).twilight_x.offset (p as isize);
+
+      *(*interpreter).twilight_original_y.offset (p as isize)
+	= sfnt_mul_f2dot14 ((*interpreter).state.projection_vector.y,
+			    value);
+      *(*interpreter).twilight_y.offset (p as isize)
+	= *(*interpreter).twilight_original_y.offset (p as isize);
+      y = *(*interpreter).twilight_y.offset (p as isize);
+    }
+
+  /* Obtain the original distance.  */
+  distance = sfnt_project_vector (interpreter, x, y);
+
+  /* Round the distance and apply the cvt cut in if necessary.  */
+
+  if opcode == 0x3f
+    {
+      delta = sfnt_sub! (value, distance);
+
+      if delta < 0
+	{ delta = -delta; }
+
+      /* If delta is more than the cvt cut in (more aptly named ``cut
+	 out''), use the original distance.  */
+
+      if delta > (*interpreter).state.cvt_cut_in
+	{ value = distance; }
+
+      /* Round value.  */
+      value = sfnt_round_symmetric (interpreter, value);
+    }
+
+  /* Move the point by the distance.  */
+  sfnt_move_zp0 (interpreter, p, 1, sfnt_sub! (value, distance));
+
+  /* Set reference points.  */
+  (*interpreter).state.rp0 = p as uint16_t;
+  (*interpreter).state.rp1 = p as uint16_t;
+}
+
+/* Perform a single iteration of sfnt_interpret_alignrp.  RP0X and
+   RP0Y should be the position of the reference point RP0 in ZP0.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_alignrp_1 (interpreter: *mut sfnt_interpreter,
+				    rp0x: sfnt_f26dot6, rp0y: sfnt_f26dot6)
+{                                                          // C 8894-8911
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+  macro_rules! POP { () => {
+    if (*interpreter).SP == (*interpreter).stack
+      { TRAP! (c"stack underflow".as_ptr ()); 0 }
+    else
+      { (*interpreter).SP = (*interpreter).SP.offset (-1); *(*interpreter).SP }
+  } }
+
+  let mut distance: sfnt_f26dot6;
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut point: uint32_t;
+
+  point = POP! ();
+
+  /* Load this point.  */
+  sfnt_address_zp1 (interpreter, point, &raw mut x, &raw mut y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+
+  /* Measure the distance from here to rp0.  */
+  distance = sfnt_project_vector (interpreter, sfnt_sub! (x, rp0x),
+				  sfnt_sub! (y, rp0y));
+
+  /* Move by the opposite.  */
+  sfnt_move_zp1 (interpreter, point, 1, -distance);
+}
+
+/* For loop times, pop a point in ZP1 and align it to RP0 in ZP0 by
+   moving it along the freedom vector until its projected distance
+   from RP0 becomes 0.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_alignrp (interpreter: *mut sfnt_interpreter)
+{                                                          // C 8918-8936
+  let mut rp0x: sfnt_f26dot6 = 0;
+  let mut rp0y: sfnt_f26dot6 = 0;
+
+  sfnt_address_zp0 (interpreter, (*interpreter).state.rp0 as uint32_t,
+		    &raw mut rp0x, &raw mut rp0y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+
+  while { (*interpreter).state.r#loop = (*interpreter).state.r#loop.wrapping_sub (1);
+	  (*interpreter).state.r#loop != 0xffff }
+    {
+      sfnt_interpret_alignrp_1 (interpreter, rp0x, rp0y);
+
+      /* Reload RP0 if it is in the same zone as ZP1.  */
+      if (*interpreter).state.zp0 == (*interpreter).state.zp1
+	{ sfnt_address_zp0 (interpreter, (*interpreter).state.rp0 as uint32_t,
+			    &raw mut rp0x, &raw mut rp0y,
+			    std::ptr::null_mut (), std::ptr::null_mut ()); }
+    }
+
+  (*interpreter).state.r#loop = 1;
+}
+
+/* Align the two points P1 and P2 relative to the projection vector.
+   P1 is addressed relative to ZP0, and P2 is addressed relative to
+   ZP1.
+
+   Move both points along the freedom vector by half the magnitude of
+   the projection of a vector formed by P1.x - P2.x, P1.y - P2.y,
+   upon the projection vector.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_alignpts (interpreter: *mut sfnt_interpreter,
+				   p1: uint32_t, p2: uint32_t)
+{                                                          // C 8947-8964
+  let mut p1x: sfnt_f26dot6 = 0;
+  let mut p1y: sfnt_f26dot6 = 0;
+  let mut p2x: sfnt_f26dot6 = 0;
+  let mut p2y: sfnt_f26dot6 = 0;
+  let mut magnitude: sfnt_f26dot6;
+
+  sfnt_address_zp0 (interpreter, p1, &raw mut p1x, &raw mut p1y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+  sfnt_address_zp1 (interpreter, p2, &raw mut p2x, &raw mut p2y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+
+  magnitude = sfnt_project_vector (interpreter,
+				   sfnt_sub! (p1x, p2x),
+				   sfnt_sub! (p1y, p2y));
+  magnitude = magnitude / 2;
+
+  /* Now move both points along the freedom vector.  */
+  sfnt_move_zp0 (interpreter, p1, 1, magnitude);
+  sfnt_move_zp1 (interpreter, p2, 1, -magnitude);
+}
+
+/* Set the point P in the zone referenced in INTERPRETER's ZP2
+   register to the intersection between the line formed by the points
+   POINT_A0 to POINT_A1 in ZP0 and another line formed by POINT_B0 to
+   POINT_B1 in ZP1.
+
+   Touch the point P.  */
+
+/* C 8983-8990's `#if 0` (the `determinant`/`a0`/`b0`/`a1`/`b1`/`c0`/`c1`/`px`/`py` declaration
+   run) is dead text, so the port carries the `#else` arm's declarations alone.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_isect (interpreter: *mut sfnt_interpreter,
+				point_a0: uint32_t, point_a1: uint32_t,
+				point_b0: uint32_t, point_b1: uint32_t,
+				p: uint32_t)
+{                                                          // C 8974-9120
+  let mut a0x: sfnt_f26dot6 = 0;
+  let mut a0y: sfnt_f26dot6 = 0;
+  let mut a1x: sfnt_f26dot6 = 0;
+  let mut a1y: sfnt_f26dot6 = 0;
+  let mut b0x: sfnt_f26dot6 = 0;
+  let mut b0y: sfnt_f26dot6 = 0;
+  let mut b1x: sfnt_f26dot6 = 0;
+  let mut b1y: sfnt_f26dot6 = 0;
+  let mut dx: sfnt_f26dot6;
+  let mut dy: sfnt_f26dot6;
+  let mut dax: sfnt_f26dot6;
+  let mut day: sfnt_f26dot6;
+  let mut dbx: sfnt_f26dot6;
+  let mut dby: sfnt_f26dot6;
+  let mut discriminant: sfnt_f26dot6;
+  let mut val: sfnt_f26dot6;
+  let mut dot_product: sfnt_f26dot6;
+  let mut px: sfnt_f26dot6;
+  let mut py: sfnt_f26dot6;
+
+  /* Load points.  */
+  sfnt_address_zp0 (interpreter, point_a0, &raw mut a0x, &raw mut a0y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+  sfnt_address_zp0 (interpreter, point_a1, &raw mut a1x, &raw mut a1y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+  sfnt_address_zp1 (interpreter, point_b0, &raw mut b0x, &raw mut b0y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+  sfnt_address_zp1 (interpreter, point_b1, &raw mut b1x, &raw mut b1y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+
+  /* C 8992-9034's `#if 0` arm (the Cramer's-rule block with
+     `sfnt_line_to_standard_form`) is dead text: recorded, not carried.  */
+
+  /* The algorithm above would work with floating point, but overflows
+     too easily with fixed point numbers.
+
+     Instead, use the modified vector projection algorithm found in
+     FreeType.  */
+
+  'degenerate_case: {
+    dbx = sfnt_sub! (b1x, b0x);
+    dby = sfnt_sub! (b1y, b0y);
+    dax = sfnt_sub! (a1x, a0x);
+    day = sfnt_sub! (a1y, a0y);
+
+    /* Compute vector cross product.  */
+    discriminant = sfnt_add! (sfnt_mul_f26dot6 (dax, -dby),
+			      sfnt_mul_f26dot6 (day, dbx));
+    dot_product = sfnt_add! (sfnt_mul_f26dot6 (dax, dbx),
+			     sfnt_mul_f26dot6 (day, dby));
+
+    /* Reject any non-intersections and grazing intersections.  */
+    if !(sfnt_mul! (19, abs (discriminant)) > abs (dot_product))
+      { return; }
+
+    /* Reject any non-intersections.  */
+    if discriminant == 0
+      { break 'degenerate_case; }
+
+    dx = sfnt_sub! (b0x, a0x);
+    dy = sfnt_sub! (b0y, a0y);
+    val = sfnt_add! (sfnt_mul_f26dot6 (dx, -dby),
+		     sfnt_mul_f26dot6 (dy, dbx));
+
+    /* Project according to these values.  */
+    dx = sfnt_add! (a0x, sfnt_multiply_divide_signed (val, dax,
+						      discriminant));
+    dy = sfnt_add! (a0y, sfnt_multiply_divide_signed (val, day,
+						      discriminant));
+
+    sfnt_store_zp2 (interpreter, p,
+		    /* C 9065-9071's `#if 0` (`sfnt_div_fixed (dx, determinant)`,
+		       `sfnt_div_fixed (dy, determinant)`) is dead text.  */
+		    dx, dy,
+		    SFNT_POINT_TOUCHED_BOTH);
+    return;
+  }
+
+  /* degenerate_case: */
+
+  /* Apple says that in this case:
+
+     Px = (a0x + a1x) / 2 + (b0x + b1x) / 2
+          ---------------------------------
+	                  2
+     Py = (a0y + a1y) / 2 + (b0y + b1y) / 2
+          ---------------------------------
+	                  2  */
+
+  px = (sfnt_add! (a0x, a1x) / 2 + sfnt_add! (b0x, b1x) / 2) / 2;
+  py = (sfnt_add! (a0y, a1y) / 2 + sfnt_add! (b0y, b1y) / 2) / 2;
+  sfnt_store_zp2 (interpreter, p, px, py,
+		  SFNT_POINT_TOUCHED_BOTH);
+}
+
+/* Compute the square root of the 16.16 fixed point number N.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_sqrt_fixed (n: sfnt_fixed) -> sfnt_fixed
+{                                                          // C 9125-9155
+  let mut count: c_int;
+  let mut root: c_uint;
+  let mut rem_hi: c_uint;
+  let mut rem_lo: c_uint;
+  let mut possible: c_uint;
+
+  root = 0;
+
+  if n > 0
+    {
+      rem_hi = 0;
+      rem_lo = n as c_uint;
+      count = 24;
+
+      loop
+	{
+	  rem_hi = (rem_hi << 2) | (rem_lo >> 30);
+	  rem_lo <<= 2;
+	  root <<= 1;
+	  possible = (root << 1) + 1;
+
+	  if rem_hi >= possible
+	    {
+	      rem_hi -= possible;
+	      root += 1;
+	    }
+
+	  count -= 1;
+	  if count == 0
+	    { break; }
+	}
+    }
+
+  return root as sfnt_fixed;
+}
+
+/* Compute a unit vector describing a vector VX, VY.  Return the value
+   in *VECTOR.  */
+
+/* C 9180-9183's `fail:` tail stands after this `'fail` block rather than inside C's first `if`:
+   C 9208's `goto fail` jumps *into* that block, which a Rust labelled block cannot be entered
+   from (PORTING.md 2.2 spells the forward jump as `break 'fail`); the success path keeps C's
+   implicit fall-off-the-end as `return`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_normalize_vector (mut vx: sfnt_f26dot6, mut vy: sfnt_f26dot6,
+				 vector: *mut sfnt_unit_vector)
+{                                                          // C 9161-9213
+  let mut x_squared: sfnt_f26dot6;
+  let mut y_squared: sfnt_f26dot6;
+  let mut n: sfnt_fixed;
+  let mut magnitude: sfnt_fixed;
+
+  'fail: {
+    if vx == 0 && vy == 0
+      { break 'fail; }
+
+    /* Scale vx and vy up if they won't at least make 1.  */
+
+    while !(vx < -32 || vx > 32) && !(vy < -32 || vy > 32)
+      {
+	vx = vx * 2;
+	vy = vy * 2;
+      }
+
+    /* Compute the magnitude of this vector.  */
+    x_squared = sfnt_mul_f26dot6 (vx, vx);
+    y_squared = sfnt_mul_f26dot6 (vy, vy);
+
+    /* x_squared and y_squared can end up too large to fit in a 16.16
+       fixed.  Scale both values down until they fit.  */
+
+    while x_squared > 0x200000 || y_squared > 0x200000
+	  || x_squared < -0x200000 || y_squared < -0x200000
+      {
+	x_squared /= 2;
+	y_squared /= 2;
+      }
+
+    /* Convert to 16.16 for greater precision.  */
+    n = sfnt_add! (x_squared, y_squared) * 1024;
+
+    /* Get hypotenuse of the triangle from vx, 0, to 0, vy.  */
+    magnitude = sfnt_sqrt_fixed (n);
+
+    /* Avoid division by zero.  */
+    if magnitude == 0
+      { break 'fail; }
+
+    /* Long division.. eek! */
+    (*vector).x = (sfnt_div_fixed (vx * 1024, magnitude) / 4) as sfnt_f2dot14;
+    (*vector).y = (sfnt_div_fixed (vy * 1024, magnitude) / 4) as sfnt_f2dot14;
+    return;
+  }
+
+  /* fail: */
+  (*vector).x = 0o4000;
+  (*vector).y = 0;
+}
+
+/* Compute a unit vector describing the direction of a line from the
+   point P2 to the point P1.  Save the result in *VECTOR.
+
+   P2 is the address of a point in the zone specified in the ZP2
+   register.  P1 is the address of a point in the zone specified in
+   the ZP1 register.  Take the values of both registers from the
+   specified INTERPRETER's graphics state.
+
+   If PERPENDICULAR, then *VECTOR will be rotated 90 degrees
+   counter-clockwise.  Else, *VECTOR will be parallel to the line.
+
+   If ORIGINAL, then the coordinates used to calculate the line will
+   be those prior to instructing.  Otherwise, the current coordinates
+   will be used.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_line_to_vector (interpreter: *mut sfnt_interpreter,
+			       p2: uint32_t, p1: uint32_t,
+			       vector: *mut sfnt_unit_vector,
+			       perpendicular: bool, original: bool)
+{                                                          // C 9231-9270
+  let mut x2: sfnt_f26dot6 = 0;
+  let mut y2: sfnt_f26dot6 = 0;
+  let mut original_x2: sfnt_f26dot6 = 0;
+  let mut original_y2: sfnt_f26dot6 = 0;
+  let mut x1: sfnt_f26dot6 = 0;
+  let mut y1: sfnt_f26dot6 = 0;
+  let mut original_x1: sfnt_f26dot6 = 0;
+  let mut original_y1: sfnt_f26dot6 = 0;
+  let mut a: sfnt_f26dot6;
+  let mut b: sfnt_f26dot6;
+  let mut temp: sfnt_f26dot6;
+
+  sfnt_address_zp2 (interpreter, p2, &raw mut x2, &raw mut y2, &raw mut original_x2,
+		    &raw mut original_y2);
+  sfnt_address_zp1 (interpreter, p1, &raw mut x1, &raw mut y1, &raw mut original_x1,
+		    &raw mut original_y1);
+
+  /* Use original coordinates if specified.  */
+
+  if original
+    {
+      x2 = original_x2;
+      y2 = original_y2;
+      x1 = original_x1;
+      y1 = original_y1;
+    }
+
+  /* Calculate the vector between X2, Y2, and X1, Y1.  */
+  a = sfnt_sub! (x1, x2);
+  b = sfnt_sub! (y1, y2);
+
+  /* Rotate counterclockwise if necessary.  */
+
+  if perpendicular
+    {
+      temp = b;
+      b = a;
+      a = -temp;
+    }
+
+  /* Normalize this vector, turning it into a unit vector.  */
+  sfnt_normalize_vector (a, b, vector);
+}
+
+/* Measure the distance between P1 in ZP0 and P2 in ZP1,
+   relative to the projection or dual projection vector.
+
+   Return the distance of P1 and P2 relative to their original
+   un-instructed positions should OPCODE be 0x4A, and to their
+   instructed positions should OPCODE be 0x49.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_measure_distance (interpreter: *mut sfnt_interpreter,
+				 p1: uint32_t, p2: uint32_t,
+				 opcode: c_uchar)
+  -> sfnt_f26dot6                                        // C 9280-9301
+{
+  /* C 7777/7780's `PROJECT`/`DUAL_PROJECT` - the P-57 in-function copies.  */
+  macro_rules! PROJECT { ($x:expr, $y:expr) => {
+    sfnt_project_vector (interpreter, $x, $y)
+  } }
+  macro_rules! DUAL_PROJECT { ($x:expr, $y:expr) => {
+    sfnt_dual_project_vector (interpreter, $x, $y)
+  } }
+
+  let mut p1x: sfnt_f26dot6 = 0;
+  let mut p1y: sfnt_f26dot6 = 0;
+  let mut p1_original_x: sfnt_f26dot6 = 0;
+  let mut p1_original_y: sfnt_f26dot6 = 0;
+  let mut p2x: sfnt_f26dot6 = 0;
+  let mut p2y: sfnt_f26dot6 = 0;
+  let mut p2_original_x: sfnt_f26dot6 = 0;
+  let mut p2_original_y: sfnt_f26dot6 = 0;
+
+  /* P1 is relative to ZP0 and P2 is relative to ZP1.
+     Apple's manual says this, Microsoft's does not.  */
+
+  sfnt_address_zp0 (interpreter, p1, &raw mut p1x, &raw mut p1y,
+		    &raw mut p1_original_x, &raw mut p1_original_y);
+  sfnt_address_zp1 (interpreter, p2, &raw mut p2x, &raw mut p2y,
+		    &raw mut p2_original_x, &raw mut p2_original_y);
+
+  if opcode == 0x4A
+    { return DUAL_PROJECT! (sfnt_sub! (p1_original_x, p2_original_x),
+			    sfnt_sub! (p1_original_y, p2_original_y)); }
+
+  return PROJECT! (sfnt_sub! (p1x, p2x),
+		   sfnt_sub! (p1y, p2y));
+}
+
+/* Interpret an MSIRP instruction in INTERPRETER.
+   Take a point P, and make the distance between P in ZP1 and the
+   current position of RP0 in ZP0 equal to D.
+
+   If ZP1 is the twilight zone, then create the point P by setting its
+   position and relative positions.
+
+   Then, if OPCODE is equal to 0x3b, make P RP0.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_msirp (interpreter: *mut sfnt_interpreter,
+				d: sfnt_f26dot6, p: uint32_t, opcode: c_uchar)
+{                                                          // C 9313-9361
+  let mut rp0x: sfnt_f26dot6 = 0;
+  let mut rp0y: sfnt_f26dot6 = 0;
+  let mut rp0_original_x: sfnt_f26dot6 = 0;
+  let mut rp0_original_y: sfnt_f26dot6 = 0;
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut old_distance: sfnt_f26dot6;
+  let mut temp: sfnt_f26dot6;
+
+  sfnt_address_zp0 (interpreter, (*interpreter).state.rp0 as uint32_t,
+		    &raw mut rp0x, &raw mut rp0y, &raw mut rp0_original_x,
+		    &raw mut rp0_original_y);
+  sfnt_address_zp1 (interpreter, p, &raw mut x, &raw mut y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+
+  if (*interpreter).state.zp1 == 0
+    {
+      /* Create this point in the twilight zone at RP0.  */
+
+      *(*interpreter).twilight_x.offset (p as isize) = rp0x;
+      x = *(*interpreter).twilight_x.offset (p as isize);
+      *(*interpreter).twilight_y.offset (p as isize) = rp0y;
+      y = *(*interpreter).twilight_y.offset (p as isize);
+
+      /* Now set the original positions to the projected difference
+         from rp0.  This makes sense once you think about it.  */
+      temp = sfnt_mul_f2dot14 ((*interpreter).state.projection_vector.x, d);
+      temp = sfnt_add! (temp, rp0_original_x);
+      *(*interpreter).twilight_original_x.offset (p as isize) = temp;
+
+      temp = sfnt_mul_f2dot14 ((*interpreter).state.projection_vector.y, d);
+      temp = sfnt_add! (temp, rp0_original_y);
+      *(*interpreter).twilight_original_y.offset (p as isize) = temp;
+    }
+
+  /* Compute the original distance.  */
+  old_distance = sfnt_project_vector (interpreter,
+				      sfnt_sub! (x, rp0x),
+				      sfnt_sub! (y, rp0y));
+
+  /* Move the point.  */
+  sfnt_move_zp1 (interpreter, p, 1, sfnt_sub! (d, old_distance));
+
+  /* Nothing in the TrueType reference manual says directly that this
+     instruction should change rp1 and rp2.  However, it says this
+     instruction is ``very similar to the MIRP[] instruction
+     except...'', and FreeType seems to do this, so do it as well.  */
+
+  (*interpreter).state.rp1 = (*interpreter).state.rp0;
+  (*interpreter).state.rp2 = p as uint16_t;
+
+  if opcode == 0x3b
+    { (*interpreter).state.rp0 = p as uint16_t; }
+}
+
+/* Interpret an IP instruction in INTERPRETER.  For loop times, pop a
+   single point in ZP2, and interpolate it so that its original
+   relationship to the points RP1 in ZP0 and RP2 in ZP1 as measured
+   along the dual projection vector continues to hold true.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_ip (interpreter: *mut sfnt_interpreter)
+{                                                          // C 9369-9527
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+  macro_rules! POP { () => {
+    if (*interpreter).SP == (*interpreter).stack
+      { TRAP! (c"stack underflow".as_ptr ()); 0 }
+    else
+      { (*interpreter).SP = (*interpreter).SP.offset (-1); *(*interpreter).SP }
+  } }
+
+  let mut rp1x: sfnt_f26dot6 = 0;
+  let mut rp1y: sfnt_f26dot6 = 0;
+  let mut rp1_original_x: sfnt_f26dot6 = 0;
+  let mut rp1_original_y: sfnt_f26dot6 = 0;
+  let mut rp2x: sfnt_f26dot6 = 0;
+  let mut rp2y: sfnt_f26dot6 = 0;
+  let mut rp2_original_x: sfnt_f26dot6 = 0;
+  let mut rp2_original_y: sfnt_f26dot6 = 0;
+  let mut range: sfnt_f26dot6;
+  let mut new_range: sfnt_f26dot6;
+  let mut org_distance: sfnt_f26dot6;
+  let mut cur_distance: sfnt_f26dot6;
+  let mut new_distance: sfnt_f26dot6;
+  let mut p: uint32_t;
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut original_x: sfnt_f26dot6 = 0;
+  let mut original_y: sfnt_f26dot6 = 0;
+  let mut zone: *mut sfnt_interpreter_zone;
+  let mut scale: bool;
+
+  /* First load both reference points.  */
+  sfnt_address_zp0 (interpreter, (*interpreter).state.rp1 as uint32_t,
+		    &raw mut rp1x, &raw mut rp1y, &raw mut rp1_original_x,
+		    &raw mut rp1_original_y);
+  sfnt_address_zp1 (interpreter, (*interpreter).state.rp2 as uint32_t,
+		    &raw mut rp2x, &raw mut rp2y, &raw mut rp2_original_x,
+		    &raw mut rp2_original_y);
+
+  /* If RP1, RP2, and all arguments all fall within the glyph zone and
+     a simple glyph is loaded, replace their original coordinates as
+     loaded here with coordinates from the unscaled glyph outline.  */
+
+  zone = (*interpreter).glyph_zone;
+  scale = false;
+
+  if !zone.is_null () && !(*zone).simple.is_null ()
+      && (*interpreter).state.zp0 != 0
+      && (*interpreter).state.zp1 != 0
+      && (*interpreter).state.zp2 != 0
+    {
+      p = (*interpreter).state.rp1 as uint32_t;
+
+      /* If P is a phantom point... */
+      if (p as usize) >= (*(*zone).simple).number_of_points
+	{
+	  /* ...scale the phantom point to the size of the original
+	     outline.  */
+	  rp1_original_x = sfnt_div_fixed (rp1_original_x,
+					   (*interpreter).scale);
+	  rp1_original_y = sfnt_div_fixed (rp1_original_y,
+					   (*interpreter).scale);
+	}
+      else
+	{
+	  rp1_original_x = *(*(*zone).simple).x_coordinates.offset (p as isize)
+			   as sfnt_f26dot6;
+	  rp1_original_y = *(*(*zone).simple).y_coordinates.offset (p as isize)
+			   as sfnt_f26dot6;
+	}
+
+      p = (*interpreter).state.rp2 as uint32_t;
+
+      /* If P is a phantom point... */
+      if (p as usize) >= (*(*zone).simple).number_of_points
+	{
+	  /* ...scale the phantom point to the size of the original
+	     outline.  */
+	  rp2_original_x = sfnt_div_fixed (rp2_original_x,
+					   (*interpreter).scale);
+	  rp2_original_y = sfnt_div_fixed (rp2_original_y,
+					   (*interpreter).scale);
+	}
+      else
+	{
+	  rp2_original_x = *(*(*zone).simple).x_coordinates.offset (p as isize)
+			   as sfnt_f26dot6;
+	  rp2_original_y = *(*(*zone).simple).y_coordinates.offset (p as isize)
+			   as sfnt_f26dot6;
+	}
+
+      scale = true;
+    }
+
+  /* Get the original distance between of RP1 and RP2 measured
+     relative to the dual projection vector.  */
+  range = sfnt_dual_project_vector (interpreter,
+				    sfnt_sub! (rp2_original_x,
+					       rp1_original_x),
+				    sfnt_sub! (rp2_original_y,
+					       rp1_original_y));
+
+  if scale
+    { range = sfnt_mul_fixed_round (range, (*interpreter).scale); }
+
+  /* Get the new distance.  */
+  new_range = sfnt_dual_project_vector (interpreter,
+					sfnt_sub! (rp2x, rp1x),
+					sfnt_sub! (rp2y, rp1y));
+
+  while { (*interpreter).state.r#loop = (*interpreter).state.r#loop.wrapping_sub (1);
+	  (*interpreter).state.r#loop != 0xffff }
+    {
+      p = POP! ();
+
+      /* Load this point relative to zp2.  */
+      sfnt_address_zp2 (interpreter, p, &raw mut x, &raw mut y, &raw mut original_x,
+			&raw mut original_y);
+
+      if scale
+	{
+	  /* If P is a phantom point... */
+	  if (p as usize) >= (*(*zone).simple).number_of_points
+	    {
+	      /* ...scale the phantom point to the size of the original
+		 outline.  */
+	      original_x = sfnt_div_fixed (original_x,
+					   (*interpreter).scale);
+	      original_y = sfnt_div_fixed (original_y,
+					   (*interpreter).scale);
+	    }
+	  else
+	    {
+	      original_x = *(*(*zone).simple).x_coordinates.offset (p as isize)
+			   as sfnt_f26dot6;
+	      original_y = *(*(*zone).simple).y_coordinates.offset (p as isize)
+			   as sfnt_f26dot6;
+	    }
+	}
+
+      /* Now compute the old distance from this point to rp1.  */
+      org_distance
+	= sfnt_dual_project_vector (interpreter,
+				    sfnt_sub! (original_x,
+					       rp1_original_x),
+				    sfnt_sub! (original_y,
+					       rp1_original_y));
+
+      if scale
+	{ org_distance = sfnt_mul_fixed_round (org_distance,
+					       (*interpreter).scale); }
+
+      /* And the current distance from this point to rp1, so
+         how much to move can be determined.  */
+      cur_distance
+	= sfnt_project_vector (interpreter,
+			       sfnt_sub! (x, rp1x),
+			       sfnt_sub! (y, rp1y));
+
+      /* Finally, apply the ratio of the new distance between RP1 and
+	 RP2 to that of the old distance between the two reference
+	 points to org_distance, making new_distance.
+
+         If both reference points occupy the same position on the dual
+         projection vector, then simply use the old distance.  */
+
+      if org_distance != 0
+	{
+	  if range != 0
+	    { new_distance
+		= sfnt_multiply_divide_signed (org_distance,
+					       new_range, range); }
+	  else
+	    { new_distance = org_distance; }
+	}
+      else
+	{ new_distance = 0; }
+
+      /* And move the point along the freedom vector to reflect the
+	 change in distance.  */
+      sfnt_move_zp2 (interpreter, p, 1,
+		     sfnt_sub! (new_distance, cur_distance));
+    }
+
+  (*interpreter).state.r#loop = 1;
+}
+
+/* Apply the delta specified by OPERAND to the control value table
+   entry at INDEX currently loaded inside INTERPRETER.
+
+   Trap if INDEX is out of bounds.
+
+   NUMBER is the number of the specific DELTAC instruction this delta
+   is being applied on behalf of.  It must be between 1 and 3.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_deltac (number: c_int, interpreter: *mut sfnt_interpreter,
+		       index: c_uint, operand: c_uchar)
+{                                                          // C 9538-9656
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut ppem: c_int;
+  let mut delta: c_int;
+
+  /* Make sure INDEX is a valid cvt entry.  */
+
+  if (index as usize) >= (*interpreter).cvt_size
+    { TRAP! (c"DELTACn instruction out of bounds".as_ptr ()); }
+
+  /* operand is an 8 bit number.  The most significant 4 bits
+     represent a specific PPEM size at which to apply the delta
+     specified in the low 4 bits, summed with an instruction specific
+     delta, and the current delta base.  */
+
+  ppem = (operand >> 4) as c_int + (*interpreter).state.delta_base as c_int;
+
+  match number
+    {
+      1 => {}
+      2 => { ppem += 16; }
+      3 => { ppem += 32; }
+      _ => {}
+    }
+
+  /* Don't apply the delta if the ppem size doesn't match.  */
+
+  if (*interpreter).ppem != ppem
+    { return; }
+
+  /* Now, determine the delta using the low 4 bits.  The low 4 bits
+     actually specify a ``magnitude'' to apply to the delta, and do
+     not have an encoding for the delta 0.  */
+
+  match operand & 0xf
+    {
+      0 => { delta = -8; }
+      1 => { delta = -7; }
+      2 => { delta = -6; }
+      3 => { delta = -5; }
+      4 => { delta = -4; }
+      5 => { delta = -3; }
+      6 => { delta = -2; }
+      7 => { delta = -1; }
+      8 => { delta = 1; }
+      9 => { delta = 2; }
+      10 => { delta = 3; }
+      11 => { delta = 4; }
+      12 => { delta = 5; }
+      13 => { delta = 6; }
+      14 => { delta = 7; }
+      15 => { delta = 8; }
+
+      /* To pacify -fanalyzer.  */
+      _ => { abort (); }
+    }
+
+  /* Now, scale up the delta by the step size, which is determined by
+     the delta shift.  */
+  delta = (delta as c_long
+	   * ((1 as c_long) << (6 - (*interpreter).state.delta_shift as c_int)))
+	  as c_int;
+
+  /* Finally, apply the delta to the CVT entry.  */
+  *(*interpreter).cvt.offset (index as isize)
+    = sfnt_add! (*(*interpreter).cvt.offset (index as isize),
+		 delta);
+}
+
+/* Interpret an MDAP (Move Direct Absolute Point) instruction with the
+   opcode OPCODE and the operand P in INTERPRETER.
+
+   Touch the point P (within the zone specified in zp0) in the
+   directions specified in the freedom vector.  Then, if OPCODE is
+   0x2f, round the point and move it the rounded distance along the
+   freedom vector.
+
+   Finally, set the RP0 and RP1 registers to P.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_mdap (interpreter: *mut sfnt_interpreter,
+			       p: uint32_t, opcode: uint32_t)
+{                                                          // C 9669-9694
+  let mut here: sfnt_f26dot6;
+  let mut distance: sfnt_f26dot6;
+  let mut px: sfnt_f26dot6 = 0;
+  let mut py: sfnt_f26dot6 = 0;
+
+  sfnt_address_zp0 (interpreter, p, &raw mut px, &raw mut py,
+		    std::ptr::null_mut (), std::ptr::null_mut ());
+
+  /* Measure the current distance.  */
+  here = sfnt_project_vector (interpreter, px, py);
+
+  if opcode == 0x2f
+    {
+      /* Measure distance, round, then move to the distance.  */
+      distance = sfnt_project_vector (interpreter, px, py);
+      distance = sfnt_round_symmetric (interpreter, distance);
+      distance = sfnt_sub! (distance, here);
+    }
+  else
+    /* Don't move.  Just touch the point.  */
+    { distance = 0; }
+
+  sfnt_move_zp0 (interpreter, p, 1, distance);
+
+  (*interpreter).state.rp0 = p as uint16_t;
+  (*interpreter).state.rp1 = p as uint16_t;
+}
+
+/* Apply the delta specified by OPERAND to the point P in ZP0
+   currently loaded inside INTERPRETER.
+
+   Trap if P is out of bounds.
+
+   NUMBER is the number of the specific DELTAP instruction this delta
+   is being applied on behalf of.  It must be between 1 and 3.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_deltap (number: c_int, interpreter: *mut sfnt_interpreter,
+		       operand: c_uchar, p: c_uint)
+{                                                          // C 9705-9815
+  let mut ppem: c_int;
+  let mut delta: c_int;
+
+  /* Extract the ppem from OPERAND.  The format is the same as in
+     sfnt_deltac.  */
+
+  ppem = (operand >> 4) as c_int + (*interpreter).state.delta_base as c_int;
+
+  match number
+    {
+      1 => {}
+      2 => { ppem += 16; }
+      3 => { ppem += 32; }
+      _ => {}
+    }
+
+  /* Don't apply the delta if the ppem size doesn't match.  */
+
+  if (*interpreter).ppem != ppem
+    { return; }
+
+  /* Now, determine the magnitude of the movement and find the
+     delta.  */
+
+  match operand & 0xf
+    {
+      0 => { delta = -8; }
+      1 => { delta = -7; }
+      2 => { delta = -6; }
+      3 => { delta = -5; }
+      4 => { delta = -4; }
+      5 => { delta = -3; }
+      6 => { delta = -2; }
+      7 => { delta = -1; }
+      8 => { delta = 1; }
+      9 => { delta = 2; }
+      10 => { delta = 3; }
+      11 => { delta = 4; }
+      12 => { delta = 5; }
+      13 => { delta = 6; }
+      14 => { delta = 7; }
+      15 => { delta = 8; }
+
+      /* To pacify -fanalyzer.  */
+      _ => { abort (); }
+    }
+
+  /* Now, scale up the delta by the step size, which is determined by
+     the delta shift.  */
+  delta = (delta as c_long
+	   * ((1 as c_long) << (6 - (*interpreter).state.delta_shift as c_int)))
+	  as c_int;
+
+  /* Move the point.  */
+  sfnt_check_zp0 (interpreter, p);
+  sfnt_move_zp0 (interpreter, p, 1, delta);
+}
+
+/* C 9817-9819's `/* Needed by sfnt_interpret_call.  */` and its
+   `static void sfnt_interpret_run (struct sfnt_interpreter *, enum sfnt_interpreter_run_context);`
+   - the forward declaration 0.1-12 deletes, and the definition is C 11396, still unported: P-91 ①
+   and ④ name this call site and its C line in the ledger.  */
+
+/* Call DEFINITION inside INTERPRETER.
+
+   Save INTERPRETER->IP, INTERPRETER->instructions, and
+   INTERPRETER->num_instructions onto the C stack.
+
+   Then, load the instructions in DEFINITION, and run the interpreter
+   again with the context CONTEXT.
+
+   Finally, restore all values.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_call (definition: *mut sfnt_interpreter_definition,
+			       interpreter: *mut sfnt_interpreter,
+			       context: sfnt_interpreter_run_context)
+{                                                          // C 9832-9860
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut num_instructions: uint16_t;
+  let mut IP: c_int;
+  let mut instructions: *mut c_uchar;
+
+  /* Check that no recursion is going on.  C's `call_depth++` compares the value before the
+     increment (the `bidi.rs` `n_old` shape).  */
+  if { let call_depth_old: c_int = (*interpreter).call_depth;
+       (*interpreter).call_depth += 1;
+       call_depth_old } >= 128
+    { TRAP! (c"CALL called CALL more than 127 times".as_ptr ()); }
+
+  /* Save the old IP, instructions and number of instructions.  */
+  num_instructions = (*interpreter).num_instructions;
+  IP = (*interpreter).IP;
+  instructions = (*interpreter).instructions;
+
+  /* Load and run the definition.  */
+  (*interpreter).num_instructions = (*definition).instruction_count;
+  (*interpreter).instructions = (*definition).instructions;
+  (*interpreter).IP = 0;
+  sfnt_interpret_run (interpreter, context);
+
+  /* Restore the old values.  */
+  (*interpreter).num_instructions = num_instructions;
+  (*interpreter).IP = IP;
+  (*interpreter).instructions = instructions;
+  (*interpreter).call_depth -= 1;
+}
+
+/* Set the detailed rounding state in interpreter, on behalf of either
+   an SROUND or S45ROUND instruction that has been given the operand
+   OPERAND.
+
+   Use the specified GRID_PERIOD to determine the period.  It is is a
+   18.14 fixed point number, but the rounding state set will be a 26.6
+   fixed point number.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_set_srounding_state (interpreter: *mut sfnt_interpreter,
+				    operand: uint32_t, grid_period: sfnt_f18dot14)
+{                                                          // C 9871-9932
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut period: sfnt_f18dot14;
+  let mut phase: sfnt_f18dot14;
+  let mut threshold: sfnt_f18dot14;
+
+  /* The most significant 2 bits in the 8 bit OPERAND determine the
+     period.  */
+
+  match (operand & 0xc0) >> 6
+    {
+      0 => { period = grid_period / 2; }
+      1 => { period = grid_period; }
+      2 => { period = grid_period * 2; }
+      _ => { TRAP! (c"reserved period given to SROUND".as_ptr ()); }
+    }
+
+  /* The next two bits determine the phase.  */
+
+  match (operand & 0x30) >> 4
+    {
+      0 => { phase = 0; }
+      1 => { phase = period / 4; }
+      2 => { phase = period / 2; }
+      _ => { phase = period * 3 / 2; }
+    }
+
+  /* And the least significant 4 bits determine the threshold.  */
+
+  if (operand & 0x0f) != 0
+    { threshold = (((operand & 0x0f) as c_int - 4)
+		   * period / 8); }
+  else
+    { threshold = period - 1; }
+
+  /* Now extend these values to 26.6 format and set them.  */
+  (*interpreter).period = period >> 8;
+  (*interpreter).phase = phase >> 8;
+  (*interpreter).threshold = threshold >> 8;
+}
+
+/* Move to the next opcode in INTERPRETER's instruction stream.
+   Value is the opcode originally at INTERPRETER->IP.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_skip_code (interpreter: *mut sfnt_interpreter) -> c_uchar
+{                                                          // C 9938-9989
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut opcode: c_uchar;
+  let mut nbytes: c_int;
+
+  if (*interpreter).IP == (*interpreter).num_instructions as c_int
+    { TRAP! (c"IP at end of instruction stream".as_ptr ()); }
+
+  /* Load opcode at IP.  */
+  opcode = *(*interpreter).instructions.offset ((*interpreter).IP as isize);
+
+  if opcode == 0x40 || opcode == 0x41
+    {
+      if (*interpreter).IP + 1 >= (*interpreter).num_instructions as c_int
+	{ TRAP! (c"Missing arg to NPUSHB or NPUSHW".as_ptr ()); }
+
+      /* Figure out how many bytes or words to push.  */
+
+      nbytes = *(*interpreter).instructions.offset (((*interpreter).IP + 1) as isize)
+	       as c_int;
+
+      if opcode == 0x41
+	{ nbytes *= 2; }
+
+      if (*interpreter).IP + 2 + nbytes > (*interpreter).num_instructions as c_int
+	{ TRAP! (c"args to NPUSH instruction lie outside IS".as_ptr ()); }
+
+      /* Increment IP by so much.  */
+      (*interpreter).IP += 2 + nbytes;
+    }
+  else if opcode >= 0xb0 && opcode <= 0xb7
+    {
+      nbytes = opcode as c_int - 0xb0 + 1;
+
+      if (*interpreter).IP + 1 + nbytes > (*interpreter).num_instructions as c_int
+	{ TRAP! (c"args to PUSHB instruction lie outide IS".as_ptr ()); }
+
+      (*interpreter).IP += 1 + nbytes;
+    }
+  else if opcode >= 0xb8 && opcode <= 0xbf
+    {
+      nbytes = (opcode as c_int - 0xb8 + 1) * 2;
+
+      if (*interpreter).IP + 1 + nbytes > (*interpreter).num_instructions as c_int
+	{ TRAP! (c"args to PUSHW instruction lie outide IS".as_ptr ()); }
+
+      (*interpreter).IP += 1 + nbytes;
+    }
+  else
+    { (*interpreter).IP += 1; }
+
+  return opcode;
+}
+
+/* Interpret the unimplemented operation OPCODE using INTERPRETER, and
+   the context WHY.  If there is no instruction definition named
+   OPCODE, trap.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_unimplemented (interpreter: *mut sfnt_interpreter,
+					opcode: c_uchar,
+					why: sfnt_interpreter_run_context)
+{                                                          // C 9996-10019
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut i: uint32_t;
+  let mut def: *mut sfnt_interpreter_definition;
+
+  i = 0;
+  while i < (*interpreter).instruction_defs_size as uint32_t
+    {
+      def = (*interpreter).instruction_defs.offset (i as isize);
+
+      if (*def).opcode as uint32_t == opcode as uint32_t
+	{
+	  if (*def).instructions.is_null ()
+	    { TRAP! (c"** ERROR ** malformed internal instruction definition".as_ptr ()); }
+
+	  sfnt_interpret_call (def, interpreter, why);
+	  return;
+	}
+
+      i += 1;
+    }
+
+  TRAP! (c"invalid instruction".as_ptr ());
+}
+
+/* Start a function definition in INTERPRETER, with the function
+   opcode OPCODE.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_fdef (interpreter: *mut sfnt_interpreter,
+			       opcode: uint32_t)
+{                                                          // C 10025-10074
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut i: size_t;
+  let mut num_fdefs: size_t;
+  let mut IP: c_int;
+  let mut instruction: c_uchar;
+
+  IP = (*interpreter).IP + 1;
+  num_fdefs = 0;
+
+  /* Now find an ENDF.  */
+
+  while { instruction = sfnt_skip_code (interpreter); instruction != 0x2d }
+    {
+      if (*interpreter).IP >= (*interpreter).num_instructions as c_int
+	{ TRAP! (c"missing ENDF".as_ptr ()); }
+
+      /* If this is an FDEF or IDEF instruction, increment num_fdefs.
+	 Prohibit nested FDEFs or IDEFS.  */
+      if instruction == 0x2c || instruction == 0x89
+	{ num_fdefs += 1; }
+
+      if num_fdefs > 1
+	{ TRAP! (c"IDEF or FDEF before ENDF".as_ptr ()); }
+    }
+
+  /* ENDF has been found.  Now save the function definition.  Try to
+     find an existing function definition with this opcode.  If that
+     fails, make i the first available function definition.  */
+
+  i = 0;
+  while i < (*interpreter).function_defs_size as size_t
+    {
+      if (*(*interpreter).function_defs.offset (i as isize)).opcode as uint32_t == opcode
+	  || (*(*interpreter).function_defs.offset (i as isize)).instructions.is_null ()
+	{ break; }
+
+      i += 1;
+    }
+
+  if i == (*interpreter).function_defs_size as size_t
+    { TRAP! (c"number of fdefs exceeded maxp->max_function_defs".as_ptr ()); }
+
+  /* Save the opcode of this function definition.  */
+  (*(*interpreter).function_defs.offset (i as isize)).opcode = opcode as uint16_t;
+
+  /* Make sure to ignore the trailing ENDF instruction.  */
+  (*(*interpreter).function_defs.offset (i as isize)).instruction_count
+    = ((*interpreter).IP - IP - 1) as uint16_t;
+
+  /* Now save a pointer to the instructions.  */
+  (*(*interpreter).function_defs.offset (i as isize)).instructions
+    = (*interpreter).instructions.offset (IP as isize);
+}
+
+/* Start an instruction definition in INTERPRETER, with the
+   instruction opcode OPCODE.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_idef (interpreter: *mut sfnt_interpreter,
+			       opcode: uint32_t)
+{                                                          // C 10080-10130
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut i: size_t;
+  let mut num_fdefs: size_t;
+  let mut IP: c_int;
+  let mut instruction: c_uchar;
+
+  IP = (*interpreter).IP + 1;
+  num_fdefs = 0;
+
+  /* Now find an ENDF.  */
+
+  while { instruction = sfnt_skip_code (interpreter); instruction != 0x2d }
+    {
+      if (*interpreter).IP >= (*interpreter).num_instructions as c_int
+	{ TRAP! (c"missing ENDF".as_ptr ()); }
+
+      /* If this is an FDEF or IDEF instruction, increment num_fdefs.
+	 Prohibit nested FDEFs or IDEFS.  */
+      if instruction == 0x2c || instruction == 0x89
+	{ num_fdefs += 1; }
+
+      if num_fdefs > 1
+	{ TRAP! (c"IDEF or FDEF before ENDF".as_ptr ()); }
+    }
+
+  /* ENDF has been found.  Now save the instruction definition.  Try to
+     find an existing instruction definition with this opcode.  If that
+     fails, make i the first available instruction definition.  */
+
+  i = 0;
+  while i < (*interpreter).instruction_defs_size as size_t
+    {
+      if (*(*interpreter).instruction_defs.offset (i as isize)).opcode as uint32_t == opcode
+	  || (*(*interpreter).instruction_defs.offset (i as isize)).instructions.is_null ()
+	{ break; }
+
+      i += 1;
+    }
+
+  if i == (*interpreter).instruction_defs_size as size_t
+    { TRAP! (c"number of defs exceeded maxp->max_instruction_defs".as_ptr ()); }
+
+  /* Save the opcode of this instruction definition.  */
+  (*(*interpreter).instruction_defs.offset (i as isize)).opcode = opcode as uint16_t;
+
+  /* Make sure to ignore the trailing ENDF instruction.  */
+  (*(*interpreter).instruction_defs.offset (i as isize)).instruction_count
+    = ((*interpreter).IP - IP - 1) as uint16_t;
+
+  /* Now save a pointer to the instructions.  */
+  (*(*interpreter).instruction_defs.offset (i as isize)).instructions
+    = (*interpreter).instructions.offset (IP as isize);
+}
+
+/* Interpret the specified conditional at INTERPRETER->IP.
+   If CONDITION, evaluate this branch up until the next ELSE or ENDIF.
+   Else, evaluate the branch from a matching ELSE condition, if
+   one exists.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_if (interpreter: *mut sfnt_interpreter,
+			     condition: bool)
+{                                                          // C 10138-10185
+  let mut nifs: c_int;
+  let mut need_break: bool;
+  let mut opcode: c_uchar;
+
+  if condition
+    {
+      (*interpreter).IP += 1;
+      return;
+    }
+
+  /* Number of ifs.  */
+  nifs = 0;
+  need_break = false;
+
+  /* Break past the matching else condition.  */
+  loop
+    {
+      /* Load the current opcode, then increase IP.  */
+      opcode = sfnt_skip_code (interpreter);
+
+      if (*interpreter).IP >= (*interpreter).num_instructions as c_int
+	{ break; }
+
+      match opcode
+	{
+	  0x58 =>                                          /* IF */
+	    { nifs += 1; }
+
+	  0x1B =>                                          /* ELSE */
+	    {
+	      if nifs == 1
+		{ need_break = true; }
+	    }
+
+	  0x59 =>                                          /* EIF */
+	    {
+	      nifs -= 1;
+	      if nifs == 0
+		{ need_break = true; }
+	    }
+
+	  _ => {}
+	}
+
+      /* C's `while (!need_break)` test, inverted into a break.  */
+      if need_break
+	{ break; }
+    }
+}
+
+/* Interpret the specified ELSE branch at INTERPRETER->IP.
+   Evaluate starting from a matching ENDIF instruction.
+
+   If IF has set INTERPRETER->IP to a code within an ELSE branch, this
+   will not be called.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_else (interpreter: *mut sfnt_interpreter)
+{                                                          // C 10194-10224
+  let mut nifs: c_int;
+  let mut opcode: c_uchar;
+
+  /* Number of ifs.  */
+  nifs = 1;
+
+  /* Break past the matching ENDIF condition.  */
+  loop
+    {
+      /* Load the current opcode, then increase IP.  */
+      opcode = sfnt_skip_code (interpreter);
+
+      if (*interpreter).IP >= (*interpreter).num_instructions as c_int
+	{ break; }
+
+      match opcode
+	{
+	  0x58 =>                                          /* IF */
+	    { nifs += 1; }
+
+	  0x59 =>                                          /* EIF */
+	    {
+	      nifs -= 1;
+	    }
+
+	  _ => {}
+	}
+
+      if !(nifs > 0)
+	{ break; }
+    }
 }
 /* C 10225-10663: the graphics-state validation family.  It is ported **here**, ahead of the
    C 6307-10224 block, because of P-91 ①: `sfnt_init_graphics_state` (C 6316) calls

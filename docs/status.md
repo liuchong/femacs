@@ -12129,3 +12129,55 @@
      ⑥ 里那两条 `recital` 的修法只在**工作树**里成立，它的落地读数由该 lane 的收口条记。
   ⑧ **预算**：`check-declarations` 4 发、其余六道文本门各 1 发、`rg`/`awk`/`sed` 若干；`build-tu` 0、
      `probe` 0；未建工作树，`/tmp` 0 残留。
+
+- **3.600 lane 产出收口：`src/sfnt.c` 第九片落地（C 6312-6557 与 C 8161-10224；C 21,215 → Rust 13,174 行；`--check` 231 → 175 行）（2026-10-05）**：
+  ① **区间/块**：两块——**C 6312-6557**（`sfnt_init_graphics_state` C 6316-6344、`sfnt_make_interpreter`
+     C 6358-6522、`sfnt_interpreter_run_context` 枚举 C 6533-6541、`sfnt_interpret_trap` C 6550-6557）与
+     **C 8161-10224**（解释器辅助块：zone 寻址/存储/移动族、投影与取整、`sfnt_interpret_utp` …
+     `sfnt_interpret_else`，46 个定义，合计 2,310 行 C）。台账区间表 55 → **57 行**（把原来的单行
+     `6307-10224` 换成三行 `6307-6557`/`6558-8159`/`8160-10224`），仍升序、不重叠、铺满 C 1-21215。
+     **刻意不落**：C 6559-8159（约 140 个解释器宏 + 6 个守卫宏）——它们按 P-57 的家在**使用它们的函数体内**
+     （`src/coding.rs` 的先例），本片真用到的 4 个（`TRAP`/`POP`/`PROJECT`/`DUAL_PROJECT`）已在 26 处调用者
+     函数内各定义一份；余下的与 `sfnt_interpret_run`（C 11396，未落）一起落，理由写在台账 Owed 22。
+  ② **行数/md5（集成者复核）**：`femacs/src/sfnt.rs` **10,763 → 13,174 行**，md5
+     `d2c6117793143ab47fdfe9732dfb0408`（= lane 交付时声明的那个值；它报告里另一个 `8a52f1ba…` 是最终测量
+     之前的中间态，交付字节与复核字节一致）；`docs/ports/sfnt.md` 1,234 → **1,570 行**，md5
+     `15502e4b03683d27501133f19ba5a22f`。
+  ③ **读数**：⑴ `extract-abi --check emacs/src/sfnt.c femacs/src/sfnt.rs`：**231 → 175 行**（`- missing`
+     **230 → 174** = 31 functions / 143 macros / 0 constants，+ `line count drifted 37.9%`；
+     `does not mention` 行 **0 条**）；⑵ 冻结 `build-tu` **4 发（限 3，超 1，如实报）→ 每次 exit 0 /
+     `build/femacs/sfnt.o` 336 字节**（冻结配置不编本文件）；⑶ 翻臂 `probe` **5 发（限 3，超 2）**：
+     错误数 **89 → 48 → 12 → 6**，最后 6 条 = **5 条镜像 `E0425`**（`sys_time.rs` 的 `time_t`、
+     `sys_select.rs`/`thread.rs` 的 `timespec`，切片前即复现、站点一致，属镜像 Owed 16）+ **1 条
+     `E0425 sfnt_interpret_run`**（P-91 ④ 允许项，随 C 10664-13917 落地关闭）；**本片正文 0 错**；
+     ⑷ 七道文本门（本节读数）：`check-mirror-dupes` 17/17/**0**、`check-citations` 676 文件/0 drift/
+     0 range/0 stale、`check-declarations` **17 sites (0 forbidden, 17 allowed literals), 0 failures**、
+     `check-ledger-ticks` 238/0、`check-dead-file-coverage` 145/0、`check-port-lines` 0/0/0/0、
+     `check-target-names` 629 文件/591 目标/0 finding。
+  ④ **集成者替它落的账**：⑴ `docs/ports/macro-body-notes.tsv` **只收本 lane 的 10 行**（四个 `goto`、
+     三个 `break,case,default,switch`、两个 `case,switch`），另 5 行属于在飞 lane（xdisp 3 行、xterm 2 行），
+     按"按行名切"的规矩留在工作树、随各自收口进（该文件本轮在暂存区与工作树里**内容不同**，这是有意的）；
+     ⑵ `docs/port-map.md` 重生成：只收本件的 `src/sfnt.c | 21,215 | femacs/src/sfnt.rs | 10,763 → 13,174`
+     与一条**陈旧行刷新** `src/w32.h` 的镜像 582 → 593（3.598 改 `include/w32.rs` 时没重生成），
+     **把在飞 lane 的两行（xdisp 29,626 / xterm 7,508）手工退回已提交值**；⑶ **不加容差行**：本件仍是
+     部分复刻（37.9% 漂移），容差行只给已完成的文件写（3.434 ⑤、3.489 的裁决），棘轮行按 Owed 6 的批处理
+     留着；⑷ 台账 Owed 的三条请裁决项由集成者当场裁定并写回：**Owed 24**（`setjmp`/`longjmp` 的家）
+     = **留在单元内**（四个后来的站点都在本单元，P-88 ① 的"一个消费者"；`sys_longjmp` 是行为替换，不在选项里）、
+     **Owed 27**（`sfnt_interpreter_run_context` 枚举）= **留在单元**（Owed 20 的类：`sfnt.h` 没有它）、
+     **Owed 29** = 棘轮行继续延后且不加容差行；⑸ `docs/ports/excluded-macros.txt` 本件**不动**（两段没有自己的宏）；
+     `docs/baseline/feature-coverage.tsv`：本件用到的 7 个 feature **全部已注册**（脚本复核 0 缺失），
+     所以没有 `Cargo.toml` 改动。
+  ⑤ **未声称**：本片**零运行证据**——冻结档是 336 字节空对象，翻臂档停在错误上（连对象都没有）；
+     `sfnt_init_graphics_state`/`sfnt_make_interpreter`/`sfnt_interpret_trap` 与 46 个辅助函数**都还没有调用者**
+     （唯一入口 `sfnt_interpret_run` 未落），没有读过字体、没有寻址 zone、没有投影/取整/解 un delta；
+     `E0381`/`E0423`/`E0308` 全是编译器读数；`macro-body-notes` 的 10 行与 50 条 `// C a-b` 是人核对的文本，
+     不是门展开的结果。TEST 臂的三处洞（三个 hook 成员、`POP`/`PUSH` 的 `#else` 臂、TEST 臂没有 `jmp_buf`）
+     如实留在台账 Owed 23，**本机没有任何门编那个臂**。C 6559-8159 与 C 10664-13917 未移植——174 条
+     `missing` 就是那条边界。
+  ⑥ **一处集成者自己的偏离（如实记）**：把 `docs/baseline/feature-coverage.tsv` 还原时用了
+     `git checkout --`（该文件是我自己本轮 `--write` 生成的、只含在飞 lane 的数据，无别人的产出丢失），
+     而这一步按流程该写 `git show HEAD:<path> > <path>`；以后不再用那个写法。
+  ⑦ **预算**：lane `build-tu` 4/3、`probe` 5/3（逐发理由在台账 Evidence ②/Owed 28）；集成者本轮
+     `build-tu` 0、`probe` 0（只跑 `extract-abi --check` 1 发与文本门各 1 发）、`gen-port-map.py` 1 发、
+     `feature-coverage.py` 2 发；未跑 `--all`/`gate-fast`/`cargo test`/`check-all-units.sh`/`layout-check`
+     （**本件不碰任何镜像**，所以 P-87 的两腿不适用）；lane 的 `/tmp/sfnt-lane` 与集成者的临时文件已删。
