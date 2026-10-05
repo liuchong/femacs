@@ -7939,3 +7939,28 @@
      目标编译、没有布局实测；臂读数只是本机 `rustc` 加四个 `--cfg` 的**名字/类型**读数；C 913-4,903 **未移植**
      （118 条 `- ` 与 68.7% 漂移就是那条边界）。**预算如实报**：lane 自己 `build-tu` 3/3、`probe` 4 发（限 3，超 1）；
      我这一轮另用 `build-tu` 3 发、`probe` 2 发、全树扫描 3 次。
+
+- **3.445 gtkutil 切片 1（C 1-1296）：屏幕与显示、光标与 pixbuf、tooltip 与几何（2026-10-05）**：
+  ① **区间**：C 1-1296（收在 `xg_frame_set_char_size` 的 `}`）；**下一个活定义 = C 1316 `xg_frame_set_size_and_position`**。
+     33 行区间表覆盖 C 1-6,753（并覆盖 `src/gtkutil.h` 245 行）；文件门 `use_gtk`，内层门有 `have_pgtk`/`have_gtk3`/
+     `use_cairo`/`have_xinput2`/`have_xft`/`have_xdbe`；三条臂读数（GTK3 / +pgtk / GTK2）。
+  ② **行数**：`femacs/src/gtkutil.rs` **11 → 2,593**；台账 `docs/ports/gtkutil.md` 24 → **528**。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**；`check-cond-eval` **212 条件 / 1 unknown / 1 disagreement
+     [NOT VERIFIED]**（C 6652 的 `elif GTK_CHECK_VERSION (3,16,0)`，本文件既有、远在切片之外）；`extract-abi --check`
+     **149 条 `- `**（116 函数 / 9 宏 / 6 常量 / 8 对象 = C 1297-6,753 的边界，加 61.6% 漂移）；`check-dead-file-coverage`
+     **34 ledger / 0 failure**；`check-mirror-dupes` 19/19/0。**翻臂（本机无 GTK 树 ⇒ 全是名字/类型读数）**：
+     A（GTK3：`use_gtk have_x_windows have_window_system have_gtk3 use_cairo have_xinput2 have_xft have_xdbe`）
+     **43 错 = 本单元 10 + 镜像 33**；B（+`have_pgtk`）**60 错 = 本单元 45 + 镜像 15**；C（GTK2）**42 错 = 本单元 11 + 镜像 31**；
+     本单元那 10/45/11 条**全部是已点名的镜像欠账**（`new_size_p`、`redisplay_interface`、pgtk 侧的 `FRAME_GTK_*` 等），
+     没有一条是 C 语句的转写错误。
+  ④ **集成者本轮替它落的账**：`macro-body-notes.tsv` **6 行**（`GTK_FONT_CHOOSER` → `gtk_font_selection_dialog`；
+     `xg_display_open` → `0,strlen`；`xg_display_close` → `pgtk_display_info`；`xg_list_insert`/`xg_list_remove` → `0`；
+     `qttip_cb` → `g_callback`），补后本单元 `does not mention` **归零**；`TB_INFO_KEY` 由
+     `*const c_char = c"xg_frame_tb_info".as_ptr ()` 改回 **`&CStr` 常量**（门的字节比对要求端口与 C 的字面量同形，
+     §2.1 的字符串选形）；`femacs/xtask/Cargo.toml` 登记 **`gtk_check_version_ge_3_10` / `gtk_check_version_ge_3_22`**。
+  ⑤ **未声称**：**零运行证据**——没有 GTK 树可编臂、没有 GTK 目标可跑；冻结读数只是 336 字节空对象，臂读数只是 `rustc`
+     的名字/类型报错，"本单元自身 0 条语句级错误"是**很弱**的读数；C 1297-6,753 **未移植**（149 条 `- ` 与 61.6% 漂移就是
+     那条边界）；GDK/GTK 那批记录的**布局是 UNVERIFIED 占位**（工具链到手后成员与偏移都可能改）。lane 的预算如实：
+     `build-tu` **7 发**（限 3，超 4）、`probe` **0 发**（臂读数是 materialize 后 `_root.rs` 上的裸 `rustc`，已在台账声明
+     不是 `xtask probe` 的那次读数）。**P-90 的搬运仍欠**：本单元自带的 220 个第三方名（86 类型/常量、31 宏、103 入口）
+     与 `src/pgtkterm.rs` 的段内副本一起，欠给"建 `femacs/src/include/gtk.rs`"的那一轮。
