@@ -231,3 +231,14 @@ parameter's declared type, not the call graph.  Verified by a call-name multiset
 every C body against its Rust counterpart (the only differences are C's `sizeof *ps->stack`
 idiom in the two `grow_*_stack` helpers, C's nested designators in
 `print_stack_push_vector`, and the `false`/`true` spellings of C's `0`/`1` boolean arguments).
+
+## 2026-10-05: the printer's two loops - `print_object` never returned (status 3.615)
+
+C's `print_object` is a `goto`-driven state machine: the body ends in a label pair
+(`print_obj:` for the object, `next_obj:` for the print stack's continuation), and with the
+stack back at its base the code *falls through* to the `eassert (print_depth == base_depth)`
+and returns.  The port modelled the pair as two nested labelled `loop`s, and the point where C
+falls through was written `break;` - which in Rust exits the *inner* loop only, so the body of
+the outer loop was reached again and the object was printed forever.  Invisible until the first
+Lisp-level print: the first error message printed its symbol name 437,531 times
+(counted in a temporary instrumentation).  The exit is now `break 'print_obj;`.

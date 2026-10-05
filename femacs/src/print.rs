@@ -1293,6 +1293,8 @@ pub unsafe extern "C" fn print_error_message (mut data: Lisp_Object, stream: Lis
 	else
 	  { Fprin1 (obj, stream, Qnil ()); }
       });
+    if ! sep.is_null ()
+      { write_string (c"\n".as_ptr (), stream); }
   }
 }
 
@@ -3108,7 +3110,11 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
 	}
       continue 'print_obj;
     }
-  break;
+  /* C's `goto print_obj`/`next_obj:` pair ends here: with the print stack back at its base
+     the object is printed and print_object returns - the C code falls through to the assert.
+     The port's loops need the *outer* label, or the object is printed again and again
+     (status 3.615: the first Lisp-level print, an error message, looped forever).  */
+  break 'print_obj;
   }
   }
   eassert! (print_depth == base_depth);

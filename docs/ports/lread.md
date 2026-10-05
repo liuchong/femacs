@@ -417,3 +417,17 @@ offset 0 of `lispsym`.  The port therefore walked into every empty bucket as if 
 and skipped the real `nil` symbol; the first `map_obarray` (from `harmonize_variable_watchers`)
 died in `XSYMBOL`'s `eassume`.  The mirror's ledger records the fix; this file's own sites
 (`oblookup` 5273, the unintern path 5231, the value check 5038) were already C's.
+
+## 2026-10-05: `defsym_name` carries the Lisp names, not the C identifiers (status 3.615)
+
+C's generated `defsym_name[]` (build/emacs-ref/src/globals.h 5799) holds the **Lisp** names -
+`"nil"`, `"t"`, `"load"`, `"scroll-up"` - and `init_obarray_once` names every builtin symbol
+with it.  The port's table held the *C identifiers* instead (`"Qnil"`, `"Qt"`, `"Qload"`, ...):
+1423 of the 2118 entries differ between the two spellings.  Nothing dispatches through a symbol's
+name, so the defect was invisible until elisp ran: `defsubr` interns the subr's Lisp name
+(`"load"`), which - with the builtin symbol misnamed `"Qload"` - created a *second* symbol, so
+`(load "loadup.el")` called a void function and the batch error path (which is where the first
+*print* happens) had nothing to print.  The table is now generated from
+`docs/baseline/globals/symbols.tsv`'s `lisp_name` column, in that file's index order (the port's
+own 2118-symbol superset, P-29), with the formatting of the previous table kept (four entries a
+line, `c"...".as_ptr ()`).

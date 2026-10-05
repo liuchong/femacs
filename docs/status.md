@@ -12537,3 +12537,40 @@
      `check-all-units.sh` 1 发（两腿）、`layout-check` 1 发、文本门 2 轮；`build/femacs/units/*` 与 `/tmp` 的
      临时件（`probe.el`、四份 `.out`）**已清**，`build/femacs/*.o`（226 个）与 `build/femacs/emacs` 保留
      （链接集要用）；磁盘 41 GiB 可用。
+
+- **3.615 elisp 第一次真的跑起来：内置符号名字表修好（1423/2118 条写成了 C 标识符）＋打印器的循环出口打错，`loadup.el` 开始逐文件加载（2026-10-05）**：
+  ① **里程碑（可复跑）**：`env EMACSLOADPATH=<repo>/femacs/lisp build/femacs/emacs --batch` 现在打出
+     `Loading loadup.el...` / `Dump mode: nil` / `Using load-path (…7 个目录…)` / `Loading emacs-lisp/debug-early...`
+     ——**elisp 树真的在被逐个文件加载**（`load`、`message`、`princ`、`defun`/`defvar` 这条路都在跑）。
+     在那之前，同样的命令**一行 elisp 都没到**，只是静默退出。
+  ② **缺陷一：`defsym_name` 表装的是 C 标识符而不是 Lisp 名字**（`lread.rs`）。C 的生成表
+     （`build/emacs-ref/src/globals.h` 5799）逐条是 `"nil"`/`"t"`/`"load"`/`"scroll-up"` 这类**Lisp 名字**，
+     `init_obarray_once` 用它给每个内置符号命名；端口的表抄的是 `Qnil`/`Qt`/`Qload`——**2118 条里 1423 条两种写法不同**。
+     符号名不参与分派，所以这个缺陷一路隐藏到 elisp 真正跑起来才现形：`defsubr` 用子程序的 **Lisp 名**（`"load"`）
+     去 `intern`，而内置符号叫 `"Qload"` ⇒ 又造了一个新符号、函数单元是空的 ⇒ `(load "loadup.el")` 调的是 void 函数，
+     而"批处理下错误看不见"正是因为它连第一条要打印的东西都没有。表已按 `docs/baseline/globals/symbols.tsv`
+     的 `lisp_name` 列、按那份文件的索引顺序（端口自己的 2118 条超集，P-29）重排，格式沿用旧表（一行四条）。
+  ③ **缺陷二：打印器永远不返回**（`print.rs`）。C 的 `print_object` 是一台 `goto` 状态机：主体末尾是
+     `print_obj:`/`next_obj:` 一对标签，打印栈回到基址时**直接落到 `eassert (print_depth == base_depth)` 并返回**。
+     端口把这对标签写成两个嵌套的带标签 `loop`，而"落到返回"那一点写成了 `break;`——Rust 里它只跳出**内层**
+     `'next_obj`，外层 `'print_obj` 的循环体于是又被走到一次、把同一个对象再打印一遍。这条只在**第一次 Lisp 层打印**
+     （也就是出错信息）时才现形：临时仪表数出同一个符号名被打印了 **437,531 次**（`DBG sym name` 计数），
+     而 `print_error_message` 的 `FOR_EACH_TAIL` 只迭代了 1 次（`DBG iter 0` 一条）。出口改成 `break 'print_obj;`。
+  ④ **现在的现场（下一站）**：同一条命令现在走到
+     `read_char → timer_start_idle → call0 (Qinternal_timer_start_idle)`——**void 函数**（它是 `lisp/emacs-lisp/timer.el`
+     的 Lisp 函数，本该由 loadup 在更后面加载），于是信号、批处理路径打印 `Symbol's function definition is void:
+     internal-timer-start-idle` 并 `Fkill_emacs (-1)` **退出 255**（批处理的"打印到 stderr 再退出"这条路现在是通的，
+     lldb 栈：`Fcommand_error_default_function → print_error_message → …`；`noninteractive=1`、`Vprint_level` = fixnum 10 已实测）。
+     也就是说：**loadup 在加载完 `debug-early` 之后没能继续**（输出里只有两条 `Loading …`），而命令循环已经在读输入。
+     下一步就是查这条断点：`Fload` 的返回值/错误去哪了、`loadup.el` 的第二个 `(load "emacs-lisp/byte-run")` 为什么没到。
+  ⑤ **读数**：⑴ 程序侧：`--version` 仍 exit 0；`--batch` 无 `EMACSLOADPATH` 时打印 void 信息后 exit 255（不再是死循环）；
+     `EMACSLOADPATH=…` 时打出上面四条加载行；⑵ 八道文本门 + `check-carried` 全绿（`check-declarations` 6 站点/0 forbidden/0 failures、
+     `check-citations` 676 文件/0 drift/0 stale——`lread.rs` 的表少了 1 行、四条允许项无需改、`check-mirror-dupes` 16/16/0、
+     `check-ledger-ticks` 238/0、`check-dead-file-coverage` 145/0、`check-port-lines` 0/0/0/0、`check-target-names` 0 finding、
+     `check-carried` 11/11/4/0）；⑶ 本件**改的是单元**（`lread.rs`、`print.rs`），不动镜像，所以 P-87 的两腿不适用；
+     两件各自 `build-tu` 一发 + 一次可执行链接（`linked … no undefined reference`）。
+  ⑥ **未声称**：没有 dump、没有 L1 验收（`tools/acceptance-l1.py` 一条没跑）、没有加载完整 lisp 树；也没有证明
+     `internal-timer-start-idle` 之后还会遇到什么。`--batch` 的退出码 255 是 `Fkill_emacs (-1)` 的正常形态（不是崩溃）。
+  ⑦ **预算**：`build-tu` 3 发（lread/print/print 复建）、`check-link --executable` 4 发、`lldb` 6 次、`sample` 1 次、
+     临时仪表 2 轮（`print.rs` 里的 `DBG` 语句**已全部删除并复建验证**）、文本门 1 轮；`build/femacs/units/*` 与 `/tmp` 的
+     `probe.el`、四份 `.out` 已清，`.o` 集与可执行件保留。
