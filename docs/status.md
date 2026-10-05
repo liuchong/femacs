@@ -8331,3 +8331,16 @@
   本单元 TEST 臂（`sa_stack_alloc` 缺声明、`xnmalloc` 签名差异）**未测量**；`check-port-lines` 的 sfnt
   棘轮行按 lane 的说明**留给批次收口**（现在重写会把在飞 lane 的瞬态数字冻进表里）；本轮 `build-tu` **1 发**（限 3）。
 
+- **3.464 `check-citations` 的三条 drift 里，已落地的那条按"include 行"类收进允许表（2026-10-05）**：
+  ① **判据**：`femacs/src/w32proc.rs:474` 的引用原文是 `// C 57's lisp.h 30: \`#include <string.h>\` (\`memset\`)`——
+  引的是 lisp.h 的 **include 行**，括号里的 `memset` 是那行**带来的名字**，所以门的"引文不落在 ±2 行内"是
+  它自己声明的保守误报类（`tools/check-citations.py` 的 docstring 把这一类写得很清楚），引用本身是对的。
+  ② **处置**：`docs/baseline/citations-allowlist.tsv` 追加一行，理由照既有同类的写法（
+  `femacs/src/atimer.rs:39`/`femacs/src/character.rs:25` 那两行的形状）；**不是**改引用文本——3.166 的裁决
+  是"该清单是复核队列不是补丁"，自动 `--fix` 已撤回，所以只对**已落地**的站点写允许行。
+  ③ **读数**：`check-citations` **3 drift → 2 drift**、`33 → 34 allowed`、`0 stale`、`675 文件不变`。
+  剩下两条**都在在飞文件里**：`femacs/src/gtkutil.rs:92`（同一条 include-行类，等 Nietzsche 落地后一并判）
+  与 `femacs/src/msdos.rs:2140`（`frame.h 1548` vs `FRAME_NO_SPECIAL_GLYPHS` 实际在 1273，是**真陈旧**
+  的形态，等 Hegel 落地后按证据改引用或写允许行——两者都不动别人的在飞文件）。
+  ④ **未声称**：只处理了 1 条；门仍未回到 0 drift，且该门现在是**红**的（exit 1），红的原因就是上面两条在飞站点。
+
