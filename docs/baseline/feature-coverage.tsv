@@ -5,39 +5,39 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	1004	32	-	-
-have_android	855	29	-	-
+windowsnt	1053	33	-	-
+have_android	875	30	-	-
 have_window_system	821	17	-	-
-use_gtk	763	10	-	-
 have_x_windows	678	22	-	HAVE_X_WINDOWS
 not_android_stubify	596	10	-	-
-have_pgtk	510	16	-	-
-have_ntgui	499	12	-	-
+have_ntgui	500	13	-	-
+have_pgtk	484	17	-	-
+use_gtk	406	10	-	-
 msdos	326	14	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
 dispextern_face_records	266	4	-	-
 have_ns	261	10	-	HAVE_NS
 have_haiku	211	13	xtask dead-arms	-
 use_xcb	171	4	-	-
+use_cairo	135	10	-	-
 have_tree_sitter	133	7	-	HAVE_TREE_SITTER
-have_gtk3	119	4	-	-
-use_cairo	116	7	-	-
+have_gtk3	93	4	-	-
 windows	83	5	-	-
 have_ext_tool_bar	76	2	-	-
 ns_impl_gnustep	70	2	-	-
 have_lcms2	54	1	-	-
-have_xinput2	52	6	-	-
 have_ext_menu_bar	51	3	-	-
+have_xinput2	51	6	-	-
 have_zlib	51	2	-	-
 glyph_debug	36	5	xtask dead-arms	-
 test	34	4	-	-
 have_text_conversion	30	3	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
 dos_nt	29	4	-	-
+use_x_toolkit	29	8	-	USE_X_TOOLKIT
+have_x_i18n	28	4	-	-
 use_acl_ace_getacl	28	1	-	-
-have_x_i18n	26	3	-	-
 have_xcb_shape	26	2	-	-
-use_x_toolkit	25	7	-	USE_X_TOOLKIT
 vm_ms_windows	25	1	-	-
 cygwin	24	11	-	-
 have_xrender	24	4	-	-
@@ -48,9 +48,9 @@ libgccjit_have_gcc_jit_context_new_bitcast	22	1	-	-
 use_android_assets	20	2	-	-
 android_api_lt_21	19	1	-	-
 mingw_w64	19	3	-	-
+words_bigendian	19	9	-	-
 have_xwidgets	18	6	-	-
 redirect	17	1	-	-
-words_bigendian	17	8	-	-
 openbsd	16	5	-	-
 unistd_h_have_winsock2_h	16	1	-	-
 use_acl_have_acl_get_file	16	2	-	-
@@ -81,19 +81,21 @@ clang_major_clang_major_5	9	1	-	-
 cygwin_win32	9	3	-	-
 glibc_time_bits_64	9	1	-	-
 gnulib_sigprocmask	9	1	-	-
-gtk_check_version_ge_3_22	9	2	-	-
 harfbuzz	9	5	-	-
 have_xinput2_1	9	1	-	-
 macos_sdk	9	1	-	-
 no_have_builtin_unwind_init	9	1	-	-
+win64	9	2	-	-
 windows_stat_timespec	9	2	-	-
 gnu_linux	8	1	-	-
+gtk_check_version_ge_3_22	8	2	-	-
 have_xcomposite	8	2	-	-
 linux_no_android	8	2	-	-
 no_working_fstatat_zero_flag	8	1	-	-
 openbsd_or_android_flags	8	1	-	-
 stat_time_member_absent	8	1	-	-
 treesit_language_version_ge_15	8	1	-	-
+use_toolkit_scroll_bars	8	4	-	-
 utmp_h	8	2	-	-
 win32_vista	8	1	-	-
 gc_malloc_check	7	1	-	-
@@ -105,10 +107,12 @@ msvc	7	2	-	-
 no_faccessat	7	2	-	-
 no_rint	7	1	xtask dead-arms	-
 sigdanger	7	3	-	-
+use_cairo_or_have_xft	7	1	-	-
 use_file_notify	7	1	-	-
 win32_winnt_lt_0500	7	2	-	-
 windows_msvc	7	1	-	-
 djgpp_2_3	6	3	-	-
+exec_64	6	1	-	-
 have_getgroups	6	1	-	-
 have_xkb	6	2	-	-
 libc	6	3	-	-
@@ -122,7 +126,6 @@ no_value	6	1	-	-
 tandem	6	3	-	-
 use_acl_have_getacl	6	1	-	-
 use_fortify_level_3	6	1	-	-
-use_toolkit_scroll_bars	6	3	-	-
 have_android_mmap	5	1	-	-
 have_gpm	5	4	-	-
 have_gsettings	5	1	-	-
@@ -156,6 +159,7 @@ have_ts_tree_cursor_goto_previous_sibling	4	1	-	-
 have_webp	4	1	-	-
 klibc	4	2	-	-
 no_cplusplus_gnuc_prereq_2_8_clang_major_4	4	1	-	-
+no_djgpp_2_4	4	1	-	-
 no_gnuc_defined_clang	4	1	-	-
 no_have_max_align_t	4	1	-	-
 no_have_posix_madvise	4	2	-	-
@@ -166,8 +170,8 @@ no_subprocesses	4	2	-	-
 sco	4	1	-	-
 sun	4	2	-	-
 sys_renameat2	4	1	-	-
+use_lucid	4	4	-	-
 vswtch	4	2	-	-
-win64	4	1	-	-
 ztrillion_mpz	4	1	-	-
 android_stubify	3	1	-	-
 ckd	3	1	-	-
@@ -209,12 +213,12 @@ replace_getusershell	3	1	-	-
 replace_struct_timeval	3	1	-	-
 stdc_version_stdc_version_199901l_defined	3	1	-	-
 use_acl_have_aclsort	3	1	-	-
-use_lucid	3	3	-	-
 w32	3	1	-	-
 windows_stat_inodes	3	1	-	-
 xft_or_freetype	3	1	-	-
 android_32bit	2	1	-	-
 android_64bit	2	1	-	-
+choose_newest_exe	2	1	-	-
 cnew_rtscts	2	1	-	-
 cplusplus_201103l	2	1	-	-
 cygwin_or_dos_nt	2	1	-	-
@@ -256,6 +260,7 @@ linux_sysinfo_unit	2	1	-	-
 lisp_object_is_struct	2	1	-	-
 mingw32_no_use_windows_threads	2	1	-	-
 mingw64	2	1	-	-
+mips_isa_rev_ge_6	2	1	-	-
 netbsd_minix_fileext	2	1	-	-
 no_boot_time_defined	2	1	-	-
 no_builtin_add_overflow	2	1	-	-
@@ -313,6 +318,7 @@ no_ssize_max	2	1	-	-
 no_sun_no_windows	2	1	-	-
 no_tabdly	2	1	-	-
 no_trunc	2	1	xtask dead-arms	-
+no_uint64_max	2	1	-	-
 no_use_aligned_alloc	2	1	-	-
 no_user_process_defined	2	1	-	-
 no_utmp_file	2	1	-	-
@@ -377,6 +383,7 @@ xk_dead_tilde	2	1	-	-
 xk_dead_voiced_sound	2	1	-	-
 _dos_ds	1	1	-	-
 _use_lfn	1	1	-	-
+aarch64	1	1	-	-
 acc_self	1	1	-	-
 aix_and_bsd	1	1	-	-
 aix_large_files	1	1	-	-
@@ -636,6 +643,7 @@ no_realloc_0_nonnull	1	1	-	-
 no_realloc_posix	1	1	-	-
 no_rename_excl	1	1	-	-
 no_s_ififo	1	1	-	-
+no_sa_resethand	1	1	-	-
 no_sc_arg_max	1	1	-	-
 no_scn64_prefix	1	1	-	-
 no_scnd64	1	1	-	-

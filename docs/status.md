@@ -8488,3 +8488,15 @@
   141.5% 的漂移是行数读数不是文本相等；占位值若错，端口在真 Windows 上会出错（Owed 2 点名，不藏）。
   本轮 `build-tu` **3 发**（限 3）、`probe` 0 发；`/tmp` 里自建的目录已删。
 
+- **3.469 `tools/feature-coverage.py` 的扫描面从两棵树推到全部八棵：批次 F 单元的 feature 此前对这张表不可见（2026-10-05）**：
+  ① **怎么发现的**：3.468 给 `nt/runemacs.rs` 登记 `choose_newest_exe` 并跑 `--write`，表里却找不到这个名——
+  读工具发现 `TREES = ("femacs/src", "femacs/lib")`，**只走两棵核心树**，于是批次 F 的
+  `lib-src`/`exec`/`lwlib`/`oldXMenu`/`nt`/`msdos` 里所有 `#[cfg]` 站点对这张表都不可见（与 3.250 的
+  "树按名字被扫、文件一个没读"同形；`check-declarations.py` 的 `SCAN_DIRS` 早就列了同样八棵树）。
+  ② **处置**：`TREES` 扩成那八棵树（`femacs/xtask` 仍排除：它是工具不是移植物），注释写明理由与发现它的那一处；
+  `--write` 重录：**792 feature(s), 785 never enabled → 800 feature(s), 793 never enabled**。
+  新增可见的名里有代表性的三条：`windowsnt` **1053 sites / 33 files**（这批"被携带但任何配置都不编译"的
+  Windows-only 文本，此前整批不在表内）、`choose_newest_exe` 2/1、`_dos_ds` 1/1。
+  ③ **未声称**：这张表是**快照**，含在飞 lane 当时的站点数；它是**信息性**读数（不在 `gate-fast` 里），
+  "没有任何配置启用"不等于"写错了"——P-51 正是**故意**携带这些臂；本条不改变任何移植物的判定。
+

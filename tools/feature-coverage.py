@@ -28,7 +28,13 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-TREES = ("femacs/src", "femacs/lib")
+# Every *ported* tree, not just the two the first 350 units came from: batch F's programs and
+# libraries (`lib-src`, `exec`, `lwlib`, `oldXMenu`, `nt`, `msdos`) carry `#[cfg]` sites of their
+# own - `nt/runemacs.rs`'s `choose_newest_exe` was the first one this table could not see, because
+# the walk stopped at the two core trees (status 3.469; `check-declarations.py`'s `SCAN_DIRS` lists
+# the same eight trees for the same reason).  `femacs/xtask` stays out: it is the tooling, not a port.
+TREES = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/exec", "femacs/lwlib",
+         "femacs/oldXMenu", "femacs/nt", "femacs/msdos")
 FEATURE = re.compile(r'feature\s*=\s*"([a-z0-9_]+)"')
 FLIP = re.compile(r'\(\s*"([a-z0-9_]*)"\s*,\s*"([A-Z0-9_]*)"\s*,\s*"(\w+)"\s*\)')
 CONFIG = REPO / "femacs/src/include/config.rs"
