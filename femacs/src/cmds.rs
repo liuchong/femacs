@@ -290,12 +290,12 @@ unsafe fn internal_self_insert (mut c: c_int, mut n: EMACS_INT) -> c_int
   let mut chars_to_delete: ptrdiff_t = 0;
   let mut spaces_to_insert: ptrdiff_t = 0;
 
-  overwrite = BVAR! (current_buffer, overwrite_mode_);
+  overwrite = BVAR! ((current_buffer! ()), overwrite_mode_);
   if !NILP (Vbefore_change_functions) || !NILP (Vafter_change_functions)
     { hairy = 1; }
 
   /* At first, get multi-byte form of C in STR.  */
-  if !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     {
       len = CHAR_STRING (c, str_.as_mut_ptr ());
       if len == 1
@@ -376,11 +376,11 @@ unsafe fn internal_self_insert (mut c: c_int, mut n: EMACS_INT) -> c_int
 
   synt = SYNTAX (c);
 
-  if !NILP (BVAR! (current_buffer, abbrev_mode_))
+  if !NILP (BVAR! ((current_buffer! ()), abbrev_mode_))
       && synt != Sword
-      && NILP (BVAR! (current_buffer, read_only_))
+      && NILP (BVAR! ((current_buffer! ()), read_only_))
       && PT! () > BEGV! ()
-      && (SYNTAX (if !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      && (SYNTAX (if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 		  { XFIXNAT (Fprevious_char ()) as c_int }
 		  else
 		  { UNIBYTE_TO_CHAR (XFIXNAT (Fprevious_char ()) as c_int) })
@@ -410,7 +410,7 @@ unsafe fn internal_self_insert (mut c: c_int, mut n: EMACS_INT) -> c_int
 
   if chars_to_delete != 0
     {
-      let mc: c_int = (if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      let mc: c_int = (if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 			 && SINGLE_BYTE_CHAR_P (c as intmax_t)
 		       { UNIBYTE_TO_CHAR (c) } else { c });
       let mut string: Lisp_Object = Fmake_string (make_fixnum (n), make_fixnum (mc as EMACS_INT),
@@ -459,7 +459,7 @@ unsafe fn internal_self_insert (mut c: c_int, mut n: EMACS_INT) -> c_int
       { !NILP (CHAR_TABLE_REF (Vauto_fill_chars, c as isize)) }
       else
       { c == b' ' as c_int || c == b'\n' as c_int })
-      && !NILP (BVAR! (current_buffer, auto_fill_function_))
+      && !NILP (BVAR! ((current_buffer! ()), auto_fill_function_))
       && n > 0
     {
       let auto_fill_result: Lisp_Object;

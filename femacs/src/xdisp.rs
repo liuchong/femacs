@@ -8,12 +8,19 @@
 // `DEFUN`s use `DEFUN!` (PORTING.md 5.1).
 //
 // **This lane is incremental.**  `src/xdisp.c` is 39,805 lines, the largest unit in the
-// tree; this file is written in C order and is complete through the C line range named in
-// `docs/ports/xdisp.md`'s Decisions section ("Progress") — the only live text still missing
-// is the C 15616-16624 hole (`tty_handle_tab_bar_click`), which that ledger's `## Owed`
-// section names.  Every name this file's transcribed text calls now has its definition here
-// or in another unit's object; the provisional declaration block the earlier rounds kept for
-// the not-yet-written definitions is gone (the ledger's Decisions section records when).
+// tree; this file is written in C order and the unit's live text is now complete: the last
+// hole (C 15616-16624, `tty_handle_tab_bar_click`) landed with the round whose readings are
+// in `docs/ports/xdisp.md`'s Decisions section, and the C text that is still not transcribed
+// is the `HAVE_WINDOW_SYSTEM` half the frozen configuration does not compile (recorded in
+// that ledger, not transcribed).  Every name this file's transcribed text calls has its
+// definition here or in another unit's object; the provisional declaration block the earlier
+// rounds kept for the not-yet-written definitions is gone (the ledger's Decisions section
+// records when).
+//
+// **`current_buffer` is the mirror's accessor macro** (`include/buffer.rs`, thread.h 147's
+// per-thread field): this unit reads it as `current_buffer! ()` and stores through
+// `set_current_buffer! (…)`, the shape every including unit uses (PORTING.md P-26/P-87; the
+// ledger records the sweep).
 //
 // **`src/xdisp.c` is in `docs/baseline/config/cond-eval-verified.txt`**
 // (`python3 tools/check-cond-eval.py src/xdisp.c` reports
@@ -2218,7 +2225,7 @@ unsafe fn fill_column_indicator_column (it: *mut it, char_width: c_int) -> c_int
     {
       let col: Lisp_Object
 	= if EQ (Vdisplay_fill_column_indicator_column, Qt ())
-	    { BVAR! (current_buffer, fill_column_) }
+	    { BVAR! (current_buffer! (), fill_column_) }
 	  else { Vdisplay_fill_column_indicator_column };
 
       /* The stretch width needs to consider the latter
@@ -2608,8 +2615,8 @@ DEFUN! ("set-buffer-redisplay", Fset_buffer_redisplay,
        (symbol: Lisp_Object, newval: Lisp_Object, op: Lisp_Object, where_: Lisp_Object),
        {
   let _ = (symbol, newval, op, where_);
-  bset_update_mode_line (current_buffer);
-  buffer_bits! (prevent_redisplay_optimizations_p, current_buffer, true);
+  bset_update_mode_line (current_buffer! ());
+  buffer_bits! (prevent_redisplay_optimizations_p, current_buffer! (), true);
   return Qnil ();
 });
 
@@ -3072,9 +3079,9 @@ DEFUN! ("line-pixel-height", Fline_pixel_height,
   let mut old_buffer: *mut buffer = core::ptr::null_mut ();
   let result: Lisp_Object;
 
-  if XBUFFER ((*w).contents) != current_buffer
+  if XBUFFER ((*w).contents) != current_buffer! ()
     {
-      old_buffer = current_buffer;
+      old_buffer = current_buffer! ();
       set_buffer_internal_1 (XBUFFER ((*w).contents));
     }
   SET_TEXT_POS! (pt, PT! (), PT_BYTE! ());
@@ -3233,9 +3240,9 @@ pub unsafe extern "C" fn pos_visible_p (w: *mut window, charpos: ptrdiff_t, x: *
   if FRAME_INITIAL_P (XFRAME (WINDOW_FRAME! (w)))
     { return visible_p; }
 
-  if XBUFFER ((*w).contents) != current_buffer
+  if XBUFFER ((*w).contents) != current_buffer! ()
     {
-      old_buffer = current_buffer;
+      old_buffer = current_buffer! ();
       set_buffer_internal_1 (XBUFFER ((*w).contents));
     }
 
@@ -3271,7 +3278,7 @@ pub unsafe extern "C" fn pos_visible_p (w: *mut window, charpos: ptrdiff_t, x: *
       (*w).mode_line_height
 	= display_mode_line (w, CURRENT_MODE_LINE_ACTIVE_FACE_ID! (w),
 			     if NILP (window_mode_line_format)
-			     { BVAR! (current_buffer, mode_line_format_) }
+			     { BVAR! (current_buffer! (), mode_line_format_) }
 			     else { window_mode_line_format });
     }
 
@@ -3283,7 +3290,7 @@ pub unsafe extern "C" fn pos_visible_p (w: *mut window, charpos: ptrdiff_t, x: *
       (*w).tab_line_height
 	= display_mode_line (w, CURRENT_TAB_LINE_ACTIVE_FACE_ID! (w),
 			     if NILP (window_tab_line_format)
-			     { BVAR! (current_buffer, tab_line_format_) }
+			     { BVAR! (current_buffer! (), tab_line_format_) }
 			     else { window_tab_line_format });
     }
 
@@ -3295,7 +3302,7 @@ pub unsafe extern "C" fn pos_visible_p (w: *mut window, charpos: ptrdiff_t, x: *
       (*w).header_line_height
 	= display_mode_line (w, CURRENT_HEADER_LINE_ACTIVE_FACE_ID! (w),
 			     if NILP (window_header_line_format)
-			     { BVAR! (current_buffer, header_line_format_) }
+			     { BVAR! (current_buffer! (), header_line_format_) }
 			     else { window_header_line_format });
     }
 
@@ -4165,7 +4172,7 @@ pub unsafe extern "C" fn init_iterator (it: *mut it, w: *mut window,
   /* Some precondition checks.  */
   eassert! (w != core::ptr::null_mut () && it != core::ptr::null_mut ());
   eassert! (charpos < 0
-	    || (charpos >= BUF_BEG (current_buffer) && charpos <= ZV! ()));
+	    || (charpos >= BUF_BEG (current_buffer! ()) && charpos <= ZV! ()));
 
   /* If face attributes have been changed since the last redisplay,
      free realized faces now because they depend on face definitions
@@ -4242,23 +4249,23 @@ pub unsafe extern "C" fn init_iterator (it: *mut it, w: *mut window,
       let mut line_space_above: Lisp_Object;
       let mut line_space_below: Lisp_Object;
 
-      if FIXNATP (BVAR! (current_buffer, extra_line_spacing_))
+      if FIXNATP (BVAR! (current_buffer! (), extra_line_spacing_))
 	{
 	  (*it).extra_line_spacing =
-	    XFIXNAT (BVAR! (current_buffer, extra_line_spacing_)) as c_int;
+	    XFIXNAT (BVAR! (current_buffer! (), extra_line_spacing_)) as c_int;
 	  (*it).extra_line_spacing_above = 0;
 	}
-      else if FLOATP (BVAR! (current_buffer, extra_line_spacing_))
+      else if FLOATP (BVAR! (current_buffer! (), extra_line_spacing_))
 	{
 	  (*it).extra_line_spacing
-	    = (XFLOAT_DATA (BVAR! (current_buffer, extra_line_spacing_))
+	    = (XFLOAT_DATA (BVAR! (current_buffer! (), extra_line_spacing_))
 	       * FRAME_LINE_HEIGHT ((*it).f) as c_double) as c_int;
 	  (*it).extra_line_spacing_above = 0;
 	}
-      else if CONSP (BVAR! (current_buffer, extra_line_spacing_))
+      else if CONSP (BVAR! (current_buffer! (), extra_line_spacing_))
 	{
-	  line_space_above = XCAR (BVAR! (current_buffer, extra_line_spacing_));
-	  line_space_below = XCDR (BVAR! (current_buffer, extra_line_spacing_));
+	  line_space_above = XCAR (BVAR! (current_buffer! (), extra_line_spacing_));
+	  line_space_below = XCDR (BVAR! (current_buffer! (), extra_line_spacing_));
 	  /* Integer pair case.	 */
 	  if FIXNATP (line_space_above) && FIXNATP (line_space_below)
 	    {
@@ -4304,28 +4311,28 @@ pub unsafe extern "C" fn init_iterator (it: *mut it, w: *mut window,
   (*it).override_ascent = -1;
 
   /* Are control characters displayed as `^C'?  */
-  it_bits! (ctl_arrow_p, it, !NILP (BVAR! (current_buffer, ctl_arrow_)));
+  it_bits! (ctl_arrow_p, it, !NILP (BVAR! (current_buffer! (), ctl_arrow_)));
 
   /* -1 means everything between a CR and the following line end
      is invisible.  >0 means lines indented more than this value are
      invisible.  */
   (*it).selective
-    = (if FIXNUMP (BVAR! (current_buffer, selective_display_))
-       { clip_to_bounds (-1, XFIXNUM (BVAR! (current_buffer, selective_display_)) as isize,
+    = (if FIXNUMP (BVAR! (current_buffer! (), selective_display_))
+       { clip_to_bounds (-1, XFIXNUM (BVAR! (current_buffer! (), selective_display_)) as isize,
 			 PTRDIFF_MAX as isize) as ptrdiff_t }
-       else if !NILP (BVAR! (current_buffer, selective_display_))
+       else if !NILP (BVAR! (current_buffer! (), selective_display_))
        { -1 }
        else { 0 });
   it_bits! (selective_display_ellipsis_p, it,
-	    !NILP (BVAR! (current_buffer, selective_display_ellipses_)));
+	    !NILP (BVAR! (current_buffer! (), selective_display_ellipses_)));
 
   /* Display table to use.  */
   (*it).dp = window_display_table (w);
 
   /* Are multibyte characters enabled in current_buffer?  */
-  it_bits! (multibyte_p, it, !NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+  it_bits! (multibyte_p, it, !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_)));
 
-  (*it).tab_width = SANE_TAB_WIDTH (current_buffer) as c_short;
+  (*it).tab_width = SANE_TAB_WIDTH (current_buffer! ()) as c_short;
 
   /* Are lines in the display truncated?  */
   if TRUNCATE != 0
@@ -4338,9 +4345,9 @@ pub unsafe extern "C" fn init_iterator (it: *mut it, w: *mut window,
 	    /* PXW: Shall we do something about this?  */
 	    && (XFIXNUM (Vtruncate_partial_width_windows)
 		<= WINDOW_TOTAL_COLS ((*it).w) as EMACS_INT)))
-    && NILP (BVAR! (current_buffer, truncate_lines_))
+    && NILP (BVAR! (current_buffer! (), truncate_lines_))
     {
-      (*it).line_wrap = if NILP (BVAR! (current_buffer, word_wrap_))
+      (*it).line_wrap = if NILP (BVAR! (current_buffer! (), word_wrap_))
 	{ WINDOW_WRAP } else { WORD_WRAP };
     }
 
@@ -4488,7 +4495,7 @@ pub unsafe extern "C" fn init_iterator (it: *mut it, w: *mut window,
 
   /* If a buffer position was specified, set the iterator there,
      getting overlays and face properties from that position.  */
-  if charpos >= BUF_BEG (current_buffer)
+  if charpos >= BUF_BEG (current_buffer! ())
     {
       (*it).stop_charpos = charpos;
       (*it).end_charpos = ZV! ();
@@ -4510,7 +4517,7 @@ pub unsafe extern "C" fn init_iterator (it: *mut it, w: *mut window,
 	 available.  */
       it_bits! (bidi_p, it,
 		!redisplay__inhibit_bidi
-		&& !NILP (BVAR! (current_buffer, bidi_display_reordering_))
+		&& !NILP (BVAR! (current_buffer! (), bidi_display_reordering_))
 		&& it_bits! (multibyte_p, it));
 
       /* If we are to reorder bidirectional text, init the bidi
@@ -4532,10 +4539,10 @@ pub unsafe extern "C" fn init_iterator (it: *mut it, w: *mut window,
 	    }
 	  /* Note the paragraph direction that this buffer wants to
 	     use.  */
-	  if EQ (BVAR! (current_buffer, bidi_paragraph_direction_),
+	  if EQ (BVAR! (current_buffer! (), bidi_paragraph_direction_),
 		 Qleft_to_right ())
 	    { (*it).paragraph_embedding = L2R; }
-	  else if EQ (BVAR! (current_buffer, bidi_paragraph_direction_),
+	  else if EQ (BVAR! (current_buffer! (), bidi_paragraph_direction_),
 		      Qright_to_left ())
 	    { (*it).paragraph_embedding = R2L; }
 	  else
@@ -4758,7 +4765,7 @@ pub unsafe extern "C" fn get_large_narrowing_zv (pos: ptrdiff_t) -> ptrdiff_t
 
 unsafe extern "C" fn unwind_narrowed_begv (point_min: Lisp_Object)
 {
-  SET_BUF_BEGV (current_buffer, XFIXNUM (point_min));
+  SET_BUF_BEGV (current_buffer! (), XFIXNUM (point_min));
 }
 
 /* Set DST to EXPR.  When IT indicates that BEGV should temporarily be
@@ -4771,7 +4778,7 @@ macro_rules! SET_WITH_NARROWED_BEGV {
 	{
 	  let count: specpdl_ref = SPECPDL_INDEX ();
 	  record_unwind_protect (Some (unwind_narrowed_begv), Fpoint_min ());
-	  SET_BUF_BEGV (current_buffer, $BV);
+	  SET_BUF_BEGV (current_buffer! (), $BV);
 	  $DST = $EXPR;
 	  unbind_to (count, Qnil ());
 	}
@@ -5323,7 +5330,7 @@ unsafe fn compute_stop_pos (it: *mut it)
       if pos < (*it).stop_charpos
 	{ (*it).stop_charpos = pos; }
       /* If we are breaking compositions at point, stop at point.  */
-      if !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      if !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
 	  && !NILP (Vauto_composition_mode)
 	  && composition_break_at_point
 	  && charpos < PT! () && PT! () < (*it).stop_charpos
@@ -5331,7 +5338,7 @@ unsafe fn compute_stop_pos (it: *mut it)
 
       /* Set up variables for computing the stop position from text
          property changes.  */
-      XSETBUFFER! (object, current_buffer);
+      XSETBUFFER! (object, current_buffer! ());
       pos = charpos + TEXT_PROP_DISTANCE_LIMIT as ptrdiff_t;
       /* Make sure the above arbitrary limit position is not in the
 	 middle of composable text, so we don't break compositions by
@@ -5340,7 +5347,7 @@ unsafe fn compute_stop_pos (it: *mut it)
 	 FF, and NL cannot be in some composition; in particular, most
 	 ASCII punctuation characters could be composed into ligatures.  */
       if !composition_break_at_point
-	  && !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  && !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
 	  && !NILP (Vauto_composition_mode)
 	{
 	  let mut endpos: ptrdiff_t
@@ -5690,10 +5697,10 @@ unsafe extern "C" fn handle_fontified_prop (it: *mut it) -> prop_handled
     {
       let count: specpdl_ref = SPECPDL_INDEX ();
       let mut val: Lisp_Object;
-      let obuf: *mut buffer = current_buffer;
+      let obuf: *mut buffer = current_buffer! ();
       let begv: ptrdiff_t = BEGV! ();
       let zv: ptrdiff_t = ZV! ();
-      let old_clip_changed: bool = buffer_bits! (clip_changed, current_buffer);
+      let old_clip_changed: bool = buffer_bits! (clip_changed, current_buffer! ());
       let saved_inhibit_flag: bool
 	= frame_bits! (inhibit_clear_image_cache, (*it).f);
 
@@ -5702,7 +5709,7 @@ unsafe extern "C" fn handle_fontified_prop (it: *mut it) -> prop_handled
 
       eassert! ((*it).end_charpos == ZV! ());
 
-      if buffer_bits! (long_line_optimizations_p, current_buffer)
+      if buffer_bits! (long_line_optimizations_p, current_buffer! ())
 	  && long_line_optimizations_region_size > 0
 	{
 	  let mut begv: ptrdiff_t = (*it).large_narrowing_begv;
@@ -5770,10 +5777,10 @@ unsafe extern "C" fn handle_fontified_prop (it: *mut it) -> prop_handled
 	 `save-restriction' isn't called, there's no point doing so in
 	 this case either.  So, if the buffer's restrictions are
 	 actually left unchanged, reset clip_changed.  */
-      if obuf == current_buffer
+      if obuf == current_buffer! ()
 	{
 	  if begv == BEGV! () && zv == ZV! ()
-	    { buffer_bits! (clip_changed, current_buffer, old_clip_changed); }
+	    { buffer_bits! (clip_changed, current_buffer! (), old_clip_changed); }
 	}
       /* There isn't much we can reasonably do to protect against
 	 misbehaving fontification, but here's a fig leaf.  */
@@ -7203,7 +7210,7 @@ unsafe fn handle_single_display_spec (it: *mut it, spec: Lisp_Object, mut object
 	 to the current position in the buffer.  */
 
       if NILP (object)
-	{ XSETBUFFER! (object, current_buffer); }
+	{ XSETBUFFER! (object, current_buffer! ()); }
       specbind (Qobject (), object);
       specbind (Qposition (), make_fixnum (CHARPOS! (*position)));
       specbind (Qbuffer_position (), make_fixnum (bufpos));
@@ -8150,13 +8157,13 @@ unsafe fn load_overlay_strings (it: *mut it, mut charpos: ptrdiff_t)
   /* Process overlays.  */
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, charpos - 1, charpos + 1,
      DESCENDING)` — itree.h 166-176's expansion, written out at the use site (P-33).  */
-  if (*current_buffer).overlays.is_null ()
+  if (*current_buffer! ()).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = core::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer! ()).overlays,
 				charpos - 1, charpos + 1, ITREE_DESCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{
@@ -8606,13 +8613,13 @@ unsafe fn strings_with_newlines (startpos: ptrdiff_t, endpos: ptrdiff_t,
   /* Process overlays.  */
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, startpos, endpos, DESCENDING)`
      — itree.h 166-176's expansion, written out at the use site (P-33).  */
-  if (*current_buffer).overlays.is_null ()
+  if (*current_buffer! ()).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = core::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer! ()).overlays,
 				startpos, endpos, ITREE_DESCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{
@@ -8750,7 +8757,7 @@ unsafe fn forward_to_next_line_start (it: *mut it, skipped_p: *mut bool,
 
       if !no_strings_with_newlines
 	{
-	  if !(buffer_bits! (long_line_optimizations_p, current_buffer)
+	  if !(buffer_bits! (long_line_optimizations_p, current_buffer! ())
 	       && (*it).line_wrap == TRUNCATE)
 	    {
 	      /* Quick-and-dirty check: if there isn't any `display'
@@ -8924,7 +8931,7 @@ unsafe fn back_to_previous_visible_line_start (it: *mut it)
 	if beg < BEGV! ()
 	  { beg = BEGV! (); }
 	IT_CHARPOS! (*it) = beg;
-	IT_BYTEPOS! (*it) = buf_charpos_to_bytepos (current_buffer as *mut c_void, beg);
+	IT_BYTEPOS! (*it) = buf_charpos_to_bytepos (current_buffer! () as *mut c_void, beg);
       }
     }
 
@@ -9050,7 +9057,7 @@ unsafe fn reseat (it: *mut it, pos: text_pos, force_p: bool)
 
   reseat_1 (it, pos, false);
 
-  if buffer_bits! (long_line_optimizations_p, current_buffer)
+  if buffer_bits! (long_line_optimizations_p, current_buffer! ())
     {
       if (*it).medium_narrowing_begv == 0
 	{
@@ -9139,7 +9146,7 @@ unsafe fn reseat_1 (it: *mut it, pos: text_pos, set_stop_p: bool)
   (*it).object = (*(*it).w).contents;
   (*it).area = TEXT_AREA;
   it_bits! (multibyte_p, it,
-	    !NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+	    !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_)));
   (*it).sp = 0;
   it_bits! (string_from_display_prop_p, it, false);
   it_bits! (string_from_prefix_prop_p, it, false);
@@ -10372,7 +10379,7 @@ unsafe extern "C" fn next_element_from_display_vector (it: *mut it) -> bool
 	  && !((((*it).sp == 0 && BUFFERP ((*it).object))
 		|| ((*it).sp > 1
 		    && !NILP ((*it).stack[0].string)))
-	       && NILP (BVAR! (current_buffer, enable_multibyte_characters_)))
+	       && NILP (BVAR! (current_buffer! (), enable_multibyte_characters_)))
 	{ it_bits! (multibyte_p, it, true); }
 
       /* The entry may contain a face id to use.  Such a face id is
@@ -11052,7 +11059,7 @@ unsafe extern "C" fn next_element_from_buffer (it: *mut it) -> bool
       it_bits! (ignore_overlay_strings_at_pos_p, it, false);
 
       if composition_break_at_point
-	  && !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  && !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
 	  && !NILP (Vauto_composition_mode)
 	{
 	  /* Limit search for composable characters to point's position.  */
@@ -13256,7 +13263,7 @@ unsafe fn window_text_pixel_size (window: Lisp_Object, from: Lisp_Object, to: Li
 
       y = y + display_mode_line (w, CURRENT_TAB_LINE_ACTIVE_FACE_ID! (w),
 				 if NILP (window_tab_line_format)
-				 { BVAR! (current_buffer, tab_line_format_) }
+				 { BVAR! (current_buffer! (), tab_line_format_) }
 				 else { window_tab_line_format });
     }
 
@@ -13268,7 +13275,7 @@ unsafe fn window_text_pixel_size (window: Lisp_Object, from: Lisp_Object, to: Li
 
       y = y + display_mode_line (w, CURRENT_HEADER_LINE_ACTIVE_FACE_ID! (w),
 				 if NILP (window_header_line_format)
-				 { BVAR! (current_buffer, header_line_format_) }
+				 { BVAR! (current_buffer! (), header_line_format_) }
 				 else { window_header_line_format });
     }
 
@@ -13280,7 +13287,7 @@ unsafe fn window_text_pixel_size (window: Lisp_Object, from: Lisp_Object, to: Li
 
       y = y + display_mode_line (w, CURRENT_MODE_LINE_ACTIVE_FACE_ID! (w),
 				 if NILP (window_mode_line_format)
-				 { BVAR! (current_buffer, mode_line_format_) }
+				 { BVAR! (current_buffer! (), mode_line_format_) }
 				 else { window_mode_line_format });
     }
 
@@ -13301,9 +13308,9 @@ DEFUN! ("window-text-pixel-size", Fwindow_text_pixel_size, Swindow_text_pixel_si
   let mut old_b: *mut buffer = core::ptr::null_mut ();
   let value: Lisp_Object;
 
-  if b != current_buffer
+  if b != current_buffer! ()
     {
-      old_b = current_buffer;
+      old_b = current_buffer! ();
       set_buffer_internal_1 (b);
     }
 
@@ -13323,7 +13330,7 @@ DEFUN! ("buffer-text-pixel-size", Fbuffer_text_pixel_size, Sbuffer_text_pixel_si
        {
   let w: *mut window = decode_live_window (window);
   let b: *mut buffer = if NILP (buffer_or_name)
-		       { current_buffer }
+		       { current_buffer! () }
 		       else { XBUFFER (Fget_buffer (buffer_or_name)) };
   let mut buffer: Lisp_Object = Qnil ();
   let value: Lisp_Object;
@@ -13365,7 +13372,7 @@ DEFUN! ("display--line-is-continued-p", Fdisplay__line_is_continued_p,
        doc: "Return non-nil if the current screen line is continued on display.",
        (),
        {
-  let oldb: *mut buffer = current_buffer;
+  let oldb: *mut buffer = current_buffer! ();
   let w: *mut window = XWINDOW (selected_window);
   let mut rc: move_it_result = MOVE_POS_MATCH_OR_ZV;
 
@@ -13509,7 +13516,7 @@ pub unsafe extern "C" fn message_dolog (m: *const c_char, nbytes: ptrdiff_t,
       let mut old_deactivate_mark: Lisp_Object;
 
       old_deactivate_mark = Vdeactivate_mark;
-      oldbuf = current_buffer;
+      oldbuf = current_buffer! ();
 
       /* Sanity check, in case the variable has been set to something
 	 invalid.  */
@@ -13523,8 +13530,8 @@ pub unsafe extern "C" fn message_dolog (m: *const c_char, nbytes: ptrdiff_t,
 	  && !NILP (Ffboundp (Qmessages_buffer_mode ()))
 	{ call0 (Qmessages_buffer_mode ()); }
 
-      bset_undo_list (current_buffer, Qt ());
-      bset_cache_long_scans (current_buffer, Qnil ());
+      bset_undo_list (current_buffer! (), Qt ());
+      bset_cache_long_scans (current_buffer! (), Qnil ());
 
       oldpoint = message_dolog_marker1;
       set_marker_restricted_both (oldpoint, Qnil (), PT! (), PT_BYTE! ());
@@ -13547,7 +13554,7 @@ pub unsafe extern "C" fn message_dolog (m: *const c_char, nbytes: ptrdiff_t,
       /* Insert the string--maybe converting multibyte to single byte
 	 or vice versa, so that all the text fits the buffer.  */
       if multibyte
-	  && NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  && NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
 	{
 	  /* Convert a multibyte string to single-byte
 	     for the *Message* buffer.  */
@@ -13563,7 +13570,7 @@ pub unsafe extern "C" fn message_dolog (m: *const c_char, nbytes: ptrdiff_t,
 	    }
 	}
       else if ! multibyte
-	       && ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	       && ! NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
 	{
 	  /* Convert a single-byte string to multibyte
 	     for the *Message* buffer.  */
@@ -13686,7 +13693,7 @@ pub unsafe extern "C" fn message_dolog (m: *const c_char, nbytes: ptrdiff_t,
 	 shown in some window.  So we must manually set
 	 windows_or_buffers_changed here to make up for that.  */
       windows_or_buffers_changed = old_windows_or_buffers_changed;
-      bset_redisplay (current_buffer);
+      bset_redisplay (current_buffer! ());
 
       set_buffer_internal (oldbuf);
 
@@ -13706,8 +13713,8 @@ unsafe fn message_log_check_duplicate (prev_bol_byte: ptrdiff_t,
   let mut i: ptrdiff_t;
   let len: ptrdiff_t = Z_BYTE! () - 1 - this_bol_byte;
   let mut seen_dots: bool = false;
-  let mut p1: *mut u8 = BUF_BYTE_ADDRESS (current_buffer, prev_bol_byte);
-  let p2: *mut u8 = BUF_BYTE_ADDRESS (current_buffer, this_bol_byte);
+  let mut p1: *mut u8 = BUF_BYTE_ADDRESS (current_buffer! (), prev_bol_byte);
+  let p2: *mut u8 = BUF_BYTE_ADDRESS (current_buffer! (), this_bol_byte);
 
   i = 0;
   while i < len
@@ -14190,8 +14197,8 @@ unsafe fn with_echo_area_buffer (w: *mut window, which: c_int,
       set_marker_both ((*w).old_pointm, buffer, BEG as ptrdiff_t, BEG_BYTE as ptrdiff_t);
     }
 
-  bset_undo_list (current_buffer, Qt ());
-  bset_read_only (current_buffer, Qnil ());
+  bset_undo_list (current_buffer! (), Qt ());
+  bset_read_only (current_buffer! (), Qnil ());
   specbind (Qinhibit_read_only (), Qt ());
   specbind (Qinhibit_modification_hooks (), Qt ());
 
@@ -14227,7 +14234,7 @@ unsafe fn with_echo_area_buffer_unwind_data (w: *mut window) -> Lisp_Object
   if NILP (vector)
     { vector = make_nil_vector (11); }
 
-  XSETBUFFER! (tmp, current_buffer); ASET (vector, i as isize, tmp); i += 1;
+  XSETBUFFER! (tmp, current_buffer! ()); ASET (vector, i as isize, tmp); i += 1;
   ASET (vector, i as isize, Vdeactivate_mark); i += 1;
   ASET (vector, i as isize, make_fixnum (windows_or_buffers_changed as EMACS_INT)); i += 1;
 
@@ -14313,7 +14320,7 @@ pub unsafe extern "C" fn setup_echo_area_for_printing (multibyte_p: bool)
 
       /* Switch to that buffer and clear it.  */
       set_buffer_internal (XBUFFER (echo_area_buffer[0]));
-      bset_truncate_lines (current_buffer, Qnil ());
+      bset_truncate_lines (current_buffer! (), Qnil ());
 
       if Z! () > BEG as ptrdiff_t
 	{
@@ -14333,9 +14340,9 @@ pub unsafe extern "C" fn setup_echo_area_for_printing (multibyte_p: bool)
 	 escapes.  */
       if unibyte_display_via_language_environment
 	  && !multibyte_p
-	  && !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  && !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
 	{ Fset_buffer_multibyte (Qnil ()); }
-      else if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      else if NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
 	{ Fset_buffer_multibyte (Qt ()); }
 
       /* Raise the frame containing the echo area.  */
@@ -14360,11 +14367,11 @@ pub unsafe extern "C" fn setup_echo_area_for_printing (multibyte_p: bool)
 	    { echo_area_buffer[0] = echo_buffer[0]; }
 	}
 
-      if current_buffer != XBUFFER (echo_area_buffer[0])
+      if current_buffer! () != XBUFFER (echo_area_buffer[0])
 	{
 	  /* Someone switched buffers between print requests.  */
 	  set_buffer_internal (XBUFFER (echo_area_buffer[0]));
-	  bset_truncate_lines (current_buffer, Qnil ());
+	  bset_truncate_lines (current_buffer! (), Qnil ());
 	}
     }
 }
@@ -14535,9 +14542,9 @@ pub unsafe extern "C" fn resize_mini_window (w: *mut window, exact_p: bool) -> b
       let mut old_current_buffer: *mut buffer = core::ptr::null_mut ();
       let windows_height: c_int = FRAME_INNER_HEIGHT (f);
 
-      if current_buffer != XBUFFER ((*w).contents)
+      if current_buffer! () != XBUFFER ((*w).contents)
 	{
-	  old_current_buffer = current_buffer;
+	  old_current_buffer = current_buffer! ();
 	  set_buffer_internal (XBUFFER ((*w).contents));
 	}
 
@@ -14821,15 +14828,15 @@ unsafe extern "C" fn set_message_1 (a1: *mut c_void, string: Lisp_Object) -> boo
      characters should not be displayed as octal escapes.  */
   if !message_enable_multibyte
       && unibyte_display_via_language_environment
-      && !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      && !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
     { Fset_buffer_multibyte (Qnil ()); }
-  else if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  else if NILP (BVAR! (current_buffer! (), enable_multibyte_characters_))
     { Fset_buffer_multibyte (Qt ()); }
 
-  bset_truncate_lines (current_buffer,
+  bset_truncate_lines (current_buffer! (),
 		       if message_truncate_lines { Qt () } else { Qnil () });
-  if !NILP (BVAR! (current_buffer, bidi_display_reordering_))
-    { bset_bidi_paragraph_direction (current_buffer, Qleft_to_right ()); }
+  if !NILP (BVAR! (current_buffer! (), bidi_display_reordering_))
+    { bset_bidi_paragraph_direction (current_buffer! (), Qleft_to_right ()); }
 
   /* Insert new message at BEG.  */
   TEMP_SET_PT_BOTH (BEG as ptrdiff_t, BEG_BYTE as ptrdiff_t);
@@ -15168,7 +15175,7 @@ unsafe fn format_mode_line_unwind_data (target_frame: *mut frame,
     {
       let buffer: Lisp_Object = (*(XWINDOW ((*target_frame).selected_window))).contents;
       let b: *mut buffer = XBUFFER (buffer);
-      let cb: *mut buffer = current_buffer;
+      let cb: *mut buffer = current_buffer! ();
 
       /* Similarly to `with-selected-window', if the operation selects
 	 a window on another frame, we must restore that frame's
@@ -15181,9 +15188,9 @@ unsafe fn format_mode_line_unwind_data (target_frame: *mut frame,
 	 selection does not leave its buffer's point modified when
 	 unwinding (Bug#32777).  */
       ASET (vector, 10, buffer);
-      current_buffer = b;
-      ASET (vector, 11, build_marker (current_buffer as *mut c_void, PT! (), PT_BYTE! ()));
-      current_buffer = cb;
+      set_current_buffer! (b);
+      ASET (vector, 11, build_marker (current_buffer! () as *mut c_void, PT! (), PT_BYTE! ()));
+      set_current_buffer! (cb);
     }
 
   return vector;
@@ -15234,12 +15241,12 @@ unsafe extern "C" fn unwind_format_mode_line (vector: Lisp_Object)
 
 	  if BUFFER_LIVE_P (XBUFFER (buffer))
 	    {
-	      let cb: *mut buffer = current_buffer;
+	      let cb: *mut buffer = current_buffer! ();
 
-	      current_buffer = XBUFFER (buffer);
+	      set_current_buffer! (XBUFFER (buffer));
 	      set_point_from_marker (AREF (vector, 11));
 	      ASET (vector, 11, Qnil ());
-	      current_buffer = cb;
+	      set_current_buffer! (cb);
 	    }
 	}
     }
@@ -15507,7 +15514,7 @@ unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: 
 	  || update_mode_lines != 0
 	  || window_buffer_changed (w)
 	{
-	  let prev: *mut buffer = current_buffer;
+	  let prev: *mut buffer = current_buffer! ();
 	  let count: specpdl_ref = SPECPDL_INDEX ();
 
 	  specbind (Qinhibit_menubar_update (), Qt ());
@@ -15647,7 +15654,7 @@ unsafe fn update_tab_bar (f: *mut frame, save_match_data: bool)
 	  || update_mode_lines != 0
 	  || window_buffer_changed (w)
 	{
-	  let prev: *mut buffer = current_buffer;
+	  let prev: *mut buffer = current_buffer! ();
 	  let count: specpdl_ref = SPECPDL_INDEX ();
 	  let new_tab_bar: Lisp_Object;
 	  let mut new_n_tab_bar: c_int = 0;
@@ -15818,11 +15825,78 @@ unsafe fn tty_get_tab_bar_item (f: *mut frame, x: c_int, prop_idx: *mut c_int,
   return Qnil ();
 }
 
-/* `tty_handle_tab_bar_click` (C 15615-15654) is NOT defined here: `include/termchar.rs`
-   already carries termchar.h 238-239's `extern "C"` declaration of it, and a Rust
-   definition beside that declaration is E0428 (the `set_buffer_internal_1` family, the
-   ledger's integrator item 6).  The definition has to live wherever that declaration is
-   resolved — reported to the integrator.  */
+/* Handle a mouse click at X/Y on the tab bar of TTY frame F.  If the
+   click was on the tab bar and was handled, populate the EVENT
+   structure, store it in keyboard queue, and return true; otherwise
+   return false.  MODIFIERS are event modifiers for generating the tab
+   release event.  */
+
+/* `include/termchar.rs` (termchar.h 238-239) declares this name at the mirror's top level,
+   so a plain definition beside it is E0428 - the family deviation 153 resolved for
+   `disp_char_vector` by moving the definition into a module and glob-importing it.  The
+   definition below uses that same shape; the symbol it emits is C's own, so termchar.h's
+   declaration resolves against it at link time (deviation 299).  */
+mod tty_handle_tab_bar_click_decl {
+  use super::*;
+
+  #[unsafe(no_mangle)] pub unsafe extern "C" fn
+  tty_handle_tab_bar_click (f: *mut frame, x: c_int, y: c_int, down_p: bool,
+			    event: *mut input_event) -> Lisp_Object
+  {
+    /* C's docstring mentions the modifiers for the release event, but the live body never
+       reads EVENT, so the parameter keeps C's own no-op spelling (the `display_echo_area_1`
+       shape).  */
+    let _ = event;
+
+    /* Did they click on the tab bar?  */
+    if y < FRAME_MENU_BAR_LINES (f)
+	|| y >= FRAME_MENU_BAR_LINES (f) + FRAME_TAB_BAR_LINES (f)
+      { return Qnil (); }
+
+    /* Find the tab-bar item where the X,Y coordinates belong.  */
+    let mut prop_idx: c_int = 0;
+    let mut close_p: bool = false;
+    let mut caption: Lisp_Object = tty_get_tab_bar_item (f, x, &raw mut prop_idx,
+							 &raw mut close_p);
+
+    if NILP (caption)
+      { return Qnil (); }
+
+    if NILP (AREF ((*f).tab_bar_items,
+		   (prop_idx * TAB_BAR_ITEM_NSLOTS + TAB_BAR_ITEM_ENABLED_P) as isize))
+      { return Qnil (); }
+
+    if down_p
+      { (*f).last_tab_bar_item = prop_idx; }
+    else
+      { (*f).last_tab_bar_item = -1; }
+
+    caption = Fcopy_sequence (caption);
+
+    AUTO_LIST2! (props, Qmenu_item (),
+		 list3 (AREF ((*f).tab_bar_items, (prop_idx * TAB_BAR_ITEM_NSLOTS
+						    + TAB_BAR_ITEM_KEY) as isize),
+			AREF ((*f).tab_bar_items, (prop_idx * TAB_BAR_ITEM_NSLOTS
+						    + TAB_BAR_ITEM_BINDING) as isize),
+			if close_p { Qt () } else { Qnil () }));
+
+    Fadd_text_properties (make_fixnum (0), make_fixnum (SCHARS (caption)),
+			  props, caption);
+
+    return Fcons (Qtab_bar (), Fcons (caption, make_fixnum (0)));
+  }
+}
+use tty_handle_tab_bar_click_decl::*;
+
+/* C 15656-16623 is the Tool-bars banner and the whole of `#ifdef HAVE_WINDOW_SYSTEM`'s
+   tool-bar block (`update_tool_bar`, `build_desired_tool_bar_string`,
+   `display_tool_bar_line`, `tool_bar_height`, `tool-bar-height`'s `DEFUN`,
+   `redisplay_tool_bar`, `tool_bar_item_info`, `get_tool_bar_item`,
+   `handle_tool_bar_click_with_device`, `handle_tool_bar_click` and
+   `note_tool_bar_highlight`); `HAVE_WINDOW_SYSTEM` is undefined in the frozen
+   configuration, so the whole block is dead on this target (P-08) and is recorded in
+   docs/ports/xdisp.md, not transcribed.  The next live definition is C 16624's
+   `hscroll_window_tree`.  */
 
 /* For all leaf windows in the window tree rooted at WINDOW, set their
    hscroll value so that PT is (i) visible in the window, and (ii) so
@@ -16014,8 +16088,8 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 	      let mut wanted_x: c_int;
 
 	      /* Find point in a display of infinite width.  */
-	      saved_current_buffer = current_buffer;
-	      current_buffer = XBUFFER ((*w).contents);
+	      saved_current_buffer = current_buffer! ();
+	      set_current_buffer! (XBUFFER ((*w).contents));
 
 	      if w == XWINDOW (selected_window)
 		{ pt = PT! (); }
@@ -16033,7 +16107,7 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 	      it.last_visible_x = DISP_INFINITY;
 
 	      let nchars: ptrdiff_t = pt - IT_CHARPOS! (it);
-	      if buffer_bits! (long_line_optimizations_p, current_buffer)
+	      if buffer_bits! (long_line_optimizations_p, current_buffer! ())
 		  && nchars > large_hscroll_threshold
 		{
 		  /* Special optimization for very long and truncated
@@ -16059,7 +16133,7 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 		      it.first_visible_x = (window_hscroll_limited (w, it.f)
 					    * FRAME_COLUMN_WIDTH (it.f));
 		    }
-		  if buffer_bits! (long_line_optimizations_p, current_buffer)
+		  if buffer_bits! (long_line_optimizations_p, current_buffer! ())
 		      && nchars > large_hscroll_threshold
 		    {
 		      fast_move_it_horizontally (&raw mut it, nchars - 1);
@@ -16068,7 +16142,7 @@ unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
 		  else
 		    { move_it_in_display_line_to (&raw mut it, pt - 1, -1, MOVE_TO_POS); }
 		}
-	      current_buffer = saved_current_buffer;
+	      set_current_buffer! (saved_current_buffer);
 
 	      /* Position cursor in window.  */
 	      if !hscroll_relative_p && hscroll_step_abs == 0
@@ -16178,8 +16252,8 @@ text_outside_line_unchanged_p (w: *mut window,
       /* If selective display, can't optimize if changes start at the
 	 beginning of the line.  */
       if unchanged_p
-	  && FIXNUMP (BVAR! (current_buffer, selective_display_))
-	  && XFIXNUM (BVAR! (current_buffer, selective_display_)) > 0
+	  && FIXNUMP (BVAR! (current_buffer! (), selective_display_))
+	  && XFIXNUM (BVAR! (current_buffer! (), selective_display_)) > 0
 	  && (BEG_UNCHANGED! () < start || GPT! () <= start)
 	{ unchanged_p = false; }
 
@@ -16259,7 +16333,7 @@ overlay_arrow_in_current_buffer_p () -> bool
 	    { break 'body; }
 	  val = find_symbol_value (var);
 	  if MARKERP (val)
-	      && (*XMARKER (val)).buffer as *mut buffer == current_buffer
+	      && (*XMARKER (val)).buffer as *mut buffer == current_buffer! ()
 	    { return true; }
 	}
       vlist = XCDR (vlist);
@@ -16379,7 +16453,7 @@ overlay_arrow_at_row (it: *mut it, row: *mut glyph_row) -> Lisp_Object
 
       let mut arrow_marker_pos: ptrdiff_t;
       if MARKERP (val)
-	  && (*XMARKER (val)).buffer as *mut buffer == current_buffer
+	  && (*XMARKER (val)).buffer as *mut buffer == current_buffer! ()
 	  && { arrow_marker_pos = marker_position (val);
 	      /* Normally, the marker position will be at the row's
                  start charpos.  But if the previous text lines are
@@ -16700,11 +16774,11 @@ redisplay_internal ()
   reconsider_clip_changes (w);
 
   /* In most cases selected window displays current buffer.  */
-  match_p = XBUFFER ((*w).contents) == current_buffer;
+  match_p = XBUFFER ((*w).contents) == current_buffer! ();
   if match_p
     {
       /* Detect case that we need to write or remove a star in the mode line.  */
-      if (BUF_SAVE_MODIFF! (current_buffer) < BUF_MODIFF! (current_buffer)) != window_bits! (w, last_had_star)
+      if (BUF_SAVE_MODIFF! (current_buffer! ()) < BUF_MODIFF! (current_buffer! ())) != window_bits! (w, last_had_star)
 	{ window_bits! (w, update_mode_line, true); }
 
       if mode_line_update_needed (w)
@@ -16713,8 +16787,8 @@ redisplay_internal ()
       /* If reconsider_clip_changes above decided that the narrowing
 	 in the current buffer changed, make sure all other windows
 	 showing that buffer will be redisplayed.  */
-      if buffer_bits! (clip_changed, current_buffer)
-	{ bset_update_mode_line (current_buffer); }
+      if buffer_bits! (clip_changed, current_buffer! ())
+	{ bset_update_mode_line (current_buffer! ()); }
     }
 
   /* Normally the message* functions will have already displayed and
@@ -16745,7 +16819,7 @@ redisplay_internal ()
 	{ message_cleared_p = false; }
     }
   else if EQ (selected_window, minibuf_window)
-	   && (buffer_bits! (clip_changed, current_buffer) || window_outdated (w))
+	   && (buffer_bits! (clip_changed, current_buffer! ()) || window_outdated (w))
 	   && resize_mini_window (w, false)
     {
       /* Resized active mini-window to fit the size of what it is
@@ -16806,13 +16880,13 @@ macro_rules! AINC {
   if !consider_all_windows_p
       && CHARPOS! (tlbufpos) > 0
       && !window_bits! (w, update_mode_line)
-      && !buffer_bits! (clip_changed, current_buffer)
-      && !buffer_bits! (prevent_redisplay_optimizations_p, current_buffer)
+      && !buffer_bits! (clip_changed, current_buffer! ())
+      && !buffer_bits! (prevent_redisplay_optimizations_p, current_buffer! ())
       && frame_redisplay_p (XFRAME ((*w).frame))
       && !frame_bits! (cursor_type_changed, XFRAME ((*w).frame))
       && !frame_bits! (face_change, XFRAME ((*w).frame))
       /* Make sure recorded data applies to current buffer, etc.  */
-      && this_line_buffer == current_buffer
+      && this_line_buffer == current_buffer! ()
       && match_p
       && !window_bits! (w, force_start)
       && !window_bits! (w, optional_new_start)
@@ -16996,7 +17070,7 @@ macro_rules! AINC {
 	  it.wrap_prefix_width = 0;
 	  it.vpos = this_line_vpos;
 
-	  if buffer_bits! (long_line_optimizations_p, current_buffer)
+	  if buffer_bits! (long_line_optimizations_p, current_buffer! ())
 	      && it.line_wrap == TRUNCATE
 	      && PT! () - CHARPOS! (tlbufpos) > large_hscroll_threshold
 	    {
@@ -17785,7 +17859,7 @@ update_redisplay_ticks (ticks: c_int, mut w: *mut window)
       let contents: Lisp_Object = if !w.is_null () { (*w).contents } else { Qnil () };
       let bufname: *const c_char
 	= if NILP (contents)
-	{ SSDATA (BVAR! (current_buffer, name_)) }
+	{ SSDATA (BVAR! (current_buffer! (), name_)) }
 	else if BUFFERP (contents)
 	   { SSDATA (BVAR! (XBUFFER (contents), name_)) }
 	   else { c"<unknown>".as_ptr () };
@@ -18457,7 +18531,7 @@ run_window_scroll_functions (window: Lisp_Object, mut startp: text_pos) -> text_
   let w: *mut window = XWINDOW (window);
   SET_MARKER_FROM_TEXT_POS! ((*w).start, startp);
 
-  eassert! (current_buffer == XBUFFER ((*w).contents));
+  eassert! (current_buffer! () == XBUFFER ((*w).contents));
 
   if !NILP (Vwindow_scroll_functions)
     {
@@ -18593,8 +18667,8 @@ pub const SCROLL_LIMIT: c_int = 100;
 macro_rules! BASE_LINE_NUMBER_VALID_P {
   ($w:expr) => {
     {
-      eassert! (current_buffer == XBUFFER ((*$w).contents));
-      !buffer_bits! (clip_changed, current_buffer)
+      eassert! (current_buffer! () == XBUFFER ((*$w).contents));
+      !buffer_bits! (clip_changed, current_buffer! ())
       && BEG_UNCHANGED! () >= (*$w).base_line_pos
     }
   };
@@ -18648,8 +18722,8 @@ try_scrolling (window: Lisp_Object, just_this_one_p: bool,
       let scroll_lines: c_int = clip_to_bounds (0, scroll_lines_max as isize, 1000000) as c_int;
       scroll_max = scroll_lines * frame_line_height;
     }
-  else if NUMBERP (BVAR! (current_buffer, scroll_down_aggressively_))
-	   || NUMBERP (BVAR! (current_buffer, scroll_up_aggressively_))
+  else if NUMBERP (BVAR! (current_buffer! (), scroll_down_aggressively_))
+	   || NUMBERP (BVAR! (current_buffer! (), scroll_up_aggressively_))
     /* We're trying to scroll because of aggressive scrolling but no
        scroll_step is set.  Choose an arbitrary one.  */
     { scroll_max = 10 * frame_line_height; }
@@ -18757,7 +18831,7 @@ try_scrolling (window: Lisp_Object, just_this_one_p: bool,
 	{ amount_to_scroll = scroll_max; }
       else
 	{
-	  aggressive = BVAR! (current_buffer, scroll_up_aggressively_);
+	  aggressive = BVAR! (current_buffer! (), scroll_up_aggressively_);
 	  height = WINDOW_BOX_TEXT_HEIGHT! (w) as c_int;
 	  if NUMBERP (aggressive)
 	    {
@@ -18879,7 +18953,7 @@ try_scrolling (window: Lisp_Object, just_this_one_p: bool,
 	    { amount_to_scroll = scroll_max; }
 	  else
 	    {
-	      aggressive = BVAR! (current_buffer, scroll_down_aggressively_);
+	      aggressive = BVAR! (current_buffer! (), scroll_down_aggressively_);
 	      height = WINDOW_BOX_TEXT_HEIGHT! (w) as c_int;
 	      if NUMBERP (aggressive)
 		{
@@ -19121,7 +19195,7 @@ try_cursor_movement (window: Lisp_Object, startp: text_pos,
   if /* Point may be in this window.  */
       PT! () >= CHARPOS! (startp)
       /* Selective display hasn't changed.  */
-      && !buffer_bits! (clip_changed, current_buffer)
+      && !buffer_bits! (clip_changed, current_buffer! ())
       /* Function force-mode-line-update is used to force a thorough
 	 redisplay.  It sets either windows_or_buffers_changed or
 	 update_mode_lines.  So don't take a shortcut here for these
@@ -19525,7 +19599,7 @@ set_vertical_scroll_bar (w: *mut window)
 	{
 	  let mut it: it = core::mem::zeroed ();
 	  let mut start_pos: text_pos = core::mem::zeroed ();
-	  let obuf: *mut buffer = current_buffer;
+	  let obuf: *mut buffer = current_buffer! ();
 	  /* When we display the scroll bar of a mini-window,
 	     current_buffer is not guaranteed to be the mini-window's
 	     buffer, see the beginning of redisplay_window.  */
@@ -19571,9 +19645,9 @@ set_horizontal_scroll_bar (w: *mut window)
       let mut it: it = core::mem::zeroed ();
       let mut startp: text_pos = core::mem::zeroed ();
 
-      if b != current_buffer
+      if b != current_buffer! ()
 	{
-	  old_buffer = current_buffer;
+	  old_buffer = current_buffer! ();
 	  set_buffer_internal (b);
 	}
 
@@ -19658,7 +19732,7 @@ DEFUN! ("long-line-optimizations-p", Flong_line_optimizations_p,
        doc: "Return non-nil if long-line optimizations are in effect in current buffer.\nSee `long-line-threshold' and `large-hscroll-threshold' for what these\noptimizations mean and when they are in effect.",
        (),
        {
-  return if buffer_bits! (long_line_optimizations_p, current_buffer)
+  return if buffer_bits! (long_line_optimizations_p, current_buffer! ())
 	 { Qt () } else { Qnil () };
 });
 
@@ -19719,7 +19793,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
   let w: *mut window = XWINDOW (window);
   let f: *mut frame = XFRAME ((*w).frame);
   let buffer: *mut buffer = XBUFFER ((*w).contents);
-  let old: *mut buffer = current_buffer;
+  let old: *mut buffer = current_buffer! ();
   let mut lpoint: text_pos = core::mem::zeroed ();
   let mut opoint: text_pos = core::mem::zeroed ();
   let mut startp: text_pos = core::mem::zeroed ();
@@ -19848,8 +19922,8 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 
   current_matrix_up_to_date_p
     = (window_bits! (w, window_end_valid)
-       && !buffer_bits! (clip_changed, current_buffer)
-       && !buffer_bits! (prevent_redisplay_optimizations_p, current_buffer)
+       && !buffer_bits! (clip_changed, current_buffer! ())
+       && !buffer_bits! (prevent_redisplay_optimizations_p, current_buffer! ())
        && !window_outdated (w)
        && !composition_break_at_point
        && !hscrolling_current_line_p (w));
@@ -19868,7 +19942,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
     {
       /* If window starts on a continuation line, maybe adjust the
 	 window start in case the window's width changed.  */
-      if (*XMARKER ((*w).start)).buffer as *mut buffer == current_buffer
+      if (*XMARKER ((*w).start)).buffer as *mut buffer == current_buffer! ()
 	{ compute_window_start_on_continuation_line (w); }
 
       window_bits! (w, window_end_valid, false);
@@ -19916,29 +19990,29 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
      this may be a bit late to catch such changes, but the rest of
      redisplay goes (non-fatally) haywire when the display table is
      changed, so why should we worry about doing any better?  */
-  if !(*current_buffer).width_run_cache.is_null ()
-      || (!(*current_buffer).base_buffer.is_null ()
-	  && !(*(*current_buffer).base_buffer).width_run_cache.is_null ())
+  if !(*current_buffer! ()).width_run_cache.is_null ()
+      || (!(*current_buffer! ()).base_buffer.is_null ()
+	  && !(*(*current_buffer! ()).base_buffer).width_run_cache.is_null ())
     {
       let disptab: *mut Lisp_Char_Table = buffer_display_table ();
 
       if !disptab_matches_widthtab
-	  (disptab, XVECTOR (BVAR! (current_buffer, width_table_)))
+	  (disptab, XVECTOR (BVAR! (current_buffer! (), width_table_)))
         {
-	  let mut buf: *mut buffer = current_buffer;
+	  let mut buf: *mut buffer = current_buffer! ();
 
 	  if !(*buf).base_buffer.is_null ()
 	    { buf = (*buf).base_buffer; }
           invalidate_region_cache (buf, (*buf).width_run_cache, BEG as ptrdiff_t, Z! ());
-          recompute_width_table (current_buffer as *mut c_void, disptab);
+          recompute_width_table (current_buffer! () as *mut c_void, disptab);
         }
     }
 
   /* Check whether the buffer to be displayed contains long lines.  */
   if !NILP (Vlong_line_threshold)
-      && !buffer_bits! (long_line_optimizations_p, current_buffer)
+      && !buffer_bits! (long_line_optimizations_p, current_buffer! ())
       && (CHARS_MODIFF! () - UNCHANGED_MODIFIED! () > 8
-	  || buffer_bits! (clip_changed, current_buffer))
+	  || buffer_bits! (clip_changed, current_buffer! ()))
     {
       let mut cur: ptrdiff_t;
       let mut next: ptrdiff_t;
@@ -19956,11 +20030,11 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	  cur = next;
 	}
       if max > threshold
-	{ buffer_bits! (long_line_optimizations_p, current_buffer, true); }
+	{ buffer_bits! (long_line_optimizations_p, current_buffer! (), true); }
     }
 
   /* If window-start is screwed up, choose a new one.  */
-  if (*XMARKER ((*w).start)).buffer as *mut buffer != current_buffer
+  if (*XMARKER ((*w).start)).buffer as *mut buffer != current_buffer! ()
     { break 'recenter; }
   SET_TEXT_POS_FROM_MARKER! (startp, (*w).start);
 
@@ -20176,7 +20250,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 
 	  if w != XWINDOW (selected_window)
 	    { set_marker_both ((*w).pointm, Qnil (), PT! (), PT_BYTE! ()); }
-	  else if current_buffer == old
+	  else if current_buffer! () == old
 	    { SET_TEXT_POS! (lpoint, PT! (), PT_BYTE! ()); }
 
 	  set_cursor_from_row (w, row, (*w).desired_matrix as *mut glyph_matrix, 0, 0, 0, 0);
@@ -20312,7 +20386,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	     sets it.  So, we need to check the return value of
 	     compute_window_start_on_continuation_line.  (See also
 	     bug#197).  */
-	  && (*XMARKER ((*w).start)).buffer as *mut buffer == current_buffer
+	  && (*XMARKER ((*w).start)).buffer as *mut buffer == current_buffer! ()
 	  && compute_window_start_on_continuation_line (w)
 	  /* It doesn't make sense to force the window start like we
 	     do at label force_start if it is already known that point
@@ -20405,8 +20479,8 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
        || (scroll_minibuffer_conservatively && MINI_WINDOW_P (w))
        || 0 < emacs_scroll_step
        || temp_scroll_step
-       || NUMBERP (BVAR! (current_buffer, scroll_up_aggressively_))
-       || NUMBERP (BVAR! (current_buffer, scroll_down_aggressively_)))
+       || NUMBERP (BVAR! (current_buffer! (), scroll_up_aggressively_))
+       || NUMBERP (BVAR! (current_buffer! (), scroll_down_aggressively_)))
       && CHARPOS! (startp) >= BEGV! ()
       && CHARPOS! (startp) <= ZV! ()
     {
@@ -20490,8 +20564,8 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
       scrolling_up = PT! () > margin_pos;
       aggressive =
 	if scrolling_up
-	{ BVAR! (current_buffer, scroll_up_aggressively_) }
-	else { BVAR! (current_buffer, scroll_down_aggressively_) };
+	{ BVAR! (current_buffer! (), scroll_up_aggressively_) }
+	else { BVAR! (current_buffer! (), scroll_down_aggressively_) };
 
       if !MINI_WINDOW_P (w)
 	  && (scroll_conservatively > SCROLL_LIMIT as ptrdiff_t || NUMBERP (aggressive))
@@ -20534,7 +20608,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	   from point.  */
 	{ centering_position = window_box_height (w) / 2; }
     }
-  if buffer_bits! (long_line_optimizations_p, current_buffer)
+  if buffer_bits! (long_line_optimizations_p, current_buffer! ())
       && it.line_wrap == TRUNCATE
     {
       /* For very long and truncated lines, go back using a simplified
@@ -21942,8 +22016,8 @@ try_window_id (w: *mut window) -> c_int
      Also verify that we were not told to prevent redisplay optimizations.
      It would be nice to further
      reduce the number of cases where this prevents try_window_id.  */
-  if buffer_bits! (clip_changed, current_buffer)
-      || buffer_bits! (prevent_redisplay_optimizations_p, current_buffer)
+  if buffer_bits! (clip_changed, current_buffer! ())
+      || buffer_bits! (prevent_redisplay_optimizations_p, current_buffer! ())
     { GIVE_UP! (3); }
 
   /* Window must either use window-based redisplay or be full width.  */
@@ -22711,7 +22785,7 @@ get_overlay_arrow_glyph_row (w: *mut window, overlay_arrow_string: Lisp_Object,
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
   let buffer: *mut buffer = XBUFFER ((*w).contents);
-  let old: *mut buffer = current_buffer;
+  let old: *mut buffer = current_buffer! ();
   let arrow_string: *const u8 = SDATA (overlay_arrow_string);
   let arrow_len: ptrdiff_t = SBYTES (overlay_arrow_string);
   let mut char_num: ptrdiff_t = 0;
@@ -24171,7 +24245,7 @@ maybe_produce_line_number (it: *mut it)
 		 buffer's narrowing has just changed.  */
 	      && !(line_numbers_wide
 		   && (BEG_BYTE as ptrdiff_t != BEGV_BYTE! () || Z_BYTE! () != ZV_BYTE! ()))
-	      && !buffer_bits! (clip_changed, current_buffer)
+	      && !buffer_bits! (clip_changed, current_buffer! ())
 	    {
 	      start_from = CHAR_TO_BYTE ((*((*it).w)).base_line_pos);
 	      last_line = (*((*it).w)).base_line_number - 1;
@@ -24626,7 +24700,7 @@ display_line (it: *mut it, cursor_vpos: c_int) -> bool
 	  (*it).first_visible_x += x_incr;
 	  (*it).last_visible_x  += x_incr;
 	}
-      if buffer_bits! (long_line_optimizations_p, current_buffer)
+      if buffer_bits! (long_line_optimizations_p, current_buffer! ())
 	  && (*it).line_wrap == TRUNCATE
 	  && window_hscroll_limited ((*it).w, (*it).f) as ptrdiff_t > large_hscroll_threshold
 	{
@@ -25736,7 +25810,7 @@ DEFUN! ("current-bidi-paragraph-direction", Fcurrent_bidi_paragraph_direction,
        doc: "Return paragraph direction at point in BUFFER.\nValue is either `left-to-right' or `right-to-left'.\nIf BUFFER is omitted or nil, it defaults to the current buffer.\n\nParagraph direction determines how the text in the paragraph is displayed.\nIn left-to-right paragraphs, text begins at the left margin of the window\nand the reading direction is generally left to right.  In right-to-left\nparagraphs, text begins at the right margin and is read from right to left.\n\nSee also `bidi-paragraph-direction'.",
        (buffer: Lisp_Object),
        {
-  let mut buf: *mut buffer = current_buffer;
+  let mut buf: *mut buffer = current_buffer! ();
   let old: *mut buffer = buf;
 
   if !NILP (buffer)
@@ -25816,7 +25890,7 @@ DEFUN! ("bidi-find-overridden-directionality", Fbidi_find_overridden_directional
        doc: "Return position between FROM and TO where directionality was overridden.\n\nThis function returns the first character position in the specified\nregion of OBJECT where characters have their bidirectional\nproperties affected in a way that might make its text look confusingly\non display.  For example, characters whose `bidi-class' property is `L',\ncould be forced to display as `R' by a directional override, and\nlikewise characters whose `bidi-class' is `R' or `AL' that are\nforced to display as `L'.\n\nIf no such character is found, the function returns nil.\n\nOBJECT is a Lisp string or buffer to search for overridden\ndirectionality, and defaults to the current buffer if nil.\nOBJECT can also be a window, in which case the function will search\nthe buffer displayed in that window.  Passing the window instead of\na buffer is preferable when the buffer is displayed in some window,\nbecause this function will then be able to correctly account for\nwindow-specific overlays, which can affect the results.\n\nOptional argument BASE-DIR specifies the base paragraph directory\nof the text.  It should be a symbol, either `left-to-right'\nor `right-to-left', and defaults to `left-to-right'.\n\nStrong directional characters `L', `R', and `AL' can have their\nintrinsic directionality overridden by directional override control\ncharacters RLO (u+202E) and LRO (u+202D).  They can also have their\ndirectionality affected by other formatting control characters: LRE\n(u+202A), RLE (u+202B), LRI (u+2066), and RLI (u+2067).  See the\nfunction `get-char-code-property' for a way to inquire about the\n`bidi-class' property of a character.  Characters whose intrinsic\ndirectionality is weak or neutral, such as numbers or punctuation\ncharacters, can be forced to display in a very different place with\nrespect of its surrounding characters, so as to make the surrounding\ntext confuse the user regarding what the text says.\n\nAlso see the `highlight-confusing-reorderings' function, which can be\nuseful in similar circumstances as this function.",
        (from: Lisp_Object, to: Lisp_Object, object: Lisp_Object, base_dir: Lisp_Object),
        {
-  let mut buf: *mut buffer = current_buffer;
+  let mut buf: *mut buffer = current_buffer! ();
   let old: *mut buffer = buf;
   let mut w: *mut window = core::ptr::null_mut ();
   let mut frame_window_p: bool = FRAME_WINDOW_P (SELECTED_FRAME ());
@@ -26886,7 +26960,7 @@ display_mode_lines (w: *mut window) -> c_int
       display_mode_line (w,
 			 CURRENT_MODE_LINE_ACTIVE_FACE_ID_3! (sel_w, sel_w, w),
 			 if NILP (window_mode_line_format)
-			 { BVAR! (current_buffer, mode_line_format_) }
+			 { BVAR! (current_buffer! (), mode_line_format_) }
 			 else
 			 { window_mode_line_format });
       n += 1;
@@ -26898,7 +26972,7 @@ display_mode_lines (w: *mut window) -> c_int
 
       display_mode_line (w, CURRENT_TAB_LINE_ACTIVE_FACE_ID_3! (sel_w, sel_w, w),
 			 if NILP (window_tab_line_format)
-			 { BVAR! (current_buffer, tab_line_format_) }
+			 { BVAR! (current_buffer! (), tab_line_format_) }
 			 else
 			 { window_tab_line_format });
       n += 1;
@@ -26911,7 +26985,7 @@ display_mode_lines (w: *mut window) -> c_int
 
       display_mode_line (w, CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3! (sel_w, sel_w, w),
 			 if NILP (window_header_line_format)
-			 { BVAR! (current_buffer, header_line_format_) }
+			 { BVAR! (current_buffer! (), header_line_format_) }
 			 else
 			 { window_header_line_format });
       n += 1;
@@ -27918,7 +27992,7 @@ DEFUN! ("format-mode-line", Fformat_mode_line, Sformat_mode_line,
   else if EQ (face, Qdefault ())
     { face = Qnil (); }
 
-  old_buffer = current_buffer;
+  old_buffer = current_buffer! ();
 
   /* Save things including mode_line_proptrans_alist,
      and set that to nil so that we don't alter the outer value.  */
@@ -27934,7 +28008,7 @@ DEFUN! ("format-mode-line", Fformat_mode_line, Sformat_mode_line,
   dont_resize_frames += 1;
 
   /* Make sure `base_line_number` is fresh in case we encounter a `%l`.  */
-  if current_buffer == XBUFFER ((*w).contents)
+  if current_buffer! () == XBUFFER ((*w).contents)
       && !BASE_LINE_NUMBER_VALID_P! (w)
     { (*w).base_line_number = 0; }
 
@@ -28155,7 +28229,7 @@ decode_mode_spec_coding (coding_system: Lisp_Object, buf: *mut c_char,
 {
   let mut buf: *mut c_char = buf;
   let val: Lisp_Object = CODING_SYSTEM_SPEC (coding_system);
-  let multibyte: bool = !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = !NILP (BVAR! (current_buffer! (), enable_multibyte_characters_));
   /* C's `const unsigned char *eol_str; int eol_str_len;` - both are written by the
      branches below before their single read (PORTING.md 1.5).  */
   let mut eol_str: *const u8 = core::ptr::null ();
@@ -28284,7 +28358,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
      bytes plus the terminating null.  */
   let width: c_int = min (field_width as isize,
 			  FRAME_MESSAGE_BUF_SIZE (f) as isize) as c_int;
-  let b: *mut buffer = current_buffer;
+  let b: *mut buffer = current_buffer! ();
 
   obj = Qnil ();
   *string = Qnil ();
@@ -28475,7 +28549,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 	     when the buffer's restriction was changed, but the window
 	     wasn't yet redisplayed after that.  If that happens, we
 	     need to determine a new base line.  */
-	  if current_buffer != XBUFFER ((*w).contents)
+	  if current_buffer! () != XBUFFER ((*w).contents)
 	      || !(BUF_BEGV_BYTE (b) <= startpos_byte
 		   && startpos_byte <= BUF_ZV_BYTE (b))
 	    {
@@ -28496,7 +28570,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 
 	  /* Callers of `display_mode_element` are in charge of flushing
 	     any stale `base_line_number` cache.  */
-	  if current_buffer == XBUFFER ((*w).contents)
+	  if current_buffer! () == XBUFFER ((*w).contents)
 	      && (*w).base_line_number > 0
 	      && (*w).base_line_pos > 0
 	      && (*w).base_line_pos <= startpos
@@ -28523,7 +28597,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
 	     or too far away, or if we did not have one.
 	     "Too close" means it's plausible a scroll-down would
 	     go back past it.  */
-	  if current_buffer != XBUFFER ((*w).contents)
+	  if current_buffer! () != XBUFFER ((*w).contents)
 	    { }			/* The base line is for another buffer, don't touch it!  */
 	  else if startpos == BUF_BEGV (b)
 	    {
@@ -28731,7 +28805,7 @@ decode_mode_spec (w: *mut window, c: c_int, field_width: c_int,
       0x40 =>			/* '@' */
 	{
 	  let count: specpdl_ref = inhibit_garbage_collection ();
-	  let curdir: Lisp_Object = BVAR! (current_buffer, directory_);
+	  let curdir: Lisp_Object = BVAR! (current_buffer! (), directory_);
 	  let mut val: Lisp_Object = Qnil ();
 
 	  if STRINGP (curdir)
@@ -28823,8 +28897,8 @@ display_count_lines (start_byte: ptrdiff_t,
   /* If we are not in selective display mode,
      check only for newlines.  */
   let selective_display: bool
-    = !NILP (BVAR! (current_buffer, selective_display_))
-      && !FIXNUMP (BVAR! (current_buffer, selective_display_));
+    = !NILP (BVAR! (current_buffer! (), selective_display_))
+      && !FIXNUMP (BVAR! (current_buffer! (), selective_display_));
 
   if count > 0
     {
@@ -31590,8 +31664,8 @@ pub unsafe extern "C" fn note_mouse_highlight (f: *mut frame, mut x: c_int, mut 
 
 	/* Make the window's buffer temporarily current for
 	   overlays_at and compute_char_face.  */
-	obuf = current_buffer;
-	current_buffer = b;
+	obuf = current_buffer! ();
+	set_current_buffer! (b);
 	obegv = BEGV! ();
 	ozv = ZV! ();
 	BEGV! () = BEG as ptrdiff_t;
@@ -31875,7 +31949,7 @@ pub unsafe extern "C" fn note_mouse_highlight (f: *mut frame, mut x: c_int, mut 
 
 	  BEGV! () = obegv;
 	  ZV! () = ozv;
-	  current_buffer = obuf;
+	  set_current_buffer! (obuf);
 	  SAFE_FREE! (sa_count);
 	}
       }

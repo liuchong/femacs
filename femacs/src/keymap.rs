@@ -68,6 +68,8 @@ include!("include/font.rs");                   // composite.h 28: `#include "fon
 include!("include/composite.rs");              // coding.h 284: `#include "composite.h"`
 include!("include/coding.rs");                 // termhooks.h 26: `#include "coding.h"`
 include!("include/commands.rs");               // C 47: `#include "commands.h"`
+include!("include/buffer.rs");                 // C 49: `#include "buffer.h"` - the syntax.rs edge below
+                                                // needs its macros defined first (syntax.rs's own note)
 include!("include/syntax.rs");                 // syntax.c's header (cmds.rs's chain)
 include!("include/buffer.rs");                 // C 49: `#include "buffer.h"`
 include!("include/frame.rs");                  // window.h 27: `#include "frame.h"`
@@ -1653,7 +1655,7 @@ DEFUN! ("current-active-maps", Fcurrent_active_maps, Scurrent_active_maps,
 
       if WINDOWP (window)
 	  && BUFFERP ((*XWINDOW (window)).contents)
-	  && XBUFFER ((*XWINDOW (window)).contents) != current_buffer
+	  && XBUFFER ((*XWINDOW (window)).contents) != (current_buffer! ())
 	{
 	  /* Arrange to go back to the original buffer once we're done
 	     processing the key sequence.  We don't use
@@ -1669,7 +1671,7 @@ DEFUN! ("current-active-maps", Fcurrent_active_maps, Scurrent_active_maps,
   else if WINDOW_LIVE_P (position)
     {
       if BUFFERP ((*XWINDOW (position)).contents)
-	  && XBUFFER ((*XWINDOW (position)).contents) != current_buffer
+	  && XBUFFER ((*XWINDOW (position)).contents) != (current_buffer! ())
 	{
 	  /* See comment above.  */
 	  record_unwind_current_buffer ();
@@ -1694,9 +1696,9 @@ DEFUN! ("current-active-maps", Fcurrent_active_maps, Scurrent_active_maps,
       let pt = click_position (position);
       /* This usually returns the buffer's local map,
 	 but that can be overridden by a `local-map' property.  */
-      let mut local_map = get_local_map (pt, current_buffer, Qlocal_map ());
+      let mut local_map = get_local_map (pt, (current_buffer! ()), Qlocal_map ());
       /* This returns nil unless there is a `keymap' property.  */
-      let mut keymap = get_local_map (pt, current_buffer, Qkeymap ());
+      let mut keymap = get_local_map (pt, (current_buffer! ()), Qkeymap ());
       let otlp = (*current_kboard).Voverriding_terminal_local_map_;
 
       if CONSP (position)
@@ -1738,16 +1740,16 @@ DEFUN! ("current-active-maps", Fcurrent_active_maps, Scurrent_active_maps,
 	      /* The properties in POSN_STRING take precedence, if set. */
 	      if NILP (local_map)
 		{ local_map = get_local_map (XFIXNUM (buffer_posn),
-					   current_buffer, Qlocal_map ()); }
+					   (current_buffer! ()), Qlocal_map ()); }
 
 	      if NILP (keymap)
 		{ keymap = get_local_map (XFIXNUM (buffer_posn),
-					current_buffer, Qkeymap ()); }
+					(current_buffer! ()), Qkeymap ()); }
 	    }
 
 	  /* Finally, fall back on the buffer's local map. */
 	  if NILP (local_map)
-	    { local_map = BVAR! (current_buffer, keymap_); }
+	    { local_map = BVAR! ((current_buffer! ()), keymap_); }
 	}
 
       if !NILP (local_map)
@@ -1871,7 +1873,7 @@ DEFUN! ("use-local-map", Fuse_local_map, Suse_local_map, 1, 1, 0,
        {
   let keymap = if !NILP (keymap) { get_keymap (keymap, true, true) } else { keymap };
 
-  bset_keymap (current_buffer, keymap);
+  bset_keymap ((current_buffer! ()), keymap);
 
   return Qnil ();
 });
@@ -1880,7 +1882,7 @@ DEFUN! ("current-local-map", Fcurrent_local_map, Scurrent_local_map, 0, 0, 0,
        doc: "Return current buffer's local keymap, or nil if it has none.\nNormally the local keymap is set by the major mode with `use-local-map'.",
        (),
        {
-  return BVAR! (current_buffer, keymap_);
+  return BVAR! ((current_buffer! ()), keymap_);
 });
 
 DEFUN! ("current-global-map", Fcurrent_global_map, Scurrent_global_map, 0, 0, 0,

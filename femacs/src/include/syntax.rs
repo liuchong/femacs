@@ -140,7 +140,7 @@ pub fn syntax_property_entry (c: c_int, via_property: bool) -> Lisp_Object
     { return if unsafe { gl_state.use_global }
 	{ unsafe { gl_state.global_code } }
 	else { CHAR_TABLE_REF (unsafe { gl_state.current_syntax_table }, c as isize) }; }
-  return CHAR_TABLE_REF (unsafe { BVAR! (current_buffer, syntax_table_) }, c as isize);
+  return CHAR_TABLE_REF (unsafe { BVAR! ((current_buffer! ()), syntax_table_) }, c as isize);
 }
 /* Extract the information from the entry for character C
    in the current syntax table.  */
@@ -218,7 +218,7 @@ pub fn SETUP_BUFFER_SYNTAX_TABLE ()
 {
   unsafe { gl_state.use_global = false; }
   unsafe { gl_state.e_property_truncated = false; }
-  unsafe { gl_state.current_syntax_table = BVAR! (current_buffer, syntax_table_) };
+  unsafe { gl_state.current_syntax_table = BVAR! ((current_buffer! ()), syntax_table_) };
 }
 
 // INLINE_HEADER_END has no Rust counterpart (PORTING.md 0.1).

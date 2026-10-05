@@ -4762,7 +4762,7 @@ pub unsafe extern "C" fn compute_char_face (f: *mut frame, mut ch: c_int,
 {
   let mut face_id: c_int;
 
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { ch = 0; }
 
   if NILP (prop)

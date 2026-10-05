@@ -772,7 +772,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 	{ CHECK_STRING (initial); }
     }
   val = Qnil ();
-  ambient_dir = BVAR! (current_buffer, directory_);
+  ambient_dir = BVAR! ((current_buffer! ()), directory_);
   input_method = Qnil ();
   enable_multibyte = Qnil ();
 
@@ -929,7 +929,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
       /* `current-input-method' is buffer local.  So, remember it in
 	 INPUT_METHOD before changing the current buffer.  */
       input_method = Fsymbol_value (Qcurrent_input_method ());
-      enable_multibyte = BVAR! (current_buffer, enable_multibyte_characters_);
+      enable_multibyte = BVAR! ((current_buffer! ()), enable_multibyte_characters_);
     }
 
   /* Switch to the minibuffer.  */
@@ -939,7 +939,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 
   /* Defeat (setq-default truncate-lines t), since truncated lines do
      not work correctly in minibuffers.  (Bug#5715, etc)  */
-  bset_truncate_lines (current_buffer, Qnil ());
+  bset_truncate_lines ((current_buffer! ()), Qnil ());
 
   /* The current buffer's default directory is usually the right thing
      for our minibuffer here.  However, if you're typing a command at
@@ -950,7 +950,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
      you think of something better to do?  Find another buffer with a
      better directory, and use that one instead.  */
   if STRINGP (ambient_dir)
-    { bset_directory (current_buffer, ambient_dir); }
+    { bset_directory ((current_buffer! ()), ambient_dir); }
   else
     {
       let mut tail: Lisp_Object = Qnil ();   /* PORTING.md 1.5.  */
@@ -965,7 +965,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 	{
 	  if STRINGP (BVAR! (XBUFFER (buf), directory_))
 	    {
-	      bset_directory (current_buffer,
+	      bset_directory ((current_buffer! ()),
 			      BVAR! (XBUFFER (buf), directory_));
 	      break;
 	    }
@@ -1003,7 +1003,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 
     /* If appropriate, copy enable-multibyte-characters into the minibuffer.
        In any case don't blindly inherit the multibyteness used previously.  */
-    bset_enable_multibyte_characters (current_buffer,
+    bset_enable_multibyte_characters ((current_buffer! ()),
                                       if inherit_input_method { enable_multibyte }
                                       else { Qt () });
 
@@ -1060,7 +1060,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
     }
 
   clear_message (true, true);
-  bset_keymap (current_buffer, map);
+  bset_keymap ((current_buffer! ()), map);
 
   /* Turn on an input method stored in INPUT_METHOD if any.  */
   if STRINGP (input_method) && !NILP (Ffboundp (Qactivate_input_method ()))
@@ -1069,7 +1069,7 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
   run_hook (Qminibuffer_setup_hook ());
 
   /* Don't allow the user to undo past this point.  */
-  bset_undo_list (current_buffer, Qnil ());
+  bset_undo_list ((current_buffer! ()), Qnil ());
 
   recursive_edit_1 ();
 
@@ -1648,7 +1648,7 @@ unsafe fn match_regexps (string: Lisp_Object, regexps: Lisp_Object,
 
       val = fast_string_match_internal
 	(XCAR (regexps), string,
-	 if ignore_case { BVAR! (current_buffer, case_canon_table_) } else { Qnil () });
+	 if ignore_case { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () });
 
       if val == -2
 	{ error (c"Stack overflow in regexp matcher".as_ptr ()); }

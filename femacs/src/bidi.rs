@@ -1491,12 +1491,12 @@ unsafe fn bidi_at_paragraph_end (charpos: ptrdiff_t, bytepos: ptrdiff_t) -> ptrd
   let mut start_re: Lisp_Object;
   let mut val: ptrdiff_t;
 
-  if STRINGP (BVAR! (current_buffer, bidi_paragraph_separate_re_))
-    { sep_re = BVAR! (current_buffer, bidi_paragraph_separate_re_); }
+  if STRINGP (BVAR! ((current_buffer! ()), bidi_paragraph_separate_re_))
+    { sep_re = BVAR! ((current_buffer! ()), bidi_paragraph_separate_re_); }
   else
     { sep_re = paragraph_separate_re; }
-  if STRINGP (BVAR! (current_buffer, bidi_paragraph_start_re_))
-    { start_re = BVAR! (current_buffer, bidi_paragraph_start_re_); }
+  if STRINGP (BVAR! ((current_buffer! ()), bidi_paragraph_start_re_))
+    { start_re = BVAR! ((current_buffer! ()), bidi_paragraph_start_re_); }
   else
     { start_re = paragraph_start_re; }
 
@@ -1523,7 +1523,7 @@ unsafe fn bidi_at_paragraph_end (charpos: ptrdiff_t, bytepos: ptrdiff_t) -> ptrd
 
 unsafe fn bidi_paragraph_cache_on_off () -> *mut c_void
 {
-  let mut cache_buffer: *mut buffer = current_buffer;
+  let mut cache_buffer: *mut buffer = (current_buffer! ());
   let mut indirect_p: bool = false;
 
   /* For indirect buffers, make sure to use the cache of their base
@@ -1539,7 +1539,7 @@ unsafe fn bidi_paragraph_cache_on_off () -> *mut c_void
      This is because doing so will just make the cache pure overhead,
      since if we turn it on via indirect buffer, it will be
      immediately turned off by its base buffer.  */
-  if NILP (BVAR! (current_buffer, cache_long_scans_))
+  if NILP (BVAR! ((current_buffer! ()), cache_long_scans_))
     {
       if !indirect_p
 	  || NILP (BVAR! (cache_buffer, cache_long_scans_))
@@ -1580,8 +1580,8 @@ unsafe fn bidi_find_paragraph_start (pos: ptrdiff_t, pos_byte: ptrdiff_t)
   let mut pos: ptrdiff_t = pos;
   let mut pos_byte: ptrdiff_t = pos_byte;
   let re: Lisp_Object
-    = if STRINGP (BVAR! (current_buffer, bidi_paragraph_start_re_))
-      { BVAR! (current_buffer, bidi_paragraph_start_re_) }
+    = if STRINGP (BVAR! ((current_buffer! ()), bidi_paragraph_start_re_))
+      { BVAR! ((current_buffer! ()), bidi_paragraph_start_re_) }
       else { paragraph_start_re };
   let limit: ptrdiff_t = ZV! ();
   let limit_byte: ptrdiff_t = ZV_BYTE! ();
@@ -1589,7 +1589,7 @@ unsafe fn bidi_find_paragraph_start (pos: ptrdiff_t, pos_byte: ptrdiff_t)
   let mut n: ptrdiff_t = 0;
   let oldpos: ptrdiff_t = pos;
   let mut next: ptrdiff_t = 0;
-  let mut cache_buffer: *mut buffer = current_buffer;
+  let mut cache_buffer: *mut buffer = (current_buffer! ());
 
   if !(*cache_buffer).base_buffer.is_null ()
     { cache_buffer = (*cache_buffer).base_buffer; }

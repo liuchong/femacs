@@ -173,7 +173,7 @@ unsafe fn gap_left (charpos: ptrdiff_t, bytepos: ptrdiff_t, newgap: bool)
   let mut new_s1: ptrdiff_t;
 
   if !newgap
-    { BUF_COMPUTE_UNCHANGED (current_buffer, charpos, GPT! ()); }
+    { BUF_COMPUTE_UNCHANGED ((current_buffer! ()), charpos, GPT! ()); }
 
   i = GPT_BYTE! ();
   to = GAP_END_ADDR! ();
@@ -237,7 +237,7 @@ unsafe fn gap_right (charpos: ptrdiff_t, bytepos: ptrdiff_t)
   let mut i: ptrdiff_t;
   let mut new_s1: ptrdiff_t; /* May point in the middle of multibyte sequences.  */
 
-  BUF_COMPUTE_UNCHANGED (current_buffer, charpos, GPT! ());
+  BUF_COMPUTE_UNCHANGED ((current_buffer! ()), charpos, GPT! ());
 
   i = GPT_BYTE! ();
   from = GAP_END_ADDR! ();
@@ -290,7 +290,7 @@ unsafe fn adjust_suspend_auto_hscroll (from: ptrdiff_t, to: ptrdiff_t)
       let w: *mut window = XWINDOW (selected_window);
 
       if BUFFERP ((*w).contents)
-	  && XBUFFER ((*w).contents) == current_buffer
+	  && XBUFFER ((*w).contents) == (current_buffer! ())
 	  && (*XMARKER ((*w).old_pointm)).charpos >= from
 	  && (*XMARKER ((*w).old_pointm)).charpos <= to
 	{ (*w).bits &= ! (1 << WINDOW_SUSPEND_AUTO_HSCROLL_SHIFT); }
@@ -313,7 +313,7 @@ pub unsafe extern "C" fn adjust_markers_for_delete (from: ptrdiff_t, from_byte: 
   let mut charpos: ptrdiff_t;
 
   adjust_suspend_auto_hscroll (from, to);
-  m = BUF_MARKERS! (current_buffer);
+  m = BUF_MARKERS! ((current_buffer! ()));
   while !m.is_null ()
     {
       charpos = (*m).charpos;
@@ -355,7 +355,7 @@ unsafe fn adjust_markers_for_insert (from: ptrdiff_t, from_byte: ptrdiff_t,
   let nbytes: ptrdiff_t = to_byte - from_byte;
 
   adjust_suspend_auto_hscroll (from, to);
-  m = BUF_MARKERS! (current_buffer);
+  m = BUF_MARKERS! ((current_buffer! ()));
   while !m.is_null ()
     {
       eassert! ((*m).bytepos >= (*m).charpos
@@ -391,7 +391,7 @@ unsafe fn adjust_markers_for_insert (from: ptrdiff_t, from_byte: ptrdiff_t,
 
 unsafe fn adjust_point (nchars: ptrdiff_t, nbytes: ptrdiff_t)
 {
-  SET_BUF_PT_BOTH (current_buffer, PT! () + nchars, PT_BYTE! () + nbytes);
+  SET_BUF_PT_BOTH ((current_buffer! ()), PT! () + nchars, PT_BYTE! () + nbytes);
   /* In a single-byte buffer, the two positions must be equal.  */
   eassert! (PT_BYTE! () >= PT! () && PT_BYTE! () - PT! () <= ZV_BYTE! () - ZV! ());
 }
@@ -425,7 +425,7 @@ unsafe fn adjust_markers_for_replace (from: ptrdiff_t, from_byte: ptrdiff_t,
 
   adjust_suspend_auto_hscroll (from, from + old_chars);
 
-  m = BUF_MARKERS! (current_buffer);
+  m = BUF_MARKERS! ((current_buffer! ()));
   while !m.is_null ()
     {
       if (*m).bytepos >= prev_to_byte
@@ -488,7 +488,7 @@ pub unsafe extern "C" fn adjust_markers_bytepos (from: ptrdiff_t, from_byte: ptr
     {
       /* Make sure each affected marker's bytepos is equal to
 	 its charpos.  */
-      m = BUF_MARKERS! (current_buffer);
+      m = BUF_MARKERS! ((current_buffer! ()));
       while !m.is_null ()
 	{
 	  if (*m).bytepos > from_byte
@@ -499,7 +499,7 @@ pub unsafe extern "C" fn adjust_markers_bytepos (from: ptrdiff_t, from_byte: ptr
     }
   else
     {
-      m = BUF_MARKERS! (current_buffer);
+      m = BUF_MARKERS! ((current_buffer! ()));
       while !m.is_null ()
 	{
 	  /* Recompute each affected marker's bytepos.  */
@@ -521,7 +521,7 @@ pub unsafe extern "C" fn adjust_markers_bytepos (from: ptrdiff_t, from_byte: ptr
     }
 
   /* Make sure cached charpos/bytepos is invalid.  */
-  clear_charpos_cache (current_buffer);
+  clear_charpos_cache ((current_buffer! ()));
 }
 
 
@@ -550,7 +550,7 @@ unsafe fn make_gap_larger (nbytes_added: ptrdiff_t)
   nbytes_added = min (nbytes_added + GAP_BYTES_DFL as ptrdiff_t,
 		      BUF_BYTES_MAX - current_size);
 
-  enlarge_buffer_text (current_buffer, nbytes_added);
+  enlarge_buffer_text ((current_buffer! ()), nbytes_added);
 
   /* Prevent quitting in gap_left.  We cannot allow a quit there,
      because that would leave the buffer text in an inconsistent
@@ -618,11 +618,11 @@ pub unsafe extern "C" fn make_gap (nbytes_added: ptrdiff_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn make_gap_1 (b: *mut buffer, nbytes: ptrdiff_t)
 {
-  let oldb: *mut buffer = current_buffer;
+  let oldb: *mut buffer = (current_buffer! ());
 
-  current_buffer = b;
+  set_current_buffer! (b);
   make_gap (nbytes);
-  current_buffer = oldb;
+  set_current_buffer! (oldb);
 }
 
 /* Copy NBYTES bytes of text from FROM_ADDR to TO_ADDR.
@@ -736,7 +736,7 @@ pub unsafe extern "C" fn insert_char (c: c_int)
   let mut str_: [u8; MAX_MULTIBYTE_LENGTH as usize] = [0; MAX_MULTIBYTE_LENGTH as usize];
   let mut len: c_int;
 
-  if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { len = CHAR_STRING (c, str_.as_mut_ptr ()); }
   else
     {
@@ -816,7 +816,7 @@ pub unsafe extern "C" fn insert_1_both (string: *const c_char,
   if nchars == 0
     { return; }
 
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { nchars = nbytes; }
 
   /* C 901-904's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
@@ -864,9 +864,9 @@ pub unsafe extern "C" fn insert_1_both (string: *const c_char,
 			     PT! () + nchars, PT_BYTE! () + nbytes,
 			     before_markers);
 
-  offset_intervals (current_buffer, PT! (), nchars);
+  offset_intervals ((current_buffer! ()), PT! (), nchars);
 
-  if !inherit && !buffer_intervals (current_buffer).is_null ()
+  if !inherit && !buffer_intervals ((current_buffer! ())).is_null ()
     { set_text_properties (make_fixnum (PT! ()), make_fixnum (PT! () + nchars),
 			   Qnil (), Qnil (), Qnil ()); }
 
@@ -937,7 +937,7 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
   /* Make OUTGOING_NBYTES describe the text
      as it will be inserted in this buffer.  */
 
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { outgoing_nbytes = nchars; }
   else if ! STRING_MULTIBYTE (string)
     { outgoing_nbytes = count_size_as_multibyte (SDATA (string).offset (pos_byte), nbytes); }
@@ -959,7 +959,7 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
      between single-byte and multibyte.  */
   copy_text (SDATA (string).offset (pos_byte), GPT_ADDR! (), nbytes,
 	     STRING_MULTIBYTE (string),
-	     ! NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+	     ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
 
   /* C 1057-1065's `#ifdef BYTE_COMBINING_DEBUG` arm is dead in the frozen configuration and
      is recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
@@ -987,7 +987,7 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
 			     PT_BYTE! () + outgoing_nbytes,
 			     before_markers);
 
-  offset_intervals (current_buffer, PT! (), nchars);
+  offset_intervals ((current_buffer! ()), PT! (), nchars);
 
   intervals = string_intervals (string);
   /* Get the intervals for the part of the string we are inserting.  */
@@ -996,7 +996,7 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
 
   /* Insert those intervals.  */
   graft_intervals_into_buffer (intervals, PT! (), nchars,
-			       current_buffer, inherit);
+			       (current_buffer! ()), inherit);
 
   /* C 1102-1107's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
      recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
@@ -1018,7 +1018,7 @@ unsafe fn insert_from_string_1 (string: Lisp_Object, pos: ptrdiff_t, pos_byte: p
 pub unsafe extern "C" fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t,
 					    text_at_gap_tail: bool)
 {
-  eassert! (if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  eassert! (if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
             { nchars == nbytes } else { nchars <= nbytes });
 
   /* C 1128-1132's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
@@ -1057,14 +1057,14 @@ pub unsafe extern "C" fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t,
   let mut nchars = nchars;
   let ins_charpos: ptrdiff_t = GPT! (); let ins_bytepos: ptrdiff_t = GPT_BYTE! ();
 
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { nchars = nbytes; }
 
   /* No need to call prepare_to_modify_buffer, since this is called
      from places that replace some region with a different text, so
      prepare_to_modify_buffer was already called by the deletion part
      of this dance.  */
-  invalidate_buffer_caches (current_buffer, GPT! (), GPT! ());
+  invalidate_buffer_caches ((current_buffer! ()), GPT! (), GPT! ());
   record_insert (GPT! (), nchars);
   modiff_incr (&raw mut MODIFF! (), nchars);
   CHARS_MODIFF! () = MODIFF! ();
@@ -1075,11 +1075,11 @@ pub unsafe extern "C" fn insert_from_gap (nchars: ptrdiff_t, nbytes: ptrdiff_t,
 			     ins_charpos + nchars, ins_bytepos + nbytes,
 			     before_markers);
 
-  if !buffer_intervals (current_buffer).is_null ()
+  if !buffer_intervals ((current_buffer! ())).is_null ()
     {
-      offset_intervals (current_buffer, ins_charpos, nchars);
+      offset_intervals ((current_buffer! ()), ins_charpos, nchars);
       graft_intervals_into_buffer (std::ptr::null_mut (), ins_charpos, nchars,
-				   current_buffer, false);
+				   (current_buffer! ()), false);
     }
 
   if ins_charpos < PT! ()
@@ -1134,7 +1134,7 @@ unsafe fn insert_from_buffer_1 (buf: *mut buffer,
   /* Make OUTGOING_NBYTES describe the text
      as it will be inserted in this buffer.  */
 
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { outgoing_nbytes = nchars; }
   else if NILP (BVAR! (buf, enable_multibyte_characters_))
     {
@@ -1183,7 +1183,7 @@ unsafe fn insert_from_buffer_1 (buf: *mut buffer,
 	= copy_text (BUF_BYTE_ADDRESS (buf, from_byte),
 		     GPT_ADDR! (), chunk,
 		     ! NILP (BVAR! (buf, enable_multibyte_characters_)),
-		     ! NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+		     ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
     }
   else
     { chunk = 0; chunk_expanded = 0; }
@@ -1192,7 +1192,7 @@ unsafe fn insert_from_buffer_1 (buf: *mut buffer,
     { copy_text (BUF_BYTE_ADDRESS (buf, from_byte + chunk),
 		 GPT_ADDR! ().offset (chunk_expanded), incoming_nbytes - chunk,
 		 ! NILP (BVAR! (buf, enable_multibyte_characters_)),
-		 ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))); }
+		 ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))); }
 
   /* C 1317-1325's `#ifdef BYTE_COMBINING_DEBUG` arm is dead in the frozen configuration and
      is recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
@@ -1220,19 +1220,19 @@ unsafe fn insert_from_buffer_1 (buf: *mut buffer,
 			     PT_BYTE! () + outgoing_nbytes,
 			     false);
 
-  offset_intervals (current_buffer, PT! (), nchars);
+  offset_intervals ((current_buffer! ()), PT! (), nchars);
 
   /* Get the intervals for the part of the string we are inserting.  */
   intervals = buffer_intervals (buf);
   if nchars < BUF_Z! (buf) - BUF_BEG (buf)
     {
-      if buf == current_buffer && PT! () <= from
+      if buf == (current_buffer! ()) && PT! () <= from
 	{ from += nchars; }
       intervals = copy_intervals (intervals, from, nchars);
     }
 
   /* Insert those intervals.  */
-  graft_intervals_into_buffer (intervals, PT! (), nchars, current_buffer, inherit);
+  graft_intervals_into_buffer (intervals, PT! (), nchars, (current_buffer! ()), inherit);
 
   adjust_point (nchars, outgoing_nbytes);
 }
@@ -1278,7 +1278,7 @@ unsafe fn adjust_after_replace (from: ptrdiff_t, from_byte: ptrdiff_t,
     { record_delete (from, prev_text, false); }
   record_insert (from, len);
 
-  offset_intervals (current_buffer, from, len - nchars_del);
+  offset_intervals ((current_buffer! ()), from, len - nchars_del);
 
   if from < PT! ()
     { adjust_point (len - nchars_del, len_byte - nbytes_del); }
@@ -1429,7 +1429,7 @@ pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lis
       if (*(*insbuf).text).gpt_byte > insbeg_bytes
 	  && (*(*insbuf).text).gpt_byte < insend_bytes
 	{
-	  let old: *mut buffer = current_buffer;
+	  let old: *mut buffer = (current_buffer! ());
 	  if insbuf != old
 	    { set_buffer_internal (insbuf); }
 	  move_gap_both (insbeg, insbeg_bytes);
@@ -1445,7 +1445,7 @@ pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lis
   /* Make OUTGOING_INSBYTES describe the text
      as it will be inserted in this buffer.  */
 
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { outgoing_insbytes = inschars; }
   else if ! new_is_multibyte
     { outgoing_insbytes = count_size_as_multibyte (insbeg_ptr, insbytes); }
@@ -1456,7 +1456,7 @@ pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lis
   if to < GPT! ()
     { gap_left (to, to_byte, false); }
 
-  if ! EQ (BVAR! (current_buffer, undo_list_), Qt ())
+  if ! EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
     { deletion = make_buffer_string_both (from, from_byte, to, to_byte, true); }
 
   GAP_SIZE! () += nbytes_del;
@@ -1482,7 +1482,7 @@ pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lis
      between single-byte and multibyte.  */
   copy_text (insbeg_ptr, GPT_ADDR! (), insbytes,
 	     new_is_multibyte,
-	     ! NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+	     ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
 
   /* C 1621-1629's `#ifdef BYTE_COMBINING_DEBUG` arm is dead in the frozen configuration and
      is recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
@@ -1512,7 +1512,7 @@ pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lis
   adjust_markers_for_replace (from, from_byte, nchars_del, nbytes_del,
 			      inschars, outgoing_insbytes);
 
-  offset_intervals (current_buffer, from, inschars - nchars_del);
+  offset_intervals ((current_buffer! ()), from, inschars - nchars_del);
 
   /* Get the intervals for the part of the string we are inserting--
      not including the combined-before bytes.  */
@@ -1522,7 +1522,7 @@ pub unsafe extern "C" fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new: Lis
 
   /* Insert those intervals.  */
   graft_intervals_into_buffer (intervals, from, inschars,
-			       current_buffer, inherit);
+			       (current_buffer! ()), inherit);
 
   /* C 1669-1675's `#ifdef HAVE_TREE_SITTER` arm is dead in the frozen configuration and is
      recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
@@ -1642,7 +1642,7 @@ pub unsafe extern "C" fn replace_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
 	}
     }
 
-  offset_intervals (current_buffer, from, inschars - nchars_del);
+  offset_intervals ((current_buffer! ()), from, inschars - nchars_del);
 
   /* Relocate point as if it were a marker.  */
   if from < PT! () && (nchars_del != inschars || nbytes_del != insbytes)
@@ -1868,7 +1868,7 @@ pub unsafe extern "C" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
   /* C 2017-2020's `#ifdef BYTE_COMBINING_DEBUG` arm is dead in the frozen configuration and
      is recorded in docs/ports/insdel.md rather than transcribed (P-08).  */
 
-  if ret_string || ! EQ (BVAR! (current_buffer, undo_list_), Qt ())
+  if ret_string || ! EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
     { deletion = make_buffer_string_both (from, from_byte, to, to_byte, true); }
   else
     { deletion = Qnil (); }
@@ -1889,7 +1889,7 @@ pub unsafe extern "C" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
     { adjust_point (from - min (PT! (), to),
 		    from_byte - min (PT_BYTE! (), to_byte)); }
 
-  offset_intervals (current_buffer, from, - nchars_del);
+  offset_intervals ((current_buffer! ()), from, - nchars_del);
 
   GAP_SIZE! () += nbytes_del;
   ZV! () -= nchars_del;
@@ -1898,7 +1898,7 @@ pub unsafe extern "C" fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t,
   Z_BYTE! () -= nbytes_del;
   GPT! () = from;
   GPT_BYTE! () = from_byte;
-  if GAP_SIZE! () > 0 && (*(*current_buffer).text).bits & BUFFER_TEXT_INHIBIT_SHRINKING == 0
+  if GAP_SIZE! () > 0 && (*(*(current_buffer! ())).text).bits & BUFFER_TEXT_INHIBIT_SHRINKING == 0
     /* Put an anchor, unless called from decode_coding_object which
        needs to access the previous gap contents.  */
     { *GPT_ADDR! () = 0; }
@@ -1930,13 +1930,13 @@ pub unsafe extern "C" fn modify_text (start: ptrdiff_t, end: ptrdiff_t)
 {
   prepare_to_modify_buffer (start, end, std::ptr::null_mut ());
 
-  BUF_COMPUTE_UNCHANGED (current_buffer, start - 1, end);
+  BUF_COMPUTE_UNCHANGED ((current_buffer! ()), start - 1, end);
   if MODIFF! () <= SAVE_MODIFF! ()
     { record_first_change (); }
   modiff_incr (&raw mut MODIFF! (), end - start);
   CHARS_MODIFF! () = MODIFF! ();
 
-  bset_point_before_scroll (current_buffer, Qnil ());
+  bset_point_before_scroll ((current_buffer! ()), Qnil ());
 }
 
 /* Signal that we are about to make a change that may result in new
@@ -1944,7 +1944,7 @@ pub unsafe extern "C" fn modify_text (start: ptrdiff_t, end: ptrdiff_t)
  */
 unsafe fn run_undoable_change ()
 {
-  if EQ (BVAR! (current_buffer, undo_list_), Qt ())
+  if EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
     { return; }
 
   call0 (Qundo_auto__undoable_change ());
@@ -1973,7 +1973,7 @@ pub unsafe extern "C" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrd
   let mut temp: Lisp_Object;
 
   XSETFASTINT! (temp, start);
-  if !NILP (BVAR! (current_buffer, read_only_))
+  if !NILP (BVAR! ((current_buffer! ()), read_only_))
     { Fbarf_if_buffer_read_only (temp); }
 
   /* If we're about to modify a buffer the contents of which come from
@@ -1981,32 +1981,32 @@ pub unsafe extern "C" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrd
      don't take a COW fault on the buffer text and keep it around
      forever.  */
   if pdumper_object_p (BEG_ADDR! () as *const c_void)
-    { enlarge_buffer_text (current_buffer, 0); }
+    { enlarge_buffer_text ((current_buffer! ()), 0); }
   eassert! (! pdumper_object_p (BEG_ADDR! () as *const c_void));
 
   run_undoable_change();
 
-  bset_redisplay (current_buffer);
+  bset_redisplay ((current_buffer! ()));
 
-  if !buffer_intervals (current_buffer).is_null ()
+  if !buffer_intervals ((current_buffer! ())).is_null ()
     {
       if !preserve_ptr.is_null ()
 	{
 	  let mut preserve_marker: Lisp_Object;
 	  preserve_marker = Fcopy_marker (make_fixnum (*preserve_ptr), Qnil ());
-	  verify_interval_modification (current_buffer, start, end);
+	  verify_interval_modification ((current_buffer! ()), start, end);
 	  *preserve_ptr = marker_position (preserve_marker);
 	  unchain_marker (XMARKER (preserve_marker) as *mut c_void);
 	}
       else
-	{ verify_interval_modification (current_buffer, start, end); }
+	{ verify_interval_modification ((current_buffer! ()), start, end); }
     }
 
   /* For indirect buffers, use the base buffer to check clashes.  */
-  if !(*current_buffer).base_buffer.is_null ()
-    { base_buffer = (*current_buffer).base_buffer; }
+  if !(*(current_buffer! ())).base_buffer.is_null ()
+    { base_buffer = (*(current_buffer! ())).base_buffer; }
   else
-    { base_buffer = current_buffer; }
+    { base_buffer = (current_buffer! ()); }
 
   if inhibit_modification_hooks
     { return; }
@@ -2019,8 +2019,8 @@ pub unsafe extern "C" fn prepare_to_modify_buffer_1 (start: ptrdiff_t, end: ptrd
 
   /* If `select-active-regions' is non-nil, save the region text.  */
   /* FIXME: Move this to Elisp (via before-change-functions).  */
-  if !NILP (BVAR! (current_buffer, mark_active_))
-      && !(*XMARKER (BVAR! (current_buffer, mark_))).buffer.is_null ()
+  if !NILP (BVAR! ((current_buffer! ()), mark_active_))
+      && !(*XMARKER (BVAR! ((current_buffer! ()), mark_))).buffer.is_null ()
       && NILP (Vsaved_region_selection)
       && (if EQ (Vselect_active_regions, Qonly ())
 	  { EQ (CAR_SAFE (Vtransient_mark_mode), Qonly ()) }
@@ -2042,7 +2042,7 @@ pub unsafe extern "C" fn prepare_to_modify_buffer (start: ptrdiff_t, end: ptrdif
 						   preserve_ptr: *mut ptrdiff_t)
 {
   prepare_to_modify_buffer_1 (start, end, preserve_ptr);
-  invalidate_buffer_caches (current_buffer, start, end);
+  invalidate_buffer_caches ((current_buffer! ()), start, end);
 }
 
 /* Invalidate the caches maintained by the buffer BUF, if any, for the
@@ -2079,7 +2079,7 @@ pub unsafe extern "C" fn invalidate_buffer_caches (buf: *mut buffer, start: ptrd
 
 	  if (start == end) == (prev_char == '\n' as c_int)
 	    {
-	      let old: *mut buffer = current_buffer;
+	      let old: *mut buffer = (current_buffer! ());
 
 	      set_buffer_internal (buf);
 
@@ -2293,7 +2293,7 @@ pub unsafe extern "C" fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdif
       let mut elt: Lisp_Object;
 
       if !NILP (combine_after_change_list)
-	  && current_buffer != XBUFFER (combine_after_change_buffer)
+	  && (current_buffer! ()) != XBUFFER (combine_after_change_buffer)
 	{ Fcombine_after_change_execute (); }
 
       elt = list3i (charpos - BEG as ptrdiff_t, Z! () - (charpos - lendel + lenins),

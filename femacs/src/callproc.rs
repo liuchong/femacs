@@ -350,7 +350,7 @@ const _P_NOWAIT: c_int = 1;
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn get_current_directory (encode: bool) -> Lisp_Object
 {
-  let curdir: Lisp_Object = BVAR! (current_buffer, directory_);
+  let curdir: Lisp_Object = BVAR! ((current_buffer! ()), directory_);
   let mut dir: Lisp_Object = Funhandled_file_name_directory (curdir);
 
   /* If the file name handler says that dir is unreachable, use
@@ -637,7 +637,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 	  if CONSP (ofile)
 	    { ofile = XCAR (ofile); }
 	  CHECK_STRING (ofile);
-	  output_file = Fexpand_file_name (ofile, BVAR! (current_buffer, directory_));
+	  output_file = Fexpand_file_name (ofile, BVAR! ((current_buffer! ()), directory_));
 	  CHECK_STRING (output_file);
 	  buffer = Qnil ();
 	}
@@ -944,13 +944,13 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
       /* In unibyte mode, character code conversion should not take
 	 place but EOL conversion should.  So, setup raw-text or one
 	 of the subsidiary according to the information just setup.  */
-      if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	  && ! NILP (val)
 	{ val = raw_text_coding_system (val); }
       setup_coding_system (val, &raw mut process_coding);
       /* C: `process_coding.dst_multibyte
 	 = ! NILP (BVAR (current_buffer, enable_multibyte_characters));` */
-      if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	{ process_coding.bits |= 1 << CODING_SYSTEM_DST_MULTIBYTE_SHIFT; }
       else
 	{ process_coding.bits &= ! (1 << CODING_SYSTEM_DST_MULTIBYTE_SHIFT); }
@@ -1039,7 +1039,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 
 	  if nread == 0
 	    { }
-	  else if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  else if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 		   && CODING_MAY_REQUIRE_DECODING (&raw mut process_coding) == 0
             {
               insert_1_both (buf.as_ptr () as *const c_char, nread as ptrdiff_t,
@@ -1051,7 +1051,7 @@ unsafe fn call_process (nargs: ptrdiff_t, args: *mut Lisp_Object, filefd: c_int,
 	      let curbuf: Lisp_Object;
 	      let count1: specpdl_ref = SPECPDL_INDEX ();
 
-	      XSETBUFFER! (curbuf, current_buffer);
+	      XSETBUFFER! (curbuf, (current_buffer! ()));
 	      /* We cannot allow after-change-functions be run
 		 during decoding, because that might modify the
 		 buffer, while we rely on process_coding.produced to
@@ -1232,7 +1232,7 @@ unsafe fn create_temp_file (nargs: ptrdiff_t, args: *mut Lisp_Object,
   /* Decide coding-system of the contents of the temporary file.  */
   if ! NILP (Vcoding_system_for_write)
     { val = Vcoding_system_for_write; }
-  else if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  else if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { val = Qraw_text (); }
   else
     {

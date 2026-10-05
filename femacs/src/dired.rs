@@ -364,7 +364,7 @@ pub unsafe extern "C" fn directory_files_internal (directory: Lisp_Object, full:
   /* C 359-361's `#ifdef WINDOWSNT` `Vw32_get_true_file_attributes = w32_save;` is dead.  */
 
   /* Discard the unwind protect.  */
-  specpdl_ptr = specpdl_ref_to_ptr (count);
+  (specpdl_ptr! ()) = specpdl_ref_to_ptr (count);
 
   if NILP (nosort)
     {

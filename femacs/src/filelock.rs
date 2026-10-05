@@ -784,7 +784,7 @@ DEFUN! ("lock-buffer", Flock_buffer, Slock_buffer,
        {
   let mut file = file;   // C's `file = BVAR (current_buffer, file_truename);` below rebinds the argument
   if NILP (file)
-    { file = BVAR! (current_buffer, file_truename_); }
+    { file = BVAR! ((current_buffer! ()), file_truename_); }
   else
     { CHECK_STRING (file); }
   if SAVE_MODIFF! () < MODIFF! ()
@@ -799,8 +799,8 @@ DEFUN! ("unlock-buffer", Funlock_buffer, Sunlock_buffer,
        (),
        {
   if SAVE_MODIFF! () < MODIFF! ()
-      && STRINGP (BVAR! (current_buffer, file_truename_))
-    { Funlock_file (BVAR! (current_buffer, file_truename_)); }
+      && STRINGP (BVAR! ((current_buffer! ()), file_truename_))
+    { Funlock_file (BVAR! ((current_buffer! ()), file_truename_)); }
   return Qnil ();
 });
 

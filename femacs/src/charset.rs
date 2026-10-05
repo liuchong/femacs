@@ -1787,7 +1787,7 @@ DEFUN! ("find-charset-region", Ffind_charset_region, Sfind_charset_region,
 	 let mut stop_byte: ptrdiff_t = 0;
 	 let mut i: c_int = 0;
 	 let mut val: Lisp_Object = Qnil ();
-	 let multibyte: bool = ! NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+	 let multibyte: bool = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
 
 	 validate_region (&mut beg, &mut end);
 	 from = XFIXNAT (beg);

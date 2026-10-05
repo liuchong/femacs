@@ -1146,7 +1146,7 @@ pub unsafe extern "C" fn do_symval_forwarding (valcontents: lispfwd) -> Lisp_Obj
       { return *XOBJVAR (valcontents); }
 
     Lisp_Fwd_Buffer_Obj =>
-      { return per_buffer_value (current_buffer, XBUFFER_OFFSET (valcontents) as c_int); }
+      { return per_buffer_value ((current_buffer! ()), XBUFFER_OFFSET (valcontents) as c_int); }
 
     Lisp_Fwd_Kboard_Obj =>
       { return *((kboard_for_bindings () as *mut c_char)
@@ -1336,7 +1336,7 @@ unsafe fn store_symval_forwarding (valcontents: lispfwd, newval: Lisp_Object,
         if ! NILP (newval)
           { check_fwd_predicate ((*valcontents).u.buf.predicate as u32, newval); }
         if buf.is_null ()
-          { buf = current_buffer; }
+          { buf = (current_buffer! ()); }
         set_per_buffer_value (buf, offset, newval);
       }
     Lisp_Fwd_Kboard_Obj =>
@@ -1390,7 +1390,7 @@ unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Bu
   tem1 = (*blv).r#where;
 
   if NILP (tem1)
-    || current_buffer != XBUFFER (tem1)
+    || (current_buffer! ()) != XBUFFER (tem1)
     {
 
       /* Unload the previously loaded binding.  */
@@ -1401,7 +1401,7 @@ unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Bu
       {
         let mut var: Lisp_Object = Qnil ();
         XSETSYMBOL! (var, symbol);
-        tem1 = assq_no_quit (var, BVAR! (current_buffer, local_var_alist_));
+        tem1 = assq_no_quit (var, BVAR! ((current_buffer! ()), local_var_alist_));
         set_blv_where (blv, Fcurrent_buffer ());
       }
       /* C assigns the bitfield inside the condition (`if (!(blv->found = !NILP (tem1)))`).
@@ -1552,7 +1552,7 @@ pub unsafe extern "C" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
                        SDATA (SYMBOL_NAME (symbol))); }
 
             if NILP (r#where)
-              { XSETBUFFER! (r#where, current_buffer); }
+              { XSETBUFFER! (r#where, (current_buffer! ())); }
 
             /* If the current buffer is not the buffer whose binding is
                loaded, or if it's a Lisp_Buffer_Local_Value and
@@ -1623,13 +1623,13 @@ pub unsafe extern "C" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
             if ! (*blv).fwd.is_null ()
               { store_symval_forwarding ((*blv).fwd, newval,
                                          if BUFFERP (r#where) { XBUFFER (r#where) }
-                                         else { current_buffer }); }
+                                         else { (current_buffer! ()) }); }
             return;
           }
         SYMBOL_FORWARDED =>
           {
             let buf: *mut buffer
-              = if BUFFERP (r#where) { XBUFFER (r#where) } else { current_buffer };
+              = if BUFFERP (r#where) { XBUFFER (r#where) } else { (current_buffer! ()) };
             let innercontents: lispfwd = SYMBOL_FWD (sym) as *mut Lisp_Fwd;
 
             if unbinding_p
@@ -1760,7 +1760,7 @@ pub unsafe extern "C" fn notify_variable_watchers (symbol: Lisp_Object,
     && ! EQ (operation, Qset_default ()) && ! EQ (operation, Qmakunbound ())
     && ! NILP (Flocal_variable_if_set_p (symbol, Fcurrent_buffer ()))
     {
-      XSETBUFFER! (r#where, current_buffer);
+      XSETBUFFER! (r#where, (current_buffer! ()));
     }
 
   if EQ (operation, Qset_default ())
@@ -2140,7 +2140,7 @@ DEFUN! ("make-local-variable", Fmake_local_variable,
           eassert! (idx != 0);
           if idx > 0
             /* If idx < 0, it's always buffer local, like `mode-name`.  */
-            { SET_PER_BUFFER_VALUE_P (current_buffer, idx, true); }
+            { SET_PER_BUFFER_VALUE_P ((current_buffer! ()), idx, true); }
           return variable;
         }
       blv = make_blv (sym, forwarded, valcontents);
@@ -2152,7 +2152,7 @@ DEFUN! ("make-local-variable", Fmake_local_variable,
 
   /* Make sure this buffer has its own value of symbol.  */
   XSETSYMBOL! (variable, sym);	/* Update in case of aliasing.  */
-  tem = assq_no_quit (variable, BVAR! (current_buffer, local_var_alist_));
+  tem = assq_no_quit (variable, BVAR! ((current_buffer! ()), local_var_alist_));
   if NILP (tem)
     {
       if let_shadows_buffer_binding_p (sym)
@@ -2161,15 +2161,15 @@ DEFUN! ("make-local-variable", Fmake_local_variable,
           CALLN! (Fmessage, format, SYMBOL_NAME (variable));
         }
 
-      if BUFFERP ((*blv).r#where) && current_buffer == XBUFFER ((*blv).r#where)
+      if BUFFERP ((*blv).r#where) && (current_buffer! ()) == XBUFFER ((*blv).r#where)
         /* Make sure the current value is permanently recorded, if it's the
            default value.  */
         { swap_in_global_binding (sym); }
 
       bset_local_var_alist
-        (current_buffer,
+        ((current_buffer! ()),
          Fcons (Fcons (variable, XCDR ((*blv).defcell)),
-                BVAR! (current_buffer, local_var_alist_)));
+                BVAR! ((current_buffer! ()), local_var_alist_)));
 
       /* If the symbol forwards into a C variable, then load the binding
          for this buffer now, to preserve the invariant that forwarded
@@ -2216,8 +2216,8 @@ DEFUN! ("kill-local-variable", Fkill_local_variable,
 
                 if idx > 0
                   {
-                    SET_PER_BUFFER_VALUE_P (current_buffer, idx, false);
-                    set_per_buffer_value (current_buffer, offset,
+                    SET_PER_BUFFER_VALUE_P ((current_buffer! ()), idx, false);
+                    set_per_buffer_value ((current_buffer! ()), offset,
                                           per_buffer_default (offset));
                   }
               }
@@ -2237,12 +2237,12 @@ DEFUN! ("kill-local-variable", Fkill_local_variable,
 
   /* Get rid of this buffer's alist element, if any.  */
   XSETSYMBOL! (variable, sym);	/* Propagate variable indirection.  */
-  tem = assq_no_quit (variable, BVAR! (current_buffer, local_var_alist_));
+  tem = assq_no_quit (variable, BVAR! ((current_buffer! ()), local_var_alist_));
   if ! NILP (tem)
     {
       bset_local_var_alist
-        (current_buffer,
-         Fdelq (tem, BVAR! (current_buffer, local_var_alist_)));
+        ((current_buffer! ()),
+         Fdelq (tem, BVAR! ((current_buffer! ()), local_var_alist_)));
     }
 
   /* If the symbol is set up with the current buffer's binding
@@ -2250,7 +2250,7 @@ DEFUN! ("kill-local-variable", Fkill_local_variable,
      forwarded objects won't work right.  */
   {
     let buf: Lisp_Object;
-    XSETBUFFER! (buf, current_buffer);
+    XSETBUFFER! (buf, (current_buffer! ()));
     if BASE_EQ (buf, (*blv).r#where)
       { swap_in_global_binding (sym); }
   }

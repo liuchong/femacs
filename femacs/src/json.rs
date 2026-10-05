@@ -652,13 +652,13 @@ DEFUN! ("json-insert", Fjson_insert, Sjson_insert, 1, MANY,
   /* No need to keep allocation beyond this point.  */
   unbind_to (count, Qnil ());
 
-  let ub_buffer: bool = NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let ub_buffer: bool = NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   let inserted_bytes: ptrdiff_t = jo.size;
   let inserted: ptrdiff_t = if ub_buffer { jo.size } else { jo.size - jo.chars_delta };
   eassert! (inserted > 0);
 
   insert_from_gap_1 (inserted, inserted_bytes, false);
-  invalidate_buffer_caches (current_buffer as *mut c_void, PT! (), PT! () + inserted);
+  invalidate_buffer_caches ((current_buffer! ()) as *mut c_void, PT! (), PT! () + inserted);
   adjust_after_insert (PT! (), PT_BYTE! (), PT! () + inserted, PT_BYTE! () + inserted_bytes,
 		       inserted);
 
@@ -1763,7 +1763,7 @@ DEFUN! ("json-parse-buffer", Fjson_parse_buffer, Sjson_parse_buffer,
   let byte: ptrdiff_t = PT_BYTE! () + ((p.input_current as ptrdiff_t)
 				      - (p.input_begin as ptrdiff_t))
     + p.additional_bytes_count;
-  let position: ptrdiff_t = if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  let position: ptrdiff_t = if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 			      { byte } else { BYTE_TO_CHAR (byte) };
   SET_PT_BOTH (position, byte);
 

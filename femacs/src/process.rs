@@ -2114,7 +2114,7 @@ DEFUN! ("make-process", Fmake_process, Smake_process, 0, MANY, 0,
   if (!NILP (plist_get (contact, QCfile_handler ())))
     {
       let file_handler: Lisp_Object
-	= Ffind_file_name_handler (BVAR! (current_buffer, directory_),
+	= Ffind_file_name_handler (BVAR! ((current_buffer! ()), directory_),
 				   Qmake_process ());
       if (!NILP (file_handler))
 	{ return CALLN! (Fapply, file_handler, Qmake_process (), contact); }
@@ -2830,7 +2830,7 @@ DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
       }
     else if (!NILP (Vcoding_system_for_write))
       { val = Vcoding_system_for_write; }
-    else if (NILP (BVAR! (current_buffer, enable_multibyte_characters_)))
+    else if (NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)))
       { val = Qnil (); }
     else
       {
@@ -2850,7 +2850,7 @@ DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
   eassert! ((*p).decoding_carryover == 0);
   pset_encoding_buf (p, empty_unibyte_string);
 
-  specpdl_ptr = specpdl_ref_to_ptr (specpdl_count);
+  (specpdl_ptr! ()) = specpdl_ref_to_ptr (specpdl_count);
 
   return proc;
 });
@@ -3483,7 +3483,7 @@ DEFUN! ("make-serial-process", Fmake_serial_process, Smake_serial_process, 0, MA
 
   Fserial_process_configure (nargs, args);
 
-  specpdl_ptr = specpdl_ref_to_ptr (specpdl_count);
+  (specpdl_ptr! ()) = specpdl_ref_to_ptr (specpdl_count);
 
   return proc;
 });
@@ -3551,7 +3551,7 @@ unsafe fn set_network_socket_coding_system (proc_: Lisp_Object, host: Lisp_Objec
     }
   else if (!NILP (Vcoding_system_for_write))
     { val = Vcoding_system_for_write; }
-  else if (NILP (BVAR! (current_buffer, enable_multibyte_characters_)))
+  else if (NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)))
     { val = Qnil (); }
   else
     {
@@ -3833,7 +3833,7 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
 	}
 
       /* Discard the unwind protect closing S.  */
-      specpdl_ptr = specpdl_ref_to_ptr (count1);
+      (specpdl_ptr! ()) = specpdl_ref_to_ptr (count1);
       emacs_close (s);
       s = -1;
       if (0 <= socket_to_use)
@@ -3920,7 +3920,7 @@ unsafe fn connect_network_socket (proc_: Lisp_Object, addrinfos: Lisp_Object,
   (*p).outfd = outch;
 
   /* Discard the unwind protect for closing S, if any.  */
-  specpdl_ptr = specpdl_ref_to_ptr (count1);
+  (specpdl_ptr! ()) = specpdl_ref_to_ptr (count1);
 
   if process_bits! (is_server, p) && (*p).socktype != SOCK_DGRAM
     { pset_status (p, Qlisten ()); }
@@ -4388,7 +4388,7 @@ DEFUN! ("make-network-process", Fmake_network_process, Smake_network_process, 0,
   if (! postpone_connection)
     { connect_network_socket (proc, addrinfos, use_external_socket_p); }
 
-  specpdl_ptr = specpdl_ref_to_ptr (count);
+  (specpdl_ptr! ()) = specpdl_ref_to_ptr (count);
   return proc;
 });
 
@@ -5236,7 +5236,7 @@ unsafe fn server_accept_connection (server: Lisp_Object, channel: c_int)
   eassert! ((*p).pid == 0);
 
   /* Discard the unwind protect for closing S.  */
-  specpdl_ptr = specpdl_ref_to_ptr (count);
+  (specpdl_ptr! ()) = specpdl_ref_to_ptr (count);
 
   (*p).open_fd[SUBPROCESS_STDIN as usize] = s;
   (*p).infd = s;
@@ -6549,11 +6549,11 @@ unsafe fn read_process_output_before_insert (p: *mut Lisp_Process,
   Fset_buffer ((*p).buffer);
   *opoint = PT! ();
   *opoint_byte = PT_BYTE! ();
-  *old_read_only = BVAR! (current_buffer, read_only_);
+  *old_read_only = BVAR! ((current_buffer! ()), read_only_);
   *old_begv = BEGV! ();
   *old_zv = ZV! ();
 
-  bset_read_only (current_buffer, Qnil ());
+  bset_read_only ((current_buffer! ()), Qnil ());
 
   /* Insert new output into buffer at the current end-of-output marker, thus preserving
      logical ordering of input and output.  */
@@ -6585,7 +6585,7 @@ unsafe fn read_process_output_after_insert (p: *mut Lisp_Process, old_read_only:
   /* Make sure the process marker's position is valid when the process buffer is changed in
      the signal_after_change above.  W3 is known to do that.  */
   if (BUFFERP ((*p).buffer)
-      && { b = XBUFFER ((*p).buffer); b != current_buffer })
+      && { b = XBUFFER ((*p).buffer); b != (current_buffer! ()) })
     { set_marker_both ((*p).mark, (*p).buffer, BUF_PT (b), BUF_PT_BYTE (b)); }
   else
     { set_marker_both ((*p).mark, (*p).buffer, PT! (), PT_BYTE! ()); }
@@ -6608,7 +6608,7 @@ unsafe fn read_process_output_after_insert (p: *mut Lisp_Process, old_read_only:
   if (old_begv != BEGV! () || old_zv != ZV! ())
     { Fnarrow_to_region (make_fixnum (old_begv as EMACS_INT), make_fixnum (old_zv as EMACS_INT)); }
 
-  bset_read_only (current_buffer, *old_read_only);
+  bset_read_only ((current_buffer! ()), *old_read_only);
   SET_PT_BOTH (opoint, opoint_byte);
 }
 
@@ -6690,7 +6690,7 @@ unsafe fn read_and_insert_process_output (p: *mut Lisp_Process, buf: *mut c_char
       let mut curbuf: Lisp_Object = lisp_h_Qnil ();
       let count1: specpdl_ref = SPECPDL_INDEX ();
 
-      XSETBUFFER! (curbuf, current_buffer);
+      XSETBUFFER! (curbuf, (current_buffer! ()));
       /* See the comment above about inserting before markers.  */
       coding_bits! (insert_before_markers, process_coding, true);
       /* We cannot allow after-change-functions be run during decoding, because that might
@@ -6808,7 +6808,7 @@ DEFUN! ("internal-default-process-filter", Finternal_default_process_filter,
 					 &raw mut opoint, &raw mut opoint_byte);
 
       /* Adjust the multibyteness of TEXT to that of the buffer.  */
-      if (NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      if (NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	  != ! STRING_MULTIBYTE (text))
 	{ text = if STRING_MULTIBYTE (text)
 	  { Fstring_as_unibyte (text) }
@@ -6987,7 +6987,7 @@ unsafe fn send_process (proc_: Lisp_Object, buf: *const c_char, len: ptrdiff_t,
 	  let mut to: ptrdiff_t;
 	  let mut save_pt: ptrdiff_t;
 	  let mut save_pt_byte: ptrdiff_t;
-	  let cur: *mut buffer = current_buffer;
+	  let cur: *mut buffer = (current_buffer! ());
 
 	  set_buffer_internal (XBUFFER (object));
 	  save_pt = PT! (); save_pt_byte = PT_BYTE! ();
@@ -8063,7 +8063,7 @@ DEFUN! ("internal-default-process-sentinel", Finternal_default_process_sentinel,
   if (!EQ (symbol, Qrun ()) && !NILP (buffer))
     {
       let mut tem: Lisp_Object;
-      let old: *mut buffer = current_buffer;
+      let old: *mut buffer = (current_buffer! ());
       let mut opoint: ptrdiff_t;
       let mut opoint_byte: ptrdiff_t;
       let mut before: ptrdiff_t;
@@ -8075,7 +8075,7 @@ DEFUN! ("internal-default-process-sentinel", Finternal_default_process_sentinel,
 	{ return Qnil (); }
       Fset_buffer (buffer);
 
-      if (NILP (BVAR! (current_buffer, enable_multibyte_characters_)))
+      if (NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)))
 	{ msg = code_convert_string_norecord (msg, Vlocale_coding_system, true); }
 
       opoint = PT! ();
@@ -8090,14 +8090,14 @@ DEFUN! ("internal-default-process-sentinel", Finternal_default_process_sentinel,
       before = PT! ();
       before_byte = PT_BYTE! ();
 
-      tem = BVAR! (current_buffer, read_only_);
-      bset_read_only (current_buffer, Qnil ());
+      tem = BVAR! ((current_buffer! ()), read_only_);
+      bset_read_only ((current_buffer! ()), Qnil ());
       insert_string (c"\nProcess ".as_ptr ());
       { /* FIXME: temporary kludge.  */
 	let mut tem2: Lisp_Object = (*p).name; Finsert (1, &raw mut tem2); }
       insert_string (c" ".as_ptr ());
       Finsert (1, &raw mut msg);
-      bset_read_only (current_buffer, tem);
+      bset_read_only ((current_buffer! ()), tem);
       set_marker_both ((*p).mark, (*p).buffer, PT! (), PT_BYTE! ());
 
       if (opoint >= before)
@@ -8596,7 +8596,7 @@ DEFUN! ("list-system-processes", Flist_system_processes, Slist_system_processes,
        (),
        {
   let handler: Lisp_Object
-    = Ffind_file_name_handler (BVAR! (current_buffer, directory_),
+    = Ffind_file_name_handler (BVAR! ((current_buffer! ()), directory_),
 			       Qlist_system_processes ());
   if (!NILP (handler))
     { return calln! (handler, Qlist_system_processes ()); }
@@ -8609,7 +8609,7 @@ DEFUN! ("process-attributes", Fprocess_attributes, Sprocess_attributes, 1, 1, 0,
        (pid: Lisp_Object),
        {
   let handler: Lisp_Object
-    = Ffind_file_name_handler (BVAR! (current_buffer, directory_),
+    = Ffind_file_name_handler (BVAR! ((current_buffer! ()), directory_),
 			       Qprocess_attributes ());
   if (!NILP (handler))
     { return calln! (handler, Qprocess_attributes (), pid); }

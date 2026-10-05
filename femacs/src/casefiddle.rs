@@ -99,8 +99,8 @@ unsafe fn prepare_casing_context (ctx: *mut casing_context,
       else { uniprop_table (Qspecial_titlecase ()) };
 
   /* If the case table is flagged as modified, rescan it.  */
-  if NILP (FAM_ELEM! ((*XCHAR_TABLE (BVAR! (current_buffer, downcase_table_))).extras, 1))
-    { Fset_case_table (BVAR! (current_buffer, downcase_table_)); }
+  if NILP (FAM_ELEM! ((*XCHAR_TABLE (BVAR! ((current_buffer! ()), downcase_table_))).extras, 1))
+    { Fset_case_table (BVAR! ((current_buffer! ()), downcase_table_)); }
 
   if inbuffer && flag >= CASE_CAPITALIZE
     { SETUP_BUFFER_SYNTAX_TABLE (); }	/* For syntax_prefix_flag_p.  */
@@ -288,7 +288,7 @@ unsafe fn do_casify_natnum (ctx: *mut casing_context, obj: Lisp_Object) -> Lisp_
      receive an int 128-255 we can't tell whether it's an eight-bit byte or
      a latin-1 char.  */
   let multibyte: bool = ch >= 256
-		    || !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+		    || !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   if ! multibyte
     { ch = make_char_multibyte (ch); }
   let cased: c_int = case_single_character (ctx, ch);
@@ -572,16 +572,16 @@ unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Obje
     let old_end_byte: ptrdiff_t = CHAR_TO_BYTE (end);
     let start_linecol: ts_linecol
       = treesit_linecol_maybe (start, start_byte,
-			       BUF_TS_LINECOL_POINT (current_buffer));
+			       BUF_TS_LINECOL_POINT ((current_buffer! ())));
     let old_end_linecol: ts_linecol
       = treesit_linecol_maybe (end, old_end_byte,
-			       BUF_TS_LINECOL_POINT (current_buffer));
+			       BUF_TS_LINECOL_POINT ((current_buffer! ())));
     let _ = (start_linecol, old_end_linecol);
   }
 
   let orig_end: ptrdiff_t = end;
   record_delete (start, make_buffer_string (start, end, true), false);
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     {
       record_insert (start, end - start);
       added = do_casify_unibyte_region (&raw mut ctx, &raw mut start, &raw mut end);

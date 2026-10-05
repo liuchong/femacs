@@ -1877,7 +1877,7 @@ pub unsafe extern "C" fn temp_set_point (buffer: *mut buffer, charpos: ptrdiff_t
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn set_point (charpos: ptrdiff_t)
 {
-  set_point_both (charpos, buf_charpos_to_bytepos (current_buffer as *mut c_void, charpos));
+  set_point_both (charpos, buf_charpos_to_bytepos ((current_buffer! ()) as *mut c_void, charpos));
 }
 
 /* Set PT from MARKER's clipped position.  */
@@ -1890,8 +1890,8 @@ pub unsafe extern "C" fn set_point_from_marker (marker: Lisp_Object)
 
   /* Don't trust the byte position if the marker belongs to a
      different buffer.  */
-  if (*XMARKER (marker)).buffer != current_buffer as *mut c_void
-    { bytepos = buf_charpos_to_bytepos (current_buffer as *mut c_void, charpos); }
+  if (*XMARKER (marker)).buffer != (current_buffer! ()) as *mut c_void
+    { bytepos = buf_charpos_to_bytepos ((current_buffer! ()) as *mut c_void, charpos); }
   else
     { bytepos = clip_to_bounds (BEGV_BYTE! (), bytepos, ZV_BYTE! ()); }
   set_point_both (charpos, bytepos);
@@ -1966,7 +1966,7 @@ pub unsafe extern "C" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: pt
   let mut have_overlays: bool = false;
   let mut original_position: ptrdiff_t = 0;
 
-  bset_point_before_scroll (current_buffer, Qnil ());
+  bset_point_before_scroll ((current_buffer! ()), Qnil ());
 
   if charpos == PT! ()
     { return; }
@@ -1983,16 +1983,16 @@ pub unsafe extern "C" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: pt
 
   /* If we have no text properties and overlays,
      then we can do it quickly.  */
-  if buffer_intervals (current_buffer).is_null () && ! have_overlays
+  if buffer_intervals ((current_buffer! ())).is_null () && ! have_overlays
     {
-      temp_set_point_both (current_buffer, charpos, bytepos);
+      temp_set_point_both ((current_buffer! ()), charpos, bytepos);
       return;
     }
 
   /* Set TO to the interval containing the char after CHARPOS,
      and TOPREV to the interval containing the char before CHARPOS.
      Either one may be null.  They may be equal.  */
-  to = find_interval (buffer_intervals (current_buffer), charpos);
+  to = find_interval (buffer_intervals ((current_buffer! ())), charpos);
   if charpos == BEGV! ()
     { toprev = 0 as INTERVAL; }
   else if ! to.is_null () && (*((to) as *mut interval)).position == charpos
@@ -2006,7 +2006,7 @@ pub unsafe extern "C" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: pt
      and FROMPREV to the interval containing the char before PT.
      Either one may be null.  They may be equal.  */
   /* We could cache this and save time.  */
-  from = find_interval (buffer_intervals (current_buffer), buffer_point);
+  from = find_interval (buffer_intervals ((current_buffer! ())), buffer_point);
   if buffer_point == BEGV! ()
     { fromprev = 0 as INTERVAL; }
   else if ! from.is_null () && (*((from) as *mut interval)).position == PT! ()
@@ -2020,7 +2020,7 @@ pub unsafe extern "C" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: pt
   if to == from && toprev == fromprev && INTERVAL_VISIBLE_P! (to)
       && ! have_overlays
     {
-      temp_set_point_both (current_buffer, charpos, bytepos);
+      temp_set_point_both ((current_buffer! ()), charpos, bytepos);
       return;
     }
 
@@ -2104,7 +2104,7 @@ pub unsafe extern "C" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: pt
 	    }
 	}
 
-      bytepos = buf_charpos_to_bytepos (current_buffer as *mut c_void, charpos);
+      bytepos = buf_charpos_to_bytepos ((current_buffer! ()) as *mut c_void, charpos);
     }
 
   if charpos != original_position
@@ -2112,7 +2112,7 @@ pub unsafe extern "C" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: pt
       /* Set TO to the interval containing the char after CHARPOS,
 	 and TOPREV to the interval containing the char before CHARPOS.
 	 Either one may be null.  They may be equal.  */
-      to = find_interval (buffer_intervals (current_buffer), charpos);
+      to = find_interval (buffer_intervals ((current_buffer! ())), charpos);
       if charpos == BEGV! ()
 	{ toprev = 0 as INTERVAL; }
       else if ! to.is_null () && (*((to) as *mut interval)).position == charpos
@@ -2125,7 +2125,7 @@ pub unsafe extern "C" fn set_point_both (mut charpos: ptrdiff_t, mut bytepos: pt
      and TOPREV is the interval before the stopping point.
      One or the other may be null.  */
 
-  temp_set_point_both (current_buffer, charpos, bytepos);
+  temp_set_point_both ((current_buffer! ()), charpos, bytepos);
 
   /* We run point-left and point-entered hooks here, if the
      two intervals are not equivalent.  These hooks take
@@ -2254,7 +2254,7 @@ pub unsafe extern "C" fn get_property_and_range (pos: ptrdiff_t, prop: Lisp_Obje
   let mut next: INTERVAL = std::ptr::null_mut ();
 
   if NILP (object)
-    { i = find_interval (buffer_intervals (current_buffer), pos); }
+    { i = find_interval (buffer_intervals ((current_buffer! ())), pos); }
   else if BUFFERP (object)
     { i = find_interval (buffer_intervals (XBUFFER (object)), pos); }
   else if STRINGP (object)
@@ -2541,7 +2541,7 @@ unsafe fn set_intervals_multibyte_1 (i: INTERVAL, multi_flag: bool,
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn set_intervals_multibyte (multi_flag: bool)
 {
-  let i: INTERVAL = buffer_intervals (current_buffer);
+  let i: INTERVAL = buffer_intervals ((current_buffer! ()));
 
   if ! i.is_null ()
     { set_intervals_multibyte_1 (i, multi_flag, BEG as ptrdiff_t, BEG_BYTE as ptrdiff_t, Z! (), Z_BYTE! ()); }

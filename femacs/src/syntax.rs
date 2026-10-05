@@ -469,7 +469,7 @@ pub unsafe extern "C" fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_I
       else
 	{
 	  unsafe { gl_state.use_global = false; }
-	  unsafe { gl_state.current_syntax_table = BVAR! (current_buffer, syntax_table_); }
+	  unsafe { gl_state.current_syntax_table = BVAR! ((current_buffer! ()), syntax_table_); }
 	}
     }
 
@@ -606,7 +606,7 @@ unsafe fn char_quoted (mut charpos: ptrdiff_t, mut bytepos: ptrdiff_t) -> bool
 unsafe fn dec_bytepos (bytepos: ptrdiff_t) -> ptrdiff_t
 {
   return (bytepos
-	  - (if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  - (if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	     { prev_char_len (bytepos) as ptrdiff_t } else { 1 }));
 }
 
@@ -634,7 +634,7 @@ unsafe fn find_defun_start (pos: ptrdiff_t, pos_byte: ptrdiff_t) -> ptrdiff_t
   'found: {
 
   /* Use previous finding, if it's valid and applies to this inquiry.  */
-  if unsafe { current_buffer } == unsafe { find_start_buffer }
+  if unsafe { (current_buffer! ()) } == unsafe { find_start_buffer }
       /* Reuse the defun-start even if POS is a little farther on.
 	 POS might be in the next defun, but that's ok.
 	 Our value may not be the best possible, but will still be usable.  */
@@ -704,7 +704,7 @@ unsafe fn find_defun_start (pos: ptrdiff_t, pos_byte: ptrdiff_t) -> ptrdiff_t
   } /* 'found */
 
   // found:
-  unsafe { find_start_buffer = current_buffer; }
+  unsafe { find_start_buffer = (current_buffer! ()); }
   unsafe { find_start_modiff = MODIFF! (); }
   unsafe { find_start_begv = BEGV! (); }
   unsafe { find_start_pos = pos; }
@@ -1132,7 +1132,7 @@ DEFUN! ("syntax-table", Fsyntax_table, Ssyntax_table, 0, 0, 0,
        doc: "Return the current syntax table.\nThis is the one specified by the current buffer.",
        (),
        {
-  return BVAR! (current_buffer, syntax_table_);
+  return BVAR! ((current_buffer! ()), syntax_table_);
 });
 
 DEFUN! ("standard-syntax-table", Fstandard_syntax_table, Sstandard_syntax_table, 0, 0, 0,
@@ -1174,10 +1174,10 @@ DEFUN! ("set-syntax-table", Fset_syntax_table, Sset_syntax_table, 1, 1, 0,
        {
   let mut idx: c_int;
   check_syntax_table (table);
-  bset_syntax_table (unsafe { current_buffer }, table);
+  bset_syntax_table (unsafe { (current_buffer! ()) }, table);
   /* Indicate that this buffer now has a specified syntax table.  */
   idx = PER_BUFFER_VAR_IDX! (syntax_table_);
-  SET_PER_BUFFER_VALUE_P (unsafe { current_buffer }, idx, true);
+  SET_PER_BUFFER_VALUE_P (unsafe { (current_buffer! ()) }, idx, true);
   return table;
 });
 
@@ -1188,7 +1188,7 @@ DEFUN! ("char-syntax", Fchar_syntax, Schar_syntax, 1, 1, 0,
   CHECK_CHARACTER (character);
   let mut char_int: c_int = XFIXNAT (character) as c_int;
   SETUP_BUFFER_SYNTAX_TABLE ();
-  if NILP (unsafe { BVAR! (current_buffer, enable_multibyte_characters_) })
+  if NILP (unsafe { BVAR! ((current_buffer! ()), enable_multibyte_characters_) })
       && SINGLE_BYTE_CHAR_P (char_int as intmax_t)
     { char_int = make_char_multibyte (char_int); }
   return make_fixnum (syntax_code_spec[SYNTAX (char_int) as usize] as EMACS_INT);
@@ -1315,7 +1315,7 @@ DEFUN! ("modify-syntax-entry", Fmodify_syntax_entry, Smodify_syntax_entry, 2, 3,
 
   let mut syntax_table: Lisp_Object = syntax_table;	// C rebinds the argument below
   if NILP (syntax_table)
-    { syntax_table = BVAR! (current_buffer, syntax_table_); }
+    { syntax_table = BVAR! ((current_buffer! ()), syntax_table_); }
   else
     { check_syntax_table (syntax_table); }
 
@@ -1713,7 +1713,7 @@ unsafe fn skip_chars (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) -> 
   if XFIXNUM (lim) < BEGV! ()
     { XSETFASTINT! (lim, BEGV! ()); }
 
-  multibyte = (! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  multibyte = (! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	       && (XFIXNUM (lim) - PT! () != CHAR_TO_BYTE (XFIXNUM (lim)) - PT_BYTE! ()));
   string_multibyte = SBYTES (string) > SCHARS (string);
 
@@ -2227,7 +2227,7 @@ unsafe fn skip_syntaxes (forwardp: bool, string: Lisp_Object, lim: Lisp_Object) 
   if if forwardp { PT! () >= XFIXNAT (lim) } else { PT! () <= XFIXNAT (lim) }
     { return make_fixnum (0); }
 
-  multibyte = (! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  multibyte = (! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	       && (XFIXNUM (lim) - PT! () != CHAR_TO_BYTE (XFIXNUM (lim)) - PT_BYTE! ()));
 
   unsafe { memset (fastmap.as_mut_ptr () as *mut c_void, 0, size_of_val (&fastmap)) };

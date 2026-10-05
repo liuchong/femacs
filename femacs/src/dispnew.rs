@@ -7708,7 +7708,7 @@ DEFUN! ("sleep-for", Fsleep_for, Ssleep_for, 1, 2, 0,
   let mut nsec: c_int;
   let do_display: bool = display_option > 0;
   let curbuf_eq_winbuf: bool
-    = (current_buffer == XBUFFER ((*XWINDOW (selected_window)).contents));
+    = ((current_buffer! ()) == XBUFFER ((*XWINDOW (selected_window)).contents));
 
   swallow_events (do_display);
 

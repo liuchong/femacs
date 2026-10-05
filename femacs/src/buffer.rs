@@ -1096,11 +1096,11 @@ unsafe fn free_buffer_overlays (b: *mut buffer)
 
 unsafe fn set_overlays_multibyte (multibyte: bool)
 {
-  if (*current_buffer).overlays.is_null () || Z! () == Z_BYTE! ()
+  if (*(current_buffer! ())).overlays.is_null () || Z! () == Z_BYTE! ()
     { return; }
 
   let mut nodes: *mut *mut itree_node = std::ptr::null_mut ();
-  let tree: *mut itree_tree = (*current_buffer).overlays;
+  let tree: *mut itree_tree = (*(current_buffer! ())).overlays;
   let size: intmax_t = itree_size (tree);
 
   /* We can't use `itree_node_set_region` at the same time
@@ -1171,7 +1171,7 @@ pub unsafe extern "C" fn reset_buffer (b: *mut buffer)
 {
   bset_filename (b, Qnil ());
   bset_file_truename (b, Qnil ());
-  bset_directory (b, if ! current_buffer.is_null () { BVAR! (current_buffer, directory_) } else { Qnil () });
+  bset_directory (b, if ! (current_buffer! ()).is_null () { BVAR! ((current_buffer! ()), directory_) } else { Qnil () });
   (*b).modtime = make_timespec (0, UNKNOWN_MODTIME_NSECS as c_long);
   (*b).modtime_size = -1;
   XSETFASTINT! (BVAR! (b, save_length_), 0);
@@ -1538,7 +1538,7 @@ unsafe fn buffer_lisp_local_variables (buf: *mut buffer, clone: bool) -> Lisp_Ob
 	 for that buffer, making the alist up to date automatically.  */
       val = find_symbol_value (XCAR (elt));
       /* Use the current buffer value only if buf is the current buffer.  */
-      if buf != current_buffer
+      if buf != (current_buffer! ())
 	{ val = XCDR (elt); }
 
       result = Fcons (if ! clone && BASE_EQ (val, Qunbound ())
@@ -1625,12 +1625,12 @@ DEFUN! ("force-mode-line-update", Fforce_mode_line_update,
       update_mode_lines = 10;
       /* FIXME: This can't be right.  */
       // C: `current_buffer->prevent_redisplay_optimizations_p = true;`
-      (*current_buffer).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
+      (*(current_buffer! ())).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
     }
-  else if buffer_window_count (current_buffer) != 0
+  else if buffer_window_count ((current_buffer! ())) != 0
     {
-      bset_update_mode_line (current_buffer as *mut c_void);
-      (*current_buffer).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
+      bset_update_mode_line ((current_buffer! ()) as *mut c_void);
+      (*(current_buffer! ())).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
     }
   return all;
 });
@@ -1667,9 +1667,9 @@ DEFUN! ("restore-buffer-modified-p", Frestore_buffer_modified_p,
   /* If buffer becoming modified, lock the file.
      If buffer becoming unmodified, unlock the file.  */
 
-  let b: *mut buffer = if ! (*current_buffer).base_buffer.is_null ()
-    { (*current_buffer).base_buffer }
-    else { current_buffer };
+  let b: *mut buffer = if ! (*(current_buffer! ())).base_buffer.is_null ()
+    { (*(current_buffer! ())).base_buffer }
+    else { (current_buffer! ()) };
 
   if ! inhibit_modification_hooks
     {
@@ -1754,7 +1754,7 @@ DEFUN! ("rename-buffer", Frename_buffer, Srename_buffer, 1, 2,
        {
   let mut tem: Lisp_Object = Qnil ();
   let mut buf: Lisp_Object = Qnil ();
-  let oldname: Lisp_Object = BVAR! (current_buffer, name_);
+  let oldname: Lisp_Object = BVAR! ((current_buffer! ()), name_);
   let requestedname: Lisp_Object = newname;
   let mut newname = newname;   /* C's `newname = Fgenerate_new_buffer_name` rebinds it.  */
 
@@ -1770,33 +1770,33 @@ DEFUN! ("rename-buffer", Frename_buffer, Srename_buffer, 1, 2,
 	 rename the buffer automatically so you can create another
 	 with the original name.  It makes UNIQUE equivalent to
 	 (rename-buffer (generate-new-buffer-name NEWNAME)).  */
-      if NILP (unique) && XBUFFER (tem) == current_buffer
-	{ return BVAR! (current_buffer, name_); }
+      if NILP (unique) && XBUFFER (tem) == (current_buffer! ())
+	{ return BVAR! ((current_buffer! ()), name_); }
       if ! NILP (unique)
 	{ newname = Fgenerate_new_buffer_name (newname, oldname); }
       else
 	{ error (c"Buffer name `%s' is in use".as_ptr (), SDATA (newname)); }
     }
 
-  bset_last_name (current_buffer, oldname);
-  bset_name (current_buffer, newname);
+  bset_last_name ((current_buffer! ()), oldname);
+  bset_name ((current_buffer! ()), newname);
 
   /* Catch redisplay's attention.  Unless we do this, the mode lines for
      any windows displaying current_buffer will stay unchanged.  */
-  bset_update_mode_line (current_buffer as *mut c_void);
+  bset_update_mode_line ((current_buffer! ()) as *mut c_void);
 
-  XSETBUFFER! (buf, current_buffer);
+  XSETBUFFER! (buf, (current_buffer! ()));
   Fsetcar (Frassq (buf, Vbuffer_alist), newname);
-  if NILP (BVAR! (current_buffer, filename_))
-      && ! NILP (BVAR! (current_buffer, auto_save_file_name_))
+  if NILP (BVAR! ((current_buffer! ()), filename_))
+      && ! NILP (BVAR! ((current_buffer! ()), auto_save_file_name_))
     { call0 (Qrename_auto_save_file ()); }
 
-  run_buffer_list_update_hook (current_buffer);
+  run_buffer_list_update_hook ((current_buffer! ()));
 
   calln! (Quniquify__rename_buffer_advice (), requestedname, unique);
 
   /* Refetch since that last call may have done GC.  */
-  return BVAR! (current_buffer, name_);
+  return BVAR! ((current_buffer! ()), name_);
 });
 
 /* True if B can be used as 'other-than-BUFFER' buffer.  */
@@ -1904,7 +1904,7 @@ DEFUN! ("buffer-enable-undo", Fbuffer_enable_undo, Sbuffer_enable_undo,
   let mut real_buffer: Lisp_Object = Qnil ();
 
   if NILP (buffer)
-    { XSETBUFFER! (real_buffer, current_buffer); }
+    { XSETBUFFER! (real_buffer, (current_buffer! ())); }
   else
     {
       real_buffer = Fget_buffer (buffer);
@@ -2099,11 +2099,11 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
 
   /* Make this buffer not be current.  Exit if it is the sole visible
      buffer.  */
-  if b == current_buffer
+  if b == (current_buffer! ())
     {
       tem = Fother_buffer (buffer, Qnil (), Qnil ());
       Fset_buffer (tem);
-      if b == current_buffer
+      if b == (current_buffer! ())
 	{ return Qnil (); }
     }
 
@@ -2116,7 +2116,7 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
 
   /* If the buffer now current is shown in the minibuffer and our buffer
      is the sole other buffer give up.  */
-  XSETBUFFER! (tem, current_buffer);
+  XSETBUFFER! (tem, (current_buffer! ()));
   if BASE_EQ (tem, (*XWINDOW (minibuf_window)).contents)
       && BASE_EQ (buffer, Fother_buffer (buffer, Qnil (), Qnil ()))
     { return Qnil (); }
@@ -2347,8 +2347,8 @@ DEFUN! ("set-buffer-major-mode", Fset_buffer_major_mode, Sset_buffer_major_mode,
     {
       function = BVAR! (&raw mut buffer_defaults, major_mode_);
       if NILP (function)
-	  && NILP (Fget (BVAR! (current_buffer, major_mode_), Qmode_class ()))
-	{ function = BVAR! (current_buffer, major_mode_); }
+	  && NILP (Fget (BVAR! ((current_buffer! ()), major_mode_), Qmode_class ()))
+	{ function = BVAR! ((current_buffer! ()), major_mode_); }
     }
 
   if NILP (function) /* If function is `fundamental-mode', allow it to run
@@ -2374,7 +2374,7 @@ DEFUN! ("current-buffer", Fcurrent_buffer, Scurrent_buffer, 0, 0, 0,
        (),
        {
   let mut buf: Lisp_Object = Qnil ();
-  XSETBUFFER! (buf, current_buffer);
+  XSETBUFFER! (buf, (current_buffer! ()));
   return buf;
 });
 
@@ -2387,7 +2387,7 @@ pub unsafe extern "C" fn set_buffer_internal_1 (b: *mut buffer)
   // C 2331-2334 is `#ifdef USE_MMAP_FOR_BUFFERS` (undef): `if (b->text->beg == NULL)
   // enlarge_buffer_text (b, 0);`.
 
-  if current_buffer == b
+  if (current_buffer! ()) == b
     { return; }
 
   set_buffer_internal_2 (b);
@@ -2405,8 +2405,8 @@ pub unsafe extern "C" fn set_buffer_internal_2 (b: *mut buffer)
 
   BUFFER_CHECK_INDIRECTION (b);
 
-  old_buf = current_buffer;
-  current_buffer = b;
+  old_buf = (current_buffer! ());
+  set_current_buffer! (b);
   last_known_column_point = -1;   /* Invalidate indentation cache.  */
 
   if ! old_buf.is_null ()
@@ -2463,11 +2463,11 @@ pub unsafe extern "C" fn set_buffer_temp (b: *mut buffer)
 {
   let mut old_buf: *mut buffer;
 
-  if current_buffer == b
+  if (current_buffer! ()) == b
     { return; }
 
-  old_buf = current_buffer;
-  current_buffer = b;
+  old_buf = (current_buffer! ());
+  set_current_buffer! (b);
 
   /* If the old current buffer has markers to record PT, BEGV and ZV
      when it is not current, update them now.  */
@@ -2518,7 +2518,7 @@ DEFUN! ("barf-if-buffer-read-only", Fbarf_if_buffer_read_only,
   else
     { CHECK_FIXNUM (position); }
 
-  if ! NILP (BVAR! (current_buffer, read_only_))
+  if ! NILP (BVAR! ((current_buffer! ()), read_only_))
       && NILP (Vinhibit_read_only)
       && NILP (Fget_text_property (position, Qinhibit_read_only (), Qnil ()))
     { xsignal1 (Qbuffer_read_only (), Fcurrent_buffer ()); }
@@ -2534,11 +2534,11 @@ DEFUN! ("erase-buffer", Ferase_buffer, Serase_buffer, 0, 0, "*",
 
   del_range (BEG as ptrdiff_t, Z! ());
 
-  (*current_buffer).last_window_start = 1;
+  (*(current_buffer! ())).last_window_start = 1;
   /* Prevent warnings, or suspension of auto saving, that would happen
      if future size is less than past size.  Use of erase-buffer
      implies that the future text is not really related to the past text.  */
-  XSETFASTINT! (BVAR! (current_buffer, save_length_), 0);
+  XSETFASTINT! (BVAR! ((current_buffer! ()), save_length_), 0);
   return Qnil ();
 });
 
@@ -2654,7 +2654,7 @@ DEFUN! ("buffer-swap-text", Fbuffer_swap_text, Sbuffer_swap_text,
   /* Actually, this may be workable as well, tho probably only if they're
      *both* indirect.  */
   if ! (*other_buffer).base_buffer.is_null ()
-      || ! (*current_buffer).base_buffer.is_null ()
+      || ! (*(current_buffer! ())).base_buffer.is_null ()
     { error (c"Cannot swap indirect buffers's text".as_ptr ()); }
 
   { /* This is probably harder to make work.  */
@@ -2666,7 +2666,7 @@ DEFUN! ("buffer-swap-text", Fbuffer_swap_text, Sbuffer_swap_text,
     while CONSP (tail) && { other = XCDR (XCAR (tail)); true }
       {
 	if (*XBUFFER (other)).base_buffer == other_buffer
-	    || (*XBUFFER (other)).base_buffer == current_buffer
+	    || (*XBUFFER (other)).base_buffer == (current_buffer! ())
 	  { error (c"One of the buffers to swap has indirect buffers".as_ptr ()); }
 	tail = XCDR (tail);
       }
@@ -2693,72 +2693,72 @@ DEFUN! ("buffer-swap-text", Fbuffer_swap_text, Sbuffer_swap_text,
     }};
   }
 
-  swapfield! (tmp_own_text, other_buffer, current_buffer, own_text, buffer_text);
-  eassert! ((*current_buffer).text == &raw mut (*current_buffer).own_text);
+  swapfield! (tmp_own_text, other_buffer, (current_buffer! ()), own_text, buffer_text);
+  eassert! ((*(current_buffer! ())).text == &raw mut (*(current_buffer! ())).own_text);
   eassert! ((*other_buffer).text == &raw mut (*other_buffer).own_text);
   // C 2609-2614 is `#ifdef REL_ALLOC` (undef): the two `r_alloc_reset_variable` calls.
 
-  swapfield! (tmp_pt, other_buffer, current_buffer, pt, ptrdiff_t);
-  swapfield! (tmp_pt_byte, other_buffer, current_buffer, pt_byte, ptrdiff_t);
-  swapfield! (tmp_begv, other_buffer, current_buffer, begv, ptrdiff_t);
-  swapfield! (tmp_begv_byte, other_buffer, current_buffer, begv_byte, ptrdiff_t);
-  swapfield! (tmp_zv, other_buffer, current_buffer, zv, ptrdiff_t);
-  swapfield! (tmp_zv_byte, other_buffer, current_buffer, zv_byte, ptrdiff_t);
-  eassert! ((*current_buffer).base_buffer.is_null ());
+  swapfield! (tmp_pt, other_buffer, (current_buffer! ()), pt, ptrdiff_t);
+  swapfield! (tmp_pt_byte, other_buffer, (current_buffer! ()), pt_byte, ptrdiff_t);
+  swapfield! (tmp_begv, other_buffer, (current_buffer! ()), begv, ptrdiff_t);
+  swapfield! (tmp_begv_byte, other_buffer, (current_buffer! ()), begv_byte, ptrdiff_t);
+  swapfield! (tmp_zv, other_buffer, (current_buffer! ()), zv, ptrdiff_t);
+  swapfield! (tmp_zv_byte, other_buffer, (current_buffer! ()), zv_byte, ptrdiff_t);
+  eassert! ((*(current_buffer! ())).base_buffer.is_null ());
   eassert! ((*other_buffer).base_buffer.is_null ());
-  swapfield! (tmp_indirections, other_buffer, current_buffer, indirections, c_int);
-  (*current_buffer).bits |= BUFFER_CLIP_CHANGED;
+  swapfield! (tmp_indirections, other_buffer, (current_buffer! ()), indirections, c_int);
+  (*(current_buffer! ())).bits |= BUFFER_CLIP_CHANGED;
   (*other_buffer).bits |= BUFFER_CLIP_CHANGED;
-  swapfield! (tmp_newline_cache, other_buffer, current_buffer, newline_cache, *mut c_void);
-  swapfield! (tmp_width_run_cache, other_buffer, current_buffer, width_run_cache, *mut c_void);
-  swapfield! (tmp_bidi_paragraph_cache, other_buffer, current_buffer, bidi_paragraph_cache, *mut c_void);
-  (*current_buffer).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
+  swapfield! (tmp_newline_cache, other_buffer, (current_buffer! ()), newline_cache, *mut c_void);
+  swapfield! (tmp_width_run_cache, other_buffer, (current_buffer! ()), width_run_cache, *mut c_void);
+  swapfield! (tmp_bidi_paragraph_cache, other_buffer, (current_buffer! ()), bidi_paragraph_cache, *mut c_void);
+  (*(current_buffer! ())).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
   (*other_buffer).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
   // C: `swapfield (long_line_optimizations_p, bool_bf);` -- the field is buffer.h's 1-bit
   // `long_line_optimizations_p` inside `bits`.
   if ((*other_buffer).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P)
-    != ((*current_buffer).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P)
+    != ((*(current_buffer! ())).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P)
     {
-      (*current_buffer).bits ^= BUFFER_LONG_LINE_OPTIMIZATIONS_P;
+      (*(current_buffer! ())).bits ^= BUFFER_LONG_LINE_OPTIMIZATIONS_P;
       (*other_buffer).bits ^= BUFFER_LONG_LINE_OPTIMIZATIONS_P;
     }
-  swapfield_! (tmp_undo_list, other_buffer, current_buffer, bset_undo_list, undo_list_, Lisp_Object);
-  swapfield_! (tmp_mark, other_buffer, current_buffer, bset_mark, mark_, Lisp_Object);
-  swapfield_! (tmp_mark_active, other_buffer, current_buffer, bset_mark_active, mark_active_, Lisp_Object); /* Belongs with the `mark'.  */
-  swapfield_! (tmp_enable_multibyte_characters, other_buffer, current_buffer, bset_enable_multibyte_characters, enable_multibyte_characters_, Lisp_Object);
-  swapfield_! (tmp_bidi_display_reordering, other_buffer, current_buffer, bset_bidi_display_reordering, bidi_display_reordering_, Lisp_Object);
-  swapfield_! (tmp_bidi_paragraph_direction, other_buffer, current_buffer, bset_bidi_paragraph_direction, bidi_paragraph_direction_, Lisp_Object);
-  swapfield_! (tmp_bidi_paragraph_separate_re, other_buffer, current_buffer, bset_bidi_paragraph_separate_re, bidi_paragraph_separate_re_, Lisp_Object);
-  swapfield_! (tmp_bidi_paragraph_start_re, other_buffer, current_buffer, bset_bidi_paragraph_start_re, bidi_paragraph_start_re_, Lisp_Object);
+  swapfield_! (tmp_undo_list, other_buffer, (current_buffer! ()), bset_undo_list, undo_list_, Lisp_Object);
+  swapfield_! (tmp_mark, other_buffer, (current_buffer! ()), bset_mark, mark_, Lisp_Object);
+  swapfield_! (tmp_mark_active, other_buffer, (current_buffer! ()), bset_mark_active, mark_active_, Lisp_Object); /* Belongs with the `mark'.  */
+  swapfield_! (tmp_enable_multibyte_characters, other_buffer, (current_buffer! ()), bset_enable_multibyte_characters, enable_multibyte_characters_, Lisp_Object);
+  swapfield_! (tmp_bidi_display_reordering, other_buffer, (current_buffer! ()), bset_bidi_display_reordering, bidi_display_reordering_, Lisp_Object);
+  swapfield_! (tmp_bidi_paragraph_direction, other_buffer, (current_buffer! ()), bset_bidi_paragraph_direction, bidi_paragraph_direction_, Lisp_Object);
+  swapfield_! (tmp_bidi_paragraph_separate_re, other_buffer, (current_buffer! ()), bset_bidi_paragraph_separate_re, bidi_paragraph_separate_re_, Lisp_Object);
+  swapfield_! (tmp_bidi_paragraph_start_re, other_buffer, (current_buffer! ()), bset_bidi_paragraph_start_re, bidi_paragraph_start_re_, Lisp_Object);
   /* FIXME: Not sure what we should do with these *_marker fields.
      Hopefully they're just nil anyway.  */
-  swapfield_! (tmp_pt_marker, other_buffer, current_buffer, bset_pt_marker, pt_marker_, Lisp_Object);
-  swapfield_! (tmp_begv_marker, other_buffer, current_buffer, bset_begv_marker, begv_marker_, Lisp_Object);
-  swapfield_! (tmp_zv_marker, other_buffer, current_buffer, bset_zv_marker, zv_marker_, Lisp_Object);
-  bset_point_before_scroll (current_buffer, Qnil ());
+  swapfield_! (tmp_pt_marker, other_buffer, (current_buffer! ()), bset_pt_marker, pt_marker_, Lisp_Object);
+  swapfield_! (tmp_begv_marker, other_buffer, (current_buffer! ()), bset_begv_marker, begv_marker_, Lisp_Object);
+  swapfield_! (tmp_zv_marker, other_buffer, (current_buffer! ()), bset_zv_marker, zv_marker_, Lisp_Object);
+  bset_point_before_scroll ((current_buffer! ()), Qnil ());
   bset_point_before_scroll (other_buffer, Qnil ());
 
   // C 2648-2653 is `#ifdef HAVE_TREE_SITTER` (undef): `ts_parser_list` and the three
   // `ts_linecol_*` swaps.
 
-  modiff_incr (&raw mut (*(*current_buffer).text).modiff, 1);
+  modiff_incr (&raw mut (*(*(current_buffer! ())).text).modiff, 1);
   modiff_incr (&raw mut (*(*other_buffer).text).modiff, 1);
-  modiff_incr (&raw mut (*(*current_buffer).text).chars_modiff, 1);
+  modiff_incr (&raw mut (*(*(current_buffer! ())).text).chars_modiff, 1);
   modiff_incr (&raw mut (*(*other_buffer).text).chars_modiff, 1);
-  modiff_incr (&raw mut (*(*current_buffer).text).overlay_modiff, 1);
+  modiff_incr (&raw mut (*(*(current_buffer! ())).text).overlay_modiff, 1);
   modiff_incr (&raw mut (*(*other_buffer).text).overlay_modiff, 1);
-  (*(*current_buffer).text).beg_unchanged = (*(*current_buffer).text).gpt;
-  (*(*current_buffer).text).end_unchanged = (*(*current_buffer).text).gpt;
+  (*(*(current_buffer! ())).text).beg_unchanged = (*(*(current_buffer! ())).text).gpt;
+  (*(*(current_buffer! ())).text).end_unchanged = (*(*(current_buffer! ())).text).gpt;
   (*(*other_buffer).text).beg_unchanged = (*(*other_buffer).text).gpt;
   (*(*other_buffer).text).end_unchanged = (*(*other_buffer).text).gpt;
-  swap_buffer_overlays (current_buffer, other_buffer);
+  swap_buffer_overlays ((current_buffer! ()), other_buffer);
   {
     let mut m: *mut Lisp_Marker;
-    m = BUF_MARKERS! (current_buffer);
+    m = BUF_MARKERS! ((current_buffer! ()));
     while ! m.is_null ()
       {
 	if (*m).buffer as *mut buffer == other_buffer
-	  { (*m).buffer = current_buffer as *mut c_void; }
+	  { (*m).buffer = (current_buffer! ()) as *mut c_void; }
 	else
 	  /* Since there's no indirect buffer in sight, markers on
 	     BUF_MARKERS(buf) should either be for `buf' or dead.  */
@@ -2768,7 +2768,7 @@ DEFUN! ("buffer-swap-text", Fbuffer_swap_text, Sbuffer_swap_text,
     m = BUF_MARKERS! (other_buffer);
     while ! m.is_null ()
       {
-	if (*m).buffer as *mut buffer == current_buffer
+	if (*m).buffer as *mut buffer == (current_buffer! ())
 	  { (*m).buffer = other_buffer as *mut c_void; }
 	else
 	  /* Since there's no indirect buffer in sight, markers on
@@ -2785,7 +2785,7 @@ DEFUN! ("buffer-swap-text", Fbuffer_swap_text, Sbuffer_swap_text,
     let mut ws: Lisp_Object = Qnil ();
     let mut buf1: Lisp_Object = Qnil ();
     let mut buf2: Lisp_Object = Qnil ();
-    XSETBUFFER! (buf1, current_buffer);
+    XSETBUFFER! (buf1, (current_buffer! ()));
     XSETBUFFER! (buf2, other_buffer);
 
     while NILP (Fmemq (w, ws))
@@ -2814,11 +2814,11 @@ DEFUN! ("buffer-swap-text", Fbuffer_swap_text, Sbuffer_swap_text,
       }
   }
 
-  if ! (*(*current_buffer).text).intervals.is_null ()
+  if ! (*(*(current_buffer! ())).text).intervals.is_null ()
     {
-      let iv: *mut interval = (*(*current_buffer).text).intervals as *mut interval;
+      let iv: *mut interval = (*(*(current_buffer! ())).text).intervals as *mut interval;
       eassert! (BASE_EQ ((*iv).up.obj, buffer));
-      XSETBUFFER! ((*iv).up.obj, current_buffer);
+      XSETBUFFER! ((*iv).up.obj, (current_buffer! ()));
     }
   if ! (*(*other_buffer).text).intervals.is_null ()
     {
@@ -2843,21 +2843,21 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
   let mut zv: ptrdiff_t;
   let narrowed: bool = BEG as ptrdiff_t != BEGV! () || Z! () != ZV! ();
   let modified_p: bool = ! NILP (Fbuffer_modified_p (Qnil ()));
-  let old_undo: Lisp_Object = BVAR! (current_buffer, undo_list_);
+  let old_undo: Lisp_Object = BVAR! ((current_buffer! ()), undo_list_);
 
-  if ! (*current_buffer).base_buffer.is_null ()
+  if ! (*(current_buffer! ())).base_buffer.is_null ()
     { error (c"Cannot do `set-buffer-multibyte' on an indirect buffer".as_ptr ()); }
 
   /* Do nothing if nothing actually changes.  */
-  if NILP (flag) == NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (flag) == NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { return flag; }
 
   /* Don't record these buffer changes.  We will put a special undo entry
      instead.  */
-  bset_undo_list (current_buffer, Qt ());
+  bset_undo_list ((current_buffer! ()), Qt ());
 
   /* If the cached position is for this buffer, clear it out.  */
-  clear_charpos_cache (current_buffer);
+  clear_charpos_cache ((current_buffer! ()));
 
   if NILP (flag)
     { begv = BEGV_BYTE! (); zv = ZV_BYTE! (); }
@@ -2867,7 +2867,7 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
   if narrowed
     { error (c"Changing multibyteness in a narrowed buffer".as_ptr ()); }
 
-  invalidate_buffer_caches (current_buffer as *mut c_void, BEGV! (), ZV! ());
+  invalidate_buffer_caches ((current_buffer! ()) as *mut c_void, BEGV! (), ZV! ());
 
   if NILP (flag)
     {
@@ -2880,7 +2880,7 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
       set_intervals_multibyte (false);
       set_overlays_multibyte (false);
 
-      bset_enable_multibyte_characters (current_buffer, Qnil ());
+      bset_enable_multibyte_characters ((current_buffer! ()), Qnil ());
 
       Z! () = Z_BYTE! ();
       BEGV! () = BEGV_BYTE! ();
@@ -2888,7 +2888,7 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
       GPT! () = GPT_BYTE! ();
       TEMP_SET_PT_BOTH (PT_BYTE! (), PT_BYTE! ());
 
-      tail = BUF_MARKERS! (current_buffer);
+      tail = BUF_MARKERS! ((current_buffer! ()));
       while ! tail.is_null ()
 	{
 	  (*tail).charpos = (*tail).bytepos;
@@ -3022,7 +3022,7 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
 
       /* Do this first, so that chars_in_text asks the right question.
 	 set_intervals_multibyte needs it too.  */
-      bset_enable_multibyte_characters (current_buffer, Qt ());
+      bset_enable_multibyte_characters ((current_buffer! ()), Qt ());
 
       GPT_BYTE! () = advance_to_char_boundary (GPT_BYTE! ());
       GPT! () = chars_in_text (BEG_ADDR! (), GPT_BYTE! () - BEG_BYTE as ptrdiff_t) + BEG as ptrdiff_t;
@@ -3052,13 +3052,13 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
 	TEMP_SET_PT_BOTH (position, byte);
       }
 
-      tail = BUF_MARKERS! (current_buffer);
+      tail = BUF_MARKERS! ((current_buffer! ()));
       markers = tail;
 
       /* This prevents BYTE_TO_CHAR (that is, buf_bytepos_to_charpos) from
 	 getting confused by the markers that have not yet been updated.
 	 It is also a signal that it should never create a marker.  */
-      BUF_MARKERS! (current_buffer) = std::ptr::null_mut ();
+      BUF_MARKERS! ((current_buffer! ())) = std::ptr::null_mut ();
 
       while ! tail.is_null ()
 	{
@@ -3069,10 +3069,10 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
 
       /* Make sure no markers were put on the chain
 	 while the chain value was incorrect.  */
-      if ! BUF_MARKERS! (current_buffer).is_null ()
+      if ! BUF_MARKERS! ((current_buffer! ())).is_null ()
 	{ emacs_abort (); }
 
-      BUF_MARKERS! (current_buffer) = markers;
+      BUF_MARKERS! ((current_buffer! ())) = markers;
 
       /* Do this last, so it can calculate the new correspondences
 	 between chars and bytes.  */
@@ -3086,17 +3086,17 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
   if ! EQ (old_undo, Qt ())
     {
       /* Represent all the above changes by a special undo entry.  */
-      bset_undo_list (current_buffer,
+      bset_undo_list ((current_buffer! ()),
 		      Fcons (list3 (Qapply (),
 				    Qset_buffer_multibyte (),
 				    if NILP (flag) { Qt () } else { Qnil () }),
 			     old_undo));
     }
 
-  (*current_buffer).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
+  (*(current_buffer! ())).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
 
   /* If buffer is shown in a window, let redisplay consider other windows.  */
-  if buffer_window_count (current_buffer) != 0
+  if buffer_window_count ((current_buffer! ())) != 0
     { windows_or_buffers_changed = 10; }
 
   /* Copy this buffer's new multibyte status
@@ -3106,10 +3106,10 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
   while CONSP (btail) && { other = XCDR (XCAR (btail)); true }
     {
       let o: *mut buffer = XBUFFER (other);
-      if (*o).base_buffer == current_buffer && BUFFER_LIVE_P (o)
+      if (*o).base_buffer == (current_buffer! ()) && BUFFER_LIVE_P (o)
 	{
 	  BVAR! (o, enable_multibyte_characters_)
-	    = BVAR! (current_buffer, enable_multibyte_characters_);
+	    = BVAR! ((current_buffer! ()), enable_multibyte_characters_);
 	  (*o).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
 	}
       btail = XCDR (btail);
@@ -3147,16 +3147,16 @@ DEFUN! ("kill-all-local-variables", Fkill_all_local_variables,
       else if EQ (kill_permanent, Qreset ())
 	{
 	  permanent_too = 1;
-	  reset_buffer (current_buffer);
+	  reset_buffer ((current_buffer! ()));
 	}
     }
 
   /* Actually eliminate all local bindings of this buffer.  */
-  reset_buffer_local_variables (current_buffer, permanent_too);
+  reset_buffer_local_variables ((current_buffer! ()), permanent_too);
 
   /* Force mode-line redisplay.  Useful here because all major mode
      commands call this function.  */
-  bset_update_mode_line (current_buffer as *mut c_void);
+  bset_update_mode_line ((current_buffer! ()) as *mut c_void);
 
   return Qnil ();
 });
@@ -3206,13 +3206,13 @@ unsafe fn overlays_in (beg: ptrdiff_t, end: ptrdiff_t, extend: bool,
 
   /* itree.h 166-176's `ITREE_FOREACH (node, current_buffer->overlays, beg, search_end,
      ASCENDING)` (P-33, status 3.7).  */
-  if (*current_buffer).overlays.is_null ()
+  if (*(current_buffer! ())).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = std::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*(current_buffer! ())).overlays,
 				beg, search_end, ITREE_ASCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{
@@ -3274,13 +3274,13 @@ pub unsafe extern "C" fn next_overlay_change (pos: ptrdiff_t) -> ptrdiff_t
   let mut node: *mut itree_node;
 
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, pos, next, ASCENDING)`.  */
-  if (*current_buffer).overlays.is_null ()
+  if (*(current_buffer! ())).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = std::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*(current_buffer! ())).overlays,
 				pos, next, ITREE_ASCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{
@@ -3309,13 +3309,13 @@ unsafe fn previous_overlay_change (pos: ptrdiff_t) -> ptrdiff_t
   let mut prev: ptrdiff_t = BEGV! ();
 
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, prev, pos, DESCENDING)`.  */
-  if (*current_buffer).overlays.is_null ()
+  if (*(current_buffer! ())).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = std::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*(current_buffer! ())).overlays,
 				prev, pos, ITREE_DESCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{
@@ -3343,13 +3343,13 @@ pub unsafe extern "C" fn mouse_face_overlay_overlaps (overlay: Lisp_Object) -> b
 
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, start, min (end, ZV) + 1,
      ASCENDING)`.  */
-  if (*current_buffer).overlays.is_null ()
+  if (*(current_buffer! ())).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = std::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*(current_buffer! ())).overlays,
 				start, end.min (ZV! ()) + 1, ITREE_ASCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{
@@ -3372,13 +3372,13 @@ pub unsafe extern "C" fn disable_line_numbers_overlay_at_eob () -> bool
   let mut node: *mut itree_node;
 
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, ZV, ZV, ASCENDING)`.  */
-  if (*current_buffer).overlays.is_null ()
+  if (*(current_buffer! ())).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = std::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*(current_buffer! ())).overlays,
 				ZV! (), ZV! (), ITREE_ASCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{
@@ -3403,13 +3403,13 @@ pub unsafe extern "C" fn overlay_touches_p (pos: ptrdiff_t) -> bool
      pos. */
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, pos - 1, pos + 1, DESCENDING)`
      with C's brace-less body.  */
-  if (*current_buffer).overlays.is_null ()
+  if (*(current_buffer! ())).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = std::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*(current_buffer! ())).overlays,
 				pos - 1, pos + 1, ITREE_DESCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{
@@ -3592,7 +3592,7 @@ unsafe fn record_overlay_string (ssl: *mut sortstrlist, str_: Lisp_Object,
     = if FIXNUMP (pri) { XFIXNUM (pri) } else { 0 };
   (*ssl).used += 1;
 
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { nbytes = SCHARS (str_); }
   else if ! STRING_MULTIBYTE (str_)
     { nbytes = count_size_as_multibyte (SDATA (str_), SBYTES (str_)); }
@@ -3609,7 +3609,7 @@ unsafe fn record_overlay_string (ssl: *mut sortstrlist, str_: Lisp_Object,
 
   if STRINGP (str2)
     {
-      if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	{ nbytes = SCHARS (str2); }
       else if ! STRING_MULTIBYTE (str2)
 	{ nbytes = count_size_as_multibyte (SDATA (str2), SBYTES (str2)); }
@@ -3641,7 +3641,7 @@ unsafe fn record_overlay_string (ssl: *mut sortstrlist, str_: Lisp_Object,
 pub unsafe extern "C" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
 					  pstr: *mut *mut u8) -> ptrdiff_t
 {
-  let multibyte: bool = ! NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   let mut node: *mut itree_node;
 
   overlay_heads.used = 0;
@@ -3650,13 +3650,13 @@ pub unsafe extern "C" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
   overlay_tails.bytes = 0;
 
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, pos - 1, pos + 1, DESCENDING)`.  */
-  if (*current_buffer).overlays.is_null ()
+  if (*(current_buffer! ())).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = std::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*(current_buffer! ())).overlays,
 				pos - 1, pos + 1, ITREE_DESCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{
@@ -3755,14 +3755,14 @@ pub unsafe extern "C" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
 pub unsafe extern "C" fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t,
 						    before_markers: bool)
 {
-  if (*current_buffer).indirections == 0
-    { itree_insert_gap ((*current_buffer).overlays, pos, length, before_markers); }
+  if (*(current_buffer! ())).indirections == 0
+    { itree_insert_gap ((*(current_buffer! ())).overlays, pos, length, before_markers); }
   else
     {
-      let base: *mut buffer = if ! (*current_buffer).base_buffer.is_null ()
-	{ (*current_buffer).base_buffer }
+      let base: *mut buffer = if ! (*(current_buffer! ())).base_buffer.is_null ()
+	{ (*(current_buffer! ())).base_buffer }
 	else
-	{ current_buffer };
+	{ (current_buffer! ()) };
       let mut tail: Lisp_Object = Qnil ();
       let mut other: Lisp_Object = Qnil ();
       itree_insert_gap ((*base).overlays, pos, length, before_markers);
@@ -3818,14 +3818,14 @@ unsafe fn adjust_overlays_for_delete_in_buffer (buf: *mut buffer,
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn adjust_overlays_for_delete (pos: ptrdiff_t, length: ptrdiff_t)
 {
-  if (*current_buffer).indirections == 0
-    { adjust_overlays_for_delete_in_buffer (current_buffer, pos, length); }
+  if (*(current_buffer! ())).indirections == 0
+    { adjust_overlays_for_delete_in_buffer ((current_buffer! ()), pos, length); }
   else
     {
-      let base: *mut buffer = if ! (*current_buffer).base_buffer.is_null ()
-	{ (*current_buffer).base_buffer }
+      let base: *mut buffer = if ! (*(current_buffer! ())).base_buffer.is_null ()
+	{ (*(current_buffer! ())).base_buffer }
 	else
-	{ current_buffer };
+	{ (current_buffer! ()) };
       let mut tail: Lisp_Object = Qnil ();
       let mut other: Lisp_Object = Qnil ();
       adjust_overlays_for_delete_in_buffer (base, pos, length);
@@ -3859,7 +3859,7 @@ DEFUN! ("make-overlay", Fmake_overlay, Smake_overlay, 2, 5, 0,
   let mut buffer = buffer;   /* C's `XSETBUFFER (buffer, current_buffer)` rebinds it.  */
 
   if NILP (buffer)
-    { XSETBUFFER! (buffer, current_buffer); }
+    { XSETBUFFER! (buffer, (current_buffer! ())); }
   else
     { CHECK_BUFFER (buffer); }
 
@@ -3929,7 +3929,7 @@ DEFUN! ("move-overlay", Fmove_overlay, Smove_overlay, 3, 4, 0,
   if NILP (buffer)
     { buffer = Foverlay_buffer (overlay); }
   if NILP (buffer)
-    { XSETBUFFER! (buffer, current_buffer); }
+    { XSETBUFFER! (buffer, (current_buffer! ())); }
   CHECK_BUFFER (buffer);
 
   if NILP (Fbuffer_live_p (buffer))
@@ -4216,13 +4216,13 @@ DEFUN! ("overlay-lists", Foverlay_lists, Soverlay_lists, 0, 0, 0,
 
   /* C: `ITREE_FOREACH (node, current_buffer->overlays, BEG, Z, DESCENDING) overlays =
      Fcons (node->data, overlays);` -- the expansion (P-33).  */
-  if (*current_buffer).overlays.is_null ()
+  if (*(current_buffer! ())).overlays.is_null ()
     { }
   else
     {
       let mut itree_local_iter_: itree_iterator = std::mem::zeroed ();
       let itree_iter_: *mut itree_iterator
-	= itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	= itree_iterator_start (&raw mut itree_local_iter_, (*(current_buffer! ())).overlays,
 				BEG as ptrdiff_t, Z! (), ITREE_DESCENDING);
       while { node = itree_iterator_next (itree_iter_); !node.is_null () }
 	{ overlays = Fcons ((*node).data, overlays); }
@@ -4365,14 +4365,14 @@ pub unsafe extern "C" fn report_overlay_modification (start: Lisp_Object, end: L
 	 Scan the overlays to find the functions to call.  */
       last_overlay_modification_hooks_used = 0;
 
-      if (*current_buffer).overlays.is_null ()
+      if (*(current_buffer! ())).overlays.is_null ()
 	{ return; }
       /* C: `ITREE_FOREACH (node, current_buffer->overlays, begin_arg - (insertion ? 1 : 0),
 	 end_arg + (insertion ? 1 : 0), ASCENDING)`.  */
       {
 	let mut itree_local_iter_: itree_iterator = std::mem::zeroed ();
 	let itree_iter_: *mut itree_iterator
-	  = itree_iterator_start (&raw mut itree_local_iter_, (*current_buffer).overlays,
+	  = itree_iterator_start (&raw mut itree_local_iter_, (*(current_buffer! ())).overlays,
 				  begin_arg - if insertion { 1 } else { 0 },
 				  end_arg + if insertion { 1 } else { 0 },
 				  ITREE_ASCENDING);
@@ -4434,7 +4434,7 @@ pub unsafe extern "C" fn report_overlay_modification (start: Lisp_Object, end: L
 	   (which makes its markers' buffers be nil), or that (due to
 	   some bug) it belongs to a different buffer.  Only run this
 	   hook if the overlay belongs to the current buffer.  */
-	if (*XOVERLAY (overlay_i)).buffer as *mut buffer == current_buffer
+	if (*XOVERLAY (overlay_i)).buffer as *mut buffer == (current_buffer! ())
 	  { call_overlay_mod_hooks (prop_i, overlay_i, after, arg1, arg2, arg3); }
       }
 
@@ -4764,8 +4764,8 @@ pub unsafe extern "C" fn init_buffer_once ()
   { static_assert! (std::mem::size_of::<EMACS_INT> () == word_size as usize); }
 
   Vbuffer_alist = Qnil ();
-  current_buffer = std::ptr::null_mut ();
-  pdumper_remember_lv_ptr_raw (&raw mut current_buffer as *mut c_void,
+  set_current_buffer! (std::ptr::null_mut ());                                            /* C 4929 */
+  pdumper_remember_lv_ptr_raw ((&raw mut (*current_thread).m_current_buffer) as *mut c_void,
 			      Lisp_Type::Lisp_Vectorlike);
 
   QSFundamental = build_string (c"Fundamental".as_ptr ());
@@ -4806,7 +4806,7 @@ pub unsafe extern "C" fn init_buffer ()
     {
       fprintf (stderr, c"Error getting directory: %s\n".as_ptr (),
 	       emacs_strerror (*errno ()));
-      bset_directory (current_buffer, Qnil ());
+      bset_directory ((current_buffer! ()), Qnil ());
     }
   else
     {
@@ -4822,27 +4822,27 @@ pub unsafe extern "C" fn init_buffer ()
 						      len + add_slash as ptrdiff_t);
       if add_slash
 	{ SSET (dirname, len as usize, DIRECTORY_SEP as u8); }
-      bset_directory (current_buffer, dirname);
+      bset_directory ((current_buffer! ()), dirname);
 
       /* Add /: to the front of the name
          if it would otherwise be treated as magic.  */
-      temp = Ffind_file_name_handler (BVAR! (current_buffer, directory_), Qt ());
+      temp = Ffind_file_name_handler (BVAR! ((current_buffer! ()), directory_), Qt ());
       if ! NILP (temp)
           /* If the default dir is just /, TEMP is non-nil
              because of the ange-ftp completion handler.
              However, it is not necessary to turn / into /:/.
              So avoid doing that.  */
-          && strcmp (c"/".as_ptr (), SSDATA (BVAR! (current_buffer, directory_)) as *const c_char) != 0
+          && strcmp (c"/".as_ptr (), SSDATA (BVAR! ((current_buffer! ()), directory_)) as *const c_char) != 0
         {
           AUTO_STRING! (slash_colon, c"/:".as_ptr ());
-          bset_directory (current_buffer,
+          bset_directory ((current_buffer! ()),
                           concat2 (slash_colon,
-                                   BVAR! (current_buffer, directory_)));
+                                   BVAR! ((current_buffer! ()), directory_)));
         }
     }
 
   temp = get_minibuffer (0);
-  bset_directory (XBUFFER (temp), BVAR! (current_buffer, directory_));
+  bset_directory (XBUFFER (temp), BVAR! ((current_buffer! ()), directory_));
 }
 
 /// C: sys/fileio.h 69: `#define DIRECTORY_SEP '/'` and 87:

@@ -79,8 +79,8 @@ unsafe fn record_point (beg: ptrdiff_t)
   first change. FIXME: This check is currently dependent on being
   called before record_first_change, but could be made not to by
   ignoring timestamp undo entries */
-  at_boundary = ! CONSP (BVAR! (current_buffer, undo_list_))
-                || NILP (XCAR (BVAR! (current_buffer, undo_list_)));
+  at_boundary = ! CONSP (BVAR! ((current_buffer! ()), undo_list_))
+                || NILP (XCAR (BVAR! ((current_buffer! ()), undo_list_)));
 
   /* If this is the first change since save, then record this.*/
   if MODIFF! () <= SAVE_MODIFF! ()
@@ -94,11 +94,11 @@ unsafe fn record_point (beg: ptrdiff_t)
      value of point that we have will be for that buffer, not this.*/
   if at_boundary
       && point_before_last_command_or_undo != beg
-      && buffer_before_last_command_or_undo == current_buffer
+      && buffer_before_last_command_or_undo == (current_buffer! ())
     {
-      bset_undo_list (current_buffer,
+      bset_undo_list ((current_buffer! ()),
                       Fcons (make_fixnum (point_before_last_command_or_undo),
-                             BVAR! (current_buffer, undo_list_)));
+                             BVAR! ((current_buffer! ()), undo_list_)));
     }
 }
 
@@ -113,7 +113,7 @@ pub unsafe extern "C" fn record_insert (beg: ptrdiff_t, length: ptrdiff_t)
   let mut lbeg: Lisp_Object = Qnil ();
   let mut lend: Lisp_Object = Qnil ();
 
-  if EQ (BVAR! (current_buffer, undo_list_), Qt ())
+  if EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
     { return; }
 
   prepare_record ();
@@ -122,9 +122,9 @@ pub unsafe extern "C" fn record_insert (beg: ptrdiff_t, length: ptrdiff_t)
 
   /* If this is following another insertion and consecutive with it
      in the buffer, combine the two.  */
-  if CONSP (BVAR! (current_buffer, undo_list_))
+  if CONSP (BVAR! ((current_buffer! ()), undo_list_))
     {
-      let elt: Lisp_Object = XCAR (BVAR! (current_buffer, undo_list_));
+      let elt: Lisp_Object = XCAR (BVAR! ((current_buffer! ()), undo_list_));
       if CONSP (elt)
           && FIXNUMP (XCAR (elt))
           && FIXNUMP (XCDR (elt))
@@ -137,8 +137,8 @@ pub unsafe extern "C" fn record_insert (beg: ptrdiff_t, length: ptrdiff_t)
 
   XSETFASTINT! (lbeg, beg);
   XSETINT! (lend, beg + length);
-  bset_undo_list (current_buffer,
-                  Fcons (Fcons (lbeg, lend), BVAR! (current_buffer, undo_list_)));
+  bset_undo_list ((current_buffer! ()),
+                  Fcons (Fcons (lbeg, lend), BVAR! ((current_buffer! ()), undo_list_)));
 }
 
 /* Record the fact that markers in the region of FROM, TO are about to
@@ -151,7 +151,7 @@ unsafe fn record_marker_adjustments (from: ptrdiff_t, to: ptrdiff_t)
 {
   prepare_record ();
 
-  let mut m: *mut Lisp_Marker = BUF_MARKERS! (current_buffer);
+  let mut m: *mut Lisp_Marker = BUF_MARKERS! ((current_buffer! ()));
   while ! m.is_null ()
     {
       let charpos: ptrdiff_t = (*m).charpos;
@@ -173,9 +173,9 @@ unsafe fn record_marker_adjustments (from: ptrdiff_t, to: ptrdiff_t)
             {
               let marker: Lisp_Object = make_lisp_ptr (m as *mut c_void, Lisp_Type::Lisp_Vectorlike);
               bset_undo_list
-                (current_buffer,
+                ((current_buffer! ()),
                  Fcons (Fcons (marker, make_fixnum (adjustment)),
-                        BVAR! (current_buffer, undo_list_)));
+                        BVAR! ((current_buffer! ()), undo_list_)));
             }
         }
       m = (*m).next;
@@ -191,7 +191,7 @@ pub unsafe extern "C" fn record_delete (beg: ptrdiff_t, string: Lisp_Object,
 {
   let mut sbeg: Lisp_Object = Qnil ();
 
-  if EQ (BVAR! (current_buffer, undo_list_), Qt ())
+  if EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
     { return; }
 
   prepare_record ();
@@ -210,8 +210,8 @@ pub unsafe extern "C" fn record_delete (beg: ptrdiff_t, string: Lisp_Object,
     { record_marker_adjustments (beg, beg + SCHARS (string)); }
 
   bset_undo_list
-    (current_buffer,
-     Fcons (Fcons (string, sbeg), BVAR! (current_buffer, undo_list_)));
+    ((current_buffer! ()),
+     Fcons (Fcons (string, sbeg), BVAR! ((current_buffer! ()), undo_list_)));
 }
 
 /* Record that a replacement is about to take place,
@@ -232,17 +232,17 @@ pub unsafe extern "C" fn record_change (beg: ptrdiff_t, length: ptrdiff_t)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn record_first_change ()
 {
-  let mut base_buffer: *mut buffer = current_buffer;
+  let mut base_buffer: *mut buffer = (current_buffer! ());
 
-  if EQ (BVAR! (current_buffer, undo_list_), Qt ())
+  if EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
     { return; }
 
   if ! (*base_buffer).base_buffer.is_null ()
     { base_buffer = (*base_buffer).base_buffer; }
 
-  bset_undo_list (current_buffer,
+  bset_undo_list ((current_buffer! ()),
                   Fcons (Fcons (Qt (), buffer_visited_file_modtime (base_buffer as *mut c_void)),
-                         BVAR! (current_buffer, undo_list_)));
+                         BVAR! ((current_buffer! ()), undo_list_)));
 }
 
 /* Record a change in property PROP (whose old value was VAL)
@@ -269,8 +269,8 @@ pub unsafe extern "C" fn record_property_change (beg: ptrdiff_t, length: ptrdiff
   XSETINT! (lbeg, beg);
   XSETINT! (lend, beg + length);
   entry = Fcons (Qnil (), Fcons (prop, Fcons (value, Fcons (lbeg, lend))));
-  bset_undo_list (current_buffer,
-                  Fcons (entry, BVAR! (current_buffer, undo_list_)));
+  bset_undo_list ((current_buffer! ()),
+                  Fcons (entry, BVAR! ((current_buffer! ()), undo_list_)));
 }
 
 DEFUN! ("undo-boundary", Fundo_boundary, Sundo_boundary, 0, 0, 0,
@@ -278,9 +278,9 @@ DEFUN! ("undo-boundary", Fundo_boundary, Sundo_boundary, 0, 0, 0,
        (),
        {
   let mut tem: Lisp_Object = Qnil ();
-  if EQ (BVAR! (current_buffer, undo_list_), Qt ())
+  if EQ (BVAR! ((current_buffer! ()), undo_list_), Qt ())
     { return Qnil (); }
-  tem = Fcar (BVAR! (current_buffer, undo_list_));
+  tem = Fcar (BVAR! ((current_buffer! ()), undo_list_));
   if ! NILP (tem)
     {
       /* One way or another, cons nil onto the front of the undo list.  */
@@ -288,18 +288,18 @@ DEFUN! ("undo-boundary", Fundo_boundary, Sundo_boundary, 0, 0, 0,
         {
           /* If we have preallocated the cons cell to use here,
              use that one.  */
-          XSETCDR (pending_boundary, BVAR! (current_buffer, undo_list_));
-          bset_undo_list (current_buffer, pending_boundary);
+          XSETCDR (pending_boundary, BVAR! ((current_buffer! ()), undo_list_));
+          bset_undo_list ((current_buffer! ()), pending_boundary);
           pending_boundary = Qnil ();
         }
       else
-        { bset_undo_list (current_buffer,
-                          Fcons (Qnil (), BVAR! (current_buffer, undo_list_))); }
+        { bset_undo_list ((current_buffer! ()),
+                          Fcons (Qnil (), BVAR! ((current_buffer! ()), undo_list_))); }
     }
 
   Fset (Qundo_auto__last_boundary_cause (), Qexplicit ());
   point_before_last_command_or_undo = PT! () as ptrdiff_t;
-  buffer_before_last_command_or_undo = current_buffer;
+  buffer_before_last_command_or_undo = (current_buffer! ());
 
   return Qnil ();
 });

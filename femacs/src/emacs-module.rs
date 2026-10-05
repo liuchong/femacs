@@ -1587,8 +1587,8 @@ unsafe fn module_assert_runtime (runtime: *mut emacs_runtime)
   if ! module_assertions
     { return; }
   let mut count: ptrdiff_t = 0;
-  let mut pdl: *const specbinding = specpdl;
-  while pdl != specpdl_ptr
+  let mut pdl: *const specbinding = (specpdl! ());
+  while pdl != (specpdl_ptr! ())
     {
       if (*pdl).kind == SPECPDL_MODULE_RUNTIME as u8
         {
@@ -1608,8 +1608,8 @@ unsafe fn module_assert_env (env: *mut emacs_env)
   if ! module_assertions
     { return; }
   let mut count: ptrdiff_t = 0;
-  let mut pdl: *const specbinding = specpdl;
-  while pdl != specpdl_ptr
+  let mut pdl: *const specbinding = (specpdl! ());
+  while pdl != (specpdl_ptr! ())
     {
       if (*pdl).kind == SPECPDL_MODULE_ENVIRONMENT as u8
         {
@@ -1674,8 +1674,8 @@ unsafe fn value_to_lisp (v: emacs_value) -> Lisp_Object
         {
           let mut num_environments: ptrdiff_t = 0;
           let mut num_values: ptrdiff_t = 0;
-          let mut pdl: *const specbinding = specpdl;
-          while pdl != specpdl_ptr
+          let mut pdl: *const specbinding = (specpdl! ());
+          while pdl != (specpdl_ptr! ())
             {
               if (*pdl).kind == SPECPDL_MODULE_ENVIRONMENT as u8
                 {

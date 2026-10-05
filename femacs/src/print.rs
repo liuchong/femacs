@@ -323,14 +323,14 @@ unsafe fn print_prepare (mut printcharfun: Lisp_Object) -> print_context
     start_point_byte: -1,
     specpdl_count: SPECPDL_INDEX (),
   };
-  let multibyte: bool = ! NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   record_unwind_current_buffer ();
   specbind(Qprint__unreadable_callback_buffer (), Fcurrent_buffer ());
   if NILP (printcharfun)
     { printcharfun = Qt (); }
   if BUFFERP (printcharfun)
     {
-      if XBUFFER (printcharfun) != current_buffer
+      if XBUFFER (printcharfun) != (current_buffer! ())
 	{ Fset_buffer (printcharfun); }
       printcharfun = Qnil ();
     }
@@ -338,7 +338,7 @@ unsafe fn print_prepare (mut printcharfun: Lisp_Object) -> print_context
     {
       if (*XMARKER (printcharfun)).buffer.is_null ()
 	{ error (c"Marker does not point anywhere".as_ptr ()); }
-      if (*XMARKER (printcharfun)).buffer != current_buffer as *mut c_void
+      if (*XMARKER (printcharfun)).buffer != (current_buffer! ()) as *mut c_void
 	{ set_buffer_internal ((*XMARKER (printcharfun)).buffer as *mut buffer); }
       let marker_pos: ptrdiff_t = marker_position (printcharfun);
       if marker_pos < BEGV! () || marker_pos > ZV! ()
@@ -355,10 +355,10 @@ unsafe fn print_prepare (mut printcharfun: Lisp_Object) -> print_context
     }
   if NILP (printcharfun)
     {
-      if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	  && ! print_escape_multibyte
 	{ specbind (Qprint_escape_multibyte (), Qt ()); }
-      if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	  && ! print_escape_nonascii
 	{ specbind (Qprint_escape_nonascii (), Qt ()); }
       if ! print_buffer.buffer.is_null ()
@@ -389,7 +389,7 @@ unsafe fn print_finish (pc: *mut print_context)
   if NILP ((*pc).printcharfun)
     {
       if print_buffer.pos != print_buffer.pos_byte
-	  && NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  && NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	{
 	  USE_SAFE_ALLOCA! (sa_avail, sa_count);
 	  let temp: *mut u8 = SAFE_ALLOCA! (sa_avail, print_buffer.pos + 1) as *mut u8;
@@ -535,7 +535,7 @@ unsafe fn printchar (ch: c_uint, fun: Lisp_Object)
       else
 	{
 	  let multibyte_p: bool
-	    = ! NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+	    = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
 
 	  setup_echo_area_for_printing (multibyte_p);
 	  insert_char (ch as c_int);
@@ -620,7 +620,7 @@ unsafe fn strout (ptr: *const c_char, size: ptrdiff_t, size_byte: ptrdiff_t,
 	 job.  */
       let mut i: c_int;
       let multibyte_p: bool
-	= ! NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+	= ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
 
       setup_echo_area_for_printing (multibyte_p);
       message_dolog (ptr, size_byte, 0, multibyte_p);
@@ -698,7 +698,7 @@ unsafe fn print_string_1 (mut string: Lisp_Object, printcharfun: Lisp_Object,
 	       && (if EQ (printcharfun, Qt ())
 		     { ! NILP (BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_)) }
 		   else
-		     { ! NILP (BVAR! (current_buffer, enable_multibyte_characters_)) })
+		     { ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)) })
 	{
 	  /* If unibyte string STRING contains 8-bit codes, we must
 	     convert STRING to a multibyte string containing the same
@@ -813,7 +813,7 @@ unsafe fn write_string (data: *const c_char, printcharfun: Lisp_Object)
 pub unsafe extern "C" fn temp_output_buffer_setup (bufname: *const c_char)
 {
   let count: specpdl_ref = SPECPDL_INDEX ();
-  let old: *mut buffer = current_buffer;
+  let old: *mut buffer = (current_buffer! ());
   let buf: Lisp_Object;
 
   record_unwind_current_buffer ();
@@ -821,18 +821,18 @@ pub unsafe extern "C" fn temp_output_buffer_setup (bufname: *const c_char)
   Fset_buffer (Fget_buffer_create (build_string (bufname), Qnil ()));
 
   Fkill_all_local_variables (Qnil ());
-  delete_all_overlays (current_buffer);
-  bset_directory (current_buffer, BVAR! (old, directory_));
-  bset_read_only (current_buffer, Qnil ());
-  bset_filename (current_buffer, Qnil ());
-  bset_undo_list (current_buffer, Qt ());
-  eassert! ((*current_buffer).overlays.is_null ());
+  delete_all_overlays ((current_buffer! ()));
+  bset_directory ((current_buffer! ()), BVAR! (old, directory_));
+  bset_read_only ((current_buffer! ()), Qnil ());
+  bset_filename ((current_buffer! ()), Qnil ());
+  bset_undo_list ((current_buffer! ()), Qt ());
+  eassert! ((*(current_buffer! ())).overlays.is_null ());
   bset_enable_multibyte_characters
-    (current_buffer, BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_));
+    ((current_buffer! ()), BVAR! (&raw mut buffer_defaults, enable_multibyte_characters_));
   specbind (Qinhibit_read_only (), Qt ());
   specbind (Qinhibit_modification_hooks (), Qt ());
   Ferase_buffer ();
-  XSETBUFFER! (buf, current_buffer);
+  XSETBUFFER! (buf, (current_buffer! ()));
 
   run_hook (Qtemp_buffer_setup_hook ());
 
@@ -1001,7 +1001,7 @@ DEFUN! ("prin1-to-string", Fprin1_to_string, Sprin1_to_string, 1, 3, 0,
   /* Make Vprin1_to_string_buffer be the default buffer after print_finish */
   print_finish (&raw mut pc);
 
-  let previous: *mut buffer = current_buffer;
+  let previous: *mut buffer = (current_buffer! ());
   set_buffer_internal (XBUFFER (Vprin1_to_string_buffer));
   object = Fbuffer_string ();
   if SBYTES (object) == SCHARS (object)

@@ -179,7 +179,7 @@ DEFUN! ("category-table-p", Fcategory_table_p, Scategory_table_p, 1, 1, 0,
 unsafe fn check_category_table (table: Lisp_Object) -> Lisp_Object
 {
   if NILP (table)
-    { return BVAR! (current_buffer, category_table_); }
+    { return BVAR! ((current_buffer! ()), category_table_); }
   CHECK_TYPE (! NILP (Fcategory_table_p (table)), Qcategory_table_p (), table);
   return table;
 }
@@ -188,7 +188,7 @@ DEFUN! ("category-table", Fcategory_table, Scategory_table, 0, 0, 0,
        doc: "Return the current category table.\nThis is the one specified by the current buffer.",
        (),
        {
-  return BVAR! (current_buffer, category_table_);
+  return BVAR! ((current_buffer! ()), category_table_);
 });
 
 DEFUN! ("standard-category-table", Fstandard_category_table,
@@ -270,17 +270,17 @@ DEFUN! ("set-category-table", Fset_category_table, Sset_category_table, 1, 1, 0,
   let mut table: Lisp_Object = table;
   let mut idx: c_int;
   table = check_category_table (table);
-  bset_category_table (current_buffer, table);
+  bset_category_table ((current_buffer! ()), table);
   /* Indicate that this buffer now has a specified category table.  */
   idx = PER_BUFFER_VAR_IDX! (category_table_);
-  SET_PER_BUFFER_VALUE_P (current_buffer, idx, true);
+  SET_PER_BUFFER_VALUE_P ((current_buffer! ()), idx, true);
   return table;
 });
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn char_category_set (c: c_int) -> Lisp_Object
 {
-  return CHAR_TABLE_REF (BVAR! (current_buffer, category_table_), c as isize);
+  return CHAR_TABLE_REF (BVAR! ((current_buffer! ()), category_table_), c as isize);
 }
 
 DEFUN! ("char-category-set", Fchar_category_set, Schar_category_set, 1, 1, 0,

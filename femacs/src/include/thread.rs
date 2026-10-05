@@ -159,7 +159,9 @@ macro_rules! specpdl { () => { (*current_thread).m_specpdl } }                  
 macro_rules! specpdl_end { () => { (*current_thread).m_specpdl_end } }                        // 135
 macro_rules! specpdl_ptr { () => { (*current_thread).m_specpdl_ptr } }                        // 139
 macro_rules! lisp_eval_depth { () => { (*current_thread).m_lisp_eval_depth } }                // 143
-macro_rules! current_buffer { () => { (*current_thread).m_current_buffer } }                  // 147
+// thread.h 147's `current_buffer` accessor lives in `include/buffer.rs`: the field is typed
+// `*mut c_void` here (the incomplete `struct buffer` has no mirror in thread.h) and only the
+// buffer mirror can name the pointee, so the cast and the accessor belong there.
 macro_rules! search_regs { () => { (*current_thread).m_search_regs } }                        // 167
 macro_rules! saved_search_regs { () => { (*current_thread).m_saved_search_regs } }            // 170
 macro_rules! waiting_for_user_input_p { () => { (*current_thread).m_waiting_for_user_input_p } } // 181

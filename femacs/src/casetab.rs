@@ -59,7 +59,7 @@ DEFUN! ("current-case-table", Fcurrent_case_table, Scurrent_case_table, 0, 0, 0,
        doc: "Return the case table of the current buffer.",
        (),
        {
-  return unsafe { BVAR! (current_buffer, downcase_table_) };
+  return unsafe { BVAR! ((current_buffer! ()), downcase_table_) };
 });
 
 DEFUN! ("standard-case-table", Fstandard_case_table, Sstandard_case_table, 0, 0, 0,
@@ -133,10 +133,10 @@ fn set_case_table (table: Lisp_Object, standard: bool) -> Lisp_Object
     }
   else
     {
-      bset_downcase_table (unsafe { current_buffer }, table);
-      bset_upcase_table (unsafe { current_buffer }, up);
-      bset_case_canon_table (unsafe { current_buffer }, canon);
-      bset_case_eqv_table (unsafe { current_buffer }, eqv);
+      bset_downcase_table (unsafe { (current_buffer! ()) }, table);
+      bset_upcase_table (unsafe { (current_buffer! ()) }, up);
+      bset_case_canon_table (unsafe { (current_buffer! ()) }, canon);
+      bset_case_eqv_table (unsafe { (current_buffer! ()) }, eqv);
     }
 
   return table;

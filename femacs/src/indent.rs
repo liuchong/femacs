@@ -497,7 +497,7 @@ pub unsafe extern "C" fn buffer_display_table () -> *mut Lisp_Char_Table
 {
   let mut thisbuf: Lisp_Object = Qnil ();
 
-  thisbuf = BVAR! (current_buffer, display_table_);
+  thisbuf = BVAR! ((current_buffer! ()), display_table_);
   if DISP_TABLE_P (thisbuf)
     { return XCHAR_TABLE (thisbuf); }
   if DISP_TABLE_P (Vstandard_display_table)
@@ -586,7 +586,7 @@ pub unsafe extern "C" fn recompute_width_table (buf: *mut buffer,
 /// insdel.rs `invalidate_region_cache` shape).
 unsafe fn width_run_cache_on_off () -> *mut c_void
 {
-  let mut cache_buffer: *mut buffer = current_buffer;
+  let mut cache_buffer: *mut buffer = (current_buffer! ());
   let mut indirect_p: bool = false;
 
   if !(*cache_buffer).base_buffer.is_null ()
@@ -595,10 +595,10 @@ unsafe fn width_run_cache_on_off () -> *mut c_void
       indirect_p = true;
     }
 
-  if NILP (BVAR! (current_buffer, cache_long_scans_))
+  if NILP (BVAR! ((current_buffer! ()), cache_long_scans_))
       /* And, for the moment, this feature doesn't work on multibyte
          characters.  */
-      || !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      || !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     {
       if !indirect_p
 	  || NILP (BVAR! (cache_buffer, cache_long_scans_))
@@ -609,7 +609,7 @@ unsafe fn width_run_cache_on_off () -> *mut c_void
 	    {
 	      free_region_cache ((*cache_buffer).width_run_cache);
 	      (*cache_buffer).width_run_cache = 0 as *mut c_void;
-	      bset_width_table (current_buffer, Qnil ());
+	      bset_width_table ((current_buffer! ()), Qnil ());
 	    }
         }
       return std::ptr::null_mut ();
@@ -624,7 +624,7 @@ unsafe fn width_run_cache_on_off () -> *mut c_void
 	  if (*cache_buffer).width_run_cache.is_null ()
 	    {
 	      (*cache_buffer).width_run_cache = new_region_cache ();
-	      recompute_width_table (current_buffer, buffer_display_table ());
+	      recompute_width_table ((current_buffer! ()), buffer_display_table ());
 	    }
 	}
       return (*cache_buffer).width_run_cache;
@@ -668,7 +668,7 @@ pub unsafe extern "C" fn skip_invisible (pos: ptrdiff_t, next_boundary_p: *mut p
   let mut inv_p: c_int = 0;
 
   XSETFASTINT! (position, pos);
-  XSETBUFFER! (buffer, current_buffer);
+  XSETBUFFER! (buffer, (current_buffer! ()));
 
   /* We must not advance farther than the next overlay change.
      The overlay change might change the invisible property;
@@ -763,8 +763,8 @@ pub unsafe extern "C" fn current_column () -> ptrdiff_t
   let mut tab_seen: bool = false;
   let mut post_tab: ptrdiff_t = 0;
   let mut c: c_int = 0;
-  let tab_width: c_int = SANE_TAB_WIDTH (current_buffer);
-  let ctl_arrow: bool = !NILP (BVAR! (current_buffer, ctl_arrow_));
+  let tab_width: c_int = SANE_TAB_WIDTH ((current_buffer! ()));
+  let ctl_arrow: bool = !NILP (BVAR! ((current_buffer! ()), ctl_arrow_));
   let dp: *mut Lisp_Char_Table = buffer_display_table ();
 
   if PT! () == last_known_column_point
@@ -776,13 +776,13 @@ pub unsafe extern "C" fn current_column () -> ptrdiff_t
 					      std::ptr::null_mut (), true);
 
   /* Avoid becoming abysmally slow for very long lines.  */
-  if (*current_buffer).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
+  if (*(current_buffer! ())).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
       && !NILP (Vlong_line_threshold)
       && PT! () - line_beg > XFIXNUM (Vlong_line_threshold)
     { return PT! () - line_beg; }	/* this is an approximation! */
   /* If the buffer has overlays, text properties,
      or multibyte characters, use a more general algorithm.  */
-  if !buffer_intervals (current_buffer).is_null ()
+  if !buffer_intervals ((current_buffer! ())).is_null ()
       || buffer_has_overlays ()
       || Z! () != Z_BYTE! ()
     { return current_column_1 (); }
@@ -860,7 +860,7 @@ pub unsafe extern "C" fn current_column () -> ptrdiff_t
 	    { col += 1; }
 	  else if c == b'\n' as c_int
 		   || (c == b'\r' as c_int
-		       && EQ (BVAR! (current_buffer, selective_display_), Qt ()))
+		       && EQ (BVAR! ((current_buffer! ()), selective_display_), Qt ()))
 	    {
 	      ptr = ptr.offset (1);
 	      break 'start_of_line_found;
@@ -969,7 +969,7 @@ unsafe fn check_display_width (window: Lisp_Object,
 
 	      /* If needed, set the window's buffer temporarily to the
                  current buffer and its window-point to POS.  */
-	      if XBUFFER ((*w).contents) != current_buffer
+	      if XBUFFER ((*w).contents) != (current_buffer! ())
 		{
 		  let oldbuf: Lisp_Object
 		    = list4 (window, (*w).contents,
@@ -1021,7 +1021,7 @@ unsafe fn check_display_width (window: Lisp_Object,
 	     width of the character at POS, if it is greater than 1.  */
 	  if !NILP (plist)
 	      && !NILP (plist_get (plist, QCrelative_width ()))
-	      && !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	      && !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	    {
 	      let mut b: c_int = 0;
 	      let mut wd: c_int = 0;
@@ -1048,10 +1048,10 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
 			   prevpos: *mut ptrdiff_t, prevbpos: *mut ptrdiff_t,
 			   prevcol: *mut ptrdiff_t)
 {
-  let tab_width: c_int = SANE_TAB_WIDTH (current_buffer);
-  let ctl_arrow: bool = !NILP (BVAR! (current_buffer, ctl_arrow_));
+  let tab_width: c_int = SANE_TAB_WIDTH ((current_buffer! ()));
+  let ctl_arrow: bool = !NILP (BVAR! ((current_buffer! ()), ctl_arrow_));
   let dp: *mut Lisp_Char_Table = buffer_display_table ();
-  let multibyte: bool = !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   let mut cmp_it: composition_it = std::mem::zeroed ();
   let mut dummy_it: it = std::mem::zeroed ();
   let mut window: Lisp_Object = Qnil ();
@@ -1079,11 +1079,11 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
      keeps them as `break 'endloop` out of the labelled block that carries the same text
      (PORTING.md 2.2, the intervals.rs `'check_done` shape).  */
   'endloop: {
-  if (*current_buffer).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
+  if (*(current_buffer! ())).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
     {
       let mut lines_truncated: bool = false;
 
-      if !NILP (BVAR! (current_buffer, truncate_lines_))
+      if !NILP (BVAR! ((current_buffer! ()), truncate_lines_))
 	{ lines_truncated = true; }
       else if !NILP (Vtruncate_partial_width_windows) && !w.is_null ()
 	       && (*w).total_cols < FRAME_COLS (XFRAME (WINDOW_FRAME! (w)))
@@ -1241,7 +1241,7 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
 
 	      if c == b'\n' as c_int
 		{ break 'endloop; }
-	      if c == b'\r' as c_int && EQ (BVAR! (current_buffer, selective_display_), Qt ())
+	      if c == b'\r' as c_int && EQ (BVAR! ((current_buffer! ()), selective_display_), Qt ())
 		{ break 'endloop; }
 	      if c == b'\t' as c_int
 		{
@@ -1260,7 +1260,7 @@ unsafe fn scan_for_column (endpos: *mut ptrdiff_t, goalcol: *mut EMACS_INT,
 
 	  if c == b'\n' as c_int
 	    { break 'endloop; }
-	  if c == b'\r' as c_int && EQ (BVAR! (current_buffer, selective_display_), Qt ())
+	  if c == b'\r' as c_int && EQ (BVAR! ((current_buffer! ()), selective_display_), Qt ())
 	    { break 'endloop; }
 	  if c == b'\t' as c_int
 	    {
@@ -1340,7 +1340,7 @@ DEFUN! ("indent-to", Findent_to, Sindent_to, 1, 2, "NIndent to column: ",
   let mut column: Lisp_Object = column;
   let mut mincol: EMACS_INT = 0;
   let mut fromcol: ptrdiff_t = 0;
-  let tab_width: c_int = SANE_TAB_WIDTH (current_buffer);
+  let tab_width: c_int = SANE_TAB_WIDTH ((current_buffer! ()));
 
   CHECK_FIXNUM (column);
   if NILP (minimum)
@@ -1393,7 +1393,7 @@ unsafe fn position_indentation (pos_byte: ptrdiff_t) -> ptrdiff_t
 {
   let mut pos_byte: ptrdiff_t = pos_byte;
   let mut column: ptrdiff_t = 0;
-  let tab_width: c_int = SANE_TAB_WIDTH (current_buffer);
+  let tab_width: c_int = SANE_TAB_WIDTH ((current_buffer! ()));
   let mut p: *mut u8 = std::ptr::null_mut ();
   let mut stop: *mut u8 = std::ptr::null_mut ();
   let mut start: *mut u8 = std::ptr::null_mut ();
@@ -1450,7 +1450,7 @@ unsafe fn position_indentation (pos_byte: ptrdiff_t) -> ptrdiff_t
 	  0o240 | 0x20 =>
 	    {
 	      if c == 0o240
-		 && ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+		 && ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 		{ return column; }
 	      column += 1;
 	    }
@@ -1459,7 +1459,7 @@ unsafe fn position_indentation (pos_byte: ptrdiff_t) -> ptrdiff_t
 	  _ =>
 	    {
 	      if ASCII_CHAR_P (*p.offset (-1) as isize)
-		  || NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+		  || NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 		{ return column; }
 	      {
 		let mut c: c_int = 0;
@@ -1650,13 +1650,13 @@ pub unsafe extern "C" fn compute_motion (from: ptrdiff_t, frombyte: ptrdiff_t,
   let mut pos: ptrdiff_t = 0;
   let mut pos_byte: ptrdiff_t = 0;
   let mut c: c_int = 0;
-  let tab_width: c_int = SANE_TAB_WIDTH (current_buffer);
-  let ctl_arrow: bool = !NILP (BVAR! (current_buffer, ctl_arrow_));
+  let tab_width: c_int = SANE_TAB_WIDTH ((current_buffer! ()));
+  let ctl_arrow: bool = !NILP (BVAR! ((current_buffer! ()), ctl_arrow_));
   let dp: *mut Lisp_Char_Table = window_display_table (win);
   let mut selective: EMACS_INT
-    = if FIXNUMP (BVAR! (current_buffer, selective_display_))
-      { XFIXNUM (BVAR! (current_buffer, selective_display_)) }
-      else if !NILP (BVAR! (current_buffer, selective_display_)) { -1 } else { 0 };
+    = if FIXNUMP (BVAR! ((current_buffer! ()), selective_display_))
+      { XFIXNUM (BVAR! ((current_buffer! ()), selective_display_)) }
+      else if !NILP (BVAR! ((current_buffer! ()), selective_display_)) { -1 } else { 0 };
   let mut selective_rlen: ptrdiff_t
     = if selective != 0 && !dp.is_null () && VECTORP (DISP_INVIS_VECTOR (dp))
       { ASIZE (DISP_INVIS_VECTOR (dp)) } else { 0 };
@@ -1677,7 +1677,7 @@ pub unsafe extern "C" fn compute_motion (from: ptrdiff_t, frombyte: ptrdiff_t,
   let mut next_width_run: ptrdiff_t = from;
   let mut window: Lisp_Object = Qnil ();
 
-  let multibyte: bool = !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   /* If previous char scanned was a wide character,
      this is the column where it ended.  Otherwise, this is 0.  */
   let mut wide_column_end_hpos: EMACS_INT = 0;
@@ -1688,7 +1688,7 @@ pub unsafe extern "C" fn compute_motion (from: ptrdiff_t, frombyte: ptrdiff_t,
   let mut contin_hpos: EMACS_INT = 0;	/* HPOS of last column of continued line.  */
   let mut prev_tab_offset: c_int = 0;	/* Previous tab offset.  */
   let mut continuation_glyph_width: c_int = 0;
-  let mut cache_buffer: *mut buffer = current_buffer;
+  let mut cache_buffer: *mut buffer = (current_buffer! ());
   let mut width_cache: *mut c_void = std::ptr::null_mut ();
 
   let mut cmp_it: composition_it = std::mem::zeroed ();
@@ -1699,8 +1699,8 @@ pub unsafe extern "C" fn compute_motion (from: ptrdiff_t, frombyte: ptrdiff_t,
     { cache_buffer = (*cache_buffer).base_buffer; }
   if dp == buffer_display_table ()
     {
-      width_table = if VECTORP (BVAR! (current_buffer, width_table_))
-	{ (*XVECTOR (BVAR! (current_buffer, width_table_))).contents.as_mut_ptr () }
+      width_table = if VECTORP (BVAR! ((current_buffer! ()), width_table_))
+	{ (*XVECTOR (BVAR! ((current_buffer! ()), width_table_))).contents.as_mut_ptr () }
 	else
 	{ 0 as *mut Lisp_Object };
       if !width_table.is_null ()
@@ -1888,7 +1888,7 @@ pub unsafe extern "C" fn compute_motion (from: ptrdiff_t, frombyte: ptrdiff_t,
 	    }
 
 	  if hscroll != 0 || truncate
-	      || !NILP (BVAR! (current_buffer, truncate_lines_))
+	      || !NILP (BVAR! ((current_buffer! ()), truncate_lines_))
 	    {
 	      /* Truncating: skip to newline, unless we are already past
                  TO (we need to go back below).  */
@@ -2351,10 +2351,10 @@ pub unsafe extern "C" fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t,
   let mut first: ptrdiff_t = 0;
   let lmargin: ptrdiff_t = if hscroll > 0 { 1 - hscroll } else { 0 };
   let selective: ptrdiff_t
-    = if FIXNUMP (BVAR! (current_buffer, selective_display_))
-      { clip_to_bounds (-1, XFIXNUM (BVAR! (current_buffer, selective_display_)),
+    = if FIXNUMP (BVAR! ((current_buffer! ()), selective_display_))
+      { clip_to_bounds (-1, XFIXNUM (BVAR! ((current_buffer! ()), selective_display_)),
 			PTRDIFF_MAX) }
-      else if !NILP (BVAR! (current_buffer, selective_display_)) { -1 } else { 0 };
+      else if !NILP (BVAR! ((current_buffer! ()), selective_display_)) { -1 } else { 0 };
   let mut window: Lisp_Object = Qnil ();
   let mut did_motion: bool = false;
   /* This is the object we use for fetching character properties.  */
@@ -2482,7 +2482,7 @@ pub unsafe extern "C" fn line_number_display_width (w: *mut window, width: *mut 
       let mut it: it = std::mem::zeroed ();
       let mut startpos: text_pos = std::mem::zeroed ();
       let mut saved_restriction: bool = false;
-      let old_buf: *mut buffer = current_buffer;
+      let old_buf: *mut buffer = (current_buffer! ());
       let count: specpdl_ref = SPECPDL_INDEX ();
       SET_TEXT_POS_FROM_MARKER! (startpos, (*w).start);
       let itdata: *mut c_void = bidi_shelve_cache ();
@@ -2597,7 +2597,7 @@ DEFUN! ("vertical-motion", Fvertical_motion, Svertical_motion, 1, 3, 0,
   CHECK_FIXNUM (lines);
   w = decode_live_window (window);
 
-  if XBUFFER ((*w).contents) != current_buffer
+  if XBUFFER ((*w).contents) != (current_buffer! ())
     {
       /* Set the window's buffer temporarily to the current buffer.  */
       let old: Lisp_Object = list4 (window, (*w).contents,
@@ -2606,7 +2606,7 @@ DEFUN! ("vertical-motion", Fvertical_motion, Svertical_motion, 1, 3, 0,
       record_unwind_protect (Some (restore_window_buffer), old);
       wset_buffer (w, Fcurrent_buffer ());
       set_marker_both ((*w).pointm, (*w).contents,
-		       BUF_PT (current_buffer), BUF_PT_BYTE (current_buffer));
+		       BUF_PT ((current_buffer! ())), BUF_PT_BYTE ((current_buffer! ())));
     }
 
   if noninteractive

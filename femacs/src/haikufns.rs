@@ -3590,9 +3590,9 @@ DEFUN! ("x-show-tip", Fx_show_tip, Sx_show_tip, 1, 6, 0,
   /* Insert STRING into root window's buffer and fit the frame to the
      buffer.  */
   let count_1: specpdl_ref = SPECPDL_INDEX ();
-  old_buffer = current_buffer;
+  old_buffer = (current_buffer! ());
   set_buffer_internal_1 (XBUFFER ((*w).contents));
-  bset_truncate_lines (current_buffer, Qnil ());
+  bset_truncate_lines ((current_buffer! ()), Qnil ());
   specbind (Qinhibit_read_only (), Qt ());
   specbind (Qinhibit_modification_hooks (), Qt ());
   specbind (Qinhibit_point_motion_hooks (), Qt ());

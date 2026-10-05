@@ -4463,7 +4463,7 @@ pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
 
   /* We save and restore the current buffer because tty_menu_activate
      triggers redisplay, which switches buffers at will.  */
-  let mut unwind_data: tty_pop_down_menu = tty_pop_down_menu { menu: menu, buffer: current_buffer };
+  let mut unwind_data: tty_pop_down_menu = tty_pop_down_menu { menu: menu, buffer: (current_buffer! ()) };
   record_unwind_protect_ptr (Some (tty_pop_down_menu), (&mut unwind_data) as *mut tty_pop_down_menu as *mut c_void);
 
   specbind (Qoverriding_terminal_local_map (), Fsymbol_value (Qtty_menu_navigation_map ()));

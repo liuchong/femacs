@@ -8505,8 +8505,8 @@ unsafe fn decode_coding (coding: *mut coding_system)
       if MODIFF! () <= SAVE_MODIFF! ()
 	{ record_first_change (); }
 
-      undo_list = BVAR! (current_buffer, undo_list_);
-      bset_undo_list (current_buffer, Qt ());
+      undo_list = BVAR! ((current_buffer! ()), undo_list_);
+      bset_undo_list ((current_buffer! ()), Qt ());
       /* Avoid running nested *-change-functions via 'produce_annotation'.
 	 Our callers run *-change-functions over the whole region anyway.  */
       specbind (Qinhibit_modification_hooks (), Qt ());
@@ -8646,7 +8646,7 @@ unsafe fn decode_coding (coding: *mut coding_system)
     { decode_eol (coding); }
   if BUFFERP ((*coding).dst_object)
     {
-      bset_undo_list (current_buffer, undo_list);
+      bset_undo_list ((current_buffer! ()), undo_list);
       record_insert ((*coding).dst_pos, (*coding).produced_char);
     }
 
@@ -9051,7 +9051,7 @@ unsafe fn encode_coding (coding: *mut coding_system)
     {
       set_buffer_internal (XBUFFER ((*coding).dst_object));
       coding_bits_set (coding, CODING_SYSTEM_DST_MULTIBYTE_SHIFT, 1,
-		       if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_)) { 1 } else { 0 });
+		       if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)) { 1 } else { 0 });
     }
 
   (*coding).consumed = 0; (*coding).consumed_char = 0;
@@ -9168,15 +9168,15 @@ pub unsafe extern "C" fn code_conversion_save (with_work_buf: bool, multibyte: b
 			 Fcons (Fcurrent_buffer (), workbuf));
   if ! NILP (workbuf)
     {
-      let current: *mut buffer = current_buffer;
+      let current: *mut buffer = (current_buffer! ());
       set_buffer_internal (XBUFFER (workbuf));
       /* We can't allow modification hooks to run in the work buffer.  For
 	 instance, directory_files_internal assumes that file decoding
 	 doesn't compile new regexps.  */
       Fset (Fmake_local_variable (Qinhibit_modification_hooks ()), Qt ());
       Ferase_buffer ();
-      bset_undo_list (current_buffer, Qt ());
-      bset_enable_multibyte_characters (current_buffer, if multibyte { Qt () } else { Qnil () });
+      bset_undo_list ((current_buffer! ()), Qt ());
+      bset_enable_multibyte_characters ((current_buffer! ()), if multibyte { Qt () } else { Qnil () });
       if EQ (workbuf, Vcode_conversion_reused_workbuf)
 	{ reused_workbuf_in_use = true; }
       /* FIXME: Maybe we should stay in the new workbuf, because we often
@@ -9220,7 +9220,7 @@ pub unsafe extern "C" fn decode_coding_gap (coding: *mut coding_system, mut byte
   (*coding).dst_pos = PT! ();
   (*coding).dst_pos_byte = PT_BYTE! ();
   eassert! ((coding_bits_get (coding, CODING_SYSTEM_DST_MULTIBYTE_SHIFT, 1) != 0)
-	    == ! NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+	    == ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
 
   (*coding).head_ascii = -1;
   (*coding).detected_utf8_bytes = -1; (*coding).detected_utf8_chars = -1;
@@ -9313,19 +9313,19 @@ pub unsafe extern "C" fn decode_coding_gap (coding: *mut coding_system, mut byte
   code_conversion_save (false, false);
 
   coding_mode_set (coding, CODING_MODE_LAST_BLOCK);
-  (*(*current_buffer).text).bits |= BUFFER_TEXT_INHIBIT_SHRINKING;
+  (*(*(current_buffer! ())).text).bits |= BUFFER_TEXT_INHIBIT_SHRINKING;
   decode_coding (coding);
-  (*(*current_buffer).text).bits &= ! BUFFER_TEXT_INHIBIT_SHRINKING;
+  (*(*(current_buffer! ())).text).bits &= ! BUFFER_TEXT_INHIBIT_SHRINKING;
 
   if ! NILP (CODING_ATTR_POST_READ (attrs))
     {
       let prev_Z: ptrdiff_t = Z! (); let prev_Z_BYTE: ptrdiff_t = Z_BYTE! ();
       let val: Lisp_Object;
-      let undo_list: Lisp_Object = BVAR! (current_buffer, undo_list_);
+      let undo_list: Lisp_Object = BVAR! ((current_buffer! ()), undo_list_);
 
       record_unwind_protect (Some (coding_restore_undo_list),
 			     Fcons (undo_list, Fcurrent_buffer ()));
-      bset_undo_list (current_buffer, Qt ());
+      bset_undo_list ((current_buffer! ()), Qt ());
       TEMP_SET_PT_BOTH ((*coding).dst_pos, (*coding).dst_pos_byte);
       val = calln! (CODING_ATTR_POST_READ (attrs),
 		    make_fixnum ((*coding).produced_char as EMACS_INT));
@@ -9418,7 +9418,7 @@ pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
 	{
 	  let mut tail: *mut Lisp_Marker;
 
-	  tail = BUF_MARKERS! (current_buffer);
+	  tail = BUF_MARKERS! ((current_buffer! ()));
 	  while ! tail.is_null ()
 	    {
 	      (*tail).bits
@@ -9431,7 +9431,7 @@ pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
 	    }
 	  saved_pt = PT! (); saved_pt_byte = PT_BYTE! ();
 	  TEMP_SET_PT_BOTH (from, from_byte);
-	  (*(*current_buffer).text).bits |= BUFFER_TEXT_INHIBIT_SHRINKING;
+	  (*(*(current_buffer! ())).text).bits |= BUFFER_TEXT_INHIBIT_SHRINKING;
 	  prepare_to_modify_buffer (from, to, std::ptr::null_mut ());
 	  del_range_2 (from, from_byte, to, to_byte, false);
 	  (*coding).src_pos = -chars;
@@ -9462,7 +9462,7 @@ pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
     {
       if ! BASE_EQ (src_object, dst_object)
 	{
-	  let current: *mut buffer = current_buffer;
+	  let current: *mut buffer = (current_buffer! ());
 	  set_buffer_internal (XBUFFER (dst_object));
 	  prepare_to_modify_buffer (PT! (), PT! (), std::ptr::null_mut ());
 	  set_buffer_internal (current);
@@ -9501,12 +9501,12 @@ pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
     {
       let prev_Z: ptrdiff_t = Z! (); let prev_Z_BYTE: ptrdiff_t = Z_BYTE! ();
       let val: Lisp_Object;
-      let undo_list: Lisp_Object = BVAR! (current_buffer, undo_list_);
+      let undo_list: Lisp_Object = BVAR! ((current_buffer! ()), undo_list_);
       let mut count1: specpdl_ref = SPECPDL_INDEX ();
 
       record_unwind_protect (Some (coding_restore_undo_list),
 			     Fcons (undo_list, Fcurrent_buffer ()));
-      bset_undo_list (current_buffer, Qt ());
+      bset_undo_list ((current_buffer! ()), Qt ());
       TEMP_SET_PT_BOTH ((*coding).dst_pos, (*coding).dst_pos_byte);
       val = safe_calln! (CODING_ATTR_POST_READ (attrs),
 			 make_fixnum ((*coding).produced_char as EMACS_INT));
@@ -9543,12 +9543,12 @@ pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
 	 As we have moved PT while replacing the original buffer
 	 contents, we must recover it now.  */
       set_buffer_internal (XBUFFER (src_object));
-      (*(*current_buffer).text).bits &= ! BUFFER_TEXT_INHIBIT_SHRINKING;
+      (*(*(current_buffer! ())).text).bits &= ! BUFFER_TEXT_INHIBIT_SHRINKING;
       if saved_pt < from
 	{ TEMP_SET_PT_BOTH (saved_pt, saved_pt_byte); }
       else if saved_pt < from + chars
 	{ TEMP_SET_PT_BOTH (from, from_byte); }
-      else if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      else if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	{
 	  TEMP_SET_PT_BOTH (saved_pt + ((*coding).produced_char - chars),
 			    saved_pt_byte + ((*coding).produced - bytes));
@@ -9563,7 +9563,7 @@ pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
 	{
 	  let mut tail: *mut Lisp_Marker;
 
-	  tail = BUF_MARKERS! (current_buffer);
+	  tail = BUF_MARKERS! ((current_buffer! ()));
 	  while ! tail.is_null ()
 	    {
 	      if (*tail).bits & MARKER_NEED_ADJUSTMENT != 0
@@ -9578,7 +9578,7 @@ pub unsafe extern "C" fn decode_coding_object (coding: *mut coding_system,
 		    {
 		      (*tail).bytepos = from_byte + (*coding).produced;
 		      (*tail).charpos
-			= (if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+			= (if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 			     { (*tail).bytepos } else { from + (*coding).produced_char });
 		    }
 		}
@@ -9698,7 +9698,7 @@ pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
 
       safe_calln! (CODING_ATTR_PRE_WRITE (attrs),
 		   make_fixnum (BEG as EMACS_INT), make_fixnum (Z! () as EMACS_INT));
-      if XBUFFER ((*coding).src_object) != current_buffer
+      if XBUFFER ((*coding).src_object) != (current_buffer! ())
 	{ kill_src_buffer = true; }
       (*coding).src_object = Fcurrent_buffer ();
       if (BEG as ptrdiff_t) != GPT! ()
@@ -9757,7 +9757,7 @@ pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
 	}
       else
 	{
-	  let current: *mut buffer = current_buffer;
+	  let current: *mut buffer = (current_buffer! ());
 
 	  set_buffer_internal (XBUFFER (dst_object));
 	  prepare_to_modify_buffer (PT! (), PT! (), std::ptr::null_mut ());
@@ -9805,7 +9805,7 @@ pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
     }
   else if BUFFERP ((*coding).dst_object)
     {
-      let current: *mut buffer = current_buffer;
+      let current: *mut buffer = (current_buffer! ());
       set_buffer_internal (XBUFFER (dst_object));
       signal_after_change ((*coding).dst_pos,
 			   if same_buffer { to - from } else { 0 },
@@ -9826,7 +9826,7 @@ pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
 	{ TEMP_SET_PT_BOTH (saved_pt, saved_pt_byte); }
       else if saved_pt < from + chars
 	{ TEMP_SET_PT_BOTH (from, from_byte); }
-      else if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      else if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	{
 	  TEMP_SET_PT_BOTH (saved_pt + ((*coding).produced_char - chars),
 			    saved_pt_byte + ((*coding).produced - bytes));
@@ -9841,7 +9841,7 @@ pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
 	{
 	  let mut tail: *mut Lisp_Marker;
 
-	  tail = BUF_MARKERS! (current_buffer);
+	  tail = BUF_MARKERS! ((current_buffer! ()));
 	  while ! tail.is_null ()
 	    {
 	      if (*tail).bits & MARKER_NEED_ADJUSTMENT != 0
@@ -9856,7 +9856,7 @@ pub unsafe extern "C" fn encode_coding_object (coding: *mut coding_system,
 		    {
 		      (*tail).bytepos = from_byte + (*coding).produced;
 		      (*tail).charpos
-			= (if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+			= (if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 			     { (*tail).bytepos } else { from + (*coding).produced_char });
 		    }
 		}
@@ -10324,7 +10324,7 @@ DEFUN! ("detect-coding-region", Fdetect_coding_region, Sdetect_coding_region,
 	 return detect_coding_system (BYTE_POS_ADDR (from_byte) as *const c_uchar,
 				      to - from, to_byte - from_byte,
 				      ! NILP (highest),
-				      ! NILP (BVAR! (current_buffer
+				      ! NILP (BVAR! ((current_buffer! ())
 						     , enable_multibyte_characters_)),
 				      Qnil ());
        });
@@ -10404,7 +10404,7 @@ DEFUN! ("find-coding-systems-region-internal",
 	     let e: EMACS_INT = fix_position (end);
 	     if ! ((BEG as ptrdiff_t) <= s && s <= e && e <= Z! ())
 	       { args_out_of_range (start, end); }
-	     if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	     if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	       { return Qt (); }
 	     start_byte = CHAR_TO_BYTE (s);
 	     end_byte = CHAR_TO_BYTE (e);
@@ -10539,7 +10539,7 @@ DEFUN! ("unencodable-char-position", Funencodable_char_position,
 	     validate_region (&raw mut start, &raw mut end);
 	     from = XFIXNUM (start);
 	     to = XFIXNUM (end);
-	     if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	     if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 		 || (ascii_compatible
 		     && (to - from) == (CHAR_TO_BYTE (to) - (CHAR_TO_BYTE (from))))
 	       { return Qnil (); }
@@ -10646,7 +10646,7 @@ DEFUN! ("check-coding-systems-region", Fcheck_coding_systems_region,
 	     let e: EMACS_INT = fix_position (end);
 	     if ! ((BEG as ptrdiff_t) <= s && s <= e && e <= Z! ())
 	       { args_out_of_range (start, end); }
-	     if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	     if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	       { return Qnil (); }
 	     start_byte = CHAR_TO_BYTE (s);
 	     end_byte = CHAR_TO_BYTE (e);
@@ -10927,11 +10927,11 @@ unsafe fn get_buffer_gap_address (buffer: Lisp_Object, nbytes: ptrdiff_t) -> *mu
 
   if BUF_GPT! (buf) != BUF_PT (buf)
     {
-      let oldb: *mut buffer = current_buffer;
+      let oldb: *mut buffer = (current_buffer! ());
 
-      current_buffer = buf;
+      set_current_buffer! (buf);
       move_gap_both (PT! (), PT_BYTE! ());
-      current_buffer = oldb;
+      set_current_buffer! (oldb);
     }
   if BUF_GAP_SIZE! (buf) < nbytes
     { make_gap_1 (buf, nbytes); }
@@ -11784,11 +11784,11 @@ pub unsafe extern "C" fn encode_string_utf_8 (string: Lisp_Object, buffer: Lisp_
     { memcpy (dst as *mut c_void, src as *const c_void, pend.offset_from (src) as size_t); }
   if BUFFERP (buffer)
     {
-      let oldb: *mut buffer = current_buffer;
+      let oldb: *mut buffer = (current_buffer! ());
 
-      current_buffer = XBUFFER (buffer);
+      set_current_buffer! (XBUFFER (buffer));
       insert_from_gap (outbytes, outbytes, false, false);
-      current_buffer = oldb;
+      set_current_buffer! (oldb);
     }
   return val;
 }
@@ -12111,11 +12111,11 @@ pub unsafe extern "C" fn decode_string_utf_8 (string: Lisp_Object, str: *const c
     { memcpy (dst as *mut c_void, src as *const c_void, pend.offset_from (src) as size_t); }
   if BUFFERP (buffer)
     {
-      let oldb: *mut buffer = current_buffer;
+      let oldb: *mut buffer = (current_buffer! ());
 
-      current_buffer = XBUFFER (buffer);
+      set_current_buffer! (XBUFFER (buffer));
       insert_from_gap (outchars, outbytes, false, false);
-      current_buffer = oldb;
+      set_current_buffer! (oldb);
     }
   return val;
 }

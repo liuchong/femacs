@@ -2604,19 +2604,19 @@ pub fn CHECK_SUBR (x: Lisp_Object) { CHECK_TYPE (SUBRP (x), Qsubrp (), x) }
 
 #[inline(always)]
 pub fn specpdl_ref_to_ptr (r: specpdl_ref) -> *mut specbinding {
-    unsafe { (specpdl as *mut u8).offset (unwrap_specpdl_ref (r)) as *mut specbinding }
+    unsafe { ((specpdl! ()) as *mut u8).offset (unwrap_specpdl_ref (r)) as *mut specbinding }
 }
 
 #[inline(always)]
 pub fn SPECPDL_INDEX () -> specpdl_ref {
-    unsafe { wrap_specpdl_ref (specpdl_ptr as isize - specpdl as isize) }
+    unsafe { wrap_specpdl_ref ((specpdl_ptr! ()) as isize - (specpdl! ()) as isize) }
 }
 
 #[inline(always)]
 pub fn grow_specpdl () {
     unsafe {
-        specpdl_ptr = specpdl_ptr.add (1);
-        if specpdl_ptr == specpdl_end {
+        (specpdl_ptr! ()) = (specpdl_ptr! ()).add (1);
+        if (specpdl_ptr! ()) == (specpdl_end! ()) {
             grow_specpdl_allocation ();
         }
     }
@@ -2628,11 +2628,11 @@ pub fn record_in_backtrace (function: Lisp_Object, args: *mut Lisp_Object, nargs
     let count = SPECPDL_INDEX ();
     eassert! (nargs >= UNEVALLED);
     unsafe {
-        (*specpdl_ptr).bt.kind = SPECPDL_BACKTRACE as u8;
-        (*specpdl_ptr).bt.debug_on_exit = 0;
-        (*specpdl_ptr).bt.function = function;
-        (*specpdl_ptr).bt.args = args;
-        (*specpdl_ptr).bt.nargs = nargs;
+        (*(specpdl_ptr! ())).bt.kind = SPECPDL_BACKTRACE as u8;
+        (*(specpdl_ptr! ())).bt.debug_on_exit = 0;
+        (*(specpdl_ptr! ())).bt.function = function;
+        (*(specpdl_ptr! ())).bt.args = args;
+        (*(specpdl_ptr! ())).bt.nargs = nargs;
         grow_specpdl ();
     }
     return count;
@@ -2803,11 +2803,11 @@ pub fn egetenv (var: *const c_char) -> *mut c_char {
 
 #[inline(always)]
 pub fn safe_free (sa_count: specpdl_ref) {
-    while unsafe { specpdl_ptr } != specpdl_ref_to_ptr (sa_count) {
+    while unsafe { (specpdl_ptr! ()) } != specpdl_ref_to_ptr (sa_count) {
         unsafe {
-            specpdl_ptr = specpdl_ptr.sub (1);
-            eassert! ((*specpdl_ptr).kind == SPECPDL_UNWIND_PTR as u8);
-            xfree ((*specpdl_ptr).unwind_ptr.arg);
+            (specpdl_ptr! ()) = (specpdl_ptr! ()).sub (1);
+            eassert! ((*(specpdl_ptr! ())).kind == SPECPDL_UNWIND_PTR as u8);
+            xfree ((*(specpdl_ptr! ())).unwind_ptr.arg);
         }
     }
     // PORTING.md P-05: the pool's blocks whose scope the unwinding passed.  C has no such line
@@ -3798,14 +3798,9 @@ pub mod other_units {
         pub fn make_bigint (n: i64) -> Lisp_Object;
         pub fn make_biguint (n: u64) -> Lisp_Object;
     }
-    // The specpdl itself is per-thread state in C (`#define specpdl
-    // (current_thread->m_specpdl)`); the mirror declares the storage here and the
-    // thread accessor arrives with thread.rs.
-    unsafe extern "C" {
-        pub static mut specpdl: *mut specbinding;
-        pub static mut specpdl_ptr: *mut specbinding;
-        pub static mut specpdl_end: *mut specbinding;
-    }
+    // The specpdl is per-thread state in C (`#define specpdl (current_thread->m_specpdl)`,
+    // thread.h 131-139): `include/thread.rs` defines all three as the macros C has, so no storage
+    // is declared here (the stopgap that did so is retired).
     unsafe extern "C" {
         pub fn list1 (a: Lisp_Object) -> Lisp_Object;
         pub fn list2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;

@@ -1977,9 +1977,9 @@ DEFUN! ("window-end", Fwindow_end, Swindow_end, 0, 2, 0,
 
       /* Cannot use Fvertical_motion because that function doesn't
 	 cope with variable-height lines.  */
-      if b != current_buffer
+      if b != (current_buffer! ())
 	{
-	  old_buffer = current_buffer;
+	  old_buffer = (current_buffer! ());
 	  set_buffer_internal (b);
 	}
 
@@ -2018,11 +2018,11 @@ DEFUN! ("set-window-point", Fset_window_point, Sset_window_point, 2, 2, 0,
 
   if w == XWINDOW (selected_window)
     {
-      if XBUFFER ((*w).contents) == current_buffer
+      if XBUFFER ((*w).contents) == (current_buffer! ())
 	{ Fgoto_char (pos); }
       else
 	{
-	  let old_buffer: *mut buffer = current_buffer;
+	  let old_buffer: *mut buffer = (current_buffer! ());
 
 	  /* ... but here we want to catch type error before buffer change.  */
 	  CHECK_FIXNUM_COERCE_MARKER! (pos);
@@ -3135,7 +3135,7 @@ unsafe fn window_loop (r#type: window_loop, obj: Lisp_Object, mini: bool,
 		   current.  But do so only if the window shows the
 		   current buffer (Bug#6454).  */
 		if EQ (window, selected_window)
-		    && XBUFFER ((*w).contents) == current_buffer
+		    && XBUFFER ((*w).contents) == (current_buffer! ())
 		  { Fset_buffer ((*w).contents); }
 	      } }
 
@@ -3537,7 +3537,7 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
 	  && startpos <= BUF_ZV (XBUFFER ((*w).contents))
 	{
 	  let pos: position;
-	  let obuf: *mut buffer = current_buffer;
+	  let obuf: *mut buffer = (current_buffer! ());
 
 	  Fset_buffer ((*w).contents);
 	  /* This computation used to temporarily move point, but that
@@ -3652,7 +3652,7 @@ unsafe fn run_window_configuration_change_hook (f: *mut frame)
     { return; }
 
   /* Use the right buffer.  Matters when running the local hooks.  */
-  if current_buffer != XBUFFER (Fwindow_buffer (Qnil ()))
+  if (current_buffer! ()) != XBUFFER (Fwindow_buffer (Qnil ()))
     {
       record_unwind_current_buffer ();
       Fset_buffer (Fwindow_buffer (Qnil ()));
@@ -4354,11 +4354,11 @@ DEFUN! ("force-window-update", Fforce_window_update, Sforce_window_update,
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn temp_output_buffer_show (buf: Lisp_Object)
 {
-  let old: *mut buffer = current_buffer;
+  let old: *mut buffer = (current_buffer! ());
   let mut window: Lisp_Object = Qnil ();
   let mut w: *mut window;
 
-  bset_directory (XBUFFER (buf), BVAR! (current_buffer, directory_));
+  bset_directory (XBUFFER (buf), BVAR! ((current_buffer! ()), directory_));
 
   Fset_buffer (buf);
   BUF_SAVE_MODIFF! (XBUFFER (buf)) = MODIFF! ();
@@ -6838,10 +6838,10 @@ unsafe fn scroll_command (window: Lisp_Object, n: Lisp_Object, direction: c_int)
      point in the selected window (which would cause the selected
      window to scroll).  Don't screw up if window_scroll gets an
      error.  */
-  if other_window || XBUFFER ((*w).contents) != current_buffer
+  if other_window || XBUFFER ((*w).contents) != (current_buffer! ())
     {
       record_unwind_protect_excursion ();
-      if XBUFFER ((*w).contents) != current_buffer
+      if XBUFFER ((*w).contents) != (current_buffer! ())
 	{ Fset_buffer ((*w).contents); }
     }
 
@@ -6990,9 +6990,9 @@ unsafe fn displayed_window_lines (w: *mut window) -> c_int
   let bottom_y: c_int;
   let mut itdata: *mut c_void = std::ptr::null_mut ();
 
-  if XBUFFER ((*w).contents) != current_buffer
+  if XBUFFER ((*w).contents) != (current_buffer! ())
     {
-      old_buffer = current_buffer;
+      old_buffer = (current_buffer! ());
       set_buffer_internal (XBUFFER ((*w).contents));
     }
   else
@@ -7046,7 +7046,7 @@ DEFUN! ("recenter", Frecenter, Srecenter, 0, 2, "P\np",
   /* For reasons why we signal an error here, see
      https://lists.gnu.org/r/emacs-devel/2014-06/msg00053.html,
      https://lists.gnu.org/r/emacs-devel/2014-06/msg00094.html.  */
-  if buf != current_buffer
+  if buf != (current_buffer! ())
     { error (c"`recenter'ing a window that does not display current-buffer".as_ptr ()); }
 
   /* If redisplay is suppressed due to an error, try again.  */
@@ -7092,7 +7092,7 @@ DEFUN! ("recenter", Frecenter, Srecenter, 0, 2, "P\np",
      for buffers with very long lines, as it tremdously slows down
      redisplay, especially when lines are truncated.  */
   if !FRAME_INITIAL_P (XFRAME ((*w).frame))
-      && (*current_buffer).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P == 0
+      && (*(current_buffer! ())).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P == 0
     {
       let count: specpdl_ref = SPECPDL_INDEX ();
 
@@ -7296,7 +7296,7 @@ DEFUN! ("move-to-window-line", Fmove_to_window_line, Smove_to_window_line,
   let mut window: Lisp_Object;
   let mut arg = arg;
 
-  if !(BUFFERP ((*w).contents) && XBUFFER ((*w).contents) == current_buffer)
+  if !(BUFFERP ((*w).contents) && XBUFFER ((*w).contents) == (current_buffer! ()))
     /* This test is needed to make sure PT/PT_BYTE make sense in w->contents
        when passed below to set_marker_both.  */
     { error (c"move-to-window-line called from unrelated buffer".as_ptr ()); }
@@ -7499,7 +7499,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
     { new_current_buffer = Qnil (); }
   else
     {
-      if XBUFFER (new_current_buffer) == current_buffer
+      if XBUFFER (new_current_buffer) == (current_buffer! ())
 	/* The code further down "preserves point" by saving here PT in
 	   old_point and then setting it later back into PT.  When the
 	   current-selected-window and the final-selected-window both show
@@ -7745,7 +7745,7 @@ DEFUN! ("set-window-configuration", Fset_window_configuration,
 		 restore the location of point in the buffer which was
 		 current when the window configuration was recorded.  */
 	      if !EQ ((*p).buffer, new_current_buffer)
-		  && XBUFFER ((*p).buffer) == current_buffer
+		  && XBUFFER ((*p).buffer) == (current_buffer! ())
 		{ Fgoto_char ((*w).pointm); }
 	    }
 	  else if BUFFERP ((*w).contents) && BUFFER_LIVE_P (XBUFFER ((*w).contents))
@@ -8271,7 +8271,7 @@ DEFUN! ("current-window-configuration", Fcurrent_window_configuration,
   (*data).frame_tool_bar_height = FRAME_TOOL_BAR_HEIGHT (f);
   (*data).selected_frame = selected_frame;
   (*data).current_window = FRAME_SELECTED_WINDOW (f);
-  XSETBUFFER! ((*data).f_current_buffer, current_buffer);
+  XSETBUFFER! ((*data).f_current_buffer, (current_buffer! ()));
   (*data).minibuf_scroll_window = if minibuf_level > 0 { Vminibuf_scroll_window } else { Qnil () };
   (*data).minibuf_selected_window = if minibuf_level > 0 { minibuf_selected_window } else { Qnil () };
   (*data).root_window = FRAME_ROOT_WINDOW (f);

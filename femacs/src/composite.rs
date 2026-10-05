@@ -1071,7 +1071,7 @@ unsafe fn autocmp_chars (rule: Lisp_Object, charpos: ptrdiff_t, bytepos: ptrdiff
       /* Save point as marker before calling out to lisp.  */
       if NILP (string)
 	{ record_unwind_protect (Some (restore_point_unwind),
-				 build_marker (current_buffer as *mut c_void, pt, pt_byte)); }
+				 build_marker ((current_buffer! ()) as *mut c_void, pt, pt_byte)); }
       lgstring = safe_calln! (Vauto_composition_function, AREF (rule, 2),
 			      pos, make_fixnum (to), font_object, string,
 			      direction);
@@ -1166,7 +1166,7 @@ pub unsafe extern "C" fn composition_compute_stop_pos (cmp_it: *mut composition_
 	     at an uncomposable character (NL, LRE, etc).  In buffers
 	     with long lines, however, NL might be far away, so
 	     pretend that the buffer is smaller.  */
-	  if (*current_buffer).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
+	  if (*(current_buffer! ())).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
 	    { endpos = get_small_narrowing_begv ((*(*cmp_it).parent_it).w, charpos); }
 	}
     }
@@ -1190,7 +1190,7 @@ pub unsafe extern "C" fn composition_compute_stop_pos (cmp_it: *mut composition_
       (*cmp_it).ch = -1;
     }
   if (NILP (string)
-      && NILP (BVAR! (current_buffer, enable_multibyte_characters_)))
+      && NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)))
       || (STRINGP (string) && ! STRING_MULTIBYTE (string))
       || inhibit_auto_composition ()
     { return; }
@@ -1760,7 +1760,7 @@ pub unsafe extern "C" fn find_automatic_composition (pos: ptrdiff_t, mut limit: 
 	}
       else
 	{ head = backlim; }
-      if (*current_buffer).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
+      if (*(current_buffer! ())).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0
 	{
 	  /* In buffers with very long lines, this function becomes very
 	     slow.  Pretend that the buffer is narrowed to make it fast.  */
@@ -1953,7 +1953,7 @@ pub unsafe extern "C" fn composition_adjust_point (last_pt: ptrdiff_t,
       return new_pt;
     }
 
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
       || inhibit_auto_composition ()
     { return new_pt; }
 
@@ -2012,7 +2012,7 @@ DEFUN! ("composition-get-gstring", Fcomposition_get_gstring,
 
   if NILP (string)
     {
-      if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	{ error (c"Attempt to shape unibyte text".as_ptr ()); }
       validate_region (&raw mut from, &raw mut to);
       frompos = XFIXNAT (from);
@@ -2133,7 +2133,7 @@ DEFUN! ("find-composition-internal", Ffind_composition_internal,
   if !find_composition (from, to, &raw mut start, &raw mut end, &raw mut prop, string)
     {
       if ((NILP (string)
-	   && !NILP (BVAR! (current_buffer, enable_multibyte_characters_)))
+	   && !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)))
 	   || (!NILP (string) && STRING_MULTIBYTE (string)))
 	  && ! inhibit_auto_composition ()
 	  && find_automatic_composition (from, to, -1,

@@ -527,7 +527,7 @@ pub unsafe extern "C" fn set_frame_menubar (f: *mut frame, mut deep_p: bool)   /
 
   if deep_p                                                      // C 251
     {
-      let prev: *mut buffer = current_buffer;                     // C 253
+      let prev: *mut buffer = (current_buffer! ());                     // C 253
       let mut buffer: Lisp_Object;                                // C 254
       let specpdl_count: specpdl_ref = SPECPDL_INDEX ();           // C 255
       let mut previous_menu_items_used: c_int = (*f).menu_bar_items_used;   // C 256

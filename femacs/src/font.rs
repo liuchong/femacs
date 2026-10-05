@@ -4954,7 +4954,7 @@ unsafe fn font_at (c: c_int, pos: ptrdiff_t, face: *mut face, w: *mut window,
   let mut face: *mut face = face;
 
   multibyte = if NILP (string)
-	      { ! NILP (BVAR! (current_buffer, enable_multibyte_characters_)) }
+	      { ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)) }
 	      else { STRING_MULTIBYTE (string) };
   if c < 0
     {
@@ -6135,7 +6135,7 @@ DEFUN! ("font-at", Ffont_at, Sfont_at, 1, 3, 0,
 
   if NILP (string)
     {
-      if XBUFFER ((*w).contents) != current_buffer
+      if XBUFFER ((*w).contents) != (current_buffer! ())
 	{ error (c"Specified window is not displaying the current buffer".as_ptr ()); }
       pos = fix_position (position);
       if ! (BEGV! () <= pos && pos < ZV! ())

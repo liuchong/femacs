@@ -92,7 +92,7 @@ pub unsafe extern "C" fn verify_bytepos (charpos: ptrdiff_t) -> ptrdiff_t
   while below != charpos
     {
       below += 1;
-      below_byte += buf_next_char_len (current_buffer, below_byte) as ptrdiff_t;
+      below_byte += buf_next_char_len ((current_buffer! ()), below_byte) as ptrdiff_t;
     }
 
   return below_byte;
@@ -942,7 +942,7 @@ DEFUN! ("markers-in", Fmarkers_in, Smarkers_in, 0, 2, 0,
       iend = clip_to_bounds (BEGV! (), XFIXNUM (end), ZV! ());
     }
 
-  tail = BUF_MARKERS! (current_buffer);
+  tail = BUF_MARKERS! ((current_buffer! ()));
   while !tail.is_null ()
     {
       if ibeg <= (*tail).charpos && (*tail).charpos <= iend

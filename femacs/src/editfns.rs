@@ -354,7 +354,7 @@ DEFUN! ("point-marker", Fpoint_marker, Spoint_marker, 0, 0, 0,
        doc: "Return value of point, as a marker object.",
        (),
        {
-  return build_marker (current_buffer as *mut c_void, PT! (), PT_BYTE! ());
+  return build_marker ((current_buffer! ()) as *mut c_void, PT! (), PT_BYTE! ());
 });
 
 DEFUN! ("goto-char", Fgoto_char, Sgoto_char, 1, 1,
@@ -381,10 +381,10 @@ unsafe fn region_limit (beginningp: bool) -> Lisp_Object
 
   if !NILP (Vtransient_mark_mode)
       && NILP (Vmark_even_if_inactive)
-      && NILP (BVAR! (current_buffer, mark_active_))
+      && NILP (BVAR! ((current_buffer! ()), mark_active_))
     { xsignal0 (Qmark_inactive ()); }
 
-  m = Fmarker_position (BVAR! (current_buffer, mark_));
+  m = Fmarker_position (BVAR! ((current_buffer! ()), mark_));
   if NILP (m)
     { error (c"The mark is not set now, so there is no region".as_ptr ()); }
 
@@ -412,7 +412,7 @@ DEFUN! ("mark-marker", Fmark_marker, Smark_marker, 0, 0, 0,
        doc: "Return this buffer's mark, as a marker object.\nWatch out!  Moving this marker changes the mark position.\nIf you set the marker not to point anywhere, the buffer will have no mark.",
        (),
        {
-  return BVAR! (current_buffer, mark_);
+  return BVAR! ((current_buffer! ()), mark_);
 });
 
 
@@ -426,7 +426,7 @@ DEFUN! ("get-pos-property", Fget_pos_property, Sget_pos_property, 2, 3, 0,
   CHECK_FIXNUM_COERCE_MARKER! (position);
 
   if NILP (object)
-    { XSETBUFFER! (object, current_buffer); }
+    { XSETBUFFER! (object, (current_buffer! ())); }
   else if WINDOWP (object)
     { object = (*XWINDOW (object)).contents; }
 
@@ -439,7 +439,7 @@ DEFUN! ("get-pos-property", Fget_pos_property, Sget_pos_property, 2, 3, 0,
     {
       let posn: EMACS_INT = XFIXNUM (position);
       let mut tem: Lisp_Object = Qnil ();
-      let obuf: *mut buffer = current_buffer;
+      let obuf: *mut buffer = (current_buffer! ());
       let mut node: *mut itree_node = std::ptr::null_mut ();
       let mut items: [sortvec; 2] = [std::mem::zeroed (); 2];
       let b: *mut buffer = XBUFFER (object);
@@ -889,7 +889,7 @@ pub unsafe extern "C" fn save_excursion_restore (marker: Lisp_Object, window: Li
     {
       /* Set window point if WINDOW is live and shows the current buffer.  */
       let contents: Lisp_Object = (*XWINDOW (window)).contents;
-      if BUFFERP (contents) && XBUFFER (contents) == current_buffer
+      if BUFFERP (contents) && XBUFFER (contents) == (current_buffer! ())
         { Fset_window_point (window, make_fixnum (PT! ())); }
     }
 }
@@ -943,7 +943,7 @@ DEFUN! ("point-min-marker", Fpoint_min_marker, Spoint_min_marker, 0, 0, 0,
        doc: "Return a marker to the minimum permissible value of point in this buffer.\nThis is the beginning, unless narrowing (a buffer restriction) is in effect.",
        (),
        {
-  return build_marker (current_buffer as *mut c_void, BEGV! (), BEGV_BYTE! ());
+  return build_marker ((current_buffer! ()) as *mut c_void, BEGV! (), BEGV_BYTE! ());
 });
 
 DEFUN! ("point-max", Fpoint_max, Spoint_max, 0, 0, 0,
@@ -959,7 +959,7 @@ DEFUN! ("point-max-marker", Fpoint_max_marker, Spoint_max_marker, 0, 0, 0,
        doc: "Return a marker to the maximum permissible value of point in this buffer.\nThis is (1+ (buffer-size)), unless narrowing (a buffer restriction)\nis in effect, in which case it is less.",
        (),
        {
-  return build_marker (current_buffer as *mut c_void, ZV! (), ZV_BYTE! ());
+  return build_marker ((current_buffer! ()) as *mut c_void, ZV! (), ZV_BYTE! ());
 });
 
 DEFUN! ("gap-position", Fgap_position, Sgap_position, 0, 0, 0,
@@ -1029,7 +1029,7 @@ DEFUN! ("preceding-char", Fprevious_char, Sprevious_char, 0, 0, 0,
   let mut temp: Lisp_Object = Qnil ();
   if PT! () <= BEGV! ()
     { XSETFASTINT! (temp, 0); }
-  else if !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  else if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     {
       let mut pos: ptrdiff_t = PT_BYTE! ();
       pos -= prev_char_len (pos) as ptrdiff_t;
@@ -1137,7 +1137,7 @@ DEFUN! ("char-before", Fchar_before, Schar_before, 0, 1, 0,
       pos_byte = CHAR_TO_BYTE (p);
     }
 
-  if !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     {
       pos_byte -= prev_char_len (pos_byte) as ptrdiff_t;
       XSETFASTINT! (val, FETCH_CHAR (pos_byte) as EMACS_INT);
@@ -1344,7 +1344,7 @@ unsafe fn general_insert_function (insert_func: unsafe extern "C" fn (*const c_c
           let mut str_: [u8; MAX_MULTIBYTE_LENGTH as usize] = std::mem::zeroed ();
           let mut len: c_int;
 
-          if !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+          if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
             { len = CHAR_STRING (c, str_.as_mut_ptr ()); }
           else
             {
@@ -1433,7 +1433,7 @@ DEFUN! ("insert-char", Finsert_char, Sinsert_char, 1, 3,
     { CHECK_FIXNUM (count); }
   c = XFIXNAT (character) as c_int;
 
-  if !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { len = CHAR_STRING (c, str_.as_mut_ptr ()); }
   else
     { str_[0] = c as u8; len = 1; }
@@ -1472,7 +1472,7 @@ DEFUN! ("insert-byte", Finsert_byte, Sinsert_byte, 2, 3, 0,
   if XFIXNUM (byte) < 0 || XFIXNUM (byte) > 255
     { args_out_of_range_3 (byte, make_fixnum (0), make_fixnum (255)); }
   if XFIXNUM (byte) >= 128
-      && !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      && !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { XSETFASTINT! (byte, BYTE8_TO_CHAR (XFIXNUM (byte) as c_int) as EMACS_INT); }
   return Finsert_char (byte, count, inherit);
 });
@@ -1548,7 +1548,7 @@ pub unsafe extern "C" fn make_buffer_string_both (start: ptrdiff_t, start_byte: 
       end1 = -1;
     }
 
-  if !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { result = make_uninit_multibyte_string (end - start, end_byte - start_byte); }
   else
     { result = make_uninit_string (end - start); }
@@ -1570,7 +1570,7 @@ pub unsafe extern "C" fn make_buffer_string_both (start: ptrdiff_t, start_byte: 
       tem1 = Ftext_properties_at (make_fixnum (start), Qnil ());
 
       if XFIXNUM (tem) != end || !NILP (tem1)
-        { copy_intervals_to_string (result, current_buffer, start, end - start); }
+        { copy_intervals_to_string (result, (current_buffer! ()), start, end - start); }
     }
 
   return result;
@@ -1669,7 +1669,7 @@ DEFUN! ("insert-buffer-substring", Finsert_buffer_substring, Sinsert_buffer_subs
   if !(BUF_BEGV (bp) <= b && e <= BUF_ZV (bp))
     { args_out_of_range (start, end); }
 
-  obuf = current_buffer;
+  obuf = (current_buffer! ());
   set_buffer_internal_1 (bp);
   update_buffer_properties (b, e);
   set_buffer_internal_1 (obuf);
@@ -1693,7 +1693,7 @@ DEFUN! ("compare-buffer-substrings", Fcompare_buffer_substrings, Scompare_buffer
   let mut bp2: *mut buffer;
   let trt: Lisp_Object
     = if !NILP (Vcase_fold_search)
-      { BVAR! (current_buffer, case_canon_table_) } else { Qnil () };
+      { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () };
   let mut chars: ptrdiff_t = 0;
   let mut i1: ptrdiff_t;
   let mut i2: ptrdiff_t;
@@ -1703,7 +1703,7 @@ DEFUN! ("compare-buffer-substrings", Fcompare_buffer_substrings, Scompare_buffer
   /* Find the first buffer and its substring.  */
 
   if NILP (buffer1)
-    { bp1 = current_buffer; }
+    { bp1 = (current_buffer! ()); }
   else
     {
       let buf1: Lisp_Object = Fget_buffer (buffer1);
@@ -1727,7 +1727,7 @@ DEFUN! ("compare-buffer-substrings", Fcompare_buffer_substrings, Scompare_buffer
   /* Likewise for second substring.  */
 
   if NILP (buffer2)
-    { bp2 = current_buffer; }
+    { bp2 = (current_buffer! ()); }
   else
     {
       let buf2: Lisp_Object = Fget_buffer (buffer2);
@@ -2414,7 +2414,7 @@ DEFUN! ("replace-region-contents", Freplace_region_contents, Sreplace_region_con
       return Qt ();
     }
 
-  let a: *mut buffer = current_buffer;
+  let a: *mut buffer = (current_buffer! ());
   if a == b
     { error (c"Cannot replace a buffer with itself".as_ptr ()); }
 
@@ -2666,12 +2666,12 @@ unsafe fn compareseq_early_abort (ctx: *mut context) -> bool
 
 unsafe extern "C" fn subst_char_in_region_unwind (arg: Lisp_Object)
 {
-  bset_undo_list (current_buffer, arg);
+  bset_undo_list ((current_buffer! ()), arg);
 }
 
 unsafe extern "C" fn subst_char_in_region_unwind_1 (arg: Lisp_Object)
 {
-  bset_filename (current_buffer, arg);
+  bset_filename ((current_buffer! ()), arg);
 }
 
 DEFUN! ("subst-char-in-region", Fsubst_char_in_region,
@@ -2699,7 +2699,7 @@ DEFUN! ("subst-char-in-region", Fsubst_char_in_region,
   let count: specpdl_ref = SPECPDL_INDEX ();
   let mut last_changed: ptrdiff_t = 0;
   let multibyte_p: bool
-    = !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+    = !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   let mut fromc: c_int;
   let mut toc: c_int;
 
@@ -2739,12 +2739,12 @@ DEFUN! ("subst-char-in-region", Fsubst_char_in_region,
       if changed == 0 && !NILP (noundo)
         {
           record_unwind_protect (Some (subst_char_in_region_unwind),
-                                 BVAR! (current_buffer, undo_list_));
-          bset_undo_list (current_buffer, Qt ());
+                                 BVAR! ((current_buffer! ()), undo_list_));
+          bset_undo_list ((current_buffer! ()), Qt ());
           /* Don't do file-locking.  */
           record_unwind_protect (Some (subst_char_in_region_unwind_1),
-                                 BVAR! (current_buffer, filename_));
-          bset_filename (current_buffer, Qnil ());
+                                 BVAR! ((current_buffer! ()), filename_));
+          bset_filename ((current_buffer! ()), Qnil ());
         }
 
       if pos_byte < GPT_BYTE! ()
@@ -2785,8 +2785,8 @@ DEFUN! ("subst-char-in-region", Fsubst_char_in_region,
                       let m: modiff_count = MODIFF! ();
                       if SAVE_MODIFF! () == m - 1
                         { SAVE_MODIFF! () = m; }
-                      if BUF_AUTOSAVE_MODIFF! (current_buffer) == m - 1
-                        { BUF_AUTOSAVE_MODIFF! (current_buffer) = m; }
+                      if BUF_AUTOSAVE_MODIFF! ((current_buffer! ())) == m - 1
+                        { BUF_AUTOSAVE_MODIFF! ((current_buffer! ())) = m; }
                     }
 
                   /* The before-change-function may have moved the gap
@@ -2903,7 +2903,7 @@ DEFUN! ("translate-region-internal", Ftranslate_region_internal,
   let mut end: Lisp_Object = end;
   let mut table: Lisp_Object = table;
   let mut translatable_chars: c_int = MAX_CHAR + 1;
-  let multibyte: bool = !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   let mut string_multibyte: bool = false;
 
   validate_region (&mut start, &mut end);
@@ -3278,10 +3278,10 @@ DEFUN! ("widen", Fwiden, Swiden, 0, 0, "",
   if NILP (label)
     {
       if (BEG as ptrdiff_t) != BEGV! () || Z! () != ZV! ()
-        { (*current_buffer).bits |= BUFFER_CLIP_CHANGED; }
+        { (*(current_buffer! ())).bits |= BUFFER_CLIP_CHANGED; }
       BEGV! () = BEG as ptrdiff_t;
       BEGV_BYTE! () = BEG_BYTE as ptrdiff_t;
-      SET_BUF_ZV_BOTH (current_buffer, Z! (), Z_BYTE! ());
+      SET_BUF_ZV_BOTH ((current_buffer! ()), Z! (), Z_BYTE! ());
     }
   else
     {
@@ -3291,10 +3291,10 @@ DEFUN! ("widen", Fwiden, Swiden, 0, 0, "",
       let begv_charpos: ptrdiff_t = marker_position (begv);
       let zv_charpos: ptrdiff_t = marker_position (zv);
       if begv_charpos != BEGV! () || zv_charpos != ZV! ()
-        { (*current_buffer).bits |= BUFFER_CLIP_CHANGED; }
-      SET_BUF_BEGV_BOTH (current_buffer,
+        { (*(current_buffer! ())).bits |= BUFFER_CLIP_CHANGED; }
+      SET_BUF_BEGV_BOTH ((current_buffer! ()),
                          begv_charpos, marker_byte_position (begv));
-      SET_BUF_ZV_BOTH (current_buffer,
+      SET_BUF_ZV_BOTH ((current_buffer! ()),
                        zv_charpos, marker_byte_position (zv));
       /* If the only remaining bounds in labeled_restrictions for
          current_buffer are the bounds that were set by the user, no
@@ -3340,10 +3340,10 @@ DEFUN! ("narrow-to-region", Fnarrow_to_region, Snarrow_to_region, 2, 2, "r",
     }
 
   if BEGV! () != s || ZV! () != e
-    { (*current_buffer).bits |= BUFFER_CLIP_CHANGED; }
+    { (*(current_buffer! ())).bits |= BUFFER_CLIP_CHANGED; }
 
-  SET_BUF_BEGV (current_buffer, s);
-  SET_BUF_ZV (current_buffer, e);
+  SET_BUF_BEGV ((current_buffer! ()), s);
+  SET_BUF_ZV ((current_buffer! ()), e);
 
   if PT! () < s
     { SET_PT (s); }
@@ -3398,8 +3398,8 @@ unsafe fn save_restriction_save_1 () -> Lisp_Object
       let beg: Lisp_Object;
       let end: Lisp_Object;
 
-      beg = build_marker (current_buffer as *mut c_void, BEGV! (), BEGV_BYTE! ());
-      end = build_marker (current_buffer as *mut c_void, ZV! (), ZV_BYTE! ());
+      beg = build_marker ((current_buffer! ()) as *mut c_void, BEGV! (), BEGV_BYTE! ());
+      end = build_marker ((current_buffer! ()) as *mut c_void, ZV! (), ZV_BYTE! ());
 
       /* END must move forward if text is inserted at its exact location.  */
       (*XMARKER (end)).bits |= MARKER_INSERTION_TYPE;
@@ -3415,12 +3415,12 @@ unsafe fn save_restriction_restore_1 (data: Lisp_Object)
     { (*XMARKER (XCAR (data))).buffer as *mut buffer }
     else { XBUFFER (data) };
 
-  if !buf.is_null () && buf != current_buffer && !NILP (BVAR! (buf, pt_marker_))
+  if !buf.is_null () && buf != (current_buffer! ()) && !NILP (BVAR! (buf, pt_marker_))
     { /* If `buf' uses markers to keep track of PT, BEGV, and ZV (as
          is the case if it is or has an indirect buffer), then make
          sure it is current before we update BEGV, so
          set_buffer_internal takes care of managing those markers.  */
-      cur = current_buffer;
+      cur = (current_buffer! ());
       set_buffer_internal (buf);
     }
 
@@ -4749,7 +4749,7 @@ DEFUN! ("char-equal", Fchar_equal, Schar_equal, 2, 2, 0,
   /* FIXME: It is possible to compare multibyte characters even when
      the current buffer is unibyte.  (The reference's full comment is
      editfns.c 4434-4440.)  */
-  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     {
       if SINGLE_BYTE_CHAR_P (i1 as intmax_t)
         { i1 = UNIBYTE_TO_CHAR (i1); }
@@ -4808,7 +4808,7 @@ unsafe fn transpose_markers (start1: ptrdiff_t, end1: ptrdiff_t,
   amt1_byte = (end2_byte - start2_byte) + (start2_byte - end1_byte);
   amt2_byte = (end1_byte - start1_byte) + (start2_byte - end1_byte);
 
-  marker = BUF_MARKERS! (current_buffer);
+  marker = BUF_MARKERS! ((current_buffer! ()));
   while !marker.is_null ()
     {
       mpos = (*marker).bytepos;
@@ -4873,8 +4873,8 @@ DEFUN! ("transpose-regions", Ftranspose_regions, Stranspose_regions, 4, 5,
   let mut tmp_interval3: INTERVAL = std::ptr::null_mut ();
   let mut buf: Lisp_Object;
 
-  XSETBUFFER! (buf, current_buffer);
-  cur_intv = buffer_intervals (current_buffer);
+  XSETBUFFER! (buf, (current_buffer! ()));
+  cur_intv = buffer_intervals ((current_buffer! ()));
 
   validate_region (&mut startr1, &mut endr1);
   validate_region (&mut startr2, &mut endr2);
@@ -5025,12 +5025,12 @@ DEFUN! ("transpose-regions", Ftranspose_regions, Stranspose_regions, 4, 5,
     /* Restore intervals of the mid.  */
     {
       graft_intervals_into_buffer (tmp_interval_mid, start1 + len2,
-                                   len_mid, current_buffer, false);
+                                   len_mid, (current_buffer! ()), false);
     }
   graft_intervals_into_buffer (tmp_interval1, end2 - len1,
-                               len1, current_buffer, false);
+                               len1, (current_buffer! ()), false);
   graft_intervals_into_buffer (tmp_interval2, start1,
-                               len2, current_buffer, false);
+                               len2, (current_buffer! ()), false);
 
   update_compositions (start1, start1 + len2, CHECK_BORDER);
   update_compositions (end2 - len1, end2, CHECK_BORDER);

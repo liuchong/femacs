@@ -4277,7 +4277,7 @@ unsafe fn base64_encode_region_1 (beg: Lisp_Object, end: Lisp_Object, line_break
   encoded_length = base64_encode_1 (BYTE_POS_ADDR (ibeg) as *const c_char,
 				    encoded, length, line_break,
 				    pad, base64url,
-				    !NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+				    !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
   if encoded_length > allength
     { emacs_abort (); }
 
@@ -4507,7 +4507,7 @@ DEFUN! ("base64-decode-region", Fbase64_decode_region, Sbase64_decode_region,
   let mut old_pos: ptrdiff_t = PT! ();
   let mut decoded_length: ptrdiff_t;
   let mut inserted_chars: ptrdiff_t = 0;
-  let multibyte: bool = !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   USE_SAFE_ALLOCA! (sa_avail, sa_count);
 
   validate_region (&raw mut beg, &raw mut end);
@@ -6523,7 +6523,7 @@ pub unsafe extern "C" fn extract_data_from_object (spec: Lisp_Object,
     }
   else if BUFFERP (object)
     {
-      let prev: *mut buffer = current_buffer;
+      let prev: *mut buffer = (current_buffer! ());
       let mut b: EMACS_INT;
       let mut e: EMACS_INT;
 
@@ -6560,7 +6560,7 @@ pub unsafe extern "C" fn extract_data_from_object (spec: Lisp_Object,
 		  || NILP (Flocal_variable_p (Qbuffer_file_coding_system (), Qnil ()))
 		{
 		  coding_system = Qnil ();
-		  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+		  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 		    { force_raw_text = true; }
 		}
 
@@ -6609,7 +6609,7 @@ pub unsafe extern "C" fn extract_data_from_object (spec: Lisp_Object,
       set_buffer_internal (prev);
       /* Discard the unwind protect for recovering the current
 	 buffer.  */
-      specpdl_ptr = specpdl_ptr.offset (-1);
+      (specpdl_ptr! ()) = (specpdl_ptr! ()).offset (-1);
 
       if STRING_MULTIBYTE (object)
 	{ object = code_convert_string (object, coding_system,
@@ -6997,14 +6997,14 @@ DEFUN! ("line-number-at-pos", Fline_number_at_pos,
   let mut pos_byte: ptrdiff_t;
   let mut start_byte: ptrdiff_t = BEGV_BYTE! ();
 
-  if !BUFFER_LIVE_P (current_buffer)
+  if !BUFFER_LIVE_P ((current_buffer! ()))
     { error (c"Attempt to count lines in a dead buffer".as_ptr ()); }
 
   if MARKERP (position)
     {
       /* We don't trust the byte position if the marker's buffer is
          not the current buffer.  */
-      if (*XMARKER (position)).buffer != current_buffer as *mut c_void
+      if (*XMARKER (position)).buffer != (current_buffer! ()) as *mut c_void
 	{ pos_byte = CHAR_TO_BYTE (marker_position (position)); }
       else
 	{ pos_byte = marker_byte_position (position); }

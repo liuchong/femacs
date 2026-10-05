@@ -1948,7 +1948,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
       /* Of course, this could conceivably lose if luser sets
 	 default-directory to be something non-absolute...  */
       {
-	filename = Fexpand_file_name (filename, BVAR! (current_buffer, directory_));
+	filename = Fexpand_file_name (filename, BVAR! ((current_buffer! ()), directory_));
 	if !complete_filename_p (filename)
 	  /* Give up on this path element!  */
 	  { continue; }

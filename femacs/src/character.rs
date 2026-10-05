@@ -536,8 +536,8 @@ DEFUN! ("string-width", Fstring_width, Sstring_width, 1, 3, 0,
 pub unsafe extern "C" fn chars_in_text (ptr: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t
 {
   /* current_buffer is null at early stages of Emacs initialization.  */
-  if current_buffer.is_null ()
-      || NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if (current_buffer! ()).is_null ()
+      || NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { return nbytes; }
 
   return multibyte_chars_in_text (ptr, nbytes);
@@ -998,7 +998,7 @@ DEFUN! ("get-byte", Fget_byte, Sget_byte, 0, 2, 0,
 	  pos = fixed_pos;
 	  p = CHAR_POS_ADDR (pos);
 	}
-      if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	{ return make_fixnum (*p as EMACS_INT); }
     }
   else

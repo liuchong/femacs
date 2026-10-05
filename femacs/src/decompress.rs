@@ -502,7 +502,7 @@ DEFUN! ("zlib-decompress-region", Fzlib_decompress_region, Szlib_decompress_regi
 
   validate_region (&raw mut start, &raw mut end);
 
-  if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+  if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
     { error (c"This function can be called only in unibyte buffers".as_ptr ()); }
 
   #[cfg (feature = "windowsnt")]

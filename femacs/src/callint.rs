@@ -157,12 +157,12 @@ static mut callint_argfuns: [*const c_char; 7]
 unsafe fn check_mark (for_region: bool)
 {
   let mut tem: Lisp_Object;
-  tem = Fmarker_buffer (BVAR! (current_buffer, mark_));
-  if NILP (tem) || (XBUFFER (tem) != current_buffer)
+  tem = Fmarker_buffer (BVAR! ((current_buffer! ()), mark_));
+  if NILP (tem) || (XBUFFER (tem) != (current_buffer! ()))
     { error (if for_region { c"The mark is not set now, so there is no region".as_ptr () }
 	     else { c"The mark is not set now".as_ptr () }); }
   if !NILP (Vtransient_mark_mode) && NILP (Vmark_even_if_inactive)
-      && NILP (BVAR! (current_buffer, mark_active_))
+      && NILP (BVAR! ((current_buffer! ()), mark_active_))
     { xsignal0 (Qmark_inactive ()); }
 }
 
@@ -362,7 +362,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	{ error (c"`+' is not used in `interactive' for ordinary commands".as_ptr ()); }
       else if *string == b'*' as c_char
 	{
-	  if !NILP (BVAR! (current_buffer, read_only_))
+	  if !NILP (BVAR! ((current_buffer! ()), read_only_))
 	    {
 	      if !NILP (record_flag)
 		{
@@ -545,7 +545,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	letter_D =>
 	  {
 	    /* Directory name.  */
-	    *args.offset (i) = read_file_name (BVAR! (current_buffer, directory_), Qlambda (),
+	    *args.offset (i) = read_file_name (BVAR! ((current_buffer! ()), directory_), Qlambda (),
 					       Qnil (), Qfile_directory_p ());
 	  }
 
@@ -674,7 +674,7 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	    /* Value of mark.  Does not do I/O.  */
 	    check_mark (false);
 	    /* visargs[i] = Qnil; */
-	    *args.offset (i) = BVAR! (current_buffer, mark_);
+	    *args.offset (i) = BVAR! ((current_buffer! ()), mark_);
 	    *varies.offset (i) = 2;
 	  }
 
@@ -738,14 +738,14 @@ DEFUN! ("call-interactively", Fcall_interactively, Scall_interactively, 1, 3, 0,
 	      {
 		check_mark (true);
 		set_marker_both (point_marker, Qnil (), PT! (), PT_BYTE! ());
-		let mark: ptrdiff_t = marker_position (BVAR! (current_buffer, mark_));
+		let mark: ptrdiff_t = marker_position (BVAR! ((current_buffer! ()), mark_));
 		/* visargs[i] = visargs[i + 1] = Qnil; */
 		*args.offset (i) = if PT! () < mark { point_marker }
-				  else { BVAR! (current_buffer, mark_) };
+				  else { BVAR! ((current_buffer! ()), mark_) };
 		*varies.offset (i) = if *tem as c_int == letter_R { 5 } else { 3 };
 		i += 1;
 		*args.offset (i) = if PT! () > mark { point_marker }
-				  else { BVAR! (current_buffer, mark_) };
+				  else { BVAR! ((current_buffer! ()), mark_) };
 		*varies.offset (i) = if *tem as c_int == letter_R { 6 } else { 4 };
 	      }
 	  }

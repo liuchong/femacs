@@ -7697,7 +7697,7 @@ DEFUN! ("memory-info", Fmemory_info, Smemory_info, 0, 0, 0,
        (),
        {
   let handler: Lisp_Object
-    = Ffind_file_name_handler (BVAR! (current_buffer, directory_),
+    = Ffind_file_name_handler (BVAR! ((current_buffer! ()), directory_),
 			       Qmemory_info ());
   if !NILP (handler)
     { return calln! (handler, Qmemory_info ()); }

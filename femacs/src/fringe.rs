@@ -1375,7 +1375,7 @@ pub unsafe extern "C" fn draw_window_fringes (w: *mut window, no_fringe_p: bool)
   /* We must switch to the window's buffer to use its local value of
      the fringe face, in case it's been remapped in face-remapping-alist.  */
   let window_buffer: Lisp_Object = (*w).contents;
-  let oldbuf: *mut buffer = current_buffer;
+  let oldbuf: *mut buffer = (current_buffer! ());
   set_buffer_internal_1 (XBUFFER (window_buffer));
 
   /* Must draw line if no fringe */

@@ -151,7 +151,7 @@ unsafe fn modify_text_properties (buffer: Lisp_Object, start: Lisp_Object, end: 
   let b: ptrdiff_t = XFIXNUM (start);
   let e: ptrdiff_t = XFIXNUM (end);
   let buf: *mut buffer = XBUFFER (buffer);
-  let old: *mut buffer = current_buffer;
+  let old: *mut buffer = (current_buffer! ());
 
   set_buffer_internal (buf);
 
@@ -162,7 +162,7 @@ unsafe fn modify_text_properties (buffer: Lisp_Object, start: Lisp_Object, end: 
     { record_first_change (); }
   modiff_incr (&raw mut MODIFF! (), 1);
 
-  bset_point_before_scroll (current_buffer, Qnil ());
+  bset_point_before_scroll ((current_buffer! ()), Qnil ());
 
   set_buffer_internal (old);
 }
@@ -646,7 +646,7 @@ pub unsafe extern "C" fn interval_of (position: ptrdiff_t, mut object: Lisp_Obje
   let mut end: ptrdiff_t = 0;
 
   if NILP (object)
-    { XSETBUFFER! (object, current_buffer); }
+    { XSETBUFFER! (object, (current_buffer! ())); }
   else if EQ (object, Qt ())
     { return std::ptr::null_mut (); }
 
@@ -686,7 +686,7 @@ DEFUN! ("text-properties-at", Ftext_properties_at,
 	 let mut i: INTERVAL = std::ptr::null_mut ();
 
 	 if NILP (object)
-	   { XSETBUFFER! (object, current_buffer); }
+	   { XSETBUFFER! (object, (current_buffer! ())); }
 
 	 i = validate_interval_range (object, &raw mut position, &raw mut position, soft);
 	 if i.is_null ()
@@ -732,7 +732,7 @@ pub unsafe extern "C" fn get_char_property_and_overlay (position: Lisp_Object,
   let mut object = object;
 
   if NILP (object)
-    { XSETBUFFER! (object, current_buffer); }
+    { XSETBUFFER! (object, (current_buffer! ())); }
 
   if WINDOWP (object)
     {
@@ -890,7 +890,7 @@ DEFUN! ("next-single-char-property-change", Fnext_single_char_property_change,
 	     if ! NILP (object)
 	       { CHECK_BUFFER (object); }
 
-	     if BUFFERP (object) && current_buffer != XBUFFER (object)
+	     if BUFFERP (object) && (current_buffer! ()) != XBUFFER (object)
 	       {
 		 record_unwind_current_buffer ();
 		 Fset_buffer (object);
@@ -967,7 +967,7 @@ DEFUN! ("previous-single-char-property-change",
 	     if ! NILP (object)
 	       { CHECK_BUFFER (object); }
 
-	     if BUFFERP (object) && current_buffer != XBUFFER (object)
+	     if BUFFERP (object) && (current_buffer! ()) != XBUFFER (object)
 	       {
 		 record_unwind_current_buffer ();
 		 Fset_buffer (object);
@@ -1032,7 +1032,7 @@ DEFUN! ("next-property-change", Fnext_property_change,
 	 let mut next: INTERVAL = std::ptr::null_mut ();
 
 	 if NILP (object)
-	   { XSETBUFFER! (object, current_buffer); }
+	   { XSETBUFFER! (object, (current_buffer! ())); }
 
 	 if !NILP (limit) && !EQ (limit, Qt ())
 	   { CHECK_FIXNUM_COERCE_MARKER! (limit); }
@@ -1091,7 +1091,7 @@ DEFUN! ("next-single-property-change", Fnext_single_property_change,
 	 let mut here_val: Lisp_Object = Qnil ();
 
 	 if NILP (object)
-	   { XSETBUFFER! (object, current_buffer); }
+	   { XSETBUFFER! (object, (current_buffer! ())); }
 
 	 if !NILP (limit)
 	   { CHECK_FIXNUM_COERCE_MARKER! (limit); }
@@ -1131,7 +1131,7 @@ DEFUN! ("previous-property-change", Fprevious_property_change,
 	 let mut previous: INTERVAL = std::ptr::null_mut ();
 
 	 if NILP (object)
-	   { XSETBUFFER! (object, current_buffer); }
+	   { XSETBUFFER! (object, (current_buffer! ())); }
 
 	 if !NILP (limit)
 	   { CHECK_FIXNUM_COERCE_MARKER! (limit); }
@@ -1175,7 +1175,7 @@ DEFUN! ("previous-single-property-change", Fprevious_single_property_change,
 	 let mut here_val: Lisp_Object = Qnil ();
 
 	 if NILP (object)
-	   { XSETBUFFER! (object, current_buffer); }
+	   { XSETBUFFER! (object, (current_buffer! ())); }
 
 	 if !NILP (limit)
 	   { CHECK_FIXNUM_COERCE_MARKER! (limit); }
@@ -1228,7 +1228,7 @@ unsafe fn add_text_properties_1 (start: Lisp_Object, end: Lisp_Object,
   /* Ensure we run the modification hooks for the right buffer,
      without switching buffers twice (bug 36190).  FIXME: Switching
      buffers is slow and often unnecessary.  */
-  if BUFFERP (object) && XBUFFER (object) != current_buffer
+  if BUFFERP (object) && XBUFFER (object) != (current_buffer! ())
     {
       let count: specpdl_ref = SPECPDL_INDEX ();
       record_unwind_current_buffer ();
@@ -1250,7 +1250,7 @@ unsafe fn add_text_properties_1 (start: Lisp_Object, end: Lisp_Object,
     { return Qnil (); }
 
   if NILP (object)
-    { XSETBUFFER! (object, current_buffer); }
+    { XSETBUFFER! (object, (current_buffer! ())); }
 
  'retry: loop {
   i = validate_interval_range (object, &raw mut start, &raw mut end, hard);
@@ -1417,7 +1417,7 @@ pub unsafe extern "C" fn set_text_properties (start: Lisp_Object, end: Lisp_Obje
   /* Ensure we run the modification hooks for the right buffer,
      without switching buffers twice (bug 36190).  FIXME: Switching
      buffers is slow and often unnecessary.  */
-  if BUFFERP (object) && XBUFFER (object) != current_buffer
+  if BUFFERP (object) && XBUFFER (object) != (current_buffer! ())
     {
       let count: specpdl_ref = SPECPDL_INDEX ();
       record_unwind_current_buffer ();
@@ -1437,7 +1437,7 @@ pub unsafe extern "C" fn set_text_properties (start: Lisp_Object, end: Lisp_Obje
   properties = validate_plist (properties);
 
   if NILP (object)
-    { XSETBUFFER! (object, current_buffer); }
+    { XSETBUFFER! (object, (current_buffer! ())); }
 
   /* If we want no properties for a whole string,
      get rid of its intervals.  */
@@ -1506,7 +1506,7 @@ pub unsafe extern "C" fn set_text_properties_1 (start: Lisp_Object, end: Lisp_Ob
   /* Ensure we run the modification hooks for the right buffer,
      without switching buffers twice (bug 36190).  FIXME: Switching
      buffers is slow and often unnecessary.  */
-  if BUFFERP (object) && XBUFFER (object) != current_buffer
+  if BUFFERP (object) && XBUFFER (object) != (current_buffer! ())
     {
       let count: specpdl_ref = SPECPDL_INDEX ();
       record_unwind_current_buffer ();
@@ -1603,7 +1603,7 @@ DEFUN! ("remove-text-properties", Fremove_text_properties,
 	 /* Ensure we run the modification hooks for the right buffer,
 	    without switching buffers twice (bug 36190).  FIXME: Switching
 	    buffers is slow and often unnecessary.  */
-	 if BUFFERP (object) && XBUFFER (object) != current_buffer
+	 if BUFFERP (object) && XBUFFER (object) != (current_buffer! ())
 	   {
 	     let count: specpdl_ref = SPECPDL_INDEX ();
 	     record_unwind_current_buffer ();
@@ -1621,7 +1621,7 @@ DEFUN! ("remove-text-properties", Fremove_text_properties,
 	 let mut first_time: bool = true;
 
 	 if NILP (object)
-	   { XSETBUFFER! (object, current_buffer); }
+	   { XSETBUFFER! (object, (current_buffer! ())); }
 
 	'retry: loop {
 	 i = validate_interval_range (object, &raw mut start, &raw mut end, soft);
@@ -1736,7 +1736,7 @@ DEFUN! ("remove-list-of-text-properties", Fremove_list_of_text_properties,
 	 /* Ensure we run the modification hooks for the right buffer,
 	    without switching buffers twice (bug 36190).  FIXME: Switching
 	    buffers is slow and often unnecessary.  */
-	 if BUFFERP (object) && XBUFFER (object) != current_buffer
+	 if BUFFERP (object) && XBUFFER (object) != (current_buffer! ())
 	   {
 	     let count: specpdl_ref = SPECPDL_INDEX ();
 	     record_unwind_current_buffer ();
@@ -1756,7 +1756,7 @@ DEFUN! ("remove-list-of-text-properties", Fremove_list_of_text_properties,
 	 properties = list_of_properties;
 
 	 if NILP (object)
-	   { XSETBUFFER! (object, current_buffer); }
+	   { XSETBUFFER! (object, (current_buffer! ())); }
 
 	 i = validate_interval_range (object, &raw mut start, &raw mut end, soft);
 	 if i.is_null ()
@@ -1882,7 +1882,7 @@ DEFUN! ("text-property-any", Ftext_property_any,
 	 let mut pos: ptrdiff_t = 0;
 
 	 if NILP (object)
-	   { XSETBUFFER! (object, current_buffer); }
+	   { XSETBUFFER! (object, (current_buffer! ())); }
 	 i = validate_interval_range (object, &raw mut start, &raw mut end, soft);
 	 if i.is_null ()
 	   { return if !NILP (value) || EQ (start, end) { Qnil () } else { start }; }
@@ -1918,7 +1918,7 @@ DEFUN! ("text-property-not-all", Ftext_property_not_all,
 	 let mut e: ptrdiff_t = 0;
 
 	 if NILP (object)
-	   { XSETBUFFER! (object, current_buffer); }
+	   { XSETBUFFER! (object, (current_buffer! ())); }
 	 i = validate_interval_range (object, &raw mut start, &raw mut end, soft);
 	 if i.is_null ()
 	   { return if NILP (value) || EQ (start, end) { Qnil () } else { start }; }
@@ -1960,7 +1960,7 @@ pub unsafe extern "C" fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_
   let mut buffer = buffer;
 
   if NILP (buffer)
-    { XSETBUFFER! (buffer, current_buffer); }
+    { XSETBUFFER! (buffer, (current_buffer! ())); }
 
   ignore_previous_character = XFIXNUM (pos) <= BUF_BEGV (XBUFFER (buffer));
 
@@ -2415,7 +2415,7 @@ pub unsafe extern "C" fn verify_interval_modification (buf: *mut buffer, mut sta
       /* Extent of last writable interval.  */
       i = find_interval (intervals, start);
       p = 0;
-      buffer_read_only = (!NILP (BVAR! (current_buffer, read_only_))
+      buffer_read_only = (!NILP (BVAR! ((current_buffer! ()), read_only_))
 			  && NILP (Vinhibit_read_only));
       loop
 	{

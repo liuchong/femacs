@@ -254,7 +254,7 @@ unsafe fn compile_pattern_1 (cp: *mut regexp_cache, pattern: Lisp_Object,   // C
   /* If the compiled pattern hard codes some of the contents of the
      syntax-table, it can only be reused with *this* syntax table.  */
   (*cp).syntax_table = if used_syntax_ (&raw const (*cp).buf)
-    { BVAR! (current_buffer, syntax_table_) } else { Qt () };
+    { BVAR! ((current_buffer! ()), syntax_table_) } else { Qt () };
 
   if ! val.is_null ()
     { xsignal1 (Qinvalid_regexp (), build_string (val)); }
@@ -362,7 +362,7 @@ unsafe fn compile_pattern (pattern: Lisp_Object, regp: *mut re_registers,   // C
 	      && (*cp).posix == posix
 	      && (BASE_EQ ((*cp).syntax_table, Qt ())
 		  || BASE_EQ ((*cp).syntax_table,
-			      BVAR! (current_buffer, syntax_table_)))
+			      BVAR! ((current_buffer! ()), syntax_table_)))
 	      && !NILP (Fequal ((*cp).f_whitespace_regexp, Vsearch_spaces_regexp))
 	      && (*cp).buf.charset_unibyte == charset_unibyte
 	    { break 'search; }
@@ -426,8 +426,8 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
 
   /* This is so set_image_of_range_1 in regex-emacs.c can find the EQV
      table.  */
-  set_char_table_extras (BVAR! (current_buffer, case_canon_table_), 2,
-			 BVAR! (current_buffer, case_eqv_table_));
+  set_char_table_extras (BVAR! ((current_buffer! ()), case_canon_table_), 2,
+			 BVAR! ((current_buffer! ()), case_eqv_table_));
 
   CHECK_STRING (string);
 
@@ -437,9 +437,9 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
   let cache_entry: *mut regexp_cache = compile_pattern (
     string,
     if modify_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { std::ptr::null_mut () },
-    if !NILP (Vcase_fold_search) { BVAR! (current_buffer, case_canon_table_) } else { Qnil () },
+    if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
     posix,
-    !NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+    !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
 
   /* Do a pending quit right away, to avoid paradoxical behavior */
   maybe_quit ();
@@ -494,7 +494,7 @@ unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   /
 	  i += 1;
 	}
       /* Set last_thing_searched only when match data is changed.  */
-      XSETBUFFER! (last_thing_searched! (), current_buffer);
+      XSETBUFFER! (last_thing_searched! (), (current_buffer! ()));
     }
 
   return unbind_to (count, val);
@@ -550,14 +550,14 @@ unsafe fn string_match_1 (regexp: Lisp_Object, string: Lisp_Object,   // C 369-4
 
   /* This is so set_image_of_range_1 in regex-emacs.c can find the EQV
      table.  */
-  set_char_table_extras (BVAR! (current_buffer, case_canon_table_), 2,
-			 BVAR! (current_buffer, case_eqv_table_));
+  set_char_table_extras (BVAR! ((current_buffer! ()), case_canon_table_), 2,
+			 BVAR! ((current_buffer! ()), case_eqv_table_));
 
   let count: specpdl_ref = SPECPDL_INDEX ();
   let cache_entry: *mut regexp_cache
     = compile_pattern (regexp,
 		       if modify_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { std::ptr::null_mut () },
-		       if !NILP (Vcase_fold_search) { BVAR! (current_buffer, case_canon_table_) } else { Qnil () },
+		       if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
 		       posix,
 		       STRING_MULTIBYTE (string));
   freeze_pattern (cache_entry);
@@ -721,7 +721,7 @@ pub unsafe extern "C" fn fast_looking_at (regexp: Lisp_Object, pos: ptrdiff_t,  
 	  s1 = ZV_BYTE! () - BEGV_BYTE! ();
 	  s2 = 0;
 	}
-      multibyte = ! NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+      multibyte = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
     }
 
   let cache_entry: *mut regexp_cache =
@@ -840,11 +840,11 @@ pub unsafe extern "C" fn find_newline (start: ptrdiff_t, start_byte: ptrdiff_t, 
   if end_byte == -1
     { end_byte = CHAR_TO_BYTE (end); }
 
-  newline_cache = newline_cache_on_off (current_buffer);
-  if !(*current_buffer).base_buffer.is_null ()
-    { cache_buffer = (*current_buffer).base_buffer; }
+  newline_cache = newline_cache_on_off ((current_buffer! ()));
+  if !(*(current_buffer! ())).base_buffer.is_null ()
+    { cache_buffer = (*(current_buffer! ())).base_buffer; }
   else
-    { cache_buffer = current_buffer; }
+    { cache_buffer = (current_buffer! ()); }
 
   if ! counted.is_null ()
     { *counted = count; }
@@ -1246,12 +1246,12 @@ unsafe fn search_command (string: Lisp_Object, bound: Lisp_Object, noerror: Lisp
 
   /* This is so set_image_of_range_1 in regex-emacs.c can find the EQV
      table.  */
-  set_char_table_extras (BVAR! (current_buffer, case_canon_table_), 2,
-			 BVAR! (current_buffer, case_eqv_table_));
+  set_char_table_extras (BVAR! ((current_buffer! ()), case_canon_table_), 2,
+			 BVAR! ((current_buffer! ()), case_eqv_table_));
 
   np = search_buffer (string, PT! (), PT_BYTE! (), lim, lim_byte, n, RE,
-		      if !NILP (Vcase_fold_search) { BVAR! (current_buffer, case_canon_table_) } else { Qnil () },
-		      if !NILP (Vcase_fold_search) { BVAR! (current_buffer, case_eqv_table_) } else { Qnil () },
+		      if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
+		      if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_eqv_table_) } else { Qnil () },
 		      posix);
   if np <= 0
     {
@@ -1355,7 +1355,7 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
     compile_pattern (string,
 		     if preserve_match_data { std::ptr::addr_of_mut! (search_regs! ()) } else { &raw mut search_regs_1 },
 		     trt, posix,
-		     !NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+		     !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
   let bufp: *mut re_pattern_buffer = &raw mut (*cache_entry).buf;
 
   maybe_quit ();		/* Do a pending quit right away,
@@ -1415,7 +1415,7 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
 		    }
 		  i += 1;
 		}
-	      XSETBUFFER! (last_thing_searched! (), current_buffer);
+	      XSETBUFFER! (last_thing_searched! (), (current_buffer! ()));
 	      /* Set pos to the new position. */
 	      pos = *search_regs! ().start.offset (0);
 	    }
@@ -1465,7 +1465,7 @@ unsafe fn search_buffer_re (string: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdi
 		    }
 		  i += 1;
 		}
-	      XSETBUFFER! (last_thing_searched! (), current_buffer);
+	      XSETBUFFER! (last_thing_searched! (), (current_buffer! ()));
 	      pos = *search_regs! ().end.offset (0);
 	    }
 	  else
@@ -1497,7 +1497,7 @@ unsafe fn search_buffer_non_re (string: Lisp_Object, pos: ptrdiff_t,   // C 1298
   let mut raw_pattern_size: ptrdiff_t;
   let mut raw_pattern_size_byte: ptrdiff_t;
   let mut patbuf: *mut u8 = std::ptr::null_mut ();
-  let multibyte: bool = !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   let mut base_pat: *mut u8;
   /* Set to positive if we find a non-ASCII char that need
      translation.  Otherwise set to zero later.  */
@@ -1760,7 +1760,7 @@ unsafe fn simple_search (n: EMACS_INT, pat: *mut u8, len: ptrdiff_t,   // C 1556
 			 pos_byte: ptrdiff_t, lim: ptrdiff_t, lim_byte: ptrdiff_t)
   -> EMACS_INT
 {
-  let multibyte: bool = ! NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
   let forward: bool = n > 0;
   let mut n = n;
   let mut pos = pos;
@@ -1996,7 +1996,7 @@ unsafe fn boyer_moore (n: EMACS_INT, base_pat: *mut u8, len_byte: ptrdiff_t,   /
   let mut j: c_int;
   let mut pat: *mut u8;
   let pat_end: *mut u8;
-  let multibyte: bool = ! NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+  let multibyte: bool = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
 
   let mut simple_translate: [u8; 256] = [0; 256];              // 0400
   /* These are set to the preceding bytes of a byte to be translated
@@ -2452,7 +2452,7 @@ unsafe fn set_search_regs (beg_byte: ptrdiff_t, nbytes: ptrdiff_t)   // C 2178-2
 
   *search_regs! ().start.offset (0) = BYTE_TO_CHAR (beg_byte);
   *search_regs! ().end.offset (0) = BYTE_TO_CHAR (beg_byte + nbytes);
-  XSETBUFFER! (last_thing_searched! (), current_buffer);
+  XSETBUFFER! (last_thing_searched! (), (current_buffer! ()));
 }
 
 DEFUN! ("search-backward", Fsearch_backward, Ssearch_backward, 1, 4,      // C 2206-2216
@@ -2765,7 +2765,7 @@ DEFUN! ("replace-match", Freplace_match, Sreplace_match, 1, 5, 0,        // C 23
 	     let mut substed: *mut u8;
 	     let mut substed_alloc_size: ptrdiff_t;
 	     let mut substed_len: ptrdiff_t;
-	     let buf_multibyte: bool = !NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+	     let buf_multibyte: bool = !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
 	     let str_multibyte: bool = STRING_MULTIBYTE (newtext);
 	     let mut really_changed: bool = false;
 
@@ -3470,12 +3470,12 @@ DEFUN! ("newline-cache-check", Fnewline_cache_check, Snewline_cache_check,   // 
 	 let mut i: ptrdiff_t;
 
 	 if NILP (buffer)
-	   { buf = current_buffer; }
+	   { buf = (current_buffer! ()); }
 	 else
 	   {
 	     CHECK_BUFFER (buffer);
 	     buf = XBUFFER (buffer);
-	     old = current_buffer;
+	     old = (current_buffer! ());
 	   }
 	 if !(*buf).base_buffer.is_null ()
 	   { buf = (*buf).base_buffer; }
@@ -3556,9 +3556,9 @@ DEFUN! ("re--describe-compiled", Fre__describe_compiled, Sre__describe_compiled,
 	 CHECK_STRING (regexp);
 	 let cache_entry: *mut regexp_cache
 	   = compile_pattern (regexp, std::ptr::null_mut (),
-			      if !NILP (Vcase_fold_search) { BVAR! (current_buffer, case_canon_table_) } else { Qnil () },
+			      if !NILP (Vcase_fold_search) { BVAR! ((current_buffer! ()), case_canon_table_) } else { Qnil () },
 			      false,
-			      !NILP (BVAR! (current_buffer,
+			      !NILP (BVAR! ((current_buffer! ()),
 					    enable_multibyte_characters_)));
 	 if !NILP (raw)
 	   { return make_unibyte_string ((*cache_entry).buf.buffer as *const c_char,

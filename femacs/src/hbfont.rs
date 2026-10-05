@@ -1359,7 +1359,7 @@ pub unsafe extern "C" fn hbfont_shape (lgstring: Lisp_Object, direction: Lisp_Ob
       /* If they bind bidi-display-reordering to nil, the DIRECTION
 	 they provide is meaningless, and we should let HarfBuzz guess
 	 the real direction.  */
-      && !NILP (BVAR! (current_buffer, bidi_display_reordering_))
+      && !NILP (BVAR! ((current_buffer! ()), bidi_display_reordering_))
     {
       let mut dir: hb_direction_t = HB_DIRECTION_LTR;
       if EQ (direction, QL2R ())

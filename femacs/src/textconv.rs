@@ -394,9 +394,9 @@ unsafe fn copy_buffer_text (beg: ptrdiff_t, beg_byte: ptrdiff_t,
 #[cfg (feature = "have_text_conversion")]
 unsafe fn get_mark () -> ptrdiff_t
 {
-  if !NILP (BVAR! (current_buffer, mark_active_))                         // C 123
-    && !(*XMARKER (BVAR! (current_buffer, mark_))).buffer.is_null ()
-    { return marker_position (BVAR! (current_buffer, mark_)); }           // C 126
+  if !NILP (BVAR! ((current_buffer! ()), mark_active_))                         // C 123
+    && !(*XMARKER (BVAR! ((current_buffer! ()), mark_))).buffer.is_null ()
+    { return marker_position (BVAR! ((current_buffer! ()), mark_)); }           // C 126
 
   return -1;                                                              // C 130
 }
@@ -782,10 +782,10 @@ unsafe fn record_buffer_change (beg: ptrdiff_t, end: ptrdiff_t,
   let mut beg_marker: Lisp_Object;
   let mut end_marker: Lisp_Object;
 
-  XSETBUFFER! (buffer, current_buffer);                                    // C 487
+  XSETBUFFER! (buffer, (current_buffer! ()));                                    // C 487
 
   /* Make markers for both BEG and END.  */
-  beg_marker = build_marker (current_buffer as *mut c_void, beg,            // C 492-493
+  beg_marker = build_marker ((current_buffer! ()) as *mut c_void, beg,            // C 492-493
 			     CHAR_TO_BYTE (beg));
 
   /* If BEG and END are identical, make sure to keep the markers
@@ -795,7 +795,7 @@ unsafe fn record_buffer_change (beg: ptrdiff_t, end: ptrdiff_t,
     { end_marker = beg_marker; }
   else
     {
-      end_marker = build_marker (current_buffer as *mut c_void, end,        // C 502-503
+      end_marker = build_marker ((current_buffer! ()) as *mut c_void, end,        // C 502-503
 				 CHAR_TO_BYTE (end));
 
       /* Otherwise, make sure the marker extends past inserted
@@ -1182,9 +1182,9 @@ unsafe fn really_set_composing_text (f: *mut frame, position: ptrdiff_t,
 
       /* Now set the markers which denote the composition region.  */
       (*f).conversion.compose_region_start                                 // C 879
-	= build_marker (current_buffer as *mut c_void, PT! (), PT_BYTE! ());
+	= build_marker ((current_buffer! ()) as *mut c_void, PT! (), PT_BYTE! ());
       (*f).conversion.compose_region_end
-	= build_marker (current_buffer as *mut c_void, PT! (), PT_BYTE! ());
+	= build_marker ((current_buffer! ()) as *mut c_void, PT! (), PT_BYTE! ());
 
       Fset_marker_insertion_type ((*f).conversion.compose_region_end,       // C 882
 				  Qt ());
@@ -1502,8 +1502,8 @@ unsafe fn locate_and_save_position_in_field (f: *mut frame, w: *mut window,
       }
     else
       {
-	c1 = build_marker (current_buffer as *mut c_void, beg, CHAR_TO_BYTE (beg));
-	c2 = build_marker (current_buffer as *mut c_void, end, CHAR_TO_BYTE (end));
+	c1 = build_marker ((current_buffer! ()) as *mut c_void, beg, CHAR_TO_BYTE (beg));
+	c2 = build_marker ((current_buffer! ()) as *mut c_void, end, CHAR_TO_BYTE (end));
 	Fset_marker_insertion_type (c2, Qt ());
 	(*f).conversion.field = Fcons (c1, Fcons (c2, window));
       }
@@ -1591,7 +1591,7 @@ unsafe fn really_request_point_update (f: *mut frame)
       w = XWINDOW ((*f).old_selected_window);
       locate_and_save_position_in_field (f, w, false);
       ((*text_interface).point_changed.unwrap ()) (f, w as *mut c_void,
-						   current_buffer as *mut c_void);
+						   (current_buffer! ()) as *mut c_void);
     }
 }
 
@@ -1630,7 +1630,7 @@ unsafe fn really_set_point_and_mark (f: *mut frame, point: ptrdiff_t,
 	  w = XWINDOW ((*f).old_selected_window);
 	  locate_and_save_position_in_field (f, w, false);
 	  ((*text_interface).point_changed.unwrap ()) (f, w as *mut c_void,
-								 current_buffer as *mut c_void);
+								 (current_buffer! ()) as *mut c_void);
 	}
     }
   else
@@ -1638,7 +1638,7 @@ unsafe fn really_set_point_and_mark (f: *mut frame, point: ptrdiff_t,
     { Fgoto_char (make_fixnum (point)); }                                  // C 1302
 
   if mark == point                                                        // C 1304
-    && !NILP (BVAR! (current_buffer, mark_active_))
+    && !NILP (BVAR! ((current_buffer! ()), mark_active_))
     { call0 (Qdeactivate_mark ()); }
   else
     { calln! (Qpush_mark (), make_fixnum (mark)); }                        // C 1307
@@ -2546,10 +2546,10 @@ pub unsafe extern "C" fn get_extracted_text (f: *mut frame, mut n: ptrdiff_t,
       }
     else
       {
-	if !NILP (BVAR! (current_buffer, mark_active_))                    // C 2129
-	    && !(*XMARKER (BVAR! (current_buffer, mark_))).buffer.is_null ()
+	if !NILP (BVAR! ((current_buffer! ()), mark_active_))                    // C 2129
+	    && !(*XMARKER (BVAR! ((current_buffer! ()), mark_))).buffer.is_null ()
 	  {
-	    start = marker_position (BVAR! (current_buffer, mark_));       // C 2132
+	    start = marker_position (BVAR! ((current_buffer! ()), mark_));       // C 2132
 	    end = PT! ();
 
 	    /* Sort start and end.  start_byte is used to hold a
@@ -2954,7 +2954,7 @@ DEFUN! ("set-text-conversion-style", Fset_text_conversion_style,
   let mut f: *mut frame;
   let mut buffer: Lisp_Object;
 
-  bset_text_conversion_style (current_buffer, value);                      // C 2531
+  bset_text_conversion_style ((current_buffer! ()), value);                      // C 2531
 
   if text_interface.is_null ()                                             // C 2533
     { return Qnil (); }
@@ -2962,7 +2962,7 @@ DEFUN! ("set-text-conversion-style", Fset_text_conversion_style,
   /* If there are any selected windows displaying this buffer, reset
      text conversion on their associated frames.  */
 
-  if buffer_window_count (current_buffer) != 0                             // C 2539
+  if buffer_window_count ((current_buffer! ())) != 0                             // C 2539
     {
       buffer = Fcurrent_buffer ();
 

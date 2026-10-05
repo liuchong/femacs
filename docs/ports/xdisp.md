@@ -207,7 +207,7 @@
 - [x] update_tab_bar  (line 14584, static)
 - [x] display_tab_bar  (line 14693, static)
 - [x] tty_get_tab_bar_item  (line 15586, static)
-- [ ] tty_handle_tab_bar_click  (line 15616)
+- [x] tty_handle_tab_bar_click  (line 15616)
 - [x] hscroll_window_tree  (line 16625, static)
 - [x] hscroll_windows  (line 16923, static)
 - [x] text_outside_line_unchanged_p  (line 17006, static)
@@ -431,6 +431,24 @@
 ## Decisions
 
 ### Progress (this lane is incremental)
+
+**This round closes the unit's last hole: C 15616-16624** - `tty_handle_tab_bar_click`
+(C 15610-15654, the TTY tab-bar click handler: the `FRAME_MENU_BAR_LINES`/`FRAME_TAB_BAR_LINES`
+row test, `tty_get_tab_bar_item`'s `prop_idx`/`close_p` out-parameters, the
+`TAB_BAR_ITEM_ENABLED_P` guard, the `last_tab_bar_item` store, the
+`Fcopy_sequence`/`AUTO_LIST2!`/`Fadd_text_properties` propertization and the
+`Fcons (Qtab_bar, ...)` result).  The definition lives in this unit inside
+`mod tty_handle_tab_bar_click_decl` and is glob-imported, because `include/termchar.rs`
+declares the name at its top level (the `disp_char_vector` shape, deviation 299); the object
+now exports `T _tty_handle_tab_bar_click`.  The rest of the interval (C 15656-16623, the
+Tool-bars banner and the whole `#ifdef HAVE_WINDOW_SYSTEM` tool-bar block) is dead in the
+frozen configuration and stays recorded at the site, not transcribed (P-08).  The round also
+carried the mirror's in-flight `current_buffer` accessor conversion through this unit (167
+sites: reads `current_buffer! ()`, stores `set_current_buffer! (...)`, deviation 300), which
+is the P-87 obligation of that mirror change; the unit's own compile readings are clean with
+it (deviation 300 measures 169 name-resolution rows to zero).  With it the unit's live text
+is complete and `--check` has one row left (the line-count drift, item 11).  `src/xdisp.rs`
+is 33,404 lines.
 
 **This round adds C 32971-39805** - the unit's last slice: the glyph producers, the mouse-face
 family, `syms_of_xdisp` and `init_xdisp`.  In C's order: `produce_stretch_glyph`
@@ -852,9 +870,9 @@ C 5773).
   `!NILP (Fbuffer_local_value (Qauto_hscroll_mode, …))` margin test, and the
   `init_to_row_start` + `DISP_INFINITY` `move_it_in_display_line_to` /
   `fast_move_it_horizontally` scan that ends in the `hscroll` clamp and the
-  `prevent_redisplay_optimizations_p` store).  C 15615-15654's `tty_handle_tab_bar_click` and
-  the whole Tool-bars section (C 15656-16610) are recorded, not transcribed (see the Progress
-  paragraph).
+  `prevent_redisplay_optimizations_p` store).  C 15615-15654's `tty_handle_tab_bar_click` is
+  transcribed now (the hole round, deviation 299); the whole Tool-bars section (C 15656-16610)
+  is still recorded, not transcribed (see the Progress paragraph).
 * C 17005-17348 — `text_outside_line_unchanged_p` (the `GPT`/`Z` gap test, the two
   `BEG_UNCHANGED`/`END_UNCHANGED` bounds, the `overlay_touches_p` pair and the bidi
   `bidi_display_reordering`/`bidi_paragraph_direction` give-up), `redisplay`,
@@ -3417,6 +3435,39 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
      prints its own.  Tests that compare a *title string* against the reference's literal would
      see the difference; nothing else in redisplay reads these two strings.
 
+### Deviations, continued (the hole round: `tty_handle_tab_bar_click`)
+
+299. **`tty_handle_tab_bar_click` is defined in this unit, inside a glob-imported module.**
+     Deviation 127 recorded that a plain definition cannot sit beside `include/termchar.rs`'s
+     crate-root `extern "C"` declaration of the name (E0428) and integrator item 38 asked the
+     mirror to find it a home; deviation 153's `mod disp_char_vector_decl` (the same family,
+     disptab.h 55) is the shape that closes it without a mirror change: the definition lives in
+     `mod tty_handle_tab_bar_click_decl { use super::*; ... }`, the module is glob-imported one
+     line later, and the `#[unsafe(no_mangle)] pub unsafe extern "C" fn` emits C's own symbol
+     (`nm build/femacs/xdisp.o` reads `T _tty_handle_tab_bar_click`), so the mirror's
+     declaration resolves against it at link time.  The body is C's, token for token; the one
+     shape note is that C's `event` parameter is unused by the live body, so the port keeps C's
+     own no-op spelling (`let _ = event;`, the `display_echo_area_1` precedent).  The C
+     15656-16623 Tool-bars block the interval also spans is dead on this target and stays
+     recorded at the site (P-08).  Item 38's mirror move is now a tidy-up, not a blocker.
+300. **The mirror's `current_buffer` accessor conversion, carried through this unit (167
+     sites).**  `include/buffer.rs` (in flight in this working tree) turns C's l-value macro
+     `current_buffer` (thread.h 147) into `macro_rules! current_buffer` plus
+     `set_current_buffer! ($v)`: a bare identifier use no longer compiles (E0423, the 3.604
+     class), and every including unit has to spell the two forms (PORTING.md P-26/P-87).  This
+     unit's 159 reads are `current_buffer! ()` and its 8 stores are `set_current_buffer! (...)`
+     - the spellings `buffer.rs`, `coding.rs` and `insdel.rs` already use - and the C
+     statement's own `;` is not doubled.  Measured on the frozen mirror state: the probe's 169
+     E0423 rows (all `current_buffer`, all in `_root.rs`) go to zero, and `--check` gains no
+     `does not mention current_buffer` row for this unit.  The same conversion leaves such a
+     row in the units that only *store* the accessor (`--check emacs/src/buffer.c
+     femacs/src/buffer.rs` reads one, `init_buffer_once`); that residual is the conversion
+     round's, not this unit's, and integrator item 14 names it.
+301. **The unit's own header comment is updated** (`src/xdisp.rs`'s "This lane is incremental"
+     paragraph): it named the hole as the live text still missing, and it now names the
+     completed live text, the dead `HAVE_WINDOW_SYSTEM` half, and the mirror's `current_buffer`
+     spelling this unit uses.  No C text changed with it.
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -3491,10 +3542,19 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
    (tolerance >= 0.12) is the reading that would keep the signal meaningful; the decision is
    yours.
 
-12. `src/xdisp.c`'s C 15616-16624 hole (`tty_handle_tab_bar_click`) is still the unit's one
-   unchecked box and the only `--check` row of the `missing function` class.  It is an earlier
-   round's miss, not this slice's, and `## Owed` is where the next lane finds it.
+12. `src/xdisp.c`'s C 15616-16624 hole is **closed** (the hole round, deviation 299): the
+   definition lives in this unit's `mod tty_handle_tab_bar_click_decl`, the ledger's box is
+   ticked, and `--check`'s only remaining row is item 11's line-count drift.  Nothing is owed
+   here any more.
 
+14. `include/buffer.rs`'s in-flight `current_buffer` accessor conversion: this unit's half is
+    done (deviation 300: 159 reads spelled `current_buffer! ()`, 8 stores spelled
+    `set_current_buffer! (...)`, and the 169 `E0423` rows that the unconverted file leaves in
+    this unit go to zero).  The conversion still leaves a `does not mention current_buffer`
+    `--check` row in units that *store* the accessor without reading it in the same body
+    (`--check emacs/src/buffer.c femacs/src/buffer.rs` reads one, `init_buffer_once`); that row
+    class belongs to the conversion round - an appended `docs/ports/macro-body-notes.tsv` row
+    per site, or the store spelling those units choose.  This unit gained no such row.
 13. The two identity strings of deviation 298 (`icon_title_name_format`'s
    `"%b - femacs at "` and `decode_mode_spec`'s `%F` fallback) are deliberate; if any acceptance
    test compares a frame title or the `%F` value against the reference's literal, the difference
@@ -3638,12 +3698,13 @@ thirteen ("missing") — so the boxes are ticked now and `tools/check-ledger-tic
     the mirrors next to their siblings; `TAB_BAR_ITEM_CAPTION`/`TAB_BAR_ITEM_NSLOTS` (and the
     four enumerators before them) are spelled in this unit because the mirror does not carry
     `enum tab_bar_item_idx`.
-38. `include/termchar.rs`: **`tty_handle_tab_bar_click` needs a home.**  The mirror declares it
-    (termchar.h 238-239) but nothing defines it, and this unit cannot (E0428, deviation 127).
-    Either the mirror's declaration moves somewhere a defining unit can coexist with it (the
-    `window_redisplay_decls` shape item 2 suggests), or the C 15615-15654 body lands in a unit
-    that does not include termchar.h's declaration.  Until then `--check` lists
-    `missing function tty_handle_tab_bar_click` for this unit and the ledger box stays unticked.
+38. `include/termchar.rs`: **`tty_handle_tab_bar_click` has its home** - this unit defines it
+    inside `mod tty_handle_tab_bar_click_decl` and glob-imports the module (deviation 299, the
+    `disp_char_vector` shape of deviation 153), so the mirror needs no change: its top-level
+    declaration resolves against the `#[unsafe(no_mangle)]` symbol at link time.  Moving the
+    declaration into a module (the `window_redisplay_decls` shape item 2 suggests) stays a
+    tidy-up, and item 49's identical request for `disptab.rs` is the same class.  Nothing is
+    blocked on either.
 39. `include/dispextern.rs` / `xtask`: the mirror's `pub struct it` (and its
     `bidi_it`/`composition_it`/`iterator_stack_entry`/`it_stack` neighbours) is gated by
     `#[cfg (feature = "dispextern_face_records")]`, which `build-tu` never sets — so the record
@@ -4310,33 +4371,73 @@ entry; `let mut window: Lisp_Object = window;`; `let mut buf: *mut c_char = buf;
 `pint2str`; the inner block in `pint2hrstr`.  The third `build-tu` invocation was clean, and
 the intervening `probe` run compiled the same unit to an rlib with no error.
 
+## Evidence (this round: C 15616-16624, the unit's last hole; all commands from `cwd=/Users/liu/projects/src/github.com/liuchong/femacs`)
+
+**Before the round.**  `femacs/src/xdisp.rs` was `HEAD`'s at this lane's start (33,330 lines,
+md5 `7719c0dbe8a3cb6e07879b359bafe56b`), and `extract-abi.py --check emacs/src/xdisp.c
+femacs/src/xdisp.rs` read **2** `- ` rows: `- missing function tty_handle_tab_bar_click` and
+`- line count drifted 16.3%: C 39805 vs Rust 33330`.
+
+**After the round.**
+
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs`: **1** `- ` row
+  (`2 -> 1`), `- line count drifted 16.1%: C 39805 vs Rust 33404`; the `missing function
+  tty_handle_tab_bar_click` row is the one that retires.  The drift row is item 11's (the
+  tolerance table's basis) and stays `FAIL`.
+* `femacs/src/xdisp.rs`: **33,404** lines, md5 `2df42827a4f2fdd23bc5fcbc7d0d1fcf`
+  (33,330 -> 33,404; +74: the 72-line hole block, the header update, and the
+  167-site accessor sweep with no net line change).
+* `cd femacs && CARGO_TARGET_DIR=/tmp/xtb-lane cargo run -q -p xtask -- build-tu src/xdisp.c`
+  = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, **exit 0**; object
+  `build/femacs/xdisp.o` **3,553,736 bytes**, md5 `b5f280c76775f75aa4448b663c21b043`, and
+  `nm` reads `T _tty_handle_tab_bar_click` (the symbol the `missing function` row was about)
+  beside `t __RNvCs3P4vcM1aRw9_5xdisp20tty_get_tab_bar_item`.  The build emits **the same six
+  warnings as every previous round** (three `unused doc comment`s in mirrors, the two
+  `while true` lint notes in `produce_stretch_glyph`/`move_it_to`, one `unused attribute`);
+  the round adds none.
+* `cd femacs && CARGO_TARGET_DIR=/tmp/xtb-lane cargo run -q -p xtask -- probe src/xdisp.rs
+  /tmp/xtb-lane/x.rlib --crate-type=lib -C panic=abort` = **exit 0**, 0 errors (no `--cfg`
+  anywhere: this unit has no `#[cfg]`), the same six warnings, rlib 23,138,008 bytes.  The
+  probe's reading is also what closes deviation 300: the *first* probe of this round (after
+  the hole landed but before the accessor sweep) read **169** `error[E0423]` rows, every one
+  of them `cannot find value current_buffer` (the in-flight `include/buffer.rs` conversion),
+  and none of them at the hole's lines; the sweep takes them to zero.
+* The *first* `build-tu` of this round read **721** `error[E0423]` rows (all
+  `cannot find value current_buffer`, from `_buffer_rs.rs`'s macro bodies) against the mirror
+  state as it stood then - the same in-flight conversion, mid-conversion (its
+  `macro_rules! current_buffer` had landed while `BEGV`/`GPT`/`ZV`'s bodies still spelled the
+  bare name).  Zero of the 721 pointed at this round's text, and the reading is not this
+  unit's: it is recorded here because it is the round's spent invocation, not because it
+  measured the hole.
+* `python3 tools/check-mirror-dupes.py`, `check-declarations.py`, `check-dead-file-coverage.py`,
+  `check-citations.py`, `check-ledger-ticks.py`, `check-port-lines.py` and
+  `check-target-names.py`: the readings are in this round's report; the ledger's new tick
+  (`tty_handle_tab_bar_click`) is bound by `check-ledger-ticks.py` against this file's text
+  and passes (the name occurs).  This ledger is a checkbox ledger, not a C range table (the
+  P-86 clause-2 marker is absent), so `check-dead-file-coverage.py` does not bind it - the gate
+  prints the heading only for the ledgers that carry it, and a prose mention of that literal is
+  what made a draft of this round read `has the heading but no rows` (measured, and fixed
+  here: the marker is a heading, not a name to drop into a sentence).
+* Machine artifacts (`build/femacs/units/xdisp`, `build/probes/xdisp`) were deleted after each
+  compile run; `build/femacs/xdisp.o` is left in place for the link set (measured: `ls
+  build/femacs | grep -c xdisp` = 1).
+
 ## Owed
 
-The **1** unchecked box, and the rows that are not boxes.
-
-**Functions (1).**
-
-| C | box | why not yet |
-| --- | --- | --- |
-| 15616 | `tty_handle_tab_bar_click` | the earlier hole inside the covered range (C 15616-16624, ~1008 C lines, the TTY tab-bar click handler); it is the only `missing function` row `--check` still reports, and the next lane's whole job |
-
-**Subrs (0), macros (0) and file-scope objects (0).**  `syms_of_xdisp` (C 38409-39540) landed
-with its `defsubr` calls, so the thirteen `missing defsubr` rows are gone; the three subr boxes
-(`set-buffer-redisplay`, `line-pixel-height`, `get-display-property`) were ticked with it.  The
-macro sections' boxes were already ticked, and the file-scope-object boxes are complete (the 93
-`DEFVAR_*`-owned objects this round added are not boxes of their own: the extractor's object
-list is C's own *definitions*, and the checklist's 60 rows were ticked by the rounds that needed
-them - `echo_area_buffer` at C 785 and its neighbours).  One object the tool's list does not
-track is *also* defined now: C 29230's `static const char power_letter[]` (the previous round).
+**No unchecked box and no untranscribed live text.**  All five checklists are ticked (the
+Functions section's 302 rows, of which `tty_handle_tab_bar_click` was the last) and the unit's
+live text is complete; `tools/extract-abi.py --check` reads the **1** row below.
 
 **Rows that are not boxes.**  The unit's line count must reach **37,815** lines (C 39,805 minus
 the 5% tolerance, `tools/extract-abi.py`'s `line count drifted` row) on the `total` basis: at
-33,330 today that is **4,485 lines** away, and the gap is structural - the port records the
-unit's dead C lines (3,682 of them inside this round's range) as ledger rows and site comments
-instead of text (P-08), while C's *live* text is 29,836 lines, so the port is 11.7% *longer*
+33,404 today that is **4,411 lines** away, and the gap is structural - the port records the
+unit's dead C lines (the whole `HAVE_WINDOW_SYSTEM` half) as ledger rows and site comments
+instead of text (P-08), while C's *live* text is 29,836 lines, so the port is 12.0% *longer*
 than the live baseline.  The row's reading therefore depends on the tolerance table's basis for
-this file; integrator item 11 has the numbers and the decision is the integrator's.  The one
-`missing function` row (`tty_handle_tab_bar_click`) is the C 15616-16624 hole seen from the
-other side, and the three `does not mention` rows this round's bodies would otherwise leave are
-retired by the appended `macro-body-notes.tsv` rows, so the reading is the **2** the Evidence
-section quotes.
+this file; integrator item 11 has the numbers and the decision is the integrator's.  The last
+`missing function` row is retired by the hole round, and this unit gains no new `does not
+mention` row from it or from the accessor sweep (deviation 300 measures that).
+
+The hole round's own readings are the Evidence section above; the two things it hands the
+integrator are item 14 (the accessor conversion's residual `does not mention` rows in the
+*other* units) and items 11/12 (the drift tolerance and the now-closed box).

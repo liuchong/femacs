@@ -1044,7 +1044,7 @@ DEFUN! ("recursive-edit", Frecursive_edit, Srecursive_edit, 0, 0, "",
     { return Qnil (); }
 
   if command_loop_level >= 0
-      && current_buffer != XBUFFER ((*XWINDOW (selected_window)).contents)
+      && (current_buffer! ()) != XBUFFER ((*XWINDOW (selected_window)).contents)
     { buffer = Fcurrent_buffer (); }
   else
     { buffer = Qnil (); }
@@ -1726,7 +1726,7 @@ unsafe extern "C" fn command_loop_1 () -> Lisp_Object
 
       /* Do redisplay processing after this command except in special
 	 cases identified below.  */
-      prev_buffer_ = current_buffer;
+      prev_buffer_ = (current_buffer! ());
       prev_modiff = MODIFF! ();
       last_point_position = PT! ();
       let last_pt: ptrdiff_t = PT! ();
@@ -1786,7 +1786,7 @@ unsafe extern "C" fn command_loop_1 () -> Lisp_Object
             /* Record point and buffer, so we can put point into the undo
                information if necessary. */
             point_before_last_command_or_undo = PT! ();
-            buffer_before_last_command_or_undo = current_buffer;
+            buffer_before_last_command_or_undo = (current_buffer! ());
 
 	    /* Restart our counting of redisplay ticks before
 	       executing the command, so that we don't blame the new
@@ -1840,7 +1840,7 @@ unsafe extern "C" fn command_loop_1 () -> Lisp_Object
       else
 	{ cancel_echoing (); }
 
-      if !NILP (BVAR! (current_buffer, mark_active_))
+      if !NILP (BVAR! ((current_buffer! ()), mark_active_))
 	  && !NILP (Vrun_hooks)
 	{
 	  /* In Emacs 22, setting transient-mark-mode to `only' was a
@@ -1866,7 +1866,7 @@ unsafe extern "C" fn command_loop_1 () -> Lisp_Object
 		      && !NILP (Fterminal_parameter (Qnil (), Qxterm__set_selection ())))
 		  /* Even if mark_active is non-nil, the actual buffer
 		     marker may not have been set yet (Bug#7044).  */
-		  && !(*XMARKER (BVAR! (current_buffer, mark_))).buffer.is_null ()
+		  && !(*XMARKER (BVAR! ((current_buffer! ()), mark_))).buffer.is_null ()
 		  && (if EQ (Vselect_active_regions, Qonly ())
 			{ EQ (CAR_SAFE (Vtransient_mark_mode), Qonly ()) }
 		      else
@@ -1882,7 +1882,7 @@ unsafe extern "C" fn command_loop_1 () -> Lisp_Object
 		  CALLN! (Frun_hook_with_args, Qpost_select_region_hook (), txt);
 		}
 
-	      if current_buffer != prev_buffer_ || MODIFF! () != prev_modiff
+	      if (current_buffer! ()) != prev_buffer_ || MODIFF! () != prev_modiff
 		{ run_hook (Qactivate_mark_hook ()); }
 	    }
 
@@ -1891,8 +1891,8 @@ unsafe extern "C" fn command_loop_1 () -> Lisp_Object
     } /* 'finalize */
 
       /* finalize: */
-      if current_buffer == prev_buffer_
-	  && XBUFFER ((*XWINDOW (selected_window)).contents) == current_buffer
+      if (current_buffer! ()) == prev_buffer_
+	  && XBUFFER ((*XWINDOW (selected_window)).contents) == (current_buffer! ())
 	  && last_point_position != PT! ()
 	{
 	  if NILP (Vdisable_point_adjustment)
@@ -1976,7 +1976,7 @@ unsafe fn adjust_point_for_property (last_pt: ptrdiff_t, modified: bool)
   let mut orig_pt: ptrdiff_t = PT! ();
   let mut pt_before_invis: ptrdiff_t = PT! ();
 
-  eassert! (XBUFFER ((*XWINDOW (selected_window)).contents) == current_buffer);
+  eassert! (XBUFFER ((*XWINDOW (selected_window)).contents) == (current_buffer! ()));
 
   /* FIXME: cycling is probably not necessary because these properties
      can't be usefully combined anyway.  */
@@ -2226,7 +2226,7 @@ unsafe fn safe_run_hooks_maybe_narrowed (hook: Lisp_Object, w: *mut window)
 
   specbind (Qinhibit_quit (), Qt ());
 
-  if buffer_bits! (long_line_optimizations_p, current_buffer)
+  if buffer_bits! (long_line_optimizations_p, (current_buffer! ()))
       && long_line_optimizations_region_size > 0
     {
       let begv: ptrdiff_t = get_large_narrowing_begv (PT! ());
@@ -3401,7 +3401,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
     {
       /* Rust forbids a local named like a static (E0530), hence the trailing underscore;
 	 the token gate strips it (crate.rs's own precedent).  */
-      let prev_buffer_: *mut buffer = current_buffer;
+      let prev_buffer_: *mut buffer = (current_buffer! ());
       last_input_event = c;
 
       calln! (Qcommand_execute (), tem, Qnil (),
@@ -3423,7 +3423,7 @@ unsafe fn read_char (commandflag: c_int, map: Lisp_Object, prev_event: Lisp_Obje
         { input_was_pending = input_pending; }
       }
 
-      if current_buffer != prev_buffer_
+      if (current_buffer! ()) != prev_buffer_
 	{
 	  /* The command may have changed the keymaps.  Pretend there
 	     is input in another keyboard and return.  This will
@@ -9521,7 +9521,7 @@ pub unsafe extern "C" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 	  { *maps.offset (nmaps) = tem; nmaps += 1; }
 	/* C's `if (tem = get_local_map (PT, current_buffer, Qkeymap), !NILP (tem))` is the
 	   assignment then the test (PORTING.md 2.2's comma-expression shape).  */
-	if { tem = get_local_map (PT! (), current_buffer, Qkeymap ()); !NILP (tem) }
+	if { tem = get_local_map (PT! (), (current_buffer! ()), Qkeymap ()); !NILP (tem) }
 	  { *maps.offset (nmaps) = tem; nmaps += 1; }
 	if nminor != 0
 	  {
@@ -9529,7 +9529,7 @@ pub unsafe extern "C" fn menu_bar_items (old: Lisp_Object) -> Lisp_Object
 		    (nminor * std::mem::size_of::<Lisp_Object> () as ptrdiff_t) as usize);
 	    nmaps += nminor;
 	  }
-	*maps.offset (nmaps) = get_local_map (PT! (), current_buffer, Qlocal_map ());
+	*maps.offset (nmaps) = get_local_map (PT! (), (current_buffer! ()), Qlocal_map ());
 	nmaps += 1;
       }
     *maps.offset (nmaps) = current_global_map;
@@ -10110,7 +10110,7 @@ pub unsafe extern "C" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut c_int) 
       if !NILP (tem) && !NILP (Voverriding_local_map_menu_flag)
 	{ *maps.offset (nmaps) = tem; nmaps += 1; }
       /* C's `if (tem = get_local_map (PT, current_buffer, Qkeymap), !NILP (tem))`.  */
-      if { tem = get_local_map (PT! (), current_buffer, Qkeymap ()); !NILP (tem) }
+      if { tem = get_local_map (PT! (), (current_buffer! ()), Qkeymap ()); !NILP (tem) }
 	{ *maps.offset (nmaps) = tem; nmaps += 1; }
       if nminor != 0
 	{
@@ -10118,7 +10118,7 @@ pub unsafe extern "C" fn tab_bar_items (reuse: Lisp_Object, nitems: *mut c_int) 
 		  (nminor * std::mem::size_of::<Lisp_Object> () as ptrdiff_t) as usize);
 	  nmaps += nminor;
 	}
-      *maps.offset (nmaps) = get_local_map (PT! (), current_buffer, Qlocal_map ());
+      *maps.offset (nmaps) = get_local_map (PT! (), (current_buffer! ()), Qlocal_map ());
       nmaps += 1;
     }
 
@@ -10539,7 +10539,7 @@ pub unsafe extern "C" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut c_int)
       if !NILP (tem) && !NILP (Voverriding_local_map_menu_flag)
 	{ *maps.offset (nmaps) = tem; nmaps += 1; }
       /* C's `if (tem = get_local_map (PT, current_buffer, Qkeymap), !NILP (tem))`.  */
-      if { tem = get_local_map (PT! (), current_buffer, Qkeymap ()); !NILP (tem) }
+      if { tem = get_local_map (PT! (), (current_buffer! ()), Qkeymap ()); !NILP (tem) }
 	{ *maps.offset (nmaps) = tem; nmaps += 1; }
       if nminor != 0
 	{
@@ -10547,7 +10547,7 @@ pub unsafe extern "C" fn tool_bar_items (reuse: Lisp_Object, nitems: *mut c_int)
 		  (nminor * std::mem::size_of::<Lisp_Object> () as ptrdiff_t) as usize);
 	  nmaps += nminor;
 	}
-      *maps.offset (nmaps) = get_local_map (PT! (), current_buffer, Qlocal_map ());
+      *maps.offset (nmaps) = get_local_map (PT! (), (current_buffer! ()), Qlocal_map ());
       nmaps += 1;
     }
 
@@ -11925,7 +11925,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
      keybuf[0..mock_input] holds the sequence we should reread.  */
  'replay_sequence: loop
   {
-  starting_buffer = current_buffer;
+  starting_buffer = (current_buffer! ());
   first_unbound = READ_KEY_ELTS + 1;
   let mut first_event: Lisp_Object = if mock_input > 0 { *keybuf.offset (0) } else { Qnil () };
   let mut second_event: Lisp_Object = if mock_input > 1 { *keybuf.offset (1) } else { Qnil () };
@@ -12211,7 +12211,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 		       See bug#5095, bug#37782, bug#79513.  */
 		    if fix_current_buffer
 			&& (XBUFFER ((*XWINDOW (selected_window)).contents)
-			    != current_buffer)
+			    != (current_buffer! ()))
 		      { Fset_buffer ((*XWINDOW (selected_window)).contents); }
 		    mock_input = 1;
 		    *keybuf.offset (0) = key;
@@ -12247,7 +12247,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
     	  if !FRAME_LIVE_P (XFRAME (selected_frame))
     	    { Fkill_emacs (Qnil (), Qnil ()); }
     	  if XBUFFER ((*XWINDOW (selected_window)).contents)
-    	      != current_buffer
+    	      != (current_buffer! ())
     	    { Fset_buffer ((*XWINDOW (selected_window)).contents); }
     	}
 
@@ -12259,7 +12259,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
          replay to get the right keymap.  */
       if FIXNUMP (key)
           && XFIXNUM (key) == quit_char as EMACS_INT
-          && current_buffer != starting_buffer
+          && (current_buffer! ()) != starting_buffer
         {
           GROW_RAW_KEYBUF! ();
           ASET (raw_keybuf, raw_keybuf_count as isize, key);
@@ -12298,7 +12298,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
     	 or the selected window from under us in the mean time.  */
           if fix_current_buffer
     	  && (XBUFFER ((*XWINDOW (selected_window)).contents)
-    	      != current_buffer)
+    	      != (current_buffer! ()))
     	{ Fset_buffer ((*XWINDOW (selected_window)).contents); }
           current_binding = active_maps (first_event, Qnil ());
         }
@@ -12352,7 +12352,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 		 beginning of a key sequence, switch buffers.  */
 	      if WINDOWP (window)
 		  && BUFFERP ((*XWINDOW (window)).contents)
-		  && XBUFFER ((*XWINDOW (window)).contents) != current_buffer
+		  && XBUFFER ((*XWINDOW (window)).contents) != (current_buffer! ())
 		{
 		  *keybuf.offset (t as isize) = key;
 		  mock_input = t + 1;
@@ -12754,7 +12754,7 @@ unsafe fn read_key_sequence (keybuf: *mut Lisp_Object, prompt: Lisp_Object,
 	      /* Treat uppercase keys as shifted.  */
 	      || (FIXNUMP (key)
 		  && (KEY_TO_CHAR! (key)
-		      < (*XCHAR_TABLE (BVAR! (current_buffer, downcase_table_))).header.size as EMACS_INT)
+		      < (*XCHAR_TABLE (BVAR! ((current_buffer! ()), downcase_table_))).header.size as EMACS_INT)
 		  && uppercasep (KEY_TO_CHAR! (key) as c_int)))
 	{
 	  let new_key: Lisp_Object

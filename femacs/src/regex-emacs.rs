@@ -4847,10 +4847,10 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
      buffer modifications, but even with no modifications, the buffer text may
      be relocated during GC by `compact_buffer` which would invalidate
      our C pointers to buffer text.  */
-  if (*(*current_buffer).text).bits & BUFFER_TEXT_INHIBIT_SHRINKING == 0
+  if (*(*(current_buffer! ())).text).bits & BUFFER_TEXT_INHIBIT_SHRINKING == 0
     {
-      record_unwind_protect_ptr (Some (unwind_re_match), current_buffer as *mut c_void);
-      (*(*current_buffer).text).bits |= BUFFER_TEXT_INHIBIT_SHRINKING;
+      record_unwind_protect_ptr (Some (unwind_re_match), (current_buffer! ()) as *mut c_void);
+      (*(*(current_buffer! ())).text).bits |= BUFFER_TEXT_INHIBIT_SHRINKING;
     }
 
   /* Do not bother to initialize all the register variables if there are

@@ -343,8 +343,8 @@ macro_rules! INTERVAL_EXPRESSLY_WRITABLE_P {
 // parameter.  The arm is deleted; the metavariable arm below is the macro (status §3.56's
 // integrator-edit class, recorded in docs/ports/indent.md).
 macro_rules! TEXT_PROP_MEANS_INVISIBLE {
-  ($prop:expr) => { (if EQ (unsafe { BVAR! (current_buffer, invisibility_spec_) }, Qt ()) { (! NILP ($prop)) as c_int }
-		     else { unsafe { invisible_prop ($prop, unsafe { BVAR! (current_buffer, invisibility_spec_) }) } }) };
+  ($prop:expr) => { (if EQ (unsafe { BVAR! ((current_buffer! ()), invisibility_spec_) }, Qt ()) { (! NILP ($prop)) as c_int }
+		     else { unsafe { invisible_prop ($prop, unsafe { BVAR! ((current_buffer! ()), invisibility_spec_) }) } }) };
 }
 
 

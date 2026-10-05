@@ -652,7 +652,7 @@ DEFUN! ("make-temp-file-internal", Fmake_temp_file_internal,
 	{ write_region (text, Qnil (), val, Qnil (), Qnil (), Qnil (), Qnil (), fd); }
       failed = NILP (dir_flag) && emacs_close (fd) != 0;
       /* Discard the unwind protect.  */
-      specpdl_ptr = specpdl_ref_to_ptr (count);
+      (specpdl_ptr! ()) = specpdl_ref_to_ptr (count);
     }
   if failed
     {
@@ -872,7 +872,7 @@ DEFUN! ("expand-file-name", Fexpand_file_name, Sexpand_file_name, 1, 2, 0,
   /* Use the buffer's default-directory if DEFAULT_DIRECTORY is omitted.  */
   if NILP (default_directory)
     {
-      let mut dir: Lisp_Object = BVAR! (current_buffer, directory_);
+      let mut dir: Lisp_Object = BVAR! ((current_buffer! ()), directory_);
       /* The buffer's default-directory should be absolute or should
 	 start with `~'.  If it isn't absolute, we replace it by its
 	 expansion relative to a known absolute name ABSDIR, which is
@@ -1754,7 +1754,7 @@ DEFUN! ("copy-file", Fcopy_file, Scopy_file, 2, 6,
   /* C 2545-2553: `#ifdef MSDOS` (undefined): recorded.  */
 
   /* Discard the unwind protects.  */
-  specpdl_ptr = specpdl_ref_to_ptr (count);
+  (specpdl_ptr! ()) = specpdl_ref_to_ptr (count);
 
   return Qnil ();
 });
@@ -2531,7 +2531,7 @@ DEFUN! ("set-file-selinux-context", Fset_file_selinux_context,
   let mut handler: Lisp_Object;
   /* C 3437-3449: `#if HAVE_LIBSELINUX` (undefined): recorded.  */
 
-  absname = Fexpand_file_name (filename, BVAR! (current_buffer, directory_));
+  absname = Fexpand_file_name (filename, BVAR! ((current_buffer! ()), directory_));
 
   /* If the file name has special constructs in it,
      call the corresponding file name handler.  */
@@ -2601,7 +2601,7 @@ DEFUN! ("set-file-modes", Fset_file_modes, Sset_file_modes, 2, 3,
   CHECK_FIXNUM (mode);
   let mut nofollow: c_int = symlink_nofollow_flag (flag);
   let mut absname: Lisp_Object = Fexpand_file_name (filename,
-						   BVAR! (current_buffer, directory_));
+						   BVAR! ((current_buffer! ()), directory_));
 
   /* If the file name has special constructs in it,
      call the corresponding file name handler.  */
@@ -2661,7 +2661,7 @@ DEFUN! ("set-file-times", Fset_file_times, Sset_file_times, 1, 3, 0,
 
   /* If the file name has special constructs in it,
      call the corresponding file name handler.  */
-  let mut absname: Lisp_Object = Fexpand_file_name (filename, BVAR! (current_buffer, directory_));
+  let mut absname: Lisp_Object = Fexpand_file_name (filename, BVAR! ((current_buffer! ()), directory_));
   let mut handler: Lisp_Object = Ffind_file_name_handler (absname, Qset_file_times ());
   if !NILP (handler)
     { return calln! (handler, Qset_file_times (), absname, timestamp, flag); }
@@ -2763,7 +2763,7 @@ unsafe extern "C" fn decide_coding_unwind (unwind_data: Lisp_Object)
      just in case.  */
   adjust_markers_for_delete (BEG as ptrdiff_t, BEG_BYTE as ptrdiff_t, Z! (), Z_BYTE! ());
   adjust_overlays_for_delete (BEG as ptrdiff_t, Z! () - BEG as ptrdiff_t);
-  set_buffer_intervals (current_buffer, std::ptr::null_mut ());
+  set_buffer_intervals ((current_buffer! ()), std::ptr::null_mut ());
   TEMP_SET_PT_BOTH (BEG as ptrdiff_t, BEG_BYTE as ptrdiff_t);
 
   /* In case of a non-local exit from set_auto_coding_function, in order not
@@ -2794,8 +2794,8 @@ unsafe extern "C" fn decide_coding_unwind (unwind_data: Lisp_Object)
   XSETCAR (unwind_data, make_fixnum (inserted));
 
   /* Now we are safe to change the buffer's multibyteness directly.  */
-  bset_enable_multibyte_characters (current_buffer, multibyte);
-  bset_undo_list (current_buffer, undo_list);
+  bset_enable_multibyte_characters ((current_buffer! ()), multibyte);
+  bset_undo_list ((current_buffer! ()), undo_list);
 }
 
 /* Read from a non-regular file.  Return the number of bytes read.  */
@@ -2947,7 +2947,7 @@ unsafe fn maybe_move_gap (b: *mut buffer)
 {
   if BUF_GPT_BYTE! (b) != BUF_Z_BYTE! (b)
     {
-      let mut cb: *mut buffer = current_buffer;
+      let mut cb: *mut buffer = (current_buffer! ());
 
       set_buffer_internal (b);
       move_gap_both (Z! (), Z_BYTE! ());
@@ -3057,7 +3057,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
   /* If the undo log only contains the insertion, there's no point
      keeping it.  It's typically when we first fill a file-buffer.  */
   let mut empty_undo_list_p: bool
-    = (!NILP (visit) && NILP (BVAR! (current_buffer, undo_list_))
+    = (!NILP (visit) && NILP (BVAR! ((current_buffer! ()), undo_list_))
        && BEG as ptrdiff_t == Z! ());
   let mut old_Vdeactivate_mark: Lisp_Object = Vdeactivate_mark;
   let mut we_locked_file: bool = false;
@@ -3077,10 +3077,10 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
   let mut filename = filename;                /* C reassigns `filename` below.  */
   let mut replace = replace;                  /* C reassigns `replace` below.  */
 
-  if !(*current_buffer).base_buffer.is_null () && ! NILP (visit)
+  if !(*(current_buffer! ())).base_buffer.is_null () && ! NILP (visit)
     { error (c"Cannot do file visiting in an indirect buffer".as_ptr ()); }
 
-  if !NILP (BVAR! (current_buffer, read_only_))
+  if !NILP (BVAR! ((current_buffer! ()), read_only_))
     { Fbarf_if_buffer_read_only (Qnil ()); }
 
   val = Qnil ();
@@ -3246,7 +3246,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	}
 
       /* Prevent redisplay optimizations.  */
-      (*current_buffer).bits |= BUFFER_CLIP_CHANGED;   /* C: `->clip_changed = true` */
+      (*(current_buffer! ())).bits |= BUFFER_CLIP_CHANGED;   /* C: `->clip_changed = true` */
 
       /* The current input position if known, -1 otherwise.  */
       let mut curpos: off_t = -1;
@@ -3329,7 +3329,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 		  else if nread > 0
 		    {
 		      AUTO_STRING! (name, c" *code-converting-work*".as_ptr ());
-		      let mut prev: *mut buffer = current_buffer;
+		      let mut prev: *mut buffer = (current_buffer! ());
 		      let mut workbuf: Lisp_Object;
 		      let mut buf: *mut buffer;
 
@@ -3339,7 +3339,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 		      buf = XBUFFER (workbuf);
 
 		      delete_all_overlays (buf);
-		      bset_directory (buf, BVAR! (current_buffer, directory_));
+		      bset_directory (buf, BVAR! ((current_buffer! ()), directory_));
 		      bset_read_only (buf, Qnil ());
 		      bset_filename (buf, Qnil ());
 		      bset_undo_list (buf, Qt ());
@@ -3357,7 +3357,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 		      /* Discard the unwind protect for recovering the
                          current buffer.  */
-		      specpdl_ptr = specpdl_ptr.offset (-1);
+		      (specpdl_ptr! ()) = (specpdl_ptr! ()).offset (-1);
 		    }
 		}
 
@@ -3378,7 +3378,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	  else
 	    { CHECK_CODING_SYSTEM (coding_system); }
 
-	  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	    /* We must suppress all character code conversion except for
 	       end-of-line conversion.  */
 	    { coding_system = raw_text_coding_system (coding_system); }
@@ -3571,7 +3571,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 		     we cannot use this method; giveup and try the other.  */
 		  if same_at_end > same_at_start
 		    && FETCH_BYTE! (same_at_end - 1) >= 0o200
-		    && ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+		    && ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 		    && CODING_MAY_REQUIRE_DECODING (&raw mut coding) != 0
 		    { giveup_match_end = true; }
 		  break;
@@ -3587,7 +3587,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 	      /* Extend the start of non-matching text area to multibyte
                  character boundary.  */
-	      if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	      if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 		{
 		  while same_at_start > BEGV_BYTE! ()
 		    && ! CHAR_HEAD_P (FETCH_BYTE! (same_at_start) as c_int)
@@ -3596,7 +3596,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 	      /* Extend the end of non-matching text area to multibyte
                  character boundary.  */
-	      if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	      if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 		{
 		  while same_at_end < ZV_BYTE! ()
 		    && ! CHAR_HEAD_P (FETCH_BYTE! (same_at_end) as c_int)
@@ -3631,7 +3631,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 	      /* If display currently starts at beginning of line,
 		 keep it that way.  */
-	      if XBUFFER ((*XWINDOW (selected_window)).contents) == current_buffer
+	      if XBUFFER ((*XWINDOW (selected_window)).contents) == (current_buffer! ())
 		{ (*XWINDOW (selected_window)).bits = if !NILP (Fbolp ()) { (*XWINDOW (selected_window)).bits | (1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) } else { (*XWINDOW (selected_window)).bits & !(1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) }; }   /* C: `->start_at_line_beg = !NILP (Fbolp ())` */
 
 	      replace_handled = true;
@@ -3659,7 +3659,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	  let mut this: ptrdiff_t;
 	  let this_count: specpdl_ref = SPECPDL_INDEX ();
 	  let mut multibyte: bool
-	    = ! NILP (BVAR! (current_buffer, enable_multibyte_characters_));
+	    = ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_));
 	  let mut conversion_buffer: Lisp_Object;
 
 	  conversion_buffer = code_conversion_save (true, multibyte);
@@ -3760,7 +3760,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 	  /* Extend the start of non-matching text area to the previous
 	     multibyte character boundary.  */
-	  if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	    {
 	      while same_at_start > BEGV_BYTE! ()
 		&& ! CHAR_HEAD_P (FETCH_BYTE! (same_at_start) as c_int)
@@ -3782,7 +3782,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 	  /* Extend the end of non-matching text area to the next
 	     multibyte character boundary.  */
-	  if ! NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  if ! NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	    {
 	      while same_at_end < ZV_BYTE! ()
 		&& ! CHAR_HEAD_P (FETCH_BYTE! (same_at_end) as c_int)
@@ -3793,7 +3793,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
 	  /* If display currently starts at beginning of line,
 	     keep it that way.  */
-	  if XBUFFER ((*XWINDOW (selected_window)).contents) == current_buffer
+	  if XBUFFER ((*XWINDOW (selected_window)).contents) == (current_buffer! ())
 	    { (*XWINDOW (selected_window)).bits = if !NILP (Fbolp ()) { (*XWINDOW (selected_window)).bits | (1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) } else { (*XWINDOW (selected_window)).bits & !(1u32 << WINDOW_START_AT_LINE_BEG_SHIFT) }; }   /* C: `->start_at_line_beg = !NILP (Fbolp ())` */
 
 	  /* Replace the chars that we need to replace,
@@ -3857,9 +3857,9 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
       if NILP (visit) && total > 0
 	{
-	  if !NILP (BVAR! (current_buffer, file_truename_))
+	  if !NILP (BVAR! ((current_buffer! ()), file_truename_))
 	      /* Make binding buffer-file-name to nil effective.  */
-	      && !NILP (BVAR! (current_buffer, filename_))
+	      && !NILP (BVAR! ((current_buffer! ()), filename_))
 	      && SAVE_MODIFF! () >= MODIFF! ()
 	    { we_locked_file = true; }
 	  prepare_to_modify_buffer (PT! (), PT! (), std::ptr::null_mut ());
@@ -3983,7 +3983,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
       if inserted == 0
 	{
 	  if we_locked_file
-	    { Funlock_file (BVAR! (current_buffer, file_truename_)); }
+	    { Funlock_file (BVAR! ((current_buffer! ()), file_truename_)); }
 	  Vdeactivate_mark = old_Vdeactivate_mark;
 	}
       else
@@ -4016,15 +4016,15 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	       care of marker adjustment.  By this way, we can run Lisp
 	       program safely before decoding the inserted text.  */
 	    let mut multibyte: Lisp_Object
-	      = BVAR! (current_buffer, enable_multibyte_characters_);
+	      = BVAR! ((current_buffer! ()), enable_multibyte_characters_);
 	    let mut unwind_data: Lisp_Object
 	      = Fcons (multibyte,
-		       Fcons (BVAR! (current_buffer, undo_list_),
+		       Fcons (BVAR! ((current_buffer! ()), undo_list_),
 			      Fcurrent_buffer ()));
 	    let count1: specpdl_ref = SPECPDL_INDEX ();
 
-	    bset_enable_multibyte_characters (current_buffer, Qnil ());
-	    bset_undo_list (current_buffer, Qt ());
+	    bset_enable_multibyte_characters ((current_buffer! ()), Qnil ());
+	    bset_undo_list ((current_buffer! ()), Qt ());
 	    record_unwind_protect (Some (decide_coding_unwind), unwind_data);
 
 	    /* Make the text read part of the buffer.  */
@@ -4056,7 +4056,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	else
 	  { CHECK_CODING_SYSTEM (coding_system); }
 
-	if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	  /* We must suppress all character code conversion except for
 	     end-of-line conversion.  */
 	  { coding_system = raw_text_coding_system (coding_system); }
@@ -4076,7 +4076,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 	    /* Visiting a file with these coding system makes the buffer
 	       unibyte.  */
 	    if inserted > 0
-	      { bset_enable_multibyte_characters (current_buffer, Qnil ()); }
+	      { bset_enable_multibyte_characters ((current_buffer! ()), Qnil ()); }
 	    else
 	      { Fset_buffer_multibyte (Qnil ()); }
 	  }
@@ -4085,7 +4085,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
     eassert! (PT! () == GPT! ());
 
     coding.bits
-      = if !NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+      = if !NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
       { coding.bits | (1u32 << CODING_SYSTEM_DST_MULTIBYTE_SHIFT) }
       else { coding.bits & !(1u32 << CODING_SYSTEM_DST_MULTIBYTE_SHIFT) };
     if CODING_MAY_REQUIRE_DECODING (&raw mut coding) != 0
@@ -4103,10 +4103,10 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
     else if inserted > 0
       {
 	/* Make the text read part of the buffer.  */
-	eassert! (NILP (BVAR! (current_buffer, enable_multibyte_characters_)));
+	eassert! (NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_)));
 	insert_from_gap_1 (inserted, inserted, false);
 
-	invalidate_buffer_caches (current_buffer as *mut c_void, PT! (), PT! () + inserted);
+	invalidate_buffer_caches ((current_buffer! ()) as *mut c_void, PT! (), PT! () + inserted);
 	adjust_after_insert (PT! (), PT! () + 0, PT! () + inserted, PT_BYTE! () + inserted,
 			     inserted);
       }
@@ -4135,22 +4135,22 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
   if !NILP (visit)
     {
       if empty_undo_list_p
-	{ bset_undo_list (current_buffer, Qnil ()); }
+	{ bset_undo_list ((current_buffer! ()), Qnil ()); }
 
       if NILP (handler)
 	{
-	  (*current_buffer).modtime = mtime;
-	  (*current_buffer).modtime_size = st_size;
-	  bset_filename (current_buffer, orig_filename);
+	  (*(current_buffer! ())).modtime = mtime;
+	  (*(current_buffer! ())).modtime_size = st_size;
+	  bset_filename ((current_buffer! ()), orig_filename);
 	}
 
       SAVE_MODIFF! () = MODIFF! ();
-      BUF_AUTOSAVE_MODIFF! (current_buffer) = MODIFF! ();
-      XSETFASTINT! (BVAR! (current_buffer, save_length_), Z! () - BEG as ptrdiff_t);
+      BUF_AUTOSAVE_MODIFF! ((current_buffer! ())) = MODIFF! ();
+      XSETFASTINT! (BVAR! ((current_buffer! ()), save_length_), Z! () - BEG as ptrdiff_t);
       if NILP (handler)
 	{
-	  if !NILP (BVAR! (current_buffer, file_truename_))
-	    { Funlock_file (BVAR! (current_buffer, file_truename_)); }
+	  if !NILP (BVAR! ((current_buffer! ()), file_truename_))
+	    { Funlock_file (BVAR! ((current_buffer! ()), file_truename_)); }
 	  Funlock_file (filename);
 	}
     }
@@ -4182,8 +4182,8 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
       specbind (Qinhibit_modification_hooks (), Qt ());
 
       /* Save old undo list and don't record undo for decoding.  */
-      old_undo = BVAR! (current_buffer, undo_list_);
-      bset_undo_list (current_buffer, Qt ());
+      old_undo = BVAR! ((current_buffer! ()), undo_list_);
+      bset_undo_list ((current_buffer! ()), Qt ());
 
       if NILP (replace)
 	{
@@ -4271,7 +4271,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
 
       if !empty_undo_list_p
 	{
-	  bset_undo_list (current_buffer, old_undo);
+	  bset_undo_list ((current_buffer! ()), old_undo);
 	  if CONSP (old_undo) && inserted != old_inserted
 	    {
 	      /* Adjust the last undo record for the size change during
@@ -4286,7 +4286,7 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
       else
 	/* If undo_list was Qt before, keep it that way.
 	   Otherwise start with an empty undo_list.  */
-	{ bset_undo_list (current_buffer, if EQ (old_undo, Qt ()) { Qt () } else { Qnil () }); }
+	{ bset_undo_list ((current_buffer! ()), if EQ (old_undo, Qt ()) { Qt () } else { Qnil () }); }
 
       unbind_to (count1, Qnil ());
     }
@@ -4301,14 +4301,14 @@ DEFUN! ("insert-file-contents", Finsert_file_contents, Sinsert_file_contents,
   /* We made a lot of deletions and insertions above, so invalidate
      the newline cache for the entire region of the inserted
      characters.  */
-  if !(*current_buffer).base_buffer.is_null ()
-      && !(*(*current_buffer).base_buffer).newline_cache.is_null ()
-    { invalidate_region_cache ((*current_buffer).base_buffer,
-			       (*(*current_buffer).base_buffer).newline_cache,
+  if !(*(current_buffer! ())).base_buffer.is_null ()
+      && !(*(*(current_buffer! ())).base_buffer).newline_cache.is_null ()
+    { invalidate_region_cache ((*(current_buffer! ())).base_buffer,
+			       (*(*(current_buffer! ())).base_buffer).newline_cache,
 			       PT! () - BEG as ptrdiff_t, Z! () - PT! () - inserted); }
-  else if !(*current_buffer).newline_cache.is_null ()
-    { invalidate_region_cache (current_buffer,
-			       (*current_buffer).newline_cache,
+  else if !(*(current_buffer! ())).newline_cache.is_null ()
+    { invalidate_region_cache ((current_buffer! ()),
+			       (*(current_buffer! ())).newline_cache,
 			       PT! () - BEG as ptrdiff_t, Z! () - PT! () - inserted); }
 
   if read_quit != 0
@@ -4337,8 +4337,8 @@ unsafe fn choose_write_coding_system (start: Lisp_Object, end: Lisp_Object,
   let mut eol_parent: Lisp_Object = Qnil ();
 
   if auto_saving
-      && NILP (Fstring_equal (BVAR! (current_buffer, filename_),
-			      BVAR! (current_buffer, auto_save_file_name_)))
+      && NILP (Fstring_equal (BVAR! ((current_buffer! ()), filename_),
+			      BVAR! ((current_buffer! ()), auto_save_file_name_)))
     {
       val = Qutf_8_emacs ();
       eol_parent = Qunix ();
@@ -4367,12 +4367,12 @@ unsafe fn choose_write_coding_system (start: Lisp_Object, end: Lisp_Object,
       let mut using_default_coding: bool = false;
       let mut force_raw_text: bool = false;
 
-      val = BVAR! (current_buffer, buffer_file_coding_system_);
+      val = BVAR! ((current_buffer! ()), buffer_file_coding_system_);
       if NILP (val)
 	  || NILP (Flocal_variable_p (Qbuffer_file_coding_system (), Qnil ()))
 	{
 	  val = Qnil ();
-	  if NILP (BVAR! (current_buffer, enable_multibyte_characters_))
+	  if NILP (BVAR! ((current_buffer! ()), enable_multibyte_characters_))
 	    { force_raw_text = true; }
 	}
 
@@ -4390,7 +4390,7 @@ unsafe fn choose_write_coding_system (start: Lisp_Object, end: Lisp_Object,
 	{
 	  /* If we still have not decided a coding system, use the
 	     current buffer's value of buffer-file-coding-system.  */
-	  val = BVAR! (current_buffer, buffer_file_coding_system_);
+	  val = BVAR! ((current_buffer! ()), buffer_file_coding_system_);
 	  using_default_coding = true;
 	}
 
@@ -4438,7 +4438,7 @@ unsafe fn choose_write_coding_system (start: Lisp_Object, end: Lisp_Object,
   val = coding_inherit_eol_type (val, eol_parent);
   setup_coding_system (val, coding);
 
-  if !STRINGP (start) && EQ (Qt (), BVAR! (current_buffer, selective_display_))
+  if !STRINGP (start) && EQ (Qt (), BVAR! ((current_buffer! ()), selective_display_))
     { (*coding).bits |= (CODING_MODE_SELECTIVE_DISPLAY as u32) << CODING_SYSTEM_MODE_SHIFT; }
   return val;
 }
@@ -4505,7 +4505,7 @@ pub unsafe extern "C" fn write_region (start: Lisp_Object, end: Lisp_Object,
   let mut start = start;                      /* C's `XSETFASTINT (start, …)` rebinds it.  */
   let mut end = end;                          /* C's `XSETFASTINT (end, …)` rebinds it.  */
 
-  if !(*current_buffer).base_buffer.is_null () && visiting
+  if !(*(current_buffer! ())).base_buffer.is_null () && visiting
     { error (c"Cannot do file visiting in an indirect buffer".as_ptr ()); }
 
   if !NILP (start) && !STRINGP (start)
@@ -4544,8 +4544,8 @@ pub unsafe extern "C" fn write_region (start: Lisp_Object, end: Lisp_Object,
       if visiting
 	{
 	  SAVE_MODIFF! () = MODIFF! ();
-	  XSETFASTINT! (BVAR! (current_buffer, save_length_), Z! () - BEG as ptrdiff_t);
-	  bset_filename (current_buffer, visit_file);
+	  XSETFASTINT! (BVAR! ((current_buffer! ()), save_length_), Z! () - BEG as ptrdiff_t);
+	  bset_filename ((current_buffer! ()), visit_file);
 	}
 
       return val;
@@ -4569,13 +4569,13 @@ pub unsafe extern "C" fn write_region (start: Lisp_Object, end: Lisp_Object,
 			 Vwrite_region_annotation_buffers);
   Vwrite_region_annotation_buffers = list1 (Fcurrent_buffer ());
 
-  given_buffer = current_buffer;
+  given_buffer = (current_buffer! ());
 
   if !STRINGP (start)
     {
       annotations = build_annotations (start, end);
 
-      if current_buffer != given_buffer
+      if (current_buffer! ()) != given_buffer
 	{
 	  XSETFASTINT! (start, BEGV! ());
 	  XSETFASTINT! (end, ZV! ());
@@ -4700,7 +4700,7 @@ pub unsafe extern "C" fn write_region (start: Lisp_Object, end: Lisp_Object,
 	{ ok = false; save_errno = *errno (); }
 
       /* Discard the unwind protect for close_file_unwind.  */
-      specpdl_ptr = specpdl_ref_to_ptr (count1);
+      (specpdl_ptr! ()) = specpdl_ref_to_ptr (count1);
     }
 
   /* Some file systems have a bug where st_mtime is not updated
@@ -4790,8 +4790,8 @@ pub unsafe extern "C" fn write_region (start: Lisp_Object, end: Lisp_Object,
      next attempt to save.  */
   if timespec_valid_p (modtime)
     {
-      (*current_buffer).modtime = modtime;
-      (*current_buffer).modtime_size = st.st_size;
+      (*(current_buffer! ())).modtime = modtime;
+      (*(current_buffer! ())).modtime_size = st.st_size;
     }
 
   if ! ok
@@ -4799,13 +4799,13 @@ pub unsafe extern "C" fn write_region (start: Lisp_Object, end: Lisp_Object,
 
   let mut auto_saving_into_visited_file: bool
     = auto_saving
-    && ! NILP (Fstring_equal (BVAR! (current_buffer, filename_),
-			      BVAR! (current_buffer, auto_save_file_name_)));
+    && ! NILP (Fstring_equal (BVAR! ((current_buffer! ()), filename_),
+			      BVAR! ((current_buffer! ()), auto_save_file_name_)));
   if visiting
     {
       SAVE_MODIFF! () = MODIFF! ();
-      XSETFASTINT! (BVAR! (current_buffer, save_length_), Z! () - BEG as ptrdiff_t);
-      bset_filename (current_buffer, visit_file);
+      XSETFASTINT! (BVAR! ((current_buffer! ()), save_length_), Z! () - BEG as ptrdiff_t);
+      bset_filename ((current_buffer! ()), visit_file);
       update_mode_lines = 14;
       if auto_saving_into_visited_file
 	{ Funlock_file (lockname); }
@@ -4866,7 +4866,7 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
   let mut start = start;                      /* C's `XSETFASTINT (start, …)` rebinds it.  */
   let mut end = end;                          /* C's `XSETFASTINT (end, …)` rebinds it.  */
 
-  XSETBUFFER! (original_buffer, current_buffer);
+  XSETBUFFER! (original_buffer, (current_buffer! ()));
 
   annotations = Qnil ();
   p = Vwrite_region_annotate_functions;
@@ -4880,7 +4880,7 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
       let mut goto_loop_over_p: bool = false;
       while CONSP (p) || { likely (NILP (p)); false }
 	{
-	  let mut given_buffer: *mut buffer = current_buffer;
+	  let mut given_buffer: *mut buffer = (current_buffer! ());
 	  if EQ (Qt (), XCAR (p)) && !used_global
 	    { /* Use the global value of the hook.  */
 	      used_global = true;
@@ -4897,7 +4897,7 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
 	     Reset START and END from the buffer bounds
 	     and discard all previous annotations because they should have
 	     been dealt with by this function.  */
-	  if current_buffer != given_buffer
+	  if (current_buffer! ()) != given_buffer
 	    {
 	      Vwrite_region_annotation_buffers
 		= Fcons (Fcurrent_buffer (),
@@ -4925,13 +4925,13 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
     }
 
   /* Now do the same for annotation functions implied by the file-format */
-  if auto_saving && (!EQ (BVAR! (current_buffer, auto_save_file_format_), Qt ()))
-    { p = BVAR! (current_buffer, auto_save_file_format_); }
+  if auto_saving && (!EQ (BVAR! ((current_buffer! ()), auto_save_file_format_), Qt ()))
+    { p = BVAR! ((current_buffer! ()), auto_save_file_format_); }
   else
-    { p = BVAR! (current_buffer, file_format_); }
+    { p = BVAR! ((current_buffer! ()), file_format_); }
   let mut i: EMACS_INT = 0;
   FOR_EACH_TAIL! (p, {
-      let mut given_buffer: *mut buffer = current_buffer;
+      let mut given_buffer: *mut buffer = (current_buffer! ());
 
       Vwrite_region_annotations_so_far = annotations;
 
@@ -4941,7 +4941,7 @@ unsafe fn build_annotations (start: Lisp_Object, end: Lisp_Object) -> Lisp_Objec
       res = calln! (Qformat_annotate_function (), XCAR (p), start, end,
 		    original_buffer, make_fixnum (i));
       i += 1;
-      if current_buffer != given_buffer
+      if (current_buffer! ()) != given_buffer
 	{
 	  XSETFASTINT! (start, BEGV! ());
 	  XSETFASTINT! (end, ZV! ());
@@ -5184,7 +5184,7 @@ DEFUN! ("visited-file-modtime", Fvisited_file_modtime,
        doc: "Return the current buffer's recorded visited file modification time.\nReturn a Lisp timestamp (as in `current-time') if the current buffer\nhas a recorded file modification time, 0 if it doesn't, and -1 if the\nvisited file doesn't exist.\nSee Info node `(elisp)Modification Time' for more details.",
        (),
        {
-  return buffer_visited_file_modtime (current_buffer);
+  return buffer_visited_file_modtime ((current_buffer! ()));
 });
 
 DEFUN! ("set-visited-file-modtime", Fset_visited_file_modtime,
@@ -5203,10 +5203,10 @@ DEFUN! ("set-visited-file-modtime", Fset_visited_file_modtime,
       else
 	{ mtime = lisp_time_argument (time_flag); }
 
-      (*current_buffer).modtime = mtime;
-      (*current_buffer).modtime_size = -1;
+      (*(current_buffer! ())).modtime = mtime;
+      (*(current_buffer! ())).modtime_size = -1;
     }
-  else if !(*current_buffer).base_buffer.is_null ()
+  else if !(*(current_buffer! ())).base_buffer.is_null ()
     { error (c"An indirect buffer does not have a visited file".as_ptr ()); }
   else
     {
@@ -5215,7 +5215,7 @@ DEFUN! ("set-visited-file-modtime", Fset_visited_file_modtime,
       let mut st: stat = std::mem::zeroed ();
       let mut handler: Lisp_Object;
 
-      filename = Fexpand_file_name (BVAR! (current_buffer, filename_), Qnil ());
+      filename = Fexpand_file_name (BVAR! ((current_buffer! ()), filename_), Qnil ());
 
       /* If the file name has special constructs in it,
 	 call the corresponding file name handler.  */
@@ -5229,8 +5229,8 @@ DEFUN! ("set-visited-file-modtime", Fset_visited_file_modtime,
       if emacs_fstatat (AT_FDCWD, SSDATA (encoded), &raw mut st as *mut c_void, 0)
 	  == 0
 	{
-	  (*current_buffer).modtime = get_stat_mtime (&raw mut st);
-	  (*current_buffer).modtime_size = st.st_size;
+	  (*(current_buffer! ())).modtime = get_stat_mtime (&raw mut st);
+	  (*(current_buffer! ())).modtime_size = st.st_size;
 	}
       else
 	{ file_attribute_errno (filename, *errno ()); }
@@ -5246,7 +5246,7 @@ unsafe extern "C" fn auto_save_error (error_val: Lisp_Object) -> Lisp_Object
   ring_bell (XFRAME (selected_frame));
 
   AUTO_STRING! (format, c"Auto-saving %s: %s".as_ptr ());
-  let mut msg: Lisp_Object = CALLN! (Fformat, format, BVAR! (current_buffer, name_),
+  let mut msg: Lisp_Object = CALLN! (Fformat, format, BVAR! ((current_buffer! ()), name_),
 				     Ferror_message_string (error_val));
   calln! (Qdisplay_warning (), Qauto_save (), msg, QCerror ());
 
@@ -5261,21 +5261,21 @@ unsafe extern "C" fn auto_save_1 () -> Lisp_Object
   auto_save_mode_bits = 0o666;
 
   /* Get visited file's mode to become the auto save file's mode.  */
-  if ! NILP (BVAR! (current_buffer, filename_))
+  if ! NILP (BVAR! ((current_buffer! ()), filename_))
     {
-      if emacs_fstatat (AT_FDCWD, SSDATA (BVAR! (current_buffer, filename_)),
+      if emacs_fstatat (AT_FDCWD, SSDATA (BVAR! ((current_buffer! ()), filename_)),
 			&raw mut st as *mut c_void, 0)
 	  == 0
 	/* But make sure we can overwrite it later!  */
 	{ auto_save_mode_bits = (st.st_mode | 0o600) & 0o777; }
-      else if { modes = Ffile_modes (BVAR! (current_buffer, filename_), Qnil ());
+      else if { modes = Ffile_modes (BVAR! ((current_buffer! ()), filename_), Qnil ());
 		FIXNUMP (modes) }
 	/* Remote files don't cooperate with fstatat.  */
 	{ auto_save_mode_bits = (XFIXNUM (modes) as mode_t | 0o600) & 0o777; }
     }
 
   return
-    Fwrite_region (Qnil (), Qnil (), BVAR! (current_buffer, auto_save_file_name_), Qnil (),
+    Fwrite_region (Qnil (), Qnil (), BVAR! ((current_buffer! ()), auto_save_file_name_), Qnil (),
 		   if NILP (Vauto_save_visited_file_name) { Qlambda () } else { Qt () },
 		   Qnil (), Qnil ());
 }
@@ -5327,7 +5327,7 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
        doc: "Auto-save all buffers that need it.\nThis auto-saves all buffers that have auto-saving enabled and\nwere changed since last auto-saved.\n\nAuto-saving writes the buffer into a file so that your edits are\nnot lost if the system crashes.\n\nThe auto-save file is not the file you visited; that changes only\nwhen you save.\n\nNormally, run the normal hook `auto-save-hook' before saving.\n\nA non-nil NO-MESSAGE argument means do not print any message if successful.\n\nA non-nil CURRENT-ONLY argument means save only current buffer.",
        (no_message: Lisp_Object, current_only: Lisp_Object),
        {
-  let mut old: *mut buffer = current_buffer;
+  let mut old: *mut buffer = (current_buffer! ());
   let mut b: *mut buffer;
   let mut tail: Lisp_Object;
   let mut buf: Lisp_Object;
@@ -5427,7 +5427,7 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
 	      unblock_input ();
 	    }
 
-	  if !(!NILP (current_only) && b != current_buffer)
+	  if !(!NILP (current_only) && b != (current_buffer! ()))
 	      /* Don't auto-save indirect buffers.
 		 The base buffer takes care of it.  */
 	      && (*b).base_buffer.is_null ()
@@ -5475,7 +5475,7 @@ DEFUN! ("do-auto-save", Fdo_auto_save, Sdo_auto_save, 0, 2, "",
 						   Some (auto_save_error));
 			  auto_saved = true;
 			  BUF_AUTOSAVE_MODIFF! (b) = BUF_MODIFF! (b);
-			  XSETFASTINT! (BVAR! (current_buffer, save_length_), Z! () - BEG as ptrdiff_t);
+			  XSETFASTINT! (BVAR! ((current_buffer! ()), save_length_), Z! () - BEG as ptrdiff_t);
 			  set_buffer_internal (old);
 			}
 		      else
@@ -5537,9 +5537,9 @@ DEFUN! ("set-buffer-auto-saved", Fset_buffer_auto_saved,
        {
   /* FIXME: This should not be called in indirect buffers, since
      they're not autosaved.  */
-  BUF_AUTOSAVE_MODIFF! (current_buffer) = MODIFF! ();
-  XSETFASTINT! (BVAR! (current_buffer, save_length_), Z! () - BEG as ptrdiff_t);
-  (*current_buffer).auto_save_failure_time = 0;
+  BUF_AUTOSAVE_MODIFF! ((current_buffer! ())) = MODIFF! ();
+  XSETFASTINT! (BVAR! ((current_buffer! ()), save_length_), Z! () - BEG as ptrdiff_t);
+  (*(current_buffer! ())).auto_save_failure_time = 0;
   return Qnil ();
 });
 
@@ -5548,7 +5548,7 @@ DEFUN! ("clear-buffer-auto-save-failure", Fclear_buffer_auto_save_failure,
        doc: "Clear any record of a recent auto-save failure in the current buffer.",
        (),
        {
-  (*current_buffer).auto_save_failure_time = 0;
+  (*(current_buffer! ())).auto_save_failure_time = 0;
   return Qnil ();
 });
 
@@ -5559,7 +5559,7 @@ DEFUN! ("recent-auto-save-p", Frecent_auto_save_p, Srecent_auto_save_p,
        {
   /* FIXME: maybe we should return nil for indirect buffers since
      they're never autosaved.  */
-  return if SAVE_MODIFF! () < BUF_AUTOSAVE_MODIFF! (current_buffer) { Qt () } else { Qnil () };
+  return if SAVE_MODIFF! () < BUF_AUTOSAVE_MODIFF! ((current_buffer! ())) { Qt () } else { Qnil () };
 });
 
 /* C's `<stdio.h>` `stdin`/`stdout`/`stderr` are `#define`s for `__stdinp`/`__stdoutp`/
