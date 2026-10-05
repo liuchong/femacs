@@ -13035,3 +13035,11 @@
   ⑦ **未声称**：本件**没有 dump、没有 L1**；39 行是夹具读数；字节码修复的运行证据只到“加载链走到 39 行、三条症状消失”，**没有**“某段字节码按预期算出结果”的逐条对拍。
   ⑧ **预算**：`build-tu` 8 发、`check-link --executable` 4 发、夹具运行 9 次、lldb 3 发（含写断点）；临时仪表已全部清掉（`bytecode.rs` 用 `git show HEAD:` + 只重放 opcode 修正，`eval.rs`/`emacs.rs` 直接还原）；`/tmp` 脚本与 `/tmp/sweep` 收工删。
 
+- **3.634 加载夹具补上“参照树的子目录”：加载链 36 → 100 个文件，撞上 `syntax.c` 区间缓存的真缺陷（2026-10-06）**：
+  ① **夹具缺口的形状**（3.628 那一步只补了一半）：`charscript.el` 一类是**参照构建生成**的文件、只落在参照树里，而 `international/` 这样的**子目录**只有在 load-path 上才会被 `require` 找到；load-path 里的子目录来自 `subdirs.el`——**它也是生成物**，所以只把 `emacs/lisp` 一个目录挂上去不够（读数：`Using load-path` 里只有 6 个 `femacs/lisp` 的子目录，参照树一个子目录都没有）。
+  ② **处置**：新增 `tools/loadup-fixture.sh`——端口自己的 `lisp` 树 + **两棵树各自的全部子目录**（端口的在前、参照的在后：端口副本优先，生成物兜底），共 **51 条**；脚本在 stderr 打一行“几条 load-path、哪个二进制”，读数可复现。**它是夹具，不是端口正确性证据**（3.628 的边界不变）。
+  ③ **读数（同一条计数规则 `^Loading`）**：旧夹具（2 条）**36** 个文件、停在 `file-missing … "charscript"`；新夹具（51 条）**100** 个文件、停在 `progmodes/elisp-mode.el` 的 `Error in syntax_table logic for to-the-end intervals`（`syntax.c` 361 / 端口 `syntax.rs` 406 那条 `if (!i) error`）。
+  ④ **缺陷指向（已到函数，未到调用点）**：那条 `error` 只在“**缓存的区间为空**”时触发（`i = count > 0 ? gl_state.forward_i : gl_state.backward_i` 为 NULL）；C 的哨兵 `uninitialized_interval` 是 `1u`（端口 `syntax.rs:282` 同值），`parse_sexp_lookup_properties` 的四个设置点两侧逐个对应 ⇒ 分歧在**驱动这套缓存的调用链**（`scan-sexps`/`scan_lists`/`SETUP_SYNTAX_TABLE` 一族）或 `itree` 的区间数据，不在这个函数本身；`docs/ports/syntax.md` 记了这条 Owed。
+  ⑤ **未声称**：100 行是**夹具读数**（含参照树的生成物与 `.el` 源），**不是**端口进度数字；本件**没有改任何端口代码**、没有编译、没有 dump/L1。
+  ⑥ **预算**：夹具运行 3 发、`grep` 若干；`/tmp/f1.log`、`/tmp/f2.err`、`/tmp/g1.err` 收工删；无编译产物。
+

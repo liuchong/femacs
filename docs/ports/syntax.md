@@ -230,3 +230,14 @@ them (PORTING.md P-39/P-21).
 
 * `update_redisplay_ticks` (dispextern.h 4052) has no mirror yet, so it is declared at its single use
   site inside `scan_sexps_forward` (the doc.rs/casefiddle.rs shape).
+
+## Owed (2026-10-06, status 3.634): the interval cache is NULL where C's callers never leave it
+
+With `tools/loadup-fixture.sh` the loadup reaches `progmodes/elisp-mode.el` (100 `Loading` lines) and
+stops in `update_syntax_table` (syntax.rs 406, C 361): `Error in syntax_table logic for to-the-end
+intervals`.  That `error` fires only when the *cached* interval is NULL (`i = count > 0 ?
+gl_state.forward_i : gl_state.backward_i`).  The sentinel (`uninitialized_interval`, syntax.rs 282 /
+syntax.c 239) and the four `parse_sexp_lookup_properties` sites match C one for one, so the divergence
+is in the callers that drive the cache (`scan-sexps`/`scan_lists`/`SETUP_SYNTAX_TABLE` family) or in
+the interval data itself - not in this function.  Not localized yet; recorded so the next round starts
+here rather than re-deriving it.
