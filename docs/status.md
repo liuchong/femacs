@@ -11231,3 +11231,21 @@
      mips 的 `mips_elf_abi_flags`/`struct mipsel_regs`、`page_mask` 的 `PAGE_SHIFT/PAGE_SIZE/PAGE_MASK` 全是文档值
      **UNVERIFIED**；w32console 的所有 `<windows.h>` 记录与 18 个常量同样 UNVERIFIED（本机无 SDK）；
      两件都**没有链接、没有启动**，零运行证据。
+
+- **3.561 记一个被两条 lane 报上来的工具缺陷（`ledger_for` 把镜像绑到单元台账），以及两次尝试的实测与回退（2026-10-05）**：
+  ① **现象**：`tools/check-dead-file-coverage.py` 的 `ledger_for` 对 `femacs/<dir>/include/<stem>.rs` 这类**镜像**目标，
+     候选名里没有 `include-<stem>.md`（它把 `include` 目录剥掉、再按 `<dir>-<stem>.md` / `<stem>.md` 找），于是镜像的覆盖
+     读数是**单元台账的行**——`exec/include/exec.rs` 绑到 `exec.md`（那是 `exec/exec.c` 的表）、`src/include/haikuselect.rs`
+     绑到 `haikuselect.md`、`src/include/w32inevt.rs` 绑到 `w32inevt.md`。`exec` 的 lane（Kepler）与 `w32inevt` 的
+     lane（Mill，指派时就带着这条）都把它当成自己文件上的"假通过"报了出来。**实测**：当前有 **38 个表头**是这样被绑的
+     （`src/include/w32term.rs` 的覆盖读数是 `w32term.md` 为 `src/w32term.c` 写的那 84 行）。
+  ② **我试了两版，都回退了，工具现在与 HEAD 逐字节相同（只还原了可执行位）**：⑴ 把 `include-<stem>.md` 放到候选首位——
+     **读数完全不变**，因为**那些镜像台账根本没有 `## C line ranges` 段**（它们是散文台账），所以首选名永远不存在；
+     ⑵ 进一步**去掉单元台账兜底**——绑定数从 **130 掉到 92**、**表头绑定归零**，即一次**静默的 38 个镜像缩表**。
+     这不是我该单方面做的范围裁剪，所以回退，并把真正要做的事记在下面。
+  ③ **真正该做的（欠账，交给"镜像台账补区间表"那一轮）**：给这 38 个镜像台账补上它们自己的 `## C line ranges`
+     （或让工具**显式打印**"这条绑定落在单元台账上"），然后再把候选顺序改成 `include-<stem>.md` 优先。
+     在它落地前，**镜像的覆盖读数不成立**这一点是已知且点名的：见各 lane 台账里对这条的记载。
+  ④ **状态**：本轮**没有代码改动入库**（工具回退，工作树干净）；四条 lane 在飞：`nt/cmdproxy.c`（Beauvoir）、
+     `src/w32inevt.c`（Mill）、`src/haikumenu.c`（Huygens）、`oldXMenu/Activate.c`（Halley，本轮新开）。
+     磁盘读数：**1.0 GiB 可用 / 93%**（外部项目占大头，四条 lane 都已被告知"每发编译后立刻清单元目录"）。
