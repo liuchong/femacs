@@ -5981,88 +5981,98 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	}
     }
 
-  /* succeed_label: */
-  DEBUG_PRINT! (c"Accepting match.\n".as_ptr ());
-
-  /* If caller wants register contents data back, do it.  */
-  if !regs.is_null ()
+  // C 4359's `succeed_label:` has two ways in: the fall-through from `restore_best_regs:`
+  // above (`do_restore`, C 4337) and the two `goto succeed_label` sites inside the loop -
+  // the `succeed` opcode (C 4443) and the end-of-pattern fall-through - which the port
+  // carries as `do_succeed`.  C's third exit from the loop, the exhausted failure stack
+  // (C 5287), reaches neither: it lands on `endof_re_match:` (C 5293) with `retval` still -1
+  // (C 4172).  Without this guard that exit fell into the block below and returned a bogus
+  // success whose `dcnt` was read off wherever `d` happened to stand (status 3.620).
+  if do_succeed || do_restore
     {
-      /* Have the register data arrays been allocated?	*/
-      if regs_allocated_ (bufp) == REGS_UNALLOCATED as u8
-	{ /* No.  So allocate them with malloc.  */
-	  let n: ptrdiff_t = std::cmp::max (RE_NREGS as ptrdiff_t, num_regs);
-	  (*regs).start = xnmalloc (n, std::mem::size_of::<ptrdiff_t> () as isize) as *mut ptrdiff_t;
-	  (*regs).end = xnmalloc (n, std::mem::size_of::<ptrdiff_t> () as isize) as *mut ptrdiff_t;
-	  (*regs).num_regs = n;
-	  set_regs_allocated_ (bufp, REGS_REALLOCATE as u8);
-	}
-      else if regs_allocated_ (bufp) == REGS_REALLOCATE as u8
-	{ /* Yes.  If we need more elements than were already
-	     allocated, reallocate them.  If we need fewer, just
-	     leave it alone.  */
-	  let mut n: ptrdiff_t = (*regs).num_regs;
-	  if n < num_regs
-	    {
-	      n = std::cmp::max (n + (n >> 1), num_regs);
-	      (*regs).start
-		= xnrealloc ((*regs).start as *mut c_void, n,
-			     std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *mut ptrdiff_t;
-	      (*regs).end = xnrealloc ((*regs).end as *mut c_void, n,
-				       std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *mut ptrdiff_t;
-	      (*regs).num_regs = n;
-	    }
-	}
-      else
-	{ eassert! (regs_allocated_ (bufp) == REGS_FIXED as u8); }
+    /* succeed_label: */
+    DEBUG_PRINT! (c"Accepting match.\n".as_ptr ());
 
-      /* Convert the pointer data in 'regstart' and 'regend' to
-	 indices.  Register zero has to be set differently,
-	 since we haven't kept track of any info for it.  */
-      if (*regs).num_regs > 0
-	{
-	  *(*regs).start.offset (0) = pos;
-	  *(*regs).end.offset (0) = POINTER_TO_OFFSET! (d);
-	}
+    /* If caller wants register contents data back, do it.  */
+    if !regs.is_null ()
+      {
+        /* Have the register data arrays been allocated?	*/
+        if regs_allocated_ (bufp) == REGS_UNALLOCATED as u8
+          { /* No.  So allocate them with malloc.  */
+            let n: ptrdiff_t = std::cmp::max (RE_NREGS as ptrdiff_t, num_regs);
+            (*regs).start = xnmalloc (n, std::mem::size_of::<ptrdiff_t> () as isize) as *mut ptrdiff_t;
+            (*regs).end = xnmalloc (n, std::mem::size_of::<ptrdiff_t> () as isize) as *mut ptrdiff_t;
+            (*regs).num_regs = n;
+            set_regs_allocated_ (bufp, REGS_REALLOCATE as u8);
+          }
+        else if regs_allocated_ (bufp) == REGS_REALLOCATE as u8
+          { /* Yes.  If we need more elements than were already
+               allocated, reallocate them.  If we need fewer, just
+               leave it alone.  */
+            let mut n: ptrdiff_t = (*regs).num_regs;
+            if n < num_regs
+              {
+                n = std::cmp::max (n + (n >> 1), num_regs);
+                (*regs).start
+                  = xnrealloc ((*regs).start as *mut c_void, n,
+                               std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *mut ptrdiff_t;
+                (*regs).end = xnrealloc ((*regs).end as *mut c_void, n,
+                                         std::mem::size_of::<ptrdiff_t> () as ptrdiff_t) as *mut ptrdiff_t;
+                (*regs).num_regs = n;
+              }
+          }
+        else
+          { eassert! (regs_allocated_ (bufp) == REGS_FIXED as u8); }
 
-      let mut reg: ptrdiff_t = 1;
-      while reg < num_regs
-	{
-	  eassert! (REG_UNSET! (*regstart.offset (reg))
-		    <= REG_UNSET! (*regend.offset (reg)));
-	  if REG_UNSET! (*regend.offset (reg))
-	    {
-	      *(*regs).start.offset (reg) = -1;
-	      *(*regs).end.offset (reg) = -1;
-	    }
-	  else
-	    {
-	      *(*regs).start.offset (reg) = POINTER_TO_OFFSET! (*regstart.offset (reg));
-	      *(*regs).end.offset (reg) = POINTER_TO_OFFSET! (*regend.offset (reg));
-	    }
-	  reg += 1;
-	}
+        /* Convert the pointer data in 'regstart' and 'regend' to
+           indices.  Register zero has to be set differently,
+           since we haven't kept track of any info for it.  */
+        if (*regs).num_regs > 0
+          {
+            *(*regs).start.offset (0) = pos;
+            *(*regs).end.offset (0) = POINTER_TO_OFFSET! (d);
+          }
 
-      /* If the regs structure we return has more elements than
-	 were in the pattern, set the extra elements to -1.  */
-      let mut reg: ptrdiff_t = num_regs;
-      while reg < (*regs).num_regs
-	{
-	  *(*regs).start.offset (reg) = -1;
-	  *(*regs).end.offset (reg) = -1;
-	  reg += 1;
-	}
+        let mut reg: ptrdiff_t = 1;
+        while reg < num_regs
+          {
+            eassert! (REG_UNSET! (*regstart.offset (reg))
+                      <= REG_UNSET! (*regend.offset (reg)));
+            if REG_UNSET! (*regend.offset (reg))
+              {
+                *(*regs).start.offset (reg) = -1;
+                *(*regs).end.offset (reg) = -1;
+              }
+            else
+              {
+                *(*regs).start.offset (reg) = POINTER_TO_OFFSET! (*regstart.offset (reg));
+                *(*regs).end.offset (reg) = POINTER_TO_OFFSET! (*regend.offset (reg));
+              }
+            reg += 1;
+          }
+
+        /* If the regs structure we return has more elements than
+           were in the pattern, set the extra elements to -1.  */
+        let mut reg: ptrdiff_t = num_regs;
+        while reg < (*regs).num_regs
+          {
+            *(*regs).start.offset (reg) = -1;
+            *(*regs).end.offset (reg) = -1;
+            reg += 1;
+          }
+      }
+
+    DEBUG_PRINT! (c"%td failure points pushed, %td popped (%td remain).\n".as_ptr (),
+                 nfailure_points_pushed, nfailure_points_popped,
+                 nfailure_points_pushed - nfailure_points_popped);
+    DEBUG_PRINT! (c"%td registers pushed.\n".as_ptr (), num_regs_pushed);
+
+    let dcnt: ptrdiff_t = POINTER_TO_OFFSET! (d) - pos;
+
+    DEBUG_PRINT! (c"Returning %td from re_match_2.\n".as_ptr (), dcnt);
+
+    retval = dcnt;
     }
-
-  DEBUG_PRINT! (c"%td failure points pushed, %td popped (%td remain).\n".as_ptr (),
-	       nfailure_points_pushed, nfailure_points_popped,
-	       nfailure_points_pushed - nfailure_points_popped);
-  DEBUG_PRINT! (c"%td registers pushed.\n".as_ptr (), num_regs_pushed);
-
-  let dcnt: ptrdiff_t = POINTER_TO_OFFSET! (d) - pos;
-
-  DEBUG_PRINT! (c"Returning %td from re_match_2.\n".as_ptr (), dcnt);
-
-  retval = dcnt;
 
   /* endof_re_match: */
   unbind_to (count, Qnil ());

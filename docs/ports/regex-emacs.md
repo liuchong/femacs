@@ -276,6 +276,32 @@ masks, which is why the `can_be_null`/`regs_allocated`/`fastmap_accurate`/`used_
 `multibyte`/`target_multibyte` and `inhibit_shrinking` families in
 `docs/ports/token-aliases.tsv` are occurrence-checked here too.
 
+**A failure that reached neither label returned a success (status 3.620).**  C's
+`re_match_2_internal` leaves the loop two ways: the success paths jump to `succeed_label:`
+(C 4443, the `succeed` opcode and the end-of-pattern fall-through) and the exhausted failure
+stack `break`s out (C 5287) onto `if (best_regs_set) goto restore_best_regs;` / `endof_re_match:`
+(C 5290-5293), where `retval` is still -1 (C 4172) *unless* the best-match restore runs.  The
+port's post-loop text carried `restore_best_regs:` and `succeed_label:` as straight-line Rust
+with only the restore half guarded (`failed && best_regs_set`), so the failure exit fell into
+the `succeed_label:` block as well: `retval` was set to `dcnt` (read off wherever `d` stood) and
+`string-match` returned a match for *every* pattern that failed after a partial match.  The block
+is now guarded by `if do_succeed || do_restore` - the two flags C's two `goto succeed_label`
+sites and the `restore_best_regs:` fall-through set - and the plain failure reaches
+`endof_re_match:` with -1, exactly as C does.
+
+Readings (2026-10-05): the two-line probes `(string-match "abx" "abcy")` and
+`(string-match "a*b" "aaac")` go from `0` to `nil` (successes still return their position:
+`"abc"` in `"xxabcxx"` = 2, `"a*b"` in `"aaab"` = 0); and a 58-form differential probe - the
+regex engine's whole surface the port can reach with `-nl` (anchors `^ $ \\` \\'`, classes,
+POSIX classes, groups, backrefs, non-greedy, intervals, syntax classes `\\w`/`\\s-`/`\\b`,
+multibyte, case-fold, START argument, failed matches' effect on match data, the backtracking
+cases `(a*)*b`/`(a*)ab`, and `regexp-quote`) - prints byte-identical output on
+`build/femacs/emacs` and `build/emacs-ref/src/emacs`.  `tools/extract-abi.py --check` is `OK`,
+`check-all-units.sh` is 83/0 on both legs, and the eight text gates plus `check-carried` are
+green.  `match-string` and `string-match-p` are *not* available to this probe (`Fmatch_string`
+is not ported yet; `string-match-p` is `subr.el`), which is why the group values are read with
+`substring` + `match-beginning`/`match-end`.
+
 **Measured layout** (`clang -std=gnu23`, the frozen target): `struct fail_stack_elt` 8
 (union), `fail_stack_type` 32, `compile_stack_elt_t` 32, `compile_stack_type` 24,
 `range_table_work_area` 24, `anafirst_data` 24 (`multibyte`@0, `fastmap`@8,
@@ -284,8 +310,8 @@ masks, which is why the `can_be_null`/`regs_allocated`/`fastmap_accurate`/`used_
 re_pattern_buffer`'s ten numbers are restated from the mirror's own assertions
 (docs/ports/search.md measured them; three units now agree).
 
-**Line-count relation:** C 5,367 lines (all live for this ledger) against **6,189 Rust
-lines** (15.3%), declared as the `total`-basis row `regex-emacs 0.16` in
+**Line-count relation:** C 5,367 lines (all live for this ledger) against **6,178 Rust
+lines** (15.1%), declared as the `total`-basis row `regex-emacs 0.16` in
 `docs/ports/line-drift-tolerance.tsv` with the reason (both `#if` arms carried; 120 macro
 bodies written as multi-line Rust blocks; 19 macros defined inside their function; the
 use-site declarations, layout assertions, `match` arms, labelled blocks and the

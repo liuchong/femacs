@@ -12724,3 +12724,33 @@
     新建 `docs/baseline/verbatim-substitutions.tsv`；命令：`check-verbatim` 约 8 发（含 2 发真树变异、2 发自测）、
     `check-declarations` 4 发、参照 reader 1 发（一次读 14 个文件）、对照运行 2 发、其余六道文本门各 1 发；
     `build-tu`/`probe` 0 发；`/tmp` 的临时脚本已删，无编译产物。
+
+- **3.620 正则匹配器的失败路径修好：走到 `endof_re_match` 的那条 `break` 掉进了 `succeed_label` 的正文，于是"部分匹配后失败"一律报成功（2026-10-05）**：
+  ① **症状与根因**：`(string-match "abx" "abcy")`、`(string-match "a*b" "aaac")` 这些**先部分匹配再失败**的表达式返回 `0`（C 是 `nil`），
+    成功路径正常。C 的 `re_match_2_internal` 只有两条出口：成功路径 `goto succeed_label:`（`succeed` 操作码 C 4443 与
+    "到模式末尾"的分支），以及失败栈耗尽的 `break`（C 5287）——后者落到 `if (best_regs_set) goto restore_best_regs;` 与
+    `endof_re_match:`（C 5290-5293），**`retval` 仍是 -1**（C 4172），除非 best-match 恢复那一条跑起来。
+     端口的循环后正文把 `restore_best_regs:` 与 `succeed_label:` 摊成了直线代码，而只给恢复那半加了门
+     （`failed && best_regs_set`）⇒ 失败出口**顺势落进 `succeed_label:` 的正文**，把 `retval = dcnt`（`dcnt` 按当时 `d` 的位置算）
+     当成结果返回。这就是"凡部分匹配后失败都报成功"的全部原因。
+  ② **修法（10 行语义改动，其余是同一块的缩进）**：给 `succeed_label:` 那一块加门 `if do_succeed || do_restore`——
+     这两个旗标正是 C 两处 `goto succeed_label`（`succeed` 操作码、模式末尾的 fall-through）与 `restore_best_regs:` 的 fall-through
+     所设；失败出口从此与 C 一样直接到 `endof_re_match:`，`retval` 保持 -1。`git diff -w` 的读数是 **10 insertions**，
+     其余是那段被多套一层的缩进（`-w` 之外可见），语义没有第二处改动。台账同步
+     `docs/ports/regex-emacs.md`（新增一段 Decisions：两条出口、修法、读数；行数读数 5,367 C vs **6,178** Rust = 15.1%）。
+  ③ **读数（全部实测）**：⑴ 最小复现：`linear-fail` **0 → nil**、`star-backtrack-fail` **0 → nil**；成功路径不变
+     （`"abc"` in `"xxabcxx"` = 2、`"a*b"` in `"aaab"` = 0）。⑵ **58 条差分探针**：端口能到达的正则表面——锚
+     `^ $ \` \'`、字符类与 POSIX 类、分组、反向引用、非贪婪、区间、语法类（`\w`/`\s-`/`\b`）、多字节、`case-fold-search`、
+     START 参数、失败对 match-data 的影响、回退案例（`(a*)*b`、`(a*)ab`）与 `regexp-quote`——`build/femacs/emacs` 与
+     `build/emacs-ref/src/emacs` 的 stdout **逐字节相同**（`diff` 空）。⑶ 门：`check-all-units.sh` **83/0 + 83/0**（两腿）、
+     `extract-abi --check emacs/src/regex-emacs.c femacs/src/regex-emacs.rs` **OK**、`check-link --executable` 重链后
+     `the program has no undefined reference`、八道文本门 + `check-carried` 全绿（`check-declarations` 6/0/0 不变）。
+  ④ **未声称**：端口**仍停在加载 `subr`**（3.618 ⑤那处 `bound-and-true-p`），加载链没有变化；本件只把**一次 `string-match` 家族调用**
+     的返回值修正到与参照逐字节一致，不代表更上层的搜索/替换路径已验（`search-*`、`replace-*` 还没跑过）。
+     差分探针只用 `-nl` 能到达的核心函数：`match-string` 尚未移植（`Fmatch_string` 在 search.c 未落区间里）、
+     `string-match-p` 是 `subr.el` 的 Lisp 函数，因此分组值用 `substring` + `match-beginning/match-end` 读。
+     **另记一条"不是缺陷"的读数**：错误路径里 `debug-early--handler` 报 void-function 是**C 自己的行为**
+     （`keyboard.c` 1177 把 error 处理器绑到那个 Lisp 函数，而它由 `debug-early.el` 定义、端口还加载不到），
+     参照二进制在同样位置也会进那个处理器。本件没动 `femacs/{src,lib}/include/**`，P-87 ① 的 `check-all-units` 两腿按规矩照跑。
+  ⑤ **预算**：`build-tu` 2 发、`check-link --executable` 1 发、`check-all-units.sh` 1 发（两腿，1m36s）、文本门 9 发、
+     参照/端口 elisp 运行约 130 次（含定位 `match-string`/`defun` 的二分）；`/tmp` 的探针与临时脚本已清。
