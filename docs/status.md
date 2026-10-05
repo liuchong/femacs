@@ -7778,3 +7778,25 @@
      臂读数只是 rustc 在**名字解析/类型**阶段停下的错误清单，"本切片自身 0 错"是很弱的读数（P-86 ⑦ 的变异
      实验正是说明这类读数不能当编译通过）；C 1079-7,780（`pgtk_set_z_group` 起）**未移植**；**预算如实报**：
      `build-tu` 6 发（限 3）、`probe` 3 发（限内）。
+
+- **3.438 本批收口：四个 landing 一起验，棘轮退 6 行，进度 59.6%（2026-10-05）**：
+  ① **本批入库**：3.433 版本声明第五半（6 处 / 4 单元）、3.434 `treesit.rs` 切片 1（C 29-946）、
+     3.435 `xdisp.rs` 第三十三轮（C 27181-27636）、3.436 `comp.rs` 切片 1（C 25-822）、
+     3.437 `pgtkterm.rs` 切片 1（C 1-1078）。四个 landing 的共用项按文件落：`femacs/xtask/Cargo.toml`
+     一次登记十个 feature 名，`docs/ports/macro-body-notes.tsv` 三行（xdisp 1、pgtkterm 2）。
+  ② **P-87 全树扫描（本批的主判据，含四个 landing 与版本声明改写）**：
+     `CARGO_TARGET_DIR=/tmp/femacs-sweep tools/check-all-units.sh` → **`checked 83 unit(s), 0 failure(s)` +
+     `checking 83 unit(s), 0 unit failure(s)`**（两次腿都跑完，不是停在清单步的那种读数）。
+  ③ **其余门**：`check-mirror-dupes` 19 dup / 19 ratchet / 0 failure、`check-declarations` **10 行 / 0 forbidden /
+     0 failures**（3.433 之后的新基线）、`check-carried` 11/11/0、`check-ledger-ticks` **234 行 / 0 failure**、
+     `check-dead-file-coverage` **29 ledger / 0 failure**、`check-target-names` 628 .rs / 591 targets / 0 finding、
+     `check-verbatim` 6 trees / 4,604 files / 0 failures、`check-citations` 675 / 0 drift / 0 stale。
+  ④ **进度与棘轮**：`tools/gen-port-map.py` → **404,070 / 678,320 = 59.6%**（3.415 时是 391,172 = 57.7%）；
+     `tools/check-port-lines.py --write-pending` 把棘轮从 **85 → 79 行**、**0 new / 0 stale**（退掉的 6 行是
+     本批与前三批落地的 `src/{comp,treesit,pgtkterm,w32,xfns,androidvfs}.c`）；`tools/gen-port-inventory.py`
+     → **590 files, done 587 / wip 3 / todo 0**；`tools/extract-abi.py --all` → **574 done / 2 in progress /
+     14 failing**（那 14 个的 `- ` 行就是各自的剩余工作清单，是中途态而不是新错）。
+  ⑤ **未声称**：本批**没有任何运行证据**——83 个单元只到**编译成对象**这一档（没有链接、没有启动一个程序、
+     没有跑过一条 Lisp）；59.6% 是**行数口径**的进度，不是"功能完成度"；`docs/goal.md` §8 的加载阶梯
+     L0-L5、双向兼容、生成物逐字节、平台冒烟、性能**一条都未点亮**；四个 landing 各自的 `build-tu`/`probe`
+     超支已在各自段落如实报（本批合计 `build-tu` 4+3+5+6 = 18 发，`probe` 0+0+5+3 = 8 发，限各 3 是**每轮**的额度）。
