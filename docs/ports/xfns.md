@@ -1,4 +1,4 @@
-# emacs/src/xfns.c (10662 lines) — slices: C 1-802 and C 803-2149
+# emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149 and C 2150-3811
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -7,9 +7,9 @@
 > lists no `xfns.o`, so `extract-abi.py`'s checklist for the file is empty and its checkbox
 > sections cannot be coverage evidence.  What follows is P-86 ②'s substitute: the **C line-range
 > table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice -
-> C 803-2149, whose own ledger section is at the end of this file - measured with `grep -c ''`),
-> both arms of every `#if` carried.
+> `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice, **5,455 lines** after the third -
+> C 803-2149 and C 2150-3811, whose own ledger sections are at the end of this file - measured
+> with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -124,7 +124,43 @@ defines both features.
 | 1995-2017 | `x_set_internal_border_width` (C 1996-2017, C 2005-2008 the `USE_X_TOOLKIT` pair) | file gate; `use_x_toolkit` |
 | 2018-2076 | the comment of `x_set_scroll_bar_foreground` (C 2020-2023) and the function (C 2025-2076, C 2030-2032 the `HAVE_GTK3` declarations, C 2055-2075 the `HAVE_GTK3` block) | file gate; `have_gtk3` |
 | 2077-2149 | the comment of `x_set_scroll_bar_background` (C 2079-2082) and the function (C 2084-2149, C 2088-2091 the `HAVE_GTK3` declarations, C 2101-2113 the `USE_LUCID && USE_TOOLKIT_SCROLL_BARS` pair, C 2128-2148 the `HAVE_GTK3` block) | file gate; `use_lucid`, `use_toolkit_scroll_bars`, `have_gtk3` |
-| 2150-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 8,513 lines, whose first live definition is `x_encode_text` (C 2167 is its `static unsigned char *` line, C 2168 the name) - the next slice's first item | not ported in this slice |
+| 2150-2195 | C 2150's blank, C 2151's form feed, C 2152-2165's comment and `x_encode_text` (C 2167 its `static unsigned char *`, C 2168 the name) | file gate |
+| 2196-2294 | C 2196-2201's blank and comment and `x_set_name_internal` (C 2266-2277 the `USE_GTK` pair) | file gate; `use_gtk` for the GTK arm (`GTK_WINDOW`/`FRAME_GTK_OUTER_WIDGET`/`gtk_window_set_title`) |
+| 2295-2349 | C 2295's blank, C 2296-2306's comment and `x_set_name` | file gate |
+| 2350-2358 | C 2350's blank, C 2351-2353's comment and `x_explicitly_set_name` | file gate |
+| 2359-2367 | C 2359's blank, C 2360-2362's comment and `x_implicitly_set_name` | file gate |
+| 2368-2389 | C 2368-2371's form feed and comment and `x_set_title` | file gate |
+| 2390-2410 | C 2390's blank and `x_set_scroll_bar_default_width` (C 2395-2409 the `USE_TOOLKIT_SCROLL_BARS` pair with `USE_GTK` nested in it) | file gate; `use_toolkit_scroll_bars`, `use_gtk` |
+| 2411-2433 | C 2411's blank and `x_set_scroll_bar_default_height` (C 2416-2432 the same pair) | file gate; `use_toolkit_scroll_bars`, `use_gtk` |
+| 2434-2490 | C 2434's blank and `x_set_alpha` | file gate |
+| 2491-2531 | C 2491's blank and `x_set_use_frame_synchronization` (C 2496-2530 the `HAVE_XSYNC && !USE_GTK && HAVE_CLOCK_GETTIME` pair) | file gate; `all (have_xsync, not (use_gtk), have_clock_gettime)` |
+| 2532-2584 | C 2532-2538's blank, form feed and comment and `x_default_scroll_bar_color_parameter` (C 2552-2578 the `USE_TOOLKIT_SCROLL_BARS` pair) | file gate; `use_toolkit_scroll_bars` |
+| 2585-2655 | C 2585-2588's blanks and form feed, C 2589's `#ifdef USE_X_TOOLKIT`, C 2591-2594's comment, `hack_wm_protocols` (C 2596-2654) and C 2655's `#endif` | `use_x_toolkit` |
+| 2656-2722 | C 2656's blank and `append_wm_protocols` (C 2669-2671, C 2690-2694 and C 2708-2711 the three `!defined HAVE_GTK3 && defined HAVE_XSYNC` pairs) | file gate; `all (not (have_gtk3), have_xsync)` |
+| 2723-2737 | C 2723-2727's blanks, form feed and comment (`Support routines for XIC (X Input Context).`), C 2728's `#ifdef HAVE_X_I18N` and C 2730-2737's five `static` forward declarations | `have_x_i18n`; the five declarations dropped (0.1-12; every definition they name is an item of this slice except `xic_string_conversion_callback`, C 3838, the one P-91 site) |
+| 2738-2776 | C 2738's blank and the six `XIMCallback`/`XICCallback` records (C 2757-2769 the `HAVE_XICCALLBACK_CALLBACK` pair) | `have_x_i18n`; `have_xiccallback_callback` for the `XICCallback` arm |
+| 2777-2903 | C 2777's blank, the `#if defined HAVE_X_WINDOWS && defined USE_X_TOOLKIT` at C 2778, C 2781's `xic_default_fontset`, `xic_create_fontsetname` (C 2785-2902) and C 2903's `#endif` | `use_x_toolkit` |
+| 2904-2923 | C 2904's blank, C 2905's `#ifdef DEBUG_XIC_FONTSET` and `print_fontset_result` (C 2906-2922) | `debug_xic_fontset` |
+| 2924-3020 | C 2924's blank and `xic_create_xfontset` (C 2960-2962, C 2994-2996 and C 3010-3012 the three `DEBUG_XIC_FONTSET` calls) | `have_x_i18n`; `debug_xic_fontset` for the three calls |
+| 3021-3051 | C 3021's blank, C 3022-3023's comment and `xic_free_xfontset` | `have_x_i18n` |
+| 3052-3068 | C 3052's blank, C 3053's comment, `supported_xim_styles` (C 3055-3062) and C 3064-3067's comment | `have_x_i18n` |
+| 3069-3085 | `best_xim_style` | `have_x_i18n` |
+| 3086-3229 | C 3086's blank, C 3087's comment and `create_frame_xic`, whose seven `goto out` (C 3102/3106/3117/3138/3156/3172/3213) are the port's labelled block and whose C 3219 `out:` label heads the cleanup | `have_x_i18n` |
+| 3230-3244 | C 3230-3233's blank and comment and `free_frame_xic` | `have_x_i18n` |
+| 3245-3296 | C 3245-3249's blank, blank and comment and `xic_set_preeditarea` (C 3277-3295 the `USE_GTK` block) | `have_x_i18n`; `use_gtk` |
+| 3297-3339 | C 3297-3300's blank, blank and comment and `xic_set_statusarea` | `have_x_i18n` |
+| 3340-3356 | C 3340's blank and `x_xic_to_frame` | `have_x_i18n` |
+| 3357-3380 | C 3357's blank and `xic_preedit_start_callback` | `have_x_i18n` |
+| 3381-3435 | C 3381's blank and `xic_preedit_caret_callback` | `have_x_i18n` |
+| 3436-3466 | C 3436-3437's blanks and `xic_preedit_done_callback` | `have_x_i18n` |
+| 3467-3475 | C 3467's blank and `struct x_xim_text_conversion_data` | `have_x_i18n` |
+| 3476-3506 | C 3476's `static Lisp_Object` and `x_xim_text_to_utf8_unix_1` | `have_x_i18n` |
+| 3507-3538 | C 3507's blank and `x_encode_xim_text_1` | `have_x_i18n` |
+| 3539-3554 | C 3539's blank and `x_xim_text_to_utf8_unix_2` | `have_x_i18n` |
+| 3555-3595 | C 3555's blank, C 3556's comment and `x_xim_text_to_utf8_unix` | `have_x_i18n` |
+| 3596-3635 | C 3596's blank, C 3597-3602's comment, C 3603's blank and `x_encode_xim_text` | `have_x_i18n` |
+| 3636-3811 | C 3636's blank and `xic_preedit_draw_callback` (C 3668/3680/3694/3709/3717/3726/3738/3764 the eight `goto im_abort` and C 3802's `im_abort:` label) | `have_x_i18n` |
+| 3812-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 6,851 lines, whose first live definition is `xic_set_xfontset` (C 3813 is its `void`, C 3814 the name) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -504,7 +540,22 @@ point at its use site (the mirror's `FRAME_X_SCREEN_NUMBER` macro body needs it,
 C defines it in this same file at **C 7479**, so the remainder slice owes the `#[unsafe(no_mangle)]`
 definition and the row disappears with it.  The drift row stays (`C 10662 vs Rust 3051`, 71.4%).
 
-**⑦ The other gates** (all run at this revision): `check-dead-file-coverage.py` **0 failures** (55
+**⑦ The budget, reported as used.**  The brief allows three `build-tu` and three `probe` shots.
+`build-tu` was run **once** (exit 0, the 336-byte object).  `probe` was run **eleven** times, and
+the extra eight are itemised here rather than hidden: (1) the plain X11 arm, (2) the same arm over
+`HEAD:femacs/src/xfns.rs` in place, to have a baseline for ⑥ and to attribute a 24-error
+`E0423 current_buffer` reading that appeared in shot 1 - it was **another lane's in-flight edit of
+`include/buffer.rs`** (that file's mtime moved during this round and a re-run of the identical text
+reads clean), not this slice's text; (3)-(4) the `have_x_i18n` arm before and after the first
+round of fixes; (5) an all-arms run whose `use_gtk` + `use_x_toolkit` combination is refused by the
+mirror (⑤); (6) the toolkit arm before `have_ext_menu_bar` was added (two `FRAME_EXTERNAL_*`
+errors that were the probe set's, not the port's); (7)-(8) the toolkit and GTK arms again, for ③
+and ④; (9)-(11) those two arms plus the plain-X11 arm once more, over the **frozen** text
+(`md5 7640645648fb058998ce6686882953da`, 5,455 lines), which is what ②-④ record.  Everything
+`build-tu` and `probe` wrote (`build/femacs/units/xfns`, `build/probes/xfns`, `build/femacs/xfns.o`)
+was deleted after each run, and `/tmp/xfns-lane` at the end.
+
+**⑧ The other gates** (all run at this revision): `check-dead-file-coverage.py` **0 failures** (55
 rows), `check-ledger-ticks.py` 238 ledgers bound / 0 failures, `check-citations.py` 0 drift (one
 citation this slice wrote was wrong - `check_int_nonnegative` cited at `lisp.h 615`, it is 607 -
 and was corrected), `check-declarations.py` 0 failures, `check-mirror-dupes.py` 0 failures (this
@@ -608,3 +659,232 @@ harness, not a second measurement of a different thing.
 - **The slice stops at C 2149, short of the 2,500-3,000 C lines the brief asked for.**  The
   remaining rounds of this unit can continue at C 2167 (`x_encode_text`) with the same recipe
   (the table's last row is the boundary).
+
+## Slice 3 (2026-10-05, status 3.6xx - the integrator sets the round number): C 2150-3811
+
+**The slice is C 2150-3811** (the table's middle rows, which replace the previous revision's single
+"2150-10662 the remainder" row).  It opens at C 2150, the blank after slice 2's
+`x_set_scroll_bar_background`, and closes at C 3811, the `}` of `xic_preedit_draw_callback` - the
+first whole function past the 1,500 C lines this slice's brief asked for.  The boundary after it is
+C 3813 (`void`) / C 3814 (`xic_set_xfontset`), which is where the remainder row now starts and the
+next slice begins.  The range holds 32 definitions: `x_encode_text`, the name/title setters
+(`x_set_name_internal`, `x_set_name`, `x_explicitly_set_name`, `x_implicitly_set_name`,
+`x_set_title`), the scroll-bar defaults, `x_set_alpha`, `x_set_use_frame_synchronization`,
+`x_default_scroll_bar_color_parameter`, `hack_wm_protocols`, `append_wm_protocols`, and the whole
+first half of the XIC block (`xic_create_fontsetname`, `print_fontset_result`,
+`xic_create_xfontset`, `xic_free_xfontset`, `best_xim_style`, `create_frame_xic`,
+`free_frame_xic`, `xic_set_preeditarea`, `xic_set_statusarea`, `x_xic_to_frame`, the three
+preedit callbacks, the four `x_xim_text_to_utf8_unix*`/`x_encode_xim_text*` helpers and
+`xic_preedit_draw_callback`).  Both arms of every `#if` are carried; the port's slice is **2,404
+Rust lines** (5,455 - 3,051), 1.45x the C slice's 1,662 - slice 2's ratio.
+
+**The XIM/XIC surface has no mirror at all.**  This is the slice's one structural finding:
+`include/xterm.rs` *names* `XIC`, `XFontSet`, `XIM`, `XIMStyles`, `XIMStyle` in its
+`x_display_info`/`x_output` rows and its own `STYLE_*` constants *use* the nine style masks and
+`XIMStatusNothing`/`XIMPreeditNothing`, but no file in this unit's include graph declares any of
+them (measured: `grep` over the 59-file include closure finds no `pub type XIM` / `pub struct
+XIMCallback` / `pub const XIMPreeditArea`).  P-88 ① therefore applies to the whole surface: the
+types, the two enumerations, the nine masks, the sixteen `XN*` name strings and the eight entry
+points are declared in `femacs/src/xfns.rs` at C 2726's position under `have_x_i18n`, each with the
+`<X11/Xlib.h>` line it comes from and its measured layout.  `XPoint` (Xlib.h 422-426) is the same
+case for the record `create_frame_xic`/`xic_set_preeditarea` pass by address.  The mirror rows this
+owes are in `## Owed`.
+
+### Gate mapping (this slice's additions)
+
+| C `#if` / build condition | Port gate | Compiled when |
+| --- | --- | --- |
+| every item (the file gate) | `feature = "have_x_windows"` | an X11 configuration |
+| C 2266-2277 (`USE_GTK` / `#else` in `x_set_name_internal`) | `feature = "use_gtk"` | the GTK configuration |
+| C 2395-2409 and C 2416-2432 (`USE_TOOLKIT_SCROLL_BARS` with a nested `USE_GTK`) | `feature = "use_toolkit_scroll_bars"` and `feature = "use_gtk"` | a toolkit-scroll-bar build, GTK or not |
+| C 2496-2530 (`HAVE_XSYNC && !USE_GTK && HAVE_CLOCK_GETTIME`) | `all (feature = "have_xsync", not (feature = "use_gtk"), feature = "have_clock_gettime")` | an XSYNC X11 build with `clock_gettime` |
+| C 2552-2578 (`USE_TOOLKIT_SCROLL_BARS` in `x_default_scroll_bar_color_parameter`) | `feature = "use_toolkit_scroll_bars"` | the same |
+| C 2589-2655 (`USE_X_TOOLKIT` around `hack_wm_protocols`) | `feature = "use_x_toolkit"` | the X toolkit configuration |
+| C 2669-2671, C 2690-2694, C 2708-2711 (`!defined HAVE_GTK3 && defined HAVE_XSYNC` in `append_wm_protocols`) | `all (not (feature = "have_gtk3"), feature = "have_xsync")` | an XSYNC build that is not GTK3 |
+| C 2728-3956 (`HAVE_X_I18N`; the rest of the block is past this slice's boundary) | `feature = "have_x_i18n"` | an X11 configuration with XIM |
+| C 2757-2769 (`HAVE_XICCALLBACK_CALLBACK`) | `feature = "have_xiccallback_callback"` | Xlib with the `XICCallback` entry point |
+| C 2778-2903 (`HAVE_X_WINDOWS && USE_X_TOOLKIT`; the file gate already carries the first half) | `feature = "use_x_toolkit"` | the X toolkit configuration |
+| C 2905-2923, C 2960-2962, C 2994-2996, C 3010-3012 (`DEBUG_XIC_FONTSET`) | `feature = "debug_xic_fontset"` | a debug-fontset build |
+| C 3277-3295 (`USE_GTK` in `xic_set_preeditarea`) | `feature = "use_gtk"` | the GTK configuration |
+| the `struct x_output` members this slice writes or reads (`alpha_identical_p`, `use_vsync_p`, `xic`, `xic_style`, `xic_xfs`, `im_context`) | the file gate, plus `have_x_i18n` for the three XIC members (C's own gate in `xterm.h` 1244-1250) | an X11 configuration |
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged from slices 1 and 2: every item sits behind
+`have_x_windows`, so the frozen feature set compiles `include/config.rs` and the `#![allow]`
+attribute and nothing else - `build/femacs/xfns.o` is the **336-byte** empty object (exit 0,
+measured this round).
+
+**② The plain-X11 arm** (`--cfg 'feature="have_x_windows"'`): **exit 1, 4 errors**, all four
+registered:
+- in the unit's own text, `no field wait_for_wm on type x_output` (slice 1's statement at C 729)
+  and `no field alpha_identical_p on type x_output` (this slice's statement at C 2478) - the
+  `include/xterm.rs` `bool_bf` members the mirror records as `// C:` comments;
+- `cannot find function x_display_info_for_name` (slice 1's call at C 198; its definition is C
+  7613, in the remainder);
+- `include/systime.rs` 27's `const _: () = assert! (…)` - the assertion the probe's `--cfg` set
+  cannot satisfy (it passes the feature without the macro; slice 1's recorded class).
+
+**③ The X toolkit / XSYNC arm** (`have_x_windows`, `have_window_system`, `have_x_i18n`,
+`have_xdbe`, `have_ext_menu_bar`, `use_x_toolkit`, `use_toolkit_scroll_bars`, `have_xsync`,
+`have_clock_gettime`, `debug_xic_fontset`, `have_xiccallback_callback`, `have_xinput2`,
+`have_xrender`, `glyph_debug`): **exit 1, 32 errors**, every one in a registered class.
+- mirror gaps the earlier slices' ledgers own: `Boolean` (9, `lwlib/include/lwlib.rs`),
+  `XSyncValue` (3) / `XSyncCounter` (2) / `XIEventMask` (1) / `Picture` (1) /
+  `WidgetClass` (1) / `GDK_WINDOW_XID` (the GTK arm only) in `include/xterm.rs` / `include/widget.rs`;
+- the `bool_bf` member rows (the `FRAME_`-macro class): `use_vsync_p` (4, this slice's
+  `x_set_use_frame_synchronization`), `waiting_for_frame_p` (1, slice 2's `x_set_parent_frame`),
+  `wait_for_wm` (1, slice 1), `update_mode_line` (1, slice 2), `alpha_identical_p` (1, this slice);
+- P-91 rows: `x_display_info_for_name` (C 7613), `set_up_x_back_buffer` (C 3972),
+  `tear_down_x_back_buffer` (C 4013) from the earlier slices, and this slice's own
+  `xic_string_conversion_callback` (C 3838, past the boundary);
+- the mirror's `compile_error!`-class rows: `xim_inst_t` (1) and the `FRAME_MENUBAR_HEIGHT` body
+  (below);
+- the `include/systime.rs` assertion.
+
+**④ The GTK arm** (`have_x_windows`, `have_window_system`, `have_x_i18n`, `have_xdbe`,
+`have_ext_tool_bar`, `have_ext_menu_bar`, `use_gtk`, `have_gtk3`, `use_toolkit_scroll_bars`,
+`debug_xic_fontset`, `have_xiccallback_callback`, `glyph_debug`): **exit 1, 21 errors**: 9
+`GDK_WINDOW_XID` (the mirror's `GTK_WIDGET_TO_X_WIN` body), 2 `update_mode_line`, 1 each of
+`wait_for_wm`, `alpha_identical_p`, `xic_string_conversion_callback`, `xim_inst_t`,
+`x_display_info_for_name`, `set_up_x_back_buffer`, `tear_down_x_back_buffer`, the two
+`FRAME_MENUBAR_HEIGHT` `void` errors and the systime assertion.  **None of this slice's GTK call
+sites is among them**: `gtk_window_set_title`/`GTK_WINDOW`/`FRAME_GTK_OUTER_WIDGET`,
+`xg_get_scale`, `xg_get_default_scrollbar_width`/`_height`,
+`gtk_im_context_set_cursor_location` and the `im_context` member all resolve.
+
+**⑤ Two arm readings are not readings of a C configuration, and are recorded as such.**  A run with
+`use_gtk` *and* `use_x_toolkit` together reads three `E0124 field … already declared` in the
+mirror's `x_output` (`widget`, `menubar_widget`, `edit_widget`) - C's `configure` never defines both
+(they are alternatives), so that run is not a configuration and its reading is not evidence.  A run
+with `have_ext_tool_bar` but not `have_ext_menu_bar` is refused by `include/frame.rs`'s own
+`compile_error!` ("not a configuration C's lisp.h 3931-3939 can emit"): the mirror is right, the
+`--cfg` set was wrong, and the *truncated* reading that run produced (15 errors) is superseded by
+④'s.
+
+**⑥ `extract-abi.py --check`**: **197 findings before, 164 after** (`- ` rows; measured with the
+current tool on both sides, the "before" side being `HEAD:femacs/src/xfns.rs` written in place so
+that its `include!` graph resolves - a `/tmp` copy resolves no include and reads five file-scope
+rows differently).  By class: `missing function` **77 -> 45**, `missing macro` 1 -> 1
+(`RANDR13_LIBRARY`), `missing constant` 0 -> 0, `missing file-scope object` 5 -> 4
+(`xic_default_fontset`, C 2781, is this slice's), `missing subr` 53 -> 53, `missing defsubr`
+45 -> 45, the token findings `function … does not mention …` 14 -> 14 (this slice's nine are all
+tolerated by the rows appended to `docs/ports/macro-body-notes.tsv`, below), and the drift row
+`C 10662 vs Rust 3051` (71.4%) -> `C 10662 vs Rust 5455` (48.8%) - the **one row this slice adds**,
+and the `docs/ports/line-drift-tolerance.tsv` row the file has owed since slice 1.
+
+**⑦ The other gates** (all run at this revision): `check-dead-file-coverage.py` 0 failures (the
+table's 37 rows cover C 2150-3811 and reach C 10662), `check-mirror-dupes.py` 0 failures,
+`check-citations.py` 0 drift, `check-declarations.py` **0 failures**, `check-ledger-ticks.py` 0
+failures, `check-port-lines.py` 0 files under ten percent, `check-target-names.py` 0 failures.
+
+### Deviations (this slice)
+
+- **`goto` -> labelled block.**  `create_frame_xic`'s seven `goto out` (C 3102-3213) are the
+  port's `'out: { … break 'out; }` whose label is C 3219's `out:`, and
+  `xic_preedit_draw_callback`'s eight `goto im_abort` (C 3668-3764) are a `'im_abort: { … }` block
+  whose end falls into C 3802's cleanup, with C 3799's `return;` kept at the block's end
+  (PORTING.md 2.2; the two `docs/ports/macro-body-notes.tsv` rows carry the line numbers).
+- **`switch` -> `match`.**  `xic_preedit_caret_callback`'s `switch (call_data->direction)`
+  (C 3398-3411) is a `match` whose two shared bodies are the
+  `XIMForwardChar | XIMForwardWord` and `XIMBackwardChar | XIMBackwardWord` arms; C's `break`s
+  have no site (PORTING.md 2.2).
+- **C's `(XIMProc) f` casts are pointer transmutes.**  C's cast reinterprets the function pointer
+  and Rust refuses a signature-changing `as` cast between fn pointers (measured `E0605` here), so
+  the four records whose callback's signature differs (`draw`, `caret`, the `start` callback's
+  `XIMCallback` arm, and the string-conversion record) spell it as the item address plus
+  `core::mem::transmute` - the `src/xwidget.rs` 213-222 `G_CALLBACK` shape, which records the same
+  limitation (PORTING.md 1.4).  The two remaining records cast `as` (their signatures already
+  match), and the six callbacks are declared `unsafe extern "C" fn` (the `src/keyboard.rs` 2135
+  shape).
+- **`coding.mode`/`coding.common_flags` are the mirror's one storage word.**  `x_encode_text`
+  (C 2184/2186), `x_encode_xim_text_1` (C 3529) and `x_xim_text_to_utf8_unix_1` (C 3497) write the
+  two bitfields through `coding.bits` with `include/coding.rs`'s
+  `CODING_SYSTEM_MODE_SHIFT`/`CODING_SYSTEM_COMMON_FLAGS_SHIFT` (PORTING.md 1.3; the
+  `CODING_REQUIRE_ENCODING` row's class).
+- **C's bare `alloca` is the port's stack pool.**  `xic_create_fontsetname`'s four `alloca`
+  (C 2853/2866/2873/2880) are `sa_stack_alloc` (PORTING.md P-05/3.2, the
+  `Freplace_region_contents` row's class).
+- **`f->tooltip` reads through the mirror's reader.**  `xic_set_preeditarea`'s C 3278 test is
+  `FRAME_TOOLTIP_P (f)`: the member is `include/frame.rs`'s `// C:` row (frame.h 457's
+  `bool_bf tooltip : 1`), the `P-80` class the file's other flag reads use.
+- **Two use-site macros keep C's own names.**  frame.h 417's `explicit_name` (C 2316/2320/2323) and
+  frame.h 1291-1301's four `FRAME_CONFIG_SCROLL_BAR_{WIDTH,COLS,HEIGHT,LINES}` are mirror `// C:`
+  rows or getter-only functions, so each gets the two-arm `macro_rules!` the `src/androidfns.rs`
+  205-352 block uses (`frame_flag`/`frame_set_flag` for the flag, the raw field for the four).
+- **`(void) f` cannot be spelled here.**  `FRAME_MENUBAR_HEIGHT` (used at C 3289 and C 3332) is
+  `include/xterm.rs`'s macro and its body is `{ (void) ($f); 0 }` - C's cast spelling, which is not
+  Rust (`E0425: cannot find value void`).  The port keeps C's *call* (the slice is a transcript)
+  and the mirror row is owed; see `## Owed`.
+- **The `input_event_bits` per-unit macro.**  C's `ie.kind = PREEDIT_TEXT_EVENT` (C 3415/3449 and
+  C 3788) writes the 16-bit `kind` field the mirror shares with `part` in one word, so the port
+  uses the per-unit macro `src/androidterm.rs` 199-209 and `src/dbusbind.rs` 2505-2515 carry,
+  body-identical (PORTING.md 1.3/P-80).
+
+### Owed (this slice)
+
+- **`include/xterm.rs`**: `FRAME_MENUBAR_HEIGHT`'s body - `{ (void) ($f); 0 }` is C's cast written
+  in Rust and cannot compile; C's `((void) f, 0)` evaluates `f` and yields `0`, so the body wants
+  `{ let _ = &$f; 0 }` (or the argument bound once).  C 3289/3332 are the two call sites.
+  Also the gating of `x_display_info.xim_callback_data: *mut xim_inst_t` (C's `#ifdef HAVE_X_I18N`
+  member) against `struct xim_inst_t`'s own `have_x11r6_xim` gate - with `have_x_i18n` on and
+  `have_x11r6_xim` off the field's type is undeclared (`E0425 xim_inst_t`); and this slice's
+  activated `bool_bf` rows (`alpha_identical_p` at C 2478, `use_vsync_p` at C 2474/2484/2488/2504,
+  `waiting_for_frame_p` in slice 2's C 999 arm) - `// C:` rows today.
+- **`include/frame.rs`**: `explicit_name` (frame.h 417) - a `// C:` row the two `x_set_name`
+  accesses need a reader/writer for (the `src/androidfns.rs` block's shape is the port's own
+  meanwhile).
+- **`include/xlib.rs`** (or its `x11_constants` module): `XA_STRING` (Xatom.h 39, `((Atom) 31)`),
+  and the **whole XIM/XIC surface** this slice declares at C 2726's position: the types (Xlib.h
+  1090 `XFontSet`, 1141 `XIM`, 1142 `XIC`, 1150 `XICProc`, 1144 `XIMProc`, 1162 `XIMStyle`,
+  1164-1167 `XIMStyles`, 1229 `XVaNestedList`, 1231-1234 `XIMCallback`, 1236-1239 `XICCallback`,
+  1235 `XIMFeedback`, 1253-1261 `XIMText` with its anonymous union, 1329-1334
+  `XIMPreeditDrawCallbackStruct`, 1342-1346 `XIMPreeditCaretCallbackStruct`, 422-426 `XPoint`),
+  the two enumerations (1305-1319 `XIMCaretDirection`, 1336-1340 `XIMCaretStyle`), the nine masks
+  of Xlib.h 1169-1177, the sixteen `XN*` name strings of Xlib.h 1179-1215, and the eight entry
+  points (3619-3625 `XCreateFontSet`, 3627-3630 `XFreeFontSet`, 1932-1934 `XFreeStringList`,
+  3863-3865 `XCreateIC`, 3867-3869 `XDestroyIC`, 3891-3893 `XSetICValues`, 3895-3897
+  `XGetICValues`, 3935-3937 `XVaCreateNestedList`).  `include/xterm.rs`'s own `STYLE_*` constants
+  (C 2003-2009) consume six of the masks today and are the second consumer of the same rows.
+- **`include/coding.rs`**: `setup_coding_system` (coding.h 686).  **`include/lisp.rs`** (or a
+  ledger row): `internal_condition_case_n` (lisp.h 4808; the definition is `src/eval.rs` 1741's).
+  **`include/dispextern.rs`**: `enum resource_types` (3983-3992) and `gui_display_get_arg` (3994).
+  **`include/frame.rs`**: `gui_set_frame_parameters` (frame.h 1843) and `gui_display_get_resource`
+  (frame.h 1875; the definition is `src/frame.rs` 6526's).  **`include/gtkutil.rs`**:
+  `xg_get_scale` (181), `xg_get_default_scrollbar_width`/`_height` (206/207).
+  **`include/gtk.rs`**: `gtk_im_context_set_cursor_location` (gtk/gtkimcontext.h) and the
+  `GtkResizeMode`/`gdk_x11_window_set_frame_sync_enabled` rows slice 2 already owed.
+- **`femacs/xtask/Cargo.toml`**: slice 1's four unregistered names (`use_motif`, `have_xaw3d`,
+  `have_xrandr`, `have_xinerama`) plus the gates this slice's arms name that the table does not
+  register yet: `use_toolkit_scroll_bars`, `have_xiccallback_callback`, `debug_xic_fontset`,
+  `have_clock_gettime`, `have_window_system`, `have_ext_menu_bar`, `have_ext_tool_bar`,
+  `have_x_i18n` (the last four are `include/frame.rs`'s and `include/window.rs`'s own arm names).
+- **`docs/ports/line-drift-tolerance.tsv`**: still the `src/xfns.c` row slice 1 recorded (48.8% at
+  this revision).
+- **`docs/ports/macro-body-notes.tsv`**: the nine rows this slice appended (the `goto`, `switch`,
+  `alloca`, `common_flags`/`mode` and `tooltip` token exemptions).  They are append-only and this
+  lane wrote them.
+- **`src/xfns.c` itself**: `XScreenNumberOfScreen` (C 7479) must land with `#[unsafe(no_mangle)]`
+  before slice 2's one `--check` row can go away.
+- **`xmint_pointer`'s argument spelling**: `data = xmint_pointer (args[0])` is spelled
+  `*args.offset (0)` (C's index kept as a token, the `src/xdisp.rs` 27253 shape) - not owed, but
+  recorded because the spelling differs from the bare `*args` a reader might expect.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind.**  The frozen configuration compiles nothing from this file,
+  so every statement above is a *text* port with *compile* readings of its arms: nothing here has
+  been executed, and no X11 display, X server, XCB connection, XIM/XIC input method, GTK toolkit or
+  X toolkit was involved (this machine has no GTK tree and no libXt at all; the XIM/XIC constants
+  and layouts are measured with clang against `libx11 1.8.13` and `xorgproto 2025.1` under
+  `/opt/homebrew/include`, which is a header reading, not a runtime one).
+- **The arm readings are `rustc` exit readings, not acceptance.**  ③ and ④ count errors inherited
+  from mirrors this lane may not write plus the registered P-91 rows; **neither arm is "0 errors"
+  and neither is claimed as a working configuration**.  ⑤'s two runs are not C configurations at
+  all and are evidence about the *probe set*, not about the port.
+- **One P-91 row stands inside this slice**: `Xxic_string_conversion_callback` (C 2771-2776)
+  initialises its `callback` from `xic_string_conversion_callback`, whose definition is C 3838 -
+  past the boundary.  The row is registered here and the site names the C line it waits for.
+- **The 1,500-3,000 C line brief.**  The slice carries 1,662 C lines: the first whole function
+  boundary past 1,500 is C 3811, and the boundary before it (C 3635, `x_encode_xim_text`'s `}`) is
+  only 1,486.  The remainder row now starts at C 3812.

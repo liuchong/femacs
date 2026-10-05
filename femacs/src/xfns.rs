@@ -54,6 +54,7 @@ include!("../lib/include/math.rs");            // C 23: `#include <math.h>` (pow
 include!("../lib/include/unistd.in.rs");       // C 24: `#include <unistd.h>`
 #[cfg (feature = "have_x_windows")]
 include!("include/lisp.rs");                   // C 26: `#include "lisp.h"`
+include!("../lib/include/stdcountof.rs");   // lisp.h 28: `#include <stdcountof.h>` (countof)
 #[cfg (feature = "have_x_windows")]
 include!("include/character.rs");              // C 27: `#include "character.h"`
 #[cfg (feature = "have_x_windows")]
@@ -3048,4 +3049,2407 @@ unsafe fn x_set_scroll_bar_background (f: *mut frame, value: Lisp_Object, oldval
           }
       }
   }
+}
+
+/* =====================================================================================
+   C 2150-3811: the slice that follows slice 2.  It opens at C 2150 (the blank after
+   `x_set_scroll_bar_background`'s `}`) and closes at C 3811, the `}` of
+   `xic_preedit_draw_callback` - the first whole function past the 1,500 C lines this
+   slice's brief asked for.  The boundary after it is C 3813's `void` / C 3814
+   `xic_set_xfontset`, which is where the next slice begins.
+
+   Everything here carries the file gate `have_x_windows` (P-86 ⑧), and every nested
+   `#if` carries C's own macro lower-cased, both arms where C has two.  Names the
+   mirrors this unit's include graph does not carry are declared at their use site with
+   C's own header line (P-88 ①); `docs/ports/xfns.md` names each as an owed mirror row.
+   ===================================================================================== */
+
+/* C 2150-2195: the blank at 2150, the form feed at 2151, C 2152-2165's comment, and
+   `x_encode_text`.  `setup_coding_system` (called at C 2177) is `coding.h` 686's
+   prototype, which `include/coding.rs` does not carry, so it is declared here (P-88 ①).  */
+/// C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);`
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn setup_coding_system (coding_system: Lisp_Object, coding: *mut coding_system);
+}
+
+/* Encode Lisp string STRING as a text in a format appropriate for
+   the ICCCM (Inter Client Communication Conventions Manual).
+
+   If STRING contains only ASCII characters, do no conversion and
+   return the string data of STRING.  Otherwise, encode the text by
+   CODING_SYSTEM, and return a newly allocated memory area which
+   should be freed by `xfree' by a caller.
+
+   Store the byte length of resulting text in *TEXT_BYTES.
+
+   If the text contains only ASCII and Latin-1, store true in *STRING_P,
+   which means that the `encoding' of the result can be `STRING'.
+   Otherwise store false in *STRINGP, which means that the `encoding' of
+   the result should be `COMPOUND_TEXT'.  */
+
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_encode_text (string: Lisp_Object, coding_system: Lisp_Object,
+                         text_bytes: *mut ptrdiff_t, stringp: *mut bool,
+                         freep: *mut bool) -> *mut c_uchar
+{
+  let result: c_int = string_xstring_p (string);
+  /* C: `struct coding_system coding;` - `setup_coding_system` writes it through the
+     by-address parameter, so the port zero-initialises it (PORTING.md 1.5).  */
+  let mut coding: coding_system = std::mem::zeroed ();
+
+  if result == 0
+    {
+      /* No multibyte character in OBJ.  We need not encode it.  */
+      *text_bytes = SBYTES (string);
+      *stringp = true;
+      *freep = false;
+      return SDATA (string);
+    }
+
+  setup_coding_system (coding_system, &raw mut coding);
+  /* C's `coding.mode |= (CODING_MODE_SAFE_ENCODING | CODING_MODE_LAST_BLOCK);` - `mode` is
+     the 5-bit member of the mirror's one storage word (its shifts/masks are in
+     `include/coding.rs`).  */
+  coding.bits |= ((CODING_MODE_SAFE_ENCODING | CODING_MODE_LAST_BLOCK) as u32)
+                 << CODING_SYSTEM_MODE_SHIFT;
+  /* We suppress producing escape sequences for composition.  */
+  /* C's `coding.common_flags &= ~CODING_ANNOTATION_MASK;` - the same word's low members.  */
+  coding.bits &= !(CODING_ANNOTATION_MASK << CODING_SYSTEM_COMMON_FLAGS_SHIFT);
+  coding.destination = xnmalloc (SCHARS (string), 2) as *mut u8;
+  coding.dst_bytes = SCHARS (string) * 2;
+  encode_coding_object (&raw mut coding, string, 0, 0,
+                        SCHARS (string), SBYTES (string), Qnil ());
+  *text_bytes = coding.produced;
+  *stringp = (result == 1 || !EQ (coding_system, Qcompound_text ()));
+  *freep = true;
+  return coding.destination;
+}
+
+/* C 2196-2294: the blank at 2196, C 2197-2199's comment and `x_set_name_internal`.
+   `XA_STRING` (used at C 2214/2229) is `<X11/Xatom.h>` 39's atom, which
+   `include/xlib.rs`'s `x11_constants` module does not carry (it has `XA_ATOM`,
+   `XA_CARDINAL`, `XA_PRIMARY` and `XA_WINDOW`), so it stands here as a use-site copy
+   (P-88 ①; `docs/ports/xfns.md` records the owed row).  */
+/// C: X11/Xatom.h 39: `#define XA_STRING ((Atom) 31)`
+#[cfg (feature = "have_x_windows")]
+pub const XA_STRING: Atom = 31;
+
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_name_internal (f: *mut frame, name: Lisp_Object)
+{
+  use crate::x11_constants::PropModeReplace;   // C 2224/2231's `PropModeReplace` (X.h 475)
+
+  if FRAME_X_WINDOW! (f) != 0
+    {
+      block_input ();
+      {
+        let mut text: XTextProperty = std::mem::zeroed ();
+        let mut icon: XTextProperty = std::mem::zeroed ();
+        let mut bytes: ptrdiff_t = 0;
+        let mut stringp: bool = false;
+        let mut do_free_icon_value: bool = false;
+        let mut do_free_text_value: bool = false;
+        let mut coding_system: Lisp_Object = std::ptr::null_mut ();
+        let mut encoded_name: Lisp_Object;
+        let mut encoded_icon_name: Lisp_Object;
+
+        /* As ENCODE_UTF_8 may cause GC and relocation of string data,
+           we use it before x_encode_text that may return string data.  */
+        encoded_name = ENCODE_UTF_8 (name);
+
+        coding_system = Qcompound_text ();
+        /* Note: Encoding strategy
+
+           We encode NAME by compound-text and use "COMPOUND-TEXT" in
+           text.encoding.  But, there are non-internationalized window
+           managers which don't support that encoding.  So, if NAME
+           contains only ASCII and 8859-1 characters, encode it by
+           iso-latin-1, and use "STRING" in text.encoding hoping that
+           such window managers at least analyze this format correctly,
+           i.e. treat 8-bit bytes as 8859-1 characters.
+
+           We may also be able to use "UTF8_STRING" in text.encoding
+           in the future which can encode all Unicode characters.
+           But, for the moment, there's no way to know that the
+           current window manager supports it or not.
+
+           Either way, we also set the _NET_WM_NAME and _NET_WM_ICON_NAME
+           properties.  Per the EWMH specification, those two properties
+           are always UTF8_STRING.  This matches what gtk_window_set_title()
+           does in the USE_GTK case. */
+        text.value = x_encode_text (name, coding_system, &raw mut bytes,
+                                    &raw mut stringp, &raw mut do_free_text_value);
+        text.encoding = (if stringp { XA_STRING }
+                         else { (*FRAME_DISPLAY_INFO! (f)).Xatom_COMPOUND_TEXT });
+        text.format = 8;
+        text.nitems = bytes as c_ulong;
+
+        if !STRINGP ((*f).icon_name)
+          {
+            icon = text;
+            encoded_icon_name = encoded_name;
+          }
+        else
+          {
+            /* See the above comment "Note: Encoding strategy".  */
+            icon.value = x_encode_text ((*f).icon_name, coding_system, &raw mut bytes,
+                                        &raw mut stringp, &raw mut do_free_icon_value);
+            icon.encoding = (if stringp { XA_STRING }
+                             else { (*FRAME_DISPLAY_INFO! (f)).Xatom_COMPOUND_TEXT });
+            icon.format = 8;
+            icon.nitems = bytes as c_ulong;
+
+            encoded_icon_name = ENCODE_UTF_8 ((*f).icon_name);
+          }
+
+        #[cfg (feature = "use_gtk")]
+        {
+          gtk_window_set_title (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+                                SSDATA (encoded_name));
+        }
+        #[cfg (not (feature = "use_gtk"))]
+        {
+          XSetWMName (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f), &raw mut text);
+          XChangeProperty (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),
+                           (*FRAME_DISPLAY_INFO! (f)).Xatom_net_wm_name,
+                           (*FRAME_DISPLAY_INFO! (f)).Xatom_UTF8_STRING,
+                           8, PropModeReplace,
+                           SDATA (encoded_name),
+                           SBYTES (encoded_name) as c_int);
+        }
+
+        XSetWMIconName (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f), &raw mut icon);
+        XChangeProperty (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),
+                         (*FRAME_DISPLAY_INFO! (f)).Xatom_net_wm_icon_name,
+                         (*FRAME_DISPLAY_INFO! (f)).Xatom_UTF8_STRING,
+                         8, PropModeReplace,
+                         SDATA (encoded_icon_name),
+                         SBYTES (encoded_icon_name) as c_int);
+
+        if do_free_icon_value
+          { xfree (icon.value as *mut c_void); }
+        if do_free_text_value
+          { xfree (text.value as *mut c_void); }
+      }
+      unblock_input ();
+    }
+}
+
+/* C 2296-2349: C 2296-2306's comment and `x_set_name`.  `explicit_name` (C 2316/2320) is
+   frame.h 417's flag, which `include/frame.rs` records as a comment only, so the two accesses
+   carry C's own name in a use-site macro over the mirror's flag word (the `src/androidfns.rs`
+   209-214 shape; `docs/ports/xfns.md` records the mirror row).  */
+/// C: frame.h 417: `bool_bf explicit_name : 1;`
+#[cfg (feature = "have_x_windows")]
+macro_rules! explicit_name {
+  ($f:expr) => { frame_flag ($f, 1, FRAME_EXPLICIT_NAME_SHIFT) };
+  ($f:expr, $v:expr) => { frame_set_flag ($f, 1, FRAME_EXPLICIT_NAME_SHIFT, $v as u32) };
+}
+
+/* Change the name of frame F to NAME.  If NAME is nil, set F's name to
+       x_id_name.
+
+   If EXPLICIT is true, that indicates that lisp code is setting the
+       name; if NAME is a string, set F's name to NAME and set
+       F->explicit_name; if NAME is Qnil, then clear F->explicit_name.
+
+   If EXPLICIT is false, that indicates that Emacs redisplay code is
+       suggesting a new name, which lisp code should override; if
+       F->explicit_name is set, ignore the new name; otherwise, set it.  */
+
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_name (f: *mut frame, mut name: Lisp_Object, explicit: bool)
+{
+  /* Make sure that requests from lisp code override requests from
+     Emacs redisplay code.  */
+  if explicit
+    {
+      /* If we're switching from explicit to implicit, we had better
+	 update the mode lines and thereby update the title.  */
+      if explicit_name! (f) && NILP (name)
+	{ update_mode_lines = 37; }
+
+      explicit_name! (f, ! NILP (name));
+    }
+  else if explicit_name! (f)
+    { return; }
+
+  /* If NAME is nil, set the name to the x_id_name.  */
+  if NILP (name)
+    {
+      /* Check for no change needed in this very common case
+	 before we do any consing.  */
+      if strcmp ((*FRAME_DISPLAY_INFO! (f)).x_id_name,
+                 SSDATA ((*f).name)) == 0
+	{ return; }
+      name = build_string ((*FRAME_DISPLAY_INFO! (f)).x_id_name);
+    }
+  else
+    { CHECK_STRING (name); }
+
+  /* Don't change the name if it's already NAME.  */
+  if ! NILP (Fstring_equal (name, (*f).name))
+    { return; }
+
+  fset_name (f, name);
+
+  /* For setting the frame title, the title parameter should override
+     the name parameter.  */
+  if ! NILP ((*f).title)
+    { name = (*f).title; }
+
+  x_set_name_internal (f, name);
+}
+
+/* This function should be called when the user's lisp code has
+   specified a name for the frame; the name will override any set by the
+   redisplay code.  */
+
+/* C 2354-2358.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_explicitly_set_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+{
+  x_set_name (f, arg, true);
+}
+
+/* This function should be called by Emacs redisplay code to set the
+   name; names set this way will never override names set by the user's
+   lisp code.  */
+
+/* C 2363-2367.  C's definition has no `static`, so the port keeps it exported (PORTING.md 0.2).  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_implicitly_set_name (f: *mut frame, arg: Lisp_Object,
+                                                oldval: Lisp_Object)
+{
+  x_set_name (f, arg, false);
+}
+
+/* Change the title of frame F to NAME.
+   If NAME is nil, use the frame name as the title.  */
+
+/* C 2372-2389.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_title (f: *mut frame, mut name: Lisp_Object, old_name: Lisp_Object)
+{
+  /* Don't change the title if it's already NAME.  */
+  if EQ (name, (*f).title)
+    { return; }
+
+  update_mode_lines = 38;
+
+  fset_title (f, name);
+
+  if NILP (name)
+    { name = (*f).name; }
+  else
+    { CHECK_STRING (name); }
+
+  x_set_name_internal (f, name);
+}
+
+/* C 2391-2410.  `FRAME_CONFIG_SCROLL_BAR_*` are frame.h 1291-1301's four macros; the mirror
+   `include/frame.rs` carries each as a *getter function*, so a write needs C's own macro form
+   (the `src/androidfns.rs` 338-352 shape; the same four names, same gates).  */
+/// C: frame.h 1293: `#define FRAME_CONFIG_SCROLL_BAR_WIDTH(f) ((f)->config_scroll_bar_width)`
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_WIDTH {
+  ($f:expr) => { (*$f).config_scroll_bar_width };
+}
+/// C: frame.h 1296: `#define FRAME_CONFIG_SCROLL_BAR_COLS(f) ((f)->config_scroll_bar_cols)`
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_COLS {
+  ($f:expr) => { (*$f).config_scroll_bar_cols };
+}
+/// C: frame.h 1299: `#define FRAME_CONFIG_SCROLL_BAR_HEIGHT(f) ((f)->config_scroll_bar_height)`
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_HEIGHT {
+  ($f:expr) => { (*$f).config_scroll_bar_height };
+}
+/// C: frame.h 1301: `#define FRAME_CONFIG_SCROLL_BAR_LINES(f) ((f)->config_scroll_bar_lines)`
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_LINES {
+  ($f:expr) => { (*$f).config_scroll_bar_lines };
+}
+
+/* `xg_get_default_scrollbar_width`/`_height` are `gtkutil.h`'s, which `include/gtkutil.rs`
+   does not carry (`USE_GTK` is `undef` in the frozen configuration, so the header's body is
+   dead there); the two are declared here under C's own gate, as this unit's other GTK-side
+   names are (P-88 ①).  */
+/// C: gtkutil.h 206: `extern int xg_get_default_scrollbar_width (struct frame *f);`
+/// C: gtkutil.h 207: `extern int xg_get_default_scrollbar_height (struct frame *f);`
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_get_default_scrollbar_width (f: *mut frame) -> c_int;
+  pub fn xg_get_default_scrollbar_height (f: *mut frame) -> c_int;
+}
+
+/* C 2391-2410.  C's definition has no `static`, so the port keeps it exported (PORTING.md 0.2).  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_set_scroll_bar_default_width (f: *mut frame)
+{
+  let unit: c_int = FRAME_COLUMN_WIDTH (f);
+  #[cfg (feature = "use_toolkit_scroll_bars")]
+  {
+    #[cfg (feature = "use_gtk")]
+    let mut minw: c_int = xg_get_default_scrollbar_width (f);
+    #[cfg (not (feature = "use_gtk"))]
+    let mut minw: c_int = 16;
+    /* A minimum width of 14 doesn't look good for toolkit scroll bars.  */
+    FRAME_CONFIG_SCROLL_BAR_COLS! (f) = (minw + unit - 1) / unit;
+    FRAME_CONFIG_SCROLL_BAR_WIDTH! (f) = minw;
+  }
+  #[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  {
+    /* The width of a non-toolkit scrollbar is 14 pixels.  */
+    FRAME_CONFIG_SCROLL_BAR_COLS! (f) = (14 + unit - 1) / unit;
+    FRAME_CONFIG_SCROLL_BAR_WIDTH! (f)
+      = FRAME_CONFIG_SCROLL_BAR_COLS! (f) * unit;
+  }
+}
+
+/* C 2412-2433.  C's definition has no `static`, so the port keeps it exported (PORTING.md 0.2).  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_set_scroll_bar_default_height (f: *mut frame)
+{
+  let height: c_int = FRAME_LINE_HEIGHT (f);
+  #[cfg (feature = "use_toolkit_scroll_bars")]
+  {
+    #[cfg (feature = "use_gtk")]
+    let mut min_height: c_int = xg_get_default_scrollbar_height (f);
+    #[cfg (not (feature = "use_gtk"))]
+    let mut min_height: c_int = 16;
+    /* A minimum height of 14 doesn't look good for toolkit scroll bars.  */
+    FRAME_CONFIG_SCROLL_BAR_HEIGHT! (f) = min_height;
+    FRAME_CONFIG_SCROLL_BAR_LINES! (f) = (min_height + height - 1) / height;
+  }
+  #[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  {
+    /* The height of a non-toolkit scrollbar is 14 pixels.  */
+    FRAME_CONFIG_SCROLL_BAR_LINES! (f) = (14 + height - 1) / height;
+
+    /* Use all of that space (aside from required margins) for the
+       scroll bar.  */
+    FRAME_CONFIG_SCROLL_BAR_HEIGHT! (f) = 14;
+  }
+}
+
+/* C 2435-2490.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_alpha (f: *mut frame, mut arg: Lisp_Object, oldval: Lisp_Object)
+{
+  let mut alpha: c_double = 1.0;
+  let mut newval: [c_double; 2] = [0.0; 2];
+  let mut i: c_int;
+  let mut item: Lisp_Object;
+  let mut alpha_identical_p: bool;
+
+  alpha_identical_p = true;
+
+  /* C: `for (i = 0; i < 2; i++)`.  */
+  i = 0;
+  while i < 2
+    {
+      newval[i as usize] = 1.0;
+      if CONSP (arg)
+        {
+          item = CAR (arg);
+          arg  = CDR (arg);
+
+	  alpha_identical_p = false;
+        }
+      else
+        { item = arg; }
+
+      if NILP (item)
+	{ alpha = - 1.0; }
+      else if FLOATP (item)
+	{
+	  alpha = XFLOAT_DATA (item);
+	  if ! (0.0 <= alpha && alpha <= 1.0)
+	    { args_out_of_range (make_float (0.0), make_float (1.0)); }
+	}
+      else if FIXNUMP (item)
+	{
+	  let ialpha: EMACS_INT = XFIXNUM (item);
+	  if ! (0 <= ialpha && ialpha <= 100)
+	    { args_out_of_range (make_fixnum (0), make_fixnum (100)); }
+	  alpha = ialpha as c_double / 100.0;
+	}
+      else
+	{ wrong_type_argument (Qnumberp (), item); }
+      newval[i as usize] = alpha;
+      i += 1;
+    }
+
+  /* C: `for (i = 0; i < 2; i++) f->alpha[i] = newval[i];`.  */
+  i = 0;
+  while i < 2
+    {
+      (*f).alpha[i as usize] = newval[i as usize];
+      i += 1;
+    }
+
+  /* C: `FRAME_X_OUTPUT (f)->alpha_identical_p = alpha_identical_p;` - the member is
+     `include/xterm.rs`'s `// C:` row (a `bool_bf` it records as a comment), so this statement
+     keeps C's own member name; `docs/ports/xfns.md` records the reading that follows.  */
+  (*(FRAME_X_OUTPUT! (f) as *mut x_output)).alpha_identical_p = alpha_identical_p;
+
+  if (*FRAME_TERMINAL! (f)).set_frame_alpha_hook.is_some ()
+    {
+      block_input ();
+      ((*FRAME_TERMINAL! (f)).set_frame_alpha_hook.unwrap_unchecked ()) (f as *mut c_void);
+      unblock_input ();
+    }
+}
+
+/* C 2492-2531.  `x_wm_supports` is `xterm.h` 1897's prototype, which no mirror in this unit's
+   graph carries, so it is declared here under C's own gate (P-88 ①).  */
+/// C: xterm.h 1897: `extern bool x_wm_supports (struct frame *, Atom);`
+#[cfg (all (feature = "have_x_windows", feature = "have_xsync",
+            not (feature = "use_gtk"), feature = "have_clock_gettime"))]
+unsafe extern "C" {
+  pub fn x_wm_supports (f: *mut frame, property: Atom) -> bool;
+}
+
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_use_frame_synchronization (f: *mut frame, arg: Lisp_Object,
+                                           oldval: Lisp_Object)
+{
+  use crate::x11_constants::{PropModeReplace, XA_CARDINAL};   // C 2510/2512 (X.h 477, Xatom.h 14)
+
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+              feature = "have_clock_gettime"))]
+  {
+    let mut dpyinfo: *mut x_display_info;
+    let mut bypass_compositor: c_ulong;
+
+    dpyinfo = FRAME_DISPLAY_INFO! (f);
+
+    if !NILP (arg) && FRAME_X_EXTENDED_COUNTER! (f) != 0
+      {
+        (*(FRAME_X_OUTPUT! (f) as *mut x_output)).use_vsync_p
+          = x_wm_supports (f, (*dpyinfo).Xatom_net_wm_frame_drawn);
+
+        /* At the same time, write the bypass compositor property to the
+           outer window.  2 means to never bypass the compositor, as we
+           need its cooperation for frame synchronization.  */
+        bypass_compositor = 2;
+        XChangeProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),
+                         (*dpyinfo).Xatom_net_wm_bypass_compositor,
+                         XA_CARDINAL, 32, PropModeReplace,
+                         &raw const bypass_compositor as *const c_uchar, 1);
+      }
+    else
+      {
+        (*(FRAME_X_OUTPUT! (f) as *mut x_output)).use_vsync_p = false;
+
+        /* Remove the compositor bypass property from the outer
+           window.  */
+        XDeleteProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),
+                         (*dpyinfo).Xatom_net_wm_bypass_compositor);
+      }
+
+    store_frame_param (f, Quse_frame_synchronization (),
+                       if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).use_vsync_p
+                         { Qt () } else { Qnil () });
+  }
+  #[cfg (not (all (feature = "have_xsync", not (feature = "use_gtk"),
+                   feature = "have_clock_gettime")))]
+  {
+    store_frame_param (f, Quse_frame_synchronization (), Qnil ());
+  }
+}
+
+/* C 2533-2584: C 2533-2538's comment and `x_default_scroll_bar_color_parameter`.  The three
+   frame.h/dispextern.h prototypes it calls - `gui_display_get_arg`, `gui_set_frame_parameters`
+   and `gui_display_get_resource` - are not in any mirror of this unit's include graph, so they
+   are declared here with C's own lines (P-88 ①; `src/androidfns.rs` 122-128 is the same
+   transcript for the first), and `enum resource_types` with them.  */
+/// C: dispextern.h 3994: `extern Lisp_Object gui_display_get_arg (Display_Info *, Lisp_Object,`
+/// C: `Lisp_Object, const char *, const char *, enum resource_types);`
+/// (C's `Display_Info` is `frame.h`'s alias of the X arm's `struct x_display_info`.)
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn gui_display_get_arg (dpyinfo: *mut x_display_info, alist: Lisp_Object,
+                              param: Lisp_Object, name: *const c_char, x_name: *const c_char,
+                              r#type: resource_types) -> Lisp_Object;
+  /// C: frame.h 1843: `extern void gui_set_frame_parameters (struct frame *, Lisp_Object);`
+  pub fn gui_set_frame_parameters (f: *mut frame, alist: Lisp_Object);
+  /// C: frame.h 1875: `extern Lisp_Object gui_display_get_resource (Display_Info *,
+  /// Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
+  pub fn gui_display_get_resource (dpyinfo: *mut x_display_info, attribute: Lisp_Object,
+                                   class: Lisp_Object, component: Lisp_Object,
+                                   subclass: Lisp_Object) -> Lisp_Object;
+}
+
+/* C: dispextern.h 3983: `enum resource_types { RES_TYPE_NUMBER, RES_TYPE_FLOAT,
+   RES_TYPE_BOOLEAN, RES_TYPE_STRING, RES_TYPE_SYMBOL, RES_TYPE_BOOLEAN_NUMBER };` - a
+   WIP-slice gap of `include/dispextern.rs` (`src/androidfns.rs` 164-178 carries the same
+   copy).  C's enum ABI is `c_int` (PORTING.md 1.3).  */
+#[cfg (feature = "have_x_windows")]
+pub type resource_types = c_int;
+#[cfg (feature = "have_x_windows")]
+pub const RES_TYPE_NUMBER: resource_types = 0;          // C 3985
+#[cfg (feature = "have_x_windows")]
+pub const RES_TYPE_FLOAT: resource_types = 1;           // C 3986
+#[cfg (feature = "have_x_windows")]
+pub const RES_TYPE_BOOLEAN: resource_types = 2;         // C 3987
+#[cfg (feature = "have_x_windows")]
+pub const RES_TYPE_STRING: resource_types = 3;          // C 3988
+#[cfg (feature = "have_x_windows")]
+pub const RES_TYPE_SYMBOL: resource_types = 4;          // C 3989
+#[cfg (feature = "have_x_windows")]
+pub const RES_TYPE_BOOLEAN_NUMBER: resource_types = 5;  // C 3990
+
+/* Record in frame F the specified or default value according to ALIST
+   of the parameter named PROP (a Lisp symbol).  If no value is
+   specified for PROP, look for an X default for XPROP on the frame
+   named NAME.  If that is not found either, use the value DEFLT.  */
+
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_default_scroll_bar_color_parameter (f: *mut frame, alist: Lisp_Object,
+                                                prop: Lisp_Object, xprop: *const c_char,
+                                                xclass: *const c_char, foreground_p: bool)
+                                                -> Lisp_Object
+{
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);
+  let mut tem: Lisp_Object;
+
+  tem = gui_display_get_arg (dpyinfo, alist, prop, xprop, xclass,
+                             RES_TYPE_STRING);
+  if BASE_EQ (tem, Qunbound ())
+    {
+      #[cfg (feature = "use_toolkit_scroll_bars")]
+      {
+        /* See if an X resource for the scroll bar color has been
+	   specified.  */
+        AUTO_STRING! (foreground, c"foreground".as_ptr ());
+        AUTO_STRING! (background, c"foreground".as_ptr ());
+        AUTO_STRING! (verticalScrollBar, c"verticalScrollBar".as_ptr ());
+        tem = gui_display_get_resource (
+                dpyinfo, if foreground_p { foreground } else { background },
+                empty_unibyte_string,
+                verticalScrollBar,
+                empty_unibyte_string);
+        if !STRINGP (tem)
+          {
+            /* If nothing has been specified, scroll bars will use a
+	       toolkit-dependent default.  Because these defaults are
+	       difficult to get at without actually creating a scroll
+	       bar, use nil to indicate that no color has been
+	       specified.  */
+            tem = Qnil ();
+          }
+      }
+      #[cfg (not (feature = "use_toolkit_scroll_bars"))]
+      {
+        tem = Qnil ();
+      }
+    }
+
+  AUTO_FRAME_ARG! (arg, prop, tem);
+  gui_set_frame_parameters (f, arg);
+  return tem;
+}
+
+/* C 2585-2654: C 2585-2588's comment, the `#ifdef USE_X_TOOLKIT` at C 2589, `hack_wm_protocols`
+   and the `#endif` at C 2655.  */
+
+/* If the WM_PROTOCOLS property does not already contain WM_TAKE_FOCUS,
+   WM_DELETE_WINDOW, and WM_SAVE_YOURSELF, then add them.  (They may
+   already be present because of the toolkit (Motif adds some of them,
+   for example, but Xt doesn't).  */
+
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe fn hack_wm_protocols (f: *mut frame, widget: Widget)
+{
+  use crate::x11_constants::{PropModeAppend, Success, XA_ATOM};   // C 2614/2620/2650 (X.h/Xatom.h)
+
+  let dpy: *mut Display = XtDisplay (widget);
+  let w: Window = XtWindow (widget);
+  let mut need_delete: bool = true;
+  let mut need_focus: bool = true;
+  let mut need_save: bool = true;
+
+  block_input ();
+  {
+    let mut r#type: Atom = 0;
+    let mut catoms: *mut c_uchar = std::ptr::null_mut ();
+    let mut format: c_int = 0;
+    let mut nitems: c_ulong = 0;
+    let mut bytes_after: c_ulong = 0;
+
+    if (XGetWindowProperty (dpy, w,
+			     (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_protocols,
+			     0, 100, False, XA_ATOM,
+			     &raw mut r#type, &raw mut format, &raw mut nitems, &raw mut bytes_after,
+			     &raw mut catoms)
+	 == Success)
+	&& format == 32 && r#type == XA_ATOM
+      {
+	let atoms: *mut Atom = catoms as *mut Atom;
+	while nitems > 0
+	  {
+	    nitems -= 1;
+	    if *atoms.offset (nitems as isize)
+		== (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_delete_window
+	      { need_delete = false; }
+	    else if *atoms.offset (nitems as isize)
+		     == (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_take_focus
+	      { need_focus = false; }
+	    else if *atoms.offset (nitems as isize)
+		     == (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_save_yourself
+	      { need_save = false; }
+	  }
+      }
+    if !catoms.is_null ()
+      { XFree (catoms as *mut c_void); }
+  }
+  {
+    let mut props: [Atom; 10] = [0; 10];
+    let mut count: c_int = 0;
+    /* C's `props[count++] = …`: the store first, the index step second.  */
+    if need_delete
+      {
+        props[count as usize] = (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_delete_window;
+        count += 1;
+      }
+    if need_focus
+      {
+        props[count as usize] = (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_take_focus;
+        count += 1;
+      }
+    if need_save
+      {
+        props[count as usize] = (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_save_yourself;
+        count += 1;
+      }
+    if count != 0
+      {
+        XChangeProperty (dpy, w, (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_protocols,
+			 XA_ATOM, 32, PropModeAppend,
+			 props.as_ptr () as *const c_uchar, count);
+      }
+  }
+  unblock_input ();
+}
+
+/* C 2657-2722.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn append_wm_protocols (dpyinfo: *mut x_display_info, f: *mut frame)
+{
+  use crate::x11_constants::{PropModeAppend, Success, XA_ATOM};   // C 2678/2680/2719 (X.h/Xatom.h)
+
+  let mut existing: *mut c_uchar = std::ptr::null_mut ();
+  let mut format: c_int = 0;
+  let mut nitems: c_ulong = 0;
+  let mut r#type: Atom = 0;
+  let mut existing_protocols: *mut Atom = std::ptr::null_mut ();
+  let mut protos: [Atom; 10] = [0; 10];
+  let mut num_protos: c_int = 0;
+  let mut found_wm_ping: bool = false;
+  #[cfg (all (not (feature = "have_gtk3"), feature = "have_xsync"))]
+  let mut found_wm_sync_request: bool = false;
+  let mut bytes_after: c_ulong = 0;
+
+  block_input ();
+  if (XGetWindowProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),
+			   (*dpyinfo).Xatom_wm_protocols,
+			   0, 100, False, XA_ATOM, &raw mut r#type, &raw mut format,
+			   &raw mut nitems, &raw mut bytes_after,
+			   &raw mut existing) == Success)
+      && format == 32 && r#type == XA_ATOM
+    {
+      existing_protocols = existing as *mut Atom;
+
+      while nitems != 0
+	{
+	  nitems -= 1;
+
+	  if *existing_protocols.offset (nitems as isize)
+	      == (*dpyinfo).Xatom_net_wm_ping
+	    { found_wm_ping = true; }
+	  else
+	    {
+	      /* C's `#if !defined HAVE_GTK3 && defined HAVE_XSYNC` around the `else if`
+		 branch: the gated arm's test is the else's body, so the chain is the
+		 same one C compiles.  */
+	      #[cfg (all (not (feature = "have_gtk3"), feature = "have_xsync"))]
+	      if *existing_protocols.offset (nitems as isize)
+		  == (*dpyinfo).Xatom_net_wm_sync_request
+		{ found_wm_sync_request = true; }
+	    }
+	}
+    }
+
+  if !existing.is_null ()
+    { XFree (existing as *mut c_void); }
+
+  if !(*dpyinfo).untrusted
+    {
+      /* Untrusted clients cannot use these protocols which require
+	 communicating with the window manager.  */
+
+      /* C's `protos[num_protos++] = …`: the store first, the index step second.  */
+      if !found_wm_ping
+        {
+          protos[num_protos as usize] = (*dpyinfo).Xatom_net_wm_ping;
+          num_protos += 1;
+        }
+      #[cfg (all (not (feature = "have_gtk3"), feature = "have_xsync"))]
+      {
+        if !found_wm_sync_request && (*dpyinfo).xsync_supported_p
+          {
+            protos[num_protos as usize] = (*dpyinfo).Xatom_net_wm_sync_request;
+            num_protos += 1;
+          }
+      }
+    }
+
+  if num_protos != 0
+    {
+      XChangeProperty ((*dpyinfo).display,
+		       FRAME_OUTER_WINDOW! (f),
+		       (*dpyinfo).Xatom_wm_protocols,
+		       XA_ATOM, 32, PropModeAppend,
+		       protos.as_ptr () as *const c_uchar,
+		       num_protos);
+    }
+  unblock_input ();
+}
+
+/* =====================================================================================
+   C 2724-3085: the XIC (X Input Context) block's first half.
+
+   C 2724-2726 is its comment ("Support routines for XIC (X Input Context).") and C 2728 the
+   `#ifdef HAVE_X_I18N` that holds everything through C 3956.  C 2729-2736 are five `static`
+   forward declarations, which PORTING.md 0.1-12 drops (Rust has no prototypes; every definition
+   they name is an item of this slice except `xic_string_conversion_callback` - C 3838, past the
+   slice - which is recorded in `docs/ports/xfns.md` as a P-91 owed row).
+
+   The XIM/XIC surface: `<X11/Xlib.h>` 1090-1346's types, the `XIMCaretDirection` enumerators,
+   the nine preedit/status masks of Xlib.h 1169-1177, the sixteen `XN*` attribute-name strings
+   of Xlib.h 1179-1215, and the eight entry points below.  No mirror of this unit's include graph
+   declares any of them (`include/xterm.rs` *names* XIM/XIC/XFontSet/XIMStyles/XIMStyle in its
+   `x_display_info`/`x_output` rows and its `STYLE_*` constants use the style masks, but it
+   declares neither the types nor the macros), so each stands here at the use site under C's own
+   gate with the header line it comes from, measured against the installed headers (libx11 1.8.13
+   and xorgproto 2025.1 under `/opt/homebrew/include`); `docs/ports/xfns.md` names the
+   `include/xterm.rs`/`include/xlib.rs` rows they are owed.  */
+
+/// C: Xlib.h 1090: `typedef struct _XOC *XOC, *XFontSet;`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XFontSet = *mut c_void;
+/// C: Xlib.h 1141: `typedef struct _XIM *XIM;`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIM = *mut c_void;
+/// C: Xlib.h 1142: `typedef struct _XIC *XIC;`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIC = *mut c_void;
+/// C: Xlib.h 1162: `typedef unsigned long XIMStyle;`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIMStyle = c_ulong;
+/// C: Xlib.h 1164-1167: `typedef struct { unsigned short count_styles; XIMStyle
+/// *supported_styles; } XIMStyles;` - measured `sizeof 16 align 8`, offsets `count_styles 0
+/// supported_styles 8`.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIMStyles
+{
+  pub count_styles: c_ushort,             // C: unsigned short count_styles;
+  pub supported_styles: *mut XIMStyle,    // C: XIMStyle *supported_styles;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::size_of::<XIMStyles> () == 16);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMStyles, supported_styles) == 8);
+
+/// C: Xlib.h 1144-1148: `typedef void (*XIMProc) (XIM, XPointer, XPointer);`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIMProc = Option<unsafe extern "C" fn (XIM, XPointer, XPointer)>;
+/// C: Xlib.h 1150-1154: `typedef Bool (*XICProc) (XIC, XPointer, XPointer);`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XICProc = Option<unsafe extern "C" fn (XIC, XPointer, XPointer) -> Bool>;
+/// C: Xlib.h 1229: `typedef void *XVaNestedList;`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XVaNestedList = *mut c_void;
+/// C: Xlib.h 1231-1234: `typedef struct { XPointer client_data; XIMProc callback; }
+/// XIMCallback;` - measured `sizeof 16 align 8`, offsets `client_data 0 callback 8`.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIMCallback
+{
+  pub client_data: XPointer,              // C: XPointer client_data;
+  pub callback: XIMProc,                  // C: XIMProc callback;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::size_of::<XIMCallback> () == 16);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMCallback, callback) == 8);
+/// C: Xlib.h 1236-1239: `typedef struct { XPointer client_data; XICProc callback; }
+/// XICCallback;` - the same two words, with `XICProc`'s `Bool` result.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XICCallback
+{
+  pub client_data: XPointer,              // C: XPointer client_data;
+  pub callback: XICProc,                  // C: XICProc callback;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::size_of::<XICCallback> () == 16);
+
+/// C: Xlib.h 1235: `typedef unsigned long XIMFeedback;`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIMFeedback = c_ulong;
+/// C: Xlib.h 1253-1261's inner union, `union { char *multi_byte; wchar_t *wide_char; } string;`
+/// - anonymous in C, so the port names it after its owner and member the way
+/// `lisp.rs`'s `Lisp_String_s`/`Lisp_String_u` are named (PORTING.md 1.3).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub union XIMText_string
+{
+  pub multi_byte: *mut c_char,            // C: char *multi_byte;
+  pub wide_char: *mut c_int,              // C: wchar_t *wide_char; (`wchar_t` is `int` here)
+}
+/// C: Xlib.h 1253-1261: `typedef struct _XIMText { unsigned short length; XIMFeedback
+/// *feedback; Bool encoding_is_wchar; union { char *multi_byte; wchar_t *wide_char; } string;
+/// } XIMText;` - measured `sizeof 32 align 8`, offsets `length 0 feedback 8 encoding_is_wchar 16
+/// string 24`.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIMText
+{
+  pub length: c_ushort,                   // C: unsigned short length;
+  pub feedback: *mut XIMFeedback,         // C: XIMFeedback *feedback;
+  pub encoding_is_wchar: Bool,            // C: Bool encoding_is_wchar;
+  pub string: XIMText_string,             // C: union { … } string;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::size_of::<XIMText> () == 32);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMText, feedback) == 8);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMText, encoding_is_wchar) == 16);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMText, string) == 24);
+
+/// C: Xlib.h 1305-1319: `typedef enum { XIMForwardChar, XIMBackwardChar, XIMForwardWord,
+/// XIMBackwardWord, XIMCaretUp, XIMCaretDown, XIMNextLine, XIMPreviousLine, XIMLineStart,
+/// XIMLineEnd, XIMAbsolutePosition, XIMDontChange } XIMCaretDirection;` - C's members carry no
+/// initialiser, so the values are the declaration order (measured with clang).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIMCaretDirection = c_int;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMForwardChar: XIMCaretDirection = 0;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMBackwardChar: XIMCaretDirection = 1;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMForwardWord: XIMCaretDirection = 2;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMBackwardWord: XIMCaretDirection = 3;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMCaretUp: XIMCaretDirection = 4;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMCaretDown: XIMCaretDirection = 5;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMNextLine: XIMCaretDirection = 6;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreviousLine: XIMCaretDirection = 7;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMLineStart: XIMCaretDirection = 8;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMLineEnd: XIMCaretDirection = 9;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMAbsolutePosition: XIMCaretDirection = 10;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMDontChange: XIMCaretDirection = 11;
+
+/// C: Xlib.h 1336-1340: `typedef enum { XIMIsInvisible, XIMIsPrimary, XIMIsSecondary }
+/// XIMCaretStyle;` (measured `0/1/2`).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIMCaretStyle = c_int;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMIsInvisible: XIMCaretStyle = 0;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMIsPrimary: XIMCaretStyle = 1;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMIsSecondary: XIMCaretStyle = 2;
+
+/// C: Xlib.h 1329-1334: `typedef struct _XIMPreeditDrawCallbackStruct { int caret; int
+/// chg_first; int chg_length; XIMText *text; } XIMPreeditDrawCallbackStruct;` - measured
+/// `sizeof 24 align 8`, offsets `caret 0 chg_first 4 chg_length 8 text 16`.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIMPreeditDrawCallbackStruct
+{
+  pub caret: c_int,                       // C: int caret;
+  pub chg_first: c_int,                   // C: int chg_first;
+  pub chg_length: c_int,                  // C: int chg_length;
+  pub text: *mut XIMText,                 // C: XIMText *text;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::size_of::<XIMPreeditDrawCallbackStruct> () == 24);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMPreeditDrawCallbackStruct, chg_first) == 4);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMPreeditDrawCallbackStruct, text) == 16);
+
+/// C: Xlib.h 1342-1346: `typedef struct _XIMPreeditCaretCallbackStruct { int position;
+/// XIMCaretDirection direction; XIMCaretStyle style; } XIMPreeditCaretCallbackStruct;` -
+/// measured `sizeof 12 align 4`, offsets `position 0 direction 4 style 8`.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIMPreeditCaretCallbackStruct
+{
+  pub position: c_int,                    // C: int position;
+  pub direction: XIMCaretDirection,       // C: XIMCaretDirection direction;
+  pub style: XIMCaretStyle,               // C: XIMCaretStyle style;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::size_of::<XIMPreeditCaretCallbackStruct> () == 12);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMPreeditCaretCallbackStruct, direction) == 4);
+
+/// C: Xlib.h 422-426: `typedef struct { short x, y; } XPoint;` - measured `sizeof 4 align 2`.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XPoint
+{
+  pub x: c_short,                         // C: short x;
+  pub y: c_short,                         // C: short y;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::size_of::<XPoint> () == 4);
+
+/* C: Xlib.h 1169-1177: the nine preedit/status masks (`#define XIMPreeditArea 0x0001L`,
+   `XIMPreeditCallbacks 0x0002L`, `XIMPreeditPosition 0x0004L`, `XIMPreeditNothing 0x0008L`,
+   `XIMPreeditNone 0x0010L`, `XIMStatusArea 0x0100L`, `XIMStatusCallbacks 0x0200L`,
+   `XIMStatusNothing 0x0400L`, `XIMStatusNone 0x0800L`) - measured with clang, and the six
+   `include/xterm.rs`'s `STYLE_*` constants (its own C 2003-2009) are already written with.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreeditArea: XIMStyle = 0x0001;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreeditCallbacks: XIMStyle = 0x0002;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreeditPosition: XIMStyle = 0x0004;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreeditNothing: XIMStyle = 0x0008;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreeditNone: XIMStyle = 0x0010;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMStatusArea: XIMStyle = 0x0100;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMStatusCallbacks: XIMStyle = 0x0200;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMStatusNothing: XIMStyle = 0x0400;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMStatusNone: XIMStyle = 0x0800;
+
+/* C: Xlib.h 1179-1215's `XN*` attribute-name strings - C's `#define XNFontSet "fontSet"` family.
+   Each is the `src/xfns.rs` 1274-1283 `XtNinput`/`XtNborderColor` shape: a function returning
+   the string's own bytes, because every use is a variadic argument that needs `char *`.  */
+/// C: Xlib.h 1183: `#define XNClientWindow "clientWindow"`
+/// C: Xlib.h 1184: `#define XNInputStyle "inputStyle"` / 1185 `XNFocusWindow "focusWindow"`
+/// C: Xlib.h 1190: `#define XNPreeditStartCallback "preeditStartCallback"` / 1191
+/// `XNPreeditDoneCallback "preeditDoneCallback"` / 1192 `XNPreeditDrawCallback
+/// "preeditDrawCallback"` / 1193 `XNPreeditCaretCallback "preeditCaretCallback"`
+/// C: Xlib.h 1195: `#define XNPreeditAttributes "preeditAttributes"` / 1200
+/// `XNStatusAttributes "statusAttributes"` / 1201 `XNArea "area"` / 1202
+/// `XNAreaNeeded "areaNeeded"` / 1203 `XNSpotLocation "spotLocation"` / 1206
+/// `XNForeground "foreground"` / 1207 `XNBackground "background"` / 1209 `XNFontSet "fontSet"`
+/// C: Xlib.h 1214: `#define XNStringConversionCallback "stringConversionCallback"`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNClientWindow () -> *mut c_char { c"clientWindow".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNInputStyle () -> *mut c_char { c"inputStyle".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNFocusWindow () -> *mut c_char { c"focusWindow".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNPreeditStartCallback () -> *mut c_char
+{ c"preeditStartCallback".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNPreeditDoneCallback () -> *mut c_char
+{ c"preeditDoneCallback".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNPreeditDrawCallback () -> *mut c_char
+{ c"preeditDrawCallback".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNPreeditCaretCallback () -> *mut c_char
+{ c"preeditCaretCallback".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNPreeditAttributes () -> *mut c_char
+{ c"preeditAttributes".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNStatusAttributes () -> *mut c_char
+{ c"statusAttributes".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNArea () -> *mut c_char { c"area".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNAreaNeeded () -> *mut c_char { c"areaNeeded".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNSpotLocation () -> *mut c_char { c"spotLocation".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNForeground () -> *mut c_char { c"foreground".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNBackground () -> *mut c_char { c"background".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNFontSet () -> *mut c_char { c"fontSet".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub fn XNStringConversionCallback () -> *mut c_char
+{ c"stringConversionCallback".as_ptr () as *mut c_char }
+
+/// C: Xlib.h 3619-3625: `extern XFontSet XCreateFontSet (Display *, _Xconst char *, char ***,
+/// int *, char **);`
+/// C: Xlib.h 1932-1934: `extern void XFreeStringList (char **);`
+/// C: Xlib.h 3627-3630: `extern void XFreeFontSet (Display *, XFontSet);`
+/// C: Xlib.h 3863-3865: `extern XIC XCreateIC (XIM, ...);`
+/// C: Xlib.h 3867-3869: `extern void XDestroyIC (XIC);`
+/// C: Xlib.h 3891-3893: `extern char *XSetICValues (XIC, ...);`
+/// C: Xlib.h 3895-3897: `extern char *XGetICValues (XIC, ...);`
+/// C: Xlib.h 3935-3937: `extern XVaNestedList XVaCreateNestedList (int, ...);`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" {
+  pub fn XCreateFontSet (display: *mut Display, base_font_name_list: *const c_char,
+                         missing_charset_list: *mut *mut *mut c_char,
+                         missing_charset_count: *mut c_int,
+                         def_string: *mut *mut c_char) -> XFontSet;
+  pub fn XFreeStringList (list: *mut *mut c_char);
+  pub fn XFreeFontSet (display: *mut Display, font_set: XFontSet);
+  pub fn XCreateIC (im: XIM, ...) -> XIC;
+  pub fn XDestroyIC (ic: XIC);
+  pub fn XSetICValues (ic: XIC, ...) -> *mut c_char;
+  pub fn XGetICValues (ic: XIC, ...) -> *mut c_char;
+  pub fn XVaCreateNestedList (unused: c_int, ...) -> XVaNestedList;
+}
+
+/* The `use_gtk` arm of `xic_set_preeditarea` (C 3277-3295) calls this one; `include/gtk.rs`
+   does not carry it, so it stands here under that gate (P-88 ①).  */
+/// C: gtk/gtkimcontext.h: `void gtk_im_context_set_cursor_location (GtkIMContext *context,
+/// const GdkRectangle *area);`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn gtk_im_context_set_cursor_location (context: *mut GtkIMContext,
+                                             area: *const GdkRectangle);
+}
+
+/* C 2740-2776: the five callback records `create_frame_xic` hands to `XCreateIC` (the sixth at
+   C 2778-2786, `Xxic_string_conversion_callback`, is in the list below).  C's `static XIMCallback
+   X… = { NULL, (XIMProc) f };` is a file-scope object, so the port keeps `static mut` and C's
+   cast.  **C's cast reinterprets the function pointer, and Rust refuses a signature-changing
+   `as` cast between fn pointers (`error: non-primitive cast`, measured here), so the port
+   spells each of the four casts that change a signature as the item address plus a pointer
+   transmute - the `src/xwidget.rs` 213-222 `G_CALLBACK` shape, whose note records the same
+   limitation; every callback C passes through it is declared `unsafe extern "C" fn`
+   (PORTING.md 1.4).**  `docs/ports/xfns.md` records the deviation.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+static mut Xxic_preedit_draw_callback: XIMCallback =
+  XIMCallback {
+    client_data: std::ptr::null_mut (),
+    callback: Some (unsafe { core::mem::transmute::<*const (),
+                             unsafe extern "C" fn (XIM, XPointer, XPointer)> (
+                               xic_preedit_draw_callback as *const ()) }),
+  };
+
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+static mut Xxic_preedit_caret_callback: XIMCallback =
+  XIMCallback {
+    client_data: std::ptr::null_mut (),
+    callback: Some (unsafe { core::mem::transmute::<*const (),
+                             unsafe extern "C" fn (XIM, XPointer, XPointer)> (
+                               xic_preedit_caret_callback as *const ()) }),
+  };
+
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+static mut Xxic_preedit_done_callback: XIMCallback =
+  XIMCallback {
+    client_data: std::ptr::null_mut (),
+    callback: Some (xic_preedit_done_callback
+                    as unsafe extern "C" fn (XIM, XPointer, XPointer)),
+  };
+
+/* C 2757-2769: the `#ifdef HAVE_XICCALLBACK_CALLBACK` pair - the record is an `XICCallback`
+   whose `callback` is an `XICProc` when the configuration has that callback, and an `XIMCallback`
+   with C's `(XIMProc)` cast otherwise.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n",
+            feature = "have_xiccallback_callback"))]
+static mut Xxic_preedit_start_callback: XICCallback =
+  XICCallback {
+    client_data: std::ptr::null_mut (),
+    callback: Some (xic_preedit_start_callback
+                    as unsafe extern "C" fn (XIC, XPointer, XPointer) -> Bool),
+  };
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n",
+            not (feature = "have_xiccallback_callback")))]
+static mut Xxic_preedit_start_callback: XIMCallback =
+  XIMCallback {
+    client_data: std::ptr::null_mut (),
+    callback: Some (unsafe { core::mem::transmute::<*const (),
+                             unsafe extern "C" fn (XIM, XPointer, XPointer)> (
+                               xic_preedit_start_callback as *const ()) }),
+  };
+
+/* C 2771-2776.  C's initialiser casts `xic_string_conversion_callback`, whose *definition* is
+   C 3838 - past this slice's boundary - so this is the slice's one P-91 site; the row is in
+   `docs/ports/xfns.md`.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+static mut Xxic_string_conversion_callback: XIMCallback =
+  XIMCallback {
+    /* This is actually an XICCallback! */
+    client_data: std::ptr::null_mut (),
+    callback: Some (unsafe { core::mem::transmute::<*const (),
+                             unsafe extern "C" fn (XIM, XPointer, XPointer)> (
+                               xic_string_conversion_callback as *const ()) }),
+  };
+
+/* C 2778-2903: the `#if defined HAVE_X_WINDOWS && defined USE_X_TOOLKIT` block - the default
+   fontset name, `xic_create_fontsetname` and the `#endif`.  With the file gate already on, C's
+   pair reduces to `USE_X_TOOLKIT`, so the port's gate is `use_x_toolkit`.  */
+
+/* Create an X fontset on frame F with base font name BASE_FONTNAME.  */
+
+/// C: xfns.c 2780: `static const char xic_default_fontset[] =
+/// "-*-*-*-r-normal--14-*-*-*-*-*-*-*";` - an array with a stable address, which
+/// `xic_create_fontsetname` (C 2794) compares against its argument's *pointer*, so the port
+/// keeps it a `&CStr` static (`src/emacs.rs` 437's shape).
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+static xic_default_fontset: &core::ffi::CStr = c"-*-*-*-r-normal--14-*-*-*-*-*-*-*";
+
+/* Create an Xt fontset spec from the name of a base font.
+   If `motif' is True use the Motif syntax.  */
+
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xic_create_fontsetname (mut base_fontname: *const c_char,
+                                                 motif: bool) -> *mut c_char
+{
+  let sep: *const c_char = if motif { c";".as_ptr () } else { c",".as_ptr () };
+  let mut fontsetname: *mut c_char;
+  let mut z: *mut c_char;
+
+  /* Make a fontset name from the base font name.  */
+  if std::ptr::eq (xic_default_fontset.as_ptr (), base_fontname)
+    {
+      /* There is no base font name, use the default.  */
+      fontsetname = xmalloc (strlen (base_fontname) + 2) as *mut c_char;
+      z = stpcpy (fontsetname, base_fontname);
+    }
+  else
+    {
+      /* Make a fontset name from the base font name.
+	 The font set will be made of the following elements:
+	 - the base font.
+	 - the base font where the charset spec is replaced by -*-*.
+	 - the same but with the family also replaced with -*-*-.  */
+      let mut p: *const c_char = base_fontname;
+      let mut i: ptrdiff_t;
+
+      /* C: `for (i = 0; *p; p++) if (*p == '-') i++;`.  */
+      i = 0;
+      while *p != 0
+	{
+	  if *p == b'-' as c_char
+	    { i += 1; }
+	  p = p.offset (1);
+	}
+      if i != 14
+	{
+	  /* As the font name doesn't conform to XLFD, we can't
+	     modify it to generalize it to allcs and allfamilies.
+	     Use the specified font plus the default.  */
+	  fontsetname = xmalloc (strlen (base_fontname)
+				 + strlen (xic_default_fontset.as_ptr ()) + 3) as *mut c_char;
+	  z = stpcpy (fontsetname, base_fontname);
+	  z = stpcpy (z, sep);
+	  z = stpcpy (z, xic_default_fontset.as_ptr ());
+	}
+      else
+	{
+	  let mut len: ptrdiff_t;
+	  let mut p1: *const c_char = std::ptr::null ();
+	  let mut p2: *const c_char = std::ptr::null ();
+	  let mut p3: *const c_char = std::ptr::null ();
+	  let mut font_allcs: *mut c_char = std::ptr::null_mut ();
+	  let mut font_allfamilies: *mut c_char = std::ptr::null_mut ();
+	  let mut font_all: *mut c_char = std::ptr::null_mut ();
+	  let allcs: *const c_char = c"*-*-*-*-*-*-*".as_ptr ();
+	  let allfamilies: *const c_char = c"-*-*-".as_ptr ();
+	  let all: *const c_char = c"*-*-*-*-".as_ptr ();
+	  let mut base: *mut c_char;
+
+	  /* C: `for (i = 0, p = base_fontname; i < 8; p++) { … }`.  */
+	  i = 0;
+	  p = base_fontname;
+	  while i < 8
+	    {
+	      if *p == b'-' as c_char
+		{
+		  i += 1;
+		  if i == 3
+		    { p1 = p.offset (1); }
+		  else if i == 7
+		    { p2 = p.offset (1); }
+		  else if i == 6
+		    { p3 = p.offset (1); }
+		}
+	      p = p.offset (1);
+	    }
+	  /* If base_fontname specifies ADSTYLE, make it a
+	     wildcard.  */
+	  if *p3 != b'*' as c_char
+	    {
+	      let diff: ptrdiff_t = p2.offset_from (p3) - 2;
+
+	      /* C's bare `alloca` is the port's stack pool (PORTING.md P-05/3.2).  */
+	      base = sa_stack_alloc (strlen (base_fontname) + 1) as *mut c_char;
+	      memcpy (base as *mut c_void, base_fontname as *const c_void,
+		      p3.offset_from (base_fontname) as usize);
+	      *base.offset (p3.offset_from (base_fontname)) = b'*' as c_char;
+	      *base.offset (p3.offset_from (base_fontname) + 1) = b'-' as c_char;
+	      strcpy (base.offset (p3.offset_from (base_fontname) + 2), p2);
+	      p = base.offset (p.offset_from (base_fontname) - diff);
+	      p1 = base.offset (p1.offset_from (base_fontname));
+	      p2 = base.offset (p2.offset_from (base_fontname) - diff);
+	      base_fontname = base;
+	    }
+
+	  /* Build the font spec that matches all charsets.  */
+	  len = p.offset_from (base_fontname) + strlen (allcs) as ptrdiff_t + 1;
+	  font_allcs = sa_stack_alloc (len as usize) as *mut c_char;
+	  memcpy (font_allcs as *mut c_void, base_fontname as *const c_void,
+		  p.offset_from (base_fontname) as usize);
+	  strcpy (font_allcs.offset (p.offset_from (base_fontname)), allcs);
+
+	  /* Build the font spec that matches all families and
+	     add-styles.  */
+	  len = p.offset_from (p1) + strlen (allcs) as ptrdiff_t
+		+ strlen (allfamilies) as ptrdiff_t + 1;
+	  font_allfamilies = sa_stack_alloc (len as usize) as *mut c_char;
+	  strcpy (font_allfamilies, allfamilies);
+	  memcpy (font_allfamilies.offset (strlen (allfamilies) as isize) as *mut c_void,
+		  p1 as *const c_void, p.offset_from (p1) as usize);
+	  strcpy (font_allfamilies.offset (strlen (allfamilies) as isize
+					   + p.offset_from (p1)), allcs);
+
+	  /* Build the font spec that matches all.  */
+	  len = p.offset_from (p2) + strlen (allcs) as ptrdiff_t + strlen (all) as ptrdiff_t
+		+ strlen (allfamilies) as ptrdiff_t + 1;
+	  font_all = sa_stack_alloc (len as usize) as *mut c_char;
+	  z = stpcpy (font_all, allfamilies);
+	  z = stpcpy (z, all);
+	  memcpy (z as *mut c_void, p2 as *const c_void, p.offset_from (p2) as usize);
+	  strcpy (z.offset (p.offset_from (p2)), allcs);
+
+	  /* Build the actual font set name.  */
+	  len = strlen (base_fontname) as ptrdiff_t + strlen (font_allcs) as ptrdiff_t
+		+ strlen (font_allfamilies) as ptrdiff_t + strlen (font_all) as ptrdiff_t + 5;
+	  fontsetname = xmalloc (len as usize) as *mut c_char;
+	  z = stpcpy (fontsetname, base_fontname);
+	  z = stpcpy (z, sep);
+	  z = stpcpy (z, font_allcs);
+	  z = stpcpy (z, sep);
+	  z = stpcpy (z, font_allfamilies);
+	  z = stpcpy (z, sep);
+	  z = stpcpy (z, font_all);
+	}
+    }
+  if motif
+    { strcpy (z, c":".as_ptr ()); }
+  return fontsetname;
+}
+
+/* C 2905-2923: the `#ifdef DEBUG_XIC_FONTSET` block and `print_fontset_result` - a debug
+   build's reporter, which never compiles in the frozen configuration.  */
+#[cfg (all (feature = "have_x_windows", feature = "debug_xic_fontset"))]
+unsafe fn print_fontset_result (xfs: XFontSet, name: *mut c_char,
+				mut missing_list: *mut *mut c_char, mut missing_count: c_int)
+{
+  if !xfs.is_null ()
+    { fprintf (stderr, c"XIC Fontset created: %s\n".as_ptr (), name); }
+  else
+    {
+      fprintf (stderr, c"XIC Fontset failed: %s\n".as_ptr (), name);
+      /* C's `while (missing_count-- > 0)`: the decrement happens on the test that fails too,
+	 so the port keeps it inside the condition (the `src/keyboard.rs` 3889 shape).  */
+      while { missing_count -= 1; missing_count + 1 > 0 }
+	{
+	  fprintf (stderr, c"  missing: %s\n".as_ptr (), *missing_list);
+	  missing_list = missing_list.offset (1);
+	}
+    }
+}
+
+/* C 2925-3020.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe fn xic_create_xfontset (f: *mut frame) -> XFontSet
+{
+  let mut xfs: XFontSet = std::ptr::null_mut ();
+  let font: *mut font = FRAME_FONT! (f);
+  let pixel_size: c_int = (*font).pixel_size;
+  let mut rest: Lisp_Object;
+  let mut frame: Lisp_Object;
+
+  /* See if there is another frame already using same fontset.  */
+  FOR_EACH_FRAME! (rest, frame, {
+    let cf: *mut frame = XFRAME (frame);
+
+    if !std::ptr::eq (cf, f) && FRAME_LIVE_P (f) && FRAME_X_P (cf)
+	&& FRAME_DISPLAY_INFO! (cf) == FRAME_DISPLAY_INFO! (f)
+	&& !FRAME_FONT! (f).is_null ()
+	&& (*FRAME_FONT! (f)).pixel_size == pixel_size
+      {
+	xfs = FRAME_XIC_FONTSET! (cf);
+	break;
+      }
+  });
+
+  if xfs.is_null ()
+    {
+      let mut buf: [c_char; 256] = [0; 256];
+      let mut missing_list: *mut *mut c_char = std::ptr::null_mut ();
+      let mut missing_count: c_int = 0;
+      let mut def_string: *mut c_char = std::ptr::null_mut ();
+      let xlfd_format: *const c_char = c"-*-*-medium-r-normal--%d-*-*-*-*-*".as_ptr ();
+
+      sprintf (buf.as_mut_ptr (), xlfd_format, pixel_size);
+      missing_list = std::ptr::null_mut ();
+      xfs = XCreateFontSet (FRAME_X_DISPLAY! (f), buf.as_ptr (),
+			    &raw mut missing_list, &raw mut missing_count,
+			    &raw mut def_string);
+      #[cfg (feature = "debug_xic_fontset")]
+      { print_fontset_result (xfs, buf.as_mut_ptr (), missing_list, missing_count); }
+      if !missing_list.is_null ()
+	{ XFreeStringList (missing_list); }
+      if xfs.is_null ()
+	{
+	  /* List of pixel sizes most likely available.  Find one that
+	     is closest to pixel_size.  */
+	  let mut sizes: [c_int; 13] = [0, 8, 10, 11, 12, 14, 17, 18, 20, 24, 26, 34, 0];
+	  let mut smaller: *mut c_int;
+	  let mut larger: *mut c_int;
+
+	  /* C: `for (smaller = sizes; smaller[1]; smaller++) if (smaller[1] >= pixel_size)
+	     break;`.  */
+	  smaller = sizes.as_mut_ptr ();
+	  while *smaller.offset (1) != 0
+	    {
+	      if *smaller.offset (1) >= pixel_size
+		{ break; }
+	      smaller = smaller.offset (1);
+	    }
+	  larger = smaller.offset (1);
+	  if *larger == pixel_size
+	    { larger = larger.offset (1); }
+	  while *smaller != 0 || *larger != 0
+	    {
+	      let mut this_size: c_int;
+
+	      /* C's `*smaller--`/`*larger++`: the read first, the pointer step second.  */
+	      if *larger == 0
+		{
+		  this_size = *smaller;
+		  smaller = smaller.offset (-1);
+		}
+	      else if *smaller == 0
+		{
+		  this_size = *larger;
+		  larger = larger.offset (1);
+		}
+	      else if pixel_size - *smaller < *larger - pixel_size
+		{
+		  this_size = *smaller;
+		  smaller = smaller.offset (-1);
+		}
+	      else
+		{
+		  this_size = *larger;
+		  larger = larger.offset (1);
+		}
+	      sprintf (buf.as_mut_ptr (), xlfd_format, this_size);
+	      missing_list = std::ptr::null_mut ();
+	      xfs = XCreateFontSet (FRAME_X_DISPLAY! (f), buf.as_ptr (),
+				    &raw mut missing_list, &raw mut missing_count,
+				    &raw mut def_string);
+	      #[cfg (feature = "debug_xic_fontset")]
+	      { print_fontset_result (xfs, buf.as_mut_ptr (), missing_list, missing_count); }
+	      if !missing_list.is_null ()
+		{ XFreeStringList (missing_list); }
+	      if !xfs.is_null ()
+		{ break; }
+	    }
+	}
+      if xfs.is_null ()
+	{
+	  let last_resort: *const c_char = c"-*-*-*-r-normal--*-*-*-*-*-*".as_ptr ();
+
+	  missing_list = std::ptr::null_mut ();
+	  xfs = XCreateFontSet (FRAME_X_DISPLAY! (f), last_resort,
+				&raw mut missing_list, &raw mut missing_count,
+				&raw mut def_string);
+	  #[cfg (feature = "debug_xic_fontset")]
+	  { print_fontset_result (xfs, last_resort as *mut c_char, missing_list,
+				  missing_count); }
+	  if !missing_list.is_null ()
+	    { XFreeStringList (missing_list); }
+	}
+
+    }
+
+  return xfs;
+}
+
+/* Free the X fontset of frame F if it is the last frame using it.  */
+
+/* C 3025-3051.  C's definition has no `static`, so the port keeps it exported (PORTING.md 0.2).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xic_free_xfontset (f: *mut frame)
+{
+  let mut rest: Lisp_Object;
+  let mut frame: Lisp_Object;
+  let mut shared_p: bool = false;
+
+  if FRAME_XIC_FONTSET! (f).is_null ()
+    { return; }
+
+  /* See if there is another frame sharing the same fontset.  */
+  FOR_EACH_FRAME! (rest, frame, {
+    let cf: *mut frame = XFRAME (frame);
+    if !std::ptr::eq (cf, f) && FRAME_LIVE_P (f) && FRAME_X_P (cf)
+	&& FRAME_DISPLAY_INFO! (cf) == FRAME_DISPLAY_INFO! (f)
+	&& FRAME_XIC_FONTSET! (cf) == FRAME_XIC_FONTSET! (f)
+      {
+	shared_p = true;
+	break;
+      }
+  });
+
+  if !shared_p
+    /* The fontset is not used anymore.  It is safe to free it.  */
+    { XFreeFontSet (FRAME_X_DISPLAY! (f), FRAME_XIC_FONTSET! (f)); }
+
+  FRAME_XIC_FONTSET! (f) = std::ptr::null_mut ();
+}
+
+/* Create XIC for frame F. */
+
+/* C 3067-3068.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+static supported_xim_styles: [XIMStyle; 5] =
+  [
+    STYLE_NONE,
+    STYLE_CALLBACK,
+    STYLE_OVERTHESPOT,
+    STYLE_OFFTHESPOT,
+    STYLE_ROOT
+  ];
+
+/* Value is the best input style, given user preferences USER (already
+   checked to be supported by Emacs), and styles supported by the
+   input method XIM.  */
+
+/* C 3069-3085.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe fn best_xim_style (dpyinfo: *mut x_display_info, xim: *mut XIMStyles) -> XIMStyle
+{
+  let mut i: c_int;
+  let mut j: c_int;
+  let nr_supported: c_int = countof! (supported_xim_styles) as c_int;
+
+  if (*dpyinfo).preferred_xim_style != 0
+    { return (*dpyinfo).preferred_xim_style; }
+
+  /* C: `for (i = 0; i < nr_supported; ++i) for (j = 0; j < xim->count_styles; ++j) …`.  */
+  i = 0;
+  while i < nr_supported
+    {
+      j = 0;
+      while j < (*xim).count_styles as c_int
+	{
+	  if supported_xim_styles[i as usize] == *(*xim).supported_styles.offset (j as isize)
+	    { return supported_xim_styles[i as usize]; }
+	  j += 1;
+	}
+      i += 1;
+    }
+
+  /* Return the default style.  */
+  return XIMPreeditNothing | XIMStatusNothing;
+}
+
+/* =====================================================================================
+   C 3086-3811: the XIC block's second half.  It opens at C 3086 (the blank after
+   `best_xim_style`'s `}`) and closes at C 3811, `xic_preedit_draw_callback`'s `}`.
+   ===================================================================================== */
+
+/* `input_event::kind` is termhooks.h 373-412's 16-bit field, which `include/termhooks.rs`
+   shares with `part : 16` in one storage word (PORTING.md 1.3), so C's `ie.kind = x;` keeps
+   C's field name in the per-unit macro `src/androidterm.rs` 199-209 and `src/dbusbind.rs`
+   2505-2515 carry, body-identical (P-80's class).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+macro_rules! input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+                 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
+}
+
+/* `xg_get_scale` is `gtkutil.h`'s (the same dead-in-the-frozen-configuration mirror as the two
+   scroll-bar defaults above), declared here under C's own gate (P-88 ①).  */
+/// C: gtkutil.h 181: `extern int xg_get_scale (struct frame *f);`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_get_scale (f: *mut frame) -> c_int;
+}
+
+/* Create XIC for frame F. */
+
+/* C 3089-3229.  C's definition has no `static`, so the port keeps it exported (PORTING.md 0.2).
+   Its `goto out;` is C's forward jump to the cleanup at C 3220, which the port carries as a
+   labelled block (PORTING.md 2.2).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn create_frame_xic (f: *mut frame)
+{
+  let mut xim: XIM = std::ptr::null_mut ();
+  let mut xic: XIC = std::ptr::null_mut ();
+  let mut xfs: XFontSet = std::ptr::null_mut ();
+  let mut status_attr: XVaNestedList = std::ptr::null_mut ();
+  let mut preedit_attr: XVaNestedList = std::ptr::null_mut ();
+  let mut s_area: XRectangle = std::mem::zeroed ();
+  let mut spot: XPoint = std::mem::zeroed ();
+  let mut xic_style: XIMStyle;
+
+  'out: {
+    if !FRAME_XIC! (f).is_null ()
+      { break 'out; }
+
+    xim = FRAME_X_XIM! (f);
+    if xim.is_null () || FRAME_X_XIM_STYLES! (f).is_null ()
+      { break 'out; }
+
+    /* Determine XIC style.  */
+    xic_style = best_xim_style (FRAME_DISPLAY_INFO! (f),
+				FRAME_X_XIM_STYLES! (f));
+
+    /* Create X fontset. */
+    if xic_style & (XIMPreeditPosition | XIMStatusArea) != 0
+      {
+	xfs = xic_create_xfontset (f);
+	if xfs.is_null ()
+	  { break 'out; }
+
+	FRAME_XIC_FONTSET! (f) = xfs;
+      }
+
+    if xic_style & XIMPreeditPosition != 0
+      {
+	spot.x = 0; spot.y = 1;
+	preedit_attr = XVaCreateNestedList (0,
+					    XNFontSet (), xfs,
+					    XNForeground (),
+					    FRAME_FOREGROUND_PIXEL! (f),
+					    XNBackground (),
+					    FRAME_BACKGROUND_PIXEL! (f),
+					    (if xic_style & XIMPreeditPosition != 0
+					       { XNSpotLocation () }
+					     else { std::ptr::null_mut::<c_char> () }),
+					    &raw mut spot,
+					    std::ptr::null_mut::<c_void> ());
+
+	if preedit_attr.is_null ()
+	  { break 'out; }
+      }
+
+    if xic_style & XIMStatusArea != 0
+      {
+	s_area.x = 0; s_area.y = 0; s_area.width = 1; s_area.height = 1;
+	status_attr = XVaCreateNestedList (0,
+					   XNArea (),
+					   &raw mut s_area,
+					   XNFontSet (),
+					   xfs,
+					   XNForeground (),
+					   FRAME_FOREGROUND_PIXEL! (f),
+					   XNBackground (),
+					   FRAME_BACKGROUND_PIXEL! (f),
+					   std::ptr::null_mut::<c_void> ());
+
+	if status_attr.is_null ()
+	  { break 'out; }
+      }
+
+    if xic_style & XIMPreeditCallbacks != 0
+      {
+	spot.x = 0;
+	spot.y = 0;
+	preedit_attr = XVaCreateNestedList (0,
+					    XNSpotLocation (), &raw mut spot,
+					    XNPreeditStartCallback (),
+					    &raw mut Xxic_preedit_start_callback,
+					    XNPreeditDoneCallback (),
+					    &raw mut Xxic_preedit_done_callback,
+					    XNPreeditDrawCallback (),
+					    &raw mut Xxic_preedit_draw_callback,
+					    XNPreeditCaretCallback (),
+					    &raw mut Xxic_preedit_caret_callback,
+					    std::ptr::null_mut::<c_void> ());
+
+	if preedit_attr.is_null ()
+	  { break 'out; }
+      }
+
+    if !preedit_attr.is_null () && !status_attr.is_null ()
+      {
+	xic = XCreateIC (xim,
+			 XNInputStyle (), xic_style,
+			 XNClientWindow (), FRAME_X_WINDOW! (f),
+			 XNFocusWindow (), FRAME_X_WINDOW! (f),
+			 XNStatusAttributes (), status_attr,
+			 XNPreeditAttributes (), preedit_attr,
+			 XNStringConversionCallback (),
+			 &raw mut Xxic_string_conversion_callback,
+			 std::ptr::null_mut::<c_void> ());
+      }
+    else if !preedit_attr.is_null ()
+      {
+	xic = XCreateIC (xim,
+			 XNInputStyle (), xic_style,
+			 XNClientWindow (), FRAME_X_WINDOW! (f),
+			 XNFocusWindow (), FRAME_X_WINDOW! (f),
+			 XNPreeditAttributes (), preedit_attr,
+			 XNStringConversionCallback (),
+			 &raw mut Xxic_string_conversion_callback,
+			 std::ptr::null_mut::<c_void> ());
+      }
+    else if !status_attr.is_null ()
+      {
+	xic = XCreateIC (xim,
+			 XNInputStyle (), xic_style,
+			 XNClientWindow (), FRAME_X_WINDOW! (f),
+			 XNFocusWindow (), FRAME_X_WINDOW! (f),
+			 XNStatusAttributes (), status_attr,
+			 XNStringConversionCallback (),
+			 &raw mut Xxic_string_conversion_callback,
+			 std::ptr::null_mut::<c_void> ());
+      }
+    else
+      {
+	xic = XCreateIC (xim,
+			 XNInputStyle (), xic_style,
+			 XNClientWindow (), FRAME_X_WINDOW! (f),
+			 XNFocusWindow (), FRAME_X_WINDOW! (f),
+			 XNStringConversionCallback (),
+			 &raw mut Xxic_string_conversion_callback,
+			 std::ptr::null_mut::<c_void> ());
+      }
+
+    if xic.is_null ()
+      { break 'out; }
+
+    FRAME_XIC! (f) = xic;
+    FRAME_XIC_STYLE! (f) = xic_style;
+    xfs = std::ptr::null_mut (); /* Don't free below.  */
+  }
+
+  /* out: */
+
+  if !xfs.is_null ()
+    { free_frame_xic (f); }
+
+  if !preedit_attr.is_null ()
+    { XFree (preedit_attr); }
+
+  if !status_attr.is_null ()
+    { XFree (status_attr); }
+}
+
+/* Destroy XIC and free XIC fontset of frame F, if any. */
+
+/* C 3234-3244.  C's definition has no `static`, so the port keeps it exported (PORTING.md 0.2).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn free_frame_xic (f: *mut frame)
+{
+  if FRAME_XIC! (f).is_null ()
+    { return; }
+
+  XDestroyIC (FRAME_XIC! (f));
+  xic_free_xfontset (f);
+
+  FRAME_XIC! (f) = std::ptr::null_mut ();
+}
+
+/* Place preedit area for XIC of window W's frame to specified
+   pixel position X/Y.  X and Y are relative to window W.  */
+
+/* C 3250-3296.  C's definition has no `static`, so the port keeps it exported (PORTING.md 0.2).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xic_set_preeditarea (w: *mut window, x: c_int, y: c_int)
+{
+  let f: *mut frame = WINDOW_XFRAME! (w);
+  let mut attr: XVaNestedList;
+  let mut spot: XPoint = std::mem::zeroed ();
+
+  if !FRAME_XIC! (f).is_null ()
+    {
+      spot.x = (WINDOW_TO_FRAME_PIXEL_X! (w, x)
+		+ WINDOW_LEFT_FRINGE_WIDTH! (w)
+		+ WINDOW_LEFT_MARGIN_WIDTH! (w)) as c_short;
+      spot.y = (WINDOW_TO_FRAME_PIXEL_Y! (w, y)
+		+ (*w).phys_cursor_height) as c_short;
+
+      if FRAME_XIC_STYLE! (f) & XIMPreeditCallbacks != 0
+	{
+	  attr = XVaCreateNestedList (0, XNSpotLocation (), &raw mut spot,
+				      XNPreeditStartCallback (),
+				      &raw mut Xxic_preedit_start_callback,
+				      XNPreeditDoneCallback (),
+				      &raw mut Xxic_preedit_done_callback,
+				      XNPreeditDrawCallback (),
+				      &raw mut Xxic_preedit_draw_callback,
+				      XNPreeditCaretCallback (),
+				      &raw mut Xxic_preedit_caret_callback,
+				      std::ptr::null_mut::<c_void> ());
+	}
+      else
+	{
+	  attr = XVaCreateNestedList (0, XNSpotLocation (), &raw mut spot,
+				      std::ptr::null_mut::<c_void> ());
+	}
+      XSetICValues (FRAME_XIC! (f), XNPreeditAttributes (), attr,
+		    std::ptr::null_mut::<c_void> ());
+      XFree (attr);
+    }
+  #[cfg (feature = "use_gtk")]
+  {
+    /* C's `f->tooltip`: the member is `include/frame.rs`'s `// C:` row (frame.h 457's
+       `bool_bf tooltip : 1`), and the mirror's reader for it is `FRAME_TOOLTIP_P`.  */
+    if FRAME_TOOLTIP_P (f)
+      { return; }
+
+    let mut rect: GdkRectangle = std::mem::zeroed ();
+    let scale: c_int = xg_get_scale (f);
+
+    rect.x = (WINDOW_TO_FRAME_PIXEL_X! (w, x)
+	      + WINDOW_LEFT_FRINGE_WIDTH! (w)
+	      + WINDOW_LEFT_MARGIN_WIDTH! (w)) / scale;
+    rect.y = (WINDOW_TO_FRAME_PIXEL_Y! (w, y)
+	      + FRAME_TOOLBAR_HEIGHT! (f)
+	      + FRAME_MENUBAR_HEIGHT! (f)) / scale;
+    rect.width = (*w).phys_cursor_width / scale;
+    rect.height = (*w).phys_cursor_height / scale;
+
+    gtk_im_context_set_cursor_location ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).im_context,
+					&raw const rect);
+  }
+}
+
+/* Place status area for XIC in bottom right corner of frame F.. */
+
+/* C 3301-3339.  C's definition has no `static`, so the port keeps it exported (PORTING.md 0.2).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xic_set_statusarea (f: *mut frame)
+{
+  let xic: XIC = FRAME_XIC! (f);
+  let mut attr: XVaNestedList;
+  let mut area: XRectangle = std::mem::zeroed ();
+  let mut needed: *mut XRectangle = std::ptr::null_mut ();
+
+  /* Negotiate geometry of status area.  If input method has existing
+     status area, use its current size.  */
+  area.x = 0; area.y = 0; area.width = 0; area.height = 0;
+  attr = XVaCreateNestedList (0, XNAreaNeeded (), &raw mut area,
+			      std::ptr::null_mut::<c_void> ());
+  XSetICValues (xic, XNStatusAttributes (), attr, std::ptr::null_mut::<c_void> ());
+  XFree (attr);
+
+  attr = XVaCreateNestedList (0, XNAreaNeeded (), &raw mut needed,
+			      std::ptr::null_mut::<c_void> ());
+  XGetICValues (xic, XNStatusAttributes (), attr, std::ptr::null_mut::<c_void> ());
+  XFree (attr);
+
+  if (*needed).width == 0 /* Use XNArea instead of XNAreaNeeded */
+    {
+      attr = XVaCreateNestedList (0, XNArea (), &raw mut needed,
+				  std::ptr::null_mut::<c_void> ());
+      XGetICValues (xic, XNStatusAttributes (), attr, std::ptr::null_mut::<c_void> ());
+      XFree (attr);
+    }
+
+  area.width  = (*needed).width;
+  area.height = (*needed).height;
+  area.x = (FRAME_PIXEL_WIDTH (f) - area.width as c_int
+	    - FRAME_INTERNAL_BORDER_WIDTH (f)) as c_short;
+  area.y = (FRAME_PIXEL_HEIGHT (f) - area.height as c_int
+	    - FRAME_MENUBAR_HEIGHT! (f)
+	    - FRAME_TOOLBAR_TOP_HEIGHT! (f)
+	    - FRAME_INTERNAL_BORDER_WIDTH (f)) as c_short;
+  XFree (needed as *mut c_void);
+
+  attr = XVaCreateNestedList (0, XNArea (), &raw mut area,
+			      std::ptr::null_mut::<c_void> ());
+  XSetICValues (xic, XNStatusAttributes (), attr, std::ptr::null_mut::<c_void> ());
+  XFree (attr);
+}
+
+/* C 3341-3356.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe fn x_xic_to_frame (xic: XIC) -> *mut frame
+{
+  let mut tail: Lisp_Object;
+  let mut tem: Lisp_Object;
+  let mut f: *mut frame;
+
+  FOR_EACH_FRAME! (tail, tem, {
+    f = XFRAME (tem);
+
+    if FRAME_X_P (f) && FRAME_XIC! (f) == xic
+      { return f; }
+  });
+
+  return std::ptr::null_mut ();
+}
+
+/* C 3358-3380.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" fn xic_preedit_start_callback (xic: XIC, client_data: XPointer,
+					      call_data: XPointer) -> c_int
+{
+  let f: *mut frame = x_xic_to_frame (xic);
+  let mut output: *mut x_output;
+
+  if !f.is_null ()
+    {
+      output = FRAME_X_OUTPUT! (f) as *mut x_output;
+
+      (*output).preedit_size = 0;
+      (*output).preedit_active = true;
+      (*output).preedit_caret = 0;
+
+      if !(*output).preedit_chars.is_null ()
+	{ xfree ((*output).preedit_chars as *mut c_void); }
+
+      (*output).preedit_chars = std::ptr::null_mut ();
+    }
+
+  return -1;
+}
+
+/* C 3382-3435.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" fn xic_preedit_caret_callback (xic: XIC, client_data: XPointer,
+					      call_data: *mut XIMPreeditCaretCallbackStruct)
+{
+  let f: *mut frame = x_xic_to_frame (xic);
+  let mut output: *mut x_output;
+  let mut ie: input_event = std::mem::zeroed ();
+  EVENT_INIT (&raw mut ie);
+
+  if !f.is_null ()
+    {
+      output = FRAME_X_OUTPUT! (f) as *mut x_output;
+
+      if !(*output).preedit_active
+	{ return; }
+
+      match (*call_data).direction
+	{
+	  XIMAbsolutePosition =>
+	    { (*output).preedit_caret = (*call_data).position; }
+	  XIMForwardChar | XIMForwardWord =>
+	    {
+	      /* C's `output->preedit_caret++`: the read first, the increment second.  */
+	      (*call_data).position = (*output).preedit_caret;
+	      (*output).preedit_caret += 1;
+	    }
+	  XIMBackwardChar | XIMBackwardWord =>
+	    {
+	      /* C's `max (0, output->preedit_caret--)`.  */
+	      (*call_data).position = max (0, (*output).preedit_caret as isize) as c_int;
+	      (*output).preedit_caret -= 1;
+	    }
+	  _ =>
+	    { (*call_data).position = (*output).preedit_caret; }
+	}
+
+      if !(*output).preedit_chars.is_null ()
+	{
+	  input_event_bits! (kind, &raw mut ie, PREEDIT_TEXT_EVENT);
+	  XSETFRAME! (ie.frame_or_window, f);
+	  ie.arg = make_string_from_utf8 ((*output).preedit_chars,
+					  (*output).preedit_size);
+
+	  if SCHARS (ie.arg) != 0
+	    {
+	      Fput_text_property (make_fixnum (min (SCHARS (ie.arg) - 1,
+						    max (0, (*output).preedit_caret as isize))),
+				  make_fixnum (max (SCHARS (ie.arg),
+						    max (0, (*output).preedit_caret as isize) + 1)),
+				  Qcursor (), Qt (), ie.arg);
+	    }
+
+	  XSETINT! (ie.x, 0);
+	  XSETINT! (ie.y, 0);
+
+	  kbd_buffer_store_event (&raw mut ie as *mut c_void);
+	}
+    }
+}
+
+/* C 3438-3466.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" fn xic_preedit_done_callback (xic: XIC, client_data: XPointer,
+					     call_data: XPointer)
+{
+  let f: *mut frame = x_xic_to_frame (xic);
+  let mut output: *mut x_output;
+  let mut ie: input_event = std::mem::zeroed ();
+  EVENT_INIT (&raw mut ie);
+
+  if !f.is_null ()
+    {
+      input_event_bits! (kind, &raw mut ie, PREEDIT_TEXT_EVENT);
+      ie.arg = Qnil ();
+      XSETFRAME! (ie.frame_or_window, f);
+      XSETINT! (ie.x, 0);
+      XSETINT! (ie.y, 0);
+      kbd_buffer_store_event (&raw mut ie as *mut c_void);
+
+      output = FRAME_X_OUTPUT! (f) as *mut x_output;
+
+      if !(*output).preedit_chars.is_null ()
+	{ xfree ((*output).preedit_chars as *mut c_void); }
+
+      (*output).preedit_size = 0;
+      (*output).preedit_active = false;
+      (*output).preedit_chars = std::ptr::null_mut ();
+      (*output).preedit_caret = 0;
+    }
+}
+
+/* C 3468-3475.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+pub struct x_xim_text_conversion_data
+{
+  pub coding: *mut coding_system,          // C: struct coding_system *coding;
+  pub source: *mut c_char,                 // C: char *source;
+  pub dpyinfo: *mut x_display_info,        // C: struct x_display_info *dpyinfo;
+  pub size: ptrdiff_t,                     // C: ptrdiff_t size;
+}
+
+/* `internal_condition_case_n` is lisp.h 4808's prototype, which no mirror of this unit's graph
+   carries; the definition is `src/eval.rs` 1741's, and this is the declaration
+   `src/keyboard.rs` 560-566 carries (P-88 ①).  */
+/// C: lisp.h 4808: `extern Lisp_Object internal_condition_case_n
+///   (Lisp_Object (*) (ptrdiff_t, Lisp_Object *), ptrdiff_t, Lisp_Object *,
+///    Lisp_Object, Lisp_Object (*) (Lisp_Object, ptrdiff_t, Lisp_Object *));`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" {
+  pub fn internal_condition_case_n (bfun: unsafe extern "C" fn (ptrdiff_t, *mut Lisp_Object)
+                                                                   -> Lisp_Object,
+                                    nargs: ptrdiff_t, args: *mut Lisp_Object,
+                                    handlers: Lisp_Object,
+                                    hfun: unsafe extern "C" fn (Lisp_Object, ptrdiff_t,
+                                                                *mut Lisp_Object)
+                                                                   -> Lisp_Object)
+                                    -> Lisp_Object;
+}
+
+/* C 3477-3506.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" fn x_xim_text_to_utf8_unix_1 (nargs: ptrdiff_t,
+					      args: *mut Lisp_Object) -> Lisp_Object
+{
+  let mut data: *mut x_xim_text_conversion_data;
+  let mut nbytes: ptrdiff_t;
+  let mut coding_system: Lisp_Object;
+
+  data = xmint_pointer (*args.offset (0)) as *mut x_xim_text_conversion_data;
+
+  if SYMBOLP (Vx_input_coding_system)
+    { coding_system = Vx_input_coding_system; }
+  else if !NILP ((*(*data).dpyinfo).xim_coding)
+    { coding_system = (*(*data).dpyinfo).xim_coding; }
+  else
+    { coding_system = Vlocale_coding_system; }
+
+  nbytes = strlen ((*data).source) as ptrdiff_t;
+
+  (*(*data).coding).destination = std::ptr::null_mut ();
+
+  setup_coding_system (coding_system, (*data).coding);
+  /* C's `data->coding->mode |= (CODING_MODE_LAST_BLOCK | CODING_MODE_SAFE_ENCODING);` - the
+     `mode` member of the mirror's one storage word (see `x_encode_text` above).  */
+  (*(*data).coding).bits
+    |= ((CODING_MODE_LAST_BLOCK | CODING_MODE_SAFE_ENCODING) as u32) << CODING_SYSTEM_MODE_SHIFT;
+  (*(*data).coding).source = (*data).source as *const u8;
+  (*(*data).coding).dst_bytes = 2048;
+  (*(*data).coding).destination = xmalloc (2048) as *mut u8;
+  decode_coding_object ((*data).coding, Qnil (), 0, 0,
+			nbytes, nbytes, Qnil ());
+
+  return Qnil ();
+}
+
+/* C 3509-3538.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" fn x_encode_xim_text_1 (nargs: ptrdiff_t,
+					  args: *mut Lisp_Object) -> Lisp_Object
+{
+  let mut data: *mut x_xim_text_conversion_data;
+  let mut nbytes: ptrdiff_t;
+  let mut coding_system: Lisp_Object;
+
+  data = xmint_pointer (*args.offset (0)) as *mut x_xim_text_conversion_data;
+
+  if SYMBOLP (Vx_input_coding_system)
+    { coding_system = Vx_input_coding_system; }
+  else if !NILP ((*(*data).dpyinfo).xim_coding)
+    { coding_system = (*(*data).dpyinfo).xim_coding; }
+  else
+    { coding_system = Vlocale_coding_system; }
+
+  nbytes = (*data).size;
+
+  (*(*data).coding).destination = std::ptr::null_mut ();
+
+  setup_coding_system (coding_system, (*data).coding);
+  /* C's `data->coding->mode |= (CODING_MODE_LAST_BLOCK | CODING_MODE_SAFE_ENCODING);`.  */
+  (*(*data).coding).bits
+    |= ((CODING_MODE_LAST_BLOCK | CODING_MODE_SAFE_ENCODING) as u32) << CODING_SYSTEM_MODE_SHIFT;
+  (*(*data).coding).source = (*data).source as *const u8;
+  (*(*data).coding).dst_bytes = 2048;
+  (*(*data).coding).destination = xmalloc (2048) as *mut u8;
+  encode_coding_object ((*data).coding, Qnil (), 0, 0,
+			nbytes, nbytes, Qnil ());
+
+  return Qnil ();
+}
+
+/* C 3541-3554.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" fn x_xim_text_to_utf8_unix_2 (val: Lisp_Object, nargs: ptrdiff_t,
+					     args: *mut Lisp_Object) -> Lisp_Object
+{
+  let mut data: *mut x_xim_text_conversion_data;
+
+  data = xmint_pointer (*args.offset (0)) as *mut x_xim_text_conversion_data;
+
+  if !(*(*data).coding).destination.is_null ()
+    { xfree ((*(*data).coding).destination as *mut c_void); }
+
+  (*(*data).coding).destination = std::ptr::null_mut ();
+
+  return Qnil ();
+}
+
+/* The string returned is not null-terminated.  */
+/* C 3557-3595.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe fn x_xim_text_to_utf8_unix (dpyinfo: *mut x_display_info, text: *mut XIMText,
+				   length: *mut ptrdiff_t) -> *mut c_char
+{
+  let mut wchar_buf: *mut c_uchar;
+  let mut wchar_actual_length: ptrdiff_t;
+  let mut i: ptrdiff_t;
+  let mut coding: coding_system = std::mem::zeroed ();
+  let mut data: x_xim_text_conversion_data = std::mem::zeroed ();
+  let mut was_waiting_for_input_p: bool;
+  let mut arg: Lisp_Object;
+
+  if (*text).encoding_is_wchar != 0
+    {
+      /* C's `(text->length + 1) * MAX_MULTIBYTE_LENGTH` - C promotes the `unsigned short` to
+	 `int` for the sum and the product, then hands the result to `size_t`.  */
+      wchar_buf = xmalloc ((((*text).length as c_int) + 1) as usize
+			   * MAX_MULTIBYTE_LENGTH as usize) as *mut c_uchar;
+      wchar_actual_length = 0;
+
+      /* C: `for (i = 0; i < text->length; ++i) …`.  */
+      i = 0;
+      while i < (*text).length as ptrdiff_t
+	{
+	  /* `text->string.wide_char[i]` is the union's member read at C's index.  */
+	  wchar_actual_length += CHAR_STRING (*(*text).string.wide_char.offset (i),
+					      wchar_buf.offset (wchar_actual_length)) as ptrdiff_t;
+	  i += 1;
+	}
+      *length = wchar_actual_length;
+
+      return wchar_buf as *mut c_char;
+    }
+
+  data.coding = &raw mut coding;
+  data.source = (*text).string.multi_byte;
+  data.dpyinfo = dpyinfo;
+
+  was_waiting_for_input_p = waiting_for_input! ();
+  /* Otherwise Fsignal will crash.  */
+  waiting_for_input! () = false;
+  arg = make_mint_ptr (&raw mut data as *mut c_void);
+  internal_condition_case_n (x_xim_text_to_utf8_unix_1, 1, &raw mut arg,
+			     Qt (), x_xim_text_to_utf8_unix_2);
+  waiting_for_input! () = was_waiting_for_input_p;
+
+  *length = coding.produced;
+  return coding.destination as *mut c_char;
+}
+
+/* Convert SIZE bytes of the specified text from Emacs's internal
+   coding system to the input method coding system.  Return the
+   result, its byte length in *LENGTH, and its character length in
+   *CHARS, or NULL.
+
+   The string returned is not NULL terminated.  */
+
+/* C 3604-3635.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe fn x_encode_xim_text (dpyinfo: *mut x_display_info, text: *mut c_char,
+			     size: ptrdiff_t, length: *mut ptrdiff_t,
+			     chars: *mut ptrdiff_t) -> *mut c_char
+{
+  let mut coding: coding_system = std::mem::zeroed ();
+  let mut data: x_xim_text_conversion_data = std::mem::zeroed ();
+  let mut arg: Lisp_Object;
+  let mut was_waiting_for_input_p: bool;
+
+  data.coding = &raw mut coding;
+  data.source = text;
+  data.dpyinfo = dpyinfo;
+  data.size = size;
+
+  was_waiting_for_input_p = waiting_for_input! ();
+  /* Otherwise Fsignal will crash.  */
+  waiting_for_input! () = false;
+
+  arg = make_mint_ptr (&raw mut data as *mut c_void);
+  internal_condition_case_n (x_encode_xim_text_1, 1, &raw mut arg,
+			     Qt (), x_xim_text_to_utf8_unix_2);
+  waiting_for_input! () = was_waiting_for_input_p;
+
+  if !length.is_null ()
+    { *length = coding.produced; }
+
+  if !chars.is_null ()
+    { *chars = coding.produced_char; }
+
+  return coding.destination as *mut c_char;
+}
+
+/* C 3637-3811.  The `goto im_abort` sites (C 3668, 3680, 3694, 3709, 3717, 3726, 3738 and 3764)
+   jump to C 3802's label, which sits after C 3799's `return;`; the port carries it as a labelled
+   block whose `break` leaves the work and whose end falls into the cleanup, with C's `return;`
+   kept at the end of the block (PORTING.md 2.2).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" fn xic_preedit_draw_callback (xic: XIC, client_data: XPointer,
+					     call_data: *mut XIMPreeditDrawCallbackStruct)
+{
+  let mut f: *mut frame;
+  let mut output: *mut x_output;
+  let mut text_length: ptrdiff_t;
+  let mut charpos: ptrdiff_t;
+  let mut original_size: ptrdiff_t;
+  let mut text: *mut c_char;
+  let mut chg_start: *mut c_char;
+  let mut chg_end: *mut c_char;
+  let mut ie: input_event = std::mem::zeroed ();
+
+  f = x_xic_to_frame (xic);
+  EVENT_INIT (&raw mut ie);
+
+  if !f.is_null ()
+    {
+      text_length = 0;
+      output = FRAME_X_OUTPUT! (f) as *mut x_output;
+
+      if !(*output).preedit_active
+	{ return; }
+
+      'im_abort: {
+	if !(*call_data).text.is_null ()
+	  {
+	    text = x_xim_text_to_utf8_unix (FRAME_DISPLAY_INFO! (f),
+					    (*call_data).text, &raw mut text_length);
+
+	    if text.is_null ()
+	      /* Decoding the IM text failed.  */
+	      { break 'im_abort; }
+	  }
+	else
+	  { text = std::ptr::null_mut (); }
+
+	original_size = (*output).preedit_size;
+
+	/* This is an ordinary insertion: reallocate the buffer to hold
+	   enough for TEXT.  */
+	if (*call_data).chg_length == 0
+	  {
+	    if text.is_null ()
+	      { break 'im_abort; }
+
+	    if !(*output).preedit_chars.is_null ()
+	      {
+		/* C's `output->preedit_chars = xrealloc (output->preedit_chars,
+		   output->preedit_size += text_length);`: the size step first, then the call
+		   with the new value, then C's store.  */
+		(*output).preedit_size += text_length;
+		(*output).preedit_chars = xrealloc ((*output).preedit_chars as *mut c_void,
+						    (*output).preedit_size as usize) as *mut c_char;
+	      }
+	    else
+	      {
+		(*output).preedit_size += text_length;
+		(*output).preedit_chars
+		  = xmalloc ((*output).preedit_size as usize) as *mut c_char;
+	      }
+	  }
+
+	chg_start = (*output).preedit_chars;
+
+	/* The IM sent bad data: the buffer is empty, but the change
+	   position is more than 0.  */
+	if (*output).preedit_chars.is_null () && (*call_data).chg_first != 0
+	  { break 'im_abort; }
+
+	/* Find the byte position for the character position where the
+	   first change is to be made.  */
+	if (*call_data).chg_first != 0
+	  {
+	    charpos = 0;
+
+	    while charpos < (*call_data).chg_first as ptrdiff_t
+	      {
+		chg_start = chg_start.offset (BYTES_BY_CHAR_HEAD (*chg_start as c_int) as isize);
+
+		if chg_start.offset_from ((*output).preedit_chars) > (*output).preedit_size
+		  /* The IM sent bad data: chg_start is larger than the
+		     current buffer.  */
+		  { break 'im_abort; }
+		charpos += 1;
+	      }
+	  }
+
+	if (*call_data).chg_length == 0
+	  {
+	    if text.is_null ()
+	      { break 'im_abort; }
+
+	    memmove (chg_start.offset (text_length) as *mut c_void,
+		     chg_start as *const c_void,
+		     (original_size - chg_start.offset_from ((*output).preedit_chars)) as usize);
+	    memcpy (chg_start as *mut c_void, text as *const c_void, text_length as usize);
+	  }
+	else
+	  {
+	    if (*call_data).chg_length < 1
+	      { break 'im_abort; }
+
+	    charpos = 0;
+	    chg_end = chg_start;
+
+	    while charpos < (*call_data).chg_length as ptrdiff_t
+	      {
+		chg_end = chg_end.offset (BYTES_BY_CHAR_HEAD (*chg_end as c_int) as isize);
+
+		if chg_end.offset_from ((*output).preedit_chars) > (*output).preedit_size
+		  /* The IM sent bad data: chg_end ends someplace outside
+		     the current buffer.  */
+		  { break 'im_abort; }
+		charpos += 1;
+	      }
+
+	    memmove (chg_start as *mut c_void, chg_end as *const c_void,
+		     ((*output).preedit_chars.offset ((*output).preedit_size))
+		       .offset_from (chg_end) as usize);
+	    (*output).preedit_size -= chg_end.offset_from (chg_start);
+
+	    if !text.is_null ()
+	      {
+		original_size = (*output).preedit_size;
+		(*output).preedit_size += text_length;
+		(*output).preedit_chars = xrealloc ((*output).preedit_chars as *mut c_void,
+						    (*output).preedit_size as usize) as *mut c_char;
+
+		/* Find chg_start again, since preedit_chars was reallocated.  */
+
+		chg_start = (*output).preedit_chars;
+		charpos = 0;
+
+		while charpos < (*call_data).chg_first as ptrdiff_t
+		  {
+		    chg_start = chg_start.offset (BYTES_BY_CHAR_HEAD (*chg_start as c_int) as isize);
+
+		    if chg_start.offset_from ((*output).preedit_chars) > (*output).preedit_size
+		      /* The IM sent bad data: chg_start is larger than the
+			 current buffer.  */
+		      { break 'im_abort; }
+		    charpos += 1;
+		  }
+
+		memmove (chg_start.offset (text_length) as *mut c_void,
+			 chg_start as *const c_void,
+			 (original_size - chg_start.offset_from ((*output).preedit_chars)) as usize);
+		memcpy (chg_start as *mut c_void, text as *const c_void, text_length as usize);
+	      }
+	  }
+
+	if !text.is_null ()
+	  { xfree (text as *mut c_void); }
+
+	(*output).preedit_caret = (*call_data).caret;
+
+	/* This is okay because this callback is called from the big XIM
+	   event filter, which runs inside XTread_socket.  */
+
+	input_event_bits! (kind, &raw mut ie, PREEDIT_TEXT_EVENT);
+	XSETFRAME! (ie.frame_or_window, f);
+	ie.arg = make_string_from_utf8 ((*output).preedit_chars,
+					(*output).preedit_size);
+
+	if SCHARS (ie.arg) != 0
+	  {
+	    Fput_text_property (make_fixnum (min (SCHARS (ie.arg) - 1,
+						  max (0, (*output).preedit_caret as isize))),
+				make_fixnum (min (SCHARS (ie.arg),
+						  max (0, (*output).preedit_caret as isize) + 1)),
+				Qcursor (), Qt (), ie.arg);
+	  }
+
+	XSETINT! (ie.x, 0);
+	XSETINT! (ie.y, 0);
+
+	kbd_buffer_store_event (&raw mut ie as *mut c_void);
+
+	/* C's `return;` at C 3799, before the label.  */
+	return;
+      }
+
+      /* im_abort: */
+      if !text.is_null ()
+	{ xfree (text as *mut c_void); }
+      if !(*output).preedit_chars.is_null ()
+	{ xfree ((*output).preedit_chars as *mut c_void); }
+      (*output).preedit_chars = std::ptr::null_mut ();
+      (*output).preedit_size = 0;
+      (*output).preedit_active = false;
+      (*output).preedit_caret = 0;
+    }
 }
