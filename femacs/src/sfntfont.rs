@@ -1552,3 +1552,225 @@ pub unsafe extern "C" fn sfnt_enum_font (file: *const c_char) -> c_int   // C 11
   /* C 1238: `bail:`.  */
   return 1;
 }
+
+/* ----------------------------------------------------------------------------------------------
+   C 1241-1426: the blank line (C 1241), the form feed (C 1242), C 1243's blank and C 1244's
+   `/* Font discovery and matching.  */` banner, then the three cmap selectors -
+   `sfntfont_charset_for_name` (C 1246-1264), `sfntfont_charset_for_cmap` (C 1269-1334) and
+   `sfntfont_select_cmap` (C 1344-1425), with C 1426's blank.  Slice 1 stopped on C 1240's `}`;
+   **the next live definition is C 1432's `sfntfont_read_cmap`**, and the ledger's `## C line
+   ranges` names both boundaries.
+
+   Every item carries the file gate `all (have_android, not_android_stubify)` (slice 1's reading:
+   `configure.ac` 2645 puts `sfntfont.o` in `ANDROID_OBJ` only in the `XCONFIGURE = android` branch,
+   and `ANDROID_STUBIFY` is defined in the other one), and no `#if` inside these 186 C lines.
+   ---------------------------------------------------------------------------------------------- */
+/// C 1246-1264: `sfntfont_charset_for_name` - C's `static struct charset *`, the `CHARSET_*`
+/// macros being `include/charset.rs`'s (`charset.h` 265/301).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_charset_for_name (symbol: Lisp_Object) -> *mut charset
+{                                                          // C 1247-1264
+  let mut idx: ptrdiff_t;
+  let mut id: c_int;
+
+  idx = CHARSET_SYMBOL_HASH_INDEX! (symbol);               // C 1252
+
+  if idx == -1
+    { return std::ptr::null_mut (); }                      // C 1255
+
+  /* Vcharset_hash_table is not a real variable, so Lisp programs
+     can't clobber it.  */
+  id = XFIXNUM (AREF (HASH_VALUE (XHASH_TABLE (Vcharset_hash_table),   // C 1259-1261
+				  idx as hash_idx_t),
+		      charset_id as isize)) as c_int;
+
+  return CHARSET_FROM_ID! (id);                            // C 1263
+}
+
+/// C 1269-1334: `sfntfont_charset_for_cmap` - C's `static struct charset *`, one `switch` over
+/// `platform_id` with the two nested `switch`es (the `sfntfont_identify_cmap` shape above), whose
+/// second has no `default` of its own and so falls out of the block into C 1332's outer
+/// `default: return NULL;` - the `_ => { }` + explicit return below.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_charset_for_cmap (subtable: sfnt_cmap_encoding_subtable) -> *mut charset
+{                                                          // C 1270-1334
+  match subtable.platform_id as c_int
+    {
+      SFNT_PLATFORM_UNICODE =>                 /* C 1274: `case SFNT_PLATFORM_UNICODE:`.  */
+	{
+	  /* Reject variation selector and last resort tables.  */
+	  if (subtable.platform_specific_id as c_int
+	      == SFNT_UNICODE_VARIATION_SEQUENCES)
+	     || (subtable.platform_specific_id as c_int
+		 == SFNT_UNICODE_LAST_RESORT)
+	    { return std::ptr::null_mut (); }          // C 1280
+
+	  /* 1.0, 1.1, ISO-10646-1993, and 2.0_BMP tables are all within
+	     the BMP.  */
+	  if (subtable.platform_specific_id as c_int) < SFNT_UNICODE_2_0
+	    { return sfntfont_charset_for_name (Qunicode_bmp ()); }   // C 1285
+
+	  return sfntfont_charset_for_name (Qunicode ());             // C 1287
+	}
+
+      SFNT_PLATFORM_MACINTOSH =>               /* C 1289: `case SFNT_PLATFORM_MACINTOSH:`.  */
+	{
+	  match subtable.platform_specific_id as c_int
+	    {
+	      SFNT_MACINTOSH_ROMAN =>              /* C 1293.  */
+		{ return sfntfont_charset_for_name (Qmac_roman ()); }
+
+	      _ =>                                 /* C 1296: `default:`.  */
+		/* Some other Macintosh charset not supported by Emacs.  */
+		{ return std::ptr::null_mut (); }  // C 1298
+	    }
+	}
+
+      SFNT_PLATFORM_MICROSOFT =>               /* C 1301: `case SFNT_PLATFORM_MICROSOFT:`.  */
+	{
+	  /* Microsoft specific encodings.  */
+
+	  match subtable.platform_specific_id as c_int
+	    {
+	      SFNT_MICROSOFT_SYMBOL =>             /* C 1307.  */
+		/* Symbols in the Unicode PUA are still Unicode.  */
+		{ return sfntfont_charset_for_name (Qunicode ()); }   // C 1309
+
+	      SFNT_MICROSOFT_UNICODE_BMP =>        /* C 1311.  */
+		{ return sfntfont_charset_for_name (Qunicode_bmp ()); }   // C 1312
+
+	      SFNT_MICROSOFT_SHIFT_JIS =>          /* C 1314.  */
+		/* PCK aka japanese-jisx0208.  */
+		{ return sfntfont_charset_for_name (Qjapanese_jisx0208 ()); }   // C 1316
+
+	      SFNT_MICROSOFT_PRC =>                /* C 1318.  */
+		/* GBK, GB2312 or GB18030.  */
+		{ return sfntfont_charset_for_name (Qgbk ()); }   // C 1320
+
+	      SFNT_MICROSOFT_JOHAB =>              /* C 1322.  */
+		/* KS C 5601-1992, aka korean-ksc5601.  */
+		{ return sfntfont_charset_for_name (Qkorean_ksc5601 ()); }   // C 1324
+
+	      SFNT_MICROSOFT_UNICODE_UCS_4 =>      /* C 1326.  */
+		/* Unicode past the BMP.  */
+		{ return sfntfont_charset_for_name (Qucs ()); }   // C 1328
+
+	      _ => { }             /* C 1331's `default:` is reached by fallthrough below.  */
+	    }
+
+	  /* C's MICROSOFT case falls out of its inner `switch` into C 1331's `default: return
+	     NULL;`, exactly as `sfntfont_identify_cmap`'s does.  */
+	  return std::ptr::null_mut ();
+	}
+
+      _ =>                                         /* C 1331: `default:`.  */
+	{ return std::ptr::null_mut (); }              // C 1332
+    }
+}
+
+/// C 1344-1425: `sfntfont_select_cmap` - C's `static struct sfnt_cmap_encoding_subtable_data *`,
+/// three scans over `cmap->num_subtables` (non-BMP Unicode, BMP-only Unicode, then the first
+/// identified cmap), the first two also looking for a format 14 table when `format14` is non-NULL.
+/// C's `data[i]` truth tests are the pointer tests below; `*subtable`/`*format14` are C's writes
+/// through the out-parameters.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_select_cmap (cmap: *mut sfnt_cmap_table,
+				subtables: *mut sfnt_cmap_encoding_subtable,
+				data: *mut *mut sfnt_cmap_encoding_subtable_data,
+				subtable: *mut sfnt_cmap_encoding_subtable,
+				format14: *mut *mut sfnt_cmap_format_14)
+  -> *mut sfnt_cmap_encoding_subtable_data
+{                                                          // C 1345-1425
+  let mut i: c_int;
+  let mut j: c_int;
+
+  /* First look for a non-BMP Unicode cmap.  */
+
+  i = 0;
+  while i < (*cmap).num_subtables as c_int            // C 1355
+    {
+      if !(*(data.offset (i as isize))).is_null ()
+	 && sfntfont_identify_cmap (*(subtables.offset (i as isize))) == 2
+	{
+	  *subtable = *(subtables.offset (i as isize));   // C 1359
+
+	  if format14.is_null ()
+	    { return *(data.offset (i as isize)); }       // C 1362
+
+	  /* Search for a corresponding format 14 character map.
+	     This is used in conjunction with the selected character
+	     map to map variation sequences.  */
+
+	  j = 0;
+	  while j < (*cmap).num_subtables as c_int        // C 1368
+	    {
+	      if !(*(data.offset (j as isize))).is_null ()
+		 && (*(subtables.offset (j as isize))).platform_id as c_int
+		    == SFNT_PLATFORM_UNICODE
+		 && ((*(subtables.offset (j as isize))).platform_specific_id as c_int
+		     == SFNT_UNICODE_VARIATION_SEQUENCES)
+		 && (*(*(data.offset (j as isize)))).format == 14
+		{ *format14                                           // C 1375
+		    = *(data.offset (j as isize)) as *mut sfnt_cmap_format_14; }
+	      j += 1;
+	    }
+
+	  return *(data.offset (i as isize));             // C 1378
+	}
+      i += 1;
+    }
+
+  /* Next, look for a BMP only Unicode cmap.  */
+
+  i = 0;
+  while i < (*cmap).num_subtables as c_int            // C 1384
+    {
+      if !(*(data.offset (i as isize))).is_null ()
+	 && sfntfont_identify_cmap (*(subtables.offset (i as isize))) == 1
+	{
+	  *subtable = *(subtables.offset (i as isize));   // C 1388
+
+	  if format14.is_null ()
+	    { return *(data.offset (i as isize)); }       // C 1391
+
+	  /* Search for a corresponding format 14 character map.
+	     This is used in conjunction with the selected character
+	     map to map variation sequences.  */
+
+	  j = 0;
+	  while j < (*cmap).num_subtables as c_int        // C 1397
+	    {
+	      if !(*(data.offset (j as isize))).is_null ()
+		 && (*(subtables.offset (j as isize))).platform_id as c_int
+		    == SFNT_PLATFORM_UNICODE
+		 && ((*(subtables.offset (j as isize))).platform_specific_id as c_int
+		     == SFNT_UNICODE_VARIATION_SEQUENCES)
+		 && (*(*(data.offset (j as isize)))).format == 14
+		{ *format14                                           // C 1404
+		    = *(data.offset (j as isize)) as *mut sfnt_cmap_format_14; }
+	      j += 1;
+	    }
+
+	  return *(data.offset (i as isize));             // C 1407
+	}
+      i += 1;
+    }
+
+  /* Finally, use the first cmap that appears and can be
+     identified.  */
+
+  i = 0;
+  while i < (*cmap).num_subtables as c_int            // C 1414
+    {
+      if !(*(data.offset (i as isize))).is_null ()
+	 && sfntfont_identify_cmap (*(subtables.offset (i as isize))) == 0
+	{
+	  *subtable = *(subtables.offset (i as isize));   // C 1418
+	  return *(data.offset (i as isize));             // C 1419
+	}
+      i += 1;
+    }
+
+  /* There are no cmaps available to Emacs.  */
+  return std::ptr::null_mut ();                          // C 1424
+}

@@ -1320,6 +1320,7 @@ sfnt_decode_font_string	common_flags,mode	`coding->mode`/`common_flags` are bitf
 sfnt_parse_style	continue,goto	C's `goto next_style` / `continue` pair is a labelled `continue` in the port; neither token survives (status 3.443)
 sfnt_registry_for_subtable	case,default,switch	the registry dispatch `switch` is a `match` (status 3.443)
 sfntfont_identify_cmap	case,default,switch	the cmap platform dispatch `switch` is a `match` (status 3.443)
+sfntfont_charset_for_cmap	case,default,switch	the cmap platform dispatch `switch` is a `match` (status 3.681)
 sfnt_grok_registry	goto	C's `goto fail` legs are a labelled block in the port (status 3.443)
 sfnt_replace_fonts_p	goto	C's `goto next_instance` is a labelled `continue` (status 3.443)
 sfnt_enum_font_1	bail1,bail2,bail3,bail4,goto,true,underline_position_set	the four `bail` labels are one labelled block's exits in the port; `true` is the first member of C's `enum sfnt_font_serial_status`-shaped literal in the same body, spelled structurally; `underline_position_set` is one of the two `bool : 1` bitfield names the port writes through the `bits` shift constants (status 3.443)
