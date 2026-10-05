@@ -11768,3 +11768,25 @@
      PNG/JPEG/TIFF/GIF/WebP/SVG/ImageMagick 各读取器）。
   ⑤ **未声称**：无运行期证据；Windows/Haiku/PGTK/Android/纯 X11 五臂**未翻臂**（本机无 SDK，纯 X11 另有既有 `E0428`），
      其证据只有冻结读数、`check-cond-eval` 判定与逐项 C 引用；`check-declarations`/`check-mirror-dupes` 都 0 failure 只说明文本层一致。
+
+- **3.584 lane 产出收口：`src/xterm.c` 第八片落地（C 4,469-6,989；C 33,125 → Rust 7,508 行；`--check` 286 → 255）（2026-10-05）**：
+  ① **lane 的产出（Galileo）**：`femacs/src/xterm.rs` 4,525 → **7,508 行**（+2,983，md5 `34d04a9b…`；台账 `docs/ports/xterm.md`
+     1,949 → 2,327 行，**新增 `## C line ranges` 57 行**覆盖 C 1-33,125 并把 remainder 写成 `6990-33125`）。落 74 个函数：
+     区间内的 29 个待勾（`x_dnd_send_enter`…`x_set_frame_alpha`）＋按 P-51 一并携带的 **45 个冻结判死函数**
+     （`HAVE_XINPUT2*` 的 xi_* 系列、`USE_CAIRO` 的 17 个 x_cr_*、`HAVE_XRENDER`/`HAVE_XDBE` 的各组），另加 `OPAQUE` 常量、
+     3 条 `FRAME_CR_*` 宏、2 个 cairo user-data key 与 `record_event`（`#if false`，按 `cm.rs` 口径作注释携带）。
+  ② **读数**：`--check` **286 → 255**（本区间全部 `missing function` 与 `missing constant OPAQUE` 消失）；`check-cond-eval.py src/xterm.c`
+     **852 conditions / 0 disagreements [VERIFIED]**；`build-tu` 2 发（末发 `built`，22 条 warning 全在镜像侧）；翻臂 `have_x_windows`
+     改前 241 错 → 改后 339 错，**本区间内 109 条**：`E0425` 62（Xlib 无镜像名 36 + 本文件后续切片 26）、
+     `E0609` 47（**不透明 `XEvent`** 46 + 镜像 `have_window_system` 门 1）；另有 12 条 `E0425` 因本片定义而消失。
+  ③ **集成者登记（我）**：**注册两个派生门** `have_xrender_0_2`/`have_xrender_0_10`（`xterm.c` 6512/6594/6728 的 Xrender 版本对）
+     并重生成 `docs/baseline/feature-coverage.tsv`（976 feature）；`macro-body-notes.tsv` 收下该 lane 的 **1 行**；
+     `port-map.md` 刷新本件；**不加容差行**（行数漂移 77.3% 仍是"还没落完"的真信号）。
+  ④ **门读数（本轮现读，全绿）**：`check-mirror-dupes` 17/17/0、`check-citations` 0 drift / 0 stale、`check-declarations` 0 failures、
+     `check-dead-file-coverage` **145/0**（本件新增的 57 行区间表进绑）、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、
+     `check-target-names` 0。
+  ⑤ **未声称**：`build-tu` 打印 `built` 但**冻结配置不编译本片任何一行**；`use_cairo`/`have_xrender`/`have_xdbe`/`have_xinput2*`
+     各臂**从未被任何东西编译过**；无 X11 target 编译、无链接、无运行——`x_set_frame_alpha`/`x_fill_rectangle` 仍调用本文件的后续切片，
+     X11 链接**不可达**。新增欠账逐条记在 `## Owed`：`include/xlib.rs` 的 `XEvent` 33 个成员（本文件 82 处旧 + 46 处新）、
+     `xi_scroll_valuator_t` 的两个 bitfield、`x_display_info.ext_codes`/`supports_xkb`、`math.h` 的 `lrint`、切片 6 的
+     `*mut c_void` display 模型统一（唯一新增的 `E0308`）。下一段起点 **C 6,991**（`Starting and ending an update`）。

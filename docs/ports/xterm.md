@@ -63,35 +63,35 @@
 - [x] x_dnd_send_unsupported_drop  (line 4082, static)
 - [x] x_dnd_fill_empty_target  (line 4128, static)
 - [x] x_dnd_get_target_window  (line 4140, static)
-- [ ] x_dnd_get_window_proxy  (line 4469, static)
-- [ ] x_dnd_get_window_proto  (line 4511, static)
-- [ ] x_dnd_send_enter  (line 4545, static)
-- [ ] x_dnd_send_position  (line 4583, static)
-- [ ] x_dnd_send_leave  (line 4658, static)
-- [ ] x_dnd_send_drop  (line 4682, static)
-- [ ] x_dnd_do_drop  (line 4716, static)
-- [ ] x_set_dnd_targets  (line 4729, static)
-- [ ] x_free_dnd_targets  (line 4744, static)
-- [ ] x_clear_dnd_variables  (line 4758, static)
-- [ ] x_free_dnd_toplevels  (line 4765, static)
-- [ ] x_restore_events_after_dnd  (line 4779, static)
-- [ ] x_dnd_cleanup_drag_and_drop  (line 4867, static)
-- [ ] x_dnd_note_self_position  (line 4938, static)
-- [ ] x_dnd_note_self_wheel  (line 4959, static)
-- [ ] x_dnd_note_self_drop  (line 4987, static)
-- [ ] x_flush  (line 5074, static)
-- [ ] x_toolkit_position  (line 5160, static)
-- [ ] x_update_opaque_region  (line 5197, static)
-- [ ] x_set_clip_rectangles  (line 6479, static)
-- [ ] x_reset_clip_rectangles  (line 6495, static)
-- [ ] x_fill_rectangle  (line 6571, static)
-- [ ] x_clear_rectangle  (line 6685, static)
-- [ ] x_draw_rectangle  (line 6733, static)
-- [ ] x_clear_window  (line 6751, static)
-- [ ] x_dpyinfo  (line 6883)
-- [ ] x_display_info_for_display  (line 6895)
-- [ ] x_find_topmost_parent  (line 6907, static)
-- [ ] x_set_frame_alpha  (line 6932, static)
+- [x] x_dnd_get_window_proxy  (line 4469, static)
+- [x] x_dnd_get_window_proto  (line 4511, static)
+- [x] x_dnd_send_enter  (line 4545, static)
+- [x] x_dnd_send_position  (line 4583, static)
+- [x] x_dnd_send_leave  (line 4658, static)
+- [x] x_dnd_send_drop  (line 4682, static)
+- [x] x_dnd_do_drop  (line 4716, static)
+- [x] x_set_dnd_targets  (line 4729, static)
+- [x] x_free_dnd_targets  (line 4744, static)
+- [x] x_clear_dnd_variables  (line 4758, static)
+- [x] x_free_dnd_toplevels  (line 4765, static)
+- [x] x_restore_events_after_dnd  (line 4779, static)
+- [x] x_dnd_cleanup_drag_and_drop  (line 4867, static)
+- [x] x_dnd_note_self_position  (line 4938, static)
+- [x] x_dnd_note_self_wheel  (line 4959, static)
+- [x] x_dnd_note_self_drop  (line 4987, static)
+- [x] x_flush  (line 5074, static)
+- [x] x_toolkit_position  (line 5160, static)
+- [x] x_update_opaque_region  (line 5197, static)
+- [x] x_set_clip_rectangles  (line 6479, static)
+- [x] x_reset_clip_rectangles  (line 6495, static)
+- [x] x_fill_rectangle  (line 6571, static)
+- [x] x_clear_rectangle  (line 6685, static)
+- [x] x_draw_rectangle  (line 6733, static)
+- [x] x_clear_window  (line 6751, static)
+- [x] x_dpyinfo  (line 6883)
+- [x] x_display_info_for_display  (line 6895)
+- [x] x_find_topmost_parent  (line 6907, static)
+- [x] x_set_frame_alpha  (line 6932, static)
 - [ ] x_update_begin  (line 7419, static)
 - [ ] x_draw_vertical_window_border  (line 7443, static)
 - [ ] x_draw_window_divider  (line 7464, static)
@@ -338,7 +338,7 @@
 ## Macros defined — 21
 - [x] ATOM_REFS_INIT  (line 989, body 38ea51a9ed88)
 - [ ] HIGHLIGHT_COLOR_DARK_BOOST_LIMIT  (line 9580, body bdbb3f155244)
-- [ ] OPAQUE  (line 6929, body d524558178b7)
+- [x] OPAQUE  (line 6929, body d524558178b7)
 - [ ] STORE_KEYSYM_FOR_DEBUG  (line 17826, body faabc0e0dbea)
 - [x] SWAPCARD16  (line 1584, body f50347531e4d)
 - [x] SWAPCARD32  (line 1583, body 393d2f43a49a)
@@ -455,6 +455,123 @@
 - [ ] static char error_msg  (line 26722, static)
 - [ ] static bool x_initialized  (line 30491, static)
 - [ ] static unsigned x_display_id  (line 30595, static)
+
+## Gate mapping
+
+One row per build condition this file's *landed* text carries, in C's order: the file gate is the
+one condition the file itself has, and every other row is a sub-gate a flip must set *besides*
+`have_x_windows` (P-86 clause 6: setting only the file gate selects a dead arm and reports a
+false "done").  Slices 1-7's Decisions record the口径 in prose; this table is the machine-readable
+half.  Later slices append their rows.
+
+| C `#if` / build condition | Port gate | Compiled when |
+| --- | --- | --- |
+| the file itself (`X` in `WINDOW_SYSTEM_OBJ`, i.e. `configure.ac`'s `HAVE_X_WINDOWS`) | `feature = "have_x_windows"` (on every item *and* on the include graph) | an X11 build |
+| C 797 `#if defined USE_XCB && defined USE_CAIRO_XCB` -> `USE_CAIRO_XCB_SURFACE` | `all (feature = "use_xcb", feature = "use_cairo_xcb")` | the XCB cairo build |
+| C 801-805 `#if XCB_SHAPE_MAJOR_VERSION > 1 || (== 1 && MINOR >= 1)` -> `HAVE_XCB_SHAPE_INPUT_RECTS` | `feature = "have_xcb_shape_input_rects"` (the derived name, Decision 3) | xcb shape >= 1.1 |
+| C 807-816 `#ifdef USE_GTK` (the pending quit event) | `feature = "use_gtk"` | a GTK build |
+| C 828-837 `#ifdef USE_X_TOOLKIT` (the Xt objects) | `feature = "use_x_toolkit"` | an Xt build |
+| C 858-861 `#ifdef HAVE_X_I18N` (`emacs_class`) | `feature = "have_x_i18n"` | an XIM build |
+| C 863-867 `#ifdef USE_GTK` (the XTread_socket counters) | `feature = "use_gtk"` | a GTK build |
+| C 869-881 `#ifndef X_XIGrabDevice`/`X_XIUngrabDevice`/`X_XIAllowEvents` | the guard reading (constant, no `cfg`) | an XI2 build |
+| C 891-990 slices 1 (the selection-request chain) | `feature = "have_x_windows"` | an X11 build |
+| C 1214-1548 the drag-and-drop state | `all (feature = "have_x_windows", feature = "have_xinput2")` on the XI2 pair | an XI2 build |
+| C 1550/1552/1553 the `XM_BYTE_ORDER_*` / `SWAPCARD*` arms | `feature = "words_bigendian"`, `feature = "enable_checking"` | big-endian / `--enable-checking` |
+| C 1763-2173 slices 3 (Motif map, targets table, drag window) | `all (feature = "have_x_windows", feature = "use_motif")` where C guards it | a Motif drag build |
+| C 2175-3614 slices 4-6 (the Motif senders/readers, the toplevel list) | `feature = "have_x_windows"` + the inner arms below | an X11 build |
+| C 3013-3614 slice 6's `USE_XCB`/`HAVE_XCB_SHAPE`/`HAVE_XCB_SHAPE_INPUT_RECTS` arms | `feature = "use_xcb"`, `feature = "have_xcb_shape"`, `feature = "have_xcb_shape_input_rects"` | an XCB build |
+| C 3616-4466 slice 7's `USE_XCB`, `HAVE_XSHAPE`, `HAVE_XCOMPOSITE` arms | `feature = "use_xcb"`, `feature = "have_xshape"`, `all (feature = "have_xcomposite", feature = "have_xcomposite_overlay")` (the derived pair, Decision 18) | an XCB / XShape / composite build |
+| C 4804-4864 `#ifdef HAVE_XINPUT2` (`x_dnd_cancel_dnd_early`) | `feature = "have_xinput2"` | an XI2 build |
+| C 4791-4792 `#ifdef HAVE_XKB` (`x_restore_events_after_dnd`) | `feature = "have_xkb"` | an XKB build |
+| C 4921-4923 `#ifdef USE_GTK` (`current_hold_quit`) | `feature = "use_gtk"` | a GTK build |
+| C 5087-5103 `#ifdef HAVE_XDBE` | `feature = "have_xdbe"` | an Xdbe build |
+| C 5105-5118 `#ifdef HAVE_XRENDER` (`x_xr_ensure_picture`) | `feature = "have_xrender"` | an XRender build |
+| C 5127-5156 `#if false` (`record_event`) | dead text in every configuration (comment) | - |
+| C 5163-5193 `#ifdef USE_GTK` / `#elif defined USE_X_TOOLKIT` / `#else` | `feature = "use_gtk"` / `all (not (feature = "use_gtk"), feature = "use_x_toolkit")` / neither | a GTK / Xt / plain X11 build |
+| C 5215-5239 `#ifndef HAVE_GTK3` / `#else` | `not (feature = "have_gtk3")` / `feature = "have_gtk3"` | GTK3 or not |
+| C 5245-5287 `#if defined USE_CAIRO || defined HAVE_XRENDER` (the GC ext data) | `any (feature = "use_cairo", feature = "have_xrender")` | a cairo or XRender build |
+| C 5289-5297 `#ifdef USE_CAIRO` (`FRAME_CR_*`) | `feature = "use_cairo"` | a cairo build |
+| C 5303-5326 `#ifdef HAVE_XINPUT2` + `# if defined USE_X_TOOLKIT || !(defined USE_GTK && defined HAVE_GTK3)` | `feature = "have_xinput2"` + `any (feature = "use_x_toolkit", not (all (feature = "use_gtk", feature = "have_gtk3")))` | an XI2 build that is not GTK3-GTK |
+| C 5350-5352 `#ifdef USE_GTK static #endif` (`xi_convert_event_state`) | `feature = "use_gtk"` for the storage class only | a GTK build |
+| C 5382-5959 the `HAVE_XINPUT2_1` / `HAVE_XINPUT2_2` device arms | `feature = "have_xinput2_1"` / `feature = "have_xinput2_2"` | XI2 >= 2.1 / 2.2 |
+| C 5966-6451 `#ifdef USE_CAIRO` (the cairo helpers) | `feature = "use_cairo"` + the `CAIRO_HAS_*` derived names below | a cairo build |
+| C 6019-6026 `#ifdef USE_CAIRO_XCB_SURFACE` | `all (feature = "use_xcb", feature = "use_cairo_xcb")` | an XCB cairo build |
+| C 6361-6395 `#ifdef CAIRO_HAS_PDF_SURFACE` / `_PNG_FUNCTIONS` / `_PS_SURFACE` / `_SVG_SURFACE` | the derived names `cairo_has_pdf_surface`, `cairo_has_png_functions`, `cairo_has_ps_surface`, `cairo_has_svg_surface` (cairo.h's own pair shape, Decision 3) | a cairo build with that surface |
+| C 6453-6477 `#if defined HAVE_XRENDER` (the ext clip) | `feature = "have_xrender"` | an XRender build |
+| C 6479-6509 `#if defined USE_CAIRO || defined HAVE_XRENDER` (the clip bookkeeping) | `any (feature = "use_cairo", feature = "have_xrender")` | a cairo or XRender build |
+| C 6511-6538 `# if !defined USE_CAIRO && (RENDER_MAJOR > 0 || RENDER_MINOR >= 2)` | `all (not (feature = "use_cairo"), feature = "have_xrender_0_2")` (the derived name) | an XRender >= 0.2 build |
+| C 6594-6629 `#if RENDER_MAJOR > 0 || (RENDER_MINOR >= 10)` | `feature = "have_xrender_0_10"` (the derived name) | an XRender >= 0.10 build |
+| C 6757-6774 `#ifndef USE_GTK` + `#ifdef HAVE_XDBE` inside its condition | `not (feature = "use_gtk")`, `feature = "have_xdbe"` | a non-GTK Xdbe build |
+| C 6779-6865 `#ifdef USE_CAIRO` (the relief trapezoids, corners, wave) | `feature = "use_cairo"` | a cairo build |
+
+## C line ranges
+
+One row per C block, in C's order - the table P-86 clause 2 requires of a file whose body the
+frozen configuration leaves false, and the same shape `docs/ports/w32term.md`'s table uses: a
+row's range runs to the line before the next row's start, so the table is contiguous and every
+non-blank line of the reference is accounted for (`check-dead-file-coverage.py` reads it).  The
+`arm` cell says what the port does with the block; the per-function lines of slices 1-7 are in
+their Decisions, and the ones of slice 8 are in Decision 20.
+
+| C | block | arm |
+| --- | --- | --- |
+| 1-624 | the file's own licence/declaration block and the long X11/input prose comment | dropped (P-86 clause 1; the port opens with the `// femacs: port of ...` line) |
+| 625-635 | `<config.h>`, `<stdlib.h>`, `<math.h>`, `<signal.h>` | the file gate |
+| 636-645 | `"lisp.h"`, `"blockinput.h"`, `"sysstdio.h"`, `"xterm.h"`, `"textconv.h"`, the X11 headers | the file gate |
+| 646-701 | the X11 extension headers, `"sys/types.h"` ... `<byteswap.h>` | the file gate |
+| 702-793 | `"character.h"` ... `"widget.h"`, the XKB/XI2 headers, `xgselect.h`, `bitmaps/gray.xbm` | the file gate (the two last under `USE_GTK`/`#if 0`) |
+| 794-806 | the two X error-handler typedefs, `USE_CAIRO_XCB_SURFACE`, `HAVE_XCB_SHAPE_INPUT_RECTS` | the file gate; both arms (`use_xcb`+`use_cairo_xcb`, `have_xcb_shape_input_rects`) |
+| 807-899 | the file-scope objects: `xg_pending_quit_event`, `any_help_event_p`, `x_display_list`, the Xt objects, `x_noop_count`, `emacs_class`, the XTread_socket counters, the XI2 request codes, `X_NEXT_KBD_EVENT` | the file gate + `use_gtk`/`use_x_toolkit`/`have_x_i18n`/`have_xinput2` arms |
+| 900-990 | slice 1: `x_defer_selection_requests`, `x_release_selection_requests`, `x_release_selection_requests_and_flush`, `ATOM_REFS_INIT` | the file gate |
+| 991-1130 | the `x_atom_refs` table (C 976-987's `x_atom_ref` record and the 122 rows) | **not landed** (Decision 9) |
+| 1131-1762 | slice 2: the `xembed` enums, `X_EVENT_*`, the drag-and-drop state, the five `XM_DRAG_*` families and the two byte-order constants | the file gate + `words_bigendian`/`enable_checking` |
+| 1763-2173 | slice 3: the Motif side-effect map, the targets-table reader/writer, the two error handlers, `x_special_window_exists_p` and the drag window | the file gate |
+| 2175-2612 | slice 4: `xm_setup_dnd_targets`, the drag atom, the three Motif message senders | the file gate |
+| 2614-3012 | slice 5: the Motif senders and readers, the toplevel teardown | the file gate |
+| 3013-3614 | slice 6: `x_dnd_free_toplevels`, `x_dnd_compute_toplevels` and the `x11_ext` arm's five members | the file gate + `use_xcb`/`have_xcb_shape`/`have_xcb_shape_input_rects` |
+| 3616-4466 | slice 7: the drag-and-drop target-window discovery (`x_dnd_io_error_handler` ... `x_dnd_get_target_window`) | the file gate + `use_xcb`/`have_xshape`/`have_xcomposite`(+`_overlay`) |
+| 4467-4510 | `x_dnd_get_window_proxy` (C 4468-4508) | the file gate |
+| 4511-4544 | `x_dnd_get_window_proto` (C 4510-4542) | the file gate |
+| 4545-4582 | `x_dnd_send_enter` (C 4544-4580) | the file gate |
+| 4583-4657 | `x_dnd_send_position` (C 4582-4655) | the file gate |
+| 4658-4681 | `x_dnd_send_leave` (C 4657-4679) | the file gate |
+| 4682-4715 | `x_dnd_send_drop` (C 4681-4713) | the file gate |
+| 4716-4728 | `x_dnd_do_drop` (C 4715-4726) | the file gate |
+| 4729-4743 | `x_set_dnd_targets` (C 4728-4741) | the file gate |
+| 4744-4757 | `x_free_dnd_targets` (C 4743-4755) | the file gate |
+| 4758-4764 | `x_clear_dnd_variables` (C 4757-4762) | the file gate |
+| 4765-4778 | `x_free_dnd_toplevels` (C 4764-4776) | the file gate |
+| 4779-4864 | `x_restore_events_after_dnd` (C 4778-4802, with C 4788's `HAVE_XKB` arm) and C 4804-4864's `x_dnd_cancel_dnd_early` | the file gate; `have_xkb`; `have_xinput2` |
+| 4865-4937 | `x_dnd_cleanup_drag_and_drop` (C 4866-4919) and C 4921-4923's `USE_GTK` arm | the file gate; `use_gtk` |
+| 4938-4986 | `x_dnd_note_self_position` (C 4937-4956) and `x_dnd_note_self_wheel` (C 4958-4984) | the file gate |
+| 4987-5073 | `x_dnd_note_self_drop` (C 4986-5071) | the file gate |
+| 5074-5086 | `x_flush` (C 5073-5085) | the file gate |
+| 5087-5118 | `x_drop_xrender_surfaces` (C 5088-5103) and `x_xr_ensure_picture` (C 5105-5118) | the file gate; `have_xdbe`, `have_xrender` |
+| 5119-5157 | the `Debugging` banner and C 5127-5153's `#if false` `record_event` | dead text in every configuration (C's own text inside a comment) |
+| 5158-5196 | `x_toolkit_position` (C 5159-5194) | the file gate + `use_gtk`/`use_x_toolkit`/neither |
+| 5197-5243 | `x_update_opaque_region` (C 5196-5243) | the file gate + `have_gtk3`/not |
+| 5244-5287 | `x_gc_free_ext_data_private`, `x_gc_get_ext_data`, `x_extension_initialize` (C 5245-5287) | `any (feature = "use_cairo", feature = "have_xrender")` |
+| 5288-5297 | the `FRAME_CR_*` macros (C 5289-5297) | `use_cairo` |
+| 5298-5328 | `xi_frame_selected_for` (C 5303-5328) | `have_xinput2` + C 5305's toolkit arm |
+| 5329-5378 | `xi_convert_button_state`, `xi_convert_event_state`, `xi_convert_event_keyboard_state` (C 5331-5378) | `have_xinput2` (+ `use_gtk` for the storage class) |
+| 5379-5427 | `x_free_xi_devices` (C 5380-5427) | `have_xinput2` + `have_xinput2_1`/`_2` |
+| 5428-5706 | `struct xi_known_valuator`, `xi_populate_scroll_valuator`, `xi_populate_device_from_info` (C 5430-5706) | `have_xinput2` + `have_xinput2_1`/`_2` |
+| 5707-5792 | `x_cache_xi_devices` (C 5708-5740) and `x_get_scroll_valuator_delta` (C 5742-5792) | `have_xinput2` (+ `have_xinput2_1`) |
+| 5793-5811 | `xi_device_from_id` (C 5794-5811) | `have_xinput2` |
+| 5812-5963 | `xi_link_touch_point`, `xi_unlink_touch_point`, `xi_unlink_touch_points`, `xi_find_touch_point`, `xi_reset_scroll_valuators_for_device_id` (C 5813-5963) | `have_xinput2_2` / `have_xinput2_1` |
+| 5964-6451 | the cairo block: `x_cr_destroy_frame_context` ... `x_cr_export_frames` (C 5966-6451) | `use_cairo` + `cairo_has_*` + `use_xcb`+`use_cairo_xcb` |
+| 6452-6509 | `x_xr_apply_ext_clip`, `x_xr_reset_ext_clip` (C 6453-6477) and `x_set_clip_rectangles`, `x_reset_clip_rectangles` (C 6479-6509) | the file gate; `have_xrender`; `any (use_cairo, have_xrender)` for the bookkeeping |
+| 6510-6569 | `x_xrender_color_from_gc_foreground` (C 6511-6538) and `x_xrender_color_from_gc_background` (C 6541-6569) | `have_xrender` + `not (use_cairo)` + `have_xrender_0_2` |
+| 6570-6684 | `x_fill_rectangle` (C 6571-6683) | the file gate + `use_cairo` / `have_xrender`+`have_xrender_0_2`+`have_xrender_0_10` |
+| 6685-6732 | `x_clear_rectangle` (C 6685-6731) | as above, without the `0_10` arm |
+| 6733-6750 | `x_draw_rectangle` (C 6733-6749) | the file gate + `use_cairo` |
+| 6751-6777 | `x_clear_window` (C 6751-6777) | the file gate + `use_cairo` / `not (use_gtk)`+`have_xdbe` |
+| 6778-6865 | `x_fill_trapezoid_for_relief`, `enum corners`, `x_erase_corners_for_relief`, `x_draw_horizontal_wave` (C 6779-6865) | `use_cairo` |
+| 6866-6893 | `x_dpyinfo` (C 6883-6893) | the file gate |
+| 6894-6905 | `x_display_info_for_display` (C 6895-6905) | the file gate |
+| 6906-6928 | `x_find_topmost_parent` (C 6907-6928) | the file gate |
+| 6929-6989 | `OPAQUE` (C 6929) and `x_set_frame_alpha` (C 6932-6989) | the file gate |
+| 6990-33125 | **the remainder** (C 6991's `Starting and ending an update` banner, C 6998's `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME`, the display iterator, the glyph drawing, `x_set_glyph_string_gc` onward, the mouse/scroll-bar/tool-bar code, the event loop, `XTread_socket`, `x_initialize`, `syms_of_xterm`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Decisions
 
@@ -1331,6 +1448,98 @@ behind `use_xcb`, `have_xcomposite` or the `x11_constants` module's own import r
 target build, no link, no runtime evidence; the composite arms, the xcb arms and the `<X11/Xutil.h>`
 value are text + measurement + a mirror-level typecheck only.
 
+### 20. Slice 8 (C 4469-6989): the Xdnd senders and the self-drop path, the XInput2 device plumbing, the cairo and XRender drawing helpers, and the frame properties
+
+The ledger's next thirty unchecked boxes, C 4469-6989, 2521 lines of C: the seven Xdnd message
+senders, the five DnD bookkeeping functions, the cleanup hook, the three self-drop recorders
+(`x_dnd_note_self_position`/`_wheel`/`_drop`), `x_flush`, `x_toolkit_position`,
+`x_update_opaque_region`, `x_set_clip_rectangles`/`x_reset_clip_rectangles`, the five drawing
+primitives (`x_fill_rectangle`, `x_clear_rectangle`, `x_draw_rectangle`, `x_clear_window`,
+`x_set_frame_alpha`), `x_dpyinfo`/`x_display_info_for_display`/`x_find_topmost_parent`, and the
+**forty-five** functions this file defines inside conditions the frozen table leaves false, which C
+carries and the port carries too (P-51): `x_dnd_cancel_dnd_early` (`HAVE_XINPUT2`),
+`x_drop_xrender_surfaces` (`HAVE_XDBE`), `x_xr_ensure_picture`, `x_xr_apply_ext_clip`,
+`x_xr_reset_ext_clip` and the two `x_xrender_color_from_gc_*` (`HAVE_XRENDER`),
+`x_gc_free_ext_data_private`/`x_gc_get_ext_data`/`x_extension_initialize`
+(`USE_CAIRO || HAVE_XRENDER`), `xi_frame_selected_for`, `xi_convert_button_state`,
+`xi_convert_event_state`, `xi_convert_event_keyboard_state`, `x_free_xi_devices`,
+`xi_populate_scroll_valuator`, `xi_populate_device_from_info`, `x_cache_xi_devices`,
+`x_get_scroll_valuator_delta`, `xi_device_from_id`, the five touch-point helpers and
+`xi_reset_scroll_valuators_for_device_id` (`HAVE_XINPUT2` and its `_1`/`_2` splits), the cairo
+block's seventeen (`USE_CAIRO`) and the three relief/wave helpers (`USE_CAIRO`).  The file-scope
+objects C defines here are carried where C defines them: `OPAQUE` (C 6929, a demanded constant),
+the three `FRAME_CR_*` macros (C 5289-5297), the two cairo user-data keys (C 6116-6118) and
+`max_fringe_bmp`/`fringe_bmp` (C 6233-6234).
+
+**The Xdnd senders and the three self-drop recorders.**  Each message is a `XEvent` whose
+`xclient` fields C writes one by one; the port keeps C's statement order and C's own spellings,
+including the `?:` C writes as the port's `if`/`else` (`x_dnd_send_enter`'s shift expression) and
+the four implicit narrowings C performs into the `xm_drop_start_message` fields the record
+declares as `uint32_t` (`timestamp`, `index_atom`, `source_window`: C 1604-1611), which the port
+writes out (Decision 14's rule).  `x_dnd_note_self_drop`'s `ie.kind = DRAG_N_DROP_EVENT` is the
+`input_event` bitfield the mirror packs into `bits`, so the port's store is the masked write
+`xselect.rs` 3610 spells, and its `alloca` is the stack pool (P-05); both are the one
+`macro-body-notes.tsv` row this slice appends (`docs/ports/macro-body-notes.tsv` 1269).
+
+**Four arms the frozen reading calls dead, each carried under its feature.**  The `USE_CAIRO` GC
+bookkeeping, the XRender extended clip, the cairo drawing helpers and the XInput2 device records
+are all text-only work: no arm of this tree turns any of them on, so every reading below that
+moves, moves in the *unit*'s own error list and nowhere else.
+
+**Five derived feature names, each for a condition whose macro this tree cannot see** (the
+`have_xcb_shape_input_rects` shape of Decision 3; the first four are C 6361-6395's cairo.h
+`CAIRO_HAS_*` guards, the last two Xrender.h's `RENDER_MAJOR`/`RENDER_MINOR` pairs at C 6512,
+6594 and 6752):
+
+| C condition | the name the port carries it under |
+| --- | --- |
+| `#ifdef CAIRO_HAS_PDF_SURFACE` (C 6361) | `cairo_has_pdf_surface` |
+| `#ifdef CAIRO_HAS_PNG_FUNCTIONS` (C 6369, 6444) | `cairo_has_png_functions` |
+| `#ifdef CAIRO_HAS_PS_SURFACE` (C 6376) | `cairo_has_ps_surface` |
+| `#ifdef CAIRO_HAS_SVG_SURFACE` (C 6385) | `cairo_has_svg_surface` |
+| `RENDER_MAJOR > 0 \|\| RENDER_MINOR >= 2` (C 6512, 6596/6728) | `have_xrender_0_2` |
+| `RENDER_MAJOR > 0 \|\| (RENDER_MINOR >= 10)` (C 6594) | `have_xrender_0_10` |
+
+`x_cr_export_frames` is where the cairo four matter: C adds one `else if` per guard and its
+trailing `abort ()` is the arm the last *live* guard reaches, so the port keeps one `if`/`else`
+chain whose compile-time halves are `cfg`-defined conditions and whose bodies carry their own
+`#[cfg]` (a cairo build without a surface still names no function it lacks).  `cairo_has_pdf_surface`
+and its three siblings already exist in `femacs/xtask/Cargo.toml` (rows 47-50); the two
+`have_xrender_0_*` names do not and are requested in this round's report.
+
+**The flip arm's new errors are all recorded classes.**  The nine functions of the *live* part
+that this slice adds call names this graph has no mirror for, which is the class slices 4-7 already
+carry: Xlib's own (`XChangeProperty`, `XFree`, `XSendEvent`, `XGetWindowProperty`,
+`XSelectInput`, `XDeleteProperty`, `XGetGCValues`, `XSetClipRectangles`, `XSetClipMask`,
+`XFillRectangle`, `XSetForeground`, `XDrawRectangle`, `XClearWindow`, `XQueryTree`, `XFlush`,
+`XGetWindowAttributes`, `XGetAtomNames`, `Unsorted`, `XGCValues`, `XWindowAttributes`) and this
+file's own later slices (`x_ignore_errors_for_next_request`, `x_stop_ignoring_errors`,
+`x_had_errors_p`, `x_top_window_to_frame`, `x_translate_coordinates`, `x_catch_errors`,
+`x_uncatch_errors_after_check`, `x_atom_to_symbol`, `x_get_atom_name`, `x_clear_area`, all defined
+at C 9137+, and `x_dpyinfo`'s two callers now resolve).  The `xclient`/`xconfigure`/`r#type` field
+reads on the mirror's *opaque* `XEvent` are slice 2/5's class carried forward (the ledger
+`docs/ports/include-xlib.md` owes the union's 33 members), and the one
+`no field menu_bar_window on frame` is the mirror's own `have_window_system` gate, which the flip
+arm does not set.
+
+The readings are three, and the third is the one worth reading twice: **the unit's error list
+grows by 98** (241 -> 339: `E0425` 151 -> 201, `E0609` 84 -> 131, `E0308` 4 -> 5) and **not one of
+them is a class this ledger has not already recorded**.  The `E0308` is the interesting one: it is
+*not* in this slice's text at all - `x_dpyinfo` now exists, so the type checker reaches slice 6's
+`x_dnd_free_toplevels`, whose display local is the `*mut c_void` of slice 6's model
+(Decision 19 clause 4), and reports the mismatch C never has (`Display *` there).  Twelve `E0425`s
+go the other way: `x_dnd_get_window_proxy`, `x_dnd_get_window_proto` and `x_dpyinfo` were "cannot
+find" names for slices 5-7 and are definitions now.
+
+**What this slice does not claim.**  The whole body is under `have_x_windows`, so the frozen
+`build-tu` prints `built` while compiling none of it (Decision 1); the `use_cairo`, `have_xrender`,
+`have_xdbe`, `have_xinput2*` and `cairo_has_*` arms have never been compiled by anything, and the
+plain flip arm is the only reading that reaches the rest.  No X11 target build, no link, no runtime
+evidence: `x_set_frame_alpha`, `x_fill_rectangle` and the senders call functions this file defines
+in later slices, so no X11 link of this unit is in reach this round either.  The `XEvent` member
+writes (`xclient`, `xconfigure`, `r#type`) are C's shape and the mirror's owed members, not a
+working XEvent.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -1947,3 +2156,172 @@ The round's last edit of `include/xlib.rs` is a comment re-wording (the xcb sect
 and one sentence of `x11_constants`' new comment).  The unit readings above were taken before it -
 a doc comment cannot move an error set, and the mirror self-check was re-run after it and still
 reads `exit 0` with zero errors.
+
+### Slice 8's readings (C 4469-6989), as landed and measured (2026-10-05)
+
+Commands verbatim; the before readings were taken on the tree as it stood when the slice opened.
+
+```
+$ python3 tools/check-cond-eval.py src/xterm.c          # before and after, unchanged
+src/xterm.c: 852 conditions, 0 unknown, 0 disagreements [VERIFIED]
+```
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # before
+286
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+$ grep -c '^- \[ \]' docs/ports/xterm.md      # before: 297 (30 of them this slice's)
+297
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # after
+255
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+$ grep -c '^- \[ \]' docs/ports/xterm.md      # after: 267
+267
+# the rows that moved: every "missing function"/"missing constant OPAQUE" line of C 4469-6989 is
+# gone (30 rows), and one row is *new*:
+#   - line count drifted 86.3%: C 33125 vs Rust 4525   ->   - line count drifted 77.3%: C 33125 vs Rust 7508
+```
+
+```
+$ python3 tools/extract-abi.py --all emacs/src/xterm.c femacs/src/xterm.rs     # after (the ledger's
+                                                                               # WIP reading)
+WIP  src/xterm.c -> femacs/src/xterm.rs (255 differences, docs/ports/xterm.md has unchecked boxes)
+...
+checked 590 ported files: 565 done, 3 in progress, 22 failing
+# this file stays one of the three "in progress" rows (the ledger is still 267 ticks short).  The
+# tree-wide counts are *not* this slice's: the before reading of the same command said
+# `532 done, 3 in progress, 55 failing`, and the 33 files between the two readings are other
+# lanes' in-flight edits (`femacs/src/image.rs`, `femacs/src/sfnt.rs`, `femacs/src/w32term.rs`,
+# `femacs/xtask/src/main.rs`), which were mid-write when the before reading ran.
+```
+
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xterm-lane/target cargo run -q -p xtask -- build-tu src/xterm.c
+warning: 22 warnings emitted
+built src/xterm.rs -> ../build/femacs/xterm.o
+# the 22 warnings are the mirrors' own (unused_attributes, unreachable_code); the frozen
+# configuration compiles none of this slice.
+```
+
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xterm-lane/target cargo run -q -p xtask -- probe \
+      src/xterm.rs /tmp/xterm-lane/x.rlib --crate-type=lib -C panic=abort \
+      --cfg 'feature="have_x_windows"'
+rustc failed for src/xterm.rs (exit status: 1)
+# before: error: aborting due to 241 previous errors
+#   151 E0425   84 E0609   4 E0308   1 E0381   1 E0080
+# after:  error: aborting due to 339 previous errors
+#   201 E0425  131 E0609   5 E0308   1 E0381   1 E0080
+# by file unchanged: _root.rs (the unit, src/xterm.rs) and one E0080 in include/systime.rs
+```
+
+The delta, by name and by class - the table Decision 20 reads:
+
+```
+# E0425: 62 inside this slice's lines, every one a recorded class
+#   Xlib names with no mirror: XChangeProperty 5, XFree 5, XSendEvent 4, XWindowAttributes 2,
+#   XGetWindowProperty 2, XDeleteProperty 2, XFillRectangle 2, XSetForeground 2, Unsorted 1,
+#   XGCValues 1, XGetWindowAttributes 1, XSelectInput 1, XGetGCValues 1, XGetAtomNames 1,
+#   XDrawRectangle 1, XSetClipRectangles 1, XSetClipMask 1, XClearWindow 1, XQueryTree 1, XFlush 1
+#   this file's later slices: x_ignore_errors_for_next_request 5, x_stop_ignoring_errors 5,
+#   x_had_errors_p 3, x_top_window_to_frame 3, x_translate_coordinates 3, x_catch_errors 2,
+#   x_uncatch_errors_after_check 2, x_atom_to_symbol 1, x_get_atom_name 1, x_clear_area 1
+# and 12 go away: x_dnd_get_window_proto 7, x_dnd_get_window_proxy 4, x_dpyinfo 1
+# E0609: 47 inside this slice's lines
+#   xclient on XEvent 43, xconfigure on XEvent 2, r#type on XEvent 1   (the opaque-XEvent class)
+#   menu_bar_window on frame 1                                        (the mirror's own
+#                                                                       have_window_system gate)
+```
+
+```
+$ python3 tools/check-dead-file-coverage.py
+143 ledger(s) bound (a C range table), 0 failure(s)
+$ python3 tools/check-ledger-ticks.py
+238 ledger(s) bound (a function tick to compare), 0 failure(s), 0 carried by another file,
+352 row(s) with no function tick - a unit with no function at all, or one whose body the frozen
+configuration leaves under a false condition (check-port-lines.py is that class's gate),
+0 row(s) without a ledger
+$ python3 tools/check-citations.py
+check-citations: 676 file(s) scanned, 0 drift, 0 range, 1814 external, 36 allowed, 0 stale
+$ python3 tools/check-declarations.py
+17 declaration sites (0 forbidden, 17 allowed literals), 0 failures
+$ python3 tools/check-mirror-dupes.py
+17 duplicate declaration(s), 17 ratchet row(s), 0 failure(s)
+# the ratchet read 18 rows when round 18 landed (this ledger's Decision 19 note); the move to 17
+# is commit `4b8decec`'s (the two stale `euidaccess` rows), not this slice's - no row of the
+# ratchet names this file, before or after.
+```
+
+The three files' own contributions to the tree-wide readings are the append to
+`docs/ports/macro-body-notes.tsv` (one row, 1269) and nothing else: `emacs/**` was read only,
+``femacs/src/xterm.rs`` and this ledger are the writing set, and the tree's other modified files
+(`femacs/src/image.rs`, `femacs/src/sfnt.rs`, `femacs/src/w32term.rs`, their ledgers and
+`femacs/xtask/`) belong to lanes that were in flight while this round ran.
+
+## Owed by the integrator (nothing here is claimed as done)
+
+**1. Two `femacs/xtask/Cargo.toml` rows.**  `have_xrender_0_2` (`RENDER_MAJOR > 0 ||
+RENDER_MINOR >= 2`, C 6512/6596/6728) and `have_xrender_0_10` (`RENDER_MAJOR > 0 ||
+(RENDER_MINOR >= 10)`, C 6594) are derived names (Decision 20's table); Xrender.h is not in this
+tree, so the names have to be declared before an XRender arm can be selected.  The other names
+slice 8's arms carry already exist: `use_cairo` (Cargo.toml 790), `use_cairo_xcb` (375),
+`use_xcb`, `have_xrender` (370), `have_xdbe` (364), `have_xinput2` and its `_1`/`_2` (367-368),
+`have_gtk3` (321), `use_gtk` (792), `use_x_toolkit` (806) and the four `cairo_has_*` (47-50).
+
+**2. Mirror rows the carried arms read, none of which this writing set could add** (each is a
+`P-26` "the owning mirror takes it" note, the same shape Decision 19's list has):
+
+* `struct xi_scroll_valuator_t`'s two bitfields `horizontal` and `invalid_p` (xterm.h 238-256).
+  `include/xterm.rs` records them as comments (its 274-296), so `xi_populate_scroll_valuator`,
+  `x_get_scroll_valuator_delta` and `xi_reset_scroll_valuators_for_device_id` write C's spelling of
+  a member that is not an identifier in the Rust text; the `bits` accessors `PORTING.md` 1.3/P-80
+  prescribes are what those sites need.
+* `struct x_display_info`'s `ext_codes` (xterm.h 838) and `supports_xkb` (911) - both already on
+  Decision 19's "still uncarried" list, now *read* by `x_gc_get_ext_data`/`x_extension_initialize`
+  and `x_restore_events_after_dnd`.
+* `<math.h>`'s `lrint` (used by `xi_link_touch_point`'s `HAVE_XINPUT2_2` arm): neither
+  `lib/include/math.rs` nor any other mirror carries it.
+* The `use_gtk` arm's names: `FRAME_TOOLBAR_TOP_HEIGHT`/`FRAME_TOOLBAR_LEFT_WIDTH` (xterm.h
+  1469/1477) and `FRAME_GTK_OUTER_WIDGET` (1449) live only in `include/pgtkterm.rs` in this tree,
+  `xg_get_scale` is `src/gtkutil.rs`'s exported function with no prototype in this graph,
+  `gtk_widget_intersect` and `G_OBJECT_GET_CLASS` have no row anywhere (`G_OBJECT_GET_CLASS` is a
+  *per-unit* macro in `xfns.rs` 1017 and `xwidget.rs` 473, not a mirror row).
+* The cairo names the `use_cairo` arms use (`cairo_t`, `cairo_surface_t`, `cairo_pattern_t`, the
+  `cairo_*` functions, `cairo_user_data_key_t`, `cairo_matrix_t`, `CAIRO_*`): they live in
+  `include/gtk.rs` (242-300), which this unit reaches only under `use_gtk` - a `use_cairo` build
+  without GTK would need that mirror's edge (or the cairo rows moved to one).
+* The X11 SDK types and constants the XRender arms use (`XGCValues`, `XRenderColor`,
+  `XRenderPictureAttributes`, `Picture`, `Unsorted`, `GCFillStyle`, `GCStipple`, `FillSolid`,
+  `FillOpaqueStippled`, `PictOpSrc`, `PictOpOver`, `PictStandardA1`, `CPRepeat`, `CPClipMask`,
+  `RepeatNormal`, `XQueryTree`), the XInput2 ones (`XIDeviceEvent`, `XIDeviceInfo`,
+  `XIScrollClassInfo`, `XIValuatorClassInfo`, `XITouchClassInfo`, `XIButtonState`, `XIEventMask`,
+  `XIMaskLen`, `XIMaskIsSet`, `XIScrollClass`, `XIValuatorClass`, `XITouchClass`, `XIModeAbsolute`,
+  `XIDirectTouch`, `XIScrollTypeHorizontal`, `Button1Mask`) and the GC extension records
+  (`XEDataObject`, `XExtData`, `XExtCodes`, `XEHeadOfExtensionList`, `XFindOnExtensionList`,
+  `XAddToExtensionList`, `XAddExtension`): Xlib/XInput2/XRender names with no mirror in this
+  graph, kept bare as Decision 15's rule says.
+* The display-iterators' arm names this slice reaches through `XWindowAttributes`' `your_event_mask`
+  (which *does* resolve) and through `XImage`-side helpers in the cairo arms (no XImage row).
+
+**3. Slice 6's `*mut c_void` display model, now visible.**  `x_dpyinfo`'s definition turned slice
+6's `x_dnd_free_toplevels` call site into the flip arm's one new `E0308` (`*mut c_void` vs C's
+`Display *`), the class Decision 19 clause 4 already records.  A unit-lane edit that moves those
+locals onto `*mut Display` (or casts at the call) makes it go away; nothing in this slice chose it.
+
+**4. The mirror's `XEvent` is still opaque**, and this file's text writes its members
+(`msg.xclient`, `msg.xbutton`, `configure->xconfigure`, `x_dnd_pending_send_position.type`).  The
+count is now 82 pre-existing sites plus this slice's 43 (`xclient`) and 3 (`xconfigure`/`r#type`);
+`docs/ports/include-xlib.md` owes the union's 33 member records, and uniting the spellings is that
+ledger's call, not a per-function choice - C's spelling is what the token gate demands and what slices
+2, 5 and 6 already write.
+
+**5. The next slice.**  **C 6991-…** (the `Starting and ending an update` banner, C 6998's
+`#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME`, and the display
+iterator beyond it); this ledger's `## C line ranges` row `6990-33125` is the remainder that row's
+lane replaces.  The gates it needs are the ones `## Gate mapping` lists plus
+`have_xsync`, `have_xsynctriggerfence` and `have_clock_gettime` for C 6998's block.
+
+**6. What moved outside this writing set: nothing.**  `emacs/**` was read-only; no mirror, no
+`xtask`, no `docs/baseline` and no other lane's file changed.  The one append is
+`docs/ports/macro-body-notes.tsv` 1269 (`x_dnd_note_self_drop`'s `alloca`/`kind`), the row the
+`--check` gate asks for.

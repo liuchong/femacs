@@ -5,32 +5,32 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	2411	54	-	-
-have_x_windows	1577	39	-	HAVE_X_WINDOWS
-have_ntgui	1251	19	-	-
-have_android	1238	36	-	-
-have_window_system	1077	28	-	-
+windowsnt	2420	54	-	-
+have_x_windows	1712	39	-	HAVE_X_WINDOWS
+have_ntgui	1402	19	-	-
+have_android	1288	36	-	-
+have_window_system	1114	28	-	-
 have_pgtk	984	27	-	-
-not_android_stubify	753	12	-	-
-have_haiku	624	21	xtask dead-arms	-
+not_android_stubify	768	12	-	-
+have_haiku	632	21	xtask dead-arms	-
+use_gtk	546	16	-	-
 msdos	539	19	-	-
-use_gtk	520	16	-	-
 use_lucid	496	11	-	-
-use_cairo	388	15	-	-
+use_cairo	449	16	-	-
 dispextern_face_records	289	5	-	-
 harfbuzz	286	16	-	-
+use_x_toolkit	286	12	-	USE_X_TOOLKIT
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
-use_x_toolkit	275	12	-	USE_X_TOOLKIT
-have_ns	270	13	-	HAVE_NS
+have_ns	277	13	-	HAVE_NS
 have_gnutls	248	3	-	-
 use_motif	247	6	-	-
 have_xft	222	6	-	-
 no_system_malloc	222	5	-	-
 have_freetype	215	3	-	-
 doug_lea_malloc	177	3	-	-
-use_xcb	171	4	-	-
+use_xcb	174	4	-	-
+have_gtk3	165	8	-	-
 have_modules	161	7	-	HAVE_MODULES
-have_gtk3	159	7	-	-
 have_dbus	158	2	-	-
 be_cairo	143	4	-	-
 have_sound	135	1	-	-
@@ -41,9 +41,9 @@ seccomp_filter	113	1	-	-
 have_x_sm	112	1	-	-
 mail_use_pop	109	1	-	-
 mingw_w64	100	8	-	-
+have_xinput2	97	8	-	-
 have_pthread	88	3	-	-
 windows	83	5	-	-
-have_xinput2	80	8	-	-
 use_cairo_or_have_xft	77	4	-	-
 have_ext_tool_bar	76	2	-	-
 have_inotify	76	1	-	-
@@ -51,14 +51,14 @@ ns_impl_gnustep	70	2	-	-
 have_gnutls3	67	1	-	-
 rel_alloc	66	5	-	-
 have_sqlite3	63	1	-	-
+have_xrender	62	7	-	-
 have_seccomp	59	1	-	-
+test	59	5	-	-
 aarch64	57	4	-	-
 have_lcms2	54	1	-	-
 have_ext_menu_bar	51	3	-	-
 have_zlib	51	2	-	-
-test	50	5	-	-
 have_kqueue	49	1	-	-
-have_xrender	45	6	-	-
 have_x_i18n	44	5	-	-
 use_gamedir	44	1	-	-
 have_libotf	42	4	-	-
@@ -68,20 +68,22 @@ have_gfilenotify	38	1	-	-
 glyph_debug	36	5	xtask dead-arms	-
 have_alsa	34	1	-	-
 kerberos5	34	1	-	-
+cygwin	31	14	-	-
 use_acl_ace_getacl	31	2	-	-
 dos_nt	30	5	-	-
 kerberos	30	1	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
-cygwin	29	14	-	-
 mips	29	2	-	-
 gc_mcheck	27	1	-	-
 have_gconf	26	1	-	-
 have_xcb_shape	26	2	-	-
 use_acl_have_acl_get_file	26	3	-	-
 words_bigendian	26	11	-	-
+have_xsync	25	2	-	-
 vm_ms_windows	25	1	-	-
 gc_malloc_check	24	2	-	-
-have_xsync	24	1	-	-
+have_xinput2_1	22	2	-	-
+have_xinput2_2	22	2	-	-
 libgccjit_have_gcc_jit_context_new_bitcast	22	1	-	-
 use_pthread	22	1	-	-
 have_glib	20	2	-	-
@@ -104,21 +106,24 @@ ntgui_unicode	15	1	-	-
 unsigned	15	1	-	-
 cplusplus_gnulib_namespace	14	1	-	-
 emacs	14	1	-	-
+have_gif	14	1	-	-
 have_imagemagick	14	1	-	-
+have_webp	14	1	-	-
 stdc_iso_10646_no_newlocale	14	1	-	-
+have_native_transforms	13	1	-	-
 dbus_type_unix_fd	12	1	-	-
 djgpp_2_3	12	3	-	-
 gc_protect_malloc_state	12	1	-	-
-have_native_transforms	12	1	-	-
 have_sys_uio_h	12	1	-	-
 have_xcb_shape_input_rects	12	1	-	-
-have_xinput2_2	12	1	-	-
 poll_for_input	12	2	-	-
 readlink_syscall	12	1	-	-
 gc_asan_poison_objects	11	1	-	-
+have_xdbe	11	5	-	-
 no_cygwin	11	2	-	-
 use_xaw	11	1	-	-
 window_system_no_ext_menu_bar	11	2	-	-
+android_stubify	10	1	-	-
 exec_64	10	2	-	-
 gc_check_string_bytes	10	1	-	-
 gnulib_sigaction	10	1	-	-
@@ -133,7 +138,6 @@ clang_major_clang_major_5	9	1	-	-
 cygwin_win32	9	3	-	-
 glibc_time_bits_64	9	1	-	-
 gnulib_sigprocmask	9	1	-	-
-have_xinput2_1	9	1	-	-
 libc	9	4	-	-
 macos_sdk	9	1	-	-
 no_have_builtin_unwind_init	9	1	-	-
@@ -166,6 +170,8 @@ have_acl_get_link_np	7	1	-	-
 have_getaddrinfo_a	7	1	-	-
 have_smack	7	2	-	-
 have_x11	7	2	-	-
+have_xkb	7	2	-	-
+have_xrender_0_10	7	1	-	-
 msvc	7	2	-	-
 no_faccessat	7	2	-	-
 no_rint	7	1	xtask dead-arms	-
@@ -185,9 +191,7 @@ have_decl_stpcpy	6	2	-	-
 have_getgroups	6	1	-	-
 have_m17n_flt	6	2	-	-
 have_stpcpy	6	2	-	-
-have_xdbe	6	3	-	-
 have_xfixes	6	2	-	-
-have_xkb	6	2	-	-
 libgccjit_have_gcc_jit_version	6	1	-	-
 no_readlinkat	6	2	-	-
 no_trillion_shortcut	6	1	-	-
@@ -201,6 +205,7 @@ __gnu_library__	5	1	-	-
 aix	5	3	-	-
 alignof_pthread_cond_t_le_alignof_max_align_t	5	1	-	-
 alignof_pthread_mutex_t_le_alignof_max_align_t	5	1	-	-
+cairo_has_png_functions	5	2	-	-
 gnuc_optimize_without_clang	5	1	-	-
 have_android_mmap	5	1	-	-
 have_ft_face_getcharvariantindex	5	2	-	-
@@ -225,6 +230,9 @@ __android__	4	1	-	-
 android	4	1	-	-
 android_api_ge_9	4	1	-	-
 builtin_overflow_p	4	2	-	-
+cairo_has_pdf_surface	4	2	-	-
+cairo_has_ps_surface	4	2	-	-
+cairo_has_svg_surface	4	2	-	-
 cf_dibv5	4	1	-	-
 dragonfly	4	1	-	-
 fc_color	4	1	-	-
@@ -235,7 +243,6 @@ gnu_malloc	4	1	-	-
 gnuc_prereq_11_0	4	1	-	-
 gnulib_getpagesize	4	1	-	-
 have_acl_get_fd	4	1	-	-
-have_gif	4	1	-	-
 have_gnutls_compression_get	4	1	-	-
 have_gnutls_digest_list	4	1	-	-
 have_pthread_setname_np_1arg	4	1	-	-
@@ -245,7 +252,6 @@ have_rsvg	4	1	-	-
 have_siginfo_t_si_syscall	4	1	-	-
 have_ts_tree_cursor_goto_previous_sibling	4	1	-	-
 have_w32notify	4	2	-	-
-have_webp	4	1	-	-
 hesiod	4	1	-	-
 is_ebcdic_host	4	1	-	-
 klibc	4	2	-	-
@@ -264,11 +270,11 @@ sigsys	4	1	-	-
 sun	4	2	-	-
 sys_renameat2	4	1	-	-
 true	4	1	-	-
+use_cairo_xcb	4	1	-	-
 use_selinux_selinux_h	4	2	-	-
 vswtch	4	2	-	-
 ztrillion_mpz	4	1	-	-
 __uclibc__	3	1	-	-
-android_stubify	3	1	-	-
 ckd	3	1	-	-
 clang_major_9	3	1	-	-
 clock_monotonic_coarse	3	1	-	-
@@ -277,6 +283,7 @@ dbus_version	3	1	-	-
 dbus_version_string	3	1	-	-
 glib_check_version_lt_2_36	3	2	-	-
 gnuc_prereq_4_3	3	1	-	-
+have_clock_gettime	3	2	-	-
 have_dbus_type_is_valid	3	1	-	-
 have_dbus_validate_bus_name	3	1	-	-
 have_dbus_validate_interface	3	1	-	-
@@ -288,6 +295,7 @@ have_shared_game_dir	3	1	-	-
 have_sqlite3_load_extension	3	1	-	-
 have_x11_or_have_pgtk	3	1	-	-
 have_xinput2_4	3	3	-	-
+have_xrender_0_2	3	1	-	-
 i386	3	2	-	-
 inotify_debug	3	1	-	-
 marker_debug	3	1	-	-
@@ -362,7 +370,6 @@ gnuc_prereq_4_3_glibc_has	2	1	-	-
 gnuc_prereq_4_6_defined_libc	2	1	-	-
 gnuc_prereq_4_9_glibc_has	2	1	-	-
 have_aclv_h	2	2	-	-
-have_clock_gettime	2	1	-	-
 have_dbus_message_set_allow_interactive_authorization	2	1	-	-
 have_dbus_watch_get_unix_fd	2	1	-	-
 have_decl_strmode	2	1	-	-
@@ -563,10 +570,6 @@ b576000	1	1	-	-
 b921600	1	1	-	-
 bdffont	1	1	-	-
 broken_pty_read_after_eagain	1	1	-	-
-cairo_has_pdf_surface	1	1	-	-
-cairo_has_png_functions	1	1	-	-
-cairo_has_ps_surface	1	1	-	-
-cairo_has_svg_surface	1	1	-	-
 chdir	1	1	-	-
 clang_lt_21	1	1	-	-
 cplusplus_defined_stdc_version_stdc_version	1	1	-	-
@@ -962,7 +965,6 @@ tiocsigsend	1	1	-	-
 traditional_uid_model	1	1	-	-
 tzset	1	1	-	-
 unipair_unicode	1	1	-	-
-use_cairo_xcb	1	1	-	-
 use_fortify_level_use_fortify_level	1	1	-	-
 use_ncurses	1	1	-	-
 use_valgrind	1	1	-	-
