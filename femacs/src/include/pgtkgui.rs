@@ -118,13 +118,22 @@ macro_rules! WINDOW_HANDLE_UINTPTR {
 }
 
 /* C 54-55: "Xism" - X's resource database handle, which C leaves untyped here because a pgtk
-   build has no Xlib.  */
+   build has no Xlib.  The file note above says the *repeating* names get a feature; this one and
+   `XRectangle` below were the two it did not, and a pgtk flip read them as `E0428` against
+   `include/xlib.rs` (`XrmDatabase` 38, `XRectangle` 871 - measured on the `xsettings` arm B,
+   status 3.532).  The gate is the "not a configuration" form the ACL mirror uses for the same
+   situation (status 3.510): a build is either X11 or pgtk, and `pgtkgui.h`'s own copy is the
+   pgtk side's.  */
+#[cfg (all (feature = "have_pgtk", not (feature = "have_x_windows")))]
 pub type XrmDatabase = *mut c_void;
 
 /* C 58-64: "Some sort of attempt to normalize rectangle handling..".  The struct is an
    anonymous typedef in C; a Rust struct needs a name, so the port uses the typedef's name and
    records the deviation (PORTING.md P-67, the `dispextern.rs` `Emacs_Rectangle` reading).
-   Measured: 16 bytes, alignment 4, offsets 0/4/8/12.  */
+   Measured: 16 bytes, alignment 4, offsets 0/4/8/12.  C's X11 arm has a *different* record under
+   the same name (Xlib's, 8 bytes: four `short`s), which is exactly why this one is the pgtk
+   side's and carries the same "not a configuration" gate as `XrmDatabase` above.  */
+#[cfg (all (feature = "have_pgtk", not (feature = "have_x_windows")))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct XRectangle

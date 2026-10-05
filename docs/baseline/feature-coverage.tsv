@@ -6,18 +6,18 @@
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
 windowsnt	1841	47	-	-
-have_x_windows	1159	28	-	HAVE_X_WINDOWS
+have_x_windows	1160	29	-	HAVE_X_WINDOWS
 have_window_system	1060	23	-	-
 have_android	1004	33	-	-
-have_pgtk	823	24	-	-
+have_pgtk	825	24	-	-
 have_ntgui	797	16	-	-
 not_android_stubify	700	11	-	-
-use_lucid	466	9	-	-
+use_lucid	469	9	-	-
 use_gtk	445	15	-	-
 msdos	407	15	-	-
 dispextern_face_records	287	4	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
-use_cairo	276	14	-	-
+use_cairo	277	14	-	-
 have_ns	264	12	-	HAVE_NS
 have_haiku	249	15	xtask dead-arms	-
 have_gnutls	248	3	-	-
@@ -39,7 +39,7 @@ have_pthread	87	2	-	-
 windows	83	5	-	-
 have_ext_tool_bar	76	2	-	-
 have_inotify	76	1	-	-
-use_cairo_or_have_xft	75	4	-	-
+use_cairo_or_have_xft	76	4	-	-
 ns_impl_gnustep	70	2	-	-
 have_gnutls3	67	1	-	-
 rel_alloc	66	5	-	-
@@ -52,8 +52,8 @@ have_zlib	51	2	-	-
 test	50	5	-	-
 have_kqueue	49	1	-	-
 have_xrender	45	6	-	-
+have_x_i18n	44	5	-	-
 use_gamedir	44	1	-	-
-have_x_i18n	42	5	-	-
 have_gsettings	40	2	-	-
 use_linux_xattr	40	2	-	-
 have_gfilenotify	38	1	-	-

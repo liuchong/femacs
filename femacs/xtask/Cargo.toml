@@ -45,6 +45,8 @@ cairo_has_pdf_surface                      = []  # CAIRO_HAS_AS_PDF_SURFACE (src
 cairo_has_png_functions                    = []  # CAIRO_HAS_AS_PNG_FUNCTIONS (src/pgtkfns.c 928/933/942/947)
 cairo_has_ps_surface                       = []  # CAIRO_HAS_AS_PS_SURFACE (src/pgtkfns.c 928/933/942/947)
 cairo_has_svg_surface                      = []  # CAIRO_HAS_AS_SVG_SURFACE (src/pgtkfns.c 928/933/942/947)
+cleartype_natural_quality                   = []  # CLEARTYPE_NATURAL_QUALITY (src/w32font.c 45)
+cleartype_quality                           = []  # CLEARTYPE_QUALITY (src/w32font.c 42)
 dbus_debug                                  = []  # DBUS_DEBUG (src/dbusbind.c)
 dbus_num_message_types                      = []  # DBUS_NUM_MESSAGE_TYPES (src/dbusbind.c 605)
 dbus_type_unix_fd                           = []  # DBUS_TYPE_UNIX_FD (src/dbusbind.c)
@@ -172,6 +174,7 @@ have_sys_soundcard_h                       = []  # HAVE_SYS_SOUNDCARD_H
 have_ts_tree_cursor_goto_previous_sibling  = []  # HAVE_TS_TREE_CURSOR_GOTO_PREVIOUS_SIBLING
 have_zlib                                  = []  # HAVE_ZLIB
 hesiod                                     = []  # HESIOD
+johab_charset                               = []  # JOHAB_CHARSET (src/w32font.c 54)
 kerberos                                   = []  # KERBEROS
 kerberos5                                  = []  # KERBEROS5
 libgccjit_have_gcc_jit_context_new_bitcast = []  # LIBGCCJIT_HAVE_gcc_jit_context_new_bitcast
@@ -223,6 +226,7 @@ sqlite_version_number_ge_3007015           = []  # SQLITE_VERSION_NUMBER >= 3007
 sqlite_version_number_ge_3006005           = []  # SQLITE_VERSION_NUMBER >= 3006005 (src/sqlite.c 483)
 treesit_language_version_ge_15             = []  # TREE_SITTER_LANGUAGE_VERSION >= 15 (src/treesit.c 38, 101)
 unicode                                    = []  # _UNICODE (w32.c 385's `#ifdef _UNICODE`, the `…W`/`…A` name pair)
+vietnamese_charset                          = []  # VIETNAMESE_CHARSET (src/w32font.c 51)
 webkit_check_version_ge_2_16               = []  # WEBKIT_CHECK_VERSION (2,16,0) (src/xwidget.c)
 webkit_check_version_ge_2_26               = []  # WEBKIT_CHECK_VERSION (2,26,0)
 webkit_check_version_ge_2_34               = []  # WEBKIT_CHECK_VERSION (2,34,0)

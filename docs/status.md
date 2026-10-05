@@ -10412,3 +10412,47 @@
   ⑦ **预算实报**：lane 侧 `build-tu` **4/3**、`probe` **5/3**（都超支，lane 自己报了）；集成者：probe 1 发、
      `check-all-units` 1 发、`layout-check` 1 发、`gen-port-map`/`--write-pending`/`feature-coverage` 各 1 发、
      七道门各 1 发、`extract-abi --check` 2 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.533 镜像轮第十二批：`pgtkgui.h` 的两个"重复名"上闸，`xsettings` 臂 B 的 `E0428` 消失但**暴露出三条更深的行**（2026-10-05）**：
+  ① **对象**：`include/pgtkgui.rs` 的两个**重复名** `XrmDatabase`（C 54-55）与 `XRectangle`（C 58-64）**没有任何门**，
+     而该镜像自己的文件头写明"重复出现的名字给一个 feature、其余留活"——本条就是它没给的那两个。一条 `have_x_windows` +
+     `have_pgtk` 双开的臂里它们与 `include/xlib.rs` 的（38 / 871）撞 `E0428`，这正是 `xsettings` lane 臂 B 的两条
+     （C 的 `pgtkgui.h` 自带这两个名字，是因为 **pgtk 构建没有 Xlib**；两边是**形状不同**的两个记录：pgtkgui 的
+     `XRectangle` 16 字节 4×`int`，X11 的 8 字节 4×`short`）。
+  ② **改动**：两个都按"不是一个配置"的形式上闸
+     `#[cfg (all (feature = "have_pgtk", not (feature = "have_x_windows")))]`（`lib/include/acl-internal.rs` 3.510 的先例），
+     注释写明两个记录的字节差与 C 的两臂。
+  ③ **读数（诚实记）**：那两条 `E0428` **消失**了，但同一条臂的读数从 **2 条变成 5 条**——rustc 不再在名字解析处停下，
+     翻出**另外三类**：`Display_Info` 与 `Emacs_Cursor` 各 1 条 `E0428`（单元/镜像重复，`xsettings.rs` 与
+     `include/dispextern.rs` 698 / `pgtkgui.rs` 各自的 stand-in）、`x_display_info` 1 条 `E0425`（"cannot find type
+     in module `super`"，镜像里的模块作用域缺名字），外加那条 `include/systime.rs` 27 的 `E0080` 机制项与本行的
+     `aborting`。⇒ **计数变差、模型变对**：本轮修的是"一个 C 里不可能出现的组合被写成可编译"，新露出的三条是 pgtk 臂的
+     **下一批**（已点名给镜像轮）。`check-all-units` **83/0**（两腿；该闸对冻结档不可见——`pgtkgui.rs` 只在
+     `have_pgtk` 的 includer 下进图）、`layout-check` passed、`check-mirror-dupes` 17/17/0、`check-citations` 0/0、
+     `check-declarations` 17/0/0、`check-dead-file-coverage` 101/0、`check-port-lines` 0 new/0 stale。
+  ④ **未声称**：臂 B 这个 cfg 组合**仍然不是配置**（C 里窗系统二选一）；新露出的三条**本轮没有修**；这是**编译**读数。
+
+- **3.534 `src/w32font.c` 整文件落地（C 1-3079）：Windows 字体后端（2026-10-05）**：
+  ① **产出**：`femacs/src/w32font.rs` 11 → **3967** 行（C 3079，+28.8%），台账 `docs/ports/w32font.md` 24 → 354 行
+     （**61 行**区间表铺满 C 1-3079、同时满足 `src/w32font.h` 的绑定）；`docs/ports/macro-body-notes.tsv` 由 lane 追加
+     **16 行**（`MASK_ANY` 的参数名、`font_supported_scripts`、`w32font_list` 的 `0`…）。**文件门是 `have_ntgui`**
+     （`configure.ac` 3024/3030），落在每个 item 与整张 include 图上；子门两臂都带：四个字符集/质量守卫
+     （`cleartype_quality`、`cleartype_natural_quality`、`vietnamese_charset`、`johab_charset` 的反面臂 + SDK 臂）、
+     C 105-218 的四个宽字符包装 vs C 220-230 的四个 Cygwin `#define`、C 1583-1585 的 `_strlwr` 对、
+     C 3073-3078；C 371-401 的 `#if 0` 按 C 原文记在 `//` 注释里（Rust 块注释会嵌套）。
+  ② **集成者落的账**：登记 4 个 feature（`cleartype_quality`/`cleartype_natural_quality`/`vietnamese_charset`/
+     `johab_charset`，各带 C 行号）；`docs/ports/line-drift-tolerance.tsv` 一行 `w32font 0.30 total`；
+     `port-map.md`/`port-lines-pending.tsv`（28 文件 / 38,276 行）/`feature-coverage.tsv` 重算。
+  ③ **读数**：`extract-abi --check emacs/src/w32font.c femacs/src/w32font.rs` **OK**（加容差行前唯一一行是 28.8%）；
+     `check-all-units` **83/0**（两腿）、`layout-check` passed、七道文本门 0 failure；冻结 `build-tu` **exit 0 / 336 字节
+     空对象**；lane 的臂（`have_ntgui` + `windowsnt` + `have_window_system`）**21 条错误行、本单元自身 0 条**——
+     全在镜像：`include/w32font.rs` 10 × `E0428`（正是本单元定义的那十个函数）、`include/w32term.rs` 4 × `HWND`、
+     `include/w32common.rs` 2（`SYSTEM_INFO`/`OSVERSIONINFO`）、`lib/include/signal.rs` 2、`include/frame.rs` 1
+     （`have_ntgui` 臂的 `compile_error!`）；变异实测 **+1 条恰为本单元注入行**；另有三组 cfg 的自由扫（`have_ntgui`
+     17/15、`+have_window_system` 6/4、base 20/0）。
+  ④ **未声称**：零运行证据（冻结档一行也不编它；没有 Windows 二进制、没有 `HDC`、没有字体驱动）；臂读数是本机
+     `rustc` 对带门文本的检查、**不是** Windows 目标的编译；`<windows.h>`/`<commdlg.h>` 的每个记录与常量都是
+     **UNVERIFIED**（本机无 SDK）。
+  ⑤ **预算实报**：lane 侧 `build-tu` **3/3**、`probe` **5/3**（超支 2，lane 自己报了）；集成者：`check-all-units`
+     1 发、`layout-check` 1 发、生成物 3 发、门 6 发、`extract-abi --check` 2 发、pgtkgui 臂 1 发；未跑
+     `xtask --all`/`gate-fast`/`cargo test`。
