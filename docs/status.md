@@ -9510,3 +9510,39 @@
   ⑦ **预算**：`check-all-units.sh` **2 次**（每次两腿，镜像改动必跑）、`layout-check` **2 发**、
      `probe` **4 发**（pgtkim 3、hbfont 1）、`clang` 探针 **2 次**（`font_driver` 208/224）、gate 脚本各 1–2 发；
      未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/fd-probe*`、`/tmp/pk*.log`、`/tmp/hb.log` 等中间物收工删除。
+
+- **3.497 `src/ftfont.c` 片 1（C 1-1352）落地；翻臂在 3.496 的镜像修复之后直接 `exit 0`（2026-10-05）**：
+  ① **范围/块**：C 1-1352（收在 `ftfont_entity_pattern` 的 `}`），48 行区间表：**32 行 transcribed、2 行
+     recorded-not-transcribed**（C 48-52 两个 tentative 定义、C 72-74 的 static 原型 → 0.1-12）、1 行 dropped、
+     **13 行 owed**；**下一个待移定义 = C 1357 `ftfont_open`**（在 C 1354 的 `#ifndef USE_CAIRO` 内）。
+     门 `have_freetype`，子门 `have_xft`、`use_cairo`、`have_libotf`、`harfbuzz` 与五个 `fc_*`。
+  ② **行数**：`femacs/src/ftfont.rs` **11 → 2304**（md5 `184fbdd533c1ebd87febc9efc74ecba6`）；台账 24 → **478**；
+     `macro-body-notes.tsv` +7 行（6 条 + 1 节注释）。
+  ③ **读数**：⑴ **翻臂 `exit 0 / 0 error / 3 warning`（全在镜像，pre-existing）/ rlib 11,532,456 字节**——
+     这正是 3.496 把 `include/font.rs` 的 `font_driver` 断言按 `harfbuzz` 分臂的直接收益（该片开的是
+     `have_freetype` + 本机 fontconfig 的四个宏）；⑵ 冻结 `build-tu` → **exit 0 / 336 字节空对象**（首发的 2 条
+     `E0308` 级语法错是 lane 自己的，已修）；⑶ **变异实测**：注入类型错 → **0 → 1 错**（`E0308` 落在注入行）；
+     ⑷ `extract-abi --check` → **FAIL 14 条**：**12 条 `missing function` + 1 条 `missing file-scope object
+     ftfont_driver`**（全部落在 C 1353-3243）+ 1 条行数——**那 13 条就是剩余工作清单**，没有一条是本片漏项；
+     ⑸ clang 实测（fontconfig 2.18.3 / FreeType 2.14.3）：`sizeof FcFontSet` 16（nfont@0/sfont@4/fonts@8）、
+     `sizeof FcValue` 16（type@0/u@8）、`sizeof BDF_PropertyRec` 16、`sizeof FT_Library`/`FT_Face` 8、
+     `FC_VERSION 2.18.3`、25 个 `FC_*` 串值。
+  ④ **集成者的账**：⑴ `femacs/xtask/Cargo.toml` 登记 **7 个 feature**（`have_libotf`、`fc_capability`、`fc_color`、
+     `fc_embolden`、`fc_fontformat`、`fc_variable`、`xft_version_lt_2_3_6`，各带 C 判据行）+ feature-coverage 复跑；
+     ⑵ **不动容差行**（lane 请求过 `ftfont >= 0.30`）：本件是**切片**（13 个 owed 块，C 1353-3243 未移植），按
+     3.434 ⑤ 的裁决不写行，理由写进台账 Owed 1——`--check` 的 13 条 missing 行本身就是进度提醒；这与 3.490 对
+     `androidfns`、3.489 对 `gnutls` 的处理一致；⑶ pending 棘轮无需动（2304 行远超阈值，已是 `0 new / 0 stale`）；
+     ⑷ **顺带修掉 3.496 我自己引入的一条 citation drift**：`include/font.rs` 新增的注释原本把
+     `font.h 562-565` 当成 harfbuzz 成员的出处（错），现在按 `font.h 807`（`#ifdef HAVE_HARFBUZZ`）与
+     `font.h 813-819`（两个成员）分开精确引用 ⇒ 全树 **`0 drift / 0 stale`**。
+  ⑤ **点名归属（镜像轮）**：`include/ftfont.rs` 的 `struct font_info`（门应为无条件，两条 otf 成员记为死文本 ⇒
+     `have_libotf` 臂不可编）与它的三条声明（C 45-54，在 `have_x_windows` 下与本单元定义 `E0428`，应进一个
+     **不被 glob 导入**的 `pub mod`）；`include/font.rs` 缺 `font_make_entity`(842)/`font_style_to_value`(854)/
+     `font_intern_prop`(885)/`font_put_extra`(913)/`font_add_log`(1001)；`lib/include/string.rs` 缺 `strstr`；
+     `include/dispextern.rs` 的 `xstrcasecmp` 在 `pub mod dispextern_externs` 里（无 glob 到达）；P-90 ① 的四个
+     SDK 镜像（`fontconfig`/`freetype`/`xft`/`hb`）。
+  ⑥ **未声称**：**零运行证据**——冻结配置本文件一行不编（336 字节空对象），翻臂只是**编译**读数：没有列/匹配/
+     打开/度量/整形过任何字体；**Xft/cairo/harfbuzz/libotf 四个臂根本没编**（本机无 Xft 头、无 libotf）；
+     C 1353-3243（1,891 行）未移植，本段不为它们背书。
+  ⑦ **预算**：lane：`probe` **6 发**（限 3，**超 3**，如实报）＋在物化根上 **4 次直接 rustc**、`build-tu` **2 发**；
+     集成者：gate/`--check`/feature-coverage 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/ftfont-lane` 已删。

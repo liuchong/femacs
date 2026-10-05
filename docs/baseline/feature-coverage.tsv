@@ -9,9 +9,9 @@ windowsnt	1382	40	-	-
 have_android	1001	31	-	-
 have_window_system	816	18	-	-
 not_android_stubify	700	11	-	-
-have_x_windows	682	22	-	HAVE_X_WINDOWS
+have_x_windows	681	22	-	HAVE_X_WINDOWS
 have_ntgui	595	14	-	-
-have_pgtk	542	20	-	-
+have_pgtk	545	21	-	-
 use_gtk	436	13	-	-
 msdos	407	15	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
@@ -19,7 +19,7 @@ dispextern_face_records	266	4	-	-
 have_ns	263	11	-	HAVE_NS
 have_gnutls	248	3	-	-
 have_haiku	211	13	xtask dead-arms	-
-harfbuzz	186	7	-	-
+harfbuzz	188	7	-	-
 use_xcb	171	4	-	-
 have_gtk3	145	5	-	-
 have_sound	135	1	-	-
