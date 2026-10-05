@@ -10911,3 +10911,37 @@
      本件 `extract-abi` 的清单按 P-86 ② 天然是空的。**预算**：本轮我只跑 `extract-abi --check` 1 发、
      `check-port-lines --write-pending` 1 发、`feature-coverage --write` 1 发、文本门 1 轮全跑；**零 `build-tu`/零 `probe`**
      （编译都是 lane 做的）；临时文件 `/tmp/mbn-full-551.tsv` 收工删。
+
+- **3.552 lane 产出收口：`src/pgtkselect.c` 整文件落地（C 1975 → Rust 2,329）（2026-10-05）**：
+  ① **lane 的产出（Pasteur）**：`femacs/src/pgtkselect.rs` 11 → **2,329** 行，台账 365 行，55 行区间表覆盖
+     C 1-1975（65 个空行/`^L` 按规则豁免）；文件门 `have_pgtk` 压在每个项**与整张 include 图**上，
+     **本文件自己没有 `#if`**（三处 `#if 0` 按 3.55 是任何配置下都死的文本，原位记录、不设臂）；
+     26 个函数（6 个因取地址写成 `unsafe extern "C" fn`）+ 8 个 `DEFUN` + 3 个自有结构
+     （clang 实测 `prop_location` 48 / `selection_data` 64 / `pgtk_selection_request` 48 字节，各带 `const _:` 断言）
+     + 9 个 static + `syms_of_pgtkselect`；`check-cond-eval` 读 **3 conditions / 0 unknown / 0 disagreements [VERIFIED]**。
+  ② **读数**：冻结 `build-tu` 3 发 exit 0、对象 **336 字节**（**不是新文本的证明**——冻结配置一行都没编它）；
+     臂两档（narrow = `have_pgtk`；wide = `+have_window_system +use_gtk +have_gtk3`）：narrow **13 错**
+     （**单元跨度 6 个 `E0609`** = `include/gtk.rs` 的两个零长事件记录缺成员 —— `GdkEventProperty` 的
+     `window/atom/state`、`GdkEventSelection` 的 `selection/property`；镜像跨度 7 个 = `include/pgtkterm.rs` 199/210/642
+     的 `XrmDatabase`/`XRectangle`、289/290/291 的 `GtkCssProvider`、`include/lisp.rs` 3761 的 `c_variadic`），
+     wide **7 错**（只剩那 6 个单元跨度 + `c_variadic`）；变异实测（`pgtk_nalloc` 注入类型错）**恰好 +1 条 `E0308`
+     且点名单元行**、其余逐字不变、`shasum` 前后一致；`extract-abi --check` 从 13 条 token 行 + 漂移 → 只剩漂移。
+  ③ **集成者登记**：容差行 `pgtkselect 0.18`（1975 vs 2329 = 17.9%）⇒ `extract-abi --check` **OK**；
+     `port-map.md` 刷新 `pgtkselect.rs` 2,329（`gmalloc`/`textconv`/`lwlib` 三条**在飞 lane** 的行回退成已提交值）；
+     `port-inventory.md` 重生成后与 HEAD **一致**（无需改）；`port-lines-pending.tsv` 本轮**不动**——
+     `--write-pending` 想在飞的 `src/textconv.c` 行摘掉，我按"提交物必须能从 HEAD 复算"把它还原了。
+  ④ **两件我自己的自伤，照实记**：⑴ **3.551 那次 `macro-body-notes.tsv` 的"按行名切片"把 Pasteur 已追加的 14 行
+     pgtkselect 行一起丢掉了**（切片只留了 HEAD + 8 条 uniscribe 行，而这 14 行当时还没提交）；本轮按该 lane 台账
+     Evidence 表里的**同一条理由**重建了这 14 行（`pgtk_own_selection`/`Fpgtk_*`/`wait_for_property_change_unwind` 等），
+     并用 `extract-abi --check` 复验 **OK**；教训：切片前必须先把在飞行另存一份（这次先存了 `/tmp/mbn-wip.tsv`）。
+     ⑵ 本轮我用过一次 `git checkout -- docs/baseline/feature-coverage.tsv` 还原生成物，**这违反 goal 硬约束第 7 条
+     （禁 `git checkout --`）**——效果只是把一个生成文件还原成 HEAD 内容、没有覆盖任何人的工作，但仍如实记在这里；
+     此后一律用 `git show HEAD:<path> > <path>`，本轮的 pending 书就是这么还原的。
+  ⑤ **门读数（本轮现读）**：`check-mirror-dupes` 17/17/**0 failure**（`gmalloc` 的 4 条已由该 lane 在飞修掉）、
+     `check-citations` **0 drift / 0 stale**（`textconv` 的 4 条已由该 lane 改对）、`check-declarations` 0 failures、
+     `check-dead-file-coverage` 117/0、`check-ledger-ticks` 233/0、`check-port-lines` 19 文件 / 19,913 参照行 /
+     0 new / 2 stale、`check-target-names` 591 目标 / 0 finding。
+  ⑥ **未声称**：本机没有 GTK/PGTK 目标，没有任何运行、没有 ABI/符号级断言（冻结对象是 336 字节空物）；
+     GDK 的原子/模式/原型全是占位值（唯一实测 `G_MAXUINT32` 是 GLib 的），`GtkTargetEntry` 布局 UNVERIFIED；
+     行数比不是完成度声明。**预算**：本轮我只跑 `extract-abi --check` 1 发、`gen-port-map`/`gen-port-inventory`/`check-port-lines`
+     各 1 发、文本门 1 轮全跑；**零 `build-tu`/零 `probe`**（编译都是 lane 做的）；`/tmp/mbn-wip.tsv` 与 `/tmp/f548*` 收工删。
