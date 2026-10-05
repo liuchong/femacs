@@ -6931,3 +6931,34 @@
   ⑥ **未声称**：`text-only`（无 mingw/Windows SDK，无 Windows 目标编译）；**无 `<windows.h>` 的任何布局测量**
      （`POINT`/`RECT`/`_TOUCHINPUT`/`W32Msg` 未验证）；无链接、无运行；除扫描表那 11 档 cfg 外没有别的臂被编过；
      C 1003-8,414 只是登记。
+
+- **3.407 最大死文件第二片：`image.c` C 1096-2211（2026-10-05）**：
+  ① **区间**：39 条新行替换 `1096-13805`，余量改为 `2212-13805`；收在 C 2211（`image_alloc_image_color` 的 `}`），
+     **下一个活定义 = `make_image_cache`（C 2224）**。落点含 `struct image_type`/`IMAGE_TYPE_INIT`、`parse_image_spec`、
+     三个 DEFUN（`image-size`/`image-mask-p`/`image-metadata`）、`make_image`/`free_image`/`check_image_size`/
+     `prepare_image_for_display`、`image_ascent`/`four_corners_best`、`image_background*`、`CLEAR_IMAGE_*` 与
+     `image_clear_image_1`/`_clear_image`/`image_alloc_image_color`。
+  ② **行数**：`femacs/src/image.rs` 1,714 → **3,202（+1,488）**；台账 401 → **716**；冻结对象仍 **336 字节 / 同 md5**。
+  ③ **读数**：`build-tu` 4 发（超预算 1 发，如实记）；**13 档多配置扫描**（含 `have_ns`/`have_x_windows`/`use_cairo`/
+     `have_haiku`/`have_android(±stub)`/`have_ntgui+windowsnt`/`have_pgtk`），逐档报"单元文本 / 镜像"错数；
+     `+have_ns+dispextern_face_records` 与 `+have_ntgui+windowsnt` **单元文本 0 条**；`probe`（NS+face_records）
+     exit 1 / 8 条**全在镜像**（4 E0428 与镜像 lane 的新块相撞 + 4 条 nsterm.rs 缺名）；**臂触达预检 + 三个变异**
+     （类型错 → E0308 命中；改名 → E0425 两处；**`&&`→`||` 的语义变异编译器看不见**——这条限度照实写进报告）。
+     `check-dead-file-coverage` **15 ledger(s) bound / 0 failure**；`--check` 的 `- ` 行 **174 → 139**，
+     集成者补 8 行 `macro-body-notes` 后复读 **131**；`check-citations`/`check-declarations`/`check-carried` 全绿。
+  ④ **本片的一处真收益**：多配置扫描**抓出并修掉 5 处缺陷**，其中 3 处在**上一片**的宏体里
+     （三组 `*16_FROM_ULONG` 沿用 C 的 `RED_FROM_ULONG (x)` 少了 `!`——只有本片的 `image_background` 才会展开它，
+     上一片三档都看不见）与 1 处 `(*c).buckets[...]` 的原始指针下标。**"多配置扫描"连续两片抓到翻臂看不见的缺陷**，
+     这条经验现在是这个项目里可复用的动作（3.401/3.402 已记，本轮再加一证）。
+  ⑤ **集成者这一轮的动作**：`macro-body-notes.tsv` 补 **8 行**（`image_error` 的 `va_list/va_start/va_end`＝P-04；
+     `parse_image_spec` 的 `switch/case/default/goto/maybe_done`；`image_spec_value` 的 `0,1`；`check_image_size` 的 `1`；
+     `four_corners_best` 的 `uninit`（C 1962 实读）；`image_background`/`_transparent`/`image_clear_image_1` 的
+     `*_valid` 家族）；`Cargo.toml` 补 **4 个 feature**：`have_rsvg`/`have_tiff`/`have_jpeg`/`have_xpm`
+     （C 依据 `image.c` 1360-1361 的条件与 3097/5913/5921 的单独站点）。
+  ⑥ **仍未解决（点名）**：⑴ `--check` 余 131 行（61 函数/42 常量/10 defsubr/7 宏/7 subr/2 对象 + 10 行 token/声明 + 行数）；
+     ⑵ **4 处 E0428 必须与镜像 lane 的新块同提交删除本单元的 use-site 拷贝**（P-26 的搬运规则；本单元 165-171 保 pgtk、
+     186-198+217-220+233+236、245、230）；⑶ `dispextern_face_records` 要进本单元的翻臂 cfg 集；
+     ⑷ `include/pgtkterm.rs` 仍是占位、`nsterm.rs` 缺 `NSArray`/`NSString`/`EmacsMenu`；
+     ⑸ `frame.rs` 的 `FRAME_IMAGE_CACHE!` 返回 `*mut c_void`、消费方要 `*mut image_cache`。
+  ⑦ **未声称**：Windows/Haiku/GTK/Android 臂**仍 text-only**；预检不是行为验证（loader/DEFUN/`free_image` 从未运行）；
+     `--check`/扫描/预检都不是语义证明；probe 的 NS 读数**停在名字解析阶段**、没到本单元类型检查。
