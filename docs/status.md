@@ -7231,3 +7231,27 @@
      `include-xterm.md` 188/196、`image.md` 187/279/1032）。
   ⑤ **未声称**：② 是 lane 的读数（命令原文在台账里，我复跑的是 ③ 的 83/0 两腿与文本门）；本轮
      **没有任何运行证据**——两腿都是编译级。
+
+- **3.418 本批收口：地图重生成、棘轮清行、以及一次磁盘满造成的假读数（2026-10-05）**：
+  ① **`gen-port-map.py` 重跑（8 行变化）**：`src/dispextern.h` 3,854 → 3,934、`src/frame.h` 1,855 → 1,885、
+     `src/xlib.h`…（镜像轮）与 `src/image.c` 端的 `femacs/src/image.rs` 3,134 → **4,881**、`src/android.c`
+     11 → **1,311**、`src/xdisp.c` 24,435 → **25,692**（3.415 已修的那两行这次是合并后的最终读数）。
+  ② **`check-port-lines.py --write-pending`**：`src/android.c` 的棘轮行（切片后已不再 <10%）退出 ⇒
+     **85 文件 / 187,987 行 / 85 棘轮行 / 0 new / 0 stale**。
+  ③ **一次磁盘满，如实记（不是代码读数）**：本批第一次 `tools/check-all-units.sh` 有 **30 个单元**
+     报 `No space left on device (os error 28)` —— 卷当时 100% 满（可用 648 MiB）。清理**本项目自己的**
+     编译产物后（`build/femacs/*.o` 697 个 + `build/femacs/units/` + `build/probes/` + `build/dead-arms/`，
+     另加本轮 /tmp 的 6 个本项目目录与两个临时 worktree），重跑得到真读数
+     **83/0（冻结）+ 83/0（checking）**。卷上其余占用是**别的项目的 /tmp 缓存**（约 23 GB），按"只清本项目"
+     的规矩未动；当前可用约 1.3 GiB。⇒ 下一次大批编译前先看 `df`。
+  ④ **本批门读数汇总（集成者复跑，全部原文）**：`check-declarations` **13 sites / 0 forbidden / 0 failures**；
+     `check-mirror-dupes` **19 duplicate / 19 ratchet / 0 failure**；`check-ledger-ticks` **235 / 0**；
+     `check-dead-file-coverage` **17 / 0**；`check-carried` **11 carried / 11 row / 0**；`check-verbatim`
+     **6 树 / 4,604 文件 / 0 failure**；`check-citations` **675 / 0 drift / 0 stale**；`check-target-names`
+     **591 目标 / 0 finding**；`check-swift-units` **0 new / 0 stale**；`extract-abi --all`
+     **`582 done, 2 in progress, 6 failing`**（那 6 个是切片中的 P-86 单元，验收要求的是全部落完后零差异）。
+  ⑤ **下一步（点名）**：`image.c` 第四片 = `lookup_image`（C 3556）；`w32fns.c` 的 **C 4127-4139**（3.414 恢复
+     的文本）要重核进它的对照面与区间表；`android.c` 第二片（C 1038 起）；`include/signal.rs` 的 bionic
+     `sa_sigaction`（镜像轮）；`docs/ports/include-xlib.md` 建页。
+  ⑥ **未声称**：本批只点亮"文本 1:1 + 冻结/检查两腿编过 + 文本门全绿"；加载阶梯（L0-L5）、双向兼容、
+     生成物逐字节、原样树 `diff -r`、平台冒烟与性能**一条都还没点亮**。
