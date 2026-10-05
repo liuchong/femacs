@@ -13494,3 +13494,25 @@
   ④ **它指出的机制（点名，下一步按它验）**：我们已经量到的 dump 区对象损坏（3.654 的 `index_bits` 单字节被写成 `0x20`、3.658 的向量长度垃圾、本条的代码指针）与"**一个合法写入者越界写**"相容；最强候选是**哈希表的写侧**——`hash_put`/`hash_remove` 按错的 `index_bits`/`next_free`/`table_size` 算出的下标去写 `key_and_value`（3.654 在 `hash_find` 里看到的越界**读**是同一处的读侧），一写就越过 `key_and_value` 向量伤到**邻居对象**（subr 的函数指针就是这类邻居）。⇒ **下一步：把端口哈希表写侧的下标算术逐句对 C**（`hash_put`、`hash_remove`、`maybe_resize_hash_table`、`hash_table_rehash`，以及 `index_bits`/`next_free`/`table_size` 的更新时机），并把 ① 的开关式探针**一次性预置到这些站点**再测。
   ⑤ **未声称**：**没有**定位到写者或根因；③ 是**一条**读数（SIGBUS 的地址与 PC），"subr 的函数指针"是**候选**不是结论；④ 的机制**未验证**；**L3 稳定性仍未达成**（还原后的 HEAD 二进制 3 发：2 abort、1 ok）。
   ⑥ **还原与预算**：`git show HEAD:…` 还原 `alloc.rs` 与 `include/lisp.rs` ✓（`git diff -- femacs/src` 为 0 行）、TU 重编 + 重链 ✓、配对复验 ✓；`build-tu src/alloc.c` **9** 发、`check-link --executable` 9 发、夹具 12 + 12 + 3 + 3 发、`lldb` **1** 发（无断点、直接停在 SIGBUS ✓ 这是本轮最划算的一次 lldb）；`/tmp` 里的 dump/日志/脚本收工删。
+
+- **3.661 不变量探针没有命中（10/10 SIGSEGV 而 5 个入口零违例），但**寄存器现场**指出**栈帧被数据覆盖**（`fp = 0x7`、`lr = pc = 栈地址`），且**最后在跑的代码是终结器路径**；同时两条假设被量死（2026-10-06）**：
+  ① **不变量探针（开关式，符合 3.660 的方法）**：在 `fns.rs` 的五个入口（`maybe_resize_hash_table`、`hash_find_with_hash`、`hash_remove_from_table`、`hash_clear`、`hash_put`）加 `probe_check_hash`，判据是**共享状态的不变量**——`index_bits == compute_hash_index_bits (table_size)`、`bits` 的高两位为 0（按 `HASH_WEAKNESS_MASK`/`HASH_FROZEN_TEST_MASK`/`HASH_MUTABLE_MASK` 的位号）、`0 <= count <= table_size`、`index_bits <= 32`；命中就把 `h`、调用者（`x30`）、`ib`、`want`、`table_size`、`count`、`bits` 打成原始字。**读数为零**：OFF 4 发与 ON 6 发**全是 SIGSEGV（rc=139）**、**10/10 没有任何不变量违例** ⇒ 这个布局里哈希表在**这五个入口**上是干净的（要么先坏的是别的对象类，要么坏发生在某个函数**内部**——入口检查看不见，检查点必须移到"两端都查"，并覆盖 `index`/`next`/`hash`/`key_and_value` 这些**指针字段**本身的合法性）。
+  ② **寄存器现场（本轮最实在的读数）**：让 lldb 停在 SIGSEGV 上 `register read`（`-b -s 脚本`，脚本里 `run`/`register read`/`bt 3`/`frame info`）：
+     ```
+     stop reason = EXC_BAD_ACCESS (code=2, address=0x16fdfad38)     ← code=2 = PROTECTION failure
+     x0  = 0x0000000100ccf3d8  emacs`doomed_finalizers
+     x8  = x9 = 同上（&doomed_finalizers）
+     x10 = 0x0000000100d34e48  emacs`alloc::mem_z
+     x5  = 0x0000000000000020  (0x20)
+     x19 = lsl::sMemoryManagerBuffer   x20 = lsl::sAllocatorBuffer      ← libmalloc 内部
+     fp  = 0x0000000000000007        ← **帧指针 = 7**
+     lr  = 0x000000016fdfad38        ← 返回地址 = 栈地址（= pc）
+     sp  = 0x000000016fdfac20        ← 栈指针本身是合法的
+     pc  = 0x000000016fdfad38
+     ```
+     ⇒ **帧指针与返回地址被数据覆盖**（`fp = 7` 是个小整数/带标签的值；`lr` 指向栈上一处**不可执行**的页，所以是保护错误而不是取指错）⇒ 这是一次**栈/帧覆盖**，而且 **`x0`/`x8`/`x9` 指着静态的 `doomed_finalizers`** ⇒ **最后在跑的代码是"终结器"那一段**（`doomed_finalizers` 正是 `run_finalizers` 在 GC 收尾时遍历的那条静态表）。**新的点名嫌疑**：`run_finalizers`、`Fgarbage_collect` 的尾部、`mark_finalizer`/`queue_doomed_finalizer` 与 `struct Lisp_Finalizer` 这一族。
+     另一条细节：上一次 SIGSEGV 的地址是 `0x16fdfad28`、这次是 `0x16fdfad38`——**同一页、差 0x10** ⇒ 这个夹具路径下栈目标相当确定（可复现地读）。
+  ③ **两条假设被量死（免得再走）**：⑴ `HASH_MUTABLE_MASK = 1 << 5`（= **0x20**，`femacs/src/include/lisp.rs:2310`）**是对的**，端口对 `index_bits`/`bits`/`weakness` 的位号与写入点也逐条对过 C ⇒ 3.654 那个"`index_bits` 被写成 `0x20`"**不是**位号/偏移写反（而 ② 的 `x5 = 0x20` 说明 0x20 这个值本身在寄存器里流通，那个字节更像是**别处一次杂散写**落上去的）；⑵ `jmp_buf = [u8; 192]` 与**实测**的 C 尺寸（`docs/baseline/layout/c-layout-darwin-arm64.tsv` 的 `sizeof jmp_buf 192`）一致，对齐差异已由 `thread.rs` 的**对齐包装结构**处理 ⇒ "`jmp_buf` 尺寸写错"这条最省事的解释**不成立**（但 setjmp/长期跳转的**用法**仍未排除）。
+  ④ **下一站（按优先）**：⑴ **终结器那一族逐句对 C**（`run_finalizers`、`Fgarbage_collect` 尾部、`queue_doomed_finalizer`/`mark_finalizer`、`struct Lisp_Finalizer` 的布局与遍历）——它现在是**点名**的嫌疑；⑵ **帧哨兵探针**（布局不变、开关式）：在 `run_finalizers` 与其被调者入口存下哨兵（含 `sp`）并在出口校验——栈覆盖会被**当场**抓住，且不依赖崩点搬不搬；⑶ 再抓几次寄存器现场，看 `fp` 垃圾 / `lr` = 栈 / `x0` = `&doomed_finalizers` 这个签名**是否稳定**（稳定就说明是同一处）。
+  ⑤ **未声称**：**没有**定位到覆盖栈的那次写；② 是**一次**现场（目标页两跑一致只说明可复现，不说明因果）；终结器只是**嫌疑**；**L3 稳定性仍未达成**（还原后 4 发：2 ok、2 abort，都在基线站点）。
+  ⑥ **还原与预算**：`git show HEAD:femacs/src/fns.rs` 还原 ✓（`git diff -- femacs/src` 为 0 行）、TU 重编 + 重链 ✓、基线复测 ✓；`build-tu` 2 发（fns）、`check-link` 2 发、夹具 4 + 4 + 6 发、`lldb` **3** 发（前两次 `register read` 在 `-o` 形式下不打印，改用 `-b -s 脚本` 才拿到寄存器——这条记下来）；`/tmp` 日志与脚本收工删。
