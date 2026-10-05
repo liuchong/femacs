@@ -11389,3 +11389,30 @@
      无差分；两臂读数都是 `rustc` 对物化镜像图的读数，"本单元 0 错"只对**带镜像补丁的 /tmp 预检**成立（变异背书）；
      **pgtk 臂无编译读数**（text-only）；布局数字是本机 clang 读数（cairo 1.18.4 / Fontconfig 2.18.3 / FreeType 2.14.3 /
      HarfBuzz 14.4.0），libotf 因本机无 `<otf.h>` 标 **UNVERIFIED**。
+
+- **3.568 lane 产出收口：`src/sfntfont-android.c` 整文件落地（C 821 → Rust 1,005），并更正一条重要前提：本机**有** Android NDK（2026-10-05）**：
+  ① **lane 的产出（Sagan）**：`femacs/src/sfntfont-android.rs` 11 → **1,005 行**（md5 `5110a272…`），台账 311 行 / 30 行区间表
+     覆盖 C 1-821；文件门 `all (have_android, not_android_stubify)`（`configure.ac` 2645 的 `REALLY_ANDROID` 臂）压在每个项
+     **与 C 20-37 整张 include 图**上；`__aarch64__` 与 `harfbuzz` 两臂都带，`check-cond-eval` 读 **8 conditions /
+     0 disagreements**。
+  ② **读数（本件最干净）**：冻结 `build-tu` 3 发 → 336 字节；臂（`have_android`+`not_android_stubify`+`have_window_system`+
+     `aarch64`）三念 **47 → 17 → 0**，终版 **exit 0 / 0 error / 12,624 字节对象**。它自己修掉六类（`PATH_MAX` 是 `c_long`、
+     `font_cache` 的零字要 `lisp_h_Qnil ()`、链式赋值要拆、`font_driver` 缺 `has_char`、两个 `gui_box` 零初始化、
+     `transmute` 在静态初始化处不可编 ⇒ 模块内同名副本）。
+  ③ **前提更正（会改变后续 Android 家族的证据口径）**：本机 **有 NDK**（`~/Library/Android/sdk/ndk/` 六个，
+     含完整 `sysroot/usr/include/android/`）——lane 用 **NDK 29.0.14206865 `--target=aarch64-linux-android24`** 实测了
+     `struct dirent`（1048；`d_namlen@18`/`d_type@20`/`d_name@21`）、`AndroidBitmapInfo`（20；字段 0/4/8/12/16）、
+     `ANDROID_BITMAP_FORMAT_RGBA_8888=1`、`ANDROID_LOG_VERBOSE=2`（并用 `-S` 立即数复核），原型可赋值性全部
+     `_Static_assert` 通过 ⇒ **这些就地声明的值是 VERIFIED，不是 UNVERIFIED**。（此前 Android 家族台账一律写 UNVERIFIED，
+     那是口径过宽；已在此更正。）
+  ④ **它报出的工具陷阱（我记账，未改工具）**：`xtask` 的 `gate_states` 只认"属性在前几行、项在下一行"，
+     **同一行写成 `#[cfg (…)] include!(…)` 的边被判为无门**——判据是冻结点下编出 43 条镜像错误。规避写法是
+     include 边一律两行（该 lane 已这么做并记 Deviation 14）；**修 `gate_states` 或写进 PORTING.md P-86 是欠账**。
+  ⑤ **集成者登记**：容差行 `sfntfont-android 0.23`（821 vs 1005 = 22.4%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件；
+     `port-lines-pending.tsv` 去掉本件的行。该 lane 的两行 `macro-body-notes.tsv` 已随 3.567 的提交进库（只追加）。
+  ⑥ **门读数（本轮现读）**：`check-mirror-dupes` 17/17/0、`check-citations` **0 drift / 0 stale**、`check-declarations`
+     0 failures、`check-dead-file-coverage` **139/0**、`check-ledger-ticks` 236/0、`check-port-lines`
+     **0 new / 0 stale**、`check-target-names` 0 finding。
+  ⑦ **未声称**：**零运行证据**——冻结点对象是 336 字节空对象；翻臂读数只是类型检查/代码生成（12,624 字节对象），
+     **没有**链 `liblog`/`libjnigraphics`、没出 APK、没有设备或模拟器、没枚举字体、没合成栅格、没发过 JNI 调用；
+     NDK 读数是**头文件 ABI/常量**而非设备运行值；C 250-260 恒死；行数容差不是保真声明（保真是函数体 token 对照）。
