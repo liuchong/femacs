@@ -11249,3 +11249,29 @@
   ④ **状态**：本轮**没有代码改动入库**（工具回退，工作树干净）；四条 lane 在飞：`nt/cmdproxy.c`（Beauvoir）、
      `src/w32inevt.c`（Mill）、`src/haikumenu.c`（Huygens）、`oldXMenu/Activate.c`（Halley，本轮新开）。
      磁盘读数：**1.0 GiB 可用 / 93%**（外部项目占大头，四条 lane 都已被告知"每发编译后立刻清单元目录"）。
+
+- **3.562 lane 产出收口：`src/haikumenu.c` 整文件落地（C 845 → Rust 1,188）（2026-10-05）**：
+  ① **lane 的产出（Huygens）**：`femacs/src/haikumenu.rs` 11 → **1,188 行**（md5 `d61bdc7c…`），台账 273 行 / 20 行区间表
+     覆盖 C 1-845；文件门 `have_haiku` 压在每个项**与 C 21-29 的整张 include 图**上，**本文件自己没有 `#if`**
+     （`check-cond-eval` 读 `0 conditions / 0 disagreements`）；14 个函数（6 个 static，其中 4 个的地址被 C 取）、
+     2 个 `DEFUN`、3 个文件作用域对象、4 个 `DEFSYM`、2 个 `defsubr` 逐条落成，两个 DEFUN 的 docstring 另行与 C 逐字符
+     比对（含多行续行与双空格）。
+  ② **读数**：冻结 `build-tu` exit 0 / **336 字节**（骨架与终版同值同 md5）；臂（`have_haiku`+`have_window_system`+
+     `have_ext_menu_bar`）**单元自身 0 条**，唯一 1 条错在镜像 `include/systime.rs` 28 的 `HAIKU` 断言——**这是第四个
+     Haiku 台账点名同一条欠账**（haikuterm Owed 6 / haikuselect Owed 5 / haikufont Owed 7 / haikumenu Owed 2）。
+  ③ **给后继 Haiku lane 的一条实测提醒**：只给 `have_haiku`+`have_window_system` 两个 cfg 时，`include/frame.rs` 的
+     `FRAME_EXTERNAL_MENU_BAR_FLAG_SHIFT` 不在作用域（它只挂在 `have_ext_menu_bar`/`have_ext_tool_bar` 下，而 Haiku 配置
+     恒有 `HAVE_EXT_MENU_BAR`），所以 Haiku 家族的臂预检要**带上第三个 cfg**；`docs/ports/haikufns.md` 的 Gate mapping 早已
+     这么记，本件再次证实。
+  ④ **本单元自身修掉的三处（都在末轮读数前，逐条记进 Deviations）**：C 的 4 处无花括号 `if/else` 体在 Rust 需要块；
+     `BMenu_run` 的 `void *` 结果要 `as *mut Lisp_Object`；C 的第三形参名 `menu_items_used` 与静态同名（`E0530`）→
+     尾下划线（`alloc.rs` 的 `finalizers_` 先例，token 比对会折叠）。读数三念 6 → 5 → 1。
+  ⑤ **集成者登记**：容差行 `haikumenu 0.41`（845 vs 1188 = 40.6%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件
+     （在飞的 `cmdproxy`/`w32inevt` 两行回退成已提交值）；`port-lines-pending.tsv` 去掉本件的行
+     （**9 文件 / 6,062 参照行**）。该 lane 本轮**没有**追加 `macro-body-notes.tsv`（`--check` 无缺 token），所以那份共享文件
+     里没有它的行。
+  ⑥ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、
+     `check-declarations` 0 failures、`check-dead-file-coverage` **132/0**、`check-ledger-ticks` 234/0、
+     `check-port-lines` 9 文件 / 6,062 参照行 / 0 new / 2 stale、`check-target-names` 0 finding。
+  ⑦ **未声称**：本机**没有 Haiku SDK/工具链**，没有任何 Haiku 目标编译或链接，也没有运行/设备行为；所有 Haiku 宽度与常量
+     是 C/镜像的写法而非实测（**UNVERIFIED**）；`haiku_support.cc`（C++ 半边）不可及。
