@@ -10679,3 +10679,32 @@
      的两个符号（`format_pid`/`exec_0`）在树里还没有定义（属另一条 lane）。
   ⑥ **预算实报**：lane 侧 `build-tu` ~5 发（限 3）、`probe` ~20 发（限 3，都是 P1/P2/P3 的反复重跑），它自己报了；
      集成者：生成物 3 发、门 2 发、`extract-abi --check` 3 发、`gen-port-map` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.544 `src/haikufns.c` 整文件落地（C 1-3324）：Haiku 的 frame/窗口面（2026-10-05）**：
+  ① **产出**：`femacs/src/haikufns.rs` → **4331** 行（C 3324，+30.3%），台账 `docs/ports/haikufns.md` 369 行
+     （**103 行**区间表：6 行头 + 97 行条目，覆盖 C 1-3324）；`docs/ports/macro-body-notes.tsv` 由该 lane 追加 5 行
+     （`haiku_explicitly_set_name` 的 `1`、`haiku_free_frame_resources` 的 `output_data`、
+     `haiku_set_internal_border_width` 的 `0`、`syms_of_haikufns` 的 `doc`、`Fx_show_tip` 的 `goto`）。
+     **文件门 `have_haiku` 落在每个 item 与整张 include 图上（179 个带门属性）**；子门 `be_cairo`（含嵌套
+     `harfbuzz`）、`not (be_cairo)`、`enable_checking`；注意 `have_window_system`/`have_ext_menu_bar` **不是**本文件的
+     门——`lisp.h` 3925-3936 从 `HAVE_HAIKU` 定义它们。`check-cond-eval.py src/haikufns.c` → `9 conditions, 0 unknown,
+     0 disagreements [VERIFIED]`。
+  ② **集成者落的账**：`docs/ports/line-drift-tolerance.tsv` 一行 `haikufns 0.31 total`；`port-map.md`/
+     `port-lines-pending.tsv`/`feature-coverage.tsv` 重算（本条不需要新 feature——用到的门都已在册）。
+  ③ **读数**：`extract-abi --check emacs/src/haikufns.c femacs/src/haikufns.rs` **OK**（加容差行前唯一一行是 30.3%）；
+     冻结 `build-tu` **exit 0 / 336 字节空对象**（首跑 11 个 `E0425` 恰好量到 P-86 ⑧——两个 `.xbm` 对象与两个 struct
+     当时还没上门，lane 记下了）；臂（文件门 + 全部子门）**exit 1 / 1 错 / 单元自身 0 条**——唯一那条在镜像
+     `include/systime.rs` 28 的 `HAIKU` 断言 ⇒ **目前没有任何 Haiku 配置能编出一整个 crate**（`haikuterm.md` Owed 6
+     点过同一处）；变异实测 **+1 恰为注入行**；`check-mirror-dupes` **0 failure**、`check-citations` 0/0、
+     `check-declarations` 17/0/0、`check-dead-file-coverage` 106/0（本台账 103 行绑 `src/haikufns.c`）。
+  ④ **lane 记下的三处镜像缺陷（各有 owner）**：`include/haiku_support.rs` 686-704 与 `include/haikuterm.rs` 449 的
+     **八个原型没有返回类型**（其中 `haiku_term_init` 在 C 里返回 `struct haiku_display_info *`）；
+     `include/frame.rs` 1835-1840 的 `flush_frame!` 少了本单元 `FRAME_RIF!` 需要的 `*mut c_void` 转换（`E0308` 落在宏自己
+     那行）；以及上面那条 `systime.rs` 断言。另有一处**它自己文本里的真缺陷**由 token 门抓到并修好
+     （`haiku_hide_tip` 开头漏了 `calln (Qcancel_timer, tip_timer)` 那一段）。
+  ⑤ **未声称**：没有 Haiku 目标编译或链接（无 SDK/工具链，臂读数是 `/tmp` 复现 + 与官方 probe 逐条对照的读数）；
+     没有任何运行/显示/设备证据（字体、光标、tooltip frame、菜单栏、文件面板、显示器列表都只是照录）；
+     两个 `.xbm` 的四个 `#define` 未转写。
+  ⑥ **预算实报**：lane 侧 `build-tu` **3** 发（1 次失败 + 2 次相同读数）、`probe` **3** 发（全部用在前两次修订，
+     终稿的四组臂读数是 `/tmp` 复现），它自己报了；集成者：生成物 3 发、门 4 发、`extract-abi --check` 1 发；
+     未跑 `xtask --all`/`gate-fast`/`cargo test`。
