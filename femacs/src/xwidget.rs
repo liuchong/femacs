@@ -735,6 +735,19 @@ unsafe extern "C" {
   /// (WebKitFileChooserRequest *request, const gchar * const *files);`
   pub fn webkit_file_chooser_request_select_files (request: *mut WebKitFileChooserRequest,
                                                    files: *const *const gchar);
+  /// C 3061: `const gchar *uri = webkit_web_view_get_uri (wkwv);`
+  /// C: webkit2/WebKitWebView.h: `const gchar *webkit_web_view_get_uri (WebKitWebView *web_view);`
+  pub fn webkit_web_view_get_uri (web_view: *mut WebKitWebView) -> *const gchar;
+  /// C 3079: `const gchar *title = webkit_web_view_get_title (wkwv);`
+  /// C: webkit2/WebKitWebView.h: `const gchar *webkit_web_view_get_title (WebKitWebView
+  /// *web_view);`
+  pub fn webkit_web_view_get_title (web_view: *mut WebKitWebView) -> *const gchar;
+  /// C 3107: `value = webkit_web_view_get_estimated_load_progress (webview);`
+  /// C: webkit2/WebKitWebView.h: `gdouble webkit_web_view_get_estimated_load_progress
+  /// (WebKitWebView *web_view);` - GLib's `gdouble` is C's `double`, which the unit spells
+  /// `c_double` (the `WebKitHardwareAccelerationPolicy`/`gboolean` spellings above keep GLib's
+  /// names because they are types the header itself defines; `gdouble` is a typedef of `double`).
+  pub fn webkit_web_view_get_estimated_load_progress (web_view: *mut WebKitWebView) -> c_double;
 }
 
 /* C 56-59: the file's four file-scope objects.  The first three are C's tentative definitions
@@ -4498,3 +4511,243 @@ unsafe fn webkit_script_dialog_cb (webview: *mut WebKitWebView,
 }
 /* C 2716: `#endif /* USE_GTK */` — the second `USE_GTK` block ends here; C 2718's
    `xwidget_init_view` is the next lane's first definition.  */
+
+/* C 2716: `#endif /* USE_GTK */`.  This slice is C 2717-2790 and then C 3042-3116; C 2791-3041
+   (C 2793's `x_draw_xwidget_glyph_string`) is the unported remainder between them and C 3117-4304
+   the remainder after them - `docs/ports/xwidget.md`'s C line-range table carries the rows.  */
+
+/* Initializes and does initial placement of an xwidget view on screen.  */
+
+/// C: 2720-2723: `static struct xwidget_view *` / `xwidget_init_view (struct xwidget *xww,
+/// struct glyph_string *s, int x, int y)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe fn xwidget_init_view (xww: *mut xwidget, s: *mut glyph_string, x: c_int, y: c_int)
+  -> *mut xwidget_view
+{
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  if !xg_gtk_initialized
+    { error (c"xwidget_init_view: GTK has not been initialized".as_ptr ()); }
+
+  let xv: *mut xwidget_view = allocate_xwidget_view ();
+  let mut val: Lisp_Object;
+
+  XSETXWIDGET_VIEW! (val, xv);
+  internal_xwidget_view_list = Fcons (val, internal_xwidget_view_list);
+  Vxwidget_view_list = Fcopy_sequence (internal_xwidget_view_list);
+
+  XSETWINDOW! ((*xv).w, (*s).w);
+  XSETXWIDGET! ((*xv).model, xww);
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+  {
+  /* C 2752's `None` is X11/X.h 115's `#define None 0L`; the mirror carries it in
+     `include/xlib.rs`'s `x11_constants` (reached through `include/xterm.rs`), and the unit
+     imports it by name the way C 614's own `xv->wdesc = None` does at line 3445.  */
+  use x11_constants::None;
+  (*xv).dpy = FRAME_X_DISPLAY! ((*s).f);
+
+  (*xv).x = x;
+  (*xv).y = y;
+
+  (*xv).clip_left = 0;
+  (*xv).clip_right = (*xww).width;
+  (*xv).clip_top = 0;
+  (*xv).clip_bottom = (*xww).height;
+
+  (*xv).wdesc = None as Window;
+  /* `xwidget_view.frame` is the mirror's `*mut c_void` (P-55: the record cannot name `struct
+     frame`), and `just_resized` is the mirror's `c_int` for C's `bool` - so C's `false` is 0
+     (the read side, `xwidget.c` 3933, is the port's `!= 0`).  */
+  (*xv).frame = (*s).f as *mut c_void;
+  (*xv).cursor = (*(FRAME_OUTPUT_DATA! ((*s).f) as *mut x_output)).nontext_cursor;
+  (*xv).just_resized = 0;
+  (*xv).last_crossing_window = core::ptr::null_mut ();
+  (*xv).passive_grab = core::ptr::null_mut ();
+  }
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
+  {
+  (*xv).dpyinfo = FRAME_DISPLAY_INFO! ((*s).f);
+  (*xv).widget = gtk_drawing_area_new ();
+  gtk_widget_set_app_paintable ((*xv).widget, TRUE);
+  gtk_widget_add_events ((*xv).widget, GDK_ALL_EVENTS_MASK);
+  gtk_container_add (GTK_CONTAINER! (FRAME_GTK_WIDGET! ((*s).f)), (*xv).widget);
+
+  g_signal_connect! ((*xv).widget, c"draw".as_ptr (),
+		     G_CALLBACK! (xwidget_view_draw_cb), xv as *mut c_void);
+  g_signal_connect! ((*xv).widget, c"event".as_ptr (),
+		     G_CALLBACK! (xw_forward_event_from_view), xv as *mut c_void);
+
+  g_object_set_data (G_OBJECT! ((*xv).widget), XG_XWIDGET_VIEW.as_ptr (), xv as *mut c_void);
+
+  (*xv).x = x;
+  (*xv).y = y;
+
+  (*xv).clip_left = 0;
+  (*xv).clip_right = (*xww).width;
+  (*xv).clip_top = 0;
+  (*xv).clip_bottom = (*xww).height;
+
+  (*xv).frame = (*s).f as *mut c_void;
+  (*xv).cursor = cursor_for_hit ((*xww).hit_result, (*s).f);
+  (*xv).just_resized = 0;
+  }
+
+  /* C 2784's `#elif defined NS_IMPL_COCOA` arm.  The port keeps the file gate on every item
+     (P-86 ⑧), so the arm carries both names - a recorded deviation.  `include/nsxwidget.rs` is
+     the Cocoa lane's mirror, so the two are declared at the use site (P-72 rule 4).  */
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  /// C: nsxwidget.h 67-70: `void nsxwidget_init_view (struct xwidget_view *xv, struct xwidget
+  /// *xww, struct glyph_string *s, int x, int y);` - the third pointer is `struct glyph_string`,
+  /// which no arm but the window-system ones can name, so the declaration takes `*mut c_void`
+  /// (P-72 rule 3) and the call site passes C's own pointer.
+  unsafe extern "C" {
+    pub fn nsxwidget_init_view (xv: *mut xwidget_view, xww: *mut xwidget, s: *mut c_void,
+				x: c_int, y: c_int);
+  }
+  /// C: nsxwidget.h 75-76: `void nsxwidget_resize_view (struct xwidget_view *xv, int widget, int
+  /// height);` - C 2786 spells the second argument `xww->width` and the third `xww->height`.
+  unsafe extern "C" {
+    pub fn nsxwidget_resize_view (xv: *mut xwidget_view, widget: c_int, height: c_int);
+  }
+  nsxwidget_init_view (xv, xww, s as *mut c_void, x, y);
+  nsxwidget_resize_view (xv, (*xww).width, (*xww).height);
+  }
+
+  return xv;
+}
+
+/* C 2791-3041 is the unported remainder: C 2793's `x_draw_xwidget_glyph_string`.  */
+
+/* C 3042-3044:
+   `#define CHECK_WEBKIT_WIDGET(xw)						\
+      if (NILP (xw->buffer) || !EQ (xw->type, Qwebkit))			\
+        error ("Not a WebKit widget")`  */
+
+/// C: 3042-3044: the `CHECK_WEBKIT_WIDGET` macro.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+macro_rules! CHECK_WEBKIT_WIDGET {
+  ($xw:expr) => {
+    if NILP ((*$xw).buffer) || !EQ ((*$xw).r#type, Qwebkit ())
+      { error (c"Not a WebKit widget".as_ptr ()); }
+  };
+}
+
+/* Macro that checks xwidget hold webkit web view first.  */
+
+/// C: 3047-3050: `#define WEBKIT_FN_INIT() CHECK_LIVE_XWIDGET (xwidget); struct xwidget *xw =
+/// XXWIDGET (xwidget); CHECK_WEBKIT_WIDGET (xw)` - C's macro *declares* `xw` at its expansion
+/// site, which Rust macro hygiene cannot hand out (the `ITREE_FOREACH` class in
+/// `docs/ports/macro-body-notes.tsv`), so the port's form runs C's three statements and answers
+/// `xw`; each of the three callers binds it with C's name (`let xw = WEBKIT_FN_INIT! (xwidget);`).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+macro_rules! WEBKIT_FN_INIT {
+  ($xwidget:expr) => {{
+    CHECK_LIVE_XWIDGET ($xwidget);
+    let xw: *mut xwidget = XXWIDGET ($xwidget);
+    CHECK_WEBKIT_WIDGET! (xw);
+    xw
+  }};
+}
+
+/// C: 3052-3055: `DEFUN ("xwidget-webkit-uri", Fxwidget_webkit_uri, Sxwidget_webkit_uri, 1, 1,
+/// 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-uri", Fxwidget_webkit_uri, Sxwidget_webkit_uri, 1, 1, 0,
+       doc: "Get the current URL of XWIDGET webkit.",
+       (xwidget: Lisp_Object),
+       {
+  let xw: *mut xwidget = WEBKIT_FN_INIT! (xwidget);
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  let wkwv: *mut WebKitWebView = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  let uri: *const gchar = webkit_web_view_get_uri (wkwv);
+  if uri.is_null ()
+    { return build_string (c"".as_ptr ()); }
+  return build_string (uri);
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  return nsxwidget_webkit_uri (xw);
+  }
+});
+
+/// C 3065-3067's `#elif defined NS_IMPL_COCOA` arm of `F_xwidget_webkit_uri`: C's `#elif` negates
+/// its own file gate, and the port keeps the gate on every item (P-86 ⑧, the recorded shape).
+/// C: nsxwidget.h 35: `Lisp_Object nsxwidget_webkit_uri (struct xwidget *xw);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_webkit_uri (xw: *mut xwidget) -> Lisp_Object;
+}
+
+/// C: 3070-3073: `DEFUN ("xwidget-webkit-title", Fxwidget_webkit_title, Sxwidget_webkit_title,
+/// 1, 1, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-title", Fxwidget_webkit_title, Sxwidget_webkit_title, 1, 1, 0,
+       doc: "Get the current title of XWIDGET webkit.",
+       (xwidget: Lisp_Object),
+       {
+  let xw: *mut xwidget = WEBKIT_FN_INIT! (xwidget);
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  let wkwv: *mut WebKitWebView = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  let title: *const gchar = webkit_web_view_get_title (wkwv);
+
+  return build_string (if title.is_null () { c"".as_ptr () } else { title });
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  return nsxwidget_webkit_title (xw);
+  }
+});
+
+/// C 3082-3084's `#elif defined NS_IMPL_COCOA` arm of `F_xwidget_webkit_title`.
+/// C: nsxwidget.h 36: `Lisp_Object nsxwidget_webkit_title (struct xwidget *xw);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_webkit_title (xw: *mut xwidget) -> Lisp_Object;
+}
+
+/// C: 3087-3091: `DEFUN ("xwidget-webkit-estimated-load-progress",
+/// Fxwidget_webkit_estimated_load_progress, Sxwidget_webkit_estimated_load_progress, 1, 1, 0,
+/// doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-estimated-load-progress", Fxwidget_webkit_estimated_load_progress,
+       Sxwidget_webkit_estimated_load_progress, 1, 1, 0,
+       doc: "Get the estimated load progress of XWIDGET, a WebKit widget.\nReturn a value ranging from 0.0 to 1.0, based on how close XWIDGET\nis to completely loading its page.",
+       (xwidget: Lisp_Object),
+       {
+  let mut xw: *mut xwidget;
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  let mut webview: *mut WebKitWebView;
+  let mut value: c_double;
+
+  CHECK_LIVE_XWIDGET (xwidget);
+  xw = XXWIDGET (xwidget);
+  CHECK_WEBKIT_WIDGET! (xw);
+
+  block_input ();
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  webview = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  value = webkit_web_view_get_estimated_load_progress (webview);
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  value = nsxwidget_webkit_estimated_load_progress (xw);
+  }
+
+  unblock_input ();
+
+  return make_float (value);
+});
+
+/// C 3108-3110's `#elif defined NS_IMPL_COCOA` arm of `F_xwidget_webkit_estimated_load_progress`.
+/// C: nsxwidget.h 39: `double nsxwidget_webkit_estimated_load_progress (struct xwidget *xw);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_webkit_estimated_load_progress (xw: *mut xwidget) -> c_double;
+}

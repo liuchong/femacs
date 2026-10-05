@@ -1247,7 +1247,9 @@ unsafe extern "C" {
   pub fn gtk_window_set_accept_focus (window: *mut GtkWindow, setting: gboolean);
   /// C 2276: `gtk_window_set_icon (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)), gp);`
   /// C: gtk/gtkwindow.h: `void gtk_window_set_icon (GtkWindow *window, GdkPixbuf *icon);`
-  pub fn gtk_window_set_icon (window: *mut GtkWindow, icon: *mut GdkPixbuf);
+  /// C 2760 (src/xwidget.c): `xv->widget = gtk_drawing_area_new ();` - the PGTK xwidget arm.
+  /// C: gtk/gtkdrawingarea.h: `GtkWidget *gtk_drawing_area_new (void);`
+  pub fn gtk_drawing_area_new () -> *mut GtkWidget;
 }
 #[cfg (feature = "have_gtk3")]
 unsafe extern "C" {

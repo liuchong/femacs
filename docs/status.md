@@ -13683,3 +13683,34 @@
   ⑤ **未声称**：这**不是** P-19 的迁移（把四个线程局部宏的 `extern` 存储删掉、876 处调用点改写成 `current_buffer! ()`）——
      P-19 的待办清单原样留着，本轮只把"这条 `missing macro` 为什么不是缺口"变成可复算的记录；也没有跑任何编译。
   ⑥ **预算**：`--check` 3 发、`--all` 1 发、文本门 0 发；`/tmp` 的脚本收工删。
+
+- **3.671 `src/xwidget.c` 的第三片：C 2717-2790（`xwidget_init_view`）与 C 3042-3116（两个宏 + 三个 WebKit 访问器）落地——`--check` 的缺名 81 → **76**，六条点名退场；三组翻臂先拿 HEAD 的同名文件跑同一组 cfg 作基线，A/B 各**新增 0 行**，只有那组"GTK 而没有窗口系统"的人工手臂多 1 行（2026-10-06）**：
+  ① **范围（逐段可查）**：⑴ C 2716-2790——`#endif /* USE_GTK */`、注释与 `xwidget_init_view`（C 2720-2790；`USE_GTK` 的前置检查、
+     `allocate_xwidget_view`/`XSETXWIDGET_VIEW`/`XSETWINDOW`/`XSETXWIDGET`，以及 `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` 三条手臂）；
+     ⑵ C 3042-3116——`CHECK_WEBKIT_WIDGET`（C 3042-3044）、`WEBKIT_FN_INIT`（C 3047-3050）两个宏与三个 DEFUN：
+     `xwidget-webkit-uri`（C 3052-3068）、`xwidget-webkit-title`（C 3070-3085）、`xwidget-webkit-estimated-load-progress`（C 3087-3115），
+     每个都带 `USE_GTK`/`NS_IMPL_COCOA` 两臂。**C 2791-3041 与 C 3117-4304 仍是 owed**（表里逐行写着）。
+  ② **六条名字退场**：`xwidget_init_view`、宏 `CHECK_WEBKIT_WIDGET`/`WEBKIT_FN_INIT`、
+     三个 subr `Fxwidget_webkit_uri`/`Fxwidget_webkit_title`/`Fxwidget_webkit_estimated_load_progress`（含它们的 `S*` 与 `defsubr`）；
+     `--check` 从 81 条 `- ` 降到 **76** 条（剩下的主项是行数棘轮 `line count drifted 10.4%: C 4304 vs Rust 4753`，
+     它是**按已完成前缀的密度**推的，随下一片继续长）。
+  ③ **三组翻臂（P-86 ⑦ 按文件计数；每组都先在 HEAD 的 `femacs/src/xwidget.rs` + `include/gtk.rs` 上跑同一组 cfg 取基线）**：
+     ARM A（`use_gtk`+`have_gtk3`+`have_xwidgets`+`have_x_windows`+`have_window_system`）单元自己的文本 **50 → 50，新增 0**；
+     ARM B（+`have_pgtk`）**12 → 12，新增 0**；ARM C（无窗口系统）22 → 23，**新增 1** = `cannot find type glyph_string`
+     （`xwidget_init_view` 的形参保留 C 的 `struct glyph_string *`，而"GTK 而没有窗口系统"没有任何配置——C 自己的函数体要读 `s->f`/`s->w`，
+     所以那一行是那组手臂的，不是文本的）。图的错误行 A 2 / B 1 / C 7，全是既有欠账（`E0609` 那张 GDK 成员表）。
+  ④ **四次自己咬到自己（照实记，全部修完）**：`gdouble`（单元自己的 WebKit 块把 C 的 `double` 写成 `c_double`）、
+     `xwidget_view.frame` 是镜像的 `*mut c_void`（要 `as *mut c_void`）、`just_resized` 是镜像的 `c_int`（C 的 `false` → `0`；
+     读侧 C 3933 在端口是 `!= 0`）、`g_signal_connect` 是本单元自己的宏（调用要 `!`）；
+     第二轮：C 2752 的 `None` 要 `use x11_constants::None;`（否则落到 `Option::None`，`E0605: non-primitive cast Option<_> as u64`）、
+     `nsxwidget_init_view` 声明里的 `struct glyph_string *` 写 `*mut c_void`（P-72 rule 3：声明要在文件门的每条手臂里都能解析）。
+  ⑤ **一处镜像改动，P-87 两条腿都跑了**：`gtk_drawing_area_new`（C 2760 的调用）按 P-90 ② 加进 `femacs/src/include/gtk.rs`
+     （第三方表面的唯一家），不是就地声明；`tools/check-all-units.sh` → **`checked 83 unit(s), 0 failure(s)`**、
+     `cargo run -q -p xtask -- layout-check` → **`layout-check passed`**。
+  ⑥ **账目**：`docs/ports/xwidget.md` 的 C 区间表（两处副本）都从"2717-4304 一整行 remainder"改成四行
+     （2717-2790 transcribed、2791-3041 owed、3042-3116 transcribed、3117-4304 owed）；新增 Evidence ⑩（a-e，含**基线对照表**）、
+     `### Slice 3` 的 8 条偏离、Owed 7 换成新的两片前沿；`check-dead-file-coverage` 复读 **145 ledger(s), 0 failure(s)**。
+  ⑦ **未声称**：冻结档 `build-tu` 仍是 **336 字节空对象**（冻结配置编译不到这个文件）；三组翻臂都是**编译**、不是链接或加载，
+     而且每组都停在 include 图里（行数逐组点名）；`x_draw_xwidget_glyph_string`（C 2792-3041）一行未动；没有跑任何行为。
+  ⑧ **预算**：TU 编译 1 发（xwidget，冻结档）、翻臂探针 6 发（3 组 × 本片/基线）、重链 0 发、`--check` 4 发、
+     `check-all-units.sh` 1 发（约 2.5 分钟）、`layout-check` 1 发、文本门 3 发；`/tmp` 的脚本与读数文件收工删。

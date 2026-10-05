@@ -201,7 +201,10 @@ block, and the union covers C 1-4304 without a gap.
 | 2108-2281 | `synthesize_focus_in_event` (C 2110-2133), `xwidget_view_from_window` (C 2137-2145), `xwidget_show_view`/`xwidget_hide_view` (C 2150-2178, C 2153/2172's `#ifdef`/`#else`), `xv_do_draw`/`xwidget_view_draw_cb` (C 2182-2242, C 2180's `#ifndef HAVE_PGTK`), `offscreen_damage_event` (C 2247-2270, C 2258's arm), `xwidget_expose` (C 2274-2279) and C 2281's `#endif /* USE_GTK */` | `feature = "use_gtk"` (+ the `have_x_windows`/`have_pgtk` arms) |
 | 2282-2331 | C 2283's blank and the three `store_xwidget_*_event` helpers (`store_xwidget_event_string` C 2284-2296, `store_xwidget_download_callback_event` C 2298-2316, `store_xwidget_js_callback_event` C 2318-2331) | file gate |
 | 2332-2716 | C 2333's `#ifdef USE_GTK`: `store_xwidget_display_event` (C 2335-2349), `webkit_ready_to_show` (C 2351-2379), `webkit_create_cb_1`/`webkit_create_cb` (C 2381-2425), `webkit_view_load_changed_cb` (C 2427-2451), `webkit_js_to_lisp` (C 2453-2518), `webkit_javascript_finished_cb` (C 2520-2559), `webkit_download_cb` (C 2561-2574), `webkit_decide_policy_cb` (C 2576-2645), `webkit_script_dialog_cb` (C 2647-2714) and C 2716's `#endif` | `feature = "use_gtk"` |
-| 2717-4304 | **the remainder** - C 2717's blank and C 2718's `xwidget_init_view` through C 4304: the store/kill/redisplay helpers, the remaining ~60 subrs and `syms_of_xwidget`'s `DEFVAR`s - **由下一 lane 接手** (the next slice opens at C 2718) | not these two slices: recorded so the table covers the reference |
+| 2717-2790 | `xwidget_init_view` (C 2720-2790), with C 2716's `#endif /* USE_GTK */` and C 2718-2719's comment | file gate - **transcribed** (slice 3, status 3.671) |
+| 2791-3041 | **the remainder between the slices**: C 2793's `x_draw_xwidget_glyph_string` (C 2792-3041) and C 3042's blank | file gate - **owed** |
+| 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
+| 3117-4304 | **the remainder after them**: C 3117's `xwidget-webkit-goto-uri` on to C 4304 - the rest of the ~60 subrs and `syms_of_xwidget`'s `DEFVAR`s | file gate - **owed** |
 
 ## Evidence` readings and the `## Deviations`.
 >
@@ -345,7 +348,10 @@ Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861)
 | 2108-2281 | `synthesize_focus_in_event` (C 2110-2133), `xwidget_view_from_window` (C 2137-2145), `xwidget_show_view`/`xwidget_hide_view` (C 2150-2178, C 2153/2172's `#ifdef`/`#else`), `xv_do_draw`/`xwidget_view_draw_cb` (C 2182-2242, C 2180's `#ifndef HAVE_PGTK`), `offscreen_damage_event` (C 2247-2270, C 2258's arm), `xwidget_expose` (C 2274-2279) and C 2281's `#endif /* USE_GTK */` | `feature = "use_gtk"` (+ the `have_x_windows`/`have_pgtk` arms) |
 | 2282-2331 | C 2283's blank and the three `store_xwidget_*_event` helpers (`store_xwidget_event_string` C 2284-2296, `store_xwidget_download_callback_event` C 2298-2316, `store_xwidget_js_callback_event` C 2318-2331) | file gate |
 | 2332-2716 | C 2333's `#ifdef USE_GTK`: `store_xwidget_display_event` (C 2335-2349), `webkit_ready_to_show` (C 2351-2379), `webkit_create_cb_1`/`webkit_create_cb` (C 2381-2425), `webkit_view_load_changed_cb` (C 2427-2451), `webkit_js_to_lisp` (C 2453-2518), `webkit_javascript_finished_cb` (C 2520-2559), `webkit_download_cb` (C 2561-2574), `webkit_decide_policy_cb` (C 2576-2645), `webkit_script_dialog_cb` (C 2647-2714) and C 2716's `#endif` | `feature = "use_gtk"` |
-| 2717-4304 | **the remainder** - C 2717's blank and C 2718's `xwidget_init_view` through C 4304: the store/kill/redisplay helpers, the remaining ~60 subrs and `syms_of_xwidget`'s `DEFVAR`s - **由下一 lane 接手** (the next slice opens at C 2718) | not these two slices: recorded so the table covers the reference |
+| 2717-2790 | `xwidget_init_view` (C 2720-2790), with C 2716's `#endif /* USE_GTK */` and C 2718-2719's comment | file gate - **transcribed** (slice 3, status 3.671) |
+| 2791-3041 | **the remainder between the slices**: C 2793's `x_draw_xwidget_glyph_string` (C 2792-3041) and C 3042's blank | file gate - **owed** |
+| 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
+| 3117-4304 | **the remainder after them**: C 3117's `xwidget-webkit-goto-uri` on to C 4304 - the rest of the ~60 subrs and `syms_of_xwidget`'s `DEFVAR`s | file gate - **owed** |
 
 ## Evidence
 
@@ -567,6 +573,56 @@ scanned, 0 drift, 0 range, 1881 external, 36 allowed, 0 stale` (this unit's cita
 row.  `python3 tools/check-mirror-dupes.py` -> `17 duplicate declaration(s), 17 ratchet row(s), 0
 failure(s)` - none of them this unit's (the in-unit surface does not repeat the mirror).
 
+**⑩ Slice 3 (C 2717-2790 and C 3042-3116): the readings of the round that landed it (2026-10-06,
+status 3.671).**
+
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: `84 -> 81
+missing` rows was ⑨'s reading for slice 2; this slice retires **six** more - `xwidget_init_view`,
+the two macros `CHECK_WEBKIT_WIDGET` / `WEBKIT_FN_INIT`, and the three subrs `Fxwidget_webkit_uri`
+/ `Fxwidget_webkit_title` / `Fxwidget_webkit_estimated_load_progress` (with their `defsubr` +
+`S*` rows).  The row that stays is the line count: `line count drifted 10.4%: C 4304 vs Rust
+4753` - measured *after* this slice added 242 lines and **derived from the finished prefix's
+density** (the same caveat ⑨'s row carries; 1,588 C lines are still owed).
+
+b) **The frozen reading.**  `build-tu src/xwidget.c` -> `built src/xwidget.rs ->
+../build/femacs/xwidget.o`, **exit 0**, `build/femacs/xwidget.o` is **336 bytes** - the empty
+object of the P-86 class (the frozen configuration compiles none of this file), not a proof of the
+new text.
+
+c) **The three arm flips, and the baseline they are read against** (P-86 ⑦'s by-file counting).
+The arm sets are Evidence ⑧'s, with the file gate's `have_gtk3` added (the 3.596 correction:
+`all (feature = "use_gtk", feature = "have_gtk3")`).  The same three runs were made on **HEAD's**
+`femacs/src/xwidget.rs` (and HEAD's `include/gtk.rs`) so the delta is the slice's, not the arm's:
+
+| arm (on top of `use_gtk` + `have_gtk3` + `have_xwidgets`) | own-text rows, HEAD | own-text rows, this slice | added | include-graph rows |
+| --- | --- | --- | --- | --- |
+| A: `have_x_windows` + `have_window_system` | 50 | **50** | **0** | 2 (`include/systime.rs`, `include/xwidget.rs`) |
+| B: `have_pgtk` + `have_window_system` | 12 | **12** | **0** | 1 (`include/xwidget.rs`) |
+| C: (no window system - an arm set no configuration has) | 22 | 23 | **1** | 7 |
+
+The one added row in C is `cannot find type glyph_string`, i.e. the arm cannot name
+`xwidget_init_view`'s `struct glyph_string *s` because no window system is in scope; C's own body
+needs `s->f`/`s->w` and a GTK build is a window-system build, so the row is the arm's, not the
+text's (Deviation 8).  Every other own-text row in A/B/C is the pre-existing owed surface
+(Evidence ⑧'s `E0609` list) - unchanged, none added.
+
+d) **The four fix iterations behind c, all in this slice's own text.**  Run 1: `cannot find type
+gdouble` (the WebKit declaration spelled GLib's typedef; the unit's own surface spells C's
+`double` as `c_double`), `E0308` x2 (`xwidget_view.frame` is the mirror's `*mut c_void` and
+`just_resized` its `c_int` for C's `bool`, so C's `false` is 0), `g_signal_connect` as a function
+(this unit's own macro is called with `!`).  Run 2: `E0605: non-primitive cast Option<_> as u64`
+(C 2752's `None` is X11/X.h 115's `#define None 0L`, which this unit imports as
+`use x11_constants::None;` - line 3445's own shape); `cannot find type glyph_string` in the
+`nsxwidget_init_view` declaration (its `struct glyph_string *` is not nameable in every arm, so
+the declaration takes `*mut c_void`, P-72 rule 3).  Run 3 is the table above.
+
+e) **One mirror edit, and P-87's two legs.**  `gtk_drawing_area_new` (C 2760's call) was added to
+`femacs/src/include/gtk.rs` (the P-90 ② home of the GTK surface) rather than declared at the use
+site; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
+`cargo run -q -p xtask -- layout-check` -> `layout-check passed (see build/femacs/layout_asserts.rs)`
+(both were run because the edit is a mirror edit; P-87 ①).
+
+
 ## Deviations
 
 1. **Include order.**  C's list starts at `"buffer.h"` (C 22) and reaches `"lisp.h"` at C 25;
@@ -729,6 +785,33 @@ failure(s)` - none of them this unit's (the in-unit surface does not repeat the 
   member names are C's, the records are **UNVERIFIED** and their measurements are owed (`## Owed`
   10).
 
+### Slice 3 (C 2717-2790 and C 3042-3116, status 3.671)
+
+1. **`xwidget_init_view` keeps C's `struct glyph_string *s`**, so the ARM C set (GTK with no window
+   system - an arm no configuration has: C's own body reads `s->f`/`s->w`) cannot name the type;
+   that arm's one added row is the arm's, and A/B are unchanged (Evidence ⑩ c).
+2. **The mirror's field types, at the write sites**: `xwidget_view.frame` is `*mut c_void` (P-55:
+   the record cannot name `struct frame`), so C's `xv->frame = s->f` is `(*s).f as *mut c_void`;
+   `just_resized` is the mirror's `c_int` for C's `bool`, so C's `false` is `0` (the read side,
+   C 3933, is the port's `!= 0`).
+3. **`XG_XWIDGET_VIEW`** is the mirror's `&CStr` (`include/xwidget.rs` 248), so the call takes
+   `.as_ptr ()` where C passes the string literal.
+4. **C 2752's `None`** is imported as `use x11_constants::None;` inside the arm - the shape
+   `include/xlib.rs` 60-70 documents and the unit already uses at line 3445; without the import the
+   name resolves to Rust's `Option::None` (`E0605: non-primitive cast Option<_> as u64`).
+5. **`g_signal_connect` is this unit's own macro** (C 225-233), so the two calls are
+   `g_signal_connect! (...)`.
+6. **`WEBKIT_FN_INIT`** declares `struct xwidget *xw` at its expansion site in C, which Rust macro
+   hygiene cannot hand out (the `ITREE_FOREACH` class in `docs/ports/macro-body-notes.tsv`), so the
+   port's macro runs C's three statements and answers `xw`; each caller binds it with C's name.
+7. **`webkit_web_view_get_estimated_load_progress`'s `gdouble`** is spelled `c_double` in the
+   unit's WebKit block (the block keeps GLib's names only for types the header defines, e.g.
+   `gboolean`/`WebKitHardwareAccelerationPolicy`).
+8. **`nsxwidget_init_view`'s third parameter** is `struct glyph_string *` in C and `*mut c_void` in
+   the port's use-site declaration (P-72 rule 3), because the declaration must resolve in every arm
+   the file gate admits.
+
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. `femacs/xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
@@ -790,10 +873,11 @@ failure(s)` - none of them this unit's (the in-unit surface does not repeat the 
    only; **slice 2 flips them** (ARM A11 sets `have_xinput2`/`have_xinput2_4`, Evidence ⑧) but the
    arm cannot *resolve* until `XIEventMask`/`x_display_info` land in `include/xterm.rs` (owed 10),
    so the reading is still a name-resolution one and not a compile.
-7. **The next slice.**  **C 2717-4304**, opening at C 2718's `xwidget_init_view` and running
-   through the store/kill/redisplay helpers, the remaining ~60 subrs and `syms_of_xwidget`'s
-   `DEFVAR`s (the C line-range table's last row is the placeholder for it, **由下一 lane
-   接手**).  C 1182-2716 is this round's (the four rows above it).
+7. **The next slices.**  Slice 3 (status 3.671) landed C 2717-2790 and C 3042-3116; what is left is
+   **C 2791-3041** (C 2793's `x_draw_xwidget_glyph_string`, the densest function in the file: the
+   `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms, `XCreateWindow`/`XISelectEvents`/
+   `cairo_xlib_surface_create`) and **C 3117-4304** (the remaining ~55 subrs and `syms_of_xwidget`'s
+   `DEFVAR`s).  The C line-range table carries both as its **owed** rows.
 
 
 8. **The mirror's GDK event records need the members this slice reads.**  The ARM A11 reading's 84
