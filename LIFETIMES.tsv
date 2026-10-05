@@ -692,6 +692,21 @@ src/composite.h	struct_field	composition	struct	enum composition_method	0			meth
 src/composite.h	struct_field	composition	struct	Lisp_Object	0			key	composition	yes						
 src/composite.h	struct_field	composition	struct	void	1			font	composition							
 src/composite.h	struct_field	composition	struct	short	1			offsets	composition							
+src/dispextern.h	struct_field	<anon@50>	struct	unsigned long	0			pixel	<anon@50>							
+src/dispextern.h	struct_field	<anon@50>	struct	unsigned short	0			red	<anon@50>							
+src/dispextern.h	struct_field	<anon@50>	struct	unsigned short	0			green	<anon@50>							
+src/dispextern.h	struct_field	<anon@50>	struct	unsigned short	0			blue	<anon@50>							
+src/dispextern.h	struct_field	<anon@66>	struct	int	0			x	<anon@66>							
+src/dispextern.h	struct_field	<anon@66>	struct	int	0			y	<anon@66>							
+src/dispextern.h	struct_field	<anon@66>	struct	unsigned	0			width	<anon@66>							
+src/dispextern.h	struct_field	<anon@66>	struct	unsigned	0			height	<anon@66>							
+src/dispextern.h	struct_field	<anon@73>	struct	unsigned long	0			foreground	<anon@73>							
+src/dispextern.h	struct_field	<anon@73>	struct	unsigned long	0			background	<anon@73>							
+src/dispextern.h	struct_field	<anon@124>	struct	int	0			width	<anon@124>							
+src/dispextern.h	struct_field	<anon@124>	struct	int	0			height	<anon@124>							
+src/dispextern.h	struct_field	<anon@124>	struct	char	1			data	<anon@124>							
+src/dispextern.h	struct_field	<anon@124>	struct	int	0			bytes_per_line	<anon@124>							
+src/dispextern.h	struct_field	<anon@124>	struct	int	0			bits_per_pixel	<anon@124>							
 src/dispextern.h	struct_field	gui_box	struct	int	0			x1	gui_box							
 src/dispextern.h	struct_field	gui_box	struct	int	0			y1	gui_box							
 src/dispextern.h	struct_field	gui_box	struct	int	0			x2	gui_box							
@@ -702,6 +717,8 @@ src/dispextern.h	struct_field	display_pos	struct	struct text_pos	0			pos	display
 src/dispextern.h	struct_field	display_pos	struct	ptrdiff_t	0			overlay_string_index	display_pos							
 src/dispextern.h	struct_field	display_pos	struct	struct text_pos	0			string_pos	display_pos							
 src/dispextern.h	struct_field	display_pos	struct	int	0			dpvec_index	display_pos							
+src/dispextern.h	struct_field	<anon@382>	struct	int	0			ch	<anon@382>							
+src/dispextern.h	struct_field	<anon@382>	struct	int	0			face_id	<anon@382>							
 src/dispextern.h	struct_field	glyph_slice	struct	unsigned	0		16	x	glyph_slice							
 src/dispextern.h	struct_field	glyph_slice	struct	unsigned	0		16	y	glyph_slice							
 src/dispextern.h	struct_field	glyph_slice	struct	unsigned	0		16	width	glyph_slice							
@@ -1157,6 +1174,21 @@ src/dispextern.h	struct_field	it	struct	struct bidi_it	0			bidi_it	it
 src/dispextern.h	struct_field	it	struct	bidi_dir_t	0			paragraph_embedding	it							
 src/dispextern.h	struct_field	it	struct	Lisp_Object	0			min_width_property	it	yes						
 src/dispextern.h	struct_field	it	struct	int	0			min_width_start	it							
+src/dispextern.h	struct_field	<anon@2998>	struct	int	0			mouse_face_beg_row	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	int	0			mouse_face_beg_col	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	int	0			mouse_face_beg_x	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	int	0			mouse_face_end_row	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	int	0			mouse_face_end_col	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	int	0			mouse_face_end_x	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	Lisp_Object	0			mouse_face_window	<anon@2998>	yes						
+src/dispextern.h	struct_field	<anon@2998>	struct	int	0			mouse_face_face_id	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	Lisp_Object	0			mouse_face_overlay	<anon@2998>	yes						
+src/dispextern.h	struct_field	<anon@2998>	struct	struct frame	1			mouse_face_mouse_frame	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	int	0			mouse_face_mouse_x	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	int	0			mouse_face_mouse_y	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	bool_bf	0		1	mouse_face_past_end	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	bool_bf	0		1	mouse_face_defer	<anon@2998>							
+src/dispextern.h	struct_field	<anon@2998>	struct	bool_bf	0		1	mouse_face_hidden	<anon@2998>							
 src/dispextern.h	struct_field	run	struct	int	0			desired_y	run							
 src/dispextern.h	struct_field	run	struct	int	0			current_y	run							
 src/dispextern.h	struct_field	run	struct	int	0			desired_vpos	run							
@@ -1516,6 +1548,19 @@ src/ftfont.h	struct_field	font_info	struct	short	0			metrics_nrows	font_info
 src/ftfont.h	struct_field	font_info	struct	Display	1			display	font_info							
 src/ftfont.h	struct_field	font_info	struct	XftFont	1			xftfont	font_info							
 src/ftfont.h	struct_field	font_info	struct	unsigned	0			x_display_id	font_info							
+src/gtkutil.h	struct_field	xg_list_node_	struct	struct xg_list_node_	1			prev	xg_list_node_							
+src/gtkutil.h	struct_field	xg_list_node_	struct	struct xg_list_node_	1			next	xg_list_node_							
+src/gtkutil.h	struct_field	xg_menu_cb_data_	struct	xg_list_node	0			ptrs	xg_menu_cb_data_							
+src/gtkutil.h	struct_field	xg_menu_cb_data_	struct	struct frame	1			f	xg_menu_cb_data_							
+src/gtkutil.h	struct_field	xg_menu_cb_data_	struct	Lisp_Object	0			menu_bar_vector	xg_menu_cb_data_	yes						
+src/gtkutil.h	struct_field	xg_menu_cb_data_	struct	int	0			menu_bar_items_used	xg_menu_cb_data_							
+src/gtkutil.h	struct_field	xg_menu_cb_data_	struct	GCallback	0			highlight_cb	xg_menu_cb_data_							
+src/gtkutil.h	struct_field	xg_menu_cb_data_	struct	int	0			ref_count	xg_menu_cb_data_							
+src/gtkutil.h	struct_field	xg_menu_item_cb_data_	struct	xg_list_node	0			ptrs	xg_menu_item_cb_data_							
+src/gtkutil.h	struct_field	xg_menu_item_cb_data_	struct	gulong	0			select_id	xg_menu_item_cb_data_							
+src/gtkutil.h	struct_field	xg_menu_item_cb_data_	struct	Lisp_Object	0			help	xg_menu_item_cb_data_	yes						
+src/gtkutil.h	struct_field	xg_menu_item_cb_data_	struct	gpointer	0			call_data	xg_menu_item_cb_data_							
+src/gtkutil.h	struct_field	xg_menu_item_cb_data_	struct	xg_menu_cb_data	1			cl_data	xg_menu_item_cb_data_							
 src/haiku_support.h	struct_field	haiku_clipboard_changed_event	struct	char	0			dummy	haiku_clipboard_changed_event							
 src/haiku_support.h	struct_field	haiku_screen_changed_event	struct	bigtime_t	0			when	haiku_screen_changed_event							
 src/haiku_support.h	struct_field	haiku_quit_requested_event	struct	void	1			window	haiku_quit_requested_event							
@@ -1616,6 +1661,11 @@ src/haiku_support.h	struct_field	haiku_font_change_event	struct	int	0			new_size
 src/haiku_support.h	struct_field	haiku_font_change_event	struct	enum haiku_what_font	0			what	haiku_font_change_event							
 src/haiku_support.h	struct_field	haiku_notification_click_event	struct	intmax_t	0			id	haiku_notification_click_event							
 src/haiku_support.h	struct_field	haiku_session_manager_reply	struct	bool	0			quit_reply	haiku_session_manager_reply							
+src/haikugui.h	struct_field	haiku_char_struct	struct	int	0			rbearing	haiku_char_struct							
+src/haikugui.h	struct_field	haiku_char_struct	struct	int	0			lbearing	haiku_char_struct							
+src/haikugui.h	struct_field	haiku_char_struct	struct	int	0			width	haiku_char_struct							
+src/haikugui.h	struct_field	haiku_char_struct	struct	int	0			ascent	haiku_char_struct							
+src/haikugui.h	struct_field	haiku_char_struct	struct	int	0			descent	haiku_char_struct							
 src/haikugui.h	struct_field	haiku_rect	struct	int	0			x	haiku_rect							
 src/haikugui.h	struct_field	haiku_rect	struct	int	0			y	haiku_rect							
 src/haikugui.h	struct_field	haiku_rect	struct	int	0			width	haiku_rect							
@@ -1887,6 +1937,9 @@ src/lisp.h	struct_field	Lisp_Obarray	struct	union vectorlike_header	0			header	L
 src/lisp.h	struct_field	Lisp_Obarray	struct	Lisp_Object	1			buckets	Lisp_Obarray	yes						
 src/lisp.h	struct_field	Lisp_Obarray	struct	unsigned	0			size_bits	Lisp_Obarray							
 src/lisp.h	struct_field	Lisp_Obarray	struct	unsigned	0			count	Lisp_Obarray							
+src/lisp.h	struct_field	<anon@2453>	struct	struct Lisp_Obarray	1			o	<anon@2453>	yes						
+src/lisp.h	struct_field	<anon@2453>	struct	ptrdiff_t	0			idx	<anon@2453>							
+src/lisp.h	struct_field	<anon@2453>	struct	struct Lisp_Symbol	1			symbol	<anon@2453>	yes						
 src/lisp.h	struct_field	hash_table_test	struct	hash_hash_t (*)	0			hashfn	hash_table_test							
 src/lisp.h	struct_field	hash_table_test	struct	Lisp_Object (*)	0			cmpfn	hash_table_test	yes						
 src/lisp.h	struct_field	hash_table_test	struct	Lisp_Object	0			user_hash_function	hash_table_test	yes						
@@ -2019,6 +2072,19 @@ src/macfont.h	struct_field	mac_glyph_layout	struct	CGFloat	0			advance_delta	mac
 src/macfont.h	struct_field	mac_glyph_layout	struct	CGFloat	0			baseline_delta	mac_glyph_layout							
 src/macfont.h	struct_field	mac_glyph_layout	struct	CGFloat	0			advance	mac_glyph_layout							
 src/macfont.h	struct_field	mac_glyph_layout	struct	CGGlyph	0			glyph_id	mac_glyph_layout							
+src/msdos.h	struct_field	x_menu_struct	struct	int	0			count	x_menu_struct							
+src/msdos.h	struct_field	x_menu_struct	struct	char	2			text	x_menu_struct							
+src/msdos.h	struct_field	x_menu_struct	struct	struct x_menu_struct	2			submenu	x_menu_struct							
+src/msdos.h	struct_field	x_menu_struct	struct	int	1			panenumber	x_menu_struct							
+src/msdos.h	struct_field	x_menu_struct	struct	int	0			allocated	x_menu_struct							
+src/msdos.h	struct_field	x_menu_struct	struct	int	0			panecount	x_menu_struct							
+src/msdos.h	struct_field	x_menu_struct	struct	int	0			width	x_menu_struct							
+src/msdos.h	struct_field	x_menu_struct	struct	const char	2			help_text	x_menu_struct							
+src/nsgui.h	struct_field	_XCharStruct	struct	int	0			rbearing	_XCharStruct							
+src/nsgui.h	struct_field	_XCharStruct	struct	int	0			lbearing	_XCharStruct							
+src/nsgui.h	struct_field	_XCharStruct	struct	int	0			width	_XCharStruct							
+src/nsgui.h	struct_field	_XCharStruct	struct	int	0			ascent	_XCharStruct							
+src/nsgui.h	struct_field	_XCharStruct	struct	int	0			descent	_XCharStruct							
 src/nsterm.h	struct_field	ns_bitmap_record	struct	EmacsImage	1			img	ns_bitmap_record							
 src/nsterm.h	struct_field	ns_bitmap_record	struct	void	1			img	ns_bitmap_record							
 src/nsterm.h	struct_field	ns_bitmap_record	struct	char	1			file	ns_bitmap_record							
@@ -2123,6 +2189,15 @@ src/nsterm.h	struct_field	ns_output	struct	int	0			tool_bar_adjusted	ns_output
 src/nsterm.h	struct_field	x_output	struct	int	0			unused	x_output							
 src/pdumper.h	struct_field	pdumper_loaded_dump	struct	uintptr_t	0			start	pdumper_loaded_dump							
 src/pdumper.h	struct_field	pdumper_loaded_dump	struct	uintptr_t	0			end	pdumper_loaded_dump							
+src/pgtkgui.h	struct_field	_XCharStruct	struct	int	0			rbearing	_XCharStruct							
+src/pgtkgui.h	struct_field	_XCharStruct	struct	int	0			lbearing	_XCharStruct							
+src/pgtkgui.h	struct_field	_XCharStruct	struct	int	0			width	_XCharStruct							
+src/pgtkgui.h	struct_field	_XCharStruct	struct	int	0			ascent	_XCharStruct							
+src/pgtkgui.h	struct_field	_XCharStruct	struct	int	0			descent	_XCharStruct							
+src/pgtkgui.h	struct_field	<anon@60>	struct	int	0			x	<anon@60>							
+src/pgtkgui.h	struct_field	<anon@60>	struct	int	0			y	<anon@60>							
+src/pgtkgui.h	struct_field	<anon@60>	struct	unsigned	0			width	<anon@60>							
+src/pgtkgui.h	struct_field	<anon@60>	struct	unsigned	0			height	<anon@60>							
 src/pgtkterm.h	struct_field	pgtk_bitmap_record	struct	char	1			file	pgtk_bitmap_record							
 src/pgtkterm.h	struct_field	pgtk_bitmap_record	struct	int	0			refcount	pgtk_bitmap_record							
 src/pgtkterm.h	struct_field	pgtk_bitmap_record	struct	int	0			height	pgtk_bitmap_record							
@@ -2815,6 +2890,16 @@ src/syntax.h	struct_field	gl_state_s	struct	ptrdiff_t	0			e_property	gl_state_s
 src/syntax.h	struct_field	gl_state_s	struct	bool	0			e_property_truncated	gl_state_s							
 src/syntax.h	struct_field	gl_state_s	struct	INTERVAL	0			forward_i	gl_state_s	yes						
 src/syntax.h	struct_field	gl_state_s	struct	INTERVAL	0			backward_i	gl_state_s	yes						
+src/systhread.h	struct_field	<anon@96>	struct	struct _CRITICAL_SECTION_DEBUG	1			DebugInfo	<anon@96>							
+src/systhread.h	struct_field	<anon@96>	struct	long	0			LockCount	<anon@96>							
+src/systhread.h	struct_field	<anon@96>	struct	long	0			RecursionCount	<anon@96>							
+src/systhread.h	struct_field	<anon@96>	struct	void	1			OwningThread	<anon@96>							
+src/systhread.h	struct_field	<anon@96>	struct	void	1			LockSemaphore	<anon@96>							
+src/systhread.h	struct_field	<anon@96>	struct	unsigned long	0			SpinCount	<anon@96>							
+src/systhread.h	struct_field	<anon@107>	struct	unsigned	0			wait_count	<anon@107>							
+src/systhread.h	struct_field	<anon@107>	struct	w32thread_critsect	0			wait_count_lock	<anon@107>							
+src/systhread.h	struct_field	<anon@107>	struct	void	1	[CONDV_MAX]		events	<anon@107>							
+src/systhread.h	struct_field	<anon@107>	struct	bool	0			initialized	<anon@107>							
 src/systty.h	struct_field	emacs_tty	struct	struct termios	0			main	emacs_tty							
 src/systty.h	struct_field	emacs_tty	struct	unsigned	0			main	emacs_tty							
 src/termchar.h	struct_field	tty_output	struct	struct tty_display_info	1			display_info	tty_output							
@@ -3044,6 +3129,9 @@ src/thread.h	struct_field	thread_state	struct	char	1			thread_name	thread_state
 src/thread.h	struct_field	thread_state	struct	int	0			not_holding_lock	thread_state							
 src/thread.h	struct_field	thread_state	struct	struct thread_state	1			next_thread	thread_state							
 src/thread.h	struct_field	thread_state	struct	struct bc_thread_state	0			bc	thread_state							
+src/thread.h	struct_field	<anon@247>	struct	struct thread_state	1			owner	<anon@247>							
+src/thread.h	struct_field	<anon@247>	struct	unsigned int	0			count	<anon@247>							
+src/thread.h	struct_field	<anon@247>	struct	sys_cond_t	0			condition	<anon@247>							
 src/thread.h	struct_field	Lisp_Mutex	struct	union vectorlike_header	0			header	Lisp_Mutex							
 src/thread.h	struct_field	Lisp_Mutex	struct	Lisp_Object	0			name	Lisp_Mutex	yes						
 src/thread.h	struct_field	Lisp_Mutex	struct	lisp_mutex_t	0			mutex	Lisp_Mutex							
@@ -3079,6 +3167,22 @@ src/treesit.h	struct_field	Lisp_TS_Query	struct	Lisp_Object	0			language	Lisp_TS
 src/treesit.h	struct_field	Lisp_TS_Query	struct	Lisp_Object	0			source	Lisp_TS_Query	yes						
 src/treesit.h	struct_field	Lisp_TS_Query	struct	TSQuery	1			query	Lisp_TS_Query							
 src/treesit.h	struct_field	Lisp_TS_Query	struct	TSQueryCursor	1			cursor	Lisp_TS_Query							
+src/w32.h	struct_field	<anon@37>	struct	unsigned int	0	[FD_SETSIZE / 32]		bits	<anon@37>							
+src/w32.h	struct_field	_child_process	struct	int	0			fd	_child_process							
+src/w32.h	struct_field	_child_process	struct	int	0			pid	_child_process							
+src/w32.h	struct_field	_child_process	struct	HANDLE	0			char_avail	_child_process							
+src/w32.h	struct_field	_child_process	struct	HANDLE	0			char_consumed	_child_process							
+src/w32.h	struct_field	_child_process	struct	HANDLE	0			thrd	_child_process							
+src/w32.h	struct_field	_child_process	struct	HWND	0			hwnd	_child_process							
+src/w32.h	struct_field	_child_process	struct	PROCESS_INFORMATION	0			procinfo	_child_process							
+src/w32.h	struct_field	_child_process	struct	volatile int	0			status	_child_process							
+src/w32.h	struct_field	_child_process	struct	volatile int	0			errcode	_child_process							
+src/w32.h	struct_field	_child_process	struct	char	0			chr	_child_process							
+src/w32.h	struct_field	_child_process	struct	OVERLAPPED	0			ovl_read	_child_process							
+src/w32.h	struct_field	_child_process	struct	OVERLAPPED	0			ovl_write	_child_process							
+src/w32.h	struct_field	<anon@120>	struct	unsigned	0			flags	<anon@120>							
+src/w32.h	struct_field	<anon@120>	struct	HANDLE	0			hnd	<anon@120>							
+src/w32.h	struct_field	<anon@120>	struct	child_process	1			cp	<anon@120>							
 src/w32font.h	struct_field	w32_metric_cache	struct	short	0			lbearing	w32_metric_cache							
 src/w32font.h	struct_field	w32_metric_cache	struct	short	0			rbearing	w32_metric_cache							
 src/w32font.h	struct_field	w32_metric_cache	struct	short	0			width	w32_metric_cache							
@@ -3097,6 +3201,13 @@ src/w32font.h	struct_field	uniscribe_font_info	struct	double	0			scale	uniscribe
 src/w32font.h	struct_field	uniscribe_font_info	struct	void	1			dwrite_cache	uniscribe_font_info							
 src/w32font.h	struct_field	uniscribe_font_info	struct	float	0			dwrite_font_size	uniscribe_font_info							
 src/w32font.h	struct_field	uniscribe_font_info	struct	bool	0			dwrite_skip_font	uniscribe_font_info							
+src/w32gui.h	struct_field	_XImage	struct	unsigned char	1			data	_XImage							
+src/w32gui.h	struct_field	_XImage	struct	BITMAPINFO	0			info	_XImage							
+src/w32heap.h	struct_field	file_data	struct	char	1			name	file_data							
+src/w32heap.h	struct_field	file_data	struct	unsigned long	0			size	file_data							
+src/w32heap.h	struct_field	file_data	struct	HANDLE	0			file	file_data							
+src/w32heap.h	struct_field	file_data	struct	HANDLE	0			file_mapping	file_data							
+src/w32heap.h	struct_field	file_data	struct	unsigned char	1			file_base	file_data							
 src/w32term.h	struct_field	w32_bitmap_record	struct	Emacs_Pixmap	0			pixmap	w32_bitmap_record							
 src/w32term.h	struct_field	w32_bitmap_record	struct	char	1			file	w32_bitmap_record							
 src/w32term.h	struct_field	w32_bitmap_record	struct	Emacs_Pixmap	0			stipple	w32_bitmap_record							
@@ -3221,11 +3332,39 @@ src/w32term.h	struct_field	scroll_bar	struct	int	0			start	scroll_bar
 src/w32term.h	struct_field	scroll_bar	struct	int	0			end	scroll_bar							
 src/w32term.h	struct_field	scroll_bar	struct	int	0			dragging	scroll_bar							
 src/w32term.h	struct_field	scroll_bar	struct	bool	0			horizontal	scroll_bar							
+src/w32term.h	struct_field	W32Msg	struct	MSG	0			msg	W32Msg							
+src/w32term.h	struct_field	W32Msg	struct	DWORD	0			dwModifiers	W32Msg							
+src/w32term.h	struct_field	W32Msg	struct	RECT	0			rect	W32Msg							
+src/w32term.h	struct_field	deferred_msg	struct	struct deferred_msg	1			next	deferred_msg							
+src/w32term.h	struct_field	deferred_msg	struct	W32Msg	0			w32msg	deferred_msg							
+src/w32term.h	struct_field	deferred_msg	struct	LRESULT	0			result	deferred_msg							
+src/w32term.h	struct_field	deferred_msg	struct	int	0			completed	deferred_msg							
 src/w32term.h	struct_field	notifications_set	struct	LPBYTE	0			notifications	notifications_set							
 src/w32term.h	struct_field	notifications_set	struct	DWORD	0			size	notifications_set							
 src/w32term.h	struct_field	notifications_set	struct	void	1			desc	notifications_set							
 src/w32term.h	struct_field	notifications_set	struct	struct notifications_set	1			next	notifications_set							
 src/w32term.h	struct_field	notifications_set	struct	struct notifications_set	1			prev	notifications_set							
+src/w32term.h	struct_field	tagTRACKMOUSEEVENT	struct	DWORD	0			cbSize	tagTRACKMOUSEEVENT							
+src/w32term.h	struct_field	tagTRACKMOUSEEVENT	struct	DWORD	0			dwFlags	tagTRACKMOUSEEVENT							
+src/w32term.h	struct_field	tagTRACKMOUSEEVENT	struct	HWND	0			hwndTrack	tagTRACKMOUSEEVENT							
+src/w32term.h	struct_field	tagTRACKMOUSEEVENT	struct	DWORD	0			dwHoverTime	tagTRACKMOUSEEVENT							
+src/widgetprv.h	struct_field	<anon@27>	struct	struct frame	1			frame	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	char	1			geometry	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	Boolean	0			iconic	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	int	0			minibuffer	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	Boolean	0			unsplittable	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	int	0			internal_border_width	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	int	0			interline	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	Pixel	0			foreground_pixel	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	Pixel	0			cursor_color	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	Boolean	0			bar_cursor	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	Boolean	0			visual_bell	<anon@27>							
+src/widgetprv.h	struct_field	<anon@27>	struct	int	0			bell_volume	<anon@27>							
+src/widgetprv.h	struct_field	_EmacsFrameRec	struct	CorePart	0			core	_EmacsFrameRec							
+src/widgetprv.h	struct_field	_EmacsFrameRec	struct	EmacsFramePart	0			emacs_frame	_EmacsFrameRec							
+src/widgetprv.h	struct_field	<anon@61>	struct	int	0			dummy	<anon@61>							
+src/widgetprv.h	struct_field	_EmacsFrameClassRec	struct	CoreClassPart	0			core_class	_EmacsFrameClassRec							
+src/widgetprv.h	struct_field	_EmacsFrameClassRec	struct	EmacsFrameClassPart	0			emacs_frame_class	_EmacsFrameClassRec							
 src/window.h	struct_field	cursor_pos	struct	int	0			x	cursor_pos							
 src/window.h	struct_field	cursor_pos	struct	int	0			y	cursor_pos							
 src/window.h	struct_field	cursor_pos	struct	int	0			hpos	cursor_pos							
@@ -3873,6 +4012,9 @@ lib/md5.h	struct_field	md5_ctx	struct	uint32_t	0			D	md5_ctx
 lib/md5.h	struct_field	md5_ctx	struct	uint32_t	0	[2]		total	md5_ctx							
 lib/md5.h	struct_field	md5_ctx	struct	uint32_t	0			buflen	md5_ctx							
 lib/md5.h	struct_field	md5_ctx	struct	uint32_t	0	[32]		buffer	md5_ctx							
+lib/mini-gmp.h	struct_field	<anon@68>	struct	int	0			_mp_alloc	<anon@68>							
+lib/mini-gmp.h	struct_field	<anon@68>	struct	int	0			_mp_size	<anon@68>							
+lib/mini-gmp.h	struct_field	<anon@68>	struct	mp_limb_t	1			_mp_d	<anon@68>							
 lib/readutmp.h	struct_field	gl_utmp	struct	char	1			ut_user	gl_utmp							
 lib/readutmp.h	struct_field	gl_utmp	struct	char	1			ut_id	gl_utmp							
 lib/readutmp.h	struct_field	gl_utmp	struct	char	1			ut_line	gl_utmp							
@@ -3898,11 +4040,39 @@ lib/regex.h	struct_field	re_pattern_buffer	struct	size_t	0			re_nsub	re_pattern_
 lib/regex.h	struct_field	re_registers	struct	__re_size_t	0			num_regs	re_registers							
 lib/regex.h	struct_field	re_registers	struct	regoff_t	1			start	re_registers							
 lib/regex.h	struct_field	re_registers	struct	regoff_t	1			end	re_registers							
-lib/regex_internal.h	struct_field	<anon@354>	union	unsigned char	0			c	<anon@354>							
-lib/regex_internal.h	struct_field	<anon@354>	union	re_bitset_ptr_t	0			sbcset	<anon@354>							
-lib/regex_internal.h	struct_field	<anon@354>	union	re_charset_t	1			mbcset	<anon@354>							
-lib/regex_internal.h	struct_field	<anon@354>	union	Idx	0			idx	<anon@354>							
-lib/regex_internal.h	struct_field	<anon@354>	union	re_context_type	0			ctx_type	<anon@354>							
+lib/regex.h	struct_field	<anon@517>	struct	regoff_t	0			rm_so	<anon@517>							
+lib/regex.h	struct_field	<anon@517>	struct	regoff_t	0			rm_eo	<anon@517>							
+lib/regex_internal.h	struct_field	<anon@250>	struct	Idx	0			alloc	<anon@250>							
+lib/regex_internal.h	struct_field	<anon@250>	struct	Idx	0			nelem	<anon@250>							
+lib/regex_internal.h	struct_field	<anon@250>	struct	Idx	1			elems	<anon@250>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	wchar_t	1			mbchars	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	int32_t	1			coll_syms	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	int32_t	1			equiv_classes	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	uint32_t	1			range_starts	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	uint32_t	1			range_ends	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	wchar_t	1			range_starts	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	wchar_t	1			range_ends	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	wctype_t	1			char_classes	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	unsigned int	0		1	non_match	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	Idx	0			nmbchars	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	Idx	0			ncoll_syms	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	Idx	0			nequiv_classes	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	Idx	0			nranges	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@306>	struct	Idx	0			nchar_classes	<anon@306>							
+lib/regex_internal.h	struct_field	<anon@354>	union	unsigned char	0			c	<anon@352> > <anon@354>							
+lib/regex_internal.h	struct_field	<anon@354>	union	re_bitset_ptr_t	0			sbcset	<anon@352> > <anon@354>							
+lib/regex_internal.h	struct_field	<anon@354>	union	re_charset_t	1			mbcset	<anon@352> > <anon@354>							
+lib/regex_internal.h	struct_field	<anon@354>	union	Idx	0			idx	<anon@352> > <anon@354>							
+lib/regex_internal.h	struct_field	<anon@354>	union	re_context_type	0			ctx_type	<anon@352> > <anon@354>							
+lib/regex_internal.h	struct_field	<anon@352>	struct	<aggregate>	0		False	opr	<anon@352>							
+lib/regex_internal.h	struct_field	<anon@352>	struct	re_token_type_t	0		8	type	<anon@352>							
+lib/regex_internal.h	struct_field	<anon@352>	struct	re_token_type_t	0			type	<anon@352>							
+lib/regex_internal.h	struct_field	<anon@352>	struct	unsigned int	0		10	constraint	<anon@352>							
+lib/regex_internal.h	struct_field	<anon@352>	struct	unsigned int	0		1	duplicated	<anon@352>							
+lib/regex_internal.h	struct_field	<anon@352>	struct	unsigned int	0		1	opt_subexp	<anon@352>							
+lib/regex_internal.h	struct_field	<anon@352>	struct	unsigned int	0		1	accept_mb	<anon@352>							
+lib/regex_internal.h	struct_field	<anon@352>	struct	unsigned int	0		1	mb_partial	<anon@352>							
+lib/regex_internal.h	struct_field	<anon@352>	struct	unsigned int	0		1	word_char	<anon@352>							
 lib/regex_internal.h	struct_field	re_string_t	struct	const unsigned char	1			raw_mbs	re_string_t							
 lib/regex_internal.h	struct_field	re_string_t	struct	unsigned char	1			mbs	re_string_t							
 lib/regex_internal.h	struct_field	re_string_t	struct	wint_t	1			wcs	re_string_t							
@@ -3952,12 +4122,43 @@ lib/regex_internal.h	struct_field	re_dfastate_t	struct	unsigned int	0		1	has_con
 lib/regex_internal.h	struct_field	re_state_table_entry	struct	Idx	0			num	re_state_table_entry							
 lib/regex_internal.h	struct_field	re_state_table_entry	struct	Idx	0			alloc	re_state_table_entry							
 lib/regex_internal.h	struct_field	re_state_table_entry	struct	re_dfastate_t	2			array	re_state_table_entry							
+lib/regex_internal.h	struct_field	<anon@557>	struct	Idx	0			next_idx	<anon@557>							
+lib/regex_internal.h	struct_field	<anon@557>	struct	Idx	0			alloc	<anon@557>							
+lib/regex_internal.h	struct_field	<anon@557>	struct	re_dfastate_t	2			array	<anon@557>							
+lib/regex_internal.h	struct_field	<anon@566>	struct	Idx	0			node	<anon@566>							
+lib/regex_internal.h	struct_field	<anon@566>	struct	Idx	0			str_idx	<anon@566>							
+lib/regex_internal.h	struct_field	<anon@566>	struct	state_array_t	0			path	<anon@566>							
+lib/regex_internal.h	struct_field	<anon@577>	struct	Idx	0			str_idx	<anon@577>							
+lib/regex_internal.h	struct_field	<anon@577>	struct	Idx	0			node	<anon@577>							
+lib/regex_internal.h	struct_field	<anon@577>	struct	state_array_t	1			path	<anon@577>							
+lib/regex_internal.h	struct_field	<anon@577>	struct	Idx	0			alasts	<anon@577>							
+lib/regex_internal.h	struct_field	<anon@577>	struct	Idx	0			nlasts	<anon@577>							
+lib/regex_internal.h	struct_field	<anon@577>	struct	re_sub_match_last_t	2			lasts	<anon@577>							
 lib/regex_internal.h	struct_field	re_backref_cache_entry	struct	Idx	0			node	re_backref_cache_entry							
 lib/regex_internal.h	struct_field	re_backref_cache_entry	struct	Idx	0			str_idx	re_backref_cache_entry							
 lib/regex_internal.h	struct_field	re_backref_cache_entry	struct	Idx	0			subexp_from	re_backref_cache_entry							
 lib/regex_internal.h	struct_field	re_backref_cache_entry	struct	Idx	0			subexp_to	re_backref_cache_entry							
 lib/regex_internal.h	struct_field	re_backref_cache_entry	struct	bitset_word_t	0			eps_reachable_subexps_map	re_backref_cache_entry							
 lib/regex_internal.h	struct_field	re_backref_cache_entry	struct	char	0			more	re_backref_cache_entry							
+lib/regex_internal.h	struct_field	<anon@597>	struct	re_string_t	0			input	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	const re_dfa_t *const	0			dfa	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	int	0			eflags	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	Idx	0			match_last	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	Idx	0			last_node	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	re_dfastate_t	2			state_log	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	Idx	0			state_log_top	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	Idx	0			nbkref_ents	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	Idx	0			abkref_ents	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	struct re_backref_cache_entry	1			bkref_ents	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	int	0			max_mb_elem_len	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	Idx	0			nsub_tops	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	Idx	0			asub_tops	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@597>	struct	re_sub_match_top_t	2			sub_tops	<anon@597>							
+lib/regex_internal.h	struct_field	<anon@620>	struct	re_dfastate_t	2			sifted_states	<anon@620>							
+lib/regex_internal.h	struct_field	<anon@620>	struct	re_dfastate_t	2			limited_states	<anon@620>							
+lib/regex_internal.h	struct_field	<anon@620>	struct	Idx	0			last_node	<anon@620>							
+lib/regex_internal.h	struct_field	<anon@620>	struct	Idx	0			last_str_idx	<anon@620>							
+lib/regex_internal.h	struct_field	<anon@620>	struct	re_node_set	0			limits	<anon@620>							
 lib/regex_internal.h	struct_field	re_fail_stack_ent_t	struct	Idx	0			idx	re_fail_stack_ent_t							
 lib/regex_internal.h	struct_field	re_fail_stack_ent_t	struct	Idx	0			node	re_fail_stack_ent_t							
 lib/regex_internal.h	struct_field	re_fail_stack_ent_t	struct	regmatch_t	1			regs	re_fail_stack_ent_t							
@@ -3997,9 +4198,11 @@ lib/regex_internal.h	struct_field	re_dfa_t	struct	bitset_t	0			word_char	re_dfa_
 lib/regex_internal.h	struct_field	re_dfa_t	struct	reg_syntax_t	0			syntax	re_dfa_t							
 lib/regex_internal.h	struct_field	re_dfa_t	struct	Idx	1			subexp_map	re_dfa_t							
 lib/regex_internal.h	struct_field	re_dfa_t	struct	char	1			re_str	re_dfa_t							
-lib/regex_internal.h	struct_field	<anon@710>	union	unsigned char	0			ch	<anon@710>							
-lib/regex_internal.h	struct_field	<anon@710>	union	unsigned char	1			name	<anon@710>							
-lib/regex_internal.h	struct_field	<anon@710>	union	wchar_t	0			wch	<anon@710>							
+lib/regex_internal.h	struct_field	<anon@707>	struct	bracket_elem_type	0			type	<anon@707>							
+lib/regex_internal.h	struct_field	<anon@710>	union	unsigned char	0			ch	<anon@707> > <anon@710>							
+lib/regex_internal.h	struct_field	<anon@710>	union	unsigned char	1			name	<anon@707> > <anon@710>							
+lib/regex_internal.h	struct_field	<anon@710>	union	wchar_t	0			wch	<anon@707> > <anon@710>							
+lib/regex_internal.h	struct_field	<anon@707>	struct	<aggregate>	0		False	opr	<anon@707>							
 lib/save-cwd.h	struct_field	saved_cwd	struct	int	0			desc	saved_cwd							
 lib/save-cwd.h	struct_field	saved_cwd	struct	char	1			name	saved_cwd							
 lib/sha1.h	struct_field	sha1_ctx	struct	uint32_t	0			A	sha1_ctx							
@@ -4085,6 +4288,264 @@ lib-src/pop.h	struct_field	_popserver	struct	int	0			buffer_size	_popserver
 lib-src/pop.h	struct_field	_popserver	struct	int	0			buffer_index	_popserver							
 lib-src/pop.h	struct_field	_popserver	struct	bool_bf	0		1	in_multi	_popserver							
 lib-src/pop.h	struct_field	_popserver	struct	bool_bf	0		1	trash_started	_popserver							
+lwlib/lwlib-int.h	struct_field	_widget_instance	struct	Widget	0			widget	_widget_instance							
+lwlib/lwlib-int.h	struct_field	_widget_instance	struct	Widget	0			parent	_widget_instance							
+lwlib/lwlib-int.h	struct_field	_widget_instance	struct	Boolean	0			pop_up_p	_widget_instance							
+lwlib/lwlib-int.h	struct_field	_widget_instance	struct	struct widget_xft_data	1			xft_data	_widget_instance							
+lwlib/lwlib-int.h	struct_field	_widget_instance	struct	struct _widget_info	1			info	_widget_instance							
+lwlib/lwlib-int.h	struct_field	_widget_instance	struct	struct _widget_instance	1			next	_widget_instance							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	char	1			type	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	char	1			name	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	LWLIB_ID	0			id	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	widget_value	1			val	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	Boolean	0			busy	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	lw_callback	0			pre_activate_cb	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	lw_callback	0			selection_cb	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	lw_callback	0			post_activate_cb	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	lw_callback	0			highlight_cb	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	struct _widget_instance	1			instances	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_info	struct	struct _widget_info	1			next	_widget_info							
+lwlib/lwlib-int.h	struct_field	_widget_creation_entry	struct	char	1			type	_widget_creation_entry							
+lwlib/lwlib-int.h	struct_field	_widget_creation_entry	struct	widget_creation_function	0			function	_widget_creation_entry							
+lwlib/lwlib-utils.h	struct_field	<anon@23>	struct	cairo_scaled_font_t	1			scaled_font	<anon@23>							
+lwlib/lwlib-utils.h	struct_field	<anon@23>	struct	int	0			ascent	<anon@23>							
+lwlib/lwlib-utils.h	struct_field	<anon@23>	struct	int	0			descent	<anon@23>							
+lwlib/lwlib-utils.h	struct_field	<anon@23>	struct	int	0			height	<anon@23>							
+lwlib/lwlib-utils.h	struct_field	<anon@23>	struct	int	0			max_advance_width	<anon@23>							
+lwlib/lwlib-utils.h	struct_field	<anon@30>	struct	unsigned long	0			pixel	<anon@30>							
+lwlib/lwlib-utils.h	struct_field	<anon@38>	struct	unsigned short	0			width	<anon@38>							
+lwlib/lwlib-utils.h	struct_field	<anon@38>	struct	unsigned short	0			height	<anon@38>							
+lwlib/lwlib-utils.h	struct_field	<anon@38>	struct	short	0			x	<anon@38>							
+lwlib/lwlib-utils.h	struct_field	<anon@38>	struct	short	0			y	<anon@38>							
+lwlib/lwlib-utils.h	struct_field	<anon@38>	struct	short	0			xOff	<anon@38>							
+lwlib/lwlib-utils.h	struct_field	<anon@38>	struct	short	0			yOff	<anon@38>							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	Lisp_Object	0			lname	_widget_value	yes						
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	char	1			name	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	char	1			value	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	Lisp_Object	0			lkey	_widget_value	yes						
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	char	1			key	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	Lisp_Object	0			help	_widget_value	yes						
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	bool	0			enabled	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	bool	0			selected	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	bool	0			edited	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	bool	0			title	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	enum button_type	0			button_type	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	struct _widget_value	1			contents	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	void	1			call_data	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	struct _widget_value	1			next	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	change_type	0			change	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	change_type	0			this_one_change	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	void	1			toolkit_data	_widget_value							
+lwlib/lwlib-widget.h	struct_field	_widget_value	struct	bool	0			free_toolkit_data	_widget_value							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	Widget	0			w	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	Window	0			window	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	Pixmap	0			pixmap	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	Position	0			x	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	Position	0			y	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	Dimension	0			width	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	Dimension	0			height	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	Dimension	0			label_width	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	int	0			max_rest_width	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	Dimension	0			button_width	_window_state							
+lwlib/xlwmenuP.h	struct_field	_window_state	struct	XftDraw	1			xft_draw	_window_state							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XFontSet	0			fontSet	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XFontSetExtents	1			font_extents	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	int	0			default_face	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XftFont	1			xft_font	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XftColor	0			xft_fg	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XftColor	0			xft_bg	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XftColor	0			xft_disabled_fg	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XftColor	0			xft_highlight_fg	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	String	0			fontName	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XFontStruct	1			font	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixel	0			foreground	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixel	0			disabled_foreground	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixel	0			button_foreground	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixel	0			highlight_foreground	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixel	0			highlight_background	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Dimension	0			margin	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Dimension	0			horizontal_spacing	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Dimension	0			vertical_spacing	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Dimension	0			arrow_spacing	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Dimension	0			shadow_thickness	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Dimension	0			border_thickness	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixel	0			top_shadow_color	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixel	0			bottom_shadow_color	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixmap	0			top_shadow_pixmap	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixmap	0			bottom_shadow_pixmap	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixel	0			top_highlight_shadow_color	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixel	0			bottom_highlight_shadow_color	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixmap	0			top_highlight_shadow_pixmap	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixmap	0			bottom_highlight_shadow_pixmap	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Cursor	0			cursor_shape	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XtCallbackList	0			open	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XtCallbackList	0			select	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XtCallbackList	0			highlight	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XtCallbackList	0			enter	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	XtCallbackList	0			leave	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	widget_value	1			contents	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	int	0			horizontal	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Boolean	0			free_top_shadow_color_p	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Boolean	0			free_bottom_shadow_color_p	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Boolean	0			free_top_highlight_shadow_color_p	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Boolean	0			free_bottom_highlight_shadow_color_p	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	int	0			top_depth	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	int	0			old_depth	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	widget_value	2			old_stack	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	int	0			old_stack_length	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	widget_value	1			inside_entry	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	int	0			new_depth	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	widget_value	2			new_stack	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	int	0			new_stack_length	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	window_state	1			windows	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	int	0			windows_length	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			foreground_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			button_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			background_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			disabled_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			highlight_foreground_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			highlight_background_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			inactive_button_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			shadow_top_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			shadow_bottom_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			highlight_shadow_top_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	GC	0			highlight_shadow_bottom_gc	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Cursor	0			cursor	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Boolean	0			popped_up	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenu_part	struct	Pixmap	0			gray_pixmap	_XlwMenu_part							
+lwlib/xlwmenuP.h	struct_field	_XlwMenuRec	struct	CorePart	0			core	_XlwMenuRec							
+lwlib/xlwmenuP.h	struct_field	_XlwMenuRec	struct	XlwMenuPart	0			menu	_XlwMenuRec							
+lwlib/xlwmenuP.h	struct_field	<anon@143>	struct	int	0			dummy	<anon@143>							
+lwlib/xlwmenuP.h	struct_field	_XlwMenuClassRec	struct	CoreClassPart	0			core_class	_XlwMenuClassRec							
+lwlib/xlwmenuP.h	struct_field	_XlwMenuClassRec	struct	XlwMenuClassPart	0			menu_class	_XlwMenuClassRec							
+oldXMenu/X10.h	struct_field	<anon@28>	struct	short	0			x	<anon@28>							
+oldXMenu/X10.h	struct_field	<anon@28>	struct	short	0			y	<anon@28>							
+oldXMenu/X10.h	struct_field	<anon@28>	struct	unsigned short	0			flags	<anon@28>							
+oldXMenu/X10.h	struct_field	_XAssoc	struct	struct _XAssoc	1			next	_XAssoc							
+oldXMenu/X10.h	struct_field	_XAssoc	struct	struct _XAssoc	1			prev	_XAssoc							
+oldXMenu/X10.h	struct_field	_XAssoc	struct	Display	1			display	_XAssoc							
+oldXMenu/X10.h	struct_field	_XAssoc	struct	XID	0			x_id	_XAssoc							
+oldXMenu/X10.h	struct_field	_XAssoc	struct	void	1			data	_XAssoc							
+oldXMenu/X10.h	struct_field	<anon@69>	struct	XAssoc	1			buckets	<anon@69>							
+oldXMenu/X10.h	struct_field	<anon@69>	struct	int	0			size	<anon@69>							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	struct _xmwindow	1			next	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	struct _xmwindow	1			prev	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	XMWType	0			type	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	Window	0			window	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			window_x	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			window_y	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			window_w	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			window_h	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			active	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			activated	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			pad_l1	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	char	1			pad_l2	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			pad_l3	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			pad_l4	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			pad_l5	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			pad_l6	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			pad_l7	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	int	0			pad_l8	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	struct _xmwindow	1			pad_l9	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	char	1			pad_l10	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmwindow	struct	struct _xmwindow	1			pad_l11	_xmwindow							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	struct _xmpane	1			next	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	struct _xmpane	1			prev	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	XMWType	0			type	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	Window	0			window	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			window_x	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			window_y	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			window_w	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			window_h	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			active	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			activated	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			serial	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	char const	1			label	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			label_width	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			label_length	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			label_x	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			label_uy	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			label_ly	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	int	0			s_count	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	struct _xmselect	1			s_list	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	char	1			pad_l10	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmpane	struct	struct _xmwindow	1			pad_l11	_xmpane							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	struct _xmselect	1			next	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	struct _xmselect	1			prev	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	XMWType	0			type	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	Window	0			window	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	Window	0			parent	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			window_x	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			window_y	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			window_w	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			window_h	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			active	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			activated	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			serial	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	char	1			label	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			label_width	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			label_length	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			label_x	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			label_y	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			pad_l7	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	int	0			pad_l8	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	struct _xmwindow	1			pad_l9	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	char	1			data	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	struct _xmpane	1			parent_p	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmselect	struct	char const	1			help_string	_xmselect							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	XMStyle	0			menu_style	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	XMMode	0			menu_mode	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			freeze	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			aeq	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			recompute	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	Window	0			parent	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			width	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			height	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			x_pos	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			y_pos	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	Cursor	0			mouse_cursor	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	XAssocTable	1			assoc_tab	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	XMPane	1			p_list	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	XMStyle	0			p_style	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			p_events	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	XFontStruct	1			p_fnt_info	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	GC	0			pane_GC	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			p_fnt_pad	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	double	0			p_spread	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			p_bdr_width	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			flag_height	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			p_width	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			p_height	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			p_x_off	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			p_y_off	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			p_count	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	XMStyle	0			s_style	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			s_events	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	XFontStruct	1			s_fnt_info	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			s_fnt_pad	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	double	0			s_spread	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			s_bdr_width	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			s_width	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			s_height	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			s_x_off	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			s_y_off	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	int	0			s_count	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	GC	0			normal_select_GC	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	GC	0			inverse_select_GC	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	GC	0			inact_GC	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	unsigned long	0			p_bdr_color	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	unsigned long	0			s_bdr_color	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	unsigned long	0			p_frg_color	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	unsigned long	0			s_frg_color	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	unsigned long	0			bkgnd_color	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	Pixmap	0			p_bdr_pixmap	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	Pixmap	0			s_bdr_pixmap	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	Pixmap	0			p_frg_pixmap	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	Pixmap	0			s_frg_pixmap	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	Pixmap	0			bkgnd_pixmap	_xmenu							
+oldXMenu/XMenu.h	struct_field	_xmenu	struct	Pixmap	0			inact_pixmap	_xmenu							
+exec/exec.h	struct_field	<anon@38>	struct	uint32_t	0			word1	<anon@38>							
+exec/exec.h	struct_field	<anon@38>	struct	uint32_t	0			word2	<anon@38>							
 exec/exec.h	struct_field	elf_header_32	struct	unsigned char	0	[16]		e_ident	elf_header_32							
 exec/exec.h	struct_field	elf_header_32	struct	uint16_t	0			e_type	elf_header_32							
 exec/exec.h	struct_field	elf_header_32	struct	uint16_t	0			e_machine	elf_header_32							
@@ -4169,6 +4630,10 @@ nt/inc/dirent.h	struct_field	dirent	struct	__int64	0			d_time_access	dirent
 nt/inc/dirent.h	struct_field	dirent	struct	__int64	0			d_time_write	dirent							
 nt/inc/dirent.h	struct_field	dirent	struct	_fsize_t	0			d_size	dirent							
 nt/inc/dirent.h	struct_field	dirent	struct	char	0	[MAXNAMLEN * 4 + 1]		d_name	dirent							
+nt/inc/dirent.h	struct_field	<anon@46>	struct	int	0			dd_fd	<anon@46>							
+nt/inc/dirent.h	struct_field	<anon@46>	struct	int	0			dd_loc	<anon@46>							
+nt/inc/dirent.h	struct_field	<anon@46>	struct	int	0			dd_size	<anon@46>							
+nt/inc/dirent.h	struct_field	<anon@46>	struct	char	0	[DIRBLKSIZ]		dd_buf	<anon@46>							
 nt/inc/grp.h	struct_field	group	struct	char	1			gr_name	group							
 nt/inc/grp.h	struct_field	group	struct	gid_t	0			gr_gid	group							
 nt/inc/ms-w32.h	struct_field	sigaction	struct	int	0			sa_flags	sigaction							
@@ -4239,10 +4704,12 @@ src/alloc.c	global	-	-	static struct mem_node	1			mem_root	-
 src/alloc.c	global	-	-	static void	1			min_heap_address	-							
 src/alloc.c	global	-	-	static void	1			max_heap_address	-							
 src/alloc.c	global	-	-	static struct mem_node	0			mem_z	-							
+src/alloc.c	global	-	-	Lisp_Object const	1	[NSTATICS]		staticvec	-	yes						
 src/alloc.c	global	-	-	int	0			staticidx	-							
 src/alloc.c	global	-	-	struct Lisp_Finalizer	0			finalizers	-	yes						
 src/alloc.c	global	-	-	struct Lisp_Finalizer	0			doomed_finalizers	-	yes						
 src/alloc.c	global	-	-	extern void	1			lisp_malloc_loser	-							
+src/alloc.c	global	-	-	void	1			lisp_malloc_loser	-							
 src/alloc.c	global	-	-	static struct ablock	1			free_ablock	-							
 src/alloc.c	global	-	-	static struct interval_block	1			interval_block	-	yes						
 src/alloc.c	global	-	-	static int	0			interval_block_index	-							
@@ -4271,9 +4738,12 @@ src/alloc.c	global	-	-	static bool	0			setjmp_tested_p	-
 src/alloc.c	global	-	-	static int	0			longjmps_done	-							
 src/alloc.c	global	-	-	static struct Lisp_Hash_Table	1			weak_hash_tables	-	yes						
 src/alloc.c	global	-	-	extern Lisp_Object	0	[LAST_MARKED_SIZE]		last_marked	-	yes						
+src/alloc.c	global	-	-	Lisp_Object	0	[LAST_MARKED_SIZE]		last_marked	-	yes						
 src/alloc.c	global	-	-	static int	0			last_marked_index	-							
+src/alloc.c	global	-	-	ptrdiff_t	0			mark_object_loop_halt	-							
 src/alloc.c	global	-	-	static struct mark_stack	0			mark_stk	-							
 src/alloc.c	global	-	-	bool	0			suppress_checking	-							
+src/alloc.c	global	-	-	union enums_for_gdb const EXTERNALLY_VISIBLE	0			gdb_make_enums_visible	-							
 src/android.c	global	-	-	bool	0			android_init_gui	-							
 src/android.c	global	-	-	static int	0			android_api_level	-							
 src/android.c	global	-	-	char	1			android_site_load_path	-							
@@ -4318,6 +4788,7 @@ src/android.c	global	-	-	static struct android_emacs_cursor	0			cursor_class	-
 src/android.c	global	-	-	static struct android_key_character_map	0			key_character_map_class	-							
 src/android.c	global	-	-	static struct android_emacs_handle	0			handle_class	-							
 src/android.c	global	-	-	struct timespec	0			emacs_installation_time	-							
+src/android.c	global	-	-	unsigned int	0			event_serial	-							
 src/android.c	global	-	-	void	1			unused_pointer	-							
 src/android.c	global	-	-	static bool	0			signal_mask_changed_p	-							
 src/android.c	global	-	-	static sigset_t	0			startup_signal_mask	-							
@@ -4345,6 +4816,7 @@ src/androidfont.c	global	-	-	static struct android_emacs_font_object	0			font_ob
 src/androidfont.c	global	-	-	static Lisp_Object	0			font_cache	-	yes	root					
 src/androidfont.c	global	-	-	static jobject	0			font_driver	-							
 src/androidmenu.c	global	-	-	static int	0			popup_activated_flag	-							
+src/androidmenu.c	global	-	-	unsigned int	0			current_menu_serial	-							
 src/androidmenu.c	global	-	-	static struct android_emacs_context_menu	0			menu_class	-							
 src/androidmenu.c	global	-	-	static struct android_emacs_dialog	0			dialog_class	-							
 src/androidselect.c	global	-	-	static struct android_emacs_clipboard	0			clipboard_class	-							
@@ -4356,6 +4828,8 @@ src/androidterm.c	global	-	-	struct android_display_info	1			x_display_list	-
 src/androidterm.c	global	-	-	static bool	0			any_help_event_p	-							
 src/androidterm.c	global	-	-	static double	0			wheel_event_x	-							
 src/androidterm.c	global	-	-	static double	0			wheel_event_y	-							
+src/androidterm.c	global	-	-	static unsigned long	0			edit_counter	-							
+src/androidterm.c	global	-	-	static unsigned long	0			last_edit_counter	-							
 src/androidterm.c	global	-	-	static sem_t	0			edit_sem	-							
 src/androidterm.c	global	-	-	static struct android_extracted_text_request_class	0			request_class	-							
 src/androidterm.c	global	-	-	static struct android_extracted_text_class	0			text_class	-							
@@ -4412,6 +4886,7 @@ src/buffer.c	global	-	-	static int	0			last_per_buffer_idx	-
 src/buffer.c	global	-	-	Lisp_Object	0			Vbuffer_alist	-	yes	root					
 src/buffer.c	global	-	-	static struct sortstrlist	0			overlay_heads	-							
 src/buffer.c	global	-	-	static struct sortstrlist	0			overlay_tails	-							
+src/buffer.c	global	-	-	static unsigned char	1			overlay_str_buf	-							
 src/buffer.c	global	-	-	static ptrdiff_t	0			overlay_str_len	-							
 src/buffer.c	global	-	-	static Lisp_Object	0			last_overlay_modification_hooks	-	yes	root					
 src/buffer.c	global	-	-	static ptrdiff_t	0			last_overlay_modification_hooks_used	-							
@@ -4426,6 +4901,8 @@ src/callproc.c	global	-	-	extern char	2			environ	-
 src/callproc.c	global	-	-	static Lisp_Object	0			Vtemp_file_name_pattern	-	yes	root					
 src/callproc.c	global	-	-	static pid_t	0			synch_process_pid	-							
 src/callproc.c	global	-	-	static Lisp_Object	0			synch_process_tempfile	-	yes	root					
+src/callproc.c	global	-	-	static mode_t const	0			default_output_mode	-							
+src/callproc.c	global	-	-	static mode_t const	0			default_output_mode	-							
 src/casetab.c	global	-	-	Lisp_Object	0			Vascii_downcase_table	-	yes	root					
 src/casetab.c	global	-	-	static Lisp_Object	0			Vascii_upcase_table	-	yes	root					
 src/casetab.c	global	-	-	Lisp_Object	0			Vascii_canon_table	-	yes	root					
@@ -4513,6 +4990,8 @@ src/dispnew.c	global	-	-	static struct run	2			runs	-
 src/dispnew.c	global	-	-	static Lisp_Object	0			frame_and_buffer_state	-	yes	root					
 src/doc.c	global	-	-	static char	1			get_doc_string_buffer	-							
 src/doc.c	global	-	-	static ptrdiff_t	0			get_doc_string_buffer_size	-							
+src/doc.c	global	-	-	static char const	0	[]		sibling_etc	-							
+src/dosfns.c	global	-	-	unsigned char	0	[DOS_COUNTRY_INFO]		dos_country_info	-							
 src/dosfns.c	global	-	-	static unsigned	0			dos_windows_version	-							
 src/dynlib.c	global	-	-	static BOOL	0			g_b_init_get_module_handle_ex	-							
 src/dynlib.c	global	-	-	static DWORD	0			dynlib_last_err	-							
@@ -4526,6 +5005,7 @@ src/emacs.c	global	-	-	extern char	0			etext	-
 src/emacs.c	global	-	-	static const char	0	[]		emacs_version	-							
 src/emacs.c	global	-	-	static const char	0	[]		emacs_copyright	-							
 src/emacs.c	global	-	-	static const char	0	[]		emacs_bugreport	-							
+src/emacs.c	global	-	-	extern char const	0	[]		RCS_Id	-							
 src/emacs.c	global	-	-	Lisp_Object	0			empty_unibyte_string	-	yes	root					
 src/emacs.c	global	-	-	Lisp_Object	0			empty_multibyte_string	-	yes	root					
 src/emacs.c	global	-	-	Lisp_Object	0			Vlibrary_cache	-	yes	root					
@@ -4547,6 +5027,7 @@ src/emacs.c	global	-	-	char	2			initial_argv	-
 src/emacs.c	global	-	-	int	0			initial_argc	-							
 src/emacs.c	global	-	-	char	1			initial_argv0	-							
 src/emacs.c	global	-	-	static char	1			initial_emacs_executable	-							
+src/emacs.c	global	-	-	char const	1			emacs_wd	-							
 src/emacs.c	global	-	-	bool	0			fatal_error_in_progress	-							
 src/emacs.c	global	-	-	static Lisp_Object	0			Vprevious_system_time_locale	-	yes	root					
 src/emacs.c	global	-	-	static Lisp_Object	0			Vprevious_system_messages_locale	-	yes	root					
@@ -4595,6 +5076,7 @@ src/fringe.c	global	-	-	static Lisp_Object	1			fringe_faces	-	yes
 src/fringe.c	global	-	-	static int	0			max_fringe_bitmaps	-							
 src/fringe.c	global	-	-	int	0			max_used_fringe_bitmap	-							
 src/ftcrfont.c	global	-	-	struct font_driver	0			ftcrhbfont_driver	-							
+src/ftfont.c	global	-	-	static struct font_driver const	0			ftfont_driver	-							
 src/ftfont.c	global	-	-	static struct font_driver	0			fthbfont_driver	-							
 src/ftfont.c	global	-	-	static bool	0			fc_initialized	-							
 src/ftfont.c	global	-	-	static FT_Library	0			ft_library	-							
@@ -4667,6 +5149,8 @@ src/haikufns.c	global	-	-	static Lisp_Object	0			tip_last_string	-	yes	root
 src/haikufns.c	global	-	-	static Lisp_Object	0			tip_last_frame	-	yes	root					
 src/haikufns.c	global	-	-	static Lisp_Object	0			tip_last_parms	-	yes	root					
 src/haikufont.c	global	-	-	static Lisp_Object	0			font_cache	-	yes	root					
+src/haikufont.c	global	-	-	static const char *const	0	[1]		haikufont_non_booleans	-							
+src/haikumenu.c	global	-	-	static Lisp_Object *volatile	0			menu_item_selection	-	yes						
 src/haikumenu.c	global	-	-	static struct timespec	0			menu_timer_timespec	-							
 src/haikumenu.c	global	-	-	int	0			popup_activated_p	-							
 src/haikuselect.c	global	-	-	struct frame	1			haiku_dnd_frame	-							
@@ -4701,6 +5185,10 @@ src/inotify.c	global	-	-	static int	0			inotifyfd	-
 src/inotify.c	global	-	-	static Lisp_Object	0			watch_list	-	yes	root					
 src/insdel.c	global	-	-	static Lisp_Object	0			combine_after_change_list	-	yes	root					
 src/insdel.c	global	-	-	static Lisp_Object	0			combine_after_change_buffer	-	yes	root					
+src/keyboard.c	global	-	-	char const	0	[]		DEV_TTY	-							
+src/keyboard.c	global	-	-	char const	0	[]		DEV_TTY	-							
+src/keyboard.c	global	-	-	volatile int	0			interrupt_input_blocked	-							
+src/keyboard.c	global	-	-	volatile bool	0			pending_signals	-							
 src/keyboard.c	global	-	-	KBOARD	1			initial_kboard	-							
 src/keyboard.c	global	-	-	KBOARD	1			current_kboard	-							
 src/keyboard.c	global	-	-	static KBOARD	1			all_kboards	-							
@@ -4756,6 +5244,7 @@ src/keyboard.c	global	-	-	static struct atimer	1			poll_timer	-
 src/keyboard.c	global	-	-	static Lisp_Object	0			poll_timer_time	-	yes	root					
 src/keyboard.c	global	-	-	static Lisp_Object	0			help_form_saved_window_configs	-	yes	root					
 src/keyboard.c	global	-	-	extern int	0			stop_character	-							
+src/keyboard.c	global	-	-	int	0			stop_character	-							
 src/keyboard.c	global	-	-	Lisp_Object	0			pending_funcalls	-	yes	root					
 src/keyboard.c	global	-	-	static Lisp_Object	0			accent_key_syms	-	yes	root					
 src/keyboard.c	global	-	-	static Lisp_Object	0			func_key_syms	-	yes	root					
@@ -4784,6 +5273,7 @@ src/keyboard.c	global	-	-	static int	0			ntab_bar_items	-
 src/keyboard.c	global	-	-	static Lisp_Object	0			tool_bar_items_vector	-	yes	root					
 src/keyboard.c	global	-	-	static Lisp_Object	0			tool_bar_item_properties	-	yes	root					
 src/keyboard.c	global	-	-	static int	0			ntool_bar_items	-							
+src/keyboard.c	global	-	-	static int volatile	0			force_quit_count	-							
 src/keymap.c	global	-	-	static Lisp_Object	0			exclude_keys	-	yes	root					
 src/keymap.c	global	-	-	static Lisp_Object	0			command_remapping_vector	-	yes	root					
 src/keymap.c	global	-	-	static Lisp_Object	0			unicode_case_table	-	yes	root					
@@ -4840,6 +5330,7 @@ src/msdos.c	global	-	-	static int	0			mouse_last_y	-
 src/msdos.c	global	-	-	static int	0	[NUM_MOUSE_BUTTONS]		mouse_button_translate	-							
 src/msdos.c	global	-	-	static int	0			mouse_button_count	-							
 src/msdos.c	global	-	-	static int	0			internal_terminal	-							
+src/msdos.c	global	-	-	extern unsigned char	0			ScreenAttrib	-							
 src/msdos.c	global	-	-	static int	0			screen_face	-							
 src/msdos.c	global	-	-	static int	0			screen_size_X	-							
 src/msdos.c	global	-	-	static int	0			screen_size_Y	-							
@@ -4853,10 +5344,15 @@ src/msdos.c	global	-	-	static int	0			startup_screen_size_X	-
 src/msdos.c	global	-	-	static int	0			startup_screen_size_Y	-							
 src/msdos.c	global	-	-	static int	0			startup_pos_X	-							
 src/msdos.c	global	-	-	static int	0			startup_pos_Y	-							
+src/msdos.c	global	-	-	static unsigned char	0			startup_screen_attrib	-							
 src/msdos.c	global	-	-	static clock_t	0			startup_time	-							
 src/msdos.c	global	-	-	static int	0			term_setup_done	-							
+src/msdos.c	global	-	-	static unsigned short	0			outside_cursor	-							
 src/msdos.c	global	-	-	struct tty_display_info	0			the_only_display_info	-							
 src/msdos.c	global	-	-	struct tty_output	0			the_only_tty_output	-							
+src/msdos.c	global	-	-	static unsigned long	0			screen_old_address	-							
+src/msdos.c	global	-	-	static unsigned short	0			screen_virtual_segment	-							
+src/msdos.c	global	-	-	static unsigned short	0			screen_virtual_offset	-							
 src/msdos.c	global	-	-	static int	0	[2]		initial_screen_colors	-							
 src/msdos.c	global	-	-	static int	0			it_face_override	-							
 src/msdos.c	global	-	-	static int	0			cursor_cleared	-							
@@ -4892,6 +5388,7 @@ src/pgtkfns.c	global	-	-	static Lisp_Object	0			tip_last_frame	-	yes	root
 src/pgtkfns.c	global	-	-	static Lisp_Object	0			tip_last_parms	-	yes	root					
 src/pgtkmenu.c	global	-	-	static int	0			popup_activated_flag	-							
 src/pgtkmenu.c	global	-	-	static bool	0			xg_crazy_callback_abort	-							
+src/pgtkmenu.c	global	-	-	static Lisp_Object *volatile	0			menu_item_selection	-	yes						
 src/pgtkselect.c	global	-	-	static struct pgtk_selection_request	1			selection_request_stack	-							
 src/pgtkselect.c	global	-	-	static Lisp_Object	0			property_change_reply	-	yes	root					
 src/pgtkselect.c	global	-	-	static struct prop_location	1			property_change_reply_object	-							
@@ -4916,9 +5413,11 @@ src/pgtkterm.c	global	-	-	static Lisp_Object	0			window_being_scrolled	-	yes	roo
 src/print.c	global	-	-	static ptrdiff_t	0			print_depth	-							
 src/print.c	global	-	-	static ptrdiff_t	0			new_backquote_output	-							
 src/print.c	global	-	-	static Lisp_Object	0	[PRINT_CIRCLE]		being_printed	-	yes						
+src/print.c	global	-	-	static unsigned int	0			printchar_stdout_last	-							
 src/print.c	global	-	-	static struct print_buffer	0			print_buffer	-							
 src/print.c	global	-	-	static ptrdiff_t	0			print_number_index	-							
 src/print.c	global	-	-	extern bool	0			print_output_debug_flag	-							
+src/print.c	global	-	-	bool	0			print_output_debug_flag	-							
 src/print.c	global	-	-	static Lisp_Object	0			Vprint_variable_mapping	-	yes	root					
 src/print.c	global	-	-	Lisp_Object	0			Vprin1_to_string_buffer	-	yes	root					
 src/print.c	global	-	-	static struct print_pp_stack	0			ppstack	-							
@@ -4944,6 +5443,7 @@ src/process.c	global	-	-	static struct coding_system	1	[FD_SETSIZE]		proc_decode
 src/process.c	global	-	-	static struct coding_system	1	[FD_SETSIZE]		proc_encode_coding_system	-							
 src/process.c	global	-	-	static Lisp_Object	0			deleted_pid_list	-	yes	root					
 src/process.c	global	-	-	static EMACS_INT	0			connect_counter	-							
+src/process.c	global	-	-	static signal_handler_t volatile	0			lib_child_handler	-							
 src/process.c	global	-	-	bool	0			glib_installs_sigchld_handler	-							
 src/profiler.c	global	-	-	static Lisp_Object	0			profiler_cpu_interval	-	yes						
 src/profiler.c	global	-	-	static timer_t	0			profiler_timer	-							
@@ -5026,6 +5526,8 @@ src/term.c	global	-	-	struct tty_display_info	1			gpm_tty	-
 src/term.c	global	-	-	static Lisp_Object	0			last_mouse_frame	-	yes	root					
 src/term.c	global	-	-	static int	0			last_mouse_x	-							
 src/term.c	global	-	-	static int	0			last_mouse_y	-							
+src/term.c	global	-	-	static unsigned char	1			encode_terminal_src	-							
+src/term.c	global	-	-	static unsigned char	1			encode_terminal_dst	-							
 src/term.c	global	-	-	static ptrdiff_t	0			encode_terminal_src_size	-							
 src/term.c	global	-	-	static ptrdiff_t	0			encode_terminal_dst_size	-							
 src/term.c	global	-	-	int	1			char_ins_del_vector	-							
@@ -5057,16 +5559,20 @@ src/textprop.c	global	-	-	Lisp_Object	0			interval_insert_in_front_hooks	-	yes	r
 src/thread.c	global	-	-	struct thread_state	1			current_thread	-							
 src/thread.c	global	-	-	struct thread_state	1			all_threads	-							
 src/thread.c	global	-	-	static sys_mutex_t	0			global_lock	-							
+src/thread.c	global	-	-	extern volatile int	0			interrupt_input_blocked	-							
 src/thread.c	global	-	-	static Lisp_Object	0			last_thread_error	-	yes	root					
 src/timefns.c	global	-	-	static Lisp_Object	0			timespec_hz	-	yes	root					
 src/timefns.c	global	-	-	static Lisp_Object	0			trillion	-	yes	root					
 src/timefns.c	global	-	-	static mpz_t	0			ztrillion	-							
 src/timefns.c	global	-	-	static timezone_t	0			local_tz	-							
+src/timefns.c	global	-	-	static timezone_t const	0			utc_tz	-							
 src/timefns.c	global	-	-	static Lisp_Object	0			flt_radix_power	-	yes	root					
 src/tparam.c	global	-	-	char	1			BC	-							
 src/tparam.c	global	-	-	char	1			UP	-							
 src/tparam.c	global	-	-	static char	0	[50]		tgoto_buf	-							
+src/treesit.c	global	-	-	static struct ts_linecol const	0			TREESIT_BOB_LINECOL	-							
 src/treesit.c	global	-	-	const struct ts_linecol	0			TREESIT_EMPTY_LINECOL	-							
+src/treesit.c	global	-	-	static TSPoint const	0			TREESIT_TS_POINT_1_0	-							
 src/treesit.c	global	-	-	static Lisp_Object	0			Vtreesit_str_libtree_sitter	-	yes	root					
 src/treesit.c	global	-	-	static Lisp_Object	0			Vtreesit_str_tree_sitter	-	yes	root					
 src/treesit.c	global	-	-	static Lisp_Object	0			Vtreesit_str_dot_0	-	yes	root					
@@ -5097,6 +5603,7 @@ src/vm-limit.c	global	-	-	char	0	[1]		data_start	-
 src/vm-limit.c	global	-	-	static enum warnlevel	0			warnlevel	-							
 src/vm-limit.c	global	-	-	static char	1			data_space_start	-							
 src/vm-limit.c	global	-	-	static size_t	0			lim_data	-							
+src/w16select.c	global	-	-	static unsigned char	1			last_clipboard_text	-							
 src/w16select.c	global	-	-	static size_t	0			clipboard_storage_size	-							
 src/w32.c	global	-	-	extern PEXCEPTION_POINTERS	0			excptr	-							
 src/w32.c	global	-	-	PEXCEPTION_POINTERS	0			excptr	-							
@@ -5153,6 +5660,8 @@ src/w32.c	global	-	-	BOOL	0			g_b_init_compare_string_w	-
 src/w32.c	global	-	-	extern BOOL	0			g_b_init_debug_break_process	-							
 src/w32.c	global	-	-	BOOL	0			g_b_init_debug_break_process	-							
 src/w32.c	global	-	-	static GetProcessTimes_Proc	0			get_process_times_fn	-							
+src/w32.c	global	-	-	static const char * const	0			LookupAccountSid_Name	-							
+src/w32.c	global	-	-	static const char * const	0			LookupAccountSid_Name	-							
 src/w32.c	global	-	-	DWORD	0			multiByteToWideCharFlags	-							
 src/w32.c	global	-	-	static int	0			file_name_codepage	-							
 src/w32.c	global	-	-	static char	0	[MAX_UTF8_PATH]		startup_dir	-							
@@ -5188,6 +5697,7 @@ src/w32.c	global	-	-	HANDLE	0			winsock_lib	-
 src/w32.c	global	-	-	static int	0			winsock_inuse	-							
 src/w32.c	global	-	-	int	0			h_errno	-							
 src/w32.c	global	-	-	extern HANDLE	0			interrupt_handle	-							
+src/w32.c	global	-	-	__MINGW_IMPORT int	0			_dstbias	-							
 src/w32.c	global	-	-	extern DWORD	0			dwMainThreadId	-							
 src/w32console.c	global	-	-	static COORD	0			cursor_coords	-							
 src/w32console.c	global	-	-	static HANDLE	0			prev_screen	-							
@@ -5253,6 +5763,8 @@ src/w32fns.c	global	-	-	static SetGestureConfig_proc	0			SetGestureConfig_fn	-
 src/w32fns.c	global	-	-	static FlashWindowEx_Proc	0			flash_window_ex_fn	-							
 src/w32fns.c	global	-	-	extern AppendMenuW_Proc	0			unicode_append_menu	-							
 src/w32fns.c	global	-	-	static int	0			ignore_ime_char	-							
+src/w32fns.c	global	-	-	extern unsigned int	0			msh_mousewheel	-							
+src/w32fns.c	global	-	-	unsigned int	0			msh_mousewheel	-							
 src/w32fns.c	global	-	-	static unsigned	0			menu_free_timer	-							
 src/w32fns.c	global	-	-	static int	0			dpyinfo_refcount	-							
 src/w32fns.c	global	-	-	static HWND	0			w32_visible_system_caret_hwnd	-							
@@ -5271,16 +5783,38 @@ src/w32fns.c	global	-	-	int	0			w32_build_number	-
 src/w32fns.c	global	-	-	static BOOL	0			w32_darkmode	-							
 src/w32fns.c	global	-	-	int	0			os_subtype	-							
 src/w32fns.c	global	-	-	HINSTANCE	0			hinst	-							
+src/w32fns.c	global	-	-	static unsigned int	0			sound_type	-							
 src/w32fns.c	global	-	-	extern HANDLE	0			keyboard_handle	-							
 src/w32fns.c	global	-	-	static int	0	[4]		modifiers	-							
 src/w32fns.c	global	-	-	static int	0			modifiers_recorded	-							
 src/w32fns.c	global	-	-	static int	0			modifier_key_support_tested	-							
 src/w32fns.c	global	-	-	static Lisp_Object	0			w32_grabbed_keys	-	yes	root					
 src/w32fns.c	global	-	-	static deferred_msg	1			deferred_msg_head	-							
+src/w32fns.c	global	-	-	static int	0			after_deadkey	-							
+src/w32fns.c	global	-	-	static Lisp_Object	0			tip_frame	-	yes	root					
+src/w32fns.c	global	-	-	Window	0			tip_window	-							
+src/w32fns.c	global	-	-	static Lisp_Object	0			tip_timer	-	yes	root					
+src/w32fns.c	global	-	-	static Lisp_Object	0			tip_last_string	-	yes	root					
+src/w32fns.c	global	-	-	static Lisp_Object	0			tip_last_frame	-	yes	root					
+src/w32fns.c	global	-	-	static Lisp_Object	0			tip_last_parms	-	yes	root					
+src/w32fns.c	global	-	-	static unsigned short	0			last_tray_notification_id	-							
+src/w32fns.c	global	-	-	static SystemParametersInfoW_Proc	0			system_parameters_info_w_fn	-							
+src/w32fns.c	global	-	-	static GetLastInputInfo_Proc	0			get_last_input_info_fn	-							
+src/w32fns.c	global	-	-	static SetThreadExecutionState_Proc	0			SetThreadExecutionState_fn	-							
+src/w32fns.c	global	-	-	static unsigned int	0			sleep_block_id	-							
+src/w32fns.c	global	-	-	static unsigned int	0			sleep_block_count	-							
+src/w32fns.c	global	-	-	static RegisterSuspendResumeNotification_Proc	0			RegisterSuspendResumeNotification_fn	-							
+src/w32fns.c	global	-	-	static HPOWERNOTIFY	0			sleep_notification_handle	-							
+src/w32fns.c	global	-	-	static LPTOP_LEVEL_EXCEPTION_FILTER	0			prev_exception_handler	-							
+src/w32fns.c	global	-	-	static DWORD	0			except_code	-							
+src/w32fns.c	global	-	-	static PVOID	0			except_addr	-							
+src/w32fns.c	global	-	-	static _resetstkoflw_proc	0			resetstkoflw	-							
 src/w32font.c	global	-	-	static BOOL	0			g_b_init_get_outline_metrics_w	-							
 src/w32font.c	global	-	-	static BOOL	0			g_b_init_get_text_metrics_w	-							
 src/w32font.c	global	-	-	static BOOL	0			g_b_init_get_glyph_outline_w	-							
 src/w32font.c	global	-	-	static BOOL	0			g_b_init_get_char_width_32_w	-							
+src/w32heap.c	global	-	-	static unsigned char	1			data_region_base	-							
+src/w32heap.c	global	-	-	static unsigned char	1			data_region_end	-							
 src/w32heap.c	global	-	-	static HANDLE	0			heap	-							
 src/w32heap.c	global	-	-	malloc_fn	0			the_malloc_fn	-							
 src/w32heap.c	global	-	-	realloc_fn	0			the_realloc_fn	-							
@@ -5391,6 +5925,7 @@ src/w32term.c	global	-	-	static HBITMAP	1			fringe_bmp	-
 src/w32term.c	global	-	-	static int	0			last_mousemove_x	-							
 src/w32term.c	global	-	-	static int	0			last_mousemove_y	-							
 src/w32term.c	global	-	-	static int	0			any_help_event_p	-							
+src/w32term.c	global	-	-	extern unsigned int	0			msh_mousewheel	-							
 src/w32term.c	global	-	-	struct w32_display_info	0			one_w32_display_info	-							
 src/w32term.c	global	-	-	struct w32_display_info	1			x_display_list	-							
 src/w32term.c	global	-	-	static CloseTouchInputHandle_proc	0			pfnCloseTouchInputHandle	-							
@@ -5420,6 +5955,7 @@ src/w32term.c	global	-	-	int	0			w32_message_fd	-
 src/w32term.c	global	-	-	static int	0			temp_index	-							
 src/w32term.c	global	-	-	static short	0	[100]		temp_buffer	-							
 src/w32term.c	global	-	-	static char	0			dbcs_lead	-							
+src/w32term.c	global	-	-	static unsigned short	0			utf16_high	-							
 src/w32term.c	global	-	-	static DWORD	0			utf16_high_modifiers	-							
 src/w32term.c	global	-	-	static int	0			w32_initialized	-							
 src/w32term.c	global	-	-	extern frame_parm_handler	0	[]		w32_frame_parm_handlers	-							
@@ -5485,7 +6021,9 @@ src/xdisp.c	global	-	-	static struct glyph_row	0			scratch_glyph_row	-
 src/xdisp.c	global	-	-	static struct glyph	0	[MAX_SCRATCH_GLYPHS]		scratch_glyphs	-							
 src/xdisp.c	global	-	-	static int	0			last_height	-							
 src/xdisp.c	global	-	-	bool	0			help_echo_showing_p	-							
+src/xdisp.c	global	-	-	extern bool	0			trace_redisplay_p	-							
 src/xdisp.c	global	-	-	bool	0			trace_redisplay_p	-							
+src/xdisp.c	global	-	-	extern bool	0			trace_move	-							
 src/xdisp.c	global	-	-	bool	0			trace_move	-							
 src/xdisp.c	global	-	-	static struct buffer	1			displayed_buffer	-							
 src/xdisp.c	global	-	-	static int	0			clear_face_cache_count	-							
@@ -5501,6 +6039,7 @@ src/xdisp.c	global	-	-	ptrdiff_t	0			help_echo_pos	-
 src/xdisp.c	global	-	-	Lisp_Object	0			previous_help_echo_string	-	yes	root					
 src/xdisp.c	global	-	-	static bool	0			hourglass_shown_p	-							
 src/xdisp.c	global	-	-	static struct atimer	1			hourglass_atimer	-							
+src/xdisp.c	global	-	-	unsigned int	0			redisplay_counter	-							
 src/xdisp.c	global	-	-	static struct frame	1			last_escape_glyph_frame	-							
 src/xdisp.c	global	-	-	static int	0			last_escape_glyph_face_id	-							
 src/xdisp.c	global	-	-	static int	0			last_escape_glyph_merged_face_id	-							
@@ -5524,6 +6063,7 @@ src/xdisp.c	global	-	-	static ptrdiff_t	0			debug_delta	-
 src/xdisp.c	global	-	-	static ptrdiff_t	0			debug_delta_bytes	-							
 src/xdisp.c	global	-	-	static ptrdiff_t	0			debug_end_vpos	-							
 src/xdisp.c	global	-	-	static int	0			buffer_flip_blocked_depth	-							
+src/xdisp.c	global	-	-	static unsigned char	0	[]		invalid_eol_type	-							
 src/xdisp.c	global	-	-	static char	0	[]		lots_of_dashes	-							
 src/xfaces.c	global	-	-	char	0	[]		unspecified_fg	-							
 src/xfaces.c	global	-	-	Lisp_Object	0			Vface_alternative_font_family_alist	-	yes	root					
@@ -5564,11 +6104,14 @@ src/xmenu.c	global	-	-	static int	0			popup_activated_flag	-
 src/xmenu.c	global	-	-	int	0			popup_activated_flag	-							
 src/xmenu.c	global	-	-	static LWLIB_ID	0			next_menubar_widget_id	-							
 src/xmenu.c	global	-	-	static bool	0			xg_crazy_callback_abort	-							
+src/xmenu.c	global	-	-	static Lisp_Object *volatile	0			menu_item_selection	-	yes						
 src/xmenu.c	global	-	-	LWLIB_ID	0			widget_id_tick	-							
 src/xmenu.c	global	-	-	static struct frame	1			menu_help_frame	-							
 src/xrdb.c	global	-	-	static char	1			x_customization_string	-							
+src/xrdb.c	global	-	-	static char const	0	[]		xdefaults	-							
 src/xselect.c	global	-	-	static struct x_selection_request	1			selection_request_stack	-							
 src/xselect.c	global	-	-	static struct transfer	0			outstanding_transfers	-							
+src/xselect.c	global	-	-	static unsigned int	0			selection_serial	-							
 src/xselect.c	global	-	-	static int	0			prop_location_identifier	-							
 src/xselect.c	global	-	-	static Lisp_Object	0			property_change_reply	-	yes	root					
 src/xselect.c	global	-	-	static struct prop_location	1			property_change_reply_object	-							
@@ -5662,6 +6205,7 @@ src/xterm.c	global	-	-	static int	0			x_dnd_wheel_y	-
 src/xterm.c	global	-	-	static int	0			x_dnd_wheel_button	-							
 src/xterm.c	global	-	-	static int	0			x_dnd_wheel_state	-							
 src/xterm.c	global	-	-	static Time	0			x_dnd_wheel_time	-							
+src/xterm.c	global	-	-	static unsigned int	0			x_dnd_keyboard_state	-							
 src/xterm.c	global	-	-	static sigjmp_buf	0			x_dnd_disconnect_handler	-							
 src/xterm.c	global	-	-	static bool	0			x_dnd_inside_handle_one_xevent	-							
 src/xterm.c	global	-	-	static int	0			x_dnd_recursion_depth	-							
@@ -5673,6 +6217,7 @@ src/xterm.c	global	-	-	static int	0			x_dnd_pointer_device	-
 src/xterm.c	global	-	-	static int	0			x_dnd_keyboard_device	-							
 src/xterm.c	global	-	-	static struct x_client_list_window	1			x_dnd_toplevels	-							
 src/xterm.c	global	-	-	static bool	0			x_dnd_use_toplevels	-							
+src/xterm.c	global	-	-	static volatile bool	1			xm_drag_window_error	-							
 src/xterm.c	global	-	-	static const cairo_user_data_key_t	0			xlib_surface_key	-							
 src/xterm.c	global	-	-	static const cairo_user_data_key_t	0			saved_drawable_key	-							
 src/xterm.c	global	-	-	static int	0			max_fringe_bmp	-							
@@ -5699,9 +6244,15 @@ src/xwidget.c	global	-	-	static Lisp_Object	0			internal_xwidget_list	-	yes	root
 src/xwidget.c	global	-	-	static uint32_t	0			xwidget_counter	-							
 src/xwidget.c	global	-	-	static Lisp_Object	0			x_window_to_xwv_map	-	yes	root					
 src/xwidget.c	global	-	-	static Lisp_Object	0			dummy_tooltip_string	-	yes	root					
+lib/allocator.c	global	-	-	struct allocator const	0			stdlib_allocator	-							
+lib/canonicalize-lgpl.c	global	-	-	static char const	0	[]		dir_suffix	-							
+lib/canonicalize-lgpl.c	global	-	-	static char const	0	[]		dir_suffix	-							
+lib/file-has-acl.c	global	-	-	static char const	0	[]		UNKNOWN_SECURITY_CONTEXT	-							
 lib/getdtablesize.c	global	-	-	static int	0			dtablesize	-							
 lib/getloadavg.c	global	-	-	static processor_set_t	0			default_set	-							
 lib/getloadavg.c	global	-	-	static bool	0			getloadavg_initialized	-							
+lib/getloadavg.c	global	-	-	static unsigned int	0			cpus	-							
+lib/getloadavg.c	global	-	-	static unsigned int	0			samples	-							
 lib/getloadavg.c	global	-	-	static int	0			channel	-							
 lib/getloadavg.c	global	-	-	static bool	0			getloadavg_initialized	-							
 lib/getloadavg.c	global	-	-	static long	0			offset	-							
@@ -5716,10 +6267,18 @@ lib/getrandom.c	global	-	-	static BCryptGenRandomFuncType	0			BCryptGenRandomFun
 lib/getrandom.c	global	-	-	static BOOL	0			initialized	-							
 lib/gettimeofday.c	global	-	-	static GetSystemTimePreciseAsFileTimeFuncType	0			GetSystemTimePreciseAsFileTimeFunc	-							
 lib/gettimeofday.c	global	-	-	static BOOL	0			initialized	-							
+lib/md5.c	global	-	-	static const unsigned char	0	[64]		fillbuf	-							
 lib/mini-gmp.c	global	-	-	const int	0			mp_bits_per_limb	-							
 lib/regcomp.c	global	-	-	reg_syntax_t	0			re_syntax_options	-							
 lib/regcomp.c	global	-	-	static struct re_pattern_buffer	0			re_comp_buf	-							
 lib/regex.c	global	-	-	int	0			re_max_failures	-							
+lib/sha1.c	global	-	-	static const unsigned char	0	[64]		fillbuf	-							
+lib/sha256.c	global	-	-	static const unsigned char	0	[64]		fillbuf	-							
+lib/sha512.c	global	-	-	static const unsigned char	0	[128]		fillbuf	-							
+lib/stdc_count_ones.c	global	-	-	signed char	0			_gl_stdbit_popcount_support	-							
+lib/strftime.c	global	-	-	static volatile locale_t	0			c_locale_cache	-							
+lib/strftime.c	global	-	-	static volatile timezone_t	0			utc_timezone_cache	-							
+lib/strftime.c	global	-	-	static CHAR_T const	0	[]		c_ampm_letters	-							
 lib/utimens.c	global	-	-	static int	0			utimensat_works_really	-							
 lib/utimens.c	global	-	-	static int	0			lutimensat_works_really	-							
 lib-src/asset-directory-tool.c	global	-	-	static bool	0			need_file_size	-							
@@ -5764,26 +6323,30 @@ lib-src/ebrowse.c	global	-	-	static int	0			scope_buffer_size	-
 lib-src/ebrowse.c	global	-	-	static int	0			scope_buffer_len	-							
 lib-src/ebrowse.c	global	-	-	static char	1			matching_regexp_buffer	-							
 lib-src/ebrowse.c	global	-	-	static char	1			matching_regexp_end_buf	-							
+lib-src/emacsclient.c	global	-	-	static char const	1			progname	-							
 lib-src/emacsclient.c	global	-	-	static int	0			main_argc	-							
+lib-src/emacsclient.c	global	-	-	static char *const	1			main_argv	-							
 lib-src/emacsclient.c	global	-	-	static bool	0			nowait	-							
 lib-src/emacsclient.c	global	-	-	static bool	0			quiet	-							
 lib-src/emacsclient.c	global	-	-	static bool	0			suppress_output	-							
 lib-src/emacsclient.c	global	-	-	static bool	0			eval	-							
 lib-src/emacsclient.c	global	-	-	static bool	0			create_frame	-							
 lib-src/emacsclient.c	global	-	-	static bool	0			reuse_frame	-							
+lib-src/emacsclient.c	global	-	-	static char const	1			display	-							
+lib-src/emacsclient.c	global	-	-	static char const	1			alt_display	-							
 lib-src/emacsclient.c	global	-	-	static char	1			parent_id	-							
 lib-src/emacsclient.c	global	-	-	static bool	0			tty	-							
 lib-src/emacsclient.c	global	-	-	static char	1			alternate_editor	-							
+lib-src/emacsclient.c	global	-	-	static char const	1			socket_name	-							
+lib-src/emacsclient.c	global	-	-	static char const	1			server_file	-							
 lib-src/emacsclient.c	global	-	-	static intmax_t	0			timeout	-							
+lib-src/emacsclient.c	global	-	-	static char const	1			tramp_prefix	-							
 lib-src/emacsclient.c	global	-	-	static pid_t	0			emacs_pid	-							
+lib-src/emacsclient.c	global	-	-	static char const	1			frame_parameters	-							
 lib-src/emacsclient.c	global	-	-	static intmax_t	0			w32_timeout	-							
 lib-src/emacsclient.c	global	-	-	static AllowSetForegroundWindow_proc	0			set_fg	-							
 lib-src/emacsclient.c	global	-	-	static RealGetWindowClassA_proc	0			get_wc	-							
-lib-src/etags.c	global	-	-	constant	0			code	-							
-lib-src/etags.c	global	-	-	constant	0			create	-							
-lib-src/etags.c	global	-	-	constant	0			defer	-							
-lib-src/etags.c	global	-	-	constant	0			value	-							
-lib-src/etags.c	global	-	-	constant	0			variable	-							
+lib-src/etags.c	global	-	-	static intmax_t const	0			invalidcharno	-							
 lib-src/etags.c	global	-	-	static const char	1	[]		Go_suffixes	-							
 lib-src/etags.c	global	-	-	static bool	0			with_mercury_definitions	-							
 lib-src/etags.c	global	-	-	static float	0			mercury_heuristics_ratio	-							
@@ -5803,6 +6366,7 @@ lib-src/movemail.c	global	-	-	static char	1			delete_lockname	-
 lib-src/ntlib.c	global	-	-	static HANDLE	0			getppid_parent	-							
 lib-src/ntlib.c	global	-	-	static int	0			getppid_ppid	-							
 lib-src/ntlib.c	global	-	-	static FILETIME	0			utc_base_ft	-							
+lib-src/ntlib.c	global	-	-	static long double	0			utc_base	-							
 lib-src/ntlib.c	global	-	-	static int	0			init	-							
 lib-src/pop.c	global	-	-	char	0	[ERROR_MAX]		pop_error	-							
 lib-src/pop.c	global	-	-	bool	0			pop_debug	-							
