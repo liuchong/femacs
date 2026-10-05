@@ -8,9 +8,12 @@
 // select.
 //
 // **This file is P-86's largest unit (C 21,215 lines) and is being ported in slices.**  This slice
-// is C 1-1112 (through `sfnt_read_cmap_table`); the next live definition is `sfnt_lookup_glyph_0`
-// (C 1117-1125).  The ledger `docs/ports/sfnt.md` carries the C line-range table for C 1-1112 plus
-// the "the remainder" row, the `## Evidence` readings and the `## Deviations`.
+// is C 1-2407: slice 1 (C 1-1112, through `sfnt_read_cmap_table`) plus the glyph lookup routines
+// (C 1114-1465), the table readers (C 1467-1906: `head`, `hhea`, both `loca` forms, `maxp`, `glyf`
+// and the `HAVE_MMAP` pair) and the two glyph outline readers (C 1908-2407).  **The next live
+// definition is C 2413's `sfnt_read_glyph`.**  The ledger `docs/ports/sfnt.md` carries the C
+// line-range table for C 1-2407 plus the "the remainder" row, the `## Evidence` readings and the
+// `## Deviations`.
 //
 // The frozen configuration compiles no `sfnt.o`: `configure.ac` 2645 adds `sfnt.o` to
 // `ANDROID_OBJ` only inside the `XCONFIGURE = android` branch (the `REALLY_ANDROID` one,
@@ -33,9 +36,16 @@
 //     `xmalloc` family, `TEST_STATIC`, `eassert` and `AVOID` (C 51-134), and C 136-138's `#else`
 //     arm with `#include "lisp.h"`.
 //   * C 41-43's `#ifdef HAVE_MMAP` is live on this target (`HAVE_MMAP` is 1 in
-//     docs/baseline/config/darwin-arm64.macros.tsv), so `<sys/mman.h>` is included ungated; the
-//     name has no mirror here (pdumper.rs declares `mmap`/`munmap` in-unit), and nothing in
-//     C 1-1112 calls into it (the `sfnt_map_glyf_table` pair is C 1827-1906).
+//     docs/baseline/config/darwin-arm64.macros.tsv 1469), so `<sys/mman.h>` is included ungated;
+//     the name has no mirror here, and this slice is the first to use what it provides, so the
+//     unit carries C's four prototypes and the five constants (the P-88 ① use-site block above
+//     C 49).  C 1827's `#if defined HAVE_MMAP && !defined TEST` therefore reduces to C's
+//     `TEST` half alone - no `have_mmap` feature exists in docs/baseline/feature-coverage.tsv,
+//     and slice 1 already recorded that ruling for C 41 (the ledger's Owed 4).
+//   * C 1871-1876's `#ifdef HAVE_POSIX_MADVISE` is 1 in the frozen configuration
+//     (docs/baseline/config/darwin-arm64.macros.tsv 1492), so the `posix_madvise` arm is live;
+//     `#elif defined HAVE_MADVISE` (also 1, 1445) is carried under the registered
+//     `no_have_posix_madvise` feature, the `pdumper.rs` 5281-5284 shape.
 //   * C 45-47's `#if defined __GNUC__ && !defined __clang__` guards `#pragma GCC diagnostic
 //     ignored "-Wstringop-overflow"`; there is no Rust counterpart and it is not carried.
 //   * C 224/232's `#ifndef WORDS_BIGENDIAN` is `not (feature = "words_bigendian")`; the other arm
@@ -89,8 +99,40 @@ include!("../lib/include/sys_types.in.rs");            // unistd.h 40: `#include
 include!("../lib/include/errno.in.rs");                // C 38: `#include <errno.h>`
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 include!("../lib/include/alloca.in.rs");               // C 39: `#include <alloca.h>`
-/* C 41-43: `#ifdef HAVE_MMAP` / `#include <sys/mman.h>` - live on this target, no mirror in this
-   tree (see the header).  */
+/* C 41-43: `#ifdef HAVE_MMAP` / `#include <sys/mman.h>` - live on this target (`HAVE_MMAP` is 1
+   in docs/baseline/config/darwin-arm64.macros.tsv 1469), and this slice is the first to name
+   what the include provides (`sfnt_map_glyf_table`/`sfnt_unmap_glyf_table`, C 1827-1906).  The
+   ref tree has no `sys/mman.h`, so the names stand here with C's own prototypes (the P-88 ①
+   shape; `pdumper.rs` 102-166 is the same class of use-site block for `<sys/mman.h>`,
+   `<stdlib.h>`'s `qsort` and `<string.h>`'s `strcat`).  The four constants are the values
+   `pdumper.rs` measured with `clang -E -dM -include sys/mman.h` on the frozen target.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `<sys/mman.h>`: `void *mmap (void *, size_t, int, int, int, off_t);`
+  pub fn mmap (addr: *mut c_void, len: size_t, prot: c_int, flags: c_int, fd: c_int,
+	       offset: off_t) -> *mut c_void;
+  /// C: `<sys/mman.h>`: `int munmap (void *, size_t);`
+  pub fn munmap (addr: *mut c_void, len: size_t) -> c_int;
+  /// C: `<sys/mman.h>`: `int posix_madvise (void *, size_t, int);`
+  pub fn posix_madvise (addr: *mut c_void, len: size_t, advice: c_int) -> c_int;
+  /// C: `<sys/mman.h>`: `int madvise (void *, size_t, int);`
+  pub fn madvise (addr: *mut c_void, len: size_t, advice: c_int) -> c_int;
+}
+/// C: `<sys/mman.h>`: `#define PROT_READ 0x1`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const PROT_READ: c_int = 0x01;
+/// C: `<sys/mman.h>`: `#define MAP_PRIVATE 0x0002`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const MAP_PRIVATE: c_int = 0x0002;
+/// C: `<sys/mman.h>`: `#define MAP_FAILED ((void *) -1)`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const MAP_FAILED: *mut c_void = usize::MAX as *mut c_void;
+/// C: `<sys/mman.h>`: `#define POSIX_MADV_WILLNEED 3`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const POSIX_MADV_WILLNEED: c_int = 3;
+/// C: `<sys/mman.h>`: `#define MADV_WILLNEED 3`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const MADV_WILLNEED: c_int = 3;
 
 /* C 49-56: `#ifdef TEST`, the file's own test harness.  Both arms are carried.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
@@ -1295,4 +1337,1475 @@ pub unsafe extern "C" fn sfnt_read_cmap_table
     }
 
   return cmap;
+}
+
+/* C 1114-1465: the glyph lookup routines.  Six per-format readers behind `sfnt_lookup_glyph`,
+   C's dispatcher; three of the seven are `static`, the helpers the others call
+   (`sfnt_bsearch_above` and its two comparators) are `static` too, and `sfnt_lookup_glyph`
+   itself is `TEST_STATIC` (the `cfg_attr` pair, C 1433).  */
+
+/* Look up the glyph corresponding to CHARACTER in the format 0 cmap
+   FORMAT0.  Return 0 if no glyph was found.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_lookup_glyph_0 (character: sfnt_char,
+			       format0: *mut sfnt_cmap_format_0)
+  -> sfnt_glyph_index                                      // C 1117-1125
+{
+  if character >= 256
+    { return 0; }
+
+  return (*format0).glyph_index_array[character as usize] as sfnt_glyph_index;
+}
+
+/* Look up the glyph corresponding to CHARACTER in the format 2 cmap
+   FORMAT2.  Return 0 if no glyph was found.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_lookup_glyph_2 (character: sfnt_char,
+			       format2: *mut sfnt_cmap_format_2)
+  -> sfnt_glyph_index                                      // C 1131-1181
+{
+  let mut i: c_uchar;
+  let mut k: c_uchar;
+  let mut j: c_uchar;
+  let mut subheader: *mut sfnt_cmap_format_2_subheader;
+  let mut slice: *mut c_uchar;
+  let mut glyph: uint16_t = 0;
+
+  if character > 65535
+    { return 0; }
+
+  i = (character >> 8) as c_uchar;
+  j = (character & 0xff) as c_uchar;
+  k = ((*format2).sub_header_keys[i as usize] / 8) as c_uchar;
+
+  if k != 0
+    {
+      subheader = (*format2).subheaders.offset (k as isize);
+
+      if (*subheader).first_code as c_int <= j as c_int
+	 && j as c_int <= ((*subheader).first_code as c_int
+			   + (*subheader).entry_count as c_int)
+	{
+	  /* id_range_offset is actually the number of bytes past itself
+	     containing the uint16_t ``slice''.  Whether this may be
+	     unaligned is not stated in the specification, but I doubt
+	     it, for that would render values meaningless if the array
+	     were byte swapped when read.  */
+	  slice = &raw mut (*subheader).id_range_offset as *mut c_uchar;
+	  slice = slice.offset ((*subheader).id_range_offset as isize);
+	  slice = slice.offset (((j as c_int - (*subheader).first_code as c_int)
+				 * std::mem::size_of::<uint16_t> () as c_int) as isize);
+
+	  if slice < (*format2).glyph_index_array as *mut c_uchar
+	    || (slice.offset (1)
+		> ((*format2).glyph_index_array.offset ((*format2).num_glyphs as isize)
+		   as *mut c_uchar))
+	    /* The character is out of bounds.  */
+	    { return 0; }
+
+	  memcpy (&raw mut glyph as *mut uint16_t as *mut c_void,
+		  slice as *const c_void,
+		  std::mem::size_of::<uint16_t> ());
+	  return (((glyph as c_int) + ((*subheader).id_delta as c_int)) % 65536)
+	    as sfnt_glyph_index;
+	}
+      else
+	{ return 0; }
+    }
+
+  /* k is 0, so glyph_index_array[j] is the glyph.  */
+  return (if (j as c_int) < ((*format2).num_glyphs as c_int)
+	  { *((*format2).glyph_index_array.offset (j as isize)) as sfnt_glyph_index }
+	  else
+	  { 0 });
+}
+
+/* Like `bsearch', but return the element ordered exactly above KEY if
+   one exists and KEY itself cannot be located.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_bsearch_above (key: *const c_void, base: *const c_void,
+			      nmemb: size_t, size: size_t,
+			      compar: Option<unsafe extern "C" fn (*const c_void,
+								   *const c_void)
+					     -> c_int>)
+  -> *mut c_void                                           // C 1186-1220
+{
+  let mut bytes: *const c_uchar;
+  let mut sample: *const c_uchar;
+  let mut low: size_t;
+  let mut high: size_t;
+  let mut mid: size_t;
+
+  bytes = base as *const c_uchar;
+  low = 0;
+  high = nmemb - 1;
+
+  if nmemb == 0
+    { return std::ptr::null_mut (); }
+
+  while low != high
+    {
+      mid = low + (high - low) / 2;
+      sample = bytes.offset ((mid * size) as isize);
+
+      if (compar.unwrap ()) (key, sample as *const c_void) > 0
+	{ low = mid + 1; }
+      else
+	{ high = mid; }
+    }
+
+  sample = bytes.offset ((low * size) as isize);
+
+  if low == nmemb - 1
+    && (compar.unwrap ()) (key, sample as *const c_void) > 0
+    { return std::ptr::null_mut (); }
+
+  return bytes.offset ((low * size) as isize) as *mut c_void;
+}
+
+/* Compare two uint16_t's.  Used to bisect through a format 4
+   table.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_compare_uint16 (a: *const c_void, b: *const c_void) -> c_int
+{                                                          // C 1225-1229
+  return (*(a as *const uint16_t) as c_int) - (*(b as *const uint16_t) as c_int);
+}
+
+/* Look up the glyph corresponding to CODE in the format 4 cmap
+   FORMAT4, using the table segment SEGMENT.  Value is 0 if no glyph
+   was found.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_lookup_glyph_4_1 (code: uint16_t, segment: uint16_t,
+				 format4: *mut sfnt_cmap_format_4)
+  -> sfnt_glyph_index                                      // C 1235-1262
+{
+  let mut index: *mut uint16_t;
+
+  if (*((*format4).id_range_offset).offset (segment as isize)) != 0
+    {
+      /* id_range_offset is not 0, so the glyph mapping depends on
+	 it.  */
+      index = ((*format4).id_range_offset.offset (segment as isize)
+	       .offset (((*((*format4).id_range_offset).offset (segment as isize)) as c_int / 2)
+			as isize)
+	       .offset ((code as c_int
+			 - (*((*format4).start_code).offset (segment as isize)) as c_int)
+			as isize)) as *mut uint16_t;
+
+      /* Check that index is not out of bounds.  */
+      if index >= (*format4).glyph_index_array.offset ((*format4).glyph_index_size as isize)
+	 || index < (*format4).glyph_index_array
+	{ return 0; }
+
+      /* Return what is in index.  */
+      return (if *index != 0
+	      { (((*((*format4).id_delta).offset (segment as isize)) as c_int
+		  + (*index as c_int)) % 65536) as sfnt_glyph_index }
+	      else
+	      { 0 });
+    }
+
+  /* Otherwise, just add id_delta.  */
+  return (((*((*format4).id_delta).offset (segment as isize)) as c_int
+	   + code as c_int) % 65536) as sfnt_glyph_index;
+}
+
+/* Look up the glyph corresponding to CHARACTER in the format 4 cmap
+   FORMAT4.  Return 0 if no glyph was found.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_lookup_glyph_4 (character: sfnt_char,
+			       format4: *mut sfnt_cmap_format_4)
+  -> sfnt_glyph_index                                      // C 1267-1298
+{
+  let mut segment_address: *mut uint16_t;
+  let mut code: uint16_t;
+  let mut segment: uint16_t;
+  let mut glyph: sfnt_glyph_index;
+
+  if character > 65535
+    { return 0; }
+
+  code = character as uint16_t;
+
+  /* Find the segment ending above or at CHARACTER.  */
+  segment_address = sfnt_bsearch_above (&raw const code as *const c_void,
+					(*format4).end_code as *const c_void,
+					((*format4).seg_count_x2 / 2) as size_t,
+					std::mem::size_of::<uint16_t> (),
+					Some (sfnt_compare_uint16)) as *mut uint16_t;
+  segment = ((segment_address as isize - (*format4).end_code as isize)
+	     / std::mem::size_of::<uint16_t> () as isize) as uint16_t;
+
+  /* If the segment starts too late, return 0.  */
+  if segment_address.is_null ()
+    || (*((*format4).start_code).offset (segment as isize)) as sfnt_char > character
+    { return 0; }
+
+  glyph = sfnt_lookup_glyph_4_1 (character as uint16_t, segment, format4);
+
+  if glyph != 0
+    { return glyph; }
+
+  /* Fail.  */
+  return 0;
+}
+
+/* Look up the glyph corresponding to CHARACTER in the format 6 cmap
+   FORMAT6.  Return 0 if no glyph was found.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_lookup_glyph_6 (character: sfnt_char,
+			       format6: *mut sfnt_cmap_format_6)
+  -> sfnt_glyph_index                                      // C 1303-1313
+{
+  if character < (*format6).first_code as sfnt_char
+    || character >= (((*format6).first_code as c_int
+		      + (*format6).entry_count as c_int) as sfnt_char)
+    { return 0; }
+
+  return *((*format6).glyph_index_array
+	   .offset ((character - (*format6).first_code as sfnt_char) as isize))
+    as sfnt_glyph_index;
+}
+
+/* Compare the sfnt_char A with B's end code.  Employed to bisect
+   through a format 8 or 12 table.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_compare_char (a: *const c_void, b: *const c_void) -> c_int
+{                                                          // C 1318-1326
+  let mut group: *mut sfnt_cmap_format_8_or_12_group;
+
+  group = b as *mut sfnt_cmap_format_8_or_12_group;
+
+  return (*(a as *const sfnt_char) as c_int) - (*group).end_char_code as c_int;
+}
+
+/* Look up the glyph corresponding to CHARACTER in the format 8 cmap
+   FORMAT8.  Return 0 if no glyph was found.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_lookup_glyph_8 (character: sfnt_char,
+			       format8: *mut sfnt_cmap_format_8)
+  -> sfnt_glyph_index                                      // C 1331-1375
+{
+  let mut i: uint32_t;
+  let mut group: *mut sfnt_cmap_format_8_or_12_group;
+
+  if character > 0xffffffff
+    { return 0; }
+
+  if (*format8).num_groups > 64
+    {
+      /* This table is large, likely supplied by a CJK or similar
+	 font.  Perform a binary search.  */
+
+      /* Find the group whose END_CHAR_CODE is greater than or equal
+	 to CHARACTER.  */
+
+      group = sfnt_bsearch_above (&raw const character as *const c_void,
+				  (*format8).groups as *const c_void,
+				  (*format8).num_groups as size_t,
+				  std::mem::size_of::<sfnt_cmap_format_8_or_12_group> (),
+				  Some (sfnt_compare_char))
+	as *mut sfnt_cmap_format_8_or_12_group;
+
+      if group.is_null () || (*group).start_char_code > character
+	/* No glyph matches this group.  */
+	{ return 0; }
+
+      /* Otherwise, use this group to map the character to a
+	 glyph.  */
+      return (*group).start_glyph_code
+	+ character
+	- (*group).start_char_code;
+    }
+
+  i = 0;
+  while i < (*format8).num_groups
+    {
+      if (*((*format8).groups.offset (i as isize))).start_char_code <= character
+	&& (*((*format8).groups.offset (i as isize))).end_char_code >= character
+	{
+	  return (*((*format8).groups.offset (i as isize))).start_glyph_code
+	    + (character
+	       - (*((*format8).groups.offset (i as isize))).start_char_code);
+	}
+      i += 1;
+    }
+
+  return 0;
+}
+
+/* Look up the glyph corresponding to CHARACTER in the format 12 cmap
+   FORMAT12.  Return 0 if no glyph was found.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_lookup_glyph_12 (character: sfnt_char,
+				format12: *mut sfnt_cmap_format_12)
+  -> sfnt_glyph_index                                      // C 1380-1424
+{
+  let mut i: uint32_t;
+  let mut group: *mut sfnt_cmap_format_8_or_12_group;
+
+  if character > 0xffffffff
+    { return 0; }
+
+  if (*format12).num_groups > 64
+    {
+      /* This table is large, likely supplied by a CJK or similar
+	 font.  Perform a binary search.  */
+
+      /* Find the group whose END_CHAR_CODE is greater than or equal
+	 to CHARACTER.  */
+
+      group = sfnt_bsearch_above (&raw const character as *const c_void,
+				  (*format12).groups as *const c_void,
+				  (*format12).num_groups as size_t,
+				  std::mem::size_of::<sfnt_cmap_format_8_or_12_group> (),
+				  Some (sfnt_compare_char))
+	as *mut sfnt_cmap_format_8_or_12_group;
+
+      if group.is_null () || (*group).start_char_code > character
+	/* No glyph matches this group.  */
+	{ return 0; }
+
+      /* Otherwise, use this group to map the character to a
+	 glyph.  */
+      return (*group).start_glyph_code
+	+ character
+	- (*group).start_char_code;
+    }
+
+  i = 0;
+  while i < (*format12).num_groups
+    {
+      if (*((*format12).groups.offset (i as isize))).start_char_code <= character
+	&& (*((*format12).groups.offset (i as isize))).end_char_code >= character
+	{
+	  return (*((*format12).groups.offset (i as isize))).start_glyph_code
+	    + (character
+	       - (*((*format12).groups.offset (i as isize))).start_char_code);
+	}
+      i += 1;
+    }
+
+  return 0;
+}
+
+/* Look up the glyph index corresponding to the character CHARACTER,
+   which must be in the correct encoding for the cmap table pointed to
+   by DATA.
+
+   DATA must be either a format 0, 2, 4, 6, 8 or 12 cmap table, else
+   behavior is undefined.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_lookup_glyph (character: sfnt_char,
+					    data: *mut sfnt_cmap_encoding_subtable_data)
+  -> sfnt_glyph_index                                      // C 1433-1465
+{
+  match (*data).format
+    {
+    0 =>							/* C 1439: `case 0:`.  */
+      return (sfnt_lookup_glyph_0 (character,
+				   data as *mut sfnt_cmap_format_0)),
+
+    2 =>							/* C 1443: `case 2:`.  */
+      return (sfnt_lookup_glyph_2 (character,
+				   data as *mut sfnt_cmap_format_2)),
+
+    4 =>							/* C 1447: `case 4:`.  */
+      return (sfnt_lookup_glyph_4 (character,
+				   data as *mut sfnt_cmap_format_4)),
+
+    6 =>							/* C 1451: `case 6:`.  */
+      return (sfnt_lookup_glyph_6 (character,
+				   data as *mut sfnt_cmap_format_6)),
+
+    8 =>							/* C 1455: `case 8:`.  */
+      return (sfnt_lookup_glyph_8 (character,
+				   data as *mut sfnt_cmap_format_8)),
+
+    12 =>							/* C 1459: `case 12:`.  */
+      return (sfnt_lookup_glyph_12 (character,
+				    data as *mut sfnt_cmap_format_12)),
+
+    _ =>							/* C 1462: the `switch` falls out.  */
+      {}
+    }
+
+  return 0;
+}
+
+/* C 1467-1469: the form feed and the banner comment C opens this group with ("Header reading
+   routines."); the port keeps the comment text and drops the page separator, exactly as it did
+   for C 343-345.  */
+
+/* Header reading routines.  */
+
+/* Read the head table of a given font FD.  Use the table directory
+   specified in SUBTABLE.
+
+   Return the head table upon success, else NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_head_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_head_table                                 // C 1476-1541
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut head: *mut sfnt_head_table;
+  let mut rc: ssize_t;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_HEAD);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Read the entire table.  */
+  head = xmalloc (std::mem::size_of::<sfnt_head_table> ()) as *mut sfnt_head_table;
+  rc = read (fd, head as *mut c_void, std::mem::size_of::<sfnt_head_table> ());
+
+  if rc < (std::mem::size_of::<sfnt_head_table> () as c_int) as ssize_t
+    {
+      xfree (head as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap the header data.  */
+  sfnt_swap32! (&mut (*head).version);
+  sfnt_swap32! (&mut (*head).revision);
+
+  if (*head).version != 0x00010000
+    {
+      xfree (head as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap the rest of the data.  */
+  sfnt_swap32! (&mut (*head).checksum_adjustment);
+  sfnt_swap32! (&mut (*head).magic);
+
+  if (*head).magic != 0x5f0f3cf5
+    {
+      xfree (head as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  sfnt_swap16! (&mut (*head).flags);
+  sfnt_swap16! (&mut (*head).units_per_em);
+  sfnt_swap32! (&mut (*head).created_high);
+  sfnt_swap32! (&mut (*head).created_low);
+  sfnt_swap32! (&mut (*head).modified_high);
+  sfnt_swap32! (&mut (*head).modified_low);
+  sfnt_swap16! (&mut (*head).xmin);
+  sfnt_swap16! (&mut (*head).xmax);
+  sfnt_swap16! (&mut (*head).ymin);
+  sfnt_swap16! (&mut (*head).ymax);
+  sfnt_swap16! (&mut (*head).mac_style);
+  sfnt_swap16! (&mut (*head).lowest_rec_ppem);
+  sfnt_swap16! (&mut (*head).font_direction_hint);
+  sfnt_swap16! (&mut (*head).index_to_loc_format);
+  sfnt_swap16! (&mut (*head).glyph_data_format);
+
+  return head;
+}
+
+/* Read the hhea table of a given font FD.  Use the table directory
+   specified in SUBTABLE.
+
+   Return the head table upon success, else NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_hhea_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_hhea_table                                 // C 1548-1607
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut hhea: *mut sfnt_hhea_table;
+  let mut rc: ssize_t;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_HHEA);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Check the length is right.  */
+  if (*directory).length as size_t != std::mem::size_of::<sfnt_hhea_table> ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Read the entire table.  */
+  hhea = xmalloc (std::mem::size_of::<sfnt_hhea_table> ()) as *mut sfnt_hhea_table;
+  rc = read (fd, hhea as *mut c_void, std::mem::size_of::<sfnt_hhea_table> ());
+
+  if rc < (std::mem::size_of::<sfnt_hhea_table> () as c_int) as ssize_t
+    {
+      xfree (hhea as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap the header data.  */
+  sfnt_swap32! (&mut (*hhea).version);
+
+  if (*hhea).version != 0x00010000
+    {
+      xfree (hhea as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap the rest of the data.  */
+  sfnt_swap16! (&mut (*hhea).ascent);
+  sfnt_swap16! (&mut (*hhea).descent);
+  sfnt_swap16! (&mut (*hhea).line_gap);
+  sfnt_swap16! (&mut (*hhea).advance_width_max);
+  sfnt_swap16! (&mut (*hhea).min_left_side_bearing);
+  sfnt_swap16! (&mut (*hhea).min_right_side_bearing);
+  sfnt_swap16! (&mut (*hhea).x_max_extent);
+  sfnt_swap16! (&mut (*hhea).caret_slope_rise);
+  sfnt_swap16! (&mut (*hhea).caret_slope_run);
+  sfnt_swap16! (&mut (*hhea).reserved1);
+  sfnt_swap16! (&mut (*hhea).reserved2);
+  sfnt_swap16! (&mut (*hhea).reserved3);
+  sfnt_swap16! (&mut (*hhea).reserved4);
+  sfnt_swap16! (&mut (*hhea).metric_data_format);
+  sfnt_swap16! (&mut (*hhea).num_of_long_hor_metrics);
+
+  return hhea;
+}
+
+/* Read a short loca table from the given font FD.  Use the table
+   directory specified in SUBTABLE.
+
+   Return the short table upon success, else NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_loca_table_short (fd: c_int,
+						     subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_loca_table_short                           // C 1614-1652
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut loca: *mut sfnt_loca_table_short;
+  let mut rc: ssize_t;
+  let mut i: c_int;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_LOCA);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Figure out how many glyphs there are based on the length.  */
+  loca = xaddmalloc (std::mem::size_of::<sfnt_loca_table_short> (),
+		     (*directory).length as size_t) as *mut sfnt_loca_table_short;
+  (*loca).offsets = loca.offset (1) as *mut uint16_t;
+  (*loca).num_offsets = ((*directory).length / 2) as size_t;
+
+  /* Read the variable-length table data.  */
+  rc = read (fd, (*loca).offsets as *mut c_void, (*directory).length as size_t);
+  if rc < (*directory).length as ssize_t
+    {
+      xfree (loca as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap each of the offsets.  */
+  i = 0;
+  while (i as size_t) < (*loca).num_offsets
+    {
+      sfnt_swap16! (&mut *((*loca).offsets.offset (i as isize)));
+      i += 1;
+    }
+
+  /* Return the table.  */
+  return loca;
+}
+
+/* Read a long loca table from the given font FD.  Use the table
+   directory specified in SUBTABLE.
+
+   Return the long table upon success, else NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_loca_table_long (fd: c_int,
+						    subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_loca_table_long                            // C 1659-1697
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut loca: *mut sfnt_loca_table_long;
+  let mut rc: ssize_t;
+  let mut i: c_int;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_LOCA);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Figure out how many glyphs there are based on the length.  */
+  loca = xaddmalloc (std::mem::size_of::<sfnt_loca_table_long> (),
+		     (*directory).length as size_t) as *mut sfnt_loca_table_long;
+  (*loca).offsets = loca.offset (1) as *mut uint32_t;
+  (*loca).num_offsets = ((*directory).length / 4) as size_t;
+
+  /* Read the variable-length table data.  */
+  rc = read (fd, (*loca).offsets as *mut c_void, (*directory).length as size_t);
+  if rc < (*directory).length as ssize_t
+    {
+      xfree (loca as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap each of the offsets.  */
+  i = 0;
+  while (i as size_t) < (*loca).num_offsets
+    {
+      sfnt_swap32! (&mut *((*loca).offsets.offset (i as isize)));
+      i += 1;
+    }
+
+  /* Return the table.  */
+  return loca;
+}
+
+/* Read the maxp table from the given font FD.  Use the table
+   directory specified in SUBTABLE.
+
+   Return the maxp table upon success, else NULL.  If the version is
+   0.5, fields past num_glyphs will not be populated.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_maxp_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_maxp_table                                 // C 1705-1781
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut maxp: *mut sfnt_maxp_table;
+  let mut size: size_t;
+  let mut rc: ssize_t;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_MAXP);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* If directory->length is not big enough for version 0.5, punt.  */
+  if ((*directory).length as size_t)
+      < SFNT_ENDOF! (sfnt_maxp_table, num_glyphs, uint16_t)
+    { return std::ptr::null_mut (); }
+
+  /* Allocate the buffer to hold the data.  Then, read
+     directory->length or sizeof *maxp bytes into it, whichever is
+     smaller.  */
+
+  maxp = xmalloc (std::mem::size_of::<sfnt_maxp_table> ()) as *mut sfnt_maxp_table;
+  size = MIN! ((*directory).length as size_t, std::mem::size_of::<sfnt_maxp_table> ());
+  rc = read (fd, maxp as *mut c_void, size);
+
+  if rc == -1 || (rc as size_t) < size
+    {
+      xfree (maxp as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Now, swap version and num_glyphs.  */
+  sfnt_swap32! (&mut (*maxp).version);
+  sfnt_swap16! (&mut (*maxp).num_glyphs);
+
+  /* Reject version 1.0 tables that are too small.  */
+  if (*maxp).version > 0x00005000 && size < std::mem::size_of::<sfnt_maxp_table> ()
+    {
+      xfree (maxp as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* If the table is version 0.5, then this function is done.  */
+  if (*maxp).version == 0x00005000
+    { return maxp; }
+  else if (*maxp).version != 0x00010000
+    {
+      /* Reject invalid versions.  */
+      xfree (maxp as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Otherwise, swap the rest of the fields.  */
+  sfnt_swap16! (&mut (*maxp).max_points);
+  sfnt_swap16! (&mut (*maxp).max_contours);
+  sfnt_swap16! (&mut (*maxp).max_composite_points);
+  sfnt_swap16! (&mut (*maxp).max_composite_contours);
+  sfnt_swap16! (&mut (*maxp).max_zones);
+  sfnt_swap16! (&mut (*maxp).max_twilight_points);
+  sfnt_swap16! (&mut (*maxp).max_storage);
+  sfnt_swap16! (&mut (*maxp).max_function_defs);
+  sfnt_swap16! (&mut (*maxp).max_instruction_defs);
+  sfnt_swap16! (&mut (*maxp).max_stack_elements);
+  sfnt_swap16! (&mut (*maxp).max_size_of_instructions);
+  sfnt_swap16! (&mut (*maxp).max_component_elements);
+  sfnt_swap16! (&mut (*maxp).max_component_depth);
+
+  /* All done.  */
+  return maxp;
+}
+
+/* C 1783-1785: the form feed and the banner comment C opens the next group with ("Glyph
+   outlining generation.").  */
+
+/* Glyph outlining generation.  */
+
+/* Read a glyf table from the given font FD.  Use the table directory
+   specified in SUBTABLE.  The glyph data is not swapped.
+
+   Return the glyf table upon success, else NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_glyf_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_glyf_table                                 // C 1792-1825
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut glyf: *mut sfnt_glyf_table;
+  let mut rc: ssize_t;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_GLYF);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough to hold everything.  */
+  glyf = xaddmalloc (std::mem::size_of::<sfnt_glyf_table> (),
+		     (*directory).length as size_t) as *mut sfnt_glyf_table;
+  (*glyf).size = (*directory).length as size_t;
+  (*glyf).glyphs = glyf.offset (1) as *mut c_uchar;
+
+  /* Read the glyph data.  */
+  rc = read (fd, (*glyf).glyphs as *mut c_void, (*glyf).size);
+  if rc == -1 || (rc as size_t) < (*glyf).size
+    {
+      xfree (glyf as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Return the table.  */
+  return glyf;
+}
+
+/* C 1827-1906: `#if defined HAVE_MMAP && !defined TEST`, the mmap'ed glyf pair.  `HAVE_MMAP`
+   is 1 in the frozen configuration (docs/baseline/config/darwin-arm64.macros.tsv 1469) and
+   docs/baseline/feature-coverage.tsv carries no `have_mmap` row, so the port keeps that half
+   live - the ruling slice 1 recorded for C 41 - and gates C's `!defined TEST` half with
+   `not (feature = "test")`.  C's `#if` has no `#else` arm, so the other arm has no text.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	    not (feature = "test")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfnt_map_glyf_table (fd: c_int,
+					      subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_glyf_table                                 // C 1837-1885
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut glyf: *mut sfnt_glyf_table;
+  let mut glyphs: *mut c_void;
+  let mut offset: size_t;
+  let mut page: size_t;
+  let mut map_offset: size_t;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_GLYF);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Now try to map the glyph data.  Make sure offset is a multiple of
+     the page size.  */
+
+  page = getpagesize () as size_t;
+  offset = (*directory).offset as size_t & !(page - 1);
+
+  /* Figure out how much larger the mapping should be.  */
+  map_offset = (*directory).offset as size_t - offset;
+
+  /* Do the mmap.  */
+  glyphs = mmap (std::ptr::null_mut (), (*directory).length as size_t + map_offset,
+		 PROT_READ, MAP_PRIVATE, fd, offset as off_t);
+
+  if glyphs == MAP_FAILED
+    { return std::ptr::null_mut (); }
+
+  /* An observation is that glyphs tend to be accessed in sequential
+     order and immediately after the font's glyph table is loaded.  */
+
+  /* C 1871-1876: `#ifdef HAVE_POSIX_MADVISE` is 1 in the frozen configuration
+     (docs/baseline/config/darwin-arm64.macros.tsv 1492), so the `posix_madvise` arm is live;
+     `#elif defined HAVE_MADVISE` (also 1, 1445) is carried under the feature the tree
+     registers for `!HAVE_POSIX_MADVISE` (the `pdumper.rs` 5281-5284 shape), and the arm where
+     neither macro is defined has no text in C.  */
+  #[cfg (not (feature = "no_have_posix_madvise"))]
+  {
+    posix_madvise (glyphs, (*directory).length as size_t,
+		   POSIX_MADV_WILLNEED);
+  }
+  #[cfg (feature = "no_have_posix_madvise")]
+  {
+    if cfg! (feature = "have_madvise")
+      { madvise (glyphs, (*directory).length as size_t, MADV_WILLNEED); }
+  }
+
+  /* Allocate the glyf table.  */
+  glyf = xmalloc (std::mem::size_of::<sfnt_glyf_table> ()) as *mut sfnt_glyf_table;
+  (*glyf).size = (*directory).length as size_t;
+  (*glyf).glyphs = (glyphs as *mut c_uchar).offset (map_offset as isize);
+  (*glyf).start = glyphs as *mut c_uchar;
+
+  return glyf;
+}
+
+/* Unmap the mmap'ed glyf table GLYF, then free its associated data.
+   Value is 0 upon success, else 1, in which case GLYF is still freed
+   all the same.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	    not (feature = "test")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfnt_unmap_glyf_table (glyf: *mut sfnt_glyf_table) -> c_int
+{                                                          // C 1891-1904
+  let mut rc: c_int;
+  let mut size: size_t;
+
+  /* Calculate the size of the mapping.  */
+  size = (*glyf).size + (((*glyf).glyphs as isize) - ((*glyf).start as isize)) as size_t;
+
+  rc = munmap ((*glyf).start as *mut c_void, size);
+  xfree (glyf as *mut c_void);
+
+  return (rc != 0) as c_int;
+}
+
+/* C 1906: `#endif /* HAVE_MMAP */`.  */
+
+/* Read the simple glyph outline from the glyph GLYPH from the
+   specified glyf table at the given offset.  Set GLYPH->simple to a
+   non-NULL value upon success, else set it to NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_read_simple_glyph (glyph: *mut sfnt_glyph,
+				  glyf: *mut sfnt_glyf_table,
+				  offset: size_t)          // C 1912-2169
+{
+  let mut simple: *mut sfnt_simple_glyph;
+  let mut min_size: ssize_t;
+  let mut min_size_2: ssize_t;
+  let mut i: c_int;
+  let mut number_of_points: c_int;
+  let mut repeat_count: c_int;
+  let mut instructions_start: *mut c_uchar;
+  let mut flags_start: *mut c_uchar;
+  let mut flags_end: *mut c_uchar;
+  let mut vec_start: *mut c_uchar;
+  let mut delta: int16_t;
+  let mut x: int16_t;
+  let mut y: int16_t;
+
+  (*glyph).simple = std::ptr::null_mut ();
+
+  /* Calculate the minimum size of the glyph data.  This is the size
+     of the instruction length field followed by
+     glyph->number_of_contours * sizeof (uint16_t).  */
+
+  min_size = ((*glyph).number_of_contours as c_int as size_t
+	      * std::mem::size_of::<uint16_t> ()
+	      + std::mem::size_of::<uint16_t> ()) as ssize_t;
+
+  /* Check that the size is big enough.  */
+  if (*glyf).size < (min_size as size_t) || (*glyf).size - (min_size as size_t) < offset
+    { return; }
+
+  /* Allocate enough to read at least that.  */
+  simple = xaddmalloc (std::mem::size_of::<sfnt_simple_glyph> (),
+		       min_size as size_t) as *mut sfnt_simple_glyph;
+  (*simple).end_pts_of_contours = simple.offset (1) as *mut uint16_t;
+  memcpy ((*simple).end_pts_of_contours as *mut c_void,
+	  (*glyf).glyphs.offset (offset as isize) as *const c_void,
+	  min_size as size_t);
+
+  /* This is not really an index into simple->end_pts_of_contours.
+     Rather, it is reading the first word past it.  */
+  (*simple).instruction_length
+    = *((*simple).end_pts_of_contours.offset ((*glyph).number_of_contours as isize));
+
+  /* Swap the contour end point indices and the instruction
+     length.  */
+
+  i = 0;
+  while i < (*glyph).number_of_contours as c_int
+    {
+      sfnt_swap16! (&mut *((*simple).end_pts_of_contours.offset (i as isize)));
+      i += 1;
+    }
+
+  sfnt_swap16! (&mut (*simple).instruction_length);
+
+  /* Based on those values, calculate the maximum size of the
+     following data.  This is the instruction length + the last
+     contour point + the last contour point * uint16_t * 2.  */
+
+  if (*glyph).number_of_contours != 0
+    {
+      number_of_points
+	= *((*simple).end_pts_of_contours
+	    .offset ((*glyph).number_of_contours as isize - 1)) as c_int + 1;
+    }
+  else
+    { number_of_points = 0; }
+
+  (*simple).number_of_points = number_of_points as size_t;
+
+  /* Make simple big enough.  */
+  let mut size: size_t;
+  let (ckd_min_size_2, mul_overflow)
+    = (number_of_points as size_t)
+      .overflowing_mul (std::mem::size_of::<uint16_t> () * 2 + 1);
+  min_size_2 = ckd_min_size_2 as ssize_t;
+  if mul_overflow
+    { memory_full_up (); }
+
+  let (ckd_min_size_2, add_overflow) = min_size_2.overflowing_add ((*simple).instruction_length as ssize_t);
+  min_size_2 = ckd_min_size_2;
+  if add_overflow
+    { memory_full_up (); }
+
+  let (ckd_size, add_overflow) = min_size.overflowing_add (min_size_2);
+  size = ckd_size as size_t;
+  if add_overflow
+    { memory_full_up (); }
+
+  simple = xaddrealloc (simple as *mut c_void, std::mem::size_of::<sfnt_simple_glyph> (),
+			size) as *mut sfnt_simple_glyph;
+  (*simple).end_pts_of_contours = simple.offset (1) as *mut uint16_t;
+
+  /* Set the instruction data pointer and other pointers.
+     simple->instructions comes one word past number_of_contours,
+     because end_pts_of_contours also contains the instruction
+     length.  */
+
+  (*simple).x_coordinates = (*simple).end_pts_of_contours
+    .offset ((*glyph).number_of_contours as isize + 1) as *mut int16_t;
+  (*simple).y_coordinates = (*simple).x_coordinates.offset (number_of_points as isize);
+  (*simple).instructions = (*simple).y_coordinates.offset (number_of_points as isize)
+    as *mut uint8_t;
+  (*simple).flags = (*simple).instructions.offset ((*simple).instruction_length as isize);
+
+  /* Read instructions into the glyph.  */
+  instructions_start = (*glyf).glyphs.offset (offset as isize).offset (min_size as isize);
+
+  if instructions_start >= (*glyf).glyphs.offset ((*glyf).size as isize)
+    || (instructions_start.offset ((*simple).instruction_length as isize)
+	>= (*glyf).glyphs.offset ((*glyf).size as isize))
+    {
+      xfree (simple as *mut c_void);
+      return;
+    }
+
+  memcpy ((*simple).instructions as *mut c_void,
+	  instructions_start as *const c_void,
+	  (*simple).instruction_length as size_t);
+
+  /* Start reading flags.  */
+  flags_start = (*glyf).glyphs.offset (offset as isize).offset (min_size as isize)
+    .offset ((*simple).instruction_length as isize);
+  flags_end = flags_start.offset (number_of_points as isize);
+
+  if flags_start >= (*glyf).glyphs.offset ((*glyf).size as isize)
+    {
+      xfree (simple as *mut c_void);
+      return;
+    }
+
+  i = 0;
+
+  while flags_start < flags_end
+    {
+      if i == number_of_points
+	{ break; }
+
+      if flags_start >= (*glyf).glyphs.offset ((*glyf).size as isize)
+	{ break; }
+
+      *(*simple).flags.offset (i as isize) = *flags_start;
+      i += 1;
+
+      if (*flags_start as c_int & 0o10) != 0		/* REPEAT_FLAG */
+	{
+	  /* The next byte specifies how many times this byte is to be
+	     repeated.  Check that it is in range.  */
+
+	  if flags_start.offset (1) >= (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree (simple as *mut c_void);
+	      return;
+	    }
+
+	  /* Repeat the current flag until
+	     glyph->number_of_points.  */
+
+	  repeat_count = *flags_start.offset (1) as c_int;
+
+	  while i < number_of_points && repeat_count != 0
+	    {
+	      *(*simple).flags.offset (i as isize) = *flags_start;
+	      i += 1;
+	      repeat_count -= 1;
+	    }
+
+	  /* Skip one byte in flags_start.  */
+	  flags_start = flags_start.offset (1);
+	}
+
+      flags_start = flags_start.offset (1);
+    }
+
+  /* If an insufficient number of flags have been read, then the
+     outline is invalid.  */
+
+  if i != number_of_points
+    {
+      xfree (simple as *mut c_void);
+      return;
+    }
+
+  /* Now that the flags have been decoded, start decoding the
+     vectors.  */
+  vec_start = flags_start;
+  i = 0;
+  x = 0;
+
+  /* flags_start is now repurposed to act as a pointer to the flags
+     for the current vector! */
+  flags_start = (*simple).flags;
+
+  while i < number_of_points
+    {
+      delta = 0;
+
+      if ((*flags_start as c_int) & 0o2) != 0		/* X_SHORT_VECTOR */
+	{
+	  /* The next byte is a delta to apply to the previous
+	     value.  Make sure it is in bounds.  */
+
+	  if vec_start.offset (1) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree (simple as *mut c_void);
+	      return;
+	    }
+
+	  delta = *vec_start as int16_t;
+	  vec_start = vec_start.offset (1);
+
+	  if ((*flags_start as c_int) & 0o20) == 0	/* SAME_X */
+	    { delta = -delta; }
+	}
+      else if ((*flags_start as c_int) & 0o20) == 0	/* SAME_X */
+	{
+	  /* The next word is a delta to apply to the previous value.
+	     Make sure it is in bounds.  */
+
+	  if vec_start.offset (2) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree (simple as *mut c_void);
+	      return;
+	    }
+
+	  /* Read the unaligned word and swap it.  */
+	  memcpy (&raw mut delta as *mut int16_t as *mut c_void,
+		  vec_start as *const c_void,
+		  std::mem::size_of::<int16_t> ());
+	  sfnt_swap16! (&mut delta);
+	  vec_start = vec_start.offset (2);
+	}
+
+      /* Apply the delta and set the X value.  */
+      x += delta;
+      *(*simple).x_coordinates.offset (i as isize) = x;
+      i += 1;
+      flags_start = flags_start.offset (1);
+    }
+
+  /* Decode the Y vector.  flags_start is again repurposed to act as a
+     pointer to the flags for the current vector.  */
+  flags_start = (*simple).flags;
+  y = 0;
+  i = 0;
+
+  while i < number_of_points
+    {
+      delta = 0;
+
+      if ((*flags_start as c_int) & 0o4) != 0		/* Y_SHORT_VECTOR */
+	{
+	  /* The next byte is a delta to apply to the previous
+	     value.  Make sure it is in bounds.  */
+
+	  if vec_start.offset (1) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree (simple as *mut c_void);
+	      return;
+	    }
+
+	  delta = *vec_start as int16_t;
+	  vec_start = vec_start.offset (1);
+
+	  if ((*flags_start as c_int) & 0o40) == 0	/* SAME_Y */
+	    { delta = -delta; }
+	}
+      else if ((*flags_start as c_int) & 0o40) == 0	/* SAME_Y */
+	{
+	  /* The next word is a delta to apply to the previous value.
+	     Make sure it is in bounds.  */
+
+	  if vec_start.offset (2) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree (simple as *mut c_void);
+	      return;
+	    }
+
+	  /* Read the unaligned word and swap it.  */
+	  memcpy (&raw mut delta as *mut int16_t as *mut c_void,
+		  vec_start as *const c_void,
+		  std::mem::size_of::<int16_t> ());
+	  sfnt_swap16! (&mut delta);
+	  vec_start = vec_start.offset (2);
+	}
+
+      /* Apply the delta and set the X value.  */
+      y += delta;
+      *(*simple).y_coordinates.offset (i as isize) = y;
+      i += 1;
+      flags_start = flags_start.offset (1);
+    }
+
+  /* All done.  */
+  (*simple).y_coordinates_end = (*simple).y_coordinates.offset (i as isize);
+  (*glyph).simple = simple;
+}
+
+/* Read the compound glyph outline from the glyph GLYPH from the
+   specified glyf table at the given offset.  Set GLYPH->compound to a
+   non-NULL value upon success, else set it to NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_read_compound_glyph (glyph: *mut sfnt_glyph,
+				    glyf: *mut sfnt_glyf_table,
+				    offset: size_t)        // C 2175-2407
+{
+  let mut flags: uint16_t = 0;
+  let mut instruction_length: uint16_t = 0;
+  let mut words: [uint16_t; 2] = [0; 2];
+  let mut words4: [uint16_t; 4] = [0; 4];
+  let mut required_bytes: size_t;
+  let mut num_components: size_t;
+  let mut i: size_t;
+  let mut data: *mut c_uchar;
+  let mut instruction_base: *mut c_uchar;
+
+  /* Assume failure for now.  Figure out how many bytes have to be
+     allocated by reading the compound data.  */
+  (*glyph).compound = std::ptr::null_mut ();
+  required_bytes = 0;
+  num_components = 0;
+  data = (*glyf).glyphs.offset (offset as isize);
+
+  /* Offset could be unaligned.  */
+  loop
+    {
+      if data.offset (2) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	{ return; }
+
+      memcpy (&raw mut flags as *mut uint16_t as *mut c_void,
+	      data as *const c_void,
+	      std::mem::size_of::<uint16_t> ());
+      sfnt_swap16! (&mut flags);
+      data = data.offset (std::mem::size_of::<uint16_t> () as isize);
+
+      /* Require at least one structure to hold this data.  */
+      required_bytes += std::mem::size_of::<sfnt_compound_glyph_component> ();
+      num_components += 1;
+
+      /* Skip past unused data.  */
+      data = data.offset (2);
+
+      if (flags as c_int & 0o1) != 0			/* ARG_1_AND_2_ARE_WORDS */
+	{ data = data.offset ((std::mem::size_of::<int16_t> () * 2) as isize); }
+      else
+	{ data = data.offset ((std::mem::size_of::<int8_t> () * 2) as isize); }
+
+      if (flags as c_int & 0o10) != 0			/* WE_HAVE_A_SCALE */
+	{ data = data.offset (std::mem::size_of::<uint16_t> () as isize); }
+      else if (flags as c_int & 0o100) != 0		/* WE_HAVE_AN_X_AND_Y_SCALE */
+	{ data = data.offset ((std::mem::size_of::<uint16_t> () * 2) as isize); }
+      else if (flags as c_int & 0o200) != 0		/* WE_HAVE_A_TWO_BY_TWO */
+	{ data = data.offset ((std::mem::size_of::<uint16_t> () * 4) as isize); }
+
+      if (flags as c_int & 0o40) == 0			/* MORE_COMPONENTS */
+	{ break; }
+    }
+
+  if (flags as c_int & 0o400) != 0			/* WE_HAVE_INSTRUCTIONS */
+    {
+      /* Figure out the instruction length.  */
+      if data.offset (2) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	{ return; }
+
+      /* Now see how much is required to hold the instruction
+	 data.  */
+      memcpy (&raw mut instruction_length as *mut uint16_t as *mut c_void,
+	      data as *const c_void,
+	      std::mem::size_of::<uint16_t> ());
+      sfnt_swap16! (&mut instruction_length);
+      required_bytes += instruction_length as size_t;
+      data = data.offset (std::mem::size_of::<*mut c_uchar> () as isize
+			  + instruction_length as isize);
+    }
+
+  /* Now allocate the buffer to hold all the glyph data.  */
+  (*glyph).compound = xaddmalloc (std::mem::size_of::<sfnt_compound_glyph> (),
+				  required_bytes) as *mut sfnt_compound_glyph;
+  (*(*glyph).compound).components
+    = (*glyph).compound.offset (1) as *mut sfnt_compound_glyph_component;
+  (*(*glyph).compound).num_components = num_components;
+
+  /* Figure out where instruction data starts.  It comes after
+     glyph->compound->components ends.  */
+  instruction_base
+    = (*(*glyph).compound).components
+      .offset ((*(*glyph).compound).num_components as isize) as *mut c_uchar;
+
+  /* Start reading.  */
+  i = 0;
+  data = (*glyf).glyphs.offset (offset as isize);
+  loop
+    {
+      if data.offset (4) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	{
+	  xfree ((*glyph).compound as *mut c_void);
+	  (*glyph).compound = std::ptr::null_mut ();
+	  return;
+	}
+
+      memcpy (&raw mut flags as *mut uint16_t as *mut c_void,
+	      data as *const c_void,
+	      std::mem::size_of::<uint16_t> ());
+      sfnt_swap16! (&mut flags);
+      data = data.offset (std::mem::size_of::<uint16_t> () as isize);
+      (*((*(*glyph).compound).components.offset (i as isize))).flags = flags;
+
+      memcpy (&raw mut (*((*(*glyph).compound).components.offset (i as isize))).glyph_index
+	      as *mut uint16_t as *mut c_void,
+	      data as *const c_void,
+	      std::mem::size_of::<uint16_t> ());
+      sfnt_swap16! (&mut (*((*(*glyph).compound).components.offset (i as isize))).glyph_index);
+      data = data.offset (std::mem::size_of::<uint16_t> () as isize);
+
+      if (flags as c_int & 0o1) != 0			/* ARG_1_AND_2_ARE_WORDS.  */
+	{
+	  if data.offset (4) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree ((*glyph).compound as *mut c_void);
+	      (*glyph).compound = std::ptr::null_mut ();
+	      return;
+	    }
+
+	  /* Read two words into arg1 and arg2.  */
+	  memcpy (words.as_mut_ptr () as *mut c_void,
+		  data as *const c_void,
+		  std::mem::size_of::<[uint16_t; 2]> ());
+	  sfnt_swap16! (&mut words[0]);
+	  sfnt_swap16! (&mut words[1]);
+
+	  (*((*(*glyph).compound).components.offset (i as isize))).argument1.c = words[0];
+	  (*((*(*glyph).compound).components.offset (i as isize))).argument2.c = words[1];
+	  data = data.offset (std::mem::size_of::<[uint16_t; 2]> () as isize);
+	}
+      else
+	{
+	  if data.offset (2) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree ((*glyph).compound as *mut c_void);
+	      (*glyph).compound = std::ptr::null_mut ();
+	      return;
+	    }
+
+	  /* Read two bytes into arg1 and arg2.  */
+	  (*((*(*glyph).compound).components.offset (i as isize))).argument1.a = *data;
+	  (*((*(*glyph).compound).components.offset (i as isize))).argument2.a
+	    = *data.offset (1);
+	  data = data.offset (2);
+	}
+
+      if (flags as c_int & 0o10) != 0			/* WE_HAVE_A_SCALE */
+	{
+	  if data.offset (2) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree ((*glyph).compound as *mut c_void);
+	      (*glyph).compound = std::ptr::null_mut ();
+	      return;
+	    }
+
+	  /* Read one word into scale.  */
+	  memcpy (&raw mut (*((*(*glyph).compound).components.offset (i as isize))).u.scale
+		  as *mut int16_t as *mut c_void,
+		  data as *const c_void,
+		  std::mem::size_of::<int16_t> ());
+	  sfnt_swap16! (&mut (*((*(*glyph).compound).components.offset (i as isize))).u.scale);
+	  data = data.offset (std::mem::size_of::<int16_t> () as isize);
+	}
+      else if (flags as c_int & 0o100) != 0		/* WE_HAVE_AN_X_AND_Y_SCALE.  */
+	{
+	  if data.offset (4) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree ((*glyph).compound as *mut c_void);
+	      (*glyph).compound = std::ptr::null_mut ();
+	      return;
+	    }
+
+	  /* Read two words into xscale and yscale.  */
+	  memcpy (words.as_mut_ptr () as *mut c_void,
+		  data as *const c_void,
+		  std::mem::size_of::<[uint16_t; 2]> ());
+	  sfnt_swap16! (&mut words[0]);
+	  sfnt_swap16! (&mut words[1]);
+
+	  (*((*(*glyph).compound).components.offset (i as isize))).u.a.xscale
+	    = words[0] as int16_t;
+	  (*((*(*glyph).compound).components.offset (i as isize))).u.a.yscale
+	    = words[1] as int16_t;
+	  data = data.offset (std::mem::size_of::<[uint16_t; 2]> () as isize);
+	}
+      else if (flags as c_int & 0o200) != 0		/* WE_HAVE_A_TWO_BY_TWO */
+	{
+	  if data.offset (8) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	    {
+	      xfree ((*glyph).compound as *mut c_void);
+	      (*glyph).compound = std::ptr::null_mut ();
+	      return;
+	    }
+
+	  /* Read 4 words into the transformation matrix.  */
+	  memcpy (words4.as_mut_ptr () as *mut c_void,
+		  data as *const c_void,
+		  std::mem::size_of::<[uint16_t; 4]> ());
+	  sfnt_swap16! (&mut words4[0]);
+	  sfnt_swap16! (&mut words4[1]);
+	  sfnt_swap16! (&mut words4[2]);
+	  sfnt_swap16! (&mut words4[3]);
+
+	  (*((*(*glyph).compound).components.offset (i as isize))).u.b.xscale
+	    = words4[0] as int16_t;
+	  (*((*(*glyph).compound).components.offset (i as isize))).u.b.scale01
+	    = words4[1] as int16_t;
+	  (*((*(*glyph).compound).components.offset (i as isize))).u.b.scale10
+	    = words4[2] as int16_t;
+	  (*((*(*glyph).compound).components.offset (i as isize))).u.b.yscale
+	    = words4[3] as int16_t;
+	  data = data.offset (std::mem::size_of::<[uint16_t; 4]> () as isize);
+	}
+
+      /* Record the component flags.  */
+      (*((*(*glyph).compound).components.offset (i as isize))).flags = flags;
+
+      i += 1;
+
+      if (flags as c_int & 0o40) == 0			/* MORE_COMPONENTS */
+	{ break; }
+    }
+
+  if (flags as c_int & 0o400) != 0			/* WE_HAVE_INSTR */
+    {
+      /* Figure out the instruction length.  */
+      if data.offset (2) > (*glyf).glyphs.offset ((*glyf).size as isize)
+	{
+	  xfree ((*glyph).compound as *mut c_void);
+	  (*glyph).compound = std::ptr::null_mut ();
+	  return;
+	}
+
+      /* Now see how much is required to hold the instruction
+	 data.  */
+      memcpy (&raw mut (*(*glyph).compound).instruction_length
+	      as *mut uint16_t as *mut c_void,
+	      data as *const c_void,
+	      std::mem::size_of::<uint16_t> ());
+      sfnt_swap16! (&mut (*(*glyph).compound).instruction_length);
+      data = data.offset (2);
+
+      /* Read the instructions.  */
+      (*(*glyph).compound).instructions = instruction_base;
+
+      if data.offset ((*(*glyph).compound).instruction_length as isize)
+	  > (*glyf).glyphs.offset ((*glyf).size as isize)
+	{
+	  xfree ((*glyph).compound as *mut c_void);
+	  (*glyph).compound = std::ptr::null_mut ();
+	  return;
+	}
+
+      memcpy (instruction_base as *mut c_void,
+	      data as *const c_void,
+	      (*(*glyph).compound).instruction_length as size_t);
+    }
+  else
+    {
+      (*(*glyph).compound).instructions = std::ptr::null_mut ();
+      (*(*glyph).compound).instruction_length = 0;
+    }
+
+  /* Data read successfully.  */
+  return;
 }

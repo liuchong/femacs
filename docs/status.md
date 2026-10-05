@@ -7859,3 +7859,30 @@
      （`gtkutil.rs` 因 lane 正在写而进入，`sfntfont.rs`/`w32proc.rs` 早已在内），**没有任何已落地文件因此掉出或新增 failure**。
   ⑤ **未声称**：这条**不改任何移植文本**；`--all` 只给**文件级**判定（逐文件 `- ` 行总数未重测）；
      `#[cfg_attr (feature = …, unsafe (no_mangle))]` 这一极性仍会被当作"没有导出"——这是有意的。
+
+- **3.442 sfnt 切片 2（C 1113-2407）：cmap 的六个查表器、表读取器与两个轮廓读取器（2026-10-05）**：
+  ① **区间**：C 1113-2407（收在 `sfnt_read_compound_glyph` 的 `}`）；**下一个活定义 = C 2413 `sfnt_read_glyph`**。
+     21 个函数落成：`sfnt_lookup_glyph_{0,2,4,4_1,6,8,12}`、`sfnt_lookup_glyph`（六臂 `switch` → `match`）、五个
+     `sfnt_read_*_table`、`sfnt_read_simple_glyph`、`sfnt_read_compound_glyph`；文件门一律
+     `all (feature = "have_android", feature = "not_android_stubify")`，`TEST_STATIC` 一族按
+     `#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]`（门已能读，见 3.441）。
+  ② **行数**：`femacs/src/sfnt.rs` **1,298 → 2,811**（md5 `fccb521e…`）；台账 `docs/ports/sfnt.md` 274 → **320**
+     （`## C line ranges` 26 → 36 行，同时覆盖 `sfnt.c` 21,215 行与 `sfnt.h` 2,151 行）。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**（预期：正文全在 `have_android` 之后）；**翻臂 exit 0 / 0 error /
+     10,128 字节对象**（`--cfg feature="have_android"` + `not_android_stubify`；4 条 warning 全在镜像，**本单元 0 条**）；
+     `check-cond-eval` **31 条件 / 0 unknown / 0 disagreements [VERIFIED]**；`extract-abi --check` 的 `- missing` 由
+     **364 → 343 条**（本切片 21 个自有函数全部匹配；余 184 函数 / 153 宏 / 5 常量 / 1 对象是 remainder）；
+     `check-dead-file-coverage` 36 行 / 0 failure、`check-declarations` 10/0/0、`check-ledger-ticks` 234/0。
+  ④ **真缺陷**：自造 4 类被编译门当场抓出并修（`as T` 紧跟 `<` 被当泛型实参 2 处；6 处 C 的隐式窄化要补 `as int16_t`；
+     1 处裸指针下标 `E0608`；`MIN` 是宏要写 `MIN!`）。**参照自己的 4 处 bug 照录不改**（bug-for-bug）：C 2234 的
+     `data += sizeof data + instruction_length`（加的是指针宽度而不是指令长度）、`hhea` 交换表漏掉 `caret_offset`、
+     C 1284-1288 在 NULL 判定**之前**就算 `segment_address - end_code`、C 1964-1967 越界读
+     `end_pts_of_contours[number_of_contours]`。
+  ⑤ **集成者本轮替它落的账**：`macro-body-notes.tsv` 两行（`sfnt_lookup_glyph_4` → `sfnt_glyph`；`sfnt_lookup_glyph` →
+     `case,switch`；补后本单元 `does not mention` 归零）；`excluded-macros.txt` 一行（`HAVE_MMAP`，kind `config`：冻结配置
+     定义它而 `feature-coverage.tsv` 无对应行，故 C 41-43 与 C 1827 的臂只按 `test` 门带，第二个消费者需要负臂时再注册
+     `have_mmap`）；3.441 的门修复（9 条假 `no_mangle` finding 归零）。**棘轮**：`--write-pending` 由 **79 文件 / 138,742 行**
+     变成 **75 / 101,649**——四条在飞 lane 的文件越过了 10% 阈值，这是**中途读数**、不代表完成。
+  ⑥ **未声称**：**零运行证据**——336 字节空对象与 10,128 字节翻臂对象**都没有跑过**：没开过字体、没读过表目录、没解析过任何
+     cmap/glyf 子表、没 `mmap` 过、没产出任何轮廓；C 2408-21,215 **未移植**（184 个缺失函数就是那条边界）；
+     **预算如实报**：`build-tu` 4 发（限 3，超 1）、`probe` 4 发（限 3，超 1）。
