@@ -10312,3 +10312,28 @@
      **本件没有臂读数**：当前没有一条已测的臂因为缺这条边而红（`fontset`/`dbusbind` 都从别的边拿到了 character.rs），
      所以它是**保真**（P-90 ② 的"镜像照抄 C 的 include 列表"）而不是行为修复，如实记。
   ③ **预算**：`check-all-units` 1 发、`layout-check` 1 发、`check-mirror-dupes` 1 发；未编译任何臂。
+
+- **3.529 镜像轮第十批：`xterm.h` C 69 的 `<gtk/gtk.h>` 边，GTK 臂 13 错 → 1（2026-10-05）**：
+  ① **对象**：`include/xterm.rs` 的 GTK/GDK 字段类型（`GtkWidget` ×9、`GdkCursor`、`GdkGeometry`（**按值**）、
+     `GtkTooltip`、`GtkIMContext`、`GtkWindow`、`GtkCssProvider`）在这个镜像里具名，而 C 的 `xterm.h` 69-70 就是
+     `#ifdef USE_GTK` 下的 `#include <gtk/gtk.h>` / `#include <gdk/gdkx.h>`；该表面在树里**已有唯一的家**
+     `include/gtk.rs`（第三方 SDK 头，参照树里没有对应的 C 文件；十个单元各自 `include!` 它），但 `include/xterm.rs`
+     自己没有这条边 ⇒ 凡经 xterm.h 到达这些字段、又没自己拉 gtk.rs 的单元都吃 `E0425`。
+  ② **改动**：在 C 69 的位置按 C 的门加 `#[cfg (feature = "use_gtk")] include!("gtk.rs");`（注释写明 P-90 ①、
+     已拉它的十个单元、以及 xtask 的去重语义）。**没有**动 `include/gtk.rs` 一个字节。
+  ③ **读数（主判据 = 臂）**：`probe src/xsmfns.rs`（`have_x_sm` + `have_x_windows` + `use_gtk`）：
+     **改前 13 错（1 × `E0080` + 12 × `E0425`）→ 改后 1 错**——剩下的那条是 `include/systime.rs` 27 的
+     "特性↔配置常量一致"断言，**手设 cfg 必然触发**（忠实读法是 `xtask dead-arms` 把常量一起翻；3.520 记过同一行）。
+     `check-all-units` **83 unit(s), 0 failure(s)**（两腿；`use_gtk` 在冻结档为假 ⇒ 这条边对冻结读数不可见，这也正是
+     它一直没被发现的原因）、`layout-check` passed。`check-mirror-dupes` 20 duplicates / **3 failure**：三条**全在两份
+     在飞 lane 的文件里**（`src/xsettings.rs` 的 `g_object_get`；`src/xftfont.rs` 的 `GCBackground`/`GCForeground`），
+     本条改动**新增 0 条**（18→20 的那个 +2 正是 xftfont 那两条）。
+  ④ **未声称与仍欠**：这条边只让**名字**可解析，不说 GTK 行为正确（本机无 GTK 头、无 GTK 运行；GTK 的值在
+     `include/gtk.rs` 里一律标 `placeholder, not GDK's value`）；`include/pgtkterm.rs` 的 C 31 边**仍然欠**，
+     理由是三个已落单元（`src/image.rs`/`src/xwidget.rs`/`src/pgtkfns.rs`）各自带内联 GTK/GDK/cairo 副本，边一落
+     就是 30 条 `E0428`（P-88 ⑤ 的搬移，`docs/ports/include-pgtkterm.md` 已点名）——本轮**没做**，因为同类的一份
+     （`src/xsettings.rs`）正被 lane 书写。`include/xterm.rs` 774 区的 `*mut font` 同理：C 的 `xterm.h` **不**
+     include `font.h`（C 1131 只有 `struct font *`），按 P-72 rule 3 该写无类型指针，但那会波及大量调用点，且
+     `src/xselect.rs` 的 lane 正在用它 ⇒ 留给那两条 lane 收口后一起做。
+  ⑤ **预算与清理**：`probe` 1 发、`check-all-units` 1 发、`layout-check` 1 发、`check-mirror-dupes` 2 发；未跑
+     `xtask --all`/`gate-fast`/`cargo test`；`/tmp/gtk529` 已删。

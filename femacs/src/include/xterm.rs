@@ -41,6 +41,17 @@ include!("dispextern.rs");       // C 129: `#include "dispextern.h"`
 include!("termhooks.rs");        // C 130: `#include "termhooks.h"`
 include!("xlib.rs");             // C 23: `#include <X11/Xlib.h>`
 
+/* C 69-70: the `#ifdef USE_GTK` pair `#include <gtk/gtk.h>` / `#include <gdk/gdkx.h>`.  The
+   surface's single home is `include/gtk.rs` (P-90 (1); it is a third-party SDK header with no C
+   file in the reference tree, so it is not a port target).  Ten units already pull that mirror
+   themselves; this edge is what gives the GTK-naming fields below (`GtkWidget`, `GdkCursor`,
+   `GdkGeometry`, `GtkTooltip`, `GtkIMContext`, `GtkWindow`, `GtkCssProvider`) to the units that
+   reach this header without pulling it - the `xsmfns` GTK arm read 12 x `E0425` for exactly
+   those names (status 3.529).  It is gated like C's pair; `xtask`'s dedupe keeps a second reach
+   from duplicating the text.  */
+#[cfg (feature = "use_gtk")]
+include!("gtk.rs");              // C 69: `#include <gtk/gtk.h>` (and C 70's `<gdk/gdkx.h>`)
+
 /// C 20-21: `#ifndef XTERM_H / #define XTERM_H` - the include guard (its `#endif /* XTERM_H */`
 /// is C 2045).
 #[cfg (feature = "have_x_windows")]
