@@ -7820,3 +7820,27 @@
   ⑤ **未声称**：这是一条**规则**，不是实现——`femacs/src/include/gtk.rs` 与那次 move-back **尚未落地**；
      本机没有 GTK 头（`/opt/homebrew/include/gtk-3.0` 不存在、`pkg-config` 不存在），所以 GTK 侧布局在搬运
      那一轮仍是 `UNVERIFIED`，PGTK 臂在此之前也编不动（`include/pgtkterm.rs` 欠的记录还在欠着）。
+
+- **3.440 `extract-abi` 的一处静默漏读：C 的续行字面量没被剥掉，字面量里的英文词进了 token 比较（2026-10-05）**：
+  ① **症状**：`lib-src/emacsclient.c` 是本轮 `--all` 里最小的一个 FAIL——只剩两行：
+     `function print_help_and_exit does not mention null` 与 `family null: the C body uses it 1 time(s), the port 0`。
+  ② **根因（门自己的一处漏读，不是移植缺陷）**：`body_token_seq` 用 `re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)`
+     剥字符串，而 `.` 不匹配换行 ⇒ **C 的续行字面量（行尾反斜杠）整段没被剥掉**，它的**英文词**进了 token 表：
+     这条函数的帮助文本里有 `if none exists`，于是 C 侧多出一个 `null` 族 token（族 =
+     `null,none,is_none,is_some,null_mut,is_null`），而端口的同一段文本写成一行的转义字面量（Rust 侧被正常剥掉）
+     ⇒ 端口**永远不可能**产生它。实测：`body_tokens` 对这条 C 函数体给出 `null`，对端口同一条函数体给出空集。
+  ③ **处置**：把续行当作字面量的一部分（`"(?:[^"\\]|\\.|\\\n)*"`），并给 token 侧补上自己的自检
+     `TOKEN_SELFTEST` / `token_selftest()`（4 个用例：续行字面量隐藏词、单行字面量隐藏词、**真代码仍然产出族拼写**、
+     续行字面量不吞掉它后面的代码）；`--selftest` 读数 **12 + 4 用例 / 0 failure**。
+  ④ **读数**：`--check emacs/lib-src/emacsclient.c femacs/lib-src/emacsclient.rs` **FAIL → OK（0 条 `- `）**；
+     `--all` 由 **574 done / 2 wip / 14 failing** 变成 **573 done / 2 wip / 15 failing**，差额**已逐条核实**：
+     离开的是 `emacsclient`（本条修复的对象），进入的 `sfntfont.rs` 与 `w32proc.rs` 是**两条在飞 lane 正在写的半成品**
+     （同一分钟内 mtime：`sfntfont.rs` 10:17:54 / 902 行、`w32proc.rs` 10:17:14 / 453 行；同批 `sfnt.rs`
+     1,298 → 2,811、`gtkutil.rs` 11 → 648），不是本条的回归。
+  ⑤ **为什么值得单记一条**：这一类误报**不限于这一个文件**——凡是 C 的消息/帮助文本跨物理行（平台文件几乎全是，
+     正是 `docs/baseline/port-lines-pending.tsv` 里那 79 个待移植文件的主要形态），字面量里的英文词都会进 token 比较，
+     而端口把它们写成一行转义字面量。修的是**门的漏读**，所以它同时把这一类假 FAIL 从后续所有平台单元的读数里拿掉。
+  ⑥ **未声称**：这条**不改任何移植文本**，也不让任何函数的行为更接近参照，只让门的读数与它声称的口径一致；
+     我**没有**逐文件统计 590 个文件的 `- ` 行总数变化（只核对了 `--all` 的**文件级**判定差集），所以
+     "假 FAIL 一共少了多少条"这个数字**未测**；`emacsclient.c` 从此在 `--all` 里算 done，但它与参照的**运行期**
+     一致性仍无任何证据（本批所有单元都只到"编译成对象"这一档）。

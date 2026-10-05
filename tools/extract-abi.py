@@ -502,7 +502,12 @@ def body_token_seq(text: str, *, numbers: bool = True, skip_short: bool = False)
     # `strip_char_literals` is bounded (twelve characters, no newline), so it cannot swallow a
     # lifetime or a comment's apostrophe.
     text = strip_char_literals(text)
-    text = re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)
+    # `\\.` does not match a newline, so C's *continued* literals - every one of
+    # emacsclient.c's help texts, and every multi-line message in the platform files - were
+    # left standing, and their English words entered the token sequence: `if none exists`
+    # became a `null`-family token, which the port's spelling of the same text (one escaped
+    # literal, on one line) can never produce.  The continuation is part of the literal.
+    text = re.sub(r'"(?:[^"\\]|\\.|\\\n)*"', '""', text)
     # C's preprocessor lines inside a body (`#ifdef`, `#endif`, `# define`) are not code,
     # and the whole line goes.  A Rust `#[cfg (...)]` is not a line-based directive
     # though: the port writes it on the same line as the statements it gates (P-51's dead
@@ -1045,6 +1050,43 @@ WHOLE_FILE_SELFTEST = (
 )
 
 
+# The token side's own cases (`body_token_seq`): a word inside a literal must not become a
+# token, in either spelling C uses - single line, or backslash continuation - while real code
+# still yields the family's canonical spelling.  `BS`/`NL` spell the two characters so this
+# file's own escaping cannot change what the cases mean.
+BS = chr (92)
+NL = chr (10)
+TOKEN_SELFTEST = (
+    # name, source, tokens that must be present, tokens that must be absent
+    ("a continued C literal hides its words",
+     'message (false, "Create a new frame if none exists' + BS + NL + 'and more");',
+     {"message", "false"}, {"none", "create", "and", "more"}),
+    ("a one-line C literal hides its words",
+     'message (false, "if none exists");',
+     {"message", "false"}, {"none", "exists"}),
+    ("real code still yields the family spelling",
+     'if (p == NULL) { return none_of_them; }',
+     {"p", "none_of_them", "null"}, set ()),   # `if`/`return` are in MACRO_TOKEN_SKIP
+    ("a continued literal does not swallow the code after it",
+     'fputs ("a ' + BS + NL + 'b", stdout); exit (EXIT_SUCCESS);',
+     {"fputs", "stdout", "exit", "exit_success"}, {"a", "b"}),
+)
+
+
+def token_selftest() -> int:
+    """Prove the cases above, and that a family word in a literal cannot reach the check."""
+    bad = 0
+    for name, source, want, unwanted in TOKEN_SELFTEST:
+        got = body_tokens (source)
+        missing = want - got
+        leaked = unwanted & got
+        ok = not missing and not leaked
+        print (f"{'ok  ' if ok else 'FAIL'} {name}: {sorted (got)}"
+               + ("" if ok else f" (missing {sorted (missing)}, leaked {sorted (leaked)})"))
+        bad += 0 if ok else 1
+    return bad
+
+
 def selftest() -> int:
     bad = 0
     for name, source, want in SELFTEST:
@@ -1062,7 +1104,9 @@ def selftest() -> int:
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got}"
               + ("" if ok else f" (want {want})"))
         bad += 0 if ok else 1
-    print(f"{len(SELFTEST) + len(WHOLE_FILE_SELFTEST)} cases, {bad} failures")
+    bad += token_selftest ()
+    print(f"{len(SELFTEST) + len(WHOLE_FILE_SELFTEST)} cases, {len(TOKEN_SELFTEST)} token "
+          f"cases, {bad} failures")
     return 1 if bad else 0
 
 
