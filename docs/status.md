@@ -10142,3 +10142,17 @@
   ③ **验收**：`layout-check` **passed**、`check-all-units` **83 unit(s), 0 failure(s)**（P-87 ①）、
      `check-mirror-dupes`/`check-declarations`/`check-citations`/`check-dead-file-coverage` 全绿。
   ④ **未声称**：零运行证据；两条声明只让**宏展开后能解析**，没有任何调用被打过。
+
+- **3.522 Android 家族收口：`androidterm` 臂只剩切片边界（2026-10-05）**：
+  ① **来源**：3.516 之后该单元还剩两条错，一条是同一类"折叠位"，一条是切片边界。
+  ② **改动**：`femacs/src/androidterm.rs` 542 行（C 3039）的 `(*MOUSE_HL_INFO! (f)).mouse_face_defer = false;`
+     改成 mirror 的**访问器** `set_mouse_face_defer (...)`——`dispextern.h` 3019-3023 的三个 `bool_bf : 1` 在
+     镜像里折叠并由 `get/set_mouse_face_defer`（`include/dispextern.rs` 2114/2117）命名（PORTING.md P-80）；
+     相应补 `macro-body-notes.tsv` 一行（C 的成员名不在正文里）。
+  ③ **读数**：`src/androidterm.rs` 的 Android 臂 **19 → 1**，**剩下那一条是切片边界**
+     （`android_frame_rehighlight` 定义在 C 1055 之后，本单元的区间表就停在 1055）。**Android 家族最终**：
+     `androidfns / androidvfs / androidmenu / androidselect / androidfont` **各 0**、`androidterm` **1（切片边界）**；
+     `extract-abi --check` 的 token 行清零（剩 112 行全是这一片的 `missing function`/`object`＝剩余工作量）。
+  ④ **验收**：`layout-check` passed、`build-tu src/androidterm.c` exit 0（冻结臂仍能解析本单元文本）、
+     `check-declarations` 17/0/0。
+  ⑤ **未声称**：零运行证据（这些臂只是本机 rustc 的类型检查）；`androidterm.c` 的 1055-7117 未移植。

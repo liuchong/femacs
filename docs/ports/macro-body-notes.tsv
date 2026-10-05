@@ -1442,3 +1442,4 @@ xfont_open	display_info	see the `xfont_get_cache` row: dispextern.h 115's `Displ
 android_update_begin	false,frame_android_complete_p	the folded `complete` bit is written through the mask (PORTING.md P-80), so neither C's macro name token family nor that site's `false` is in the body (status 3.516)
 show_back_buffer	false,frame_android_need_buffer_flip	same fold: C 347's `FRAME_ANDROID_NEED_BUFFER_FLIP (f) = false;` is a mask write here (status 3.516)
 android_request_cursor_updates	need_cursor_updates	C 707-708's `need_cursor_updates` write is the two-arm mask write (status 3.516)
+android_update_end	mouse_face_defer	androidterm.c 3039's `hlinfo->mouse_face_defer = false;` is the mirror's accessor (`set_mouse_face_defer`, PORTING.md P-80's folded bit), so C's member name is not in the body (status 3.522)

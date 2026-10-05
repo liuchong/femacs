@@ -539,7 +539,10 @@ unsafe extern "C" fn android_update_begin (f: *mut frame)            // C 318-32
 unsafe extern "C" fn android_update_end (f: *mut frame)              // C 329-334
 {
   /* Mouse highlight may be displayed again.  */
-  (*MOUSE_HL_INFO! (f)).mouse_face_defer = false;
+  /* C 3039: `hlinfo->mouse_face_defer = false;` - the member is one of C 3019-3023's three
+     `bool_bf : 1` flags the mirror folds and names through accessors (PORTING.md P-80, the
+     `get_mouse_face_defer`/`set_mouse_face_defer` pair at `include/dispextern.rs` 2114/2117).  */
+  set_mouse_face_defer (MOUSE_HL_INFO! (f), false);
 }
 
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]

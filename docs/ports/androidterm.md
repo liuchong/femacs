@@ -311,3 +311,15 @@ mask write instead (PORTING.md P-80, the `cm.rs` convention) and the four functi
 assigns an `int` to a one-bit field, which lands as 0/1).  With the mirror's masks in place this
 unit's arm goes **19 -> 2 errors**, and both of those are named in
 `docs/ports/include-androidterm.md`.
+
+## 2026-10-05: the last real error in this unit's arm was a folded flag (3.522)
+
+`androidterm.c` 3039's `hlinfo->mouse_face_defer = false;` is one of `dispextern.h` 3019-3023's
+three `bool_bf : 1` members, which the mirror folds and names through accessors
+(`get_mouse_face_defer`/`set_mouse_face_defer`, `include/dispextern.rs` 2114/2117, PORTING.md
+P-80) - so the unit's writer site now calls the accessor and carries a `macro-body-notes` row for
+C's member name.  With that, this unit's Android arm reads **19 -> 1**, and **the one left is the
+slice boundary**: `android_frame_rehighlight` is defined after C 1055, which is where this unit's
+`C line ranges` table ends.  The Android family therefore stands at
+`androidfns 0, androidvfs 0, androidmenu 0, androidselect 0, androidfont 0, androidterm 1 (slice
+boundary)`, and the frozen arm still parses (`build-tu src/androidterm.c` -> exit 0).
