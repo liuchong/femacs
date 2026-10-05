@@ -10828,3 +10828,19 @@
   ⑥ **预算**：`build-tu` 2 发、`probe` 2 发、`check-all-units` 1 发、`layout-check` 3 发（含两个 worktree 的复读）、
      文本门 1 轮全跑、`git worktree add/remove` 2 次（`/tmp/f548-wt`、`/tmp/f548-wt2`，已删）；
      未跑 `xtask --all`/`gate-fast`/`cargo test`；`/tmp/f548`、`/tmp/f548-sweep` 收工删。
+
+- **3.549 集成者收口：`w32menu` 的容差行登记 + `port-map.md` 的两行刷新（2026-10-05）**：
+  ① **来源**：3.546 那条 `w32menu` lane 的交接单第 ⑤ 项（lane 自己不能写这两个文件：`docs/ports/line-drift-tolerance.tsv`
+     与生成的 `docs/port-map.md`）。
+  ② **容差行**：`docs/ports/line-drift-tolerance.tsv` 追加一行 `w32menu	0.57	…	total`——C 1,850 vs 端口 2,904（+57.0%），
+     理由逐条点名（`have_ntgui` 的**文件门**同时压在每个项与整张 include 图上、六个 C 条件的两臂都带、
+     `<windows.h>`/`<commctrl.h>`/`<mbstring.h>` 的表面就地声明、C 的注释块按散文承下来）。
+     **读数**：`python3 tools/extract-abi.py --check emacs/src/w32menu.c femacs/src/w32menu.rs` 从
+     `FAIL line count drifted 57.0%` 变成 **`OK`**（该单元的最后一条 `--check` 行归零）。
+  ③ **`port-map.md`**：重跑 `tools/gen-port-map.py`；生成结果里 4 行属于**在飞 lane**（`gmalloc`/`haikuselect`/
+     `pgtkselect`/`w32uniscribe` 的行数），按"只收自己那件"的规矩**手工回退成已提交值**，只留本仓已落的两行：
+     `include/w32common.rs` 233 → **241**、`include/w32term.rs` 1,469 → **1,488**（都来自 3.548 与它之前的镜像改动）。
+     `w32menu.rs` 的 2,904 已在 3.546 登记。
+  ④ **未声称**：容差行只放宽"行数"这一条粗信号，不改变任何 token 级判据（`extract-abi` 的逐函数门照旧逐条比）；
+     `port-map.md` 是在飞树生成的，四条被回退的行**不代表**它们的目标没在推进——只代表它们的数字要等各自 lane 落地
+     后再生成。**本轮零编译**（`build-tu`/`probe`/`check-all-units` 全 0 发；改的是 .tsv 与生成物，不碰镜像）。
