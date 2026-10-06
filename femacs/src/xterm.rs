@@ -18298,3 +18298,338 @@ pub unsafe extern "C" fn x_iconify_frame (f: *mut frame)
    already has), and the mirror row is owed.  */
 #[cfg (feature = "have_x_windows")]
 pub const IconicState: c_int = 3;
+
+/// C 29658: `f->pointer_invisible` - `frame.h` 437's `bool_bf pointer_invisible : 1`, whose shift
+/// `include/frame.rs` 540-545 names for this arm; the mirror carries the shift and no accessor, so
+/// the unit declares the member's own reader - the `pgtkterm.rs` 3996-4003 copy of the same macro
+/// (`bits1` is the measured word 1).
+#[cfg (feature = "have_x_windows")]
+macro_rules! pointer_invisible {
+  ($f:expr) => { (*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_POINTER_INVISIBLE_SHIFT))
+                  | ((($v) as u32) << FRAME_POINTER_INVISIBLE_SHIFT) };
+}
+
+/* Free X resources of frame F.  */
+
+/// C 29619-29851: `void x_free_frame_resources (struct frame *f)` - non-`static` and declared in
+/// xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  Every `#if`
+/// arm C has here is carried with its feature (P-86 ①).  The names whose definitions belong to
+/// other units stay bare - `free_frame_faces`/`unload_color` (xfaces.c), `tear_down_x_back_buffer`/
+/// `free_frame_xic`/`x_free_gcs` (xfns.c), `free_frame_menubar`/`xg_free_frame_widgets`
+/// (gtkutil.c), `kill_frame_xwidget_views` (xwidget.c), `reset_mouse_highlight` (xdisp.c) - and so
+/// do the Xlib/Xt/GTK entry points; `XTtoggle_invisible_pointer` (C 12142) and
+/// `x_scroll_bar_remove` (C 16964) are this file's own definitions, both still ahead of the lane.
+/// `f->pointer_invisible` is frame.h 437's bitfield, so the unit declares the member's reader below
+/// (the `pgtkterm.rs` 3996-4003 shape).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_free_frame_resources (f: *mut frame)
+{
+  use crate::x11_constants::None;
+
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);           // C 29622
+  let hlinfo: *mut Mouse_HLInfo = &raw mut (*dpyinfo).mouse_highlight;  // C 29623
+#[cfg (feature = "use_x_toolkit")]
+  let mut bar: Lisp_Object;                                             // C 29625
+#[cfg (feature = "use_x_toolkit")]
+  let mut b: *mut scroll_bar;                                           // C 29626
+
+  block_input ();                                                       // C 29629
+
+#[cfg (feature = "have_xinput2")]
+  {
+    /* Remove any record of this frame being focused.  */
+    xi_handle_delete_frame (dpyinfo, f);                                // C 29633
+  }
+
+#[cfg (feature = "have_xinput2_2")]
+  {
+    /* Remove any touch points associated with F.  */
+    xi_unlink_touch_points (f);                                         // C 29638
+  }
+
+  /* We must free faces before destroying windows because some
+     font-driver (e.g. xft) access a window while finishing a face.
+
+     This function must be called to remove this frame's fontsets from
+     Vfontset_list, and is itself responsible for not issuing X requests
+     if the connection has already been terminated.  Otherwise, a future
+     call to a function that iterates over all existing fontsets might
+     crash, as they are not prepared to receive dead frames.
+     (bug#66151) */
+  free_frame_faces (f);                                                 // C 29650
+
+  /* If a display connection is dead, don't try sending more
+     commands to the X server.  */
+  if !(*dpyinfo).display.is_null ()                                     // C 29654
+    {
+      /* Always exit with visible pointer to avoid weird issue
+	 with Xfixes (Bug#17609).  */
+      if pointer_invisible! (f)                                         // C 29658
+	{ XTtoggle_invisible_pointer (f, 0); }                          // C 29659
+
+      tear_down_x_back_buffer (f);                                      // C 29661
+
+      if (*( (*f).output_data.x as *mut x_output )).icon_desc != 0      // C 29663
+	{
+	  XDestroyWindow (FRAME_X_DISPLAY! (f),                         // C 29664
+			  (*( (*f).output_data.x as *mut x_output )).icon_desc);
+	}
+
+#[cfg (feature = "use_x_toolkit")]
+      {
+	/* Explicitly destroy the scroll bars of the frame.  Without
+	   this, we get "BadDrawable" errors from the toolkit later on,
+	   presumably from expose events generated for the disappearing
+	   toolkit scroll bars.  */
+	bar = FRAME_SCROLL_BARS (f);                                    // C 29671
+	loop
+	  {
+	    if NILP (bar)                                               // C 29671, the `for`'s condition
+	      { break; }
+	    b = XSCROLL_BAR! (bar);                                     // C 29673
+	    x_scroll_bar_remove (b);                                    // C 29674
+	    bar = (*b).next;                                            // C 29671, the `for`'s step
+	  }
+      }
+
+#[cfg (feature = "have_x_i18n")]
+      {
+	if !FRAME_XIC! (f).is_null ()                                   // C 29679
+	  { free_frame_xic (f); }                                       // C 29680
+      }
+
+#[cfg (feature = "use_cairo")]
+      {
+	x_cr_destroy_frame_context (f);                                 // C 29684
+      }
+
+#[cfg (feature = "use_x_toolkit")]
+      {
+	if (*( (*f).output_data.x as *mut x_output )).widget != std::ptr::null_mut ()  // C 29687
+	  {
+	    XtDestroyWidget ((*( (*f).output_data.x as *mut x_output )).widget);  // C 29689
+	    (*( (*f).output_data.x as *mut x_output )).widget = std::ptr::null_mut ();  // C 29690
+	  }
+	/* Tooltips don't have widgets, only a simple X window, even if
+	   we are using a toolkit.  */
+	else if FRAME_X_WINDOW! (f) != 0                                // C 29694
+	  { XDestroyWindow (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f)); }  // C 29695
+
+	free_frame_menubar (f);                                         // C 29697
+
+	if !(*f).shell_position.is_null ()                              // C 29699
+	  { xfree ((*f).shell_position); }                              // C 29700
+      }
+
+#[cfg (not (feature = "use_x_toolkit"))]
+      {
+#[cfg (feature = "have_xwidgets")]
+	{
+	  kill_frame_xwidget_views (f);                                 // C 29704
+	}
+
+#[cfg (feature = "use_gtk")]
+	{
+	  xg_free_frame_widgets (f);                                    // C 29708
+	}
+
+	tear_down_x_back_buffer (f);                                    // C 29711
+	if FRAME_X_WINDOW! (f) != 0                                     // C 29712
+	  { XDestroyWindow (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f)); }  // C 29713
+      }
+
+#[cfg (feature = "have_xsync")]
+      {
+	if FRAME_X_BASIC_COUNTER! (f) != None as XSyncCounter             // C 29717
+	  {
+	    XSyncDestroyCounter (FRAME_X_DISPLAY! (f),                  // C 29718-29719
+				 FRAME_X_BASIC_COUNTER! (f));
+	  }
+
+	if FRAME_X_EXTENDED_COUNTER! (f) != None as XSyncCounter          // C 29721
+	  {
+	    XSyncDestroyCounter (FRAME_X_DISPLAY! (f),                  // C 29722-29723
+				 FRAME_X_EXTENDED_COUNTER! (f));
+	  }
+      }
+
+      unload_color (f, FRAME_FOREGROUND_PIXEL (f));                     // C 29726
+      unload_color (f, FRAME_BACKGROUND_PIXEL (f));                     // C 29727
+      unload_color (f, (*( (*f).output_data.x as *mut x_output )).cursor_pixel);  // C 29728
+      unload_color (f, (*( (*f).output_data.x as *mut x_output )).cursor_foreground_pixel);  // C 29729
+      unload_color (f, (*( (*f).output_data.x as *mut x_output )).border_pixel);  // C 29730
+      unload_color (f, (*( (*f).output_data.x as *mut x_output )).mouse_pixel);  // C 29731
+
+      if (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel != (-1 as c_int) as c_ulong  // C 29733
+	{
+	  unload_color (f, (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel != (-1 as c_int) as c_ulong  // C 29735
+	{
+	  unload_color (f, (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel);
+	}
+#[cfg (all (feature = "use_lucid", feature = "use_toolkit_scroll_bars"))]
+      {
+	/* Scrollbar shadow colors.  */
+	if (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel != (-1 as c_int) as c_ulong  // C 29739
+	  {
+	    unload_color (f, (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel);
+	  }
+	if (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel != (-1 as c_int) as c_ulong  // C 29741
+	  {
+	    unload_color (f, (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel);
+	  }
+      }
+      if (*( (*f).output_data.x as *mut x_output )).white_relief.pixel != (-1 as c_int) as c_ulong  // C 29744
+	{
+	  unload_color (f, (*( (*f).output_data.x as *mut x_output )).white_relief.pixel);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).black_relief.pixel != (-1 as c_int) as c_ulong  // C 29746
+	{
+	  unload_color (f, (*( (*f).output_data.x as *mut x_output )).black_relief.pixel);
+	}
+
+      x_free_gcs (f);                                                   // C 29749
+
+      /* Free extra GCs allocated by x_setup_relief_colors.  */
+      if (*( (*f).output_data.x as *mut x_output )).white_relief.gc != std::ptr::null_mut ()  // C 29752
+	{
+	  XFreeGC ((*dpyinfo).display, (*( (*f).output_data.x as *mut x_output )).white_relief.gc);  // C 29754
+	  (*( (*f).output_data.x as *mut x_output )).white_relief.gc = std::ptr::null_mut ();  // C 29755
+	}
+      if (*( (*f).output_data.x as *mut x_output )).black_relief.gc != std::ptr::null_mut ()  // C 29757
+	{
+	  XFreeGC ((*dpyinfo).display, (*( (*f).output_data.x as *mut x_output )).black_relief.gc);  // C 29759
+	  (*( (*f).output_data.x as *mut x_output )).black_relief.gc = std::ptr::null_mut ();  // C 29760
+	}
+
+      /* Free cursors.  */
+      if (*( (*f).output_data.x as *mut x_output )).text_cursor != 0  // C 29764
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).text_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).nontext_cursor != 0  // C 29766
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).nontext_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).modeline_cursor != 0  // C 29768
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).modeline_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).hand_cursor != 0  // C 29770
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).hand_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).hourglass_cursor != 0  // C 29772
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).hourglass_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).horizontal_drag_cursor != 0  // C 29774
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).horizontal_drag_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).vertical_drag_cursor != 0  // C 29776
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).vertical_drag_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).left_edge_cursor != 0  // C 29778
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).left_edge_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).top_left_corner_cursor != 0  // C 29780
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).top_left_corner_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).top_edge_cursor != 0  // C 29782
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).top_edge_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).top_right_corner_cursor != 0  // C 29784
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).top_right_corner_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).right_edge_cursor != 0  // C 29786
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).right_edge_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).bottom_right_corner_cursor != 0  // C 29788
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).bottom_right_corner_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).bottom_edge_cursor != 0  // C 29790
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).bottom_edge_cursor);
+	}
+      if (*( (*f).output_data.x as *mut x_output )).bottom_left_corner_cursor != 0  // C 29792
+	{
+	  XFreeCursor (FRAME_X_DISPLAY! (f), (*( (*f).output_data.x as *mut x_output )).bottom_left_corner_cursor);
+	}
+
+      /* Free sync fences.  */
+#[cfg (all (feature = "have_xsynctriggerfence", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+      {
+	x_sync_free_fences (f);                                         // C 29797
+      }
+
+#[cfg (feature = "use_toolkit_scroll_bars")]
+      {
+	/* Since the frame was destroyed, we can no longer guarantee
+	   that scroll bar events will be received.  Clear
+	   protected_windows.  */
+	(*dpyinfo).n_protected_windows = 0;                             // C 29804
+      }
+    }
+
+#[cfg (feature = "have_gtk3")]
+  {
+    if !(*FRAME_OUTPUT_DATA! (f)).scrollbar_background_css_provider.is_null ()  // C 29809
+      {
+	g_object_unref ((*FRAME_OUTPUT_DATA! (f)).scrollbar_background_css_provider);  // C 29810
+      }
+
+    if !(*FRAME_OUTPUT_DATA! (f)).scrollbar_foreground_css_provider.is_null ()  // C 29812
+      {
+	g_object_unref ((*FRAME_OUTPUT_DATA! (f)).scrollbar_foreground_css_provider);  // C 29813
+      }
+  }
+
+  if (*dpyinfo).motif_drag_atom_owner == f                              // C 29816
+    {
+      (*dpyinfo).motif_drag_atom_owner = std::ptr::null_mut ();         // C 29818
+      (*dpyinfo).motif_drag_atom = None as Atom;                        // C 29819
+    }
+
+  if (*dpyinfo).x_focus_frame == f                                      // C 29822
+    { (*dpyinfo).x_focus_frame = std::ptr::null_mut (); }               // C 29823
+  if (*dpyinfo).x_focus_event_frame == f                                // C 29824
+    { (*dpyinfo).x_focus_event_frame = std::ptr::null_mut (); }         // C 29825
+  if (*dpyinfo).highlight_frame == f                                    // C 29826
+    { (*dpyinfo).highlight_frame = std::ptr::null_mut (); }             // C 29827
+  if f as *mut c_void == (*hlinfo).mouse_face_mouse_frame              // C 29828
+    { reset_mouse_highlight (hlinfo); }                                 // C 29829
+
+  /* These two need to be freed now that they are used to compute the
+     mouse position, I think.  */
+  if (*dpyinfo).last_mouse_motion_frame == f                            // C 29833
+    { (*dpyinfo).last_mouse_motion_frame = std::ptr::null_mut (); }     // C 29834
+  if (*dpyinfo).last_mouse_frame == f                                   // C 29835
+    { (*dpyinfo).last_mouse_frame = std::ptr::null_mut (); }            // C 29836
+
+#[cfg (all (feature = "have_xinput2", not (feature = "use_x_toolkit"),
+	    any (not (feature = "use_gtk"), feature = "have_gtk3")))]
+  {
+    /* Consider a frame being unfocused with no following FocusIn event
+       while an older focus from another seat exists.  The client
+       pointer should then revert to the other seat, so handle potential
+       focus changes.  */
+
+    if (*dpyinfo).supports_xi2                                          // C 29845
+      { xi_handle_focus_change (dpyinfo); }                             // C 29846
+  }
+
+  unblock_input ();                                                     // C 29850
+}

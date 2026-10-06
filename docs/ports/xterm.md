@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 33 (C 29142-29189, Decision 46) goes **123 -> 119**: `xembed_set_info`, `xembed_send_message` and the two `XEMBED_VERSION` rows retire, and no token row arrives.  Slice 34 (C 29201-29400, Decision 47) goes **119 -> 118**: `x_make_frame_visible` retires as a missing item, and no token row arrives.  Slice 35 (C 29406-29481, Decision 48) goes **118 -> 116**: `x_make_frame_invisible` and `x_make_frame_visible_invisible` retire as missing items, and the slice brings no token row.  Slice 36 (C 29483-29614, Decision 49) goes **116 -> 114**: `x_create_font_cursor` and `x_iconify_frame` retire as missing items, and no token row arrives.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 33 (C 29142-29189, Decision 46) goes **123 -> 119**: `xembed_set_info`, `xembed_send_message` and the two `XEMBED_VERSION` rows retire, and no token row arrives.  Slice 34 (C 29201-29400, Decision 47) goes **119 -> 118**: `x_make_frame_visible` retires as a missing item, and no token row arrives.  Slice 35 (C 29406-29481, Decision 48) goes **118 -> 116**: `x_make_frame_invisible` and `x_make_frame_visible_invisible` retire as missing items, and the slice brings no token row.  Slice 36 (C 29483-29614, Decision 49) goes **116 -> 114**: `x_create_font_cursor` and `x_iconify_frame` retire as missing items, and no token row arrives.  Slice 37 (C 29619-29851, Decision 50) goes **114 -> 113**: `x_free_frame_resources` retires as a missing item, and no token row arrives.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -320,7 +320,7 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_make_frame_visible_invisible  (line 29475, static)
 - [x] x_create_font_cursor  (line 29484)
 - [x] x_iconify_frame  (line 29498)
-- [ ] x_free_frame_resources  (line 29620)
+- [x] x_free_frame_resources  (line 29620)
 - [ ] x_destroy_window  (line 29857, static)
 - [ ] x_intern_cached_atom  (line 29897)
 - [ ] x_get_atom_name  (line 29984)
@@ -2461,6 +2461,41 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `make_invisible_cursor` fallback (C 12067-12095, landed in slice 10) are the function's whole
   body; the only new name is `XCreateFontCursor`.
 
+### 50. Slice 37 (C 29619-29851): `x_free_frame_resources`
+
+* **The unit's own `pointer_invisible!` reader is declared *before* its user.**  `f->pointer_invisible`
+  is frame.h 437's `bool_bf`, and `include/frame.rs` 540-545 names the shift for this arm while the
+  mirror carries no accessor, so the unit declares the member's reader (`pgtkterm.rs` 3996-4003's
+  copy of the same macro).  The first writing put that `macro_rules!` *after* the function; the
+  reading showed `cannot find macro pointer_invisible in this scope` (`macro_rules!` is scoped
+  textually, first use must follow the definition) - one bare `error:` row in **all three** arms -
+  and moving the declaration above the function clears it (measured, `fix2` vs `fix`).
+* **`FRAME_X_BASIC_COUNTER`/`FRAME_X_EXTENDED_COUNTER` are the mirror's, not the unit's.**  The two
+  XSync accessors look like comments in `include/xterm.rs` 1218-1219, but the `macro_rules!` pair at
+  1220-1230 is right below them; the first writing declared unit-local copies reading `basic_counter`
+  (a field that does not exist) - a duplicate that would have been an `E0659` - and the reading's
+  `have_xsync` arm is not compiled by any of the three arms, so the mirror's pair stands and the
+  C-order comparison `!= None` is written `!= None as XSyncCounter` (the slice-35
+  `!= None as Window` spelling).
+* **Three C conversions got their port spelling.**  `dpyinfo->motif_drag_atom = None` is
+  `None as Atom`; the six `... != -1` tests on `unsigned long` pixels are
+  `!= (-1 as c_int) as c_ulong` (the `xfns.rs` 2984 spelling: C's `int` -1 converts to `ULONG_MAX`);
+  and `f == hlinfo->mouse_face_mouse_frame` needs `f as *mut c_void` because that member is
+  `include/dispextern.rs` 2129's bare-tag pointer (the `haikufns.rs` 2514 shape) - without it the
+  arm-A reading gains an `E0308`.
+* **`supports_xi2` is a `bool`, so C's `if (dpyinfo->supports_xi2)` is not `!= 0`.**  The arm-C
+  reading caught that too (`expected bool, found integer`): the port writes the member alone.
+* **Arm B's four extra `E0609` are C's `HAVE_GTK3` block.**  C 29808-29814 reads
+  `scrollbar_background_css_provider`/`scrollbar_foreground_css_provider`, which this file's
+  `x_output` carries under the pgtk gate (`include/xterm.rs` 806 records them; the guard above them
+  is `have_pgtk`), so a build with `have_gtk3` but not `have_pgtk` sees the two fields as unknown -
+  the arm-B-only class, named rather than hidden.
+* **`n_protected_windows` is a mirror gap inside an arm no reading compiles.**  C 29804's
+  `dpyinfo->n_protected_windows = 0;` sits in `#ifdef USE_TOOLKIT_SCROLL_BARS`, which none of the
+  three arms sets and which no mirror carries as a field (measured); the port writes C's path and
+  the ledger records it here - it will show as an `E0609` on the round that first compiles a
+  `use_toolkit_scroll_bars` arm.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -4469,3 +4504,45 @@ arrives.  The line-count row moves to 18,300 against C's 33,125 (44.8%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no frame was iconified and no
 client message was sent.
+
+### Slice 37's readings (C 29619-29851), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_free_frame_resources` (C 29619-29851): the display/frame lookups, the
+`HAVE_XINPUT2`/`HAVE_XINPUT2_2` unlinks, `free_frame_faces`, the `if (dpyinfo->display)` body (the
+pointer restore, `tear_down_x_back_buffer`, the icon-window destroy, the `USE_X_TOOLKIT` scroll-bar
+loop and widget destroy, `HAVE_X_I18N`'s XIC free, `USE_CAIRO`, the `!USE_X_TOOLKIT` widget/
+xwidget paths, the `HAVE_XSYNC` counters, the twelve `unload_color` calls with their pixel tests (ten in the arms measured - C's two
+`USE_LUCID` shadow colours are gated out),
+`x_free_gcs`, the two relief GCs, the fifteen cursor frees, the sync fences and the
+`USE_TOOLKIT_SCROLL_BARS` counter), the `HAVE_GTK3` css-provider unrefs, and the display bookkeeping
+(`motif_drag_atom_owner`, the three focus frames, the mouse-highlight reset, the two last-mouse
+frames, the XInput2 focus change) before `unblock_input`.  Rust 18,300 -> 18,635 lines.
+
+**What the probes read.**  Baseline = HEAD's unit (slice 36's commit) with the same arm, both sides
+measured.  Totals are the probe's `^error` count, classes are its `^error[E..]` headers.
+
+| arm | baseline | slice 37 | delta | of which |
+| --- | --- | --- | --- | --- |
+| A `have_x_windows` | 632 / 68 | **664 / 68** | **+32** | `E0425` 372 -> 404 |
+| B `+have_gtk3+use_gtk` | 647 / 70 | **684 / 70** | **+37** | `E0425` 358 -> 391, `E0609` 223 -> 227 |
+| C `+have_xinput2` | 665 / 70 | **699 / 70** | **+34** | `E0425` 389 -> 423 |
+
+Every added row is the recorded bare-name class: **`XFreeCursor` (15 sites) and `unload_color` (10)
+are new names**, `XDestroyWindow` gains the two sites the display guard adds, and
+`free_frame_faces`, `tear_down_x_back_buffer` (2), `x_free_gcs`, `XTtoggle_invisible_pointer` (this
+file's C 12142, still ahead of the lane) are one site each; arm C additionally compiles the two
+`HAVE_XINPUT2` calls (`xi_handle_delete_frame`, `xi_handle_focus_change`) and arm B the
+`USE_GTK`-only `xg_free_frame_widgets`.  Arm B's four `E0609` are C 29808-29814's pgtk-gated
+css-provider fields (Decision 50).  **No `E0308`/`E0381`/warning is added by the final text** - the
+two `E0308`s the first writing produced (the `mouse_face_mouse_frame` cast and `supports_xi2`'s
+bool) are fixed and re-measured - and `build-tu` prints the same 30 warnings as the baseline.
+
+**Arm reachability** (P-86 ⑦).  `let _: c_int = true;` as the function's first statement moves
+`E0308` 13 -> 14, anchored exactly at that line (`_root.rs:18345`); removing it returns arm A to
+664 / 68.
+
+**What `--check` reads.**  **114 -> 113**: `x_free_frame_resources` retires as a missing item and no
+token row arrives.  The line-count row moves to 18,635 against C's 33,125 (43.7%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no X resource was freed, no
+widget or window was destroyed and no cursor was released.
