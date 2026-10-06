@@ -104,3 +104,16 @@ to the frozen legs).  No runtime, layout or symbol evidence beyond those measure
 - The change is additive (eight `pub const`s inside the existing `x11_constants` module), so
   P-87 ①'s legs read **83/0 + 83/0** and `check-mirror-dupes` stays 16/16/0; the unit side of the
   reading is `docs/ports/xterm.md`'s slice-59 section.
+
+### status 3.851 (slice 60's five masks and nine keysyms)
+
+- `x_find_modifier_meanings`'s `switch (sym)` matches on nine keysyms and its tail compares two
+  modifier masks, so this module gained `ShiftMask` (1), `LockMask` (2), `ControlMask` (4),
+  `Mod1Mask` (8), `Mod2Mask` (16) - `<X11/X.h>` 221-225 - and `XK_Shift_Lock` (0xffe6),
+  `XK_Meta_L` (0xffe7), `XK_Meta_R` (0xffe8), `XK_Alt_L` (0xffe9), `XK_Alt_R` (0xffea),
+  `XK_Super_L` (0xffeb), `XK_Super_R` (0xffec), `XK_Hyper_L` (0xffed), `XK_Hyper_R` (0xffee) -
+  `<X11/keysymdef.h>` 396-405 - each measured with clang against this target's header.  The masks
+  keep this module's `c_long`; the keysyms are `c_int` because C's macros are plain int literals and
+  the `match` they pattern on has `int sym` for a scrutinee.
+- Additive, so P-87 ①'s legs read **83/0 + 83/0** and `check-mirror-dupes` stays 16/16/0; the unit
+  side of the reading is `docs/ports/xterm.md`'s slice-60 section.

@@ -22166,3 +22166,207 @@ unsafe fn x_frame_rehighlight (dpyinfo: *mut x_display_info)
 	{ x_frame_highlight ((*dpyinfo).highlight_frame); }             // C 14125
     }
 }
+
+/* Keyboard processing - modifier keys, vendor-specific keysyms, etc.  */
+
+/* Initialize mode_switch_bit and modifier_meaning.  */
+
+/// C 14134-14303: `static void x_find_modifier_meanings (struct x_display_info *dpyinfo)` - C's
+/// `static`, so a plain `unsafe fn`.  C's `#ifdef HAVE_XKB` region (C 14141-14145, 14153-14192) is
+/// carried under that feature and is dead text for this lane (no arm sets it), so its names
+/// (`xkb_desc`, `XkbNumVirtualMods`, `vmods`, `names`) stay bare; the live path's two `switch`
+/// statements are the port's `match`es (P-04, the `x_handle_net_wm_state` shape, closed by a
+/// `docs/ports/macro-body-notes.tsv` row) and C 14224's `continue` is the labelled-block spelling
+/// (PORTING.md 2.2 - no bare `break` shares that body, so no `E0695`).  The keysyms the arms match
+/// on and the two masks C compares against are the measured constants this slice added to
+/// `include/xlib.rs` (the arm pattern lesson of slice 59: a bare name in a pattern position is a
+/// binding); `XDisplayKeycodes`, `XGetKeyboardMapping`, `XGetModifierMapping`, `XFree` and
+/// `XFreeModifiermap` are the bare Xlib class, and the masks are typed `c_int` at the comparison
+/// points because the mirror's are `c_long`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_find_modifier_meanings (dpyinfo: *mut x_display_info)
+{
+  use crate::x11_constants::{LockMask, Mod1Mask, Mod2Mask, XK_Alt_L, XK_Alt_R, XK_Hyper_L,
+			     XK_Hyper_R, XK_Meta_L, XK_Meta_R, XK_Shift_Lock, XK_Super_L,
+			     XK_Super_R};
+
+  let mut min_code: c_int;                                              // C 14137
+  let mut max_code: c_int;                                              // C 14137
+  let mut syms: *mut KeySym;                                            // C 14138
+  let mut syms_per_code: c_int;                                         // C 14139
+  let mut mods: *mut XModifierKeymap;                                   // C 14140
+#[cfg (feature = "have_xkb")]
+  let mut i: c_int;                                                     // C 14142
+#[cfg (feature = "have_xkb")]
+  let mut found_meta_p: bool = false;                                   // C 14143
+#[cfg (feature = "have_xkb")]
+  let mut vmodmask: c_uint;                                            // C 14144
+
+  (*dpyinfo).meta_mod_mask = 0;                                         // C 14147
+  (*dpyinfo).shift_lock_mask = 0;                                       // C 14148
+  (*dpyinfo).alt_mod_mask = 0;                                          // C 14149
+  (*dpyinfo).super_mod_mask = 0;                                        // C 14150
+  (*dpyinfo).hyper_mod_mask = 0;                                        // C 14151
+
+#[cfg (feature = "have_xkb")]
+  {
+    if !(*dpyinfo).xkb_desc.is_null ()                                  // C 14154
+	&& !(*(*dpyinfo).xkb_desc).server.is_null ()                    // C 14155
+      {
+	i = 0;                                                          // C 14157
+	while i < XkbNumVirtualMods                                     // C 14157
+	  {
+	    vmodmask = (*(*(*dpyinfo).xkb_desc).server).vmods[i as usize];  // C 14159
+
+	    if (*(*dpyinfo).xkb_desc).names.vmods[i as usize] == (*dpyinfo).Xatom_Meta  // C 14161
+	      {
+		(*dpyinfo).meta_mod_mask |= vmodmask;          // C 14163
+
+		if vmodmask != 0                                        // C 14165
+		  { found_meta_p = true; }                              // C 14166
+	      }
+	    else if (*(*dpyinfo).xkb_desc).names.vmods[i as usize] == (*dpyinfo).Xatom_Alt  // C 14168
+	      { (*dpyinfo).alt_mod_mask |= vmodmask; }         // C 14169
+	    else if (*(*dpyinfo).xkb_desc).names.vmods[i as usize] == (*dpyinfo).Xatom_Super  // C 14170
+	      { (*dpyinfo).super_mod_mask |= vmodmask; }       // C 14171
+	    else if (*(*dpyinfo).xkb_desc).names.vmods[i as usize] == (*dpyinfo).Xatom_Hyper  // C 14172
+	      { (*dpyinfo).hyper_mod_mask |= vmodmask; }       // C 14173
+	    else if (*(*dpyinfo).xkb_desc).names.vmods[i as usize] == (*dpyinfo).Xatom_ShiftLock  // C 14174
+	      { (*dpyinfo).shift_lock_mask |= vmodmask; }      // C 14175
+	    i += 1;                                                     // C 14157, the `for`'s step
+	  }
+
+	if !found_meta_p                                                // C 14178
+	  {
+	    (*dpyinfo).meta_mod_mask = (*dpyinfo).alt_mod_mask;         // C 14180
+	    (*dpyinfo).alt_mod_mask = 0;                                // C 14181
+	  }
+
+	if ((*dpyinfo).alt_mod_mask & (*dpyinfo).meta_mod_mask) != 0     // C 14184
+	  { (*dpyinfo).alt_mod_mask &= !(*dpyinfo).meta_mod_mask; }      // C 14185
+
+	if ((*dpyinfo).hyper_mod_mask & (*dpyinfo).super_mod_mask) != 0  // C 14187
+	  { (*dpyinfo).hyper_mod_mask &= !(*dpyinfo).super_mod_mask; }   // C 14188
+
+	return;                                                         // C 14190
+      }
+  }
+
+  XDisplayKeycodes ((*dpyinfo).display, &raw mut min_code, &raw mut max_code);  // C 14194
+
+  syms = XGetKeyboardMapping ((*dpyinfo).display,                          // C 14196-14198
+			      min_code, max_code - min_code + 1,
+			      &raw mut syms_per_code);
+
+  if syms.is_null ()                                                    // C 14200
+    {
+      (*dpyinfo).meta_mod_mask = Mod1Mask as c_uint;                     // C 14202
+      (*dpyinfo).super_mod_mask = Mod2Mask as c_uint;                    // C 14203
+      return;                                                           // C 14204
+    }
+
+  mods = XGetModifierMapping ((*dpyinfo).display);                      // C 14207
+
+  /* Scan the modifier table to see which modifier bits the Meta and
+     Alt keysyms are on.  */
+  {
+    let mut row: c_int;                                                 // C 14212
+    let mut col: c_int;	/* The row and column in the modifier table.  */
+    let mut found_alt_or_meta: bool;                                    // C 14213
+
+    row = 3;                                                            // C 14215
+    while row < 8                                                      // C 14215
+      {
+	found_alt_or_meta = false;                                      // C 14217
+	col = 0;                                                        // C 14218
+	while col < (*mods).max_keypermod                               // C 14218
+	  {
+	    let code: KeyCode = *(*mods).modifiermap.offset (((row * (*mods).max_keypermod) + col) as isize);  // C 14220
+
+	    'body: {
+	    /* Zeroes are used for filler.  Skip them.  */
+	    if code == 0                                                // C 14223
+	      { break 'body; }                                          // C 14224's `continue`
+
+	    /* Are any of this keycode's keysyms a meta key?  */
+	    {
+	      let mut code_col: c_int;                                  // C 14228
+
+	      code_col = 0;                                             // C 14230
+	      while code_col < syms_per_code                            // C 14230
+		{
+		  let sym: c_int = *syms.offset ((((code as c_int - min_code) * syms_per_code) + code_col) as isize) as c_int;  // C 14232
+
+		  match sym                                             // C 14234
+		    {
+		      XK_Meta_L | XK_Meta_R =>                          // C 14236-14237
+			{
+			  found_alt_or_meta = true;                     // C 14238
+			  (*dpyinfo).meta_mod_mask |= (1 as c_uint) << row;         // C 14239
+			}
+		      XK_Alt_L | XK_Alt_R =>                            // C 14242-14243
+			{
+			  found_alt_or_meta = true;                     // C 14244
+			  (*dpyinfo).alt_mod_mask |= (1 as c_uint) << row;          // C 14245
+			}
+		      XK_Hyper_L | XK_Hyper_R =>                        // C 14248-14249
+			{
+			  if !found_alt_or_meta                         // C 14250
+			    { (*dpyinfo).hyper_mod_mask |= (1 as c_uint) << row; }  // C 14251
+			  code_col = syms_per_code;                     // C 14252
+			  col = (*mods).max_keypermod;                  // C 14253
+			}
+		      XK_Super_L | XK_Super_R =>                        // C 14256-14257
+			{
+			  if !found_alt_or_meta                         // C 14258
+			    { (*dpyinfo).super_mod_mask |= (1 as c_uint) << row; }  // C 14259
+			  code_col = syms_per_code;                     // C 14260
+			  col = (*mods).max_keypermod;                  // C 14261
+			}
+		      XK_Shift_Lock =>                                  // C 14264
+			{
+			  /* Ignore this if it's not on the lock modifier.  */
+			  if !found_alt_or_meta                         // C 14266
+			      && ((1 as c_uint) << row) == LockMask as c_uint
+			    { (*dpyinfo).shift_lock_mask = LockMask as c_uint; }  // C 14267
+			  code_col = syms_per_code;                     // C 14268
+			  col = (*mods).max_keypermod;                  // C 14269
+			}
+		      _ => {}
+		    }
+		  code_col += 1;                                        // C 14230, the `for`'s step
+		}
+	    }
+	    }
+	    col += 1;                                                   // C 14218, the `for`'s step
+	  }
+	row += 1;                                                       // C 14215, the `for`'s step
+      }
+  }
+
+  /* If we couldn't find any meta keys, accept any alt keys as meta keys.  */
+  if (*dpyinfo).meta_mod_mask == 0                                      // C 14279
+    {
+      (*dpyinfo).meta_mod_mask = (*dpyinfo).alt_mod_mask;               // C 14281
+      (*dpyinfo).alt_mod_mask = 0;                                      // C 14282
+    }
+
+  /* If some keys are both alt and meta,
+     make them just meta, not alt.  */
+  if ((*dpyinfo).alt_mod_mask & (*dpyinfo).meta_mod_mask) != 0          // C 14287
+    {
+      (*dpyinfo).alt_mod_mask &= !(*dpyinfo).meta_mod_mask;             // C 14289
+    }
+
+  /* If some keys are both super and hyper, make them just super.
+     Many X servers are misconfigured so that super and hyper are both
+     Mod4, but most users have no hyper key.  */
+  if ((*dpyinfo).hyper_mod_mask & (*dpyinfo).super_mod_mask) != 0       // C 14295
+    { (*dpyinfo).hyper_mod_mask &= !(*dpyinfo).super_mod_mask; }        // C 14296
+
+  XFree (syms as *mut c_void);                                          // C 14298
+
+  if !(*dpyinfo).modmap.is_null ()                                      // C 14300
+    { XFreeModifiermap ((*dpyinfo).modmap); }                           // C 14301
+  (*dpyinfo).modmap = mods;                                             // C 14302
+}

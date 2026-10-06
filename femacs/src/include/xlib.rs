@@ -112,6 +112,30 @@ pub mod x11_constants {
   /// X11/X.h 281: `#define NotifyPointer 5` - the `XFocusChangeEvent.detail` value that means the
   /// change came from a pointer grab.
   pub const NotifyPointer: c_int = 5;
+  /// X11/X.h 221-225: the five keyboard modifier masks, in C's own `(1<<n)` spelling (measured
+  /// against this target's header: 1, 2, 4, 8, 16).  They are `c_long` like this module's other
+  /// masks, so a site comparing them with a `c_uint` states the conversion (`x_find_modifier_meanings`
+  /// does).
+  pub const ShiftMask: c_long = 1 << 0;
+  pub const LockMask: c_long = 1 << 1;
+  pub const ControlMask: c_long = 1 << 2;
+  pub const Mod1Mask: c_long = 1 << 3;
+  pub const Mod2Mask: c_long = 1 << 4;
+  /// X11/keysymdef.h 396-405: the nine keysyms `x_find_modifier_meanings` scans the modifier table
+  /// for (`XK_Shift_Lock` 0xffe6, `XK_Meta_L` 0xffe7, `XK_Meta_R` 0xffe8, `XK_Alt_L` 0xffe9,
+  /// `XK_Alt_R` 0xffea, `XK_Super_L` 0xffeb, `XK_Super_R` 0xffec, `XK_Hyper_L` 0xffed,
+  /// `XK_Hyper_R` 0xffee - measured against this target's header).  C's macros are plain int
+  /// literals, so the port keeps `c_int` even though `KeySym` is `unsigned long`: the `match` they
+  /// are patterns of has `int sym` for a scrutinee.
+  pub const XK_Shift_Lock: c_int = 0xffe6;
+  pub const XK_Meta_L: c_int = 0xffe7;
+  pub const XK_Meta_R: c_int = 0xffe8;
+  pub const XK_Alt_L: c_int = 0xffe9;
+  pub const XK_Alt_R: c_int = 0xffea;
+  pub const XK_Super_L: c_int = 0xffeb;
+  pub const XK_Super_R: c_int = 0xffec;
+  pub const XK_Hyper_L: c_int = 0xffed;
+  pub const XK_Hyper_R: c_int = 0xffee;
   /// X11/X.h 388: `#define InputOnly 2` - the `XCreateWindow` class.
   pub const InputOnly: c_int = 2;
   /// X11/X.h 401: `#define CWOverrideRedirect (1L<<9)`.
