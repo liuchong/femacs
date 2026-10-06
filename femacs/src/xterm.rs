@@ -19411,3 +19411,154 @@ pub const PAspect: c_long = 1 << 7;
 pub const PBaseSize: c_long = 1 << 8;
 #[cfg (feature = "have_x_windows")]
 pub const PWinGravity: c_long = 1 << 9;
+
+/***********************************************************************
+				Image Hooks
+ ***********************************************************************/
+
+/// C 30447-30459: `static void x_free_pixmap (struct frame *f, Emacs_Pixmap pixmap)` - C's `static`,
+/// so a plain `unsafe fn`; `Emacs_Pixmap` is `include/dispextern.rs` 773's record (the window-system
+/// arm's `Emacs_Pix_Container`), the `USE_CAIRO` arm frees the surface's `data` and the surface,
+/// and the `#else` arm's `XFreePixmap` is the mirror's declaration (`lib/include/xlib.rs` 1265).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_free_pixmap (f: *mut frame, pixmap: Emacs_Pixmap)
+{
+#[cfg (feature = "use_cairo")]
+  {
+    if !pixmap.is_null ()                                              // C 30451
+      {
+	xfree ((*pixmap).data as *mut c_void);                          // C 30453
+	xfree (pixmap as *mut c_void);                                 // C 30454
+      }
+  }
+#[cfg (not (feature = "use_cairo"))]
+  {
+    XFreePixmap (FRAME_X_DISPLAY! (f), pixmap);                         // C 30457
+  }
+}
+
+/***********************************************************************
+			    Initialization
+ ***********************************************************************/
+
+/* C 30466-30489 is `#ifdef USE_X_TOOLKIT`'s own text: the `XrmOptionDescRec emacs_options[]`
+   table (C 30467-30483) and `x_timeout_atimer_activated_flag` (C 30487).  No arm this lane runs
+   sets `use_x_toolkit`, and carrying them needs two more `<X11/Xresource.h>` records
+   (`XrmOptionKind`/`XrmOptionDescRec`, Xresource.h 327-343) in the mirror, so the region is
+   **owed text**: the round that first compiles a toolkit arm takes it, together with the
+   `XrmParseCommand` call site in `x_term_init`.  */
+
+#[cfg (feature = "have_x_windows")]
+pub static mut x_initialized: bool = false;                             // C 30491 (tentative, i.e. false)
+
+/* Test whether two display-name strings agree up to the dot that separates
+   the screen number from the server number.  */
+
+/// C 30495-30540: `static bool same_x_server (const char *name1, const char *name2)` - C's
+/// `static`, so a plain `unsafe fn`.  The two pointer parameters are stepped (`name1 += 4`), so the
+/// port binds them `mut` and writes C's arithmetic as `.add`; the `char` comparisons are the
+/// `as c_int` shape (`search.rs` 3325), and `Fsystem_name` is `include/globals.rs` 8542's
+/// declaration while `request_sigio`/`XCloseDisplay` elsewhere in this file are the bare-name class.
+#[cfg (feature = "have_x_windows")]
+unsafe fn same_x_server (mut name1: *const c_char, mut name2: *const c_char) -> bool
+{
+  let mut seen_colon: bool = false;                                     // C 30498
+  let mut sysname: Lisp_Object = Fsystem_name ();                       // C 30499
+  if !STRINGP (sysname)                                                 // C 30500
+    { sysname = empty_unibyte_string; }                                 // C 30501
+  let system_name: *const c_char = SSDATA (sysname);                    // C 30502
+  let system_name_length: ptrdiff_t = SBYTES (sysname);                 // C 30503
+  let mut length_until_period: ptrdiff_t = 0;                           // C 30504
+
+  while *system_name.offset (length_until_period) as c_int != b'\0' as c_int  // C 30506
+	&& *system_name.offset (length_until_period) as c_int != b'.' as c_int  // C 30507
+    { length_until_period += 1; }                                       // C 30508
+
+  /* Treat `unix' like an empty host name.  */
+  if strncmp (name1, c"unix:".as_ptr (), 5) == 0                        // C 30511
+    { name1 = name1.add (4); }                                          // C 30512
+  if strncmp (name2, c"unix:".as_ptr (), 5) == 0                        // C 30513
+    { name2 = name2.add (4); }                                          // C 30514
+  /* Treat this host's name like an empty host name.  */
+  if strncmp (name1, system_name, system_name_length as usize) == 0    // C 30516
+      && *name1.offset (system_name_length) as c_int == b':' as c_int   // C 30517
+    { name1 = name1.add (system_name_length as usize); }                // C 30518
+  if strncmp (name2, system_name, system_name_length as usize) == 0    // C 30519
+      && *name2.offset (system_name_length) as c_int == b':' as c_int   // C 30520
+    { name2 = name2.add (system_name_length as usize); }                // C 30521
+  /* Treat this host's domainless name like an empty host name.  */
+  if strncmp (name1, system_name, length_until_period as usize) == 0   // C 30523
+      && *name1.offset (length_until_period) as c_int == b':' as c_int  // C 30524
+    { name1 = name1.add (length_until_period as usize); }               // C 30525
+  if strncmp (name2, system_name, length_until_period as usize) == 0   // C 30526
+      && *name2.offset (length_until_period) as c_int == b':' as c_int  // C 30527
+    { name2 = name2.add (length_until_period as usize); }               // C 30528
+
+  loop                                                                  // C 30530
+    {
+      if !(*name1 as c_int != b'\0' as c_int && *name1 == *name2)      // C 30530
+	{ break; }
+
+      if *name1 as c_int == b':' as c_int                              // C 30532
+	{ seen_colon = true; }                                          // C 30533
+      if seen_colon && *name1 as c_int == b'.' as c_int                // C 30534
+	{ return true; }                                                // C 30535
+
+      name1 = name1.add (1);                                            // C 30530, the `for`'s first step
+      name2 = name2.add (1);                                            // C 30530, the `for`'s second step
+    }
+  return seen_colon                                                     // C 30537
+	 && (*name1 as c_int == b'.' as c_int
+	     || *name1 as c_int == b'\0' as c_int)                      // C 30538
+	 && (*name2 as c_int == b'.' as c_int
+	     || *name2 as c_int == b'\0' as c_int);                     // C 30539
+}
+
+/* Count number of set bits in mask and number of bits to shift to
+   get to the first bit.  With MASK 0x7e0, *BITS is set to 6, and *OFFSET
+   to 5.  */
+/// C 30545-30565: `static void get_bits_and_offset (unsigned long mask, int *bits, int *offset)` -
+/// C's `static`, so a plain `unsafe fn`; `mask` is stepped, so it is a `mut` binding, and the two
+/// out-parameters are C's `int *` written through.
+#[cfg (feature = "have_x_windows")]
+unsafe fn get_bits_and_offset (mut mask: c_ulong, bits: *mut c_int, offset: *mut c_int)
+{
+  let mut nr: c_int = 0;                                                // C 30548
+  let mut off: c_int = 0;                                               // C 30549
+
+  while mask & 1 == 0                                                   // C 30551
+    {
+      off += 1;                                                         // C 30553
+      mask >>= 1;                                                       // C 30554
+    }
+
+  while mask & 1 != 0                                                   // C 30557
+    {
+      nr += 1;                                                          // C 30559
+      mask >>= 1;                                                       // C 30560
+    }
+
+  *offset = off;                                                        // C 30563
+  *bits = nr;                                                           // C 30564
+}
+
+/* Return true iff display DISPLAY is available for use.
+   But don't permanently open it, just test its availability.  */
+
+/// C 30570-30581: `bool x_display_ok (const char *display)` - non-`static` and declared in xterm.h,
+/// so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  `XOpenDisplay`/
+/// `XCloseDisplay` are the bare Xlib class and `unrequest_sigio`/`request_sigio` are the
+/// `dispnew.rs` 328-329 declarations (this unit's readings already carry them as unfound names).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_display_ok (display: *const c_char) -> bool
+{
+  /* XOpenDisplay fails if it gets a signal.  Block SIGIO which may arrive.  */
+  unrequest_sigio ();                                                   // C 30574
+  let dpy: *mut Display = XOpenDisplay (display);                       // C 30575
+  request_sigio ();                                                     // C 30576
+  if dpy.is_null ()                                                     // C 30577
+    { return false; }                                                   // C 30578
+  XCloseDisplay (dpy);                                                  // C 30579
+  return true;                                                          // C 30580
+}
