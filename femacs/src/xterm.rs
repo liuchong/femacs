@@ -1707,10 +1707,13 @@ unsafe extern "C" fn xm_drag_window_error_handler (display: *mut c_void,
   return 0;
 }
 
-/* C 1969-1975: C declares it `_Noreturn int`, which the port writes `-> !` (PORTING.md 5.2);
-   `siglongjmp` is the libc function declared above.  */
+/* C 1969-1975: C declares it `_Noreturn int`; the port keeps C's `int` return and its `_Noreturn`
+   tail (`siglongjmp` is the libc function declared above, and it is a diverging expression), because
+   `XSetIOErrorHandler`'s parameter is the mirror's `Emacs_XIOErrorHandler`
+   (`Option<unsafe extern "C" fn (*mut c_void) -> c_int>`, unit 701) - the Slice-14 reading named
+   the `-> !` spelling as an `E0308` at C 26783/unit 1803.  */
 #[cfg (feature = "have_x_windows")]
-unsafe extern "C" fn xm_drag_window_io_error_handler (dpy: *mut c_void) -> !
+unsafe extern "C" fn xm_drag_window_io_error_handler (dpy: *mut c_void) -> c_int
 {
   siglongjmp (&raw mut x_dnd_disconnect_handler, 1);
   /* C declares it `_Noreturn`; `siglongjmp` never returns, so the port gives Rust's `-> !`
@@ -3523,16 +3526,18 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 /* C 3616-3624: C declares it `_Noreturn int`, which the port writes `-> !` (PORTING.md 5.2);
    the `USE_GTK` half is C's other arm (P-51), and `siglongjmp` is the libc function declared
    above.  */
+/* C 3622-3636: C's `_Noreturn int` handler, kept with C's `int` return for the reason the
+   `xm_drag_window_io_error_handler` note above records (Slice 14's reading).  */
 #[cfg (feature = "have_x_windows")]
-unsafe extern "C" fn x_dnd_io_error_handler (display: *mut c_void) -> !
+unsafe extern "C" fn x_dnd_io_error_handler (display: *mut c_void) -> c_int
 {
   #[cfg (feature = "use_gtk")]
   { emacs_abort () }
   #[cfg (not (feature = "use_gtk"))]
   {
     siglongjmp (&raw mut x_dnd_disconnect_handler, 1);
-    /* C's arm is `_Noreturn`; `siglongjmp` never returns, so the port gives Rust's `-> !` the
-       divergence it needs (the `xm_drag_window_io_error_handler` shape).  */
+    /* C's arm is `_Noreturn` and C's return type is `int`; `siglongjmp` is the diverging
+       expression (the `xm_drag_window_io_error_handler` shape above).  */
     unreachable! ()
   }
 }
@@ -14186,3 +14191,351 @@ pub unsafe extern "C" fn x_clear_errors (dpy: *mut Display)
      }
      #endif
 */
+/* C 26704-26713: a second `#if false` pair (`x_wire_count` and `x_trace_wire`), carried as the
+   comment it is (the C 5127-5156/26691-26702 shape this file's gate table records).
+
+     #if false
+     static unsigned int x_wire_count;
+
+     static int
+     x_trace_wire (Display *dpy)
+     {
+       fprintf (stderr, "Lib call: %u\n", ++x_wire_count);
+       return 0;
+     }
+     #endif
+*/
+
+/************************************************************************
+			  Handling X errors
+ ************************************************************************/
+
+/* Error message passed to x_connection_closed.  */
+
+/// C 26722: `static char *error_msg;` - C leaves it uninitialised (a file-scope pointer), so the
+/// port's zero value is the null pointer.
+#[cfg (feature = "have_x_windows")]
+static mut error_msg: *mut c_char = std::ptr::null_mut ();
+
+/* Try to find a frame in Vframe_list, and make it the selected frame.
+   `delete_frame' sometimes misses the initial frame for an unknown
+   reason when Emacs is running as a background daemon.  */
+
+/// C 26728-26738: `static void x_try_restore_frame (void)` - C's `FOR_EACH_FRAME` body is the
+/// mirror's three-argument macro (this unit's C 10073 shape) and `do_switch_frame` comes from
+/// `include/frame.rs`'s rows.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_try_restore_frame ()
+{
+  let mut tail: Lisp_Object;                                            // C 26731
+  let mut frame: Lisp_Object;
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 26733
+    if !NILP (do_switch_frame (frame, 0, 1, Qnil ()))                   // C 26735
+      { return; }                                                       // C 26736
+  });
+}
+
+/* Handle the loss of connection to display DPY.  ERROR_MESSAGE is
+   the text of an error message that lead to the connection loss.  */
+
+/* C 26743-26992: `static void x_connection_closed (Display *dpy, const char *error_message, bool
+   ioerror)` - the connection-loss teardown, this file's second-longest function.  Four shapes
+   worth naming: `error_msg` is C's file-scope pointer handed to the **stack pool**
+   (`sa_stack_alloc`, P-05 - C's `alloca` here outlives the frame only because the function never
+   returns, C 26991's `error` being a non-local exit); `current_display` is C's own
+   **function-`static`** and stays in the function (PORTING.md 1.3); C 26863/26887's two labels
+   with backward `goto`s are the port's labelled `loop`s with `continue 'label` (the C 1960
+   `'retry_drag_window` shape this unit already uses); and `dpyinfo->failable_requests` is the
+   record's **array**, so C's pointer decay is written `.as_mut_ptr ()` (the Slice-13 reading's
+   rule).  `shut_down_emacs` (C 26911) and `clear_waiting_for_input` (C 26985) have no row in this
+   unit's include graph and are declared at the use site below (P-88 1).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: dispnew.h 3327: `extern void clear_waiting_for_input (void);` - C 26985's call.
+  pub fn clear_waiting_for_input ();
+  /// C: lisp.h 5119: `extern Lisp_Object do_switch_frame (Lisp_Object, int, int, Lisp_Object);` -
+  /// C 26735's call (`src/frame.rs` defines it; no mirror row is in this unit's graph).
+  pub fn do_switch_frame (frame: Lisp_Object, track: c_int, for_deletion: c_int,
+                          norecord: Lisp_Object) -> Lisp_Object;
+  /// C: frame.h 1509: `extern Lisp_Object delete_frame (Lisp_Object, Lisp_Object);` - C 26879 and
+  /// C 26895's calls (`src/frame.rs` defines it; the `src/pgtkterm.rs` use-site row is its twin).
+  pub fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -> Lisp_Object;
+  /// C: Xlib.h 1857-1858: `extern XIOErrorHandler XSetIOErrorHandler (XIOErrorHandler);` - C 26783
+  /// and C 26826's calls; the parameter is this unit's own `Emacs_XIOErrorHandler` type (unit 699,
+  /// the earlier slices' binding of Xlib.h 1853's typedef, which `src/xterm.rs` 1789 already uses).
+  pub fn XSetIOErrorHandler (handler: Emacs_XIOErrorHandler) -> Emacs_XIOErrorHandler;
+}
+
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+unsafe fn x_connection_closed (dpy: *mut Display, error_message: *const c_char, ioerror: bool)
+{
+  use x11_constants::None;
+
+  let mut dpyinfo: *mut x_display_info;                                 // C 26746
+  let mut frame: Lisp_Object;                                           // C 26747
+  let mut tail: Lisp_Object;
+  let idx: specpdl_ref = SPECPDL_INDEX ();                              // C 26748
+  let io_error_handler: Emacs_XIOErrorHandler;                          // C 26749
+  let mut dmsg: xm_drop_start_message = core::mem::zeroed ();            // C 26750
+  let f: *mut frame;                                                    // C 26751
+  let mut minibuf_frame: Lisp_Object;                                   // C 26752
+  let tmp: Lisp_Object;
+  let mut failable: *mut x_failable_request;                            // C 26753
+  let mut stack: *mut x_error_message_stack;                            // C 26754
+  static mut current_display: *mut Display = std::ptr::null_mut ();     // C 26755
+
+  /* Prevent recursive calls of this function for the same display.
+     This is because destroying a frame might still cause an IO error
+     in some cases.  (bug#56528) */
+  if current_display == dpy                                             // C 26760
+    { return; }                                                         // C 26761
+
+  current_display = dpy;                                                // C 26763
+
+  dpyinfo = x_display_info_for_display (dpy);                           // C 26765
+  error_msg = sa_stack_alloc (strlen (error_message) + 1) as *mut c_char;  // C 26766
+  strcpy (error_msg, error_message);                                    // C 26767
+
+  /* Inhibit redisplay while frames are being deleted. */
+  specbind (Qinhibit_redisplay (), Qt ());                              // C 26770
+
+  /* If drag-and-drop is in progress, cancel drag-and-drop.  If DND
+     frame's display is DPY, don't reset event masks or try to send
+     responses to other programs because the display is going
+     away.  */
+
+  if x_dnd_in_progress || x_dnd_waiting_for_finish                       // C 26777
+    {
+      if !ioerror                                                        // C 26779
+	{
+	  /* Handle display disconnect errors here because this function
+	     is not reentrant at this particular spot.  */
+	  io_error_handler = XSetIOErrorHandler (Some (x_dnd_io_error_handler));  // C 26783
+
+	  if sigsetjmp (&raw mut x_dnd_disconnect_handler, 1) != 0           // C 26785
+	      && x_dnd_in_progress                                          // C 26786
+	      && dpy == (if x_dnd_waiting_for_finish                        // C 26787
+			   { x_dnd_finish_display as *mut Display }
+			 else
+			   { FRAME_X_DISPLAY! (x_dnd_frame) })              // C 26789
+	    {
+	      /* Clean up drag and drop if the drag frame's display isn't
+		 the one being disconnected.  */
+	      f = x_dnd_frame;                                              // C 26793
+
+	      if x_dnd_last_seen_window != None as Window                   // C 26795
+		  && x_dnd_last_protocol_version != -1                     // C 26796
+		{
+		  x_dnd_send_leave (x_dnd_frame,                            // C 26797
+				    x_dnd_last_seen_window,
+				    x_dnd_last_seen_toplevel);              // C 26799
+		}
+	      else if x_dnd_last_seen_window != None as Window              // C 26800
+		       && XM_DRAG_STYLE_IS_DROP_ONLY! (x_dnd_last_motif_style) == false  // C 26801
+		       && x_dnd_last_motif_style != xm_drag_style::XM_DRAG_STYLE_NONE as c_int  // C 26802
+		       && x_dnd_motif_setup_p                               // C 26803
+		{
+		  dmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR
+						 as c_int,
+						 xm_drag_reason::XM_DRAG_REASON_DROP_START
+						 as c_int) as u8;       // C 26805
+		  dmsg.byte_order = XM_BYTE_ORDER_CUR_FIRST as u8;          // C 26807
+		  dmsg.timestamp = (*FRAME_DISPLAY_INFO! (f)).last_user_time as u32;  // C 26808
+		  dmsg.side_effects                                         // C 26809
+		    = XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (FRAME_DISPLAY_INFO! (f),
+								       x_dnd_wanted_action),  // C 26811
+					   xm_drop_site_status::XM_DROP_SITE_VALID as c_int,
+					   x_dnd_motif_operations as c_int,
+					   xm_drag_action::XM_DROP_ACTION_DROP_CANCEL
+					   as c_int) as u16;                // C 26812-26813
+		  dmsg.x = 0;                                               // C 26814
+		  dmsg.y = 0;                                               // C 26815
+		  dmsg.index_atom = x_dnd_motif_atom as u32;                // C 26816
+		  dmsg.source_window = FRAME_X_WINDOW! (f) as u32;          // C 26817
+
+		  x_dnd_send_xm_leave_for_drop (FRAME_DISPLAY_INFO! (f), f,  // C 26819
+						x_dnd_last_seen_window, 0);     // C 26820
+		  xm_send_drop_message (FRAME_DISPLAY_INFO! (f), FRAME_X_WINDOW! (f),  // C 26821
+					x_dnd_last_seen_window, &raw mut dmsg);  // C 26822
+		}
+	    }
+
+	  XSetIOErrorHandler (io_error_handler);                            // C 26826
+	}
+
+      dpyinfo = x_display_info_for_display (dpy);                       // C 26829
+
+      x_dnd_last_seen_window = None as Window;                          // C 26831
+      x_dnd_last_seen_toplevel = None as Window;                        // C 26832
+      x_dnd_in_progress = false;                                        // C 26833
+      x_dnd_waiting_for_finish = false;                                 // C 26834
+
+      if x_dnd_use_toplevels                                           // C 26836
+	{ x_dnd_free_toplevels (!ioerror); }                            // C 26837
+
+      x_dnd_return_frame_object = std::ptr::null_mut ();                // C 26839
+      x_dnd_movement_frame = std::ptr::null_mut ();                     // C 26840
+      x_dnd_wheel_frame = std::ptr::null_mut ();                        // C 26841
+      x_dnd_frame = std::ptr::null_mut ();                              // C 26842
+    }
+
+  if !dpyinfo.is_null ()                                                // C 26845
+    {
+      /* Protect display from being closed when we delete the last
+         frame on it. */
+      (*dpyinfo).reference_count += 1;                                  // C 26849
+      (*(*dpyinfo).terminal).reference_count += 1;                       // C 26850
+      if ioerror                                                        // C 26851
+	{ (*dpyinfo).display = std::ptr::null_mut (); }                 // C 26852
+    }
+
+  /* delete_frame can still try to read async input (even though we
+     tell pass `noelisp'), because looking up the `delete-before'
+     parameter calls Fassq which then calls maybe_quit.  So block
+     input while deleting frames.  */
+  block_input ();                                                       // C 26859
+
+  /* First delete frames whose mini-buffers are on frames
+     that are on the dead display.  */
+  'delete_more_minibuffer_frames: loop                                  // C 26863
+    {
+      FOR_EACH_FRAME! (tail, frame, {                                   // C 26864
+	/* Tooltip frames don't have these, so avoid crashing.  */
+
+	if FRAME_TOOLTIP_P (XFRAME (frame))                              // C 26868
+	  { continue; }                                                 // C 26869
+
+	minibuf_frame                                                   // C 26871
+	  = WINDOW_FRAME! (XWINDOW (FRAME_MINIBUF_WINDOW (XFRAME (frame))));  // C 26872
+
+	if FRAME_X_P (XFRAME (frame))                                   // C 26874
+	    && FRAME_X_P (XFRAME (minibuf_frame))                       // C 26875
+	    && !EQ (frame, minibuf_frame)                                // C 26876
+	    && FRAME_DISPLAY_INFO! (XFRAME (minibuf_frame)) == dpyinfo  // C 26877
+	  {
+	    delete_frame (frame, Qnoelisp ());                          // C 26879
+	    continue 'delete_more_minibuffer_frames;                    // C 26880
+	  }
+      });
+      break;
+    }
+
+  /* Now delete all remaining frames on the dead display.
+     We are now sure none of these is used as the mini-buffer
+     for another frame that we need to delete.  */
+  'delete_more_frames: loop                                             // C 26887
+    {
+      FOR_EACH_FRAME! (tail, frame, {                                   // C 26888
+	if FRAME_X_P (XFRAME (frame))                                   // C 26889
+	    && FRAME_DISPLAY_INFO! (XFRAME (frame)) == dpyinfo          // C 26890
+	  {
+	    /* Set this to t so that delete_frame won't get confused
+	       trying to find a replacement.  */
+	    kset_default_minibuffer_frame (FRAME_KBOARD (XFRAME (frame)) as *mut kboard,
+					     Qt ());  // C 26894
+	    delete_frame (frame, Qnoelisp ());                          // C 26895
+	    continue 'delete_more_frames;                               // C 26896
+	  }
+      });
+      break;
+    }
+
+  /* If DPYINFO is null, this means we didn't open the display in the
+     first place, so don't try to close it.  */
+  if !dpyinfo.is_null ()                                                // C 26901
+    {
+      /* We can not call XtCloseDisplay here because it calls XSync.
+         XSync inside the error handler apparently hangs Emacs.  On
+         current Xt versions, this isn't needed either.  */
+      #[cfg (feature = "use_gtk")]
+      {
+	/* A long-standing GTK bug prevents proper disconnect handling
+	   <https://gitlab.gnome.org/GNOME/gtk/issues/221>.  Once,
+	   the resulting Glib error message loop filled a user's disk.
+	   To avoid this, kill Emacs unconditionally on disconnect.  */
+	shut_down_emacs (0, Qnil ());                                   // C 26911
+	fprintf (stderr, c"%s\nWhen compiled with GTK, Emacs cannot recover from X disconnects.\nThis is a GTK bug: https://gitlab.gnome.org/GNOME/gtk/issues/221\nFor details, see etc/PROBLEMS.\n".as_ptr (),  // C 26912-26915
+		 error_msg);                                            // C 26916
+	emacs_abort ();                                                 // C 26917
+      }
+
+      /* Indicate that this display is dead.  */
+      (*dpyinfo).display = std::ptr::null_mut ();                       // C 26921
+
+      (*dpyinfo).reference_count -= 1;                                  // C 26923
+      (*(*dpyinfo).terminal).reference_count -= 1;                      // C 26924
+      if (*dpyinfo).reference_count != 0                                // C 26925
+	/* We have just closed all frames on this display. */
+	{ emacs_abort (); }                                             // C 26927
+
+      /* This was the last terminal remaining, so print the error
+	 message and associated error handlers and kill Emacs.  */
+      if (*dpyinfo).terminal == terminal_list                           // C 26931
+	  && (*terminal_list).next_terminal.is_null ()                  // C 26932
+	{
+	  fprintf (stderr, c"%s\n".as_ptr (), error_msg);                // C 26934
+
+	  if !ioerror && !dpyinfo.is_null ()                            // C 26936
+	    {
+	      /* Dump the list of error handlers for debugging
+		 purposes if the list exists.  */
+
+	      if (*dpyinfo).failable_requests.as_mut_ptr ()             // C 26941
+		   != (*dpyinfo).next_failable_request                  // C 26942
+		  || !x_error_message.is_null ()
+		{ fprintf (stderr, c"X error handlers currently installed:\n".as_ptr ()); }  // C 26943
+
+	      failable = (*dpyinfo).failable_requests.as_mut_ptr ();     // C 26945
+	      while failable < (*dpyinfo).next_failable_request          // C 26946
+		{
+		  if (*failable).end != 0                                // C 26949
+		    { fprintf (stderr, c"Ignoring errors between %lu to %lu\n".as_ptr (),  // C 26950
+			       (*failable).start, (*failable).end); }    // C 26951
+		  else
+		    { fprintf (stderr, c"Ignoring errors from %lu onwards\n".as_ptr (),  // C 26953
+			       (*failable).start); }                     // C 26954
+		  failable = failable.offset (1);                        // C 26947
+		}
+
+	      stack = x_error_message;                                   // C 26957
+	      while !stack.is_null ()                                    // C 26957
+		{
+		  fprintf (stderr, c"Trapping errors from %lu\n".as_ptr (),  // C 26958
+			   (*stack).first_request);                      // C 26959
+		  stack = (*stack).prev;                                 // C 26957
+		}
+	    }
+	}
+
+      XSETTERMINAL! (tmp, (*dpyinfo).terminal);                          // C 26963
+      Fdelete_terminal (tmp, Qnoelisp ());                               // C 26964
+    }
+
+  /* The initial "daemon" frame is sometimes not selected by
+     `delete_frame' when Emacs is a background daemon.  */
+  if NILP (selected_frame) || !FRAME_LIVE_P (XFRAME (selected_frame))  // C 26969
+    { x_try_restore_frame (); }                                         // C 26970
+
+  unblock_input ();                                                     // C 26972
+
+  /* Sometimes another terminal is still alive, but deleting this
+     terminal caused all frames to vanish.  In that case, simply kill
+     Emacs, since the next redisplay will abort as there is no more
+     selected frame.  (bug#56528) */
+  if terminal_list.is_null () || NILP (selected_frame)                  // C 26978-26979
+      || !FRAME_LIVE_P (XFRAME (selected_frame))
+    { Fkill_emacs (make_fixnum (70), Qnil ()); }                        // C 26980
+
+  totally_unblock_input ();                                             // C 26982
+
+  unbind_to (idx, Qnil ());                                             // C 26984
+  clear_waiting_for_input ();                                           // C 26985
+
+  /* Here, we absolutely have to use a non-local exit (e.g. signal, throw,
+     longjmp), because returning from this function would get us back into
+     Xlib's code which will directly call `exit'.  */
+  current_display = std::ptr::null_mut ();                              // C 26990
+  error (c"%s".as_ptr (), error_msg);                                   // C 26991
+}

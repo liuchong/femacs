@@ -19,7 +19,7 @@
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
-9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** and slice 13 (C 26349-26689, Decision 25) to **165**.
+9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -258,8 +258,8 @@
 - [x] x_check_errors  (line 26614)
 - [x] x_had_errors_p  (line 26651)
 - [x] x_clear_errors  (line 26680)
-- [ ] x_try_restore_frame  (line 26729, static)
-- [ ] x_connection_closed  (line 26744, static)
+- [x] x_try_restore_frame  (line 26729, static)
+- [x] x_connection_closed  (line 26744, static)
 - [ ] x_error_handler  (line 27000, static)
 - [ ] x_error_quitter  (line 27082, static)
 - [ ] x_io_error_quitter  (line 27115, static)
@@ -453,7 +453,7 @@
 - [ ] static struct x_display_info next_noop_dpyinfo  (line 17840, static)
 - [x] static struct x_error_message_stack x_error_message  (line 26249, static)
 - [x] int x_error_message_count  (line 26252)
-- [ ] static char error_msg  (line 26722, static)
+- [x] static char error_msg  (line 26722, static)
 - [ ] static bool x_initialized  (line 30491, static)
 - [ ] static unsigned x_display_id  (line 30595, static)
 
@@ -1857,6 +1857,23 @@ expressions (Decision 25).
   retires because the defining unit is its includer (P-90 7; it was slice 12's one `E0428`, which
   that slice's class counts did not include - recorded here rather than smoothed over).
 
+### 26. Slice 14 (C 26704-26992): `x_connection_closed`, and three shapes it fixes rather than follows
+
+* **`error_msg` is the stack pool**, not a heap buffer: C 26766 hands a **file-scope** pointer an
+  `alloca` result, which is sound only because C 26991's `error` is a non-local exit; the port keeps
+  the pointer file-scope and takes the bytes from `sa_stack_alloc` (P-05), the same spelling slice
+  13's `x_check_errors` uses.
+* **The two `_Noreturn` XIO handlers take C's `int` return.**  The earlier slices wrote them `-> !`
+  (a Rust convenience), which cannot be passed to `XSetIOErrorHandler`'s
+  `Emacs_XIOErrorHandler` parameter (`Option<unsafe extern "C" fn (*mut c_void) -> c_int>`, unit
+  701).  C declares them `_Noreturn int`; the port keeps the `int` and their diverging tails
+  (`emacs_abort ()`, `siglongjmp` + `unreachable! ()`), which is what C 26783 and the motif path's
+  C 1803 need.  The reading that named it is this slice's own two `E0308`s.
+* **C's two backward `goto`s are labelled `loop`s** (`'delete_more_minibuffer_frames`,
+  `'delete_more_frames`) with `continue 'label` for the jump and `break` after the frame walk
+  (PORTING.md 2.2, the C 1960 `'retry_drag_window` idiom this file already uses), and
+  `dpyinfo->failable_requests` keeps the `.as_mut_ptr ()` decay slice 13's reading established.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -2999,6 +3016,67 @@ C's 33,125, 57.2%).  The six text gates are unchanged.
 **Not claimed.**  The frozen configuration compiles none of this file, so both arms are **text**
 readings of an arm this machine cannot build: no error was trapped, no display was opened and no
 request serial was read; the remaining `E0425` rows are unresolved names, not behaviour.
+
+
+### Slice 14's readings (C 26704-26992), as landed and measured (2026-10-06)
+
+**What it lands.**  The `Handling X errors` banner with the file-scope `error_msg` pointer
+(C 26722), `x_try_restore_frame` (C 26728-26738) and **`x_connection_closed` (C 26743-26992)** - the
+connection-loss teardown, 250 C lines and this file's second-longest function: the recursive-call
+guard through its own function-`static` `current_display`, the drag-and-drop cancellation arm with
+its `sigsetjmp`/`XSetIOErrorHandler` pair and the Motif drop-message construction, the two
+`FOR_EACH_FRAME` delete passes with their backward labels, the GTK arm's unconditional
+`shut_down_emacs`/`emacs_abort`, the error-handler dump, and the final non-local exit
+(C 26991's `error`).  C 26704-26713's second `#if false` pair is carried as the comment it is.
+Rust: 14,188 -> **14,541** lines.
+
+**The probe (the lane's command, three arms, both sides).**
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xt14 cargo run -q -p xtask -- probe src/xterm.rs /tmp/xt14/fin.o \\
+      --crate-type=lib --emit=metadata -C panic=abort --cfg 'feature="have_x_windows"' \\
+      [--cfg 'feature="have_gtk3"'] [--cfg 'feature="use_gtk"']
+# arm A (have_x_windows), before -> after:
+#   568 error-lines / 54 warnings   366 E0425  13 E0308 166 E0609 17 E0614 1 E0381 1 E0080 1 E0277
+#   564 error-lines / 54 warnings   362 E0425  13 E0308 166 E0609 17 E0614 1 E0381 1 E0080 1 E0277
+# arm B (A + have_gtk3): 579 / 54 (374 E0425) -> 575 / 54 (370 E0425)
+# arm C (A + use_gtk):   565 / 59 (360 E0425, 15 E0308, 167 E0609) -> 562 / 60 (357 E0425, 15, 167)
+# the delta: -4 E0425 in A and B and -3 in C, and no other class moves in any arm.  Those rows are
+# the earlier call sites the new use-site declarations resolve (do_switch_frame, delete_frame twice,
+# clear_waiting_for_input, XSetIOErrorHandler); this slice's own two functions are `static` and their
+# callers (x_error_quitter, x_io_error_quitter) are still ahead, so they add no resolution of their
+# own.  Arm C's one extra warning is C's own structure: the USE_GTK arm ends in `emacs_abort ()` and
+# C's statements after `#endif` follow it, which Rust reports as an unreachable statement (the
+# mirrors' own two `unreachable expression` warnings are that class); A and B keep their 54.
+```
+**Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as the first statement of
+`x_try_restore_frame` moves E0308 to 14 anchored at the injected line (`_root.rs:14244`); removed,
+the file re-measured at 14,541 lines.
+
+**The first readings named five of this slice's own fault classes**, all fixed here: ⑴ `FRAME_KBOARD`,
+`FRAME_MINIBUF_WINDOW` and `FRAME_TOOLTIP_P` are the mirror's **functions**, not the macros other
+units' copies of those names are (three rows); ⑵ `EQ` and `FRAME_LIVE_P` return `bool`, so C's
+`== 0` tests are the port's `!` (three sites); ⑶ the `XM_DRAG_*`/`XM_DROP_*` names are enum members
+behind the unit's own modules and the `xm_drop_start_message` fields are narrower than the values C
+assigns (`as u8`/`as u32`/`as u16`, six sites - the C 26805-26817 block is the same text the
+`xm_send_drop_message` path already spells at C 4943-4950); ⑷ `x_dnd_finish_display` is a
+`*mut c_void` row (the P-72 rule 3 wording that path uses), so the C 26787 comparison writes the
+cast; ⑸ the `-> !` return types the earlier slices gave `xm_drag_window_io_error_handler` and
+`x_dnd_io_error_handler` are **incompatible with `XSetIOErrorHandler`'s `Emacs_XIOErrorHandler`
+parameter**, so both take C's own `int` and keep their diverging tails - the two `E0308`s the first
+reading named were that mismatch surfacing at C 26783 and at the motif path's C 1803.  Two
+`variable does not need to be mutable` warnings and one `partially assigned binding` (`dmsg`,
+zeroed per Deviation 12) were cleared with them.
+
+**What `--check` reads.**  **165 -> 163**: `x_try_restore_frame` and `x_connection_closed` retire as
+missing functions and the one token row this slice brought
+(`function x_connection_closed does not mention alloca, goto`) is closed by a
+`docs/ports/macro-body-notes.tsv` row (P-05's stack pool and PORTING.md 2.2's labelled `loop`s);
+the line-count row stays (14,541 against C's 33,125, 56.1%).  The six text gates are unchanged, and
+**no mirror changed this slice**, so P-87's two legs do not apply to it.
+
+**Not claimed.**  The frozen configuration compiles none of this file, so all three arms are
+**text** readings of an arm this machine cannot build: no connection was lost, no error was trapped
+and no display was opened; the remaining `E0425` rows are unresolved names, not behaviour.
 
 
 ## Owed by the integrator (nothing here is claimed as done)
