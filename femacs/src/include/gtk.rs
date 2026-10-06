@@ -164,6 +164,11 @@ unsafe extern "C" {
   /// C: gstrfuncs.h 284: `gchar* (g_strdup) (const gchar *str) G_GNUC_MALLOC;` (the function the
   /// 324's `#define g_strdup(x) g_strdup_inline (x)` wrapper calls).
   pub fn g_strdup (str: *const gchar) -> *mut gchar;
+  /// C 2014: `char *key = g_strdup_printf ("%s.%s", res, attr);` (its result is freed by C 2016's
+  /// callee, `pgtk_set_defaults_value`'s `GSettings` call path, and C never frees it here)
+  /// C: gstrfuncs.h 286: `gchar* g_strdup_printf (const gchar *format, ...) G_GNUC_PRINTF (1, 2)
+  /// G_GNUC_MALLOC;`
+  pub fn g_strdup_printf (format: *const gchar, ...) -> *mut gchar;
   /// C 694/720: `if (cp) g_free (cp);` / `g_free (cp);`
   /// C: gmem.h 74: `void (g_free) (gpointer mem);`
   pub fn g_free (mem: gpointer);
@@ -318,6 +323,14 @@ pub struct GdkDisplay
 {
   _private: [u8; 0],
 }
+/// C: gdk/gdkmonitor.h: `typedef struct _GdkMonitor GdkMonitor;` - the monitor handle C
+/// 2042-2107's two `x-display-mm-*` subrs walk.  Opaque here (C only passes it back to GDK), and
+/// **UNVERIFIED**: no GDK header on this machine (the records above).
+#[repr(C)]
+pub struct GdkMonitor
+{
+  _private: [u8; 0],
+}
 /// C: gdk/gdkscreen.h: `typedef struct _GdkScreen GdkScreen;`
 #[repr(C)]
 pub struct GdkScreen
@@ -425,6 +438,22 @@ unsafe extern "C" {
   /// C 329/353: `gdk_display_close (gdpy);`
   /// C: gdk/gdkdisplay.h: `void gdk_display_close (GdkDisplay *display);`
   pub fn gdk_display_close (display: *mut GdkDisplay);
+  /// C 2053/2087: `n_monitors = gdk_display_get_n_monitors (gdpy);`
+  /// C: gdk/gdkdisplay.h: `gint gdk_display_get_n_monitors (GdkDisplay *display);`
+  pub fn gdk_display_get_n_monitors (display: *mut GdkDisplay) -> gint;
+  /// C 2059/2093: `GdkMonitor *monitor = gdk_display_get_monitor (gdpy, i);`
+  /// C: gdk/gdkdisplay.h: `GdkMonitor *gdk_display_get_monitor (GdkDisplay *display,
+  /// gint monitor_num);`
+  pub fn gdk_display_get_monitor (display: *mut GdkDisplay, monitor_num: gint) -> *mut GdkMonitor;
+  /// C 2060/2094: `gdk_monitor_get_geometry (monitor, &rec);`
+  /// C: gdk/gdkmonitor.h: `void gdk_monitor_get_geometry (GdkMonitor *monitor, GdkRectangle *geometry);`
+  pub fn gdk_monitor_get_geometry (monitor: *mut GdkMonitor, geometry: *mut GdkRectangle);
+  /// C 2062: `int mm = gdk_monitor_get_height_mm (monitor);`
+  /// C: gdk/gdkmonitor.h: `int gdk_monitor_get_height_mm (GdkMonitor *monitor);`
+  pub fn gdk_monitor_get_height_mm (monitor: *mut GdkMonitor) -> c_int;
+  /// C 2096: `int mm = gdk_monitor_get_width_mm (monitor);`
+  /// C: gdk/gdkmonitor.h: `int gdk_monitor_get_width_mm (GdkMonitor *monitor);`
+  pub fn gdk_monitor_get_width_mm (monitor: *mut GdkMonitor) -> c_int;
   /// C 375: `return gdk_cursor_new_for_display (gdpy, GDK_LEFT_PTR);`
   /// C: gdk/gdkcursor.h: `GdkCursor *gdk_cursor_new_for_display (GdkDisplay *display,
   /// GdkCursorType cursor_type);`

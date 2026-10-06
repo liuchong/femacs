@@ -349,6 +349,12 @@ unsafe extern "C" {
   pub fn pgtk_set_no_focus_on_map (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object);
   pub fn pgtk_set_no_accept_focus (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object);
   pub fn pgtk_set_z_group (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object);
+  /// C 2169: `pgtk_delete_terminal (dpyinfo->terminal);` and C 2204's
+  /// `pgtk_xlfd_to_fontname (SSDATA (name))` - the two `pgtkterm.h` entries this slice calls
+  /// (pgtkterm.h 637/720; the mirror `include/pgtkterm.rs` carries both, but this unit's include
+  /// graph does not).
+  pub fn pgtk_delete_terminal (terminal: *mut terminal);
+  pub fn pgtk_xlfd_to_fontname (name: *const c_char) -> *mut c_char;
   /// C 1547/2747: `pgtk_set_event_handler (f);`
   /// C: pgtkterm.h 598: `extern void pgtk_set_event_handler (struct frame *);`
   pub fn pgtk_set_event_handler (f: *mut frame);
@@ -553,6 +559,15 @@ unsafe extern "C" {
   pub fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
   /// C: string.h: `char *strncpy (char *dest, const char *src, size_t n);`
   pub fn strncpy (dest: *mut c_char, src: *const c_char, n: size_t) -> *mut c_char;
+  /// C: frame.h 1504: `extern WINDOW_SYSTEM_RETURN void check_window_system (struct frame *);` -
+  /// C 2003's call passes `NULL` (the `src/androidmenu.rs` 92 shape); the mirror has not got it
+  pub fn check_window_system (f: *mut frame);
+  /// C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);`
+  /// - C 2151's call (the `src/emacs.rs` 196 / `src/alloc.rs` 6231 shape, `-> !`)
+  pub fn fatal (msgid: *const c_char, ...) -> !;
+  /// C: string.h: `char *strstr (const char *haystack, const char *needle);` - C 2201's two calls
+  /// (`lib/include/string.rs` has not got it; the `src/font.rs` 437-438 shape)
+  pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
 
   /* font.h 991-993: the two FT/CR driver objects C 1387-1392 registers -
      `#if defined (USE_CAIRO) || defined (USE_BE_CAIRO)` / `extern struct font_driver const
@@ -2952,3 +2967,282 @@ unsafe fn pgtk_set_defaults_value (key: *const c_char, value: *const c_char)
   let _ = (key, value);        /* C's parameters are unused in this arm.  */
   error (c"gsettings not supported".as_ptr ());                // C 1993
 }
+
+/* ==========================================================================
+
+   C 1999-2208: the resource subr, the eleven display subrs and `pgtk-font-name`
+
+   ========================================================================== */
+
+/* C 1999-2000: `DEFUN ("pgtk-set-resource", Fpgtk_set_resource, Spgtk_set_resource, 2, 2, 0,` with
+   C's own one-line docstring; C 2001's parameter list and C 2002-2019's body follow.  C 2009-2010's
+   two `SSDATA` results are C's `char *` locals, so the port keeps them as `*mut c_char` (the
+   `x_decode_color` shape above).  */
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("pgtk-set-resource", Fpgtk_set_resource, Spgtk_set_resource,   // C 1999-2019
+	2, 2, 0,
+	doc: "Set the value of ATTRIBUTE, of class CLASS, as VALUE, into defaults database. ",
+	(attribute: Lisp_Object, value: Lisp_Object),
+	{
+  check_window_system (std::ptr::null_mut ());                  // C 2003
+
+  CHECK_STRING (attribute);                                     // C 2005
+  if !NILP (value)
+    { CHECK_STRING (value); }                                   // C 2007
+
+  let mut res: *mut c_char = SSDATA (Vx_resource_name);         // C 2009
+  let attr: *mut c_char = SSDATA (attribute);                   // C 2010
+  /* C 2011's `attr[0]` is the port's `*attr.offset (0)` - C's own index read (the `src/alloc.rs`
+     3967 shape for a raw pointer's element).  */
+  if *attr.offset (0) >= 'A' as c_char && *attr.offset (0) <= 'Z' as c_char   // C 2011
+    { res = SSDATA (Vx_resource_class); }                                   // C 2012
+
+  let key: *mut c_char = g_strdup_printf (c"%s.%s".as_ptr (), res, attr);   // C 2014
+
+  pgtk_set_defaults_value (key,                                       // C 2016
+			   if NILP (value) { std::ptr::null () } else { SSDATA (value) });
+
+  return Qnil ();                                               // C 2018
+});
+
+/* C 2022-2030: `x-server-max-request-size` and C 2033-2039: `x-display-screens` - two of the eleven
+   `x-*` display subrs this file defines for the `x-*` Lisp API (`xfns.c`'s docstrings are the real
+   ones, hence the file's `SKIP` form).  */
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-server-max-request-size", Fx_server_max_request_size, Sx_server_max_request_size,   // C 2022-2030
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  check_pgtk_display_info (terminal);                           // C 2026
+  /* This function has no real equivalent under PGTK.  Return nil to
+     indicate this. */
+  return Qnil ();                                               // C 2029
+});
+
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-screens", Fx_display_screens, Sx_display_screens,   // C 2033-2039
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  check_pgtk_display_info (terminal);                           // C 2037
+  return make_fixnum (1);                                       // C 2038
+});
+
+// C: C 2042-2043: `DEFUN ("x-display-mm-height", Fx_display_mm_height, Sx_display_mm_height, 0, 1,
+// 0,` - C 2046-2072: the monitor walk that sums the millimetre heights of the monitors whose
+// rectangle starts at y = 0 and adds the rest.  C 2064's `max` is `lisp.h`'s macro over two
+// `int`s, written as the mirror's `max (a, b) -> isize` with the two conversions spelled (the
+// `src/abi_shim.rs` 2457 shape); `GdkRectangle rec;` (C 2057) is C's uninitialised local that C
+// 2060 fills, so the port zero-initialises it (the `x_decode_color` C 1058 shape).
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-mm-height", Fx_display_mm_height, Sx_display_mm_height,   // C 2042-2073
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut pgtk_display_info = check_pgtk_display_info (terminal);   // C 2046
+  let mut gdpy: *mut GdkDisplay;                                             // C 2047
+  let mut n_monitors: gint;                                                  // C 2048
+  let mut i: gint;
+  let mut height_mm_at_0: c_int = 0;                                         // C 2049
+  let mut height_mm_at_other: c_int = 0;
+
+  block_input ();                                                            // C 2051
+  gdpy = (*dpyinfo).gdpy;                                                    // C 2052
+  n_monitors = gdk_display_get_n_monitors (gdpy);                            // C 2053
+
+  i = 0;
+  while i < n_monitors                                                       // C 2055
+    {
+      let mut rec: GdkRectangle = std::mem::zeroed ();                       // C 2057
+
+      let monitor: *mut GdkMonitor = gdk_display_get_monitor (gdpy, i);      // C 2059
+      gdk_monitor_get_geometry (monitor, &raw mut rec);                      // C 2060
+
+      let mm: c_int = gdk_monitor_get_height_mm (monitor);                   // C 2062
+
+      if rec.y == 0                                                          // C 2064
+	{ height_mm_at_0 = max (height_mm_at_0 as isize, mm as isize) as c_int; }
+      else
+	{ height_mm_at_other += mm; }                                        // C 2067
+      i += 1;
+    }
+
+  unblock_input ();                                                          // C 2070
+
+  return make_fixnum ((height_mm_at_0 + height_mm_at_other) as EMACS_INT);   // C 2072
+});
+
+// C: C 2076-2077: `DEFUN ("x-display-mm-width", Fx_display_mm_width, Sx_display_mm_width, 0, 1, 0,`
+// - the same walk over `rec.x` and `gdk_monitor_get_width_mm` (C 2080-2106).
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-mm-width", Fx_display_mm_width, Sx_display_mm_width,   // C 2076-2107
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut pgtk_display_info = check_pgtk_display_info (terminal);   // C 2080
+  let mut gdpy: *mut GdkDisplay;                                             // C 2081
+  let mut n_monitors: gint;                                                  // C 2082
+  let mut i: gint;
+  let mut width_mm_at_0: c_int = 0;                                          // C 2083
+  let mut width_mm_at_other: c_int = 0;
+
+  block_input ();                                                            // C 2085
+  gdpy = (*dpyinfo).gdpy;                                                    // C 2086
+  n_monitors = gdk_display_get_n_monitors (gdpy);                            // C 2087
+
+  i = 0;
+  while i < n_monitors                                                       // C 2089
+    {
+      let mut rec: GdkRectangle = std::mem::zeroed ();                       // C 2091
+
+      let monitor: *mut GdkMonitor = gdk_display_get_monitor (gdpy, i);      // C 2093
+      gdk_monitor_get_geometry (monitor, &raw mut rec);                      // C 2094
+
+      let mm: c_int = gdk_monitor_get_width_mm (monitor);                    // C 2096
+
+      if rec.x == 0                                                          // C 2098
+	{ width_mm_at_0 = max (width_mm_at_0 as isize, mm as isize) as c_int; }
+      else
+	{ width_mm_at_other += mm; }                                         // C 2101
+      i += 1;
+    }
+
+  unblock_input ();                                                          // C 2104
+
+  return make_fixnum ((width_mm_at_0 + width_mm_at_other) as EMACS_INT);     // C 2106
+});
+
+// C: C 2110-2111: `DEFUN ("x-display-backing-store", …, 0, 1, 0,`
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-backing-store", Fx_display_backing_store, Sx_display_backing_store,   // C 2110-2116
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  check_pgtk_display_info (terminal);                           // C 2114
+  return Qnil ();                                               // C 2115
+});
+
+// C: C 2119-2120: `DEFUN ("x-display-visual-class", …, 0, 1, 0,` - C 2123's `Qtrue_color` with no
+// `check_pgtk_display_info` call (C's own text has none either)
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-visual-class", Fx_display_visual_class, Sx_display_visual_class,   // C 2119-2124
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let _ = terminal;
+  return Qtrue_color ();                                        // C 2123
+});
+
+// C: C 2127-2128: `DEFUN ("x-display-save-under", …, 0, 1, 0,`
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-save-under", Fx_display_save_under, Sx_display_save_under,   // C 2127-2133
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  check_pgtk_display_info (terminal);                           // C 2131
+  return Qnil ();                                               // C 2132
+});
+
+// C: C 2136-2137: `DEFUN ("x-open-connection", Fx_open_connection, Sx_open_connection, 1, 3, 0,` -
+// C 2142-2143's `display = build_string ("")` when the display is nil, the `CHECK_STRING`, the
+// `pgtk_term_init` call and the two-message failure path.
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-open-connection", Fx_open_connection, Sx_open_connection,   // C 2136-2157
+	1, 3, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(display: Lisp_Object, resource_string: Lisp_Object, must_succeed: Lisp_Object),
+	{
+  let mut display = display;                                    // C 2138 reassigns the parameter.
+  let _ = resource_string;            /* C's third parameter is unused in C's own body.  */
+  let mut dpyinfo: *mut pgtk_display_info;                      // C 2140
+
+  if NILP (display)                                             // C 2142
+    { display = build_string (c"".as_ptr ()); }
+
+  CHECK_STRING (display);                                       // C 2145
+
+  dpyinfo = pgtk_term_init (display, SSDATA (Vx_resource_name));    // C 2147
+  if dpyinfo == 0 as *mut pgtk_display_info                     // C 2148 (C's `== 0`, the
+                                                                // `src/w32term.rs` 2680 shape)
+    {
+      if !NILP (must_succeed)                                   // C 2150
+	{ fatal (c"Display on %s not responding.\n".as_ptr (), SSDATA (display)); }
+      else
+	{ error (c"Display on %s not responding.\n".as_ptr (), SSDATA (display)); }
+    }
+
+  return Qnil ();                                               // C 2156
+});
+
+// C: C 2160-2161: `DEFUN ("x-close-connection", …, 1, 1, 0,`
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-close-connection", Fx_close_connection, Sx_close_connection,   // C 2160-2172
+	1, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut pgtk_display_info = check_pgtk_display_info (terminal);   // C 2164
+
+  if (*dpyinfo).reference_count > 0                             // C 2166
+    { error (c"Display still has frames on it".as_ptr ()); }    // C 2167
+
+  pgtk_delete_terminal ((*dpyinfo).terminal);                   // C 2169
+
+  return Qnil ();                                               // C 2171
+});
+
+/* C 2175-2176: `DEFUN ("x-display-list", …, 0, 0, 0,` - C 2177's `(void)` parameter list is the
+   port's `()` (no parameter at all), and C 2182-2183's list walk is the file's `while` shape for
+   C's `for`.  */
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-list", Fx_display_list, Sx_display_list,   // C 2175-2186
+	0, 0, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(),
+	{
+  let mut result: Lisp_Object = Qnil ();                        // C 2179
+  let mut ndi: *mut pgtk_display_info;                          // C 2180
+
+  ndi = x_display_list;                                         // C 2182
+  while !ndi.is_null ()
+    {
+      result = Fcons (XCAR ((*ndi).name_list_element), result);  // C 2183
+      ndi = (*ndi).next;
+    }
+
+  return result;                                                // C 2185
+});
+
+/* C 2188-2189: `DEFUN ("pgtk-font-name", Fpgtk_font_name, Spgtk_font_name, 1, 1, 0,` with C's own
+   docstring (C 2189-2192); C 2195's `char *nm;` is a `*mut c_char` here, C 2205 reassigns the
+   parameter (the port shadows it, the `Fpgtk_set_monitor_scale_factor` shape), and C 2206's
+   `xfree (str)` takes the mirror's `*mut c_void`.  */
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("pgtk-font-name", Fpgtk_font_name, Spgtk_font_name,   // C 2188-2208
+	1, 1, 0,
+	doc: "Determine font PostScript or family name for font NAME.\nNAME should be a string containing either the font name or an XLFD\nfont descriptor.  If string contains `fontset' and not\n`fontset-startup', it is left alone. ",
+	(name: Lisp_Object),
+	{
+  let mut name = name;                                          // C 2205 reassigns the parameter.
+  let mut nm: *mut c_char;                                      // C 2195
+  CHECK_STRING (name);                                          // C 2196
+  nm = SSDATA (name);                                           // C 2197
+
+  if *nm.offset (0) != b'-' as c_char                           // C 2199 (C's `nm[0]`)
+    { return name; }
+  if !strstr (nm, c"fontset".as_ptr ()).is_null ()              // C 2201
+      && strstr (nm, c"fontset-startup".as_ptr ()).is_null ()
+    { return name; }
+
+  let str_: *mut c_char = pgtk_xlfd_to_fontname (SSDATA (name));   // C 2204
+  name = build_string (str_);                                   // C 2205
+  xfree (str_ as *mut c_void);                                  // C 2206
+  return name;                                                  // C 2207
+});

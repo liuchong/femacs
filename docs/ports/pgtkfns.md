@@ -13,9 +13,10 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**2,954** lines, from the 11 of the placeholder), carrying **C 1-1147**,
-> **C 1149-1196**, **C 1197-1752** and **C 1754-1996** - four slices - with **both arms of every
-> `#if`**; after them the file's next live definition is `Fpgtk_set_resource` (**C 1999**).
+> `femacs/src/pgtkfns.rs` (**3,248** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> **C 1149-1196**, **C 1197-1752**, **C 1754-1996** and **C 1999-2208** - five slices - with **both
+> arms of every `#if`**; after them the file's next live definition is `check_x_display_info`
+> (**C 2218**).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -125,7 +126,8 @@ which exist only under those two features (Owed 6).
 | 1149-1196 | the "Lisp definitions" banner (C 1149-1153) and `DEFUN ("pgtk-set-monitor-scale-factor", …)` (C 1155-1196: the `CHECK_STRING`/`CHECK_NUMBER` gates, the `FIXNUMP`/`FLOATP` split with its two identical `error` texts, the `Fassoc` lookup and the `Fcons`/`Fsetcdr` pair on `monitor_scale_factor_alist`) | the file gate - **transcribed** (the second slice) |
 | 1197-1752 | `Fx_create_frame` - the file's largest item: the terminal/display lookup and `check_pgtk_display_info`, the `minibuffer` four-way fork and the `parent_frame` test, the `undecorated`/`override_redirect` reads, the frame's officialisation (`XSETFRAME`, the two css providers, the colour reference-count block, `parent_desc`/`explicit_parent`, the `specbind`), the two font drivers, the parameter chain and `init_frame_faces`, the two `adjust_frame_size` calls, `xg_create_frame_widgets`/`pgtk_set_event_handler` and the fifteen `INSTALL_CURSOR` installs, the frame's own reference counts and `Vframe_list`, the GTK re-parenting and the `GList` walk, `initialize_frame_menubar`/`xg_wm_set_size_hint`, the visibility block, the trailing alist loop and the scale-factor atimer | the file gate - **transcribed** (the third slice; C 1753 is the blank line between it and the restack pair) |
 | 1754-1996 | the restack pair and the GSETTINGS block: C 1754-1757's comment and `pgtk_frame_restack` (C 1758-1764), `DEFUN ("pgtk-frame-restack", …)` with C's own 15-line docstring (C 1766-1791), and C 1793-1996's `#ifdef HAVE_GSETTINGS` region - the five `#define`s, the three `static inline` predicates, `parse_resource_key`, `pgtk_check_resource_key_length`, `pgtk_get_defaults_value`, `pgtk_set_defaults_value`, the five `#undef`s and the `#else` arm's own pair | the file gate plus `have_gsettings` for the `#if` arm (the `#else` arm is the frozen configuration's) - **transcribed** (the fourth slice) |
-| 1999-3906 | **the remainder of the file** - from C 1999's `DEFUN ("pgtk-set-resource", …)` ((`Fpgtk_set_resource`, **the next live definition**) through C 3906's `syms_of_pgtkfns`: the resource-key helpers and the `HAVE_GSETTINGS` pair (1999-2021), the ten display subrs (2022-2217), `check_x_display_info`/the scroll-bar defaults/`pgtk_get_string_resource`/`pgtk_get_focus_frame` (2218-2282), the eleven colour/geometry subrs (2283-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1999-2208 | the resource subr, the eleven `x-*` display subrs and `pgtk-font-name`: `Fpgtk_set_resource` (C 1999-2019), `x-server-max-request-size`/`x-display-screens` (2022-2039), the two GDK monitor walks `x-display-mm-height`/`x-display-mm-width` (2042-2107), `x-display-backing-store`/`x-display-visual-class`/`x-display-save-under` (2110-2133), `x-open-connection`/`x-close-connection` (2136-2172), `x-display-list` (2175-2186) and `pgtk-font-name` (2188-2208) | the file gate - **transcribed** (the fifth slice) |
+| 2210-3906 | **the remainder of the file** - from C 2210-2214's "Miscellaneous functions" banner and C 2216-2218's `check_x_display_info` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the resource-key helpers and the `HAVE_GSETTINGS` pair (2218-2282), the eleven colour/geometry subrs (2283-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -425,6 +427,44 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     record is dereferenced (`[u8; 0]`, the opaque shape) - and `include/gtk.rs`, which carries the
     GLib/GObject half (`g_free`, `g_object_unref`, `TRUE`), does **not** carry GIO's, which is why
     the segment stands here rather than there (Owed 13).
+
+36. **A `///` citation above a `DEFUN!` invocation is an `unused doc comment`.**  This slice's nine
+    `DEFUN!`s were first written with `///` lines above them (the shape the declarations in this
+    file use), which added **seven warnings in all four arms** (measured: 11 -> 18 narrow, 10 -> 17
+    wide); a macro invocation takes no doc comment, so every citation above a `DEFUN!` here is a
+    block comment (`/* … */`) - the same fix the second and third slices recorded, and the reason
+    this slice's own reading is warning-free.
+37. **C's `for (i = 0; i < n_monitors; ++i)` is the file's `i = 0; while … { … i += 1; }`** (C 2055
+    and C 2089, the two monitor walks; the `src/androidfns.rs` 1552 shape for C's `for` over an
+    `int` counter).
+38. **C's `max (a, b)` over two `int`s** (C 2065/2099) is the mirror's `max (a: isize, b: isize)
+    -> isize` (`include/lisp.rs` 3149) with both conversions written and the result narrowed -
+    `max (height_mm_at_0 as isize, mm as isize) as c_int` (the `src/abi_shim.rs` 2457 shape; the
+    macro `lisp.h` spells cannot be a call in Rust).
+39. **C's uninitialised `GdkRectangle rec;` (C 2057/2091) is zero-initialised.**  C 2060/2094 fills it
+    through a pointer, so the port writes `let mut rec: GdkRectangle = std::mem::zeroed ();` and
+    passes `&raw mut rec` (the `x_decode_color` C 1058 shape for C's uninitialised locals; the
+    `src/pgtkterm.rs` 1391 shape for `&raw mut`).
+40. **C's index reads and its `== 0` pointer test keep C's own `0` tokens.**  C 2011's `attr[0]` and
+    C 2199's `nm[0]` are `*attr.offset (0)` / `*nm.offset (0)` (a raw pointer's element, the
+    `src/alloc.rs` 3967 shape), and C 2148's `if (dpyinfo == 0)` is
+    `dpyinfo == 0 as *mut pgtk_display_info` (the `src/w32term.rs` 2680 shape).  **Measured**: with
+    `*attr`/`*nm`/`dpyinfo.is_null ()` the checker reads three rows - `subr Fpgtk_font_name does not
+    mention 0`, `subr Fpgtk_set_resource does not mention 0`, `subr Fx_open_connection does not
+    mention 0` (Evidence ㉑) - so the spelling here is the one that keeps C's tokens *and* C's
+    meaning, and no `macro-body-notes.tsv` row is needed.
+41. **C's `(void)` parameter list and C's unused parameters.**  C 2177's `(void)` is the port's `()`
+    (the `src/haikufns.rs` 3133 shape), `Fx_display_visual_class`'s `terminal` (C 2122, never read in
+    C's body) and `Fx_open_connection`'s `resource_string` (C 2138, never read either) are
+    `let _ = …;` with C's reason in a comment (the `src/print.rs` 1693 shape).
+42. **`include/gtk.rs` gains the GDK monitor surface and `g_strdup_printf`** (a *mirror* change, so
+    P-87's two legs apply this round): `GdkMonitor` (opaque, `gdk/gdkmonitor.h`) and the five entry
+    points C 2053-2096 calls, plus `g_strdup_printf` (C 2014; `gstrfuncs.h` 286, a machine reading -
+    GLib is on this machine, GDK is not, so the five GDK rows cite the header alone).
+    **Measured**: `tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)` with
+    `checking 83 unit(s), 0 unit failure(s)`, `check-mirror-dupes.py` stays 16/16/0, and
+    `docs/ports/include-gtk.md` names all six rows in its GDK/GLib bullets and its new
+    `### status 3.718` section.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -746,3 +786,62 @@ and the port has no GTK to link against.
     18 allowed literals), 0 failures`.  The citation above the item deliberately does **not** quote the value:
     a `///` line that spells it is the gate's `title` class (measured: `title x1` on the first
     draft), which is why the comment names C's `#define` and leaves C's line to this ledger.
+
+## The fifth slice (C 1999-2208): the resource subr, the eleven display subrs and `pgtk-font-name`
+
+**⑲ What is in it.**  C 1999-2019's `DEFUN ("pgtk-set-resource", …)` (the `check_window_system`
+call, the two `CHECK_STRING` gates, the `Vx_resource_name`/`Vx_resource_class` choice on the
+attribute's first letter, the `g_strdup_printf` key and the `pgtk_set_defaults_value` call); C
+2022-2039's `x-server-max-request-size` and `x-display-screens`; C 2042-2073's `x-display-mm-height`
+and C 2076-2107's `x-display-mm-width` (the two GDK monitor walks, each summing the monitors whose
+rectangle starts at 0 and adding the rest); C 2110-2133's `x-display-backing-store`,
+`x-display-visual-class` and `x-display-save-under`; C 2136-2157's `x-open-connection` (the
+`build_string ("")` default, `pgtk_term_init` and the `fatal`/`error` pair) and C 2160-2172's
+`x-close-connection` (the reference-count gate and `pgtk_delete_terminal`); C 2175-2186's
+`x-display-list` (the `x_display_list` walk) and C 2188-2208's `pgtk-font-name` (the `-` test, the
+two `strstr` tests and `pgtk_xlfd_to_fontname`).  Rust: 2,954 -> **3,248** lines.
+
+**⑳ The arm readings (four arms, `text-only`).**  This slice's text sits after the GSETTINGS
+`#endif`, so it compiles in all four of the arm sets Evidence ⑮ established; all four were measured
+on both sides of the slice, and all four read the same thing:
+```
+A narrow = have_pgtk + have_window_system          : HEAD 145 errors / 11 warnings -> 151 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets   : 133 / 10 -> 139 / 10
+C = A + have_gsettings                             : 145 / 11 -> 151 / 11
+D = B + have_gsettings                             : 133 / 10 -> 139 / 10
+```
+The delta is **+6 sites of the already-named `pgtk_display_info` class** in every arm - the six
+declarations of that type the new text makes (`dpyinfo`/`ndi` locals; attributed the Evidence ⑩ way:
+rustc's `in this macro invocation` notes fall inside the new text for exactly six sites, and the
+sixth is C 2148's `== 0` cast, Deviation 40) - with no new class and no new warning.  The first run
+read **+7 warnings in all four arms**: this slice's nine `///`-above-`DEFUN!` citations were
+`unused doc comment`s (Deviation 36), retired by writing them as block comments.
+
+**㉑ `extract-abi.py --check`.**  `FAIL`, **95 `- ` rows -> 83**: eleven `missing subr` rows retire
+(`Fpgtk_set_resource`/`pgtk-set-resource`, `Fx_server_max_request_size`, `Fx_display_screens`,
+`Fx_display_mm_height`, `Fx_display_mm_width`, `Fx_display_backing_store`,
+`Fx_display_visual_class`, `Fx_display_save_under`, `Fx_open_connection`, `Fx_close_connection`,
+`Fx_display_list`, `Fpgtk_font_name`) and the line-count row moves 24.4% -> **16.8%** (C 3,906 vs
+Rust 3,248).  **Three new rows appeared and were retired properly, not allowlisted**: with C's
+`attr[0]`/`nm[0]`/`== 0` written as `*attr`/`*nm`/`is_null ()` the checker reads `subr
+Fpgtk_font_name does not mention 0`, `subr Fpgtk_set_resource does not mention 0` and `subr
+Fx_open_connection does not mention 0`; the C spellings (`.offset (0)`, `0 as *mut …`) remove all
+three (Deviation 40), so this slice adds no `macro-body-notes.tsv` row.
+
+**㉒ The gates, P-87's two legs, and what is not claimed.**  `check-declarations.py` **18
+declaration sites (0 forbidden, 18 allowed literals), 0 failures**; `check-citations.py` **676
+file(s) scanned, 0 drift, 0 range, 2,040 external, 36 allowed, 0 stale**; `check-dead-file-coverage.py`
+**145 ledger(s) bound, 0 failure(s)** (55 range rows now cover src/pgtkfns.c);
+`check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s), 0 ratchet row(s), 0 new, 0
+stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**; `check-cond-eval.py
+src/pgtkfns.c` **11 conditions, 0 unknown, 0 disagreements [VERIFIED]**; `check-mirror-dupes.py`
+**16 duplicate(s), 16 ratchet row(s), 0 failure(s)**.  **A mirror changed this round**
+(`include/gtk.rs`, Deviation 42), so P-87 ①'s consumer sweep was run and reads `checked 83 unit(s),
+0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`; the mirror's own ledger carries the six
+rows and a `status 3.718` section.  **Not claimed**: no resource was set (the key is built and handed
+to this file's own `pgtk_set_defaults_value`, which the frozen configuration's `#else` arm defines as
+an `error`), no monitor was enumerated (`gdk_display_get_n_monitors` is a declaration - the port has
+no GDK to link), and `pgtk-font-name` never converted anything (`pgtk_xlfd_to_fontname` is a
+declaration of `pgtkfont.c`'s definition).  All four arm readings are **compile** readings of text
+this machine cannot build.

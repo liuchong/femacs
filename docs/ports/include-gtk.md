@@ -32,7 +32,8 @@ by header:
   `GLogFunc`, `TRUE`/`FALSE`, the `G_OBJECT`/`G_CALLBACK`/`g_list_next`/`g_signal_connect`/
   `g_signal_handlers_disconnect_by_func`/`g_clear_object` macros, and forty entry points
   (`g_signal_connect_data`, `g_signal_handler_find`, `g_signal_handlers_disconnect_matched`,
-  `g_object_*`, `g_list_free`, `g_log_*`, `g_source_remove`, `g_timeout_add`, …).  **Measured on
+  `g_object_*`, `g_list_free`, `g_log_*`, `g_source_remove`, `g_timeout_add`, `g_strdup`,
+  `g_strdup_printf`, …).  **Measured on
   this machine**: `GList` (24/8, `data` 0/`next` 8/`prev` 16), `GType` (8), `GError` (16, `code` 4,
   `message` 8) and the enumerators `G_CONVERT_ERROR_ILLEGAL_SEQUENCE` 1,
   `G_LOG_FLAG_RECURSION` 1/`G_LOG_FLAG_FATAL` 2/`G_LOG_LEVEL_WARNING` 16,
@@ -53,7 +54,10 @@ by header:
   `GDK_WATCH`/`GDK_SB_H_DOUBLE_ARROW`/`GDK_SB_V_DOUBLE_ARROW`/`GDK_LEFT_SIDE`/`GDK_RIGHT_SIDE`/
   `GDK_TOP_SIDE`/`GDK_BOTTOM_SIDE`/`GDK_TOP_LEFT_CORNER`/`GDK_TOP_RIGHT_CORNER`/
   `GDK_BOTTOM_RIGHT_CORNER`/`GDK_BOTTOM_LEFT_CORNER`), the event records `GdkEvent`/`GdkEventAny`/`GdkEventKey`/`GdkEventProperty`/
-  `GdkEventSelection`/`GdkEventSequence`, and forty entry points.
+  `GdkEventSelection`/`GdkEventSequence`, the monitor handle `GdkMonitor` and the five monitor
+  entry points C 2053-2096's two `x-display-mm-*` subrs walk (`gdk_display_get_n_monitors`,
+  `gdk_display_get_monitor`, `gdk_monitor_get_geometry`, `gdk_monitor_get_height_mm`,
+  `gdk_monitor_get_width_mm`), and forty-five entry points.
 - **GTK** (`<gtk/gtk.h>`): the opaque handles `GtkWidget`/`GtkWindow`/`GtkMenu`/`GtkImage`/
   `GtkBin`/`GtkContainer`/`GtkLabel`/`GtkMenuShell`/`GtkMenuBar`/`GtkMenuBarClass`/
   `GtkWidgetClass`/`GtkTooltip`/`GtkSettings`/`GtkStyleContext`/`GtkStyle`/`GtkRcStyle`/
@@ -213,3 +217,16 @@ placeholders by the rule this file's head states (no GDK header on this machine)
 ledger records the pair (`docs/ports/pgtkfns.md` Deviations 23-24).  The mirror change was verified
 by its consumer sweep (`tools/check-all-units.sh`, the P-87 ① leg) as well as by this file's own
 `--check` and `check-mirror-dupes.py`.
+
+### status 3.718 (the pgtkfns fifth-slice round this file took part in)
+
+`src/pgtkfns.c`'s eleven `x-*` display subrs (C 1999-2208) are the first consumers of GDK's
+*monitor* API in this tree, so `GdkMonitor` and the five `gdk_monitor_*`/`gdk_display_get_*monitor*`
+entry points above landed here, and `g_strdup_printf` (C 2014's `g_strdup_printf ("%s.%s", …)`)
+joined the GLib group.  No GDK header exists on this machine, so the five GDK rows cite the header
+alone and `GdkMonitor` is the never-dereferenced opaque shape; `g_strdup_printf`'s citation is a
+machine reading (`/opt/homebrew/include/glib-2.0/glib/gstrfuncs.h` 286).  The mirror change was
+verified the way P-87 ① asks: `tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)`
+with `checking 83 unit(s), 0 unit failure(s)`, beside this file's own `--check` and
+`check-mirror-dupes.py`; the consumer's ledger records the pair (`docs/ports/pgtkfns.md`
+Deviations 36-42).
