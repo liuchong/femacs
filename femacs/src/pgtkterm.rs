@@ -6258,3 +6258,176 @@ unsafe fn pgtk_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole:
   XSETVECTOR! (barobj, bar);                                            // C 4363
   wset_horizontal_scroll_bar (w, barobj);                               // C 4364
 }
+
+/* The following three hooks are used when we're doing a thorough
+   redisplay of the frame.  We don't explicitly know which scroll bars
+   are going to be deleted, because keeping track of when windows go
+   away is a real pain - "Can you say set-window-configuration, boys
+   and girls?"  Instead, we just assert at the beginning of redisplay
+   that *all* scroll bars are to be removed, and then save a scroll bar
+   from the fiery pit when we actually redisplay its window.  */
+
+/* Arrange for all scroll bars on FRAME to be removed at the next call
+   to `*judge_scroll_bars_hook'.  A scroll bar may be spared if
+   `*redeem_scroll_bar_hook' is applied to its window before the judgment.  */
+
+/// C 4379-4399: `static void pgtk_condemn_scroll_bars (struct frame *frame)` - `FRAME_SCROLL_BARS`/
+/// `FRAME_CONDEMNED_SCROLL_BARS`/`fset_condemned_scroll_bars`/`fset_scroll_bars` are
+/// `include/frame.rs` 1169/1171/1479/1497's accessors over the frame's three Lisp_Object slots, and
+/// C's `while (!NILP (XSCROLL_BAR (last)->next)) last = …` is the port's `while` with the step at
+/// the body's end (the `FOR_EACH_FRAME!` shape).  C 7442 takes this function's address (the
+/// terminal's `condemn_scroll_bars_hook`), so it stays a plain `unsafe fn` until that slice converts
+/// it (the `pgtk_ring_bell` note).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_condemn_scroll_bars (frame: *mut frame)
+{
+  if !NILP (FRAME_SCROLL_BARS (frame))                                  // C 4382
+    {
+      if !NILP (FRAME_CONDEMNED_SCROLL_BARS (frame))                    // C 4384
+	{
+	  /* Prepend scrollbars to already condemned ones.  */
+	  let mut last: Lisp_Object = FRAME_SCROLL_BARS (frame);        // C 4387
+
+	  while !NILP ((*XSCROLL_BAR! (last)).next)                     // C 4389
+	    { last = (*XSCROLL_BAR! (last)).next; }                     // C 4390
+
+	  (*XSCROLL_BAR! (last)).next = FRAME_CONDEMNED_SCROLL_BARS (frame);   // C 4392
+	  (*XSCROLL_BAR! (FRAME_CONDEMNED_SCROLL_BARS (frame))).prev = last;   // C 4393
+	}
+
+      fset_condemned_scroll_bars (frame, FRAME_SCROLL_BARS (frame));    // C 4396
+      fset_scroll_bars (frame, Qnil ());                                // C 4397
+    }
+}
+
+/* Un-mark WINDOW's scroll bar for deletion in this judgment cycle.
+   Note that WINDOW isn't necessarily condemned at all.  */
+
+/// C 4404-4484: `static void pgtk_redeem_scroll_bar (struct window *w)` - **C's forward
+/// `goto horizontal` (C 4426) is the port's labelled block**: PORTING.md 2.2's rule for a forward
+/// goto whose target is the code that *follows* the block (the horizontal arm here, which an early
+/// `return` would skip) is a `'label:`-wrapped block and a `break 'label`, so the block carries C's
+/// own label name and this function's `macro-body-notes.tsv` row records the `goto` token.  C's
+/// `emacs_abort ()` returns `!` (`include/lisp.rs` 3818), `WINDOW_HAS_VERTICAL_SCROLL_BAR` is
+/// `include/window.rs` 691's macro and `WINDOW_HAS_HORIZONTAL_SCROLL_BAR` its 472 (that mirror's
+/// standing `false` accessor, window.h 1046-1051's no-window-system arm - the read this unit
+/// re-states rather than changes).  Its address goes to the terminal's `redeem_scroll_bar_hook`
+/// (C 7442) in the same later slice as its two siblings.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_redeem_scroll_bar (w: *mut window)
+{
+  let mut bar: *mut scroll_bar;                                         // C 4407
+  let mut barobj: Lisp_Object;                                          // C 4408
+  let mut f: *mut frame;                                                // C 4409
+
+  /* We can't redeem this window's scroll bar if it doesn't have one.  */
+  if NILP ((*w).vertical_scroll_bar) && NILP ((*w).horizontal_scroll_bar)   // C 4412
+    { emacs_abort (); }                                                 // C 4413
+
+  'horizontal: {                        /* C 4449's label: C 4426's `goto horizontal` lands here */
+    if !NILP ((*w).vertical_scroll_bar) && WINDOW_HAS_VERTICAL_SCROLL_BAR! (w)   // C 4415
+      {
+	bar = XSCROLL_BAR! ((*w).vertical_scroll_bar);                  // C 4417
+	/* Unlink it from the condemned list.  */
+	f = XFRAME (WINDOW_FRAME (w));                                  // C 4419
+	if NILP ((*bar).prev)                                           // C 4420
+	  {
+	    /* If the prev pointer is nil, it must be the first in one of
+	       the lists.  */
+	    if EQ (FRAME_SCROLL_BARS (f), (*w).vertical_scroll_bar)     // C 4424
+	      /* It's not condemned.  Everything's fine.  */
+	      { break 'horizontal; }                                    // C 4426's `goto horizontal`
+	    else if EQ (FRAME_CONDEMNED_SCROLL_BARS (f),                // C 4427-4428
+			(*w).vertical_scroll_bar)
+	      { fset_condemned_scroll_bars (f, (*bar).next); }          // C 4429
+	    else
+	      /* If its prev pointer is nil, it must be at the front of
+		 one or the other!  */
+	      { emacs_abort (); }                                       // C 4433
+	  }
+	else
+	  { (*XSCROLL_BAR! ((*bar).prev)).next = (*bar).next; }         // C 4436
+
+	if !NILP ((*bar).next)                                          // C 4438
+	  { (*XSCROLL_BAR! ((*bar).next)).prev = (*bar).prev; }         // C 4439
+
+	(*bar).next = FRAME_SCROLL_BARS (f);                            // C 4441
+	(*bar).prev = Qnil ();                                          // C 4442
+	XSETVECTOR! (barobj, bar);                                      // C 4443
+	fset_scroll_bars (f, barobj);                                   // C 4444
+	if !NILP ((*bar).next)                                          // C 4445
+	  { XSETVECTOR! ((*XSCROLL_BAR! ((*bar).next)).prev, bar); }    // C 4446
+      }
+  }
+
+  if !NILP ((*w).horizontal_scroll_bar)                                 // C 4450
+      && WINDOW_HAS_HORIZONTAL_SCROLL_BAR (w)                           // C 4451
+    {
+      bar = XSCROLL_BAR! ((*w).horizontal_scroll_bar);                  // C 4453
+      /* Unlink it from the condemned list.  */
+      f = XFRAME (WINDOW_FRAME (w));                                    // C 4455
+      if NILP ((*bar).prev)                                             // C 4456
+	{
+	  /* If the prev pointer is nil, it must be the first in one of
+	     the lists.  */
+	  if EQ (FRAME_SCROLL_BARS (f), (*w).horizontal_scroll_bar)     // C 4460
+	    /* It's not condemned.  Everything's fine.  */
+	    { return; }                                                 // C 4462
+	  else if EQ (FRAME_CONDEMNED_SCROLL_BARS (f),                  // C 4463-4464
+		      (*w).horizontal_scroll_bar)
+	    { fset_condemned_scroll_bars (f, (*bar).next); }            // C 4465
+	  else
+	    /* If its prev pointer is nil, it must be at the front of
+	       one or the other!  */
+	    { emacs_abort (); }                                         // C 4469
+	}
+      else
+	{ (*XSCROLL_BAR! ((*bar).prev)).next = (*bar).next; }           // C 4472
+
+      if !NILP ((*bar).next)                                            // C 4474
+	{ (*XSCROLL_BAR! ((*bar).next)).prev = (*bar).prev; }           // C 4475
+
+      (*bar).next = FRAME_SCROLL_BARS (f);                              // C 4477
+      (*bar).prev = Qnil ();                                            // C 4478
+      XSETVECTOR! (barobj, bar);                                        // C 4479
+      fset_scroll_bars (f, barobj);                                     // C 4480
+      if !NILP ((*bar).next)                                            // C 4481
+	{ XSETVECTOR! ((*XSCROLL_BAR! ((*bar).next)).prev, bar); }      // C 4482
+    }
+}
+
+/* Remove all scroll bars on FRAME that haven't been saved since the
+   last call to `*condemn_scroll_bars_hook'.  */
+
+/// C 4489-4512: `static void pgtk_judge_scroll_bars (struct frame *f)` - C's `for (; !NILP (bar);
+/// bar = next)` is the port's `while` with C's step at the body's end, `pgtk_scroll_bar_remove` is
+/// this file's C 4192 definition, and C's two-member assignment `b->next = b->prev = Qnil` is one
+/// line per store (`E0381`'s sibling rule, PORTING.md 1.13)
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_judge_scroll_bars (f: *mut frame)
+{
+  let mut bar: Lisp_Object;                                             // C 4492
+  let mut next: Lisp_Object;                                            // C 4492
+
+  bar = FRAME_CONDEMNED_SCROLL_BARS (f);                                // C 4494
+
+  /* Clear out the condemned list now so we won't try to process any
+     more events on the hapless scroll bars.  */
+  fset_condemned_scroll_bars (f, Qnil ());                              // C 4498
+
+  while !NILP (bar)                                                     // C 4500
+    {
+      let b: *mut scroll_bar = XSCROLL_BAR! (bar);                      // C 4502
+
+      pgtk_scroll_bar_remove (b);                                       // C 4504
+
+      next = (*b).next;                                                 // C 4506
+      (*b).next = Qnil ();                                              // C 4507
+      (*b).prev = Qnil ();                                              // C 4507's second store
+
+      bar = next;                                                       // C 4500's step
+    }
+
+  /* Now there should be no references to the condemned scroll bars,
+     and they should get garbage-collected.  */
+}

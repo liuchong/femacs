@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-31: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207 and C 4209-4365
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-32: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365 and C 4367-4512
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**6,260 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**6,433 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207** and **C 4209-4365** - thirty-one
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365** and **C 4367-4512** - thirty-two
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_condemn_scroll_bars` (C 4379-4380; C 4375-4377 is its comment above it).**
+> `set_fullscreen_state` (C 4514-4515).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -144,7 +144,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 4069-4134 | `xg_end_scroll_callback` (C 4069-4086, with its comment), the two `SCROLL_BAR_*` name macros (C 4088-4089), `pgtk_create_toolkit_scroll_bar` (C 4091-4103), `pgtk_create_horizontal_toolkit_scroll_bar` (C 4105-4116), `pgtk_set_toolkit_scroll_bar_thumb` (C 4118-4126) and `pgtk_set_toolkit_horizontal_scroll_bar_thumb` (C 4128-4134) | the file gate - **transcribed** (the twenty-ninth slice) |
 | 4136-4207 | `pgtk_scroll_bar_create` (C 4136-4187, with its comment) and `pgtk_scroll_bar_remove` (C 4189-4207, with its comment) | the file gate - **transcribed** (the thirtieth slice) |
 | 4209-4365 | `pgtk_set_vertical_scroll_bar` (C 4209-4285, with its comment) and `pgtk_set_horizontal_scroll_bar` (C 4287-4365) | the file gate - **transcribed** (the thirty-first slice) |
-| 4367-7780 | **the remainder of the file** - from C 4367-4373's and C 4375-4377's comments and C 4379's `pgtk_condemn_scroll_bars` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4367-4512 | the three scroll-bar hooks with both comment blocks: `pgtk_condemn_scroll_bars` (C 4379-4399), `pgtk_redeem_scroll_bar` (C 4404-4484, whose C 4426 `goto horizontal` is the port's labelled block) and `pgtk_judge_scroll_bars` (C 4489-4512) | the file gate - **transcribed** (the thirty-second slice) |
+| 4514-7780 | **the remainder of the file** - from C 4514's `set_fullscreen_state` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -910,6 +911,24 @@ their assertions are owed.
     the Evidence ② table with count 1.  C 7442 takes both setters' addresses (the terminal's
     `set_vertical_scroll_bar_hook`/`set_horizontal_scroll_bar_hook`), so they stay plain `unsafe fn`
     until that slice converts them.  No mirror changed, so P-87's two legs do not apply.
+54. **The port's first `goto`: a forward jump to the code that follows the block, and one
+    re-stated mirror read.**  `pgtk_redeem_scroll_bar`'s C 4426 `goto horizontal` lands on C 4449's
+    label, i.e. on the *horizontal* half that an early `return` would skip, so PORTING.md 2.2's rule
+    makes it a `'horizontal:`-labelled block around the vertical arm and a `break 'horizontal`
+    (the block carries C's own label name), and the `goto` token cannot reappear - this function's
+    `macro-body-notes.tsv` row records that.  The two other functions are the condemn/judge pair:
+    `FRAME_SCROLL_BARS`/`FRAME_CONDEMNED_SCROLL_BARS`/`fset_condemned_scroll_bars`/`fset_scroll_bars`
+    are `include/frame.rs` 1169/1171/1479/1497's, `WINDOW_HAS_VERTICAL_SCROLL_BAR` is
+    `include/window.rs` 691's macro, `emacs_abort` is `include/lisp.rs` 3818's `-> !`, and C's
+    `b->next = b->prev = Qnil` is one store per line (PORTING.md 1.13; the first reading named the two
+    `let mut` bindings this needed - C assigns `bar` and `f` in *either* arm, and an immutable
+    binding is `E0384` on the second write).  **One read is re-stated, not changed**:
+    `WINDOW_HAS_HORIZONTAL_SCROLL_BAR` is `include/window.rs` 472's standing `false` accessor
+    (window.h 1046-1051's no-window-system arm), so C 4451's test is `false` in every arm this
+    machine can build - the same class as Deviation 13, and a window-system build will need that
+    mirror's other arm.  All three functions' addresses go to the terminal's hook slots at C 7442, so
+    they stay plain `unsafe fn` until that slice converts them.  No mirror changed, so P-87's two legs
+    do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -2150,3 +2169,42 @@ changed this round, so P-87's two legs do not apply).  **Not claimed**: none of 
 the frozen configuration compiles none of this file, no scroll bar was created or resized, and the
 three arm readings are **compile** readings of text this machine cannot build.  Deviation 13's
 standing gap (`FRAME_PGTK_P` is the mirror's non-pgtk arm) is unchanged.
+
+## The thirty-second slice (C 4367-4512): the three scroll-bar hooks
+
+**What is in it.**  `pgtk_condemn_scroll_bars` (C 4379-4399: the prepend into the condemned list and
+the two `fset_*` stores), `pgtk_redeem_scroll_bar` (C 4404-4484: the abort guard, the vertical arm
+with its **C 4426 `goto horizontal`**, the unlink/relink pairs in both arms and the horizontal arm's
+`return`), and `pgtk_judge_scroll_bars` (C 4489-4512: the condemned-list walk that removes each bar
+and clears its two links).  Rust: 6,260 -> **6,433** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 29 / 18 -> 29 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): this text adds no error and no warning - the twelfth
+zero-delta reading in this unit.  **The first reading named two defects of this slice's own text**:
+C assigns `bar` and `f` in *either* arm of the redeem function, so both bindings need `mut` (the two
+`E0384`s).  **Arm reach is measured** (P-86 ⑦): injecting `let _: c_int = true;` as the first
+statement of the labelled block moves arm A to 52 errors anchored at that line (removed, the file
+re-measured at **6,433** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**99 rows -> 96**: the three items retire and one token row arrives
+(`pgtk_redeem_scroll_bar does not mention goto`, closed by the sanctioned
+`docs/ports/macro-body-notes.tsv` row - C's forward `goto horizontal` is the port's labelled block).
+The file's own `line count drifted` row is re-measured 19.5% -> **17.3%** (C 7,780 vs the port's
+6,433).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2085/36/0**; `check-dead-file-coverage.py` **145/0** (**64 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round, so P-87's two legs do not apply).  **Not claimed**: none of this has been run -
+the frozen configuration compiles none of this file, no judgment cycle ran and no scroll bar was
+condemned or redeemed, and the three arm readings are **compile** readings of text this machine
+cannot build.  Both standing mirror reads are unchanged: Deviation 13's `FRAME_PGTK_P` and Deviation
+54's `WINDOW_HAS_HORIZONTAL_SCROLL_BAR` (`false` in every arm here).
