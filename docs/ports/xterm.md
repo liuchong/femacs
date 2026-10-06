@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -303,10 +303,10 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_set_window_size_and_position  (line 28666)
 - [x] frame_set_mouse_pixel_position  (line 28705)
 - [x] x_raise_frame  (line 28731, static)
-- [ ] x_lower_frame_1  (line 28746, static)
-- [ ] x_lower_frame  (line 28779, static)
-- [ ] XTframe_raise_lower  (line 28801, static)
-- [ ] xembed_request_focus  (line 28812, static)
+- [x] x_lower_frame_1  (line 28746, static)
+- [x] x_lower_frame  (line 28779, static)
+- [x] XTframe_raise_lower  (line 28801, static)
+- [x] xembed_request_focus  (line 28812, static)
 - [ ] server_timestamp_predicate  (line 28822, static)
 - [ ] x_get_server_time  (line 28839, static)
 - [ ] x_ewmh_activate_frame  (line 28882, static)
@@ -2280,6 +2280,28 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `src/gtkutil.rs` 1801 definition) in the `use_gtk` gate, and `XtConfigureWidget` with the two
   toolkit records above.
 
+### 43. Slice 30 (C 28745-28819): the lower/raise hooks and the XEmbed focus request
+
+* **`alloca` becomes the stack pool.**  C 28752's `windows = alloca (2 * sizeof *windows)` is the
+  port's `USE_SAFE_ALLOCA!`/`SAFE_ALLOCA!`/`SAFE_FREE!` (P-05, the `xm_find_targets_table_idx`
+  shape this file already carries), so `alloca` has no token counterpart and
+  `docs/ports/macro-body-notes.tsv` records the row - the second one this unit needs, after
+  `x_dnd_send_unsupported_drop`'s.
+* **`FOR_EACH_FRAME` keeps C's iteration.**  The mirror's `macro_rules!` (include/frame.rs 800)
+  expands to C's own `Vframe_list` walk with the increment after the body, so `continue` means
+  what it means in C (the `x_try_restore_frame`/`xim_destroy_callback` shape this file already
+  uses).
+* **Four new `E0425` rows, every one a recorded class.**  `XRestackWindows` (C 28772),
+  `XLowerWindow` (C 28786) and `XFlush` (C 28797, the class's fourth instance) are Xlib entries no
+  mirror of this graph carries - kept bare per the ledger's `## Owed` list - and
+  `xembed_send_message` is this file's own later definition (C 28998, PORTING.md 1.3).
+* **`CurrentTime` stands at its use site.**  X.h 233's `#define CurrentTime 0L` has no mirror row
+  in this graph, so the slice declares it with the `src/xselect.rs` 139-141 copy's citation (P-72
+  rule 4); `XEMBED_REQUEST_FOCUS` is the `xembed_message` enum at 947-958, spelled
+  `xembed_message::XEMBED_REQUEST_FOCUS`.
+* **The `HAVE_XWIDGETS` arm carries its gate.**  C 28789-28795's block is `have_xwidgets`'s and no
+  probe arm enables it; `lower_frame_xwidget_views` is `include/xwidget.rs`'s declaration.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -4086,3 +4108,26 @@ row arrives.  The line-count row moves to 17,232 against C's 33,125 (52.0%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no window was moved or
 resized, no pointer was warped and no frame was raised.
+
+
+### Slice 30's readings (C 28745-28819), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_lower_frame_1` (C 28745-28774, the stack-pool block), `x_lower_frame`
+(C 28776-28798, the `HAVE_XWIDGETS` arm included), `XTframe_raise_lower` (C 28800-28807) and
+`xembed_request_focus` (C 28811-28819), with the `CurrentTime` use-site constant.  Rust
+17,232 -> 17,339 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**562 / 68 -> 566 / 68**: **+4 `E0425`** - `XRestackWindows`, `XLowerWindow`, `XFlush`'s fourth
+instance and `xembed_send_message` - with no warning delta; arm B (`+have_gtk3+use_gtk`)
+**569 / 70 -> 576 / 70**: those four plus **three more `GDK_WINDOW_XID` instances** (C 28769/28770
+and C 28787, the class the earlier slices carry); arm C (`+have_xinput2`)
+**592 / 70 -> 596 / 70**: the four, exactly.  **Arm reachability** (P-86 ⑦): `let _: c_int = true;`
+as `x_lower_frame_1`'s first statement moves `E0308` 14 -> 15, anchored exactly at that line.
+
+**What `--check` reads.**  **133 -> 129**: the four functions retire as missing items and the one
+token row this slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  The
+line-count row moves to 17,339 against C's 33,125 (52.3%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no window was lowered or
+raised and no focus request was sent.

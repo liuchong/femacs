@@ -17230,3 +17230,110 @@ unsafe fn x_raise_frame (f: *mut frame)
 
   unblock_input ();                                                     // C 28742
 }
+
+/// C 28745-28774: `static void x_lower_frame_1 (struct frame *f)` - `static` (its caller is
+/// C 28784), so a plain `unsafe fn`.  C 28752's `alloca` is the port's stack pool (P-05; the
+/// `xm_find_targets_table_idx` shape above, whose note records why the token cannot come back),
+/// and `XRestackWindows` is an Xlib entry no mirror of this graph carries - kept bare (the owed
+/// class of the ledger's `## Owed` list).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_lower_frame_1 (f: *mut frame)
+{
+  let mut windows: *mut Window;                                         // C 28748
+  let mut frame: Lisp_Object;                                           // C 28749
+  let mut tail: Lisp_Object;                                            // C 28749
+  let mut sibling: *mut frame;                                          // C 28750
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  windows = SAFE_ALLOCA! (sa_avail, 2 * std::mem::size_of::<Window> ())  // C 28752
+			 as *mut Window;
+
+  /* Lowering a child frame leads to the window being put below any
+     scroll bars on the parent.  To avoid that, restack the child
+     frame below all of its siblings instead of just lowering it.  */
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 28758
+    sibling = XFRAME (frame);                                           // C 28760
+
+    if sibling == f                                                     // C 28762
+      { continue; }                                                     // C 28763
+
+    if FRAME_PARENT_FRAME (sibling)                                     // C 28765-28766
+       != FRAME_PARENT_FRAME (f)
+      { continue; }                                                     // C 28767
+
+    *windows.offset (0) = FRAME_OUTER_WINDOW! (sibling);                // C 28769
+    *windows.offset (1) = FRAME_OUTER_WINDOW! (f);                      // C 28770
+
+    XRestackWindows (FRAME_X_DISPLAY! (f), windows, 2);                 // C 28772
+  });
+
+  SAFE_FREE! (sa_count);
+}
+
+/* Lower frame F.  */
+
+/// C 28776-28798: `static void x_lower_frame (struct frame *f)` - `static` (its callers are
+/// C 28806 and the terminal's `frame_raise_lower_hook`), so a plain `unsafe fn`;
+/// `XLowerWindow`/`XFlush` are Xlib's (the same owed class), `FRAME_HAS_*_SCROLL_BARS` are
+/// `include/frame.rs` 1196-1233's two-armed pairs, and the `HAVE_XWIDGETS` arm carries that gate
+/// with `lower_frame_xwidget_views` (`include/xwidget.rs`'s declaration).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_lower_frame (f: *mut frame)
+{
+  if !FRAME_PARENT_FRAME (f).is_null ()                                 // C 28781
+      && (FRAME_HAS_VERTICAL_SCROLL_BARS (FRAME_PARENT_FRAME (f)) != 0     // C 28782-28783
+      || FRAME_HAS_HORIZONTAL_SCROLL_BARS (FRAME_PARENT_FRAME (f)) != 0)
+    { x_lower_frame_1 (f); }                                           // C 28784
+  else
+    {
+      XLowerWindow (FRAME_X_DISPLAY! (f),                               // C 28786-28787
+		   FRAME_OUTER_WINDOW! (f));
+    }
+
+  #[cfg (feature = "have_xwidgets")]
+  {
+    /* Make sure any X windows owned by xwidget views of the parent
+       still display below the lowered frame.  */
+
+    if !FRAME_PARENT_FRAME (f).is_null ()                               // C 28793
+      { lower_frame_xwidget_views (FRAME_PARENT_FRAME (f)); }          // C 28794
+  }
+
+  XFlush (FRAME_X_DISPLAY! (f));                                        // C 28797
+}
+
+/// C 28800-28807: `static void XTframe_raise_lower (struct frame *f, bool raise_flag)` -
+/// `static` (the terminal's `frame_raise_lower_hook`, C 32260), so a plain `unsafe fn`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTframe_raise_lower (f: *mut frame, raise_flag: bool)
+{
+  if raise_flag                                                         // C 28803
+    { x_raise_frame (f); }                                            // C 28804
+  else
+    { x_lower_frame (f); }                                            // C 28806
+}
+
+/* Request focus with XEmbed */
+
+/// C 28811-28819: `static void xembed_request_focus (struct frame *f)` - `static` (the
+/// terminal's `focus_frame_hook`), so a plain `unsafe fn`.  `xembed_send_message` is this
+/// file's own later definition (C 28998), so the call stands undeclared (PORTING.md 1.3), and
+/// `XEMBED_REQUEST_FOCUS` is the `xembed_message` enum at 947-958.
+#[cfg (feature = "have_x_windows")]
+unsafe fn xembed_request_focus (f: *mut frame)
+{
+  /* See XEmbed Protocol Specification at
+     https://freedesktop.org/wiki/Specifications/xembed-spec/  */
+  if FRAME_VISIBLE_P (f)                                                // C 28816
+    {
+      xembed_send_message (f, CurrentTime,                              // C 28817-28818
+	  xembed_message::XEMBED_REQUEST_FOCUS, 0, 0, 0);
+    }
+}
+
+/* C: X.h 233: `#define CurrentTime 0L` - C 28817's sentinel (the `src/xselect.rs` 139-141
+   copy of the same constant).  No mirror of this unit's graph carries it, so it stands at this
+   use site (P-72 rule 4).  */
+#[cfg (feature = "have_x_windows")]
+pub const CurrentTime: Time = 0;
