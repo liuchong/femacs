@@ -3969,3 +3969,149 @@ unsafe fn pgtk_draw_glyph_string (s: *mut glyph_string)
   pgtk_end_cr_clip ((*s).f);                                            // C 2823
   (*s).num_clips = 0;                                                   // C 2824
 }
+
+/* RIF: Define cursor CURSOR on frame F.  */
+
+/// C 2829-2832: `!f->pointer_invisible` - `frame.h` 437's `bool_bf pointer_invisible : 1`, whose
+/// shift `include/frame.rs` 540-545 names for this arm (A: x11/pgtk/android/w32); the mirror carries
+/// the shift and no accessor, so the unit declares the member's own reader - the
+/// `src/androidterm.rs` 240-243 copy of the same macro (`bits1` is the measured word 1).
+#[cfg (feature = "have_pgtk")]
+macro_rules! pointer_invisible {
+  ($f:expr) => { (*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT & 1 != 0 };
+}
+
+/* C: window.h 1186: `struct glyph *get_phys_cursor_glyph (struct window *w);` - the C 2886/2933
+   calls (`src/window.rs` 8061 defines it).  dispextern.h 3652-3653: `extern void
+   get_phys_cursor_geometry (struct window *, struct glyph_row *, struct glyph *, int *, int *,
+   int *);` - the C 2891 call (`src/abi_shim.rs` 2419 defines it).  No mirror carries either, so
+   both are declared here at the use site.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph;
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row, glyph: *mut glyph,
+				   xp: *mut c_int, yp: *mut c_int, heightp: *mut c_int);
+}
+
+/// C 2829-2836: `static void pgtk_define_frame_cursor (struct frame *f, Emacs_Cursor cursor)` -
+/// `f->pointer_invisible` is the unit's `pointer_invisible!` read (the mirror's shift), the
+/// `current_cursor` member is the mirror's, and C's two GDK/GTK calls are `include/gtk.rs`'s rows
+/// (`gdk_window_set_cursor` 564, `gtk_widget_get_window` 883) with the `Emacs_Cursor` cast the
+/// mirror's `*mut GdkCursor` parameter needs.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
+{
+  if !pointer_invisible! (f)                                            // C 2832
+      && (*FRAME_X_OUTPUT! (f)).current_cursor != cursor
+    {
+      gdk_window_set_cursor (gtk_widget_get_window (FRAME_GTK_WIDGET! (f)),   // C 2833
+				     cursor as *mut GdkCursor);                 // C 2834
+    }
+  (*FRAME_X_OUTPUT! (f)).current_cursor = cursor;                       // C 2835
+}
+
+/// C 2838-2867: `static void pgtk_after_update_window_line (struct window *w, struct glyph_row
+/// *desired_row)` - C's two comma expressions inside the condition (`(f = XFRAME (…), width = …,
+/// width != 0)` and `(height = …, height > 0)`) are the port's blocks in the condition, the
+/// `src/w32term.rs` 1431-1441 reading of the same C text; `mode_line_p`/`full_width_p`/
+/// `redraw_fringe_bitmaps_p` are `glyph_row_bits!` members, `pseudo_window_p` this unit's
+/// `window_bits!` arm, and `pgtk_clear_frame_area` is defined below.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_after_update_window_line (w: *mut window, desired_row: *mut glyph_row)
+{
+  let mut f: *mut frame;                                                // C 2842
+  let mut width: c_int;
+  let mut height: c_int;
+
+  /* begin copy from other terms */
+  eassert! (w);                                                         // C 2846
+
+  if !glyph_row_bits! (mode_line_p, desired_row)                        // C 2848
+      && !window_bits! (pseudo_window_p, w)
+    { glyph_row_bits! (redraw_fringe_bitmaps_p, desired_row, true); }   // C 2849
+
+  /* When a window has disappeared, make sure that no rest of
+     full-width rows stays visible in the internal border.  */
+  if windows_or_buffers_changed != 0                                    // C 2853
+      && glyph_row_bits! (full_width_p, desired_row)                    // C 2854
+      && {
+	  f = XFRAME ((*w).frame);                                        // C 2855
+	  width = FRAME_INTERNAL_BORDER_WIDTH (f);                         // C 2856
+	  width != 0
+	}
+      && {
+	  height = (*desired_row).visible_height;                          // C 2857
+	  height > 0
+	}
+    {
+      let mut y: c_int = WINDOW_TO_FRAME_PIXEL_Y! (w, max ((*desired_row).y as isize, 0) as c_int);   // C 2859
+
+      block_input ();                                                   // C 2861
+      pgtk_clear_frame_area (f, 0, y, width, height);                   // C 2862
+      pgtk_clear_frame_area (f,                                         // C 2863
+			     FRAME_PIXEL_WIDTH (f) - width, y, width, height);  // C 2864
+      unblock_input ();                                                 // C 2865
+    }
+}
+
+/// C 2869-2873: `static void pgtk_clear_frame_area (struct frame *f, int x, int y, int width, int
+/// height)` - one call to `pgtk_clear_area` (C 7456's definition, in the remainder; the mirror
+/// `include/pgtkterm.rs` declares the entry point, so no class is added here).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_clear_frame_area (f: *mut frame, x: c_int, y: c_int, width: c_int, height: c_int)
+{
+  pgtk_clear_area (f, x, y, width, height);                             // C 2872
+}
+
+/* Draw a hollow box cursor on window W in glyph row ROW.  */
+
+/// C 2877-2914: `static void pgtk_draw_hollow_cursor (struct window *w, struct glyph_row *row)` -
+/// `get_phys_cursor_glyph`/`get_phys_cursor_geometry` are the two use-site declarations above,
+/// `cursor_glyph->resolved_level` is `glyph_bits!`'s member and `pixel_width` C's `short` (so the
+/// comparison takes `as c_int`, Deviation 22's class), and `pgtk_clip_to_row` (C 3629's
+/// definition, in the remainder) is a name this slice is the first to reach - a registered class
+/// of its own in this ledger.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_hollow_cursor (w: *mut window, row: *mut glyph_row)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 2880
+  let mut x: c_int;                                                     // C 2881
+  let mut y: c_int;
+  let mut wd: c_int;
+  let mut h: c_int;
+  let mut cursor_glyph: *mut glyph;                                     // C 2882
+
+  /* Get the glyph the cursor is on.  If we can't tell because
+     the current matrix is invalid or such, give up.  */
+  cursor_glyph = get_phys_cursor_glyph (w);                             // C 2886
+  if cursor_glyph.is_null ()                                            // C 2887
+    { return; }                                                         // C 2888
+
+  /* Compute frame-relative coordinates for phys cursor.  */
+  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut x, &raw mut y, &raw mut h);   // C 2891
+  wd = (*w).phys_cursor_width - 1;                                      // C 2892
+
+  /* The foreground of cursor_gc is typically the same as the normal
+     background color, which can cause the cursor box to be invisible.  */
+  let cr: *mut cairo_t = pgtk_begin_cr_clip (f);                        // C 2896
+  pgtk_set_cr_source_with_color (f, (*FRAME_X_OUTPUT! (f)).cursor_color, false);   // C 2897
+
+  /* When on R2L character, show cursor at the right edge of the
+     glyph, unless the cursor box is as wide as the glyph or wider
+     (the latter happens when x-stretch-cursor is non-nil).  */
+  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0           // C 2902
+      && (*cursor_glyph).pixel_width as c_int > wd                      // C 2903
+    {
+      x += (*cursor_glyph).pixel_width as c_int - wd;                   // C 2905
+      if wd > 0                                                         // C 2906
+	{ wd -= 1; }                                                       // C 2907
+    }
+  /* Set clipping, draw the rectangle, and reset clipping again.  */
+  pgtk_clip_to_row (w, row, TEXT_AREA, cr);                             // C 2910
+  pgtk_draw_rectangle (f, (*FRAME_X_OUTPUT! (f)).cursor_color,          // C 2911
+			       x, y, wd, h - 1, false);                         // C 2912
+  pgtk_end_cr_clip (f);                                                 // C 2913
+}

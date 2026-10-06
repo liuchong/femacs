@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-15: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522 and C 2524-2825
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-16: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825 and C 2827-2914
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,15 +11,15 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**3,971 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**4,117 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
-> **C 2294-2359**, **C 2361-2455**, **C 2457-2522** and **C 2524-2825** - fifteen slices - with
-> **both arms of every `#if`**; the **2,044** this line used to
+> **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825** and **C 2827-2914** - sixteen
+> slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_define_frame_cursor` (C 2829-2830; C 2827 is its `/* RIF: … */` comment).**
+> `pgtk_draw_bar_cursor` (C 2923-2924; C 2916-2921 is its comment above it).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -127,7 +127,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 2361-2455 | `pgtk_draw_stretch_glyph_string` (C 2363-2455) | the file gate - **transcribed** (the thirteenth slice) |
 | 2457-2522 | `pgtk_draw_dash` (C 2462-2481) and `pgtk_fill_underline` (C 2487-2522), with C 2458-2460/2483-2485's comments | the file gate - **transcribed** (the fourteenth slice) |
 | 2524-2825 | `pgtk_draw_glyph_string` (C 2524-2825: the successor-background loop, the relief/clipping prologue, the six-arm `match` over the glyph types and the underline/overline/strike-through epilogue) | the file gate - **transcribed** (the fifteenth slice) |
-| 2827-7780 | **the remainder of the file** - from C 2829's `pgtk_define_frame_cursor` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2827-2914 | `pgtk_define_frame_cursor` (C 2829-2836), `pgtk_after_update_window_line` (C 2838-2867), `pgtk_clear_frame_area` (C 2869-2873) and `pgtk_draw_hollow_cursor` (C 2877-2914) | the file gate - **transcribed** (the sixteenth slice) |
+| 2916-7780 | **the remainder of the file** - from C 2923's `pgtk_draw_bar_cursor` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -174,6 +175,7 @@ statement text:
 | `cannot find type pgtk_display_info` | 14 | `include/pgtkterm.rs` (pgtkterm.h 146-281) |
 | `cannot find type pgtk_device_t` | 7 | `include/pgtkterm.rs` (pgtkterm.h 51-64) |
 | `cannot find function pgtk_frame_rehighlight` / `pgtk_new_focus_frame` / `pgtk_set_event_handler` / `pgtk_unlink_touch_points` / `pgtk_fill_rectangle` | 5 | this file, later in it (C 4770 / 4835 / 6831 / 6655 / 5035) - outside the slice; the fifth arrived with the third slice's `pgtk_clear_glyph_string_rect`, which calls the definition at C 5035 |
+| `cannot find function pgtk_clip_to_row` | 1 | this file, later in it (C 3629's definition) - the name this ledger's sixteenth slice reaches first (`pgtk_draw_hollow_cursor`, C 2910); `pgtk_fill_rectangle`'s count grows slice by slice (13 -> 17 in the fifteenth slice) |
 | `evaluation panicked: size_of::<font> () == 184` (and 7 more offsets in `font`/`font_driver`) | 8 | **`include/font.rs` 143-149/577-583**: those assertions are the *frozen* arm's measurements and the mirror's `#[cfg(feature = "have_window_system")]` members change the record |
 | `unstable library feature c_variadic` | 1 | **`include/lisp.rs` 3756**: `verror`'s `core::ffi::VaList<'_>` parameter |
 | `dereference of raw pointer is unsafe …` | 1 (only with `have_xwidgets`) | **`include/xwidget.rs` 203**: `XWIDGET_LIVE_P`'s `(*w).buffer` |
@@ -620,6 +622,25 @@ their assertions are owed.
     (`(*(*prev)).hl` / `(*(*next)).hl` where the corpus spells `(*prev).hl` / `(*next).hl` - the
     `src/xterm.rs` 12752 reading of the same C text) and a stipple write that named the field
     instead of the storage unit.  No mirror changed, so P-87's two legs do not apply.
+
+38. **Three use-site declarations, one unit-local accessor, and a second registered class.**  The unit
+    gains `get_phys_cursor_glyph` (window.h 1186, defined in `src/window.rs` 8061) and
+    `get_phys_cursor_geometry` (dispextern.h 3652-3653, defined in `src/abi_shim.rs` 2419) at their
+    C 2886/2891 uses; `pointer_invisible!` is this unit's own reader of `frame.h` 437's
+    `bool_bf pointer_invisible : 1` (the mirror carries the shift, `include/frame.rs` 540-545, and no
+    accessor - the `src/androidterm.rs` 240-243 copy of the same macro over `bits1`); and the
+    condition's two comma expressions (`(f = XFRAME (…), width = …, width != 0)` and
+    `(height = …, height > 0)`) are the port's **blocks in the condition**, the
+    `src/w32term.rs` 1431-1441 reading of the same C text (C's assignment-as-operand has no Rust
+    spelling).  `gdk_window_set_cursor` (`.h`'s row in `include/gtk.rs` 564) takes the mirror's
+    `*mut GdkCursor`, so the call passes `cursor as *mut GdkCursor` (P-72 rule 3), and C 2903's
+    `cursor_glyph->pixel_width > wd` takes `as c_int` for the record's `short` (Deviation 22's
+    class).  **One new registered class**: `pgtk_clip_to_row` (C 3629's definition, still in the
+    remainder) is a name this slice reaches first; the Evidence ② table gains its row, and
+    C 2849's `redraw_fringe_bitmaps_p = 1` produced this unit's third `macro-body-notes.tsv` row
+    (the literal `1` cannot reappear: the value is `glyph_row_bits!`'s bool setter).  The first
+    reading named one warning - a `///` doc comment on the two new `unsafe extern "C"` blocks - which
+    is `/* */` now.  No mirror changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1191,6 +1212,43 @@ produced is the sanctioned `macro-body-notes.tsv` row (Deviation 37); the file's
 
 **Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
 **676/0/0/2065/36/0**; `check-dead-file-coverage.py` **145/0** (**47 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen
+configuration compiles none of this file, there is no GTK or cairo to draw with here, and the three
+arm readings are **compile** readings of text this machine cannot build.
+
+## The sixteenth slice (C 2827-2914): the frame cursor, the window-line hook, the area clear and the hollow cursor
+
+**What is in it.**  `pgtk_define_frame_cursor` (C 2829-2836: the `pointer_invisible` read, the
+`current_cursor` comparison and the two GDK/GTK calls), `pgtk_after_update_window_line`
+(C 2838-2867: the `mode_line_p`/`pseudo_window_p` guard, the `redraw_fringe_bitmaps_p` write, the
+five-part condition with its two comma expressions and the two `pgtk_clear_frame_area` calls),
+`pgtk_clear_frame_area` (C 2869-2873) and `pgtk_draw_hollow_cursor` (C 2877-2914: the glyph lookup,
+the geometry call, the R2L adjustment and the clipped rectangle).  Rust: 3,971 -> **4,117** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 49 errors / 19 warnings -> 50 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 50 / 20 -> 51 / 20
+C = A + use_gtk + have_gtk3                        : 27 / 18 -> 28 / 18
+```
+**Every arm's delta is one new registered class and nothing else** - the error sets were diffed:
+`cannot find function pgtk_clip_to_row` (+1, C 3629's definition in the remainder; the Evidence ② table
+gains its row), with 0 new warnings.  **Arm reach is measured** (P-86 ⑦): injecting
+`let _: c_int = true;` as the first statement of `pgtk_draw_hollow_cursor` moves arm A to 51 errors,
+anchored at that line (the injected statement was then removed and the file re-measured at 4,117
+lines).  The first reading named one warning - a `///` doc comment on the two new `extern` blocks -
+which is `/* */` now (Deviation 38).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **149 rows -> 145**: the four items retire, and the one token finding the hook produced
+(C 2849's `= 1`) is the sanctioned `macro-body-notes.tsv` row (Deviation 38); the file's own
+`line count drifted` row is re-measured 49.0% -> **47.1%** (C 7,780 vs the port's 4,117).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2065/36/0**; `check-dead-file-coverage.py` **145/0** (**48 range rows** over
 `src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
 `check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
 changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
