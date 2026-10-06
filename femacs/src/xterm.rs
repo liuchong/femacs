@@ -19829,3 +19829,147 @@ unsafe fn x_delete_display (dpyinfo: *mut x_display_info)
   }
   xfree (dpyinfo as *mut c_void);                                      // C 31973
 }
+
+/* This function is called when the last frame on a display is deleted. */
+/// C 32063-32208: `void x_delete_terminal (struct terminal *terminal)` - non-`static` and declared
+/// in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  C 32082's
+/// `delete_more_frames:` label is jumped to *backwards* from C 32091, so the port writes it as a
+/// labelled loop whose body is the frame walk (`continue 'delete_more_frames` is C's `goto`,
+/// PORTING.md 2.2).  C 32157-32167 is `#if false` - C's own dead text, which this tree records in
+/// the ledger rather than transcribes (the `xfns.rs` 958 precedent) - so the port keeps a comment
+/// in its place.  `display_info.x` is the mirror's P-72 rule-3 `*mut c_void` (the `xfns.rs` 378
+/// value cast), and `True`/`None` are the mirror's own names (include/xterm.rs 76/79).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_delete_terminal (terminal: *mut terminal)
+{
+  let mut dpyinfo: *mut x_display_info;                                 // C 32066
+  let mut f: *mut frame;                                                // C 32067
+  let mut tail: Lisp_Object;                                            // C 32068
+  let mut frame: Lisp_Object;                                           // C 32068
+
+  dpyinfo = (*terminal).display_info.x as *mut x_display_info;          // C 32070
+
+  /* Protect against recursive calls.  delete_frame in
+     delete_terminal calls us back when it deletes our last frame.  */
+  if (*terminal).name.is_null ()                                        // C 32074
+    { return; }                                                         // C 32075
+
+  block_input ();                                                       // C 32077
+
+  /* Delete all remaining frames on the display that is going away.
+     Otherwise, font backends assume the display is still up, and
+     xftfont_end_for_frame crashes.  */
+  'delete_more_frames: loop                                             // C 32082's `delete_more_frames:`
+    {
+      FOR_EACH_FRAME! (tail, frame, {                                   // C 32083
+	f = XFRAME (frame);                                             // C 32085
+
+	if FRAME_LIVE_P (f) && (*f).terminal == terminal                // C 32087
+	  {
+	    /* Pass Qnoelisp rather than Qt.  */
+	    delete_frame (frame, Qnoelisp ());                          // C 32090
+	    continue 'delete_more_frames;                               // C 32091's `goto delete_more_frames`
+	  }
+      });
+
+      break;
+    }
+
+#[cfg (feature = "have_x_i18n")]
+  {
+    /* We must close our connection to the XIM server before closing the
+       X display.  */
+    xim_close_dpy (dpyinfo);                                            // C 32098
+  }
+
+  /* Destroy all bitmap images created on the display.  */
+  image_destroy_all_bitmaps (dpyinfo);                                  // C 32102
+
+  /* Free the storage allocated to hold bitmap records.  */
+  xfree ((*dpyinfo).bitmaps as *mut c_void);                            // C 32105
+
+  /* In case someone decides to use `bitmaps' again... */
+  (*dpyinfo).bitmaps = std::ptr::null_mut ();                           // C 32108
+  (*dpyinfo).bitmaps_last = 0;                                          // C 32109
+
+  /* Normally, the display is available...  */
+  if !(*dpyinfo).display.is_null ()                                     // C 32112
+    {
+      XSetCloseDownMode ((*dpyinfo).display, DestroyAll);               // C 32114
+
+      /* Delete the scratch cursor GC, should it exist.  */
+      if !(*dpyinfo).scratch_cursor_gc.is_null ()                       // C 32117
+	{ XFreeGC ((*dpyinfo).display, (*dpyinfo).scratch_cursor_gc); }  // C 32118
+
+      /* Get rid of any drag-and-drop operation that might be in
+	 progress as well.  */
+      if (x_dnd_in_progress || x_dnd_waiting_for_finish)               // C 32122
+	  && (*dpyinfo).display == (if x_dnd_waiting_for_finish         // C 32123-32125
+				     { x_dnd_finish_display as *mut Display }
+				     else { FRAME_X_DISPLAY! (x_dnd_frame) })
+	{
+	  x_dnd_last_seen_window = None as Window;                      // C 32127
+	  x_dnd_last_seen_toplevel = None as Window;                    // C 32128
+	  x_dnd_in_progress = false;                                    // C 32129
+	  x_dnd_waiting_for_finish = false;                             // C 32130
+
+	  /* The display is going away, so there's no point in
+	     de-selecting for input on the DND toplevels.  */
+	  if x_dnd_use_toplevels                                        // C 32134
+	    { x_dnd_free_toplevels (false); }                           // C 32135
+
+	  x_dnd_return_frame_object = std::ptr::null_mut ();             // C 32137
+	  x_dnd_movement_frame = std::ptr::null_mut ();                  // C 32138
+	  x_dnd_wheel_frame = std::ptr::null_mut ();                     // C 32139
+	  x_dnd_frame = std::ptr::null_mut ();                           // C 32140
+	}
+
+      /* Whether or not XCloseDisplay destroys the associated resource
+	 database depends on the version of libX11.  ... (C's comment) ...  */
+      /* C 32157-32167 is `#if false` - C's own dead text, not transcribed (see above).  */
+#[cfg (feature = "use_gtk")]
+      {
+	xg_display_close ((*dpyinfo).display);                          // C 32169
+      }
+#[cfg (all (not (feature = "use_gtk"), feature = "use_x_toolkit"))]
+      {
+	XtCloseDisplay ((*dpyinfo).display);                            // C 32172
+      }
+#[cfg (all (not (feature = "use_gtk"), not (feature = "use_x_toolkit")))]
+      {
+	XCloseDisplay ((*dpyinfo).display);                             // C 32174
+      }
+      /* Do not close the connection here because it's already closed
+	 by X(t)CloseDisplay (Bug#18403).  */
+      (*dpyinfo).display = std::ptr::null_mut ();                       // C 32179
+    }
+
+  /* ...but if called from x_connection_closed, the display may already
+     be closed and dpyinfo->display was set to 0 to indicate that.  Since
+     X server is most likely gone, explicit close is the only reliable
+     way to continue and avoid Bug#19147.  */
+  else if (*dpyinfo).connection >= 0                                    // C 32186
+    { emacs_close ((*dpyinfo).connection); }                            // C 32187
+
+  /* Free the keyboard and modifier maps here; that is safe to do
+     without a display, and not doing so leads to a lot of data being
+     leaked upon IO error.  */
+
+#[cfg (feature = "have_xkb")]
+  {
+    if !(*dpyinfo).xkb_desc.is_null ()                                  // C 32194
+      { XkbFreeKeyboard ((*dpyinfo).xkb_desc, XkbAllComponentsMask, True); }  // C 32195
+  }
+
+  if !(*dpyinfo).modmap.is_null ()                                      // C 32198
+    { XFreeModifiermap ((*dpyinfo).modmap); }                           // C 32199
+
+  /* No more input on this descriptor.  */
+  delete_keyboard_wait_descriptor ((*dpyinfo).connection);              // C 32202
+  /* Mark as dead. */
+  (*dpyinfo).connection = -1;                                           // C 32204
+
+  x_delete_display (dpyinfo);                                           // C 32206
+  unblock_input ();                                                     // C 32207
+}
