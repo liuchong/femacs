@@ -1014,6 +1014,14 @@ pub const GDK_TOUCH_BEGIN: GdkEventType = 22;
 pub const GDK_TOUCH_UPDATE: GdkEventType = 23;
 pub const GDK_TOUCH_END: GdkEventType = 24;
 pub const GDK_TOUCH_CANCEL: GdkEventType = 25;
+/// C: gdk/gdktypes.h: the four `GdkEventType` members the C 6985-7021 chain reads
+/// (`GDK_PROPERTY_NOTIFY`, `GDK_SELECTION_CLEAR`, `GDK_SELECTION_REQUEST`,
+/// `GDK_SELECTION_NOTIFY`).  **No GDK tree exists on this machine**, so the four values are
+/// **placeholders** (distinct from the rows above) and join Owed 21's round.  **UNVERIFIED**.
+pub const GDK_PROPERTY_NOTIFY: GdkEventType = 26;
+pub const GDK_SELECTION_CLEAR: GdkEventType = 29;
+pub const GDK_SELECTION_REQUEST: GdkEventType = 30;
+pub const GDK_SELECTION_NOTIFY: GdkEventType = 31;
 
 pub const GDK_NOTHING: GdkEventType = 0;              // placeholder, not GDK's value
 /// C: gdk/gdktypes.h: `typedef guint GdkWindowState;` and the twelve flags C 5632-5687 tests.  No GDK
@@ -1072,6 +1080,8 @@ pub union GdkEvent
   pub window_state: GdkEventWindowState,   // C: gdk/gdktypes.h: `GdkEventWindowState window_state;`
   pub touchpad_pinch: GdkEventTouchpadPinch,   // C: gdk/gdktypes.h: `GdkEventTouchpadPinch touchpad_pinch;`
   pub touch: GdkEventTouch,        // C: gdk/gdktypes.h: `GdkEventTouch touch;`
+  pub property: GdkEventProperty,  // C: gdk/gdktypes.h: `GdkEventProperty property;`
+  pub selection: GdkEventSelection,   // C: gdk/gdktypes.h: `GdkEventSelection selection;`
 }
 /* The five records the union names.  **One surface, one mirror** (P-90 ①/②): they used to be
    `src/xwidget.rs`'s in-unit segment (its C 26-30 chain carries `"gtkutil.h"` 26's
@@ -2038,18 +2048,37 @@ pub type GdkAtom = *mut _GdkAtom;
 /// `keyval`/`state` through.  The record above (next to the union) is the one definition
 /// (P-90 ②: one surface, one mirror); this comment is the second reader's trail.
 /// C: gdk/gdkevents.h: `typedef struct _GdkEventProperty GdkEventProperty;` -
-/// `pgtk_handle_property_notify`'s parameter (pgtkterm.h 571).  **UNVERIFIED**.
+/// `pgtk_handle_property_notify`'s parameter (pgtkterm.h 571), the union's `property` member
+/// (C 6986 takes its address) and the record `src/pgtkselect.rs` 1318-1327 reads
+/// (`window`/`atom`/`state`).  The members GDK declares between them are carried.
+/// **UNVERIFIED** (Owed 21's round).
 #[repr (C)]
+#[derive (Clone, Copy)]
 pub struct GdkEventProperty
 {
-  _private: [u8; 0],
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub time: u32,
+  pub atom: GdkAtom,               // C: gdk/gdktypes.h: `GdkAtom atom;`
+  pub state: c_uint,               // C: gdk/gdktypes.h: `guint state;`
 }
 /// C: gdk/gdkevents.h: `typedef struct _GdkEventSelection GdkEventSelection;` -
-/// `pgtk_handle_selection_notify`'s parameter (pgtkterm.h 572).  **UNVERIFIED**.
+/// `pgtk_handle_selection_notify`'s parameter (pgtkterm.h 572), the union's `selection` member
+/// (C 6990-7014 reads `window`/`selection`/`time`/`requestor`/`target`/`property`) and the record
+/// `src/pgtkselect.rs` 2161-2165 reads.  **UNVERIFIED** (Owed 21's round).
 #[repr (C)]
+#[derive (Clone, Copy)]
 pub struct GdkEventSelection
 {
-  _private: [u8; 0],
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub time: u32,
+  pub requestor: GdkAtom,          // C: gdk/gdktypes.h: `GdkAtom requestor;`
+  pub selection: GdkAtom,
+  pub target: GdkAtom,
+  pub property: GdkAtom,
 }
 /// C: gdk/gdkevents.h: `typedef struct _GdkEventSequence GdkEventSequence;` - the pointee of
 /// `pgtk_touch_point`'s `number` (pgtkterm.h 79).  **UNVERIFIED**.

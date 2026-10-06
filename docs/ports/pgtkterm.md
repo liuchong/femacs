@@ -1476,6 +1476,26 @@ their assertions are owed.
     (`lib/include/string.rs` 32) but no `strstr`, so the prototype stands in the unit with its own
     `<string.h>` citation.
 
+81. **A mirror round landed ahead of its C range (the selection records).**  C 6978-7025's
+    `pgtk_selection_event` (the next slice) reads `event->property` and `event->selection`, and
+    `src/pgtkselect.rs` 1318-1327/2161-2165 read the same two records' fields - but
+    `include/gtk.rs` carried `GdkEventProperty` and `GdkEventSelection` as **opaque** (`_private:
+    [u8; 0]`) records for their pointer uses only.  This round gives both their bodies (the members
+    GDK declares, up to the ones the two units read: `atom`/`state` for the property event and
+    `requestor`/`selection`/`target`/`property` for the selection event), adds `#[repr (C)]` +
+    `#[derive (Clone, Copy)]` beside them and the union's `property`/`selection` members, and adds the
+    four `GdkEventType` **placeholders** the chain reads (`GDK_PROPERTY_NOTIFY`, `GDK_SELECTION_CLEAR`,
+    `GDK_SELECTION_REQUEST`, `GDK_SELECTION_NOTIFY`; Owed 21's round).  **The first reading named one
+    defect of this round's own text**: the union members read
+    `E0740: field must implement Copy or be wrapped in ManuallyDrop` plus
+    `E0204: the trait Copy cannot be implemented for this type`, because the two records were still
+    the opaque shape - giving them their bodies (and the derive) is what makes the members legal.
+    **Still owed to the next slice**: `buffered_input_event` (`include/keyboard.rs` 90-94) carries
+    only `kind` and `ie`, and its own note calls the `sie` member dead under the frozen
+    configuration; the PGTK arm needs it (`inev.sie`), and the `selection_input_event` type it names
+    already lives in `include/pgtkterm.rs` 598-608 - so the next slice decides how the union reaches
+    that type (the P-90 5 question this round deliberately did not guess at).
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1578,7 +1598,9 @@ their assertions are owed.
     type and its five `GDK_ACTION_*` **placeholder values** join that round as well
     (the `GDK_SCROLL_*` brother).  The fifty-fifth slice's four
     `GDK_TOUCH_*` **placeholders**, its `GdkEventTouch` record and that record's union
-    member join it too (positions UNVERIFIED).  The forty-ninth slice's `GDK_BUTTON_RELEASE` (a **unit-local** copy, because
+    member join it too (positions UNVERIFIED).  The preparatory
+    round ahead of C 6978's slice adds `GdkEventProperty`'s and `GdkEventSelection`'s bodies and their
+    four `GdkEventType` **placeholders** to that round too.  The forty-ninth slice's `GDK_BUTTON_RELEASE` (a **unit-local** copy, because
     `src/xwidget.rs` 288 owns the name for its own reads - P-90 7) and the three
     `GdkEventButton` members it added (`axes`/`state`/`button`, positions UNVERIFIED) join
     it as well.  `include/dispextern.rs` owes the `mouse_face_hidden` accessor
@@ -4010,3 +4032,25 @@ slice registered); the title to fifty-eight slices and the header to 9,955 lines
 configuration compiles none of this file, this machine has no GTK tree and no PGTK target, no log
 message was handled and no selection owner looked up, and the arm readings are **compile** readings of
 text this machine cannot build.
+
+## The preparatory mirror round ahead of C 6978's slice: the two selection records
+
+**Why it is here.**  C 6978-7025's `pgtk_selection_event` reads `event->property` and
+`event->selection`, and `src/pgtkselect.rs` reads the same records' fields, so `include/gtk.rs`'s two
+**opaque** records had to become real ones first (Deviation 81).
+
+**What it changes.**  `GdkEventProperty` gains `type`/`window`/`send_event`/`time`/`atom`/`state` and
+`GdkEventSelection` gains `type`/`window`/`send_event`/`time`/`requestor`/`selection`/`target`/
+`property`, both with `#[repr (C)]` + `#[derive (Clone, Copy)]`; the union gains its `property` and
+`selection` members; the four `GdkEventType` placeholders join them.  All offsets stay **UNVERIFIED**.
+
+**The readings.**  The unit's three arms are **unchanged** against HEAD's mirror (`49/19`, `50/20`,
+`7/18` on both sides, sets diffing empty - the unit text is untouched this round), the named
+`src/xwidget.rs` reading (`use_gtk` + `have_gtk3`) is **identical** on both sides (197 errors /
+52 warnings), `check-mirror-dupes` reads **16/16/0** and `tools/check-all-units.sh` reads
+`checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)`.  The other gates are
+unmoved: `check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2113/36/0,
+`check-dead-file-coverage.py` 145/0 (90 range rows), `check-port-lines.py` 0/0/0/0,
+`check-ledger-ticks.py` 238/0, `check-cond-eval.py src/pgtkterm.c` 31/0/0 and
+`extract-abi.py --check` 27 rows.  **Not claimed**: nothing has been compiled in an arm that reads
+these records' fields, the offsets are unverified, and no GTK tree exists here.
