@@ -8,8 +8,8 @@
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
 // C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559, C 2560-2742,
-// C 2743-2915, C 2916-3113 and C 3114-3472.**  The next live definition is `sfntfont_encode_char`
-// (C 3483).  The ledger `docs/ports/sfntfont.md`
+// C 2743-2915, C 2916-3113, C 3114-3472 and C 3473-3660.**  The next live definition is
+// `sfntfont_draw` (C 3676).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -3245,17 +3245,8 @@ const _: () = {
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 static mut open_fonts: *mut sfnt_font_info = std::ptr::null_mut ();      // C 2651
 
-/* `sfntfont_measure_pcm` is declared at C 2681-2682 and *defined* at C 3504, i.e. C's own order
-   puts the caller (`sfntfont_probe_widths`, C 2692) before its callee; the declaration below is
-   the port's use-site spelling of that (the `ftfont.rs` 2066 `hbotf_open` shape, P-91 ④) and the
-   slice that lands C 3504 replaces it with the definition - the ledger's `## Owed` names it.  */
-#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-unsafe extern "C" {
-  /// C: 2681-2682: `static int sfntfont_measure_pcm (struct sfnt_font_info *, sfnt_glyph,
-  /// struct font_metrics *);`
-  pub fn sfntfont_measure_pcm (arg0: *mut sfnt_font_info, arg1: sfnt_glyph_index,
-			       arg2: *mut font_metrics) -> c_int;
-}
+/* C 2681-2682's forward declaration of `sfntfont_measure_pcm` has no Rust text: the C 3504
+   definition (slice 12) replaces the use-site declaration slice 8 carried, which is Owed 9 closed.  */
 
 /* Look up the glyph corresponding to the character C in FONT.  Return
    0 upon failure, and the glyph otherwise.  */
@@ -4208,4 +4199,217 @@ pub unsafe extern "C" fn sfntfont_open (f: *mut c_void, font_entity: Lisp_Object
   /* C 3469: `bail:`.  */
   unblock_input ();                                        // C 3470
   return Qnil ();                                          // C 3471
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 3473-3660: the metrics family's first four items, in C's order - C 3476's
+   `/* Metrics computation and other similar font backend functions.  */` banner,
+   `sfntfont_encode_char` (C 3483-3494), `sfntfont_measure_pcm` (C 3504-3539, whose C 3504
+   definition **replaces the use-site declaration** slice 8 carried - ledger Owed 9),
+   `sfntfont_text_extents` (C 3544-3582) and `sfntfont_close` (C 3587-3660).  **The next live
+   definition is C 3676's `sfntfont_draw`** (the `/* Glyph display.  */` banner is C 3664 and
+   `sfnt_put_glyphs` is C 3667), and the ledger's `## C line ranges` names both boundaries.
+
+   `sfntfont_encode_char` calls `sfntfont_lookup_glyph`, whose item carries `have_window_system`
+   (it reads `font.encoding_charset`), so this item carries that gate too (Deviation 23 (a));
+   `hb_font_destroy` is `hb-font.h` 1128-1129's prototype and no mirror carries it, so it is
+   declared at its use site under the `harfbuzz` gate (the `ftcrfont.rs` 592 shape).
+   ---------------------------------------------------------------------------------------------- */
+/// C 3483-3494: `sfntfont_encode_char` - C's non-`static` driver entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	   feature = "have_window_system"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_encode_char (font: *mut font, c: c_int) -> c_uint
+{                                                          // C 3483-3494
+  let mut glyph: sfnt_glyph_index;
+
+  /* Now look up the glyph.  */
+  glyph = sfntfont_lookup_glyph (font as *mut sfnt_font_info, c);   // C 3488
+
+  if glyph == 0
+    { return FONT_INVALID_CODE; }                          // C 3491
+
+  return glyph;                                            // C 3493
+}
+
+/// C 3504-3539: `sfntfont_measure_pcm` - C's `static`, called by name only (C 2719 and C 3559).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_measure_pcm (font: *mut sfnt_font_info, glyph: sfnt_glyph_index,
+				pcm: *mut font_metrics) -> c_int
+{                                                          // C 3504-3539
+  /* C 3507's `metrics` is the out-parameter of `sfntfont_get_glyph_outline` (C 3522) and is read
+     from C 3529 on; zero-initialised because its address is taken (PORTING.md 1.5, Deviation
+     10).  */
+  let mut metrics: sfnt_glyph_metrics = std::mem::zeroed ();
+  let mut outline: *mut sfnt_glyph_outline;
+
+  /* Now get the glyph outline, which is required to obtain the rsb,
+     ascent and descent.  */
+  outline = sfntfont_get_glyph_outline (glyph, &raw mut (*font).outline_cache,
+					(*font).scale,
+					&raw mut (*font).outline_cache_size,
+					&raw mut (*font).blend,
+					(*font).instance,
+					(*font).glyf, (*font).head,
+					(*font).hmtx, (*font).hhea,
+					(*font).maxp,
+					(*font).loca_short,
+					(*font).loca_long,
+					(*font).interpreter, &raw mut metrics,
+					&raw mut (*font).state);   // C 3512-3523
+
+  if outline.is_null ()
+    { return 1; }                                          // C 3526
+
+  /* The left side bearing has already been floored.  */
+  (*pcm).lbearing = (metrics.lbearing / 65536) as c_short;   // C 3529
+  (*pcm).rbearing = (SFNT_CEIL_FIXED ((*outline).xmax) / 65536) as c_short;   // C 3530
+
+  /* The advance is already rounded; ceil the ascent and descent.  */
+  (*pcm).width = (metrics.advance / 65536) as c_short;     // C 3533
+  (*pcm).ascent = (SFNT_CEIL_FIXED ((*outline).ymax) / 65536) as c_short;   // C 3534
+  (*pcm).descent = (SFNT_CEIL_FIXED (-((*outline).ymin)) / 65536) as c_short;   // C 3535
+
+  sfntfont_dereference_outline (outline);                  // C 3537
+  return 0;                                                // C 3538
+}
+
+/* Return the total text extents of NGLYPHS glyphs given as CODE in
+   the single font metrics array METRICS.  */
+
+/// C 3544-3582: `sfntfont_text_extents` - C's non-`static` driver entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_text_extents (font: *mut font, code: *const c_uint,
+						nglyphs: c_int, metrics: *mut font_metrics)
+{                                                          // C 3544-3582
+  let mut i: c_int;
+  let mut total_width: c_int;
+  /* C 3549's `pcm` is filled by `sfntfont_measure_pcm` before it is read; zero-initialised
+     because its address is taken (PORTING.md 1.5, Deviation 10).  */
+  let mut pcm: font_metrics = std::mem::zeroed ();
+
+  total_width = 0;                                         // C 3551
+
+  /* First clear the metrics array.  */
+  memset (metrics as *mut c_void, 0, std::mem::size_of::<font_metrics> ());   // C 3554
+
+  /* Get the metrcs one by one, then sum them up.  */
+  i = 0;                                                   // C 3557
+  while i < nglyphs
+    {
+      if sfntfont_measure_pcm (font as *mut sfnt_font_info,
+			       *code.offset (i as isize), &raw mut pcm) == 0   // C 3559-3560
+	{
+	  /* Add the per-char metric (PCM) to the metrics in
+	     METRICS.  */
+
+	  /* The parenthesised comparisons are Rust's parse rule, not a change of C's arithmetic:
+	     a cast followed by `<` would read as generic arguments (the `ftfont.rs` Finding 7
+	     class), so both sides are bracketed and the `int`-typed sums are C's own.  */
+	  if (total_width + pcm.lbearing as c_int) < ((*metrics).lbearing as c_int)   // C 3565
+	    { (*metrics).lbearing = (total_width + pcm.lbearing as c_int) as c_short; }   // C 3566
+
+	  if (total_width + pcm.rbearing as c_int) > ((*metrics).rbearing as c_int)   // C 3568
+	    { (*metrics).rbearing = (total_width + pcm.rbearing as c_int) as c_short; }   // C 3569
+
+	  if (pcm.ascent as c_int) > ((*metrics).ascent as c_int)   // C 3571
+	    { (*metrics).ascent = pcm.ascent; }                // C 3572
+
+	  if (pcm.descent as c_int) > ((*metrics).descent as c_int)   // C 3574
+	    { (*metrics).descent = pcm.descent; }              // C 3575
+
+	  total_width += pcm.width as c_int;                   // C 3577
+	}
+      i += 1;
+    }
+
+  (*metrics).width = total_width as c_short;               // C 3581
+}
+
+/* Close the font FONT, discarding all tables inside it and
+   dereferencing all cached outlines and rasters.  */
+
+/* `hb_font_destroy` is `hb-font.h` 1128-1129's `void hb_font_destroy (hb_font_t *font);`, declared
+   here at its use site under the `harfbuzz` gate (the `src/ftcrfont.rs` 592 shape, P-91 4); the
+   `hb_font_t` pointer is the untyped one (P-72 (3), `src/ftcrfont.rs` 591).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "harfbuzz"))]
+unsafe extern "C" {
+  /// C: hb-font.h 1128-1129: `void hb_font_destroy (hb_font_t *font);`
+  pub fn hb_font_destroy (font: *mut c_void);
+}
+
+/// C 3587-3660: `sfntfont_close` - C's non-`static` driver entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_close (font: *mut font)
+{                                                          // C 3587-3660
+  let mut info: *mut sfnt_font_info;
+  /* C 3592's `next` (C 3591-3593's `#ifdef HAVE_MMAP` local: live, since `HAVE_MMAP` is 1).  */
+  let mut next: *mut *mut sfnt_font_info;
+
+  info = font as *mut sfnt_font_info;                      // C 3595
+
+  /* If info->desc is still set, dereference the font tables.  */
+  if !(*info).desc.is_null ()                              // C 3598
+    { sfnt_dereference_font_tables ((*info).desc); }       // C 3599
+  (*info).desc = std::ptr::null_mut ();                    // C 3600
+
+  /* Free the interpreter, which is created on a per font basis.  */
+  xfree ((*info).interpreter as *mut c_void);              // C 3603
+
+  /* Clear these fields.  It seems that close can be called twice,
+     once during font driver destruction, and once during GC.  */
+
+  (*info).cmap = std::ptr::null_mut ();                    // C 3608
+  (*info).hhea = std::ptr::null_mut ();                    // C 3609
+  (*info).maxp = std::ptr::null_mut ();                    // C 3610
+  (*info).head = std::ptr::null_mut ();                    // C 3611
+  (*info).hhea = std::ptr::null_mut ();                    // C 3612 (C clears `hhea` twice)
+  (*info).glyf = std::ptr::null_mut ();                    // C 3613
+  (*info).loca_short = std::ptr::null_mut ();              // C 3614
+  (*info).loca_long = std::ptr::null_mut ();               // C 3615
+  (*info).cmap_data = std::ptr::null_mut ();               // C 3616
+  (*info).prep = std::ptr::null_mut ();                    // C 3617
+  (*info).fpgm = std::ptr::null_mut ();                    // C 3618
+  (*info).cvt = std::ptr::null_mut ();                     // C 3619
+  (*info).interpreter = std::ptr::null_mut ();             // C 3620
+  (*info).uvs = std::ptr::null_mut ();                     // C 3621
+
+  /* Deinitialize the blend.  */
+  if (*info).instance != -1 && !(*info).blend.coords.is_null ()   // C 3624
+    { sfnt_free_blend (&raw mut (*info).blend); }          // C 3625
+  (*info).instance = -1;                                   // C 3626
+
+  /* C 3628-3640's `#ifdef HAVE_MMAP`: live.  */
+
+  /* Unlink INFO.  */
+
+  next = &raw mut open_fonts;                              // C 3632
+  while !(*next).is_null () && (*next) != info             // C 3633
+    { next = &raw mut (**next).next; }
+
+  if !(*next).is_null ()                                   // C 3636
+    { *next = (*info).next; }                              // C 3637
+  (*info).next = std::ptr::null_mut ();                    // C 3638
+
+  #[cfg (feature = "harfbuzz")]
+  {
+    /* These fields will be freed or closed by
+       sfnt_dereference_font_tables, but clear them here for good
+       measure.  */
+    (*info).directory = std::ptr::null_mut ();             // C 3646
+    (*info).fd = -1;                                       // C 3647
+
+    /* Free any hb_font created.  */
+
+    if !(*info).hb_font.is_null ()                         // C 3651
+      {
+	hb_font_destroy ((*info).hb_font);                 // C 3653
+	(*info).hb_font = std::ptr::null_mut ();           // C 3654
+      }
+  }
+
+  sfntfont_free_outline_cache (&raw mut (*info).outline_cache);   // C 3658
+  sfntfont_free_raster_cache (&raw mut (*info).raster_cache);   // C 3659
 }
