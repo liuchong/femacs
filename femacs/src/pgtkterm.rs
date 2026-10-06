@@ -3492,3 +3492,96 @@ unsafe fn pgtk_draw_stretch_glyph_string (s: *mut glyph_string)
 
   glyph_string_bits! (background_filled_p, (*s), true);                 // C 2454
 }
+
+/* Draw a dashed underline of thickness THICKNESS and width WIDTH onto F
+   at a vertical offset of OFFSET from the position of the glyph string
+   S, with each segment SEGMENT pixels in length.  */
+
+/* C: cairo.h 861-865: `void cairo_set_dash (cairo_t *cr, const double *dashes, int num_dashes,
+   double offset);` - the C 2475 call (this machine's cairo header; no mirror carries it, so the
+   unit declares it at the use site).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_set_dash (cr: *mut cairo_t, dashes: *const c_double, num_dashes: c_int,
+				 offset: c_double);
+}
+
+/// C 2462-2481: `static void pgtk_draw_dash (struct frame *f, struct glyph_string *s, unsigned
+/// long foreground, int width, char segment, int offset, int thickness)` - C's `(double) segment`
+/// and the three `double` arguments to the cairo calls are the port's widenings, and C's
+/// `s->ybase + offset + (thickness / 2.0)` keeps the int sum before the double term (so the port
+/// writes the sum's own conversion).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_dash (f: *mut frame, s: *mut glyph_string, foreground: c_ulong, width: c_int,
+			  segment: c_char, offset: c_int, thickness: c_int)
+{
+  let cr: *mut cairo_t;                                                 // C 2467
+  let mut cr_segment: c_double;                                         // C 2468
+  let mut y_center: c_double;
+
+  cr = pgtk_begin_cr_clip ((*s).f);                                     // C 2470
+  pgtk_set_cr_source_with_color (f, foreground, false);                 // C 2471
+  cr_segment = segment as c_double;                                     // C 2472
+  y_center = ((*s).ybase + offset) as c_double                          // C 2473
+		 + (thickness as c_double / 2.0);
+
+  cairo_set_dash (cr, &raw const cr_segment, 1, (*s).x as c_double);    // C 2475
+  cairo_set_line_width (cr, thickness as c_double);                     // C 2476
+  cairo_move_to (cr, (*s).x as c_double, y_center);                     // C 2477
+  cairo_line_to (cr, ((*s).x + width) as c_double, y_center);           // C 2478
+  cairo_stroke (cr);                                                    // C 2479
+  pgtk_end_cr_clip (f);                                                 // C 2480
+}
+
+/* Draw an underline of STYLE onto F at an offset of POSITION from the
+   baseline of the glyph string S in the color provided by FOREGROUND,
+   DECORATION_WIDTH in length, and THICKNESS in height.  */
+
+/// C 2487-2522: `static void pgtk_fill_underline (struct frame *f, struct glyph_string *s,
+/// unsigned long foreground, enum face_underline_type style, int position, int decoration_width,
+/// int thickness)` - C's `switch` is the port's `match` over the same labels; the
+/// `FACE_UNDERLINE_DOTS` arm's `FALLTHROUGH` is carried in the arm itself (PORTING.md 2.2, the
+/// `src/w32term.rs` 4083-4108 reading of the same C text); and C's `case FACE_NO_UNDERLINE:` /
+/// `case FACE_UNDERLINE_WAVE:` / `default:` all run `emacs_abort`, so they are one arm plus the
+/// wildcard.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_fill_underline (f: *mut frame, s: *mut glyph_string, foreground: c_ulong,
+			       style: face_underline_type, position: c_int,
+			       decoration_width: c_int, thickness: c_int)
+{
+  let mut segment: c_int;                                               // C 2493
+
+  segment = thickness * 3;                                              // C 2495
+
+  match style
+    {
+      /* FACE_UNDERLINE_DOUBLE_LINE is treated identically to SINGLE, as
+	 the second line will be filled by another invocation of this
+	 function.  */
+    FACE_UNDERLINE_SINGLE | FACE_UNDERLINE_DOUBLE_LINE =>
+      {
+	pgtk_fill_rectangle (f, foreground, (*s).x, (*s).ybase + position,   // C 2504
+				     decoration_width, thickness, false);       // C 2505
+      }
+
+    FACE_UNDERLINE_DOTS =>
+      {
+	segment = thickness;                                               // C 2509
+	/* C's `FALLTHROUGH;` sends this arm on into the `FACE_UNDERLINE_DASHES` arm's
+	   statement, which the port therefore writes here too (PORTING.md 2.2).  */
+	pgtk_draw_dash (f, s, foreground, decoration_width, segment as c_char,   // C 2513
+			    position, thickness);
+      }
+
+    FACE_UNDERLINE_DASHES =>
+      {
+	pgtk_draw_dash (f, s, foreground, decoration_width, segment as c_char,   // C 2513
+			    position, thickness);
+      }
+
+    FACE_NO_UNDERLINE | FACE_UNDERLINE_WAVE =>
+      { emacs_abort (); }                                               // C 2520
+    _ =>
+      { emacs_abort (); }
+    }
+}
