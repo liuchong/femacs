@@ -1168,6 +1168,63 @@ const _: () = core::assert! (core::mem::size_of::<XModifierKeymap> () == 16);
 #[cfg (feature = "have_x_windows")]
 const _: () = core::assert! (core::mem::align_of::<XModifierKeymap> () == 8);
 
+/// Xutil.h 81-94: `typedef struct { … } XSizeHints;`.  Measured `[sizeof=80, align=8]` with
+/// `flags` 0, `x` 8, `y` 12, `width` 16, `height` 20, `min_width` 24, `min_height` 28,
+/// `max_width` 32, `max_height` 36, `width_inc` 40, `height_inc` 44, `min_aspect` 48,
+/// `max_aspect` 56, `base_width` 64, `base_height` 68, `win_gravity` 72 (machine probe, this
+/// file's page).  C's two aspect members are *anonymous* structs (Xutil.h 88-91); PORTING.md 1.3
+/// requires a nested anonymous struct to be named, and because the two are textually identical one
+/// Rust type serves both - the layout is unchanged either way (both are `[sizeof=8, align=4]`).
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XSizeHintsAspect
+{
+  pub x: c_int,                                             // Xutil.h 89
+  pub y: c_int,                                             // Xutil.h 90
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::size_of::<XSizeHintsAspect> () == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XSizeHintsAspect, y) == 4);
+
+/// `src/xterm.c` 30162 declares one (`XSizeHints size_hints;`) and `XSetWMNormalHints`/
+/// `XGetWMNormalHints` read and write it; `src/emacsgtkfixed.c` 140/205 names the same record.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XSizeHints
+{
+  pub flags: c_long,                                        // Xutil.h 82
+  pub x: c_int,                                             // Xutil.h 83
+  pub y: c_int,
+  pub width: c_int,                                         // Xutil.h 84
+  pub height: c_int,
+  pub min_width: c_int,                                     // Xutil.h 85
+  pub min_height: c_int,
+  pub max_width: c_int,                                     // Xutil.h 86
+  pub max_height: c_int,
+  pub width_inc: c_int,                                     // Xutil.h 87
+  pub height_inc: c_int,
+  pub min_aspect: XSizeHintsAspect,                         // Xutil.h 88-91
+  pub max_aspect: XSizeHintsAspect,
+  pub base_width: c_int,                                    // Xutil.h 92
+  pub base_height: c_int,
+  pub win_gravity: c_int,                                   // Xutil.h 93
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::size_of::<XSizeHints> () == 80);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::align_of::<XSizeHints> () == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XSizeHints, min_width) == 24);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XSizeHints, min_aspect) == 48);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XSizeHints, max_aspect) == 56);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XSizeHints, win_gravity) == 72);
+
 /// Xutil.h 119-130: `typedef struct { … } XWMHints;`.  Measured `[sizeof=56, align=8]` with
 /// `flags` 0, `input` 8, `initial_state` 12, `icon_pixmap` 16, `icon_window` 24, `icon_x` 32,
 /// `icon_y` 36, `icon_mask` 40, `window_group` 48.  `include/xterm.rs` 787 holds one by value.

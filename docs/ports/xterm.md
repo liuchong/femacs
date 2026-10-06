@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 33 (C 29142-29189, Decision 46) goes **123 -> 119**: `xembed_set_info`, `xembed_send_message` and the two `XEMBED_VERSION` rows retire, and no token row arrives.  Slice 34 (C 29201-29400, Decision 47) goes **119 -> 118**: `x_make_frame_visible` retires as a missing item, and no token row arrives.  Slice 35 (C 29406-29481, Decision 48) goes **118 -> 116**: `x_make_frame_invisible` and `x_make_frame_visible_invisible` retire as missing items, and the slice brings no token row.  Slice 36 (C 29483-29614, Decision 49) goes **116 -> 114**: `x_create_font_cursor` and `x_iconify_frame` retire as missing items, and no token row arrives.  Slice 37 (C 29619-29851, Decision 50) goes **114 -> 113**: `x_free_frame_resources` retires as a missing item, and no token row arrives.  Slice 38 (C 29856-29889, Decision 51) goes **113 -> 112**: `x_destroy_window` retires as a missing item once its one token row (`0`, C 29863's `dpyinfo->display != 0`) is written in the port's spelling, and arm readings do not move at all.  Slice 39 (C 29891-29978, Decision 52) goes **112 -> 111**: `x_intern_cached_atom` retires as a missing item, and no token row arrives.  Slice 40 (C 29980-30074, Decision 53) goes **111 -> 110**: `x_get_atom_name` retires as a missing item and its four structural tokens (`alloca`, `case`, `default`, `switch`) are closed by a `docs/ports/macro-body-notes.tsv` row, and the definition resolves the two `x_get_atom_name` call sites earlier slices owed.  Slice 41 (C 30076-30146, Decision 54) goes **110 -> 108**: `x_intern_atoms` and `x_embed_frame` retire as missing items, and no token row arrives.  Slice 42 (C 30342-30420, Decision 55) goes **108 -> 105**: `x_wm_set_window_state`, `x_wm_set_icon_pixmap` and `x_wm_set_icon_position` retire as missing items, and no token row arrives.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 33 (C 29142-29189, Decision 46) goes **123 -> 119**: `xembed_set_info`, `xembed_send_message` and the two `XEMBED_VERSION` rows retire, and no token row arrives.  Slice 34 (C 29201-29400, Decision 47) goes **119 -> 118**: `x_make_frame_visible` retires as a missing item, and no token row arrives.  Slice 35 (C 29406-29481, Decision 48) goes **118 -> 116**: `x_make_frame_invisible` and `x_make_frame_visible_invisible` retire as missing items, and the slice brings no token row.  Slice 36 (C 29483-29614, Decision 49) goes **116 -> 114**: `x_create_font_cursor` and `x_iconify_frame` retire as missing items, and no token row arrives.  Slice 37 (C 29619-29851, Decision 50) goes **114 -> 113**: `x_free_frame_resources` retires as a missing item, and no token row arrives.  Slice 38 (C 29856-29889, Decision 51) goes **113 -> 112**: `x_destroy_window` retires as a missing item once its one token row (`0`, C 29863's `dpyinfo->display != 0`) is written in the port's spelling, and arm readings do not move at all.  Slice 39 (C 29891-29978, Decision 52) goes **112 -> 111**: `x_intern_cached_atom` retires as a missing item, and no token row arrives.  Slice 40 (C 29980-30074, Decision 53) goes **111 -> 110**: `x_get_atom_name` retires as a missing item and its four structural tokens (`alloca`, `case`, `default`, `switch`) are closed by a `docs/ports/macro-body-notes.tsv` row, and the definition resolves the two `x_get_atom_name` call sites earlier slices owed.  Slice 41 (C 30076-30146, Decision 54) goes **110 -> 108**: `x_intern_atoms` and `x_embed_frame` retire as missing items, and no token row arrives.  Slice 42 (C 30342-30420, Decision 55) goes **108 -> 105**: `x_wm_set_window_state`, `x_wm_set_icon_pixmap` and `x_wm_set_icon_position` retire as missing items, and no token row arrives.  Slice 43 (C 30158-30340, Decision 56) goes **105 -> 104**: `x_wm_set_size_hint` retires as a missing item once its `goto` token is closed by a notes row, and the slice adds the mirror's `XSizeHints` (P-87 ① legs: 83 units, 0 failures).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -326,7 +326,7 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_get_atom_name  (line 29984)
 - [x] x_intern_atoms  (line 30084)
 - [x] x_embed_frame  (line 30129)
-- [ ] x_wm_set_size_hint  (line 30159)
+- [x] x_wm_set_size_hint  (line 30159)
 - [x] x_wm_set_window_state  (line 30345, static)
 - [x] x_wm_set_icon_pixmap  (line 30363, static)
 - [x] x_wm_set_icon_position  (line 30411)
@@ -2630,6 +2630,50 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `xg_set_frame_icon` (1) - plus, again in arm B alone, one more uncoded `GDK_WINDOW_XID` row from
   `FRAME_OUTER_WINDOW` (C 30413) under `use_gtk`.
 
+### 56. Slice 43 (C 30158-30340): `x_wm_set_size_hint`
+
+* **The mirror gained `XSizeHints`, and this is the slice's one mirror change.**  C 30162 declares
+  `XSizeHints size_hints;` and the record was carried nowhere (`xlib.rs` had `XWMHints` and not its
+  Xutil.h sibling), so `include/xlib.rs` now carries `XSizeHints` (and the named
+  `XSizeHintsAspect` its two *anonymous* aspect structs need - PORTING.md 1.3) with the layout
+  measured on this machine: `[sizeof=80, align=8]`, `min_aspect` @48, `max_aspect` @56,
+  `win_gravity` @72, plus `const _` assertions for size/align/offsets.  **P-87 ①'s legs, run for
+  this change**: `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
+  `checking 83 unit(s), 0 unit failure(s)` (1m48s, `CARGO_TARGET_DIR=/tmp/xs43/allunits`);
+  `xtask layout-check` -> `layout probe ok` / `layout-check passed` with **the same 124 warnings as
+  before the change** (measured both sides); the mirror's ledger row and its carried-list sentence
+  were updated in the same slice (`docs/ports/include-xlib.md`).
+* **C 30295's `goto no_read` is the port's labelled block, and the token row is closed by a note.**
+  The port writes `'no_read: { … break 'no_read; … }` around C 30298-30321's block (PORTING.md 2.2,
+  the `x_focus_frame` shape), so C's `goto` cannot reappear: the first reading left
+  `function x_wm_set_size_hint does not mention goto` and a `docs/ports/macro-body-notes.tsv` row
+  closes it (measured: 105 rows with it, 104 without).
+* **The mirror carries five of these `FRAME_*` accessors as *functions*, so the `!` spelling is
+  wrong.**  `FRAME_PIXEL_WIDTH`, `FRAME_PIXEL_HEIGHT`, `FRAME_COLUMN_WIDTH`, `FRAME_LINE_HEIGHT`,
+  `FRAME_TEXT_COLS_TO_PIXEL_WIDTH` and `FRAME_TEXT_LINES_TO_PIXEL_HEIGHT` are `pub fn` in
+  `include/frame.rs` (1036/1038/1351/1353/1800/1808) while `FRAME_MENUBAR_HEIGHT!` really is a
+  macro; the file's own sites write them accordingly (5326/5343 without the bang, 5321/5344 with
+  it).  The first writing used `!` for all six and the reading showed **six uncoded
+  `cannot find macro` rows** - now zero, with the spellings taken from those existing sites.
+* **A cfg attribute takes exactly one predicate.**  `#[cfg (all (…), not (…))]` is `E0805`
+  (`malformed cfg attribute input`) - the first writing had one such attribute (the
+  `hints_changed` declaration) and the reading caught it; the valid form keeps every predicate
+  inside the single `all (…)`.
+* **The eight Xutil.h flags stand at the use site, and `#ifdef PWinGravity` is live.**  `USPosition`
+  1, `USSize` 2, `PPosition` 4, `PSize` 8, `PMinSize` 16, `PMaxSize` 32, `PResizeInc` 64,
+  `PAspect` 128, `PBaseSize` 256, `PWinGravity` 512 - measured against this machine's
+  `<X11/Xutil.h>` 102-112, the `XA_*` shape of slice 39 (the mirror's `x11_constants` carries that
+  header's `NormalState` and none of these).  C 30325's `#ifdef PWinGravity` is a header test, not a
+  configuration one, and the header defines it (measured) - so the port carries the block live, and
+  says so in a comment where C's `#ifdef` sits.
+* **The definition retires four owed call sites.**  `x_wm_set_size_hint` was called at C 27612,
+  28315, 28489 and 28629 in the landed text (the measured delta is **-4** in every arm); the new
+  sites are `XGetWMNormalHints` and `XSetWMNormalHints` (one each), the `void` the
+  `FRAME_MENUBAR_HEIGHT!` macro's body names (2 -> 3 - that class is the mirror's faithful
+  `((void) f, 0)` text) and one more site each for `x_display_pixel_width`/`x_display_pixel_height`.
+  Arm B is **-3**: its `use_gtk` arm compiles only `xg_wm_set_size_hint` (a new name) and not the
+  whole `#ifndef USE_GTK` body.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -4842,3 +4886,41 @@ row arrives.  The line-count row moves to 19,164 against C's 33,125 (42.1%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no WM hint was written and no
 window state was changed.
+
+### Slice 43's readings (C 30158-30340), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_wm_set_size_hint` (C 30158-30340): the `#ifndef USE_GTK` body (the
+`USE_X_TOOLKIT` widget arm with its `#ifndef USE_MOTIF` pair, the size-hint fills, the base/minimum
+block, C 30295's `goto no_read` as a labelled block, the `XGetWMNormalHints` read-back and the
+`PWinGravity` block) with C 30338's `#else` calling `xg_wm_set_size_hint`; plus the ten Xutil.h
+flags at the unit's use site and `XSizeHints` in the mirror.  Rust 19,164 -> 19,413; the mirror's
+`xlib.rs` 1,341 -> 1,374 lines.
+
+**What the probes read.**  Baseline = HEAD's unit (slice 42's commit) with the same arm, both sides
+measured.  Totals are the probe's `^error` count, classes are its `^error[E..]` headers.
+
+| arm | baseline | slice 43 | delta | of which |
+| --- | --- | --- | --- | --- |
+| A `have_x_windows` | 680 / 69 | **681 / 69** | **+1** | `E0425` 420 -> 421 |
+| B `+have_gtk3+use_gtk` | 700 / 70 | **697 / 70** | **-3** | `E0425` 406 -> 403 |
+| C `+have_xinput2` | 715 / 71 | **716 / 71** | **+1** | `E0425` 439 -> 440 |
+
+The net is four resolved `x_wm_set_size_hint` sites against `XGetWMNormalHints`,
+`XSetWMNormalHints`, one more `void` (the `FRAME_MENUBAR_HEIGHT!` body) and one more site each for
+`x_display_pixel_width`/`x_display_pixel_height`; arm B compiles only the `xg_wm_set_size_hint` arm,
+so it is four sites down and one new name up.  **No `E0308`/`E0608`/uncoded row is added** - the
+first writing's `E0805` and its six `cannot find macro` rows are fixed and re-measured (Decision 56)
+- and `build-tu` prints the same 30 warnings with an identical set.  The mirror change's own legs
+are in Decision 56 (83 units, 0 failures; layout-check unchanged).
+
+**Arm reachability** (P-86 ⑦).  `let _: c_int = true;` as the function's first statement moves
+`E0308` 13 -> 14, anchored exactly at that line (`_root.rs:19203`); removing it returns arm A to
+681 / 69.
+
+**What `--check` reads.**  **105 -> 104**: `x_wm_set_size_hint` retires as a missing item once its
+`goto` token is closed by the notes row, and no other row arrives.  The line-count row moves to
+19,413 against C's 33,125 (41.4%).
+
+**Not claimed.**  The frozen configuration compiles none of this file and no arm here sets
+`use_x_toolkit`: no size hint was written, no X server was asked for the old hints and the widget
+arms are carried text.

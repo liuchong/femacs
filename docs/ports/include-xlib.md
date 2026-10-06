@@ -10,7 +10,8 @@ refers to for the measurements.
 typedefs (`XID`, `Mask`, `Atom`, `VisualID`, `Window`, `Drawable`, `Font`, `Pixmap`, `Cursor`,
 `Colormap`, `GContext`, `KeySym`, `KeyCode`), the opaque records (`Display`, `GC`), the records
 `XExtData`, `Visual`, `Depth`, `Screen`, `XImage` (with its nested `_XImage_funcs`), `XColor`,
-`XModifierKeymap`, `XWMHints`, `XVisualInfo`, `XRectangle`, `XrmValue`, the display procedures
+`XModifierKeymap`, `XSizeHints` (with its named `XSizeHintsAspect`), `XWMHints`, `XVisualInfo`,
+`XRectangle`, `XrmValue`, the display procedures
 (`XCreateBitmapFromData`, `XReadBitmapFile`, `XFreePixmap`, `XGetImage`, `XPutImage`, `XCreateGC`,
 `XFreeGC`) and the values `ZPixmap`, the six visual classes, the four `Bitmap*` results and the
 eleven event masks.  `src/xrdb.c` 37-41 lists five headers for this one mirror
@@ -35,6 +36,7 @@ mirror spells them as `#[inline]` functions (a `macro_rules!` was tried first an
 | `XImage` | 136 | 8 | `data` @16, `f` @88 |
 | `XColor` | 16 | 8 | `pixel` @0 |
 | `XModifierKeymap` | 16 | 8 | |
+| `XSizeHints` | 80 | 8 | `min_aspect` @48, `max_aspect` @56, `win_gravity` @72 |
 | `XWMHints` | 56 | 8 | |
 | `XVisualInfo` | 64 | 8 | `visualid` @8 |
 | `XEvent` | 192 | 8 | **members owed** (see below) |

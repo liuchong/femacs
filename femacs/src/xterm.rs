@@ -19162,3 +19162,252 @@ pub const IconPixmapHint: c_long = 1 << 2;
 pub const IconPositionHint: c_long = 1 << 4;
 #[cfg (feature = "have_x_windows")]
 pub const IconMaskHint: c_long = 1 << 5;
+
+/* Setting window manager hints.  */
+
+/* Set the normal size hints for the window manager, for frame F.
+   FLAGS is the flags word to use--or 0 meaning preserve the flags
+   that the window now has.
+   If USER_POSITION, set the USPosition
+   flag (this is useful when FLAGS is 0).
+   The GTK version is in gtkutils.c.  */
+
+/// C 30158-30340: `void x_wm_set_size_hint (struct frame *f, long flags, bool user_position)` -
+/// non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`
+/// (PORTING.md 0.2/1.4).  The body is C's `#ifndef USE_GTK` arm with its `#else`'s
+/// `xg_wm_set_size_hint` call (P-86 ①); `XSizeHints` is the mirror's record (this slice added it
+/// there, measured `[sizeof=80, align=8]`), the eight Xutil.h flags stand at the use site below,
+/// C 30295's `goto no_read` is the port's labelled block (PORTING.md 2.2, the `x_focus_frame`
+/// shape), and the `USE_X_TOOLKIT` arm's `WMShellWidget`/`XtIsWMShell`/`widget_update_wm_size_hints`
+/// are text no arm this lane runs compiles (P-86 ③ - named, not counted as verified).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_wm_set_size_hint (f: *mut frame, flags: c_long, user_position: bool)
+{
+#[cfg (not (feature = "use_gtk"))]
+  let mut size_hints: XSizeHints;                                       // C 30162
+#[cfg (not (feature = "use_gtk"))]
+  let window: Window = FRAME_OUTER_WINDOW! (f);                         // C 30163
+#[cfg (all (not (feature = "use_gtk"), feature = "use_x_toolkit"))]
+  let mut shell: WMShellWidget;                                         // C 30165
+#[cfg (all (not (feature = "use_gtk"), feature = "use_x_toolkit",
+	    not (feature = "use_motif")))]
+  let mut hints_changed: bool;                                          // C 30167
+
+#[cfg (not (feature = "use_gtk"))]
+  {
+    if window == 0                                                      // C 30171
+      { return; }                                                       // C 30172
+  }
+
+#[cfg (all (not (feature = "use_gtk"), feature = "use_x_toolkit"))]
+  {
+    if (*( (*f).output_data.x as *mut x_output )).widget != std::ptr::null_mut ()  // C 30175
+      {
+	/* Do this dance in xterm.c because some stuff is not as easily
+	   available in widget.c.  */
+
+	eassert! (XtIsWMShell ((*( (*f).output_data.x as *mut x_output )).widget));  // C 30180
+	shell = (*( (*f).output_data.x as *mut x_output )).widget as WMShellWidget;  // C 30181
+
+	if flags != 0                                                   // C 30183
+	  {
+	    (*shell).wm.size_hints.flags &= !((PPosition | USPosition));  // C 30185
+	    (*shell).wm.size_hints.flags |= flags & (PPosition | USPosition);  // C 30186
+	  }
+
+	if user_position                                                // C 30189
+	  {
+	    (*shell).wm.size_hints.flags &= !PPosition;                 // C 30191
+	    (*shell).wm.size_hints.flags |= USPosition;                 // C 30192
+	  }
+
+#[cfg (not (feature = "use_motif"))]
+	{
+	  hints_changed                                                // C 30196-30198
+	    = widget_update_wm_size_hints ((*( (*f).output_data.x as *mut x_output )).widget,
+					   (*( (*f).output_data.x as *mut x_output )).edit_widget);
+	}
+#[cfg (feature = "use_motif")]
+	{
+	  widget_update_wm_size_hints ((*( (*f).output_data.x as *mut x_output )).widget,  // C 30200-30201
+				       (*( (*f).output_data.x as *mut x_output )).edit_widget);
+
+	  /* Do this all over again for the benefit of Motif, which always
+	     knows better than the programmer.  */
+	  (*shell).wm.size_hints.flags &= !((PPosition | USPosition));  // C 30205
+	  (*shell).wm.size_hints.flags |= flags & (PPosition | USPosition);  // C 30206
+
+	  if user_position                                              // C 30208
+	    {
+	      (*shell).wm.size_hints.flags &= !PPosition;               // C 30210
+	      (*shell).wm.size_hints.flags |= USPosition;               // C 30211
+	    }
+	}
+
+	/* Drill hints into Motif, since it keeps setting its own.  */
+	size_hints.flags = (*shell).wm.size_hints.flags;                // C 30216
+	size_hints.x = (*shell).wm.size_hints.x;                        // C 30217
+	size_hints.y = (*shell).wm.size_hints.y;                        // C 30218
+	size_hints.width = (*shell).wm.size_hints.width;                // C 30219
+	size_hints.height = (*shell).wm.size_hints.height;              // C 30220
+	size_hints.min_width = (*shell).wm.size_hints.min_width;        // C 30221
+	size_hints.min_height = (*shell).wm.size_hints.min_height;      // C 30222
+	size_hints.max_width = (*shell).wm.size_hints.max_width;        // C 30223
+	size_hints.max_height = (*shell).wm.size_hints.max_height;      // C 30224
+	size_hints.width_inc = (*shell).wm.size_hints.width_inc;        // C 30225
+	size_hints.height_inc = (*shell).wm.size_hints.height_inc;      // C 30226
+	size_hints.min_aspect.x = (*shell).wm.size_hints.min_aspect.x;  // C 30227
+	size_hints.min_aspect.y = (*shell).wm.size_hints.min_aspect.y;  // C 30228
+	size_hints.max_aspect.x = (*shell).wm.size_hints.max_aspect.x;  // C 30229
+	size_hints.max_aspect.y = (*shell).wm.size_hints.max_aspect.y;  // C 30230
+	size_hints.base_width = (*shell).wm.base_width;                 // C 30231
+	size_hints.base_height = (*shell).wm.base_height;               // C 30232
+	size_hints.win_gravity = (*shell).wm.win_gravity;               // C 30233
+
+#[cfg (feature = "use_motif")]
+	{
+	  XSetWMNormalHints (XtDisplay ((*( (*f).output_data.x as *mut x_output )).widget),  // C 30236-30238
+			     XtWindow ((*( (*f).output_data.x as *mut x_output )).widget),
+			     &raw mut size_hints);
+	}
+#[cfg (not (feature = "use_motif"))]
+	{
+	  /* In many cases, widget_update_wm_size_hints will not have
+	     updated the size hints if only flags changed.  When that
+	     happens, set the WM hints manually.  */
+
+	  if !hints_changed                                             // C 30244
+	    {
+	      XSetWMNormalHints (XtDisplay ((*( (*f).output_data.x as *mut x_output )).widget),  // C 30245-30247
+				 XtWindow ((*( (*f).output_data.x as *mut x_output )).widget),
+				 &raw mut size_hints);
+	    }
+	}
+
+	return;                                                             // C 30250
+      }
+  }
+
+#[cfg (not (feature = "use_gtk"))]
+  {
+    /* Setting PMaxSize caused various problems.  */
+    size_hints.flags = PResizeInc | PMinSize /* | PMaxSize */;          // C 30255
+
+    size_hints.x = (*f).left_pos;                                       // C 30257
+    size_hints.y = (*f).top_pos;                                        // C 30258
+
+    size_hints.width = FRAME_PIXEL_WIDTH (f);                          // C 30260
+    size_hints.height = FRAME_PIXEL_HEIGHT (f);                        // C 30261
+
+    size_hints.width_inc = if frame_resize_pixelwise { 1 }              // C 30263
+			   else { FRAME_COLUMN_WIDTH (f) };
+    size_hints.height_inc = if frame_resize_pixelwise { 1 }             // C 30264
+			    else { FRAME_LINE_HEIGHT (f) };
+
+    size_hints.max_width = x_display_pixel_width (FRAME_DISPLAY_INFO! (f))  // C 30266-30267
+      - FRAME_TEXT_COLS_TO_PIXEL_WIDTH (f, 0);
+    size_hints.max_height = x_display_pixel_height (FRAME_DISPLAY_INFO! (f))  // C 30268-30269
+      - FRAME_TEXT_LINES_TO_PIXEL_HEIGHT (f, 0);
+
+    /* Calculate the base and minimum sizes.  */
+    {
+      let mut base_width: c_int;                                        // C 30273
+      let mut base_height: c_int;                                       // C 30273
+
+      base_width = FRAME_TEXT_COLS_TO_PIXEL_WIDTH (f, 0);              // C 30275
+      base_height = FRAME_TEXT_LINES_TO_PIXEL_HEIGHT (f, 0);           // C 30276
+
+      /* The window manager uses the base width hints to calculate the
+	 current number of rows and columns in the frame while
+	 resizing; min_width and min_height aren't useful for this
+	 purpose, since they might not give the dimensions for a
+	 zero-row, zero-column frame.  */
+
+      size_hints.flags |= PBaseSize;                                    // C 30284
+      size_hints.base_width = base_width;                               // C 30285
+      size_hints.base_height = base_height + FRAME_MENUBAR_HEIGHT! (f);  // C 30286
+      size_hints.min_width = base_width;                                // C 30287
+      size_hints.min_height = base_height;                              // C 30288
+    }
+
+    'no_read: {
+      /* If we don't need the old flags, we don't need the old hint at all.  */
+      if flags != 0                                                     // C 30292
+	{
+	  size_hints.flags |= flags;                                    // C 30294
+	  break 'no_read;                                               // C 30295's `goto no_read`
+	}
+
+      {
+	let mut hints: XSizeHints;                                      // C 30299
+	let mut supplied_return: c_long;                                // C 30300
+	let mut value: c_int;                                           // C 30301
+
+	value = XGetWMNormalHints (FRAME_X_DISPLAY! (f), window, &raw mut hints,  // C 30303-30304
+				   &raw mut supplied_return);
+
+	if flags != 0                                                   // C 30306
+	  { size_hints.flags |= flags; }                                // C 30307
+	else
+	  {
+	    if value == 0                                               // C 30310
+	      { hints.flags = 0; }                                      // C 30311
+	    if hints.flags & PSize != 0                                 // C 30312
+	      { size_hints.flags |= PSize; }                            // C 30313
+	    if hints.flags & PPosition != 0                             // C 30314
+	      { size_hints.flags |= PPosition; }                        // C 30315
+	    if hints.flags & USPosition != 0                            // C 30316
+	      { size_hints.flags |= USPosition; }                       // C 30317
+	    if hints.flags & USSize != 0                                // C 30318
+	      { size_hints.flags |= USSize; }                           // C 30319
+	  }
+      }
+    }
+
+    /* C 30323's `no_read:` label is the port's `'no_read` block above; C 30325's `#ifdef
+       PWinGravity` is live here (this machine's Xutil.h 112 defines it, measured).  */
+    size_hints.win_gravity = (*f).win_gravity;                          // C 30326
+    size_hints.flags |= PWinGravity;                                    // C 30327
+
+    if user_position                                                    // C 30329
+      {
+	size_hints.flags &= !PPosition;                                 // C 30331
+	size_hints.flags |= USPosition;                                 // C 30332
+      }
+
+    XSetWMNormalHints (FRAME_X_DISPLAY! (f), window, &raw mut size_hints);  // C 30336
+  }
+
+#[cfg (feature = "use_gtk")]
+  {
+    xg_wm_set_size_hint (f, flags, user_position);                      // C 30338
+  }
+}
+
+/* C: Xutil.h 102-112: `#define USPosition (1L << 0)`, `USSize (1L << 1)`, `PPosition (1L << 2)`,
+   `PSize (1L << 3)`, `PMinSize (1L << 4)`, `PMaxSize (1L << 5)`, `PResizeInc (1L << 6)`,
+   `PAspect (1L << 7)`, `PBaseSize (1L << 8)`, `PWinGravity (1L << 9)` - the size-hint flags
+   C 30255-30336 uses, measured against this machine's `<X11/Xutil.h>` (the mirror's
+   `x11_constants` carries that header's `NormalState` and none of these, so they stand at the use
+   site, P-72 rule 4 - the `XA_*` shape of slice 39).  */
+#[cfg (feature = "have_x_windows")]
+pub const USPosition: c_long = 1 << 0;
+#[cfg (feature = "have_x_windows")]
+pub const USSize: c_long = 1 << 1;
+#[cfg (feature = "have_x_windows")]
+pub const PPosition: c_long = 1 << 2;
+#[cfg (feature = "have_x_windows")]
+pub const PSize: c_long = 1 << 3;
+#[cfg (feature = "have_x_windows")]
+pub const PMinSize: c_long = 1 << 4;
+#[cfg (feature = "have_x_windows")]
+pub const PMaxSize: c_long = 1 << 5;
+#[cfg (feature = "have_x_windows")]
+pub const PResizeInc: c_long = 1 << 6;
+#[cfg (feature = "have_x_windows")]
+pub const PAspect: c_long = 1 << 7;
+#[cfg (feature = "have_x_windows")]
+pub const PBaseSize: c_long = 1 << 8;
+#[cfg (feature = "have_x_windows")]
+pub const PWinGravity: c_long = 1 << 9;
