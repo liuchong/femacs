@@ -1722,11 +1722,16 @@ macro_rules! FRAME_MOUSE_UPDATE {
     // line above and the *record*'s comment.  Measured before the cast: `error[E0308]: mismatched
     // types … expected `*mut frame`, found `*mut c_void`` in `xtask probe src/w32term.rs
     // --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'`.
-    // `note_mouse_highlight` is declared by `include/dispextern.rs`'s glob-imported
-    // `dispextern_late_decls` (dispextern.h 3688), so C's call below needs no cast.
+    // The call's first argument needs the same conversion: `include/dispextern.rs` 4050 records
+    // `note_mouse_highlight` (dispextern.h 3688) as **owed, not declared** - the earlier note here
+    // said the opposite - so the unit that calls it declares it (`src/xterm.rs`'s block above
+    // `XFree`'s, the P-88 use-site shape) with `struct frame *`, and the untyped member is cast
+    // back exactly as the comparison above does.  Measured once `src/xterm.rs` declared it:
+    // `error[E0308]: mismatched types … expected `*mut frame`, found `*mut c_void`` at this line,
+    // through `FRAME_MOUSE_UPDATE! (f)` in `src/xdispex.rs`'s consumer.
     if frame == unsafe { (*hlinfo).mouse_face_mouse_frame } as *mut frame {
       block_input ();
-      note_mouse_highlight (unsafe { (*hlinfo).mouse_face_mouse_frame },
+      note_mouse_highlight (unsafe { (*hlinfo).mouse_face_mouse_frame } as *mut frame,
                             unsafe { (*hlinfo).mouse_face_mouse_x },
                             unsafe { (*hlinfo).mouse_face_mouse_y });
       unblock_input ();

@@ -14961,6 +14961,21 @@ unsafe fn x_maybe_clear_preedit (f: *mut frame)
 unsafe extern "C" {
   pub fn XFree (data: *mut c_void) -> c_int;
 }
+/* C: dispextern.h 3586: `void remember_mouse_glyph (struct frame *, int, int, NativeRectangle
+   *);` - dispextern.h 119's `#define NativeRectangle XRectangle`, and no mirror in this graph
+   carries the name, so this unit declares it here rather than in each body that calls it
+   (`include/dispextern.rs` 4050's owed row): the two callers are `x_note_mouse_movement` (C
+   14777) and `x_fast_mouse_position` (C 14939), and a declaration inside one body is not visible
+   in the other - measured, `cannot find function remember_mouse_glyph` for the second.
+   C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);` - the same
+   owed row and the same three callers (C 14760, C 14775 and C 14962's `x_fast_mouse_position`
+   sibling).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn remember_mouse_glyph (f: *mut frame, x: c_int, y: c_int,
+                               rectangle: *mut XRectangle);
+  pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
+}
 #[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
             feature = "have_x11r6_xim"))]
 unsafe extern "C" {
@@ -22926,23 +22941,16 @@ unsafe fn x_construct_mouse_click (result: *mut input_event, event: *const XButt
    `short`/`unsigned short` members (`include/xlib.rs`'s `XRectangle`), and `remember_mouse_glyph`
    (dispextern.h 3586, `NativeRectangle` = `XRectangle` under this target) plus
    `note_mouse_highlight` (dispextern.h 3688, which `include/dispextern.rs`'s
-   `dispextern_late_decls` records as *owed*) are declared at this use site (P-88, the
-   `src/androidterm.rs` 168-173 pair).  */
+   `dispextern_late_decls` records as *owed*) are declared in this unit's block above `XFree`'s
+   (P-88's use-site shape at the unit's scope - slice 66 moved them out of this body, because
+   `x_fast_mouse_position` is the second caller and a body-local declaration is invisible
+   there).  */
 #[cfg (feature = "have_x_windows")]
 unsafe fn x_note_mouse_movement (frame: *mut frame, event: *const XMotionEvent,
 				 device: Lisp_Object) -> bool
 {
   let mut r: *mut XRectangle;                                           // C 14742
   let mut dpyinfo: *mut x_display_info;                                 // C 14743
-
-  unsafe extern "C" {
-    /// C: dispextern.h 3586: `void remember_mouse_glyph (struct frame *, int, int,
-    /// NativeRectangle *);` - dispextern.h 119's `#define NativeRectangle XRectangle`.
-    pub fn remember_mouse_glyph (f: *mut frame, x: c_int, y: c_int,
-                                 rectangle: *mut XRectangle);
-    /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
-    pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
-  }
 
   if FRAME_X_OUTPUT! (frame).is_null ()                                 // C 14745
     { return false; }                                                   // C 14746
@@ -23080,4 +23088,146 @@ unsafe fn x_get_window_below (dpy: *mut Display, window: Window,
     }
 
   return value;                                                         // C 14856
+}
+
+/* Like XTmouse_position, but much faster.  */
+
+/* C 14861-14978: `static void x_fast_mouse_position (struct frame **fp, int insist, Lisp_Object
+   *bar_window, enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y, Time *timestamp)` -
+   C's `static`, so a plain `unsafe fn`.  Six shapes are worth naming: the two scroll-bar
+   reporters it calls are C 1173-1180's forward-declared `static`s whose definitions are still
+   unlanded (this file 970's note), so those four call sites stay unresolved names;
+   `XFRAME`/`FRAME_X_P`/`SELECTED_FRAME`/`FRAME_TOOLTIP_P`/`FRAME_PIXEL_WIDTH`/
+   `FRAME_PIXEL_HEIGHT` are the mirror's functions and `frame_bits!`'s `mouse_moved` arm (slice
+   65) is how C's two `->mouse_moved = false` writes land; `gui_mouse_grabbed` (dispextern.h
+   4006) has no mirror row, so the body declares it (P-88); C's `!FRAME_X_WINDOW (f1)` is
+   `FRAME_X_WINDOW! (f1) != 0` and `!insist` is `insist == 0` (C's `int` test); C's `NULL`
+   assignments are `std::ptr::null_mut ()`; and `XSETINT (*x, win_x)` is the mirror's
+   `XSETINT!`, whose argument is an lvalue exactly as C's is.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_fast_mouse_position (fp: *mut *mut frame, insist: c_int,
+				 bar_window: *mut Lisp_Object, part: *mut scroll_bar_part,
+				 x: *mut Lisp_Object, y: *mut Lisp_Object, timestamp: *mut Time)
+{
+  let mut root_x: c_int;                                                // C 14866
+  let mut root_y: c_int;
+  let mut win_x: c_int;
+  let mut win_y: c_int;
+  let mut mask: c_uint;                                                 // C 14867
+  let mut dummy: Window;                                                // C 14868
+  let mut bar: *mut scroll_bar;                                         // C 14869
+  let mut dpyinfo: *mut x_display_info;                                 // C 14870
+  let mut tail: Lisp_Object;                                            // C 14871
+  let mut frame: Lisp_Object;
+  let mut f1: *mut frame;                                               // C 14872
+
+  unsafe extern "C" {
+    /// C: dispextern.h 4006: `extern bool gui_mouse_grabbed (Display_Info *);` -
+    /// dispextern.h 115's `typedef struct x_display_info Display_Info;`.
+    pub fn gui_mouse_grabbed (dpyinfo: *mut x_display_info) -> bool;
+  }
+
+  dpyinfo = FRAME_DISPLAY_INFO! (*fp);                                  // C 14874
+
+  if !(*dpyinfo).last_mouse_scroll_bar.is_null () && insist == 0        // C 14876
+    {
+      bar = (*dpyinfo).last_mouse_scroll_bar;                           // C 14878
+
+      if (*bar).horizontal                                              // C 14880
+	{ x_horizontal_scroll_bar_report_motion (fp, bar_window, part,   // C 14881-14882
+			       x, y, timestamp); }
+      else
+	{ x_scroll_bar_report_motion (fp, bar_window, part,              // C 14884-14885
+				 x, y, timestamp); }
+
+      return;                                                           // C 14887
+    }
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 14890
+      if FRAME_X_P (XFRAME (frame))                                     // C 14892
+	  && (FRAME_DISPLAY_INFO! (XFRAME (frame)) == dpyinfo)           // C 14893-14894
+	{ frame_bits! (mouse_moved, XFRAME (frame), false); }            // C 14895
+    });
+
+  if !EQ (Vx_use_fast_mouse_position, Qreally_fast ())                  // C 14898
+    {
+      /* This means that Emacs should select a frame and report the
+	 mouse position relative to it.  The approach used here avoids
+	 making multiple roundtrips to the X server querying for the
+	 window beneath the pointer, and was borrowed from
+	 haiku_mouse_position in haikuterm.c.  */
+
+      if gui_mouse_grabbed (dpyinfo)                                    // C 14906
+	  && !EQ (track_mouse, Qdropping ())                              // C 14907
+	  && !EQ (track_mouse, Qdrag_source ())                           // C 14908
+	/* Pick the last mouse frame if dropping.  */
+	{ f1 = (*dpyinfo).last_mouse_frame; }                             // C 14910
+      else
+	/* Otherwise, pick the last mouse motion frame.  */
+	{ f1 = (*dpyinfo).last_mouse_motion_frame; }                      // C 14913
+
+      if f1.is_null () && (FRAME_X_P (SELECTED_FRAME ())                // C 14915-14917
+			   && (FRAME_DISPLAY_INFO! (SELECTED_FRAME ()) == dpyinfo))
+	{ f1 = SELECTED_FRAME (); }                                       // C 14918
+
+      if f1.is_null () || (!FRAME_X_P (f1) && insist > 0)               // C 14920
+	{
+	  FOR_EACH_FRAME! (tail, frame, {                                 // C 14921
+	      if FRAME_X_P (XFRAME (frame))                               // C 14922
+		  && (FRAME_DISPLAY_INFO! (XFRAME (frame)) == dpyinfo)     // C 14923-14924
+		  && !FRAME_TOOLTIP_P (XFRAME (frame))                     // C 14925
+		{ f1 = XFRAME (frame); }                                  // C 14926
+	    });
+	}
+
+      if !f1.is_null () && FRAME_TOOLTIP_P (f1)                         // C 14928
+	{ f1 = std::ptr::null_mut (); }                                   // C 14929
+
+      if !f1.is_null () && FRAME_X_P (f1) && FRAME_X_WINDOW! (f1) != 0  // C 14931
+	{
+	  if x_query_pointer ((*dpyinfo).display, FRAME_X_WINDOW! (f1),  // C 14933-14935
+			       &raw mut dummy, &raw mut dummy, &raw mut root_x, &raw mut root_y,
+			       &raw mut win_x, &raw mut win_y, &raw mut mask) == 0
+	    /* The pointer is out of the screen.  */
+	    { return; }                                                   // C 14937
+
+	  remember_mouse_glyph (f1, win_x, win_y,                        // C 14939-14940
+			       &raw mut (*dpyinfo).last_mouse_glyph);
+	  (*dpyinfo).last_mouse_glyph_frame = f1;                         // C 14941
+
+	  *bar_window = Qnil ();                                          // C 14943
+	  *part = scroll_bar_nowhere;                                     // C 14944
+
+	  /* If track-mouse is `drag-source' and the mouse pointer is
+	     certain to not be actually under the chosen frame, return
+	     NULL in FP.  */
+	  if EQ (track_mouse, Qdrag_source ())                            // C 14949
+	      && (win_x < 0 || win_y < 0                                  // C 14950-14952
+		  || win_x >= FRAME_PIXEL_WIDTH (f1)
+		  || win_y >= FRAME_PIXEL_HEIGHT (f1))
+	    { *fp = std::ptr::null_mut (); }                              // C 14953
+	  else
+	    { *fp = f1; }                                                 // C 14955
+
+	  *timestamp = (*dpyinfo).last_mouse_movement_time;               // C 14957
+	  XSETINT! (*x, win_x as EMACS_INT);                              // C 14958
+	  XSETINT! (*y, win_y as EMACS_INT);                              // C 14959
+	}
+    }
+  else
+    {
+      /* This means Emacs should only report the coordinates of the last
+	 mouse motion.  */
+
+      if !(*dpyinfo).last_mouse_motion_frame.is_null ()                 // C 14967
+	{
+	  *fp = (*dpyinfo).last_mouse_motion_frame;                       // C 14969
+	  *timestamp = (*dpyinfo).last_mouse_movement_time;               // C 14970
+	  *x = make_fixnum ((*dpyinfo).last_mouse_motion_x as EMACS_INT);  // C 14971
+	  *y = make_fixnum ((*dpyinfo).last_mouse_motion_y as EMACS_INT);  // C 14972
+	  *bar_window = Qnil ();                                          // C 14973
+	  *part = scroll_bar_nowhere;                                     // C 14974
+	  frame_bits! (mouse_moved, (*dpyinfo).last_mouse_motion_frame, false);  // C 14975
+	}
+    }
 }
