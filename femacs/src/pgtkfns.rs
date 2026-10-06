@@ -12,10 +12,12 @@
 // object for this target, so `extract-abi.py`'s checklist for the file is empty (P-86 ②) and the
 // ledger `docs/ports/pgtkfns.md` carries that clause's substitute: the **C line-range table**, the
 // `## Evidence` readings and the `## Deviations`.  This batch is P-86 ④'s first slice for this file:
-// **C 1-1147**, which ends at the `}` of `update_watched_scale_factor` (C 1133-1147);
-// **the next live definition is the `DEFUN ("pgtk-set-monitor-scale-factor", …)` at C 1155** - the
-// first item of the next lane's slice (C 1149-1154 is the "Lisp definitions" banner, C 1148 and
-// C 1147's `}` close this slice).
+// **C 1-1147**, which ends at the `}` of `update_watched_scale_factor` (C 1133-1147), and the
+// **second slice C 1149-1196** - the "Lisp definitions" banner (C 1149-1153) and
+// `DEFUN ("pgtk-set-monitor-scale-factor", …)` (C 1155-1196), whose two arms were measured on both
+// sides of the slice and add no error and no warning to either (docs/ports/pgtkfns.md Evidence ⑥).
+// **The next live definition is `Fx_create_frame` (C 1197-1757)** - the unit's biggest function -
+// followed by the restack pair (C 1758-1796) and the GSETTINGS block (C 1798-1998).
 //
 //   * the **file gate** is `feature = "have_pgtk"` (`HAVE_PGTK`, `configure.ac` 3176's
 //     `AC_DEFINE`, the macro the `window_system = pgtk` build defines), on every item *and on the
@@ -1768,3 +1770,49 @@ unsafe fn update_watched_scale_factor (timer: *mut atimer)
 					   true);
     }
 }
+
+
+/* ==========================================================================
+
+    Lisp definitions
+
+   ========================================================================== */
+
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("pgtk-set-monitor-scale-factor", Fpgtk_set_monitor_scale_factor,   // C 1155-1196
+       Spgtk_set_monitor_scale_factor, 2, 2, 0,
+       doc: "Set monitor MONITOR-MODEL's scale factor to SCALE-FACTOR.\nSince Gdk's scale factor is integer, physical pixel width/height is\nincorrect when you specify fractional scale factor in compositor.\nIf you set scale factor by this function, it is used instead of Gdk's one.\n\nPass nil as SCALE-FACTOR if you want to reset the specified monitor's\nscale factor.",
+       (monitor_model: Lisp_Object, scale_factor: Lisp_Object),
+       {
+  CHECK_STRING (monitor_model);
+  if !NILP (scale_factor)
+    {
+      CHECK_NUMBER (scale_factor);
+      if FIXNUMP (scale_factor)
+	{
+	  if XFIXNUM (scale_factor) <= 0
+	    { error (c"Scale factor must be > 0".as_ptr ()); }	// C 1168
+	}
+      else if FLOATP (scale_factor)
+	{
+	  if XFLOAT_DATA (scale_factor) <= 0.0
+	    { error (c"Scale factor must be > 0".as_ptr ()); }	// C 1173
+	}
+      else
+	{ error (c"Unknown type of scale-factor".as_ptr ()); }	// C 1177
+    }
+
+  /* C's `Lisp_Object tem = Fassoc (monitor_model, monitor_scale_factor_alist, Qnil);` - the
+     initialiser keeps C's form.  */
+  let tem: Lisp_Object = Fassoc (monitor_model, monitor_scale_factor_alist, Qnil ());
+  if NILP (tem)
+    {
+      if !NILP (scale_factor)
+	{ monitor_scale_factor_alist = Fcons (Fcons (monitor_model, scale_factor),
+					      monitor_scale_factor_alist); }	// C 1186-1187
+    }
+  else
+    { Fsetcdr (tem, scale_factor); }	// C 1190
+
+  return scale_factor;
+});

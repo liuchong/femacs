@@ -121,7 +121,8 @@ which exist only under those two features (Owed 6).
 | 1051-1072 | `x_decode_color` (with its comment) | file gate |
 | 1074-1131 | `pgtk_default_font_parameter` | file gate |
 | 1133-1147 | `update_watched_scale_factor` - **this slice's last definition** | file gate |
-| 1149-3906 | **the remainder of the file** - from C 1155 (`Fpgtk_set_monitor_scale_factor`, **the next live definition**) through C 3906's `syms_of_pgtkfns`: `Fx_create_frame` (C 1197-1758), the restack pair (1759-1792), the resource-key helpers and the `HAVE_GSETTINGS` pair (1793-1998), `Fpgtk_set_resource` (1999-2021), the ten display subrs (2022-2217), `check_x_display_info`/the scroll-bar defaults/`pgtk_get_string_resource`/`pgtk_get_focus_frame` (2218-2282), the eleven colour/geometry subrs (2283-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1149-1196 | the "Lisp definitions" banner (C 1149-1153) and `DEFUN ("pgtk-set-monitor-scale-factor", …)` (C 1155-1196: the `CHECK_STRING`/`CHECK_NUMBER` gates, the `FIXNUMP`/`FLOATP` split with its two identical `error` texts, the `Fassoc` lookup and the `Fcons`/`Fsetcdr` pair on `monitor_scale_factor_alist`) | the file gate - **transcribed** (the second slice) |
+| 1197-3906 | **the remainder of the file** - from C 1197 (`Fx_create_frame`, **the next live definition**) through C 3906's `syms_of_pgtkfns`: `Fx_create_frame` (C 1197-1757), the restack pair (1758-1796), the resource-key helpers and the `HAVE_GSETTINGS` pair (1798-1998), `Fpgtk_set_resource` (1999-2021), the ten display subrs (2022-2217), `check_x_display_info`/the scroll-bar defaults/`pgtk_get_string_resource`/`pgtk_get_focus_frame` (2218-2282), the eleven colour/geometry subrs (2283-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -395,3 +396,54 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
   - **wide** = narrow + `use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
     gdk_windowing_wayland + have_xwidgets`: **63 -> 63** (own 53, mirror 9) - unmoved, and the
     segment's 32 names resolve through the mirror there.
+
+## The second slice (C 1149-1196): `Fpgtk_set_monitor_scale_factor`
+
+**⑥ The arm readings (both, `text-only`, P-86 ③⑵; own = a `pgtkfns.rs`/`_root.rs` span, mirror =
+a copy's).**  Both configurations were run on **both sides of the slice** (the file before it, and
+the file with it), which is what makes the reading a comparison rather than a number:
+```
+narrow = have_pgtk + have_window_system
+  HEAD:   exit 1, aborting due to 65 previous errors; 11 warnings emitted
+  slice:  exit 1, aborting due to 65 previous errors; 11 warnings emitted
+  -> the same eight classes with the same counts on both sides: 43 `cannot find type
+     pgtk_output` (the placeholder `include/pgtkterm.rs`, anchored at the FRAME_X_OUTPUT! macro
+     definition), 9 `cannot find type pgtk_display_info`, 4 `gtk_css_provider_load_from_data` and
+     2 `GtkCssProvider` (the `have_gtk3` gate of `include/gtk.rs`, Evidence ②'s recorded class),
+     2 `FRAME_EXTERNAL_TOOL_BAR_FLAG_SHIFT`, 2 `FRAME_EXTERNAL_MENU_BAR_FLAG_SHIFT`, 2
+     `gtk_window_set_icon` and the one `E0308` at C 1137's `FRAME_SCALE_FACTOR (f)` (the previous
+     slice's row, `include/frame.rs` 961).
+
+wide = narrow + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+       gdk_windowing_wayland + have_xwidgets
+  HEAD:   exit 1, aborting due to 55 previous errors; 10 warnings emitted
+  slice:  exit 1, aborting due to 55 previous errors; 10 warnings emitted
+  -> identical on both sides as well; the ten errors the wide arm retires are the two
+     `*_FLAG_SHIFT` pairs and the two GtkCssProvider classes, i.e. exactly the features it turns on
+```
+**This slice's own text adds no error and no warning in either arm** - the one warning it *did*
+add on the first run (`unused doc comment`, from a `/// C: …` line written above the `DEFUN!`
+macro invocation) was retired by moving the citation to a trailing comment, which is this file's
+existing spelling for the two `DEFUN!`s of the first slice.
+
+**⑦ `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/pgtkfns.c
+femacs/src/pgtkfns.rs` -> `FAIL`, **103 `- ` rows -> 101**: the slice retires
+`missing function Fpgtk_set_monitor_scale_factor` and
+`missing subr Fpgtk_set_monitor_scale_factor (pgtk-set-monitor-scale-factor)`, and the line-count
+row moves 54.7% -> **53.5%** (C 3,906 vs Rust 1,816).  The 101 rows left are the remainder's -
+100 `missing …` rows (17 -> 16 functions, the rest the DEFUNs/subrs/objects of C 1197-3906) and
+the drift row - so this slice is a step, not the file's close.
+
+**⑧ The seven text gates.**  `check-declarations.py` **17 declaration sites (0 forbidden, 17
+allowed literals), 0 failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range,
+2029 external, 36 allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound, 0
+failure(s)** (52 range rows now cover src/pgtkfns.c); `check-port-lines.py` **0 file(s) under ten
+percent, 0 reference line(s); 0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py` **238
+ledger(s) bound, 0 failure(s)**; `check-cond-eval.py src/pgtkfns.c` **11 conditions, 0 unknown, 0
+disagreements [VERIFIED]**; `build-tu src/pgtkfns.c` was not re-run (the unit is not in the frozen
+build, so its object is the same empty one the first slice recorded).  No mirror changed.
+
+**Not claimed**: no monitor scale factor was ever set - `monitor_scale_factor_alist` is only
+written by this function, and `Fpgtk_set_monitor_scale_factor` is registered by this file's
+`syms_of_pgtkfns` (C 3775-3906, still the remainder), so nothing in the port has called it; the
+two arm readings are **compile** readings of text this machine cannot build.
