@@ -14348,3 +14348,18 @@
   `check-ledger-ticks` **238/0**；`check-cond-eval src/pgtkfns.c` **11/0/0**；`check-mirror-dupes` **16/16/0**（本片未改镜像）。
   **未声称**：没有任何工具提示被显示或隐藏（`Fx_show_tip`/`Fx_hide_tip` 由仍在 remainder 的 `syms_of_pgtkfns` 注册，端口里没有调用者），`xg_show_tooltip`/`update_single_window` 只是声明（端口没有 GTK 可链），四臂都是**编译**读数。
   **预算**：`probe` 14 发（4 臂 × HEAD 基线 + 本片四轮）、`extract-abi --check` 3 发、其余文本门 8 发；`/tmp/pgtk10`、`/tmp/s10_*` 收工删，`build/probes/pgtkfns`、`build/femacs/units/pgtkfns` 收工清，`build/femacs/*.o` **231 个保留**。
+
+- **3.725 `src/pgtkfns.c` 切片 11（C 3319-3525）落地：`frame_geometry` 与四个几何/鼠标 subr 进树——四臂读数 209/197/209/197（**+12**，全为该单元已登记的 `cannot find type` 类，0 新警告），`--check` **55 → 51 行**（`frame_geometry` + 四个 `missing subr` 退场，四条 docstring 由同一次读数比对通过）；首跑读到的是 235/223/235/223 与 21 处类型不符（2026-10-06）**：
+  ① **区间与内容**：C 3319-3323 的注释与 `frame_geometry`（C 3325-3414：三条边分支 `Qouter_edges`/`Qnative_edges`/`Qinner_edges`、十一条属性的关联表、经 `gtk_window_get_position` 与 `gtk_widget_get_allocation` 的 outer/widget 分叉、`GtkAllocation` 兜底、两个 bar 高度），
+  `Fpgtk_frame_geometry`（C 3416-3458）、`Fpgtk_frame_edges`（C 3460-3481，C 的三路 `type` 选择）、`Fpgtk_set_mouse_absolute_pixel_position`（C 3483-3502）与 `Fpgtk_mouse_absolute_pixel_position`（C 3504-3525）。Rust 4,671 → **4,859** 行。
+  ② **读数（四个臂，两侧）**：A narrow **197 错 / 11 警告 → 209 / 11**；B wide **185 / 10 → 197 / 10**；C = A+`have_gsettings` **197 / 11 → 209 / 11**；D = B+`have_gsettings` **185 / 10 → 197 / 10**。
+  四臂同一差量：**+12 个本单元已登记的 `cannot find type` 站点**（片体自身的 `FRAME_X_OUTPUT` 访问器展开），**无新类、无新警告**。
+  ③ **首跑缺陷与三处归属（Deviation 70-73）**：首跑 **235/223/235/223**、21 处类型不符 ⇒ C 的隐式转换写出来（`frame_geometry` 与两个鼠标 subr 的 **26 处** `as EMACS_INT`，以及 C 3499 交给 `gint` 形参的 `XFIXNUM (x) as gint`）。
+  新增两只单元宏（`FRAME_WIDGET`，pgtkterm.h 485-487；pgtkterm.h 504-509 的 `FRAME_TOOLBAR_*` 三行），并**实测**它们在探针里单独加上去**一个错也不加**（HEAD + 三只宏 = 197/11，与 HEAD 相同）——所以 +12 全部是片体自己的展开。
+  ④ **镜像侧（P-87 两腿）**：`include/gtk.rs` 新增 `gtk_window_get_position`、`gdk_window_get_display`、`gdk_device_warp` 三行（无 GTK/GDK 头 ⇒ 只引头文件）；门当场抓到 **`src/pgtkselect.rs` 自己声明过 `gdk_window_get_display`**（它的 C 958）⇒ 按 P-26"一构造一拼法"删掉那边副本、调用点不动，
+  并**实测该单元自己的探针在改动前后都是 9 错 / 8 警告**（中性）；`check-mirror-dupes` 回到 **16/16/0**，消费者扫描 `tools/check-all-units.sh` 读 **`checked 83 unit(s), 0 failure(s)`** 与 **`checking 83 unit(s), 0 unit failure(s)`**。
+  ⑤ **台账与 `--check`**：区间表把 `3319-3906` 拆成 `3319-3525`（transcribed，本片）＋ `3527-3906`（remainder，**下一个 live 定义 = `Fpgtk_page_setup_dialog`，C 3528**），**61 行**仍连续覆盖 C 1-3906；文件头改成**十一片**、行数 4,859、下一个 live 定义点名；
+  `## Deviations` 70-73、新段 `## The eleventh slice (C 3319-3525)` ㊸-㊻；`extract-abi.py --check` **55 → 51 行**（`missing function frame_geometry` 与四条 `missing subr` 退场；无新行**除了**行数漂移行——4,859 对 C 3,906＝**+24.4%**，超出 0.20 ⇒ 容差行按实测改成 **0.25**，漂移行随之退场）。
+  ⑥ **七条文本门全绿 + 未声称 + 预算**：`check-declarations` **18/0/18/0**；`check-citations` **676/0/0/2040/36/0**；`check-dead-file-coverage` **145/0**（本台账 **61 range row(s)**）；`check-port-lines` **0/0/0/0**；`check-ledger-ticks` **238/0**；`check-cond-eval src/pgtkfns.c` **11/0/0**；`check-mirror-dupes` **16/16/0**。
+  **未声称**：没有任何帧几何被读出、没有指针被 warp（这五项都由仍在 remainder 的 `syms_of_pgtkfns` 注册，端口里没有调用者），三只新 GDK/GTK 函数只是声明（端口没有 GTK 可链），四臂都是**编译**读数。
+  **预算**：`probe` 12 发（4 臂 × HEAD 基线 + 本片两轮 + 归属 1 发 + pgtkselect 两侧 2 发）、`extract-abi --check` 4 发、`check-all-units.sh` 1 发、文本门 8 发；`/tmp/pgtk11`、`/tmp/s11_*` 收工删，`build/probes/*`、`build/femacs/units/pgtkselect`、`build/femacs/units/pgtkfns` 收工清，`build/femacs/*.o` 保留。

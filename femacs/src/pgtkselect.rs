@@ -239,9 +239,9 @@ unsafe extern "C" {
   /// GdkAtom *prop_type, gint *prop_format);`
   pub fn gdk_selection_property_get (requestor: *mut GdkWindow, data: *mut *mut guchar,
                                      prop_type: *mut GdkAtom, prop_format: *mut gint) -> gint;
-  /// C 958: `dpy = gdk_window_get_display (event->window);`
-  /// C: gdk/gdkwindow.h: `GdkDisplay *gdk_window_get_display (GdkWindow *window);`
-  pub fn gdk_window_get_display (window: *mut GdkWindow) -> *mut GdkDisplay;
+  /* C 958's `gdk_window_get_display` used to be declared here; the row is
+     `include/gtk.rs`'s now (P-26's one spelling per construct, status 3.725) and the call site at
+     C 958 is unchanged.  */
   /// C 518: `gdk_window_set_events (window, 0);`
   /// C: gdk/gdkwindow.h: `void gdk_window_set_events (GdkWindow *window, GdkEventMask
   /// event_mask);`

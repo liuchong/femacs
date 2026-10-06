@@ -4668,3 +4668,192 @@ DEFUN! ("x-hide-tip", Fx_hide_tip, Sx_hide_tip, 0, 0, 0,   // C 3312-3317
 	{
   return pgtk_hide_tip (!tooltip_reuse_hidden_frame);              // C 3316
 });
+
+/* C 3319-3323's comment: `Return geometric attributes of FRAME.  According to the value of
+   ATTRIBUTES return the outer edges of FRAME (Qouter_edges), the inner edges of FRAME, the root
+   window edges of frame (Qroot_edges).  Any other value means to return the geometry as returned
+   by Fx_frame_geometry.`  */
+
+/// C: pgtkterm.h 485-487: `#define FRAME_WIDGET(f) (FRAME_GTK_OUTER_WIDGET (f) ?` /
+/// `FRAME_GTK_OUTER_WIDGET (f) : FRAME_GTK_WIDGET (f))` - read at C 3494/3511.  The unit's own
+/// `FRAME_GTK_*` accessors are what its `pgtk` chain carries (P-72 rule 4), so the macro is
+/// spelled against them rather than taken from `include/pgtkterm.rs`, which this unit's include
+/// graph does not reach.
+#[cfg (feature = "have_pgtk")]
+macro_rules! FRAME_WIDGET {
+  ($f:expr) => {
+    if !FRAME_GTK_OUTER_WIDGET! ($f).is_null () { FRAME_GTK_OUTER_WIDGET! ($f) }
+    else { FRAME_GTK_WIDGET! ($f) } };
+}
+/// C: pgtkterm.h 504-505: `#define FRAME_TOOLBAR_TOP_HEIGHT(f) ((f)->output_data.pgtk->toolbar_top_height)`
+/// - C 3362 is the first reader of the pair below.  `include/pgtkterm.rs` carries the same three
+/// rows against its own `FRAME_X_OUTPUT`, which is not this unit's accessor.
+#[cfg (feature = "have_pgtk")]
+macro_rules! FRAME_TOOLBAR_TOP_HEIGHT {
+  ($f:expr) => { (*FRAME_X_OUTPUT! ($f)).toolbar_top_height };
+}
+/// C: pgtkterm.h 506-507: `#define FRAME_TOOLBAR_BOTTOM_HEIGHT(f) ((f)->output_data.pgtk->toolbar_bottom_height)`
+#[cfg (feature = "have_pgtk")]
+macro_rules! FRAME_TOOLBAR_BOTTOM_HEIGHT {
+  ($f:expr) => { (*FRAME_X_OUTPUT! ($f)).toolbar_bottom_height };
+}
+/// C: pgtkterm.h 508-509: `#define FRAME_TOOLBAR_HEIGHT(f) (FRAME_TOOLBAR_TOP_HEIGHT (f) + FRAME_TOOLBAR_BOTTOM_HEIGHT (f))`
+#[cfg (feature = "have_pgtk")]
+macro_rules! FRAME_TOOLBAR_HEIGHT {
+  ($f:expr) => { FRAME_TOOLBAR_TOP_HEIGHT! ($f) + FRAME_TOOLBAR_BOTTOM_HEIGHT! ($f) };
+}
+
+/// C 3325: `static Lisp_Object frame_geometry (Lisp_Object frame, Lisp_Object attribute)` - the
+/// three-branch edge reader and the association list `Fpgtk_frame_geometry` returns.  C's
+/// `FRAME_GTK_OUTER_WIDGET (f)` test is a pointer test (`!…is_null ()`), the `GtkAllocation alloc`
+/// declaration is `std::mem::zeroed ()`, and the two out-parameters go through C's own `&` shape
+/// (P-83's `&raw mut`).
+#[cfg (feature = "have_pgtk")]
+unsafe fn frame_geometry (frame: Lisp_Object, attribute: Lisp_Object) -> Lisp_Object
+{
+  let f: *mut frame = decode_live_frame (frame);                        // C 3327
+  let fullscreen_symbol: Lisp_Object = Fframe_parameter (frame, Qfullscreen ());   // C 3328
+  let fullscreen: bool = EQ (fullscreen_symbol, Qfullboth ())           // C 3329
+    || EQ (fullscreen_symbol, Qfullscreen ());                          // C 3330
+  let border: c_int = if fullscreen { 0 } else { (*f).border_width };   // C 3331
+  let title_height: c_int = 0;                                          // C 3332
+  let native_width: c_int = FRAME_PIXEL_WIDTH (f);                      // C 3333
+  let native_height: c_int = FRAME_PIXEL_HEIGHT (f);                    // C 3334
+  let outer_width: c_int = native_width + 2 * border;                   // C 3335
+  let outer_height: c_int = native_height + 2 * border + title_height;  // C 3336
+
+  /* Get these here because they can't be got in configure_event().  */
+  let mut left_pos: c_int = 0;                                          // C 3339
+  let mut top_pos: c_int = 0;                                           // C 3339
+
+  if !FRAME_GTK_OUTER_WIDGET! (f).is_null ()                            // C 3341
+    { gtk_window_get_position (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),   // C 3342
+			       &raw mut left_pos, &raw mut top_pos); }  // C 3343
+  else
+    {
+      let mut alloc: GtkAllocation = std::mem::zeroed ();               // C 3346
+
+      if FRAME_GTK_WIDGET! (f).is_null ()                               // C 3348
+	{ return Qnil (); }   /* This can occur while creating a frame.  */   // C 3349
+
+      gtk_widget_get_allocation (FRAME_GTK_WIDGET! (f), &raw mut alloc);   // C 3351
+      left_pos = alloc.x;                                               // C 3352
+      top_pos = alloc.y;                                                // C 3353
+    }
+
+  let native_left: c_int = left_pos + border;                           // C 3356
+  let native_top: c_int = top_pos + border + title_height;              // C 3357
+  let native_right: c_int = left_pos + outer_width - border;            // C 3358
+  let native_bottom: c_int = top_pos + outer_height - border;           // C 3359
+  let internal_border_width: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);   // C 3360
+  let mut tab_bar_height: c_int = 0;                                    // C 3361
+  let mut tab_bar_width: c_int = 0;                                     // C 3361
+  let tool_bar_height: c_int = FRAME_TOOLBAR_HEIGHT! (f);               // C 3362
+  let tool_bar_width: c_int = if tool_bar_height != 0                   // C 3363
+    { outer_width - 2 * internal_border_width } else { 0 };             // C 3364
+
+  tab_bar_height = FRAME_TAB_BAR_HEIGHT (f);                            // C 3366
+  tab_bar_width = if tab_bar_height != 0                                // C 3367
+    { native_width - 2 * internal_border_width } else { 0 };            // C 3368
+
+  /* Construct list.  */
+  if EQ (attribute, Qouter_edges ())                                    // C 3371
+    { return list4 (make_fixnum (left_pos as EMACS_INT), make_fixnum (top_pos as EMACS_INT),      // C 3372
+		    make_fixnum ((left_pos + outer_width) as EMACS_INT),               // C 3373
+		    make_fixnum ((top_pos + outer_height) as EMACS_INT)); }            // C 3374
+  else if EQ (attribute, Qnative_edges ())                              // C 3375
+    { return list4 (make_fixnum (native_left as EMACS_INT), make_fixnum (native_top as EMACS_INT),    // C 3376
+		    make_fixnum (native_right as EMACS_INT), make_fixnum (native_bottom as EMACS_INT)); }   // C 3377
+  else if EQ (attribute, Qinner_edges ())                               // C 3378
+    { return list4 (make_fixnum ((native_left + internal_border_width) as EMACS_INT),  // C 3379
+		    make_fixnum ((native_top                              // C 3380
+				 + tab_bar_height                        // C 3381
+				 + FRAME_TOOL_BAR_TOP_HEIGHT (f)         // C 3382
+				 + internal_border_width) as EMACS_INT),               // C 3383
+		    make_fixnum ((native_right - internal_border_width) as EMACS_INT),  // C 3384
+		    make_fixnum ((native_bottom - internal_border_width   // C 3385
+				 - FRAME_TOOL_BAR_BOTTOM_HEIGHT (f)) as EMACS_INT)); }   // C 3386
+  else
+    { return list! (Fcons (Qouter_position (),                          // C 3389
+			   Fcons (make_fixnum (left_pos as EMACS_INT),               // C 3390
+				  make_fixnum (top_pos as EMACS_INT))),              // C 3391
+		    Fcons (Qouter_size (),                              // C 3392
+			   Fcons (make_fixnum (outer_width as EMACS_INT),            // C 3393
+				  make_fixnum (outer_height as EMACS_INT))),         // C 3394
+		    Fcons (Qexternal_border_size (),                    // C 3395
+			   if fullscreen                                    // C 3396
+			     { Fcons (make_fixnum (0), make_fixnum (0)) }   // C 3397
+			     else { Fcons (make_fixnum (border as EMACS_INT), make_fixnum (border as EMACS_INT)) }),   // C 3398
+		    Fcons (Qtitle_bar_size (),                          // C 3399
+			   Fcons (make_fixnum (0), make_fixnum (title_height as EMACS_INT))),   // C 3400
+		    Fcons (Qmenu_bar_external (), Qnil ()),             // C 3401
+		    Fcons (Qmenu_bar_size (), Fcons (make_fixnum (0), make_fixnum (0))),   // C 3402
+		    Fcons (Qtab_bar_size (),                            // C 3403
+			   Fcons (make_fixnum (tab_bar_width as EMACS_INT),          // C 3404
+				  make_fixnum (tab_bar_height as EMACS_INT))),       // C 3405
+		    Fcons (Qtool_bar_external (),                       // C 3406
+			   if FRAME_EXTERNAL_TOOL_BAR (f) { Qt () } else { Qnil () }),   // C 3407
+		    Fcons (Qtool_bar_position (), FRAME_TOOL_BAR_POSITION (f)),   // C 3408
+		    Fcons (Qtool_bar_size (),                           // C 3409
+			   Fcons (make_fixnum (tool_bar_width as EMACS_INT),         // C 3410
+				  make_fixnum (tool_bar_height as EMACS_INT))),      // C 3411
+		    Fcons (Qinternal_border_width (),                   // C 3412
+			   make_fixnum (internal_border_width as EMACS_INT))); }     // C 3413
+}
+
+DEFUN! ("pgtk-frame-geometry", Fpgtk_frame_geometry, Spgtk_frame_geometry,   // C 3416-3458
+	0, 1, 0,
+	doc: "Return geometric attributes of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is an association list of the attributes listed below.  All height\nand width values are in pixels.\n\n`outer-position' is a cons of the outer left and top edges of FRAME\nrelative to the origin - the position (0, 0) - of FRAME's display.\n\n`outer-size' is a cons of the outer width and height of FRAME.  The\nouter size includes the title bar and the external borders as well as\nany menu and/or tool bar of frame.\n\n`external-border-size' is a cons of the horizontal and vertical width of\nFRAME's external borders as supplied by the window manager.\n\n`title-bar-size' is a cons of the width and height of the title bar of\nFRAME as supplied by the window manager.  If both of them are zero,\nFRAME has no title bar.  If only the width is zero, Emacs was not\nable to retrieve the width information.\n\n`menu-bar-external', if non-nil, means the menu bar is external (never\nincluded in the inner edges of FRAME).\n\n`menu-bar-size' is a cons of the width and height of the menu bar of\nFRAME.\n\n`tool-bar-external', if non-nil, means the tool bar is external (never\nincluded in the inner edges of FRAME).\n\n`tool-bar-position' tells on which side the tool bar on FRAME is and can\nbe one of `left', `top', `right' or `bottom'.  If this is nil, FRAME\nhas no tool bar.\n\n`tool-bar-size' is a cons of the width and height of the tool bar of\nFRAME.\n\n`internal-border-width' is the width of the internal border of\nFRAME.",
+	(frame: Lisp_Object),
+	{
+  return frame_geometry (frame, Qnil ());                               // C 3457
+});
+
+DEFUN! ("pgtk-frame-edges", Fpgtk_frame_edges, Spgtk_frame_edges, 0, 2, 0,   // C 3460-3481
+	doc: "Return edge coordinates of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is a list of the form (LEFT, TOP, RIGHT, BOTTOM).  All values are\nin pixels relative to the origin - the position (0, 0) - of FRAME's\ndisplay.\n\nIf optional argument TYPE is the symbol `outer-edges', return the outer\nedges of FRAME.  The outer edges comprise the decorations of the window\nmanager (like the title bar or external borders) as well as any external\nmenu or tool bar of FRAME.  If optional argument TYPE is the symbol\n`native-edges' or nil, return the native edges of FRAME.  The native\nedges exclude the decorations of the window manager and any external\nmenu or tool bar of FRAME.  If TYPE is the symbol `inner-edges', return\nthe inner edges of FRAME.  These edges exclude title bar, any borders,\nmenu bar or tool bar of FRAME.",
+	(frame: Lisp_Object, type_: Lisp_Object),
+	{
+  return frame_geometry (frame, if EQ (type_, Qouter_edges ())          // C 3478
+				 || EQ (type_, Qinner_edges ())         // C 3479
+      { type_ } else { Qnative_edges () });                             // C 3480
+});
+
+DEFUN! ("pgtk-set-mouse-absolute-pixel-position",                           // C 3483-3502
+	Fpgtk_set_mouse_absolute_pixel_position,
+	Spgtk_set_mouse_absolute_pixel_position, 2, 2, 0,
+	doc: "Move mouse pointer to absolute pixel position (X, Y).\nThe coordinates X and Y are interpreted in pixels relative to a position\n(0, 0) of the selected frame's display.",
+	(x: Lisp_Object, y: Lisp_Object),
+	{
+  let f: *mut frame = SELECTED_FRAME ();                                // C 3491
+  let widget: *mut GtkWidget = gtk_widget_get_toplevel (FRAME_WIDGET! (f));   // C 3492
+  let window: *mut GdkWindow = gtk_widget_get_window (widget);          // C 3493
+  let gdpy: *mut GdkDisplay = gdk_window_get_display (window);          // C 3494
+  let gscr: *mut GdkScreen = gdk_window_get_screen (window);            // C 3495
+  let seat: *mut GdkSeat = gdk_display_get_default_seat (gdpy);         // C 3496
+  let device: *mut GdkDevice = gdk_seat_get_pointer (seat);             // C 3497
+
+  gdk_device_warp (device, gscr, XFIXNUM (x) as gint, XFIXNUM (y) as gint);	/* No effect on wayland.  */   // C 3499
+
+  return Qnil ();                                                       // C 3501
+});
+
+DEFUN! ("pgtk-mouse-absolute-pixel-position",                               // C 3504-3525
+	Fpgtk_mouse_absolute_pixel_position,
+	Spgtk_mouse_absolute_pixel_position, 0, 0, 0,
+	doc: "Return absolute position of mouse cursor in pixels.\nThe position is returned as a cons cell (X . Y) of the\ncoordinates of the mouse cursor position in pixels relative to a\nposition (0, 0) of the selected frame's terminal.",
+	(),
+	{
+  let f: *mut frame = SELECTED_FRAME ();                                // C 3513
+  let widget: *mut GtkWidget = gtk_widget_get_toplevel (FRAME_WIDGET! (f));   // C 3514
+  let window: *mut GdkWindow = gtk_widget_get_window (widget);          // C 3515
+  let gdpy: *mut GdkDisplay = gdk_window_get_display (window);          // C 3516
+  let mut gscr: *mut GdkScreen = std::ptr::null_mut ();                 // C 3517
+  let seat: *mut GdkSeat = gdk_display_get_default_seat (gdpy);         // C 3518
+  let device: *mut GdkDevice = gdk_seat_get_pointer (seat);             // C 3519
+  let mut x: c_int = 0;                                                 // C 3520
+  let mut y: c_int = 0;                                                 // C 3520
+
+  gdk_device_get_position (device, &raw mut gscr, &raw mut x, &raw mut y);	/* can't get on wayland? */   // C 3522
+
+  return Fcons (make_fixnum (x as EMACS_INT), make_fixnum (y as EMACS_INT));                      // C 3524
+});

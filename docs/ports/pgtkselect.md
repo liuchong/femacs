@@ -363,3 +363,10 @@ Those are the numbers in the port's `const _:` assertions.  **No layout assertio
   line-range table above (machine-checked by `check-dead-file-coverage.py`), and every non-blank
   reference line is in exactly one row; the 17.9 % drift is a spelling budget, not a measure of work
   left.
+
+- **One declaration left this unit (status 3.725).**  `gdk_window_get_display` (gdk/gdkwindow.h),
+  declared here from the start for C 958's call, is `include/gtk.rs`'s row now that the pgtkfns
+  eleventh slice needed it there; the local copy is dropped under P-26's one spelling per construct
+  and the call site is unchanged.  Measured: this unit's own probe (`have_pgtk +
+  have_window_system`) reads **9 errors / 8 warnings** on both sides of the drop, so the change is
+  neutral for this file, and `check-mirror-dupes.py` returns to 16/16/0.

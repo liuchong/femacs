@@ -478,6 +478,10 @@ unsafe extern "C" {
   pub fn gdk_seat_get_pointer (seat: *mut GdkSeat) -> *mut GdkDevice;
   pub fn gdk_device_get_position (device: *mut GdkDevice, screen: *mut *mut GdkScreen,
 				  x: *mut c_int, y: *mut c_int) -> gboolean;
+  /// C 3499: `gdk_device_warp (device, gscr, XFIXNUM (x), XFIXNUM (y));`
+  /// C: gdk/gdkdevice.h: `void gdk_device_warp (GdkDevice *device, GdkScreen *screen, gint x,
+  /// gint y);`
+  pub fn gdk_device_warp (device: *mut GdkDevice, screen: *mut GdkScreen, x: gint, y: gint);
   /// C 2062: `int mm = gdk_monitor_get_height_mm (monitor);`
   /// C: gdk/gdkmonitor.h: `int gdk_monitor_get_height_mm (GdkMonitor *monitor);`
   pub fn gdk_monitor_get_height_mm (monitor: *mut GdkMonitor) -> c_int;
@@ -509,6 +513,9 @@ unsafe extern "C" {
   /// C 915/983: `screen = gdk_window_get_screen (gwin);`
   /// C: gdk/gdkwindow.h: `GdkScreen *gdk_window_get_screen (GdkWindow *window);`
   pub fn gdk_window_get_screen (window: *mut GdkWindow) -> *mut GdkScreen;
+  /// C 3494/3516: `GdkDisplay *gdpy = gdk_window_get_display (window);`
+  /// C: gdk/gdkwindow.h: `GdkDisplay *gdk_window_get_display (GdkWindow *window);`
+  pub fn gdk_window_get_display (window: *mut GdkWindow) -> *mut GdkDisplay;
   /// C 784: `gdk_rgba_free (c);`
   /// C: gdk/gdkrgba.h: `void gdk_rgba_free (GdkRGBA *rgba);`
   pub fn gdk_rgba_free (rgba: *mut GdkRGBA);
@@ -817,6 +824,11 @@ unsafe extern "C" {
   /// C: gtk/gtkwindow.h: `void gtk_window_get_size (GtkWindow *window, gint *width, gint
   /// *height);`
   pub fn gtk_window_get_size (window: *mut GtkWindow, width: *mut gint, height: *mut gint);
+  /// C 3342: `gtk_window_get_position (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)), &left_pos,
+  /// &top_pos);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_get_position (GtkWindow *window, gint *root_x, gint
+  /// *root_y);`
+  pub fn gtk_window_get_position (window: *mut GtkWindow, root_x: *mut gint, root_y: *mut gint);
   /// C 1241/1245: `gtk_window_resize (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)), outer_width,
   /// outer_height);`
   /// C: gtk/gtkwindow.h: `void gtk_window_resize (GtkWindow *window, gint width, gint height);`

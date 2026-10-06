@@ -13,11 +13,11 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**4,671** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> `femacs/src/pgtkfns.rs` (**4,859** lines, from the 11 of the placeholder), carrying **C 1-1147**,
 > **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208**, **C 2210-2403**,
-> **C 2405-2549**, **C 2551-2838**, **C 2840-3025** and **C 3027-3317** - ten slices - with **both
-> arms of every `#if`**; the next live definition is `frame_geometry` (**C 3325**, its comment at
-> C 3319).
+> **C 2405-2549**, **C 2551-2838**, **C 2840-3025**, **C 3027-3317** and **C 3319-3525** - eleven
+> slices - with **both arms of every `#if`**; the next live definition is `Fpgtk_page_setup_dialog`
+> (**C 3528**).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -133,7 +133,8 @@ which exist only under those two features (Owed 6).
 | 2551-2838 | the tooltip group: C 2551-2553's banner, the six file-scope statics (2555-2573), `unwind_create_tip_frame` (2576-2587) and `pgtk_create_tip_frame` (2590-2838: the frame's officialisation, the colour/name blocks, the two font drivers, the thirteen `gui_default_parameter` calls, the GTK window setup, the three `AUTO_FRAME_ARG` blocks and the tail) | the file gate - **transcribed** (the eighth slice) |
 | 2840-3025 | `compute_tip_xy` (C 2846-2943: the four parameter reads, the GDK pointer query, the monitor walk and the two coordinate ladders) and `pgtk_hide_tip` (C 2946-3025: the `Qcancel_timer` call, C's five-condition early return, the two specbinds, the `xg_hide_tooltip` attempt and the delete-or-hide fork) | the file gate - **transcribed** (the ninth slice) |
 | 3027-3317 | `Fx_show_tip` (C 3027-3309: both `ENABLE_CHECKING` arms, the `'start_timer` label block, the `tip_frame` fork, the tooltip frame's setup, the two `Fset` writes and the `FRAME_TOTAL_COLS` sizing) and `Fx_hide_tip` (C 3312-3317) | the file gate - **transcribed** (the tenth slice) |
-| 3319-3906 | **the remainder of the file** - from C 3319's comment and C 3325's `frame_geometry` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the frame-geometry/edges/mouse/print/file-dialog/font subrs (3319-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3319-3525 | `frame_geometry` (C 3325-3414: the three edge branches and the association list), `Fpgtk_frame_geometry` (C 3416-3458), `Fpgtk_frame_edges` (C 3460-3481), `Fpgtk_set_mouse_absolute_pixel_position` (C 3483-3502) and `Fpgtk_mouse_absolute_pixel_position` (C 3504-3525) | the file gate - **transcribed** (the eleventh slice) |
+| 3527-3906 | **the remainder of the file** - from C 3528's `DEFUN ("pgtk-page-setup-dialog", …)` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the page-setup/get-page-setup/print-frames dialogs, `Fx_file_dialog`, the backend-display-class and font subrs, the GTK debug and launch-uri pairs (3528-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -633,6 +634,32 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     existing `macro_rules!` pairs, the five brace sites of Deviation 67, the declaration and macro
     copies of Deviation 68 and the per-site citations - and the `--check` drift row stays retired at
     that tolerance.
+
+70. **`FRAME_WIDGET` is a unit macro.**  C 3492/3514 read `FRAME_WIDGET (f)`, which pgtkterm.h
+    485-487 defines as the outer widget if there is one and the edit widget otherwise; this unit's
+    `FRAME_GTK_OUTER_WIDGET!`/`FRAME_GTK_WIDGET!` are its own (`include/pgtkterm.rs` is not in its
+    include graph, P-72 rule 4), so the three-arm macro is spelled here against them.
+71. **The pgtkterm.h toolbar chain is spelled here too.**  C 3362 reads `FRAME_TOOLBAR_HEIGHT (f)`,
+    which pgtkterm.h 504-509 define as `toolbar_top_height + toolbar_bottom_height` through
+    `FRAME_X_OUTPUT`; the two field macros and the sum stand in this unit against its own accessor.
+    Measured: the macros alone add nothing - the probe on the tree with only them appended reads the
+    same **197 errors / 11 warnings** as HEAD (the increase below is the slice body's).
+72. **C's implicit conversions, written out (26 sites).**  `make_fixnum` takes an `EMACS_INT` and the
+    geometry values are `int`, so every `make_fixnum` argument in `frame_geometry` and the two mouse
+    subrs carries `as EMACS_INT` (C 3372-3413, C 3524), and C 3499's `gdk_device_warp (…, XFIXNUM
+    (x), …)` hands an `EMACS_INT` to a `gint` parameter - written `XFIXNUM (x) as gint`.  The first
+    reading of this slice's text was **A 235 / B 223 / C 235 / D 223** with 21 distinct
+    mismatched-type sites; the repairs are what the final readings measure.
+73. **Three mirror rows, one retired duplicate, and the tolerance row.**  `gtk_window_get_position`
+    (gtk/gtkwindow.h), `gdk_window_get_display` (gdk/gdkwindow.h) and `gdk_device_warp`
+    (gdk/gdkdevice.h) landed in `include/gtk.rs` (header-only citations: no GTK/GDK header on this
+    machine), and `check-mirror-dupes.py` immediately read `17 duplicate declaration(s), 1 failure`
+    because `src/pgtkselect.rs` declared `gdk_window_get_display` itself (its C 958) - that copy is
+    dropped under P-26's one spelling per construct, its call site unchanged, and that unit's own
+    probe reads **9 errors / 8 warnings** on both sides of the drop.  This unit's
+    `line-drift-tolerance.tsv` row moves 0.20 -> 0.25 with the final measurement (4,859 lines
+    against C's 3,906 is **+24.4%**), which retires the `line count drifted` row the `--check`
+    reading brought back.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1277,3 +1304,52 @@ ten percent, 0 reference line(s), 0 ratchet row(s), 0 new, 0 stale**; `check-led
 (`Fx_show_tip`/`Fx_hide_tip` are registered by `syms_of_pgtkfns`, still the remainder, so nothing in
 the port calls them), `xg_show_tooltip` and `update_single_window` are declarations - the port has no
 GTK to link - and the four arm readings are **compile** readings of text this machine cannot build.
+
+## The eleventh slice (C 3319-3525): `frame_geometry` and the four geometry/mouse subrs
+
+**㊸ What is in it.**  C 3319-3323's comment and C 3325-3414's `frame_geometry` (the three edge
+branches `Qouter_edges`/`Qnative_edges`/`Qinner_edges`, the association list of eleven attributes,
+the outer-widget/widget fork through `gtk_window_get_position` and `gtk_widget_get_allocation`, the
+`GtkAllocation` fallback, and the tab-bar/tool-bar heights), `Fpgtk_frame_geometry` (C 3416-3458),
+`Fpgtk_frame_edges` (C 3460-3481, C's three-way `type` choice), the mouse warp subr
+`Fpgtk_set_mouse_absolute_pixel_position` (C 3483-3502) and `Fpgtk_mouse_absolute_pixel_position`
+(C 3504-3525).  Rust: 4,671 -> **4,859** lines.
+
+**㊹ The arm readings (four arms, both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 197 errors / 11 warnings -> 209 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets   : 185 / 10 -> 197 / 10
+C = A + have_gsettings                             : 197 / 11 -> 209 / 11
+D = B + have_gsettings                             : 185 / 10 -> 197 / 10
+```
+All four arms read the same delta, **+12 sites of the unit's registered `cannot find type` class**
+(the appended body's `FRAME_X_OUTPUT`-based accessor expansions), **no new class and no new
+warning**.  The first reading of this text was 235/223/235/223 with 21 mismatched-type sites
+(Deviation 72) and a `pgtk_output` count 12 higher than the final one, i.e. the repairs removed 26
+error sites; Deviation 71 measures the new macros' own share as zero.
+
+**㊺ What the slice calls, and what `--check` reads.**  Four items are declared or spelled here
+(Deviations 70-71: `FRAME_WIDGET` and the three pgtkterm.h toolbar rows), three GTK/GDK entry points
+landed in `include/gtk.rs` and one duplicate was retired in `src/pgtkselect.rs` (Deviation 73), and
+`extract-abi.py --check emacs/src/pgtkfns.c femacs/src/pgtkfns.rs` reads **51 rows** (55 -> 51:
+`missing function frame_geometry`, `missing subr Fpgtk_frame_geometry`, `missing subr
+Fpgtk_frame_edges`, `missing subr Fpgtk_set_mouse_absolute_pixel_position` and `missing subr
+Fpgtk_mouse_absolute_pixel_position` retire, and the four subrs' docstrings were compared by the
+same reading - they are the C comments through `cinventory`'s make-docfile rule, so a wrong
+transcription would have kept the row).
+
+**㊻ Gates and what is not claimed.**  `check-declarations.py` **18 declaration sites (0 forbidden,
+18 allowed literals), 0 failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range,
+2040 external, 36 allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound,
+0 failure(s)** (**61 range rows** now cover `src/pgtkfns.c`); `check-port-lines.py` **0 file(s) under
+ten percent, 0 reference line(s), 0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py`
+**238 ledger(s) bound, 0 failure(s)**; `check-cond-eval.py src/pgtkfns.c` **11 conditions, 0 unknown,
+0 disagreements [VERIFIED]**; `check-mirror-dupes.py` **16 duplicate(s), 16 ratchet row(s),
+0 failure(s)** (after the pgtkselect copy was dropped).  A mirror changed this round, so P-87 ①'s
+consumer sweep was run and reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s),
+0 unit failure(s)`.  **Not claimed**: no frame geometry was read and no pointer was warped (all five
+items are registered by `syms_of_pgtkfns`, still the remainder, so nothing in the port calls them),
+`gdk_device_warp`/`gtk_window_get_position`/`gdk_window_get_display` are declarations - the port has
+no GTK to link - and the four arm readings are **compile** readings of text this machine cannot
+build.

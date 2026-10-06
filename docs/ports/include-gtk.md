@@ -273,3 +273,16 @@ read `18 duplicate declaration(s), 2 failure(s)` and both were dropped there (P-
 consumer sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit
 failure(s)`; the consumer's ledger records the pair (`docs/ports/pgtkfns.md` Deviations 58-62 and
 Evidence ㊱).
+
+### status 3.725 (the pgtkfns eleventh-slice round this file took part in)
+
+`src/pgtkfns.c`'s frame-geometry reader and its two mouse subrs (C 3325-3525) call
+`gtk_window_get_position` (gtk/gtkwindow.h), `gdk_window_get_display` (gdk/gdkwindow.h) and
+`gdk_device_warp` (gdk/gdkdevice.h), so those three rows landed here (header-only citations: no
+GTK/GDK header on this machine).  `check-mirror-dupes.py` immediately read `17 duplicate
+declaration(s), 1 failure` - `src/pgtkselect.rs` had declared `gdk_window_get_display` itself at its
+C 958 - and that copy is dropped there under P-26's one spelling per construct with its call site
+unchanged; that unit's own probe reads **9 errors / 8 warnings** on both sides of the drop, and
+P-87 ①'s consumer sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s),
+0 unit failure(s)`.  The consumer's ledger records the pair (`docs/ports/pgtkfns.md` Deviations
+70-73 and Evidence ㊹-㊻).
