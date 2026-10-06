@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-20: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255 and C 3257-3379
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-21: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379 and C 3381-3465
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**4,758 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**4,895 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255** and **C 3257-3379** - twenty slices - with **both
-> arms of every `#if`**; the **2,044** this line used to
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379** and **C 3381-3465** - twenty-one
+> slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_draw_window_divider` (C 3383-3384).**
+> `pgtk_mouse_position` (C 3487-3488; C 3467-3485 is its comment above it).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -133,7 +133,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 3014-3110 | `pgtk_draw_window_cursor` (C 3016-3077: the `on_p` arm, the fringe early path, the five-arm `match` over `text_cursor_kinds` and the IM cursor-location call) and `pgtk_copy_bits` (C 3079-3110: the similar surface, the source-surface pair, the two paints and the destroy) | the file gate - **transcribed** (the eighteenth slice) |
 | 3112-3255 | `pgtk_scroll_run` (C 3114-3255: the `window_box` bounding box, the up/down branches, the `HAVE_XWIDGETS` block, `gui_clear_cursor` and the two `cairo_rectangle_t` records into `pgtk_copy_bits`) | the file gate - **transcribed** (the nineteenth slice) |
 | 3257-3379 | `pgtk_bitmap_icon` (C 3259-3326, whose body is C 3267-3324's `#if 0` carried as C's own text), `pgtk_text_icon` (C 3332-3342), `pgtk_update_begin` (C 3354-3358) and `pgtk_draw_vertical_window_border` (C 3362-3379) | the file gate - **transcribed** (the twentieth slice) |
-| 3381-7780 | **the remainder of the file** - from C 3383's `pgtk_draw_window_divider` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3381-3465 | `pgtk_draw_window_divider` (C 3383-3442), `pgtk_update_end` (C 3447-3452) and `pgtk_frame_up_to_date` (C 3454-3465) | the file gate - **transcribed** (the twenty-first slice) |
+| 3467-7780 | **the remainder of the file** - from C 3487's `pgtk_mouse_position` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -713,6 +714,23 @@ their assertions are owed.
     `macro-body-notes.tsv` row (`gtk_window`: the cast's token cannot reappear).  With those in
     place the repaired readings are a **zero delta in all three arms**.  No mirror changed, so P-87's
     two legs do not apply.
+
+43. **Three use-site declarations, one accessor arm, and a declaration the mirror owes.**  The unit
+    gains `buffer_flipping_blocked_p` (dispextern.h 3719, defined in `src/xdisp.rs`; the
+    `src/androidterm.rs` 167 and `src/haikuterm.rs` 180 copies of the same declaration) and
+    `gtk_widget_queue_draw` (C 3462, the GTK segment's convention: the header alone, no line) at
+    their uses; `FRAME_MOUSE_UPDATE!`'s expansion needs `note_mouse_highlight` in scope, and
+    `include/dispextern.rs`'s own note (4050) keeps it in that mirror's "owed, not declared" list,
+    so the unit declares it with the `*mut c_void` frame parameter the mirror's macro body passes
+    (`include/frame.rs` 1725-1729 records the same reading) - a `*mut frame` declaration is `E0308`
+    at the macro's call site, which is how the first reading named it.  C's seven
+    `f->borders_respect_alpha_background` reads are the unit's own `borders_respect_alpha_background!`
+    reader (frame.h 540's `bool_bf`, whose shift `include/frame.rs` 746-751 names for this arm - the
+    `src/frame.rs` 298-301 copy of the same macro over `bits2`), and C 3451's
+    `MOUSE_HL_INFO (f)->mouse_face_defer = false` is the mirror's writer pair
+    (`set_mouse_face_defer`), which produced this unit's eighth `macro-body-notes.tsv` row
+    (`mouse_face_defer`).  With those in place the repaired readings are a **zero delta in all three
+    arms**.  No mirror changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1480,6 +1498,44 @@ re-measured 41.0% -> **38.8%** (C 7,780 vs the port's 4,758).
 
 **Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
 **676/0/0/2072/36/0**; `check-dead-file-coverage.py` **145/0** (**52 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen
+configuration compiles none of this file, there is no GTK or cairo to draw with here, and the three
+arm readings are **compile** readings of text this machine cannot build.
+
+## The twenty-first slice (C 3381-3465): the window divider, the update end and the up-to-date hook
+
+**What is in it.**  `pgtk_draw_window_divider` (C 3383-3442: the three divider faces through
+`FACE_FROM_ID_OR_NULL`, the three `FRAME_FOREGROUND_PIXEL` fallbacks, `borders_respect_alpha_background`
+on every source-colour call and the vertical/horizontal/single rectangle arms), `pgtk_update_end`
+(C 3447-3452: the `mouse_face_defer` write) and `pgtk_frame_up_to_date` (C 3454-3465:
+`FRAME_MOUSE_UPDATE!`, the `buffer_flipping_blocked_p` guard, `flip_cr_context` and the GTK queue-draw
+call).  Rust: 4,758 -> **4,895** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 53 errors / 19 warnings -> 53 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 54 / 20 -> 54 / 20
+C = A + use_gtk + have_gtk3                        : 31 / 18 -> 31 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty**: this text adds no
+error and no warning - the fifth zero-delta reading in this unit.  **Arm reach is measured**
+(P-86 ⑦): injecting `let _: c_int = true;` as the first statement of `pgtk_frame_up_to_date` moves
+arm A to 56 errors, anchored at that line (the injected statement was then removed and the file
+re-measured at 4,895 lines).  **The first readings named three defects**, all fixed (Deviation 43):
+`buffer_flipping_blocked_p` and `gtk_widget_queue_draw` (missing declarations) and the seven
+`borders_respect_alpha_background` reads, which are the frame record's bit-field and so need the
+unit's own accessor.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **137 rows -> 134**: the three items retire and the one token finding the `mouse_face_defer`
+write produced is the sanctioned `macro-body-notes.tsv` row (Deviation 43); the file's own
+`line count drifted` row is re-measured 38.8% -> **37.1%** (C 7,780 vs the port's 4,895).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2072/36/0**; `check-dead-file-coverage.py` **145/0** (**53 range rows** over
 `src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
 `check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
 changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with

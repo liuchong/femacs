@@ -3983,6 +3983,15 @@ unsafe fn pgtk_draw_glyph_string (s: *mut glyph_string)
 macro_rules! pointer_invisible {
   ($f:expr) => { (*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT & 1 != 0 };
 }
+/// C 3405/3409/…: `f->borders_respect_alpha_background` - `frame.h` 540's `bool_bf
+/// borders_respect_alpha_background : 1`, whose shift `include/frame.rs` 746-751 names
+/// for this arm (A: byte 2 bit 24); the mirror carries the shift and no accessor, so the
+/// unit declares the member's own reader - the `src/frame.rs` 298-301 copy of the same
+/// macro over `bits2`.
+#[cfg (feature = "have_pgtk")]
+macro_rules! borders_respect_alpha_background {
+  ($f:expr) => { (*$f).bits2 >> FRAME_BORDERS_RESPECT_ALPHA_BACKGROUND_SHIFT & 1 != 0 };
+}
 
 /* C: window.h 1186: `struct glyph *get_phys_cursor_glyph (struct window *w);` - the C 2886/2933
    calls (`src/window.rs` 8061 defines it).  dispextern.h 3652-3653: `extern void
@@ -4755,4 +4764,132 @@ unsafe fn pgtk_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int,
   cairo_fill (cr);                                                      // C 3376
 
   pgtk_end_cr_clip (f);                                                 // C 3378
+}
+
+/* C: dispextern.h 3719: `extern bool buffer_flipping_blocked_p (void);` - the C 3459 call
+   (`src/xdisp.rs` defines it; the `src/androidterm.rs` 167 and `src/haikuterm.rs` 180 copies of
+   the same use-site declaration).  <gtk/gtkwidget.h>: `void gtk_widget_queue_draw (GtkWidget
+   *widget);` - the C 3462 call (the GTK segment's convention: the header alone, no line).  */
+/* C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);` - the
+   call `FRAME_MOUSE_UPDATE!` expands to (C 3458; `include/frame.rs` 1725 records that the
+   name's declaration is owed to `include/dispextern.rs`, whose own note at 4050 keeps it in
+   that mirror's "owed, not declared" list, so the unit declares it here).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn note_mouse_highlight (f: *mut c_void, x: c_int, y: c_int);
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn buffer_flipping_blocked_p () -> bool;
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gtk_widget_queue_draw (widget: *mut GtkWidget);
+}
+
+/* Draw a window divider from (x0,y0) to (x1,y1)  */
+
+/// C 3383-3442: `static void pgtk_draw_window_divider (struct window *w, int x0, int x1, int y0,
+/// int y1)` - `FACE_FROM_ID_OR_NULL` is this unit's own copy (the twentieth slice), C's three
+/// `face ? … : FRAME_FOREGROUND_PIXEL (f)` folds are the port's null tests,
+/// `f->borders_respect_alpha_background` is the frame record's member (passed to every
+/// `pgtk_set_cr_source_with_color` call), and C's `if`/`else if`/`else` chain selects the three
+/// bands, the horizontal pair or the single rectangle.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_window_divider (w: *mut window, x0: c_int, x1: c_int, y0: c_int, y1: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 3386
+  let face: *mut face = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_FACE_ID);   // C 3387
+  let face_first: *mut face
+    = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID);     // C 3388-3389
+  let face_last: *mut face
+    = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_LAST_PIXEL_FACE_ID);      // C 3390-3391
+  let color: c_ulong = if !face.is_null () { (*face).foreground }       // C 3392
+		       else { FRAME_FOREGROUND_PIXEL (f) };
+  let color_first: c_ulong = if !face_first.is_null () { (*face_first).foreground }   // C 3393-3395
+			     else { FRAME_FOREGROUND_PIXEL (f) };
+  let color_last: c_ulong = if !face_last.is_null () { (*face_last).foreground }      // C 3396-3398
+			    else { FRAME_FOREGROUND_PIXEL (f) };
+  let cr: *mut cairo_t = pgtk_begin_cr_clip (f);                        // C 3399
+
+  if y1 - y0 > x1 - x0 && x1 - x0 > 2                                  // C 3401
+    /* Vertical.  */
+    {
+      pgtk_set_cr_source_with_color (f, color_first,                    // C 3404
+		     borders_respect_alpha_background! (f));                 // C 3405
+      cairo_rectangle (cr, x0 as c_double, y0 as c_double, 1.0,         // C 3406
+		       (y1 - y0) as c_double);
+      cairo_fill (cr);                                                  // C 3407
+      pgtk_set_cr_source_with_color (f, color,                          // C 3408
+		     borders_respect_alpha_background! (f));                 // C 3409
+      cairo_rectangle (cr, (x0 + 1) as c_double, y0 as c_double,        // C 3410
+		       (x1 - x0 - 2) as c_double, (y1 - y0) as c_double);
+      cairo_fill (cr);                                                  // C 3411
+      pgtk_set_cr_source_with_color (f, color_last,                     // C 3412
+		     borders_respect_alpha_background! (f));                 // C 3413
+      cairo_rectangle (cr, (x1 - 1) as c_double, y0 as c_double, 1.0,   // C 3414
+		       (y1 - y0) as c_double);
+      cairo_fill (cr);                                                  // C 3415
+    }
+  else if x1 - x0 > y1 - y0 && y1 - y0 > 3                             // C 3417
+    /* Horizontal.  */
+    {
+      pgtk_set_cr_source_with_color (f, color_first,                    // C 3420
+		     borders_respect_alpha_background! (f));                 // C 3421
+      cairo_rectangle (cr, x0 as c_double, y0 as c_double,              // C 3422
+		       (x1 - x0) as c_double, 1.0);
+      cairo_fill (cr);                                                  // C 3423
+      pgtk_set_cr_source_with_color (f, color,                          // C 3424
+		     borders_respect_alpha_background! (f));                 // C 3425
+      cairo_rectangle (cr, x0 as c_double, (y0 + 1) as c_double,        // C 3426
+		       (x1 - x0) as c_double, (y1 - y0 - 2) as c_double);
+      cairo_fill (cr);                                                  // C 3427
+      pgtk_set_cr_source_with_color (f, color_last,                     // C 3428
+		     borders_respect_alpha_background! (f));                 // C 3429
+      cairo_rectangle (cr, x0 as c_double, (y1 - 1) as c_double,        // C 3430
+		       (x1 - x0) as c_double, 1.0);
+      cairo_fill (cr);                                                  // C 3431
+    }
+  else
+    {
+      pgtk_set_cr_source_with_color (f, color,                          // C 3435
+		     borders_respect_alpha_background! (f));                 // C 3436
+      cairo_rectangle (cr, x0 as c_double, y0 as c_double,              // C 3437
+		       (x1 - x0) as c_double, (y1 - y0) as c_double);
+      cairo_fill (cr);                                                  // C 3438
+    }
+
+  pgtk_end_cr_clip (f);                                                 // C 3441
+}
+
+/* End update of frame F.  This function is installed as a hook in
+   update_end.  */
+
+/// C 3447-3452: `static void pgtk_update_end (struct frame *f)` - C's
+/// `MOUSE_HL_INFO (f)->mouse_face_defer = false;` is the mirror's `MOUSE_HL_INFO!` accessor plus
+/// its `set_mouse_face_defer` writer (the record's bitfield has function pairs rather than a
+/// `*_bits!` macro).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_update_end (f: *mut frame)
+{
+  /* Mouse highlight may be displayed again.  */
+  set_mouse_face_defer (MOUSE_HL_INFO! (f), false);                     // C 3451
+}
+
+/// C 3454-3465: `static void pgtk_frame_up_to_date (struct frame *f)` - `FRAME_MOUSE_UPDATE!` is
+/// the frame mirror's macro, `buffer_flipping_blocked_p` (dispextern.h 3719, defined in
+/// `src/xdisp.rs`) is a use-site declaration (the `src/androidterm.rs` 167 and
+/// `src/haikuterm.rs` 180 copies), `flip_cr_context` is this file's own C 271 definition, and
+/// `gtk_widget_queue_draw` (C 3462) follows the GTK segment's convention.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_frame_up_to_date (f: *mut frame)
+{
+  block_input ();                                                       // C 3457
+  FRAME_MOUSE_UPDATE! (f);                                              // C 3458
+  if !buffer_flipping_blocked_p ()                                      // C 3459
+    {
+      flip_cr_context (f);                                              // C 3461
+      gtk_widget_queue_draw (FRAME_GTK_WIDGET! (f));                    // C 3462
+    }
+  unblock_input ();                                                     // C 3464
 }
