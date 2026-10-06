@@ -3,9 +3,11 @@
 // One-to-one port (PORTING.md): the same statements in the same order, the same names (function,
 // macro, struct, struct field, file-scope object, local), the same control flow and the same error
 // model.  The non-`static` C definitions carry `#[unsafe(no_mangle)]` (PORTING.md 0.2); the C
-// `static` helpers stay plain `unsafe fn` - except the fifteen whose **address** C's
-// `pgtk_redisplay_interface` takes (C 3756-3785), which PORTING.md 1.4's "one ABI per
-// function-pointer position" makes `unsafe extern "C" fn` (Deviation 47).
+// `static` helpers stay plain `unsafe fn` - except the ones whose **address** C takes, which
+// PORTING.md 1.4's "one ABI per function-pointer position" makes `unsafe extern "C" fn`: the
+// fifteen `pgtk_redisplay_interface` slots (C 3756-3785, Deviation 47) and the thirty-nine
+// `terminal` hook slots the thirty-eighth slice assigns in `pgtk_create_terminal` (C 4879-4919,
+// Deviation 60).
 //
 // **This file is one of P-86's class: the frozen configuration compiles none of it.**  `pgtkterm.o`
 // sits in `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -766,7 +768,7 @@ unsafe fn pgtk_lower_frame (f: *mut frame)
 }
 
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_frame_raise_lower (f: *mut frame, raise_flag: bool)
+unsafe extern "C" fn pgtk_frame_raise_lower (f: *mut frame, raise_flag: bool)
 {
   if raise_flag
     {
@@ -1071,7 +1073,7 @@ unsafe fn pgtk_calc_absolute_position (f: *mut frame)
    which means, do adjust for borders but don't change the gravity.  */
 
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravity: c_int)
+unsafe extern "C" fn pgtk_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravity: c_int)
 {
   if change_gravity > 0
     {
@@ -1117,7 +1119,7 @@ unsafe fn pgtk_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravi
      Adjust window pixel size based on given width and height.
    -------------------------------------------------------------------------- */
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_set_window_size (f: *mut frame, change_gravity: bool,
+unsafe extern "C" fn pgtk_set_window_size (f: *mut frame, change_gravity: bool,
 				pixelwidth: c_int, pixelheight: c_int)
 {
   block_input ();
@@ -1265,7 +1267,7 @@ pub unsafe extern "C" fn pgtk_make_frame_invisible (f: *mut frame)
 }
 
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_make_frame_visible_invisible (f: *mut frame, visible: bool)
+unsafe extern "C" fn pgtk_make_frame_visible_invisible (f: *mut frame, visible: bool)
 {
   if visible
     {
@@ -4629,7 +4631,7 @@ unsafe extern "C" fn pgtk_scroll_run (w: *mut window, run: *mut run)
 /// `return false;` is compiled.  `f` and `file` are therefore unused in the live text (`let _ =`
 /// keeps the names).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_bitmap_icon (f: *mut frame, file: Lisp_Object) -> bool
+unsafe extern "C" fn pgtk_bitmap_icon (f: *mut frame, file: Lisp_Object) -> bool
 {
   let _ = f;
   let _ = file;
@@ -4746,7 +4748,7 @@ pub unsafe extern "C" fn pgtk_text_icon (f: *mut frame, icon_name: *const c_char
 /// `pgtk_clear_under_internal_border` (C 5047's definition, in the remainder - a name this slice
 /// is the first to reach, so it is a registered class of its own in this ledger).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_update_begin (f: *mut frame)
+unsafe extern "C" fn pgtk_update_begin (f: *mut frame)
 {
   pgtk_clear_under_internal_border (f);                                 // C 3357
 }
@@ -4881,7 +4883,7 @@ unsafe extern "C" fn pgtk_draw_window_divider (w: *mut window, x0: c_int, x1: c_
 /// its `set_mouse_face_defer` writer (the record's bitfield has function pairs rather than a
 /// `*_bits!` macro).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_update_end (f: *mut frame)
+unsafe extern "C" fn pgtk_update_end (f: *mut frame)
 {
   /* Mouse highlight may be displayed again.  */
   set_mouse_face_defer (MOUSE_HL_INFO! (f), false);                     // C 3451
@@ -4893,7 +4895,7 @@ unsafe fn pgtk_update_end (f: *mut frame)
 /// `src/haikuterm.rs` 180 copies), `flip_cr_context` is this file's own C 271 definition, and
 /// `gtk_widget_queue_draw` (C 3462) follows the GTK segment's convention.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_frame_up_to_date (f: *mut frame)
+unsafe extern "C" fn pgtk_frame_up_to_date (f: *mut frame)
 {
   block_input ();                                                       // C 3457
   FRAME_MOUSE_UPDATE! (f);                                              // C 3458
@@ -4973,7 +4975,7 @@ unsafe extern "C" {
 /// argument, and C 3526's `pgtk_any_window_to_frame` is this file's own C 118 forward-declared
 /// definition (C 7314, in the remainder - the ledger's registered class).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_mouse_position (fp: *mut *mut frame, insist: c_int,
+unsafe extern "C" fn pgtk_mouse_position (fp: *mut *mut frame, insist: c_int,
 			       bar_window: *mut Lisp_Object, part: *mut scroll_bar_part,
 			       x: *mut Lisp_Object, y: *mut Lisp_Object,
 			       timestamp: *mut Time)
@@ -5622,7 +5624,7 @@ unsafe fn pgtk_flash (f: *mut frame)
 /// `pgtk_term_init`, C 7442), so this definition is converted to `unsafe extern "C" fn` **when that
 /// slice lands** (PORTING.md 1.4's rule, the same repair slice 25 made for fifteen of them).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_ring_bell (f: *mut frame)
+unsafe extern "C" fn pgtk_ring_bell (f: *mut frame)
 {
   if visible_bell                                                       // C 3912
     {
@@ -5652,7 +5654,7 @@ unsafe fn pgtk_ring_bell (f: *mut frame)
 /// `read_socket_hook`), so it becomes `unsafe extern "C" fn` in the slice that lands that
 /// assignment (PORTING.md 1.4, the `pgtk_ring_bell` note above).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_read_socket (terminal: *mut terminal, hold_quit: *mut input_event) -> c_int
+unsafe extern "C" fn pgtk_read_socket (terminal: *mut terminal, hold_quit: *mut input_event) -> c_int
 {
   let _ = terminal;                                                     // C 3933
   let mut context: *mut GMainContext;                                   // C 3935
@@ -6092,7 +6094,7 @@ unsafe fn pgtk_scroll_bar_remove (bar: *mut scroll_bar)
 /// address (the terminal's `set_vertical_scroll_bar_hook`), so it stays a plain `unsafe fn` until
 /// that slice converts it (the `pgtk_ring_bell` note).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+unsafe extern "C" fn pgtk_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
 					position: c_int)
 {
   let f: *mut frame = XFRAME ((*w).frame);                              // C 4218
@@ -6176,7 +6178,7 @@ unsafe fn pgtk_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c
 /// move arm spans `WINDOW_LEFT_EDGE_X` (601) to `WINDOW_RIGHT_DIVIDER_WIDTH` (582) short of the
 /// window's pixel width.  Its address is taken by the same slice as the vertical one's.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+unsafe extern "C" fn pgtk_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
 					  position: c_int)
 {
   let f: *mut frame = XFRAME ((*w).frame);                              // C 4291
@@ -6282,7 +6284,7 @@ unsafe fn pgtk_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole:
 /// terminal's `condemn_scroll_bars_hook`), so it stays a plain `unsafe fn` until that slice converts
 /// it (the `pgtk_ring_bell` note).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_condemn_scroll_bars (frame: *mut frame)
+unsafe extern "C" fn pgtk_condemn_scroll_bars (frame: *mut frame)
 {
   if !NILP (FRAME_SCROLL_BARS (frame))                                  // C 4382
     {
@@ -6317,7 +6319,7 @@ unsafe fn pgtk_condemn_scroll_bars (frame: *mut frame)
 /// re-states rather than changes).  Its address goes to the terminal's `redeem_scroll_bar_hook`
 /// (C 7442) in the same later slice as its two siblings.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_redeem_scroll_bar (w: *mut window)
+unsafe extern "C" fn pgtk_redeem_scroll_bar (w: *mut window)
 {
   let mut bar: *mut scroll_bar;                                         // C 4407
   let mut barobj: Lisp_Object;                                          // C 4408
@@ -6407,7 +6409,7 @@ unsafe fn pgtk_redeem_scroll_bar (w: *mut window)
 /// this file's C 4192 definition, and C's two-member assignment `b->next = b->prev = Qnil` is one
 /// line per store (`E0381`'s sibling rule, PORTING.md 1.13)
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_judge_scroll_bars (f: *mut frame)
+unsafe extern "C" fn pgtk_judge_scroll_bars (f: *mut frame)
 {
   let mut bar: Lisp_Object;                                             // C 4492
   let mut next: Lisp_Object;                                            // C 4492
@@ -6514,7 +6516,7 @@ unsafe fn set_fullscreen_state (f: *mut frame)
 /// `fullscreen_hook`), so it stays a plain `unsafe fn` until that slice converts it (the
 /// `pgtk_ring_bell` note).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_fullscreen_hook (f: *mut frame)
+unsafe extern "C" fn pgtk_fullscreen_hook (f: *mut frame)
 {
   if FRAME_VISIBLE_P (f)                                                // C 4554
     {
@@ -6621,7 +6623,7 @@ pub unsafe extern "C" fn pgtk_delete_terminal (terminal: *mut terminal)
 /// address (the terminal's `query_frame_background_color`), so it stays a plain `unsafe fn` until
 /// that slice converts it (the `pgtk_ring_bell` note).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_query_frame_background_color (f: *mut frame, bgcolor: *mut Emacs_Color)
+unsafe extern "C" fn pgtk_query_frame_background_color (f: *mut frame, bgcolor: *mut Emacs_Color)
 {
   (*bgcolor).pixel = FRAME_BACKGROUND_PIXEL (f);                        // C 4620
   pgtk_query_color (f, bgcolor);                                        // C 4621
@@ -6633,7 +6635,7 @@ unsafe fn pgtk_query_frame_background_color (f: *mut frame, bgcolor: *mut Emacs_
 /// the `f` parameter C never reads keeps its name with `let _ =` (Deviation 44's shape; C 4919 takes
 /// this function's address, the same later conversion).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_free_pixmap (f: *mut frame, pixmap: Emacs_Pixmap)
+unsafe extern "C" fn pgtk_free_pixmap (f: *mut frame, pixmap: Emacs_Pixmap)
 {
   let _ = f;                                                            // C 4625
   if !pixmap.is_null ()                                                 // C 4627
@@ -6892,7 +6894,7 @@ unsafe extern "C" {
 /// plain `unsafe fn` (the `pgtk_fullscreen_hook` shape, Deviation 55).  `pgtk_frame_rehighlight`
 /// is this unit's own C 4769 definition.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_frame_rehighlight_hook (frame: *mut frame)
+unsafe extern "C" fn pgtk_frame_rehighlight_hook (frame: *mut frame)
 {
   pgtk_frame_rehighlight (FRAME_DISPLAY_INFO! (frame));                 // C 4806
 }
@@ -6911,7 +6913,7 @@ unsafe fn pgtk_frame_rehighlight_hook (frame: *mut frame)
 /// with the `Emacs_Cursor`-to-`*mut GdkCursor` cast the mirror's parameter needs (the
 /// `pgtk_define_frame_cursor` shape, C 2833-2834).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_toggle_invisible_pointer (f: *mut frame, invisible: bool)
+unsafe extern "C" fn pgtk_toggle_invisible_pointer (f: *mut frame, invisible: bool)
 {
   let cursor: Emacs_Cursor;
   if invisible                                                          // C 4815
@@ -6992,7 +6994,7 @@ unsafe fn pgtk_new_focus_frame (dpyinfo: *mut pgtk_display_info, frame: *mut fra
 /// until that slice.  `flip_cr_context` is this file's own C 271 definition (line 575) and
 /// `gtk_widget_queue_draw` this unit's GTK-segment row (line 4795's block, C 3462's call).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_buffer_flipping_unblocked_hook (f: *mut frame)
+unsafe extern "C" fn pgtk_buffer_flipping_unblocked_hook (f: *mut frame)
 {
   block_input ();                                                       // C 4863
   flip_cr_context (f);                                                  // C 4864
@@ -7006,4 +7008,158 @@ unsafe fn pgtk_buffer_flipping_unblocked_hook (f: *mut frame)
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
   pub fn gdk_display_flush (display: *mut GdkDisplay);
+}
+
+/* C hook assignments: termhooks.h degrades `struct frame *`/`struct window *` parameters to
+   `*mut c_void` (P-72 rule 3: the mirror cannot name those types) while the definitions keep C's
+   pointer; the conversion is C's own implicit one and the ABI does not depend on the pointee.
+   `src/term.rs` 140-144 carries the same helper.  */
+#[cfg (feature = "have_pgtk")]
+macro_rules! hook {
+  ($target:ty, $f:expr) => { unsafe {
+    let p: *const c_void = $f as *const c_void;
+    std::mem::transmute::<*const c_void, Option<$target>> (p) } };
+}
+
+/* C: termhooks.h 964: `extern struct terminal *create_terminal (enum output_method, struct
+   redisplay_interface *);` - the C 4874 call (`src/terminal.rs` 366 defines it).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn create_terminal (r#type: output_method, rif: *mut c_void) -> *mut terminal;
+}
+/* C: menu.h 63-65: `extern Lisp_Object pgtk_menu_show (struct frame *, int, int, int, Lisp_Object,
+   char **);` and `extern void pgtk_activate_menubar (struct frame *);` - the C 4892/4893
+   assignments.  `include/menu.rs` records both as the `HAVE_PGTK` arm's declarations (it holds the
+   frozen configuration's arm only, and names them in `docs/ports/menu.md`), so this unit carries
+   the two use-site declarations - Owed 16 names the mirror round that makes them live.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn pgtk_menu_show (f: *mut frame, x: c_int, y: c_int, menuflags: c_int,
+			 title: Lisp_Object, error_name: *mut *const c_char) -> Lisp_Object;
+  pub fn pgtk_activate_menubar (f: *mut frame);
+}
+
+/// C 4869-4924: `static struct terminal *pgtk_create_terminal (struct pgtk_display_info *dpyinfo)` -
+/// `static` in C with one call site (C 7171, inside C 7169-7172's `pgtk_term_init`, in the
+/// remainder), so a plain `unsafe fn`; C 4874's `&pgtk_redisplay_interface` is the unit's C 3757
+/// cast shape and `terminal->display_info.pgtk` is `include/termhooks.rs` 170-180's union member
+/// (the `pgtk_delete_terminal` reading).  **The thirty-nine assignments are the addresses
+/// PORTING.md 1.4 is about**: each names a `static` in C whose address C stores in a hook field,
+/// so each is `unsafe extern "C" fn` as of this slice - the twenty-two that were still plain
+/// `unsafe fn` are converted by it (the head comment names the two groups) - and each assignment
+/// is this unit's `hook!` cast, i.e. C's own implicit conversion of a `struct frame *`-taking
+/// function to a `*mut c_void`-taking field.  Two lines carry the **field's** condition rather
+/// than C's text, both recorded in Deviation 60: `activate_menubar_hook` (termhooks.h 719-722's
+/// `#ifdef HAVE_EXT_MENU_BAR`, off in this machine's arms) and `free_pixmap` (termhooks.h
+/// 849-853's `#ifdef HAVE_WINDOW_SYSTEM`).  Eleven of the thirty-nine are defined later in the C
+/// file (C 5160-7420's remainder), so the port reaches them through `include/pgtkterm.rs`'s
+/// declarations or the two above.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_create_terminal (dpyinfo: *mut pgtk_display_info) -> *mut terminal
+{
+  let terminal: *mut terminal;
+
+  terminal = create_terminal (output_pgtk, &raw mut pgtk_redisplay_interface as *mut c_void);   // C 4874
+
+  (*terminal).display_info.pgtk = dpyinfo as *mut c_void;              // C 4876
+  (*dpyinfo).terminal = terminal;                                       // C 4877
+
+  (*terminal).clear_frame_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_clear_frame);     // C 4879
+  (*terminal).ring_bell_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_ring_bell);       // C 4880
+  (*terminal).toggle_invisible_pointer_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), pgtk_toggle_invisible_pointer);   // C 4881
+  (*terminal).update_begin_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_update_begin);    // C 4882
+  (*terminal).update_end_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_update_end);      // C 4883
+  (*terminal).read_socket_hook
+    = hook! (unsafe extern "C" fn (*mut terminal, *mut input_event) -> c_int,
+	     pgtk_read_socket);                                         // C 4884
+  (*terminal).frame_up_to_date_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_frame_up_to_date);   // C 4885
+  (*terminal).mouse_position_hook
+    = hook! (unsafe extern "C" fn (*mut *mut c_void, c_int, *mut Lisp_Object,
+				   *mut scroll_bar_part, *mut Lisp_Object, *mut Lisp_Object,
+				   *mut Time), pgtk_mouse_position);    // C 4886
+  (*terminal).frame_rehighlight_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_frame_rehighlight_hook);   // C 4887
+  (*terminal).buffer_flipping_unblocked_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_buffer_flipping_unblocked_hook);   // C 4888
+  (*terminal).frame_raise_lower_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), pgtk_frame_raise_lower);   // C 4889
+  (*terminal).frame_visible_invisible_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), pgtk_make_frame_visible_invisible);   // C 4890
+  (*terminal).fullscreen_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_fullscreen_hook);   // C 4891
+  (*terminal).menu_show_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int, Lisp_Object,
+				   *mut *const c_char) -> Lisp_Object, pgtk_menu_show);   // C 4892
+  #[cfg (feature = "have_ext_menu_bar")]
+  { (*terminal).activate_menubar_hook
+      = hook! (unsafe extern "C" fn (*mut c_void), pgtk_activate_menubar); }   // C 4893
+  (*terminal).popup_dialog_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object) -> Lisp_Object,
+	     pgtk_popup_dialog);                                        // C 4894
+  (*terminal).change_tab_bar_height_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), pgtk_change_tab_bar_height);   // C 4895
+  (*terminal).set_vertical_scroll_bar_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int),
+	     pgtk_set_vertical_scroll_bar);                             // C 4896
+  (*terminal).set_horizontal_scroll_bar_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int),
+	     pgtk_set_horizontal_scroll_bar);                           // C 4897
+  (*terminal).condemn_scroll_bars_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_condemn_scroll_bars);   // C 4898
+  (*terminal).redeem_scroll_bar_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_redeem_scroll_bar);   // C 4899
+  (*terminal).judge_scroll_bars_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_judge_scroll_bars);   // C 4900
+  (*terminal).get_string_resource_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *const c_char) -> *const c_char,
+	     pgtk_get_string_resource);                                 // C 4901
+  (*terminal).delete_frame_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_destroy_window);  // C 4902
+  (*terminal).delete_terminal_hook
+    = hook! (unsafe extern "C" fn (*mut terminal), pgtk_delete_terminal);   // C 4903
+  (*terminal).query_frame_background_color
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut Emacs_Color),
+	     pgtk_query_frame_background_color);                        // C 4904
+  (*terminal).defined_color_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *mut Emacs_Color, bool, bool)
+	     -> bool, pgtk_defined_color);                              // C 4905
+  (*terminal).set_new_font_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, c_int) -> Lisp_Object,
+	     pgtk_new_font);                                            // C 4906
+  (*terminal).set_bitmap_icon_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object) -> bool, pgtk_bitmap_icon);   // C 4907
+  (*terminal).implicit_set_name_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object),
+	     pgtk_implicitly_set_name);                                 // C 4908
+  (*terminal).iconify_frame_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_iconify_frame);   // C 4909
+  (*terminal).set_scroll_bar_default_width_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_set_scroll_bar_default_width);   // C 4910-4911
+  (*terminal).set_scroll_bar_default_height_hook
+    = hook! (unsafe extern "C" fn (*mut c_void), pgtk_set_scroll_bar_default_height);   // C 4912-4913
+  (*terminal).set_window_size_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool, c_int, c_int),
+	     pgtk_set_window_size);                                     // C 4914
+  (*terminal).query_colors
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut Emacs_Color, c_int),
+	     pgtk_query_colors);                                        // C 4915
+  (*terminal).get_focus_frame
+    = hook! (unsafe extern "C" fn (*mut c_void) -> Lisp_Object, pgtk_get_focus_frame);   // C 4916
+  (*terminal).focus_frame_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), pgtk_focus_frame);   // C 4917
+  (*terminal).set_frame_offset_hook
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int), pgtk_set_offset);   // C 4918
+  #[cfg (feature = "have_window_system")]
+  { (*terminal).free_pixmap
+      = hook! (unsafe extern "C" fn (*mut c_void, *mut c_void), pgtk_free_pixmap); }   // C 4919
+
+  /* Other hooks are NULL by default.  */
+
+  return terminal;                                                      // C 4923
 }
