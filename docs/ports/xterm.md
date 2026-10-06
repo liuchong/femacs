@@ -63,6 +63,16 @@ Deviation 12, so the error delta above is the four retirements alone; the two wa
 declaration-then-single-assignment shape, the `unused_mut` class the baseline already carries 19
 of) and the discrimination is measured: putting one unresolved name back into that body takes the
 same run from 71 warnings / 7 `E0381` rows to 69 / 1.
+  Slice 86 (C 17772-17809, Decision 99) goes **32 -> 31**: `x_scroll_bar_clear` retires as a
+missing function, and the one row it was owed - the call C 11416 in `x_clear_frame` - retires in
+*every* arm.  Its definition stands outside C's `#if`, while its whole body sits inside C 17779's
+`#ifndef USE_TOOLKIT_SCROLL_BARS`, so the port gates the body alone and the four toolkit arms
+compile an empty function: A 786 -> **788** (the body's three `XSetForeground` rows join the
+counted class), U 818 -> **817**, UT 804 -> **803**, UM 805 -> **804**, UG 789 -> **788**.  The
+empty body's unused `f` costs no warning, measured rather than assumed (all five warning sets are
+identical to their baselines'): the unit's own `#![allow (...)]` at its line 638 is why.  C
+17799-17801's comma-expression loop is the same rendering slice 82 gave C 17435, so the file's two
+copies of C's "trick" read alike.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -258,7 +268,7 @@ same run from 71 warnings / 7 `E0381` rows to 69 / 1.
 - [x] x_scroll_bar_note_movement  (line 17606, static)
 - [x] x_scroll_bar_report_motion  (line 17638, static)
 - [x] x_horizontal_scroll_bar_report_motion  (line 17707, static)
-- [ ] x_scroll_bar_clear  (line 17777, static)
+- [x] x_scroll_bar_clear  (line 17777, static)
 - [ ] x_net_wm_state  (line 18011, static)
 - [ ] x_flush_dirty_back_buffer_on  (line 18043, static)
 - [ ] mouse_or_wdesc_frame  (line 18095, static)
@@ -4092,6 +4102,31 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **34 -> 32**: both functions retire as missing items and no token row
   arrives (`x_get_wm_check_window does not mention false` remains the standing one); the line-count
   row moves to **27,190** against C's 33,125 (17.9% drift, was 27,033 / 18.4%).
+
+### 99. Slice 86 (C 17772-17809): `x_scroll_bar_clear`, the definition outside the `#if` and the body inside it
+
+* **One function, and the gate is asymmetric.**  C 17776's `static void x_scroll_bar_clear (struct
+  frame *f)` is *outside* every `#if` - its caller C 11416 sits in `x_clear_frame`, which C compiles
+  in both builds - while its whole body is inside C 17779's `#ifndef USE_TOOLKIT_SCROLL_BARS`.  The
+  port therefore gates the *body* with one `#[cfg (not (feature = "use_toolkit_scroll_bars"))]`
+  block and leaves the signature ungated: gating the definition would be one `E0425 cannot find
+  function` row in each of the four toolkit arms, which is the shape the arms' readings would then
+  show.  What the empty body costs is measured, not assumed - the toolkit arms get an unused `f`, and
+  their warning sets are *identical* to their baselines' because the unit's own
+  `#![allow (non_camel_case_types, …, unused_variables, …)]` (C 637's block, this file's line 638)
+  covers it.
+* **Three shapes, two of them already in this file.**  C 17799-17801's comma-expression loop
+  condition is the same `while !NILP (bar) || { bar = condemned; condemned = Qnil (); !NILP (bar) }`
+  rendering slice 82 gave the identical loop at C 17435 (`x_scroll_bar_handle_exposure`), so the
+  file's two copies of C's "trick" now read alike; `XSCROLL_BAR` is `XSCROLL_BAR!`
+  (`include/xterm.rs` 1336, the `src/gtkutil.rs` 2657 reading of `(*XSCROLL_BAR! (bar)).next`); and
+  `FRAME_HAS_VERTICAL_SCROLL_BARS` is the mirror's function (`include/frame.rs` 1196-1213, two cfg'd
+  definitions), so C's `if (FRAME_HAS_VERTICAL_SCROLL_BARS (f))` is `!= 0` here.  The three
+  `XSetForeground` calls join the counted "Xlib entry points with no mirror row" class (five were
+  already counted in slice 82, so the file's count 42 -> 45 in arm A).
+* **What `--check` reads.**  **32 -> 31**: the function retires as a missing item and no token row
+  arrives (`x_get_wm_check_window does not mention false` remains the standing one); the line-count
+  row moves to **27,251** against C's 33,125 (17.7% drift, was 27,190 / 17.9%).
 
 ## Evidence
 
@@ -8001,3 +8036,44 @@ against C's 33,125 (17.9% drift, was 27,033 / 18.4%).
 **Not claimed.**  The frozen configuration compiles none of this file: no pointer was queried, no
 motion was reported, no scroll-bar part was written and no frame flag was cleared; the readings
 above are compile readings of text this machine cannot build.
+
+### Slice 86's readings (C 17772-17809), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s86/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s86/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`.
+Both sides were measured in all five arms on this revision.
+
+| arm | HEAD's unit (slice 85 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 786 / 71 | **788 / 71** | **+2** |
+| U `+use_toolkit_scroll_bars` | 818 / 71 | **817 / 71** | **-1** |
+| UT `U +use_x_toolkit` | 804 / 70 | **803 / 70** | **-1** |
+| UM `UT +use_motif` | 805 / 70 | **804 / 70** | **-1** |
+| UG `U +use_gtk` | 789 / 73 | **788 / 73** | **-1** |
+
+**Retirements and additions, by name** (diffed as full `error[E..]: <message>` head lines with
+counts, both directions):
+
+| arm | retired | added |
+| --- | --- | --- |
+| A | `cannot find function x_scroll_bar_clear` x1 (C 11416's call) | `XSetForeground` x3 (C 17784/17787/17806, the counted class) |
+| U, UT, UM, UG | the same row | none - the body is not compiled there |
+
+Every arm's warning set is **identical to its baseline's**, row for row: the toolkit arms' empty body
+with its unused `f` is free because the unit's own `#![allow (..., unused_variables, ...)]` (line 638)
+covers it, and that is measured here rather than assumed - the same probe shape would otherwise be one
+warning per toolkit arm.
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical sets.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 17781's `let gc: GC = ...` moves A
+788 -> 789 with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:27229:18`; removing it
+returns A to the table.
+
+**What `--check` reads.**  **32 -> 31** as Decision 99 3 says, with the line-count row at **27,251**
+against C's 33,125 (17.7% drift, was 27,190 / 17.9%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no scroll bar was cleared or
+redrawn, no foreground or background pixel was set and no condemned list was walked; in the four
+toolkit arms the function is one empty body.

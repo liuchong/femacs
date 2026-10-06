@@ -27187,4 +27187,65 @@ unsafe fn x_horizontal_scroll_bar_report_motion (fp: *mut *mut frame, bar_window
   unblock_input ();                                                    // C 17768
 }
 
-/* C 17772's comment opens `x_scroll_bar_clear` (C 17777-17809), the next definition.  */
+/* The screen has been cleared and foreground or background colors may
+   have changed, so the scroll bars need to be redrawn.  Clear the
+   scroll bars and redraw them.  */
+
+/// C 17776-17809: `static void x_scroll_bar_clear (struct frame *f)` - C's `static`, so a plain
+/// `unsafe fn`.  The definition stands *outside* every `#if` while its whole body sits inside C
+/// 17779's `#ifndef USE_TOOLKIT_SCROLL_BARS`, so the port gates the body with one `#[cfg`
+/// (not (feature = "use_toolkit_scroll_bars"))]` block and leaves the signature ungated: the
+/// caller C 11416 is in `x_clear_frame`, which C compiles in both builds, so gating the
+/// definition would be one `E0425 cannot find function` row in each of the four toolkit arms.
+/// What that costs is measured, not assumed: the toolkit arms get an empty body with an unused `f`,
+/// and the unit's own `#![allow (…, unused_variables, …)]` (C 637's block, this file's line 638) is
+/// what keeps it free - all five arms' warning sets are identical to their baselines'.  Two more
+/// shapes: C 17786-17787's and C 17803's `XSCROLL_BAR (bar)` are `XSCROLL_BAR!` (`include/xterm.rs`
+/// 1336, the `src/gtkutil.rs` 2657 reading), and C 17799-17801's comma-expression loop condition is
+/// a Rust `||` chain whose right side is a block expression - the same rendering slice 82 gave the
+/// identical loop at C 17435, so the file's two copies of C's "trick" read alike.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_scroll_bar_clear (f: *mut frame)
+{
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  {
+  let mut bar: Lisp_Object;                                            // C 17780
+  let mut condemned: Lisp_Object;
+  let gc: GC = (*( (*f).output_data.x as *mut x_output )).normal_gc;   // C 17781
+
+  if (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel // C 17783
+       != (-1 as c_int) as c_ulong
+    {
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                        // C 17784-17785
+		      (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel);
+    }
+  else
+    {
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                        // C 17787-17788
+		      FRAME_BACKGROUND_PIXEL (f));
+    }
+
+  /* We can have scroll bars even if this is 0,
+     if we just turned off scroll bar mode.
+     But in that case we should not clear them.  */
+  if FRAME_HAS_VERTICAL_SCROLL_BARS (f) != 0                           // C 17793
+    {
+      condemned = FRAME_CONDEMNED_SCROLL_BARS (f);                     // C 17795
+      bar = FRAME_SCROLL_BARS (f);                                     // C 17796
+      /* This trick allows us to search both the ordinary and condemned scroll bar lists with one
+	 loop.  */
+      while !NILP (bar)                                                // C 17799
+	     || { bar = condemned; condemned = Qnil (); !NILP (bar) }  // C 17799-17801
+	{
+	  x_scroll_bar_redraw (XSCROLL_BAR! (bar));                    // C 17803
+	  bar = (*XSCROLL_BAR! (bar)).next;                            // C 17802's step
+	}
+    }
+
+  XSetForeground (FRAME_X_DISPLAY! (f), gc,                            // C 17806-17807
+		  FRAME_FOREGROUND_PIXEL (f));
+  }
+}
+
+/* C 17811's `#ifdef ENABLE_CHECKING` opens the debug region whose first object is
+   `STORE_KEYSYM_FOR_DEBUG` (C 17819-17822), the `missing macro` row `--check` still carries.  */
