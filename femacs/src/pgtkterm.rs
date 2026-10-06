@@ -2197,3 +2197,138 @@ unsafe fn pgtk_draw_composite_glyph_string_foreground (s: *mut glyph_string)
 	}
     }
 }
+
+/* C 2347-2365's `enum glyphless_display_method { GLYPHLESS_DISPLAY_THIN_SPACE,
+   GLYPHLESS_DISPLAY_EMPTY_BOX, GLYPHLESS_DISPLAY_ACRONYM, GLYPHLESS_DISPLAY_HEX_CODE };` - C's enum
+   ABI is `c_int` (PORTING.md 1.3), and the four names are `include/dispextern.rs` 3189-3197's
+   inside that mirror's unit-names module, which a `use` cannot reach from here, so this unit
+   carries its own copy (the `src/term.rs` 288-292 and `src/xdisp.rs` 1188-1191 shape).  */
+#[cfg (feature = "have_pgtk")]
+pub type glyphless_display_method = c_int;
+#[cfg (feature = "have_pgtk")]
+pub const GLYPHLESS_DISPLAY_THIN_SPACE: glyphless_display_method = 0;
+#[cfg (feature = "have_pgtk")]
+pub const GLYPHLESS_DISPLAY_EMPTY_BOX: glyphless_display_method = 1;
+#[cfg (feature = "have_pgtk")]
+pub const GLYPHLESS_DISPLAY_ACRONYM: glyphless_display_method = 2;
+#[cfg (feature = "have_pgtk")]
+pub const GLYPHLESS_DISPLAY_HEX_CODE: glyphless_display_method = 3;
+
+/* C 590-638's `u.glyphless` members (`unsigned ch : 25; bool_bf for_no_font : 1; unsigned len : 4;
+   enum glyphless_display_method method : 2;`) read through the mirror's `bits`
+   (`include/dispextern.rs` 478-481's masks) - the `src/xterm.rs` 9596-class per-unit macro, with
+   the pointer call form of Deviations 21/24.  */
+#[cfg (feature = "have_pgtk")]
+macro_rules! glyphless_bits {
+  (method, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_METHOD_SHIFT) & 0x3) as c_int };
+  (for_no_font, $g:expr) => { ((*$g).u.glyphless.bits & GLYPH_U_GLYPHLESS_FOR_NO_FONT) != 0 };
+  (len, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_LEN_SHIFT) & 0xf) as c_int };
+  (ch, $g:expr) =>
+    { (((*$g).u.glyphless.bits >> GLYPH_U_GLYPHLESS_CH_SHIFT) & 0x1ffffff) as c_int };
+}
+
+/* Draw the foreground of glyph string S for glyphless characters.  */
+
+/// C 1576-1662: `static void pgtk_draw_glyphless_glyph_string_foreground (struct glyph_string
+/// *s)` - `glyphless_bits!` for C's `glyph->u.glyphless` members, the `char2b` local array whose
+/// address C hands to `s->char2b` (and clears again at the end), and C 1595-1601's `#ifdef
+/// GCC_LINT` pair carried as two `const`s (P-51; the frozen table defines `GCC_LINT`, conf_post.h
+/// 486, so the first arm is the compiled text and the `#else` arm is under `not gcc_lint` - the
+/// `src/xterm.rs` 9910-9913 shape).  C's two `short` members take the port's written-out
+/// promotions, as in Deviation 22.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_glyphless_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut glyph: *mut glyph = (*s).first_glyph;                         // C 1579
+  let mut char2b: [c_uint; 8] = [0; 8];                                 // C 1580
+  let mut x: c_int;                                                     // C 1581
+  let mut i: c_int;
+  let mut j: c_int;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if !(*s).face.is_null () && face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX   // C 1585
+    && glyph_bits! (left_box_line_p, (*(*s).first_glyph))               // C 1586
+    { x = (*s).x + max ((*((*s).face as *mut face)).box_vertical_line_width as isize, 0) as c_int; }   // C 1587
+  else
+    { x = (*s).x; }                                                     // C 1589
+
+  (*s).char2b = char2b.as_mut_ptr ();                                   // C 1591
+
+  i = 0;                                                                // C 1593
+  while i < (*s).nchars
+    {
+      /* C's `#ifdef GCC_LINT` pair (C 1595-1601).  */
+      #[cfg (feature = "gcc_lint")]
+      const PACIFY_GCC_BUG_81401: c_int = 1;
+      #[cfg (not (feature = "gcc_lint"))]
+      const PACIFY_GCC_BUG_81401: c_int = 0;
+      let mut buf: [c_char; 7 + PACIFY_GCC_BUG_81401 as usize]
+	= [0; 7 + PACIFY_GCC_BUG_81401 as usize];                       // C 1602
+      let mut str: *mut c_char = std::ptr::null_mut ();                 // C 1603
+      let len: c_int = glyphless_bits! (len, glyph);                    // C 1604
+
+      if glyphless_bits! (method, glyph) == GLYPHLESS_DISPLAY_ACRONYM   // C 1606
+	{
+	  if len > 0 && CHAR_TABLE_P (Vglyphless_char_display)          // C 1608-1609
+	    && (CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (Vglyphless_char_display)) >= 1)   // C 1611-1612
+	    {
+	      let mut acronym: Lisp_Object
+		= if !glyphless_bits! (for_no_font, glyph)              // C 1615
+		  { CHAR_TABLE_REF (Vglyphless_char_display, glyphless_bits! (ch, glyph) as isize) }   // C 1616-1617
+		  else { (*(XCHAR_TABLE (Vglyphless_char_display))).extras[0] };   // C 1618
+	      if CONSP (acronym)                                        // C 1619
+		{ acronym = XCAR (acronym); }                           // C 1620
+	      if STRINGP (acronym)                                      // C 1621
+		{ str = SSDATA (acronym); }                             // C 1622
+	    }
+	}
+      else if glyphless_bits! (method, glyph) == GLYPHLESS_DISPLAY_HEX_CODE   // C 1625
+	{
+	  let ch: c_uint = glyphless_bits! (ch, glyph) as c_uint;       // C 1627
+	  eassume! (ch as c_int <= MAX_CHAR);                           // C 1628
+	  sprintf (buf.as_mut_ptr (), c"%0*X".as_ptr (),                // C 1629
+		   if ch < 0x10000 { 4 } else { 6 }, ch);
+	  str = buf.as_mut_ptr ();                                      // C 1630
+	}
+
+      if !str.is_null ()                                                // C 1633
+	{
+	  let upper_len: c_int = (len + 1) / 2;                         // C 1635
+
+	  /* It is assured that all LEN characters in STR is ASCII.  */
+	  j = 0;                                                        // C 1638
+	  while j < len
+	    {
+	      char2b[j as usize]
+		= ((*((*(*s).font).driver as *const font_driver)).encode_char.unwrap ())
+		    ((*s).font, *str.offset (j as isize) as c_int) & 0xFFFF;   // C 1639-1640
+	      j += 1;                                                   // C 1638's step
+	    }
+	  ((*((*(*s).font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, upper_len,                                           // C 1641
+	     x + (*glyph).slice.glyphless.upper_xoff as c_int,          // C 1642
+	     (*s).ybase + (*glyph).slice.glyphless.upper_yoff as c_int, // C 1643
+	     false);
+	  ((*((*(*s).font).driver as *const font_driver)).draw.unwrap ())
+	    (s, upper_len, len,                                         // C 1645
+	     x + (*glyph).slice.glyphless.lower_xoff as c_int,          // C 1646
+	     (*s).ybase + (*glyph).slice.glyphless.lower_yoff as c_int, // C 1647
+	     false);
+	}
+      if glyphless_bits! (method, glyph) != GLYPHLESS_DISPLAY_THIN_SPACE   // C 1650
+	{ pgtk_draw_rectangle ((*s).f, (*((*s).face as *mut face)).foreground,   // C 1651
+			       x, (*s).ybase - (*glyph).ascent as c_int,    // C 1652
+			       (*glyph).pixel_width as c_int - 1,           // C 1653
+			       (*glyph).ascent as c_int + (*glyph).descent as c_int - 1,   // C 1654
+			       false); }                                    // C 1655
+      x += (*glyph).pixel_width as c_int;                               // C 1656
+      i += 1; glyph = glyph.offset (1);                                 // C 1593's step
+    }
+
+  /* Pacify GCC 12 even though s->char2b is not used after this
+     function returns.  */
+  (*s).char2b = std::ptr::null_mut ();                                  // C 1661
+}

@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-5: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483 and C 1485-1571
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-6: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572 and C 1575-1662
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,13 +11,14 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**2,199 lines**), carrying **C 1-1078**,
-> **C 1079-1279**, **C 1281-1383**, **C 1385-1483** and **C 1485-1572** - five slices - with **both
-> arms of every `#if`**; the **2,044** this line used to
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**2,334 lines**), carrying **C 1-1078**,
+> **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572** and **C 1575-1662** - six
+> slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_draw_glyphless_glyph_string_foreground` (C 1577, its comment at C 1575).**
+> `pgtk_compute_lighter_color` (C 1685, its comment at C 1664, preceded by the
+> `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` comment at C 1664-1675).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -115,7 +116,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 1281-1383 | `pgtk_set_glyph_string_clipping_exactly` (C 1281-1293), `pgtk_compute_glyph_string_overhangs` (C 1295-1333, C's `alloca` going to the port's stack pool), `pgtk_clear_glyph_string_rect` (C 1335-1344), `fill_background_by_face` (C 1346-1377) and `fill_background` (C 1379-1383) | the file gate - **transcribed** (the third slice) |
 | 1385-1483 | `pgtk_draw_glyph_string_background` (C 1385-1422), `pgtk_draw_rectangle` (C 1425-1437) and `pgtk_draw_glyph_string_foreground` (C 1440-1483) | the file gate - **transcribed** (the fourth slice) |
 | 1485-1572 | `pgtk_draw_composite_glyph_string_foreground` (C 1485-1572: the box-line offset, the `font_not_found_p` rectangle arm, the non-automatic `COMPOSITION_GLYPH`/`offsets` loop and the `LGSTRING_GLYPH`/`LGLYPH_*` automatic arm with its two deferred draws) | the file gate - **transcribed** (the fifth slice) |
-| 1573-7780 | **the remainder of the file** - from C 1575's comment and C 1577's `pgtk_draw_glyphless_glyph_string_foreground` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1575-1662 | `pgtk_draw_glyphless_glyph_string_foreground` (C 1575-1662: the box-line offset, the `char2b[8]` local C hands to `s->char2b`, the `GCC_LINT` pair, the acronym and hex-code arms of `glyph->u.glyphless`, the two `font->driver` calls with the slice offsets, the `THIN_SPACE` rectangle guard and the closing `s->char2b = NULL`) | the file gate - **transcribed** (the sixth slice) |
+| 1664-7780 | **the remainder of the file** - from C 1664-1675's `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` comment and C 1685's `pgtk_compute_lighter_color` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -432,6 +434,20 @@ their assertions are owed.
     `ASIZE`-derived index type; `src/character.rs` 430's `j as isize` is the same conversion) - the
     first reading of this slice named that one site.
 
+25. **Three per-unit copies and one cast.**  `glyphless_display_method` with
+    `GLYPHLESS_DISPLAY_THIN_SPACE`/`_EMPTY_BOX`/`_ACRONYM`/`_HEX_CODE` (dispextern.h 2347-2365) and
+    the four-arm `glyphless_bits!` macro (C 590-638's `u.glyphless` members, whose masks are
+    `include/dispextern.rs` 478-481's) are this unit's own copies - the names live inside that
+    mirror's unit-names module, which a `use` cannot reach, and the `src/term.rs` 288-292 /
+    `src/xdisp.rs` 1188-1191 and `src/xterm.rs` 9596-class precedents carry them the same way; the
+    macro's call sites pass the **pointer** (Deviations 21/24's reason).  C 1595-1601's
+    `#ifdef GCC_LINT` pair is two `const PACIFY_GCC_BUG_81401` arms under `gcc_lint` / `not
+    gcc_lint` (the frozen table defines `GCC_LINT`, conf_post.h 486, so the first arm is the
+    compiled text - the `src/xterm.rs` 9910-9913 shape).  And C 1616's
+    `CHAR_TABLE_REF (Vglyphless_char_display, glyph->u.glyphless.ch)` takes the mirror's `isize`
+    index, so the port writes `glyphless_bits! (ch, glyph) as isize` - the first reading of this
+    slice named that one site.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -634,3 +650,37 @@ changed this round - the round reads the sweep anyway and it is `checked 83 unit
 with `checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the
 frozen configuration compiles none of this file, there is no GTK or cairo to draw with here, and
 the three arm readings are **compile** readings of text this machine cannot build.
+
+## The sixth slice (C 1575-1662): the glyphless glyph-string foreground
+
+**What is in it.**  `pgtk_draw_glyphless_glyph_string_foreground` (C 1575-1662): the box-line
+offset, the `unsigned char2b[8]` local whose address C hands to `s->char2b` (and clears at the
+end), C 1595-1601's `#ifdef GCC_LINT` pair as two `const`s, the acronym arm (the `CHAR_TABLE_P` /
+`CHAR_TABLE_EXTRA_SLOTS` guards, the `CHAR_TABLE_REF` / `extras[0]` fork on `for_no_font`, and the
+`CONSP`/`XCAR`/`STRINGP` chain), the hex-code arm (`eassume`, `sprintf (buf, "%0*X", …)`), the two
+`font->driver->draw` calls with the four `slice.glyphless` offsets, the `THIN_SPACE` guard around
+`pgtk_draw_rectangle`, and the closing `s->char2b = NULL`.  Rust: 2,199 -> **2,334** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` both sides - Deviation 17).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 40 errors / 19 warnings -> 40 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 41 / 20 -> 41 / 20
+C = A + use_gtk + have_gtk3                        : 18 / 18 -> 18 / 18
+```
+**Every arm reads exactly the same number on both sides and no class changes**: the slice's text
+adds no error and no warning.  One repair got it there (the `CHAR_TABLE_REF` index cast, Deviation
+25); the unit's own `glyphless_bits!`/`GLYPHLESS_DISPLAY_*` copies and the two `PACIFY_GCC_BUG_81401`
+arms are recorded in the same deviation.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **177 rows -> 176**: `pgtk_draw_glyphless_glyph_string_foreground` retires, and the file's own
+`line count drifted` row is re-measured 71.7% -> **70.0%** (C 7,780 vs the port's 2,334).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2049/36/0**; `check-dead-file-coverage.py` **145/0** (**38 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen
+configuration compiles none of this file, there is no GTK or cairo to draw with here, and the three
+arm readings are **compile** readings of text this machine cannot build.
