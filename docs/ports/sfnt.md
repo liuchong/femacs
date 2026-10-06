@@ -211,6 +211,32 @@ failure(s)** (the compound row now splits at C 12739 and the table still tiles C
 `check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new,
 0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**, 0 row(s) without a
 ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0 disagreements**.
+**⑬ Slice 18's readings.**  `cargo run -q -p xtask -- build-tu src/sfnt.c` -> exit 0, **336
+bytes**, md5 `dbed68837694579185377dbb0821ab62` (still the empty object - a syntax reading).  The
+arm flip reads **0 errors at HEAD and 0 after this slice**, and the `--emit obj` reading is this
+slice's headline: the object grows from slice 17's **91,816 bytes to 98,448**, and `nm -g` now
+defines **four** C symbols - this slice's `_sfnt_interpret_compound_glyph` (C 13229's
+`TEST_STATIC`), joined by `_sfnt_interpret_control_value_program`, `_sfnt_interpret_font_program`
+and `_sfnt_interpret_simple_glyph`.  That growth is the measured consequence of the group becoming
+reachable: `sfnt_interpret_compound_glyph_1` and `_2` were dead text until this slice's exported
+wrapper called them, which is why slice 17's object had stayed at slice 16's size.
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **1 row** (3
+before) - **the line-count row alone**: `missing function` **2 -> 0** (both remaining interpreters
+landed), no `missing macro`, no `does not mention` row, and the line-count row **17,470 -> 18,147**
+Rust lines against C's 21,215, **14.5%** (was 17.7%).  The whole non-TEST half of `src/sfnt.c` is
+therefore transcribed; the only C left in the unit is C 16448-21215's `#ifdef TEST` programme
+(Owed 21).  The slice's first run read **2 errors** - an `E0308` (`sfnt_lookup_glyph_metrics` takes
+`sfnt_glyph_index`, a `u32`, where `component->glyph_index` is a `uint16_t`: `as sfnt_glyph_index`)
+and an `E0381` (the wrapper's stack `context`, whose C `memset` is the port's `write_bytes`, so the
+local is `std::mem::zeroed ()` at its declaration - the `sfnt_decompose_glyph` 4102/4152 shape) -
+and the delivered revision, the `--emit obj` run above and the HEAD baseline are all clean.  The
+other gates: `check-declarations.py` **17 declaration sites (0 forbidden, 17 allowed literals), 0
+failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range, 2029 external, 36
+allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound (a C range table), 0
+failure(s)** (the compound row now splits at C 13369 and the table still tiles C 1-21215);
+`check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new,
+0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**, 0 row(s) without a
+ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0 disagreements**.
 ## Deviations`.  Port: `femacs/src/sfnt.rs` (13,174 lines, `grep -c ''`; `extract-abi.py`'s
 > own count, 13,174, is the same newline count), both arms of every `#if` carried — except the
 > macros C 6559-8159, whose Rust home is inside the functions that call them (P-57; the range
@@ -437,7 +463,7 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 | 12296-12494 | C 12296's blank, C 12297-12303's comment and the `TEST_STATIC` `sfnt_interpret_simple_glyph` (C 12304-12484: the `ckd_mul`/`ckd_add` zone sizing, the `alloca`/`xmalloc` fork, the two point-loading loops with their flags, the phantom points, the glyph program with its `setjmp`, and the one-`xmalloc` `sfnt_instructed_outline` with its four `memcpy`s) | file gate; `TEST_STATIC` - **transcribed** (slice 16) |
 | 12495-12566 | `sfnt_transform_f26dot6` (C 12496-12566), the 26.6 twin of the ported `sfnt_transform_coordinates` (C 2551-2618, `sfnt_transform_f26dot6`'s three callers are in the compound-glyph interpreters) | file gate - **transcribed** (slice 13) |
 | 12567-12739 | C 12567's blank, C 12568-12588's comment and the `static` `sfnt_interpret_compound_glyph_2` (C 12590-12739: the `ckd_mul`/`ckd_add` zone sizing, the `alloca`/`xmalloc` fork, the two `volatile` locals, the contour renumbering and the two coordinate-copy loops, S1/S2 into the zone's original x array, the compound program with its `setjmp`, and the phantom points written back through `x_base`/`y_base`) | file gate - **transcribed** (slice 17) |
-| 12740-13369 | the two remaining compound-glyph interpreters: C 12741-12748's comment and `sfnt_interpret_compound_glyph_1` (**the next live definition**, C 12750-13201), then C 13203-13228's comment with the `TEST_STATIC` `sfnt_interpret_compound_glyph` (C 13229-13321), and C 13322-13369's blank lines, form feed and the UVS comment block (C 13326-13369, which belongs to C 13374's reader) | not this slice |
+| 12740-13369 | the last two compound-glyph interpreters: C 12741-12748's comment and `sfnt_interpret_compound_glyph_1` (C 12750-13201, the component loop with its two recursive paths), then C 13203-13228's comment with the `TEST_STATIC` `sfnt_interpret_compound_glyph` (C 13229-13321, the stack context, the outline sizing and the four `xfree` guards), and C 13322-13369's blank lines, form feed and the UVS comment block (C 13326-13369, which belongs to C 13374's reader) | file gate; `TEST_STATIC` on the wrapper - **transcribed** (slice 18) |
 | 13370-13915 | the variation-selector and table-mapping block, taken **out of order** (the two UVS readers `sfnt_read_default_uvs_table` (C 13375-13438) and `sfnt_read_nondefault_uvs_table` (C 13445-13512), `sfnt_compare_table_offsets` (C 13517-13530), `sfnt_create_uvs_context` (C 13543-13701) and `sfnt_free_uvs_context` (C 13706-13717), the two comparators `sfnt_compare_uvs_mapping` (C 13723-13737) / `sfnt_compare_unicode_value_range` (C 13742-13757), `sfnt_variation_glyph_for_char` (C 13765-13776), `sfnt_is_character_default` (C 13782-13791), and C 13795's `#if defined HAVE_MMAP && !defined TEST` arm with `sfnt_map_table` (C 13815-13856) / `sfnt_unmap_table` (C 13862-13865) plus C 13871's `#ifndef TEST` arm with `sfnt_read_table` (C 13880-13915)) | file gate; `TEST_STATIC` on the four readers, and `not (feature = "test")` on the three functions C puts inside `#ifndef TEST` - **transcribed** (slice 12) |
 | 13916-13917 | C 13915's `}` and the blank after it (the glyph-variation block starts at C 13918) | nothing to port |
 | 13918-14554 | the **glyph-variation readers**: C 13919's form feed (dropped) and the "Glyph variations." banner (C 13921-13933); `sfnt_read_fvar_table` (C 13940-14155; C 13959 the `SFNT_ENDOF` minimum, C 14009-14015 the two `ckd_mul`/`ckd_add` pairs, C 14045-14046 the `alignof (struct sfnt_instance)` pad, C 14064-14068 the two derived pointers, C 14096-14098 the `alloca`/`xmalloc` fork, C 14100-14123 the per-instance read and `coords` walk, C 14133-14139 the PostScript-name arm, C 14143/14150 the two `xfree (buffer)` guards); `sfnt_read_gvar_table` (C 14164-14318; C 14220-14225 the long/short offset fork, C 14239-14241 the `ckd_add` pair, C 14271-14272 the `global_coords` pointer, C 14276/14300 the two `ckd_add`+`lseek` pairs, C 14293-14296 the `glyph_variation_data` pointer); `sfnt_read_avar_table` (C 14327-14443; C 14373-14377 the rest-of-table read, C 14396-14399 the two `ckd_add`s, C 14404 the bounds test, C 14414-14418 the realloc and the `correspondences` split, C 14420-14432 the second pass) and `sfnt_read_packed_points` (C 14460-14554; C 14473/14493 the two `data >= end` bails, C 14483's `(uint16_t *) -1`, C 14488-14497 the two-byte count, C 14519/14524-14525 and C 14534/14539-14540 the two unpacking walks) | file gate / `TEST_STATIC` on the three table readers |
@@ -1572,6 +1598,21 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     the port writes `&raw mut *(*context).x_coordinates.offset ((i - 2) as isize)` and reads
     C's `x_base[0]`/`x_base[1]` back as `*x_base.offset (0)`/`*x_base.offset (1)` (the same for
     `y_base`), with the six `context->phantom_point_*` writes reading those two slots.
+86. **Slice 18's three shapes.**  (a) **The component loop is `sfnt_decompose_glyph`'s, statement
+    for statement** (slice 3, this file): C 12836-12867's flag tests are the file's `& 0oN` form
+    (C's `02`, `01`, `04000` and `04` are `0o2`, `0o1`, `0o4000`, `0o4`), the two anchor-path
+    failures are the `free_glyph.unwrap () (subglyph, dcontext)` shape, the recursive call passes
+    `get_glyph`/`free_glyph` straight through, and C 12949/12959's tests are the port's
+    `(*subglyph).number_of_contours != 0` and `!error.is_null ()`.  (b) **C's two chained
+    phantom-point assignments are split in C's right-to-left order** (Deviation 26): C 13047-13049's
+    `context->phantom_point_1_x = context->phantom_point_1_s = value->x_points[last_point]` is the
+    `..._1_s` write followed by `..._1_x = (*context).phantom_point_1_s`, and C 13052-13054's pair
+    the same way - the two slots the `USE_MY_METRICS` component is asked to replace.  (c) **The
+    wrapper's `memset` over a stack context stays a `write_bytes`** (slice 13's builder shape),
+    with the local zero-initialised at its declaration for the reason Deviation 10 records (the
+    measured `E0381`); C 13271-13276's chain keeps its literals inside the two `ckd_mul` calls -
+    the `sizeof *outline->x_points * 2` is the second mul's *own argument*, so the plain argument
+    form is enough there, unlike slice 16's `num_points + 2` receiver.
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
 1. **`TEST_STATIC`'s Rust form** — either a `docs/ports/excluded-macros.txt` row (`kind=syntax`,
@@ -1866,12 +1907,11 @@ object is 90,168 bytes - all three read by the compiler and never by a running p
 **no runtime evidence of any kind** for this port — no font was opened, no cmap subtable was
 parsed, no table directory was read, no glyph was outlined, no hmtx/name/meta/cvt/fpgm/prep table
 was read, no `read`/`lseek` returned a byte this port can claim to have interpreted, and no 26.6
-value was ever rounded, floored or scaled.  C 12567-13369's last two functions (`sfnt_interpret_compound_glyph_1` and the `TEST_STATIC`
-`sfnt_interpret_compound_glyph`) and C 16448-21215 are **not ported here**; the 3
-`- missing …` lines the delivered `--check` reads (2 missing functions and the line-count row)
-and the 17.7% drift are that boundary (slice 17 moved it from 4 rows and 18.7%, taking
-C 12567-12739 - `sfnt_interpret_compound_glyph_2`, which the object drops as dead code because
-nothing calls it yet).  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
+value was ever rounded, floored or scaled.  C 16448-21215 is **not ported here** - it is the whole of what is left in this unit: the
+`#ifdef TEST` programme (Owed 21), whose 1 `- missing …` line is the line-count row the delivered
+`--check` reads, and the 14.5% drift is that boundary (slice 18 moved it from 3 rows and 17.7%,
+taking C 12740-13369 - the last two compound-glyph interpreters - so that **every non-TEST
+definition in `src/sfnt.c` is transcribed**).  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
 compile-level and were measured by the compiler, not by a running program; so is the whole
 `feature = "no_ndebug"` arm (nothing flips it yet — Owed 8), and so are the four `MAYBE_UNUSED
 TEST_STATIC` readers' TEST arm and C's `#ifdef TEST` hooks in the remainder (Owed 9, Owed 12).

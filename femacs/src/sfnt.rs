@@ -73,9 +73,16 @@
 // locals, the type-spelled `sizeof *zone->…` sites), the contour renumbering and the two
 // coordinate-copy loops, S1/S2 written into the zone's original x array, and the phantom points
 // written back into `context` through the two `x_base`/`y_base` pointers.
-// **What is left after slice 17** is `sfnt_interpret_compound_glyph_1` (C 12750-13201), the
-// `TEST_STATIC` `sfnt_interpret_compound_glyph` (C 13229-13321) and C 16448-21215, the TEST
-// programme (the ledger's Owed 21).
+// **Slice 18 takes C 12740-13369** - the last two compound-glyph interpreters:
+// `sfnt_interpret_compound_glyph_1` (C 12750-13201, the component loop with the two recursive
+// paths, carried over `sfnt_decompose_glyph`'s slice-3 shape) and the `TEST_STATIC`
+// `sfnt_interpret_compound_glyph` (C 13229-13321, the stack context, the `ckd_mul`/`ckd_add`
+// outline sizing and the four `xfree` guards).  **The glyph-hinting group is complete with this
+// slice**, and the one definition C 13229's `no_mangle` exports is what makes the two `static`s
+// above it reachable: the `--emit obj` object grows from 91,816 to 98,448 bytes here, where slice
+// 17's had stayed at slice 16's size because the whole group was dead.
+// **What is left after slice 18** is C 16448-21215, the TEST programme (the ledger's Owed 21),
+// and nothing else.
 // The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
@@ -17467,4 +17474,674 @@ unsafe fn sfnt_interpret_compound_glyph_2 (glyph: *mut sfnt_glyph,
     { xfree (zone as *mut c_void); }                   // C 12736
 
   return std::ptr::null ();                            // C 12738
+}
+
+/* Internal helper for sfnt_interpret_compound_glyph.
+   RECURSION_COUNT is the number of times this function has called itself.
+
+   METRICS are the unscaled metrics of this compound glyph.
+
+   Other arguments mean the same as they do in
+   `sfnt_interpret_compound_glyph'.  Value is NULL upon success, or a
+   string describing the reason for failure.  */
+
+/* C 12750's `static const char *` is C's plain `static`; the component loop is
+   `sfnt_decompose_glyph`'s (slice 3, this file), with the interpreter's additions: a simple
+   subglyph goes through `sfnt_interpret_simple_glyph`, a compound one recurses, and the two
+   chained phantom-point assignments of C 13047-13049 and C 13052-13054 are split in C's
+   right-to-left order (Deviation 26).  The out-parameters Rust cannot prove initialised
+   (`x_base`/`y_base`/`flags_base`/`contour_base`, `sub_metrics`, `value`, `need_free`) are
+   initialised at their declarations - Deviation 10's class.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_compound_glyph_1 (glyph: *mut sfnt_glyph,
+					   interpreter: *mut sfnt_interpreter,
+					   state: *mut sfnt_graphics_state,
+					   context: *mut sfnt_compound_glyph_context,
+					   get_glyph: sfnt_get_glyph_proc,
+					   free_glyph: sfnt_free_glyph_proc,
+					   hmtx: *mut sfnt_hmtx_table,
+					   hhea: *mut sfnt_hhea_table,
+					   maxp: *mut sfnt_maxp_table,
+					   metrics: *mut sfnt_glyph_metrics,
+					   recursion_count: c_int,
+					   dcontext: *mut c_void)
+  -> *const c_char                                       // C 12750-13201
+{
+  let mut subglyph: *mut sfnt_glyph;
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut rc: c_int;
+  let mut error: *const c_char;
+  let mut need_free: bool = false;
+  let mut component: *mut sfnt_compound_glyph_component;
+  let mut x: sfnt_f26dot6;
+  let mut y: sfnt_f26dot6;
+  let mut xtemp: sfnt_f26dot6;
+  let mut ytemp: sfnt_f26dot6;
+  let mut point: size_t;
+  let mut point2: size_t;
+  let mut last_point: size_t;
+  let mut number_of_contours: size_t;
+  let mut x_base: *mut sfnt_f26dot6 = std::ptr::null_mut ();
+  let mut y_base: *mut sfnt_f26dot6 = std::ptr::null_mut ();
+  let mut contour_base: *mut size_t = std::ptr::null_mut ();
+  let mut flags_base: *mut c_uchar = std::ptr::null_mut ();
+  let mut base_index: size_t;
+  let mut contour_start: size_t;
+  let mut base_contour: size_t;
+  let mut defer_offsets: bool;
+  let mut value: *mut sfnt_instructed_outline = std::ptr::null_mut ();
+  let mut sub_metrics: sfnt_glyph_metrics = std::mem::zeroed ();
+  let mut pp1x: sfnt_f26dot6;
+  let mut pp1y: sfnt_f26dot6;
+  let mut pp1s: sfnt_f26dot6;
+  let mut pp2x: sfnt_f26dot6;
+  let mut pp2y: sfnt_f26dot6;
+  let mut pp2s: sfnt_f26dot6;
+
+  error = std::ptr::null ();                             // C 12782
+
+  /* Set up the base index.  This is the index from where on point
+     renumbering starts.
+
+     In other words, point 0 in this glyph will be 0 + base_index,
+     point 1 will be 1 + base_index, and so on.  */
+  base_index = (*context).num_points;                    // C 12789
+
+  /* And this is the index of the first contour in this glyph.  */
+  base_contour = (*context).num_end_points;              // C 12792
+
+  /* Prevent infinite loops.  Simply limit the level of nesting to the
+     maximum valid value of `max_component_depth', which is 16.  */
+
+  if recursion_count > 16                                // C 12797
+    { return c"Excessive recursion in compound glyph data".as_ptr (); }   // C 12798
+
+  /* Pacify -Wmaybe-uninitialized.  */
+  point = 0;                                             // C 12801
+  point2 = 0;
+
+  /* Compute phantom points for this glyph here.  They will be
+     subsequently overridden if a component glyph's metrics must be
+     used instead.  */
+  sfnt_compute_phantom_points (glyph, metrics, (*interpreter).scale,   // C 12806-12812
+			       &raw mut (*context).phantom_point_1_x,
+			       &raw mut (*context).phantom_point_1_y,
+			       &raw mut (*context).phantom_point_2_x,
+			       &raw mut (*context).phantom_point_2_y,
+			       &raw mut (*context).phantom_point_1_s,
+			       &raw mut (*context).phantom_point_2_s);
+
+  j = 0;                                                 // C 12814
+  while (j as size_t) < (*(*glyph).compound).num_components
+    {
+      /* Look up the associated subglyph.  */
+      component = (*(*glyph).compound).components.offset (j as isize);   // C 12817
+      subglyph = get_glyph.unwrap () ((*component).glyph_index as sfnt_glyph_index,
+				      dcontext, &raw mut need_free);   // C 12818-12819
+
+      if subglyph.is_null ()                             // C 12821
+	{ return c"Failed to obtain component glyph".as_ptr (); }   // C 12822
+
+      /* Don't defer offsets.  This variable is set if the component
+	 glyph is a compound glyph that is anchored to a previously
+	 decomposed point, and needs its coordinates adjusted after
+	 decomposition completes.  */
+      defer_offsets = false;                             // C 12828
+
+      /* Record the size of the point array before expansion.  This
+	 will be the base to apply to all points coming from this
+	 subglyph.  */
+      contour_start = (*context).num_points;             // C 12833
+
+      /* Compute the offset for the component.  */
+      if ((*component).flags as c_int & 0o2) != 0        /* ARGS_ARE_XY_VALUES */   // C 12836
+	{
+	  /* Component offsets are X/Y values as opposed to points
+	     GLYPH.  */
+
+	  if ((*component).flags as c_int & 0o1) == 0    /* ARG_1_AND_2_ARE_WORDS */   // C 12841
+	    {
+	      /* X and Y are signed bytes.  */
+	      x = (*component).argument1.b as sfnt_f26dot6;   // C 12844
+	      y = (*component).argument2.b as sfnt_f26dot6;   // C 12845
+	    }
+	  else
+	    {
+	      /* X and Y are signed words.  */
+	      x = (*component).argument1.d as sfnt_f26dot6;   // C 12850
+	      y = (*component).argument2.d as sfnt_f26dot6;   // C 12851
+	    }
+
+	  /* Now convert X and Y into device coordinates.  */
+	  x = sfnt_mul_f26dot6_fixed (x, (*interpreter).scale);   // C 12855
+	  y = sfnt_mul_f26dot6_fixed (y, (*interpreter).scale);   // C 12856
+
+	  /* If there is some kind of scale and component offsets are
+	     scaled, then apply the transform to the offset.  */
+	  if ((*component).flags as c_int & 0o4000) != 0   /* SCALED_COMPONENT_OFFSET */   // C 12860
+	    { sfnt_transform_f26dot6 (component, &raw mut x, &raw mut y, 1, 0, 0); }   // C 12861-12862
+
+	  if ((*component).flags as c_int & 0o4) != 0      /* ROUND_XY_TO_GRID */   // C 12864
+	    {
+	      x = sfnt_round_f26dot6 (x);                  // C 12866
+	      y = sfnt_round_f26dot6 (y);                  // C 12867
+	    }
+	}
+      else
+	{
+	  /* The offset is determined by matching a point location in
+	     a preceding component with a point location in the
+	     current component.  The index of the point in the
+	     previous component is established by adding
+	     component->argument1.a or component->argument1.c to
+	     point.  argument2 contains the index of the point in the
+	     current component.  */
+
+	  if ((*component).flags as c_int & 0o1) == 0      /* ARG_1_AND_2_ARE_WORDS */   // C 12880
+	    {
+	      point = base_index + (*component).argument1.a as size_t;   // C 12882
+	      point2 = (*component).argument2.a as size_t;   // C 12883
+	    }
+	  else
+	    {
+	      point = base_index + (*component).argument1.c as size_t;   // C 12887
+	      point2 = (*component).argument2.c as size_t;   // C 12888
+	    }
+
+	  /* Now, check that the anchor point specified lies inside
+	     the glyph.  */
+
+	  if point >= contour_start                          // C 12894
+	    {
+	      if need_free
+		{ free_glyph.unwrap () (subglyph, dcontext); }   // C 12897
+
+	      return c"Invalid anchor reference point".as_ptr ();   // C 12899
+	    }
+
+	  if (*subglyph).compound.is_null ()                 // C 12902
+	    {
+	      /* Detect invalid child anchor points within simple
+		 glyphs in advance.  */
+
+	      if point2 >= (*(*subglyph).simple).number_of_points + 2   // C 12907
+		{
+		  if need_free
+		    { free_glyph.unwrap () (subglyph, dcontext); }   // C 12910
+
+		  return c"Invalid component anchor point".as_ptr ();   // C 12912
+		}
+	    }
+
+	  /* First, set offsets to 0, because it is not yet possible
+	     to ascertain the position of the anchor point in the
+	     child.  That position cannot be established prior to the
+	     completion of grid-fitting.  */
+	  x = 0;                                             // C 12920
+	  y = 0;
+
+	  /* Set a flag which indicates that offsets must be resolved
+	     from the child glyph after it is loaded, but before it is
+	     incorporated into the parent glyph.  */
+	  defer_offsets = true;                              // C 12926
+	}
+
+      /* Obtain the glyph metrics.  If doing so fails, then cancel
+	 decomposition.  */
+
+      if sfnt_lookup_glyph_metrics ((*component).glyph_index as sfnt_glyph_index,   // C 12932-12934
+				    &raw mut sub_metrics, hmtx, hhea,
+				    maxp) != 0
+	{
+	  if need_free
+	    { free_glyph.unwrap () (subglyph, dcontext); }   // C 12937
+
+	  return c"Failed to obtain component metrics".as_ptr ();   // C 12939
+	}
+
+      if !(*subglyph).simple.is_null ()                   // C 12942
+	{
+	  /* Simple subglyph.  Copy over the points and contours,
+	     then transform and instruct them.
+
+	     Skip this step for glyphs without contours.  */
+
+	  if (*subglyph).number_of_contours != 0           // C 12949
+	    {
+	      /* Now instruct the simple glyph, and copy it over,
+		 including the two phantom points at the end.  */
+	      (*interpreter).state = *state;               // C 12953
+	      error = sfnt_interpret_simple_glyph (subglyph, interpreter,
+						   &raw mut sub_metrics, &raw mut value);   // C 12954-12955
+
+	      /* Cancel instructing if an error occurs.  */
+
+	      if !error.is_null ()                         // C 12959
+		{
+		  if need_free
+		    { free_glyph.unwrap () (subglyph, dcontext); }   // C 12962
+
+		  return error;                            // C 12964
+		}
+
+	      /* Figure out how many more points and contours are
+		 needed.  While phantom points are not included within
+		 the outline ultimately produced, they are temporarily
+		 appended to the outline here, so as to enable
+		 defer_offsets below to refer to them.  */
+	      eassert! ((*value).num_points >= 2);         // C 12972
+	      last_point = (*value).num_points - 2;        // C 12973
+	      number_of_contours = (*value).num_contours;  // C 12974
+
+	      /* Grow various arrays.  */
+	      rc = sfnt_expand_compound_glyph_context (context,   // C 12977-12989
+						       /* Number of
+							  new contours
+							  required.  */
+						       number_of_contours,
+						       /* Number of new
+							  points
+							  required.  */
+						       last_point,
+						       &raw mut x_base,
+						       &raw mut y_base,
+						       &raw mut flags_base,
+						       &raw mut contour_base);
+	      if rc != 0                                   // C 12990
+		{
+		  xfree (value as *mut c_void);            // C 12992
+
+		  if need_free
+		    { free_glyph.unwrap () (subglyph, dcontext); }   // C 12995
+
+		  return c"Failed to grow arrays".as_ptr ();   // C 12997
+		}
+
+	      /* Copy the values in VALUE into the context and free
+		 VALUE, including phantom points.  */
+
+	      i = 0;                                       // C 13003
+	      while i < last_point as c_int
+		{
+		  *x_base.offset (i as isize) = *(*value).x_points.offset (i as isize);   // C 13005
+		  *y_base.offset (i as isize) = *(*value).y_points.offset (i as isize);   // C 13006
+		  *flags_base.offset (i as isize) = *(*value).flags.offset (i as isize);   // C 13007
+		  i += 1;
+		}
+
+	      /* Copy over the contours.  */
+	      i = 0;                                       // C 13011
+	      while i < number_of_contours as c_int
+		{
+		  *contour_base.offset (i as isize)        // C 13012-13013
+		    = (contour_start + *(*value).contour_end_points.offset (i as isize));
+		  i += 1;
+		}
+
+	      /* Establish offsets for anchor points here.  It is
+		 possible for glyph anchors to be set to phantom
+		 points, whose coordinates cannot be established until
+		 grid fitting completes.  */
+
+	      if defer_offsets                              // C 13020
+		{
+		  x = 0;                                       // C 13022
+		  y = 0;
+
+		  /* Assert the child anchor is within the confines of
+		     the zone.  */
+		  eassert! (point2 < (*value).num_points);     // C 13027
+
+		  /* Get the points and use them to compute the
+		     offsets.  */
+
+		  xtemp = *(*context).x_coordinates.offset (point as isize);   // C 13032
+		  ytemp = *(*context).y_coordinates.offset (point as isize);   // C 13033
+		  x = (xtemp - *(*value).x_points.offset (point2 as isize));   // C 13034
+		  y = (ytemp - *(*value).y_points.offset (point2 as isize));   // C 13035
+		}
+
+	      /* If USE_MY_METRICS is present in this component, save
+		 the instructed phantom points inside CONTEXT.
+
+		 N.B. such points replace even the unrounded points
+		 within the context, as this distinction is lost in
+		 phantom points sourced from instructed glyphs.  */
+
+	      if ((*component).flags as c_int & 0o1000) != 0   /* USE_MY_METRICS */   // C 13045
+		{
+		  (*context).phantom_point_1_s                 // C 13048-13049
+		    = *(*value).x_points.offset (last_point as isize);
+		  (*context).phantom_point_1_x                 // C 13047
+		    = (*context).phantom_point_1_s;
+		  (*context).phantom_point_1_y                 // C 13050-13051
+		    = *(*value).y_points.offset (last_point as isize);
+		  (*context).phantom_point_2_s                 // C 13053-13054
+		    = *(*value).x_points.offset ((last_point + 1) as isize);
+		  (*context).phantom_point_2_x                 // C 13052
+		    = (*context).phantom_point_2_s;
+		  (*context).phantom_point_2_y                 // C 13055-13056
+		    = *(*value).y_points.offset ((last_point + 1) as isize);
+		}
+
+	      xfree (value as *mut c_void);                // C 13059
+
+	      /* Apply the transform to the points, excluding phantom
+		 points within.  */
+	      sfnt_transform_f26dot6 (component, x_base, y_base,   // C 13063-13064
+				      last_point, x, y);
+	    }
+	}
+      else
+	{
+	  /* Compound subglyph.  Decompose and instruct the glyph
+	     recursively, and then apply the transform.
+
+	     If USE_MY_METRICS is not set, save the phantom points
+	     presently in CONTEXT, then restore them afterwards.  */
+
+	  pp1x = (*context).phantom_point_1_x;             // C 13075
+	  pp1y = (*context).phantom_point_1_y;             // C 13076
+	  pp1s = (*context).phantom_point_1_s;             // C 13077
+	  pp2x = (*context).phantom_point_2_x;             // C 13078
+	  pp2y = (*context).phantom_point_2_y;             // C 13079
+	  pp2s = (*context).phantom_point_2_s;             // C 13080
+
+	  error = sfnt_interpret_compound_glyph_1 (subglyph, interpreter,   // C 13082-13088
+						   state,
+						   context, get_glyph,
+						   free_glyph, hmtx, hhea,
+						   maxp, &raw mut sub_metrics,
+						   recursion_count + 1,
+						   dcontext);
+
+	  if !error.is_null ()                             // C 13090
+	    {
+	      if need_free
+		{ free_glyph.unwrap () (subglyph, dcontext); }   // C 13093
+
+	      return error;                                // C 13095
+	    }
+
+	  if ((*component).flags as c_int & 0o1000) == 0   /* USE_MY_METRICS */   // C 13098
+	    {
+	      (*context).phantom_point_1_x = pp1x;         // C 13100
+	      (*context).phantom_point_1_y = pp1y;         // C 13101
+	      (*context).phantom_point_1_s = pp1s;         // C 13102
+	      (*context).phantom_point_2_x = pp2x;         // C 13103
+	      (*context).phantom_point_2_y = pp2y;         // C 13104
+	      (*context).phantom_point_2_s = pp2s;         // C 13105
+	    }
+
+	  /* Anchor points for glyphs with instructions must be
+	     computed after grid fitting completes.
+
+	     As such, the offset is calculated here, using the points
+	     in the loaded child compound glyph.  At present, CONTEXT
+	     incorporates the two phantom points after the end of the
+	     last component within SUBGLYPH.  */
+
+	  if defer_offsets                                 // C 13116
+	    {
+	      x = 0;                                       // C 13118
+	      y = 0;
+
+	      /* Renumber the non renumbered point2 to point into the
+		 decomposed component.  */
+	      point2 += contour_start;                     // C 13123
+
+	      /* Next, check that the non-renumbered point being
+		 anchored lies inside the glyph data that was
+		 decomposed.  */
+
+	      if point2 >= (*context).num_points           // C 13129
+		{
+		  if need_free
+		    { free_glyph.unwrap () (subglyph, dcontext); }   // C 13132
+
+		  return c"Invalid anchor reference point".as_ptr ();   // C 13134
+		}
+
+	      /* Get the points and use them to compute the
+		 offsets.  */
+
+	      xtemp = *(*context).x_coordinates.offset (point as isize);   // C 13140
+	      ytemp = *(*context).y_coordinates.offset (point as isize);   // C 13141
+	      x = (xtemp - *(*context).x_coordinates.offset (point2 as isize));   // C 13142
+	      y = (ytemp - *(*context).y_coordinates.offset (point2 as isize));   // C 13143
+	    }
+
+	  /* Subtract the two phantom points from context->num_points.
+	     This behavior is correct, as only the subglyph's phantom
+	     points may be provided as anchor points.  */
+	  eassert! ((*context).num_points - contour_start >= 2);   // C 13149
+	  (*context).num_points -= 2;                       // C 13150
+
+	  sfnt_transform_f26dot6 (component,                 // C 13152-13158
+				  (*context).x_coordinates.offset (contour_start as isize),
+				  (*context).y_coordinates.offset (contour_start as isize),
+				  /* Exclude phantom points from
+				     transformations.  */
+				  (*context).num_points - contour_start,
+				  x, y);
+	}
+
+      /* Finally, free the subglyph.  */
+      if need_free
+	{ free_glyph.unwrap () (subglyph, dcontext); }   // C 13163
+
+      j += 1;
+    }
+
+  /* Run the program for the entire compound glyph, if any.  CONTEXT
+     should not contain phantom points by this point, so append the
+     points for this glyph as a whole.  */
+
+  /* Grow various arrays to include those points.  */
+  rc = sfnt_expand_compound_glyph_context (context,       // C 13171-13179
+					   /* Number of new contours
+					      required.  */
+					   0,
+					   /* Number of new points
+					      required.  */
+					   2,
+					   &raw mut x_base, &raw mut y_base,
+					   &raw mut flags_base, &raw mut contour_base);
+
+  /* Store the phantom points within the compound glyph.  */
+  *x_base.offset (0) = (*context).phantom_point_1_x;     // C 13182
+  *x_base.offset (1) = (*context).phantom_point_2_x;     // C 13183
+  *y_base.offset (0) = (*context).phantom_point_1_y;     // C 13184
+  *y_base.offset (1) = (*context).phantom_point_2_y;     // C 13185
+  *flags_base.offset (0) = SFNT_POINT_PHANTOM as c_uchar;   // C 13186
+  *flags_base.offset (1) = SFNT_POINT_PHANTOM as c_uchar;   // C 13187
+
+  if (*(*glyph).compound).instruction_length != 0        // C 13189
+    {
+      (*interpreter).state = *state;                     // C 13191
+      error = sfnt_interpret_compound_glyph_2 (glyph, interpreter,   // C 13192-13197
+					       context, base_index,
+					       base_contour,
+					       metrics,
+					       (*context).phantom_point_1_s,
+					       (*context).phantom_point_2_s);
+    }
+
+  return error;                                          // C 13200
+}
+
+/* Interpret the compound glyph GLYPH using the specified INTERPRETER.
+   Load each component of the compound glyph GLYPH.  CONTEXT should be
+   a reference to a `struct sfnt_compound_glyph_context' that is on
+   the stack.
+
+   Use glyph metrics specified in the HMTX, HHEA and MAXP tables, and
+   the unscaled metrics for GLYPH specified in METRICS.
+
+   If the component is a simple glyph, scale and instruct it
+   immediately.
+
+   If the component is a compound glyph, then load it recursively
+   until a predetermined recursion level is exceeded.
+
+   Set INTERPRETER's state to STATE prior to instructing each
+   component.
+
+   Load component glyphs using GET_GLYPH, which should return whether
+   or not FREE_GLYPH should be called with the glyph that was loaded.
+   Call both functions with DCONTEXT as an argument.
+
+   Finally, append the resulting contours, run any compound glyph
+   program, and return the instructed outline in *VALUE.
+
+   Value is NULL upon success, and the type of error upon failure.  */
+
+/* C 13229's `TEST_STATIC` is this file's `cfg_attr`; C 13248's `memset` over the stack context
+   is the `write_bytes`-over-`size_of_val` spelling slice 13's builder used, and C 13271-13276's
+   chain keeps its `ckd_mul` literals inside the calls (inside the second mul's own argument, the
+   `sizeof *outline->x_points * 2`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_interpret_compound_glyph (glyph: *mut sfnt_glyph,
+							interpreter: *mut sfnt_interpreter,
+							state: *mut sfnt_graphics_state,
+							get_glyph: sfnt_get_glyph_proc,
+							free_glyph: sfnt_free_glyph_proc,
+							hmtx: *mut sfnt_hmtx_table,
+							hhea: *mut sfnt_hhea_table,
+							maxp: *mut sfnt_maxp_table,
+							metrics: *mut sfnt_glyph_metrics,
+							dcontext: *mut c_void,
+							value: *mut *mut sfnt_instructed_outline)
+  -> *const c_char                                       // C 13229-13321
+{
+  let mut context: sfnt_compound_glyph_context = std::mem::zeroed ();
+  let mut error: *const c_char;
+  let mut outline: *mut sfnt_instructed_outline;
+  let mut outline_size: size_t;
+  let mut temp: size_t;
+
+  /* Set up the glyph decomposition context.  */
+  std::ptr::write_bytes (&raw mut context as *mut u8, 0,
+			 std::mem::size_of_val (&context));   // C 13248
+
+  /* Now start decomposing the glyph.  */
+  error = sfnt_interpret_compound_glyph_1 (glyph, interpreter,   // C 13251-13255
+					   state, &raw mut context,
+					   get_glyph, free_glyph,
+					   hmtx, hhea, maxp,
+					   metrics, 0, dcontext);
+
+  /* If an error occurs, free the data in the context and return.  */
+
+  if !error.is_null ()                                   // C 13259
+    {
+      xfree (context.x_coordinates as *mut c_void);      // C 13261
+      xfree (context.y_coordinates as *mut c_void);      // C 13262
+      xfree (context.flags as *mut c_void);              // C 13263
+      xfree (context.contour_end_points as *mut c_void);   // C 13264
+      return error;                                      // C 13265
+    }
+
+  /* Copy the compound glyph data into an instructed outline.  */
+  outline_size = std::mem::size_of::<sfnt_instructed_outline> ();   // C 13269
+
+  let (ckd_result, ckd_overflow)
+    = size_t::overflowing_mul (context.num_end_points,
+			       std::mem::size_of::<size_t> ());   // C 13271-13272
+  temp = ckd_result;
+  if ckd_overflow
+    {
+      xfree (context.x_coordinates as *mut c_void);
+      xfree (context.y_coordinates as *mut c_void);
+      xfree (context.flags as *mut c_void);
+      xfree (context.contour_end_points as *mut c_void);
+      return c"Glyph exceeds maximum permissible size".as_ptr ();   // C 13282
+    }
+  let (ckd_result, ckd_overflow) = outline_size.overflowing_add (temp);   // C 13273
+  outline_size = ckd_result;
+  if ckd_overflow
+    {
+      xfree (context.x_coordinates as *mut c_void);
+      xfree (context.y_coordinates as *mut c_void);
+      xfree (context.flags as *mut c_void);
+      xfree (context.contour_end_points as *mut c_void);
+      return c"Glyph exceeds maximum permissible size".as_ptr ();
+    }
+  let (ckd_result, ckd_overflow)
+    = size_t::overflowing_mul (context.num_points,
+			       std::mem::size_of::<sfnt_f26dot6> () * 2);   // C 13274
+  temp = ckd_result;
+  if ckd_overflow
+    {
+      xfree (context.x_coordinates as *mut c_void);
+      xfree (context.y_coordinates as *mut c_void);
+      xfree (context.flags as *mut c_void);
+      xfree (context.contour_end_points as *mut c_void);
+      return c"Glyph exceeds maximum permissible size".as_ptr ();
+    }
+  let (ckd_result, ckd_overflow) = outline_size.overflowing_add (temp);   // C 13275
+  outline_size = ckd_result;
+  if ckd_overflow
+    {
+      xfree (context.x_coordinates as *mut c_void);
+      xfree (context.y_coordinates as *mut c_void);
+      xfree (context.flags as *mut c_void);
+      xfree (context.contour_end_points as *mut c_void);
+      return c"Glyph exceeds maximum permissible size".as_ptr ();
+    }
+  let (ckd_result, ckd_overflow)
+    = outline_size.overflowing_add (context.num_points);   // C 13276
+  outline_size = ckd_result;
+  if ckd_overflow
+    {
+      xfree (context.x_coordinates as *mut c_void);
+      xfree (context.y_coordinates as *mut c_void);
+      xfree (context.flags as *mut c_void);
+      xfree (context.contour_end_points as *mut c_void);
+      return c"Glyph exceeds maximum permissible size".as_ptr ();
+    }
+
+  /* Allocate the outline.  */
+  outline = xmalloc (outline_size) as *mut sfnt_instructed_outline;   // C 13286
+  (*outline).num_points = context.num_points;            // C 13287
+  (*outline).num_contours = context.num_end_points;      // C 13288
+  (*outline).contour_end_points = outline.offset (1) as *mut size_t;   // C 13289
+  (*outline).x_points = (*outline).contour_end_points.offset (
+      (*outline).num_contours as isize) as *mut sfnt_f26dot6;   // C 13290-13291
+  (*outline).y_points = (*outline).x_points.offset ((*outline).num_points as isize);   // C 13292
+  (*outline).flags = (*outline).y_points.offset ((*outline).num_points as isize) as *mut c_uchar;   // C 13293-13294
+
+  /* Copy over the contour endpoints, points, and flags.  Note that
+     all arrays in `context' are NULL unless num_contours is
+     non-zero.  */
+
+  if context.num_end_points != 0                         // C 13300
+    {
+      memcpy ((*outline).contour_end_points as *mut c_void,   // C 13301-13302
+	      context.contour_end_points as *const c_void,
+	      (*outline).num_contours * std::mem::size_of::<size_t> ());
+    }
+
+  if context.num_points != 0                             // C 13304
+    {
+      memcpy ((*outline).x_points as *mut c_void,        // C 13306-13307
+	      context.x_coordinates as *const c_void,
+	      (*outline).num_points * std::mem::size_of::<sfnt_f26dot6> ());
+      memcpy ((*outline).y_points as *mut c_void,        // C 13308-13309
+	      context.y_coordinates as *const c_void,
+	      (*outline).num_points * std::mem::size_of::<sfnt_f26dot6> ());
+      memcpy ((*outline).flags as *mut c_void, context.flags as *const c_void,
+	      context.num_points);                       // C 13310
+    }
+
+  /* Free the context data.  */
+  xfree (context.x_coordinates as *mut c_void);          // C 13314
+  xfree (context.y_coordinates as *mut c_void);          // C 13315
+  xfree (context.flags as *mut c_void);                  // C 13316
+  xfree (context.contour_end_points as *mut c_void);     // C 13317
+
+  *value = outline;                                      // C 13319
+  return std::ptr::null ();                              // C 13320
 }
