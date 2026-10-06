@@ -48,6 +48,21 @@ arm A's alone: A 789 -> **790**, one `cannot find type XMotionEvent` row in the 
 opened and no other movement, while U/UT/UM/UG read logs identical to their baselines - not the same
 count, the same sets, error for error and warning for warning - which is the measurement that the
 gate is the only thing between the function and those four arms.
+  Slice 85 (C 17634-17769, Decision 98) goes **34 -> 32**: `x_scroll_bar_report_motion` and
+`x_horizontal_scroll_bar_report_motion` both retire as missing functions - they are the two
+definitions C 1173-1180 forward-declares and the four calls C 14881/14884 (in
+`x_fast_mouse_position`) and C 15034/15036 (in `XTmouse_position`) were owed - and no token row
+arrives.  Neither function carries a C `#if`, so all five arms read them: A 790 -> **786**, U 822
+-> **818**, UT 808 -> **804**, UM 809 -> **805**, UG 793 -> **789**, which is exactly the four
+retirements in every arm and 0 additions.  The slice's other reading is what the baseline was
+*hiding*: with those four calls unresolved, the MIR diagnostics of `x_fast_mouse_position`'s body
+did not run, and landing the definitions revealed six `E0381` rows (C 14866-14868's out-parameters
+`dummy`/`root_x`/`root_y`/`win_x`/`win_y`/`mask`, handed to C 14933's `x_query_pointer`) and two
+`unused_mut` warnings (C 14869-14870's `bar`/`dpyinfo`) in that body.  The six are zeroed per
+Deviation 12, so the error delta above is the four retirements alone; the two warnings stay (C's
+declaration-then-single-assignment shape, the `unused_mut` class the baseline already carries 19
+of) and the discrimination is measured: putting one unresolved name back into that body takes the
+same run from 71 warnings / 7 `E0381` rows to 69 / 1.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -241,8 +256,8 @@ gate is the only thing between the function and those four arms.
 - [ ] x_scroll_bar_redraw  (line 17459, static)
 - [x] x_scroll_bar_handle_click  (line 17503, static)
 - [x] x_scroll_bar_note_movement  (line 17606, static)
-- [ ] x_scroll_bar_report_motion  (line 17638, static)
-- [ ] x_horizontal_scroll_bar_report_motion  (line 17707, static)
+- [x] x_scroll_bar_report_motion  (line 17638, static)
+- [x] x_horizontal_scroll_bar_report_motion  (line 17707, static)
 - [ ] x_scroll_bar_clear  (line 17777, static)
 - [ ] x_net_wm_state  (line 18011, static)
 - [ ] x_flush_dirty_back_buffer_on  (line 18043, static)
@@ -4041,6 +4056,42 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **35 -> 34**: the function retires as a missing item and no token row
   arrives (`x_get_wm_check_window does not mention false` remains the standing one); the line-count
   row moves to **27,033** against C's 33,125 (18.4% drift, was 26,986 / 18.5%).
+
+### 98. Slice 85 (C 17634-17769): the two report-motion functions, and the diagnostics a baseline was hiding
+
+* **Two functions, ungated, and they close four calls slice 67 left.**  `x_scroll_bar_report_motion`
+  (C 17637-17700) and `x_horizontal_scroll_bar_report_motion` (C 17706-17769) are the definitions C
+  1173-1180's forward declarations name; the callers `x_fast_mouse_position` (C 14881/14884) and
+  `XTmouse_position` (C 15034/15036) have carried them as unresolved rows since slice 67's readings
+  recorded their arrival.  Neither definition sits under a C `#if`, so all five arms compile both -
+  and the arm delta is uniform: four retirements, no additions.
+* **Five shapes.**  `x_query_pointer` is *this unit's own* definition (C 14610-14628,
+  `src/xterm.rs` 22888, `#[unsafe(no_mangle)] pub unsafe extern "C" fn`), so the two new calls - C
+  17655 and C 17724 - resolve rather than adding a row (the reconnoitring note's "no mirror row"
+  guess was wrong and the compiler says so, measured: `grep -c 'cannot find function
+  x_query_pointer'` is 0 before and after).  The output locals (`dummy_window`, `dummy_coord`,
+  `dummy_mask`, `win_x`, `win_y`) are C's own uninitialised declarations and are zeroed per
+  Deviation 12 - the price Decision 36's round already recorded, and here it turned out to cost no
+  warning at all (the `&raw mut` uses are what makes `mut` necessary, so no `unused_mut` row
+  appears).  `XSETINT` on a dereferenced pointer states the EMACS_INT cast (C 17691-17692), C
+  17760-17761 hands its two writes over in C's own swapped order (`*y` first), and
+  `f->mouse_moved = false` is this unit's `frame_bits!` accessor (PORTING.md P-80).
+* **The slice's real reading is what the baseline was hiding.**  Resolving the four calls makes
+  `x_fast_mouse_position`'s body type-check, which is when its MIR diagnostics run for the first
+  time: six `E0381 used binding ... isn't initialized` rows (C 14866-14868's `dummy`, `root_x`,
+  `root_y`, `win_x`, `win_y`, `mask`, all handed to C 14933's `x_query_pointer` call) and two
+  `unused_mut` warnings (C 14869-14870's `bar` and `dpyinfo`, C's declaration-then-single-assignment
+  shape).  Neither is this slice's text and neither existed in the baseline's readings - and the
+  discrimination is measured, not asserted: with those six locals left exactly as C declares them,
+  putting one unresolved name (`let _ = no_such_name_xyz;`) back into the same body takes the run
+  from **7 `E0381` rows / 71 warnings** to **1 / 69** (the 1 is the long-standing `lmsg` row), i.e.
+  an unresolved name suppresses its body's MIR diagnostics.  That is the mechanism behind slice 67's
+  silent readings, and it is why the six rows are *fixed* here (zeroed per Deviation 12 - the
+  reading's job is to leave the ledger no hidden rows) while the two warnings stay, recorded rather
+  than silenced: C's shape is the shape.
+* **What `--check` reads.**  **34 -> 32**: both functions retire as missing items and no token row
+  arrives (`x_get_wm_check_window does not mention false` remains the standing one); the line-count
+  row moves to **27,190** against C's 33,125 (17.9% drift, was 27,033 / 18.4%).
 
 ## Evidence
 
@@ -7906,3 +7957,47 @@ against C's 33,125 (18.4% drift, was 26,986 / 18.5%).
 **Not claimed.**  The frozen configuration compiles none of this file: no motion was noted, no frame
 flag was set and no handle was moved; `XMotionEvent` and the field reads through it are unresolved
 text.
+
+### Slice 85's readings (C 17634-17769), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s85/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s85/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`.
+Both sides were measured in all five arms on this revision.
+
+| arm | HEAD's unit (slice 84 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 790 / 69 | **786 / 71** | **-4** |
+| U `+use_toolkit_scroll_bars` | 822 / 69 | **818 / 71** | **-4** |
+| UT `U +use_x_toolkit` | 808 / 68 | **804 / 70** | **-4** |
+| UM `UT +use_motif` | 809 / 68 | **805 / 70** | **-4** |
+| UG `U +use_gtk` | 793 / 71 | **789 / 73** | **-4** |
+
+**Retirements and additions, by name** (diffed as full `error[E..]: <message>` head lines with
+counts, both directions): every arm retires `cannot find function x_scroll_bar_report_motion` x2 and
+`cannot find function x_horizontal_scroll_bar_report_motion` x2 - C 14881/14884's and C
+15034/15036's two call sites each - and **adds nothing**: the two new calls to `x_query_pointer`
+(C 17655/17724) resolve, because that name is this unit's own C 14610-14628 definition.
+
+**The two revealed warning rows.**  Each arm's warning set moves by exactly two rows, both in
+slice 67's body: `warning: variable does not need to be mutable` at C 14869's `bar` and C 14870's
+`dpyinfo`.  They are not this slice's text; they are what the baseline could not show, and the
+probe that measures it is in Decision 98 3 (one unresolved name back into the same body: 7 `E0381`
+rows / 71 warnings -> 1 / 69).  The six `E0381` rows the same reveal produces are zeroed per
+Deviation 12, so they are *not* in the table above - the arms' error deltas are the four retirements
+alone.
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical warning
+sets for the frozen configuration (which compiles neither scroll-bar build, so the revealed rows are
+probe readings, not build readings).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` ahead of C 17645's
+`let f: *mut frame = XFRAME (...)` in the vertical function moves A 786 -> 787 with `E0308` 13 -> 14,
+anchored at `build/probes/xterm/_root.rs:27071:18`; removing it returns A to the table.
+
+**What `--check` reads.**  **34 -> 32** as Decision 98 4 says, with the line-count row at **27,190**
+against C's 33,125 (17.9% drift, was 27,033 / 18.4%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no pointer was queried, no
+motion was reported, no scroll-bar part was written and no frame flag was cleared; the readings
+above are compile readings of text this machine cannot build.

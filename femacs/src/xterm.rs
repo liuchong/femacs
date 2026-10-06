@@ -23183,12 +23183,12 @@ unsafe fn x_fast_mouse_position (fp: *mut *mut frame, insist: c_int,
 				 bar_window: *mut Lisp_Object, part: *mut scroll_bar_part,
 				 x: *mut Lisp_Object, y: *mut Lisp_Object, timestamp: *mut Time)
 {
-  let mut root_x: c_int;                                                // C 14866
-  let mut root_y: c_int;
-  let mut win_x: c_int;
-  let mut win_y: c_int;
-  let mut mask: c_uint;                                                 // C 14867
-  let mut dummy: Window;                                                // C 14868
+  let mut root_x: c_int = 0;                                            // C 14866
+  let mut root_y: c_int = 0;
+  let mut win_x: c_int = 0;
+  let mut win_y: c_int = 0;
+  let mut mask: c_uint = 0;                                             // C 14867
+  let mut dummy: Window = 0;                                            // C 14868
   let mut bar: *mut scroll_bar;                                         // C 14869
   let mut dpyinfo: *mut x_display_info;                                 // C 14870
   let mut tail: Lisp_Object;                                            // C 14871
@@ -27029,5 +27029,162 @@ unsafe fn x_scroll_bar_note_movement (bar: *mut scroll_bar, event: *const XMotio
     }
 }
 
-/* C 17632's `#endif /* !USE_TOOLKIT_SCROLL_BARS */` closes the pair; the next definition is
-   `x_scroll_bar_report_motion` (C 17637-17700).  */
+/* C 17634-17769: the two report-motion functions C 1173-1180 forward-declares, and the four
+   call sites slice 67's `XTmouse_position` (C 14881/14884) and `x_fast_mouse_position`
+   (C 15034/15036) were owed.  Neither carries a C `#if`, so all five arms compile both.  */
+
+/* Return information to the user about the current position of the mouse
+   on the scroll bar.  */
+
+/// C 17637-17700: `static void x_scroll_bar_report_motion (struct frame **fp, Lisp_Object
+/// *bar_window, enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y, Time *timestamp)` -
+/// C's `static`, so a plain `unsafe fn`, and ungated.  Four shapes: the five locals stay C's
+/// own declarations - the four outputs are the callee's `&raw mut` arguments (the C 15040-15044
+/// shape two screens up) and `dummy_window`/`dummy_coord`/`dummy_mask` are what the garbage
+/// arguments C 17658-17665 pass are read into; `x_query_pointer` is this unit's own definition
+/// (C 14610-14628, `src/xterm.rs` 22888), so both calls resolve - the same name C 14933 and
+/// C 15057's two landed call sites already call;
+/// `XSETINT` on a dereferenced pointer states the EMACS_INT cast (C 17691-17692); and
+/// `f->mouse_moved = false` is this unit's `frame_bits!` accessor (PORTING.md P-80).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_scroll_bar_report_motion (fp: *mut *mut frame, bar_window: *mut Lisp_Object,
+				    part: *mut scroll_bar_part, x: *mut Lisp_Object,
+				    y: *mut Lisp_Object, timestamp: *mut Time)
+{
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (*fp);        // C 17642
+  let bar: *mut scroll_bar = (*dpyinfo).last_mouse_scroll_bar;         // C 17643
+  let w: Window = (*bar).x_window;                                     // C 17644
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (XWINDOW ((*bar).window))); // C 17645
+  let mut win_x: c_int = 0;                                            // C 17646
+  let mut win_y: c_int = 0;
+  let mut dummy_window: Window = 0;                                    // C 17647
+  let mut dummy_coord: c_int = 0;                                      // C 17648
+  let mut dummy_mask: c_uint = 0;                                      // C 17649
+
+  block_input ();                                                      // C 17651
+
+  /* Get the mouse's position relative to the scroll bar window, and
+     report that.  */
+  if x_query_pointer (FRAME_X_DISPLAY! (f), w,                         // C 17655
+
+		      /* Root, child, root x and root y.  */
+		      &raw mut dummy_window, &raw mut dummy_window,    // C 17658
+		      &raw mut dummy_coord, &raw mut dummy_coord,      // C 17659
+
+		      /* Position relative to scroll bar.  */
+		      &raw mut win_x, &raw mut win_y,                  // C 17662
+
+		      /* Mouse buttons and modifier keys.  */
+		      &raw mut dummy_mask) != 0                        // C 17665
+    {
+      let top_range: c_int = VERTICAL_SCROLL_BAR_TOP_RANGE! (f, (*bar).height); // C 17667
+
+      win_y -= VERTICAL_SCROLL_BAR_TOP_BORDER! ();                     // C 17669
+
+      if (*bar).dragging != -1                                         // C 17671
+	{ win_y -= (*bar).dragging; }                                  // C 17672
+
+      if win_y < 0                                                     // C 17674
+	{ win_y = 0; }                                                 // C 17675
+      if win_y > top_range                                             // C 17676
+	{ win_y = top_range; }                                         // C 17677
+
+      (*fp) = f;                                                       // C 17679
+      (*bar_window) = (*bar).window;                                   // C 17680
+
+      if (*bar).dragging != -1                                         // C 17682
+	{ (*part) = scroll_bar_handle; }                               // C 17683
+      else if win_y < (*bar).start                                     // C 17684
+	{ (*part) = scroll_bar_above_handle; }
+      else if win_y < (*bar).end + VERTICAL_SCROLL_BAR_MIN_HANDLE! ()  // C 17686
+	{ (*part) = scroll_bar_handle; }
+      else
+	{ (*part) = scroll_bar_below_handle; }
+
+      XSETINT! ((*x), win_y as EMACS_INT);                             // C 17691
+      XSETINT! ((*y), top_range as EMACS_INT);                         // C 17692
+
+      frame_bits! (mouse_moved, f, false);                             // C 17694
+      (*dpyinfo).last_mouse_scroll_bar = std::ptr::null_mut ();        // C 17695
+      (*timestamp) = (*dpyinfo).last_mouse_movement_time;              // C 17696
+    }
+
+  unblock_input ();                                                    // C 17699
+}
+
+/* Return information to the user about the current position of the mouse
+   on the scroll bar.  */
+
+/// C 17706-17769: `static void x_horizontal_scroll_bar_report_motion (struct frame **fp,
+/// Lisp_Object *bar_window, enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y, Time
+/// *timestamp)` - the vertical twin, ungated the same way, and C 17760-17761 hands the two
+/// `XSETINT`s over in C's own swapped order (`*y` first, then `*x`); the one new shape is C
+/// 17736's `left_range` local, which is the horizontal range macro slice 83's C 17537 already
+/// spells (`HORIZONTAL_SCROLL_BAR_LEFT_RANGE!`).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_horizontal_scroll_bar_report_motion (fp: *mut *mut frame, bar_window: *mut Lisp_Object,
+					       part: *mut scroll_bar_part, x: *mut Lisp_Object,
+					       y: *mut Lisp_Object, timestamp: *mut Time)
+{
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (*fp);        // C 17711
+  let bar: *mut scroll_bar = (*dpyinfo).last_mouse_scroll_bar;         // C 17712
+  let w: Window = (*bar).x_window;                                     // C 17713
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (XWINDOW ((*bar).window))); // C 17714
+  let mut win_x: c_int = 0;                                            // C 17715
+  let mut win_y: c_int = 0;
+  let mut dummy_window: Window = 0;                                    // C 17716
+  let mut dummy_coord: c_int = 0;                                      // C 17717
+  let mut dummy_mask: c_uint = 0;                                      // C 17718
+
+  block_input ();                                                      // C 17720
+
+  /* Get the mouse's position relative to the scroll bar window, and
+     report that.  */
+  if x_query_pointer (FRAME_X_DISPLAY! (f), w,                         // C 17724
+
+		      /* Root, child, root x and root y.  */
+		      &raw mut dummy_window, &raw mut dummy_window,    // C 17727
+		      &raw mut dummy_coord, &raw mut dummy_coord,      // C 17728
+
+		      /* Position relative to scroll bar.  */
+		      &raw mut win_x, &raw mut win_y,                  // C 17731
+
+		      /* Mouse buttons and modifier keys.  */
+		      &raw mut dummy_mask) != 0                        // C 17734
+    {
+      let left_range: c_int = HORIZONTAL_SCROLL_BAR_LEFT_RANGE! (f, (*bar).width); // C 17736
+
+      win_x -= HORIZONTAL_SCROLL_BAR_LEFT_BORDER! ();                  // C 17738
+
+      if (*bar).dragging != -1                                         // C 17740
+	{ win_x -= (*bar).dragging; }                                  // C 17741
+
+      if win_x < 0                                                     // C 17743
+	{ win_x = 0; }                                                 // C 17744
+      if win_x > left_range                                            // C 17745
+	{ win_x = left_range; }                                        // C 17746
+
+      (*fp) = f;                                                       // C 17748
+      (*bar_window) = (*bar).window;                                   // C 17749
+
+      if (*bar).dragging != -1                                         // C 17751
+	{ (*part) = scroll_bar_horizontal_handle; }                    // C 17752
+      else if win_x < (*bar).start                                     // C 17753
+	{ (*part) = scroll_bar_before_handle; }
+      else if win_x < (*bar).end + HORIZONTAL_SCROLL_BAR_MIN_HANDLE! () // C 17755
+	{ (*part) = scroll_bar_handle; }
+      else
+	{ (*part) = scroll_bar_after_handle; }
+
+      XSETINT! ((*y), win_x as EMACS_INT);                             // C 17760
+      XSETINT! ((*x), left_range as EMACS_INT);                        // C 17761
+
+      frame_bits! (mouse_moved, f, false);                             // C 17763
+      (*dpyinfo).last_mouse_scroll_bar = std::ptr::null_mut ();        // C 17764
+      (*timestamp) = (*dpyinfo).last_mouse_movement_time;              // C 17765
+    }
+
+  unblock_input ();                                                    // C 17768
+}
+
+/* C 17772's comment opens `x_scroll_bar_clear` (C 17777-17809), the next definition.  */
