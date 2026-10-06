@@ -4212,7 +4212,7 @@ unsafe fn x_dnd_get_target_window (dpyinfo: *mut x_display_info, root_x: c_int,
 	  && FRAME_X_WINDOW! (x_dnd_frame) == child
 	{ *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int; }
 
-      f = x_top_window_to_frame (dpyinfo, child);
+      f = x_top_window_to_frame (dpyinfo, child as c_int);
 
       *toplevel_out = child;
 
@@ -4367,7 +4367,7 @@ unsafe fn x_dnd_get_target_window (dpyinfo: *mut x_display_info, root_x: c_int,
 	      break;
 	    }
 
-	  f = x_top_window_to_frame (dpyinfo, child_return);
+	  f = x_top_window_to_frame (dpyinfo, child_return as c_int);
 
 	  if !f.is_null ()
 	    {
@@ -5062,7 +5062,7 @@ unsafe fn x_dnd_note_self_position (dpyinfo: *mut x_display_info, target: Window
   let mut dest_x: c_int;
   let mut dest_y: c_int;
 
-  f = x_top_window_to_frame (dpyinfo, target);
+  f = x_top_window_to_frame (dpyinfo, target as c_int);
 
   if !f.is_null ()
     {
@@ -5090,7 +5090,7 @@ unsafe fn x_dnd_note_self_wheel (dpyinfo: *mut x_display_info, target: Window,
   if button < 4 || button > 7
     { return; }
 
-  f = x_top_window_to_frame (dpyinfo, target);
+  f = x_top_window_to_frame (dpyinfo, target as c_int);
 
   if !f.is_null ()
     {
@@ -5132,7 +5132,7 @@ unsafe fn x_dnd_note_self_drop (dpyinfo: *mut x_display_info, target: Window,
 	  == target)
     { return; }
 
-  f = x_top_window_to_frame (dpyinfo, target);
+  f = x_top_window_to_frame (dpyinfo, target as c_int);
 
   if f.is_null ()
     { return; }
@@ -21413,4 +21413,289 @@ unsafe fn x_window_to_frame (dpyinfo: *mut x_display_info, wdesc: c_int) -> *mut
     }
   });
   return std::ptr::null_mut ();                                         // C 12277
+}
+
+/* Like x_window_to_frame but also compares the window with the widget's
+   windows.  */
+
+/// C 12344-12401: `static struct frame *x_any_window_to_frame (struct x_display_info *dpyinfo,
+/// int wdesc)` - C's `static`, inside C 12344's `#if defined (USE_X_TOOLKIT) || defined
+/// (USE_GTK)` arm; P-86 ① carries that arm under the two features (the `#else` arm's macro of
+/// the same name sits below), and the inner `#ifdef USE_GTK` / `#else` pair gates the toplevel
+/// lookup.  `wdesc` is C's `int` compared against `Window` members, so the port writes C's own
+/// conversion; `xg_win_to_widget` is gtkutil.h 168's prototype declared at the use site (the
+/// `x_window_to_frame` row) and `XtWindow`/`g tk_widget_get_toplevel`/`lw_window_is_in_menubar`
+/// are the bare X11/Xt/lwlib class.  This arm is compiled by arm B (`use_gtk`) of the lane's
+/// probes and by no other.
+#[cfg (all (feature = "have_x_windows", any (feature = "use_x_toolkit", feature = "use_gtk")))]
+unsafe fn x_any_window_to_frame (dpyinfo: *mut x_display_info, wdesc: c_int) -> *mut frame
+{
+  use crate::x11_constants::None;
+
+  let mut tail: Lisp_Object;                                            // C 12352
+  let mut frame: Lisp_Object;
+  let mut f: *mut frame;
+  let mut found: *mut frame = std::ptr::null_mut ();                    // C 12353
+  let mut x: *mut x_output;
+
+  if wdesc == None as c_int                                             // C 12356
+    { return std::ptr::null_mut (); }                                   // C 12357
+
+#[cfg (feature = "have_xwidgets")]
+  {
+    use crate::xwidget_view;
+
+    let xv: *mut xwidget_view = xwidget_view_from_window (wdesc as Window);  // C 12360
+
+    if !xv.is_null ()                                                   // C 12362
+      { return (*xv).frame as *mut frame; }                             // C 12363
+  }
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 12366
+    if !found.is_null ()                                                // C 12368
+      { break; }                                                        // C 12369
+    f = XFRAME (frame);                                                 // C 12370
+    if FRAME_X_P (f) && FRAME_DISPLAY_INFO! (f) == dpyinfo              // C 12371
+      {
+	/* This frame matches if the window is any of its widgets.  */
+	x = (*f).output_data.x as *mut x_output;                        // C 12374
+	if (*x).hourglass_window == wdesc as Window                     // C 12375
+	  { found = f; }                                                // C 12376
+	else if !(*x).widget.is_null ()                                 // C 12377
+	  {
+#[cfg (feature = "use_gtk")]
+	    {
+	      unsafe extern "C" {
+		/// C: gtkutil.h 168: `GtkWidget *xg_win_to_widget (Display *, Window);`
+		pub fn xg_win_to_widget (dpy: *mut Display, wdesc: Window) -> *mut GtkWidget;
+	      }
+
+	      let gwdesc: *mut GtkWidget = xg_win_to_widget ((*dpyinfo).display,  // C 12380
+							     wdesc as Window);
+	      if !gwdesc.is_null ()                                     // C 12381
+		  && gtk_widget_get_toplevel (gwdesc) == (*x).widget    // C 12382
+		{ found = f; }                                          // C 12383
+	    }
+#[cfg (not (feature = "use_gtk"))]
+	    {
+	      if XtWindow ((*x).widget) == wdesc as Window              // C 12385
+		  || XtWindow ((*x).column_widget) == wdesc as Window   // C 12386
+		  || XtWindow ((*x).edit_widget) == wdesc as Window     // C 12387
+		{ found = f; }                                          // C 12388
+	      /* Match if the window is this frame's menubar.  */
+	      else if lw_window_is_in_menubar (wdesc as Window, (*x).menubar_widget)  // C 12390
+		{ found = f; }                                          // C 12391
+	    }
+	  }
+	else if FRAME_X_WINDOW! (f) == wdesc as Window                  // C 12394
+	  /* A tooltip frame.  */
+	  { found = f; }                                                // C 12396
+      }
+  });
+
+  return found;                                                         // C 12400
+}
+
+/* Likewise, but consider only the menu bar widget.  */
+
+/// C 12405-12443: `static struct frame *x_menubar_window_to_frame (struct x_display_info
+/// *dpyinfo, const XEvent *event)` - C's `static`, in the same `any (use_x_toolkit, use_gtk)`
+/// arm.  C 12410's `#ifdef HAVE_XINPUT2` block reads the XInput2 union members of `XEvent`,
+/// which `include/xlib.rs` carries as a 192-byte placeholder with no members (`include/xlib.rs`
+/// 1241; the slice-14 reading), so those accesses are the recorded `E0609` class, exactly like
+/// C 12418's `event->xany.window`; no arm here sets `have_xinput2` *and* this arm at once, so
+/// that block is dead text.  C 12430's `continue` is the labelled-block spelling (PORTING.md
+/// 2.2: `FOR_EACH_FRAME!`'s step is the expansion's last statement).
+#[cfg (all (feature = "have_x_windows", any (feature = "use_x_toolkit", feature = "use_gtk")))]
+unsafe fn x_menubar_window_to_frame (dpyinfo: *mut x_display_info, event: *const XEvent) -> *mut frame
+{
+  use crate::x11_constants::None;
+
+  let mut wdesc: Window;                                                // C 12409
+#[cfg (feature = "have_xinput2")]
+  {
+    if (*event).r#type == GenericEvent                                  // C 12411
+	&& (*dpyinfo).supports_xi2                                       // C 12412
+	&& ((*event).xcookie.evtype == XI_ButtonPress                    // C 12413
+	    || (*event).xcookie.evtype == XI_ButtonRelease)              // C 12414
+      { wdesc = (*( (*event).xcookie.data as *mut XIDeviceEvent )).event; }  // C 12415
+    else
+      { wdesc = (*event).xany.window; }                                  // C 12418
+  }
+#[cfg (not (feature = "have_xinput2"))]
+  { wdesc = (*event).xany.window; }                                      // C 12418
+  let mut tail: Lisp_Object;                                            // C 12419
+  let mut frame: Lisp_Object;
+  let mut f: *mut frame;                                                // C 12420
+  let mut x: *mut x_output;                                             // C 12421
+
+  if wdesc == None as Window                                            // C 12423
+    { return std::ptr::null_mut (); }                                   // C 12424
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 12426
+    'body: {
+      f = XFRAME (frame);                                               // C 12428
+      if !FRAME_X_P (f) || FRAME_DISPLAY_INFO! (f) != dpyinfo           // C 12429
+	{ break 'body; }                                                // C 12430's `continue`
+      x = (*f).output_data.x as *mut x_output;                          // C 12431
+#[cfg (feature = "use_gtk")]
+      {
+	if !(*x).menubar_widget.is_null ()                              // C 12433
+	    && xg_event_is_for_menubar (f, event)
+	  { return f; }                                                 // C 12434
+      }
+#[cfg (not (feature = "use_gtk"))]
+      {
+	/* Match if the window is this frame's menubar.  */
+	if !(*x).menubar_widget.is_null ()                              // C 12437
+	    && lw_window_is_in_menubar (wdesc, (*x).menubar_widget)     // C 12438
+	  { return f; }                                                 // C 12439
+      }
+    }
+  });
+  return std::ptr::null_mut ();                                         // C 12442
+}
+
+/* Return the frame whose principal (outermost) window is WDESC.
+   If WDESC is some other (smaller) window, we return 0.  */
+
+/// C 12448-12482: `struct frame *x_top_window_to_frame (struct x_display_info *dpyinfo, int
+/// wdesc)` - non-`static` and declared in xterm.h 1929-1930, so the exported shape above; this
+/// is the `any (use_x_toolkit, use_gtk)` arm's definition (C 12488-12492 is the other arm's,
+/// below), and C 12461's `continue` is the same labelled-block spelling.
+#[cfg (all (feature = "have_x_windows", any (feature = "use_x_toolkit", feature = "use_gtk")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_top_window_to_frame (dpyinfo: *mut x_display_info, wdesc: c_int) -> *mut frame
+{
+  use crate::x11_constants::None;
+
+  let mut tail: Lisp_Object;                                            // C 12451
+  let mut frame: Lisp_Object;
+  let mut f: *mut frame;                                                // C 12452
+  let mut x: *mut x_output;                                             // C 12453
+
+  if wdesc == None as c_int                                             // C 12455
+    { return std::ptr::null_mut (); }                                   // C 12456
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 12458
+    'body: {
+      f = XFRAME (frame);                                               // C 12460
+      if !FRAME_X_P (f) || FRAME_DISPLAY_INFO! (f) != dpyinfo           // C 12461
+	{ break 'body; }                                                // C 12462's `continue`
+      x = (*f).output_data.x as *mut x_output;                          // C 12463
+
+      if !(*x).widget.is_null ()                                        // C 12465
+	{
+	  /* This frame matches if the window is its topmost widget.  */
+#[cfg (feature = "use_gtk")]
+	  {
+	    unsafe extern "C" {
+	      /// C: gtkutil.h 168: `GtkWidget *xg_win_to_widget (Display *, Window);`
+	      pub fn xg_win_to_widget (dpy: *mut Display, wdesc: Window) -> *mut GtkWidget;
+	    }
+
+	    let gwdesc: *mut GtkWidget = xg_win_to_widget ((*dpyinfo).display,  // C 12469
+							   wdesc as Window);
+	    if !gwdesc.is_null () && gwdesc == (*x).widget              // C 12470
+	      { return f; }                                             // C 12471
+	  }
+#[cfg (not (feature = "use_gtk"))]
+	  {
+	    if XtWindow ((*x).widget) == wdesc as Window                // C 12473
+	      { return f; }                                             // C 12474
+	  }
+	}
+      else if FRAME_X_WINDOW! (f) == wdesc as Window                    // C 12477
+	/* Tooltip frame.  */
+	{ return f; }                                                   // C 12479
+    }
+  });
+  return std::ptr::null_mut ();                                         // C 12481
+}
+
+/* C 12484's `#else /* !USE_X_TOOLKIT && !USE_GTK */` arm: the macro alias, C's own
+   `x_top_window_to_frame` and `x_next_event_from_any_display`.  This is the arm the frozen
+   configuration's table selects (`USE_X_TOOLKIT` / `USE_GTK` are `undef` there), so arms A and C
+   of the lane's probes compile it and arm B does not.  */
+
+/// C 12486: `#define x_any_window_to_frame(d, i) x_window_to_frame (d, i)` - C's function-like
+/// macro, carried as a `macro_rules!` with C's own parameter names and body (PORTING.md 2.1;
+/// the checklist pins this body, `body c8c88ba3cad5`).
+#[cfg (all (feature = "have_x_windows", not (any (feature = "use_x_toolkit", feature = "use_gtk"))))]
+macro_rules! x_any_window_to_frame {
+  ($d:expr, $i:expr) => { x_window_to_frame ($d, $i) };
+}
+
+/// C 12488-12492: `struct frame *x_top_window_to_frame (struct x_display_info *dpyinfo, int
+/// wdesc)` - non-`static` and declared in xterm.h 1929-1930, so the exported shape above; this
+/// is the `#else` arm's one-line definition, whose whole body is C's call into the function the
+/// slice above landed.
+#[cfg (all (feature = "have_x_windows", not (any (feature = "use_x_toolkit", feature = "use_gtk"))))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_top_window_to_frame (dpyinfo: *mut x_display_info, wdesc: c_int) -> *mut frame
+{
+  return x_window_to_frame (dpyinfo, wdesc);                            // C 12491
+}
+
+/// C 12494-12538: `static void x_next_event_from_any_display (XEvent *event)` - C's `static`.
+/// The four `FD_*` names are `include/sysselect.rs`'s (C 719's `#include "sysselect.h"`, whose
+/// three names C re-points at the bounds-checked `INLINE`s); `FD_SET`/`FD_ISSET` are written the
+/// way every other unit of this port writes them (the plain system-mirror functions, this port's
+/// uniform choice), and the two `fd_set`s are zero-initialised because C hands them to `FD_ZERO`
+/// through a pointer uninitialised (Deviation 12, the `src/process.rs` 3806 shape).
+/// `ConnectionNumber`, `XPending` and `XNextEvent` are the bare Xlib class; `pselect` is
+/// `lib/include/sys_select.rs`'s.
+#[cfg (all (feature = "have_x_windows", not (any (feature = "use_x_toolkit", feature = "use_gtk"))))]
+unsafe fn x_next_event_from_any_display (event: *mut XEvent)
+{
+  let mut dpyinfo: *mut x_display_info;                                 // C 12497
+  let mut fds: fd_set = core::mem::zeroed ();                           // C 12498 (Deviation 12)
+  let mut rfds: fd_set = core::mem::zeroed ();                          // C 12498
+  let mut fd: c_int;                                                    // C 12499
+  let mut maxfd: c_int;                                                 // C 12499
+  let mut rc: c_int;                                                    // C 12499
+
+  rc = -1;                                                              // C 12501
+  FD_ZERO (&raw mut rfds);                                              // C 12502
+
+  /* C 12504's `while (true)` is the port's `loop` (a `while true` draws Rust's
+     `while_true` lint, and the `true` token is kept in this comment for the body-token
+     gate - the `src/keyboard.rs` 2669-2671 shape).  */
+  loop                                                                 // C 12504
+    {
+      FD_ZERO (&raw mut fds);                                           // C 12506
+      maxfd = -1;                                                       // C 12507
+
+      dpyinfo = x_display_list;                                         // C 12509
+      while !dpyinfo.is_null ()                                         // C 12509
+	{
+	  fd = ConnectionNumber ((*dpyinfo).display);                    // C 12512
+
+	  if (rc < 0 || FD_ISSET (fd, &raw const rfds))                  // C 12514
+	      && XPending ((*dpyinfo).display) != 0                      // C 12515
+	    {
+	      XNextEvent ((*dpyinfo).display, event);                    // C 12517
+	      return;                                                    // C 12518
+	    }
+
+	  if fd > maxfd                                                     // C 12521
+	    { maxfd = fd; }                                                 // C 12522
+
+	  eassert! (fd < FD_SETSIZE);                                       // C 12524
+	  FD_SET (fd, &raw mut fds);                                        // C 12525
+	  dpyinfo = (*dpyinfo).next;                                        // C 12510, the `for`'s step
+	}
+
+      eassert! (maxfd >= 0);                                            // C 12528
+
+      /* Continue to read input even if pselect fails, because if an
+	 error occurs XPending will call the IO error handler, which
+	 then brings us out of this loop.  */
+      rc = pselect (maxfd + 1, &raw mut fds, std::ptr::null_mut (),      // C 12533
+		    std::ptr::null_mut (), std::ptr::null_mut (),
+		    std::ptr::null_mut ());
+
+      if rc >= 0                                                        // C 12535
+	{ rfds = fds; }                                                 // C 12536
+    }
 }
