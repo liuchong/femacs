@@ -1351,3 +1351,21 @@ left is not this file's**: `include/systime.rs` 27 asserts that `have_x_windows`
 `config.rs`'s `HAVE_X_WINDOWS` constant move together, which is exactly what `xtask dead-arms`
 does and a bare `--cfg` does not (status 3.434's reading) - the faithful arm for that class is
 `dead-arms`, not a change to `systime.rs`.
+
+### Round: the `GC*` pair's spelling (2026-10-06, status 3.696)
+
+The paragraph above claims `--check` reads `OK` for this mirror, and it did not: three rows stood
+(`macro GCBackground does not mention 2`, `constant GCBackground: C 0x02 vs Rust 1 << 1`,
+`constant GCForeground: C 0x01 vs Rust 1 << 0`).  The pair is C 82-83's arm - the live one for
+this configuration - and the port spelled the two values as `1 << 0` / `1 << 1`: the same
+*value*, a different *text*, which is what the constant check compares and what the macro's token
+list wants (`2`).  The fix is the three literals written as C writes them (`0x01`, `0x02`, with the
+note at the item saying why), and nothing else: the item's gate, the `ANDROID_GC_*`/`<X11/X.h>`
+split the note describes, and `NativeRectangle`'s deferral are unchanged.  Readings:
+`python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs` ->
+**`OK`, 0 rows** (3 before); because a mirror changed, P-87's two legs were run -
+`CARGO_TARGET_DIR=/tmp/sweep tools/check-all-units.sh` -> **`checked 83 unit(s), 0 failure(s)`** and
+**`checking 83 unit(s), 0 unit failure(s)`** - and `cargo run -q -p xtask -- layout-check` ->
+**`layout-check passed`**.  The file stays **WIP**: `NativeRectangle`'s box is the intended signal
+(above and in `tools/excluded-macros.txt`), so this round removes the three differences without
+claiming the mirror is complete.
