@@ -23704,3 +23704,33 @@ unsafe fn x_window_to_menu_bar (window: Window) -> Widget
     });
   return std::ptr::null_mut ();                                         // C 15398
 }
+
+/************************************************************************
+			 Toolkit scroll bars
+ ************************************************************************/
+
+/* C 15408's `#ifdef USE_TOOLKIT_SCROLL_BARS` opens the region this block begins; C 15410-15411's
+   `static void x_send_scroll_bar_event (Lisp_Object, enum scroll_bar_part, int, int, bool);` is a
+   prototype, and Rust has none (this file's C 1162-1210 note): the definition lands where C
+   writes it, in the next slice.  Everything here is text this lane's A/B/C/X arms never reach -
+   it is what arms U and UT were added for.  */
+
+/* Lisp window being scrolled.  Set when starting to interact with
+   a toolkit scroll bar, reset to nil when ending the interaction.  */
+
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
+pub static mut window_being_scrolled: Lisp_Object = lisp_h_Qnil ();      // C 15416 (tentative, i.e. nil)
+
+/// C 15418-15426: `static Time x_get_last_toolkit_time (struct x_display_info *dpyinfo)` - C's
+/// `static`, so a plain `unsafe fn`, and the only function in this region that needs no Xt type:
+/// C 15421's `XtLastTimestampProcessed` sits in the `#ifdef USE_X_TOOLKIT` arm (a bare Xt name,
+/// so it is the registered class in arm UT and dead text in arm U) and C 15424's `last_user_time`
+/// is the mirror's field.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
+unsafe fn x_get_last_toolkit_time (dpyinfo: *mut x_display_info) -> Time
+{
+  #[cfg (feature = "use_x_toolkit")]
+  { return XtLastTimestampProcessed ((*dpyinfo).display); }             // C 15422
+  #[cfg (not (feature = "use_x_toolkit"))]
+  { return (*dpyinfo).last_user_time; }                                 // C 15424
+}
