@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-63: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892, C 5894-5950, C 5952-6065, C 6067-6094, C 6096-6226, C 6228-6362, C 6364-6445, C 6447-6577, C 6579-6692, C 6694-6806, C 6808-6826, C 6830-6903, C 6905-6976, C 6978-7025, C 7027-7063, C 7069-7308, C 7310-7378 and C 7380-7468
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-64: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892, C 5894-5950, C 5952-6065, C 6067-6094, C 6096-6226, C 6228-6362, C 6364-6445, C 6447-6577, C 6579-6692, C 6694-6806, C 6808-6826, C 6830-6903, C 6905-6976, C 6978-7025, C 7027-7063, C 7069-7308, C 7310-7378, C 7380-7468 and C 7470-7561
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**10,724 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**10,818 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** and **C 5952-6065** and **C 6067-6094** and **C 6096-6226** and **C 6228-6362** and **C 6364-6445** and **C 6447-6577** and **C 6579-6692** and **C 6694-6806** and **C 6808-6826** and **C 6830-6903** and **C 6905-6976** and **C 6978-7025** and **C 7027-7063** and **C 7313-7378** and **C 7069-7308** and **C 7380-7468** - sixty-three
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** and **C 5952-6065** and **C 6067-6094** and **C 6096-6226** and **C 6228-6362** and **C 6364-6445** and **C 6447-6577** and **C 6579-6692** and **C 6694-6806** and **C 6808-6826** and **C 6830-6903** and **C 6905-6976** and **C 6978-7025** and **C 7027-7063** and **C 7313-7378** and **C 7069-7308** and **C 7380-7468** and **C 7470-7561** - sixty-four
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `syms_of_pgtkterm` (C 7471-7472).**
+> `pgtk_cr_update_surface_desired_size` (C 7570-7571).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -176,7 +176,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 7065-7308 | C 7065-7067's comment and `pgtk_term_init` (C 7069-7308, the file's **largest** function at 243 lines) | the file gate - **transcribed** (the sixty-second slice, which closes the block the sixty-first deferred) |
 | 7310-7378 | `pgtk_delete_display` (C 7310-7351) and `pgtk_xlfd_to_fontname` (C 7352-7378) | the file gate - **transcribed** (the sixty-first slice, out of order) |
 | 7380-7468 | C 7380-7400's `pgtk_defined_color`, C 7402-7408's comment with C 7410-7426's `pgtk_parse_color`, C 7428-7430's comment with C 7431-7447's `pgtk_query_colors` (the three `#define`s of C 7440-7442 included), C 7449-7453's `pgtk_query_color` and C 7455-7468's `pgtk_clear_area` | the file gate - **transcribed** (the sixty-third slice) |
-| 7470-7780 | **the remainder of the file** - from C 7470's blank line: `syms_of_pgtkterm` (C 7471-7568, the next live definition) and the cairo surface family (C 7570-7778: `pgtk_cr_update_surface_desired_size`, `pgtk_begin_cr_clip`, `pgtk_end_cr_clip`, `pgtk_set_cr_source_with_gc_foreground`/`_gc_background`/`_with_color`, `pgtk_cr_draw_frame`, `pgtk_cr_accumulate_data`, `pgtk_cr_destroy_frame_context`, `pgtk_cr_destroy` and `pgtk_cr_export_frames`) | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 7470-7561 | `syms_of_pgtkterm` (C 7471-7561, after C 7470's blank line): the nine `DEFSYM`s, the icon-file assignment with its `staticpro`, the four `Fput` pairs' `DEFSYM`s, the five `Fput (Q…, Qmodifier_value, make_fixnum (…))` calls, the five keysym `DEFVAR_LISP`s, the two `DEFVAR_BOOL`s, `x-toolkit-scroll-bars`, the two pgtk variables, `window_being_scrolled` and the closing `Fprovide` | the file gate - **transcribed** (the sixty-fourth slice) |
+| 7563-7780 | **the remainder of the file** - from C 7563-7569's cairo comment: the cairo surface family (C 7570-7778: `pgtk_cr_update_surface_desired_size`, `pgtk_begin_cr_clip`, `pgtk_end_cr_clip`, `pgtk_set_cr_source_with_gc_foreground`/`_gc_background`/`_with_color`, `pgtk_cr_draw_frame`, `pgtk_cr_accumulate_data`, `pgtk_cr_destroy_frame_context`, `pgtk_cr_destroy` and `pgtk_cr_export_frames`, whose next live definition is `pgtk_cr_update_surface_desired_size` at C 7570-7571) | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1626,6 +1627,24 @@ their assertions are owed.
     the three `#define`s of C 7440-7442 are block-scoped `macro_rules!`s where C writes them; and
     `include/gtk.rs` gained one row for C 7415's `gdk_rgba_parse` (`gdk/gdkrgba.h`, the round's only
     mirror change).
+
+88. **`syms_of_pgtkterm` - the file's registration block, and the one token the port's macros cannot spell.**
+    C 7471-7561 is the whole block: nine `DEFSYM`s before the icon-file assignment (C 7490-7492), four
+    more after it, the five `Fput (Q…, Qmodifier_value, make_fixnum (…_modifier))` pairs, the five
+    keysym `DEFVAR_LISP`s, the two `DEFVAR_BOOL`s, `x-toolkit-scroll-bars`, the two pgtk variables,
+    `window_being_scrolled` and the closing `Fprovide (Qpgtk, Qnil)`.  The conversions the port spells
+    out: C 7501-7505 and C 7554 pass an `int` where the callee takes `EMACS_INT` (`as EMACS_INT`; the
+    enum constants are `include/termhooks.rs` 99-104), and C 7530/7535's `1`/`0` into the `bool`
+    globals become `true`/`false` (the `syms_of_fns` shape).  Every name resolves from the include
+    graph: `Vx_*`/`Vpgtk_*`/`x_use_underline_position_properties` are `include/globals.rs`'s rows
+    (C's `globals.f_##vname`, lisp.h 3495-3500), the `Q…` names are that mirror's accessors, and
+    `staticpro`/`hashtest_eql`/`Weak_None` arrive through `include/lisp.rs`'s `use other_units::*;`.
+    `xg_default_icon_file` (C 99) and `window_being_scrolled` (C 3975) are this file's own statics.
+    **The one row this slice adds to `macro-body-notes.tsv`** is the `doc` token: C writes
+    `DEFVAR_LISP (…, doc: /* … */)` while the mirror's macro takes the docstring as `$doc`, so the
+    label has no counterpart - the `syms_of_fns`/`syms_of_frame`/`syms_of_editfns` precedent, with the
+    docstring *values* still compared by the constants rule (C 7541-7549's two-paragraph docstring is
+    carried as one literal with `\n`, the `src/font.rs` 6533 shape).
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -4435,3 +4454,50 @@ the header to 10,724 lines.  **The gates** read `check-declarations.py` 18/0/18/
 configuration compiles none of this file, this machine has no GTK tree and no PGTK target, no display
 was opened and no colour was parsed, and the arm readings are **compile** readings of text this
 machine cannot build (the `GDK_*` values are placeholders and every record offset stays UNVERIFIED).
+
+## The sixty-fourth slice (C 7471-7561): `syms_of_pgtkterm`
+
+**What is in it.**  The file's registration block, whole: the thirteen `DEFSYM`s (with the icon-file
+assignment and its `staticpro` between the ninth and the tenth), the five `Fput` modifier pairs, the
+five keysym `DEFVAR_LISP`s, the two `DEFVAR_BOOL`s, `x-toolkit-scroll-bars`, `pgtk-wait-for-event-timeout`
+(C 7541-7549's two-paragraph docstring carried as one literal with `\n`, the `src/font.rs` 6533 shape)
+and `pgtk-keysym-table`, then `window_being_scrolled` and the closing `Fprovide (Qpgtk, Qnil)`.
+Rust: 10,724 -> **10,818** lines.  **No mirror row**: every name resolves from the include graph
+(`include/globals.rs`'s `Vx_*`/`Vpgtk_*` rows, `include/termhooks.rs` 99-104's modifier constants,
+`include/lisp.rs`'s `use other_units::*;` for `staticpro`/`hashtest_eql`/`Weak_None`), so P-87's two
+legs do not apply this slice and `check-mirror-dupes` stays 16/16/0.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 44 errors / 19 warnings -> 44 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 45 / 20 -> 45 / 20
+C = A + use_gtk + have_gtk3                        : 2 / 18 -> 2 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty in both directions**
+on the **first** reading (the only line the diff prints is the probe's own file name): the thirty-fifth
+zero-delta reading in this unit, and the first slice in this file whose text arrives with no fault of
+its own.  The baseline is HEAD's unit (10,724 lines) against the same mirror, since no mirror row
+changed.  **Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as the first statement
+of `syms_of_pgtkterm` moves arm A to **45** errors anchored at the injected line (`_root.rs:10747`);
+removed, the file re-measured at 10,818 lines.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**13 rows -> 12**: `syms_of_pgtkterm` retires as a missing function and the one row its text brought -
+`function syms_of_pgtkterm does not mention doc` - is closed by a `docs/ports/macro-body-notes.tsv` row
+(C spells the docstring with a `doc:` label the mirror's `$doc` parameter has no counterpart for; the
+`syms_of_fns`/`syms_of_frame`/`syms_of_editfns` precedent).  The line-count row stays out: 10,818
+against C's 7,780 is 39.0%, inside the **0.40** the sixty-second slice registered.  The twelve rows
+that remain are the eleven cairo-family definitions and the `ckd_add` family row.
+
+**Ledger.**  Deviation 88 (the block, the five conversion sites, the memory-model row and the `doc`
+token); the range table's remainder row becomes `7470-7561` (**transcribed**) plus `7563-7780` (the
+remainder, from C 7563-7569's cairo comment, whose next live definition is
+`pgtk_cr_update_surface_desired_size`, C 7570-7571), so **96 range rows still tile C 1-7780**; the
+title to sixty-four slices and the header to 10,818 lines.  **The gates** read
+`check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2113/36/0,
+`check-dead-file-coverage.py` 145/0 (**96 range rows** over `src/pgtkterm.c`), `check-port-lines.py`
+0/0/0/0, `check-ledger-ticks.py` 238/0, `check-cond-eval.py src/pgtkterm.c` 31/0/0 and
+`check-mirror-dupes.py` 16/16/0.  **Not claimed**: nothing has been run - the frozen configuration
+compiles none of this file, this machine has no GTK tree and no PGTK target, no defvar was evaluated
+and no `provide` was called, and the arm readings are **compile** readings of text this machine cannot
+build (the `GDK_*` values are placeholders and every record offset stays UNVERIFIED).

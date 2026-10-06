@@ -10722,3 +10722,97 @@ pub unsafe extern "C" fn pgtk_clear_area (f: *mut frame, x: c_int, y: c_int, wid
   cairo_fill (cr);                                                      // C 7466
   pgtk_end_cr_clip (f);                                                 // C 7467
 }
+
+/* C 7471-7561's `syms_of_pgtkterm`.  */
+/// C 7471-7561: `void syms_of_pgtkterm (void)` - a **non-`static`** C definition (`extern "C"` +
+/// `#[unsafe(no_mangle)]`, PORTING.md 0.2).  The `DEFSYM`/`DEFVAR_LISP`/`DEFVAR_BOOL` calls are the
+/// mirror's macros (their name argument must be `c"..."`, status 3.617); C's `1`/`0` assignments to
+/// its `bool` globals are written `true`/`false`; C 7501-7505's `make_fixnum` arguments are the
+/// `c_int` enum constants of `include/termhooks.rs`, widened (`as EMACS_INT`); C 7554's `900` is
+/// widened the same way; and `xg_default_icon_file` (C 99) and `window_being_scrolled` (C 3975) are
+/// this file's own statics.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_pgtkterm ()
+{
+  DEFSYM! (Qmodifier_value, c"modifier-value");                         // C 7474
+  DEFSYM! (Qalt, c"alt");                                               // C 7475
+  DEFSYM! (Qhyper, c"hyper");                                           // C 7476
+  DEFSYM! (Qmeta, c"meta");                                             // C 7477
+  DEFSYM! (Qsuper, c"super");                                           // C 7478
+  DEFSYM! (Qcontrol, c"control");                                       // C 7479
+  DEFSYM! (QUTF8_STRING, c"UTF8_STRING");                               // C 7480
+  /* Referenced in gtkutil.c.  */
+  DEFSYM! (Qtheme_name, c"theme-name");                                 // C 7482
+  DEFSYM! (Qfile_name_sans_extension, c"file-name-sans-extension");     // C 7483
+
+  DEFSYM! (Qfile, c"file");                                             // C 7485
+  DEFSYM! (Qurl, c"url");                                               // C 7486
+
+  DEFSYM! (Qlatin_1, c"latin-1");                                       // C 7488
+
+  xg_default_icon_file                                                  // C 7490
+    = build_string (c"icons/hicolor/scalable/apps/emacs.svg".as_ptr ());  // C 7491
+  staticpro (&raw mut xg_default_icon_file);                            // C 7492
+
+  DEFSYM! (Qx_gtk_map_stock, c"x-gtk-map-stock");                       // C 7494
+
+  DEFSYM! (Qcopy, c"copy");                                             // C 7496
+  DEFSYM! (Qmove, c"move");                                             // C 7497
+  DEFSYM! (Qlink, c"link");                                             // C 7498
+  DEFSYM! (Qprivate, c"private");                                       // C 7499
+
+  Fput (Qalt (), Qmodifier_value (), make_fixnum (alt_modifier as EMACS_INT));       // C 7501
+  Fput (Qhyper (), Qmodifier_value (), make_fixnum (hyper_modifier as EMACS_INT));   // C 7502
+  Fput (Qmeta (), Qmodifier_value (), make_fixnum (meta_modifier as EMACS_INT));     // C 7503
+  Fput (Qsuper (), Qmodifier_value (), make_fixnum (super_modifier as EMACS_INT));   // C 7504
+  Fput (Qcontrol (), Qmodifier_value (), make_fixnum (ctrl_modifier as EMACS_INT));  // C 7505
+
+  DEFVAR_LISP! (c"x-ctrl-keysym", Vx_ctrl_keysym,
+		"SKIP: real doc in xterm.c.");                          // C 7507-7508
+  Vx_ctrl_keysym = Qnil ();                                             // C 7509
+
+  DEFVAR_LISP! (c"x-alt-keysym", Vx_alt_keysym,
+		"SKIP: real doc in xterm.c.");                          // C 7511-7512
+  Vx_alt_keysym = Qnil ();                                              // C 7513
+
+  DEFVAR_LISP! (c"x-hyper-keysym", Vx_hyper_keysym,
+		"SKIP: real doc in xterm.c.");                          // C 7515-7516
+  Vx_hyper_keysym = Qnil ();                                            // C 7517
+
+  DEFVAR_LISP! (c"x-meta-keysym", Vx_meta_keysym,
+		"SKIP: real doc in xterm.c.");                          // C 7519-7520
+  Vx_meta_keysym = Qnil ();                                             // C 7521
+
+  DEFVAR_LISP! (c"x-super-keysym", Vx_super_keysym,
+		"SKIP: real doc in xterm.c.");                          // C 7523-7524
+  Vx_super_keysym = Qnil ();                                            // C 7525
+
+  DEFVAR_BOOL! (c"x-use-underline-position-properties",
+		x_use_underline_position_properties,
+		"SKIP: real doc in xterm.c.");                          // C 7527-7529
+  x_use_underline_position_properties = true;                           // C 7530
+
+  DEFVAR_BOOL! (c"x-underline-at-descent-line",
+		x_underline_at_descent_line,
+		"SKIP: real doc in xterm.c.");                          // C 7532-7534
+  x_underline_at_descent_line = false;                                  // C 7535
+
+  DEFVAR_LISP! (c"x-toolkit-scroll-bars", Vx_toolkit_scroll_bars,
+		"SKIP: real doc in xterm.c.");                          // C 7537-7538
+  Vx_toolkit_scroll_bars = intern_c_string (c"gtk".as_ptr ());          // C 7539
+
+  DEFVAR_LISP! (c"pgtk-wait-for-event-timeout", Vpgtk_wait_for_event_timeout,
+		"How long to wait for GTK events.\n\nEmacs will wait up to this many seconds to receive some GTK events\nafter making changes which affect the state of the graphical\ninterface.  Under some window managers this can take an indefinite\namount of time, so it is important to limit the wait.\n\nIf set to a non-float value, there will be no wait at all.");  // C 7541-7549
+  Vpgtk_wait_for_event_timeout = make_float (0.1);                      // C 7550
+
+  DEFVAR_LISP! (c"pgtk-keysym-table", Vpgtk_keysym_table,
+		"Hash table of character codes indexed by X keysym codes.");  // C 7552-7553
+  Vpgtk_keysym_table = make_hash_table (&raw const hashtest_eql, 900 as EMACS_INT, Weak_None);  // C 7554
+
+  window_being_scrolled = Qnil ();                                      // C 7556
+  staticpro (&raw mut window_being_scrolled);                           // C 7557
+
+  /* Tell Emacs about this window system.  */
+  Fprovide (Qpgtk (), Qnil ());                                         // C 7560
+}
