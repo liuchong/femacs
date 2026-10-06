@@ -1100,6 +1100,13 @@ pub struct GdkEventButton
   pub time: u32,
   pub x: c_double,                 // C: gdk/gdktypes.h: `gdouble x;`
   pub y: c_double,                 // C: gdk/gdktypes.h: `gdouble y;`
+  // The three members the forty-ninth slice's `construct_mouse_click` reads on past those:
+  // `state` (C 6083) and `button` (C 6080), with `axes` carried because GDK's declaration puts it
+  // between them.  GDK's `x_root`/`y_root`/`device` follow `button` and are not reached yet.
+  // **UNVERIFIED** (Owed 21's GDK round).
+  pub axes: *mut c_double,         // C: gdk/gdktypes.h: `gdouble *axes;` (底层指针, P-87 3)
+  pub state: c_uint,               // C: gdk/gdktypes.h: `guint state;`
+  pub button: c_uint,              // C: gdk/gdktypes.h: `guint button;`
 }
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventScroll GdkEventScroll;` - C 161-168 reads and
 /// writes `x`/`y`; **UNVERIFIED**.

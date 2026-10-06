@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-48: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892, C 5894-5950 and C 5952-6065
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-49: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892, C 5894-5950, C 5952-6065 and C 6067-6094
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**8,764 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**8,808 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** and **C 5952-6065** - forty-eight
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** and **C 5952-6065** and **C 6067-6094** - forty-nine
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `construct_mouse_click` (C 6072-6073).**
+> `button_event` (C 6096-6097).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -161,7 +161,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 5714-5892 | `pgtk_focus_changed` (C 5723-5767), `enter_notify_event` (C 5769-5795), `leave_notify_event` (C 5797-5844), `focus_in_event` (C 5846-5868) and `focus_out_event` (C 5870-5892) | the file gate - **transcribed** (the forty-sixth slice) |
 | 5894-5950 | `note_mouse_movement` (C 5902-5950) | the file gate - **transcribed** (the forty-seventh slice) |
 | 5952-6065 | `motion_notify_event` (C 5952-6065) | the file gate - **transcribed** (the forty-eighth slice) |
-| 6067-7780 | **the remainder of the file** - from C 6067-6070's comment and C 6072's `construct_mouse_click` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 6067-6094 | `construct_mouse_click` (C 6072-6094, after C 6067-6070's comment) | the file gate - **transcribed** (the forty-ninth slice) |
+| 6096-7780 | **the remainder of the file** - from C 6096's `button_event` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1298,6 +1299,19 @@ their assertions are owed.
     (`include/window.rs` 309), so C 6011's `f` is the port's `f as *mut c_void` (the `src/msdos.rs`
     3745 shape) - without it the arm read one `E0308`.
 
+71. **`construct_mouse_click`: the `?:` inside an `|`, the written-out conversions, and the unit-local
+    GDK row.**  C 6067-6070's comment is carried verbatim.  C's `const GdkEventButton *event` is the
+    port's `*mut GdkEventButton`, its `(GdkEvent *) event` is `event as *mut GdkEvent`, and C 6084's
+    `?:` inside the `|` is the port's `if … { up_modifier } else { down_modifier }`.  The conversions
+    C leaves implicit are written out: C 6083's `guint` argument into the port's `c_int` parameter
+    (`as c_int`, the mirror signature `pgtk_gtk_to_emacs_modifiers` carries at line 7572), the
+    `unsigned | int` result into `modifiers` (`as c_uint`), C 6081's `event->time` into `Time`, and
+    the two `XSETINT` arguments (`as EMACS_INT`).  `result->kind` is the bitfield the unit reads and
+    writes through `input_event_bits!` (line 199).  `GDK_BUTTON_RELEASE` is a **unit-local** copy:
+    `src/xwidget.rs` 288 declares the same name for its own reads, and a mirror may not own what an
+    includer carries (P-90 7) - so the unit keeps its own row, exactly as the forty-sixth slice's
+    `GDK_NOTIFY_INFERIOR` did, with a placeholder value registered in Owed 21.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1393,7 +1407,10 @@ their assertions are owed.
     each flag is a distinct placeholder and neither record carries a layout assertion; the
     forty-sixth slice's `GDK_NOTIFY_INFERIOR` placeholder and its five `GdkEventCrossing` members join
     the same round.  The forty-eighth slice's `gdk_event_get_pointer_emulated` prototype and its
-    `GDK_SOURCE_TOUCHSCREEN` **placeholder value** join it too.  `include/dispextern.rs` owes the `mouse_face_hidden` accessor
+    `GDK_SOURCE_TOUCHSCREEN` **placeholder value** join it too.  The forty-ninth slice's `GDK_BUTTON_RELEASE` (a **unit-local** copy, because
+    `src/xwidget.rs` 288 owns the name for its own reads - P-90 7) and the three
+    `GdkEventButton` members it added (`axes`/`state`/`button`, positions UNVERIFIED) join
+    it as well.  `include/dispextern.rs` owes the `mouse_face_hidden` accessor
     (it carries `MOUSE_FACE_HIDDEN` at 2139 and the `mouse_face_defer` pair, and its own
     `src/msdos.rs` 3434-3438 note already asks for this one) and the `clear_mouse_face` row, which
     its 4051 area records as owed rather than declared; until then the unit declares both.
@@ -3368,3 +3385,50 @@ nothing has been run - the frozen configuration compiles none of this file, this
 tree and no PGTK target, no pointer moved and no autoselect event was enqueued, and the arm readings
 are **compile** readings of text this machine cannot build (the `GDK_SOURCE_TOUCHSCREEN` value is a
 placeholder).
+
+## The forty-ninth slice (C 6067-6094): `construct_mouse_click`
+
+**What is in it.**  C 6067-6070's comment and `construct_mouse_click` (C 6072-6094): the
+`MOUSE_CLICK_EVENT` kind through the bitfield macro, `code`/`timestamp`/`modifiers` with the
+press/release modifier choice, the two `XSETINT` coordinates, `XSETFRAME`, the nil `arg` and the
+device lookup.  Rust: 8,764 -> **8,808** lines.  No address is taken (C 6192/6198 call it), so it is
+a plain `unsafe fn`.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 9 / 18 -> 9 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): the twenty-fourth zero-delta reading in this unit.  The
+baseline is HEAD's unit **and HEAD's mirror** (HEAD's `include/gtk.rs` written over the working one
+for the run and restored after; `git diff --stat` re-read as 7 insertions).  **Arm reach is measured**
+(P-86 7): injecting `let _: c_int = true;` as the first statement of `construct_mouse_click` moves arm
+A to **52** errors anchored at the injected line (`_root.rs:8800`); removed, the file re-measured at
+**8,808** lines.
+
+**The mirror round (P-87).**  `GdkEventButton` gains the three members this slice reads on past its
+`x`/`y`: `axes` (carried because GDK's declaration puts it between them), `state` and `button`; the
+offsets stay **UNVERIFIED**.  `GDK_BUTTON_RELEASE` does **not** go to the mirror: `src/xwidget.rs`
+288 declares that name for its own reads, so the unit keeps its own copy (P-90 7, the
+`GDK_NOTIFY_INFERIOR` shape).  `check-mirror-dupes` reads **16/16/0**; `tools/check-all-units.sh`
+reads `checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)`; and the named
+reading `src/xwidget.rs` (`use_gtk` + `have_gtk3`) against HEAD's mirror and against this one reads
+**197 errors / 52 warnings on both sides** with both sets diffing empty.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**47 rows -> 46** with **no new token row**.  The file's `line count drifted` row stays answered by
+the `pgtkterm 0.15 total` row (8,808 against C's 7,780 is 13.2%).
+
+**Ledger.**  Deviation 71 (the comment, the `?:`, the four written-out conversions, the bitfield
+write and the unit-local GDK row), Owed 21's GDK round grown by that row and the three record
+members; the range table's remainder row split into `6067-6094` (**transcribed**) and `6096-7780`
+(whose next live definition is `button_event`, C 6096-6097); the title to forty-nine slices and the
+header to 8,808 lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py`
+676/0/0/2112/36/0, `check-dead-file-coverage.py` 145/0 (**81 range rows** over `src/pgtkterm.c`),
+`check-port-lines.py` 0/0/0/0, `check-ledger-ticks.py` 238/0, `check-cond-eval.py src/pgtkterm.c`
+31/0/0 and `check-mirror-dupes.py` 16/16/0.  **Not claimed**: nothing has been run - the frozen
+configuration compiles none of this file, this machine has no GTK tree and no PGTK target, no button
+was pressed, and the arm readings are **compile** readings of text this machine cannot build (the
+`GDK_BUTTON_RELEASE` value and the three new member offsets are placeholders / UNVERIFIED).

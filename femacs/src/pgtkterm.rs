@@ -8762,3 +8762,47 @@ unsafe fn motion_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent,
 
   return true as gboolean;                                              // C 6064
 }
+
+/* Prepare a mouse-event in *RESULT for placement in the input queue.
+
+   If the event is a button press, then note that we have grabbed
+   the mouse.  */
+
+/// C: gdk/gdkevents.h: `typedef enum { GDK_NOTHING = -1, … GDK_BUTTON_PRESS = 4, …, GDK_BUTTON_RELEASE
+/// = 7, … } GdkEventType;` - the C 6084 comparison's constant.  **No GDK tree exists on this
+/// machine**, and `src/xwidget.rs` 288 declares its own copy of this name for its own reads, so a
+/// mirror may not own it (P-90 7) and this unit keeps its own row - the `GDK_NOTIFY_INFERIOR` shape
+/// of the forty-sixth slice.  The value is a **placeholder** and joins Owed 21's round.
+#[cfg (feature = "have_pgtk")]
+pub const GDK_BUTTON_RELEASE: GdkEventType = 7;
+
+/// C 6072-6094: `static Lisp_Object construct_mouse_click (struct input_event *result, const
+/// GdkEventButton *event, struct frame *f)` - `static` with no address taken (C 6192/6198 call it),
+/// so a plain `unsafe fn`.  C's `const GdkEventButton *` is the port's `*mut GdkEventButton` (the
+/// `note_mouse_movement` shape) and its `(GdkEvent *) event` is `event as *mut GdkEvent`.  C's
+/// `?:` inside the `|` is the port's `if … { up_modifier } else { down_modifier }`, C 6082's
+/// implicit `guint` -> `int` argument and the `unsigned | int` result are written out
+/// (`as c_int`, `as c_uint`), the `timestamp` store is `event->time`'s widening (`as Time`), and the
+/// two `XSETINT` arguments are C's `double` -> `EMACS_INT` conversions written out.
+#[cfg (feature = "have_pgtk")]
+unsafe fn construct_mouse_click (result: *mut input_event, event: *mut GdkEventButton,
+				 f: *mut frame) -> Lisp_Object
+{
+  /* Make the event type NO_EVENT; we'll change that when we decide
+     otherwise.  */
+  input_event_bits! (kind, result, MOUSE_CLICK_EVENT);                  // C 6079
+  (*result).code = (*event).button - 1;                                 // C 6080
+  (*result).timestamp = (*event).time as Time;                          // C 6081
+  (*result).modifiers = (pgtk_gtk_to_emacs_modifiers (FRAME_DISPLAY_INFO! (f),
+						      (*event).state as c_int)
+			 | (if (*event).r#type == GDK_BUTTON_RELEASE
+			    { up_modifier } else { down_modifier })) as c_uint;  // C 6082-6085
+
+  XSETINT! ((*result).x, (*event).x as EMACS_INT);                      // C 6087
+  XSETINT! ((*result).y, (*event).y as EMACS_INT);                      // C 6088
+  XSETFRAME! ((*result).frame_or_window, f);                            // C 6089
+  (*result).arg = Qnil ();                                              // C 6090
+  (*result).device = pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f),
+						event as *mut GdkEvent);  // C 6091-6092
+  return Qnil ();                                                       // C 6093
+}
