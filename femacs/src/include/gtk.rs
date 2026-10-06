@@ -995,6 +995,9 @@ unsafe extern "C" {
 /// 1414 writes `GDK_NOTHING`.  C's enum ABI is `c_int` (PORTING.md 1.3); **UNVERIFIED**.
 pub type GdkEventType = c_int;
 pub const GDK_NOTHING: GdkEventType = 0;              // placeholder, not GDK's value
+/* The two `GDK_TOUCHPAD_*` constants C 5000-5002 compares are **not** here: `src/xwidget.rs`
+   2249/2256 declares the same names for its own reads, and a mirror may not define a name an
+   includer already carries (P-90 7) - each unit keeps its own copy.  */
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventAny GdkEventAny;` with `GdkEventType type;
 /// GdkWindow *window; gint8 send_event;`, and `typedef union _GdkEvent GdkEvent;` with `any`
 /// among its members.  C 1412-1414 sets `event.any.window` and `event.any.type`, and C 1566 takes
@@ -1018,6 +1021,7 @@ pub union GdkEvent
   pub motion: GdkEventMotion,      // C: gdk/gdktypes.h: `GdkEventMotion motion;`
   pub crossing: GdkEventCrossing,  // C: gdk/gdktypes.h: `GdkEventCrossing crossing;`
   pub key: GdkEventKey,            // C: gdk/gdktypes.h: `GdkEventKey key;`
+  pub touchpad_pinch: GdkEventTouchpadPinch,   // C: gdk/gdktypes.h: `GdkEventTouchpadPinch touchpad_pinch;`
 }
 /* The five records the union names.  **One surface, one mirror** (P-90 ①/②): they used to be
    `src/xwidget.rs`'s in-unit segment (its C 26-30 chain carries `"gtkutil.h"` 26's
@@ -1098,6 +1102,29 @@ pub struct GdkEventKey
   pub time: u32,
   pub state: c_uint,               // C: gdk/gdktypes.h: `guint state;`
   pub keyval: c_uint,              // C: gdk/gdktypes.h: `guint keyval;`
+}
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventTouchpadPinch GdkEventTouchpadPinch;` - the record
+/// the union's `touchpad_pinch` member above carries, read by `src/pgtkterm.c` 5000-5023.  The port
+/// keeps the members that text touches (`n_fingers` included, because `phase` follows it) in GDK's
+/// declared order and writes **no layout assertion**: no GDK header exists on this machine, so the
+/// offsets are **UNVERIFIED** (the `GdkEventKey` reading above).
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventTouchpadPinch
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub time: u32,
+  pub angle_delta: c_double,
+  pub scale: c_double,
+  pub x: c_double,
+  pub y: c_double,
+  pub dx: c_double,
+  pub dy: c_double,
+  pub state: c_uint,
+  pub n_fingers: c_uint,
+  pub phase: c_int,                // C: `GdkTouchpadGesturePhase phase;` (an enum, so `c_int`)
 }
 /// C: gdk/gdktypes.h: `typedef struct _GdkVisual GdkVisual;` (C 1735/1741/1745 hold one).
 #[repr (C)]

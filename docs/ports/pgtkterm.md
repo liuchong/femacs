@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-39: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924 and C 4926-4990
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-40: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990 and C 4992-5093
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,265 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,426 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** - thirty-nine
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** - forty
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_handle_event` (C 4992-4993).**
+> `pgtk_handle_draw` (C 5095-5096).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -152,7 +152,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 4795-4867 | `pgtk_frame_rehighlight_hook` (C 4803-4807), `pgtk_toggle_invisible_pointer` (C 4811-4826), `pgtk_new_focus_frame` (C 4834-4858) and `pgtk_buffer_flipping_unblocked_hook` (C 4860-4867) | the file gate - **transcribed** (the thirty-seventh slice) |
 | 4869-4924 | `pgtk_create_terminal` (C 4869-4924, the thirty-nine hook assignments at C 4879-4919) | the file gate - **transcribed** (the thirty-eighth slice) |
 | 4926-4990 | the record `pgtk_window_is_of_frame_recursive_t` (C 4926-4931), `pgtk_window_is_of_frame_recursive` (C 4933-4953), `pgtk_window_is_of_frame` (C 4955-4964) and `pgtk_any_window_to_frame` (C 4966-4990) | the file gate - **transcribed** (the thirty-ninth slice) |
-| 4992-7780 | **the remainder of the file** - from C 4992's `pgtk_handle_event` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the event handlers, the widget walkers, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4992-5093 | `pgtk_handle_event` (C 4992-5033), `pgtk_fill_rectangle` (C 5034-5044) and `pgtk_clear_under_internal_border` (C 5046-5093) | the file gate - **transcribed** (the fortieth slice) |
+| 5095-7780 | **the remainder of the file** - from C 5095's `pgtk_handle_draw` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the draw/allocate handlers, the modifier readers, the event handlers, the widget walkers, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1086,6 +1087,29 @@ their assertions are owed.
     `FOR_EACH_FRAME!` (C's body as the macro's third argument, the C 3506 reading at line 5000) are
     the rest of the surface.  No mirror changed, so P-87's two legs do not apply.
 
+62. **A mirror round: the union's `touchpad_pinch` member, and a name a mirror may not take.**  C
+    5000-5023 reads `event->touchpad_pinch`, which `include/gtk.rs`'s `GdkEvent` union did not carry,
+    so the mirror gains the member and the record behind it (`GdkEventTouchpadPinch`, whose members
+    follow GDK's declared order with `n_fingers` included because `phase` follows it) - `#[repr (C)]`
+    with **no layout assertion**, since no GDK header exists on this machine (**UNVERIFIED**, the
+    `GdkEventKey` reading).  The two `GDK_TOUCHPAD_*` constants the same comparison needs are **not**
+    mirror rows: `src/xwidget.rs` 2249/2256 already declares the same names for its own reads, and a
+    mirror may not define a name an includer carries (P-90 7) - the first version put them in the
+    mirror and the includer probe below found two `E0428`s, which is why each unit now keeps its own
+    copy with the same placeholder values.  **P-87's two legs**: `check-mirror-dupes` 16/16/0 and
+    `tools/check-all-units.sh` `checked 83 unit(s), 0 failure(s)` / `checking 83 unit(s), 0 unit
+    failure(s)`; the frozen list contains **no includer of `include/gtk.rs`**, so that sweep cannot
+    see this change (P-87 2's reading), and the extra reading is the mirror's other includer:
+    `src/xwidget.rs` probed before and after with `use_gtk` + `have_gtk3` reads 200 errors / 51
+    warnings on both sides with both sets diff empty.  Three further defects the readings named, all
+    fixed here: my own `E0308` at C 5022-5023 (`inev.ie.modifiers` is `c_uint`, so C's implicit
+    conversion is `as c_uint`), `inev`'s own `E0381` (C 4996 declares the union uninitialised; the
+    port zeroes it, `EVENT_INIT`'s reading) and a **latent** `E0381` triple in an earlier slice's
+    text - `dummy_x`/`dummy_y`/`dummy_h` (C 2990) were declared uninitialised and handed out through
+    `&raw mut`, which the compiler only reached once the nineteen `pgtk_fill_rectangle` resolution
+    errors this slice retires were gone; the three are zero-initialised now (the `win_x` shape, line
+    4986).
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1150,6 +1174,15 @@ their assertions are owed.
     define the macro) and this machine has no GTK tree to measure the type check with, so the unit
     carries `EMACS_IS_FIXED!` as the same null-test placeholder the file's `GTK_IS_CONTAINER!` is;
     the mirror round that gives the pgtk arm live declarations closes it.
+
+18. **The GTK arm's own declaration round** grows by one name from the fortieth slice:
+    `gtk_widget_translate_coordinates` (gtk/gtkwidget.h, the C 5007 call) now stands in the unit the
+    way Owed 13's six rows and Owed 15's `gdk_display_flush` do - the round that makes
+    `include/gtk.rs` carry the live pgtk/GTK3 arm closes all of them together.  The slice's other two
+    declarations are **not** owed: `lrint` is a P-88 1 unit-local row (`emacs/lib/math.h` does not
+    name it; the `src/xwidget.rs` 160-164 and `src/xfaces.rs` 509 shape) and `lookup_basic_face` is
+    the row `include/dispextern.rs` 4051 already records as owed rather than declared (the
+    `src/w32term.rs` 980-982 shape).
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -2667,3 +2700,56 @@ changed this round, so `check-mirror-dupes.py` 16/16/0 stands and P-87's two leg
 **Not claimed**: nothing has been run - the frozen configuration compiles none of this file, this
 machine has no GTK tree and no PGTK target, no window was walked and no frame was searched, and the
 arm readings are **compile** readings of text this machine cannot build.
+
+## The fortieth slice (C 4992-5093): the pinch handler, the rectangle filler and the internal border
+
+**What is in it.**  `pgtk_handle_event` (C 4992-5033: the touchpad-pinch branch, the coordinate
+translation, the `PINCH_EVENT` enqueue and the two `return`s), `pgtk_fill_rectangle` (C 5034-5044,
+whose definition retires **nineteen** standing `cannot find function` errors at call sites already in
+the tree) and `pgtk_clear_under_internal_border` (C 5046-5093, non-`static` in C and named by C
+3777's `pgtk_redisplay_interface`, which the port already writes at line 5444).  Rust: 7,265 ->
+**7,426** lines, and the file's own `line count drifted` row **disappears**: 7,426 against C's 7,780
+is 4.6%, inside the default 5% tolerance for the first time.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 70 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 71 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 28 / 18 -> 9 / 18
+```
+**Every arm loses exactly nineteen errors and gains none**: the set diff in all three arms is the
+nineteen base-only lines `cannot find function pgtk_fill_rectangle` (the class C 5035's definition
+retires), with **0 new errors, 0 new warnings**.  **The first readings named three defects, all fixed
+here**: my own `E0308` at C 5022-5023 (`inev.ie.modifiers` is `c_uint`, so C's implicit conversion is
+`as c_uint`), `inev`'s `E0381` (C 4996's union is declared uninitialised; the port zeroes it) and a
+**latent** `E0381` triple in an earlier slice's text (`dummy_x`/`dummy_y`/`dummy_h`, C 2990 -
+uninitialised bindings handed out through `&raw mut`, which the compiler could only reach once the
+nineteen resolution errors above were gone).  **Arm reach is measured** (P-86 7): injecting
+`let _: c_int = true;` as the first statement of `pgtk_handle_event` moves arm A to **52** errors
+anchored at the injected line (removed, the file re-measured at **7,426** lines).
+
+**The mirror round (P-87).**  `include/gtk.rs` gains the `GdkEvent` union's `touchpad_pinch` member
+and the record behind it (C's text reads it, so the union had to carry it); the two `GDK_TOUCHPAD_*`
+constants stay **unit-local** - `src/xwidget.rs` 2249/2256 already declares them, and a mirror may not
+define a name an includer carries (P-90 7), which the P-87 leg caught as two `E0428`s in the first
+version.  `check-mirror-dupes` 16/16/0; `tools/check-all-units.sh` reads `checked 83 unit(s), 0
+failure(s)` and `checking 83 unit(s), 0 unit failure(s)` - and, since the frozen list carries **no**
+includer of `include/gtk.rs`, the extra reading is `src/xwidget.rs` probed before and after
+(`use_gtk` + `have_gtk3`): 200 errors / 51 warnings on **both** sides, both sets diffing empty.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**77 rows -> 73**: the three functions retire and C 4998's `gint` token row is closed by a sanctioned
+`docs/ports/macro-body-notes.tsv` row (the port spells GTK's `gint` as `c_int`, as every GTK row in
+`include/gtk.rs` does).  The file's own `line count drifted` row is **gone** (4.6% against the 5%
+default).
+
+**Ledger.**  Deviation 62 (the mirror round, the P-87 legs and the three defects), Owed 18, the range
+table's remainder row split into `4992-5093` (**transcribed**) and `5095-7780` (whose next live
+definition is `pgtk_handle_draw`, C 5095-5096), the title to forty slices and the header to 7,426
+lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2085/36/0,
+`check-dead-file-coverage.py` 145/0 (**72 range rows** over `src/pgtkterm.c`), `check-port-lines.py`
+0/0/0/0, `check-ledger-ticks.py` 238/0, `check-cond-eval.py src/pgtkterm.c` 31/0/0 and
+`check-mirror-dupes.py` 16/16/0.  **Not claimed**: nothing has been run - the frozen configuration
+compiles none of this file, this machine has no GTK tree and no PGTK target, no pinch was delivered
+and no rectangle was filled, and the arm readings are **compile** readings of text this machine
+cannot build (the two `GDK_TOUCHPAD_*` values and the new record's offsets stay **UNVERIFIED**).

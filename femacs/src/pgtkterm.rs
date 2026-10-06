@@ -4255,9 +4255,9 @@ unsafe fn pgtk_draw_bar_cursor (w: *mut window, row: *mut glyph_row, mut width: 
 	}
       else	/* HBAR_CURSOR */                                        // C 2988
 	{
-	  let mut dummy_x: c_int;                                          // C 2990
-	  let mut dummy_y: c_int;
-	  let mut dummy_h: c_int;
+	  let mut dummy_x: c_int = 0;                                      // C 2990
+	  let mut dummy_y: c_int = 0;
+	  let mut dummy_h: c_int = 0;
 	  let mut x: c_int = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);   // C 2991
 
 	  if width < 0                                                     // C 2993
@@ -7262,4 +7262,178 @@ unsafe fn pgtk_any_window_to_frame (window: *mut GdkWindow) -> *mut frame
   });
 
   return found;                                                         // C 4989
+}
+
+/* C: gdk/gdktypes.h: `typedef enum { … GDK_TOUCHPAD_PINCH = 33, … } GdkEventType;` - the C 5000
+   comparison.  **Placeholder, not GDK's value**, and the same one `src/xwidget.rs` 2256 carries for
+   its own GDK_TOUCHPAD_PINCH read (two units, two copies - P-90 7); UNVERIFIED, since no GDK header
+   exists on this machine.  */
+#[cfg (feature = "have_pgtk")]
+pub const GDK_TOUCHPAD_PINCH: GdkEventType = 12;            // placeholder, not GDK's value
+/* C: gdk/gdktypes.h: `typedef enum { GDK_TOUCHPAD_GESTURE_PHASE_BEGIN, …,
+   GDK_TOUCHPAD_GESTURE_PHASE_END, … } GdkTouchpadGesturePhase;` - the C 5001-5002 comparison, the
+   same placeholder `src/xwidget.rs` 2249 carries (`c_int` here because the union member's `phase` is
+   that type); UNVERIFIED.  */
+#[cfg (feature = "have_pgtk")]
+pub const GDK_TOUCHPAD_GESTURE_PHASE_END: c_int = 2;       // placeholder, not GDK's value
+
+/* C: gtk/gtkwidget.h: `gboolean gtk_widget_translate_coordinates (GtkWidget *src_widget, GtkWidget
+   *dest_widget, gint src_x, gint src_y, gint *dest_x, gint *dest_y);` - the C 5007 call.  The
+   mirror has no row for it, so this unit declares it (the `src/xwidget.rs` 488-493 shape); Owed 18
+   names the mirror round that moves it there.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gtk_widget_translate_coordinates (src_widget: *mut GtkWidget, dest_widget: *mut GtkWidget,
+					   src_x: c_int, src_y: c_int, dest_x: *mut c_int,
+					   dest_y: *mut c_int) -> gboolean;
+}
+/* C: math.h: `long int lrint (double x);` - the C 5008/5009 calls.  It is the C library's, and
+   `emacs/lib/math.h` (this repository's gnulib mirror) does not name it, so the declaration stands
+   here (P-88 1; the `src/xwidget.rs` 160-164 and `src/xfaces.rs` 509 shape).  C's `long int` result
+   feeds `gint` parameters, so the two calls carry C's own narrowing (`as c_int`).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn lrint (x: c_double) -> c_long;
+}
+/* C: dispextern.h 3813: `int lookup_basic_face (struct window *, struct frame *, int);` - the
+   C 5060/5064 calls (`src/xfaces.rs` 3730 defines it).  `include/dispextern.rs` 4051 records the row
+   as **owed, not declared**, so the prototype stands here (the `src/w32term.rs` 980-982 and
+   `src/font.rs` 370-371 shape).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn lookup_basic_face (w: *mut window, f: *mut frame, face_id: c_int) -> c_int;
+}
+
+/// C 4992-5033: `static gboolean pgtk_handle_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *data)` - C 6852/6902 take its address through `G_CALLBACK`, so PORTING.md 1.4's
+/// `unsafe extern "C" fn` form applies from the slice that lands C 6831's `pgtk_set_event_handler`
+/// (in the remainder); until then it stays a plain `unsafe fn` (the `pgtk_fullscreen_hook` shape,
+/// Deviation 55).  `touchpad_pinch` and `GDK_TOUCHPAD_*` are `include/gtk.rs`'s rows (this slice's
+/// mirror round), `PINCH_EVENT` is `include/termhooks.rs`'s, the two `XSET…` macros are
+/// `include/frame.rs` 778 and `include/lisp.rs`'s, and C's `gint x, y;` pair is zero-initialised
+/// because C only fills it through the translate call's out-pointers (the `win_x`/`win_y` shape,
+/// line 4986).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_handle_event (widget: *mut GtkWidget, event: *mut GdkEvent, data: *mut gpointer)
+    -> gboolean
+{
+  let mut f: *mut frame;                                                // C 4995
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 4996
+  let mut frame_widget: *mut GtkWidget;                                 // C 4997
+  let mut x: c_int = 0;                                                 // C 4998
+  let mut y: c_int = 0;                                                 // C 4998
+
+  if (*event).r#type == GDK_TOUCHPAD_PINCH                              // C 5000
+      && ((*event).touchpad_pinch.phase != GDK_TOUCHPAD_GESTURE_PHASE_END)   // C 5001-5002
+    {
+      f = pgtk_any_window_to_frame (gtk_widget_get_window (widget));    // C 5004
+      frame_widget = FRAME_GTK_WIDGET! (f);                             // C 5005
+
+      gtk_widget_translate_coordinates (widget, frame_widget,           // C 5007
+					lrint ((*event).touchpad_pinch.x) as c_int,   // C 5008
+					lrint ((*event).touchpad_pinch.y) as c_int,   // C 5009
+					&raw mut x, &raw mut y);            // C 5010
+      if !f.is_null ()                                                  // C 5011
+	{
+
+	  input_event_bits! (kind, &raw mut inev.ie, PINCH_EVENT);      // C 5014
+	  XSETFRAME! (inev.ie.frame_or_window, f);                      // C 5015
+	  XSETINT! (inev.ie.x, x as EMACS_INT);                         // C 5016
+	  XSETINT! (inev.ie.y, y as EMACS_INT);                         // C 5017
+	  inev.ie.arg = list4 (make_float ((*event).touchpad_pinch.dx),   // C 5018
+			       make_float ((*event).touchpad_pinch.dy),   // C 5019
+			       make_float ((*event).touchpad_pinch.scale),   // C 5020
+			       make_float ((*event).touchpad_pinch.angle_delta));   // C 5021
+	  inev.ie.modifiers = pgtk_gtk_to_emacs_modifiers (FRAME_DISPLAY_INFO! (f),   // C 5022
+							   (*event).touchpad_pinch.state as c_int) as c_uint;   // C 5023
+	  inev.ie.device
+	    = pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f), event);   // C 5024-5025
+	  evq_enqueue (&raw mut inev);                                    // C 5026
+	}
+
+      return true as gboolean;                                            // C 5029
+    }
+  return false as gboolean;                                               // C 5031
+}
+
+/// C 5034-5044: `static void pgtk_fill_rectangle (struct frame *f, unsigned long color, int x, int
+/// y, int width, int height, bool respect_alpha_background)` - C's prototype at C 114 is the one
+/// nineteen ported call sites already use; `static` with no address taken, so a plain `unsafe fn`.
+/// `pgtk_begin_cr_clip`/`pgtk_set_cr_source_with_color`/`pgtk_end_cr_clip` come from
+/// `include/pgtkterm.rs` 712-720 and `cairo_rectangle`/`cairo_fill` are this unit's own rows
+/// (1541-1545/2481-2484); C's four `int` coordinates are widened to `c_double` at the cairo call
+/// the way C's own implicit conversion does (line 1820's reading).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_fill_rectangle (f: *mut frame, color: c_ulong, x: c_int, y: c_int,
+			       width: c_int, height: c_int, respect_alpha_background: bool)
+{
+  let cr: *mut cairo_t;                                                 // C 5038
+  cr = pgtk_begin_cr_clip (f);                                          // C 5039
+  pgtk_set_cr_source_with_color (f, color, respect_alpha_background);   // C 5040
+  cairo_rectangle (cr, x as c_double, y as c_double, width as c_double,
+		   height as c_double);                                 // C 5041
+  cairo_fill (cr);                                                      // C 5042
+  pgtk_end_cr_clip (f);                                                 // C 5043
+}
+
+/// C 5046-5093: `void pgtk_clear_under_internal_border (struct frame *f)` - non-`static` in C
+/// (pgtkterm.h 597) **and its address is C 3777's `pgtk_redisplay_interface` member**, which the
+/// port already writes at line 5444, so it carries `#[unsafe(no_mangle)]` and `extern "C"`
+/// (PORTING.md 0.2/1.4).  C 5058-5066's nested ternaries are the port's nested `if` expressions
+/// (the C 3507 shape), C's `NULL` window argument is `core::ptr::null_mut ()` (the
+/// `src/w32term.rs` 1446 shape), and the five `FRAME_*` readers plus `FACE_FROM_ID_OR_NULL` are
+/// `include/frame.rs`'s (1375/1036/1038/1105/1113/1576).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_clear_under_internal_border (f: *mut frame)
+{
+  if FRAME_INTERNAL_BORDER_WIDTH (f) > 0                                // C 5049
+      && (FRAME_GTK_OUTER_WIDGET! (f).is_null ()                        // C 5050
+	  || gtk_widget_get_realized (FRAME_GTK_OUTER_WIDGET! (f)) != 0)   // C 5051
+    {
+      let border: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);              // C 5053
+      let width: c_int = FRAME_PIXEL_WIDTH (f);                         // C 5054
+      let height: c_int = FRAME_PIXEL_HEIGHT (f);                       // C 5055
+      let margin: c_int = FRAME_TOP_MARGIN_HEIGHT (f);                  // C 5056
+      let bottom_margin: c_int = FRAME_BOTTOM_MARGIN_HEIGHT (f);        // C 5057
+      let face_id: c_int = if !FRAME_PARENT_FRAME (f).is_null ()        // C 5058
+	  {
+	    if !NILP (Vface_remapping_alist)                            // C 5059
+	      { lookup_basic_face (core::ptr::null_mut (), f, CHILD_FRAME_BORDER_FACE_ID) }   // C 5060-5061
+	    else
+	      { CHILD_FRAME_BORDER_FACE_ID }                            // C 5062
+	  }
+	else
+	  {
+	    if !NILP (Vface_remapping_alist)                            // C 5063
+	      { lookup_basic_face (core::ptr::null_mut (), f, INTERNAL_BORDER_FACE_ID) }   // C 5064-5065
+	    else
+	      { INTERNAL_BORDER_FACE_ID }                               // C 5066
+	  };
+      let face: *mut face = FACE_FROM_ID_OR_NULL (f, face_id);          // C 5067
+
+      block_input ();                                                   // C 5069
+
+      if !face.is_null ()                                               // C 5071
+	{
+	  fill_background_by_face (f, face, 0, margin, width, border);   // C 5073
+	  fill_background_by_face (f, face, 0, 0, border, height);       // C 5074
+	  fill_background_by_face (f, face, width - border, 0, border,
+				   height);                             // C 5075-5076
+	  fill_background_by_face (f, face, 0, (height
+						- bottom_margin
+						- border),
+				   width, border);                      // C 5077-5080
+	}
+      else
+	{
+	  pgtk_clear_area (f, 0, 0, border, height);                     // C 5084
+	  pgtk_clear_area (f, 0, margin, width, border);                 // C 5085
+	  pgtk_clear_area (f, width - border, 0, border, height);        // C 5086
+	  pgtk_clear_area (f, 0, height - bottom_margin - border,
+			   width, border);                              // C 5087-5088
+	}
+
+      unblock_input ();                                                 // C 5091
+    }
 }
