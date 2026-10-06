@@ -20012,3 +20012,179 @@ pub unsafe extern "C" fn init_xterm ()
     register_textconv_interface (&raw mut text_conversion_interface);   // C 32415
   }
 }
+
+#[cfg (feature = "have_xinput2")]
+/// C 32210-32227: `static bool x_have_any_grab (struct x_display_info *dpyinfo)` - C's `static`, so
+/// a plain `unsafe fn`; C 32210's `#ifdef HAVE_XINPUT2` is the port's gate (P-86 ①), and
+/// `devices` is a raw pointer in the mirror, so C's `devices[i]` is `.offset (…)` (the slice-41
+/// `E0608` shape).
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe fn x_have_any_grab (dpyinfo: *mut x_display_info) -> bool
+{
+  let mut i: c_int;                                                     // C 32214
+
+  if !(*dpyinfo).supports_xi2                                            // C 32216
+    { return false; }                                                   // C 32217
+
+  i = 0;                                                                // C 32219
+  while i < (*dpyinfo).num_devices                                      // C 32219
+    {
+      if (*(*dpyinfo).devices.offset (i as isize)).grab != 0             // C 32221
+	{ return true; }                                                // C 32222
+      i += 1;                                                           // C 32219, the `for`'s step
+    }
+
+  return false;                                                         // C 32225
+}
+
+/* C hook assignments: termhooks.h degrades `struct frame *`/`struct window *` parameters to
+   `*mut c_void` (P-72 rule 3: the mirror cannot name those types) while the definitions keep C's
+   pointer; the conversion is C's own implicit one and the ABI does not depend on the pointee.
+   `src/term.rs` 140-144 carries the same helper, and `pgtkterm.rs` 7032-7036 its GTK-gated copy.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! hook {
+  ($target:ty, $f:expr) => { unsafe {
+    let p: *const c_void = $f as *const c_void;
+    std::mem::transmute::<*const c_void, Option<$target>> (p) } };
+}
+
+/* Create a struct terminal, initialize it with the X11 specific
+   functions and make DISPLAY->TERMINAL point to it.  */
+
+/// C 32232-32303: `static struct terminal *x_create_terminal (struct x_display_info *dpyinfo)` -
+/// C's `static`, so a plain `unsafe fn`.  Every hook field is `Option<…>` over a `*mut c_void`
+/// parameter (P-55), so each assignment is the `hook!` cast the `term.rs` 140 / `pgtkterm.rs` 7032
+/// copies establish (PORTING.md 1.4: a direct `as` is `E0605`); `create_terminal` is `term.rs`'s and
+/// `x_redisplay_interface` (C 32024-32059) is **not landed yet**, so it is one owed name.  C's
+/// `HAVE_XDBE`/`HAVE_EXT_MENU_BAR`/`USE_X_TOOLKIT || USE_GTK`/`HAVE_EXT_TOOL_BAR`/`HAVE_XINPUT2`
+/// conditions keep their own gates.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_create_terminal (dpyinfo: *mut x_display_info) -> *mut terminal
+{
+  let mut terminal: *mut terminal;                                      // C 32235
+
+  terminal = create_terminal (output_x_window, &raw mut x_redisplay_interface);  // C 32237
+
+  (*terminal).display_info.x = dpyinfo as *mut c_void;                  // C 32239
+  (*dpyinfo).terminal = terminal;                                       // C 32240
+
+  /* kboard is initialized in x_term_init. */
+
+  (*terminal).clear_frame_hook                                         // C 32244
+    = hook! (unsafe extern "C" fn (*mut c_void), x_clear_frame);
+  (*terminal).ins_del_lines_hook                                       // C 32245
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int), x_ins_del_lines);
+  (*terminal).delete_glyphs_hook                                       // C 32246
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), x_delete_glyphs);
+  (*terminal).ring_bell_hook                                           // C 32247
+    = hook! (unsafe extern "C" fn (*mut c_void), XTring_bell);
+  (*terminal).toggle_invisible_pointer_hook                            // C 32248
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), XTtoggle_invisible_pointer);
+  (*terminal).update_begin_hook                                        // C 32249
+    = hook! (unsafe extern "C" fn (*mut c_void), x_update_begin);
+  (*terminal).update_end_hook                                          // C 32250
+    = hook! (unsafe extern "C" fn (*mut c_void), x_update_end);
+  (*terminal).read_socket_hook                                         // C 32251
+    = hook! (unsafe extern "C" fn (*mut terminal, *mut input_event) -> c_int, XTread_socket);
+  (*terminal).frame_up_to_date_hook                                    // C 32252
+    = hook! (unsafe extern "C" fn (*mut c_void), XTframe_up_to_date);
+#[cfg (feature = "have_xdbe")]
+  {
+    (*terminal).buffer_flipping_unblocked_hook                         // C 32254
+      = hook! (unsafe extern "C" fn (*mut c_void), XTbuffer_flipping_unblocked_hook);
+  }
+  (*terminal).defined_color_hook                                       // C 32256
+    = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *mut Emacs_Color, bool, bool)
+	     -> bool, x_defined_color);
+  (*terminal).query_frame_background_color                             // C 32257
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut Emacs_Color), x_query_frame_background_color);
+  (*terminal).query_colors                                             // C 32258
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut Emacs_Color, c_int), x_query_colors);
+  (*terminal).mouse_position_hook                                      // C 32259
+    = hook! (unsafe extern "C" fn (*mut *mut c_void, c_int, *mut Lisp_Object,
+				   *mut scroll_bar_part, *mut Lisp_Object, *mut Lisp_Object,
+				   *mut Time), XTmouse_position);
+  (*terminal).get_focus_frame                                          // C 32260
+    = hook! (unsafe extern "C" fn (*mut c_void) -> Lisp_Object, x_get_focus_frame);
+  (*terminal).focus_frame_hook                                         // C 32261
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), x_focus_frame);
+  (*terminal).frame_rehighlight_hook                                   // C 32262
+    = hook! (unsafe extern "C" fn (*mut c_void), XTframe_rehighlight);
+  (*terminal).frame_raise_lower_hook                                   // C 32263
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), XTframe_raise_lower);
+  (*terminal).frame_visible_invisible_hook                             // C 32264
+    = hook! (unsafe extern "C" fn (*mut c_void, bool), x_make_frame_visible_invisible);
+  (*terminal).fullscreen_hook                                          // C 32265
+    = hook! (unsafe extern "C" fn (*mut c_void), XTfullscreen_hook);
+  (*terminal).iconify_frame_hook                                       // C 32266
+    = hook! (unsafe extern "C" fn (*mut c_void), x_iconify_frame);
+  (*terminal).set_window_size_hook                                     // C 32267
+    = hook! (unsafe extern "C" fn (*mut c_void, bool, c_int, c_int), x_set_window_size);
+  (*terminal).set_window_size_and_position_hook                        // C 32268
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int), x_set_window_size_and_position);
+  (*terminal).set_frame_offset_hook                                    // C 32269
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int), x_set_offset);
+  (*terminal).set_frame_alpha_hook                                     // C 32270
+    = hook! (unsafe extern "C" fn (*mut c_void), x_set_frame_alpha);
+  (*terminal).set_new_font_hook                                        // C 32271
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, c_int) -> Lisp_Object, x_new_font);
+  (*terminal).set_bitmap_icon_hook                                     // C 32272
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object) -> bool, x_bitmap_icon);
+  (*terminal).implicit_set_name_hook                                   // C 32273
+    = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object), x_implicitly_set_name);
+  (*terminal).menu_show_hook                                           // C 32274
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int, Lisp_Object,
+				   *mut *const c_char) -> Lisp_Object, x_menu_show);
+#[cfg (feature = "have_ext_menu_bar")]
+  {
+    (*terminal).activate_menubar_hook                                  // C 32276
+      = hook! (unsafe extern "C" fn (*mut c_void), x_activate_menubar);
+  }
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+  {
+    (*terminal).popup_dialog_hook                                      // C 32279
+      = hook! (unsafe extern "C" fn (*mut c_void, Lisp_Object, Lisp_Object) -> Lisp_Object,
+	       xw_popup_dialog);
+  }
+  (*terminal).change_tab_bar_height_hook                               // C 32281
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int), x_change_tab_bar_height);
+#[cfg (not (feature = "have_ext_tool_bar"))]
+  {
+    (*terminal).change_tool_bar_height_hook                            // C 32283
+      = hook! (unsafe extern "C" fn (*mut c_void, c_int), x_change_tool_bar_height);
+  }
+  (*terminal).set_vertical_scroll_bar_hook                             // C 32285
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int), XTset_vertical_scroll_bar);
+  (*terminal).set_horizontal_scroll_bar_hook                           // C 32286
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int), XTset_horizontal_scroll_bar);
+  (*terminal).set_scroll_bar_default_width_hook                        // C 32287
+    = hook! (unsafe extern "C" fn (*mut c_void), x_set_scroll_bar_default_width);
+  (*terminal).set_scroll_bar_default_height_hook                       // C 32288
+    = hook! (unsafe extern "C" fn (*mut c_void), x_set_scroll_bar_default_height);
+  (*terminal).condemn_scroll_bars_hook                                 // C 32289
+    = hook! (unsafe extern "C" fn (*mut c_void), XTcondemn_scroll_bars);
+  (*terminal).redeem_scroll_bar_hook                                   // C 32290
+    = hook! (unsafe extern "C" fn (*mut c_void), XTredeem_scroll_bar);
+  (*terminal).judge_scroll_bars_hook                                   // C 32291
+    = hook! (unsafe extern "C" fn (*mut c_void), XTjudge_scroll_bars);
+  (*terminal).get_string_resource_hook                                 // C 32292
+    = hook! (unsafe extern "C" fn (*mut c_void, *const c_char, *const c_char) -> *const c_char,
+	     x_get_string_resource);
+  (*terminal).free_pixmap                                              // C 32293
+    = hook! (unsafe extern "C" fn (*mut c_void, *mut c_void), x_free_pixmap);
+  (*terminal).delete_frame_hook                                        // C 32294
+    = hook! (unsafe extern "C" fn (*mut c_void), x_destroy_window);
+  (*terminal).delete_terminal_hook                                     // C 32295
+    = hook! (unsafe extern "C" fn (*mut terminal), x_delete_terminal);
+  (*terminal).toolkit_position_hook                                    // C 32296
+    = hook! (unsafe extern "C" fn (*mut c_void, c_int, c_int, *mut bool, *mut bool),
+	     x_toolkit_position);
+#[cfg (feature = "have_xinput2")]
+  {
+    (*terminal).any_grab_hook                                          // C 32298
+      = hook! (unsafe extern "C" fn (*mut c_void) -> bool, x_have_any_grab);
+  }
+  /* Other hooks are NULL by default.  */
+
+  return terminal;                                                      // C 32302
+}
