@@ -48,7 +48,11 @@ by header:
   `GdkWindow`/`GdkPixbuf`/`GdkVisual`/`GdkSeat`/`GdkDevice`/`GdkDragContext`/`GdkColormap`/
   `_GdkAtom`, the words `GdkRGBA`/`GdkColor`/`GdkGeometry`/`GdkRectangle`, the enumerations
   `GdkEventType`/`GdkEventMask`/`GdkWindowHints`/`GdkGravity`/`GdkColorspace`/`GdkCursorType`/
-  `GdkInputSource`, the event records `GdkEvent`/`GdkEventAny`/`GdkEventKey`/`GdkEventProperty`/
+  `GdkInputSource`, the fifteen `GdkCursorType` enumerators C 1556-1591's `INSTALL_CURSOR`
+  paste names (`GDK_LEFT_PTR` and, added by the pgtkfns third slice, `GDK_XTERM`/`GDK_HAND2`/
+  `GDK_WATCH`/`GDK_SB_H_DOUBLE_ARROW`/`GDK_SB_V_DOUBLE_ARROW`/`GDK_LEFT_SIDE`/`GDK_RIGHT_SIDE`/
+  `GDK_TOP_SIDE`/`GDK_BOTTOM_SIDE`/`GDK_TOP_LEFT_CORNER`/`GDK_TOP_RIGHT_CORNER`/
+  `GDK_BOTTOM_RIGHT_CORNER`/`GDK_BOTTOM_LEFT_CORNER`), the event records `GdkEvent`/`GdkEventAny`/`GdkEventKey`/`GdkEventProperty`/
   `GdkEventSelection`/`GdkEventSequence`, and forty entry points.
 - **GTK** (`<gtk/gtk.h>`): the opaque handles `GtkWidget`/`GtkWindow`/`GtkMenu`/`GtkImage`/
   `GtkBin`/`GtkContainer`/`GtkLabel`/`GtkMenuShell`/`GtkMenuBar`/`GtkMenuBarClass`/
@@ -159,7 +163,8 @@ TU.
    lane's own P-88 ⑤ move: delete its segment in the commit that adds the `include/gtkutil.rs`
    edge.
 2. **The real GDK/GTK values and layouts**: the placeholders (`GDK_NOTHING`, the fourteen
-   `GDK_*_MASK`, the seven `GDK_HINT_*`, the ten `GDK_GRAVITY_*`, `GTK_WINDOW_TOPLEVEL`/`_POPUP`,
+   `GDK_*_MASK`, the seven `GDK_HINT_*`, the ten `GDK_GRAVITY_*`, the fourteen `GdkCursorType`
+   enumerators the pgtkfns third slice added, `GTK_WINDOW_TOPLEVEL`/`_POPUP`,
    `GTK_ORIENTATION_*`, `GTK_STATE_NORMAL`, `GTK_STYLE_PROVIDER_PRIORITY_APPLICATION`) and the
    records' `sizeof`/`offsetof` (`GdkGeometry`, `GdkRectangle`, `GdkEvent*`, `GtkAllocation`,
    `GtkRequisition`, `GtkRGBA`-family) are owed to a GTK3 (and, for `GtkStyle`/`GdkColor`/
@@ -199,3 +204,12 @@ the deletions and the edge landings are the next round's.
   **exit 0**: `src/pgtkim.rs` (`have_pgtk` + `have_gtk3`, 14,083,208-byte rlib) and
   `src/hbfont.rs` (`harfbuzz`, 14,580,952-byte rlib); `layout-check` passes and
   `tools/check-all-units.sh` is **83/0 + 83/0**.
+
+### status 3.716 (the pgtkfns third-slice round this file took part in)
+
+The fourteen `GdkCursorType` enumerators above landed here because `src/pgtkfns.c`'s
+`INSTALL_CURSOR` (C 1577-1591) names them and the mirror carried only `GDK_LEFT_PTR`; they are
+placeholders by the rule this file's head states (no GDK header on this machine), and the consumer's
+ledger records the pair (`docs/ports/pgtkfns.md` Deviations 23-24).  The mirror change was verified
+by its consumer sweep (`tools/check-all-units.sh`, the P-87 ① leg) as well as by this file's own
+`--check` and `check-mirror-dupes.py`.

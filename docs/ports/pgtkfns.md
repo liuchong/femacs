@@ -13,8 +13,9 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (1899 lines, from the 11 of the placeholder), carrying **C 1-1147** with
-> **both arms of every `#if`**.
+> `femacs/src/pgtkfns.rs` (**2,578** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> **C 1149-1196** and **C 1197-1757** - three slices - with **both arms of every `#if`**; after them
+> the file's next live definition is `pgtk_frame_restack` (**C 1759**).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -122,7 +123,8 @@ which exist only under those two features (Owed 6).
 | 1074-1131 | `pgtk_default_font_parameter` | file gate |
 | 1133-1147 | `update_watched_scale_factor` - **this slice's last definition** | file gate |
 | 1149-1196 | the "Lisp definitions" banner (C 1149-1153) and `DEFUN ("pgtk-set-monitor-scale-factor", …)` (C 1155-1196: the `CHECK_STRING`/`CHECK_NUMBER` gates, the `FIXNUMP`/`FLOATP` split with its two identical `error` texts, the `Fassoc` lookup and the `Fcons`/`Fsetcdr` pair on `monitor_scale_factor_alist`) | the file gate - **transcribed** (the second slice) |
-| 1197-3906 | **the remainder of the file** - from C 1197 (`Fx_create_frame`, **the next live definition**) through C 3906's `syms_of_pgtkfns`: `Fx_create_frame` (C 1197-1757), the restack pair (1758-1796), the resource-key helpers and the `HAVE_GSETTINGS` pair (1798-1998), `Fpgtk_set_resource` (1999-2021), the ten display subrs (2022-2217), `check_x_display_info`/the scroll-bar defaults/`pgtk_get_string_resource`/`pgtk_get_focus_frame` (2218-2282), the eleven colour/geometry subrs (2283-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1197-1757 | `Fx_create_frame` - the file's largest item: the terminal/display lookup and `check_pgtk_display_info`, the `minibuffer` four-way fork and the `parent_frame` test, the `undecorated`/`override_redirect` reads, the frame's officialisation (`XSETFRAME`, the two css providers, the colour reference-count block, `parent_desc`/`explicit_parent`, the `specbind`), the two font drivers, the parameter chain and `init_frame_faces`, the two `adjust_frame_size` calls, `xg_create_frame_widgets`/`pgtk_set_event_handler` and the fifteen `INSTALL_CURSOR` installs, the frame's own reference counts and `Vframe_list`, the GTK re-parenting and the `GList` walk, `initialize_frame_menubar`/`xg_wm_set_size_hint`, the visibility block, the trailing alist loop and the scale-factor atimer | the file gate - **transcribed** (the third slice) |
+| 1758-3906 | **the remainder of the file** - from C 1758's blank line and the restack pair (`pgtk_frame_restack`, **the next live definition**, C 1759-1796) through C 3906's `syms_of_pgtkfns`: the resource-key helpers and the `HAVE_GSETTINGS` pair (1798-1998), `Fpgtk_set_resource` (1999-2021), the ten display subrs (2022-2217), `check_x_display_info`/the scroll-bar defaults/`pgtk_get_string_resource`/`pgtk_get_focus_frame` (2218-2282), the eleven colour/geometry subrs (2283-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -305,6 +307,71 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     its graph (`include!("include/systime.rs")`) rather than leave a self-inflicted gap; it is the
     P-72 rule 4 remedy, not this file's include list.
 
+17. **C's two l-value macros this slice writes are C's own member paths; C's `FRAME_OUTPUT_DATA`
+    keeps its name.**  `FRAME_X_OUTPUT (f) = xzalloc (sizeof *FRAME_X_OUTPUT (f))` (C 1308),
+    `FRAME_DISPLAY_INFO (f) = dpyinfo` (C 1335) and `FRAME_GTK_OUTER_WIDGET (f) = NULL` (C 1628) are
+    assignments *into* a macro C uses as an l-value, and this unit's copies of those three carry the
+    read arm only (the `FRAME_FOREGROUND_PIXEL!`/`FRAME_UNDECORATED!` pair below is the same file's
+    rule: an arm is added where a call site needs it), so each write is C's own member path
+    (`(*f).output_data.pgtk = xzalloc (std::mem::size_of::<pgtk_output> ())`,
+    `(*FRAME_X_OUTPUT! (f)).display_info = dpyinfo`, `(*FRAME_X_OUTPUT! (f)).widget = …`) - the
+    `src/androidfns.rs` 1222 shape.  The seven `FRAME_OUTPUT_DATA (f)->… = NULL;` writes (C 1629-1635)
+    *do* keep C's macro name, because this slice adds the read-arm macro.  The record's size in the
+    `xzalloc` comes from C's `sizeof` of the expression, i.e. the record's own size.
+18. **C's implicit conversions are written as `as` casts at the use site (Deviation 5's rule, this
+    slice's instances).**  The six `-1` writes into `unsigned long` members (C 1314-1319, 1322-1330)
+    are `(-1 as c_long) as c_ulong`; the six `x_decode_color (f, black, …)` results are
+    `… as c_ulong` (C 1322-1330, an `int` function into `unsigned long` members); `XFIXNAT (parent)`
+    into the `Window` member is `XFIXNAT (parent) as Window` (C 1339); `explicit_parent`'s two
+    `bool`s into the `char` member are `true as c_char`/`false as c_char` (C 1340/1344, the
+    `src/abi_shim.rs` 811 shape); and `dpyinfo->terminal->kboard` is cast to the record it names
+    (`*mut c_void` in `include/termhooks.rs` 220, P-72 rule ③).
+19. **C's assignments hidden in a condition stand on their own line.**  C 838-843 and C 847-852
+    write `tem = (gui_display_get_arg (…))` *inside* `if (!NILP (…))`; Rust's assignment is a
+    statement, so the call is its own line and the `if` tests the value (the chained-assignment note
+    in `src/frame.rs`; `src/androidfns.rs` 1203 is the same function's precedent).
+20. **`f->output_method = output_pgtk;` (C 1308) is this unit's own writer pair.**  The mirror
+    carries the reader (`FRAME_PGTK_P`, `include/frame.rs` 882) and the shift/mask, but
+    `frame_output_method` is private to it, so `set_output_method!`/`output_method!` stand here with
+    C's names (the `src/androidfns.rs` 283-297 device).
+21. **The bit-field writes C spells as plain assignments are macros here.**  `f->no_split = …`
+    (C 1533), `f->can_set_window_size = true;` (C 1706) and the three `f->was_invisible` writes
+    (C 1731/1742/1745) go through `no_split!`, `can_set_window_size!` and `was_invisible!`, each
+    through the mirror's `frame_set_flag` and the mirror's own `_SHIFT`/`_UNIT` constants (the
+    `FRAME_UNDECORATED!` shape this file already uses).
+22. **`KVAR (kb, Vdefault_minibuffer_frame)` (C 1745-1746) is written as the member.**  keyboard.h
+    38's macro is a token paste (`(kboard)->field ## _`) and `include/keyboard.rs` 71 keeps the
+    member's C name `Vdefault_minibuffer_frame_`, so the port writes the member (the
+    `src/androidfns.rs` 1555 shape).
+23. **`INSTALL_CURSOR` (C 1577-1591) cannot paste `GDK_` onto its second argument.**  Rust has no
+    `##`, so the `macro_rules!` takes the pasted constant and each of the fifteen call sites passes
+    it (`GDK_XTERM`, `GDK_LEFT_PTR`, …) - the `src/xfns.rs` treatment of the same C macro.  The
+    macro's own metavariables keep C's names (`$field`, `$name`) and its body keeps C's
+    `FRAME_X_DISPLAY` (this slice's read-arm macro) and `gdk_cursor_new_for_display`.  The token gap
+    this leaves is *recorded*, not silent: two rows of `docs/ports/macro-body-notes.tsv`
+    (`INSTALL_CURSOR` and `Fx_create_frame`) list exactly the tokens C's paste produces and the
+    reason, so every *other* token of both bodies is still compared (Owed 12).
+24. **The fifteen GDK cursor constants are `include/gtk.rs`'s, as placeholders.**  C 1580-1594 names
+    `GDK_XTERM`/`GDK_HAND2`/`GDK_WATCH`/`GDK_SB_*`/`GDK_*_SIDE`/`GDK_*_CORNER` (fourteen distinct
+    names) and the mirror carried only `GDK_LEFT_PTR`; **no GDK header exists on this machine**, so
+    they are added in the same placeholder sense the mirror's existing GDK constants use, with the
+    real values owed to a GTK toolchain (`docs/ports/include-gtk.md`).
+25. **`update_watched_scale_factor` (C 1133-1134, the first slice's item) is now
+    `unsafe extern "C" fn`.**  C 1755-1756 passes it to `start_atimer`, whose parameter is
+    `Option<unsafe extern "C" fn (*mut atimer)>` (`include/atimer.rs` 29's `atimer_callback`), and a
+    Rust `fn` item is the Rust ABI and does not unify - the same reason `do_unwind_create_frame`
+    (this file, C 1045) is spelled that way.  Until this slice nothing took its address, so the first
+    slice could leave it a plain `unsafe fn`; the signature is C's and nothing else about it changes.
+26. **This slice's own declarations stand in this unit** (P-72 rule 4, the device the first slice set
+    up): `fset_parent_frame` (frame.h 774-776, C's `INLINE` setter), `xg_create_frame_widgets`
+    (gtkutil.h 181), `pgtk_set_event_handler` (pgtkterm.h 598) and `pgtk_iconify_frame`
+    (pgtkterm.h 642), plus the six frame.h/dispextern.h/font.h entry points (`make_frame`,
+    `make_minibuffer_frame`, `make_frame_without_minibuffer`, `delete_frame`,
+    `gui_figure_window_size`, `init_frame_faces`, `register_font_driver`) and the two `font.h`
+    driver objects (`ftcrfont_driver`, `ftcrhbfont_driver` under `harfbuzz`, C 1389-1391's `#ifdef`),
+    each with C's line - because the mirrors that own them (`include/frame.rs`, `include/gtkutil.rs`,
+    `include/pgtkterm.rs`, `include/font.rs`) do not carry them yet (Owed 1/2/7).
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 1. **`include/pgtkterm.rs` is a placeholder and owes the records.**  `pgtk_output` (pgtkterm.h
@@ -447,3 +514,88 @@ build, so its object is the same empty one the first slice recorded).  No mirror
 written by this function, and `Fpgtk_set_monitor_scale_factor` is registered by this file's
 `syms_of_pgtkfns` (C 3775-3906, still the remainder), so nothing in the port has called it; the
 two arm readings are **compile** readings of text this machine cannot build.
+
+## The third slice (C 1197-1757): `Fx_create_frame`
+
+**⑨ The file's biggest function, and what is in it.**  C 1197-1200's `DEFUN ("x-create-frame",
+Fx_create_frame, Sx_create_frame, 1, 1, 0,` with C's own short docstring; C 1217-1229 the
+terminal/display lookup and `check_pgtk_display_info`; C 1231-1246 the `minibuffer` four-way fork
+(`make_frame_without_minibuffer`/`make_minibuffer_frame`/`make_frame`) and the `parent_frame`
+acceptance test; C 1248-1260 the two `undecorated`/`override_redirect` parameter reads; C 1302-1335
+the frame's officialisation (`XSETFRAME`, `frame_set_id_from_params`, the two css providers, the
+colour reference-count block, `parent_desc`/`explicit_parent`, the name and the `specbind`); C
+1387-1403 the two font drivers and the font-backend default; C 1406-1471 the parameter chain
+(border/child-border/divider/scroll-bar/colour/fringe), `init_frame_faces`, the `min-width`/
+`min-height` stores and the first `adjust_frame_size`; C 1474-1520 the menu/tab/tool bar lines, the
+seven further parameters, `gui_figure_window_size` and `no_split`; C 1545-1600 `xg_create_frame_widgets`,
+`pgtk_set_event_handler`, the two `gtk_widget_realize` calls and the fifteen `INSTALL_CURSOR`
+installs; C 1603-1654 the frame's own reference counts, `Vframe_list`, the icon/cursor/alpha
+parameters, the parent-frame re-parenting through GTK (`g_object_ref`/`gtk_container_remove`/
+`gtk_fixed_put`/`gtk_widget_show_all`/`g_object_unref`, `gtk_widget_destroy`, the seven
+`FRAME_OUTPUT_DATA` writes) and the `GList` show-all walk; C 1686-1760 `initialize_frame_menubar`,
+`can_set_window_size`, `xg_wm_set_size_hint`, the second `adjust_frame_size`, the `fullscreen`
+parameter, the visibility block, the two `z-group`-family parameters, the
+`default-minibuffer-frame` initialisation, the trailing parameter-alist loop, the
+`border_color_css_provider`/`cr_surface_visible_bell`/`atimer_visible_bell`/`watched_scale_factor`
+clears, the scale-factor atimer and `return unbind_to (count, frame);`.  Rust: 1,816 -> **2,578**
+lines.
+
+**⑩ The arm readings (both arms, `text-only`, the `text-only` class's two-sided shape; own = a
+`pgtkfns.rs`/`_root.rs` span, mirror = a copy's).**  Measured on **both sides of the slice**, HEAD
+vs slice, with the same two arm sets Evidence ⑥ used:
+```
+narrow = have_pgtk + have_window_system
+  HEAD:   exit 1, 65 errors / 11 warnings
+  slice:  exit 1, 143 errors / 11 warnings   (+78 errors, +0 warnings)
+  75 x `cannot find type pgtk_output`       43 -> 118   (this slice's FRAME_X_OUTPUT! sites)
+   1 x `cannot find type pgtk_display_info`  9 ->  10   (this slice's FRAME_X_DISPLAY!/… sites)
+   2 x `cannot find function gtk_css_provider_new`  0 -> 2   (the have_gtk3 gate class)
+  every other class is unchanged, count for count: 4 `gtk_css_provider_load_from_data`, 2
+  `GtkCssProvider`, 2 + 2 `*_FLAG_SHIFT`, 2 `gtk_window_set_icon`, 1 `E0308` (C 1137's row)
+
+wide = narrow + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+       gdk_windowing_wayland + have_xwidgets
+  HEAD:   exit 1, 55 errors / 10 warnings
+  slice:  exit 1, 131 errors / 10 warnings   (+76 errors, +0 warnings: the two gtk_css_provider_new
+                                               sites resolve under have_gtk3, the other two classes don't)
+```
+**No new class appears in either arm and no warning is added.**  The 78 (76 in the wide arm) are
+*one per expansion site* of the three classes this lane already carries, and the per-site
+attribution was measured, not assumed: rustc's `in this macro invocation` note points into
+`pgtkfns.rs`, and the sites whose note falls inside C 1197-1757 are exactly 75 + 1 + 2 - the same
+numbers as the deltas.  The reason the count * rises * at all is `## Owed` 1: `include/pgtkterm.rs`
+is a placeholder, so `pgtk_output`/`pgtk_display_info` are unresolved for every accessor expansion
+(`FRAME_X_OUTPUT!` alone expands 33 times in this slice, and `INSTALL_CURSOR`'s fifteen
+instantiations carry a further fifteen); the first two slices' texts touch the two records far less
+often (43 and 9 sites at HEAD).  This slice's own text therefore adds **no error and no warning of
+its own** in the sense the rule asks for - nothing that is not a site of a class already named in
+this ledger - and the three classes are *counted*, not waved away.
+
+**⑪ `extract-abi.py --check`.**  `FAIL`, **101 `- ` rows -> 99**: `missing function Fx_create_frame`
+and `missing subr Fx_create_frame (x-create-frame)` retire, and the line-count row moves 53.5% ->
+**34.0%** (C 3,906 vs Rust 2,578).  Two rows that replacing them *exposed* are paid in the same
+commit, as the image/sfnt lanes' rows were: C 1577-1591's `INSTALL_CURSOR` pastes `GDK_ ## NAME`,
+and C's `FRAME_OUTPUT_DATA`/`FRAME_X_DISPLAY`/`FRAME_OUTPUT_DATA` tokens are spelled by this unit's
+own read-arm macros, so the checker's own two findings (`macro INSTALL_CURSOR does not mention gdk`,
+`subr Fx_create_frame does not mention bottom_left_corner, …, xterm`) are recorded as two rows of
+`docs/ports/macro-body-notes.tsv` (Deviation 23) - every *other* token of both bodies is still
+compared, which is what that table's shape is for.  The 99 rows left are the remainder's.
+
+**⑫ The seven text gates.**  `check-declarations.py` **17 declaration sites (0 forbidden, 17 allowed
+literals), 0 failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range, 2,029
+external, 36 allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound, 0 failure(s)**
+(53 range rows now cover src/pgtkfns.c); `check-port-lines.py` **0 file(s) under ten percent, 0
+reference line(s), 0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py` **238 ledger(s)
+bound, 0 failure(s)**; `check-cond-eval.py src/pgtkfns.c` **11 conditions, 0 unknown, 0
+disagreements [VERIFIED]**; `check-mirror-dupes.py` **16 duplicate(s), 16 ratchet row(s), 0
+failure(s)** (the five macros this slice adds are this unit's own copies of `pgtkterm.h`/
+`frame.h` rows whose mirror is not in its include graph).  `build-tu src/pgtkfns.c` was not re-run
+(the unit is not in the frozen build, so its object is the same empty one the first slice recorded).
+
+**⑬ Not claimed.**  No frame was created: `Fx_create_frame` is registered by this file's
+`syms_of_pgtkfns` (C 3775-3906, still the remainder), so nothing in the port calls it, and every
+call it makes (`xg_create_frame_widgets` and the other `gtkutil.c`/`pgtkterm.c` sides) is a
+declaration in this unit, not a definition - the port has no GTK to link.  The two arm readings are
+**compile** readings of text this machine cannot build, and the object-sized reading other units
+use does not exist for this one (the frozen object is the empty one).  Nothing was executed, no
+warning was suppressed, and the thirteen GDK cursor constants are placeholders (Deviation 24).

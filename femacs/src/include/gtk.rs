@@ -376,6 +376,23 @@ pub const GDK_COLORSPACE_RGB: GdkColorspace = 0;
 /// `gdk_cursor_new_for_display`).  Its value is GTK's, **UNVERIFIED** here.
 pub type GdkCursorType = c_int;
 pub const GDK_LEFT_PTR: GdkCursorType = 0;
+/// C 1556-1591's `GDK_ ## NAME` pastes: the fourteen cursor types C's fifteen `INSTALL_CURSOR`
+/// calls name besides `GDK_LEFT_PTR` above (`GDK_XTERM` twice).  The enum is GdkCursorType's and
+/// **no GDK header exists on this machine** (`docs/ports/include-gtk.md`), so each value is a
+/// placeholder in the same sense as `GDK_LEFT_PTR` - the real one is owed to a GTK toolchain.
+pub const GDK_XTERM: GdkCursorType = 0;              // placeholder, not GDK's value
+pub const GDK_HAND2: GdkCursorType = 0;              // placeholder, not GDK's value
+pub const GDK_WATCH: GdkCursorType = 0;              // placeholder, not GDK's value
+pub const GDK_SB_H_DOUBLE_ARROW: GdkCursorType = 0;  // placeholder, not GDK's value
+pub const GDK_SB_V_DOUBLE_ARROW: GdkCursorType = 0;  // placeholder, not GDK's value
+pub const GDK_LEFT_SIDE: GdkCursorType = 0;          // placeholder, not GDK's value
+pub const GDK_RIGHT_SIDE: GdkCursorType = 0;         // placeholder, not GDK's value
+pub const GDK_TOP_SIDE: GdkCursorType = 0;           // placeholder, not GDK's value
+pub const GDK_BOTTOM_SIDE: GdkCursorType = 0;        // placeholder, not GDK's value
+pub const GDK_TOP_LEFT_CORNER: GdkCursorType = 0;    // placeholder, not GDK's value
+pub const GDK_TOP_RIGHT_CORNER: GdkCursorType = 0;   // placeholder, not GDK's value
+pub const GDK_BOTTOM_RIGHT_CORNER: GdkCursorType = 0; // placeholder, not GDK's value
+pub const GDK_BOTTOM_LEFT_CORNER: GdkCursorType = 0; // placeholder, not GDK's value
 /// C: gtk/gtkwidget.h: `#define GDK_WINDOW(window) ((GdkWindow *) (window))`-family checked cast
 /// (C 616 converts `children->data`), and gdk/gdkx.h's `#define GDK_DISPLAY_XDISPLAY(display)` (C
 /// 260).  Both keep their names and their result types; the cast chains are GLib's and owed (the
