@@ -11,7 +11,7 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,426 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,439 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
@@ -2708,7 +2708,7 @@ translation, the `PINCH_EVENT` enqueue and the two `return`s), `pgtk_fill_rectan
 whose definition retires **nineteen** standing `cannot find function` errors at call sites already in
 the tree) and `pgtk_clear_under_internal_border` (C 5046-5093, non-`static` in C and named by C
 3777's `pgtk_redisplay_interface`, which the port already writes at line 5444).  Rust: 7,265 ->
-**7,426** lines, and the file's own `line count drifted` row **disappears**: 7,426 against C's 7,780
+**7,439** lines, and the file's own `line count drifted` row **disappears**: 7,439 against C's 7,780
 is 4.6%, inside the default 5% tolerance for the first time.
 
 **The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
@@ -2726,7 +2726,7 @@ here**: my own `E0308` at C 5022-5023 (`inev.ie.modifiers` is `c_uint`, so C's i
 uninitialised bindings handed out through `&raw mut`, which the compiler could only reach once the
 nineteen resolution errors above were gone).  **Arm reach is measured** (P-86 7): injecting
 `let _: c_int = true;` as the first statement of `pgtk_handle_event` moves arm A to **52** errors
-anchored at the injected line (removed, the file re-measured at **7,426** lines).
+anchored at the injected line (removed, the file re-measured at **7,439** lines).
 
 **The mirror round (P-87).**  `include/gtk.rs` gains the `GdkEvent` union's `touchpad_pinch` member
 and the record behind it (C's text reads it, so the union had to carry it); the two `GDK_TOUCHPAD_*`
@@ -2745,8 +2745,8 @@ default).
 
 **Ledger.**  Deviation 62 (the mirror round, the P-87 legs and the three defects), Owed 18, the range
 table's remainder row split into `4992-5093` (**transcribed**) and `5095-7780` (whose next live
-definition is `pgtk_handle_draw`, C 5095-5096), the title to forty slices and the header to 7,426
-lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2085/36/0,
+definition is `pgtk_handle_draw`, C 5095-5096), the title to forty slices and the header to 7,439
+lines.  (**Corrected in the same round**: the count first recorded here, 7,426, was measured before the two `GDK_TOUCHPAD_*` constants moved out of the mirror and into the unit, which add thirteen lines; the re-measured file is **7,439** lines, i.e. 4.4% against C's 7,780 - still inside the 5% default, so the `line count drifted` row stays gone.)  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2085/36/0,
 `check-dead-file-coverage.py` 145/0 (**72 range rows** over `src/pgtkterm.c`), `check-port-lines.py`
 0/0/0/0, `check-ledger-ticks.py` 238/0, `check-cond-eval.py src/pgtkterm.c` 31/0/0 and
 `check-mirror-dupes.py` 16/16/0.  **Not claimed**: nothing has been run - the frozen configuration
