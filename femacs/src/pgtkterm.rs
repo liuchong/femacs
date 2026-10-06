@@ -7163,3 +7163,103 @@ unsafe fn pgtk_create_terminal (dpyinfo: *mut pgtk_display_info) -> *mut termina
 
   return terminal;                                                      // C 4923
 }
+
+/* C 4926-4931: `struct pgtk_window_is_of_frame_recursive_t` - the record travels to
+   `gtk_container_foreach` through its `gpointer` parameter and comes back as the third argument,
+   so it is a unit-level `#[repr (C)]` record (the `cairo_rectangle_t` shape, line 4312).  */
+#[repr(C)]
+pub struct pgtk_window_is_of_frame_recursive_t
+{
+  pub window: *mut GdkWindow,                  // C 4928: `GdkWindow *window;`
+  pub result: bool,                            // C 4929: `bool result;`
+  pub emacs_gtk_fixed: *mut GtkWidget,         // C 4930: `GtkWidget *emacs_gtk_fixed;`
+}
+
+/* C: emacsgtkfixed.h 30-33: `#define EMACS_TYPE_FIXED emacs_fixed_get_type ()` and
+   `#define EMACS_IS_FIXED(obj) G_TYPE_CHECK_INSTANCE_TYPE (obj, EMACS_TYPE_FIXED)` - the C 4941
+   test.  Both live inside that header's `#ifdef HAVE_PGTK`, which the frozen configuration does not
+   define, so `include/emacsgtkfixed.rs` records them as dead text and defers the two records; this
+   unit therefore carries the same placeholder shape the file's `GTK_IS_CONTAINER!` uses (line
+   6685): the null test, because no GTK tree on this machine can measure the real type check.  */
+#[cfg (feature = "have_pgtk")]
+macro_rules! EMACS_IS_FIXED {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+
+/// C 4933-4953: `static void pgtk_window_is_of_frame_recursive (GtkWidget *widget, gpointer data)` -
+/// **its address is C 4952's `gtk_container_foreach` argument**, so it is `unsafe extern "C" fn`
+/// (PORTING.md 1.4) and its signature is exactly that header's `typedef void (*GtkCallback)
+/// (GtkWidget *widget, gpointer data);` (`src/pgtkterm.rs`'s own `GtkCallback`, line 6741), which is
+/// why the call passes the item without a cast.
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn pgtk_window_is_of_frame_recursive (widget: *mut GtkWidget, data: gpointer)
+{
+  let datap: *mut pgtk_window_is_of_frame_recursive_t
+    = data as *mut pgtk_window_is_of_frame_recursive_t;                 // C 4936
+
+  if (*datap).result                                                    // C 4938
+    { return; }                                                         // C 4939
+
+  if EMACS_IS_FIXED! (widget) && widget != (*datap).emacs_gtk_fixed     // C 4941
+    { return; }                                                         // C 4942
+
+  if gtk_widget_get_window (widget) == (*datap).window                  // C 4944
+    {
+      (*datap).result = true;                                           // C 4946
+      return;                                                           // C 4947
+    }
+
+  if GTK_IS_CONTAINER! (widget)                                         // C 4950
+    { gtk_container_foreach (GTK_CONTAINER! (widget),                   // C 4951
+			     Some (pgtk_window_is_of_frame_recursive), datap as gpointer); }   // C 4952
+}
+
+/// C 4955-4964: `static bool pgtk_window_is_of_frame (struct frame *f, GdkWindow *window)` -
+/// `static` with one call site (C 4984) and no address taken, so a plain `unsafe fn`.  C declares
+/// `struct pgtk_window_is_of_frame_recursive_t data;` and fills the three fields in C's order
+/// (C 4959-4961); Rust has no counterpart for a field-by-field fill of an uninitialised binding
+/// (PORTING.md 1.3), so the port uses the same-name field literal with C's three values in C's order
+/// (Deviation 47's shape), then hands `&data` over as the `gpointer`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_window_is_of_frame (f: *mut frame, window: *mut GdkWindow) -> bool
+{
+  let mut data: pgtk_window_is_of_frame_recursive_t = pgtk_window_is_of_frame_recursive_t {
+    window,                                                             // C 4959
+    result: false,                                                      // C 4960
+    emacs_gtk_fixed: FRAME_GTK_WIDGET! (f),                             // C 4961
+  };
+  pgtk_window_is_of_frame_recursive (FRAME_WIDGET! (f), &raw mut data as gpointer);   // C 4962
+  return data.result;                                                   // C 4963
+}
+
+/// C 4966-4990: `static struct frame *pgtk_any_window_to_frame (GdkWindow *window)` - `static` with
+/// two call sites earlier in this file (C 3519's `pgtk_mouse_position`, this unit's line 5004, and
+/// C 7332's `pgtk_any_window_to_frame` caller), no address taken, so a plain `unsafe fn`; landing it
+/// retires the standing `cannot find function pgtk_any_window_to_frame` class.  C's
+/// `Lisp_Object tail, frame;` pair and `struct frame *f, *found = NULL;` keep C's two lines, and the
+/// `FOR_EACH_FRAME` walk is the mirror's macro with the body as its third argument (the C 3506
+/// reading at line 5000), `break` inside it included.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_any_window_to_frame (window: *mut GdkWindow) -> *mut frame
+{
+  let mut tail: Lisp_Object;                                            // C 4971
+  let mut frame: Lisp_Object;                                           // C 4971
+  let mut f: *mut frame;                                                // C 4972
+  let mut found: *mut frame = core::ptr::null_mut ();                    // C 4972
+
+  if window.is_null ()                                                  // C 4974
+    { return core::ptr::null_mut (); }                                  // C 4975
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 4977
+    if !found.is_null ()                                                // C 4979
+      { break; }                                                        // C 4980
+    f = XFRAME (frame);                                                 // C 4981
+    if FRAME_PGTK_P (f)                                                 // C 4982
+      {
+	if pgtk_window_is_of_frame (f, window)                          // C 4984
+	  { found = f; }                                                // C 4985
+      }
+  });
+
+  return found;                                                         // C 4989
+}

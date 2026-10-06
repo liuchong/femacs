@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-38: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867 and C 4869-4924
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-39: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924 and C 4926-4990
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,165 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,265 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** - thirty-eight
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** - thirty-nine
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_window_is_of_frame_recursive` (C 4933-4934).**
+> `pgtk_handle_event` (C 4992-4993).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -151,7 +151,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 4702-4793 | `frame_highlight` (C 4702-4731), `frame_unhighlight` (C 4733-4766) and `pgtk_frame_rehighlight` (C 4769-4793, C 4768 is the blank line above it) | the file gate - **transcribed** (the thirty-sixth slice) |
 | 4795-4867 | `pgtk_frame_rehighlight_hook` (C 4803-4807), `pgtk_toggle_invisible_pointer` (C 4811-4826), `pgtk_new_focus_frame` (C 4834-4858) and `pgtk_buffer_flipping_unblocked_hook` (C 4860-4867) | the file gate - **transcribed** (the thirty-seventh slice) |
 | 4869-4924 | `pgtk_create_terminal` (C 4869-4924, the thirty-nine hook assignments at C 4879-4919) | the file gate - **transcribed** (the thirty-eighth slice) |
-| 4926-7780 | **the remainder of the file** - from C 4926's `pgtk_window_is_of_frame_recursive_t` record and C 4933's `pgtk_window_is_of_frame_recursive` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the widget walkers, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4926-4990 | the record `pgtk_window_is_of_frame_recursive_t` (C 4926-4931), `pgtk_window_is_of_frame_recursive` (C 4933-4953), `pgtk_window_is_of_frame` (C 4955-4964) and `pgtk_any_window_to_frame` (C 4966-4990) | the file gate - **transcribed** (the thirty-ninth slice) |
+| 4992-7780 | **the remainder of the file** - from C 4992's `pgtk_handle_event` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the event handlers, the widget walkers, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1063,6 +1064,28 @@ their assertions are owed.
     functions the body names but this unit has not defined yet come from `include/pgtkterm.rs`'s
     declaration block.  No mirror changed, so P-87's two legs do not apply.
 
+61. **A record the GTK callback carries, the `EMACS_IS_FIXED!` placeholder, and C's field-by-field
+    fill.**  `struct pgtk_window_is_of_frame_recursive_t` (C 4926-4931) travels to
+    `gtk_container_foreach` through its `gpointer` parameter and comes back as the callback's third
+    argument, so it is a unit-level `#[repr (C)]` record with C's three members in C's order (the
+    `cairo_rectangle_t` shape, line 4312) and the callback casts `data` back to it (C 4936).  Its
+    `pgtk_window_is_of_frame_recursive` is the file's second `unsafe extern "C" fn` reached through
+    `GtkCallback` (the `set_opacity_recursively` shape, Deviation 57): the parameter list is exactly
+    that header's `typedef void (*GtkCallback) (GtkWidget *widget, gpointer data);`, which is why the
+    C 4952 call passes the item itself - and why the same call needs `datap as gpointer` for C's
+    implicit `struct … *`-to-`gpointer` conversion (the defect the first reading named).  C 4958-4962's
+    `struct … data;` filled field by field has no Rust counterpart for an uninitialised binding
+    (PORTING.md 1.3), so the port uses the same-name field literal with C's three values in C's order
+    (Deviation 47's shape) and hands over `&raw mut data as gpointer`.  `EMACS_IS_FIXED` comes from
+    `emacsgtkfixed.h` 30-33, whose two macros sit inside that header's `#ifdef HAVE_PGTK` and whose
+    two records are deferred by `include/emacsgtkfixed.rs` (the frozen configuration does not define
+    the macro), so the unit carries the placeholder shape the same file's `GTK_IS_CONTAINER!` uses
+    (the null test, line 6685) - **Owed 17** names the mirror row.  `FRAME_PGTK_P`
+    (`include/frame.rs` 875-882), `GTK_CONTAINER!` (that mirror's 790), `gtk_widget_get_window`
+    (883), `gtk_container_foreach` (the unit's GTK segment, line 6741) and the mirror's
+    `FOR_EACH_FRAME!` (C's body as the macro's third argument, the C 3506 reading at line 5000) are
+    the rest of the surface.  No mirror changed, so P-87's two legs do not apply.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1120,6 +1143,13 @@ their assertions are owed.
     **);` and `extern void pgtk_activate_menubar (struct frame *);`.  The mirror carries the frozen
     arm only and records both as dead declarations (`docs/ports/menu.md`), so the unit declares them
     at the use site until that arm lands.
+
+17. **`include/emacsgtkfixed.rs`** owes the two type macros the thirty-ninth slice needed:
+    `EMACS_TYPE_FIXED` and `EMACS_IS_FIXED` (`emacsgtkfixed.h` 30-33, inside that header's
+    `#ifdef HAVE_PGTK`).  The mirror records them as dead text (the frozen configuration does not
+    define the macro) and this machine has no GTK tree to measure the type check with, so the unit
+    carries `EMACS_IS_FIXED!` as the same null-test placeholder the file's `GTK_IS_CONTAINER!` is;
+    the mirror round that gives the pgtk arm live declarations closes it.
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -2597,4 +2627,43 @@ lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.p
 changed this round, so `check-mirror-dupes.py` 16/16/0 stands and P-87's two legs do not apply).
 **Not claimed**: nothing has been run - the frozen configuration compiles none of this file, this
 machine has no GTK tree and no PGTK target, no terminal was created and no hook was called, and the
+arm readings are **compile** readings of text this machine cannot build.
+
+## The thirty-ninth slice (C 4926-4990): the window-is-of-frame family
+
+**What is in it.**  The record `pgtk_window_is_of_frame_recursive_t` (C 4926-4931),
+`pgtk_window_is_of_frame_recursive` (C 4933-4953, whose address C 4952 hands to
+`gtk_container_foreach`), `pgtk_window_is_of_frame` (C 4955-4964) and `pgtk_any_window_to_frame`
+(C 4966-4990, the `FOR_EACH_FRAME` walk with C's early `break`).  Rust: 7,165 -> **7,265** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 71 errors / 19 warnings -> 70 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 72 / 20 -> 71 / 20
+C = A + use_gtk + have_gtk3                        : 29 / 18 -> 28 / 18
+```
+**Every arm loses exactly one error and gains none**: the set diff in all three arms is the single
+base-only line `cannot find function pgtk_any_window_to_frame` (the standing class C 4969's
+definition retires), with **0 new errors, 0 new warnings**.  **The first reading named one defect of
+this slice's own text**: C 4952's callback argument list needed `datap as gpointer` for C's implicit
+`struct … *`-to-`gpointer` conversion (the `E0308` the first run reported at that line); with it the
+readings above are what the arms print.  **Arm reach is measured** (P-86 7): injecting
+`let _: c_int = true;` as the first statement of `pgtk_any_window_to_frame` moves arm A to **71**
+errors anchored at the injected line (removed, the file re-measured at **7,265** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**80 rows -> 77**: the three functions retire and **no token row arrives** (the record's member names,
+the callback name and the `FOR_EACH_FRAME` body tokens are all in the port's text).  The file's own
+`line count drifted` row is re-measured 7.9% -> **6.6%** (C 7,780 vs the port's 7,265).
+
+**Ledger.**  Deviation 61 (the record, the `GtkCallback` signature, the field-literal reading of C's
+fill and the `EMACS_IS_FIXED!` placeholder), Owed 17, the range table's remainder row split into
+`4926-4990` (**transcribed**) and `4992-7780` (whose next live definition is `pgtk_handle_event`,
+C 4992-4993), the title to thirty-nine slices and the header to 7,265 lines.  **The gates** read
+`check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2085/36/0,
+`check-dead-file-coverage.py` 145/0 (**71 range rows** over `src/pgtkterm.c`), `check-port-lines.py`
+0/0/0/0, `check-ledger-ticks.py` 238/0 and `check-cond-eval.py src/pgtkterm.c` 31/0/0 (no mirror
+changed this round, so `check-mirror-dupes.py` 16/16/0 stands and P-87's two legs do not apply).
+**Not claimed**: nothing has been run - the frozen configuration compiles none of this file, this
+machine has no GTK tree and no PGTK target, no window was walked and no frame was searched, and the
 arm readings are **compile** readings of text this machine cannot build.
