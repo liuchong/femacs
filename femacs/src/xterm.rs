@@ -16762,3 +16762,254 @@ pub unsafe extern "C" fn x_wait_for_event (f: *mut frame, eventtype: c_int)
 
   (*f).wait_event_type = 0;                                             // C 28474
 }
+
+
+/* Change the size of frame F's X window to WIDTH/HEIGHT in the case F
+   doesn't have a widget.  If CHANGE_GRAVITY, change to
+   top-left-corner window gravity for this size change and subsequent
+   size changes.  Otherwise leave the window gravity unchanged.  */
+
+/// C 28483-28555: `static void x_set_window_size_1 (struct frame *f, bool change_gravity, int
+/// width, int height)` - `static` (its callers are C 28599/28601), so a plain `unsafe fn`.
+/// C's `#ifdef USE_X_TOOLKIT` arm keeps its `if`/`else` and the tail statement every arm
+/// reaches is duplicated into each (P-86 ①'s practice); `widget` is `x_output`'s toolkit member
+/// (`include/xterm.rs` 769, the same gate), and `NorthWestGravity` is this file's own declaration
+/// at 15472-15474 (slice 22's C 27606 use), so C 28488 resolves it.  C 28489's `x_wm_set_size_hint` is this file's own
+/// later definition (C 30159), so the call stands undeclared (PORTING.md 1.3).  C 28497/28505's
+/// `FRAME_MENUBAR_HEIGHT` is `include/xterm.rs` 1101's macro, whose `{ (void) ($f); 0 }` body is
+/// C's cast spelling and cannot resolve (`E0425: cannot find value void`); the port keeps C's call
+/// (the slice is a transcript) and the mirror row is owed - `docs/ports/xfns.md` 816-828 records
+/// the same finding for its own two sites.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_window_size_1 (f: *mut frame, change_gravity: bool, width: c_int,
+			       height: c_int)
+{
+  if change_gravity                                                     // C 28487
+    { (*f).win_gravity = NorthWestGravity; }                          // C 28488
+  x_wm_set_size_hint (f, 0, false);                                     // C 28489
+
+#[cfg (feature = "use_x_toolkit")]
+  {
+    if !FRAME_PARENT_FRAME (f).is_null ()                               // C 28492
+	&& !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget.is_null ()
+      {
+	/* Resize all inner widgets and Cairo surface right away so the
+	   next redisplay drawing isn't clipped to the old size.  */
+	XtResizeWidget ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget,  // C 28496-28497
+		width as Dimension,
+		(height + FRAME_MENUBAR_HEIGHT! (f)) as Dimension, 0);
+#[cfg (feature = "use_cairo")]
+	{ x_cr_update_surface_desired_size (f, width, height); }        // C 28499
+      }
+    else
+      {
+	XResizeWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),   // C 28504-28505
+		width as c_uint, (height + FRAME_MENUBAR_HEIGHT! (f)) as c_uint);
+      }
+  }
+
+#[cfg (not (feature = "use_x_toolkit"))]
+  {
+    XResizeWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),       // C 28504-28505
+	    width as c_uint, (height + FRAME_MENUBAR_HEIGHT! (f)) as c_uint);
+  }
+
+  /* We've set {FRAME,PIXEL}_{WIDTH,HEIGHT} to the values we hope to
+     receive in the ConfigureNotify event; if we get what we asked
+     for, then the event won't cause the screen to become garbaged, so
+     we have to make sure to do it here.  */
+  SET_FRAME_GARBAGED! (f);                                              // C 28511
+
+  /* The following code is too slow over a latent network
+     connection, so skip it when the user says so.  */
+
+  if !NILP (Vx_lax_frame_positioning)                                   // C 28516
+    { return; }
+
+  /* Now, strictly speaking, we can't be sure that this is final,
+     but the window manager will get around to dealing with the size
+     change request eventually, and we'll hear how it went when the
+     ConfigureNotify event gets here.
+
+     We could just let the ConfigureNotify update everything, but
+     waiting creates an implicit X flush which might flicker with
+     outdated contents in the frame.  For child frames, the window
+     manager is not a concern and it's better to finish quickly.  */
+  if FRAME_VISIBLE_P (f) && FRAME_PARENT_FRAME (f).is_null ()           // C 28528
+    {
+	/* The event may create delayed size change (delayed because we
+	   can't run Lisp code inside of a BLOCK_INPUT) which will be
+	   applied right after by do_pending_window_change.  */
+      x_wait_for_event (f, ConfigureNotify);                            // C 28533
+
+      if CONSP (frame_size_history)                                     // C 28535
+	  {
+	  frame_size_history_extra (f,                                  // C 28536-28537
+	    build_string (c"x_set_window_size_1, waited for event".as_ptr ()),
+	    FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f), width, height,
+	    (*f).new_width, (*f).new_height);
+	  }
+    }
+  else
+    {
+      if CONSP (frame_size_history)                                     // C 28543
+	  {
+	  frame_size_history_extra (f,                                  // C 28544-28545
+	    build_string (c"x_set_window_size_1, not waited for event".as_ptr ()),
+	    FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f), width, height,
+	    (*f).new_width, (*f).new_height);
+	  }
+
+	/* Call adjust_frame_size right away as with GTK.  It might be
+	   tempting to clear out f->new_width and f->new_height here.  */
+      adjust_frame_size (f, FRAME_PIXEL_TO_TEXT_WIDTH (f, width),       // C 28551-28553
+	  FRAME_PIXEL_TO_TEXT_HEIGHT (f, height),
+	  5, false, Qx_set_window_size_1 ());
+    }
+}
+
+/* C: X11/Intrinsic.h: `typedef unsigned short Dimension;` / `extern void XtResizeWidget
+   (Widget, Dimension, Dimension, Dimension);` - C 28496's call, in the `USE_X_TOOLKIT` arm.
+   libXt's headers are not on this machine, so the citations are the header's own names and the
+   `src/xfns.rs` 1203/1389 notes' rule applies (the `XtVaGetValues` block above); `Widget` is the
+   use-site type that block declares (xterm.rs 15360).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type Dimension = c_ushort;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe extern "C" {
+  pub fn XtResizeWidget (w: Widget, width: Dimension, height: Dimension,
+			 border_width: Dimension);
+}
+
+/* Resizing an occluding window (such as a child frame) immediately
+   triggers a fill with background color on the exposed area on the
+   parent when the X server receives the corresponding command
+   (XResizeWindow, XMoveResizeWindow, etc), according to the X protocol.
+   But only if the window has a background assigned.
+
+   This creates flickering, so change the background pixmap to None.  */
+/// C 28564-28570: `static void x_suspend_background_fills (struct frame *f)` - `static` (its
+/// callers are C 28593/28607), so a plain `unsafe fn`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_suspend_background_fills (f: *mut frame)
+{
+  use crate::x11_constants::None;
+
+  let dpy: *mut Display = FRAME_X_DISPLAY! (f);                         // C 28567
+
+  XSetWindowBackgroundPixmap (dpy, FRAME_X_WINDOW! (f), None as Pixmap);  // C 28569
+}
+
+/* No automatic fill happens when the background is restored.  */
+/// C 28573-28579: `static void x_restore_background_fills (struct frame *f)` - `static` (the
+/// same two callers), so a plain `unsafe fn`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_restore_background_fills (f: *mut frame)
+{
+  let dpy: *mut Display = FRAME_X_DISPLAY! (f);                         // C 28576
+
+  XSetWindowBackground (dpy, FRAME_X_WINDOW! (f), FRAME_BACKGROUND_PIXEL (f));  // C 28578
+}
+
+/* C: X11/Xlib.h 3338-3340: `int XSetWindowBackgroundPixmap (Display *display, Window w,
+   Pixmap background_pixmap);` - C 28569's call.  No mirror of this unit's graph declares it,
+   so it stands at this use site (P-72 rule 4, the `XGetWindowProperty`/`XMoveWindow` shape).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XSetWindowBackgroundPixmap (display: *mut Display, w: Window,
+				    background_pixmap: Pixmap) -> c_int;
+}
+
+/* C: X11/Xlib.h 3343: `int XSetWindowBackground (Display *display, Window w, unsigned long
+   background);` - C 28578's call (the `src/xwidget.rs` 5478-5480 copy of the same).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XSetWindowBackground (display: *mut Display, w: Window, background: c_ulong) -> c_int;
+}
+
+/* Change the size of frame F's X window to WIDTH and HEIGHT pixels.  If
+   CHANGE_GRAVITY, change to top-left-corner window gravity for this
+   size change and subsequent size changes.  Otherwise we leave the
+   window gravity unchanged.  */
+
+/// C 28585-28621: `void x_set_window_size (struct frame *f, bool change_gravity, int width, int
+/// height)` - non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe
+/// extern "C" fn` (PORTING.md 0.2/1.4).  Both arms of C 28595's `#ifdef USE_GTK` are carried
+/// (P-86 ①): the GTK one calls `xg_frame_set_char_size` (gtkutil.h 165's prototype, another
+/// crate's definition) and the `#else` calls `x_set_window_size_1` and
+/// `x_clear_under_internal_border` (this file's own C 7696 definition, already ported).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_set_window_size (f: *mut frame, change_gravity: bool, width: c_int,
+					       height: c_int)
+{
+  block_input ();                                                       // C 28590
+
+  if !FRAME_PARENT_FRAME (f).is_null ()                                 // C 28592
+    { x_suspend_background_fills (FRAME_PARENT_FRAME (f)); }          // C 28593
+
+#[cfg (feature = "use_gtk")]
+  {
+    if !FRAME_GTK_WIDGET! (f).is_null ()                                // C 28596
+	  { xg_frame_set_char_size (f, width, height); }
+	else
+	  { x_set_window_size_1 (f, change_gravity, width, height); }
+  }
+
+#[cfg (not (feature = "use_gtk"))]
+  {
+    x_set_window_size_1 (f, change_gravity, width, height);             // C 28601
+    if FRAME_PARENT_FRAME (f).is_null ()                                // C 28602
+	  { x_clear_under_internal_border (f); }
+  }
+
+  if !FRAME_PARENT_FRAME (f).is_null ()                                 // C 28606
+    { x_restore_background_fills (FRAME_PARENT_FRAME (f)); }          // C 28607
+
+  /* If cursor was outside the new size, mark it as off.  */
+  mark_window_cursors_off (XWINDOW ((*f).root_window));                 // C 28610
+
+  /* Clear out any recollection of where the mouse highlighting was,
+     since it might be in a place that's outside the new frame size.
+     Actually checking whether it is outside is a pain in the neck,
+     so don't try--just let the highlighting be done afresh with new size.  */
+  cancel_mouse_face (f);                                                // C 28616
+
+  unblock_input ();                                                     // C 28618
+
+  do_pending_window_change (false);                                     // C 28620
+}
+
+/* C: dispextern.h 3690: `extern void cancel_mouse_face (struct frame *);` - C 28616's call
+   (the `src/gtkutil.rs` 485-487 copy of the same prototype).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn cancel_mouse_face (f: *mut frame);
+}
+
+/* C: frame.h 1515-1516: `extern void frame_size_history_extra (struct frame *, Lisp_Object,
+   int, int, int, int, int, int);` - C 28536/28544's two calls (the `src/gtkutil.rs` 523-527
+   copy).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn frame_size_history_extra (f: *mut frame, name: Lisp_Object, old_w: c_int,
+				   old_h: c_int, new_w: c_int, new_h: c_int, f_new_w: c_int,
+				   f_new_h: c_int);
+}
+
+
+/* C: dispextern.h 3923: `void do_pending_window_change (bool);` - C 28620's call.  The
+   definition is another crate's (`src/dispnew.rs` 7434), so it stands at this use site (P-72
+   rule 4).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn do_pending_window_change (safe: bool);
+}
+
+/* C: gtkutil.h 165: `extern void xg_frame_set_char_size (struct frame *f, int width, int
+   height);` - C 28597's call, in the arm `USE_GTK` is (the declaration stands in that arm's
+   gate, the `xg_set_skip_taskbar` shape this file already carries).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_frame_set_char_size (f: *mut frame, width: c_int, height: c_int);
+}
