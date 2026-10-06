@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -288,10 +288,10 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_set_skip_taskbar  (line 27892)
 - [x] x_set_z_group  (line 27927)
 - [x] x_get_current_wm_state  (line 27978, static)
-- [ ] do_ewmh_fullscreen  (line 28090, static)
-- [ ] XTfullscreen_hook  (line 28222, static)
-- [ ] x_handle_net_wm_state  (line 28234, static)
-- [ ] x_check_fullscreen  (line 28270, static)
+- [x] do_ewmh_fullscreen  (line 28090, static)
+- [x] XTfullscreen_hook  (line 28222, static)
+- [x] x_handle_net_wm_state  (line 28234, static)
+- [x] x_check_fullscreen  (line 28270, static)
 - [ ] x_check_expected_move  (line 28340, static)
 - [ ] x_sync_with_move  (line 28384, static)
 - [ ] x_wait_for_event  (line 28431)
@@ -2179,6 +2179,38 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   index; the port writes `actual_size as c_int` (the `src/bidi.rs`/`src/charset.rs` shape), which
   is what the first draft's `E0308` asked for.
 
+### 39. Slice 26 (C 28087-28329): the EWMH fullscreen block
+
+* **`want_fullscreen` gets its own two-armed macro.**  frame.h 460's four-bit `ENUM_BF` field is
+  read at C 28104/28113/28284/28289 and written at C 28214; `include/frame.rs` has the mask (757)
+  and the shift/unit (607/609) and no accessor, so xterm.rs carries the `src/pgtkterm.rs`
+  6463-6470 reader/writer pair (the `src/haikufns.rs` 1312-1318 copy has the reader alone).
+* **The window-system gate covers a whole block here, not one statement.**  Every name in
+  `do_ewmh_fullscreen`'s `if` body and in `x_check_fullscreen`'s resize block - the field's two
+  numbers and the five `FULLSCREEN_*` values of frame.h 47-59 - lives in the mirror's
+  `HAVE_WINDOW_SYSTEM` block, so those blocks carry the gate (Decision 38's shape one level up);
+  ungated they are thirty-odd `E0425` rows.  Arm A and arm C are therefore error-neutral, and arm B
+  gains exactly one more *instance* of a class the baseline already carries five of:
+  `include/xterm.rs` 1060's `GDK_WINDOW_XID` gap, reached through `FRAME_OUTER_WINDOW` at this
+  slice's second use site (C 28097).
+* **Two locals pay the gating price in warnings.**  `lval` (C 28237) and `lval` (C 28272) are
+  reassigned only inside the gated blocks, so in the arms that lack `have_window_system` rustc's
+  `unused_mut` fires for both: **+2 warnings**, recorded as Decision 36's class.
+* **Three use-site declarations and one use-site record.**  `store_frame_param` (frame.c; the
+  `src/frame.rs` 3854 definition is another crate's), `XResizeWindow` (Xlib.h 3109; the
+  `src/xwidget.rs` 5474-5477 copy) and `change_frame_size` (dispextern.h 3924; the `src/frame.rs`
+  414-415 copy) stand at their use sites (P-72 rule 4), and `XPropertyEvent` is transcribed with
+  its four layout asserts (Xlib.h 826-841, measured `sizeof` 64) because `include/xlib.rs` 1241's
+  `XEvent` is an opaque 192-byte union with no members (the `src/xselect.rs` 167-183 and
+  `src/xmenu.rs` 366-382 copies of the same record).
+* **C's three switches keep their labels as `match`es.**  PORTING.md 2.2; the three
+  `docs/ports/macro-body-notes.tsv` rows this slice adds record the `switch`/`case`/`break`
+  (`default` for `x_check_fullscreen`'s `emacs_abort` arm) tokens the port cannot spell.
+* **Two calls stand undeclared on purpose.**  `x_wm_set_size_hint` (C 30159) and `x_wait_for_event`
+  (C 28431) are this file's own later definitions, so C 28315/28321 call them with no declaration
+  (PORTING.md 1.3); both sit inside the gate, so neither costs an `E0425` row in the probe arms and
+  both resolve when their slices land.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3892,3 +3924,27 @@ C's local `reply_data_object` and the lint arm's `reply_data_dummy`.  The line-c
 **Not claimed.**  The frozen configuration compiles none of this file: no `_NET_WM_STATE` was
 read, no z-group was set and no frame was iconified.  The remaining `E0425`/`E0609` rows are
 unresolved names and the mirror's placeholder members, not behaviour.
+
+
+### Slice 26's readings (C 28087-28329), as landed and measured (2026-10-06)
+
+**What it lands.**  `do_ewmh_fullscreen` (C 28089-28219, both `want_fullscreen` accessors and the
+five-label `match`), `XTfullscreen_hook` (C 28221-28230), `x_handle_net_wm_state` (C 28233-28265)
+and `x_check_fullscreen` (C 28269-28329), with the three use-site declarations and the
+`XPropertyEvent` record they need.  Rust 16,164 -> 16,559 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**555 / 66 -> 555 / 68**: no error delta at all - the two undeclared calls live inside the
+`have_window_system` gate - and **+2 warnings** (`unused_mut` on the two `lval` locals whose only
+reassignment the gate hides); arm B (`+have_gtk3+use_gtk`) **557 / 68 -> 558 / 70**: the same two
+warnings plus **one more instance** of the `GDK_WINDOW_XID` class `include/xterm.rs` 1060's GTK arm
+already carries five of (C 28097 is this slice's second `FRAME_OUTER_WINDOW` use site); arm C
+(`+have_xinput2`) **583 / 68 -> 583 / 70**.  **Arm reachability** (P-86 ⑦): `let _: c_int = true;`
+as `do_ewmh_fullscreen`'s first statement moves `E0308` 14 -> 15, anchored exactly at that line.
+
+**What `--check` reads.**  **148 -> 144**: the four functions retire as missing items and no token
+row arrives - the three `switch`-family rows are `docs/ports/macro-body-notes.tsv`'s.  The
+line-count row moves to 16,559 against C's 33,125 (50.0%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no fullscreen request was
+made, no `_NET_WM_STATE` was read, no frame was resized and no window manager was asked anything.

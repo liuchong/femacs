@@ -16162,3 +16162,398 @@ unsafe fn x_get_current_wm_state (f: *mut frame, window: Window, size_state: *mu
   unblock_input ();                                                     // C 28083
   return !is_hidden;                                                    // C 28084
 }
+
+/// C: frame.h 460: `ENUM_BF (fullscreen_type) want_fullscreen : 4;` - read at C 28104/28113/28284/
+/// 28289 and written at C 28214.  `include/frame.rs` has the mask (757) and the shift/unit
+/// (607/609) of the packed word and no accessor, so the reader is that mirror's `frame_field`
+/// (the `src/haikufns.rs` 1312-1318 copy) and the writer is C's own masked write on `bits2`
+/// (unit 2; the `FRAME_Z_GROUP!` shape this unit carries above).
+#[cfg (feature = "have_x_windows")]
+macro_rules! want_fullscreen {
+  ($f:expr) => {
+	 frame_field ($f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT,
+		     FRAME_WANT_FULLSCREEN_MASK) as fullscreen_type };
+  ($f:expr, $v:expr) => {
+    (*$f).bits2 = ((*$f).bits2 & !(FRAME_WANT_FULLSCREEN_MASK << FRAME_WANT_FULLSCREEN_SHIFT))
+                  | (((($v) as u32) & FRAME_WANT_FULLSCREEN_MASK) << FRAME_WANT_FULLSCREEN_SHIFT) };
+}
+
+/* Do fullscreen as specified in extended window manager hints */
+
+/// C 28089-28219: `static bool do_ewmh_fullscreen (struct frame *f)` - `static` (its one caller is
+/// C 28274), so a plain `unsafe fn`.  Every statement that
+/// reads, switches on or writes `want_fullscreen` names the mirror's `HAVE_WINDOW_SYSTEM`
+/// numbers, and the five `FULLSCREEN_*` labels are frame.h 47-59's other `HAVE_WINDOW_SYSTEM`
+/// enum, so that block carries the gate (the `src/frame.rs` 5499-5512 shape - ungated those
+/// thirty-odd names are `E0425` rows).  C's `switch` keeps its labels in order as a `match`
+/// (PORTING.md 2.2; `docs/ports/macro-body-notes.tsv` records the `switch`/`case`/`break`
+/// tokens), and `cur`/`dummy` are the two out-parameters C 28097 hands to
+/// `x_get_current_wm_state`, zeroed per Deviation 12.
+#[cfg (feature = "have_x_windows")]
+unsafe fn do_ewmh_fullscreen (f: *mut frame) -> bool
+{
+  use crate::x11_constants::None;
+
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);           // C 28092
+  let mut have_net_atom: bool = x_wm_supports (f, (*dpyinfo).Xatom_net_wm_state);  // C 28093
+  let mut cur: c_int = 0;                                               // C 28094
+  let mut dummy: bool = false;                                          // C 28095
+
+  x_get_current_wm_state (f, FRAME_OUTER_WINDOW! (f), &raw mut cur,     // C 28097
+			  &raw mut dummy, &raw mut dummy);
+
+  /* Some window managers don't say they support _NET_WM_STATE, but they do say
+     they support _NET_WM_STATE_FULLSCREEN.  Try that also.  */
+  if !have_net_atom                                                     // C 28101
+    {
+      have_net_atom = x_wm_supports (f, (*dpyinfo).Xatom_net_wm_state_fullscreen);  // C 28102
+    }
+
+#[cfg (feature = "have_window_system")]
+  {
+    if have_net_atom && cur != want_fullscreen! (f)                     // C 28104
+      {
+	let frame: Lisp_Object;                                         // C 28106
+
+	XSETFRAME! (frame, f);                                          // C 28108
+
+	/* Keep number of calls to set_wm_state as low as possible.
+	   Some window managers, or possible Gtk+, hangs when too many
+	   are sent at once.  */
+	match want_fullscreen! (f)                                      // C 28113
+	  {
+	    FULLSCREEN_BOTH =>                                          // C 28115
+	      {
+		if cur != FULLSCREEN_BOTH                               // C 28116
+		  {
+		    set_wm_state (frame, true,                          // C 28117-28118
+				      (*dpyinfo).Xatom_net_wm_state_fullscreen, None as Atom);
+		  }
+	      }
+	    FULLSCREEN_WIDTH =>                                         // C 28120
+	      {
+		if x_frame_normalize_before_maximize && cur == FULLSCREEN_MAXIMIZED  // C 28121
+		  {
+		    set_wm_state (frame, false,                         // C 28123-28125
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz,
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert);
+		    set_wm_state (frame, true,                          // C 28126-28127
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz, None as Atom);
+		  }
+		else
+		  {
+		    if cur == FULLSCREEN_BOTH || cur == FULLSCREEN_HEIGHT  // C 28131-28132
+		      || cur == FULLSCREEN_MAXIMIZED
+		      {
+			set_wm_state (frame, false,                     // C 28133-28134
+				      (*dpyinfo).Xatom_net_wm_state_fullscreen,
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert);
+		      }
+		    if (cur != FULLSCREEN_MAXIMIZED && cur != FULLSCREEN_BOTH)  // C 28135-28136
+		      || x_frame_normalize_before_maximize
+		      {
+			set_wm_state (frame, true,                      // C 28137-28138
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz, None as Atom);
+		      }
+		  }
+	      }
+	    FULLSCREEN_HEIGHT =>                                        // C 28141
+	      {
+		if x_frame_normalize_before_maximize && cur == FULLSCREEN_MAXIMIZED  // C 28142
+		  {
+		    set_wm_state (frame, false,                         // C 28144-28146
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz,
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert);
+		    set_wm_state (frame, true,                          // C 28147-28148
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert, None as Atom);
+		  }
+		else
+		  {
+		    if cur == FULLSCREEN_BOTH || cur == FULLSCREEN_WIDTH  // C 28152-28153
+		      || cur == FULLSCREEN_MAXIMIZED
+		      {
+			set_wm_state (frame, false,                     // C 28154-28155
+				      (*dpyinfo).Xatom_net_wm_state_fullscreen,
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz);
+		      }
+		    if (cur != FULLSCREEN_MAXIMIZED && cur != FULLSCREEN_BOTH)  // C 28156-28157
+		      || x_frame_normalize_before_maximize
+		      {
+			set_wm_state (frame, true,                      // C 28158-28159
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert, None as Atom);
+		      }
+		  }
+	      }
+	    FULLSCREEN_MAXIMIZED =>                                     // C 28162
+	      {
+		if x_frame_normalize_before_maximize && cur == FULLSCREEN_BOTH  // C 28163
+		  {
+		    set_wm_state (frame, false,                         // C 28165-28166
+				      (*dpyinfo).Xatom_net_wm_state_fullscreen, None as Atom);
+		    set_wm_state (frame, true,                          // C 28167-28169
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz,
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert);
+		  }
+		else if x_frame_normalize_before_maximize && cur == FULLSCREEN_WIDTH  // C 28171
+		  {
+		    set_wm_state (frame, false,                         // C 28173-28174
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz, None as Atom);
+		    set_wm_state (frame, true,                          // C 28175-28177
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz,
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert);
+		  }
+		else if x_frame_normalize_before_maximize && cur == FULLSCREEN_HEIGHT  // C 28179
+		  {
+		    set_wm_state (frame, false,                         // C 28181-28182
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert, None as Atom);
+		    set_wm_state (frame, true,                          // C 28183-28185
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz,
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert);
+		  }
+		else
+		  {
+		    if cur == FULLSCREEN_BOTH                           // C 28189
+		      {
+			set_wm_state (frame, false,                     // C 28190-28191
+				      (*dpyinfo).Xatom_net_wm_state_fullscreen, None as Atom);
+		      }
+		    else if cur == FULLSCREEN_HEIGHT                    // C 28192
+		      {
+			set_wm_state (frame, true,                      // C 28193-28194
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz, None as Atom);
+		      }
+		    else if cur == FULLSCREEN_WIDTH                     // C 28195
+		      {
+			set_wm_state (frame, true, None as Atom,        // C 28196-28197
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert);
+		      }
+		    else
+		      {
+			set_wm_state (frame, true,                      // C 28199-28201
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz,
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert);
+		      }
+		  }
+	      }
+	    FULLSCREEN_NONE =>                                          // C 28204
+	      {
+		if cur == FULLSCREEN_BOTH                               // C 28205
+		  {
+		    set_wm_state (frame, false,                         // C 28206-28207
+				      (*dpyinfo).Xatom_net_wm_state_fullscreen, None as Atom);
+		  }
+		else
+		  {
+		    set_wm_state (frame, false,                         // C 28209-28211
+				      (*dpyinfo).Xatom_net_wm_state_maximized_horz,
+				      (*dpyinfo).Xatom_net_wm_state_maximized_vert);
+		  }
+	      }
+	    _ => {}
+	  }
+
+	want_fullscreen! (f, FULLSCREEN_NONE);                          // C 28214
+      }
+  }
+
+  return have_net_atom;                                                 // C 28218
+}
+
+/// C 28221-28230: `static void XTfullscreen_hook (struct frame *f)` - `static` (C 32265 installs it
+/// as the terminal's `fullscreen_hook`), so a plain `unsafe fn`; `x_check_fullscreen` (C 28228) is
+/// this file's own definition a few lines below.
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTfullscreen_hook (f: *mut frame)
+{
+  if !FRAME_VISIBLE_P (f)                                               // C 28224
+    { return; }
+
+  block_input ();                                                       // C 28227
+  x_check_fullscreen (f);                                               // C 28228
+  unblock_input ();                                                     // C 28229
+}
+
+/// C 28233-28265: `static bool x_handle_net_wm_state (struct frame *f, const XPropertyEvent
+/// *event)` - `static` (its caller is C 20157's map-notify arm), so a plain `unsafe fn`.
+/// `value` is the `int` C 28239 hands to `x_get_current_wm_state` as an output and frame.h
+/// 47-59's enum is the mirror's `HAVE_WINDOW_SYSTEM` block, so the initialiser and C 28244's
+/// `switch` carry that gate; the ungated arm zeroes the local (the enum's first member), which
+/// is also what the frozen reading's token table asks for.  C's `switch` keeps its four labels
+/// in order as a `match` (PORTING.md 2.2), so `switch`/`case`/`break` cannot reappear -
+/// `docs/ports/macro-body-notes.tsv` records them.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_handle_net_wm_state (f: *mut frame, event: *const XPropertyEvent) -> bool
+{
+#[cfg (feature = "have_window_system")]
+  let mut value: c_int = FULLSCREEN_NONE;                               // C 28236
+#[cfg (not (feature = "have_window_system"))]
+  let mut value: c_int = 0;                                             // C 28236
+  let mut lval: Lisp_Object;                                            // C 28237
+  let mut sticky: bool = false;                                         // C 28238
+  let mut shaded: bool = false;                                         // C 28238
+  let not_hidden: bool = x_get_current_wm_state (f, (*event).window,    // C 28239-28241
+				      &raw mut value, &raw mut sticky,
+				      &raw mut shaded);
+
+  lval = Qnil ();                                                       // C 28243
+#[cfg (feature = "have_window_system")]
+  {
+    match value                                                         // C 28244
+	  {
+	FULLSCREEN_WIDTH => { lval = Qfullwidth (); }                   // C 28246-28248
+	FULLSCREEN_HEIGHT => { lval = Qfullheight (); }                 // C 28249-28251
+	FULLSCREEN_BOTH => { lval = Qfullboth (); }                     // C 28252-28254
+	FULLSCREEN_MAXIMIZED => { lval = Qmaximized (); }               // C 28255-28257
+	    _ => {}
+	  }
+  }
+
+  store_frame_param (f, Qfullscreen (), lval);                          // C 28260
+  store_frame_param (f, Qsticky (), if sticky { Qt () } else { Qnil () });  // C 28261
+  store_frame_param (f, Qshaded (), if shaded { Qt () } else { Qnil () });  // C 28262
+
+  return not_hidden;                                                    // C 28264
+}
+
+/* C: frame.c's `void store_frame_param (struct frame *f, Lisp_Object prop, Lisp_Object val);`
+   - C 28260-28262 and C 28328's call.  The definition is another crate's (`src/frame.rs`
+   3854), so it stands at this use site (P-72 rule 4, the `xg_set_skip_taskbar` shape above).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn store_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object);
+}
+
+/// C: <X11/Xlib.h> 841 closes the record opened at 826: `typedef struct { int type; unsigned
+/// long serial; Bool send_event; Display *display; Window window; Atom atom; Time time; int
+/// state; } XPropertyEvent;` - measured: `sizeof` **64**, `window`@32, `atom`@40, `time`@48,
+/// `state`@56 (C 28239's `event->window`).  `include/xlib.rs` 1241's `XEvent` is the opaque
+/// 192-byte union with no members, so this record stands at the use site (P-72 rule 4, the
+/// `src/xselect.rs` 167-183 and `src/xmenu.rs` 366-382 copies of the same record).
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XPropertyEvent
+{
+  pub r#type: c_int,          // Xlib.h 833
+  pub serial: c_ulong,        // Xlib.h 834
+  pub send_event: Bool,       // Xlib.h 835
+  pub display: *mut Display,  // Xlib.h 836
+  pub window: Window,         // Xlib.h 837
+  pub atom: Atom,             // Xlib.h 838
+  pub time: Time,             // Xlib.h 839
+  pub state: c_int,           // Xlib.h 840
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = {
+  core::assert! (core::mem::size_of::<XPropertyEvent> () == 64);
+  core::assert! (core::mem::offset_of! (XPropertyEvent, window) == 32);
+  core::assert! (core::mem::offset_of! (XPropertyEvent, atom) == 40);
+  core::assert! (core::mem::offset_of! (XPropertyEvent, time) == 48);
+  core::assert! (core::mem::offset_of! (XPropertyEvent, state) == 56);
+};
+
+/* Check if we need to resize the frame due to a fullscreen request.
+   If so needed, resize the frame. */
+/// C 28269-28329: `static void x_check_fullscreen (struct frame *f)` - `static` (its callers are
+/// C 20148 and C 28228, and C 1182 is this file's own forward declaration), so a plain `unsafe fn`.  The block that reads,
+/// switches on and writes `want_fullscreen` names the mirror's `HAVE_WINDOW_SYSTEM` numbers and
+/// sets the five `FULLSCREEN_*` labels, so it carries that gate; C's `switch` keeps its four
+/// labels as a `match` whose `default:` is the `_` arm holding `emacs_abort` (PORTING.md 2.2;
+/// `docs/ports/macro-body-notes.tsv` records `switch`/`case`/`default`/`break`).  C 28315's
+/// `x_wm_set_size_hint` (C 30159) and C 28321's `x_wait_for_event` (C 28431) are this file's own
+/// later definitions, so those two calls stand undeclared - the owed rows their own slices will
+/// close (PORTING.md 1.3).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_check_fullscreen (f: *mut frame)
+{
+  let mut lval: Lisp_Object = Qnil ();                                  // C 28272
+
+  if do_ewmh_fullscreen (f)                                             // C 28274
+    { return; }
+
+  if (*((*f).output_data.x as *mut x_output)).parent_desc               // C 28277
+      != (*FRAME_DISPLAY_INFO! (f)).root_window
+    { return; } /* Only fullscreen without WM or with EWM hints (above).  */
+
+  /* Setting fullscreen to nil doesn't do anything.  We could save the
+     last non-fullscreen size and restore it, but it seems like a
+     lot of work for this unusual case (no window manager running).  */
+
+#[cfg (feature = "have_window_system")]
+  {
+    if want_fullscreen! (f) != FULLSCREEN_NONE                          // C 28284
+      {
+	let mut width: c_int = FRAME_PIXEL_WIDTH (f);                   // C 28286
+	let mut height: c_int = FRAME_PIXEL_HEIGHT (f);                 // C 28286
+	let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);     // C 28287
+
+	match want_fullscreen! (f)                                      // C 28289
+	  {
+	    /* No difference between these two when there is no WM */
+	    FULLSCREEN_MAXIMIZED =>                                     // C 28292
+	      {
+		lval = Qmaximized ();                                   // C 28293
+		width = x_display_pixel_width (dpyinfo as *mut c_void);  // C 28294
+		height = x_display_pixel_height (dpyinfo as *mut c_void);  // C 28295
+	      }
+	    FULLSCREEN_BOTH =>                                          // C 28297
+	      {
+		lval = Qfullboth ();                                    // C 28298
+		width = x_display_pixel_width (dpyinfo as *mut c_void);  // C 28299
+		height = x_display_pixel_height (dpyinfo as *mut c_void);  // C 28300
+	      }
+	    FULLSCREEN_WIDTH =>                                         // C 28302
+	      {
+		lval = Qfullwidth ();                                   // C 28303
+		width = x_display_pixel_width (dpyinfo as *mut c_void);  // C 28304
+		height = height + FRAME_MENUBAR_HEIGHT! (f);            // C 28305
+	      }
+	    FULLSCREEN_HEIGHT =>                                        // C 28307
+	      {
+		lval = Qfullheight ();                                  // C 28308
+		height = x_display_pixel_height (dpyinfo as *mut c_void);  // C 28309
+	      }
+	    _ =>                                                        // C 28311-28312
+	      { emacs_abort (); }
+	  }
+
+	x_wm_set_size_hint (f, 0, false);                               // C 28315
+
+	XResizeWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),   // C 28317-28318
+			  width as c_uint, height as c_uint);
+
+	if FRAME_VISIBLE_P (f)                                          // C 28320
+	  { x_wait_for_event (f, ConfigureNotify); }
+	else
+	  { change_frame_size (f, width, height, false, true, false); }
+      }
+  }
+
+  /* `x_net_wm_state' might have reset the fullscreen frame parameter,
+     restore it. */
+  store_frame_param (f, Qfullscreen (), lval);                          // C 28328
+}
+
+/* C: <X11/X.h> 570 (`#define ConfigureNotify 22`) - C 28321's second argument to
+   `x_wait_for_event`.  No mirror of this unit's graph carries it (measured), so it stands at
+   the use site (P-72 rule 4).  */
+#[cfg (feature = "have_x_windows")]
+pub const ConfigureNotify: c_int = 22;
+
+/* C: X11/Xlib.h 3109: `int XResizeWindow (Display *display, Window w, unsigned int width,
+   unsigned int height);` - C 28317's call.  Declared at this use site (the `src/xwidget.rs`
+   5474-5477 copy of the same prototype).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XResizeWindow (display: *mut Display, w: Window, width: c_uint, height: c_uint)
+			 -> c_int;
+}
+
+/* C: dispextern.h 3924: `void change_frame_size (struct frame *, int, int, bool, bool, bool);`
+   - C 28323's call.  The definition is another crate's (`src/dispnew.rs` 7512), so it stands at
+   this use site (P-72 rule 4, the `src/frame.rs` 414-415 copy).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
+			    pretend: bool, delay: bool, safe: bool);
+}
