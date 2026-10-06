@@ -6609,3 +6609,152 @@ pub unsafe extern "C" fn pgtk_delete_terminal (terminal: *mut terminal)
   pgtk_delete_display (dpyinfo);                                        // C 4612
   unblock_input ();                                                     // C 4613
 }
+
+/* Store F's background color into *BGCOLOR.  */
+
+/// C 4617-4622: `static void pgtk_query_frame_background_color (struct frame *f, Emacs_Color
+/// *bgcolor)` - `FRAME_BACKGROUND_PIXEL` is `include/frame.rs` 1347's accessor and `pgtk_query_color`
+/// this file's own C 2396 definition (declared at 680's use site).  C 4904 takes this function's
+/// address (the terminal's `query_frame_background_color`), so it stays a plain `unsafe fn` until
+/// that slice converts it (the `pgtk_ring_bell` note).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_query_frame_background_color (f: *mut frame, bgcolor: *mut Emacs_Color)
+{
+  (*bgcolor).pixel = FRAME_BACKGROUND_PIXEL (f);                        // C 4620
+  pgtk_query_color (f, bgcolor);                                        // C 4621
+}
+
+/// C 4624-4632: `static void pgtk_free_pixmap (struct frame *f, Emacs_Pixmap pixmap)` -
+/// `Emacs_Pixmap` is `include/dispextern.rs` 773's alias for `*mut emacs_pix_container` (whose
+/// `data` is that record's own field, dispextern.h 127), `xfree` is `include/lisp.rs` 3897's, and
+/// the `f` parameter C never reads keeps its name with `let _ =` (Deviation 44's shape; C 4919 takes
+/// this function's address, the same later conversion).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_free_pixmap (f: *mut frame, pixmap: Emacs_Pixmap)
+{
+  let _ = f;                                                            // C 4625
+  if !pixmap.is_null ()                                                 // C 4627
+    {
+      xfree ((*pixmap).data as *mut c_void);                            // C 4629
+      xfree (pixmap as *mut c_void);                                    // C 4630
+    }
+}
+
+/// C 4634-4660: `void pgtk_focus_frame (struct frame *f, bool noactivate)` - a **non-`static`** C
+/// definition (pgtkterm.h 643 declares it), so the port carries `#[unsafe(no_mangle)]` and
+/// `extern "C"` (PORTING.md 0.2); `FRAME_DISPLAY_INFO`/`FRAME_GTK_OUTER_WIDGET`/`FRAME_WIDGET` are
+/// the pgtkterm mirror's macros, C's `GTK_WINDOW (…)` is the port's pointer cast (Deviation 55's
+/// reading), `gtk_window_present_with_time` is the GTK-segment declaration below, and
+/// `gtk_widget_grab_focus` is `include/gtk.rs` 1489's (C 855's other call site).  C 4917 takes this
+/// function's address (the terminal's `focus_frame_hook`), which is the same later conversion.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_focus_frame (f: *mut frame, noactivate: bool)
+{
+  let dpyinfo: *mut pgtk_display_info;                                  // C 4637
+  let widget: *mut GtkWidget;                                           // C 4638
+  let window: *mut GtkWindow;                                           // C 4639
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 4641
+
+  if !FRAME_GTK_OUTER_WIDGET! (f).is_null () && !noactivate             // C 4643
+    {
+      /* The user says it is okay to activate the frame.  Call
+	 gtk_window_present_with_time.  If the timestamp specified
+	 (actually a display serial on Wayland) is new enough, then
+	 any Wayland compositor supporting gtk_surface1_present will
+	 cause the frame to be activated.  */
+
+      window = FRAME_GTK_OUTER_WIDGET! (f) as *mut GtkWindow;           // C 4651
+      gtk_window_present_with_time (window, (*dpyinfo).last_user_time); // C 4652
+      return;                                                           // C 4653
+    }
+
+  widget = FRAME_WIDGET! (f);                                           // C 4656
+
+  if !widget.is_null ()                                                 // C 4658
+    { gtk_widget_grab_focus (widget); }                                 // C 4659
+}
+
+#[cfg (feature = "have_pgtk")]
+macro_rules! GTK_IS_CONTAINER {
+  ($o:expr) => { (! ($o).is_null ()) };
+}
+
+/// C 4662-4670: `static void set_opacity_recursively (GtkWidget *w, gpointer data)` - **its address
+/// is C 4669's `GtkCallback` argument**, so the port defines it `unsafe extern "C" fn` (PORTING.md
+/// 1.4; the signature is the `GtkCallback` type's exactly).  C's `*(double *) data` is the port's
+/// pointer cast (P-72 rule 3), `GTK_IS_CONTAINER` is the unit's own macro below (the mirror's
+/// placeholder shape, `include/gtk.rs` 805-817), and `GTK_CONTAINER`/`gtk_container_foreach` are
+/// that mirror's 790 and the declaration below.
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn set_opacity_recursively (w: *mut GtkWidget, data: gpointer)
+{
+  gtk_widget_set_opacity (w, *(data as *mut c_double));                 // C 4665
+
+  if GTK_IS_CONTAINER! (w)                                              // C 4667
+    {
+      gtk_container_foreach (GTK_CONTAINER! (w),                        // C 4668-4669
+			     Some (set_opacity_recursively), data);
+    }
+}
+
+/// C 4672-4700: `static void pgtk_set_frame_alpha (struct frame *f)` - `f->alpha[0]`/`[1]` is
+/// `include/frame.rs` 262's two-element array field, `dpyinfo->highlight_frame` is the pgtk
+/// display-info record's own field, `FLOATP`/`FIXNUMP`/`XFLOAT_DATA`/`XFIXNUM` are
+/// `include/lisp.rs` 921/726/1710/757's, `Vframe_alpha_lower_limit` is `include/globals.rs`
+/// 6527's extern, C's `&alpha` handed to the `gpointer` parameter is the port's
+/// `&raw mut alpha as gpointer`, and `gtk_widget_queue_resize_no_redraw` is the declaration below.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_frame_alpha (f: *mut frame)
+{
+  let dpyinfo: *mut pgtk_display_info = FRAME_DISPLAY_INFO! (f);        // C 4675
+  let mut alpha: c_double = 1.0;                                        // C 4676
+  let mut alpha_min: c_double = 1.0;                                    // C 4677
+
+  if (*dpyinfo).highlight_frame == f                                    // C 4679
+    { alpha = (*f).alpha[0]; }                                          // C 4680
+  else
+    { alpha = (*f).alpha[1]; }                                          // C 4682
+
+  if alpha < 0.0                                                        // C 4684
+    { return; }                                                         // C 4685
+
+  if FLOATP (Vframe_alpha_lower_limit)                                  // C 4687
+    { alpha_min = XFLOAT_DATA (Vframe_alpha_lower_limit); }             // C 4688
+  else if FIXNUMP (Vframe_alpha_lower_limit)                            // C 4689
+    { alpha_min = (XFIXNUM (Vframe_alpha_lower_limit) as c_double) / 100.0; }    // C 4690
+
+  if alpha > 1.0                                                        // C 4692
+    { alpha = 1.0; }                                                    // C 4693
+  else if alpha < alpha_min && alpha_min <= 1.0                         // C 4694
+    { alpha = alpha_min; }                                              // C 4695
+
+  set_opacity_recursively (FRAME_WIDGET! (f), &raw mut alpha as gpointer);   // C 4697
+  /* without this, blending mode is strange on wayland. */
+  gtk_widget_queue_resize_no_redraw (FRAME_WIDGET! (f));                // C 4699
+}
+
+/* <gtk/gtkwindow.h>: `void gtk_window_present_with_time (GtkWindow *window, guint32 timestamp);` -
+   the C 4652 call.  <gtk/gtkwidget.h>: `void gtk_widget_set_opacity (GtkWidget *widget, double
+   opacity);` - the C 4665 call; `void gtk_widget_queue_resize_no_redraw (GtkWidget *widget);` - the
+   C 4699 call.  <gtk/gtkcontainer.h>: `void gtk_container_foreach (GtkContainer *container,
+   GtkCallback callback, gpointer callback_data);` - the C 4668 call, with that header's
+   `typedef void (*GtkCallback) (GtkWidget *widget, gpointer data);`.  The four are the GTK
+   segment's convention (header alone, no line: this machine has no GTK tree), and the two records
+   below are gaps of `include/gtk.rs` (Owed 13).  */
+#[cfg (feature = "have_pgtk")]
+pub type GtkCallback = Option<unsafe extern "C" fn (widget: *mut GtkWidget, data: gpointer)>;
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gtk_window_present_with_time (window: *mut GtkWindow, timestamp: guint32);
+  pub fn gtk_widget_set_opacity (widget: *mut GtkWidget, opacity: c_double);
+  pub fn gtk_widget_queue_resize_no_redraw (widget: *mut GtkWidget);
+  pub fn gtk_container_foreach (container: *mut GtkContainer, callback: GtkCallback,
+				callback_data: gpointer);
+}
+/* C: gtk/gtk.h: `#define GTK_IS_CONTAINER(w) G_TYPE_CHECK_INSTANCE_TYPE ((w),
+   gtk_container_get_type ())` - the C 4667 test.  This unit's own copy of the placeholder shape
+   `include/gtk.rs` 805-817 carries for `GTK_IS_MENU`/`GTK_IS_WINDOW`/`GTK_IS_LABEL` ("each keeping
+   the macro's name and its result type"): no GTK tree on this machine can measure the real type
+   check, so the stand-in is the null test that mirror already uses for its three.  */
