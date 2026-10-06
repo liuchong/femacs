@@ -599,6 +599,16 @@ pub type Lisp_Object = Lisp_Word;
   相同；**不得改成闭包**（会改变布局与调用约定）。
 - `*(T *) p`、union 换成员读、`memcpy` 到别类型 → `ptr::read_unaligned`/`write_unaligned`
   或 union 读，保持未对齐访问语义。
+- **C 的"位置初始化"（`struct X v = { a, b, … };`）Rust 没有对应物**：写成**同名字段字面量**
+  （`X { f1: a, f2: b, … }`），字段名与**顺序**都取镜像记录里的（顺序错了值就落错槽，而布局断言
+  看不见值），并逐条核对"C 的初始化项数 = 记录的字段数"——`redisplay_interface` 实测 **28 项 = 28 字段**，
+  不足的项按 C 的隐式零写成零值 / `None`，在 ledger 里点名。**函数指针项的类型是*字段的*类型**：
+  声明已经是那个类型就写 `Some (f)`；不是（镜像按 P-55 把 C 的 `struct frame *`/`struct window *`
+  写成 `*mut c_void`）就**取址再 transmute**：
+  `Some (unsafe { core::mem::transmute::<*const (), <字段的 fn 类型> (f as *const ()) })`——
+  直接 `as` 是 `E0605`（实测）；同一位置上传的本单元 `static` 助手因此必须定义成
+  `unsafe extern "C" fn`（本节第一条）。已落地：`src/pgtkterm.rs` 3756-3785 的
+  `pgtk_redisplay_interface`（二十八项：一项数组地址、五项直接、十九项 transmute、三项 `None`）。
 - **C 的函数指针参数只有一种 ABI，移植后也只有一种**：库函数（libm 等）在 Rust 侧是
   `unsafe extern "C" fn (…)`，同一参数位置上传的本单元 `static` 助手
   （`floatfns.c` 的 `ceiling2`/`floor2`/`round2`/`truncate2`/`identity`/`rounddiv_q`）

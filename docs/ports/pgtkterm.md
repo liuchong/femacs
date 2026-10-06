@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-24: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645 and C 3647-3752
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-25: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752 and C 3754-3798
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,17 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**5,348 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**5,458 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645** and **C 3647-3752** - twenty-four
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752** and **C 3754-3798** - twenty-five
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_redisplay_interface` (C 3756-3757; C 3754's `extern frame_parm_handler
-> pgtk_frame_parm_handlers[];` is the declaration above it).**
+> `recover_from_visible_bell` (C 3800-3801; `pgtk_flash` follows it at C 3817).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -138,7 +137,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 3467-3567 | `pgtk_mouse_position` (C 3487-3567, with C 3467-3485's comment above it: the frame loop that clears `mouse_moved`, the grabbed branch, the else branch's seat/device query and `pgtk_any_window_to_frame`, the terminal-frame early return and the `remember_mouse_glyph` pair) | the file gate - **transcribed** (the twenty-second slice) |
 | 3569-3645 | `max_fringe_bmp` and `fringe_bmp` (C 3571-3572), `pgtk_define_fringe_bitmap` (C 3574-3611), `pgtk_destroy_fringe_bitmap` (C 3613-3626) and `pgtk_clip_to_row` (C 3628-3645) | the file gate - **transcribed** (the twenty-third slice) |
 | 3647-3752 | `pgtk_draw_fringe_bitmap` (C 3647-3689), `hourglass_atimer`/`hourglass_enter_count` (C 3691-3692), `hourglass_cb` (C 3694-3698), `pgtk_show_hourglass` (C 3700-3727), `pgtk_hide_hourglass` (C 3729-3746) and `pgtk_flush_display` (C 3748-3752) | the file gate - **transcribed** (the twenty-fourth slice) |
-| 3754-7780 | **the remainder of the file** - from C 3754's `extern frame_parm_handler pgtk_frame_parm_handlers[];` and C 3756's `pgtk_redisplay_interface` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3754-3798 | C 3754's `extern frame_parm_handler pgtk_frame_parm_handlers[];` declaration, `pgtk_redisplay_interface` (C 3756-3785, the 28-entry interface object) and `pgtk_clear_frame` (C 3787-3798) | the file gate - **transcribed** (the twenty-fifth slice) |
+| 3800-7780 | **the remainder of the file** - from C 3800's `recover_from_visible_bell` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -790,6 +790,31 @@ their assertions are owed.
     (`src/keyboard.rs` 3889's shape).  One token row follows: C's `p->cursor_p`/`p->overlay_p` are
     the accessor pair, recorded in `docs/ports/macro-body-notes.tsv`.  No mirror changed, so P-87's
     two legs do not apply.
+47. **The port's first redisplay-interface object: C's positional initializer, the entry types, and
+    the fifteen definitions whose address it takes.**  `pgtk_redisplay_interface` (C 3756-3785) is
+    written as a same-named-field literal whose names and order are the mirror's
+    (`dispextern_unit_names::redisplay_interface`, C 3069-3200; measured **28 entries = 28 fields**, so
+    nothing is left to C's implicit zero) - the rule now stands in PORTING.md §1.4.  An entry's type is
+    the *field's*: five are `Some (name)` directly (the three fringe hooks, the overhang hook and
+    `draw_glyph_string`, whose signatures already match), three are `None` (C's two commented-out
+    `NULL`s at C 3764-3765 and C 3781's `shift_glyphs_for_insert`), one is the array's address
+    (`&raw mut pgtk_frame_parm_handlers as *mut c_void`), and **nineteen** are the
+    `G_CALLBACK`-class transmute (Deviation 11's idiom) because the mirror spells C's
+    `struct frame *`/`struct window *` parameters `*mut c_void` (P-55) - a direct `as` is `E0605`,
+    measured.  C's first entry forced two more readings: `pgtk_frame_parm_handlers` is **defined in
+    pgtkfns.c** (C 963-1015) and the port defines it in `src/pgtkfns.rs` 1919 as
+    `[frame_parm_handler; 51]`, so this unit declares an extern array of that measured shape (the
+    `src/frame.rs` 5011-5014 copy of dispextern.h 3063's typedef), and `gui_clear_window_mouse_face`
+    (C 3767) is `src/xdisp.rs` 31968's definition, so it joins the six `gui_*` use-site declarations
+    whose C prototypes are dispextern.h 3636-3648's.  **The fifteen `static` definitions whose address
+    this object takes become `unsafe extern "C" fn`** (`pgtk_scroll_run`, `pgtk_after_update_window_line`,
+    `pgtk_flush_display`, `pgtk_draw_fringe_bitmap`, `pgtk_define_fringe_bitmap`,
+    `pgtk_destroy_fringe_bitmap`, `pgtk_compute_glyph_string_overhangs`, `pgtk_draw_glyph_string`,
+    `pgtk_define_frame_cursor`, `pgtk_clear_frame_area`, `pgtk_draw_window_cursor`,
+    `pgtk_draw_vertical_window_border`, `pgtk_draw_window_divider`, `pgtk_show_hourglass`,
+    `pgtk_hide_hourglass`) - PORTING.md §1.4's "one ABI per function-pointer position" (the
+    `floatfns.c` lesson; the first reading named exactly the four that still had mismatched
+    signatures as four `E0308`s).  No mirror changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1744,3 +1769,44 @@ changed this round, so P-87's two legs do not apply).  **Not claimed**: none of 
 the frozen configuration compiles none of this file, there is no GTK tree here, no fringe bitmap was
 drawn and no hourglass appeared; the three arm readings are **compile** readings of text this machine
 cannot build.  Deviation 13's standing gap (`FRAME_PGTK_P` is the mirror's non-pgtk arm) is unchanged.
+
+## The twenty-fifth slice (C 3754-3798): the redisplay interface and `pgtk_clear_frame`
+
+**What is in it.**  C 3754's `extern frame_parm_handler pgtk_frame_parm_handlers[];` (the table
+`pgtkfns.c` 963-1015 defines), the **28-entry `pgtk_redisplay_interface`** (C 3756-3785: C's
+positional initializer, the three `NULL` slots and the two commented-out hooks) and
+`pgtk_clear_frame` (C 3787-3798: the default-face guard, `mark_window_cursors_off` and the
+`pgtk_clear_area` pair).  Rust: 5,348 -> **5,458** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 52 errors / 19 warnings -> 52 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 53 / 20 -> 53 / 20
+C = A + use_gtk + have_gtk3                        : 30 / 18 -> 30 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty**: this text adds no
+error and no warning - the seventh zero-delta reading in this unit.  **The first reading named eight
+defects in three classes**, all fixed (Deviation 47): the three C macros the mirror carries as
+functions (C 3793/3796's `FRAME_ROOT_WINDOW`/`FRAME_PIXEL_WIDTH`/`FRAME_PIXEL_HEIGHT` are
+`include/frame.rs`'s `pub fn`s, not `*!` macros), `gui_clear_window_mouse_face`'s missing use-site
+declaration, and the four `E0308`s that settled the interface rule - the fifteen `static` definitions
+whose address the object takes are `unsafe extern "C" fn` (PORTING.md §1.4), which is why five
+entries could be written `Some (name)` directly.  **Arm reach is measured** (P-86 ⑦): injecting
+`let _: c_int = true;` as the first statement of `pgtk_clear_frame` moves arm A to 53 errors anchored
+at that line (the injected statement was then removed and the file re-measured at **5,458** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**121 rows -> 119**: two retire (`pgtk_redisplay_interface` and `pgtk_clear_frame`), no
+`does not mention` row appears, and the file's own `line count drifted` row is re-measured 31.3% ->
+**29.8%** (C 7,780 vs the port's 5,458).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2081/36/0**; `check-dead-file-coverage.py` **145/0** (**57 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round - PORTING.md §1.4 and this ledger are the only non-`femacs/` files - so P-87's
+two legs do not apply).  **Not claimed**: none of this has been run - the frozen configuration
+compiles none of this file, the interface object's 28 pointers are never *called* here (the struct
+is one more static the redisplay code would read), and the three arm readings are **compile**
+readings of text this machine cannot build.  Deviation 13's standing gap (`FRAME_PGTK_P` is the
+mirror's non-pgtk arm) is unchanged.

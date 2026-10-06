@@ -1779,7 +1779,7 @@ unsafe fn pgtk_set_glyph_string_clipping_exactly (src: *mut glyph_string, dst: *
 /// 7948-7957 shape - a plain `alloca` site takes the pool directly and accounts nothing against
 /// `sa_avail`).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_compute_glyph_string_overhangs (s: *mut glyph_string)
+unsafe extern "C" fn pgtk_compute_glyph_string_overhangs (s: *mut glyph_string)
 {
   if (*s).cmp.is_null ()                                               // C 1301
     && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH          // C 1302
@@ -3631,7 +3631,7 @@ unsafe extern "C" {
 /// underline_minimum_offset as isize) as c_ulong` for C's `max`, and `font_for_underline_metrics`/
 /// `cairo_save`/`cairo_restore` declared above.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_draw_glyph_string (s: *mut glyph_string)
+unsafe extern "C" fn pgtk_draw_glyph_string (s: *mut glyph_string)
 {
   let mut relief_drawn_p: bool = false;                                 // C 2527
 
@@ -4014,7 +4014,7 @@ unsafe extern "C" {
 /// (`gdk_window_set_cursor` 564, `gtk_widget_get_window` 883) with the `Emacs_Cursor` cast the
 /// mirror's `*mut GdkCursor` parameter needs.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
+unsafe extern "C" fn pgtk_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
 {
   if !pointer_invisible! (f)                                            // C 2832
       && (*FRAME_X_OUTPUT! (f)).current_cursor != cursor
@@ -4032,7 +4032,7 @@ unsafe fn pgtk_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
 /// `redraw_fringe_bitmaps_p` are `glyph_row_bits!` members, `pseudo_window_p` this unit's
 /// `window_bits!` arm, and `pgtk_clear_frame_area` is defined below.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_after_update_window_line (w: *mut window, desired_row: *mut glyph_row)
+unsafe extern "C" fn pgtk_after_update_window_line (w: *mut window, desired_row: *mut glyph_row)
 {
   let mut f: *mut frame;                                                // C 2842
   let mut width: c_int;
@@ -4073,7 +4073,7 @@ unsafe fn pgtk_after_update_window_line (w: *mut window, desired_row: *mut glyph
 /// height)` - one call to `pgtk_clear_area` (C 7456's definition, in the remainder; the mirror
 /// `include/pgtkterm.rs` declares the entry point, so no class is added here).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_clear_frame_area (f: *mut frame, x: c_int, y: c_int, width: c_int, height: c_int)
+unsafe extern "C" fn pgtk_clear_frame_area (f: *mut frame, x: c_int, y: c_int, width: c_int, height: c_int)
 {
   pgtk_clear_area (f, x, y, width, height);                             // C 2872
 }
@@ -4317,7 +4317,7 @@ pub struct cairo_rectangle_t
 /// enumerators (this function's own `macro-body-notes.tsv` row).  `active_p` is unused in C's body
 /// (`let _ =` keeps the name).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row, x: c_int, y: c_int,
+unsafe extern "C" fn pgtk_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row, x: c_int, y: c_int,
 				   cursor_type: text_cursor_kinds, cursor_width: c_int,
 				   on_p: bool, active_p: bool)
 {
@@ -4443,7 +4443,7 @@ unsafe extern "C" {
 /// `c_uint` members taking C's implicit widenings and the C cast macros (`GTK_CONTAINER`,
 /// `GTK_FIXED`, `G_OBJECT`) written as the mirror's pointer casts (P-72 rule 3).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_scroll_run (w: *mut window, run: *mut run)
+unsafe extern "C" fn pgtk_scroll_run (w: *mut window, run: *mut run)
 {
   let f: *mut frame = XFRAME ((*w).frame);                              // C 3117
   let mut x: c_int = 0;                                                 // C 3118
@@ -4748,7 +4748,7 @@ unsafe fn pgtk_update_begin (f: *mut frame)
 /// `FRAME_FACE_CACHE`/`FACE_FROM_ID` with this slice), and C's `if (face)` truth test is the
 /// pointer's null test.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, y1: c_int)
+unsafe extern "C" fn pgtk_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, y1: c_int)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 3365
   let face: *mut face;                                                  // C 3366
@@ -4796,7 +4796,7 @@ unsafe extern "C" {
 /// `pgtk_set_cr_source_with_color` call), and C's `if`/`else if`/`else` chain selects the three
 /// bands, the horizontal pair or the single rectangle.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_draw_window_divider (w: *mut window, x0: c_int, x1: c_int, y0: c_int, y1: c_int)
+unsafe extern "C" fn pgtk_draw_window_divider (w: *mut window, x0: c_int, x1: c_int, y0: c_int, y1: c_int)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 3386
   let face: *mut face = FACE_FROM_ID_OR_NULL (f, WINDOW_DIVIDER_FACE_ID);   // C 3387
@@ -5102,7 +5102,7 @@ unsafe extern "C" {
 /// `unsafe` the callers already carry, and C's `fringe_bmp[i]` reads and writes are the port's
 /// `*fringe_bmp.offset (i as isize)`.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_define_fringe_bitmap (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)
+unsafe extern "C" fn pgtk_define_fringe_bitmap (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)
 {
   let mut i: c_int;                                                     // C 3577
   let mut stride: c_int;                                                // C 3577
@@ -5150,7 +5150,7 @@ unsafe fn pgtk_define_fringe_bitmap (which: c_int, bits: *mut c_ushort, h: c_int
 /// C 3613-3626: `static void pgtk_destroy_fringe_bitmap (int which)` - the early return past the
 /// table's end, the guarded `cairo_pattern_destroy` pair and the closing null store.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_destroy_fringe_bitmap (which: c_int)
+unsafe extern "C" fn pgtk_destroy_fringe_bitmap (which: c_int)
 {
   if which >= max_fringe_bmp                                           // C 3616
     { return; }                                                        // C 3617
@@ -5216,7 +5216,7 @@ unsafe extern "C" {
 /// and C's `Emacs_GC gcv;` is zero-initialised because C fills two of its members one at a time
 /// (PORTING.md 1.13, Deviation 46).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
+unsafe extern "C" fn pgtk_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
 				   p: *mut dispextern_unit_names::draw_fringe_bitmap_params)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 3651
@@ -5288,7 +5288,7 @@ unsafe extern "C" fn hourglass_cb (timer: *mut atimer)
 /// post-increment inside the condition (`src/keyboard.rs` 3889's shape): the increment must happen
 /// on the test too, so the port spells it as a block expression evaluated once per test.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_show_hourglass (f: *mut frame)
+unsafe extern "C" fn pgtk_show_hourglass (f: *mut frame)
 {
   let x: *mut pgtk_output = FRAME_X_OUTPUT! (f);                        // C 3703
   if !(*x).hourglass_widget.is_null ()                                  // C 3704
@@ -5320,7 +5320,7 @@ unsafe fn pgtk_show_hourglass (f: *mut frame)
 /// == 0` is the pre-decrement (the new value is the one tested), so the port spells the pair as one
 /// block expression; the timer's cancel pair and the widget's destroy/null pair follow.
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_hide_hourglass (f: *mut frame)
+unsafe extern "C" fn pgtk_hide_hourglass (f: *mut frame)
 {
   let x: *mut pgtk_output = FRAME_X_OUTPUT! (f);                        // C 3732
   if { hourglass_enter_count -= 1; hourglass_enter_count == 0 }         // C 3733
@@ -5343,6 +5343,116 @@ unsafe fn pgtk_hide_hourglass (f: *mut frame)
 /// C 3748-3752: `static void pgtk_flush_display (struct frame *f)` - **C's body is empty**, kept
 /// empty (the same shape as `hourglass_cb` above and C 401's `frame_set_mouse_pixel_position`).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_flush_display (f: *mut frame)
+unsafe extern "C" fn pgtk_flush_display (f: *mut frame)
 {
+}
+
+/* C: dispextern.h 3636-3638: `extern void gui_get_glyph_overhangs (struct glyph *, struct frame *,
+   int *, int *);` - the C 3768 entry.  dispextern.h 3639: `extern void gui_produce_glyphs (struct
+   it *);` - C 3758.  dispextern.h 3641-3642 / 3643-3644: `extern void gui_write_glyphs (struct
+   window *, struct glyph_row *, struct glyph *, enum glyph_row_area, int);` and the
+   `gui_insert_glyphs` pair - C 3759/3760.  dispextern.h 3645-3646: `extern void
+   gui_clear_end_of_line (struct window *, struct glyph_row *, enum glyph_row_area, int);` -
+   C 3761.  dispextern.h 3647-3648: `extern void gui_fix_overlapping_area (struct window *, struct
+   glyph_row *, enum glyph_row_area, int);` - C 3769.  `gui_clear_window_mouse_face` (C 3767) is
+   `src/xdisp.rs` 31968's definition.  `include/gtkutil.rs` carries none of the seven, so all six
+   are declared here at the use site with C's own prototypes (the `src/androidterm.rs` 163-171
+   shape), and `it` takes the module path the record lives in.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gui_get_glyph_overhangs (glyph: *mut glyph, f: *mut frame, left: *mut c_int,
+				  right: *mut c_int);
+  pub fn gui_produce_glyphs (it: *mut dispextern_unit_names::it);
+  pub fn gui_write_glyphs (w: *mut window, row: *mut glyph_row, string: *mut glyph,
+			   area: glyph_row_area, len: c_int);
+  pub fn gui_insert_glyphs (w: *mut window, row: *mut glyph_row, start: *mut glyph,
+			    area: glyph_row_area, len: c_int);
+  pub fn gui_clear_end_of_line (w: *mut window, row: *mut glyph_row, area: glyph_row_area,
+				x: c_int);
+  pub fn gui_fix_overlapping_area (w: *mut window, row: *mut glyph_row, area: glyph_row_area,
+				   overlaps: c_int);
+  pub fn gui_clear_window_mouse_face (w: *mut window);                  /* C 3767's entry;
+									   dispextern.h 3689 */
+}
+
+/* C 3754: `extern frame_parm_handler pgtk_frame_parm_handlers[];` - the table C *defines* in
+   pgtkfns.c 963-1015, which the port defines in `src/pgtkfns.rs` 1919 as
+   `[frame_parm_handler; 51]` with that unit's own copy of dispextern.h 3063's typedef (the
+   `src/frame.rs` 5011-5014 precedent; `include/dispextern.rs` carries no alias - its
+   `redisplay_interface.frame_parm_handlers` is `*mut c_void`, which `include/w32term.rs` 46/319-355
+   records for its own handler array).  The length and the element type are the *definition's*
+   measurement, taken here so the declaration and the definition agree; C's declaration is an
+   array, so this one is too.  */
+#[cfg (feature = "have_pgtk")]
+type frame_parm_handler =
+  Option<unsafe extern "C" fn (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object)>;
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub static mut pgtk_frame_parm_handlers: [frame_parm_handler; 51];
+}
+
+/// C 3756-3785: `static struct redisplay_interface pgtk_redisplay_interface = { … }` - **the
+/// first redisplay-interface object in the port**, so its two decisions are written down here
+/// (Deviation 47).  ⑴ C's initializer is *positional* and Rust has none: the port writes a
+/// named-field literal, and the names come from the mirror's record
+/// (`dispextern_unit_names::redisplay_interface`, C 3069-3200's 13 base fields plus the 15
+/// `have_window_system` hooks).  Measured: C's initializer has exactly **28 entries** and the
+/// record exactly **28 fields**, in the same order, so the values land in C's slots and nothing
+/// is left to C's implicit zeroing.  ⑵ An entry's type is the *field's* type, and six of them
+/// are `*mut c_void` where the port's function takes `*mut frame`/`*mut window` (the mirror
+/// spells the incomplete-type parameters C's prototypes have): where the declaration already has
+/// the field's type the entry is `Some (name)`, and where it does not the item's address is
+/// converted with the `G_CALLBACK`-class transmute this ledger already documents (Deviation 11) -
+/// a direct `as` is `E0605`, measured.  C's three `NULL` entries are `None` (C 3764-3765's two
+/// commented-out hooks and C 3781's `shift_glyphs_for_insert`).
+#[cfg (feature = "have_pgtk")]
+static mut pgtk_redisplay_interface: dispextern_unit_names::redisplay_interface =
+  dispextern_unit_names::redisplay_interface {
+    frame_parm_handlers: &raw mut pgtk_frame_parm_handlers as *mut c_void,   // C 3757
+    produce_glyphs: Some (gui_produce_glyphs),                               // C 3758
+    write_glyphs: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)> (gui_write_glyphs as *const ()) }),       // C 3759
+    insert_glyphs: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)> (gui_insert_glyphs as *const ()) }),      // C 3760
+    clear_end_of_line: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)> (gui_clear_end_of_line as *const ()) }),                   // C 3761
+    scroll_run_hook: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, run: *mut run)> (pgtk_scroll_run as *const ()) }),                                                       // C 3762
+    after_update_window_line_hook: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, desired_row: *mut glyph_row)> (pgtk_after_update_window_line as *const ()) }),               // C 3763
+    update_window_begin_hook: None,                                          // C 3764 (`NULL`)
+    update_window_end_hook: None,                                            // C 3765 (`NULL`)
+    flush_display: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void)> (pgtk_flush_display as *const ()) }),                                                                     // C 3766
+    clear_window_mouse_face: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void)> (gui_clear_window_mouse_face as *const ()) }),                                                   // C 3767
+    get_glyph_overhangs: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)> (gui_get_glyph_overhangs as *const ()) }),     // C 3768
+    fix_overlapping_area: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)> (gui_fix_overlapping_area as *const ()) }),        // C 3769
+    draw_fringe_bitmap: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut dispextern_unit_names::draw_fringe_bitmap_params)> (pgtk_draw_fringe_bitmap as *const ()) }),   // C 3770
+    define_fringe_bitmap: Some (pgtk_define_fringe_bitmap),                  // C 3771
+    destroy_fringe_bitmap: Some (pgtk_destroy_fringe_bitmap),                // C 3772
+    compute_glyph_string_overhangs: Some (pgtk_compute_glyph_string_overhangs),   // C 3773
+    draw_glyph_string: Some (pgtk_draw_glyph_string),                        // C 3774
+    define_frame_cursor: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)> (pgtk_define_frame_cursor as *const ()) }),                                     // C 3775
+    clear_frame_area: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)> (pgtk_clear_frame_area as *const ()) }),                // C 3776
+    clear_under_internal_border: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void)> (pgtk_clear_under_internal_border as *const ()) }),                                          // C 3777
+    draw_window_cursor: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int, cursor_type: text_cursor_kinds, cursor_width: c_int, on_p: bool, active_p: bool)> (pgtk_draw_window_cursor as *const ()) }),   // C 3778
+    draw_vertical_window_border: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)> (pgtk_draw_vertical_window_border as *const ()) }),        // C 3779
+    draw_window_divider: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)> (pgtk_draw_window_divider as *const ()) }),           // C 3780
+    shift_glyphs_for_insert: None,                                           // C 3781 (`NULL`)
+    show_hourglass: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void)> (pgtk_show_hourglass as *const ()) }),                                                                   // C 3782
+    hide_hourglass: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void)> (pgtk_hide_hourglass as *const ()) }),                                                                   // C 3783
+    default_font_parameter: Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)> (pgtk_default_font_parameter as *const ()) }),                                // C 3784
+  };
+
+/// C 3787-3798: `void pgtk_clear_frame (struct frame *f)` - a **non-`static`** C definition, so the
+/// port carries `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md 0.2); `FRAME_DEFAULT_FACE` is
+/// the frame mirror's macro, `XWINDOW`/`FRAME_ROOT_WINDOW` are `frame.rs`'s, `mark_window_cursors_off`
+/// is `include/window.rs` 340's extern and `pgtk_clear_area` is `include/pgtkterm.rs` 687's row
+/// (this unit defines it at C 5035's neighbour, in the remainder).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_clear_frame (f: *mut frame)
+{
+  if FRAME_DEFAULT_FACE! (f).is_null ()                                 // C 3790
+    { return; }                                                         // C 3791
+
+  mark_window_cursors_off (XWINDOW (FRAME_ROOT_WINDOW (f)));           // C 3793
+
+  block_input ();                                                       // C 3795
+  pgtk_clear_area (f, 0, 0, FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f));   // C 3796
+  unblock_input ();                                                     // C 3797
 }
