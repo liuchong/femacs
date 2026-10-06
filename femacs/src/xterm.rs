@@ -27506,6 +27506,80 @@ unsafe extern "C" fn event_handler_gdk (gxev: *mut GdkXEvent, ev: *mut GdkEvent,
   return GDK_FILTER_CONTINUE;                                          // C 18001
 }
 
-/* C 18006-18008's forward declaration of `xembed_send_message` and C 18010-18038's
-   `x_net_wm_state` are the next items; C 18003's `#endif /* USE_GTK */` closes the pair this
-   slice reads.  */
+/* C 18006-18008's `static void xembed_send_message (struct frame *f, Time, enum xembed_message,
+   long detail, long data1, long data2);` - another of this file's forward declarations, and
+   Rust has no prototypes: the definition (C 19152) is what will stand, when its slice comes.  */
+
+/// C 18010-18038: `static void x_net_wm_state (struct frame *f, Window window)` - C's `static`,
+/// so a plain `unsafe fn`, and the definition C 21606's call in `handle_one_xevent` (still
+/// unported) is owed.  Three shapes: C's `switch` becomes a `match` on C's own constants with
+/// C's fall-through carried as `_ => {}` (the C 28244 reading's shape, and the `switch` token's
+/// row lives in `docs/ports/macro-body-notes.tsv`); the two `?:`s are `if` expressions with
+/// `Qt ()`/`Qnil ()`; and `x_get_current_wm_state`'s three output parameters are C's `&value`
+/// reads, spelled `&raw mut` here (its signature is this file's own, C 27977).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_net_wm_state (f: *mut frame, window: Window)
+{
+  /* The five `FULLSCREEN_*` values are frame.h 47-59's `enum fullscreen_type`, which the mirror
+     carries inside its `HAVE_WINDOW_SYSTEM` block, so every statement that names one carries that
+     gate (the `x_get_current_wm_state` reading, C 28010); the arm without the block falls back to
+     the enum's own first value, `FULLSCREEN_NONE` = 0.  */
+#[cfg (feature = "have_window_system")]
+  let mut value: c_int = FULLSCREEN_NONE;                              // C 18013
+#[cfg (not (feature = "have_window_system"))]
+  let mut value: c_int = 0;                                            // C 18013
+  let mut lval: Lisp_Object = Qnil ();                                 // C 18014
+  let mut sticky: bool = false;                                        // C 18015
+  let mut shaded: bool = false;
+
+  x_get_current_wm_state (f, window, &raw mut value, &raw mut sticky, &raw mut shaded); // C 18017
+
+#[cfg (feature = "have_window_system")]
+  {
+    match value                                                          // C 18019
+      {
+        FULLSCREEN_WIDTH => { lval = Qfullwidth (); }                    // C 18021-18023
+        FULLSCREEN_HEIGHT => { lval = Qfullheight (); }                  // C 18024-18026
+        FULLSCREEN_BOTH => { lval = Qfullboth (); }                      // C 18027-18029
+        FULLSCREEN_MAXIMIZED => { lval = Qmaximized (); }                // C 18030-18032
+	    _ => {}
+        }
+  }
+
+  store_frame_param (f, Qfullscreen (), lval);                         // C 18035
+  store_frame_param (f, Qsticky (), if sticky { Qt () } else { Qnil () }); // C 18036
+  store_frame_param (f, Qshaded (), if shaded { Qt () } else { Qnil () }); // C 18037
+}
+
+/* Flip back buffers on F if it has undrawn content.  */
+
+/// C 18042-18056: `static void x_flush_dirty_back_buffer_on (struct frame *f)` - C's `static`,
+/// so a plain `unsafe fn`, and its whole body sits inside C 18045's `#ifdef HAVE_XDBE` (`undef`
+/// in the frozen table, `docs/baseline/config/darwin-arm64.macros.tsv` 1692), so the port gates
+/// the body alone and leaves the signature ungated - slice 86's `x_scroll_bar_clear` shape,
+/// and none of this file's fourteen call sites (C 20233 ... C 25111, all inside
+/// `handle_one_xevent`/`XTread_socket`) is ported yet.  The body's names are the mirror's own
+/// (`FRAME_GARBAGED_P` is `include/frame.rs` 1132, `FRAME_X_COMPLETE_P`/
+/// `FRAME_X_NEED_BUFFER_FLIP` are `include/xterm.rs`'s, and `show_back_buffer` is this unit's
+/// C 7526 definition under the same feature) - except `buffer_flipping_blocked_p`, which
+/// `include/dispextern.rs` 4051 records as **owed, not declared**, so its call is one row of
+/// that class in the `have_xdbe` arm.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_flush_dirty_back_buffer_on (f: *mut frame)
+{
+#[cfg (feature = "have_xdbe")]
+  {
+  if FRAME_GARBAGED_P (f)                                              // C 18046
+      || buffer_flipping_blocked_p ()                                  // C 18047
+      /* If the frame is not already up to date, do not flush buffers
+	 on input, as that will result in flicker.  */
+      || !FRAME_X_COMPLETE_P! (f)                                       // C 18050
+      || !FRAME_X_NEED_BUFFER_FLIP! (f)                                 // C 18051
+    { return; }                                                        // C 18052
+
+  show_back_buffer (f);                                                // C 18054
+  }
+}
+
+/* C 18058's `#ifdef HAVE_GTK3` opens `x_scroll_bar_configure` (C 18060-...), the next
+   definition.  */

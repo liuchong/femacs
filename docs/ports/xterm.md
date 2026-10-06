@@ -105,6 +105,14 @@ retires and **no warning moves in any of the ten arms**; the rows are the counte
 `GdkFilterReturn`/`GdkXEvent`/`GDK_FILTER_*` surface `include/gtk.rs` does not carry yet, the
 `E0425` type class, and the two still-unported definitions `handle_one_xevent`/`x_dispatch_event`
 (whose `--check` rows retire when they land).
+  Slice 90 (C 18006-18056, Decision 103) goes **28 -> 26**: `x_net_wm_state` and
+`x_flush_dirty_back_buffer_on` both retire as missing functions, and the one token row this slice
+brings (`x_net_wm_state does not mention break, case, switch`) is closed by a
+`docs/ports/macro-body-notes.tsv` row.  Every arm reads **0 error movement** - the two definitions'
+own text resolves - but each gains **one warning**, C 18014's `lval` re-assigned only inside the
+`have_window_system` block, and the `have_xdbe` arm adds **3 rows** (C 18047's owed
+`buffer_flipping_blocked_p`, and the two `x_output` members `FRAME_X_COMPLETE_P!`/
+`FRAME_X_NEED_BUFFER_FLIP!` read when their bodies type-check for the first time).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -301,8 +309,8 @@ retires and **no warning moves in any of the ten arms**; the rows are the counte
 - [x] x_scroll_bar_report_motion  (line 17638, static)
 - [x] x_horizontal_scroll_bar_report_motion  (line 17707, static)
 - [x] x_scroll_bar_clear  (line 17777, static)
-- [ ] x_net_wm_state  (line 18011, static)
-- [ ] x_flush_dirty_back_buffer_on  (line 18043, static)
+- [x] x_net_wm_state  (line 18011, static)
+- [x] x_flush_dirty_back_buffer_on  (line 18043, static)
 - [ ] mouse_or_wdesc_frame  (line 18095, static)
 - [ ] x_dnd_compute_tip_xy  (line 18119, static)
 - [ ] x_dnd_update_tooltip_position  (line 18190, static)
@@ -4274,6 +4282,42 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   is under `use_gtk`, where it is the unit's function.
 * **What `--check` reads.**  **stays 28** (dead text: no item, no token row); the line-count row
   moves to **27,511** against C's 33,125 (16.9% drift, was 27,407 / 17.3%).
+
+### 103. Slice 90 (C 18006-18056): `x_net_wm_state` and `x_flush_dirty_back_buffer_on`, and what the `have_window_system` gate costs
+
+* **Two functions, both of them `--check` items.**  `x_net_wm_state` (C 18010-18038) is ungated and
+  C 21606's call in `handle_one_xevent` (still unported) is owed; `x_flush_dirty_back_buffer_on`
+  (C 18042-18056) sits with its whole body inside C 18045's `#ifdef HAVE_XDBE` (`undef` in the frozen
+  table), so the port gates the body alone and leaves the signature ungated - slice 86's
+  `x_scroll_bar_clear` shape.  Its fourteen call sites (C 20233 … C 25111) are all inside
+  `handle_one_xevent`/`XTread_socket`, so no rustc row retires: the slice's whole error footprint is
+  the two `--check` items, and **28 -> 26** is the reading.
+* **One new token row, closed the same commit.**  C's `switch`/`case`/`break` in `x_net_wm_state`
+  become a `match` with one arm per `FULLSCREEN_*` value and C's implicit `break` as each arm's end,
+  so the three keywords have no counterpart: `docs/ports/macro-body-notes.tsv` gains the
+  `x_net_wm_state` row (the `check_fwd_predicate` precedent).
+* **The `have_window_system` gate, and its measured price.**  `FULLSCREEN_*` is frame.h 47-59's enum,
+  which `include/frame.rs` carries inside its `HAVE_WINDOW_SYSTEM` block, so C 18013's initialiser and
+  the `match` carry that gate (the C 28010 reading).  The declaration is written twice - C's own text
+  under the feature and the enum's first value (`0`, which *is* `FULLSCREEN_NONE`) without it - so the
+  arm that lacks the block still hands `x_get_current_wm_state` an initialised `value`.  Two things
+  are measured rather than argued: (1) **every arm gains one warning**, `unused_mut` on C 18014's
+  `lval`, which the gated `match` is the only writer of - exactly the two-`lval` reading slice 26
+  recorded, and it is *not* avoidable by splitting `lval`'s declaration, because C's shape is a single
+  one (a first writing that split it read 0 warnings and was reverted in favour of the precedent);
+  (2) **the arm that turns `have_window_system` on cannot read the gated text**: it reads the same
+  `E0428 x8` the slice-26 reading recorded (`include/dispextern.rs` 1608/1776-1788's duplicate names),
+  with no other class moving, so this lane has no such arm.
+* **The `have_xdbe` arm is where the new rows are.**  Its three: C 18047's
+  `buffer_flipping_blocked_p` (`include/dispextern.rs` 4051 records it as **owed, not declared**), and
+  the two `x_output` members - `complete` and `need_buffer_flip` - that `FRAME_X_COMPLETE_P!`/
+  `FRAME_X_NEED_BUFFER_FLIP!` (`include/xterm.rs` 1010-1016) read when their bodies type-check for the
+  first time.  `FRAME_GARBAGED_P` and `show_back_buffer` resolve (the latter is this unit's own C 7526
+  definition under the same feature).  The first writing had two defects this arm caught, both fixed:
+  the two macro names written as function calls (`E0423`, "a macro named … exists in another
+  namespace") and `FULLSCREEN_NONE` read without the gate (one row in **every** arm).
+* **What `--check` reads.**  **28 -> 26** as above, with the line-count row at **27,585** against C's
+  33,125 (16.7% drift, was 27,511 / 16.9%).
 
 ## Evidence
 
@@ -8374,3 +8418,57 @@ against C's 33,125 (16.9% drift, was 27,407 / 17.3%).
 **Not claimed.**  The frozen configuration compiles none of this file: no GDK filter ran, no
 `XEvent` was dispatched, no input was blocked and no keysym was handled; the readings above are
 compile readings of text this machine cannot build.
+
+### Slice 90's readings (C 18006-18056), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s90/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s90/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI + `use_gtk`,
+AIUX = AIU + `have_xinput2`, **AX = A + `have_xdbe`** (new here) and **AWS = A +
+`have_window_system`** (the arm that cannot read the gated text, measured not assumed).  Both sides
+were measured on this revision.
+
+| arm | HEAD's unit (slice 89 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 786 / 71 | **786 / 72** | 0 / **+1** |
+| U `+use_toolkit_scroll_bars` | 815 / 71 | **815 / 72** | 0 / **+1** |
+| UT `U +use_x_toolkit` | 801 / 70 | **801 / 71** | 0 / **+1** |
+| UM `UT +use_motif` | 802 / 70 | **802 / 71** | 0 / **+1** |
+| UG `U +use_gtk` | 796 / 73 | **796 / 74** | 0 / **+1** |
+| UGX `UG +have_xinput2` | 899 / 75 | **899 / 76** | 0 / **+1** |
+| AE `A +enable_checking` | 818 / 70 | **818 / 71** | 0 / **+1** |
+| AI `A +have_x_i18n` | 794 / 72 | **794 / 73** | 0 / **+1** |
+| AIU `AI +use_gtk` | 831 / 73 | **831 / 74** | 0 / **+1** |
+| AIUX `AIU +have_xinput2` | 938 / 75 | **938 / 76** | 0 / **+1** |
+| **AX** `A +have_xdbe` | 797 / 71 | **800 / 72** | **+3** / **+1** |
+| AWS `A +have_window_system` | 499 / 0 | **499 / 0** | 0 (the `E0428 x8` arm) |
+
+**Additions, by name** (diffed as full `error[E..]: <message>` head lines with counts; nothing
+retires in any arm): AX adds `buffer_flipping_blocked_p` x1 (owed), `x_output.complete` x1 and
+`x_output.need_buffer_flip` x1 (the two macros' bodies, expanded for the first time).  Every other
+arm adds no error at all.
+
+**The one warning in each arm** is `unused_mut` for C 18014's `lval`, whose only writer is the
+`have_window_system`-gated `match` - the class slice 26 recorded for its two `lval`s, and kept here
+because C's declaration is a single one (a first writing that split it into a `mut` and a non-`mut`
+declaration read 0 warnings, and was reverted in favour of the precedent).
+
+**The `have_window_system` arm, measured.**  AWS reads the same **499 / 0** before and after -
+`491 E0425 + 8 E0428`, and the 8 are `include/dispextern.rs` 1608/1776-1788's duplicate names, which
+is why this lane has no such arm (the slice-26 reading).  My slice's gated `match` therefore cannot
+be compiled by any arm this lane builds; its shape is the one already landed at C 28010 with the same
+gate and the same limit.
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical sets.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18015's `let mut shaded: bool = false;`
+moves **A 786 -> 787** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:27548:18`;
+removing it returns A to the table.
+
+**What `--check` reads.**  **28 -> 26** as Decision 103 5 says, with the line-count row at **27,585**
+against C's 33,125 (16.7% drift, was 27,511 / 16.9%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no window-manager state was
+read, no frame parameter was stored and no back buffer was flipped; the readings above are compile
+readings of text this machine cannot build.
