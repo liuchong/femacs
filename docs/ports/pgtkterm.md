@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-46: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712 and C 5714-5892
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-47: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892 and C 5894-5950
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**8,550 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**8,619 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** - forty-six
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** - forty-seven
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `note_mouse_movement` (C 5902-5903).**
+> `motion_notify_event` (C 5952-5953).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -159,7 +159,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 5504-5568 | `pgtk_display_info_for_display` (C 5504-5516), `key_release_event` (C 5518-5536) and `configure_event` (C 5538-5568) | the file gate - **transcribed** (the forty-fourth slice) |
 | 5570-5712 | `map_event` (C 5570-5615), `window_state_event` (C 5617-5690) and `delete_event` (C 5692-5712) | the file gate - **transcribed** (the forty-fifth slice) |
 | 5714-5892 | `pgtk_focus_changed` (C 5723-5767), `enter_notify_event` (C 5769-5795), `leave_notify_event` (C 5797-5844), `focus_in_event` (C 5846-5868) and `focus_out_event` (C 5870-5892) | the file gate - **transcribed** (the forty-sixth slice) |
-| 5894-7780 | **the remainder of the file** - from C 5894-5900's comment and C 5902's `note_mouse_movement` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 5894-5950 | `note_mouse_movement` (C 5902-5950) | the file gate - **transcribed** (the forty-seventh slice) |
+| 5952-7780 | **the remainder of the file** - from C 5952's `motion_notify_event` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1264,6 +1265,19 @@ their assertions are owed.
     failure(s)`; the extra named reading is `src/xwidget.rs` probed before and after (`use_gtk` +
     `have_gtk3`), and it reads 200 errors / 51 warnings on both sides with both sets diffing empty once
     the three names moved - the first reading's three `E0428`s are exactly what that reading is for.
+
+69. **`note_mouse_movement`: the same statements, with C's implicit conversions written out.**  C
+    5894-5900's comment is carried verbatim.  C's `const GdkEventMotion *event` is the port's `*mut
+    GdkEventMotion` (the pointer shape the `pgtk_get_device_for_event` parameter at line 550 fixed),
+    and the two `(GdkEvent *)` casts C 5926/5945 writes are the port's `event as *mut GdkEvent`.  C
+    5913's `event->time` (guint32) into the `Time` field, C 5915/5916's two `double` members into the
+    `int` fields, and C 5922/5939/5941's `double` arguments to `note_mouse_highlight` and
+    `remember_mouse_glyph` (both take `int`) are written out (`as Time`, `as c_int`), as are C
+    5934-5935's promotions of the rectangle's `int` members to `double` before the comparison.  C's
+    `NULL` stores are `std::ptr::null_mut ()`, and C 5920/5937's `frame->mouse_moved = true` is this
+    unit's `mouse_moved!` writer (line 4922 - the `src/androidterm.rs` 234-238 copy of the same
+    macro).  C wrote the same body for Android: `src/androidterm.rs` 736-766 is the sibling reading,
+    and it agrees line for line with this one.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -3224,3 +3238,43 @@ C 5902-5903, after C 5894-5900's comment), the title to forty-six slices and the
 compiles none of this file, this machine has no GTK tree and no PGTK target, no focus changed and no
 pointer crossed a frame, and the arm readings are **compile** readings of text this machine cannot
 build (the new record members' offsets stay **UNVERIFIED**).
+
+## The forty-seventh slice (C 5894-5950): `note_mouse_movement`
+
+**What is in it.**  C 5894-5900's seven-line comment and `note_mouse_movement` (C 5902-5950): the
+`FRAME_X_OUTPUT` guard, the five field stores, the "the event's window is not this frame's window"
+arm with its `note_mouse_highlight (frame, -1, -1)` reset and nulled glyph frame, and the glyph test
+that calls `remember_mouse_glyph` and remembers the new frame.  Rust: 8,550 -> **8,619** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 9 / 18 -> 9 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): the twenty-second zero-delta reading in this unit, and the
+first slice of this file that adds **no declaration at all** - every name it reads (`FRAME_X_OUTPUT!`,
+`FRAME_DISPLAY_INFO!`, `FRAME_GTK_WIDGET!`, `gtk_widget_get_window`, `mouse_moved!`,
+`note_mouse_highlight`, `remember_mouse_glyph`, `pgtk_get_device_for_event`, `Time`, `XRectangle`)
+was already declared by an earlier slice - so **no mirror round and no new Owed row**.
+**Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as the first statement of
+`note_mouse_movement` moves arm A to **52** errors anchored at the injected line
+(`_root.rs:8581`); removed, the file re-measured at **8,619** lines.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**49 rows -> 48**: `note_mouse_movement` retires and **no token row arrives** - every token of the C
+body (the two `(GdkEvent *)` casts' types and the two `NULL` stores included) is in the port's text.
+The file's `line count drifted` row stays answered by the `pgtkterm 0.15 total` row the forty-fifth
+slice added (8,619 against C's 7,780 is 10.8%).
+
+**Ledger.**  Deviation 69 (the comment, the two pointer types, the written-out conversions and the
+`mouse_moved!` writer), the range table's remainder row split into `5894-5950` (**transcribed**) and
+`5952-7780` (whose next live definition is `motion_notify_event`, C 5952-5953), the title to
+forty-seven slices and the header to 8,619 lines.  **The gates** read `check-declarations.py`
+18/0/18/0, `check-citations.py` 676/0/0/2112/36/0, `check-dead-file-coverage.py` 145/0 (**79 range
+rows** over `src/pgtkterm.c`), `check-port-lines.py` 0/0/0/0, `check-ledger-ticks.py` 238/0,
+`check-cond-eval.py src/pgtkterm.c` 31/0/0 and `check-mirror-dupes.py` 16/16/0.  **Not claimed**:
+nothing has been run - the frozen configuration compiles none of this file, this machine has no GTK
+tree and no PGTK target, no motion event arrived and no glyph was remembered, and the arm readings are
+**compile** readings of text this machine cannot build.

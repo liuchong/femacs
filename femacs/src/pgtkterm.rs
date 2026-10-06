@@ -8548,3 +8548,72 @@ unsafe fn focus_out_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_da
 
   return true as gboolean;                                              // C 5891
 }
+
+/* Function to report a mouse movement to the mainstream Emacs code.
+   The input handler calls this.
+
+   We have received a mouse movement event, which is given in *event.
+   If the mouse is over a different glyph than it was last time, tell
+   the mainstream emacs code by setting mouse_moved.  If not, ask for
+   another motion event, so we can check again the next time it moves.  */
+
+/// C 5902-5950: `static bool note_mouse_movement (struct frame *frame, const GdkEventMotion
+/// *event)` - `static` and never used as a value (C 6033 is its only reference), so a plain
+/// `unsafe fn`.  C's `const GdkEventMotion *` is the port's `*mut GdkEventMotion` (the
+/// `pgtk_get_device_for_event` pointer shape at line 550; the sibling reading is
+/// `src/androidterm.rs` 736-766's `android_note_mouse_movement`, the same body C wrote for
+/// Android).  `event->time`'s narrowing into the `Time` field is written out (`as Time`), the two
+/// `double` members C 5934-5935 compares against the rectangle's `int` members are promoted
+/// explicitly, and both C 5922/5939's `struct frame *` arguments reach the mirror-worded
+/// `note_mouse_highlight` through the `*mut c_void` cast its declaration here fixes.
+#[cfg (feature = "have_pgtk")]
+unsafe fn note_mouse_movement (frame: *mut frame, event: *mut GdkEventMotion) -> bool
+{
+  let mut r: *mut XRectangle;                                           // C 5906
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 5907
+
+  if FRAME_X_OUTPUT! (frame).is_null ()                                 // C 5909
+    { return false; }                                                   // C 5910
+
+  dpyinfo = FRAME_DISPLAY_INFO! (frame);                                // C 5912
+  (*dpyinfo).last_mouse_movement_time = (*event).time as Time;           // C 5913
+  (*dpyinfo).last_mouse_motion_frame = frame;                           // C 5914
+  (*dpyinfo).last_mouse_motion_x = (*event).x as c_int;                 // C 5915
+  (*dpyinfo).last_mouse_motion_y = (*event).y as c_int;                 // C 5916
+
+  if (*event).window != gtk_widget_get_window (FRAME_GTK_WIDGET! (frame))  // C 5918
+    {
+      mouse_moved! (frame, true);                                       // C 5920
+      (*dpyinfo).last_mouse_scroll_bar = std::ptr::null_mut ();         // C 5921
+      note_mouse_highlight (frame as *mut c_void, -1, -1);              // C 5922
+      (*dpyinfo).last_mouse_glyph_frame = std::ptr::null_mut ();        // C 5923
+      (*frame).last_mouse_device
+	= pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (frame),
+				     event as *mut GdkEvent);           // C 5924-5926
+      return true;                                                      // C 5927
+    }
+
+  /* Has the mouse moved off the glyph it was on at the last sighting?  */
+  r = &raw mut (*dpyinfo).last_mouse_glyph;                             // C 5932
+  if frame != (*dpyinfo).last_mouse_glyph_frame                         // C 5933
+      || (*event).x < (*r).x as c_double
+      || (*event).x >= ((*r).x + (*r).width as c_int) as c_double       // C 5934
+      || (*event).y < (*r).y as c_double
+      || (*event).y >= ((*r).y + (*r).height as c_int) as c_double      // C 5935
+    {
+      mouse_moved! (frame, true);                                       // C 5937
+      (*dpyinfo).last_mouse_scroll_bar = std::ptr::null_mut ();         // C 5938
+      note_mouse_highlight (frame as *mut c_void, (*event).x as c_int,
+			    (*event).y as c_int);                       // C 5939
+      /* Remember which glyph we're now on.  */
+      remember_mouse_glyph (frame, (*event).x as c_int,
+			    (*event).y as c_int, r);                    // C 5941
+      (*dpyinfo).last_mouse_glyph_frame = frame;                        // C 5942
+      (*frame).last_mouse_device
+	= pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (frame),
+				     event as *mut GdkEvent);           // C 5943-5945
+      return true;                                                      // C 5946
+    }
+
+  return false;                                                         // C 5949
+}
