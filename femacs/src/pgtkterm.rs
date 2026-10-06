@@ -1943,6 +1943,8 @@ pub const FACE_OVERSTRIKE: u32 = 1 << 21;
 #[cfg (feature = "have_pgtk")]
 macro_rules! face_bits {
   (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
+  (use_box_color_for_shadows_p, $f:expr) =>
+    { ((*$f).bits & FACE_USE_BOX_COLOR_FOR_SHADOWS_P) != 0 };
   (overstrike, $f:expr) => { ((*$f).bits & FACE_OVERSTRIKE) != 0 };
 }
 
@@ -2558,4 +2560,231 @@ unsafe fn pgtk_erase_corners_for_relief (f: *mut frame, color: c_ulong, x: c_int
 			               height as c_double);                        // C 1801
   cairo_fill (cr);                                                       // C 1802
   pgtk_end_cr_clip (f);                                                  // C 1803
+}
+
+/* C 1806-1822: `static void pgtk_setup_relief_color (struct frame *f, struct relief *relief,
+   double factor, int delta, unsigned long default_pixel)`.  C's chained
+   `xgcv.foreground = relief->pixel = pixel;` is one statement per assignment in C's right-to-left
+   order (the `src/w32term.rs` 2676-2678 reading of the same C text).  */
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_setup_relief_color (f: *mut frame, relief: *mut relief, factor: c_double,
+					   delta: c_int, default_pixel: c_ulong)
+{
+  let mut xgcv: Emacs_GC = core::mem::zeroed ();                        // C 1810
+  let di: *mut pgtk_output = FRAME_X_OUTPUT! (f);                       // C 1811
+  let mut pixel: c_ulong;                                               // C 1812
+  let background: c_ulong = (*di).relief_background;                    // C 1813
+
+  /* Allocate new color.  */
+  xgcv.foreground = default_pixel;                                      // C 1816
+  pixel = background;                                                   // C 1817
+  pgtk_compute_lighter_color (f, &raw mut pixel, factor, delta);        // C 1818
+  (*relief).pixel = pixel;                                              // C 1819
+  xgcv.foreground = (*relief).pixel;
+
+  (*relief).xgcv = xgcv;                                                // C 1821
+}
+
+/// C: dispextern.h 3760-3762: `#if defined HAVE_X_WINDOWS || defined USE_CAIRO || defined
+/// HAVE_NS || defined HAVE_HAIKU || defined HAVE_ANDROID` / `#define RGB_PIXEL_COLOR unsigned
+/// long` - the arm this configuration takes (the pgtk build defines `USE_CAIRO`).  No mirror
+/// carries it, so the unit declares it at the use site, the `src/image.rs` 2210-2215 and
+/// `src/w32term.rs` 1775-1779 copies of the same pair.
+#[cfg (feature = "have_pgtk")]
+pub type RGB_PIXEL_COLOR = c_ulong;
+
+/* `image_background` and `image_background_transparent` are dispextern.h 3769-3772's two
+   prototypes (`src/image.rs` 2977/3026 define them; P-72 rule 4's use-site declaration).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn image_background (image: *mut image, f: *mut frame, img: Emacs_Pix_Context)
+    -> RGB_PIXEL_COLOR;
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn image_background_transparent (image: *mut image, f: *mut frame, mask: Emacs_Pix_Context)
+    -> c_int;
+}
+
+/// C: dispextern.h 3860-3872's `IMAGE_BACKGROUND`/`IMAGE_BACKGROUND_TRANSPARENT` - the mirror
+/// keeps the image record's masks but not the two readers, so each is defined here at the use
+/// site (the `src/image.rs` 2241-2260, `src/w32term.rs` 1781-1806 and `src/haikuterm.rs` copies
+/// of the same pair).  C 1835/1836's third argument is the `0` the call sites below pass.
+/// C: #define IMAGE_BACKGROUND(img, f, ximg) ((img)->background_valid ? (img)->background : image_background (img, f, ximg))
+/// C: #define IMAGE_BACKGROUND_TRANSPARENT(img, f, mask) ((img)->background_transparent_valid ? (img)->background_transparent : image_background_transparent (img, f, mask))
+#[cfg (feature = "have_pgtk")]
+macro_rules! IMAGE_BACKGROUND {
+  ($img:expr, $f:expr, $ximg:expr) =>
+    {
+      (if (*$img).bits & IMAGE_BACKGROUND_VALID_MASK != 0
+	 { (*$img).background }
+       else
+	 { image_background ($img, $f, $ximg) })
+    };
+}
+#[cfg (feature = "have_pgtk")]
+macro_rules! IMAGE_BACKGROUND_TRANSPARENT {
+  ($img:expr, $f:expr, $mask:expr) =>
+    {
+      (if (*$img).bits & IMAGE_BACKGROUND_TRANSPARENT_VALID_MASK != 0
+	 { ((*$img).bits >> IMAGE_BACKGROUND_TRANSPARENT_SHIFT & 1) as c_int }
+       else
+	 { image_background_transparent ($img, $f, $mask) })
+    };
+}
+
+/* Set up colors for the relief lines around glyph string S.  */
+
+/// C 1824-1853: `static void pgtk_setup_relief_colors (struct glyph_string *s)` - the three-arm
+/// colour choice (`face_bits!`'s `use_box_color_for_shadows_p` arm is added with this slice,
+/// Deviation 29) and C's `relief_background_valid_p` test, which the mirror's `pgtk_output`
+/// carries in its P-80 ① storage unit (`pgtk_output_bits!`, Deviation 28).  `s->img->pixmap`'s
+/// truth test and the two image macros are C's own tests.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_setup_relief_colors (s: *mut glyph_string)
+{
+  let di: *mut pgtk_output = FRAME_X_OUTPUT! ((*s).f);                  // C 1828
+  let mut color: c_ulong;                                               // C 1829
+
+  if face_bits! (use_box_color_for_shadows_p, (*s).face as *mut face)   // C 1831
+    { color = (*((*s).face as *mut face)).box_color; }
+  else if glyph_bits! (type, (*(*s).first_glyph)) == IMAGE_GLYPH        // C 1833
+		   && !(*(*s).img).pixmap.is_null ()                          // C 1834
+		   && IMAGE_BACKGROUND_TRANSPARENT! ((*s).img, (*s).f, 0 as Emacs_Pix_Context) == 0   // C 1835
+    { color = IMAGE_BACKGROUND! ((*s).img, (*s).f, 0 as Emacs_Pix_Context); }                   // C 1836
+  else
+    {
+      /* Get the background color of the face.  */
+      color = (*s).xgcv.background;                                     // C 1840
+    }
+
+  if !pgtk_output_bits! (relief_background_valid_p, di)                 // C 1843
+      || (*di).relief_background != color                               // C 1844
+    {
+      pgtk_output_bits! (relief_background_valid_p, di, true);          // C 1846
+      (*di).relief_background = color;                                  // C 1847
+      pgtk_setup_relief_color ((*s).f, &raw mut (*di).white_relief, 1.2, 0x8000,       // C 1848
+				       WHITE_PIX_DEFAULT! ((*s).f));            // C 1849
+      pgtk_setup_relief_color ((*s).f, &raw mut (*di).black_relief, 0.6, 0x4000,       // C 1850
+				       BLACK_PIX_DEFAULT! ((*s).f));            // C 1851
+    }
+}
+
+/// C 1855-1866: `static void pgtk_set_clip_rectangles (struct frame *f, cairo_t *cr, XRectangle
+/// *rectangles, int n)` - `f` is unused in C's body (`let _ =` keeps the name, the
+/// `pgtk_set_z_group` shape), C's `for (int i = 0; i < n; i++)` declares its index in the header
+/// and is the port's init/`while`/step (Deviation 26's spelling), and the four `short` members
+/// widen to `cairo_rectangle`'s `double`s where C converts them.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_clip_rectangles (f: *mut frame, cr: *mut cairo_t, rectangles: *mut XRectangle,
+					    n: c_int)
+{
+  let _ = f;
+
+  if n > 0                                                              // C 1859
+    {
+      let mut i: c_int = 0;                                             // C 1861
+      while i < n
+	{
+	  cairo_rectangle (cr, (*rectangles.offset (i as isize)).x as c_double,     // C 1862
+				   (*rectangles.offset (i as isize)).y as c_double,
+				   (*rectangles.offset (i as isize)).width as c_double, // C 1863
+				   (*rectangles.offset (i as isize)).height as c_double);
+	  i += 1;
+	}
+      cairo_clip (cr);                                                  // C 1864
+    }
+}
+
+/* Draw a relief on frame F inside the rectangle given by LEFT_X,
+   TOP_Y, RIGHT_X, and BOTTOM_Y.  WIDTH is the thickness of the relief
+   to draw, it must be >= 0.  RAISED_P means draw a raised
+   relief.  LEFT_P means draw a relief on the left side of
+   the rectangle.  RIGHT_P means draw a relief on the right
+   side of the rectangle.  CLIP_RECT is the clipping rectangle to use
+   when drawing.  */
+
+/// C 1876-1951: `static void pgtk_draw_relief_rect (...)` - C's six flags are Rust's `bool` (each
+/// test is C's own), the eight `pgtk_fill_rectangle` calls keep C's callee (the definition is
+/// C 5035's, in the remainder: the class the ledger's Evidence ② records), the two
+/// `pgtk_fill_trapezoid_for_relief` and the `pgtk_erase_corners_for_relief` calls are this unit's
+/// own definitions above, the `corners |=` writes are `corners::CORNER_* as c_int` (the
+/// `src/xterm.rs` 11036-11047 shape), and C 1948's `6, 1` are the `6 as c_double,
+/// 1 as c_double` the sibling unit writes (`src/xterm.rs` 11090-11092).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_relief_rect (f: *mut frame, left_x: c_int, top_y: c_int, right_x: c_int,
+					 bottom_y: c_int, hwidth: c_int, vwidth: c_int, raised_p: bool,
+					 top_p: bool, bot_p: bool, left_p: bool, right_p: bool,
+					 clip_rect: *mut XRectangle)
+{
+  let mut top_left_color: c_ulong;                                      // C 1883
+  let mut bottom_right_color: c_ulong;
+  let mut corners: c_int = 0;                                           // C 1884
+
+  let cr: *mut cairo_t = pgtk_begin_cr_clip (f);                        // C 1886
+
+  if raised_p                                                           // C 1888
+    {
+      top_left_color = (*FRAME_X_OUTPUT! (f)).white_relief.xgcv.foreground;      // C 1890
+      bottom_right_color = (*FRAME_X_OUTPUT! (f)).black_relief.xgcv.foreground;  // C 1891
+    }
+  else
+    {
+      top_left_color = (*FRAME_X_OUTPUT! (f)).black_relief.xgcv.foreground;      // C 1895
+      bottom_right_color = (*FRAME_X_OUTPUT! (f)).white_relief.xgcv.foreground;  // C 1896
+    }
+
+  pgtk_set_clip_rectangles (f, cr, clip_rect, 1);                       // C 1899
+
+  if left_p                                                             // C 1901
+    {
+      pgtk_fill_rectangle (f, top_left_color, left_x, top_y,            // C 1903
+			   vwidth, bottom_y + 1 - top_y, false);                // C 1904
+      if top_p
+	{ corners |= 1 << (corners::CORNER_TOP_LEFT as c_int); }           // C 1906
+      if bot_p
+	{ corners |= 1 << (corners::CORNER_BOTTOM_LEFT as c_int); }        // C 1908
+    }
+  if right_p                                                            // C 1910
+    {
+      pgtk_fill_rectangle (f, bottom_right_color, right_x + 1 - vwidth, top_y,        // C 1912
+			   vwidth, bottom_y + 1 - top_y, false);                // C 1913
+      if top_p
+	{ corners |= 1 << (corners::CORNER_TOP_RIGHT as c_int); }          // C 1915
+      if bot_p
+	{ corners |= 1 << (corners::CORNER_BOTTOM_RIGHT as c_int); }       // C 1917
+    }
+  if top_p                                                              // C 1919
+    {
+      if !right_p
+	{ pgtk_fill_rectangle (f, top_left_color, left_x, top_y,             // C 1922
+				     right_x + 1 - left_x, hwidth, false); }  // C 1923
+      else
+	{ pgtk_fill_trapezoid_for_relief (f, top_left_color, left_x, top_y,  // C 1925
+						right_x + 1 - left_x, hwidth, 1); }  // C 1926
+    }
+  if bot_p                                                              // C 1928
+    {
+      if !left_p
+	{ pgtk_fill_rectangle (f, bottom_right_color, left_x,                // C 1931
+				     bottom_y + 1 - hwidth, right_x + 1 - left_x,   // C 1932
+				     hwidth, false); }  // C 1933
+      else
+	{ pgtk_fill_trapezoid_for_relief (f, bottom_right_color,             // C 1935
+						left_x, bottom_y + 1 - hwidth,      // C 1936
+						right_x + 1 - left_x, hwidth, 0); }  // C 1937
+    }
+  if left_p && vwidth > 1                                               // C 1939
+    { pgtk_fill_rectangle (f, bottom_right_color, left_x, top_y,        // C 1940
+				   1, bottom_y + 1 - top_y, false); }           // C 1941
+  if top_p && hwidth > 1                                                // C 1942
+    { pgtk_fill_rectangle (f, bottom_right_color, left_x, top_y,        // C 1943
+				   right_x + 1 - left_x, 1, false); }           // C 1944
+  if corners != 0                                                       // C 1945
+    { pgtk_erase_corners_for_relief (f, FRAME_BACKGROUND_PIXEL (f), left_x,         // C 1946
+					     top_y, right_x - left_x + 1,               // C 1947
+					     bottom_y - top_y + 1, 6 as c_double,       // C 1948
+					     1 as c_double, corners); }
+
+  pgtk_end_cr_clip (f);                                                 // C 1950
 }

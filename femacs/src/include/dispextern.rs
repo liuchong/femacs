@@ -794,12 +794,16 @@ pub type Emacs_Pix_Container = *mut android_image;
 // `NativeRectangle` above.  The `#ifndef` default exists in C for platforms whose header does
 // not define it, and none of the five the port has needs it.
 /// C: dispextern.h 196: `typedef Emacs_Pix_Container Emacs_Pix_Context;`
-#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui"),
-           not (feature = "have_pgtk")))]
+/// The `have_pgtk` arm is this line's too (2026-10-06): C 149-155's pgtk block defines
+/// `XImagePtr`/`XImagePtr_or_DC` and **not** `Emacs_Pix_Context`, and no pgtk header defines
+/// `PIX_CONTAINER_TO_CONTEXT` (only `w32gui.h`, C 139, does), so C 195's `#ifndef` holds and
+/// a pgtk build reads this default - measured by that arm's first consumer,
+/// `src/pgtkterm.rs`'s `pgtk_setup_relief_colors` (C 1835/1836), whose probe named the
+/// missing name before this arm landed.
+#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
 pub type Emacs_Pix_Context = Emacs_Pix_Container;
 /// C: dispextern.h 197: `#  define PIX_CONTAINER_TO_CONTEXT(c) (c)`
-#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui"),
-           not (feature = "have_pgtk")))]
+#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
 macro_rules! PIX_CONTAINER_TO_CONTEXT {
   ($c:expr) => { $c };
 }

@@ -319,9 +319,10 @@ pub struct pgtk_output
   pub hbox_widget: *mut GtkWidget,       // C 388: `GtkWidget *hbox_widget;`
   pub menubar_widget: *mut GtkWidget,    // C 390: `GtkWidget *menubar_widget;`
   pub toolbar_widget: *mut GtkWidget,    // C 392: `GtkWidget *toolbar_widget;`
-  // C 394: `bool_bf toolbar_in_hbox : 1;` - recorded, not stored (P-80's member dispatch; the
-  // `include/xterm.rs` 752-754 shape for the same two members).
-  // C 395: `bool_bf toolbar_is_packed : 1;`
+  /// C 394/395: the record's two toolbar flags - carried in the P-80 ① storage unit below
+  /// (2026-10-06: the members' first consumer arrived, so the unit is stored rather than
+  /// recorded; `pgtk_output_bits!` reads and writes each by C's own member name).
+  pub bits: c_uint,
   pub ttip_widget: *mut GtkTooltip,      // C 397: `GtkTooltip *ttip_widget;`
   pub ttip_lbl: *mut GtkWidget,          // C 398: `GtkWidget *ttip_lbl;`
   pub ttip_window: *mut GtkWindow,       // C 399: `GtkWindow *ttip_window;`
@@ -347,7 +348,8 @@ pub struct pgtk_output
   pub black_relief: relief,              // C 427-432: `struct relief { Emacs_GC xgcv; unsigned
   pub white_relief: relief,              //  long pixel; } black_relief, white_relief;`
   pub relief_background: c_ulong,        // C 436: `unsigned long relief_background;`
-  // C 440: `bool_bf relief_background_valid_p : 1;` - recorded, not stored (P-80).
+  // C 440: `bool_bf relief_background_valid_p : 1;` - carried in the storage unit at C 394/395
+  // above (P-80 ①: one unit per record's bit-field segment).
   pub focus_state: c_int,                // C 445: `int focus_state;`
   pub watched_scale_factor: c_double,    // C 451: `double watched_scale_factor;`
   pub scale_factor_atimer: *mut c_void,  // C 452: `struct atimer *scale_factor_atimer;` (bare tag, 0.1-2)
@@ -361,6 +363,34 @@ pub struct relief
 {
   pub xgcv: Emacs_GC,        // C: `Emacs_GC xgcv;`
   pub pixel: c_ulong,        // C: `unsigned long pixel;`
+}
+
+/// P-80 ①/②: `pgtk_output`'s three `bool_bf` members (C 394's `toolbar_in_hbox`, C 395's
+/// `toolbar_is_packed`, C 440's `relief_background_valid_p`) read and written by C's own member
+/// name through the record's storage unit - the `glyph_bits!`/`glyph_row_bits!` shape.  The unit
+/// and the three masks are the port's storage assignment: no GTK toolchain here can measure this
+/// record (P-88 ②, which is why the record as a whole is `UNVERIFIED`).
+#[cfg (feature = "have_pgtk")]
+pub const PGTK_OUTPUT_TOOLBAR_IN_HBOX: c_uint = 1 << 0;                  // C 394
+#[cfg (feature = "have_pgtk")]
+pub const PGTK_OUTPUT_TOOLBAR_IS_PACKED: c_uint = 1 << 1;                // C 395
+#[cfg (feature = "have_pgtk")]
+pub const PGTK_OUTPUT_RELIEF_BACKGROUND_VALID_P: c_uint = 1 << 2;        // C 440
+#[cfg (feature = "have_pgtk")]
+macro_rules! pgtk_output_bits {
+  (toolbar_in_hbox, $o:expr) => { ((*$o).bits & PGTK_OUTPUT_TOOLBAR_IN_HBOX) != 0 };
+  (toolbar_in_hbox, $o:expr, $v:expr) =>
+    { (*$o).bits = if $v { (*$o).bits | PGTK_OUTPUT_TOOLBAR_IN_HBOX }
+                   else { (*$o).bits & !PGTK_OUTPUT_TOOLBAR_IN_HBOX } };
+  (toolbar_is_packed, $o:expr) => { ((*$o).bits & PGTK_OUTPUT_TOOLBAR_IS_PACKED) != 0 };
+  (toolbar_is_packed, $o:expr, $v:expr) =>
+    { (*$o).bits = if $v { (*$o).bits | PGTK_OUTPUT_TOOLBAR_IS_PACKED }
+                   else { (*$o).bits & !PGTK_OUTPUT_TOOLBAR_IS_PACKED } };
+  (relief_background_valid_p, $o:expr) =>
+    { ((*$o).bits & PGTK_OUTPUT_RELIEF_BACKGROUND_VALID_P) != 0 };
+  (relief_background_valid_p, $o:expr, $v:expr) =>
+    { (*$o).bits = if $v { (*$o).bits | PGTK_OUTPUT_RELIEF_BACKGROUND_VALID_P }
+                   else { (*$o).bits & !PGTK_OUTPUT_RELIEF_BACKGROUND_VALID_P } };
 }
 
 /* C 456-459: the PGTK arm's `struct x_output` (`/* Satisfy term.c. */`).  It is a *different*

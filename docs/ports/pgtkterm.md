@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-7: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662 and C 1664-1804
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-8: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804 and C 1806-1951
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,13 +11,13 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**2,561 lines**), carrying **C 1-1078**,
-> **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662** and
-> **C 1664-1804** - seven slices - with **both arms of every `#if`**; the **2,044** this line used to
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**2,790 lines**), carrying **C 1-1078**,
+> **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
+> **C 1664-1804** and **C 1806-1951** - eight slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_setup_relief_color` (C 1806-1808; C 1806 is its `static void` line).**
+> `pgtk_draw_box_rect` (C 1960-1961; C 1953-1958 is the comment block above it).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -117,7 +117,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 1485-1572 | `pgtk_draw_composite_glyph_string_foreground` (C 1485-1572: the box-line offset, the `font_not_found_p` rectangle arm, the non-automatic `COMPOSITION_GLYPH`/`offsets` loop and the `LGSTRING_GLYPH`/`LGLYPH_*` automatic arm with its two deferred draws) | the file gate - **transcribed** (the fifth slice) |
 | 1575-1662 | `pgtk_draw_glyphless_glyph_string_foreground` (C 1575-1662: the box-line offset, the `char2b[8]` local C hands to `s->char2b`, the `GCC_LINT` pair, the acronym and hex-code arms of `glyph->u.glyphless`, the two `font->driver` calls with the slice offsets, the `THIN_SPACE` rectangle guard and the closing `s->char2b = NULL`) | the file gate - **transcribed** (the sixth slice) |
 | 1664-1804 | `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` (C 1664-1675), `pgtk_compute_lighter_color` (C 1684-1746), `pgtk_fill_trapezoid_for_relief` (C 1748-1762), `enum corners` (C 1764-1771) and `pgtk_erase_corners_for_relief` (C 1773-1804) | the file gate - **transcribed** (the seventh slice) |
-| 1806-7780 | **the remainder of the file** - from C 1807's `pgtk_setup_relief_color` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1806-1951 | `pgtk_setup_relief_color` (C 1806-1822), `pgtk_setup_relief_colors` (C 1824-1853), `pgtk_set_clip_rectangles` (C 1855-1866) and `pgtk_draw_relief_rect` (C 1868-1951) | the file gate - **transcribed** (the eighth slice) |
+| 1953-7780 | **the remainder of the file** - from C 1961's `pgtk_draw_box_rect` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -476,6 +477,44 @@ their assertions are owed.
     under the file gate (the `src/xterm.rs` 10773 shape; the constant is not in a mirror, so this
     unit's copy is not a duplicate - it is C's own `#define` at C 1675).
 
+28. **`pgtk_output`'s three `bool_bf` members are stored now (the mirror's first consumer).**  C 394's
+    `toolbar_in_hbox`, C 395's `toolbar_is_packed` and C 440's `relief_background_valid_p` were
+    *recorded, not stored* in `femacs/src/include/pgtkterm.rs` (P-80's member dispatch) until this
+    slice's `pgtk_setup_relief_colors` needed C 1843-1847: C reads the flag in a condition and writes
+    it in the body, and a record's field cannot be declared at a use site, so the record gained the
+    P-80 ① storage unit (`pub bits: c_uint`) plus the member-name-dispatched accessor
+    (`pgtk_output_bits! (relief_background_valid_p, di[, v])`, and the two `toolbar_*` names with it),
+    the `glyph_bits!`/`glyph_row_bits!`/`glyph_matrix_bits!` shape.  The unit's offset and the three
+    masks are the port's storage assignment and are **not** a layout claim: no GTK toolchain here can
+    measure the record (P-88 ②, which is why the mirror already labels the whole record
+    `UNVERIFIED`).  A mirror changed, so P-87's two legs were run: `check-mirror-dupes.py`
+    **16/16/0** and the consumer sweep `checked 83 unit(s), 0 failure(s)` with
+    `checking 83 unit(s), 0 unit failure(s)`; the mirror's own ledger
+    (`docs/ports/include-pgtkterm.md`) carries the round paragraph.
+29. **Four declarations this slice needs, and one accessor arm.**  `face_bits!` gains the
+    `use_box_color_for_shadows_p` arm (C 1865's member; `FACE_USE_BOX_COLOR_FOR_SHADOWS_P` was already
+    in the unit's own table as `1 << 5`, so the arm is the only addition - the `src/xterm.rs`
+    9575-9589 shape); `IMAGE_BACKGROUND` and `IMAGE_BACKGROUND_TRANSPARENT` (dispextern.h 3860-3872)
+    are this unit's own copies of the pair the mirror does not carry, with their two prototypes
+    (`image_background`, `image_background_transparent`, dispextern.h 3769-3772, defined in
+    `src/image.rs`) declared at the use site - the `src/w32term.rs` 1781-1806 / `src/image.rs`
+    2241-2260 precedent; and `RGB_PIXEL_COLOR` (dispextern.h 3760-3762's `unsigned long` arm, the one
+    this configuration takes) is this unit's own `pub type`, the `src/image.rs` 2210-2215 copy.
+    None of the four is a new mirror: the unit-local declaration is where the corpus puts them.
+30. **The arm set gains `use_cairo`, and the dispextern mirror's `have_pgtk` exclusion is lifted.**
+    C 1835/1836's third argument is an `Emacs_Pix_Context`, and that type comes from C 122-132's
+    `#ifdef USE_CAIRO` block for a pgtk build (C 149-155's pgtk segment defines `XImagePtr`/
+    `XImagePtr_or_DC` and *not* `Emacs_Pix_Context`), so the three arms now carry
+    `--cfg feature="use_cairo"` - the configuration a pgtk build always has, and the first reading of
+    this text named the missing name.  The mirror's `Emacs_Pix_Context`/`PIX_CONTAINER_TO_CONTEXT`
+    were gated `not (feature = "have_pgtk")`, which that reading showed to be a mirror gap rather
+    than a C fact: C 195's `#ifndef PIX_CONTAINER_TO_CONTEXT` holds for pgtk (only `w32gui.h`,
+    C 139, defines that macro), so C 196/197 are the pgtk definitions too; the two cfg lines lost the
+    exclusion and their comment records the measurement.  Second mirror change of the round: the same
+    P-87 legs cover it, and `docs/ports/include-dispextern.md` carries the note.  The arm readings
+    with `use_cairo` are the ones the section below reports (the HEAD baseline was re-measured with
+    it: 33/19, 34/20, 11/18 errors/warnings before this slice's text).
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -753,3 +792,43 @@ sweep `checked 83 unit(s), 0 failure(s)` / `checking 83 unit(s), 0 unit failure(
 this round - Deviation 27).  **Not claimed**: none of this has been run - the frozen configuration
 compiles none of this file, there is no GTK or cairo to draw with here, and the three arm readings
 are **compile** readings of text this machine cannot build.
+
+## The eighth slice (C 1806-1951): the relief colours, the clip rectangles and the relief rectangle
+
+**What is in it.**  `pgtk_setup_relief_color` (C 1806-1822: the `Emacs_GC` local, the
+`pgtk_compute_lighter_color` call and C's chained `xgcv.foreground = relief->pixel = pixel;`),
+`pgtk_setup_relief_colors` (C 1824-1853: the three-arm colour choice with the two image macros and
+the `relief_background_valid_p` guard around the two `pgtk_setup_relief_color` calls),
+`pgtk_set_clip_rectangles` (C 1855-1866: the `XRectangle` walk into `cairo_rectangle` and
+`cairo_clip`) and `pgtk_draw_relief_rect` (C 1868-1951: the raised/not colour pair, the six
+`pgtk_fill_rectangle` calls, the two `pgtk_fill_trapezoid_for_relief` calls, the two `corners |=`
+writes and the `pgtk_erase_corners_for_relief` close).  Rust: 2,561 -> **2,790** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides -
+Deviation 30).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 33 errors / 19 warnings -> 39 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 34 / 20 -> 40 / 20
+C = A + use_gtk + have_gtk3                        : 11 / 18 -> 17 / 18
+```
+**Every arm's delta is one registered class and nothing else** - the error sets were diffed, not just
+counted: `cannot find function pgtk_fill_rectangle` goes 1 -> **7** (the six call sites this slice's
+`pgtk_draw_relief_rect` adds to the C 5035 definition the Evidence ② table already records), with 0
+new warnings and 0 new classes.  The first reading of this text named four defects (the mirror's
+storage unit, Deviation 28; the `face_bits!` arm and the image pair, 29; the missing
+`Emacs_Pix_Context`, 30; and two `if (cond) call (...)` bodies Rust needs braces around); the
+readings above are the repaired text's.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **166 rows -> 162**: the four items retire, and the file's own `line count drifted` row is
+re-measured 67.1% -> **64.1%** (C 7,780 vs the port's 2,790).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2054/36/0** (this slice's `dispextern.h` citations resolve in the reference tree, so the
+external count is unchanged); `check-dead-file-coverage.py` **145/0** (**40 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** with the consumer
+sweep `checked 83 unit(s), 0 failure(s)` / `checking 83 unit(s), 0 unit failure(s)` (two mirrors
+changed - Deviations 28 and 30).  **Not claimed**: none of this has been run - the frozen
+configuration compiles none of this file, there is no GTK or cairo to draw with here, and the three
+arm readings are **compile** readings of text this machine cannot build.

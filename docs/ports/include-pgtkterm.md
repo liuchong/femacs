@@ -126,3 +126,22 @@
   **exit 0**: `src/pgtkim.rs` (`have_pgtk` + `have_gtk3`, 14,083,208-byte rlib) and
   `src/hbfont.rs` (`harfbuzz`, 14,580,952-byte rlib); `layout-check` passes and
   `tools/check-all-units.sh` is **83/0 + 83/0**.
+
+## 2026-10-06: the first consumer of the three `bool_bf` members - the storage unit lands
+
+`src/pgtkterm.rs`'s eighth slice (`pgtk_setup_relief_colors`, C 1843-1847) reads and writes C 440's
+`relief_background_valid_p`, and a record's member cannot be declared at a use site, so the record
+can no longer only *record* it: `pgtk_output` now stores P-80 ①'s storage unit - `pub bits: c_uint`
+- with the member-name-dispatched accessor `pgtk_output_bits!` (read and write forms) and three
+masks (`PGTK_OUTPUT_TOOLBAR_IN_HBOX` 1<<0, `PGTK_OUTPUT_TOOLBAR_IS_PACKED` 1<<1,
+`PGTK_OUTPUT_RELIEF_BACKGROUND_VALID_P` 1<<2), the `glyph_bits!`/`glyph_row_bits!` shape.  C 394/395
+(the two `toolbar_*` members) live in the same unit, so the record no longer carries a
+"recorded, not stored" line.  **The unit's offset and the three bit positions are the port's storage
+assignment, not a layout claim**: no GTK toolchain exists here (P-88 ②), which is why the record as a
+whole stays `UNVERIFIED` and no `size_of`/`offset_of` assertion is written for it.  Because a mirror
+changed, P-87's two legs were run: `python3 tools/check-mirror-dupes.py` -> **16 duplicate
+declaration(s), 16 ratchet row(s), 0 failure(s)** and
+`CARGO_TARGET_DIR=/tmp/sweep8 bash tools/check-all-units.sh` -> **`checked 83 unit(s), 0
+failure(s)`** with **`checking 83 unit(s), 0 unit failure(s)`**.  The consumer's reading is in
+`docs/ports/pgtkterm.md` (the eighth slice's section, Deviation 28): three arms, delta = the one
+registered `cannot find function pgtk_fill_rectangle` class, 0 new warnings.

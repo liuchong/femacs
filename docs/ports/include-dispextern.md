@@ -1369,3 +1369,19 @@ split the note describes, and `NativeRectangle`'s deferral are unchanged.  Readi
 **`layout-check passed`**.  The file stays **WIP**: `NativeRectangle`'s box is the intended signal
 (above and in `tools/excluded-macros.txt`), so this round removes the three differences without
 claiming the mirror is complete.
+
+## 2026-10-06: the `have_pgtk` arm of `Emacs_Pix_Context` (a gap this mirror's cfg had)
+
+`src/pgtkterm.rs`'s eighth slice calls `image_background`/`image_background_transparent` (C 1835/1836)
+and its probe named the missing type: this mirror's `Emacs_Pix_Context` and
+`PIX_CONTAINER_TO_CONTEXT` were gated `not (feature = "have_pgtk")` and no other mirror defines the
+name for that arm, so a pgtk reading of any consumer of dispextern.h's two prototypes stopped at
+`cannot find type Emacs_Pix_Context`.  C puts the arm on C 196/197: the pgtk segment (C 149-155)
+defines `XImagePtr` and `XImagePtr_or_DC` and **not** `Emacs_Pix_Context`, and only `w32gui.h`
+(C 139) defines `PIX_CONTAINER_TO_CONTEXT`, so C 195's `#ifndef` holds and the default typedef is what
+a pgtk build reads - its `Emacs_Pix_Container` coming from C 122-132's `USE_CAIRO` block, which a
+pgtk build always defines, which is why the consumer's arms gained `use_cairo`
+(`docs/ports/pgtkterm.md` Deviation 30).  Both cfg lines lost the exclusion.  Readings: P-87's two
+legs - `tools/check-mirror-dupes.py` **16/16/0** and `check-all-units.sh` **83/0 + 83/0** - plus the
+consumer's three-arm reading, whose delta is one registered class with 0 new warnings.  The file
+stays **WIP** for the reasons above it.
