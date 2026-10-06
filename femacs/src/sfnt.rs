@@ -112,8 +112,18 @@
 // arrays were checked against C's own text (`clang` prints 54/48/9/8 bytes for the four arrays, and
 // the 54 + 9 bytes are identical to the port's literals; a script compared all 79 inline-array
 // objects field by field, 0 mismatches).
-// **What is left after slice 21** is `all_tests[]` (C 18183-19655) and the programme's entry point
-// (C 19656-21213), and nothing else.
+// **Slice 22 takes C 18183-19651** - `all_tests[]`, the interpreter test programme's table of **94
+// entries** (each an instruction byte array - 91 compound literals, one sized literal and two named
+// arrays - a `num_instructions`, an `arg` pointer or `NULL`, and a check function).  With it the
+// unit's `extract-abi.py --check` reads **`OK` with zero rows** for the first time: every item that
+// tool compares is present and equal, and the line count is inside tolerance (21,327 Rust lines
+// against C's 21,215, +0.5%).  The blueprint number this slice corrects is the table's size: the
+// ledger had carried "166 `_test_args` objects" since an early slice and slices 19-21 repeated it,
+// while C's own text has **81** such objects and **94** table entries (both recounted here, and in
+// the ledger's Evidence 17 and range table).
+// **What is left after slice 22** is C 19652-21215: the instruction debugger (`sfnt_setup_debugger`,
+// `sfnt_name_instruction`, `sfnt_draw_debugger`, the two hooks, `sfnt_verbose`) and the programme's
+// entry point with its glyph-outline/raster benchmark - the file's last block, and nothing else.
 // The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
@@ -20071,3 +20081,1247 @@ static mut scantype_test_args: sfnt_generic_test_args =    // C 18175-18181
     expected_trap: false,
     expected_IP: 3,
   };
+
+/* C 18183-19651: the test table itself.  Each entry is a `struct sfnt_interpreter_test` whose
+   `instructions` member C fills either with a file-scope **compound literal** - slice 21's shape,
+   a promoted array behind a pointer - or, in the two rounding entries, with the address of one of
+   slice 21's arrays; `arg` is the address of one of the `_test_args` objects above (C's
+   `&name_test_args`, stored in a `void *`) or `NULL`; `check` is one of the twenty `sfnt_check_*`
+   functions.  C's count is 94 entries, all measured: one (C 18232) sizes its compound literal
+   explicitly (`(unsigned char [103]) { 0x40, 101, }` - two values and 101 zero bytes, for which
+   Rust's array literal has no partial fill, so that entry builds the array in a `const` block), and
+   two name an array instead of writing one.  `num_instructions` counts *instructions*, not bytes
+   (the immediate operands ride along), and the two rounding entries carry C's `countof (…)` with
+   the length slice 21 measured from C's own text beside it.  Every entry's name, bytes, argument
+   and check function were compared against C a second time (Evidence 17).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut all_tests: [sfnt_interpreter_test; 94] =        // C 18183-19651
+  [
+    sfnt_interpreter_test {                            // C 18185-18194
+      name: c"NPUSHB".as_ptr (),
+      /* NPUSHB[] 4 1 2 3 4
+      	 NPUSHB[] 5 1 2 3 4 */
+      instructions: &[
+	0x40, 4, 1, 2, 3, 4, 0x40, 5, 1, 2, 3, 4,
+	] as *const [c_uchar; 12] as *mut c_uchar,
+      num_instructions: 10,
+      arg: &raw mut npushb_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18195-18204
+      name: c"NPUSHW".as_ptr (),
+      /* NPUSHW[] 4 0x101 0x202 0x303 0x404
+      	 NPUSHW[] 4 0x101 0x202 0x303 0x4?? */
+      instructions: &[
+	0x41, 4, 1, 1, 2, 2, 3, 3, 4, 4, 0x41, 4, 1, 1, 2, 2, 3, 3, 4,
+	] as *const [c_uchar; 19] as *mut c_uchar,
+      num_instructions: 19,
+      arg: &raw mut npushw_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18205-18216
+      name: c"PUSHB".as_ptr (),
+      /* PUSHB[7] 1 2 3 4 5 6 7 8
+      	 PUSHB[0] 1
+      	 PUSHB[5] 1 2 3 4 5 ? */
+      instructions: &[
+	0xb7, 1, 2, 3, 4, 5, 6, 7, 8, 0xb0, 1, 0xb5, 1, 2, 3, 4, 5,
+	] as *const [c_uchar; 17] as *mut c_uchar,
+      num_instructions: 17,
+      arg: &raw mut pushb_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18217-18228
+      name: c"PUSHW".as_ptr (),
+      /* PUSHW[7] 2 3 2 4 2 5 2 6 2 7 2 8 9 9 9 9
+      	 PUSHW[0] 255 255 -- this should get sign-extended
+      	 PUSHW[5] 1 1 2 2 3 3 4 4 5 5 6 ? */
+      instructions: &[
+	0xbf, 2, 3, 2, 4, 2, 5, 2, 6, 2, 7, 2, 8, 9, 9, 9, 9, 0xb8, 255,
+	255, 0xbc, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6,
+	] as *const [c_uchar; 32] as *mut c_uchar,
+      num_instructions: 28,
+      arg: &raw mut pushw_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18229-18236
+      name: c"that stack overflow is handled correctly".as_ptr (),
+      /* NPUSHB[] 101 0... */
+      instructions: &{ let mut instructions = [0u8; 103]; instructions[0] = 0x40; instructions[1] = 101; instructions }
+		as *const [c_uchar; 103] as *mut c_uchar,
+      num_instructions: 103,
+      arg: &raw mut stack_overflow_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18237-18248
+      name: c"that stack underflow is handled correctly".as_ptr (),
+      /* PUSHW[0] 100 100
+      	 POP[]
+      	 POP[] */
+      instructions: &[0xb8, 100, 100, 0x21, 0x21] as *const [c_uchar; 5] as *mut c_uchar,
+      num_instructions: 5,
+      arg: &raw mut stack_underflow_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18249-18266
+      name: c"SRP0, SRP1, SRP2".as_ptr (),
+      /* PUSHB[0] 0
+      	 SRP0[]
+      	 PUSHB[0] 1
+      	 SRP1[]
+      	 PUSHB[0] 2
+      	 SRP2[] */
+      instructions: &[
+	0xb0, 0, 0x10, 0xb0, 1, 0x11, 0xb0, 2, 0x12,
+	] as *const [c_uchar; 9] as *mut c_uchar,
+      num_instructions: 9,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_srp0),
+    },
+    sfnt_interpreter_test {                            // C 18267-18288
+      name: c"SZP0, SZP1, SZP2, SZPS".as_ptr (),
+      /* PUSHB[0] 1
+      	 SZP0[]
+      	 PUSHB[0] 1
+      	 SZP1[]
+      	 PUSHB[0] 0
+      	 SZP2[]
+      	 PUSHB[0] 5
+      	 SZPS[]  */
+      instructions: &[
+	0xb0, 1, 0x13, 0xb0, 1, 0x14, 0xb0, 0, 0x15, 0xb0, 5, 0x16,
+	] as *const [c_uchar; 12] as *mut c_uchar,
+      num_instructions: 12,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_szp0),
+    },
+    sfnt_interpreter_test {                            // C 18289-18302
+      name: c"SLOOP".as_ptr (),
+      /* PUSHB[0] 2
+      	 SLOOP[]
+      	 PUSHW[0] 255 255 (-1)
+      	 SLOOP[] */
+      instructions: &[0xb0, 2, 0x17, 0xb8, 255, 255, 0x17] as *const [c_uchar; 7] as *mut c_uchar,
+      num_instructions: 7,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_sloop),
+    },
+    sfnt_interpreter_test {                            // C 18303-18314
+      name: c"RTG".as_ptr (),
+      /* RTG[]
+      	 PUSHB[0] 32
+      	 ROUND[] */
+      instructions: &[0x18, 0xb0, 32, 0x68] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut rtg_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18315-18326
+      name: c"rounding symmetry".as_ptr (),
+      /* RTG[]
+      	 PUSHW[0] 255 -32
+      	 ROUND[] */
+      instructions: &[
+	0x18, 0xb8, 255, (-(32 as c_schar)) as c_uchar, 0x68,
+	] as *const [c_uchar; 5] as *mut c_uchar,
+      num_instructions: 5,
+      arg: &raw mut rtg_symmetric_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18327-18338
+      name: c"RTG to 0".as_ptr (),
+      /* RTG[]
+      	 PUSHB[0] 31
+      	 ROUND[] */
+      instructions: &[0x18, 0xb0, 31, 0x68] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut rtg_1_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18339-18350
+      name: c"rounding symmetry to 0".as_ptr (),
+      /* RTG[]
+      	 PUSHB[0] 255 -31
+      	 ROUND[] */
+      instructions: &[
+	0x18, 0xb8, 255, (-(31 as c_schar)) as c_uchar, 0x68,
+	] as *const [c_uchar; 5] as *mut c_uchar,
+      num_instructions: 5,
+      arg: &raw mut rtg_1_symmetric_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18351-18362
+      name: c"RTHG".as_ptr (),
+      /* RTHG[]
+      	 PUSHB[0] 0
+      	 ROUND[] */
+      instructions: &[0x19, 0xb0, 0, 0x68] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut rthg_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18363-18374
+      name: c"RTHG to 96".as_ptr (),
+      /* RTHG[]
+      	 PUSHB[0] 64
+      	 ROUND[] */
+      instructions: &[0x19, 0xb0, 64, 0x68] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut rthg_1_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18375-18384
+      name: c"SMD".as_ptr (),
+      /* PUSHB[0] 32
+      	 SMD[] */
+      instructions: &[0xb0, 32, 0x1a] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_smd),
+    },
+    sfnt_interpreter_test {                            // C 18385-18421
+      name: c"ELSE".as_ptr (),
+      /* ELSE[]
+      	 ;; Lots of variable length instructions
+      	 ;; which will not be executed, like:
+      	 NPUSHW[] 3 11 22 33 44 55 66
+      	 NPUSHB[] 1 3
+      	 PUSHW[2] 1 1 2 2 3 3
+      	 PUSHB[2] 1 2 3
+      	 ;; Also test nested ifs.
+      	 PUSHW[0] 1 1
+      	 IF[]
+      	 PUSHW[0] 1 1
+      	 ELSE[]
+      	 PUSHW[0] 1 1
+      	 EIF[]
+      	 EIF[]
+      	 PUSHW[0] 1 1
+      	 ;; the actual contents of the stack.
+      	 PUSHB[2] 77 90 83 */
+      instructions: &[
+	0x1b, 0x41, 3, 11, 22, 33, 44, 55, 66, 0x40, 1, 3, 0xba, 1, 1,
+	2, 2, 3, 3, 0xb2, 1, 2, 3, 0xb8, 1, 1, 0x58, 0xb8, 1, 1, 0x1b,
+	0xb8, 1, 1, 0x59, 0x59, 0xb2, 77, 90, 83,
+	] as *const [c_uchar; 40] as *mut c_uchar,
+      num_instructions: 40,
+      arg: &raw mut else_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18422-18439
+      name: c"JMPR".as_ptr (),
+      /* PUSHW[2] 00 00 00 PUSHB[2] 255 253 JMPR[]
+      	 PUSHB[0] 4
+      	 JMPR[]
+      	 255 255 255
+      	 PUSHW[0] 255 -30
+      	 JMPR[] */
+      instructions: &[
+	0xba, 00, 00, 00, 0xb2, 255, 253, 0x1c, 0xb0, 4, 0x1c, 255, 255,
+	255, 0xb8, 255, -30, 0x1c,
+	] as *const [c_uchar; 18] as *mut c_uchar,
+      num_instructions: 18,
+      arg: &raw mut jmpr_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18440-18449
+      name: c"SCVTCI".as_ptr (),
+      /* PUSHB[0] 128
+      	 SCVTCI[] */
+      instructions: &[0xb0, 128, 0x1d] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_scvtci),
+    },
+    sfnt_interpreter_test {                            // C 18450-18459
+      name: c"SSWCI".as_ptr (),
+      /* PUSHW[0] 2 0 ;; 512
+      	 SSWCI[] */
+      instructions: &[0xb8, 2, 0, 0x1e] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_sswci),
+    },
+    sfnt_interpreter_test {                            // C 18460-18469
+      name: c"SSW".as_ptr (),
+      /* PUSHW[0] 255 255 ; -1
+      	 SSW[] ; this should be converted to device-space */
+      instructions: &[0xb8, 255, 255, 0x1f] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_ssw),
+    },
+    sfnt_interpreter_test {                            // C 18470-18485
+      name: c"DUP".as_ptr (),
+      /* PUSHB[0] 70
+      	 DUP[]
+      	 POP[]
+      	 POP[]
+      	 DUP[] */
+      instructions: &[0xb0, 70, 0x20, 0x21, 0x21, 0x70] as *const [c_uchar; 6] as *mut c_uchar,
+      num_instructions: 6,
+      arg: &raw mut dup_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18486-18499
+      name: c"POP".as_ptr (),
+      /* PUSHB[0] 70
+      	 DUP[]
+      	 DUP[]
+      	 POP[] */
+      instructions: &[0xb0, 70, 0x20, 0x20, 0x21] as *const [c_uchar; 5] as *mut c_uchar,
+      num_instructions: 5,
+      arg: &raw mut pop_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18500-18509
+      name: c"CLEAR".as_ptr (),
+      /* PUSHB[7] 1 2 3 4 5 6 7 8
+      	 CLEAR[] */
+      instructions: &[0xb7, 1, 2, 3, 4, 5, 6, 7, 8, 0x22] as *const [c_uchar; 10] as *mut c_uchar,
+      num_instructions: 10,
+      arg: &raw mut clear_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18510-18519
+      name: c"SWAP".as_ptr (),
+      /* PUSHB[1] 1 2
+      	 SWAP[] */
+      instructions: &[0xb1, 1, 2, 0x23] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut swap_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18520-18529
+      name: c"DEPTH".as_ptr (),
+      /* PUSHB[2] 3 3 3
+      	 DEPTH[] */
+      instructions: &[0xb2, 3, 3, 3, 0x24] as *const [c_uchar; 5] as *mut c_uchar,
+      num_instructions: 5,
+      arg: &raw mut depth_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18530-18545
+      name: c"CINDEX".as_ptr (),
+      /* PUSHB[4] 0 3 3 4 1
+      	 CINDEX[] ; pops 1, indices 4
+      	 CINDEX[] ; pops 4, indices 0
+      	 PUSHB[0] 6
+      	 CINDEX[] ; pops 6, trap */
+      instructions: &[
+	0xb4, 0, 3, 3, 4, 1, 0x25, 0x25, 0xb0, 6, 0x25,
+	] as *const [c_uchar; 11] as *mut c_uchar,
+      num_instructions: 11,
+      arg: &raw mut cindex_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18546-18557
+      name: c"MINDEX".as_ptr (),
+      /* PUSHB[6] 0 3 4 7 3 4 2
+      	 MINDEX[] ; pops 2, array becomes 0 3 4 7 4 3
+      	 MINDEX[] ; pops 3, array becomes 0 3 7 4 4 */
+      instructions: &[
+	0xb6, 0, 3, 4, 7, 3, 4, 2, 0x26, 0x26,
+	] as *const [c_uchar; 10] as *mut c_uchar,
+      num_instructions: 10,
+      arg: &raw mut mindex_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18558-18565
+      name: c"RAW".as_ptr (),
+      /* RAW[] */
+      instructions: &[0x28] as *const [c_uchar; 1] as *mut c_uchar,
+      num_instructions: 1,
+      arg: &raw mut raw_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18566-18585
+      name: c"LOOPCALL".as_ptr (),
+      /* PUSHB[1] 0 2
+      	 FDEF[]
+      	 PUSHB[0] 1
+      	 ADD[]
+      	 ENDF[]
+      	 PUSHB[1] 10 2
+      	 LOOPCALL[]  */
+      instructions: &[
+	0xb1, 0, 2, 0x2c, 0xb0, 1, 0x60, 0x2d, 0xb1, 10, 2, 0x2a,
+	] as *const [c_uchar; 12] as *mut c_uchar,
+      num_instructions: 12,
+      arg: &raw mut loopcall_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18586-18624
+      name: c"CALL".as_ptr (),
+      /* PUSHB[1] 7 2
+      	 FDEF[]
+      	 PUSHB[0] 1
+      	 ADD[]
+      	 ENDF[]
+      	 PUSHB[0] 2
+      	 CALL[]
+      	 PUSHB[0] 3
+      	 ADD[]
+      	 ;; Test that infinite recursion fails.
+      	 PUSHB[0] 3
+      	 FDEF[]
+      	 PUSHB[0] 3
+      	 CALL[]
+      	 ENDF[]
+      	 PUSHB[0] 3
+      	 CALL[] */
+      instructions: &[
+	0xb1, 7, 2, 0x2c, 0xb0, 1, 0x60, 0x2d, 0xb0, 2, 0x2b, 0xb0, 3,
+	0x60, 0xb0, 3, 0x2c, 0xb0, 3, 0x2b, 0x2d, 0xb0, 3, 0x2b,
+	] as *const [c_uchar; 24] as *mut c_uchar,
+      num_instructions: 24,
+      arg: &raw mut call_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18625-18640
+      name: c"that FDEF traps inside nested definitions".as_ptr (),
+      /* PUSHB[0] 1
+      	 FDEF[]
+      	 FDEF[]
+      	 ENDF[]
+      	 ENDF[] */
+      instructions: &[0xb0, 1, 0x2c, 0x2c, 0x2d, 0x2d] as *const [c_uchar; 6] as *mut c_uchar,
+      num_instructions: 6,
+      arg: &raw mut fdef_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18641-18654
+      name: c"that FDEF traps upon missing ENDF".as_ptr (),
+      /* PUSHB[0] 1
+      	 FDEF[]
+      	 PUSHB[3] 1 2 3 4
+      	 POP[]  */
+      instructions: &[0xb0, 1, 0x2c, 0xb3, 1, 2, 3, 4, 0x21] as *const [c_uchar; 9] as *mut c_uchar,
+      num_instructions: 9,
+      arg: &raw mut fdef_1_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18655-18662
+      name: c"ENDF".as_ptr (),
+      /* ENDF[] */
+      instructions: &[0x2d] as *const [c_uchar; 1] as *mut c_uchar,
+      num_instructions: 1,
+      arg: &raw mut endf_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18663-18674
+      name: c"RTDG".as_ptr (),
+      /* RTDG[]
+      	 PUSHB[0] 16
+      	 ROUND[] */
+      instructions: &[0x3d, 0xb0, 16, 0x68] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut rtdg_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18675-18686
+      name: c"RTDG down to 0".as_ptr (),
+      /* RTDG[]
+      	 PUSHB[0] 15
+      	 ROUND[] */
+      instructions: &[0x3d, 0xb0, 15, 0x68] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut rtdg_1_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18687-18698
+      name: c"RTDG down to 32".as_ptr (),
+      /* RTDG[]
+      	 PUSHB[0] 47
+      	 ROUND[] */
+      instructions: &[0x3d, 0xb0, 47, 0x68] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut rtdg_2_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18699-18710
+      name: c"RTDG up to 64".as_ptr (),
+      /* RTDG[]
+      	 PUSHB[0] 48
+      	 ROUND[] */
+      instructions: &[0x3d, 0xb0, 48, 0x68] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut rtdg_3_test_args as *mut c_void,
+      check: Some (sfnt_check_rounding),
+    },
+    sfnt_interpreter_test {                            // C 18711-18728
+      name: c"WS".as_ptr (),
+      /* PUSHB[1] 240 40
+      	 WS[]
+      	 PUSHB[0] 240
+      	 RS[]
+      	 PUSHB[1] 255 40
+      	 WS[] */
+      instructions: &[
+	0xb1, 240, 40, 0x42, 0xb0, 240, 0x43, 0xb1, 255, 40, 0x42,
+	] as *const [c_uchar; 11] as *mut c_uchar,
+      num_instructions: 11,
+      arg: &raw mut ws_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18729-18738
+      name: c"RS".as_ptr (),
+      /* PUSHB[0] 255
+      	 RS[] */
+      instructions: &[0xb0, 255, 0x43] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: &raw mut rs_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18739-18756
+      name: c"WCVTP".as_ptr (),
+      /* PUSHB[1] 9 32
+      	 WCVTP[]
+      	 PUSHB[0] 9
+      	 RCVT[]
+      	 PUSHB[1] 10 10
+      	 WCVTP[] */
+      instructions: &[
+	0xb1, 9, 32, 0x44, 0xb0, 9, 0x45, 0xb1, 10, 10, 0x44,
+	] as *const [c_uchar; 11] as *mut c_uchar,
+      num_instructions: 11,
+      arg: &raw mut wcvtp_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18757-18770
+      name: c"RCVT".as_ptr (),
+      /* PUSHB[0] 1
+      	 RCVT[]
+      	 PUSHB[0] 10
+      	 RCVT[] */
+      instructions: &[0xb0, 1, 0x45, 0xb0, 10, 0x45] as *const [c_uchar; 6] as *mut c_uchar,
+      num_instructions: 6,
+      arg: &raw mut rcvt_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18771-18778
+      name: c"MPPEM".as_ptr (),
+      /* MPPEM[] */
+      instructions: &[0x4b] as *const [c_uchar; 1] as *mut c_uchar,
+      num_instructions: 1,
+      arg: &raw mut mppem_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18779-18786
+      name: c"MPS".as_ptr (),
+      /* MPS[] */
+      instructions: &[0x4c] as *const [c_uchar; 1] as *mut c_uchar,
+      num_instructions: 1,
+      arg: &raw mut mps_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18787-18794
+      name: c"FLIPON".as_ptr (),
+      /* FLIPON[] */
+      instructions: &[0x4d] as *const [c_uchar; 1] as *mut c_uchar,
+      num_instructions: 1,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_flipon),
+    },
+    sfnt_interpreter_test {                            // C 18795-18802
+      name: c"FLIPOFF".as_ptr (),
+      /* FLIPOFF[] */
+      instructions: &[0x4e] as *const [c_uchar; 1] as *mut c_uchar,
+      num_instructions: 1,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_flipoff),
+    },
+    sfnt_interpreter_test {                            // C 18803-18812
+      name: c"DEBUG".as_ptr (),
+      /* PUSHB[0] 1
+      	 DEBUG[] */
+      instructions: &[0xb0, 1, 0x4f] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: &raw mut debug_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18813-18830
+      name: c"LT".as_ptr (),
+      /* PUSHB[1] 47 48
+      	 LT[]
+      	 PUSHB[1] 48 47
+      	 LT[]
+      	 PUSHB[1] 47 47
+      	 LT[] */
+      instructions: &[
+	0xb1, 47, 48, 0x50, 0xb1, 48, 47, 0x50, 0xb1, 47, 47, 0x50,
+	] as *const [c_uchar; 12] as *mut c_uchar,
+      num_instructions: 12,
+      arg: &raw mut lt_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18831-18848
+      name: c"LTEQ".as_ptr (),
+      /* PUSHB[1] 47 48
+      	 LTEQ[]
+      	 PUSHB[1] 48 47
+      	 LTEQ[]
+      	 PUSHB[1] 47 47
+      	 LTEQ[] */
+      instructions: &[
+	0xb1, 47, 48, 0x51, 0xb1, 48, 47, 0x51, 0xb1, 47, 47, 0x51,
+	] as *const [c_uchar; 12] as *mut c_uchar,
+      num_instructions: 12,
+      arg: &raw mut lteq_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18849-18866
+      name: c"GT".as_ptr (),
+      /* PUSHB[1] 47 48
+      	 GT[]
+      	 PUSHB[1] 48 47
+      	 GT[]
+      	 GT[1] 47 47
+      	 LTEQ[] */
+      instructions: &[
+	0xb1, 47, 48, 0x52, 0xb1, 48, 47, 0x52, 0xb1, 47, 47, 0x52,
+	] as *const [c_uchar; 12] as *mut c_uchar,
+      num_instructions: 12,
+      arg: &raw mut gt_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18867-18884
+      name: c"GTEQ".as_ptr (),
+      /* PUSHB[1] 47 48
+      	 GTEQ[]
+      	 PUSHB[1] 48 47
+      	 GTEQ[]
+      	 GTEQ[1] 47 47
+      	 LTEQ[] */
+      instructions: &[
+	0xb1, 47, 48, 0x53, 0xb1, 48, 47, 0x53, 0xb1, 47, 47, 0x53,
+	] as *const [c_uchar; 12] as *mut c_uchar,
+      num_instructions: 12,
+      arg: &raw mut gteq_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18885-18904
+      name: c"EQ".as_ptr (),
+      /* PUSHW[1] 255 253 255 255
+      	 EQ[]
+      	 PUSHW[1] 27 27 27 27
+      	 EQ[]
+      	 PUSHB[0] 3
+      	 PUSHW[0] 255 254
+      	 EQ[] */
+      instructions: &[
+	0xb9, 255, 253, 255, 255, 0x54, 0xb9, 27, 27, 27, 27, 0x54, 0xb0,
+	3, 0xb8, 255, 254, 0x54,
+	] as *const [c_uchar; 18] as *mut c_uchar,
+      num_instructions: 18,
+      arg: &raw mut eq_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18905-18924
+      name: c"NEQ".as_ptr (),
+      /* PUSHW[1] 255 253 255 255
+      	 NEQ[]
+      	 PUSHW[1] 27 27 27 27
+      	 NEQ[]
+      	 PUSHB[0] 3
+      	 PUSHW[0] 255 254
+      	 NEQ[] */
+      instructions: &[
+	0xb9, 255, 253, 255, 255, 0x55, 0xb9, 27, 27, 27, 27, 0x55, 0xb0,
+	3, 0xb8, 255, 254, 0x55,
+	] as *const [c_uchar; 18] as *mut c_uchar,
+      num_instructions: 18,
+      arg: &raw mut neq_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18925-18940
+      name: c"ODD".as_ptr (),
+      /* RTG[]
+      	 PUSHW[1] 255 224 ;; -32
+      	 ODD[] ;; Rounds symmetrically to -64, which is odd.
+      	 PUSHW[1] 255 159 ;; -96
+      	 ODD[] ;; Rounds symmetrically to -128, which is even.  */
+      instructions: &[
+	0x18, 0xb8, 255, 224, 0x56, 0xb8, 255, 159, 0x56,
+	] as *const [c_uchar; 9] as *mut c_uchar,
+      num_instructions: 9,
+      arg: &raw mut odd_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18941-18956
+      name: c"EVEN".as_ptr (),
+      /* RTG[]
+      	 PUSHW[1] 255 224 ;; -32
+      	 EVEN[] ;; Rounds symmetrically to -64, which is odd.
+      	 PUSHW[1] 255 159 ;; -96
+      	 EVEN[] ;; Rounds symmetrically to -128, which is even.  */
+      instructions: &[
+	0x18, 0xb8, 255, 224, 0x57, 0xb8, 255, 159, 0x57,
+	] as *const [c_uchar; 9] as *mut c_uchar,
+      num_instructions: 9,
+      arg: &raw mut even_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 18957-19045
+      name: c"IF".as_ptr (),
+      /* NPUSHB[] 1 0
+      	 IF[]
+      	 PUSHW[0] 1 1
+      	 PUSHW[1] 1 1 2 2
+      	 PUSHW[2] 1 1 2 2 3 3
+      	 PUSHW[3] 1 1 2 2 3 3 4 4
+      	 PUSHW[4] 1 1 2 2 3 3 4 4 5 5
+      	 PUSHW[5] 1 1 2 2 3 3 4 4 5 5 6 6
+      	 PUSHW[6] 1 1 2 2 3 3 4 4 5 5 6 6 7 7
+      	 PUSHW[7] 1 1 2 2 3 3 4 4 5 5 6 6 7 7 8 8
+      	 PUSHB[0] 1
+      	 PUSHB[1] 2 1
+      	 PUSHB[2] 3 2 1
+      	 PUSHB[3] 4 3 2 1
+      	 PUSHB[4] 5 4 3 2 1
+      	 PUSHB[5] 6 5 4 3 2 1
+      	 PUSHB[6] 7 6 5 4 3 2 1
+      	 PUSHB[7] 8 7 6 5 4 3 2 1
+      	 DEBUG[]
+      	 IF[]
+      	 PUSHB[7] 12 12 12 12 12 12 12 12
+      	 ELSE[]
+      	 EIF[]
+      	 ELSE[]
+      	 PUSHB[1] 17 24
+      	 NPUSHB[] 5 1 2 3 4 5
+      	 NPUSHW[] 2 255 255 255 255
+      	 EIF[]
+      
+      	 PUSHB[0] 1
+      	 IF[]
+      	 NPUSHB[] 2 43 43
+      	 IF[]
+      	 PUSHB[0] 45
+      	 ELSE[]
+      	 PUSHB[0] 14
+      	 EIF[]
+      	 ADD[]
+      	 ELSE[]
+      	 NPUSHB[] 4 3 2 1 0
+      	 EIF[]
+      	 PUSHB[1] 1 3 */
+      instructions: &[
+	0x40, 1, 0, 0x58, 0xb8, 1, 1, 0xb9, 1, 1, 2, 2, 0xba, 1, 1, 2,
+	2, 3, 3, 0xbb, 1, 1, 2, 2, 3, 3, 4, 4, 0xbc, 1, 1, 2, 2, 3, 3,
+	4, 4, 5, 5, 0xbd, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 0xbe, 1,
+	1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 0xbf, 1, 1, 2, 2, 3, 3,
+	4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 0xb0, 1, 0xb1, 2, 1, 0xb2, 3, 2,
+	1, 0xb3, 4, 3, 2, 1, 0xb4, 5, 4, 3, 2, 1, 0xb5, 6, 5, 4, 3, 2,
+	1, 0xb6, 7, 6, 5, 4, 3, 2, 1, 0xb7, 8, 7, 6, 5, 4, 3, 2, 1, 0x4f,
+	0x58, 0xb7, 12, 12, 12, 12, 12, 12, 12, 12, 0x1b, 0x59, 0x1b,
+	0xb1, 17, 24, 0x40, 5, 1, 2, 3, 4, 5, 0x41, 2, 255, 255, 255,
+	255, 0x59, 0xb0, 1, 0x58, 0x40, 2, 43, 43, 0x58, 0xb0, 45, 0x1b,
+	0xb0, 14, 0x59, 0x60, 0x1b, 0x40, 4, 3, 2, 1, 0, 0x59, 0xb1, 1,
+	3,
+	] as *const [c_uchar; 185] as *mut c_uchar,
+      num_instructions: 185,
+      arg: &raw mut if_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19046-19057
+      name: c"EIF".as_ptr (),
+      /* PUSHB[0] 1
+      	 IF[]
+      	 EIF[] */
+      instructions: &[0xb0, 1, 0x58, 0x59] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 3,
+      arg: &raw mut eif_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19058-19079
+      name: c"AND".as_ptr (),
+      /* PUSHB[1] 0 1
+      	 AND[]
+      	 PUSHB[1] 37 0
+      	 AND[]
+      	 PUSHB[1] 40 1
+      	 AND[]
+      	 PUSHB[1] 0 0
+      	 AND[] */
+      instructions: &[
+	0xb1, 0, 1, 0x5a, 0xb1, 37, 0, 0x5a, 0xb1, 40, 1, 0x5a, 0xb1,
+	0, 0, 0x5a,
+	] as *const [c_uchar; 16] as *mut c_uchar,
+      num_instructions: 16,
+      arg: &raw mut and_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19080-19101
+      name: c"OR".as_ptr (),
+      /* PUSHB[1] 0 1
+      	 OR[]
+      	 PUSHB[1] 37 0
+      	 OR[]
+      	 PUSHB[1] 40 1
+      	 OR[]
+      	 PUSHB[1] 0 0
+      	 OR[] */
+      instructions: &[
+	0xb1, 0, 1, 0x5b, 0xb1, 37, 0, 0x5b, 0xb1, 40, 1, 0x5b, 0xb1,
+	0, 0, 0x5b,
+	] as *const [c_uchar; 16] as *mut c_uchar,
+      num_instructions: 16,
+      arg: &raw mut or_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19102-19115
+      name: c"NOT".as_ptr (),
+      /* PUSHB[0] 1
+      	 NOT[]
+      	 PUSHB[0] 0
+      	 NOT[] */
+      instructions: &[0xb0, 1, 0x5c, 0xb0, 0, 0x5c] as *const [c_uchar; 6] as *mut c_uchar,
+      num_instructions: 6,
+      arg: &raw mut not_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19116-19125
+      name: c"SDB".as_ptr (),
+      /* PUSHB[0] 8
+      	 SDB[] */
+      instructions: &[0xb0, 8, 0x5e] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_sdb),
+    },
+    sfnt_interpreter_test {                            // C 19126-19135
+      name: c"SDS".as_ptr (),
+      /* PUSHB[0] 1
+      	 SDS[] */
+      instructions: &[0xb0, 1, 0x5f] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_sds),
+    },
+    sfnt_interpreter_test {                            // C 19136-19149
+      name: c"that SDS rejects invalid values".as_ptr (),
+      /* PUSHB[0] 1,
+      	 SDS[]
+      	 PUSHB[0] 7
+      	 SDS[] */
+      instructions: &[0xb0, 1, 0x5f, 0xb0, 7, 0x5f] as *const [c_uchar; 6] as *mut c_uchar,
+      num_instructions: 6,
+      arg: &raw mut sds_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19150-19163
+      name: c"ADD".as_ptr (),
+      /* PUSHB[1] 64 32
+      	 ADD[]
+      	 PUSHW[1] 255 40 0 215 ;; -216 + 215
+      	 ADD[] */
+      instructions: &[
+	0xb1, 64, 32, 0x60, 0xb9, 255, 40, 0, 215, 0x60,
+	] as *const [c_uchar; 10] as *mut c_uchar,
+      num_instructions: 10,
+      arg: &raw mut add_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19164-19181
+      name: c"SUB".as_ptr (),
+      /* PUSHB[1] 96 32
+      	 SUB[]
+      	 PUSHB[1] 32 96
+      	 SUB[]
+      	 PUSHW[1] 0 215 255 40 ;; 215 - -216
+      	 SUB[] */
+      instructions: &[
+	0xb1, 96, 32, 0x61, 0xb1, 32, 96, 0x61, 0xb9, 0, 215, 255, 40,
+	0x61,
+	] as *const [c_uchar; 14] as *mut c_uchar,
+      num_instructions: 14,
+      arg: &raw mut sub_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19182-19199
+      name: c"DIV".as_ptr (),
+      /* PUSHB[1] 64 128
+      	 DIV[] ; 1 / 2 = 0.5
+      	 PUSHW[1] 0 32 255 224
+      	 DIV[] ; 0.5 / -0.5 = -1.0
+      	 PUSHW[1] 255 255 0 0
+      	 DIV[] ; -1 / 0 = trap */
+      instructions: &[
+	0xb1, 64, 128, 0x62, 0xb9, 0, 32, 255, 224, 0x62, 0xb9, 255, 255,
+	0, 0, 0x62,
+	] as *const [c_uchar; 16] as *mut c_uchar,
+      num_instructions: 16,
+      arg: &raw mut div_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19200-19217
+      name: c"MUL".as_ptr (),
+      /* PUSHB[1] 255 64
+      	 MUL[] ; 255 * 1 = 255
+      	 PUSHW[1] 0 255 255 192
+      	 MUL[] ; 255 * -1 = -255
+      	 PUSHW[1] 255 1 255 192
+      	 MUL[] ; -255 * -1 = 255 */
+      instructions: &[
+	0xb1, 255, 64, 0x63, 0xb9, 0, 255, 255, 192, 0x63, 0xb9, 255,
+	1, 255, 192, 0x63,
+	] as *const [c_uchar; 16] as *mut c_uchar,
+      num_instructions: 16,
+      arg: &raw mut mul_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19218-19231
+      name: c"ABS".as_ptr (),
+      /* PUSHW[0] 255 255
+      	 ABS[] ;; abs (-1) == 1
+      	 PUSHB[0] 1
+      	 ABS[] ;; abs (1) == 1 */
+      instructions: &[0xb8, 255, 255, 0x64, 0xb0, 1, 0x64] as *const [c_uchar; 7] as *mut c_uchar,
+      num_instructions: 7,
+      arg: &raw mut abs_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19232-19245
+      name: c"NEG".as_ptr (),
+      /* PUSHW[0] 255 255
+      	 NEG[] ;; neg (-1) == 1
+      	 PUSHB[0] 1
+      	 NEG[] ;; neg (1) == -1 */
+      instructions: &[0xb8, 255, 255, 0x65, 0xb0, 1, 0x65] as *const [c_uchar; 7] as *mut c_uchar,
+      num_instructions: 7,
+      arg: &raw mut neg_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19246-19271
+      name: c"FLOOR".as_ptr (),
+      /* PUSHW[0] 255 129 ; -127
+      	 FLOOR[] ; floor (-127) == -128
+      	 PUSHW[0] 255 193 ; -63
+      	 FLOOR[] ; floor (-63) == -64
+      	 PUSHB[0] 63
+      	 FLOOR[] ; floor (63) == 0
+      	 PUSHB[0] 127
+      	 FLOOR[] ; floor (127) == 64
+      	 PUSHB[0] 191
+      	 FLOOR[] ; floor (191) == 128 */
+      instructions: &[
+	0xb8, 255, 129, 0x66, 0xb8, 255, 193, 0x66, 0xb0, 63, 0x66, 0xb0,
+	127, 0x66, 0xb0, 191, 0x66,
+	] as *const [c_uchar; 17] as *mut c_uchar,
+      num_instructions: 17,
+      arg: &raw mut floor_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19272-19305
+      name: c"CEILING".as_ptr (),
+      /* PUSHW[0] 255 128 ; -128
+      	 CEILING[] ; ceiling (-128) == -128
+      	 PUSHW[0] 255 127 ; -129
+      	 CEILING[] ; ceiling (-129) == -128
+      	 PUSHW[0] 255 191 ; -65
+      	 CEILING[] ; ceiling (-65) == -64
+      	 PUSHW[0] 255 255 ; -1
+      	 CEILING[] ; ceiling (-1) == 0
+      	 PUSHB[0] 63
+      	 CEILING[] ; ceiling (63) == 64
+      	 PUSHB[0] 65
+      	 CEILING[] ; ceiling (65) == 128
+      	 PUSHB[0] 128
+      	 CEILING[] ; ceiling (128) == 128 */
+      instructions: &[
+	0xb8, 255, 128, 0x67, 0xb8, 255, 127, 0x67, 0xb8, 255, 191, 0x67,
+	0xb8, 255, 255, 0x67, 0xb0, 63, 0x67, 0xb0, 65, 0x67, 0xb0, 128,
+	0x67,
+	] as *const [c_uchar; 25] as *mut c_uchar,
+      num_instructions: 25,
+      arg: &raw mut ceiling_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19306-19313
+      name: c"ROUND".as_ptr (),
+      /* ROUND[] */
+      instructions: &[0x68] as *const [c_uchar; 1] as *mut c_uchar,
+      num_instructions: 1,
+      arg: &raw mut round_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19314-19323
+      name: c"NROUND".as_ptr (),
+      /* PUSHB[0] 63
+      	 NROUND[] */
+      instructions: &[0xb0, 63, 0x6c] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: &raw mut nround_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19324-19337
+      name: c"WCVTF".as_ptr (),
+      /* PUSHB[1] 1 63
+      WCVTF[]
+      PUSHB[0] 1
+      RCVT[] */
+      instructions: &[0xb1, 1, 63, 0x70, 0xb0, 1, 0x45] as *const [c_uchar; 7] as *mut c_uchar,
+      num_instructions: 7,
+      arg: &raw mut wcvtf_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19338-19355
+      name: c"JROT".as_ptr (),
+      /* PUSHB[1] 4 0
+      	 JROT[] ; this should not skip past the next instruction
+      	 PUSHB[1] 40 40
+      	 PUSHB[1] 3 1
+      	 JROT[] ; this should skip past the next instruction
+      	 PUSHB[0] 4 */
+      instructions: &[
+	0xb1, 4, 0, 0x78, 0xb1, 40, 40, 0xb1, 3, 1, 0x78, 0xb0, 4,
+	] as *const [c_uchar; 13] as *mut c_uchar,
+      num_instructions: 13,
+      arg: &raw mut jrot_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19356-19373
+      name: c"JROF".as_ptr (),
+      /* PUSHB[1] 4 0
+      	 JROF[] ; this should skip past the next instruction
+      	 PUSHB[1] 40 40
+      	 PUSHB[1] 3 1
+      	 JROF[] ; this should not skip past the next instruction
+      	 PUSHB[0] 4 */
+      instructions: &[
+	0xb1, 4, 0, 0x79, 0xb1, 40, 40, 0xb1, 3, 1, 0x79, 0xb0, 4,
+	] as *const [c_uchar; 13] as *mut c_uchar,
+      num_instructions: 13,
+      arg: &raw mut jrof_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19374-19404
+      name: c"DELTAC1".as_ptr (),
+      /* PUSHB[0] 2
+      	 SDB[] ; delta base now 2
+      	 PUSHB[0] 6
+      	 SDS[] ; delta shift now 6
+      	 PUSHB[2] 0xff 5 1 ; CVT index 5, ppem 15 + 2, magnitude 15
+      DELTAC1[]
+      	 PUSHB[0] 1
+      RCVT[] ; CVT index 5 should now be greater by 8 / 64
+      
+      PUSHB[2] 0xef 5 1 ; CVT index 5, ppem 14 + 2, magnitude 15
+      DELTAC1[]
+      PUSHB[0] 1
+      RCVT[] ; CVT index 5 should be unchanged */
+      instructions: &[
+	0xb0, 2, 0x5e, 0xb0, 6, 0x5f, 0xb2, 255, 5, 1, 0x73, 0xb0, 5,
+	0x45, 0xb2, 239, 5, 1, 0x73, 0xb0, 5, 0x45,
+	] as *const [c_uchar; 22] as *mut c_uchar,
+      num_instructions: 22,
+      arg: &raw mut deltac1_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19405-19435
+      name: c"DELTAC2".as_ptr (),
+      /* PUSHB[0] 2
+      	 SDB[] ; delta base now 2
+      	 PUSHB[0] 6
+      	 SDS[] ; delta shift now 6
+      	 PUSHB[2] 0xff 5 1 ; CVT index 5, ppem 15 + 2 + 16, magnitude 15
+      DELTAC2[]
+      	 PUSHB[0] 1
+      RCVT[] ; CVT index 5 should be unchanged
+      
+      PUSHB[2] 0xef 5 1 ; CVT index 5, ppem 14 + 2 + 16, magnitude 15
+      DELTAC2[]
+      PUSHB[0] 1
+      RCVT[] ; CVT index 5 should be unchanged */
+      instructions: &[
+	0xb0, 2, 0x5e, 0xb0, 6, 0x5f, 0xb2, 255, 5, 1, 0x74, 0xb0, 5,
+	0x45, 0xb2, 239, 5, 1, 0x74, 0xb0, 5, 0x45,
+	] as *const [c_uchar; 22] as *mut c_uchar,
+      num_instructions: 22,
+      arg: &raw mut deltac2_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19436-19466
+      name: c"DELTAC3".as_ptr (),
+      /* PUSHB[0] 2
+      	 SDB[] ; delta base now 2
+      	 PUSHB[0] 6
+      	 SDS[] ; delta shift now 6
+      	 PUSHB[2] 0xff 5 1 ; CVT index 5, ppem 15 + 2 + 32, magnitude 15
+      DELTAC3[]
+      	 PUSHB[0] 1
+      RCVT[] ; CVT index 5 should be unchanged
+      
+      PUSHB[2] 0xef 5 1 ; CVT index 5, ppem 14 + 2 + 32, magnitude 15
+      DELTAC3[]
+      PUSHB[0] 1
+      RCVT[] ; CVT index 5 should be unchanged */
+      instructions: &[
+	0xb0, 2, 0x5e, 0xb0, 6, 0x5f, 0xb2, 255, 5, 1, 0x75, 0xb0, 5,
+	0x45, 0xb2, 239, 5, 1, 0x75, 0xb0, 5, 0x45,
+	] as *const [c_uchar; 22] as *mut c_uchar,
+      num_instructions: 22,
+      arg: &raw mut deltac3_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19467-19473
+      name: c"SROUND".as_ptr (),
+      instructions: &raw mut sfnt_sround_instructions as *mut c_uchar,
+      num_instructions: 54,                       // countof (sfnt_sround_instructions)
+      arg: &raw mut sround_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19474-19480
+      name: c"S45ROUND".as_ptr (),
+      instructions: &raw mut sfnt_s45round_instructions as *mut c_uchar,
+      num_instructions: 9,                       // countof (sfnt_s45round_instructions)
+      arg: &raw mut s45round_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19481-19500
+      name: c"RUTG".as_ptr (),
+      /* RUTG[]
+      	 PUSHB[0] 1
+      	 ROUND[]
+      	 PUSHB[0] 64
+      	 ROUND[]
+      	 PUSHB[0] 0
+      	 ROUND[] */
+      instructions: &[
+	0x7c, 0xb0, 1, 0x68, 0xb0, 64, 0x68, 0xb0, 0, 0x68,
+	] as *const [c_uchar; 10] as *mut c_uchar,
+      num_instructions: 10,
+      arg: &raw mut rutg_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19501-19520
+      name: c"RDTG".as_ptr (),
+      /* RUTG[]
+      	 PUSHB[0] 1
+      	 ROUND[]
+      	 PUSHB[0] 63
+      	 ROUND[]
+      	 PUSHB[0] 64
+      	 ROUND[] */
+      instructions: &[
+	0x7d, 0xb0, 1, 0x68, 0xb0, 63, 0x68, 0xb0, 64, 0x68,
+	] as *const [c_uchar; 10] as *mut c_uchar,
+      num_instructions: 10,
+      arg: &raw mut rdtg_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19521-19530
+      name: c"SANGW".as_ptr (),
+      /* PUSHB[0] 3
+      	 SANGW[] */
+      instructions: &[0xb0, 3, 0x7e] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: &raw mut sangw_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19531-19540
+      name: c"AA".as_ptr (),
+      /* PUSHB[0] 3
+      	 AA[] */
+      instructions: &[0xb0, 3, 0x7f] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: &raw mut aa_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19541-19550
+      name: c"SCANCTRL".as_ptr (),
+      /* PUSHB[0] 1
+      	 SCANCTRL[] */
+      instructions: &[0xb0, 1, 0x85] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_scanctrl),
+    },
+    sfnt_interpreter_test {                            // C 19551-19564
+      name: c"GETINFO".as_ptr (),
+      /* PUSHB[0] 1
+      GETINFO[]
+      PUSHB[0] 6
+      GETINFO[] */
+      instructions: &[0xb0, 1, 0x88, 0xb0, 6, 0x88] as *const [c_uchar; 6] as *mut c_uchar,
+      num_instructions: 6,
+      arg: &raw mut getinfo_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19565-19582
+      name: c"IDEF".as_ptr (),
+      /* PUSHB[0] 0x83
+      	 IDEF[]
+      	 PUSHB[3] 1 2 3 4
+      	 POP[]
+      	 ENDF[]
+      	 0x83 */
+      instructions: &[
+	0xb0, 0x83, 0x89, 0xb3, 1, 2, 3, 4, 0x21, 0x2d, 0x83,
+	] as *const [c_uchar; 11] as *mut c_uchar,
+      num_instructions: 11,
+      arg: &raw mut idef_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19583-19592
+      name: c"ROLL".as_ptr (),
+      /* PUSHB[4] 1 2 3 4 5
+      ROLL[] ; this should become 1 2 4 5 3 */
+      instructions: &[0xb4, 1, 2, 3, 4, 5, 0x8a] as *const [c_uchar; 7] as *mut c_uchar,
+      num_instructions: 7,
+      arg: &raw mut roll_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19593-19602
+      name: c"that ROLL correctly handles underflow".as_ptr (),
+      /* PUSHB[1] 1 2
+      ROLL[] */
+      instructions: &[0xb1, 1, 2, 0x8a] as *const [c_uchar; 4] as *mut c_uchar,
+      num_instructions: 4,
+      arg: &raw mut roll_1_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19603-19612
+      name: c"MAX".as_ptr (),
+      /* PUSHW[1] 0 70 255 186 ; 70, -70
+      MAX[] */
+      instructions: &[0xb9, 0, 70, 255, 186, 0x8b] as *const [c_uchar; 6] as *mut c_uchar,
+      num_instructions: 6,
+      arg: &raw mut max_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19613-19622
+      name: c"MIN".as_ptr (),
+      /* PUSHW[1] 0 70 255 186 ; 70, -70
+      MIN[] */
+      instructions: &[0xb9, 0, 70, 255, 186, 0x8c] as *const [c_uchar; 6] as *mut c_uchar,
+      num_instructions: 6,
+      arg: &raw mut min_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19623-19632
+      name: c"SCANTYPE".as_ptr (),
+      /* PUSHB[0] 0
+      SCANTYPE[] */
+      instructions: &[0xb0, 0, 0x8d] as *const [c_uchar; 3] as *mut c_uchar,
+      num_instructions: 3,
+      arg: &raw mut scantype_test_args as *mut c_void,
+      check: Some (sfnt_generic_check),
+    },
+    sfnt_interpreter_test {                            // C 19633-19650
+      name: c"INSTCTRL".as_ptr (),
+      /* PUSHB[1] 1 1
+      	 INSTCTRL[] ; (1 << 1) should now be set
+      PUSHB[1] 2 1
+      	 INSTCTRL[] ; (1 << 2) should now be set
+      PUSHB[1] 2 0
+      	 INSTCTRL[] ; (1 << 2) should no longer be set */
+      instructions: &[
+	0xb1, 1, 1, 0x8e, 0xb1, 2, 1, 0x8e, 0xb1, 2, 0, 0x8e,
+	] as *const [c_uchar; 12] as *mut c_uchar,
+      num_instructions: 12,
+      arg: std::ptr::null_mut (),
+      check: Some (sfnt_check_instctrl),
+    },
+  ];
