@@ -1083,6 +1083,33 @@ pub struct XColor
 }
 #[cfg (feature = "have_x_windows")]
 const _: () = core::assert! (core::mem::size_of::<XColor> () == 16);
+
+/// Xlib.h 920-928: `typedef struct { int type; Display *display; XID resourceid; unsigned long
+/// serial; unsigned char error_code, request_code, minor_code; } XErrorEvent;`.  Measured on this
+/// machine (`clang -I/opt/homebrew/include`, libx11 1.8.13): `[sizeof=40, align=8]` with `type` 0,
+/// `display` 8, `resourceid` 16, `serial` 24, `error_code` 32, `request_code` 33, `minor_code` 34.
+/// `src/xterm.c` 26331-26347's `x_error_catcher` reads `error_code`, and the record is what
+/// `x_special_error_handler`'s second parameter points at.
+#[cfg (feature = "have_x_windows")]
+#[repr (C)]
+pub struct XErrorEvent
+{
+  pub r#type: c_int,                                        // Xlib.h 921
+  pub display: *mut Display,                                // Xlib.h 922
+  pub resourceid: XID,                                      // Xlib.h 923
+  pub serial: c_ulong,                                      // Xlib.h 924
+  pub error_code: c_uchar,                                  // Xlib.h 925
+  pub request_code: c_uchar,                                // Xlib.h 926
+  pub minor_code: c_uchar,                                  // Xlib.h 927
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::size_of::<XErrorEvent> () == 40);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::align_of::<XErrorEvent> () == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XErrorEvent, display) == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XErrorEvent, error_code) == 32);
 #[cfg (feature = "have_x_windows")]
 const _: () = core::assert! (core::mem::align_of::<XColor> () == 8);
 #[cfg (feature = "have_x_windows")]
@@ -1219,6 +1246,10 @@ unsafe extern "C" {
                     values: *mut c_void) -> GC;
   /// C: Xlib.h 2571-2574: `extern int XFreeGC (Display *, GC);`
   pub fn XFreeGC (display: *mut Display, gc: GC) -> c_int;
+  /// C: Xlib.h 2610-2615: `extern int XGetErrorText (Display *, int, char *, int);` - C 26336's
+  /// call (the mirror grows by the names a ported arm reads, the file note's rule).
+  pub fn XGetErrorText (display: *mut Display, code: c_int, buffer_return: *mut c_char,
+                        length: c_int) -> c_int;
 }
 
 /// C: Xlib.h 4170's macro form: `#define XDestroyImage(ximg) ((ximg)->f.destroy_image (ximg))`

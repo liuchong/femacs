@@ -19,7 +19,7 @@
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
-9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** and slice 11 (C 12066-12095, Decision 23) to **184**.
+9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** and slice 12 (C 26217-26347, Decision 24) to **176**.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -240,13 +240,13 @@
 - [ ] x_draw_window_cursor  (line 26041, static)
 - [ ] x_bitmap_icon  (line 26104, static)
 - [ ] x_text_icon  (line 26194)
-- [ ] x_is_serial_more_than  (line 26261, static)
-- [ ] x_is_serial_more_than_or_equal_to  (line 26270, static)
-- [ ] x_is_serial_less_than  (line 26279, static)
-- [ ] x_is_serial_less_than_or_equal_to  (line 26288, static)
-- [ ] x_find_error_handler  (line 26297, static)
-- [ ] x_unwind_errors_to  (line 26317)
-- [ ] x_error_catcher  (line 26331, static)
+- [x] x_is_serial_more_than  (line 26261, static)
+- [x] x_is_serial_more_than_or_equal_to  (line 26270, static)
+- [x] x_is_serial_less_than  (line 26279, static)
+- [x] x_is_serial_less_than_or_equal_to  (line 26288, static)
+- [x] x_find_error_handler  (line 26297, static)
+- [x] x_unwind_errors_to  (line 26317)
+- [x] x_error_catcher  (line 26331, static)
 - [ ] x_catch_errors_with_handler  (line 26373)
 - [ ] x_catch_errors  (line 26390)
 - [ ] x_request_can_fail  (line 26398, static)
@@ -362,7 +362,7 @@
 ## Types and their fields — 14
 - [ ] x_atom_ref: const char* name, int offset
 - [ ] x_client_list_window: Window window, Display* dpy, int x, int y, int width, int height, long previous_event_mask, unsigned long wm_state, struct x_client_list_window* next, int frame_extents_left, int frame_extents_right, int frame_extents_top, int frame_extents_bottom, uint8_t xm_protocol_style, bool mapped_p
-- [ ] x_error_message_stack: char* string, Display* dpy, x_special_error_handler handler, void* handler_data, struct x_error_message_stack* prev, unsigned long first_request
+- [x] x_error_message_stack: char* string, Display* dpy, x_special_error_handler handler, void* handler_data, struct x_error_message_stack* prev, unsigned long first_request
 - [ ] x_selection_request_event: struct selection_input_event se, struct x_selection_request_event* next
 - [ ] xm_drag_initiator_info: uint8_t byteorder, uint8_t protocol, uint16_t table_index, uint32_t selection
 - [ ] xm_drag_motion_message: uint8_t reason, uint8_t byteorder, uint16_t side_effects, uint32_t timestamp, uint16_t x, uint16_t y
@@ -451,8 +451,8 @@
 - [x] static volatile bool xm_drag_window_error  (line 1548, static)
 - [ ] static struct x_display_info XTread_socket_fake_io_error  (line 17833, static)
 - [ ] static struct x_display_info next_noop_dpyinfo  (line 17840, static)
-- [ ] static struct x_error_message_stack x_error_message  (line 26249, static)
-- [ ] int x_error_message_count  (line 26252)
+- [x] static struct x_error_message_stack x_error_message  (line 26249, static)
+- [x] int x_error_message_count  (line 26252)
 - [ ] static char error_msg  (line 26722, static)
 - [ ] static bool x_initialized  (line 30491, static)
 - [ ] static unsigned x_display_id  (line 30595, static)
@@ -2820,6 +2820,65 @@ not carry yet.  Their checklist boxes stay unchecked on purpose.
 **Not claimed.**  The frozen configuration compiles none of this file, so the reading is a
 **text** reading of an arm this machine cannot build: no cursor was created, no display was opened,
 and the four `E0425` rows above are unresolved names, not behaviour.
+
+### Slice 12's readings (C 26217-26347), as landed and measured (2026-10-06)
+
+**What it lands.**  The first half of the error-handling block, the part that needs no request-serial
+machinery: `struct x_error_message_stack` (C 26217-26239, with `handler`'s `x_special_error_handler`
+type from xterm.h 1748-1749 declared at the use site), the two objects (`x_error_message` C 26249,
+`x_error_message_count` C 26252 - the latter **non-`static`**, so exported, PORTING.md 0.2), the four
+serial comparators (C 26260-26294, with C's `unsigned int` wrap written `wrapping_sub` and its
+widening `as c_ulong`), `x_find_error_handler` (C 26296-26314), `x_unwind_errors_to` (C 26317-26323)
+and `x_error_catcher` (C 26330-26347, whose `buf` is zeroed because C hands it to `XGetErrorText`
+uninitialised, Deviation 12).
+
+**The probe (the lane's command, both sides).**
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xt12 cargo run -q -p xtask -- probe src/xterm.rs /tmp/xt12/new.o \
+      --crate-type=lib --emit=metadata -C panic=abort --cfg 'feature="have_x_windows"'
+# before (HEAD's unit + HEAD's mirror):
+#   error: aborting due to 642 previous errors; 54 warnings emitted
+#     440 E0425   13 E0308   166 E0609   17 E0614   1 E0381   1 E0080   1 E0277
+# after (this unit + this mirror):
+#   error: aborting due to 644 previous errors; 54 warnings emitted
+#     441 E0425   13 E0308   166 E0609   17 E0614   1 E0381   1 E0080   1 E0277
+# the whole delta, and it is arithmetic: +1 E0425 and nothing else - C 26322's x_uncatch_errors,
+# whose own definition (C 26568) is the next slice's work.  Every other class reads what it read
+# before and the warning count does not move.
+```
+**Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as the first statement of
+`x_is_serial_more_than` moves E0308 to 14 anchored at the injected line (`_root.rs:13677`); removed,
+the file re-measured at 13,770 lines.
+
+**The mirror round** (`include/xlib.rs`, the mirror grows by the names a ported arm reads - its own
+file note): `XErrorEvent` (Xlib.h 920-928) with the layout **measured** on this machine
+(`sizeof=40 align=8`, `type` 0, `display` 8, `resourceid` 16, `serial` 24, `error_code` 32,
+`request_code` 33, `minor_code` 34 - three `core::mem::` assertions at its declaration), and
+`XGetErrorText` (Xlib.h 2610-2615) beside the mirror's other entry points.  **P-87's two legs**:
+`check-mirror-dupes` **16/16/0** and `tools/check-all-units.sh` **`checked 83 unit(s), 0 failure(s)`
++ `checking 83 unit(s), 0 unit failure(s)`**; the frozen list holds no X unit, so the named reading
+is that mirror's other consumer `src/xfns.rs` (probed with `have_x_windows` before and after the
+mirror change, the unit unchanged): **6 error-lines / 9 warnings on both sides, sets diff empty**.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` goes
+**184 rows -> 176**: the seven functions and `x_error_message_count` retire as missing items; the
+line-count row stays (13,770 against C's 33,125, 58.4%).  The six text gates are unchanged.
+
+**Owed, named.**  The block's second half - `x_catch_errors_with_handler` (C 26372),
+`x_catch_errors` (C 26390), `x_request_can_fail`/`x_clean_failable_requests` (C 26397/26420),
+`x_ignore_errors_for_next_request`/`x_stop_ignoring_errors` (C 26463/26519),
+`x_uncatch_errors_after_check`/`x_uncatch_errors` (C 26550/26567), `x_check_errors` (C 26613),
+`x_had_errors_p` (C 26650) and `x_clear_errors` (C 26679) - needs `XNextRequest`, `NextRequest` and
+`LastKnownRequestProcessed`, the three **macros of `<X11/Xlibint.h>`** that read fields of the
+private `struct _XDisplay` (`request`, `last_request_read`, and the 64-bit `_upper32bit` pair), so
+it is a measurement round of its own (P-88 2's clang probe) before those functions can land.  The
+`x_error_message_count`'s read-only users in other units keep the mirror's declaration (the
+`x_display_list` shape).
+
+**Not claimed.**  The frozen configuration compiles none of this file, so this is a **text** reading
+of an arm this machine cannot build: no error was trapped, no display was opened, and the one
+`E0425` row above is an unresolved name, not behaviour.
+
 
 ## Owed by the integrator (nothing here is claimed as done)
 

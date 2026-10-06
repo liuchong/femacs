@@ -13605,3 +13605,166 @@ unsafe fn make_invisible_cursor (dpyinfo: *mut x_display_info) -> Cursor
 
   return c;                                                             // C 12094
 }
+/* C 26217-26239's `struct x_error_message_stack`.  */
+/// C 26217-26239: `struct x_error_message_stack` - this file's own record.  `handler`'s type is
+/// xterm.h 1748-1749's `x_special_error_handler`, declared at this use site (P-88 1); its
+/// function-pointer position takes the mirror's `Option<unsafe extern "C" fn (…)>` shape
+/// (PORTING.md 1.4).
+#[cfg (feature = "have_x_windows")]
+#[repr (C)]
+pub struct x_error_message_stack
+{
+  pub string: *mut c_char,                       // C 26221: `char *string;`
+  pub dpy: *mut Display,                         // C 26224: `Display *dpy;`
+  pub handler: x_special_error_handler,          // C 26227: `x_special_error_handler handler;`
+  pub handler_data: *mut c_void,                 // C 26230: `void *handler_data;`
+  pub prev: *mut x_error_message_stack,          // C 26233: `struct x_error_message_stack *prev;`
+  pub first_request: c_ulong,                    // C 26238: `unsigned long first_request;`
+}
+
+/// C: xterm.h 1748-1749: `typedef void (*x_special_error_handler) (Display *, XErrorEvent *,
+/// char *, void *);`
+#[cfg (feature = "have_x_windows")]
+pub type x_special_error_handler
+  = Option<unsafe extern "C" fn (*mut Display, *mut XErrorEvent, *mut c_char, *mut c_void)>;
+
+/* Stack of X error message handlers.  Whenever an error is generated
+   on a display, look in this stack for an appropriate error handler,
+   set its `string' to the error message and call its `handler' with
+   `handler_data'.  If no handler applies to the error, don't catch
+   it, and let it crash Emacs instead.
+
+   This used to be a pointer to a string in which any error would be
+   placed before 2006.  */
+/// C 26249: `static struct x_error_message_stack *x_error_message;`
+#[cfg (feature = "have_x_windows")]
+static mut x_error_message: *mut x_error_message_stack = std::ptr::null_mut ();
+
+/// C 26252: `int x_error_message_count;` - a **non-`static`** C definition, so it is exported
+/// (PORTING.md 0.2); `include/xterm.rs` 1644 carries the header's own declaration for the units
+/// that read it (the `x_display_list` shape this unit already uses at its 774-775).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub static mut x_error_message_count: c_int = 0;
+
+/* Compare various request serials while handling wraparound.  Treat a
+   difference of more than X_ULONG_MAX / 2 as wraparound.
+
+   Note that these functions truncate serials to 32 bits before
+   comparison.  */
+/// C 26260-26267: `static bool x_is_serial_more_than (unsigned int a, unsigned int b)` - C's
+/// `b - a` is `unsigned int` arithmetic that wraps and then widens to `unsigned long` for the
+/// comparison, so the port writes the wrap out (`wrapping_sub`) and the widening (`as c_ulong`);
+/// C's callers hand these functions `unsigned long` serials and the parameters truncate them to
+/// 32 bits (C 26257-26258 says so), which the call sites write out (`as c_uint`).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_is_serial_more_than (a: c_uint, b: c_uint) -> bool
+{
+  if a > b                                                              // C 26263
+    { return true; }                                                    // C 26264
+
+  return b.wrapping_sub (a) as c_ulong > X_ULONG_MAX / 2;               // C 26266
+}
+
+/// C 26269-26276: `static bool x_is_serial_more_than_or_equal_to (unsigned int a, unsigned int b)`
+/// (the `>=` twin of the above, same wrap and widening).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_is_serial_more_than_or_equal_to (a: c_uint, b: c_uint) -> bool
+{
+  if a >= b                                                             // C 26272
+    { return true; }                                                    // C 26273
+
+  return b.wrapping_sub (a) as c_ulong > X_ULONG_MAX / 2;               // C 26275
+}
+
+/// C 26278-26285: `static bool x_is_serial_less_than (unsigned int a, unsigned int b)`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_is_serial_less_than (a: c_uint, b: c_uint) -> bool
+{
+  if a < b                                                              // C 26281
+    { return true; }                                                    // C 26282
+
+  return a.wrapping_sub (b) as c_ulong > X_ULONG_MAX / 2;               // C 26284
+}
+
+/// C 26287-26294: `static bool x_is_serial_less_than_or_equal_to (unsigned int a, unsigned int b)`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_is_serial_less_than_or_equal_to (a: c_uint, b: c_uint) -> bool
+{
+  if a <= b                                                             // C 26290
+    { return true; }                                                    // C 26291
+
+  return a.wrapping_sub (b) as c_ulong > X_ULONG_MAX / 2;               // C 26293
+}
+
+/// C 26296-26314: `static struct x_error_message_stack *x_find_error_handler (Display *dpy,
+/// XErrorEvent *event)` - C's `while (stack)` is the port's null test and C's `NULL` its
+/// `null_mut ()`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_find_error_handler (dpy: *mut Display, event: *mut XErrorEvent)
+  -> *mut x_error_message_stack
+{
+  let mut stack: *mut x_error_message_stack;                            // C 26299
+
+  stack = x_error_message;                                              // C 26301
+
+  while !stack.is_null ()                                               // C 26303
+    {
+      if x_is_serial_more_than_or_equal_to ((*event).serial as c_uint,  // C 26305
+					    (*stack).first_request as c_uint)  // C 26306
+	  && dpy == (*stack).dpy                                        // C 26307
+	{ return stack; }                                               // C 26308
+
+      stack = (*stack).prev;                                            // C 26310
+    }
+
+  return std::ptr::null_mut ();                                         // C 26313
+}
+
+/// C 26317-26323: `void x_unwind_errors_to (int depth)` - a **non-`static`** C definition
+/// (`extern "C"` + `#[unsafe(no_mangle)]`, PORTING.md 0.2).  C 26322's `x_uncatch_errors` is
+/// C 26568's own definition, which this unit has not reached yet - it stands as one `E0425` row
+/// until that slice lands (P-91 1's not-yet-ported-definition class).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_unwind_errors_to (depth: c_int)
+{
+  while x_error_message_count > depth                                   // C 26319
+    /* This is safe to call because we check whether or not
+       x_error_message->dpy is still alive before calling XSync.  */
+    { x_uncatch_errors (); }                                            // C 26322
+}
+
+/* An X error handler which stores the error message in the first
+   applicable handler in the x_error_message stack.  This is called
+   from *x_error_handler if an x_catch_errors for DISPLAY is in
+   effect.  */
+
+/// C 26330-26347: `static void x_error_catcher (Display *display, XErrorEvent *event,
+/// struct x_error_message_stack *stack)` - the address C 27006 hands to `XSetErrorHandler`, so
+/// `unsafe extern "C" fn` (PORTING.md 1.4).  `buf` is C's uninitialised local filled by
+/// `XGetErrorText`, so the port zeroes it (Deviation 12); `event->error_code` is `unsigned char`
+/// and `XGetErrorText`'s second parameter is an `int`, so C's widening is written out; and C's
+/// `if (stack->handler)` plus call is the port's `is_some`/`unwrap` (the `xterm.rs`
+/// `surface_set_size_func` shape C 7760 uses on the pgtk side).
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" fn x_error_catcher (display: *mut Display, event: *mut XErrorEvent,
+				      stack: *mut x_error_message_stack)
+{
+  let mut buf: [c_char; X_ERROR_MESSAGE_SIZE as usize] =
+    [0; X_ERROR_MESSAGE_SIZE as usize];                                 // C 26334: `char buf[…];`
+
+  XGetErrorText (display, (*event).error_code as c_int,                  // C 26336
+		 buf.as_mut_ptr (), X_ERROR_MESSAGE_SIZE);              // C 26337
+
+  if !(*stack).string.is_null ()                                        // C 26339
+    { xfree ((*stack).string as *mut c_void); }                         // C 26340
+
+  (*stack).string = xstrdup (buf.as_ptr ());                            // C 26342
+
+  if (*stack).handler.is_some ()                                        // C 26344
+    {
+      ((*stack).handler.unwrap ()) (display, event, (*stack).string,    // C 26345
+				   (*stack).handler_data);              // C 26346
+    }
+}
