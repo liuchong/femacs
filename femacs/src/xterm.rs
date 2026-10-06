@@ -19692,3 +19692,140 @@ unsafe fn x_delete_selection_requests (dpyinfo: *mut x_display_info)
       event = X_NEXT_KBD_EVENT! (event);                                // C 31851, the `for`'s step
     }
 }
+
+/* Get rid of display DPYINFO, deleting all frames on it,
+   and without sending any more commands to the X server.  */
+
+/// C 31872-31974: `static void x_delete_display (struct x_display_info *dpyinfo)` - C's `static`, so
+/// a plain `unsafe fn` (PORTING.md 0.2).  C 31901's `again:` label is a *backward* jump inside the
+/// `for`'s body, so the port writes it as an inner labelled loop whose exit is C's fall-through
+/// (PORTING.md 2.2's labelled-block rule, read downward); `display_info.x` is the mirror's
+/// P-72 rule-3 `*mut c_void`, hence the cast at C 31883; the `HAVE_X_SM`/`USE_TOOLKIT_SCROLL_BARS`/
+/// `HAVE_XFIXES`/`HAVE_XINPUT2` arms are all carried, and the last two of those are compiled by no
+/// arm this lane runs.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_delete_display (dpyinfo: *mut x_display_info)
+{
+  let mut t: *mut terminal;                                             // C 31875
+  let mut color_entry: *mut color_name_cache_entry;                     // C 31876
+  let mut next_color_entry: *mut color_name_cache_entry;                // C 31876
+  let mut i: c_int;                                                     // C 31877
+  let mut ie: *mut x_selection_request_event;                           // C 31878
+  let mut last: *mut x_selection_request_event;                         // C 31878
+  let mut temp: *mut x_selection_request_event;                         // C 31878
+
+  /* Close all frames and delete the generic struct terminal for this
+     X display.  */
+  t = terminal_list;                                                    // C 31882
+  while t != std::ptr::null_mut ()                                      // C 31882
+    {
+      if (*t).r#type == output_x_window                                 // C 31883
+	  && (*t).display_info.x as *mut x_display_info == dpyinfo
+	{
+#[cfg (feature = "have_x_sm")]
+	  {
+	    /* Close X session management when we close its display.  */
+	    if (*t).id == 1 && x_session_have_connection ()             // C 31887
+	      { x_session_close (); }                                   // C 31888
+	  }
+	  delete_terminal (t);                                          // C 31890
+	  break;                                                        // C 31891
+	}
+      t = (*t).next_terminal;                                           // C 31882, the `for`'s step
+    }
+
+  /* Find any pending selection requests for this display and unchain
+     them.  */
+
+  last = std::ptr::null_mut ();                                         // C 31897
+
+  ie = pending_selection_requests;                                      // C 31899
+  while ie != std::ptr::null_mut ()                                     // C 31899
+    {
+      'again: loop                                                      // C 31901's `again:`
+	{
+	  if SELECTION_EVENT_DPYINFO! (&raw mut (*ie).se) != dpyinfo     // C 31903
+	    { break 'again; }
+
+	  if last != std::ptr::null_mut ()                              // C 31905
+	    { (*last).next = (*ie).next; }                              // C 31906
+
+	  temp = ie;                                                    // C 31908
+	  ie = (*ie).next;                                              // C 31909
+	  xfree (temp as *mut c_void);                                  // C 31910
+
+	  /* C 31912's `goto again` is this loop's next iteration.  */
+	}
+
+      last = ie;                                                        // C 31915
+      ie = (*ie).next;                                                  // C 31899, the `for`'s step
+    }
+
+  /* Delete selection requests bound for dpyinfo from the keyboard
+     buffer.  */
+  x_delete_selection_requests (dpyinfo);                                // C 31920
+
+  /* And remove any outstanding selection transfers.  */
+  x_remove_selection_transfers (dpyinfo);                               // C 31923
+
+  if next_noop_dpyinfo == dpyinfo                                      // C 31925
+    { next_noop_dpyinfo = (*dpyinfo).next; }                           // C 31926
+
+  if mouse_click_timeout_display == dpyinfo                            // C 31928
+    { mouse_click_timeout_display = std::ptr::null_mut (); }           // C 31929
+
+  if x_display_list == dpyinfo                                         // C 31931
+    { x_display_list = (*dpyinfo).next; }                              // C 31932
+  else
+    {
+      let mut tail: *mut x_display_info;                               // C 31935
+
+      tail = x_display_list;                                           // C 31937
+      while tail != std::ptr::null_mut ()                              // C 31937
+	{
+	  if (*tail).next == dpyinfo                                   // C 31938
+	    { (*tail).next = (*(*tail).next).next; }                   // C 31939
+	  tail = (*tail).next;                                         // C 31937, the `for`'s step
+	}
+    }
+
+  i = 0;                                                               // C 31942
+  while i < (*dpyinfo).color_names_size                                // C 31942
+    {
+      color_entry = *(*dpyinfo).color_names.offset (i as isize);      // C 31944
+      while color_entry != std::ptr::null_mut ()                       // C 31944
+	{
+	  next_color_entry = (*color_entry).next;                      // C 31947
+
+	  xfree ((*color_entry).name as *mut c_void);                  // C 31949
+	  xfree (color_entry as *mut c_void);                          // C 31950
+
+	  color_entry = next_color_entry;                              // C 31945, the `for`'s step
+	}
+      i += 1;                                                          // C 31942, the `for`'s step
+    }
+
+  if !(*dpyinfo).net_supported_atoms.is_null ()                        // C 31954
+    { XFree ((*dpyinfo).net_supported_atoms as *mut c_void); }         // C 31955
+
+  xfree ((*dpyinfo).color_names as *mut c_void);                       // C 31957
+  xfree ((*dpyinfo).color_names_length as *mut c_void);                // C 31958
+  xfree ((*dpyinfo).x_id_name as *mut c_void);                         // C 31959
+  xfree ((*dpyinfo).x_dnd_atoms as *mut c_void);                       // C 31960
+  xfree ((*dpyinfo).color_cells as *mut c_void);                       // C 31961
+#[cfg (feature = "have_xfixes")]
+  {
+    if !(*dpyinfo).monitored_selections.is_null ()                     // C 31963
+      { xfree ((*dpyinfo).monitored_selections as *mut c_void); }      // C 31964
+  }
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  {
+    xfree ((*dpyinfo).protected_windows as *mut c_void);               // C 31967
+  }
+#[cfg (feature = "have_xinput2")]
+  {
+    if (*dpyinfo).supports_xi2                                         // C 31970
+      { x_free_xi_devices (dpyinfo); }                                 // C 31971
+  }
+  xfree (dpyinfo as *mut c_void);                                      // C 31973
+}
