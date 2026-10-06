@@ -1328,6 +1328,7 @@ sfntfont_get_glyph_outline	goto	C 2294's `goto fail` (the metrics lookup) and C 
 sfntfont_lookup_glyph	sfnt_glyph	C 2658's return type is the *scalar typedef* (`unsigned int`), which the port spells `sfnt_glyph_index` because `sfnt_glyph` is `struct sfnt_glyph`'s name here (the `sfntfont_glyph_valid` row's class; status 3.687)
 sfntfont_probe_widths	sfnt_glyph	C 2696's `sfnt_glyph glyph` local is the same scalar typedef (`sfnt_glyph_index` in the port; status 3.687)
 sfntfont_setup_interpreter	bail1,goto	C 2824/2843's `goto bail1` and C 2787/2796/2808's `goto bail` are the port's `'body: loop` plus a level variable (the `sfnt_enum_font` shape, PORTING.md 2.2; status 3.688)
+sfnt_open_tables	bail1,bail2,bail3,bail4,bail5,goto	C 2939-3047's nine `goto bailN`s and C 3077-3112's six label segments are the port's `'body: loop` plus a depth variable (the `sfnt_enum_font_1` shape; status 3.689)
 sfntfont_registry_for_desc	cmap_invalid,true	C 1848 reads and C 1858 writes C 164's `bool cmap_invalid : 1` (the `SFNT_FONT_DESC_CMAP_INVALID` mask in the port), and C 1858's `true` is that bit's value rather than a Rust `bool` (status 3.683)
 sfnt_grok_registry	goto	C's `goto fail` legs are a labelled block in the port (status 3.443)
 sfnt_replace_fonts_p	goto	C's `goto next_instance` is a labelled `continue` (status 3.443)

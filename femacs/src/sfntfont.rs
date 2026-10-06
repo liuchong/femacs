@@ -7,8 +7,8 @@
 // `unsafe extern "C" fn` items (PORTING.md 1.4; the androidselect.rs `close_asset_fd` shape).
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
-// C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559, C 2560-2742 and
-// C 2743-2915.**  The next live definition is `sfnt_open_tables` (C 2920).  The ledger `docs/ports/sfntfont.md`
+// C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559, C 2560-2742,
+// C 2743-2915 and C 2916-3113.**  The next live definition is `sfnt_reference_font_tables` (C 3119).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -3557,4 +3557,244 @@ unsafe fn sfnt_close_tables (tables: *mut sfnt_font_tables)
     xfree ((*tables).directory as *mut c_void);             // C 2912
     (*tables).directory = std::ptr::null_mut ();            // C 2913
   }
+}
+
+/* Open font tables associated with the specified font description
+   DESC.  Return the font tables, or NULL upon failure.  */
+
+/* ----------------------------------------------------------------------------------------------
+   C 2916-3113: `sfnt_open_tables` (C 2920-3113, under C 2917-2918's comment).  **The next live
+   definition is C 3119's `sfnt_reference_font_tables`** (the comment is C 3115-3116), and the
+   ledger's `## C line ranges` names both boundaries.
+
+   C's five labels `bail5:`/`bail4:`/`bail3:`/`bail2:`/`bail1:` plus `bail:` are the depth-carrying
+   chain slice 1's `sfnt_enum_font_1` uses (PORTING.md 2.2): the nine `goto bailN`s at C 2939/2945
+   (bail), C 2951 (bail1), C 2960 (bail2), C 2992 (bail3), C 3020/3031/3039 (bail4) and C 3047
+   (bail5) become `break 'body` with `bail` set, and the six segments run in C's order.
+   `HAVE_MMAP` is 1 and its arms have no `#else`, so C 2998-3013's cross-`#endif` `if`/`else` and
+   C 3084-3094's are written out with their guards; C 3064-3073's `HAVE_HARFBUZZ` `#ifdef`/`#else`
+   is two `#[cfg]`-selected blocks (its two members carry that gate).
+   ---------------------------------------------------------------------------------------------- */
+/// C 2920-3113: `sfnt_open_tables`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_open_tables (desc: *mut sfnt_font_desc) -> *mut sfnt_font_tables
+{                                                          // C 2920-3113
+  let mut tables: *mut sfnt_font_tables;
+  /* C 2924's `subtable` is assigned at C 2948 and read by the `bail2` segment, which only the
+     levels at or above 2 reach; C 2925's `fd` is the same for the `bail1` segment's
+     `emacs_close`.  C's own flow guarantees both, Rust's analysis cannot see it through `bail`, so
+     they are zero-initialised (PORTING.md 1.5, Deviation 10).  */
+  let mut subtable: *mut sfnt_offset_subtable = std::ptr::null_mut ();
+  let mut fd: c_int = 0;
+  let mut i: c_int;
+  /* C 2927's `rc` (C 2926-2928's `#ifdef HAVE_MMAP` local: live, since `HAVE_MMAP` is 1).  */
+  let mut rc: c_int;
+  /* C 2929-2930's two out-parameters of `sfnt_read_cmap_table`; zero-initialised for the same
+     reason (their addresses are taken).  */
+  let mut subtables: *mut sfnt_cmap_encoding_subtable = std::ptr::null_mut ();
+  let mut data: *mut *mut sfnt_cmap_encoding_subtable_data = std::ptr::null_mut ();
+  let mut format14: *mut sfnt_cmap_format_14;
+
+  /* C 3077-3112's `bail5:` … `bail:` chain: the port carries the jump's depth in `bail` (0 is
+     `goto bail`) and runs the six segments in C's order.  */
+  let mut bail: c_int = 0;
+
+  'body: loop
+    {
+      tables = xzalloc (std::mem::size_of::<sfnt_font_tables> ()) as *mut sfnt_font_tables;   // C 2933
+
+      /* Open the font.  */
+      fd = emacs_open ((*desc).path, O_RDONLY, 0);         // C 2936
+
+      if fd == -1
+	{ break 'body; }                                   // C 2939: `goto bail;`
+
+      /* Seek to the offset specified to the table directory.  */
+
+      if (*desc).offset != 0
+	 && lseek (fd, (*desc).offset, SEEK_SET) != (*desc).offset   // C 2943-2944
+	{ break 'body; }                                   // C 2945: `goto bail;`
+
+      /* Read the offset subtable.  */
+      subtable = sfnt_read_table_directory (fd);           // C 2948
+
+      if subtable.is_null () || subtable == usize::MAX as *mut sfnt_offset_subtable   // C 2950
+	{ bail = 1; break 'body; }                         // C 2951: `goto bail1;`
+
+      /* Read required tables.  This font backend is supposed to be used
+	 mostly on devices with flash memory, so the order in which they
+	 are read is insignificant.  */
+
+      (*tables).cmap = sfnt_read_cmap_table (fd, subtable, &raw mut subtables,
+					     &raw mut data);   // C 2957-2958
+      if (*tables).cmap.is_null ()
+	{ bail = 2; break 'body; }                         // C 2960: `goto bail2;`
+
+      format14 = std::ptr::null_mut ();                    // C 2962
+      (*tables).cmap_data
+	= sfntfont_select_cmap ((*tables).cmap,
+				subtables, data,
+				&raw mut (*tables).cmap_subtable,
+				&raw mut format14);        // C 2963-2967
+
+      if !format14.is_null ()                              // C 2969
+	{
+	  /* Build a UVS context from this format 14 mapping table.  A UVS
+	     context contains each variation selector supported by the
+	     font, and a list of ``non-default'' mappings between base
+	     characters and variation glyph IDs.  */
+
+	  (*tables).uvs = sfnt_create_uvs_context (format14, fd);   // C 2976
+	  xfree (format14 as *mut c_void);                     // C 2977
+	}
+
+      i = 0;
+      while i < (*(*tables).cmap).num_subtables as c_int    // C 2980
+	{
+	  if *(data.offset (i as isize)) != (*tables).cmap_data
+	     /* format14 has already been freed.  */
+	     && *(data.offset (i as isize)) != format14 as *mut sfnt_cmap_encoding_subtable_data   // C 2984
+	    { xfree (*(data.offset (i as isize)) as *mut c_void); }   // C 2985
+	  i += 1;
+	}
+
+      xfree (subtables as *mut c_void);                    // C 2988
+      xfree (data as *mut c_void);                         // C 2989
+
+      if (*tables).cmap_data.is_null ()
+	{ bail = 3; break 'body; }                         // C 2992: `goto bail3;`
+
+      /* Read the hhea, maxp, glyf, and head tables.  */
+      (*tables).hhea = sfnt_read_hhea_table (fd, subtable);   // C 2995
+      (*tables).maxp = sfnt_read_maxp_table (fd, subtable);   // C 2996
+
+      /* First try to map the glyf table.  If that fails, then read the
+	 glyf table.  */
+
+      (*tables).glyf = sfnt_map_glyf_table (fd, subtable);   // C 3003
+
+      /* Next, if this fails, read the glyf table.  */
+
+      if (*tables).glyf.is_null ()                         // C 3007
+	{ (*tables).glyf = sfnt_read_glyf_table (fd, subtable); }   // C 3009
+      else
+	{ (*tables).glyf_table_mapped = true; }            // C 3012
+
+      (*tables).head = sfnt_read_head_table (fd, subtable);   // C 3015
+
+      /* If any of those tables couldn't be read, bail.  */
+      if (*tables).hhea.is_null () || (*tables).maxp.is_null ()
+	 || (*tables).glyf.is_null ()
+	 || (*tables).head.is_null ()                      // C 3018-3019
+	{ bail = 4; break 'body; }                         // C 3020: `goto bail4;`
+
+      /* Now figure out which kind of loca table must be read based on
+	 head->index_to_loc_format.  */
+
+      if (*(*tables).head).index_to_loc_format != 0    // C 3025
+	{
+	  (*tables).loca_long
+	    = sfnt_read_loca_table_long (fd, subtable);    // C 3027-3028
+
+	  if (*tables).loca_long.is_null ()
+	    { bail = 4; break 'body; }                     // C 3031: `goto bail4;`
+	}
+      else
+	{
+	  (*tables).loca_short
+	    = sfnt_read_loca_table_short (fd, subtable);   // C 3035-3036
+
+	  if (*tables).loca_short.is_null ()
+	    { bail = 4; break 'body; }                     // C 3039: `goto bail4;`
+	}
+
+      /* Read the horizontal metrics table.  */
+      (*tables).hmtx = sfnt_read_hmtx_table (fd, subtable,
+					     (*tables).hhea,
+					     (*tables).maxp);   // C 3043-3045
+      if (*tables).hmtx.is_null ()
+	{ bail = 5; break 'body; }                         // C 3047: `goto bail5;`
+
+      /* Read instruction related font tables.  These might not be
+	 present, which is OK, since instructing fonts is optional.  */
+      (*tables).prep = sfnt_read_prep_table (fd, subtable);   // C 3051
+      (*tables).fpgm = sfnt_read_fpgm_table (fd, subtable);   // C 3052
+      (*tables).cvt = sfnt_read_cvt_table (fd, subtable);     // C 3053
+
+      /* Read distortion related tables.  These might not be present.  */
+      (*tables).fvar = sfnt_read_fvar_table (fd, subtable);   // C 3056
+      (*tables).avar = sfnt_read_avar_table (fd, subtable);   // C 3057
+      (*tables).gvar = sfnt_read_gvar_table (fd, subtable);   // C 3058
+
+      if !(*tables).cvt.is_null () && !(*tables).fvar.is_null ()   // C 3060
+	{ (*tables).cvar = sfnt_read_cvar_table (fd, subtable, (*tables).fvar,
+						 (*tables).cvt); }   // C 3061-3062
+
+      #[cfg (feature = "harfbuzz")]
+      {
+	/* Now copy over the subtable if necessary, as it is needed to read
+	   extra font tables required by HarfBuzz.  */
+	(*tables).directory = subtable;                    // C 3067
+	(*tables).fd = fd;                                 // C 3068
+      }
+      #[cfg (not (feature = "harfbuzz"))]
+      {
+	/* Otherwise, close the fd and free the table directory.  */
+	xfree (subtable as *mut c_void);                   // C 3071
+	emacs_close (fd);                                  // C 3072
+      }
+
+      return tables;                                       // C 3075
+    }
+
+  /* C 3077: `bail5:`.  */
+  if bail >= 5
+    {
+      xfree ((*tables).loca_long as *mut c_void);           // C 3078
+      xfree ((*tables).loca_short as *mut c_void);          // C 3079
+    }
+
+  /* C 3080: `bail4:`.  */
+  if bail >= 4
+    {
+      xfree ((*tables).hhea as *mut c_void);                // C 3081
+      xfree ((*tables).maxp as *mut c_void);                // C 3082
+
+      if (*tables).glyf_table_mapped
+	{
+	  rc = sfnt_unmap_glyf_table ((*tables).glyf);      // C 3087
+
+	  if rc != 0
+	    { emacs_abort (); }                            // C 3090
+	}
+      else
+	{ xfree ((*tables).glyf as *mut c_void); }         // C 3094
+
+      xfree ((*tables).head as *mut c_void);                // C 3096
+
+      /* This comes under bail4 due to a peculiarity of how the four
+	 tables above are validated.  */
+      xfree ((*tables).cmap_data as *mut c_void);           // C 3100
+    }
+
+  /* C 3101: `bail3:`.  */
+  if bail >= 3
+    {
+      if !(*tables).uvs.is_null ()                         // C 3102
+	{ sfnt_free_uvs_context ((*tables).uvs); }         // C 3103
+
+      xfree ((*tables).cmap as *mut c_void);                // C 3105
+    }
+
+  /* C 3106: `bail2:`.  */
+  if bail >= 2
+    { xfree (subtable as *mut c_void); }                    // C 3107
+
+  /* C 3108: `bail1:`.  */
+  if bail >= 1
+    { emacs_close (fd); }                                  // C 3109
+
+  /* C 3110: `bail:`.  */
+  xfree (tables as *mut c_void);                           // C 3111
+  return std::ptr::null_mut ();                            // C 3112
 }
