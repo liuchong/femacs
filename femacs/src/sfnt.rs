@@ -39,10 +39,15 @@
 // `sfnt_variation_glyph_for_char`, `sfnt_is_character_default` and the mapping trio
 // `sfnt_map_table`/`sfnt_unmap_table`/`sfnt_read_table`, the last three of which `src/sfntfont.rs`
 // already calls).
-// **What is left after slice 12** is C 6559-8159 (the interpreter macros, whose home is
-// `sfnt_interpret_run`'s slice, above), C 11396-13369 (`sfnt_interpret_run` itself through the
-// instructed-outline builders and the three compound-glyph interpreters) and C 16448-21215, the
-// TEST programme (the ledger's Owed 21);
+// **Slice 13 takes C 12116-12295 and C 12495-12566** - the instructed-outline helpers
+// (`sfnt_decompose_instructed_outline`, the `TEST_STATIC` builder `sfnt_build_instructed_outline`,
+// `sfnt_compute_phantom_points`) and `sfnt_transform_f26dot6`, the 26.6 twin of
+// `sfnt_transform_coordinates`.  The four functions between them (`sfnt_interpret_simple_glyph`,
+// `sfnt_transform_f26dot6`'s three callers) wait for the interpreter.
+// **What is left after slice 13** is C 6559-8159 (the interpreter macros, whose home is
+// `sfnt_interpret_run`'s slice, above), C 11396-12115 (`sfnt_interpret_run` and the two program
+// entries that call it), C 12305-12494's `sfnt_interpret_simple_glyph` and C 12591-13369's three
+// compound-glyph interpreters, and C 16448-21215, the TEST programme (the ledger's Owed 21);
 // C 9832's `sfnt_interpret_call` is the one landed call whose callee (`sfnt_interpret_run`) is
 // still unported
 // (P-91 ④ names it).  The ledger
@@ -14642,4 +14647,292 @@ pub unsafe extern "C" fn sfnt_read_table (fd: c_int, subtable: *mut sfnt_offset_
   /* Return the length and table data.  */
   *length = (*directory).length as usize;                  // C 13913
   return data;                                             // C 13914
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 12116-12295 and C 12495-12566: the instructed-outline helpers, in C's order - C 12116's
+   `sfnt_decompose_instructed_outline` (C 12117-12166, whose two `goto fail`s are one labelled
+   block), C 12168-12173's comment with the `TEST_STATIC` builder `sfnt_build_instructed_outline`
+   (C 12176-12243), C 12247-12255's comment with `sfnt_compute_phantom_points` (C 12258-12295),
+   and `sfnt_transform_f26dot6` (C 12496-12566), the 26.6 twin of the already-ported
+   `sfnt_transform_coordinates` (C 2551-2618) that C 12861 calls.  **The next live definition is
+   C 12591's `sfnt_interpret_compound_glyph_2`** (it and the three items that follow call
+   `sfnt_interpret_run`, C 11396), and the ledger's `## C line ranges` names the boundaries.
+   C 12305-12494's `sfnt_interpret_simple_glyph` and C 11996-12115's two program entries sit
+   between the two ranges and wait for the interpreter.
+   ---------------------------------------------------------------------------------------------- */
+/// C 12117-12166: `sfnt_decompose_instructed_outline` - C's `static`, called by the builder below.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_decompose_instructed_outline (outline: *mut sfnt_instructed_outline,
+					     move_to: sfnt_move_to_proc,
+					     line_to: sfnt_line_to_proc,
+					     curve_to: sfnt_curve_to_proc,
+					     dcontext: *mut c_void) -> c_int
+{                                                          // C 12117-12166
+  let mut here: size_t;
+  let mut last: size_t;
+  let mut n: size_t;
+
+  if (*outline).num_contours == 0                         // C 12125
+    { return 0; }                                          // C 12126
+
+  /* C 12140/12147's two `goto fail`s land at C 12164's `fail:`, which is the `return 1`
+     below; the labelled block is the body they leave.  */
+  'fail: {
+    here = 0;                                              // C 12128
+
+    n = 0;                                                 // C 12130
+    while n < (*outline).num_contours
+      {
+	/* here is the first index into the glyph's point arrays
+	   belonging to the contour in question.  last is the index
+	   of the last point in the contour.  */
+	last = *(*outline).contour_end_points.offset (n as isize);   // C 12135
+
+	/* Make sure here and last make sense.  */
+
+	if here > last || last >= (*outline).num_points        // C 12139
+	  { break 'fail; }                                     // C 12140
+
+	if sfnt_decompose_glyph_2 (here, last, move_to,
+				   line_to, curve_to, dcontext,
+				   (*outline).x_points,
+				   (*outline).y_points,
+				   (*outline).flags, 1024) != 0   // C 12142-12146
+	  { break 'fail; }                                     // C 12147
+
+	/* Move forward to the start of the next contour.  */
+	here = last + 1;                                       // C 12150
+
+	/* here may be a phantom point when outlining a compound glyph,
+	   as they can have phantom points mixed in with contours.
+
+	   When that happens, skip past all the phantom points.  */
+
+	while here < (*outline).num_points
+	   && ((*(*outline).flags.offset (here as isize) as c_int)
+	       & SFNT_POINT_PHANTOM) != 0                      // C 12157-12158
+	  { here += 1; }                                       // C 12159
+
+	n += 1;
+      }
+
+    return 0;                                              // C 12162
+  }
+
+  /* C 12164: `fail:`.  */
+  return 1;                                                // C 12165
+}
+
+/// C 12176-12243: `sfnt_build_instructed_outline` - C's `TEST_STATIC`, so the port spells the
+/// macro's bit with the attribute.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_build_instructed_outline (instructed: *mut sfnt_instructed_outline,
+							advance_width: *mut sfnt_fixed)
+							-> *mut sfnt_glyph_outline
+{                                                          // C 12176-12243
+  let mut outline: *mut sfnt_glyph_outline;
+  let mut rc: c_int;
+  let mut x1: sfnt_f26dot6;
+  let mut x2: sfnt_f26dot6;
+
+  std::ptr::write_bytes (&raw mut build_outline_context as *mut u8, 0,
+			 std::mem::size_of_val (&build_outline_context));   // C 12183
+
+  /* Allocate the outline now with enough for 44 words at the end.  */
+  outline = xmalloc (std::mem::size_of::<sfnt_glyph_outline> ()
+		     + 40 * std::mem::size_of::<sfnt_glyph_outline_command> ())
+    as *mut sfnt_glyph_outline;                            // C 12186
+  (*outline).outline_size = 40;                            // C 12187
+  (*outline).outline_used = 0;                             // C 12188
+  (*outline).refcount = 0;                                 // C 12189
+  (*outline).outline = outline.offset (1) as *mut sfnt_glyph_outline_command;   // C 12190-12191
+
+  /* Clear outline bounding box.  */
+  (*outline).xmin = 0;                                     // C 12194
+  (*outline).ymin = 0;                                     // C 12195
+  (*outline).xmax = 0;                                     // C 12196
+  (*outline).ymax = 0;                                     // C 12197
+
+  /* Set up the context.  */
+  build_outline_context.outline = outline;                 // C 12200
+  build_outline_context.factor = 0o177777;                 // C 12201
+
+  /* Start decomposing.  */
+  rc = sfnt_decompose_instructed_outline (instructed,
+					  Some (sfnt_move_to_and_build),
+					  Some (sfnt_line_to_and_build),
+					  Some (sfnt_curve_to_and_build),
+					  std::ptr::null_mut ());   // C 12204-12208
+
+  /* Synchronize the outline object with what might have changed
+     inside sfnt_decompose_glyph.  */
+  outline = build_outline_context.outline;                 // C 12212
+
+  /* Finally, obtain the origin point of the glyph after it has been
+     instructed.  */
+
+  if (*instructed).num_points > 1                          // C 12217
+    {
+      x1 = *(*instructed).x_points.offset (((*instructed).num_points - 2) as isize);   // C 12219
+      x2 = *(*instructed).x_points.offset (((*instructed).num_points - 1) as isize);   // C 12220
+
+      /* Convert the origin point to a 16.16 fixed point number.  */
+      (*outline).origin = x1 * 1024;                       // C 12223
+
+      /* Do the same for the advance width.  */
+      *advance_width = (x2 - x1) * 1024;                   // C 12226
+    }
+  else
+    {
+      /* Phantom points are absent from this outline, which is
+	 impossible.  */
+      *advance_width = 0;                                  // C 12232
+      (*outline).origin = 0;                               // C 12233
+    }
+
+  if rc != 0                                               // C 12236
+    {
+      xfree (outline as *mut c_void);                      // C 12238
+      return std::ptr::null_mut ();                        // C 12239
+    }
+
+  return outline;                                          // C 12242
+}
+
+/// C 12258-12295: `sfnt_compute_phantom_points` - C's `static`, called by the simple-glyph
+/// interpreter and the compound-glyph helper.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_compute_phantom_points (glyph: *mut sfnt_glyph,
+				       metrics: *mut sfnt_glyph_metrics,
+				       scale: sfnt_fixed,
+				       x1: *mut sfnt_f26dot6, y1: *mut sfnt_f26dot6,
+				       x2: *mut sfnt_f26dot6, y2: *mut sfnt_f26dot6,
+				       s1: *mut sfnt_f26dot6, s2: *mut sfnt_f26dot6)
+{                                                          // C 12258-12295
+  let mut f1: sfnt_fword;
+  let mut f2: sfnt_fword;
+
+  /* Two ``phantom points'' are appended to each outline by the scaler
+     prior to instruction interpretation.  One of these points
+     represents the left-side bearing distance from xmin, while the
+     other represents the advance width.  Both are then used after the
+     hinting process to ensure that the reported glyph metrics are
+     consistent with the instructed outline.  */
+
+  /* First compute both values in fwords.  */
+  /* C's `sfnt_fword f1 = sfnt_fword (glyph->xmin - metrics->lbearing)` narrows an `int`
+     expression; the port writes the two conversions out (Deviation 16's class).  */
+  f1 = ((*glyph).xmin as sfnt_fixed - (*metrics).lbearing) as sfnt_fword;   // C 12275
+  f2 = (f1 as sfnt_fixed + (*metrics).advance) as sfnt_fword;   // C 12276
+
+  /* Apply the metrics distortion.  */
+  f1 += (*glyph).origin_distortion;                        // C 12279
+  f2 += (*glyph).advance_distortion;                       // C 12280
+
+  /* Next, scale both up.  */
+  *s1 = sfnt_mul_f26dot6_fixed (f1 as sfnt_f26dot6, scale);   // C 12283
+  *s2 = sfnt_mul_f26dot6_fixed (f2 as sfnt_f26dot6, scale);   // C 12284
+
+  /* While not expressly provided in the manual, the phantom points
+     (at times termed the advance and origin points) represent pixel
+     coordinates within the raster, and are therefore rounded.  */
+  *x1 = sfnt_round_f26dot6 (*s1);                          // C 12289
+  *x2 = sfnt_round_f26dot6 (*s2);                          // C 12290
+
+  /* Clear y1 and y2.  */
+  *y1 = 0;                                                 // C 12293
+  *y2 = 0;                                                 // C 12294
+}
+
+/// C 12496-12566: `sfnt_transform_f26dot6` - C's `static`, called by
+/// `sfnt_interpret_compound_glyph_2` (C 12861).  It is the 26.6 twin of `sfnt_transform_coordinates`
+/// (C 2551-2618), and its body is that function's with `sfnt_fixed` replaced.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_transform_f26dot6 (component: *mut sfnt_compound_glyph_component,
+				  x: *mut sfnt_f26dot6, y: *mut sfnt_f26dot6,
+				  num_coordinates: size_t,
+				  x_off: sfnt_f26dot6, y_off: sfnt_f26dot6)
+{                                                          // C 12496-12566
+  let mut m1: f64;
+  let mut m2: f64;
+  let mut m3: f64;
+  let mut m4: f64;
+  let mut m5: f64;
+  let mut m6: f64;
+  let mut i: size_t;
+
+  if ((*component).flags as c_int & 0o10) != 0		/* WE_HAVE_A_SCALE */
+    {
+      m1 = (*component).u.scale as f64 / 16384.0;          // C 12507
+      m2 = 0.0; m3 = 0.0; m4 = 0.0;                        // C 12508
+      m5 = (*component).u.scale as f64 / 16384.0;          // C 12509
+      m6 = 0.0;                                            // C 12510
+    }
+  else if ((*component).flags as c_int & 0o100) != 0	/* WE_HAVE_AN_X_AND_Y_SCALE */
+    {
+      m1 = (*component).u.a.xscale as f64 / 16384.0;       // C 12514
+      m2 = 0.0; m3 = 0.0; m4 = 0.0;                        // C 12515
+      m5 = (*component).u.a.yscale as f64 / 16384.0;       // C 12516
+      m6 = 0.0;                                            // C 12517
+    }
+  else if ((*component).flags as c_int & 0o200) != 0	/* WE_HAVE_A_TWO_BY_TWO */
+    {
+      m1 = (*component).u.b.xscale as f64 / 16384.0;       // C 12521
+      m2 = (*component).u.b.scale01 as f64 / 16384.0;      // C 12522
+      m3 = 0.0;                                            // C 12523
+      m4 = (*component).u.b.scale10 as f64 / 16384.0;      // C 12524
+      m5 = (*component).u.b.yscale as f64 / 16384.0;       // C 12525
+      m6 = 0.0;                                            // C 12526
+    }
+  else							/* No scale, just apply x_off and y_off.  */
+    {
+      if x_off != 0 || y_off != 0                          // C 12530
+	{
+	  i = 0;                                           // C 12532
+	  while i < num_coordinates
+	    {
+	      *(x.offset (i as isize)) += x_off;           // C 12533
+	      *(y.offset (i as isize)) += y_off;
+	      i += 1;
+	    }
+	}
+
+      return;                                              // C 12536
+    }
+
+  m3 = x_off as f64;                                       // C 12539
+  m6 = y_off as f64;                                       // C 12540
+
+  /* Apply the specified affine transformation.
+     A transform looks like:
+
+     M1 M2 M3     X
+     M4 M5 M6   * Y
+
+     =
+
+     M1*X + M2*Y + M3*1 = X1
+     M4*X + M5*Y + M6*1 = Y1
+
+     (In most transforms, there is another row at the bottom for
+     mathematical reasons.  Since Z1 is always 1.0, the row is simply
+     implied to be 0 0 1, because 0 * x + 0 * y + 1 * 1 = 1.0.  See
+     the definition of matrix3x3 in image.c for some more explanations
+     about this.) */
+
+  i = 0;                                                   // C 12559
+  while i < num_coordinates
+    {
+      let xi: sfnt_f26dot6 = (m1 * (*(x.offset (i as isize)) as f64)
+			      + m2 * (*(y.offset (i as isize)) as f64)
+			      + m3 * 1.0) as sfnt_f26dot6;   // C 12561
+      let yi: sfnt_f26dot6 = (m4 * (*(x.offset (i as isize)) as f64)
+			      + m5 * (*(y.offset (i as isize)) as f64)
+			      + m6 * 1.0) as sfnt_f26dot6;   // C 12562
+      *(x.offset (i as isize)) = xi;                       // C 12563
+      *(y.offset (i as isize)) = yi;                       // C 12564
+      i += 1;
+    }
 }
