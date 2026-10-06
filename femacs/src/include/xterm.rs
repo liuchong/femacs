@@ -276,12 +276,8 @@ pub struct xi_scroll_valuator_t
   #[cfg (feature = "have_xinput2")]
   #[cfg (feature = "have_xinput2_1")]
   pub number: c_int,   // C: int number;
-  #[cfg (feature = "have_xinput2")]
-  #[cfg (feature = "have_xinput2_1")]
-  // C: bool_bf horizontal : 1;
-  #[cfg (feature = "have_xinput2")]
-  #[cfg (feature = "have_xinput2_1")]
-  // C: bool_bf invalid_p : 1;
+  // C guard (all (feature = "have_xinput2", feature = "have_xinput2_1")): bool_bf horizontal : 1;
+  // C guard (all (feature = "have_xinput2", feature = "have_xinput2_1")): bool_bf invalid_p : 1;
   #[cfg (feature = "have_xinput2")]
   #[cfg (feature = "have_xinput2_1")]
   pub current_value: f64,   // C: double current_value;
@@ -791,10 +787,8 @@ pub struct x_output
   pub menubar_widget: *mut GtkWidget,   // C: GtkWidget *menubar_widget;
   #[cfg (feature = "use_gtk")]
   pub toolbar_widget: *mut GtkWidget,   // C: GtkWidget *toolbar_widget;
-  #[cfg (feature = "use_gtk")]
-  // C: bool_bf toolbar_in_hbox : 1;
-  #[cfg (feature = "use_gtk")]
-  // C: bool_bf toolbar_is_packed : 1;
+  // C guard (feature = "use_gtk"): bool_bf toolbar_in_hbox : 1;
+  // C guard (feature = "use_gtk"): bool_bf toolbar_is_packed : 1;
   #[cfg (feature = "use_gtk")]
   pub size_hints: GdkGeometry,   // C: GdkGeometry size_hints;
   #[cfg (feature = "use_gtk")]
@@ -855,10 +849,8 @@ pub struct x_output
   // C: bool_bf has_been_visible : 1;
   // C: bool_bf wait_for_wm : 1;
   // C: bool_bf alpha_identical_p : 1;
-  #[cfg (feature = "have_xdbe")]
-  // C: bool_bf need_buffer_flip : 1;
-  #[cfg (feature = "have_xdbe")]
-  // C: bool_bf complete : 1;
+  // C guard (feature = "have_xdbe"): bool_bf need_buffer_flip : 1;
+  // C guard (feature = "have_xdbe"): bool_bf complete : 1;
   #[cfg (feature = "have_x_i18n")]
   pub xic: XIC,   // C: XIC xic;
   #[cfg (feature = "have_x_i18n")]
@@ -875,21 +867,15 @@ pub struct x_output
   pub current_extended_counter_value: XSyncValue,   // C: XSyncValue current_extended_counter_value;
   #[cfg (feature = "have_xsync")]
   pub resize_counter_value: XSyncValue,   // C: XSyncValue resize_counter_value;
-  #[cfg (feature = "have_xsync")]
-  // C: bool_bf sync_end_pending_p : 1;
-  #[cfg (feature = "have_xsync")]
-  // C: bool_bf ext_sync_end_pending_p : 1;
-  #[cfg (feature = "have_xsync")]
-  #[cfg (feature = "have_gtk3")]
-  // C: bool_bf xg_sync_end_pending_p : 1;
-  #[cfg (feature = "have_xsync")]
-  // C: bool_bf waiting_for_frame_p : 1;
-  #[cfg (feature = "have_xsync")]
-  // C: bool_bf draw_just_hung_p : 1;
-  #[cfg (feature = "have_xsync")]
-  // C guard (not a feature): !defined USE_GTK && defined HAVE_CLOCK_GETTIME
+  // C guard (feature = "have_xsync"): bool_bf sync_end_pending_p : 1;
+  // C guard (feature = "have_xsync"): bool_bf ext_sync_end_pending_p : 1;
+  // C guard (all (feature = "have_xsync", feature = "have_gtk3")): bool_bf xg_sync_end_pending_p : 1;
+  // C guard (feature = "have_xsync"): bool_bf waiting_for_frame_p : 1;
+  // C guard (feature = "have_xsync"): bool_bf draw_just_hung_p : 1;
+  // C guard (feature = "have_xsync") and not a feature: !defined USE_GTK && defined HAVE_CLOCK_GETTIME
   // C: bool_bf use_vsync_p : 1;
   #[cfg (feature = "have_xsync")]
+  // C guard (not a feature): !defined USE_GTK && defined HAVE_CLOCK_GETTIME
   // C guard (not a feature): !defined USE_GTK && defined HAVE_CLOCK_GETTIME
   pub last_frame_time: u64,   // C: uint_fast64_t last_frame_time;
   #[cfg (feature = "have_xsync")]

@@ -14720,3 +14720,176 @@ unsafe extern "C" fn x_io_error_quitter (display: *mut Display) -> c_int
 
   return 0;                                                             // C 27125
 }
+
+/* Changing the font of the frame.  */
+
+/* Give frame F the font FONT-OBJECT as its default font.  The return
+   value is FONT-OBJECT.  FONTSET is an ID of the fontset for the
+   frame.  If it is negative, generate a new fontset from
+   FONT-OBJECT.  */
+
+/// C: Xlib.h 1090: `typedef struct _XOC *XOC, *XFontSet;` - `struct x_output`'s `xic_xfs` row is
+/// declared with it, so the name has to exist wherever that mirror's `have_x_i18n` arm is on.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XFontSet = *mut c_void;
+/// C: Xlib.h 1141: `typedef struct _XIM *XIM;` - `struct x_display_info`'s `xim` row.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIM = *mut c_void;
+/// C: Xlib.h 1142: `typedef struct _XIC *XIC;` - `struct x_output`'s `xic` row.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIC = *mut c_void;
+/// C: Xlib.h 1162: `typedef unsigned long XIMStyle;` - `struct x_output`'s `xic_style` row, and
+/// the type C 27184's mask is taken in.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIMStyle = c_ulong;
+/// C: Xlib.h 1164-1167: `typedef struct { unsigned short count_styles; XIMStyle
+/// *supported_styles; } XIMStyles;` - measured `sizeof 16 align 8`, offsets `count_styles 0`
+/// `supported_styles 8` (the `src/xfns.rs` 3860 row's measurement).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XIMStyles
+{
+  pub count_styles: c_ushort,   // C: unsigned short count_styles;
+  pub supported_styles: *mut XIMStyle,   // C: XIMStyle *supported_styles;
+}
+/// C: Xlib.h 1169-1176: the preedit/status masks the mirror's five `STYLE_*` rows OR together.
+/// C's `#define`s are `long` literals and `XIMStyle` is `unsigned long`; the only uses are those
+/// `STYLE_*` constants and C 27184's test, both `XIMStyle`, so the port writes the conversion at
+/// the use site here (the `src/xfns.rs` 4112-4135 spelling, which types them `XIMStyle`).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreeditArea: XIMStyle = 0x0001;                            // C: Xlib.h 1169
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreeditCallbacks: XIMStyle = 0x0002;                       // C: Xlib.h 1170
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreeditPosition: XIMStyle = 0x0004;                        // C: Xlib.h 1171
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMPreeditNothing: XIMStyle = 0x0008;                         // C: Xlib.h 1172
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMStatusArea: XIMStyle = 0x0100;                             // C: Xlib.h 1174
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMStatusNothing: XIMStyle = 0x0400;                          // C: Xlib.h 1176
+
+/// C 27136-27194: `static Lisp_Object x_new_font (struct frame *f, Lisp_Object font_object, int
+/// fontset)` - a `static` whose **address** goes to `terminal->set_new_font_hook` (C 32271), so
+/// the ABI is `extern "C"` (PORTING.md 1.4, the `pgtk_new_font` shape).  The frame.h accessors C
+/// *writes* need the write arm the mirror does not carry (`include/frame.rs` has the getters),
+/// so the five two-arm macros below are this unit's, the `src/pgtkterm.rs` 312-336 shape; the
+/// functions C calls from other units are declared at the use site (P-72 rule 4) with the
+/// prototypes the reference's own headers carry (`fontset.h` 39/44, `dispextern.h` 3631,
+/// `window.h` 930 and `xfns.c` 3814's non-static `xic_set_xfontset`); `FRAME_XIC`/`FRAME_XIC_STYLE`
+/// are `include/xterm.rs`'s macros; and C 27184's two XIM style bits are measured Xlib constants
+/// (Xlib.h 1171/1174, `XIMPreeditPosition` 4 and `XIMStatusArea` 256).
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_COLUMN_WIDTH {
+  ($f:expr) => { FRAME_COLUMN_WIDTH ($f) };
+  ($f:expr, $v:expr) => { (*$f).column_width = $v };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_LINE_HEIGHT {
+  ($f:expr) => { FRAME_LINE_HEIGHT ($f) };
+  ($f:expr, $v:expr) => { (*$f).line_height = $v };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_MENU_BAR_HEIGHT {
+  ($f:expr) => { FRAME_MENU_BAR_HEIGHT ($f) };
+  ($f:expr, $v:expr) => { (*$f).menu_bar_height = $v };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_TAB_BAR_HEIGHT {
+  ($f:expr) => { FRAME_TAB_BAR_HEIGHT ($f) };
+  ($f:expr, $v:expr) => { (*$f).tab_bar_height = $v };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_COLS {
+  ($f:expr) => { FRAME_CONFIG_SCROLL_BAR_COLS ($f) };
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_cols = $v };
+}
+
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: dispextern.h 3631: `extern void get_font_ascent_descent (struct font *, int *, int *);`
+  pub fn get_font_ascent_descent (font: *mut font, ascent: *mut c_int, descent: *mut c_int);
+  /// C: window.h 930: `extern void adjust_frame_size (struct frame *, int, int, int, bool,
+  /// Lisp_Object);` - C 27178's call.
+  pub fn adjust_frame_size (f: *mut frame, new_width: c_int, new_height: c_int, inhibit: c_int,
+			    pretend: bool, parameter: Lisp_Object);
+  /// C: xfns.c 3814: `void xic_set_xfontset (struct frame *f, const char *base_fontname);` - the
+  /// `HAVE_X_I18N` arm's call (a non-static definition in this tree's `src/xfns.rs`).
+  pub fn xic_set_xfontset (f: *mut frame, base_fontname: *const c_char);
+}
+
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" fn x_new_font (f: *mut frame, font_object: Lisp_Object,
+				 mut fontset: c_int) -> Lisp_Object
+{
+  let font: *mut font = XFONT_OBJECT (font_object);                     // C 27139
+  let unit: c_int;                                                      // C 27140
+  let mut font_ascent: c_int = 0;
+  let mut font_descent: c_int = 0;
+
+  if fontset < 0                                                       // C 27142
+    { fontset = fontset_from_font (font_object); }
+  FRAME_FONTSET! (f) = fontset;                                         // C 27143
+  if FRAME_FONT! (f) == font                                           // C 27144
+    /* This font is already set in frame F.  There's nothing more to
+       do.  */
+    { return font_object; }                                            // C 27147
+
+  FRAME_FONT! (f) = font;                                              // C 27149
+  /* C's member lives inside font.h's `#ifdef HAVE_WINDOW_SYSTEM` (font.h 325-403, the field
+     at 368), so the write carries the macro the mirror's own row carries (the
+     `src/xfns.rs` 1595-1597 shape).  */
+  #[cfg (feature = "have_window_system")]
+  {
+    FRAME_BASELINE_OFFSET! (f) = (*font).baseline_offset;               // C 27150
+  }
+  FRAME_COLUMN_WIDTH! (f, (*font).average_width);                       // C 27151
+  get_font_ascent_descent (font, &raw mut font_ascent, &raw mut font_descent);  // C 27152
+  FRAME_LINE_HEIGHT! (f, font_ascent + font_descent);                   // C 27153
+
+  #[cfg (not (feature = "use_x_toolkit"))]
+  {
+    FRAME_MENU_BAR_HEIGHT! (f, FRAME_MENU_BAR_LINES (f) * FRAME_LINE_HEIGHT (f));  // C 27156
+  }
+  /* We could use a more elaborate calculation here.  */
+  FRAME_TAB_BAR_HEIGHT! (f, FRAME_TAB_BAR_LINES (f) * FRAME_LINE_HEIGHT (f));     // C 27160
+
+  /* Compute character columns occupied by scrollbar.
+
+     Don't do things differently for non-toolkit scrollbars
+     (Bug#17163).  */
+  unit = FRAME_COLUMN_WIDTH (f);                                        // C 27166
+  if FRAME_CONFIG_SCROLL_BAR_WIDTH (f) > 0                              // C 27167
+    {
+      FRAME_CONFIG_SCROLL_BAR_COLS! (f,                                   // C 27168-27169
+	(FRAME_CONFIG_SCROLL_BAR_WIDTH (f) + unit - 1) / unit);
+    }
+  else
+    {
+      FRAME_CONFIG_SCROLL_BAR_COLS! (f, (14 + unit - 1) / unit);          // C 27171
+    }
+
+  /* Don't change the size of a tip frame; there's no point in doing it
+     because it's done in Fx_show_tip, and it leads to problems because
+     the tip frame has no widget.  */
+  if FRAME_X_WINDOW! (f) != 0 && !FRAME_TOOLTIP_P (f)                   // C 27177
+    {
+      adjust_frame_size                                                   // C 27178-27180
+	(f, FRAME_COLS (f) * FRAME_COLUMN_WIDTH (f),
+	 FRAME_LINES (f) * FRAME_LINE_HEIGHT (f), 3, false, Qfont ());
+    }
+
+  #[cfg (feature = "have_x_i18n")]
+  {
+    if !FRAME_XIC! (f).is_null ()                                       // C 27183
+      && (FRAME_XIC_STYLE! (f) & (XIMPreeditPosition | XIMStatusArea)) != 0  // C 27184
+      {
+	block_input ();                                                 // C 27186
+	xic_set_xfontset (f, SSDATA (fontset_ascii (fontset)));         // C 27187
+	unblock_input ();                                               // C 27188
+      }
+  }
+
+  return font_object;                                                   // C 27192
+}

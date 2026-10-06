@@ -19,7 +19,7 @@
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
-9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.  Slice 15 (C 26994-27126, Decision 27) moves it to **159**: three functions retire, the two token rows the first reading brought are closed by `docs/ports/macro-body-notes.tsv` rows, and the invented-export row slice 14 left behind is gone.
+9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.  Slice 15 (C 26994-27126, Decision 27) moves it to **159**: three functions retire, the two token rows the first reading brought are closed by `docs/ports/macro-body-notes.tsv` rows, and the invented-export row slice 14 left behind is gone.  Slice 16 (C 27128-27194, Decision 28) moves it to **158**: `x_new_font` retires as a missing item, and no token row came with it.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -263,7 +263,7 @@
 - [x] x_error_handler  (line 27000, static)
 - [x] x_error_quitter  (line 27082, static)
 - [x] x_io_error_quitter  (line 27115, static)
-- [ ] x_new_font  (line 27137, static)
+- [x] x_new_font  (line 27137, static)
 - [ ] x_calc_absolute_position  (line 27497, static)
 - [ ] x_set_offset  (line 27590, static)
 - [ ] x_get_wm_check_window  (line 27692, static)
@@ -1908,6 +1908,68 @@ expressions (Decision 25).
   `xselect.rs` 136's `<X11/Xproto.h> 110: #define BadWindow 3L`, which this machine's `Xproto.h`
   does not define (it names no `Bad*` code at all; `X.h` 353 is where `BadWindow` lives).
 
+### 28. Slice 16 (C 27128-27194): `x_new_font`, and three shapes the mirror owed
+
+* **The frame.h accessors C *writes* need the second macro arm.**  `include/frame.rs` carries the
+  getters of `FRAME_COLUMN_WIDTH`, `FRAME_LINE_HEIGHT`, `FRAME_MENU_BAR_HEIGHT`,
+  `FRAME_TAB_BAR_HEIGHT` and `FRAME_CONFIG_SCROLL_BAR_COLS`; C 27151-27171 assigns to all five, so
+  the unit declares the two-arm macros the `src/pgtkterm.rs` 312-336 block already uses for the
+  same five names (`FRAME_X (f)` is the getter, `FRAME_X! (f, v)` the write).
+* **`font->baseline_offset` lives behind the mirror's own `have_window_system`.**  font.h's
+  `int baseline_offset` (font.h 368) sits inside the header's `#if defined HAVE_WINDOW_SYSTEM`
+  block, and `include/font.rs` gates that whole run; C's xterm.c reads it with no guard of its own,
+  because configure defines `HAVE_WINDOW_SYSTEM` for every window-system build (configure.ac 7517).
+  The write therefore carries `#[cfg (feature = "have_window_system")]` on a *block* - a statement
+  attribute is what Rust accepts, not one on an expression (`E0658 attributes on expressions are
+  experimental` is the reading that said so) - the `src/xfns.rs` 1595-1597 shape, and its comment
+  records the guard.  The arms do **not** simply add the feature: with `have_window_system` on,
+  `include/dispextern.rs` defines eight names twice (`glyph_string` and the seven
+  `GLYPH_STRING_*` constants at 1608/1776-1788), which is an owed mirror defect, measured (that arm
+  reads `E0428 x8` and drops every other class).
+* **A `#[cfg]` above a comment-only row leaks onto the next item.**  Fifteen rows of
+  `include/xterm.rs` (C's bitfields, carried as `// C: bool_bf … : 1;` lines) had their guard on a
+  `#[cfg]` line of their own; a comment is not an item, so the attribute attaches to whatever
+  follows - which is how `pub xic: XIC` ended up requiring `have_xdbe` as well as `have_x_i18n`
+  (the arm-D reading's `E0609 no field xic`, and arm E - the same arm plus `have_xdbe` - reading
+  clean is what proved it).  All fifteen now fold their guard into the comment text
+  (`// C guard (feature = "have_xdbe"): bool_bf … : 1;`), so no attribute can leak; the four other
+  files with the same shape (`femacs/lib/file-has-acl.rs` 1, `include/dispextern.rs` 1,
+  `src/pgtkselect.rs` 1, `src/w32xfns.rs` 1) are owed to their own lanes, and the whole-tree count
+  is 19 rows in 5 files.
+* **The XIM surface stands at the use site.**  `include/xterm.rs`'s `struct x_output` rows
+  (`xic`, `xic_style`, `xic_xfs`), `x_display_info`'s (`xim`, `xim_styles`) and its five `STYLE_*`
+  constants take `<X11/Xlib.h>`'s types (1090-1167) and masks (1169-1177), and no mirror of this
+  unit's graph declared any of them - so the `have_x_i18n` arm carried twenty `E0425` rows plus one
+  `E0308` (`STYLE_OVERTHESPOT`'s `XIMStyle` against the two `long`-typed declarations the first
+  attempt made).  The five types and the six masks are this unit's use-site declarations (P-72
+  rule 4, the `src/xfns.rs` 3835-4140 block's shape), measured against the installed Xlib
+  (libx11 1.8.13) and typed `XIMStyle` because that is the type their only users take (the
+  `src/xfns.rs` 4112-4135 spelling).  They are **not** in the mirror this round: `src/xfns.rs`
+  includes that mirror and carries its own copies, so a mirror row would be a second definition in
+  its crate (P-90 ⑦) - the owed move is one commit that puts both copies into `include/xlib.rs`'s
+  X11 SDK section.
+
+* **A `#[cfg]` above a comment-only row leaks onto the next item.**  Fifteen rows of
+  `include/xterm.rs` (C's bitfields, carried as `// C: bool_bf … : 1;` lines) had their guard on a
+  `#[cfg]` line of their own; a comment is not an item, so the attribute attaches to whatever
+  follows - which is how `pub xic: XIC` ended up requiring `have_xdbe` as well as `have_x_i18n`
+  (the arm-D reading's `E0609 no field xic`, and arm E - the same arm plus `have_xdbe` - reading
+  clean is what proved it).  All fifteen now fold their guard into the comment text
+  (`// C guard (feature = "have_xdbe"): bool_bf … : 1;`), so no attribute can leak; the four other
+  files with the same shape (`femacs/lib/file-has-acl.rs` 1, `include/dispextern.rs` 1,
+  `src/pgtkselect.rs` 1, `src/w32xfns.rs` 1) are owed to their own lanes, and the whole-tree count
+  is 19 rows in 5 files.
+* **The XIM surface belongs to the mirror that names it.**  `include/xterm.rs`'s `struct x_output`
+  rows (`xic`, `xic_style`, `xic_xfs`) and `x_display_info`'s (`xim`, `xim_styles`) take
+  `<X11/Xlib.h>`'s types, and its five `STYLE_*` constants take Xlib.h 1169-1177's masks - none of
+  which any mirror declared, so the `have_x_i18n` arm carried twenty `E0425` rows plus one
+  `E0308` (`STYLE_OVERTHESPOT`'s `XIMStyle` against undeclared `long` masks).  The five types and
+  the six masks now stand in that mirror, measured against the installed Xlib (libx11 1.8.13), with
+  the masks typed `XIMStyle` (the type C's own use site converts them to, the `src/xfns.rs`
+  4112-4135 spelling); the owed move is `include/xlib.rs`'s X11 SDK section, together with
+  `xfns.rs`'s copies.  The unit's own XIM arm then reads the masks directly, with no cast.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3341,3 +3403,37 @@ rows the first reading brought (`x_error_quitter does not mention 800, int_strle
 opened, no connection was lost and no request serial was read; the remaining `E0425` rows are
 unresolved names, not behaviour.  `x_error_handler`'s address is what C 30791/32358 hand to
 `XSetErrorHandler`, and nothing here has run.
+
+
+### Slice 16's readings (C 27128-27194), as landed and measured (2026-10-06)
+
+**What it lands.**  The `Changing the font of the frame` banner and `x_new_font` (C 27136-27194) -
+the fontset id, the frame's font/baseline/column-width/line-height writes, the scroll-bar column
+computation with its `Bug#17163` note, the tip-frame guard around `adjust_frame_size`, and the
+`HAVE_X_I18N` arm that re-sets the XIC's fontset through `xic_set_xfontset`.  Rust 14,722 -> 14,857
+lines.  The five two-arm frame.h macros and the use-site externs (`fontset.h` 39/44, `dispextern.h`
+3631, `window.h` 930, `xfns.c` 3814) are Decision 28's.
+
+**What the probes read.**  Three arms, both sides, baseline = HEAD's unit with the same mirror:
+arm A (`have_x_windows`) **563 error-lines / 55 warnings -> 563 / 55**; arm B (A + `have_gtk3` +
+`use_gtk`) **563 / 60 -> 563 / 60**; arm C (A + `have_xinput2`) **591 / 57 -> 591 / 57**.  Every
+arm's delta is **zero** - this slice's text resolves every name it uses, which is the reading
+`s16dA` produced after the two first-reading faults were fixed (the `have_window_system` block and
+`let unit`, which the arm named `unused_mut`).
+
+**Arm D, the `have_x_i18n` text (new this slice).**  `have_x_windows` + `have_x_i18n`: baseline
+**584 error-lines / 55 warnings -> 564 / 55**, the whole delta `-20 E0425` (the XIM types and masks
+Decision 28 declares) with every other class and the warning count unmoved.  The named reading of the *other* consumer of
+that mirror, `src/xfns.rs`, reads **6 error-lines / 9 warnings** on both sides with
+`have_x_windows` (sets identical) and **20 / 12 -> 9 / 12** with `have_x_windows` + `have_x_i18n` -
+the leak fix Decision 28 records is what removes those eleven `no field xic`-class rows there,
+warnings unchanged.  The arm exists because
+this is the first slice whose text carries a `HAVE_X_I18N` branch of its own; the frozen
+configuration compiles none of it.
+
+**What `--check` reads.**  **159 -> 158**: `missing function x_new_font` retires and no token row
+arrives.  The line-count row stays (14,857 against C's 33,125, 55.1%).
+
+**Not claimed.**  The frozen configuration compiles none of this file, so all four arms are **text**
+readings of an arm this machine cannot build: no frame was given a font, no scroll bar was sized
+and no frame was resized; the remaining `E0425` rows are unresolved names, not behaviour.
