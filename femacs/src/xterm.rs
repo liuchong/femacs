@@ -13536,3 +13536,72 @@ unsafe fn x_scroll_run (w: *mut window, run: *mut run)
 
   unblock_input ();
 }
+/* Create invisible cursor on the X display referred by DPYINFO.  */
+/// C 12067-12095: `static Cursor make_invisible_cursor (struct x_display_info *dpyinfo)` - `static`
+/// in C with one call site (C 12110), so a plain `unsafe fn`.  `no_data` is C's **function-`static`**
+/// one-byte array and stays in the function where C puts it (PORTING.md 1.3); `XColor col` is C's
+/// uninitialised local handed to `XCreatePixmapCursor` by address, so the port zeroes it
+/// (Deviation 12) and C 12084's chained `col.red = col.green = col.blue = 0` is written out in C's
+/// order; `None` is `include/xlib.rs`'s `x11_constants::None` (X.h 115) and this slice's three new
+/// rows are its `DoRed`/`DoGreen`/`DoBlue` (X.h 622-624, measured values 1/2/4) with
+/// `XCreatePixmapCursor` (Xlib.h 1554-1562) beside the mirror's other bitmap entries.  C's `!rc`
+/// on `x_had_errors_p`'s `int` return is the port's `== 0`, and `col.flags` is XColor's `char`
+/// field, so C's implicit narrowing of the flag expression is written out (`as c_char`).
+/// X11/X.h 622-624: `#define DoRed (1<<0)` / `#define DoGreen (1<<1)` / `#define DoBlue (1<<2)` -
+/// the three bits `XColor.flags` carries, which C 12085's `DoRed | DoGreen | DoBlue` sets.  They
+/// are declared here rather than in `include/xlib.rs`'s `x11_constants` because this slice's write
+/// scope is this unit and the mirror round that moves them (with the row below) is the xlib
+/// ledger's to land (P-88 1's use-site rule, the `src/xfns.rs` 1155-1161 Xlib rows' shape; the
+/// unit's own `#![allow (non_upper_case_globals, …)]` at line 638 covers the three names).
+#[cfg (feature = "have_x_windows")]
+pub const DoRed: c_int = 1;
+#[cfg (feature = "have_x_windows")]
+pub const DoGreen: c_int = 2;
+#[cfg (feature = "have_x_windows")]
+pub const DoBlue: c_int = 4;
+
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: Xlib.h 1554-1562: `extern Cursor XCreatePixmapCursor (Display *, Pixmap, Pixmap,
+  /// XColor *, XColor *, unsigned int, unsigned int);` - C 12086's call (the `src/xfns.rs`
+  /// 1155-1161 Xlib rows' use-site shape).
+  pub fn XCreatePixmapCursor (display: *mut Display, source: Pixmap, mask: Pixmap,
+                              foreground_color: *mut XColor, background_color: *mut XColor,
+                              x: c_uint, y: c_uint) -> Cursor;
+}
+
+#[cfg (feature = "have_x_windows")]
+unsafe fn make_invisible_cursor (dpyinfo: *mut x_display_info) -> Cursor
+{
+  use x11_constants::None;
+
+  let dpy: *mut Display = (*dpyinfo).display;                           // C 12070
+  static no_data: [c_char; 1] = [0];                                    // C 12071
+  let mut pix: Pixmap;                                                  // C 12072
+  let mut col: XColor = core::mem::zeroed ();                           // C 12073
+  let mut c: Cursor;                                                    // C 12074
+
+  c = None as Cursor;                                                   // C 12076
+
+  x_catch_errors (dpy);                                                 // C 12078
+  pix = XCreateBitmapFromData (dpy, (*dpyinfo).root_window,             // C 12079
+			       no_data.as_ptr (), 1, 1);
+  if x_had_errors_p (dpy) == 0 && pix != None as Pixmap                 // C 12080
+    {
+      let pixc: Cursor;                                                 // C 12082
+      col.pixel = 0;                                                    // C 12083
+      col.red = 0;                                                      // C 12084
+      col.green = 0;
+      col.blue = 0;
+      col.flags = (DoRed | DoGreen | DoBlue) as c_char;                 // C 12085
+      pixc = XCreatePixmapCursor (dpy, pix, pix, &raw mut col,          // C 12086
+				  &raw mut col, 0, 0);
+      if x_had_errors_p (dpy) == 0 && pixc != None as Cursor            // C 12087
+	{ c = pixc; }                                                   // C 12088
+      XFreePixmap (dpy, pix);                                           // C 12089
+    }
+
+  x_uncatch_errors ();                                                  // C 12092
+
+  return c;                                                             // C 12094
+}

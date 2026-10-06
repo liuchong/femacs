@@ -19,7 +19,7 @@
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
-9 moves it to **212** (Decision 21) and slice 10 (C 9786-11915, Decision 22) to **185**.
+9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** and slice 11 (C 12066-12095, Decision 23) to **184**.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -164,7 +164,7 @@
 - [ ] x_frame_highlight  (line 11925, static)
 - [ ] x_frame_unhighlight  (line 11952, static)
 - [ ] x_new_focus_frame  (line 11990, static)
-- [ ] make_invisible_cursor  (line 12068, static)
+- [x] make_invisible_cursor  (line 12068, static)
 - [ ] x_toggle_visible_pointer  (line 12100, static)
 - [ ] XTtoggle_invisible_pointer  (line 12142, static)
 - [ ] x_focus_changed  (line 12163, static)
@@ -2767,6 +2767,59 @@ checked 1156 / mismatched 97 / ranges 789 / unresolved 731
 Line count and hash: `femacs/src/xterm.rs` **10,952 -> 13,538 lines**, md5
 `c6f1b725b1ffc98a2d5618cf61d4cef1` -> `d694654e84e3355e5bf83b8d24f60bc5`; this ledger's own
 `## C line ranges` table grew the 27 rows above and the remainder row moved to `11916-33125`.
+
+### Slice 11's readings (C 12066-12095), as landed and measured (2026-10-06)
+
+**What it lands.**  `make_invisible_cursor` (C 12067-12095) - the one function of the exposure/focus
+neighbourhood whose text needs no bitfield machinery: C's function-`static` `no_data` array stays in
+the function (PORTING.md 1.3), `XColor col` is zeroed because C hands it to `XCreatePixmapCursor` by
+address uninitialised (Deviation 12), C 12084's chained `col.red = col.green = col.blue = 0` is
+written out in C's order, `col.flags` is XColor's `char` field (C's flag expression narrowed, `as
+c_char`), `None` is `include/xlib.rs`'s `x11_constants::None` and C's `!x_had_errors_p (dpy)` is the
+port's `== 0` (the int-returning predicate).
+
+**The probe (the lane's command, both sides).**
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xt11 cargo run -q -p xtask -- probe src/xterm.rs /tmp/xt11/new.o \
+      --crate-type=lib --emit=metadata -C panic=abort --cfg 'feature="have_x_windows"'
+# before this slice (HEAD's unit, HEAD's mirror - the same probe):
+#   error: aborting due to 638 previous errors; 54 warnings emitted
+#     436 E0425   13 E0308   166 E0609   17 E0614   1 E0381
+# after (this unit, this mirror):
+#   error: aborting due to 642 previous errors; 54 warnings emitted
+#     440 E0425   13 E0308   166 E0609   17 E0614   1 E0381
+# the whole delta, and it is arithmetic: +4 E0425 and nothing else - the four call sites this
+# slice's text has into the three entry points the unit has not reached yet: x_catch_errors
+# (C 26390), x_uncatch_errors (C 26568) and x_had_errors_p (C 26651, two calls).  Every other
+# class reads exactly what it read before, and the warning count does not move.
+```
+
+**No mirror change this slice** (`check-mirror-dupes` 16/16/0): the four Xlib names the include
+graph does not carry - `XCreatePixmapCursor` (Xlib.h 1554-1562) and the `XColor.flags` bits
+`DoRed`/`DoGreen`/`DoBlue` (X.h 622-624, measured 1/2/4) - are declared at the use site (P-88 1,
+the `src/xfns.rs` 1155-1161 Xlib rows' shape).  Moving them into `include/xlib.rs` (with the
+`x11_constants` module's three constants) is **owed** and belongs to that mirror's own round, which
+is also where the row for `XCreatePixmapCursor`'s half of the 68-entry Xlib inventory recorded in
+slice 10's reading goes.
+
+**Two neighbours are deliberately not in this slice**, and the reason is measured, not stylistic:
+`x_toggle_visible_pointer` (C 12097-12139), `xfixes_toggle_visible_pointer` (C 12053-12062) and
+`XTtoggle_invisible_pointer` (C 12141-12153) all store **`f->pointer_invisible`**, a `frame`
+`bool_bf` for which no window-system-numbered accessor exists - `include/frame.rs`'s shift
+numbering is carried for the frozen arm only (the `src/androidterm.rs` 214-217 note records the
+same bound), so they wait on the `include/frame.rs` round; and `x_fixes_pointer_blanking_supported`
+(C 12040-12045) reads `dpyinfo->xfixes_supported_p`/`xfixes_major`, which `include/xterm.rs` does
+not carry yet.  Their checklist boxes stay unchecked on purpose.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` goes
+**185 rows -> 184**: `make_invisible_cursor` retires as a missing function; the line-count row stays
+(13,607 Rust lines against C's 33,125, 58.9%).  The six text gates are unchanged
+(`check-declarations` 18/0/18/0, `check-citations` 676/0/0/2129/36/0, `check-dead-file-coverage`
+145/0, `check-port-lines` 0/0/0/0, `check-ledger-ticks` 238/0, `check-mirror-dupes` 16/16/0).
+
+**Not claimed.**  The frozen configuration compiles none of this file, so the reading is a
+**text** reading of an arm this machine cannot build: no cursor was created, no display was opened,
+and the four `E0425` rows above are unresolved names, not behaviour.
 
 ## Owed by the integrator (nothing here is claimed as done)
 
