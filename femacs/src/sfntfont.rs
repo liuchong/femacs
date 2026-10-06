@@ -8,8 +8,8 @@
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
 // C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559, C 2560-2742,
-// C 2743-2915, C 2916-3113, C 3114-3472 and C 3473-3660.**  The next live definition is
-// `sfntfont_draw` (C 3676).  The ledger `docs/ports/sfntfont.md`
+// C 2743-2915, C 2916-3113, C 3114-3472, C 3473-3660 and C 3661-3799.**  The next live
+// definition is `sfntfont_get_variation_glyphs` (C 3823).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -4412,4 +4412,181 @@ pub unsafe extern "C" fn sfntfont_close (font: *mut font)
 
   sfntfont_free_outline_cache (&raw mut (*info).outline_cache);   // C 3658
   sfntfont_free_raster_cache (&raw mut (*info).raster_cache);   // C 3659
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 3661-3799: the draw/callback family's first two items, in C's order - C 3664's
+   `/* Glyph display.  */` banner with C 3666-3667's comment and file-scope object
+   `sfnt_put_glyphs`, C 3676-3753's `sfntfont_draw`, and after C 3757's `/* Other callbacks.  */`
+   banner C 3762-3799's `sfntfont_list_family`.  **The next live definition is C 3823's
+   `sfntfont_get_variation_glyphs`** (behind the comment at C 3801-3821), and the ledger's
+   `## C line ranges` names both boundaries.
+
+   `sfntfont_draw` carries `have_window_system` on top of the file gate: its first parameter is
+   `dispextern.h`'s `struct glyph_string` (C 3676), whose mirror is gated by that feature
+   (`include/dispextern.rs` 1601; C 42's `TERM_HEADER` -> `include/androidterm.rs` 44 is how this
+   unit reaches it), and C reads three of its members (C 3688, C 3709, C 3720, C 3740).  C 3667's
+   object and C 3742's call go through `sfntfont_put_glyph_proc`, whose first parameter the mirror
+   spells `*mut c_void` (its own note), so the call converts `s` at the one site C's type
+   information is absent from.
+   ---------------------------------------------------------------------------------------------- */
+/// C 3667: `static sfntfont_put_glyph_proc sfnt_put_glyphs;` - the one file-scope object of this
+/// slice.  C assigns it at C 4221 (`syms_of_sfntfont`, still owed) and calls it at C 3742.
+/// C's own text is unconditional, but the type is `sfntfont.h`'s typedef and this unit's include
+/// of that header's mirror sits under the file gate (C 34), so the object carries it too - the
+/// `system_fonts` (C 169) reading, and the reason `build-tu` (which passes no `--cfg`) is the
+/// plain `rustc` that makes such a mismatch an `E0425` rather than a silent empty unit.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut sfnt_put_glyphs: sfntfont_put_glyph_proc = None;   // C 3667
+
+/// C 3676-3753: `sfntfont_draw` - C's non-`static` driver entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	   feature = "have_window_system"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_draw (s: *mut glyph_string, from: c_int, to: c_int,
+					x: c_int, y: c_int, with_background: bool) -> c_int
+{                                                          // C 3676-3753
+  let mut length: c_int;
+  let mut rasters: *mut *mut sfnt_raster;
+  let mut x_coords: *mut c_int;
+  let mut current_x: c_int;
+  let mut i: c_int;
+  let mut outline: *mut sfnt_glyph_outline;
+  let mut font: *mut font;
+  let mut info: *mut sfnt_font_info;
+  /* C 3685's `metrics` is the out-parameter of `sfntfont_get_glyph_outline` (C 3695) that C 3743
+     reads; zero-initialised because its address is taken (PORTING.md 1.5, Deviation 10).  */
+  let mut metrics: sfnt_glyph_metrics = std::mem::zeroed ();
+
+  length = to - from;                                      // C 3687
+  font = (*s).font;                                        // C 3688
+  info = font as *mut sfnt_font_info;                      // C 3689
+
+  /* C 3691-3692's two `alloca` calls: C's `length * sizeof *rasters` and
+     `length * sizeof *x_coords` come from the port's stack pool (PORTING.md P-05).  */
+  rasters = sa_stack_alloc (length as usize * std::mem::size_of::<*mut sfnt_raster> ())
+    as *mut *mut sfnt_raster;                              // C 3691
+  x_coords = sa_stack_alloc (length as usize * std::mem::size_of::<c_int> ())
+    as *mut c_int;                                         // C 3692
+  current_x = x;                                           // C 3693
+
+  /* Get rasters and outlines for them.  */
+  i = from;                                                // C 3696
+  while i < to
+    {
+      /* Look up the outline.  */
+      outline = sfntfont_get_glyph_outline (*(*s).char2b.offset (i as isize),
+					    &raw mut (*info).outline_cache,
+					    (*info).scale,
+					    &raw mut (*info).outline_cache_size,
+					    &raw mut (*info).blend,
+					    (*info).instance,
+					    (*info).glyf, (*info).head,
+					    (*info).hmtx, (*info).hhea,
+					    (*info).maxp,
+					    (*info).loca_short,
+					    (*info).loca_long,
+					    (*info).interpreter,
+					    &raw mut metrics,
+					    &raw mut (*info).state);   // C 3698-3717
+      *x_coords.offset ((i - from) as isize) = 0;          // C 3718
+
+      if outline.is_null ()                                // C 3720
+	{
+	  *rasters.offset ((i - from) as isize) = std::ptr::null_mut ();   // C 3722
+	  i += 1;
+	  continue;                                        // C 3723
+	}
+
+      /* Rasterize the outline.  */
+      *rasters.offset ((i - from) as isize)
+	= sfntfont_get_glyph_raster (*(*s).char2b.offset (i as isize),
+				     &raw mut (*info).raster_cache,
+				     outline,
+				     &raw mut (*info).raster_cache_size);   // C 3727-3731
+      sfntfont_dereference_outline (outline);              // C 3732
+
+      if (*rasters.offset ((i - from) as isize)).is_null ()   // C 3734
+	{ i += 1; continue; }                              // C 3735
+
+      /* Now work out where to put the outline.  */
+      *x_coords.offset ((i - from) as isize) = current_x;   // C 3738
+
+      if glyph_string_bool_p (&(*s), GLYPH_STRING_PADDING_P)   // C 3740
+	{ current_x += 1; }                                // C 3741
+      else
+	{ current_x += metrics.advance / 65536; }          // C 3743
+      i += 1;
+    }
+
+  /* Call the window system function to put the glyphs to the
+     frame.  */
+  if let Some (put_glyphs) = sfnt_put_glyphs              // C 3742-3743
+    {
+      put_glyphs (s as *mut c_void, from, to, x, y, with_background,
+		  rasters, x_coords);
+    }
+
+  /* Dereference all the rasters.  */
+  i = 0;                                                   // C 3746
+  /* C's bound is `i < from - to`, the *negated* length: with `from < to` the loop body never
+     runs, and the rasters C just handed to `sfnt_put_glyphs` are not dereferenced here.  The
+     port keeps C's expression (the 3.691 reading of C 3612's duplicated clear).  */
+  while i < from - to
+    {
+      if !(*rasters.offset (i as isize)).is_null ()        // C 3748
+	{ sfntfont_dereference_raster (*rasters.offset (i as isize)); }   // C 3749
+      i += 1;
+    }
+
+  return 1;                                                // C 3752
+}
+
+/// C 3762-3799: `sfntfont_list_family` - C's non-`static` driver entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_list_family (f: *mut frame) -> Lisp_Object
+{                                                          // C 3762-3799
+  let mut families: Lisp_Object;
+  let mut tem: Lisp_Object;
+  let mut next: Lisp_Object;
+  let mut desc: *mut sfnt_font_desc;
+
+  families = Qnil ();                                      // C 3768
+
+  desc = system_fonts;                                     // C 3770
+  while !desc.is_null ()
+    {
+      /* Add desc->family to the list.  */
+      families = Fcons ((*desc).family, families);         // C 3772
+      desc = (*desc).next;
+    }
+
+  /* Sort families in preparation for removing duplicates.  */
+  families = CALLN! (Fsort, families, Qstring_lessp ());   // C 3775
+
+  /* Remove each duplicate within families.  */
+
+  tem = families;                                          // C 3779
+  /* C 3780's assignment sits inside the condition; the block is that assignment and its value.  */
+  while !NILP (tem) && !NILP ({ next = XCDR (tem); next })
+    {
+      /* If the two strings are equal.  */
+      if !NILP (Fstring_equal (XCAR (tem), XCAR (next)))   // C 3783
+	/* Set tem's cdr to the cons after the next item.  */
+	{ XSETCDR (tem, XCDR (next)); }                    // C 3785
+      else
+	/* Otherwise, start considering the next item.  */
+	{ tem = next; }                                    // C 3788
+    }
+
+  /* Intern each font family.  */
+
+  tem = families;                                          // C 3793
+
+  FOR_EACH_TAIL! (tem, {
+    XSETCAR (tem, Fintern (XCAR (tem), Qnil ()));          // C 3796
+  });
+
+  return families;                                         // C 3798
 }

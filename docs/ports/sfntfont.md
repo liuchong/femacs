@@ -5,7 +5,31 @@
 > android` branch (the `REALLY_ANDROID` one, 2620-2654 — `sfnt.o` is on the same line, `android.o`
 > one line earlier at 2598; 2605-2606 is the other branch, where `ANDROID_STUBIFY` is defined), and
 > `docs/baseline/frozen-build-sources.txt` lists no `sfntfont.o`.  What follows is P-86 ②'s **C
-> line-range table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
+> line-range table** for this slice, the `## Evidence` readings and the `**㉙ Slice 13's readings.**  `python3 tools/extract-abi.py --check emacs/src/sfntfont.c
+femacs/src/sfntfont.rs` -> **FAIL**, **7** `- ` rows: **6** `- missing function …` (`init_sfntfont`,
+`init_sfntfont_vendor`, `mark_sfntfont`, `syms_of_sfntfont`, `sfntfont_detect_sigbus`,
+`sfntfont_get_variation_glyphs`) and **1** line-count row (**4,592** Rust lines against C's 4,222 is
+**8.8%**, outside the 5% - this slice's banner, two entry points and their doc comments took the file
+out of the band, and the reading returns inside it when C 3800-4222 lands).  Slice 12 read 9 rows:
+this slice removed `sfntfont_draw`, `sfntfont_list_family` and the `sfnt_put_glyphs` **object** row,
+and needed one token row (`sfntfont_draw alloca,padding_p` - C 3691-3692's two `alloca`s are P-05's
+`sa_stack_alloc` and C 3740's `s->padding_p` is `GLYPH_STRING_PADDING_P` through
+`glyph_string_bool_p`).  `cargo run -q -p xtask -- build-tu src/sfntfont.c` -> exit 0, **336 bytes**,
+the standing md5.  The arm flip is run as HEAD-baseline pairs (P-86 ⑦): the file gate alone reads
+**0 errors** on both sides (object **25,568 -> 26,176 bytes**) and the file gate plus
+`have_window_system` reads **0 errors** on both sides (object **32,848 -> 34,744 bytes**); both grew
+by the slice's `#[unsafe(no_mangle)]` entry points, which is code placement and not behaviour.  The
+second cfg set is the one that compiles `sfntfont_draw`; its first run read **two `E0608`s**
+(`cannot index into a value of type *mut u32`, Deviation 28 (a)) and the run before that a parse
+error at C 3740's unbraced `if`/`else` (Deviation 28 (c)).  The other gates:
+`check-dead-file-coverage.py` `145 ledger(s) bound (a C range table), 0 failure(s)` - the last row
+now ends at C 3799 and the table still tiles C 1-4222; `check-declarations.py` `17 declaration sites
+(0 forbidden, 17 allowed literals), 0 failures`; `check-citations.py` `676 file(s) scanned, 0 drift,
+0 range, 2012 external, 36 allowed, 0 stale`; `check-port-lines.py` `0 file(s) under ten percent, 0
+ratchet row(s), 0 new, 0 stale`; `check-cond-eval.py src/sfntfont.c` `27 conditions, 0 unknown, 0
+disagreements [VERIFIED]`.
+
+## Deviations`.  Port:
 > `femacs/src/sfntfont.rs` (**4,415 lines** after slice 12, `grep -c ''`), both arms of every `#if`
 > carried.  **The line-count drift row is gone** (4,415 against C's 4,222 is 4.6%; slice 11's 4,210
 > was already inside the 5% - Evidence ㉖/㉘).
@@ -164,7 +188,8 @@ this tree has not registered yet is `HAVE_HB_FONT_SET_VAR_NAMED_INSTANCE` (C 409
 | 2916-3113 | C 2916's blank, C 2917-2918's comment and `sfnt_open_tables` (C 2920-3113: the open/seek/cmap/UVS block, the ungated `HAVE_MMAP` arms, the loca/hmtx/instruction/distortion reads and the six-label `bailN` ladder of Deviation 25) | file gate - **transcribed** (slice 10) |
 | 3114-3472 | C 3114's blank, C 3115-3116's comment with `sfnt_reference_font_tables` (C 3119-3134), C 3136-3137's comment with `sfnt_dereference_font_tables` (C 3140-3151), and C 3153-3154's comment with `sfntfont_open` (C 3156-3472; Deviation 26's seven shapes) | file gate; `have_window_system` on `sfntfont_open` (Deviation 26 (a)) - **transcribed** (slice 11) |
 | 3473-3660 | C 3474's form feed, C 3476's banner, C 3478-3480's comment with `sfntfont_encode_char` (C 3483-3494), C 3496-3501's comment with `sfntfont_measure_pcm` (C 3504-3539; its definition closes Owed 9), C 3541-3542's comment with `sfntfont_text_extents` (C 3544-3582) and C 3584-3585's comment with `sfntfont_close` (C 3587-3660; Deviation 27's shapes) | file gate; `have_window_system` on `sfntfont_encode_char` (Deviation 27 (c)) - **transcribed** (slice 12) |
-| 3661-4222 | **the remainder** — C 3662's form feed, C 3664's banner, `sfnt_put_glyphs` (C 3667) and from C 3676 (`sfntfont_draw`, **the next live definition**) to C 4222: the draw/callback family (C 3676-3960), the mmap sigbus pair (C 3961-3983) and the HarfBuzz entry points (C 3989-4110), and the three initialization subrs (C 4115-4222) | not this slice |
+| 3661-3799 | C 3662's form feed, C 3664's `/* Glyph display.  */` banner with C 3666-3667's comment and the file-scope object `sfnt_put_glyphs` (C 3667), C 3676-3753's `sfntfont_draw` and, after C 3757's `/* Other callbacks.  */` banner, C 3762-3799's `sfntfont_list_family` | file gate; `have_window_system` on `sfntfont_draw` and on the object whose type is the header's typedef (Deviation 28 (b)) - **transcribed** (slice 13) |
+| 3800-4222 | **the remainder** — the comment at C 3801-3821 and from C 3823 (`sfntfont_get_variation_glyphs`, **the next live definition**) to C 4222: the rest of the callback family (C 3823-3960), the mmap sigbus pair (C 3961-3983) and the HarfBuzz entry points (C 3989-4110), and the four initialization subrs (C 4115-4222) | not this slice |
 
 The 23 rows above tile C 1-1240 **contiguously** (blank lines included) rather than skipping
 the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
@@ -840,6 +865,25 @@ stale`; `check-cond-eval.py src/sfntfont.c` `27 conditions, 0 unknown, 0 disagre
     already cleared at C 3609): the port keeps both statements rather than "tidying" the duplicate,
     and the comment says so at the site.
 
+28. **Slice 13's five shapes.**  (a) **`s->char2b[i]` is `*(*s).char2b.offset (i as isize)`**:
+    `glyph_string`'s mirror spells `char2b` `*mut c_uint` (C 1407's `unsigned *`), Rust cannot index
+    a raw pointer, so both reads (C 3709's outline lookup and C 3727's raster call) take the
+    pointer-offset form the tree already uses (`src/ftcrfont.rs` 1461); the arm flip read it as two
+    `E0608`s first.  (b) **`sfntfont_draw` and the `sfnt_put_glyphs` object carry
+    `have_window_system`** on top of the file gate: the function's first parameter is
+    `struct glyph_string` (C 3676) and the object's type is `sfntfont.h`'s typedef (C 3667), whose
+    mirror is reached through the same gated include list - the `system_fonts` (C 169) reading, and
+    the reason `build-tu` (it passes no `--cfg`) is what catches a missing gate as an `E0425`
+    instead of compiling nothing.  C 3742's call converts `s` to the typedef's `*mut c_void` first
+    parameter at that one site (the include file's own note).  (c) **C 3740's unbraced `if`/`else`
+    takes braces** (Rust needs a block where C takes a single statement); the arm flip read it as
+    `expected `{`, found `current_x``.  (d) **C 3746's `for (i = 0; i < from - to; ++i)` keeps C's
+    negated bound**: with `from < to` the body never runs, so C does not dereference the rasters it
+    has just handed to `sfnt_put_glyphs`; the port keeps the expression and says so at the site (the
+    3.691 reading of C 3612's duplicated clear).  (e) **C 3691-3692's two `alloca`s are
+    `sa_stack_alloc`** (P-05; the function is the second in this unit to need it, and the
+    `macro-body-notes` row named above is its reading).
+
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
 9. **The use-site declaration of `sfntfont_measure_pcm`** (slice 8, Deviation 23 (b)): C 3504 defines
@@ -891,6 +935,11 @@ stale`; `check-cond-eval.py src/sfntfont.c` `27 conditions, 0 unknown, 0 disagre
    the other two is an allowlist row or the same rewrite, and belongs to those lanes or to the
    batch close.
 
+10. **C 4221's assignment belongs to the remainder**: `syms_of_sfntfont` sets
+   `sfnt_put_glyphs = put_glyphs` (C 4221).  Until that slice lands the object this slice declares
+   stays `None`, which is exactly the value C's own uninitialised static has before that function
+   runs; the `init_sfntfont_vendor`/`put_glyphs` pairing is what makes the assignment reachable.
+
 ### Not claimed
 
 Every line of this slice is behind a gate the frozen configuration leaves false: **the frozen
@@ -898,12 +947,13 @@ object (①) is 336 bytes of nothing, and the arm reading (④) never produced a
 flip stops at the mirror's `E0428`.  So there is **no runtime evidence of any kind** for this port:
 no font file was opened, no name table was decoded, no style was parsed, no cmap was identified, no
 `lseek`/`read`/`memmem` returned.  The reading above is slice 1's, and it still holds item for item;
-**slices 2-12 add no runtime evidence either** (Evidence ⑦/⑨/⑪/⑬/⑯/⑰/⑳/㉑/㉓/㉕/㉗: every arm
-flip's diagnostics are unchanged; slices 5, 11 and 12 grew their objects because of `no_mangle`
-entry points that reach the glyph machinery - all of it code placement rather than behaviour).
-C 3661-4222 is **not ported here**; the 8 `- missing function` rows and the 1 remaining object
-(`sfnt_put_glyphs`) of Evidence ㉘ are that boundary, not a defect of these twelve slices (the
-line-count row the earlier readings carried is gone).  The clang probe's
+**slices 2-13 add no runtime evidence either** (Evidence ⑦/⑨/⑪/⑬/⑯/⑰/⑳/㉑/㉓/㉕/㉗/㉙: every arm
+flip's diagnostics are unchanged; slices 5, 11, 12 and 13 grew their objects because of `no_mangle`
+entry points that reach the glyph machinery - all of it code placement rather than behaviour, and
+slice 13's `sfntfont_draw` never ran: no glyph string was drawn, no raster was placed).
+C 3800-4222 is **not ported here**; the 6 `- missing function` rows of Evidence ㉙ are that
+boundary, and its line-count row is this slice's own growth rather than a defect of the port so
+far (the file is incomplete, so the 5% band is a reading, not a verdict).  The clang probe's
 numbers are layout, not behavior.  The one feature this unit uses besides the file gate's pair
 (`harfbuzz`) is the tree's registered name, not this lane's invention, and `have_mmap` is
 deliberately unused (the condition has no second arm).
