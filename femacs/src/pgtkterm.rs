@@ -6520,3 +6520,92 @@ unsafe fn pgtk_fullscreen_hook (f: *mut frame)
       unblock_input ();                                                 // C 4558
     }
 }
+
+/* C: dispextern.h 3741: `extern void image_destroy_all_bitmaps (Display_Info *);` - the C 4580
+   call, with dispextern.h 152's `typedef struct pgtk_display_info Display_Info;` (this unit's own
+   record, the `gui_mouse_grabbed` shape).  gtkutil.h 173/177: `extern void xg_display_close
+   (Display *dpy);` / `extern void xg_display_close (GdkDisplay *gdpy);` - C 4600's call is the
+   GdkDisplay arm for this file (173 is the X11 one; Owed 12's list grows to eight), and
+   `include/gtkutil.rs` carries neither.  lisp.h 5195: `extern void delete_keyboard_wait_descriptor
+   (int);` - the C 4610 call (`src/term.rs` 188 carries the same use-site declaration).  The three
+   stand here with C's own prototypes (P-88 ①).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn image_destroy_all_bitmaps (dpyinfo: *mut pgtk_display_info);
+  pub fn xg_display_close (gdpy: *mut GdkDisplay);
+  pub fn delete_keyboard_wait_descriptor (fd: c_int);
+}
+/* <gdk/gdkevents.h>: `void gdk_event_free (GdkEvent *event);` - the C 4588 call (the GTK
+   segment's convention: the header alone, no line, since this machine has no GTK tree).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gdk_event_free (event: *mut GdkEvent);
+}
+
+/* This function is called when the last frame on a display is deleted. */
+
+/// C 4562-4614: `void pgtk_delete_terminal (struct terminal *terminal)` - a **non-`static`** C
+/// definition, so the port carries `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md 0.2).
+/// `terminal->display_info.pgtk` is `include/termhooks.rs` 170-180's union member, whose pointee
+/// that header cannot complete, so C's store into `struct pgtk_display_info *` is the port's
+/// pointer cast (P-72 rule 3); the four `g_clear_object` calls are that mirror's declared function
+/// (`include/gtk.rs` 989) with the parameter's address cast, the shape this unit already uses at
+/// C 816-820; `G_OBJECT`/`G_CALLBACK` and `g_signal_handlers_disconnect_by_func` are
+/// `include/gtk.rs` 146/1624's, whose third argument is a `gpointer` (C's implicit conversion is
+/// spelled `as gpointer`); `emacs_close` is `include/lisp.rs` 4218's; and
+/// **`pgtk_delete_display` (C 4612) is this file's own forward-declared definition (C 7314, in the
+/// remainder)** - the ledger's Evidence ② table gains that class with count 1.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_delete_terminal (terminal: *mut terminal)
+{
+  let dpyinfo: *mut pgtk_display_info                                 // C 4566
+    = (*terminal).display_info.pgtk as *mut pgtk_display_info;
+
+  /* Protect against recursive calls.  delete_frame in
+     delete_terminal calls us back when it deletes our last frame.  */
+  if (*terminal).name.is_null ()                                        // C 4570
+    { return; }                                                         // C 4571
+
+  block_input ();                                                       // C 4573
+
+  pgtk_im_finish (dpyinfo);                                             // C 4575
+
+  /* Normally, the display is available...  */
+  if !(*dpyinfo).gdpy.is_null ()                                        // C 4578
+    {
+      image_destroy_all_bitmaps (dpyinfo);                              // C 4580
+
+      g_clear_object (&raw mut (*dpyinfo).xg_cursor as *mut *mut GObject);   // C 4582
+      g_clear_object (&raw mut (*dpyinfo).vertical_scroll_bar_cursor as *mut *mut GObject);   // C 4583
+      g_clear_object (&raw mut (*dpyinfo).horizontal_scroll_bar_cursor as *mut *mut GObject); // C 4584
+      g_clear_object (&raw mut (*dpyinfo).invisible_cursor as *mut *mut GObject);   // C 4585
+      if !(*dpyinfo).last_click_event.is_null ()                        // C 4586
+	{
+	  gdk_event_free ((*dpyinfo).last_click_event);                 // C 4588
+	  (*dpyinfo).last_click_event = core::ptr::null_mut ();         // C 4589
+	}
+
+      /* Disconnect these handlers before the display closes so
+	 useless removal signals don't fire.  */
+      g_signal_handlers_disconnect_by_func! (G_OBJECT! ((*dpyinfo).gdpy),    // C 4594-4595
+					     G_CALLBACK! (pgtk_seat_added_cb),
+					     dpyinfo as gpointer);
+      g_signal_handlers_disconnect_by_func! (G_OBJECT! ((*dpyinfo).gdpy),    // C 4597-4598
+					     G_CALLBACK! (pgtk_seat_removed_cb),
+					     dpyinfo as gpointer);
+      xg_display_close ((*dpyinfo).gdpy);                               // C 4600
+
+      (*dpyinfo).gdpy = core::ptr::null_mut ();                         // C 4602
+    }
+
+  if (*dpyinfo).connection >= 0                                         // C 4605
+    { emacs_close ((*dpyinfo).connection); }                            // C 4606
+
+  (*dpyinfo).connection = -1;                                           // C 4608
+
+  delete_keyboard_wait_descriptor (0);                                  // C 4610
+
+  pgtk_delete_display (dpyinfo);                                        // C 4612
+  unblock_input ();                                                     // C 4613
+}

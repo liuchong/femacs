@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-33: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512 and C 4514-4560
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-34: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560 and C 4562-4614
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**6,522 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**6,611 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512** and **C 4514-4560** - thirty-three
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560** and **C 4562-4614** - thirty-four
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_delete_terminal` (C 4563-4565; C 4562 is its comment above it).**
+> `pgtk_query_frame_background_color` (C 4617-4619; C 4616 is its comment above it).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -146,7 +146,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 4209-4365 | `pgtk_set_vertical_scroll_bar` (C 4209-4285, with its comment) and `pgtk_set_horizontal_scroll_bar` (C 4287-4365) | the file gate - **transcribed** (the thirty-first slice) |
 | 4367-4512 | the three scroll-bar hooks with both comment blocks: `pgtk_condemn_scroll_bars` (C 4379-4399), `pgtk_redeem_scroll_bar` (C 4404-4484, whose C 4426 `goto horizontal` is the port's labelled block) and `pgtk_judge_scroll_bars` (C 4489-4512) | the file gate - **transcribed** (the thirty-second slice) |
 | 4514-4560 | `set_fullscreen_state` (C 4514-4549) and `pgtk_fullscreen_hook` (C 4551-4560) | the file gate - **transcribed** (the thirty-third slice) |
-| 4562-7780 | **the remainder of the file** - from C 4562's comment and C 4563's `pgtk_delete_terminal` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4562-4614 | `pgtk_delete_terminal` (C 4562-4614, with its comment) | the file gate - **transcribed** (the thirty-fourth slice) |
+| 4616-7780 | **the remainder of the file** - from C 4616's comment and C 4617's `pgtk_query_frame_background_color` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -194,6 +195,7 @@ statement text:
 | `cannot find type pgtk_device_t` | 7 | `include/pgtkterm.rs` (pgtkterm.h 51-64) |
 | `cannot find function pgtk_frame_rehighlight` / `pgtk_new_focus_frame` / `pgtk_set_event_handler` / `pgtk_unlink_touch_points` / `pgtk_fill_rectangle` | 5 | this file, later in it (C 4770 / 4835 / 6831 / 6655 / 5035) - outside the slice; the fifth arrived with the third slice's `pgtk_clear_glyph_string_rect`, which calls the definition at C 5035 |
 | `cannot find function pgtk_any_window_to_frame` | 1 | this file, later in it (C 7314's definition, forward-declared at C 118) - the name this ledger's twenty-second slice reaches first (C 3526, inside `pgtk_mouse_position`) |
+| `cannot find function pgtk_delete_display` | 1 | this file, later in it (C 7314's definition, forward-declared at C 111) - the name this ledger's thirty-fourth slice reaches first (C 4612), inside `pgtk_delete_terminal` |
 | `cannot find function estimate_mode_line_height` | 1 | **`include/dispextern.rs` 1299-1305's `CURRENT_MODE_LINE_HEIGHT` body**, reached through `include/window.rs` 778's `WINDOW_SCROLL_BAR_AREA_HEIGHT` and `WINDOW_HAS_HORIZONTAL_SCROLL_BAR` - the name this ledger's thirty-first slice reaches first (C 4303); `xdisp.c` defines it, so `src/xdisp.rs` is where the row clears |
 | `cannot find function pgtk_clip_to_row` | **retired** | the class the sixteenth slice reached first (`pgtk_draw_hollow_cursor`, C 2910) and the seventeenth slice grew to two sites (`pgtk_draw_bar_cursor`); the **twenty-third slice** transcribes its C 3628-3645 definition, and with it both sites leave this table |
 | `evaluation panicked: size_of::<font> () == 184` (and 7 more offsets in `font`/`font_driver`) | 8 | **`include/font.rs` 143-149/577-583**: those assertions are the *frozen* arm's measurements and the mirror's `#[cfg(feature = "have_window_system")]` members change the record |
@@ -945,6 +947,23 @@ their assertions are owed.
     `Qfull*` symbols are `include/globals.rs` 2734/2728/3829's.  C 7442 takes `pgtk_fullscreen_hook`'s
     address (the terminal's `fullscreen_hook`), so it stays a plain `unsafe fn` until that slice
     converts it.  No mirror changed, so P-87's two legs do not apply.
+56. **Three more use-site declarations, the union member's cast, and one new class.**  The unit
+    declares `image_destroy_all_bitmaps` (dispextern.h 3741, whose `Display_Info` is this unit's
+    `pgtk_display_info` - the `gui_mouse_grabbed` shape), `xg_display_close` (gtkutil.h 173/177's two
+    arms; C 4600 takes the `GdkDisplay *` one - Owed 12's list grows to eight) and
+    `delete_keyboard_wait_descriptor` (lisp.h 5195; `src/term.rs` 188 carries the same use-site
+    declaration) with C's own prototypes, plus `gdk_event_free` (gdk/gdkevents.h, the GTK segment's
+    header-alone convention).  `terminal->display_info.pgtk` is `include/termhooks.rs` 170-180's
+    union member, whose pointee that header cannot complete, so C's store into
+    `struct pgtk_display_info *` is the port's pointer cast (P-72 rule 3); the four `g_clear_object`
+    calls are `include/gtk.rs` 989's declared function with the parameter's address cast (the same
+    unit's C 816-820 shape, Deviation 11's reading), `G_OBJECT`/`G_CALLBACK`/the disconnect macro are
+    that mirror's 141-148/1624 (whose third argument is a `gpointer`, C's implicit conversion spelled
+    `as gpointer`), and `emacs_close` is `include/lisp.rs` 4218's.  **The slice's one new error class
+    is `pgtk_delete_display`** (C 4612's call; the definition is C 7314, in the remainder): it enters
+    the Evidence ② table with count 1, on top of the five names its first row already carries.  The
+    function is non-`static` in C, so it carries `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md
+    0.2).  No mirror changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -973,8 +992,8 @@ their assertions are owed.
     measure them).  **`include/gtkutil.rs`** owes `xg_ignore_gtk_scrollbar` (gtkutil.c 4351; its own
     36 already names it).  When they land, the unit's copies retire (P-88 ①'s use-site rule).
 
-12. **`include/gtkutil.rs`** owes the seven scroll-bar entry points the twenty-ninth and thirtieth
-    slices declared in the unit: `xg_create_scroll_bar` and `xg_create_horizontal_scroll_bar`
+12. **`include/gtkutil.rs`** owes the eight entry points the twenty-ninth, thirtieth and
+    thirty-fourth slices declared in the unit (`xg_display_close` is the eighth): `xg_create_scroll_bar` and `xg_create_horizontal_scroll_bar`
     (gtkutil.h 118-122 / 123-127, both taking two `GCallback`s and a `const char *`),
     `xg_remove_scroll_bar` (128), `xg_update_scrollbar_pos` / `xg_update_horizontal_scrollbar_pos`
     (129-134 / 135-140) and `xg_set_toolkit_scroll_bar_thumb` /
@@ -2259,3 +2278,35 @@ the frozen configuration compiles none of this file, no window was fullscreened 
 three arm readings are **compile** readings of text this machine cannot build.  The one behaviour the
 slice names but cannot measure is the field's *word*: the mirror's unit for `want_fullscreen` is 2
 (`bits2`), which is why both the reader and the writer take that word.
+
+## The thirty-fourth slice (C 4562-4614): deleting a terminal
+
+**What is in it.**  `pgtk_delete_terminal` (C 4562-4614, with its comment): the display-info load, the
+recursive-call guard, the IM finish, the display branch (bitmap destruction, four `g_clear_object`
+calls, the click-event free, the two signal disconnections and the display close), and the tail
+(connection close, wait-descriptor deletion and the display unlink).  Rust: 6,522 -> **6,611** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 52 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 53 / 20
+C = A + use_gtk + have_gtk3                        : 29 / 18 -> 30 / 18
+```
+**Every arm gains exactly one and loses none**, and the error-set diff was read line by line: the one
+new class is `cannot find function pgtk_delete_display` (C 4612's call; the definition is C 7314, in
+the remainder), which the Evidence ② table now carries with count 1.  **0 new warnings.**  **Arm
+reach is measured** (P-86 ⑦): injecting `let _: c_int = true;` as the first statement of
+`pgtk_delete_terminal` moves arm A to 53 errors anchored at that line (removed, the file re-measured
+at **6,611** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**94 rows -> 93** (the item retires, no `does not mention` row appears) and the file's own
+`line count drifted` row is re-measured 16.2% -> **15.0%** (C 7,780 vs the port's 6,611).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2085/36/0**; `check-dead-file-coverage.py` **145/0** (**66 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round, so P-87's two legs do not apply).  **Not claimed**: none of this has been run -
+the frozen configuration compiles none of this file, no terminal was deleted and no display was
+closed, and the three arm readings are **compile** readings of text this machine cannot build.
