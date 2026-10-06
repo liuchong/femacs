@@ -29,9 +29,12 @@
 // interpreter-helpers block - the zone addressing/storing/moving family, the projection and
 // rounding helpers, `sfnt_interpret_utp` through `sfnt_interpret_else` - with the C 6559-8159
 // macro region left to `sfnt_interpret_run`'s slice, above).
-// **What is left after slice 9** is C 6559-8159 (the interpreter macros, whose home is
-// `sfnt_interpret_run`'s slice, above), C 10664-13917 (the rest of the interpreter -
-// `sfnt_interpret_shz` through the instructed-outline builders, the three compound-glyph
+// **Slice 10 takes C 10664-11101** - the interpreter's shift and interpolate instructions:
+// `sfnt_interpret_shz`, `sfnt_interpret_shc`, `sfnt_interpret_shp`, the four point-access macros
+// with `IUP_SINGLE_PAIR` and `sfnt_interpret_iup_1`, and `sfnt_interpret_iup`.
+// **What is left after slice 10** is C 6559-8159 (the interpreter macros, whose home is
+// `sfnt_interpret_run`'s slice, above), C 11103-13917 (the rest of the interpreter -
+// `sfnt_interpret_mirp` through the instructed-outline builders, the three compound-glyph
 // interpreters and the UVS family) and C 16448-21215, the TEST programme (the ledger's Owed 21);
 // C 9832's `sfnt_interpret_call` is the one landed call whose callee (`sfnt_interpret_run`) is
 // still unported
@@ -203,6 +206,18 @@ pub const POSIX_MADV_WILLNEED: c_int = 3;
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub const MADV_WILLNEED: c_int = 3;
 
+/* C 138's `#include "lisp.h"` reaches `thread.h` 29-31's `<time.h>` arm (dead: inside
+   `#ifdef MSDOS`) and `thread.h` 40's `sysselect.h`, so the *live* prototypes those mirrors
+   carry name `time_t` and `struct timespec`; C gets both from the system `<sys/select.h>`/
+   `<sys/time.h>` (measured: `<sys/select.h>` alone compiles a `time_t` declaration on this
+   target), and the port takes them from the `<time.h>` mirror (P-56's class, the
+   `intervals.rs` 80 and `sys_select.rs` 28 ordering).  This edge has no C line of its own -
+   C's own `<time.h>` (C 165) is inside `#ifdef TEST` - so it is written here, at the include
+   that needs it; the `test` arm's copy then collapses into the materializer's dedupe marker.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+include!("../lib/include/time.in.rs");               // lisp.h -> thread.h 29/40: `time_t`,
+                                                     // `struct timespec`
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 /* C 49-56: `#ifdef TEST`, the file's own test harness.  Both arms are carried.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
 include!("../lib/include/assert.in.rs");               // C 51: `#include <assert.h>`
@@ -13171,4 +13186,488 @@ pub unsafe extern "C" fn sfnt_read_post_table (fd: c_int,
   sfnt_swap32! (&raw mut (*post).max_mem_type_1);
 
   return post;
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 10664-11101: the interpreter's shift and interpolate instructions, in C's order - C 10665-10667's
+   comment with `sfnt_interpret_shz` (C 10669-10699), C 10701-10703's comment with
+   `sfnt_interpret_shc` (C 10705-10780), C 10782-10788's comment with `sfnt_interpret_shp`
+   (C 10790-10825), C 10827-10845's four point-access macros with C 10847-10947's
+   `IUP_SINGLE_PAIR ()`, and C 10949-10952's comment with `sfnt_interpret_iup_1` (C 10955-11046)
+   and `sfnt_interpret_iup` (C 11058-11101).  **The next live definition is C 11113's
+   `sfnt_interpret_mirp`**, and the ledger's `## C line ranges` names both boundaries.
+
+   C's four macros and `IUP_SINGLE_PAIR ()` are in-function `macro_rules!`s (P-57): their bodies name
+   this function's `opcode` and its locals, and a `macro_rules!` resolves those at its definition
+   site, which is why C's `#undef`s (C 11048-11051) are the same statement.  `TRAP` and `POP` are
+   the same shape, each copied into the function that uses it (`sfnt_interpret_flippt`'s reading).
+   ---------------------------------------------------------------------------------------------- */
+/// C 10669-10699: `sfnt_interpret_shz` - C's `static`, called by name only.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_shz (interpreter: *mut sfnt_interpreter,
+			      zone: uint32_t, opcode: c_uint)
+{                                                          // C 10669-10699
+  /* C's four out-parameters of `sfnt_address_zp0`/`zp1` (their addresses are taken and C reads
+     them after the call); zero-initialised so Rust's analysis sees what C's flow guarantees
+     (PORTING.md 1.5, Deviation 10).  */
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut original_x: sfnt_f26dot6 = 0;
+  let mut original_y: sfnt_f26dot6 = 0;
+  let mut magnitude: sfnt_f26dot6;
+
+  if zone != 0 && (*interpreter).glyph_zone.is_null ()        // C 10676
+    /* There are no points in the glyph zone.  */
+    { return; }                                            // C 10678
+
+  if opcode == 0x37                                        // C 10680
+    { sfnt_address_zp0 (interpreter, (*interpreter).state.rp1 as uint32_t,
+			&raw mut x, &raw mut y, &raw mut original_x, &raw mut original_y); }
+  else
+    { sfnt_address_zp1 (interpreter, (*interpreter).state.rp2 as uint32_t,
+			&raw mut x, &raw mut y, &raw mut original_x, &raw mut original_y); }   // C 10684-10685
+
+  magnitude = sfnt_project_vector (interpreter,
+				   sfnt_sub! (x, original_x),
+				   sfnt_sub! (y, original_y));   // C 10687-10689
+
+  if zone == 0                                             // C 10691
+    { sfnt_move_twilight_zone (interpreter, 0,
+			       (*interpreter).twilight_zone_size as size_t,
+			       magnitude); }               // C 10692-10694
+  else
+    { sfnt_move_glyph_zone (interpreter, 0,
+			    (*(*interpreter).glyph_zone).num_points,
+			    magnitude); }                  // C 10696-10698
+}
+
+/// C 10705-10780: `sfnt_interpret_shc` - C's `static`, called by name only.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_shc (interpreter: *mut sfnt_interpreter,
+			      contour: uint32_t, opcode: c_uint)
+{                                                          // C 10705-10780
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  /* C's four out-parameters of `sfnt_address_zp0`/`zp1` (their addresses are taken and C reads
+     them after the call); zero-initialised so Rust's analysis sees what C's flow guarantees
+     (PORTING.md 1.5, Deviation 10).  */
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut original_x: sfnt_f26dot6 = 0;
+  let mut original_y: sfnt_f26dot6 = 0;
+  let mut magnitude: sfnt_f26dot6;
+  let mut reference_point: uint16_t;
+  let mut start: size_t;
+  let mut end: size_t;
+  let mut start1: size_t;
+  let mut end1: size_t;
+  let mut n: size_t;
+
+  if (*interpreter).glyph_zone.is_null ()                  // C 10714
+    { TRAP! (c"SHC without glyph zone".as_ptr ()); }       // C 10715
+
+  /* Check that the contour is within bounds.  */
+  if contour as usize >= (*(*interpreter).glyph_zone).num_contours   // C 10718
+    { TRAP! (c"contour out of bounds".as_ptr ()); }        // C 10719
+
+  /* Figure out the magnitude of the change, measured from the
+     projection vector.  */
+
+  if opcode == 0x35                                        // C 10724
+    { sfnt_address_zp0 (interpreter,
+			{ reference_point = (*interpreter).state.rp1; reference_point } as uint32_t,
+			&raw mut x, &raw mut y, &raw mut original_x, &raw mut original_y); }
+  else
+    { sfnt_address_zp1 (interpreter,
+			{ reference_point = (*interpreter).state.rp2; reference_point } as uint32_t,
+			&raw mut x, &raw mut y, &raw mut original_x, &raw mut original_y); }   // C 10729-10731
+
+  magnitude = sfnt_project_vector (interpreter,
+				   sfnt_sub! (x, original_x),
+				   sfnt_sub! (y, original_y));   // C 10733-10735
+
+  /* Now obtain the start and end of the contour.
+     Verify that both are valid.  */
+
+  if contour != 0                                          // C 10740
+    { start = *((*(*interpreter).glyph_zone).contour_end_points)
+	.offset (contour as isize - 1) + 1; }              // C 10741
+  else
+    { start = 0; }                                         // C 10743
+
+  end = *((*(*interpreter).glyph_zone).contour_end_points).offset (contour as isize);   // C 10745
+
+  if start > end || end >= (*(*interpreter).glyph_zone).num_points   // C 10747
+    { TRAP! (c"invalid contour data in glyph".as_ptr ()); }   // C 10748
+
+  /* If the reference point falls between end and start, split the
+     range formed by end and start at the reference point and keep the
+     latter intact.  */
+
+  if start <= reference_point as usize && reference_point as usize <= end   // C 10754
+    {
+      /* Do the points between start and rpN.  */
+      start1 = start;                                      // C 10757
+      end1 = reference_point as usize - 1;                 // C 10758
+
+      if start1 <= end1                                    // C 10760
+	{ sfnt_move_glyph_zone (interpreter, start1 as uint32_t,
+				end1 - start1 + 1, magnitude); }   // C 10761-10762
+
+      /* Now the points between rpN + 1 and end.  */
+      start1 = reference_point as usize + 1;               // C 10765
+      end1 = end;                                          // C 10766
+
+      if start1 <= end1                                    // C 10768
+	{ sfnt_move_glyph_zone (interpreter, start1 as uint32_t,
+				end1 - start1 + 1, magnitude); }   // C 10769-10770
+
+      return;                                              // C 10772
+    }
+
+  /* Compute the number of points to move.  */
+  n = end - start + 1;                                     // C 10776
+
+  /* Move that many points.  */
+  sfnt_move_glyph_zone (interpreter, start as uint32_t, n, magnitude);   // C 10779
+}
+
+/// C 10790-10825: `sfnt_interpret_shp` - C's `static`, called by name only.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_shp (interpreter: *mut sfnt_interpreter, opcode: c_uint)
+{                                                          // C 10790-10825
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+  /* C 6597-6601's `#define POP()` - the live `#ifndef TEST` arm; the `#else` arm's body names
+     the TEST-only `pop_hook` member (see this file's header).  */
+  macro_rules! POP { () => {
+    if (*interpreter).SP == (*interpreter).stack
+      { TRAP! (c"stack underflow".as_ptr ()); 0 }
+    else
+      { (*interpreter).SP = (*interpreter).SP.offset (-1); *(*interpreter).SP }
+  } }
+
+  /* C's four out-parameters of `sfnt_address_zp0`/`zp1` (their addresses are taken and C reads
+     them after the call); zero-initialised so Rust's analysis sees what C's flow guarantees
+     (PORTING.md 1.5, Deviation 10).  */
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut original_x: sfnt_f26dot6 = 0;
+  let mut original_y: sfnt_f26dot6 = 0;
+  let mut magnitude: sfnt_f26dot6;
+  let mut point: uint32_t;
+
+  /* Figure out the magnitude of the change, measured from the
+     projection vector.  */
+
+  if opcode == 0x33                                        // C 10801
+    { sfnt_address_zp0 (interpreter, (*interpreter).state.rp1 as uint32_t,
+			&raw mut x, &raw mut y, &raw mut original_x, &raw mut original_y); }
+  else
+    { sfnt_address_zp1 (interpreter, (*interpreter).state.rp2 as uint32_t,
+			&raw mut x, &raw mut y, &raw mut original_x, &raw mut original_y); }   // C 10805-10806
+
+  magnitude = sfnt_project_vector (interpreter,
+				   sfnt_sub! (x, original_x),
+				   sfnt_sub! (y, original_y));   // C 10808-10810
+
+  /* Now project it onto the freedom vector and move the point that
+     much for loop variable times.  */
+
+  while { (*interpreter).state.r#loop = (*interpreter).state.r#loop.wrapping_sub (1);
+	  (*interpreter).state.r#loop != 0xffff }          // C 10815
+    {
+      point = POP! ();                                     // C 10817
+
+      sfnt_check_zp2 (interpreter, point);                 // C 10819
+      sfnt_move_zp2 (interpreter, point, 1, magnitude);    // C 10820
+    }
+
+  /* Restore interpreter->state.loop to 1.  */
+  (*interpreter).state.r#loop = 1;                         // C 10824
+}
+
+/// C 10955-11046: `sfnt_interpret_iup_1` - C's `static`, called by name only.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_iup_1 (interpreter: *mut sfnt_interpreter,
+				start: size_t, end: size_t,
+				opcode: c_uchar, mask: c_int)
+{                                                          // C 10955-11046
+  let mut point: size_t;
+  let mut touch_start: size_t;
+  let mut touch_end: size_t;
+  let mut first_point: size_t;
+  let mut point_min: size_t;
+  let mut point_max: size_t;
+  let mut i: size_t;
+  let mut position: sfnt_f26dot6;
+  let mut min_pos: sfnt_f26dot6;
+  let mut max_pos: sfnt_f26dot6;
+  let mut delta: sfnt_f26dot6;
+  let mut ratio: sfnt_f26dot6;
+  let mut original_max_pos: sfnt_f26dot6;
+  let mut org_max_pos: sfnt_f26dot6;
+  let mut original_min_pos: sfnt_f26dot6;
+  let mut org_min_pos: sfnt_f26dot6;
+
+  /* C 10827-10845's four point-access macros: each body selects on this function's `opcode` and
+     reads this zone, so each is a `macro_rules!` here (P-57, the `TRAP` shape).  `load_unscaled`
+     reads the simple glyph's `int16_t` coordinates, which C promotes to `sfnt_f26dot6` - the
+     explicit `as` is that promotion.  */
+  macro_rules! load_point { ($p:expr) => {
+    if opcode == 0x31
+      { *((*(*interpreter).glyph_zone).x_current).offset ($p as isize) }
+    else
+      { *((*(*interpreter).glyph_zone).y_current).offset ($p as isize) }
+  } }
+  macro_rules! store_point { ($p:expr, $val:expr) => {
+    if opcode == 0x31
+      { *((*(*interpreter).glyph_zone).x_current).offset ($p as isize) = $val; }
+    else
+      { *((*(*interpreter).glyph_zone).y_current).offset ($p as isize) = $val; }
+  } }
+  macro_rules! load_original { ($p:expr) => {
+    if opcode == 0x31
+      { *((*(*interpreter).glyph_zone).x_points).offset ($p as isize) }
+    else
+      { *((*(*interpreter).glyph_zone).y_points).offset ($p as isize) }
+  } }
+  macro_rules! load_unscaled { ($p:expr) => {
+    if opcode == 0x31
+      { *((*(*(*interpreter).glyph_zone).simple).x_coordinates).offset ($p as isize)
+	as sfnt_f26dot6 }
+    else
+      { *((*(*(*interpreter).glyph_zone).simple).y_coordinates).offset ($p as isize)
+	as sfnt_f26dot6 }
+  } }
+  /* C 10847-10947's `IUP_SINGLE_PAIR ()` - the interpolation itself, used at C 11023 and
+     C 11040.  */
+  macro_rules! IUP_SINGLE_PAIR { () => {
+    /* Now make touch_start the first point before, i.e. the first
+       touched point in this pair.  */
+
+    if touch_start == start
+      { touch_start = end; }
+    else
+      { touch_start = touch_start - 1; }
+
+    /* Set point_min and point_max based on which glyph is at a
+       lower value.  */
+
+    if load_original! (touch_start) < load_original! (touch_end)
+      {
+	point_min = touch_start;
+	point_max = touch_end;
+      }
+    else
+      {
+	point_max = touch_start;
+	point_min = touch_end;
+      }
+
+    min_pos = load_point! (point_min);
+    max_pos = load_point! (point_max);
+
+    /* This is needed for interpolation.  */
+    original_max_pos = load_original! (point_max);
+    original_min_pos = load_original! (point_min);
+
+    /* Now process points between touch_start and touch_end.  */
+
+    i = touch_start + 1;
+
+    /* touch_start might be the last point in the contour.  */
+
+    if i > end
+      { i = start; }
+
+    while i != touch_end
+      {
+	/* Movement is always relative to the original position of
+	   the point.  */
+	position = load_original! (i);
+
+	/* If i is in between touch_start and touch_end...  */
+	if position >= original_min_pos
+	   && position <= original_max_pos
+	  {
+	    /* Compute the ratio between the two touched point positions
+	       and the original position of the point being touched with
+	       positions from the unscaled outline, if at all
+	       possible.  */
+
+	    if !(*(*interpreter).glyph_zone).simple.is_null ()
+	      {
+		org_max_pos = load_unscaled! (point_max);
+		org_min_pos = load_unscaled! (point_min);
+		position = load_unscaled! (i);
+	      }
+	    else
+	      {
+		org_max_pos = original_max_pos;
+		org_min_pos = original_min_pos;
+	      }
+
+	    /* Handle the degenerate case where original_min_pos and
+	       original_max_pos have not changed by placing the point in
+	       the middle.  */
+	    if org_min_pos == org_max_pos
+	      { ratio = 0o77777; }
+	    else
+	      /* ... preserve the ratio of i between min_pos and
+		 max_pos...  */
+	      { ratio = sfnt_div_fixed (sfnt_sub! (position, org_min_pos) * 1024,
+					sfnt_sub! (org_max_pos, org_min_pos) * 1024); }
+
+	    delta = sfnt_sub! (max_pos, min_pos);
+	    delta = sfnt_mul_fixed_round (ratio, delta);
+	    store_point! (i, sfnt_add! (min_pos, delta));
+	  }
+	else
+	  {
+	    /* ... otherwise, move i by how much the nearest touched
+	       point moved.  */
+
+	    if position >= original_max_pos
+	      { delta = sfnt_sub! (max_pos, original_max_pos); }
+	    else
+	      { delta = sfnt_sub! (min_pos, original_min_pos); }
+
+	    store_point! (i, sfnt_add! (position, delta));
+	  }
+
+	i += 1;
+	if i > end
+	  { i = start; }
+      }
+  } }
+
+  /* Find the first touched point.  If none is found, simply
+     return.  */
+
+  /* C 10978's `touched:` is entered by C 10973's `goto`; C 11028's `wraparound:` and C 11035's
+     `wraparound_1:` are entered by C 11002 and C 11016, and C 11035 falls out of C 11033's
+     `wraparound:` body.  Three blocks carry them: `'skip33` encloses the body and C 11033's
+     statement, so C 11016's jump (`break 'skip33`) skips it and lands on C 11039; `'body` ends at
+     C 11033, so C 11002's jump (`break 'body`) runs it; `'untouched` encloses all of it and is
+     where C 10989/11026's `goto untouched` goes.  */
+  'untouched: {
+   'skip33: {
+    'body: {
+      point = start;                                       // C 10980
+      while !((*((*(*interpreter).glyph_zone).flags).offset (point as isize) as c_int) & mask != 0)
+	{
+	  point += 1;                                      // C 10985
+
+	  /* There are no touched points.  */
+	  if point > end                                   // C 10988
+	    { break 'untouched; }                          // C 10989
+	}
+
+      first_point = point;                                 // C 10992
+
+      while point <= end                                   // C 10994
+	{
+	  /* Find the next untouched point.  */
+	  while ((*((*(*interpreter).glyph_zone).flags).offset (point as isize) as c_int) & mask) != 0
+	    {
+	      point += 1;                                  // C 10999
+
+	      if point > end                               // C 11001
+		{ break 'body; }                           // C 11002: `goto wraparound` (C 11033)
+	    }
+
+	  /* touch_start is now the first untouched point.  */
+	  touch_start = point;                             // C 11006
+
+	  /* Find the next touched point.  */
+	  while !(((*((*(*interpreter).glyph_zone).flags).offset (point as isize) as c_int) & mask) != 0)
+	    {
+	      point += 1;                                  // C 11011
+
+	      /* Move back to start if point has gone past the end of the
+		 contour.  */
+	      if point > end                               // C 11015
+		{ break 'skip33; }                         // C 11016: `goto wraparound_1` (C 11039)
+	    }
+
+	  /* touch_end is now the next touched point.  */
+	  touch_end = point;                               // C 11020
+
+	  /* Do the interpolation.  */
+	  IUP_SINGLE_PAIR! ();                             // C 11023
+	}
+
+      break 'untouched;                                    // C 11026
+    }
+
+    /* C 11028: `wraparound:`.  */
+    /* This is like wraparound_1, except that no untouched points have
+       yet to be found.
+
+       This means the first untouched point is start.  */
+    touch_start = start;                                   // C 11033
+   }
+
+   /* C 11035: `wraparound_1:` - reached by the fall-through from C 11033 and by C 11016's jump.  */
+   /* If point > end, wrap around.  Here, touch_start is set
+      properly, so touch_end must be first_point.  */
+
+   touch_end = first_point;                                // C 11039
+   IUP_SINGLE_PAIR! ();                                    // C 11040
+  }
+  /* C 11042: `untouched:` - the function returns immediately.  */
+  return;                                                  // C 11045
+}
+
+/// C 11058-11101: `sfnt_interpret_iup` - C's `static`, called by name only.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_iup (interpreter: *mut sfnt_interpreter, opcode: c_uchar)
+{                                                          // C 11058-11101
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+
+  let mut mask: c_int;
+  let mut i: size_t;
+  let mut point: size_t;
+  let mut end: size_t;
+  let mut first_point: size_t;
+
+  /* Check that the zone is the glyph zone.  */
+
+  if (*interpreter).state.zp2 == 0                         // C 11066
+    { TRAP! (c"trying to iup in twilight zone".as_ptr ()); }   // C 11067
+
+  if (*interpreter).glyph_zone.is_null ()                  // C 11069
+    { TRAP! (c"iup without loaded glyph!".as_ptr ()); }    // C 11070
+
+  /* Figure out what axis to interpolate in based on the opcode.  */
+  if opcode == 0x30                                        // C 11073
+    { mask = SFNT_POINT_TOUCHED_Y; }
+  else
+    { mask = SFNT_POINT_TOUCHED_X; }                       // C 11076
+
+  /* Now, for each contour, interpolate untouched points.  */
+  point = 0;                                               // C 11079
+  i = 0;                                                   // C 11080
+  while i < (*(*interpreter).glyph_zone).num_contours
+    {
+      first_point = point;                                 // C 11082
+      end = *((*(*interpreter).glyph_zone).contour_end_points).offset (i as isize);   // C 11083
+
+      if point >= (*(*interpreter).glyph_zone).num_points
+	 || end >= (*(*interpreter).glyph_zone).num_points   // C 11085-11086
+	{ TRAP! (c"glyph contains out of bounds contour end point data!".as_ptr ()); }   // C 11087-11088
+
+      sfnt_interpret_iup_1 (interpreter, first_point, end,
+			    opcode, mask);                 // C 11090-11091
+      point = end + 1;                                     // C 11092
+
+      /* Skip the subsequent phantom points, which may end up
+	 intermixed with contours inside a compound glyph.  */
+
+      while point < (*(*interpreter).glyph_zone).num_points
+	 && (((*((*(*interpreter).glyph_zone).flags).offset (point as isize) as c_int)
+	      & SFNT_POINT_PHANTOM) != 0)
+	{ point += 1; }                                    // C 11099
+      i += 1;
+    }
 }
