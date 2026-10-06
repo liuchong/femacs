@@ -3367,3 +3367,128 @@ unsafe fn pgtk_draw_image_glyph_string (s: *mut glyph_string)
       || (*s).hl == DRAW_IMAGE_SUNKEN                                  // C 2357
     { pgtk_draw_image_relief (s); }                                    // C 2358
 }
+
+/* Draw stretch glyph string S.  */
+
+/* C: dispextern.h 3579/3580/3692: `int window_box_left (struct window *, enum glyph_row_area);`,
+   `int window_box_left_offset (struct window *, enum glyph_row_area);` and `extern bool
+   cursor_in_mouse_face_p (struct window *w);` - the C 2377/2389/2414 calls (`src/xdisp.rs` defines
+   them; no mirror carries the three, so the unit declares them at the use site - the
+   `src/w32term.rs` 3134-3141 block of the same three; `window_box_right` is the ninth slice's).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn window_box_left (w: *mut window, area: glyph_row_area) -> c_int;
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int;
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cursor_in_mouse_face_p (w: *mut window) -> bool;
+}
+
+/// C 2363-2455: `static void pgtk_draw_stretch_glyph_string (struct glyph_string *s)` - C's
+/// `eassert (s->first_glyph->type == STRETCH_GLYPH)` keeps the macro with the glyph record's `type`
+/// bitfield read, `s->row->reversed_p`/`mouse_face_p`/`mode_line_p` are `glyph_row_bits!` reads,
+/// `x_stretch_cursor_p` is `include/globals.rs` 7200's `bool` (so C's `!` is the port's), 
+/// `FRAME_COLUMN_WIDTH` is `include/frame.rs` 1353's `pub fn`, C's `min` is the port's `isize` fold
+/// (Deviation 22's class), and `s->area == TEXT_AREA` is C's enumerator test.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_stretch_glyph_string (s: *mut glyph_string)
+{
+  eassert! (glyph_bits! (type, (*(*s).first_glyph)) == STRETCH_GLYPH);  // C 2366
+
+  if (*s).hl == DRAW_CURSOR && !x_stretch_cursor_p                      // C 2368
+    {
+      /* If `x-stretch-cursor' is nil, don't draw a block cursor as
+	 wide as the stretch glyph.  */
+      let mut width: c_int;                                             // C 2372
+      let mut background_width: c_int = (*s).background_width;
+      let mut x: c_int = (*s).x;                                        // C 2373
+
+      if !glyph_row_bits! (reversed_p, (*s).row)                        // C 2375
+	{
+	  let left_x: c_int = window_box_left_offset ((*s).w, TEXT_AREA);   // C 2377
+
+	  if x < left_x                                                    // C 2379
+	    {
+	      background_width -= left_x - x;                              // C 2381
+	      x = left_x;                                                  // C 2382
+	    }
+	}
+      else
+	{
+	  /* In R2L rows, draw the cursor on the right edge of the
+	     stretch glyph.  */
+	  let right_x: c_int = window_box_right ((*s).w, TEXT_AREA);       // C 2389
+
+	  if x + background_width > right_x                                // C 2391
+	    { background_width -= x - right_x; }                           // C 2392
+	  x += background_width;                                           // C 2393
+	}
+      width = min (FRAME_COLUMN_WIDTH ((*s).f) as isize,                // C 2395
+		   background_width as isize) as c_int;
+      if glyph_row_bits! (reversed_p, (*s).row)                         // C 2396
+	{ x -= width; }                                                    // C 2397
+
+      /* Draw cursor.  */
+      pgtk_draw_glyph_string_bg_rect (s, x, (*s).y, width, (*s).height);   // C 2400
+
+      /* Clear rest using the GC of the original non-cursor face.  */
+      if width < background_width                                       // C 2403
+	{
+	  let mut y: c_int = (*s).y;                                       // C 2405
+	  let w: c_int = background_width - width;                         // C 2406
+	  let h: c_int = (*s).height;
+	  let mut r: XRectangle = core::mem::zeroed ();                    // C 2407
+	  let color: c_ulong;                                              // C 2408
+
+	  if !glyph_row_bits! (reversed_p, (*s).row)                       // C 2410
+	    { x += width; }                                                // C 2411
+	  else
+	    { x = (*s).x; }                                                // C 2413
+	  if glyph_row_bits! (mouse_face_p, (*s).row)                      // C 2414
+		  && cursor_in_mouse_face_p ((*s).w)
+	    {
+	      pgtk_set_mouse_face_gc (s);                                  // C 2416
+	      color = (*s).xgcv.foreground;                                // C 2417
+	    }
+	  else
+	    { color = (*((*s).face as *mut face)).background; }            // C 2420
+
+	  let cr: *mut cairo_t = pgtk_begin_cr_clip ((*s).f);              // C 2422
+
+	  get_glyph_string_clip_rect (s, &raw mut r);                      // C 2424
+	  pgtk_set_clip_rectangles ((*s).f, cr, &raw mut r, 1);            // C 2425
+
+	  if (*((*s).face as *mut face)).stipple != 0                      // C 2427
+	    { fill_background (s, x, y, w, h); }                           // C 2428
+	  else
+	    { pgtk_fill_rectangle ((*s).f, color, x, y, w, h,              // C 2430
+				       true); }                                 // C 2431
+
+	  pgtk_end_cr_clip ((*s).f);                                       // C 2433
+	}
+    }
+  else if !glyph_string_bits! (background_filled_p, (*s))               // C 2436
+    {
+      let mut background_width: c_int = (*s).background_width;          // C 2438
+      let mut x: c_int = (*s).x;
+      let text_left_x: c_int = window_box_left ((*s).w, TEXT_AREA);     // C 2439
+
+      /* Don't draw into left fringe or scrollbar area except for
+	 header line and mode line.  */
+      if (*s).area == TEXT_AREA                                         // C 2443
+	  && x < text_left_x && !glyph_row_bits! (mode_line_p, (*s).row)   // C 2444
+	{
+	  background_width -= text_left_x - x;                             // C 2446
+	  x = text_left_x;                                                 // C 2447
+	}
+
+      if background_width > 0                                           // C 2450
+	{ pgtk_draw_glyph_string_bg_rect (s, x, (*s).y, background_width, (*s).height); }   // C 2451
+    }
+
+  glyph_string_bits! (background_filled_p, (*s), true);                 // C 2454
+}
