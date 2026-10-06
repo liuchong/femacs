@@ -2788,3 +2788,208 @@ unsafe fn pgtk_draw_relief_rect (f: *mut frame, left_x: c_int, top_y: c_int, rig
 
   pgtk_end_cr_clip (f);                                                 // C 1950
 }
+
+/* Draw a box on frame F inside the rectangle given by LEFT_X, TOP_Y,
+   RIGHT_X, and BOTTOM_Y.  WIDTH is the thickness of the lines to
+   draw, it must be >= 0.  LEFT_P means draw a line on the
+   left side of the rectangle.  RIGHT_P means draw a line
+   on the right side of the rectangle.  CLIP_RECT is the clipping
+   rectangle to use when drawing.  */
+
+/// C 1960-2000: `static void pgtk_draw_box_rect (struct glyph_string *s, int left_x, int top_y,
+/// int right_x, int bottom_y, int hwidth, int vwidth, bool left_p, bool right_p, XRectangle *
+/// clip_rect)` - the `foreground_backup` save/restore pair around C's four `pgtk_fill_rectangle`
+/// calls (the definition is C 5035's, in the remainder: the class Evidence ② records),
+/// `pgtk_set_clip_rectangles` from the slice above and C's own `/* Top.  */` comment lines.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_box_rect (s: *mut glyph_string, left_x: c_int, top_y: c_int, right_x: c_int,
+				      bottom_y: c_int, hwidth: c_int, vwidth: c_int, left_p: bool,
+				      right_p: bool, clip_rect: *mut XRectangle)
+{
+  let mut foreground_backup: c_ulong;                                   // C 1966
+
+  let cr: *mut cairo_t = pgtk_begin_cr_clip ((*s).f);                   // C 1968
+
+  foreground_backup = (*s).xgcv.foreground;                             // C 1970
+  (*s).xgcv.foreground = (*((*s).face as *mut face)).box_color;         // C 1971
+
+  pgtk_set_clip_rectangles ((*s).f, cr, clip_rect, 1);                  // C 1973
+
+  /* Top.  */
+  pgtk_fill_rectangle ((*s).f, (*s).xgcv.foreground,                    // C 1976
+			       left_x, top_y, right_x - left_x + 1, hwidth,     // C 1977
+			       false);                                          // C 1978
+
+  /* Left.  */
+  if left_p                                                             // C 1981
+    { pgtk_fill_rectangle ((*s).f, (*s).xgcv.foreground,                // C 1982
+				   left_x, top_y, vwidth, bottom_y - top_y + 1, // C 1983
+				   false); }                                    // C 1984
+
+  /* Bottom.  */
+  pgtk_fill_rectangle ((*s).f, (*s).xgcv.foreground,                    // C 1987
+			       left_x, bottom_y - hwidth + 1, right_x - left_x + 1,   // C 1988
+			       hwidth, false);                                  // C 1989
+
+  /* Right.  */
+  if right_p                                                            // C 1992
+    { pgtk_fill_rectangle ((*s).f, (*s).xgcv.foreground,                // C 1993
+				   right_x - vwidth + 1, top_y, vwidth,         // C 1994
+				   bottom_y - top_y + 1, false); }              // C 1995
+
+  (*s).xgcv.foreground = foreground_backup;                             // C 1997
+
+  pgtk_end_cr_clip ((*s).f);                                            // C 1999
+}
+
+/// C 2014: `!s->w->pseudo_window_p` - `window.h` 438's `bool_bf pseudo_window_p : 1`, bit 11 of
+/// `window::bits` (`include/window.rs` 195 names the shift; that mirror's own reader
+/// `WINDOW_PSEUDO_P` loses C's member token, so the unit keeps the member-name form - the
+/// `src/w32term.rs` 937-945 copy of this same arm).
+/// C: #define WINDOW_PSEUDO_P(w) ((w)->pseudo_window_p)
+#[cfg (feature = "have_pgtk")]
+macro_rules! window_bits {
+  (pseudo_window_p, $w:expr) => { ((*($w)).bits >> WINDOW_PSEUDO_WINDOW_P_SHIFT) & 1 != 0 };
+}
+
+/* C: dispextern.h 3581: `int window_box_right (struct window *, enum glyph_row_area);` - the
+   C 2014 call (`src/xdisp.rs` defines it; no mirror carries it, so the unit declares it at the
+   use site - the `src/w32term.rs` 1750-1760 declaration of the same prototype).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn window_box_right (w: *mut window, area: glyph_row_area) -> c_int;
+}
+/* C: dispextern.h 3663: `extern void get_glyph_string_clip_rect (struct glyph_string *s,
+   NativeRectangle *r);` - the C 2036 call (`src/xdisp.rs` defines it; the mirror's copy spells
+   the second parameter `*mut c_void`, so the unit declares C's `XRectangle` shape - the
+   `src/w32term.rs` 966-968 reading of the same call).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn get_glyph_string_clip_rect (s: *mut glyph_string, r: *mut XRectangle);
+}
+/* C: cairo.h 944-945: `cairo_public void cairo_rel_line_to (cairo_t *cr, double dx, double dy);`
+   - the C 2083 call.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_rel_line_to (cr: *mut cairo_t, dx: c_double, dy: c_double);
+}
+
+/* Draw a box around glyph string S.  */
+
+/// C 2005-2048: `static void pgtk_draw_glyph_string_box (struct glyph_string *s)` -
+/// `full_width_p` is `glyph_row_bits!`'s member, `pseudo_window_p` the unit's own
+/// `window_bits!` arm above, `WINDOW_RIGHT_EDGE_X!` is `window.rs`'s macro and
+/// `window_box_right` its use-site declaration, `eabs!` is `lisp.rs`'s macro, C's
+/// `min (last_x, s->x + s->background_width)` is the port's `isize` fold (Deviation 22's class),
+/// and `s->prev`/`s->next` are the mirror's pointers, so C's `NULL` tests are `.is_null ()`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_glyph_string_box (s: *mut glyph_string)
+{
+  let mut hwidth: c_int;                                                // C 2008
+  let mut vwidth: c_int;
+  let mut left_x: c_int;
+  let mut right_x: c_int;
+  let mut top_y: c_int;
+  let mut bottom_y: c_int;
+  let mut last_x: c_int;
+  let mut raised_p: bool;                                               // C 2009
+  let mut left_p: bool;
+  let mut right_p: bool;
+  let mut last_glyph: *mut glyph;                                       // C 2010
+  let mut clip_rect: XRectangle = core::mem::zeroed ();                 // C 2011
+
+  last_x = (if glyph_row_bits! (full_width_p, (*s).row)                 // C 2013
+		       && !window_bits! (pseudo_window_p, (*s).w)             // C 2014
+		    { WINDOW_RIGHT_EDGE_X! ((*s).w) }
+		    else { window_box_right ((*s).w, (*s).area) });
+
+  /* The glyph that may have a right box line.  */
+  last_glyph = (if !(*s).cmp.is_null () || !(*s).img.is_null ()         // C 2017
+			{ (*s).first_glyph }                                   // C 2018
+		      else { (*s).first_glyph.offset (((*s).nchars - 1) as isize) });
+
+  vwidth = eabs! ((*((*s).face as *mut face)).box_vertical_line_width);         // C 2020
+  hwidth = eabs! ((*((*s).face as *mut face)).box_horizontal_line_width);       // C 2021
+  raised_p = face_bits! (box, (*s).face as *mut face) == FACE_RAISED_BOX;       // C 2022
+  left_x = (*s).x;                                                      // C 2023
+  right_x = (if glyph_row_bits! (full_width_p, (*s).row)                // C 2024
+		      && glyph_string_bits! (extends_to_end_of_line_p, (*s))
+		   { last_x - 1 }
+		   else { min (last_x as isize,                                // C 2025
+				 ((*s).x + (*s).background_width) as isize) as c_int - 1 });
+  top_y = (*s).y;                                                       // C 2026
+  bottom_y = top_y + (*s).height - 1;                                   // C 2027
+
+  left_p = (glyph_bits! (left_box_line_p, (*(*s).first_glyph))          // C 2029
+		 || ((*s).hl == DRAW_MOUSE_FACE                               // C 2030
+			 && ((*s).prev.is_null () || (*(*s).prev).hl != (*s).hl)));
+  right_p = (glyph_bits! (right_box_line_p, (*last_glyph))              // C 2032
+		  || ((*s).hl == DRAW_MOUSE_FACE                              // C 2033
+			  && ((*s).next.is_null () || (*(*s).next).hl != (*s).hl)));
+
+  get_glyph_string_clip_rect (s, &raw mut clip_rect);                   // C 2036
+
+  if face_bits! (box, (*s).face as *mut face) == FACE_SIMPLE_BOX        // C 2038
+    { pgtk_draw_box_rect (s, left_x, top_y, right_x, bottom_y, hwidth,  // C 2039
+				  vwidth, left_p, right_p, &raw mut clip_rect); }   // C 2040
+  else
+    {
+      pgtk_setup_relief_colors (s);                                     // C 2043
+      pgtk_draw_relief_rect ((*s).f, left_x, top_y, right_x, bottom_y, hwidth,   // C 2044
+			     vwidth, raised_p, true, true, left_p, right_p,      // C 2045
+			     &raw mut clip_rect);                                // C 2046
+    }
+}
+
+/// C 2050-2089: `static void pgtk_draw_horizontal_wave (struct frame *f, unsigned long color,
+/// int x, int y, int width, int height, int wave_length)` - C's two `double` locals are the
+/// `as c_double` widenings of `wave_length`/`height - 1`, `y` is reassigned in the body (so the
+/// parameter is `mut`, the `src/image.rs` 2902 `mut width` shape), C's `--n` is the port's
+/// `n -= 1` at the head of the loop (the `src/xterm.rs` 7364-7370 body of the same C text), and
+/// the six cairo calls are this unit's declarations plus the mirror's `cairo_set_line_width`/
+/// `cairo_stroke` pair added with slice 4.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_horizontal_wave (f: *mut frame, color: c_ulong, x: c_int, mut y: c_int,
+					     width: c_int, height: c_int, wave_length: c_int)
+{
+  let cr: *mut cairo_t;                                                 // C 2054
+  let mut dx: c_double = wave_length as c_double;                       // C 2055
+  let mut dy: c_double = (height - 1) as c_double;
+  let mut xoffset: c_int;                                               // C 2056
+  let mut n: c_int;
+
+  cr = pgtk_begin_cr_clip (f);                                          // C 2058
+  pgtk_set_cr_source_with_color (f, color, false);                      // C 2059
+  cairo_rectangle (cr, x as c_double, y as c_double, width as c_double, height as c_double);   // C 2060
+  cairo_clip (cr);                                                      // C 2061
+
+  if x >= 0                                                             // C 2063
+    {
+      xoffset = x % (wave_length * 2);                                  // C 2065
+      if xoffset == 0                                                   // C 2066
+	{ xoffset = wave_length * 2; }
+    }
+  else
+    { xoffset = x % (wave_length * 2) + wave_length * 2; }              // C 2070
+  n = (width + xoffset) / wave_length + 1;                              // C 2071
+  if xoffset > wave_length                                              // C 2072
+    {
+      xoffset -= wave_length;                                           // C 2074
+      n -= 1;                                                           // C 2075
+      y += height - 1;                                                  // C 2076
+      dy = -dy;                                                         // C 2077
+    }
+
+  cairo_move_to (cr, (x - xoffset) as c_double + 0.5, y as c_double + 0.5);    // C 2080
+  loop
+    {
+      n -= 1;                                                           // C 2081's `--n >= 0`
+      if n < 0
+	{ break; }
+      cairo_rel_line_to (cr, dx, dy);                                   // C 2083
+      dy = -dy;                                                         // C 2084
+    }
+  cairo_set_line_width (cr, 1.0);                                       // C 2086
+  cairo_stroke (cr);                                                    // C 2087
+  pgtk_end_cr_clip (f);                                                 // C 2088
+}
