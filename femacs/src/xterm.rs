@@ -15331,3 +15331,134 @@ unsafe fn xim_close_dpy (dpyinfo: *mut x_display_info)
     (*dpyinfo).xim_styles = std::ptr::null_mut ();                      // C 27485
   }
 }
+
+/* Calculate the absolute position in frame F
+   from its current recorded position values and gravity.  */
+
+/// C: Xutil.h 74-75: `#define XNegative 0x0010` / `#define YNegative 0x0020` - the two
+/// `size_hint_flags` bits this function tests and clears (measured on this machine).
+#[cfg (feature = "have_x_windows")]
+pub const XNegative: c_int = 0x0010;
+#[cfg (feature = "have_x_windows")]
+pub const YNegative: c_int = 0x0020;
+/* C: xterm.h 1863-1864: `extern int x_display_pixel_height (struct x_display_info *);` /
+   `extern int x_display_pixel_width (struct x_display_info *);` - both are defined in this file
+   (C 18482/18491, still unchecked in the ledger's list), so the port declares them at this use
+   site until those definitions land (P-72 rule 4).  */
+/* C 27531/27573 call `x_display_pixel_width`/`x_display_pixel_height`, which this file defines
+   at C 18482/18491 (still unticked below) and xterm.h 1863-1864 declares for *every* X build.
+   `include/gtk.rs` is where the port has the pair, and its rows sit inside that mirror's
+   `use_gtk` block (`#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]` with a
+   `not (have_pgtk)` inner gate), so the non-GTK arms have no name to call and the two `E0425`
+   rows stand as this unit's owed record until either the definitions land or that mirror's gate
+   matches C's.  The unit does not declare them itself: the mirror owns the name (P-26/P-90 ⑦,
+   the `check-mirror-dupes` reading this slice produced).  */
+/* C: X11/Intrinsic.h: `typedef struct _WidgetRec *Widget;` / `extern void XtVaGetValues (Widget,
+   ...);` / `#define XtNheight "height"` - C 27553's call, in the `USE_X_TOOLKIT && USE_MOTIF`
+arm.  libXt's headers are not on this machine, so the citations are the header's own names and
+   the `src/xfns.rs` 1203/1389 notes' rule applies; `Widget` is the mirror's field type.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_motif"))]
+pub type Widget = *mut c_void;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_motif"))]
+pub fn XtNheight () -> *mut c_char { c"height".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_motif"))]
+unsafe extern "C" {
+  pub fn XtVaGetValues (widget: Widget, ...);
+}
+
+/// C 27496-27581: `static void x_calc_absolute_position (struct frame *f)` - a `static` whose
+/// callers are this file's, so a plain `unsafe fn`.  `flags` and `p` keep C's own declarations;
+/// `has_been_visible` is a `bool_bf` member of `struct x_output` that `include/xterm.rs` carries
+/// as a comment rather than as storage (its own heading), so the port spells C's member name and
+/// the two `E0609 no field` rows this produces are this unit's owed record (the
+/// `src/xfns.rs` 988-999 reading of the same group); `Fx_frame_edges`/`Fnth`/`Qouter_edges` are
+/// `include/globals.rs`'s, and `make_fixnum`/`XFIXNUM` are the mirror's.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_calc_absolute_position (f: *mut frame)
+{
+  let flags: c_int = (*f).size_hint_flags;                              // C 27499
+  let p: *mut frame = FRAME_PARENT_FRAME (f);                           // C 27500
+
+  /* We have nothing to do if the current position
+     is already for the top-left corner.  */
+  if !((flags & XNegative) != 0 || (flags & YNegative) != 0)            // C 27504
+    { return; }                                                         // C 27505
+
+  /* Treat negative positions as relative to the leftmost bottommost
+     position that fits on the screen.  */
+  if (flags & XNegative) != 0                                           // C 27509
+    {
+      let mut width: c_int = FRAME_PIXEL_WIDTH (f);                     // C 27511
+
+      /* A frame that has been visible at least once should have outer
+	 edges.  */
+      if (*FRAME_X_OUTPUT! (f)).has_been_visible && p.is_null ()        // C 27515
+	{
+	  let mut frame: Lisp_Object;                                   // C 27517
+	  let mut edges: Lisp_Object = Qnil ();                         // C 27518
+
+	  XSETFRAME! (frame, f);                                        // C 27520
+	  edges = Fx_frame_edges (frame, Qouter_edges ());              // C 27521
+	  if !NILP (edges)                                              // C 27522
+	    {
+	      width = (XFIXNUM (Fnth (make_fixnum (2), edges))          // C 27523-27524
+		       - XFIXNUM (Fnth (make_fixnum (0), edges))) as c_int;  // C's narrowing to `int`
+	    }
+	}
+
+      if !p.is_null ()                                                  // C 27527
+	{
+	  (*f).left_pos = FRAME_PIXEL_WIDTH (p) - width - 2 * (*f).border_width   // C 27528-27529
+			  + (*f).left_pos;
+	}
+      else
+	{
+	  (*f).left_pos = x_display_pixel_width (FRAME_DISPLAY_INFO! (f))  // C 27531-27532
+			  - width + (*f).left_pos;
+	}
+    }
+
+  if (flags & YNegative) != 0                                           // C 27536
+    {
+      let mut height: c_int = FRAME_PIXEL_HEIGHT (f);                   // C 27538
+
+      #[cfg (all (feature = "use_x_toolkit", feature = "use_motif"))]
+      {
+	/* Something is fishy here.  When using Motif, starting Emacs with
+	   `-g -0-0', the frame appears too low by a few pixels.  ...  */
+	XtVaGetValues ((*FRAME_X_OUTPUT! (f)).column_widget, XtNheight (),  // C 27553
+		       &raw mut height, std::ptr::null_mut::<c_void> ());
+      }
+
+      if (*FRAME_X_OUTPUT! (f)).has_been_visible && p.is_null ()        // C 27556
+	{
+	  let mut frame: Lisp_Object;                                   // C 27558
+	  let mut edges: Lisp_Object = Qnil ();                         // C 27559
+
+	  XSETFRAME! (frame, f);                                        // C 27561
+	  if NILP (edges)                                               // C 27562
+	    { edges = Fx_frame_edges (frame, Qouter_edges ()); }        // C 27563
+	  if !NILP (edges)                                              // C 27564
+	    {
+	      height = (XFIXNUM (Fnth (make_fixnum (3), edges))         // C 27565-27566
+			- XFIXNUM (Fnth (make_fixnum (1), edges))) as c_int;  // C's narrowing to `int`
+	    }
+	}
+
+      if !p.is_null ()                                                  // C 27569
+	{
+	  (*f).top_pos = FRAME_PIXEL_HEIGHT (p) - height - 2 * (*f).border_width  // C 27570-27571
+			 + (*f).top_pos;
+	}
+      else
+	{
+	  (*f).top_pos = x_display_pixel_height (FRAME_DISPLAY_INFO! (f))  // C 27573-27574
+			 - height + (*f).top_pos;
+	}
+    }
+
+  /* The left_pos and top_pos
+     are now relative to the top and left screen edges,
+     so the flags should correspond.  */
+  (*f).size_hint_flags &= !(XNegative | YNegative);                     // C 27580
+}

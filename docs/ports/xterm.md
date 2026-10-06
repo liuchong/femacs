@@ -24,7 +24,9 @@
 demanded them.  Slice 18 (C 27286-27342, Decision 30) **stays 158** as well: `xim_open_dpy` sits inside
 C 27200's `#ifdef HAVE_X_I18N`, which is `undef` in the frozen table too.  Slice 19 (C 27344-27433, Decision 31) **stays 158**: the instantiate
 callback is behind `HAVE_X11R6_XIM` and `xim_initialize`'s arms are behind `HAVE_XIM`, all
-`undef` in the frozen table.  Slice 20 (C 27436-27487, Decision 32) **stays 158** for the same reason.
+`undef` in the frozen table.  Slice 20 (C 27436-27487, Decision 32) **stays 158** for the same reason.  Slice 21 (C 27493-27581, Decision 33) moves it to **157**: the
+function's missing row retires and its `output_data` token row is closed by a
+`docs/ports/macro-body-notes.tsv` row.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -3640,3 +3642,28 @@ line-count row moves to 15,333 against C's 33,125 (53.7%).
 **Not claimed.**  The frozen configuration compiles none of this text: no callback was
 unregistered, no input-method connection was closed and no style list was freed.  The remaining
 `E0425` rows are unresolved names, not behaviour.
+
+
+### Slice 21's readings (C 27493-27581), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_calc_absolute_position` (C 27496-27581), the file's first *live* function
+after the XIM block: the two `XNegative`/`YNegative` early-outs, the width/height arms with their
+frame-edge queries and the parent-frame branches, the Motif arm's `XtVaGetValues`, and the final
+flag clear.  Rust 15,333 -> 15,464 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**547 error-lines / 55 warnings -> 551 / 55**: the whole delta is **+2 `E0425`** (the two display measurements) and **+2 `E0609`**, the two
+`has_been_visible` reads Decision 33 records, with every other class and the warning count
+unmoved.  Arm I (`have_x_windows` + `use_x_toolkit` + `use_motif`) **589 / 55 -> 586 / 55**:
+`-6 E0425` (the Xt names this slice declares) and `+3 E0609` (the two
+`has_been_visible` reads plus `column_widget`).
+
+**What `--check` reads.**  **158 -> 157**: `missing function x_calc_absolute_position` retires and the
+`x_calc_absolute_position does not mention output_data` token row is closed by a
+`docs/ports/macro-body-notes.tsv` row; nothing else moves.  The line-count row moves to 15,464
+against C's 33,125 (53.3%).
+
+**Not claimed.**  The frozen configuration compiles none of this file, so the arm's numbers are
+**text** readings: no frame position was computed, no frame edge was queried and no size hint flag
+was cleared.  The remaining `E0425`/`E0609` rows are unresolved names and unstored members, not
+behaviour.
