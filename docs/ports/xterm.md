@@ -5871,7 +5871,7 @@ arm's `GDK_WINDOW_XID` is unmeasured text.
 
 **What it lands.**  `x_detect_focus_change` (C 13979-14031), `x_mouse_leave` (C 14038-14083),
 `XTframe_rehighlight` (C 14094-14098) and `x_frame_rehighlight` (C 14100-14127), plus the eight
-measured X11 event constants in `include/xlib.rs`.  Rust 21,980 -> 22,163 lines.
+measured X11 event constants in `include/xlib.rs`.  Rust 21,980 -> 22,168 lines.
 
 **What the probes read.**  Baseline = HEAD's unit (slice 58's commit) with the same arm: A 725 / 69,
 B 747 / 70, C 776 / 71.
@@ -5899,7 +5899,7 @@ moves `E0308` 13 -> 14 anchored exactly at that line (`_root.rs:22017`); removin
 
 **What `--check` reads.**  **66 -> 62**: the four functions retire as missing items and the two
 token rows the slice brings (`x_detect_focus_change`'s `switch,case,break`, `x_frame_rehighlight`'s
-`0`) are closed by `docs/ports/macro-body-notes.tsv` rows.  The line-count row moves to 22,163
+`0`) are closed by `docs/ports/macro-body-notes.tsv` rows.  The line-count row moves to 22,168
 against C's 33,125 (33.1% drift).
 
 **What the mirror change cost.**  P-87 ①'s legs read `checked 83 unit(s), 0 failure(s)` and
