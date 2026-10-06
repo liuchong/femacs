@@ -27298,5 +27298,110 @@ pub static mut XTread_socket_fake_io_error: *mut x_display_info = std::ptr::null
 #[cfg (feature = "have_x_windows")]
 pub static mut next_noop_dpyinfo: *mut x_display_info = std::ptr::null_mut (); // C 17840
 
-/* C 17842-17849's comment opens `x_filter_event` (C 17850-17930), whose C gate is
-   `HAVE_X_I18N` (undef in the frozen table): the next slice reads it under that feature.  */
+/* Filter events for the current X input method.
+   DPYINFO is the display this event is for.
+   EVENT is the X event to filter.
+
+   Returns non-zero if the event was filtered, caller shall not process
+   this event further.
+   Returns zero if event is wasn't filtered.  */
+
+/// C 17851-17920: `static int x_filter_event (struct x_display_info *dpyinfo, XEvent *event)` -
+/// C's `static`, and C 17850's `#ifdef HAVE_X_I18N` (undef in the frozen table) wraps the *whole*
+/// definition, so the file gate plus that feature is the pair: no default arm compiles it, and
+/// this slice adds three `have_x_i18n` arms to read it.
+/// Three shapes are new in this file.  (1) C 17861's `#if defined HAVE_XINPUT2 && defined
+/// USE_GTK` declares `xinput_event` and its `else` is *shared* with the line after the `#endif`,
+/// so the port repeats that line in both arms (the C 12411-12418 rendering above).  (2) C's
+/// `x_any_window_to_frame` is this unit's *function* in the toolkit/GTK arms and xterm.c 12486's
+/// *macro* in the plain-X arm, so C's one call line is written cfg'd three ways - a function call
+/// where the function exists, `x_any_window_to_frame!` where the macro does; this is the file's
+/// first call site of that name.  (3) C 17892-17894's `#ifdef HAVE_XINPUT2 || xinput_event
+/// #endif` is a term *inside* a condition, and Rust has no cfg'd sub-expression: the term is a
+/// block operand whose two cfg'd statements are `xinput_event` and `false` - the forced substitute
+/// for a removed disjunct, the same reading as `((void)0)`'s `let _ = 0;` (`src/pgtkfns.rs` 2938).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe fn x_filter_event (dpyinfo: *mut x_display_info, event: *mut XEvent) -> c_int
+{
+  use crate::x11_constants::None;                                       /* C 17887's `None` */
+  let mut f1: *mut frame;                                              // C 17859
+
+  /* C 17861-17878: the `#if defined HAVE_XINPUT2 && defined USE_GTK` block; C's `else` at
+     C 17877 belongs to it, and the statement after the `#endif` is the same line, so both arms
+carry it.
+
+     `xinput_event` itself takes the *outer* `use_gtk` gate rather than C's `HAVE_XINPUT2 &&
+     USE_GTK`: C 17892-17894 reads the name under `#ifdef HAVE_XINPUT2` alone, and Rust cannot put
+     a `#[cfg]` on a sub-expression of a condition (`E0658 attributes on expressions are
+     experimental`, measured with a two-line file - the same gate is why a cfg'd *assignment*
+     below is written as a cfg'd block).  Its initialiser is `false` and only the block under it
+     ever writes it, so every arm's condition is C's own.  */
+#[cfg (feature = "use_gtk")]
+  let mut xinput_event: bool = false;                                  // C 17862
+#[cfg (all (feature = "have_xinput2", feature = "use_gtk"))]
+  {
+    if (*dpyinfo).supports_xi2                                         // C 17863
+	&& (*event).r#type == GenericEvent                             // C 17864
+	&& (*event).xgeneric.extension == (*dpyinfo).xi2_opcode        // C 17865-17866
+	&& ((*event).xgeneric.evtype == XI_KeyPress                    // C 17867-17868
+	    || (*event).xgeneric.evtype == XI_KeyRelease)              // C 17869-17870
+      {
+	f1 = x_any_window_to_frame (dpyinfo,                           // C 17872-17874
+				    (*( (*event).xcookie.data as *mut XIDeviceEvent )).event);
+	xinput_event = true;                                           // C 17875
+      }
+    else
+      {
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+	{ f1 = x_any_window_to_frame (dpyinfo, (*event).xclient.window); } // C 17879-17880
+#[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+	{ f1 = x_any_window_to_frame! (dpyinfo, (*event).xclient.window); } // C 17879-17880
+      }
+  }
+#[cfg (not (all (feature = "have_xinput2", feature = "use_gtk")))]
+  {
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+    { f1 = x_any_window_to_frame (dpyinfo, (*event).xclient.window); } // C 17879-17880
+#[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+    { f1 = x_any_window_to_frame! (dpyinfo, (*event).xclient.window); } // C 17879-17880
+  }
+
+#[cfg (feature = "use_gtk")]
+  if !x_gtk_use_native_input && !(*dpyinfo).prefer_native_input        // C 17883-17884
+    {
+      return XFilterEvent (event,                                      // C 17887
+			   if !f1.is_null () { FRAME_X_WINDOW! (f1) } else { None as Window });
+    }
+  else if !f1.is_null () && ((*event).r#type == KeyPress               // C 17890-17891
+			     || (*event).r#type == KeyRelease          // C 17892
+			     || xinput_event)                                  // C 17893-17894
+    {
+      let mut result: bool;                                            // C 17897
+
+      block_input ();                                                  // C 17899
+      result = xg_filter_key (f1, event);                              // C 17900
+      unblock_input ();                                                // C 17901
+
+      /* Clear `xg_pending_quit_event' so we don't end up reacting to quit
+	 events sent outside the main event loop (i.e. those sent from
+	 inside a popup menu event loop).  */
+
+      if popup_activated () != 0                                       // C 17907
+	{ input_event_bits! (kind, &raw mut xg_pending_quit_event, NO_EVENT); } // C 17908
+
+      if result && !f1.is_null ()                                      // C 17910
+	/* There will probably be a GDK event generated soon, so
+	   exercise the wire to make pselect return.  */
+	{ XNoOp (FRAME_X_DISPLAY! (f1)); }                             // C 17913
+
+      return result as c_int;                                          // C 17915
+    }
+#[cfg (not (feature = "use_gtk"))]
+  { return XFilterEvent (event,                                        // C 17887
+		     if !f1.is_null () { FRAME_X_WINDOW! (f1) } else { None as Window }); }
+
+  return 0;                                                            // C 17918
+}
+
+/* C 17923's `#ifdef USE_GTK` opens `event_handler_gdk` (C 17927-...), whose first line is the
+   next definition; C 17921's `#endif` closes the `HAVE_X_I18N` pair this slice reads.  */

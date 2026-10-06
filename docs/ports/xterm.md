@@ -83,6 +83,17 @@ six arms** - A 788 -> **786**, U 817 -> **815**, UT 803 -> **801**, UM 804 -> **
 half exists only under `enable_checking` (`undef` in the frozen table), which is why AE exists:
 with a temporary reader after the macro's definition, AE reads 0 error and 0 warning delta, and a
 deliberate type error in the macro body moves it 818 -> 819 at the macro's own line.
+  Slice 88 (C 17850-17921, Decision 101) **stays 28**: `x_filter_event` lives inside
+`#ifdef HAVE_X_I18N` (`undef` in the frozen table), so it is P-66 dead text with no checklist row
+and no `--check` item - the first slice of this lane whose reading lives entirely outside the five
+standard arms, which is why it adds *three* (`have_x_i18n`, that plus `use_gtk`, and that plus
+`have_xinput2`).  Those arms move A 792 -> **794** (AI), 812 -> **822** (AIU) and 910 -> **929**
+(AIUX), and every added row is a counted class (the `[u8; 192]` placeholder's `xclient`/`xgeneric`/
+`xcookie`/`r#type` members, Decision 15's bare X11 and XInput2 names, the E0425 type class, and
+C 894-896's `prefer_native_input` - an `x_display_info` member the mirror does not carry yet, named
+here as an owed row); the six default arms read **0/0** because the gate hides the whole
+definition, and the slice's one warning is arm AI's `unreachable statement` - C's own `return 0;`
+behind the non-GTK arm's unconditional return.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -4176,6 +4187,51 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   row arrives (`x_get_wm_check_window does not mention false` remains the standing one); the
   line-count row moves to **27,302** against C's 33,125 (17.6% drift, was 27,251 / 17.7%).
 
+### 101. Slice 88 (C 17850-17921): `x_filter_event`, and three shapes Rust cannot write the way C does
+
+* **The slice is P-66 dead text, and its readings need three arms no default arm has.**  C 17850's
+  `#ifdef HAVE_X_I18N` (`undef` in `docs/baseline/config/darwin-arm64.macros.tsv` 1718) wraps the
+  whole definition, so the five standard arms and AE read **0/0** and neither the checklist nor
+  `--check` ever demanded it.  This slice therefore adds **AI** (`have_x_i18n`), **AIU** (that plus
+  `use_gtk`) and **AIUX** (that plus `have_xinput2`) - one arm per inner gate the function carries -
+  and their baselines are 792 / 71, 812 / 73 and 910 / 75.
+* **Shape 1: C's `else` is shared across a `#endif`.**  C 17861's
+  `#if defined HAVE_XINPUT2 && defined USE_GTK` block declares `xinput_event`, opens an `if` and
+  closes it with `else` *inside* the guard, while the statement after the `#endif` is the same
+  assignment - so the port repeats that line in both arms and wraps each in a block, the rendering
+  C 12411-12418 already has above.
+* **Shape 2: `x_any_window_to_frame` is a function in one arm and a macro in the other.**  This unit
+  defines it only for `any (use_x_toolkit, use_gtk)` (C 12344-12401) and carries xterm.c 12486's
+  one-line macro for the plain-X arm, so C's single call line is written cfg'd three ways - the
+  function call where the function exists and `x_any_window_to_frame!` where the macro does.  This
+  is the file's first call site of that name, and it is why the arms must include a plain-X one.
+* **Shape 3: C's `#ifdef` *inside* a condition, which Rust cannot spell.**  C 17892-17894's term
+  `#ifdef HAVE_XINPUT2 || xinput_event #endif` sits inside the `else if`'s condition.  A `#[cfg]` on
+  a sub-expression is `E0658 attributes on expressions are experimental` - measured with a two-line
+  file, and the same gate is what makes `#[cfg]` on an *assignment expression statement* illegal too
+  ("removing an expression is not supported in this position"; the port wraps such a statement in a
+  block, which is the shape every cfg'd statement in this file already uses).  The port therefore
+  widens `xinput_event`'s declaration from C's `HAVE_XINPUT2 && USE_GTK` to the outer `use_gtk` and
+  writes C's term as plain text: its initialiser is `false` and only the `have_xinput2 && use_gtk`
+  block ever writes it, so every arm's condition is C's own.  That is this slice's one recorded
+  deviation, and it is a *gate widening* of the same kind slices 73/74 made.
+* **What stays bare, and one owed mirror member.**  `XFilterEvent`, `XNoOp`, `xg_filter_key`,
+  `KeyPress`, `KeyRelease`, `GenericEvent`, `XI_KeyPress` and `XI_KeyRelease` are Decision 15's
+  "X11/XInput2 names with no mirror row" class; the four `XEvent` members (`xclient`, `xgeneric`,
+  `xcookie`, `r#type`) are the `[u8; 192]` placeholder's owed members; `XIDeviceEvent` is the
+  `E0425 cannot find type` class `XMotionEvent` opened (slice 65); `popup_activated` is a bare name
+  the file already carried once; and **`prefer_native_input` is C 894-896's `#ifdef USE_GTK` member
+  that `include/xterm.rs`'s `x_display_info` does not carry yet** - the mirror's owed run, named here
+  so the row is a record rather than a surprise.  `? : None` states `None as Window` (the file's
+  idiom, `src/xterm.rs` 1769+), and `XSETINT`-style narrowing does not arise.
+* **The slice's one warning is C's own dead line.**  In the non-GTK arm C's
+  `return XFilterEvent (...)` is unconditional and C 17918's `return 0;` behind it is unreachable -
+  C compiles it, Rust names it: arm AI gains one `unreachable statement` (71 -> 72).  It stays: C's
+  shape is the shape.
+* **What `--check` reads.**  **stays 28** (dead text: the tool never demanded this function, and no
+  token row arrives); the line-count row moves to **27,407** against C's 33,125 (17.3% drift, was
+  27,302 / 17.6%).
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -8171,3 +8227,58 @@ against C's 33,125 (17.6% drift, was 27,251 / 17.7%).
 **Not claimed.**  The frozen configuration compiles none of this file: no keysym was stored, and
 `STORE_KEYSYM_FOR_DEBUG` still has no call site in the port (C's four are in unported text), so the
 macro's *value* is a shape that one temporary reader verified compiles - not a behaviour that ran.
+
+### Slice 88's readings (C 17850-17921), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s88/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s88/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+AE = A + `enable_checking`, and this slice's three: **AI** = A + `have_x_i18n`, **AIU** = AI +
+`use_gtk`, **AIUX** = AIU + `have_xinput2`.  Both sides were measured on this revision (the six
+default arms' baselines are the ones slice 87 closed with, which is the same HEAD text).
+
+| arm | HEAD's unit (slice 87 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 786 / 71 | **786 / 71** | 0 |
+| U `+use_toolkit_scroll_bars` | 815 / 71 | **815 / 71** | 0 |
+| UT `U +use_x_toolkit` | 801 / 70 | **801 / 70** | 0 |
+| UM `UT +use_motif` | 802 / 70 | **802 / 70** | 0 |
+| UG `U +use_gtk` | 786 / 73 | **786 / 73** | 0 |
+| AE `A +enable_checking` | 818 / 70 | **818 / 70** | 0 |
+| **AI** `A +have_x_i18n` | 792 / 71 | **794 / 72** | **+2** |
+| **AIU** `AI +use_gtk` | 812 / 73 | **822 / 73** | **+10** |
+| **AIUX** `AIU +have_xinput2` | 910 / 75 | **929 / 75** | **+19** |
+
+**The six default arms' zeros are the gate**: `#ifdef HAVE_X_I18N` wraps the whole definition, so
+those arms do not compile one line of it - the same reading slice 84 recorded from the other side.
+
+**Additions, by name** (diffed as full `error[E..]: <message>` head lines with counts; nothing
+retires in any arm):
+
+| arm | added |
+| --- | --- |
+| AI | `XFilterEvent` x1, `XEvent.xclient` x1 |
+| AIU | the above plus `popup_activated` x1 (a second use of an existing bare name), `xg_filter_key` x1, `XNoOp` x1, `KeyPress` x1, `KeyRelease` x1, `XEvent.r#type` x2, `x_display_info.prefer_native_input` x1 |
+| AIUX | AIU's set plus `XIDeviceEvent` x1, `GenericEvent` x1, `XI_KeyPress` x1, `XI_KeyRelease` x1, `XEvent.xgeneric` x3, `XEvent.xcookie` x1, `XEvent.r#type` x1 |
+
+Every one is a class this ledger already counts (Decision 15's bare X11/XInput2 names, the
+`[u8; 192]` placeholder's owed members, the `E0425` type class) except `prefer_native_input`, which is
+Decision 101 4's owed mirror member.
+
+**Warning sets**: identical to the baselines in every arm but **AI**, which gains one
+`warning: unreachable statement` at `build/probes/xterm/_root.rs:27417:3` - C 17918's `return 0;`
+behind the non-GTK arm's unconditional `return XFilterEvent (...)`.
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical sets (the
+frozen configuration compiles none of this function).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 17859's `let mut f1: *mut frame;`
+moves **AIU 822 -> 823** with `E0308` 17 -> 18, anchored at `build/probes/xterm/_root.rs:27342:18`;
+removing it returns AIU to the table.
+
+**What `--check` reads.**  **stays 28** as Decision 101 6 says, with the line-count row at **27,407**
+against C's 33,125 (17.3% drift, was 27,302 / 17.6%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no event was filtered, no
+input method was consulted, no GDK key was filtered and no XNoOp was flushed; the readings above are
+compile readings of text this machine cannot build.
