@@ -7596,3 +7596,157 @@ pub unsafe extern "C" fn pgtk_gtk_to_emacs_modifiers (dpyinfo: *mut pgtk_display
 
   return mod_;                                                          // C 5191
 }
+
+/* C: gdk/gdkkeysyms.h: `#define GDK_KEY_Shift_L 0xffe1`, `GDK_KEY_Hyper_R 0xffee`,
+   `GDK_KEY_ISO_Lock 0xfe01`, `GDK_KEY_ISO_Level5_Lock 0xfe13`, `GDK_KEY_Mode_switch 0xff7e` and
+   `GDK_KEY_Num_Lock 0xff7f` - the six C 5226-5229 comparisons.  That header is not on this machine,
+   so each value is **measured** in `/opt/homebrew/include/X11/keysymdef.h` (391/405/415/422/274/276),
+   the X11 table GDK's own file is generated from: the names are GDK's and the numbers are the
+   measured X11 keysyms (C 5407's `0xff50 <= x < 0xff60` comment corroborates the same table).  */
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_Shift_L: c_uint = 0xffe1;            // keysymdef.h 391: `#define XK_Shift_L`
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_Hyper_R: c_uint = 0xffee;            // keysymdef.h 405: `#define XK_Hyper_R`
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_ISO_Lock: c_uint = 0xfe01;           // keysymdef.h 415: `#define XK_ISO_Lock`
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_ISO_Level5_Lock: c_uint = 0xfe13;    // keysymdef.h 422
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_Mode_switch: c_uint = 0xff7e;        // keysymdef.h 274: `#define XK_Mode_switch`
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_Num_Lock: c_uint = 0xff7f;           // keysymdef.h 276: `#define XK_Num_Lock`
+
+/* C: <glib.h>: `typedef guint32 gunichar;` and `gunichar *g_utf8_to_ucs4 (const gchar *str, glong
+   len, glong *items_read, glong *items_written, GError **error);` - the C 5235/5237 pair.  The GTK
+   segment's convention (header alone, no line: this machine has no GLib/GTK tree); Owed 20 names
+   both rows.  */
+#[cfg (feature = "have_pgtk")]
+pub type gunichar = u32;
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn g_utf8_to_ucs4 (str_: *const gchar, len: c_long, items_read: *mut c_long,
+			 items_written: *mut c_long, error: *mut *mut GError) -> *mut gunichar;
+}
+
+/// C 5221-5229: the five `Is…Key` keysym macros, each keeping C's name and its comparison - the C
+/// 5407/5408 and 5461 uses are inside `key_press_event` (in the remainder), and `macro_rules!` are
+/// visible in *text* order (PORTING.md P-92), so they stand here, above the C 5232 neighbours.
+/// C 5297's `guint keysym` is the `c_uint` argument, which is why the four range literals carry
+/// C's own widening (`as c_uint`); the six keysym names are the measured rows above.
+#[cfg (feature = "have_pgtk")]
+macro_rules! IsCursorKey {
+  ($keysym:expr) => { (0xff50 as c_uint) <= ($keysym) && ($keysym) < (0xff60 as c_uint) };
+}
+#[cfg (feature = "have_pgtk")]
+macro_rules! IsMiscFunctionKey {
+  ($keysym:expr) => { (0xff60 as c_uint) <= ($keysym) && ($keysym) < (0xff6c as c_uint) };
+}
+#[cfg (feature = "have_pgtk")]
+macro_rules! IsKeypadKey {
+  ($keysym:expr) => { (0xff80 as c_uint) <= ($keysym) && ($keysym) < (0xffbe as c_uint) };
+}
+#[cfg (feature = "have_pgtk")]
+macro_rules! IsFunctionKey {
+  ($keysym:expr) => { (0xffbe as c_uint) <= ($keysym) && ($keysym) < (0xffe1 as c_uint) };
+}
+#[cfg (feature = "have_pgtk")]
+macro_rules! IsModifierKey {
+  ($keysym:expr) => {
+    ((($keysym) >= GDK_KEY_Shift_L) && (($keysym) <= GDK_KEY_Hyper_R))
+    || ((($keysym) >= GDK_KEY_ISO_Lock) && (($keysym) <= GDK_KEY_ISO_Level5_Lock))
+    || (($keysym) == GDK_KEY_Mode_switch)
+    || (($keysym) == GDK_KEY_Num_Lock) };
+}
+
+/// C 5194-5219: `int pgtk_emacs_to_gtk_modifiers (struct pgtk_display_info *dpyinfo, int state)` -
+/// non-`static` in C (pgtkterm.h 678, declared by `include/pgtkterm.rs` 691) and no address taken,
+/// so `#[unsafe(no_mangle)]` + `extern "C"` (PORTING.md 0.2).  C 5197-5201's five locals are
+/// zero-initialised for the `&raw mut` hand-off (the fortieth slice's `E0381` reading) and `mask`
+/// is a plain writer, so only the five need it.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_emacs_to_gtk_modifiers (dpyinfo: *mut pgtk_display_info, state: c_int)
+    -> c_int
+{
+  let mut mod_ctrl: c_int = 0;                                          // C 5197
+  let mut mod_meta: c_int = 0;                                          // C 5198
+  let mut mod_alt: c_int = 0;                                           // C 5199
+  let mut mod_hyper: c_int = 0;                                         // C 5200
+  let mut mod_super: c_int = 0;                                         // C 5201
+  let mut mask: c_int;                                                  // C 5202
+
+  get_modifier_values (&raw mut mod_ctrl, &raw mut mod_meta, &raw mut mod_alt,
+		       &raw mut mod_hyper, &raw mut mod_super);         // C 5204-5205
+
+  mask = 0;                                                             // C 5207
+  if state & mod_super != 0                                             // C 5208
+    { mask |= GDK_SUPER_MASK; }                                         // C 5209
+  if state & mod_hyper != 0                                             // C 5210
+    { mask |= GDK_HYPER_MASK; }                                         // C 5211
+  if state & shift_modifier != 0                                        // C 5212
+    { mask |= GDK_SHIFT_MASK; }                                         // C 5213
+  if state & mod_ctrl != 0                                              // C 5214
+    { mask |= GDK_CONTROL_MASK; }                                       // C 5215
+  if state & mod_meta != 0                                              // C 5216
+    { mask |= GDK_MOD1_MASK; }                                          // C 5217
+  return mask;                                                          // C 5218
+}
+
+/// C 5232-5257: `void pgtk_enqueue_string (struct frame *f, gchar *str)` - non-`static` in C
+/// (pgtkterm.h 662) and no address taken, so `#[unsafe(no_mangle)]` + `extern "C"`.
+/// `g_utf8_to_ucs4`'s four `NULL`s are C's own arguments, the loop's step is C's `ustr++` (the
+/// `glyph.offset (1)` shape, line 2357), `make_fixnum (*ustr)` keeps C's widening to `EMACS_INT`,
+/// `inev.ie.code` is `c_uint` (`include/termhooks.rs` 117) and `g_free`'s `gpointer` is written out
+/// (the thirty-sixth slice's reading).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_enqueue_string (f: *mut frame, str_: *mut gchar)
+{
+  let mut ustr: *mut gunichar;                                          // C 5235
+  let mut uptr: *mut gunichar;                                          // C 5235
+
+  ustr = g_utf8_to_ucs4 (str_, -1 as c_long, core::ptr::null_mut (),
+			 core::ptr::null_mut (), core::ptr::null_mut ());   // C 5237
+  uptr = ustr;                                                          // C 5237
+  if ustr.is_null ()                                                    // C 5238
+    { return; }                                                         // C 5239
+  while *ustr != 0                                                      // C 5240
+    {
+      let mut inev: buffered_input_event = core::mem::zeroed ();        // C 5242
+      let c: Lisp_Object = make_fixnum (*ustr as EMACS_INT);            // C 5243
+      EVENT_INIT (&raw mut inev.ie);                                    // C 5244
+      input_event_bits! (kind, &raw mut inev.ie,                        // C 5245
+			 if SINGLE_BYTE_CHAR_P (XFIXNAT (c) as intmax_t)
+			   { ASCII_KEYSTROKE_EVENT }
+			 else
+			   { MULTIBYTE_CHAR_KEYSTROKE_EVENT });         // C 5247
+      inev.ie.arg = Qnil ();                                            // C 5248
+      inev.ie.code = XFIXNAT (c) as c_uint;                             // C 5249
+      XSETFRAME! (inev.ie.frame_or_window, f);                          // C 5250
+      inev.ie.modifiers = 0;                                            // C 5251
+      inev.ie.timestamp = 0;                                            // C 5252
+      evq_enqueue (&raw mut inev);                                      // C 5253
+      ustr = ustr.offset (1);                                           // C 5240's step
+    }
+
+  g_free (uptr as gpointer);                                            // C 5256
+}
+
+/// C 5259-5271: `void pgtk_enqueue_preedit (struct frame *f, Lisp_Object preedit)` - non-`static`
+/// in C (pgtkterm.h 663) and no address taken, so `#[unsafe(no_mangle)]` + `extern "C"`;
+/// `PREEDIT_TEXT_EVENT` is `include/termhooks.rs`'s and `inev` takes the zero-init reading like its
+/// neighbour above.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_enqueue_preedit (f: *mut frame, preedit: Lisp_Object)
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5262
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5263
+  input_event_bits! (kind, &raw mut inev.ie, PREEDIT_TEXT_EVENT);       // C 5264
+  inev.ie.arg = preedit;                                                // C 5265
+  inev.ie.code = 0;                                                     // C 5266
+  XSETFRAME! (inev.ie.frame_or_window, f);                              // C 5267
+  inev.ie.modifiers = 0;                                                // C 5268
+  inev.ie.timestamp = 0;                                                // C 5269
+  evq_enqueue (&raw mut inev);                                          // C 5270
+}

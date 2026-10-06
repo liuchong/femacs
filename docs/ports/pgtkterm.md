@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-41: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093 and C 5095-5192
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-42: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192 and C 5194-5271
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,598 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,752 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** - forty-one
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** - forty-two
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_emacs_to_gtk_modifiers` (C 5194-5195).**
+> `key_press_event` (C 5273-5274).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -154,7 +154,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 4926-4990 | the record `pgtk_window_is_of_frame_recursive_t` (C 4926-4931), `pgtk_window_is_of_frame_recursive` (C 4933-4953), `pgtk_window_is_of_frame` (C 4955-4964) and `pgtk_any_window_to_frame` (C 4966-4990) | the file gate - **transcribed** (the thirty-ninth slice) |
 | 4992-5093 | `pgtk_handle_event` (C 4992-5033), `pgtk_fill_rectangle` (C 5034-5044) and `pgtk_clear_under_internal_border` (C 5046-5093) | the file gate - **transcribed** (the fortieth slice) |
 | 5095-5192 | `pgtk_handle_draw` (C 5095-5119), `size_allocate` (C 5121-5135), `get_modifier_values` (C 5137-5164) and `pgtk_gtk_to_emacs_modifiers` (C 5166-5192) | the file gate - **transcribed** (the forty-first slice) |
-| 5194-7780 | **the remainder of the file** - from C 5194's `pgtk_emacs_to_gtk_modifiers` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the modifier writer, the event handlers, the widget walkers, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 5194-5271 | `pgtk_emacs_to_gtk_modifiers` (C 5194-5219), the five `Is…Key` macros (C 5221-5229), `pgtk_enqueue_string` (C 5232-5257) and `pgtk_enqueue_preedit` (C 5259-5271) | the file gate - **transcribed** (the forty-second slice) |
+| 5273-7780 | **the remainder of the file** - from C 5273's `key_press_event` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the key/button/scroll handlers, the modifier writer's callers, the widget walkers, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1133,6 +1134,24 @@ their assertions are owed.
     the `&raw mut` hand-off (the fortieth slice's `E0381` reading).  No mirror changed, so P-87's two
     legs do not apply.
 
+64. **Five keysym macros, a measured keysym table, and Rust's missing chained assignment.**  The five
+    `Is…Key` macros (C 5221-5229) become `macro_rules!` carrying C's names, and they stand above the C
+    5232 neighbours because `macro_rules!` are visible in *text* order (PORTING.md P-92);
+    `IsModifierKey` needs six `GDK_KEY_*` keysyms and `gdk/gdkkeysyms.h` is not on this machine, so
+    their values are **measured** in X11's `keysymdef.h` (391/405/415/422/274/276) - the table GDK's
+    own file is generated from, and C 5407's `0xff50 <= x < 0xff60` comment corroborates it - while
+    the *names* stay GDK's.  `gunichar` and `g_utf8_to_ucs4` are the two GLib rows the same bodies
+    need (Owed 20), declared at the use site in the GTK segment's convention.  **The first reading
+    named two defects of this slice's own text**, both `E0308` and both fixed here: C's chained
+    assignment `uptr = ustr = g_utf8_to_ucs4 (…)` has no Rust counterpart (it is now the assignment
+    and then the copy) and `SINGLE_BYTE_CHAR_P (XFIXNAT (c))` needs C's conversion written out
+    (`as intmax_t`, since `intmax_t` is `i64` and `EMACS_INT` is `isize`).  `pgtk_emacs_to_gtk_modifiers`
+    (pgtkterm.h 678), `pgtk_enqueue_string` (662) and `pgtk_enqueue_preedit` (663) are non-`static`
+    with no address taken, so all three carry `#[unsafe(no_mangle)]` + `extern "C"`; C 5197-5201's five
+    locals are zero-initialised for the `&raw mut` hand-off and both `inev` unions take the
+    `core::mem::zeroed ()` reading (the C 3981/4996 shape).  No mirror changed, so P-87's two legs do
+    not apply.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1212,6 +1231,12 @@ their assertions are owed.
     int height);`), whose one call site is C 5132 and whose definition is `src/gtkutil.rs` 1589.
     Until the mirror carries it, the unit's use-site declaration is the reading (the Owed 13/15/16/18
     class).
+
+20. **`include/gtk.rs`** owes the two GLib rows the forty-second slice declared in the unit:
+    `gunichar` (`glib.h`: `typedef guint32 gunichar;`) and `g_utf8_to_ucs4` (`glib.h`: `gunichar
+    *g_utf8_to_ucs4 (const gchar *str, glong len, glong *items_read, glong *items_written, GError
+    **error);`), whose one call site is C 5237.  They join Owed 13/15/16/18's class: the round that
+    gives `include/gtk.rs` the live pgtk/GTK3/GLib arm closes them together.
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -2826,3 +2851,45 @@ claimed**: nothing has been run - the frozen configuration compiles none of this
 has no GTK tree and no PGTK target, no draw arrived, no allocation happened and no modifier was
 translated, and the arm readings are **compile** readings of text this machine cannot build (the six
 `GDK_*_MASK` values stay **UNVERIFIED** placeholders).
+
+## The forty-second slice (C 5194-5271): the modifier writer, the keysym macros and the two enqueues
+
+**What is in it.**  `pgtk_emacs_to_gtk_modifiers` (C 5194-5219, non-`static` in C), the five
+`Is…Key` macros (C 5221-5229) with the six keysym constants `IsModifierKey` compares,
+`pgtk_enqueue_string` (C 5232-5257, the `g_utf8_to_ucs4` walk) and `pgtk_enqueue_preedit`
+(C 5259-5271).  Rust: 7,598 -> **7,752** lines - **0.36%** against C's 7,780, the closest the file has
+been.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 9 / 18 -> 9 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): the five macros, six keysym constants, two GLib rows and
+the three functions add **no error and no warning** in any arm - the seventeenth zero-delta reading in
+this unit.  **The first reading named two defects of this slice's own text**, both `E0308` and both
+fixed here: C's chained assignment `uptr = ustr = g_utf8_to_ucs4 (…)` (now two statements) and
+`SINGLE_BYTE_CHAR_P (XFIXNAT (c))` (`as intmax_t`).  **Arm reach is measured** (P-86 7): injecting
+`let _: c_int = true;` as the first statement of `pgtk_emacs_to_gtk_modifiers` moves arm A to **52**
+errors anchored at the injected line (removed, the file re-measured at **7,752** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**69 rows -> 61**: the three functions retire **and the five `Is…Key` macros retire their five
+`missing macro` rows**, leaving `GetBValue`/`GetGValue`/`GetRValue`/`NUM_ARGV` (all defined in the
+remainder, C 7106/7440-7441) and the `NUM_ARGV` constant row.  The file's `line count drifted` row
+stays gone (0.36%).
+
+**Ledger.**  Deviation 64 (the macros, the measured keysyms, the two GLib rows and the two defects),
+Owed 20, the range table's remainder row split into `5194-5271` (**transcribed**) and `5273-7780`
+(whose next live definition is `key_press_event`, C 5273-5274), the title to forty-two slices and the
+header to 7,752 lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py`
+676/0/0/2091/36/0 (the six keysym rows are the slice's own external citations, +6 over the
+forty-first slice), `check-dead-file-coverage.py` 145/0 (**74 range rows** over `src/pgtkterm.c`),
+`check-port-lines.py` 0/0/0/0, `check-ledger-ticks.py` 238/0, `check-cond-eval.py src/pgtkterm.c`
+31/0/0 and `check-mirror-dupes.py` 16/16/0 (no mirror changed, so P-87's two legs do not apply).
+**Not claimed**: nothing has been run - the frozen configuration compiles none of this file, this
+machine has no GTK tree and no PGTK target, no keysym was tested and no event was enqueued, and the
+arm readings are **compile** readings of text this machine cannot build (the six keysyms are measured
+in X11's header, not in GDK's).
