@@ -20,9 +20,19 @@
 // table (P-86 ②), the readings of this round (`## Evidence`) and the per-`#if` verdicts
 // (`## Deviations`).
 //
-// **Six slices are ported: C 1-1095, C 1096-2211, C 2212-3550, C 3552-4623, C 4620-6163 and
-// C 6166-7967** (the file is 13,805 lines).  **The next live item is the "PBM (mono, gray, color)"
-// banner (C 7970-7972), the `pbm_format` table (C 7995) and `pbm_image_p` (C 8012)**.  The
+// **Seven slices are ported: C 1-1095, C 1096-2211, C 2212-3550, C 3552-4623, C 4620-6163,
+// C 6166-7967 and C 7970-8351** (the file is 13,805 lines).  **The seventh slice is the PBM
+// loader**: the banner, `enum pbm_keyword_index` (C 7976-7990), the `pbm_format` table
+// (C 7995-8008) and the five functions `pbm_image_p`, `pbm_next_char`, `pbm_scan_number`,
+// `pbm_scan_index` and `pbm_load` (C 8097-8351, whose `error:` label is one labelled block and
+// whose `ckd_mul`s are the `overflowing_mul` pair the family checker reads).  It is the unit's
+// **first slice with a type-checking reading** - the `have_ns` probe compiles it (0 errors,
+// docs/ports/image.md Evidence 32) because the block hangs on the *file* gate alone.
+// **The next live item is the image-type registry**: `lookup_image_type` (C 13404),
+// `initialize_image_type`, `image_prune_animation_caches` (C 13505) and `syms_of_image`
+// (C 13517-13805); everything between C 8352 and C 13390 is a format loader whose `#if` the
+// frozen configuration makes false, and the ledger records those ranges instead of transcribing
+// them (P-08).  The
 // sixth slice ends at the `}` of `image_build_heuristic_mask` (C 7967) and holds: the
 // `HAVE_XPM || HAVE_NS || HAVE_HAIKU || HAVE_PGTK || HAVE_ANDROID` predicate pair
 // (`xpm_valid_color_symbols_p` C 6213, `xpm_image_p` C 6231), the `WINDOWSNT` XPM DLL block
@@ -10973,4 +10983,525 @@ unsafe fn image_build_heuristic_mask (f: *mut frame, img: *mut image, mut how: L
   }
 
   image_unget_x_image_or_dc! (img, false, ximg, prev);
+}
+
+/* C 7970-7972's banner.  */
+/***********************************************************************
+		       PBM (mono, gray, color)
+ ***********************************************************************/
+
+/* Indices of image specification fields in pbm_format, below.  */
+
+/// C: C 7976-7990: `enum pbm_keyword_index { PBM_TYPE, PBM_FILE, PBM_DATA, PBM_ASCENT, PBM_MARGIN, PBM_RELIEF, PBM_ALGORITHM, PBM_HEURISTIC_MASK, PBM_MASK, PBM_FOREGROUND, PBM_BACKGROUND, PBM_LAST }`
+#[cfg (feature = "have_window_system")]
+pub const PBM_TYPE: c_int = 0;
+#[cfg (feature = "have_window_system")]
+pub const PBM_FILE: c_int = 1;
+#[cfg (feature = "have_window_system")]
+pub const PBM_DATA: c_int = 2;
+#[cfg (feature = "have_window_system")]
+pub const PBM_ASCENT: c_int = 3;
+#[cfg (feature = "have_window_system")]
+pub const PBM_MARGIN: c_int = 4;
+#[cfg (feature = "have_window_system")]
+pub const PBM_RELIEF: c_int = 5;
+#[cfg (feature = "have_window_system")]
+pub const PBM_ALGORITHM: c_int = 6;
+#[cfg (feature = "have_window_system")]
+pub const PBM_HEURISTIC_MASK: c_int = 7;
+#[cfg (feature = "have_window_system")]
+pub const PBM_MASK: c_int = 8;
+#[cfg (feature = "have_window_system")]
+pub const PBM_FOREGROUND: c_int = 9;
+#[cfg (feature = "have_window_system")]
+pub const PBM_BACKGROUND: c_int = 10;
+#[cfg (feature = "have_window_system")]
+pub const PBM_LAST: c_int = 11;
+
+/* Vector of image_keyword structures describing the format
+   of valid user-defined image specifications.  */
+
+/// C: C 7995-8008: `static const struct image_keyword pbm_format[PBM_LAST]`
+#[cfg (feature = "have_window_system")]
+static pbm_format: [image_keyword; PBM_LAST as usize] =
+[
+  image_keyword { name: c":type".as_ptr (), r#type: IMAGE_SYMBOL_VALUE,
+		  mandatory_p: true, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":file".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":data".as_ptr (), r#type: IMAGE_STRING_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":ascent".as_ptr (), r#type: IMAGE_ASCENT_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":margin".as_ptr (), r#type: IMAGE_NON_NEGATIVE_INTEGER_VALUE_OR_PAIR,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":relief".as_ptr (), r#type: IMAGE_INTEGER_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":conversion".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":heuristic-mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":mask".as_ptr (), r#type: IMAGE_DONT_CHECK_VALUE_TYPE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":foreground".as_ptr (), r#type: IMAGE_STRING_OR_NIL_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () },
+  image_keyword { name: c":background".as_ptr (), r#type: IMAGE_STRING_OR_NIL_VALUE,
+		  mandatory_p: false, count: false, value: core::ptr::null_mut () }
+];
+
+/* Return true if OBJECT is a valid PBM image specification.  */
+
+/// C: C 8012-8028: `static bool pbm_image_p (Lisp_Object object)`
+#[cfg (feature = "have_window_system")]
+unsafe fn pbm_image_p (object: Lisp_Object) -> bool
+{
+  /* C's `struct image_keyword fmt[PBM_LAST];` filled by the `memcpy` below - zeroed first
+     (PORTING.md 1.5/0.1-13).  */
+  let mut fmt: [image_keyword; PBM_LAST as usize] = core::mem::zeroed ();
+
+  /* C's `memcpy (fmt, pbm_format, sizeof fmt);`.  */
+  memcpy (fmt.as_mut_ptr () as *mut c_void, pbm_format.as_ptr () as *const c_void,
+	  core::mem::size_of::<[image_keyword; PBM_LAST as usize]> ());
+
+  if !parse_image_spec (object, fmt.as_mut_ptr (), PBM_LAST, Qpbm ())
+    { return false; }
+
+  /* Must specify either :data or :file.  */
+  /* The mirror's `count` is a `bool` (`image_keyword`), so C's int sum is written with the
+     conversion out (the `xpm_image_p` 8681 note).  */
+  return (fmt[PBM_DATA as usize].count as c_int)
+    + (fmt[PBM_FILE as usize].count as c_int) == 1;
+}
+
+
+/* Get next char skipping comments in Netpbm header.  Returns -1 at
+   end of input.  */
+
+/// C: C 8030-8052: `static int pbm_next_char (char **s, char *end)`
+#[cfg (feature = "have_window_system")]
+unsafe fn pbm_next_char (s: *mut *mut c_char, end: *mut c_char) -> c_int
+{
+  /* C's `unsigned char c = *(*s)++;` is the load-then-step pair (Deviation 26): the port
+     loads into `c` and steps `*s` as the two statements C's post-increment performs.  */
+  let mut c: c_uchar;
+
+  while *s < end
+    {
+      c = **s as c_uchar;
+      *s = (*s).offset (1);
+      if c as c_int != b'#' as c_int
+	{ return c as c_int; }
+      while *s < end
+	{
+	  c = **s as c_uchar;
+	  *s = (*s).offset (1);
+	  if c as c_int == b'\n' as c_int || c as c_int == b'\r' as c_int
+	    { break; }
+	}
+    }
+
+  return -1;
+}
+
+
+/* Scan a decimal number from *S and return it.  Advance *S while
+   reading the number.  END is the end of the string.  Value is -1 at
+   end of input.  */
+
+/// C: C 8054-8076: `static int pbm_scan_number (char **s, char *end)`
+#[cfg (feature = "have_window_system")]
+unsafe fn pbm_scan_number (s: *mut *mut c_char, end: *mut c_char) -> c_int
+{
+  let mut c: c_int = 0;
+  let mut val: c_int = -1;
+
+  /* Skip white-space.  */
+  while { c = pbm_next_char (s, end); c != -1 && c_isspace (c) }
+    { }
+
+  if c_isdigit (c)
+    {
+      /* Read decimal number.  */
+      val = c - b'0' as c_int;
+      while { c = pbm_next_char (s, end); c != -1 && c_isdigit (c) }
+	{ val = 10 * val + c - b'0' as c_int; }
+    }
+
+  return val;
+}
+
+/* Scan an index from *S and return it.  It is a one-byte unsigned
+   index if !TWO_BYTE, and a two-byte big-endian unsigned index if
+   TWO_BYTE.  */
+
+/// C: C 8078-8095: `static int pbm_scan_index (char **s, bool two_byte)`
+#[cfg (feature = "have_window_system")]
+unsafe fn pbm_scan_index (s: *mut *mut c_char, two_byte: bool) -> c_int
+{
+  let mut p: *mut c_char = *s;
+  /* C's `unsigned char c0 = *p++;` - the load-then-step pair (Deviation 26).  */
+  let c0: c_uchar = *p as c_uchar;
+  p = p.offset (1);
+  let mut n: c_int = c0 as c_int;
+  if two_byte
+    {
+      /* C's `unsigned char c1 = *p++;` - the same pair.  */
+      let c1: c_uchar = *p as c_uchar;
+      p = p.offset (1);
+      n = (n << 8) + c1 as c_int;
+    }
+  *s = p;
+  return n;
+}
+
+
+/* Load PBM image IMG for use on frame F.  */
+
+/// C: C 8097-8351: `static bool pbm_load (struct frame *f, struct image *img)`
+#[cfg (feature = "have_window_system")]
+unsafe fn pbm_load (f: *mut frame, img: *mut image) -> bool
+{
+  let mut raw_p: bool = false;
+  let mut x: c_int;
+  let mut y: c_int;
+  let mut width: c_int;
+  let mut height: c_int;
+  let mut max_color_idx: c_int = 0;
+  let mut specified_file: Lisp_Object;
+  /* C's function-scope `enum {PBM_MONO, PBM_GRAY, PBM_COLOR} type;` is the port's
+     function-local consts (the `syntax.rs` 3545 shape); `type` is Rust's keyword, so the local
+     keeps the `r#type` spelling this file's `image_keyword` member already uses.  */
+  const PBM_MONO: c_int = 0;
+  const PBM_GRAY: c_int = 1;
+  const PBM_COLOR: c_int = 2;
+  let mut r#type: c_int;
+  /* C's `char *contents = NULL;` - the initial value written out.  */
+  let mut contents: *mut c_char = core::ptr::null_mut ();
+  let mut end: *mut c_char;
+  let mut p: *mut c_char;
+  /* C's `Emacs_Pix_Container ximg;` is written by the `image_create_x_image_and_pixmap`
+     call below (PORTING.md 1.5).  */
+  let mut ximg: Emacs_Pix_Container = core::ptr::null_mut ();
+
+  specified_file = image_spec_value ((*img).spec, QCfile (), core::ptr::null_mut ());
+
+  if STRINGP (specified_file)
+    {
+      /* C's `ptrdiff_t size;` is written by the call below (PORTING.md 1.5).  */
+      let mut size: ptrdiff_t = 0;
+      contents = slurp_image (specified_file, &raw mut size, c"PBM".as_ptr ());
+      if contents.is_null ()
+	{ return false; }
+
+      p = contents;
+      end = contents.offset (size as isize);
+    }
+  else
+    {
+      let mut data: Lisp_Object;
+      data = image_spec_value ((*img).spec, QCdata (), core::ptr::null_mut ());
+      if !STRINGP (data)
+	{
+	  image_invalid_data_error (data);
+	  return false;
+	}
+      p = SSDATA (data);
+      end = p.offset (SBYTES (data) as isize);
+    }
+
+  /* C's `error:` (C 8113) sits *inside* the first `if` and every later `goto error` jumps
+     backward to it, which no Rust `break` can express (PORTING.md 2.2's label shape): the
+     labelled block below opens at the first statement that can reach the label and closes after
+     the last jump site, and C's label body (the `xfree`/`NO_PIXMAP`/`return 0` triple) stands
+     after the block, where every `break 'error` lands.  The success path returns inside the
+     block, exactly as C's fall-through reaches its own `xfree (contents); return 1;`.  */
+  'error: {
+    /* Check magic number.  */
+    /* C's `end - p < 2 || *p++ != 'P'`: the post-increment is the load-then-step pair
+       (Deviation 26) and `||` evaluates it only when the left arm is false - which is why the
+       port builds the pair's result instead of stepping unconditionally.  */
+    let mut magic_p: bool = false;
+    if 2 <= end.offset_from (p)
+      {
+	magic_p = *p == b'P' as c_char;
+	p = p.offset (1);
+      }
+
+    if !magic_p
+      {
+	image_error (c"Not a PBM image: `%s'".as_ptr (), (*img).spec);
+	break 'error;
+      }
+
+    /* C's `switch (*p++)` - the same load-then-step pair.  */
+    let pbm_magic: c_uchar = *p as c_uchar;
+    p = p.offset (1);
+
+    match pbm_magic
+      {
+	b'1' =>
+	  { raw_p = false; r#type = PBM_MONO; }
+
+	b'2' =>
+	  { raw_p = false; r#type = PBM_GRAY; }
+
+	b'3' =>
+	  { raw_p = false; r#type = PBM_COLOR; }
+
+	b'4' =>
+	  { raw_p = true; r#type = PBM_MONO; }
+
+	b'5' =>
+	  { raw_p = true; r#type = PBM_GRAY; }
+
+	b'6' =>
+	  { raw_p = true; r#type = PBM_COLOR; }
+
+	_ =>
+	  {
+	    image_error (c"Not a PBM image: `%s'".as_ptr (), (*img).spec);
+	    break 'error;
+	  }
+      }
+
+    /* Read width, height, maximum color-component.  Characters
+       starting with `#' up to the end of a line are ignored.  */
+    width = pbm_scan_number (&raw mut p, end);
+    height = pbm_scan_number (&raw mut p, end);
+
+    if r#type != PBM_MONO
+      {
+	max_color_idx = pbm_scan_number (&raw mut p, end);
+	if max_color_idx > 65535 || max_color_idx < 0
+	  {
+	    image_error (c"Unsupported maximum PBM color value".as_ptr ());
+	    break 'error;
+	  }
+      }
+
+    if !check_image_size (f, width, height)
+      {
+	image_size_error ();
+	break 'error;
+      }
+
+    if !image_create_x_image_and_pixmap (f, img, width, height, 0, &raw mut ximg, false)
+      { break 'error; }
+
+    /* Initialize the color hash table.  */
+    init_color_table ();
+
+    if r#type == PBM_MONO
+      {
+	let mut c: c_uchar = 0;
+	let mut g: c_int;
+	/* C's `struct image_keyword fmt[PBM_LAST];` filled by the `memcpy` below - zeroed first
+	   (PORTING.md 1.5/0.1-13).  */
+	let mut fmt: [image_keyword; PBM_LAST as usize] = core::mem::zeroed ();
+	let mut fg: c_ulong = (*img).face_foreground;
+	let mut bg: c_ulong = (*img).face_background;
+	/* Parse the image specification.  */
+	memcpy (fmt.as_mut_ptr () as *mut c_void, pbm_format.as_ptr () as *const c_void,
+		core::mem::size_of::<[image_keyword; PBM_LAST as usize]> ());
+	parse_image_spec ((*img).spec, fmt.as_mut_ptr (), PBM_LAST, Qpbm ());
+
+	/* Get foreground and background colors, maybe allocate colors.  */
+	if fmt[PBM_FOREGROUND as usize].count
+	  && STRINGP (fmt[PBM_FOREGROUND as usize].value)
+	  { fg = image_alloc_image_color (f, img, fmt[PBM_FOREGROUND as usize].value, fg); }
+	if fmt[PBM_BACKGROUND as usize].count
+	  && STRINGP (fmt[PBM_BACKGROUND as usize].value)
+	  {
+	    bg = image_alloc_image_color (f, img, fmt[PBM_BACKGROUND as usize].value, bg);
+	    (*img).background = bg;
+	    /* C's `img->background_valid = 1;` - the bit member's storage unit (P-80).  */
+	    (*img).bits = (*img).bits & !IMAGE_BACKGROUND_VALID_MASK
+			  | ((1 as u32) << IMAGE_BACKGROUND_VALID_SHIFT);
+	  }
+
+	/* C 8216-8223: `#ifdef USE_CAIRO`.  */
+	#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
+	{
+	  /* C's `Emacs_Color fgbg[] = {{.pixel = fg}, {.pixel = bg}};` - C's designated
+	     initialisers leave the three channel members zero (PORTING.md 1.5).  */
+	  let mut fgbg: [Emacs_Color; 2]
+	    = [Emacs_Color { pixel: fg, red: 0, green: 0, blue: 0 },
+	       Emacs_Color { pixel: bg, red: 0, green: 0, blue: 0 }];
+	  (*FRAME_TERMINAL! (f)).query_colors.unwrap () (f as *mut c_void, fgbg.as_mut_ptr (),
+							countof! (fgbg) as c_int);
+	  fg = lookup_rgb_color (f, fgbg[0].red as c_int, fgbg[0].green as c_int,
+				 fgbg[0].blue as c_int);
+	  bg = lookup_rgb_color (f, fgbg[1].red as c_int, fgbg[1].green as c_int,
+				 fgbg[1].blue as c_int);
+	}
+
+	y = 0;
+	while y < height
+	  {
+	    x = 0;
+	    while x < width
+	      {
+		if raw_p
+		  {
+		    if x & 7 == 0
+		      {
+			if p >= end
+			  {
+			    image_destroy_x_image (ximg);
+			    image_clear_image (f, img);
+			    image_error (c"Invalid image size in image `%s'".as_ptr (),
+					 (*img).spec);
+			    break 'error;
+			  }
+			/* C's `c = *p++;` - the load-then-step pair (Deviation 26).  */
+			c = *p as c_uchar;
+			p = p.offset (1);
+		      }
+		    g = (c as c_int) & 0x80;
+		    /* C's `c <<= 1;` on the `unsigned char` - the truncating shift.  */
+		    c = c << 1;
+		  }
+		else
+		  {
+		    /* C's inner `int c = 0;` shadows the outer `unsigned char c` - the
+		       shadowing is kept.  */
+		    let mut c: c_int = 0;
+		    /* Skip white-space and comments.  */
+		    while { c = pbm_next_char (&raw mut p, end); c != -1 && c_isspace (c) }
+		      { }
+
+		    if c == b'0' as c_int || c == b'1' as c_int
+		      { g = c - b'0' as c_int; }
+		    else
+		      { g = 0; }
+		  }
+
+		PUT_PIXEL! (ximg, x, y, if g != 0 { fg } else { bg });
+		x += 1;
+	      }
+	    y += 1;
+	  }
+      }
+    else
+      {
+	let two_byte: bool = 255 < max_color_idx;
+
+	if raw_p
+	  {
+	    let mut expected_size: ptrdiff_t = 0;
+	    /* C's two `ckd_mul` calls (C 8275-8277) are the port's `overflowing_mul` pair
+	       (P-15, the `xnmalloc` 381 shape): the family's argument check reads the
+	       numbers the second call passes, which is where C's own multiplicand sits.  */
+	    let (ckd_temp, mul_overflow)
+	      = (height as ptrdiff_t).overflowing_mul (width as ptrdiff_t);
+	    expected_size = ckd_temp;
+	    let mut bad: bool = mul_overflow;
+	    let (ckd_temp, mul_overflow)
+	      = expected_size.overflowing_mul (((if two_byte { 2 } else { 1 })
+						* (if r#type == PBM_COLOR { 3 } else { 1 }))
+					       as ptrdiff_t);
+	    expected_size = ckd_temp;
+	    bad |= mul_overflow;
+	    bad |= end.offset_from (p) < expected_size;
+	    if bad
+	      {
+		image_destroy_x_image (ximg);
+		image_clear_image (f, img);
+		image_error (c"Invalid image size in image `%s'".as_ptr (), (*img).spec);
+		break 'error;
+	      }
+	  }
+
+	y = 0;
+	while y < height
+	  {
+	    x = 0;
+	    while x < width
+	      {
+		let mut r: c_int;
+		let mut g: c_int;
+		let mut b: c_int;
+
+		/* C's `r = g = b = …;` is one statement per assignment in C's right-to-left
+		   order (the `dispnew.md` 312 (b) rule), so the read happens once.  */
+		if r#type == PBM_GRAY && raw_p
+		  {
+		    b = pbm_scan_index (&raw mut p, two_byte);
+		    g = b;
+		    r = g;
+		  }
+		else if r#type == PBM_GRAY
+		  {
+		    b = pbm_scan_number (&raw mut p, end);
+		    g = b;
+		    r = g;
+		  }
+		else if raw_p
+		  {
+		    r = pbm_scan_index (&raw mut p, two_byte);
+		    g = pbm_scan_index (&raw mut p, two_byte);
+		    b = pbm_scan_index (&raw mut p, two_byte);
+		  }
+		else
+		  {
+		    r = pbm_scan_number (&raw mut p, end);
+		    g = pbm_scan_number (&raw mut p, end);
+		    b = pbm_scan_number (&raw mut p, end);
+		  }
+
+		if r < 0 || g < 0 || b < 0
+		  {
+		    image_destroy_x_image (ximg);
+		    image_error (c"Invalid pixel value in image `%s'".as_ptr (), (*img).spec);
+		    break 'error;
+		  }
+
+		/* RGB values are now in the range 0..max_color_idx.
+		   Scale this to the range 0..0xffff supported by X.  */
+		r = (r as c_double * 65535.0 / max_color_idx as c_double) as c_int;
+		g = (g as c_double * 65535.0 / max_color_idx as c_double) as c_int;
+		b = (b as c_double * 65535.0 / max_color_idx as c_double) as c_int;
+		PUT_PIXEL! (ximg, x, y, lookup_rgb_color (f, r, g, b));
+		x += 1;
+	      }
+	    y += 1;
+	  }
+      }
+
+    /* C 8326-8331: `#ifdef COLOR_TABLE_SUPPORT` - the arm `COLOR_TABLE_SUPPORT`'s own
+       definition selects, the same condition this unit's `init_color_table` carries.  */
+    #[cfg (all (feature = "have_window_system", feature = "have_x_windows",
+		not (any (feature = "have_ntgui", feature = "use_cairo", feature = "have_ns"))))]
+    {
+      /* Store in IMG->colors the colors allocated for the image, and
+	 free the color table.  */
+      (*img).colors = colors_in_color_table (&raw mut (*img).ncolors);
+      free_color_table ();
+    }
+
+    (*img).width = width;
+    (*img).height = height;
+
+    /* Maybe fill in the background field while we have ximg handy.  */
+
+    if NILP (image_spec_value ((*img).spec, QCbackground (), core::ptr::null_mut ()))
+      /* Casting avoids a GCC warning.  */
+      { IMAGE_BACKGROUND! (img, f, PIX_CONTAINER_TO_CONTEXT! (ximg)); }
+
+    /* Put ximg into the image.  */
+    image_put_x_image (f, img, ximg, false);
+
+    /* X and W32 versions did it here, MAC version above.  ++kfs
+       img->width = width;
+       img->height = height; */
+
+    xfree (contents as *mut c_void);
+    return true;
+  }
+
+  /* error: - C 8113-8115's label body, hoisted to the labelled block's end (see the note
+     above its opening).  */
+  xfree (contents as *mut c_void);
+  (*img).pixmap = NO_PIXMAP! () as *mut c_void;
+  return false;
 }

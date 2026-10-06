@@ -328,7 +328,8 @@ above checkable rather than asserted.
 | 6615-7122 | the libxpm-free XPM implementation: C 6625-6630's four dropped prototypes, `enum xpm_token` (C 6634-6639), `xpm_scan` (C 6648-6705), the two colour-table pairs (C 6714-6779), `enum xpm_color_key` (C 6781-6787), `xpm_color_key_strings` (C 6789), `xpm_str_to_color_key` (C 6791-6798), `xpm_str_to_int` (C 6800-6818), `xpm_load_image` (C 6820-7084, with C 6841-6858's three function-local macros) and `xpm_load`'s second definition (C 7086-7120) | C 6615-6619's five-way condition (`use_cairo && have_xpm`, or one of `have_ns`/`have_haiku`/`have_pgtk`/`have_android` without `have_xpm`), plus `have_ns`/`have_android`/`use_cairo` inside the bodies |
 | 7126-7396 | the "Color table" section: `struct ct_color` (C 7134-7141), `CT_SIZE` (C 7145), `ct_hash_rgb` (C 7149-7153), `ct_table`/`ct_colors_allocated`/`ct_colors_allocated_max` (C 7157-7167), `init_color_table` (C 7171-7177), `free_color_table` (C 7182-7197), `lookup_rgb_color` (C 7205-7290), `lookup_pixel_color` (C 7296-7345), `colors_in_color_table` (C 7351-7374) and C 7376-7396's `#else` arm (`lookup_rgb_color` C 7378-7390, `init_color_table` C 7392-7395) | C 7130's `#ifdef COLOR_TABLE_SUPPORT` / its `#else`, both under the file gate (the condition is the first slice's C 169-173 one) |
 | 7398-7967 | the "Algorithms" section: C 7406/7413's two matrices, `COLOR_INTENSITY` (C 7423), `image_to_emacs_colors` (C 7432-7483), `XPutPixel` (C 7491-7527, the `HAVE_NTGUI` arm), `image_from_emacs_colors` (C 7535-7569), `image_detect_edges` (C 7580-7645, with C 7592's `COLOR`), `image_emboss` (C 7651-7655), `image_laplace` (C 7662-7666), `image_edge_detection` (C 7680-7705), `image_pixmap_draw_cross` (C 7711-7759), `image_disable_image` (C 7765-7850, with C 7805-7809's two macros) and `image_build_heuristic_mask` (C 7860-7967) | the file gate; `have_ntgui`, `have_ns`, `use_cairo`, `have_haiku` and `have_android` inside the bodies |
-| 7970-13805 | **the remainder of the file**: the "PBM (mono, gray, color)" banner (C 7970-7972), `enum pbm_keyword_index` (C 7976-7990), `pbm_format` (C 7995-8008), `pbm_image_p` (C 8012), `pbm_next_char` (C 8030), `pbm_scan_number`/`pbm_scan_index` (C 8054/8078), the XPM-image `xpm_load` arms, "PNG" (C 8359-...), "JPEG", "TIFF", "GIF", "ImageMagick", "SVG", `syms_of_image` and everything after it | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 7970-8351 | C 7970-7972's "PBM (mono, gray, color)" banner, `enum pbm_keyword_index` (C 7976-7990), `pbm_format` (C 7995-8008), `pbm_image_p` (C 8012-8028, whose `return 0` is the port's `return false`), `pbm_next_char` (C 8030-8052, the comment-skipping reader), `pbm_scan_number` (C 8054-8076), `pbm_scan_index` (C 8078-8095, the one- and two-byte big-endian reader) and `pbm_load` (C 8097-8351: the magic check and the `switch (*p++)`, the width/height/max-colour reads, the mono and gray/colour pixel loops with `PUT_PIXEL`, the `#ifdef USE_CAIRO` colour pair, the `#ifdef COLOR_TABLE_SUPPORT` tail and the `free_lab`-style `error:` cleanup) | the file gate (`have_window_system`), plus C's own `use_cairo` and `COLOR_TABLE_SUPPORT` arms inside the body - **transcribed** (the seventh slice) |
+| 8352-13805 | **the remainder of the file**: the `HAVE_NATIVE_IMAGE_API` arm (C 8358-8449), the XPM-image `xpm_load` arms (C 8456-9111's PNG block starts here), "PNG" (C 8456-9111), "JPEG" (C 9119-9677), "TIFF" (C 9685-10112), "GIF" (C 10120-10985), "WEBP" (C 10986-11328), "ImageMagick" (C 11331-12150), "SVG" (C 12158-...), the image-type registry with `lookup_image_type`/`initialize_image_type`/`image_prune_animation_caches`/`syms_of_image` (C 13390-13805) | every format loader is dead in this configuration (`HAVE_PNG`/`HAVE_JPEG`/`HAVE_TIFF`/`HAVE_GIF`/`HAVE_WEBP`/`HAVE_IMAGEMAGICK`/`HAVE_RSVG` are undef in `docs/baseline/config/darwin-arm64.macros.tsv`), so the table records them here rather than transcribing them (P-08); the registry and `syms_of_image` at C 13390-13805 are **live** and are the next slice's work |
 
 ## Evidence
 
@@ -1758,3 +1759,94 @@ dropped.
   (item 28's `text-only` note).
 - **The Haiku arm's `be_draw_cross_on_pixmap` call carries the mirror's argument types** (`c_int`/
   `uint32_t` where C's `unsigned int`/`unsigned long` are wider), the conversion-written-out rule.
+
+## The seventh slice (C 7970-8351): the PBM loader
+
+**32. The frozen configuration and the arm flip.**
+`cd femacs && CARGO_TARGET_DIR=/tmp/img24 cargo run -q -p xtask -- build-tu src/image.c`
+-> `built src/image.rs -> ../build/femacs/image.o`, **exit 0**, `build/femacs/image.o` **336 bytes**,
+md5 `dbed68837694579185377dbb0821ab62` (the empty object - a syntax reading; every item sits behind
+`have_window_system`).
+```
+$ CARGO_TARGET_DIR=/tmp/img24 cargo run -q -p xtask -- probe src/image.rs /tmp/img24/ns.o \
+    --crate-type=lib --emit obj -C panic=abort --cfg 'feature="have_window_system"' \
+    --cfg 'feature="have_ns"' --cfg 'feature="dispextern_face_records"'
+-> exit 0, **0 errors**, **16 warnings** (the same classes Evidence 27 records: 9 `unused doc
+   comment` in the mirrors, 4 `_NSRect` FFI-safety, 2 runtime `read`/`write`, 1 `unused attribute`),
+   `/tmp/img24/ns.o` **36,448 bytes**
+```
+**This is the first slice of this unit with a type-checking reading**, which is the point of the
+NS configuration: C 7970-8351 hangs on the *file* gate alone (no other arm of the file's `#if`
+ladder covers it), so the same probe that compiles the whole unit compiles this slice's text.  The
+first two runs of the slice read **4 error lines (2 errors), both in the new text** - `expected
+{ , found ;` for C 8061/8065's two `while (…) ;` loops (the port had written C's empty statement
+instead of a Rust `{ }` body) and `E0381 used binding ximg isn't initialized` at C 8171's
+`&ximg` - and both were retired before the reading above; C's `Emacs_Pix_Container ximg;` is
+zeroed (PORTING.md 1.5), the `xnmalloc`/`xbm_load_image` 7697 shape this file already uses.
+
+**33. `extract-abi.py --check`.**  `python3 tools/extract-abi.py --check emacs/src/image.c
+femacs/src/image.rs` -> **`FAIL` with 25 rows before the slice, 19 after**: the slice retires
+**five `missing function`** (`pbm_image_p`, `pbm_next_char`, `pbm_scan_number`, `pbm_scan_index`,
+`pbm_load`) and **all twelve `missing constant`** rows (`PBM_TYPE` … `PBM_LAST`), and the row the
+token check then demanded was paid for where the tree's rule says: two rows in
+`docs/ports/macro-body-notes.tsv` (`pbm_image_p	0` - C 8019's `return 0` in a `bool` function is the
+port's `return false`, the `image_check_image_size` row's class; `pbm_load
+background_valid,case,default,goto,switch` - C's `switch` is the `match` of PORTING.md 2.2, C 8113's
+`error:` label with its eight backward `goto error`s is one labelled block, and the bit member is
+the P-80 mask pair), plus the `ckd_mul` family's argument check, which is why C 8275-8277's two
+`ckd_mul`s are written as the `overflowing_mul` pair (the `sfnt.rs` slice-16 / `xnmalloc` 381
+shape) - the family's checker reads the numbers *inside* the call, and C's multiplicand
+`(two_byte ? 2 : 1) * (type == PBM_COLOR ? 3 : 1)` is exactly there.  The 19 rows that remain are
+the remainder's: four `missing function` (`lookup_image_type`, `initialize_image_type`,
+`image_prune_animation_caches`, `syms_of_image`), four `missing subr` and ten `missing defsubr`
+rows, the `no_mangle` note for `image_prune_animation_caches`, and `line count drifted 16.7%: C
+13805 vs Rust 11497` (the drift falls from 20.5%).
+
+**34. The seven text gates.**
+`check-declarations.py` **17 declaration sites (0 forbidden, 17 allowed literals), 0 failures**;
+`check-citations.py` **676 file(s) scanned, 0 drift, 0 range, 2029 external, 36 allowed, 0 stale**;
+`check-dead-file-coverage.py` **145 ledger(s) bound, 0 failure(s)** (the range table's last row now
+splits at C 8351 and still tiles C 1-13805); `check-port-lines.py` **0 file(s) under ten percent, 0
+reference line(s); 0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py` **238 ledger(s)
+bound, 0 failure(s)**; `check-cond-eval.py src/image.c` **435 conditions, 0 unknown, 0
+disagreements**; and `check-mirror-dupes.py`'s ratchet is untouched (no mirror changed).
+
+**35. Verdicts and deviations.**
+
+- **C's `error:` label is reached backward, so the port hoists its body.**  C 8113's label sits
+  *inside* C 8109's first `if`, and the eight later `goto error` sites (C 8123, C 8156, C 8168,
+  C 8171, C 8232, C 8253, C 8297, C 8308) jump back to it; a Rust `break` can only leave a block
+  forward, so the block `'error: { … }` opens at the first statement that can reach the label and
+  closes after the last jump site, and C's three-statement label body (`xfree (contents); img->
+  pixmap = NO_PIXMAP; return 0;`) stands after the block, where every `break 'error` lands.  The
+  success path returns inside the block, exactly as C's fall-through reaches its own `xfree
+  (contents); return 1;`, so the statements are not duplicated and no flag is needed (the
+  `xbm_read_bitmap_data` `'failure`/`'success` pair is the same shape, and `parse_image_spec`'s
+  *forward* `goto maybe_done` keeps its flag because its label's code runs in both paths).
+- **C's four post-increment reads are the load-then-step pair** (Deviation 26): C 8109's
+  `*p++ != 'P'` (evaluated only when `end - p < 2` is false, which is why the port builds the
+  condition as the magic test plus the step), C 8126's `switch (*p++)`, C 8034/8043's
+  `*(*s)++` in `pbm_next_char`, and C 8081/8085's `*p++` in `pbm_scan_index`.
+- **C's chained assignment `r = g = b = …;` is one statement per assignment in C's right-to-left
+  order** (the `dispnew.md` 312 (b) rule), so C 8294/8296's single read of `pbm_scan_index` /
+  `pbm_scan_number` happens once, into `b`, and `g`/`r` follow.
+- **C's `switch (*p++)` is the port's `match` on the byte** (`b'1'` … `b'6'`, `_` for `default`):
+  the `case` keywords cannot be spelled in Rust, which is the notes row's subject.
+- **Two conversions written out**: C 8306's `(double) r * 65535 / max_color_idx` is
+  `(r as c_double * 65535.0 / max_color_idx as c_double) as c_int` (the `gtkutil.rs` 1215 shape),
+  and C 8283's `(two_byte ? 2 : 1) * (type == PBM_COLOR ? 3 : 1)` is written with the two `if`
+  expressions plus the `ptrdiff_t` cast the `ckd_mul` family needs.
+- **C's uninitialised locals are zeroed** (PORTING.md 1.5): C 8101's `ptrdiff_t size`, C 8106's
+  `Emacs_Pix_Container ximg` (measured `E0381`), C 8103's `end`/`p` are written before any read, and
+  C 8100's `bool raw_p` is assigned by every `case` arm but zeroed at its declaration.
+- **The `<time.h>`-class use-site names**: none - this slice's text names only the unit's own
+  helpers, the two P-88 mirror surfaces it already had (`FRAME_TERMINAL!`/`query_colors` under
+  `use_cairo`) and the `PIX_CONTAINER_TO_CONTEXT!`/`IMAGE_BACKGROUND!`/`PUT_PIXEL!`/`NO_PIXMAP!`
+  macros the earlier slices established, so no mirror changed with this slice.
+- **What is *not* claimed**: the PBM reader has never run - no PBM file was opened, no header
+  scanned, no pixel stored, and `init_color_table`/`lookup_rgb_color` were not called by anything
+  (their only callers are the loaders, and nothing invokes `pbm_load`); the arm probe is a
+  *compile* reading of the `have_ns` configuration, not a behaviour test; the format loaders
+  between C 8352 and C 13805 are recorded above rather than transcribed because the frozen
+  configuration makes their `#if`s false, so the unit's `--check` still reads `FAIL` and this
+  slice is not the file's close.
