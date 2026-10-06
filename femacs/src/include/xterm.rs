@@ -1485,13 +1485,17 @@ pub struct selection_input_event
 }
 
 /// P-80: the `kind` member of the storage unit above, the `input_event_bits!` shape (the mask is
-/// termhooks.h's `EVENT_KIND_WIDTH`, `0xFFFF`).  C reads this member only - the one reader is
-/// `src/xselect.rs` C 1385 - and the file's single assignment of a `kind` is `struct
-/// input_event`'s (`bufp->kind = DRAG_N_DROP_EVENT`), not this member's, so the macro has no
-/// setter arm.
+/// termhooks.h's `EVENT_KIND_WIDTH`, `0xFFFF`).  This member has a writer as well as a reader, so
+/// the setter arm stands beside the getter: the reader is `src/xselect.rs` C 1385, and the first
+/// writer is `src/xterm.rs` C 32611 (`clear.kind = SELECTION_CLEAR_EVENT`, in
+/// `x_preserve_selections`).  This note used to say C's only assignment of a `kind` was `struct
+/// input_event`'s, which C 19503 (`inev.sie.kind`) and C 32611 both refute; C 19503's writer lands
+/// with `XTread_socket`.
 #[cfg (feature = "have_x_windows")]
 macro_rules! selection_input_event_bits {
   (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
 }
 /// C 1715-1718: "Unlike macros below, this can't be used as an lvalue."  C's body reads
 /// `ev->dpyinfo->display`, which the port keeps as C's field chain.

@@ -20401,3 +20401,192 @@ pub unsafe extern "C" fn x_get_keyboard_modifiers (dpyinfo: *mut x_display_info)
 		make_uint ((*dpyinfo).shift_lock_mask as uintmax_t),    // C 32660
 		make_uint ((*dpyinfo).meta_mod_mask as uintmax_t));     // C 32661
 }
+
+/* Preserve the selections in LOST in another frame on DPYINFO.  LOST
+   is a list of local selections that were lost, due to their frame
+   being deleted.  */
+
+/// C 32505-32635: `void x_preserve_selections (struct x_display_info *dpyinfo, Lisp_Object lost,
+/// Lisp_Object current_owner)` - non-`static` and declared in xterm.h 1967-1968, so the exported
+/// shape above (PORTING.md 0.2/1.4).  Three prototypes from other units' headers sit in the body,
+/// because this unit's include graph reaches no mirror that carries them (the
+/// `x_dnd_do_unsupported_drop` note at 3975: xterm.h 1919-1921 `x_handle_selection_event`, 1927
+/// `symbol_to_x_atom`, 1947-1948 `x_own_selection`).  C 32611 is the first *writer* of the
+/// record's `kind` bitfield in this file, so the mirror's `selection_input_event_bits!` gains the
+/// setter arm P-80 ② describes - its note claimed C's only `kind` assignment was `input_event`'s,
+/// which C 19503 and C 32611 both refute.  `alloca` is the port's stack pool (P-05).  C's
+/// `#ifndef USE_XCB` / `#else` pair has a different shape in each of the two loops it sits in: in
+/// the second, each arm's array store is all the pair selects and the loop's own `}` is shared; in
+/// the third, the `#else` arm's reply handling *precedes* the shared `if (owners[nowners - 1] != …)`,
+/// so that loop's body carries it as a leading `#[cfg]` block (PORTING.md 7.2).  `nowners++` /
+/// `counter++` are written as the statement's own increment beside the store they index (C's
+/// post-increment, the `x_sync_with_move` note's class).  `clear` is zero-initialised (Deviation
+/// 12: C leaves `requestor`/`target`/`property` uninitialised and writes the four members the
+/// callee reads).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_preserve_selections (dpyinfo: *mut x_display_info, lost: Lisp_Object,
+						current_owner: Lisp_Object)
+{
+  unsafe extern "C" {
+    /// C: xterm.h 1919-1921: `extern void x_handle_selection_event (struct selection_input_event *);`
+    pub fn x_handle_selection_event (event: *mut selection_input_event);
+    /// C: xterm.h 1927: `extern Atom symbol_to_x_atom (struct x_display_info *, Lisp_Object);`
+    pub fn symbol_to_x_atom (dpyinfo: *mut x_display_info, sym: Lisp_Object) -> Atom;
+    /// C: xterm.h 1947-1948: `extern void x_own_selection (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Time);`
+    pub fn x_own_selection (selection_name: Lisp_Object, selection_value: Lisp_Object,
+			    frame: Lisp_Object, dnd_data: Lisp_Object, timestamp: Time);
+  }
+
+  let mut tail: Lisp_Object;                                            // C 32509
+  let mut frame: Lisp_Object;
+  let mut new_owner: Lisp_Object;
+  let mut timestamp: Time;                                              // C 32510
+  let mut owners: *mut Window;                                          // C 32511
+  let mut names: *mut Atom;                                             // C 32512
+  let mut nowners: ptrdiff_t;                                           // C 32513
+  let mut counter: ptrdiff_t;
+  let mut clear: selection_input_event = core::mem::zeroed ();          // C 32514 (Deviation 12)
+#[cfg (feature = "use_xcb")]
+  let mut cookies: *mut xcb_get_selection_owner_cookie_t;               // C 32516
+#[cfg (feature = "use_xcb")]
+  let mut error: *mut xcb_generic_error_t;                              // C 32517
+#[cfg (feature = "use_xcb")]
+  let mut reply: *mut xcb_get_selection_owner_reply_t;                  // C 32518
+
+  new_owner = Qnil ();                                                  // C 32521
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 32523
+    if FRAME_X_P (XFRAME (frame))                                       // C 32525
+	&& !EQ (frame, current_owner)                                   // C 32526
+	&& FRAME_DISPLAY_INFO! (XFRAME (frame)) == dpyinfo              // C 32527
+      {
+	new_owner = frame;                                              // C 32529
+	break;                                                          // C 32530
+      }
+  });
+
+  tail = lost;                                                          // C 32534
+  nowners = 0;                                                          // C 32535
+
+  FOR_EACH_TAIL_SAFE! (tail, {                                          // C 32537
+    let tem: Lisp_Object = XCAR (tail);                                 // C 32539
+    nowners += 1;                                                       // C 32540
+
+    /* The selection is really lost (since we cannot find a new
+       owner), so run the appropriate hooks.  */
+    if NILP (new_owner)                                                 // C 32544
+      { CALLN! (Frun_hook_with_args, Qx_lost_selection_functions (),    // C 32545-32546
+		XCAR (tem)); }
+    else
+      {
+	CONS_TO_INTEGER! (XCAR (XCDR (XCDR (tem))), timestamp);         // C 32549
+
+	/* This shouldn't be able to signal any errors, despite the
+	   call to `x_check_errors' inside.  */
+	x_own_selection (XCAR (tem), XCAR (XCDR (tem)),                 // C 32553-32555
+			 new_owner, XCAR (XCDR (XCDR (XCDR (XCDR (tem))))),
+			 timestamp);
+      }
+  });
+
+  if !NILP (new_owner)                                                  // C 32559
+    {
+      USE_SAFE_ALLOCA! (sa_avail, sa_count);
+
+      owners = SAFE_ALLOCA! (sa_avail, std::mem::size_of::<Window> ()  // C 32561
+			     * nowners as usize) as *mut Window;
+      names = SAFE_ALLOCA! (sa_avail, std::mem::size_of::<Atom> ()      // C 32562
+			    * nowners as usize) as *mut Atom;
+#[cfg (feature = "use_xcb")]
+      {
+	cookies = SAFE_ALLOCA! (sa_avail,                                // C 32564
+				std::mem::size_of::<xcb_get_selection_owner_cookie_t> ()
+				* nowners as usize) as *mut xcb_get_selection_owner_cookie_t;
+      }
+
+      tail = lost;                                                      // C 32567
+      nowners = 0;                                                      // C 32568
+      counter = 0;                                                      // C 32569
+
+      FOR_EACH_TAIL_SAFE! (tail, {                                      // C 32571
+	let tem: Lisp_Object = XCAR (tail);                             // C 32573
+
+	/* Now check if we still don't own that selection, which can
+	   happen if another program set itself as the owner.  */
+	*names.offset (counter) = symbol_to_x_atom (dpyinfo, XCAR (tem));  // C 32577
+	counter += 1;                                                   // C 32577, C's post-increment
+
+#[cfg (not (feature = "use_xcb"))]
+	{
+	  *owners.offset (nowners) = XGetSelectionOwner ((*dpyinfo).display,  // C 32580-32581
+							 *names.offset (counter - 1));
+	  nowners += 1;                                                 // C 32580, C's post-increment
+	}
+#[cfg (feature = "use_xcb")]
+	{
+	  *cookies.offset (nowners) = xcb_get_selection_owner ((*dpyinfo).xcb_connection,  // C 32583-32585
+							       *names.offset (counter - 1));
+	  nowners += 1;                                                 // C 32583, C's post-increment
+	}
+      });
+
+      nowners = 0;                                                      // C 32588
+      tail = lost;                                                      // C 32589
+
+      FOR_EACH_TAIL_SAFE! (tail, {                                      // C 32591
+	let tem: Lisp_Object = XCAR (tail);                             // C 32593
+
+#[cfg (feature = "use_xcb")]
+	{
+	  use crate::x11_constants::None;
+
+	  reply = xcb_get_selection_owner_reply ((*dpyinfo).xcb_connection,  // C 32595-32596
+						 *cookies.offset (nowners), &raw mut error);
+	  nowners += 1;                                                 // C 32596, C's post-increment
+
+	  if !reply.is_null ()                                          // C 32597
+	    { *owners.offset (nowners - 1) = (*reply).owner; }          // C 32598
+	  else
+	    { *owners.offset (nowners - 1) = None; }                    // C 32600
+
+	  free (if !reply.is_null () { reply as *mut c_void }           // C 32602
+		else { error as *mut c_void });
+	}
+
+	if *owners.offset (nowners - 1)                                 // C 32605
+	    != FRAME_X_WINDOW! (XFRAME (new_owner))
+	  {
+	    /* Clear the local selection, since we know we don't own
+	       it any longer.  */
+	    CONS_TO_INTEGER! (XCAR (XCDR (XCDR (tem))), timestamp);     // C 32609
+
+	    selection_input_event_bits! (kind, &raw mut clear, SELECTION_CLEAR_EVENT);  // C 32611
+
+	    SELECTION_EVENT_DPYINFO! (&raw mut clear) = dpyinfo;        // C 32613
+	    SELECTION_EVENT_SELECTION! (&raw mut clear)                 // C 32614
+	      = *names.offset (nowners - 1);
+	    SELECTION_EVENT_TIME! (&raw mut clear) = timestamp;         // C 32615
+
+	    x_handle_selection_event (&raw mut clear);                  // C 32617
+	  }
+      });
+
+      tail = lost;                                                      // C 32621
+      nowners = 0;                                                      // C 32622
+
+      FOR_EACH_TAIL_SAFE! (tail, {                                      // C 32624
+	let tem: Lisp_Object = XCAR (tail);                             // C 32626
+
+	/* If the selection isn't owned by us anymore, note that the
+	   selection was lost.  */
+	nowners += 1;                                                   // C 32630, C's post-increment
+	if *owners.offset (nowners - 1)                                 // C 32630
+	    != FRAME_X_WINDOW! (XFRAME (new_owner))
+	  { CALLN! (Frun_hook_with_args, Qx_lost_selection_functions (),  // C 32631-32632
+		    XCAR (tem)); }
+      });
+
+      SAFE_FREE! (sa_count);
+    }
+}
