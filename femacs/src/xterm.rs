@@ -20188,3 +20188,114 @@ unsafe fn x_create_terminal (dpyinfo: *mut x_display_info) -> *mut terminal
 
   return terminal;                                                      // C 32302
 }
+
+/// C 32305-32360: `static void x_initialize (void)` - C's `static`, so a plain `unsafe fn`
+/// (PORTING.md 0.2).  The five globals are the unit's own (`x_noop_count` 795, `any_help_event_p`
+/// 770, `ignore_next_mouse_click_timeout` 792, `mouse_click_timeout_display` 793, `current_count`
+/// 810) except `baud_rate`, which is `include/globals.rs` 6938's carrier; C 32322's
+/// `THREADS_ENABLED` is **undef** in the frozen table (measured), so that arm is carried with its
+/// feature and compiled by no arm this lane runs, as are the `USE_X_TOOLKIT`,
+/// `USE_TOOLKIT_SCROLL_BARS && ! USE_GTK` and `USE_CAIRO` arms (P-86 ①'s text).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_initialize ()
+{
+  baud_rate = 19200;                                                    // C 32308
+
+  x_noop_count = 0;                                                     // C 32310
+  any_help_event_p = false;                                             // C 32311
+  ignore_next_mouse_click_timeout = 0;                                  // C 32312
+  mouse_click_timeout_display = std::ptr::null_mut ();                  // C 32313
+
+#[cfg (feature = "use_gtk")]
+  {
+    current_count = -1;                                                 // C 32316
+  }
+
+  /* Try to use interrupt input; if we can't, then start polling.  */
+  Fset_input_interrupt_mode (Qt ());                                    // C 32320
+
+#[cfg (feature = "threads_enabled")]
+  {
+    /* This must be called before any other Xlib routines.  */
+    if XInitThreads () == 0                                             // C 32324
+      {
+	fputs (c"Warning: An error occurred initializing X11 thread support!\n".as_ptr (),  // C 32325-32326
+	       stderr);
+      }
+  }
+
+#[cfg (feature = "use_x_toolkit")]
+  {
+    XtToolkitInitialize ();                                             // C 32330
+
+    Xt_app_con = XtCreateApplicationContext ();                         // C 32332
+
+    /* Register a converter from strings to pixels, which uses
+       Emacs's color allocation infrastructure.  */
+    XtAppSetTypeConverter (Xt_app_con,                                  // C 32336-32340
+			   XtRString, XtRPixel, cvt_string_to_pixel,
+			   cvt_string_to_pixel_args,
+			   XtNumber (cvt_string_to_pixel_args),
+			   XtCacheByDisplay, cvt_pixel_dtor);
+
+    XtAppSetFallbackResources (Xt_app_con, Xt_default_resources);       // C 32342
+  }
+
+#[cfg (all (feature = "use_toolkit_scroll_bars", not (feature = "use_gtk")))]
+  {
+    xaw3d_arrow_scroll = False;                                         // C 32347
+    xaw3d_pick_top = True;                                              // C 32348
+  }
+
+#[cfg (feature = "use_cairo")]
+  {
+    gui_init_fringe (&raw mut x_redisplay_interface);                   // C 32353
+  }
+
+  /* Note that there is no real way portable across R3/R4 to get the
+     original error handler.  */
+  XSetErrorHandler (x_error_handler);                                   // C 32358
+  /* C's own implicit conversion: `x_io_error_quitter` takes `Display *` (C 27114) while
+     `Emacs_XIOErrorHandler` is the mirror's `*mut c_void` shape (unit 701-702), so the port takes
+     the same `hook!` cast the hook assignments above use (PORTING.md 1.4/P-55).  */
+  XSetIOErrorHandler (hook! (unsafe extern "C" fn (*mut c_void) -> c_int, x_io_error_quitter));  // C 32359
+}
+
+/* Error handling functions for Lisp functions that expose X protocol
+   requests.  They are mostly like `x_catch_errors' and friends, but
+   respect `x-fast-protocol-requests'.  */
+
+/// C 32475-32482: `void x_catch_errors_for_lisp (struct x_display_info *dpyinfo)` - non-`static` and
+/// declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_catch_errors_for_lisp (dpyinfo: *mut x_display_info)
+{
+  if !x_fast_protocol_requests                                          // C 32478
+    { x_catch_errors ((*dpyinfo).display); }                            // C 32479
+  else
+    { x_ignore_errors_for_next_request (dpyinfo, 0); }                  // C 32481
+}
+
+/// C 32484-32490: `void x_check_errors_for_lisp (struct x_display_info *dpyinfo, const char
+/// *format)` - non-`static`, so the exported shape above.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_check_errors_for_lisp (dpyinfo: *mut x_display_info,
+						  format: *const c_char)
+{
+  if !x_fast_protocol_requests                                          // C 32488
+    { x_check_errors ((*dpyinfo).display, format); }                    // C 32489
+}
+
+/// C 32492-32499: `void x_uncatch_errors_for_lisp (struct x_display_info *dpyinfo)` - non-`static`,
+/// so the exported shape above.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_uncatch_errors_for_lisp (dpyinfo: *mut x_display_info)
+{
+  if !x_fast_protocol_requests                                          // C 32495
+    { x_uncatch_errors (); }                                            // C 32496
+  else
+    { x_stop_ignoring_errors (dpyinfo); }                               // C 32498
+}
