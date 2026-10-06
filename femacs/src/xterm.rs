@@ -21895,3 +21895,86 @@ unsafe fn x_dnd_process_quit (f: *mut frame, timestamp: Time)
   x_dnd_movement_frame = std::ptr::null_mut ();                         // C 12681
   x_dnd_wheel_frame = std::ptr::null_mut ();                            // C 12682
 }
+
+/* Like x_any_window_to_frame but only try to find tooltip frames.
+
+   If wdesc is a toolkit tooltip without an associated frame, set
+   UNRELATED_TOOLTIP_P to true.  Otherwise, set it to false.  */
+
+/// C 12284-12342: `static struct frame *x_tooltip_window_to_frame (struct x_display_info
+/// *dpyinfo, Window wdesc, bool *unrelated_tooltip_p)` - C's `static`, so a plain `unsafe fn`.
+/// C 12290's `#ifdef USE_GTK` arm declares its two GTK pointers and C 12307-12338 is its body,
+/// so both carry that one feature; `GTK_WIDGET!` is the gtk mirror's cast macro (`include/gtk.rs`
+/// 779) and `ttip_window` is one of `struct x_output`'s fields no mirror carries, so its access is
+/// the recorded `E0609` class (the `alpha_identical_p` reading, Decision 68 ②).  C 12309's
+/// `continue` takes the *inverted guard* spelling rather than PORTING.md 2.2's labelled block,
+/// because the arm ends with C 12327/12335's `break`s - bare `break`s inside a labelled block are
+/// `E0695`, and inverting C 12308's test keeps those two as the loop's own; the GTK3 arm's
+/// `gdk_x11_window_get_xid` is the bare GTK class and the GTK2 arm's `GDK_WINDOW_XID` is the macro
+/// the mirror records as text rather than defining (so it would be bare too - no arm compiles it).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_tooltip_window_to_frame (dpyinfo: *mut x_display_info, wdesc: Window,
+				     unrelated_tooltip_p: *mut bool) -> *mut frame
+{
+  let mut tail: Lisp_Object;                                            // C 12288
+  let mut frame: Lisp_Object;
+  let mut f: *mut frame;                                                // C 12289
+#[cfg (feature = "use_gtk")]
+  let mut widget: *mut GtkWidget;                                       // C 12291
+#[cfg (feature = "use_gtk")]
+  let mut tooltip_window: *mut GdkWindow;                               // C 12292
+
+  if !unrelated_tooltip_p.is_null ()                                    // C 12295
+    { *unrelated_tooltip_p = false; }                                   // C 12296
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 12298
+    f = XFRAME (frame);                                                 // C 12300
+
+    if FRAME_X_P (f) && FRAME_TOOLTIP_P (f)                             // C 12302
+	&& FRAME_DISPLAY_INFO! (f) == dpyinfo                           // C 12303
+	&& FRAME_X_WINDOW! (f) == wdesc                                 // C 12304
+      { return f; }                                                     // C 12305
+
+    /* C 12307-12338's `USE_GTK` arm, with C 12309's `if (!FRAME_X_P (f)) continue;` written as
+       the *positive* guard around the arm's remaining statements - the arm's two `break`s are the
+       loop's, and a bare `break` inside a labelled block is `E0695` (the doc comment above).  */
+#[cfg (feature = "use_gtk")]
+    {
+      if FRAME_X_P (f)                                              // C 12308, inverted
+	{
+	  if !(*FRAME_X_OUTPUT! (f)).ttip_window.is_null ()         // C 12311
+	    { widget = GTK_WIDGET! ((*FRAME_X_OUTPUT! (f)).ttip_window); }  // C 12312
+	  else
+	    { widget = std::ptr::null_mut (); }                     // C 12314
+
+	  if !widget.is_null ()                                     // C 12316
+	    { tooltip_window = gtk_widget_get_window (widget); }    // C 12317
+	  else
+	    { tooltip_window = std::ptr::null_mut (); }             // C 12319
+
+#[cfg (feature = "have_gtk3")]
+	  {
+	    if !tooltip_window.is_null ()                           // C 12322
+		&& gdk_x11_window_get_xid (tooltip_window) == wdesc  // C 12323
+	      {
+		if !unrelated_tooltip_p.is_null ()                  // C 12325
+		  { *unrelated_tooltip_p = true; }                  // C 12326
+		break;                                              // C 12327
+	      }
+	  }
+#[cfg (not (feature = "have_gtk3"))]
+	  {
+	    if !tooltip_window.is_null ()                           // C 12330
+		&& GDK_WINDOW_XID (tooltip_window) == wdesc          // C 12331
+	      {
+		if !unrelated_tooltip_p.is_null ()                  // C 12333
+		  { *unrelated_tooltip_p = true; }                  // C 12334
+		break;                                              // C 12335
+	      }
+	  }
+	}
+    }
+  });
+
+  return std::ptr::null_mut ();                                         // C 12341
+}
