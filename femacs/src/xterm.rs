@@ -26031,5 +26031,174 @@ unsafe fn x_scroll_bar_create (w: *mut window, top: c_int, left: c_int, width: c
   return bar;                                                             // C 16823
 }
 
-/* C 16824's `}` closes `x_scroll_bar_create`; C 16827's `#ifndef USE_TOOLKIT_SCROLL_BARS` opens the
-   handle-drawing region the next slice starts.  */
+/* C 16827's `#ifndef USE_TOOLKIT_SCROLL_BARS` opens this region.  */
+
+/* Draw BAR's handle in the proper position.
+
+   If the handle is already drawn from START to END, don't bother
+   redrawing it, unless REBUILD; in that case, always
+   redraw it.  (REBUILD is handy for drawing the handle after expose
+   events.)
+
+   Normally, we want to constrain the start and end of the handle to
+   fit inside its rectangle, but if the user is dragging the scroll
+   bar handle, we want to let them drag it down all the way, so that
+   the bar's top is as far down as it goes; otherwise, there's no way
+   to move to the very end of the buffer.  */
+
+/* C 16827's `#ifndef USE_TOOLKIT_SCROLL_BARS` is this whole region's condition, and C 16958's
+   `#endif` closes it: everything from `x_scroll_bar_set_handle` on is the plain-X scroll-bar code,
+   so its gate is the file gate plus `not (feature = "use_toolkit_scroll_bars")` (slice 78's
+   plain-X arm).  */
+
+/// C 16842-16956: `static void x_scroll_bar_set_handle (struct scroll_bar *bar, int start, int end,
+/// bool rebuild)` - C's `static`, so a plain `unsafe fn`.  Five shapes: C 16843-16844 assign both
+/// *parameters* (`start`/`end` are re-bound mutable at C 16874-16895), the `invisible` shape in
+/// `x_toggle_visible_pointer`; C 16846-16850's six locals are each assigned once on this straight
+/// path, so only the pair C 16850 reads needs no `mut` and neither does `dragging`/`f`/`w`/`gc`
+/// (the reverse of the usual case, and `mut` would warn); the four `VERTICAL_SCROLL_BAR_*` names
+/// are `include/xterm.rs`'s macros (1368-1440, called with C's own two arguments);
+/// `FRAME_X_DRAWABLE!`/`FRAME_BACKGROUND_PIXEL`/`FRAME_FOREGROUND_PIXEL` are the mirrors' rows;
+/// C 16901/16934's `!= -1` tests state the conversion C relies on
+/// (`(-1 as c_int) as c_ulong`, this file's 18516 shape); C's parentheses around the two `&&`
+/// conditions and around the `XSetForeground` calls' arguments are dropped where rustc's
+/// `unused_parens` fires (the file's own rule - measured on the first writing).  `XSetForeground`
+/// and `XFillRectangle` stay bare names: they are the "Xlib entry points with no mirror row" class
+/// the ledger has counted since slices 1-9 (its home is `include/xlib.rs`'s own round), and this
+/// slice's eleven uses join that count rather than inventing a second spelling for them.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_toolkit_scroll_bars")))]
+unsafe fn x_scroll_bar_set_handle (bar: *mut scroll_bar, start: c_int, end: c_int, rebuild: bool)
+{
+  let mut start = start;
+  let mut end = end;
+  let dragging: bool;                                                   // C 16846
+  let f: *mut frame;                                                    // C 16847
+  let w: Drawable;                                                      // C 16848
+  let gc: GC;                                                           // C 16849
+  let inside_width: c_int;                                              // C 16850
+  let inside_height: c_int;
+  let top_range: c_int;
+  let length: c_int;
+
+  /* If the display is already accurate, do nothing.  */
+  if !rebuild                                                           // C 16853
+      && start == (*bar).start
+      && end == (*bar).end
+    { return; }                                                         // C 16856
+
+  f = XFRAME (WINDOW_FRAME! (XWINDOW ((*bar).window)));                 // C 16858
+  dragging = (*bar).dragging != -1;                                     // C 16859
+  gc = (*( (*f).output_data.x as *mut x_output )).normal_gc;            // C 16860
+  w = FRAME_X_DRAWABLE! (f);                                            // C 16861
+
+  block_input ();                                                       // C 16863
+
+  inside_width = VERTICAL_SCROLL_BAR_INSIDE_WIDTH! (f, (*bar).width);   // C 16865
+  inside_height = VERTICAL_SCROLL_BAR_INSIDE_HEIGHT! (f, (*bar).height); // C 16866
+  top_range = VERTICAL_SCROLL_BAR_TOP_RANGE! (f, (*bar).height);        // C 16867
+
+  /* Make sure the values are reasonable, and try to preserve
+     the distance between start and end.  */
+  length = end - start;                                                 // C 16871
+
+  if start < 0                                                          // C 16873
+    { start = 0; }                                                      // C 16874
+  else if start > top_range
+    { start = top_range; }                                              // C 16876
+  end = start + length;                                                 // C 16877
+
+  if end < start                                                        // C 16879
+    { end = start; }                                                    // C 16880
+  else if end > top_range && !dragging
+    { end = top_range; }                                                // C 16882
+
+  /* Store the adjusted setting in the scroll bar.  */
+  (*bar).start = start;                                                 // C 16885
+  (*bar).end = end;                                                     // C 16886
+
+  /* Clip the end position, just for display.  */
+  if end > top_range                                                    // C 16889
+    { end = top_range; }                                                // C 16890
+
+  /* Draw bottom positions VERTICAL_SCROLL_BAR_MIN_HANDLE pixels
+     below top positions, to make sure the handle is always at least
+     that many pixels tall.  */
+  end += VERTICAL_SCROLL_BAR_MIN_HANDLE! ();                            // C 16895
+
+  /* Draw the empty space above the handle.  Note that we can't clear
+     zero-height areas; that means "clear to end of window."  */
+  if inside_width > 0 && start > 0                                       // C 16899
+    {
+      if (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel
+	   != (-1 as c_int) as c_ulong                                    // C 16901
+	{
+	  XSetForeground (FRAME_X_DISPLAY! (f), gc,                     // C 16902-16903
+			  (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel);
+	}
+      else
+	{
+	  XSetForeground (FRAME_X_DISPLAY! (f), gc,                     // C 16905-16906
+			  FRAME_BACKGROUND_PIXEL (f));
+	}
+
+      XFillRectangle (FRAME_X_DISPLAY! (f), w, gc,                      // C 16908-16911
+		      (*bar).left + VERTICAL_SCROLL_BAR_LEFT_BORDER! (),
+		      (*bar).top + VERTICAL_SCROLL_BAR_TOP_BORDER! (),
+		      inside_width, start);
+
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                         // C 16913-16914
+		      FRAME_FOREGROUND_PIXEL (f));
+    }
+
+  /* Change to proper foreground color if one is specified.  */
+  if (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel
+       != (-1 as c_int) as c_ulong                                      // C 16918
+    {
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                         // C 16919-16920
+		      (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel);
+    }
+
+  /* Draw the handle itself.  */
+  XFillRectangle (FRAME_X_DISPLAY! (f), w, gc,                          // C 16923-16927
+		  /* x, y, width, height */
+		  (*bar).left + VERTICAL_SCROLL_BAR_LEFT_BORDER! (),
+		  (*bar).top + VERTICAL_SCROLL_BAR_TOP_BORDER! () + start,
+		  inside_width, end - start);
+
+  /* Draw the empty space below the handle.  Note that we can't
+     clear zero-height areas; that means "clear to end of window." */
+  if inside_width > 0 && end < inside_height                            // C 16932
+    {
+      if (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel
+	   != (-1 as c_int) as c_ulong                                    // C 16934
+	{
+	  XSetForeground (FRAME_X_DISPLAY! (f), gc,                     // C 16935-16936
+			  (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel);
+	}
+      else
+	{
+	  XSetForeground (FRAME_X_DISPLAY! (f), gc,                     // C 16938-16939
+			  FRAME_BACKGROUND_PIXEL (f));
+	}
+
+      XFillRectangle (FRAME_X_DISPLAY! (f), w, gc,                      // C 16941-16944
+		      (*bar).left + VERTICAL_SCROLL_BAR_LEFT_BORDER! (),
+		      (*bar).top + VERTICAL_SCROLL_BAR_TOP_BORDER! () + end,
+		      inside_width, inside_height - end);
+
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                         // C 16946-16947
+		      FRAME_FOREGROUND_PIXEL (f));
+    }
+
+  /* Restore the foreground color of the GC if we changed it above.  */
+  if (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel
+       != (-1 as c_int) as c_ulong                                      // C 16951
+    {
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                         // C 16952-16953
+		      FRAME_FOREGROUND_PIXEL (f));
+    }
+
+  unblock_input ();                                                     // C 16955
+}
+
+/* C 16958's `#endif /* !USE_TOOLKIT_SCROLL_BARS */` closes it.  */
