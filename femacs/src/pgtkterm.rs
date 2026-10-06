@@ -4893,3 +4893,157 @@ unsafe fn pgtk_frame_up_to_date (f: *mut frame)
     }
   unblock_input ();                                                     // C 3464
 }
+
+/// C 3509: `XFRAME (frame)->mouse_moved = false;` - `frame.h` 434's `bool_bf mouse_moved : 1`,
+/// whose shift `include/frame.rs` 529-537 names for this arm (A: x11/pgtk/android/w32); the
+/// mirror carries the shift and no accessor, so the unit declares the member's own writer - the
+/// `src/androidterm.rs` 234-238 copy of the same macro (`bits1` is the measured word 1; that copy
+/// carries both arms, this one the write C's body performs, and the reader lands with the first
+/// C site that reads the flag).
+#[cfg (feature = "have_pgtk")]
+macro_rules! mouse_moved {
+  ($f:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_MOUSE_MOVED_SHIFT))
+                  | ((($v) as u32) << FRAME_MOUSE_MOVED_SHIFT) };
+}
+/// C: gdk/gdktypes.h: `typedef enum { GDK_SHIFT_MASK = 1 << 0, …, GDK_META_MASK = 1 << 28 }
+/// GdkModifierType;` - the type of C 3497's local `mask`, which the C 3523/3549 calls write
+/// through a pointer (`src/xwidget.rs` 260-263 carries the same row; its values are placeholders,
+/// there is no GDK header on this machine).  **UNVERIFIED**.
+#[cfg (feature = "have_pgtk")]
+pub type GdkModifierType = c_int;
+
+/* C: dispextern.h 4006: `extern bool gui_mouse_grabbed (Display_Info *);` - the C 3513 call
+   (`src/frame.rs` 6420 defines it; dispextern.h 152's `typedef struct pgtk_display_info
+   Display_Info;` is the record this unit uses, which the mirror's own alias table still defers).
+   dispextern.h 3586: `void remember_mouse_glyph (struct frame *, int, int, NativeRectangle *);` -
+   the C 3554 call, with pgtkgui.h 101's `#define NativeRectangle XRectangle`.  The mirror carries
+   neither, so both are declared here at the use site (P-90 ①, the `src/androidterm.rs` 163-171
+   shape).  */
+/* <gdk/gdkwindow.h>: `GdkWindow *gdk_window_get_device_position (GdkWindow *window, GdkDevice
+   *device, gint *x, gint *y, GdkModifierType *mask);` - the C 3523/3549 calls (the GTK segment's
+   convention: the header alone, no line).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gui_mouse_grabbed (dpyinfo: *mut pgtk_display_info) -> bool;
+  pub fn remember_mouse_glyph (f: *mut frame, x: c_int, y: c_int,
+			       rectangle: *mut XRectangle);
+  pub fn gdk_window_get_device_position (window: *mut GdkWindow, device: *mut GdkDevice,
+					 x: *mut c_int, y: *mut c_int,
+					 mask: *mut GdkModifierType) -> *mut GdkWindow;
+}
+
+/* Return the current position of the mouse.
+   *FP should be a frame which indicates which display to ask about.
+
+   If the mouse movement started in a scroll bar, set *FP, *BAR_WINDOW,
+   and *PART to the frame, window, and scroll bar part that the mouse
+   is over.  Set *X and *Y to the portion and whole of the mouse's
+   position on the scroll bar.
+
+   If the mouse movement started elsewhere, set *FP to the frame the
+   mouse is on, *BAR_WINDOW to nil, and *X and *Y to the character cell
+   the mouse is over.
+
+   Set *TIMESTAMP to the server time-stamp for the time at which the mouse
+   was at this position.
+
+   Don't store anything if we don't have a valid set of values to report.
+
+   This clears the mouse_moved flag, so we can wait for the next mouse
+   movement.  */
+
+/// C 3487-3567: `static void pgtk_mouse_position (struct frame **fp, int insist, Lisp_Object
+/// *bar_window, enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y, Time *timestamp)` -
+/// `insist` is unused in C's body (`let _ =` keeps the name), `dpyinfo->gdpy` is the record's own
+/// field (the `FRAME_X_DISPLAY!` payload), the C 3494/3497 locals `win_x`/`win_y`/`mask` are
+/// filled by the callee through pointers and are zero-initialized here (PORTING.md 1.5, Deviation
+/// 10's class), the C 3506 `FOR_EACH_FRAME` becomes the mirror's macro with C's body as its last
+/// argument, and C 3526's `pgtk_any_window_to_frame` is this file's own C 118 forward-declared
+/// definition (C 7314, in the remainder - the ledger's registered class).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_mouse_position (fp: *mut *mut frame, insist: c_int,
+			       bar_window: *mut Lisp_Object, part: *mut scroll_bar_part,
+			       x: *mut Lisp_Object, y: *mut Lisp_Object,
+			       timestamp: *mut Time)
+{
+  let _ = insist;                                                       // C 3488
+  let mut f1: *mut frame;                                               // C 3492
+  let dpyinfo: *mut pgtk_display_info = FRAME_DISPLAY_INFO! (*fp);      // C 3493
+  let mut win_x: c_int = 0;                                             // C 3494
+  let mut win_y: c_int = 0;                                             // C 3494
+  let mut seat: *mut GdkSeat;                                           // C 3495
+  let mut device: *mut GdkDevice;                                       // C 3496
+  let mut mask: GdkModifierType = 0;                                    // C 3497
+  let mut win: *mut GdkWindow;                                          // C 3498
+  let mut return_frame_flag: bool = false;                              // C 3499
+
+  block_input ();                                                       // C 3501
+
+  let mut frame: Lisp_Object;                                           // C 3503
+  let mut tail: Lisp_Object;                                            // C 3503
+
+  /* Clear the mouse-moved flag for every frame on this display.  */
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 3506
+    if FRAME_PGTK_P (XFRAME (frame))                                    // C 3507
+      && FRAME_X_DISPLAY! (XFRAME (frame)) == FRAME_X_DISPLAY! (*fp)    // C 3508
+      { mouse_moved! (XFRAME (frame), false); }                         // C 3509
+  });
+
+  (*dpyinfo).last_mouse_scroll_bar = core::ptr::null_mut ();            // C 3511
+
+  if gui_mouse_grabbed (dpyinfo)                                        // C 3513
+    && (!EQ (track_mouse, Qdropping ())                                 // C 3514
+	&& !EQ (track_mouse, Qdrag_source ()))                          // C 3515
+    { f1 = (*dpyinfo).last_mouse_frame; }                               // C 3516
+  else
+    {
+      f1 = *fp;                                                         // C 3519
+      win = gtk_widget_get_window (FRAME_GTK_WIDGET! (*fp));            // C 3520
+      seat = gdk_display_get_default_seat ((*dpyinfo).gdpy);            // C 3521
+      device = gdk_seat_get_pointer (seat);                             // C 3522
+      win = gdk_window_get_device_position (win, device, &mut win_x,    // C 3523
+					    &mut win_y, &mut mask);     // C 3524
+      if !win.is_null ()                                                // C 3525
+	{ f1 = pgtk_any_window_to_frame (win); }                        // C 3526
+      else
+	{
+	  f1 = SELECTED_FRAME ();                                       // C 3529
+
+	  if !FRAME_PGTK_P (f1)                                         // C 3531
+	    { f1 = (*dpyinfo).last_mouse_frame; }                       // C 3532
+
+	  return_frame_flag = EQ (track_mouse, Qdrag_source ());        // C 3534
+	}
+    }
+
+  /* F1 can be a terminal frame.  (Bug#50322) */
+  if f1.is_null () || !FRAME_PGTK_P (f1)                                // C 3539
+    {
+      unblock_input ();                                                 // C 3541
+      return;                                                           // C 3542
+    }
+
+  win = gtk_widget_get_window (FRAME_GTK_WIDGET! (f1));                 // C 3545
+  seat = gdk_display_get_default_seat ((*dpyinfo).gdpy);                // C 3546
+  device = gdk_seat_get_pointer (seat);                                 // C 3547
+
+  win = gdk_window_get_device_position (win, device, &mut win_x,        // C 3549
+					&mut win_y, &mut mask);         // C 3550
+
+  if !f1.is_null ()                                                     // C 3552
+    {
+      remember_mouse_glyph (f1, win_x, win_y,                           // C 3554
+			    &mut (*dpyinfo).last_mouse_glyph);          // C 3555
+      (*dpyinfo).last_mouse_glyph_frame = f1;                           // C 3556
+
+      *bar_window = Qnil ();                                            // C 3558
+      *part = 0;                                                        // C 3559
+      *fp = if !return_frame_flag { f1 } else { core::ptr::null_mut () };   // C 3560
+      XSETINT! (*x, win_x as EMACS_INT);                                // C 3561
+      XSETINT! (*y, win_y as EMACS_INT);                                // C 3562
+      *timestamp = (*dpyinfo).last_mouse_movement_time;                 // C 3563
+    }
+
+  unblock_input ();                                                     // C 3566
+}
