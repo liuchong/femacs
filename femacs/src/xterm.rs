@@ -23906,8 +23906,7 @@ unsafe fn xt_horizontal_action_hook (widget: Widget, client_data: XtPointer, act
    `E0609` class the `mark_xterm` row already reads - and C 15550's
    `protected_windows[n_protected_windows++] = window;` is the file's load-then-step pair (the
    index is the *old* count, the increment follows), written where C writes it.  */
-#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
-	  not (feature = "use_gtk")))]
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
 unsafe fn x_protect_window_for_callback (dpyinfo: *mut x_display_info,
 					     window: Lisp_Object) -> bool
 {
@@ -23926,8 +23925,7 @@ unsafe fn x_protect_window_for_callback (dpyinfo: *mut x_display_info,
    member is `Lisp_Object *`), the decrement is written after the read as C has it, and C
    15568-15569's `memmove` keeps the shape this file already uses at C 26438
    (`.offset (1) as *const c_void` and `size_of::<Lisp_Object> () * n`).  */
-#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
-	  not (feature = "use_gtk")))]
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
 unsafe fn x_unprotect_window_for_callback (dpyinfo: *mut x_display_info) -> Lisp_Object
 {
   let mut window: Lisp_Object;                                          // C 15558
@@ -23967,8 +23965,7 @@ unsafe fn x_unprotect_window_for_callback (dpyinfo: *mut x_display_info) -> Lisp
    type is the placeholder's, so no width can be stated - recorded); and C 15614-15617's
    `#ifdef USE_X_TOOLKIT` pair is a cfg'd block (`toolkit_scroll_bar_interaction` and
    `x_activate_timeout_atimer`, the latter still unlanded).  */
-#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
-	  not (feature = "use_gtk")))]
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
 unsafe fn x_send_scroll_bar_event (window: Lisp_Object, part: scroll_bar_part,
 				   portion: c_int, whole: c_int, horizontal: bool)
 {
@@ -24029,8 +24026,7 @@ unsafe fn x_send_scroll_bar_event (window: Lisp_Object, part: scroll_bar_part,
    `EVENT_INIT` is the mirror's function (`include/termhooks.rs` 135); `SCROLL_BAR_CLICK_EVENT` is
    `include/termhooks.rs`'s constant; and the two `event->xclient.data.l[…]` reads are the same
    placeholder-member class as C 15584's pointer.  */
-#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
-	  not (feature = "use_gtk")))]
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
 unsafe fn x_scroll_bar_to_input_event (dpyinfo: *mut x_display_info, event: *const XEvent,
 					  ievent: *mut input_event)
 {
@@ -24068,8 +24064,7 @@ unsafe fn x_scroll_bar_to_input_event (dpyinfo: *mut x_display_info, event: *con
    *dpyinfo, const XEvent *event, struct input_event *ievent)` - the twin above; the only
    differences C has are C 15687's `HORIZONTAL_SCROLL_BAR_CLICK_EVENT` (also
    `include/termhooks.rs`'s) and C 15666's name.  */
-#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
-	  not (feature = "use_gtk")))]
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
 unsafe fn x_horizontal_scroll_bar_to_input_event (dpyinfo: *mut x_display_info,
 						   event: *const XEvent,
 						   ievent: *mut input_event)
@@ -24260,4 +24255,209 @@ unsafe fn xm_scroll_callback (widget: Widget, client_data: XtPointer, call_data:
       x_send_scroll_bar_event ((*bar).window, part, portion, whole,      // C 15783-15784
 			       (*bar).horizontal);
     }
+}
+
+/* C 15788's `#elif defined USE_GTK` opens this arm.  Its declarations mirror the pgtk lane's, which
+   landed the same twin for `pgtkterm.c` (`src/pgtkterm.rs` 5743-5797): this machine has **no GTK
+   tree either**, so the records, the three calls and the five scroll labels are the same
+   placeholder set with the header alone as the citation, and the `GTK_ADJUSTMENT (…)` checked cast
+   has no counterpart because the declared return type is already the record (P-72 rule 3).
+   `XG_FRAME_DATA` is *not* a placeholder: gtkutil.h 46 defines it ("emacs_frame"), and
+   `include/gtkutil.rs` 36 lists it as owed - the mirror is not edited here because
+   `src/pgtkmenu.rs` 150 and `src/xmenu.rs` 825 already carry the sibling key, the same
+   `check-mirror-dupes` situation `docs/ports/include-frame.md` recorded for
+   `note_mouse_highlight`.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+#[repr(C)]
+pub struct GtkRange
+{
+  _private: [u8; 0],
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+#[repr(C)]
+pub struct GtkAdjustment
+{
+  _private: [u8; 0],
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe extern "C" {
+  /// C: <gtk/gtkrange.h>: `GtkAdjustment *gtk_range_get_adjustment (GtkRange *range);`
+  pub fn gtk_range_get_adjustment (range: *mut GtkRange) -> *mut GtkAdjustment;
+  /// C: <gtk/gtkadjustment.h>: `gdouble gtk_adjustment_get_upper (GtkAdjustment *adjustment);`
+  pub fn gtk_adjustment_get_upper (adjustment: *mut GtkAdjustment) -> gdouble;
+  /// C: <gtk/gtkadjustment.h>: `gdouble gtk_adjustment_get_page_size (GtkAdjustment *adjustment);`
+  pub fn gtk_adjustment_get_page_size (adjustment: *mut GtkAdjustment) -> gdouble;
+}
+/* C: gtypes.h: `typedef double gdouble;` - C 15795's parameter type and the two
+   `gtk_adjustment_get_*` returns.  `include/gtk.rs` 39-49 has `gchar`/`gint`/`gboolean`/
+   `gpointer`/`guint32` and not this row, so it stands here (the pgtk lane's Owed 11 names the same
+   mirror gap).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+pub type gdouble = c_double;
+/* C 15805's `xg_ignore_gtk_scrollbar` is gtkutil.c 240's `static bool xg_ignore_gtk_scrollbar;` -
+   the definition is that unit's and not landed yet, so the extern stands here (P-72 rule 4;
+   `include/gtkutil.rs` 36 names it as owed).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub static mut xg_ignore_gtk_scrollbar: bool;
+}
+/* C: gtk/gtkenums.h: `typedef enum { … } GtkScrollType;` - C 15794's parameter and the five
+   labels C 15822-15860 names.  GTK's values are unmeasurable here, so each is a placeholder in
+   the same sense as `include/gtk.rs`'s rows and the pgtk lane's five, and the enum's ABI is
+   `c_int` (PORTING.md 1.3/P-51).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+pub type GtkScrollType = c_int;
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+pub const GTK_SCROLL_JUMP: GtkScrollType = 1;                 // placeholder, not GTK's value
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+pub const GTK_SCROLL_STEP_BACKWARD: GtkScrollType = 2;        // placeholder, not GTK's value
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+pub const GTK_SCROLL_STEP_FORWARD: GtkScrollType = 3;         // placeholder, not GTK's value
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+pub const GTK_SCROLL_PAGE_BACKWARD: GtkScrollType = 4;        // placeholder, not GTK's value
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+pub const GTK_SCROLL_PAGE_FORWARD: GtkScrollType = 5;         // placeholder, not GTK's value
+/* C: gdktypes.h: `#define GDK_CURRENT_TIME 0L` - C 15816's test.  **UNVERIFIED** (no GTK tree
+   here): the value is a placeholder.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+pub const GDK_CURRENT_TIME: guint32 = 0;                      // placeholder, not GDK's value
+/* C: gtkutil.h 46: `#define XG_FRAME_DATA "emacs_frame"` - C 15812's data key, and *measured*
+   (the header's own text).  The `XG_ITEM_DATA` spelling the sibling units use.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+pub const XG_FRAME_DATA: *const c_char = c"emacs_frame".as_ptr ();
+
+/* Scroll bar callback for GTK scroll bars.  WIDGET is the scroll
+   bar widget.  DATA is a pointer to the scroll_bar structure. */
+
+/// C 15793-15877: `static gboolean xg_scroll_callback (GtkRange *range, GtkScrollType scroll,
+/// gdouble value, gpointer user_data)` - **its address goes through `G_CALLBACK`** (the
+/// `xg_create_scroll_bar` calls of a later slice), so the port defines it `unsafe extern "C" fn`
+/// (PORTING.md 1.4), the pgtk lane's twin having done the same for the same reason.  C's `switch
+/// (scroll)` is this port's `match` over the five labels, with `_` for C 15865's `default`; C
+/// 15811's `GTK_ADJUSTMENT (…)` needs no counterpart (the declared return type is already the
+/// record, P-72 rule 3); C 15812's `g_object_get_data` returns `gpointer`, so the port states the
+/// `as *mut frame` C leaves implicit; C 15830-15831/15838-15839's `gdouble` arithmetic is `as
+/// c_int` with C's own explicit cast on the first pair and its implicit one on the second;
+/// C 15832/15840's `min ((int) value, whole)` is `min (value as c_int as isize, whole as isize) as
+/// c_int` (this file's `min` call shape); and the two `return false;` from a `gboolean` function
+/// are `false as gboolean`.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe extern "C" fn xg_scroll_callback (range: *mut GtkRange, scroll: GtkScrollType,
+					 value: gdouble, user_data: gpointer) -> gboolean
+{
+  let mut whole: c_int;                                                 // C 15797
+  let mut portion: c_int;                                               // C 15797
+  let bar: *mut scroll_bar = user_data as *mut scroll_bar;              // C 15798
+  let mut part: scroll_bar_part;  /* C 15799's `= scroll_bar_nowhere`; C 15810 reassigns it */  // C 15799
+  let adj: *mut GtkAdjustment;                                          // C 15800
+  let f: *mut frame;                                                    // C 15801
+  let time: guint32;                                                    // C 15802
+  let dpyinfo: *mut x_display_info;                                     // C 15803
+
+  if xg_ignore_gtk_scrollbar                                            // C 15805
+    { return false as gboolean; }                                       // C 15805
+
+  whole = 0;                                                            // C 15807
+  portion = 0;                                                          // C 15808
+  part = scroll_bar_nowhere;                                            // C 15810
+  adj = gtk_range_get_adjustment (range);                               // C 15811
+  f = g_object_get_data (G_OBJECT! (range), XG_FRAME_DATA) as *mut frame;  // C 15812
+  time = gtk_get_current_event_time ();                                 // C 15813
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 15814
+
+  if time != GDK_CURRENT_TIME                                           // C 15816
+    {
+      x_display_set_last_user_time (dpyinfo, time as Time, true,        // C 15817-15818
+				  true);
+    }
+
+  match scroll                                                          // C 15820
+    {
+      GTK_SCROLL_JUMP =>                                                // C 15822
+	{
+	  /* Buttons 1 2 or 3 must be grabbed.  */
+	  if (*FRAME_DISPLAY_INFO! (f)).grabbed != 0                        // C 15824
+	      && (*FRAME_DISPLAY_INFO! (f)).grabbed < (1 << 4)              // C 15825
+	    {
+	      if (*bar).horizontal                                          // C 15827
+		{
+		  part = scroll_bar_horizontal_handle;                      // C 15829
+		  whole = (gtk_adjustment_get_upper (adj)                   // C 15830-15831
+		   - gtk_adjustment_get_page_size (adj)) as c_int;
+		  portion = min (value as c_int as isize, whole as isize) as c_int;  // C 15832
+		  (*bar).dragging = portion;                                // C 15833
+		}
+	      else
+		{
+		  part = scroll_bar_handle;                                 // C 15837
+		  whole = (gtk_adjustment_get_upper (adj)                   // C 15838-15839
+		   - gtk_adjustment_get_page_size (adj)) as c_int;
+		  portion = min (value as c_int as isize, whole as isize) as c_int;  // C 15840
+		  (*bar).dragging = portion;                                // C 15841
+		}
+	    }
+	}
+      GTK_SCROLL_STEP_BACKWARD =>                                       // C 15845
+	{
+	  part = if (*bar).horizontal { scroll_bar_left_arrow }             // C 15846-15847
+		 else { scroll_bar_up_arrow };
+	  (*bar).dragging = -1;                                             // C 15848
+	}
+      GTK_SCROLL_STEP_FORWARD =>                                        // C 15850
+	{
+	  part = if (*bar).horizontal { scroll_bar_right_arrow }            // C 15851-15852
+		 else { scroll_bar_down_arrow };
+	  (*bar).dragging = -1;                                             // C 15853
+	}
+      GTK_SCROLL_PAGE_BACKWARD =>                                       // C 15855
+	{
+	  part = if (*bar).horizontal { scroll_bar_before_handle }          // C 15856-15857
+		 else { scroll_bar_above_handle };
+	  (*bar).dragging = -1;                                             // C 15858
+	}
+      GTK_SCROLL_PAGE_FORWARD =>                                        // C 15860
+	{
+	  part = if (*bar).horizontal { scroll_bar_after_handle }           // C 15861-15862
+		 else { scroll_bar_below_handle };
+	  (*bar).dragging = -1;                                             // C 15863
+	}
+      _ =>                                                              // C 15865
+	{
+	}
+    }
+
+  if part != scroll_bar_nowhere                                         // C 15869
+    {
+      window_being_scrolled = (*bar).window;                            // C 15871
+      x_send_scroll_bar_event ((*bar).window, part, portion, whole,      // C 15872-15873
+			       (*bar).horizontal);
+    }
+
+  return false as gboolean;                                             // C 15876
+}
+
+/* Callback for button release. Sets dragging to -1 when dragging is done.  */
+
+/// C 15881-15899: `static gboolean xg_end_scroll_callback (GtkWidget *widget, GdkEventButton *event,
+/// gpointer user_data)` - the twin above's partner, `unsafe extern "C" fn` for the same
+/// `G_CALLBACK` reason; C's body never reads `widget`/`event` (`let _ =` keeps the names, the
+/// Deviation 44 shape), and its `return false;` from a `gboolean` function is `false as
+/// gboolean`.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe extern "C" fn xg_end_scroll_callback (widget: *mut GtkWidget, event: *mut GdkEventButton,
+					       user_data: gpointer) -> gboolean
+{
+  let _ = (widget, event);                                              // C 15882-15883
+  let bar: *mut scroll_bar = user_data as *mut scroll_bar;              // C 15888
+
+  (*bar).dragging = -1;                                                 // C 15889
+
+  if WINDOWP (window_being_scrolled)                                    // C 15891
+    {
+      x_send_scroll_bar_event (window_being_scrolled,                    // C 15893-15894
+			       scroll_bar_end_scroll, 0, 0, (*bar).horizontal);
+      window_being_scrolled = Qnil ();                                  // C 15895
+    }
+
+  return false as gboolean;                                             // C 15898
 }
