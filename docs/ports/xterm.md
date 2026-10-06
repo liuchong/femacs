@@ -21,7 +21,8 @@
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
 9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.  Slice 15 (C 26994-27126, Decision 27) moves it to **159**: three functions retire, the two token rows the first reading brought are closed by `docs/ports/macro-body-notes.tsv` rows, and the invented-export row slice 14 left behind is gone.  Slice 16 (C 27128-27194, Decision 28) moves it to **158**: `x_new_font` retires as a missing item, and no token row came with it.  Slice 17 (C 27195-27284, Decision 29) **stays 158**: its two functions live inside
 `HAVE_X11R6_XIM`, which the frozen table leaves `undef` (P-66's dead text), so the tool never
-demanded them.
+demanded them.  Slice 18 (C 27286-27342, Decision 30) **stays 158** as well: `xim_open_dpy` sits inside
+C 27200's `#ifdef HAVE_X_I18N`, which is `undef` in the frozen table too.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -1994,6 +1995,34 @@ expressions (Decision 25).
   spelling), and `FRAME_X_OUTPUT!`'s union member is cast at the use site (the C 7428 shape).
 
 
+### 30. Slice 18 (C 27286-27342): `xim_open_dpy`, and `XFree`'s declaration moved to every X arm
+
+* **`XFree` belongs to every X arm, not to one gate.**  Slice 17 declared Xlib's
+  `int XFree (void *)` under its `HAVE_X11R6_XIM` arm because that is where it first met the name;
+  the unit's X text frees Xlib memory in sixteen places that are *not* behind that arm, so the
+  declaration now stands under `have_x_windows` alone.  That is what moves every arm this slice
+  reads: A **563 -> 547**, B **563 -> 547**, C **591 -> 575**, D **564 -> 548**, each `-16 E0425`
+  and nothing else, because the sixteen calls were unresolved names.  The sixteen also had to
+  spell C's conversion (`as *mut c_void`), which slice 17's reading had already named for fifteen
+  of them.
+* **Both arms of `HAVE_XIM` are carried.**  The macro is `undef` in the frozen table
+  (`darwin-arm64.macros.tsv` 1700), so C's own `xim_open_dpy` body there is the two lines around
+  the guard - `dpyinfo->xim = NULL;` - and the port carries the live text as the
+  `not (feature = "have_xim")` arm beside the `have_xim` one (P-86 ①'s rule, the
+  `src/gtkutil.rs` shape).
+* **The XIM surface this function needs is use-site, and the `XN*` names are functions.**  `Status`
+  is Xlib.h 79's `#define Status int` (the `src/xmenu.rs` 477 spelling); `XIMProc` and
+  `XIMCallback` are Xlib.h 1144-1148 and 1230-1234 (`sizeof 16 align 8`, offsets `client_data 0`
+  `callback 8`, the `src/xfns.rs` 3883-3895 measurement); `XNQueryInputStyle`/`XNDestroyCallback`
+  are Xlib.h 1180/1187 and are *functions* returning `*mut c_char`, because that is what they are
+  passed as (the `src/xfns.rs` 4171/4177 pair of the same macro family); and the five entry points
+  (Xlib.h 3836-3861) are declared here since none is in `include/xlib.rs` yet.
+* **A variadic call's trailing `NULL` is typed.**  C passes `NULL` as `XGetIMValues`' last
+  argument; the port's first attempt wrote `core::ptr::null_mut ()` and rustc answered
+  `E0283 type annotations needed` - the spelling is `std::ptr::null_mut::<c_void> ()` (the
+  `src/xfns.rs` 4960 site).
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3489,3 +3518,31 @@ line-count row moves to 15,007 against C's 33,125 (54.7%).
 **Not claimed.**  The frozen configuration compiles none of this text: no preedit was cancelled,
 no input-method connection died and no frame was walked.  The remaining `E0425` rows are
 unresolved names, not behaviour.
+
+
+### Slice 18's readings (C 27286-27342), as landed and measured (2026-10-06)
+
+**What it lands.**  `xim_open_dpy` (C 27289-27341), with C's `#ifdef HAVE_XIM` body (C 27296-27338)
+and its `#else` text (C 27340), inside C 27200's `HAVE_X_I18N`; plus the XIM surface it calls
+(Decision 30) and `XFree`'s declaration widened to every X arm.  Rust 15,007 -> 15,125 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**563 / 55 -> 547 / 55**; arm B **563 / 60 -> 547 / 60**; arm C **591 / 57 -> 575 / 57**; arm D
+**564 / 55 -> 548 / 55** - each arm's whole delta is **-16 `E0425`** (the `XFree` calls), every
+other class and the warning count unmoved.  Arm G (`have_x_windows` + `have_x_i18n` + `have_xim`),
+the arm this slice's own text exists in: **564 / 55 -> 545 / 55**, the delta **-19 `E0425`** - the
+same sixteen `XFree` rows plus three `Status` rows the declaration resolves - with no other class
+moving.
+
+**Arm reach (P-86 7).**  Injecting `let _: c_int = true;` as the first statement of the
+`have_xim` arm moves `E0308` from 13 to 14, anchored at the injected line (`_root.rs:15083`),
+and the arm also reads `unused_mut` if `xim` is declared `mut` - which is how the first reading
+named that; removed, arm G re-reads 545 / 55 and the file 15,125 lines.
+
+**What `--check` reads.**  **158 -> 158**: `xim_open_dpy` is dead text for the tool too (C 27200's
+`HAVE_X_I18N` is `undef` in the frozen table).  The line-count row moves to 15,125 against C's
+33,125 (54.3%).
+
+**Not claimed.**  The frozen configuration compiles none of this text: no input-method connection
+was opened or closed, no style list was queried and no coding system was chosen.  The remaining
+`E0425` rows are unresolved names, not behaviour.

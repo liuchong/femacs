@@ -14953,14 +14953,19 @@ unsafe fn x_maybe_clear_preedit (f: *mut frame)
    connection to input method XIM dies.  CLIENT_DATA contains a
    pointer to the x_display_info structure corresponding to XIM.  */
 
+/* C: Xlib.h 2526-2528: `extern int XFree (void *);` - this unit's X text frees Xlib memory in
+   sixteen places, so the declaration stands for every X arm (P-72 rule 4); the comment is not a
+   `///` one because a doc comment on the block below is an `unused doc comment` warning.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XFree (data: *mut c_void) -> c_int;
+}
 #[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
             feature = "have_x11r6_xim"))]
 unsafe extern "C" {
   /// C: xfns.c 3023-3025: `void xic_free_xfontset (struct frame *f);` - no `static`, and
   /// `src/xfns.rs` 4592 defines it.
   pub fn xic_free_xfontset (f: *mut frame);
-  /// C: Xlib.h 2526-2528: `extern int XFree (void *);`
-  pub fn XFree (data: *mut c_void) -> c_int;
 }
 
 /// C 27249-27280: `static void xim_destroy_callback (XIM xim, XPointer client_data, XPointer
@@ -15004,4 +15009,117 @@ unsafe extern "C" fn xim_destroy_callback (xim: XIM, client_data: XPointer,
     { XFree ((*dpyinfo).xim_styles as *mut c_void); }                   // C 27277
   (*dpyinfo).xim_styles = std::ptr::null_mut ();                        // C 27278
   unblock_input ();                                                     // C 27279
+}
+
+/* Open the connection to the XIM server on display DPYINFO.
+   RESOURCE_NAME is the resource name Emacs uses.  */
+
+/// C: Xlib.h 79: `#define Status int` - `XCloseIM`'s return (`src/xmenu.rs` 477's spelling).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_xim"))]
+pub type Status = c_int;
+/// C: Xlib.h 1144-1148: `typedef void (*XIMProc)(XIM, XPointer, XPointer);` - `XIMCallback`'s
+/// second field.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_xim"))]
+pub type XIMProc = Option<unsafe extern "C" fn (xim: XIM, client_data: XPointer,
+						call_data: XPointer)>;
+/// C: Xlib.h 1230-1234: `typedef struct { XPointer client_data; XIMProc callback; }
+/// XIMCallback;` - measured `sizeof 16 align 8`, offsets `client_data 0 callback 8` (the
+/// `src/xfns.rs` 3883-3895 reading of the same record).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_xim"))]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XIMCallback
+{
+  pub client_data: XPointer,   // C: XPointer client_data;
+  pub callback: XIMProc,   // C: XIMProc callback;
+}
+/* C: Xlib.h 1180: `#define XNQueryInputStyle "queryInputStyle"` / Xlib.h 1187:
+   `#define XNDestroyCallback "destroyCallback"` - both are passed as `char *`, so they take the
+   function spelling the `src/xfns.rs` 4171 / 4177 pair of the same macro family uses.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_xim"))]
+pub fn XNQueryInputStyle () -> *mut c_char { c"queryInputStyle".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_xim"))]
+pub fn XNDestroyCallback () -> *mut c_char { c"destroyCallback".as_ptr () as *mut c_char }
+
+/* C: the five Xlib entry points C 27300-27329 calls (Xlib.h 3836-3861).  None of them is in
+   `include/xlib.rs` yet, so each stands at this use site with the header line it comes from
+   (P-72 rule 4); `XGetIMValues`/`XSetIMValues` are variadic, the `src/xfns.rs` 4208-4209 shape.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_xim"))]
+unsafe extern "C" {
+  pub fn XOpenIM (display: *mut Display, db: XrmDatabase, res_name: *mut c_char,
+		  res_class: *mut c_char) -> XIM;
+  pub fn XCloseIM (xim: XIM) -> Status;
+  pub fn XGetIMValues (xim: XIM, ...) -> *mut c_char;
+  pub fn XSetIMValues (xim: XIM, ...) -> *mut c_char;
+  pub fn XLocaleOfIM (xim: XIM) -> *mut c_char;
+}
+
+/// C 27289-27341: `static void xim_open_dpy (struct x_display_info *dpyinfo, char
+/// *resource_name)` - a `static` whose callers are this file's (C 27364 and C 27429), so a plain
+/// `unsafe fn`; it sits inside C 27200's `#ifdef HAVE_X_I18N`.  `HAVE_XIM` is `undef` in the
+/// frozen table (`darwin-arm64.macros.tsv` 1700), so C's own body there is the two lines around
+/// it - `dpyinfo->xim = NULL;` - and both arms are carried (P-86 ①): the `have_xim` arm and the
+/// `#else` text C spells.  `emacs_class` is this unit's `static mut` array (C 858-861,
+/// `have_x_i18n`), `safe_calln!` is lisp.h's macro, and `xim_destroy_callback` is C 27324's
+/// address (slice 17's `HAVE_X11R6_XIM` gate).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe fn xim_open_dpy (dpyinfo: *mut x_display_info, resource_name: *mut c_char)
+{
+  #[cfg (feature = "have_xim")]
+  {
+    let xim: XIM;                                                       // C 27293
+    let locale: *const c_char;                                          // C 27294
+
+    if (*dpyinfo).use_xim                                               // C 27296
+      {
+	if !(*dpyinfo).xim.is_null ()                                   // C 27298
+	  {
+	    XCloseIM ((*dpyinfo).xim);                                  // C 27300
+
+	    /* Free values left over from the last time the IM
+	       connection was established.  */
+
+	    if !(*dpyinfo).xim_styles.is_null ()                        // C 27305
+	      { XFree ((*dpyinfo).xim_styles as *mut c_void); }         // C 27306
+	    (*dpyinfo).xim_styles = std::ptr::null_mut ();              // C 27307
+	  }
+
+	xim = XOpenIM ((*dpyinfo).display, (*dpyinfo).rdb, resource_name,  // C 27310
+		       emacs_class.as_mut_ptr ());                          // C 27311
+	(*dpyinfo).xim = xim;                                           // C 27312
+
+	if !xim.is_null ()                                              // C 27314
+	  {
+	    #[cfg (all (feature = "have_x11r6", feature = "have_x11r6_xim"))]
+	    let mut destroy: XIMCallback;                               // C 27317
+
+	    /* Get supported styles and XIM values.  */
+	    XGetIMValues (xim, XNQueryInputStyle (),                    // C 27321
+			  &raw mut (*dpyinfo).xim_styles,
+			  std::ptr::null_mut::<c_void> ());
+
+	    #[cfg (all (feature = "have_x11r6", feature = "have_x11r6_xim"))]
+	    {
+	      destroy.callback = Some (xim_destroy_callback);           // C 27324
+	      destroy.client_data = dpyinfo as XPointer;                // C 27325
+	      XSetIMValues (xim, XNDestroyCallback (),                  // C 27326
+			    &raw mut destroy, std::ptr::null_mut::<c_void> ());
+	    }
+
+	    locale = XLocaleOfIM (xim);                                 // C 27329
+
+	    /* Now try to determine the coding system that should be
+	       used.  locale is in Host Portable Character Encoding, and
+	       as such can be passed to build_string as is.  */
+	    (*dpyinfo).xim_coding = safe_calln! (Vx_input_coding_function,  // C 27334-27335
+						 build_string (locale));
+	  }
+      }
+    else
+      { (*dpyinfo).xim = std::ptr::null_mut (); }                       // C 27340
+  }
+  #[cfg (not (feature = "have_xim"))]
+  {
+    (*dpyinfo).xim = std::ptr::null_mut ();                             // C 27340 (C's `#else` arm)
+  }
 }
