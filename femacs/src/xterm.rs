@@ -17337,3 +17337,159 @@ unsafe fn xembed_request_focus (f: *mut frame)
    use site (P-72 rule 4).  */
 #[cfg (feature = "have_x_windows")]
 pub const CurrentTime: Time = 0;
+
+/// C 28821-28833: `static Bool server_timestamp_predicate (Display *display, XEvent *xevent,
+/// XPointer arg)` - a `static` callback (C 28874 hands it to `XIfEvent`), so an
+/// `unsafe extern "C" fn` of the `x_atoms_compare` shape.  `include/xlib.rs` 1241's `XEvent`
+/// is the opaque 192-byte union whose members are owed, so the three reads keep C's own member
+/// path and the `E0609` rows are that recorded class (P-80; slice 24's nine `msg.xclient.*`
+/// writes are the same rows).  `PropertyNotify` is X.h's `#define PropertyNotify 28` - no
+/// mirror of this unit's graph carries it, so it stands at this use site (P-72 rule 4).
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" fn server_timestamp_predicate (display: *mut Display, xevent: *mut XEvent,
+						arg: XPointer) -> Bool
+{
+  let args: *mut XID = arg as *mut XID;                                 // C 28825
+
+  if (*xevent).r#type == PropertyNotify                                 // C 28827
+      && (*xevent).xproperty.window == *args.offset (0)                  // C 28828
+      && (*xevent).xproperty.atom == *args.offset (1)                    // C 28829
+    { return True; }
+
+  return False;                                                         // C 28832
+}
+
+/* C: X.h 601: `#define PropertyNotify 28` - C 28827 and C 19562's comparisons.  No mirror of
+   this unit's graph carries it (measured), so it stands at this use site (P-72 rule 4).  */
+#[cfg (feature = "have_x_windows")]
+pub const PropertyNotify: c_int = 28;
+
+/* Get the server time.  The X server is guaranteed to deliver the
+   PropertyNotify event, so there is no reason to use x_if_event.  */
+
+/// C 28838-28877: `static Time x_get_server_time (struct frame *f)` - `static` (its callers are
+/// C 28917/28932), so a plain `unsafe fn`.  C 28845/28852's `HAVE_XSYNC && !USE_GTK &&
+/// HAVE_CLOCK_GETTIME` arm keeps that three-part gate; `XChangeProperty`/`XIfEvent` are Xlib
+/// entries with no mirror row - kept bare (the owed class) - and `property_dummy.xproperty.time`
+/// is the same union-member class as above.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_get_server_time (f: *mut frame) -> Time
+{
+  use crate::x11_constants::{PropModeReplace, XA_ATOM};
+
+  let mut property_atom: Atom;                                          // C 28841
+  let mut property_dummy: XEvent = std::mem::zeroed ();                 // C 28842
+  let dpyinfo: *mut x_display_info;                                     // C 28843
+  let mut client_data: [XID; 2];                                        // C 28844
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+	      feature = "have_clock_gettime"))]
+  let mut current_monotonic_time: uint_fast64_t;                        // C 28846
+
+  /* If the server time is the same as the monotonic time, avoid a
+     roundtrip by using that instead.  */
+
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"),
+	      feature = "have_clock_gettime"))]
+  {
+    if (*FRAME_DISPLAY_INFO! (f)).server_time_monotonic_p               // C 28853
+      {
+	current_monotonic_time = x_sync_current_monotonic_time ();      // C 28855
+
+	if current_monotonic_time != 0                                  // C 28857
+	/* Truncate the time to CARD32.  */
+	{ return (current_monotonic_time / 1000) & X_ULONG_MAX; }        // C 28859
+      }
+  }
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 28863
+  property_atom = (*dpyinfo).Xatom_EMACS_SERVER_TIME_PROP;              // C 28864
+  client_data[0] = FRAME_OUTER_WINDOW! (f);                             // C 28865
+  client_data[1] = property_atom;                                       // C 28866
+
+  XChangeProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),         // C 28868-28869
+		  property_atom, XA_ATOM, 32,
+		  PropModeReplace,
+		  &raw const property_atom as *const c_uchar, 1);
+
+  XIfEvent ((*dpyinfo).display, &raw mut property_dummy,                // C 28873-28874
+	  Some (server_timestamp_predicate),
+	  client_data.as_mut_ptr () as XPointer);
+
+  return property_dummy.xproperty.time;                                 // C 28876
+}
+
+/* Activate frame with Extended Window Manager Hints */
+
+/// C 28881-28947: `static void x_ewmh_activate_frame (struct frame *f)` - `static` (its callers
+/// are C 29128/29194), so a plain `unsafe fn`.  The `msg.xclient.*` writes keep C's member path
+/// (the `E0609` rows above), `x_set_gtk_user_time`/`x_display_set_last_user_time` are this
+/// file's own earlier definitions (C 8178/8064, already ported), `x_set_input_focus` is its own
+/// later one (C 28963, PORTING.md 1.3) and `XSendEvent`/`XRaiseWindow` are the bare Xlib class.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_ewmh_activate_frame (f: *mut frame)
+{
+  use crate::x11_constants::ClientMessage;
+
+  let mut msg: XEvent = std::mem::zeroed ();                            // C 28884
+  let dpyinfo: *mut x_display_info;                                     // C 28885
+  let mut time: Time;                                                   // C 28886
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 28888
+
+  if FRAME_VISIBLE_P (f)                                                // C 28890
+    {
+	/* See the documentation at
+	   https://specifications.freedesktop.org/wm-spec/wm-spec-latest.html
+	   for more details on the format of this message.  */
+      msg.xclient.r#type = ClientMessage;                               // C 28895
+      msg.xclient.window = FRAME_OUTER_WINDOW! (f);                     // C 28896
+      msg.xclient.message_type = (*dpyinfo).Xatom_net_active_window;    // C 28897
+      msg.xclient.format = 32;                                          // C 28898
+      msg.xclient.data.l[0] = 1;                                        // C 28899
+      msg.xclient.data.l[1] = (*dpyinfo).last_user_time;                // C 28900
+      msg.xclient.data.l[2] = if (*dpyinfo).x_focus_frame.is_null ()   // C 28901-28903
+			  { None }
+			  else { FRAME_OUTER_WINDOW! ((*dpyinfo).x_focus_frame) as c_long };
+      msg.xclient.data.l[3] = 0;                                        // C 28904
+      msg.xclient.data.l[4] = 0;                                        // C 28905
+
+	/* No frame is currently focused on that display, so apply any
+	   bypass for focus stealing prevention that the user has
+	   specified.  */
+      if (*dpyinfo).x_focus_frame.is_null ()                            // C 28910
+	  {
+	  if EQ (Vx_allow_focus_stealing, Qimitate_pager ())            // C 28912
+	    { msg.xclient.data.l[0] = 2; }                                 // C 28913
+	  else if EQ (Vx_allow_focus_stealing, Qnewer_time ())          // C 28914
+	    {
+	      block_input ();                                           // C 28916
+	      time = x_get_server_time (f);                             // C 28917
+#[cfg (feature = "use_gtk")]
+	      x_set_gtk_user_time (f, time);                            // C 28919
+	      /* Temporarily override dpyinfo->x_focus_frame so the
+		 user time property is set on the right window.  */
+	      (*dpyinfo).x_focus_frame = f;                             // C 28923
+	      x_display_set_last_user_time (dpyinfo, time, true, true);  // C 28924
+	      (*dpyinfo).x_focus_frame = std::ptr::null_mut ();         // C 28925
+	      unblock_input ();                                         // C 28926
+
+	      msg.xclient.data.l[1] = time as c_long;                   // C 28928
+	    }
+	  else if EQ (Vx_allow_focus_stealing, Qraise_and_focus ())     // C 28930
+	    {
+	      time = x_get_server_time (f);                             // C 28932
+
+	      x_set_input_focus (FRAME_DISPLAY_INFO! (f),               // C 28934-28936
+			      FRAME_OUTER_WINDOW! (f),
+			      time);
+	      XRaiseWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f));  // C 28937
+
+	      return;                                                   // C 28939
+	    }
+	  }
+
+      XSendEvent ((*dpyinfo).display, (*dpyinfo).root_window,           // C 28943-28945
+		  false, SubstructureRedirectMask
+		  | SubstructureNotifyMask, &raw mut msg);
+    }
+}
