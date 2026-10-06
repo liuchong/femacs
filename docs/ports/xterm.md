@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 33 (C 29142-29189, Decision 46) goes **123 -> 119**: `xembed_set_info`, `xembed_send_message` and the two `XEMBED_VERSION` rows retire, and no token row arrives.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 33 (C 29142-29189, Decision 46) goes **123 -> 119**: `xembed_set_info`, `xembed_send_message` and the two `XEMBED_VERSION` rows retire, and no token row arrives.  Slice 34 (C 29201-29400, Decision 47) goes **119 -> 118**: `x_make_frame_visible` retires as a missing item, and no token row arrives.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -315,7 +315,7 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_focus_frame  (line 29024, static)
 - [x] xembed_set_info  (line 29151, static)
 - [x] xembed_send_message  (line 29166, static)
-- [ ] x_make_frame_visible  (line 29202)
+- [x] x_make_frame_visible  (line 29202)
 - [ ] x_make_frame_invisible  (line 29407)
 - [ ] x_make_frame_visible_invisible  (line 29475, static)
 - [ ] x_create_font_cursor  (line 29484)
@@ -2364,6 +2364,46 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **`xembed_send_message`'s definition retires slice 30's owed row.**  `xembed_request_focus`
   (C 28817) called it undeclared; C 29165-29189 is that definition.
 
+### 47. Slice 34 (C 29201-29400): `x_make_frame_visible`
+
+* **`gui_set_bitmap_icon` is called bare and its mirror row is owed.**  `frame.h` 1895-1900 defines
+  it `INLINE` and no mirror of this unit's graph carries that definition, so the call site (C
+  29233) stays a bare name - the `PropertyNotify`/`MapNotify` use-site shape (P-72 rule 4), with
+  the export row on the integrator's list.
+* **Arm B's three new uncoded rows are the GTK map calls.**  C 29218/29284/29285
+  (`gtk_widget_show_all (FRAME_GTK_OUTER_WIDGET (f))` and
+  `gtk_window_deiconify (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)))`) are compiled only in the
+  `use_gtk` arm, and `FRAME_GTK_OUTER_WIDGET` expands to `include/pgtkterm.rs` 1060's
+  `GDK_WINDOW_XID! (gtk_widget_get_window ($w))`, whose macro is not carried anywhere in this tree
+  - so they land as rustc's *uncoded* `cannot find macro` rows (21 -> 24), the class arm B already
+  had.
+* **`x_wm_set_window_state` is defined later in this same file (C 30345).**  C 1191 declares it and
+  this port deliberately carries no forward declarations (the file's own §3 note), so the call at
+  C 29273 is a bare name: it is one of the `E0425` rows this slice adds, and it retires the round
+  that lands C 30345 - together with C 29534/29600, the calls `x_iconify_frame` will bring.
+* **The arm-A additions are recorded classes, not new ones.**  `asked_for_visible` (C 29247/29270),
+  `has_been_visible` (C 29309) and `explicit_parent` are `x_output`'s bitfields, which
+  `include/xterm.rs` 848-857 keeps as *comments* rather than as storage (P-80), so C's member paths
+  stand and the rows are the `E0609` class slices 25/31 already carry; `XMapRaised`/`XGetGeometry`/
+  `XChangeProperty`/`XDeleteProperty` are the Xlib bare-name class of `## Owed`, and
+  `XGetGeometry`'s seven out-parameters are zero-initialised per Deviation 12 (whose price is the
+  `unused_assignments`/`unused_mut` warning class, Decision 36).
+* **`SET_FRAME_VISIBLE` is the macro, `SET_FRAME_ICONIFIED` the function.**  frame.h 1537/1437: the
+  first takes a `bool`, so the port writes the mirror's macro form `SET_FRAME_VISIBLE! (f, true)`
+  (C 29225/29296); the second takes an `int`, so C 29226/29297's `false` is written as the `c_int`
+  value its parameter needs - `SET_FRAME_ICONIFIED (f, false as c_int)`, the spelling
+  `pgtkterm.rs` 8217/8290 already uses for this same function.
+* **C's statement order inside the geometry block.**  C 29346's `block_input ()` comes *before* the
+  comment and `XGetGeometry` (C 29348-29356), not after the move; the first writing of this slice
+  had it after `XMoveWindow`, and reading C 29342-29363 moved it back - the block now reads
+  declarations, `block_input`, comment, `XGetGeometry`, `output_flushed`, the conditional move,
+  `unblock_input`, in C's order.
+* **`MapNotify` and `frame_size_history_plain` stand at their use sites.**  C's `MapNotify` is
+  `X.h` 578's `#define MapNotify 19` (no mirror of this graph carries it) and
+  `frame_size_history_plain` is frame.h 1514's prototype whose definition is `src/frame.rs`'s, so
+  both are P-72 rule-4 use-site entries next to the function - the `PropertyNotify` shape this file
+  already has.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -4261,3 +4301,44 @@ retire, and no token row arrives.  The line-count row moves to 17,777 against C'
 
 **Not claimed.**  The frozen configuration compiles none of this file: no XEmbed property was set
 and no client message was sent.
+
+### Slice 34's readings (C 29201-29400), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_make_frame_visible` (C 29201-29400): the parent-frame arm (C 29210-29229,
+`USE_GTK`'s `XMoveWindow` + `gtk_widget_show_all` against `XMapRaised`), the map arm (C 29231-29300:
+`gui_set_bitmap_icon`, the `!USE_GTK` user-time-window property write, `asked_for_visible`,
+`x_wm_set_window_state (f, NormalState)`, and the three-way `USE_X_TOOLKIT`/`USE_GTK`/other map
+call), and the synchronize block (C 29304-29399: `previously_visible`, `XSETFRAME`, `unblock_input`,
+the geometry re-check with `block_input` in C 29346's own place, the `CYGWIN` poll arm,
+`x_wait_for_event (f, MapNotify)` and the flush).  With it come two use-site entries, `MapNotify`
+(X.h 578) and `frame_size_history_plain` (frame.h 1514).  Rust 17,777 -> 18,033 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm, both sides measured.  The totals
+are the probe's `^error` count (the convention the earlier slices' readings use); the per-class
+numbers are its `^error[E..]` headers.  The two differ by rustc's *uncoded* errors, which only
+arm B has: `cannot find macro GDK_WINDOW_XID`, the `FRAME_GTK_OUTER_WIDGET` expansion
+(`include/pgtkterm.rs` 1060) that 21 earlier sites already carry.
+
+| arm | baseline | slice 34 | delta | of which |
+| --- | --- | --- | --- | --- |
+| A `have_x_windows` | 598 / 68 | **612 / 68** | **+14** | `E0425` 356 -> 363, `E0609` 206 -> 213 |
+| B `+have_gtk3+use_gtk` | 615 / 70 | **627 / 70** | **+12** | `E0425` 346 -> 349, `E0609` 207 -> 213, `GDK_WINDOW_XID` 21 -> 24 |
+| C `+have_xinput2` | 631 / 70 | **645 / 70** | **+14** | `E0425` 373 -> 380, `E0609` 222 -> 229 |
+
+The seven new `E0609` rows in arms A and C are `asked_for_visible` x2, `explicit_parent` (1 -> 5)
+and `has_been_visible` (2 -> 3) - the `x_output` bitfield class (P-80).  The seven new `E0425` rows
+there are **two new names** (`gui_set_bitmap_icon` and `x_wm_set_window_state`, one site each) plus
+**five new sites** of names earlier slices already owed (`XMapRaised` x2, `XGetGeometry`,
+`XChangeProperty`, `XDeleteProperty`).  Arm B adds the two same classes at the sites its own
+configuration compiles and three *uncoded* rows at C 29218/29284/29285 - the GTK map calls, which
+only it compiles.  Warning counts are unchanged in every arm (68 / 70 / 70).
+
+**Arm reachability** (P-86 ⑦).  `let _: c_int = true;` as the function's first statement moves
+`E0308` 13 -> 14, anchored exactly at that line (`_root.rs:17817`); removing it returns arm A to
+611 coded errors / 612 total / 68 warnings.
+
+**What `--check` reads.**  **119 -> 118**: `x_make_frame_visible` retires as a missing item, and no
+token row arrives.  The line-count row moves to 18,033 against C's 33,125 (45.6%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no frame was mapped, no
+window manager was asked anything and no `MapNotify` was waited for.

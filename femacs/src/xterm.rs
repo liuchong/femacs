@@ -17775,3 +17775,259 @@ unsafe fn xembed_send_message (f: *mut frame, t: Time, msg: xembed_message, deta
 	      false, NoEventMask, &raw mut event);
   x_stop_ignoring_errors (FRAME_DISPLAY_INFO! (f));                     // C 29188
 }
+
+/* Change of visibility.  */
+
+/* This tries to wait until the frame is really visible, depending on
+   the value of Vx_wait_for_event_timeout.
+   However, if the window manager asks the user where to position
+   the frame, this will return before the user finishes doing that.
+   The frame will not actually be visible at that time,
+   but it will become visible later when the window manager
+   finishes with it.  */
+
+/// C 29201-29400: `void x_make_frame_visible (struct frame *f)` - non-`static` and declared in
+/// xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  Every
+/// `#ifdef` arm C's own order puts here is carried with its feature (`USE_GTK`, `USE_X_TOOLKIT`,
+/// `CYGWIN` - P-86 ①).  `asked_for_visible`/`has_been_visible` are the `x_output` bitfields
+/// `include/xterm.rs` 848-849 records as comments rather than as storage (P-80), so C's member
+/// paths stay and those `E0609` rows are that recorded class; `gui_set_bitmap_icon` is frame.h
+/// 1896-1900's `INLINE` definition, which no mirror of this graph carries - kept bare (the
+/// integrator's owed mirror row) - and `XMapRaised`/`XGetGeometry`/`XDeleteProperty`/
+/// `XChangeProperty` are the Xlib class (`## Owed`).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_make_frame_visible (f: *mut frame)
+{
+  use crate::x11_constants::{None, NormalState, PropModeReplace, XA_CARDINAL};
+
+#[cfg (not (feature = "use_gtk"))]
+  let mut dpyinfo: *mut x_display_info;                                 // C 29205
+#[cfg (not (feature = "use_gtk"))]
+  let mut output: *mut x_output;                                        // C 29206
+  let mut output_flushed: bool;                                         // C 29208
+
+  if !FRAME_PARENT_FRAME (f).is_null ()                                 // C 29210
+    {
+      if !FRAME_VISIBLE_P (f)                                           // C 29212
+	  {
+	  block_input ();                                               // C 29214
+#[cfg (feature = "use_gtk")]
+	    {
+	      XMoveWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),  // C 29216-29217
+			      (*f).left_pos, (*f).top_pos);
+	      gtk_widget_show_all (FRAME_GTK_OUTER_WIDGET! (f));        // C 29218
+	    }
+#[cfg (not (feature = "use_gtk"))]
+	      { XMapRaised (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f)); }  // C 29220
+	  unblock_input ();                                             // C 29222
+
+	  SET_FRAME_GARBAGED! (f);                                      // C 29224
+	  SET_FRAME_VISIBLE! (f, true);                                 // C 29225
+	  SET_FRAME_ICONIFIED (f, false as c_int);                      // C 29226
+	  }
+      return;                                                           // C 29228
+    }
+
+  block_input ();                                                       // C 29231
+
+  gui_set_bitmap_icon (f);                                              // C 29233
+
+#[cfg (not (feature = "use_gtk"))]
+	  { dpyinfo = FRAME_DISPLAY_INFO! (f); }                            // C 29236
+
+  if !FRAME_VISIBLE_P (f)                                               // C 29239
+    {
+	/* We test asked_for_visible here to make sure we don't
+	   call x_set_offset a second time
+	   if we get to x_make_frame_visible a second time
+	   before the window gets really visible.  */
+      if !FRAME_ICONIFIED_P (f)                                         // C 29245
+	  && !FRAME_X_EMBEDDED_P! (f)                                           // C 29246
+	  && (*( (*f).output_data.x as *mut x_output )).asked_for_visible == 0  // C 29247
+	  { x_set_offset (f, (*f).left_pos, (*f).top_pos, 0); }                // C 29248
+
+#[cfg (not (feature = "use_gtk"))]
+	  {
+	  output = FRAME_X_OUTPUT! (f) as *mut x_output;                // C 29251
+	  x_update_frame_user_time_window (f);                          // C 29252
+
+	    /* It's been a while since I wrote that code...  I don't
+	       remember if it can leave `user_time_window' unset or not.  */
+	  if (*output).user_time_window != None as Window               // C 29256
+	      {
+	      if (*dpyinfo).last_user_time == 0                         // C 29258
+		{
+		  XDeleteProperty ((*dpyinfo).display,                  // C 29259-29260
+			(*output).user_time_window,
+			(*dpyinfo).Xatom_net_wm_user_time);
+		}
+	      /* Don't overwrite a zero user time for `no-focus-on-map'.  */
+	      else if FRAME_NO_FOCUS_ON_MAP (f) == 0                        // C 29262
+		{
+		  XChangeProperty ((*dpyinfo).display,                  // C 29263-29266
+			(*output).user_time_window,
+			(*dpyinfo).Xatom_net_wm_user_time,
+			XA_CARDINAL, 32, PropModeReplace,
+			&raw const (*dpyinfo).last_user_time as *const c_uchar, 1);
+		}
+	      }
+	  }
+
+      (*( (*f).output_data.x as *mut x_output )).asked_for_visible = true;  // C 29270
+
+      if !EQ (Vx_no_window_manager, Qt ())                              // C 29272
+	  { x_wm_set_window_state (f, NormalState); }                      // C 29273
+#[cfg (feature = "use_x_toolkit")]
+	  {
+	  if FRAME_X_EMBEDDED_P! (f)                                    // C 29275
+	    { xembed_set_info (f, xembed_info::XEMBED_MAPPED); }             // C 29276
+	    else
+	    {
+	      /* This was XtPopup, but that did nothing for an iconified frame.  */
+	      XtMapWidget ((*( (*f).output_data.x as *mut x_output )).widget);  // C 29280
+	    }
+	  }
+#[cfg (all (not (feature = "use_x_toolkit"), feature = "use_gtk"))]
+	  {
+	  gtk_widget_show_all (FRAME_GTK_OUTER_WIDGET! (f));            // C 29284
+	  gtk_window_deiconify (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)));  // C 29285
+	  }
+#[cfg (all (not (feature = "use_x_toolkit"), not (feature = "use_gtk")))]
+	  {
+	  if FRAME_X_EMBEDDED_P! (f)                                    // C 29287
+	    { xembed_set_info (f, xembed_info::XEMBED_MAPPED); }             // C 29288
+	    else
+	    { XMapRaised (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f)); }      // C 29290
+	  }
+
+      if FRAME_X_EMBEDDED_P! (f)                                        // C 29294
+	  {
+	  SET_FRAME_VISIBLE! (f, true);                                 // C 29296
+	  SET_FRAME_ICONIFIED (f, false as c_int);                      // C 29297
+	  }
+    }
+
+  /* Synchronize to ensure Emacs knows the frame is visible
+     before we do anything else.  We do this loop with input not blocked
+     so that incoming events are handled.  */
+  {
+    let frame: Lisp_Object;                                             // C 29305
+	/* This must be before UNBLOCK_INPUT
+	   since events that arrive in response to the actions above
+	   will set it when they are handled.  */
+    let previously_visible: bool                                        // C 29309
+	= (*( (*f).output_data.x as *mut x_output )).has_been_visible != 0;
+
+    XSETFRAME! (frame, f);                                              // C 29311
+
+    let original_left: c_int = (*f).left_pos;                           // C 29313
+    let original_top: c_int = (*f).top_pos;                             // C 29314
+
+	/* This must come after we set COUNT.  */
+    unblock_input ();                                                   // C 29317
+
+	/* Keep track of whether or not the output buffer was flushed, to
+	   avoid any extra flushes.  */
+    output_flushed = false;                                             // C 29321
+
+	/* We unblock here so that arriving X events are processed.  */
+
+	/* Now move the window back to where it was "supposed to be".
+	   But don't do it if the gravity is negative.
+	   When the gravity is negative, this uses a position
+	   that is 3 pixels too low.  Perhaps that's really the border width.
+
+	   Don't do this if the window has never been visible before,
+	   because the window manager may choose the position
+	   and we don't want to override it.  */
+
+    if !FRAME_VISIBLE_P (f)                                             // C 29334
+	    && !FRAME_ICONIFIED_P (f)                                       // C 29335
+	    && !FRAME_X_EMBEDDED_P! (f)                                     // C 29336
+	    && FRAME_PARENT_FRAME (f).is_null ()                            // C 29337
+	    && NILP (Vx_lax_frame_positioning)                              // C 29338
+	    && (*f).win_gravity == NorthWestGravity                         // C 29339
+	    && previously_visible                                          // C 29340
+	  {
+	let mut rootw: Drawable;                                        // C 29342
+	let mut x: c_int;                                               // C 29343
+	let mut y: c_int;                                               // C 29343
+	let mut width: c_uint;                                          // C 29344
+	let mut height: c_uint;                                         // C 29344
+	let mut border: c_uint;                                         // C 29344
+	let mut depth: c_uint;                                          // C 29344
+
+	rootw = 0;                                                      // Deviation 12
+	block_input ();                                                 // C 29346
+	    /* On some window managers (such as FVWM) moving an existing
+	       window, even to the same place, causes the window manager
+	       to introduce an offset.  This can cause the window to move
+	       to an unexpected location.  Check the geometry (a little
+	       slow here) and then verify that the window is in the right
+	       place.  If the window is not in the right place, move it
+	       there, and take the potential window manager hit.  */
+	XGetGeometry (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),    // C 29355-29356
+		      &raw mut rootw, &raw mut x, &raw mut y, &raw mut width,
+		      &raw mut height, &raw mut border, &raw mut depth);
+	output_flushed = true;                                          // C 29357
+
+	if original_left != x || original_top != y                      // C 29359
+	      {
+	    XMoveWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),  // C 29360-29361
+			  original_left, original_top);
+	      }
+
+	unblock_input ();                                               // C 29363
+	  }
+
+	/* Try to wait for a MapNotify event (that is what tells us when a
+	   frame becomes visible).  Unless `x-lax-frame-positioning' is
+	   non-nil: there, that is a little slow.  */
+
+#[cfg (feature = "cygwin")]
+	  {
+	    /* On Cygwin, which uses input polling, we need to force input to
+	       be read.  ...
+	       Fake an alarm signal to let the handler know that there's
+	       something to be read.
+
+	       It could be confusing if a real alarm arrives while processing
+	       the fake one.  Turn it off and let the handler reset it.  */
+	    let old_poll_suppress_count: c_int = poll_suppress_count;   // C 29380
+	    poll_suppress_count = 1;                                    // C 29381
+	    poll_for_input_1 ();                                        // C 29382
+	    poll_suppress_count = old_poll_suppress_count;              // C 29383
+	  }
+
+    if !FRAME_VISIBLE_P (f)                                             // C 29386
+	    && NILP (Vx_lax_frame_positioning)                            // C 29387
+	  {
+	if CONSP (frame_size_history)                                   // C 29389
+	    {
+	    frame_size_history_plain                                    // C 29390-29391
+			  (f, build_string (c"x_make_frame_visible".as_ptr ()));
+	    }
+
+	x_wait_for_event (f, MapNotify);                                // C 29393
+	output_flushed = true;                                          // C 29394
+	  }
+
+    if !output_flushed                                                  // C 29397
+	  { x_flush (f); }                                            // C 29398
+  }
+}
+
+/* C: X.h 578: `#define MapNotify 19` - C 29393's second argument.  No mirror of this unit's
+   graph carries it (measured), so it stands at this use site (P-72 rule 4; the `PropertyNotify`
+   shape this file already has).  */
+#[cfg (feature = "have_x_windows")]
+pub const MapNotify: c_int = 19;
+
+/* C: frame.h 1514: `extern void frame_size_history_plain (struct frame *, Lisp_Object);` -
+   C 29390's call; the definition is `src/frame.rs`'s, so it stands at this use site (P-72
+   rule 4).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn frame_size_history_plain (f: *mut frame, name: Lisp_Object);
+}
