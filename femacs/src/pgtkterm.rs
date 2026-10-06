@@ -4141,6 +4141,15 @@ pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
   eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
   unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
 }
+#[cfg (feature = "have_pgtk")]
+#[inline(always)]
+pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
+{
+  let used: c_int = unsafe { (*FRAME_FACE_CACHE (f)).used };
+  eassume! (0 <= used);
+  if 0 <= id && id < used { unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) } }
+  else { core::ptr::null_mut () }
+}
 /* C: dispextern.h 3649-3651: `extern void draw_phys_cursor_glyph (struct window *, struct
    glyph_row *, enum draw_glyphs_face);` - the C 2948 call (`src/abi_shim.rs` 2499 defines it);
    no mirror carries it, so the unit declares it at the use site.  */
@@ -4590,4 +4599,160 @@ unsafe fn pgtk_scroll_run (w: *mut window, run: *mut run)
   }
 
   unblock_input ();                                                     // C 3254
+}
+
+/* Icons.  */
+
+/// C 3259-3326: `static bool pgtk_bitmap_icon (struct frame *f, Lisp_Object file)` - C's whole body
+/// is `#if 0` (C 3267-3324), dead text in every configuration, so the port carries C's text inside
+/// a comment (the `cm.rs` 86 reading; the `src/w32term.rs` 133-139 precedent) and only C 3325's
+/// `return false;` is compiled.  `f` and `file` are therefore unused in the live text (`let _ =`
+/// keeps the names).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_bitmap_icon (f: *mut frame, file: Lisp_Object) -> bool
+{
+  let _ = f;
+  let _ = file;
+  /* C 3267-3324 is `#if 0`: "This code has never worked anyway for the reason that Wayland
+     uses icons set within desktop files, and has been disabled because leaving it intact would
+     require image.c to retain a reference to a GdkPixbuf (which are no longer used) within new
+     bitmaps."  C's own preprocessor never compiles it, so the port keeps C's text as a comment
+     (the `cm.rs` 86 reading).
+
+#if 0
+  ptrdiff_t bitmap_id;
+
+  if (FRAME_GTK_WIDGET (f) == 0)
+    return true;
+
+  /* Free up our existing icon bitmap and mask if any.  */
+  if (f->output_data.pgtk->icon_bitmap > 0)
+    image_destroy_bitmap (f, f->output_data.pgtk->icon_bitmap);
+  f->output_data.pgtk->icon_bitmap = 0;
+
+  if (STRINGP (file))
+    {
+      /* Use gtk_window_set_icon_from_file () if available,
+	 It's not restricted to bitmaps */
+      if (xg_set_icon (f, file))
+	return false;
+      bitmap_id = image_create_bitmap_from_file (f, file);
+    }
+  else
+    {
+      /* Create the GNU bitmap and mask if necessary.  */
+      if (FRAME_DISPLAY_INFO (f)->icon_bitmap_id < 0)
+	{
+	  ptrdiff_t rc = -1;
+
+          if (xg_set_icon (f, xg_default_icon_file)
+              || xg_set_icon_from_xpm_data (f, gnu_xpm_bits))
+            {
+              FRAME_DISPLAY_INFO (f)->icon_bitmap_id = -2;
+              return false;
+            }
+
+	  /* If all else fails, use the (black and white) xbm image. */
+	  if (rc == -1)
+	    {
+              rc = image_create_bitmap_from_data (f,
+                                                  (char *) gnu_xbm_bits,
+                                                  gnu_xbm_width,
+                                                  gnu_xbm_height);
+	      if (rc == -1)
+		return true;
+
+	      FRAME_DISPLAY_INFO (f)->icon_bitmap_id = rc;
+	    }
+	}
+
+      /* The first time we create the GNU bitmap and mask,
+	 this increments the ref-count one extra time.
+	 As a result, the GNU bitmap and mask are never freed.
+	 That way, we don't have to worry about allocating it again.  */
+      image_reference_bitmap (f, FRAME_DISPLAY_INFO (f)->icon_bitmap_id);
+
+      bitmap_id = FRAME_DISPLAY_INFO (f)->icon_bitmap_id;
+    }
+
+  f->output_data.pgtk->icon_bitmap = bitmap_id;
+#endif /* 0 */
+*/
+  return false;                                                         // C 3325
+}
+
+/* <gtk/gtkwindow.h>: `void gtk_window_set_icon (GtkWindow *window, GdkPixbuf *icon);` - the
+   C 3337 call.  `include/gtk.rs` carries the prototype's doc comment (1423-1424) and no
+   `pub fn` row for it, so the unit declares it here (the GTK segment's convention: the header
+   alone, no line, because this machine has no GTK tree).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gtk_window_set_icon (window: *mut GtkWindow, icon: *mut GdkPixbuf);
+}
+
+/* Make the x-window of frame F use a rectangle with text.
+   Use ICON_NAME as the text.  */
+
+/// C 3332-3342: `bool pgtk_text_icon (struct frame *f, const char *icon_name)` - a **non-`static`**
+/// C definition, so the port carries `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md 0.2); the
+/// two GTK calls are `include/gtk.rs`'s rows and C's two `GTK_WINDOW` cast macros are the port's
+/// pointer casts (P-72 rule 3).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_text_icon (f: *mut frame, icon_name: *const c_char) -> bool
+{
+  if !FRAME_GTK_OUTER_WIDGET! (f).is_null ()                            // C 3335
+    {
+      gtk_window_set_icon (FRAME_GTK_OUTER_WIDGET! (f) as *mut GtkWindow,   // C 3337
+			   core::ptr::null_mut ());
+      gtk_window_set_title (FRAME_GTK_OUTER_WIDGET! (f) as *mut GtkWindow,  // C 3338
+			    icon_name);
+    }
+
+  return false;                                                         // C 3341
+}
+
+/***********************************************************************
+			    Starting and ending an update
+ ***********************************************************************/
+
+/* Start an update of frame F.  This function is installed as a hook
+   for update_begin, i.e. it is called when update_begin is called.
+   This function is called prior to calls to x_update_window_begin for
+   each window being updated.  Currently, there is nothing to do here
+   because all interesting stuff is done on a window basis.  */
+
+/// C 3354-3358: `static void pgtk_update_begin (struct frame *f)` - one call to
+/// `pgtk_clear_under_internal_border` (C 5047's definition, in the remainder - a name this slice
+/// is the first to reach, so it is a registered class of its own in this ledger).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_update_begin (f: *mut frame)
+{
+  pgtk_clear_under_internal_border (f);                                 // C 3357
+}
+
+/* Draw a vertical window border from (x,y0) to (x,y1)  */
+
+/// C 3362-3379: `static void pgtk_draw_vertical_window_border (struct window *w, int x, int y0,
+/// int y1)` - `FACE_FROM_ID_OR_NULL` is this unit's own copy (frame.h 1656's inline definition,
+/// which C pastes into every including unit: the `src/term.rs` 372-377 form, added beside
+/// `FRAME_FACE_CACHE`/`FACE_FROM_ID` with this slice), and C's `if (face)` truth test is the
+/// pointer's null test.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_vertical_window_border (w: *mut window, x: c_int, y0: c_int, y1: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 3365
+  let face: *mut face;                                                  // C 3366
+  let cr: *mut cairo_t;                                                 // C 3367
+
+  cr = pgtk_begin_cr_clip (f);                                          // C 3369
+
+  face = FACE_FROM_ID_OR_NULL (f, VERTICAL_BORDER_FACE_ID);             // C 3371
+  if !face.is_null ()                                                   // C 3372
+    { pgtk_set_cr_source_with_color (f, (*face).foreground, false); }   // C 3373
+
+  cairo_rectangle (cr, x as c_double, y0 as c_double, 1.0, (y1 - y0) as c_double);   // C 3375
+  cairo_fill (cr);                                                      // C 3376
+
+  pgtk_end_cr_clip (f);                                                 // C 3378
 }
