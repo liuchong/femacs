@@ -7750,3 +7750,311 @@ pub unsafe extern "C" fn pgtk_enqueue_preedit (f: *mut frame, preedit: Lisp_Obje
   inev.ie.timestamp = 0;                                                // C 5269
   evq_enqueue (&raw mut inev);                                          // C 5270
 }
+
+/* `Mouse_HLInfo`'s third flag bit - `dispextern.h` 3023's `bool_bf mouse_face_hidden : 1`, whose
+   mask is `include/dispextern.rs` 2139's `MOUSE_FACE_HIDDEN`.  The mirror carries the mask and no
+   accessor, and C 5289/5292 read and write the member, so this unit names the pair the way its
+   `mouse_invisible!`/`mouse_moved!` do - the `src/msdos.rs` 3440-3445 copy of the same macro.  */
+#[cfg (feature = "have_pgtk")]
+macro_rules! mouse_face_hidden {
+  ($h:expr) => { (*$h).bits & MOUSE_FACE_HIDDEN != 0 };
+  ($h:expr, $v:expr) => {
+    (*$h).bits = if ($v) as c_int != 0 { (*$h).bits | MOUSE_FACE_HIDDEN }
+		 else { (*$h).bits & ! MOUSE_FACE_HIDDEN } };
+}
+
+/* C: dispextern.h 3691: `extern bool clear_mouse_face (Mouse_HLInfo *);` - the C 5291 call
+   (`src/xdisp.rs` 30425 defines it).  The mirror carries no row, so the prototype stands here (the
+   `src/w32inevt.rs` 496 shape: declared in-unit, in an `unsafe extern "C"` block).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+}
+
+/* C: gdk/gdkkeysyms.h: the twelve `dead_*` keysyms and the six others C 5402-5489 names, besides
+   the eight the forty-second slice declared.  That header is not on this machine, so each value is
+   **measured** in `/opt/homebrew/include/X11/keysymdef.h` (200/208/209/435/455/263/280/191/457/458/
+   459/460/462/463/464/465/467/468/469/470/433), the table GDK's own file is generated from: names
+   are GDK's, numbers are the measured X11 keysyms.  `dead_degree` is the exception and is **not**
+   here - X11's table has no such keysym, so C's `#ifdef GDK_KEY_dead_degree` is the one arm this
+   slice keeps gated (the presence it asks about is exactly what cannot be measured here).  */
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_BackSpace: c_uint = 0xff08;          // keysymdef.h 200
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_Escape: c_uint = 0xff1b;             // keysymdef.h 208
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_Delete: c_uint = 0xffff;             // keysymdef.h 209
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_ISO_Last_Group_Lock: c_uint = 0xfe0f;   // keysymdef.h 433
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_ISO_Left_Tab: c_uint = 0xfe20;       // keysymdef.h 435
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_ISO_Enter: c_uint = 0xfe34;          // keysymdef.h 455
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_Select: c_uint = 0xff60;             // keysymdef.h 263
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_KP_Space: c_uint = 0xff80;           // keysymdef.h 280
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_VoidSymbol: c_uint = 0xffffff;       // keysymdef.h 191
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_grave: c_uint = 0xfe50;         // keysymdef.h 457
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_acute: c_uint = 0xfe51;         // keysymdef.h 458
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_circumflex: c_uint = 0xfe52;    // keysymdef.h 459
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_tilde: c_uint = 0xfe53;         // keysymdef.h 460
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_macron: c_uint = 0xfe54;        // keysymdef.h 462
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_breve: c_uint = 0xfe55;         // keysymdef.h 463
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_abovedot: c_uint = 0xfe56;      // keysymdef.h 464
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_diaeresis: c_uint = 0xfe57;     // keysymdef.h 465
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_doubleacute: c_uint = 0xfe59;   // keysymdef.h 467
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_caron: c_uint = 0xfe5a;         // keysymdef.h 468
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_cedilla: c_uint = 0xfe5b;       // keysymdef.h 469
+#[cfg (feature = "have_pgtk")]
+pub const GDK_KEY_dead_ogonek: c_uint = 0xfe5c;        // keysymdef.h 470
+
+/* GDK's extended table lists `dead_degree` after `dead_ogonek`; X11's table (the measured source
+   above) has no such keysym, so this one name and its value cannot be measured here.  It is
+   therefore declared **only for the arm C's own `#ifdef GDK_KEY_dead_degree` guards**, with a
+   placeholder value, and that arm is off in every configuration on this machine - Owed 21 records
+   the GDK-target round that replaces both.  */
+#[cfg (all (feature = "have_pgtk", feature = "gdk_key_dead_degree"))]
+pub const GDK_KEY_dead_degree: c_uint = 0xfe5d;        // placeholder, not a measured value
+
+/// C 5273-5502: `static gboolean key_press_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - C 6864/6897 (in the remainder) take its address through `G_CALLBACK`, so
+/// PORTING.md 1.4's `unsafe extern "C" fn` form applies from the slice that lands C 6831's
+/// `pgtk_set_event_handler`; until then it stays a plain `unsafe fn` (the `pgtk_fullscreen_hook`
+/// shape, Deviation 55).  **The five `goto done` sites** (C 5369/5383/5398/5480/5490) are a `'done:`
+/// block plus `break 'done` (Deviation 54's shape, the `pgtk_redeem_scroll_bar` reading): the block
+/// wraps the whole `if (f != 0)` arm, so a `break` lands where C's `goto` lands, and C 5495-5499's
+/// label statements follow the block.  C's local `unsigned char copy_buffer[513]` is the port's
+/// `[c_uchar; 513]` array with `as_mut_ptr()` for C's decay and `size_of_val` for C's `sizeof`;
+/// `event->key` is `include/gtk.rs`'s record, which this slice gives its three missing members
+/// (`length`, `string`, `is_modifier` - the last one read through its one-bit storage unit, P-80);
+/// the twelve `#ifdef GDK_KEY_dead_*` arms are live (their names and values are measured in X11's
+/// table, which GDK's own file is generated from) except `dead_degree`, which X11 does not carry and
+/// which therefore keeps C's own `#ifdef` as a feature gate; the `#ifdef HPUX` arm is that
+/// configuration feature; `clear_mouse_face`, `mouse_face_hidden!` and the keysym constants above
+/// are this slice's own rows.
+#[cfg (feature = "have_pgtk")]
+unsafe fn key_press_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5276
+  let mut nbytes: ptrdiff_t;                                            // C 5277
+  let mut hlinfo: *mut Mouse_HLInfo;                                    // C 5278
+  let mut f: *mut frame;                                                // C 5279
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 5280
+
+  f = pgtk_any_window_to_frame (gtk_widget_get_window (widget));        // C 5282
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5283
+  hlinfo = MOUSE_HL_INFO! (f);                                          // C 5284
+  nbytes = 0;                                                           // C 5285
+
+  /* If mouse-highlight is an integer, input clears out
+     mouse highlighting.  */
+  if !mouse_face_hidden! (hlinfo) && INTEGERP (Vmouse_highlight)        // C 5289
+    {
+      clear_mouse_face (hlinfo);                                        // C 5291
+      mouse_face_hidden! (hlinfo, 1);                                   // C 5292
+    }
+
+  'done: {                     /* C 5494's label: the five `goto done` sites land here */
+    if !f.is_null ()                                                    // C 5295
+      {
+	let mut keysym: c_uint;                                         // C 5297
+	let mut orig_keysym: c_uint;                                    // C 5297
+	/* al%imercury@uunet.uu.net says that making this 81
+	   instead of 80 fixed a bug whereby meta chars made
+	   his Emacs hang.
+
+	   It seems that some version of XmbLookupString has
+	   a bug of not returning XBufferOverflow in
+	   status_return even if the input is too long to
+	   fit in 81 bytes.  So, we must prepare sufficient
+	   bytes for copy_buffer.  513 bytes (256 chars for
+	   two-byte character set) seems to be a fairly good
+	   approximation.  -- 2000.8.10 handa@etl.go.jp  */
+	let mut copy_buffer: [c_uchar; 513] = [0; 513];                 // C 5309
+	let copy_bufptr: *mut c_uchar = copy_buffer.as_mut_ptr ();      // C 5310
+	let copy_bufsiz: c_int = std::mem::size_of_val (&copy_buffer) as c_int;   // C 5311
+	let mut modifiers: c_int;                                       // C 5312
+	let mut c: Lisp_Object;                                         // C 5313
+	let mut state: c_uint;                                          // C 5314
+
+	dpyinfo = FRAME_DISPLAY_INFO! (f);                              // C 5316
+
+	/* Set the last user time for pgtk_focus_frame to work
+	   correctly.  */
+	(*dpyinfo).last_user_time = (*event).key.time;                  // C 5320
+
+	state = (*event).key.state;                                     // C 5322
+
+	/* While super is pressed, the input method will always always
+	   resend the key events ignoring super.  As a workaround, don't
+	   filter key events with super or hyper pressed.  */
+	if (*event).key.state & (GDK_SUPER_MASK as c_uint | GDK_HYPER_MASK as c_uint) == 0   // C 5327
+	  {
+	    if pgtk_im_filter_keypress (f, &raw mut (*event).key)       // C 5329
+	      { return true as gboolean; }                              // C 5330
+	  }
+
+	state |= pgtk_emacs_to_gtk_modifiers (FRAME_DISPLAY_INFO! (f),  // C 5333
+					      extra_keyboard_modifiers as c_int) as c_uint;   // C 5334
+	modifiers = state as c_int;                                     // C 5335
+
+	/* This will have to go some day...  */
+
+	/* make_lispy_event turns chars into control chars.
+	   Don't do it here because XLookupString is too eager.  */
+	state &= ! (GDK_CONTROL_MASK as c_uint);                        // C 5341
+	state &= ! ((GDK_META_MASK | GDK_SUPER_MASK | GDK_HYPER_MASK | GDK_MOD1_MASK) as c_uint);   // C 5342-5343
+
+	nbytes = (*event).key.length as ptrdiff_t;                      // C 5345
+	if nbytes > copy_bufsiz as ptrdiff_t                            // C 5346
+	  { nbytes = copy_bufsiz as ptrdiff_t; }                        // C 5347
+	memcpy (copy_bufptr as *mut c_void, (*event).key.string as *const c_void,
+		nbytes as usize);                                       // C 5348
+
+	keysym = (*event).key.keyval;                                   // C 5350
+	orig_keysym = keysym;                                           // C 5351
+
+	/* Common for all keysym input events.  */
+	XSETFRAME! (inev.ie.frame_or_window, f);                        // C 5354
+	inev.ie.modifiers
+	  = pgtk_gtk_to_emacs_modifiers (FRAME_DISPLAY_INFO! (f), modifiers) as c_uint;   // C 5355-5356
+	inev.ie.timestamp = (*event).key.time as Time;                  // C 5357
+
+	/* First deal with keysyms which have defined
+	   translations to characters.  */
+	if keysym >= 32 && keysym < 128                                 // C 5361
+	  /* Avoid explicitly decoding each ASCII character.  */
+	  {
+	    input_event_bits! (kind, &raw mut inev.ie, ASCII_KEYSTROKE_EVENT);   // C 5364
+	    inev.ie.code = keysym;                                      // C 5365
+
+	    inev.ie.device
+	      = pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f), event);   // C 5367-5368
+	    break 'done;                    /* C 5369's `goto done` */
+	  }
+
+	/* Keysyms directly mapped to Unicode characters.  */
+	if keysym >= 0x01000000 && keysym <= 0x0110FFFF                  // C 5373
+	  {
+	    input_event_bits! (kind, &raw mut inev.ie,                   // C 5375-5376
+			       if keysym < 0x01000080
+				 { ASCII_KEYSTROKE_EVENT }
+			       else
+				 { MULTIBYTE_CHAR_KEYSTROKE_EVENT });    // C 5377-5378
+	    inev.ie.code = keysym & 0xFFFFFF;                            // C 5379
+
+	    inev.ie.device
+	      = pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f), event);   // C 5381-5382
+	    break 'done;                    /* C 5383's `goto done` */
+	  }
+
+	/* Now non-ASCII.  */
+	if HASH_TABLE_P (Vpgtk_keysym_table)                            // C 5387
+	    && { c = Fgethash (make_fixnum (keysym as EMACS_INT),        // C 5388
+			       Vpgtk_keysym_table, Qnil ()); FIXNATP (c) }   // C 5389
+	  {
+	    input_event_bits! (kind, &raw mut inev.ie,                   // C 5391-5392
+			       if SINGLE_BYTE_CHAR_P (XFIXNAT (c) as intmax_t)
+				 { ASCII_KEYSTROKE_EVENT }
+			       else
+				 { MULTIBYTE_CHAR_KEYSTROKE_EVENT });    // C 5393
+	    inev.ie.code = XFIXNAT (c) as c_uint;                        // C 5394
+
+	    inev.ie.device
+	      = pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f), event);   // C 5396-5397
+	    break 'done;                    /* C 5398's `goto done` */
+	  }
+
+	/* Random non-modifier sorts of keysyms.  */
+	if (((keysym >= GDK_KEY_BackSpace && keysym <= GDK_KEY_Escape)   // C 5402
+	     || keysym == GDK_KEY_Delete                                 // C 5403
+	     || (keysym >= GDK_KEY_ISO_Left_Tab && keysym <= GDK_KEY_ISO_Enter)   // C 5405
+	     || IsCursorKey! (keysym)                                    // C 5407
+	     || IsMiscFunctionKey! (keysym)                              // C 5408
+	     || {                                                        // C 5409-5415 (`#ifdef HPUX`)
+		  /* This recognizes the "extended function
+		     keys".  It seems there's no cleaner way.
+		     Test IsModifierKey to avoid handling
+		     mode_switch incorrectly.  */
+		  { #[cfg (feature = "hpux")]
+		    { GDK_KEY_Select <= keysym && keysym < GDK_KEY_KP_Space }
+		    #[cfg (not (feature = "hpux"))]
+		    { false } }
+		}
+	     || orig_keysym == GDK_KEY_dead_circumflex                 // C 5417
+	     || orig_keysym == GDK_KEY_dead_grave                      // C 5420
+	     || orig_keysym == GDK_KEY_dead_tilde                      // C 5423
+	     || orig_keysym == GDK_KEY_dead_diaeresis                  // C 5426
+	     || orig_keysym == GDK_KEY_dead_macron                     // C 5429
+	     || {                                                      // C 5431-5433
+		  { #[cfg (feature = "gdk_key_dead_degree")]
+		    { orig_keysym == GDK_KEY_dead_degree }
+		    #[cfg (not (feature = "gdk_key_dead_degree"))]
+		    { false } }
+		}
+	     || orig_keysym == GDK_KEY_dead_acute                      // C 5435
+	     || orig_keysym == GDK_KEY_dead_cedilla                    // C 5438
+	     || orig_keysym == GDK_KEY_dead_breve                      // C 5441
+	     || orig_keysym == GDK_KEY_dead_ogonek                     // C 5444
+	     || orig_keysym == GDK_KEY_dead_caron                      // C 5447
+	     || orig_keysym == GDK_KEY_dead_doubleacute                // C 5450
+	     || orig_keysym == GDK_KEY_dead_abovedot                   // C 5453
+	     || IsKeypadKey! (keysym)                                   // C 5455
+	     || IsFunctionKey! (keysym)                                 // C 5456
+	     /* Any "vendor-specific" key is ok.  */
+	     || (orig_keysym & (1 << 28)) != 0                          // C 5458
+	     || (keysym != GDK_KEY_VoidSymbol && nbytes == 0))          // C 5459
+	    && !(((*event).key.is_modifier & 1) != 0                    // C 5460
+		 || IsModifierKey! (orig_keysym)                        // C 5461
+		 /* The symbols from GDK_KEY_ISO_Lock
+		    to GDK_KEY_ISO_Last_Group_Lock
+		    don't have real modifiers but
+		    should be treated similarly to
+		    Mode_switch by Emacs. */
+		 || (GDK_KEY_ISO_Lock <= orig_keysym                   // C 5468
+		     && orig_keysym <= GDK_KEY_ISO_Last_Group_Lock)))   // C 5469
+	  {
+	    /* make_lispy_event will convert this to a symbolic
+	       key.  */
+	    input_event_bits! (kind, &raw mut inev.ie, NON_ASCII_KEYSTROKE_EVENT);   // C 5475
+	    inev.ie.code = keysym;                                      // C 5476
+
+	    inev.ie.device
+	      = pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f), event);   // C 5478-5479
+	    break 'done;                    /* C 5480's `goto done` */
+	  }
+
+	{
+	  input_event_bits! (kind, &raw mut inev.ie, MULTIBYTE_CHAR_KEYSTROKE_EVENT);   // C 5484
+	  inev.ie.arg = make_unibyte_string (copy_bufptr as *const c_char, nbytes);   // C 5485
+	  inev.ie.device
+	    = pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f), event);   // C 5486-5487
+
+	  if keysym == GDK_KEY_VoidSymbol                               // C 5489
+	    { break 'done; }                /* C 5490's `goto done` */
+	}
+      }
+  }
+
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 5495
+    {
+      XSETFRAME! (inev.ie.frame_or_window, f);                          // C 5497
+      evq_enqueue (&raw mut inev);                                      // C 5498
+    }
+
+  return true as gboolean;                                              // C 5501
+}

@@ -1102,6 +1102,16 @@ pub struct GdkEventKey
   pub time: u32,
   pub state: c_uint,               // C: gdk/gdktypes.h: `guint state;`
   pub keyval: c_uint,              // C: gdk/gdktypes.h: `guint keyval;`
+  // The five members the forty-third slice's `key_press_event` reads on past those two:
+  // `length` (C 5345), `string` (C 5348) and `is_modifier` (C 5460), with `hardware_keycode`
+  // and `group` carried because `is_modifier` follows them in GDK's declaration.  `is_modifier`
+  // is GDK's `guint is_modifier : 1`; the port keeps the storage unit (P-80) and the unit reads
+  // it with the one-bit mask.  **UNVERIFIED**.
+  pub length: c_int,               // C: gdk/gdktypes.h: `gint length;`
+  pub string: *mut c_char,         // C: gdk/gdktypes.h: `gchar *string;`
+  pub hardware_keycode: u16,       // C: gdk/gdktypes.h: `guint16 hardware_keycode;`
+  pub group: u8,                   // C: gdk/gdktypes.h: `guint8 group;`
+  pub is_modifier: c_uint,         // C: gdk/gdktypes.h: `guint is_modifier : 1;`
 }
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventTouchpadPinch GdkEventTouchpadPinch;` - the record
 /// the union's `touchpad_pinch` member above carries, read by `src/pgtkterm.c` 5000-5023.  The port

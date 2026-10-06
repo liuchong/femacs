@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-42: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192 and C 5194-5271
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-43: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271 and C 5273-5502
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,752 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**8,060 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** - forty-two
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** - forty-three
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `key_press_event` (C 5273-5274).**
+> `pgtk_display_info_for_display` (C 5504-5505).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -155,7 +155,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 4992-5093 | `pgtk_handle_event` (C 4992-5033), `pgtk_fill_rectangle` (C 5034-5044) and `pgtk_clear_under_internal_border` (C 5046-5093) | the file gate - **transcribed** (the fortieth slice) |
 | 5095-5192 | `pgtk_handle_draw` (C 5095-5119), `size_allocate` (C 5121-5135), `get_modifier_values` (C 5137-5164) and `pgtk_gtk_to_emacs_modifiers` (C 5166-5192) | the file gate - **transcribed** (the forty-first slice) |
 | 5194-5271 | `pgtk_emacs_to_gtk_modifiers` (C 5194-5219), the five `Is…Key` macros (C 5221-5229), `pgtk_enqueue_string` (C 5232-5257) and `pgtk_enqueue_preedit` (C 5259-5271) | the file gate - **transcribed** (the forty-second slice) |
-| 5273-7780 | **the remainder of the file** - from C 5273's `key_press_event` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the key/button/scroll handlers, the modifier writer's callers, the widget walkers, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 5273-5502 | `key_press_event` (C 5273-5502, the file's biggest handler) | the file gate - **transcribed** (the forty-third slice) |
+| 5504-7780 | **the remainder of the file** - from C 5504's `pgtk_display_info_for_display` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the display lookup, the remaining event handlers (`button_event`, `scroll_event`, `configure_event`, the drag/touch family), the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1152,6 +1153,39 @@ their assertions are owed.
     `core::mem::zeroed ()` reading (the C 3981/4996 shape).  No mirror changed, so P-87's two legs do
     not apply.
 
+65. **The file's biggest handler: five gotos as one label block, a C array with its pointer and
+    `sizeof`, and the two `#ifdef` classes inside one condition.**  `key_press_event`'s five
+    `goto done` sites (C 5369/5383/5398/5480/5490) are a `'done:` block wrapping the whole
+    `if (f != 0)` arm plus `break 'done` - so a `break` lands where C's `goto` lands - with C
+    5495-5499's label statements *after* the block (Deviation 54's `pgtk_redeem_scroll_bar` layout);
+    the function's own `macro-body-notes.tsv` row records the `goto` token and the `guint` spelling.
+    C 5309-5311's `unsigned char copy_buffer[513]` + pointer + `sizeof` are the port's `[c_uchar;
+    513]`, `as_mut_ptr()` and `size_of_val` (the `src/xfns.rs` 2240-2242 shape), and C's
+    `(char *) copy_bufptr` is the `*const c_char` `make_unibyte_string` takes.  **The condition
+    carries two kinds of `#ifdef`**: the twelve `GDK_KEY_dead_*` arms are `#ifdef`s on a *library*
+    macro, and each one is **kept live** because the name and the value are measured in X11's
+    `keysymdef.h` (`dead_grave` … `dead_ogonek`, the table GDK's own file is generated from); the
+    one X11 does not carry, `dead_degree`, keeps C's own gate as the feature
+    `gdk_key_dead_degree` with a **placeholder** constant declared only for that arm, since the
+    presence C's `#ifdef` asks about is exactly what cannot be measured here; and `HPUX` is a
+    configuration macro, so its arm is gated `hpux` (the P-51 non-frozen-side shape).  The mirror
+    round: `include/gtk.rs`'s `GdkEventKey` was carrying only `type`/`window`/`send_event`/`time`/
+    `state`/`keyval`, so this slice adds `length`, `string`, `hardware_keycode`, `group` and
+    `is_modifier` - the last one as GDK's one-bit storage unit (P-80), read with the one-bit mask -
+    with no layout assertion (**UNVERIFIED**, the `GdkEventTouchpadPinch` reading).  P-87's two legs:
+    `check-mirror-dupes` 16/16/0 and `tools/check-all-units.sh` `checked 83 unit(s), 0 failure(s)` /
+    `checking 83 unit(s), 0 unit failure(s)`; since the frozen list carries no includer of
+    `include/gtk.rs`, the extra named reading is `src/xwidget.rs` probed before and after
+    (`use_gtk` + `have_gtk3`): 200 errors / 51 warnings on both sides, both sets diffing empty.
+    `mouse_face_hidden` is C's `bool_bf` (dispextern.h 3023) whose mask the mirror carries
+    (`include/dispextern.rs` 2139) with no accessor, so the unit declares the reader/writer pair
+    (the `src/msdos.rs` 3440-3445 copy), and `clear_mouse_face` (dispextern.h 3691) is declared at
+    the use site because that mirror records the row as owed rather than declared - Owed 21 names
+    both, together with the GDK-target round the measured keysym table and the `dead_degree`
+    placeholder wait for.  **The first reading named one defect of this slice's own text**:
+    `extra_keyboard_modifiers` is `EMACS_INT` in the mirror and `pgtk_emacs_to_gtk_modifiers` takes
+    `c_int`, so C's implicit conversion is `as c_int`.  No other mirror changed.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1237,6 +1271,15 @@ their assertions are owed.
     *g_utf8_to_ucs4 (const gchar *str, glong len, glong *items_read, glong *items_written, GError
     **error);`), whose one call site is C 5237.  They join Owed 13/15/16/18's class: the round that
     gives `include/gtk.rs` the live pgtk/GTK3/GLib arm closes them together.
+
+21. **Two rows the forty-third slice left owed plus the GTK-target round.**  `include/gtk.rs` now
+    carries the twenty-one measured `GDK_KEY_*` constants C 5402-5489 names, but `dead_degree` - the
+    one name X11's table does not have - is declared only for its own `gdk_key_dead_degree` arm with
+    a **placeholder** value, and the whole measured table wants a GDK header to replace it (the same
+    round as Owed 13/15/16/18/20).  `include/dispextern.rs` owes the `mouse_face_hidden` accessor
+    (it carries `MOUSE_FACE_HIDDEN` at 2139 and the `mouse_face_defer` pair, and its own
+    `src/msdos.rs` 3434-3438 note already asks for this one) and the `clear_mouse_face` row, which
+    its 4051 area records as owed rather than declared; until then the unit declares both.
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -2893,3 +2936,52 @@ forty-first slice), `check-dead-file-coverage.py` 145/0 (**74 range rows** over 
 machine has no GTK tree and no PGTK target, no keysym was tested and no event was enqueued, and the
 arm readings are **compile** readings of text this machine cannot build (the six keysyms are measured
 in X11's header, not in GDK's).
+
+## The forty-third slice (C 5273-5502): `key_press_event`, the file's biggest handler
+
+**What is in it.**  The whole `key_press_event` (C 5273-5502, **230 lines**): the mouse-highlight
+reset, the `if (f != 0)` arm with its five `GDK_KEY_*` decision chains and five `goto done` sites, the
+`513`-byte copy buffer, and C 5495-5499's label statements.  Rust: 7,752 -> **8,060** lines - the port
+is now *longer* than C's 7,780 (the declarations, doc comments and `// C NNNN` annotations).
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 9 / 18 -> 9 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): 230 lines of new text, twenty-two constants, one accessor
+pair, two declarations and a five-member mirror addition add **no error and no warning** in any arm -
+the eighteenth zero-delta reading in this unit.  **The first reading named one defect of this slice's
+own text**: `extra_keyboard_modifiers` is `EMACS_INT` in the mirror while the callee takes `c_int`, so
+C's implicit conversion is written out (`as c_int`).  **Arm reach is measured** (P-86 7): injecting
+`let _: c_int = true;` as the first statement of `key_press_event` moves arm A to **52** errors
+anchored at the injected line (removed, the file re-measured at **8,060** lines).
+
+**The mirror round (P-87).**  `include/gtk.rs`'s `GdkEventKey` gains `length`, `string`,
+`hardware_keycode`, `group` and `is_modifier` (GDK's one-bit storage unit, read with the one-bit
+mask, P-80); no layout assertion is written (**UNVERIFIED**).  `check-mirror-dupes` 16/16/0;
+`tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit
+failure(s)`; and, since the frozen list carries no includer of `include/gtk.rs`, the extra reading is
+`src/xwidget.rs` probed before and after (`use_gtk` + `have_gtk3`): 200 errors / 51 warnings on
+**both** sides, both sets diffing empty.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**61 rows -> 60**: `key_press_event` retires and one token row arrives (`key_press_event does not
+mention goto, guint`), which the sanctioned `docs/ports/macro-body-notes.tsv` row closes - C's five
+`goto`s are the `'done:`/`break 'done` shape and `guint` is the mirror's `c_uint` spelling.  The
+file's `line count drifted` row stays gone.
+
+**Ledger.**  Deviation 65 (the label block, the buffer, the two `#ifdef` classes, the mirror round and
+the defect), Owed 21, the range table's remainder row split into `5273-5502` (**transcribed**) and
+`5504-7780` (whose next live definition is `pgtk_display_info_for_display`, C 5504-5505), the title to
+forty-three slices and the header to 8,060 lines.  **The gates** read `check-declarations.py`
+18/0/18/0, `check-citations.py` 676/0/0/**2112**/36/0 (the twenty-two keysym rows are this slice's own
+external citations, +21 over the forty-second slice), `check-dead-file-coverage.py` 145/0 (**75 range
+rows** over `src/pgtkterm.c`), `check-port-lines.py` 0/0/0/0, `check-ledger-ticks.py` 238/0,
+`check-cond-eval.py src/pgtkterm.c` 31/0/0 and `check-mirror-dupes.py` 16/16/0.  **Not claimed**:
+nothing has been run - the frozen configuration compiles none of this file, this machine has no GTK
+tree and no PGTK target, no key was pressed and no event was enqueued, and the arm readings are
+**compile** readings of text this machine cannot build (the keysyms are measured in X11's header, not
+in GDK's, and `dead_degree`'s placeholder is not a measured value).
