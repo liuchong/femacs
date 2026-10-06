@@ -9,7 +9,7 @@ femacs/src/include/coding.rs:215	coding.h 267-281 is the five CODING_MODE_* valu
 femacs/src/include/coding.rs:222	coding.h 507-516 is the ten CODING_ANNOTATION_* values; `common_flags` is the member they land in
 femacs/src/include/coding.rs:311	coding.h 704 is make_string_from_utf8's prototype; `build_string_from_utf8` is the sentence's "who calls it" note
 femacs/src/include/lisp.rs:32	lisp.h 34 is an #include line and the quoted type is what that include brings in (the include-line class)
-femacs/src/include/lisp.rs:4159	lisp.h 4796 is `extern AVOID signal_error (...)`; the quoted `_Noreturn void` is how AVOID expands
+femacs/src/include/lisp.rs:4166	lisp.h 4796 is `extern AVOID signal_error (...)`; the quoted `_Noreturn void` is how AVOID expands
 femacs/src/include/font.rs:5	composite.h 28 is an #include line (that is the cited text) and the quoted struct is what the include brings in
 femacs/lib/include/verify.rs:29	verify.h 41/45 are the two _GL_HAVE__STATIC_ASSERT defines; `_Static_assert` is only mentioned in the 24 comment
 femacs/lib/include/verify.rs:106	verify.h 267-270 is the MSVC arm's _Static_assert definition; `_GL_STATIC_ASSERT_H` is the outer guard at 240
@@ -32,8 +32,8 @@ femacs/src/include/charset.rs:27	charset.h 322 is right; `struct charset` is the
 femacs/src/include/cm.rs:168	cm.h 123-127 is right; `bool_bf` is the member's type
 femacs/src/include/dispextern.rs:620	dispextern.h 648-661 is right; `struct glyph *` is a parameter type
 femacs/src/include/lisp.rs:2788	lisp.h 5276-5280 is right; the condition is at 5273
-femacs/src/include/lisp.rs:3902	lisp.h 759 is the `lispfwd` typedef; `KBOARD` is the type named in the second half
-femacs/src/include/lisp.rs:4031	lisp.h 4654 is right; `struct buffer` belongs to the third citation on the line
+femacs/src/include/lisp.rs:3909	lisp.h 759 is the `lispfwd` typedef; `KBOARD` is the type named in the second half
+femacs/src/include/lisp.rs:4038	lisp.h 4654 is right; `struct buffer` belongs to the third citation on the line
 femacs/src/include/termchar.rs:13	termhooks.h 533-542 is `union display_info`; `FRAME_TTY` is the macro that reads it
 femacs/src/include/termhooks.rs:13	termhooks.h 27 is the `#include "dispextern.h"` line (status 3.527 added the edge); `struct terminal` is the type the sentence quotes, not the line's own subject (the include-line class)
 femacs/src/include/termhooks.rs:376	termhooks.h 920-921 is right; `tty_display_info` is the type being read

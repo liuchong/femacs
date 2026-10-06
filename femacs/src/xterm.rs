@@ -15391,13 +15391,25 @@ pub const YNegative: c_int = 0x0020;
    the `check-mirror-dupes` reading this slice produced).  */
 /* C: X11/Intrinsic.h: `typedef struct _WidgetRec *Widget;` / `extern void XtVaGetValues (Widget,
    ...);` / `#define XtNheight "height"` - C 27553's call, in the `USE_X_TOOLKIT && USE_MOTIF`
-arm.  libXt's headers are not on this machine, so the citations are the header's own names and
-   the `src/xfns.rs` 1203/1389 notes' rule applies; `Widget` is the mirror's field type.  */
-#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_motif"))]
-pub type Widget = *mut c_void;
-#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_motif"))]
+arm (and, since slice 74, the Xaw arm's four calls too).  libXt's headers are not on this machine,
+   so the citations are the header's own names and the `src/xfns.rs` 1203/1389 notes' rule applies -
+   which makes `XtNwidth`/`XtNshown` **UNVERIFIED** placeholders in the `include/gtk.rs` sense, while
+   `XtNheight` was already written the same way.  `Widget`'s spelling is the port's own IntrinsicP.h
+   row below (`typedef struct _WidgetRec { CorePart core; … } *Widget;`), which C 28639/28640's
+   `widget->core.x` casts already depend on.  */
+/* Slice 74 widened these three gates from `use_motif` to `use_x_toolkit`: C 27553 (the Motif arm)
+   and C 15924/15944/15989/16013 (the Xaw arm) both read them, and libXt is what declares them -
+   a `use_x_toolkit` build without Motif is a configuration C compiles.  The arm reading in
+   `docs/ports/xterm.md` is what showed the narrower gate.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type Widget = *mut _WidgetRec;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
 pub fn XtNheight () -> *mut c_char { c"height".as_ptr () as *mut c_char }
-#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_motif"))]
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNwidth () -> *mut c_char { c"width".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNshown () -> *mut c_char { c"shown".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
 unsafe extern "C" {
   pub fn XtVaGetValues (widget: Widget, ...);
 }
@@ -17076,15 +17088,13 @@ unsafe fn x_set_window_size_and_position_1 (f: *mut frame, width: c_int, height:
 	   are likely outdated because XtDispatchEvent does not save them.
 	   The alternative would be to always use XtMoveWidget instead of
 	   XMoveWindow.  */
-	(*(*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget              // C 28639
-		as *mut _WidgetRec).core.x = -1;
-	(*(*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget              // C 28640
-		as *mut _WidgetRec).core.y = -1;
+	(*(*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget).core.x = -1;  // C 28639
+	(*(*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget).core.y = -1;  // C 28640
 	/* Resize all inner widgets and Cairo surface right away so the
 	   next redisplay drawing isn't clipped to the old size.  */
 	XtConfigureWidget ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget,  // C 28643-28644
-		x, y, width,
-		height + FRAME_MENUBAR_HEIGHT! (f), 0);
+		x as Position, y as Position, width as Dimension,
+		(height + FRAME_MENUBAR_HEIGHT! (f)) as Dimension, 0);
 #[cfg (feature = "use_cairo")]
 	{ x_cr_update_surface_desired_size (f, width, height); }        // C 28646
       }
@@ -18457,7 +18467,7 @@ pub unsafe extern "C" fn x_free_frame_resources (f: *mut frame)
 	free_frame_menubar (f);                                         // C 29697
 
 	if !(*f).shell_position.is_null ()                              // C 29699
-	  { xfree ((*f).shell_position); }                              // C 29700
+	  { xfree ((*f).shell_position as *mut c_void); }                // C 29700
       }
 
 #[cfg (not (feature = "use_x_toolkit"))]
@@ -24461,3 +24471,179 @@ unsafe extern "C" fn xg_end_scroll_callback (widget: *mut GtkWidget, event: *mut
 
   return false as gboolean;                                             // C 15898
 }
+
+/* C 15902's `#else /* not USE_GTK and not USE_MOTIF */` opens this arm; C 16034's `#endif` closes
+   it.  Both functions are Xt callbacks (`G_CALLBACK`'s targets in `x_scroll_bar_create`, a later
+   slice), so both are `unsafe extern "C" fn` by the same reasoning slice 73 recorded.  */
+
+/* Xaw scroll bar callback.  Invoked when the thumb is dragged.
+   WIDGET is the scroll bar widget.  CLIENT_DATA is a pointer to the
+   scroll bar struct.  CALL_DATA is a pointer to a float saying where
+   the thumb is.  */
+
+/// C 15909-15965: `static void xaw_jump_callback (Widget widget, XtPointer client_data, XtPointer
+/// call_data)` - C's `struct scroll_bar *bar = client_data` and `float *top_addr = call_data` are
+/// the pointer casts the port spells (P-72 rule 3), C 15913's `float top = *top_addr;` is the
+/// dereference C writes, the two `XtVaGetValues` calls name `XtNshown`/`XtNwidth`/`XtNheight`
+/// (declared above; the two new names are **UNVERIFIED** placeholders for the same missing-libXt
+/// reason), `shown`/`width`/`height` are written by those calls so the port gives them C 15752's
+/// value (`= 0`, PORTING.md 1.5 - measured as `E0381` otherwise), C 15929-15930's `float`
+/// arithmetic is `f32` with C's conversions stated (`min` is `include/lisp.rs` 3149's,
+/// `min (isize, isize)`, and truncation commutes with `min` for the non-negative sizes here), C
+/// 15948's `shown < 1 ? top * whole : 0` keeps C's shape as an `if` expression whose value is
+/// converted once, C 15950's `eabs (top + shown - 1) < 1.0f / height` is `eabs!` (the mirror's
+/// macro, `include/lisp.rs` 3157) with `1.0f32`, and C 15963's `last_seen_part` is the mirror's
+/// field.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+unsafe extern "C" fn xaw_jump_callback (widget: Widget, client_data: XtPointer,
+					    call_data: XtPointer)
+{
+  let bar: *mut scroll_bar = client_data as *mut scroll_bar;            // C 15912
+  let top_addr: *mut f32 = call_data as *mut f32;                       // C 15913
+  let top: f32 = *top_addr;                                             // C 15914
+  let mut shown: f32 = 0.0;  /* PORTING.md 1.5 */                       // C 15915
+  let whole: c_int;                                                     // C 15916
+  let portion: c_int;
+  let mut height: c_int = 0;  /* PORTING.md 1.5 */
+  let mut width: c_int = 0;  /* PORTING.md 1.5 */
+  let part: scroll_bar_part;                                            // C 15917
+  let horizontal: bool = (*bar).horizontal;                             // C 15918
+
+  if horizontal                                                         // C 15920
+    {
+      /* Get the size of the thumb, a value between 0 and 1.  */
+      block_input ();                                                   // C 15923
+      XtVaGetValues (widget, XtNshown (), &raw mut shown, XtNwidth (),   // C 15924
+				  &raw mut width, std::ptr::null_mut::<c_void> ());
+      unblock_input ();                                                 // C 15925
+
+      if shown < 1.0                                                    // C 15927
+	{
+	  whole = (*bar).whole - (shown * (*bar).whole as f32) as c_int;   // C 15929
+	  portion = min ((top * (*bar).whole as f32) as isize, whole as isize) as c_int;  // C 15930
+	}
+      else
+	{
+	  whole = (*bar).whole;                                         // C 15934
+	  portion = 0;                                                  // C 15935
+	}
+
+      part = scroll_bar_horizontal_handle;                              // C 15938
+    }
+  else
+    {
+      /* Get the size of the thumb, a value between 0 and 1.  */
+      block_input ();                                                   // C 15943
+      XtVaGetValues (widget, XtNshown (), &raw mut shown, XtNheight (),  // C 15944
+				  &raw mut height, std::ptr::null_mut::<c_void> ());
+      unblock_input ();                                                 // C 15945
+
+      whole = 10000000;                                                 // C 15947
+      portion = (if shown < 1.0 { top * whole as f32 } else { 0.0 }) as c_int;  // C 15948
+
+      if shown < 1.0 && eabs! (top + shown - 1.0) < 1.0f32 / height as f32  // C 15950
+	/* Some derivatives of Xaw refuse to shrink the thumb when you reach
+	   the bottom, so we force the scrolling whenever we see that we're
+	   too close to the bottom (in x_set_toolkit_scroll_bar_thumb
+	   we try to ensure that we always stay two pixels away from the
+	   bottom).  */
+	{ part = scroll_bar_down_arrow; }                                // C 15956
+      else
+	{ part = scroll_bar_handle; }                                    // C 15958
+    }
+
+  window_being_scrolled = (*bar).window;                                // C 15961
+  (*bar).dragging = portion;                                            // C 15962
+  (*bar).last_seen_part = part;                                         // C 15963
+  x_send_scroll_bar_event ((*bar).window, part, portion, whole,          // C 15964
+			   (*bar).horizontal);
+}
+
+
+/* Xaw scroll bar callback.  Invoked for incremental scrolling.,
+   i.e. line or page up or down.  WIDGET is the Xaw scroll bar
+   widget.  CLIENT_DATA is a pointer to the scroll_bar structure for
+   the scroll bar.  CALL_DATA is an integer specifying the action that
+   has taken place.  Its magnitude is in the range 0..height of the
+   scroll bar.  Negative values mean scroll towards buffer start.
+   Values < height of scroll bar mean line-wise movement.  */
+
+/// C 15976-16032: `static void xaw_scroll_callback (Widget widget, XtPointer client_data, XtPointer
+/// call_data)` - the twin above's partner, with C 15981's `int position = (intptr_t) call_data;`
+/// written as the two casts C's conversion performs, C's `Dimension` (`use_x_toolkit`'s row at
+/// this file 16907) read by `XtVaGetValues` and handed to `x_send_scroll_bar_event`'s `int`
+/// parameter as `as c_int`, C 15992/16016's `eabs (position) >= width` with the promotion stated,
+/// C 15997/16021's `xaw3d_arrow_scroll && …` as C's `int` test (`!= 0`), C 15997/16021's
+/// `max (5, width / 20)` as `max (5, (width / 20) as isize) as c_int` (the mirror's `max`), and C
+/// 15993/15998/16000/16017/16022/16024's three-way `if`/`else if`/`else` chains kept in C's order.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+unsafe extern "C" fn xaw_scroll_callback (widget: Widget, client_data: XtPointer,
+					    call_data: XtPointer)
+{
+  let bar: *mut scroll_bar = client_data as *mut scroll_bar;            // C 15979
+  /* The position really is stored cast to a pointer.  */
+  let position: c_int = call_data as intptr_t as c_int;                 // C 15981
+  let mut height: Dimension = 0;  /* PORTING.md 1.5 */                  // C 15982
+  let mut width: Dimension = 0;  /* PORTING.md 1.5 */
+  let part: scroll_bar_part;                                            // C 15983
+
+  if (*bar).horizontal                                                  // C 15985
+    {
+      /* Get the width of the scroll bar.  */
+      block_input ();                                                   // C 15988
+      XtVaGetValues (widget, XtNwidth (), &raw mut width,                // C 15989
+				  std::ptr::null_mut::<c_void> ());
+      unblock_input ();                                                 // C 15990
+
+      if eabs! (position) >= width as c_int                            // C 15992
+	{ part = if position < 0 { scroll_bar_before_handle } else { scroll_bar_after_handle }; }  // C 15993
+
+      /* If Xaw3d was compiled with ARROW_SCROLLBAR,
+	 it maps line-movement to call_data = max(5, height/20).  */
+      else if xaw3d_arrow_scroll != 0                                   // C 15997
+	&& eabs! (position) <= max (5, (width / 20) as isize) as c_int
+	{ part = if position < 0 { scroll_bar_left_arrow } else { scroll_bar_right_arrow }; }  // C 15998
+      else
+	{ part = scroll_bar_move_ratio; }                                // C 16000
+
+      window_being_scrolled = (*bar).window;                            // C 16002
+      (*bar).dragging = -1;                                             // C 16003
+      (*bar).last_seen_part = part;                                     // C 16004
+      x_send_scroll_bar_event ((*bar).window, part, position,           // C 16005-16006
+			       width as c_int,
+			       (*bar).horizontal);
+    }
+  else
+    {
+
+      /* Get the height of the scroll bar.  */
+      block_input ();                                                   // C 16012
+      XtVaGetValues (widget, XtNheight (), &raw mut height,              // C 16013
+				  std::ptr::null_mut::<c_void> ());
+      unblock_input ();                                                 // C 16014
+
+      if eabs! (position) >= height as c_int                           // C 16016
+	{ part = if position < 0 { scroll_bar_above_handle } else { scroll_bar_below_handle }; }  // C 16017
+
+      /* If Xaw3d was compiled with ARROW_SCROLLBAR,
+	 it maps line-movement to call_data = max(5, height/20).  */
+      else if xaw3d_arrow_scroll != 0                                   // C 16021
+	&& eabs! (position) <= max (5, (height / 20) as isize) as c_int
+	{ part = if position < 0 { scroll_bar_up_arrow } else { scroll_bar_down_arrow }; }  // C 16022
+      else
+	{ part = scroll_bar_move_ratio; }                                // C 16024
+
+      window_being_scrolled = (*bar).window;                            // C 16026
+      (*bar).dragging = -1;                                             // C 16027
+      (*bar).last_seen_part = part;                                     // C 16028
+      x_send_scroll_bar_event ((*bar).window, part, position,           // C 16029-16030
+			       height as c_int,
+			       (*bar).horizontal);
+    }
+}
+
+/* C 16034's `#endif /* not USE_GTK and not USE_MOTIF */` closes this arm.  */

@@ -3154,8 +3154,15 @@ pub fn min (a: isize, b: isize) -> isize { if a < b { a } else { b } }
 /// eabs (x): C's macro (lisp.h 5597), which works for any signed type and — like C —
 /// evaluates its argument twice when it is negative.  The port used to spell it as a
 /// `f64` function, which floatfns.c's integer uses cannot call.
+///
+/// C's body compares against the integer literal `0`, which the compiler converts to `x`'s own
+/// type; Rust's `0` is an integer literal and would not unify with an `f32`/`f64` argument
+/// (`error[E0308]: expected f32, found integer`, measured on xterm.c 15950's float call -
+/// docs/ports/xterm.md slice 74).  `Default::default ()` is the zero of whichever type the
+/// argument has, which is C's conversion written where C relies on it; the note in
+/// docs/ports/lisp.md records the token deviation.
 macro_rules! eabs {
-    ($x:expr) => { if $x < 0 { -$x } else { $x } };
+    ($x:expr) => { if $x < Default::default () { -$x } else { $x } };
 }
 
 /// lisp.h 5315-5319: the non-Android branch is `# define emacs_fclose fclose`, i.e. an
