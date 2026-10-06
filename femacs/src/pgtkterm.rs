@@ -9314,7 +9314,7 @@ unsafe extern "C" {
 /// written out, and C 6462's `g_clear_pointer` is this unit's own macro.
 #[cfg (feature = "have_pgtk")]
 unsafe fn drag_leave (widget: *mut GtkWidget, context: *mut GdkDragContext, time: guint,
-		      user_data: *mut gpointer)
+		      user_data: gpointer)
 {
   let mut f: *mut frame;                                                // C 6451
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6452
@@ -9409,7 +9409,7 @@ unsafe fn drag_motion (widget: *mut GtkWidget, context: *mut GdkDragContext, x: 
 /// action and `current_drop_context_drop = true`.
 #[cfg (feature = "have_pgtk")]
 unsafe fn drag_drop (widget: *mut GtkWidget, context: *mut GdkDragContext, x: c_int, y: c_int,
-		    time: guint, user_data: *mut gpointer) -> gboolean
+		    time: guint, user_data: gpointer) -> gboolean
 {
   let mut f: *mut frame;                                                // C 6534
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6535
@@ -9619,7 +9619,7 @@ unsafe fn pgtk_find_touch_point (dpyinfo: *mut pgtk_display_info, detail: *mut G
 /// C 6766 call hands it out through `&raw mut` and the first reading named the `E0381` that skip
 /// produces.
 #[cfg (feature = "have_pgtk")]
-unsafe fn touch_event_cb (self_: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe fn touch_event_cb (self_: *mut GtkWidget, event: *mut GdkEvent, user_data: gpointer)
     -> gboolean
 {
   let mut dpyinfo: *mut pgtk_display_info;                              // C 6697
@@ -9733,3 +9733,30 @@ unsafe fn touch_event_cb (self_: *mut GtkWidget, event: *mut GdkEvent, user_data
 
   return (input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT) as gboolean;  // C 6805
 }
+
+/* Callbacks for sundries.  */
+
+/// C 6812-6824: `static void pgtk_monitors_changed_cb (GdkScreen *screen, gpointer user_data)` -
+/// `static` with its address taken at C 1218 (`g_signal_connect (…, "monitors-changed", …)`, in the
+/// slice that landed long before this one), so a plain `unsafe fn` until that call site's own
+/// conversion round.  C's `gpointer` -> `struct terminal *` conversion is written out,
+/// `MONITORS_CHANGED_EVENT` is `include/termhooks.rs` 62's row and `XSETTERMINAL` is
+/// `include/lisp.rs` 3137's macro (which `src/term.rs` 3037 reads the same way).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_monitors_changed_cb (screen: *mut GdkScreen, user_data: gpointer)
+{
+  let mut terminal: *mut terminal;                                      // C 6815
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6816
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 6818
+  terminal = user_data as *mut terminal;                                // C 6819
+  input_event_bits! (kind, &raw mut inev.ie, MONITORS_CHANGED_EVENT);   // C 6820
+  XSETTERMINAL! (inev.ie.arg, terminal);                                // C 6821
+
+  evq_enqueue (&raw mut inev);                                          // C 6823
+}
+
+/* C 6826: `static gboolean pgtk_selection_event (GtkWidget *, GdkEvent *, gpointer);` - a forward
+   declaration of this file's own `static` (its definition is in the remainder, C 7477), which Rust
+   does not need; the name is declared where C's later call sites use it, so C's line stands here as
+   a comment (the C 442-443 `pgtk_unlink_touch_points` reading at this unit's line 790).  */
