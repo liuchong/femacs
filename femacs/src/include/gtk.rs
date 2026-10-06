@@ -1021,6 +1021,7 @@ pub union GdkEvent
   pub motion: GdkEventMotion,      // C: gdk/gdktypes.h: `GdkEventMotion motion;`
   pub crossing: GdkEventCrossing,  // C: gdk/gdktypes.h: `GdkEventCrossing crossing;`
   pub key: GdkEventKey,            // C: gdk/gdktypes.h: `GdkEventKey key;`
+  pub configure: GdkEventConfigure,   // C: gdk/gdktypes.h: `GdkEventConfigure configure;`
   pub touchpad_pinch: GdkEventTouchpadPinch,   // C: gdk/gdktypes.h: `GdkEventTouchpadPinch touchpad_pinch;`
 }
 /* The five records the union names.  **One surface, one mirror** (P-90 ①/②): they used to be
@@ -1032,6 +1033,20 @@ pub union GdkEvent
    assertion is written** for them: GDK is not on this machine, the sizes are **UNVERIFIED**,
    and `GdkEventKey`'s record replaces the zero-sized placeholder this mirror carried while a
    pointer was all anyone took (status 3.481).  */
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventConfigure GdkEventConfigure;` - the union's
+/// `configure` member above, read by `src/pgtkterm.c` 5543-5564 (`window`, `x` and `y`).  GDK's
+/// trailing `width`/`height` are not carried because the reference's text does not read them (the
+/// `GdkEventButton` reading below).  **UNVERIFIED**.
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventConfigure
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub x: c_int,
+  pub y: c_int,
+}
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventButton GdkEventButton;` - C 148-155 of
 /// `src/xwidget.c` reads and writes `x`/`y`; **UNVERIFIED**.
 #[repr (C)]

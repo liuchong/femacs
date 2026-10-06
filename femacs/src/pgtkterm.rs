@@ -8058,3 +8058,110 @@ unsafe fn key_press_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_da
 
   return true as gboolean;                                              // C 5501
 }
+
+/* C: keyboard.h 513-514: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
+   Lisp_Object, ptrdiff_t);` - the C 5555 call (`src/keyboard.rs` 4295 defines it; `src/dispnew.rs`
+   281 carries the same prototype).  The mirror has no row, so it stands here (the
+   `clear_mouse_face` shape, P-90 1).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gen_help_event (string: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
+			 object: Lisp_Object, pos: ptrdiff_t);
+}
+/* C: dispextern.h 3614-3616: `extern Lisp_Object help_echo_string, help_echo_window; extern
+   Lisp_Object help_echo_object, previous_help_echo_string;` - the C 5554 write.  The mirror
+   declares the four inside `pub mod dispextern_externs`, which no glob import brings into this
+   unit, so the one this slice touches stands here (the `src/dispnew.rs` 283-287 shape).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  static mut help_echo_string: Lisp_Object;
+}
+/* C 5558's `NorthWestGravity` needs no row here: `include/dispextern.rs` 694's
+   `include!("pgtkgui.rs")` brings `include/pgtkgui.rs` 158's `pub const NorthWestGravity: c_int =
+   1;` into this graph (X11's `X.h` 422 defines the same value for the Xlib spelling).  */
+
+/// C 5504-5516: `static struct pgtk_display_info *pgtk_display_info_for_display (GdkDisplay *dpy)` -
+/// `static` with no address taken, so a plain `unsafe fn`; `x_display_list` is this unit's own
+/// definition (line 368) and C's `for (…; dpyinfo; dpyinfo = dpyinfo->next)` is the port's `while`
+/// with C's step at the body's end (the `pgtk_redeem_scroll_bar` family's shape), the `gdpy` member (C 154-161's anonymous
+/// union spells both `gdpy` and `display`; the mirror keeps the first name and records the alias)
+/// and `next` being `include/pgtkterm.rs`'s.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_display_info_for_display (dpy: *mut GdkDisplay) -> *mut pgtk_display_info
+{
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 5507
+
+  dpyinfo = x_display_list;                                             // C 5509
+  while !dpyinfo.is_null ()                                             // C 5509
+    {
+      if (*dpyinfo).gdpy == dpy                                         // C 5511 (C's `display` alias)
+
+	{ return dpyinfo; }                                             // C 5512
+
+      dpyinfo = (*dpyinfo).next;                                        // C 5509's step
+    }
+
+  return core::ptr::null_mut ();                                        // C 5515
+}
+
+/// C 5518-5536: `static gboolean key_release_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - C 6879 (in the remainder) takes its address through `G_CALLBACK`, so a plain
+/// `unsafe fn` until that slice (the `pgtk_fullscreen_hook` shape, Deviation 55); C 5529's
+/// `if (dpyinfo)` carries its comment before the statement, which the port keeps, and the
+/// definition above is the call C 5527 makes.
+#[cfg (feature = "have_pgtk")]
+unsafe fn key_release_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let mut display: *mut GdkDisplay;                                     // C 5523
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 5524
+
+  display = gtk_widget_get_display (widget);                            // C 5526
+  dpyinfo = pgtk_display_info_for_display (display);                    // C 5527
+
+  if !dpyinfo.is_null ()                                                // C 5529
+    /* This is needed on Wayland because of some brain dead
+       compositors.  Without them, we would not have to keep track of
+       the serial of key release events.  */
+    { (*dpyinfo).last_user_time = (*event).key.time; }                  // C 5533
+
+  return true as gboolean;                                              // C 5535
+}
+
+/// C 5538-5568: `static gboolean configure_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - `static`, address taken at C 6870 (in the remainder), so a plain `unsafe fn`
+/// until that slice.  `event->configure` is the union member this slice's mirror round adds (C's
+/// text reads `window`, `x` and `y`), `any_help_event_p` is this unit's own static (line 361),
+/// `help_echo_string` and `gen_help_event` are the two declarations above, `GTK_WINDOW!` is
+/// `include/gtk.rs` 778's cast row with `gtk_window_get_position` its 903, and the
+/// `win_gravity`/`left_pos`/`top_pos` members are `include/frame.rs`'s.
+#[cfg (feature = "have_pgtk")]
+unsafe fn configure_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let f: *mut frame = pgtk_any_window_to_frame ((*event).configure.window);   // C 5543
+
+  if !f.is_null () && widget == FRAME_GTK_OUTER_WIDGET! (f)             // C 5545
+    {
+      if any_help_event_p                                               // C 5547
+	{
+	  let mut frame: Lisp_Object;                                   // C 5549
+	  if !f.is_null ()                                              // C 5550
+	    { XSETFRAME! (frame, f); }                                  // C 5551
+	  else
+	    { frame = Qnil (); }                                        // C 5553
+	  help_echo_string = Qnil ();                                   // C 5554
+	  gen_help_event (Qnil (), frame, Qnil (), Qnil (), 0);         // C 5555
+	}
+
+      if (*f).win_gravity == NorthWestGravity                           // C 5558
+	{ gtk_window_get_position (GTK_WINDOW! (widget),                // C 5559
+				   &raw mut (*f).left_pos, &raw mut (*f).top_pos); }   // C 5560
+      else
+	{
+	  (*f).top_pos = (*event).configure.y;                          // C 5563
+	  (*f).left_pos = (*event).configure.x;                         // C 5564
+	}
+    }
+  return false as gboolean;                                             // C 5567
+}
