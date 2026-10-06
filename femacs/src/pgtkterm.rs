@@ -10816,3 +10816,341 @@ pub unsafe extern "C" fn syms_of_pgtkterm ()
   /* Tell Emacs about this window system.  */
   Fprovide (Qpgtk (), Qnil ());                                         // C 7560
 }
+/* The cairo and GDK entry points the eleven functions below call that the include graph does not
+   bring into scope stand here at the use site with their own headers' lines (P-88 1, the
+   `src/image.rs` 458-470 and `src/xwidget.rs` 2990-3000 shape for this same surface); the three
+   `cairo-{pdf,ps,svg}.h` headers have no mirror at all, which is the owed round
+   `docs/ports/include-pgtkterm.md` names beside the surface's P-90 move-back.  The two constants
+   are measured on this machine's cairo 1.18.4 (`/opt/homebrew/include/cairo`: `CAIRO_OPERATOR_OVER
+   = 2`, `CAIRO_STATUS_SUCCESS = 0`); the family's other rows already stand in this unit's cairo
+   segment (`CAIRO_FORMAT_RGB24` at 3210, `CAIRO_CONTENT_COLOR_ALPHA` at 4307, `cairo_create` /
+   `cairo_surface_destroy` / `cairo_set_source_rgb` / `cairo_destroy` at 5106-5510) or in
+   `include/gtk.rs` (`cairo_set_source_surface`, `cairo_paint`, `cairo_set_operator`,
+   `cairo_set_source_rgba`, the `CAIRO_SURFACE_TYPE_*` rows and `gtk_widget_get_window`).  */
+#[cfg (feature = "have_pgtk")]
+pub const CAIRO_OPERATOR_OVER: cairo_operator_t = 2;                     // cairo.h 585/662-696
+#[cfg (feature = "have_pgtk")]
+pub const CAIRO_STATUS_SUCCESS: cairo_status_t = 0;                      // cairo.h 261/325-374
+/// C: cairo.h 477-490: `typedef cairo_status_t (*cairo_write_func_t) (void *closure, const
+/// unsigned char *data, unsigned int length);`
+#[cfg (feature = "have_pgtk")]
+pub type cairo_write_func_t = Option<unsafe extern "C" fn (*mut c_void, *const c_uchar, c_uint)
+				     -> cairo_status_t>;
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  /// C: cairo.h 2702: `void cairo_surface_show_page (cairo_surface_t *surface);`
+  pub fn cairo_surface_show_page (surface: *mut cairo_surface_t);
+  /// C: cairo.h 2656: `void cairo_surface_flush (cairo_surface_t *surface);`
+  pub fn cairo_surface_flush (surface: *mut cairo_surface_t);
+  /// C: cairo.h 2604-2606: `cairo_status_t cairo_surface_write_to_png_stream (cairo_surface_t
+  /// *surface, cairo_write_func_t write_func, void *closure);`
+  pub fn cairo_surface_write_to_png_stream (surface: *mut cairo_surface_t,
+					    write_func: cairo_write_func_t, closure: *mut c_void)
+    -> cairo_status_t;
+  /// C: gdk/gdkwindow.h: `cairo_surface_t *gdk_window_create_similar_surface (GdkWindow *window,
+  /// cairo_content_t content, int width, int height);`
+  pub fn gdk_window_create_similar_surface (window: *mut GdkWindow, content: cairo_content_t,
+					    width: c_int, height: c_int) -> *mut cairo_surface_t;
+  /// C: cairo-pdf.h 71-74: `cairo_surface_t *cairo_pdf_surface_create_for_stream (cairo_write_func_t
+  /// write_func, void *closure, double width_in_points, double height_in_points);`
+  pub fn cairo_pdf_surface_create_for_stream (write_func: cairo_write_func_t, closure: *mut c_void,
+					      width_in_points: c_double,
+					      height_in_points: c_double) -> *mut cairo_surface_t;
+  /// C: cairo-pdf.h 88-89: `void cairo_pdf_surface_set_size (cairo_surface_t *surface, double
+  /// width_in_points, double height_in_points);`
+  pub fn cairo_pdf_surface_set_size (surface: *mut cairo_surface_t, width_in_points: c_double,
+				     height_in_points: c_double);
+  /// C: cairo-ps.h 72-75: `cairo_surface_t *cairo_ps_surface_create_for_stream (cairo_write_func_t
+  /// write_func, void *closure, double width_in_points, double height_in_points);`
+  pub fn cairo_ps_surface_create_for_stream (write_func: cairo_write_func_t, closure: *mut c_void,
+					     width_in_points: c_double,
+					     height_in_points: c_double) -> *mut cairo_surface_t;
+  /// C: cairo-ps.h 96-97: `void cairo_ps_surface_set_size (cairo_surface_t *surface, double
+  /// width_in_points, double height_in_points);`
+  pub fn cairo_ps_surface_set_size (surface: *mut cairo_surface_t, width_in_points: c_double,
+				    height_in_points: c_double);
+  /// C: cairo-svg.h 101-103: `cairo_surface_t *cairo_svg_surface_create_for_stream
+  /// (cairo_write_func_t write_func, void *closure, double width_in_points, double
+  /// height_in_points);`
+  pub fn cairo_svg_surface_create_for_stream (write_func: cairo_write_func_t, closure: *mut c_void,
+					      width_in_points: c_double,
+					      height_in_points: c_double)
+    -> *mut cairo_surface_t;
+  /// C: dispextern.h 3675: `extern void expose_frame (struct frame *, int, int, int, int);` - the
+  /// definition is `src/xdisp.rs`'s; the `src/widget.rs` 983-985 row is this declaration's twin.
+  pub fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
+  /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);` - defined in `src/xdisp.rs`;
+  /// the `src/dispnew.rs` 339-340 and `src/callproc.rs` 163-164 rows are its twins.
+  pub fn redisplay_preserve_echo_area (from_where: c_int);
+  /// C: stdlib.h 613-615: `extern void abort (void) __THROW __attribute__ ((__noreturn__));` -
+  /// C 7738's arm, the one the last live `CAIRO_HAS_*` guard reaches.
+  pub fn abort () -> !;
+}
+
+/* Cairo does not allow resizing a surface/context after it is
+   created, so we need to trash the old context, create a new context
+   on the next cr_clip_begin with the new dimensions and request a
+   re-draw.
+
+   This will leave the active context available to present on screen
+   until a redrawn frame is completed.  */
+/// C 7570-7582: `void pgtk_cr_update_surface_desired_size (struct frame *f, int width, int height,
+/// bool force)` - a **non-`static`** C definition (`extern "C"` + `#[unsafe(no_mangle)]`,
+/// PORTING.md 0.2).  The three `FRAME_CR_SURFACE_DESIRED_*` rows are `include/pgtkterm.rs`'s
+/// macros (lvalues, so C 7578-7579's stores are stores here too) and `SET_FRAME_GARBAGED` is
+/// `include/frame.rs`'s macro.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_cr_update_surface_desired_size (f: *mut frame, width: c_int,
+							      height: c_int, force: bool)
+{
+  if FRAME_CR_SURFACE_DESIRED_WIDTH! (f) != width                        // C 7573
+      || FRAME_CR_SURFACE_DESIRED_HEIGHT! (f) != height                  // C 7574
+      || force                                                           // C 7575
+    {
+      pgtk_cr_destroy_frame_context (f);                                 // C 7577
+      FRAME_CR_SURFACE_DESIRED_WIDTH! (f) = width;                       // C 7578
+      FRAME_CR_SURFACE_DESIRED_HEIGHT! (f) = height;                     // C 7579
+      SET_FRAME_GARBAGED! (f);                                           // C 7580
+    }
+}
+
+/// C 7585-7607: `cairo_t *pgtk_begin_cr_clip (struct frame *f)` - a **non-`static`** C definition.
+/// C 7600's chained assignment is written as its two stores in C's order, and `surface` is the
+/// `gdk_window_create_similar_surface` result whose three conversions (`CAIRO_CONTENT_COLOR_ALPHA`
+/// is a `cairo_content_t`, the two dimensions are `c_int`s) are C's own argument types.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_begin_cr_clip (f: *mut frame) -> *mut cairo_t
+{
+  let mut cr: *mut cairo_t = FRAME_CR_CONTEXT! (f);                      // C 7588
+
+  if cr.is_null ()                                                       // C 7590
+    {
+      let surface: *mut cairo_surface_t                                  // C 7592
+	= gdk_window_create_similar_surface (gtk_widget_get_window (FRAME_GTK_WIDGET! (f)),
+					     CAIRO_CONTENT_COLOR_ALPHA,  // C 7595
+					     FRAME_CR_SURFACE_DESIRED_WIDTH! (f),   // C 7596
+					     FRAME_CR_SURFACE_DESIRED_HEIGHT! (f)); // C 7597-7598
+
+      cr = cairo_create (surface);                                       // C 7600
+      FRAME_CR_CONTEXT! (f) = cr;                                        // C 7600
+      cairo_surface_destroy (surface);                                   // C 7601
+    }
+
+  cairo_save (cr);                                                       // C 7604
+
+  return cr;                                                             // C 7606
+}
+
+/// C 7609-7613: `void pgtk_end_cr_clip (struct frame *f)` - a **non-`static`** C definition.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_end_cr_clip (f: *mut frame)
+{
+  cairo_restore (FRAME_CR_CONTEXT! (f));                                 // C 7612
+}
+
+/// C 7615-7621: `void pgtk_set_cr_source_with_gc_foreground (struct frame *f, Emacs_GC *gc, bool
+/// respects_alpha_background)` - a **non-`static`** C definition; `gc->foreground` is `Emacs_GC`'s
+/// `unsigned long` field, which is `pgtk_set_cr_source_with_color`'s third parameter type.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_set_cr_source_with_gc_foreground (f: *mut frame, gc: *mut Emacs_GC,
+							       respects_alpha_background: bool)
+{
+  pgtk_set_cr_source_with_color (f, (*gc).foreground,                     // C 7619
+				 respects_alpha_background);          // C 7620
+}
+
+/// C 7623-7629: `void pgtk_set_cr_source_with_gc_background (struct frame *f, Emacs_GC *gc, bool
+/// respects_alpha_background)` - a **non-`static`** C definition (the foreground twin).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_set_cr_source_with_gc_background (f: *mut frame, gc: *mut Emacs_GC,
+							       respects_alpha_background: bool)
+{
+  pgtk_set_cr_source_with_color (f, (*gc).background,                     // C 7627
+				 respects_alpha_background);          // C 7628
+}
+
+/// C 7631-7652: `void pgtk_set_cr_source_with_color (struct frame *f, unsigned long color, bool
+/// respects_alpha_background)` - a **non-`static`** C definition.  `Emacs_Color col` is C's
+/// uninitialised local handed to `pgtk_query_color` by address, so the port zeroes it
+/// (Deviation 12); `col.red`/`green`/`blue` are `c_ushort`s, so C 7641-7649's divisions widen them
+/// (`as c_double`), and `f->alpha_background` is the frame record's `double` field.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_set_cr_source_with_color (f: *mut frame, color: c_ulong,
+							respects_alpha_background: bool)
+{
+  let mut col: Emacs_Color = core::mem::zeroed ();                       // C 7635
+  col.pixel = color;                                                     // C 7636
+  pgtk_query_color (f, &raw mut col);                                    // C 7637
+
+  if !respects_alpha_background                                          // C 7639
+    {
+      cairo_set_source_rgb (FRAME_CR_CONTEXT! (f),                       // C 7641
+			    col.red as c_double / 65535.0,
+			    col.green as c_double / 65535.0,
+			    col.blue as c_double / 65535.0);             // C 7642
+      cairo_set_operator (FRAME_CR_CONTEXT! (f), CAIRO_OPERATOR_OVER);   // C 7643
+    }
+  else
+    {
+      cairo_set_source_rgba (FRAME_CR_CONTEXT! (f),                      // C 7647
+			     col.red as c_double / 65535.0,
+			     col.green as c_double / 65535.0,
+			     col.blue as c_double / 65535.0,
+			     (*f).alpha_background);                     // C 7648-7649
+      cairo_set_operator (FRAME_CR_CONTEXT! (f), CAIRO_OPERATOR_SOURCE); // C 7650
+    }
+}
+
+/// C 7654-7659: `void pgtk_cr_draw_frame (cairo_t * cr, struct frame *f)` - a **non-`static`** C
+/// definition; C 7657's two `0`s are the `double` arguments `cairo_set_source_surface` takes.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_cr_draw_frame (cr: *mut cairo_t, f: *mut frame)
+{
+  cairo_set_source_surface (cr, FRAME_CR_SURFACE! (f), 0.0, 0.0);        // C 7657
+  cairo_paint (cr);                                                      // C 7658
+}
+
+/// C 7661-7670: `static cairo_status_t pgtk_cr_accumulate_data (void *closure, const unsigned char
+/// *data, unsigned int length)` - `static` in C, but its **address** is what C 7712/7726/7734/7772
+/// hand to cairo as a `cairo_write_func_t`, so PORTING.md 1.4's one-ABI-per-position rule makes it
+/// `unsafe extern "C" fn`.  `make_unibyte_string`'s second parameter is a `ptrdiff_t`, which C's
+/// `unsigned int length` widens implicitly (`as ptrdiff_t`).
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn pgtk_cr_accumulate_data (closure: *mut c_void, data: *const c_uchar,
+					      length: c_uint) -> cairo_status_t
+{
+  let acc: *mut Lisp_Object = closure as *mut Lisp_Object;               // C 7665
+
+  *acc = Fcons (make_unibyte_string (data as *const c_char, length as ptrdiff_t), *acc);  // C 7667
+
+  return CAIRO_STATUS_SUCCESS;                                           // C 7669
+}
+
+/// C 7672-7680: `void pgtk_cr_destroy_frame_context (struct frame *f)` - a **non-`static`** C
+/// definition; C 7675's `!= NULL` is the port's null test and C 7678's `NULL` its `null_mut`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_cr_destroy_frame_context (f: *mut frame)
+{
+  if !FRAME_CR_CONTEXT! (f).is_null ()                                   // C 7675
+    {
+      cairo_destroy (FRAME_CR_CONTEXT! (f));                             // C 7677
+      FRAME_CR_CONTEXT! (f) = std::ptr::null_mut ();                     // C 7678
+    }
+}
+
+/// C 7682-7688: `static void pgtk_cr_destroy (void *cr)` - `static` in C and handed to
+/// `record_unwind_protect_ptr` at C 7742, whose parameter is
+/// `Option<unsafe extern "C" fn (*mut c_void)>` (`include/lisp.rs` 4073), so it is an
+/// `unsafe extern "C" fn` with C's `void *` parameter (P-72 rule 3).
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn pgtk_cr_destroy (cr: *mut c_void)
+{
+  block_input ();                                                        // C 7685
+  cairo_destroy (cr as *mut cairo_t);                                    // C 7686
+  unblock_input ();                                                      // C 7687
+}
+
+/// C 7690-7780: `Lisp_Object pgtk_cr_export_frames (Lisp_Object frames, cairo_surface_type_t
+/// surface_type)` - a **non-`static`** C definition, and this file's last block.  C's four
+/// `#ifdef CAIRO_HAS_*` arms each wrap one `if (…) …; else`, so the statement C compiles is the
+/// chain of exactly the arms whose cairo feature is defined, ending in C 7738's `abort ();`; the
+/// port keeps each arm's *presence* as the compile-time `cfg!` of its feature and follows C's chain
+/// once, in C's order (the `src/pgtkfns.rs` 1883-1905 arm-chooser idiom, `docs/ports/gtkutil.md`'s
+/// Deviation 4).  `surface_set_size_func`'s two rows are the `Option<unsafe extern "C" fn …>` shape
+/// `include/gtk.rs` gives `cairo_surface_set_size`-class parameters, `&raw mut acc` is C's `&acc`,
+/// and `CALLN!` is the mirror's macro (`include/lisp.rs` 3221).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_cr_export_frames (mut frames: Lisp_Object,
+						surface_type: cairo_surface_type_t) -> Lisp_Object
+{
+  let mut f: *mut frame;                                                 // C 7693
+  let mut surface: *mut cairo_surface_t;                                 // C 7694
+  let mut cr: *mut cairo_t;                                              // C 7695
+  let mut width: c_int;                                                  // C 7696
+  let mut height: c_int;
+  let mut surface_set_size_func: Option<unsafe extern "C" fn (*mut cairo_surface_t, c_double,
+							       c_double)> = None;  // C 7697
+  let mut acc: Lisp_Object = Qnil ();                                    // C 7698
+  let count: specpdl_ref = SPECPDL_INDEX ();                             // C 7699
+
+  redisplay_preserve_echo_area (31);                                     // C 7701
+
+  f = XFRAME (XCAR (frames));                                            // C 7703
+  frames = XCDR (frames);                                                // C 7704
+  width = FRAME_PIXEL_WIDTH (f);                                        // C 7705
+  height = FRAME_PIXEL_HEIGHT (f);                                      // C 7706
+
+  block_input ();                                                        // C 7708
+  if cfg! (feature = "cairo_has_pdf_surface") && surface_type == CAIRO_SURFACE_TYPE_PDF
+    {
+      surface = cairo_pdf_surface_create_for_stream (Some (pgtk_cr_accumulate_data),
+						     &raw mut acc as *mut c_void, width as c_double,
+						     height as c_double);    // C 7712-7713
+      surface_set_size_func = Some (cairo_pdf_surface_set_size);         // C 7714
+    }
+  else if cfg! (feature = "cairo_has_png_functions") && surface_type == CAIRO_SURFACE_TYPE_IMAGE
+    { surface = cairo_image_surface_create (CAIRO_FORMAT_RGB24, width, height); }  // C 7720
+  else if cfg! (feature = "cairo_has_ps_surface") && surface_type == CAIRO_SURFACE_TYPE_PS
+    {
+      surface = cairo_ps_surface_create_for_stream (Some (pgtk_cr_accumulate_data),
+						    &raw mut acc as *mut c_void, width as c_double,
+						    height as c_double);     // C 7726-7727
+      surface_set_size_func = Some (cairo_ps_surface_set_size);          // C 7728
+    }
+  else if cfg! (feature = "cairo_has_svg_surface") && surface_type == CAIRO_SURFACE_TYPE_SVG
+    { surface = cairo_svg_surface_create_for_stream (Some (pgtk_cr_accumulate_data),
+						     &raw mut acc as *mut c_void, width as c_double,
+						     height as c_double); }  // C 7734-7735
+  else
+    { abort (); }                                                        // C 7738
+
+  cr = cairo_create (surface);                                           // C 7740
+  cairo_surface_destroy (surface);                                       // C 7741
+  record_unwind_protect_ptr (Some (pgtk_cr_destroy), cr as *mut c_void);  // C 7742
+
+  loop                                                                   // C 7744 `while (1)`
+    {
+      let saved_cr: *mut cairo_t = FRAME_CR_CONTEXT! (f);                // C 7746
+      FRAME_CR_CONTEXT! (f) = cr;                                        // C 7747
+      pgtk_clear_area (f, 0, 0, width, height);                          // C 7748
+      expose_frame (f, 0, 0, width, height);                             // C 7749
+      FRAME_CR_CONTEXT! (f) = saved_cr;                                  // C 7750
+
+      if NILP (frames)                                                   // C 7752
+	{ break; }                                                       // C 7753
+
+      cairo_surface_show_page (surface);                                 // C 7755
+      f = XFRAME (XCAR (frames));                                        // C 7756
+      frames = XCDR (frames);                                            // C 7757
+      width = FRAME_PIXEL_WIDTH (f);                                    // C 7758
+      height = FRAME_PIXEL_HEIGHT (f);                                  // C 7759
+      if surface_set_size_func.is_some ()                                // C 7760
+	{ (surface_set_size_func.unwrap ()) (surface, width as c_double,
+					     height as c_double); }      // C 7761
+
+      unblock_input ();                                                  // C 7763
+      maybe_quit ();                                                     // C 7764
+      block_input ();                                                    // C 7765
+    }
+
+  if cfg! (feature = "cairo_has_png_functions") && surface_type == CAIRO_SURFACE_TYPE_IMAGE
+    {
+      cairo_surface_flush (surface);                                     // C 7771
+      cairo_surface_write_to_png_stream (surface, Some (pgtk_cr_accumulate_data),
+					 &raw mut acc as *mut c_void);                  // C 7772
+    }
+  unblock_input ();                                                      // C 7775
+
+  unbind_to (count, Qnil ());                                            // C 7777
+
+  return CALLN! (Fapply, Qconcat (), Fnreverse (acc));                    // C 7779
+}

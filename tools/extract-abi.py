@@ -560,7 +560,12 @@ def family_call_numbers(text: str, spellings: set) -> Counter:
     out: Counter = Counter()
     if not spellings:
         return out
-    pattern = re.compile(r"\b(" + "|".join(sorted(map(re.escape, spellings))) + r")\s*\(")
+    # A Rust macro invocation spells the name with a `!` (`ckd_add! (…)`, which Rust
+    # requires and the port may not drop), so the family's own call shape allows it -
+    # without this the C call's numbers read as "passed by C and not by the port"
+    # (status 3.798, the sixty-fifth `pgtkterm` slice: that was the file's last
+    # `--check` row).
+    pattern = re.compile(r"\b(" + "|".join(sorted(map(re.escape, spellings))) + r")\s*!?\s*\(")
     for m in pattern.finditer(text):
         depth, i = 0, m.end() - 1
         while i < len(text):
@@ -1118,6 +1123,29 @@ TOKEN_SELFTEST = (
 )
 
 
+FAMILY_SELFTEST = (
+    # name, source, the family's spellings, the numbers the call reader must count
+    ("a C call's numbers are read",
+     "if (ckd_add (&n, a, b + 2)) memory_full_up ();", {"ckd_add"}, {"2": 1}),
+    ("a Rust macro invocation is a call too",
+     "if ckd_add! (n, a, b + 2) { memory_full_up (); }", {"ckd_add"}, {"2": 1}),
+    ("a subscript is not a magnitude",
+     "ckd_add (&n, n, sizeof (s->keys[0]) * n)", {"ckd_add"}, {}),
+)
+
+
+def family_selftest() -> int:
+    """Prove the two shapes above: a `!`-spelled macro invocation is read, a subscript is not."""
+    bad = 0
+    for name, source, spellings, want in FAMILY_SELFTEST:
+        got = family_call_numbers (source, spellings)
+        ok = got == Counter (want)
+        print (f"{'ok  ' if ok else 'FAIL'} {name}: {dict (got)}"
+               + ("" if ok else f" (want {dict (want)})"))
+        bad += 0 if ok else 1
+    return bad
+
+
 def token_selftest() -> int:
     """Prove the cases above, and that a family word in a literal cannot reach the check."""
     bad = 0
@@ -1150,8 +1178,9 @@ def selftest() -> int:
               + ("" if ok else f" (want {want})"))
         bad += 0 if ok else 1
     bad += token_selftest ()
+    bad += family_selftest ()
     print(f"{len(SELFTEST) + len(WHOLE_FILE_SELFTEST)} cases, {len(TOKEN_SELFTEST)} token "
-          f"cases, {bad} failures")
+          f"cases, {len(FAMILY_SELFTEST)} family cases, {bad} failures")
     return 1 if bad else 0
 
 
