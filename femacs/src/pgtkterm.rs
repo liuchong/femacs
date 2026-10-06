@@ -9851,3 +9851,105 @@ pub unsafe extern "C" fn pgtk_set_event_handler (f: *mut frame)
   g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"event".as_ptr (),
 		     pgtk_handle_event, std::ptr::null_mut ());  // C 6901-6902
 }
+
+/* <string.h>: `char *strstr (const char *haystack, const char *needle);` - the C 6909 call.  The
+   include graph carries `strncmp` (`lib/include/string.rs` 32) but no `strstr`, so the prototype
+   stands here with its own header citation (P-88 1).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
+}
+
+/// C 6905-6911: `static void my_log_handler (const gchar *log_domain, GLogLevelFlags log_level,
+/// const gchar *msg, gpointer user_data)` - `static` with its address taken at C 7139
+/// (`g_log_set_handler (…, my_log_handler, NULL)`, in the remainder), so the port defines it
+/// `unsafe extern "C" fn` (PORTING.md 1.4).  `strstr`/`fprintf`/`stderr` are the include graph's
+/// `<string.h>`/`<stdio.h>` rows (the `src/alloc.rs` 5426 reading of the same three names), C's
+/// string literals are the port's `c"…".as_ptr ()`, and C 6909's negated pointer test is the port's
+/// `is_null ()` (so C's one-statement body keeps its shape).
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn my_log_handler (log_domain: *const gchar, log_level: GLogLevelFlags,
+				     msg: *const gchar, user_data: gpointer)
+{
+  if strstr (msg, c"g_set_prgname".as_ptr ()).is_null ()                // C 6909
+    { fprintf (stderr, c"%s-WARNING **: %s".as_ptr (), log_domain, msg); }  // C 6910
+}
+
+/* Test whether two display-name strings agree up to the dot that separates
+   the screen number from the server number.  */
+
+/// C 6913-6958: `static bool same_x_server (const char *name1, const char *name2)` - `static` with
+/// no address taken, so a plain `unsafe fn`.  C's two parameters are re-assigned, so the port's are
+/// `mut`; `Fsystem_name ()` is `include/globals.rs` 8542's row and `SSDATA`/`SBYTES` the include
+/// graph's string readers; C's `name1 += 4`/`name1++` have no Rust spelling for raw pointers, so
+/// they are `name1.offset (…)`; C 6948's `for` is the port's `while` with C's two steps at the body's
+/// end; the character constants are the port's `b':' as c_char`/`b'.' as c_char` and C's `'\0'` is
+/// `0`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn same_x_server (mut name1: *const c_char, mut name2: *const c_char) -> bool
+{
+  let mut seen_colon: bool = false;                                     // C 6918
+  let sysname: Lisp_Object = Fsystem_name ();                           // C 6919
+  let system_name: *const c_char = SSDATA (sysname);                    // C 6920
+  let system_name_length: ptrdiff_t = SBYTES (sysname);                 // C 6921
+  let mut length_until_period: ptrdiff_t = 0;                           // C 6922
+
+  while *system_name.offset (length_until_period) != 0                  // C 6924
+	 && *system_name.offset (length_until_period) != b'.' as c_char  // C 6925
+    { length_until_period += 1; }                                       // C 6926
+
+  /* Treat `unix' like an empty host name.  */
+  if strncmp (name1, c"unix:".as_ptr (), 5) == 0                        // C 6929
+    { name1 = name1.offset (4); }                                       // C 6930
+  if strncmp (name2, c"unix:".as_ptr (), 5) == 0                        // C 6931
+    { name2 = name2.offset (4); }                                       // C 6932
+  /* Treat this host's name like an empty host name.  */
+  if strncmp (name1, system_name, system_name_length as usize) == 0     // C 6934
+      && *name1.offset (system_name_length) == b':' as c_char           // C 6935
+    { name1 = name1.offset (system_name_length); }                      // C 6936
+  if strncmp (name2, system_name, system_name_length as usize) == 0     // C 6937
+      && *name2.offset (system_name_length) == b':' as c_char           // C 6938
+    { name2 = name2.offset (system_name_length); }                      // C 6939
+  /* Treat this host's domainless name like an empty host name.  */
+  if strncmp (name1, system_name, length_until_period as usize) == 0    // C 6941
+      && *name1.offset (length_until_period) == b':' as c_char          // C 6942
+    { name1 = name1.offset (length_until_period); }                     // C 6943
+  if strncmp (name2, system_name, length_until_period as usize) == 0    // C 6944
+      && *name2.offset (length_until_period) == b':' as c_char          // C 6945
+    { name2 = name2.offset (length_until_period); }                     // C 6946
+
+  while *name1 != 0 && *name1 == *name2                                 // C 6948
+    {
+      if *name1 == b':' as c_char                                       // C 6950
+	{ seen_colon = true; }                                          // C 6951
+      if seen_colon && *name1 == b'.' as c_char                         // C 6952
+	{ return true; }                                                // C 6953
+      name1 = name1.offset (1);                                         // C 6948
+      name2 = name2.offset (1);                                         // C 6948
+    }
+  return seen_colon                                                     // C 6955
+	 && (*name1 == b'.' as c_char || *name1 == 0)                   // C 6956
+	 && (*name2 == b'.' as c_char || *name2 == 0);                  // C 6957
+}
+
+/// C 6960-6976: `static struct frame *pgtk_find_selection_owner (GdkWindow *window)` - `static` with
+/// no address taken, so a plain `unsafe fn`; `FOR_EACH_FRAME!` is this unit's own macro, `XFRAME`
+/// and `FRAME_PGTK_P` are the frame mirror's rows, `FRAME_GDK_WINDOW!` is `include/pgtkterm.rs`
+/// 508-510's macro, and C's `NULL` is `std::ptr::null_mut ()`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_find_selection_owner (window: *mut GdkWindow) -> *mut frame
+{
+  let mut tail: Lisp_Object;                                            // C 6963
+  let mut tem: Lisp_Object;                                             // C 6963
+  let mut f: *mut frame;                                                // C 6964
+
+  FOR_EACH_FRAME! (tail, tem, {                                         // C 6966
+      f = XFRAME (tem);                                                 // C 6968
+
+      if FRAME_PGTK_P (f)                                               // C 6970
+	  && FRAME_GDK_WINDOW! (f) == window                            // C 6971
+	{ return f; }                                                   // C 6972
+  });
+
+  return std::ptr::null_mut ();                                         // C 6975
+}
