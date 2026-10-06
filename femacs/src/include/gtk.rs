@@ -995,6 +995,27 @@ unsafe extern "C" {
 /// 1414 writes `GDK_NOTHING`.  C's enum ABI is `c_int` (PORTING.md 1.3); **UNVERIFIED**.
 pub type GdkEventType = c_int;
 pub const GDK_NOTHING: GdkEventType = 0;              // placeholder, not GDK's value
+/// C: gdk/gdktypes.h: `typedef guint GdkWindowState;` and the twelve flags C 5632-5687 tests.  No GDK
+/// header exists on this machine, so each value is a **placeholder** with a distinct bit (the
+/// `GDK_*_MASK` reading in `src/xwidget.rs` 306-316) and **UNVERIFIED**.
+pub type GdkWindowState = c_uint;
+pub const GDK_WINDOW_STATE_WITHDRAWN: GdkWindowState = 1 << 0;        // placeholder
+pub const GDK_WINDOW_STATE_ICONIFIED: GdkWindowState = 1 << 1;        // placeholder
+pub const GDK_WINDOW_STATE_MAXIMIZED: GdkWindowState = 1 << 2;        // placeholder
+pub const GDK_WINDOW_STATE_STICKY: GdkWindowState = 1 << 3;           // placeholder
+pub const GDK_WINDOW_STATE_FULLSCREEN: GdkWindowState = 1 << 4;       // placeholder
+pub const GDK_WINDOW_STATE_ABOVE: GdkWindowState = 1 << 5;            // placeholder
+pub const GDK_WINDOW_STATE_BELOW: GdkWindowState = 1 << 6;            // placeholder
+pub const GDK_WINDOW_STATE_FOCUSED: GdkWindowState = 1 << 7;          // placeholder
+pub const GDK_WINDOW_STATE_TILED: GdkWindowState = 1 << 8;            // placeholder
+pub const GDK_WINDOW_STATE_TOP_TILED: GdkWindowState = 1 << 9;        // placeholder
+pub const GDK_WINDOW_STATE_TOP_RESIZABLE: GdkWindowState = 1 << 10;   // placeholder
+pub const GDK_WINDOW_STATE_RIGHT_TILED: GdkWindowState = 1 << 11;     // placeholder
+pub const GDK_WINDOW_STATE_RIGHT_RESIZABLE: GdkWindowState = 1 << 12; // placeholder
+pub const GDK_WINDOW_STATE_BOTTOM_TILED: GdkWindowState = 1 << 13;    // placeholder
+pub const GDK_WINDOW_STATE_BOTTOM_RESIZABLE: GdkWindowState = 1 << 14;   // placeholder
+pub const GDK_WINDOW_STATE_LEFT_TILED: GdkWindowState = 1 << 15;      // placeholder
+pub const GDK_WINDOW_STATE_LEFT_RESIZABLE: GdkWindowState = 1 << 16;  // placeholder
 /* The two `GDK_TOUCHPAD_*` constants C 5000-5002 compares are **not** here: `src/xwidget.rs`
    2249/2256 declares the same names for its own reads, and a mirror may not define a name an
    includer already carries (P-90 7) - each unit keeps its own copy.  */
@@ -1022,6 +1043,7 @@ pub union GdkEvent
   pub crossing: GdkEventCrossing,  // C: gdk/gdktypes.h: `GdkEventCrossing crossing;`
   pub key: GdkEventKey,            // C: gdk/gdktypes.h: `GdkEventKey key;`
   pub configure: GdkEventConfigure,   // C: gdk/gdktypes.h: `GdkEventConfigure configure;`
+  pub window_state: GdkEventWindowState,   // C: gdk/gdktypes.h: `GdkEventWindowState window_state;`
   pub touchpad_pinch: GdkEventTouchpadPinch,   // C: gdk/gdktypes.h: `GdkEventTouchpadPinch touchpad_pinch;`
 }
 /* The five records the union names.  **One surface, one mirror** (P-90 ①/②): they used to be
@@ -1046,6 +1068,20 @@ pub struct GdkEventConfigure
   pub send_event: i8,
   pub x: c_int,
   pub y: c_int,
+}
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventWindowState GdkEventWindowState;` - the union's
+/// `window_state` member above, read by `src/pgtkterm.c` 5622-5626 (`window`, `new_window_state`).
+/// `changed_mask` is carried because `new_window_state` follows it in GDK's declaration.  No layout
+/// assertion is written; **UNVERIFIED**.
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventWindowState
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub changed_mask: GdkWindowState,
+  pub new_window_state: GdkWindowState,
 }
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventButton GdkEventButton;` - C 148-155 of
 /// `src/xwidget.c` reads and writes `x`/`y`; **UNVERIFIED**.

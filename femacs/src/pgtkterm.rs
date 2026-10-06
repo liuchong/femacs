@@ -8165,3 +8165,163 @@ unsafe fn configure_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_da
     }
   return false as gboolean;                                             // C 5567
 }
+
+/// C 5570-5615: `static gboolean map_event (GtkWidget *widget, GdkEvent *event, gpointer *user_data)` -
+/// C 6856 (in the remainder) takes its address through `G_CALLBACK`, so a plain `unsafe fn` until the
+/// slice that lands C 6831's `pgtk_set_event_handler` (the `pgtk_fullscreen_hook` shape, Deviation
+/// 55).  `event->any` is the union member `include/gtk.rs` already carried, `set_fullscreen_state` is
+/// this unit's own C 4514 definition, `FRAME_Z_GROUP` is `include/frame.rs` 1642-1645's *reader* function while `FRAME_Z_GROUP!` (this unit's line 1515) is C 4518-4525's *writer* macro (the reference spells the two with the same name),
+/// `z_group_above`/`z_group_below` are `include/frame.rs` 1590-1591's, and `SET_FRAME_VISIBLE!`
+/// (frame.rs 1751) is the macro form while `SET_FRAME_ICONIFIED` (1417) is a function, which is why
+/// its second argument carries C's conversion (`false as c_int`), and `has_been_visible` is C's `int` field (pgtkterm.h 424), so C's truth tests are `== 0` and its stores are `1` (lines 1008/1039's reading).
+#[cfg (feature = "have_pgtk")]
+unsafe fn map_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let f: *mut frame = pgtk_any_window_to_frame ((*event).any.window);   // C 5575
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5576
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5578
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 5579
+  inev.ie.arg = Qnil ();                                                // C 5580
+
+  if !f.is_null ()                                                      // C 5582
+    {
+      let iconified: bool = FRAME_ICONIFIED_P (f);                      // C 5584
+
+      /* Check if fullscreen was specified before we where mapped the
+	 first time, i.e. from the command line.  */
+      if (*FRAME_X_OUTPUT! (f)).has_been_visible == 0                  // C 5588
+	{ set_fullscreen_state (f); }                                   // C 5589
+
+      if !iconified                                                     // C 5591
+	{
+	  /* The `z-group' is reset every time a frame becomes
+	     invisible.  Handle this here.  */
+	  if FRAME_Z_GROUP (f) == z_group_above                         // C 5595
+	    { pgtk_set_z_group (f, Qabove (), Qnil ()); }               // C 5596
+	  else if FRAME_Z_GROUP (f) == z_group_below                    // C 5597
+	    { pgtk_set_z_group (f, Qbelow (), Qnil ()); }               // C 5598
+	}
+
+      SET_FRAME_VISIBLE! (f, 1);                                        // C 5601
+      SET_FRAME_ICONIFIED (f, false as c_int);                          // C 5602
+      (*FRAME_X_OUTPUT! (f)).has_been_visible = 1;                      // C 5603
+
+      if iconified                                                      // C 5605
+	{
+	  input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);   // C 5607
+	  XSETFRAME! (inev.ie.frame_or_window, f);                      // C 5608
+	}
+    }
+
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 5612
+    { evq_enqueue (&raw mut inev); }                                    // C 5613
+  return false as gboolean;                                             // C 5614
+}
+
+/// C 5617-5690: `static gboolean window_state_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - `static`, address taken at C 6858 (in the remainder), so a plain `unsafe fn` until
+/// that slice.  `event->window_state` is the union member this slice's mirror round adds (C reads
+/// `window` and `new_window_state`), `new_state` is `GdkWindowState` with the twelve `GDK_WINDOW_STATE_*`
+/// flags that round declares as placeholders, and `store_frame_param` is this unit's own C 120
+/// declaration (line 230); C 5649-5666's eighteen-line Wayland comment is carried verbatim.
+#[cfg (feature = "have_pgtk")]
+unsafe fn window_state_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let f: *mut frame = pgtk_any_window_to_frame ((*event).window_state.window);   // C 5622
+  let mut new_state: GdkWindowState;                                    // C 5623
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5624
+
+  new_state = (*event).window_state.new_window_state;                   // C 5626
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5628
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 5629
+  inev.ie.arg = Qnil ();                                                // C 5630
+
+  if new_state & GDK_WINDOW_STATE_FULLSCREEN != 0                       // C 5632
+    { store_frame_param (f, Qfullscreen (), Qfullboth ()); }            // C 5633
+  else if new_state & GDK_WINDOW_STATE_MAXIMIZED != 0                   // C 5634
+    { store_frame_param (f, Qfullscreen (), Qmaximized ()); }           // C 5635
+  else if (new_state & GDK_WINDOW_STATE_TOP_TILED) != 0                 // C 5636
+	   && (new_state & GDK_WINDOW_STATE_BOTTOM_TILED) != 0          // C 5637
+	   && (new_state & GDK_WINDOW_STATE_TOP_RESIZABLE) == 0         // C 5638
+	   && (new_state & GDK_WINDOW_STATE_BOTTOM_RESIZABLE) == 0      // C 5639
+    { store_frame_param (f, Qfullscreen (), Qfullheight ()); }          // C 5640
+  else if (new_state & GDK_WINDOW_STATE_LEFT_TILED) != 0                // C 5641
+	   && (new_state & GDK_WINDOW_STATE_RIGHT_TILED) != 0           // C 5642
+	   && (new_state & GDK_WINDOW_STATE_LEFT_RESIZABLE) == 0        // C 5643
+	   && (new_state & GDK_WINDOW_STATE_RIGHT_RESIZABLE) == 0       // C 5644
+    { store_frame_param (f, Qfullscreen (), Qfullwidth ()); }           // C 5645
+  else
+    { store_frame_param (f, Qfullscreen (), Qnil ()); }                 // C 5647
+
+  /* The Wayland protocol provides no way for the client to know
+     whether or not one of its toplevels has actually been
+     deiconified.  It only provides a request for clients to iconify a
+     toplevel, without even the ability to determine whether or not
+     the iconification request was rejected by the display server.
+
+     GDK computes the iconified state by sending a window state event
+     containing only GDK_WINDOW_STATE_ICONIFIED immediately after
+     gtk_window_iconify is called.  That is error-prone if the request
+     to iconify the frame was rejected by the display server, but is
+     not the main problem here, as Wayland compositors only rarely
+     reject such requests.  GDK also assumes that it can clear the
+     iconified state upon receiving the next toplevel configure event
+     from the display server.  Unfortunately, such events can be sent
+     by Wayland compositors while the frame is iconified, and may also
+     not be sent upon deiconification.  So, no matter what Emacs does,
+     the iconification state of a frame is likely to be wrong under
+     one situation or another.  */
+
+  if new_state & GDK_WINDOW_STATE_ICONIFIED != 0                        // C 5668
+    {
+      SET_FRAME_ICONIFIED (f, true as c_int);                           // C 5670
+      SET_FRAME_VISIBLE! (f, false);                                    // C 5671
+    }
+  else
+    {
+      (*FRAME_X_OUTPUT! (f)).has_been_visible = 1;                      // C 5675
+      input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);      // C 5676
+      XSETFRAME! (inev.ie.frame_or_window, f);                          // C 5677
+      SET_FRAME_ICONIFIED (f, false as c_int);                          // C 5678
+      SET_FRAME_VISIBLE! (f, true);                                     // C 5679
+    }
+
+  if new_state & GDK_WINDOW_STATE_STICKY != 0                           // C 5682
+    { store_frame_param (f, Qsticky (), Qt ()); }                       // C 5683
+  else
+    { store_frame_param (f, Qsticky (), Qnil ()); }                     // C 5685
+
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 5687
+    { evq_enqueue (&raw mut inev); }                                    // C 5688
+  return false as gboolean;                                             // C 5689
+}
+
+/// C 5692-5712: `static gboolean delete_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - `static`, address taken at C 6862 (in the remainder), so a plain `unsafe fn` until
+/// that slice; `event->any` is the union member already carried and `DELETE_WINDOW_EVENT` is
+/// `include/termhooks.rs`'s.
+#[cfg (feature = "have_pgtk")]
+unsafe fn delete_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let f: *mut frame = pgtk_any_window_to_frame ((*event).any.window);   // C 5696
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5697
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5699
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 5700
+  inev.ie.arg = Qnil ();                                                // C 5701
+
+  if !f.is_null ()                                                      // C 5703
+    {
+      input_event_bits! (kind, &raw mut inev.ie, DELETE_WINDOW_EVENT);  // C 5705
+      XSETFRAME! (inev.ie.frame_or_window, f);                          // C 5706
+    }
+
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 5709
+    { evq_enqueue (&raw mut inev); }                                    // C 5710
+  return true as gboolean;                                              // C 5711
+}
