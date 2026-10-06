@@ -662,6 +662,16 @@ pub struct x_display_info
   pub xcb_connection: *mut xcb_connection_t,   // C: xcb_connection_t *xcb_connection;
   #[cfg (feature = "use_xcb")]
   pub xcb_visual: *mut xcb_visualtype_t,   // C: xcb_visualtype_t *xcb_visual;
+  /* C 847-888: `#ifdef HAVE_XDBE`'s `supports_xdbe` (C 847) and `#ifdef HAVE_XINPUT2`'s block.
+     The two members `x_error_handler` reads stand at C's own position - C 851's `supports_xi2`
+     and C 858's `xi2_opcode`, with C 855's `xi2_version` between them still owed; so is the rest
+     of the block (C 861's `num_devices`, C 865's `devices`, C 868/873/880's `pending_keystroke_*`
+     and C 885's `client_pointer_device`), named in `docs/ports/xterm.md` as this mirror's owed
+     run, not as absent C text.  */
+  #[cfg (feature = "have_xinput2")]
+  pub supports_xi2: bool,   // C 851: `bool supports_xi2;`
+  #[cfg (feature = "have_xinput2")]
+  pub xi2_opcode: c_int,   // C 858: `int xi2_opcode;`
   /* C 941-950: the screen's dimensions, as last seen in a ConfigureNotify.  */
   /* C 911-915: `#ifdef HAVE_XSYNC` - whether the XSync extension is present, and its
      version.  */

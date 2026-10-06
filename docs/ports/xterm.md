@@ -19,7 +19,7 @@
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
-9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.
+9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.  Slice 15 (C 26994-27126, Decision 27) moves it to **159**: three functions retire, the two token rows the first reading brought are closed by `docs/ports/macro-body-notes.tsv` rows, and the invented-export row slice 14 left behind is gone.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -260,9 +260,9 @@
 - [x] x_clear_errors  (line 26680)
 - [x] x_try_restore_frame  (line 26729, static)
 - [x] x_connection_closed  (line 26744, static)
-- [ ] x_error_handler  (line 27000, static)
-- [ ] x_error_quitter  (line 27082, static)
-- [ ] x_io_error_quitter  (line 27115, static)
+- [x] x_error_handler  (line 27000, static)
+- [x] x_error_quitter  (line 27082, static)
+- [x] x_io_error_quitter  (line 27115, static)
 - [ ] x_new_font  (line 27137, static)
 - [ ] x_calc_absolute_position  (line 27497, static)
 - [ ] x_set_offset  (line 27590, static)
@@ -1874,6 +1874,40 @@ expressions (Decision 25).
   (PORTING.md 2.2, the C 1960 `'retry_drag_window` idiom this file already uses), and
   `dpyinfo->failable_requests` keeps the `.as_mut_ptr ()` decay slice 13's reading established.
 
+### 27. Slice 15 (C 26994-27126): the first-level error handler, and five shapes it fixes
+
+* **C 851/858's two members were in the wrong record.**  `supports_xi2` and `xi2_opcode` belong to
+  `struct x_display_info` (C 851/858, the `#ifdef HAVE_XINPUT2` run that follows C 847's
+  `supports_xdbe`), and the first draft put their rows in `x_output`, because C's `x_output`
+  carries an `XIEventMask *xi_masks` of its own (C 1353) and the two names sit next to it.  The
+  reading that told them apart is the probe's own `E0609 no field supports_xi2 on type
+  x_display_info`: the compiler named the record the *use site* hands over.  They now stand in
+  `x_display_info` at C's own position, after the `use_xcb` pair (C 841-844), and the mirror's
+  comment names the members of that run still owed (`supports_xdbe` C 847, `xi2_version` C 855,
+  `num_devices` C 861, `devices` C 865, the three `pending_keystroke_*` C 868-880 and
+  `client_pointer_device` C 885).
+* **C's integer promotions are written out at each comparison.**  `event->error_code` and
+  `event->minor_code` are `unsigned char` fields while `dpyinfo->xi2_opcode` is `int`, so C
+  compares after the usual arithmetic conversions: the port writes `BadMatch as c_uchar` /
+  `X_SetInputFocus as c_uchar` against the byte fields (C 27007-27009) and
+  `(*event).request_code as c_int` against the `int` one (C 27059 - the `E0308 expected u8, found
+  i32` that reading produced is exactly the widening C hides).
+* **C 869-881's three request codes are macros and are invoked, not read** (`X_XIGrabDevice! () as
+  c_uchar`, C 27060-27062): the first draft wrote the bare name and the arm answered `E0423 cannot
+  find value X_XIGrabDevice`.
+* **A `static` C function carries no `#[unsafe(no_mangle)]`.**  Slice 14's `x_connection_closed`
+  had one although C 26743 spells the definition `static`; `--check` reads it as an invented
+  exported symbol (`fn x_connection_closed carries #[unsafe(no_mangle)] but the reference does not
+  define a non-static function of that name`), and the row is removed here (PORTING.md 0.2's rule
+  for internal linkage - `static` is neither `pub` nor exported).
+* **The four X11 names are use-site measurements** (P-72 rule 4, the `src/xselect.rs` 136-138
+  precedent): `BadWindow`/`BadMatch`/`BadName` are X.h 353/358/373 and `X_SetInputFocus` is
+  Xproto.h 2063, each read on this machine's xorgproto 2025.1 and each carrying its citation.  The
+  owed move is `include/xlib.rs`'s `x11_constants` module - the home `docs/ports/xselect.md`'s Owed
+  11 already names for its own copy of this surface - and that move should carry a re-measurement of
+  `xselect.rs` 136's `<X11/Xproto.h> 110: #define BadWindow 3L`, which this machine's `Xproto.h`
+  does not define (it names no `Bad*` code at all; `X.h` 353 is where `BadWindow` lives).
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3261,3 +3295,49 @@ compiles the plain-X11 arm (`have_x_windows`, no `use_cairo`, no `have_xrender`,
 is carried text that **no configuration in this tree has compiled**.  `build-tu` proves parsing;
 the probe's numbers are unresolved names, not behaviour; and nothing here is device, GUI or
 end-to-end evidence for any of the functions this slice lands.
+
+
+### Slice 15's readings (C 26994-27126), as landed and measured (2026-10-06)
+
+**What it lands.**  C 26994's prototype for `x_error_quitter` (carried as the comment it is:
+Rust has no prototypes, and the definition keeps C's position), `x_error_handler`
+(C 26999-27073, the first-level handler - the `USE_GTK && HAVE_GTK3` early-out, the
+`x_request_can_fail` arm with its `memmove` compaction of `dpyinfo->failable_requests`, the
+`x_handle_selection_error` arm and the XI2 arm), `x_error_quitter` (C 27081-27107, `NO_INLINE`,
+`buf`/`buf1` and the message that reaches `x_connection_closed`) and `x_io_error_quitter`
+(C 27114-27126, `NO_INLINE`, the `DisplayString` degradation, C's function-`static` `fmt` and the
+`SAFE_ALLOCA` buffer).  Rust 14,541 -> 14,722 lines.
+
+**What the probes read.**  Three arms, both sides, baseline = HEAD's unit with the *same* mirror
+(this slice changes the mirror, so the baseline takes the new one to keep the delta the unit's
+own): arm A (`have_x_windows`) **564 error-lines / 54 warnings -> 563 / 55**; arm B (A +
+`have_gtk3` + `use_gtk`) **564 / 59 -> 563 / 60**; arm C (A + `have_xinput2`) **592 / 56 -> 591 /
+57**.  Every arm's delta is **-1 `E0425`** (the `XDisplayString` use-site declaration retires the
+row the arm had been carrying; this slice's own three functions are `static` and their callers are
+already in the file) plus **+1 warning** - `value assigned to sa_avail is never read`, the class
+`docs/ports/atimer.md` 106 records: C's `AVAIL_ALLOCA` also updates `sa_avail` and never reads it
+again in a function that allocates once.  No other class moved in any arm.
+
+**Arm reach (P-86 7).**  Injecting `let _: c_int = true;` as the first statement of
+`x_error_handler` moves `E0308` from 13 to 14, anchored at the injected line (`_root.rs:14594`);
+removed, arm A re-measures at 563 error-lines / 55 warnings and the file at 14,722 lines.
+
+**The mirror round (P-87).**  `include/xterm.rs` moves the two rows Decision 27 records from
+`x_output` to `x_display_info`.  Leg one: `tools/check-mirror-dupes.py` **16 duplicate
+declaration(s), 16 ratchet row(s), 0 failure(s)**.  Leg two: `tools/check-all-units.sh` **checked 83
+unit(s), 0 failure(s)** and **checking 83 unit(s), 0 unit failure(s)**.  The named reading is
+another consumer of that mirror, `src/xfns.rs`: probed with `have_x_windows` it reads **6
+error-lines / 9 warnings** before and after, and with `have_x_windows` + `have_xinput2` **7 / 9**
+before and after, the sets diffing empty in both arms.
+
+**What `--check` reads.**  **163 -> 159**: the three `missing function` rows retire, the two token
+rows the first reading brought (`x_error_quitter does not mention 800, int_strlen_bound, xid` and
+`x_io_error_quitter does not mention displaystring`) are closed by
+`docs/ports/macro-body-notes.tsv` rows, and slice 14's invented-export row is removed (Decision
+27).  The line-count row stays (14,722 against C's 33,125, 55.6%).
+
+**Not claimed.**  The frozen configuration compiles none of this file, so all three arms are
+**text** readings of an arm this machine cannot build: no error was trapped, no display was
+opened, no connection was lost and no request serial was read; the remaining `E0425` rows are
+unresolved names, not behaviour.  `x_error_handler`'s address is what C 30791/32358 hand to
+`XSetErrorHandler`, and nothing here has run.

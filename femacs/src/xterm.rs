@@ -14268,7 +14268,6 @@ unsafe extern "C" {
 }
 
 #[cfg (feature = "have_x_windows")]
-#[unsafe(no_mangle)]
 unsafe fn x_connection_closed (dpy: *mut Display, error_message: *const c_char, ioerror: bool)
 {
   use x11_constants::None;
@@ -14538,4 +14537,186 @@ unsafe fn x_connection_closed (dpy: *mut Display, error_message: *const c_char, 
      Xlib's code which will directly call `exit'.  */
   current_display = std::ptr::null_mut ();                              // C 26990
   error (c"%s".as_ptr (), error_msg);                                   // C 26991
+}
+/* C 26994: `static void x_error_quitter (Display *, XErrorEvent *);` - C's prototype for the
+   definition below; Rust has no prototypes and the definition keeps C's position (PORTING.md
+   0.1-12), so the line is this comment.  */
+
+/* This is the first-level handler for X protocol errors.
+   It calls x_error_quitter or x_error_catcher.  */
+
+/* C 26999-27073: `static int x_error_handler (Display *display, XErrorEvent *event)` - a `static`
+   whose **address** goes to `XSetErrorHandler` (C 30791/32358), so it is an `unsafe extern "C" fn`
+   (PORTING.md 1.4).  The `USE_GTK && HAVE_GTK3` arm's two error codes and its request-code test are
+   the measured constants declared at this use site (X.h 353/358/373 and Xproto.h 2063, all four
+   measured on this machine's xorgproto 2025.1); `event->error_code`/`request_code`/`minor_code` are
+   XErrorEvent's `unsigned char` fields, so the comparisons write C's promotion out; C 27027's
+   `memmove (&dpyinfo->failable_requests, …)` and C 27029's pointer arithmetic keep the array decay
+   slice 13's reading established; and C 27027-27029 and C 27038's `x_handle_selection_error` are the
+   use-site rows below (xterm.h 1924, `src/xselect.rs` 1465 defines it).  */
+#[cfg (feature = "have_x_windows")]
+pub const BadWindow: c_int = 3;                                         // C: X.h 353 (measured)
+#[cfg (feature = "have_x_windows")]
+pub const BadMatch: c_int = 8;                                          // C: X.h 358 (measured)
+#[cfg (feature = "have_x_windows")]
+pub const BadName: c_int = 15;                                          // C: X.h 373 (measured)
+#[cfg (feature = "have_x_windows")]
+pub const X_SetInputFocus: c_int = 42;                                  // C: Xproto.h 2063 (measured)
+
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: xterm.h 1924: `extern void x_handle_selection_error (unsigned int, XErrorEvent *);` -
+  /// C 27038's call.
+  pub fn x_handle_selection_error (serial: c_uint, error: *mut XErrorEvent);
+  /// C: Xlib.h 1737: `extern char *XDisplayString (Display *);` - the procedure C's `DisplayString`
+  /// macro (which reads `_XPrivDisplay`) degrades to, the C 2070/unit 1803 spelling.
+  pub fn XDisplayString (display: *mut Display) -> *mut c_char;
+}
+
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" fn x_error_handler (display: *mut Display, event: *mut XErrorEvent) -> c_int
+{
+  let stack: *mut x_error_message_stack;                                // C 27002
+  let dpyinfo: *mut x_display_info;                                     // C 27003
+  let fail: *mut x_failable_request;                                    // C 27004
+  let last: *mut x_failable_request;
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+    if ((*event).error_code == BadMatch as c_uchar                         // C 27007
+	|| (*event).error_code == BadWindow as c_uchar)                    // C 27008
+	&& (*event).request_code == X_SetInputFocus as c_uchar             // C 27009
+      { return 0; }                                                     // C 27010
+  }
+
+  dpyinfo = x_display_info_for_display (display);                       // C 27013
+
+  if !dpyinfo.is_null ()                                                // C 27015
+    {
+      fail = x_request_can_fail (dpyinfo, (*event).serial);              // C 27017
+
+      if !fail.is_null ()                                                // C 27019
+	{
+	  /* Now that this request sequence has been fully handled,
+	     remove it from the list of requests that can fail.  */
+
+	  if (*event).serial == (*fail).end                                 // C 27024
+	    {
+	      last = (*dpyinfo).next_failable_request;                      // C 27026
+	      memmove ((*dpyinfo).failable_requests.as_mut_ptr () as *mut c_void,  // C 27027
+		       fail as *const c_void,
+		       core::mem::size_of::<x_failable_request> () * last.offset_from (fail) as usize);  // C 27028
+	      (*dpyinfo).next_failable_request                              // C 27029-27030
+		= (*dpyinfo).failable_requests.as_mut_ptr ().offset (last.offset_from (fail));
+	    }
+
+	  /* If a selection transfer is the cause of this error,
+	     remove the selection transfer now.  */
+
+	  if (*fail).selection_serial != 0                                  // C 27036
+	    {
+	      x_handle_selection_error ((*fail).selection_serial,            // C 27038
+					event);                             // C 27039
+
+	      /* Clear selection_serial to prevent
+		 x_handle_selection_error from being called again if
+		 any more requests within the protected section cause
+		 errors to be reported.  */
+	      (*fail).selection_serial = 0;                                 // C 27045
+	    }
+
+	  return 0;                                                         // C 27048
+	}
+    }
+
+  /* If we try to ungrab or grab a device that doesn't exist anymore
+     (that happens a lot in xmenu.c), just ignore the error.  */
+
+  #[cfg (feature = "have_xinput2")]
+  {
+    /* Handle errors from some specific XI2 requests here to avoid a
+       sync in handle_one_xevent.  */
+    if !dpyinfo.is_null ()                                              // C 27058
+	&& (*dpyinfo).supports_xi2                                      // C 27058
+	&& (*event).request_code as c_int == (*dpyinfo).xi2_opcode       // C 27059
+	&& ((*event).minor_code == X_XIGrabDevice! () as c_uchar             // C 27060
+	    || (*event).minor_code == X_XIUngrabDevice! () as c_uchar        // C 27061
+	    || (*event).minor_code == X_XIAllowEvents! () as c_uchar)        // C 27062
+      { return 0; }                                                     // C 27063
+  }
+
+  stack = x_find_error_handler (display, event);                        // C 27066
+
+  if !stack.is_null ()                                                  // C 27068
+    { x_error_catcher (display, event, stack); }                        // C 27069
+  else
+    { x_error_quitter (display, event); }                               // C 27071
+  return 0;                                                             // C 27072
+}
+
+/* This is the usual handler for X protocol errors.
+   It kills all frames on the display that we got the error for.
+   If that was the only one, it prints an error message and kills Emacs.  */
+
+/* .gdbinit puts a breakpoint here, so make sure it is not inlined.  */
+
+/// C 27081-27107: `static void NO_INLINE x_error_quitter (Display *display, XErrorEvent *event)` -
+/// a `static` that C only *calls* (C 27071), so a plain `unsafe fn`; C's `NO_INLINE` is an
+/// optimization attribute with no Rust counterpart, spelled `#[inline(never)]` (the
+/// `include/conf_post.rs` 204-208 reading of the name).  `buf1`'s size is C's own constant
+/// expression (`800 + INT_STRLEN_BOUND (int) + INT_STRLEN_BOUND (unsigned long) +
+/// INT_STRLEN_BOUND (XID) + INT_STRLEN_BOUND (int)`), **measured** on this machine as **858**
+/// (`10 + 19 + 19 + 10`); `sizeof (buf)` is `core::mem::size_of_val` (unit 8124's note) and C's
+/// adjacent string literals become one `c"…"` (PORTING.md 0.1-6).  C's bug address is this
+/// repository's own now: the literal carries the value `PACKAGE_BUGREPORT` holds
+/// (`src/emacs.rs` 360, PORTING.md 0.1-19's ninth half).
+#[cfg (feature = "have_x_windows")]
+#[inline(never)]
+unsafe fn x_error_quitter (display: *mut Display, event: *mut XErrorEvent)
+{
+  let mut buf: [c_char; 256] = [0; 256];                                // C 27084: `char buf[256]`
+  let mut buf1: [c_char; 858] = [0; 858];                               // C 27084-27087
+
+  /* Ignore BadName errors.  They can happen because of fonts
+     or colors that are not defined.  */
+
+  if (*event).error_code == BadName as c_uchar                          // C 27092
+    { return; }                                                         // C 27093
+
+  /* Note that there is no real way portable across R3/R4 to get the
+     original error handler.  */
+
+  XGetErrorText (display, (*event).error_code as c_int, buf.as_mut_ptr (),  // C 27098
+		 core::mem::size_of_val (&buf) as c_int);
+  sprintf (buf1.as_mut_ptr (), c"X protocol error: %s on protocol request %d\nSerial no: %lu\nFailing resource ID (if any): 0x%lx\nMinor code: %d\nThis is a bug!  Please report this to https://github.com/liuchong/femacs/issues!\n".as_ptr (),  // C 27099-27103
+	   buf.as_mut_ptr (), (*event).request_code as c_int, (*event).serial,
+	   (*event).resourceid, (*event).minor_code as c_int);           // C 27104
+  x_connection_closed (display, buf1.as_mut_ptr (), false);             // C 27106
+}
+
+
+/* This is the handler for X IO errors, always.
+   It kills all frames on the display that we lost touch with.
+   If that was the only one, it prints an error message and kills Emacs.  */
+
+/// C 27114-27126: `static int NO_INLINE x_io_error_quitter (Display *display)` - a `static` whose
+/// **address** goes to `XSetIOErrorHandler` (C 30792/32359), so an `unsafe extern "C" fn`
+/// (PORTING.md 1.4) with C's `NO_INLINE` spelled `#[inline(never)]`.  C's `DisplayString` macro
+/// dereferences Xlib's private record and degrades to `XDisplayString` (the C 2070/unit 1803
+/// spelling); `fmt` is C's **function-`static`** array and stays in the function (PORTING.md 1.3),
+/// with `sizeof fmt - sizeof "%s"` written `size_of_val (&fmt) - 3` (`"%s"` plus its NUL).
+#[cfg (feature = "have_x_windows")]
+#[inline(never)]
+unsafe extern "C" fn x_io_error_quitter (display: *mut Display) -> c_int
+{
+  let server: *const c_char = XDisplayString (display);                 // C 27117
+  static fmt: &core::ffi::CStr = c"Connection lost to X server '%s'";   // C 27118
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 27119
+  let buf: *mut c_char                                                  // C 27120
+    = SAFE_ALLOCA! (sa_avail, 30 + strlen (server) + 1) as *mut c_char;  // C's `sizeof fmt - sizeof "%s"` is 30
+  sprintf (buf, fmt.as_ptr (), server);                                 // C 27121 (fmt is a `&CStr`)
+  x_connection_closed (display, buf, true);                             // C 27122
+  SAFE_FREE! (sa_count);                                                // C 27123
+
+  return 0;                                                             // C 27125
 }

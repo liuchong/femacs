@@ -1256,8 +1256,8 @@ configuration (see PORTING.md 2.1's setup steps)");
             println!("own voice: the port calls the reference C, not by name")
         }
         Ok(_) => {
-            return fail("a ported comment in this repository's own voice names the reference "
-                        "(PORTING.md 0.1-19)")
+            return fail("a ported comment in this repository's own voice names the reference \
+                         (PORTING.md 0.1-19)")
         }
         Err(e) => return fail(e),
     }
