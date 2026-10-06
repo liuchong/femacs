@@ -19,7 +19,7 @@
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
-9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** and slice 12 (C 26217-26347, Decision 24) to **176**.
+9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** and slice 13 (C 26349-26689, Decision 25) to **165**.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -247,17 +247,17 @@
 - [x] x_find_error_handler  (line 26297, static)
 - [x] x_unwind_errors_to  (line 26317)
 - [x] x_error_catcher  (line 26331, static)
-- [ ] x_catch_errors_with_handler  (line 26373)
-- [ ] x_catch_errors  (line 26390)
-- [ ] x_request_can_fail  (line 26398, static)
-- [ ] x_clean_failable_requests  (line 26421, static)
-- [ ] x_ignore_errors_for_next_request  (line 26464)
-- [ ] x_stop_ignoring_errors  (line 26520)
-- [ ] x_uncatch_errors_after_check  (line 26551)
-- [ ] x_uncatch_errors  (line 26568)
-- [ ] x_check_errors  (line 26614)
-- [ ] x_had_errors_p  (line 26651)
-- [ ] x_clear_errors  (line 26680)
+- [x] x_catch_errors_with_handler  (line 26373)
+- [x] x_catch_errors  (line 26390)
+- [x] x_request_can_fail  (line 26398, static)
+- [x] x_clean_failable_requests  (line 26421, static)
+- [x] x_ignore_errors_for_next_request  (line 26464)
+- [x] x_stop_ignoring_errors  (line 26520)
+- [x] x_uncatch_errors_after_check  (line 26551)
+- [x] x_uncatch_errors  (line 26568)
+- [x] x_check_errors  (line 26614)
+- [x] x_had_errors_p  (line 26651)
+- [x] x_clear_errors  (line 26680)
 - [ ] x_try_restore_frame  (line 26729, static)
 - [ ] x_connection_closed  (line 26744, static)
 - [ ] x_error_handler  (line 27000, static)
@@ -1810,6 +1810,53 @@ Thirty C blocks in the file's order (the `## C line ranges` rows 9786-11915), 27
    `wrapping_sub`, the `haikuterm.rs` 1400-1520 reading of the same code), and the
    `memset (&attrs, 0, sizeof attrs)` shapes (the unit's line 8560 spelling).
 
+### 23. Slice 11 (C 12066-12095): `make_invisible_cursor`, and the two deferrals beside it
+
+Slice 10 ended at C 11915; the next text that needs no bitfield machinery is `make_invisible_cursor`
+(C 12067-12095).  Its four Xlib names (`XCreatePixmapCursor`, the `XColor.flags` bits
+`DoRed`/`DoGreen`/`DoBlue`, `XGetErrorText` before slice 12's mirror round) stand at the use site
+with their headers' lines (P-88 1), and `None` is `include/xlib.rs`'s `x11_constants::None`.
+**Deliberately not in the slice, for measured reasons**: `x_toggle_visible_pointer` (C 12097-12139),
+`xfixes_toggle_visible_pointer` (C 12053-12062) and `XTtoggle_invisible_pointer` (C 12141-12153) all
+store `f->pointer_invisible`, a `frame` `bool_bf` whose shift numbering `include/frame.rs` carries
+for the frozen arm only (`src/androidterm.rs` 214-217 records the same bound), and
+`x_fixes_pointer_blanking_supported` (C 12040-12045) reads `dpyinfo->xfixes_supported_p` /
+`xfixes_major`, which `include/xterm.rs` does not carry.  Their boxes stay unchecked on purpose.
+
+### 24. Slice 12 (C 26217-26347): the error-handling block's first half
+
+The record `x_error_message_stack` (C 26217-26239) with `x_special_error_handler` declared at the
+use site (xterm.h 1748-1749), the `x_error_message` pointer and the **exported**
+`x_error_message_count` (C 26249/26252, PORTING.md 0.2), the four serial comparators (C's
+`unsigned int` wrap written `wrapping_sub`, its widening `as c_ulong`, and the 32-bit truncation of
+64-bit serials written `as c_uint` at the call sites - C 26257-26258 says the functions do that),
+`x_find_error_handler`, `x_unwind_errors_to` and `x_error_catcher` (whose `buf` is zeroed, Deviation
+12).  The block's second half is deferred to slice 13 because it needs the request-serial
+expressions (Decision 25).
+
+### 25. Slice 13 (C 26349-26689): four shapes, one mirror round and two move-backs
+
+* **The request-serial macros are degraded, not re-implemented**: C's `NextRequest` /
+  `LastKnownRequestProcessed` read `_XPrivDisplay`'s `request` / `last_request_read`, the private
+  display record this tree does not carry (the `struct _XDisplay` whose definition lives in
+  `<X11/Xlibint.h>`), so `include/xlib.rs` keeps C's macro names with `XNextRequest` /
+  `XLastKnownRequestProcessed` (Xlib.h 1806/1809) for their bodies - the same degradation class as
+  `DefaultScreenOfDisplay`'s row above, and the same reading obligation: the equivalence is that
+  those procedures return the values the C macros compute.
+* **The `failable_requests` field is an array**: `struct x_display_info` carries
+  `[x_failable_request; N_FAILABLE_REQUESTS]`, so C's pointer decay is written
+  `(*dpyinfo).failable_requests.as_mut_ptr ()` at its six uses, and `next_failable_request` stays the
+  pointer it is in C.
+* **The call sites of a newly defined name are part of the slice**: `x_had_errors_p` returns C's
+  `bool`, so the nineteen earlier `… == 0` / `… != 0` sites become `!x_had_errors_p (…)` /
+  `x_had_errors_p (…)`, and the five `XSync (…, False)` sites pass `0` because the parameter is
+  Xlib's `Bool` (`c_int`).  Both are spellings of C's own truth tests, not behaviour changes.
+* **Two P-90 5 move-backs and one mirror row retired**: `src/xfns.rs` 1954-1955's `XNextRequest`
+  and `src/gtkutil.rs` 258-261's `XSync` retire into `include/xlib.rs` (they were
+  `check-mirror-dupes.py`'s two failures), and `include/xterm.rs`'s `x_error_message_count` row
+  retires because the defining unit is its includer (P-90 7; it was slice 12's one `E0428`, which
+  that slice's class counts did not include - recorded here rather than smoothed over).
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -2878,6 +2925,80 @@ it is a measurement round of its own (P-88 2's clang probe) before those functio
 **Not claimed.**  The frozen configuration compiles none of this file, so this is a **text** reading
 of an arm this machine cannot build: no error was trapped, no display was opened, and the one
 `E0425` row above is an unresolved name, not behaviour.
+
+
+### Slice 13's readings (C 26349-26689), as landed and measured (2026-10-06)
+
+**What it lands.**  The error-handling block's second half: `x_catch_errors_with_handler` (C 26372)
+and `x_catch_errors` (C 26389), `x_request_can_fail` (C 26397), `x_clean_failable_requests` (C 26420),
+`x_ignore_errors_for_next_request` (C 26463) with its C 26474-26482 `HAVE_GTK3` arm,
+`x_stop_ignoring_errors` (C 26519) with its C 26533-26538 one, `x_uncatch_errors_after_check`
+(C 26550), `x_uncatch_errors` (C 26567), `x_check_errors` (C 26613, whose C 26640 `alloca` is the
+port's stack pool, P-05), `x_had_errors_p` (C 26650) and `x_clear_errors` (C 26679) - and C 26691-26702's
+`#if false` block (`x_fully_uncatch_errors`) carried as the comment it is, the C 5127-5156 shape.
+Rust: 13,770 -> **14,188** lines.
+
+**The probe (the lane's command, two arms, both sides).**
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xt13 cargo run -q -p xtask -- probe src/xterm.rs /tmp/xt13/new.o \
+      --crate-type=lib --emit=metadata -C panic=abort --cfg 'feature="have_x_windows"' \
+      [--cfg 'feature="have_gtk3"']
+# arm A (have_x_windows), before -> after:
+#   644 error-lines / 54 warnings   441 E0425  13 E0308 166 E0609 17 E0614 1 E0381 1 E0080 1 E0277
+#   568 error-lines / 54 warnings   366 E0425  13 E0308 166 E0609 17 E0614 1 E0381 1 E0080 1 E0277
+# arm B (have_x_windows + have_gtk3), before -> after:
+#   649 error-lines / 54 warnings   443 E0425  ...
+#   579 error-lines / 54 warnings   374 E0425  ...
+# the whole delta in both arms is E0425 and nothing else: -75 in arm A and -69 in arm B, i.e. the
+# call sites of the eleven functions this slice defines (plus the five `XSync` rows and the two
+# pre-existing `x_had_errors_p`-class rows the same definitions close).  No other class moves and
+# the warning count is unchanged.
+```
+**Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as the first statement of
+`x_catch_errors_with_handler` moves E0308 to 14 anchored at the injected line (`_root.rs:13819`);
+removed, the file re-measured at 14,188 lines.
+
+**The first readings named five fault classes of this slice's own text** (all fixed here; the
+arithmetic above is the reading *after* the fix batch, so slice 12's reading sat inside them):
+⑴ an `E0428` for `x_error_message_count` - **slice 12's own** defect, which that slice's class
+counts did not include: `include/xterm.rs` 1645 declares the object and the unit defines it, so the
+mirror's row is retired with a note (P-90 7; the units that read it, `src/eval.rs` 1835-1836,
+declare it themselves).  ⑵ twenty `E0308`s at **earlier call sites**: `x_had_errors_p` returns
+C's `bool` there, so `… == 0` / `… != 0` become `!x_had_errors_p (…)` and `x_had_errors_p (…)`
+(twelve and seven sites, plus the two in `make_invisible_cursor`); C's `sprintf`-style truth test
+and the port's differ only in spelling.  ⑶ `dpyinfo->failable_requests` is an **array** in the
+record (`[x_failable_request; 128]`, `N_FAILABLE_REQUESTS`), so C's pointer decay is written
+`… .as_mut_ptr ()` at its six uses.  ⑷ `XSync` had no row anywhere (`docs/ports/xterm.md`'s own
+text called it) - it is declared in `include/xlib.rs` now (Xlib.h 3419-3420) and the five call
+sites pass C's `False` as `0` because the parameter is Xlib's `Bool` (`c_int`), which also retires
+the two pre-existing `E0425` rows.  ⑸ seven `variable does not need to be mutable` warnings (six
+here, one carried from slice 11's `pix`), cleared - the warning count is back to its 54.
+
+**The mirror round** (three files): `include/xlib.rs` gains the two **degraded** request-serial
+macros - `NextRequest` and `LastKnownRequestProcessed` keep C's names with `XNextRequest` /
+`XLastKnownRequestProcessed` (Xlib.h 1806/1809) for their bodies, because C's own bodies read the
+private `_XPrivDisplay` record this tree does not carry (the `DefaultScreenOfDisplay` degradation
+class, recorded as Decision 25) - plus `XSync`; `include/gtk.rs` gains
+`gdk_x11_display_error_trap_push`/`_pop_ignored` (the two `HAVE_GTK3` arms' calls); and
+`include/xterm.rs` loses the `x_error_message_count` row (above).  **P-90 5 move-backs in the same
+commit**: `src/xfns.rs` 1954-1955's `XNextRequest` and `src/gtkutil.rs` 258-261's `XSync`
+declarations retire, their mirror rows being the home now.
+**P-87's two legs**: `check-mirror-dupes` **16/16/0** (the move-backs were its two failures:
+`18 duplicate declaration(s), 16 ratchet row(s), 2 failure(s)` before them) and
+`tools/check-all-units.sh` **`checked 83 unit(s), 0 failure(s)`** + **`checking 83 unit(s), 0 unit
+failure(s)`**.  The frozen list holds no X unit, so two named readings carry the mirror's consumers:
+`src/xfns.rs` reads **5 -> 4 previous errors** with the same classes and warnings (the moved row's
+own site), and `src/gtkutil.rs` reads **0 error-lines / 0 warnings on both sides**.
+
+**What `--check` reads.**  `184 -> 176` was slice 12; **this slice goes 176 -> 165**: the eleven
+functions retire as missing items, the two token rows the first reading brought
+(`x_check_errors does not mention alloca, false` and three more `does not mention false` rows) are
+closed by `docs/ports/macro-body-notes.tsv` rows, and the line-count row stays (14,188 against
+C's 33,125, 57.2%).  The six text gates are unchanged.
+
+**Not claimed.**  The frozen configuration compiles none of this file, so both arms are **text**
+readings of an arm this machine cannot build: no error was trapped, no display was opened and no
+request serial was read; the remaining `E0425` rows are unresolved names, not behaviour.
 
 
 ## Owed by the integrator (nothing here is claimed as done)

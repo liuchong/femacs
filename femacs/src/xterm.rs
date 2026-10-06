@@ -1729,7 +1729,7 @@ unsafe fn x_special_window_exists_p (dpyinfo: *mut x_display_info, window: Windo
   x_catch_errors ((*dpyinfo).display);
   XSelectInput ((*dpyinfo).display, window,
 		StructureNotifyMask);
-  rc = x_had_errors_p ((*dpyinfo).display) == 0;
+  rc = !x_had_errors_p ((*dpyinfo).display);
   x_uncatch_errors_after_check ();
 
   return rc;
@@ -1820,7 +1820,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 				   CopyFromParent, CWOverrideRedirect, &raw mut attrs);
 
       /* Handle all errors now.  */
-      XSync (temp_display, false);
+      XSync (temp_display as *mut Display, 0);
 
       /* Some part of the drag window creation process failed, so punt.  Release all
 	 resources too.  */
@@ -1880,7 +1880,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 	  if !tmp_data.is_null ()
 	    { XFree (tmp_data); }
 
-	  if x_had_errors_p ((*dpyinfo).display) != 0
+	  if x_had_errors_p ((*dpyinfo).display)
 	    { drag_window = None as Window; }
 	  x_uncatch_errors ();
 
@@ -1980,7 +1980,7 @@ unsafe fn xm_setup_dnd_targets (dpyinfo: *mut x_display_info,
 				&raw mut actual_type, &raw mut actual_format,
 				&raw mut nitems, &raw mut bytes_remaining,
 				&raw mut tmp_data) == Success) as c_int;
-      had_errors = x_had_errors_p ((*dpyinfo).display) != 0;
+      had_errors = x_had_errors_p ((*dpyinfo).display);
       x_uncatch_errors_after_check ();
 
       /* The drag window is probably invalid, so remove our record of it.  */
@@ -2161,7 +2161,7 @@ unsafe fn xm_setup_dnd_targets (dpyinfo: *mut x_display_info,
 				  (*dpyinfo).Xatom_MOTIF_DRAG_TARGETS,
 				  &raw mut header, recs);
 	  /* Presumably we got a BadAlloc upon writing the targets table.  */
-	  if x_had_errors_p ((*dpyinfo).display) != 0
+	  if x_had_errors_p ((*dpyinfo).display)
 	    { idx = -1; }
 	  x_uncatch_errors_after_check ();
 	}
@@ -2222,7 +2222,7 @@ unsafe fn xm_get_drag_atom_1 (dpyinfo: *mut x_display_info,
 	{
 	  owner = XGetSelectionOwner ((*dpyinfo).display, *atoms.offset (i as isize));
 
-	  if x_had_errors_p ((*dpyinfo).display) == 0
+	  if !x_had_errors_p ((*dpyinfo).display)
 	      && (owner == None as Window
 		  /* If we already own this selection (even if another frame owns it), use it.
 		     There is no way of knowing when ownership was asserted, so it still has to
@@ -2609,7 +2609,7 @@ unsafe fn xm_read_drag_receiver_info (dpyinfo: *mut x_display_info,
 			    &raw mut bytes_remaining,
 			    &raw mut tmp_data) == Success) as c_int;
 
-  if x_had_errors_p ((*dpyinfo).display) != 0
+  if x_had_errors_p ((*dpyinfo).display)
       || actual_format != 8 || nitems < 16 || tmp_data.is_null ()
       || actual_type != (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO
     { rc = 0; }
@@ -3056,7 +3056,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 	x_catch_errors ((*dpyinfo).display);
 	rc = (XGetWindowAttributes ((*dpyinfo).display,
 				    *toplevels.offset (i as isize), &raw mut attrs) != 0
-	      && x_had_errors_p ((*dpyinfo).display) == 0) as c_int;
+	      && !x_had_errors_p ((*dpyinfo).display)) as c_int;
 
 	if rc != 0
 	  {
@@ -3064,7 +3064,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 					 attrs.root, -attrs.border_width,
 					 -attrs.border_width, &raw mut dest_x,
 					 &raw mut dest_y, &raw mut child) != 0
-		  && x_had_errors_p ((*dpyinfo).display) == 0) as c_int;
+		  && !x_had_errors_p ((*dpyinfo).display)) as c_int;
 	  }
 	if rc != 0
 	  {
@@ -3075,7 +3075,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 				       &raw mut r#type, &raw mut format, &raw mut wmstate_items,
 				       &raw mut bytes_after, &raw mut wmstate_data)
 		   == Success)
-		  && x_had_errors_p ((*dpyinfo).display) == 0
+		  && !x_had_errors_p ((*dpyinfo).display)
 		  && !wmstate_data.is_null () && wmstate_items == 2
 		  && format == 32) as c_int;
 	  }
@@ -3085,7 +3085,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 			       0, 4, false, XA_CARDINAL, &raw mut r#type,
 			       &raw mut format, &raw mut extent_items, &raw mut bytes_after,
 			       &raw mut extent_data) == Success
-	    && x_had_errors_p ((*dpyinfo).display) == 0
+	    && !x_had_errors_p ((*dpyinfo).display)
 	    && !extent_data.is_null () && extent_items >= 4 && format == 32
 	  {
 	    frame_extents[0] = *(extent_data as *mut c_ulong).offset (0) as c_int;
@@ -3821,7 +3821,7 @@ unsafe fn x_dnd_get_wm_state_and_proto (dpyinfo: *mut x_display_info, window: Wi
 			      &raw mut r#type, &raw mut format, &raw mut nitems,
 			      &raw mut bytes_after, &raw mut data)
 	  == Success
-	  && x_had_errors_p ((*dpyinfo).display) == 0
+	  && !x_had_errors_p ((*dpyinfo).display)
 	  && !data.is_null () && nitems == 2 && format == 32) as c_int;
     x_uncatch_errors ();
 
@@ -4269,7 +4269,7 @@ unsafe fn x_dnd_get_target_window (dpyinfo: *mut x_display_info, root_x: c_int,
 						(*dpyinfo).root_window);
 		XUngrabServer ((*dpyinfo).display);
 
-		if x_had_errors_p ((*dpyinfo).display) == 0
+		if !x_had_errors_p ((*dpyinfo).display)
 		  {
 		    XGetWindowAttributes ((*dpyinfo).display, overlay_window,
 					  &raw mut attrs);
@@ -4335,7 +4335,7 @@ unsafe fn x_dnd_get_target_window (dpyinfo: *mut x_display_info, root_x: c_int,
 				  child_return, root_x, root_y, &raw mut dest_x_return,
 				  &raw mut dest_y_return, &raw mut child_return);
 
-      if x_had_errors_p ((*dpyinfo).display) != 0 || rc == 0
+      if x_had_errors_p ((*dpyinfo).display) || rc == 0
 	{
 	  x_uncatch_errors_after_check ();
 	  break;
@@ -4474,7 +4474,7 @@ unsafe fn x_dnd_get_target_window (dpyinfo: *mut x_display_info, root_x: c_int,
 					    (*dpyinfo).root_window);
 	    XUngrabServer ((*dpyinfo).display);
 
-	    if x_had_errors_p ((*dpyinfo).display) == 0
+	    if !x_had_errors_p ((*dpyinfo).display)
 	      {
 		XGetWindowAttributes ((*dpyinfo).display, overlay_window, &raw mut attrs);
 
@@ -4561,7 +4561,7 @@ unsafe fn x_dnd_get_window_proxy (dpyinfo: *mut x_display_info, wdesc: Window) -
 			   &raw mut actual_size, &raw mut bytes_remaining,
 			   &raw mut tmp_data);
 
-  if x_had_errors_p ((*dpyinfo).display) == 0
+  if !x_had_errors_p ((*dpyinfo).display)
       && rc == Success
       && !tmp_data.is_null ()
       && actual_type == XA_WINDOW
@@ -4573,7 +4573,7 @@ unsafe fn x_dnd_get_window_proxy (dpyinfo: *mut x_display_info, wdesc: Window) -
       /* Verify the proxy window exists.  */
       XGetWindowAttributes ((*dpyinfo).display, proxy, &raw mut attrs);
 
-      if x_had_errors_p ((*dpyinfo).display) != 0
+      if x_had_errors_p ((*dpyinfo).display)
 	{ proxy = None as Window; }
     }
 
@@ -4609,7 +4609,7 @@ unsafe fn x_dnd_get_window_proto (dpyinfo: *mut x_display_info, wdesc: Window) -
 			   0, 1, false, XA_ATOM, &raw mut actual, &raw mut format,
 			   &raw mut n, &raw mut left,
 			   &raw mut tmp_data);
-  had_errors = x_had_errors_p ((*dpyinfo).display) != 0;
+  had_errors = x_had_errors_p ((*dpyinfo).display);
   x_uncatch_errors_after_check ();
 
   if had_errors || rc != Success || actual != XA_ATOM || format != 32 || n < 1
@@ -7552,7 +7552,7 @@ unsafe fn x_if_event (dpy: *mut Display, event_return: *mut XEvent,
   loop
     {
       /* Get events into the queue.  */
-      XSync (dpy, false);
+      XSync (dpy, 0);
 
       /* Look for an event again.  */
       if XCheckIfEvent (dpy, event_return, predicate, arg) != 0
@@ -13577,7 +13577,7 @@ unsafe fn make_invisible_cursor (dpyinfo: *mut x_display_info) -> Cursor
 
   let dpy: *mut Display = (*dpyinfo).display;                           // C 12070
   static no_data: [c_char; 1] = [0];                                    // C 12071
-  let mut pix: Pixmap;                                                  // C 12072
+  let pix: Pixmap;                                                      // C 12072
   let mut col: XColor = core::mem::zeroed ();                           // C 12073
   let mut c: Cursor;                                                    // C 12074
 
@@ -13586,7 +13586,7 @@ unsafe fn make_invisible_cursor (dpyinfo: *mut x_display_info) -> Cursor
   x_catch_errors (dpy);                                                 // C 12078
   pix = XCreateBitmapFromData (dpy, (*dpyinfo).root_window,             // C 12079
 			       no_data.as_ptr (), 1, 1);
-  if x_had_errors_p (dpy) == 0 && pix != None as Pixmap                 // C 12080
+  if !x_had_errors_p (dpy) && pix != None as Pixmap                 // C 12080
     {
       let pixc: Cursor;                                                 // C 12082
       col.pixel = 0;                                                    // C 12083
@@ -13596,7 +13596,7 @@ unsafe fn make_invisible_cursor (dpyinfo: *mut x_display_info) -> Cursor
       col.flags = (DoRed | DoGreen | DoBlue) as c_char;                 // C 12085
       pixc = XCreatePixmapCursor (dpy, pix, pix, &raw mut col,          // C 12086
 				  &raw mut col, 0, 0);
-      if x_had_errors_p (dpy) == 0 && pixc != None as Cursor            // C 12087
+      if !x_had_errors_p (dpy) && pixc != None as Cursor            // C 12087
 	{ c = pixc; }                                                   // C 12088
       XFreePixmap (dpy, pix);                                           // C 12089
     }
@@ -13768,3 +13768,421 @@ unsafe extern "C" fn x_error_catcher (display: *mut Display, event: *mut XErrorE
 				   (*stack).handler_data);              // C 26346
     }
 }
+/* Begin trapping X errors for display DPY.
+
+   After calling this function, X protocol errors generated on DPY no
+   longer cause Emacs to exit; instead, they are recorded in an error
+   handler pushed onto the stack `x_error_message'.
+
+   Calling x_check_errors signals an Emacs error if an X error has
+   occurred since the last call to x_catch_errors or x_check_errors.
+
+   Calling x_uncatch_errors resumes the normal error handling,
+   skipping an XSync if the last request made is known to have been
+   processed.  Calling x_uncatch_errors_after_check is similar, but
+   always skips an XSync to the server, and should be used only
+   immediately after x_had_errors_p or x_check_errors, or when it is
+   known that no requests have been made since the last x_catch_errors
+   call for DPY.
+
+   There is no need to use this mechanism for ignoring errors from
+   single asynchronous requests, such as sending a ClientMessage to a
+   window that might no longer exist.  Use
+   x_ignore_errors_for_next_request (paired with
+   x_stop_ignoring_errors) instead.  */
+
+/// C 26372-26387: `void x_catch_errors_with_handler (Display *dpy, x_special_error_handler
+/// handler, void *handler_data)` - a **non-`static`** C definition (`extern "C"` +
+/// `#[unsafe(no_mangle)]`, PORTING.md 0.2).  `xzalloc`'s `*mut c_void` needs C's own cast back to
+/// the record, and C 26383 advances the display's request serial through the mirror's
+/// `XNextRequest` (the exported procedure `NextRequest` degrades to, that mirror's Slice-13 note).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_catch_errors_with_handler (dpy: *mut Display,
+						      handler: x_special_error_handler,
+						      handler_data: *mut c_void)
+{
+  let data: *mut x_error_message_stack;                                 // C 26376
+
+  data = xzalloc (core::mem::size_of::<x_error_message_stack> ()) as *mut x_error_message_stack;  // C 26378
+  (*data).dpy = dpy;                                                    // C 26379
+  (*data).handler = handler;                                            // C 26380
+  (*data).handler_data = handler_data;                                  // C 26381
+  (*data).prev = x_error_message;                                       // C 26382
+  (*data).first_request = XNextRequest (dpy);                           // C 26383
+  x_error_message = data;                                               // C 26384
+
+  x_error_message_count += 1;                                           // C 26386
+}
+
+/// C 26389-26393: `void x_catch_errors (Display *dpy)` - a **non-`static`** C definition; C's
+/// `NULL, NULL` arguments are the port's `None` and `null_mut ()`.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_catch_errors (dpy: *mut Display)
+{
+  x_catch_errors_with_handler (dpy, None, std::ptr::null_mut ());       // C 26392
+}
+
+/* Return if errors for REQUEST should be ignored even if there is no
+   error handler applied.  */
+/// C 26397-26416: `static struct x_failable_request *x_request_can_fail (struct x_display_info
+/// *dpyinfo, unsigned long request)` - C's `for` over a pointer range is the port's
+/// init/`while`/step trio (the file's spelling), its `!failable_requests->end` is the port's
+/// `== 0`, and the serial arguments truncate as the comparators' parameters do (`as c_uint`,
+/// C 26257-26258's rule).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_request_can_fail (dpyinfo: *mut x_display_info, request: c_ulong)
+  -> *mut x_failable_request
+{
+  let mut failable_requests: *mut x_failable_request;                   // C 26401
+
+  failable_requests = (*dpyinfo).failable_requests.as_mut_ptr ();       // C 26403
+  while failable_requests < (*dpyinfo).next_failable_request             // C 26404
+    {
+      if x_is_serial_more_than_or_equal_to (request as c_uint,          // C 26407
+					    (*failable_requests).start as c_uint)
+	  && ((*failable_requests).end == 0                             // C 26409
+	      || x_is_serial_less_than_or_equal_to (request as c_uint,  // C 26410
+						    (*failable_requests).end as c_uint))
+	{ return failable_requests; }                                   // C 26412
+
+      failable_requests = failable_requests.offset (1);                 // C 26405
+    }
+
+  return std::ptr::null_mut ();                                         // C 26415
+}
+
+/* Remove outdated request serials from
+   dpyinfo->failable_requests.  */
+/// C 26420-26443: `static void x_clean_failable_requests (struct x_display_info *dpyinfo)` -
+/// C's two-pointer `for` is the port's trio, `LastKnownRequestProcessed` is the mirror's macro
+/// over the exported procedure, `memmove` is libc's own binding (PORTING.md P-93's rule) and
+/// C 26441-26442's pointer arithmetic is written out with `offset`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_clean_failable_requests (dpyinfo: *mut x_display_info)
+{
+  let mut first: *mut x_failable_request;                               // C 26423
+  let last: *mut x_failable_request;
+
+  last = (*dpyinfo).next_failable_request;                              // C 26425
+
+  first = (*dpyinfo).failable_requests.as_mut_ptr ();                   // C 26427
+  while first < last                                                   // C 26427
+    {
+      if x_is_serial_more_than ((*first).start as c_uint,               // C 26429
+				LastKnownRequestProcessed! ((*dpyinfo).display) as c_uint)  // C 26430
+	  || (*first).end == 0                                          // C 26431
+	  || x_is_serial_more_than ((*first).end as c_uint,             // C 26432
+				    LastKnownRequestProcessed! ((*dpyinfo).display) as c_uint)  // C 26433
+	{ break; }                                                      // C 26434
+
+      first = first.offset (1);                                         // C 26427
+    }
+
+  if first != last                                                      // C 26437
+    {
+      memmove ((*dpyinfo).failable_requests.as_mut_ptr () as *mut c_void,  // C 26438
+	       first as *const c_void,
+	       core::mem::size_of::<x_failable_request> () * last.offset_from (first) as usize);  // C 26439
+    }
+
+  (*dpyinfo).next_failable_request                                      // C 26441-26442
+    = (*dpyinfo).failable_requests.as_mut_ptr ().offset (last.offset_from (first));
+}
+
+/* Protect a section of X requests.
+
+   Ignore errors generated by X requests made from now until
+   `x_stop_ignoring_errors'.  Each call must be paired with a call to
+   `x_stop_ignoring_errors', and recursive calls inside the protected
+   section are not allowed.
+
+   The advantage over x_catch_errors followed by
+   x_uncatch_errors_after_check is that this function does not sync to
+   catch errors if requests were made.  It should be used instead of
+   those two functions for catching errors around requests that do not
+   require a reply.
+
+   If SELECTION_SERIAL is an arbitrary number greater than zero,
+   x_select_handle_selection_error is called with the specified number
+   after any errors within the protected section are received to
+   delete the selection request that encountered errors.  */
+
+/// C 26463-26517: `void x_ignore_errors_for_next_request (struct x_display_info *dpyinfo,
+/// unsigned int selection_serial)` - a **non-`static`** C definition, with C 26474-26482's
+/// `HAVE_GTK3` arm (`have_gtk3`) and C 26489/26510's two `emacs_abort ()` guards.  C 26486's
+/// `(dpyinfo->next_failable_request - 1)->end` is the port's `offset (-1)` plus the field read
+/// (the dereference written out), and C 26492's `N_FAILABLE_REQUESTS` comes from the record's
+/// mirror.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_ignore_errors_for_next_request (dpyinfo: *mut x_display_info,
+							   selection_serial: c_uint)
+{
+  let mut request: *mut x_failable_request;                             // C 26467
+  let max: *mut x_failable_request;
+  let next_request: c_ulong;
+
+  /* This code is not reentrant, so be sure nothing calls it
+     recursively in response to input.  */
+  block_input ();                                                       // C 26472
+
+  #[cfg (feature = "have_gtk3")]
+  {
+    /* GTK 3 tends to override our own error handler inside certain
+       callbacks, which this can be called from.  Instead of trying to
+       restore our own, add a trap for the following requests with
+       GDK as well.  */
+    let gdpy: *mut GdkDisplay = gdk_x11_lookup_xdisplay ((*dpyinfo).display);  // C 26479
+    if !gdpy.is_null ()                                                 // C 26480
+      { gdk_x11_display_error_trap_push (gdpy); }                       // C 26481
+  }
+
+  if (*dpyinfo).next_failable_request                                   // C 26484-26485
+       != (*dpyinfo).failable_requests.as_mut_ptr ()
+      && (*(*dpyinfo).next_failable_request.offset (-1)).end == 0       // C 26486
+    /* A new sequence should never be started before an old one
+       finishes.  Use `x_catch_errors' to nest error handlers.  */
+    { emacs_abort (); }                                                 // C 26489
+
+  request = (*dpyinfo).next_failable_request;                           // C 26491
+  max = (*dpyinfo).failable_requests.as_mut_ptr ().offset (N_FAILABLE_REQUESTS as isize);  // C 26492
+  next_request = XNextRequest ((*dpyinfo).display);                     // C 26493
+
+  if request >= max                                                     // C 26495
+    {
+      /* There is no point in making this extra sync if all requests
+	 are known to have been fully processed.  */
+      if LastKnownRequestProcessed! ((*dpyinfo).display)                // C 26499
+	   != next_request.wrapping_sub (1)                             // C 26500
+	{ XSync ((*dpyinfo).display, 0); }                          // C 26501
+
+      x_clean_failable_requests (dpyinfo);                              // C 26503
+      request = (*dpyinfo).next_failable_request;                       // C 26504
+    }
+
+  if request >= max                                                     // C 26507
+    /* A request should always be made immediately after calling this
+       function.  */
+    { emacs_abort (); }                                                 // C 26510
+
+  (*request).start = next_request;                                      // C 26512
+  (*request).end = 0;                                                   // C 26513
+  (*request).selection_serial = selection_serial;                       // C 26514
+
+  (*dpyinfo).next_failable_request = request.offset (1);                // C 26516
+}
+
+/// C 26519-26541: `void x_stop_ignoring_errors (struct x_display_info *dpyinfo)` - a
+/// **non-`static`** C definition with its own C 26533-26538 `HAVE_GTK3` arm.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_stop_ignoring_errors (dpyinfo: *mut x_display_info)
+{
+  let range: *mut x_failable_request;                                   // C 26522
+
+  range = (*dpyinfo).next_failable_request.offset (-1);                 // C 26524
+  (*range).end = XNextRequest ((*dpyinfo).display).wrapping_sub (1);    // C 26525
+
+  /* Abort if no request was made since
+     `x_ignore_errors_for_next_request'.  */
+
+  if x_is_serial_less_than ((*range).end as c_uint,                     // C 26530
+			    (*range).start as c_uint)
+    { emacs_abort (); }                                                 // C 26531
+
+  #[cfg (feature = "have_gtk3")]
+  {
+    let gdpy: *mut GdkDisplay = gdk_x11_lookup_xdisplay ((*dpyinfo).display);  // C 26534
+
+    if !gdpy.is_null ()                                                 // C 26536
+      { gdk_x11_display_error_trap_pop_ignored (gdpy); }                // C 26537
+  }
+
+  unblock_input ();                                                     // C 26540
+}
+
+/* Undo the last x_catch_errors call.
+   DPY should be the display that was passed to x_catch_errors.
+
+   This version should be used only if the immediately preceding
+   X-protocol-related thing was x_check_errors or x_had_error_p, both
+   of which issue XSync calls, so we don't need to re-sync here.  */
+
+/// C 26550-26563: `void x_uncatch_errors_after_check (void)` - a **non-`static`** C definition.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_uncatch_errors_after_check ()
+{
+  let tmp: *mut x_error_message_stack;                                  // C 26553
+
+  block_input ();                                                       // C 26555
+  tmp = x_error_message;                                                // C 26556
+  x_error_message = (*x_error_message).prev;                            // C 26557
+  x_error_message_count -= 1;                                           // C 26558
+  if !(*tmp).string.is_null ()                                          // C 26559
+    { xfree ((*tmp).string as *mut c_void); }                           // C 26560
+  xfree (tmp as *mut c_void);                                           // C 26561
+  unblock_input ();                                                     // C 26562
+}
+
+/* Undo the last x_catch_errors call.  */
+
+/// C 26568-26607: `void x_uncatch_errors (void)` - a **non-`static`** C definition; C 26577's
+/// `== NULL` is the port's `is_null ()` and C 26586's `dpyinfo != 0` its inverse, with the
+/// `XSync`/`NextRequest`/`XNextRequest` rows the mirror now carries.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_uncatch_errors ()
+{
+  let tmp: *mut x_error_message_stack;                                  // C 26570
+  let dpyinfo: *mut x_display_info;
+
+  /* In rare situations when running Emacs run in daemon mode,
+     shutting down an emacsclient via delete-frame can cause
+     x_uncatch_errors to be called when x_error_message is set to
+     NULL.  */
+  if x_error_message.is_null ()                                         // C 26577
+    { return; }                                                         // C 26578
+
+  block_input ();                                                       // C 26580
+
+  dpyinfo = x_display_info_for_display ((*x_error_message).dpy);         // C 26582
+
+  /* The display may have been closed before this function is called.
+     Check if it is still open before calling XSync.  */
+  if !dpyinfo.is_null ()                                                // C 26586
+      /* There is no point in making this extra sync if all requests
+	 are known to have been fully processed.  */
+      && LastKnownRequestProcessed! ((*x_error_message).dpy)            // C 26589
+	   != XNextRequest ((*x_error_message).dpy).wrapping_sub (1)     // C 26590
+      /* Likewise if no request was made since the trap was
+	 installed.  */
+      && NextRequest! ((*x_error_message).dpy)                          // C 26593
+	   > (*x_error_message).first_request                            // C 26594
+    {
+      XSync ((*x_error_message).dpy, 0);                            // C 26596
+      x_clean_failable_requests (dpyinfo);                              // C 26597
+    }
+
+  tmp = x_error_message;                                                // C 26600
+  x_error_message = (*x_error_message).prev;                            // C 26601
+  x_error_message_count -= 1;                                           // C 26602
+  if !(*tmp).string.is_null ()                                          // C 26603
+    { xfree ((*tmp).string as *mut c_void); }                           // C 26604
+  xfree (tmp as *mut c_void);                                           // C 26605
+  unblock_input ();                                                     // C 26606
+}
+
+/* If any X protocol errors have arrived since the last call to
+   x_catch_errors or x_check_errors, signal an Emacs error using
+   sprintf (a buffer, FORMAT, the x error message text) as the text.  */
+
+/// C 26613-26645: `void x_check_errors (Display *dpy, const char *format)` - a **non-`static`**
+/// C definition.  C 26640's `alloca` is the port's stack pool (`sa_stack_alloc`, PORTING.md
+/// P-05) and C 26641's `strcpy` libc's own binding (P-93's rule); `format` is a C string the
+/// caller passes, so it stays `*const c_char`.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_check_errors (dpy: *mut Display, format: *const c_char)
+{
+  let dpyinfo: *mut x_display_info;                                     // C 26616
+  let string: *mut c_char;
+
+  /* This shouldn't happen, since x_check_errors should be called
+     immediately inside an x_catch_errors block.  */
+  if dpy != (*x_error_message).dpy                                      // C 26621
+    { emacs_abort (); }                                                 // C 26622
+
+  /* There is no point in making this extra sync if all requests
+     are known to have been fully processed.  */
+  if LastKnownRequestProcessed! (dpy)                                   // C 26626
+       != XNextRequest (dpy).wrapping_sub (1)                           // C 26627
+      && NextRequest! (dpy)                                             // C 26628
+	   > (*x_error_message).first_request                           // C 26629
+    { XSync (dpy, 0); }                                             // C 26630
+
+  dpyinfo = x_display_info_for_display (dpy);                           // C 26632
+
+  /* Clean the array of failable requests, since a sync happened.  */
+  if !dpyinfo.is_null ()                                                // C 26635
+    { x_clean_failable_requests (dpyinfo); }                            // C 26636
+
+  if !(*x_error_message).string.is_null ()                              // C 26638
+    {
+      string = sa_stack_alloc (strlen ((*x_error_message).string) + 1) as *mut c_char;  // C 26640
+      strcpy (string, (*x_error_message).string);                       // C 26641
+
+      error (format, string);                                           // C 26643
+    }
+}
+
+/* Nonzero if any X protocol errors were generated since the last call
+   to x_catch_errors on DPY.  */
+
+/// C 26650-26674: `bool x_had_errors_p (Display *dpy)` - a **non-`static`** C definition; C
+/// 26673's `!!x_error_message->string` is the port's null test.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_had_errors_p (dpy: *mut Display) -> bool
+{
+  let dpyinfo: *mut x_display_info;                                     // C 26653
+
+  /* This shouldn't happen, since x_check_errors should be called
+     immediately inside an x_catch_errors block.  */
+  if dpy != (*x_error_message).dpy                                      // C 26657
+    { emacs_abort (); }                                                 // C 26658
+
+  /* Make sure to catch any errors incurred so far.  */
+  if LastKnownRequestProcessed! (dpy)                                   // C 26661
+       != XNextRequest (dpy).wrapping_sub (1)                           // C 26662
+      && NextRequest! (dpy)                                             // C 26663
+	   > (*x_error_message).first_request                           // C 26664
+    { XSync (dpy, 0); }                                             // C 26665
+
+  dpyinfo = x_display_info_for_display (dpy);                           // C 26667
+
+  /* Clean the array of failable requests, since a sync happened.  */
+  if !dpyinfo.is_null ()                                                // C 26670
+    { x_clean_failable_requests (dpyinfo); }                            // C 26671
+
+  return !(*x_error_message).string.is_null ();                         // C 26673
+}
+
+/* Forget about any errors we have had, since we did x_catch_errors on
+   DPY.  */
+
+/// C 26679-26689: `void x_clear_errors (Display *dpy)` - a **non-`static`** C definition; C
+/// 26688's `NULL` store is the port's `null_mut ()` and `xfree` takes C's `void *` (P-93 3).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_clear_errors (dpy: *mut Display)
+{
+  /* This shouldn't happen, since x_check_errors should be called
+     immediately inside an x_catch_errors block.  */
+  if dpy != (*x_error_message).dpy                                      // C 26684
+    { emacs_abort (); }                                                 // C 26685
+
+  xfree ((*x_error_message).string as *mut c_void);                     // C 26687
+  (*x_error_message).string = std::ptr::null_mut ();                    // C 26688
+}
+
+/* C 26691-26702: `#if false` - dead text in every configuration.  C keeps `x_fully_uncatch_errors`
+   and the comment above it inside the false branch ("See comment in unwind_to_catch why calling
+   this is a bad idea.  --lorentey"), so the port carries the block as the comment it is (the
+   C 5127-5156 `#if false` shape this file's gate table records).
+
+     #if false
+           /* See comment in unwind_to_catch why calling this is a bad
+            * idea.  --lorentey   */
+     /* Close off all unclosed x_catch_errors calls.  */
+
+     void
+     x_fully_uncatch_errors (void)
+     {
+       while (x_error_message)
+         x_uncatch_errors ();
+     }
+     #endif
+*/

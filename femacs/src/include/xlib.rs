@@ -331,6 +331,39 @@ macro_rules! XrmStringToClassList {
   ($str:expr, $c_class:expr) => { XrmStringToQuarkList ($str, $c_class) };
 }
 
+/* The two request-serial macros of `<X11/Xlib.h>`, and the same **degradation** class as
+   `DefaultScreenOfDisplay` above: C's `NextRequest` is `((_XPrivDisplay)(dpy))->request + 1` and
+   C's `LastKnownRequestProcessed` is `((_XPrivDisplay)(dpy))->last_request_read`, i.e. both read
+   fields of Xlib's private display record, which no mirror here carries.  Xlib's own entry points
+   compute the same two values - `extern unsigned long XNextRequest (Display *);` (Xlib.h 1806) and
+   `extern unsigned long XLastKnownRequestProcessed (Display *);` (Xlib.h 1809) - so the port keeps
+   C's macro name with that call for its body (the reading is recorded in `docs/ports/xterm.md`'s
+   Slice 13).  The two rows are also the sixtysixth slice's P-90 5 move-back: `src/xfns.rs` carried
+   `XNextRequest` and `src/gtkutil.rs` `XSync` until this round.  */
+
+/// Xlib.h 89-90's neighbours: `#define NextRequest(dpy) (((_XPrivDisplay)(dpy))->request + 1)`
+#[cfg (feature = "have_x_windows")]
+macro_rules! NextRequest {
+  ($dpy:expr) => { XNextRequest ($dpy) };
+}
+
+/// `#define LastKnownRequestProcessed(dpy) ((_XPrivDisplay)(dpy))->last_request_read`
+#[cfg (feature = "have_x_windows")]
+macro_rules! LastKnownRequestProcessed {
+  ($dpy:expr) => { XLastKnownRequestProcessed ($dpy) };
+}
+
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// The procedure behind `NextRequest` above; C 26383/26493/26525 call the macro and
+  /// `src/xfns.rs` 2226 the procedure directly.
+  /// C: Xlib.h 1806: `extern unsigned long XNextRequest (Display *);`
+  pub fn XNextRequest (dpy: *mut Display) -> c_ulong;
+  /// The procedure behind `LastKnownRequestProcessed` above; C 26430/26433/26499 call the macro.
+  /// C: Xlib.h 1809: `extern unsigned long XLastKnownRequestProcessed (Display *);`
+  pub fn XLastKnownRequestProcessed (dpy: *mut Display) -> c_ulong;
+}
+
 /// `src/xrdb.c` 372 defines this one in the unit rather than in a header (`#define XrmStringType
 /// "String"`), and it is kept here with the rest of the Xrm surface so the name has one home:
 /// `src/xrdb.rs` will take it from this mirror instead of declaring a second copy (PORTING.md
@@ -1250,6 +1283,10 @@ unsafe extern "C" {
   /// call (the mirror grows by the names a ported arm reads, the file note's rule).
   pub fn XGetErrorText (display: *mut Display, code: c_int, buffer_return: *mut c_char,
                         length: c_int) -> c_int;
+  /// C: Xlib.h 3419-3420: `extern int XSync (Display *, Bool);` - C 26501/26596/26630/26665's
+  /// calls and the two earlier ones in this unit's own text; the second parameter is Xlib's
+  /// `Bool` (`c_int`, Xlib.h 202's typedef), so those call sites pass C's `False` as `0`.
+  pub fn XSync (display: *mut Display, discard: Bool) -> c_int;
 }
 
 /// C: Xlib.h 4170's macro form: `#define XDestroyImage(ximg) ((ximg)->f.destroy_image (ximg))`

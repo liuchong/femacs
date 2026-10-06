@@ -1951,8 +1951,9 @@ unsafe extern "C" {
   pub fn check_uinteger_max (x: Lisp_Object, max: uintmax_t) -> uintmax_t;
   /// C: gtkutil.h 183: `extern void xg_set_background_color (struct frame *f, unsigned long bg);`
   pub fn xg_set_background_color (f: *mut frame, bg: c_ulong);
-  /// C: Xlib.h 1806: `extern unsigned long XNextRequest (Display *);`
-  pub fn XNextRequest (display: *mut Display) -> c_ulong;
+  /* C: Xlib.h 1806's `extern unsigned long XNextRequest (Display *);` moved to
+     `include/xlib.rs` in the sixty-sixth `xterm` slice (P-90 5's move-back): xfns.rs reaches that
+     mirror, and the row's second copy was one of `check-mirror-dupes.py`'s two failures.  */
   /// C: Xlib.h 1839-1842: `extern int XScreenNumberOfScreen (Screen *);`
   pub fn XScreenNumberOfScreen (screen: *mut Screen) -> c_int;
   /// C: Xlib.h 93: `#define BlackPixel(dpy, scr) (ScreenOfDisplay(dpy,scr)->black_pixel)`

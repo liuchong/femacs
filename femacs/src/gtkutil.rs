@@ -255,10 +255,9 @@ unsafe extern "C" {
   /// C 1736: `XVisualIDFromVisual (FRAME_X_VISUAL (f))`
   /// C: Xlib.h 1724-1726: `extern VisualID XVisualIDFromVisual (Visual *);`
   pub fn XVisualIDFromVisual (visual: *mut Visual) -> VisualID;
-  /// C 2176: `XSync (FRAME_X_DISPLAY (f1), False);`
-  /// C: Xlib.h 3419-3421: `extern int XSync (Display *, Bool);` (`False` is Xlib.h 81's `0` and
-  /// `include/xlib.rs` 68 already carries it).
-  pub fn XSync (display: *mut Display, discard: c_int) -> c_int;
+  /* C 2176's `XSync (FRAME_X_DISPLAY (f1), False);` declaration moved to `include/xlib.rs` in the
+     sixty-sixth `xterm` slice (P-90 5's move-back): gtkutil.rs reaches that mirror and C's `False`
+     is its `0` (Xlib.h 81), which is what the mirror's `Bool` parameter takes.  */
 }
 
 /* ----------------------------------------------------------------------------------------------

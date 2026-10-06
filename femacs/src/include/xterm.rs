@@ -1641,7 +1641,10 @@ unsafe extern "C" {
   pub static mut x_dnd_waiting_for_finish: bool;
   pub static mut x_dnd_frame: *mut frame;
   pub static mut x_dnd_finish_frame: *mut frame;
-  pub static mut x_error_message_count: c_int;
+  /* C: xterm.h's own `extern int x_error_message_count;` is **not** repeated here: its definition
+     is this unit's (C 26252, `src/xterm.rs`), and a mirror may not own a name its includer defines
+     (P-90 7) - the two readings before the sixty-sixth `xterm` slice each carried one `E0428` for
+     it.  The units that read it (`src/eval.rs` 1835-1836) declare it themselves.  */
 }
 
 /// C 2035: `#define FRAME_X_EMBEDDED_P(f) (FRAME_X_OUTPUT (f)->explicit_parent != 0)` - "Is the

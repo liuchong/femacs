@@ -1682,6 +1682,12 @@ unsafe extern "C" {
 unsafe extern "C" {
   /// C 207/307/321/373: `gdk_x11_lookup_xdisplay (FRAME_X_DISPLAY (f))` / `… (dpy)`
   /// C: gdk/gdkx.h: `GdkDisplay *gdk_x11_lookup_xdisplay (Display *xdisplay);`
+  /// C 26479/26534: `gdk_x11_lookup_xdisplay (dpyinfo->display)` — the `HAVE_GTK3` arms of
+  /// `x_ignore_errors_for_next_request`/`x_stop_ignoring_errors` pair the lookup with these two.
+  /// C: gdk/gdkx.h: `void gdk_x11_display_error_trap_push (GdkDisplay *display);` /
+  /// `gboolean gdk_x11_display_error_trap_pop_ignored (GdkDisplay *display);`
+  pub fn gdk_x11_display_error_trap_push (display: *mut GdkDisplay);
+  pub fn gdk_x11_display_error_trap_pop_ignored (display: *mut GdkDisplay) -> gboolean;
   #[cfg (feature = "use_gtk")]
   pub fn gdk_x11_lookup_xdisplay (xdisplay: *mut Display) -> *mut GdkDisplay;
   /// C 260: `GDK_DISPLAY_XDISPLAY (gdpy)`
