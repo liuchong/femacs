@@ -18829,3 +18829,122 @@ pub const XA_FONT: c_ulong = 18;
 pub const XA_INTEGER: c_ulong = 19;
 #[cfg (feature = "have_x_windows")]
 pub const XA_STRING: c_ulong = 31;
+
+/* Get the name of ATOM, but try not to make a request to the X
+   server.  Whether or not a request to the X server happened is
+   placed in NEED_SYNC.  */
+
+/// C 29983-30074: `char *x_get_atom_name (struct x_display_info *dpyinfo, Atom atom, bool
+/// *need_sync)` - non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe
+/// extern "C" fn` (PORTING.md 0.2/1.4).  `buffer` is C 29997's `alloca`, which is the port's stack
+/// pool (P-05, the `xm_find_targets_table_idx` shape above); the ten `case`s are the atoms slice 39
+/// declared; `xstrdup` is `include/lisp.rs` 4205's declaration, and `XGetAtomName`/`XFree` are the
+/// bare Xlib class (`## Owed`).  `motif_drag_atom_name` is the mirror's `[c_char; 33]`, so C's
+/// decay is `.as_ptr ()` (Decision 52).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_get_atom_name (dpyinfo: *mut x_display_info, atom: Atom,
+					   need_sync: *mut bool) -> *mut c_char
+{
+  use crate::x11_constants::{XA_ATOM, XA_CARDINAL, XA_PRIMARY, XA_WINDOW};
+
+  let mut dpyinfo_pointer: *mut c_char;                                 // C 29987
+  let mut name: *mut c_char;
+  let mut value: *mut c_char;
+  let mut buffer: *mut c_char;
+  let mut i: c_int;                                                     // C 29988
+  let mut ref_atom: Atom;                                               // C 29989
+
+  dpyinfo_pointer = dpyinfo as *mut c_char;                             // C 29991
+  value = std::ptr::null_mut ();                                        // C 29992
+
+  if !need_sync.is_null ()                                              // C 29994
+    { *need_sync = false; }                                             // C 29995
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  buffer = SAFE_ALLOCA! (sa_avail, 45 + INT_STRLEN_BOUND! (c_int)) as *mut c_char;  // C 29997
+
+  match atom                                                           // C 29999
+    {
+      XA_PRIMARY =>                                                     // C 30001
+	{ return xstrdup (c"PRIMARY".as_ptr ()); }                      // C 30002
+
+      XA_SECONDARY =>                                                   // C 30004
+	{ return xstrdup (c"SECONDARY".as_ptr ()); }                    // C 30005
+
+      XA_INTEGER =>                                                     // C 30007
+	{ return xstrdup (c"INTEGER".as_ptr ()); }                      // C 30008
+
+      XA_ATOM =>                                                        // C 30010
+	{ return xstrdup (c"ATOM".as_ptr ()); }                         // C 30011
+
+      XA_CARDINAL =>                                                    // C 30013
+	{ return xstrdup (c"CARDINAL".as_ptr ()); }                     // C 30014
+
+      XA_WINDOW =>                                                      // C 30016
+	{ return xstrdup (c"WINDOW".as_ptr ()); }                       // C 30017
+
+      XA_DRAWABLE =>                                                    // C 30019
+	{ return xstrdup (c"DRAWABLE".as_ptr ()); }                     // C 30020
+
+      XA_BITMAP =>                                                      // C 30022
+	{ return xstrdup (c"BITMAP".as_ptr ()); }                       // C 30023
+
+      XA_COLORMAP =>                                                    // C 30025
+	{ return xstrdup (c"COLORMAP".as_ptr ()); }                     // C 30026
+
+      XA_FONT =>                                                        // C 30028
+	{ return xstrdup (c"FONT".as_ptr ()); }                         // C 30029
+
+      _ =>                                                              // C 30031
+	{
+	  if (*dpyinfo).motif_drag_atom != 0                            // C 30032
+	      && atom == (*dpyinfo).motif_drag_atom                     // C 30033
+	    {
+	      return xstrdup ((*dpyinfo).motif_drag_atom_name.as_ptr ());  // C 30034
+	    }
+
+	  if atom == (*dpyinfo).Xatom_xsettings_sel                     // C 30036
+	    {
+	      sprintf (buffer, c"_XSETTINGS_S%d".as_ptr (),             // C 30038-30039
+		       XScreenNumberOfScreen ((*dpyinfo).screen));
+	      return xstrdup (buffer);                                  // C 30040
+	    }
+
+	  if atom == (*dpyinfo).Xatom_NET_WM_CM_Sn                      // C 30043
+	    {
+	      sprintf (buffer, c"_NET_WM_CM_S%d".as_ptr (),             // C 30045-30046
+		       XScreenNumberOfScreen ((*dpyinfo).screen));
+	      return xstrdup (buffer);                                  // C 30047
+	    }
+
+	  i = 0;                                                        // C 30050
+	  loop
+	    {
+	      if !(i < countof! (x_atom_refs) as c_int)                 // C 30050
+		{ break; }
+
+	      ref_atom = *(dpyinfo_pointer.add (x_atom_refs[i as usize].offset as usize)  // C 30052-30053
+			   as *mut Atom);
+
+	      if atom == ref_atom                                       // C 30055
+		{ return xstrdup (x_atom_refs[i as usize].name); }      // C 30056
+
+	      i += 1;                                                   // C 30050, the `for`'s step
+	    }
+
+	  name = XGetAtomName ((*dpyinfo).display, atom);               // C 30059
+
+	  if !need_sync.is_null ()                                      // C 30061
+	    { *need_sync = true; }                                      // C 30062
+
+	  if !name.is_null ()                                           // C 30064
+	    {
+	      value = xstrdup (name);                                   // C 30066
+	      XFree (name as *mut c_void);                              // C 30067
+	    }
+	}
+    }
+
+  return value;                                                         // C 30073
+}
