@@ -27749,5 +27749,100 @@ unsafe fn x_dnd_compute_tip_xy (root_x: *mut c_int, root_y: *mut c_int, attribut
 	{ *root_x = min_x; }                                                  // C 18186
 }
 
-/* C 18189-18190's signature opens `x_dnd_update_tooltip_position` (C 18189-18226), the next
-   definition.  */
+/// C 18189-18226: `static void x_dnd_update_tooltip_position (int root_x, int root_y)` - C's
+/// `static`, so a plain `unsafe fn`, and a `--check` item this slice retires.  Five shapes: the
+/// three early exits are C's own `return`s, C's two by-value parameters are `mut` because C 18211
+/// passes their addresses on, `tip_window != None` states the conversion the file uses
+/// (`None as Window`, `src/xterm.rs` 1769+), `FIXNUMP` is the mirror's predicate
+/// (`include/bignum.rs`, the C 7483 shape), and `XMoveWindow` is this file's own use-site
+/// declaration (C 15570-15574).  `x_dnd_compute_tip_xy` is slice 92's definition, so that call
+/// resolves; the four `x_dnd_*` objects and `tip_window`/`tip_dx`/`tip_dy` are file-scope ones.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_update_tooltip_position (mut root_x: c_int, mut root_y: c_int)
+{
+  use crate::x11_constants::None;                                       /* C 18208's `None` */
+  let tip_f: *mut frame;                                               // C 18192
+
+  if !x_dnd_in_progress || !x_dnd_update_tooltip                       // C 18194
+    { return; }                                                        // C 18195
+
+  if !FRAMEP (tip_frame)                                               // C 18197
+    { return; }                                                        // C 18198
+
+  tip_f = XFRAME (tip_frame);                                          // C 18200
+
+  if !FRAME_LIVE_P (tip_f)                                             // C 18202
+      || !FRAME_VISIBLE_P (tip_f)                                      // C 18203
+      || (FRAME_X_DISPLAY! (tip_f)                                     // C 18204
+	  != FRAME_X_DISPLAY! (x_dnd_frame))                           // C 18205
+    { return; }                                                        // C 18206
+
+  if tip_window != None as Window                                      // C 18208
+      && FIXNUMP (tip_dx) && FIXNUMP (tip_dy)                          // C 18209
+    {
+      x_dnd_compute_tip_xy (&raw mut root_x, &raw mut root_y,          // C 18211-18212
+			    x_dnd_monitors);
+
+      if x_dnd_last_tooltip_valid                                      // C 18214
+	  && root_x == x_dnd_last_tooltip_x                            // C 18215
+	  && root_y == x_dnd_last_tooltip_y                            // C 18216
+	{ return; }                                                    // C 18217
+
+      x_dnd_last_tooltip_x = root_x;                                   // C 18219
+      x_dnd_last_tooltip_y = root_y;                                   // C 18220
+      x_dnd_last_tooltip_valid = true;                                 // C 18221
+
+      XMoveWindow (FRAME_X_DISPLAY! (x_dnd_frame),                     // C 18223
+		   tip_window, root_x, root_y);                        // C 18224
+    }
+}
+
+/// C 18228-18259: `static void x_dnd_update_tooltip_now (void)` - C's `static` and a `(void)`
+/// parameter list, so a plain `unsafe fn`; a `--check` item this slice retires.  Four shapes: C's
+/// `#ifndef HAVE_XINPUT2` / `#else` pair is carried as two cfg'd blocks that both assign `rc`, the
+/// bare `XQueryPointer` (which this file calls three times in `x_query_pointer_1`'s arms and no
+/// mirror declares) and slice 65's `x_query_pointer_1` with C's `x_dnd_pointer_device`; `rc` is
+/// C's `Bool`; and the seven output locals are C's uninitialised declarations handed over by
+/// address (`&raw mut`) and are zeroed per Deviation 12 - measured: the arm without `have_xinput2`
+/// reads no `E0381` only because its `XQueryPointer` is unresolved (an unresolved call silences its
+/// arguments, slice 85's reading), while the `have_xinput2` arm reads all seven.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_update_tooltip_now ()
+{
+  let mut root_x: c_int = 0;                                               // C 18231
+  let mut root_y: c_int = 0;
+  let mut root: Window = 0;                                                // C 18232
+  let mut child: Window = 0;
+  let mut win_x: c_int = 0;                                                // C 18233
+  let mut win_y: c_int = 0;
+  let mut mask: c_uint = 0;                                                // C 18234
+  let rc: Bool;                                                        // C 18235
+  let dpyinfo: *mut x_display_info;                                    // C 18236
+
+  if !x_dnd_in_progress || !x_dnd_update_tooltip                       // C 18238
+    { return; }                                                        // C 18239
+
+  dpyinfo = FRAME_DISPLAY_INFO! (x_dnd_frame);                         // C 18241
+
+#[cfg (not (feature = "have_xinput2"))]
+  {
+  rc = XQueryPointer ((*dpyinfo).display,                              // C 18244
+		      (*dpyinfo).root_window,                          // C 18245
+		      &raw mut root, &raw mut child, &raw mut root_x,  // C 18246
+		      &raw mut root_y, &raw mut win_x, &raw mut win_y, // C 18247
+		      &raw mut mask);                                  // C 18248
+  }
+#[cfg (feature = "have_xinput2")]
+  {
+  rc = x_query_pointer_1 (dpyinfo, x_dnd_pointer_device,               // C 18250-18251
+			  (*dpyinfo).root_window,                      // C 18252
+			  &raw mut root, &raw mut child, &raw mut root_x,
+			  &raw mut root_y, &raw mut win_x, &raw mut win_y, // C 18253
+			  &raw mut mask);                              // C 18254
+  }
+
+  if rc != 0                                                           // C 18257
+    { x_dnd_update_tooltip_position (root_x, root_y); }                // C 18258
+}
+
+/* C 18261-18262's comment opens `x_dnd_update_state` (C 18263-...), the next definition.  */

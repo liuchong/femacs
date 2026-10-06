@@ -129,6 +129,14 @@ UGX 899 -> **901**, AE 818 -> **820**, AI 794 -> **796**, AIU 831 -> **833**, AI
 AX 800 -> **802** and AG3 835 -> **837**, with **no warning moved in any of the twelve arms**.  The
 first writing's fourteen `XFIXNUM` reads mixed `EMACS_INT` into C's `int` arithmetic (14 `E0308` and
 12 `E0277` rows across the arms); C's conversions are stated as `as c_int` (the C 11761 reading).
+  Slice 93 (C 18189-18259, Decision 106) goes **24 -> 22**: `x_dnd_update_tooltip_position` and
+`x_dnd_update_tooltip_now` both retire as missing functions, and the slice's readings are a
+*half-split*: C 18243's `#ifndef HAVE_XINPUT2` picks the bare `XQueryPointer` (the counted class,
+one row an arm) in the ten arms without that feature, while the two `have_xinput2` arms call slice
+65's `x_query_pointer_1` and read **0/0** - A 788 -> **789**, U 817 -> **818**, UT 803 -> **804**,
+UM 804 -> **805**, UG 798 -> **799**, AE 820 -> **821**, AI 796 -> **797**, AIU 833 -> **834**, AX
+802 -> **803**, AG3 837 -> **838**, and UGX 901 -> **901**, AIUX 940 -> **940**.  No warning moved in
+any of the twelve arms.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -329,8 +337,8 @@ first writing's fourteen `XFIXNUM` reads mixed `EMACS_INT` into C's `int` arithm
 - [x] x_flush_dirty_back_buffer_on  (line 18043, static)
 - [x] mouse_or_wdesc_frame  (line 18095, static)
 - [x] x_dnd_compute_tip_xy  (line 18119, static)
-- [ ] x_dnd_update_tooltip_position  (line 18190, static)
-- [ ] x_dnd_update_tooltip_now  (line 18229, static)
+- [x] x_dnd_update_tooltip_position  (line 18190, static)
+- [x] x_dnd_update_tooltip_now  (line 18229, static)
 - [ ] x_dnd_update_state  (line 18264, static)
 - [ ] x_display_pixel_height  (line 18482)
 - [ ] x_display_pixel_width  (line 18491)
@@ -4390,6 +4398,33 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **25 -> 24**: the function retires as a missing item and no token row
   arrives; the line-count row moves to **27,753** against C's 33,125 (16.2% drift, was 27,664 /
   16.5%).
+
+### 106. Slice 93 (C 18189-18259): the two tooltip functions, and the arm split C's `#ifndef` makes
+
+* **Two `--check` items, and no other rustc footprint than one call.**  `x_dnd_update_tooltip_position`
+  (C 18189-18226) is called only from C 18258 (inside the second function, which this slice also
+  lands), and `x_dnd_update_tooltip_now` (C 18228-18259) from C 18674/21408/25544 (all inside
+  still-unported text), so nothing retires beyond the two checklist rows and **24 -> 22** is the
+  reading.  The first function is otherwise silent: `x_dnd_compute_tip_xy` is slice 92's definition
+  (so that call resolves), `XMoveWindow` is the file's own use-site declaration (C 15570-15574), and
+  `FIXNUMP`/`FRAMEP`/`FRAME_LIVE_P`/`FRAME_VISIBLE_P` are the mirrors'.
+* **The split is the slice's reading.**  C 18243's `#ifndef HAVE_XINPUT2` picks `XQueryPointer` - a
+  bare Xlib name no mirror declares, the file's counted class - in the ten arms that do not turn
+  `have_xinput2` on, and picks slice 65's `x_query_pointer_1` definition in the two that do.  So the
+  same slice reads **+1 row in ten arms and 0/0 in two**, and that asymmetry is the measurement: it is
+  the first time a `#ifndef` of this file's DND region has been read on both sides.
+* **Two defects the arms caught, both fixed.**  (1) `None` in that function was the *prelude's*
+  (`E0605 non-primitive cast: Option<_> as u64`): the mirror's `None` needs the per-function
+  `use crate::x11_constants::None;` - the slice-82 lesson, read again here.  (2) The seven output
+  locals of `x_dnd_update_tooltip_now` are handed over by address, and **only the `have_xinput2`
+  arms read the seven `E0381 used binding ... isn't initialized` rows**: the ten others read none
+  because their callee is unresolved, and an unresolved call silences its arguments (slice 85's
+  reading, measured again).  Zeroing them per Deviation 12 is what makes the column uniform - and the
+  same class is why `tip_f`'s `mut` was dropped (a `mut` on a never-reassigned binding is one
+  `unused_mut` warning per arm; that keyword is the port's own, not C's - slice 91's reading).
+* **What `--check` reads.**  **24 -> 22**: both functions retire as missing items and no token row
+  arrives; the line-count row moves to **27,848** against C's 33,125 (15.9% drift, was 27,753 /
+  16.2%).
 
 ## Evidence
 
@@ -8641,3 +8676,50 @@ against C's 33,125 (16.2% drift, was 27,664 / 16.5%).
 **Not claimed.**  The frozen configuration compiles none of this file: no monitor geometry was
 searched, no tooltip position was clamped and no Lisp list was walked; the readings above are compile
 readings of text this machine cannot build.
+
+### Slice 93's readings (C 18189-18259), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s93/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s93/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI + `use_gtk`,
+AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`.  Both sides
+were measured on this revision.
+
+| arm | HEAD's unit (slice 92 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 788 / 72 | **789 / 72** | **+1** |
+| U `+use_toolkit_scroll_bars` | 817 / 72 | **818 / 72** | **+1** |
+| UT `U +use_x_toolkit` | 803 / 71 | **804 / 71** | **+1** |
+| UM `UT +use_motif` | 804 / 71 | **805 / 71** | **+1** |
+| UG `U +use_gtk` | 798 / 74 | **799 / 74** | **+1** |
+| **UGX** `UG +have_xinput2` | 901 / 76 | **901 / 76** | 0 |
+| AE `A +enable_checking` | 820 / 71 | **821 / 71** | **+1** |
+| AI `A +have_x_i18n` | 796 / 73 | **797 / 73** | **+1** |
+| AIU `AI +use_gtk` | 833 / 74 | **834 / 74** | **+1** |
+| **AIUX** `AIU +have_xinput2` | 940 / 76 | **940 / 76** | 0 |
+| AX `A +have_xdbe` | 802 / 72 | **803 / 72** | **+1** |
+| AG3 `A +use_gtk +have_gtk3` | 837 / 73 | **838 / 73** | **+1** |
+
+**Additions, by name** (diffed as full `error[E..]: <message>` head lines with counts, both
+directions): the ten arms without `have_xinput2` add `cannot find function, tuple struct or tuple
+variant XQueryPointer` x1 and retire nothing; UGX and AIUX read **no diff at all** - their callee is
+`x_query_pointer_1`, this unit's own definition.
+
+**Warning sets are identical to the baselines' in all twelve arms.**  The first writing's three
+defects read, in order: the prelude's `None` (`E0605` in every arm), the seven `E0381` rows in the
+two `have_xinput2` arms only (the unresolved-callee silence, slice 85's reading), and one
+`unused_mut` per arm for `tip_f` (dropped - the keyword is the port's own).
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical sets.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18200's `tip_f = XFRAME (tip_frame);`
+moves **A 789 -> 790** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:27787:18`;
+removing it returns A to the table.
+
+**What `--check` reads.**  **24 -> 22** as Decision 106 4 says, with the line-count row at **27,848**
+against C's 33,125 (15.9% drift, was 27,753 / 16.2%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no pointer was queried, no
+tooltip was moved and no DND state was advanced; the readings above are compile readings of text this
+machine cannot build.
