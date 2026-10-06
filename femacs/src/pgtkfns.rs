@@ -490,7 +490,7 @@ unsafe extern "C" {
 }
 
 /* ----------------------------------------------------------------------------------------------
-   Emacs' own entry points and macros this slice calls, from headers whose mirrors do not carry them
+   C's own entry points and macros this slice calls, from headers whose mirrors do not carry them
    (P-72 rule 4; each keeps C's prototype and the header line it was read from, the `src/xfns.rs`
    296-323 shape).  The `pgtkterm.h` block above is the same device for the PGTK header.
    ---------------------------------------------------------------------------------------------- */

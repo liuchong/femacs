@@ -65,7 +65,7 @@ macro_rules! NativeRectangle {
   () => { haiku_rect };
 }
 
-/* Convert between the Emacs and native rectangle types.  */
+/* Convert between the C and native rectangle types.  */
 // haikugui.h 47-58: C's bodies are comma expressions; Rust has no comma operator, so the port
 // keeps the four assignments as a block.  The macros are used as statements (the value of C's
 // comma expression is the last assignment, which no caller reads).

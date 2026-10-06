@@ -2,7 +2,7 @@
 //
 // The public interface of the MIT XMenu library: the error/selection constants, the window
 // hierarchy records (`XMWindow`, `XMPane`, `XMSelect`), the menu record `XMenu`, its style and
-// mode enums, the two callback typedefs and the entry points Emacs's X menu code calls.  The
+// mode enums, the two callback typedefs and the entry points C's X menu code calls.  The
 // frozen configuration builds no window system - `USE_X_TOOLKIT`, `HAVE_X11` and
 // `HAVE_X_WINDOWS` are all `undef` in docs/baseline/config/darwin-arm64.macros.tsv - so no
 // translation unit includes it and the mirror is never compiled; the text gate

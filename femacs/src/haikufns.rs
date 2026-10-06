@@ -114,7 +114,7 @@ unsafe extern "C" {
 }
 
 /* ------------------------------------------------------------------------------------------
-   Emacs' own entry points this file calls, from headers whose mirrors do not carry them yet
+   C's own entry points this file calls, from headers whose mirrors do not carry them yet
    (P-72 rule 4; each keeps C's prototype and the header line it was read from - the
    `src/pgtkfns.rs` 296-323 / `src/xfns.rs` shape).  The mirrors `include/frame.rs`,
    `include/dispextern.rs` and `include/window.rs` are WIP slices; these are the declarations

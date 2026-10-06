@@ -65,7 +65,7 @@ include!("include/haikuterm.rs");             // C 28: `#include "haikuterm.h"`
 include!("include/haiku_support.rs");         // C 29: `#include "haiku_support.h"`
 
 /* ------------------------------------------------------------------------------------------
-   C 21-29's includes reach Emacs' own entry points, but several of their mirrors do not carry
+   C 21-29's includes reach C's own entry points, but several of their mirrors do not carry
    the names this file's live text uses (P-72 rule 4: a mirror reaches what it needs through its
    own `include!`s).  Each keeps C's prototype and the header line it was read from (the
    `src/haikufns.rs` 293-323 / `src/haikuselect.rs` 167-188 shape); their move into the mirrors

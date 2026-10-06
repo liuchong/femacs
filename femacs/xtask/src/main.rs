@@ -1241,6 +1241,26 @@ configuration (see PORTING.md 2.1's setup steps)");
         }
         Err(e) => return fail(e),
     }
+    // The declaration gate above reads the name the rule names; the bare word is what nobody
+    // read.  A ported unit copies its C file's comments, and those call the program they belong
+    // to by name - so a comment line carrying the bare name is either the reference's own bytes
+    // (a copy, or a citation inside backticks or quotes) or this repository's own voice, which
+    // calls the reference `C` (PORTING.md 0.1-19, its twenty-second half).
+    println!("== own-voice gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-own-voice.py"])
+        .status()
+    {
+        Ok(s) if s.success() => {
+            println!("own voice: the port calls the reference C, not by name")
+        }
+        Ok(_) => {
+            return fail("a ported comment in this repository's own voice names the reference "
+                        "(PORTING.md 0.1-19)")
+        }
+        Err(e) => return fail(e),
+    }
     // A unit that repeats a declaration a mirror *in its own include graph* already carries
     // compiles, passes every text gate, and becomes `clashing_extern_declarations` the moment
     // the two spellings disagree - the warning gate-fast's unit builds already print.  The

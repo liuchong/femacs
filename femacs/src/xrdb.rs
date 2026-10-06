@@ -12,7 +12,7 @@
 // are `docs/ports/xrdb.md`'s Decisions 1-3.
 //
 // Where the names come from: the Xrm/Xlib surface from `include/xlib.rs` (reached through
-// `include/xterm.rs`), the Emacs-side helpers (`xmalloc`/`xpalloc`/`xfree`/`xstrdup`/`strlen`,
+// `include/xterm.rs`), the C-side helpers (`xmalloc`/`xpalloc`/`xfree`/`xstrdup`/`strlen`,
 // the `FIXNUMP`/`XFIXNUM`/`XFIXNAT`/`STRINGP`/`SBYTES` accessors, `lispstpcpy`, the `V*` globals)
 // from `include/lisp.rs` and the `globals.rs` it includes.  `get_homedir`/`splice_dir_file`
 // are C's too - lisp.h 4968/4971 declares them and `src/fileio.rs` defines them - but the

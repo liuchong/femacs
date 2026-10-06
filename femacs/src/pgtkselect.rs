@@ -52,7 +52,7 @@
 // (`/opt/homebrew/include/glib-2.0`, GLib 2.90.0), so `G_MAXUINT32` below quotes the header and the
 // line it was read from (`glib/gtypes.h` 98) - a reading, not a memory.  The three records this
 // file *defines* (`struct selection_data`, `struct prop_location`, `struct pgtk_selection_request`)
-// are Emacs's own and their layouts are clang readings on this machine (the ledger's Evidence ②:
+// are C's own and their layouts are clang readings on this machine (the ledger's Evidence ②:
 // `clang -o /tmp/p layout.c && /tmp/p`), so they carry `const _:` assertions like
 // `src/xselect.rs`'s.
 //

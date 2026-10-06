@@ -63,7 +63,7 @@ pub struct haikufont_info
 }
 
 /* This is a chain of structures for all the Haiku displays
-   currently in use.  There is only ever one, but the rest of Emacs is
+   currently in use.  There is only ever one, but the rest of the C tree is
    written with systems on which there can be many in mind.  */
 // haikuterm.h 51-64.
 #[repr(C)]

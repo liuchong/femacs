@@ -1,6 +1,6 @@
 // femacs: port of src/emacsgtkfixed.h @ fd7afced403.
 //
-// Header mirror (PORTING.md 0.1).  The header is the GTK 3 widget Emacs shrinks to fit
+// Header mirror (PORTING.md 0.1).  The header is the GTK 3 widget C shrinks to fit
 // (the file says so itself), and on the frozen configuration **nothing here is compiled**:
 // `HAVE_PGTK` is undefined (docs/baseline/config/darwin-arm64.macros.tsv), `src/emacsgtkfixed.c`
 // is not in the frozen build's source list (its platform object variables are empty, so

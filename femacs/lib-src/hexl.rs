@@ -14,7 +14,7 @@
 //    site by every unit that needs them (docs/ports/dispnew.md 374, docs/ports/bidi.md 269), so
 //    this program calls `getc`/`putchar`/`fputs` as C's text spells them.
 // `uintmax_t` itself comes from the unit, the way `ptrdiff_t` does in `make-fingerprint.rs`:
-// the Emacs core takes it from the `lisp.h` mirror, which this program does not include.
+// the C core takes it from the `lisp.h` mirror, which this program does not include.
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,

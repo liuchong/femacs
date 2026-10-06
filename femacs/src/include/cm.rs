@@ -11,7 +11,7 @@
 //
 // `#if false` at C 53-55 and C 75-92 is dead in *every* configuration, not an arm the frozen
 // config chooses: `cm_ds` and the seven `struct parmcap cc_*` members never exist in any
-// Emacs build, so they are not mirrored and P-51's feature gate does not apply (the
+// C build, so they are not mirrored and P-51's feature gate does not apply (the
 // font.rs/intervals.h `#if false` precedent: literal-false text is not configuration
 // dependent).  `struct parmcap` itself is live C text (C 23-26) and is mirrored below even
 // though only those dead members ever name it.

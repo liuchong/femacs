@@ -961,7 +961,7 @@ pub const WM_UNICHAR: c_int = 0x109;
 #[cfg (feature = "windowsnt")]
 pub const UNICODE_NOCHAR: c_int = 0xFFFF;
 
-/* C 688-719: the Emacs-private window messages, all offsets from `WM_EMACS_START`.  */
+/* C 688-719: the `WM_EMACS_*` window messages, all offsets from `WM_EMACS_START`.  */
 /// C: #define WM_EMACS_START (WM_USER + 1) … #define WM_EMACS_SET_TOOLKIT_THEME (WM_EMACS_START + 30)
 #[cfg (feature = "windowsnt")]
 pub const WM_EMACS_START: c_int = WM_USER + 1;

@@ -863,7 +863,7 @@ unsafe extern "C" {
   pub fn OTF_close (otf: OTF) -> c_int;
 }
 
-/* The Emacs-side names this unit calls that the mirrors it includes do not carry.  Each keeps its
+/* The C-side names this unit calls that the mirrors it includes do not carry.  Each keeps its
    own header's line (P-55/P-72 rule 3), so a citation is never paired with the wrong name; the
    ledger's Owed 5 names the mirror each belongs in.  `x_mark_frame_dirty` (xterm.h 1405) and
    `font_add_log` (font.h 1001) are *not* here: `include/xterm.rs` 228 and `include/font.rs` 299

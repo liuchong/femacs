@@ -2,7 +2,7 @@
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names, the same `main`.
 // This is a program of the C tree's lib-src directory (batch F), not a translation unit of the
-// Emacs core: it links against the port's gnulib mirrors and libSystem only.  The frozen
+// the reference core: it links against the port's gnulib mirrors and libSystem only.  The frozen
 // configuration builds it (`make -n` in `build/emacs-ref/lib-src` lists make-fingerprint.c, and
 // the reference directory holds the binary); docs/ports/make-fingerprint.md records that.
 //
@@ -31,7 +31,7 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulon
               c_void};
 
 /// `<stddef.h>`'s `ptrdiff_t`, which this program gets from the system header (C's
-/// `<stdio.h>` chain) rather than from a `lisp.h` mirror: the Emacs-core units take the same
+/// `<stdio.h>` chain) rather than from a `lisp.h` mirror: the core units take the same
 /// name from `femacs/src/include/lisp.rs`, and `femacs/src/include/sysstdio.rs` (C 38's
 /// include) spells it, so this unit has to provide it (measured: `sizeof (ptrdiff_t)` 8).
 pub type ptrdiff_t = isize;

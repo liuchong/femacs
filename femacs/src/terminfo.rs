@@ -3,7 +3,7 @@
 // One-to-one port (PORTING.md): same statements in the same order, same names.
 //
 // C 29's `#ifndef TERMINFO_DEFINES_BC` guards the three globals: TERMINFO_DEFINES_BC is not in
-// the frozen configuration table, so the guard is decided by the terminfo headers Emacs was
+// the frozen configuration table, so the guard is decided by the terminfo headers C was
 // configured against and this arm is the live text in the frozen configuration (the port
 // defines the three objects here; femacs/src/tparam.rs declares them, as tparam.h does).
 //

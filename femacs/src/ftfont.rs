@@ -1264,7 +1264,7 @@ pub const FC_DUAL: c_int = 90;
 #[cfg (feature = "have_freetype")]
 include!("../lib/include/c-strcase.rs");       // C 37: `#include <c-strcase.h>`
 
-/* C 39-47: the file's own Emacs headers, in C's order, each under the file gate (P-86 ⑧: the
+/* C 39-47: the file's own C headers, in C's order, each under the file gate (P-86 ⑧: the
    include graph sits inside the gate, which is why the frozen configuration compiles nothing
    here).  `include/ftfont.rs` is the `struct font_info` record's home; `include/font.rs` carries
    the `font_driver`/`font` records, the `FONT_*_INDEX` property indices and the `FONT_SET_STYLE`
@@ -1290,7 +1290,7 @@ include!("include/ftfont.rs");                 // C 46: `#include "ftfont.h"`
 include!("include/pdumper.rs");                // C 47: `#include "pdumper.h"`
 
 /* Six declarations this unit calls that the mirrors it includes do not carry yet (P-72 rule 4 /
-   P-88 ①: a mirror must reach what it needs through its own `include!`s; the five Emacs ones are
+   P-88 ①: a mirror must reach what it needs through its own `include!`s; the five C headers are
    `font.h` declarations whose mirror `include/font.rs` has no function-declaration section at all,
    so their consumers declare them - the `src/androidfont.rs` 99-120 shape).  Each line names the
    reference header it comes from, and the ledger's Owed 3 names the mirror it belongs in.

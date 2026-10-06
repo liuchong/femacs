@@ -1,6 +1,6 @@
 // femacs: port of src/sfnt.h @ fd7afced403.
 //
-// The SFNT font-container header: the TrueType/OpenType table records Emacs reads (the
+// The SFNT font-container header: the TrueType/OpenType table records C reads (the
 // offset subtable and directory, `head`, `hhea`, `cmap` in the six formats it supports,
 // `maxp`, `loca`, `glyf`, `hmtx`, `name`, `meta`, `post`, `OS/2`, the `fvar`/`gvar`/`avar`/
 // `cvar` variation tables, the Unicode variation-sequence tables, the TTC header and the

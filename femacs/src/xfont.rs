@@ -313,7 +313,7 @@ unsafe extern "C" {
                                width: c_uint, height: c_uint);
 }
 
-/* The Emacs-side names the mirrors this unit includes do not carry.  Each keeps its own header's
+/* The C-side names the mirrors this unit includes do not carry.  Each keeps its own header's
    line (P-55/P-72 rule 3), so a citation is never paired with the wrong name.  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {

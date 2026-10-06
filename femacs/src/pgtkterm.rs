@@ -91,7 +91,7 @@ include!("include/gtk.rs");                    // C 28: `#include <cairo.h>` / C
 // C 31: `#include <pthread.h>`
 // C 42: `#include <dlfcn.h>`
 
-/* C 29-42's gnulib headers and C 44-66's Emacs headers.  Every `include!` carries the file gate
+/* C 29-42's gnulib headers and C 44-66's own headers.  Every `include!` carries the file gate
    (P-86 ⑧); the header takes the reference's own directory (PORTING.md 0.1), so the five `lib/`
    headers come from `../lib/include/`.  C's own order is kept.  */
 #[cfg (feature = "have_pgtk")]
@@ -182,7 +182,7 @@ include!("include/dispextern.rs");
 #[cfg (feature = "have_pgtk")]
 include!("include/pgtkterm.rs");               // C 48's chain: `"gtkutil.h"` 29's `"pgtkterm.h"`
 /* ----------------------------------------------------------------------------------------------
-   The mirrors that own the Emacs-side names this slice uses and are placeholders today.  Each
+   The mirrors that own the C-side names this slice uses and are placeholders today.  Each
    declaration keeps the reference's own prototype in a `/// C:` line and belongs in that mirror
    (P-72 rule 4); `docs/ports/pgtkterm.md` asks for the move and **this unit drops its copies in the
    commit that makes it** (the `src/image.rs` 181-201 shape).  The *records* those mirrors own

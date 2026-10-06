@@ -126,7 +126,7 @@ macro_rules! USG { () => { }; }
 /* C 74-112: the `USE_X_TOOLKIT` block - `<X11/Shell.h>`, `<X11/Xaw3d/{Paned,Label}.h>` or
    `<X11/Xaw/{Paned,Label}.h>` (HAVE_XAW3D), `<X11/Xos.h>` (with the `USG` dance at C 87-95),
    `"widget.h"` (C 97), `"../lwlib/lwlib.h"` (C 99), the six `<Xm/…>` headers (`Xm/Xm.h`,
-   `Xm/DialogS.h`, `Xm/FileSB.h`, `Xm/List.h`, `Xm/TextF.h`, `Xm/MwmUtil.h`; USE_MOTIF, C 102-107) and `"../lwlib/xlwmenu.h"` (USE_LUCID, C 111).  The two Emacs-side headers have
+   `Xm/DialogS.h`, `Xm/FileSB.h`, `Xm/List.h`, `Xm/TextF.h`, `Xm/MwmUtil.h`; USE_MOTIF, C 102-107) and `"../lwlib/xlwmenu.h"` (USE_LUCID, C 111).  The two C-side headers have
    mirrors and are included; the X11/Xaw/Xm headers are the toolchain's own and have none, so the
    C lines stand as this comment (P-88 ①).  */
 #[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
@@ -302,7 +302,7 @@ pub struct xcb_query_tree_reply_t
   pub pad1: [u8; 14],
 }
 
-/* Emacs' own entry points this slice calls, from headers whose mirrors do not carry them.  */
+/* C's own entry points this slice calls, from headers whose mirrors do not carry them.  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   /// C: frame.h 1474-1475: `extern WINDOW_SYSTEM_RETURN struct frame *decode_window_system_frame (Lisp_Object);`
@@ -1313,7 +1313,7 @@ macro_rules! FRAME_OVERRIDE_REDIRECT {
                     ($v) as u32) };
 }
 
-/* Emacs' own entry points the arms above call, from headers whose mirrors do not carry them
+/* C's own entry points the arms above call, from headers whose mirrors do not carry them
    (P-72 rule 4).  Each keeps C's prototype and names the C header and line it came from.  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
@@ -2121,7 +2121,7 @@ macro_rules! FRAME_EXTERNAL_MENU_BAR {
                     ($v) as u32) };
 }
 
-/* Emacs' own entry points this batch calls (P-72 rule 4).  */
+/* C's own entry points this batch calls (P-72 rule 4).  */
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   /// C: xterm.h 1751: `extern bool x_text_icon (struct frame *, const char *);`

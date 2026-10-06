@@ -1,7 +1,7 @@
 // femacs: mirror of nt/inc/ms-w32.h @ fd7afced403.
 //
 // The Windows port's system description header: `src/conf_post.h` includes it, and it is where
-// NT's substitutions live - the `sys_*` renames for the calls Emacs emulates, the CRT's own
+// NT's substitutions live - the `sys_*` renames for the calls C emulates, the CRT's own
 // names for the rest, the signal numbers and errno values MinGW's headers lack, the
 // `malloc`/`free`/`realloc` indirection through `the_*_fn`, and the declarations of every
 // emulated entry point.
@@ -170,7 +170,7 @@ macro_rules! EMACS_CONFIG_OPTIONS { () => { get_emacs_configuration_options () }
 /// C 499: `#define W32_DAEMON_EVENT "EmacsServerEvent"`
 pub const W32_DAEMON_EVENT: &core::ffi::CStr = c"EmacsServerEvent";
 
-// C 207-247: the calls Emacs emulates, renamed to their `sys_*` entry points.
+// C 207-247: the calls C emulates, renamed to their `sys_*` entry points.
 /// C 207: `#define chdir sys_chdir`
 macro_rules! chdir { ($($args:tt)*) => { sys_chdir ($($args)*) }; }
 /// C 209: `#define chmod sys_chmod`

@@ -5376,7 +5376,7 @@ pub unsafe extern "C" fn mark_image_cache (c: *mut image_cache)
 /* C 3900: `#if defined HAVE_X_WINDOWS || defined HAVE_ANDROID` - it closes at C 4114 (whose
    `#endif` C mislabels `/* HAVE_X_WINDOWS */`).  C's own banner above is the section's.  */
 
-/* Respect Xlib's limits and Emacs's own for the raster a window-system image may allocate.  */
+/* Respect Xlib's limits and C's own for the raster a window-system image may allocate.  */
 
 /// C: C 3902-3903: `static bool x_check_image_size (XImage *ximg, int width, int height)`
 #[cfg (all (feature = "have_window_system", any (feature = "have_x_windows", feature = "have_android")))]

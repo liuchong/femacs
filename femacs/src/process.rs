@@ -137,7 +137,7 @@ include!("include/syssignal.rs");              // C 116: `#include "syssignal.h"
    The names the mirrors do not carry, declared at the use site (PORTING.md P-72 rule 3).
    The system headers are `<sys/socket.h>`, `<netdb.h>`, `<netinet/in.h>`, `<netinet/tcp.h>`,
    `<arpa/inet.h>`, `<sys/un.h>`, `<sys/ioctl.h>`, `<net/if.h>`, `<ifaddrs.h>`,
-   `<net/if_dl.h>`, `<util.h>`, `<pty.h>`, `<sys/file.h>`; the Emacs headers are `"systty.h"`,
+   `<net/if_dl.h>`, `<util.h>`, `<pty.h>`, `<sys/file.h>`; the C headers are `"systty.h"`,
    `"termopts.h"`, `"syswait.h"`, `"gnutls.h"`, `"android.h"`, `"androidterm.h"`,
    `"xgselect.h"`.  Every type below is measured with the frozen configuration (the clang
    invocation `tools/gen-layout-fields.py` uses) and pinned by `const _` assertions.  */

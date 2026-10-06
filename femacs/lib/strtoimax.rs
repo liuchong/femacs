@@ -13,7 +13,7 @@ include!("include/stdint.in.rs");
 include!("include/inttypes.in.rs");   // C 26: `#include <inttypes.h>`
 
 /* C 26's `<inttypes.h>` names the two widest integer types; the mirror of the reference's
-   lisp.h carries them for the Emacs units, and this gnulib unit (which includes no such mirror)
+   lisp.h carries them for the C units, and this gnulib unit (which includes no such mirror)
    declares them where C gets them from <stdint.h>.  */
 pub type intmax_t = i64;
 pub type uintmax_t = u64;

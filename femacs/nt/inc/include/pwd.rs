@@ -1,6 +1,6 @@
 // femacs: mirror of nt/inc/pwd.h @ fd7afced403.
 //
-// The Windows port's own `<pwd.h>` (NT has not got one): the `passwd` record Emacs reads, the
+// The Windows port's own `<pwd.h>` (NT has not got one): the `passwd` record C reads, the
 // two id typedefs `grp.h` borrows, and the four lookups.  The file has no `#if` and is not on
 // `docs/baseline/config/cond-eval-verified.txt`, so the extractor resolves nothing in it - the
 // whole file is live text.  Nothing in the frozen configuration includes it (no `nt/` translation

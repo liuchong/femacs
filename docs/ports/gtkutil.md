@@ -482,7 +482,7 @@ X11 additions C 1062-1112 needs quote `Xutil.h` 74/75/102/103/105, `X.h` 201/607
     forwarding `macro_rules! gtk_box_new` that calls the function (the `src/image.rs` 1849-1872
     `image_get_x_image_or_dc` treatment of the same shape).  `gtk_scrollbar_new` keeps C's macro
     alone (nothing calls it in this slice).
-19. **The Emacs-side names the mirrors do not carry stand in the unit** (P-72 rule 4): `EMACS_CLASS`
+19. **The C-side names the mirrors do not carry stand in the unit** (P-72 rule 4): `EMACS_CLASS`
     (frame.h 1840, C 1650/1855) and the per-unit `input_event_bits!` (termhooks.h 373-412's bit-field
     name; the `src/androidterm.rs` 201-207 shape).  `## Owed` 11 lists the moves.
 20. **`&CStr` is spelled `&core::ffi::CStr`, and `gint8` is `i8`.**  Neither `CStr` nor `c_schar` is in

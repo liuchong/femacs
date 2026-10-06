@@ -1,6 +1,6 @@
 // femacs: port of src/widgetprv.h @ fd7afced403.
 //
-// Header mirror (PORTING.md 0.1).  The Emacs frame widget's private header - the lwlib widget that
+// Header mirror (PORTING.md 0.1).  The `EmacsFrame` widget's private header - the lwlib widget that
 // exists only in an X build: C 21-22 is the include guard, C 24-25 pull in `<X11/IntrinsicP.h>` and
 // `<X11/CoreP.h>`, C 27-54 define the instance record's new part (`EmacsFramePart`), C 56-59 the
 // full instance record (`EmacsFrameRec`), C 61-63 the class record's new part

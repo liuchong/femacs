@@ -521,7 +521,7 @@ switch`, is answered by the `docs/ports/macro-body-notes.tsv` row this batch app
   `DWORD`), `CreatePatternBrush`, `SetTextAlign` and `TA_LEFT`/`TA_BASELINE`.  `FillRect` is
   **not** re-declared: slice 1's section already carries it (its C 551 site) and a second
   declaration measured `E0428` in the arm-reach run.
-- **The Emacs-side names this slice declares itself** (P-72 rule 3 / P-88 clause 1, each at its
+- **The C-side names this slice declares itself** (P-72 rule 3 / P-88 clause 1, each at its
   use site, each recorded in `## Owed`): `min`/`max` (lisp.h 71-73, which `include/lisp.rs` does
   not carry; the mirror that does, `lib/include/min-max.rs`, is not on this unit's graph),
   `window_box_right`, `get_glyph_string_clip_rects` (with `nr` typed `*mut RECT`, `w32gui.h` 94's

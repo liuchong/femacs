@@ -2,7 +2,7 @@
 //
 // The Windows port's workable `<sys/socket.h>`, built on `winsock2.h`/`ws2tcpip.h`: it defeats
 // the winsock include guards, re-points the socket calls at the port's own `sys_*` wrappers, gives
-// `select`/`fd_set` back to Emacs, supplies the `fcntl` the runtime has not got, and renames
+// `select`/`fd_set` back to the program, supplies the `fcntl` the runtime has not got, and renames
 // winsock's error codes to the errno spellings the tree uses.  The file is not on
 // `docs/baseline/config/cond-eval-verified.txt`, so the extractor resolves no `#if` in it - every
 // runtime-version arm is live text.  Nothing in

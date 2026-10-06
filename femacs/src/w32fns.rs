@@ -118,7 +118,7 @@ pub const INITGUID: () = ();
 // C 45: `#include <objidl.h>`
 // C 46: `#include <ole2.h>`
 
-/* C 48-59: the Emacs headers, in C's order (PORTING.md 0.1-14: `lisp.rs` first, because the other
+/* C 48-59: the C headers, in C's order (PORTING.md 0.1-14: `lisp.rs` first, because the other
    mirrors expand its macros textually).  All of them sit inside the file gate.  */
 #[cfg (feature = "have_ntgui")]
 include!("include/lisp.rs");                    // C 48: `#include "lisp.h"`

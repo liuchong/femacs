@@ -163,7 +163,7 @@ const CSTR: int32 = 0x43535452;                    // C 328, 347: `'CSTR'`
    C 1402-1437 name the very same symbols there, so nothing is declared for them here (P-17).  */
 
 /* ------------------------------------------------------------------------------------------
-   C 21-27: Emacs' own entry points this file calls whose mirrors do not carry them (P-72
+   C 21-27: C's own entry points this file calls whose mirrors do not carry them (P-72
    rule 4).  Each keeps C's prototype and the header line it was read from (the `src/haikufns.rs`
    846-877 shape).
    ------------------------------------------------------------------------------------------ */

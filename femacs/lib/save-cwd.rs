@@ -5,7 +5,7 @@
    names.  This module replaces the Gnulib module by omitting the code
    that Emacs does not need.  */
 
-/* emacs/lib/save-cwd.c: this is Emacs's trimmed variant of the gnulib module, so the file has
+/* emacs/lib/save-cwd.c: this is the reference's trimmed variant of the gnulib module, so the file has
    no `#if` at all except C 46-48's `#if !defined HAVE_FCHDIR && !defined fchdir /
    # define fchdir(fd) (-1)` - dead here, since HAVE_FCHDIR is 1 (the fchdir the restore path
    calls is the real one) - which the port keeps as a cfg'd macro (P-51).  C 28's

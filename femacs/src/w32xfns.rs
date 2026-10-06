@@ -408,7 +408,7 @@ pub const WM_WTSSESSION_CHANGE: c_int = 0x02B1;
 pub const WTS_SESSION_LOCK: WPARAM = 0x7;
 // C 38: `#endif	/* WINDOWSNT */`
 
-/* C 40-43: the Emacs headers, in C's order (PORTING.md 0.1-14: `lisp.rs` first, because the other
+/* C 40-43: the C headers, in C's order (PORTING.md 0.1-14: `lisp.rs` first, because the other
    mirrors expand its macros textually).  `../lib/include/stdlib.rs` is lisp.h's own `<stdlib.h>`
    edge: `include/lisp.rs` pulls `<string.h>` (its C 30) but not `<stdlib.h>`, and this file's
    `malloc`/`free` (C 70, 120, 121, 124) come from exactly that line, so the mirror is included

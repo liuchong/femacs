@@ -1,7 +1,7 @@
 // femacs: mirror of nt/inc/unistd.h @ fd7afced403.
 //
 // The Windows port's fake `<unistd.h>`: `config.h` already carries most of what the name means on
-// NT, so this is the prototypes of the functions Emacs emulates, the `AT_*`/`O_*` names that
+// NT, so this is the prototypes of the functions C emulates, the `AT_*`/`O_*` names that
 // normally live in `<fcntl.h>`, and `unsetenv` (normally `<stdlib.h>`).  The file is not on
 // `docs/baseline/config/cond-eval-verified.txt` and has no `#if`, so the whole file is live text.
 // Nothing in the frozen configuration includes it (no `nt/` translation unit is compiled -

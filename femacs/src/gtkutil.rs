@@ -85,7 +85,7 @@ include!("../lib/include/stdlib.rs");          // C 25: `#include <stdlib.h>`
 #[cfg (feature = "use_gtk")]
 include!("../lib/include/c-ctype.rs");         // C 27: `#include <c-ctype.h>`
 
-/* C 29-32: the four Emacs headers this slice's records and calls come from.  Each `include!`
+/* C 29-32: the four C headers this slice's records and calls come from.  Each `include!`
    carries the file gate (P-86 ⑧); `lisp.h` is first, C's own order (PORTING.md 0.1-14).  */
 #[cfg (feature = "use_gtk")]
 include!("include/lisp.rs");                   // C 29: `#include "lisp.h"`
@@ -122,7 +122,7 @@ type xp_output = pgtk_output;                  // C 40: `typedef struct pgtk_out
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/emacsgtkfixed.rs");          // C 63: `#include "emacsgtkfixed.h"`
 
-/* C 42-47: the rest of the Emacs headers.  `gtkutil.h`'s mirror is a placeholder (it carries the
+/* C 42-47: the rest of the C headers.  `gtkutil.h`'s mirror is a placeholder (it carries the
    include guard alone), so the `xg_*` names this unit uses are declared where C's text uses them -
    `xg_list_node` at C 619-630 and `xg_wm_set_size_hint` at C 1209 (P-72 rule 4), both owed to that
    mirror; `window.h`, `termhooks.h`, `keyboard.h` and `coding.h`'s mirrors carry this slice's
@@ -1747,7 +1747,7 @@ pub unsafe extern "C" fn xg_frame_set_char_size (f: *mut frame, mut width: c_int
 }
 /* ============================================================================================== */
 
-/* The Emacs-side names the second slice's text uses that the mirrors do not carry yet (P-72
+/* The C-side names the second slice's text uses that the mirrors do not carry yet (P-72
    rule 4: the unit declares them at the use site and the ledger owes the move).  */
 /// C: frame.h 1840: `#define EMACS_CLASS "Emacs"` - C 1650/1855 pass it to `gtk_widget_set_name`.
 /// `include/frame.rs` does not carry it, so it stands here; `## Owed` records the move.

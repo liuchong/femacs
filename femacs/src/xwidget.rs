@@ -86,7 +86,7 @@
 
 include!("include/config.rs");                 // C 20: `#include <config.h>`
 
-/* C 22-34: the Emacs headers, in C's order except that `"lisp.h"` is first (PORTING.md 0.1-14:
+/* C 22-34: the C headers, in C's order except that `"lisp.h"` is first (PORTING.md 0.1-14:
    `config.rs` -> `lisp.rs` -> the rest, because `buffer.rs`, `coding.rs` and `xwidget.rs` expand
    `eassert!`/`XUNTAG!`/`CHECK_TYPE` textually inside their bodies), and each `include!` carries
    the file gate (P-86 ⑧).  C writes this list outside any `#if`, but the reference's build only

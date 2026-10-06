@@ -80,7 +80,7 @@ include!("../lib/include/math.rs");                   // C 38: `#include <math.h
 include!("../lib/include/stdlib.rs");                 // C 39: `#include <stdlib.h>`
 
 /* ------------------------------------------------------------------------------------------
-   C 38-39: `<math.h>`/`<stdlib.h>`'s standard names, and C 21-36's Emacs declarations, that the
+   C 38-39: `<math.h>`/`<stdlib.h>`'s standard names, and C 21-36's own declarations, that the
    frozen mirrors of this include graph do not carry yet (P-72 rule 4; each keeps C's prototype and
    the header line it was read from - the `src/haikuselect.rs` 165-190 / `src/androidfont.rs` 94-122
    shape).  `docs/ports/haikufont.md` records them for the integrator.

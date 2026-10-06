@@ -1,7 +1,7 @@
 // femacs: port of src/widget.h @ fd7afced403.
 //
 // Header mirror (PORTING.md 0.1).  The header belongs to the Xaw/Lucid widget build (it is
-// `<X11/IntrinsicP.h>`'s client for Emacs's own `EmacsFrame` widget), and nothing on this
+// `<X11/IntrinsicP.h>`'s client for C's own `EmacsFrame` widget), and nothing on this
 // target compiles it: `USE_X_TOOLKIT` and `USE_LUCID` are undefined (`docs/baseline/config/`),
 // `src/widget.c` is not in the frozen build's source list, and the types it names (`Widget`,
 // `WidgetClass`, `XtN*`) are Xaw's, which has no mirror here.

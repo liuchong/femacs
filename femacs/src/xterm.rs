@@ -628,7 +628,7 @@
    The progress reading is `tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs`:
    its `- ` count is what the frozen reading still demands (460 before this slice).  Nothing here
    is reached by the frozen build, and a Lisp test cannot reach it either: the file exists only
-   in an X11 build of Emacs.
+   in a build of the reference that has X11.
 
    Slice 1 (this round) = C 625-990: the header preamble, the two X11 handler typedefs, the first
    file-scope objects with their conditional arms, the two selection-request records, the three

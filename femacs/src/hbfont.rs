@@ -531,7 +531,7 @@ unsafe extern "C" {
      start_offset: c_uint, feature_count: *mut c_uint, feature_tags: *mut hb_tag_t) -> c_uint;
 }
 
-/* C 24-29: the six Emacs headers, under the file gate (P-86 ⑧).  Each mirror is the one the
+/* C 24-29: the six C headers, under the file gate (P-86 ⑧).  Each mirror is the one the
    corresponding header has; the edges their own text reaches through other headers are spelled
    with them (the `src/gfilenotify.rs` 40-52 shape).  */
 #[cfg (feature = "harfbuzz")]
