@@ -13,9 +13,9 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**2,578** lines, from the 11 of the placeholder), carrying **C 1-1147**,
-> **C 1149-1196** and **C 1197-1757** - three slices - with **both arms of every `#if`**; after them
-> the file's next live definition is `pgtk_frame_restack` (**C 1759**).
+> `femacs/src/pgtkfns.rs` (**2,950** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> **C 1149-1196**, **C 1197-1752** and **C 1754-1996** - four slices - with **both arms of every
+> `#if`**; after them the file's next live definition is `Fpgtk_set_resource` (**C 1999**).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -123,8 +123,9 @@ which exist only under those two features (Owed 6).
 | 1074-1131 | `pgtk_default_font_parameter` | file gate |
 | 1133-1147 | `update_watched_scale_factor` - **this slice's last definition** | file gate |
 | 1149-1196 | the "Lisp definitions" banner (C 1149-1153) and `DEFUN ("pgtk-set-monitor-scale-factor", …)` (C 1155-1196: the `CHECK_STRING`/`CHECK_NUMBER` gates, the `FIXNUMP`/`FLOATP` split with its two identical `error` texts, the `Fassoc` lookup and the `Fcons`/`Fsetcdr` pair on `monitor_scale_factor_alist`) | the file gate - **transcribed** (the second slice) |
-| 1197-1757 | `Fx_create_frame` - the file's largest item: the terminal/display lookup and `check_pgtk_display_info`, the `minibuffer` four-way fork and the `parent_frame` test, the `undecorated`/`override_redirect` reads, the frame's officialisation (`XSETFRAME`, the two css providers, the colour reference-count block, `parent_desc`/`explicit_parent`, the `specbind`), the two font drivers, the parameter chain and `init_frame_faces`, the two `adjust_frame_size` calls, `xg_create_frame_widgets`/`pgtk_set_event_handler` and the fifteen `INSTALL_CURSOR` installs, the frame's own reference counts and `Vframe_list`, the GTK re-parenting and the `GList` walk, `initialize_frame_menubar`/`xg_wm_set_size_hint`, the visibility block, the trailing alist loop and the scale-factor atimer | the file gate - **transcribed** (the third slice) |
-| 1758-3906 | **the remainder of the file** - from C 1758's blank line and the restack pair (`pgtk_frame_restack`, **the next live definition**, C 1759-1796) through C 3906's `syms_of_pgtkfns`: the resource-key helpers and the `HAVE_GSETTINGS` pair (1798-1998), `Fpgtk_set_resource` (1999-2021), the ten display subrs (2022-2217), `check_x_display_info`/the scroll-bar defaults/`pgtk_get_string_resource`/`pgtk_get_focus_frame` (2218-2282), the eleven colour/geometry subrs (2283-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1197-1752 | `Fx_create_frame` - the file's largest item: the terminal/display lookup and `check_pgtk_display_info`, the `minibuffer` four-way fork and the `parent_frame` test, the `undecorated`/`override_redirect` reads, the frame's officialisation (`XSETFRAME`, the two css providers, the colour reference-count block, `parent_desc`/`explicit_parent`, the `specbind`), the two font drivers, the parameter chain and `init_frame_faces`, the two `adjust_frame_size` calls, `xg_create_frame_widgets`/`pgtk_set_event_handler` and the fifteen `INSTALL_CURSOR` installs, the frame's own reference counts and `Vframe_list`, the GTK re-parenting and the `GList` walk, `initialize_frame_menubar`/`xg_wm_set_size_hint`, the visibility block, the trailing alist loop and the scale-factor atimer | the file gate - **transcribed** (the third slice; C 1753 is the blank line between it and the restack pair) |
+| 1754-1996 | the restack pair and the GSETTINGS block: C 1754-1757's comment and `pgtk_frame_restack` (C 1758-1764), `DEFUN ("pgtk-frame-restack", …)` with C's own 15-line docstring (C 1766-1791), and C 1793-1996's `#ifdef HAVE_GSETTINGS` region - the five `#define`s, the three `static inline` predicates, `parse_resource_key`, `pgtk_check_resource_key_length`, `pgtk_get_defaults_value`, `pgtk_set_defaults_value`, the five `#undef`s and the `#else` arm's own pair | the file gate plus `have_gsettings` for the `#if` arm (the `#else` arm is the frozen configuration's) - **transcribed** (the fourth slice) |
+| 1999-3906 | **the remainder of the file** - from C 1999's `DEFUN ("pgtk-set-resource", …)` ((`Fpgtk_set_resource`, **the next live definition**) through C 3906's `syms_of_pgtkfns`: the resource-key helpers and the `HAVE_GSETTINGS` pair (1999-2021), the ten display subrs (2022-2217), `check_x_display_info`/the scroll-bar defaults/`pgtk_get_string_resource`/`pgtk_get_focus_frame` (2218-2282), the eleven colour/geometry subrs (2283-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -372,6 +373,59 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     each with C's line - because the mirrors that own them (`include/frame.rs`, `include/gtkutil.rs`,
     `include/pgtkterm.rs`, `include/font.rs`) do not carry them yet (Owed 1/2/7).
 
+27. **C's `(void) 0;` NOPs are `let _ = 0;`** (C 1863/1867/1886/1894, `parse_resource_key`'s four
+    "lower/numeric -> NOP" arms).  C's cast-to-void expression evaluates `0` and drops it; the port
+    keeps the expression as a statement (`let _ = 0;`), so an empty block - which would have dropped
+    C's expression - is not used (PORTING.md 2.1).
+28. **C's post-increment in a condition is the load-then-step pair** (C 1877's `if (*sp++ != '.')`):
+    the port loads `*sp` into a local, steps `sp` by one, and then tests the loaded value - the two
+    statements C's post-increment performs (PORTING.md 2.2; the `pbm_next_char` shape of
+    `src/image.rs` 11108).  C's `*dp++ = c;` (C 1870/1891/1898) and `sp++` (C 1850/1871/1899) are
+    written the same way.
+29. **C's implicit pointer conversions are written as `as` casts (Deviation 5's rule, this slice's
+    instances)**: `g_object_unref (gs as gpointer)` (C 1952/1973) and `g_free (str_ as gpointer)`
+    (C 1953) hand a `GSettings *` and a `gchar *` to the mirror's `gpointer` parameters; C's
+    `NULL` for `g_settings_new_full`'s backend (C 1917) is `std::ptr::null_mut ()`.
+30. **C's function-scope `static char holder[128]` (C 1948) keeps its storage duration.**  The port
+    writes a function-scope `static mut HOLDER: [c_char; 128]` (zero-initialised once - PORTING.md
+    0.1-13's tentative-definition half) and takes its address with `addr_of_mut!` rather than a
+    reference, because Rust 2024's `static_mut_refs` refuses the reference form (the `src/alloc.rs`
+    588 shape).  The local `holder` pointer is then exactly C's array name decaying, so the
+    parameter C passes on is unchanged.
+31. **The GSETTINGS `#define`s and `#undef`s.**  C 1795-1800's five `#define`s are `const` items;
+    C 1976-1980's five `#undef`s have no Rust counterpart (an item is not un-defined, PORTING.md
+    0.1).  `PATH_MAX_LEN`'s `max (sizeof PATH_FOR_CLASS_TYPE, sizeof PATH_PREFIX_FOR_NAME_TYPE)`
+    cannot be a call in an array's length, so it is written as the constant C's expression denotes -
+    **measured**: the two byte strings are 34 and 33 bytes including the NUL, so C's `max` is 34
+    (and C's array is `char path[34 + 128]`, i.e. 162).
+32. **The restack DEFUN's `\(stacking)` (C 1778) is spelled as its *value* `(stacking)`.**  C's
+    `\(` is in a `doc: /* … */` comment, and make-docfile's escape processing turns `\(` into `(`
+    (`tools/cinventory.py` 935's `doc_comment_value`), so the value the reference documents has no
+    backslash; the port's literal carries that value.  **Measured**: with the literal written
+    `\\(stacking)` (C's spelling carried through Rust's own escaping) `tools/extract-abi.py --check`
+    reads `subr Fpgtk_frame_restack: docstring differs`; with the value it reads no row (Evidence
+    ⑮).
+33. **The GSETTINGS `#if`/`#else` pair defines the same two names.**  C's `#if` arm (C 1930-1974)
+    and its `#else` arm (C 1984-1994) both define `pgtk_get_defaults_value` and
+    `pgtk_set_defaults_value`, so the port carries one `#[cfg]`-selected definition each -
+    `have_gsettings` for the `#if` arm and `not (feature = "have_gsettings")` for the live `#else`
+    one.  `pgtk_get_defaults_value` is non-`static` in both (pgtkterm.h 583 declares it) and so
+    carries `#[unsafe(no_mangle)]` (PORTING.md 0.2); `pgtk_set_defaults_value` is `static` in both
+    and stays an `unsafe fn`.  The `#else` arm's unused parameters are `let _ = …;` (the
+    `src/print.rs` 1693 shape), which is what keeps the arm's reading warning-free.
+34. **The GIO surface stands in this unit** (P-88 ①'s third-party segment; the `src/xsettings.rs`
+    286-370 device): C 1793's `#ifdef HAVE_GSETTINGS` reaches `<gio/gio.h>` through `"gtkutil.h"`
+    26's `<gtk/gtk.h>` chain, and that header has no mirror, so the three opaque records
+    (`GSettings`, `GSettingsSchema`, `GSettingsSchemaSource`) and the eight entry points
+    (`g_settings_schema_source_get_default`, `g_settings_schema_source_lookup`,
+    `g_settings_schema_has_key`, `g_settings_schema_unref`, `g_settings_new_full`,
+    `g_settings_get_string`, `g_settings_set_string`, `g_settings_reset`) are declared here with the
+    header and the line each was read from.  **GLib and GIO are on this machine**
+    (`/opt/homebrew/include/glib-2.0`, GLib 2.90.0), so every one of them is a read citation and no
+    record is dereferenced (`[u8; 0]`, the opaque shape) - and `include/gtk.rs`, which carries the
+    GLib/GObject half (`g_free`, `g_object_unref`, `TRUE`), does **not** carry GIO's, which is why
+    the segment stands here rather than there (Owed 13).
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 1. **`include/pgtkterm.rs` is a placeholder and owes the records.**  `pgtk_output` (pgtkterm.h
@@ -432,6 +486,16 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
 11. **The five `#ifdef`s' arm texts.**  C's four `GDK_PIXBUF_VERSION_2_44` `#pragma` lines and the
     four cairo arms' `#ifdef`/`else`/`#endif` tokens have no Rust counterpart (Deviation 4); if the
     fleet wants them occurrence-checked, they are `token-aliases.tsv` rows.
+12. **`docs/ports/macro-body-notes.tsv` and the restack DEFUN.**  This slice needed no row: the
+    `doc:` literal carries make-docfile's value (Deviation 32) and the body's tokens are all spelled
+    (the `let _ = 0;` arms supply C's `0`s).  The row this slice *could* have needed - C 1787's
+    `!(FRAME_GTK_OUTER_WIDGET (f1) && FRAME_GTK_OUTER_WIDGET (f2))` written with `is_null ()` - is
+    the class `check_pgtk_display_info`'s row already records for this file.
+13. **The GIO segment's home.**  Deviation 34 puts the GIO declarations in this unit, which is the
+    `src/xsettings.rs` shape: `<gio/gio.h>` is not in `include/gtk.rs`, and that mirror's ledger
+    names GIO among the third-party headers it does not carry.  If that mirror grows a GIO part, the
+    two units' segments move there in one commit (P-88 ⑤'s move rule), and this file's copy must be
+    deleted in that same commit or the two collide (`E0428`).
 
 ## P-90's second step (2026-10-05): the toolkit segment moved out
 
@@ -599,3 +663,83 @@ declaration in this unit, not a definition - the port has no GTK to link.  The t
 **compile** readings of text this machine cannot build, and the object-sized reading other units
 use does not exist for this one (the frozen object is the empty one).  Nothing was executed, no
 warning was suppressed, and the thirteen GDK cursor constants are placeholders (Deviation 24).
+
+## The fourth slice (C 1754-1996): the restack pair and the GSETTINGS block
+
+**⑭ What is in it.**  C 1754-1757's comment and `static void pgtk_frame_restack` (C 1758-1764: the
+`block_input`/`xg_frame_restack`/`unblock_input` triple); `DEFUN ("pgtk-frame-restack",
+Fpgtk_frame_restack, Spgtk_frame_restack, 2, 3, 0,` (C 1766) with C's own 15-line docstring (C
+1767-1781) and its two `decode_live_frame` calls, the pointer truth test and the `!NILP (above)`
+call (C 1782-1791); and the whole `#ifdef HAVE_GSETTINGS` region: C 1795-1800's five `#define`s
+(`RESOURCE_KEY_MAX_LEN`, `SCHEMA_ID`, the two path strings and their `max (sizeof …)` length), C
+1802-1818's three `static inline` predicates, C 1820-1921's `parse_resource_key` (the class/name
+fork, the upper-to-lower walk with its four NOP arms, the `*sp++` step and the GSettings lookup),
+C 1923-1928's `pgtk_check_resource_key_length`, C 1930-1955's `pgtk_get_defaults_value` (the
+`static char holder[128]` copy-and-free dance) and C 1957-1974's `pgtk_set_defaults_value`, C
+1976-1980's five `#undef`s, and C 1982-1996's `#else /* not HAVE_GSETTINGS */` arm with its own
+three-line pair.  Rust: 2,578 -> **2,950** lines.
+
+**⑮ The arm readings (four arms; P-86 ⑥'s rule - every sub-gate must be set).**  This slice has a
+second condition inside the file gate, so the lane's two arm sets are each measured with and
+without `have_gsettings`: the `#if` arm's text compiles only with it, and the `#else` arm's only
+without it, so a two-arm reading would have left half of this slice uncompiled.
+```
+A narrow = have_pgtk + have_window_system                     : HEAD 143 errors / 11 warnings
+                                                                slice 145 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets              : 131 / 10 -> 133 / 10
+C = A + have_gsettings                                        : 143 / 11 -> 145 / 11
+D = B + have_gsettings                                        : 131 / 10 -> 133 / 10
+```
+In all four arms the delta is the same **+2 sites of the already-named `pgtk_output` class** (the
+restack DEFUN's two `FRAME_GTK_OUTER_WIDGET!` uses - attributed the same way as Evidence ⑩: rustc's
+`in this macro invocation` notes fall inside the new text for exactly two sites), with **no new
+class and no new warning**.  The first run of the two `have_gsettings` arms read **+3 `E0308`**: C
+1952/1953/1973's `g_object_unref (gs)` / `g_free (str)` hand a `GSettings *` and a `gchar *` to the
+mirror's `gpointer` parameters, and C's implicit conversion is now written out (Deviation 29) -
+before that fix the two arms read 148 and 136 errors, i.e. the arm pair is what caught a defect the
+`#else` arms could not see, which is the whole reason for measuring both.
+
+**⑯ `extract-abi.py --check`.**  `FAIL`, **99 `- ` rows -> 95**: `missing function
+pgtk_frame_restack`, `missing function pgtk_get_defaults_value`, `missing function
+pgtk_set_defaults_value` and `missing subr Fpgtk_frame_restack (pgtk-frame-restack)` retire, no row
+appears, and the line-count row moves 34.0% -> **24.5%** (C 3,906 vs Rust 2,950).  The first run read
+one *new* row - `subr Fpgtk_frame_restack: docstring differs` - which is the measured half of
+Deviation 32: C's `\(stacking)` is make-docfile's escape and the literal must carry the value
+`(stacking)`, not C's spelling.  The 95 rows left are the remainder's.
+
+**⑰ The seven text gates.**  `check-declarations.py` **18 declaration sites (0 forbidden, 18 allowed
+literals), 0 failures** - the eighteenth is this slice's `SCHEMA_ID` literal (Deviation 35), and it is
+allowlisted with its reason the way the Windows registry-path and clipboard-class rows are;
+`check-citations.py` **676 file(s) scanned, 0 drift, 0 range, 2,039 external, 36 allowed, 0 stale**
+(the ten new external citations are the GIO segment's); `check-dead-file-coverage.py` **145 ledger(s) bound, 0 failure(s)**
+(54 range rows now cover src/pgtkfns.c); `check-port-lines.py` **0 file(s) under ten percent, 0
+reference line(s), 0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py` **238 ledger(s)
+bound, 0 failure(s)**; `check-cond-eval.py src/pgtkfns.c` **11 conditions, 0 unknown, 0
+disagreements [VERIFIED]**; `check-mirror-dupes.py` **16 duplicate(s), 16 ratchet row(s), 0
+failure(s)**.  No mirror changed, so P-87's two legs do not apply this time (the GIO segment is a
+unit segment, Deviation 34).
+
+**⑱ Not claimed.**  Nothing ran: `Fpgtk_frame_restack` is registered by this file's `syms_of_pgtkfns`
+(still the remainder) and `pgtk_get_defaults_value`/`pgtk_set_defaults_value` are called only by C
+1999-2021's `Fpgtk_set_resource` and C 2254-2256 (both still the remainder), so no restack was
+performed and no GSettings schema was looked up.  The four arm readings are **compile** readings of
+text this machine cannot build, and this unit has no object-byte reading (the frozen object is the
+empty one).  `xg_frame_restack` is a declaration here - its definition is `src/gtkutil.rs` 2687's,
+and the port has no GTK to link against.
+
+35. **`SCHEMA_ID`'s literal is the one new *allowlisted* product-name site** (C 1796,
+    `docs/baseline/declarations-allowlist.tsv`'s `femacs/src/pgtkfns.rs` row).  The value is the
+    GSettings schema id the reference's own data file installs
+    (the `etc/` schema XML whose *name* is that id - one of the verbatim-copied trees - so the
+    ledger spells it in the allowlist row rather than in this prose; the gate's `title` class reads
+    ledger prose) and that GIO's `g_settings_schema_source_lookup` resolves **by name**: other programs and the user's own
+    GSettings database read it, so renaming it would change behaviour rather than make a statement
+    about this repository - 0.1-19's eighth half (status 3.599), the class the Windows registry-path
+    rows (`src/w32.rs` 4679, `femacs/nt/addpm.rs` 560, whose values are the allowlist's) and the X
+    clipboard window class (`src/w32select.rs`) already carry.  **Measured**: the gate first read
+    `literal x1: const SCHEMA_ID: … c"…".as_ptr ();` (a failure with no row - the value is the
+    allowlist row's, quoted there), and after the row it reads `18 declaration sites (0 forbidden,
+    18 allowed literals), 0 failures`.  The citation above the item deliberately does **not** quote the value:
+    a `///` line that spells it is the gate's `title` class (measured: `title x1` on the first
+    draft), which is why the comment names C's `#define` and leaves C's line to this ledger.

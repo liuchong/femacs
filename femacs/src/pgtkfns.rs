@@ -539,6 +539,20 @@ unsafe extern "C" {
   /// C: gtkutil.h 181: `extern bool xg_create_frame_widgets (struct frame *f);` - C 1545's call
   /// (`src/gtkutil.rs` 2085 defines it; the mirror `include/gtkutil.rs` owes every `xg_*` row).
   pub fn xg_create_frame_widgets (f: *mut frame) -> bool;
+  /// C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);` - C 1784-1785's calls
+  /// (the mirror `include/frame.rs` has not got it; `src/haikufns.rs` 200-202 declares it the same
+  /// way)
+  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+  /// C: gtkutil.h 201: `extern void xg_frame_restack (struct frame *f1, struct frame *f2, bool
+  /// above);` - C 1762's call (`src/gtkutil.rs` 2687 defines it)
+  pub fn xg_frame_restack (f1: *mut frame, f2: *mut frame, above: bool);
+  /* `<string.h>`'s two that `lib/include/string.rs` has not got (`strlen`/`strcpy`/`strcmp` are
+     that mirror's): C 1926's `strnlen` and C 1949's `strncpy` (the `src/doprnt.rs` 69 and
+     `src/haikufont.rs` 90-92 shape).  */
+  /// C: string.h: `size_t strnlen (const char *s, size_t maxlen);`
+  pub fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
+  /// C: string.h: `char *strncpy (char *dest, const char *src, size_t n);`
+  pub fn strncpy (dest: *mut c_char, src: *const c_char, n: size_t) -> *mut c_char;
 
   /* font.h 991-993: the two FT/CR driver objects C 1387-1392 registers -
      `#if defined (USE_CAIRO) || defined (USE_BE_CAIRO)` / `extern struct font_driver const
@@ -2576,3 +2590,365 @@ DEFUN! ("x-create-frame", Fx_create_frame, Sx_create_frame,   // C 1197-1757
 
   return unbind_to (count, frame);
 });
+
+/* Restack frame F1 below frame F2, above if ABOVE_FLAG is non-nil.
+   In practice this is a two-step action: The first step removes F1's
+   window-system window from the display.  The second step reinserts
+   F1's window below (above if ABOVE_FLAG is true) that of F2.  */
+
+/// C: C 1758-1759: `static void pgtk_frame_restack (struct frame *f1, struct frame *f2, bool
+/// above_flag)` - C's `static void` with the file's own `unsafe fn` shape for C's statics; C
+/// 1789's `DEFUN` calls it.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_frame_restack (f1: *mut frame, f2: *mut frame, above_flag: bool)
+{
+  block_input ();
+  xg_frame_restack (f1, f2, above_flag);
+  unblock_input ();
+}
+
+/* C 1766: `DEFUN ("pgtk-frame-restack", Fpgtk_frame_restack, Spgtk_frame_restack, 2, 3, 0,` with
+   C 1767-1781's own docstring; its `\(stacking)` is make-docfile's escape, whose *value* is
+   `(stacking)` - measured: `tools/extract-abi.py --check` reads `subr Fpgtk_frame_restack:
+   docstring differs` while the literal carries `\\(`, i.e. a backslash the reference's text does
+   not have - so the literal spells the value.  C 1782's parameter list and C 1783-1791's body
+   follow; C 1787's pointer truth test `!(A && B)` is written with the port's `is_null ()` spelling
+   (the `check_pgtk_display_info` row of `docs/ports/macro-body-notes.tsv`).  */
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("pgtk-frame-restack", Fpgtk_frame_restack, Spgtk_frame_restack,   // C 1766-1791
+	2, 3, 0,
+	doc: "Restack FRAME1 below FRAME2.\nThis means that if both frames are visible and the display areas of\nthese frames overlap, FRAME2 (partially) obscures FRAME1.  If optional\nthird argument ABOVE is non-nil, restack FRAME1 above FRAME2.  This\nmeans that if both frames are visible and the display areas of these\nframes overlap, FRAME1 (partially) obscures FRAME2.\n\nThis may be thought of as an atomic action performed in two steps: The\nfirst step removes FRAME1's window-step window from the display.  The\nsecond step reinserts FRAME1's window below (above if ABOVE is true)\nthat of FRAME2.  Hence the position of FRAME2 in its display's Z\n(stacking) order relative to all other frames excluding FRAME1 remains\nunaltered.\n\nSome window managers may refuse to restack windows.  ",
+	(frame1: Lisp_Object, frame2: Lisp_Object, above: Lisp_Object),
+	{
+  let f1: *mut frame = decode_live_frame (frame1);              // C 1784
+  let f2: *mut frame = decode_live_frame (frame2);              // C 1785
+
+  if FRAME_GTK_OUTER_WIDGET! (f1).is_null ()
+      || FRAME_GTK_OUTER_WIDGET! (f2).is_null ()
+    { error (c"Cannot restack frames".as_ptr ()); }             // C 1787-1788
+  pgtk_frame_restack (f1, f2, !NILP (above));                   // C 1789
+  return Qt ();                                                 // C 1790
+});
+
+/* C 1793-1996: `#ifdef HAVE_GSETTINGS` ... C 1982's `#else /* not HAVE_GSETTINGS */` ... C 1996's
+   `#endif`.  `HAVE_GSETTINGS` is `undef` in the frozen configuration
+   (`docs/baseline/config/darwin-arm64.macros.tsv` 1384), so C's live text is the three-line `#else`
+   arm - **both arms are carried** (P-86 ①), which is why the two names both arms define
+   (`pgtk_get_defaults_value` and `pgtk_set_defaults_value`) are one `#[cfg]`-selected definition
+   each, while C 1795-1800's five `#define`s, C 1802-1818's three predicates and C 1820-1921's
+   `parse_resource_key` belong to the `#if` arm alone.  */
+
+/* C 1795-1800's five `#define`s.  C 1976-1980's five `#undef`s have no Rust counterpart
+   (PORTING.md 0.1: a `#define` is an item here, and an item is not un-defined);
+   `PATH_MAX_LEN`'s `max (sizeof A, sizeof B)` cannot be a call in an array's length, so the port
+   writes the constant C's expression denotes.  */
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+const RESOURCE_KEY_MAX_LEN: usize = 128;                                 // C 1795
+/// C 1796: `#define SCHEMA_ID` - C's string macro is the port's same-named constant below, whose
+/// bytes are the GSettings schema id the reference's own data file installs: an *external* name
+/// the GIO schema lookup resolves, so the value is carried and **allowlisted**, not renamed
+/// (`docs/baseline/declarations-allowlist.tsv`'s row holds the reason; the `src/w32.rs` 4676
+/// `REG_ROOT` shape for the same class of macro).  The C line's text stays in this ledger.
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+const SCHEMA_ID: *const c_char = c"org.gnu.emacs.defaults".as_ptr ();
+/// C 1797: `#define PATH_FOR_CLASS_TYPE "/org/gnu/emacs/defaults-by-class/"`
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+const PATH_FOR_CLASS_TYPE: *const c_char = c"/org/gnu/emacs/defaults-by-class/".as_ptr ();
+/// C 1798: `#define PATH_PREFIX_FOR_NAME_TYPE "/org/gnu/emacs/defaults-by-name/"`
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+const PATH_PREFIX_FOR_NAME_TYPE: *const c_char = c"/org/gnu/emacs/defaults-by-name/".as_ptr ();
+/// C 1799-1800: `#define PATH_MAX_LEN \` / `(max (sizeof PATH_FOR_CLASS_TYPE, sizeof
+/// PATH_PREFIX_FOR_NAME_TYPE))` - C's `sizeof` of a string literal is its length plus the NUL
+/// (measured: 34 and 33, so C's `max` is 34), and `lisp.h`'s `max` cannot stand in an array's
+/// length (PORTING.md 1.3's const half).
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+const PATH_MAX_LEN: usize = 34;
+
+/// C: C 1802-1806: `static inline int pgtk_is_lower_char (int c)` - C's `static inline` (P-12: no
+/// Rust spelling to carry), with this file's `unsafe fn` shape for C's `static` helpers.
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+unsafe fn pgtk_is_lower_char (c: c_int) -> c_int
+{
+  return (c >= 'a' as c_int && c <= 'z' as c_int) as c_int;
+}
+/// C: C 1808-1812: `static inline int pgtk_is_upper_char (int c)`
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+unsafe fn pgtk_is_upper_char (c: c_int) -> c_int
+{
+  return (c >= 'A' as c_int && c <= 'Z' as c_int) as c_int;
+}
+/// C: C 1814-1818: `static inline int pgtk_is_numeric_char (int c)`
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+unsafe fn pgtk_is_numeric_char (c: c_int) -> c_int
+{
+  return (c >= '0' as c_int && c <= '9' as c_int) as c_int;
+}
+
+/* The GSettings surface, from `<gio/gio.h>`: C 1793's `#ifdef` reaches it through `"gtkutil.h"`
+   26's `<gtk/gtk.h>` chain (C 31).  **GLib and GIO are on this machine**
+   (`/opt/homebrew/include/glib-2.0`, GLib 2.90.0 + the generated `glibconfig.h`), so every
+   declaration below quotes the header and the line it was read from - the `src/xsettings.rs`
+   286-370 segment's shape, which is where this class of names lives today (P-88 ①'s third-party
+   segment; `include/gtk.rs` carries the GLib/GObject half this file already reaches -
+   `g_free`/`g_object_unref`/`TRUE` - and not GIO's, so `docs/ports/pgtkfns.md`'s Owed names this
+   segment as the one to move if that mirror grows a GIO part).  */
+/// C: gio/giotypes.h 61: `typedef struct _GSettings GSettings;` (opaque; C never dereferences it)
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+pub struct _GSettings { _private: [u8; 0] }
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+pub type GSettings = _GSettings;
+/// C: gio/gsettingsschema.h 29-30: `typedef struct _GSettingsSchemaSource
+/// GSettingsSchemaSource;` / `typedef struct _GSettingsSchema GSettingsSchema;` (both opaque)
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+pub struct _GSettingsSchemaSource { _private: [u8; 0] }
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+pub type GSettingsSchemaSource = _GSettingsSchemaSource;
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+pub struct _GSettingsSchema { _private: [u8; 0] }
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+pub type GSettingsSchema = _GSettingsSchema;
+
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+unsafe extern "C" {
+  /// C: gio/gsettingsschema.h 38: `GSettingsSchemaSource *g_settings_schema_source_get_default
+  /// (void);` (C 1904)
+  pub fn g_settings_schema_source_get_default () -> *mut GSettingsSchemaSource;
+  /// C: gio/gsettingsschema.h 51-54: `GSettingsSchema *g_settings_schema_source_lookup
+  /// (GSettingsSchemaSource *source, const gchar *schema_id, gboolean recursive);` (C 1907)
+  pub fn g_settings_schema_source_lookup (source: *mut GSettingsSchemaSource,
+					  schema_id: *const gchar,
+					  recursive: gboolean) -> *mut GSettingsSchema;
+  /// C: gio/gsettingsschema.h 78-80: `gboolean g_settings_schema_has_key (GSettingsSchema *schema,
+  /// const gchar *name);` (C 1910)
+  pub fn g_settings_schema_has_key (schema: *mut GSettingsSchema, name: *const gchar) -> gboolean;
+  /// C: gio/gsettingsschema.h 68: `void g_settings_schema_unref (GSettingsSchema *schema);`
+  /// (C 1912/1918)
+  pub fn g_settings_schema_unref (schema: *mut GSettingsSchema);
+  /// C: gio/gsettings.h 92-95: `GSettings *g_settings_new_full (GSettingsSchema *schema,
+  /// GSettingsBackend *backend, const gchar *path);` (C 1917; C's second argument is `NULL`, and
+  /// `GSettingsBackend` is not named here because C never spells its type at this call site)
+  pub fn g_settings_new_full (schema: *mut GSettingsSchema, backend: *mut c_void,
+			      path: *const gchar) -> *mut GSettings;
+  /// C: gio/gsettings.h 165-166: `gchar *g_settings_get_string (GSettings *settings, const gchar
+  /// *key);` (C 1941)
+  pub fn g_settings_get_string (settings: *mut GSettings, key: *const gchar) -> *mut gchar;
+  /// C: gio/gsettings.h 168-170: `gboolean g_settings_set_string (GSettings *settings, const gchar
+  /// *key, const gchar *value);` (C 1969)
+  pub fn g_settings_set_string (settings: *mut GSettings, key: *const gchar, value: *const gchar)
+				-> gboolean;
+  /// C: gio/gsettings.h 133-134: `void g_settings_reset (GSettings *settings, const gchar *key);`
+  /// (C 1971)
+  pub fn g_settings_reset (settings: *mut GSettings, key: *const gchar);
+}
+
+/// C: C 1820-1821: `static GSettings *parse_resource_key (const char *res_key, char
+/// *setting_key)` - C's `static`, so the file's `unsafe fn` shape.  C 1823's array length is
+/// `PATH_MAX_LEN + RESOURCE_KEY_MAX_LEN` (162); C's `*sp++` in the condition at C 1877 is the
+/// load-then-step pair (the `pbm_next_char` shape, PORTING.md 2.2); C's three `(void) 0;` NOPs
+/// (C 1863/1867/1886/1894) are `let _ = 0;` (C's cast-to-void expression as a statement).
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+unsafe fn parse_resource_key (res_key: *const c_char, setting_key: *mut c_char)
+			      -> *mut GSettings
+{
+  let mut path: [c_char; PATH_MAX_LEN + RESOURCE_KEY_MAX_LEN] =
+    [0; PATH_MAX_LEN + RESOURCE_KEY_MAX_LEN];                   // C 1823
+  let mut sp: *const c_char = res_key;                          // C 1824
+  let mut dp: *mut c_char;                                      // C 1825
+
+  /*
+   * res_key="emacs.cursorBlink"
+   *   -> path="/org/gnu/emacs/defaults-by-name/emacs/"
+   *      setting_key="cursor-blink"
+   *
+   * res_key="Emacs.CursorBlink"
+   *   -> path="/org/gnu/emacs/defaults-by-class/"
+   *      setting_key="cursor-blink"
+   *
+   * Returns GSettings* if setting_key exists in schema, otherwise NULL.
+   */
+
+  /* generate path */
+  if pgtk_is_upper_char (*sp as c_int) != 0                      // C 1840
+    {
+      /* First letter is upper case.  It should be "Emacs",
+       * but don't care.
+       */
+      strcpy (path.as_mut_ptr (), PATH_FOR_CLASS_TYPE);          // C 1845
+      while *sp != '\0' as c_char                                // C 1846
+	{
+	  if *sp == b'.' as c_char
+	    { break; }
+	  sp = sp.offset (1);
+	}
+    }
+  else
+    {
+      strcpy (path.as_mut_ptr (), PATH_PREFIX_FOR_NAME_TYPE);    // C 1855
+      dp = path.as_mut_ptr ().offset (strlen (path.as_ptr ()) as isize);   // C 1856
+      while *sp != '\0' as c_char                                // C 1857
+	{
+	  let mut c: c_int = *sp as c_int;                       // C 1859
+	  if c == b'.' as c_int
+	    { break; }
+	  if pgtk_is_lower_char (c) != 0
+	    { let _ = 0; }		/* lower -> NOP */
+	  else if pgtk_is_upper_char (c) != 0
+	    { c = c - 'A' as c_int + 'a' as c_int; }	/* upper -> lower */
+	  else if pgtk_is_numeric_char (c) != 0
+	    { let _ = 0; }		/* numeric -> NOP */
+	  else
+	    { return std::ptr::null_mut (); }	/* invalid */
+	  *dp = c as c_char;                                     // C 1870
+	  dp = dp.offset (1);
+	  sp = sp.offset (1);
+	}
+      *dp = b'/' as c_char;                                      // C 1873
+      dp = dp.offset (1);		/* must end with '/' */
+      *dp = '\0' as c_char;                                      // C 1874
+    }
+
+  /* C 1877-1878: `if (*sp++ != '.') return NULL;` - the load, the step, then the test (the
+     `pbm_next_char` shape of PORTING.md 2.2).  */
+  let ch: c_char = *sp;
+  sp = sp.offset (1);
+  if ch != b'.' as c_char
+    { return std::ptr::null_mut (); }
+
+  /* generate setting_key */
+  dp = setting_key;                                              // C 1881
+  while *sp != '\0' as c_char                                    // C 1882
+    {
+      let mut c: c_int = *sp as c_int;                           // C 1884
+      if pgtk_is_lower_char (c) != 0
+	{ let _ = 0; }		/* lower -> NOP */
+      else if pgtk_is_upper_char (c) != 0
+	{
+	  c = c - 'A' as c_int + 'a' as c_int;	/* upper -> lower */
+	  if dp != setting_key
+	    {							// C 1891
+	      *dp = b'-' as c_char;	/* store '-' unless first char */
+	      dp = dp.offset (1);
+	    }
+	}
+      else if pgtk_is_numeric_char (c) != 0
+	{ let _ = 0; }		/* numeric -> NOP */
+      else
+	{ return std::ptr::null_mut (); }	/* invalid */
+
+      *dp = c as c_char;                                         // C 1898
+      dp = dp.offset (1);
+      sp = sp.offset (1);
+    }
+  *dp = '\0' as c_char;                                          // C 1901
+
+  /* check existence of setting_key */
+  let ssrc: *mut GSettingsSchemaSource = g_settings_schema_source_get_default ();   // C 1904
+  if ssrc.is_null ()
+    { return std::ptr::null_mut (); }	/* No GSettings schemas installed.  */
+  let scm: *mut GSettingsSchema =
+    g_settings_schema_source_lookup (ssrc, SCHEMA_ID, TRUE);     // C 1907
+  if scm.is_null ()
+    { return std::ptr::null_mut (); }	/* *.schema.xml is not installed. */
+  if g_settings_schema_has_key (scm, setting_key) == 0           // C 1910
+    {
+      g_settings_schema_unref (scm);
+      return std::ptr::null_mut ();
+    }
+
+  /* create GSettings, and return it */
+  let gs: *mut GSettings = g_settings_new_full (scm, std::ptr::null_mut (), path.as_ptr ());
+
+  g_settings_schema_unref (scm);                                 // C 1919
+  return gs;                                                     // C 1920
+}
+
+/// C: C 1923-1924: `static void pgtk_check_resource_key_length (const char *key)`
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+unsafe fn pgtk_check_resource_key_length (key: *const c_char)
+{
+  if strnlen (key, RESOURCE_KEY_MAX_LEN) >= RESOURCE_KEY_MAX_LEN    // C 1926
+    { error (c"Resource key too long".as_ptr ()); }
+}
+
+/// C: C 1930-1931: `const char *pgtk_get_defaults_value (const char *key)` - C's non-`static`
+/// definition (pgtkterm.h 583 declares it), so it carries `#[unsafe(no_mangle)]` (PORTING.md 0.2).
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_get_defaults_value (key: *const c_char) -> *const c_char
+{
+  let mut skey: [c_char; (RESOURCE_KEY_MAX_LEN + 1) * 2] =
+    [0; (RESOURCE_KEY_MAX_LEN + 1) * 2];                         // C 1933
+
+  pgtk_check_resource_key_length (key);                          // C 1935
+
+  let gs: *mut GSettings = parse_resource_key (key, skey.as_mut_ptr ());   // C 1937
+  if gs.is_null ()
+    { return std::ptr::null (); }
+
+  let str_: *mut gchar = g_settings_get_string (gs, skey.as_ptr ());       // C 1941
+
+  /* There is no timing to free str.
+   * So, copy it here and free it.
+   *
+   * MEMO: Resource values for emacs shouldn't need such a long string value.
+   */
+
+  /* C 1948: `static char holder[128];` - C's function-scope static, whose storage duration is the
+     program's.  The port writes Rust's own function-scope `static mut` (zero-initialised once -
+     PORTING.md 0.1-13's tentative-definition half) and takes its address with `addr_of_mut!`
+     instead of a reference (Rust 2024's `static_mut_refs`; the `src/alloc.rs` 588 shape), so the
+     parameter `holder` C passes on is that pointer, exactly as C's array name decays.  */
+  static mut HOLDER: [c_char; 128] = [0; 128];
+  let holder: *mut c_char = std::ptr::addr_of_mut! (HOLDER) as *mut c_char;
+  strncpy (holder, str_, 128);                                   // C 1949
+  *holder.offset (127) = '\0' as c_char;                         // C 1950
+
+  /* C's `g_object_unref (gs)` and `g_free (str)` hand a `GSettings *` and a `gchar *` to
+     `gpointer` parameters; the conversion C makes implicitly is written out (Deviation 5's rule).  */
+  g_object_unref (gs as gpointer);                               // C 1952
+  g_free (str_ as gpointer);                                     // C 1953
+  return if *holder != '\0' as c_char { holder } else { std::ptr::null () };   // C 1954
+}
+
+/// C: C 1957-1958: `static void pgtk_set_defaults_value (const char *key, const char *value)` -
+/// C's `static` (both arms declare it so).
+#[cfg (all (feature = "have_pgtk", feature = "have_gsettings"))]
+unsafe fn pgtk_set_defaults_value (key: *const c_char, value: *const c_char)
+{
+  let mut skey: [c_char; (RESOURCE_KEY_MAX_LEN + 1) * 2] =
+    [0; (RESOURCE_KEY_MAX_LEN + 1) * 2];                         // C 1960
+
+  pgtk_check_resource_key_length (key);                          // C 1962
+
+  let gs: *mut GSettings = parse_resource_key (key, skey.as_mut_ptr ());   // C 1964
+  if gs.is_null ()
+    { error (c"Unknown resource key".as_ptr ()); }               // C 1966
+
+  if !value.is_null ()                                           // C 1968
+    { g_settings_set_string (gs, skey.as_ptr (), value); }
+  else
+    { g_settings_reset (gs, skey.as_ptr ()); }
+
+  g_object_unref (gs as gpointer);                               // C 1973
+}
+
+/* C 1982-1996: the `#else /* not HAVE_GSETTINGS */` arm - the live one in the frozen
+   configuration - which defines the *same two names* the `#if` arm does.  Each keeps its own
+   definition, `#[cfg]`-selected (the `src/image.rs` arm-pair shape).  */
+
+/// C: C 1984-1985: `const char *pgtk_get_defaults_value (const char *key)`
+#[cfg (all (feature = "have_pgtk", not (feature = "have_gsettings")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_get_defaults_value (key: *const c_char) -> *const c_char
+{
+  let _ = key;                 /* C's parameter is unused in this arm (the `src/print.rs` shape).  */
+  return std::ptr::null ();                                    // C 1987
+}
+
+/// C: C 1990-1991: `static void pgtk_set_defaults_value (const char *key, const char *value)`
+#[cfg (all (feature = "have_pgtk", not (feature = "have_gsettings")))]
+unsafe fn pgtk_set_defaults_value (key: *const c_char, value: *const c_char)
+{
+  let _ = (key, value);        /* C's parameters are unused in this arm.  */
+  error (c"gsettings not supported".as_ptr ());                // C 1993
+}
