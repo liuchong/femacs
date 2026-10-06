@@ -448,6 +448,13 @@ unsafe extern "C" {
   /// C 2060/2094: `gdk_monitor_get_geometry (monitor, &rec);`
   /// C: gdk/gdkmonitor.h: `void gdk_monitor_get_geometry (GdkMonitor *monitor, GdkRectangle *geometry);`
   pub fn gdk_monitor_get_geometry (monitor: *mut GdkMonitor, geometry: *mut GdkRectangle);
+  /// C 2351/2389/2474/2524: `scale = pgtk_get_monitor_scale_factor (gdk_monitor_get_model
+  /// (monitor));`
+  /// C: gdk/gdkmonitor.h: `const char *gdk_monitor_get_model (GdkMonitor *monitor);`
+  pub fn gdk_monitor_get_model (monitor: *mut GdkMonitor) -> *const c_char;
+  /// C 2353/2391: `scale = gdk_monitor_get_scale_factor (monitor);`
+  /// C: gdk/gdkmonitor.h: `int gdk_monitor_get_scale_factor (GdkMonitor *monitor);`
+  pub fn gdk_monitor_get_scale_factor (monitor: *mut GdkMonitor) -> c_int;
   /// C 2062: `int mm = gdk_monitor_get_height_mm (monitor);`
   /// C: gdk/gdkmonitor.h: `int gdk_monitor_get_height_mm (GdkMonitor *monitor);`
   pub fn gdk_monitor_get_height_mm (monitor: *mut GdkMonitor) -> c_int;

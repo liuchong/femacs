@@ -283,6 +283,34 @@ macro_rules! can_set_window_size {
 		    ($v) as u32) };
 }
 
+/* C's four `FRAME_CONFIG_SCROLL_BAR_*` macros are l-values in C 2229/2230/2239/2240, and
+   `include/frame.rs` mirrors each as a reader only, so this unit adds C's assignment shape under
+   C's own names (the `src/androidfns.rs` 342-350 / `src/w32fns.rs` 3362-3372 device).  */
+/// C: frame.h 1286: `#define FRAME_CONFIG_SCROLL_BAR_WIDTH(f) ((f)->config_scroll_bar_width)`
+#[cfg (feature = "have_pgtk")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_WIDTH {
+  ($f:expr) => { (*$f).config_scroll_bar_width };
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_width = $v };
+}
+/// C: frame.h 1291: `#define FRAME_CONFIG_SCROLL_BAR_HEIGHT(f) ((f)->config_scroll_bar_height)`
+#[cfg (feature = "have_pgtk")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_HEIGHT {
+  ($f:expr) => { (*$f).config_scroll_bar_height };
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_height = $v };
+}
+/// C: frame.h 1296: `#define FRAME_CONFIG_SCROLL_BAR_COLS(f) ((f)->config_scroll_bar_cols)`
+#[cfg (feature = "have_pgtk")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_COLS {
+  ($f:expr) => { (*$f).config_scroll_bar_cols };
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_cols = $v };
+}
+/// C: frame.h 1301: `#define FRAME_CONFIG_SCROLL_BAR_LINES(f) ((f)->config_scroll_bar_lines)`
+#[cfg (feature = "have_pgtk")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_LINES {
+  ($f:expr) => { (*$f).config_scroll_bar_lines };
+  ($f:expr, $v:expr) => { (*$f).config_scroll_bar_lines = $v };
+}
+
 /// C: pgtkterm.h 284: `extern struct pgtk_display_info *x_display_list;` - the object
 /// `pgtkterm.c` defines and C 86/87/151/155 reads (the `src/pgtkterm.rs` 903 shape: the
 /// declaration is a mirror's, and `include/pgtkterm.rs` has not got it yet).
@@ -545,6 +573,12 @@ unsafe extern "C" {
   /// C: gtkutil.h 181: `extern bool xg_create_frame_widgets (struct frame *f);` - C 1545's call
   /// (`src/gtkutil.rs` 2085 defines it; the mirror `include/gtkutil.rs` owes every `xg_*` row).
   pub fn xg_create_frame_widgets (f: *mut frame) -> bool;
+  /// C 2227/2237: `minw = xg_get_default_scrollbar_width (f);` /
+  /// `min_height = xg_get_default_scrollbar_height (f);`
+  /// C: gtkutil.h 153/154: `extern int xg_get_default_scrollbar_width (struct frame *f);` /
+  /// `extern int xg_get_default_scrollbar_height (struct frame *f);`
+  pub fn xg_get_default_scrollbar_width (f: *mut frame) -> c_int;
+  pub fn xg_get_default_scrollbar_height (f: *mut frame) -> c_int;
   /// C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);` - C 1784-1785's calls
   /// (the mirror `include/frame.rs` has not got it; `src/haikufns.rs` 200-202 declares it the same
   /// way)
@@ -3245,4 +3279,256 @@ DEFUN! ("pgtk-font-name", Fpgtk_font_name, Spgtk_font_name,   // C 2188-2208
   name = build_string (str_);                                   // C 2205
   xfree (str_ as *mut c_void);                                  // C 2206
   return name;                                                  // C 2207
+});
+
+/* ==========================================================================
+
+    Miscellaneous functions not called through hooks
+
+   ========================================================================== */
+
+/* ==========================================================================
+
+   C 2216-2403: `check_x_display_info`, the scroll-bar defaults, the resource
+   accessor and the first seven colour/geometry subrs
+
+   ========================================================================== */
+
+/* C 2216-2221: `check_x_display_info` - C's own "Called from frame.c." comment, a non-`static`
+   definition (so `#[unsafe(no_mangle)]`, PORTING.md 0.2) that answers for the X API by delegating
+   to this file's `check_pgtk_display_info`.  */
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn check_x_display_info (frame: Lisp_Object) -> *mut pgtk_display_info
+{
+  return check_pgtk_display_info (frame);                       // C 2220
+}
+
+/* C 2223-2231: `pgtk_set_scroll_bar_default_width` and C 2233-2241:
+   `pgtk_set_scroll_bar_default_height` - the two non-`static` scroll-bar defaults the frame/scroll
+   bar code calls (pgtkterm.h's own two, C 2223/2233).  C writes the four `FRAME_CONFIG_SCROLL_BAR_*`
+   macros as l-values, so this unit carries C's own two-arm copies of them (Deviation 43).  */
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_set_scroll_bar_default_width (f: *mut frame)
+{
+  let unit: c_int = FRAME_COLUMN_WIDTH (f);                     // C 2226
+  let minw: c_int = xg_get_default_scrollbar_width (f);         // C 2227
+  /* A minimum width of 14 doesn't look good for toolkit scroll bars.  */
+  FRAME_CONFIG_SCROLL_BAR_COLS! (f, (minw + unit - 1) / unit);  // C 2229
+  FRAME_CONFIG_SCROLL_BAR_WIDTH! (f, minw);                     // C 2230
+}
+
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_set_scroll_bar_default_height (f: *mut frame)
+{
+  let height: c_int = FRAME_LINE_HEIGHT (f);                    // C 2236
+  let min_height: c_int = xg_get_default_scrollbar_height (f);  // C 2237
+  /* A minimum height of 14 doesn't look good for toolkit scroll bars.  */
+  FRAME_CONFIG_SCROLL_BAR_HEIGHT! (f, min_height);              // C 2239
+  FRAME_CONFIG_SCROLL_BAR_LINES! (f, (min_height + height - 1) / height);   // C 2240
+}
+
+/* C 2243-2268: `pgtk_get_string_resource` - "Terminals implement this instead of x-get-resource
+   directly."  C's `rdb` is never read (the GSettings path takes only the name and the class), so
+   the port keeps the parameter and discards it (the `src/print.rs` 1693 shape); `inhibit_x_resources`
+   is `emacs.rs` 682's `bool`, and the two resource results are `pgtk_get_defaults_value`'s.  */
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_get_string_resource (rdb: XrmDatabase, name: *const c_char,
+						   class: *const c_char) -> *const c_char
+{
+  let _ = rdb;                     /* C's first parameter is unused in C's own body.  */
+
+  check_window_system (std::ptr::null_mut ());                  // C 2248
+
+  if inhibit_x_resources                                        // C 2250
+    /* --quick was passed, so this is a no-op.  */
+    { return std::ptr::null (); }                               // C 2252
+
+  let mut res: *const c_char = pgtk_get_defaults_value (name);  // C 2254
+  if res.is_null ()                                             // C 2255
+    { res = pgtk_get_defaults_value (class); }                  // C 2256
+
+  if res.is_null ()                                             // C 2258
+    { return std::ptr::null (); }
+
+  if c_strncasecmp (res, c"YES".as_ptr (), 3) == 0              // C 2261
+    { return c"true".as_ptr (); }                               // C 2262
+
+  if c_strncasecmp (res, c"NO".as_ptr (), 2) == 0               // C 2264
+    { return c"false".as_ptr (); }                              // C 2265
+
+  return res;                                                   // C 2267
+}
+
+/* C 2270-2281: `pgtk_get_focus_frame` - the terminal's keyboard-focus frame as a Lisp object
+   (`dpyinfo->x_focus_frame` is `include/pgtkterm.rs` 204's member).  */
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_get_focus_frame (frame: *mut frame) -> Lisp_Object
+{
+  let dpyinfo: *mut pgtk_display_info = FRAME_DISPLAY_INFO! (frame);   // C 2273
+  let mut focus: Lisp_Object;                                        // C 2274
+
+  if (*dpyinfo).x_focus_frame.is_null ()                             // C 2276
+    { return Qnil (); }                                              // C 2277
+
+  XSETFRAME! (focus, (*dpyinfo).x_focus_frame);                      // C 2279
+  return focus;                                                      // C 2280
+}
+
+/* C 2283-2312: `xw-color-defined-p` and `xw-color-values` - the two colour predicates, both
+   through `decode_window_system_frame` + `pgtk_defined_color`; C 2309's `list3i` takes the three
+   `unsigned short` members widened (Deviation 44).  */
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("xw-color-defined-p", Fxw_color_defined_p, Sxw_color_defined_p,   // C 2283-2296
+	1, 2, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(color: Lisp_Object, frame: Lisp_Object),
+	{
+  let mut col: Emacs_Color;                                     // C 2287
+  let f: *mut frame = decode_window_system_frame (frame);       // C 2288
+
+  CHECK_STRING (color);                                         // C 2290
+
+  col = std::mem::zeroed ();
+  /* C 2292's second `false` goes to `pgtk_defined_color`'s `int index` parameter, so C's own
+     token is kept and the promotion written (Deviation 5's rule).  */
+  if pgtk_defined_color (f, SSDATA (color), &raw mut col, false, false as c_int)   // C 2292
+    { return Qt (); }                                           // C 2293
+  else
+    { return Qnil (); }                                         // C 2295
+});
+
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("xw-color-values", Fxw_color_values, Sxw_color_values,   // C 2299-2312
+	1, 2, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(color: Lisp_Object, frame: Lisp_Object),
+	{
+  let mut col: Emacs_Color;                                     // C 2303
+  let f: *mut frame = decode_window_system_frame (frame);       // C 2304
+
+  CHECK_STRING (color);                                         // C 2306
+
+  col = std::mem::zeroed ();
+  if pgtk_defined_color (f, SSDATA (color), &raw mut col, false, false as c_int)   // C 2308
+    { return list3i (col.red as EMACS_INT, col.green as EMACS_INT,   // C 2309
+		     col.blue as EMACS_INT); }
+  else
+    { return Qnil (); }                                         // C 2311
+});
+
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("xw-display-color-p", Fxw_display_color_p, Sxw_display_color_p,   // C 2314-2320
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  check_pgtk_display_info (terminal);                           // C 2318
+  return Qt ();                                                 // C 2319
+});
+
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-grayscale-p", Fx_display_grayscale_p, Sx_display_grayscale_p,   // C 2322-2327
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let _ = terminal;         /* C's parameter is unused in C's own body (no check call).  */
+  return Qt ();                                                 // C 2326
+});
+
+/* C 2329-2365: `x-display-pixel-width` and C 2367-2403: `x-display-pixel-height` - the two
+   monitor walks that scale each monitor's rectangle by the monitor's scale factor and keep the
+   largest right/bottom edge.  C 2354-2357's four assignments are C's double-to-int truncation
+   written out, C 2353's `scale = gdk_monitor_get_scale_factor (monitor)` widens an `int` to
+   `double`, and C 2359's `max` over two `int`s is the mirror's `isize` fold (the `x-display-mm-*`
+   shape, Deviation 38).  */
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-pixel-width", Fx_display_pixel_width, Sx_display_pixel_width,   // C 2329-2365
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut pgtk_display_info = check_pgtk_display_info (terminal);   // C 2333
+  let mut gdpy: *mut GdkDisplay;                                             // C 2334
+  let mut n_monitors: gint;                                                  // C 2335
+  let mut i: gint;
+  let mut width: c_int = 0;                                                  // C 2336
+
+  block_input ();                                                            // C 2338
+  gdpy = (*dpyinfo).gdpy;                                                    // C 2339
+  n_monitors = gdk_display_get_n_monitors (gdpy);                            // C 2340
+
+  i = 0;
+  while i < n_monitors                                                       // C 2342
+    {
+      let mut rec: GdkRectangle = std::mem::zeroed ();                       // C 2344
+      let mut scale: c_double = 1.0;                                         // C 2345
+
+      let monitor: *mut GdkMonitor = gdk_display_get_monitor (gdpy, i);      // C 2347
+      gdk_monitor_get_geometry (monitor, &raw mut rec);                      // C 2348
+
+      /* GTK returns scaled sizes for the workareas.  */
+      scale = pgtk_get_monitor_scale_factor (gdk_monitor_get_model (monitor));   // C 2351
+      if scale == 0.0                                                        // C 2352
+	{ scale = gdk_monitor_get_scale_factor (monitor) as c_double; }      // C 2353
+      rec.x = (rec.x as c_double * scale + 0.5) as c_int;                    // C 2354
+      rec.y = (rec.y as c_double * scale + 0.5) as c_int;                    // C 2355
+      rec.width = (rec.width as c_double * scale + 0.5) as c_int;            // C 2356
+      rec.height = (rec.height as c_double * scale + 0.5) as c_int;          // C 2357
+
+      width = max (width as isize, (rec.x + rec.width) as isize) as c_int;   // C 2359
+      i += 1;
+    }
+
+  unblock_input ();                                                          // C 2362
+
+  return make_fixnum (width as EMACS_INT);                                   // C 2364
+});
+
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-pixel-height", Fx_display_pixel_height, Sx_display_pixel_height,   // C 2367-2403
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut pgtk_display_info = check_pgtk_display_info (terminal);   // C 2371
+  let mut gdpy: *mut GdkDisplay;                                             // C 2372
+  let mut n_monitors: gint;                                                  // C 2373
+  let mut i: gint;
+  let mut height: c_int = 0;                                                 // C 2374
+
+  block_input ();                                                            // C 2376
+  gdpy = (*dpyinfo).gdpy;                                                    // C 2377
+  n_monitors = gdk_display_get_n_monitors (gdpy);                            // C 2378
+
+  i = 0;
+  while i < n_monitors                                                       // C 2380
+    {
+      let mut rec: GdkRectangle = std::mem::zeroed ();                       // C 2382
+      let mut scale: c_double = 1.0;                                         // C 2383
+
+      let monitor: *mut GdkMonitor = gdk_display_get_monitor (gdpy, i);      // C 2385
+      gdk_monitor_get_geometry (monitor, &raw mut rec);                      // C 2386
+
+      /* GTK returns scaled sizes for the workareas.  */
+      scale = pgtk_get_monitor_scale_factor (gdk_monitor_get_model (monitor));   // C 2389
+      if scale == 0.0                                                        // C 2390
+	{ scale = gdk_monitor_get_scale_factor (monitor) as c_double; }      // C 2391
+      rec.x = (rec.x as c_double * scale + 0.5) as c_int;                    // C 2392
+      rec.y = (rec.y as c_double * scale + 0.5) as c_int;                    // C 2393
+      rec.width = (rec.width as c_double * scale + 0.5) as c_int;            // C 2394
+      rec.height = (rec.height as c_double * scale + 0.5) as c_int;          // C 2395
+
+      height = max (height as isize, (rec.y + rec.height) as isize) as c_int;   // C 2397
+      i += 1;
+    }
+
+  unblock_input ();                                                          // C 2400
+
+  return make_fixnum (height as EMACS_INT);                                  // C 2402
 });

@@ -54,10 +54,10 @@ by header:
   `GDK_WATCH`/`GDK_SB_H_DOUBLE_ARROW`/`GDK_SB_V_DOUBLE_ARROW`/`GDK_LEFT_SIDE`/`GDK_RIGHT_SIDE`/
   `GDK_TOP_SIDE`/`GDK_BOTTOM_SIDE`/`GDK_TOP_LEFT_CORNER`/`GDK_TOP_RIGHT_CORNER`/
   `GDK_BOTTOM_RIGHT_CORNER`/`GDK_BOTTOM_LEFT_CORNER`), the event records `GdkEvent`/`GdkEventAny`/`GdkEventKey`/`GdkEventProperty`/
-  `GdkEventSelection`/`GdkEventSequence`, the monitor handle `GdkMonitor` and the five monitor
-  entry points C 2053-2096's two `x-display-mm-*` subrs walk (`gdk_display_get_n_monitors`,
-  `gdk_display_get_monitor`, `gdk_monitor_get_geometry`, `gdk_monitor_get_height_mm`,
-  `gdk_monitor_get_width_mm`), and forty-five entry points.
+  `GdkEventSelection`/`GdkEventSequence`, the monitor handle `GdkMonitor` and the seven monitor
+  entry points the pgtkfns subrs walk (`gdk_display_get_n_monitors`, `gdk_display_get_monitor`,
+  `gdk_monitor_get_geometry`, `gdk_monitor_get_height_mm`, `gdk_monitor_get_width_mm`,
+  `gdk_monitor_get_model`, `gdk_monitor_get_scale_factor`), and forty-seven entry points.
 - **GTK** (`<gtk/gtk.h>`): the opaque handles `GtkWidget`/`GtkWindow`/`GtkMenu`/`GtkImage`/
   `GtkBin`/`GtkContainer`/`GtkLabel`/`GtkMenuShell`/`GtkMenuBar`/`GtkMenuBarClass`/
   `GtkWidgetClass`/`GtkTooltip`/`GtkSettings`/`GtkStyleContext`/`GtkStyle`/`GtkRcStyle`/
@@ -230,3 +230,12 @@ verified the way P-87 ① asks: `tools/check-all-units.sh` reads `checked 83 uni
 with `checking 83 unit(s), 0 unit failure(s)`, beside this file's own `--check` and
 `check-mirror-dupes.py`; the consumer's ledger records the pair (`docs/ports/pgtkfns.md`
 Deviations 36-42).
+
+### status 3.719 (the pgtkfns sixth-slice round this file took part in)
+
+`src/pgtkfns.c`'s two scaling monitor walks (C 2329-2403, `x-display-pixel-width`/`-height`) scale
+each monitor's rectangle by `pgtk_get_monitor_scale_factor (gdk_monitor_get_model (monitor))` and
+fall back to `gdk_monitor_get_scale_factor`, so those two GDK rows landed here (header-only
+citations: no GDK header on this machine).  P-87 ①'s consumer sweep reads `checked 83 unit(s), 0
+failure(s)` with `checking 83 unit(s), 0 unit failure(s)`; the consumer's ledger records the pair
+(`docs/ports/pgtkfns.md` Deviations 43-47 and Evidence ㉔).

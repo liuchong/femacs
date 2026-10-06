@@ -13,10 +13,10 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**3,248** lines, from the 11 of the placeholder), carrying **C 1-1147**,
-> **C 1149-1196**, **C 1197-1752**, **C 1754-1996** and **C 1999-2208** - five slices - with **both
-> arms of every `#if`**; after them the file's next live definition is `check_x_display_info`
-> (**C 2218**).
+> `femacs/src/pgtkfns.rs` (**3,534** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208** and **C 2210-2403** - six
+> slices - with **both arms of every `#if`**; after them the file's next live definition is
+> `Fpgtk_display_monitor_attributes_list` (**C 2405**).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -127,7 +127,8 @@ which exist only under those two features (Owed 6).
 | 1197-1752 | `Fx_create_frame` - the file's largest item: the terminal/display lookup and `check_pgtk_display_info`, the `minibuffer` four-way fork and the `parent_frame` test, the `undecorated`/`override_redirect` reads, the frame's officialisation (`XSETFRAME`, the two css providers, the colour reference-count block, `parent_desc`/`explicit_parent`, the `specbind`), the two font drivers, the parameter chain and `init_frame_faces`, the two `adjust_frame_size` calls, `xg_create_frame_widgets`/`pgtk_set_event_handler` and the fifteen `INSTALL_CURSOR` installs, the frame's own reference counts and `Vframe_list`, the GTK re-parenting and the `GList` walk, `initialize_frame_menubar`/`xg_wm_set_size_hint`, the visibility block, the trailing alist loop and the scale-factor atimer | the file gate - **transcribed** (the third slice; C 1753 is the blank line between it and the restack pair) |
 | 1754-1996 | the restack pair and the GSETTINGS block: C 1754-1757's comment and `pgtk_frame_restack` (C 1758-1764), `DEFUN ("pgtk-frame-restack", …)` with C's own 15-line docstring (C 1766-1791), and C 1793-1996's `#ifdef HAVE_GSETTINGS` region - the five `#define`s, the three `static inline` predicates, `parse_resource_key`, `pgtk_check_resource_key_length`, `pgtk_get_defaults_value`, `pgtk_set_defaults_value`, the five `#undef`s and the `#else` arm's own pair | the file gate plus `have_gsettings` for the `#if` arm (the `#else` arm is the frozen configuration's) - **transcribed** (the fourth slice) |
 | 1999-2208 | the resource subr, the eleven `x-*` display subrs and `pgtk-font-name`: `Fpgtk_set_resource` (C 1999-2019), `x-server-max-request-size`/`x-display-screens` (2022-2039), the two GDK monitor walks `x-display-mm-height`/`x-display-mm-width` (2042-2107), `x-display-backing-store`/`x-display-visual-class`/`x-display-save-under` (2110-2133), `x-open-connection`/`x-close-connection` (2136-2172), `x-display-list` (2175-2186) and `pgtk-font-name` (2188-2208) | the file gate - **transcribed** (the fifth slice) |
-| 2210-3906 | **the remainder of the file** - from C 2210-2214's "Miscellaneous functions" banner and C 2216-2218's `check_x_display_info` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the resource-key helpers and the `HAVE_GSETTINGS` pair (2218-2282), the eleven colour/geometry subrs (2283-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2210-2403 | the miscellaneous group's first five definitions and the first seven colour/geometry subrs: C 2210-2214's banner, `check_x_display_info` (2216-2221), `pgtk_set_scroll_bar_default_width`/`_height` (2223-2241), `pgtk_get_string_resource` (2243-2268), `pgtk_get_focus_frame` (2270-2281) and `xw-color-defined-p`/`xw-color-values`/`xw-display-color-p`/`x-display-grayscale-p`/`x-display-pixel-width`/`x-display-pixel-height` (2283-2403) | the file gate - **transcribed** (the sixth slice) |
+| 2405-3906 | **the remainder of the file** - from C 2405-2407's `Fpgtk_display_monitor_attributes_list` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the monitor-attribute builder (2405-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -465,6 +466,37 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     `checking 83 unit(s), 0 unit failure(s)`, `check-mirror-dupes.py` stays 16/16/0, and
     `docs/ports/include-gtk.md` names all six rows in its GDK/GLib bullets and its new
     `### status 3.718` section.
+
+43. **The four `FRAME_CONFIG_SCROLL_BAR_*` macros are this unit's own two-arm copies.**  C writes
+    all four as l-values (C 2229/2230/2239/2240) and `include/frame.rs` mirrors each as a reader
+    only (1286/1291/1296/1301 in frame.h), so C's assignment shape stands here under C's names - the
+    same device `src/androidfns.rs` 342-350 and `src/w32fns.rs` 3362-3372 use for their own copies.
+44. **C's `unsigned short` colour members widened** (C 2309): `list3i (col.red, col.green, col.blue)`
+    is `list3i (col.red as EMACS_INT, col.green as EMACS_INT, col.blue as EMACS_INT)`, the
+    conversion C makes implicitly (Deviation 5's rule; `Emacs_Color`'s three members are `c_ushort`
+    in `include/dispextern.rs` 28-30 and `list3i` takes `EMACS_INT`).
+45. **C's `false` handed to an `int` parameter is `false as c_int`** (C 2292/2308): C's own
+    `pgtk_defined_color (f, SSDATA (color), &col, false, false)` passes `false` twice, but C's
+    prototype's fifth parameter is `int index` and the mirror keeps that type
+    (`include/pgtkterm.rs`'s declaration, this file's own row 314) while Rust has no implicit
+    conversion.  **Measured**: with a bare second `false` all four arms read **two new `E0308`s**
+    (`expected `i32`, found `bool``, one per call site); `false as c_int` keeps C's token *and*
+    C's value, and the arms return to the single `E0308` they started with (the C 1137
+    `FRAME_SCALE_FACTOR` row).
+46. **C's floating-point conversions in the two monitor walks are written out** (Deviation 5's
+    rule): C 2345/2383's `double scale = 1;` is `1.0`; C 2353/2391's
+    `scale = gdk_monitor_get_scale_factor (monitor)` widens an `int` to `double` and is
+    `… as c_double`; C 2354-2357/2392-2395's four `rec.x = rec.x * scale + 0.5;` assignments
+    truncate a `double` back into an `int` and are `(rec.x as c_double * scale + 0.5) as c_int`
+    (each with C's own expression inside).
+47. **The non-`static` definitions of this slice carry `#[unsafe(no_mangle)]` and C's ABI**
+    (PORTING.md 0.2): `check_x_display_info` (C 2216-2221), `pgtk_set_scroll_bar_default_width`/
+    `_height` (2223-2241), `pgtk_get_string_resource` (2243-2268) and `pgtk_get_focus_frame`
+    (2270-2281), each an `unsafe extern "C" fn` with C's parameter types.  C's unused parameters
+    are `let _ = …;` with C's reason (`pgtk_get_string_resource`'s `rdb`, C 2245 - the GSettings
+    path never reads it - and `x-display-grayscale-p`'s `terminal`, C 2324), and `XrmDatabase`
+    is `include/pgtkterm.rs`'s (xlib.h's record, reached through this file's ungated `xlib.rs`
+    edge).
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -845,3 +877,62 @@ an `error`), no monitor was enumerated (`gdk_display_get_n_monitors` is a declar
 no GDK to link), and `pgtk-font-name` never converted anything (`pgtk_xlfd_to_fontname` is a
 declaration of `pgtkfont.c`'s definition).  All four arm readings are **compile** readings of text
 this machine cannot build.
+
+## The sixth slice (C 2210-2403): the miscellaneous group's first five definitions and seven subrs
+
+**㉓ What is in it.**  C 2210-2214's own banner ("Miscellaneous functions not called through
+hooks", carried as the Rust block comment that heads this slice); C 2216-2221's
+`check_x_display_info` (C's "Called from frame.c." comment, delegating to this file's
+`check_pgtk_display_info`); C 2223-2231's `pgtk_set_scroll_bar_default_width` and C 2233-2241's
+`pgtk_set_scroll_bar_default_height` (the `FRAME_COLUMN_WIDTH`/`FRAME_LINE_HEIGHT` unit, the
+`xg_get_default_scrollbar_*` minima and the four `FRAME_CONFIG_SCROLL_BAR_*` writes); C 2243-2268's
+`pgtk_get_string_resource` (the `check_window_system` gate, `inhibit_x_resources`, the two
+`pgtk_get_defaults_value` lookups and the `YES`/`NO` translations); C 2270-2281's
+`pgtk_get_focus_frame`; and the seven colour/geometry subrs C 2283-2403: `xw-color-defined-p`,
+`xw-color-values`, `xw-display-color-p`, `x-display-grayscale-p` and the two scaling monitor walks
+`x-display-pixel-width`/`x-display-pixel-height` (each multiplying the monitor's rectangle by
+`pgtk_get_monitor_scale_factor (gdk_monitor_get_model (monitor))`, falling back to
+`gdk_monitor_get_scale_factor`, and keeping the largest right/bottom edge).  Rust: 3,248 ->
+**3,534** lines.
+
+**㉔ The arm readings (four arms, both sides of the slice).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 151 errors / 11 warnings -> 156 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets   : 139 / 10 -> 144 / 10
+C = A + have_gsettings                             : 151 / 11 -> 156 / 11
+D = B + have_gsettings                             : 139 / 10 -> 144 / 10
+```
+All four arms read the same delta: **+4 sites of the `pgtk_display_info` class and +1 of the
+`pgtk_output` class**, both already named by this ledger (the six `*mut pgtk_display_info`
+declarations and `pgtk_get_focus_frame`'s single `FRAME_DISPLAY_INFO!` expansion - attributed the
+Evidence ⑩ way: exactly four and one of the `in this macro invocation` notes fall inside the new
+text), with **no new class and no new warning**.  The first run read **+2 `E0308`**: C 2292/2308's
+second `false` goes to `pgtk_defined_color`'s `int index` parameter and Rust has no implicit
+conversion (Deviation 45).
+
+**㉕ `extract-abi.py --check`.**  `FAIL`, **83 `- ` rows -> 72**: five `missing function` rows retire
+(`check_x_display_info`, `pgtk_get_focus_frame`, `pgtk_get_string_resource`,
+`pgtk_set_scroll_bar_default_height`, `pgtk_set_scroll_bar_default_width`) and six `missing subr`
+rows (`Fxw_color_defined_p`/`xw-color-defined-p`, `Fxw_color_values`, `Fxw_display_color_p`,
+`Fx_display_grayscale_p`, `Fx_display_pixel_width`, `Fx_display_pixel_height`), no row appears, and
+the line-count row moves 16.8% -> **9.5%** (C 3,906 vs Rust 3,534).
+
+**㉖ The gates, P-87's two legs, and what is not claimed.**  `check-declarations.py` **18
+declaration sites (0 forbidden, 18 allowed literals), 0 failures**; `check-citations.py` **676
+file(s) scanned, 0 drift, 0 range, 2,040 external, 36 allowed, 0 stale**;
+`check-dead-file-coverage.py` **145 ledger(s) bound, 0 failure(s)** (56 range rows now cover
+src/pgtkfns.c); `check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s), 0 ratchet
+row(s), 0 new, 0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**;
+`check-cond-eval.py src/pgtkfns.c` **11 conditions, 0 unknown, 0 disagreements [VERIFIED]**;
+`check-mirror-dupes.py` **16 duplicate(s), 16 ratchet row(s), 0 failure(s)**.  **A mirror changed
+this round** (`include/gtk.rs` gains `gdk_monitor_get_model` and `gdk_monitor_get_scale_factor` -
+the two GDK calls the scaling walks make; no GDK header exists here, so both cite the header alone),
+so P-87 ①'s consumer sweep was run: `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0
+unit failure(s)`, and the mirror's ledger names both rows and carries a `status 3.719` section.
+**Not claimed**: no display was opened (`check_x_display_info` delegates to a function whose
+`pgtk_display_info` record does not exist in the port), no scroll-bar default was computed
+(`xg_get_default_scrollbar_*` are declarations of `gtkutil.c`'s definitions), no string resource was
+looked up (`pgtk_get_defaults_value` is this file's own, and the frozen arm answers `error`), and no
+monitor was enumerated.  All four arm readings are **compile** readings of text this machine cannot
+build.
