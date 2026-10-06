@@ -17724,9 +17724,17 @@ pub const XEMBED_VERSION: c_int = 0;
 /// C 29150-29162: `static void xembed_set_info (struct frame *f, enum xembed_info flags)` -
 /// `static` (its caller is `x_make_frame_visible` below), so a plain `unsafe fn`; the gate is
 /// C 29144's, and `XChangeProperty` is the bare Xlib class the ledger's `## Owed` list keeps.
+///
+/// **PORTING.md P-98: C's parameter is `enum xembed_info`, and the port's is `c_int`.**  C's enum
+/// (C 1139-1142) declares `XEMBED_MAPPED = 1` alone, but its third caller passes **0** (C 29441,
+/// `x_make_frame_invisible`) - a value no member of that enum has.  C's enum name is a *spelling*
+/// and the value that flows through it is an integer; a Rust `#[repr(C)] enum` can only hold its
+/// declared discriminants, and `transmute`/`as` an out-of-range discriminant is an invalid value
+/// (P-98, 3.642's `dump_reloc_set_type` is the worked example).  So the parameter is `c_int` and
+/// the two `XEMBED_MAPPED` call sites spell C's enumerator with `as c_int`.
 #[cfg (all (feature = "have_x_windows",
 	  any (feature = "use_x_toolkit", not (feature = "use_gtk"))))]
-unsafe fn xembed_set_info (f: *mut frame, flags: xembed_info)
+unsafe fn xembed_set_info (f: *mut frame, flags: c_int)
 {
   use crate::x11_constants::PropModeReplace;
 
@@ -17881,7 +17889,7 @@ pub unsafe extern "C" fn x_make_frame_visible (f: *mut frame)
 #[cfg (feature = "use_x_toolkit")]
 	  {
 	  if FRAME_X_EMBEDDED_P! (f)                                    // C 29275
-	    { xembed_set_info (f, xembed_info::XEMBED_MAPPED); }             // C 29276
+	    { xembed_set_info (f, xembed_info::XEMBED_MAPPED as c_int); }             // C 29276
 	    else
 	    {
 	      /* This was XtPopup, but that did nothing for an iconified frame.  */
@@ -17896,7 +17904,7 @@ pub unsafe extern "C" fn x_make_frame_visible (f: *mut frame)
 #[cfg (all (not (feature = "use_x_toolkit"), not (feature = "use_gtk")))]
 	  {
 	  if FRAME_X_EMBEDDED_P! (f)                                    // C 29287
-	    { xembed_set_info (f, xembed_info::XEMBED_MAPPED); }             // C 29288
+	    { xembed_set_info (f, xembed_info::XEMBED_MAPPED as c_int); }             // C 29288
 	    else
 	    { XMapRaised (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f)); }      // C 29290
 	  }
@@ -18030,4 +18038,106 @@ pub const MapNotify: c_int = 19;
 #[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   pub fn frame_size_history_plain (f: *mut frame, name: Lisp_Object);
+}
+
+/* Change from mapped state to withdrawn state.  */
+
+/* Make the frame visible (mapped and not iconified).  */
+
+/// C 29406-29472: `void x_make_frame_invisible (struct frame *f)` - non-`static` and declared in
+/// xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  C 29435-29443
+/// leaves the `XWithdrawWindow` arm *shared* between the `USE_GTK` arm and the XEmbed arm
+/// (`else`, `#else`, `#endif`, then one statement); Rust has no preprocessor `else`-continuation,
+/// so each arm carries that arm once (Decision 48).  `x_wm_set_size_hint` is defined later in this
+/// file (C 30159) and `XWithdrawWindow`/`DefaultScreen`/`gtk_widget_hide` are the recorded bare-name
+/// class (`## Owed`), so those calls stand as names (`E0425`).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_make_frame_invisible (f: *mut frame)
+{
+  let mut window: Window;                                               // C 29409
+
+  /* Use the frame's outermost window, not the one we normally draw on.  */
+  window = FRAME_OUTER_WINDOW! (f);                                     // C 29412
+
+  /* Don't keep the highlight on an invisible frame.  */
+  if (*FRAME_DISPLAY_INFO! (f)).highlight_frame == f                    // C 29415
+    { (*FRAME_DISPLAY_INFO! (f)).highlight_frame = std::ptr::null_mut (); }  // C 29416
+
+  block_input ();                                                       // C 29418
+
+#[cfg (feature = "have_xinput2_2")]
+  {
+    /* Remove any touch points associated with F.  */
+    xi_unlink_touch_points (f);                                         // C 29422
+  }
+
+  /* Before unmapping the window, update the WM_SIZE_HINTS property to claim
+     that the current position of the window is user-specified, rather than
+     program-specified, so that when the window is mapped again, it will be
+     placed at the same location, without forcing the user to position it
+     by hand again (they have already done that once for this window.)  */
+  x_wm_set_size_hint (f, 0, true);                                      // C 29430
+
+  if !FRAME_PARENT_FRAME (f).is_null ()                                 // C 29432
+    { x_suspend_background_fills (FRAME_PARENT_FRAME (f)); }            // C 29433
+
+#[cfg (feature = "use_gtk")]
+  {
+    if !FRAME_GTK_OUTER_WIDGET! (f).is_null ()                          // C 29436
+      { gtk_widget_hide (FRAME_GTK_OUTER_WIDGET! (f)); }                // C 29437
+    else if XWithdrawWindow (FRAME_X_DISPLAY! (f), window,              // C 29445-29446
+			     DefaultScreen (FRAME_X_DISPLAY! (f))) == 0
+      {
+	unblock_input ();                                               // C 29448
+	error (c"Can't notify window manager of window withdrawal".as_ptr ());  // C 29449
+      }
+  }
+#[cfg (not (feature = "use_gtk"))]
+  {
+    if FRAME_X_EMBEDDED_P! (f)                                          // C 29440
+      { xembed_set_info (f, 0); }                                       // C 29441
+    else if XWithdrawWindow (FRAME_X_DISPLAY! (f), window,              // C 29445-29446
+			     DefaultScreen (FRAME_X_DISPLAY! (f))) == 0
+      {
+	unblock_input ();                                               // C 29448
+	error (c"Can't notify window manager of window withdrawal".as_ptr ());  // C 29449
+      }
+  }
+
+  if !FRAME_PARENT_FRAME (f).is_null ()                                 // C 29452
+    { x_restore_background_fills (FRAME_PARENT_FRAME (f)); }            // C 29453
+
+  /* Don't perform the synchronization if the network connection is
+     slow, and the user says it is unwanted.  */
+  if NILP (Vx_lax_frame_positioning)                                    // C 29457
+    { XSync (FRAME_X_DISPLAY! (f), 0); }                                // C 29458
+
+  /* We can't distinguish this from iconification
+     just by the event that we get from the server.
+     So we can't win using the usual strategy of letting
+     FRAME_SAMPLE_VISIBILITY set this.  So do it by hand,
+     and synchronize with the server to make sure we agree.  */
+  SET_FRAME_VISIBLE! (f, false);                                        // C 29465
+  SET_FRAME_ICONIFIED (f, false as c_int);                              // C 29466
+
+  if CONSP (frame_size_history)                                         // C 29468
+    {
+    frame_size_history_plain                                            // C 29469
+		  (f, build_string (c"x_make_frame_invisible".as_ptr ()));
+    }
+
+  unblock_input ();                                                     // C 29471
+}
+
+/// C 29474-29481: `static void x_make_frame_visible_invisible (struct frame *f, bool visible)` -
+/// C's `static`, so a plain `unsafe fn`; its caller is `x_make_frame_visible_invisible`'s own name
+/// in the dispatch tables of the window-system layer, not a call inside this file.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_make_frame_visible_invisible (f: *mut frame, visible: bool)
+{
+  if visible                                                            // C 29477
+    { x_make_frame_visible (f); }
+  else
+    { x_make_frame_invisible (f); }
 }
