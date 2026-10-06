@@ -23894,3 +23894,209 @@ unsafe fn xt_horizontal_action_hook (widget: Widget, client_data: XtPointer, act
 }
 
 /* C 15537's `#endif /* not USE_GTK */` closes this block.  */
+
+/* Protect WINDOW from garbage collection until a matching scroll bar
+   message is received.  Return whether or not protection
+   succeeded.  */
+
+/* C 15542-15553: `static bool x_protect_window_for_callback (struct x_display_info *dpyinfo,
+   Lisp_Object window)` - C's `static`, so a plain `unsafe fn`.  Two shapes: C 15546-15547's test
+   reads the three `x_display_info` members `include/xterm.rs` does not carry
+   (`protected_windows`/`n_protected_windows`/`protected_windows_max`, C 936-938) - the registered
+   `E0609` class the `mark_xterm` row already reads - and C 15550's
+   `protected_windows[n_protected_windows++] = window;` is the file's load-then-step pair (the
+   index is the *old* count, the increment follows), written where C writes it.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+unsafe fn x_protect_window_for_callback (dpyinfo: *mut x_display_info,
+					     window: Lisp_Object) -> bool
+{
+  if (*dpyinfo).n_protected_windows + 1                                 // C 15546-15547
+      >= (*dpyinfo).protected_windows_max
+    { return false; }                                                   // C 15548
+
+  *(*dpyinfo).protected_windows.offset ((*dpyinfo).n_protected_windows as isize)  // C 15550
+    = window;
+  (*dpyinfo).n_protected_windows += 1;  /* C 15550's post-increment */
+  return true;                                                          // C 15552
+}
+
+/* C 15555-15572: `static Lisp_Object x_unprotect_window_for_callback (struct x_display_info
+   *dpyinfo)` - the queue's other side.  C 15563's `protected_windows[0]` is a pointer read (C 936's
+   member is `Lisp_Object *`), the decrement is written after the read as C has it, and C
+   15568-15569's `memmove` keeps the shape this file already uses at C 26438
+   (`.offset (1) as *const c_void` and `size_of::<Lisp_Object> () * n`).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+unsafe fn x_unprotect_window_for_callback (dpyinfo: *mut x_display_info) -> Lisp_Object
+{
+  let mut window: Lisp_Object;                                          // C 15558
+
+  if (*dpyinfo).n_protected_windows == 0                                // C 15560
+    { return Qnil (); }                                                 // C 15561
+
+  window = *(*dpyinfo).protected_windows;                               // C 15563
+
+  (*dpyinfo).n_protected_windows -= 1;                                  // C 15565
+
+  if (*dpyinfo).n_protected_windows != 0                                // C 15567
+    {
+      memmove ((*dpyinfo).protected_windows as *mut c_void,             // C 15568-15569
+	       (*dpyinfo).protected_windows.offset (1) as *const c_void,
+	       std::mem::size_of::<Lisp_Object> ()
+		 * (*dpyinfo).n_protected_windows as usize);
+    }
+
+  return window;                                                        // C 15571
+}
+
+/* Send a client message with message type Xatom_Scrollbar for a
+   scroll action to the frame of WINDOW.  PART is a value identifying
+   the part of the scroll bar that was clicked on.  PORTION is the
+   amount to scroll of a whole of WHOLE.  */
+
+/* C 15579-15625: `static void x_send_scroll_bar_event (Lisp_Object window, enum scroll_bar_part
+   part, int portion, int whole, bool horizontal)` - C's `static`, and the definition C 15410-15411
+   forward-declared (slice 69's note).  Four shapes: C 15584's `XClientMessageEvent *ev =
+   &event.xclient;` is the mirror's `XEvent` placeholder (a 192-byte `_private` array, its 33
+   members owed - `include/xlib.rs` 1181), so the member is the registered `E0609` class and every
+   `ev->…` write after it is suppressed by that error; C 15587's `static_assert` is the mirror's
+   `static_assert!` (`lib/include/verify.rs` 148, reached through `lisp.h` - the gate's own reading,
+   this file declares no copy), whose `INTPTR_WIDTH` is `lib/include/stdint.in.rs` 325's constant;
+   C 15596-15611's field writes keep `part`/`portion`/`whole` as C's `int`/enum (the member's own
+   type is the placeholder's, so no width can be stated - recorded); and C 15614-15617's
+   `#ifdef USE_X_TOOLKIT` pair is a cfg'd block (`toolkit_scroll_bar_interaction` and
+   `x_activate_timeout_atimer`, the latter still unlanded).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+unsafe fn x_send_scroll_bar_event (window: Lisp_Object, part: scroll_bar_part,
+				   portion: c_int, whole: c_int, horizontal: bool)
+{
+  use crate::x11_constants::{ClientMessage, NoEventMask};
+
+  let mut event: XEvent = std::mem::zeroed ();                          // C 15583
+  let ev: *mut XClientMessageEvent = &raw mut event.xclient;            // C 15584
+  let w: *mut window = XWINDOW (window);                                // C 15585
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 15586
+  static_assert! (INTPTR_WIDTH <= 64);                                  // C 15587
+
+  /* Don't do anything if too many scroll bar events have been
+     sent but not received.  */
+  if !x_protect_window_for_callback (FRAME_DISPLAY_INFO! (f), window)   // C 15591
+    { return; }                                                         // C 15592
+
+  block_input ();                                                       // C 15594
+  /* Construct a ClientMessage event to send to the frame.  */
+  (*ev).r#type = ClientMessage;                                         // C 15596
+  (*ev).message_type = if horizontal                                     // C 15597-15599
+			{ (*FRAME_DISPLAY_INFO! (f)).Xatom_Horizontal_Scrollbar }
+			else { (*FRAME_DISPLAY_INFO! (f)).Xatom_Scrollbar };
+  (*ev).display = FRAME_X_DISPLAY! (f);                                 // C 15600
+  (*ev).window = FRAME_X_WINDOW! (f);                                   // C 15601
+  (*ev).format = 32;                                                    // C 15602
+
+  /* These messages formerly contained a pointer to the window, but
+     now that information is kept internally.  The following two
+     fields are thus zero.  */
+  (*ev).data.l[0] = 0;                                                  // C 15607
+  (*ev).data.l[1] = 0;                                                  // C 15608
+  (*ev).data.l[2] = part;                                               // C 15609
+  (*ev).data.l[3] = portion;                                            // C 15610
+  (*ev).data.l[4] = whole;                                              // C 15611
+
+  /* Make Xt timeouts work while the scroll bar is active.  */
+  #[cfg (feature = "use_x_toolkit")]
+  {
+    toolkit_scroll_bar_interaction = true;                              // C 15615
+    x_activate_timeout_atimer ();                                       // C 15616
+  }
+
+  /* Setting the event mask to zero means that the message will
+     be sent to the client that created the window, and if that
+     window no longer exists, no event will be sent.  */
+  XSendEvent (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), false,          // C 15622-15623
+	      NoEventMask, &raw mut event);
+  unblock_input ();                                                     // C 15624
+}
+
+/* Transform a scroll bar ClientMessage EVENT to an Emacs input event
+   in *IEVENT.  */
+
+/* C 15631-15661: `static void x_scroll_bar_to_input_event (struct x_display_info *dpyinfo, const
+   XEvent *event, struct input_event *ievent)` - C's `static`.  C 15652-15656's `ievent->kind` and
+   `ievent->part` are the mirror's one `bits` unit (`termhooks.h` 373-412's `kind : 16` and
+   `part : 16`), so both go through this unit's `input_event_bits!` accessor (PORTING.md P-80);
+   `EVENT_INIT` is the mirror's function (`include/termhooks.rs` 135); `SCROLL_BAR_CLICK_EVENT` is
+   `include/termhooks.rs`'s constant; and the two `event->xclient.data.l[…]` reads are the same
+   placeholder-member class as C 15584's pointer.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+unsafe fn x_scroll_bar_to_input_event (dpyinfo: *mut x_display_info, event: *const XEvent,
+					  ievent: *mut input_event)
+{
+  let mut window: Lisp_Object;                                          // C 15636
+
+  /* Every time a scroll bar ClientMessage event is sent, the window
+     is pushed onto a queue that is traced for garbage collection.
+     Every time we need a window for a read scroll bar event, we
+     simply read from the other side of the queue.  */
+  window = x_unprotect_window_for_callback (dpyinfo);                   // C 15642
+
+  if NILP (window)                                                      // C 15644
+    {
+      /* This means we are getting extra scroll bar events for some
+	 reason, and shouldn't be possible in practice.  */
+      EVENT_INIT (ievent);                                              // C 15648
+      return;                                                           // C 15649
+    }
+
+  input_event_bits! (kind, ievent, SCROLL_BAR_CLICK_EVENT);             // C 15652
+  (*ievent).frame_or_window = window;                                   // C 15653
+  (*ievent).arg = Qnil ();                                              // C 15654
+  (*ievent).timestamp = x_get_last_toolkit_time (dpyinfo);              // C 15655
+  (*ievent).code = 0;                                                   // C 15656
+  input_event_bits! (part, ievent, (*event).xclient.data.l[2]);         // C 15657
+  (*ievent).x = make_fixnum ((*event).xclient.data.l[3]);               // C 15658
+  (*ievent).y = make_fixnum ((*event).xclient.data.l[4]);               // C 15659
+  (*ievent).modifiers = 0;                                              // C 15660
+}
+
+/* Transform a horizontal scroll bar ClientMessage EVENT to an Emacs
+   input event in *IEVENT.  */
+
+/* C 15666-15696: `static void x_horizontal_scroll_bar_to_input_event (struct x_display_info
+   *dpyinfo, const XEvent *event, struct input_event *ievent)` - the twin above; the only
+   differences C has are C 15687's `HORIZONTAL_SCROLL_BAR_CLICK_EVENT` (also
+   `include/termhooks.rs`'s) and C 15666's name.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+unsafe fn x_horizontal_scroll_bar_to_input_event (dpyinfo: *mut x_display_info,
+						   event: *const XEvent,
+						   ievent: *mut input_event)
+{
+  let mut window: Lisp_Object;                                          // C 15671
+
+  /* Every time a scroll bar ClientMessage event is sent, the window
+     is pushed onto a queue that is traced for garbage collection.
+     Every time we need a window for a read scroll bar event, we
+     simply read from the other side of the queue.  */
+  window = x_unprotect_window_for_callback (dpyinfo);                   // C 15677
+
+  if NILP (window)                                                      // C 15679
+    {
+      /* This means we are getting extra scroll bar events for some
+	 reason, and shouldn't be possible in practice.  */
+      EVENT_INIT (ievent);                                              // C 15683
+      return;                                                           // C 15684
+    }
+
+  input_event_bits! (kind, ievent, HORIZONTAL_SCROLL_BAR_CLICK_EVENT);  // C 15687
+  (*ievent).frame_or_window = window;                                   // C 15688
+  (*ievent).arg = Qnil ();                                              // C 15689
+  (*ievent).timestamp = x_get_last_toolkit_time (dpyinfo);              // C 15690
+  (*ievent).code = 0;                                                   // C 15691
+  input_event_bits! (part, ievent, (*event).xclient.data.l[2]);         // C 15692
+  (*ievent).x = make_fixnum ((*event).xclient.data.l[3]);               // C 15693
+  (*ievent).y = make_fixnum ((*event).xclient.data.l[4]);               // C 15694
+  (*ievent).modifiers = 0;                                              // C 15695
+}
