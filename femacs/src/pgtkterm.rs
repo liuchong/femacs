@@ -6551,6 +6551,12 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn gdk_event_free (event: *mut GdkEvent);
 }
+/* <gdk/gdkevents.h>: `GdkEvent *gdk_event_copy (const GdkEvent *event);` - the C 6212 call, the
+   same header and the same use-site convention as the row above.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gdk_event_copy (event: *const GdkEvent) -> *mut GdkEvent;
+}
 
 /* This function is called when the last frame on a display is deleted. */
 
@@ -6758,6 +6764,9 @@ pub type GtkCallback = Option<unsafe extern "C" fn (widget: *mut GtkWidget, data
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
   pub fn gtk_window_present_with_time (window: *mut GtkWindow, timestamp: guint32);
+/* <gtk/gtkwindow.h>: `void gtk_window_present (GtkWindow *window);` - the C 6155 call (the
+   same header's plain entry point; the row above it is the timed one).  */
+  pub fn gtk_window_present (window: *mut GtkWindow);
   pub fn gtk_widget_set_opacity (widget: *mut GtkWidget, opacity: c_double);
   pub fn gtk_widget_queue_resize_no_redraw (widget: *mut GtkWidget);
   pub fn gtk_container_foreach (container: *mut GtkContainer, callback: GtkCallback,
@@ -8774,6 +8783,9 @@ unsafe fn motion_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent,
 /// mirror may not own it (P-90 7) and this unit keeps its own row - the `GDK_NOTIFY_INFERIOR` shape
 /// of the forty-sixth slice.  The value is a **placeholder** and joins Owed 21's round.
 #[cfg (feature = "have_pgtk")]
+pub const GDK_BUTTON_PRESS: GdkEventType = 4;
+
+#[cfg (feature = "have_pgtk")]
 pub const GDK_BUTTON_RELEASE: GdkEventType = 7;
 
 /// C 6072-6094: `static Lisp_Object construct_mouse_click (struct input_event *result, const
@@ -8805,4 +8817,166 @@ unsafe fn construct_mouse_click (result: *mut input_event, event: *mut GdkEventB
   (*result).device = pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f),
 						event as *mut GdkEvent);  // C 6091-6092
   return Qnil ();                                                       // C 6093
+}
+
+/* C: dispextern.h 3667-3668: `extern Lisp_Object handle_tab_bar_click (struct frame *, int, int,
+   bool, int);` - the C 6179 call; frame.h 1911: `extern bool frame_ancestor_p (struct frame *af,
+   struct frame *df);` - the C 6149 call.  Neither mirror carries a row (`include/window.rs` and
+   `include/frame.rs` were read for them), so both stand here at the use site with C's own
+   prototypes (P-88 ①), the frame argument in the `*mut c_void` wording this unit's
+   `note_mouse_highlight` row already uses.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn handle_tab_bar_click (f: *mut c_void, x: c_int, y: c_int, down_p: bool,
+			       modifiers: c_int) -> Lisp_Object;
+  pub fn frame_ancestor_p (af: *mut frame, df: *mut frame) -> bool;
+}
+
+/// C 6096-6226: `static gboolean button_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - `static` with its address taken at C 6884 (`G_CALLBACK (button_event)`), so a
+/// plain `unsafe fn` that the C 6831 slice converts (the `motion_notify_event` shape).  The body is
+/// `motion_notify_event`'s sibling in this file: the same touch-screen guard, the same two GNOME
+/// comments, and C's `(device = …) && …` in a block again.  C's `bool` locals are the port's `bool`,
+/// C's `NULL`/`0` are `std::ptr::null_mut ()`, the `double` -> `int` coordinate conversions and the
+/// `event->button.time` comparison are written out (`as c_int`, `as Time`), and `grabbed` is C's
+/// `int` field (`include/pgtkterm.rs` 194) so C 6207/6215's `1 << button` is converted (`as c_int`).
+#[cfg (feature = "have_pgtk")]
+unsafe fn button_event (widget: *mut GtkWidget, event: *mut GdkEvent,
+			user_data: *mut gpointer) -> gboolean
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6100
+  let mut f: *mut frame;                                                // C 6101
+  let mut frame: *mut frame;                                            // C 6101
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 6102
+
+  /* If we decide we want to generate an event to be seen
+     by the rest of Emacs, we put it here.  */
+  let mut tab_bar_p: bool = false;                                      // C 6106
+  let mut tool_bar_p: bool = false;                                     // C 6107
+  let mut tab_bar_arg: Lisp_Object = Qnil ();                           // C 6108
+  let mut device: *mut GdkDevice;                                       // C 6109
+
+  /* Ignore emulated pointer events generated from a touch screen
+     event.  */
+  if gdk_event_get_pointer_emulated (event) != 0                        // C 6113
+      /* The event must not have emerged from a touch device either, as
+         GDK does not set pointer_emulated in events generated on
+         Wayland as on X, and as the X Input Extension specifies.  */
+      || { device = gdk_event_get_source_device (event);                // C 6117
+	   !device.is_null ()
+	     && gdk_device_get_source (device) == GDK_SOURCE_TOUCHSCREEN }  // C 6118
+    { return false as gboolean; }                                       // C 6119
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 6121
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 6122
+  inev.ie.arg = Qnil ();                                                // C 6123
+
+  /* ignore double click and triple click. */
+  if (*event).r#type != GDK_BUTTON_PRESS
+      && (*event).r#type != GDK_BUTTON_RELEASE                         // C 6126
+    { return true as gboolean; }                                        // C 6127
+
+  frame = pgtk_any_window_to_frame (gtk_widget_get_window (widget));    // C 6129
+  dpyinfo = FRAME_DISPLAY_INFO! (frame);                                // C 6130
+
+  (*dpyinfo).last_mouse_glyph_frame = std::ptr::null_mut ();            // C 6132
+
+  if gui_mouse_grabbed (dpyinfo)                                        // C 6134
+    { f = (*dpyinfo).last_mouse_frame; }                                // C 6135
+  else
+    {
+      f = pgtk_any_window_to_frame (gtk_widget_get_window (widget));    // C 6138
+
+      if !f.is_null () && (*event).button.r#type == GDK_BUTTON_PRESS    // C 6140
+	  && FRAME_NO_ACCEPT_FOCUS (f) == 0                              // C 6141
+	{
+	  /* When clicking into a child frame or when clicking
+	     into a parent frame with the child frame selected and
+	     `no-accept-focus' is not set, select the clicked
+	     frame.  */
+	  let mut hf: *mut frame = (*dpyinfo).highlight_frame;          // C 6147
+
+	  if !FRAME_PARENT_FRAME (f).is_null ()                         // C 6149
+	      || (!hf.is_null () && frame_ancestor_p (f, hf))
+	    {
+	      block_input ();                                           // C 6151
+	      gtk_widget_grab_focus (FRAME_GTK_WIDGET! (f));            // C 6152
+
+	      if !FRAME_GTK_OUTER_WIDGET! (f).is_null ()                // C 6154
+		{ gtk_window_present (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f))); }  // C 6155
+	      unblock_input ();                                         // C 6156
+	    }
+	}
+    }
+
+  /* Set the last user time, used to activate the frame in
+     pgtk_focus_frame.  */
+  (*dpyinfo).last_user_time = (*event).button.time;                     // C 6163
+
+  if !f.is_null ()                                                      // C 6165
+    {
+      /* Is this in the tab-bar?  */
+      if WINDOWP ((*f).tab_bar_window)                                  // C 6168
+	  && WINDOW_TOTAL_LINES (XWINDOW ((*f).tab_bar_window)) != 0    // C 6169
+	{
+	  let mut window: Lisp_Object;                                  // C 6171
+	  let mut x: c_int = (*event).button.x as c_int;                // C 6172
+	  let mut y: c_int = (*event).button.y as c_int;                // C 6173
+
+	  window = window_from_coordinates
+	    (f as *mut c_void, x, y, std::ptr::null_mut (), true, true, true);  // C 6175
+	  tab_bar_p = EQ (window, (*f).tab_bar_window);                 // C 6176
+
+	  if tab_bar_p                                                  // C 6178
+	    { tab_bar_arg = handle_tab_bar_click
+		(f as *mut c_void, x, y, (*event).r#type == GDK_BUTTON_PRESS,
+		 pgtk_gtk_to_emacs_modifiers (dpyinfo,
+					      (*event).button.state as c_int)); }  // C 6179-6181
+	}
+
+      if !(tab_bar_p && NILP (tab_bar_arg)) && !tool_bar_p              // C 6184
+	{
+	  if ignore_next_mouse_click_timeout != 0                       // C 6186
+	    {
+	      if (*event).r#type == GDK_BUTTON_PRESS                    // C 6188
+		  && (*event).button.time as Time
+		     > ignore_next_mouse_click_timeout                      // C 6189
+		{
+		  ignore_next_mouse_click_timeout = 0;                  // C 6191
+		  construct_mouse_click (&raw mut inev.ie,
+					 &raw mut (*event).button, f);  // C 6192
+		}
+	      if (*event).r#type == GDK_BUTTON_RELEASE                   // C 6194
+		{ ignore_next_mouse_click_timeout = 0; }                // C 6195
+	    }
+	  else
+	    { construct_mouse_click (&raw mut inev.ie,
+				     &raw mut (*event).button, f); }    // C 6198
+
+	  if !NILP (tab_bar_arg)                                        // C 6200
+	    { inev.ie.arg = tab_bar_arg; }                              // C 6201
+	}
+    }
+
+  if (*event).r#type == GDK_BUTTON_PRESS                                 // C 6205
+    {
+      (*dpyinfo).grabbed |= (1 << (*event).button.button) as c_int;      // C 6207
+      (*dpyinfo).last_mouse_frame = f;                                   // C 6208
+
+      if !(*dpyinfo).last_click_event.is_null ()                         // C 6210
+	{ gdk_event_free ((*dpyinfo).last_click_event); }                // C 6211
+      (*dpyinfo).last_click_event = gdk_event_copy (event);              // C 6212
+    }
+  else
+    { (*dpyinfo).grabbed &= ! ((1 << (*event).button.button) as c_int); }  // C 6215
+
+  /* Ignore any mouse motion that happened before this event;
+     any subsequent mouse-movement Emacs events should reflect
+     only motion after the ButtonPress/Release.  */
+  if !f.is_null ()                                                       // C 6220
+    { mouse_moved! (f, false); }                                         // C 6221
+
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT              // C 6223
+    { evq_enqueue (&raw mut inev); }                                     // C 6224
+  return true as gboolean;                                               // C 6225
 }
