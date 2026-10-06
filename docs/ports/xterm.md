@@ -5757,7 +5757,7 @@ text; which arm each probe compiles is stated above.
 `x_handle_pending_selection_requests` (C 12558-12570), `x_push_selection_request` (C 12572-12581),
 `x_detect_pending_selection_requests` (C 12583-12587), `x_clear_dnd_action` (C 12589-12593),
 `x_dnd_delete_action_list` (C 12595-12617), `x_dnd_lose_ownership` (C 12619-12630) and
-`x_dnd_process_quit` (C 12632-12683).  Rust 21,698 -> 21,894 lines.
+`x_dnd_process_quit` (C 12632-12683).  Rust 21,698 -> 21,897 lines.
 
 **What the probes read.**  Baseline = HEAD's unit (slice 56's commit) with the same arm: A 727 / 69,
 B 746 / 70, C 778 / 71.
@@ -5782,7 +5782,7 @@ returns arm A to 727 / 69.
 **What `--check` reads.**  **75 -> 67**: the eight functions retire as missing items and the two
 token rows the slice brings (`true` for C's `while (true)`, `xfree` for the mirror's
 `xfree_wrapper`) are closed by `docs/ports/macro-body-notes.tsv` rows.  The line-count row moves to
-21,894 against C's 33,125 (33.9% drift).
+21,897 against C's 33,125 (33.9% drift).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no selection request was
 queued, no property was deleted and no drag was torn down.
