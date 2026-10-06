@@ -139,6 +139,34 @@ remainder row now splits at C 11983 and the table still tiles C 1-21215);
 `check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new,
 0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**, 0 row(s) without a
 ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0 disagreements**.
+**⑩ Slice 15's readings.**  `cargo run -q -p xtask -- build-tu src/sfnt.c` -> exit 0, **336
+bytes**, md5 `dbed68837694579185377dbb0821ab62` (still the empty object - a syntax reading).
+**The arm flip reads 0 errors at HEAD and 0 after this slice**: slice 14 closed the flip's last
+`E0425`, so this slice cannot move that reading and does not claim to.  What it adds is measured two
+other ways.  (i) **The object, symbol by symbol**: `probe src/sfnt.rs … --emit obj` produces a
+**90,168-byte** Mach-O object whose `nm -g` defines **`_sfnt_interpret_control_value_program`** and
+**`_sfnt_interpret_font_program`** - the two C symbols, i.e. the `cfg_attr`'s `no_mangle` doing
+what C's `TEST_STATIC` does outside the TEST arm - and whose `nm -u` shows the three plain
+`setjmp`/`longjmp` references the unit now needs: `_setjmp` (Mach-O's underscore for the C name
+`setjmp`, this slice's), `_longjmp` (C's `longjmp`, C 6556's) and `__setjmp` (the C name `_setjmp`,
+the lisp.rs mirror's `sys_setjmp`).  That is where the fresh C measurement is used:
+a three-line programme (`int f (jmp_buf b) { return setjmp (b); }` and the same for `longjmp`)
+prints `_setjmp`/`_longjmp`, so C's plain `setjmp` binds the C name `setjmp`.  (ii)
+`python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **5 rows** (7
+before): `missing function` **6 -> 4** (`sfnt_interpret_simple_glyph` and the three compound-glyph
+interpreters), no `missing macro` row, and the line-count row **16,872 -> 16,987** Rust lines
+against C's 21,215, **19.9%** (was 20.5%).  All four `probe` runs are **clean** - 0 errors - and
+they are (i) the new text's first run, (ii) the `--emit obj` variant whose `nm` readings are above,
+(iii) the HEAD baseline (0 errors, which is what slice 14's delivery reads), and (iv) the delivered
+revision after the header comment was rewritten (a comments-only edit: the reading is repeated
+rather than carried over).
+The other gates: `check-declarations.py` **17 declaration sites (0 forbidden, 17 allowed
+literals), 0 failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range, 2029
+external, 36 allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound (a C range
+table), 0 failure(s)**; `check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s);
+0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**,
+0 row(s) without a ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0
+disagreements**.
 ## Deviations`.  Port: `femacs/src/sfnt.rs` (13,174 lines, `grep -c ''`; `extract-abi.py`'s
 > own count, 13,174, is the same newline count), both arms of every `#if` carried — except the
 > macros C 6559-8159, whose Rust home is inside the functions that call them (P-57; the range
@@ -360,9 +388,9 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 | 10664-11101 | the shift and interpolate instructions: C 10665-10667's comment with `sfnt_interpret_shz` (C 10669-10699), C 10701-10703's with `sfnt_interpret_shc` (C 10705-10780), C 10782-10788's with `sfnt_interpret_shp` (C 10790-10825), C 10827-10845's four point-access macros with C 10847-10947's `IUP_SINGLE_PAIR ()`, and C 10949-10952's with `sfnt_interpret_iup_1` (C 10955-11046, whose four `goto`s are three labelled blocks - Deviation 78 (c)) and `sfnt_interpret_iup` (C 11058-11101) | file gate; the five macros are in-function copies (P-57) - **transcribed** (slice 10) |
 | 11103-11395 | C 11103-11110's comment with `sfnt_interpret_mirp` (C 11113-11235), C 11237-11255's with `sfnt_project_zp1_zp0_org` (C 11257-11293, whose C 11275 `goto project_normally` is a labelled block) and C 11295-11302's with `sfnt_interpret_mdrp` (C 11305-11382) | file gate - **transcribed** (slice 11) |
 | 11396-11983 | `sfnt_interpret_run` (C 11396-11983, C's `static`; C 11384-11394's comment belongs to it) **and the C 6559-8159 instruction macros, which are its in-function `macro_rules!` copies** (P-57: C's file-scope macros name this caller's `interpreter`, `is_prep` and labels - 142 names, `comm`-checked both ways), C 11420's `switch (opcode)` as the port's `match` (146 arms plus C 11949's `default:`) | file gate - **transcribed** (slice 14) |
-| 11984-12115 | C 11984's blank line and the two commented programme entries: `sfnt_interpret_font_program` (**the next live definition**, C 11985-12011 - the comment at C 11985-11994 and the `TEST_STATIC` definition at C 11995) and `sfnt_interpret_control_value_program` (C 12013-12115) | not this slice (`sfnt_interpret_run` is now landed; these two are next) |
+| 11984-12115 | the two programme entries: C 11984's blank, C 11985-11994's comment and the `TEST_STATIC` `sfnt_interpret_font_program` (C 11995-12011), then C 12012's blank, C 12013-12021's comment and the `TEST_STATIC` `sfnt_interpret_control_value_program` (C 12023-12082, whose C 12048-12059 comment and C 12061-12077 graphics-state reversion block are carried whole), and finally C 12083's blank, C 12084's form feed and C 12086-12115's two comment blocks (the "Glyph hinting." banner and the instructed-outline-decomposition note that belongs to C 12116's function, transcribed by slice 13) | file gate; `TEST_STATIC` on both entries - **transcribed** (slice 15) |
 | 12116-12295 | the instructed-outline helpers: `sfnt_decompose_instructed_outline` (C 12117-12166, whose two `goto fail`s are one labelled block), the `TEST_STATIC` builder `sfnt_build_instructed_outline` (C 12176-12243) and `sfnt_compute_phantom_points` (C 12258-12295) | file gate; `TEST_STATIC` on the builder - **transcribed** (slice 13) |
-| 12296-12494 | `sfnt_interpret_simple_glyph` (C 12305-12494) and the blank/comments around it (C 12297-12304) | not this slice (it calls `sfnt_interpret_run`) |
+| 12296-12494 | `sfnt_interpret_simple_glyph` (**the next live definition**, C 12305-12494) and the blank/comments around it (C 12297-12304) | not this slice (its callee `sfnt_interpret_run` is now landed) |
 | 12495-12566 | `sfnt_transform_f26dot6` (C 12496-12566), the 26.6 twin of the ported `sfnt_transform_coordinates` (C 2551-2618, `sfnt_transform_f26dot6`'s three callers are in the compound-glyph interpreters) | file gate - **transcribed** (slice 13) |
 | 12567-13369 | the three compound-glyph interpreters: C 12568-12589's comment and `sfnt_interpret_compound_glyph_2` (C 12591-12749), `sfnt_interpret_compound_glyph_1` (C 12751-13228) and the `TEST_STATIC` `sfnt_interpret_compound_glyph` (C 13230-13369) | not this slice (all three call `sfnt_interpret_run`) |
 | 13370-13915 | the variation-selector and table-mapping block, taken **out of order** (the two UVS readers `sfnt_read_default_uvs_table` (C 13375-13438) and `sfnt_read_nondefault_uvs_table` (C 13445-13512), `sfnt_compare_table_offsets` (C 13517-13530), `sfnt_create_uvs_context` (C 13543-13701) and `sfnt_free_uvs_context` (C 13706-13717), the two comparators `sfnt_compare_uvs_mapping` (C 13723-13737) / `sfnt_compare_unicode_value_range` (C 13742-13757), `sfnt_variation_glyph_for_char` (C 13765-13776), `sfnt_is_character_default` (C 13782-13791), and C 13795's `#if defined HAVE_MMAP && !defined TEST` arm with `sfnt_map_table` (C 13815-13856) / `sfnt_unmap_table` (C 13862-13865) plus C 13871's `#ifndef TEST` arm with `sfnt_read_table` (C 13880-13915)) | file gate; `TEST_STATIC` on the four readers, and `not (feature = "test")` on the three functions C puts inside `#ifndef TEST` - **transcribed** (slice 12) |
@@ -1450,6 +1478,21 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     initialised - `SPVTL`'s, `SFVTL`'s and `SDPVTL`'s `vector` (`std::mem::zeroed ()`) and
     `SHPIX`'s `dx`/`dy` (`0`) - are the eight `E0381`s the third `probe` run reads (each of those
     four macros is expanded twice).
+83. **Slice 15's three shapes.**  (a) **C's plain `setjmp` is declared and called by C's own
+    name**: `<setjmp.h>` has no mirror in this tree (the ruling C 6556's `longjmp` already got), so
+    the declaration stands at C 37's site with the other P-88 ① prototypes; the three-line C
+    measurement above says what the reference binds (`nm -u` prints `_setjmp`/`_longjmp`, Mach-O's
+    underscore for the C identifiers `setjmp`/`longjmp`), and the port's
+    `setjmp (&raw mut (*interpreter).trap)` calls the same symbol rather than the `sigsetjmp` pair.
+    (b) **Both entries are `TEST_STATIC` in C**: the port's `#[cfg_attr (not (feature = "test"),
+    unsafe (no_mangle))] pub unsafe extern "C" fn` shape (slice 1's eleven readers' shape), whose
+    non-TEST arm the `nm -g` reading above measures as the two C symbols.  (c) **C's implicit
+    conversions are written out**: the interpreters' `num_instructions` is `uint16_t` where
+    `sfnt_fpgm_table`/`sfnt_prep_table`'s is `usize` (`as uint16_t`, two sites), C 12044's
+    `instruct_control & 2` is `((*interpreter).state.instruct_control & 2) != 0` (the file's
+    `& N` spelling), the two `NULL`s are `std::ptr::null_mut ()`/`std::ptr::null ()` by pointee
+    constness, and C 12080's `sizeof *state` is `std::mem::size_of_val (&*state)` (Deviation 17's
+    place spelling).
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
 1. **`TEST_STATIC`'s Rust form** — either a `docs/ports/excluded-macros.txt` row (`kind=syntax`,
@@ -1739,15 +1782,16 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
 ### Not claimed
 
 Every line of these slices is behind gates the frozen configuration leaves false: **① is an
-empty object and the arm reading (②) produced a 36,240-byte object that nothing ran**, so there is
+empty object, the arm reading (②) produced a 36,240-byte object and slice 15's `--emit obj`
+object is 90,168 bytes - all three read by the compiler and never by a running program**, so there is
 **no runtime evidence of any kind** for this port — no font was opened, no cmap subtable was
 parsed, no table directory was read, no glyph was outlined, no hmtx/name/meta/cvt/fpgm/prep table
 was read, no `read`/`lseek` returned a byte this port can claim to have interpreted, and no 26.6
-value was ever rounded, floored or scaled.  C 11984-12115, C 12296-12494, C 12567-13369 and C 16448-21215 are **not ported here**; the 7
-`- missing …` lines the delivered `--check` reads (6 missing functions and the line-count row;
-24 before this slice's 16 token notes and its `TEST_STATIC` exclusion land) and the 20.5% drift
-are that boundary (slice 14 moved it from 146 rows and 29.6%, taking C 11396-11983 together with
-C 6559-8159's macros as its in-function copies).  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
+value was ever rounded, floored or scaled.  C 12296-12494, C 12567-13369 and C 16448-21215 are **not ported here**; the 5
+`- missing …` lines the delivered `--check` reads (4 missing functions and the line-count row)
+and the 19.9% drift are that boundary (slice 15 moved it from 7 rows and 20.5%, taking
+C 11984-12115 - the two programme entries, the unit's last `setjmp`-bearing definitions before the
+glyph-hinting group).  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
 compile-level and were measured by the compiler, not by a running program; so is the whole
 `feature = "no_ndebug"` arm (nothing flips it yet — Owed 8), and so are the four `MAYBE_UNUSED
 TEST_STATIC` readers' TEST arm and C's `#ifdef TEST` hooks in the remainder (Owed 9, Owed 12).

@@ -52,12 +52,16 @@
 // a label at its *definition* site, measured).  C 11420's `switch (opcode)` is the port's `match`
 // (146 arms in C's order plus C 11949's `default:`), and C's `break` - which leaves the switch -
 // is the dispatch's `loop` (`next_instruction`/`skip_step` are the two labelled blocks around it).
-// **What is left after slice 14** is C 11984-12115 (the two program entries that call
-// `sfnt_interpret_run`), C 12305-12494's `sfnt_interpret_simple_glyph` and C 12591-13369's three
-// compound-glyph interpreters, and C 16448-21215, the TEST programme (the ledger's Owed 21);
-// C 9832's `sfnt_interpret_call` call is now satisfied - slice 14 lands the `sfnt_interpret_run`
-// that its `E0425` named, which is what the arm flip's 0-error reading measures (P-91 ④'s item
-// closes).  The ledger
+// **Slice 15 takes C 11984-12115** - the two programme entries, `sfnt_interpret_font_program`
+// (C 11995-12011) and `sfnt_interpret_control_value_program` (C 12023-12082): both are
+// `TEST_STATIC` (this file's `cfg_attr`), both open with C's plain `setjmp` (the declaration
+// stands at C 37's site above; on this target the C name `setjmp` is the symbol `nm -u` prints as
+// `_setjmp`, re-measured), and the second carries C 12061-12077's graphics-state reversion block
+// whole.  This is also where C 9832's `sfnt_interpret_call` call is satisfied end to end: slice 14
+// landed the `sfnt_interpret_run` its `E0425` named, and this slice lands its two callers.
+// **What is left after slice 15** is C 12305-12494's `sfnt_interpret_simple_glyph`, C 12591-13369's
+// three compound-glyph interpreters, and C 16448-21215, the TEST programme (the ledger's Owed 21).
+// The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
 //
@@ -175,16 +179,20 @@ include!("../lib/include/unistd.in.rs");               // C 36: `#include <unist
 include!("../lib/include/sys_types.in.rs");            // unistd.h 40: `#include <sys/types.h>` (off_t)
 /* C 37's `#include <setjmp.h>`: this tree has no setjmp mirror, and the member it exists for
    (`struct sfnt_interpreter`'s `trap`, sfnt.h 2010) is lisp.rs 1058's 192-byte array type.
-   C 1-1112 names neither.  C 6556's `longjmp` is this tree's first *plain* one (image.c's two go
-   through C's own `sys_longjmp` spelling), so the name stands here with C's own prototype (P-88
-   ①).  **Measured, not assumed**: a program calling `setjmp`/`longjmp` on this target links
-   `_setjmp`/`_longjmp` in `nm -u`'s notation - i.e. the two plain functions, *not* the
-   `_setjmp`/`_longjmp` pair `lisp.rs` 3618/3623's `sys_*` wrappers call - and
-   `sizeof (jmp_buf)` prints **192**, which is the array width lisp.rs 1068 declares.  */
+   C 1-1112 names neither; C 6556's `longjmp` is this tree's first *plain* one (image.c's two go
+   through C's own `sys_longjmp` spelling) and C 11999's `setjmp` is the first of that name, so
+   both stand here with C's own prototypes (P-88 ①).  **Measured, not assumed**: a three-line
+   programme calling `setjmp`/`longjmp` on this target links `_setjmp`/`_longjmp` in `nm -u`'s
+   notation - which is Mach-O's leading underscore for the C names `setjmp`/`longjmp`, i.e. the
+   two plain functions and *not* the `sigsetjmp` pair (`3.702` re-measured both names; the
+   earlier reading of this paragraph stands) - and `sizeof (jmp_buf)` prints **192**, which is
+   the array width lisp.rs 1068 declares.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 unsafe extern "C" {
   /// C: `<setjmp.h>`'s `void longjmp (jmp_buf, int) __attribute__((noreturn));`
   pub fn longjmp (env: *mut jmp_buf, val: c_int) -> !;
+  /// C: `<setjmp.h>`'s `extern int setjmp (jmp_buf);` - the declaration C 11999 binds.
+  pub fn setjmp (env: *mut jmp_buf) -> c_int;
 }
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 include!("../lib/include/errno.in.rs");                // C 38: `#include <errno.h>`
@@ -16869,4 +16877,111 @@ unsafe fn sfnt_interpret_run (interpreter: *mut sfnt_interpreter,
       }
       continue;
     }
+}
+
+/* Execute the font program FPGM using INTERPRETER.
+   This must only be called once per interpreter, else behavior is
+   undefined.
+
+   Value is NULL upon success, else it is a string describing the
+   reason for failure.
+
+   The caller must save the graphics state after interpreting the font
+   program and restore it prior to instructing each glyph.  */
+
+/* C 11995's `TEST_STATIC const char *` is the file's `cfg_attr` shape, and C 11999 is the unit's
+   first `setjmp` call: the declaration stands at C 37's site above with its own note.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_interpret_font_program (interpreter: *mut sfnt_interpreter,
+						      fpgm: *mut sfnt_fpgm_table)
+  -> *const c_char                                       // C 11995-12011
+{
+  if setjmp (&raw mut (*interpreter).trap) != 0           // C 11999
+    { return (*interpreter).trap_reason; }               // C 12000
+
+  /* Set up the interpreter to evaluate the font program.  */
+  (*interpreter).IP = 0;                                 // C 12003
+  (*interpreter).SP = (*interpreter).stack;              // C 12004
+  (*interpreter).instructions = (*fpgm).instructions;    // C 12005
+  (*interpreter).num_instructions = (*fpgm).num_instructions as uint16_t;   // C 12006
+  (*interpreter).glyph_zone = std::ptr::null_mut ();     // C 12007
+
+  sfnt_interpret_run (interpreter, SFNT_RUN_CONTEXT_FONT_PROGRAM);   // C 12009
+  return std::ptr::null ();                              // C 12010
+}
+
+/* Execute the control value program PREP using INTERPRETER.
+
+   Return NULL and the graphics state after the execution of the
+   program in *STATE, or a string describing the reason for a failure
+   to interpret the program.
+
+   The caller must save the graphics state after interpreting the
+   control value program and restore it prior to instructing each
+   glyph.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_interpret_control_value_program (interpreter: *mut sfnt_interpreter,
+							       prep: *mut sfnt_prep_table,
+							       state: *mut sfnt_graphics_state)
+  -> *const c_char                                       // C 12023-12082
+{
+  if setjmp (&raw mut (*interpreter).trap) != 0           // C 12028
+    { return (*interpreter).trap_reason; }               // C 12029
+
+  /* Set up the interpreter to evaluate the control value program.  */
+  (*interpreter).IP = 0;                                 // C 12032
+  (*interpreter).SP = (*interpreter).stack;              // C 12033
+  (*interpreter).instructions = (*prep).instructions;    // C 12034
+  (*interpreter).num_instructions = (*prep).num_instructions as uint16_t;   // C 12035
+  (*interpreter).glyph_zone = std::ptr::null_mut ();     // C 12036
+
+  sfnt_interpret_run (interpreter,                       // C 12038-12039
+		      SFNT_RUN_CONTEXT_CONTROL_VALUE_PROGRAM);
+
+  /* If instruct_control & 2, then changes to the graphics state made
+     in this program should be reverted.  */
+
+  if ((*interpreter).state.instruct_control & 2) != 0    // C 12044
+    { sfnt_init_graphics_state (&raw mut (*interpreter).state); }   // C 12045
+  else
+    {
+      /* And even if not, reset the following graphics state
+	 variables, to which both the Apple and MS scalers don't
+	 permit modifications from the preprogram.
+
+         Not only is such reversion undocumented, it is also
+         inefficient, for modern fonts at large only move points on
+         the Y axis.  As such, these fonts must issue a redundant
+         SVTCA[Y] instruction within each glyph program, in place of
+         initializing the projection and freedom vectors once and for
+         all in prep.  Unfortunately many fonts which do instruct on
+         the X axis now rely on this ill-conceived behavior, so Emacs
+         must, reluctantly, follow suit.  */
+
+      (*interpreter).state.dual_projection_vector.x = 0o40000; /* 1.0 */
+      (*interpreter).state.dual_projection_vector.y = 0;         // C 12062
+      (*interpreter).state.freedom_vector.x = 0o40000; /* 1.0 */
+      (*interpreter).state.freedom_vector.y = 0;                 // C 12064
+      (*interpreter).state.projection_vector.x = 0o40000; /* 1.0 */
+      (*interpreter).state.projection_vector.y = 0;              // C 12066
+      (*interpreter).state.rp0 = 0;                              // C 12067
+      (*interpreter).state.rp1 = 0;                              // C 12068
+      (*interpreter).state.rp2 = 0;                              // C 12069
+      (*interpreter).state.zp0 = 1;                              // C 12070
+      (*interpreter).state.zp1 = 1;                              // C 12071
+      (*interpreter).state.zp2 = 1;                              // C 12072
+      (*interpreter).state.r#loop = 1;                           // C 12073
+
+      /* Validate the graphics state.  */
+      sfnt_validate_gs (&raw mut (*interpreter).state);          // C 12076
+    }
+
+  /* Save the graphics state upon success.  */
+  memcpy (state as *mut c_void,                          // C 12080
+	  &raw mut (*interpreter).state as *const c_void,
+	  std::mem::size_of_val (&*state));
+  return std::ptr::null ();                              // C 12081
 }
