@@ -13,6 +13,11 @@
 pub const HUGE_VAL: c_double = c_double::INFINITY;
 /// C: math.h 751: `#define M_PI        3.14159265358979323846264338327950288   /* pi             */`
 pub const M_PI: c_double = 3.14159265358979323846264338327950288;
+/// C: math.h 752: `#define M_PI_2      1.57079632679489661923132169163975144   /* pi/2           */`
+/// - the C 1798 `cairo_arc` argument (`src/pgtkterm.rs` declares the four cairo entry points;
+/// the sibling lane's `src/xterm.rs` 7320 spells the same widening and had no declaration to
+/// reach, its `use_cairo` arm never being compiled).
+pub const M_PI_2: c_double = 1.57079632679489661923132169163975144;
 /// FP_ILOGB0 is INT_MIN on this target (floatfns.c's HAIKU block is the only user).
 pub const FP_ILOGB0: c_int = -2147483648;
 

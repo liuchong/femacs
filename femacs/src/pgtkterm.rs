@@ -2332,3 +2332,230 @@ unsafe fn pgtk_draw_glyphless_glyph_string_foreground (s: *mut glyph_string)
      function returns.  */
   (*s).char2b = std::ptr::null_mut ();                                  // C 1661
 }
+
+/* Brightness beyond which a color won't have its highlight brightness
+   boosted.
+
+   Nominally, highlight colors for `3d' faces are calculated by
+   brightening an object's color by a constant scale factor, but this
+   doesn't yield good results for dark colors, so for colors who's
+   brightness is less than this value (on a scale of 0-65535) have an
+   use an additional additive factor.
+
+   The value here is set so that the default menu-bar/mode-line color
+   (grey75) will not have its highlights changed at all.  */
+/// C 1675: `#define HIGHLIGHT_COLOR_DARK_BOOST_LIMIT 48000` - a value, so the port writes the
+/// constant the extractor reads it as (the `src/xterm.rs` 10773 shape; xterm.c 9568-9580 keeps the
+/// same 48000 with the same comment).
+#[cfg (feature = "have_pgtk")]
+pub const HIGHLIGHT_COLOR_DARK_BOOST_LIMIT: c_int = 48000;
+
+/* Compute a color which is lighter or darker than *PIXEL by FACTOR or
+   DELTA.  Try a color with RGB values multiplied by FACTOR first.  If
+   this produces the same color as PIXEL, try a color where all RGB
+   values have DELTA added.  Return the computed color in *PIXEL.  F
+   is the frame to act on.  */
+/// C 1684-1746: `static void pgtk_compute_lighter_color (struct frame *f, unsigned long *pixel,
+/// double factor, int delta)` - C's `Emacs_Color color, new;`, its `long bright`, the two
+/// `new.pixel` folds and the closing store.  C's three `min (0xffff, factor * color.<channel>)`
+/// calls are the f64 -> `isize` truncation the sibling lane writes (`src/xterm.rs` 10795-10797,
+/// where C's `min`/`max` are lisp.h's `EMACS_INT` pair, so both operands and the result are
+/// spelled out); `bright` is C's `int` arithmetic widened to `c_long`; each fold's `unsigned
+/// short` channel takes the `c_int` promotion C's `>>`/`<<` implies - no sibling has the fold
+/// (`w32term.c` 1626's `w32_alloc_lighter_color` builds `PALETTERGB (...)` and `xterm.rs`'s
+/// allocator calls `x_alloc_nearest_color`), so the spelling is this unit's and `src/data.rs`
+/// 2837-2908 is the tree's `<< 16` idiom.  C's comments are carried verbatim.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_compute_lighter_color (f: *mut frame, pixel: *mut c_ulong, factor: c_double,
+					      delta: c_int)
+{
+  let mut color: Emacs_Color = core::mem::zeroed ();                     // C 1688
+  let mut new: Emacs_Color = core::mem::zeroed ();                       // C 1688
+  let mut bright: c_long;                                                // C 1689
+
+  /* Get RGB color values.  */
+  color.pixel = *pixel;                                                  // C 1692
+  pgtk_query_color (f, &raw mut color);                                  // C 1693
+
+  /* Change RGB values by specified FACTOR.  Avoid overflow!  */
+  eassert! (factor >= 0.0);                                              // C 1696
+  new.red = min (0xffff, (factor * color.red as c_double) as isize) as c_ushort;      // C 1697
+  new.green = min (0xffff, (factor * color.green as c_double) as isize) as c_ushort;  // C 1698
+  new.blue = min (0xffff, (factor * color.blue as c_double) as isize) as c_ushort;    // C 1699
+
+  /* Calculate brightness of COLOR.  */
+  bright = ((2 * color.red as c_int + 3 * color.green as c_int           // C 1702
+		     + color.blue as c_int) / 6) as c_long;
+
+  /* We only boost colors that are darker than
+     HIGHLIGHT_COLOR_DARK_BOOST_LIMIT.  */
+  if bright < HIGHLIGHT_COLOR_DARK_BOOST_LIMIT as c_long                 // C 1706
+    /* Make an additive adjustment to NEW, because it's dark enough so
+       that scaling by FACTOR alone isn't enough.  */
+    {
+      /* How far below the limit this color is (0 - 1, 1 being darker).  */
+      let dimness: c_double = 1.0 - bright as c_double                   // C 1711
+			/ HIGHLIGHT_COLOR_DARK_BOOST_LIMIT as c_double;
+      /* The additive adjustment.  */
+      let min_delta: c_int = (delta as c_double * dimness * factor / 2.0) as c_int;  // C 1713
+
+      if factor < 1.0                                                    // C 1715
+		{
+		  new.red = max (0, new.red as isize - min_delta as isize) as c_ushort;    // C 1717
+		  new.green = max (0, new.green as isize - min_delta as isize) as c_ushort;   // C 1718
+		  new.blue = max (0, new.blue as isize - min_delta as isize) as c_ushort;     // C 1719
+		}
+      else
+		{
+		  new.red = min (0xffff, min_delta as isize + new.red as isize) as c_ushort;   // C 1723
+		  new.green = min (0xffff, min_delta as isize + new.green as isize) as c_ushort;  // C 1724
+		  new.blue = min (0xffff, min_delta as isize + new.blue as isize) as c_ushort;    // C 1725
+		}
+    }
+
+  new.pixel = (new.red as c_int >> 8 << 16                               // C 1729
+		       | new.green as c_int >> 8 << 8
+		       | new.blue as c_int >> 8) as c_ulong;
+
+  if new.pixel == *pixel                                                 // C 1733
+    {
+      /* If we end up with the same color as before, try adding
+	 delta to the RGB values.  */
+      new.red = min (0xffff, delta as isize + color.red as isize) as c_ushort;     // C 1737
+      new.green = min (0xffff, delta as isize + color.green as isize) as c_ushort; // C 1738
+      new.blue = min (0xffff, delta as isize + color.blue as isize) as c_ushort;   // C 1739
+      new.pixel = (new.red as c_int >> 8 << 16                           // C 1740
+			   | new.green as c_int >> 8 << 8
+			   | new.blue as c_int >> 8) as c_ulong;
+    }
+
+  *pixel = new.pixel;                                                    // C 1745
+}
+
+/* C: cairo.h 906-907: `cairo_public void cairo_move_to (cairo_t *cr, double x, double y);` - the
+   C 1756 and C 1797 calls (this machine's cairo header; `src/image.rs` 470-473 carries the same
+   row).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_move_to (cr: *mut cairo_t, x: c_double, y: c_double);
+}
+/* C: cairo.h 912-913: `cairo_public void cairo_line_to (cairo_t *cr, double x, double y);` - the
+   C 1757-1759 calls.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_line_to (cr: *mut cairo_t, x: c_double, y: c_double);
+}
+/* C: cairo.h 921-925: `cairo_public void cairo_arc (cairo_t *cr, double xc, double yc, double
+   radius, double angle1, double angle2);` - the C 1798 call.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_arc (cr: *mut cairo_t, xc: c_double, yc: c_double, radius: c_double,
+		    angle1: c_double, angle2: c_double);
+}
+/* C: cairo.h 995-996: `cairo_public void cairo_fill (cairo_t *cr);` - the C 1760 and C 1802 calls
+   (`src/ftcrfont.rs` 287 carries the same row).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_fill (cr: *mut cairo_t);
+}
+
+/// C 1748-1762: `static void pgtk_fill_trapezoid_for_relief (struct frame *f, unsigned long
+/// color, int x, int y, int width, int height, int top_p)` - `pgtk_begin_cr_clip`/
+/// `pgtk_set_cr_source_with_color`/`pgtk_end_cr_clip` come from the mirror
+/// (`include/pgtkterm.rs` 681-690), and C's `top_p ? x : x + height` is the port's `if top_p != 0`
+/// with the two `cairo` coordinates widened to `c_double` (`src/xterm.rs` 7248-7261, the same C
+/// text under `USE_CAIRO`).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_fill_trapezoid_for_relief (f: *mut frame, color: c_ulong, x: c_int, y: c_int,
+						  width: c_int, height: c_int, top_p: c_int)
+{
+  let cr: *mut cairo_t;                                                  // C 1752
+
+  cr = pgtk_begin_cr_clip (f);                                           // C 1754
+  pgtk_set_cr_source_with_color (f, color, false);                       // C 1755
+  cairo_move_to (cr, (if top_p != 0 { x } else { x + height }) as c_double,
+			 y as c_double);                                      // C 1756
+  cairo_line_to (cr, x as c_double, (y + height) as c_double);           // C 1757
+  cairo_line_to (cr, (if top_p != 0 { x + width - height } else { x + width }) as c_double,  // C 1758
+			 (y + height) as c_double);
+  cairo_line_to (cr, (x + width) as c_double, y as c_double);            // C 1759
+  cairo_fill (cr);                                                       // C 1760
+  pgtk_end_cr_clip (f);                                                  // C 1761
+}
+
+/// C 1764-1771: `enum corners { CORNER_BOTTOM_RIGHT, CORNER_BOTTOM_LEFT, CORNER_TOP_LEFT,
+/// CORNER_TOP_RIGHT, CORNER_LAST };` - C's enum lives in this file (not in a header), so it is
+/// this unit's record (`src/xterm.rs` 7266-7272 is the same enum in the same position under
+/// `USE_CAIRO`); C's own comments are carried.
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+pub enum corners
+{
+  CORNER_BOTTOM_RIGHT,		/* 0 -> pi/2 */
+  CORNER_BOTTOM_LEFT,		/* pi/2 -> pi */
+  CORNER_TOP_LEFT,		/* pi -> 3pi/2 */
+  CORNER_TOP_RIGHT,		/* 3pi/2 -> 2pi */
+  CORNER_LAST,
+}
+
+/// C 1773-1804: `static void pgtk_erase_corners_for_relief (struct frame *f, unsigned long
+/// color, int x, int y, int width, int height, double radius, double margin, int corners)` -
+/// C's `for (i = 0; i < CORNER_LAST; i++)` is the port's `while` with C's own step at the end of
+/// the body, and C's two comma expressions (`xm = x - margin, xc = xm + radius;`) are one
+/// statement per assignment in C's own left-to-right order (`src/xterm.rs` 7278-7327, Devia-
+/// tion 26).  `x + width + margin` stays C's int addition, widened where C widens it.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_erase_corners_for_relief (f: *mut frame, color: c_ulong, x: c_int, y: c_int,
+						 width: c_int, height: c_int, radius: c_double,
+						 margin: c_double, corners: c_int)
+{
+  let cr: *mut cairo_t;                                                  // C 1778
+  let mut i: c_int;                                                      // C 1779
+
+  cr = pgtk_begin_cr_clip (f);                                           // C 1781
+  pgtk_set_cr_source_with_color (f, color, false);                       // C 1782
+  i = 0;                                                                 // C 1783
+  while i < corners::CORNER_LAST as c_int
+    {
+      if corners & (1 << i) != 0                                         // C 1784
+		{
+		  let mut xm: c_double;
+		  let mut ym: c_double;
+		  let mut xc: c_double;
+		  let mut yc: c_double;
+
+		  if i == corners::CORNER_TOP_LEFT as c_int                   // C 1788
+			  || i == corners::CORNER_BOTTOM_LEFT as c_int
+		    {
+		      xm = x as c_double - margin;
+		      xc = xm + radius;
+		    }
+		  else
+		    {
+		      xm = (x + width) as c_double + margin;
+		      xc = xm - radius;
+		    }
+		  if i == corners::CORNER_TOP_LEFT as c_int                   // C 1792
+			  || i == corners::CORNER_TOP_RIGHT as c_int
+		    {
+		      ym = y as c_double - margin;
+		      yc = ym + radius;
+		    }
+		  else
+		    {
+		      ym = (y + height) as c_double + margin;
+		      yc = ym - radius;
+		    }
+
+		  cairo_move_to (cr, xm, ym);                                 // C 1797
+		  cairo_arc (cr, xc, yc, radius, i as c_double * M_PI_2,      // C 1798
+				 (i + 1) as c_double * M_PI_2);
+		}
+      i += 1;                                                           // C 1783's step
+    }
+  cairo_clip (cr);                                                       // C 1800
+  cairo_rectangle (cr, x as c_double, y as c_double, width as c_double,
+			               height as c_double);                        // C 1801
+  cairo_fill (cr);                                                       // C 1802
+  pgtk_end_cr_clip (f);                                                  // C 1803
+}

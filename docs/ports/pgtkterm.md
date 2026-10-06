@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-6: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572 and C 1575-1662
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-7: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662 and C 1664-1804
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,14 +11,13 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**2,334 lines**), carrying **C 1-1078**,
-> **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572** and **C 1575-1662** - six
-> slices - with **both arms of every `#if`**; the **2,044** this line used to
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**2,561 lines**), carrying **C 1-1078**,
+> **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662** and
+> **C 1664-1804** - seven slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_compute_lighter_color` (C 1685, its comment at C 1664, preceded by the
-> `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` comment at C 1664-1675).**
+> `pgtk_setup_relief_color` (C 1806-1808; C 1806 is its `static void` line).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -117,7 +116,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 1385-1483 | `pgtk_draw_glyph_string_background` (C 1385-1422), `pgtk_draw_rectangle` (C 1425-1437) and `pgtk_draw_glyph_string_foreground` (C 1440-1483) | the file gate - **transcribed** (the fourth slice) |
 | 1485-1572 | `pgtk_draw_composite_glyph_string_foreground` (C 1485-1572: the box-line offset, the `font_not_found_p` rectangle arm, the non-automatic `COMPOSITION_GLYPH`/`offsets` loop and the `LGSTRING_GLYPH`/`LGLYPH_*` automatic arm with its two deferred draws) | the file gate - **transcribed** (the fifth slice) |
 | 1575-1662 | `pgtk_draw_glyphless_glyph_string_foreground` (C 1575-1662: the box-line offset, the `char2b[8]` local C hands to `s->char2b`, the `GCC_LINT` pair, the acronym and hex-code arms of `glyph->u.glyphless`, the two `font->driver` calls with the slice offsets, the `THIN_SPACE` rectangle guard and the closing `s->char2b = NULL`) | the file gate - **transcribed** (the sixth slice) |
-| 1664-7780 | **the remainder of the file** - from C 1664-1675's `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` comment and C 1685's `pgtk_compute_lighter_color` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1664-1804 | `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` (C 1664-1675), `pgtk_compute_lighter_color` (C 1684-1746), `pgtk_fill_trapezoid_for_relief` (C 1748-1762), `enum corners` (C 1764-1771) and `pgtk_erase_corners_for_relief` (C 1773-1804) | the file gate - **transcribed** (the seventh slice) |
+| 1806-7780 | **the remainder of the file** - from C 1807's `pgtk_setup_relief_color` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -448,6 +448,34 @@ their assertions are owed.
     index, so the port writes `glyphless_bits! (ch, glyph) as isize` - the first reading of this
     slice named that one site.
 
+26. **C's `for` head is the port's `while`, and C's two comma expressions are one statement per
+    assignment.**  C 1783's `for (i = 0; i < CORNER_LAST; i++)` keeps C's `int i` declaration, the
+    init and C's own step at the end of the body (`src/xterm.rs` 7290-7321 spells the same C text
+    with a `for … in 0..` head, which drops C's local - a spelling this unit does not follow because
+    the declaration is part of the port's name set); C 1789/1791/1793/1795's
+    `xm = x - margin, xc = xm + radius;` is the comma operator, so the port puts the two stores on
+    their own lines in C's left-to-right order (the `src/xterm.rs` 7275-7276 note's class).  C's
+    `x + width + margin` stays C's **int** addition, widened where C widens it
+    (`(x + width) as c_double + margin`): C's usual arithmetic conversions evaluate the inner int sum
+    first, so the sibling unit's spelling is the faithful one and the C-exact reading was measured
+    against C's text before it was copied.
+27. **Five declarations this slice needs, and the one mirror it changes.**  `M_PI_2` (math.h 752,
+    `1.57079632679489661923132169163975144`) lands in the `femacs/lib/include/math.rs` mirror - C
+    1798's `cairo_arc` angles are C's `i * M_PI_2` after the int -> `double` promotion, so the port
+    writes `i as c_double * M_PI_2` and `(i + 1) as c_double * M_PI_2` (the `src/xterm.rs` 7320
+    spelling of the same widening, which had no declaration to reach: that lane's `use_cairo` arm is
+    never compiled, so the constant is what its own text was missing).  A mirror changed, so P-87's
+    two legs were run: `check-mirror-dupes.py` **16/16/0** (the new row duplicates nothing) and the
+    consumer sweep `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`.
+    The four cairo entry points (`cairo_move_to` cairo.h 906-907, `cairo_line_to` 912-913,
+    `cairo_arc` 921-925, `cairo_fill` 995-996) are declared **in this unit**, each in its own
+    `unsafe extern "C"` block with the header line it was read from, beside the C 1271/1273 pair at
+    1519-1530: this unit's own P-88 ① toolkit segment is where `cairo_rectangle`/`cairo_clip` already
+    stand, and `src/image.rs` 470-473 / `src/ftcrfont.rs` 287 carry their own rows for the same
+    construct.  `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` is this unit's own `pub const: c_int = 48000`
+    under the file gate (the `src/xterm.rs` 10773 shape; the constant is not in a mirror, so this
+    unit's copy is not a duplicate - it is C's own `#define` at C 1675).
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -684,3 +712,44 @@ changed this round; the consumer sweep is re-read and stays `checked 83 unit(s),
 `checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen
 configuration compiles none of this file, there is no GTK or cairo to draw with here, and the three
 arm readings are **compile** readings of text this machine cannot build.
+
+## The seventh slice (C 1664-1804): the lighter-color computation and the relief primitives
+
+**What is in it.**  `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` (C 1664-1675),
+`pgtk_compute_lighter_color` (C 1684-1746: C's `Emacs_Color color, new;`, the `pgtk_query_color`
+read, `eassert`, the three `min (0xffff, factor * color.<channel>)` writes, `bright`, the dark-boost
+arm's `dimness`/`min_delta` with its two `factor < 1` halves, the two `new.pixel` folds and the
+closing `*pixel = new.pixel`), `pgtk_fill_trapezoid_for_relief` (C 1748-1762: the clip pair, the
+four cairo path calls and `cairo_fill`), `enum corners` (C 1764-1771) and
+`pgtk_erase_corners_for_relief` (C 1773-1804: the `CORNER_LAST` walk with C's four coordinate
+branches, `cairo_arc` over `i * M_PI_2`, and the closing
+`cairo_clip`/`cairo_rectangle`/`cairo_fill`).  Rust: 2,334 -> **2,561** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` both sides - Deviation 17).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 40 errors / 19 warnings -> 40 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 41 / 20 -> 41 / 20
+C = A + use_gtk + have_gtk3                        : 18 / 18 -> 18 / 18
+```
+**Every arm reads exactly the same number on both sides, and the error and warning sets were diffed,
+not just counted**: the slice's text adds no error and no warning.  The two declarations it needs
+(Deviation 27) were in place before the reading.  **Arm reach is measured, not assumed** (P-86 ⑦):
+injecting `let _: c_int = true;` as the first statement of `pgtk_compute_lighter_color` moves arm A
+from 40 errors to **41**, anchored at that line (the injected statement was then removed and the file
+re-measured at 2,561 lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **176 rows -> 166**: `pgtk_compute_lighter_color`, `pgtk_fill_trapezoid_for_relief` and
+`pgtk_erase_corners_for_relief` retire, `HIGHLIGHT_COLOR_DARK_BOOST_LIMIT` retires as a **macro and
+as a constant**, and the five `CORNER_*` constants retire - ten rows; the file's own
+`line count drifted` row is re-measured 70.0% -> **67.1%** (C 7,780 vs the port's 2,561).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2054/36/0** (five of the externals are this slice's `cairo.h` and `math.h` rows);
+`check-dead-file-coverage.py` **145/0** (**39 range rows** over `src/pgtkterm.c`);
+`check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** with the consumer
+sweep `checked 83 unit(s), 0 failure(s)` / `checking 83 unit(s), 0 unit failure(s)` (a mirror changed
+this round - Deviation 27).  **Not claimed**: none of this has been run - the frozen configuration
+compiles none of this file, there is no GTK or cairo to draw with here, and the three arm readings
+are **compile** readings of text this machine cannot build.
