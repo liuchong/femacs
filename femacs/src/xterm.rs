@@ -20982,6 +20982,10 @@ macro_rules! set_frame_flag1 {
 }
 #[cfg (feature = "have_x_windows")]
 macro_rules! frame_bits {
+  (mouse_moved, $f:expr) =>
+    { ((*$f).bits1 >> FRAME_MOUSE_MOVED_SHIFT & 1) != 0 };
+  (mouse_moved, $f:expr, $v:expr) =>
+    { set_frame_flag1! ($f, FRAME_MOUSE_MOVED_SHIFT, $v) };
   (pointer_invisible, $f:expr) =>
     { ((*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT & 1) != 0 };
   (pointer_invisible, $f:expr, $v:expr) =>
@@ -22911,4 +22915,169 @@ unsafe fn x_construct_mouse_click (result: *mut input_event, event: *const XButt
   XSETFRAME! ((*result).frame_or_window, f);                             // C 14716
   (*result).arg = Qnil ();                                               // C 14717
   return Qnil ();                                                        // C 14718
+}
+
+/* C 14738-14783: `static bool x_note_mouse_movement (struct frame *frame, const XMotionEvent
+   *event, Lisp_Object device)` - C's `static`, so a plain `unsafe fn`.  Four shapes: C 14745's
+   `!FRAME_X_OUTPUT (frame)` is the header macro's pointer tested for null (the `src/pgtkterm.rs`
+   8584 shape), `frame->mouse_moved = true` is `struct frame`'s `bool_bf mouse_moved : 1`
+   (PORTING.md P-80, this unit's `frame_bits!` accessor and `include/frame.rs`'s measured
+   `FRAME_MOUSE_MOVED_SHIFT`), the glyph-rectangle tests spell C's integer promotion of the two
+   `short`/`unsigned short` members (`include/xlib.rs`'s `XRectangle`), and `remember_mouse_glyph`
+   (dispextern.h 3586, `NativeRectangle` = `XRectangle` under this target) plus
+   `note_mouse_highlight` (dispextern.h 3688, which `include/dispextern.rs`'s
+   `dispextern_late_decls` records as *owed*) are declared at this use site (P-88, the
+   `src/androidterm.rs` 168-173 pair).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_note_mouse_movement (frame: *mut frame, event: *const XMotionEvent,
+				 device: Lisp_Object) -> bool
+{
+  let mut r: *mut XRectangle;                                           // C 14742
+  let mut dpyinfo: *mut x_display_info;                                 // C 14743
+
+  unsafe extern "C" {
+    /// C: dispextern.h 3586: `void remember_mouse_glyph (struct frame *, int, int,
+    /// NativeRectangle *);` - dispextern.h 119's `#define NativeRectangle XRectangle`.
+    pub fn remember_mouse_glyph (f: *mut frame, x: c_int, y: c_int,
+                                 rectangle: *mut XRectangle);
+    /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
+    pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
+  }
+
+  if FRAME_X_OUTPUT! (frame).is_null ()                                 // C 14745
+    { return false; }                                                   // C 14746
+
+  dpyinfo = FRAME_DISPLAY_INFO! (frame);                                // C 14748
+  (*dpyinfo).last_mouse_movement_time = (*event).time;                  // C 14749
+  (*dpyinfo).last_mouse_movement_time_send_event = (*event).send_event != 0;  // C 14750
+  (*dpyinfo).last_mouse_motion_frame = frame;                           // C 14751
+  (*dpyinfo).last_mouse_motion_x = (*event).x;                          // C 14752
+  (*dpyinfo).last_mouse_motion_y = (*event).y;                          // C 14753
+
+  if (*event).window != FRAME_X_WINDOW! (frame)                         // C 14755
+    {
+      frame_bits! (mouse_moved, frame, true);                           // C 14757
+      (*frame).last_mouse_device = device;                              // C 14758
+      (*dpyinfo).last_mouse_scroll_bar = std::ptr::null_mut ();         // C 14759
+      note_mouse_highlight (frame, -1, -1);                             // C 14760
+      (*dpyinfo).last_mouse_glyph_frame = std::ptr::null_mut ();        // C 14761
+      return true;                                                      // C 14762
+    }
+
+
+  /* Has the mouse moved off the glyph it was on at the last sighting?  */
+  r = &raw mut (*dpyinfo).last_mouse_glyph;                             // C 14767
+  if frame != (*dpyinfo).last_mouse_glyph_frame                          // C 14768
+      || (*event).x < (*r).x as c_int || (*event).x >= (*r).x as c_int + (*r).width as c_int
+      || (*event).y < (*r).y as c_int || (*event).y >= (*r).y as c_int + (*r).height as c_int
+    {
+      frame_bits! (mouse_moved, frame, true);                           // C 14772
+      (*frame).last_mouse_device = device;                              // C 14773
+      (*dpyinfo).last_mouse_scroll_bar = std::ptr::null_mut ();         // C 14774
+      note_mouse_highlight (frame, (*event).x, (*event).y);             // C 14775
+      /* Remember which glyph we're now on.  */
+      remember_mouse_glyph (frame, (*event).x, (*event).y, r);          // C 14777
+      (*dpyinfo).last_mouse_glyph_frame = frame;                        // C 14778
+      return true;                                                      // C 14779
+    }
+
+  return false;                                                         // C 14782
+}
+
+/* Get a sibling below WINDOW on DPY at PARENT_X and PARENT_Y.  */
+
+/* C 14786-14857: `static Window x_get_window_below (Display *dpy, Window window, int parent_x,
+   int parent_y, int *inner_x, int *inner_y)` - C's `static`, so a plain `unsafe fn`.  C's
+   `children`/`value` are `Window *`/`Window` and `None` is X11's `0L` (`include/xlib.rs`'s
+   `x11_constants`), so the port writes `None as Window`; `XQueryTree`/`XGetWindowAttributes` are
+   the bare Xlib class (this file's Decision 15 ruling), `XFree` is this unit's declaration
+   (this file 14962), and C's `for (i = nchildren - 1; i >= 0; --i)` is the port's `while` with
+   the step at the body's end (the `x_find_modifier_meanings` shape) - the start value states
+   C's *unsigned* arithmetic, `nchildren.wrapping_sub (1)`, because C converts the wrapped
+   `unsigned int` to `int` and a plain `- 1` would panic on the empty-children path.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_get_window_below (dpy: *mut Display, window: Window,
+			     parent_x: c_int, parent_y: c_int,
+			     inner_x: *mut c_int, inner_y: *mut c_int) -> Window
+{
+  use crate::x11_constants::{IsViewable, None};
+
+  let mut rc: c_int;                                                    // C 14791
+  let mut i: c_int;
+  let mut cx: c_int;
+  let mut cy: c_int;
+  let mut attrs: XWindowAttributes = std::mem::zeroed ();               // C 14792
+  let mut nchildren: c_uint;                                            // C 14793
+  let mut root: Window;                                                 // C 14794
+  let mut parent: Window;
+  let mut children: *mut Window;
+  let mut value: Window;
+  let mut window_seen: bool;                                            // C 14795
+
+  /* TODO: rewrite to have less dependencies.  */
+
+  children = std::ptr::null_mut ();                                     // C 14799
+  window_seen = false;                                                  // C 14800
+  value = None as Window;                                               // C 14801
+
+  rc = XQueryTree (dpy, window, &raw mut root, &raw mut parent,          // C 14803-14804
+		   &raw mut children, &raw mut nchildren);
+
+  if rc != 0                                                            // C 14806
+    {
+      if !children.is_null ()                                           // C 14808
+	{ XFree (children as *mut c_void); }                           // C 14809
+
+      rc = XQueryTree (dpy, parent, &raw mut root,                      // C 14811-14812
+		       &raw mut parent, &raw mut children, &raw mut nchildren);
+    }
+
+  if rc != 0                                                            // C 14815
+    {
+      i = nchildren.wrapping_sub (1) as c_int;                          // C 14817
+      'children: while i >= 0
+	{
+	  'body:
+	    {
+	      if *children.offset (i as isize) == window                     // C 14819
+		{
+		  window_seen = true;                                          // C 14821
+		  break 'body;                                                 // C 14822's `continue`
+		}
+
+	      if !window_seen                                               // C 14825
+		{ break 'body; }                                             // C 14826's `continue`
+
+	      rc = XGetWindowAttributes (dpy, *children.offset (i as isize), &raw mut attrs);  // C 14828
+
+	      if rc != 0 && (*attrs).map_state != IsViewable                // C 14830
+		{ break 'body; }                                             // C 14831's `continue`
+
+	      if rc != 0                                                    // C 14833-14836
+		&& parent_x >= (*attrs).x
+		&& parent_y >= (*attrs).y
+		&& parent_x < (*attrs).x + (*attrs).width
+		&& parent_y < (*attrs).y + (*attrs).height
+		{
+		  value = *children.offset (i as isize);                       // C 14838
+		  cx = parent_x - (*attrs).x;                                  // C 14839
+		  cy = parent_y - (*attrs).y;                                  // C 14840
+
+		  break 'children;                                             // C 14842
+		}
+	    }
+	  i -= 1;                                                           // C 14817, the `for`'s step
+	}
+    }
+
+  if !children.is_null ()                                               // C 14847
+    { XFree (children as *mut c_void); }                               // C 14848
+
+  if value != 0                                                         // C 14850
+    {
+      *inner_x = cx;                                                    // C 14852
+      *inner_y = cy;                                                    // C 14853
+    }
+
+  return value;                                                         // C 14856
 }
