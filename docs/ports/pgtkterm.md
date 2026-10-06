@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-47: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892 and C 5894-5950
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-48: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892, C 5894-5950 and C 5952-6065
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**8,619 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**8,764 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** - forty-seven
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** and **C 5952-6065** - forty-eight
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `motion_notify_event` (C 5952-5953).**
+> `construct_mouse_click` (C 6072-6073).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -160,7 +160,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 5570-5712 | `map_event` (C 5570-5615), `window_state_event` (C 5617-5690) and `delete_event` (C 5692-5712) | the file gate - **transcribed** (the forty-fifth slice) |
 | 5714-5892 | `pgtk_focus_changed` (C 5723-5767), `enter_notify_event` (C 5769-5795), `leave_notify_event` (C 5797-5844), `focus_in_event` (C 5846-5868) and `focus_out_event` (C 5870-5892) | the file gate - **transcribed** (the forty-sixth slice) |
 | 5894-5950 | `note_mouse_movement` (C 5902-5950) | the file gate - **transcribed** (the forty-seventh slice) |
-| 5952-7780 | **the remainder of the file** - from C 5952's `motion_notify_event` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 5952-6065 | `motion_notify_event` (C 5952-6065) | the file gate - **transcribed** (the forty-eighth slice) |
+| 6067-7780 | **the remainder of the file** - from C 6067-6070's comment and C 6072's `construct_mouse_click` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1279,6 +1280,24 @@ their assertions are owed.
     macro).  C wrote the same body for Android: `src/androidterm.rs` 736-766 is the sibling reading,
     and it agrees line for line with this one.
 
+70. **`motion_notify_event`: the assignment C writes inside a condition, the two mirror rows, and the
+    two defects the first reading named.**  C 5962-5963, 5965-5967, 5996-5998, 6000-6004, 6006-6007,
+    6013-6020, 6029, 6037-6038 and 6041-6042's comments are carried verbatim.  C 5968's `(device =
+    gdk_event_get_source_device (event)) && …` has no Rust expression form, so the port keeps C's
+    order in a block (`|| { device = …; !device.is_null () && … }` - the unit's 1387 / 7988 shape);
+    C 5981-5982's `?:` becomes the port's `if … { … } else { … }` assignment.  `EVENT_INIT` and
+    `input_event_bits!` are this unit's own, C's `NULL`/`0` are `std::ptr::null_mut ()` (C 5992's
+    `f = 0` and the `enum window_part *` argument C 6011 passes as `0`), the two `event->motion.x`/`y`
+    readings are C's implicit `double` -> `int` conversions written out, and `XFRAME (selected_frame)`
+    is the mirror's extern static read through `unsafe { … }` (the `src/xfns.rs` 360 shape).
+    **The first reading named two defects of this slice's own text, both fixed here:** the new
+    `GDK_SOURCE_TOUCHSCREEN` row first stood *inside* the mirror's `unsafe extern "C"` block
+    (`include/gtk.rs` 1808-1931), which reads `error: extern items cannot be const` and
+    `error: incorrect static inside extern block` - it now stands beside the `GdkInputSource` type it
+    belongs to; and `window_from_coordinates`' first parameter is the mirror's `*mut c_void` wording
+    (`include/window.rs` 309), so C 6011's `f` is the port's `f as *mut c_void` (the `src/msdos.rs`
+    3745 shape) - without it the arm read one `E0308`.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1306,7 +1325,7 @@ their assertions are owed.
     measure them).  **`include/gtkutil.rs`** owes `xg_ignore_gtk_scrollbar` (gtkutil.c 4351; its own
     36 already names it).  When they land, the unit's copies retire (P-88 ①'s use-site rule).
 
-12. **`include/gtkutil.rs`** owes the eight entry points the twenty-ninth, thirtieth and
+12. **`include/gtkutil.rs`** owes the nine entry points the twenty-ninth, thirtieth and
     thirty-fourth slices declared in the unit (`xg_display_close` is the eighth): `xg_create_scroll_bar` and `xg_create_horizontal_scroll_bar`
     (gtkutil.h 118-122 / 123-127, both taking two `GCallback`s and a `const char *`),
     `xg_remove_scroll_bar` (128), `xg_update_scrollbar_pos` / `xg_update_horizontal_scrollbar_pos`
@@ -1373,7 +1392,8 @@ their assertions are owed.
     two records it added to the union (`GdkEventConfigure`, `GdkEventWindowState`) join that round -
     each flag is a distinct placeholder and neither record carries a layout assertion; the
     forty-sixth slice's `GDK_NOTIFY_INFERIOR` placeholder and its five `GdkEventCrossing` members join
-    the same round.  `include/dispextern.rs` owes the `mouse_face_hidden` accessor
+    the same round.  The forty-eighth slice's `gdk_event_get_pointer_emulated` prototype and its
+    `GDK_SOURCE_TOUCHSCREEN` **placeholder value** join it too.  `include/dispextern.rs` owes the `mouse_face_hidden` accessor
     (it carries `MOUSE_FACE_HIDDEN` at 2139 and the `mouse_face_defer` pair, and its own
     `src/msdos.rs` 3434-3438 note already asks for this one) and the `clear_mouse_face` row, which
     its 4051 area records as owed rather than declared; until then the unit declares both.
@@ -1384,6 +1404,13 @@ their assertions are owed.
     `src/keyboard.rs` 4295.  The mirror is `include!`d by this unit (line 155, C 61's
     `#include "keyboard.h"`) and carries no row for it, so the unit's use-site declaration is the
     reading until that round (the Owed 13/15/16/18/19/20 class).
+
+23. **`include/dispextern.rs`** owes the four help-echo objects this unit declares at the use site:
+    `previous_help_echo_string`, `help_echo_window`, `help_echo_object` and `help_echo_pos`
+    (dispextern.h 3614-3616 / 4004-4005).  The mirror carries all four inside `pub mod
+    dispextern_externs`, which no glob import brings into a unit, so `src/pgtkterm.rs` 8071-8078
+    (`help_echo_string`) and this slice's block carry them - the same class as Owed 22's
+    `gen_help_event`.
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -3278,3 +3305,66 @@ rows** over `src/pgtkterm.c`), `check-port-lines.py` 0/0/0/0, `check-ledger-tick
 nothing has been run - the frozen configuration compiles none of this file, this machine has no GTK
 tree and no PGTK target, no motion event arrived and no glyph was remembered, and the arm readings are
 **compile** readings of text this machine cannot build.
+
+## The forty-eighth slice (C 5952-6065): `motion_notify_event`
+
+**What is in it.**  C 5952-6065's handler: the touch-screen guard, the event reset, the help-echo
+save/clear pair, the frame/display/mouse-highlight lookups, the hidden-face reset, the scrollbar check
+that nulls `f`, the `mouse-autoselect-window` arm with its `SELECT_WINDOW_EVENT` enqueue and
+`last_mouse_window` store, the `note_mouse_movement` call with its help-echo restore, and the
+HELP_EVENT tail.  Rust: 8,619 -> **8,764** lines.  Its address is taken at C 6874
+(`G_CALLBACK (motion_notify_event)`), so it stays a plain `unsafe fn` until the C 6831 slice.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 9 / 18 -> 9 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): the twenty-third zero-delta reading in this unit.  Those
+are the port's own error lines; a raw `grep -c '^error'` prints two higher because the probe's log
+carries `error: aborting due to …` and `error: rustc failed for …` (the forty-seventh slice's note).
+The baseline is HEAD's unit **and HEAD's mirror**, taken by writing HEAD's `include/gtk.rs` over the
+working one for the run and restoring it after (verified by `git diff --stat`: 13 insertions, the
+`GDK_SOURCE_TOUCHSCREEN` row and the `gdk_event_get_pointer_emulated` row plus their comments).
+**Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as the first statement of
+`motion_notify_event` moves arm A to **52** errors anchored at the injected line (`_root.rs:8660`);
+removed, the file re-measured at **8,764** lines.
+
+**The mirror round (P-87).**  `include/gtk.rs` gains two rows: `gdk_event_get_pointer_emulated`
+(gdk/gdkevents.h, C 5964's call) and `GDK_SOURCE_TOUCHSCREEN` (gdk/gdkdevice.h's `GdkInputSource`
+enumeration, C 5969's comparison) as a **placeholder value** - there is no GDK tree on this machine,
+so it joins Owed 21's round.  **The first reading named two defects of this slice's own text**: the
+const first stood *inside* the mirror's `unsafe extern "C"` block and read `error: extern items cannot
+be const` plus `error: incorrect static inside extern block` (it now stands beside `GdkInputSource`),
+and `window_from_coordinates`' first parameter is the mirror's `*mut c_void` wording, so C 6011's `f`
+needs `f as *mut c_void` (one `E0308` before the fix).  `check-mirror-dupes` reads **16/16/0**;
+`tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit
+failure(s)`; and because the frozen list carries no includer of `include/gtk.rs`, the extra named
+reading is `src/xwidget.rs` probed with `use_gtk` + `have_gtk3` against HEAD's mirror and against this
+one - **197 errors / 52 warnings on both sides** (raw counts, harness lines included) with both sets
+diffing empty.  That is lower and one warning higher than the 200/51 this ledger recorded for the same
+probe three slices ago, and the difference is not this slice's: both sides of *this* reading are
+identical, so other lanes' mirror work moved it.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**48 rows -> 47** with **no new token row**: `motion_notify_event` retires and every token of the C
+body is in the port's text (`selected_frame` and `Vmouse_autoselect_window` are the mirrors' own
+spellings).  The file's `line count drifted` row stays answered by the `pgtkterm 0.15 total` row
+(8,764 against C's 7,780 is 12.6%).
+
+**Ledger.**  Deviation 70 (the comment blocks, the assignment-in-condition, the `?:`, the pointer
+spellings and the two defects), a new **Owed 23** for the four help-echo objects
+`include/dispextern.rs` still keeps inside a module no glob import reaches, Owed 12's gtkutil list
+grown to nine (`xg_event_is_for_scrollbar`) and Owed 21's GDK round grown by the two rows above; the
+range table's remainder row split into `5952-6065` (**transcribed**) and `6067-7780` (whose next live
+definition is `construct_mouse_click`, C 6072-6073, after C 6067-6070's comment); the title to
+forty-eight slices and the header to 8,764 lines.  **The gates** read `check-declarations.py`
+18/0/18/0, `check-citations.py` 676/0/0/2112/36/0, `check-dead-file-coverage.py` 145/0 (**80 range
+rows** over `src/pgtkterm.c`), `check-port-lines.py` 0/0/0/0, `check-ledger-ticks.py` 238/0,
+`check-cond-eval.py src/pgtkterm.c` 31/0/0 and `check-mirror-dupes.py` 16/16/0.  **Not claimed**:
+nothing has been run - the frozen configuration compiles none of this file, this machine has no GTK
+tree and no PGTK target, no pointer moved and no autoselect event was enqueued, and the arm readings
+are **compile** readings of text this machine cannot build (the `GDK_SOURCE_TOUCHSCREEN` value is a
+placeholder).

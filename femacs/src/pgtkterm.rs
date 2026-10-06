@@ -8617,3 +8617,148 @@ unsafe fn note_mouse_movement (frame: *mut frame, event: *mut GdkEventMotion) ->
 
   return false;                                                         // C 5949
 }
+
+/* C: gtkutil.h 151-152: `extern bool xg_event_is_for_scrollbar (struct frame *, const EVENT *,
+   bool for_valuator);` - the C 5991 call, with `typedef GdkEvent EVENT;` being that header's own
+   C 24 spelling for this arm; `src/gtkutil.rs` has not reached the definition yet, so it stands
+   here (the `note_mouse_highlight`/`gen_help_event` shape, P-88 ①).  dispextern.h 3614-3616 names
+   the four help-echo objects; the mirror keeps them inside `pub mod dispextern_externs`, which no
+   glob import brings into this unit, so the three the C 6060 call reads stand here beside the
+   `help_echo_string` row at line 8077 (C's own prototype line is the citation).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn xg_event_is_for_scrollbar (f: *mut frame, event: *const GdkEvent,
+				    for_valuator: bool) -> bool;
+  static mut previous_help_echo_string: Lisp_Object;
+  static mut help_echo_window: Lisp_Object;
+  static mut help_echo_object: Lisp_Object;
+  static mut help_echo_pos: ptrdiff_t;
+}
+
+/// C 5952-6065: `static gboolean motion_notify_event (GtkWidget *widget, GdkEvent *event,
+/// gpointer *user_data)` - `static` with its address taken at C 6874 (`G_CALLBACK
+/// (motion_notify_event)`), so a plain `unsafe fn` that the C 6831 slice converts (the `map_event`
+/// family's note).  C 5968's assignment inside the condition (`(device = gdk_event_get_source_device
+/// (event)) && …`) has no Rust expression form, so the port keeps C's order in a block: assign,
+/// then test the pointer and the device's source.  C's `NULL`/`0` are `std::ptr::null_mut ()` (C
+/// 5992, and the `window_part *` argument C 6011 passes as `0`), the two `event->motion.x`/`y`
+/// readings are C's implicit `double` -> `int` conversions written out, and `selected_frame` is the
+/// mirror's extern static (the `src/xfns.rs` 360 `unsafe { … }` reading).
+#[cfg (feature = "have_pgtk")]
+unsafe fn motion_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent,
+			       user_data: *mut gpointer) -> gboolean
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5956
+  let mut f: *mut frame;                                                // C 5957
+  let mut frame: *mut frame;                                            // C 5957
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 5958
+  let mut hlinfo: *mut Mouse_HLInfo;                                    // C 5959
+  let mut device: *mut GdkDevice;                                       // C 5960
+
+  /* Ignore emulated pointer events generated from a touch screen
+     event.  */
+  if gdk_event_get_pointer_emulated (event) != 0                        // C 5964
+      /* The event must not have emerged from a touch device either, as
+         GDK does not set pointer_emulated in events generated on
+         Wayland as on X, and as the X Input Extension specifies.  */
+      || { device = gdk_event_get_source_device (event);                // C 5968
+	   !device.is_null ()
+	     && gdk_device_get_source (device) == GDK_SOURCE_TOUCHSCREEN }  // C 5969
+    { return false as gboolean; }                                       // C 5970
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5972
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 5973
+  inev.ie.arg = Qnil ();                                                // C 5974
+
+  previous_help_echo_string = help_echo_string;                         // C 5976
+  help_echo_string = Qnil ();                                           // C 5977
+
+  frame = pgtk_any_window_to_frame (gtk_widget_get_window (widget));    // C 5979
+  dpyinfo = FRAME_DISPLAY_INFO! (frame);                                // C 5980
+  f = if gui_mouse_grabbed (dpyinfo) { (*dpyinfo).last_mouse_frame }    // C 5981-5982
+      else { pgtk_any_window_to_frame (gtk_widget_get_window (widget)) };
+  hlinfo = MOUSE_HL_INFO! (f);                                          // C 5983
+
+  if mouse_face_hidden! (hlinfo)                                        // C 5985
+    {
+      mouse_face_hidden! (hlinfo, false);                               // C 5987
+      clear_mouse_face (hlinfo);                                        // C 5988
+    }
+
+  if !f.is_null () && xg_event_is_for_scrollbar (f, event, false)       // C 5991
+    { f = std::ptr::null_mut (); }                                      // C 5992
+
+  if !f.is_null ()                                                      // C 5994
+    {
+      /* Maybe generate a SELECT_WINDOW_EVENT for
+         `mouse-autoselect-window' but don't let popup menus
+         interfere with this (Bug#1261).  */
+      if !NILP (Vmouse_autoselect_window)                               // C 5999
+	  /* Don't switch if we're currently in the minibuffer.
+	     This tries to work around problems where the
+	     minibuffer gets unselected unexpectedly, and where
+	     you then have to move your mouse all the way down to
+	     the minibuffer to select it.  */
+	  && !MINI_WINDOW_P (XWINDOW (selected_window))                 // C 6005
+	  /* With `focus-follows-mouse' non-nil create an event
+	     also when the target window is on another frame.  */
+	  && (f == XFRAME (unsafe { selected_frame })
+	      || !NILP (focus_follows_mouse))                           // C 6008
+	{
+	  let window: Lisp_Object = window_from_coordinates
+	    (f as *mut c_void, (*event).motion.x as c_int, (*event).motion.y as c_int,
+	     std::ptr::null_mut (), false, false, false);               // C 6010-6011
+
+	  /* A window will be autoselected only when it is not
+	     selected now and the last mouse movement event was
+	     not in it.  The remainder of the code is a bit vague
+	     wrt what a "window" is.  For immediate autoselection,
+	     the window is usually the entire window but for GTK
+	     where the scroll bars don't count.  For delayed
+	     autoselection the window is usually the window's text
+	     area including the margins.  */
+	  if WINDOWP (window)                                           // C 6021
+	      && !EQ (window, last_mouse_window)                        // C 6022
+	      && !EQ (window, selected_window)                          // C 6023
+	    {
+	      input_event_bits! (kind, &raw mut inev.ie, SELECT_WINDOW_EVENT);  // C 6025
+	      inev.ie.frame_or_window = window;                         // C 6026
+	    }
+
+	  /* Remember the last window where we saw the mouse.  */
+	  last_mouse_window = window;                                   // C 6030
+	}
+
+      if !note_mouse_movement (f, &raw mut (*event).motion)             // C 6033
+	{ help_echo_string = previous_help_echo_string; }               // C 6034
+    }
+  else
+    /* If we move outside the frame, then we're
+       certainly no longer on any text in the frame.  */
+    { clear_mouse_face (hlinfo); }                                      // C 6039
+
+  /* If the contents of the global variable help_echo_string
+     has changed, generate a HELP_EVENT.  */
+  let mut do_help: c_int = 0;                                           // C 6043
+  if !NILP (help_echo_string) || !NILP (previous_help_echo_string)      // C 6044
+    { do_help = 1; }                                                    // C 6045
+
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 6047
+    { evq_enqueue (&raw mut inev); }                                    // C 6048
+
+  if do_help > 0                                                        // C 6050
+    {
+      let mut frame: Lisp_Object;                                       // C 6052
+
+      if !f.is_null ()                                                  // C 6054
+	{ XSETFRAME! (frame, f); }                                      // C 6055
+      else
+	{ frame = Qnil (); }                                            // C 6057
+
+      any_help_event_p = true;                                          // C 6059
+      gen_help_event (help_echo_string, frame, help_echo_window,
+		      help_echo_object, help_echo_pos);                 // C 6060-6061
+    }
+
+  return true as gboolean;                                              // C 6064
+}

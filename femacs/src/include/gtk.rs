@@ -1760,6 +1760,16 @@ pub struct GdkDragContext
 /// a `%u` value).  C's enum ABI is `c_int` (PORTING.md 1.3), so no record measurement is owed.
 pub type GdkInputSource = c_int;
 
+/// C 5969: `gdk_device_get_source (device) == GDK_SOURCE_TOUCHSCREEN`.
+/// C: gdk/gdkdevice.h: the `GdkInputSource` enumeration's sixth member (mouse, pen, eraser,
+/// cursor, keyboard, **touchscreen**, touchpad, trackpoint, tablet pad).  **No GDK tree exists on
+/// this machine**, so the value is a **placeholder** (the `GDK_SEAT_CAPABILITY_ALL` row's brother)
+/// and the Owed 21 round in `docs/ports/pgtkterm.md` replaces it.  **UNVERIFIED**.  It stands
+/// here beside the type rather than in the `unsafe extern "C"` block below, which the first
+/// reading named (`error: extern items cannot be const`).
+pub const GDK_SOURCE_TOUCHSCREEN: GdkInputSource = 5;
+
+
 /// C: gdk/gdkseat.h: `#define GDK_SEAT_CAPABILITY_ALL ((1 << 3) - 1)`; gdk/gdkseat.h,
 /// gdk/gdkdevice.h, gtk/gtkwindow.h, gtk/gtkbox.h, gtk/gtkfixed.h, gtk/gtkcontainer.h and
 /// gtk/gtkstylecontext.h: the eight checked-cast wrappers.  Each keeps the macro's name and its
@@ -1849,6 +1859,9 @@ pub fn gdk_device_get_name (device: *mut GdkDevice) -> *const gchar;
 /// C 251: `device = gdk_event_get_source_device (event);`
 /// C: gdk/gdkevents.h: `GdkDevice *gdk_event_get_source_device (const GdkEvent *event);`
 pub fn gdk_event_get_source_device (event: *const GdkEvent) -> *mut GdkDevice;
+/// C 5964: `if (gdk_event_get_pointer_emulated (event)`.
+/// C: gdk/gdkevents.h: `gboolean gdk_event_get_pointer_emulated (GdkEvent *event);`
+pub fn gdk_event_get_pointer_emulated (event: *mut GdkEvent) -> gboolean;
 /// C 393: `return gdk_keyval_name (keysym);`
 /// C: gdk/gdkkeys.h: `gchar *gdk_keyval_name (guint keyval);`
 pub fn gdk_keyval_name (keyval: guint) -> *mut gchar;
