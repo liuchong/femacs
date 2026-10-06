@@ -801,7 +801,7 @@ pub unsafe extern "C" fn pgtk_free_frame_resources (f: *mut frame)
 
   if !(*FRAME_X_OUTPUT! (f)).scale_factor_atimer.is_null ()
     {
-      cancel_atimer ((*FRAME_X_OUTPUT! (f)).scale_factor_atimer);
+      cancel_atimer ((*FRAME_X_OUTPUT! (f)).scale_factor_atimer as *mut atimer);
       (*FRAME_X_OUTPUT! (f)).scale_factor_atimer = std::ptr::null_mut ();
     }
 
@@ -940,7 +940,7 @@ pub unsafe extern "C" fn pgtk_free_frame_resources (f: *mut frame)
 
   if !(*FRAME_X_OUTPUT! (f)).atimer_visible_bell.is_null ()
     {
-      cancel_atimer ((*FRAME_X_OUTPUT! (f)).atimer_visible_bell);
+      cancel_atimer ((*FRAME_X_OUTPUT! (f)).atimer_visible_bell as *mut atimer);
       (*FRAME_X_OUTPUT! (f)).atimer_visible_bell = std::ptr::null_mut ();
     }
 
@@ -5457,4 +5457,172 @@ pub unsafe extern "C" fn pgtk_clear_frame (f: *mut frame)
   block_input ();                                                       // C 3795
   pgtk_clear_area (f, 0, 0, FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f));   // C 3796
   unblock_input ();                                                     // C 3797
+}
+
+/// C 3800-3813: `static void recover_from_visible_bell (struct atimer *timer)` - the function whose
+/// **address** C 3900 hands to `start_atimer`, so the port defines it `unsafe extern "C" fn`
+/// (PORTING.md 1.4; atimer.h 44's `atimer_callback` is `include/atimer.rs` 29's type, so this
+/// signature matches it exactly and the entry needs no conversion).  C's `timer->client_data` is
+/// the atimer record's own field (`include/atimer.rs` 53, `void *`), and C's store into
+/// `struct frame *f` is the pointer cast the port spells (P-72 rule 3, PORTING.md 1.4).
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn recover_from_visible_bell (timer: *mut atimer)
+{
+  let f: *mut frame = (*timer).client_data as *mut frame;               // C 3803
+
+  if !(*FRAME_X_OUTPUT! (f)).cr_surface_visible_bell.is_null ()         // C 3805
+    {
+      cairo_surface_destroy ((*FRAME_X_OUTPUT! (f)).cr_surface_visible_bell);   // C 3807
+      (*FRAME_X_OUTPUT! (f)).cr_surface_visible_bell = core::ptr::null_mut ();  // C 3808
+    }
+
+  if !(*FRAME_X_OUTPUT! (f)).atimer_visible_bell.is_null ()             // C 3811
+    { (*FRAME_X_OUTPUT! (f)).atimer_visible_bell = core::ptr::null_mut (); }    // C 3812
+}
+
+/* Invert the middle quarter of the frame for .15 sec.  */
+
+/* C: cairo.h 705-706: `void cairo_set_source_rgb (cairo_t *cr, double red, double green, double
+   blue);` - the C 3844 call (this unit's own row, the cairo segment's practice in this file).
+   cairo.h 690: `CAIRO_OPERATOR_DIFFERENCE,` of `typedef enum _cairo_operator { … }` - the C 3845
+   argument, whose **value is measured against this machine's header** (clang:
+   `CAIRO_OPERATOR_DIFFERENCE=23 CLEAR=0 SOURCE=1 sizeof (cairo_operator_t)=4`, the same reading
+   `include/gtk.rs` 296-297's `CAIRO_OPERATOR_SOURCE = 1` carries).  The `///` form is a warning on
+   an `extern` block (the Deviation 2 shape), so this row is `/* */`.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_set_source_rgb (cr: *mut cairo_t, red: c_double, green: c_double, blue: c_double);
+}
+#[cfg (feature = "have_pgtk")]
+pub const CAIRO_OPERATOR_DIFFERENCE: cairo_operator_t = 23;             // cairo.h 690
+/* <gtk/gtkwidget.h>: `void gtk_widget_error_bell (GtkWidget *widget);` - the C 3919 call (the GTK
+   segment's convention: the header alone, no line).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gtk_widget_error_bell (widget: *mut GtkWidget);
+}
+
+/// C 3817-3905: `static void pgtk_flash (struct frame *f)` - the context guard, the similar
+/// surface, the five `cairo_*` calls with C's int literals to `double` parameters (`0 as c_double`,
+/// the `src/gtkutil.rs` 807 spelling), the flash rectangles built from the frame's own
+/// `FRAME_PIXEL_HEIGHT`/`FRAME_LINE_HEIGHT`/`FRAME_INTERNAL_BORDER_WIDTH`/`FRAME_TOP_MARGIN_HEIGHT`/
+/// `FRAME_BOTTOM_MARGIN_HEIGHT` (all `include/frame.rs` functions; the line height is this unit's
+/// `FRAME_LINE_HEIGHT!` macro pair), and the timer pair.  C 3893-3900's `atimer_visible_bell` is the
+/// `pgtk_output` field the mirror declares `*mut c_void` (P-55: `struct atimer` was a bare tag when
+/// that record was written), so the `cancel_atimer` argument and the `start_atimer` result carry the
+/// pointer cast - the same two sites Deviation 48 repairs in `pgtk_free_frame_resources`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_flash (f: *mut frame)
+{
+  let mut surface_orig: *mut cairo_surface_t;                           // C 3820
+  let mut surface: *mut cairo_surface_t;                                // C 3820
+  let mut cr: *mut cairo_t;                                             // C 3821
+  let mut width: c_int;                                                 // C 3822
+  let mut height: c_int;                                                // C 3822
+  let mut flash_height: c_int;                                          // C 3822
+  let mut flash_left: c_int;                                            // C 3822
+  let mut flash_right: c_int;                                           // C 3822
+  let mut delay: timespec;                                              // C 3823
+
+  if FRAME_CR_CONTEXT! (f).is_null ()                                   // C 3825
+    { return; }                                                         // C 3826
+
+  block_input ();                                                       // C 3828
+
+  surface_orig = FRAME_CR_SURFACE! (f);                                 // C 3830
+
+  width = FRAME_CR_SURFACE_DESIRED_WIDTH! (f);                          // C 3832
+  height = FRAME_CR_SURFACE_DESIRED_HEIGHT! (f);                        // C 3833
+  surface = cairo_surface_create_similar (surface_orig,                 // C 3834
+					  CAIRO_CONTENT_COLOR_ALPHA, width, height);
+
+  cr = cairo_create (surface);                                          // C 3838
+  cairo_set_source_surface (cr, surface_orig, 0 as c_double, 0 as c_double);   // C 3839
+  cairo_rectangle (cr, 0 as c_double, 0 as c_double, width as c_double, height as c_double);   // C 3840
+  cairo_clip (cr);                                                      // C 3841
+  cairo_paint (cr);                                                     // C 3842
+
+  cairo_set_source_rgb (cr, 1 as c_double, 1 as c_double, 1 as c_double);   // C 3844
+  cairo_set_operator (cr, CAIRO_OPERATOR_DIFFERENCE);                   // C 3845
+
+  /* Get the height not including a menu bar widget.  */
+  height = FRAME_PIXEL_HEIGHT (f);                                      // C 3848
+  /* Height of each line to flash.  */
+  flash_height = FRAME_LINE_HEIGHT! (f);                                // C 3850
+  /* These will be the left and right margins of the rectangles.  */
+  flash_left = FRAME_INTERNAL_BORDER_WIDTH (f);                         // C 3852
+  flash_right = (FRAME_PIXEL_WIDTH (f)                                  // C 3853
+		 - FRAME_INTERNAL_BORDER_WIDTH (f));                    // C 3854
+  width = flash_right - flash_left;                                     // C 3855
+
+  /* If window is tall, flash top and bottom line.  */
+  if height > 3 * FRAME_LINE_HEIGHT! (f)                                // C 3858
+    {
+      cairo_rectangle (cr, flash_left as c_double,                      // C 3860-3863
+		       (FRAME_INTERNAL_BORDER_WIDTH (f)
+			+ FRAME_TOP_MARGIN_HEIGHT (f)) as c_double,
+		       width as c_double, flash_height as c_double);
+      cairo_fill (cr);                                                  // C 3865
+
+      cairo_rectangle (cr, flash_left as c_double,                      // C 3867-3871
+		       (height - flash_height
+			- FRAME_INTERNAL_BORDER_WIDTH (f)
+			- FRAME_BOTTOM_MARGIN_HEIGHT (f)) as c_double,
+		       width as c_double, flash_height as c_double);
+      cairo_fill (cr);                                                  // C 3873
+    }
+  else
+    {
+      /* If it is short, flash it all.  */
+      cairo_rectangle (cr, flash_left as c_double,                      // C 3878-3880
+		       FRAME_INTERNAL_BORDER_WIDTH (f) as c_double,
+		       width as c_double,
+		       (height - 2 * FRAME_INTERNAL_BORDER_WIDTH (f)) as c_double);
+      cairo_fill (cr);                                                  // C 3881
+    }
+
+  /* This surface may be leaked if XTflash is invoked again after a
+     visible bell but before the atimer has had an opportunity to undo
+     the first invocation.  (bug#77128) */
+  if !(*FRAME_X_OUTPUT! (f)).cr_surface_visible_bell.is_null ()         // C 3887
+    { cairo_surface_destroy ((*FRAME_X_OUTPUT! (f)).cr_surface_visible_bell); }   // C 3888
+  (*FRAME_X_OUTPUT! (f)).cr_surface_visible_bell = surface;             // C 3889
+
+  delay = make_timespec (0, 50 * 1000 * 1000);                          // C 3891
+
+  if !(*FRAME_X_OUTPUT! (f)).atimer_visible_bell.is_null ()             // C 3893
+    {
+      cancel_atimer ((*FRAME_X_OUTPUT! (f)).atimer_visible_bell as *mut atimer);   // C 3895
+      (*FRAME_X_OUTPUT! (f)).atimer_visible_bell = core::ptr::null_mut ();         // C 3896
+    }
+
+  (*FRAME_X_OUTPUT! (f)).atimer_visible_bell                            // C 3899-3900
+    = start_atimer (ATIMER_RELATIVE, delay, Some (recover_from_visible_bell),
+		    f as *mut c_void) as *mut c_void;
+
+
+  cairo_destroy (cr);                                                   // C 3903
+  unblock_input ();                                                     // C 3904
+}
+
+/* Make audible bell.  */
+
+/// C 3909-3922: `static void pgtk_ring_bell (struct frame *f)` - `visible_bell` is
+/// `include/globals.rs` 7145's extern (dispextern.h 3072), and `gtk_widget_error_bell` is the
+/// use-site declaration above.  C's address is taken later (the terminal's `ring_bell_hook` in
+/// `pgtk_term_init`, C 7442), so this definition is converted to `unsafe extern "C" fn` **when that
+/// slice lands** (PORTING.md 1.4's rule, the same repair slice 25 made for fifteen of them).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_ring_bell (f: *mut frame)
+{
+  if visible_bell                                                       // C 3912
+    {
+      pgtk_flash (f);                                                   // C 3914
+    }
+  else
+    {
+      block_input ();                                                   // C 3918
+      gtk_widget_error_bell (FRAME_GTK_WIDGET! (f));                    // C 3919
+      unblock_input ();                                                 // C 3920
+    }
 }
