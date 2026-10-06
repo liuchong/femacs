@@ -26570,17 +26570,294 @@ unsafe fn XTset_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_
   wset_horizontal_scroll_bar (w, barobj);                                 // C 17245
 }
 
-/* The following three hooks are used when we're doing a thorough
-   redisplay of the frame.  We don't explicitly know which scroll bars
-   are going to be deleted, because keeping track of when windows go
-   away is a real pain - "Can you say set-window-configuration, boys
-   and girls?"  Instead, we just assert at the beginning of redisplay
-   that *all* scroll bars are to be removed, and then save a scroll bar
-   from the fiery pit when we actually redisplay its window.  */
-
 /* Arrange for all scroll bars on FRAME to be removed at the next call
    to `*judge_scroll_bars_hook'.  A scroll bar may be spared if
    `*redeem_scroll_bar_hook' is applied to its window before the judgment.  */
 
-/* C 17246's `}` closes `XTset_horizontal_scroll_bar`; C 17261 opens the three hooks the next slice
-   lands.  */
+/// C 17261-17281: `static void XTcondemn_scroll_bars (struct frame *frame)` - C's `static`, so a
+/// plain `unsafe fn`, and the whole body is the `XSCROLL_BAR` walk over the frame's ordinary and
+/// condemned lists (`FRAME_SCROLL_BARS`/`FRAME_CONDEMNED_SCROLL_BARS`/`fset_condemned_scroll_bars`/
+/// `fset_scroll_bars` are `include/frame.rs`'s rows, 1169-1479).
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTcondemn_scroll_bars (frame: *mut frame)
+{
+  if !NILP (FRAME_SCROLL_BARS (frame))                                  // C 17264
+    {
+      if !NILP (FRAME_CONDEMNED_SCROLL_BARS (frame))                    // C 17266
+	{
+	  /* Prepend scrollbars to already condemned ones.  */
+	  let mut last: Lisp_Object = FRAME_SCROLL_BARS (frame);        // C 17269
+
+	  while !NILP ((*XSCROLL_BAR! (last)).next)                     // C 17271
+	    { last = (*XSCROLL_BAR! (last)).next; }                     // C 17272
+
+	  (*XSCROLL_BAR! (last)).next = FRAME_CONDEMNED_SCROLL_BARS (frame);  // C 17274
+	  (*XSCROLL_BAR! (FRAME_CONDEMNED_SCROLL_BARS (frame))).prev = last;  // C 17275
+	}
+
+      fset_condemned_scroll_bars (frame, FRAME_SCROLL_BARS (frame));    // C 17278
+      fset_scroll_bars (frame, Qnil ());                                // C 17279
+    }
+}
+
+/* Un-mark WINDOW's scroll bar for deletion in this judgment cycle.
+   Note that WINDOW isn't necessarily condemned at all.  */
+
+/// C 17287-17366: `static void XTredeem_scroll_bar (struct window *w)` - C's `static`.  The two
+/// halves are C's own, and C 17309's `goto horizontal` (a *forward* jump to C 17332's label) is
+/// the labelled-block shape the port uses for it: the vertical half's body is one `'redeem` block
+/// whose end is exactly the label, so `break 'redeem` lands where C's `goto` lands
+/// (`src/androidselect.rs` 414's `'fail`/584's `'failure` are the same shape) - the label itself
+/// stays a comment, and `bar`/`f`/`barobj` take `mut` because either half (or both) assigns them.
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTredeem_scroll_bar (w: *mut window)
+{
+  let mut bar: *mut scroll_bar;                                        // C 17290
+  let mut barobj: Lisp_Object;                                         // C 17291
+  let mut f: *mut frame;                                               // C 17292
+
+  /* We can't redeem this window's scroll bar if it doesn't have one.  */
+  if NILP ((*w).vertical_scroll_bar) && NILP ((*w).horizontal_scroll_bar)  // C 17295
+    { emacs_abort (); }                                                // C 17296
+
+  if !NILP ((*w).vertical_scroll_bar) && WINDOW_HAS_VERTICAL_SCROLL_BAR! (w)  // C 17298
+    {
+      'redeem: {
+	bar = XSCROLL_BAR! ((*w).vertical_scroll_bar);                 // C 17300
+	/* Unlink it from the condemned list.  */
+	f = XFRAME (WINDOW_FRAME! (w));                                // C 17302
+	if NILP ((*bar).prev)                                          // C 17303
+	  {
+	    /* If the prev pointer is nil, it must be the first in one of
+	       the lists.  */
+	    if EQ (FRAME_SCROLL_BARS (f), (*w).vertical_scroll_bar)     // C 17307
+	      /* It's not condemned.  Everything's fine.  */
+	      { break 'redeem; }                                       // C 17309's `goto horizontal`
+	    else if EQ (FRAME_CONDEMNED_SCROLL_BARS (f),
+			(*w).vertical_scroll_bar)                      // C 17310-17311
+	      { fset_condemned_scroll_bars (f, (*bar).next); }         // C 17312
+	    else
+	      /* If its prev pointer is nil, it must be at the front of
+		 one or the other!  */
+	      { emacs_abort (); }                                      // C 17316
+	  }
+	else
+	  { (*XSCROLL_BAR! ((*bar).prev)).next = (*bar).next; }        // C 17319
+
+	if !NILP ((*bar).next)                                        // C 17321
+	  { (*XSCROLL_BAR! ((*bar).next)).prev = (*bar).prev; }        // C 17322
+
+	(*bar).next = FRAME_SCROLL_BARS (f);                           // C 17324
+	(*bar).prev = Qnil ();                                         // C 17325
+	XSETVECTOR! (barobj, bar);                                     // C 17326
+	fset_scroll_bars (f, barobj);                                  // C 17327
+	if !NILP ((*bar).next)                                        // C 17328
+	  { XSETVECTOR! ((*XSCROLL_BAR! ((*bar).next)).prev, bar); }   // C 17329
+      }
+    }
+
+  /* C 17332's `horizontal:` label, the forward jump's target.  */
+  if !NILP ((*w).horizontal_scroll_bar) && WINDOW_HAS_HORIZONTAL_SCROLL_BAR (w)  // C 17333
+    {
+      bar = XSCROLL_BAR! ((*w).horizontal_scroll_bar);                 // C 17335
+      /* Unlink it from the condemned list.  */
+      f = XFRAME (WINDOW_FRAME! (w));                                  // C 17337
+      if NILP ((*bar).prev)                                            // C 17338
+	{
+	  /* If the prev pointer is nil, it must be the first in one of
+	     the lists.  */
+	  if EQ (FRAME_SCROLL_BARS (f), (*w).horizontal_scroll_bar)      // C 17342
+	    /* It's not condemned.  Everything's fine.  */
+	    { return; }                                                 // C 17344
+	  else if EQ (FRAME_CONDEMNED_SCROLL_BARS (f),
+		      (*w).horizontal_scroll_bar)                       // C 17345-17346
+	    { fset_condemned_scroll_bars (f, (*bar).next); }            // C 17347
+	  else
+	    /* If its prev pointer is nil, it must be at the front of
+	       one or the other!  */
+	    { emacs_abort (); }                                         // C 17351
+	}
+      else
+	{ (*XSCROLL_BAR! ((*bar).prev)).next = (*bar).next; }           // C 17354
+
+      if !NILP ((*bar).next)                                           // C 17356
+	{ (*XSCROLL_BAR! ((*bar).next)).prev = (*bar).prev; }          // C 17357
+
+      (*bar).next = FRAME_SCROLL_BARS (f);                             // C 17359
+      (*bar).prev = Qnil ();                                           // C 17360
+      XSETVECTOR! (barobj, bar);                                       // C 17361
+      fset_scroll_bars (f, barobj);                                    // C 17362
+      if !NILP ((*bar).next)                                           // C 17363
+	{ XSETVECTOR! ((*XSCROLL_BAR! ((*bar).next)).prev, bar); }     // C 17364
+    }
+}
+
+/* Remove all scroll bars on FRAME that haven't been saved since the
+   last call to `*condemn_scroll_bars_hook'.  */
+
+/// C 17371-17394: `static void XTjudge_scroll_bars (struct frame *f)` - C's `static`.  C's
+/// `for (; ! NILP (bar); bar = next)` is the port's `loop` with C's own test at the top and the
+/// step at the body's end (`bar`/`next` both take `mut`); `x_scroll_bar_remove` is slice 80's.
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTjudge_scroll_bars (f: *mut frame)
+{
+  let mut bar: Lisp_Object;                                             // C 17374
+  let mut next: Lisp_Object;
+
+  bar = FRAME_CONDEMNED_SCROLL_BARS (f);                                // C 17376
+
+  /* Clear out the condemned list now so we won't try to process any
+     more events on the hapless scroll bars.  */
+  fset_condemned_scroll_bars (f, Qnil ());                              // C 17380
+
+  while !NILP (bar)                                                     // C 17382
+    {
+      let b: *mut scroll_bar = XSCROLL_BAR! (bar);                      // C 17384
+
+      x_scroll_bar_remove (b);                                          // C 17386
+
+      next = (*b).next;                                                 // C 17388
+      (*b).next = Qnil ();                                              // C 17389
+      (*b).prev = Qnil ();
+
+      bar = next;                                                       // C 17382's step
+    }
+
+  /* Now there should be no references to the condemned scroll bars,
+     and they should get garbage-collected.  */
+}
+
+/* C 17397's `#ifndef USE_TOOLKIT_SCROLL_BARS` opens the two redraw functions.  */
+
+/* Handle exposure event EVENT generated for F, by redrawing all
+   intersecting scroll bars.  */
+
+/// C 17401-17452: `static void x_scroll_bar_handle_exposure (struct frame *f, XEvent *event)` - C's
+/// `static`, in the `#ifndef USE_TOOLKIT_SCROLL_BARS` region, so its gate is slice 79's.  C 17409's
+/// `event->type` and the four field pairs below are the `XEvent` placeholder's owed members
+/// (`include/xlib.rs`'s 192-byte row, the class slice 21's `msg.xclient.*` opened): every one of
+/// them is a registered `E0609`, which is what the reading below counts.  `GraphicsExpose` joins
+/// `x11_constants` with this slice (measured: X.h 192 = 13, the row shape `ButtonPress`'s uses) and
+/// is imported here; the three `XRectangle` locals are C's records written field-wise or by the
+/// `gui_intersect_rectangles` call, so each takes `std::mem::zeroed ()` (PORTING.md 1.5); and C
+/// 17432-17438's `for` with its comma-expression condition is the port's `loop`, C's test at the
+/// top (its second disjunct the block C's commas make) and C's step at the body's end.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_toolkit_scroll_bars")))]
+unsafe fn x_scroll_bar_handle_exposure (f: *mut frame, event: *mut XEvent)
+{
+  use crate::x11_constants::GraphicsExpose;   /* C 17409's event type */
+
+  let x: c_int;                                                         // C 17404
+  let y: c_int;
+  let width: c_int;
+  let height: c_int;
+  let mut rect: XRectangle = std::mem::zeroed ();   /* PORTING.md 1.5 */  // C 17405
+  let mut scroll_bar_rect: XRectangle = std::mem::zeroed ();
+  let mut intersection: XRectangle = std::mem::zeroed ();
+  let mut bar: Lisp_Object;                                             // C 17406
+  let mut condemned: Lisp_Object;
+  let mut b: *mut scroll_bar;                                           // C 17407
+
+  if (*event).r#type == GraphicsExpose                                  // C 17409
+    {
+      x = (*event).xgraphicsexpose.x;                                   // C 17411
+      y = (*event).xgraphicsexpose.y;                                   // C 17412
+      width = (*event).xgraphicsexpose.width;                           // C 17413
+      height = (*event).xgraphicsexpose.height;                         // C 17414
+    }
+  else
+    {
+      x = (*event).xexpose.x;                                           // C 17418
+      y = (*event).xexpose.y;                                           // C 17419
+      width = (*event).xexpose.width;                                   // C 17420
+      height = (*event).xexpose.height;                                 // C 17421
+    }
+
+  rect.x = x as c_short;                                                // C 17424
+  rect.y = y as c_short;                                                // C 17425
+  rect.width = width as c_ushort;                                       // C 17426
+  rect.height = height as c_ushort;                                     // C 17427
+
+  /* Scan this frame's scroll bar list for intersecting scroll
+     bars.  */
+  condemned = FRAME_CONDEMNED_SCROLL_BARS (f);                          // C 17431
+  bar = FRAME_SCROLL_BARS (f);                                          // C 17432
+  /* This trick allows us to search both the ordinary and condemned scroll bar lists with one
+     loop.  */
+  while !NILP (bar)                                                     // C 17435
+	 || { bar = condemned; condemned = Qnil (); !NILP (bar) }      // C 17435-17437
+    {
+      b = XSCROLL_BAR! (bar);                                           // C 17440
+
+      scroll_bar_rect.x = (*b).left as c_short;                         // C 17442
+      scroll_bar_rect.y = (*b).top as c_short;                          // C 17443
+      scroll_bar_rect.width = (*b).width as c_ushort;                   // C 17444
+      scroll_bar_rect.height = (*b).height as c_ushort;                 // C 17445
+
+      if gui_intersect_rectangles (&raw mut rect,                       // C 17447-17449
+				   &raw mut scroll_bar_rect,
+				   &raw mut intersection)
+	{ x_scroll_bar_redraw (b); }                                    // C 17450
+
+      bar = (*XSCROLL_BAR! (bar)).next;                                 // C 17438's step
+    }
+}
+
+/* Redraw the scroll bar BAR.  Draw its border and set its thumb.
+   This is usually called from x_clear_frame, but is also used to
+   handle exposure events that overlap scroll bars.  */
+
+/// C 17458-17492: `static void x_scroll_bar_redraw (struct scroll_bar *bar)` - the function C
+/// 1209 forward-declares and C 17459 defines, so this is the definition slice 80's two calls
+/// (`XTset_vertical_scroll_bar`'s C 17025/17088) were owed.  It is slice 79's drawing shape with
+/// `x_scroll_bar_set_handle (bar, bar->start, bar->end, true)` in the middle, and `XDrawRectangle`
+/// joins `XSetForeground`/`XFillRectangle` in the recorded "Xlib entry points with no mirror row"
+/// class (one row, since this is its first use in the file).
+#[cfg (all (feature = "have_x_windows", not (feature = "use_toolkit_scroll_bars")))]
+unsafe fn x_scroll_bar_redraw (bar: *mut scroll_bar)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (XWINDOW ((*bar).window)));  // C 17461
+  let gc: GC = (*( (*f).output_data.x as *mut x_output )).normal_gc;     // C 17462
+
+  if (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel
+       != (-1 as c_int) as c_ulong                                       // C 17464
+    {
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                          // C 17465-17466
+		      (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel);
+    }
+  else
+    {
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                          // C 17468-17469
+		      FRAME_BACKGROUND_PIXEL (f));
+    }
+
+  XFillRectangle (FRAME_X_DISPLAY! (f), FRAME_X_DRAWABLE! (f), gc,       // C 17471-17472
+		  (*bar).left, (*bar).top, (*bar).width, (*bar).height);
+
+  XSetForeground (FRAME_X_DISPLAY! (f), gc,                             // C 17474-17475
+		  FRAME_FOREGROUND_PIXEL (f));
+
+  x_scroll_bar_set_handle (bar, (*bar).start, (*bar).end, true);        // C 17477
+
+  /* Switch to scroll bar foreground color.  */
+  if (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel
+       != (-1 as c_int) as c_ulong                                      // C 17480
+    {
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                         // C 17481-17482
+		      (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel);
+    }
+
+  /* Draw a one-pixel border just inside the edges of the scroll bar.  */
+  XDrawRectangle (FRAME_X_DISPLAY! (f), FRAME_X_DRAWABLE! (f), gc,      // C 17485-17486
+		  (*bar).left, (*bar).top, (*bar).width - 1, (*bar).height - 1);
+
+  /* Restore the foreground color of the GC if we changed it above.  */
+  if (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel
+       != (-1 as c_int) as c_ulong                                      // C 17489
+    {
+      XSetForeground (FRAME_X_DISPLAY! (f), gc,                         // C 17490-17491
+		      FRAME_FOREGROUND_PIXEL (f));
+    }
+}
+
+/* C 17493's `#endif /* not USE_TOOLKIT_SCROLL_BARS */` closes the pair.  */

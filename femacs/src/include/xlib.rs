@@ -194,6 +194,9 @@ pub mod x11_constants {
   pub const XA_PRIMARY: c_ulong = 1;
   /// X11/X.h 183: `#define ButtonPress 4` - an `XEvent` type, not the mask below.
   pub const ButtonPress: c_int = 4;
+  /// X11/X.h 192: `#define GraphicsExpose 13` - the event type C 17409's
+  /// `x_scroll_bar_handle_exposure` branches on (the neighbours are the rest of X.h 179-192).
+  pub const GraphicsExpose: c_int = 13;
   /// X11/X.h 184: `#define ButtonRelease 5`.
   pub const ButtonRelease: c_int = 5;
   /// X11/X.h 153: `#define ButtonPressMask (1L<<2)` - a `XGrabButton`/event-mask bit.
