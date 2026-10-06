@@ -3990,6 +3990,9 @@ unsafe extern "C" fn pgtk_draw_glyph_string (s: *mut glyph_string)
 #[cfg (feature = "have_pgtk")]
 macro_rules! pointer_invisible {
   ($f:expr) => { (*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_POINTER_INVISIBLE_SHIFT))
+                  | ((($v) as u32) << FRAME_POINTER_INVISIBLE_SHIFT) };
 }
 /// C 3405/3409/…: `f->borders_respect_alpha_background` - `frame.h` 540's `bool_bf
 /// borders_respect_alpha_background : 1`, whose shift `include/frame.rs` 746-751 names
@@ -6873,4 +6876,134 @@ pub unsafe extern "C" fn pgtk_frame_rehighlight (dpyinfo: *mut pgtk_display_info
 #[cfg (feature = "have_pgtk")]
 unsafe extern "C" {
   pub fn gui_update_cursor (f: *mut frame, on_p: bool);
+}
+
+/* The focus has changed, or we have redirected a frame's focus to
+   another frame (this happens when a frame uses a surrogate
+   mini-buffer frame).  Shift the highlight as appropriate.
+
+   The FRAME argument doesn't necessarily have anything to do with which
+   frame is being highlighted or un-highlighted; we only use it to find
+   the appropriate X display info.  */                                  // C 4795-4801
+
+/// C 4803-4807: `static void pgtk_frame_rehighlight_hook (struct frame *frame)` - `static` in C,
+/// but C 4887 takes its address (`terminal->frame_rehighlight_hook`), so PORTING.md 1.4's
+/// `unsafe extern "C" fn` form applies from the slice that lands C 4887; until then it stays a
+/// plain `unsafe fn` (the `pgtk_fullscreen_hook` shape, Deviation 55).  `pgtk_frame_rehighlight`
+/// is this unit's own C 4769 definition.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_frame_rehighlight_hook (frame: *mut frame)
+{
+  pgtk_frame_rehighlight (FRAME_DISPLAY_INFO! (frame));                 // C 4806
+}
+
+/* Set whether or not the mouse pointer should be visible on frame
+   F.  */                                                               // C 4809-4810
+
+/// C 4811-4826: `static void pgtk_toggle_invisible_pointer (struct frame *f, bool invisible)` -
+/// `static` in C, address taken at C 4881 (`terminal->toggle_invisible_pointer_hook`), so a plain
+/// `unsafe fn` until that slice.  `Emacs_Cursor` is the mirror's alias (`include/pgtkterm.rs`
+/// 214/271 carry the two fields C 4816/4818 read), C's `f->pointer_invisible = invisible` is the
+/// `pointer_invisible!` writer arm this slice adds to the reader the twenty-second slice landed
+/// (the `src/androidterm.rs` 234-243 pair shape, `bits1` the measured word 1), and
+/// `gdk_display_flush` is this unit's own use-site declaration below.  The two GDK/GTK entry
+/// points are `include/gtk.rs`'s rows (`gdk_window_set_cursor` 564, `gtk_widget_get_window` 883)
+/// with the `Emacs_Cursor`-to-`*mut GdkCursor` cast the mirror's parameter needs (the
+/// `pgtk_define_frame_cursor` shape, C 2833-2834).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_toggle_invisible_pointer (f: *mut frame, invisible: bool)
+{
+  let cursor: Emacs_Cursor;
+  if invisible                                                          // C 4815
+    { cursor = (*FRAME_DISPLAY_INFO! (f)).invisible_cursor; }           // C 4816
+  else
+    { cursor = (*FRAME_X_OUTPUT! (f)).current_cursor; }                 // C 4818
+  gdk_window_set_cursor (gtk_widget_get_window (FRAME_GTK_WIDGET! (f)),   // C 4819
+			 cursor as *mut GdkCursor);                     // C 4820
+  pointer_invisible! (f, invisible);                                    // C 4821
+
+  /* This is needed to make the pointer visible upon receiving a
+     motion notify event.  */
+  gdk_display_flush (FRAME_X_DISPLAY! (f));                             // C 4825
+}
+
+/* The focus has changed.  Update the frames as necessary to reflect
+   the new situation.  Note that we can't change the selected frame
+   here, because the Lisp code we are interrupting might become confused.
+   Each event gets marked with the frame in which it occurred, so the
+   Lisp code can tell when the switch took place by examining the events.  */   // C 4828-4832
+
+/// C 4834-4858: `static void pgtk_new_focus_frame (struct pgtk_display_info *dpyinfo, struct frame
+/// *frame)` - `static` in C with one call site (C 513, inside `pgtk_delete_terminal`, which this
+/// unit already carries at line 859), so a plain `unsafe fn`; landing it retires the standing
+/// `cannot find function pgtk_new_focus_frame` class.  `auto_lower`/`auto_raise` are frame.h
+/// 408/405's `bool_bf` flags: the mirror carries the shifts and no accessor (`include/frame.rs`
+/// 465-479), so the unit declares the two readers below - the `src/androidterm.rs` 225-233 copy of
+/// the same pair (`bits1` is the measured word 1).  C's nested `if`s have no braces; the port's
+/// one-line `{ … }` bodies are the `src/androidterm.rs` 668-671 shape.
+#[cfg (feature = "have_pgtk")]
+macro_rules! auto_raise {
+  ($f:expr) => { (*$f).bits1 >> FRAME_AUTO_RAISE_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_AUTO_RAISE_SHIFT))
+                  | ((($v) as u32) << FRAME_AUTO_RAISE_SHIFT) };
+}
+#[cfg (feature = "have_pgtk")]
+macro_rules! auto_lower {
+  ($f:expr) => { (*$f).bits1 >> FRAME_AUTO_LOWER_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_AUTO_LOWER_SHIFT))
+                  | ((($v) as u32) << FRAME_AUTO_LOWER_SHIFT) };
+}
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_new_focus_frame (dpyinfo: *mut pgtk_display_info, frame: *mut frame)
+{
+  let old_focus: *mut frame = (*dpyinfo).x_focus_frame;                 // C 4837
+  /* doesn't work on wayland */
+
+  if frame != (*dpyinfo).x_focus_frame                                  // C 4840
+    {
+      /* Set this before calling other routines, so that they see
+	 the correct value of x_focus_frame.  */
+      (*dpyinfo).x_focus_frame = frame;                                 // C 4844
+
+      if !old_focus.is_null () && auto_lower! (old_focus)               // C 4846
+	{
+	  if !FRAME_GTK_OUTER_WIDGET! (old_focus).is_null ()            // C 4847
+	    {
+	      gdk_window_lower (gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET! (old_focus)));   // C 4848-4849
+	    }
+	}
+
+      if !(*dpyinfo).x_focus_frame.is_null () && auto_raise! ((*dpyinfo).x_focus_frame)   // C 4851
+	{
+	  if !FRAME_GTK_OUTER_WIDGET! ((*dpyinfo).x_focus_frame).is_null ()   // C 4852
+	    {
+	      gdk_window_raise (gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET! ((*dpyinfo).x_focus_frame)));   // C 4853-4854
+	    }
+	}
+    }
+
+  pgtk_frame_rehighlight (dpyinfo);                                     // C 4857
+}
+
+/// C 4860-4867: `static void pgtk_buffer_flipping_unblocked_hook (struct frame *f)` - `static` in
+/// C, address taken at C 4888 (`terminal->buffer_flipping_unblocked_hook`), so a plain `unsafe fn`
+/// until that slice.  `flip_cr_context` is this file's own C 271 definition (line 575) and
+/// `gtk_widget_queue_draw` this unit's GTK-segment row (line 4795's block, C 3462's call).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_buffer_flipping_unblocked_hook (f: *mut frame)
+{
+  block_input ();                                                       // C 4863
+  flip_cr_context (f);                                                  // C 4864
+  gtk_widget_queue_draw (FRAME_GTK_WIDGET! (f));                        // C 4865
+  unblock_input ();                                                     // C 4866
+}
+
+/* C: gdk/gdkdisplay.h: `void gdk_display_flush (GdkDisplay *display);` - the C 4825 call.  The GTK
+   segment's convention (header alone, no line: this machine has no GTK/GDK tree), and
+   `GdkDisplay` is `include/gtk.rs` 372-374's record.  Owed 15 names the mirror row.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gdk_display_flush (display: *mut GdkDisplay);
 }

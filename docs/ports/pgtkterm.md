@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-36: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700 and C 4702-4793
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-37: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793 and C 4795-4867
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**6,876 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,009 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** - thirty-six
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** - thirty-seven
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_frame_rehighlight_hook` (C 4803-4804).**
+> `pgtk_create_terminal` (C 4869-4870).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -149,7 +149,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 4562-4614 | `pgtk_delete_terminal` (C 4562-4614, with its comment) | the file gate - **transcribed** (the thirty-fourth slice) |
 | 4616-4700 | `pgtk_query_frame_background_color` (C 4616-4622, with its comment), `pgtk_free_pixmap` (C 4624-4632), `pgtk_focus_frame` (C 4634-4660), `set_opacity_recursively` (C 4662-4670) and `pgtk_set_frame_alpha` (C 4672-4700) | the file gate - **transcribed** (the thirty-fifth slice) |
 | 4702-4793 | `frame_highlight` (C 4702-4731), `frame_unhighlight` (C 4733-4766) and `pgtk_frame_rehighlight` (C 4769-4793, C 4768 is the blank line above it) | the file gate - **transcribed** (the thirty-sixth slice) |
-| 4795-7780 | **the remainder of the file** - from C 4803's `pgtk_frame_rehighlight_hook` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4795-4867 | `pgtk_frame_rehighlight_hook` (C 4803-4807), `pgtk_toggle_invisible_pointer` (C 4811-4826), `pgtk_new_focus_frame` (C 4834-4858) and `pgtk_buffer_flipping_unblocked_hook` (C 4860-4867) | the file gate - **transcribed** (the thirty-seventh slice) |
+| 4869-7780 | **the remainder of the file** - from C 4869's `pgtk_create_terminal` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the terminal's hook table, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1012,6 +1013,30 @@ their assertions are owed.
     reading is unchanged because that arm defines `have_gtk3`).  No mirror changed, so P-87's two
     legs do not apply.
 
+59. **Two bitfield readers, one writer arm, and one GDK declaration the unit owes the mirror.**
+    C 4846/4851 read `auto_lower`/`auto_raise` (frame.h 408/405's `bool_bf` flags): the mirror
+    carries the shifts and no accessor (`include/frame.rs` 465-479), so the unit declares both
+    macros with the reader *and* writer arms the `src/androidterm.rs` 225-233 pair carries
+    (`bits1` is the measured word 1), and C 4821's `f->pointer_invisible = invisible` adds the
+    writer arm to the reader the twenty-second slice landed (`pointer_invisible!`, line 3991) -
+    one macro per field with both arms, the `src/androidterm.rs` 234-243 shape.  `gdk_display_flush`
+    (gdk/gdkdisplay.h, the C 4825 call) is this unit's own use-site declaration because
+    `include/gtk.rs` has no row for it - Owed 15 names it; `GdkDisplay` is that mirror's 372-374
+    record and the two other GDK/GTK entry points are its rows (`gdk_window_set_cursor` 564,
+    `gtk_widget_get_window` 883), with the `Emacs_Cursor`-to-`*mut GdkCursor` cast the parameter
+    needs (the `pgtk_define_frame_cursor` shape, C 2833-2834).  C 4818's
+    `f->output_data.pgtk->current_cursor` is the port's `(*FRAME_X_OUTPUT! (f)).current_cursor`,
+    which is why the token check reports `output_data, pgtk` for this function and why a sanctioned
+    `docs/ports/macro-body-notes.tsv` row closes it (the `haiku_free_frame_resources` shape).
+    `pgtk_frame_rehighlight_hook`, `pgtk_toggle_invisible_pointer` and
+    `pgtk_buffer_flipping_unblocked_hook` are `static` in C with **one address-taking site each**
+    (C 4887, C 4881, C 4888 - `terminal->frame_rehighlight_hook`,
+    `terminal->toggle_invisible_pointer_hook`, `terminal->buffer_flipping_unblocked_hook`), so
+    PORTING.md 1.4 makes them `unsafe extern "C" fn` **from the slice that lands C 4869's
+    `pgtk_create_terminal`**; until then they stay plain `unsafe fn` (the `pgtk_fullscreen_hook`
+    shape, Deviation 55), and `pgtk_new_focus_frame` is `static` with one call site inside this
+    file (C 513) and no address taken at all.  No mirror changed, so P-87's two legs do not apply.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1058,6 +1083,11 @@ their assertions are owed.
     `gui_update_cursor` (dispextern.h 3656: `extern void gui_update_cursor (struct frame *, bool);`),
     whose two call sites are C 4729 and C 4764.  Until the mirror carries it, the unit's use-site
     declaration is the reading (the `src/haikufns.rs` 138 / `src/pgtkfns.rs` 547 shape).
+
+15. **`include/gtk.rs`** owes the row the thirty-seventh slice declared in the unit:
+    `gdk_display_flush` (gdk/gdkdisplay.h: `void gdk_display_flush (GdkDisplay *display);`), whose
+    one call site is C 4825.  Until the mirror carries it, the unit's use-site declaration is the
+    reading (the GTK segment's "header alone, no line" convention).
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -2447,9 +2477,51 @@ re-measured 13.1% -> **11.6%** (C 7,780 vs the port's 6,876).
 table's remainder row split into `4702-4793` (**transcribed**) and `4795-7780` (whose next live
 definition is `pgtk_frame_rehighlight_hook`, C 4803-4804), the title to thirty-six slices and the
 header to 6,876 lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py`
-676/0/0/2085/36/0, `check-dead-file-coverage.py` 145/0 (**68 range rows** over `src/pgtkterm.c`),
+676/0/0/2085/36/0, `check-dead-file-coverage.py` 145/0 (**68 range rows** over `src/pgtkterm.c`),  (**Correction, the thirty-seventh slice**: this row's citation reading was first taken with the HEAD probe copy (`femacs/src/pgtkterm_baseprobe.rs`) still in the tree, which the gate counts as one more scanned file and 37 more external citations; the clean-tree reading is `check-citations.py` 676/0/0/2085/36/0, measured by re-running it at that commit with the copy removed.)
 `check-port-lines.py` 0/0/0/0, `check-ledger-ticks.py` 238/0 and `check-cond-eval.py
 src/pgtkterm.c` 31/0/0 (no mirror changed this round, so `check-mirror-dupes.py` 16/16/0 stands and
 P-87's two legs do not apply).  **Not claimed**: nothing has been run - the frozen configuration
 compiles none of this file, no frame was highlighted and no cursor was updated, and the arm readings
 are **compile** readings of text this machine cannot build.
+
+## The thirty-seventh slice (C 4795-4867): the rehighlight hook, the pointer toggle, the focus change and the flipping hook
+
+**What is in it.**  `pgtk_frame_rehighlight_hook` (C 4803-4807, with C's comment at 4795-4801),
+`pgtk_toggle_invisible_pointer` (C 4811-4826: the invisible/current cursor choice, the GDK call with
+C's split line, C 4821's flag write and the display flush), `pgtk_new_focus_frame` (C 4834-4858: the
+focus swap, C's two nested `if`s over the `auto_lower`/`auto_raise` flags and the rehighlight) and
+`pgtk_buffer_flipping_unblocked_hook` (C 4860-4867).  Rust: 6,876 -> **7,009** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 72 errors / 19 warnings -> 71 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 73 / 20 -> 72 / 20
+C = A + use_gtk + have_gtk3                        : 30 / 18 -> 29 / 18
+```
+**Every arm loses exactly one error and gains none**: the set diff in all three arms is the single
+base-only line `cannot find function pgtk_new_focus_frame` (the standing class this slice's C 4835
+definition retires), with **0 new errors, 0 new warnings** and no other line in any diff.  Every
+GDK/GTK name this slice uses already resolves in all three arms (`gdk_window_set_cursor`,
+`gtk_widget_get_window`, `gdk_window_lower`, `gdk_window_raise`, `GdkCursor` are
+`include/gtk.rs`'s rows, and `gdk_display_flush` is the unit's own declaration) - the slice adds no
+instance of the GTK-segment classes the last one measured.  **Arm reach is measured** (P-86 7):
+injecting `let _: c_int = true;` as the first statement of `pgtk_new_focus_frame` moves arm A to
+**72** errors anchored at the injected line (removed, the file re-measured at **7,009** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**85 rows -> 81**: the four functions retire and C 4818's `output_data`/`pgtk` token row arrives,
+closed by a sanctioned `docs/ports/macro-body-notes.tsv` row (the same function reaches the member
+through the mirror's `FRAME_X_OUTPUT!`, the `haiku_free_frame_resources` shape).  The file's own
+`line count drifted` row is re-measured 11.6% -> **9.9%** (C 7,780 vs the port's 7,009).
+
+**Ledger.**  Deviation 59 (the two bitfield readers, the `pointer_invisible!` writer arm and
+`gdk_display_flush`), Owed 15, the range table's remainder row split into `4795-4867`
+(**transcribed**) and `4869-7780` (whose next live definition is `pgtk_create_terminal`,
+C 4869-4870), the title to thirty-seven slices and the header to 7,009 lines.  **The gates** read
+`check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2085/36/0, `check-dead-file-coverage.py`
+145/0 (**69 range rows** over `src/pgtkterm.c`), `check-port-lines.py` 0/0/0/0,
+`check-ledger-ticks.py` 238/0 and `check-cond-eval.py src/pgtkterm.c` 31/0/0 (no mirror changed this
+round, so `check-mirror-dupes.py` 16/16/0 stands and P-87's two legs do not apply).  **Not claimed**:
+nothing has been run - the frozen configuration compiles none of this file, this machine has no GTK
+tree and no PGTK target, no pointer was hidden and no focus changed, and the arm readings are
+**compile** readings of text this machine cannot build.
