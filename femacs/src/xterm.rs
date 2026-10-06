@@ -15462,3 +15462,137 @@ unsafe fn x_calc_absolute_position (f: *mut frame)
      so the flags should correspond.  */
   (*f).size_hint_flags &= !(XNegative | YNegative);                     // C 27580
 }
+
+/* CHANGE_GRAVITY is 1 when calling from Fset_frame_position,
+   to really change the position, and 0 when calling from
+   x_make_frame_visible (in that case, XOFF and YOFF are the current
+   position values).  It is -1 when calling from gui_set_frame_parameters,
+   which means, do adjust for borders but don't change the gravity.  */
+
+/// C: X.h 422: `#define NorthWestGravity 1` - C 27606's `f->win_gravity` value (measured).
+#[cfg (feature = "have_x_windows")]
+pub const NorthWestGravity: c_int = 1;
+/* C: xterm.h 742-744: `enum { X_WMTYPE_UNKNOWN, X_WMTYPE_A, X_WMTYPE_B };` - the three values
+   `dpyinfo->wm_type` takes; `include/xterm.rs` 724-728 already carries them, so this unit writes
+   no copy (the `check-mirror-dupes` reading this slice's first attempt produced).  */
+/* C: Xlib.h 2844: `extern int XMoveWindow (Display *, Window, int, int);` - C 27646's call, in
+   the arm `USE_GTK` is not.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XMoveWindow (display: *mut Display, w: Window, x: c_int, y: c_int) -> c_int;
+}
+/* C: gtkutil.c 284-295's `int xg_get_scale (struct frame *f)`, declared in gtkutil.h; the
+   `src/gtkutil.rs` 629 definition is another crate's, so the prototype stands here (P-72 rule
+   4).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_get_scale (f: *mut frame) -> c_int;
+}
+
+/// C 27589-27689: `static void x_set_offset (struct frame *f, int xoff, int yoff, int
+/// change_gravity)` - a `static` whose callers are this file's, so a plain `unsafe fn`.  Both
+/// arms of C 27593's `USE_GTK` are carried (P-86 ①): the `use_gtk` arm with `xg_get_scale` and
+/// `gtk_window_move`, and the `#else` with `XMoveWindow`.  C 27612's `x_wm_set_size_hint`, C
+/// 27661's `x_sync_with_move` and C 27679's `x_check_expected_move` are all defined *in this
+/// file* (C 30159, and the two functions' own slices) and are not ported yet, so this unit calls
+/// them without a declaration and their `E0425` rows are the owed record (a use-site declaration
+/// would collide with the definitions when they land, the `PORTING.md` 1.3 same-unit rule).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravity: c_int)
+{
+  let mut modified_top: c_int;                                          // C 27592
+  let mut modified_left: c_int;
+  #[cfg (feature = "use_gtk")]
+  let scale: c_int = xg_get_scale (f);                                  // C 27594
+
+  if change_gravity > 0                                                  // C 27597
+    {
+      (*f).top_pos = yoff;                                              // C 27599
+      (*f).left_pos = xoff;                                             // C 27600
+      (*f).size_hint_flags &= !(XNegative | YNegative);                 // C 27601
+      if xoff < 0                                                       // C 27602
+	{ (*f).size_hint_flags |= XNegative; }                          // C 27603
+      if yoff < 0                                                       // C 27604
+	{ (*f).size_hint_flags |= YNegative; }                          // C 27605
+      (*f).win_gravity = NorthWestGravity;                              // C 27606
+    }
+
+  x_calc_absolute_position (f);                                         // C 27609
+
+  block_input ();                                                       // C 27611
+  x_wm_set_size_hint (f, 0, false);                                     // C 27612
+
+  #[cfg (feature = "use_gtk")]
+  {
+    if x_gtk_use_window_move                                           // C 27615
+      {
+	/* When a position change was requested and the outer GTK widget
+	   has been realized already, leave it to gtk_window_move to
+	   DTRT and return.  Used for Bug#25851 and Bug#25943.  Convert
+	   from X pixels to GTK scaled pixels.  */
+	if change_gravity != 0 && !FRAME_GTK_OUTER_WIDGET! (f).is_null ()  // C 27621
+	  {
+	    gtk_window_move (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),  // C 27622-27623
+			     (*f).left_pos / scale, (*f).top_pos / scale);
+	  }
+	unblock_input ();                                               // C 27624
+	return;                                                         // C 27625
+      }
+  }
+
+  modified_left = (*f).left_pos;                                        // C 27629
+  modified_top = (*f).top_pos;                                          // C 27630
+
+  if change_gravity != 0                                                // C 27632
+    && (*FRAME_DISPLAY_INFO! (f)).wm_type == X_WMTYPE_A
+    {
+      /* Some WMs (twm, wmaker at least) has an offset that is smaller
+	 than the WM decorations.  So we use the calculated offset instead
+	 of the WM decoration sizes here (x/y_pixels_outer_diff).  */
+      modified_left += (*FRAME_X_OUTPUT! (f)).move_offset_left;         // C 27637
+      modified_top += (*FRAME_X_OUTPUT! (f)).move_offset_top;           // C 27638
+    }
+
+  #[cfg (feature = "use_gtk")]
+  {
+    /* Make sure we adjust for possible scaling.  */
+    gtk_window_move (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),         // C 27643-27644
+		     modified_left / scale, modified_top / scale);
+  }
+  #[cfg (not (feature = "use_gtk"))]
+  {
+    XMoveWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),         // C 27646-27647
+		 modified_left, modified_top);
+  }
+
+  /* The following code is too slow over a latent network
+     connection.  */
+  if NILP (Vx_lax_frame_positioning)                                    // C 27652
+    {
+      /* 'x_sync_with_move' is too costly for dragging child frames.  */
+      if FRAME_PARENT_FRAME (f).is_null ()                              // C 27655
+	  /* If no window manager exists, just calling XSync will be
+	     sufficient to ensure that the window geometry has been
+	     updated.  */
+	  && NILP (Vx_no_window_manager)                                // C 27659
+	{
+	  x_sync_with_move (f, (*f).left_pos, (*f).top_pos,             // C 27661-27662
+			    (*FRAME_DISPLAY_INFO! (f)).wm_type == X_WMTYPE_UNKNOWN);
+
+	  /* change_gravity is non-zero when this function is called from Lisp ... */
+	  if change_gravity != 0                                        // C 27674
+	      && ((*FRAME_DISPLAY_INFO! (f)).wm_type == X_WMTYPE_UNKNOWN  // C 27675
+		  || ((*FRAME_DISPLAY_INFO! (f)).wm_type == X_WMTYPE_A    // C 27676
+		      && ((*FRAME_X_OUTPUT! (f)).move_offset_left == 0    // C 27677
+			  && (*FRAME_X_OUTPUT! (f)).move_offset_top == 0)))  // C 27678
+	    { x_check_expected_move (f, modified_left, modified_top); }   // C 27679
+	}
+      /* Instead, just wait for the last ConfigureWindow request to
+	 complete.  No window manager is involved when moving child
+	 frames.  */
+      else
+	{ XSync (FRAME_X_DISPLAY! (f), 0); }                          // C 27685 (C's `False`)
+    }
+
+  unblock_input ();                                                     // C 27688
+}

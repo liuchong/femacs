@@ -26,7 +26,8 @@ C 27200's `#ifdef HAVE_X_I18N`, which is `undef` in the frozen table too.  Slice
 callback is behind `HAVE_X11R6_XIM` and `xim_initialize`'s arms are behind `HAVE_XIM`, all
 `undef` in the frozen table.  Slice 20 (C 27436-27487, Decision 32) **stays 158** for the same reason.  Slice 21 (C 27493-27581, Decision 33) moves it to **157**: the
 function's missing row retires and its `output_data` token row is closed by a
-`docs/ports/macro-body-notes.tsv` row.
+`docs/ports/macro-body-notes.tsv` row.  Slice 22 (C 27583-27689, Decision 34) moves it to **156**:
+`x_set_offset` retires as a missing item and no token row arrives.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -272,7 +273,7 @@ function's missing row retires and its `output_data` token row is closed by a
 - [x] x_io_error_quitter  (line 27115, static)
 - [x] x_new_font  (line 27137, static)
 - [ ] x_calc_absolute_position  (line 27497, static)
-- [ ] x_set_offset  (line 27590, static)
+- [x] x_set_offset  (line 27590, static)
 - [ ] x_get_wm_check_window  (line 27692, static)
 - [ ] x_wm_supports_1  (line 27728)
 - [ ] x_wm_supports  (line 27826)
@@ -2066,6 +2067,28 @@ expressions (Decision 25).
   the same six parameters as its register sibling.
 
 
+### 34. Slice 22 (C 27583-27689): `x_set_offset`, and three names this file defines later
+
+* **A name this same file defines later is called, not declared.**  C 27612's `x_wm_set_size_hint`
+  is defined in this file at C 30159 (xterm.h 1777 declares it), and C 27661/27679's
+  `x_sync_with_move`/`x_check_expected_move` are this file's `static`s too; a use-site
+  `unsafe extern "C"` block would collide with those definitions when their slices land
+  (PORTING.md 1.3's same-unit rule), so the unit writes the calls and their three `E0425` rows are
+  the owed record - the reading moves by exactly those three in arm A.
+* **The `wm_type` constants are the mirror's.**  The first attempt declared `X_WMTYPE_UNKNOWN/A/B`;
+  `include/xterm.rs` 723-727 already carries the enum (its `wm_type` field's comment names it),
+  and `check-mirror-dupes` read the three rows as duplicates.  They are gone and the unit writes no
+  copy (P-26/P-90 ⑦'s rule, the one slice 21 met on the display measurements).
+* **`move_offset_left`/`move_offset_top` are members the mirror records, not stores.**  Like
+  `has_been_visible` (Decision 33), the two `int` members C 27637/27638 and C 27677/27678 read are
+  not rows of `include/xterm.rs`'s `x_output`, so the port writes C's own member names and the
+  four `E0609` rows are the owed record.
+* **Both `USE_GTK` arms are carried** (P-86 ①): C 27594's `xg_get_scale` (declared at this use
+  site from gtkutil.h; the `src/gtkutil.rs` 629 definition is another crate's) and C 27622/27643's
+  `gtk_window_move` (the gtk mirror's) in the `use_gtk` arm, C 27646's `XMoveWindow` in the
+  `#else`, so arm B loses the one `E0425` that declaration resolves.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3667,3 +3690,27 @@ against C's 33,125 (53.3%).
 **text** readings: no frame position was computed, no frame edge was queried and no size hint flag
 was cleared.  The remaining `E0425`/`E0609` rows are unresolved names and unstored members, not
 behaviour.
+
+
+### Slice 22's readings (C 27583-27689), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_set_offset` (C 27589-27689): the `change_gravity > 0` block that writes
+`top_pos`/`left_pos`, clears the two negative flags and sets `win_gravity`, the
+`x_calc_absolute_position` call, `x_wm_set_size_hint`, the two `USE_GTK` arms
+(`x_gtk_use_window_move`'s early return with `gtk_window_move`, and the scaled move after the WM
+offset adjustment) versus the `#else` `XMoveWindow`, and the `Vx_lax_frame_positioning` block that
+ends in `x_sync_with_move`/`x_check_expected_move` or `XSync (dpy, 0)`.  Rust 15,464 -> 15,598
+lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**551 / 55 -> 558 / 55**: **+3 `E0425`** (Decision 34's first shape) and **+4 `E0609`**
+(`move_offset_left`/`_top`, its third).  Arm B (A + `have_gtk3` + `use_gtk`) **551 / 60 -> 557 /
+60**: `-1 E0425` (`xg_get_scale`, the use-site declaration resolves it), `+3 E0425` (the same
+three names) and `+4 E0609`.  No warning moved in either arm.
+
+**What `--check` reads.**  **157 -> 156**: `missing function x_set_offset` retires and no token row
+arrives.  The line-count row moves to 15,598 against C's 33,125 (52.9%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no frame was moved, no
+window manager was asked anything and no configure request was synced.  The remaining
+`E0425`/`E0609` rows are unresolved names and unstored members, not behaviour.
