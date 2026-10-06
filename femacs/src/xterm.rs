@@ -26861,3 +26861,126 @@ unsafe fn x_scroll_bar_redraw (bar: *mut scroll_bar)
 }
 
 /* C 17493's `#endif /* not USE_TOOLKIT_SCROLL_BARS */` closes the pair.  */
+
+/* Handle a mouse click on the scroll bar BAR.  If *EMACS_EVENT's kind
+   is set to something other than NO_EVENT, it is enqueued.
+
+   This may be called from a signal handler, so we have to ignore GC
+   mark bits.  */
+
+/// C 17502-17596: `static void x_scroll_bar_handle_click (struct scroll_bar *bar, const
+/// XEvent *event, struct input_event *emacs_event, Lisp_Object device)` - C's `static`,
+/// so a plain `unsafe fn`.  Five shapes: the two bitfield writes C 17516-17518 and C
+/// 17543-17548 / C 17574-17579 perform go through this unit's `input_event_bits!` (PORTING.md
+/// P-80, the C 893 macro above), whose setter arm widens the `scroll_bar_part` value the
+/// arithmetic produced; `XSETINT` states the EMACS_INT cast C leaves implicit (the C 14714
+/// precedent); `new_start`/`new_end` and the two "released the handle" blocks are C
+/// 17509-17511 / C 17550-17560 / C 17581-17591's `#ifndef USE_TOOLKIT_SCROLL_BARS` gate, so a
+/// non-toolkit arm reads them and a toolkit arm does not; `Button1` and `ButtonRelease` stay
+/// bare (Decision 15's X11 names, the C 14676 reading); and the five `event->xbutton.*`
+/// members plus `event->type` are the `[u8; 192]` XEvent placeholder's owed members (the
+/// class the C 2365 site opened).  `f` - the first argument of C 17537/17568's two range
+/// macros - is the parameter xterm.h 1640/1662 declares and never expands, so neither the C
+/// compiler nor this expansion ever needs the name: C's bytes stay and no row is owed.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_scroll_bar_handle_click (bar: *mut scroll_bar, event: *const XEvent,
+				     emacs_event: *mut input_event, device: Lisp_Object)
+{
+  let left_range: c_int;                                               // C 17508
+  let mut x: c_int;
+  let top_range: c_int;
+  let mut y: c_int;
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  let mut new_start: c_int;                                            // C 17510
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  let mut new_end: c_int;
+
+  if !WINDOWP ((*bar).window)                                          // C 17513
+    { emacs_abort (); }                                                // C 17514
+
+  input_event_bits! (kind, emacs_event,                                // C 17516-17518
+		     (if (*bar).horizontal { HORIZONTAL_SCROLL_BAR_CLICK_EVENT }
+		      else { SCROLL_BAR_CLICK_EVENT }));
+  (*emacs_event).code = (*event).xbutton.button - Button1;             // C 17519
+  (*emacs_event).modifiers                                             // C 17520
+    = (x_x_to_emacs_modifiers (FRAME_DISPLAY_INFO!                     // C 17521
+			       (XFRAME (WINDOW_FRAME! (XWINDOW ((*bar).window)))),  // C 17522
+			       (*event).xbutton.state as c_int)                    // C 17523
+       | (if (*event).r#type == ButtonRelease                          // C 17524
+	  { up_modifier }                                              // C 17525
+	  else { down_modifier })) as c_uint;                          // C 17526
+  (*emacs_event).frame_or_window = (*bar).window;                      // C 17527
+  (*emacs_event).arg = Qnil ();                                        // C 17528
+  (*emacs_event).timestamp = (*event).xbutton.time;                    // C 17529
+
+  if !NILP (device)                                                    // C 17531
+    { (*emacs_event).device = device; }                                // C 17532
+
+  if (*bar).horizontal                                                 // C 17534
+    {
+
+      left_range = HORIZONTAL_SCROLL_BAR_LEFT_RANGE! (f, (*bar).width); // C 17537
+      x = (*event).xbutton.x - HORIZONTAL_SCROLL_BAR_LEFT_BORDER! ();  // C 17538
+
+      if x < 0 { x = 0; }                                              // C 17540
+      if x > left_range { x = left_range; }                            // C 17541
+
+      if x < (*bar).start                                              // C 17543-17544
+	{ input_event_bits! (part, emacs_event, scroll_bar_before_handle); }
+      else if x < (*bar).end + HORIZONTAL_SCROLL_BAR_MIN_HANDLE! ()    // C 17545-17546
+	{ input_event_bits! (part, emacs_event, scroll_bar_horizontal_handle); }
+      else
+	{ input_event_bits! (part, emacs_event, scroll_bar_after_handle); } // C 17547-17548
+
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+      {
+      /* If the user has released the handle, set it to its final position.  */
+      if (*event).r#type == ButtonRelease && (*bar).dragging != -1     // C 17552
+	{
+	  new_start = - (*bar).dragging;                               // C 17554
+	  new_end = new_start + (*bar).end - (*bar).start;             // C 17555
+
+	  x_scroll_bar_set_handle (bar, new_start, new_end, false);    // C 17557
+	  (*bar).dragging = -1;                                        // C 17558
+	}
+      }
+
+      XSETINT! ((*emacs_event).x, left_range as EMACS_INT);            // C 17562
+      XSETINT! ((*emacs_event).y, x as EMACS_INT);                     // C 17563
+    }
+  else
+    {
+      top_range                                                        // C 17567-17568
+	= VERTICAL_SCROLL_BAR_TOP_RANGE! (f, (*bar).height);
+      y = (*event).xbutton.y - VERTICAL_SCROLL_BAR_TOP_BORDER! ();     // C 17569
+
+      if y < 0 { y = 0; }                                              // C 17571
+      if y > top_range { y = top_range; }                              // C 17572
+
+      if y < (*bar).start                                              // C 17574-17575
+	{ input_event_bits! (part, emacs_event, scroll_bar_above_handle); }
+      else if y < (*bar).end + VERTICAL_SCROLL_BAR_MIN_HANDLE! ()      // C 17576-17577
+	{ input_event_bits! (part, emacs_event, scroll_bar_handle); }
+      else
+	{ input_event_bits! (part, emacs_event, scroll_bar_below_handle); } // C 17578-17579
+
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+      {
+      /* If the user has released the handle, set it to its final position.  */
+      if (*event).r#type == ButtonRelease && (*bar).dragging != -1     // C 17583
+	{
+	  new_start = y - (*bar).dragging;                             // C 17585
+	  new_end = new_start + (*bar).end - (*bar).start;             // C 17586
+
+	  x_scroll_bar_set_handle (bar, new_start, new_end, false);    // C 17588
+	  (*bar).dragging = -1;                                        // C 17589
+	}
+      }
+
+      XSETINT! ((*emacs_event).x, y as EMACS_INT);                     // C 17593
+      XSETINT! ((*emacs_event).y, top_range as EMACS_INT);             // C 17594
+    }
+}
+
+/* C 17598's `#ifndef USE_TOOLKIT_SCROLL_BARS` opens the region the next slice reads, whose first
+   definition is `x_scroll_bar_note_movement` (C 17605-17630).  */
