@@ -18369,7 +18369,7 @@ pub unsafe extern "C" fn x_free_frame_resources (f: *mut frame)
       /* Always exit with visible pointer to avoid weird issue
 	 with Xfixes (Bug#17609).  */
       if pointer_invisible! (f)                                         // C 29658
-	{ XTtoggle_invisible_pointer (f, 0); }                          // C 29659
+	{ XTtoggle_invisible_pointer (f, false); }                      // C 29659
 
       tear_down_x_back_buffer (f);                                      // C 29661
 
@@ -20966,4 +20966,451 @@ pub unsafe extern "C" fn syms_of_xterm ()   // C 32664-33125
 		Vx_quit_keysym,
 		"Keysyms which will cause Emacs to quit if rapidly pressed twice.\n\nThis is used to support quitting on devices that do not have any kind\nof physical keyboard, or where the physical keyboard is incapable of\nentering `C-g'.\n\nThe value is an alist associating between strings, describing X server\nvendor names, and a single number describing the keysym to use.  The\nkeysym to use for each display connection is determined upon\nconnection setup, and does not reflect further changes to this\nvariable.");   // C 33112-33123
   Vx_quit_keysym = Qnil ();                                           // C 33124
+}
+
+/* frame.h 300-341's packed flags: C's `f->pointer_invisible`, `frame->pointer_invisible`,
+   `old_focus->auto_lower` and `x_focus_frame->auto_raise` are plain `bool_bf` fields of
+   `struct frame`, so no mirror carries an accessor; the unit whose bodies touch them declares
+   the member-named arms it needs (P-80 ②, the `src/xdisp.rs` 2500-2536 shape) with
+   `include/frame.rs`'s measured shift constants (frozen 1:19 / 1:12 / 1:13, the window-system
+   arm 1:22 / 1:15 / 1:16).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! set_frame_flag1 {
+  ($f:expr, $shift:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << $shift)) | (($v as u32) << $shift)
+  };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! frame_bits {
+  (pointer_invisible, $f:expr) =>
+    { ((*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT & 1) != 0 };
+  (pointer_invisible, $f:expr, $v:expr) =>
+    { set_frame_flag1! ($f, FRAME_POINTER_INVISIBLE_SHIFT, $v) };
+  (auto_raise, $f:expr) =>
+    { ((*$f).bits1 >> FRAME_AUTO_RAISE_SHIFT & 1) != 0 };
+  (auto_lower, $f:expr) =>
+    { ((*$f).bits1 >> FRAME_AUTO_LOWER_SHIFT & 1) != 0 };
+}
+
+/// C 11924-11949: `static void x_frame_highlight (struct frame *f)` - C's `static`, so a plain
+/// `unsafe fn` (PORTING.md 0.2).  `gui_update_cursor` is dispextern.h 3693's prototype, which no
+/// mirror this unit reaches carries, so the body declares it (P-88's use-site shape, the
+/// `src/xfns.rs` 1946-1947 row); `XSetWindowBorder` is the bare Xlib class (this file's
+/// convention for the X11-header names it cannot see - the reading names it).  C 11947's
+/// `FRAME_X_OUTPUT (f)->alpha_identical_p` uses the header's own macro, so the port spells
+/// `FRAME_X_OUTPUT!` and the `bool_bf` member is the `struct x_output` field `include/xterm.rs`
+/// 851 records as a comment rather than storage (the `has_been_visible` class at 15372).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_frame_highlight (f: *mut frame)
+{
+  unsafe extern "C" {
+    /// C: dispextern.h 3693: `extern void gui_update_cursor (struct frame *, bool);`
+    pub fn gui_update_cursor (f: *mut frame, on_p: bool);
+  }
+
+  let mut dpyinfo: *mut x_display_info;                                 // C 11927
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 11929
+
+  /* We used to only do this if Vx_no_window_manager was non-nil, but
+     the ICCCM (section 4.1.6) says that the window's border pixmap
+     and border pixel are window attributes which are "private to the
+     client", so we can always change it to whatever we want.  */
+  block_input ();                                                       // C 11935
+  /* I recently started to get errors in this XSetWindowBorder, depending on
+     the window-manager in use, tho something more is at play since I've been
+     using that same window-manager binary for ever.  Let's not crash just
+     because of this (bug#9310).  */
+  x_ignore_errors_for_next_request (dpyinfo, 0);                        // C 11940
+  XSetWindowBorder (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),         // C 11941-11942
+		    (*( (*f).output_data.x as *mut x_output )).border_pixel);
+  x_stop_ignoring_errors (dpyinfo);                                     // C 11943
+  unblock_input ();                                                     // C 11944
+  gui_update_cursor (f, true);                                          // C 11945
+
+  if !(*FRAME_X_OUTPUT! (f)).alpha_identical_p                          // C 11947
+    { x_set_frame_alpha (f); }                                          // C 11948
+}
+
+/// C 11951-11981: `static void x_frame_unhighlight (struct frame *f)` - C's `static`, so a plain
+/// `unsafe fn`; `gui_update_cursor` is declared here again because the two bodies are separate
+/// scopes (the `x_frame_highlight` row above), and `XSetWindowBorderPixmap` is the bare Xlib class.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_frame_unhighlight (f: *mut frame)
+{
+  unsafe extern "C" {
+    /// C: dispextern.h 3693: `extern void gui_update_cursor (struct frame *, bool);`
+    pub fn gui_update_cursor (f: *mut frame, on_p: bool);
+  }
+
+  let mut dpyinfo: *mut x_display_info;                                 // C 11954
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 11956
+
+  /* We used to only do this if Vx_no_window_manager was non-nil, but
+     the ICCCM (section 4.1.6) says that the window's border pixmap
+     and border pixel are window attributes which are "private to the
+     client", so we can always change it to whatever we want.  */
+
+  block_input ();                                                       // C 11963
+  /* Same as above for XSetWindowBorder (bug#9310).  */
+  x_ignore_errors_for_next_request (dpyinfo, 0);                        // C 11965
+  XSetWindowBorderPixmap (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),   // C 11966-11967
+			  (*( (*f).output_data.x as *mut x_output )).border_tile);
+  x_stop_ignoring_errors (dpyinfo);                                     // C 11968
+  unblock_input ();                                                     // C 11969
+
+  gui_update_cursor (f, true);                                          // C 11971
+
+  /* Eschew modifying the frame alpha when the alpha values for
+     focused and background frames are identical; otherwise, this will
+     upset the order in which changes to the alpha property
+     immediately subsequent to a focus change are propagated into a
+     frame's alpha property.  (bug#66398) */
+
+  if !(*FRAME_X_OUTPUT! (f)).alpha_identical_p                          // C 11979
+    { x_set_frame_alpha (f); }                                          // C 11980
+}
+
+/* The focus has changed.  Update the frames as necessary to reflect
+   the new situation.  Note that we can't change the selected frame
+   here, because the Lisp code we are interrupting might become confused.
+   Each event gets marked with the frame in which it occurred, so the
+   Lisp code can tell when the switch took place by examining the events.  */
+
+/// C 11989-12033: `static void x_new_focus_frame (struct x_display_info *dpyinfo, struct frame
+/// *frame)` - C's `static`, so a plain `unsafe fn`.  C 11993's `#if defined USE_GTK &&
+/// !defined HAVE_GTK3 && defined HAVE_XINPUT2` is one `all (…)` of three predicates (P-86 ①)
+/// and gates both the declarations and C 12015-12021's block, so the port's declarations and
+/// both blocks carry that same guard; `alloca` is the port's stack pool (P-05, the
+/// `xi_select_hierarchy_events` shape at 19603-19605, whose `XIMaskLen`/`XIAllDevices` are the
+/// same bare XInput2 class) and `x_frame_rehighlight` is this file's own definition still ahead
+/// of the lane, so it is this slice's one owed function name.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_new_focus_frame (dpyinfo: *mut x_display_info, frame: *mut frame)
+{
+  let old_focus: *mut frame = (*dpyinfo).x_focus_frame;                 // C 11992
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
+  let mut mask: XIEventMask;                                            // C 11994
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
+  {
+    if (*dpyinfo).supports_xi2                                          // C 11995
+      {
+	let l: ptrdiff_t = XIMaskLen (XI_LASTEVENT) as ptrdiff_t;       // C 11997
+	mask.mask = SAFE_ALLOCA! (sa_avail, l as usize) as *mut c_uchar;  // C 11998
+	mask.mask_len = l;                                              // C 11999
+	memset (mask.mask as *mut c_void, 0, l as usize);               // C 12000
+
+	mask.deviceid = XIAllDevices;                                   // C 12002
+      }
+  }
+
+  if frame != (*dpyinfo).x_focus_frame                                   // C 12006
+    {
+      /* Set this before calling other routines, so that they see
+	 the correct value of x_focus_frame.  */
+      (*dpyinfo).x_focus_frame = frame;                                  // C 12010
+
+      /* Once none of our frames are focused anymore, stop selecting
+	 for raw input events from the root window.  */
+
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
+      {
+	if !frame.is_null () && (*dpyinfo).supports_xi2                  // C 12016
+	  { XISetMask (mask.mask, XI_RawKeyPress); }                     // C 12017
+
+	if (*dpyinfo).supports_xi2                                       // C 12019
+	  { XISelectEvents ((*dpyinfo).display, (*dpyinfo).root_window,  // C 12020-12021
+			    &raw mut mask, 1); }
+      }
+
+      if !old_focus.is_null () && frame_bits! (auto_lower, old_focus)     // C 12023
+	{ x_lower_frame (old_focus); }                                   // C 12024
+
+      if !(*dpyinfo).x_focus_frame.is_null ()                            // C 12026
+	  && frame_bits! (auto_raise, (*dpyinfo).x_focus_frame)
+	{ (*dpyinfo).x_pending_autoraise_frame = (*dpyinfo).x_focus_frame; }  // C 12027
+      else
+	{ (*dpyinfo).x_pending_autoraise_frame = std::ptr::null_mut (); }     // C 12029
+    }
+
+  x_frame_rehighlight (dpyinfo);                                         // C 12032
+
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
+  SAFE_FREE! (sa_count);
+}
+
+/* True if the display in DPYINFO supports a version of Xfixes
+   sufficient for pointer blanking.  */
+
+/// C 12040-12045: `static bool x_fixes_pointer_blanking_supported (struct x_display_info
+/// *dpyinfo)` - C's `static`, so a plain `unsafe fn`.  C 12035's `#if defined HAVE_XFIXES &&
+/// XFIXES_VERSION >= 40000` is carried as `feature = "have_xfixes"` alone: the version half is a
+/// build property of the Xfixes library and no feature models it (the reading is recorded here
+/// and in Decision 68; `include/xterm.rs` 428's `C guard (not a feature): defined HAVE_XFIXES &&
+/// XFIXES_VERSION >= 40000` line is the same reading for the member this pair guards).
+#[cfg (all (feature = "have_x_windows", feature = "have_xfixes"))]
+unsafe fn x_fixes_pointer_blanking_supported (dpyinfo: *mut x_display_info) -> bool
+{
+  return (*dpyinfo).xfixes_supported_p                                  // C 12043
+	 && (*dpyinfo).xfixes_major >= 4;                               // C 12044
+}
+
+/* Toggle mouse pointer visibility on frame F using the XFixes
+   extension.  */
+/// C 12053-12062: `static void xfixes_toggle_visible_pointer (struct frame *f, bool invisible)` -
+/// C's `static`, under C 12051's same Xfixes guard; `pointer_invisible` is the frame `bool_bf`
+/// this slice's member-named accessor writes, and the two `XFixes*Cursor` names are the bare
+/// Xfixes class.
+#[cfg (all (feature = "have_x_windows", feature = "have_xfixes"))]
+unsafe fn xfixes_toggle_visible_pointer (f: *mut frame, invisible: bool)
+{
+  if invisible                                                          // C 12057
+    { XFixesHideCursor (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f)); }   // C 12058
+  else
+    { XFixesShowCursor (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f)); }   // C 12060
+  frame_bits! (pointer_invisible, f, invisible);                        // C 12061
+}
+
+/* Toggle mouse pointer visibility on frame F by using an invisible
+   cursor.  */
+
+/// C 12099-12139: `static void x_toggle_visible_pointer (struct frame *f, bool invisible)` - C's
+/// `static`.  C assigns the `invisible` parameter, so the port re-binds it mutable (PORTING.md
+/// 2.2's parameter class, the `src/fns.rs` 288 shape).  C 12112's `#if !defined HAVE_XFIXES ||
+/// XFIXES_VERSION < 40000` / `#else` pair is the `have_xfixes` feature and its negation, with the
+/// version half read as in the two functions above; `None` is the mirror's X11 constant and the
+/// three Xlib names stay bare.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_toggle_visible_pointer (f: *mut frame, invisible: bool)
+{
+  use crate::x11_constants::None;
+
+  let mut invisible = invisible;
+  let mut dpyinfo: *mut x_display_info;                                 // C 12102
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 12104
+
+  /* We could have gotten a BadAlloc error while creating the
+     invisible cursor.  Try to create it again, but if that fails,
+     just give up.  */
+  if (*dpyinfo).invisible_cursor == None as Cursor                      // C 12109
+    { (*dpyinfo).invisible_cursor = make_invisible_cursor (dpyinfo); }  // C 12110
+
+#[cfg (not (feature = "have_xfixes"))]
+  {
+    if (*dpyinfo).invisible_cursor == None as Cursor                    // C 12113
+      { invisible = false; }                                            // C 12114
+  }
+#[cfg (feature = "have_xfixes")]
+  {
+    /* But if Xfixes is available, try using it instead.  */
+    if (*dpyinfo).invisible_cursor == None as Cursor                    // C 12117
+      {
+	if x_fixes_pointer_blanking_supported (dpyinfo)                 // C 12119
+	  {
+	    (*dpyinfo).fixes_pointer_blanking = true;                   // C 12121
+	    xfixes_toggle_visible_pointer (f, invisible);               // C 12122
+
+	    return;                                                     // C 12124
+	  }
+	else
+	  { invisible = false; }                                        // C 12127
+      }
+  }
+
+  if invisible                                                          // C 12131
+    { XDefineCursor ((*dpyinfo).display, FRAME_X_WINDOW! (f),           // C 12132-12133
+		     (*dpyinfo).invisible_cursor); }
+  else
+    { XDefineCursor ((*dpyinfo).display, FRAME_X_WINDOW! (f),           // C 12135-12136
+		     (*( (*f).output_data.x as *mut x_output )).current_cursor); }
+
+  frame_bits! (pointer_invisible, f, invisible);                        // C 12138
+}
+
+/// C 12141-12153: `static void XTtoggle_invisible_pointer (struct frame *f, bool invisible)` -
+/// C's `static`; the name is C's hook name.  C 12145's guard is the same Xfixes pair, and C's
+/// `#endif` at 12150 leaves `x_toggle_visible_pointer` as the `else` of the guarded `if`, so the
+/// port writes that one statement per arm (the slice-35 shared-`else` shape).
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTtoggle_invisible_pointer (f: *mut frame, invisible: bool)
+{
+  block_input ();                                                       // C 12144
+#[cfg (feature = "have_xfixes")]
+  {
+    if (*FRAME_DISPLAY_INFO! (f)).fixes_pointer_blanking                // C 12146
+	&& x_fixes_pointer_blanking_supported (FRAME_DISPLAY_INFO! (f)) // C 12147
+      { xfixes_toggle_visible_pointer (f, invisible); }                 // C 12148
+    else
+      { x_toggle_visible_pointer (f, invisible); }                      // C 12151
+  }
+#[cfg (not (feature = "have_xfixes"))]
+  { x_toggle_visible_pointer (f, invisible); }                          // C 12151
+  unblock_input ();                                                     // C 12152
+}
+
+/* Handle FocusIn and FocusOut state changes for FRAME.  If FRAME has
+   focus and there exists more than one frame, puts a FOCUS_IN_EVENT
+   into *BUFP.  Note that this code is not used to handle focus
+   changes on builds that can use the X Input extension for handling
+   input focus when it is available (currently the no toolkit and GTK
+   3 toolkits).  */
+
+/// C 12162-12225: `static void x_focus_changed (int type, int state, struct x_display_info
+/// *dpyinfo, struct frame *frame, struct input_event *bufp)` - C's `static`; C's `type`
+/// parameter is a Rust keyword, so it is `type_` (the `src/bytecode.rs` 100 shape).  `bufp->kind`
+/// is this unit's `input_event_bits!` writer (P-80; xterm.rs 1370-1371's setter arm) and
+/// `XSETFRAME!` is the mirror's.  C 12178-12192 and C 12209-12219 are `HAVE_X_I18N` blocks with
+/// an inner `USE_GTK` one, carried under both features; no arm this lane runs sets `have_x_i18n`,
+/// so that text is unmeasured (the reading says so) and its GTK names stay bare.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_focus_changed (type_: c_int, state: c_int, dpyinfo: *mut x_display_info,
+			   frame: *mut frame, bufp: *mut input_event)
+{
+  if type_ == FocusIn                                                   // C 12166
+    {
+      if (*dpyinfo).x_focus_event_frame != frame                        // C 12168
+	{
+	  x_new_focus_frame (dpyinfo, frame);                           // C 12170
+	  (*dpyinfo).x_focus_event_frame = frame;                       // C 12171
+	  input_event_bits! (kind, bufp, FOCUS_IN_EVENT);               // C 12172
+	  XSETFRAME! ((*bufp).frame_or_window, frame);                  // C 12173
+	}
+
+      (*( (*frame).output_data.x as *mut x_output )).focus_state |= state;  // C 12176
+
+#[cfg (feature = "have_x_i18n")]
+      {
+	if !FRAME_XIC! (frame).is_null ()                               // C 12179
+	  { XSetICFocus (FRAME_XIC! (frame)); }                         // C 12180
+#[cfg (feature = "use_gtk")]
+	{
+	  let mut widget: *mut GtkWidget;                               // C 12182
+
+	  if x_gtk_use_native_input                                     // C 12184
+	    {
+	      gtk_im_context_focus_in ((*( (*frame).output_data.x as *mut x_output )).im_context);  // C 12186
+	      widget = FRAME_GTK_OUTER_WIDGET! (frame);                 // C 12187
+	      gtk_im_context_set_client_window ((*( (*frame).output_data.x as *mut x_output )).im_context,  // C 12188-12189
+						gtk_widget_get_window (widget));
+	    }
+	}
+      }
+    }
+  else if type_ == FocusOut                                             // C 12194
+    {
+      (*( (*frame).output_data.x as *mut x_output )).focus_state &= !state;  // C 12196
+
+      if (*dpyinfo).x_focus_event_frame == frame                        // C 12198
+	{
+	  (*dpyinfo).x_focus_event_frame = std::ptr::null_mut ();       // C 12200
+	  x_new_focus_frame (dpyinfo, std::ptr::null_mut ());           // C 12201
+
+	  input_event_bits! (kind, bufp, FOCUS_OUT_EVENT);              // C 12203
+	  XSETFRAME! ((*bufp).frame_or_window, frame);                  // C 12204
+	}
+
+      if (*( (*frame).output_data.x as *mut x_output )).focus_state == 0  // C 12207
+	{
+#[cfg (feature = "have_x_i18n")]
+	  {
+	    if !FRAME_XIC! (frame).is_null ()                           // C 12210
+	      { XUnsetICFocus (FRAME_XIC! (frame)); }                   // C 12211
+#[cfg (feature = "use_gtk")]
+	    {
+	      if x_gtk_use_native_input                                 // C 12213
+		{
+		  gtk_im_context_focus_out ((*( (*frame).output_data.x as *mut x_output )).im_context);  // C 12215
+		  gtk_im_context_set_client_window ((*( (*frame).output_data.x as *mut x_output )).im_context,
+						    std::ptr::null_mut ());  // C 12216
+		}
+	    }
+	  }
+	}
+
+      if frame_bits! (pointer_invisible, frame)                         // C 12222
+	{ XTtoggle_invisible_pointer (frame, false); }                  // C 12223
+    }
+}
+
+/* Return the Emacs frame-object corresponding to an X window.  It
+   could be the frame's main window, an icon window, or an xwidget
+   window.  */
+
+/// C 12231-12278: `static struct frame *x_window_to_frame (struct x_display_info *dpyinfo, int
+/// wdesc)` - C's `static`, so a plain `unsafe fn`.  C 12251's `continue` sits inside the port's
+/// `FOR_EACH_FRAME!`, whose step is the expansion's last statement, so the body opens a labelled
+/// block and the jump is `break 'body` (PORTING.md 2.2, the `x_delete_selection_requests` shape);
+/// `wdesc` is C's `int` compared against `Window` members, which C promotes, so the port writes
+/// C's conversion (`as Window`).  `None` is the mirror's X11 constant, `xwidget_view_from_window`
+/// and its record are `include/xwidget.rs`'s (whose `frame` member is the P-72-③ `*mut c_void`,
+/// so the return casts), and `xg_win_to_widget` is gtkutil.h 168's prototype, declared at this use
+/// site (`src/xmenu.rs` 819's row); `XtWindow` is the bare Xlib class.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_window_to_frame (dpyinfo: *mut x_display_info, wdesc: c_int) -> *mut frame
+{
+  use crate::x11_constants::None;
+
+  let mut tail: Lisp_Object;                                            // C 12234
+  let mut frame: Lisp_Object;
+  let mut f: *mut frame;
+
+  if wdesc == None as c_int                                             // C 12237
+    { return std::ptr::null_mut (); }                                   // C 12238
+
+#[cfg (feature = "have_xwidgets")]
+  {
+    use crate::xwidget_view;
+
+    let xvw: *mut xwidget_view = xwidget_view_from_window (wdesc as Window);  // C 12241
+
+    if !xvw.is_null () && !(*xvw).frame.is_null ()                      // C 12243
+      { return (*xvw).frame as *mut frame; }                            // C 12244
+  }
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 12247
+    'body: {
+      f = XFRAME (frame);                                               // C 12249
+      if !FRAME_X_P (f) || FRAME_DISPLAY_INFO! (f) != dpyinfo           // C 12250
+	{ break 'body; }                                                // C 12251's `continue`
+      if (*( (*f).output_data.x as *mut x_output )).hourglass_window == wdesc as Window  // C 12252
+	{ return f; }                                                   // C 12253
+#[cfg (feature = "use_x_toolkit")]
+      {
+	if (!(*( (*f).output_data.x as *mut x_output )).edit_widget.is_null ()  // C 12255
+	    && XtWindow ((*( (*f).output_data.x as *mut x_output )).edit_widget) == wdesc as Window)  // C 12256
+	    /* A tooltip frame?  */
+	    || ((*( (*f).output_data.x as *mut x_output )).edit_widget.is_null ()  // C 12258
+		&& FRAME_X_WINDOW! (f) == wdesc as Window)              // C 12259
+	    || (*( (*f).output_data.x as *mut x_output )).icon_desc == wdesc as Window  // C 12260
+	  { return f; }                                                 // C 12261
+      }
+#[cfg (not (feature = "use_x_toolkit"))]
+      {
+#[cfg (feature = "use_gtk")]
+	{
+	  unsafe extern "C" {
+	    /// C: gtkutil.h 168: `GtkWidget *xg_win_to_widget (Display *, Window);`
+	    pub fn xg_win_to_widget (dpy: *mut Display, wdesc: Window) -> *mut GtkWidget;
+	  }
+
+	  if !(*( (*f).output_data.x as *mut x_output )).edit_widget.is_null ()  // C 12264
+	    {
+	      let gwdesc: *mut GtkWidget = xg_win_to_widget ((*dpyinfo).display,  // C 12266
+							     wdesc as Window);
+	      let x: *mut x_output = (*f).output_data.x as *mut x_output;  // C 12267
+	      if !gwdesc.is_null () && gwdesc == (*x).edit_widget       // C 12268
+		{ return f; }                                           // C 12269
+	    }
+	}
+	if FRAME_X_WINDOW! (f) == wdesc as Window                       // C 12272
+	    || (*( (*f).output_data.x as *mut x_output )).icon_desc == wdesc as Window  // C 12273
+	  { return f; }                                                 // C 12274
+      }
+    }
+  });
+  return std::ptr::null_mut ();                                         // C 12277
 }
