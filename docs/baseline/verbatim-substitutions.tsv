@@ -35,13 +35,13 @@ femacs/lisp/help-fns.el	2497	            "@settitle Command Summary for femacs\\
 femacs/lisp/help-fns.el	2500	            "@unnumbered Command Summary for femacs\\n\\n"	the texinfo `@unnumbered` heading of the generated command summary: generated-file identity
 
 # 0.1-19's eleventh half (status 3.632, 2026-10-06): the copied trees' own membership declaration,
-# `This file is part of GNU Emacs.` - a statement about *the file* that names the reference product as
+# `This file is part of <product>.` - a statement about *the file* that names the reference product as
 # its owner.  Each site below writes this repository's name instead, in the tenth half's mechanical
 # form (only the product token changes; the rest of the line is untouched), so every file stays
 # line-for-line identical otherwise.  Three of them are *generators* - they write that sentence into
 # files this program generates (`emacs-lisp/generate-lisp-file.el` 53, `cedet/semantic/wisent/grammar.el`
 # 355, `cedet/semantic/bovine/grammar.el` 493) - and eight are the program's own buffer names
-# (`*GNU Emacs*` / `*About GNU Emacs*`), i.e. names the program itself writes; both shapes are the
+# (`*<product>*` / `*About <product>*`), i.e. names the program itself writes; both shapes are the
 # tenth half's criterion.  `test/` is not in this list: the goal text forbids modifying test files.
 # A `ChangeLog*` is not either: those quote the sentence as history, not as a declaration.
 femacs/admin/README	89	This file is part of femacs.	the copied file's own membership declaration named the reference product as this file's owner; 0.1-19's eleventh half (status 3.632) writes this repository's name, in the tenth half's mechanical form (only the product token changes)

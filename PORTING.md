@@ -369,6 +369,35 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     加一行 `const P16: &CStr = c"<参照产品>";` ⇒ HEAD 的读者 `0 failures` 看不见，本半的读者报
     `18 declaration sites (0 forbidden, 18 allowed literals), 1 failures`（`literal` 没有白名单行 ⇒ 必须失败）。
     两处变异还原后，两端读者都回到 `17 / 0 / 17 / 0`。
+    这条规则现在有第十七半（2026-10-06，status 3.692）：**唯一"整目录豁免"的那一面里，注释带是本仓库自己写的**。
+    第十六半的覆盖行点名了 `left under a sanctioned prefix: 53 file(s)`（`docs/baseline/` 的"实测值"），而那道
+    豁免是**整目录**的：那 51 个文件里写着 398 行 `#` 注释（341 行在首块、57 行在首块**之下**），其中 3 行带着
+    产品名——而 3.413 给两份验收黄金样例的读法是"读首块、到第一行非 `#` 就停"，把它推广过来正好看不见
+    `docs/baseline/verbatim-substitutions.tsv` 的 38/44 两句（3.666"行形状的读者看不见换行声明"的同一形状，
+    落在没有读者自报边界的新面上）。处置（只动门与 3 行注释，行/列数据一行不动）：⑴ 新增 `BASELINE_DIR` 这一面：
+    `baseline_table_files()`／`baseline_findings_text()` 把 `#` 行**不论位置**当自家散文读、载荷行一律不读，
+    `baseline_stats()` 把读数打印成一行；⑵ `PROSE_EXEMPT` 去掉 `docs/baseline/` 那一条（不再整目录豁免）；
+    ⑶ 三行改写为占位与指称（**本文档不重复写出那个字面量**，与第八、第十半同一写法）：`verbatim-substitutions.tsv`
+    38 的照抄成员句 → `This file is part of <product>.`、44 的括号里那两个缓冲区名（`*` + 登记名 + `*` 及其
+    `About` 形）→ `*<product>*` / `*About <product>*`、`config/source-header-macros.tsv` 1 的
+    `Macros Emacs' *own source headers* define` → `Macros the reference's *own source headers* define`。
+    读数：门 `17 declaration sites (0 forbidden, 17 allowed literals), 0 failures`（**不变**；替换表 1,820 行、
+    登记表 116 行、字节门也都不变）、`--selftest` **58 → 64 例 / 0 失败**、覆盖行新增
+    `read 398 comment line(s) in 51 docs/baseline file(s) (57 of them below the leading block the goldens'
+    reader stops at); left as measured values: 125 payload line(s) naming the product in 3 file(s)`，
+    `left under a sanctioned prefix` 那一行随那 53 个文件一起退场（文件级空洞归零），三条前缀仍由
+    `left out (sanctioned, counted)` 点名：日志 1、验收记录 1、台账 606。
+    变异实测（判别力）：把 38/44 两行改回旧写法 ⇒ **HEAD 的读者报 `17 (0 forbidden, 17 allowed), 0 failures`**
+    （看不见），本半的读者报 `19 (2 forbidden, 17 allowed), 2 failures` 并逐字点名那两行；还原后两端都回到
+    `17 / 0 / 17 / 0`。（HEAD 的读者在仓外 `/tmp/headchk` 跑、白名单同放一份、`--root` 指本仓：先前把它拷进树里
+    跑过一次，它把自己也扫了，那条读数作废。）
+    这半同时**量死并写下一处界**：门的表只带产品的登记名，**不带宽 `Emacs`**（第十半点名为留给裁决的第一类；
+    照抄树那一面由 `check-verbatim-declarations.py` 的裸-`Emacs` 模式表管）。用 `(?<!GNU )\bEmacs\b` 在门自己的
+    四个面上量：**1,410 处**——被移植树 1,334（954 在注释半，是 C 自己的注释文字逐字照抄；380 在字符串/代码半，
+    是 docstring 字面量与标识符）、本仓库散文 76（台账 42、散文与清单 34：`README`／`plan`／`port-plan`／
+    `PORTING`／评审记录，说的都是"我们在重写 Emacs"这类**指称**）。前者改就是改 C 的字节，后者是叙述不是自我
+    声明 ⇒ **本轮不扩门的表**，只改新面里那一行（`config/source-header-macros.tsv` 1，那里产品名被写成冻结头
+    文件的**归属者**），并把 1,410 处作为读数点名，不冒充已清。
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体

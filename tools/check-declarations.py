@@ -78,6 +78,15 @@ Three of this repository's own files are read by name for the same reason (statu
 walk reaches, and `docs/reviews/*.sha256` is a record whose header is our prose,
 so the prose suffix set gained `.sha256`.
 
+`docs/baseline/` is exempt as *measured values*, and that exemption was whole-file until the
+seventeenth half (status 3.692): the tables there also carry comment lines this repository writes,
+and `docs/baseline/verbatim-substitutions.tsv` puts two of them several lines *below* its leading
+block - exactly where the reader the two goldens got in 3.413 walks past them (a leading `#` block,
+stopped at the first line that is not one).  The payload below the comments is still the
+reference's, so the walk reads every `#` line of every file in the directory, keeps the two goldens
+header-only (their records are the reference program's own output), and prints what it leaves as
+the measured payload lines that name the product, counted rather than dropped.
+
 This repository's own prose is a scope of its own (status 3.340).  The walk above is
 bounded by *suffix* over the ported trees and by `DOC_DIRS` over the ledgers, so the
 documents that say what this repository *is* - the root README, the plan set, the
@@ -176,6 +185,12 @@ PROSE_DIRS = ("docs", "spikes")
 # name, for the reason in the docstring; `header_only` is what keeps the measured records below
 # the header out of the rule.
 BASELINE_PROSE = ("docs/baseline/l0-reference.txt", "docs/baseline/l1-reference.txt")
+# `docs/baseline/` is a scope of its own (status 3.692).  Its *payload* is the reference's
+# measured values, which is why `PROSE_EXEMPT` leaves it out; its `#` lines are comments this
+# repository writes, and one of them names the product several lines below the leading block the
+# goldens' reader stops at.  So the directory is walked for its comment band - every `#` line,
+# wherever it sits - and the payload is left, counted, on the run's own line.
+BASELINE_DIR = "docs/baseline"
 # `.sha256` is `docs/reviews/`'s record kind (status 3.679): a hash list whose header is
 # this repository's own prose.
 PROSE_SUFFIXES = (".md", ".toml", ".lock", ".sha256")
@@ -189,9 +204,6 @@ PROSE_CLASSES = ("version", "title")
 PROSE_EXEMPT = (
     ("docs/status.md", "the running log: quotes the instructions and the reference's output"),
     ("docs/acceptance.md", "records the reference program's own --version output as evidence"),
-    ("docs/baseline/", "measured values of the frozen reference build (counted on the "
-                       "\"left under a sanctioned prefix\" line; the two acceptance goldens' "
-                       "own headers are read by name - BASELINE_PROSE)"),
     ("docs/ports/", "the per-unit ledgers (already the DOC_DIRS scope)"),
 )
 
@@ -493,6 +505,11 @@ def unread_files(root: Path) -> list[str]:
             rel = path.relative_to(root).as_posix()
             if rel in PROSE_FILES or rel in seen:
                 continue
+            # `docs/baseline/` is read by its own scope above (status 3.692): its comment band is
+            # our prose, its payload is counted on that scope's own line, and the two goldens are
+            # read by name.  Leaving them here would report them as a hole the run has closed.
+            if rel in BASELINE_PROSE or rel.startswith(BASELINE_DIR + "/"):
+                continue
             # Each scope's suffix set is scoped to its own directories: `.tsv` is read
             # under `docs/ports/` (DOC_DIRS) and is *not* read under `docs/baseline/`
             # (sanctioned), so a global suffix test would mark the second kind read when
@@ -614,6 +631,71 @@ def baseline_prose_findings(path: Path) -> list[tuple[str, str]]:
     return prose_findings_text(header_only(path.read_text(encoding="utf-8", errors="replace")))
 
 
+def baseline_table_files(root: Path) -> list[tuple[str, Path]]:
+    """`(rel path, path)` for the tables and records under `docs/baseline/`.
+
+    The two goldens are `BASELINE_PROSE` and are read by name, header only: their record body is
+    the reference program's own output.  Everything else in the directory is read here (status
+    3.692) - its comment band is prose of ours, its payload is the reference's measured values.
+    """
+    out: list[tuple[str, Path]] = []
+    for path in sorted((root / BASELINE_DIR).rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root).as_posix()
+        if rel in BASELINE_PROSE:
+            continue
+        out.append((rel, path))
+    return out
+
+
+def baseline_findings_text(text: str) -> list[tuple[str, str]]:
+    """`(class, line)` for one baseline file's comment band (`PROSE_CLASSES`).
+
+    Every `#` line counts, not only the leading block: the file's comments are ours wherever they
+    sit, and a payload line is not read at all (it is a measured value, not a statement by us).
+    """
+    out: list[tuple[str, str]] = []
+    for raw in text.split("\n"):
+        if not raw.strip().startswith("#"):
+            continue
+        klass = classify("", raw, recital=False)
+        if klass in PROSE_CLASSES:
+            out.append((klass, " ".join(raw.split())[:240]))
+    return out
+
+
+def baseline_stats(root: Path) -> tuple[int, int, int, int, int]:
+    """The reading the new scope prints: `(files, comment lines, lines below the leading block,
+    payload lines naming the product, files with one)`.
+
+    The third number is the bound the goldens' reader cannot see - the reader stops at the first
+    line that is not `#`, and the substitution table's two product-name sentences sit in the band
+    that reader never reaches.  The last two are what the exemption leaves: the reference's
+    measured payload, counted so the run says what it did not read.
+    """
+    files = lines = deep = payload_hits = payload_files = 0
+    for _, path in baseline_table_files(root):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        raw_lines = text.split("\n")
+        lead = 0
+        for raw in raw_lines:
+            if raw.startswith("#"):
+                lead += 1
+            else:
+                break
+        n_comment = sum(1 for raw in raw_lines if raw.strip().startswith("#"))
+        files += 1
+        lines += n_comment
+        deep += n_comment - lead
+        hits = sum(1 for raw in raw_lines
+                   if not raw.strip().startswith("#")
+                   and any(pat in raw for pat in PRODUCT + PRODUCT_FRAGMENTS))
+        payload_hits += hits
+        payload_files += 1 if hits else 0
+    return files, lines, deep, payload_hits, payload_files
+
+
 def doc_files(root: Path) -> list[tuple[str, Path]]:
     """`(rel path, path)` for the ledger directory's files (status 3.679).
 
@@ -682,6 +764,10 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
         if not path.is_file():
             continue
         for klass, snippet in baseline_prose_findings(path):
+            out.append((rel, klass, snippet))
+    for rel, path in baseline_table_files(root):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for klass, snippet in baseline_findings_text(text):
             out.append((rel, klass, snippet))
     return out
 
@@ -855,6 +941,29 @@ SELFTEST_BASELINE = (
 )
 
 
+# The tables' own reading (status 3.692): the comment band is ours wherever it sits, the payload
+# is the reference's measured values.  The first case is why the second reader exists - the
+# leading-block reading above (`header_only`, the goldens') reaches the block and stops, and this
+# sentence is below it.
+SELFTEST_BASELINE_TABLE = (
+    ("a table's comment band names the product below the leading block",
+     "# The table's leading comment, our prose.\n#\n\n"
+     "# and later, below the leading block:\n"
+     "# `This file is part of GNU Emacs.` - the copied sentence.\n\nrow\tcell\n",
+     ["title"]),
+    ("a table's leading block names the product",
+     "# version: GNU Emacs 32.0.50\n\nrow\tcell\n", ["title"]),
+    ("a table's leading block keeps the number",
+     "# version: 32.0.50\n\nrow\tcell\n", []),
+    ("a table's payload naming the product is a measured value",
+     'PACKAGE_NAME\t"GNU Emacs"\nPACKAGE_STRING\t"GNU Emacs 32.0.50"\n', []),
+    ("a table's comment carrying the removed version form",
+     "# femacs: port of src/x.c @ fd7afced403 (GNU Emacs 32.0.50).\n\nrow\n", ["version"]),
+    ("a comment quoting the reference's macro line",
+     "# the header quotes it: `# define PACKAGE_NAME \"GNU Emacs\"`\n\nrow\n", ["title"]),
+)
+
+
 # The tool scope (status 3.462).  The `#` cases are also the split's proof: if a `#` were not
 # read as a comment leader for these suffixes the first two would come back `literal`/nothing,
 # and if it were read inside a string the last one would come back `title` instead of `literal`.
@@ -919,6 +1028,11 @@ def selftest() -> int:
         ok = got == sorted(want)
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
         bad += 0 if ok else 1
+    for name, source, want in SELFTEST_BASELINE_TABLE:
+        got = sorted({k for k, _ in baseline_findings_text(source)})
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
     for name, source, want in SELFTEST_TOOL:
         got = sorted({k for _, k, _ in findings_text(source, ".py")})
         ok = got == sorted(want)
@@ -936,8 +1050,8 @@ def selftest() -> int:
               f"code={code[0]!r} comment={comment[0]!r}")
         bad += 0 if ok else 1
     total = (len(SELFTEST) + len(SELFTEST_DOC) + len(SELFTEST_PROSE) + len(SELFTEST_ASM)
-             + len(SELFTEST_ASM_SPLIT) + len(SELFTEST_BASELINE) + len(SELFTEST_TOOL)
-             + len(SELFTEST_LEDGER))
+             + len(SELFTEST_ASM_SPLIT) + len(SELFTEST_BASELINE) + len(SELFTEST_BASELINE_TABLE)
+             + len(SELFTEST_TOOL) + len(SELFTEST_LEDGER))
     print(f"{total} cases, {bad} failures")
     return 1 if bad else 0
 
@@ -1018,6 +1132,11 @@ def main() -> int:
         dkinds[path.suffix] = dkinds.get(path.suffix, 0) + 1
     dspan = " ".join(f"{n} {ext}" for ext, n in sorted(dkinds.items(), key=lambda kv: -kv[1]))
     print(f"read {len(doc)} ledger-scope file(s) ({dspan})")
+    bfiles, blines, bdeep, bpayload, bpayload_files = baseline_stats(root)
+    print(f"read {blines} comment line(s) in {bfiles} docs/baseline file(s) "
+          f"({bdeep} of them below the leading block the goldens' reader stops at); "
+          f"left as measured values: {bpayload} payload line(s) naming the product in "
+          f"{bpayload_files} file(s)")
     print(f"read {len(BASELINE_PROSE)} baseline header(s) by name "
           f"({', '.join(BASELINE_PROSE)}), records below the header left to the exemption")
     if exempt:
@@ -1035,7 +1154,8 @@ def main() -> int:
     # The bound the walk prints last: `skip` is what the *suffix* walk passed over, and a
     # file the prose scope reads is no longer part of that hole (3.340 closed its one member,
     # `femacs/xtask/Cargo.toml`), so the line stays printed with the count it now reads.
-    covered = {rel for rel, _ in prose} | {rel for rel, _ in doc}
+    covered = ({rel for rel, _ in prose} | {rel for rel, _ in doc}
+               | {rel for rel, _ in baseline_table_files(root)} | set(BASELINE_PROSE))
     sanctioned = tuple(prefix for prefix, _ in PROSE_EXEMPT)
     sanctioned_left = [s for s in skip
                        if any(s == p or s.startswith(p) for p in sanctioned)]
