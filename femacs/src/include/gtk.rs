@@ -1006,6 +1006,14 @@ pub const GDK_ACTION_COPY: GdkDragAction = 1 << 1;
 pub const GDK_ACTION_MOVE: GdkDragAction = 1 << 2;
 pub const GDK_ACTION_LINK: GdkDragAction = 1 << 3;
 pub const GDK_ACTION_PRIVATE: GdkDragAction = 1 << 4;
+/// C: gdk/gdktypes.h: the `GdkEventType` members C 6712/6732/6762/6763's `switch` reads
+/// (`GDK_TOUCH_BEGIN`, `GDK_TOUCH_UPDATE`, `GDK_TOUCH_END`, `GDK_TOUCH_CANCEL`).  **No GDK tree
+/// exists on this machine**, so the four values are **placeholders** (distinct, and distinct from
+/// `GDK_BUTTON_PRESS`/`GDK_BUTTON_RELEASE`) and join Owed 21's round.  **UNVERIFIED**.
+pub const GDK_TOUCH_BEGIN: GdkEventType = 22;
+pub const GDK_TOUCH_UPDATE: GdkEventType = 23;
+pub const GDK_TOUCH_END: GdkEventType = 24;
+pub const GDK_TOUCH_CANCEL: GdkEventType = 25;
 
 pub const GDK_NOTHING: GdkEventType = 0;              // placeholder, not GDK's value
 /// C: gdk/gdktypes.h: `typedef guint GdkWindowState;` and the twelve flags C 5632-5687 tests.  No GDK
@@ -1063,6 +1071,7 @@ pub union GdkEvent
   pub configure: GdkEventConfigure,   // C: gdk/gdktypes.h: `GdkEventConfigure configure;`
   pub window_state: GdkEventWindowState,   // C: gdk/gdktypes.h: `GdkEventWindowState window_state;`
   pub touchpad_pinch: GdkEventTouchpadPinch,   // C: gdk/gdktypes.h: `GdkEventTouchpadPinch touchpad_pinch;`
+  pub touch: GdkEventTouch,        // C: gdk/gdktypes.h: `GdkEventTouch touch;`
 }
 /* The five records the union names.  **One surface, one mirror** (P-90 ①/②): they used to be
    `src/xwidget.rs`'s in-unit segment (its C 26-30 chain carries `"gtkutil.h"` 26's
@@ -1223,6 +1232,22 @@ pub struct GdkEventTouchpadPinch
   pub state: c_uint,
   pub n_fingers: c_uint,
   pub phase: c_int,                // C: `GdkTouchpadGesturePhase phase;` (an enum, so `c_int`)
+}
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventTouch GdkEventTouch;` - C 6716-6780 reads
+/// `sequence`, `x`, `y` and `time`; the members between them are carried because GDK's declaration
+/// puts them there (`axes` sits between `y` and `sequence`).  **UNVERIFIED** (Owed 21's round).
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventTouch
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub time: u32,
+  pub x: c_double,
+  pub y: c_double,
+  pub axes: *mut c_double,         // C: gdk/gdktypes.h: `gdouble *axes;`
+  pub sequence: *mut GdkEventSequence,
 }
 /// C: gdk/gdktypes.h: `typedef struct _GdkVisual GdkVisual;` (C 1735/1741/1745 hold one).
 #[repr (C)]

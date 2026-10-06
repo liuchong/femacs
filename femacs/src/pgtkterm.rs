@@ -9605,3 +9605,131 @@ unsafe fn pgtk_find_touch_point (dpyinfo: *mut pgtk_display_info, detail: *mut G
 
   return std::ptr::null_mut ();                                         // C 6691
 }
+
+/// C 6694-6806: `static gboolean touch_event_cb (GtkWidget *self, GdkEvent *event, gpointer
+/// user_data)` - `static` with its address taken at C 6898 (`G_CALLBACK (touch_event_cb)`), so a
+/// plain `unsafe fn` that the C 6831 slice converts.  C's `switch (event->type)` is the port's
+/// `match` with C's four `GDK_TOUCH_*` labels (the last two share one arm, as C writes them) and a
+/// trailing `_ => { }`; the two **early `break`s** inside case bodies are the port's `'arm:` block
+/// plus `break 'arm` (Deviation 54's shape, the `goto` reading).  `eassert` is the mirror's
+/// `eassert!`, C's `bool` -> `unsigned`/`gboolean` conversions (`modifiers`, the return value) are
+/// written out, the `lrint` `long` results are `int`/`EMACS_INT` conversions written out, and
+/// `Fcons`/`list3i`/`TOUCHSCREEN_*_EVENT` are the include graph's own rows.
+/// C 6699's uninitialised `local_detail` is zero-initialised (Deviation 12's rule), because the
+/// C 6766 call hands it out through `&raw mut` and the first reading named the `E0381` that skip
+/// produces.
+#[cfg (feature = "have_pgtk")]
+unsafe fn touch_event_cb (self_: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 6697
+  let mut f: *mut frame;                                                // C 6698
+  let mut local_detail: EMACS_INT = 0;                                 // C 6699
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6700
+  let mut touchpoint: *mut pgtk_touch_point;                            // C 6701
+  let mut arg: Lisp_Object = Qnil ();                                   // C 6702
+  let mut state: c_int;                                                 // C 6703
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 6705
+
+  f = pgtk_any_window_to_frame (gtk_widget_get_window (self_));         // C 6707
+  eassert! (f);                                                         // C 6708
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 6709
+  match (*event).r#type
+    {
+      GDK_TOUCH_BEGIN =>
+	'arm: {
+	  /* Verify that no touch point with this identifier is already at
+	     large.  */
+	  if !pgtk_find_touch_point (dpyinfo, (*event).touch.sequence)
+	      .is_null ()                                                   // C 6716
+	    { break 'arm; }                                                 // C 6717
+
+	  /* Record this in the display structure.  */
+	  local_detail = pgtk_link_touch_point (dpyinfo, (*event).touch.sequence,
+						(*event).touch.x, (*event).touch.y,
+						f);                            // C 6720-6722
+	  /* Generate the input event.  */
+	  input_event_bits! (kind, &raw mut inev.ie, TOUCHSCREEN_BEGIN_EVENT);  // C 6724
+	  inev.ie.timestamp = (*event).touch.time as Time;                   // C 6725
+	  XSETFRAME! (inev.ie.frame_or_window, f);                          // C 6726
+	  XSETINT! (inev.ie.x, lrint ((*event).touch.x) as EMACS_INT);       // C 6727
+	  XSETINT! (inev.ie.y, lrint ((*event).touch.y) as EMACS_INT);       // C 6728
+	  XSETINT! (inev.ie.arg, local_detail);                             // C 6729
+	}                                                                   // C 6730
+
+      GDK_TOUCH_UPDATE =>
+	'arm: {
+	  touchpoint = pgtk_find_touch_point (dpyinfo, (*event).touch.sequence);  // C 6733-6734
+
+	  if touchpoint.is_null ()                                          // C 6736
+	      /* Don't send this event if nothing has changed
+		 either.  */
+	      || ((*touchpoint).x == lrint ((*event).touch.x) as c_int     // C 6739
+		  && (*touchpoint).y == lrint ((*event).touch.y) as c_int)  // C 6740
+	    { break 'arm; }                                                 // C 6741
+
+	  /* Construct the input event.  */
+	  (*touchpoint).x = lrint ((*event).touch.x) as c_int;              // C 6744
+	  (*touchpoint).y = lrint ((*event).touch.y) as c_int;              // C 6745
+	  input_event_bits! (kind, &raw mut inev.ie, TOUCHSCREEN_UPDATE_EVENT);  // C 6746
+	  inev.ie.timestamp = (*event).touch.time as Time;                  // C 6747
+	  XSETFRAME! (inev.ie.frame_or_window, f);                          // C 6748
+
+	  touchpoint = (*dpyinfo).touchpoints;                              // C 6750
+	  while !touchpoint.is_null ()                                      // C 6751
+	    {
+	      if (*touchpoint).frame == f                                   // C 6753
+		{ arg = Fcons (list3i ((*touchpoint).x as EMACS_INT,
+				       (*touchpoint).y as EMACS_INT,
+				       (*touchpoint).local_detail),           // C 6754-6755
+			       arg); }                                      // C 6756
+	      touchpoint = (*touchpoint).next;                              // C 6751
+	    }
+
+	  inev.ie.arg = arg;                                                // C 6759
+	}                                                                   // C 6760
+
+      GDK_TOUCH_END | GDK_TOUCH_CANCEL =>                                   // C 6762-6763
+	{
+	  /* Remove this touch point's record, also establishing its
+	     existence.  */
+	  state = pgtk_unlink_touch_point ((*event).touch.sequence,         // C 6766
+					   dpyinfo, &raw mut local_detail);  // C 6767
+	  /* If it did exist... */
+	  if state != 0                                                     // C 6769
+	    {
+	      /* ... generate a suitable event.  */
+	      input_event_bits! (kind, &raw mut inev.ie, TOUCHSCREEN_END_EVENT);  // C 6772
+	      inev.ie.timestamp = (*event).touch.time as Time;              // C 6773
+	      inev.ie.modifiers = ((*event).r#type != GDK_TOUCH_END) as c_uint;  // C 6774
+
+	      XSETFRAME! (inev.ie.frame_or_window, f);                      // C 6776
+	      XSETINT! (inev.ie.x, lrint ((*event).touch.x) as EMACS_INT);   // C 6777
+	      XSETINT! (inev.ie.y, lrint ((*event).touch.y) as EMACS_INT);   // C 6778
+	      XSETINT! (inev.ie.arg, local_detail);                         // C 6779
+	    }
+	}
+      _ => { }                                                              // C 6783-6784
+    }
+
+  /* If the above produced a workable event, report the name of the
+     device that gave rise to it.  */
+
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 6790
+    {
+      inev.ie.device = pgtk_get_device_for_event (dpyinfo, event);      // C 6792
+      evq_enqueue (&raw mut inev);                                      // C 6793
+
+      /* Next, save this event for future menu activations, unless it is
+	 only an update.  */
+      if (*event).r#type != GDK_TOUCH_UPDATE                            // C 6797
+	{
+	  if !(*dpyinfo).last_click_event.is_null ()                    // C 6799
+	    { gdk_event_free ((*dpyinfo).last_click_event); }           // C 6800
+	  (*dpyinfo).last_click_event = gdk_event_copy (event);         // C 6801
+	}
+    }
+
+  return (input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT) as gboolean;  // C 6805
+}
