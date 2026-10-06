@@ -455,10 +455,28 @@ unsafe extern "C" {
   /// `(f, root_x, root_y)`, which this configuration does not compile; `src/gtkutil.rs` defines
   /// both, one per `use_gtk` arm)
   pub fn xg_show_tooltip (f: *mut frame, string: Lisp_Object);
+  /// C 3645: `fn = xg_get_file_name (f, SSDATA (prompt), cdef_file,`
+  /// C: gtkutil.h 88-92: `extern char *xg_get_file_name (struct frame *f, char *prompt,
+  /// char *default_filename, bool mustmatch_p, bool only_dir_p);` (`src/gtkutil.rs` defines it)
+  pub fn xg_get_file_name (f: *mut frame, prompt: *mut c_char, default_filename: *mut c_char,
+			   mustmatch_p: bool, only_dir_p: bool) -> *mut c_char;
+  /// C 3535: `xg_page_setup_dialog ();`
+  /// C: gtkutil.h 219: `extern void xg_page_setup_dialog (void);`
+  pub fn xg_page_setup_dialog ();
+  /// C 3565: `result = xg_get_page_setup ();`
+  /// C: gtkutil.h 220: `extern Lisp_Object xg_get_page_setup (void);`
+  pub fn xg_get_page_setup () -> Lisp_Object;
+  /// C 3600: `xg_print_frames_dialog (frames);`
+  /// C: gtkutil.h 221: `extern void xg_print_frames_dialog (Lisp_Object);`
+  pub fn xg_print_frames_dialog (frames: Lisp_Object);
   /// C 3298: `update_single_window (w);`
   /// C: dispextern.h 3918: `void update_single_window (struct window *);` (the mirror has not got
   /// it; `src/xdisp.rs` defines it)
   pub fn update_single_window (w: *mut window);
+  /// C 3609/3629: `pgtk_menu_set_in_use (false);` / `pgtk_menu_set_in_use (true);`
+  /// C: pgtkterm.h 656: `extern void pgtk_menu_set_in_use (bool);` (`src/pgtkmenu.rs` 297 defines
+  /// it)
+  pub fn pgtk_menu_set_in_use (in_use: bool);
   /// C 1547/2747: `pgtk_set_event_handler (f);`
   /// C: pgtkterm.h 598: `extern void pgtk_set_event_handler (struct frame *);`
   pub fn pgtk_set_event_handler (f: *mut frame);
@@ -514,6 +532,13 @@ unsafe extern "C" {
   pub fn clear_current_matrices (f: *mut frame);
   /// C: dispextern.h 3940: `extern void clear_frame (struct frame *);`
   pub fn clear_frame (f: *mut frame);
+  /// C 3597: `redisplay_preserve_echo_area (32);`
+  /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);` (`src/xdisp.rs` defines it)
+  pub fn redisplay_preserve_echo_area (from_where: c_int);
+  /// C 3626: `if (popup_activated ())`
+  /// C: dispextern.h 3879: `int popup_activated (void);` - the pgtk build's implementation is
+  /// `src/pgtkmenu.rs` 1445's (C 1087-1091)
+  pub fn popup_activated () -> c_int;
   /// C: dispextern.h 3656: `extern void gui_update_cursor (struct frame *, bool);`
   pub fn gui_update_cursor (f: *mut frame, invis: bool);
   /// C: dispextern.h 3748: `extern Lisp_Object image_find_image_file (Lisp_Object);`
@@ -581,6 +606,15 @@ unsafe extern "C" {
   pub fn gui_set_alpha_background (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object);
   /// C: frame.h 1869-1870: `extern void gui_set_borders_respect_alpha_background (struct frame *,
   /// Lisp_Object, Lisp_Object);`
+  /* lisp.h.  */
+  /// C 3636: `record_unwind_protect_void (clean_up_dialog);`
+  /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (alloc.c; the
+  /// `Option<unsafe extern "C" fn ()>` shape `src/alloc.rs` 6266 uses)
+  pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  /// C 3658: `quit ();`
+  /// C: lisp.h 4786: `extern Lisp_Object quit (void);` (emacs.c)
+  pub fn quit () -> Lisp_Object;
+
   /* window.h.  */
   /// C 3207: `set_window_buffer (window, tip_buf, false, false);`
   /// C: window.h 1139-1140: `void set_window_buffer (Lisp_Object window, Lisp_Object buffer,
@@ -4856,4 +4890,139 @@ DEFUN! ("pgtk-mouse-absolute-pixel-position",                               // C
   gdk_device_get_position (device, &raw mut gscr, &raw mut x, &raw mut y);	/* can't get on wayland? */   // C 3522
 
   return Fcons (make_fixnum (x as EMACS_INT), make_fixnum (y as EMACS_INT));                      // C 3524
+});
+
+DEFUN! ("pgtk-page-setup-dialog", Fpgtk_page_setup_dialog, Spgtk_page_setup_dialog,   // C 3528-3539
+	0, 0, 0,
+	doc: "Pop up a page setup dialog.\nThe current page setup can be obtained using `x-get-page-setup'.",
+	(),
+	{
+  block_input ();                                                       // C 3534
+  xg_page_setup_dialog ();                                              // C 3535
+  unblock_input ();                                                     // C 3536
+
+  return Qnil ();                                                       // C 3538
+});
+
+DEFUN! ("pgtk-get-page-setup", Fpgtk_get_page_setup, Spgtk_get_page_setup, 0, 0, 0,   // C 3541-3569
+	doc: "Return the value of the current page setup.\nThe return value is an alist containing the following keys:\n\norientation: page orientation (symbol `portrait', `landscape',\n`reverse-portrait', or `reverse-landscape').\nwidth, height: page width/height in points not including margins.\nleft-margin, right-margin, top-margin, bottom-margin: print margins,\nwhich is the parts of the page that the printer cannot print\non, in points.\n\nThe paper width can be obtained as the sum of width, left-margin, and\nright-margin values if the page orientation is `portrait' or\n`reverse-portrait'.  Otherwise, it is the sum of width, top-margin,\nand bottom-margin values.  Likewise, the paper height is the sum of\nheight, top-margin, and bottom-margin values if the page orientation\nis `portrait' or `reverse-portrait'.  Otherwise, it is the sum of\nheight, left-margin, and right-margin values.",
+	(),
+	{
+  let mut result: Lisp_Object;                                          // C 3562
+
+  block_input ();                                                       // C 3564
+  result = xg_get_page_setup ();                                        // C 3565
+  unblock_input ();                                                     // C 3566
+
+  return result;                                                        // C 3568
+});
+
+DEFUN! ("pgtk-print-frames-dialog", Fpgtk_print_frames_dialog,             // C 3571-3604
+	Spgtk_print_frames_dialog, 0, 1, "",
+	doc: "Pop up a print dialog to print the current contents of FRAMES.\nFRAMES should be nil (the selected frame), a frame, or a list of\nframes (each of which corresponds to one page).  Each frame should be\nvisible.",
+	(frames: Lisp_Object),
+	{
+  let mut frames = frames;      /* C 3581/3594 assign to the argument (the same-name-local rule) */
+  let mut rest: Lisp_Object = Qnil ();                                  // C 3578
+  let mut tmp: Lisp_Object;                                             // C 3578
+
+  if !CONSP (frames)                                                    // C 3580
+    { frames = list1 (frames); }                                        // C 3581
+
+  tmp = Qnil ();                                                        // C 3583
+  rest = frames;                                                        // C 3584
+  while CONSP (rest)                                                    // C 3584
+    {
+      let f: *mut frame = decode_window_system_frame (XCAR (rest));     // C 3586
+      let mut frame: Lisp_Object = Qnil ();                             // C 3587
+
+      XSETFRAME! (frame, f);                                            // C 3589
+      if !FRAME_VISIBLE_P (f)                                           // C 3590
+	{ error (c"Frames to be printed must be visible".as_ptr ()); }      // C 3591
+      tmp = Fcons (frame, tmp);                                         // C 3592
+      rest = XCDR (rest);                                               // C 3584's step
+    }
+  frames = Fnreverse (tmp);                                             // C 3594
+
+  /* Make sure the current matrices are up-to-date.  */
+  redisplay_preserve_echo_area (32);                                    // C 3597
+
+  block_input ();                                                       // C 3599
+  xg_print_frames_dialog (frames);                                      // C 3600
+  unblock_input ();                                                     // C 3601
+
+  return Qnil ();                                                       // C 3603
+});
+
+/// C 3606-3610: `static void clean_up_dialog (void) { pgtk_menu_set_in_use (false); }` - the
+/// function's address is handed to `record_unwind_protect_void` (C 3636), so it is an
+/// `unsafe extern "C" fn` (the `src/alloc.rs` 6335-6343 shape).
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn clean_up_dialog ()
+{
+  pgtk_menu_set_in_use (false);                                         // C 3609
+}
+
+DEFUN! ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,          // C 3612-3663
+	doc: "SKIP: real doc in xfns.c.  ",
+	(prompt: Lisp_Object, dir: Lisp_Object, default_filename: Lisp_Object,
+	 mustmatch: Lisp_Object, only_dir_p: Lisp_Object),
+	{
+  let f: *mut frame = SELECTED_FRAME ();                                // C 3617
+  let mut r#fn: *mut c_char;                                            // C 3618
+  let mut file: Lisp_Object = Qnil ();                                  // C 3619
+  let decoded_file: Lisp_Object;                                        // C 3620
+  let count: specpdl_ref = SPECPDL_INDEX ();                            // C 3621
+  let mut cdef_file: *mut c_char;                                       // C 3622
+
+  check_window_system (f);                                              // C 3624
+
+  if popup_activated () != 0                                            // C 3626
+    { error (c"Trying to use a menu from within a menu-entry".as_ptr ()); }   // C 3627
+  else
+    { pgtk_menu_set_in_use (true); }                                    // C 3629
+
+  CHECK_STRING (prompt);                                                // C 3631
+  CHECK_STRING (dir);                                                   // C 3632
+
+  /* Prevent redisplay.  */
+  specbind (Qinhibit_redisplay (), Qt ());                              // C 3635
+  record_unwind_protect_void (Some (clean_up_dialog));                  // C 3636
+
+  block_input ();                                                       // C 3638
+
+  if STRINGP (default_filename)                                         // C 3640
+    { cdef_file = SSDATA (default_filename); }                          // C 3641
+  else
+    { cdef_file = SSDATA (dir); }                                       // C 3643
+
+  r#fn = xg_get_file_name (f, SSDATA (prompt), cdef_file,               // C 3645
+			   !NILP (mustmatch), !NILP (only_dir_p));          // C 3646
+
+  if !r#fn.is_null ()                                                   // C 3648
+    {
+      file = build_string (r#fn);                                       // C 3650
+      xfree (r#fn as *mut c_void);                                      // C 3651
+    }
+
+  unblock_input ();                                                     // C 3654
+
+  /* Make "Cancel" equivalent to C-g.  */
+  if NILP (file)                                                        // C 3657
+    { quit (); }                                                        // C 3658
+
+  decoded_file = DECODE_FILE (file);                                    // C 3660
+
+  return unbind_to (count, decoded_file);                               // C 3662
+});
+
+DEFUN! ("pgtk-backend-display-class", Fpgtk_backend_display_class,         // C 3665-3676
+	Spgtk_backend_display_class, 0, 1, "",
+	doc: "Return the name of the Gdk backend display class of TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut pgtk_display_info = check_pgtk_display_info (terminal);   // C 3672
+  let gdpy: *mut GdkDisplay = (*dpyinfo).gdpy;                          // C 3673
+  let type_name: *const gchar = G_OBJECT_TYPE_NAME! (G_OBJECT! (gdpy));   // C 3674
+  return build_string (type_name);                                      // C 3675
 });

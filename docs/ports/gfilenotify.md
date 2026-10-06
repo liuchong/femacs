@@ -132,3 +132,10 @@ reference has no `src/gfilenotify.h`), so the table covers C 1-336.
 - The `glib_check_version_lt_2_36` arm **has never been compiled** (the frozen configuration takes
   the empty arm), and neither has the `#ifdef USE_FILE_NOTIFY`-derived `FILE_NOTIFY_EVENT` value.
 - The frozen `build-tu` object is the 336-byte empty one, i.e. it says nothing about the body.
+
+- **The GObject records, macros and `g_type_name` are `include/gtk.rs`'s now (status 3.726).**  They
+  stood here under `have_gfilenotify`; this unit's include graph reaches that mirror (its line 27),
+  so when the pgtkfns twelfth slice needed the same chain there, the copies here became duplicates
+  (P-26's one spelling per construct) and are dropped with the C 330 call site unchanged.
+  Measured: this unit's own probe (`have_gfilenotify`) reads **exit 0, 0 errors, 0 warnings** on
+  both sides of the drop, and `check-mirror-dupes.py` stays 16/16/0.

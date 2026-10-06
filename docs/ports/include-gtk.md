@@ -286,3 +286,18 @@ unchanged; that unit's own probe reads **9 errors / 8 warnings** on both sides o
 P-87 ①'s consumer sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s),
 0 unit failure(s)`.  The consumer's ledger records the pair (`docs/ports/pgtkfns.md` Deviations
 70-73 and Evidence ㊹-㊻).
+
+### status 3.726 (the pgtkfns twelfth-slice round this file took part in)
+
+`src/pgtkfns.c`'s `pgtk-backend-display-class` (C 3674) reads a display's type name through
+`G_OBJECT_TYPE_NAME (G_OBJECT (gdpy))`, so the GObject pieces moved into their single home: this
+file gains `GTypeClass` and `GTypeInstance` (the two records `G_TYPE_FROM_INSTANCE!` reads, with
+their measured `sizeof 8` and the two offsets asserted), the four macros
+`G_TYPE_FROM_CLASS`/`G_TYPE_FROM_INSTANCE`/`G_OBJECT_TYPE`/`G_OBJECT_TYPE_NAME` (gtype.h 646/657 and
+gobject.h 98/108, real chains rather than approximations) and `g_type_name` (gtype.h 743).  The rows
+are ungated, so `src/gfilenotify.rs` - which includes this mirror (its line 27) - dropped the copies
+it carried under `have_gfilenotify` (P-26, call site unchanged) and now reads **exit 0, 0 errors,
+0 warnings** on its own probe, the same as before the move.  `check-mirror-dupes.py` stays 16/16/0
+and P-87 ①'s consumer sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s),
+0 unit failure(s)`.  The consumer's ledger records the pair (`docs/ports/pgtkfns.md` Deviations
+74-77 and Evidence ㊽-㊿).

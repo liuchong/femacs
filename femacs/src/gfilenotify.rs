@@ -103,36 +103,10 @@ pub struct GCancellable
 {
   _private: [u8; 0],
 }
-/// C: gobject/gtype.h: `typedef struct _GTypeInstance GTypeInstance;`, measured `sizeof` 8 with
-/// `g_class` at offset 0; `typedef struct _GTypeClass GTypeClass;`, measured `sizeof` 8 with
-/// `g_type` at 0.  These two records are what the port's `G_TYPE_FROM_INSTANCE!` reads, i.e. the
-/// real chain `((GTypeInstance *) (instance))->g_class->g_type` rather than an approximation.
-#[cfg (feature = "have_gfilenotify")]
-#[repr (C)]
-pub struct GTypeClass
-{
-  pub g_type: GType,
-}
-#[cfg (feature = "have_gfilenotify")]
-#[repr (C)]
-pub struct GTypeInstance
-{
-  pub g_class: *mut GTypeClass,
-}
-/// C: gobject/gtype.h: `#define G_TYPE_FROM_INSTANCE(instance) (G_TYPE_FROM_CLASS
-/// (G_OBJECT_GET_CLASS (instance)))`, whose own body is
-/// `(((GTypeClass*) (((GTypeInstance*) (instance))->g_class))->g_type)`.
-#[cfg (feature = "have_gfilenotify")]
-macro_rules! G_TYPE_FROM_INSTANCE {
-  ($instance:expr) => { unsafe { (*(*($instance as *mut GTypeInstance)).g_class).g_type } };
-}
-/// C: gobject/gobject.h: `#define G_OBJECT_TYPE_NAME(object) (g_type_name (G_OBJECT_TYPE
-/// (object)))` - the name and the result type are kept, and the body is the real chain through
-/// the two measured records above.
-#[cfg (feature = "have_gfilenotify")]
-macro_rules! G_OBJECT_TYPE_NAME {
-  ($object:expr) => { g_type_name (G_TYPE_FROM_INSTANCE! ($object)) };
-}
+/* The two GObject records and their three macros used to stand here; they are
+   `include/gtk.rs`'s now (P-26's one spelling per construct, status 3.726) - this unit's include
+   graph reaches that mirror (line 27), so the copies were a duplicate the moment the shared home
+   gained them.  The call sites below are unchanged.  */
 #[cfg (feature = "have_gfilenotify")]
 unsafe extern "C" {
   /// C: gio/gfile.h: `GFile * g_file_new_for_path (const char *path);`
@@ -151,8 +125,6 @@ unsafe extern "C" {
   pub fn g_file_monitor_set_rate_limit (monitor: *mut GFileMonitor, limit_msecs: gint);
   /// C: gio/gfile.h: `char * g_file_get_parse_name (GFile *file);`
   pub fn g_file_get_parse_name (file: *mut GFile) -> *mut c_char;
-  /// C: gobject/gtype.h: `const gchar * g_type_name (GType type);`
-  pub fn g_type_name (type_: GType) -> *const c_char;
   /// C: gobject/gtype.h: `void g_type_init (void);` - deprecated in GLib 2.36 and guarded by
   /// C 301's `#if ! GLIB_CHECK_VERSION (2, 36, 0)` (both arms carried, P-51).
   pub fn g_type_init ();

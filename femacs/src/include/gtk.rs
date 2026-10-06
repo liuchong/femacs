@@ -148,7 +148,45 @@ macro_rules! G_CALLBACK {
     Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn ()> ($f as *const ()) })
   };
 }
+/// C: gobject/gtype.h: `typedef struct _GTypeClass GTypeClass;` / `typedef struct
+/// _GTypeInstance GTypeInstance;` - measured (Evidence ②): `sizeof` 8 each, `g_type` at 0 and
+/// `g_class` at 0.  These are what `G_TYPE_FROM_INSTANCE!` below reads.
+#[repr (C)]
+pub struct GTypeClass
+{
+  pub g_type: GType,          // C: `GType g_type;`
+}
+#[repr (C)]
+pub struct GTypeInstance
+{
+  pub g_class: *mut GTypeClass,   // C: `GTypeClass *g_class;`
+}
+const _: () = core::assert! (core::mem::size_of::<GTypeClass> () == 8);
+const _: () = core::assert! (core::mem::size_of::<GTypeInstance> () == 8);
+/// C: gtype.h 646/657: `#define G_TYPE_FROM_INSTANCE(instance) (G_TYPE_FROM_CLASS
+/// (((GTypeInstance*) (instance))->g_class))` / `#define G_TYPE_FROM_CLASS(g_class)
+/// (((GTypeClass*) (g_class))->g_type)` - the real chain, not an approximation.  C 3674 reads a
+/// display's type name through the two macros below.
+macro_rules! G_TYPE_FROM_CLASS {
+  ($g_class:expr) => { unsafe { (*(($g_class) as *mut GTypeClass)).g_type } };
+}
+macro_rules! G_TYPE_FROM_INSTANCE {
+  ($instance:expr) => { G_TYPE_FROM_CLASS! (unsafe { (*(($instance) as *mut GTypeInstance)).g_class }) };
+}
+/// C: gobject.h 98/108: `#define G_OBJECT_TYPE(object) (G_TYPE_FROM_INSTANCE (object))` /
+/// `#define G_OBJECT_TYPE_NAME(object) (g_type_name (G_OBJECT_TYPE (object)))` - the name and the
+/// result type are kept; `g_type_name` is this block's.
+macro_rules! G_OBJECT_TYPE {
+  ($object:expr) => { G_TYPE_FROM_INSTANCE! ($object) };
+}
+macro_rules! G_OBJECT_TYPE_NAME {
+  ($object:expr) => { g_type_name (G_OBJECT_TYPE! ($object)) };
+}
+
 unsafe extern "C" {
+  /// C 3674: `const gchar *type_name = G_OBJECT_TYPE_NAME (G_OBJECT (gdpy));`
+  /// C: gobject/gtype.h 743: `const gchar * g_type_name (GType type);`
+  pub fn g_type_name (type_: GType) -> *const c_char;
   /// C 663/679/705: `if (!g_utf8_validate (str, -1, NULL))` / `while (! (cp = g_locale_to_utf8
   /// ((char *)p, -1, &bytes_read, &bytes_written, &err)) …`
   /// C: gunicode.h 1052-1054: `gboolean g_utf8_validate (const gchar *str, gssize max_len, const
