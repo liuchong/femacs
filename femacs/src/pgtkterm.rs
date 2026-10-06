@@ -5626,3 +5626,59 @@ unsafe fn pgtk_ring_bell (f: *mut frame)
       unblock_input ();                                                 // C 3920
     }
 }
+
+/* Read events coming from the X server.
+   Return as soon as there are no more events to be read.
+
+   Return the number of characters stored into the buffer,
+   thus pretending to be `read' (except the characters we store
+   in the keyboard buffer can be multibyte, so are not necessarily
+   C chars).  */
+
+/// C 3924-3970: `static int pgtk_read_socket (struct terminal *terminal, struct input_event
+/// *hold_quit)` - C's body never reads `terminal` (`let _ =` keeps the name), `evq_flush` is this
+/// file's own C 604 definition, the four GLib calls are `include/gtk.rs` 1919-1925's rows (GLib is
+/// installed on this machine, so those rows are header readings), and C's two `int`-to-`bool`
+/// conversions are the port's `!= 0`.  C 7447 takes this function's address (the terminal's
+/// `read_socket_hook`), so it becomes `unsafe extern "C" fn` in the slice that lands that
+/// assignment (PORTING.md 1.4, the `pgtk_ring_bell` note above).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_read_socket (terminal: *mut terminal, hold_quit: *mut input_event) -> c_int
+{
+  let _ = terminal;                                                     // C 3933
+  let mut context: *mut GMainContext;                                   // C 3935
+  let mut context_acquired: bool = false;                               // C 3936
+  let mut count: c_int;                                                 // C 3937
+
+  count = evq_flush (hold_quit);                                        // C 3939
+  if count > 0                                                          // C 3940
+    {
+      return count;                                                     // C 3942
+    }
+
+  context = g_main_context_default ();                                  // C 3945
+  context_acquired = g_main_context_acquire (context) != 0;             // C 3946
+
+  block_input ();                                                       // C 3948
+
+  if context_acquired                                                   // C 3950
+    {
+      while g_main_context_pending (context) != 0                       // C 3952
+	{
+	  g_main_context_dispatch (context);                            // C 3954
+	}
+    }
+
+  unblock_input ();                                                     // C 3958
+
+  if context_acquired                                                   // C 3960
+    { g_main_context_release (context); }                               // C 3961
+
+  count = evq_flush (hold_quit);                                        // C 3963
+  if count > 0                                                          // C 3964
+    {
+      return count;                                                     // C 3966
+    }
+
+  return 0;                                                             // C 3969
+}

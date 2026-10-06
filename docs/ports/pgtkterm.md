@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-26: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798 and C 3800-3922
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-27: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922 and C 3924-3970
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,17 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**5,628 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**5,684 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798** and **C 3800-3922** - twenty-six
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922** and **C 3924-3970** - twenty-seven
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_read_socket` (C 3932-3933; C 3924-3930 is its comment above it).**
+> `pgtk_send_scroll_bar_event` (C 3977-3979; C 3975's `window_being_scrolled` object and its comment
+> are above it).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -139,7 +140,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 3647-3752 | `pgtk_draw_fringe_bitmap` (C 3647-3689), `hourglass_atimer`/`hourglass_enter_count` (C 3691-3692), `hourglass_cb` (C 3694-3698), `pgtk_show_hourglass` (C 3700-3727), `pgtk_hide_hourglass` (C 3729-3746) and `pgtk_flush_display` (C 3748-3752) | the file gate - **transcribed** (the twenty-fourth slice) |
 | 3754-3798 | C 3754's `extern frame_parm_handler pgtk_frame_parm_handlers[];` declaration, `pgtk_redisplay_interface` (C 3756-3785, the 28-entry interface object) and `pgtk_clear_frame` (C 3787-3798) | the file gate - **transcribed** (the twenty-fifth slice) |
 | 3800-3922 | `recover_from_visible_bell` (C 3800-3813), `pgtk_flash` (C 3815-3905) and `pgtk_ring_bell` (C 3907-3922) | the file gate - **transcribed** (the twenty-sixth slice) |
-| 3924-7780 | **the remainder of the file** - from C 3924-3930's comment and C 3932's `pgtk_read_socket` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3924-3970 | `pgtk_read_socket` (C 3924-3970, with C 3924-3930's comment above it) | the file gate - **transcribed** (the twenty-seventh slice) |
+| 3972-7780 | **the remainder of the file** - from C 3972-3974's comment, C 3975's `window_being_scrolled` and C 3977's `pgtk_send_scroll_bar_event` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -834,6 +836,16 @@ their assertions are owed.
     (PORTING.md 1.4; its signature matches atimer.h 44's callback type exactly, so the entry needs no
     conversion), while `pgtk_ring_bell` stays a plain `unsafe fn` until the slice that takes its
     address (C 7442) converts it.  No mirror changed, so P-87's two legs do not apply.
+49. **One function, two `int`-to-`bool` conversions and one parameter C never reads.**
+    `pgtk_read_socket` (C 3932-3970) is a plain `unsafe fn` (C 7447 takes its address later, when
+    the terminal's `read_socket_hook` is assigned, and that slice converts it - the `pgtk_ring_bell`
+    note above); C's `g_main_context_acquire` result and `g_main_context_pending` test are `int`
+    expressions on a `bool` local and in a `while`, so the port writes `!= 0` (the unit's standing
+    spelling for C's truthiness), `hold_quit` is `*mut input_event` in `include/termhooks.rs` 114
+    (`struct terminal *` is that mirror's 196), and C's body never reads `terminal`, so the port keeps
+    the name with `let _ =` (the Deviation 44 shape).  All four GLib rows are
+    `include/gtk.rs` 1919-1925's, i.e. header readings against this machine's GLib 2.90.0 - nothing
+    new was declared.  No mirror changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1874,3 +1886,36 @@ the frozen configuration compiles none of this file, no bell was rung and no fla
 slice's own cairo calls are declarations against this machine's installed header, not a runtime
 reading), and the three arm readings are **compile** readings of text this machine cannot build.
 Deviation 13's standing gap (`FRAME_PGTK_P` is the mirror's non-pgtk arm) is unchanged.
+
+## The twenty-seventh slice (C 3924-3970): the socket read
+
+**What is in it.**  `pgtk_read_socket` (C 3924-3970, with C 3924-3930's comment above it): the first
+`evq_flush` with its early return, the GLib main-context acquire/pending/dispatch/release run around
+`block_input`, and the second `evq_flush`.  Rust: 5,628 -> **5,684** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 50 errors / 19 warnings -> 50 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 51 / 20 -> 51 / 20
+C = A + use_gtk + have_gtk3                        : 28 / 18 -> 28 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+error-set diff prints is the probe's own `_baseprobe.rs`/`.rs` file name): this text adds no error and
+no warning - the eighth zero-delta reading in this unit, and the first one with **nothing declared**:
+`evq_flush` is this file's own C 604 definition and the four GLib calls are `include/gtk.rs`
+1919-1925's rows.  **Arm reach is measured** (P-86 ⑦): injecting `let _: c_int = true;` as the first
+statement of `pgtk_read_socket` moves arm A to 51 errors anchored at that line (removed, the file
+re-measured at **5,684** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**116 rows -> 115** (the item retires, no `does not mention` row appears) and the file's own
+`line count drifted` row is re-measured 27.7% -> **26.9%** (C 7,780 vs the port's 5,684).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2084/36/0**; `check-dead-file-coverage.py` **145/0** (**59 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round, so P-87's two legs do not apply).  **Not claimed**: none of this has been run -
+the frozen configuration compiles none of this file, no socket was read, and the three arm readings
+are **compile** readings of text this machine cannot build.  Deviation 13's standing gap
+(`FRAME_PGTK_P` is the mirror's non-pgtk arm) is unchanged.
