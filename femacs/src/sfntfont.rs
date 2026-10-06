@@ -7,8 +7,8 @@
 // `unsafe extern "C" fn` items (PORTING.md 1.4; the androidselect.rs `close_asset_fd` shape).
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
-// C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559 and C 2560-2742.**
-// The next live definition is `sfntfont_setup_interpreter` (C 2753).  The ledger `docs/ports/sfntfont.md`
+// C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559, C 2560-2742 and
+// C 2743-2915.**  The next live definition is `sfnt_open_tables` (C 2920).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -3356,4 +3356,205 @@ unsafe fn sfntfont_probe_widths (font_info: *mut sfnt_font_info)
   /* Now, if characters were found, set average_width.  */
   if num_characters != 0                                   // C 2740
     { (*font_info).font.average_width = total_width / num_characters; }   // C 2741
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 2743-2915: `sfntfont_setup_interpreter` (C 2753-2860, under C 2744-2751's comment) and
+   `sfnt_close_tables` (C 2865-2915, under C 2862-2863's comment).  **The next live definition is
+   C 2920's `sfnt_open_tables`** (the comment is C 2917-2918), and the ledger's `## C line ranges`
+   names both boundaries.
+
+   C's two labels `bail1:` (C 2856) and `bail:` (C 2858) are the `'body: loop` + level variable
+   shape slice 1's `sfnt_enum_font` uses (PORTING.md 2.2): `goto bail` skips the interpreter free,
+   `goto bail1` runs it.  `message_with_string` is `lisp.h` 4397's prototype and no mirror carries
+   it, so it is declared at its use site below; `HAVE_MMAP` is 1 and its arms have no `#else`, so
+   C 2868's `rc` local and the C 2877-2887 `if`/`else` are written ungated - while C 2902-2914's
+   `HAVE_HARFBUZZ` block is `#[cfg (feature = "harfbuzz")]` (its two members are that gate's).
+   ---------------------------------------------------------------------------------------------- */
+/* `message_with_string` is `lisp.h` 4397's `extern void message_with_string (const char *,
+   Lisp_Object, bool);`, declared here at its use site (the `src/fileio.rs` 4466 shape, P-91 4);
+   `sfntfont_setup_interpreter` is the user.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);`
+  pub fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
+}
+
+/// C 2753-2860: `sfntfont_setup_interpreter`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_setup_interpreter (info: *mut sfnt_font_info,
+				      desc: *mut sfnt_font_desc,
+				      point_size: c_int)
+{                                                          // C 2753-2860
+  let mut cvt: *mut sfnt_cvt_table;
+  let mut fpgm: *mut sfnt_fpgm_table;
+  let mut prep: *mut sfnt_prep_table;
+  /* C 2761's `interpreter` is assigned at C 2801 before any path that reads it; zero-initialised
+     because the `bail1` path's `xfree` reads it (PORTING.md 1.5, Deviation 10).  */
+  let mut interpreter: *mut sfnt_interpreter = std::ptr::null_mut ();
+  /* C 2762's `error` is assigned by *both* interpret calls (C 2817 in the `fpgm` arm and C 2835 in
+     the `prep` arm) before C 2819/2838 read it, so the binding is `mut` (the arm flip read
+     `E0384 cannot assign twice to immutable variable` before this).  */
+  let mut error: *const c_char;
+  /* C 2763's `state` is uninitialised in C and is read at C 2836 when `prep` is set but `fpgm` is
+     not - a latent C uninitialised read that the port gives a defined value (Deviation 10's
+     class; the ledger names it).  */
+  let mut state: sfnt_graphics_state = std::mem::zeroed ();
+  let regexp: Lisp_Object;
+
+  /* C 2856-2859's `bail1:`/`bail:` pair: 0 is `goto bail`, 1 is `goto bail1` (the
+     `sfnt_enum_font` shape, PORTING.md 2.2).  */
+  let mut bail: c_int = 0;
+
+  'body: loop
+    {
+      /* If Vsfnt_uninstructable_family_regexp matches this font, then
+	 return.  */
+
+      regexp = Vsfnt_uninstructable_family_regexp;         // C 2769
+
+      if STRINGP (regexp)
+	 && (fast_string_match_ignore_case (regexp,
+					    (*desc).family)   // C 2772-2773
+	     >= 0)
+	{ return; }
+
+      /* Load the cvt, fpgm and prep already read.  */
+
+      cvt = (*info).cvt;                                   // C 2779
+      fpgm = (*info).fpgm;                                 // C 2780
+      prep = (*info).prep;                                 // C 2781
+
+      /* If both fpgm and prep are NULL, this font likely has no
+	 instructions, so don't bother setting up the interpreter.  */
+
+      if fpgm.is_null () && prep.is_null ()
+	{ break 'body; }                                   // C 2787: `goto bail;`
+
+      /* If the interpreter does not use the operand stack at all, it is
+	 useless.  In addition, some broken fonts specify some unnecessary
+	 instructions in prep and set head->max_stack_elements to 0.
+
+	 Don't create the interpreter in that case.  */
+
+      if (*(*info).maxp).max_stack_elements == 0
+	{ break 'body; }                                   // C 2796: `goto bail;`
+
+      /* Now, create the interpreter using the limits in info->maxp and
+	 info->head.  CVT can be NULL.  */
+
+      interpreter = sfnt_make_interpreter ((*info).maxp, cvt, (*info).head,
+					   (*(*desc).tables).fvar,
+					   (*info).font.pixel_size,
+					   point_size);        // C 2801-2804
+
+      /* Bail if the interpreter couldn't be created.  */
+      if interpreter.is_null ()
+	{ break 'body; }                                   // C 2808: `goto bail;`
+
+      if !fpgm.is_null ()                                  // C 2810
+	{
+	  /* Otherwise, evaluate the font and cvt programs.
+
+	     FIXME: make sure infinite loops inside these programs
+	     cannot lock up Emacs.  */
+
+	  error = sfnt_interpret_font_program (interpreter, fpgm);   // C 2817
+
+	  if !error.is_null ()                             // C 2819
+	    {
+	      /* If an error occurs, log it to the *Messages* buffer.  */
+	      message_with_string (c"While interpreting font program: %s".as_ptr (),
+				   build_string (error), true);   // C 2822-2823
+	      bail = 1; break 'body;                       // C 2824: `goto bail1;`
+	    }
+
+	  /* Save the graphics state.  */
+	  state = (*interpreter).state;                    // C 2828
+	}
+
+      if !prep.is_null ()                                  // C 2831
+	{
+	  /* This will overwrite state if the instruction control is set
+	     appropriately.  */
+	  error = sfnt_interpret_control_value_program (interpreter, prep,
+							&raw mut state);   // C 2835-2836
+
+	  if !error.is_null ()                             // C 2838
+	    {
+	      /* If an error occurs, log it to the *Messages* buffer.  */
+	      message_with_string (c"While interpreting preprogram: %s".as_ptr (),
+				   build_string (error), true);   // C 2841-2842
+	      bail = 1; break 'body;                       // C 2843: `goto bail1;`
+	    }
+	}
+
+      /* The interpreter has been properly set up.  */
+      (*info).fpgm = fpgm;                                 // C 2848
+      (*info).prep = prep;                                 // C 2849
+      (*info).cvt = cvt;                                   // C 2850
+      (*info).state = state;                               // C 2851
+      (*info).interpreter = interpreter;                   // C 2852
+
+      return;                                              // C 2854
+    }
+
+  /* C 2856-2859: `bail1:` frees the interpreter, `bail:` returns.  */
+  if bail >= 1
+    { xfree (interpreter as *mut c_void); }                // C 2857
+}
+
+/* Free each of the tables opened by `sfnt_open_tables', and possibly
+   file descriptors as well.  Then, free TABLES itself.  */
+
+/// C 2865-2915: `sfnt_close_tables`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_close_tables (tables: *mut sfnt_font_tables)
+{                                                          // C 2865-2915
+  /* C 2868-2870's `#ifdef HAVE_MMAP` local: live, since `HAVE_MMAP` is 1 and the arm has no
+     `#else` (the file's gate mapping).  */
+  let mut rc: c_int;
+
+  xfree ((*tables).cmap as *mut c_void);                   // C 2872
+  xfree ((*tables).hhea as *mut c_void);                   // C 2873
+  xfree ((*tables).maxp as *mut c_void);                   // C 2874
+  xfree ((*tables).head as *mut c_void);                   // C 2875
+  xfree ((*tables).hmtx as *mut c_void);                   // C 2876
+  if (*tables).glyf_table_mapped                           // C 2878
+    {
+      rc = sfnt_unmap_glyf_table ((*tables).glyf);         // C 2880
+
+      if rc != 0
+	{ emacs_abort (); }                                // C 2883
+    }
+  else
+    { xfree ((*tables).glyf as *mut c_void); }             // C 2887
+  xfree ((*tables).loca_short as *mut c_void);             // C 2888
+  xfree ((*tables).loca_long as *mut c_void);              // C 2889
+  xfree ((*tables).prep as *mut c_void);                   // C 2890
+  xfree ((*tables).fpgm as *mut c_void);                   // C 2891
+  xfree ((*tables).cvt as *mut c_void);                    // C 2892
+  xfree ((*tables).fvar as *mut c_void);                   // C 2893
+  xfree ((*tables).avar as *mut c_void);                   // C 2894
+  xfree ((*tables).gvar as *mut c_void);                   // C 2895
+  xfree ((*tables).cvar as *mut c_void);                   // C 2896
+  xfree ((*tables).cmap_data as *mut c_void);              // C 2897
+
+  if !(*tables).uvs.is_null ()                             // C 2899
+    { sfnt_free_uvs_context ((*tables).uvs); }             // C 2900
+
+  #[cfg (feature = "harfbuzz")]
+  {
+    /* Close the font file.  */
+
+    if (*tables).fd != -1                                  // C 2905
+      {
+	emacs_close ((*tables).fd);                        // C 2907
+	(*tables).fd = -1;                                 // C 2908
+      }
+
+    /* Free its table directory.  */
+    xfree ((*tables).directory as *mut c_void);             // C 2912
+    (*tables).directory = std::ptr::null_mut ();            // C 2913
+  }
 }
