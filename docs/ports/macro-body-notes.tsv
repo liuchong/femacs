@@ -1744,3 +1744,4 @@ DELTAC3	goto,deltac3_start	the same reading as DELTAC1's row at C 7696/7705, wit
 DELTAP1	goto,deltap1_start	C 7714's `deltap1_start:` and C 7722's `goto deltap1_start` are the port's `loop` (C's `n = POP ()` stays outside it), C's `break` is the arm's own end, and the two pops and the `sfnt_deltap` call are still compared
 DELTAP2	goto,deltap2_start	the same reading as DELTAP1's row at C 7731/7739, with `sfnt_deltap (2, ...)`
 DELTAP3	goto,deltap3_start	the same reading as DELTAP1's row at C 7748/7756, with `sfnt_deltap (3, ...)`
+sfnt_interpret_simple_glyph	alloca	C 12339's `alloca (zone_size)` is the port's stack pool (`sa_stack_alloc`, PORTING.md P-05 - the `sfnt_build_outline_edges` and `sfnt_build_outline_fedges` rows' class), so the token cannot reappear; the size, the `1024 * 16` threshold and the two arms' pointer assignments are still compared
