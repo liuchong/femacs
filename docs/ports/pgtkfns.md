@@ -13,10 +13,11 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**4,278** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> `femacs/src/pgtkfns.rs` (**4,671** lines, from the 11 of the placeholder), carrying **C 1-1147**,
 > **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208**, **C 2210-2403**,
-> **C 2405-2549**, **C 2551-2838** and **C 2840-3025** - nine slices - with **both arms of every
-> `#if`**; the next live definition is `Fx_show_tip` (**C 3027**).
+> **C 2405-2549**, **C 2551-2838**, **C 2840-3025** and **C 3027-3317** - ten slices - with **both
+> arms of every `#if`**; the next live definition is `frame_geometry` (**C 3325**, its comment at
+> C 3319).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -131,7 +132,8 @@ which exist only under those two features (Owed 6).
 | 2405-2549 | the monitor-attribute builder and the group's last three definitions: `Fpgtk_display_monitor_attributes_list` (C 2405-2510: the `FOR_EACH_FRAME` filing walk, the per-monitor records and the `make_monitor_attribute_list`/`free_monitors` pair), `pgtk_frame_scale_factor` (2512-2531), `x-display-planes` (2533-2539) and `x-display-color-cells` (2542-2549) | the file gate - **transcribed** (the seventh slice) |
 | 2551-2838 | the tooltip group: C 2551-2553's banner, the six file-scope statics (2555-2573), `unwind_create_tip_frame` (2576-2587) and `pgtk_create_tip_frame` (2590-2838: the frame's officialisation, the colour/name blocks, the two font drivers, the thirteen `gui_default_parameter` calls, the GTK window setup, the three `AUTO_FRAME_ARG` blocks and the tail) | the file gate - **transcribed** (the eighth slice) |
 | 2840-3025 | `compute_tip_xy` (C 2846-2943: the four parameter reads, the GDK pointer query, the monitor walk and the two coordinate ladders) and `pgtk_hide_tip` (C 2946-3025: the `Qcancel_timer` call, C's five-condition early return, the two specbinds, the `xg_hide_tooltip` attempt and the delete-or-hide fork) | the file gate - **transcribed** (the ninth slice) |
-| 3027-3906 | **the remainder of the file** - from C 3027-3030's `DEFUN ("x-show-tip", …)` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the show/hide pair and their unwind helpers (3027-3311), the frame-geometry/edges/mouse/print/file-dialog/font subrs (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3027-3317 | `Fx_show_tip` (C 3027-3309: both `ENABLE_CHECKING` arms, the `'start_timer` label block, the `tip_frame` fork, the tooltip frame's setup, the two `Fset` writes and the `FRAME_TOTAL_COLS` sizing) and `Fx_hide_tip` (C 3312-3317) | the file gate - **transcribed** (the tenth slice) |
+| 3319-3906 | **the remainder of the file** - from C 3319's comment and C 3325's `frame_geometry` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the frame-geometry/edges/mouse/print/file-dialog/font subrs (3319-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -585,6 +587,52 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     init/`while`/step trio, and the two third-party segments and declaration blocks this unit
     carries) stand in that table, and the `--check` row retires with them (67 -> 59 -> 57 rows
     across this slice's steps, the last two being the drift row's return and its retirement).
+
+63. **`FRAME_TOTAL_COLS` is a two-arm macro here.**  C 3235's `FRAME_TOTAL_COLS (w) = …` assigns, and
+    `include/frame.rs` carries the macro as a reader only, so this unit shadows it with C's own body
+    in two arms (`macro_rules! FRAME_TOTAL_COLS`, frame.h 1180) - the `FRAME_CONFIG_SCROLL_BAR_*`
+    shape of Deviation 40, and the same reason that mirror's reader stays.  The two window bitfields
+    this slice writes (`pseudo_window_p` at C 3209, `must_be_updated_p` at C 3297) get the same
+    two-arm treatment from `include/window.rs`'s `_SHIFT` constants (window.h 437/438).
+64. **Two `goto start_timer`s become a labelled block.**  C 3088 and C 3112 jump to C 3304's
+    `start_timer:` label, which sits between the `if`/`else` chain and the tail C 3306-3309; Rust has
+    no `goto`, so the slice writes `'start_timer: { … break 'start_timer; … }` with the tail outside
+    the block (PORTING.md 2.2's device, `src/haikufns.rs`'s copy of the same function).
+65. **The two `ENABLE_CHECKING` arms are `#[cfg]`-gated verbatim bodies.**  C 3042-3044 and
+    C 3256-3269 are `#ifdef ENABLE_CHECKING`/`#else` pairs whose false arms are empty; both arms are
+    transcribed (P-86 ①) under `#[cfg (feature = "enable_checking")]`, and C 3043's declaration
+    `struct glyph_row *row, *end;` is two `let`s - it compiles even though no `glyph_row` record is
+    in this unit's include graph, because the arm is dead in every measured configuration (the
+    four-arm reading below is what says so, not the absence of a row here).
+66. **C's implicit conversions and l-value forms, written out.**  C 3192's assignment to a global
+    inside `NILP (…)` becomes an assignment statement plus the test; `compute_tip_xy`'s out-parameters
+    are `&raw mut root_x`/`&raw mut root_y` at C 3082 (P-83's raw-borrow spelling);
+    `f->output_data.pgtk->current_cursor` (C 3291) is written as the member path so C's
+    `output_data`/`pgtk` tokens survive the accessor; and C 3224/3225's `XFIXNAT` narrowing and
+    C 3274's `make_fixnum (w->pixel_height)` widening carry `as c_int` / `as EMACS_INT`.
+67. **The first four-arm run was not clean, and its five syntax errors hid the rest.**  C 3140, C 3144,
+    C 3166, C 3169 and C 3198 are single-statement bodies of an `else` or an `if` (C's own text has no
+    braces); Rust needs them, and the five sites are `{ … }` now.  The probe's first reading of the
+    finished text was **A 190 / B 178 / C 190 / D 178** with four `expected `{`` errors - and because
+    a syntax error truncates its block's parse, that reading also *hid* more than twenty downstream
+    diagnostics.  The repair is why the final readings are higher, not lower: **A 197 / B 185 /
+    C 197 / D 185**, i.e. **+10 over HEAD in every arm**, all of them the unit's registered
+    `cannot find type` class (`pgtk_output`, the slice's own accessor expansions) with **no new class
+    and no new warning**.
+68. **Four items the slice calls are declared or spelled here.**  `try_window` (C 3252; dispextern.h
+    3573, `src/xdisp.rs` defines it) and `set_window_buffer` (C 3207; window.h 1139-1140,
+    `src/window.rs`) stand in this unit's extern blocks with their C citations - no mirror carries
+    them; `SET_TEXT_POS` (dispextern.h 291-294) is carried as a one-arm `macro_rules!` copy because
+    `include/dispextern.rs` keeps it inside its `dispextern_unit_names` module, where a `use` cannot
+    reach a macro (`src/haikufns.rs` 2064-2072's shape, `src/xdisp.rs` 1918-1926's before it); and the
+    two call sites take the port's spellings - `flush_frame! (tip_f)` (C 3299: frame.h 1835's INLINE is
+    a macro in the mirror) and `try_window (…) != 0` (C 3252: C's `int` into a `bool`, written out).
+69. **This unit's `docs/ports/line-drift-tolerance.tsv` row moves 0.10 -> 0.20** with the final
+    measurement: 4,671 lines against C's 3,906 is **+19.6%** (Deviation 62 recorded the 0.10 reading
+    of the 4,278-line state).  The row's reason list grows by this slice's share - the arms it adds to
+    existing `macro_rules!` pairs, the five brace sites of Deviation 67, the declaration and macro
+    copies of Deviation 68 and the per-site citations - and the `--check` drift row stays retired at
+    that tolerance.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1183,3 +1231,49 @@ failure(s)`.  **Not claimed**: no tooltip was positioned or hidden (`compute_tip
 `pgtk_hide_tip` are called only by `Fx_show_tip`/`Fx_hide_tip`, still the remainder), no GDK pointer
 query ran (`gdk_device_get_position` is a declaration - the port has no GDK to link), and the four
 arm readings are **compile** readings of text this machine cannot build.
+
+## The tenth slice (C 3027-3317): `Fx_show_tip` and `Fx_hide_tip`
+
+**㊴ What is in it.**  C 3027-3309's `Fx_show_tip` (the two `ENABLE_CHECKING` arms, the
+parameter-list comparison with its two `goto start_timer`s, the `tip_frame` fork that creates a frame
+through `pgtk_create_tip_frame`, the `tip_last_frame`/`tip_last_string`/`tip_last_parms` writes, the
+`Fset_buffer`/`set_window_buffer` setup, `SET_TEXT_POS` with the `TRY_WINDOW_IGNORE_FONTS_CHANGE`
+try, the `hide_tip` fork, the `FRAME_TOTAL_COLS`/`total_lines` sizing and the `flush_frame` tail) and
+C 3312-3317's `Fx_hide_tip` (a one-line delegator to `pgtk_hide_tip`).  Rust: 4,278 -> **4,671**
+lines (4,647 of the slice's own text plus the 24 lines Deviations 67 and 68 added).
+
+**㊵ The arm readings (four arms, both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 187 errors / 11 warnings -> 197 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets   : 175 / 10 -> 185 / 10
+C = A + have_gsettings                             : 187 / 11 -> 197 / 11
+D = B + have_gsettings                             : 175 / 10 -> 185 / 10
+```
+All four arms read the same delta, **+10 sites of the unit's registered `cannot find type` class**
+(the slice's accessor expansions; 7 of the 8 lines that read one more diagnostic than HEAD stand
+inside the added range, the rest are the two new declarations' `*mut pgtk_display_info` parameters in
+this unit's own block), **no new class and no new warning**.  The first reading of this text was not
+that: it was 190/178/190/178 with five syntax errors, and the difference is Deviations 67-68 - a
+truncated parse hides the diagnostics after it, so the repaired readings are the larger, correct ones.
+
+**㊶ What the slice calls, and what `--check` reads.**  Four items are declared or spelled in this
+unit (Deviation 68: `try_window`, `set_window_buffer`, the `SET_TEXT_POS` copy, `flush_frame!`/
+`!= 0`), and two declarations the slice added in its own block are recorded in it (Deviation 65's
+`ENABLE_CHECKING` arm has its own `glyph_row` shape; `xg_show_tooltip` at gtkutil.h 214 keeps the
+`HAVE_PGTK` arm's two-argument form while `src/gtkutil.rs` defines both arms).  `extract-abi.py
+--check emacs/src/pgtkfns.c femacs/src/pgtkfns.rs` reads **55 rows** (57 -> 55: `missing subr
+Fx_show_tip (x-show-tip)` and `missing subr Fx_hide_tip (x-hide-tip)` retire, no row appears), and
+the line-count row stays retired under Deviation 69's tolerance.
+
+**㊷ Gates and what is not claimed.**  `check-declarations.py` **18 declaration sites (0 forbidden,
+18 allowed literals), 0 failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range,
+2040 external, 36 allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound,
+0 failure(s)** (**60 range rows** now cover `src/pgtkfns.c`); `check-port-lines.py` **0 file(s) under
+ten percent, 0 reference line(s), 0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py`
+**238 ledger(s) bound, 0 failure(s)**; `check-cond-eval.py src/pgtkfns.c` **11 conditions, 0 unknown,
+0 disagreements [VERIFIED]**; `check-mirror-dupes.py` **16 duplicate(s), 16 ratchet row(s),
+0 failure(s)** (no mirror changed this round).  **Not claimed**: no tooltip was shown or hidden
+(`Fx_show_tip`/`Fx_hide_tip` are registered by `syms_of_pgtkfns`, still the remainder, so nothing in
+the port calls them), `xg_show_tooltip` and `update_single_window` are declarations - the port has no
+GTK to link - and the four arm readings are **compile** readings of text this machine cannot build.

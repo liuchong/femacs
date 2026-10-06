@@ -14330,3 +14330,21 @@
   ⑥ **未声称 + 预算**：本轮**一枚都没编译**（改动不碰 `femacs/**`、不碰任何镜像，`layout-check`/`all-units` 不适用），读数只有文本门与两轮变异（各 4 次运行）；
   **未声称**：门读的是**文本**，"0 命中"不证明任何**行为**不写出产品名；3.692 ⑥ 点名的三类仍在门外（`docs/baseline/**` 的实测载荷、日志与验收记录的引用、裸 `Emacs` 的 1,410 处留给裁决）。
   `/tmp/h18`、`/tmp/docs/baseline`（仓外读者的白名单副本）、`/tmp/declarations-allowlist.tsv`、`/tmp/s18_files.txt`、`/tmp/status3723.md` 收工删。
+- **3.724 `src/pgtkfns.c` 切片 10（C 3027-3317）落地：`Fx_show_tip` 与 `Fx_hide_tip` 进树——四臂读数 197/185/197/185（**+10**，全为该单元已登记的 `cannot find type` 类，0 新警告），`--check` 57 → 55 行；本片首跑读到的是另一组数（五处缺括号把所在块的解析截断，掩盖了二十多条下游诊断），修好之后的才是真读数（2026-10-06）**：
+  ① **区间与内容**：C 3027-3309 的 `Fx_show_tip`（两个 `ENABLE_CHECKING` 臂、参数表比对与**两处 `goto start_timer`**、`tip_frame` 分叉里经 `pgtk_create_tip_frame` 建框、
+  `tip_last_frame`/`tip_last_string`/`tip_last_parms` 三写、`Fset_buffer`/`set_window_buffer` 的窗口设置、`SET_TEXT_POS` 配 `TRY_WINDOW_IGNORE_FONTS_CHANGE` 的试排、`hide_tip` 分叉、`FRAME_TOTAL_COLS`/`total_lines` 的尺寸写入与 `flush_frame` 收尾）
+  与 C 3312-3317 的 `Fx_hide_tip`（一行转交 `pgtk_hide_tip`）。Rust 4,278 → **4,671** 行（本片自身 4,647 行 + Deviation 67/68 的 24 行）。
+  ② **读数（四个臂，两侧）**：A narrow **187 错 / 11 警告 → 197 / 11**；B wide **175 / 10 → 185 / 10**；C = A+`have_gsettings` **187 / 11 → 197 / 11**；D = B+`have_gsettings` **175 / 10 → 185 / 10**。
+  四臂同一差量：**+10 个本单元已登记的 `cannot find type` 站点**（片体自身的访问器展开——比 HEAD 多报一条的 8 行里 7 行落在本片新增区间内，其余是本单元自己块里两条新声明的 `*mut pgtk_display_info` 形参），**无新类、无新警告**。
+  ③ **首跑缺陷（本片最重要的读数）**：C 3140/3144/3166/3169/3198 是 `else`/`if` 的**单语句体**（C 自己不带花括号），端口必须补；首跑读到 **190/178/190/178** 与四条 `expected `{`` —— 而**语法错会截断它所在块的解析**，
+  那一读数同时**掩盖了二十多条下游诊断**（另有 3 处隐式转换按本单元既有写法补成 `as c_int`/`as EMACS_INT`）。修好之后才是 197/185/197/185：**修复让读数变大而不是变小**，这条教训写进 Deviation 67。
+  ④ **本片新增的拼法与声明（Deviation 63-68）**：`FRAME_TOTAL_COLS` 两臂宏（frame.h 1180，镜像只有读臂）＋ 两只窗口位域宏（window.h 437/438 的 `_SHIFT`）；
+  两处 `goto` 写成 `'start_timer: { … break 'start_timer; … }`（标签在 `if`/`else` 链之后、尾段在块外，`src/haikufns.rs` 同形）；两个 `ENABLE_CHECKING` 臂的 `#[cfg]` 形状；
+  C 的链式赋值、`&raw mut root_x/root_y`、`f->output_data.pgtk` 成员路径；`try_window`（dispextern.h 3573）与 `set_window_buffer`（window.h 1139-1140）的声明、`SET_TEXT_POS` 的单元抄本（镜像把它关在 `dispextern_unit_names` 模块里）以及 `flush_frame!`/`!= 0` 两处调用点拼法。
+  ⑤ **台账与 `--check`**：区间表把 `3027-3906` 拆成 `3027-3317`（transcribed，本片）＋ `3319-3906`（remainder，**下一个 live 定义 = `frame_geometry`，C 3325，其注释起于 C 3319**），**60 行**仍连续覆盖 C 1-3906；
+  文件头改成**十片**、行数 4,671、下一个 live 定义点名；`## Deviations` 63-69、新段 `## The tenth slice (C 3027-3317)` ㊴-㊷；`extract-abi.py --check` **57 → 55 行**（`missing subr Fx_show_tip`/`missing subr Fx_hide_tip` 退场，无新行）；
+  行数容差行按实测从 **0.10 改到 0.20**（Rust 4,671 对 C 3,906＝**+19.6%**），漂移行在该容差内退场。
+  ⑥ **七条文本门全绿 + 未声称 + 预算**：`check-declarations` **18/0/18/0**；`check-citations` **676/0/0/2040/36/0**；`check-dead-file-coverage` **145/0**（本台账 **60 range row(s)**）；`check-port-lines` **0/0/0/0**；
+  `check-ledger-ticks` **238/0**；`check-cond-eval src/pgtkfns.c` **11/0/0**；`check-mirror-dupes` **16/16/0**（本片未改镜像）。
+  **未声称**：没有任何工具提示被显示或隐藏（`Fx_show_tip`/`Fx_hide_tip` 由仍在 remainder 的 `syms_of_pgtkfns` 注册，端口里没有调用者），`xg_show_tooltip`/`update_single_window` 只是声明（端口没有 GTK 可链），四臂都是**编译**读数。
+  **预算**：`probe` 14 发（4 臂 × HEAD 基线 + 本片四轮）、`extract-abi --check` 3 发、其余文本门 8 发；`/tmp/pgtk10`、`/tmp/s10_*` 收工删，`build/probes/pgtkfns`、`build/femacs/units/pgtkfns` 收工清，`build/femacs/*.o` **231 个保留**。
