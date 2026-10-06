@@ -20,19 +20,23 @@
 // table (P-86 ②), the readings of this round (`## Evidence`) and the per-`#if` verdicts
 // (`## Deviations`).
 //
-// **Seven slices are ported: C 1-1095, C 1096-2211, C 2212-3550, C 3552-4623, C 4620-6163,
-// C 6166-7967 and C 7970-8351** (the file is 13,805 lines).  **The seventh slice is the PBM
-// loader**: the banner, `enum pbm_keyword_index` (C 7976-7990), the `pbm_format` table
-// (C 7995-8008) and the five functions `pbm_image_p`, `pbm_next_char`, `pbm_scan_number`,
-// `pbm_scan_index` and `pbm_load` (C 8097-8351, whose `error:` label is one labelled block and
-// whose `ckd_mul`s are the `overflowing_mul` pair the family checker reads).  It is the unit's
-// **first slice with a type-checking reading** - the `have_ns` probe compiles it (0 errors,
-// docs/ports/image.md Evidence 32) because the block hangs on the *file* gate alone.
-// **The next live item is the image-type registry**: `lookup_image_type` (C 13404),
-// `initialize_image_type`, `image_prune_animation_caches` (C 13505) and `syms_of_image`
-// (C 13517-13805); everything between C 8352 and C 13390 is a format loader whose `#if` the
-// frozen configuration makes false, and the ledger records those ranges instead of transcribing
-// them (P-08).  The
+// **Eight slices are ported: C 1-1095, C 1096-2211, C 2212-3550, C 3552-4623, C 4620-6163,
+// C 6166-7967, C 7970-8351 and C 13301-13805** (the file is 13,805 lines).  **The unit is
+// complete in `extract-abi.py --check`'s sense: it reads `OK`** - the eighth slice landed the
+// live tail (the four `DEFUN`s, `initialize_image_type`, the `image_types[]` table,
+// `native_image_type`, `lookup_image_type`, `image_prune_animation_caches` and `syms_of_image`
+// with its five `DEFVAR_*` invocations, 43 `DEFSYM`s, `add_image_type` calls, `staticpro` and
+// eleven `defsubr`s; docs/ports/image.md Evidence 36-39).  What the port does **not** carry is
+// the recorded remainder C 8352-13300 - the eight format loaders and the
+// `HAVE_NATIVE_IMAGE_API`/`HAVE_NATIVE_TRANSFORMS` helpers whose `#if`s the frozen configuration
+// makes false - which the ledger's range table records instead of transcribing (P-08's shape)
+// and which is why the unit's line-count row (12,104 Rust against C's 13,805, -12.3%) keeps the
+// `total` basis.  The seventh slice is the PBM loader: the banner,
+// `enum pbm_keyword_index` (C 7976-7990), the `pbm_format` table (C 7995-8008) and the five
+// functions `pbm_image_p`, `pbm_next_char`, `pbm_scan_number`, `pbm_scan_index` and `pbm_load`
+// (C 8097-8351, whose `error:` label is one labelled block and whose `ckd_mul`s are the
+// `overflowing_mul` pair the family checker reads).  It and the eighth slice are the unit's
+// **type-checked** text - the `have_ns` probe compiles both (0 errors, Evidence 32 and 36).  The
 // sixth slice ends at the `}` of `image_build_heuristic_mask` (C 7967) and holds: the
 // `HAVE_XPM || HAVE_NS || HAVE_HAIKU || HAVE_PGTK || HAVE_ANDROID` predicate pair
 // (`xpm_valid_color_symbols_p` C 6213, `xpm_image_p` C 6231), the `WINDOWSNT` XPM DLL block
@@ -2077,12 +2081,8 @@ macro_rules! IMAGE_TYPE_INIT { ($f:expr) => { }; }
 // C: C 1374-1378: `static struct image_type const *lookup_image_type (Lisp_Object);` / `static void image_laplace (struct frame *, struct image *);` / `static void image_emboss (struct frame *, struct image *);` / `static void image_build_heuristic_mask (struct frame *, struct image *, Lisp_Object);`
 // Three of the four are declared by `image_laplace`/`image_emboss`/`image_build_heuristic_mask`'s
 // definitions, which are C 7651/7662/7860's - inside the "Algorithms" slice, so those three rows
-// are **gone** (PORTING.md 0.1-12); `lookup_image_type`'s definition is C 13486's, outside every
-// slice landed so far, so its declaration stays (P-91 ④).
-#[cfg (feature = "have_window_system")]
-unsafe extern "C" {
-  pub fn lookup_image_type (spec: Lisp_Object) -> *const image_type;
-}
+// are **gone** (PORTING.md 0.1-12), and now so is `lookup_image_type`'s: its definition is
+// C 13483-13503's and the seventh slice landed it (P-91 ④).
 
 /// C: C 1380-1381: `static void add_image_type (Lisp_Object type)`
 #[cfg (feature = "have_window_system")]
@@ -2146,6 +2146,32 @@ pub unsafe extern "C" fn valid_image_p (object: Lisp_Object) -> bool
 #[cfg (feature = "have_window_system")]
 unsafe extern "C" {
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
+}
+// C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);` - C 13346's
+// `image-transforms-p` is this file's first reader (the ledger's use-site list already names it,
+// P-55/P-72 rule 3).
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+}
+// C: lisp.h 5135: `extern Lisp_Object decode_env_path (const char *, const char *, bool);` -
+// C 13796's `x-bitmap-file-path` initialiser is this file's first reader (the `callproc.rs` 110
+// shape).
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn decode_env_path (envvar: *const c_char, deflt: *const c_char,
+			  empty_is_default: bool) -> Lisp_Object;
+}
+// C: C 8360: `static bool image_can_use_native_api (Lisp_Object type);` - its definition is in
+// C 8358-8449, the `HAVE_NATIVE_IMAGE_API` region this unit's ledger records rather than
+// transcribes, so the name stands at the four call sites the arms below reach it from and those
+// arms are text-only until that region lands (the `clear_current_matrices` shape above; the
+// Windows/GNUstep configurations are P-86 ③'s unmeasurable class).
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_native_image_api",
+		 all (feature = "have_ns", not (feature = "ns_impl_cocoa")))))]
+unsafe extern "C" {
+  pub fn image_can_use_native_api (r#type: Lisp_Object) -> bool;
 }
 /// C: frame.h 1667-1672: `INLINE struct image * IMAGE_FROM_ID (struct frame *f, int id) { eassert (0 <= id && id < FRAME_IMAGE_CACHE (f)->used); return FRAME_IMAGE_CACHE (f)->images[id]; }`
 #[cfg (feature = "have_window_system")]
@@ -3122,7 +3148,7 @@ unsafe fn image_clear_image_1 (f: *mut frame, img: *mut image, flags: c_int)
 
 /// C: C 2164-2165: `static void image_clear_image (struct frame *f, struct image *img)`
 #[cfg (feature = "have_window_system")]
-unsafe fn image_clear_image (f: *mut frame, img: *mut image)
+unsafe extern "C" fn image_clear_image (f: *mut frame, img: *mut image)
 {
   (*img).lisp_data = Qnil ();
   block_input ();
@@ -3762,11 +3788,8 @@ unsafe extern "C" {
   pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
 }
 // C: dispextern.h 3754: `void image_prune_animation_caches (bool);` - the definition is
-// `image.c`'s own (C 12768's region), outside this slice.
-#[cfg (feature = "have_window_system")]
-unsafe extern "C" {
-  pub fn image_prune_animation_caches (clear: bool);
-}
+// `image.c`'s own (C 13504-13515) and the seventh slice landed it, so this declaration is gone
+// (PORTING.md 0.1-12 / P-91 ④).
 // C: dispextern.h 3907: `void clear_current_matrices (struct frame *f);` - the definition is
 // `xdisp.c`'s.
 #[cfg (feature = "have_window_system")]
@@ -6387,7 +6410,7 @@ pub const XBM_TK_OVERFLOW: c_int = 258;
 
 /// C: C 4710-4711: `static bool xbm_image_p (Lisp_Object object)`
 #[cfg (feature = "have_window_system")]
-unsafe fn xbm_image_p (object: Lisp_Object) -> bool
+unsafe extern "C" fn xbm_image_p (object: Lisp_Object) -> bool
 {
   /* C's `struct image_keyword kw[XBM_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
@@ -7199,7 +7222,7 @@ unsafe fn xbm_file_p (data: Lisp_Object) -> bool
 
 /// C: C 5313-5314: `static bool xbm_load (struct frame *f, struct image *img)`
 #[cfg (feature = "have_window_system")]
-unsafe fn xbm_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C" fn xbm_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut success_p: bool = false;
   let file_name: Lisp_Object;
@@ -7445,7 +7468,7 @@ unsafe fn canvas_parse (object: Lisp_Object, fmt: *mut image_keyword) -> bool
 
 /// C: C 5525-5526: `static bool canvas_image_p (Lisp_Object object)`
 #[cfg (feature = "have_window_system")]
-unsafe fn canvas_image_p (object: Lisp_Object) -> bool
+unsafe extern "C" fn canvas_image_p (object: Lisp_Object) -> bool
 {
   let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
   return canvas_parse (object, fmt.as_mut_ptr ());
@@ -7685,7 +7708,7 @@ unsafe fn canvas_get (image: Lisp_Object, fmt: *mut image_keyword) -> *mut canva
 
 /// C: C 5713-5714: `static bool canvas_load (struct frame *f, struct image *img)`
 #[cfg (feature = "have_window_system")]
-unsafe fn canvas_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C" fn canvas_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut fmt: [image_keyword; CANVAS_LAST as usize] = core::mem::zeroed ();
   let c: *mut canvas = canvas_get ((*img).spec, fmt.as_mut_ptr ());
@@ -8677,7 +8700,7 @@ unsafe fn xpm_valid_color_symbols_p (mut color_symbols: Lisp_Object) -> bool
 #[cfg (all (feature = "have_window_system", any (feature = "have_xpm", feature = "have_ns",
 						  feature = "have_haiku", feature = "have_pgtk",
 						  feature = "have_android")))]
-unsafe fn xpm_image_p (object: Lisp_Object) -> bool
+unsafe extern "C" fn xpm_image_p (object: Lisp_Object) -> bool
 {
   /* C's `struct image_keyword fmt[XPM_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
@@ -8770,7 +8793,7 @@ pub unsafe extern "C" fn x_create_bitmap_from_xpm_data (f: *mut frame,
    true if successful.  */
 /// C: C 6306-6307: `static bool xpm_load (struct frame *f, struct image *img)`
 #[cfg (all (feature = "have_window_system", feature = "have_xpm", not (feature = "use_cairo")))]
-unsafe fn xpm_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut rc: c_int;
   /* C's `XpmAttributes attrs;` (zeroed, PORTING.md 1.5) - the `memset` below is C's own.  */
@@ -9854,7 +9877,7 @@ unsafe fn xpm_load_image (f: *mut frame, img: *mut image, contents: *const c_cha
 		 all (feature = "have_haiku", not (feature = "have_xpm")),
 		 all (feature = "have_pgtk", not (feature = "have_xpm")),
 		 all (feature = "have_android", not (feature = "have_xpm")))))]
-unsafe fn xpm_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C" fn xpm_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut success_p: bool = false;
   let mut file_name: Lisp_Object;
@@ -11053,7 +11076,7 @@ static pbm_format: [image_keyword; PBM_LAST as usize] =
 
 /// C: C 8012-8028: `static bool pbm_image_p (Lisp_Object object)`
 #[cfg (feature = "have_window_system")]
-unsafe fn pbm_image_p (object: Lisp_Object) -> bool
+unsafe extern "C" fn pbm_image_p (object: Lisp_Object) -> bool
 {
   /* C's `struct image_keyword fmt[PBM_LAST];` filled by the `memcpy` below - zeroed first
      (PORTING.md 1.5/0.1-13).  */
@@ -11159,7 +11182,7 @@ unsafe fn pbm_scan_index (s: *mut *mut c_char, two_byte: bool) -> c_int
 
 /// C: C 8097-8351: `static bool pbm_load (struct frame *f, struct image *img)`
 #[cfg (feature = "have_window_system")]
-unsafe fn pbm_load (f: *mut frame, img: *mut image) -> bool
+unsafe extern "C" fn pbm_load (f: *mut frame, img: *mut image) -> bool
 {
   let mut raw_p: bool = false;
   let mut x: c_int;
@@ -11504,4 +11527,582 @@ unsafe fn pbm_load (f: *mut frame, img: *mut image) -> bool
   xfree (contents as *mut c_void);
   (*img).pixmap = NO_PIXMAP! () as *mut c_void;
   return false;
+}
+
+
+/***********************************************************************
+				Tests
+ ***********************************************************************/
+
+/// C: C 13306-13311: `DEFUN ("imagep", Fimagep, Simagep, 1, 1, 0, …)`
+#[cfg (feature = "have_window_system")]
+DEFUN! ("imagep", Fimagep, Simagep, 1, 1, 0,
+       doc: "Value is non-nil if SPEC is a valid image specification.",
+       (spec: Lisp_Object),
+       {
+  return if valid_image_p (spec) { Qt () } else { Qnil () };
+});
+
+/* C 13313-13331: `#ifdef GLYPH_DEBUG`.  */
+#[cfg (all (feature = "have_window_system", feature = "glyph_debug"))]
+DEFUN! ("lookup-image", Flookup_image, Slookup_image, 1, 1, 0,
+       doc: "",
+       (spec: Lisp_Object),
+       {
+  /* C's `ptrdiff_t id = -1;`.  */
+  let mut id: ptrdiff_t = -1;
+
+  if valid_image_p (spec)
+    { id = lookup_image (SELECTED_FRAME (), spec, -1); }
+
+  debug_print (spec);
+  return make_fixnum (id);
+});
+
+
+/***********************************************************************
+			    Initialization
+ ***********************************************************************/
+
+/// C: C 13335-13364: `DEFUN ("image-transforms-p", Fimage_transforms_p, Simage_transforms_p, 0, 1, 0, …)`
+#[cfg (feature = "have_window_system")]
+DEFUN! ("image-transforms-p", Fimage_transforms_p, Simage_transforms_p, 0, 1, 0,
+       doc: "Test whether FRAME supports image transformation.\nReturn list of capabilities if FRAME supports native transforms, nil otherwise.\nFRAME defaults to the selected frame.\nThe list of capabilities can include one or more of the following:\n\n - the symbol `scale' if FRAME supports image scaling\n - the symbol `rotate90' if FRAME supports image rotation only by angles\n    that are integral multiples of 90 degrees.",
+       (frame: Lisp_Object),
+       {
+  let f: *mut frame = decode_live_frame (frame);
+  if FRAME_WINDOW_P (f)
+    {
+      /* C 13349-13361: `#ifdef HAVE_NATIVE_TRANSFORMS` and its three-way `#elif` chain, one arm
+	 per condition with each excluding the ones before it (the file's gate-mapping rule).  */
+      #[cfg (feature = "have_native_transforms")]
+      {
+	#[cfg (any (feature = "have_imagemagick", feature = "use_cairo", feature = "have_ns",
+		    feature = "have_haiku", feature = "have_android"))]
+	{ return list2 (Qscale (), Qrotate90 ()); }
+	#[cfg (all (feature = "have_x_windows", feature = "have_xrender",
+		    not (any (feature = "have_imagemagick", feature = "use_cairo",
+			      feature = "have_ns", feature = "have_haiku",
+			      feature = "have_android"))))]
+	{
+	  if (*FRAME_DISPLAY_INFO! (f)).xrender_supported_p
+	    { return list2 (Qscale (), Qrotate90 ()); }
+	}
+	#[cfg (all (feature = "have_ntgui",
+		    not (any (feature = "have_imagemagick", feature = "use_cairo",
+			      feature = "have_ns", feature = "have_haiku",
+			      feature = "have_android")),
+		    not (all (feature = "have_x_windows", feature = "have_xrender"))))]
+	{
+	  return if w32_image_rotations_p () { list2 (Qscale (), Qrotate90 ()) }
+	  else { list1 (Qscale ()) };
+	}
+      }
+    }
+
+  return Qnil ();
+});
+
+/// C: C 13367-13388: `DEFUN ("image-cache-size", Fimage_cache_size, Simage_cache_size, 0, 0, 0, …)`
+#[cfg (feature = "have_window_system")]
+DEFUN! ("image-cache-size", Fimage_cache_size, Simage_cache_size, 0, 0, 0,
+       doc: "Return the size of the image cache.",
+       (),
+       {
+  let mut tail: Lisp_Object;
+  let mut frame: Lisp_Object;
+  let mut total: intmax_t = 0;
+
+  FOR_EACH_FRAME! (tail, frame, {
+    if FRAME_WINDOW_P (XFRAME (frame))
+      { total += image_frame_cache_size (XFRAME (frame)) as intmax_t; }
+  });
+
+  /* C 13378-13385: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)`.  */
+  #[cfg (any (feature = "have_webp", feature = "have_gif"))]
+  {
+    let mut pcache: *mut anim_cache = anim_cache;
+    while !pcache.is_null ()
+      {
+	total += (*pcache).byte_size;
+	pcache = (*pcache).next;
+      }
+  }
+
+  return make_int (total);
+});
+
+/// C: C 13391-13401: `DEFUN ("init-image-library", Finit_image_library, Sinit_image_library, 1, 1, 0, …)`
+#[cfg (feature = "have_window_system")]
+DEFUN! ("init-image-library", Finit_image_library, Sinit_image_library, 1, 1, 0,
+       doc: "Initialize image library implementing image type TYPE.\nReturn t if TYPE is a supported image type.\n\nIf image libraries are loaded dynamically (currently the case only on\nMS-Windows), load the library for TYPE if it is not yet loaded, using\nthe library file(s) specified by `dynamic-library-alist'.",
+       (r#type: Lisp_Object),
+       {
+  return if !lookup_image_type (r#type).is_null () { Qt () } else { Qnil () };
+});
+
+/* C 13403-13432: `initialize_image_type` - the WINDOWSNT arm under `feature = "windowsnt"` and
+   C's unconditional `return true;` outside it.  */
+#[cfg (feature = "have_window_system")]
+unsafe fn initialize_image_type (r#type: *const image_type) -> bool
+{
+  /* C 13406-13427: `#ifdef WINDOWSNT`.  */
+  #[cfg (feature = "windowsnt")]
+  {
+    let typesym: Lisp_Object = builtin_lisp_symbol ((*r#type).r#type as usize);
+
+    /* C 13409-13412: `# if HAVE_NATIVE_IMAGE_API`.  */
+    #[cfg (feature = "have_native_image_api")]
+    {
+      if image_can_use_native_api (typesym)
+	{ return true; }
+    }
+
+    let tested: Lisp_Object = Fassq (typesym, Vlibrary_cache);
+    /* If we failed to load the library before, don't try again.  */
+    if CONSP (tested)
+      { return !NILP (XCDR (tested)); }
+
+    /* C's `bool (*init) (void) = type->init;`.  */
+    let init: Option<unsafe extern "C" fn () -> bool> = (*r#type).init;
+    if init.is_some ()
+      {
+	let type_valid: bool = init.unwrap () ();
+	Vlibrary_cache = Fcons (Fcons (typesym, if type_valid { Qt () } else { Qnil () }),
+				Vlibrary_cache);
+	return type_valid;
+      }
+  }
+  /* C's `Vlibrary_cache` is a `lread.c` global: the port imports it through the globals
+     mirror's extern declaration (the `decompress.rs` 468 / `comp.rs` 527 shape).  */
+  return true;
+}
+
+/* Array of supported image types.  */
+
+/// C: C 13433-13475: `static struct image_type const image_types[]` - C's array with one entry
+/// per configured format.  Its *length* is configuration-dependent, which a Rust array's type
+/// cannot spell without enumerating the arm combinations, so the port carries the same entries
+/// as a slice and `countof (image_types)` reads `image_types.len ()` (this slice's Deviation).
+#[cfg (feature = "have_window_system")]
+static image_types: &[image_type] =
+&[
+  /* C 13435-13437: `#ifdef HAVE_GHOSTSCRIPT`.  */
+  #[cfg (feature = "have_ghostscript")]
+  image_type { r#type: iQpostscript as c_int, valid_p: Some (gs_image_p), load_img: Some (gs_load),
+	       free_img: Some (image_clear_image) },
+  /* C 13438-13441: `#ifdef HAVE_IMAGEMAGICK`.  */
+  #[cfg (feature = "have_imagemagick")]
+  image_type { r#type: iQimagemagick as c_int, valid_p: Some (imagemagick_image_p),
+	       load_img: Some (imagemagick_load), free_img: Some (image_clear_image) },
+  /* C 13442-13445: `#ifdef HAVE_RSVG`.  */
+  #[cfg (all (feature = "have_rsvg", feature = "windowsnt"))]
+  image_type { r#type: iQsvg as c_int, valid_p: Some (svg_image_p), load_img: Some (svg_load),
+	       free_img: Some (image_clear_image), init: Some (init_svg_functions) },
+  #[cfg (all (feature = "have_rsvg", not (feature = "windowsnt")))]
+  image_type { r#type: iQsvg as c_int, valid_p: Some (svg_image_p), load_img: Some (svg_load),
+	       free_img: Some (image_clear_image) },
+  /* C 13446-13449: `#if defined HAVE_PNG`.  */
+  #[cfg (all (feature = "have_png", feature = "windowsnt"))]
+  image_type { r#type: iQpng as c_int, valid_p: Some (png_image_p), load_img: Some (png_load),
+	       free_img: Some (image_clear_image), init: Some (init_png_functions) },
+  #[cfg (all (feature = "have_png", not (feature = "windowsnt")))]
+  image_type { r#type: iQpng as c_int, valid_p: Some (png_image_p), load_img: Some (png_load),
+	       free_img: Some (image_clear_image) },
+  /* C 13450-13453: `#if defined HAVE_GIF`.  */
+  #[cfg (all (feature = "have_gif", feature = "windowsnt"))]
+  image_type { r#type: iQgif as c_int, valid_p: Some (gif_image_p), load_img: Some (gif_load),
+	       free_img: Some (image_clear_image), init: Some (init_gif_functions) },
+  #[cfg (all (feature = "have_gif", not (feature = "windowsnt")))]
+  image_type { r#type: iQgif as c_int, valid_p: Some (gif_image_p), load_img: Some (gif_load),
+	       free_img: Some (image_clear_image) },
+  /* C 13454-13457: `#if defined HAVE_TIFF`.  */
+  #[cfg (all (feature = "have_tiff", feature = "windowsnt"))]
+  image_type { r#type: iQtiff as c_int, valid_p: Some (tiff_image_p), load_img: Some (tiff_load),
+	       free_img: Some (image_clear_image), init: Some (init_tiff_functions) },
+  #[cfg (all (feature = "have_tiff", not (feature = "windowsnt")))]
+  image_type { r#type: iQtiff as c_int, valid_p: Some (tiff_image_p), load_img: Some (tiff_load),
+	       free_img: Some (image_clear_image) },
+  /* C 13458-13461: `#if defined HAVE_JPEG`.  */
+  #[cfg (all (feature = "have_jpeg", feature = "windowsnt"))]
+  image_type { r#type: iQjpeg as c_int, valid_p: Some (jpeg_image_p), load_img: Some (jpeg_load),
+	       free_img: Some (image_clear_image), init: Some (init_jpeg_functions) },
+  #[cfg (all (feature = "have_jpeg", not (feature = "windowsnt")))]
+  image_type { r#type: iQjpeg as c_int, valid_p: Some (jpeg_image_p), load_img: Some (jpeg_load),
+	       free_img: Some (image_clear_image) },
+  /* C 13462-13466: `#if defined HAVE_XPM || defined HAVE_NS || defined HAVE_HAIKU ||
+     defined HAVE_PGTK || defined HAVE_ANDROID`.  */
+  #[cfg (all (any (feature = "have_xpm", feature = "have_ns", feature = "have_haiku",
+		   feature = "have_pgtk", feature = "have_android"),
+	      feature = "windowsnt"))]
+  image_type { r#type: iQxpm as c_int, valid_p: Some (xpm_image_p), load_img: Some (xpm_load),
+	       free_img: Some (image_clear_image), init: Some (init_xpm_functions) },
+  #[cfg (all (any (feature = "have_xpm", feature = "have_ns", feature = "have_haiku",
+		   feature = "have_pgtk", feature = "have_android"),
+	      not (feature = "windowsnt")))]
+  image_type { r#type: iQxpm as c_int, valid_p: Some (xpm_image_p), load_img: Some (xpm_load),
+	       free_img: Some (image_clear_image) },
+  /* C 13467-13470: `#if defined HAVE_WEBP`.  */
+  #[cfg (all (feature = "have_webp", feature = "windowsnt"))]
+  image_type { r#type: iQwebp as c_int, valid_p: Some (webp_image_p), load_img: Some (webp_load),
+	       free_img: Some (image_clear_image), init: Some (init_webp_functions) },
+  #[cfg (all (feature = "have_webp", not (feature = "windowsnt")))]
+  image_type { r#type: iQwebp as c_int, valid_p: Some (webp_image_p), load_img: Some (webp_load),
+	       free_img: Some (image_clear_image) },
+  /* C 13472-13474's three ungated entries.  */
+  image_type { r#type: iQxbm as c_int, valid_p: Some (xbm_image_p), load_img: Some (xbm_load),
+	       free_img: Some (image_clear_image) },
+  image_type { r#type: iQpbm as c_int, valid_p: Some (pbm_image_p), load_img: Some (pbm_load),
+	       free_img: Some (image_clear_image) },
+  image_type { r#type: iQcanvas as c_int, valid_p: Some (canvas_image_p),
+	       load_img: Some (canvas_load), free_img: Some (image_clear_image) },
+];
+
+/* C 13477-13480: `#if HAVE_NATIVE_IMAGE_API`'s `native_image_type`.  */
+#[cfg (all (feature = "have_window_system", feature = "have_native_image_api"))]
+static native_image_type: image_type =
+  image_type { r#type: iQnative_image as c_int, valid_p: Some (native_image_p),
+	       load_img: Some (native_image_load), free_img: Some (image_clear_image) };
+
+/* Look up image TYPE, and return a pointer to its image_type structure.
+   Return a null pointer if TYPE is not a known image type.  */
+
+/// C: C 13483-13503: `static struct image_type const * lookup_image_type (Lisp_Object type)`
+#[cfg (feature = "have_window_system")]
+unsafe fn lookup_image_type (r#type: Lisp_Object) -> *const image_type
+{
+  /* C 13487-13491: `#if HAVE_NATIVE_IMAGE_API`.  */
+  #[cfg (feature = "have_native_image_api")]
+  {
+    if image_can_use_native_api (r#type)
+      { return &raw const native_image_type; }
+  }
+
+  /* C 13493's `countof (image_types)` is the slice's length here (the table's own Deviation).  */
+  let mut i: c_int = 0;
+  while i < image_types.len () as c_int
+    {
+      let r: *const image_type = &raw const image_types[i as usize];
+      if EQ (r#type, builtin_lisp_symbol ((*r).r#type as usize))
+	{ return if initialize_image_type (r) { r } else { core::ptr::null () }; }
+      i += 1;
+    }
+  return core::ptr::null ();
+}
+
+/* Prune old entries from the animation cache.
+   If CLEAR, remove all animation cache entries.  */
+
+/// C: C 13504-13515: `void image_prune_animation_caches (bool clear)`
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn image_prune_animation_caches (clear: bool)
+{
+  /* FIXME: Consolidate these animation cache implementations.  */
+  /* C 13508-13510: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)`.  */
+  #[cfg (any (feature = "have_webp", feature = "have_gif"))]
+  { anim_prune_animation_cache (if clear { Qt () } else { Qnil () }); }
+  /* C 13511-13513: `#ifdef HAVE_IMAGEMAGICK`.  */
+  #[cfg (feature = "have_imagemagick")]
+  { imagemagick_prune_animation_cache (clear); }
+}
+
+
+/* C 13796's `decode_env_path (0, PATH_BITMAPS, 0)` names an `epaths.h` macro, and the frozen
+   reference build's value is `#define PATH_BITMAPS ""` (measured: `build/emacs-ref/src/epaths.h`
+   67; C's other arm, line 98, is the Android one).  The port keeps it at the use site with the
+   measured value, the `callproc.rs` 275 `PATH_DOC` shape.  */
+const PATH_BITMAPS: &std::ffi::CStr = c"";
+
+/// C: C 13516-13805: `void syms_of_image (void)`
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_image ()
+{
+  /* Must be defined now because we're going to update it below, while
+     defining the supported image types.  */
+  DEFVAR_LISP! (c"image-types", Vimage_types,
+    "List of potentially supported image types.\nEach element of the list is a symbol for an image type, like `jpeg' or `png'.\nTo check whether it is really supported, use `image-type-available-p'.");
+  Vimage_types = Qnil ();
+
+  DEFVAR_LISP! (c"max-image-size", Vmax_image_size,
+    "Maximum size of images.\nEmacs will not load an image into memory if its pixel width or\npixel height exceeds this limit.\n\nIf the value is an integer, it directly specifies the maximum\nimage height and width, measured in pixels.  If it is a floating\npoint number, it specifies the maximum image height and width\nas a ratio to the frame height and width.  If the value is\nnon-numeric, there is no explicit limit on the size of images.");
+  Vmax_image_size = make_float (MAX_IMAGE_SIZE);
+
+  /* Other symbols.  */
+  DEFSYM! (Qcount, "count");
+  DEFSYM! (Qextension_data, "extension-data");
+  DEFSYM! (Qdelay, "delay");
+  DEFSYM! (Qauto, "auto");
+
+  /* Keywords.  */
+  DEFSYM! (QCascent, ":ascent");
+  DEFSYM! (QCmargin, ":margin");
+  DEFSYM! (QCrelief, ":relief");
+  DEFSYM! (QCconversion, ":conversion");
+  DEFSYM! (QCcolor_symbols, ":color-symbols");
+  DEFSYM! (QCheuristic_mask, ":heuristic-mask");
+  DEFSYM! (QCindex, ":index");
+  DEFSYM! (QCcrop, ":crop");
+  DEFSYM! (QCrotation, ":rotation");
+  DEFSYM! (QCmatrix, ":matrix");
+  DEFSYM! (QCscale, ":scale");
+  DEFSYM! (QCtransform_smoothing, ":transform-smoothing");
+  DEFSYM! (QCcolor_adjustment, ":color-adjustment");
+  DEFSYM! (QCmask, ":mask");
+  DEFSYM! (QCflip, ":flip");
+
+  /* Other symbols.  */
+  DEFSYM! (Qlaplace, "laplace");
+  DEFSYM! (Qemboss, "emboss");
+  DEFSYM! (Qedge_detection, "edge-detection");
+  DEFSYM! (Qheuristic, "heuristic");
+
+  DEFSYM! (Qpostscript, "postscript");
+  DEFSYM! (QCmax_width, ":max-width");
+  DEFSYM! (QCmax_height, ":max-height");
+
+  DEFSYM! (Qem, "em");
+  DEFSYM! (Qch, "ch");
+  DEFSYM! (Qcw, "cw");
+
+  /* C 13565-13571: `#ifdef HAVE_NATIVE_TRANSFORMS`.  */
+  #[cfg (feature = "have_native_transforms")]
+  {
+    DEFSYM! (Qscale, "scale");
+    DEFSYM! (Qrotate, "rotate");
+    DEFSYM! (Qrotate90, "rotate90");
+    DEFSYM! (Qcrop, "crop");
+  }
+
+  /* C 13573-13581: `#ifdef HAVE_GHOSTSCRIPT`.  */
+  #[cfg (feature = "have_ghostscript")]
+  {
+    add_image_type (Qpostscript ());
+    DEFSYM! (QCloader, ":loader");
+    DEFSYM! (QCpt_width, ":pt-width");
+    DEFSYM! (QCpt_height, ":pt-height");
+    DEFSYM! (Qgs_load_image, "gs-load-image");
+  }
+
+  /* C 13583-13621: `#ifdef WINDOWSNT`.  */
+  #[cfg (feature = "windowsnt")]
+  {
+    /* Versions of libpng, libgif, and libjpeg that we were compiled with,
+       or -1 if no PNG/GIF support was compiled in.  This is tested by
+       w32-win.el to correctly set up the alist used to search for the
+       respective image libraries.  */
+    DEFSYM! (Qlibpng_version, "libpng-version");
+    Fset (Qlibpng_version (), if cfg! (feature = "have_png")
+				{ make_fixnum (PNG_LIBPNG_VER) }
+			      else
+				{ make_fixnum (-1) });
+    DEFSYM! (Qlibgif_version, "libgif-version");
+    Fset (Qlibgif_version (), if cfg! (feature = "have_gif")
+				{ make_fixnum (GIFLIB_MAJOR * 10000
+					       + GIFLIB_MINOR * 100
+					       + GIFLIB_RELEASE) }
+			      else
+				{ make_fixnum (-1) });
+    DEFSYM! (Qlibjpeg_version, "libjpeg-version");
+    Fset (Qlibjpeg_version (), if cfg! (feature = "have_jpeg")
+				 { make_fixnum (JPEG_LIB_VERSION) }
+			       else
+				 { make_fixnum (-1) });
+  }
+
+  DEFSYM! (Qcanvas, "canvas");
+  add_image_type (Qcanvas ());
+
+  canvas_map = make_hash_table (&raw const hashtest_eq, DEFAULT_HASH_SIZE as EMACS_INT, Weak_Key);
+  staticpro (&raw const canvas_map);
+  defsubr (&raw mut Scanvas_refresh);
+
+  DEFSYM! (Qpbm, "pbm");
+  add_image_type (Qpbm ());
+
+  DEFSYM! (Qxbm, "xbm");
+  add_image_type (Qxbm ());
+
+  /* C 13641-13646: `#if defined (HAVE_XPM) || … || defined (HAVE_ANDROID)`.  */
+  #[cfg (any (feature = "have_xpm", feature = "have_ns", feature = "have_haiku",
+	      feature = "have_pgtk", feature = "have_android"))]
+  {
+    DEFSYM! (Qxpm, "xpm");
+    add_image_type (Qxpm ());
+  }
+
+  /* C 13648-13651: `#if defined (HAVE_JPEG) || defined (HAVE_NATIVE_IMAGE_API)`.  */
+  #[cfg (any (feature = "have_jpeg", feature = "have_native_image_api"))]
+  {
+    DEFSYM! (Qjpeg, "jpeg");
+    add_image_type (Qjpeg ());
+  }
+
+  /* C 13653-13656: `#if defined (HAVE_TIFF) || defined (HAVE_NATIVE_IMAGE_API)`.  */
+  #[cfg (any (feature = "have_tiff", feature = "have_native_image_api"))]
+  {
+    DEFSYM! (Qtiff, "tiff");
+    add_image_type (Qtiff ());
+  }
+
+  /* C 13658-13661: `#if defined (HAVE_GIF) || defined (HAVE_NATIVE_IMAGE_API)`.  */
+  #[cfg (any (feature = "have_gif", feature = "have_native_image_api"))]
+  {
+    DEFSYM! (Qgif, "gif");
+    add_image_type (Qgif ());
+  }
+
+  /* C 13663-13666: `#if defined (HAVE_PNG) || defined (HAVE_NATIVE_IMAGE_API)`.  */
+  #[cfg (any (feature = "have_png", feature = "have_native_image_api"))]
+  {
+    DEFSYM! (Qpng, "png");
+    add_image_type (Qpng ());
+  }
+
+  /* C 13668-13682: `#if defined (HAVE_WEBP) || (defined (HAVE_NATIVE_IMAGE_API) &&
+     (defined (HAVE_NS) || defined (HAVE_HAIKU)))`.  */
+  #[cfg (any (feature = "have_webp",
+	      all (feature = "have_native_image_api",
+		   any (feature = "have_ns", feature = "have_haiku"))))]
+  {
+    DEFSYM! (Qwebp, "webp");
+    DEFSYM! (Qwebpdemux, "webpdemux");
+    /* C 13672-13680: `#if !defined (NS_IMPL_GNUSTEP) || defined (HAVE_WEBP)`.  */
+    #[cfg (any (not (feature = "ns_impl_gnustep"), feature = "have_webp"))]
+    { add_image_type (Qwebp ()); }
+    /* C 13673-13679's `#else` arm.  */
+    #[cfg (all (feature = "ns_impl_gnustep", not (feature = "have_webp")))]
+    {
+      /* On GNUstep, WEBP support is provided via ImageMagick only if
+	 gnustep-gui is built with --enable-imagemagick.  */
+      if image_can_use_native_api (Qwebp ())
+	{ add_image_type (Qwebp ()); }
+    }
+  }
+
+  /* C 13684-13687: `#if defined (HAVE_IMAGEMAGICK)`.  */
+  #[cfg (feature = "have_imagemagick")]
+  {
+    DEFSYM! (Qimagemagick, "imagemagick");
+    add_image_type (Qimagemagick ());
+  }
+
+  /* C 13689-13722: `#if defined (HAVE_RSVG)` with its `#elif defined HAVE_NATIVE_IMAGE_API &&
+     (defined HAVE_NS || defined HAVE_HAIKU)`.  */
+  #[cfg (feature = "have_rsvg")]
+  {
+    DEFSYM! (Qsvg, "svg");
+    DEFSYM! (QCbase_uri, ":base-uri");
+    DEFSYM! (QCcss, ":css");
+    add_image_type (Qsvg ());
+    /* C 13697-13706: `#ifdef HAVE_NTGUI`.  */
+    #[cfg (feature = "have_ntgui")]
+    {
+      /* Other libraries used directly by svg code.  */
+      DEFSYM! (Qgdk_pixbuf, "gdk-pixbuf");
+      DEFSYM! (Qglib, "glib");
+      /* C 13702-13704: `#if LIBRSVG_CHECK_VERSION (2, 32, 0)`.  */
+      #[cfg (feature = "librsvg_2_32") ]
+      { DEFSYM! (Qgio, "gio"); }
+      DEFSYM! (Qgobject, "gobject");
+    }
+  }
+  #[cfg (all (not (feature = "have_rsvg"), feature = "have_native_image_api",
+	      any (feature = "have_ns", feature = "have_haiku")))]
+  {
+    DEFSYM! (Qsvg, "svg");
+
+    /* On Haiku, the SVG translator may not be installed.  On GNUstep, SVG
+       support is provided by ImageMagick so not guaranteed.  Furthermore,
+       some distros (e.g., Debian) ship ImageMagick's SVG module in a
+       separate binary package which may not be installed.  */
+    if image_can_use_native_api (Qsvg ())
+      { add_image_type (Qsvg ()); }
+  }
+
+  /* C 13724-13736: `#ifdef HAVE_NS`.  */
+  #[cfg (feature = "have_ns")]
+  {
+    DEFSYM! (Qheic, "heic");
+    /* C 13726-13734: `#ifdef NS_IMPL_COCOA`.  */
+    #[cfg (feature = "ns_impl_cocoa")]
+    { add_image_type (Qheic ()); }
+    #[cfg (not (feature = "ns_impl_cocoa"))]
+    {
+      /* HEIC support in gnustep-gui is provided by ImageMagick.  */
+      if image_can_use_native_api (Qheic ())
+	{ add_image_type (Qheic ()); }
+    }
+  }
+
+  /* C 13738-13753: `#if HAVE_NATIVE_IMAGE_API`.  */
+  #[cfg (feature = "have_native_image_api")]
+  {
+    DEFSYM! (Qnative_image, "native-image");
+
+    /* C 13741-13744: `# if defined HAVE_NTGUI || defined HAVE_HAIKU`.  */
+    #[cfg (any (feature = "have_ntgui", feature = "have_haiku"))]
+    {
+      DEFSYM! (Qbmp, "bmp");
+      add_image_type (Qbmp ());
+    }
+
+    /* C 13746-13749: `# ifdef HAVE_NTGUI`.  */
+    #[cfg (feature = "have_ntgui")]
+    {
+      DEFSYM! (Qgdiplus, "gdiplus");
+      DEFSYM! (Qshlwapi, "shlwapi");
+    }
+  }
+
+  defsubr (&raw mut Sinit_image_library);
+  /* C 13757-13759: `#ifdef HAVE_IMAGEMAGICK`.  */
+  #[cfg (feature = "have_imagemagick")]
+  { defsubr (&raw mut Simagemagick_types); }
+  defsubr (&raw mut Sclear_image_cache);
+  defsubr (&raw mut Simage_flush);
+  defsubr (&raw mut Simage_size);
+  defsubr (&raw mut Simage_mask_p);
+  defsubr (&raw mut Simage_metadata);
+  defsubr (&raw mut Simage_cache_size);
+  defsubr (&raw mut Simagep);
+
+  /* C 13767-13769: `#ifdef GLYPH_DEBUG`.  */
+  #[cfg (feature = "glyph_debug")]
+  { defsubr (&raw mut Slookup_image); }
+
+  DEFSYM! (QCanimate_buffer, ":animate-buffer");
+  DEFSYM! (QCanimate_tardiness, ":animate-tardiness");
+  DEFSYM! (QCanimate_position, ":animate-position");
+
+  defsubr (&raw mut Simage_transforms_p);
+
+  DEFVAR_BOOL! (c"cross-disabled-images", cross_disabled_images,
+    "Non-nil means always draw a cross over disabled images.\nDisabled images are those having a `:conversion disabled' property.\nA cross is always drawn on black & white displays.");
+  cross_disabled_images = false;
+
+  DEFVAR_LISP! (c"x-bitmap-file-path", Vx_bitmap_file_path,
+    "List of directories to search for window system bitmap files.");
+  Vx_bitmap_file_path = decode_env_path (core::ptr::null (), PATH_BITMAPS.as_ptr (), false);
+
+  DEFVAR_LISP! (c"image-cache-eviction-delay", Vimage_cache_eviction_delay,
+    "Maximum time after which images are removed from the cache.\nWhen an image has not been displayed this many seconds, Emacs\nautomatically removes it from the image cache.  If the cache contains\na large number of images, the actual eviction time may be shorter.\nThe value can also be nil, meaning the cache is never cleared.\n\nThe function `clear-image-cache' disregards this variable.");
+  Vimage_cache_eviction_delay = make_fixnum (300);
+
+  DEFVAR_LISP! (c"image-scaling-factor", Vimage_scaling_factor,
+    "When displaying images, apply this scaling factor before displaying.\nThis is not supported for all image types, and is mostly useful\nwhen you have a high-resolution monitor.\nThe value is either a floating point number (where numbers higher\nthan 1 means to increase the size and lower means to shrink the\nsize), or the symbol `auto', which will compute a scaling factor\nbased on the font pixel size.");
+  Vimage_scaling_factor = Qauto ();
+
+  /* C 13788-13804: `#ifdef HAVE_IMAGEMAGICK`.  */
+  #[cfg (feature = "have_imagemagick")]
+  {
+    DEFVAR_INT! (c"imagemagick-render-type", imagemagick_render_type,
+      "Integer indicating which ImageMagick rendering method to use.\nThe options are:\n  0 -- the default method (pixel pushing)\n  1 -- a newer method (\"MagickExportImagePixels\") that may perform\n       better (speed etc) in some cases, but has not been as thoroughly\n       tested with Emacs as the default method.  This method requires\n       ImageMagick version 6.4.6 (approximately) or later.");
+    /* MagickExportImagePixels is in 6.4.6-9, but not 6.4.4-10.  */
+    imagemagick_render_type = 0;
+
+    DEFSYM! (Qimage_format_suffixes, "image-format-suffixes");
+    DEFSYM! (QCformat, ":format");
+  }
 }

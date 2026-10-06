@@ -329,7 +329,8 @@ above checkable rather than asserted.
 | 7126-7396 | the "Color table" section: `struct ct_color` (C 7134-7141), `CT_SIZE` (C 7145), `ct_hash_rgb` (C 7149-7153), `ct_table`/`ct_colors_allocated`/`ct_colors_allocated_max` (C 7157-7167), `init_color_table` (C 7171-7177), `free_color_table` (C 7182-7197), `lookup_rgb_color` (C 7205-7290), `lookup_pixel_color` (C 7296-7345), `colors_in_color_table` (C 7351-7374) and C 7376-7396's `#else` arm (`lookup_rgb_color` C 7378-7390, `init_color_table` C 7392-7395) | C 7130's `#ifdef COLOR_TABLE_SUPPORT` / its `#else`, both under the file gate (the condition is the first slice's C 169-173 one) |
 | 7398-7967 | the "Algorithms" section: C 7406/7413's two matrices, `COLOR_INTENSITY` (C 7423), `image_to_emacs_colors` (C 7432-7483), `XPutPixel` (C 7491-7527, the `HAVE_NTGUI` arm), `image_from_emacs_colors` (C 7535-7569), `image_detect_edges` (C 7580-7645, with C 7592's `COLOR`), `image_emboss` (C 7651-7655), `image_laplace` (C 7662-7666), `image_edge_detection` (C 7680-7705), `image_pixmap_draw_cross` (C 7711-7759), `image_disable_image` (C 7765-7850, with C 7805-7809's two macros) and `image_build_heuristic_mask` (C 7860-7967) | the file gate; `have_ntgui`, `have_ns`, `use_cairo`, `have_haiku` and `have_android` inside the bodies |
 | 7970-8351 | C 7970-7972's "PBM (mono, gray, color)" banner, `enum pbm_keyword_index` (C 7976-7990), `pbm_format` (C 7995-8008), `pbm_image_p` (C 8012-8028, whose `return 0` is the port's `return false`), `pbm_next_char` (C 8030-8052, the comment-skipping reader), `pbm_scan_number` (C 8054-8076), `pbm_scan_index` (C 8078-8095, the one- and two-byte big-endian reader) and `pbm_load` (C 8097-8351: the magic check and the `switch (*p++)`, the width/height/max-colour reads, the mono and gray/colour pixel loops with `PUT_PIXEL`, the `#ifdef USE_CAIRO` colour pair, the `#ifdef COLOR_TABLE_SUPPORT` tail and the `free_lab`-style `error:` cleanup) | the file gate (`have_window_system`), plus C's own `use_cairo` and `COLOR_TABLE_SUPPORT` arms inside the body - **transcribed** (the seventh slice) |
-| 8352-13805 | **the remainder of the file**: the `HAVE_NATIVE_IMAGE_API` arm (C 8358-8449), the XPM-image `xpm_load` arms (C 8456-9111's PNG block starts here), "PNG" (C 8456-9111), "JPEG" (C 9119-9677), "TIFF" (C 9685-10112), "GIF" (C 10120-10985), "WEBP" (C 10986-11328), "ImageMagick" (C 11331-12150), "SVG" (C 12158-...), the image-type registry with `lookup_image_type`/`initialize_image_type`/`image_prune_animation_caches`/`syms_of_image` (C 13390-13805) | every format loader is dead in this configuration (`HAVE_PNG`/`HAVE_JPEG`/`HAVE_TIFF`/`HAVE_GIF`/`HAVE_WEBP`/`HAVE_IMAGEMAGICK`/`HAVE_RSVG` are undef in `docs/baseline/config/darwin-arm64.macros.tsv`), so the table records them here rather than transcribing them (P-08); the registry and `syms_of_image` at C 13390-13805 are **live** and are the next slice's work |
+| 8352-13300 | **the recorded remainder**: the `HAVE_NATIVE_IMAGE_API` arm (C 8358-8449, with `image_can_use_native_api` C 8360), the `USE_CAIRO` `xpm_load` arms, and the eight format loaders - "PNG" (C 8456-9111), "JPEG" (C 9119-9677), "TIFF" (C 9685-10112), "GIF" (C 10120-10985), "WEBP" (C 10986-11328), "ImageMagick" (C 11331-12150), "SVG" (C 12158-...), and the `HAVE_NATIVE_TRANSFORMS`/`WINDOWSNT` helpers they carry | every loader hangs on an `#if` the frozen configuration makes false (`HAVE_PNG`/`HAVE_JPEG`/`HAVE_TIFF`/`HAVE_GIF`/`HAVE_WEBP`/`HAVE_IMAGEMAGICK`/`HAVE_RSVG` are undef in `docs/baseline/config/darwin-arm64.macros.tsv`, and the condition evaluator agrees: this file's live text is 4264 lines of 13805), so the table **records** the range instead of transcribing it (P-08's shape, the comp.c/treesit.c class) and `--check` does not ask for it - the tool's inventory drops it too |
+| 13301-13805 | the fourth batch's live tail: the "Tests"/"Initialization" banners, `DEFUN ("imagep")` (C 13306-13311), the `GLYPH_DEBUG`-gated `DEFUN ("lookup-image")` (C 13313-13331), `DEFUN ("image-transforms-p")` with its `HAVE_NATIVE_TRANSFORMS` three-way `#elif` chain (C 13335-13364), `DEFUN ("image-cache-size")` (C 13367-13388), `DEFUN ("init-image-library")` (C 13391-13401), `initialize_image_type` (C 13403-13432), the `image_types[]` table (C 13433-13475) with its per-format entries, `native_image_type` (C 13477-13480), `lookup_image_type` (C 13483-13503), `image_prune_animation_caches` (C 13504-13515) and `syms_of_image` (C 13516-13805, the five `DEFVAR_*` invocations, the 43 `DEFSYM`s, the `add_image_type` calls, `staticpro` and the eleven `defsubr`s) | the file gate, plus C's own `GLYPH_DEBUG`, `HAVE_NATIVE_TRANSFORMS`, `HAVE_GHOSTSCRIPT`, `WINDOWSNT`, the format conditions, `HAVE_RSVG`, `HAVE_NS`, `NS_IMPL_COCOA`, `HAVE_NATIVE_IMAGE_API` and `HAVE_IMAGEMAGICK` arms - **transcribed** (the eighth slice) |
 
 ## Evidence
 
@@ -1850,3 +1851,84 @@ disagreements**; and `check-mirror-dupes.py`'s ratchet is untouched (no mirror c
   between C 8352 and C 13805 are recorded above rather than transcribed because the frozen
   configuration makes their `#if`s false, so the unit's `--check` still reads `FAIL` and this
   slice is not the file's close.
+
+## The eighth slice (C 13301-13805): the tests, the image-type registry and `syms_of_image`
+
+**36. The arm flip.**  The same NS configuration as Evidence 27 (the stronger of the two readings
+this lane uses):
+```
+$ CARGO_TARGET_DIR=/tmp/img24 cargo run -q -p xtask -- probe src/image.rs /tmp/img24/ns7.o \
+    --crate-type=lib --emit obj -C panic=abort --cfg 'feature="have_window_system"' \
+    --cfg 'feature="have_ns"' --cfg 'feature="dispextern_face_records"'
+-> exit 0, **0 errors**, **20 warnings** (the 16 of Evidence 27 plus four `dead_code` ones for the
+   arms this configuration leaves out), `/tmp/img24/ns7.o` **62,840 bytes**
+```
+The slice's own defect iterations are recorded rather than hidden: the first run read **28 error
+lines**, of which 12 were `expected one of `,`, `:`, or `}`, found `!`` for `IMAGE_TYPE_INIT!
+(…)` written as a struct-literal *field* (a macro cannot supply the field's name, so each of the
+seven entries with an `init` initialiser is written twice, under `windowsnt` and under its
+negation), and the rest were: the slice literal missing its `&` (`static image_types: &[image_type]
+= [`), `image_frame_cache_size`'s `intptr_t` widening to `intmax_t`, and the two names this slice's
+new text needs at its use site (`decode_live_frame`, lisp.h 1476; `decode_env_path`, lisp.h 5135)
+plus `image_can_use_native_api`, whose C definition is C 8360's inside the range the table now
+records, so the GNUstep/`HAVE_NATIVE_IMAGE_API` arms that call it are text-only until that region
+lands.
+
+**37. `extract-abi.py --check`.**  **`OK`** - the unit closes: the four `missing function` rows
+(`lookup_image_type`, `initialize_image_type`, `image_prune_animation_caches`, `syms_of_image`),
+the four `missing subr` rows (`Fimagep`, `Fimage_transforms_p`, `Fimage_cache_size`,
+`Finit_image_library`), the ten `missing defsubr` rows and the `no_mangle` note are all retired.
+Two rows were paid for where the tree's rule puts them (`docs/ports/macro-body-notes.tsv`):
+`lookup_image_type	countof` (C 13493's `countof (image_types)` is the table's length, and the
+port's `&[image_type]` slice carries it as `image_types.len ()` because the array's length is
+configuration-dependent) and `syms_of_image	doc` (the three `DEFVAR_*` families take C's
+docstring positionally - the `syms_of_data` row's class).  The line-count row is answered by this
+unit's `docs/ports/line-drift-tolerance.tsv` row (`image	0.13`, basis `total`): 12,104 Rust lines
+against C's 13,805 is **-12.3%**, and the reason is the recorded range above - the port is the
+*shorter* side because ~4,900 C lines of loaders are recorded rather than transcribed, while it
+*is* longer than C's live 4,264 lines, which is what the `total` basis exists for.
+
+**38. The seven text gates.**
+`check-declarations.py` **17 declaration sites (0 forbidden, 17 allowed literals), 0 failures**;
+`check-citations.py` **676 file(s) scanned, 0 drift, 0 range, 2029 external, 36 allowed, 0 stale**;
+`check-dead-file-coverage.py` **145 ledger(s) bound, 0 failure(s)** (153 rows now cover
+src/image.c); `check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s); 0 ratchet
+row(s), 0 new, 0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**;
+`check-cond-eval.py src/image.c` **435 conditions, 0 unknown, 0 disagreements**; `build-tu
+src/image.c` is exit 0 / **336 bytes** / md5 `dbed68837694579185377dbb0821ab62` (the empty object).
+No mirror changed.
+
+**39. Verdicts and deviations.**
+
+- **Nine functions gained the C ABI.**  The `image_types[]` entries store the loaders' addresses in
+  `struct image_type`'s `Option<unsafe extern "C" fn (…)>` members, and a Rust-ABI `fn` does not
+  coerce to them (the ledger's own `E0308` reading for the two XPM callbacks), so `xbm_image_p`,
+  `xbm_load`, `xpm_image_p`, both `xpm_load`s, `canvas_image_p`, `canvas_load`, `pbm_image_p`,
+  `pbm_load` and `image_clear_image` are declared `unsafe extern "C" fn` - the `sfntfont_get_glyph`
+  shape, and the same reason.
+- **C's `image_types[]` is a slice in the port.**  Its length is configuration-dependent (one entry
+  per configured format), which a Rust array's *type* cannot spell without enumerating the arm
+  combinations; the entries keep C's order and CFG arms, and `countof (image_types)` reads
+  `image_types.len ()` (the notes row above).  The seven entries that carry C's
+  `IMAGE_TYPE_INIT (…)` initialiser are written twice, under `feature = "windowsnt"` (with
+  `init: Some (…)`) and under its negation (without the member, which C's `#ifdef WINDOWSNT` keeps
+  out of the record), because a macro cannot supply a struct field's *name*.
+- **`syms_of_image`'s 43 `DEFSYM`s are the mirror's no-op macro** (P-23: `globals.rs` provides the
+  Q symbols directly), so the invocations carry C's names and strings and compile to nothing; the
+  five `DEFVAR_LISP`/`DEFVAR_BOOL`/`DEFVAR_INT` invocations write C's docstrings in the mirror's
+  positional parameter, and the three symbol values C assigns (`Vimage_types = Qnil`,
+  `Vmax_image_size = make_float (MAX_IMAGE_SIZE)`, `cross_disabled_images = 0`,
+  `Vimage_cache_eviction_delay = make_fixnum (300)`, `Vimage_scaling_factor = Qauto`) are written
+  out in C's order - including `decode_env_path (0, PATH_BITMAPS, 0)`, whose `epaths.h` macro the
+  port carries at the use site with the frozen build's measured value (`""`, the `PATH_DOC` shape).
+- **C's `#if` arms inside the bodies are `#[cfg]` blocks**, one arm per `#elif` link with each
+  excluding the ones before it (the file's gate-mapping rule): `image-transforms-p`'s three-way
+  chain, `image-cache-size`'s `HAVE_WEBP || HAVE_GIF` block, `initialize_image_type`'s `WINDOWSNT`
+  body, `syms_of_image`'s eleven gated groups (including the NS `HEIC` pair and the
+  `HAVE_NATIVE_IMAGE_API` `native-image`/`bmp`/`gdiplus` group), and the two `defsubr` rows C gates
+  (`Simagemagick_types` under `HAVE_IMAGEMAGICK`, `Slookup_image` under `GLYPH_DEBUG`).
+- **What is *not* claimed**: no image was created, no `defsubr` ran, no `DEFSYM` was evaluated (the
+  macro is empty), `lookup_image_type`/`initialize_image_type` have never looked anything up, and
+  `syms_of_image` has never been called - it is reached from `emacs.c`'s `syms_of_*` chain, which
+  no gate links here.  The arm probe is a **compile** reading of the NS configuration: it proves the
+  new text type-checks there, not that any of it behaves.
