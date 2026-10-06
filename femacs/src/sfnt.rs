@@ -89,12 +89,22 @@
 // this slice's compile reading is the *frozen* arm (0 errors, and the object is unchanged, because
 // every line of this block is behind that feature), plus the TEST arm's measured debt: its X11
 // names (`Display`, `Window`, `GC`, `XEvent`, the five `X*` calls, `KeyPress`/`Expose`) keep C's
-// spelling - `xterm.rs`'s ruling for the same names, with C 57-58 showing the tree has no mirror -
-// and C 16596's prototype is dropped, since Rust has no function prototype.  C 16562-16585's two
+// spelling - `xterm.rs`'s ruling for the same names, and `include/xlib.rs` *is* the X11 mirror
+// (so the earlier "no mirror" note in this header and in the ledger is stale): it is
+// `have_x_windows`-gated, carries only the surface other units name, and this arm's names are owed
+// to it (measured: no `XDrawPoint`/`XNextEvent`/… row there yet - the ledger's Owed 30).  C 16596's
+// prototype is dropped, since Rust has no function prototype.  C 16562-16585's two
 // `#elif 0` arms and C 16680-16690's `#ifdef TEST_VERTEX` arm are dead text and are recorded, not
 // transcribed.
-// **What is left after slice 19** is C 16705-21215, the rest of the test programme (the raster test
-// and the interpreter test programme), and nothing else.
+// **Slice 20 takes C 16705-16889** - the raster test: `sfnt_x_raster` (C 16704-16861, the XRender
+// viewer: the `XOpenDisplay`/`XRenderQueryExtension` prologue, the `goto depth_found` loop, the
+// two `alloca`d arrays, the fifteen `XImage` field writes, the picture pair and the event loop) and
+// `sfnt_test_raster` (C 16863-16884, the ASCII printer that forks the viewer when `SFNT_X` is set).
+// This slice also adds C 57's `<X11/Xlib.h>` edge to `include/xlib.rs` - the mirror the tree does
+// have - and records the names the two arms still owe it, plus the fact that
+// `<X11/extensions/Xrender.h>` has no mirror at all.
+// **What is left after slice 20** is C 16890-21215, the interpreter test programme and its 166
+// `_test_args` objects, and nothing else.
 // The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
@@ -286,9 +296,11 @@ include!("../lib/include/assert.in.rs");               // C 51: `#include <asser
 include!("../lib/include/time.in.rs");                 // C 52: `#include <time.h>`
 #[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
 include!("../lib/include/timespec.rs");                // C 53: `#include <timespec.h>`
-/* C 54's `#include <sys/wait.h>`, C 57-58's `<X11/Xlib.h>` and
-   `<X11/extensions/Xrender.h>`: no mirror in this tree.  The TEST arm's X11 harness is in the
-   remainder (`sfnt_test_*`), and C 1-1112 names no Xlib type.  */
+/* C 54's `#include <sys/wait.h>`, C 57-58's `<X11/Xlib.h>` and `<X11/extensions/Xrender.h>`:
+   the first two have no mirror in this tree; `<X11/Xlib.h>`'s is `include/xlib.rs` (the X11 SDK
+   header's mirror, `have_x_windows`-gated), and this file's edge to it is in the TEST block below
+   (slice 20, C 57).  `<X11/extensions/Xrender.h>` has none.  The TEST arm's X11 harness is that
+   block's text (`sfnt_test_edges` … `sfnt_x_raster`).  */
 
 #[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
 unsafe fn memory_full_up ()                           // C 58-64
@@ -18163,9 +18175,10 @@ pub unsafe extern "C" fn sfnt_interpret_compound_glyph (glyph: *mut sfnt_glyph,
    harness does.  **Nothing compiles this arm today** - no `--cfg feature="test"` driver exists in
    this tree (`xtask`'s `FLIPS` table has no `test` entry, so `dead-arms` does not flip it either) -
    and its X11 dependencies (`Display`, `Window`, `GC`, `XEvent`, the `X*` functions and the two
-   event codes) have no mirror here (C 57-58).  C's spelling is kept for those names, which is the
-   `xterm.rs` ruling for the same Xlib names (its 824-827 note), so the arm type-checks only on a
-   target that resolves them: the measured debt is the ledger's Evidence ⑭.  */
+   event codes) come from `<X11/Xlib.h>`, whose mirror here is `include/xlib.rs` - `have_x_windows`
+   gated, and carrying only the surface other units name (slice 20 adds this file's edge to it and
+   the measured list of names it still owes; the ledger's Owed 30).  C's spelling is kept for those
+   names, `xterm.rs` 824-827's ruling for the same ones.  */
 
 #[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
 #[repr(C)]
@@ -18425,4 +18438,235 @@ unsafe extern "C" fn sfnt_test_edge (edges: *mut sfnt_edge, num_edges: size_t,  
   printf (c"==end of edges==\n".as_ptr ());            // C 16699
 
   sfnt_poly_edges (edges, num_edges, Some (sfnt_test_span), std::ptr::null_mut ());   // C 16701
+}
+
+/* C 57-58's two includes are the TEST arm's (`#include <X11/Xlib.h>` /
+   `#include <X11/extensions/Xrender.h>`).  The first has a mirror in this tree - `include/xlib.rs`,
+   the mirror of the X11 SDK header (`include/jni.rs`'s class) - so the edge is added here; its
+   items are gated `have_x_windows`, which the TEST arm's own gate does not imply, so they resolve
+   only where both features are on.  The second has no mirror (measured: no file under
+   `include/` matches `render`, and `/opt/homebrew/include/X11/extensions/Xrender.h` is a symlink
+   to libxrender 0.9.12 - the machine has both headers, which is where an Xrender mirror's values
+   would be measured from, the `xlib.rs` header's own method).  The names this arm needs from
+   either header that the mirror does *not* carry yet are listed in the ledger's Owed 30.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+include!("include/xlib.rs");                           // C 57: `#include <X11/Xlib.h>`
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_x_raster (rasters: *mut *mut sfnt_raster,   // C 16704-16861
+			 advances: *mut c_int,
+			 nrasters: c_int,
+			 hhea: *mut sfnt_hhea_table,
+			 scale: sfnt_fixed)
+{
+  let mut display: *mut Display;
+  let mut window: Window;
+  let mut pixmaps: *mut Pixmap;
+  let mut glyphs: *mut Picture;
+  let mut drawable: Picture;
+  let mut solid: Picture;
+  let mut event_base: c_int;
+  let mut error_base: c_int;
+  let mut major: c_int;
+  let mut minor: c_int;
+  let mut depths: *mut c_int;
+  let mut count: c_int;
+  let mut format: *mut XRenderPictFormat;
+  let mut glyph_format: *mut XRenderPictFormat;
+  let mut visual: *mut Visual;
+  let mut image: XImage;
+  let mut gc: GC;
+  let mut gcvalues: XGCValues;
+  let mut event: XEvent;
+  let mut white: XRenderColor;
+  let mut black: XRenderColor;
+  let mut i: c_int;
+  let mut ascent: c_int;
+  let mut origin: c_int;
+  let mut x: c_int;
+  let mut y: c_int;
+  let mut font: Font;
+
+  if nrasters == 0                                     // C 16727
+    { exit (0); }                                      // C 16728
+
+  display = XOpenDisplay (std::ptr::null ());          // C 16730
+
+  if display.is_null ()                                // C 16732
+    { exit (0); }                                      // C 16733
+
+  if XRenderQueryExtension (display, &raw mut event_base, &raw mut error_base) == 0   // C 16735-16736
+    || XRenderQueryVersion (display, &raw mut major, &raw mut minor) == 0   // C 16736
+    { exit (0); }                                      // C 16737
+
+  if major == 0 && minor < 10                          // C 16739
+    { exit (0); }                                      // C 16740
+
+  window = XCreateSimpleWindow (display, DefaultRootWindow (display),   // C 16742-16745
+				0, 0, 100, 150, 0, 0,
+				WhitePixel (display,
+					    DefaultScreen (display)));
+  XSelectInput (display, window, ExposureMask);        // C 16746
+  XMapWindow (display, window);                        // C 16747
+
+  visual = DefaultVisual (display, DefaultScreen (display));   // C 16749
+  format = XRenderFindVisualFormat (display, visual);  // C 16750
+
+  if format.is_null ()                                 // C 16752
+    { exit (0); }                                      // C 16753
+
+  glyph_format = XRenderFindStandardFormat (display, PictStandardA8);   // C 16755
+  depths = XListDepths (display, DefaultScreen (display), &raw mut count);   // C 16756
+
+  'depth_found: {                                      // C 16758-16764
+    /* `goto depth_found` lands after C 16764's `exit (0)`, so the loop and the exit are one
+       labelled block and the jump is its `break`.  */
+    i = 0;
+    while i < count
+      {
+	if *depths.offset (i as isize) == 8            // C 16760
+	  { break 'depth_found; }                      // C 16761
+	i += 1;
+      }
+
+    exit (0);                                          // C 16764
+  }
+
+  XFree (depths);                                      // C 16768
+  pixmaps = sa_stack_alloc (std::mem::size_of::<Pixmap> () * nrasters as size_t)   // C 16769
+    as *mut Pixmap;
+  glyphs = sa_stack_alloc (std::mem::size_of::<Picture> () * nrasters as size_t)   // C 16770
+    as *mut Picture;
+  gc = None as GC;                                     // C 16771 (Xlib's `#define None 0L`, measured -
+						       // `include/xlib.rs`'s `x11_constants`)
+
+  i = 0;                                               // C 16773
+  while i < nrasters
+    {
+      *pixmaps.offset (i as isize)
+	= XCreatePixmap (display, DefaultRootWindow (display),   // C 16775-16776
+			 (*rasters.offset (i as isize)).width as c_int,
+			 (*rasters.offset (i as isize)).height as c_int, 8);
+      if gc.is_null ()                                 // C 16777
+	{ gc = XCreateGC (display, *pixmaps.offset (i as isize), 0, &raw mut gcvalues); }   // C 16778
+
+      /* Upload the raster.  */
+      image.width = (*rasters.offset (i as isize)).width as c_int;   // C 16781
+      image.height = (*rasters.offset (i as isize)).height as c_int;   // C 16782
+      image.xoffset = 0;                               // C 16783
+      image.format = ZPixmap;                          // C 16784
+      image.data = (*rasters.offset (i as isize)).cells as *mut c_char;   // C 16785
+      image.byte_order = MSBFirst;                     // C 16786
+      image.bitmap_unit = 8;                           // C 16787
+      image.bitmap_bit_order = LSBFirst;               // C 16788
+      image.bitmap_pad = SFNT_POLY_ALIGNMENT * 8;      // C 16789
+      image.depth = 8;                                 // C 16790
+      image.bytes_per_line = (*rasters.offset (i as isize)).stride as c_int;   // C 16791
+      image.bits_per_pixel = 8;                        // C 16792
+      image.red_mask = 0;                              // C 16793
+      image.green_mask = 0;                            // C 16794
+      image.blue_mask = 0;                             // C 16795
+
+      if XInitImage (&raw mut image) == 0              // C 16797
+	{ abort (); }                                  // C 16798
+
+      XPutImage (display, *pixmaps.offset (i as isize), gc, &raw mut image,   // C 16800-16801
+		 0, 0, 0, 0, image.width, image.height);
+
+      *glyphs.offset (i as isize)
+	= XRenderCreatePicture (display, *pixmaps.offset (i as isize),   // C 16803-16804
+				glyph_format, 0, std::ptr::null ());
+      i += 1;
+    }
+
+  XFreeGC (display, gc);                               // C 16807
+
+  font = XLoadFont (display, c"6x13".as_ptr ());       // C 16809
+
+  if font == 0                                         // C 16811
+    { exit (1); }                                      // C 16812
+
+  gcvalues.font = font;                                // C 16814
+  gcvalues.foreground = BlackPixel (display, DefaultScreen (display));   // C 16815
+  gc = XCreateGC (display, window, GCForeground | GCFont, &raw mut gcvalues);   // C 16816
+
+  drawable = XRenderCreatePicture (display, window, format,   // C 16818-16819
+				   0, std::ptr::null ());
+  memset (&raw mut black as *mut c_void, 0, std::mem::size_of_val (&black));   // C 16820
+  black.alpha = 65535;                                 // C 16821
+
+  solid = XRenderCreateSolidFill (display, &raw mut black);   // C 16823
+
+  loop                                                 // C 16825
+    {
+      XNextEvent (display, &raw mut event);            // C 16827
+
+      if event.r#type == Expose                        // C 16829
+	{
+	  white.red = 65535;                           // C 16831
+	  white.green = 65535;                         // C 16832
+	  white.blue = 65535;                          // C 16833
+	  white.alpha = 65535;                         // C 16834
+
+	  /* Clear the background.  */
+	  XRenderFillRectangle (display, PictOpSrc, drawable,   // C 16837-16838
+				&raw mut white, 0, 0, 65535, 65535);
+
+	  /* Compute ascent line.  */
+	  ascent = sfnt_mul_fixed ((*hhea).ascent as sfnt_fixed * 65536,   // C 16841-16842
+				   scale) / 65536;
+
+	  origin = 5;                                    // C 16844
+
+	  i = 0;                                         // C 16846
+	  while i < nrasters
+	    {
+	      /* Compute the base position.  */
+	      x = origin + (*rasters.offset (i as isize)).offx as c_int;   // C 16849
+	      y = ascent - (*rasters.offset (i as isize)).height as c_int   // C 16850
+		- (*rasters.offset (i as isize)).offy as c_int;
+
+	      /* Draw the solid fill with the glyph as clip mask.  */
+	      XRenderComposite (display, PictOpOver, solid, *glyphs.offset (i as isize),   // C 16853-16855
+				drawable, 0, 0, 0, 0, x, y,
+				(*rasters.offset (i as isize)).width as c_int,
+				(*rasters.offset (i as isize)).height as c_int);
+
+	      origin += *advances.offset (i as isize);   // C 16857
+	      i += 1;
+	    }
+	}
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_test_raster (raster: *mut sfnt_raster,   // C 16863-16884
+			    hhea: *mut sfnt_hhea_table,
+			    scale: sfnt_fixed)
+{
+  let mut x: c_int;
+  let mut y: c_int;
+  let mut i: c_int;
+
+  y = 0;                                               // C 16870
+  while y < (*raster).height as c_int
+    {
+      x = 0;                                           // C 16872
+      while x < (*raster).width as c_int
+	{
+	  printf (c"%3d ".as_ptr (),                     // C 16873
+		  *(*raster).cells.offset ((y * (*raster).stride as c_int + x) as isize) as c_int);
+	  x += 1;
+	}
+      puts (c"".as_ptr ());                            // C 16874
+      y += 1;
+    }
+
+  if !hhea.is_null () && !getenv (c"SFNT_X".as_ptr ()).is_null ()   // C 16877
+    {
+      i = 0;                                           // C 16879
+
+      if fork () == 0                                  // C 16881
+	{ sfnt_x_raster (&raw mut raster, &raw mut i, 1, hhea, scale); }   // C 16882
+    }
 }

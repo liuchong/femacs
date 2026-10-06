@@ -263,6 +263,31 @@ now splits at C 16704, so the table prints **68 rows** for this file and still t
 `check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new,
 0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**, 0 row(s) without a
 ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0 disagreements**.
+**⑮ Slice 20's readings.**  `cargo run -q -p xtask -- build-tu src/sfnt.c` -> exit 0, **336
+bytes**, md5 `dbed68837694579185377dbb0821ab62` (the empty object - a syntax reading).  The arm
+flip reads **0 errors at HEAD and 0 after this slice**, and the object is **98,448 bytes on both
+sides** again: this slice's text is behind `feature = "test"` too, so the frozen arm is untouched
+for the same measured reason as slice 19.  `python3 tools/extract-abi.py --check emacs/src/sfnt.c
+femacs/src/sfnt.rs` -> **1 row**, the line-count row: 17,470 -> **18,672** Rust lines against C's
+21,215, **12.0%** (was 13.1%).  **The correction this slice carries is the reading worth keeping**:
+slice 19 said the X11 names "have no mirror in this tree", and that was stale.
+`include/xlib.rs` *is* the tree's mirror of the X11 SDK's `<X11/Xlib.h>` (`have_x_windows`-gated,
+with the measured constants in its `x11_constants` module and a measured **192-byte** `XEvent` at
+its 1181), and this machine does have the headers - `/opt/homebrew/include/X11/Xlib.h`, plus
+`extensions/Xrender.h` as a symlink to libxrender 0.9.12 - which `ls` and a `clang` run **with that
+include path** confirm (slice 19's probe omitted the path and reported the header missing).  What
+does remain missing is measurable name by name, and Owed 30 lists it with the header line each name
+would cite; the mirror's own header records the method.  This slice also adds C 57's edge
+(`include!("include/xlib.rs")` beside the TEST gate - the mirror's items stay
+`have_x_windows`-gated, so the arm's X11 text resolves only where both features are on), and C
+16769/16770's two `alloca`s go to the stack pool (`sa_stack_alloc`, PORTING.md P-05).  The other
+gates: `check-declarations.py` **17 declaration sites (0 forbidden, 17 allowed literals), 0
+failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range, 2029 external, 36
+allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound (a C range table), 0
+failure(s)** (the test-programme rows now split at C 16889 and the table still tiles C 1-21215);
+`check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new,
+0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**, 0 row(s) without a
+ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0 disagreements**.
 ## Deviations`.  Port: `femacs/src/sfnt.rs` (13,174 lines, `grep -c ''`; `extract-abi.py`'s
 > own count, 13,174, is the same newline count), both arms of every `#if` carried — except the
 > macros C 6559-8159, whose Rust home is inside the functions that call them (P-57; the range
@@ -415,7 +440,7 @@ ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0 disagreeme
 | C 4547-4554's three file-scope `#define`s (`sfnt_add`/`sfnt_sub`/`sfnt_mul`), C 4959's `APPEND_STEP`, C 5011's `TRAPEZOID_AREA` and C 5083's `TRIANGLE_AREA` (the last three inside `sfnt_poly_edges_exact`), and their `#undef`s (C 5262, C 5265-5266) | `macro_rules!` at the same scope: file scope for the first three, the enclosing block for the three function-local ones — Rust's macros are textually scoped, so the `#undef`s have no text (Deviation 35) | every configuration (C's macros are unconditional) |
 | C 4322 `#ifndef NDEBUG` … C 4429 (`sfnt_fill_span`'s `row_end` and its four `eassert`s) | `feature = "no_ndebug"` — the frozen configuration **defines** `NDEBUG` (`docs/baseline/config/darwin-arm64.macros.tsv` 2892), so this is dead text and P-51's rule names the feature after the non-frozen side (the `no_signbit`/`no_rint` shape); C's `#else` is empty, so there is no second arm.  The name is **not registered** yet — Owed 8 | a configuration with `NDEBUG` undefined |
 | C 1837 / C 1891 (`sfnt_map_glyf_table`/`sfnt_unmap_glyf_table` are not `TEST_STATIC`: sfnt.h declares them `extern` at C 1490-1491) | plain `#[unsafe(no_mangle)] pub unsafe extern "C"` under the file gate + `not (feature = "test")` — no `cfg_attr` | a real Android non-TEST configuration |
-| C 16448 `#ifdef TEST` … C 21215 (the file's **last** `#endif`; the whole test programme) | `all (file gate, feature = "test")` — the same `TEST` name C 49 already uses.  **C 16448-16704 is transcribed (slice 19)**; C 16705-21215 is the remainder, and Owed 21 records why the tree has no `<X11/Xlib.h>` mirror for C 57-58 | nothing, today (no gate sets `test`; Evidence ⑭ measures what flipping it costs) |
+| C 16448 `#ifdef TEST` … C 21215 (the file's **last** `#endif`; the whole test programme) | `all (file gate, feature = "test")` — the same `TEST` name C 49 already uses.  **C 16448-16889 is transcribed (slices 19-20)**; C 16890-21215 is the remainder, and Owed 21 + Owed 30 record the X11 surface (`include/xlib.rs` **is** the `<X11/Xlib.h>` mirror - slice 19's "no mirror" note was stale; the names still missing from it, and the absent Xrender mirror, are Owed 30's list) | nothing, today (no gate sets `test`; Evidence ⑭ measures what flipping it costs) |
 | C 34's `#include <stdlib.h>` / C 2451's `abort ()` and slice 4's `abs` (C 3712-3713, C 3812, C 4134) | the file gate; the unit carries C's two prototypes in use-site blocks at C 34's site (`lib/include/stdlib.rs` has `malloc` and friends but neither name, the `androidvfs.rs` 228-234 shape) | a real Android configuration |
 
 `not_android_stubify` is the feature the tree registered for C's `HAVE_ANDROID && !defined
@@ -494,10 +519,11 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 | 13916-13917 | C 13915's `}` and the blank after it (the glyph-variation block starts at C 13918) | nothing to port |
 | 13918-14554 | the **glyph-variation readers**: C 13919's form feed (dropped) and the "Glyph variations." banner (C 13921-13933); `sfnt_read_fvar_table` (C 13940-14155; C 13959 the `SFNT_ENDOF` minimum, C 14009-14015 the two `ckd_mul`/`ckd_add` pairs, C 14045-14046 the `alignof (struct sfnt_instance)` pad, C 14064-14068 the two derived pointers, C 14096-14098 the `alloca`/`xmalloc` fork, C 14100-14123 the per-instance read and `coords` walk, C 14133-14139 the PostScript-name arm, C 14143/14150 the two `xfree (buffer)` guards); `sfnt_read_gvar_table` (C 14164-14318; C 14220-14225 the long/short offset fork, C 14239-14241 the `ckd_add` pair, C 14271-14272 the `global_coords` pointer, C 14276/14300 the two `ckd_add`+`lseek` pairs, C 14293-14296 the `glyph_variation_data` pointer); `sfnt_read_avar_table` (C 14327-14443; C 14373-14377 the rest-of-table read, C 14396-14399 the two `ckd_add`s, C 14404 the bounds test, C 14414-14418 the realloc and the `correspondences` split, C 14420-14432 the second pass) and `sfnt_read_packed_points` (C 14460-14554; C 14473/14493 the two `data >= end` bails, C 14483's `(uint16_t *) -1`, C 14488-14497 the two-byte count, C 14519/14524-14525 and C 14534/14539-14540 the two unpacking walks) | file gate / `TEST_STATIC` on the three table readers |
 | 14555-16447 | **slice 8, the file's last non-TEST block**: C 14556-14561's comment and `sfnt_read_packed_deltas` (C 14562-14618; C 14573's `data >= end` bail, C 14584's `*data++` control byte, C 14593/14602 the two more bails, C 14596-14597's two-byte value, C 14612's write-back); the `cvar` reader `sfnt_read_cvar_table` (C 14626-14950; C 14649-14650 the `SFNT_ENDOF` minimum, C 14682's `& 0x0fff`, C 14683-14684 the signed `data_offset`, C 14692-14704 the three pointer initialisers and the zeroed `size`, C 14706-14717 the shared-point read, C 14720-14771 the size-computation walk with its five `ckd_add`s, C 14777-14780 the realloc and the two derived pointers, C 14787-14934 the second pass and its four `sfnt_read_packed_points`/`sfnt_read_packed_deltas` calls plus the four `cvt->num_elements` clamps, C 14937/14943 the two `(void *) -1` guards); the three blend helpers `sfnt_init_blend` (C 14959-14975; C 14972's `axis_count * sizeof *coords * 2` and the two pointers), `sfnt_free_blend` (C 14979-14983) and `sfnt_normalize_blend` (C 14988-15074; C 14998-15036 the three-way normalize with its two `sfnt_div_fixed` pairs, C 15041-15073 the avar walk and its `sfnt_multiply_divide_signed`); the record `struct sfnt_gvar_glyph_header` (C 15078-15088); `sfnt_compute_tuple_scale` (C 15096-15174; C 15103's two `UNINIT`, C 15107's `0200000`, C 15146-15148 the `MIN`/`MAX` fit test, C 15163/15167 the two `sfnt_multiply_divide` calls); the three interpolators `sfnt_infer_deltas_2` (C 15184-15356; C 15195's `j != pair_end` walk, C 15200-15208 the contour wrap, C 15262's `goto consider_y`, C 15334's `goto next`), `sfnt_infer_deltas_1` (C 15361-15406; C 15368's two `SIZE_MAX`, C 15380's `goto next`, C 15397's trailing pair) and `sfnt_infer_deltas` (C 15434-15457; C 15442-15456 the contour walk and its three-way bounds return); the two appliers `sfnt_vary_simple_glyph` (C 15488-15851; C 15518-15521 the offset fork, C 15530's `sizeof header` test, C 15559-15573 the shared-point read, C 15580-15587 the `alloca`/`xnmalloc` fork, C 15615-15663 the coordinate and intermediate reads, C 15668-15673 the scale test, C 15704-15813 the `switch (point_count)` with its `UINT16_MAX` and `default` arms, the touched/original arrays and the `sfnt_infer_deltas` call) and `sfnt_vary_compound_glyph` (C 15861-16212; the same walk against `num_components`, C 16152-16176 the two `flags` tests and the `argument1`/`argument2` writes); `sfnt_vary_interpreter` (C 16221-16277; C 16252-16254 the `ndeltas` ternary, C 16259's `points ? points[j] : j`, C 16261's `index > cvt_size` test, C 16271's `cvt[i] += delta`); and the two metadata readers `sfnt_read_OS_2_table` (C 16292-16381; C 16313-16317 the `minimum` sum with its `offsetof`, C 16331-16333 the read up to `panose`, C 16361-16364 the second read, the 23 swaps) and `sfnt_read_post_table` (C 16398-16444; C 16416's `sizeof *post` gate, the nine swaps) | file gate / `TEST_STATIC` on the fourteen public definitions |
-| 16448-16704 | C 16448's `#ifdef TEST` (whose matching `#endif` is C 21215, the file's last line) and its first block: `struct sfnt_test_dcontext` (C 16450-16460), the `sfnt_test_max` object (C 16463), the eight callbacks `sfnt_test_move_to`/`_line_to`/`_curve_to`/`_get_glyph`/`_free_glyph`/`_get_metrics`/`_span`/`_edge_ignore` (C 16465-16595) and the X11 debugger's state with `sfnt_test_edges`/`sfnt_debug_edges`/`sfnt_test_edge` (C 16596-16704, whose `<X11/Xlib.h>`/`<X11/extensions/Xrender.h>` mirrors the tree does not have - C 57-58) | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 19) |
-| 16705-21215 | the rest of the test programme: `sfnt_x_raster`/`sfnt_test_raster` (**the next definition**, C 16705-16889) and the interpreter test programme `sfnt_make_test_interpreter`/`sfnt_run_interpreter_test`/`sfnt_generic_check`/`sfnt_check_*` with its 166 `_test_args` objects (C 16890-21215, ending at the file's last line) | not this slice |
+| 16448-16704 | C 16448's `#ifdef TEST` (whose matching `#endif` is C 21215, the file's last line) and its first block: `struct sfnt_test_dcontext` (C 16450-16460), the `sfnt_test_max` object (C 16463), the eight callbacks `sfnt_test_move_to`/`_line_to`/`_curve_to`/`_get_glyph`/`_free_glyph`/`_get_metrics`/`_span`/`_edge_ignore` (C 16465-16595) and the X11 debugger's state with `sfnt_test_edges`/`sfnt_debug_edges`/`sfnt_test_edge` (C 16596-16704; C 57-58's `<X11/Xlib.h>` mirror is `include/xlib.rs` and C 57's edge is added by slice 20, whose `sfnt_x_raster` needs `<X11/extensions/Xrender.h>`, which has no mirror - Owed 30) | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 19) |
+| 16705-16889 | the raster test: `sfnt_x_raster` (C 16704-16861, the XRender viewer - the `XOpenDisplay`/`XRenderQueryExtension` prologue, the `goto depth_found` loop, the two `alloca`d arrays, the fifteen `XImage` field writes, the picture pair and the event loop) and `sfnt_test_raster` (C 16863-16884, the ASCII printer that forks the viewer when `SFNT_X` is set); C 57's `include!` edge to `include/xlib.rs` lands here too | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 20) |
+| 16890-21215 | the interpreter test programme `sfnt_make_test_interpreter`/`sfnt_run_interpreter_test`/`sfnt_generic_check`/`sfnt_check_*` (**the next definition**, C 16890) with its 166 `_test_args` objects, ending at the file's last line (C 21215) | not this slice |
 
-The sixty-eight rows above tile C 1-21215 **contiguously** (blank lines included) rather than
+The sixty-nine rows above tile C 1-21215 **contiguously** (blank lines included) rather than
 skipping the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
 `femacs/src/include/sfnt.rs` (this file's header's mirror) to this same `sfnt.md` through its
 bare-stem fallback, so a table with gaps at blanks would leave `src/sfnt.h`'s non-blank lines
@@ -1645,11 +1671,17 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     the spelling C 49's harness already uses, and the whole block is one `#ifdef TEST` (C 16448)
     whose `#endif` is C 21215, the file's last line.  (b) **C's X11 names keep C's spelling**:
     `Display`, `Window`, `GC`, `XEvent`, `XDrawPoint`, `XNextEvent`, `XDestroyWindow`,
-    `XCloseDisplay`, `XFlush` and the two event codes `KeyPress`/`Expose` have no mirror in this
-    tree (C 57-58's include), and `xterm.rs` 824-827's ruling for the same names is to keep them
-    and let the target resolve them - which is why Evidence ⑭'s `test` reading is what it is,
-    instead of a per-name use-site block that would have to invent `XEvent`'s layout (this machine
-    has no `<X11/Xlib.h>` either: measured, `clang` reports it missing, so no size can be taken).
+    `XCloseDisplay`, `XFlush` and the two event codes `KeyPress`/`Expose` keep C's spelling, which
+    is `xterm.rs` 824-827's ruling for the same names.  **Corrected in slice 20 (3.707)**: the
+    parenthetical this row first carried - "no mirror in this tree / this machine has no
+    `<X11/Xlib.h>`" - was wrong on both halves.  `include/xlib.rs` *is* the tree's mirror of the
+    X11 SDK's header (`have_x_windows`-gated, with measured constants in its `x11_constants` module
+    and a measured 192-byte `XEvent` at its 1181), and the machine has the headers - slice 19's
+    `clang` probe simply omitted `-I/opt/homebrew/include`, where `X11/Xlib.h` and
+    `X11/extensions/Xrender.h` (a symlink to libxrender 0.9.12) both live.  What is true is narrower:
+    the mirror carries only the surface other units name, so this arm's names have **0 hits** there
+    today, and Owed 30 lists them with the header line each would cite - plus the absent Xrender
+    mirror.
     (c) **C 16596's prototype is dropped** (measured: a bodyless `unsafe fn` is `error: free
     function without a body`); Rust has no function prototype, and this file's own header already
     records that freedom as why the port may walk a different order.  (d) **Dead text is recorded,
@@ -1661,6 +1693,22 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     measured there), and the four X11 statics take `unsafe { std::mem::zeroed () }` for C's static
     zero-initialisation (the `frame.rs` 4813-4829 ruling) - while C 16610's function-scope
     `static sfnt_fixed y` stays inside `sfnt_test_edges` as a Rust `static mut`.
+88. **Slice 20's four shapes.**  (a) **C 16761's `goto depth_found` is one labelled block**: the
+    label sits after C 16764's `exit (0)`, so the search loop and that exit are the block and
+    `break 'depth_found` is the jump (the `sfnt_decompose_instructed_outline` shape).  (b) **C
+    16769/16770's two `alloca`s go to the stack pool**: `sa_stack_alloc (std::mem::size_of::<Pixmap>
+    () * nrasters as size_t)`, with C's `sizeof *pixmaps` spelled as the pointee type (the
+    `sfnt_build_outline_edges` row's class; `Picture` likewise).  (c) **C's implicit conversions are
+    written out**: `image.width = rasters[i]->width` widens a `c_ushort` to the `XImage` field's
+    `c_int` (`as c_int`, and the same in `x`, `y`, `bytes_per_line` and the four
+    `XRenderComposite`/`XCreatePixmap` arguments), `hhea->ascent * 65536` promotes an `sfnt_fword`
+    (`as sfnt_fixed`), `image.data = (char *) rasters[i]->cells` is C's own `as *mut c_char`, and
+    `gc = None;` is `None as GC` - Xlib's `#define None 0L` (measured) written out as the
+    null-pointer constant - with `if (!gc)` as `gc.is_null ()` and `if (!font)` as `font == 0`.
+    (d) **The X11 names are C's**: `Display`, `Window`, `Pixmap`, `Picture`, `Visual`, `XImage`,
+    `GC`, `XGCValues`, `XEvent`, `XRenderColor`, `XRenderPictFormat`, `Font` and the `X*`/`XRender*`
+    procedures keep C's spelling, with this file's edge to `include/xlib.rs` added at C 57's
+    position (Deviation 87 (b)'s correction, Owed 30).
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
 1. **`TEST_STATIC`'s Rust form** — either a `docs/ports/excluded-macros.txt` row (`kind=syntax`,
@@ -1954,6 +2002,30 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     (C 21,215 -> 13,174).  A batch close can take it with the parallel lanes' units, as Owed 6
     intended.
 
+30. **The TEST arms' X11 surface, name by name (slices 19-20's measured debt).**  `include/xlib.rs`
+    is the tree's mirror of `<X11/Xlib.h>` and the right home for the X11 half of the
+    `feature = "test"` arms (its own header says it declares "the Xlib surface the *gated* arms of
+    `src/*.c` and `src/*.h` name"), but it carries only what the units that came before needed.  The
+    names these arms still owe it, with the header line each would cite (all present on this machine
+    under `/opt/homebrew/include`): `XOpenDisplay` (Xlib.h 1479), `XCloseDisplay` (2170),
+    `XDestroyWindow` (2253), `XDrawPoint` (2371), `XFlush` (2517), `XNextEvent` (2851),
+    `XSelectInput`, `XMapWindow`, `XCreateSimpleWindow`, `XCreatePixmap`, `XFree`, `XFreeGC`,
+    `XListDepths`, `XLoadFont`, `XInitImage`, `XPutImage`, `DefaultRootWindow`/`DefaultScreen`/
+    `DefaultVisual`, `WhitePixel`/`BlackPixel`, and the constants `KeyPress`/`Expose` (X11/X.h 181's
+    family), `ZPixmap`, `MSBFirst`, `LSBFirst` (the mirror already has `GCForeground`, `GCFont`,
+    `ExposureMask` and `None` in its `x11_constants`); `XImage` and `XGCValues` are already there.
+    Measured: each of the names above has **0 hits** in the mirror today.  **`<X11/extensions/
+    Xrender.h>` has no mirror at all** - it is a symlink to libxrender 0.9.12 on this machine, and
+    `xlib.rs`'s header note says a second mirror "would need a second first line and a second
+    ledger" - so `sfnt_x_raster`'s XRender half is owed with it: `Picture`, `XRenderPictFormat`,
+    `XRenderColor`, `XRenderQueryExtension`, `XRenderQueryVersion`, `XRenderFindVisualFormat`,
+    `XRenderFindStandardFormat`, `XRenderCreatePicture`, `XRenderCreateSolidFill`,
+    `XRenderFillRectangle`, `XRenderComposite` and the `PictStandardA8` (Xrender.h 506, = 2) /
+    `PictOpSrc` / `PictOpOver` constants.  Nothing here blocked transcription - both slices
+    delivered - and nothing compiles these arms either: their gate is `feature = "test"`, which no
+    gate sets, and Evidence ⑭ measured what flipping it costs today (3,101 errors, the bulk of them
+    in the mirrors' own gates).
+
 ### Not claimed
 
 Every line of these slices is behind gates the frozen configuration leaves false: **① is an
@@ -1962,12 +2034,13 @@ object is 90,168 bytes - all three read by the compiler and never by a running p
 **no runtime evidence of any kind** for this port — no font was opened, no cmap subtable was
 parsed, no table directory was read, no glyph was outlined, no hmtx/name/meta/cvt/fpgm/prep table
 was read, no `read`/`lseek` returned a byte this port can claim to have interpreted, and no 26.6
-value was ever rounded, floored or scaled.  C 16705-21215 is **not ported here**: the rest of the `#ifdef TEST` programme (the raster test and
-the interpreter test programme with its 166 `_test_args` objects, Owed 21).  The 1 `- missing …`
-line the delivered `--check` reads is the line-count row, and the 13.1% drift is that boundary
-(slice 19 moved it from 1 row and 14.5%, taking C 16448-16704).  **The slice's own text has no
-compile reading and does not claim one**: `feature = "test"` is carried by no gate, and flipping it
-today reads 3,101 errors, the bulk of them in the mirrors (Evidence ⑭).  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
+value was ever rounded, floored or scaled.  C 16890-21215 is **not ported here**: the interpreter test programme and its 166 `_test_args`
+objects (Owed 21).  The 1 `- missing …` line the delivered `--check` reads is the line-count row,
+and the 12.0% drift is that boundary (slice 20 moved it from 1 row and 13.1%, taking C 16705-16889).
+**These TEST-arm slices have no compile reading of their own and do not claim one**:
+`feature = "test"` is carried by no gate, and flipping it today reads 3,101 errors, the bulk of them
+in the mirrors (Evidence ⑭); what they do have is the frozen arm's 0 errors and an
+unchanged object, which proves the frozen arm was not touched.  The `.offset (i as isize)`  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
 compile-level and were measured by the compiler, not by a running program; so is the whole
 `feature = "no_ndebug"` arm (nothing flips it yet — Owed 8), and so are the four `MAYBE_UNUSED
 TEST_STATIC` readers' TEST arm and C's `#ifdef TEST` hooks in the remainder (Owed 9, Owed 12).
