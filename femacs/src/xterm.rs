@@ -648,6 +648,7 @@ include!("../lib/include/stdlib.rs");             // C 626: `#include <stdlib.h>
 include!("../lib/include/math.rs");               // C 627: `#include <math.h>`
 include!("../lib/include/signal.rs");             // C 628: `#include <signal.h>`
 include!("include/lisp.rs");                      // C 630: `#include "lisp.h"`
+include!("../lib/include/stdcountof.rs");    // lisp.h 28: `#include <stdcountof.h>`
 include!("../lib/include/string.rs");                 // lisp.h 30: `#include <string.h>` (memcmp)
 include!("../lib/include/limits.in.rs");                 // lisp.h 33: `#include <limits.h>` (LONG_MAX)
 include!("include/blockinput.rs");                // C 631: `#include "blockinput.h"`
@@ -18686,3 +18687,145 @@ unsafe fn x_destroy_window (f: *mut frame)
 
   (*dpyinfo).reference_count -= 1;                                      // C 29888
 }
+
+/* Intern NAME in DPYINFO, but check to see if the atom was already
+   interned when the X connection was opened, and use that instead.
+
+   If PREDEFINED_ONLY, return None if the atom was not interned during
+   connection setup or is predefined.  */
+
+/// C 29900-29908's two computed `char` arrays: `INT_STRLEN_BOUND (int)` is `<intprops.h>`'s macro,
+/// which this tree records as a blind mirror (`lib/include/intprops.rs`) and no unit includes, so
+/// the units that need it write the Rust primitive at the use site - the `androidselect.rs` 111-119
+/// shape, over `size_of::<$t>` instead of gnulib's `TYPE_WIDTH`.
+#[cfg (feature = "have_x_windows")]
+macro_rules! INT_STRLEN_BOUND {
+  ($t:ty) => { ((std::mem::size_of::<$t> () * 8 - 1) * 146 + 484) / 485 + 1 };
+}
+
+/// C 29896-29978: `Atom x_intern_cached_atom (struct x_display_info *dpyinfo, const char *name,
+/// bool predefined_only)` - non-`static` and declared in xterm.h, so
+/// `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  The twelve predefined
+/// atoms are the mirror's four (`x11_constants`) plus the eight it does not carry, which stand at
+/// the use site (P-72 rule 4 - the `IconicState`/`MapNotify` shape); `XScreenNumberOfScreen` and
+/// `XInternAtom` are the bare Xlib class, and `x_atom_refs` is the table Decision 9 defers - this
+/// function is that table's first reader, so its three sites are the owed name itself (the table's
+/// record type `x_atom_ref` is already declared above, at C 976-983's slice).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_intern_cached_atom (dpyinfo: *mut x_display_info, name: *const c_char,
+					       predefined_only: bool) -> Atom
+{
+  use crate::x11_constants::{None, XA_ATOM, XA_CARDINAL, XA_PRIMARY, XA_WINDOW};
+
+  let mut i: c_int;                                                     // C 29900
+  let mut ptr: *mut c_char;                                             // C 29901
+  let mut atom: *mut Atom;                                              // C 29902
+
+  /* Special atoms that depend on the screen number.  */
+  /* C 29905-29908: `char xsettings_atom_name[sizeof "_XSETTINGS_S%d" - 2 + INT_STRLEN_BOUND (int)]`
+     and the same shape for `_NET_WM_CM_S%d`.  `sizeof` of each 14-character literal is 15 (its
+     NUL), and the bound is the macro's body over `int`.  */
+  let mut xsettings_atom_name: [c_char; 15 - 2 + INT_STRLEN_BOUND! (c_int)]
+			       = [0; 15 - 2 + INT_STRLEN_BOUND! (c_int)];
+  let mut cm_atom_name: [c_char; 15 - 2 + INT_STRLEN_BOUND! (c_int)]
+			= [0; 15 - 2 + INT_STRLEN_BOUND! (c_int)];
+
+  sprintf (xsettings_atom_name.as_mut_ptr (), c"_XSETTINGS_S%d".as_ptr (),  // C 29910-29911
+	   XScreenNumberOfScreen ((*dpyinfo).screen));
+  sprintf (cm_atom_name.as_mut_ptr (), c"_NET_WM_CM_S%d".as_ptr (),      // C 29912-29913
+	   XScreenNumberOfScreen ((*dpyinfo).screen));
+
+  if strcmp (name, xsettings_atom_name.as_ptr ()) == 0                  // C 29915
+    { return (*dpyinfo).Xatom_xsettings_sel; }                          // C 29916
+
+  if strcmp (name, cm_atom_name.as_ptr ()) == 0                         // C 29918
+    { return (*dpyinfo).Xatom_NET_WM_CM_Sn; }                           // C 29919
+
+  /* Now do some common predefined atoms.  */
+  if strcmp (name, c"PRIMARY".as_ptr ()) == 0                           // C 29922
+    { return XA_PRIMARY; }                                              // C 29923
+
+  if strcmp (name, c"SECONDARY".as_ptr ()) == 0                         // C 29925
+    { return XA_SECONDARY; }                                            // C 29926
+
+  if strcmp (name, c"STRING".as_ptr ()) == 0                            // C 29928
+    { return XA_STRING; }                                               // C 29929
+
+  if strcmp (name, c"INTEGER".as_ptr ()) == 0                           // C 29931
+    { return XA_INTEGER; }                                              // C 29932
+
+  if strcmp (name, c"ATOM".as_ptr ()) == 0                              // C 29934
+    { return XA_ATOM; }                                                 // C 29935
+
+  if strcmp (name, c"WINDOW".as_ptr ()) == 0                            // C 29937
+    { return XA_WINDOW; }                                               // C 29938
+
+  if strcmp (name, c"DRAWABLE".as_ptr ()) == 0                          // C 29940
+    { return XA_DRAWABLE; }                                             // C 29941
+
+  if strcmp (name, c"BITMAP".as_ptr ()) == 0                            // C 29943
+    { return XA_BITMAP; }                                               // C 29944
+
+  if strcmp (name, c"CARDINAL".as_ptr ()) == 0                          // C 29946
+    { return XA_CARDINAL; }                                             // C 29947
+
+  if strcmp (name, c"COLORMAP".as_ptr ()) == 0                          // C 29949
+    { return XA_COLORMAP; }                                             // C 29950
+
+  if strcmp (name, c"CURSOR".as_ptr ()) == 0                            // C 29952
+    { return XA_CURSOR; }                                               // C 29953
+
+  if strcmp (name, c"FONT".as_ptr ()) == 0                              // C 29955
+    { return XA_FONT; }                                                 // C 29956
+
+  if (*dpyinfo).motif_drag_atom != None as Atom                         // C 29958
+      && strcmp (name, (*dpyinfo).motif_drag_atom_name.as_ptr ()) == 0  // C 29959
+    { return (*dpyinfo).motif_drag_atom; }                              // C 29960
+
+  i = 0;                                                                // C 29962
+  loop
+    {
+      if !(i < countof! (x_atom_refs) as c_int)                         // C 29962
+	{ break; }
+
+      ptr = dpyinfo as *mut c_char;                                     // C 29964
+
+      if strcmp (x_atom_refs[i as usize].name, name) == 0               // C 29966
+	{
+	  atom = ptr.add (x_atom_refs[i as usize].offset as usize) as *mut Atom;  // C 29968
+
+	  return *atom;                                                     // C 29970
+	}
+
+      i += 1;                                                           // C 29962, the `for`'s step
+    }
+
+  if predefined_only                                                  // C 29974
+    { return None as Atom; }                                          // C 29975
+
+  return XInternAtom ((*dpyinfo).display, name, false);                // C 29977
+}
+
+/* C: Xatom.h 10/14/17/18/19/31/34/38: `#define XA_SECONDARY ((Atom) 2)`, `XA_BITMAP ((Atom) 5)`,
+   `XA_COLORMAP ((Atom) 7)`, `XA_CURSOR ((Atom) 8)`, `XA_DRAWABLE ((Atom) 17)`,
+   `XA_FONT ((Atom) 18)`, `XA_INTEGER ((Atom) 19)`, `XA_STRING ((Atom) 31)` - the eight predefined
+   atoms C 29925-29956 name and the mirror's `x11_constants` module does not carry (measured
+   against this machine's `<X11/Xatom.h>`; the module carries `XA_PRIMARY`/`XA_ATOM`/
+   `XA_CARDINAL`/`XA_WINDOW` only), so they stand at this use site (P-72 rule 4).  */
+#[cfg (feature = "have_x_windows")]
+pub const XA_SECONDARY: c_ulong = 2;
+#[cfg (feature = "have_x_windows")]
+pub const XA_BITMAP: c_ulong = 5;
+#[cfg (feature = "have_x_windows")]
+pub const XA_COLORMAP: c_ulong = 7;
+#[cfg (feature = "have_x_windows")]
+pub const XA_CURSOR: c_ulong = 8;
+#[cfg (feature = "have_x_windows")]
+pub const XA_DRAWABLE: c_ulong = 17;
+#[cfg (feature = "have_x_windows")]
+pub const XA_FONT: c_ulong = 18;
+#[cfg (feature = "have_x_windows")]
+pub const XA_INTEGER: c_ulong = 19;
+#[cfg (feature = "have_x_windows")]
+pub const XA_STRING: c_ulong = 31;
