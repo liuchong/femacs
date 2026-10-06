@@ -22,7 +22,9 @@
 9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.  Slice 15 (C 26994-27126, Decision 27) moves it to **159**: three functions retire, the two token rows the first reading brought are closed by `docs/ports/macro-body-notes.tsv` rows, and the invented-export row slice 14 left behind is gone.  Slice 16 (C 27128-27194, Decision 28) moves it to **158**: `x_new_font` retires as a missing item, and no token row came with it.  Slice 17 (C 27195-27284, Decision 29) **stays 158**: its two functions live inside
 `HAVE_X11R6_XIM`, which the frozen table leaves `undef` (P-66's dead text), so the tool never
 demanded them.  Slice 18 (C 27286-27342, Decision 30) **stays 158** as well: `xim_open_dpy` sits inside
-C 27200's `#ifdef HAVE_X_I18N`, which is `undef` in the frozen table too.
+C 27200's `#ifdef HAVE_X_I18N`, which is `undef` in the frozen table too.  Slice 19 (C 27344-27433, Decision 31) **stays 158**: the instantiate
+callback is behind `HAVE_X11R6_XIM` and `xim_initialize`'s arms are behind `HAVE_XIM`, all
+`undef` in the frozen table.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -2023,6 +2025,27 @@ expressions (Decision 25).
   `src/xfns.rs` 4960 site).
 
 
+### 31. Slice 19 (C 27344-27433): the instantiate callback and `xim_initialize`
+
+* **The callback's address picks the ABI.**  `xim_instantiate_callback` (C 27352) is a `static`
+  whose address C 27425 hands to `XRegisterIMInstantiateCallback`, so it is an
+  `unsafe extern "C" fn` (PORTING.md 1.4) and the parameter type is Xlib's `XIDProc`
+  (Xlib.h 1154-1158), declared here beside it.  The three XIC entry points C 27381-27385 calls
+  (`create_frame_xic`, `xic_set_preeditarea`, `xic_set_statusarea`, xfns.c 3090/3251/3302, none
+  `static`) are use-site declarations, as is `XRegisterIMInstantiateCallback` itself
+  (Xlib.h 3941-3948).
+* **C's `(void *) xim_inst` is written as the prototype's own type.**  C casts the record pointer
+  to `void *` because the sixth parameter's spelling differs across Xlib versions (C 27416-27419
+  says so); in this tree that parameter is `XPointer` (`*mut c_char`, the `include/xlib.rs` row),
+  so the port writes `xim_inst as XPointer` - the first attempt's `as *mut c_void` was the arm-H
+  reading's one `E0308`.
+* **A value only `eassert!` reads is initialised in its declaration.**  `ret` (C 27410) is written
+  by C 27421 and read by C 27427's `eassert`; `eassert!` compiles only under `enable_checking`, so
+  the assignment shape warns `value assigned to ret is never read` in every arm that compiles it.
+  The port initialises it where it is declared (the `src/pdumper.rs` 1027-1029 and
+  `src/process.rs` 7811-7813 shape), which keeps C's single call and drops the warning.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3546,3 +3569,31 @@ named that; removed, arm G re-reads 545 / 55 and the file 15,125 lines.
 **Not claimed.**  The frozen configuration compiles none of this text: no input-method connection
 was opened or closed, no style list was queried and no coding system was chosen.  The remaining
 `E0425` rows are unresolved names, not behaviour.
+
+
+### Slice 19's readings (C 27344-27433), as landed and measured (2026-10-06)
+
+**What it lands.**  `xim_instantiate_callback` (C 27352-27391, behind `HAVE_X11R6_XIM`) and
+`xim_initialize` (C 27402-27433, behind `HAVE_XIM` with its own `HAVE_X11R6_XIM` split), with the
+XIM surface both call (Decision 31).  Rust 15,125 -> 15,257 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arms A (`have_x_windows`),
+B, C and D read exactly what they read at slice 18 - **547 / 55**, **547 / 60**, **575 / 57** and
+**548 / 55** - because every item this slice adds is behind `have_x_i18n` and one of the two R6/XIM
+gates.  Arm F (`+have_x11r6+have_x11r6_xim`) **547 / 55** and arm G (`+have_xim`) **545 / 55**,
+also unchanged.  Arm H (`+have_x_i18n+have_xim+have_x11r6+have_x11r6_xim`), the arm that compiles
+this slice's text: **545 / 55 -> 545 / 55** - delta zero, every class and the warning count
+unmoved, which is what the two first-reading faults (the `XPointer` cast and the `ret`
+assignment) were fixed for.
+
+**Arm reach (P-86 7).**  Injecting `let _: c_int = true;` as the first statement of
+`xim_instantiate_callback` moves `E0308` from 13 to 14, anchored at the injected line
+(`_root.rs:15182`); removed, arm H re-reads 545 / 55 and the file 15,257 lines.
+
+**What `--check` reads.**  **158 -> 158**: both functions are dead text for the tool too
+(`HAVE_X11R6_XIM` and `HAVE_XIM` are `undef` in the frozen table).  The line-count row moves to
+15,257 against C's 33,125 (53.9%).
+
+**Not claimed.**  The frozen configuration compiles none of this text: no XIM server appeared, no
+callback was registered and no XIC was created.  The remaining `E0425` rows are unresolved names,
+not behaviour.

@@ -15123,3 +15123,135 @@ unsafe fn xim_open_dpy (dpyinfo: *mut x_display_info, resource_name: *mut c_char
     (*dpyinfo).xim = std::ptr::null_mut ();                             // C 27340 (C's `#else` arm)
   }
 }
+
+/* XIM instantiate callback function, which is called whenever an XIM
+   server is available.  DISPLAY is the display of the XIM.
+   CLIENT_DATA contains a pointer to an xim_inst_t structure created
+   when the callback was registered.  */
+
+/* C: Xlib.h 1154-1158: `typedef void (*XIDProc)(Display *, XPointer, XPointer);` - the type
+   `XRegisterIMInstantiateCallback` takes C 27425's callback as.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
+            feature = "have_x11r6_xim"))]
+pub type XIDProc = Option<unsafe extern "C" fn (display: *mut Display, client_data: XPointer,
+						call_data: XPointer)>;
+/* C: Xlib.h 3941-3948: `extern Bool XRegisterIMInstantiateCallback (Display *, struct
+   _XrmHashBucketRec *, char *, char *, XIDProc, XPointer);` - C 27421's call.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
+            feature = "have_x11r6_xim"))]
+unsafe extern "C" {
+  pub fn XRegisterIMInstantiateCallback (display: *mut Display, rdb: XrmDatabase,
+					 res_name: *mut c_char, res_class: *mut c_char,
+					 callback: XIDProc, client_data: XPointer) -> Bool;
+}
+/* C: xfns.c 3090/3251/3302 - the three entry points C 27381-27385 calls.  None is `static`, and
+   `src/xfns.rs` 4701/4878/4943 defines them, so each stands here at the use site (P-72 rule 4).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
+            feature = "have_x11r6_xim"))]
+unsafe extern "C" {
+  pub fn create_frame_xic (f: *mut frame);
+  pub fn xic_set_preeditarea (w: *mut window, x: c_int, y: c_int);
+  pub fn xic_set_statusarea (f: *mut frame);
+}
+
+/// C 27351-27391: `static void xim_instantiate_callback (Display *display, XPointer client_data,
+/// XPointer call_data)` - a `static` whose **address** goes to
+/// `XRegisterIMInstantiateCallback` (C 27425), so the ABI is `extern "C"` (PORTING.md 1.4).
+/// `xim_inst` is the mirror's record (C 158-166, the same `HAVE_X11R6_XIM` gate),
+/// `x_dnd_in_progress` is this unit's `static mut`, and the three XIC entry points are declared
+/// just above.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
+            feature = "have_x11r6_xim"))]
+unsafe extern "C" fn xim_instantiate_callback (display: *mut Display, client_data: XPointer,
+					       call_data: XPointer)
+{
+  let xim_inst: *mut xim_inst_t = client_data as *mut xim_inst_t;       // C 27354
+  let dpyinfo: *mut x_display_info = (*xim_inst).dpyinfo;               // C 27355
+
+  if x_dnd_in_progress                                                 // C 27357
+    { return; }                                                        // C 27358
+
+  /* We don't support multiple XIM connections. */
+  if !(*dpyinfo).xim.is_null ()                                        // C 27361
+    { return; }                                                        // C 27362
+
+  xim_open_dpy (dpyinfo, (*xim_inst).resource_name);                    // C 27364
+
+  /* Create XIC for the existing frames on the same display, as long
+     as they have no XIC.  */
+  if !(*dpyinfo).xim.is_null () && (*dpyinfo).reference_count > 0       // C 27368
+    {
+      let mut tail: Lisp_Object;                                        // C 27370
+      let mut frame: Lisp_Object;
+
+      block_input ();                                                   // C 27372
+      FOR_EACH_FRAME! (tail, frame, {                                   // C 27373
+	let f: *mut frame = XFRAME (frame);                             // C 27375
+
+	if FRAME_X_P (f)                                                // C 27377
+	  && FRAME_DISPLAY_INFO! (f) == (*xim_inst).dpyinfo             // C 27378
+	  {
+	    if FRAME_XIC! (f).is_null ()                                // C 27379
+	      {
+		create_frame_xic (f);                                   // C 27381
+		if (FRAME_XIC_STYLE! (f) & XIMStatusArea) != 0          // C 27382
+		  { xic_set_statusarea (f); }                           // C 27383
+		let w: *mut window = XWINDOW ((*f).selected_window);    // C 27384
+		xic_set_preeditarea (w, (*w).cursor.x, (*w).cursor.y);  // C 27385
+	      }
+	  }
+      });
+
+      unblock_input ();                                                 // C 27389
+    }
+}
+
+/* Open a connection to the XIM server on display DPYINFO.
+   RESOURCE_NAME is the resource name for Emacs.  On X11R5, open the
+   connection only at the first time.  On X11R6, open the connection
+   in the XIM instantiate callback function.  */
+
+/// C 27401-27433: `static void xim_initialize (struct x_display_info *dpyinfo, char
+/// *resource_name)` - the `#ifdef HAVE_XIM` arm and its `#else` (C 27428-27430, the
+/// `xim_open_dpy` call), inside C 27200's `HAVE_X_I18N`; C 27404's write is outside the guards.
+/// `xmalloc`/`xstrdup` are `include/lisp.rs`'s, and the callback's `(void *) xim_inst` is C's own
+/// cast of the record pointer to the `XPointer` the prototype takes.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe fn xim_initialize (dpyinfo: *mut x_display_info, resource_name: *mut c_char)
+{
+  (*dpyinfo).xim = std::ptr::null_mut ();                               // C 27404
+
+  #[cfg (feature = "have_xim")]
+  {
+    if (*dpyinfo).use_xim                                              // C 27406
+      {
+	#[cfg (all (feature = "have_x11r6", feature = "have_x11r6_xim"))]
+	{
+	  let xim_inst: *mut xim_inst_t                                    // C 27409
+	    = xmalloc (core::mem::size_of::<xim_inst_t> ()) as *mut xim_inst_t;
+
+	  (*dpyinfo).xim_callback_data = xim_inst;                         // C 27412
+	  (*xim_inst).dpyinfo = dpyinfo;                                   // C 27413
+	  (*xim_inst).resource_name = xstrdup (resource_name);             // C 27414
+
+	  /* The last argument is XPointer in XFree86 but (XPointer *) on
+	     Tru64, at least, but the configure test doesn't work because
+	     xim_instantiate_callback can either be XIMProc or XIDProc, so
+	     just cast to void *.  */
+
+	  let ret: Bool                                                 // C 27410/27421-27426
+	    = XRegisterIMInstantiateCallback ((*dpyinfo).display,
+					      (*dpyinfo).rdb,
+					      (*xim_inst).resource_name,
+					      emacs_class.as_mut_ptr (),
+					      Some (xim_instantiate_callback),
+					      xim_inst as XPointer);  // C's `(void *) xim_inst`
+	  eassert! (ret);                                                  // C 27427
+	}
+	#[cfg (not (all (feature = "have_x11r6", feature = "have_x11r6_xim")))]
+	{
+	  xim_open_dpy (dpyinfo, resource_name);                           // C 27429
+	}
+      }
+  }
+}
