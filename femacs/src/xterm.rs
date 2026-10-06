@@ -26982,5 +26982,52 @@ unsafe fn x_scroll_bar_handle_click (bar: *mut scroll_bar, event: *const XEvent,
     }
 }
 
-/* C 17598's `#ifndef USE_TOOLKIT_SCROLL_BARS` opens the region the next slice reads, whose first
-   definition is `x_scroll_bar_note_movement` (C 17605-17630).  */
+/* C 17598's `#ifndef USE_TOOLKIT_SCROLL_BARS` opens the region this definition belongs to;
+   C 17632's `#endif` closes it.  */
+
+/* Handle some mouse motion while someone is dragging the scroll bar.
+
+   This may be called from a signal handler, so we have to ignore GC
+   mark bits.  */
+
+/// C 17605-17630: `static void x_scroll_bar_note_movement (struct scroll_bar *bar, const
+/// XMotionEvent *event)` - C's `static`, so a plain `unsafe fn`, and inside C 17598's
+/// `#ifndef USE_TOOLKIT_SCROLL_BARS`, so slice 79's gate: the four toolkit arms do not compile
+/// it.  Five shapes: C 17609's `XWINDOW (bar->window)->frame` is the mirror's `XWINDOW` (a
+/// function returning `*mut window`, `include/window.rs` 212) with the member read through it
+/// (the `src/androidfns.rs` 706 shape); `XMotionEvent` is one of the X11 records no mirror in
+/// this tree carries, which slice 65's `x_note_mouse_movement` already stands on - so this is a
+/// second `E0425 cannot find type` row of that recorded class, and its four field reads are
+/// silent (rustc reports the unresolved type once and suppresses the accesses, measured); the
+/// `bool` member C 17613 writes takes the `!= 0` conversion slice 65's C 14750 reading uses;
+/// `f->mouse_moved = true` is this unit's `frame_bits!` accessor (PORTING.md P-80, the macro
+/// slice 65's C 14757 reading is the first caller of); and `x_scroll_bar_set_handle` is slice
+/// 79's definition, so this call resolves.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_toolkit_scroll_bars")))]
+unsafe fn x_scroll_bar_note_movement (bar: *mut scroll_bar, event: *const XMotionEvent)
+{
+  let f: *mut frame = XFRAME ((*XWINDOW ((*bar).window)).frame);       // C 17609
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);          // C 17610
+
+  (*dpyinfo).last_mouse_movement_time = (*event).time;                 // C 17612
+  (*dpyinfo).last_mouse_movement_time_send_event = (*event).send_event != 0; // C 17613
+  (*dpyinfo).last_mouse_scroll_bar = bar;                              // C 17614
+  frame_bits! (mouse_moved, f, true);                                  // C 17615
+
+  /* If we're dragging the bar, display it.  */
+  if (*bar).dragging != -1                                             // C 17618
+    {
+      /* Where should the handle be now?  */
+      let new_start: c_int = (*event).y - (*bar).dragging;             // C 17621
+
+      if new_start != (*bar).start                                     // C 17623
+	{
+	  let new_end: c_int = new_start + (*bar).end - (*bar).start;  // C 17625
+
+	  x_scroll_bar_set_handle (bar, new_start, new_end, false);    // C 17627
+	}
+    }
+}
+
+/* C 17632's `#endif /* !USE_TOOLKIT_SCROLL_BARS */` closes the pair; the next definition is
+   `x_scroll_bar_report_motion` (C 17637-17700).  */

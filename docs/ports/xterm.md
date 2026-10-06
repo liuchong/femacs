@@ -42,6 +42,12 @@ it), so all five arms read it: A 777 -> **789**, U 814 -> **822**, UT 800 -> **8
 `xbutton`/`r#type` members slice 21's `msg.xclient.*` opened), with 0 retired in any arm and 0
 warnings moved.  C 17537/17568's `f` - an argument handed to macros that never expand it -
 measures as 0 rows in every arm, which is what C's own preprocessor does with the name.
+  Slice 84 (C 17598-17632, Decision 97) goes **35 -> 34**: `x_scroll_bar_note_movement` retires as
+a missing function, and no token row arrives.  C 17598's `#ifndef USE_TOOLKIT_SCROLL_BARS` makes it
+arm A's alone: A 789 -> **790**, one `cannot find type XMotionEvent` row in the class slice 65
+opened and no other movement, while U/UT/UM/UG read logs identical to their baselines - not the same
+count, the same sets, error for error and warning for warning - which is the measurement that the
+gate is the only thing between the function and those four arms.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -234,7 +240,7 @@ measures as 0 rows in every arm, which is what C's own preprocessor does with th
 - [ ] x_scroll_bar_handle_exposure  (line 17402, static)
 - [ ] x_scroll_bar_redraw  (line 17459, static)
 - [x] x_scroll_bar_handle_click  (line 17503, static)
-- [ ] x_scroll_bar_note_movement  (line 17606, static)
+- [x] x_scroll_bar_note_movement  (line 17606, static)
 - [ ] x_scroll_bar_report_motion  (line 17638, static)
 - [ ] x_horizontal_scroll_bar_report_motion  (line 17707, static)
 - [ ] x_scroll_bar_clear  (line 17777, static)
@@ -4004,6 +4010,37 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **36 -> 35**: the function retires as a missing item and no token row
   arrives; the line-count row moves to **26,986** against C's 33,125 (18.5% drift, was 26,863 /
   18.9%).
+
+### 97. Slice 84 (C 17598-17632): `x_scroll_bar_note_movement`, and the asymmetry a gate makes
+
+* **One function, and it is arm A's alone.**  C 17598's `#ifndef USE_TOOLKIT_SCROLL_BARS` opens the
+  region, C 17632's `#endif` closes it, and the only definition between them is
+  `x_scroll_bar_note_movement` (C 17605-17630) - so the port carries
+  `#[cfg (all (feature = "have_x_windows", not (feature = "use_toolkit_scroll_bars")))]`, the same
+  gate slice 79's `x_scroll_bar_set_handle` and slice 82's exposure/redraw pair carry, and the four
+  toolkit arms do not compile it at all.  The asymmetry in the table below is therefore the gate, and
+  the *identical* toolkit logs are the reading.
+* **Five shapes.**  C 17609's `XWINDOW (bar->window)->frame` is the mirror's `XWINDOW`, which is a
+  function returning `*mut window` (`include/window.rs` 212), so the member is read through the
+  pointer - `(*XWINDOW ((*bar).window)).frame`, the `src/androidfns.rs` 706 shape - and C 17610 is
+  the ordinary `FRAME_DISPLAY_INFO` accessor.  `XMotionEvent` is one of the X11 records no mirror in
+  this tree carries (slice 65's `x_note_mouse_movement` already stands on it), so this signature adds
+  a second `E0425 cannot find type` row of that recorded class, and its field reads (`.time`,
+  `.send_event`, `.y`) are **silent**: rustc reports the unresolved type once and suppresses the
+  accesses on it - which is also why the baseline's 255 `E0609` rows are the *resolved*
+  `[u8; 192]` placeholder's members and not this record's.  C 17613's `bool` member takes the
+  `!= 0` conversion slice 65's C 14750 reading uses; `f->mouse_moved = true` is this unit's
+  `frame_bits!` accessor (PORTING.md P-80, the macro slice 65's C 14757 reading first called); and
+  `x_scroll_bar_set_handle` is slice 79's own definition, so this call resolves instead of adding a
+  row.
+* **What the asymmetry proves.**  The slice's whole footprint is one row, in one arm: nothing this
+  slice's text does can hide behind the other four, because those four do not compile it - and if
+  the gate were wrong, the four would have moved.  They did not: `diff` of the sorted
+  `error[E..]: <message>` head lines with counts, both directions, is empty for U/UT/UM/UG, and their
+  warning sets are identical to their baselines' by message (69/68/68/71).
+* **What `--check` reads.**  **35 -> 34**: the function retires as a missing item and no token row
+  arrives (`x_get_wm_check_window does not mention false` remains the standing one); the line-count
+  row moves to **27,033** against C's 33,125 (18.4% drift, was 26,986 / 18.5%).
 
 ## Evidence
 
@@ -7829,3 +7866,43 @@ against C's 33,125 (18.5% drift, was 26,863 / 18.9%).
 **Not claimed.**  The frozen configuration compiles none of this file: no click was handled, no
 `input_event` was filled or enqueued, no scroll-bar handle was moved; the bare names and the
 placeholder's member rows above are unresolved text.
+
+### Slice 84's readings (C 17598-17632), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s84/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s84/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`.
+Both sides were measured in all five arms on this revision.
+
+| arm | HEAD's unit (slice 83 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 789 / 69 | **790 / 69** | **+1** |
+| U `+use_toolkit_scroll_bars` | 822 / 69 | **822 / 69** | 0 |
+| UT `U +use_x_toolkit` | 808 / 68 | **808 / 68** | 0 |
+| UM `UT +use_motif` | 809 / 68 | **809 / 68** | 0 |
+| UG `U +use_gtk` | 793 / 71 | **793 / 71** | 0 |
+
+**Retirements and additions, by name** (diffed as full `error[E..]: <message>` head lines with
+counts, both directions): arm A retires nothing and adds `cannot find type XMotionEvent` x1; U, UT,
+UM and UG have **no diff at all** - neither direction, error or warning.
+
+**Why the toolkit arms are empty.**  C 17598's `#ifndef USE_TOOLKIT_SCROLL_BARS` is the gate: the
+function exists only in the arm that does not turn the feature on, so the four arms that do cannot
+read one row of it.  The measurement is worth writing down because it is the same shape every gated
+slice of this region has: an "unchanged" toolkit column is not evidence of a resolved body, it is
+evidence of a body the arm never sees - which is why each such slice is checked in the arm that
+compiles it (here A, and its +1 is a row this ledger has already counted since slice 65).
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical warning
+sets.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` ahead of C 17609's
+`let f: *mut frame = XFRAME (...)` moves A 790 -> 791 with `E0308` 13 -> 14, anchored at
+`build/probes/xterm/_root.rs:27023:18`; removing it returns A to the table.
+
+**What `--check` reads.**  **35 -> 34** as Decision 97 4 says, with the line-count row at **27,033**
+against C's 33,125 (18.4% drift, was 26,986 / 18.5%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no motion was noted, no frame
+flag was set and no handle was moved; `XMotionEvent` and the field reads through it are unresolved
+text.
