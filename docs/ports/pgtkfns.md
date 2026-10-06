@@ -13,10 +13,10 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**3,711** lines, from the 11 of the placeholder), carrying **C 1-1147**,
-> **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208**, **C 2210-2403** and
-> **C 2405-2549** - seven slices - with **both arms of every `#if`**; the next live item is the
-> tooltip group's state (**C 2556**, `tip_frame`).
+> `femacs/src/pgtkfns.rs` (**4,055** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208**, **C 2210-2403**,
+> **C 2405-2549** and **C 2551-2838** - eight slices - with **both arms of every `#if`**; the next
+> live definition is `compute_tip_xy` (**C 2846**).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -129,7 +129,8 @@ which exist only under those two features (Owed 6).
 | 1999-2208 | the resource subr, the eleven `x-*` display subrs and `pgtk-font-name`: `Fpgtk_set_resource` (C 1999-2019), `x-server-max-request-size`/`x-display-screens` (2022-2039), the two GDK monitor walks `x-display-mm-height`/`x-display-mm-width` (2042-2107), `x-display-backing-store`/`x-display-visual-class`/`x-display-save-under` (2110-2133), `x-open-connection`/`x-close-connection` (2136-2172), `x-display-list` (2175-2186) and `pgtk-font-name` (2188-2208) | the file gate - **transcribed** (the fifth slice) |
 | 2210-2403 | the miscellaneous group's first five definitions and the first seven colour/geometry subrs: C 2210-2214's banner, `check_x_display_info` (2216-2221), `pgtk_set_scroll_bar_default_width`/`_height` (2223-2241), `pgtk_get_string_resource` (2243-2268), `pgtk_get_focus_frame` (2270-2281) and `xw-color-defined-p`/`xw-color-values`/`xw-display-color-p`/`x-display-grayscale-p`/`x-display-pixel-width`/`x-display-pixel-height` (2283-2403) | the file gate - **transcribed** (the sixth slice) |
 | 2405-2549 | the monitor-attribute builder and the group's last three definitions: `Fpgtk_display_monitor_attributes_list` (C 2405-2510: the `FOR_EACH_FRAME` filing walk, the per-monitor records and the `make_monitor_attribute_list`/`free_monitors` pair), `pgtk_frame_scale_factor` (2512-2531), `x-display-planes` (2533-2539) and `x-display-color-cells` (2542-2549) | the file gate - **transcribed** (the seventh slice) |
-| 2551-3906 | **the remainder of the file** - from C 2551-2553's "Tool tips" banner and C 2556's `tip_frame` (**the next live item**) through C 3906's `syms_of_pgtkfns`: the tooltip frame (`pgtk_create_tip_frame`, `compute_tip_xy`, `Fx_show_tip`/`Fx_hide_tip` and their unwind helpers, 2551-3311), the frame-geometry/edges/mouse/print/file-dialog/font subrs (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2551-2838 | the tooltip group: C 2551-2553's banner, the six file-scope statics (2555-2573), `unwind_create_tip_frame` (2576-2587) and `pgtk_create_tip_frame` (2590-2838: the frame's officialisation, the colour/name blocks, the two font drivers, the thirteen `gui_default_parameter` calls, the GTK window setup, the three `AUTO_FRAME_ARG` blocks and the tail) | the file gate - **transcribed** (the eighth slice) |
+| 2840-3906 | **the remainder of the file** - from C 2840-2844's comment and C 2846's `compute_tip_xy` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the tip position/`pgtk_hide_tip`/`Fx_show_tip`/`Fx_hide_tip` pair and their unwind helpers (2840-3311), the frame-geometry/edges/mouse/print/file-dialog/font subrs (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -524,6 +525,35 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     failure(s)` with `checking 83 unit(s), 0 unit failure(s)`, `check-mirror-dupes.py` stays 16/16/0,
     and the mirror's ledger carries the three rows with a `### status 3.720` section.  The one new
     declaration this unit needed of its own is `dupstring` (lisp.h 5555, this file's own block).
+
+53. **The three frame bitfields this slice writes are this unit's own two-arm macros.**
+    `f->wants_modeline = false;` (C 2623) and `f->tooltip = true;` (C 2639) are written through a
+    new `wants_modeline!` and `tooltip!` (`no_split!` already stands above), each forwarding to the
+    mirror's `frame_set_flag` with the mirror's own `_UNIT`/`_SHIFT` - the `src/haikufns.rs` 496-507
+    device for the same two bits.
+54. **`face_change` (C 2606/2834) is declared in this unit.**  The mirror carries it inside
+    `include/dispextern.rs`'s `dispextern_unit_names` module (`dispextern.h` 2068), which this
+    unit's include graph does not glob-import, so the row stands in this unit's own block (the
+    `src/haikufns.rs` 857 shape).  **Measured**: without it all four arms read a new class -
+    `cannot find value face_change` x2 - and with it the arms return to the classes the ledger
+    already names (Evidence ㉜).
+55. **The tooltip group's six file-scope statics are C's *tentative* definitions, i.e. zero**
+    (C 2556/2560/2564/2567/2570/2573; PORTING.md 0.1-13), and each keeps C's own comment above it -
+    this file's `monitor_scale_factor_alist` shape.  `unwind_create_tip_frame` (C 2576-2587) is
+    `unsafe extern "C" fn` because C 2625 hands it to `record_unwind_protect`, whose parameter is
+    `Option<unsafe extern "C" fn (Lisp_Object)>` (the `do_unwind_create_frame` device above).
+56. **`pgtk_create_tip_frame` (C 2599-2838) reuses the devices `Fx_create_frame` established** -
+    `output_method!`, the `FRAME_X_OUTPUT!` member paths for C's l-value macros (C 2634/2641/2642/
+    2643/2738/2755), `explicit_name!`, the written-out `-1`/`x_decode_color` conversions (C
+    2636/2637/2653-2663), `AUTO_FRAME_ARG!` for C's three `AUTO_FRAME_ARG` blocks (C 2774/2789/
+    2809) and `calln!` for C's `calln (Qface_set_after_frame_default, …)` (C 2805) - so nothing in
+    it is a new shape; its own `parms` reassignment (C 2611) is the `Fpgtk_set_monitor_scale_factor`
+    shadow.
+57. **The mirror gains the four `gtk_window_set_*` rows and `GdkWindowTypeHint`** (C 2749-2754; no
+    GDK/GTK header on this machine, so all cite the header alone and the enum's one named member is
+    a placeholder), so P-87's two legs apply: `tools/check-all-units.sh` reads `checked 83 unit(s),
+    0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`, `check-mirror-dupes.py` stays
+    16/16/0, and the mirror's ledger carries the rows with a `### status 3.721` section.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1015,3 +1045,57 @@ nothing calls it; `make_monitor_attribute_list`/`free_monitors` are `frame.c`'s 
 frame's scale factor was computed (`pgtk_frame_scale_factor` is called by this file's own
 `FRAME_SCALE_FACTOR` arm only), and the four arm readings are **compile** readings of text this
 machine cannot build.
+
+## The eighth slice (C 2551-2838): the tooltip group's state, its unwind helper and `pgtk_create_tip_frame`
+
+**㉛ What is in it.**  C 2551-2553's "Tool tips" banner, carried as C's own box comment; C 2555-2573's
+six file-scope statics (`tip_frame`, `tip_window`, `tip_timer`, `tip_last_string`, `tip_last_frame`,
+`tip_last_parms`, each with its own comment); C 2576-2587's `unwind_create_tip_frame` (the
+`unwind_create_frame` call and the two clears); and C 2590-2838's `pgtk_create_tip_frame` - the
+`face_change` save (C 2606), the terminal gate, the `Fcopy_alist`/name block, `make_frame (false)`
+with `wants_modeline` and the unwind protect, the frame's officialisation (the output method, the
+`xzalloc`'d `pgtk_output`, `FRAME_FONTSET`, the two relief pixels, `tooltip`, the display info, the
+parent descriptor and `explicit_parent`), the colour reference-count block, the name/`specbind`
+block, the two font drivers, the thirteen `gui_default_parameter` calls with `init_frame_faces`, the
+GTK window setup (the five `gtk_window_set_*` calls, `tip_window` and the cursor copy), the
+`auto_raise`-through-`borders_respect_alpha_background` parameters, the three `AUTO_FRAME_ARG`
+blocks (the `tooltip` and `display-type` defaults and the `calln (Qface_set_after_frame_default …)`
+that restores `background-color`), `no_split`, the two reference counts, `Vframe_list`,
+`can_set_window_size`, the `adjust_frame_size` with `Qtip_frame`, the `face_change` restore and
+`return unbind_to (count, frame)`.  Rust: 3,711 -> **4,055** lines.
+
+**㉜ The arm readings (four arms, both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 163 errors / 11 warnings -> 182 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets   : 151 / 10 -> 170 / 10
+C = A + have_gsettings                             : 163 / 11 -> 182 / 11
+D = B + have_gsettings                             : 151 / 10 -> 170 / 10
+```
+All four arms read the same delta: **+18 `pgtk_output` and +1 `pgtk_display_info` sites** (both
+classes this ledger names; attributed the Evidence ⑩ way - the new text's `FRAME_X_OUTPUT!`/
+`FRAME_DISPLAY_INFO!` expansions), with **no new class and no new warning**.  The first run read one
+extra class in all four arms - `cannot find value face_change` x2 - because that global lives in a
+non-glob-imported module of the mirror; the unit's own declaration (Deviation 54) retired it, and
+nothing else in the slice's text needed revisiting.
+
+**㉝ `extract-abi.py --check`.**  `FAIL`, **67 `- ` rows -> 59**: `missing function
+pgtk_create_tip_frame`, `missing function unwind_create_tip_frame` and the six `missing file-scope
+object tip_*` rows retire, no row appears, and the port stays inside the 5% rule the drift row
+watches (C 3,906 vs Rust 4,055 = **+3.8%**, and the row has not come back).
+
+**㉞ The gates, P-87's two legs, and what is not claimed.**  `check-declarations.py` **18 declaration
+sites (0 forbidden, 18 allowed literals), 0 failures**; `check-citations.py` **676 file(s) scanned,
+0 drift, 0 range, 2,040 external, 36 allowed, 0 stale**; `check-dead-file-coverage.py` **145
+ledger(s) bound, 0 failure(s)** (58 range rows now cover src/pgtkfns.c); `check-port-lines.py` **0
+file(s) under ten percent, 0 reference line(s), 0 ratchet row(s), 0 new, 0 stale**;
+`check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**; `check-cond-eval.py src/pgtkfns.c`
+**11 conditions, 0 unknown, 0 disagreements [VERIFIED]**; `check-mirror-dupes.py` **16 duplicate(s),
+16 ratchet row(s), 0 failure(s)**.  **A mirror changed this round** (four GTK window rows and the
+`GdkWindowTypeHint` enum, Deviation 57), so P-87 ①'s consumer sweep was run: `checked 83 unit(s), 0
+failure(s)` and `checking 83 unit(s), 0 unit failure(s)`.  **Not claimed**: no tooltip frame was
+created (`pgtk_create_tip_frame` is called by `Fx_show_tip`, still the remainder), no GTK window
+exists (`gtk_window_set_*` are declarations - the port has no GTK to link), and the tooltip statics
+are written by nothing in the port: they are zero-initialised declarations this slice's own
+functions would write.  The four arm readings are **compile** readings of text this machine cannot
+build.

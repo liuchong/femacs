@@ -1069,6 +1069,12 @@ pub const GDK_GRAVITY_EAST: GdkGravity = 6;                     // placeholder, 
 pub const GDK_GRAVITY_SOUTH_WEST: GdkGravity = 7;               // placeholder, not GDK's value
 pub const GDK_GRAVITY_SOUTH: GdkGravity = 8;                    // placeholder, not GDK's value
 pub const GDK_GRAVITY_SOUTH_EAST: GdkGravity = 9;               // placeholder, not GDK's value
+/// C: gdk/gdkwindow.h: `typedef enum { … GDK_WINDOW_TYPE_HINT_TOOLTIP, … } GdkWindowTypeHint;`
+/// (C 2754 passes it to `gtk_window_set_type_hint`).  C's enum ABI is `c_int` (PORTING.md 1.3);
+/// **UNVERIFIED** like every other GDK enumerator here, and the one member this tree names is a
+/// placeholder for the same reason.
+pub type GdkWindowTypeHint = c_int;
+pub const GDK_WINDOW_TYPE_HINT_TOOLTIP: GdkWindowTypeHint = 0;   // placeholder, not GDK's value
 pub const GDK_GRAVITY_STATIC: GdkGravity = 10;                  // placeholder, not GDK's value
 /// C: gdk/gdkwindow.h: `typedef struct _GdkGeometry GdkGeometry;` with `gint min_width;
 /// gint min_height; gint max_width; gint max_height; gint base_width; gint base_height; gint
@@ -1282,6 +1288,15 @@ unsafe extern "C" {
   /// C 1665/1869/2152: `gtk_window_set_decorated (GTK_WINDOW (wtop), FALSE);`
   /// C: gtk/gtkwindow.h: `void gtk_window_set_decorated (GtkWindow *window, gboolean setting);`
   pub fn gtk_window_set_decorated (window: *mut GtkWindow, setting: gboolean);
+  /// C 2749/2750/2751/2752/2753/2754: the five `gtk_window_set_*` calls on the tip window
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_transient_for (GtkWindow *window, GtkWindow
+  /// *parent);` / `void gtk_window_set_attached_to (GtkWindow *window, GtkWidget
+  /// *attach_widget);` / `void gtk_window_set_destroy_with_parent (GtkWindow *window, gboolean
+  /// setting);` / `void gtk_window_set_type_hint (GtkWindow *window, GdkWindowTypeHint hint);`
+  pub fn gtk_window_set_transient_for (window: *mut GtkWindow, parent: *mut GtkWindow);
+  pub fn gtk_window_set_attached_to (window: *mut GtkWindow, attach_widget: *mut GtkWidget);
+  pub fn gtk_window_set_destroy_with_parent (window: *mut GtkWindow, setting: gboolean);
+  pub fn gtk_window_set_type_hint (window: *mut GtkWindow, hint: GdkWindowTypeHint);
   /// C 1774/1896: `gtk_window_set_resizable (GTK_WINDOW (wtop), TRUE);`
   /// C: gtk/gtkwindow.h: `void gtk_window_set_resizable (GtkWindow *window, gboolean resizable);`
   pub fn gtk_window_set_resizable (window: *mut GtkWindow, resizable: gboolean);

@@ -49,7 +49,8 @@ by header:
   `GdkWindow`/`GdkPixbuf`/`GdkVisual`/`GdkSeat`/`GdkDevice`/`GdkDragContext`/`GdkColormap`/
   `_GdkAtom`, the words `GdkRGBA`/`GdkColor`/`GdkGeometry`/`GdkRectangle`, the enumerations
   `GdkEventType`/`GdkEventMask`/`GdkWindowHints`/`GdkGravity`/`GdkColorspace`/`GdkCursorType`/
-  `GdkInputSource`, the fifteen `GdkCursorType` enumerators C 1556-1591's `INSTALL_CURSOR`
+  `GdkInputSource`, `GdkWindowTypeHint` (one named member, a placeholder, C 2754's
+  `GDK_WINDOW_TYPE_HINT_TOOLTIP`), the fifteen `GdkCursorType` enumerators C 1556-1591's `INSTALL_CURSOR`
   paste names (`GDK_LEFT_PTR` and, added by the pgtkfns third slice, `GDK_XTERM`/`GDK_HAND2`/
   `GDK_WATCH`/`GDK_SB_H_DOUBLE_ARROW`/`GDK_SB_V_DOUBLE_ARROW`/`GDK_LEFT_SIDE`/`GDK_RIGHT_SIDE`/
   `GDK_TOP_SIDE`/`GDK_BOTTOM_SIDE`/`GDK_TOP_LEFT_CORNER`/`GDK_TOP_RIGHT_CORNER`/
@@ -66,6 +67,8 @@ by header:
   `GtkAllocation`/`GtkRequisition`, the enumerations `GtkWindowType`/`GtkOrientation`/
   `GtkStateType`/`GtkStateFlags`/`GtkTextDirection`, the cast/check macros
   (`GTK_WIDGET`/`GTK_WINDOW`/`GTK_BOX`/`GTK_CONTAINER`/`GTK_LABEL`/`GTK_MENU_SHELL`/
+  the four window rows the pgtkfns tooltip frame needs (`gtk_window_set_transient_for`,
+  `gtk_window_set_attached_to`, `gtk_window_set_destroy_with_parent`, `gtk_window_set_type_hint`),
   `GTK_WIDGET_CLASS`/`GTK_STYLE_PROVIDER`/`GTK_IS_*`/`GDK_WINDOW`/`GDK_DISPLAY_XDISPLAY`), the
   GTK2 compatibility macros (`gtk_box_new`, `gtk_scrollbar_new`, the three font-chooser renames)
   and a hundred entry points.
@@ -249,3 +252,11 @@ frames and monitors through `gdk_display_get_monitor_at_window`, `gdk_monitor_is
 this machine).  P-87 ①'s consumer sweep reads `checked 83 unit(s), 0 failure(s)` with
 `checking 83 unit(s), 0 unit failure(s)`; the consumer's ledger records the pair
 (`docs/ports/pgtkfns.md` Deviations 48-52 and Evidence ㉘).
+
+### status 3.721 (the pgtkfns eighth-slice round this file took part in)
+
+`src/pgtkfns.c`'s tooltip frame (C 2746-2755) sets its window up through four `gtk_window_set_*`
+calls and one `GdkWindowTypeHint` member, so those rows landed here (header-only citations: no
+GTK/GDK header on this machine, and the one named enumerator is a placeholder).  P-87 ①'s consumer
+sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`; the
+consumer's ledger records the pair (`docs/ports/pgtkfns.md` Deviations 53-57 and Evidence ㉜).

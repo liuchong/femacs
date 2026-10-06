@@ -282,6 +282,22 @@ macro_rules! can_set_window_size {
     frame_set_flag ($f, FRAME_CAN_SET_WINDOW_SIZE_UNIT, FRAME_CAN_SET_WINDOW_SIZE_SHIFT,
 		    ($v) as u32) };
 }
+/* C 2623's `f->wants_modeline = false;`, C 2639's `f->tooltip = true;` and C 2814's
+   `f->no_split = true;` are the three frame bitfields this slice writes (`no_split!` stands above
+   already); `include/frame.rs` carries each bit's `_SHIFT`/`_UNIT` and the readers, so the two
+   writers stand here under C's names (the `src/haikufns.rs` 496-507 device).  */
+/// C: frame.h 537: `bool_bf wants_modeline : 1;` - written at C 2623
+#[cfg (feature = "have_pgtk")]
+macro_rules! wants_modeline {
+  ($f:expr, $v:expr) => {
+    frame_set_flag ($f, FRAME_WANTS_MODELINE_UNIT, FRAME_WANTS_MODELINE_SHIFT, ($v) as u32) };
+}
+/// C: frame.h 553: `bool_bf tooltip : 1;` - written at C 2639
+#[cfg (feature = "have_pgtk")]
+macro_rules! tooltip {
+  ($f:expr, $v:expr) => {
+    frame_set_flag ($f, FRAME_TOOLTIP_UNIT, FRAME_TOOLTIP_SHIFT, ($v) as u32) };
+}
 
 /* C's four `FRAME_CONFIG_SCROLL_BAR_*` macros are l-values in C 2229/2230/2239/2240, and
    `include/frame.rs` mirrors each as a reader only, so this unit adds C's assignment shape under
@@ -599,6 +615,10 @@ unsafe extern "C" {
   /// C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);`
   /// - C 2151's call (the `src/emacs.rs` 196 / `src/alloc.rs` 6231 shape, `-> !`)
   pub fn fatal (msgid: *const c_char, ...) -> !;
+  /// C: dispextern.h 2068: `extern bool face_change;` - C 2606/2834 read and write it; the
+  /// mirror carries the declaration inside its `dispextern_unit_names` module, which this unit's
+  /// include graph does not glob-import, so it stands here (the `src/haikufns.rs` 857 shape)
+  pub static mut face_change: bool;
   /// C: string.h: `char *strstr (const char *haystack, const char *needle);` - C 2201's two calls
   /// (`lib/include/string.rs` has not got it; the `src/font.rs` 437-438 shape)
   pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
@@ -3709,3 +3729,327 @@ DEFUN! ("x-display-color-cells", Fx_display_color_cells, Sx_display_color_cells,
   return make_fixnum (((1 as isize) << min ((*dpyinfo).n_planes as isize, 24))   // C 2548
 		      as EMACS_INT);
 });
+
+/***********************************************************************
+				Tool tips
+ ***********************************************************************/
+
+/* C 2555-2573: the group's six file-scope statics.  C's are *tentative* definitions, i.e. zero
+   (PORTING.md 0.1-13), which is what the port writes; each keeps C's own comment above it in this
+   file's `monitor_scale_factor_alist` shape.  */
+/* The frame of the currently visible tooltip.  */
+#[cfg (feature = "have_pgtk")]
+static mut tip_frame: Lisp_Object = std::ptr::null_mut ();                // C 2556
+
+/* The window-system window corresponding to the frame of the
+   currently visible tooltip.  */
+#[cfg (feature = "have_pgtk")]
+static mut tip_window: *mut GtkWidget = std::ptr::null_mut ();            // C 2560
+
+/* A timer that hides or deletes the currently visible tooltip when it
+   fires.  */
+#[cfg (feature = "have_pgtk")]
+static mut tip_timer: Lisp_Object = std::ptr::null_mut ();                // C 2564
+
+/* STRING argument of last `x-show-tip' call.  */
+#[cfg (feature = "have_pgtk")]
+static mut tip_last_string: Lisp_Object = std::ptr::null_mut ();          // C 2567
+
+/* Normalized FRAME argument of last `x-show-tip' call.  */
+#[cfg (feature = "have_pgtk")]
+static mut tip_last_frame: Lisp_Object = std::ptr::null_mut ();           // C 2570
+
+/* PARMS argument of last `x-show-tip' call.  */
+#[cfg (feature = "have_pgtk")]
+static mut tip_last_parms: Lisp_Object = std::ptr::null_mut ();           // C 2573
+
+/// C: C 2576-2577: `static void unwind_create_tip_frame (Lisp_Object frame)` - C's `static void`,
+/// spelled `unsafe extern "C" fn` because C 2625 passes it to `record_unwind_protect` whose
+/// parameter is `Option<unsafe extern "C" fn (Lisp_Object)>` (the `do_unwind_create_frame` device
+/// above).
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn unwind_create_tip_frame (frame: Lisp_Object)
+{
+  let deleted: Lisp_Object;                                     // C 2579
+
+  deleted = unwind_create_frame (frame);                        // C 2581
+  if EQ (deleted, Qt ())                                        // C 2582
+    {
+      tip_window = std::ptr::null_mut ();                       // C 2584
+      tip_frame = Qnil ();                                      // C 2585
+    }
+}
+
+/* C 2590-2597's comment:
+
+   Create a frame for a tooltip on the display described by DPYINFO.
+   PARMS is a list of frame parameters.  TEXT is the string to
+   display in the tip frame.  Value is the frame.
+
+   Note that functions called here, esp. gui_default_parameter can
+   signal errors, for instance when a specified color name is
+   undefined.  We have to make sure that we're in a consistent state
+   when this happens.  */
+
+/// C: C 2599-2600: `static Lisp_Object pgtk_create_tip_frame (struct pgtk_display_info *dpyinfo,
+/// Lisp_Object parms, struct frame *p)` - C's `static Lisp_Object`, and the same devices
+/// `Fx_create_frame` above uses (`output_method!`, the `FRAME_X_OUTPUT!` member writes,
+/// `explicit_name!`, the written-out conversions).  C 2606 reads the `face_change` global
+/// (`include/dispextern.rs` 2915) and C 2639/2623/2814 write three frame bitfields through this
+/// unit's own `tooltip!`/`wants_modeline!`/`no_split!` (Deviation 53).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_create_tip_frame (dpyinfo: *mut pgtk_display_info, parms: Lisp_Object,
+				 p: *mut frame) -> Lisp_Object
+{
+  let mut f: *mut frame;                                        // C 2602
+  let mut frame: Lisp_Object;                                   // C 2603
+  let mut name: Lisp_Object;                                    // C 2604
+  let count: specpdl_ref = SPECPDL_INDEX ();                    // C 2605
+  let face_change_before: bool = face_change;                   // C 2606
+  let mut parms = parms;                                        // C 2611 reassigns the parameter.
+
+  if (*((*dpyinfo).terminal)).name.is_null ()                   // C 2608
+    { error (c"Terminal is not live, can't create new frames on it".as_ptr ()); }
+
+  parms = Fcopy_alist (parms);                                  // C 2611
+
+  /* Get the name of the frame to use for resource lookup.  */
+  name = gui_display_get_arg (dpyinfo as *mut c_void, parms, Qname (), c"name".as_ptr (),
+			      c"Name".as_ptr (), RES_TYPE_STRING);          // C 2614-2615
+  if !STRINGP (name)                                            // C 2616
+      && !BASE_EQ (name, Qunbound ())
+      && !NILP (name)
+    { error (c"Invalid frame name--not a string or nil".as_ptr ()); }
+
+  frame = Qnil ();                                              // C 2621
+  f = make_frame (false);                                       // C 2622
+  wants_modeline! (f, false);                                   // C 2623
+  XSETFRAME! (frame, f);                                        // C 2624
+  record_unwind_protect (Some (unwind_create_tip_frame), frame);   // C 2625
+
+  (*f).terminal = (*dpyinfo).terminal;                          // C 2627
+
+  /* By setting the output method, we're essentially saying that
+     the frame is live, as per FRAME_LIVE_P.  If we get a signal
+     from this point on, x_destroy_window might screw up reference
+     counts etc.  */
+  output_method! (f, output_pgtk);                              // C 2633
+  (*f).output_data.pgtk = xzalloc (std::mem::size_of::<pgtk_output> ());   // C 2634
+  FRAME_FONTSET! (f, -1);                                       // C 2635
+  (*FRAME_X_OUTPUT! (f)).white_relief.pixel = (-1 as c_long) as c_ulong;   // C 2636
+  (*FRAME_X_OUTPUT! (f)).black_relief.pixel = (-1 as c_long) as c_ulong;   // C 2637
+
+  tooltip! (f, true);                                           // C 2639
+  fset_icon_name (f, Qnil ());                                  // C 2640
+  /* C 2641: `FRAME_DISPLAY_INFO (f) = dpyinfo;` - the same l-value case as `Fx_create_frame`'s.  */
+  (*FRAME_X_OUTPUT! (f)).display_info = dpyinfo;
+  (*FRAME_X_OUTPUT! (f)).parent_desc = (*FRAME_DISPLAY_INFO! (f)).root_window;   // C 2642
+  (*FRAME_X_OUTPUT! (f)).explicit_parent = false as c_char;    // C 2643
+
+  /* These colors will be set anyway later, but it's important
+     to get the color reference counts right, so initialize them!  */
+  {
+    let black: Lisp_Object;                                     // C 2648
+
+    /* Function x_decode_color can signal an error.  Make
+       sure to initialize color slots so that we won't try
+       to free colors we haven't allocated.  */
+    FRAME_FOREGROUND_PIXEL! (f, (-1 as c_long) as c_ulong);     // C 2653
+    FRAME_BACKGROUND_PIXEL! (f, (-1 as c_long) as c_ulong);     // C 2654
+    (*FRAME_X_OUTPUT! (f)).border_pixel = (-1 as c_long) as c_ulong;   // C 2655
+
+    black = build_string (c"black".as_ptr ());                  // C 2657
+    FRAME_FOREGROUND_PIXEL! (f, x_decode_color (f, black, BLACK_PIX_DEFAULT! (f)) as c_ulong);   // C 2658-2659
+    FRAME_BACKGROUND_PIXEL! (f, x_decode_color (f, black, BLACK_PIX_DEFAULT! (f)) as c_ulong);   // C 2660-2661
+    (*FRAME_X_OUTPUT! (f)).border_pixel
+      = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f)) as c_ulong;   // C 2662-2663
+  }
+
+  /* Set the name; the functions to which we pass f expect the name to
+     be set.  */
+  if BASE_EQ (name, Qunbound ()) || NILP (name)                 // C 2668
+    {
+      fset_name (f, build_string ((*dpyinfo).x_id_name));       // C 2670
+      explicit_name! (f, false);                                // C 2671
+    }
+  else
+    {
+      fset_name (f, name);                                      // C 2675
+      explicit_name! (f, true);                                 // C 2676
+      /* use the frame's title when getting resources for this frame.  */
+      specbind (Qx_resource_name (), name);                     // C 2678
+    }
+
+  register_font_driver (&raw const ftcrfont_driver as *const c_void, f);   // C 2681
+  #[cfg (feature = "harfbuzz")]
+  { register_font_driver (&raw const ftcrhbfont_driver as *const c_void, f); }   // C 2683
+
+  gui_default_parameter (f, parms, Qfont_backend (), Qnil (),   // C 2686-2687
+			 c"fontBackend".as_ptr (), c"FontBackend".as_ptr (),
+			 RES_TYPE_STRING);
+
+  /* Extract the window parameters from the supplied values that are
+     needed to determine window geometry.  */
+  pgtk_default_font_parameter (f, parms);                       // C 2691
+
+  gui_default_parameter (f, parms, Qborder_width (), make_fixnum (0),
+			 c"borderWidth".as_ptr (), c"BorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);                      // C 2693-2694
+
+  /* This defaults to 2 in order to match xterm.  We recognize either
+     internalBorderWidth or internalBorder (which is what xterm calls
+     it).  */
+  if NILP (Fassq (Qinternal_border_width (), parms))            // C 2699
+    {
+      let value: Lisp_Object;                                   // C 2701
+
+      value = gui_display_get_arg (dpyinfo as *mut c_void, parms, Qinternal_border_width (),
+				   c"internalBorder".as_ptr (), c"internalBorder".as_ptr (),
+				   RES_TYPE_NUMBER);            // C 2703-2705
+      if ! BASE_EQ (value, Qunbound ())                         // C 2706
+	{ parms = Fcons (Fcons (Qinternal_border_width (), value), parms); }   // C 2707-2708
+    }
+
+  gui_default_parameter (f, parms, Qinternal_border_width (), make_fixnum (1),
+			 c"internalBorderWidth".as_ptr (), c"internalBorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);                      // C 2711-2713
+  gui_default_parameter (f, parms, Qright_divider_width (), make_fixnum (0),
+			 std::ptr::null (), std::ptr::null (),
+			 RES_TYPE_NUMBER);                      // C 2714-2715
+  gui_default_parameter (f, parms, Qbottom_divider_width (), make_fixnum (0),
+			 std::ptr::null (), std::ptr::null (),
+			 RES_TYPE_NUMBER);                      // C 2716-2717
+
+  /* Also do the stuff which must be set before the window exists.  */
+  gui_default_parameter (f, parms, Qforeground_color (), build_string (c"black".as_ptr ()),
+			 c"foreground".as_ptr (), c"Foreground".as_ptr (),
+			 RES_TYPE_STRING);                      // C 2720-2721
+  gui_default_parameter (f, parms, Qbackground_color (), build_string (c"white".as_ptr ()),
+			 c"background".as_ptr (), c"Background".as_ptr (),
+			 RES_TYPE_STRING);                      // C 2722-2723
+  gui_default_parameter (f, parms, Qmouse_color (), build_string (c"black".as_ptr ()),
+			 c"pointerColor".as_ptr (), c"Foreground".as_ptr (),
+			 RES_TYPE_STRING);                      // C 2724-2725
+  gui_default_parameter (f, parms, Qcursor_color (), build_string (c"black".as_ptr ()),
+			 c"cursorColor".as_ptr (), c"Foreground".as_ptr (),
+			 RES_TYPE_STRING);                      // C 2726-2727
+  gui_default_parameter (f, parms, Qborder_color (), build_string (c"black".as_ptr ()),
+			 c"borderColor".as_ptr (), c"BorderColor".as_ptr (),
+			 RES_TYPE_STRING);                      // C 2728-2729
+  gui_default_parameter (f, parms, Qno_special_glyphs (), Qnil (),
+			 std::ptr::null (), std::ptr::null (),
+			 RES_TYPE_BOOLEAN);                     // C 2730-2731
+
+  /* Init faces before gui_default_parameter is called for the
+     scroll-bar-width parameter because otherwise we end up in
+     init_iterator with a null face cache, which should not happen.  */
+  init_frame_faces (f);                                         // C 2736
+
+  (*FRAME_X_OUTPUT! (f)).parent_desc = (*FRAME_DISPLAY_INFO! (f)).root_window;   // C 2738
+
+  gui_default_parameter (f, parms, Qinhibit_double_buffering (), Qnil (),
+			 c"inhibitDoubleBuffering".as_ptr (), c"InhibitDoubleBuffering".as_ptr (),
+			 RES_TYPE_BOOLEAN);                     // C 2740-2742
+
+  gui_figure_window_size (f, parms, false, false);              // C 2744
+
+  xg_create_frame_widgets (f);                                  // C 2746
+  pgtk_set_event_handler (f);                                   // C 2747
+  tip_window = FRAME_GTK_OUTER_WIDGET! (f);                     // C 2748
+  gtk_window_set_transient_for (GTK_WINDOW! (tip_window),       // C 2749-2750
+				GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (p)));
+  gtk_window_set_attached_to (GTK_WINDOW! (tip_window), FRAME_GTK_WIDGET! (p));   // C 2751
+  gtk_window_set_destroy_with_parent (GTK_WINDOW! (tip_window), TRUE);            // C 2752
+  gtk_window_set_decorated (GTK_WINDOW! (tip_window), FALSE);                     // C 2753
+  gtk_window_set_type_hint (GTK_WINDOW! (tip_window),
+			    GDK_WINDOW_TYPE_HINT_TOOLTIP);      // C 2754
+  (*FRAME_X_OUTPUT! (f)).current_cursor = (*FRAME_X_OUTPUT! (f)).text_cursor;     // C 2755
+
+  gui_default_parameter (f, parms, Qauto_raise (), Qnil (),
+			 c"autoRaise".as_ptr (), c"AutoRaiseLower".as_ptr (),
+			 RES_TYPE_BOOLEAN);                     // C 2757-2758
+  gui_default_parameter (f, parms, Qauto_lower (), Qnil (),
+			 c"autoLower".as_ptr (), c"AutoRaiseLower".as_ptr (),
+			 RES_TYPE_BOOLEAN);                     // C 2759-2760
+  gui_default_parameter (f, parms, Qcursor_type (), Qbox (),
+			 c"cursorType".as_ptr (), c"CursorType".as_ptr (),
+			 RES_TYPE_SYMBOL);                      // C 2761-2762
+  gui_default_parameter (f, parms, Qalpha (), Qnil (),
+			 c"alpha".as_ptr (), c"Alpha".as_ptr (),
+			 RES_TYPE_NUMBER);                      // C 2763-2764
+  gui_default_parameter (f, parms, Qalpha_background (), Qnil (),
+			 c"alphaBackground".as_ptr (), c"AlphaBackground".as_ptr (),
+			 RES_TYPE_NUMBER);                      // C 2765-2766
+  gui_default_parameter (f, parms, Qborders_respect_alpha_background (), Qnil (),
+			 c"bordersRespectAlphaBackground".as_ptr (),
+			 c"BordersRespectAlphaBackground".as_ptr (),
+			 RES_TYPE_NUMBER);                      // C 2767-2769
+
+  /* Add `tooltip' frame parameter's default value. */
+  if NILP (Fframe_parameter (frame, Qtooltip ()))               // C 2772
+    {
+      AUTO_FRAME_ARG! (arg, Qtooltip (), Qt ());                // C 2774
+      Fmodify_frame_parameters (frame, arg);                    // C 2775
+    }
+
+  /* FIXME - can this be done in a similar way to normal frames?
+     https://lists.gnu.org/r/emacs-devel/2007-10/msg00641.html */
+
+  /* Set the `display-type' frame parameter before setting up faces. */
+  {
+    let disptype: Lisp_Object;                                  // C 2783
+
+    disptype = Qcolor ();                                       // C 2785
+
+    if NILP (Fframe_parameter (frame, Qdisplay_type ()))        // C 2787
+      {
+	AUTO_FRAME_ARG! (arg, Qdisplay_type (), disptype);      // C 2789
+	Fmodify_frame_parameters (frame, arg);                  // C 2790
+      }
+  }
+
+  /* Set up faces after all frame parameters are known.  This call
+     also merges in face attributes specified for new frames.
+
+     Frame parameters may be changed if .Xdefaults contains
+     specifications for the default font.  For example, if there is an
+     `Emacs.default.attributeBackground: pink', the `background-color'
+     attribute of the frame gets set, which lets the internal border
+     of the tooltip frame appear in pink.  Prevent this.  */
+  {
+    let bg: Lisp_Object = Fframe_parameter (frame, Qbackground_color ());   // C 2803
+
+    calln! (Qface_set_after_frame_default (), frame, Qnil ());   // C 2805
+
+    if !EQ (bg, Fframe_parameter (frame, Qbackground_color ()))  // C 2807
+      {
+	AUTO_FRAME_ARG! (arg, Qbackground_color (), bg);         // C 2809
+	Fmodify_frame_parameters (frame, arg);                   // C 2810
+      }
+  }
+
+  no_split! (f, true);                                          // C 2814
+
+  /* Now that the frame will be official, it counts as a reference to
+     its display and terminal.  */
+  (*FRAME_DISPLAY_INFO! (f)).reference_count += 1;              // C 2818
+  (*((*f).terminal)).reference_count += 1;                      // C 2819
+
+  /* It is now ok to make the frame official even if we get an error
+     below.  And the frame needs to be on Vframe_list or making it
+     visible won't work.  */
+  Vframe_list = Fcons (frame, Vframe_list);                     // C 2824
+  can_set_window_size! (f, true);                               // C 2825
+  adjust_frame_size (f, FRAME_TEXT_WIDTH (f), FRAME_TEXT_HEIGHT (f),
+		     0, true, Qtip_frame ());                   // C 2826-2827
+
+  /* Setting attributes of faces of the tooltip frame from resources
+     and similar will set face_change, which leads to the clearing of
+     all current matrices.  Since this isn't necessary here, avoid it
+     by resetting face_change to the value it had before we created
+     the tip frame.  */
+  face_change = face_change_before;                             // C 2834
+
+  /* Discard the unwind_protect.  */
+  return unbind_to (count, frame);                              // C 2837
+}
