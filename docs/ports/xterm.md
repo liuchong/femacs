@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 33 (C 29142-29189, Decision 46) goes **123 -> 119**: `xembed_set_info`, `xembed_send_message` and the two `XEMBED_VERSION` rows retire, and no token row arrives.  Slice 34 (C 29201-29400, Decision 47) goes **119 -> 118**: `x_make_frame_visible` retires as a missing item, and no token row arrives.  Slice 35 (C 29406-29481, Decision 48) goes **118 -> 116**: `x_make_frame_invisible` and `x_make_frame_visible_invisible` retire as missing items, and the slice brings no token row.  Slice 36 (C 29483-29614, Decision 49) goes **116 -> 114**: `x_create_font_cursor` and `x_iconify_frame` retire as missing items, and no token row arrives.  Slice 37 (C 29619-29851, Decision 50) goes **114 -> 113**: `x_free_frame_resources` retires as a missing item, and no token row arrives.  Slice 38 (C 29856-29889, Decision 51) goes **113 -> 112**: `x_destroy_window` retires as a missing item once its one token row (`0`, C 29863's `dpyinfo->display != 0`) is written in the port's spelling, and arm readings do not move at all.  Slice 39 (C 29891-29978, Decision 52) goes **112 -> 111**: `x_intern_cached_atom` retires as a missing item, and no token row arrives.  Slice 40 (C 29980-30074, Decision 53) goes **111 -> 110**: `x_get_atom_name` retires as a missing item and its four structural tokens (`alloca`, `case`, `default`, `switch`) are closed by a `docs/ports/macro-body-notes.tsv` row, and the definition resolves the two `x_get_atom_name` call sites earlier slices owed.  Slice 41 (C 30076-30146, Decision 54) goes **110 -> 108**: `x_intern_atoms` and `x_embed_frame` retire as missing items, and no token row arrives.  Slice 42 (C 30342-30420, Decision 55) goes **108 -> 105**: `x_wm_set_window_state`, `x_wm_set_icon_pixmap` and `x_wm_set_icon_position` retire as missing items, and no token row arrives.  Slice 43 (C 30158-30340, Decision 56) goes **105 -> 104**: `x_wm_set_size_hint` retires as a missing item once its `goto` token is closed by a notes row, and the slice adds the mirror's `XSizeHints` (P-87 ① legs: 83 units, 0 failures).  Slice 44 (C 30447-30581, Decision 57) goes **104 -> 99**: `x_free_pixmap`, `same_x_server`, `get_bits_and_offset`, `x_display_ok` and the file-scope `x_initialized` retire, and no token row arrives.  Slice 45 (C 30583-30660, Decision 58) goes **99 -> 98**: the file-scope `x_display_id` retires, and the three functions the frozen table does not demand (`my_log_handler`, `xi_select_hierarchy_events`, `xi_check_toolkit`) are carried with their own feature gates.  Slice 46 (C 31845-31867, Decision 59) goes **98 -> 97**: `x_delete_selection_requests` retires once its `continue` token is closed by a notes row.  Slice 47 (C 31872-31974, Decision 60) goes **97 -> 96**: `x_delete_display` retires once its backward `goto` is closed by a notes row.  Slice 48 (C 32063-32208, Decision 61) goes **96 -> 95**: `x_delete_terminal` retires once its backward `goto` is closed by a notes row.  Slice 49 (C 32393-32417, Decision 62) goes **95 -> 94**: `init_xterm` retires as a missing item, and no token row arrives.  Slice 50 (C 32210-32303, Decision 63) goes **94 -> 93**: `x_create_terminal` retires as a missing item, and no token row arrives.  Slice 51 (C 32305-32499, Decision 64) goes **93 -> 89**: `x_initialize` and the three `*_for_lisp` error helpers retire as missing items, and no token row arrives.  Slice 52 (C 32419-32662, Decision 65) goes **89 -> 87**: `mark_xterm` and `x_get_keyboard_modifiers` retire as missing items, and no token row arrives.  Slice 53 (C 32505-32635, Decision 66) goes **87 -> 86**: `x_preserve_selections` retires as a missing item once its `alloca` token is closed by a `docs/ports/macro-body-notes.tsv` row, and the slice adds the mirror's setter arm for `selection_input_event_bits!` (P-87 ① legs: 83 units, 0 failures).  Slice 54 (C 32664-33125, Decision 67) goes **86 -> 85**: `syms_of_xterm` retires as a missing item once its `doc` token is closed by a notes row, and the slice defines the 39 `DEFVAR_*` objects this unit owns.  Slice 55 (C 11924-12278, Decision 68) goes **85 -> 78**: `x_frame_highlight`, `x_frame_unhighlight`, `x_new_focus_frame`, `x_toggle_visible_pointer`, `XTtoggle_invisible_pointer`, `x_focus_changed` and `x_window_to_frame` retire as missing items, one token row (`x_window_to_frame`'s `0,continue`) is closed by a notes row, and the three call sites earlier slices owed those names resolve.  Slice 56 (C 12344-12538, Decision 69) goes **78 -> 75**: `x_top_window_to_frame` (both arms), `x_next_event_from_any_display` and the `x_any_window_to_frame` macro retire as missing items, and the five call sites earlier slices owed `x_top_window_to_frame` resolve.  Slice 57 (C 12542-12683, Decision 70) goes **75 -> 67**: the eight functions of the selection-request queue and the DnD teardown retire as missing items, and the two token rows the slice brings (`true`, `xfree`) are closed by `docs/ports/macro-body-notes.tsv` rows.  Slice 58 (C 12284-12342, Decision 71) goes **67 -> 66**: `x_tooltip_window_to_frame` retires as a missing item, and the two call sites earlier slices owed it resolve.  Slice 59 (C 13979-14127, Decision 72) goes **66 -> 62**: `x_detect_focus_change`, `x_mouse_leave`, `XTframe_rehighlight` and `x_frame_rehighlight` retire as missing items, the two token rows the slice brings (`switch,case,break` and `0`) are closed by notes rows, and the mirror gains the eight measured X11 event constants the `match` and `x_focus_changed` need.  Slice 60 (C 14134-14303, Decision 73) goes **62 -> 61**: `x_find_modifier_meanings` retires as a missing item, its one token row (`switch,case,break,continue`) is closed by a notes row, and the mirror gains the five modifier masks and nine keysyms its two `match`es pattern on.  Slice 61 (C 14308-14380, Decision 74) goes **61 -> 58**: `x_x_to_emacs_modifiers`, `x_emacs_to_x_modifiers` and `get_keysym_name` retire as missing items, and no token row arrives.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 33 (C 29142-29189, Decision 46) goes **123 -> 119**: `xembed_set_info`, `xembed_send_message` and the two `XEMBED_VERSION` rows retire, and no token row arrives.  Slice 34 (C 29201-29400, Decision 47) goes **119 -> 118**: `x_make_frame_visible` retires as a missing item, and no token row arrives.  Slice 35 (C 29406-29481, Decision 48) goes **118 -> 116**: `x_make_frame_invisible` and `x_make_frame_visible_invisible` retire as missing items, and the slice brings no token row.  Slice 36 (C 29483-29614, Decision 49) goes **116 -> 114**: `x_create_font_cursor` and `x_iconify_frame` retire as missing items, and no token row arrives.  Slice 37 (C 29619-29851, Decision 50) goes **114 -> 113**: `x_free_frame_resources` retires as a missing item, and no token row arrives.  Slice 38 (C 29856-29889, Decision 51) goes **113 -> 112**: `x_destroy_window` retires as a missing item once its one token row (`0`, C 29863's `dpyinfo->display != 0`) is written in the port's spelling, and arm readings do not move at all.  Slice 39 (C 29891-29978, Decision 52) goes **112 -> 111**: `x_intern_cached_atom` retires as a missing item, and no token row arrives.  Slice 40 (C 29980-30074, Decision 53) goes **111 -> 110**: `x_get_atom_name` retires as a missing item and its four structural tokens (`alloca`, `case`, `default`, `switch`) are closed by a `docs/ports/macro-body-notes.tsv` row, and the definition resolves the two `x_get_atom_name` call sites earlier slices owed.  Slice 41 (C 30076-30146, Decision 54) goes **110 -> 108**: `x_intern_atoms` and `x_embed_frame` retire as missing items, and no token row arrives.  Slice 42 (C 30342-30420, Decision 55) goes **108 -> 105**: `x_wm_set_window_state`, `x_wm_set_icon_pixmap` and `x_wm_set_icon_position` retire as missing items, and no token row arrives.  Slice 43 (C 30158-30340, Decision 56) goes **105 -> 104**: `x_wm_set_size_hint` retires as a missing item once its `goto` token is closed by a notes row, and the slice adds the mirror's `XSizeHints` (P-87 ① legs: 83 units, 0 failures).  Slice 44 (C 30447-30581, Decision 57) goes **104 -> 99**: `x_free_pixmap`, `same_x_server`, `get_bits_and_offset`, `x_display_ok` and the file-scope `x_initialized` retire, and no token row arrives.  Slice 45 (C 30583-30660, Decision 58) goes **99 -> 98**: the file-scope `x_display_id` retires, and the three functions the frozen table does not demand (`my_log_handler`, `xi_select_hierarchy_events`, `xi_check_toolkit`) are carried with their own feature gates.  Slice 46 (C 31845-31867, Decision 59) goes **98 -> 97**: `x_delete_selection_requests` retires once its `continue` token is closed by a notes row.  Slice 47 (C 31872-31974, Decision 60) goes **97 -> 96**: `x_delete_display` retires once its backward `goto` is closed by a notes row.  Slice 48 (C 32063-32208, Decision 61) goes **96 -> 95**: `x_delete_terminal` retires once its backward `goto` is closed by a notes row.  Slice 49 (C 32393-32417, Decision 62) goes **95 -> 94**: `init_xterm` retires as a missing item, and no token row arrives.  Slice 50 (C 32210-32303, Decision 63) goes **94 -> 93**: `x_create_terminal` retires as a missing item, and no token row arrives.  Slice 51 (C 32305-32499, Decision 64) goes **93 -> 89**: `x_initialize` and the three `*_for_lisp` error helpers retire as missing items, and no token row arrives.  Slice 52 (C 32419-32662, Decision 65) goes **89 -> 87**: `mark_xterm` and `x_get_keyboard_modifiers` retire as missing items, and no token row arrives.  Slice 53 (C 32505-32635, Decision 66) goes **87 -> 86**: `x_preserve_selections` retires as a missing item once its `alloca` token is closed by a `docs/ports/macro-body-notes.tsv` row, and the slice adds the mirror's setter arm for `selection_input_event_bits!` (P-87 ① legs: 83 units, 0 failures).  Slice 54 (C 32664-33125, Decision 67) goes **86 -> 85**: `syms_of_xterm` retires as a missing item once its `doc` token is closed by a notes row, and the slice defines the 39 `DEFVAR_*` objects this unit owns.  Slice 55 (C 11924-12278, Decision 68) goes **85 -> 78**: `x_frame_highlight`, `x_frame_unhighlight`, `x_new_focus_frame`, `x_toggle_visible_pointer`, `XTtoggle_invisible_pointer`, `x_focus_changed` and `x_window_to_frame` retire as missing items, one token row (`x_window_to_frame`'s `0,continue`) is closed by a notes row, and the three call sites earlier slices owed those names resolve.  Slice 56 (C 12344-12538, Decision 69) goes **78 -> 75**: `x_top_window_to_frame` (both arms), `x_next_event_from_any_display` and the `x_any_window_to_frame` macro retire as missing items, and the five call sites earlier slices owed `x_top_window_to_frame` resolve.  Slice 57 (C 12542-12683, Decision 70) goes **75 -> 67**: the eight functions of the selection-request queue and the DnD teardown retire as missing items, and the two token rows the slice brings (`true`, `xfree`) are closed by `docs/ports/macro-body-notes.tsv` rows.  Slice 58 (C 12284-12342, Decision 71) goes **67 -> 66**: `x_tooltip_window_to_frame` retires as a missing item, and the two call sites earlier slices owed it resolve.  Slice 59 (C 13979-14127, Decision 72) goes **66 -> 62**: `x_detect_focus_change`, `x_mouse_leave`, `XTframe_rehighlight` and `x_frame_rehighlight` retire as missing items, the two token rows the slice brings (`switch,case,break` and `0`) are closed by notes rows, and the mirror gains the eight measured X11 event constants the `match` and `x_focus_changed` need.  Slice 60 (C 14134-14303, Decision 73) goes **62 -> 61**: `x_find_modifier_meanings` retires as a missing item, its one token row (`switch,case,break,continue`) is closed by a notes row, and the mirror gains the five modifier masks and nine keysyms its two `match`es pattern on.  Slice 61 (C 14308-14380, Decision 74) goes **61 -> 58**: `x_x_to_emacs_modifiers`, `x_emacs_to_x_modifiers` and `get_keysym_name` retire as missing items, and no token row arrives.  Slice 62 (C 14382-14536, Decision 75) goes **58 -> 54**: `x_compute_root_window_offset`, `x_translate_coordinates`, `x_translate_coordinates_to_root` and `x_handle_translate_coordinates` retire as missing items, the four `frame_x_output` token rows the first writing brought are closed by `docs/ports/macro-body-notes.tsv` rows, and the three XI2 wrappers add no row (the frozen table leaves the whole `HAVE_XINPUT2` span `undef`, so the tool never asks for them).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -202,10 +202,10 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_x_to_emacs_modifiers  (line 14309)
 - [x] x_emacs_to_x_modifiers  (line 14338)
 - [x] get_keysym_name  (line 14371)
-- [ ] x_compute_root_window_offset  (line 14389, static)
-- [ ] x_translate_coordinates  (line 14404)
-- [ ] x_translate_coordinates_to_root  (line 14444)
-- [ ] x_handle_translate_coordinates  (line 14481)
+- [x] x_compute_root_window_offset  (line 14389, static)
+- [x] x_translate_coordinates  (line 14404)
+- [x] x_translate_coordinates_to_root  (line 14444)
+- [x] x_handle_translate_coordinates  (line 14481)
 - [ ] x_query_pointer_1  (line 14537, static)
 - [ ] x_query_pointer  (line 14611)
 - [ ] x_construct_mouse_click  (line 14668, static)
@@ -3145,6 +3145,50 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   in the port (their callers are the unlanded event readers), so the reading is exactly
   `XKeysymToString`'s `E0425`: +1 in A, B and C.  No mirror changed, so P-87's legs do not apply.
 
+### 75. Slice 62 (C 14382-14536): the root-window offset cache and the two coordinate translators
+
+* **C's `FRAME_X_OUTPUT (f)` is spelled at the use site in all four functions.**  C 14392-14394,
+  14410/14412/14415-14416/14433-14435, 14450/14452/14455-14456/14470-14472 and
+  14490/14493-14494 all go through the header's macro; the port writes
+  `(*( (*f).output_data.x as *mut x_output )).field` (P-72 rule 3's use-site shape - the file's
+  dominant spelling, 161 sites after this slice), because the mirror's macro hands back the
+  untyped union member while the four fields *are* mirrored (`include/xterm.rs` 914-916:
+  `window_offset_certain_p`, `root_x`, `root_y`).  Four `docs/ports/macro-body-notes.tsv` rows
+  carry the reason, one per function, so the token row extract-abi raises for each is closed by
+  a reading rather than by silence.
+* **C 14429's and C 14466's comma operators are two statements.**  `*x_out = 0, *y_out = 0;` has
+  no Rust spelling (PORTING.md 2.2, the `x_dnd_get_wm_state_and_proto` note's class); the port
+  keeps C's order on two lines and the C line number stays on the first, so the `--check`
+  reader still sees the block.
+* **The XI2 trio: the same arm as `xi_convert_event_state`, and three types with no mirror row.**
+  C gates them on the file's `HAVE_X_WINDOWS` plus `#ifdef HAVE_XINPUT2` (C 14503) and, for the
+  pinch event, the nested `#ifdef HAVE_XINPUT2_4` (C 14521), so the port's arms are
+  `all (feature = "have_x_windows", feature = "have_xinput2")` and the pinch one adds
+  `feature = "have_xinput2_4"` - the pair `xi_convert_event_state` (this file 5551) already
+  carries, and the nested pair the `src/xwidget.rs` lane's X arm uses.  All three are C's
+  `static` and the reference's inventory has **no entry** for any of them (the frozen table
+  leaves the whole span `undef`), so they stay plain `unsafe fn` rather than exported shapes.
+  Their three parameter types - `XIDeviceEvent`, `XIEnterEvent`, `XIGesturePinchEvent` - have no
+  mirror row in this graph (Decision 15's list of XInput2 names kept bare), so each is the
+  registered bare-name `E0425` class in a `have_xinput2` arm; the argument expressions are C's
+  own implicit `double` -> `int` truncation, written `as c_int` (the C comment beside them says
+  "truncate coordinates instead of rounding them").
+* **The slice's own call sites: four `E0381` and two `unused_mut` warnings, both on *old* text.**
+  The first writing gave `x_translate_coordinates`/`x_translate_coordinates_to_root` parameters
+  that the two callers above (C 4937's `x_dnd_note_self_position` and C 4958's
+  `x_dnd_note_self_wheel`, landed in slice 57) could not satisfy: each had
+  `let mut f: *mut frame;` plus an uninitialised `dest_x`/`dest_y` pair that only the old
+  unresolved-callee path left alone, so the arm read **738 / 71** with four `E0381`s
+  (`_root.rs:5084` and `5112`, two each) and two `variable does not need to be mutable`
+  warnings.  Both are Deviation 12's shape (`let f: *mut frame;`, `= 0` on the two locals) and
+  the reading below is the fixed one: the two functions' parameters now *are* the C ones, so the
+  old call sites turn live.  Nothing else in the file moved.
+* **What moved, per arm.**  Three `E0425` sites retire (the three `x_translate_coordinates`
+  call sites the earlier slices owed) and three arrive (C 14423 and C 14463's bare
+  `XTranslateCoordinates`, plus one `XIDeviceEvent`/`XIEnterEvent`/`XIGesturePinchEvent`
+  parameter type per wrapper), so A and B read net -1 and C reads net +1; the fourth arm (the
+  xwidget lane's `have_xinput2_4` X arm) reads net +2 because its pinch wrapper is live.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -6030,3 +6074,54 @@ arrives.  The line-count row moves to 22,484 against C's 33,125 (32.1% drift).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no modifier bit was
 translated and no keysym was named.
+
+### Slice 62's readings (C 14382-14536), as landed and measured (2026-10-07)
+
+**What it lands.**  `x_compute_root_window_offset` (C 14388-14396), `x_translate_coordinates`
+(C 14403-14437), `x_translate_coordinates_to_root` (C 14443-14474),
+`x_handle_translate_coordinates` (C 14480-14499) and the three XI2 wrappers
+(`xi_compute_root_window_offset`, `_enter`, `_pinch`: C 14505-14530, the last inside C 14521's
+nested `#ifdef HAVE_XINPUT2_4`).  Rust 22,484 -> 22,674 lines.  No mirror changed, so P-87's two
+legs do not apply.
+
+**What the probes read.**  Baseline = HEAD's unit (slice 61's commit) with the same arm: A 735 / 69,
+B 757 / 70, C 789 / 71, X 789 / 71 (X = C's arm plus `have_xinput2_4`, the xwidget lane's shape).
+
+| arm | baseline | slice 62 | delta | of which |
+| --- | --- | --- | --- | --- |
+| A `have_x_windows` | 735 / 69 | **734 / 69** | **-1** | 3 `x_translate_coordinates` call sites resolve, 2 `XTranslateCoordinates` sites arrive |
+| B `+have_gtk3+use_gtk` | 757 / 70 | **756 / 70** | **-1** | same composition, `E0425` 447 -> 446 |
+| C `+have_xinput2` | 789 / 71 | **790 / 71** | **+1** | the same -3/+2, plus one `XIDeviceEvent` and one `XIEnterEvent` site |
+| X `+have_xinput2_4` | 789 / 71 | **791 / 71** | **+2** | as C, plus one `XIGesturePinchEvent` site (the pinch wrapper is live only here) |
+
+The `E0425` head set was diffed by message and count, not eyeballed: A and B add exactly the two
+`XTranslateCoordinates` sites and lose exactly the three `x_translate_coordinates` sites; C and X
+additionally add the wrappers' parameter types.  No `E0308`, no uncoded row and no new warning in
+any arm, and `build-tu` prints the same 30 warnings as HEAD's unit (the two sides' warning lines
+are identical as sets; the frozen object is exit 0 both times).
+
+**One intermediate reading, fixed.**  The first writing read **738 / 71**: four `E0381`s and two
+`unused_mut` warnings at the two old DnD call sites (Decision 75's fourth item).  Both are
+Deviation 12's shape and the fixed reading is the table's.
+
+**Arm reachability** (P-86 ⑦).  `let _: c_int = true;` as `x_compute_root_window_offset`'s first
+statement moves `E0308` 13 -> 14 anchored exactly at that line (`_root.rs:22516:18`, "expected
+`i32`, found `bool`"); removing it returns arm A to 734 / 69.
+
+**What `--check` reads.**  **58 -> 54**: the four functions retire as missing items, no token row
+survives (the first writing's four `frame_x_output` rows are the notes rows' work), and the three
+XI2 wrappers were never in the reference's inventory.  The line-count row moves to 22,674 against
+C's 33,125 (31.6% drift).
+
+**One machine reader caught one real defect, and one text reader caught another.**  `check-citations`
+flagged the two doc comments that cited `termhooks.h 1128-1129` and `1130-1131` - this revision's
+`x_translate_coordinates`/`x_translate_coordinates_to_root` prototypes are `xterm.h` 1833 and
+1834-1835 (and `x_handle_translate_coordinates` is 1836-1837, which a third comment had already
+written as `xterm.h 1981`); all three were grepped before the fix and the gate now reads 0 drift,
+0 range.  The same pass found the slice's own "dominant 150-site" prose stale - the spelling has
+161 sites after this slice - and it is written as measured now.
+
+**Not claimed.**  The frozen configuration compiles none of this file: no root-window offset was
+cached and no coordinate was translated.  The three XI2 wrappers are unmeasured text in every arm
+this lane runs (arm A/B have no `have_xinput2`; the C/X arms have the feature but no mirror row for
+the three record types).

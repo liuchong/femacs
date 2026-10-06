@@ -5058,9 +5058,9 @@ unsafe fn x_dnd_cleanup_drag_and_drop (frame: *mut c_void)
 unsafe fn x_dnd_note_self_position (dpyinfo: *mut x_display_info, target: Window,
 				    root_x: c_ushort, root_y: c_ushort)
 {
-  let mut f: *mut frame;
-  let mut dest_x: c_int;
-  let mut dest_y: c_int;
+  let f: *mut frame;
+  let mut dest_x: c_int = 0;
+  let mut dest_y: c_int = 0;
 
   f = x_top_window_to_frame (dpyinfo, target as c_int);
 
@@ -5083,9 +5083,9 @@ unsafe fn x_dnd_note_self_wheel (dpyinfo: *mut x_display_info, target: Window,
 				 root_x: c_ushort, root_y: c_ushort,
 				 button: c_int, state: c_uint, time: Time)
 {
-  let mut f: *mut frame;
-  let mut dest_x: c_int;
-  let mut dest_y: c_int;
+  let f: *mut frame;
+  let mut dest_x: c_int = 0;
+  let mut dest_y: c_int = 0;
 
   if button < 4 || button > 7
     { return; }
@@ -22481,4 +22481,194 @@ pub unsafe extern "C" fn get_keysym_name (keysym: c_int) -> *mut c_char
   unblock_input ();                                                     // C 14377
 
   return value;                                                         // C 14379
+}
+
+/* Given the root and event coordinates of an X event destined for F's
+   edit window, compute the offset between that window and F's root
+   window.  This information is then used as an optimization to avoid
+   synchronizing when converting coordinates from some other event to
+   F's edit window.  */
+
+/// C 14388-14395: `static void x_compute_root_window_offset (struct frame *f, int root_x, int
+/// root_y, int event_x, int event_y)` - C's `static`, so a plain `unsafe fn`.  C writes the three
+/// stores through the header's `FRAME_X_OUTPUT (f)` macro; the port spells the union member's cast
+/// instead (`(*( (*f).output_data.x as *mut x_output )).field`, the file's dominant 161-site
+/// shape), because the mirror's macro hands back the untyped member and the three fields *are*
+/// mirrored (`include/xterm.rs` 914-916, the P-72 rule 3 degradation).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_compute_root_window_offset (f: *mut frame, root_x: c_int, root_y: c_int,
+					event_x: c_int, event_y: c_int)
+{
+  (*( (*f).output_data.x as *mut x_output )).window_offset_certain_p = true;  // C 14392
+  (*( (*f).output_data.x as *mut x_output )).root_x = root_x - event_x;       // C 14393
+  (*( (*f).output_data.x as *mut x_output )).root_y = root_y - event_y;       // C 14394
+}
+
+/* Translate the given coordinates from the root window to the edit
+   window of FRAME, taking into account any cached root window
+   offsets.  This allows Emacs to avoid excessive calls to _XReply in
+   many cases while handling events, which would otherwise result in
+   slowdowns over slow network connections.  */
+
+/// C 14403-14437: `void x_translate_coordinates (struct frame *f, int root_x, int root_y, int
+/// *x_out, int *y_out)` - non-`static` and declared in xterm.h 1833-1834, so the exported
+/// shape above.  `XTranslateCoordinates` is the bare Xlib class; C 14429's comma operator
+/// (`*x_out = 0, *y_out = 0;`) has no Rust spelling, so the two statements stand on their own
+/// lines (PORTING.md 2.2, the `x_dnd_get_wm_state_and_proto` note's class), and `output` is the
+/// cast spelling this file uses for the macro's result.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_translate_coordinates (f: *mut frame, root_x: c_int, root_y: c_int,
+						  x_out: *mut c_int, y_out: *mut c_int)
+{
+  let mut output: *mut x_output;                                        // C 14407
+  let mut dummy: Window;                                                // C 14408
+
+  output = (*f).output_data.x as *mut x_output;                         // C 14410
+
+  if (*output).window_offset_certain_p                                  // C 14412
+    {
+      /* Use the cached root window offset.  */
+      *x_out = root_x - (*output).root_x;                               // C 14415
+      *y_out = root_y - (*output).root_y;                               // C 14416
+
+      return;                                                           // C 14418
+    }
+
+  /* Otherwise, do the transformation manually.  Then, cache the root
+     window position.  */
+  if XTranslateCoordinates (FRAME_X_DISPLAY! (f),                       // C 14423-14426
+			    (*FRAME_DISPLAY_INFO! (f)).root_window,
+			    FRAME_X_WINDOW! (f), root_x, root_y,
+			    x_out, y_out, &raw mut dummy) == 0
+    /* Use some dummy values.  This is not supposed to be called with
+       coordinates out of the screen.  */
+    {
+      *x_out = 0;                                                       // C 14429, C's comma operator
+      *y_out = 0;
+    }
+  else
+    {
+      /* Cache the root window offset of the edit window.  */
+      (*output).window_offset_certain_p = true;                         // C 14433
+      (*output).root_x = root_x - *x_out;                               // C 14434
+      (*output).root_y = root_y - *y_out;                               // C 14435
+    }
+}
+
+/* Translate the given coordinates from the edit window of FRAME,
+   taking into account any cached root window offsets.  This is mainly
+   used from the popup menu code.  */
+
+/// C 14443-14474: `void x_translate_coordinates_to_root (struct frame *f, int x, int y, int *x_out,
+/// int *y_out)` - non-`static` and declared in xterm.h 1834-1835, so the exported shape above;
+/// the same two shapes as the function above (bare `XTranslateCoordinates`, C 14466's comma
+/// operator written as two lines).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_translate_coordinates_to_root (f: *mut frame, x: c_int, y: c_int,
+							  x_out: *mut c_int, y_out: *mut c_int)
+{
+  let mut output: *mut x_output;                                        // C 14447
+  let mut dummy: Window;                                                // C 14448
+
+  output = (*f).output_data.x as *mut x_output;                         // C 14450
+
+  if (*output).window_offset_certain_p                                  // C 14452
+    {
+      /* Use the cached root window offset.  */
+      *x_out = x + (*output).root_x;                                    // C 14455
+      *y_out = y + (*output).root_y;                                    // C 14456
+
+      return;                                                           // C 14458
+    }
+
+  /* Otherwise, do the transform manually and compute and cache the
+     root window position.  */
+  if XTranslateCoordinates (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),  // C 14463-14465
+			    (*FRAME_DISPLAY_INFO! (f)).root_window,
+			    x, y, x_out, y_out, &raw mut dummy) == 0
+    {
+      *x_out = 0;                                                       // C 14466, C's comma operator
+      *y_out = 0;
+    }
+  else
+    {
+      /* Cache the root window offset of the edit window.  */
+      (*output).window_offset_certain_p = true;                         // C 14470
+      (*output).root_x = *x_out - x;                                    // C 14471
+      (*output).root_y = *y_out - y;                                    // C 14472
+    }
+}
+
+/* Do x-translate-coordinates, but try to avoid a roundtrip to the X
+   server at the cost of not returning `child', which most callers
+   have no reason to use.  */
+
+/// C 14480-14499: `Lisp_Object x_handle_translate_coordinates (struct frame *f, Lisp_Object
+/// dest_window, int source_x, int source_y)` - non-`static` and declared in xterm.h 1836-1837, so the
+/// exported shape above; the two caches are read through the same cast spelling and `make_fixnum`
+/// takes the `EMACS_INT` C's `int` sum promotes to.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_handle_translate_coordinates (f: *mut frame, dest_window: Lisp_Object,
+							 source_x: c_int, source_y: c_int) -> Lisp_Object
+{
+  if NILP (dest_window)                                                 // C 14484
+    {
+      /* We are translating coordinates from a frame to the root
+	 window.  Avoid a roundtrip if possible by using cached
+	 coordinates.  */
+
+      if !(*( (*f).output_data.x as *mut x_output )).window_offset_certain_p  // C 14490
+	{ return Qnil (); }                                             // C 14491
+
+      return list3 (make_fixnum ((source_x                                 // C 14493
+				  + (*( (*f).output_data.x as *mut x_output )).root_x) as EMACS_INT),
+		    make_fixnum ((source_y                                 // C 14494
+				  + (*( (*f).output_data.x as *mut x_output )).root_y) as EMACS_INT),
+		    Qnil ());                                              // C 14495
+    }
+
+  return Qnil ();                                                       // C 14498
+}
+
+/* The same, but for an XIDeviceEvent.  */
+
+/* C 14501-14532: the three XI2 wrappers.  C gates them on the file's `HAVE_X_WINDOWS` plus
+   `#ifdef HAVE_XINPUT2` (and, for the pinch event, `#ifdef HAVE_XINPUT2_4`), so the port's
+   `all (feature = "have_x_windows", feature = "have_xinput2")` is that pair - the same pair
+   `xi_convert_event_state` (this file 5551) already carries.  All three are C's `static`, and
+   the reference's inventory has no entry for any of the names (the whole `HAVE_XINPUT2` span is
+   dead in the frozen reading), so they stay plain `unsafe fn` rather than exported shapes.
+
+   The three parameter types - `XIDeviceEvent`, `XIEnterEvent`, `XIGesturePinchEvent` - have no
+   mirror row in this graph (docs/ports/xterm.md's Decision 15 list: XInput2 names kept bare, the
+   `xi_convert_event_state` precedent), so each is the registered "bare X11 SDK name" class in a
+   `have_xinput2` arm; the argument writes are C's own implicit double->int truncation, spelled
+   `as c_int`.  */
+
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe fn xi_compute_root_window_offset (f: *mut frame, xev: *mut XIDeviceEvent)
+{
+  /* Truncate coordinates instead of rounding them, because that is
+     how the X server handles window hierarchy.  */
+  x_compute_root_window_offset (f, (*xev).root_x as c_int, (*xev).root_y as c_int,  // C 14510-14511
+				(*xev).event_x as c_int, (*xev).event_y as c_int);
+}
+
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe fn xi_compute_root_window_offset_enter (f: *mut frame, enter: *mut XIEnterEvent)
+{
+  x_compute_root_window_offset (f, (*enter).root_x as c_int, (*enter).root_y as c_int,  // C 14517-14518
+				(*enter).event_x as c_int, (*enter).event_y as c_int);
+}
+
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2", feature = "have_xinput2_4"))]
+unsafe fn xi_compute_root_window_offset_pinch (f: *mut frame, pev: *mut XIGesturePinchEvent)
+{
+  /* Truncate coordinates instead of rounding them, because that is
+     how the X server handles window hierarchy.  */
+  x_compute_root_window_offset (f, (*pev).root_x as c_int, (*pev).root_y as c_int,  // C 14528-14529
+				(*pev).event_x as c_int, (*pev).event_y as c_int);
 }
