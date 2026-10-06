@@ -9456,3 +9456,152 @@ unsafe fn drag_drop (widget: *mut GtkWidget, context: *mut GdkDragContext, x: c_
 
   return true as gboolean;                                              // C 6576
 }
+
+/* Touch screen events.  */
+
+/* Record a touch sequence with the identifier DETAIL from the given
+   FRAME on the specified DPYINFO.  Round X and Y and record them as its
+   current position, assign an identifier to the touch sequence suitable
+   for reporting to Lisp, and return the same.  */
+
+/// C 6588-6613: `static EMACS_INT pgtk_link_touch_point (struct pgtk_display_info *dpyinfo,
+/// GdkEventSequence *detail, gdouble x, gdouble y, struct frame *frame)` - `static` with no address
+/// taken, so a plain `unsafe fn`, and its sibling in another unit is `src/xterm.rs` 6047-6080's
+/// `xi_link_touch_point`.  C 6594's `static EMACS_INT local_detail;` is a **function static**, which
+/// the port writes where C declares it (the same file's shape); C 6609's post-increment is written
+/// out as the store plus the increment; `xmalloc`'s C `sizeof *touchpoint` is
+/// `std::mem::size_of::<pgtk_touch_point> ()` and its `void *` is converted; and the two `lrint`
+/// results are `long` -> `int` conversions written out.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_link_touch_point (dpyinfo: *mut pgtk_display_info,
+				 detail: *mut GdkEventSequence, x: gdouble, y: gdouble,
+				 frame: *mut frame) -> EMACS_INT
+{
+  let mut touchpoint: *mut pgtk_touch_point;                            // C 6593
+  static mut local_detail: EMACS_INT = 0;                               // C 6594
+
+  /* Assign an identifier suitable for reporting to Lisp.  On builds
+     with 64-bit Lisp_Object, this is largely a theoretical problem, but
+     CARD32s easily overflow 32-bit systems, as they are not specific to
+     X clients (e.g. Emacs) but grow uniformly across all of them.  */
+
+  if FIXNUM_OVERFLOW_P (local_detail)                                   // C 6601
+    { local_detail = 0; }                                               // C 6602
+
+  touchpoint = xmalloc (std::mem::size_of::<pgtk_touch_point> ())
+	       as *mut pgtk_touch_point;                                // C 6604
+  (*touchpoint).next = (*dpyinfo).touchpoints;                          // C 6605
+  (*touchpoint).x = lrint (x) as c_int;                                 // C 6606
+  (*touchpoint).y = lrint (y) as c_int;                                 // C 6607
+  (*touchpoint).number = detail;                                        // C 6608
+  (*touchpoint).local_detail = local_detail;                            // C 6609
+  local_detail += 1;                                                    // C 6609
+  (*touchpoint).frame = frame;                                          // C 6610
+  (*dpyinfo).touchpoints = touchpoint;                                  // C 6611
+  return (*touchpoint).local_detail;                                    // C 6612
+}
+
+/* Free and remove the touch sequence with the identifier DETAIL.
+   DPYINFO is the display in which the touch sequence should be
+   recorded.  If such a touch sequence exists, return its local
+   identifier in *LOCAL_DETAIL.
+
+   Value is 0 if no touch sequence by that identifier exists inside
+   DPYINFO, or 1 if a touch sequence has been found.  */
+
+/// C 6623-6648: `static int pgtk_unlink_touch_point (GdkEventSequence *detail, struct
+/// pgtk_display_info *dpyinfo, EMACS_INT *local_detail)` - `static` with no address taken, so a plain
+/// `unsafe fn`.  C's `for (last = NULL, tem = …; tem; last = tem, tem = tem->next)` is the port's
+/// init + `while` with C's two step statements at the body's end (the `pgtk_display_info_for_display`
+/// shape), C's `!last` is `last.is_null ()` and `xfree`'s `void *` is converted.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_unlink_touch_point (detail: *mut GdkEventSequence,
+				   dpyinfo: *mut pgtk_display_info,
+				   local_detail: *mut EMACS_INT) -> c_int
+{
+  let mut last: *mut pgtk_touch_point;                                  // C 6628
+  let mut tem: *mut pgtk_touch_point;                                   // C 6628
+
+  last = std::ptr::null_mut ();                                         // C 6630
+  tem = (*dpyinfo).touchpoints;                                         // C 6630
+  while !tem.is_null ()                                                 // C 6630
+    {
+      if (*tem).number == detail                                        // C 6633
+	{
+	  if last.is_null ()                                            // C 6635
+	    { (*dpyinfo).touchpoints = (*tem).next; }                     // C 6636
+	  else
+	    { (*last).next = (*tem).next; }                               // C 6638
+
+	  *local_detail = (*tem).local_detail;                            // C 6640
+	  xfree (tem as *mut c_void);                                     // C 6641
+
+	  return 1;                                                       // C 6643
+	}
+      last = tem;                                                         // C 6630
+      tem = (*tem).next;                                                  // C 6630
+    }
+
+  return 0;                                                               // C 6647
+}
+
+/* Unlink all touch points associated with the frame F.  This is done
+   upon destroying F's window (or its being destroyed), because touch
+   point delivery after that point is undefined.  */
+
+/// C 6654-6673: `static void pgtk_unlink_touch_points (struct frame *f)` - `static` with no address
+/// taken, so a plain `unsafe fn`.  C's pointer-to-pointer walk is the port's `next` of type
+/// `*mut *mut pgtk_touch_point`; C 6663's assignment **inside the condition**
+/// (`for (next = &dpyinfo->touchpoints; (last = *next);)`) has no Rust expression form, so the port
+/// keeps C's order in the loop head (assign, then test - the `motion_notify_event` guard's shape).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_unlink_touch_points (f: *mut frame)
+{
+  let mut next: *mut *mut pgtk_touch_point;                             // C 6657
+  let mut last: *mut pgtk_touch_point;                                  // C 6657
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 6658
+
+  /* Now unlink all touch points on F's display matching F.  */
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 6662
+  next = &raw mut (*dpyinfo).touchpoints;                               // C 6663
+  loop
+    {
+      last = *next;                                                     // C 6663
+      if last.is_null ()                                                // C 6663
+	{ break; }
+
+      if (*last).frame == f                                             // C 6665
+	{
+	  *next = (*last).next;                                         // C 6667
+	  xfree (last as *mut c_void);                                  // C 6668
+	}
+      else
+	{ next = &raw mut (*last).next; }                               // C 6671
+    }
+}
+
+/* Return the data associated with a touch sequence DETAIL recorded by
+   `pgtk_link_touch_point' from DPYINFO, or NULL if it can't be
+   found.  */
+
+/// C 6679-6692: `static struct pgtk_touch_point *pgtk_find_touch_point (struct pgtk_display_info
+/// *dpyinfo, GdkEventSequence *detail)` - `static` with no address taken, so a plain `unsafe fn`;
+/// C's `for` is the port's init + `while` with C's step at the body's end and its `NULL` is
+/// `std::ptr::null_mut ()`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_find_touch_point (dpyinfo: *mut pgtk_display_info, detail: *mut GdkEventSequence)
+    -> *mut pgtk_touch_point
+{
+  let mut point: *mut pgtk_touch_point;                                 // C 6683
+
+  point = (*dpyinfo).touchpoints;                                       // C 6685
+  while !point.is_null ()                                               // C 6685
+    {
+      if (*point).number == detail                                      // C 6687
+	{ return point; }                                               // C 6688
+      point = (*point).next;                                            // C 6685
+    }
+
+  return std::ptr::null_mut ();                                         // C 6691
+}
