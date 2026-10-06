@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -282,10 +282,10 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_get_wm_check_window  (line 27692, static)
 - [x] x_wm_supports_1  (line 27728)
 - [x] x_wm_supports  (line 27826)
-- [ ] set_wm_state  (line 27833, static)
-- [ ] x_set_sticky  (line 27858)
-- [ ] x_set_shaded  (line 27870)
-- [ ] x_set_skip_taskbar  (line 27892)
+- [x] set_wm_state  (line 27833, static)
+- [x] x_set_sticky  (line 27858)
+- [x] x_set_shaded  (line 27870)
+- [x] x_set_skip_taskbar  (line 27892)
 - [ ] x_set_z_group  (line 27927)
 - [ ] x_get_current_wm_state  (line 27978, static)
 - [ ] do_ewmh_fullscreen  (line 28090, static)
@@ -2134,6 +2134,24 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 `docs/ports/macro-body-notes.tsv` rows, so `--check` **stays 154**.
 
 
+### 37. Slice 24 (C 27832-27908): the WM-state sender and its three frame-parameter handlers
+
+* **The `XEvent` member writes are the class the mirror already owes.**  `include/xlib.rs` 1241's
+  `XEvent` is a `[u8; 192]` placeholder with no members, so C 27839-27848's nine `msg.xclient.*`
+  writes (and the older C 2365-2376 site's) are `E0609` rows: this slice adds nine of the same
+  class, recorded, not hidden.
+* **`XSendEvent` has no prototype on this machine.**  `<X11/Xlib.h>` here is a reduced copy that
+  does not carry it, and no mirror declares the name; the call stands undeclared (one more `E0425`
+  row, the fifth site in the file) and the owed item is one declaration whose citation must come
+  from a complete Xlib.h.
+* **`frame_set_flag`'s write carries `have_window_system`.**  `skip_taskbar` is inside frame.h's
+  `#if defined (HAVE_WINDOW_SYSTEM)` block (C 452-479), so the flag write is wrapped in that gate
+  (the `src/xfns.rs` 1595-1597 shape) - without it the mirror's `FRAME_SKIP_TASKBAR_UNIT`/`_SHIFT`
+  rows are absent and the two names are `E0425`.
+* **Both `USE_GTK` arms are carried** (P-86 ①): `xg_set_skip_taskbar` is declared at this use site
+  (the `src/gtkutil.rs` 2712 definition is another crate's) and the `#else` runs `set_wm_state`.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3800,3 +3818,23 @@ by `docs/ports/macro-body-notes.tsv` rows.  The line-count row moves to 15,779 a
 **Not claimed.**  The frozen configuration compiles none of this file: no window property was
 read and none of the five DND/state functions ran.  The remaining `E0425` rows are unresolved
 names, not behaviour, and the new warnings are the initialiser price Decision 36 records.
+
+
+### Slice 24's readings (C 27832-27908), as landed and measured (2026-10-06)
+
+**What it lands.**  `set_wm_state` (C 27832-27855), `x_set_sticky` (C 27857-27867),
+`x_set_shaded` (C 27869-27879) and `x_set_skip_taskbar` (C 27891-27908, both arms).  Rust
+15,779 -> 15,913 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**545 / 65 -> 555 / 65**: **+9 `E0609`** (the `XEvent` members) and **+1 `E0425`** (`XSendEvent`),
+with the warning count unmoved; arm B **547 / 67 -> 557 / 67**: the same `+9`/`+1` and no warning;
+arm C **574 / 67 -> 583 / 68**: the same `+9`/`+1` and one warning more (the arm's own
+`xg_set_skip_taskbar`-less path).
+
+**What `--check` reads.**  **154 -> 150**: four `missing function` rows retire and no token row
+arrives.  The line-count row moves to 15,913 against C's 33,125 (52.0%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no client message was sent,
+no taskbar flag was set and no window manager was told anything.  The remaining
+`E0425`/`E0609` rows are unresolved names and the mirror's placeholder members, not behaviour.

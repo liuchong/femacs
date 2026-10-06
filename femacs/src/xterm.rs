@@ -15777,3 +15777,143 @@ pub unsafe extern "C" fn x_wm_supports (f: *mut frame, want_atom: Atom) -> bool
   return x_wm_supports_1 (FRAME_DISPLAY_INFO! (f),                       // C 27828-27829
 			  want_atom);
 }
+
+/// C: X.h 170-171: `#define SubstructureNotifyMask (1L<<19)` /
+/// `#define SubstructureRedirectMask (1L<<20)` - the mask pair C 27852-27853 sends with (measured).
+#[cfg (feature = "have_x_windows")]
+pub const SubstructureNotifyMask: c_long = 1 << 19;
+#[cfg (feature = "have_x_windows")]
+pub const SubstructureRedirectMask: c_long = 1 << 20;
+/* C: `XSendEvent` has no prototype in this machine's `<X11/Xlib.h>` (it is a reduced copy) and no
+   mirror of this unit's graph declares the name, so it stays undeclared here and the call sites -
+   the five this file already had plus C 27851's - are the owed record (Xlib's complete header
+   carries `extern int XSendEvent (Display *, Window, Bool, long, XEvent *);`).  */
+/* C: frame.h 475's `bool_bf skip_taskbar : 1` and the `frame_set_flag` its write arm uses are
+   `include/frame.rs`'s (1254-1262 and the flag writers); the macro takes the two-arm shape the
+   `src/pgtkfns.rs` 896-899 copy of the same name has.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_SKIP_TASKBAR {
+  ($f:expr) => { FRAME_SKIP_TASKBAR ($f) };
+  ($f:expr, $v:expr) => {
+    frame_set_flag ($f, FRAME_SKIP_TASKBAR_UNIT, FRAME_SKIP_TASKBAR_SHIFT, ($v) as u32) };
+}
+
+/// C 27832-27855: `static void set_wm_state (Lisp_Object frame, bool add, Atom atom, Atom value)`
+/// - a `static` whose callers are C 27865/27877/27903, so a plain `unsafe fn`.  `msg` is C's
+/// `XEvent` (zeroed, deviation 12's shape - the `xm_send_drop_message` site this file already
+/// has), and its `xclient` member is the union the xlib mirror carries.
+#[cfg (feature = "have_x_windows")]
+unsafe fn set_wm_state (frame: Lisp_Object, add: bool, atom: Atom, value: Atom)
+{
+  use crate::x11_constants::{ClientMessage, None};
+
+  let dpyinfo: *mut x_display_info;                                     // C 27835
+  let mut msg: XEvent = std::mem::zeroed ();                            // C 27836
+
+  dpyinfo = FRAME_DISPLAY_INFO! (XFRAME (frame));                       // C 27838
+  msg.xclient.r#type = ClientMessage;                                   // C 27839
+  msg.xclient.window = FRAME_OUTER_WINDOW! (XFRAME (frame));            // C 27840
+  msg.xclient.message_type = (*dpyinfo).Xatom_net_wm_state;             // C 27841
+  msg.xclient.format = 32;                                              // C 27842
+
+  msg.xclient.data.l[0] = if add { 1 } else { 0 };                      // C 27844
+  msg.xclient.data.l[1] = atom as c_long;                               // C 27845
+  msg.xclient.data.l[2] = value as c_long;                              // C 27846
+  msg.xclient.data.l[3] = 1;                                            // C 27847 (source indication)
+  msg.xclient.data.l[4] = 0;                                            // C 27848
+
+  block_input ();                                                       // C 27850
+  XSendEvent ((*dpyinfo).display, (*dpyinfo).root_window,               // C 27851-27853
+	      false, SubstructureRedirectMask | SubstructureNotifyMask, &raw mut msg);
+  unblock_input ();                                                     // C 27854
+}
+
+/// C 27857-27867: `void x_set_sticky (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)` - non-`static` and a frame-parameter handler whose address xfns.c's table holds,
+/// so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4); `old_value` is
+/// unused in C too.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_set_sticky (f: *mut frame, new_value: Lisp_Object,
+				       old_value: Lisp_Object)
+{
+  use crate::x11_constants::None;
+
+  let frame: Lisp_Object;                                               // C 27860
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);           // C 27861
+
+  XSETFRAME! (frame, f);                                                // C 27863
+
+  set_wm_state (frame, !NILP (new_value),                               // C 27865-27866
+		(*dpyinfo).Xatom_net_wm_state_sticky, None as Atom);
+}
+
+/// C 27869-27879: `void x_set_shaded (...)` - the same shape as `x_set_sticky`, with
+/// `Xatom_net_wm_state_shaded`.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_set_shaded (f: *mut frame, new_value: Lisp_Object,
+				       old_value: Lisp_Object)
+{
+  use crate::x11_constants::None;
+
+  let frame: Lisp_Object;                                               // C 27872
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);           // C 27873
+
+  XSETFRAME! (frame, f);                                                // C 27875
+
+  set_wm_state (frame, !NILP (new_value),                               // C 27877-27878
+		(*dpyinfo).Xatom_net_wm_state_shaded, None as Atom);
+}
+
+/**
+ * x_set_skip_taskbar:
+ *
+ * Set frame F's `skip-taskbar' parameter.  If non-nil, this should
+ * remove F's icon from the taskbar associated with the display of F's
+ * window-system window and inhibit switching to F's window via
+ * <Alt>-<TAB>.  If nil, lift these restrictions.
+ *
+ * Some window managers may not honor this parameter.
+ */
+/// C 27891-27908: `void x_set_skip_taskbar (...)` - non-`static`; both arms of C 27896's
+/// `USE_GTK` are carried (P-86 ①): `xg_set_skip_taskbar` (gtkutil.h; the `src/gtkutil.rs` 2712
+/// definition is another crate's, so it stands at this use site) and the `#else`'s
+/// `set_wm_state` pair, then C 27906's frame-flag write.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_set_skip_taskbar (f: *mut frame, new_value: Lisp_Object,
+					     old_value: Lisp_Object)
+{
+  if !EQ (new_value, old_value)                                         // C 27894
+    {
+      #[cfg (feature = "use_gtk")]
+      {
+	xg_set_skip_taskbar (f, new_value);                             // C 27897
+      }
+      #[cfg (not (feature = "use_gtk"))]
+      {
+	use crate::x11_constants::None;
+
+	let frame: Lisp_Object;                                     // C 27899
+	let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);     // C 27900
+
+	XSETFRAME! (frame, f);                                          // C 27902
+	set_wm_state (frame, !NILP (new_value),                         // C 27903-27904
+		      (*dpyinfo).Xatom_net_wm_state_skip_taskbar, None as Atom);
+      }
+      /* C's member lives inside frame.h's `#ifdef HAVE_WINDOW_SYSTEM` (C 452-479, the block
+	 `skip_taskbar` sits in), so the write carries the macro the mirror's own flag
+	 constants carry (the `src/xfns.rs` 1595-1597 shape).  */
+      #[cfg (feature = "have_window_system")]
+      {
+	FRAME_SKIP_TASKBAR! (f, if !NILP (new_value) { 1 } else { 0 });  // C 27906
+      }
+    }
+}
+/* C: gtkutil.c's `void xg_set_skip_taskbar (struct frame *f, Lisp_Object skip_taskbar);`,
+   declared in gtkutil.h - C 27897's call.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_set_skip_taskbar (f: *mut frame, skip_taskbar: Lisp_Object);
+}
