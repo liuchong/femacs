@@ -8325,3 +8325,226 @@ unsafe fn delete_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data:
     { evq_enqueue (&raw mut inev); }                                    // C 5710
   return true as gboolean;                                              // C 5711
 }
+
+/* C: gdk/gdktypes.h: `typedef enum { GDK_NOTIFY_ANCESTOR, …, GDK_NOTIFY_INFERIOR, …,
+   GDK_NOTIFY_UNKNOWN } GdkNotifyType;` - the type of `GdkEventCrossing.detail` and the one value the
+   reference names (C 5789/5826).  `src/xwidget.rs` 2192-2196 carries the same rows for its own reads
+   and a mirror may not define what an includer already has (P-90 7), so the unit keeps its own copy -
+   the `GDK_*_MASK` and `GDK_TOUCHPAD_*` shape.  No GDK header exists on this machine, so the value is
+   a **placeholder** (Owed 21's GDK-target round).  */
+#[cfg (feature = "have_pgtk")]
+pub type GdkNotifyType = c_int;
+#[cfg (feature = "have_pgtk")]
+pub const GDK_NOTIFY_INFERIOR: GdkNotifyType = 2;      // placeholder, not GDK's value
+
+/// C 5723-5767: `static void pgtk_focus_changed (gboolean is_enter, int state, struct
+/// pgtk_display_info *dpyinfo, struct frame *frame, union buffered_input_event *bufp)` - `static`
+/// with four call sites in this same slice (C 5791/5828/5860/5884) and no address taken, so a plain
+/// `unsafe fn`.  C's `gboolean is_enter` is the mirror's `c_int` alias, which is why the four calls
+/// pass `TRUE`/`FALSE` as `true as gboolean`/`false as gboolean`; `bufp`'s members are reached
+/// through the pointer and C 5744/5760's `kind` writes are `input_event_bits!`;
+/// `frame->output_data.pgtk->focus_state` is the mirror's `c_int` field with
+/// `include/pgtkterm.rs` 413-415's two constants; `pointer_invisible` is this unit's reader macro
+/// (line 3991) and `pgtk_toggle_invisible_pointer` its C 4811 definition.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_focus_changed (is_enter: gboolean, state: c_int,
+			      dpyinfo: *mut pgtk_display_info, frame: *mut frame,
+			      bufp: *mut buffered_input_event)
+{
+  if is_enter != 0                                                      // C 5728
+    {
+      if (*dpyinfo).x_focus_event_frame != frame                        // C 5730
+	{
+	  pgtk_new_focus_frame (dpyinfo, frame);                        // C 5732
+	  (*dpyinfo).x_focus_event_frame = frame;                       // C 5733
+
+	  /* Don't stop displaying the initial startup message
+	     for a switch-frame event we don't need.  */
+	  /* When run as a daemon, Vterminal_frame is always nil.
+	     FIXME: Isn't it actually the other way around?  */
+	  (*bufp).ie.arg                                                // C 5739-5743
+	    = if (NILP (Vterminal_frame)
+		  || !FRAME_PGTK_P (XFRAME (Vterminal_frame))
+		  || IS_DAEMON ())
+		 && CONSP (Vframe_list)
+		 && !NILP (XCDR (Vframe_list))
+		{ Qt () }
+	      else
+		{ Qnil () };
+	  input_event_bits! (kind, &raw mut (*bufp).ie, FOCUS_IN_EVENT);   // C 5744
+	  XSETFRAME! ((*bufp).ie.frame_or_window, frame);               // C 5745
+	}
+
+      (*FRAME_X_OUTPUT! (frame)).focus_state |= state;                  // C 5748
+
+    }
+  else
+    {
+      (*FRAME_X_OUTPUT! (frame)).focus_state &= ! state;                // C 5753
+
+      if (*dpyinfo).x_focus_event_frame == frame                        // C 5755
+	{
+	  (*dpyinfo).x_focus_event_frame = core::ptr::null_mut ();      // C 5757
+	  pgtk_new_focus_frame (dpyinfo, core::ptr::null_mut ());       // C 5758
+
+	  input_event_bits! (kind, &raw mut (*bufp).ie, FOCUS_OUT_EVENT);   // C 5760
+	  XSETFRAME! ((*bufp).ie.frame_or_window, frame);               // C 5761
+	}
+
+      if pointer_invisible! (frame)                                     // C 5764
+	{ pgtk_toggle_invisible_pointer (frame, false); }               // C 5765
+    }
+}
+
+/// C 5769-5795: `static gboolean enter_notify_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - `static`, address taken at C 6850 (in the remainder), so a plain `unsafe fn` until
+/// that slice.  `event->crossing.detail`/`focus` are the union member this slice's mirror round
+/// completes; `GDK_NOTIFY_INFERIOR` is that round's placeholder constant and C's `TRUE` is
+/// `true as gboolean` (the `pgtk_focus_changed` reading above).
+#[cfg (feature = "have_pgtk")]
+unsafe fn enter_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5773
+  let frame: *mut frame
+    = pgtk_any_window_to_frame (gtk_widget_get_window (widget));        // C 5774-5775
+
+  if frame.is_null ()                                                   // C 5777
+    { return false as gboolean; }                                       // C 5778
+
+  let dpyinfo: *mut pgtk_display_info = FRAME_DISPLAY_INFO! (frame);    // C 5780
+  let focus_frame: *mut frame = (*dpyinfo).x_focus_frame;               // C 5781
+  let focus_state: c_int
+    = if !focus_frame.is_null ()                                        // C 5782
+	{ (*FRAME_X_OUTPUT! (focus_frame)).focus_state }
+      else
+	{ 0 };                                                          // C 5783
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5785
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 5786
+  inev.ie.arg = Qnil ();                                                // C 5787
+
+  if (*event).crossing.detail != GDK_NOTIFY_INFERIOR                    // C 5789
+      && (*event).crossing.focus != 0                                   // C 5790
+      && focus_state & FOCUS_EXPLICIT == 0
+    { pgtk_focus_changed (true as gboolean, FOCUS_IMPLICIT, dpyinfo, frame, &raw mut inev); }   // C 5791
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 5792
+    { evq_enqueue (&raw mut inev); }                                    // C 5793
+  return true as gboolean;                                              // C 5794
+}
+
+/// C 5797-5844: `static gboolean leave_notify_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - `static`, address taken at C 6848 (in the remainder), so a plain `unsafe fn`;
+/// `hlinfo->mouse_face_mouse_frame` is `include/dispextern.rs` 2129's bare-tag pointer, so C's
+/// comparison and its `= 0` carry the casts (`frame as *mut c_void`, `core::ptr::null_mut ()`), and
+/// the help-event arm is the C 5830-5839 pair the forty-fourth slice declared.
+#[cfg (feature = "have_pgtk")]
+unsafe fn leave_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5801
+  let frame: *mut frame
+    = pgtk_any_window_to_frame (gtk_widget_get_window (widget));        // C 5802-5803
+
+  if frame.is_null ()                                                   // C 5805
+    { return false as gboolean; }                                       // C 5806
+
+  let dpyinfo: *mut pgtk_display_info = FRAME_DISPLAY_INFO! (frame);    // C 5808
+  let focus_frame: *mut frame = (*dpyinfo).x_focus_frame;               // C 5809
+  let focus_state: c_int
+    = if !focus_frame.is_null ()                                        // C 5810
+	{ (*FRAME_X_OUTPUT! (focus_frame)).focus_state }
+      else
+	{ 0 };                                                          // C 5811
+  let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (frame);               // C 5812
+
+  if (*hlinfo).mouse_face_mouse_frame == frame as *mut c_void           // C 5814
+    {
+      /* If we move outside the frame, then we're
+	 certainly no longer on any text in the frame.  */
+      clear_mouse_face (hlinfo);                                        // C 5818
+      (*hlinfo).mouse_face_mouse_frame = core::ptr::null_mut ();        // C 5819
+    }
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5822
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 5823
+  inev.ie.arg = Qnil ();                                                // C 5824
+
+  if (*event).crossing.detail != GDK_NOTIFY_INFERIOR                    // C 5826
+      && (*event).crossing.focus != 0                                   // C 5827
+      && focus_state & FOCUS_EXPLICIT == 0
+    { pgtk_focus_changed (false as gboolean, FOCUS_IMPLICIT, dpyinfo, frame, &raw mut inev); }   // C 5828
+
+  if !frame.is_null ()                                                  // C 5830
+    {
+      if any_help_event_p                                               // C 5832
+	{
+	  let mut frame_obj: Lisp_Object;                               // C 5834
+	  XSETFRAME! (frame_obj, frame);                                // C 5835
+	  help_echo_string = Qnil ();                                   // C 5836
+	  gen_help_event (Qnil (), frame_obj, Qnil (), Qnil (), 0);     // C 5837
+	}
+    }
+
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 5841
+    { evq_enqueue (&raw mut inev); }                                    // C 5842
+  return true as gboolean;                                              // C 5843
+}
+
+/// C 5846-5868: `static gboolean focus_in_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - `static`, address taken at C 6844 (in the remainder), so a plain `unsafe fn`;
+/// `pgtk_im_focus_in` is `include/pgtkterm.rs` 786's row and the call passes C's `TRUE` as
+/// `true as gboolean` with `FOCUS_EXPLICIT` from the mirror.
+#[cfg (feature = "have_pgtk")]
+unsafe fn focus_in_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5849
+  let frame: *mut frame
+    = pgtk_any_window_to_frame (gtk_widget_get_window (widget));        // C 5850-5851
+
+  if frame.is_null ()                                                   // C 5853
+    { return true as gboolean; }                                        // C 5854
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5856
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 5857
+  inev.ie.arg = Qnil ();                                                // C 5858
+
+  pgtk_focus_changed (true as gboolean, FOCUS_EXPLICIT,
+		      FRAME_DISPLAY_INFO! (frame), frame, &raw mut inev);   // C 5860-5861
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 5862
+    { evq_enqueue (&raw mut inev); }                                    // C 5863
+
+  pgtk_im_focus_in (frame);                                             // C 5865
+
+  return true as gboolean;                                              // C 5867
+}
+
+/// C 5870-5892: `static gboolean focus_out_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - `static`, address taken at C 6846 (in the remainder), so a plain `unsafe fn`;
+/// `pgtk_im_focus_out` is `include/pgtkterm.rs` 788's row and C's `FALSE` is
+/// `false as gboolean`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn focus_out_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+    -> gboolean
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5873
+  let frame: *mut frame
+    = pgtk_any_window_to_frame (gtk_widget_get_window (widget));        // C 5874-5875
+
+  if frame.is_null ()                                                   // C 5877
+    { return true as gboolean; }                                        // C 5878
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 5880
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 5881
+  inev.ie.arg = Qnil ();                                                // C 5882
+
+  pgtk_focus_changed (false as gboolean, FOCUS_EXPLICIT,
+		      FRAME_DISPLAY_INFO! (frame), frame, &raw mut inev);   // C 5884-5885
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT             // C 5886
+    { evq_enqueue (&raw mut inev); }                                    // C 5887
+
+  pgtk_im_focus_out (frame);                                            // C 5889
+
+  return true as gboolean;                                              // C 5891
+}

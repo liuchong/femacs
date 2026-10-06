@@ -1016,6 +1016,11 @@ pub const GDK_WINDOW_STATE_BOTTOM_TILED: GdkWindowState = 1 << 13;    // placeho
 pub const GDK_WINDOW_STATE_BOTTOM_RESIZABLE: GdkWindowState = 1 << 14;   // placeholder
 pub const GDK_WINDOW_STATE_LEFT_TILED: GdkWindowState = 1 << 15;      // placeholder
 pub const GDK_WINDOW_STATE_LEFT_RESIZABLE: GdkWindowState = 1 << 16;  // placeholder
+/* The `GdkCrossingMode`/`GdkNotifyType` aliases and the `GDK_NOTIFY_*` constants C 5789/5826 names are
+   **not** here: `src/xwidget.rs` 257/2192-2196 declares the same names for its own reads, and a
+   mirror may not define a name an includer carries (P-90 7) - each unit keeps its own copy, which is
+   why `GdkEventCrossing`'s `mode`/`detail` below are the underlying `c_int` (P-87 3's rule: a mirror
+   does not name a type its includers may each declare).  */
 /* The two `GDK_TOUCHPAD_*` constants C 5000-5002 compares are **not** here: `src/xwidget.rs`
    2249/2256 declares the same names for its own reads, and a mirror may not define a name an
    includer already carries (P-90 7) - each unit keeps its own copy.  */
@@ -1135,6 +1140,14 @@ pub struct GdkEventCrossing
   pub time: u32,
   pub x: c_double,
   pub y: c_double,
+  // The five members the forty-sixth slice's crossing handlers read on past those: `detail`
+  // (C 5789) and `focus` (C 5790), with `x_root`, `y_root` and `mode` carried because they
+  // precede them in GDK's declaration.  **UNVERIFIED**.
+  pub x_root: c_double,
+  pub y_root: c_double,
+  pub mode: c_int,                // C: `GdkCrossingMode mode;` - the underlying type (P-87 3)
+  pub detail: c_int,              // C: `GdkNotifyType detail;` - the underlying type (P-87 3)
+  pub focus: c_int,               // C: gdk/gdktypes.h: `gboolean focus;`
 }
 
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventKey GdkEventKey;` - the union's `key` member:
