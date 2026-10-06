@@ -10037,11 +10037,23 @@ unsafe fn x_draw_glyphless_glyph_string_foreground (s: *mut glyph_string)
    plain `have_x_windows` probe compiles none of it, and the ledger records that no reading below
    reaches it.  */
 
-/* The three Xt names the arm's signatures need and no mirror carries.  `XtPointer`/`Boolean`
-   *are* mirrored (`include/widget.rs` 182-185, reached through C 775's `"widget.h"`); these three
-   are not, and this machine has no libXt headers (`/opt/homebrew/include/X11` carries Xlib's
-   only) to measure a record from - so the arm names the scalars C uses and the ledger records the
-   gap.  */
+/* The Xt names the arm's signatures need and no mirror carries.  The earlier note here said
+   `XtPointer`/`Boolean` were mirrored by `include/widget.rs` 182-185; **they are not** (measured:
+   no `pub type XtPointer`/`pub type Boolean` in any `femacs/src/include` file), so slice 70 adds
+   the two spellings `src/widget.rs` already uses for the same `<X11/Intrinsic.h>` typedefs
+   (168-170 and 185), together with `XtActionHookId`, which C's Intrinsic.h defines as
+   `typedef XtPointer XtActionHookId;`.  This machine has no libXt headers
+   (`/opt/homebrew/include/X11` carries Xlib's only), so the scalars are C's names with C's own
+   spellings and the ledger records the gap.  */
+/// C: `<X11/Intrinsic.h>`: `typedef int Boolean;` - the `src/widget.rs` 168-170 spelling.
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type Boolean = c_int;
+/// C: `<X11/Intrinsic.h>`: `typedef char *XtPointer;` - the `src/widget.rs` 185 spelling.
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtPointer = *mut c_char;
+/// C: `<X11/Intrinsic.h>`: `typedef XtPointer XtActionHookId;`
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtActionHookId = XtPointer;
 /// C: `<X11/Intrinsic.h>`: `typedef unsigned int Cardinal;`
 #[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
 pub type Cardinal = c_uint;
@@ -10152,19 +10164,19 @@ unsafe fn cvt_string_to_pixel (dpy: *mut Display, args: *mut XrmValue, nargs: *m
 
   if strcmp (color_name, XtDefaultBackground) == 0
     {
-      *closure_ret = False as XtPointer;
+      *closure_ret = std::ptr::null_mut ();  /* C 9013/9018's `(XtPointer) False` */
       pixel = WhitePixelOfScreen (screen);
     }
   else if strcmp (color_name, XtDefaultForeground) == 0
     {
-      *closure_ret = False as XtPointer;
+      *closure_ret = std::ptr::null_mut ();  /* C 9013/9018's `(XtPointer) False` */
       pixel = BlackPixelOfScreen (screen);
     }
   else if XParseColor (dpy, cmap, color_name, &raw mut color) != 0
 	   && x_alloc_nearest_color_1 (dpy, cmap, &raw mut color)
     {
       pixel = color.pixel;
-      *closure_ret = true as XtPointer;
+      *closure_ret = 1 as XtPointer;  /* C 9025's `(XtPointer) True` is the value 1 */
     }
   else
     {
@@ -23734,3 +23746,151 @@ unsafe fn x_get_last_toolkit_time (dpyinfo: *mut x_display_info) -> Time
   #[cfg (not (feature = "use_x_toolkit"))]
   { return (*dpyinfo).last_user_time; }                                 // C 15424
 }
+
+/* C 15428's `#ifndef USE_GTK` opens this block.  */
+
+/* Id of action hook installed for scroll bars and horizontal scroll
+   bars.  */
+
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+pub static mut action_hook_id: XtActionHookId = std::ptr::null_mut ();   // C 15432 (tentative)
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+pub static mut horizontal_action_hook_id: XtActionHookId = std::ptr::null_mut ();  // C 15433 (tentative)
+
+/* Whether this is an Xaw with arrow-scrollbars.  This should imply
+   that movements of 1/20 of the screen size are mapped to up/down.  */
+
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+pub static mut xaw3d_arrow_scroll: Boolean = 0;                        // C 15438 (tentative, i.e. zero)
+
+/* Whether the drag scrolling maintains the mouse at the top of the
+   thumb.  If not, resizing the thumb needs to be done more carefully
+   to avoid jerkiness.  */
+
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+pub static mut xaw3d_pick_top: Boolean = 0;                           // C 15444 (tentative, i.e. zero)
+
+/* Action hook installed via XtAppAddActionHook when toolkit scroll
+   bars are used..  The hook is responsible for detecting when
+   the user ends an interaction with the scroll bar, and generates
+   a `end-scroll' SCROLL_BAR_CLICK_EVENT' event if so.  */
+
+/* C 15451-15491: `static void xt_action_hook (Widget widget, XtPointer client_data, String
+   action_name, XEvent *event, String *params, Cardinal *num_params)` - C's `static`, so a plain
+   `unsafe fn`, and the hook `XtAppAddActionHook` is registered with in `x_scroll_bar_create`
+   (a later slice; nothing here calls it yet).  Five shapes: C 15458-15464's `#ifdef USE_MOTIF`
+   pair is two cfg'd blocks assigning the two locals (both branches must assign, so the port's
+   `let mut scroll_bar_p: bool;`/`let end_action: *const c_char;` are written once at the top as
+   C writes them, and the initialising assignments sit in the blocks - the two hooks are the
+   file's first pair of locals initialised that way); C's `XmIsScrollBar`/`XtIsSubclass` return
+   Xt's `Boolean` (`int`), so the `bool` assignment states `!= 0`; the string literals are the
+   port's `c"..."` spelling; C 15468's `WINDOW_LIVE_P` is `include/window.rs` 478's function and
+   C 15468's `WINDOW_LIVE_P (window_being_scrolled)` is why the tunits below need
+   `window_being_scrolled` from the previous slice; C 15473-15474's call and C 15482/15484's
+   writes are `x_send_scroll_bar_event`/`set_vertical_scroll_bar`, both still unlanded (this
+   slice's readings count them); and C 15485-15487's `USE_LUCID` arm is a cfg'd block.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+unsafe fn xt_action_hook (widget: Widget, client_data: XtPointer, action_name: String,
+				 event: *mut XEvent, params: *mut String,
+				 num_params: *mut Cardinal)
+{
+  let mut scroll_bar_p: bool;                                           // C 15455
+  let end_action: *const c_char;                                        // C 15456
+
+  #[cfg (feature = "use_motif")]
+  {
+    scroll_bar_p = XmIsScrollBar (widget) != 0;                         // C 15459
+    end_action = c"Release".as_ptr ();                                 // C 15460
+  }
+  #[cfg (not (feature = "use_motif"))]
+  {
+    scroll_bar_p = XtIsSubclass (widget, scrollbarWidgetClass) != 0;    // C 15462
+    end_action = c"EndScroll".as_ptr ();                               // C 15463
+  }
+
+  if scroll_bar_p                                                      // C 15466
+      && strcmp (action_name, end_action) == 0                        // C 15467
+      && WINDOW_LIVE_P (window_being_scrolled)                        // C 15468
+    {
+      let mut w: *mut window;                                          // C 15470
+      let mut bar: *mut scroll_bar;                                    // C 15471
+
+      x_send_scroll_bar_event (window_being_scrolled,                  // C 15473-15474
+			       scroll_bar_end_scroll, 0, 0, false);
+      w = XWINDOW (window_being_scrolled);                             // C 15475
+      bar = XSCROLL_BAR! ((*w).vertical_scroll_bar);                   // C 15476
+
+      if (*bar).dragging != -1                                          // C 15478
+	{
+	  (*bar).dragging = -1;                                            // C 15480
+	  /* The thumb size is incorrect while dragging: fix it.  */
+	  set_vertical_scroll_bar (w);                                     // C 15482
+	}
+      window_being_scrolled = Qnil ();                                 // C 15484
+      #[cfg (feature = "use_lucid")]
+	{ (*bar).last_seen_part = scroll_bar_nowhere; }                    // C 15486
+      /* Xt timeouts no longer needed.  */
+      toolkit_scroll_bar_interaction = false;                          // C 15489
+    }
+}
+
+/* C 15494-15536: `static void xt_horizontal_action_hook (Widget widget, XtPointer client_data,
+   String action_name, XEvent *event, String *params, Cardinal *num_params)` - the twin of the
+   hook above, with the same five shapes; the differences C has are the one this slice keeps: C
+   15511 tests `WINDOWP` (not `WINDOW_LIVE_P`), C 15519's guard is `!NILP (w->horizontal_scroll_bar)`
+   rather than C 15476's unconditional read, and the two bodies sit at different nesting depths
+   (C 15520-15534 is inside that guard).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  not (feature = "use_gtk")))]
+unsafe fn xt_horizontal_action_hook (widget: Widget, client_data: XtPointer, action_name: String,
+				     event: *mut XEvent, params: *mut String,
+				     num_params: *mut Cardinal)
+{
+  let mut scroll_bar_p: bool;                                           // C 15498
+  let end_action: *const c_char;                                        // C 15499
+
+  #[cfg (feature = "use_motif")]
+  {
+    scroll_bar_p = XmIsScrollBar (widget) != 0;                         // C 15502
+    end_action = c"Release".as_ptr ();                                 // C 15503
+  }
+  #[cfg (not (feature = "use_motif"))]
+  {
+    scroll_bar_p = XtIsSubclass (widget, scrollbarWidgetClass) != 0;    // C 15505
+    end_action = c"EndScroll".as_ptr ();                               // C 15506
+  }
+
+  if scroll_bar_p                                                      // C 15509
+      && strcmp (action_name, end_action) == 0                        // C 15510
+      && WINDOWP (window_being_scrolled)                              // C 15511
+    {
+      let mut w: *mut window;                                          // C 15513
+      let mut bar: *mut scroll_bar;                                    // C 15514
+
+      x_send_scroll_bar_event (window_being_scrolled,                  // C 15516-15517
+			       scroll_bar_end_scroll, 0, 0, true);
+      w = XWINDOW (window_being_scrolled);                             // C 15518
+      if !NILP ((*w).horizontal_scroll_bar)                            // C 15519
+	{
+	  bar = XSCROLL_BAR! ((*w).horizontal_scroll_bar);                 // C 15521
+	  if (*bar).dragging != -1                                        // C 15522
+	    {
+	      (*bar).dragging = -1;                                        // C 15524
+	      /* The thumb size is incorrect while dragging: fix it.  */
+	      set_horizontal_scroll_bar (w);                               // C 15526
+	    }
+	  window_being_scrolled = Qnil ();                                 // C 15528
+	  #[cfg (feature = "use_lucid")]
+	    { (*bar).last_seen_part = scroll_bar_nowhere; }                // C 15530
+	  /* Xt timeouts no longer needed.  */
+	  toolkit_scroll_bar_interaction = false;                          // C 15533
+	}
+    }
+}
+
+/* C 15537's `#endif /* not USE_GTK */` closes this block.  */
