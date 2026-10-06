@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 33 (C 29142-29189, Decision 46) goes **123 -> 119**: `xembed_set_info`, `xembed_send_message` and the two `XEMBED_VERSION` rows retire, and no token row arrives.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -313,8 +313,8 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_get_focus_frame  (line 28950, static)
 - [x] x_set_input_focus  (line 28964, static)
 - [x] x_focus_frame  (line 29024, static)
-- [ ] xembed_set_info  (line 29151, static)
-- [ ] xembed_send_message  (line 29166, static)
+- [x] xembed_set_info  (line 29151, static)
+- [x] xembed_send_message  (line 29166, static)
 - [ ] x_make_frame_visible  (line 29202)
 - [ ] x_make_frame_invisible  (line 29407)
 - [ ] x_make_frame_visible_invisible  (line 29475, static)
@@ -2347,6 +2347,23 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `client_pointer_device` rows (C 28982/28985) are the same class from `include/xterm.rs`
   662-666's owed run.
 
+### 46. Slice 33 (C 29142-29189): the XEmbed block
+
+* **`XEMBED_VERSION` is owed twice by name, so it is declared twice.**  The inventory carried both
+  `missing macro XEMBED_VERSION` and `missing constant XEMBED_VERSION` (C 29148's `#define`, inside
+  C 29144's gate), so the port declares C's macro *and* the constant it stands for - the
+  `XTNheight`/`XtSetArg` shape this file already uses - and both rows retire.
+* **The gate is `any (use_x_toolkit, not (use_gtk))`.**  C 29144's `#if defined USE_X_TOOLKIT ||
+  ! defined USE_GTK` covers `xembed_set_info` alone; `xembed_send_message` (C 29165) sits outside
+  it and the GTK build compiles it too, which is why arm B's reading carries the sender's rows and
+  not the setter's.
+* **Nine more `E0609` rows from the `event.xclient.*` writes.**  They are slice 24/31's class
+  (`include/xlib.rs` 1241's opaque union).  The two Xlib entry points the block names
+  (`XChangeProperty`, `XSendEvent`) already carry rows from earlier slices, so the new sites add
+  **exactly one** `E0425` row in arms A and C and none in arm B.
+* **`xembed_send_message`'s definition retires slice 30's owed row.**  `xembed_request_focus`
+  (C 28817) called it undeclared; C 29165-29189 is that definition.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -4222,3 +4239,25 @@ line-count row moves to 17,707 against C's 33,125 (53.5%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no focus request was made,
 no window manager was asked to activate anything and no frame was raised.
+
+
+### Slice 33's readings (C 29142-29189), as landed and measured (2026-10-06)
+
+**What it lands.**  `xembed_set_info` (C 29150-29162, under C 29144's gate, with `XEMBED_VERSION`
+as both a macro and a constant) and `xembed_send_message` (C 29165-29189, ungated).  Rust
+17,707 -> 17,777 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**588 / 68 -> 598 / 68**: **+1 `E0425`** (the two Xlib entry points the block names already carry
+rows, so their new sites add one) and **+9 `E0609`** (`event.xclient.*`), with no warning delta;
+arm B (`+have_gtk3+use_gtk`) **606 / 70 -> 615 / 70**: the nine rows and **no** `E0425` (the
+setter's `XChangeProperty` is gated out there and `XSendEvent`'s name is already unresolved); arm C
+(`+have_xinput2`) **621 / 70 -> 631 / 70**: the same ten as arm A.  **Arm reachability** (P-86 ⑦):
+`let _: c_int = true;` as `xembed_set_info`'s first statement moves `E0308` 14 -> 15, anchored
+exactly at that line.
+
+**What `--check` reads.**  **123 -> 119**: the two functions and the two `XEMBED_VERSION` rows
+retire, and no token row arrives.  The line-count row moves to 17,777 against C's 33,125 (53.7%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no XEmbed property was set
+and no client message was sent.

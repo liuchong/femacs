@@ -17705,3 +17705,73 @@ unsafe fn x_focus_frame (f: *mut frame, noactivate: bool)
 
   unblock_input ();                                                     // C 29138
 }
+
+/* XEmbed implementation.  */
+
+/* XEmbed implementation.  */
+
+/* C 29148: `#define XEMBED_VERSION 0`, inside C 29144's `#if defined USE_X_TOOLKIT || ! defined
+   USE_GTK` - the gate this constant and `xembed_set_info` both carry (gtkutil.c compiles its
+   own copy under the GTK build).  The port keeps C's macro *and* the constant the inventory
+   reads, the `XTNheight`/`XtSetArg` shape above.  */
+#[cfg (all (feature = "have_x_windows",
+	  any (feature = "use_x_toolkit", not (feature = "use_gtk"))))]
+macro_rules! XEMBED_VERSION { () => { 0 } }
+#[cfg (all (feature = "have_x_windows",
+	  any (feature = "use_x_toolkit", not (feature = "use_gtk"))))]
+pub const XEMBED_VERSION: c_int = 0;
+
+/// C 29150-29162: `static void xembed_set_info (struct frame *f, enum xembed_info flags)` -
+/// `static` (its caller is `x_make_frame_visible` below), so a plain `unsafe fn`; the gate is
+/// C 29144's, and `XChangeProperty` is the bare Xlib class the ledger's `## Owed` list keeps.
+#[cfg (all (feature = "have_x_windows",
+	  any (feature = "use_x_toolkit", not (feature = "use_gtk"))))]
+unsafe fn xembed_set_info (f: *mut frame, flags: xembed_info)
+{
+  use crate::x11_constants::PropModeReplace;
+
+  let mut data: [c_ulong; 2];                                           // C 29153
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);           // C 29154
+
+  data[0] = XEMBED_VERSION as c_ulong;                                  // C 29156
+  data[1] = flags as c_ulong;                                           // C 29157
+
+  XChangeProperty (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),       // C 29159-29161
+		  (*dpyinfo).Xatom_XEMBED_INFO, (*dpyinfo).Xatom_XEMBED_INFO,
+		  32, PropModeReplace, data.as_mut_ptr () as *const c_uchar, 2);
+}
+
+/// C 29165-29189: `static void xembed_send_message (struct frame *f, Time t, enum
+/// xembed_message msg, long int detail, long int data1, long int data2)` - `static` (its caller
+/// is `xembed_request_focus` above), so a plain `unsafe fn`; it sits *outside* C 29144's gate,
+/// so the GTK build compiles it too.  The nine `event.xclient.*` writes are the `XEvent`-member
+/// class (`include/xlib.rs` 1241's opaque union), and `XSendEvent`/`XChangeProperty` are the
+/// recorded Xlib class; `NoEventMask` is `x11_constants`'.
+#[cfg (feature = "have_x_windows")]
+unsafe fn xembed_send_message (f: *mut frame, t: Time, msg: xembed_message, detail: c_long,
+				data1: c_long, data2: c_long)
+{
+  use crate::x11_constants::{ClientMessage, NoEventMask};
+
+  let mut event: XEvent = std::mem::zeroed ();                          // C 29169
+
+  event.xclient.r#type = ClientMessage;                                 // C 29171
+  event.xclient.window = (*(FRAME_X_OUTPUT! (f) as *mut x_output)).parent_desc;  // C 29172
+  event.xclient.message_type = (*FRAME_DISPLAY_INFO! (f)).Xatom_XEMBED;  // C 29173
+  event.xclient.format = 32;                                            // C 29174
+  event.xclient.data.l[0] = t as c_long;                                // C 29175
+  event.xclient.data.l[1] = msg as c_long;                              // C 29176
+  event.xclient.data.l[2] = detail;                                     // C 29177
+  event.xclient.data.l[3] = data1;                                      // C 29178
+  event.xclient.data.l[4] = data2;                                      // C 29179
+
+  /* XXX: the XEmbed spec tells us to trap errors around this request,
+     but I don't understand why: there is no way for clients to
+     survive the death of the parent anyway.  */
+
+  x_ignore_errors_for_next_request (FRAME_DISPLAY_INFO! (f), 0);        // C 29185
+  XSendEvent (FRAME_X_DISPLAY! (f),                                     // C 29186-29187
+	      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).parent_desc,
+	      false, NoEventMask, &raw mut event);
+  x_stop_ignoring_errors (FRAME_DISPLAY_INFO! (f));                     // C 29188
+}
