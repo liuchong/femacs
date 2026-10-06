@@ -4115,3 +4115,134 @@ unsafe fn pgtk_draw_hollow_cursor (w: *mut window, row: *mut glyph_row)
 			       x, y, wd, h - 1, false);                         // C 2912
   pgtk_end_cr_clip (f);                                                 // C 2913
 }
+
+/* Draw a bar cursor on window W in glyph row ROW.
+
+   Implementation note: One would like to draw a bar cursor with an
+   angle equal to the one given by the font property XA_ITALIC_ANGLE.
+   Unfortunately, I didn't find a font yet that has this property set.
+   --gerd.  */
+
+/* frame.h 1379 / 1643-1666's `FRAME_FACE_CACHE` and `FACE_FROM_ID` are C's *inline* definitions,
+   which C pastes into every unit that includes the header, so the port keeps one copy per
+   including unit (the `src/term.rs` 360-371 form; `include/frame.rs` 1534-1552 records why
+   that mirror's own copy is a module instead).  */
+#[cfg (feature = "have_pgtk")]
+#[inline(always)]
+pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
+{ unsafe { (*f).face_cache as *mut face_cache } }
+#[cfg (feature = "have_pgtk")]
+#[inline(always)]
+pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
+{
+  eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+  unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
+}
+/* C: dispextern.h 3649-3651: `extern void draw_phys_cursor_glyph (struct window *, struct
+   glyph_row *, enum draw_glyphs_face);` - the C 2948 call (`src/abi_shim.rs` 2499 defines it);
+   no mirror carries it, so the unit declares it at the use site.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn draw_phys_cursor_glyph (w: *mut window, row: *mut glyph_row, draw: draw_glyphs_face);
+}
+
+/// C 2923-3012: `static void pgtk_draw_bar_cursor (struct window *w, struct glyph_row *row, int
+/// width, enum text_cursor_kinds kind)` - `MATRIX_ROW!` is the mirror's macro, `FACE_FROM_ID` is
+/// `include/frame.rs`'s, `w->phys_cursor` is the window record's `cursor_pos`, `WINDOW_TEXT_TO_
+/// FRAME_PIXEL_X!`/`WINDOW_TO_FRAME_PIXEL_Y!` are `window.rs`'s macros, C's two `min` calls are the
+/// port's `isize` fold, and `pgtk_clip_to_row`/`pgtk_fill_rectangle` are this ledger's registered
+/// classes (C 3629 / C 5035's definitions, in the remainder).  `width` is reassigned in C's body, so
+/// the parameter is `mut` (the `src/image.rs` 2902 `mut width` shape).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_bar_cursor (w: *mut window, row: *mut glyph_row, mut width: c_int,
+				kind: text_cursor_kinds)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 2927
+  let mut cursor_glyph: *mut glyph;                                     // C 2928
+
+  /* If cursor is out of bounds, don't draw garbage.  This can happen
+     in mini-buffer windows when switching between echo area glyphs
+     and mini-buffer.  */
+  cursor_glyph = get_phys_cursor_glyph (w);                             // C 2933
+  if cursor_glyph.is_null ()                                            // C 2934
+    { return; }                                                         // C 2935
+
+  /* Experimental avoidance of cursor on xwidget.  */
+  if glyph_bits! (type, (*cursor_glyph)) == XWIDGET_GLYPH                // C 2938
+    { return; }                                                         // C 2939
+
+  /* If on an image, draw like a normal cursor.  That's usually better
+     visible than drawing a bar, esp. if the image is large so that
+     the bar might not be in the window.  */
+  if glyph_bits! (type, (*cursor_glyph)) == IMAGE_GLYPH                 // C 2944
+    {
+      let mut r: *mut glyph_row;                                        // C 2946
+      r = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix,   // C 2947
+		     (*w).phys_cursor.vpos);
+      draw_phys_cursor_glyph (w, r, DRAW_CURSOR);                       // C 2948
+    }
+  else
+    {
+      let face: *mut face = FACE_FROM_ID (f, glyph_bits! (face_id, (*cursor_glyph)));   // C 2952
+      let mut color: c_ulong;                                           // C 2953
+
+      let cr: *mut cairo_t = pgtk_begin_cr_clip (f);                    // C 2955
+
+      /* If the glyph's background equals the color we normally draw
+	 the bars cursor in, the bar cursor in its normal color is
+	 invisible.  Use the glyph's foreground color instead in this
+	 case, on the assumption that the glyph's colors are chosen so
+	 that the glyph is legible.  */
+      if (*face).background == (*FRAME_X_OUTPUT! (f)).cursor_color     // C 2962
+	{ color = (*face).foreground; }                                    // C 2963
+      else
+	{ color = (*FRAME_X_OUTPUT! (f)).cursor_color; }                   // C 2965
+
+      pgtk_clip_to_row (w, row, TEXT_AREA, cr);                         // C 2967
+
+      if kind == BAR_CURSOR                                             // C 2969
+	{
+	  let mut x: c_int = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);   // C 2971
+
+	  if width < 0                                                     // C 2973
+		{ width = FRAME_CURSOR_WIDTH (f); }                           // C 2974
+	  width = min ((*cursor_glyph).pixel_width as isize, width as isize) as c_int;   // C 2975
+
+	  (*w).phys_cursor_width = width;                                  // C 2977
+
+	  /* If the character under cursor is R2L, draw the bar cursor
+	     on the right of its glyph, rather than on the left.  */
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0      // C 2981
+		{ x += (*cursor_glyph).pixel_width as c_int - width; }        // C 2982
+
+	  pgtk_fill_rectangle (f, color, x,                                // C 2984
+				       WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y),   // C 2985
+				       width, (*row).height, false);            // C 2986
+	}
+      else	/* HBAR_CURSOR */                                        // C 2988
+	{
+	  let mut dummy_x: c_int;                                          // C 2990
+	  let mut dummy_y: c_int;
+	  let mut dummy_h: c_int;
+	  let mut x: c_int = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);   // C 2991
+
+	  if width < 0                                                     // C 2993
+		{ width = (*row).height; }                                    // C 2994
+
+	  width = min ((*row).height as isize, width as isize) as c_int;   // C 2996
+
+	  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut dummy_x,   // C 2998
+					&raw mut dummy_y, &raw mut dummy_h);    // C 2999
+
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0      // C 3001
+		  && (*cursor_glyph).pixel_width as c_int > (*w).phys_cursor_width - 1   // C 3002
+		{ x += (*cursor_glyph).pixel_width as c_int - (*w).phys_cursor_width + 1; }   // C 3003
+	  pgtk_fill_rectangle (f, color, x,                                // C 3004
+				       WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y +   // C 3005
+								    (*row).height - width),   // C 3006
+				       (*w).phys_cursor_width - 1, width, false);   // C 3007
+	}
+
+      pgtk_end_cr_clip (f);                                             // C 3010
+    }
+}
