@@ -839,6 +839,14 @@ unsafe extern "C" {
   /// C 3728: `gtk_window_set_interactive_debugging (enable_debug);`
   /// C: gtk/gtkwindow.h: `void gtk_window_set_interactive_debugging (gboolean enable);`
   pub fn gtk_window_set_interactive_debugging (enable: gboolean);
+  /// C 1088/1096/1104/1110: `gtk_window_set_keep_above (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)),
+  /// FALSE);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_keep_above (GtkWindow *window, gboolean setting);`
+  pub fn gtk_window_set_keep_above (window: *mut GtkWindow, setting: gboolean);
+  /// C 1090/1098/1112: `gtk_window_set_keep_below (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)),
+  /// FALSE);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_keep_below (GtkWindow *window, gboolean setting);`
+  pub fn gtk_window_set_keep_below (window: *mut GtkWindow, setting: gboolean);
   /// C 3756: `guint32 timestamp = gtk_get_current_event_time ();`
   /// C: gtk/gtkmain.h: `guint32 gtk_get_current_event_time (void);`
   pub fn gtk_get_current_event_time () -> guint32;

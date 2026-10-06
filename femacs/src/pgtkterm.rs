@@ -1491,3 +1491,254 @@ pub unsafe extern "C" fn pgtk_set_no_accept_focus (f: *mut frame, new_value: Lis
   xg_set_no_accept_focus (f, new_value);
   FRAME_NO_ACCEPT_FOCUS! (f, !NILP (new_value));
 }
+
+/// C: frame.h 1262-1267: `#define FRAME_Z_GROUP(f) ((f)->z_group)` - written at C 1092/1100/1106/
+/// 1114.  `z_group` is `ENUM_BF (z_group) z_group : 2`, so the write is C's own read-modify-write
+/// of the two-bit field (`include/frame.rs` has the reader and no two-bit setter - its
+/// `frame_set_flag` writes one bit; the `src/haikufns.rs` 403-412 shape).
+#[cfg (feature = "have_pgtk")]
+macro_rules! FRAME_Z_GROUP {
+  ($f:expr, $v:expr) => {
+    (*$f).bits2 = ((*$f).bits2 & !(FRAME_Z_GROUP_MASK << FRAME_Z_GROUP_FLAG_SHIFT))
+                  | (((($v) as u32) & FRAME_Z_GROUP_MASK) << FRAME_Z_GROUP_FLAG_SHIFT) };
+}
+/* C: dispextern.h 3810: `void prepare_face_for_display (struct frame *, struct face *);` - the
+   C 1183/1224 calls (`src/xfaces.rs` defines it).  The `///` form warns on an `extern` block
+   (the `docs/ports/pgtkfns.md` Deviation 2 shape), so these four blocks carry `/* */`.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn prepare_face_for_display (f: *mut frame, face: *mut face);
+}
+/* C: dispextern.h 3661-3662: `extern int get_glyph_string_clip_rects (struct glyph_string *,
+   XRectangle *, int);` - the C 1265 call (`src/xdisp.rs` defines it).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn get_glyph_string_clip_rects (s: *mut glyph_string, r: *mut XRectangle,
+				      n: c_int) -> c_int;
+}
+/* C: cairo.h 954-956: `void cairo_rectangle (cairo_t *cr, double x, double y, double width,
+   double height);` - the C 1271 call (this machine's cairo header; `src/ftcrfont.rs` 283-286
+   carries the same row).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_rectangle (cr: *mut cairo_t, x: c_double, y: c_double, width: c_double,
+			  height: c_double);
+}
+/* C: cairo.h 1033: `void cairo_clip (cairo_t *cr);` - the C 1273 call.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_clip (cr: *mut cairo_t);
+}
+
+/* C 1080-1118: `void pgtk_set_z_group (struct frame *f, Lisp_Object new_value, Lisp_Object
+   old_value)` - the four `FRAME_Z_GROUP` arms with their `gtk_window_set_keep_*` pairs, and C's
+   `error` for anything else.  `old_value` is unused in C's body (`let _ =` keeps the name).  */
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_set_z_group (f: *mut frame, new_value: Lisp_Object,
+					    old_value: Lisp_Object)
+{
+  let _ = old_value;
+  if FRAME_GTK_OUTER_WIDGET! (f).is_null ()                            // C 1083
+    { return; }                                                        // C 1084
+
+  if NILP (new_value)                                                  // C 1086
+    {
+      gtk_window_set_keep_above (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+				 FALSE);                                   // C 1088-1089
+      gtk_window_set_keep_below (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+				 FALSE);                                   // C 1090-1091
+      FRAME_Z_GROUP! (f, z_group_none);                                // C 1092
+    }
+  else if EQ (new_value, Qabove ())                                    // C 1094
+    {
+      gtk_window_set_keep_above (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+				 TRUE);                                    // C 1096-1097
+      gtk_window_set_keep_below (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+				 FALSE);                                   // C 1098-1099
+      FRAME_Z_GROUP! (f, z_group_above);                               // C 1100
+    }
+  else if EQ (new_value, Qabove_suspended ())                          // C 1102
+    {
+      gtk_window_set_keep_above (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+				 FALSE);                                   // C 1104-1105
+      FRAME_Z_GROUP! (f, z_group_above_suspended);                     // C 1106
+    }
+  else if EQ (new_value, Qbelow ())                                    // C 1108
+    {
+      gtk_window_set_keep_above (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+				 FALSE);                                   // C 1110-1111
+      gtk_window_set_keep_below (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f)),
+				 TRUE);                                    // C 1112-1113
+      FRAME_Z_GROUP! (f, z_group_below);                               // C 1114
+    }
+  else
+    { error (c"Invalid z-group specification".as_ptr ()); }            // C 1117
+}
+
+/* --------------------------------------------------------------------------
+      Initialize global info and storage for display.
+   --------------------------------------------------------------------------  */
+/// C 1120-1137: `static void pgtk_initialize_display_info (struct pgtk_display_info *dpyinfo)`
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_initialize_display_info (dpyinfo: *mut pgtk_display_info)
+{
+  (*dpyinfo).resx = 96.0;                                              // C 1126
+  (*dpyinfo).resy = 96.0;                                              // C 1127
+  (*dpyinfo).color_p = 1;                                              // C 1128
+  (*dpyinfo).n_planes = 32;                                            // C 1129
+  (*dpyinfo).root_window = 42;	/* a placeholder..  */                  // C 1130
+  (*dpyinfo).highlight_frame = std::ptr::null_mut ();                  // C 1131
+  (*dpyinfo).x_focus_frame = std::ptr::null_mut ();                    // C 1131
+  (*dpyinfo).n_fonts = 0;                                              // C 1132
+  (*dpyinfo).smallest_font_height = 1;                                 // C 1133
+  (*dpyinfo).smallest_char_width = 1;                                  // C 1134
+
+  reset_mouse_highlight (&raw mut (*dpyinfo).mouse_highlight);         // C 1136
+}
+
+/* Set S->gc to a suitable GC for drawing glyph string S in cursor
+   face.  */
+/// C 1142-1175: `static void pgtk_set_cursor_gc (struct glyph_string *s)`
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_cursor_gc (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;   /* C's `s->face` is the port's `*mut c_void` */
+
+  if (*s).font == FRAME_FONT! ((*s).f)                                 // C 1145
+    && (*face).background == FRAME_BACKGROUND_PIXEL ((*s).f)           // C 1146
+    && (*face).foreground == FRAME_FOREGROUND_PIXEL ((*s).f)           // C 1147
+    && (*s).cmp.is_null ()                                     // C 1147's `!s->cmp`
+    { (*s).xgcv = (*FRAME_X_OUTPUT! ((*s).f)).cursor_xgcv; }           // C 1148
+  else
+    {
+      /* Cursor on non-default face: must merge.  */
+      let mut xgcv: Emacs_GC = std::mem::zeroed ();                    // C 1152
+
+      xgcv.background = (*FRAME_X_OUTPUT! ((*s).f)).cursor_color;      // C 1154
+      xgcv.foreground = (*face).background;                            // C 1155
+
+      /* If the glyph would be invisible, try a different foreground.  */
+      if xgcv.foreground == xgcv.background                             // C 1158
+	{ xgcv.foreground = (*face).foreground; }                           // C 1159
+      if xgcv.foreground == xgcv.background                             // C 1160
+	{ xgcv.foreground = (*FRAME_X_OUTPUT! ((*s).f)).cursor_foreground_color; }   // C 1161
+      if xgcv.foreground == xgcv.background                             // C 1162
+	{ xgcv.foreground = (*face).foreground; }                           // C 1163
+
+      /* Make sure the cursor is distinct from text in this face.  */
+      if xgcv.background == (*face).background                          // C 1166
+	  && xgcv.foreground == (*face).foreground                        // C 1167
+	{
+	  xgcv.background = (*face).foreground;                           // C 1169
+	  xgcv.foreground = (*face).background;                           // C 1170
+	}
+
+      (*s).xgcv = xgcv;                                                 // C 1173
+    }
+}
+
+/* Set up S->gc of glyph string S for drawing text in mouse face.  */
+/// C 1180-1202: `static void pgtk_set_mouse_face_gc (struct glyph_string *s)`
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_mouse_face_gc (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;   /* C's `s->face` is the port's `*mut c_void` */
+
+  prepare_face_for_display ((*s).f, face);                              // C 1183
+
+  if (*s).font == (*face).font as *mut font                            // C 1185
+    {
+      (*s).xgcv.foreground = (*face).foreground;                        // C 1187
+      (*s).xgcv.background = (*face).background;                        // C 1188
+    }
+  else
+    {
+      /* Otherwise construct scratch_cursor_gc with values from FACE
+         except for FONT.  */
+      let mut xgcv: Emacs_GC = std::mem::zeroed ();                     // C 1194
+
+      xgcv.background = (*face).background;                             // C 1196
+      xgcv.foreground = (*face).foreground;                             // C 1197
+
+      (*s).xgcv = xgcv;                                                 // C 1199
+    }
+}
+
+/* Set S->gc of glyph string S to a GC suitable for drawing a mode line.
+   Faces to use in the mode line have already been computed when the
+   matrix was built, so there isn't much to do, here.  */
+/// C 1209-1214: `static void pgtk_set_mode_line_face_gc (struct glyph_string *s)`
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_mode_line_face_gc (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;   /* C's `s->face` is the port's `*mut c_void` */
+
+  (*s).xgcv.foreground = (*face).foreground;                            // C 1212
+  (*s).xgcv.background = (*face).background;                            // C 1213
+}
+
+/* Set S->gc of glyph string S for drawing that glyph string.  Set
+   S->stippled_p to a non-zero value if the face of S has a stipple
+   pattern.  */
+/// C 1221-1255: `static void pgtk_set_glyph_string_gc (struct glyph_string *s)` - C's five-arm
+/// `s->hl` dispatch, whose last arm is `emacs_abort ()`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_glyph_string_gc (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;   /* C's `s->face` is the port's `*mut c_void` */
+
+  prepare_face_for_display ((*s).f, face);                              // C 1224
+
+  if (*s).hl == DRAW_NORMAL_TEXT                                        // C 1226
+    {
+      (*s).xgcv.foreground = (*face).foreground;                        // C 1228
+      (*s).xgcv.background = (*face).background;                        // C 1229
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);      // C 1230
+    }
+  else if (*s).hl == DRAW_INVERSE_VIDEO                                 // C 1232
+    {
+      pgtk_set_mode_line_face_gc (s);                                   // C 1234
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);      // C 1235
+    }
+  else if (*s).hl == DRAW_CURSOR                                        // C 1237
+    {
+      pgtk_set_cursor_gc (s);                                           // C 1239
+      glyph_string_bits! (stippled_p, (*s), false);                     // C 1240
+    }
+  else if (*s).hl == DRAW_MOUSE_FACE                                    // C 1242
+    {
+      pgtk_set_mouse_face_gc (s);                                       // C 1244
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);      // C 1245
+    }
+  else if (*s).hl == DRAW_IMAGE_RAISED || (*s).hl == DRAW_IMAGE_SUNKEN  // C 1247
+    {
+      (*s).xgcv.foreground = (*face).foreground;                        // C 1249
+      (*s).xgcv.background = (*face).background;                        // C 1250
+      glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);      // C 1251
+    }
+  else
+    { emacs_abort (); }                                                 // C 1254
+}
+
+/* Set clipping for output of glyph string S.  S may be part of a mode
+   line or menu if we don't have X toolkit support.  */
+/// C 1261-1275: `static void pgtk_set_glyph_string_clipping (struct glyph_string *s, cairo_t *cr)`
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_glyph_string_clipping (s: *mut glyph_string, cr: *mut cairo_t)
+{
+  let mut r: [XRectangle; 2] = std::mem::zeroed ();                    // C 1264
+  let n: c_int = get_glyph_string_clip_rects (s, r.as_mut_ptr (), 2);   // C 1265
+
+  if n > 0                                                              // C 1267
+    {
+      for i in 0..n                                                     // C 1269
+	{
+	  cairo_rectangle (cr, r[i as usize].x as c_double,             // C 1271
+			   r[i as usize].y as c_double,
+			   r[i as usize].width as c_double,
+			   r[i as usize].height as c_double);
+	}
+      cairo_clip (cr);                                                  // C 1273
+    }
+}
