@@ -1933,6 +1933,12 @@ pub fn gdk_drag_status (context: *mut GdkDragContext, action: GdkDragAction, tim
 /// gboolean del, guint32 time);`
 pub fn gtk_drag_finish (context: *mut GdkDragContext, success: gboolean, del: gboolean,
 			time: guint32);
+/// C 6840: `gtk_drag_dest_set (FRAME_GTK_WIDGET (f), 0, NULL, 0, (GDK_ACTION_MOVE | …));`
+/// C: gtk/gtkselection.h: `void gtk_drag_dest_set (GtkWidget *widget, GtkDestDefaults flags, const
+/// GtkTargetEntry *targets, gint n_targets, GdkDragAction actions);` - the `targets` pointer is the
+/// underlying `*const c_void` (P-87 3: a mirror does not name a type its includers may not have).
+pub fn gtk_drag_dest_set (widget: *mut GtkWidget, flags: c_int, targets: *const c_void,
+			  n_targets: c_int, actions: GdkDragAction);
 /// C 6509: `name = gdk_drag_get_selection (context);`
 /// C: gdk/gdkdnd.h: `GdkAtom gdk_drag_get_selection (GdkDragContext *context);`
 pub fn gdk_drag_get_selection (context: *mut GdkDragContext) -> GdkAtom;

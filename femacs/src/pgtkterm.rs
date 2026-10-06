@@ -433,9 +433,9 @@ unsafe fn pgtk_seat_added_cb (dpy: *mut GdkDisplay, seat: *mut GdkSeat,
   pgtk_regenerate_devices (user_data as *mut pgtk_display_info);
 
   g_signal_connect! (G_OBJECT! (seat), c"device-added".as_ptr (),
-                     G_CALLBACK! (pgtk_device_added_or_removal_cb), user_data);
+                     pgtk_device_added_or_removal_cb, user_data);
   g_signal_connect! (G_OBJECT! (seat), c"device-removed".as_ptr (),
-                     G_CALLBACK! (pgtk_device_added_or_removal_cb), user_data);
+                     pgtk_device_added_or_removal_cb, user_data);
 }
 
 #[cfg (feature = "have_pgtk")]
@@ -470,9 +470,9 @@ unsafe fn pgtk_enumerate_devices (dpyinfo: *mut pgtk_display_info, initial_p: bo
       if initial_p
         {
           g_signal_connect! (G_OBJECT! (seat), c"device-added".as_ptr (),
-                             G_CALLBACK! (pgtk_device_added_or_removal_cb), dpyinfo as gpointer);
+                             pgtk_device_added_or_removal_cb, dpyinfo as gpointer);
           g_signal_connect! (G_OBJECT! (seat), c"device-removed".as_ptr (),
-                             G_CALLBACK! (pgtk_device_added_or_removal_cb), dpyinfo as gpointer);
+                             pgtk_device_added_or_removal_cb, dpyinfo as gpointer);
         }
 
       /* We only want slaves, not master devices.  */
@@ -1216,7 +1216,7 @@ unsafe fn pgtk_wait_for_event (f: *mut frame, signal_name: *const gchar)
       let mut timed_out: c_int = 0;
       let id: gulong
 	= g_signal_connect! (FRAME_WIDGET! (f), signal_name,
-			     G_CALLBACK! (pgtk_make_frame_visible_wait_for_event_cb),
+			     pgtk_make_frame_visible_wait_for_event_cb,
 			     &raw mut found as gpointer);
       let src: guint
 	= g_timeout_add (msec,
@@ -7320,15 +7320,15 @@ unsafe extern "C" {
 
 /// C 4992-5033: `static gboolean pgtk_handle_event (GtkWidget *widget, GdkEvent *event, gpointer
 /// *data)` - C 6852/6902 take its address through `G_CALLBACK`, so PORTING.md 1.4's
-/// `unsafe extern "C" fn` form applies from the slice that lands C 6831's `pgtk_set_event_handler`
-/// (in the remainder); until then it stays a plain `unsafe fn` (the `pgtk_fullscreen_hook` shape,
+/// `unsafe extern "C" fn` form is what this slice lands (C 6831 takes its
+/// address through `G_CALLBACK`); it is defined `unsafe extern "C" fn` (the `pgtk_fullscreen_hook` shape,
 /// Deviation 55).  `touchpad_pinch` and `GDK_TOUCHPAD_*` are `include/gtk.rs`'s rows (this slice's
 /// mirror round), `PINCH_EVENT` is `include/termhooks.rs`'s, the two `XSET…` macros are
 /// `include/frame.rs` 778 and `include/lisp.rs`'s, and C's `gint x, y;` pair is zero-initialised
 /// because C only fills it through the translate call's out-pointers (the `win_x`/`win_y` shape,
 /// line 4986).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_handle_event (widget: *mut GtkWidget, event: *mut GdkEvent, data: *mut gpointer)
+unsafe extern "C" fn pgtk_handle_event (widget: *mut GtkWidget, event: *mut GdkEvent, data: *mut gpointer)
     -> gboolean
 {
   let mut f: *mut frame;                                                // C 4995
@@ -7480,14 +7480,14 @@ unsafe extern "C" {
 
 /// C 5095-5119: `static gboolean pgtk_handle_draw (GtkWidget *widget, cairo_t *cr, gpointer *data)` -
 /// C 6836/6890 take its address through `G_CALLBACK`, so PORTING.md 1.4's `unsafe extern "C" fn`
-/// form applies from the slice that lands C 6831's `pgtk_set_event_handler`; until then it stays a
-/// plain `unsafe fn` (the `pgtk_fullscreen_hook` shape, Deviation 55).  `cr_surface_visible_bell` is
+/// form is what this slice lands (it is one of the nineteen this slice's `pgtk_set_event_handler`
+/// converts; the `pgtk_fullscreen_hook` shape, Deviation 55).  `cr_surface_visible_bell` is
 /// `include/pgtkterm.rs`'s member, `FRAME_CR_ACTIVE_CONTEXT!` this unit's own C 73 macro (line 293,
 /// the setter included), and the three cairo entry points are the mirror's rows (`cairo_get_target`,
 /// `cairo_set_source_surface`, `cairo_paint`) with C's two integer `0`s widened to `c_double` (the
 /// `cairo_set_source_surface` reading at line 5551).
 #[cfg (feature = "have_pgtk")]
-unsafe fn pgtk_handle_draw (widget: *mut GtkWidget, cr: *mut cairo_t, data: *mut gpointer)
+unsafe extern "C" fn pgtk_handle_draw (widget: *mut GtkWidget, cr: *mut cairo_t, data: *mut gpointer)
     -> gboolean
 {
   let mut f: *mut frame;                                                // C 5098
@@ -7514,12 +7514,12 @@ unsafe fn pgtk_handle_draw (widget: *mut GtkWidget, cr: *mut cairo_t, data: *mut
 }
 
 /// C 5121-5135: `static void size_allocate (GtkWidget *widget, GtkAllocation *alloc, gpointer
-/// user_data)` - C 6860 takes its address through `G_CALLBACK`, so a plain `unsafe fn` until the
-/// C 6831 slice (as above).  C 5128's `f = user_data` is the `gpointer`-to-`struct frame *`
+/// user_data)` - C 6860 takes its address through `G_CALLBACK`, so the port defines it `unsafe extern "C" fn` here (PORTING.md 1.4; C 6831
+/// takes its address through `G_CALLBACK`).  C 5128's `f = user_data` is the `gpointer`-to-`struct frame *`
 /// conversion, which the port writes out; `pgtk_cr_update_surface_desired_size` is
 /// `include/pgtkterm.rs`'s row and `xg_frame_resized` the declaration above.
 #[cfg (feature = "have_pgtk")]
-unsafe fn size_allocate (widget: *mut GtkWidget, alloc: *mut GtkAllocation, user_data: gpointer)
+unsafe extern "C" fn size_allocate (widget: *mut GtkWidget, alloc: *mut GtkAllocation, user_data: gpointer)
 {
   let mut f: *mut frame = pgtk_any_window_to_frame (gtk_widget_get_window (widget));   // C 5125
 
@@ -7840,8 +7840,8 @@ pub const GDK_KEY_dead_degree: c_uint = 0xfe5d;        // placeholder, not a mea
 
 /// C 5273-5502: `static gboolean key_press_event (GtkWidget *widget, GdkEvent *event, gpointer
 /// *user_data)` - C 6864/6897 (in the remainder) take its address through `G_CALLBACK`, so
-/// PORTING.md 1.4's `unsafe extern "C" fn` form applies from the slice that lands C 6831's
-/// `pgtk_set_event_handler`; until then it stays a plain `unsafe fn` (the `pgtk_fullscreen_hook`
+/// PORTING.md 1.4's `unsafe extern "C" fn` form is what this slice lands (C 6831
+/// takes its address through `G_CALLBACK`); it is defined `unsafe extern "C" fn` (the `pgtk_fullscreen_hook`
 /// shape, Deviation 55).  **The five `goto done` sites** (C 5369/5383/5398/5480/5490) are a `'done:`
 /// block plus `break 'done` (Deviation 54's shape, the `pgtk_redeem_scroll_bar` reading): the block
 /// wraps the whole `if (f != 0)` arm, so a `break` lands where C's `goto` lands, and C 5495-5499's
@@ -7855,7 +7855,7 @@ pub const GDK_KEY_dead_degree: c_uint = 0xfe5d;        // placeholder, not a mea
 /// configuration feature; `clear_mouse_face`, `mouse_face_hidden!` and the keysym constants above
 /// are this slice's own rows.
 #[cfg (feature = "have_pgtk")]
-unsafe fn key_press_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn key_press_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5276
@@ -8119,7 +8119,7 @@ unsafe fn pgtk_display_info_for_display (dpy: *mut GdkDisplay) -> *mut pgtk_disp
 /// `if (dpyinfo)` carries its comment before the statement, which the port keeps, and the
 /// definition above is the call C 5527 makes.
 #[cfg (feature = "have_pgtk")]
-unsafe fn key_release_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn key_release_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let mut display: *mut GdkDisplay;                                     // C 5523
@@ -8138,14 +8138,14 @@ unsafe fn key_release_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_
 }
 
 /// C 5538-5568: `static gboolean configure_event (GtkWidget *widget, GdkEvent *event, gpointer
-/// *user_data)` - `static`, address taken at C 6870 (in the remainder), so a plain `unsafe fn`
+/// *user_data)` - `static`, address taken at C 6870 (in the remainder), so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`)
 /// until that slice.  `event->configure` is the union member this slice's mirror round adds (C's
 /// text reads `window`, `x` and `y`), `any_help_event_p` is this unit's own static (line 361),
 /// `help_echo_string` and `gen_help_event` are the two declarations above, `GTK_WINDOW!` is
 /// `include/gtk.rs` 778's cast row with `gtk_window_get_position` its 903, and the
 /// `win_gravity`/`left_pos`/`top_pos` members are `include/frame.rs`'s.
 #[cfg (feature = "have_pgtk")]
-unsafe fn configure_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn configure_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let f: *mut frame = pgtk_any_window_to_frame ((*event).configure.window);   // C 5543
@@ -8176,15 +8176,15 @@ unsafe fn configure_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_da
 }
 
 /// C 5570-5615: `static gboolean map_event (GtkWidget *widget, GdkEvent *event, gpointer *user_data)` -
-/// C 6856 (in the remainder) takes its address through `G_CALLBACK`, so a plain `unsafe fn` until the
-/// slice that lands C 6831's `pgtk_set_event_handler` (the `pgtk_fullscreen_hook` shape, Deviation
+/// C 6856 (in the remainder) takes its address through `G_CALLBACK`, so the port defines it `unsafe extern "C" fn` here (PORTING.md 1.4; C 6831
+/// takes its address through `G_CALLBACK` - the `pgtk_fullscreen_hook` shape, Deviation
 /// 55).  `event->any` is the union member `include/gtk.rs` already carried, `set_fullscreen_state` is
 /// this unit's own C 4514 definition, `FRAME_Z_GROUP` is `include/frame.rs` 1642-1645's *reader* function while `FRAME_Z_GROUP!` (this unit's line 1515) is C 4518-4525's *writer* macro (the reference spells the two with the same name),
 /// `z_group_above`/`z_group_below` are `include/frame.rs` 1590-1591's, and `SET_FRAME_VISIBLE!`
 /// (frame.rs 1751) is the macro form while `SET_FRAME_ICONIFIED` (1417) is a function, which is why
 /// its second argument carries C's conversion (`false as c_int`), and `has_been_visible` is C's `int` field (pgtkterm.h 424), so C's truth tests are `== 0` and its stores are `1` (lines 1008/1039's reading).
 #[cfg (feature = "have_pgtk")]
-unsafe fn map_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn map_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let f: *mut frame = pgtk_any_window_to_frame ((*event).any.window);   // C 5575
@@ -8230,13 +8230,13 @@ unsafe fn map_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *m
 }
 
 /// C 5617-5690: `static gboolean window_state_event (GtkWidget *widget, GdkEvent *event, gpointer
-/// *user_data)` - `static`, address taken at C 6858 (in the remainder), so a plain `unsafe fn` until
+/// *user_data)` - `static`, address taken at C 6858 (in the remainder), so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`) until
 /// that slice.  `event->window_state` is the union member this slice's mirror round adds (C reads
 /// `window` and `new_window_state`), `new_state` is `GdkWindowState` with the twelve `GDK_WINDOW_STATE_*`
 /// flags that round declares as placeholders, and `store_frame_param` is this unit's own C 120
 /// declaration (line 230); C 5649-5666's eighteen-line Wayland comment is carried verbatim.
 #[cfg (feature = "have_pgtk")]
-unsafe fn window_state_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn window_state_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let f: *mut frame = pgtk_any_window_to_frame ((*event).window_state.window);   // C 5622
@@ -8310,11 +8310,11 @@ unsafe fn window_state_event (widget: *mut GtkWidget, event: *mut GdkEvent, user
 }
 
 /// C 5692-5712: `static gboolean delete_event (GtkWidget *widget, GdkEvent *event, gpointer
-/// *user_data)` - `static`, address taken at C 6862 (in the remainder), so a plain `unsafe fn` until
+/// *user_data)` - `static`, address taken at C 6862 (in the remainder), so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`) until
 /// that slice; `event->any` is the union member already carried and `DELETE_WINDOW_EVENT` is
 /// `include/termhooks.rs`'s.
 #[cfg (feature = "have_pgtk")]
-unsafe fn delete_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn delete_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let f: *mut frame = pgtk_any_window_to_frame ((*event).any.window);   // C 5696
@@ -8406,12 +8406,12 @@ unsafe fn pgtk_focus_changed (is_enter: gboolean, state: c_int,
 }
 
 /// C 5769-5795: `static gboolean enter_notify_event (GtkWidget *widget, GdkEvent *event, gpointer
-/// *user_data)` - `static`, address taken at C 6850 (in the remainder), so a plain `unsafe fn` until
+/// *user_data)` - `static`, address taken at C 6850 (in the remainder), so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`) until
 /// that slice.  `event->crossing.detail`/`focus` are the union member this slice's mirror round
 /// completes; `GDK_NOTIFY_INFERIOR` is that round's placeholder constant and C's `TRUE` is
 /// `true as gboolean` (the `pgtk_focus_changed` reading above).
 #[cfg (feature = "have_pgtk")]
-unsafe fn enter_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn enter_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5773
@@ -8443,12 +8443,12 @@ unsafe fn enter_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent, user
 }
 
 /// C 5797-5844: `static gboolean leave_notify_event (GtkWidget *widget, GdkEvent *event, gpointer
-/// *user_data)` - `static`, address taken at C 6848 (in the remainder), so a plain `unsafe fn`;
+/// *user_data)` - `static`, address taken at C 6848 (in the remainder), so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`);
 /// `hlinfo->mouse_face_mouse_frame` is `include/dispextern.rs` 2129's bare-tag pointer, so C's
 /// comparison and its `= 0` carry the casts (`frame as *mut c_void`, `core::ptr::null_mut ()`), and
 /// the help-event arm is the C 5830-5839 pair the forty-fourth slice declared.
 #[cfg (feature = "have_pgtk")]
-unsafe fn leave_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn leave_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5801
@@ -8501,11 +8501,11 @@ unsafe fn leave_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent, user
 }
 
 /// C 5846-5868: `static gboolean focus_in_event (GtkWidget *widget, GdkEvent *event, gpointer
-/// *user_data)` - `static`, address taken at C 6844 (in the remainder), so a plain `unsafe fn`;
+/// *user_data)` - `static`, address taken at C 6844 (in the remainder), so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`);
 /// `pgtk_im_focus_in` is `include/pgtkterm.rs` 786's row and the call passes C's `TRUE` as
 /// `true as gboolean` with `FOCUS_EXPLICIT` from the mirror.
 #[cfg (feature = "have_pgtk")]
-unsafe fn focus_in_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn focus_in_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5849
@@ -8530,11 +8530,11 @@ unsafe fn focus_in_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_dat
 }
 
 /// C 5870-5892: `static gboolean focus_out_event (GtkWidget *widget, GdkEvent *event, gpointer
-/// *user_data)` - `static`, address taken at C 6846 (in the remainder), so a plain `unsafe fn`;
+/// *user_data)` - `static`, address taken at C 6846 (in the remainder), so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`);
 /// `pgtk_im_focus_out` is `include/pgtkterm.rs` 788's row and C's `FALSE` is
 /// `false as gboolean`.
 #[cfg (feature = "have_pgtk")]
-unsafe fn focus_out_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
+unsafe extern "C" fn focus_out_event (widget: *mut GtkWidget, event: *mut GdkEvent, user_data: *mut gpointer)
     -> gboolean
 {
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5873
@@ -8646,7 +8646,7 @@ unsafe extern "C" {
 
 /// C 5952-6065: `static gboolean motion_notify_event (GtkWidget *widget, GdkEvent *event,
 /// gpointer *user_data)` - `static` with its address taken at C 6874 (`G_CALLBACK
-/// (motion_notify_event)`), so a plain `unsafe fn` that the C 6831 slice converts (the `map_event`
+/// (motion_notify_event)`), so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`) (the `map_event`
 /// family's note).  C 5968's assignment inside the condition (`(device = gdk_event_get_source_device
 /// (event)) && …`) has no Rust expression form, so the port keeps C's order in a block: assign,
 /// then test the pointer and the device's source.  C's `NULL`/`0` are `std::ptr::null_mut ()` (C
@@ -8654,7 +8654,7 @@ unsafe extern "C" {
 /// readings are C's implicit `double` -> `int` conversions written out, and `selected_frame` is the
 /// mirror's extern static (the `src/xfns.rs` 360 `unsafe { … }` reading).
 #[cfg (feature = "have_pgtk")]
-unsafe fn motion_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent,
+unsafe extern "C" fn motion_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent,
 			       user_data: *mut gpointer) -> gboolean
 {
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 5956
@@ -8855,15 +8855,15 @@ unsafe extern "C" {
 }
 
 /// C 6096-6226: `static gboolean button_event (GtkWidget *widget, GdkEvent *event, gpointer
-/// *user_data)` - `static` with its address taken at C 6884 (`G_CALLBACK (button_event)`), so a
-/// plain `unsafe fn` that the C 6831 slice converts (the `motion_notify_event` shape).  The body is
+/// *user_data)` - `static` with its address taken at C 6884 (`G_CALLBACK (button_event)`), so the port defines it `unsafe extern "C" fn` here
+/// (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`) (the `motion_notify_event` shape).  The body is
 /// `motion_notify_event`'s sibling in this file: the same touch-screen guard, the same two GNOME
 /// comments, and C's `(device = …) && …` in a block again.  C's `bool` locals are the port's `bool`,
 /// C's `NULL`/`0` are `std::ptr::null_mut ()`, the `double` -> `int` coordinate conversions and the
 /// `event->button.time` comparison are written out (`as c_int`, `as Time`), and `grabbed` is C's
 /// `int` field (`include/pgtkterm.rs` 194) so C 6207/6215's `1 << button` is converted (`as c_int`).
 #[cfg (feature = "have_pgtk")]
-unsafe fn button_event (widget: *mut GtkWidget, event: *mut GdkEvent,
+unsafe extern "C" fn button_event (widget: *mut GtkWidget, event: *mut GdkEvent,
 			user_data: *mut gpointer) -> gboolean
 {
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6100
@@ -9014,8 +9014,8 @@ unsafe extern "C" {
 }
 
 /// C 6228-6362: `static gboolean scroll_event (GtkWidget *widget, GdkEvent *event, gpointer
-/// *user_data)` - `static` with its address taken at C 6890 (`G_CALLBACK (scroll_event)`), so a
-/// plain `unsafe fn` that the C 6831 slice converts.  C's `switch (dir)` is the port's `match` with
+/// *user_data)` - `static` with its address taken at C 6890 (`G_CALLBACK (scroll_event)`), so the port defines it `unsafe extern "C" fn` here
+/// (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`).  C's `switch (dir)` is the port's `match` with
 /// C's five cases and a trailing `_ => {}` (C's `GDK_SCROLL_SMOOTH` arm is the empty one, kept
 /// because C keeps it); the two `?:`-inside-`|=` and `?:`-inside-assignment forms become `if … { … }
 /// else { … }`; `inev.ie.kind` is read and written through the unit's bitfield macro; the
@@ -9025,7 +9025,7 @@ unsafe extern "C" {
 /// C 6234/6235's three uninitialised locals are zero-initialised (Deviation 12's rule), because the
 /// C 6267/6291 accessors hand them out through `&raw mut` and Rust cannot see that they write them.
 #[cfg (feature = "have_pgtk")]
-unsafe fn scroll_event (widget: *mut GtkWidget, event: *mut GdkEvent,
+unsafe extern "C" fn scroll_event (widget: *mut GtkWidget, event: *mut GdkEvent,
 			user_data: *mut gpointer) -> gboolean
 {
   let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6231
@@ -9308,12 +9308,12 @@ unsafe extern "C" {
 }
 
 /// C 6447-6478: `static void drag_leave (GtkWidget *widget, GdkDragContext *context, guint time,
-/// gpointer user_data)` - `static` with its address taken at C 6902 (`G_CALLBACK (drag_leave)`), so a
-/// plain `unsafe fn` that the C 6831 slice converts.  `DRAG_N_DROP_EVENT` is `include/termhooks.rs`'s
+/// gpointer user_data)` - `static` with its address taken at C 6902 (`G_CALLBACK (drag_leave)`), so the port defines it `unsafe extern "C" fn` here
+/// (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`).  `DRAG_N_DROP_EVENT` is `include/termhooks.rs`'s
 /// row, C's `FALSE` is `false as gboolean`, the `guint` -> `Time` widening of the timestamp store is
 /// written out, and C 6462's `g_clear_pointer` is this unit's own macro.
 #[cfg (feature = "have_pgtk")]
-unsafe fn drag_leave (widget: *mut GtkWidget, context: *mut GdkDragContext, time: guint,
+unsafe extern "C" fn drag_leave (widget: *mut GtkWidget, context: *mut GdkDragContext, time: guint,
 		      user_data: gpointer)
 {
   let mut f: *mut frame;                                                // C 6451
@@ -9347,14 +9347,15 @@ unsafe fn drag_leave (widget: *mut GtkWidget, context: *mut GdkDragContext, time
 }
 
 /// C 6480-6528: `static gboolean drag_motion (GtkWidget *widget, GdkDragContext *context, gint x,
-/// gint y, guint time)` - `static` with its address taken at C 6904 (`G_CALLBACK (drag_motion)`), so
-/// a plain `unsafe fn`.  C's `gpointer` -> `GdkDragContext *` round trip through `g_object_ref` is
+/// gint y, guint time)` - `static` with its address taken at C 6904 (`G_CALLBACK (drag_motion)`), so it is
+/// defined `unsafe extern "C" fn` here (PORTING.md 1.4; C 6831 takes its address through
+/// `G_CALLBACK`).  C's `gpointer` -> `GdkDragContext *` round trip through `g_object_ref` is
 /// written out on both sides (`as gpointer`, `as *mut GdkDragContext`), `make_uint` takes this
 /// mirror's `uintmax_t` so the `guint` argument is converted, C's `FALSE` is `false as gboolean`, and
 /// `intern`/`list4`/`Qlambda` are the include graph's own rows (`intern` is `src/lisp.rs`'s function
 /// at `include/lisp.rs` 2728).
 #[cfg (feature = "have_pgtk")]
-unsafe fn drag_motion (widget: *mut GtkWidget, context: *mut GdkDragContext, x: c_int, y: c_int,
+unsafe extern "C" fn drag_motion (widget: *mut GtkWidget, context: *mut GdkDragContext, x: c_int, y: c_int,
 		       time: guint) -> gboolean
 {
   let mut f: *mut frame;                                                // C 6485
@@ -9405,10 +9406,10 @@ unsafe fn drag_motion (widget: *mut GtkWidget, context: *mut GdkDragContext, x: 
 
 /// C 6530-6577: `static gboolean drag_drop (GtkWidget *widget, GdkDragContext *context, int x, int
 /// y, guint time, gpointer user_data)` - `static` with its address taken at C 6906 (`G_CALLBACK
-/// (drag_drop)`), so a plain `unsafe fn`.  The body is `drag_motion`'s with `Qquote`, the selected
+/// (drag_drop)`), so the port defines it `unsafe extern "C" fn` (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`).  The body is `drag_motion`'s with `Qquote`, the selected
 /// action and `current_drop_context_drop = true`.
 #[cfg (feature = "have_pgtk")]
-unsafe fn drag_drop (widget: *mut GtkWidget, context: *mut GdkDragContext, x: c_int, y: c_int,
+unsafe extern "C" fn drag_drop (widget: *mut GtkWidget, context: *mut GdkDragContext, x: c_int, y: c_int,
 		    time: guint, user_data: gpointer) -> gboolean
 {
   let mut f: *mut frame;                                                // C 6534
@@ -9607,8 +9608,8 @@ unsafe fn pgtk_find_touch_point (dpyinfo: *mut pgtk_display_info, detail: *mut G
 }
 
 /// C 6694-6806: `static gboolean touch_event_cb (GtkWidget *self, GdkEvent *event, gpointer
-/// user_data)` - `static` with its address taken at C 6898 (`G_CALLBACK (touch_event_cb)`), so a
-/// plain `unsafe fn` that the C 6831 slice converts.  C's `switch (event->type)` is the port's
+/// user_data)` - `static` with its address taken at C 6898 (`G_CALLBACK (touch_event_cb)`), so the port defines it `unsafe extern "C" fn` here
+/// (PORTING.md 1.4; C 6831 takes its address through `G_CALLBACK`).  C's `switch (event->type)` is the port's
 /// `match` with C's four `GDK_TOUCH_*` labels (the last two share one arm, as C writes them) and a
 /// trailing `_ => { }`; the two **early `break`s** inside case bodies are the port's `'arm:` block
 /// plus `break 'arm` (Deviation 54's shape, the `goto` reading).  `eassert` is the mirror's
@@ -9619,7 +9620,7 @@ unsafe fn pgtk_find_touch_point (dpyinfo: *mut pgtk_display_info, detail: *mut G
 /// C 6766 call hands it out through `&raw mut` and the first reading named the `E0381` that skip
 /// produces.
 #[cfg (feature = "have_pgtk")]
-unsafe fn touch_event_cb (self_: *mut GtkWidget, event: *mut GdkEvent, user_data: gpointer)
+unsafe extern "C" fn touch_event_cb (self_: *mut GtkWidget, event: *mut GdkEvent, user_data: gpointer)
     -> gboolean
 {
   let mut dpyinfo: *mut pgtk_display_info;                              // C 6697
@@ -9760,3 +9761,93 @@ unsafe fn pgtk_monitors_changed_cb (screen: *mut GdkScreen, user_data: gpointer)
    declaration of this file's own `static` (its definition is in the remainder, C 7477), which Rust
    does not need; the name is declared where C's later call sites use it, so C's line stands here as
    a comment (the C 442-443 `pgtk_unlink_touch_points` reading at this unit's line 790).  */
+
+/// C 6830-6903: `void pgtk_set_event_handler (struct frame *f)` - a **non-`static`** C definition, so
+/// the port carries `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md 0.2).  **This is the slice
+/// that lands C's `G_CALLBACK` round**: every function whose address C takes below is defined
+/// `unsafe extern "C" fn` in this unit (the nineteen of this file's own hooks plus the two remainder
+/// names), which is why the readings of this slice cover those twenty signatures as well.  The
+/// signal names are the port's `c"…".as_ptr ()` (the `pgtk_seat_added_cb` shape at line 436), C's
+/// `NULL` is `std::ptr::null_mut ()`, C 6860's data argument is the `f as gpointer` conversion, and
+/// C 6840's `0`/`NULL`/`0` are the same.  C 6833's `f->tooltip` is the mirror's bitfield accessor
+/// `FRAME_TOOLTIP_P` (`include/frame.rs` 1285-1287, `frame.h` 457's `bool_bf tooltip : 1`), and the
+/// `G_CALLBACK`-taking macros apply their own cast, so the handler arguments below are the bare
+/// names (`g_signal_connect!`'s body), while `g_signal_handlers_disconnect_by_func!`'s body does
+/// not, so those three call sites still pass `G_CALLBACK! (…)` as C does.  `pgtk_selection_event` (C 7477, the remainder) has no
+/// definition here yet, so its four `G_CALLBACK`s stand as the registered not-yet-ported rows this
+/// slice's readings carry (the `pgtk_unlink_touch_points` class).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_set_event_handler (f: *mut frame)
+{
+  if FRAME_TOOLTIP_P (f)                                               // C 6833
+    {
+      g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"draw".as_ptr (),
+			 pgtk_handle_draw, std::ptr::null_mut ());  // C 6835-6836
+      return;                                                           // C 6837
+    }
+
+  gtk_drag_dest_set (FRAME_GTK_WIDGET! (f), 0, std::ptr::null_mut (), 0,
+		     GDK_ACTION_MOVE | GDK_ACTION_COPY
+		     | GDK_ACTION_LINK | GDK_ACTION_PRIVATE);           // C 6840-6842
+
+  if !FRAME_GTK_OUTER_WIDGET! (f).is_null ()                            // C 6844
+    {
+      g_signal_connect! (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)),
+			 c"window-state-event".as_ptr (), window_state_event,
+			 std::ptr::null_mut ());                        // C 6846-6848
+      g_signal_connect! (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)), c"delete-event".as_ptr (),
+			 delete_event, std::ptr::null_mut ());  // C 6849-6850
+      g_signal_connect! (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)), c"event".as_ptr (),
+			 pgtk_handle_event, std::ptr::null_mut ());  // C 6851-6852
+      g_signal_connect! (G_OBJECT! (FRAME_GTK_OUTER_WIDGET! (f)), c"configure-event".as_ptr (),
+			 configure_event, std::ptr::null_mut ());  // C 6853-6854
+    }
+
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"map-event".as_ptr (),
+		     map_event, std::ptr::null_mut ());   // C 6857-6858
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"size-allocate".as_ptr (),
+		     size_allocate, f as gpointer);       // C 6859-6860
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"key-press-event".as_ptr (),
+		     key_press_event, std::ptr::null_mut ());  // C 6861-6862
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"key-release-event".as_ptr (),
+		     key_release_event, std::ptr::null_mut ());  // C 6863-6864
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"focus-in-event".as_ptr (),
+		     focus_in_event, std::ptr::null_mut ());  // C 6865-6866
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"focus-out-event".as_ptr (),
+		     focus_out_event, std::ptr::null_mut ());  // C 6867-6868
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"enter-notify-event".as_ptr (),
+		     enter_notify_event, std::ptr::null_mut ());  // C 6869-6870
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"leave-notify-event".as_ptr (),
+		     leave_notify_event, std::ptr::null_mut ());  // C 6871-6872
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"motion-notify-event".as_ptr (),
+		     motion_notify_event, std::ptr::null_mut ());  // C 6873-6874
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"button-press-event".as_ptr (),
+		     button_event, std::ptr::null_mut ());  // C 6875-6876
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"button-release-event".as_ptr (),
+		     button_event, std::ptr::null_mut ());  // C 6877-6878
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"scroll-event".as_ptr (),
+		     scroll_event, std::ptr::null_mut ());  // C 6879-6880
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"configure-event".as_ptr (),
+		     configure_event, std::ptr::null_mut ());  // C 6881-6882
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"drag-leave".as_ptr (),
+		     drag_leave, std::ptr::null_mut ());    // C 6883-6884
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"drag-motion".as_ptr (),
+		     drag_motion, std::ptr::null_mut ());   // C 6885-6886
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"drag-drop".as_ptr (),
+		     drag_drop, std::ptr::null_mut ());     // C 6887-6888
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"draw".as_ptr (),
+		     pgtk_handle_draw, std::ptr::null_mut ());  // C 6889-6890
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"property-notify-event".as_ptr (),
+		     pgtk_selection_event, std::ptr::null_mut ());  // C 6891-6892
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"selection-clear-event".as_ptr (),
+		     pgtk_selection_event, std::ptr::null_mut ());  // C 6893-6894
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"selection-request-event".as_ptr (),
+		     pgtk_selection_event, std::ptr::null_mut ());  // C 6895-6896
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"selection-notify-event".as_ptr (),
+		     pgtk_selection_event, std::ptr::null_mut ());  // C 6897-6898
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"touch-event".as_ptr (),
+		     touch_event_cb, std::ptr::null_mut ());  // C 6899-6900
+  g_signal_connect! (G_OBJECT! (FRAME_GTK_WIDGET! (f)), c"event".as_ptr (),
+		     pgtk_handle_event, std::ptr::null_mut ());  // C 6901-6902
+}

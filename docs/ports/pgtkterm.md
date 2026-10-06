@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-56: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892, C 5894-5950, C 5952-6065, C 6067-6094, C 6096-6226, C 6228-6362, C 6364-6445, C 6447-6577, C 6579-6692, C 6694-6806 and C 6808-6826
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-57: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892, C 5894-5950, C 5952-6065, C 6067-6094, C 6096-6226, C 6228-6362, C 6364-6445, C 6447-6577, C 6579-6692, C 6694-6806, C 6808-6826 and C 6830-6903
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**9,762 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**9,853 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** and **C 5952-6065** and **C 6067-6094** and **C 6096-6226** and **C 6228-6362** and **C 6364-6445** and **C 6447-6577** and **C 6579-6692** and **C 6694-6806** and **C 6808-6826** - fifty-six
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** and **C 5952-6065** and **C 6067-6094** and **C 6096-6226** and **C 6228-6362** and **C 6364-6445** and **C 6447-6577** and **C 6579-6692** and **C 6694-6806** and **C 6808-6826** and **C 6830-6903** - fifty-seven
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_set_event_handler` (C 6830-6831).**
+> `my_log_handler` (C 6905-6906).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -169,7 +169,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 6579-6692 | the touch-point helpers: `pgtk_link_touch_point` (C 6588-6613), `pgtk_unlink_touch_point` (C 6623-6648), `pgtk_unlink_touch_points` (C 6654-6673) and `pgtk_find_touch_point` (C 6679-6692), after C 6581-6586's comments | the file gate - **transcribed** (the fifty-fourth slice) |
 | 6694-6806 | `touch_event_cb` (C 6694-6806) | the file gate - **transcribed** (the fifty-fifth slice) |
 | 6808-6826 | C 6810's comment, `pgtk_monitors_changed_cb` (C 6812-6824) and C 6826's forward declaration of `pgtk_selection_event` | the file gate - **transcribed** (the fifty-sixth slice) |
-| 6828-7780 | **the remainder of the file** - from C 6830's `pgtk_set_event_handler` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 6830-6903 | `pgtk_set_event_handler` (C 6830-6903) - the `G_CALLBACK` round | the file gate - **transcribed** (the fifty-seventh slice) |
+| 6905-7780 | **the remainder of the file** - from C 6905's `my_log_handler` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1435,6 +1436,26 @@ their assertions are owed.
     (`map_event` etc.'s shape at line 424).  The file now has exactly 13 `gpointer *user_data`
     signatures (C's own 13 at C 5274-6229) and no other mismatch.
 
+79. **The `G_CALLBACK` round: twenty signatures converted, one double-wrap class fixed, and four token
+    rows.**  C 6830-6903's `pgtk_set_event_handler` is a **non-`static`** C definition, so it carries
+    `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md 0.2), and it is the slice that takes twenty of
+    this file's function addresses through `G_CALLBACK`: nineteen hooks already transcribed plus
+    `pgtk_handle_event` and `pgtk_handle_draw` (`pgtk_selection_event` is the one name still in the
+    remainder), so all **twenty** definitions are now `unsafe extern "C" fn` (PORTING.md 1.4) and their
+    doc blocks say so.  C 6833's `f->tooltip` is the mirror's bitfield accessor `FRAME_TOOLTIP_P`;
+    C 6840's `gtk_drag_dest_set` is a new mirror row (its `targets` pointer is the underlying
+    `*const c_void` - P-87 3, after the first reading named `GtkTargetEntry` as a type a mirror may not
+    name); C's `NULL` is `std::ptr::null_mut ()` and C 6860's data argument is `f as gpointer`.  **The
+    readings named a double-wrap class this slice then fixed**: the mirror's `g_signal_connect!` body
+    applies `G_CALLBACK!` to its handler argument, so the older call sites that passed
+    `G_CALLBACK! (f)` **and** the twenty-five new ones were double-wrapped - the base reading carried
+    five `E0605`s for the older sites, and they and the new ones are now bare handler names (the four
+    token rows for `g_callback` stand behind `g_signal_connect!`'s own citation and are closed by
+    sanctioned `docs/ports/macro-body-notes.tsv` rows; `gtkutil`-class `xg_create_*` calls and
+    `g_signal_handlers_disconnect_by_func!`'s body, which does **not** wrap, keep C's own
+    `G_CALLBACK! (…)` argument).  The four `E0425`s for `pgtk_selection_event` are the registered
+    not-yet-ported class the remainder closes.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1567,6 +1588,10 @@ their assertions are owed.
     (the `src/editfns.rs` 182-185 precedent) and the six `GdkScrollDirection`/
     `GDK_SCROLL_*` rows it must keep local, because `src/xwidget.rs` owns those names
     (P-90 7).
+
+  The fifty-seventh slice adds one owed row:
+    `pgtk_selection_event` (C 7477, the remainder) is referenced by four `G_CALLBACK`s in
+    `pgtk_set_event_handler`, so those four stand as `E0425` rows until that definition lands.
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -3876,3 +3901,55 @@ and the header to 9,762 lines.  **The gates** read `check-declarations.py` 18/0/
 **Not claimed**: nothing has been run - the frozen configuration compiles none of this file, this
 machine has no GTK tree and no PGTK target, no monitor changed, and the arm readings are **compile**
 readings of text this machine cannot build.
+
+## The fifty-seventh slice (C 6830-6903): the `G_CALLBACK` round
+
+**What is in it.**  `pgtk_set_event_handler` (C 6830-6903), the non-`static` definition that
+registers this frame's GTK signal handlers - the tooltip frame's `"draw"`, the drag destination, the
+four outer-widget signals and the twenty widget signals, each through `g_signal_connect!` with C's
+signal name, handler and data.  Rust: 9,762 -> **9,853** lines.  **The slice also converts the twenty
+functions whose addresses C takes here** (the nineteen hooks already transcribed plus
+`pgtk_handle_event` and `pgtk_handle_draw`) to `unsafe extern "C" fn`, as PORTING.md 1.4 requires,
+and fixes the double-wrap class the readings named (Deviation 79).
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 50 errors / 19 warnings -> 49 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 51 / 20 -> 50 / 20
+C = A + use_gtk + have_gtk3                        : 8 / 18 -> 7 / 18
+```
+Every arm reads **exactly one error fewer**, and the difference is the same pair of classes in all
+three: **five `E0605`s retired** (the pre-existing double-wrap call sites this slice fixed) against
+**four `E0425`s added** for `pgtk_selection_event`, the one name this slice's text references while
+its definition is still in the remainder - the registered not-yet-ported class (the
+`pgtk_unlink_touch_points` reading of the fifty-fourth slice, in the other direction).  No warning
+changes.  The baseline is HEAD's unit **and HEAD's mirror**.  **Arm reach is measured** (P-86 7):
+injecting `let _: c_int = true;` as the first statement of `pgtk_set_event_handler` moves arm A to
+**50** errors anchored at the injected line (`_root.rs:9792`); removed, the file re-measured at
+9,853 lines.
+
+**The mirror round (P-87).**  `include/gtk.rs` gains `gtk_drag_dest_set` (gtk/gtkselection.h, C 6840's
+call) with its `targets` pointer as the underlying `*const c_void` (P-87 3; the first reading named
+`GtkTargetEntry` as a name the mirror may not carry).  The named `src/xwidget.rs` reading (`use_gtk` +
+`have_gtk3`) against HEAD's mirror and against this one reads **197 errors / 52 warnings on both
+sides** with both sets diffing empty; `check-mirror-dupes` reads **16/16/0**;
+`tools/check-all-units.sh` reads `checked 83 unit(s), 0 failure(s)` and
+`checking 83 unit(s), 0 unit failure(s)`.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**31 rows -> 30**: `pgtk_set_event_handler` retires, four token rows arrive (`g_callback` for
+`pgtk_seat_added_cb`, `pgtk_enumerate_devices`, `pgtk_wait_for_event` and `pgtk_set_event_handler`,
+plus `tooltip` for the last) and four sanctioned `macro-body-notes.tsv` rows close them.  The file's
+`line count drifted` row stays answered (`pgtkterm 0.30`; 9,853 against C's 7,780 is 26.7%).
+
+**Ledger.**  Deviation 79 (the twenty conversions, the tooltip accessor, the new mirror row, the
+double-wrap class and the four token rows), a new owed note for `pgtk_selection_event`'s four `E0425`
+rows; the range table's remainder row split into `6830-6903` (**transcribed**) and `6905-7780` (whose
+next live definition is `my_log_handler`, C 6905-6906); the title to fifty-seven slices and the header
+to 9,853 lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py`
+676/0/0/2113/36/0, `check-dead-file-coverage.py` 145/0 (**89 range rows** over `src/pgtkterm.c`),
+`check-port-lines.py` 0/0/0/0, `check-ledger-ticks.py` 238/0, `check-cond-eval.py src/pgtkterm.c`
+31/0/0 and `check-mirror-dupes.py` 16/16/0.  **Not claimed**: nothing has been run - the frozen
+configuration compiles none of this file, this machine has no GTK tree and no PGTK target, no handler
+was connected or called, and the arm readings are **compile** readings of text this machine cannot
+build.
