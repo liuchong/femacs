@@ -9297,3 +9297,162 @@ pub unsafe extern "C" fn pgtk_finish_drop (success: Lisp_Object, event_time: Lis
     { g_clear_pointer! (&raw mut current_drop_context,                  // C 6443
 			g_object_unref); }                              // C 6444
 }
+
+/* C: gdk/gdkatom.h: `gchar *gdk_atom_name (GdkAtom atom);` - the C 6516/6565 calls.  `gdk_atom_name`
+   is not in the mirror: `src/pgtkselect.rs` 210-212 declares its own row for its one call (the
+   C 141 shape), so this unit declares its own too (P-88 1) rather than making the mirror carry a
+   name an includer already has (the `GDK_BUTTON_RELEASE` rule).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gdk_atom_name (atom: GdkAtom) -> *mut gchar;
+}
+
+/// C 6447-6478: `static void drag_leave (GtkWidget *widget, GdkDragContext *context, guint time,
+/// gpointer user_data)` - `static` with its address taken at C 6902 (`G_CALLBACK (drag_leave)`), so a
+/// plain `unsafe fn` that the C 6831 slice converts.  `DRAG_N_DROP_EVENT` is `include/termhooks.rs`'s
+/// row, C's `FALSE` is `false as gboolean`, the `guint` -> `Time` widening of the timestamp store is
+/// written out, and C 6462's `g_clear_pointer` is this unit's own macro.
+#[cfg (feature = "have_pgtk")]
+unsafe fn drag_leave (widget: *mut GtkWidget, context: *mut GdkDragContext, time: guint,
+		      user_data: *mut gpointer)
+{
+  let mut f: *mut frame;                                                // C 6451
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6452
+
+  f = pgtk_any_window_to_frame (gtk_widget_get_window (widget));        // C 6454
+
+  if !current_drop_context.is_null ()                                   // C 6456
+    {
+      if current_drop_context_drop                                      // C 6458
+	{ gtk_drag_finish (current_drop_context,                         // C 6459
+			   false as gboolean, false as gboolean,         // C 6460
+			   current_drop_time); }                         // C 6460
+
+      g_clear_pointer! (&raw mut current_drop_context,                   // C 6462
+			g_object_unref);                                 // C 6463
+    }
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 6466
+
+  input_event_bits! (kind, &raw mut inev.ie, DRAG_N_DROP_EVENT);        // C 6468
+  inev.ie.modifiers = 0;                                                // C 6469
+  inev.ie.arg = Qnil ();                                                // C 6470
+  inev.ie.timestamp = time as Time;                                     // C 6471
+
+  XSETINT! (inev.ie.x, 0);                                              // C 6473
+  XSETINT! (inev.ie.y, 0);                                              // C 6474
+  XSETFRAME! (inev.ie.frame_or_window, f);                              // C 6475
+
+  evq_enqueue (&raw mut inev);                                          // C 6477
+}
+
+/// C 6480-6528: `static gboolean drag_motion (GtkWidget *widget, GdkDragContext *context, gint x,
+/// gint y, guint time)` - `static` with its address taken at C 6904 (`G_CALLBACK (drag_motion)`), so
+/// a plain `unsafe fn`.  C's `gpointer` -> `GdkDragContext *` round trip through `g_object_ref` is
+/// written out on both sides (`as gpointer`, `as *mut GdkDragContext`), `make_uint` takes this
+/// mirror's `uintmax_t` so the `guint` argument is converted, C's `FALSE` is `false as gboolean`, and
+/// `intern`/`list4`/`Qlambda` are the include graph's own rows (`intern` is `src/lisp.rs`'s function
+/// at `include/lisp.rs` 2728).
+#[cfg (feature = "have_pgtk")]
+unsafe fn drag_motion (widget: *mut GtkWidget, context: *mut GdkDragContext, x: c_int, y: c_int,
+		       time: guint) -> gboolean
+{
+  let mut f: *mut frame;                                                // C 6485
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6486
+  let mut name: GdkAtom;                                                // C 6487
+  let mut suggestion: GdkDragAction;                                    // C 6488
+
+  f = pgtk_any_window_to_frame (gtk_widget_get_window (widget));        // C 6490
+
+  if f.is_null ()                                                       // C 6492
+    { return false as gboolean; }                                       // C 6493
+
+  if !current_drop_context.is_null ()                                   // C 6495
+    {
+      if current_drop_context_drop                                      // C 6497
+	{ gtk_drag_finish (current_drop_context,                         // C 6498
+			   false as gboolean, false as gboolean,         // C 6499
+			   current_drop_time); }                         // C 6499
+
+      g_clear_pointer! (&raw mut current_drop_context,                   // C 6501
+			g_object_unref);                                 // C 6502
+    }
+
+  current_drop_context = g_object_ref (context as gpointer) as *mut GdkDragContext;  // C 6505
+  current_drop_time = time;                                             // C 6506
+  current_drop_context_drop = false;                                    // C 6507
+
+  name = gdk_drag_get_selection (context);                              // C 6509
+  suggestion = gdk_drag_context_get_suggested_action (context);         // C 6510
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 6512
+
+  input_event_bits! (kind, &raw mut inev.ie, DRAG_N_DROP_EVENT);        // C 6514
+  inev.ie.modifiers = 0;                                                // C 6515
+  inev.ie.arg = list4 (Qlambda (), intern (gdk_atom_name (name)),       // C 6516
+		       make_uint (time as uintmax_t),                   // C 6517
+		       drag_action_to_symbol (suggestion));             // C 6518
+  inev.ie.timestamp = time as Time;                                     // C 6519
+
+  XSETINT! (inev.ie.x, x as EMACS_INT);                                 // C 6521
+  XSETINT! (inev.ie.y, y as EMACS_INT);                                 // C 6522
+  XSETFRAME! (inev.ie.frame_or_window, f);                              // C 6523
+
+  evq_enqueue (&raw mut inev);                                          // C 6525
+
+  return true as gboolean;                                              // C 6527
+}
+
+/// C 6530-6577: `static gboolean drag_drop (GtkWidget *widget, GdkDragContext *context, int x, int
+/// y, guint time, gpointer user_data)` - `static` with its address taken at C 6906 (`G_CALLBACK
+/// (drag_drop)`), so a plain `unsafe fn`.  The body is `drag_motion`'s with `Qquote`, the selected
+/// action and `current_drop_context_drop = true`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn drag_drop (widget: *mut GtkWidget, context: *mut GdkDragContext, x: c_int, y: c_int,
+		    time: guint, user_data: *mut gpointer) -> gboolean
+{
+  let mut f: *mut frame;                                                // C 6534
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6535
+  let mut name: GdkAtom;                                                // C 6536
+  let mut selected_action: GdkDragAction;                               // C 6537
+
+  f = pgtk_any_window_to_frame (gtk_widget_get_window (widget));        // C 6539
+
+  if f.is_null ()                                                       // C 6541
+    { return false as gboolean; }                                       // C 6542
+
+  if !current_drop_context.is_null ()                                   // C 6544
+    {
+      if current_drop_context_drop                                      // C 6546
+	{ gtk_drag_finish (current_drop_context,                         // C 6547
+			   false as gboolean, false as gboolean,         // C 6548
+			   current_drop_time); }                         // C 6548
+
+      g_clear_pointer! (&raw mut current_drop_context,                   // C 6550
+			g_object_unref);                                 // C 6551
+    }
+
+  current_drop_context = g_object_ref (context as gpointer) as *mut GdkDragContext;  // C 6554
+  current_drop_time = time;                                             // C 6555
+  current_drop_context_drop = true;                                     // C 6556
+
+  name = gdk_drag_get_selection (context);                              // C 6558
+  selected_action = gdk_drag_context_get_selected_action (context);     // C 6559
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 6561
+
+  input_event_bits! (kind, &raw mut inev.ie, DRAG_N_DROP_EVENT);        // C 6563
+  inev.ie.modifiers = 0;                                                // C 6564
+  inev.ie.arg = list4 (Qquote (), intern (gdk_atom_name (name)),        // C 6565
+		       make_uint (time as uintmax_t),                   // C 6566
+		       drag_action_to_symbol (selected_action));        // C 6567
+  inev.ie.timestamp = time as Time;                                     // C 6568
+
+  XSETINT! (inev.ie.x, x as EMACS_INT);                                 // C 6570
+  XSETINT! (inev.ie.y, y as EMACS_INT);                                 // C 6571
+  XSETFRAME! (inev.ie.frame_or_window, f);                              // C 6572
+
+  evq_enqueue (&raw mut inev);                                          // C 6574
+
+  return true as gboolean;                                              // C 6576
+}

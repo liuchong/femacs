@@ -1908,6 +1908,15 @@ pub fn gdk_drag_status (context: *mut GdkDragContext, action: GdkDragAction, tim
 /// gboolean del, guint32 time);`
 pub fn gtk_drag_finish (context: *mut GdkDragContext, success: gboolean, del: gboolean,
 			time: guint32);
+/// C 6509: `name = gdk_drag_get_selection (context);`
+/// C: gdk/gdkdnd.h: `GdkAtom gdk_drag_get_selection (GdkDragContext *context);`
+pub fn gdk_drag_get_selection (context: *mut GdkDragContext) -> GdkAtom;
+/// C 6510: `suggestion = gdk_drag_context_get_suggested_action (context);`
+/// C: gdk/gdkdnd.h: `GdkDragAction gdk_drag_context_get_suggested_action (GdkDragContext *context);`
+pub fn gdk_drag_context_get_suggested_action (context: *mut GdkDragContext) -> GdkDragAction;
+/// C 6559: `selected_action = gdk_drag_context_get_selected_action (context);`
+/// C: gdk/gdkdnd.h: `GdkDragAction gdk_drag_context_get_selected_action (GdkDragContext *context);`
+pub fn gdk_drag_context_get_selected_action (context: *mut GdkDragContext) -> GdkDragAction;
 /// C 393: `return gdk_keyval_name (keysym);`
 /// C: gdk/gdkkeys.h: `gchar *gdk_keyval_name (guint keyval);`
 pub fn gdk_keyval_name (keyval: guint) -> *mut gchar;
