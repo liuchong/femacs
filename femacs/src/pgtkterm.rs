@@ -10020,3 +10020,84 @@ unsafe extern "C" fn pgtk_selection_event (widget: *mut GtkWidget, event: *mut G
 
   return false as gboolean;                                             // C 7024
 }
+
+/* C: gtk/gtkdialog.h: `GtkWidget *gtk_dialog_get_content_area (GtkDialog *dialog);` - the C 7048
+   call.  The mirror cannot own this row: `src/xwidget.rs` declares it for its own call (P-90 7), and
+   `tools/check-mirror-dupes.py` named exactly that collision (`FAIL src/xwidget.rs: …`), so it
+   stands here instead (the `gdk_atom_name`/`strstr` shape).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gtk_dialog_get_content_area (dialog: *mut GtkDialog) -> *mut GtkWidget;
+}
+
+/// C: gtk/gtkdialog.h: `typedef struct _GtkDialog GtkDialog;` (a `GtkWindow`) - the C 7034 local's
+/// type.  **The mirror cannot own it**: `src/xwidget.rs` 2373-2377 defines the same record for its
+/// own casts, and the named reading of this slice caught the collision
+/// (`E0428: the name GtkDialog is defined multiple times`), so the unit keeps its own row (P-90 7,
+/// the `GDK_BUTTON_PRESS` shape).  **UNVERIFIED**.
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+pub struct GtkDialog
+{
+  _private: [u8; 0],
+}
+
+/// C: gtk/gtkdialog.h: `#define GTK_DIALOG(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), GTK_TYPE_DIALOG,
+/// GtkDialog))` - C 7045's cast.  `src/xwidget.rs` 2384-2385 owns the same macro for its own casts,
+/// so this unit carries its own copy (a `macro_rules!` is textually scoped, and the mirror may not
+/// define what an includer has - P-90 7).
+#[cfg (feature = "have_pgtk")]
+macro_rules! GTK_DIALOG {
+  ($o:expr) => { ($o) as *mut GtkDialog };
+}
+
+/// C 7027-7063: `static void pgtk_display_x_warning (GdkDisplay *display)` - `static` with no
+/// address taken (C 7126 calls it), so a plain `unsafe fn`.  C 7038-7039's comment is carried
+/// verbatim; `G_OBJECT_TYPE_NAME` is the mirror's macro, `strcmp` comes from the include graph
+/// (`lib/include/string.rs`; the first reading named the `E0428` a use-site row produced there), C's
+/// string literal is the port's
+/// `c"…".as_ptr ()`; `GTK_DIALOG` is this slice's unit-local cast macro (xwidget owns the mirror's would-be row) and
+/// `GTK_LABEL`/`GTK_CONTAINER` are the mirror's;
+/// `gtk_dialog_new` is this slice's new mirror row and `gtk_dialog_get_content_area` its new
+/// unit-local row (the collision above); and C's
+/// `TRUE` is `true as gboolean`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_display_x_warning (display: *mut GdkDisplay)
+{
+  let mut dialog_widget: *mut GtkWidget;                                // C 7033
+  let mut label: *mut GtkWidget;                                        // C 7033
+  let mut content_area: *mut GtkWidget;                                 // C 7033
+  let mut dialog: *mut GtkDialog;                                       // C 7034
+  let mut window: *mut GtkWindow;                                       // C 7035
+  let mut screen: *mut GdkScreen;                                       // C 7036
+
+  /* Do this instead of GDK_IS_X11_DISPLAY because the GDK X header
+     pulls in Xlib, which conflicts with definitions in pktgui.h.  */
+  if strcmp (G_OBJECT_TYPE_NAME! (display),
+	     c"GdkX11Display".as_ptr ()) != 0                           // C 7040-7041
+    { return; }                                                         // C 7042
+
+  dialog_widget = gtk_dialog_new ();                                    // C 7044
+  dialog = GTK_DIALOG! (dialog_widget);                                 // C 7045
+  window = GTK_WINDOW! (dialog_widget);                                 // C 7046
+  screen = gdk_display_get_default_screen (display);                    // C 7047
+  content_area = gtk_dialog_get_content_area (dialog);                  // C 7048
+
+  gtk_window_set_title (window, c"Warning".as_ptr ());                  // C 7050
+  gtk_window_set_screen (window, screen);                               // C 7051
+
+  // C 7053-7058's six adjacent literals are **one** literal in the port (`c"…"` with continuation
+  // backslashes, C's boundary spaces kept before them): Rust joins adjoined literals only through
+  // `concat!`, which yields a `&str`, not the `*const c_char` this call takes (the first reading
+  // named the six parse errors the adjoined spelling produces).
+  label = gtk_label_new (c"You are trying to run Emacs configured with\n \
+			   the \"pure-GTK\" interface under the X Window\n \
+			   System.  That configuration is unsupported and\n \
+			   will lead to sporadic crashes during transfer of\n \
+			   large selection data.  It will also lead to\n \
+			   various problems with keyboard input.\n".as_ptr ());  // C 7053-7058
+  gtk_label_set_line_wrap (GTK_LABEL! (label), true as gboolean);       // C 7059
+  gtk_container_add (GTK_CONTAINER! (content_area), label);             // C 7060
+  gtk_widget_show (label);                                              // C 7061
+  gtk_widget_show (dialog_widget);                                      // C 7062
+}

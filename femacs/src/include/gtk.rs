@@ -1697,6 +1697,9 @@ unsafe extern "C" {
   /// C 861: `x->ttip_lbl = gtk_label_new ("");`
   /// C: gtk/gtklabel.h: `GtkWidget *gtk_label_new (const gchar *str);`
   pub fn gtk_label_new (str: *const gchar) -> *mut GtkWidget;
+  /// C 7044: `dialog_widget = gtk_dialog_new ();`
+  /// C: gtk/gtkdialog.h: `GtkWidget *gtk_dialog_new (void);`
+  pub fn gtk_dialog_new () -> *mut GtkWidget;
   /// C 873: `gtk_label_set_line_wrap (GTK_LABEL (w), FALSE);`
   /// C: gtk/gtklabel.h: `void gtk_label_set_line_wrap (GtkLabel *label, gboolean wrap);`
   pub fn gtk_label_set_line_wrap (label: *mut GtkLabel, wrap: gboolean);
