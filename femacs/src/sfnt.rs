@@ -81,8 +81,20 @@
 // slice**, and the one definition C 13229's `no_mangle` exports is what makes the two `static`s
 // above it reachable: the `--emit obj` object grows from 91,816 to 98,448 bytes here, where slice
 // 17's had stayed at slice 16's size because the whole group was dead.
-// **What is left after slice 18** is C 16448-21215, the TEST programme (the ledger's Owed 21),
-// and nothing else.
+// **Slice 19 takes C 16448-16704** - the test programme's first block: `struct sfnt_test_dcontext`
+// (C 16450-16460), the `sfnt_test_max` object, the eight callbacks C's TEST harness calls, and the
+// X11 debugger state with its three functions (`sfnt_test_edges`, `sfnt_debug_edges`,
+// `sfnt_test_edge`).  The whole block carries `feature = "test"` on top of the file gate.  **No
+// configuration compiles that feature today** - `xtask`'s `FLIPS` table has no `test` entry - so
+// this slice's compile reading is the *frozen* arm (0 errors, and the object is unchanged, because
+// every line of this block is behind that feature), plus the TEST arm's measured debt: its X11
+// names (`Display`, `Window`, `GC`, `XEvent`, the five `X*` calls, `KeyPress`/`Expose`) keep C's
+// spelling - `xterm.rs`'s ruling for the same names, with C 57-58 showing the tree has no mirror -
+// and C 16596's prototype is dropped, since Rust has no function prototype.  C 16562-16585's two
+// `#elif 0` arms and C 16680-16690's `#ifdef TEST_VERTEX` arm are dead text and are recorded, not
+// transcribed.
+// **What is left after slice 19** is C 16705-21215, the rest of the test programme (the raster test
+// and the interpreter test programme), and nothing else.
 // The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
@@ -18144,4 +18156,273 @@ pub unsafe extern "C" fn sfnt_interpret_compound_glyph (glyph: *mut sfnt_glyph,
 
   *value = outline;                                      // C 13319
   return std::ptr::null ();                              // C 13320
+}
+
+/* C 16448's `#ifdef TEST` opens the test programme, which runs to the file's last line (C 21215):
+   every item below carries `feature = "test"` on top of the file gate, exactly as the C 49-134
+   harness does.  **Nothing compiles this arm today** - no `--cfg feature="test"` driver exists in
+   this tree (`xtask`'s `FLIPS` table has no `test` entry, so `dead-arms` does not flip it either) -
+   and its X11 dependencies (`Display`, `Window`, `GC`, `XEvent`, the `X*` functions and the two
+   event codes) have no mirror here (C 57-58).  C's spelling is kept for those names, which is the
+   `xterm.rs` ruling for the same Xlib names (its 824-827 note), so the arm type-checks only on a
+   target that resolves them: the measured debt is the ledger's Evidence ⑭.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+#[repr(C)]
+pub struct sfnt_test_dcontext                          // C 16450-16460
+{
+  /* Context for sfnt_test_get_glyph.  */
+  pub glyf: *mut sfnt_glyf_table,
+  pub loca_short: *mut sfnt_loca_table_short,
+  pub loca_long: *mut sfnt_loca_table_long,
+  pub hmtx: *mut sfnt_hmtx_table,
+  pub hhea: *mut sfnt_hhea_table,
+  pub maxp: *mut sfnt_maxp_table,
+  pub blend: *mut sfnt_blend,
+}
+
+/* Global context for test functions.  Height of glyph.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut sfnt_test_max: sfnt_fixed = 0;              // C 16463
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_test_move_to (point: sfnt_point, dcontext: *mut c_void)   // C 16465-16470
+{
+  printf (c"move_to: %g, %g\n".as_ptr (), sfnt_coerce_fixed (point.x),
+	  sfnt_coerce_fixed (point.y));
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_test_line_to (point: sfnt_point, dcontext: *mut c_void)   // C 16472-16477
+{
+  printf (c"line_to: %g, %g\n".as_ptr (), sfnt_coerce_fixed (point.x),
+	  sfnt_coerce_fixed (point.y));
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_test_curve_to (control: sfnt_point, endpoint: sfnt_point,   // C 16479-16489
+					 dcontext: *mut c_void)
+{
+  printf (c"curve_to: %g, %g - %g, %g\n".as_ptr (),
+	  sfnt_coerce_fixed (control.x),
+	  sfnt_coerce_fixed (control.y),
+	  sfnt_coerce_fixed (endpoint.x),
+	  sfnt_coerce_fixed (endpoint.y));
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_test_get_glyph (id: sfnt_glyph_index, dcontext: *mut c_void,   // C 16491-16517
+					  need_free: *mut bool) -> *mut sfnt_glyph
+{
+  let mut tables: *mut sfnt_test_dcontext;
+  let mut glyph: *mut sfnt_glyph;
+  let mut distortion: sfnt_metrics_distortion;
+
+  tables = dcontext as *mut sfnt_test_dcontext;        // C 16499
+  *need_free = true;                                   // C 16500
+
+  glyph = sfnt_read_glyph (id, (*tables).glyf,         // C 16502-16504
+			   (*tables).loca_short,
+			   (*tables).loca_long);
+
+  if !(*tables).blend.is_null () && !glyph.is_null ()  // C 16506
+    {
+      if !(*glyph).simple.is_null ()                   // C 16508
+	{ sfnt_vary_simple_glyph ((*tables).blend, id, glyph, &raw mut distortion); }   // C 16509-16510
+      else
+	{ sfnt_vary_compound_glyph ((*tables).blend, id, glyph, &raw mut distortion); }   // C 16512-16513
+    }
+
+  return glyph;                                        // C 16516
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_test_free_glyph (glyph: *mut sfnt_glyph, dcontext: *mut c_void)   // C 16519-16523
+{
+  sfnt_free_glyph (glyph);
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_test_get_metrics (glyph: sfnt_glyph_index,   // C 16525-16535
+					    metrics: *mut sfnt_glyph_metrics,
+					    dcontext: *mut c_void) -> c_int
+{
+  let mut tables: *mut sfnt_test_dcontext;
+
+  tables = dcontext as *mut sfnt_test_dcontext;        // C 16531
+  return sfnt_lookup_glyph_metrics (glyph, metrics,    // C 16532-16534
+				    (*tables).hmtx, (*tables).hhea,
+				    (*tables).maxp);
+}
+
+/* C 16541's `#if 1` arm is the live one; C 16562-16585's two `#elif 0` arms are dead text (the
+   golden-ratio printer and the x-run printer), which `tools/cinventory.py`'s dead-branch rule
+   drops - they are recorded in `docs/ports/sfnt.md` rather than transcribed.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_test_span (edge: *mut sfnt_edge, y: sfnt_fixed,   // C 16537-16586
+				     dcontext: *mut c_void)
+{
+  printf (c"/* span at %g */\n".as_ptr (), sfnt_coerce_fixed (y));   // C 16542
+  while !edge.is_null ()                               // C 16543
+    {
+      if y >= (*edge).bottom && y < (*edge).top        // C 16545
+	{
+	  printf (c"ctx.fillRect (%g, %g, 1, 1); /* %g top: %g bot: %g stepx: %g winding: %d */\n".as_ptr (),   // C 16546-16554
+		  sfnt_coerce_fixed ((*edge).x),
+		  sfnt_coerce_fixed (sfnt_test_max - y),
+		  sfnt_coerce_fixed (y),
+		  sfnt_coerce_fixed ((*edge).top),
+		  sfnt_coerce_fixed ((*edge).bottom),
+		  sfnt_coerce_fixed ((*edge).step_x),
+		  (*edge).winding);
+	}
+      else
+	{
+	  /* C's format is the concatenation `"… %"PRIi32" %"PRIi32" …"`, and the inttypes
+	     mirror's `PRIi32` is `c"i"` (frozen, measured), so the two conversions are `%i`.  */
+	  printf (c"STRIPPED BAD SPAN!!! %g %g %i %i (winding: %d)\n".as_ptr (),   // C 16556-16560
+		  sfnt_coerce_fixed ((*edge).top),
+		  sfnt_coerce_fixed ((*edge).bottom),
+		  (*edge).top, y, (*edge).winding);
+	}
+
+      edge = (*edge).next;                             // C 16543's step
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_test_edge_ignore (edges: *mut sfnt_edge, num_edges: size_t,   // C 16588-16593
+					    dcontext: *mut c_void)
+{
+}
+
+/* The same debugger stuff is used here.  */
+/* C 16596's prototype `static void sfnt_setup_debugger (void);` is not carried: Rust has no
+   function prototype (the file header's note - it is why this port may walk a different order),
+   and C 19658's definition is visible to the call in `sfnt_debug_edges` regardless of position.
+   Measured: writing it out is `error: free function without a body` (Evidence ⑭).  */
+
+/* The debugger's X display.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut display: *mut Display = unsafe { std::mem::zeroed () };   // C 16599
+
+/* The debugger window.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut window: Window = unsafe { std::mem::zeroed () };   // C 16602
+
+/* The GC.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut point_gc: GC = unsafe { std::mem::zeroed () };   // C 16605
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut background_gc: GC = unsafe { std::mem::zeroed () };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" {
+  /// C: <unistd.h>: `pid_t fork (void);` (C 16695; the `emacs.rs` 331 declaration's shape).
+  pub fn fork () -> pid_t;
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_test_edges (edges: *mut sfnt_edge, num_edges: size_t)   // C 16607-16628
+{
+  static mut y: sfnt_fixed = 0;                        // C 16610 (C's function-scope `static`)
+  let mut i: size_t;
+
+  i = 0;                                               // C 16613
+  while i < num_edges
+    {
+      if y >= (*edges.offset (i as isize)).bottom && y < (*edges.offset (i as isize)).top   // C 16615
+	{
+	  XDrawPoint (display, window, point_gc,       // C 16617-16618
+		      (*edges.offset (i as isize)).x / 65536, 100 - (y / 65536));
+	  printf (c"sfnt_test_edges: %d %d\n".as_ptr (),   // C 16619-16620
+		  (*edges.offset (i as isize)).x / 65536, 100 - (y / 65536));
+	}
+      i += 1;
+    }
+
+  y += SFNT_POLY_STEP;                                 // C 16624
+
+  i = 0;                                               // C 16626
+  while i < num_edges
+    {
+      sfnt_step_edge (&raw mut *edges.offset (i as isize));   // C 16627
+      i += 1;
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_debug_edges (edges: *mut sfnt_edge, num_edges: size_t)   // C 16630-16661
+{
+  let mut event: XEvent;                               // C 16633
+
+  sfnt_setup_debugger ();                              // C 16635
+
+  loop                                                 // C 16637
+    {
+      XNextEvent (display, &raw mut event);            // C 16639
+
+      match event.r#type                               // C 16641
+	{
+	KeyPress =>                                    // C 16643
+	  {
+	    XDestroyWindow (display, window);          // C 16644
+	    XCloseDisplay (display);                   // C 16645
+	    exit (0);                                  // C 16646
+	    break;                                     // C 16647 (unreachable after `exit`)
+	  }
+
+	Expose =>                                      // C 16649
+	  {
+	    loop                                       // C 16651
+	      {
+		sfnt_test_edges (edges, num_edges);    // C 16653
+		XFlush (display);                      // C 16654
+		usleep (50000);                        // C 16655
+	      }
+
+	    break;                                     // C 16658 (unreachable: the loop does not end)
+	  }
+
+	_ => {}                                        // C's `switch` has no `default:` arm
+	}
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_test_edge (edges: *mut sfnt_edge, num_edges: size_t,   // C 16663-16702
+				     dcontext: *mut c_void)
+{
+  let mut i: size_t;
+
+  printf (c"built %zu edges\n".as_ptr (), num_edges);   // C 16669
+
+  i = 0;                                               // C 16671
+  while i < num_edges
+    {
+      printf (c"/* edge x, top, bot: %g, %g - %g.  winding: %d */\n/* edge step_x: %g */\n".as_ptr (),   // C 16673-16679
+	      sfnt_coerce_fixed ((*edges.offset (i as isize)).x),
+	      sfnt_coerce_fixed ((*edges.offset (i as isize)).top),
+	      sfnt_coerce_fixed ((*edges.offset (i as isize)).bottom),
+	      (*edges.offset (i as isize)).winding,
+	      sfnt_coerce_fixed ((*edges.offset (i as isize)).step_x));
+
+      /* C 16680-16690's `#ifdef TEST_VERTEX` arm is dead text (`TEST_VERTEX` is undefined and
+	 `sfnt_edge` has no `y` member); C's `#else` arm follows.  */
+      printf (c"ctx.fillRect (%g, %g, 1, 1);\n".as_ptr (),   // C 16686-16689
+	      sfnt_coerce_fixed ((*edges.offset (i as isize)).x),
+	      sfnt_coerce_fixed (sfnt_test_max
+				 - (*edges.offset (i as isize)).bottom));
+      i += 1;
+    }
+
+  if !getenv (c"SFNT_DEBUG_STEP".as_ptr ()).is_null ()   // C 16693
+    {
+      if fork () == 0                                  // C 16695
+	{ sfnt_debug_edges (edges, num_edges); }       // C 16696
+    }
+
+  printf (c"==end of edges==\n".as_ptr ());            // C 16699
+
+  sfnt_poly_edges (edges, num_edges, Some (sfnt_test_span), std::ptr::null_mut ());   // C 16701
 }
