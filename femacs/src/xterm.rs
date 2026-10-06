@@ -27661,4 +27661,93 @@ unsafe fn mouse_or_wdesc_frame (dpyinfo: *mut x_display_info, wdesc: c_int) -> *
     }
 }
 
-/* C 18118-18119's signature opens `x_dnd_compute_tip_xy` (C 18118-...), the next definition.  */
+/// C 18118-18187: `static void x_dnd_compute_tip_xy (int *root_x, int *root_y, Lisp_Object
+/// attributes)` - C's `static`, so a plain `unsafe fn`, and a `--check` item this slice retires;
+/// its only caller is C 18211 (`x_dnd_update_tooltip_position`, still unported).  Five shapes:
+/// C's `while (CONSP (attributes))` walk is the port's loop with `XCAR`/`XCDR` (the file's own
+/// reading of the same helpers), `Qgeometry` is the mirror's accessor (`Qgeometry ()`,
+/// `include/globals.rs` 2785, reached through lisp.h's include of it), the four
+/// `XFIXNUM (Fnth (make_fixnum (n), geometry))` reads keep C's nesting (`Fnth`/`make_fixnum` are
+/// the mirrors'), and C's two `if`/`else if` chains keep C's own comments - including the two
+/// "Can happen for negative dx/dy" ones.  `x_display_pixel_width`/`x_display_pixel_height`
+/// (C 18160-18161) are this file's still-unported definitions (`--check`'s list), so their call
+/// rows are the recorded class; `tip_frame`/`tip_dx`/`tip_dy`/`x_dnd_frame` are this unit's
+/// file-scope objects (`include/xterm.rs` 736-741's block).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_compute_tip_xy (root_x: *mut c_int, root_y: *mut c_int, attributes: Lisp_Object)
+{
+  let mut monitor: Lisp_Object;                                               // C 18121
+  let mut geometry: Lisp_Object;
+  let mut min_x: c_int;                                                       // C 18122
+  let mut min_y: c_int;
+  let mut max_x: c_int;
+  let mut max_y: c_int;
+  let mut width: c_int;                                                       // C 18123
+  let mut height: c_int;
+
+  width = FRAME_PIXEL_WIDTH (XFRAME (tip_frame));                             // C 18125
+  height = FRAME_PIXEL_HEIGHT (XFRAME (tip_frame));                           // C 18126
+
+  max_y = -1;                                                                 // C 18128
+
+  /* Try to determine the monitor where the mouse pointer is and
+     its geometry.  See bug#22549.  */
+  while CONSP (attributes)                                                    // C 18132
+    {
+      monitor = XCAR (attributes);                                            // C 18134
+      geometry = assq_no_quit (Qgeometry (), monitor);                        // C 18135
+
+      if CONSP (geometry)                                                     // C 18137
+	{
+	  min_x = XFIXNUM (Fnth (make_fixnum (1), geometry)) as c_int;        // C 18139
+	  min_y = XFIXNUM (Fnth (make_fixnum (2), geometry)) as c_int;        // C 18140
+	  max_x = min_x + XFIXNUM (Fnth (make_fixnum (3), geometry)) as c_int; // C 18141
+	  max_y = min_y + XFIXNUM (Fnth (make_fixnum (4), geometry)) as c_int; // C 18142
+
+	  if min_x <= *root_x && *root_x < max_x                              // C 18144
+	      && min_y <= *root_y && *root_y < max_y                          // C 18145
+	    { break; }                                                        // C 18146
+
+	  max_y = -1;                                                         // C 18148
+	}
+
+      attributes = XCDR (attributes);                                         // C 18151
+    }
+
+  /* It was not possible to determine the monitor's geometry, so we
+     assign some sane defaults here: */
+  if max_y < 0                                                                // C 18156
+    {
+      min_x = 0;                                                              // C 18158
+      min_y = 0;                                                              // C 18159
+      max_x = x_display_pixel_width (FRAME_DISPLAY_INFO! (x_dnd_frame));      // C 18160
+      max_y = x_display_pixel_height (FRAME_DISPLAY_INFO! (x_dnd_frame));     // C 18161
+    }
+
+  if *root_y + XFIXNUM (tip_dy) as c_int <= min_y                             // C 18164
+    { *root_y = min_y; }  /* Can happen for negative dy */                    // C 18165
+  else if *root_y + XFIXNUM (tip_dy) as c_int + height <= max_y               // C 18166
+	/* It fits below the pointer */
+	{ *root_y += XFIXNUM (tip_dy) as c_int; }                             // C 18168
+  else if height + XFIXNUM (tip_dy) as c_int + min_y <= *root_y               // C 18169
+	/* It fits above the pointer.  */
+	{ *root_y -= height + XFIXNUM (tip_dy) as c_int; }                    // C 18171
+  else
+	/* Put it on the top.  */
+	{ *root_y = min_y; }                                                  // C 18174
+
+  if *root_x + XFIXNUM (tip_dx) as c_int <= min_x                             // C 18176
+    { *root_x = 0; }  /* Can happen for negative dx */                        // C 18177
+  else if *root_x + XFIXNUM (tip_dx) as c_int + width <= max_x                // C 18178
+	/* It fits to the right of the pointer.  */
+	{ *root_x += XFIXNUM (tip_dx) as c_int; }                             // C 18180
+  else if width + XFIXNUM (tip_dx) as c_int + min_x <= *root_x                // C 18181
+	/* It fits to the left of the pointer.  */
+	{ *root_x -= width + XFIXNUM (tip_dx) as c_int; }                     // C 18183
+  else
+	/* Put it left justified on the screen -- it ought to fit that way.  */
+	{ *root_x = min_x; }                                                  // C 18186
+}
+
+/* C 18189-18190's signature opens `x_dnd_update_tooltip_position` (C 18189-18226), the next
+   definition.  */

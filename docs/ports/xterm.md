@@ -121,6 +121,14 @@ exactly, warnings included, while AG3 goes 818/73 -> **835/73** (+17: twelve mor
 writes, two `GDK_WINDOW_XID`, `x_dispatch_event` and the two `GdkEventConfigure` members the mirror
 does not carry).  The two read-only locals of `mouse_or_wdesc_frame` are written without `mut` -
 that keyword is the port's own, and keeping it cost one `unused_mut` warning per arm (measured).
+  Slice 92 (C 18118-18187, Decision 105) goes **25 -> 24**: `x_dnd_compute_tip_xy` retires as a
+missing function.  It is ungated, so *every* arm moves by the same two rows - the two still-unported
+definitions `x_display_pixel_width` and `x_display_pixel_height` (C 18160-18161) - and by nothing
+else: A 786 -> **788**, U 815 -> **817**, UT 801 -> **803**, UM 802 -> **804**, UG 796 -> **798**,
+UGX 899 -> **901**, AE 818 -> **820**, AI 794 -> **796**, AIU 831 -> **833**, AIUX 938 -> **940**,
+AX 800 -> **802** and AG3 835 -> **837**, with **no warning moved in any of the twelve arms**.  The
+first writing's fourteen `XFIXNUM` reads mixed `EMACS_INT` into C's `int` arithmetic (14 `E0308` and
+12 `E0277` rows across the arms); C's conversions are stated as `as c_int` (the C 11761 reading).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -320,7 +328,7 @@ that keyword is the port's own, and keeping it cost one `unused_mut` warning per
 - [x] x_net_wm_state  (line 18011, static)
 - [x] x_flush_dirty_back_buffer_on  (line 18043, static)
 - [x] mouse_or_wdesc_frame  (line 18095, static)
-- [ ] x_dnd_compute_tip_xy  (line 18119, static)
+- [x] x_dnd_compute_tip_xy  (line 18119, static)
 - [ ] x_dnd_update_tooltip_position  (line 18190, static)
 - [ ] x_dnd_update_tooltip_now  (line 18229, static)
 - [ ] x_dnd_update_state  (line 18264, static)
@@ -4355,6 +4363,33 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **26 -> 25**: `mouse_or_wdesc_frame` retires as a missing item, no token
   row arrives, and the line-count row moves to **27,664** against C's 33,125 (16.5% drift, was
   27,585 / 16.7%).
+
+### 105. Slice 92 (C 18118-18187): `x_dnd_compute_tip_xy`, and the fourteen conversions C leaves to its own arithmetic
+
+* **One `--check` item, ungated, and its caller is still unported.**  `x_dnd_compute_tip_xy`
+  (C 18118-18187) is called only from C 18211 (`x_dnd_update_tooltip_position`, the next definition),
+  so no rustc row retires and **25 -> 24** is the reading.  Because the definition is ungated, all
+  twelve arms move together: the two rows are C 18160-18161's `x_display_pixel_width` and
+  `x_display_pixel_height`, this file's own still-unported definitions (`--check`'s list, whose rows
+  retire when they land).
+* **Five shapes.**  C's `while (CONSP (attributes))` walk is the port's loop with `XCAR`/`XCDR` (the
+  helpers the file already reads the same way) and C's `break` is Rust's; `Qgeometry` is the mirror's
+  accessor (`Qgeometry ()`, `include/globals.rs` 2785, reached through lisp.h 690's own
+  `include!` of it); the four `XFIXNUM (Fnth (make_fixnum (n), geometry))` reads keep C's nesting;
+  C's two `if`/`else if` chains keep C's own comments, including the two "Can happen for negative
+  dx/dy" ones; and `tip_frame`/`tip_dx`/`tip_dy`/`x_dnd_frame` are this unit's file-scope objects
+  (`include/xterm.rs` 736-741's block).
+* **The slice's real reading is the fourteen conversions.**  `XFIXNUM` is the mirror's `EMACS_INT`
+  accessor, and C mixes its result into `int` arithmetic in fourteen places (`min_x + XFIXNUM (…)`,
+  `*root_y + XFIXNUM (tip_dy)`, the two `+=`/`-=` compound assignments) - C's usual arithmetic
+  conversions, which Rust does not perform.  The first writing left them implicit and the arms read
+  **14 `E0308` and 12 `E0277` rows** ("cannot add `isize` to `i32`", "cannot add-assign"); stating C's
+  conversions (`as c_int`, the C 11761 precedent) returns every arm to its baseline class histogram.
+  That is the whole of the slice's second reading, and it is why the arm table's deltas are +2 and
+  not +28.
+* **What `--check` reads.**  **25 -> 24**: the function retires as a missing item and no token row
+  arrives; the line-count row moves to **27,753** against C's 33,125 (16.2% drift, was 27,664 /
+  16.5%).
 
 ## Evidence
 
@@ -8557,3 +8592,52 @@ against C's 33,125 (16.5% drift, was 27,585 / 16.7%).
 **Not claimed.**  The frozen configuration compiles none of this file: no scroll-bar configure event
 was synthesised, no event was dispatched and no frame was chosen from a mouse grab; the readings
 above are compile readings of text this machine cannot build.
+
+### Slice 92's readings (C 18118-18187), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s92/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s92/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI + `use_gtk`,
+AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`.  Both sides
+were measured on this revision.
+
+| arm | HEAD's unit (slice 91 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 786 / 72 | **788 / 72** | **+2** |
+| U `+use_toolkit_scroll_bars` | 815 / 72 | **817 / 72** | **+2** |
+| UT `U +use_x_toolkit` | 801 / 71 | **803 / 71** | **+2** |
+| UM `UT +use_motif` | 802 / 71 | **804 / 71** | **+2** |
+| UG `U +use_gtk` | 796 / 74 | **798 / 74** | **+2** |
+| UGX `UG +have_xinput2` | 899 / 76 | **901 / 76** | **+2** |
+| AE `A +enable_checking` | 818 / 71 | **820 / 71** | **+2** |
+| AI `A +have_x_i18n` | 794 / 73 | **796 / 73** | **+2** |
+| AIU `AI +use_gtk` | 831 / 74 | **833 / 74** | **+2** |
+| AIUX `AIU +have_xinput2` | 938 / 76 | **940 / 76** | **+2** |
+| AX `A +have_xdbe` | 800 / 72 | **802 / 72** | **+2** |
+| AG3 `A +use_gtk +have_gtk3` | 835 / 73 | **837 / 73** | **+2** |
+
+**Additions, by name** (diffed as full `error[E..]: <message>` head lines with counts, both
+directions): every arm adds `cannot find function x_display_pixel_width` x1 and
+`cannot find function x_display_pixel_height` x1, and retires nothing; the pair is the recorded
+"definition not yet landed" class, and their `--check` rows are still in the list of 24.
+
+**Warning sets are identical to the baselines' in all twelve arms.**
+
+**The conversion reading, measured.**  The first writing's fourteen implicit `XFIXNUM` mixes read
+**14 `E0308` + 12 `E0277` rows per arm** (the compound assignments are the `E0277` pair, the rest the
+`E0308` ones); with C's conversions stated the same arms read their baseline histograms plus the two
+`E0425` rows above.  Nothing else in the function moved.
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical sets.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18128's `max_y = -1;` moves
+**A 788 -> 789** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:27706:18`; removing
+it returns A to the table.
+
+**What `--check` reads.**  **25 -> 24** as Decision 105 4 says, with the line-count row at **27,753**
+against C's 33,125 (16.2% drift, was 27,664 / 16.5%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no monitor geometry was
+searched, no tooltip position was clamped and no Lisp list was walked; the readings above are compile
+readings of text this machine cannot build.
