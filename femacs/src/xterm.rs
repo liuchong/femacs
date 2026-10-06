@@ -20590,3 +20590,380 @@ pub unsafe extern "C" fn x_preserve_selections (dpyinfo: *mut x_display_info, lo
       SAFE_FREE! (sa_count);
     }
 }
+/* C 32664's `syms_of_xterm` registers 39 `DEFVAR_*` variables that the reference keeps in the
+   generated `globals` struct (`src/globals.h`, built by `make-docfile`); that generated file has
+   no rows for them here, because `src/xterm.c` is not in the frozen build's file list.  Each is
+   therefore *defined* in this unit with `#[unsafe(no_mangle)]`, so this unit is its single
+   definition point and the mirror's `globals.rs` `variables` module declaration is shadowed by
+   the definition (P-21; the `src/xselect.rs` 3751-3767 shape).  The initialisers are C's own -
+   `Qnil` for the `Lisp_Object`s, zero for the `bool`/`EMACS_INT` ones (`globals` is zeroed in C),
+   and every real default is the assignment C writes under its `DEFVAR_*`.  */
+
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_use_underline_position_properties: bool = false;   // x-use-underline-position-properties
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_underline_at_descent_line: bool = false;   // x-underline-at-descent-line
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_mouse_click_focus_ignore_position: bool = false;   // x-mouse-click-focus-ignore-position
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_mouse_click_focus_ignore_time: EMACS_INT = 0;   // x-mouse-click-focus-ignore-time
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_toolkit_scroll_bars: Lisp_Object = lisp_h_Qnil ();   // x-toolkit-scroll-bars
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_ctrl_keysym: Lisp_Object = lisp_h_Qnil ();   // x-ctrl-keysym
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_alt_keysym: Lisp_Object = lisp_h_Qnil ();   // x-alt-keysym
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_hyper_keysym: Lisp_Object = lisp_h_Qnil ();   // x-hyper-keysym
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_meta_keysym: Lisp_Object = lisp_h_Qnil ();   // x-meta-keysym
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_super_keysym: Lisp_Object = lisp_h_Qnil ();   // x-super-keysym
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_wait_for_event_timeout: Lisp_Object = lisp_h_Qnil ();   // x-wait-for-event-timeout
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_keysym_table: Lisp_Object = lisp_h_Qnil ();   // x-keysym-table
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_frame_normalize_before_maximize: bool = false;   // x-frame-normalize-before-maximize
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_gtk_use_window_move: bool = false;   // x-gtk-use-window-move
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_scroll_event_delta_factor: Lisp_Object = lisp_h_Qnil ();   // x-scroll-event-delta-factor
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_gtk_use_native_input: bool = false;   // x-gtk-use-native-input
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_set_frame_visibility_more_laxly: Lisp_Object = lisp_h_Qnil ();   // x-set-frame-visibility-more-laxly
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_input_grab_touch_events: bool = false;   // x-input-grab-touch-events
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_dnd_fix_motif_leave: bool = false;   // x-dnd-fix-motif-leave
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_dnd_disable_motif_drag: bool = false;   // x-dnd-disable-motif-drag
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_dnd_movement_function: Lisp_Object = lisp_h_Qnil ();   // x-dnd-movement-function
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_dnd_wheel_function: Lisp_Object = lisp_h_Qnil ();   // x-dnd-wheel-function
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_dnd_unsupported_drop_function: Lisp_Object = lisp_h_Qnil ();   // x-dnd-unsupported-drop-function
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_color_cache_bucket_size: EMACS_INT = 0;   // x-color-cache-bucket-size
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_dnd_targets_list: Lisp_Object = lisp_h_Qnil ();   // x-dnd-targets-list
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_dnd_native_test_function: Lisp_Object = lisp_h_Qnil ();   // x-dnd-native-test-function
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_dnd_preserve_selection_data: bool = false;   // x-dnd-preserve-selection-data
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_dnd_disable_motif_protocol: bool = false;   // x-dnd-disable-motif-protocol
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_dnd_use_unsupported_drop: bool = false;   // x-dnd-use-unsupported-drop
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut x_fast_protocol_requests: bool = false;   // x-fast-protocol-requests
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_auto_preserve_selections: Lisp_Object = lisp_h_Qnil ();   // x-auto-preserve-selections
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_input_coding_system: Lisp_Object = lisp_h_Qnil ();   // x-input-coding-system
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_input_coding_function: Lisp_Object = lisp_h_Qnil ();   // x-input-coding-function
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_fast_selection_list: Lisp_Object = lisp_h_Qnil ();   // x-fast-selection-list
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_allow_focus_stealing: Lisp_Object = lisp_h_Qnil ();   // x-allow-focus-stealing
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_use_fast_mouse_position: Lisp_Object = lisp_h_Qnil ();   // x-use-fast-mouse-position
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_detect_server_trust: Lisp_Object = lisp_h_Qnil ();   // x-detect-server-trust
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_lax_frame_positioning: Lisp_Object = lisp_h_Qnil ();   // x-lax-frame-positioning
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)] pub static mut Vx_quit_keysym: Lisp_Object = lisp_h_Qnil ();   // x-quit-keysym
+
+/// C 32664-33125: `void syms_of_xterm (void)` - declared in lisp.h 5431 (`extern void syms_of_xterm
+/// (void);`, the block lisp.h keeps for the `syms_of_*` entry points), so the exported shape above
+/// (PORTING.md 0.2/1.4).  The body is C's registration block verbatim:
+/// four `staticpro`s, 29 `DEFSYM`s, 39 `DEFVAR_*`s with their assignments (the docstrings are
+/// `make-docfile`'s values, `tools/cinventory.py`'s `doc_comment_value` - see P-38), five `Fput`s
+/// and the two `#ifdef` regions C 32696-32701 (`USE_GTK`) and C 32755-32767 (the toolkit-scroll-bar
+/// name chain).  The `USE_GTK` block's two names (`xg_default_icon_file`, `Qx_gtk_map_stock`) are
+/// this unit's own or the mirror's, and the arm chain's four names are the mirror's
+/// `x11_constants`-free ones; nothing here is declared at the use site.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_xterm ()   // C 32664-33125
+{
+  x_error_message = std::ptr::null_mut ();                            // C 32667
+  PDUMPER_IGNORE! (x_error_message);                          // C 32668
+
+  x_dnd_monitors = Qnil ();                                           // C 32670
+  staticpro (&raw mut x_dnd_monitors);                                // C 32671
+
+  x_dnd_action_symbol = Qnil ();                                      // C 32673
+  staticpro (&raw mut x_dnd_action_symbol);                           // C 32674
+
+  x_dnd_selection_alias_cell = Fcons (Qnil (), Qnil ());              // C 32676
+  staticpro (&raw mut x_dnd_selection_alias_cell);                    // C 32677
+
+  x_dnd_unsupported_drop_data = Qnil ();                              // C 32679
+  staticpro (&raw mut x_dnd_unsupported_drop_data);                   // C 32680
+
+  DEFSYM! (Qvendor_specific_keysyms, c"vendor-specific-keysyms");     // C 32682
+  DEFSYM! (Qlatin_1, c"latin-1");                                     // C 32683
+  DEFSYM! (Qnow, c"now");                                             // C 32684
+  DEFSYM! (Qx_dnd_targets_list, c"x-dnd-targets-list");               // C 32685
+  DEFSYM! (Qx_auto_preserve_selections, c"x-auto-preserve-selections"); // C 32686
+  DEFSYM! (Qexpose, c"expose");                                       // C 32687
+  DEFSYM! (Qdont_save, c"dont-save");                                 // C 32688
+
+  DEFSYM! (Qmouse_wheel_buttons, c"mouse-wheel-buttons");             // C 32690
+  DEFSYM! (Qwheel_up, c"wheel-up");                                   // C 32691
+  DEFSYM! (Qwheel_down, c"wheel-down");                               // C 32692
+  DEFSYM! (Qwheel_left, c"wheel-left");                               // C 32693
+  DEFSYM! (Qwheel_right, c"wheel-right");                             // C 32694
+
+#[cfg (feature = "use_gtk")]
+  {
+    xg_default_icon_file = build_string (c"icons/hicolor/scalable/apps/emacs.svg".as_ptr ());  // C 32697
+    staticpro (&raw mut xg_default_icon_file);                        // C 32698
+
+    DEFSYM! (Qx_gtk_map_stock, c"x-gtk-map-stock");                             // C 32700
+  }
+
+  DEFVAR_BOOL! (c"x-use-underline-position-properties",
+		x_use_underline_position_properties,
+		"Non-nil means make use of UNDERLINE_POSITION font properties.\nA value of nil means ignore them.  If you encounter fonts with bogus\nUNDERLINE_POSITION font properties, set this to nil.  You can also use\n`underline-minimum-offset' to override the font's UNDERLINE_POSITION for\nsmall font display sizes.");   // C 32703-32709
+  x_use_underline_position_properties = true;                         // C 32710
+  DEFSYM! (Qx_use_underline_position_properties, c"x-use-underline-position-properties"); // C 32711-32712
+
+  DEFVAR_BOOL! (c"x-underline-at-descent-line",
+		x_underline_at_descent_line,
+		"Non-nil means to draw the underline at the same place as the descent line.\n(If `line-spacing' is in effect, that moves the underline lower by\nthat many pixels.)\nA value of nil means to draw the underline according to the value of the\nvariable `x-use-underline-position-properties', which is usually at the\nbaseline level.  The default value is nil.");   // C 32714-32721
+  x_underline_at_descent_line = false;                                // C 32722
+  DEFSYM! (Qx_underline_at_descent_line, c"x-underline-at-descent-line"); // C 32723
+
+  DEFVAR_BOOL! (c"x-mouse-click-focus-ignore-position",
+		x_mouse_click_focus_ignore_position,
+		"Non-nil means that a mouse click to focus a frame does not move point.\nThis variable is used only when the window manager requires that you\nclick on a frame to select it (give it focus).  In that case, a value\nof nil, means that the selected window and cursor position changes to\nreflect the mouse click position, while a non-nil value means that the\nselected window or cursor position is preserved.\n\nThis option works by ignoring button press events for a given amount\nof time after a frame might've been focused.  If it does not work for\nyou, try increasing the value of\n`x-mouse-click-focus-ignore-time'.");   // C 32725-32737
+  x_mouse_click_focus_ignore_position = false;                        // C 32738
+
+  DEFVAR_INT! (c"x-mouse-click-focus-ignore-time",
+		x_mouse_click_focus_ignore_time,
+		"Number of milliseconds for which to ignore buttons after focus change.\nThis variable only takes effect if\n`x-mouse-click-focus-ignore-position' is non-nil, and should be\nadjusted if the default value does not work for whatever reason.");   // C 32740-32744
+  x_mouse_click_focus_ignore_time = 200;                              // C 32745
+
+  DEFVAR_LISP! (c"x-toolkit-scroll-bars",
+		Vx_toolkit_scroll_bars,
+		"Which toolkit scroll bars Emacs uses, if any.\nA value of nil means Emacs doesn't use toolkit scroll bars.\nWith the X Window system, the value is a symbol describing the\nX toolkit.  Possible values are: gtk, motif, xaw, or xaw3d.\nWith MS Windows, Haiku windowing or Nextstep, the value is t.\nWith Android, the value is nil, but that is because Emacs on\nAndroid does not support scroll bars at all.");   // C 32747-32754
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  {
+    /* C 32755-32764's `#ifdef USE_MOTIF` / `#elif defined HAVE_XAW3D` / `#elif USE_GTK` / `#else`
+       chain: each arm is the statement the C arm selects, and each carries the *negations* of the
+       arms above it (P-86 ①, one `all (...)` per attribute).  C's value-form `#elif USE_GTK` is the
+       port's defined-test, the file's convention for that macro.  */
+#[cfg (feature = "use_motif")]
+    { Vx_toolkit_scroll_bars = intern_c_string (c"motif".as_ptr ()); }    // C 32757
+#[cfg (all (not (feature = "use_motif"), feature = "have_xaw3d"))]
+    { Vx_toolkit_scroll_bars = intern_c_string (c"xaw3d".as_ptr ()); }    // C 32759
+#[cfg (all (not (feature = "use_motif"), not (feature = "have_xaw3d"),
+	    feature = "use_gtk"))]
+    { Vx_toolkit_scroll_bars = intern_c_string (c"gtk".as_ptr ()); }      // C 32761
+#[cfg (all (not (feature = "use_motif"), not (feature = "have_xaw3d"),
+	    not (feature = "use_gtk")))]
+    { Vx_toolkit_scroll_bars = intern_c_string (c"xaw".as_ptr ()); }      // C 32763
+  }
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  { Vx_toolkit_scroll_bars = Qnil (); }                                   // C 32766
+
+  DEFSYM! (Qmodifier_value, c"modifier-value");                       // C 32769
+  DEFSYM! (Qctrl, c"ctrl");                                           // C 32770
+  Fput (Qctrl (), Qmodifier_value (), make_fixnum (ctrl_modifier as EMACS_INT)); // C 32771
+  DEFSYM! (Qalt, c"alt");                                             // C 32772
+  Fput (Qalt (), Qmodifier_value (), make_fixnum (alt_modifier as EMACS_INT)); // C 32773
+  DEFSYM! (Qhyper, c"hyper");                                         // C 32774
+  Fput (Qhyper (), Qmodifier_value (), make_fixnum (hyper_modifier as EMACS_INT)); // C 32775
+  DEFSYM! (Qmeta, c"meta");                                           // C 32776
+  Fput (Qmeta (), Qmodifier_value (), make_fixnum (meta_modifier as EMACS_INT)); // C 32777
+  DEFSYM! (Qsuper, c"super");                                         // C 32778
+  Fput (Qsuper (), Qmodifier_value (), make_fixnum (super_modifier as EMACS_INT)); // C 32779
+  DEFSYM! (QXdndSelection, c"XdndSelection");                         // C 32780
+  DEFSYM! (Qx_selection_alias_alist, c"x-selection-alias-alist");     // C 32781
+  DEFSYM! (Qimitate_pager, c"imitate-pager");                         // C 32782
+  DEFSYM! (Qnewer_time, c"newer-time");                               // C 32783
+  DEFSYM! (Qraise_and_focus, c"raise-and-focus");                     // C 32784
+  DEFSYM! (Qreally_fast, c"really-fast");                             // C 32785
+
+  /* Referenced in gtkutil.c.  */
+  DEFSYM! (Qtheme_name, c"theme-name");                               // C 32788
+  DEFSYM! (Qfile_name_sans_extension, c"file-name-sans-extension");   // C 32789
+
+  DEFVAR_LISP! (c"x-ctrl-keysym",
+		Vx_ctrl_keysym,
+		"Which modifier value Emacs reports when Ctrl is depressed.\nThis should be one of the symbols `ctrl', `alt', `hyper', `meta', or\n`super', representing a modifier to be reported for key events with the\nCtrl modifier (i.e. the keysym Ctrl_L or Ctrl_R) depressed, with nil or\nany other value equivalent to `ctrl'.");   // C 32791-32796
+  Vx_ctrl_keysym = Qnil ();                                           // C 32797
+
+  DEFVAR_LISP! (c"x-alt-keysym",
+		Vx_alt_keysym,
+		"Which modifier value Emacs reports when Alt is depressed.\nThis should be one of the symbols `ctrl', `alt', `hyper', `meta', or\n`super', representing a modifier to be reported for key events with the\nAlt modifier (e.g. the keysym Alt_L or Alt_R, if the keyboard features a\ndedicated key for Meta) depressed, with nil or any other value\nequivalent to `alt'.");   // C 32799-32805
+  Vx_alt_keysym = Qnil ();                                            // C 32806
+
+  DEFVAR_LISP! (c"x-hyper-keysym",
+		Vx_hyper_keysym,
+		"Which modifier value Emacs reports when Hyper is depressed.\nThis should be one of the symbols `ctrl', `alt', `hyper', `meta', or\n`super', representing a modifier to be reported for key events with the\nHyper modifier (i.e. the keysym Hyper_L or Hyper_R) depressed, with nil\nor any other value equivalent to `hyper'.");   // C 32808-32813
+  Vx_hyper_keysym = Qnil ();                                          // C 32814
+
+  DEFVAR_LISP! (c"x-meta-keysym",
+		Vx_meta_keysym,
+		"Which modifier value Emacs reports when Meta is depressed.\nThis should be one of the symbols `ctrl', `alt', `hyper', `meta', or\n`super', representing a modifier to be reported for key events with the\nMeta modifier (e.g. the keysym Alt_L or Alt_R, when the keyboard does\nnot feature a dedicated key for Meta) depressed, with nil or any other\nvalue equivalent to `meta'.");   // C 32816-32822
+  Vx_meta_keysym = Qnil ();                                           // C 32823
+
+  DEFVAR_LISP! (c"x-super-keysym",
+		Vx_super_keysym,
+		"Which modifier value Emacs reports when Super is depressed.\nThis should be one of the symbols `ctrl', `alt', `hyper', `meta', or\n`super', representing a modifier to be reported for key events with the\nSuper modifier (i.e. the keysym Super_L or Super_R) depressed, with nil\nor any other value equivalent to `super'.");   // C 32825-32830
+  Vx_super_keysym = Qnil ();                                          // C 32831
+
+  DEFVAR_LISP! (c"x-wait-for-event-timeout",
+		Vx_wait_for_event_timeout,
+		"How long to wait for X events.\n\nEmacs will wait up to this many seconds to receive X events after\nmaking changes which affect the state of the graphical interface.\nUnder some window managers this can take an indefinite amount of time,\nso it is important to limit the wait.\n\nIf set to a non-float value, there will be no wait at all.");   // C 32833-32841
+  Vx_wait_for_event_timeout = make_float (0.1);                       // C 32842
+
+  DEFVAR_LISP! (c"x-keysym-table",
+		Vx_keysym_table,
+		"Hash table of character codes indexed by X keysym codes.");   // C 32844-32845
+  Vx_keysym_table = make_hash_table (&raw const hashtest_eql, 900, Weak_None); // C 32846
+
+  DEFVAR_BOOL! (c"x-frame-normalize-before-maximize",
+		x_frame_normalize_before_maximize,
+		"Non-nil means normalize frame before maximizing.\nIf this variable is t, Emacs first asks the window manager to give the\nframe its normal size, and only then the final state, whenever changing\nfrom a full-height, full-width or full-both state to the maximized one\nor when changing from the maximized to the full-height or full-width\nstate.\n\nSet this variable only if your window manager cannot handle the\ntransition between the various maximization states.");   // C 32848-32858
+  x_frame_normalize_before_maximize = false;                          // C 32859
+
+  DEFVAR_BOOL! (c"x-gtk-use-window-move",
+		x_gtk_use_window_move,
+		"Non-nil means rely on gtk_window_move to set frame positions.\nIf this variable is t (the default), the GTK build uses the function\ngtk_window_move to set or store frame positions and disables some time\nconsuming frame position adjustments.  In newer versions of GTK, Emacs\nalways uses gtk_window_move and ignores the value of this variable.");   // C 32861-32866
+  x_gtk_use_window_move = true;                                       // C 32867
+
+  DEFVAR_LISP! (c"x-scroll-event-delta-factor",
+		Vx_scroll_event_delta_factor,
+		"A scale to apply to pixel deltas reported in scroll events.\nThis option is only effective when Emacs is built with XInput 2\nsupport.");   // C 32869-32872
+  Vx_scroll_event_delta_factor = make_float (1.0);                    // C 32873
+
+  DEFVAR_BOOL! (c"x-gtk-use-native-input",
+		x_gtk_use_native_input,
+		"Non-nil means to use GTK for input method support.\nThis provides better support for some modern input methods, and is\nonly effective when Emacs is built with GTK.");   // C 32875-32878
+  x_gtk_use_native_input = false;                                     // C 32879
+
+  DEFVAR_LISP! (c"x-set-frame-visibility-more-laxly",
+		x_set_frame_visibility_more_laxly,
+		"Non-nil means set frame visibility more laxly.\nIf this is nil, Emacs is more strict when marking a frame as visible.\nSince this may cause problems on some window managers, this variable can\nbe also set as follows: The value `focus-in' means to mark a frame as\nvisible also when a FocusIn event is received for it on GTK builds.  The\nvalue `expose' means to mark a frame as visible also when an Expose\nevent is received for it on any X build.  The value `t' means to mark a\nframe as visible in either of these two cases.\n\nNote that any non-nil setting may cause invisible frames get erroneously\nreported as iconified.");   // C 32881-32893
+  x_set_frame_visibility_more_laxly = Qnil ();                        // C 32894
+
+  DEFVAR_BOOL! (c"x-input-grab-touch-events",
+		x_input_grab_touch_events,
+		"Non-nil means to actively grab touch events.\nThis means touch sequences that are obtained through a passive grab on\nan Emacs frame (or a parent window of such a frame) will reliably\ncontinue to receive updates, but may cause crashes with some window\nmanagers and/or external programs.  Changing this option is only\nuseful when other programs are making their own X requests pertaining\nto the window hierarchy of an Emacs frame.");   // C 32896-32903
+  x_input_grab_touch_events = true;                                   // C 32904
+
+  DEFVAR_BOOL! (c"x-dnd-fix-motif-leave",
+		x_dnd_fix_motif_leave,
+		"Work around Motif bug during drag-and-drop.\nWhen non-nil, Emacs will send a motion event containing impossible\ncoordinates to a Motif drop receiver when the mouse moves outside it\nduring a drag-and-drop session, to work around broken implementations\nof Motif.");   // C 32906-32911
+  x_dnd_fix_motif_leave = true;                                       // C 32912
+
+  DEFVAR_BOOL! (c"x-dnd-disable-motif-drag",
+		x_dnd_disable_motif_drag,
+		"Disable the Motif drag protocol during DND.\nThis reduces network usage, but also means you can no longer scroll\naround inside the Motif window underneath the cursor during\ndrag-and-drop.");   // C 32914-32918
+  x_dnd_disable_motif_drag = false;                                   // C 32919
+
+  DEFVAR_LISP! (c"x-dnd-movement-function",
+		Vx_dnd_movement_function,
+		"Function called upon mouse movement on a frame during drag-and-drop.\nIt should either be nil, or accept two arguments FRAME and POSITION,\nwhere FRAME is the frame the mouse is on top of, and POSITION is a\nmouse position list.");   // C 32921-32925
+  Vx_dnd_movement_function = Qnil ();                                 // C 32926
+
+  DEFVAR_LISP! (c"x-dnd-wheel-function",
+		Vx_dnd_wheel_function,
+		"Function called upon wheel movement on a frame during drag-and-drop.\nIt should either be nil, or accept four arguments POSITION, BUTTON,\nSTATE and TIME, where POSITION is a mouse position list describing\nwhere the wheel moved, BUTTON is the wheel button that was pressed,\nSTATE is the X modifier state at the time of the wheel movement, and\nTIME is the X server time at which the wheel moved.");   // C 32928-32934
+  Vx_dnd_wheel_function = Qnil ();                                    // C 32935
+
+  DEFVAR_LISP! (c"x-dnd-unsupported-drop-function",
+		Vx_dnd_unsupported_drop_function,
+		"Function called when trying to drop on an unsupported window.\nThis function is called whenever the user tries to drop something on a\nwindow that does not support either the XDND or Motif protocols for\ndrag-and-drop.  It should return a non-nil value if the drop was\nhandled by the function, and nil if it was not.  It should accept\nseveral arguments TARGETS, X, Y, ACTION, WINDOW-ID, FRAME, TIME and\nLOCAL-SELECTION, where TARGETS is the list of targets that was passed\nto `x-begin-drag', WINDOW-ID is the numeric XID of the window that is\nbeing dropped on, X and Y are the root window-relative coordinates\nwhere the drop happened, ACTION is the action that was passed to\n`x-begin-drag', FRAME is the frame which initiated the drag-and-drop\noperation, TIME is the X server time when the drop happened, and\nLOCAL-SELECTION is the contents of the `XdndSelection' when\n`x-begin-drag' was run; its contents can be retrieved by calling the\nfunction `x-get-local-selection'.\n\nIf a symbol is returned, then it will be used as the return value of\n`x-begin-drag'.");   // C 32937-32955
+  Vx_dnd_unsupported_drop_function = Qnil ();                         // C 32956
+
+  DEFVAR_INT! (c"x-color-cache-bucket-size",
+		x_color_cache_bucket_size,
+		"Max number of buckets allowed per display in the internal color cache.\nValues less than 1 mean 128.  This option is for debugging only.");   // C 32958-32960
+  x_color_cache_bucket_size = 128;                                    // C 32961
+
+  DEFVAR_LISP! (c"x-dnd-targets-list",
+		Vx_dnd_targets_list,
+		"List of drag-and-drop targets.\nThis variable contains the list of drag-and-drop selection targets\nduring a drag-and-drop operation, in the same format as the TARGET\nargument to `x-begin-drag'.");   // C 32963-32967
+  Vx_dnd_targets_list = Qnil ();                                      // C 32968
+
+  DEFVAR_LISP! (c"x-dnd-native-test-function",
+		Vx_dnd_native_test_function,
+		"Function that determines return value of drag-and-drop on Emacs frames.\nIf the value is a function, `x-begin-drag' will call it with two\narguments, POS and ACTION, where POS is a mouse position list\nthat specifies the location of the drop, and ACTION is the\naction specified by the caller of `x-begin-drag'.  The function\nshould return a symbol describing what to return from\n`x-begin-drag' if the drop happens on an Emacs frame.\n\nIf the value is nil, or the function returns a value that is not\na symbol, a drop on an Emacs frame will be canceled.");   // C 32970-32980
+  Vx_dnd_native_test_function = Qnil ();                              // C 32981
+
+  DEFVAR_BOOL! (c"x-dnd-preserve-selection-data",
+		x_dnd_preserve_selection_data,
+		"Preserve selection data after `x-begin-drag' returns.\nThis lets you inspect the contents of `XdndSelection' after a\ndrag-and-drop operation, which is useful when writing tests for\ndrag-and-drop code.");   // C 32983-32987
+  x_dnd_preserve_selection_data = false;                              // C 32988
+
+  DEFVAR_BOOL! (c"x-dnd-disable-motif-protocol",
+		x_dnd_disable_motif_protocol,
+		"Disable the Motif drag-and-drop protocols.\nWhen non-nil, `x-begin-drag' will not drop onto any window that only\nsupports the Motif drag-and-drop protocols.");   // C 32990-32993
+  x_dnd_disable_motif_protocol = false;                               // C 32994
+
+  DEFVAR_BOOL! (c"x-dnd-use-unsupported-drop",
+		x_dnd_use_unsupported_drop,
+		"Enable the emulation of drag-and-drop based on the primary selection.\nWhen nil, do not use the primary selection and synthetic mouse clicks\nto emulate the drag-and-drop of `STRING', `UTF8_STRING',\n`COMPOUND_TEXT' or `TEXT'.");   // C 32996-33000
+  x_dnd_use_unsupported_drop = true;                                  // C 33001
+
+  DEFVAR_BOOL! (c"x-fast-protocol-requests",
+		x_fast_protocol_requests,
+		"Whether or not X protocol-related functions should wait for errors.\nWhen this is nil, functions such as `x-delete-window-property',\n`x-change-window-property' and `x-send-client-message' will wait for a\nreply from the X server, and signal any errors that occurred while\nexecuting the protocol request.  Otherwise, errors will be silently\nignored without waiting, which is generally faster.");   // C 33003-33009
+  x_fast_protocol_requests = false;                                   // C 33010
+
+  DEFVAR_LISP! (c"x-auto-preserve-selections",
+		Vx_auto_preserve_selections,
+		"Whether or not to transfer selection ownership when deleting a frame.\nWhen non-nil, deleting a frame that is currently the owner of a\nselection will cause its ownership to be transferred to another frame\non the same display.\n\nIn addition, when this variable is a list, only preserve the\nselections whose names are contained within.");   // C 33012-33019
+  Vx_auto_preserve_selections = list2 (QCLIPBOARD (), QPRIMARY ());   // C 33020
+
+  DEFVAR_LISP! (c"x-input-coding-system",
+		Vx_input_coding_system,
+		"Coding system used for input from X input methods.\nIf a symbol and non-nil, this is the coding system that will be used\nto decode input from X input methods.  It does not affect input from\nGTK native input methods enabled through `x-gtk-use-native-input'.");   // C 33022-33026
+  Vx_input_coding_system = Qnil ();                                   // C 33027
+
+  DEFVAR_LISP! (c"x-input-coding-function",
+		Vx_input_coding_function,
+		"Function used to determine the coding system used by input methods.\nIt should accept a single argument, a string describing the locale of\nthe input method, and return a coding system that can decode keyboard\ninput generated by said input method.");   // C 33029-33033
+  Vx_input_coding_function = Qnil ();                                 // C 33034
+
+  DEFVAR_LISP! (c"x-fast-selection-list",
+		Vx_fast_selection_list,
+		"List of selections for which `x-selection-exists-p' should be fast.\n\nList of selection names as atoms that will be monitored by Emacs for\nownership changes when the X server supports the XFIXES extension.\nThe result of the monitoring is then used by `x-selection-exists-p' to\navoid a server round trip, which is important as it is called while\nupdating the tool bar.  The value of this variable is only read upon\nconnection setup.");   // C 33036-33044
+  /* The default value of this variable is chosen so that updating the
+     tool bar does not require a call to _XReply.  */
+  Vx_fast_selection_list = list1 (QCLIPBOARD ());                     // C 33047
+
+  DEFVAR_LISP! (c"x-allow-focus-stealing",
+		Vx_allow_focus_stealing,
+		"How to bypass window manager focus stealing prevention.\n\nSome window managers prevent `x-focus-frame' from activating the given\nframe when Emacs is in the background, which is especially prone to\ncause problems when the Emacs server wants to activate itself.\n\nIn addition, when an old-fashioned (pre-EWMH) window manager is being\nrun and `x-no-window-manager' is nil, the X server will not let Emacs\nfocus itself if another program was focused after the last time Emacs\nobtained the input focus.\n\nThis variable specifies the strategy used to activate frames when that\nis the case, and has several valid values (any other value means to\nnot bypass window manager focus stealing prevention):\n\n  - The symbol `imitate-pager', which means to pretend that Emacs is a\n    pager.\n\n  - The symbol `newer-time', which means to fetch the current time\n    from the X server and use it to activate the frame.\n\n  - The symbol `raise-and-focus', which means to raise the window and\n    focus it manually.");   // C 33049-33072
+  Vx_allow_focus_stealing = Qnewer_time ();                           // C 33073
+
+  DEFVAR_LISP! (c"x-use-fast-mouse-position",
+		Vx_use_fast_mouse_position,
+		"How to make `mouse-position' faster.\n\n`mouse-position' and `mouse-pixel-position' default to querying the X\nserver for the window under the mouse pointer.  This results in\naccurate results, but is also very slow when the X connection has\nmoderate to high latency.  Setting this variable to a non-nil value\nmakes Emacs query only for the position of the pointer, which is\nusually faster.  Doing so improves the performance of dragging to\nselect text over slow X connections.\n\nIf that is still too slow, setting this variable to the symbol\n`really-fast' will make Emacs return only cached values.");   // C 33075-33087
+  Vx_use_fast_mouse_position = Qnil ();                               // C 33088
+
+  DEFVAR_LISP! (c"x-detect-server-trust",
+		Vx_detect_server_trust,
+		"If non-nil, Emacs should detect whether or not it is trusted by X.\n\nIf non-nil, Emacs will make an X request at connection startup that is\nprohibited to untrusted clients under the X Security Extension and\ncheck whether or not a resulting Access error is generated by the X\nserver.  If the X server reports the error, Emacs will disable certain\nfeatures that do not work for untrusted clients.");   // C 33090-33097
+  Vx_detect_server_trust = Qnil ();                                   // C 33098
+
+  DEFVAR_LISP! (c"x-lax-frame-positioning",
+		Vx_lax_frame_positioning,
+		"If non-nil, Emacs won't compensate for WM geometry behavior.\n\nSetting this to non-nil is useful when the compensation proves to be\ntoo slow, which is usually true when the X server is located over a\nnetwork connection with high latency.  Doing so will make frame\ncreation and placement faster at the cost of reducing the accuracy of\nframe placement via frame parameters, `set-frame-position', and\n`set-frame-size', along with the actual state of a frame after\n`x_make_frame_invisible'.");   // C 33100-33109
+  Vx_lax_frame_positioning = Qnil ();                                 // C 33110
+
+  DEFVAR_LISP! (c"x-quit-keysym",
+		Vx_quit_keysym,
+		"Keysyms which will cause Emacs to quit if rapidly pressed twice.\n\nThis is used to support quitting on devices that do not have any kind\nof physical keyboard, or where the physical keyboard is incapable of\nentering `C-g'.\n\nThe value is an alist associating between strings, describing X server\nvendor names, and a single number describing the keysym to use.  The\nkeysym to use for each display connection is determined upon\nconnection setup, and does not reflect further changes to this\nvariable.");   // C 33112-33123
+  Vx_quit_keysym = Qnil ();                                           // C 33124
+}
