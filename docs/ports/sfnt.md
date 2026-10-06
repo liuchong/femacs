@@ -352,6 +352,27 @@ splits at C 19651 and still tiles C 1-21215); `check-port-lines.py` **0 file(s) 
 reference line(s); 0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py` **238 ledger(s)
 bound, 0 failure(s)**, 0 row(s) without a ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0
 unknown, 0 disagreements**.
+**⑱ Slice 23's readings.**  `cargo run -q -p xtask -- build-tu src/sfnt.c` -> exit 0, **336
+bytes**, md5 `dbed68837694579185377dbb0821ab62` (the empty object - a syntax reading).  The arm flip
+reads **0 errors at HEAD and 0 after this slice**, and the object is **98,448 bytes on both sides**
+(the slice is behind `feature = "test"`).  `python3 tools/extract-abi.py --check emacs/src/sfnt.c
+femacs/src/sfnt.rs` -> **`OK`** again, holding at 21,888 Rust lines against C's 21,215 (**+3.2%**,
+where slice 22 read +0.5%), so the checker's two readings - completeness and the line-count
+tolerance - are both still inside their bounds while the file's last block is written.  What the
+frozen probe verifies here is *syntax only*: the two chunks parsed clean on their **first** run
+(unlike slice 22, whose first run read 4 errors), because every name in this block is either C's own
+X11 spelling or a mirror name this unit already had, `waitpid` excepted - it is declared at the use
+site (P-88 ①'s `sysdep.rs` 948 shape) and that declaration is what the frozen run's parser accepted.
+The blocks' own text has no type-checking reading and does not claim one (`feature = "test"` is
+carried by no gate; flipping it reads 3,101 errors, the bulk in the mirrors - Evidence ⑭).  The
+other gates: `check-declarations.py` **17 declaration sites (0 forbidden, 17 allowed literals), 0
+failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range, 2029 external, 36
+allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound (a C range table), 0
+failure(s)** (the table now splits at C 20202 and still tiles C 1-21215);
+`check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new,
+0 stale** (the +3.2% file ratio is inside the tolerance the ratchet records); `check-ledger-ticks.py`
+**238 ledger(s) bound, 0 failure(s)**, 0 row(s) without a ledger; `check-cond-eval.py src/sfnt.c`
+**31 conditions, 0 unknown, 0 disagreements**.
 ## Deviations`.  Port: `femacs/src/sfnt.rs` (13,174 lines, `grep -c ''`; `extract-abi.py`'s
 > own count, 13,174, is the same newline count), both arms of every `#if` carried — except the
 > macros C 6559-8159, whose Rust home is inside the functions that call them (P-57; the range
@@ -587,9 +608,10 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 | 16705-16889 | the raster test: `sfnt_x_raster` (C 16704-16861, the XRender viewer - the `XOpenDisplay`/`XRenderQueryExtension` prologue, the `goto depth_found` loop, the two `alloca`d arrays, the fifteen `XImage` field writes, the picture pair and the event loop) and `sfnt_test_raster` (C 16863-16884, the ASCII printer that forks the viewer when `SFNT_X` is set); C 57's `include!` edge to `include/xlib.rs` lands here too | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 20) |
 | 16890-18182 | the interpreter test programme's fixtures, records, checks and argument objects: C 16890-16941's four fixtures, `sfnt_make_test_interpreter` (C 16943-16950), `struct sfnt_interpreter_test` with `sfnt_run_interpreter_test` (C 16952-16979), `struct sfnt_generic_test_args`/`struct sfnt_rounding_test_args` with the twenty `sfnt_check_*` functions (C 16981-17423) and **all 81 `_test_args` objects** (C 17425-18181, two of them carrying C's three initialiser macros and the four measured arrays) | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 21) |
 | 18183-19651 | `all_tests[]` itself - **94 entries** (measured four ways, Evidence ⑰ (i); the ledger's earlier "166" was wrong and is corrected), each an instruction byte array (91 compound literals, one sized literal and two named arrays), a `num_instructions`, an `arg` pointer or `NULL`, and a check function | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 22) |
-| 19652-21215 | C 19652's blank line, C 19655's `/* Instruction debugger.  */` banner and the last block: `sfnt_setup_debugger` (**the next definition**, C 19657-19693), `sfnt_name_instruction` (C 19694-19973), `sfnt_draw_debugger` (C 19974-20026), `sfnt_run_hook` (C 20027-20070), the two `exec_prep`/`exec_fpgm` objects (C 20071-20072), `sfnt_identify_instruction` (C 20074-20108), `test_raster_glyph_outline` (C 20109-20111), `sfnt_verbose` (C 20112-20178), `sfnt_push_hook`/`sfnt_pop_hook` (C 20179-20202) and the entry point (C 20203-21213), ending at the file's last line | not this slice |
+| 19652-20202 | C 19652's blank line, C 19655's `/* Instruction debugger.  */` banner and the debugger itself: `sfnt_setup_debugger` (C 19657-19692), `sfnt_name_instruction` with its 256-name table (C 19694-19972), `sfnt_draw_debugger` (C 19974-20025), `sfnt_run_hook` (C 20027-20069), the two `exec_prep`/`exec_fpgm` objects (C 20071-20072), `sfnt_identify_instruction` (C 20074-20105), `test_raster_glyph_outline` (C 20109), `sfnt_verbose` (C 20112-20177) and `sfnt_push_hook`/`sfnt_pop_hook` (C 20179-20199) | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 23) |
+| 20203-21215 | `sfnt_test_uvs` (**the next definition**, C 20203-20300) and `main` (C 20301-21213) with its glyph-outline/raster benchmark and the `free_lab:` tail, ending at the file's last line | not this slice |
 
-The seventy-one rows above tile C 1-21215 **contiguously** (blank lines included) rather than
+The seventy-two rows above tile C 1-21215 **contiguously** (blank lines included) rather than
 skipping the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
 `femacs/src/include/sfnt.rs` (this file's header's mirror) to this same `sfnt.md` through its
 bare-stem fallback, so a table with gaps at blanks would leave `src/sfnt.h`'s non-blank lines
@@ -1822,6 +1844,29 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     (the mirror's `countof!` cannot be read from a static initialiser: Deviation 89 (d)).  (e)
     **`arg` is the address of the `_test_args` object** C names (`&raw mut npushb_test_args as *mut
     c_void`) or `NULL` as `std::ptr::null_mut ()`.
+91. **Slice 23's six shapes.**  (a) **C's function-scope `static const char *const
+    opcode_names[256]` cannot be a Rust `static`**: the element type is a bare pointer, which is not
+    `Sync`, and a `static` of it is refused (measured), so the array is a `static mut` like the
+    counter in `sfnt_verbose` - C's `const` has no spelling here and nothing writes the array.
+    (b) **The two `char` buffers**: C 19978's local `char buffer[80]` is `[c_char; 80]` with
+    `buffer.as_mut_ptr ()` for the `sprintf` and `buffer.as_ptr ()` for the `strlen` (the `alloc.rs`
+    5520 shape), and C 20077's function-scope `static char buffer[256]` is `static mut buffer:
+    [c_char; 256] = [0; 256]`, returned as `&raw mut buffer as *const c_char`.  (c) **The function
+    pointer comparison**: C 20003/20006 and C 20161/20164 compare `interpreter->state.project` with
+    a function's address; the port's member is an `Option<unsafe extern "C" fn (…)>`, so the
+    comparison is written `== Some (sfnt_project_onto_x_axis_vector)` - the first of its kind in
+    this unit, where the call sites spell the same member `.unwrap () (…)`.  (d) **C's pointer
+    arithmetic stays C's**: `where >= exec_prep->instructions` and its `<` twin are raw-pointer
+    comparisons as written, the three `%td` differences are `.offset_from (…) as isize`, and C's
+    `while waitpid (…) != pid && errno == EINTR` is `waitpid (…) != pid && *errno () == EINTR` (the
+    `android.rs` 1309 shape).  (e) **C's post-increment in an argument is the load-then-step pair**
+    (Deviation 26): C 20157's `printf (…, instructions++)` prints the old count and then steps, and
+    C 20033-20038's `#ifdef TEST_BREAK_AFTER` arm is dead text recorded, not transcribed
+    (Deviation 87 (d)'s class).  (f) **Three conversions written out**: `int32_t alternate = value;`
+    from a `uint32_t` is `value as int32_t` (twice), the `%`-`PRIi32` concatenations are the folded
+    `%i` the inttypes mirror's measured `c"i"` denotes, and `sfnt_verbose`'s `struct
+    sfnt_instructed_outline temp` - which C fills field by field - is zero-initialised at its
+    declaration (Deviation 10's class).
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
 1. **`TEST_STATIC`'s Rust form** — either a `docs/ports/excluded-macros.txt` row (`kind=syntax`,
@@ -2147,16 +2192,14 @@ object is 90,168 bytes - all three read by the compiler and never by a running p
 **no runtime evidence of any kind** for this port — no font was opened, no cmap subtable was
 parsed, no table directory was read, no glyph was outlined, no hmtx/name/meta/cvt/fpgm/prep table
 was read, no `read`/`lseek` returned a byte this port can claim to have interpreted, and no 26.6
-value was ever rounded, floored or scaled.  C 19653-21215 is **not ported here**: the instruction debugger (`sfnt_setup_debugger`,
-`sfnt_name_instruction`, `sfnt_draw_debugger`, the two hooks and `sfnt_verbose`) and the test
-programme's entry point with its glyph-outline/raster benchmark (Owed 21) - the last block of the
-file.  What the delivered checker line means is exact and narrow: `OK` says every *declaration*
-the tool compares is present and equal and the line count is inside tolerance - it does not know
-that two blocks are still unported, because both are `#ifdef TEST` text the tool drops, nor does it
-say anything about behaviour.  This slice's own text again has no compile reading of its own
-(`feature = "test"` is carried by no gate; flipping it reads 3,101 errors, the bulk of them in the
-mirrors - Evidence ⑭), and the frozen run's role was to catch a syntax error, which it did.  The
-`.offset (i as isize)`  The `.offset (i as isize)`  The `.offset (i as isize)`  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
+value was ever rounded, floored or scaled.  C 20203-21215 is **not ported here**: `sfnt_test_uvs` and `main` - the file's last two functions,
+both `#ifdef TEST` text (Owed 21).  The delivered `--check` reads `OK` and that reading is exact and
+narrow: every *declaration* the tool compares is present and equal and the line count is inside
+tolerance; the tool cannot see that one block is still unported (it drops `#ifdef TEST` text) and it
+says nothing about behaviour.  This slice's own text again has no type-checking reading
+(`feature = "test"` is carried by no gate; flipping it reads 3,101 errors, the bulk in the mirrors -
+Evidence ⑭) - only the syntax check the frozen probe performs, which this block passed on its first
+run.  The `.offset (i as isize)`  The `.offset (i as isize)`  The `.offset (i as isize)`  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
 compile-level and were measured by the compiler, not by a running program; so is the whole
 `feature = "no_ndebug"` arm (nothing flips it yet — Owed 8), and so are the four `MAYBE_UNUSED
 TEST_STATIC` readers' TEST arm and C's `#ifdef TEST` hooks in the remainder (Owed 9, Owed 12).

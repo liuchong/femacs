@@ -121,9 +121,15 @@
 // ledger had carried "166 `_test_args` objects" since an early slice and slices 19-21 repeated it,
 // while C's own text has **81** such objects and **94** table entries (both recounted here, and in
 // the ledger's Evidence 17 and range table).
-// **What is left after slice 22** is C 19652-21215: the instruction debugger (`sfnt_setup_debugger`,
-// `sfnt_name_instruction`, `sfnt_draw_debugger`, the two hooks, `sfnt_verbose`) and the programme's
-// entry point with its glyph-outline/raster benchmark - the file's last block, and nothing else.
+// **Slice 23 takes C 19652-20202** - the instruction debugger: `sfnt_setup_debugger` (C 19657-19692,
+// the X11 window and the two GCs), `sfnt_name_instruction` (C 19694-19972, whose function-scope
+// 256-name table is this block's one piece of data), `sfnt_draw_debugger` (C 19974-20025),
+// `sfnt_run_hook` (C 20027-20069, the forked X11 event loop, with C 20033-20038's `TEST_BREAK_AFTER`
+// arm recorded as dead text), the `exec_prep`/`exec_fpgm` objects (C 20071-20072),
+// `sfnt_identify_instruction` (C 20074-20105), `test_raster_glyph_outline` (C 20109),
+// `sfnt_verbose` (C 20112-20177) and the two stack hooks (C 20179-20199).  The unit's checker still
+// reads `OK` at **21,888** Rust lines against C's 21,215 (+3.2%), inside the ratchet's tolerance.
+// **What is left after slice 23** is C 20203-21215: `sfnt_test_uvs` and `main`, and nothing else.
 // The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
@@ -21325,3 +21331,564 @@ static mut all_tests: [sfnt_interpreter_test; 94] =        // C 18183-19651
       check: Some (sfnt_check_instctrl),
     },
   ];
+
+/* The same debugger stuff is used here.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_setup_debugger ()                       // C 19657-19692
+{
+  let mut gcv: XGCValues;
+  let mut font: Font;
+
+  display = XOpenDisplay (std::ptr::null ());          // C 19663
+
+  if display.is_null ()                                // C 19665
+    { exit (1); }                                      // C 19666
+
+  window = XCreateSimpleWindow (display, DefaultRootWindow (display),   // C 19668-19671
+				0, 0, 200, 200, 0, 0,
+				WhitePixel (display,
+					    DefaultScreen (display)));
+  XMapWindow (display, window);                        // C 19672
+
+  /* Select for the appropriate events.  */
+  XSelectInput (display, window, KeyPressMask | ExposureMask);   // C 19675
+
+  /* Find an appropriate font.  */
+  font = XLoadFont (display, c"6x13".as_ptr ());      // C 19678
+
+  if font == 0                                         // C 19680
+    { exit (1); }                                      // C 19681
+
+  /* The debugger has been set up.  Set up the GCs for drawing points
+     and backgrounds.  */
+
+  gcv.foreground = BlackPixel (display, DefaultScreen (display));   // C 19686
+  gcv.font = font;                                     // C 19687
+  point_gc = XCreateGC (display, window, GCForeground | GCFont,   // C 19688-19689
+			&raw mut gcv);
+  gcv.foreground = WhitePixel (display, DefaultScreen (display));   // C 19690
+  background_gc = XCreateGC (display, window, GCForeground, &raw mut gcv);   // C 19691
+}
+
+/* C 19697's `static const char *const opcode_names[256]` is a *function-scope* static whose
+   element type is a bare pointer: a Rust `static` of that type needs `Sync` (measured), so the
+   array is a `static mut` like the counter in `sfnt_verbose` - C's `const` has no Rust
+   spelling here, and nothing writes it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_name_instruction (opcode: c_uchar) -> *const c_char   // C 19694-19972
+{
+  static mut opcode_names: [*const c_char; 256] = [    // C 19697-19969
+    c"7 SVTCA y".as_ptr (),
+    c"7 SVTCA x".as_ptr (),
+    c"8 SPvTCA y".as_ptr (),
+    c"8 SPvTCA x".as_ptr (),
+    c"8 SFvTCA y".as_ptr (),
+    c"8 SFvTCA x".as_ptr (),
+    c"8 SPvTL ||".as_ptr (),
+    c"7 SPvTL +".as_ptr (),
+    c"8 SFvTL ||".as_ptr (),
+    c"7 SFvTL +".as_ptr (),
+    c"5 SPvFS".as_ptr (),
+    c"5 SFvFS".as_ptr (),
+    c"3 GPv".as_ptr (),
+    c"3 GFv".as_ptr (),
+    c"6 SFvTPv".as_ptr (),
+    c"5 ISECT".as_ptr (),
+    c"4 SRP0".as_ptr (),
+    c"4 SRP1".as_ptr (),
+    c"4 SRP2".as_ptr (),
+    c"4 SZP0".as_ptr (),
+    c"4 SZP1".as_ptr (),
+    c"4 SZP2".as_ptr (),
+    c"4 SZPS".as_ptr (),
+    c"5 SLOOP".as_ptr (),
+    c"3 RTG".as_ptr (),
+    c"4 RTHG".as_ptr (),
+    c"3 SMD".as_ptr (),
+    c"4 ELSE".as_ptr (),
+    c"4 JMPR".as_ptr (),
+    c"6 SCvTCi".as_ptr (),
+    c"5 SSwCi".as_ptr (),
+    c"3 SSW".as_ptr (),
+    c"3 DUP".as_ptr (),
+    c"3 POP".as_ptr (),
+    c"5 CLEAR".as_ptr (),
+    c"4 SWAP".as_ptr (),
+    c"5 DEPTH".as_ptr (),
+    c"6 CINDEX".as_ptr (),
+    c"6 MINDEX".as_ptr (),
+    c"8 AlignPTS".as_ptr (),
+    c"7 INS_$28".as_ptr (),
+    c"3 UTP".as_ptr (),
+    c"8 LOOPCALL".as_ptr (),
+    c"4 CALL".as_ptr (),
+    c"4 FDEF".as_ptr (),
+    c"4 ENDF".as_ptr (),
+    c"7 MDAP[0]".as_ptr (),
+    c"7 MDAP[1]".as_ptr (),
+    c"6 IUP[0]".as_ptr (),
+    c"6 IUP[1]".as_ptr (),
+    c"6 SHP[0]".as_ptr (),
+    c"6 SHP[1]".as_ptr (),
+    c"6 SHC[0]".as_ptr (),
+    c"6 SHC[1]".as_ptr (),
+    c"6 SHZ[0]".as_ptr (),
+    c"6 SHZ[1]".as_ptr (),
+    c"5 SHPIX".as_ptr (),
+    c"2 IP".as_ptr (),
+    c"8 MSIRP[0]".as_ptr (),
+    c"8 MSIRP[1]".as_ptr (),
+    c"7 AlignRP".as_ptr (),
+    c"4 RTDG".as_ptr (),
+    c"7 MIAP[0]".as_ptr (),
+    c"7 MIAP[1]".as_ptr (),
+    c"6 NPushB".as_ptr (),
+    c"6 NPushW".as_ptr (),
+    c"2 WS".as_ptr (),
+    c"2 RS".as_ptr (),
+    c"5 WCvtP".as_ptr (),
+    c"4 RCvt".as_ptr (),
+    c"5 GC[0]".as_ptr (),
+    c"5 GC[1]".as_ptr (),
+    c"4 SCFS".as_ptr (),
+    c"5 MD[0]".as_ptr (),
+    c"5 MD[1]".as_ptr (),
+    c"5 MPPEM".as_ptr (),
+    c"3 MPS".as_ptr (),
+    c"6 FlipON".as_ptr (),
+    c"7 FlipOFF".as_ptr (),
+    c"5 DEBUG".as_ptr (),
+    c"2 LT".as_ptr (),
+    c"4 LTEQ".as_ptr (),
+    c"2 GT".as_ptr (),
+    c"4 GTEQ".as_ptr (),
+    c"2 EQ".as_ptr (),
+    c"3 NEQ".as_ptr (),
+    c"3 ODD".as_ptr (),
+    c"4 EVEN".as_ptr (),
+    c"2 IF".as_ptr (),
+    c"3 EIF".as_ptr (),
+    c"3 AND".as_ptr (),
+    c"2 OR".as_ptr (),
+    c"3 NOT".as_ptr (),
+    c"7 DeltaP1".as_ptr (),
+    c"3 SDB".as_ptr (),
+    c"3 SDS".as_ptr (),
+    c"3 ADD".as_ptr (),
+    c"3 SUB".as_ptr (),
+    c"3 DIV".as_ptr (),
+    c"3 MUL".as_ptr (),
+    c"3 ABS".as_ptr (),
+    c"3 NEG".as_ptr (),
+    c"5 FLOOR".as_ptr (),
+    c"7 CEILING".as_ptr (),
+    c"8 ROUND[0]".as_ptr (),
+    c"8 ROUND[1]".as_ptr (),
+    c"8 ROUND[2]".as_ptr (),
+    c"8 ROUND[3]".as_ptr (),
+    c"9 NROUND[0]".as_ptr (),
+    c"9 NROUND[1]".as_ptr (),
+    c"9 NROUND[2]".as_ptr (),
+    c"9 NROUND[3]".as_ptr (),
+    c"5 WCvtF".as_ptr (),
+    c"7 DeltaP2".as_ptr (),
+    c"7 DeltaP3".as_ptr (),
+    c"A DeltaCn[0]".as_ptr (),
+    c"A DeltaCn[1]".as_ptr (),
+    c"A DeltaCn[2]".as_ptr (),
+    c"6 SROUND".as_ptr (),
+    c"8 S45Round".as_ptr (),
+    c"4 JROT".as_ptr (),
+    c"4 JROF".as_ptr (),
+    c"4 ROFF".as_ptr (),
+    c"7 INS_$7B".as_ptr (),
+    c"4 RUTG".as_ptr (),
+    c"4 RDTG".as_ptr (),
+    c"5 SANGW".as_ptr (),
+    c"2 AA".as_ptr (),
+    c"6 FlipPT".as_ptr (),
+    c"8 FlipRgON".as_ptr (),
+    c"9 FlipRgOFF".as_ptr (),
+    c"7 INS_$83".as_ptr (),
+    c"7 INS_$84".as_ptr (),
+    c"8 ScanCTRL".as_ptr (),
+    c"9 SDPvTL[0]".as_ptr (),
+    c"9 SDPvTL[1]".as_ptr (),
+    c"7 GetINFO".as_ptr (),
+    c"4 IDEF".as_ptr (),
+    c"4 ROLL".as_ptr (),
+    c"3 MAX".as_ptr (),
+    c"3 MIN".as_ptr (),
+    c"8 ScanTYPE".as_ptr (),
+    c"8 InstCTRL".as_ptr (),
+    c"7 INS_$8F".as_ptr (),
+    c"7 INS_$90".as_ptr (),
+    c"7 GXAXIS".as_ptr (),
+    c"7 INS_$92".as_ptr (),
+    c"7 INS_$93".as_ptr (),
+    c"7 INS_$94".as_ptr (),
+    c"7 INS_$95".as_ptr (),
+    c"7 INS_$96".as_ptr (),
+    c"7 INS_$97".as_ptr (),
+    c"7 INS_$98".as_ptr (),
+    c"7 INS_$99".as_ptr (),
+    c"7 INS_$9A".as_ptr (),
+    c"7 INS_$9B".as_ptr (),
+    c"7 INS_$9C".as_ptr (),
+    c"7 INS_$9D".as_ptr (),
+    c"7 INS_$9E".as_ptr (),
+    c"7 INS_$9F".as_ptr (),
+    c"7 INS_$A0".as_ptr (),
+    c"7 INS_$A1".as_ptr (),
+    c"7 INS_$A2".as_ptr (),
+    c"7 INS_$A3".as_ptr (),
+    c"7 INS_$A4".as_ptr (),
+    c"7 INS_$A5".as_ptr (),
+    c"7 INS_$A6".as_ptr (),
+    c"7 INS_$A7".as_ptr (),
+    c"7 INS_$A8".as_ptr (),
+    c"7 INS_$A9".as_ptr (),
+    c"7 INS_$AA".as_ptr (),
+    c"7 INS_$AB".as_ptr (),
+    c"7 INS_$AC".as_ptr (),
+    c"7 INS_$AD".as_ptr (),
+    c"7 INS_$AE".as_ptr (),
+    c"7 INS_$AF".as_ptr (),
+    c"8 PushB[0]".as_ptr (),
+    c"8 PushB[1]".as_ptr (),
+    c"8 PushB[2]".as_ptr (),
+    c"8 PushB[3]".as_ptr (),
+    c"8 PushB[4]".as_ptr (),
+    c"8 PushB[5]".as_ptr (),
+    c"8 PushB[6]".as_ptr (),
+    c"8 PushB[7]".as_ptr (),
+    c"8 PushW[0]".as_ptr (),
+    c"8 PushW[1]".as_ptr (),
+    c"8 PushW[2]".as_ptr (),
+    c"8 PushW[3]".as_ptr (),
+    c"8 PushW[4]".as_ptr (),
+    c"8 PushW[5]".as_ptr (),
+    c"8 PushW[6]".as_ptr (),
+    c"8 PushW[7]".as_ptr (),
+    c"7 MDRP[G]".as_ptr (),
+    c"7 MDRP[B]".as_ptr (),
+    c"7 MDRP[W]".as_ptr (),
+    c"7 MDRP[?]".as_ptr (),
+    c"8 MDRP[rG]".as_ptr (),
+    c"8 MDRP[rB]".as_ptr (),
+    c"8 MDRP[rW]".as_ptr (),
+    c"8 MDRP[r?]".as_ptr (),
+    c"8 MDRP[mG]".as_ptr (),
+    c"8 MDRP[mB]".as_ptr (),
+    c"8 MDRP[mW]".as_ptr (),
+    c"8 MDRP[m?]".as_ptr (),
+    c"9 MDRP[mrG]".as_ptr (),
+    c"9 MDRP[mrB]".as_ptr (),
+    c"9 MDRP[mrW]".as_ptr (),
+    c"9 MDRP[mr?]".as_ptr (),
+    c"8 MDRP[pG]".as_ptr (),
+    c"8 MDRP[pB]".as_ptr (),
+    c"8 MDRP[pW]".as_ptr (),
+    c"8 MDRP[p?]".as_ptr (),
+    c"9 MDRP[prG]".as_ptr (),
+    c"9 MDRP[prB]".as_ptr (),
+    c"9 MDRP[prW]".as_ptr (),
+    c"9 MDRP[pr?]".as_ptr (),
+    c"9 MDRP[pmG]".as_ptr (),
+    c"9 MDRP[pmB]".as_ptr (),
+    c"9 MDRP[pmW]".as_ptr (),
+    c"9 MDRP[pm?]".as_ptr (),
+    c"A MDRP[pmrG]".as_ptr (),
+    c"A MDRP[pmrB]".as_ptr (),
+    c"A MDRP[pmrW]".as_ptr (),
+    c"A MDRP[pmr?]".as_ptr (),
+    c"7 MIRP[G]".as_ptr (),
+    c"7 MIRP[B]".as_ptr (),
+    c"7 MIRP[W]".as_ptr (),
+    c"7 MIRP[?]".as_ptr (),
+    c"8 MIRP[rG]".as_ptr (),
+    c"8 MIRP[rB]".as_ptr (),
+    c"8 MIRP[rW]".as_ptr (),
+    c"8 MIRP[r?]".as_ptr (),
+    c"8 MIRP[mG]".as_ptr (),
+    c"8 MIRP[mB]".as_ptr (),
+    c"8 MIRP[mW]".as_ptr (),
+    c"8 MIRP[m?]".as_ptr (),
+    c"9 MIRP[mrG]".as_ptr (),
+    c"9 MIRP[mrB]".as_ptr (),
+    c"9 MIRP[mrW]".as_ptr (),
+    c"9 MIRP[mr?]".as_ptr (),
+    c"8 MIRP[pG]".as_ptr (),
+    c"8 MIRP[pB]".as_ptr (),
+    c"8 MIRP[pW]".as_ptr (),
+    c"8 MIRP[p?]".as_ptr (),
+    c"9 MIRP[prG]".as_ptr (),
+    c"9 MIRP[prB]".as_ptr (),
+    c"9 MIRP[prW]".as_ptr (),
+    c"9 MIRP[pr?]".as_ptr (),
+    c"9 MIRP[pmG]".as_ptr (),
+    c"9 MIRP[pmB]".as_ptr (),
+    c"9 MIRP[pmW]".as_ptr (),
+    c"9 MIRP[pm?]".as_ptr (),
+    c"A MIRP[pmrG]".as_ptr (),
+    c"A MIRP[pmrB]".as_ptr (),
+    c"A MIRP[pmrW]".as_ptr (),
+    c"A MIRP[pmr?]".as_ptr (),
+  ];
+
+  return opcode_names[opcode as usize];                // C 19971
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_draw_debugger (interpreter: *mut sfnt_interpreter)   // C 19974-20025
+{
+  let mut x: c_int;
+  let mut y: c_int;
+  let mut i: c_int;
+  let mut buffer: [c_char; 80];
+  let mut name: *const c_char;
+  let mut opcode: c_int;
+
+  sprintf (&raw mut buffer as *mut c_char, c"opcode:IP:depth: 0x%x:%d:%d".as_ptr (),   // C 19982-19985
+	   *(*interpreter).instructions.offset ((*interpreter).IP as isize) as c_int,
+	   (*interpreter).IP,
+	   (*interpreter).call_depth);
+
+  /* Clear the window.  */
+  XFillRectangle (display, window, background_gc,      // C 19988-19989
+		  0, 0, 65535, 65535);
+
+  /* Draw some information about the opcode.  */
+  XDrawString (display, window, point_gc, 0, 13, buffer.as_mut_ptr (),   // C 19992-19993
+	       strlen (buffer.as_ptr ()) as c_int);
+
+  opcode = *(*interpreter).instructions.offset ((*interpreter).IP as isize) as c_int;   // C 19995
+
+  sprintf (&raw mut buffer as *mut c_char, c"opcode: %s".as_ptr (),   // C 19997-19998
+	   sfnt_name_instruction (opcode as c_uchar));
+
+  XDrawString (display, window, point_gc, 14, 27, buffer.as_mut_ptr (),   // C 20000-20001
+	       strlen (buffer.as_ptr ()) as c_int);
+
+  /* C's `state.project` is a function-pointer member here (`Option<unsafe extern "C" fn (…)>`), so
+     C 20003's comparison with a function's address is written against `Some (…)` - the first of
+     its kind in this unit (the call sites spell it `.unwrap () (…)`, Deviation 90's neighbour).  */
+  if (*interpreter).state.project
+      == Some (sfnt_project_onto_x_axis_vector)        // C 20003-20004
+    { name = c"X axis".as_ptr (); }                    // C 20005
+  else if (*interpreter).state.project
+	   == Some (sfnt_project_onto_y_axis_vector)   // C 20006-20007
+    { name = c"Y axis".as_ptr (); }                    // C 20008
+  else
+    { name = c"Any".as_ptr (); }                       // C 20010
+
+  sprintf (&raw mut buffer as *mut c_char, c"projection function: %s".as_ptr (), name);   // C 20012
+
+  XDrawString (display, window, point_gc, 28, 42, buffer.as_mut_ptr (),   // C 20014-20015
+	       strlen (buffer.as_ptr ()) as c_int);
+
+  /* Draw each point onto the window.  */
+  i = 0;                                               // C 20018
+  while i < (*(*interpreter).glyph_zone).num_points as c_int
+    {
+      x = (*(*interpreter).glyph_zone).x_current.offset (i as isize) / 16;   // C 20020
+      y = (200 - (*(*interpreter).glyph_zone).y_current.offset (i as isize) / 16);   // C 20021
+
+      XFillRectangle (display, window, point_gc, x, y, 4, 4);   // C 20023
+      i += 1;
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_run_hook (interpreter: *mut sfnt_interpreter)   // C 20027-20069
+{
+  let mut pid: pid_t;
+  let mut event: XEvent;
+
+  /* C 20033-20038's `#ifdef TEST_BREAK_AFTER` arm is dead text (`TEST_BREAK_AFTER` is undefined);
+     it holds a function-scope static counter and an early return, and is recorded rather than
+     transcribed (Deviation 87 (d)'s class).  */
+
+  pid = fork ();                                       // C 20040
+
+  if pid == 0                                          // C 20042
+    {
+      sfnt_setup_debugger ();                          // C 20044
+
+      loop                                             // C 20046
+	{
+	  XNextEvent (display, &raw mut event);        // C 20048
+
+	  match event.r#type                            // C 20050
+	    {
+	    KeyPress =>                                // C 20052
+	      {
+		XDestroyWindow (display, window);      // C 20053
+		XCloseDisplay (display);               // C 20054
+		exit (0);                              // C 20055
+		break;                                 // C 20056
+	      }
+
+	    Expose =>                                  // C 20058
+	      {
+		sfnt_draw_debugger (interpreter);      // C 20059
+		break;                                 // C 20060
+	      }
+
+	    _ => {}                                    // C's `switch` has no `default:` arm
+	    }
+	}
+    }
+  else
+    {
+      while waitpid (pid, std::ptr::null_mut (), 0) != pid && *errno () == EINTR   // C 20066
+	{ /* Spin.  */ }                               // C 20067
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut exec_prep: *mut sfnt_prep_table = std::ptr::null_mut ();   // C 20071
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut exec_fpgm: *mut sfnt_fpgm_table = std::ptr::null_mut ();   // C 20072
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_identify_instruction (interpreter: *mut sfnt_interpreter) -> *const c_char   // C 20074-20105
+{
+  static mut buffer: [c_char; 256] = [0; 256];          // C 20077
+  let mut where_: *mut c_uchar;
+
+  where_ = (*interpreter).instructions.offset ((*interpreter).IP as isize);   // C 20080
+
+  if !exec_prep.is_null ()                             // C 20082-20085
+    && where_ >= (*exec_prep).instructions
+    && where_ < (*exec_prep).instructions.offset ((*exec_prep).num_instructions as isize)
+    {
+      sprintf (&raw mut buffer as *mut c_char, c"prep+%td".as_ptr (),   // C 20087-20088
+	       where_.offset_from ((*exec_prep).instructions) as isize);
+      return &raw mut buffer as *const c_char;         // C 20089
+    }
+
+  if !exec_fpgm.is_null ()                             // C 20092-20096
+    && !(*exec_fpgm).instructions.is_null ()
+    && where_ >= (*exec_fpgm).instructions
+    && where_ < (*exec_fpgm).instructions.offset ((*exec_fpgm).num_instructions as isize)
+    {
+      sprintf (&raw mut buffer as *mut c_char, c"fpgm+%td".as_ptr (),   // C 20098-20099
+	       where_.offset_from ((*exec_fpgm).instructions) as isize);
+      return &raw mut buffer as *const c_char;         // C 20100
+    }
+
+  sprintf (&raw mut buffer as *mut c_char, c"IP+%td".as_ptr (),   // C 20103
+	   where_.offset_from ((*interpreter).instructions) as isize);
+  return &raw mut buffer as *const c_char;             // C 20104
+}
+
+/* Function called to rasterize a glyph outline.  */
+/* C 20108's `#define TYPE struct sfnt_glyph_outline *` is the parameter list this declaration
+   writes out (the `PROTOTYPE` shape the mirror's declarations use), and the pointer's `None`
+   initialiser is C's static zero.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut test_raster_glyph_outline:
+  Option<unsafe extern "C" fn (*mut sfnt_glyph_outline) -> *mut sfnt_raster> = None;   // C 20109
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_verbose (interpreter: *mut sfnt_interpreter)   // C 20112-20177
+{
+  let mut temp: sfnt_instructed_outline = std::mem::zeroed ();
+  let mut outline: *mut sfnt_glyph_outline;
+  let mut raster: *mut sfnt_raster;
+  let mut opcode: c_uchar;
+  let mut name: *const c_char;
+  static mut instructions: c_uint = 0;                 // C 20120
+  let mut advance: sfnt_fixed;
+
+  /* Build a temporary outline containing the values of the
+     interpreter's glyph zone.  */
+
+  if !(*interpreter).glyph_zone.is_null ()             // C 20126
+    {
+      temp.num_points = (*(*interpreter).glyph_zone).num_points;   // C 20128
+      temp.num_contours = (*(*interpreter).glyph_zone).num_contours;   // C 20129
+      temp.contour_end_points = (*(*interpreter).glyph_zone).contour_end_points;   // C 20130
+      temp.x_points = (*(*interpreter).glyph_zone).x_current;   // C 20131
+      temp.y_points = (*(*interpreter).glyph_zone).y_current;   // C 20132
+      temp.flags = (*(*interpreter).glyph_zone).flags;   // C 20133
+
+      outline = sfnt_build_instructed_outline (&raw mut temp, &raw mut advance);   // C 20135
+
+      if outline.is_null ()                            // C 20137
+	{ return; }                                    // C 20138
+
+      printf (c"outline bounds: %g %g, %g %g\n".as_ptr (),   // C 20140-20144
+	      sfnt_coerce_fixed ((*outline).xmin),
+	      sfnt_coerce_fixed ((*outline).ymin),
+	      sfnt_coerce_fixed ((*outline).xmax),
+	      sfnt_coerce_fixed ((*outline).ymax));
+
+      raster = test_raster_glyph_outline.unwrap () (outline);   // C 20146
+
+      if !raster.is_null ()                            // C 20148
+	{ sfnt_test_raster (raster, std::ptr::null_mut (), 0); }   // C 20149
+
+      xfree (outline as *mut c_void);                  // C 20151
+      xfree (raster as *mut c_void);                   // C 20152
+    }
+
+  opcode = *(*interpreter).instructions.offset ((*interpreter).IP as isize);   // C 20155
+  /* C 20157's `instructions++` is the load-then-step pair (Deviation 26): the call sees the old
+     count and the counter steps once.  */
+  printf (c"opcode, number of instructions: %s %u\n".as_ptr (),   // C 20156-20157
+	  sfnt_name_instruction (opcode), instructions);
+  instructions += 1;
+  printf (c"instruction: %s\n".as_ptr (),              // C 20158-20159
+	  sfnt_identify_instruction (interpreter));
+
+  if (*interpreter).state.project
+      == Some (sfnt_project_onto_x_axis_vector)        // C 20161-20162
+    { name = c"X axis".as_ptr (); }                    // C 20163
+  else if (*interpreter).state.project
+	   == Some (sfnt_project_onto_y_axis_vector)   // C 20164-20165
+    { name = c"Y axis".as_ptr (); }                    // C 20166
+  else
+    { name = c"Any".as_ptr (); }                       // C 20168
+
+  printf (c"projection function: %s\n".as_ptr (), name);   // C 20170
+
+  printf (c"proj and free vecs: %d %d %d %d\n".as_ptr (),   // C 20172-20176
+	  (*interpreter).state.projection_vector.x,
+	  (*interpreter).state.projection_vector.y,
+	  (*interpreter).state.freedom_vector.x,
+	  (*interpreter).state.freedom_vector.y);
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_push_hook (interpreter: *mut sfnt_interpreter,   // C 20179-20188
+			  value: uint32_t)
+{
+  let mut alternate: int32_t;
+
+  alternate = value as int32_t;                        // C 20185
+
+  /* C's format is the concatenation `"--> %"PRIi32"\n"`, and the inttypes mirror's `PRIi32` is
+     `c"i"` (frozen, measured): the conversion is `%i`.  */
+  fprintf (stderr, c"--> %i\n".as_ptr (), alternate);   // C 20187
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_pop_hook (interpreter: *mut sfnt_interpreter,   // C 20190-20199
+			 value: uint32_t)
+{
+  let mut alternate: int32_t;
+
+  alternate = value as int32_t;                        // C 20196
+
+  fprintf (stderr, c"<<- %i\n".as_ptr (), alternate);   // C 20198
+}
+
+/* C 20066's `waitpid` is the one name this block needs that no mirror of this file declares: the
+   `sysdep.rs` 948 / `emacs.rs` 331 use-site shape (P-88 ①), here beside the arm that calls it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" {
+  /// C: <sys/wait.h>: `pid_t waitpid (pid_t, int *, int);`
+  pub fn waitpid (pid: pid_t, status: *mut c_int, options: c_int) -> pid_t;
+}
