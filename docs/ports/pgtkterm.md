@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-40: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990 and C 4992-5093
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-41: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093 and C 5095-5192
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,439 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,597 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** - forty
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** - forty-one
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_handle_draw` (C 5095-5096).**
+> `pgtk_emacs_to_gtk_modifiers` (C 5194-5195).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -153,7 +153,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 4869-4924 | `pgtk_create_terminal` (C 4869-4924, the thirty-nine hook assignments at C 4879-4919) | the file gate - **transcribed** (the thirty-eighth slice) |
 | 4926-4990 | the record `pgtk_window_is_of_frame_recursive_t` (C 4926-4931), `pgtk_window_is_of_frame_recursive` (C 4933-4953), `pgtk_window_is_of_frame` (C 4955-4964) and `pgtk_any_window_to_frame` (C 4966-4990) | the file gate - **transcribed** (the thirty-ninth slice) |
 | 4992-5093 | `pgtk_handle_event` (C 4992-5033), `pgtk_fill_rectangle` (C 5034-5044) and `pgtk_clear_under_internal_border` (C 5046-5093) | the file gate - **transcribed** (the fortieth slice) |
-| 5095-7780 | **the remainder of the file** - from C 5095's `pgtk_handle_draw` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the draw/allocate handlers, the modifier readers, the event handlers, the widget walkers, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 5095-5192 | `pgtk_handle_draw` (C 5095-5119), `size_allocate` (C 5121-5135), `get_modifier_values` (C 5137-5164) and `pgtk_gtk_to_emacs_modifiers` (C 5166-5192) | the file gate - **transcribed** (the forty-first slice) |
+| 5194-7780 | **the remainder of the file** - from C 5194's `pgtk_emacs_to_gtk_modifiers` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the modifier writer, the event handlers, the widget walkers, the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1110,6 +1111,28 @@ their assertions are owed.
     errors this slice retires were gone; the three are zero-initialised now (the `win_x` shape, line
     4986).
 
+63. **An include edge, six GDK masks, and C's `int mod` under a Rust keyword.**  C reaches `INT_MAX`
+    (C 5151-5163's five masks) through `lisp.h` 33's `#include <limits.h>`, so this unit gains that
+    edge beside `include/lisp.rs` (the `src/pgtkfns.rs` 89 shape) - and the **first citation reading
+    named a drift**: the new line's first backticked snippet `INT_MAX` matched `lisp.h` 81's
+    `EMACS_INT_MAX`, which the gate reads as a stale line, so the comment now leads with the
+    `#include <limits.h>` snippet that sits exactly at 33 (0 drift again, this round's second
+    reading).  The six `GDK_*_MASK` constants C 5180-5189 tests are **unit-local copies** carrying
+    the same placeholders `src/xwidget.rs` 306-316 has for its own tests (P-90 7: a mirror may not
+    define what an includer already carries, and `xwidget.rs` has four of the six - the fortieth
+    slice measured that class as two `E0428`s); `GdkModifierType` itself is this unit's row at line
+    4927.  C 5174's local `int mod` becomes the port's `mod_` (`mod` is a Rust keyword); the token
+    check folds a trailing `_`, which is why `--check` says nothing about it.  `xg_frame_resized`
+    (gtkutil.h 162, defined by `src/gtkutil.rs` 1589) is declared at the use site and Owed 19 names
+    its `include/gtkutil.rs` row.  `pgtk_handle_draw` and `size_allocate` have their addresses taken
+    at C 6836/6860/6890 (`G_CALLBACK`), so both stay plain `unsafe fn` until the slice that lands C
+    6831's `pgtk_set_event_handler` (the `pgtk_fullscreen_hook` shape, Deviation 55);
+    `get_modifier_values` has two call sites (C 5176 here, C 5204 next door) and no address taken,
+    while `pgtk_gtk_to_emacs_modifiers` is non-`static` (pgtkterm.h 668) with no address taken, so it
+    carries `#[unsafe(no_mangle)]` + `extern "C"`.  C 5169-5173's five locals are zero-initialised for
+    the `&raw mut` hand-off (the fortieth slice's `E0381` reading).  No mirror changed, so P-87's two
+    legs do not apply.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1183,6 +1206,12 @@ their assertions are owed.
     name it; the `src/xwidget.rs` 160-164 and `src/xfaces.rs` 509 shape) and `lookup_basic_face` is
     the row `include/dispextern.rs` 4051 already records as owed rather than declared (the
     `src/w32term.rs` 980-982 shape).
+
+19. **`include/gtkutil.rs`** owes the row the forty-first slice declared in the unit:
+    `xg_frame_resized` (gtkutil.h 162: `extern void xg_frame_resized (struct frame *f, int width,
+    int height);`), whose one call site is C 5132 and whose definition is `src/gtkutil.rs` 1589.
+    Until the mirror carries it, the unit's use-site declaration is the reading (the Owed 13/15/16/18
+    class).
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -2753,3 +2782,47 @@ lines.  (**Corrected in the same round**: the count first recorded here, 7,426, 
 compiles none of this file, this machine has no GTK tree and no PGTK target, no pinch was delivered
 and no rectangle was filled, and the arm readings are **compile** readings of text this machine
 cannot build (the two `GDK_TOUCHPAD_*` values and the new record's offsets stay **UNVERIFIED**).
+
+## The forty-first slice (C 5095-5192): the draw handler, the allocator and the modifier pair
+
+**What is in it.**  `pgtk_handle_draw` (C 5095-5119), `size_allocate` (C 5121-5135),
+`get_modifier_values` (C 5137-5164, whose five `Fget`/`Qmodifier_value` reads keep C's
+`XFIXNUM (tem) & INT_MAX` mask) and `pgtk_gtk_to_emacs_modifiers` (C 5166-5192, non-`static` in C).
+Rust: 7,439 -> **7,597** lines, 2.4% drift against C's 7,780.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 9 / 18 -> 9 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): 158 lines of new text, six constants, one include edge and
+two declarations add **no error and no warning** in any arm - the sixteenth zero-delta reading in this
+unit.  **Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as the first statement of
+`pgtk_handle_draw` moves arm A to **52** errors anchored at the injected line (removed, the file
+re-measured at **7,597** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**73 rows -> 69**: the four functions retire and **no token row arrives** - C 5174's `int mod` is the
+port's `mod_`, which the token comparison folds (trailing `_`), and every other token of the four
+bodies is in the port's text.  The file's `line count drifted` row stays gone (2.4%).
+
+**The citation reading.**  The first run of `check-citations.py` named **one drift**: the new
+`lisp.h 33` line's first backticked snippet `INT_MAX` matches `lisp.h` 81's `EMACS_INT_MAX`, which the
+gate reads as a stale line.  The comment now leads with the `#include <limits.h>` snippet that sits
+exactly at 33, and the gate reads 676 files / 0 drift / 0 range / 2085 external / 36 allowed / 0 stale
+again.
+
+**Ledger.**  Deviation 63 (the edge, the six masks, `mod_` and the deferrals), Owed 19
+(`include/gtkutil.rs` owes `xg_frame_resized`), the range table's remainder row split into
+`5095-5192` (**transcribed**) and `5194-7780` (whose next live definition is
+`pgtk_emacs_to_gtk_modifiers`, C 5194-5195), the title to forty-one slices and the header to 7,597
+lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2085/36/0,
+`check-dead-file-coverage.py` 145/0 (**73 range rows** over `src/pgtkterm.c`), `check-port-lines.py`
+0/0/0/0, `check-ledger-ticks.py` 238/0, `check-cond-eval.py src/pgtkterm.c` 31/0/0 and
+`check-mirror-dupes.py` 16/16/0 (no mirror changed, so P-87's two legs do not apply).  **Not
+claimed**: nothing has been run - the frozen configuration compiles none of this file, this machine
+has no GTK tree and no PGTK target, no draw arrived, no allocation happened and no modifier was
+translated, and the arm readings are **compile** readings of text this machine cannot build (the six
+`GDK_*_MASK` values stay **UNVERIFIED** placeholders).

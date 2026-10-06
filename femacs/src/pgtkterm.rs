@@ -116,6 +116,11 @@ include!("../lib/include/c-strcase.rs");       // C 39: `#include <c-strcase.h>`
 include!("../lib/include/ftoastr.rs");         // C 40: `#include <ftoastr.h>`
 #[cfg (feature = "have_pgtk")]
 include!("include/lisp.rs");                   // C 44: `#include "lisp.h"`
+/* lisp.h 33's `#include <limits.h>`, which C reaches through `"lisp.h"` and which brings in
+   `INT_MAX` (C 5151-5163's five masks): the lib mirror C's chain names (the `src/pgtkfns.rs` 89
+   reading of the same line).  */
+#[cfg (feature = "have_pgtk")]
+include!("../lib/include/limits.in.rs");       // lisp.h 33: `#include <limits.h>` (INT_MAX)
 #[cfg (feature = "have_pgtk")]
 include!("include/blockinput.rs");             // C 45: `#include "blockinput.h"`
 #[cfg (feature = "have_pgtk")]
@@ -7436,4 +7441,158 @@ pub unsafe extern "C" fn pgtk_clear_under_internal_border (f: *mut frame)
 
       unblock_input ();                                                 // C 5091
     }
+}
+
+/* C: gdk/gdktypes.h: `typedef enum { GDK_SHIFT_MASK = 1 << 0, …, GDK_META_MASK = 1 << 28 }
+   GdkModifierType;` - the six C 5180-5189 tests.  `GdkModifierType` itself is this unit's row at
+   line 4927 and the mirror has no mask rows, so the six constants are this unit's own copies with
+   the **same placeholders** `src/xwidget.rs` 306-316 carries for its own tests (two units, two
+   copies - P-90 7); no GDK header exists on this machine, so every value is **UNVERIFIED**.  */
+#[cfg (feature = "have_pgtk")]
+pub const GDK_MOD1_MASK: GdkModifierType = 1 << 0;    // placeholder, not GDK's value
+#[cfg (feature = "have_pgtk")]
+pub const GDK_META_MASK: GdkModifierType = 1 << 1;    // placeholder, not GDK's value
+#[cfg (feature = "have_pgtk")]
+pub const GDK_SUPER_MASK: GdkModifierType = 1 << 2;   // placeholder, not GDK's value
+#[cfg (feature = "have_pgtk")]
+pub const GDK_HYPER_MASK: GdkModifierType = 1 << 3;   // placeholder, not GDK's value
+#[cfg (feature = "have_pgtk")]
+pub const GDK_CONTROL_MASK: GdkModifierType = 1 << 4; // placeholder, not GDK's value
+#[cfg (feature = "have_pgtk")]
+pub const GDK_SHIFT_MASK: GdkModifierType = 1 << 5;   // placeholder, not GDK's value
+
+/* C: gtkutil.h 162: `extern void xg_frame_resized (struct frame *f, int width, int height);` - the
+   C 5132 call (`src/gtkutil.rs` 1589 defines it, the C 1144 body).  The mirror's `include/gtkutil.rs`
+   has no row for it, so the prototype stands here (P-90 1; Owed 19 names the round).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn xg_frame_resized (f: *mut frame, width: c_int, height: c_int);
+}
+
+/// C 5095-5119: `static gboolean pgtk_handle_draw (GtkWidget *widget, cairo_t *cr, gpointer *data)` -
+/// C 6836/6890 take its address through `G_CALLBACK`, so PORTING.md 1.4's `unsafe extern "C" fn`
+/// form applies from the slice that lands C 6831's `pgtk_set_event_handler`; until then it stays a
+/// plain `unsafe fn` (the `pgtk_fullscreen_hook` shape, Deviation 55).  `cr_surface_visible_bell` is
+/// `include/pgtkterm.rs`'s member, `FRAME_CR_ACTIVE_CONTEXT!` this unit's own C 73 macro (line 293,
+/// the setter included), and the three cairo entry points are the mirror's rows (`cairo_get_target`,
+/// `cairo_set_source_surface`, `cairo_paint`) with C's two integer `0`s widened to `c_double` (the
+/// `cairo_set_source_surface` reading at line 5551).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_handle_draw (widget: *mut GtkWidget, cr: *mut cairo_t, data: *mut gpointer)
+    -> gboolean
+{
+  let mut f: *mut frame;                                                // C 5098
+
+  let win: *mut GdkWindow = gtk_widget_get_window (widget);             // C 5100
+
+  if !win.is_null ()                                                    // C 5102
+    {
+      let mut src: *mut cairo_surface_t = core::ptr::null_mut ();       // C 5104
+      f = pgtk_any_window_to_frame (win);                               // C 5105
+      if !f.is_null ()                                                  // C 5106
+	{
+	  src = (*FRAME_X_OUTPUT! (f)).cr_surface_visible_bell;         // C 5108
+	  if src.is_null () && !FRAME_CR_ACTIVE_CONTEXT! (f).is_null ()   // C 5109
+	    { src = cairo_get_target (FRAME_CR_ACTIVE_CONTEXT! (f)); }   // C 5110
+	}
+      if !src.is_null ()                                                // C 5112
+	{
+	  cairo_set_source_surface (cr, src, 0 as c_double, 0 as c_double);   // C 5114
+	  cairo_paint (cr);                                             // C 5115
+	}
+    }
+  return false as gboolean;                                             // C 5118
+}
+
+/// C 5121-5135: `static void size_allocate (GtkWidget *widget, GtkAllocation *alloc, gpointer
+/// user_data)` - C 6860 takes its address through `G_CALLBACK`, so a plain `unsafe fn` until the
+/// C 6831 slice (as above).  C 5128's `f = user_data` is the `gpointer`-to-`struct frame *`
+/// conversion, which the port writes out; `pgtk_cr_update_surface_desired_size` is
+/// `include/pgtkterm.rs`'s row and `xg_frame_resized` the declaration above.
+#[cfg (feature = "have_pgtk")]
+unsafe fn size_allocate (widget: *mut GtkWidget, alloc: *mut GtkAllocation, user_data: gpointer)
+{
+  let mut f: *mut frame = pgtk_any_window_to_frame (gtk_widget_get_window (widget));   // C 5125
+
+  if f.is_null ()                                                       // C 5127
+    { f = user_data as *mut frame; }                                    // C 5128
+
+  if !f.is_null ()                                                      // C 5130
+    {
+      xg_frame_resized (f, (*alloc).width, (*alloc).height);            // C 5132
+      pgtk_cr_update_surface_desired_size (f, (*alloc).width, (*alloc).height, false);   // C 5133
+    }
+}
+
+/// C 5137-5164: `static void get_modifier_values (int *mod_ctrl, int *mod_meta, int *mod_alt, int
+/// *mod_hyper, int *mod_super)` - `static`, one call site (C 5176, this unit's own
+/// `pgtk_gtk_to_emacs_modifiers`) and one in C 5204's `pgtk_emacs_to_gtk_modifiers` (the
+/// forty-first slice's neighbour), no address taken, so a plain `unsafe fn`.  The five modifier
+/// constants and `Fget`/`Qmodifier_value` are `include/termhooks.rs`'s and `include/globals.rs`'s,
+/// and `XFIXNUM (tem) & INT_MAX` keeps C's own mask before the narrowing to `c_int` (`INT_MAX` from
+/// the `<limits.h>` edge above, which is `lisp.h`'s).
+#[cfg (feature = "have_pgtk")]
+unsafe fn get_modifier_values (mod_ctrl: *mut c_int, mod_meta: *mut c_int, mod_alt: *mut c_int,
+			       mod_hyper: *mut c_int, mod_super: *mut c_int)
+{
+  let mut tem: Lisp_Object;                                             // C 5141
+
+  *mod_ctrl = ctrl_modifier;                                            // C 5143
+  *mod_meta = meta_modifier;                                            // C 5144
+  *mod_alt = alt_modifier;                                              // C 5145
+  *mod_hyper = hyper_modifier;                                          // C 5146
+  *mod_super = super_modifier;                                          // C 5147
+
+  tem = Fget (Vx_ctrl_keysym, Qmodifier_value ());                      // C 5149
+  if INTEGERP (tem)                                                     // C 5150
+    { *mod_ctrl = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }    // C 5151
+  tem = Fget (Vx_alt_keysym, Qmodifier_value ());                       // C 5152
+  if INTEGERP (tem)                                                     // C 5153
+    { *mod_alt = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }     // C 5154
+  tem = Fget (Vx_meta_keysym, Qmodifier_value ());                      // C 5155
+  if INTEGERP (tem)                                                     // C 5156
+    { *mod_meta = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }    // C 5157
+  tem = Fget (Vx_hyper_keysym, Qmodifier_value ());                     // C 5158
+  if INTEGERP (tem)                                                     // C 5159
+    { *mod_hyper = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }   // C 5160
+  tem = Fget (Vx_super_keysym, Qmodifier_value ());                     // C 5161
+  if INTEGERP (tem)                                                     // C 5162
+    { *mod_super = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }   // C 5163
+}
+
+/// C 5166-5192: `int pgtk_gtk_to_emacs_modifiers (struct pgtk_display_info *dpyinfo, int state)` -
+/// non-`static` in C (pgtkterm.h 668, which `include/pgtkterm.rs` 689 declares) and no address is
+/// taken, so `#[unsafe(no_mangle)]` + `extern "C"` (PORTING.md 0.2).  C declares its five locals
+/// uninitialised and `get_modifier_values` fills them through the pointers, so the port
+/// zero-initialises them (the `win_x`/`dummy_x` shape - an uninitialised binding handed to
+/// `&raw mut` is an `E0381`, measured in the fortieth slice); C's `state & GDK_*_MASK` tests keep
+/// C's spelling (both sides are `GdkModifierType`/`c_int`).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_gtk_to_emacs_modifiers (dpyinfo: *mut pgtk_display_info, state: c_int)
+    -> c_int
+{
+  let mut mod_ctrl: c_int = 0;                                          // C 5169
+  let mut mod_meta: c_int = 0;                                          // C 5170
+  let mut mod_alt: c_int = 0;                                           // C 5171
+  let mut mod_hyper: c_int = 0;                                         // C 5172
+  let mut mod_super: c_int = 0;                                         // C 5173
+  let mut mod_: c_int;                                                  // C 5174 (`int mod`)
+
+  get_modifier_values (&raw mut mod_ctrl, &raw mut mod_meta, &raw mut mod_alt,
+		       &raw mut mod_hyper, &raw mut mod_super);         // C 5176-5177
+
+  mod_ = 0;                                                             // C 5179
+  if state & GDK_SHIFT_MASK != 0                                        // C 5180
+    { mod_ |= shift_modifier; }                                         // C 5181
+  if state & GDK_CONTROL_MASK != 0                                      // C 5182
+    { mod_ |= mod_ctrl; }                                               // C 5183
+  if state & GDK_META_MASK != 0 || state & GDK_MOD1_MASK != 0           // C 5184
+    { mod_ |= mod_meta; }                                               // C 5185
+  if state & GDK_SUPER_MASK != 0                                        // C 5186
+    { mod_ |= mod_super; }                                              // C 5187
+  if state & GDK_HYPER_MASK != 0                                        // C 5188
+    { mod_ |= mod_hyper; }                                              // C 5189
+
+  return mod_;                                                          // C 5191
 }
