@@ -19047,3 +19047,118 @@ pub unsafe extern "C" fn x_embed_frame (dpyinfo: *mut x_display_info, f: *mut fr
 
   return true;                                                          // C 30143
 }
+
+/* Used for IconicState or NormalState */
+
+/// C 30344-30360: `static void x_wm_set_window_state (struct frame *f, int state)` - C's `static`, so
+/// a plain `unsafe fn`; C 30347's `#ifdef USE_X_TOOLKIT` arm keeps C's `Arg al[1]` and the two Xt
+/// calls (the toolkit's own types and `XtSetArg!`, which this unit's graph does not carry - text
+/// carried, compiled by no arm this lane runs), and the `#else` arm's three Xutil.h flags stand at
+/// the use site below (the `XA_*`/`IconicState` shape, P-72 rule 4).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_wm_set_window_state (f: *mut frame, state: c_int)
+{
+#[cfg (feature = "use_x_toolkit")]
+  let mut al: [Arg; 1];                                                 // C 30348
+
+#[cfg (feature = "use_x_toolkit")]
+  {
+    XtSetArg! (al[0], XtNinitialState (), state);                       // C 30350
+    XtSetValues ((*( (*f).output_data.x as *mut x_output )).widget,      // C 30351
+		 al.as_mut_ptr (), 1);
+  }
+#[cfg (not (feature = "use_x_toolkit"))]
+  {
+    let window: Window = FRAME_X_WINDOW! (f);                           // C 30353
+
+    (*( (*f).output_data.x as *mut x_output )).wm_hints.flags |= StateHint;  // C 30355
+    (*( (*f).output_data.x as *mut x_output )).wm_hints.initial_state = state;  // C 30356
+
+    XSetWMHints (FRAME_X_DISPLAY! (f), window,                          // C 30358
+		 &raw mut (*( (*f).output_data.x as *mut x_output )).wm_hints);
+  }
+}
+
+/// C 30362-30408: `static void x_wm_set_icon_pixmap (struct frame *f, ptrdiff_t pixmap_id)` - C's
+/// `static`, so a plain `unsafe fn`.  The three arms are C's own nesting: `USE_GTK` first, then
+/// `#elif defined (USE_X_TOOLKIT)`, then the plain-X `#else` (P-86 ①); `image_bitmap_pixmap` and
+/// `x_bitmap_mask` are `src/image.c` 463's and 507's definitions (another unit), and
+/// `xg_set_frame_icon`/`XtSetValues`/`XSetWMHints` are the recorded bare-name classes.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_wm_set_icon_pixmap (f: *mut frame, pixmap_id: ptrdiff_t)
+{
+  let mut icon_pixmap: Pixmap;                                          // C 30365
+  let mut icon_mask: Pixmap;                                            // C 30365
+
+#[cfg (all (not (feature = "use_x_toolkit"), not (feature = "use_gtk")))]
+  let window: Window = FRAME_OUTER_WINDOW! (f);                         // C 30368
+
+  if pixmap_id > 0                                                      // C 30371
+    {
+      icon_pixmap = image_bitmap_pixmap (f, pixmap_id);                 // C 30373
+      (*( (*f).output_data.x as *mut x_output )).wm_hints.icon_pixmap = icon_pixmap;  // C 30374
+      icon_mask = x_bitmap_mask (f, pixmap_id);                         // C 30375
+      (*( (*f).output_data.x as *mut x_output )).wm_hints.icon_mask = icon_mask;  // C 30376
+    }
+  else
+    {
+      /* It seems there is no way to turn off use of an icon
+	 pixmap.  */
+      return;                                                           // C 30382
+    }
+
+#[cfg (feature = "use_gtk")]
+  {
+    xg_set_frame_icon (f, icon_pixmap, icon_mask);                      // C 30388
+    return;                                                             // C 30389
+  }
+
+#[cfg (all (not (feature = "use_gtk"), feature = "use_x_toolkit"))]
+  {
+    let mut al: [Arg; 1];                                               // C 30395
+    XtSetArg! (al[0], XtNiconPixmap (), icon_pixmap);                   // C 30396
+    XtSetValues ((*( (*f).output_data.x as *mut x_output )).widget,      // C 30397
+		 al.as_mut_ptr (), 1);
+    XtSetArg! (al[0], XtNiconMask (), icon_mask);                       // C 30398
+    XtSetValues ((*( (*f).output_data.x as *mut x_output )).widget,      // C 30399
+		 al.as_mut_ptr (), 1);
+  }
+
+#[cfg (all (not (feature = "use_x_toolkit"), not (feature = "use_gtk")))]
+  {
+    (*( (*f).output_data.x as *mut x_output )).wm_hints.flags |= (IconPixmapHint | IconMaskHint);  // C 30404
+    XSetWMHints (FRAME_X_DISPLAY! (f), window,                          // C 30405
+		 &raw mut (*( (*f).output_data.x as *mut x_output )).wm_hints);
+  }
+}
+
+/// C 30410-30420: `void x_wm_set_icon_position (struct frame *f, int icon_x, int icon_y)` -
+/// non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`
+/// (PORTING.md 0.2/1.4).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_wm_set_icon_position (f: *mut frame, icon_x: c_int, icon_y: c_int)
+{
+  let window: Window = FRAME_OUTER_WINDOW! (f);                         // C 30413
+
+  (*( (*f).output_data.x as *mut x_output )).wm_hints.flags |= IconPositionHint;  // C 30415
+  (*( (*f).output_data.x as *mut x_output )).wm_hints.icon_x = icon_x;  // C 30416
+  (*( (*f).output_data.x as *mut x_output )).wm_hints.icon_y = icon_y;  // C 30417
+
+  XSetWMHints (FRAME_X_DISPLAY! (f), window,                            // C 30419
+	       &raw mut (*( (*f).output_data.x as *mut x_output )).wm_hints);
+}
+
+/* C: Xutil.h 135-139: `#define StateHint (1L << 1)`, `#define IconPixmapHint (1L << 2)`,
+   `#define IconPositionHint (1L << 4)`, `#define IconMaskHint (1L << 5)` - the four flags
+   C 30355/30404/30415 set, measured against this machine's `<X11/Xutil.h>`; the mirror's
+   `x11_constants` carries that header's `NormalState` and not these, so they stand at the use
+   site (P-72 rule 4, the `XA_*` shape of slice 39).  */
+#[cfg (feature = "have_x_windows")]
+pub const StateHint: c_long = 1 << 1;
+#[cfg (feature = "have_x_windows")]
+pub const IconPixmapHint: c_long = 1 << 2;
+#[cfg (feature = "have_x_windows")]
+pub const IconPositionHint: c_long = 1 << 4;
+#[cfg (feature = "have_x_windows")]
+pub const IconMaskHint: c_long = 1 << 5;
