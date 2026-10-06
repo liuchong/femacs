@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-29: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067 and C 4069-4134
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-30: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134 and C 4136-4207
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**5,976 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**6,076 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067** and **C 4069-4134** - twenty-nine
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134** and **C 4136-4207** - thirty
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_scroll_bar_create` (C 4141-4143; C 4136-4139 is its comment above it).**
+> `pgtk_set_vertical_scroll_bar` (C 4214-4216; C 4209-4212 is its comment above it).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -142,7 +142,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 3924-3970 | `pgtk_read_socket` (C 3924-3970, with C 3924-3930's comment above it) | the file gate - **transcribed** (the twenty-seventh slice) |
 | 3972-4067 | `window_being_scrolled` (C 3972-3975, with its comment), `pgtk_send_scroll_bar_event` (C 3977-3998) and `xg_scroll_callback` (C 4004-4067, with C 4001-4002's comment) | the file gate - **transcribed** (the twenty-eighth slice) |
 | 4069-4134 | `xg_end_scroll_callback` (C 4069-4086, with its comment), the two `SCROLL_BAR_*` name macros (C 4088-4089), `pgtk_create_toolkit_scroll_bar` (C 4091-4103), `pgtk_create_horizontal_toolkit_scroll_bar` (C 4105-4116), `pgtk_set_toolkit_scroll_bar_thumb` (C 4118-4126) and `pgtk_set_toolkit_horizontal_scroll_bar_thumb` (C 4128-4134) | the file gate - **transcribed** (the twenty-ninth slice) |
-| 4136-7780 | **the remainder of the file** - from C 4136-4139's comment and C 4141's `pgtk_scroll_bar_create` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4136-4207 | `pgtk_scroll_bar_create` (C 4136-4187, with its comment) and `pgtk_scroll_bar_remove` (C 4189-4207, with its comment) | the file gate - **transcribed** (the thirtieth slice) |
+| 4209-7780 | **the remainder of the file** - from C 4209-4212's comment and C 4214's `pgtk_set_vertical_scroll_bar` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -880,6 +881,20 @@ their assertions are owed.
     macro) and reach the calls through `.as_ptr ()`.  The four functions C installs as hooks keep
     plain `unsafe fn` until the slice that takes their address converts them (the `pgtk_ring_bell`
     note).  No mirror changed, so P-87's two legs do not apply.
+52. **Two more use-site declarations from the same header, and the pseudovector allocator.**  The
+    unit declares `xg_remove_scroll_bar` (gtkutil.h 128), `xg_update_scrollbar_pos` (129-134) and
+    `xg_update_horizontal_scrollbar_pos` (135-140) beside the four slice 29 wrote - Owed 12 now names
+    seven rows.  `pgtk_scroll_bar_create` is the first place this unit reaches the mirror's
+    `ALLOCATE_PSEUDOVECTOR!` (`include/lisp.rs` 2970; the `src/alloc.rs` 4139 call shape, with
+    `pvec_type::PVEC_OTHER`), `XSETWINDOW!`/`XSETVECTOR!` (that mirror's 3135/3108),
+    `XSCROLL_BAR!` (`include/pgtkterm.rs` 520-522, whose cast the port spells as the mirror's
+    `XVECTOR (…) as *mut scroll_bar`), `FRAME_SCROLL_BARS`/`fset_scroll_bars`
+    (`include/frame.rs` 1169/1497) and the two `wset_*_scroll_bar` setters
+    (`include/window.rs` 236/233); C's two `max (height, 1)` calls carry C's `int` conversion back
+    (`as c_int`) and the two `x_window` arguments C passes as `ptrdiff_t` are cast the same way.
+    C 7442 takes `pgtk_scroll_bar_create`'s address (the terminal's `create_scroll_bar_hook`), so it
+    stays a plain `unsafe fn` until that slice converts it (the `pgtk_ring_bell` note).  No mirror
+    changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -908,11 +923,13 @@ their assertions are owed.
     measure them).  **`include/gtkutil.rs`** owes `xg_ignore_gtk_scrollbar` (gtkutil.c 4351; its own
     36 already names it).  When they land, the unit's copies retire (P-88 ①'s use-site rule).
 
-12. **`include/gtkutil.rs`** owes the four scroll-bar entry points the twenty-ninth slice declared
-    in the unit: `xg_create_scroll_bar` and `xg_create_horizontal_scroll_bar` (gtkutil.h 118-122 /
-    123-127, both taking two `GCallback`s and a `const char *`) and
-    `xg_set_toolkit_scroll_bar_thumb` / `xg_set_toolkit_horizontal_scroll_bar_thumb`
-    (gtkutil.h 143-146 / 147-150).  When they land, the unit's copies retire (P-88 ①'s use-site rule).
+12. **`include/gtkutil.rs`** owes the seven scroll-bar entry points the twenty-ninth and thirtieth
+    slices declared in the unit: `xg_create_scroll_bar` and `xg_create_horizontal_scroll_bar`
+    (gtkutil.h 118-122 / 123-127, both taking two `GCallback`s and a `const char *`),
+    `xg_remove_scroll_bar` (128), `xg_update_scrollbar_pos` / `xg_update_horizontal_scrollbar_pos`
+    (129-134 / 135-140) and `xg_set_toolkit_scroll_bar_thumb` /
+    `xg_set_toolkit_horizontal_scroll_bar_thumb` (143-146 / 147-150).  When they land, the unit's
+    copies retire (P-88 ①'s use-site rule).
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -2049,4 +2066,36 @@ line-count row.
 changed this round, so P-87's two legs do not apply).  **Not claimed**: none of this has been run -
 the frozen configuration compiles none of this file, no scroll bar widget was created and no GTK
 signal was delivered, and the three arm readings are **compile** readings of text this machine cannot
+build.  Deviation 13's standing gap (`FRAME_PGTK_P` is the mirror's non-pgtk arm) is unchanged.
+
+## The thirtieth slice (C 4136-4207): creating and removing a scroll bar
+
+**What is in it.**  `pgtk_scroll_bar_create` (C 4136-4187, with its comment: the pseudovector
+allocation, the two toolkit constructors, the eleven record writes, the frame's scroll-bar list
+splice and the widget mapping) and `pgtk_scroll_bar_remove` (C 4189-4207: the widget removal and the
+window's dissociate pair).  Rust: 5,976 -> **6,076** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 50 errors / 19 warnings -> 50 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 51 / 20 -> 51 / 20
+C = A + use_gtk + have_gtk3                        : 28 / 18 -> 28 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): this text adds no error and no warning - the eleventh
+zero-delta reading in this unit, the third in a row.  **Arm reach is measured** (P-86 ⑦): injecting
+`let _: c_int = true;` as the first statement of `pgtk_scroll_bar_create` moves arm A to 51 errors
+anchored at that line (removed, the file re-measured at **6,076** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**103 rows -> 101**: the two items retire, no `does not mention` row appears, and the file's own
+`line count drifted` row is re-measured 23.2% -> **21.9%** (C 7,780 vs the port's 6,076).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2085/36/0**; `check-dead-file-coverage.py` **145/0** (**62 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round, so P-87's two legs do not apply).  **Not claimed**: none of this has been run -
+the frozen configuration compiles none of this file, no scroll bar vector was allocated and no GTK
+widget was mapped, and the three arm readings are **compile** readings of text this machine cannot
 build.  Deviation 13's standing gap (`FRAME_PGTK_P` is the mirror's non-pgtk arm) is unchanged.

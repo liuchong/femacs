@@ -5974,3 +5974,103 @@ unsafe fn pgtk_set_toolkit_horizontal_scroll_bar_thumb (bar: *mut scroll_bar, po
 {
   xg_set_toolkit_horizontal_scroll_bar_thumb (bar, portion, position, whole);   // C 4133
 }
+
+/* Create a scroll bar and return the scroll bar vector for it.  W is
+   the Emacs window on which to create the scroll bar. TOP, LEFT,
+   WIDTH and HEIGHT are the pixel coordinates and dimensions of the
+   scroll bar. */
+
+/* C: gtkutil.h 128: `extern void xg_remove_scroll_bar (struct frame *f, ptrdiff_t scrollbar_id);` -
+   the C 4198 call; gtkutil.h 129-134: `extern void xg_update_scrollbar_pos (struct frame *f,
+   ptrdiff_t scrollbar_id, int top, int left, int width, int height);` - the C 4181 call;
+   gtkutil.h 135-140: the `xg_update_horizontal_scrollbar_pos` twin - the C 4178 call.
+   `include/gtkutil.rs` carries none of the three (Owed 12's list grows to seven), so all three
+   stand here with C's own prototypes.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn xg_remove_scroll_bar (f: *mut frame, scrollbar_id: ptrdiff_t);
+  pub fn xg_update_scrollbar_pos (f: *mut frame, scrollbar_id: ptrdiff_t, top: c_int, left: c_int,
+				  width: c_int, height: c_int);
+  pub fn xg_update_horizontal_scrollbar_pos (f: *mut frame, scrollbar_id: ptrdiff_t, top: c_int,
+					     left: c_int, width: c_int, height: c_int);
+}
+
+/// C 4141-4187: `static struct scroll_bar *pgtk_scroll_bar_create (struct window *w, int top, int
+/// left, int width, int height, bool horizontal)` - `ALLOCATE_PSEUDOVECTOR` is
+/// `include/lisp.rs` 2970's macro (the `src/alloc.rs` 4139 call shape, with the mirror's
+/// `pvec_type::PVEC_OTHER`), `XSETWINDOW`/`XSETVECTOR` are that mirror's 3135/3108,
+/// `XSCROLL_BAR` is `include/pgtkterm.rs` 520-522's, `FRAME_SCROLL_BARS`/`fset_scroll_bars` are
+/// `include/frame.rs` 1169/1497's, and C's two `max (height, 1)` calls are the mirror's C-`max`
+/// helper with C's `int` conversion spelled back (`as c_int`; the `src/androidterm.rs` 814-815
+/// family).  C 7442 takes this function's address (the terminal's `create_scroll_bar_hook`), so it
+/// stays a plain `unsafe fn` until that slice converts it (the `pgtk_ring_bell` note).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_scroll_bar_create (w: *mut window, top: c_int, left: c_int, width: c_int,
+				  height: c_int, horizontal: bool) -> *mut scroll_bar
+{
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 4145
+  let bar: *mut scroll_bar                                            // C 4146-4147
+    = ALLOCATE_PSEUDOVECTOR! (scroll_bar, prev, pvec_type::PVEC_OTHER);
+  let mut barobj: Lisp_Object;                                          // C 4148
+
+  block_input ();                                                       // C 4150
+
+  if horizontal                                                         // C 4152
+    { pgtk_create_horizontal_toolkit_scroll_bar (f, bar); }             // C 4153
+  else
+    { pgtk_create_toolkit_scroll_bar (f, bar); }                        // C 4155
+
+  XSETWINDOW! ((*bar).window, w);                                       // C 4157
+  (*bar).top = top;                                                     // C 4158
+  (*bar).left = left;                                                   // C 4159
+  (*bar).width = width;                                                 // C 4160
+  (*bar).height = height;                                               // C 4161
+  (*bar).start = 0;                                                     // C 4162
+  (*bar).end = 0;                                                       // C 4163
+  (*bar).dragging = -1;                                                 // C 4164
+  (*bar).horizontal = horizontal;                                       // C 4165
+
+  /* Add bar to its frame's list of scroll bars.  */
+  (*bar).next = FRAME_SCROLL_BARS (f);                                  // C 4168
+  (*bar).prev = Qnil ();                                                // C 4169
+  XSETVECTOR! (barobj, bar);                                            // C 4170
+  fset_scroll_bars (f, barobj);                                         // C 4171
+  if !NILP ((*bar).next)                                                // C 4172
+    { XSETVECTOR! ((*XSCROLL_BAR! ((*bar).next)).prev, bar); }          // C 4173
+
+  /* Map the window/widget.  */
+  {
+    if horizontal                                                       // C 4177
+      { xg_update_horizontal_scrollbar_pos (f, (*bar).x_window as ptrdiff_t, top,   // C 4178-4179
+					    left, width, max (height as isize, 1) as c_int); }
+    else
+      { xg_update_scrollbar_pos (f, (*bar).x_window as ptrdiff_t, top,  // C 4181-4182
+				 left, width, max (height as isize, 1) as c_int); }
+  }
+
+  unblock_input ();                                                     // C 4185
+  return bar;                                                           // C 4186
+}
+
+/* Destroy scroll bar BAR, and set its Emacs window's scroll bar to
+   nil.  */
+
+/// C 4192-4207: `static void pgtk_scroll_bar_remove (struct scroll_bar *bar)` - `WINDOW_FRAME` is
+/// `include/frame.rs` 1607's function and `wset_horizontal_scroll_bar`/`wset_vertical_scroll_bar`
+/// are `include/window.rs` 236/233's setters (the mirror's shape for C's `w->…_scroll_bar = v`).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_scroll_bar_remove (bar: *mut scroll_bar)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME (XWINDOW ((*bar).window)));  // C 4195
+  block_input ();                                                       // C 4196
+
+  xg_remove_scroll_bar (f, (*bar).x_window as ptrdiff_t);               // C 4198
+
+  /* Dissociate this scroll bar from its window.  */
+  if (*bar).horizontal                                                  // C 4201
+    { wset_horizontal_scroll_bar (XWINDOW ((*bar).window), Qnil ()); }  // C 4202
+  else
+    { wset_vertical_scroll_bar (XWINDOW ((*bar).window), Qnil ()); }    // C 4204
+
+  unblock_input ();                                                     // C 4206
+}
