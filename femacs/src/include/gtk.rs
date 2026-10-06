@@ -994,6 +994,7 @@ unsafe extern "C" {
 /// C: gdk/gdktypes.h: `typedef enum { GDK_NOTHING, GDK_DELETE, GDK_DESTROY, … } GdkEventType;` - C
 /// 1414 writes `GDK_NOTHING`.  C's enum ABI is `c_int` (PORTING.md 1.3); **UNVERIFIED**.
 pub type GdkEventType = c_int;
+
 pub const GDK_NOTHING: GdkEventType = 0;              // placeholder, not GDK's value
 /// C: gdk/gdktypes.h: `typedef guint GdkWindowState;` and the twelve flags C 5632-5687 tests.  No GDK
 /// header exists on this machine, so each value is a **placeholder** with a distinct bit (the
@@ -1120,6 +1121,10 @@ pub struct GdkEventScroll
   pub time: u32,
   pub x: c_double,
   pub y: c_double,
+  // The two members the fifty-first slice's `scroll_event` reads on past those: `state` (C 6252),
+  // with `axes` carried because GDK's declaration puts it between them.  **UNVERIFIED** (Owed 21).
+  pub axes: *mut c_double,
+  pub state: c_uint,
 }
 /// C: gdk/gdktypes.h: `typedef struct _GdkEventMotion GdkEventMotion;` - C 174-181 reads and
 /// writes `x`/`y`; **UNVERIFIED**.
@@ -1869,6 +1874,19 @@ pub fn gdk_event_get_source_device (event: *const GdkEvent) -> *mut GdkDevice;
 /// C 5964: `if (gdk_event_get_pointer_emulated (event)`.
 /// C: gdk/gdkevents.h: `gboolean gdk_event_get_pointer_emulated (GdkEvent *event);`
 pub fn gdk_event_get_pointer_emulated (event: *mut GdkEvent) -> gboolean;
+/// C 6258: `if (gdk_event_is_scroll_stop_event (event))`.
+/// C: gdk/gdkevents.h: `gboolean gdk_event_is_scroll_stop_event (GdkEvent *event);`
+pub fn gdk_event_is_scroll_stop_event (event: *mut GdkEvent) -> gboolean;
+/// C 6267: `if (gdk_event_get_scroll_direction (event, &dir))`.
+/// C: gdk/gdkevents.h: `gboolean gdk_event_get_scroll_direction (GdkEvent *event,
+/// GdkScrollDirection *direction);`
+pub fn gdk_event_get_scroll_direction (event: *mut GdkEvent,
+				       direction: *mut GdkScrollDirection) -> gboolean;
+/// C 6291: `else if (gdk_event_get_scroll_deltas (event, &delta_x, &delta_y))`.
+/// C: gdk/gdkevents.h: `gboolean gdk_event_get_scroll_deltas (GdkEvent *event, gdouble *delta_x,
+/// gdouble *delta_y);`
+pub fn gdk_event_get_scroll_deltas (event: *mut GdkEvent, delta_x: *mut c_double,
+				    delta_y: *mut c_double) -> gboolean;
 /// C 393: `return gdk_keyval_name (keysym);`
 /// C: gdk/gdkkeys.h: `gchar *gdk_keyval_name (guint keyval);`
 pub fn gdk_keyval_name (keyval: guint) -> *mut gchar;

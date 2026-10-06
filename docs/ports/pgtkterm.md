@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-50: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892, C 5894-5950, C 5952-6065, C 6067-6094 and C 6096-6226
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-51: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512, C 4514-4560, C 4562-4614, C 4616-4700, C 4702-4793, C 4795-4867, C 4869-4924, C 4926-4990, C 4992-5093, C 5095-5192, C 5194-5271, C 5273-5502, C 5504-5568, C 5570-5712, C 5714-5892, C 5894-5950, C 5952-6065, C 6067-6094, C 6096-6226 and C 6228-6362
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**8,982 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**9,181 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** and **C 5952-6065** and **C 6067-6094** and **C 6096-6226** - fifty
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512**, **C 4514-4560**, **C 4562-4614**, **C 4616-4700** and **C 4702-4793** and **C 4795-4867** and **C 4869-4924** and **C 4926-4990** and **C 4992-5093** and **C 5095-5192** and **C 5194-5271** and **C 5273-5502** and **C 5504-5568** and **C 5570-5712** and **C 5714-5892** and **C 5894-5950** and **C 5952-6065** and **C 6067-6094** and **C 6096-6226** and **C 6228-6362** - fifty-one
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `scroll_event` (C 6228-6229).**
+> `symbol_to_drag_action` (C 6369-6370).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -163,7 +163,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 5952-6065 | `motion_notify_event` (C 5952-6065) | the file gate - **transcribed** (the forty-eighth slice) |
 | 6067-6094 | `construct_mouse_click` (C 6072-6094, after C 6067-6070's comment) | the file gate - **transcribed** (the forty-ninth slice) |
 | 6096-6226 | `button_event` (C 6096-6226) | the file gate - **transcribed** (the fiftieth slice) |
-| 6228-7780 | **the remainder of the file** - from C 6228's `scroll_event` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 6228-6362 | `scroll_event` (C 6228-6362) | the file gate - **transcribed** (the fifty-first slice) |
+| 6364-7780 | **the remainder of the file** - from C 6366-6367's comment and C 6369's `symbol_to_drag_action` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the motion/button/scroll handlers, the drag/touch family, the widget walkers, the fringe bitmaps, `pgtk_read_socket`, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -1332,6 +1333,25 @@ their assertions are owed.
     `docs/ports/line-drift-tolerance.tsv`'s `pgtkterm` row now reads **0.17** with its reason
     re-measured (8,982 against C's 7,780) - the row moves with the measurement, not ahead of it.
 
+73. **`scroll_event`: C's `switch` as the port's `match`, the scroll accessors, and the six mirror
+    rows the named reading sent back to the unit.**  C 6228-6362 has no comment of its own, and its
+    `switch (dir)` is the port's `match` with C's five `GDK_SCROLL_*` cases plus a trailing `_ => { }`
+    (the sanctioned `docs/ports/macro-body-notes.tsv` row closes the `break,case,switch` tokens); C's
+    `?:`-inside-`|=` and `?:`-inside-assignment forms become `if … { … } else { … }`, `inev.ie.kind`
+    is read and written through the unit's bitfield macro, and the `double` -> `int` truncations
+    (C 6310/6320/6332/6343) and `double` -> `EMACS_INT` conversions are written out.  C 6234/6235's
+    three uninitialised locals are **zero-initialised** (Deviation 12's rule): the C 6267/6291
+    accessors hand them out through `&raw mut`, and the first reading named the three `E0381`s that
+    skip produces.  **The mirror leg did real work this slice**: `check-mirror-dupes` first read
+    `FAIL … list3 is already declared by femacs/src/include/lisp.rs` (the unit's row was removed -
+    the include graph carries it beside the `make_float` the four `list3` calls use), and the named
+    `src/xwidget.rs` reading against this mirror first read **192 errors / 0 warnings with six
+    `E0428`s** (`GdkScrollDirection` and the five `GDK_SCROLL_*`), because that unit declares all six
+    itself - so they moved out of the mirror into `src/pgtkterm.rs` (P-90 7, the
+    `GDK_BUTTON_PRESS`/`GDK_BUTTON_RELEASE` shape) and the reading returns to 197/52 with both sets
+    identical.  This is the second time a mirror round was corrected by its own named reading (the
+    forty-sixth slice's three names were the first).
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -1427,7 +1447,10 @@ their assertions are owed.
     each flag is a distinct placeholder and neither record carries a layout assertion; the
     forty-sixth slice's `GDK_NOTIFY_INFERIOR` placeholder and its five `GdkEventCrossing` members join
     the same round.  The forty-eighth slice's `gdk_event_get_pointer_emulated` prototype and its
-    `GDK_SOURCE_TOUCHSCREEN` **placeholder value** join it too.  The forty-ninth slice's `GDK_BUTTON_RELEASE` (a **unit-local** copy, because
+    `GDK_SOURCE_TOUCHSCREEN` **placeholder value** join it too.  The fifty-first slice's `GdkScrollDirection` type, its five
+    `GDK_SCROLL_*` **placeholder values** (unit-local rows, because `src/xwidget.rs` owns the
+    names - P-90 7) and `GdkEventScroll`'s two new members (`axes`/`state`, positions
+    UNVERIFIED) are in that round too.  The forty-ninth slice's `GDK_BUTTON_RELEASE` (a **unit-local** copy, because
     `src/xwidget.rs` 288 owns the name for its own reads - P-90 7) and the three
     `GdkEventButton` members it added (`axes`/`state`/`button`, positions UNVERIFIED) join
     it as well.  `include/dispextern.rs` owes the `mouse_face_hidden` accessor
@@ -1453,7 +1476,10 @@ their assertions are owed.
     pair it must keep local): `handle_tab_bar_click` and `frame_ancestor_p` belong to
     `include/dispextern.rs` and `include/frame.rs`, `gdk_event_copy` to `include/gtk.rs` (beside the
     `gdk_event_free` the unit declares for the same reason), and `gtk_window_present` to the GTK
-    segment `include/gtk.rs` owns.  Until those mirrors carry them, `src/pgtkterm.rs` is the reading.
+    segment `include/gtk.rs` owns.  Until those mirrors carry them, `src/pgtkterm.rs` is the reading.  The fifty-first slice adds `<math.h>`'s `fabs`
+    (the `src/editfns.rs` 182-185 precedent) and the six `GdkScrollDirection`/
+    `GDK_SCROLL_*` rows it must keep local, because `src/xwidget.rs` owns those names
+    (P-90 7).
 
 ## P-90 mirror round (2026-10-05): the surface moved out of this unit
 
@@ -3497,3 +3523,55 @@ read `check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2112/36/0,
 the frozen configuration compiles none of this file, this machine has no GTK tree and no PGTK target,
 no button was pressed and no click event was enqueued, and the arm readings are **compile** readings
 of text this machine cannot build (the two GDK event-type constants are placeholders).
+
+## The fifty-first slice (C 6228-6362): `scroll_event`
+
+**What is in it.**  C 6228-6362's handler: the event reset, the grab lookup, the event's
+time/state/coordinates/frame into `inev.ie`, the `gdk_event_is_scroll_stop_event` arm that enqueues a
+`TOUCH_END_EVENT`, the `gdk_event_get_scroll_direction` switch over the five `GDK_SCROLL_*` cases, the
+`gdk_event_get_scroll_deltas` arm with its coalescing branches (`scroll.acc_x`/`acc_y`,
+`x_per_char`/`y_per_line`, the four `list3` argument lists) and the closing enqueue.  Rust:
+8,982 -> **9,181** lines.  Its address is taken at C 6890, so it stays a plain `unsafe fn` until the
+C 6831 slice.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 9 / 18 -> 9 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): the twenty-sixth zero-delta reading in this unit, measured
+after the three `E0381`s and the six-name move below.  The baseline is HEAD's unit **and HEAD's
+mirror**.  **Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as the first statement
+of `scroll_event` moves arm A to **52** errors anchored at the injected line (`_root.rs:9019`);
+removed, the file re-measured.
+
+**The mirror round (P-87).**  `include/gtk.rs` gains the three scroll accessors
+(`gdk_event_is_scroll_stop_event`, `gdk_event_get_scroll_direction`, `gdk_event_get_scroll_deltas`)
+and `GdkEventScroll`'s `axes`/`state` members (UNVERIFIED); `GdkScrollDirection` and the five
+`GDK_SCROLL_*` values are **unit-local** rows, because `src/xwidget.rs` declares them itself (P-90 7)
+- the named reading caught the six `E0428`s before the mirror could keep them.  `check-mirror-dupes`
+reads **16/16/0** after the unit's duplicate `list3` row was removed; `tools/check-all-units.sh` reads
+`checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)`; the named
+`src/xwidget.rs` reading (`use_gtk` + `have_gtk3`) against HEAD's mirror and against this one reads
+**197 errors / 52 warnings on both sides** with both sets diffing empty.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**46 rows -> 44**: `scroll_event` retires, one sanctioned `macro-body-notes.tsv` row closes the
+`break,case,switch` tokens, and the `line count drifted` row that came back at 18.0% is answered by
+moving the `pgtkterm` tolerance row to **0.20** (its reason re-measured: 9,181 against C's 7,780).
+
+**Ledger.**  Deviation 73 (the `match`, the written-out conversions, the zero-initialised locals, the
+`list3` duplicate and the six names the named reading sent back to the unit), Owed 21's GDK round
+grown by the type, the five placeholders and the two record members, and Owed 24 grown by the `fabs`
+row; the range table's remainder row split into `6228-6362` (**transcribed**) and `6364-7780` (whose
+next live definition is `symbol_to_drag_action`, C 6369-6370, after C 6366-6367's comment); the title
+to fifty-one slices and the header to 9,181 lines.  **The gates** read `check-declarations.py`
+18/0/18/0, `check-citations.py` 676/0/0/2112/36/0, `check-dead-file-coverage.py` 145/0 (**83 range
+rows** over `src/pgtkterm.c`), `check-port-lines.py` 0/0/0/0, `check-ledger-ticks.py` 238/0,
+`check-cond-eval.py src/pgtkterm.c` 31/0/0 and `check-mirror-dupes.py` 16/16/0.  **Not claimed**:
+nothing has been run - the frozen configuration compiles none of this file, this machine has no GTK
+tree and no PGTK target, no wheel turned and no scroll event was enqueued, and the arm readings are
+**compile** readings of text this machine cannot build (the five direction values and the two new
+record members are placeholders / UNVERIFIED).

@@ -8782,6 +8782,28 @@ unsafe fn motion_notify_event (widget: *mut GtkWidget, event: *mut GdkEvent,
 /// machine**, and `src/xwidget.rs` 288 declares its own copy of this name for its own reads, so a
 /// mirror may not own it (P-90 7) and this unit keeps its own row - the `GDK_NOTIFY_INFERIOR` shape
 /// of the forty-sixth slice.  The value is a **placeholder** and joins Owed 21's round.
+/// C: gdk/gdkevents.h: `typedef enum { GDK_SCROLL_UP, GDK_SCROLL_DOWN, GDK_SCROLL_LEFT,
+/// GDK_SCROLL_RIGHT, GDK_SCROLL_SMOOTH } GdkScrollDirection;` - the type of C 6234's local `dir`,
+/// which the C 6267 accessor writes through a pointer and C 6271-6287 switches on.  **No GDK tree
+/// exists on this machine**, and `src/xwidget.rs` declares this type and all five constants for its
+/// own reads, so a mirror may not own them (P-90 7) and the unit keeps its own rows - the
+/// `GDK_BUTTON_PRESS`/`GDK_BUTTON_RELEASE` shape (the fifty-first slice's named reading caught the
+/// six `E0428`s before the mirror could keep them).  The values are **placeholders** (Owed 21).
+/// **UNVERIFIED**.
+#[cfg (feature = "have_pgtk")]
+pub type GdkScrollDirection = c_int;
+
+#[cfg (feature = "have_pgtk")]
+pub const GDK_SCROLL_UP: GdkScrollDirection = 0;
+#[cfg (feature = "have_pgtk")]
+pub const GDK_SCROLL_DOWN: GdkScrollDirection = 1;
+#[cfg (feature = "have_pgtk")]
+pub const GDK_SCROLL_LEFT: GdkScrollDirection = 2;
+#[cfg (feature = "have_pgtk")]
+pub const GDK_SCROLL_RIGHT: GdkScrollDirection = 3;
+#[cfg (feature = "have_pgtk")]
+pub const GDK_SCROLL_SMOOTH: GdkScrollDirection = 4;
+
 #[cfg (feature = "have_pgtk")]
 pub const GDK_BUTTON_PRESS: GdkEventType = 4;
 
@@ -8979,4 +9001,181 @@ unsafe fn button_event (widget: *mut GtkWidget, event: *mut GdkEvent,
   if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT              // C 6223
     { evq_enqueue (&raw mut inev); }                                     // C 6224
   return true as gboolean;                                               // C 6225
+}
+
+/* `<math.h>`: `double fabs (double);` - the two C 6295 calls, declared the way `src/editfns.rs`
+   182-185 declares it for its own C 4013 call.  `list3` (lisp.h) needs no row here: the first
+   reading's `check-mirror-dupes` leg named it as a duplicate - `include/lisp.rs` 3850 already
+   declares it in this unit's include graph, beside the `make_float` the four C 6301/6313/6323/6335
+   calls also use (which the unit reads bare).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn fabs (x: c_double) -> c_double;
+}
+
+/// C 6228-6362: `static gboolean scroll_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// *user_data)` - `static` with its address taken at C 6890 (`G_CALLBACK (scroll_event)`), so a
+/// plain `unsafe fn` that the C 6831 slice converts.  C's `switch (dir)` is the port's `match` with
+/// C's five cases and a trailing `_ => {}` (C's `GDK_SCROLL_SMOOTH` arm is the empty one, kept
+/// because C keeps it); the two `?:`-inside-`|=` and `?:`-inside-assignment forms become `if … { … }
+/// else { … }`; `inev.ie.kind` is read and written through the unit's bitfield macro; the
+/// `double` -> `int` truncations C 6310/6320/6332/6343 performs and the `double` -> `EMACS_INT`
+/// conversions of the two `XSETINT` arguments are written out; and C's integer literals inside
+/// `double` arithmetic are the port's `100.0` / `* nlines as c_double`.
+/// C 6234/6235's three uninitialised locals are zero-initialised (Deviation 12's rule), because the
+/// C 6267/6291 accessors hand them out through `&raw mut` and Rust cannot see that they write them.
+#[cfg (feature = "have_pgtk")]
+unsafe fn scroll_event (widget: *mut GtkWidget, event: *mut GdkEvent,
+			user_data: *mut gpointer) -> gboolean
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6231
+  let mut f: *mut frame;                                                // C 6232
+  let mut frame: *mut frame;                                            // C 6232
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 6233
+  let mut dir: GdkScrollDirection = core::mem::zeroed ();               // C 6234
+  let mut delta_x: c_double = core::mem::zeroed ();                     // C 6235
+  let mut delta_y: c_double = core::mem::zeroed ();                     // C 6235
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 6237
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 6238
+  inev.ie.arg = Qnil ();                                                // C 6239
+
+  frame = pgtk_any_window_to_frame (gtk_widget_get_window (widget));    // C 6241
+  dpyinfo = FRAME_DISPLAY_INFO! (frame);                                // C 6242
+
+  if gui_mouse_grabbed (dpyinfo)                                        // C 6244
+    { f = (*dpyinfo).last_mouse_frame; }                                // C 6245
+  else
+    { f = pgtk_any_window_to_frame (gtk_widget_get_window (widget)); }  // C 6247
+
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 6249
+  inev.ie.timestamp = (*event).scroll.time as Time;                     // C 6250
+  inev.ie.modifiers
+    = pgtk_gtk_to_emacs_modifiers (FRAME_DISPLAY_INFO! (f),
+				   (*event).scroll.state as c_int) as c_uint;  // C 6251-6252
+  XSETINT! (inev.ie.x, (*event).scroll.x as EMACS_INT);                 // C 6253
+  XSETINT! (inev.ie.y, (*event).scroll.y as EMACS_INT);                 // C 6254
+  XSETFRAME! (inev.ie.frame_or_window, f);                              // C 6255
+  inev.ie.arg = Qnil ();                                                // C 6256
+
+  if gdk_event_is_scroll_stop_event (event) != 0                        // C 6258
+    {
+      input_event_bits! (kind, &raw mut inev.ie, TOUCH_END_EVENT);      // C 6260
+      inev.ie.device
+	= pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f), event);   // C 6261-6262
+      evq_enqueue (&raw mut inev);                                      // C 6263
+      return true as gboolean;                                          // C 6264
+    }
+
+  if gdk_event_get_scroll_direction (event, &raw mut dir) != 0          // C 6267
+    {
+      match dir
+	{
+	  GDK_SCROLL_UP =>
+	    {
+	      input_event_bits! (kind, &raw mut inev.ie, WHEEL_EVENT);  // C 6272
+	      inev.ie.modifiers |= up_modifier as c_uint;               // C 6273
+	    }
+	  GDK_SCROLL_DOWN =>
+	    {
+	      input_event_bits! (kind, &raw mut inev.ie, WHEEL_EVENT);  // C 6276
+	      inev.ie.modifiers |= down_modifier as c_uint;             // C 6277
+	    }
+	  GDK_SCROLL_LEFT =>
+	    {
+	      input_event_bits! (kind, &raw mut inev.ie, HORIZ_WHEEL_EVENT);  // C 6280
+	      inev.ie.modifiers |= up_modifier as c_uint;               // C 6281
+	    }
+	  GDK_SCROLL_RIGHT =>
+	    {
+	      input_event_bits! (kind, &raw mut inev.ie, HORIZ_WHEEL_EVENT);  // C 6284
+	      inev.ie.modifiers |= down_modifier as c_uint;             // C 6285
+	    }
+	  GDK_SCROLL_SMOOTH => { }	    /* shut up warning */      // C 6287-6288
+	  _ => { }
+	}
+    }
+  else if gdk_event_get_scroll_deltas (event, &raw mut delta_x,
+				       &raw mut delta_y) != 0           // C 6291
+    {
+      if !mwheel_coalesce_scroll_events                                 // C 6293
+	{
+	  input_event_bits! (kind, &raw mut inev.ie,
+			     if fabs (delta_x) > fabs (delta_y)         // C 6295
+			       { HORIZ_WHEEL_EVENT }
+			       else { WHEEL_EVENT });                   // C 6296-6297
+	  inev.ie.modifiers |=
+	    (if input_event_bits! (kind, &raw mut inev.ie) == HORIZ_WHEEL_EVENT
+	       { if delta_x >= 0.0 { up_modifier } else { down_modifier } }
+	       else { if delta_y >= 0.0 { down_modifier } else { up_modifier } })
+	    as c_uint;                                                  // C 6298-6300
+	  inev.ie.arg = list3 (Qnil (), make_float (-delta_x * 100.0),
+			       make_float (-delta_y * 100.0));          // C 6301-6302
+	}
+      else
+	{
+	  (*dpyinfo).scroll.acc_x += delta_x;                           // C 6306
+	  (*dpyinfo).scroll.acc_y += delta_y;                           // C 6307
+	  if (*dpyinfo).scroll.acc_y >= (*dpyinfo).scroll.y_per_line    // C 6308
+	    {
+	      let mut nlines: c_int = ((*dpyinfo).scroll.acc_y
+				       / (*dpyinfo).scroll.y_per_line) as c_int;  // C 6310
+	      input_event_bits! (kind, &raw mut inev.ie, WHEEL_EVENT);  // C 6311
+	      inev.ie.modifiers |= down_modifier as c_uint;             // C 6312
+	      inev.ie.arg = list3 (make_fixnum (nlines as EMACS_INT),
+				   make_float (-(*dpyinfo).scroll.acc_x * 100.0),
+				   make_float (-(*dpyinfo).scroll.acc_y * 100.0));  // C 6313-6315
+	      (*dpyinfo).scroll.acc_y
+		-= (*dpyinfo).scroll.y_per_line * nlines as c_double;   // C 6316
+	    }
+	  else if (*dpyinfo).scroll.acc_y <= -(*dpyinfo).scroll.y_per_line  // C 6318
+	    {
+	      let mut nlines: c_int = ((-(*dpyinfo).scroll.acc_y)
+				       / (*dpyinfo).scroll.y_per_line) as c_int;  // C 6320
+	      input_event_bits! (kind, &raw mut inev.ie, WHEEL_EVENT);  // C 6321
+	      inev.ie.modifiers |= up_modifier as c_uint;               // C 6322
+	      inev.ie.arg = list3 (make_fixnum (nlines as EMACS_INT),
+				   make_float (-(*dpyinfo).scroll.acc_x * 100.0),
+				   make_float (-(*dpyinfo).scroll.acc_y * 100.0));  // C 6323-6325
+
+	      (*dpyinfo).scroll.acc_y
+		-= -(*dpyinfo).scroll.y_per_line * nlines as c_double;  // C 6327
+	    }
+	  else if (*dpyinfo).scroll.acc_x >= (*dpyinfo).scroll.x_per_char
+		   || !mwheel_coalesce_scroll_events                       // C 6329-6330
+	    {
+	      let mut nchars: c_int = ((*dpyinfo).scroll.acc_x
+				       / (*dpyinfo).scroll.x_per_char) as c_int;  // C 6332
+	      input_event_bits! (kind, &raw mut inev.ie, HORIZ_WHEEL_EVENT);  // C 6333
+	      inev.ie.modifiers |= up_modifier as c_uint;               // C 6334
+	      inev.ie.arg = list3 (make_fixnum (nchars as EMACS_INT),
+				   make_float (-(*dpyinfo).scroll.acc_x * 100.0),
+				   make_float (-(*dpyinfo).scroll.acc_y * 100.0));  // C 6335-6337
+
+	      (*dpyinfo).scroll.acc_x
+		-= (*dpyinfo).scroll.x_per_char * nchars as c_double;   // C 6339
+	    }
+	  else if (*dpyinfo).scroll.acc_x <= -(*dpyinfo).scroll.x_per_char  // C 6341
+	    {
+	      let mut nchars: c_int = ((-(*dpyinfo).scroll.acc_x)
+				       / (*dpyinfo).scroll.x_per_char) as c_int;  // C 6343
+	      input_event_bits! (kind, &raw mut inev.ie, HORIZ_WHEEL_EVENT);  // C 6344
+	      inev.ie.modifiers |= down_modifier as c_uint;             // C 6345
+	      inev.ie.arg = list3 (make_fixnum (nchars as EMACS_INT),
+				   make_float (-(*dpyinfo).scroll.acc_x * 100.0),
+				   make_float (-(*dpyinfo).scroll.acc_y * 100.0));  // C 6346-6348
+
+	      (*dpyinfo).scroll.acc_x
+		-= -(*dpyinfo).scroll.x_per_char * nchars as c_double;  // C 6350
+	    }
+	}
+    }
+
+  if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT              // C 6355
+    {
+      inev.ie.device
+	= pgtk_get_device_for_event (FRAME_DISPLAY_INFO! (f), event);   // C 6357-6358
+      evq_enqueue (&raw mut inev);                                      // C 6359
+    }
+  return true as gboolean;                                              // C 6361
 }
