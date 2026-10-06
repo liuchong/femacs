@@ -430,6 +430,26 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     **本半一处产品名文本都没改**：两个文件本来就只有引文，改动全在门、自测与文档。**未声称**：这是**文本**门，
     "0 处自家散文"不证明日志里没有别种说法——裸 `Emacs` 仍按 3.692 ⑥ 的裁决留在门外的读数里，不冒充已清。
 
+    这条规则现在有第二十半（2026-10-06，status 3.765）：**"已写进树的产出物"里读数最大的一块——六个照抄树里、
+    与文件头首句同主语的那三句许可声明**。前十半依次清了移植单元/镜像的头、抄进来的整块声明、复述、本仓库散文、
+    工具写出的身份行、程序自称、工具与探针、运行时对外身份、默认帧名与豁免树里的身份行；第十半把照抄树每份
+    文件头的**成员句**（`This file is part of <产品>.`）换成本仓库自己的名字，与它同属一个许可块的另外三句没换：
+    **授予句**（`<产品> is free software: you can redistribute it and/or modify`）、**担保句**
+    （`<产品> is distributed in the hope that it will be useful`）、**收尾句**
+    （`along with <产品>.  If not, see <https://www.gnu.org/licenses/>.`）。判据与第十半同一句：这三句的**主语是
+    这份许可授予的对象**，放在"本文件是 femacs 的一部分"下面，就是一句关于本仓库的错声明。
+    处置：**只换产品名那一个 token**（`femacs`），其余字符一个都不动，逐行记进
+    `docs/baseline/verbatim-substitutions.tsv`（登记行 1,820 → 7,188）。判定只看"去掉行首前缀后句子以哪一句
+    开头"——前缀有 `;;`、`#`、`##`、`%`、`@c`、roff 的 `.\"` 与无前缀的 `@copying` 正文，均不参与判定；旧式
+    变体（`… is free software; you can redistribute` 一类）一并覆盖。**边界**：`Copyright (C) … Free Software
+    Foundation` 与 GPL 正文（`under the terms of the GNU General Public License …`，其中不含产品名）是署名与
+    许可义务，照旧一字不动；`test/` 按 goal 文本一行不改（那里的同类句**点名计数**，留待裁决）；
+    `ChangeLog*`/`NEWS*` 引的是历史、否定句（`… is not a part of …`）与叙述句（手册标题、教程里的
+    `The <产品> Manual` 一类）不属这一半，按 3.692 ⑥ 的裁决留在门外并计数。机器门：`tools/check-verbatim.py`
+    逐行读这张表（目标行必须与登记逐字相同、参照行必须不同、无登记的差异即失败），读数
+    **1,820 → 7,188 sanctioned line(s)、0 failures**；`check-verbatim-declarations.py` 不变（820 候选 / 116 登记 /
+    0 失败），它只读成员句那一种形状。
+
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
     因此不能调用排在它后面的宏——`call0` 按 lisp.h 3462-3471 的顺序挪到了 `calln!`
