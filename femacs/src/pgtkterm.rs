@@ -5867,3 +5867,110 @@ unsafe extern "C" fn xg_scroll_callback (range: *mut GtkRange, scroll: GtkScroll
 
   return false as gboolean;                                             // C 4066
 }
+
+/* Callback for button release. Sets dragging to -1 when dragging is done.  */
+
+/* C: gtkutil.h 118-122: `extern void xg_create_scroll_bar (struct frame *f, struct scroll_bar *bar,
+   GCallback scroll_callback, GCallback end_callback, const char *scroll_bar_name);` - the C 4100
+   call; gtkutil.h 123-127: the `xg_create_horizontal_scroll_bar` twin - the C 4112 call;
+   gtkutil.h 143-146: `extern void xg_set_toolkit_scroll_bar_thumb (struct scroll_bar *bar, int
+   portion, int position, int whole);` - the C 4125 call; gtkutil.h 147-150: the
+   `xg_set_toolkit_horizontal_scroll_bar_thumb` twin - the C 4133 call.  `include/gtkutil.rs`
+   carries none of the four (that mirror is `gtkutil.h`'s home: Owed 12), so all four stand here at
+   the use site with C's own prototypes (P-88 ①), `GCallback` being `include/gtk.rs` 93's type.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn xg_create_scroll_bar (f: *mut frame, bar: *mut scroll_bar, scroll_callback: GCallback,
+			       end_callback: GCallback, scroll_bar_name: *const c_char);
+  pub fn xg_create_horizontal_scroll_bar (f: *mut frame, bar: *mut scroll_bar,
+					  scroll_callback: GCallback, end_callback: GCallback,
+					  scroll_bar_name: *const c_char);
+  pub fn xg_set_toolkit_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int,
+					  position: c_int, whole: c_int);
+  pub fn xg_set_toolkit_horizontal_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int,
+						     position: c_int, whole: c_int);
+}
+
+/// C 4071-4086: `static gboolean xg_end_scroll_callback (GtkWidget *widget, GdkEventButton *event,
+/// gpointer user_data)` - **its address goes through `G_CALLBACK` at C 4101/4113**, so the port
+/// defines it `unsafe extern "C" fn` (PORTING.md 1.4; `include/gtk.rs` 141-148's `G_CALLBACK!` is
+/// the macro C's cast is spelled with).  C's body never reads `widget`/`event` (`let _ =` keeps the
+/// names, the Deviation 44 shape), and its `return false;` from a `gboolean` function is the port's
+/// `false as gboolean` (Deviation 50).
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn xg_end_scroll_callback (widget: *mut GtkWidget, event: *mut GdkEventButton,
+					     user_data: gpointer) -> gboolean
+{
+  let _ = (widget, event);                                              // C 4072-4073
+  let bar: *mut scroll_bar = user_data as *mut scroll_bar;              // C 4075
+  (*bar).dragging = -1;                                                 // C 4076
+  if WINDOWP (window_being_scrolled)                                    // C 4077
+    {
+      pgtk_send_scroll_bar_event (window_being_scrolled,                // C 4079-4081
+				  scroll_bar_end_scroll, 0, 0, (*bar).horizontal);
+      window_being_scrolled = Qnil ();                                  // C 4082
+    }
+
+  return false as gboolean;                                             // C 4085
+}
+
+/// C 4088: `#define SCROLL_BAR_NAME "verticalScrollBar"`
+#[cfg (feature = "have_pgtk")]
+pub const SCROLL_BAR_NAME: &core::ffi::CStr = c"verticalScrollBar";
+/// C 4089: `#define SCROLL_BAR_HORIZONTAL_NAME "horizontalScrollBar"`
+#[cfg (feature = "have_pgtk")]
+pub const SCROLL_BAR_HORIZONTAL_NAME: &core::ffi::CStr = c"horizontalScrollBar";
+
+/* Create the widget for scroll bar BAR on frame F.  Record the widget
+   and X window of the scroll bar in BAR.  */
+
+/// C 4094-4103: `static void pgtk_create_toolkit_scroll_bar (struct frame *f, struct scroll_bar
+/// *bar)` - the `SCROLL_BAR_NAME` constant's pointer (the `nt/addpm.rs` `REG_ROOT` shape for a C
+/// string macro) and the two `G_CALLBACK` arguments.  C takes this function's address later (the
+/// terminal's `create_scroll_bar_hook`), so it stays a plain `unsafe fn` until that slice converts
+/// it (the `pgtk_ring_bell` note).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_create_toolkit_scroll_bar (f: *mut frame, bar: *mut scroll_bar)
+{
+  let scroll_bar_name: *const c_char = SCROLL_BAR_NAME.as_ptr ();       // C 4097
+
+  block_input ();                                                       // C 4099
+  xg_create_scroll_bar (f, bar, G_CALLBACK! (xg_scroll_callback),       // C 4100-4101
+			G_CALLBACK! (xg_end_scroll_callback), scroll_bar_name);
+  unblock_input ();                                                     // C 4102
+}
+
+/// C 4105-4116: `static void pgtk_create_horizontal_toolkit_scroll_bar (struct frame *f, struct
+/// scroll_bar *bar)` - the horizontal twin, with `SCROLL_BAR_HORIZONTAL_NAME`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_create_horizontal_toolkit_scroll_bar (f: *mut frame, bar: *mut scroll_bar)
+{
+  let scroll_bar_name: *const c_char = SCROLL_BAR_HORIZONTAL_NAME.as_ptr ();   // C 4109
+
+  block_input ();                                                       // C 4111
+  xg_create_horizontal_scroll_bar (f, bar, G_CALLBACK! (xg_scroll_callback),   // C 4112-4114
+				   G_CALLBACK! (xg_end_scroll_callback), scroll_bar_name);
+  unblock_input ();                                                     // C 4115
+}
+
+/* Set the thumb size and position of scroll bar BAR.  We are currently
+   displaying PORTION out of a whole WHOLE, and our position POSITION.  */
+
+/// C 4121-4126: `static void pgtk_set_toolkit_scroll_bar_thumb (struct scroll_bar *bar, int
+/// portion, int position, int whole)` - one call to `xg_set_toolkit_scroll_bar_thumb`
+/// (gtkutil.h 143-146).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_toolkit_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int,
+					     position: c_int, whole: c_int)
+{
+  xg_set_toolkit_scroll_bar_thumb (bar, portion, position, whole);      // C 4125
+}
+
+/// C 4128-4134: `static void pgtk_set_toolkit_horizontal_scroll_bar_thumb (struct scroll_bar *bar,
+/// int portion, int position, int whole)` - the horizontal twin (gtkutil.h 147-150).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_toolkit_horizontal_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int,
+							position: c_int, whole: c_int)
+{
+  xg_set_toolkit_horizontal_scroll_bar_thumb (bar, portion, position, whole);   // C 4133
+}
