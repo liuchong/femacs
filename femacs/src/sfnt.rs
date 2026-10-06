@@ -44,13 +44,20 @@
 // `sfnt_compute_phantom_points`) and `sfnt_transform_f26dot6`, the 26.6 twin of
 // `sfnt_transform_coordinates`.  The four functions between them (`sfnt_interpret_simple_glyph`,
 // `sfnt_transform_f26dot6`'s three callers) wait for the interpreter.
-// **What is left after slice 13** is C 6559-8159 (the interpreter macros, whose home is
-// `sfnt_interpret_run`'s slice, above), C 11396-12115 (`sfnt_interpret_run` and the two program
-// entries that call it), C 12305-12494's `sfnt_interpret_simple_glyph` and C 12591-13369's three
+// **Slice 14 takes C 11396-11983** - `sfnt_interpret_run` itself, C's dispatcher, *and* the
+// C 6559-8159 instruction macros as its in-function copies (P-57: their bodies name this caller's
+// `interpreter` and `is_prep`, and the eight that also jump to its own labels -
+// `ELSE`/`JMPR`/`FDEF`/`IF`/`JROT`/`JROF`/`IDEF` to `skip_step`, `CALL` to `next_instruction` - are
+// defined inside the labelled blocks that declare those labels, because a `macro_rules!` resolves
+// a label at its *definition* site, measured).  C 11420's `switch (opcode)` is the port's `match`
+// (146 arms in C's order plus C 11949's `default:`), and C's `break` - which leaves the switch -
+// is the dispatch's `loop` (`next_instruction`/`skip_step` are the two labelled blocks around it).
+// **What is left after slice 14** is C 11984-12115 (the two program entries that call
+// `sfnt_interpret_run`), C 12305-12494's `sfnt_interpret_simple_glyph` and C 12591-13369's three
 // compound-glyph interpreters, and C 16448-21215, the TEST programme (the ledger's Owed 21);
-// C 9832's `sfnt_interpret_call` is the one landed call whose callee (`sfnt_interpret_run`) is
-// still unported
-// (P-91 ④ names it).  The ledger
+// C 9832's `sfnt_interpret_call` call is now satisfied - slice 14 lands the `sfnt_interpret_run`
+// that its `E0425` named, which is what the arm flip's 0-error reading measures (P-91 ④'s item
+// closes).  The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
 //
@@ -65,7 +72,7 @@
 // four of those macros the two ranges here *use* are `TRAP` (C 6562), `POP` (C 6597, C's live
 // `#ifndef TEST` arm), `PROJECT` (C 7777) and `DUAL_PROJECT` (C 7780) - each is defined inside
 // every function that calls it, and every call site keeps C's own spelling.  The rest of
-// C 6559-8159 has no Rust text yet, and the ledger's range table says so at its own C position.
+// C 6559-8159 is slice 14's in-function copies inside `sfnt_interpret_run`, at that position.
 //
 // The frozen configuration compiles no `sfnt.o`: `configure.ac` 2645 adds `sfnt.o` to
 // `ANDROID_OBJ` only inside the `XCONFIGURE = android` branch (the `REALLY_ANDROID` one,
@@ -14934,5 +14941,1932 @@ unsafe fn sfnt_transform_f26dot6 (component: *mut sfnt_compound_glyph_component,
       *(x.offset (i as isize)) = xi;                       // C 12563
       *(y.offset (i as isize)) = yi;                       // C 12564
       i += 1;
+    }
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 11384-11983: `sfnt_interpret_run` - C's `static`, the interpreter's dispatch, and with it
+   C 6559-8159's instruction macros.  **The next live definition is C 11996's
+   `sfnt_interpret_font_program`**, and the ledger's `## C line ranges` names both boundaries.
+
+   C's 146 macros are P-57 `macro_rules!`s *inside* this function, because their bodies name the
+   caller's `interpreter` and `is_prep`; the eight that also jump into this function's own labels
+   (`ELSE`/`JMPR`/`FDEF`/`IF`/`JROT`/`JROF`/`IDEF` -> `skip_step`, `CALL` -> `next_instruction`) are
+   defined inside the labelled blocks that declare those labels, because a `macro_rules!` resolves a
+   label at its definition site (measured: a body's `break 'label` does not see a label declared
+   later in the caller).  C 6595/6625/6643's four `#else` arms name the TEST-only `pop_hook`/
+   `push_hook` members the mirror omits (Owed 23), so the `#ifndef TEST` arms are what the port
+   carries, and C 7195-7198's `EIF`, C 7599-7609's three round macros and the rest are C's own text.
+   ---------------------------------------------------------------------------------------------- */
+/// C 11396-11983: `sfnt_interpret_run`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_run (interpreter: *mut sfnt_interpreter,
+			      why: sfnt_interpreter_run_context)
+{                                                          // C 11396-11983
+  let mut opcode: c_uchar;
+  let mut is_prep: bool;
+
+  /* Determine whether or not this is the control value program.  */
+  is_prep = why == SFNT_RUN_CONTEXT_CONTROL_VALUE_PROGRAM;   // C 11403
+
+  /* C 11405-11409's `#ifdef TEST` arm allows testing control value program instructions as well.  */
+  #[cfg (feature = "test")]
+  {
+    if why == SFNT_RUN_CONTEXT_TEST
+      { is_prep = true; }
+  }
+
+  while (*interpreter).IP < (*interpreter).num_instructions as c_int   // C 11411
+    {
+      opcode = *(*interpreter).instructions.offset ((*interpreter).IP as isize);   // C 11413
+
+      /* C 11415-11418's `#ifdef TEST`: `if (interpreter->run_hook) interpreter->run_hook
+	 (interpreter);` - the mirror carries neither the member nor the hook.  */
+
+      /* C 11980's `skip_step:` is the loop's tail (its end is the `continue`) and C 11970's
+	 `next_instruction:` is this inner block's end (C 11975's `IP++`); the eight jumping macros
+	 below are inside both blocks, so their `break`s resolve to these two labels.  */
+      'skip_step: {
+	'next_instruction: {
+	  /* --- C 6559-8159: the instruction macros, in C's order --------------------------- */
+
+	  /* C 6559-6560: `STACKSIZE ()`.  */
+	  macro_rules! STACKSIZE { () => {
+	    (*interpreter).SP.offset_from ((*interpreter).stack)
+	  } }
+	  /* C 6562-6563: `TRAP (why)`.  C's argument is a string literal that reaches the
+	     `const char *` parameter through C's array decay, so each call site writes
+	     `c"…".as_ptr ()` (the tree's spelling for that decay).  */
+	  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+	  /* C 6565-6566: `MOVE (a, b, n)` - `memmove (a, b, (n) * sizeof (uint32_t))`.  */
+	  macro_rules! MOVE { ($a:expr, $b:expr, $n:expr) => {
+	    memmove ($a as *mut c_void, $b as *const c_void,
+		     ($n) as size_t * std::mem::size_of::<uint32_t> ())
+	  } }
+	  /* C 6568-6573: `CHECK_STACK_ELEMENTS (n)`.  */
+	  macro_rules! CHECK_STACK_ELEMENTS { ($n:expr) => {
+	    {
+	      if ((*interpreter).SP.offset_from ((*interpreter).stack) as isize) < ($n)
+		{ TRAP! (c"stack underflow".as_ptr ()); }
+	    }
+	  } }
+	  /* C 6575-6584: `CHECK_STACK_AVAILABLE (n)` - C's `char *stack_end = (char *)
+	     interpreter->twilight_x;` and the pointer comparison above it.  */
+	  macro_rules! CHECK_STACK_AVAILABLE { ($n:expr) => {
+	    {
+	      let stack_end: *mut c_char = (*interpreter).twilight_x as *mut c_char;
+	      if ((*interpreter).SP.offset (($n) as isize) as *mut c_char) > stack_end
+		{ TRAP! (c"stack overflow".as_ptr ()); }
+	    }
+	  } }
+	  /* C 6586-6590: `CHECK_PREP ()` - C's `if (!is_prep) TRAP ("instruction executed not
+	     valid" " outside control value program")` (the two-literal argument is one string).  */
+	  macro_rules! CHECK_PREP { () => {
+	    if !is_prep
+	      { TRAP! (c"instruction executed not valid outside control value program".as_ptr ()); }
+	  } }
+	  /* C 6597-6600: `POP ()` - the live `#ifndef TEST` arm (the `#else` arm's body names the
+	     TEST-only `pop_hook` member, Owed 23).  */
+	  macro_rules! POP { () => {
+	    if (*interpreter).SP == (*interpreter).stack
+	      { TRAP! (c"stack underflow".as_ptr ()); 0 }
+	    else
+	      { (*interpreter).SP = (*interpreter).SP.offset (-1); *(*interpreter).SP }
+	  } }
+	  /* C 6602: `POP_UNCHECKED ()`.  */
+	  macro_rules! POP_UNCHECKED { () => {
+	    { (*interpreter).SP = (*interpreter).SP.offset (-1); *(*interpreter).SP }
+	  } }
+	  /* C 6620-6623: `LOOK ()`.  */
+	  macro_rules! LOOK { () => {
+	    if (*interpreter).SP == (*interpreter).stack
+	      { TRAP! (c"stack underflow".as_ptr ()); 0 }
+	    else
+	      { *(*interpreter).SP.offset (-1) }
+	  } }
+	  /* C 6627-6635: `PUSH (value)` - the live `#ifndef TEST` arm (the `#else` arm names the
+	     TEST-only `push_hook` member, Owed 23).  */
+	  macro_rules! PUSH { ($value:expr) => {
+	    {
+	      if ((*interpreter).SP.offset (1) as *mut c_char)
+		 > (*interpreter).twilight_x as *mut c_char
+		{ TRAP! (c"stack overflow".as_ptr ()); }
+
+	      *(*interpreter).SP = $value;
+	      (*interpreter).SP = (*interpreter).SP.offset (1);
+	    }
+	  } }
+	  /* C 6637-6641: `PUSH_UNCHECKED (value)`.  */
+	  macro_rules! PUSH_UNCHECKED { ($value:expr) => {
+	    {
+	      *(*interpreter).SP = $value;
+	      (*interpreter).SP = (*interpreter).SP.offset (1);
+	    }
+	  } }
+	  /* C 6663-6670: `PUSH2_UNCHECKED (high, low)` - C's `int16_t word = (((uint8_t) high)
+	     << 8 | low);` then `PUSH_UNCHECKED (word)`.  */
+	  macro_rules! PUSH2_UNCHECKED { ($high:expr, $low:expr) => {
+	    {
+	      let word: int16_t = (((($high) as uint8_t as c_int) << 8)
+				   | ($low) as c_int) as int16_t;
+	      PUSH_UNCHECKED! (word as uint32_t);
+	    }
+	  } }
+
+	  /* --- C 6671-8159: the instruction macros (continued below) ------------------------ */
+
+	  /* C 6671-6677: `SRP0 ()`.  */
+	  macro_rules! SRP0 { () => {
+	    {
+	      let mut p: uint32_t;
+
+	      p = POP! ();
+	      (*interpreter).state.rp0 = p as uint16_t;
+	    }
+	  } }
+	  /* C 6679-6685: `SRP1 ()`.  */
+	  macro_rules! SRP1 { () => {
+	    {
+	      let mut p: uint32_t;
+
+	      p = POP! ();
+	      (*interpreter).state.rp1 = p as uint16_t;
+	    }
+	  } }
+	  /* C 6687-6693: `SRP2 ()`.  */
+	  macro_rules! SRP2 { () => {
+	    {
+	      let mut p: uint32_t;
+
+	      p = POP! ();
+	      (*interpreter).state.rp2 = p as uint16_t;
+	    }
+	  } }
+	  /* C 6695-6705: `SZP0 ()`.  */
+	  macro_rules! SZP0 { () => {
+	    {
+	      let mut zone: uint32_t;
+
+	      zone = POP! ();
+
+	      if zone > 1
+		{ TRAP! (c"invalid zone".as_ptr ()); }
+
+	      (*interpreter).state.zp0 = zone as c_int;
+	    }
+	  } }
+	  /* C 6707-6717: `SZP1 ()`.  */
+	  macro_rules! SZP1 { () => {
+	    {
+	      let mut zone: uint32_t;
+
+	      zone = POP! ();
+
+	      if zone > 1
+		{ TRAP! (c"invalid zone".as_ptr ()); }
+
+	      (*interpreter).state.zp1 = zone as c_int;
+	    }
+	  } }
+	  /* C 6719-6729: `SZP2 ()`.  */
+	  macro_rules! SZP2 { () => {
+	    {
+	      let mut zone: uint32_t;
+
+	      zone = POP! ();
+
+	      if zone > 1
+		{ TRAP! (c"invalid zone".as_ptr ()); }
+
+	      (*interpreter).state.zp2 = zone as c_int;
+	    }
+	  } }
+	  /* C 6731-6743: `SZPS ()`.  */
+	  macro_rules! SZPS { () => {
+	    {
+	      let mut zone: uint32_t;
+
+	      zone = POP! ();
+
+	      if zone > 1
+		{ TRAP! (c"invalid zone".as_ptr ()); }
+
+	      (*interpreter).state.zp0 = zone as c_int;
+	      (*interpreter).state.zp1 = zone as c_int;
+	      (*interpreter).state.zp2 = zone as c_int;
+	    }
+	  } }
+	  /* C 6745-6759: `SLOOP ()` - C's `MIN (65535, loop)`.  */
+	  macro_rules! SLOOP { () => {
+	    {
+	      let mut r#loop: int32_t;
+
+	      r#loop = POP! () as int32_t;
+
+	      if r#loop < 0
+		{ TRAP! (c"loop set to invalid value".as_ptr ()); }
+
+	      /* N.B. loop might be greater than 65535,
+		 but no reasonable font should define
+		 such values.  */
+	      (*interpreter).state.r#loop = MIN! (65535, r#loop) as c_ushort;
+	    }
+	  } }
+	  /* C 6761-6768: `SMD ()`.  */
+	  macro_rules! SMD { () => {
+	    {
+	      let mut md: sfnt_f26dot6;
+
+	      md = POP! () as sfnt_f26dot6;
+
+	      (*interpreter).state.minimum_distance = md;
+	    }
+	  } }
+	  /* C 6770-6774: `ELSE ()` - C's `goto skip_step`.  */
+	  macro_rules! ELSE { () => {
+	    {
+	      sfnt_interpret_else (interpreter);
+	      break 'skip_step;
+	    }
+	  } }
+	  /* C 6776-6789: `JMPR ()` - C's `goto skip_step`.  */
+	  macro_rules! JMPR { () => {
+	    {
+	      let mut offset: int32_t;
+
+	      offset = POP! () as int32_t;
+
+	      if ((*interpreter).IP + offset) < 0
+		 || ((*interpreter).IP + offset
+		     > (*interpreter).num_instructions as c_int)
+		{ TRAP! (c"JMPR out of bounds".as_ptr ()); }
+
+	      (*interpreter).IP += offset;
+	      break 'skip_step;
+	    }
+	  } }
+	  /* C 6791-6798: `SCVTCI ()`.  */
+	  macro_rules! SCVTCI { () => {
+	    {
+	      let mut cutin: sfnt_f26dot6;
+
+	      cutin = POP! () as sfnt_f26dot6;
+
+	      (*interpreter).state.cvt_cut_in = cutin;
+	    }
+	  } }
+	  /* C 6800-6807: `SSWCI ()`.  */
+	  macro_rules! SSWCI { () => {
+	    {
+	      let mut cutin: sfnt_f26dot6;
+
+	      cutin = POP! () as sfnt_f26dot6;
+
+	      (*interpreter).state.sw_cut_in = cutin;
+	    }
+	  } }
+	  /* C 6809-6818: `SSW ()`.  */
+	  macro_rules! SSW { () => {
+	    {
+	      let mut single_width: int32_t;
+
+	      single_width = POP! () as int32_t;
+
+	      (*interpreter).state.single_width_value
+		= sfnt_mul_fixed (single_width, (*interpreter).scale);
+	    }
+	  } }
+	  /* C 6820-6826: `DUP ()`.  */
+	  macro_rules! DUP { () => {
+	    {
+	      let mut value: uint32_t;
+
+	      value = LOOK! ();
+	      PUSH! (value);
+	    }
+	  } }
+	  /* C 6828-6831: `CLEAR ()`.  */
+	  macro_rules! CLEAR { () => {
+	    {
+	      (*interpreter).SP = (*interpreter).stack;
+	    }
+	  } }
+	  /* C 6833-6842: `SWAP ()`.  */
+	  macro_rules! SWAP { () => {
+	    {
+	      let mut a: uint32_t;
+	      let mut b: uint32_t;
+
+	      a = POP! ();
+	      b = POP! ();
+
+	      PUSH_UNCHECKED! (a);
+	      PUSH_UNCHECKED! (b);
+	    }
+	  } }
+	  /* C 6844-6851: `DEPTH ()`.  */
+	  macro_rules! DEPTH { () => {
+	    {
+	      let mut diff: ptrdiff_t;
+
+	      diff = (*interpreter).SP.offset_from ((*interpreter).stack);
+	      PUSH! (diff as uint32_t);
+	    }
+	  } }
+	  /* C 6853-6864: `CINDEX ()`.  */
+	  macro_rules! CINDEX { () => {
+	    {
+	      let mut index: int32_t;
+
+	      index = POP! () as int32_t;
+
+	      if index <= 0 || index as isize > STACKSIZE! ()
+		{ TRAP! (c"stack overflow".as_ptr ()); }
+
+	      PUSH_UNCHECKED! (*(*interpreter).SP.offset (-(index as isize)));
+	    }
+	  } }
+	  /* C 6866-6880: `MINDEX ()`.  */
+	  macro_rules! MINDEX { () => {
+	    {
+	      let mut index: int32_t;
+	      let mut what: int32_t;
+
+	      index = POP! () as int32_t;
+
+	      if index <= 0 || index as isize > STACKSIZE! ()
+		{ TRAP! (c"stack overflow".as_ptr ()); }
+
+	      what = *(*interpreter).SP.offset (-(index as isize)) as int32_t;
+	      MOVE! ((*interpreter).SP.offset (-(index as isize)),
+		     (*interpreter).SP.offset (-(index as isize) + 1),
+		     (index - 1) as size_t);
+	      *(*interpreter).SP.offset (-1) = what as uint32_t;
+	    }
+	  } }
+	  /* C 6882-6888: `RAW ()`.  */
+	  macro_rules! RAW { () => {
+	    {
+	      if why != SFNT_RUN_CONTEXT_GLYPH_PROGRAM
+		{ TRAP! (c"Read Advance Width without loaded glyph".as_ptr ()); }
+	      PUSH! ((*interpreter).advance_width as uint32_t);
+	    }
+	  } }
+	  /* C 6890-6916: `CALL ()` - C's `goto next_instruction`.  */
+	  macro_rules! CALL { () => {
+	    {
+	      let mut id: uint32_t;
+	      let mut i: uint32_t;
+	      let mut def: *mut sfnt_interpreter_definition;
+
+	      id = POP! ();
+
+	      i = 0;
+	      while i < (*interpreter).function_defs_size as uint32_t
+		{
+		  def = &raw mut *(*interpreter).function_defs.offset (i as isize);
+
+		  if (*def).instructions.is_null ()
+		    { TRAP! (c"invalid function".as_ptr ()); }
+
+		  if (*def).opcode as uint32_t == id
+		    {
+		      sfnt_interpret_call (def, interpreter, why);
+		      break 'next_instruction;
+		    }
+
+		  i += 1;
+		}
+
+	      TRAP! (c"invalid function".as_ptr ());
+	    }
+	  } }
+	  /* C 6918-6953: `LOOPCALL ()` - C's `loopcall_begin:` is the macro's own label, and its
+	     C 6941 `goto` leaves the search loop for it.  */
+	  macro_rules! LOOPCALL { () => {
+	    {
+	      let mut id: uint32_t;
+	      let mut n: int32_t;
+	      let mut i: c_int;
+	      let mut def: *mut sfnt_interpreter_definition;
+
+	      id = POP! ();
+	      n = POP! () as int32_t;
+
+	      if n > 65535
+		{ TRAP! (c"invalid LOOPCALL count".as_ptr ()); }
+
+	      /* C 6941's `goto loopcall_begin` lands on the caller loop below, so the search is a
+		 labelled block the match breaks out of.  */
+	      'search: {
+		i = 0;                                           // C 6932
+		while i < (*interpreter).function_defs_size as c_int
+		  {
+		    def = &raw mut *(*interpreter).function_defs.offset (i as isize);   // C 6935
+
+		    if (*def).instructions.is_null ()            // C 6937
+		      { TRAP! (c"invalid function".as_ptr ()); }   // C 6938
+
+		    if (*def).opcode as uint32_t == id           // C 6940
+		      { break 'search; }                         // C 6941
+		    i += 1;
+		  }
+
+		TRAP! (c"invalid function".as_ptr ());           // C 6944
+	      }
+
+	      /* C 6946: `loopcall_begin:`.  */
+	      'loopcall_begin: loop
+		{
+		  /* C's `n-- <= 0` compares before the decrement (the `bidi.rs` `n_old` shape).  */
+		  let n_old: int32_t = n;
+		  n -= 1;
+		  if n_old <= 0                                  // C 6947
+		    { break; }                                   // C 6948
+
+		  sfnt_interpret_call (def, interpreter, why);   // C 6950-6951
+		  continue 'loopcall_begin;                      // C 6952
+		}
+	    }
+	  } }
+	  /* C 6955-6962: `FDEF ()` - C's `goto skip_step`.  */
+	  macro_rules! FDEF { () => {
+	    {
+	      if why == SFNT_RUN_CONTEXT_GLYPH_PROGRAM
+		{ TRAP! (c"FDEF inside glyph program".as_ptr ()); }
+
+	      sfnt_interpret_fdef (interpreter, POP! ());
+	      break 'skip_step;
+	    }
+	  } }
+	  /* C 6964-6967: `ENDF ()`.  */
+	  macro_rules! ENDF { () => {
+	    {
+	      TRAP! (c"stray ENDF".as_ptr ());
+	    }
+	  } }
+	  /* C 6969-6991: `NPUSHB ()`.  */
+	  macro_rules! NPUSHB { () => {
+	    {
+	      let mut b: c_int;
+	      let mut nbytes: c_int;
+	      let mut IP: c_int;
+	      let mut ip: *mut c_uchar;
+
+	      IP = (*interpreter).IP + 1;                    // C 6974
+	      if IP >= (*interpreter).num_instructions as c_int   // C 6975
+		{ TRAP! (c"Missing arg to NPUSHB".as_ptr ()); }   // C 6976
+
+	      nbytes = *(*interpreter).instructions.offset (IP as isize) as c_int;   // C 6978-6979
+
+	      if IP + 1 + nbytes > (*interpreter).num_instructions as c_int   // C 6981-6982
+		{ TRAP! (c"args to NPUSHB lie outside IS".as_ptr ()); }   // C 6983
+
+	      CHECK_STACK_AVAILABLE! (nbytes);               // C 6985
+	      ip = (*interpreter).instructions;              // C 6986
+	      b = IP + 1;                                    // C 6987
+	      while b < IP + 1 + nbytes
+		{
+		  PUSH_UNCHECKED! (*ip.offset (b as isize) as uint32_t);   // C 6988
+		  b += 1;
+		}
+
+	      (*interpreter).IP += nbytes + 1;               // C 6990
+	    }
+	  } }
+	  /* C 6993-7016: `NPUSHW ()`.  */
+	  macro_rules! NPUSHW { () => {
+	    {
+	      let mut b: c_int;
+	      let mut nbytes: c_int;
+	      let mut IP: c_int;
+	      let mut ip: *mut c_uchar;
+
+	      IP = (*interpreter).IP + 1;                    // C 6998
+	      if IP >= (*interpreter).num_instructions as c_int   // C 6999
+		{ TRAP! (c"Missing arg to NPUSHW".as_ptr ()); }   // C 7000
+
+	      nbytes = *(*interpreter).instructions.offset (IP as isize) as c_int * 2;   // C 7002-7003
+
+	      if IP + 1 + nbytes > (*interpreter).num_instructions as c_int   // C 7005-7006
+		{ TRAP! (c"args to NPUSHW lie outside IS".as_ptr ()); }   // C 7007
+
+	      CHECK_STACK_AVAILABLE! (nbytes / 2);           // C 7009
+	      ip = (*interpreter).instructions;              // C 7010
+	      b = IP + 1;                                    // C 7011
+	      while b < IP + 1 + nbytes
+		{
+		  PUSH2_UNCHECKED! (*ip.offset (b as isize), *ip.offset ((b + 1) as isize));   // C 7013
+		  b += 2;
+		}
+
+	      (*interpreter).IP += nbytes + 1;               // C 7015
+	    }
+	  } }
+	  /* C 7018-7029: `WS ()`.  */
+	  macro_rules! WS { () => {
+	    {
+	      let mut address: uint32_t;
+	      let mut value: uint32_t;
+
+	      value = POP! ();
+	      address = POP! ();
+
+	      if address >= (*interpreter).storage_size as uint32_t   // C 7025
+		{ TRAP! (c"invalid WS".as_ptr ()); }         // C 7026
+
+	      *(*interpreter).storage.offset (address as isize) = value;   // C 7028
+	    }
+	  } }
+	  /* C 7031-7042: `RS ()`.  */
+	  macro_rules! RS { () => {
+	    {
+	      let mut address: uint32_t;
+	      let mut value: uint32_t;
+
+	      address = POP! ();
+
+	      if address >= (*interpreter).storage_size as uint32_t   // C 7037
+		{ TRAP! (c"invalid RS".as_ptr ()); }         // C 7038
+
+	      value = *(*interpreter).storage.offset (address as isize);   // C 7040
+	      PUSH_UNCHECKED! (value);                       // C 7041
+	    }
+	  } }
+	  /* C 7044-7056: `WCVTP ()`.  */
+	  macro_rules! WCVTP { () => {
+	    {
+	      let mut value: sfnt_f26dot6;
+	      let mut location: uint32_t;
+
+	      value = POP! () as sfnt_f26dot6;
+	      location = POP! ();
+
+	      if location as usize >= (*interpreter).cvt_size   // C 7052
+		{ TRAP! (c"WCVTP out of bounds".as_ptr ()); }   // C 7053
+
+	      *(*interpreter).cvt.offset (location as isize) = value;   // C 7055
+	    }
+	  } }
+	  /* C 7058-7070: `RCVT ()`.  */
+	  macro_rules! RCVT { () => {
+	    {
+	      let mut value: sfnt_f26dot6;
+	      let mut location: uint32_t;
+
+	      location = POP! ();
+
+	      if location as usize >= (*interpreter).cvt_size   // C 7065
+		{ TRAP! (c"out of bounds RCVT".as_ptr ()); }   // C 7066
+
+	      value = *(*interpreter).cvt.offset (location as isize);   // C 7068
+	      PUSH_UNCHECKED! (value as uint32_t);           // C 7069
+	    }
+	  } }
+	  /* C 7072-7075: `MPPEM ()`.  */
+	  macro_rules! MPPEM { () => {
+	    {
+	      PUSH! ((*interpreter).ppem as uint32_t);
+	    }
+	  } }
+	  /* C 7077-7080: `MPS ()`.  */
+	  macro_rules! MPS { () => {
+	    {
+	      PUSH! ((*interpreter).point_size as uint32_t);
+	    }
+	  } }
+	  /* C 7082-7085: `FLIPON ()`.  */
+	  macro_rules! FLIPON { () => {
+	    {
+	      (*interpreter).state.auto_flip = true;
+	    }
+	  } }
+	  /* C 7087-7090: `FLIPOFF ()`.  */
+	  macro_rules! FLIPOFF { () => {
+	    {
+	      (*interpreter).state.auto_flip = false;
+	    }
+	  } }
+	  /* C 7092-7095: `DEBUG ()`.  */
+	  macro_rules! DEBUG { () => {
+	    {
+	      POP! ();  /* Value is ignored.  */
+	    }
+	  } }
+	  /* C 7097-7105: `LT ()`.  */
+	  macro_rules! LT { () => {
+	    {
+	      let mut e1: int32_t;
+	      let mut e2: int32_t;
+
+	      e2 = POP! () as int32_t;
+	      e1 = POP! () as int32_t;
+
+	      PUSH_UNCHECKED! (if e1 < e2 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7107-7115: `LTEQ ()`.  */
+	  macro_rules! LTEQ { () => {
+	    {
+	      let mut e1: int32_t;
+	      let mut e2: int32_t;
+
+	      e2 = POP! () as int32_t;
+	      e1 = POP! () as int32_t;
+
+	      PUSH_UNCHECKED! (if e1 <= e2 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7117-7125: `GT ()`.  */
+	  macro_rules! GT { () => {
+	    {
+	      let mut e1: int32_t;
+	      let mut e2: int32_t;
+
+	      e2 = POP! () as int32_t;
+	      e1 = POP! () as int32_t;
+
+	      PUSH_UNCHECKED! (if e1 > e2 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7127-7135: `GTEQ ()`.  */
+	  macro_rules! GTEQ { () => {
+	    {
+	      let mut e1: int32_t;
+	      let mut e2: int32_t;
+
+	      e2 = POP! () as int32_t;
+	      e1 = POP! () as int32_t;
+
+	      PUSH_UNCHECKED! (if e1 >= e2 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7137-7145: `EQ ()`.  */
+	  macro_rules! EQ { () => {
+	    {
+	      let mut e1: uint32_t;
+	      let mut e2: uint32_t;
+
+	      e1 = POP! ();
+	      e2 = POP! ();
+
+	      PUSH_UNCHECKED! (if e1 == e2 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7147-7155: `NEQ ()`.  */
+	  macro_rules! NEQ { () => {
+	    {
+	      let mut e1: uint32_t;
+	      let mut e2: uint32_t;
+
+	      e1 = POP! ();
+	      e2 = POP! ();
+
+	      PUSH_UNCHECKED! (if e1 != e2 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7157-7169: `ODD ()` - C's `interpreter->state.round (result, interpreter)` through the
+	     `Option` the mirror declares it as.  */
+	  macro_rules! ODD { () => {
+	    {
+	      let mut e1: sfnt_f26dot6;
+	      let mut result: sfnt_f26dot6;
+
+	      e1 = POP! () as sfnt_f26dot6;
+	      result = abs (e1) as sfnt_f26dot6;
+
+	      result = (*interpreter).state.round.unwrap () (result, interpreter);
+	      PUSH_UNCHECKED! (if (result & 127) == 64 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7171-7184: `EVEN ()`.  */
+	  macro_rules! EVEN { () => {
+	    {
+	      let mut e1: sfnt_f26dot6;
+	      let mut result: sfnt_f26dot6;
+	      let mut value: uint32_t;
+
+	      e1 = POP! () as sfnt_f26dot6;
+	      result = abs (e1) as sfnt_f26dot6;
+
+	      result = (*interpreter).state.round.unwrap () (result, interpreter);
+	      value = if (result & 127) == 64 { 0 } else { 1 };
+	      PUSH_UNCHECKED! (value);
+	    }
+	  } }
+	  /* C 7186-7193: `IF ()` - C's `goto skip_step`.  */
+	  macro_rules! IF { () => {
+	    {
+	      let mut condition: uint32_t;
+
+	      condition = POP! ();
+	      sfnt_interpret_if (interpreter, condition != 0);   // C's `uint32_t` -> `bool`
+	      break 'skip_step;
+	    }
+	  } }
+	  /* C 7195-7198: `EIF ()` - C's body is empty.  */
+	  macro_rules! EIF { () => {
+	    {
+	    }
+	  } }
+	  /* C 7200-7208: `AND ()`.  */
+	  macro_rules! AND { () => {
+	    {
+	      let mut e1: uint32_t;
+	      let mut e2: uint32_t;
+
+	      e1 = POP! ();
+	      e2 = POP! ();
+
+	      PUSH_UNCHECKED! (if e1 != 0 && e2 != 0 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7210-7218: `OR ()`.  */
+	  macro_rules! OR { () => {
+	    {
+	      let mut e1: uint32_t;
+	      let mut e2: uint32_t;
+
+	      e1 = POP! ();
+	      e2 = POP! ();
+
+	      PUSH_UNCHECKED! (if e1 != 0 || e2 != 0 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7220-7227: `NOT ()`.  */
+	  macro_rules! NOT { () => {
+	    {
+	      let mut e1: uint32_t;
+
+	      e1 = POP! ();
+
+	      PUSH_UNCHECKED! (if e1 == 0 { 1 } else { 0 });
+	    }
+	  } }
+	  /* C 7229-7236: `SDB ()`.  */
+	  macro_rules! SDB { () => {
+	    {
+	      let mut base: uint32_t;
+
+	      base = POP! ();
+
+	      (*interpreter).state.delta_base = base as c_ushort;
+	    }
+	  } }
+	  /* C 7238-7248: `SDS ()`.  */
+	  macro_rules! SDS { () => {
+	    {
+	      let mut shift: uint32_t;
+
+	      shift = POP! ();
+
+	      if shift > 6
+		{ TRAP! (c"invalid delta shift".as_ptr ()); }
+
+	      (*interpreter).state.delta_shift = shift as c_ushort;
+	    }
+	  } }
+	  /* C 7250-7258: `ADD ()`.  */
+	  macro_rules! ADD { () => {
+	    {
+	      let mut n1: sfnt_f26dot6;
+	      let mut n2: sfnt_f26dot6;
+
+	      n1 = POP! () as sfnt_f26dot6;
+	      n2 = POP! () as sfnt_f26dot6;
+
+	      PUSH_UNCHECKED! (sfnt_add! (n1, n2) as uint32_t);
+	    }
+	  } }
+	  /* C 7260-7268: `SUB ()`.  */
+	  macro_rules! SUB { () => {
+	    {
+	      let mut n2: sfnt_f26dot6;
+	      let mut n1: sfnt_f26dot6;
+
+	      n2 = POP! () as sfnt_f26dot6;
+	      n1 = POP! () as sfnt_f26dot6;
+
+	      PUSH_UNCHECKED! (sfnt_sub! (n1, n2) as uint32_t);
+	    }
+	  } }
+	  /* C 7270-7281: `DIV ()`.  */
+	  macro_rules! DIV { () => {
+	    {
+	      let mut n2: sfnt_f26dot6;
+	      let mut n1: sfnt_f26dot6;
+
+	      n2 = POP! () as sfnt_f26dot6;
+	      n1 = POP! () as sfnt_f26dot6;
+
+	      if n2 == 0
+		{ TRAP! (c"DIV by 0".as_ptr ()); }
+
+	      PUSH_UNCHECKED! (sfnt_div_f26dot6 (n1, n2) as uint32_t);
+	    }
+	  } }
+	  /* C 7283-7292: `MUL ()`.  */
+	  macro_rules! MUL { () => {
+	    {
+	      let mut n2: sfnt_f26dot6;
+	      let mut n1: sfnt_f26dot6;
+	      let mut r: sfnt_f26dot6;
+
+	      n2 = POP! () as sfnt_f26dot6;
+	      n1 = POP! () as sfnt_f26dot6;
+
+	      r = sfnt_mul_f26dot6_round (n2, n1);
+	      PUSH_UNCHECKED! (r as uint32_t);
+	    }
+	  } }
+	  /* C 7294-7304: `ABS ()`.  */
+	  macro_rules! ABS { () => {
+	    {
+	      let mut n: sfnt_f26dot6;
+
+	      n = POP! () as sfnt_f26dot6;
+
+	      if n == INT32_MIN
+		{ PUSH_UNCHECKED! (0); }
+	      else
+		{ PUSH_UNCHECKED! (if n < 0 { -n } else { n } as uint32_t); }
+	    }
+	  } }
+	  /* C 7306-7316: `NEG ()`.  */
+	  macro_rules! NEG { () => {
+	    {
+	      let mut n: sfnt_f26dot6;
+
+	      n = POP! () as sfnt_f26dot6;
+
+	      if n == INT32_MIN
+		{ PUSH_UNCHECKED! (0); }
+	      else
+		{ PUSH_UNCHECKED! (-n as uint32_t); }
+	    }
+	  } }
+	  /* C 7318-7324: `FLOOR ()`.  */
+	  macro_rules! FLOOR { () => {
+	    {
+	      let mut n: sfnt_f26dot6;
+
+	      n = POP! () as sfnt_f26dot6;
+	      PUSH_UNCHECKED! (sfnt_floor_f26dot6 (n) as uint32_t);
+	    }
+	  } }
+	  /* C 7326-7332: `CEILING ()`.  */
+	  macro_rules! CEILING { () => {
+	    {
+	      let mut n: sfnt_f26dot6;
+
+	      n = POP! () as sfnt_f26dot6;
+	      PUSH_UNCHECKED! (sfnt_ceil_f26dot6 (n) as uint32_t);
+	    }
+	  } }
+	  /* C 7334-7348: `WCVTF ()`.  */
+	  macro_rules! WCVTF { () => {
+	    {
+	      let mut value: int32_t;
+	      let mut location: uint32_t;
+
+	      value = POP! () as int32_t;
+	      location = POP! ();
+
+	      if location as usize >= (*interpreter).cvt_size   // C 7342
+		{ TRAP! (c"WCVTF out of bounds".as_ptr ()); }   // C 7343
+
+	      *(*interpreter).cvt.offset (location as isize)
+		= sfnt_mul_fixed (value, (*interpreter).scale);   // C 7345-7347
+	    }
+	  } }
+	  /* C 7350-7368: `JROT ()` - C's `break` leaves the switch, which is the dispatch loop
+	     (C 11970's `next_instruction:` is what a switch `break` falls to).  */
+	  macro_rules! JROT { () => {
+	    {
+	      let mut e: uint32_t;
+	      let mut offset: int32_t;
+
+	      e = POP! ();
+	      offset = POP! () as int32_t;
+
+	      if e == 0
+		{ break; }                                   // C 7359
+
+	      if ((*interpreter).IP + offset) < 0
+		 || ((*interpreter).IP + offset
+		     > (*interpreter).num_instructions as c_int)   // C 7361-7363
+		{ TRAP! (c"JMPR out of bounds".as_ptr ()); }   // C 7364
+
+	      (*interpreter).IP += offset;                   // C 7366
+	      break 'skip_step;                              // C 7367
+	    }
+	  } }
+	  /* C 7370-7388: `JROF ()`.  */
+	  macro_rules! JROF { () => {
+	    {
+	      let mut e: uint32_t;
+	      let mut offset: int32_t;
+
+	      e = POP! ();
+	      offset = POP! () as int32_t;
+
+	      if e != 0
+		{ break; }                                   // C 7379
+
+	      if ((*interpreter).IP + offset) < 0
+		 || ((*interpreter).IP + offset
+		     > (*interpreter).num_instructions as c_int)   // C 7381-7383
+		{ TRAP! (c"JMPR out of bounds".as_ptr ()); }   // C 7384
+
+	      (*interpreter).IP += offset;                   // C 7386
+	      break 'skip_step;                              // C 7387
+	    }
+	  } }
+	  /* C 7390-7393: `ILLEGAL_INSTRUCTION ()`.  */
+	  macro_rules! ILLEGAL_INSTRUCTION { () => {
+	    {
+	      TRAP! (c"MS reserved illegal instruction".as_ptr ());
+	    }
+	  } }
+	  /* C 7395-7401: `SCANCTRL ()`.  */
+	  macro_rules! SCANCTRL { () => {
+	    {
+	      let mut value: uint32_t;
+
+	      value = POP! ();
+	      (*interpreter).state.scan_control = value as c_int;
+	    }
+	  } }
+	  /* C 7410-7429: `GETINFO ()`.  */
+	  macro_rules! GETINFO { () => {
+	    {
+	      let mut selector: uint32_t;
+	      let mut k: uint32_t;
+
+	      selector = POP! ();
+
+	      k = 0;                                         // C 7416
+
+	      if (selector & 1) != 0                         // C 7418
+		{ k |= 0o2; }
+
+	      if (selector & 8) != 0 && !(*interpreter).norm_coords.is_null()   // C 7421-7422
+		{ k |= 0o2000; }                             // C 7423
+
+	      if (selector & 32) != 0                        // C 7425
+		{ k |= 0o10000; }                            // C 7426
+
+	      PUSH_UNCHECKED! (k);                           // C 7428
+	    }
+	  } }
+	  /* C 7431-7438: `IDEF ()` - C's `goto skip_step`.  */
+	  macro_rules! IDEF { () => {
+	    {
+	      if why == SFNT_RUN_CONTEXT_GLYPH_PROGRAM
+		{ TRAP! (c"IDEF inside glyph program".as_ptr ()); }
+
+	      sfnt_interpret_idef (interpreter, POP! ());
+	      break 'skip_step;
+	    }
+	  } }
+	  /* C 7440-7453: `ROLL ()`.  */
+	  macro_rules! ROLL { () => {
+	    {
+	      let mut a: uint32_t;
+	      let mut b: uint32_t;
+	      let mut c: uint32_t;
+
+	      CHECK_STACK_ELEMENTS! (3);                     // C 7444
+
+	      a = POP_UNCHECKED! ();                         // C 7446
+	      b = POP_UNCHECKED! ();                         // C 7447
+	      c = POP_UNCHECKED! ();                         // C 7448
+
+	      PUSH_UNCHECKED! (b);                           // C 7450
+	      PUSH_UNCHECKED! (a);                           // C 7451
+	      PUSH_UNCHECKED! (c);                           // C 7452
+	    }
+	  } }
+	  /* C 7455-7463: `INS_MAX ()`.  */
+	  macro_rules! INS_MAX { () => {
+	    {
+	      let mut e1: int32_t;
+	      let mut e2: int32_t;
+
+	      e1 = POP! () as int32_t;
+	      e2 = POP! () as int32_t;
+
+	      PUSH_UNCHECKED! (MAX! (e1, e2) as uint32_t);
+	    }
+	  } }
+	  /* C 7465-7473: `INS_MIN ()`.  */
+	  macro_rules! INS_MIN { () => {
+	    {
+	      let mut e1: int32_t;
+	      let mut e2: int32_t;
+
+	      e1 = POP! () as int32_t;
+	      e2 = POP! () as int32_t;
+
+	      PUSH_UNCHECKED! (MIN! (e1, e2) as uint32_t);
+	    }
+	  } }
+	  /* C 7475-7478: `SCANTYPE ()` - C's body is the one `POP ()`.  */
+	  macro_rules! SCANTYPE { () => {
+	    {
+	      POP! ();
+	    }
+	  } }
+	  /* C 7480-7497: `INSTCTRL ()` - C's `break` leaves the switch (the dispatch loop).  */
+	  macro_rules! INSTCTRL { () => {
+	    {
+	      let mut s: uint32_t;
+	      let mut v: uint32_t;
+
+	      CHECK_PREP! ();                                // C 7484
+	      s = POP! ();                                   // C 7485
+	      v = POP! ();                                   // C 7486
+
+	      if s == 0 || s > 2                            // C 7488
+		{ break; }                                   // C 7489
+
+	      (*interpreter).state.instruct_control
+		&= !((1u32 << s) as u8);                     // C 7491-7492
+
+	      if v != 0                                     // C 7494
+		{ (*interpreter).state.instruct_control
+		    |= (1u32 << s) as u8; }                  // C 7495-7496
+	    }
+	  } }
+	  /* C 7502-7519: `GXAXIS ()` - C's `norm_coords[i] / 4` promotes the `sfnt_fixed` element
+	     and then converts to `uint32_t`.  */
+	  macro_rules! GXAXIS { () => {
+	    {
+	      let mut v: uint32_t;
+	      let mut i: c_int;
+	      let mut naxis: c_int;
+
+	      naxis = (*interpreter).n_axis;                 // C 7507
+	      CHECK_STACK_AVAILABLE! (naxis);                // C 7508
+
+	      i = 0;                                         // C 7510
+	      while i < naxis
+		{
+		  if !(*interpreter).norm_coords.is_null ()  // C 7512
+		    { v = ((*(*interpreter).norm_coords.offset (i as isize)) as c_int / 4) as uint32_t; }   // C 7513
+		  else
+		    { v = 0; }                               // C 7515
+
+		  PUSH_UNCHECKED! (v);                       // C 7517
+		  i += 1;
+		}
+	    }
+	  } }
+	  /* C 7521-7539: `PUSHB ()` - C's `opcode` here is the dispatch's own opcode.  */
+	  macro_rules! PUSHB { () => {
+	    {
+	      let mut b: c_int;
+	      let mut nbytes: c_int;
+	      let mut IP: c_int;
+	      let mut ip: *mut c_uchar;
+
+	      IP = (*interpreter).IP;                        // C 7526
+	      nbytes = opcode as c_int - 0xb0 + 1;           // C 7527
+
+	      if IP + nbytes + 1 > (*interpreter).num_instructions as c_int   // C 7529-7530
+		{ TRAP! (c"args to PUSHB lie outside IS".as_ptr ()); }   // C 7531
+
+	      CHECK_STACK_AVAILABLE! (nbytes);               // C 7533
+	      ip = (*interpreter).instructions;              // C 7534
+	      b = IP + 1;                                    // C 7535
+	      while b < IP + nbytes + 1
+		{
+		  PUSH_UNCHECKED! (*ip.offset (b as isize) as uint32_t);   // C 7536
+		  b += 1;
+		}
+
+	      (*interpreter).IP += nbytes;                   // C 7538
+	    }
+	  } }
+	  /* C 7541-7560: `PUSHW ()`.  */
+	  macro_rules! PUSHW { () => {
+	    {
+	      let mut b: c_int;
+	      let mut nbytes: c_int;
+	      let mut IP: c_int;
+	      let mut ip: *mut c_uchar;
+
+	      IP = (*interpreter).IP;                        // C 7546
+	      nbytes = (opcode as c_int - 0xb8 + 1) * 2;     // C 7547
+
+	      if IP + 1 + nbytes > (*interpreter).num_instructions as c_int   // C 7549-7550
+		{ TRAP! (c"args to PUSHW lie outside IS".as_ptr ()); }   // C 7551
+
+	      CHECK_STACK_AVAILABLE! (nbytes / 2);           // C 7553
+	      ip = (*interpreter).instructions;              // C 7554
+	      b = IP + 1;                                    // C 7555
+	      while b < IP + nbytes + 1
+		{
+		  PUSH2_UNCHECKED! (*ip.offset (b as isize), *ip.offset ((b + 1) as isize));   // C 7557
+		  b += 2;
+		}
+
+	      (*interpreter).IP += nbytes;                   // C 7559
+	    }
+	  } }
+	  /* C 7566-7577: `ROUND ()`.  */
+	  macro_rules! ROUND { () => {
+	    {
+	      let mut n: sfnt_f26dot6;
+	      let mut result: sfnt_f26dot6;
+
+	      n = POP! () as sfnt_f26dot6;
+	      result = abs (n) as sfnt_f26dot6;
+
+	      result = (*interpreter).state.round.unwrap () (result, interpreter);
+	      PUSH_UNCHECKED! (if n < 0 { -result } else { result } as uint32_t);
+	    }
+	  } }
+	  /* C 7579-7585: `NROUND ()`.  */
+	  macro_rules! NROUND { () => {
+	    {
+	      let mut n: sfnt_f26dot6;
+
+	      n = POP! () as sfnt_f26dot6;
+	      PUSH_UNCHECKED! (n as uint32_t);
+	    }
+	  } }
+	  /* C 7587-7591: `ROFF ()`.  */
+	  macro_rules! ROFF { () => {
+	    {
+	      (*interpreter).state.round_state = 5;
+	      sfnt_validate_gs (&raw mut (*interpreter).state);
+	    }
+	  } }
+	  /* C 7593-7597: `RUTG ()`.  */
+	  macro_rules! RUTG { () => {
+	    {
+	      (*interpreter).state.round_state = 4;
+	      sfnt_validate_gs (&raw mut (*interpreter).state);
+	    }
+	  } }
+	  /* C 7599-7603: `RDTG ()`.  */
+	  macro_rules! RDTG { () => {
+	    {
+	      (*interpreter).state.round_state = 3;
+	      sfnt_validate_gs (&raw mut (*interpreter).state);
+	    }
+	  } }
+	  /* C 7605-7609: `RTG ()`.  */
+	  macro_rules! RTG { () => {
+	    {
+	      (*interpreter).state.round_state = 1;
+	      sfnt_validate_gs (&raw mut (*interpreter).state);
+	    }
+	  } }
+	  /* C 7611-7615: `RTHG ()`.  */
+	  macro_rules! RTHG { () => {
+	    {
+	      (*interpreter).state.round_state = 0;
+	      sfnt_validate_gs (&raw mut (*interpreter).state);
+	    }
+	  } }
+	  /* C 7617-7621: `RTDG ()`.  */
+	  macro_rules! RTDG { () => {
+	    {
+	      (*interpreter).state.round_state = 2;
+	      sfnt_validate_gs (&raw mut (*interpreter).state);
+	    }
+	  } }
+	  /* C 7623-7633: `SROUND ()`.  */
+	  macro_rules! SROUND { () => {
+	    {
+	      let mut operand: uint32_t;
+
+	      operand = POP! ();
+	      sfnt_set_srounding_state (interpreter, operand, 0x4000);   // C 7628-7630
+	      (*interpreter).state.round_state = 6;          // C 7631
+	      sfnt_validate_gs (&raw mut (*interpreter).state);   // C 7632
+	    }
+	  } }
+	  /* C 7635-7645: `S45ROUND ()`.  */
+	  macro_rules! S45ROUND { () => {
+	    {
+	      let mut operand: uint32_t;
+
+	      operand = POP! ();
+	      sfnt_set_srounding_state (interpreter, operand, 0x5a82);   // C 7640-7642
+	      (*interpreter).state.round_state = 7;          // C 7643
+	      sfnt_validate_gs (&raw mut (*interpreter).state);   // C 7644
+	    }
+	  } }
+	  /* C 7654-7670: `DELTAC1 ()` - C's `deltac1_start:` is the loop's head, its `goto` is that
+	     loop's `continue`, and its `break` leaves the switch (the dispatch loop).  */
+	  macro_rules! DELTAC1 { () => {
+	    {
+	      let mut operand1: uint32_t;
+	      let mut operand2: uint32_t;
+	      let mut n: uint32_t;
+
+	      n = POP! ();                                   // C 7658
+
+	      loop
+		{
+		  if n == 0                                  // C 7661
+		    { break; }                               // C 7662
+
+		  operand1 = POP! ();                        // C 7664
+		  operand2 = POP! ();                        // C 7665
+		  sfnt_deltac (1, interpreter, operand1, operand2 as c_uchar);   // C 7666-7667
+		  n -= 1;                                    // C 7668
+		}
+	    }
+	  } }
+	  /* C 7672-7688: `DELTAC2 ()`.  */
+	  macro_rules! DELTAC2 { () => {
+	    {
+	      let mut operand1: uint32_t;
+	      let mut operand2: uint32_t;
+	      let mut n: uint32_t;
+
+	      n = POP! ();
+
+	      loop
+		{
+		  if n == 0
+		    { break; }
+
+		  operand1 = POP! ();
+		  operand2 = POP! ();
+		  sfnt_deltac (2, interpreter, operand1, operand2 as c_uchar);
+		  n -= 1;
+		}
+	    }
+	  } }
+	  /* C 7690-7706: `DELTAC3 ()`.  */
+	  macro_rules! DELTAC3 { () => {
+	    {
+	      let mut operand1: uint32_t;
+	      let mut operand2: uint32_t;
+	      let mut n: uint32_t;
+
+	      n = POP! ();
+
+	      loop
+		{
+		  if n == 0
+		    { break; }
+
+		  operand1 = POP! ();
+		  operand2 = POP! ();
+		  sfnt_deltac (3, interpreter, operand1, operand2 as c_uchar);
+		  n -= 1;
+		}
+	    }
+	  } }
+	  /* C 7708-7723: `DELTAP1 ()`.  */
+	  macro_rules! DELTAP1 { () => {
+	    {
+	      let mut n: uint32_t;
+	      let mut argn: uint32_t;
+	      let mut pn: uint32_t;
+
+	      n = POP! ();
+
+	      loop
+		{
+		  if n == 0
+		    { break; }
+
+		  pn = POP! ();
+		  argn = POP! ();
+		  sfnt_deltap (1, interpreter, argn as c_uchar, pn);
+		  n -= 1;
+		}
+	    }
+	  } }
+	  /* C 7725-7740: `DELTAP2 ()`.  */
+	  macro_rules! DELTAP2 { () => {
+	    {
+	      let mut n: uint32_t;
+	      let mut argn: uint32_t;
+	      let mut pn: uint32_t;
+
+	      n = POP! ();
+
+	      loop
+		{
+		  if n == 0
+		    { break; }
+
+		  pn = POP! ();
+		  argn = POP! ();
+		  sfnt_deltap (2, interpreter, argn as c_uchar, pn);
+		  n -= 1;
+		}
+	    }
+	  } }
+	  /* C 7742-7757: `DELTAP3 ()`.  */
+	  macro_rules! DELTAP3 { () => {
+	    {
+	      let mut n: uint32_t;
+	      let mut argn: uint32_t;
+	      let mut pn: uint32_t;
+
+	      n = POP! ();
+
+	      loop
+		{
+		  if n == 0
+		    { break; }
+
+		  pn = POP! ();
+		  argn = POP! ();
+		  sfnt_deltap (3, interpreter, argn as c_uchar, pn);
+		  n -= 1;
+		}
+	    }
+	  } }
+	  /* C 7763-7766: `AA ()` - C's body is the one `POP ()`.  */
+	  macro_rules! AA { () => {
+	    {
+	      POP! ();
+	    }
+	  } }
+	  /* C 7768-7771: `SANGW ()` - C's body is the one `POP ()`.  */
+	  macro_rules! SANGW { () => {
+	    {
+	      POP! ();
+	    }
+	  } }
+	  /* C 7777-7778: `PROJECT (x, y)` - C's argument order is `(x, y)`.  */
+	  macro_rules! PROJECT { ($x:expr, $y:expr) => {
+	    sfnt_project_vector (interpreter, $x, $y)
+	  } }
+	  /* C 7780-7781: `DUAL_PROJECT (x, y)`.  */
+	  macro_rules! DUAL_PROJECT { ($x:expr, $y:expr) => {
+	    sfnt_dual_project_vector (interpreter, $x, $y)
+	  } }
+	  /* C 7783-7789: `SVTCAy ()`.  */
+	  macro_rules! SVTCAy { () => {
+	    {
+	      sfnt_set_freedom_vector (interpreter, 0, 0o40000 as sfnt_f2dot14);
+	      sfnt_set_projection_vector (interpreter, 0, 0o40000 as sfnt_f2dot14);
+	    }
+	  } }
+	  /* C 7791-7797: `SVTCAx ()`.  */
+	  macro_rules! SVTCAx { () => {
+	    {
+	      sfnt_set_freedom_vector (interpreter, 0o40000 as sfnt_f2dot14, 0);
+	      sfnt_set_projection_vector (interpreter, 0o40000 as sfnt_f2dot14, 0);
+	    }
+	  } }
+	  /* C 7799-7803: `SPvTCAy ()`.  */
+	  macro_rules! SPvTCAy { () => {
+	    {
+	      sfnt_set_projection_vector (interpreter, 0, 0o40000 as sfnt_f2dot14);
+	    }
+	  } }
+	  /* C 7805-7809: `SPvTCAx ()`.  */
+	  macro_rules! SPvTCAx { () => {
+	    {
+	      sfnt_set_projection_vector (interpreter, 0o40000 as sfnt_f2dot14, 0);
+	    }
+	  } }
+	  /* C 7811-7815: `SFvTCAy ()`.  */
+	  macro_rules! SFvTCAy { () => {
+	    {
+	      sfnt_set_freedom_vector (interpreter, 0, 0o40000 as sfnt_f2dot14);
+	    }
+	  } }
+	  /* C 7817-7821: `SFvTCAx ()`.  */
+	  macro_rules! SFvTCAx { () => {
+	    {
+	      sfnt_set_freedom_vector (interpreter, 0o40000 as sfnt_f2dot14, 0);
+	    }
+	  } }
+	  /* C 7823-7839: `SPVTL ()`.  */
+	  macro_rules! SPVTL { () => {
+	    {
+	      let mut vector: sfnt_unit_vector = std::mem::zeroed ();
+	      let mut p2: uint32_t;
+	      let mut p1: uint32_t;
+
+	      p2 = POP! ();
+	      p1 = POP! ();
+
+	      sfnt_line_to_vector (interpreter, p2, p1, &raw mut vector,
+				   opcode == 0x07, false);   // C 7831-7834
+
+	      sfnt_save_projection_vector (interpreter, &raw mut vector, false);   // C 7836-7838
+	    }
+	  } }
+	  /* C 7841-7856: `SFVTL ()`.  */
+	  macro_rules! SFVTL { () => {
+	    {
+	      let mut vector: sfnt_unit_vector = std::mem::zeroed ();
+	      let mut p2: uint32_t;
+	      let mut p1: uint32_t;
+
+	      p2 = POP! ();
+	      p1 = POP! ();
+
+	      sfnt_line_to_vector (interpreter, p2, p1, &raw mut vector,
+				   opcode == 0x09, false);   // C 7849-7852
+
+	      sfnt_save_freedom_vector (interpreter, &raw mut vector);   // C 7854-7855
+	    }
+	  } }
+	  /* C 7858-7867: `SPVFS ()`.  */
+	  macro_rules! SPVFS { () => {
+	    {
+	      let mut y: uint32_t;
+	      let mut x: uint32_t;
+
+	      y = POP! ();
+	      x = POP! ();
+
+	      sfnt_set_projection_vector (interpreter, x as sfnt_f2dot14, y as sfnt_f2dot14);   // C 7865-7866
+	    }
+	  } }
+	  /* C 7869-7878: `SFVFS ()` - C's two locals are `uint16_t`s.  */
+	  macro_rules! SFVFS { () => {
+	    {
+	      let mut y: uint16_t;
+	      let mut x: uint16_t;
+
+	      y = POP! () as uint16_t;
+	      x = POP! () as uint16_t;
+
+	      sfnt_set_freedom_vector (interpreter, x as sfnt_f2dot14, y as sfnt_f2dot14);   // C 7876-7877
+	    }
+	  } }
+	  /* C 7880-7889: `GPV ()`.  */
+	  macro_rules! GPV { () => {
+	    {
+	      let mut vector: sfnt_unit_vector;
+
+	      vector = (*interpreter).state.projection_vector;   // C 7884-7885
+
+	      PUSH! (vector.x as int32_t as uint32_t);       // C 7887
+	      PUSH! (vector.y as int32_t as uint32_t);       // C 7888
+	    }
+	  } }
+	  /* C 7891-7900: `GFV ()`.  */
+	  macro_rules! GFV { () => {
+	    {
+	      let mut vector: sfnt_unit_vector;
+
+	      vector = (*interpreter).state.freedom_vector;   // C 7895-7896
+
+	      PUSH! (vector.x as int32_t as uint32_t);       // C 7898
+	      PUSH! (vector.y as int32_t as uint32_t);       // C 7899
+	    }
+	  } }
+	  /* C 7902-7908: `SFVTPV ()`.  */
+	  macro_rules! SFVTPV { () => {
+	    {
+	      (*interpreter).state.freedom_vector
+		= (*interpreter).state.projection_vector;    // C 7904-7905
+
+	      sfnt_validate_gs (&raw mut (*interpreter).state);   // C 7907
+	    }
+	  } }
+	  /* C 7910-7924: `ISECT ()`.  */
+	  macro_rules! ISECT { () => {
+	    {
+	      let mut a0: uint32_t;
+	      let mut a1: uint32_t;
+	      let mut b0: uint32_t;
+	      let mut b1: uint32_t;
+	      let mut p: uint32_t;
+
+	      CHECK_STACK_ELEMENTS! (5);                     // C 7914
+
+	      a0 = POP_UNCHECKED! ();                        // C 7916
+	      a1 = POP_UNCHECKED! ();                        // C 7917
+	      b0 = POP_UNCHECKED! ();                        // C 7918
+	      b1 = POP_UNCHECKED! ();                        // C 7919
+	      p = POP_UNCHECKED! ();                         // C 7920
+
+	      sfnt_interpret_isect (interpreter, a0, a1, b0, b1, p);   // C 7922-7923
+	    }
+	  } }
+	  /* C 7926-7935: `ALIGNPTS ()`.  */
+	  macro_rules! ALIGNPTS { () => {
+	    {
+	      let mut p1: uint32_t;
+	      let mut p2: uint32_t;
+
+	      p1 = POP! ();
+	      p2 = POP! ();
+
+	      sfnt_interpret_alignpts (interpreter, p1, p2);   // C 7933-7934
+	    }
+	  } }
+	  /* C 7937-7943: `UTP ()`.  */
+	  macro_rules! UTP { () => {
+	    {
+	      let mut p: uint32_t;
+
+	      p = POP! ();
+	      sfnt_interpret_utp (interpreter, p);
+	    }
+	  } }
+	  /* C 7945-7952: `MDAP ()`.  */
+	  macro_rules! MDAP { () => {
+	    {
+	      let mut p: uint32_t;
+
+	      p = POP! ();
+	      sfnt_interpret_mdap (interpreter, p, opcode as uint32_t);   // C 7950-7951
+	    }
+	  } }
+	  /* C 7954-7957: `IUP ()`.  */
+	  macro_rules! IUP { () => {
+	    {
+	      sfnt_interpret_iup (interpreter, opcode);
+	    }
+	  } }
+	  /* C 7959-7962: `SHP ()`.  */
+	  macro_rules! SHP { () => {
+	    {
+	      sfnt_interpret_shp (interpreter, opcode as uint32_t);
+	    }
+	  } }
+	  /* C 7964-7972: `SHC ()`.  */
+	  macro_rules! SHC { () => {
+	    {
+	      let mut contour: uint32_t;
+
+	      contour = POP! ();
+
+	      sfnt_interpret_shc (interpreter, contour, opcode as uint32_t);   // C 7970-7971
+	    }
+	  } }
+	  /* C 7974-7985: `SHZ ()`.  */
+	  macro_rules! SHZ { () => {
+	    {
+	      let mut e: uint32_t;
+
+	      e = POP! ();
+
+	      if e > 1
+		{ TRAP! (c"invalid zone!".as_ptr ()); }
+
+	      sfnt_interpret_shz (interpreter, e, opcode as uint32_t);   // C 7983-7984
+	    }
+	  } }
+	  /* C 7987-8005: `SHPIX ()` - C's `while (interpreter->state.loop--)`.  */
+	  macro_rules! SHPIX { () => {
+	    {
+	      let mut pixels: sfnt_f26dot6;
+	      let mut dx: sfnt_f26dot6 = 0;
+	      let mut dy: sfnt_f26dot6 = 0;
+	      let mut p: uint32_t;
+
+	      pixels = POP! () as sfnt_f26dot6;
+	      sfnt_scale_by_freedom_vector (interpreter, pixels, &raw mut dx,
+					    &raw mut dy);   // C 7993-7995
+
+	      while { let old = (*interpreter).state.r#loop;
+		      (*interpreter).state.r#loop = (*interpreter).state.r#loop.wrapping_sub (1);
+		      old != 0 }                           // C 7997
+		{
+		  p = POP! ();                             // C 7999
+		  sfnt_direct_move_zp2 (interpreter, p, dx, dy);   // C 8000-8001
+		}
+
+	      (*interpreter).state.r#loop = 1;               // C 8004
+	    }
+	  } }
+	  /* C 8007-8010: `IP ()` - C's body is the one `sfnt_interpret_ip` call.  */
+	  macro_rules! IP { () => {
+	    {
+	      sfnt_interpret_ip (interpreter);
+	    }
+	  } }
+	  /* C 8012-8022: `MSIRP ()`.  */
+	  macro_rules! MSIRP { () => {
+	    {
+	      let mut d: sfnt_f26dot6;
+	      let mut p: uint32_t;
+
+	      d = POP! () as sfnt_f26dot6;
+	      p = POP! ();
+
+	      sfnt_interpret_msirp (interpreter, d, p, opcode);   // C 8020-8021
+	    }
+	  } }
+	  /* C 8024-8027: `ALIGNRP ()`.  */
+	  macro_rules! ALIGNRP { () => {
+	    {
+	      sfnt_interpret_alignrp (interpreter);
+	    }
+	  } }
+	  /* C 8029-8039: `MIAP ()`.  */
+	  macro_rules! MIAP { () => {
+	    {
+	      let mut cvt: uint32_t;
+	      let mut p: uint32_t;
+
+	      cvt = POP! ();
+	      p = POP! ();
+
+	      sfnt_interpret_miap (interpreter, cvt, p, opcode);   // C 8037-8038
+	    }
+	  } }
+	  /* C 8041-8058: `GC ()`.  */
+	  macro_rules! GC { () => {
+	    {
+	      let mut p: uint32_t;
+	      let mut x: sfnt_f26dot6 = 0;
+	      let mut y: sfnt_f26dot6 = 0;
+	      let mut value: sfnt_f26dot6;
+	      let mut org_x: sfnt_f26dot6 = 0;
+	      let mut org_y: sfnt_f26dot6 = 0;
+
+	      p = POP! ();                                   // C 8047
+
+	      sfnt_address_zp2 (interpreter, p, &raw mut x, &raw mut y,
+				&raw mut org_x, &raw mut org_y);   // C 8049-8050
+
+	      if opcode == 0x47                              // C 8052
+		{ value = DUAL_PROJECT! (org_x, org_y); }    // C 8053
+	      else
+		{ value = PROJECT! (x, y); }                 // C 8055
+
+	      PUSH_UNCHECKED! (value as uint32_t);           // C 8057
+	    }
+	  } }
+	  /* C 8060-8069: `SCFS ()`.  */
+	  macro_rules! SCFS { () => {
+	    {
+	      let mut p: uint32_t;
+	      let mut c: sfnt_f26dot6;
+
+	      c = POP! () as sfnt_f26dot6;
+	      p = POP! ();
+
+	      sfnt_interpret_scfs (interpreter, p, c);       // C 8068
+	    }
+	  } }
+	  /* C 8071-8084: `MD ()`.  */
+	  macro_rules! MD { () => {
+	    {
+	      let mut p1: uint32_t;
+	      let mut p2: uint32_t;
+	      let mut distance: sfnt_f26dot6;
+
+	      p2 = POP! ();                                  // C 8076
+	      p1 = POP! ();                                  // C 8077
+
+	      distance = sfnt_measure_distance (interpreter, p1, p2, opcode);   // C 8079-8082
+	      PUSH_UNCHECKED! (distance as uint32_t);        // C 8083
+	    }
+	  } }
+	  /* C 8086-8089: `FLIPPT ()`.  */
+	  macro_rules! FLIPPT { () => {
+	    {
+	      sfnt_interpret_flippt (interpreter);
+	    }
+	  } }
+	  /* C 8091-8100: `FLIPRGOFF ()`.  */
+	  macro_rules! FLIPRGOFF { () => {
+	    {
+	      let mut h: uint32_t;
+	      let mut l: uint32_t;
+
+	      h = POP! ();
+	      l = POP! ();
+
+	      sfnt_interpret_fliprgoff (interpreter, h, l);   // C 8098-8099
+	    }
+	  } }
+	  /* C 8102-8111: `FLIPRGON ()`.  */
+	  macro_rules! FLIPRGON { () => {
+	    {
+	      let mut h: uint32_t;
+	      let mut l: uint32_t;
+
+	      h = POP! ();
+	      l = POP! ();
+
+	      sfnt_interpret_fliprgon (interpreter, h, l);   // C 8109-8110
+	    }
+	  } }
+	  /* C 8113-8138: `SDPVTL ()`.  */
+	  macro_rules! SDPVTL { () => {
+	    {
+	      let mut vector: sfnt_unit_vector = std::mem::zeroed ();
+	      let mut p2: uint32_t;
+	      let mut p1: uint32_t;
+
+	      p2 = POP! ();
+	      p1 = POP! ();
+
+	      sfnt_line_to_vector (interpreter, p2, p1, &raw mut vector,
+				   opcode == 0x87, false);   // C 8121-8124
+
+	      sfnt_save_projection_vector (interpreter, &raw mut vector, false);   // C 8126-8128
+
+	      sfnt_line_to_vector (interpreter, p2, p1, &raw mut vector,
+				   opcode == 0x87, true);    // C 8130-8133
+
+	      sfnt_save_projection_vector (interpreter, &raw mut vector, true);   // C 8135-8137
+	    }
+	  } }
+	  /* C 8140-8143: `MIRP ()`.  */
+	  macro_rules! MIRP { () => {
+	    {
+	      sfnt_interpret_mirp (interpreter, opcode as uint32_t);
+	    }
+	  } }
+	  /* C 8145-8148: `MDRP ()`.  */
+	  macro_rules! MDRP { () => {
+	    {
+	      sfnt_interpret_mdrp (interpreter, opcode as uint32_t);
+	    }
+	  } }
+	  /* C 8152-8154: `NOT_IMPLEMENTED ()` - C's body has no braces, so its call sites' `;`
+	     follows the expansion (the port keeps the same shape).  */
+	  macro_rules! NOT_IMPLEMENTED { () => {
+	    sfnt_interpret_unimplemented (interpreter, opcode, why)
+	  } }
+	  /* C 11420's `switch (opcode)`: the dispatch is a `match` with C's cases as arms (146 of
+	     them, plus C 11949's `default:`).  The `loop` is what a `break` inside a macro body
+	     leaves: C's `break` leaves the *switch*, and C 11970's `next_instruction:` is where
+	     both that `break` and this `loop`'s `break` land (the `IP++` below).  */
+	  loop
+	    {
+	      match opcode
+		{
+	      0x00 => { SVTCAy! (); }		/* SVTCA y  */
+	      0x01 => { SVTCAx! (); }		/* SVTCA x  */
+	      0x02 => { SPvTCAy! (); }		/* SPvTCA y */
+	      0x03 => { SPvTCAx! (); }		/* SPvTCA x */
+	      0x04 => { SFvTCAy! (); }		/* SFvTCA y */
+	      0x05 => { SFvTCAx! (); }		/* SFvTCA x */
+	      0x06 => { SPVTL! (); }		/* SPvTL // */
+	      0x07 => { SPVTL! (); }		/* SPvTL +  */
+	      0x08 => { SFVTL! (); }		/* SFvTL // */
+	      0x09 => { SFVTL! (); }		/* SFvTL +  */
+	      0x0A => { SPVFS! (); }		/* SPvFS */
+	      0x0B => { SFVFS! (); }		/* SFvFS */
+	      0x0C => { GPV! (); }		/* GPv */
+	      0x0D => { GFV! (); }		/* GFv */
+	      0x0E => { SFVTPV! (); }		/* SFvTPv */
+	      0x0F => { ISECT! (); }		/* ISECT  */
+	      0x10 => { SRP0! (); }		/* SRP0 */
+	      0x11 => { SRP1! (); }		/* SRP1 */
+	      0x12 => { SRP2! (); }		/* SRP2 */
+	      0x13 => { SZP0! (); }		/* SZP0 */
+	      0x14 => { SZP1! (); }		/* SZP1 */
+	      0x15 => { SZP2! (); }		/* SZP2 */
+	      0x16 => { SZPS! (); }		/* SZPS */
+	      0x17 => { SLOOP! (); }		/* SLOOP */
+	      0x18 => { RTG! (); }		/* RTG */
+	      0x19 => { RTHG! (); }		/* RTHG */
+	      0x1A => { SMD! (); }		/* SMD */
+	      0x1B => { ELSE! (); }		/* ELSE */
+	      0x1C => { JMPR! (); }		/* JMPR */
+	      0x1D => { SCVTCI! (); }		/* SCVTCI */
+	      0x1E => { SSWCI! (); }		/* SSWCI */
+	      0x1F => { SSW! (); }		/* SSW */
+	      0x20 => { DUP! (); }		/* DUP */
+	      0x21 => { POP! (); }		/* POP */
+	      0x22 => { CLEAR! (); }		/* CLEAR */
+	      0x23 => { SWAP! (); }		/* SWAP */
+	      0x24 => { DEPTH! (); }		/* DEPTH */
+	      0x25 => { CINDEX! (); }		/* CINDEX */
+	      0x26 => { MINDEX! (); }		/* MINDEX */
+	      0x27 => { ALIGNPTS! (); }		/* ALIGNPTS */
+	      0x28 => { RAW! (); }		/* RAW */
+	      0x29 => { UTP! (); }		/* UTP */
+	      0x2A => { LOOPCALL! (); }		/* LOOPCALL */
+	      0x2B => { CALL! (); }		/* CALL */
+	      0x2C => { FDEF! (); }		/* FDEF */
+	      0x2D => { ENDF! (); }		/* ENDF */
+	      0x2E => { MDAP! (); }		/* MDAP */
+	      0x2F => { MDAP! (); }		/* MDAP */
+	      0x30 => { IUP! (); }		/* IUP */
+	      0x31 => { IUP! (); }		/* IUP */
+	      0x32 => { SHP! (); }		/* SHP */
+	      0x33 => { SHP! (); }		/* SHP */
+	      0x34 => { SHC! (); }		/* SHC */
+	      0x35 => { SHC! (); }		/* SHC */
+	      0x36 => { SHZ! (); }		/* SHZ */
+	      0x37 => { SHZ! (); }		/* SHZ */
+	      0x38 => { SHPIX! (); }		/* SHPIX */
+	      0x39 => { IP! (); }		/* IP    */
+	      0x3A => { MSIRP! (); }		/* MSIRP */
+	      0x3B => { MSIRP! (); }		/* MSIRP */
+	      0x3C => { ALIGNRP! (); }		/* ALIGNRP */
+	      0x3D => { RTDG! (); }		/* RTDG */
+	      0x3E => { MIAP! (); }		/* MIAP */
+	      0x3F => { MIAP! (); }		/* MIAP */
+	      0x40 => { NPUSHB! (); }		/* NPUSHB */
+	      0x41 => { NPUSHW! (); }		/* NPUSHW */
+	      0x42 => { WS! (); }		/* WS */
+	      0x43 => { RS! (); }		/* RS */
+	      0x44 => { WCVTP! (); }		/* WCVTP */
+	      0x45 => { RCVT! (); }		/* RCVT */
+	      0x46 => { GC! (); }		/* GC */
+	      0x47 => { GC! (); }		/* GC */
+	      0x48 => { SCFS! (); }		/* SCFS */
+	      0x49 => { MD! (); }		/* MD */
+	      0x4A => { MD! (); }		/* MD */
+	      0x4B => { MPPEM! (); }		/* MPPEM */
+	      0x4C => { MPS! (); }		/* MPS */
+	      0x4D => { FLIPON! (); }		/* FLIPON */
+	      0x4E => { FLIPOFF! (); }		/* FLIPOFF */
+	      0x4F => { DEBUG! (); }		/* DEBUG */
+	      0x50 => { LT! (); }		/* LT */
+	      0x51 => { LTEQ! (); }		/* LTEQ */
+	      0x52 => { GT! (); }		/* GT */
+	      0x53 => { GTEQ! (); }		/* GTEQ */
+	      0x54 => { EQ! (); }		/* EQ */
+	      0x55 => { NEQ! (); }		/* NEQ */
+	      0x56 => { ODD! (); }		/* ODD */
+	      0x57 => { EVEN! (); }		/* EVEN */
+	      0x58 => { IF! (); }		/* IF */
+	      0x59 => { EIF! (); }		/* EIF */
+	      0x5A => { AND! (); }		/* AND */
+	      0x5B => { OR! (); }		/* OR */
+	      0x5C => { NOT! (); }		/* NOT */
+	      0x5D => { DELTAP1! (); }		/* DELTAP1 */
+	      0x5E => { SDB! (); }		/* SDB */
+	      0x5F => { SDS! (); }		/* SDS */
+	      0x60 => { ADD! (); }		/* ADD */
+	      0x61 => { SUB! (); }		/* SUB */
+	      0x62 => { DIV! (); }		/* DIV */
+	      0x63 => { MUL! (); }		/* MUL */
+	      0x64 => { ABS! (); }		/* ABS */
+	      0x65 => { NEG! (); }		/* NEG */
+	      0x66 => { FLOOR! (); }		/* FLOOR */
+	      0x67 => { CEILING! (); }		/* CEILING */
+	      0x68 => { ROUND! (); }		/* ROUND */
+	      0x69 => { ROUND! (); }		/* ROUND */
+	      0x6A => { ROUND! (); }		/* ROUND */
+	      0x6B => { ROUND! (); }		/* ROUND */
+	      0x6C => { NROUND! (); }		/* NROUND */
+	      0x6D => { NROUND! (); }		/* NROUND */
+	      0x6E => { NROUND! (); }		/* NRRUND */
+	      0x6F => { NROUND! (); }		/* NROUND */
+	      0x70 => { WCVTF! (); }		/* WCVTF */
+	      0x71 => { DELTAP2! (); }		/* DELTAP2 */
+	      0x72 => { DELTAP3! (); }		/* DELTAP3 */
+	      0x73 => { DELTAC1! (); }		/* DELTAC1 */
+	      0x74 => { DELTAC2! (); }		/* DELTAC2 */
+	      0x75 => { DELTAC3! (); }		/* DELTAC3 */
+	      0x76 => { SROUND! (); }		/* SROUND */
+	      0x77 => { S45ROUND! (); }		/* S45Round */
+	      0x78 => { JROT! (); }		/* JROT */
+	      0x79 => { JROF! (); }		/* JROF */
+	      0x7A => { ROFF! (); }		/* ROFF */
+	      0x7B => { ILLEGAL_INSTRUCTION! (); }		/* ILLEGAL_INSTRUCTION */
+	      0x7C => { RUTG! (); }		/* RUTG */
+	      0x7D => { RDTG! (); }		/* RDTG */
+	      0x7E => { SANGW! (); }		/* SANGW */
+	      0x7F => { AA! (); }		/* AA */
+	      0x80 => { FLIPPT! (); }		/* FLIPPT */
+	      0x81 => { FLIPRGON! (); }		/* FLIPRGON */
+	      0x82 => { FLIPRGOFF! (); }		/* FLIPRGOFF */
+	      0x83 => { NOT_IMPLEMENTED! (); }		/* RMVT */
+	      0x84 => { NOT_IMPLEMENTED! (); }		/* WMVT */
+	      0x85 => { SCANCTRL! (); }		/* SCANCTRL */
+	      0x86 => { SDPVTL! (); }		/* SDPVTL */
+	      0x87 => { SDPVTL! (); }		/* SDPVTL */
+	      0x88 => { GETINFO! (); }		/* GETINFO */
+	      0x89 => { IDEF! (); }		/* IDEF */
+	      0x8A => { ROLL! (); }		/* ROLL */
+	      0x8B => { INS_MAX! (); }		/* MAX */
+	      0x8C => { INS_MIN! (); }		/* MIN */
+	      0x8D => { SCANTYPE! (); }		/* SCANTYPE */
+	      0x8E => { INSTCTRL! (); }		/* INSTCTRL */
+	      0x8F => { NOT_IMPLEMENTED! (); }		/* ADJUST */
+	      0x90 => { NOT_IMPLEMENTED! (); }		/* ADJUST */
+	      0x91 => { GXAXIS! (); }		/* GXAXIS */
+		  _ =>
+		    {
+		      if opcode >= 0xE0  /* MIRP */
+			{ MIRP! (); }
+		      else if opcode >= 0xC0  /* MDRP */
+			{ MDRP! (); }
+		      else if opcode >= 0xB8  /* PUSHW */
+			{ PUSHW! (); }
+		      else if opcode >= 0xB0  /* PUSHB */
+			{ PUSHB! (); }
+		      else
+			{ NOT_IMPLEMENTED! (); }
+		    }
+		}
+
+	      break;
+	    }
+	}
+	(*interpreter).IP += 1;
+      }
+      continue;
     }
 }
