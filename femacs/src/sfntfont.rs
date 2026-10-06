@@ -8,8 +8,9 @@
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
 // C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559, C 2560-2742,
-// C 2743-2915, C 2916-3113, C 3114-3472, C 3473-3660, C 3661-3799 and C 3800-3983.**  The next
-// live definition is `sfntfont_begin_hb_font` (C 3989).  The ledger `docs/ports/sfntfont.md`
+// C 2743-2915, C 2916-3113, C 3114-3472, C 3473-3660, C 3661-3799, C 3800-3983 and
+// C 4112-4222.**  **All of C 1-4222 is transcribed** (the `HAVE_HARFBUZZ` arm of C 3984-4110 is the last
+// slice, carried under that feature).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -108,8 +109,105 @@ include!("include/sfntfont.rs");                     // C 34: `#include "sfntfon
    `HAVE_HARFBUZZ` is `undef` on this target, and the two headers are not in the reference tree
    (P-88's class), so the arm is this comment; C 1-1240 takes no name from either header.  */
 /* C 37-38: `#include <hb.h>` and `#include <hb-ot.h>` (inside C 36's `#ifdef HAVE_HARFBUZZ`) -
-   no mirror in this tree and no name used in C 1-1240, so the P-88 declaration segment is owed
-   with the code that names an `hb_*` type (the first is C 3989's `hb_blob_t`).  */
+   no mirror in this tree, so this is P-88 ①'s declaration segment at the `#include` line: the
+   names C 3989-4108 uses, each with the header line it comes from.  The headers are the ones
+   `src/hbfont.rs`'s note measures on this machine (`/opt/homebrew/include/harfbuzz`, 14.4.0);
+   an opaque HarfBuzz record is a pointer with an untyped interior (P-55, that file's 320-323
+   `hb_face_t` reading), and `hb_tag_t`/`hb_memory_mode_t` are `uint32_t`/`enum` - the two
+   spellings `hb-common.h` 165 and `hb-blob.h` 69-74 give.  */
+/// C: hb-common.h 165: `typedef uint32_t hb_tag_t;`
+#[cfg (feature = "harfbuzz")]
+pub type hb_tag_t = u32;
+/// C: hb-common.h 378: `typedef void (*hb_destroy_func_t) (void *user_data);`
+#[cfg (feature = "harfbuzz")]
+pub type hb_destroy_func_t = Option<unsafe extern "C" fn (user_data: *mut c_void)>;
+/// C: hb-blob.h 69-74: `typedef enum { HB_MEMORY_MODE_DUPLICATE, HB_MEMORY_MODE_READONLY,
+/// HB_MEMORY_MODE_WRITABLE, HB_MEMORY_MODE_READONLY_MAY_MAKE_WRITABLE } hb_memory_mode_t;`
+#[cfg (feature = "harfbuzz")]
+pub type hb_memory_mode_t = c_uint;
+/// C: hb-blob.h 71: `HB_MEMORY_MODE_READONLY` - the enum's second member.
+#[cfg (feature = "harfbuzz")]
+pub const HB_MEMORY_MODE_READONLY: hb_memory_mode_t = 1;
+/// C: hb-blob.h 72: `HB_MEMORY_MODE_WRITABLE` - the enum's third member.
+#[cfg (feature = "harfbuzz")]
+pub const HB_MEMORY_MODE_WRITABLE: hb_memory_mode_t = 2;
+/// C: hb-blob.h 84: `typedef struct hb_blob_t hb_blob_t;` - opaque here (P-55).
+#[cfg (feature = "harfbuzz")]
+pub struct hb_blob_t
+{
+  pub _opaque: [u8; 0],
+}
+/// C: hb-face.h 56: `typedef struct hb_face_t hb_face_t;` - opaque here (P-55).
+#[cfg (feature = "harfbuzz")]
+pub struct hb_face_t
+{
+  pub _opaque: [u8; 0],
+}
+/// C: hb-common.h 520: `typedef struct hb_font_t hb_font_t;` - opaque here (P-55).
+#[cfg (feature = "harfbuzz")]
+pub struct hb_font_t
+{
+  pub _opaque: [u8; 0],
+}
+/// C: hb-face.h 102: `typedef hb_blob_t * (*hb_reference_table_func_t) (hb_face_t *face,
+/// hb_tag_t tag, void *user_data);`
+#[cfg (feature = "harfbuzz")]
+pub type hb_reference_table_func_t
+  = Option<unsafe extern "C" fn (face: *mut hb_face_t, tag: hb_tag_t, user_data: *mut c_void)
+				 -> *mut hb_blob_t>;
+/// C 4028-4030: `hb_blob_create (table->data, table->length, HB_MEMORY_MODE_READONLY, table,
+/// sfntfont_unmap_blob)`; the prototype is hb-blob.h 87-92.
+#[cfg (feature = "harfbuzz")]
+unsafe extern "C" {
+  pub fn hb_blob_create (data: *const c_char, length: c_uint, mode: hb_memory_mode_t,
+			 user_data: *mut c_void, destroy: hb_destroy_func_t) -> *mut hb_blob_t;
+}
+/// C 4075-4076: `hb_face_create_for_tables (sfntfont_get_font_table, font, NULL)`; the prototype
+/// is hb-face.h 106-108.
+#[cfg (feature = "harfbuzz")]
+unsafe extern "C" {
+  pub fn hb_face_create_for_tables (reference_table_func: hb_reference_table_func_t,
+				    user_data: *mut c_void, destroy: hb_destroy_func_t)
+				    -> *mut hb_face_t;
+}
+/// C 4078: `hb_face_get_glyph_count (face)`; the prototype is hb-face.h 163.
+#[cfg (feature = "harfbuzz")]
+unsafe extern "C" {
+  pub fn hb_face_get_glyph_count (face: *mut hb_face_t) -> c_uint;
+}
+/// C 4103: `hb_face_destroy (face)`; the prototype is hb-face.h 117.
+#[cfg (feature = "harfbuzz")]
+unsafe extern "C" {
+  pub fn hb_face_destroy (face: *mut hb_face_t);
+}
+/// C 4080: `hb_font_create (face)`; the prototype is hb-font.h 1117.
+#[cfg (feature = "harfbuzz")]
+unsafe extern "C" {
+  pub fn hb_font_create (face: *mut hb_face_t) -> *mut hb_font_t;
+}
+/// C 4087: `hb_font_set_scale (info->hb_font, factor * 64, factor * 64)`; the prototype is
+/// hb-font.h 1190-1192.
+#[cfg (feature = "harfbuzz")]
+unsafe extern "C" {
+  pub fn hb_font_set_scale (font: *mut hb_font_t, x_scale: c_int, y_scale: c_int);
+}
+/// C 4088: `hb_font_set_ppem (info->hb_font, factor, factor)`; the prototype is hb-font.h
+/// 1203-1205.
+#[cfg (feature = "harfbuzz")]
+unsafe extern "C" {
+  pub fn hb_font_set_ppem (font: *mut hb_font_t, x_ppem: c_uint, y_ppem: c_uint);
+}
+/// C 4093-4094: `hb_font_set_var_named_instance (info->hb_font, info->instance)`; the prototype
+/// is hb-font.h 1281-1282.
+#[cfg (feature = "harfbuzz")]
+unsafe extern "C" {
+  pub fn hb_font_set_var_named_instance (font: *mut hb_font_t, instance_index: c_uint);
+}
+/// C 4099: `hb_ot_font_set_funcs (info->hb_font)`; the prototype is hb-ot-font.h 40.
+#[cfg (feature = "harfbuzz")]
+unsafe extern "C" {
+  pub fn hb_ot_font_set_funcs (font: *mut hb_font_t);
+}
 
 /* C 42: `#include TERM_HEADER`.  `TERM_HEADER` is `androidterm.h` in the configuration the file
    gate selects (configure.ac 7180 with `window_system=android` at 2594-2596).  */
@@ -4777,4 +4875,278 @@ pub unsafe extern "C" fn sfntfont_detect_sigbus (addr: *mut c_void) -> bool
     }
 
   return false;                                            // C 3980
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 4112-4222: the four initialization subrs, in C's order - `syms_of_sfntfont` (C 4114-4177:
+   the seventeen `DEFSYM` notations, `sfnt_vendor_name`'s `staticpro`, the two `DEFVAR_LISP`s and
+   the `DEFVAR_BOOL`), `mark_sfntfont` (C 4179-4196), `init_sfntfont` (C 4198-4202, whose body the
+   reference itself writes empty) and `init_sfntfont_vendor` (C 4214-4222, which closes Owed 10 by
+   assigning `sfnt_put_glyphs`).  **The only text this unit still owes is C 3984-4110**, the
+   `HAVE_HARFBUZZ` arm; the ledger's `## C line ranges` names it row by row.
+
+   C's `DEFSYM` has no Rust text (P-23: the symbols are `globals.rs`'s generated accessors), so
+   each site is the `DEFSYM!` notation at C's own line and the docstrings are C's bytes - the
+   `syms_of_alloc` shape of `src/alloc.rs`.  `init_sfntfont`'s empty body is not a stub this port
+   invented: C has no statement between C 4201's `{` and C 4202's `}`, and the site says so.
+   ---------------------------------------------------------------------------------------------- */
+/// C 4114-4177: `syms_of_sfntfont` - C's non-`static` entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_sfntfont ()
+{                                                          // C 4115-4177
+  DEFSYM! (Qutf_16be, "utf-16be");                         // C 4117
+  DEFSYM! (Qmac_roman, "mac-roman");                       // C 4118
+  DEFSYM! (Qchinese_big5, "chinese-big5");                 // C 4119
+  DEFSYM! (Qunicode_bmp, "unicode-bmp");                   // C 4120
+  DEFSYM! (Qucs, "ucs");                                   // C 4121
+  DEFSYM! (Qjapanese_jisx0208, "japanese-jisx0208");       // C 4122
+  DEFSYM! (Qgbk, "gbk");                                   // C 4123
+  DEFSYM! (Qkorean_ksc5601, "korean-ksc5601");             // C 4124
+  DEFSYM! (Qapple_roman, "apple-roman");                   // C 4125
+  DEFSYM! (Qjisx0208_1983_0, "jisx0208.1983-0");           // C 4126
+  DEFSYM! (Qksc5601_1987_0, "ksc5601.1987-0");             // C 4127
+  DEFSYM! (Qzh, "zh");                                     // C 4128
+  DEFSYM! (Qja, "ja");                                     // C 4129
+  DEFSYM! (Qko, "ko");                                     // C 4130
+  DEFSYM! (Qfont_instance, "font-instance");               // C 4131
+
+  /* Char-table purpose.  */
+  DEFSYM! (Qfont_lookup_cache, "font-lookup-cache");       // C 4134
+
+  /* Default foundry name.  */
+  DEFSYM! (Qmisc, "misc");                                 // C 4137
+
+  /* Predicated employed for sorting font family lists.  */
+  DEFSYM! (Qstring_lessp, "string-lessp");                 // C 4140
+
+  /* Set up staticpros.  */
+  sfnt_vendor_name = Qnil ();                              // C 4143
+  staticpro (&raw const sfnt_vendor_name);                 // C 4144
+
+  /* This variable is supposed to be set by the platform specific part
+     of the font backend.  */
+  DEFVAR_LISP! (c"sfnt-default-family-alist", Vsfnt_default_family_alist,
+    "Alist between \"emulated\" and actual font family names.\nMuch Emacs code assumes that font families named \"Monospace\" and \"Sans\nSerif\" exist, and map to the default monospace and Sans Serif fonts on\na system.  When the `sfnt' font driver is asked to look for a font\nwith one of the families in this alist, it uses its value instead.  ");   // C 4148-4153
+  Vsfnt_default_family_alist = Qnil ();                    // C 4154
+
+  DEFVAR_LISP! (c"sfnt-uninstructable-family-regexp", Vsfnt_uninstructable_family_regexp,
+    "Regexp matching font families whose glyphs must not be instructed.\nIf nil, instruction code supplied by all fonts will be executed.  This\nvariable takes effect when a font entity is opened, not after, and\ntherefore won't affect the scaling of realized faces until their\nframes' font caches are cleared (see `clear-font-cache').\n\nTrueType fonts incorporate instruction code executed to fit each glyph\nto a pixel grid, so as to improve the visual fidelity of each glyph by\neliminating artifacts and chance effects consequent upon the direct\nupscaling of glyph outline data.  Instruction code is occasionally\nincompatible with Emacs and must be disregarded.  ");   // C 4156-4168
+  Vsfnt_uninstructable_family_regexp = Qnil ();            // C 4169
+
+  DEFVAR_BOOL! (c"sfnt-raster-glyphs-exactly", sfnt_raster_glyphs_exactly,
+    "How font glyph outlines should be converted to graphics.\nIf non-nil, glyphs will be displayed in a more precise manner, at the\ncost of performance on devices where floating-point math operations\nare slow.  ");                                          // C 4171-4175
+  sfnt_raster_glyphs_exactly = true;                       // C 4176
+}
+
+// C: lisp.h 4436: `extern void mark_object (Lisp_Object);` - no mirror of this unit's include list
+// carries it (`include/lisp.rs` declares `mark_objects`, the counted form), so it is declared at
+// its use site (P-72 rule 3 / P-55, the `src/thread.rs` 95-97 and `src/image.rs` 4925-4927 shape).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  pub fn mark_object (obj: Lisp_Object);
+}
+
+/// C 4179-4196: `mark_sfntfont` - C's non-`static` entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mark_sfntfont ()
+{                                                          // C 4180-4196
+  let mut desc: *mut sfnt_font_desc;
+
+  /* Mark each font desc.  */
+  desc = system_fonts;                                     // C 4185
+  while !desc.is_null ()
+    {
+      mark_object ((*desc).family);                        // C 4187
+      mark_object ((*desc).style);                         // C 4188
+      mark_object ((*desc).adstyle);                       // C 4189
+      mark_object ((*desc).instances);                     // C 4190
+      mark_object ((*desc).languages);                     // C 4191
+      mark_object ((*desc).registry);                      // C 4192
+      mark_object ((*desc).char_cache);                    // C 4193
+      mark_object ((*desc).designer);                      // C 4194
+      desc = (*desc).next;
+    }
+}
+
+/// C 4198-4202: `init_sfntfont` - C's non-`static` entry point.  **Its body is empty in the
+/// reference** (nothing between C 4201's `{` and C 4202's `}`), so the port carries no statement
+/// either; the empty block is C's text, not a stub.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn init_sfntfont ()
+{                                                          // C 4199-4202
+                                                           // C 4201: C's body has no statement.
+}
+
+/// C 4214-4222: `init_sfntfont_vendor` - C's non-`static` entry point; it closes **Owed 10** by
+/// assigning the object C 3667 declares.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn init_sfntfont_vendor (vendor_name: Lisp_Object,
+					       driver: *const font_driver,
+					       put_glyphs: sfntfont_put_glyph_proc)
+{                                                          // C 4215-4222
+  sfnt_vendor_name = vendor_name;                          // C 4219
+  sfnt_font_driver = driver;                               // C 4220
+  sfnt_put_glyphs = put_glyphs;                            // C 4221
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 3984-4110: the file's last text - C 3985's form feed, C 3987's
+   `/* Harfbuzz font support.  */` banner and C 3989's live `#ifdef HAVE_HARFBUZZ` block, carried
+   under `#[cfg (feature = "harfbuzz")]` because `HAVE_HARFBUZZ` is `undef` on this target
+   (P-51; the feature is the tree's registered name and `src/hbfont.rs` is the port that reads the
+   same headers).  Inside it: C 3991's live `#ifdef HAVE_MMAP` with `sfntfont_unmap_blob`
+   (C 3995-4002), `sfntfont_get_font_table` (C 4009-4052) and `sfntfont_begin_hb_font`
+   (C 4058-4108, declared in `include/sfntfont.rs`'s `harfbuzz` arm).  The `hb_*` names come from
+   the declaration segment at C 37-38 above, and `sfnt_map_table`/`sfnt_unmap_table`/
+   `sfnt_read_table`/`sfnt_mapped_table` from `include/sfnt.rs` (2355-2367, 1310).
+
+   The two dead arms inside are carried under the feature that names the non-frozen side and
+   bound by an assertion (P-51): C 4038-4042's `#else` of a macro this configuration defines, and
+   C 4090-4095's `#ifdef HAVE_HB_FONT_SET_VAR_NAMED_INSTANCE`, which the frozen table leaves
+   `undef` (`docs/baseline/config/darwin-arm64.macros.tsv` 1390).  **This closes the file**: C 1-4222
+   is now tiled by the ledger's rows, and the only reading left is the line-count question.
+   ---------------------------------------------------------------------------------------------- */
+/// The frozen configuration's `HAVE_MMAP`, read from `docs/baseline/config/darwin-arm64.macros.tsv`:
+/// 1.  C 4014-4042's `#else` arm is therefore the non-frozen side, which the feature `no_mmap`
+/// names (P-51).
+const HAVE_MMAP: bool = true;
+const _: () = core::assert! (!cfg! (feature = "no_mmap") || !HAVE_MMAP);
+/// `HAVE_HB_FONT_SET_VAR_NAMED_INSTANCE` is `undef` in the same table (1390), so C 4090-4095's
+/// arm is dead text whose feature names the non-frozen side, `have_hb_font_set_var_named_instance`.
+const HAVE_HB_FONT_SET_VAR_NAMED_INSTANCE: bool = false;
+const _: () = core::assert! (!cfg! (feature = "have_hb_font_set_var_named_instance")
+			     || HAVE_HB_FONT_SET_VAR_NAMED_INSTANCE);
+
+/// C 3995-4002: `sfntfont_unmap_blob` - C's `static`, and the address of a `static` in this
+/// repository is taken through its name, so the definition stays a plain `unsafe fn` while
+/// C 4030 hands its address to `hb_blob_create`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	   feature = "harfbuzz"))]
+unsafe extern "C" fn sfntfont_unmap_blob (ptr: *mut c_void)
+{                                                          // C 3995-4002
+  if sfnt_unmap_table (ptr as *mut sfnt_mapped_table) != 0      // C 3998
+    { emacs_abort (); }                                    // C 3999
+
+  xfree (ptr);                                             // C 4001
+}
+
+/// C 4009-4052: `sfntfont_get_font_table` - C's `static`, handed to `hb_face_create_for_tables`
+/// at C 4075.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	   feature = "harfbuzz"))]
+unsafe extern "C" fn sfntfont_get_font_table (face: *mut hb_face_t, tag: hb_tag_t,
+					      mut data: *mut c_void) -> *mut hb_blob_t
+{                                                          // C 4009-4052
+  /* C 4012's `size` is the out-parameter of `sfnt_read_table` (C 4044-4045) and C 4050 reads it;
+     zero-initialised because its address is taken (PORTING.md 1.5, Deviation 10).  C 4044
+     reassigns the `data` parameter, which is why it is bound `mut` (the `xpalloc` shape).  */
+  let mut size: usize = 0;
+  let mut info: *mut sfnt_font_info;
+  let mut table: *mut sfnt_mapped_table;
+  let mut blob: *mut hb_blob_t;
+
+  info = data as *mut sfnt_font_info;                      // C 4018
+  table = xmalloc (std::mem::size_of::<sfnt_mapped_table> ()) as *mut sfnt_mapped_table;   // C 4019
+
+  if sfnt_map_table ((*info).fd, (*info).directory, tag,   // C 4021-4022
+		     table) == 0
+    {
+      /* Create an hb_blob_t and return it.
+         TODO: record this mapping properly so that SIGBUS can
+	 be handled.  */
+
+      blob = hb_blob_create ((*table).data as *const c_char, (*table).length as c_uint,   // C 4028-4030
+			     HB_MEMORY_MODE_READONLY,
+			     table as *mut c_void,
+			     Some (sfntfont_unmap_blob));
+
+      /* Note that sfntfont_unmap_blob will be called if the empty
+	 blob is returned.  */
+      return blob;                                         // C 4034
+    }
+
+  xfree (table as *mut c_void);                            // C 4037
+  /* C 4038-4042's `#else /* !HAVE_MMAP */` arm (`info = data;`, C 4041) is dead on this target:
+     the condition's frozen value is 1, so the arm sits under the feature naming the other side
+     (P-51, the assertion above).  */
+  #[cfg (feature = "no_mmap")]
+  { info = data as *mut sfnt_font_info; }                  // C 4041
+
+  data = sfnt_read_table ((*info).fd, (*info).directory, tag,   // C 4044-4045
+			  &mut size);
+
+  if data.is_null ()                                       // C 4047
+    { return std::ptr::null_mut (); }                      // C 4048
+
+  return hb_blob_create (data as *const c_char, size as c_uint,   // C 4050-4051
+			 HB_MEMORY_MODE_WRITABLE,
+			 data, Some (xfree_wrapper));      // C 4051: C's `xfree`, the mirror's wrapper
+}
+
+/// C 4058-4108: `sfntfont_begin_hb_font` - C's non-`static` entry point of this arm.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	   feature = "harfbuzz"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_begin_hb_font (font: *mut font,
+						 position_unit: *mut c_double)
+						 -> *mut c_void
+{                                                          // C 4058-4108
+  let mut info: *mut sfnt_font_info;
+  let mut face: *mut hb_face_t;
+  let mut factor: c_int;
+
+  info = font as *mut sfnt_font_info;                      // C 4065
+
+  if !(*info).hb_font.is_null ()                           // C 4067
+    {
+      /* Calculate the scale factor.  */
+      *position_unit = 1.0 / 64.0;                         // C 4070
+      return (*info).hb_font;                              // C 4071
+    }
+
+  /* Create a face and then a font.  */
+  face = hb_face_create_for_tables (Some (sfntfont_get_font_table),   // C 4075-4076
+				    font as *mut c_void,
+				    None);
+
+  /* C 4082's `goto bail` leaves the block and lands at C 4102's `bail:`, whose only statement is
+     C 4103's `hb_face_destroy`; the labelled block is that region and the `break` is the jump
+     (the `sfntfont_open` `cancel_blend` shape).  */
+  'bail: {
+    if hb_face_get_glyph_count (face) > 0                  // C 4078
+      {
+	(*info).hb_font = hb_font_create (face) as *mut c_void;   // C 4080
+	if (*info).hb_font.is_null ()                      // C 4081
+	  { break 'bail; }                                 // C 4082
+
+	factor = (*font).pixel_size;                       // C 4084
+
+	/* Set the scale and PPEM values.  */
+	hb_font_set_scale ((*info).hb_font as *mut hb_font_t, factor * 64, factor * 64);   // C 4087
+	hb_font_set_ppem ((*info).hb_font as *mut hb_font_t, factor as c_uint, factor as c_uint);   // C 4088
+
+	/* C 4090-4095's `#ifdef HAVE_HB_FONT_SET_VAR_NAMED_INSTANCE`: the frozen table leaves the
+	   macro `undef`, so the arm is dead text under the feature naming the non-frozen side
+	   (P-51, the assertion above).  */
+	#[cfg (feature = "have_hb_font_set_var_named_instance")]
+	{
+	  /* Set the instance if this is a distortable font.  */
+	  if (*info).instance != -1                        // C 4092
+	    { hb_font_set_var_named_instance ((*info).hb_font as *mut hb_font_t, (*info).instance as c_uint); }   // C 4093-4094
+	}
+
+	/* This is needed for HarfBuzz before 2.0.0; it is the default
+	   in later versions.  */
+	hb_ot_font_set_funcs ((*info).hb_font as *mut hb_font_t);   // C 4099
+      }
+  }
+  hb_face_destroy (face);                                  // C 4103
+
+  /* Calculate the scale factor.  */
+  *position_unit = 1.0 / 64.0;                             // C 4106
+  return (*info).hb_font;                                  // C 4107
 }
