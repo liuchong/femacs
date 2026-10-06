@@ -8,8 +8,8 @@
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
 // C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559, C 2560-2742,
-// C 2743-2915, C 2916-3113, C 3114-3472, C 3473-3660 and C 3661-3799.**  The next live
-// definition is `sfntfont_get_variation_glyphs` (C 3823).  The ledger `docs/ports/sfntfont.md`
+// C 2743-2915, C 2916-3113, C 3114-3472, C 3473-3660, C 3661-3799 and C 3800-3983.**  The next
+// live definition is `sfntfont_begin_hb_font` (C 3989).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -4589,4 +4589,192 @@ pub unsafe extern "C" fn sfntfont_list_family (f: *mut frame) -> Lisp_Object
   });
 
   return families;                                         // C 3798
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 3800-3983: the callback family's tail, in C's order - C 3801-3821's
+   `/* Unicode Variation Selector (UVS) support. ... */` comment with `sfntfont_get_variation_glyphs`
+   (C 3823-3955), C 3957's form feed, C 3959's `/* mmap specific stuff.  */` banner and C 3963-3965's
+   comment with `sfntfont_detect_sigbus` (C 3966-3981), the live arm of C 3961's `#ifdef HAVE_MMAP`
+   (`HAVE_MMAP` is 1 and the block has no `#else`, so the text is ordinary - the C 85-88 reading).
+   **The next live definition is C 3989's `sfntfont_begin_hb_font`**, the first name of the
+   `HAVE_HARFBUZZ` arm, and the ledger's `## C line ranges` names both boundaries.
+
+   `sfntfont_get_variation_glyphs` carries `have_window_system` on top of the file gate (C 3853
+   calls `sfntfont_lookup_glyph`, whose item does); `sfntfont_detect_sigbus` needs the file gate alone.  C's four `goto next_selector`/`goto next_selector_1`
+   sites jump to the statement just before the loop's `++i`, so each body is a labelled block that
+   the `goto` becomes `break` of, with C 3898/3951's step after it - the shape the tree uses for a
+   forward label at a loop tail; `sfnt_is_character_default` and `sfnt_variation_glyph_for_char` come
+   from `include/sfnt.rs`'s `sfnt_decls` glob (that mirror's 2493).
+   ---------------------------------------------------------------------------------------------- */
+/// C 3823-3955: `sfntfont_get_variation_glyphs` - C's non-`static` driver entry point.
+/// It carries `have_window_system` because C 3853 calls `sfntfont_lookup_glyph`, which does
+/// (Deviation 23 (a), the Deviation 27 (c) class); `sfntfont_detect_sigbus` needs the file gate
+/// alone.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	   feature = "have_window_system"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_get_variation_glyphs (font: *mut font, c: c_int,
+							variations: *mut c_uint) -> c_int
+{                                                          // C 3823-3955
+  let mut info: *mut sfnt_font_info;
+  let mut i: usize;
+  let mut index: usize;
+  let mut n: c_int;
+  let mut record: *mut sfnt_mapped_variation_selector_record;
+  let mut default_glyph: sfnt_glyph_index;
+
+  info = font as *mut sfnt_font_info;                      // C 3831
+  n = 0;                                                   // C 3832
+
+  /* Return 0 if there is no UVS mapping table.  */
+
+  if (*info).uvs.is_null ()                                // C 3836
+    { return 0; }                                          // C 3837
+
+  /* Clear the variations array.  */
+
+  memset (variations as *mut c_void, 0,
+	  std::mem::size_of::<c_uint> () * 256);           // C 3841
+
+  /* Find the first 0xFExx selector.  */
+
+  i = 0;                                                   // C 3845
+  while i < (*(*info).uvs).num_records                     // C 3846
+	 && (*(*(*info).uvs).records.offset (i as isize)).selector < 0xfe00
+    { i += 1; }                                            // C 3848
+
+  /* Get the glyph represented by C, used when C is present within a
+     default value table.  */
+
+  default_glyph = sfntfont_lookup_glyph (info, c);        // C 3853
+
+  /* Fill in selectors 0 to 15.  */
+
+  while i < (*(*info).uvs).num_records                     // C 3857
+	 && (*(*(*info).uvs).records.offset (i as isize)).selector <= 0xfe0f
+    {
+      /* C 3879/3886's `goto next_selector` jumps at the statement before C 3898's `++i`: the
+	 labelled block is that tail and the step sits after it, so every path C has is C's.  */
+      'next_selector: {
+	record = &raw mut *(*(*info).uvs).records.offset (i as isize);   // C 3860
+	index = ((*(*(*info).uvs).records.offset (i as isize)).selector
+		 - 0xfe00 + 16) as usize;                  // C 3861
+
+	/* Handle invalid unsorted tables.  */
+
+	if (*record).selector < 0xfe00                      // C 3865
+	  { return 0; }                                    // C 3866
+
+	/* If there are default mappings in this record, ascertain if
+	   this glyph matches one of them.  */
+
+	if !(*record).default_uvs.is_null ()                // C 3871
+	   && sfnt_is_character_default ((*record).default_uvs, c as sfnt_char)   // C 3872
+	  {
+	    *variations.offset (index as isize) = default_glyph;   // C 3874
+
+	    if default_glyph != 0                          // C 3876
+	      { n += 1; }                                  // C 3877
+
+	    break 'next_selector;                          // C 3879
+	  }
+
+	/* If record has no non-default mappings, continue on to the
+	   next selector.  */
+
+	if (*record).nondefault_uvs.is_null ()              // C 3885
+	  { break 'next_selector; }                        // C 3886
+
+	/* Find the glyph ID associated with C and put it in
+	   VARIATIONS.  */
+
+	*variations.offset (index as isize)
+	  = sfnt_variation_glyph_for_char ((*record).nondefault_uvs,
+					   c as sfnt_char);   // C 3891-3892
+
+	if *variations.offset (index as isize) != 0        // C 3894
+	  { n += 1; }                                      // C 3895
+      }
+      i += 1;                                              // C 3898
+    }
+
+  /* Find the first 0xE0100 selector.  */
+
+  i = 0;                                                   // C 3903
+  while i < (*(*info).uvs).num_records                     // C 3904
+	 && (*(*(*info).uvs).records.offset (i as isize)).selector < 0xe0100
+    { i += 1; }                                            // C 3906
+
+  /* Fill in selectors 16 to 255.  */
+
+  while i < (*(*info).uvs).num_records                     // C 3910
+	 && (*(*(*info).uvs).records.offset (i as isize)).selector <= 0xe01ef
+    {
+      /* C 3932/3939's `goto next_selector_1`, the same shape as above (C 3951's `++i`).  */
+      'next_selector_1: {
+	record = &raw mut *(*(*info).uvs).records.offset (i as isize);   // C 3913
+	index = ((*(*(*info).uvs).records.offset (i as isize)).selector
+		 - 0xe0100 + 16) as usize;                  // C 3914
+
+	/* Handle invalid unsorted tables.  */
+
+	if (*record).selector < 0xe0100                     // C 3918
+	  { return 0; }                                    // C 3919
+
+	/* If there are default mappings in this record, ascertain if
+	   this glyph matches one of them.  */
+
+	if !(*record).default_uvs.is_null ()                // C 3924
+	   && sfnt_is_character_default ((*record).default_uvs, c as sfnt_char)   // C 3925
+	  {
+	    *variations.offset (index as isize) = default_glyph;   // C 3927
+
+	    if default_glyph != 0                          // C 3929
+	      { n += 1; }                                  // C 3930
+
+	    break 'next_selector_1;                        // C 3932
+	  }
+
+	/* If record has no non-default mappings, continue on to the
+	   next selector.  */
+
+	if (*record).nondefault_uvs.is_null ()              // C 3938
+	  { break 'next_selector_1; }                      // C 3939
+
+	/* Find the glyph ID associated with C and put it in
+	   VARIATIONS.  */
+
+	*variations.offset (index as isize)
+	  = sfnt_variation_glyph_for_char ((*record).nondefault_uvs,
+					   c as sfnt_char);   // C 3944-3945
+
+	if *variations.offset (index as isize) != 0        // C 3947
+	  { n += 1; }                                      // C 3948
+      }
+      i += 1;                                              // C 3951
+    }
+
+  return n;                                                // C 3954
+}
+
+/// C 3966-3981: `sfntfont_detect_sigbus` - the live `HAVE_MMAP` arm's entry point.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_detect_sigbus (addr: *mut c_void) -> bool
+{                                                          // C 3966-3981
+  let mut info: *mut sfnt_font_info;
+
+  info = open_fonts;                                       // C 3971
+  while !info.is_null ()
+    {
+      if (*info).glyf_table_mapped                         // C 3973
+	 && addr as *mut u8 >= (*(*info).glyf).glyphs      // C 3974
+	 && (addr as *mut u8)
+	    < (*(*info).glyf).glyphs.add ((*(*info).glyf).size)   // C 3975-3976
+	{ return true; }                                   // C 3977
+      info = (*info).next;
+    }
+
+  return false;                                            // C 3980
 }
