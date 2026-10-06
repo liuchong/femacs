@@ -29,13 +29,15 @@
 // interpreter-helpers block - the zone addressing/storing/moving family, the projection and
 // rounding helpers, `sfnt_interpret_utp` through `sfnt_interpret_else` - with the C 6559-8159
 // macro region left to `sfnt_interpret_run`'s slice, above).
-// **Slice 10 takes C 10664-11101** - the interpreter's shift and interpolate instructions:
-// `sfnt_interpret_shz`, `sfnt_interpret_shc`, `sfnt_interpret_shp`, the four point-access macros
-// with `IUP_SINGLE_PAIR` and `sfnt_interpret_iup_1`, and `sfnt_interpret_iup`.
-// **What is left after slice 10** is C 6559-8159 (the interpreter macros, whose home is
-// `sfnt_interpret_run`'s slice, above), C 11103-13917 (the rest of the interpreter -
-// `sfnt_interpret_mirp` through the instructed-outline builders, the three compound-glyph
-// interpreters and the UVS family) and C 16448-21215, the TEST programme (the ledger's Owed 21);
+// **Slice 10 takes C 10664-11101** and **slice 11 C 11103-11395** - the interpreter's shift,
+// interpolate and reference-point instructions: `sfnt_interpret_shz`, `sfnt_interpret_shc`,
+// `sfnt_interpret_shp`, the four point-access macros with `IUP_SINGLE_PAIR`,
+// `sfnt_interpret_iup_1`, `sfnt_interpret_iup`, `sfnt_interpret_mirp`,
+// `sfnt_project_zp1_zp0_org` and `sfnt_interpret_mdrp`.
+// **What is left after slice 11** is C 6559-8159 (the interpreter macros, whose home is
+// `sfnt_interpret_run`'s slice, above), C 11396-13917 (`sfnt_interpret_run` itself through the
+// instructed-outline builders, the three compound-glyph interpreters and the UVS family) and
+// C 16448-21215, the TEST programme (the ledger's Owed 21);
 // C 9832's `sfnt_interpret_call` is the one landed call whose callee (`sfnt_interpret_run`) is
 // still unported
 // (P-91 ④ names it).  The ledger
@@ -13670,4 +13672,329 @@ unsafe fn sfnt_interpret_iup (interpreter: *mut sfnt_interpreter, opcode: c_ucha
 	{ point += 1; }                                    // C 11099
       i += 1;
     }
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 11103-11395: the reference-point instructions, in C's order - C 11103-11110's comment with
+   `sfnt_interpret_mirp` (C 11113-11235), C 11237-11255's comment with `sfnt_project_zp1_zp0_org`
+   (C 11257-11293, whose one `goto project_normally` is a labelled block) and C 11295-11302's
+   comment with `sfnt_interpret_mdrp` (C 11305-11382).  **The next live definition is C 11396's
+   `sfnt_interpret_run`** (the comment is C 11384-11394), and the ledger's `## C line ranges` names
+   both boundaries.  `TRAP`, `POP`, `PROJECT` and `DUAL_PROJECT` are in-function copies (P-57), and
+   every out-parameter of `sfnt_address_zp0`/`zp1` is zero-initialised (Deviation 10's class).
+   ---------------------------------------------------------------------------------------------- */
+/// C 11113-11235: `sfnt_interpret_mirp` - C's `static`, called by name only.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_mirp (interpreter: *mut sfnt_interpreter, opcode: uint32_t)
+{                                                          // C 11113-11235
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+  /* C 6597-6601's `#define POP()` - the live `#ifndef TEST` arm; the `#else` arm's body names
+     the TEST-only `pop_hook` member (see this file's header).  */
+  macro_rules! POP { () => {
+    if (*interpreter).SP == (*interpreter).stack
+      { TRAP! (c"stack underflow".as_ptr ()); 0 }
+    else
+      { (*interpreter).SP = (*interpreter).SP.offset (-1); *(*interpreter).SP }
+  } }
+  macro_rules! PROJECT { ($x:expr, $y:expr) => {
+    sfnt_project_vector (interpreter, $x, $y)
+  } }
+  macro_rules! DUAL_PROJECT { ($x:expr, $y:expr) => {
+    sfnt_dual_project_vector (interpreter, $x, $y)
+  } }
+
+  let mut n: uint32_t;
+  let mut p: uint32_t;
+  let mut distance: sfnt_f26dot6;
+  let mut delta: sfnt_f26dot6;
+  let mut temp: sfnt_f26dot6;
+  let mut current_projection: sfnt_f26dot6;
+  let mut original_projection: sfnt_f26dot6;
+  /* The eight out-parameters of `sfnt_address_zp0` (C 11155) and `sfnt_address_zp1` (C 11181);
+     both calls take their addresses and C reads them afterwards.  */
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut org_x: sfnt_f26dot6 = 0;
+  let mut org_y: sfnt_f26dot6 = 0;
+  let mut rx: sfnt_f26dot6 = 0;
+  let mut ry: sfnt_f26dot6 = 0;
+  let mut org_rx: sfnt_f26dot6 = 0;
+  let mut org_ry: sfnt_f26dot6 = 0;
+
+  /* CVT index.  */
+  n = POP! ();                                             // C 11124
+
+  /* Point number.  */
+  p = POP! ();                                             // C 11127
+
+  /* Now get the distance from the CVT.  */
+  if n as usize >= (*interpreter).cvt_size                 // C 11130
+    { TRAP! (c"cvt index out of bounds".as_ptr ()); }      // C 11131
+
+  distance = *(*interpreter).cvt.offset (n as isize);      // C 11133
+
+  /* Test against the single width value.  */
+
+  delta = sfnt_sub! (distance,
+		     (*interpreter).state.single_width_value);   // C 11137-11138
+
+  if delta < 0                                             // C 11140
+    { delta = -delta; }                                    // C 11141
+
+  if delta < (*interpreter).state.sw_cut_in                // C 11143
+    {
+      /* Use the single width instead, as the CVT entry is too
+	 small.  */
+
+      if distance >= 0                                     // C 11148
+	{ distance = (*interpreter).state.single_width_value; }   // C 11149
+      else
+	{ distance = -(*interpreter).state.single_width_value; }   // C 11151
+    }
+
+  /* Load the reference point.  */
+  sfnt_address_zp0 (interpreter, (*interpreter).state.rp0 as uint32_t,
+		    &raw mut rx, &raw mut ry, &raw mut org_rx, &raw mut org_ry);   // C 11155-11156
+
+  /* Create the point in the twilight zone, should that be ZP1.  */
+
+  if (*interpreter).state.zp1 == 0                         // C 11160
+    {
+      /* Since P hasn't been loaded yet, whether or not it is valid is
+	 not known.  */
+      sfnt_check_zp1 (interpreter, p);                     // C 11164
+
+      *(*interpreter).twilight_x.offset (p as isize) = rx;   // C 11166
+      *(*interpreter).twilight_y.offset (p as isize) = ry;   // C 11167
+
+      temp = sfnt_mul_f2dot14 ((*interpreter).state.projection_vector.x,
+			       distance);                  // C 11169-11170
+      temp = sfnt_add! (temp, org_rx);                     // C 11171
+      *(*interpreter).twilight_original_x.offset (p as isize) = temp;   // C 11172
+
+      temp = sfnt_mul_f2dot14 ((*interpreter).state.projection_vector.y,
+			       distance);                  // C 11174-11175
+      temp = sfnt_add! (temp, org_ry);                     // C 11176
+      *(*interpreter).twilight_original_y.offset (p as isize) = temp;   // C 11177
+    }
+
+  /* Load P.  */
+  sfnt_address_zp1 (interpreter, p, &raw mut x, &raw mut y,
+		    &raw mut org_x, &raw mut org_y);       // C 11181
+
+  /* If distance would be negative and auto_flip is on, flip it.  */
+
+  original_projection = DUAL_PROJECT! (org_x - org_rx,
+				       org_y - org_ry);    // C 11185-11186
+  current_projection = PROJECT! (x - rx, y - ry);          // C 11187
+
+  if (*interpreter).state.auto_flip                         // C 11189
+    {
+      if (original_projection ^ distance) < 0              // C 11191
+	{ distance = -distance; }                          // C 11192
+    }
+
+  /* Flag B means look at the cvt cut in and round the
+     distance.  */
+
+  if (opcode & 4) != 0                                     // C 11198
+    {
+      delta = sfnt_sub! (distance, original_projection);   // C 11200
+
+      if delta < 0                                         // C 11202
+	{ delta = -delta; }                                // C 11203
+
+      if delta > (*interpreter).state.cvt_cut_in           // C 11205
+	{ distance = original_projection; }                // C 11206
+
+      /* Now, round the distance.  */
+      distance = sfnt_round_symmetric (interpreter, distance);   // C 11209
+    }
+
+  /* Flag C means look at the minimum distance.  */
+
+  if (opcode & 8) != 0                                     // C 11214
+    {
+      if original_projection >= 0                          // C 11216
+	 && distance < (*interpreter).state.minimum_distance
+	{ distance = (*interpreter).state.minimum_distance; }   // C 11218
+      else if original_projection < 0                      // C 11219
+	       && distance > -(*interpreter).state.minimum_distance
+	{ distance = -(*interpreter).state.minimum_distance; }   // C 11221
+    }
+
+  /* Finally, move the point.  */
+  sfnt_move_zp1 (interpreter, p, 1,
+		 sfnt_sub! (distance, current_projection));   // C 11225-11226
+
+  /* Set RP1 to RP0 and RP2 to the point.  If flag 3 is set, also make
+     it RP0.  */
+  (*interpreter).state.rp1 = (*interpreter).state.rp0;     // C 11230
+  (*interpreter).state.rp2 = p as uint16_t;                // C 11231
+
+  if (opcode & 16) != 0                                    // C 11233
+    { (*interpreter).state.rp0 = p as uint16_t; }          // C 11234
+}
+
+/// C 11257-11293: `sfnt_project_zp1_zp0_org` - C's `static`, called by `sfnt_interpret_mdrp`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_project_zp1_zp0_org (interpreter: *mut sfnt_interpreter,
+				    p1: uint32_t, p2: uint32_t) -> sfnt_f26dot6
+{                                                          // C 11257-11293
+  macro_rules! DUAL_PROJECT { ($x:expr, $y:expr) => {
+    sfnt_dual_project_vector (interpreter, $x, $y)
+  } }
+
+  let mut x1: sfnt_fword;
+  let mut y1: sfnt_fword;
+  let mut x2: sfnt_fword;
+  let mut y2: sfnt_fword;
+  let mut projection: sfnt_fword;
+  let mut simple: *mut sfnt_simple_glyph;
+  /* The four out-parameters of the two calls below (C 11290-11291); `sfnt_address_zp1`/`zp0` take
+     their addresses with the x/y pair NULL.  */
+  let mut org_x1: sfnt_f26dot6 = 0;
+  let mut org_y1: sfnt_f26dot6 = 0;
+  let mut org_x2: sfnt_f26dot6 = 0;
+  let mut org_y2: sfnt_f26dot6 = 0;
+
+  /* Addressing the twilight zone, perhaps only partially.  */
+  /* C 11275's `goto project_normally` skips the simple-glyph path; the block ends at C 11289,
+     where the target is.  */
+  'project_normally: {
+    if (*interpreter).state.zp0 == 0                     // C 11266
+       || (*interpreter).state.zp1 == 0                  // C 11267
+       /* Not interpreting a glyph.  */
+       || (*interpreter).glyph_zone.is_null ()           // C 11269
+       /* Not interpreting a simple glyph.  */
+       || (*(*interpreter).glyph_zone).simple.is_null ()   // C 11271
+       /* P1 or P2 are phantom points.  */
+       || p1 as usize >= (*(*(*interpreter).glyph_zone).simple).number_of_points   // C 11273
+       || p2 as usize >= (*(*(*interpreter).glyph_zone).simple).number_of_points   // C 11274
+      { break 'project_normally; }                       // C 11275
+
+    simple = (*(*interpreter).glyph_zone).simple;        // C 11277
+    x1 = *(*simple).x_coordinates.offset (p1 as isize);  // C 11278
+    y1 = *(*simple).y_coordinates.offset (p1 as isize);  // C 11279
+    x2 = *(*simple).x_coordinates.offset (p2 as isize);  // C 11280
+    y2 = *(*simple).y_coordinates.offset (p2 as isize);  // C 11281
+
+    /* Compute the projection.  */
+    /* C's `projection` is an `sfnt_fword` and the call returns an `sfnt_f26dot6`, so the
+       assignment narrows - C's implicit conversion, written out.  */
+    projection = DUAL_PROJECT! (x1 as sfnt_f26dot6 - x2 as sfnt_f26dot6,
+				y1 as sfnt_f26dot6 - y2 as sfnt_f26dot6) as sfnt_fword;   // C 11284
+
+    /* Return the projection, scaled with rounding.  */
+    return sfnt_mul_fixed_round (projection as sfnt_fixed,
+				 (*interpreter).scale);   // C 11287
+  }
+
+  /* C 11289: `project_normally:`.  */
+  sfnt_address_zp1 (interpreter, p1, std::ptr::null_mut (), std::ptr::null_mut (),
+		    &raw mut org_x1, &raw mut org_y1);   // C 11290
+  sfnt_address_zp0 (interpreter, p2, std::ptr::null_mut (), std::ptr::null_mut (),
+		    &raw mut org_x2, &raw mut org_y2);   // C 11291
+  return DUAL_PROJECT! (org_x1 - org_x2, org_y1 - org_y2);   // C 11292
+}
+
+/// C 11305-11382: `sfnt_interpret_mdrp` - C's `static`, called by name only.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_mdrp (interpreter: *mut sfnt_interpreter, opcode: uint32_t)
+{                                                          // C 11305-11382
+  macro_rules! TRAP { ($why:expr) => { sfnt_interpret_trap (interpreter, $why) } }
+  /* C 6597-6601's `#define POP()` - the live `#ifndef TEST` arm; the `#else` arm's body names
+     the TEST-only `pop_hook` member (see this file's header).  */
+  macro_rules! POP { () => {
+    if (*interpreter).SP == (*interpreter).stack
+      { TRAP! (c"stack underflow".as_ptr ()); 0 }
+    else
+      { (*interpreter).SP = (*interpreter).SP.offset (-1); *(*interpreter).SP }
+  } }
+  macro_rules! PROJECT { ($x:expr, $y:expr) => {
+    sfnt_project_vector (interpreter, $x, $y)
+  } }
+
+  let mut p: uint32_t;
+  let mut distance: sfnt_f26dot6;
+  let mut applied: sfnt_f26dot6;
+  let mut current_projection: sfnt_f26dot6;
+  /* The four out-parameters of the two calls below (C 11317-11319, both with the original pair
+     NULL).  */
+  let mut x: sfnt_f26dot6 = 0;
+  let mut y: sfnt_f26dot6 = 0;
+  let mut rx: sfnt_f26dot6 = 0;
+  let mut ry: sfnt_f26dot6 = 0;
+
+  /* Point number.  */
+  p = POP! ();                                             // C 11314
+
+  /* Load the points.  */
+  sfnt_address_zp1 (interpreter, p, &raw mut x, &raw mut y,
+		    std::ptr::null_mut (), std::ptr::null_mut ());   // C 11317
+  sfnt_address_zp0 (interpreter, (*interpreter).state.rp0 as uint32_t,
+		    &raw mut rx, &raw mut ry,
+		    std::ptr::null_mut (), std::ptr::null_mut ());   // C 11318-11319
+
+  /* Calculate the distance between P and rp0 prior to hinting.  */
+  distance = sfnt_project_zp1_zp0_org (interpreter, p,
+				       (*interpreter).state.rp0 as uint32_t);   // C 11322-11323
+
+  /* Calculate the distance between P and rp0 as of now in the hinting
+     process.  */
+  current_projection = PROJECT! (x - rx, y - ry);          // C 11327
+
+  /* Test against the single width value.  */
+
+  if (*interpreter).state.sw_cut_in > 0                    // C 11331
+     && distance < ((*interpreter).state.single_width_value
+		    + (*interpreter).state.sw_cut_in)      // C 11332-11333
+     && distance > ((*interpreter).state.single_width_value
+		    - (*interpreter).state.sw_cut_in)      // C 11334-11335
+    {
+      /* Use the single width instead, as the CVT entry is too
+	 small.  */
+
+      if distance >= 0                                     // C 11340
+	{ distance = (*interpreter).state.single_width_value; }   // C 11341
+      else
+	{ distance = -(*interpreter).state.single_width_value; }   // C 11343
+    }
+
+  /* Flag B implies that the distance should be rounded.  The CVT cut
+     in is not taken into account by MDRP, contrary to earlier
+     presumptions.  */
+
+  if (opcode & 4) != 0                                     // C 11350
+    { applied = sfnt_round_symmetric (interpreter, distance); }   // C 11351
+  else
+    { applied = distance; }                                // C 11353
+
+  /* Flag C means look at the minimum distance.  */
+
+  if (opcode & 8) != 0                                     // C 11357
+    {
+      /* Test the sign of the initial distance, but compare the
+	 distance that will be applied in reality against the minimum
+	 distance.  */
+
+      if distance >= 0                                     // C 11363
+	 && applied < (*interpreter).state.minimum_distance
+	{ applied = (*interpreter).state.minimum_distance; }   // C 11365
+      else if distance < 0                                 // C 11366
+	       && applied > -(*interpreter).state.minimum_distance
+	{ applied = -(*interpreter).state.minimum_distance; }   // C 11368
+    }
+
+  /* Finally, move the point.  */
+  sfnt_move_zp1 (interpreter, p, 1,
+		 sfnt_sub! (applied, current_projection));   // C 11372-11373
+
+  /* Set RP1 to RP0 and RP2 to the point.  If flag 3 is set, also make
+     it RP0.  */
+  (*interpreter).state.rp1 = (*interpreter).state.rp0;     // C 11377
+  (*interpreter).state.rp2 = p as uint16_t;                // C 11378
+
+  if (opcode & 16) != 0                                    // C 11380
+    { (*interpreter).state.rp0 = p as uint16_t; }          // C 11381
 }
