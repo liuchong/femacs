@@ -14307,3 +14307,26 @@
   ④ **镜像侧（P-87 两腿，本轮顺带修了另一个单元）**：`include/gtk.rs` 新增三条 GDK 座位/设备入口点（`gdk_display_get_default_seat`、`gdk_seat_get_pointer`、`gdk_device_get_position`；无 GDK 头 ⇒ 只引头文件），GDK 段总入口点 50 → 53。**门当场抓到这两个名字在 `src/xwidget.rs` 里已有本单元的副本**（`check-mirror-dupes` 读 `18 duplicate declaration(s), 16 ratchet row(s), 2 failure(s)` 并逐条点名）⇒ 按 P-26"一构造一拼法"把那边两处副本删掉（两个调用点不动），门回到 **16/16/0**，并**直接用该单元自己的探针验证**（`have_xwidgets + have_window_system`：exit 0、0 错 0 警告）；`docs/ports/xwidget.md` 与 `docs/ports/include-gtk.md` 各记一段。消费者扫描 `tools/check-all-units.sh` 在镜像改动后与最终树各跑一次，两次都读 **`checked 83 unit(s), 0 failure(s)`** 与 **`checking 83 unit(s), 0 unit failure(s)`**。
   ⑤ **台账与清单**：区间表把 `2840-3906` 拆成 `2840-3025`（transcribed，本片）＋ `3027-3906`（remainder，**下一个 live 定义 = `Fx_show_tip`，C 3027**），**59 行仍连续覆盖 C 1-3906**；`## Deviations` 58-62、新段 `## The ninth slice (C 2840-3025)` ㉟-㊳、文件头改成九片。
   ⑥ **七条文本门全绿 + 未声称 + 预算**：`check-declarations` **18/0/18/0**；`check-citations` **676/0/0/2040/36/0**；`check-dead-file-coverage` **145/0**（本台账 **59 range row(s)**）；`check-port-lines` **0/0/0/0**；`check-ledger-ticks` **238/0**；`check-cond-eval src/pgtkfns.c` **11/0/0**；`check-mirror-dupes` **16/16/0**。**未声称**：没有任何工具提示被定位或隐藏（`compute_tip_xy`/`pgtk_hide_tip` 只被仍在 remainder 的 `Fx_show_tip`/`Fx_hide_tip` 调用），没有跑过任何 GDK 指针查询（`gdk_device_get_position` 只是声明，端口没有 GDK 可链）；四臂都是**编译**读数。**预算**：`probe` 12 发（4 臂 × HEAD 基线/切片，外加 arm A 的归属复读与 `src/xwidget.rs` 的验证 1 发）、`extract-abi --check` 6 发、`check-all-units.sh` 2 发（各 83 单元）、文本门 12 发、`cond-eval` 1 发；`/tmp/pgtk9`、`/tmp/s9_*`、`/tmp/head_pgtkfns.rs` 收工删，`build/probes/pgtkfns`、`build/femacs/units/pgtkfns` 收工清，`build/femacs/*.o` 保留。
+- **3.723 版本声明这条长期指令的第十八半：豁免行自称"按实测值计"，而它数的那 126 行里 109 行是本仓库自己写的理由列——两张登记表的理由列现在当散文读、109 行机械改写（2026-10-06）**：
+  ① **指令的读法不变**（3.90/3.134/3.226/3.250/3.269/3.295/3.318/3.340/3.413/3.433/3.462/3.476/3.503/3.599/3.613/3.619/3.632/3.641/3.648/3.656/3.666/3.679/3.692 共二十三个半）：
+  `版本声明不要再说是gnu emacs了` 与 38 秒之后的 `把之前的代码中的这种声明也去掉` 是同一条指令的前后两半，已写进树的产出物也要清。
+  本轮入口不是"哪一句还说自己是参照产品"，而是**第十七半自己那条覆盖行的下一层**：`left as measured values: 126 payload line(s) naming the product in 3 file(s)` 把**整行**当"实测值"，
+  而一行里只有**引文列**是实测/引文——`docs/baseline/verbatim-declaration-keeps.tsv` 的 111 行里 **108 行命中的是理由列**
+  （108 行共用同一条理由串，串里写着"934 `GNU Emacs` lines in `doc/`"），`docs/baseline/declarations-allowlist.tsv` 的 12 行里 **1 行**（`SCHEMA_ID` 那行）命中的也是理由列
+  （它的引文列是移植树自己的字面量行）⇒ **109 行是本仓库的散文，被算进了"实测值"**。3.692 已经量死"注释带是本仓库自己写的"，这是同一形状落在**载荷行的最后一列**上。
+  ② **处置（只动门与两列文本，行/列数据一行不动）**：⑴ 新增 `BASELINE_OWN_COLUMN`（两张登记表的理由列 = 第 4 列）与 `baseline_own_findings()`，该列按**散文模型**（`PROSE_CLASSES`）读，
+  `baseline_stats()` 的读数扩成六元组，覆盖行现在同时打印两个数：`read the reason column of 2 registration table(s) as prose (0 cell(s) naming the product)` 与
+  `left as measured values: 70 payload line(s) naming the product in 3 file(s)`；⑵ 108 行的共用理由串改成"934 product-name lines in `doc/`"；
+  ⑶ `SCHEMA_ID` 那行的理由改成"（`.gschema.xml` 成员，字面量在它前一列里引着）"与"the registry, clipboard and device-alias rows above"
+  （原写法把参照数据文件的路径、`SOFTWARE\GNU\Emacs`、`Emacs Clipboard` 三个字面量写进了自家散文）。
+  ③ **读数**：门在改写前 **20 declaration sites (109 forbidden, 18 allowed literals), 2 failures**（逐条点名）；改写后 **18 declaration sites (0 forbidden, 18 allowed literals), 0 failures**；
+  `--selftest` **64 → 68 例 / 0 失败**（新增 4 例：理由列命中 ⇒ `title`、引文列命中不算、理由里回写旧版本行 ⇒ `version`、实测值表没有理由列 ⇒ 不读）；
+  载荷行 **126 → 70**，逐列分类：`config/darwin-arm64.macros.tsv` 3（冻结配置的实测值）+ `declarations-allowlist.tsv` 12（移植字面量的引文）+ `verbatim-declaration-keeps.tsv` 55（参照自己的成员句引文），**自家列 0**。
+  ④ **判别力（变异）**：把某一行理由改回"934 `GNU Emacs` lines" ⇒ 本半的读者 **19 declaration sites (1 forbidden, 18 allowed literals), 1 failures** 并点名那一行；
+  **HEAD 的读者看不见**（`18 (0 forbidden, 18 allowed literals), 0 failures`——白名单副本放在仓外读者旁边、`--root` 指本仓）。还原后两端都回到 `18/0/18/0`。
+  门的另一侧由新增第 2 例钉住：把引文列（参照的成员句）当自家散文读的写法会报它，本半的读者不报。
+  ⑤ **其余文本门现读**：`check-citations` **676/0/0/2040/36/0**；`check-verbatim-declarations` **820 candidate(s)、116 enumerated keep(s)、0 failure(s)**（登记表行的前四列一字未动）；
+  `check-dead-file-coverage` **145/0**；`check-port-lines` **0/0/0/0**；`check-ledger-ticks` **238/0**。
+  ⑥ **未声称 + 预算**：本轮**一枚都没编译**（改动不碰 `femacs/**`、不碰任何镜像，`layout-check`/`all-units` 不适用），读数只有文本门与两轮变异（各 4 次运行）；
+  **未声称**：门读的是**文本**，"0 命中"不证明任何**行为**不写出产品名；3.692 ⑥ 点名的三类仍在门外（`docs/baseline/**` 的实测载荷、日志与验收记录的引用、裸 `Emacs` 的 1,410 处留给裁决）。
+  `/tmp/h18`、`/tmp/docs/baseline`（仓外读者的白名单副本）、`/tmp/declarations-allowlist.tsv`、`/tmp/s18_files.txt`、`/tmp/status3723.md` 收工删。

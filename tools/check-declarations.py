@@ -85,7 +85,11 @@ block - exactly where the reader the two goldens got in 3.413 walks past them (a
 stopped at the first line that is not one).  The payload below the comments is still the
 reference's, so the walk reads every `#` line of every file in the directory, keeps the two goldens
 header-only (their records are the reference program's own output), and prints what it leaves as
-the measured payload lines that name the product, counted rather than dropped.
+the measured payload lines that name the product, counted rather than dropped.  The
+eighteenth half read that count one layer further: 109 of its 126 lines were the *reason*
+column of the two registration tables - prose this repository writes, not a measured value -
+so that column is read with the prose model too, beside the copied sentence and the ported
+line it justifies, which stay quoted and are what the remaining count is.
 
 This repository's own prose is a scope of its own (status 3.340).  The walk above is
 bounded by *suffix* over the ported trees and by `DOC_DIRS` over the ledgers, so the
@@ -627,6 +631,20 @@ def header_only(text: str) -> str:
     return "\n".join(out)
 
 
+# The two registration tables under `docs/baseline/` are read in two halves (status 3.692
+# read the first).  Their *last* column is a reason this repository writes - the columns before
+# it quote the copied sentence (`verbatim-declaration-keeps.tsv`) or the ported line that
+# carries the literal (`declarations-allowlist.tsv`), so they are the registration's measured
+# side and stay - while a reason is prose of ours, exactly like a `docs/ports/` ledger's, which
+# is the sanctioned home for a remark about the reference's declaration.  The run's line used to
+# read "126 payload line(s) naming the product"; 109 of them were this column (108 rows carried
+# one shared reason string, one more cited the reference's schema file), i.e. the exemption's
+# own bound was counting our prose as a measured value.  The eighteenth half reads the column and
+# rewrote those reasons; the columns it quotes keep theirs.
+BASELINE_OWN_COLUMN = {"docs/baseline/declarations-allowlist.tsv": 4,
+                       "docs/baseline/verbatim-declaration-keeps.tsv": 4}
+
+
 def baseline_prose_findings(path: Path) -> list[tuple[str, str]]:
     return prose_findings_text(header_only(path.read_text(encoding="utf-8", errors="replace")))
 
@@ -665,17 +683,41 @@ def baseline_findings_text(text: str) -> list[tuple[str, str]]:
     return out
 
 
-def baseline_stats(root: Path) -> tuple[int, int, int, int, int]:
+def baseline_own_findings(rel: str, text: str) -> list[tuple[str, str]]:
+    """`(class, cell)` for a registration table's reason column (`BASELINE_OWN_COLUMN`).
+
+    A file with no reason column (the frozen configuration's macro dump) is not read here: its
+    payload *is* the reference's measured value, which is the exemption's reason for existing.
+    """
+    column = BASELINE_OWN_COLUMN.get(rel)
+    if column is None:
+        return []
+    out: list[tuple[str, str]] = []
+    for raw in text.split("\n"):
+        if not raw or raw.startswith("#"):
+            continue
+        cells = raw.split("\t")
+        if len(cells) <= column:
+            continue
+        klass = classify("", cells[column], recital=False)
+        if klass in PROSE_CLASSES:
+            out.append((klass, " ".join(cells[column].split())[:240]))
+    return out
+
+
+def baseline_stats(root: Path) -> tuple[int, int, int, int, int, int]:
     """The reading the new scope prints: `(files, comment lines, lines below the leading block,
     payload lines naming the product, files with one)`.
 
     The third number is the bound the goldens' reader cannot see - the reader stops at the first
     line that is not `#`, and the substitution table's two product-name sentences sit in the band
-    that reader never reaches.  The last two are what the exemption leaves: the reference's
-    measured payload, counted so the run says what it did not read.
+    that reader never reaches.  The last three are what the exemption leaves: the reference's
+    measured payload, counted so the run says what it did not read, and the reason column of the
+    two registration tables (`BASELINE_OWN_COLUMN`), which is this repository's prose and is
+    bound by the rule where it sits.
     """
-    files = lines = deep = payload_hits = payload_files = 0
-    for _, path in baseline_table_files(root):
+    files = lines = deep = payload_hits = payload_files = own_hits = 0
+    for rel, path in baseline_table_files(root):
         text = path.read_text(encoding="utf-8", errors="replace")
         raw_lines = text.split("\n")
         lead = 0
@@ -693,7 +735,8 @@ def baseline_stats(root: Path) -> tuple[int, int, int, int, int]:
                    and any(pat in raw for pat in PRODUCT + PRODUCT_FRAGMENTS))
         payload_hits += hits
         payload_files += 1 if hits else 0
-    return files, lines, deep, payload_hits, payload_files
+        own_hits += len(baseline_own_findings(rel, text))
+    return files, lines, deep, payload_hits, payload_files, own_hits
 
 
 def doc_files(root: Path) -> list[tuple[str, Path]]:
@@ -768,6 +811,8 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
     for rel, path in baseline_table_files(root):
         text = path.read_text(encoding="utf-8", errors="replace")
         for klass, snippet in baseline_findings_text(text):
+            out.append((rel, klass, snippet))
+        for klass, snippet in baseline_own_findings(rel, text):
             out.append((rel, klass, snippet))
     return out
 
@@ -964,6 +1009,30 @@ SELFTEST_BASELINE_TABLE = (
 )
 
 
+# The registration tables' reason column (the eighteenth half).  The second case is the split's
+# proof: the copied sentence in the column before the reason is a quotation, so a reader that
+# bound the whole row would report it, and one that read no column at all would miss the first.
+SELFTEST_BASELINE_OWN = (
+    ("a registration reason naming the product",
+     "docs/baseline/verbatim-declaration-keeps.tsv",
+     "femacs/doc/emacs/abbrevs.texi\t1\t@c This is part of the Emacs manual.\t"
+     "manual-membership\tthe titles are narrative (934 `GNU Emacs` lines in `doc/`)\n",
+     ["title"]),
+    ("a quoted sentence in the column before it is a measured value",
+     "docs/baseline/verbatim-declaration-keeps.tsv",
+     "femacs/doc/lispref/abbrevs.texi\t1\t@c This is part of the GNU Emacs Lisp Reference "
+     "Manual.\tmanual-membership\tthe copied sentence stays\n", []),
+    ("a registration reason carrying the removed version form",
+     "docs/baseline/declarations-allowlist.tsv",
+     "femacs/src/x.rs\tliteral\t1\tconst P: &CStr = c" + chr(34) + "x" + chr(34) + ";\t"
+     "the row above was `// femacs: port of src/x.c @ fd7afced403 (GNU Emacs 32.0.50).`\n",
+     ["version"]),
+    ("a measured-value table has no reason column to read",
+     "docs/baseline/config/darwin-arm64.macros.tsv",
+     'PACKAGE_NAME\t"GNU Emacs"\n', []),
+)
+
+
 # The tool scope (status 3.462).  The `#` cases are also the split's proof: if a `#` were not
 # read as a comment leader for these suffixes the first two would come back `literal`/nothing,
 # and if it were read inside a string the last one would come back `title` instead of `literal`.
@@ -1033,6 +1102,11 @@ def selftest() -> int:
         ok = got == sorted(want)
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
         bad += 0 if ok else 1
+    for name, rel, source, want in SELFTEST_BASELINE_OWN:
+        got = sorted({k for k, _ in baseline_own_findings(rel, source)})
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
     for name, source, want in SELFTEST_TOOL:
         got = sorted({k for _, k, _ in findings_text(source, ".py")})
         ok = got == sorted(want)
@@ -1051,7 +1125,7 @@ def selftest() -> int:
         bad += 0 if ok else 1
     total = (len(SELFTEST) + len(SELFTEST_DOC) + len(SELFTEST_PROSE) + len(SELFTEST_ASM)
              + len(SELFTEST_ASM_SPLIT) + len(SELFTEST_BASELINE) + len(SELFTEST_BASELINE_TABLE)
-             + len(SELFTEST_TOOL) + len(SELFTEST_LEDGER))
+             + len(SELFTEST_TOOL) + len(SELFTEST_LEDGER) + len(SELFTEST_BASELINE_OWN))
     print(f"{total} cases, {bad} failures")
     return 1 if bad else 0
 
@@ -1132,9 +1206,11 @@ def main() -> int:
         dkinds[path.suffix] = dkinds.get(path.suffix, 0) + 1
     dspan = " ".join(f"{n} {ext}" for ext, n in sorted(dkinds.items(), key=lambda kv: -kv[1]))
     print(f"read {len(doc)} ledger-scope file(s) ({dspan})")
-    bfiles, blines, bdeep, bpayload, bpayload_files = baseline_stats(root)
+    bfiles, blines, bdeep, bpayload, bpayload_files, bown = baseline_stats(root)
     print(f"read {blines} comment line(s) in {bfiles} docs/baseline file(s) "
           f"({bdeep} of them below the leading block the goldens' reader stops at); "
+          f"read the reason column of {len(BASELINE_OWN_COLUMN)} registration table(s) as "
+          f"prose ({bown} cell(s) naming the product); "
           f"left as measured values: {bpayload} payload line(s) naming the product in "
           f"{bpayload_files} file(s)")
     print(f"read {len(BASELINE_PROSE)} baseline header(s) by name "

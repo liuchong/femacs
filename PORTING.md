@@ -398,6 +398,18 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     `PORTING`／评审记录，说的都是"我们在重写 Emacs"这类**指称**）。前者改就是改 C 的字节，后者是叙述不是自我
     声明 ⇒ **本轮不扩门的表**，只改新面里那一行（`config/source-header-macros.tsv` 1，那里产品名被写成冻结头
     文件的**归属者**），并把 1,410 处作为读数点名，不冒充已清。
+    这条规则现在有第十八半（2026-10-06，status 3.723）：**那张"实测值"读数数的是整行，而一整行里只有引文列是实测/引文**。
+    第十七半那条覆盖行写的是 `left as measured values: 126 payload line(s) naming the product in 3 file(s)`；下一层看进去，126 行里
+    **109 行命中的是本仓库自己写的理由列**——`docs/baseline/verbatim-declaration-keeps.tsv` 的 111 行里 108 行共用同一条理由串
+    （串里写着"934 `<product>` lines in `doc/`"），`docs/baseline/declarations-allowlist.tsv` 的 12 行里 1 行（`SCHEMA_ID` 那行）的理由
+    把参照数据文件的路径与两个同族字面量写进了自家散文。处置：⑴ 新增 `BASELINE_OWN_COLUMN`（两张登记表的理由列 = 第 4 列）与
+    `baseline_own_findings()`，该列按**散文模型**读（引文列与实测值列不动），`baseline_stats()` 的读数扩成六元组，覆盖行同时打印
+    `read the reason column of 2 registration table(s) as prose (0 cell(s) naming the product)` 与 `left as measured values: 70 payload line(s) …`；
+    ⑵ 108 行的共用理由串改成"934 product-name lines in `doc/`"；⑶ `SCHEMA_ID` 那行的理由改成指称（`.gschema.xml` 成员 + "the registry,
+    clipboard and device-alias rows above"）。读数：改写前 **20 declaration sites (109 forbidden, 18 allowed literals), 2 failures** ⇒ 改写后
+    **18 (0 forbidden, 18 allowed literals), 0 failures**；`--selftest` **64 → 68 例 / 0 失败**；载荷行 **126 → 70**，逐列为
+    3 个冻结配置实测值 + 12 行移植字面量引文 + 55 行参照成员句引文，**自家列 0**。判别力：把一行理由改回旧写法 ⇒ 本半的读者报
+    `19 (1 forbidden, 18 allowed), 1 failures` 并点名，**HEAD 的读者看不见**（两端还原后都是 `18/0/18/0`）。
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
