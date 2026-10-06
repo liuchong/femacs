@@ -10577,3 +10577,148 @@ pub unsafe extern "C" fn pgtk_term_init (display_name: Lisp_Object, resource_nam
 
   return dpyinfo;                                                       // C 7307
 }
+
+/* `xg_check_special_colors` (C 7395) stands here because its home, `include/gtkutil.rs`, is the
+   dead-by-construction mirror (`USE_GTK` is undef in the frozen configuration, so C 24-244 - the
+   header's whole body, the prototype block included - is not transcribed); `src/xfns.rs` 341-343
+   declares it the same way (P-88 1).  The three cairo entry points the five functions below call
+   are this file's own non-`static` definitions in the remainder (C 7585/7610/7632) and are already
+   in scope through `include/pgtkterm.rs`'s `prototypes` module - the mirror glob-imports it (C
+   612-616's rows) - so they are not repeated in this unit.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  /// C: gtkutil.h 184-186: `extern bool xg_check_special_colors (struct frame *f,
+  /// const char *color_name, Emacs_Color *color);`
+  pub fn xg_check_special_colors (f: *mut frame, color_name: *const c_char,
+                                  color: *mut Emacs_Color) -> bool;
+}
+
+/// C 7380-7400: `bool pgtk_defined_color (struct frame *f, const char *name, Emacs_Color
+/// *color_def, bool alloc, bool makeIndex)` - a **non-`static`** C definition, so the port carries
+/// `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md 0.2).  C 7384-7390's comment sits between the
+/// signature and the body, which the port keeps above the body it stood before; `block_input` /
+/// `unblock_input` close it, and C's two implicit conversions on `r` are written out (the `bool`
+/// that `xg_check_special_colors` returns into C's `int r`, `as c_int`; and `r` into the `bool`
+/// result, `r != 0`).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_defined_color (f: *mut frame, name: *const c_char,
+					     color_def: *mut Emacs_Color, alloc: bool,
+					     makeIndex: bool) -> bool
+/* --------------------------------------------------------------------------
+         Return true if named color found, and set color_def rgb accordingly.
+         If makeIndex and alloc are nonzero put the color in the color_table,
+         and set color_def pixel to the resulting index.
+         If makeIndex is zero, set color_def pixel to ARGB.
+         Return false if not found
+   -------------------------------------------------------------------------- */
+{
+  let mut r: c_int;                                                     // C 7392
+
+  block_input ();                                                       // C 7394
+  r = xg_check_special_colors (f, name, color_def) as c_int;            // C 7395
+  if r == 0                                                             // C 7396
+    { r = pgtk_parse_color (f, name, color_def); }                      // C 7397
+  unblock_input ();                                                     // C 7398
+  return r != 0;                                                        // C 7399
+}
+
+/* On frame F, translate the color name to RGB values.  Use cached
+   information, if possible.
+
+   Note that there is currently no way to clean old entries out of the
+   cache.  However, it is limited to names in the server's database,
+   and names we've actually looked up; list-colors-display is probably
+   the most color-intensive case we're likely to hit.  */
+
+/// C 7410-7426: `int pgtk_parse_color (struct frame *f, const char *color_name, Emacs_Color
+/// *color)` - a **non-`static`** C definition (`extern "C"` + `#[unsafe(no_mangle)]`).  The local
+/// `GdkRGBA rgba` is the mirror's record; C 7417-7419's `double` -> `guint16` conversions are written
+/// out (`as c_ushort`), and C 7420-7422's `>>`/`<<`/`|` expression is C's own arithmetic with the
+/// three terms promoted to `c_ulong` (the `pixel` field's type) as C's assignment does implicitly.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_parse_color (f: *mut frame, color_name: *const c_char,
+					   color: *mut Emacs_Color) -> c_int
+{
+  let mut rgba: GdkRGBA = core::mem::zeroed ();                         // C 7414
+  if gdk_rgba_parse (&raw mut rgba, color_name) != 0                    // C 7415
+    {
+      (*color).red = (rgba.red * 65535.0) as c_ushort;                  // C 7417
+      (*color).green = (rgba.green * 65535.0) as c_ushort;              // C 7418
+      (*color).blue = (rgba.blue * 65535.0) as c_ushort;                // C 7419
+      (*color).pixel = ((((*color).red >> 8) as c_ulong) << 16          // C 7420
+			| (((*color).green >> 8) as c_ulong) << 8       // C 7421
+			| (((*color).blue >> 8) as c_ulong) << 0);      // C 7422
+      return 1;                                                         // C 7423
+    }
+  return 0;                                                             // C 7425
+}
+
+/* On frame F, translate pixel colors to RGB values for the NCOLORS
+   colors in COLORS.  On W32, we no longer try to map colors to
+   a palette.  */
+
+/// C 7431-7447: `void pgtk_query_colors (struct frame *f, Emacs_Color *colors, int ncolors)` - a
+/// **non-`static`** C definition (`extern "C"` + `#[unsafe(no_mangle)]`).  C 7440-7442's three
+/// `#define`s stand where C puts them (a block-scoped `macro_rules!`), and C 7438's `pixel` local is
+/// the port's `c_ulong` (the field's type).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_query_colors (f: *mut frame, colors: *mut Emacs_Color,
+					    ncolors: c_int)
+{
+  let mut i: c_int;                                                     // C 7434
+
+  i = 0;                                                                // C 7436
+  while i < ncolors                                                      // C 7436
+    {
+      let pixel: c_ulong = (*colors.offset (i as isize)).pixel;          // C 7438
+      /* Convert to a 16 bit value in range 0 - 0xffff. */
+      macro_rules! GetRValue {
+	($p:expr) => { (($p) >> 16) & 0xff };
+      }
+      macro_rules! GetGValue {
+	($p:expr) => { (($p) >> 8) & 0xff };
+      }
+      macro_rules! GetBValue {
+	($p:expr) => { (($p) >> 0) & 0xff };
+      }
+      (*colors.offset (i as isize)).red = (GetRValue! (pixel) * 257) as c_ushort;    // C 7443
+      (*colors.offset (i as isize)).green = (GetGValue! (pixel) * 257) as c_ushort;  // C 7444
+      (*colors.offset (i as isize)).blue = (GetBValue! (pixel) * 257) as c_ushort;   // C 7445
+      i += 1;                                                           // C 7436
+    }
+}
+
+/// C 7449-7453: `void pgtk_query_color (struct frame *f, Emacs_Color *color)` - a **non-`static`** C
+/// definition (`extern "C"` + `#[unsafe(no_mangle)]`).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_query_color (f: *mut frame, color: *mut Emacs_Color)
+{
+  pgtk_query_colors (f, color, 1);                                      // C 7452
+}
+
+/// C 7455-7468: `void pgtk_clear_area (struct frame *f, int x, int y, int width, int height)` - a
+/// **non-`static`** C definition (`extern "C"` + `#[unsafe(no_mangle)]`).  `eassert` is the mirror's
+/// `eassert!`, `pgtk_begin_cr_clip`/`pgtk_end_cr_clip` are this unit's use-site rows above and
+/// `cairo_rectangle`/`cairo_fill` the mirror's rows; C 7463's `FRAME_X_OUTPUT` read is this unit's
+/// own macro.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_clear_area (f: *mut frame, x: c_int, y: c_int, width: c_int,
+					   height: c_int)
+{
+  let mut cr: *mut cairo_t;                                             // C 7458
+
+  eassert! (width > 0 && height > 0);                                   // C 7460
+
+  cr = pgtk_begin_cr_clip (f);                                          // C 7462
+  pgtk_set_cr_source_with_color (f, (*(FRAME_X_OUTPUT! (f))).background_color,
+				 true);                                 // C 7463-7464
+  cairo_rectangle (cr, x as c_double, y as c_double, width as c_double,
+		   height as c_double);                                 // C 7465
+  cairo_fill (cr);                                                      // C 7466
+  pgtk_end_cr_clip (f);                                                 // C 7467
+}

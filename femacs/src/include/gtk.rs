@@ -1708,6 +1708,9 @@ unsafe extern "C" {
   /// C: gdk/gdkscreen.h: `gdouble gdk_screen_get_resolution (GdkScreen *screen);` - its result is
   /// `-1` when the screen does not know, which C 7235 tests.
   pub fn gdk_screen_get_resolution (screen: *mut GdkScreen) -> c_double;
+  /// C 7415: `if (gdk_rgba_parse (&rgba, color_name))`
+  /// C: gdk/gdkrgba.h: `gboolean gdk_rgba_parse (GdkRGBA *rgba, const gchar *spec);`
+  pub fn gdk_rgba_parse (rgba: *mut GdkRGBA, spec: *const c_char) -> gboolean;
   /// C 7143: `gtk_init (&argc, &argv2);` - C's `int *`/`char ***` pair.
   /// C: gtk/gtkmain.h: `void gtk_init (int *argc, char ***argv);`
   pub fn gtk_init (argc: *mut c_int, argv: *mut *mut *mut c_char);
