@@ -344,12 +344,10 @@ unsafe extern "C" {
   /// C 982: `window = gdk_window_get_parent (window);`
   /// C: gdk/gdkwindow.h: `GdkWindow *gdk_window_get_parent (GdkWindow *window);`
   pub fn gdk_window_get_parent (window: *mut GdkWindow) -> *mut GdkWindow;
-  /// C 883/914: `gdk_display_get_default_seat (gtk_widget_get_display (FRAME_GTK_WIDGET (f)))`
-  /// C: gdk/gdkdisplay.h: `GdkSeat *gdk_display_get_default_seat (GdkDisplay *display);`
-  pub fn gdk_display_get_default_seat (display: *mut GdkDisplay) -> *mut GdkSeat;
-  /// C 908: `return !tem ? gdk_seat_get_pointer (seat) : device;`
-  /// C: gdk/gdkseat.h: `GdkDevice *gdk_seat_get_pointer (GdkSeat *seat);`
-  pub fn gdk_seat_get_pointer (seat: *mut GdkSeat) -> *mut GdkDevice;
+  /* C 883/914's `gdk_display_get_default_seat (gtk_widget_get_display (FRAME_GTK_WIDGET (f)))`
+     and C 908's `gdk_seat_get_pointer (seat)` were declared here until `include/gtk.rs` landed
+     both rows (the pgtkfns ninth slice); the mirror is this unit's include graph, so the copies
+     are dropped (P-26's one spelling per construct, the `check-mirror-dupes.py` rule).  */
   /// C 920: `return gdk_seat_get_keyboard (seat);`
   /// C: gdk/gdkseat.h: `GdkDevice *gdk_seat_get_keyboard (GdkSeat *seat);`
   pub fn gdk_seat_get_keyboard (seat: *mut GdkSeat) -> *mut GdkDevice;

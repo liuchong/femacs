@@ -399,6 +399,17 @@ unsafe extern "C" {
   /// graph does not).
   pub fn pgtk_delete_terminal (terminal: *mut terminal);
   pub fn pgtk_xlfd_to_fontname (name: *const c_char) -> *mut c_char;
+  /// C 2908/2909: `pgtk_display_pixel_width (FRAME_DISPLAY_INFO (f))` /
+  /// `pgtk_display_pixel_height (FRAME_DISPLAY_INFO (f))`
+  /// C: pgtkterm.h 601/602: `extern int pgtk_display_pixel_height (struct pgtk_display_info *);` /
+  /// `extern int pgtk_display_pixel_width (struct pgtk_display_info *);` (`src/pgtkterm.rs` 1355
+  /// defines the latter; the former is still that unit's remainder)
+  pub fn pgtk_display_pixel_width (dpyinfo: *mut pgtk_display_info) -> c_int;
+  pub fn pgtk_display_pixel_height (dpyinfo: *mut pgtk_display_info) -> c_int;
+  /// C 2986: `if (xg_hide_tooltip (f))`
+  /// C: gtkutil.h 216: `extern bool xg_hide_tooltip (struct frame *f);` (`src/gtkutil.rs` 1399/1438
+  /// defines it twice, one per `use_gtk` arm)
+  pub fn xg_hide_tooltip (f: *mut frame) -> bool;
   /// C 1547/2747: `pgtk_set_event_handler (f);`
   /// C: pgtkterm.h 598: `extern void pgtk_set_event_handler (struct frame *);`
   pub fn pgtk_set_event_handler (f: *mut frame);
@@ -4052,4 +4063,216 @@ unsafe fn pgtk_create_tip_frame (dpyinfo: *mut pgtk_display_info, parms: Lisp_Ob
 
   /* Discard the unwind_protect.  */
   return unbind_to (count, frame);                              // C 2837
+}
+
+/* Compute where to display tip frame F.  PARMS is the list of frame
+   parameters for F.  DX and DY are specified offsets from the current
+   location of the mouse.  WIDTH and HEIGHT are the width and height
+   of the tooltip.  Return coordinates relative to the root window of
+   the display in *ROOT_X, and *ROOT_Y.  */
+
+/// C: C 2846-2849: `static void compute_tip_xy (struct frame *f, Lisp_Object parms, Lisp_Object dx,
+/// Lisp_Object dy, int width, int height, int *root_x, int *root_y)` - C's `static void`; the two
+/// `int *` out-parameters keep C's pointer shape (`&raw mut` at the one call), and C 2886-2889's
+/// four `XFIXNUM` reads go through C's `make_fixnum` arguments.  C's `int`-and-`EMACS_INT`
+/// arithmetic is written out where C's usual conversions widen and the assignment narrows
+/// (Deviation 58).
+#[cfg (feature = "have_pgtk")]
+unsafe fn compute_tip_xy (f: *mut frame, parms: Lisp_Object, dx: Lisp_Object, dy: Lisp_Object,
+			  width: c_int, height: c_int, root_x: *mut c_int, root_y: *mut c_int)
+{
+  let mut left: Lisp_Object;                                    // C 2851
+  let mut top: Lisp_Object;
+  let mut right: Lisp_Object;
+  let mut bottom: Lisp_Object;
+  let mut min_x: c_int;                                         // C 2852
+  let mut min_y: c_int;
+  let mut max_x: c_int;
+  let mut max_y: c_int = -1;
+
+  /* User-specified position?  */
+  left = Fcdr (Fassq (Qleft (), parms));                        // C 2855
+  top = Fcdr (Fassq (Qtop (), parms));                          // C 2856
+  right = Fcdr (Fassq (Qright (), parms));                      // C 2857
+  bottom = Fcdr (Fassq (Qbottom (), parms));                    // C 2858
+
+  /* Move the tooltip window where the mouse pointer is.  Resize and
+     show it.  */
+  if (!FIXNUMP (left) && !FIXNUMP (right))                      // C 2862
+      || (!FIXNUMP (top) && !FIXNUMP (bottom))                  // C 2863
+    {
+      let mut frame: Lisp_Object;                               // C 2865
+      let mut attributes: Lisp_Object;
+      let mut monitor: Lisp_Object;
+      let mut geometry: Lisp_Object;
+      let seat: *mut GdkSeat =
+	gdk_display_get_default_seat ((*FRAME_DISPLAY_INFO! (f)).gdpy);   // C 2866-2867
+      let dev: *mut GdkDevice = gdk_seat_get_pointer (seat);    // C 2868
+      let mut scr: *mut GdkScreen;                              // C 2869
+
+      block_input ();                                           // C 2871
+      gdk_device_get_position (dev, &raw mut scr, root_x, root_y);   // C 2872
+      unblock_input ();                                         // C 2873
+
+      XSETFRAME! (frame, f);                                    // C 2875
+      attributes = Fpgtk_display_monitor_attributes_list (frame);   // C 2876
+
+      /* Try to determine the monitor where the mouse pointer is and
+         its geometry.  See bug#22549.  */
+      while CONSP (attributes)                                  // C 2880
+	{
+	  monitor = XCAR (attributes);                          // C 2882
+	  geometry = Fassq (Qgeometry (), monitor);             // C 2883
+	  if CONSP (geometry)                                   // C 2884
+	    {
+	      min_x = XFIXNUM (Fnth (make_fixnum (1), geometry)) as c_int;   // C 2886
+	      min_y = XFIXNUM (Fnth (make_fixnum (2), geometry)) as c_int;   // C 2887
+	      max_x = (min_x as EMACS_INT
+		       + XFIXNUM (Fnth (make_fixnum (3), geometry))) as c_int;   // C 2888
+	      max_y = (min_y as EMACS_INT
+		       + XFIXNUM (Fnth (make_fixnum (4), geometry))) as c_int;   // C 2889
+	      if min_x <= *root_x && *root_x < max_x                // C 2890
+		  && min_y <= *root_y && *root_y < max_y            // C 2891
+		{
+		  break;                                           // C 2893
+		}
+	      max_y = -1;                                          // C 2895
+	    }
+
+	  attributes = XCDR (attributes);                          // C 2898
+	}
+    }
+
+  /* It was not possible to determine the monitor's geometry, so we
+     assign some sane defaults here: */
+  if max_y < 0                                                  // C 2904
+    {
+      min_x = 0;                                                // C 2906
+      min_y = 0;                                                // C 2907
+      max_x = pgtk_display_pixel_width (FRAME_DISPLAY_INFO! (f));   // C 2908
+      max_y = pgtk_display_pixel_height (FRAME_DISPLAY_INFO! (f));   // C 2909
+    }
+
+  if FIXNUMP (top)                                              // C 2912
+    { *root_y = XFIXNUM (top) as c_int; }                       // C 2913
+  else if FIXNUMP (bottom)                                     // C 2914
+    { *root_y = (XFIXNUM (bottom) - height as EMACS_INT) as c_int; }   // C 2915
+  else if *root_y as EMACS_INT + XFIXNUM (dy) <= min_y as EMACS_INT   // C 2916
+    { *root_y = min_y; }		/* Can happen for negative dy */
+  else if *root_y as EMACS_INT + XFIXNUM (dy) + height as EMACS_INT
+	   <= max_y as EMACS_INT                               // C 2918
+    /* It fits below the pointer */
+    { *root_y = (*root_y as EMACS_INT + XFIXNUM (dy)) as c_int; }   // C 2920
+  else if (height as EMACS_INT + XFIXNUM (dy) + min_y as EMACS_INT)
+	   <= *root_y as EMACS_INT                             // C 2921
+    /* It fits above the pointer.  */
+    { *root_y = (*root_y as EMACS_INT - height as EMACS_INT
+		 - XFIXNUM (dy)) as c_int; }                   // C 2923
+  else
+    /* Put it on the top.  */
+    { *root_y = min_y; }                                       // C 2926
+
+  if FIXNUMP (left)                                            // C 2928
+    { *root_x = XFIXNUM (left) as c_int; }                     // C 2929
+  else if FIXNUMP (right)                                      // C 2930
+    { *root_x = (XFIXNUM (right) - width as EMACS_INT) as c_int; }   // C 2931
+  else if *root_x as EMACS_INT + XFIXNUM (dx) <= min_x as EMACS_INT   // C 2932
+    { *root_x = 0; }		/* Can happen for negative dx */
+  else if *root_x as EMACS_INT + XFIXNUM (dx) + width as EMACS_INT
+	   <= max_x as EMACS_INT                               // C 2934
+    /* It fits to the right of the pointer.  */
+    { *root_x = (*root_x as EMACS_INT + XFIXNUM (dx)) as c_int; }   // C 2936
+  else if (width as EMACS_INT + XFIXNUM (dx) + min_x as EMACS_INT)
+	   <= *root_x as EMACS_INT                             // C 2937
+    /* It fits to the left of the pointer.  */
+    { *root_x = (*root_x as EMACS_INT - width as EMACS_INT
+		 - XFIXNUM (dx)) as c_int; }                   // C 2939
+  else
+    /* Put it left justified on the screen -- it ought to fit that way.  */
+    { *root_x = min_x; }                                       // C 2942
+}
+
+/* Hide tooltip.  Delete its frame if DELETE is true.  */
+
+/// C: C 2947-2948: `static Lisp_Object pgtk_hide_tip (bool delete)` - C's `static Lisp_Object`;
+/// C 2952's `calln (Qcancel_timer, tip_timer)` is the port's `calln!` and C 2961-2966's guard
+/// keeps C's five conditions in C's order.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_hide_tip (delete: bool) -> Lisp_Object
+{
+  if !NILP (tip_timer)                                          // C 2950
+    {
+      calln! (Qcancel_timer (), tip_timer);                     // C 2952
+      tip_timer = Qnil ();                                      // C 2953
+    }
+
+  /* Any GTK+ system tooltip can be found via the x_output structure of
+     tip_last_frame, provided that frame is still live.  Any Emacs
+     tooltip is found via the tip_frame variable.  Note that the current
+     value of x_gtk_use_system_tooltips might not be the same as used
+     for the tooltip we have to hide, see Bug#30399.  */
+  if (NILP (tip_last_frame) && NILP (tip_frame))                // C 2961
+      || (!use_system_tooltips                                  // C 2962
+	  && !delete                                             // C 2963
+	  && FRAMEP (tip_frame)                                  // C 2964
+	  && FRAME_LIVE_P (XFRAME (tip_frame))                   // C 2965
+	  && !FRAME_VISIBLE_P (XFRAME (tip_frame)))              // C 2966
+    /* Either there's no tooltip to hide or it's an already invisible
+       Emacs tooltip and we don't want to change its type.  Return
+       quickly.  */
+    { return Qnil (); }                                         // C 2970
+  else
+    {
+      let mut was_open: Lisp_Object = Qnil ();                  // C 2973
+
+      let count: specpdl_ref = SPECPDL_INDEX ();                // C 2975
+      specbind (Qinhibit_redisplay (), Qt ());                  // C 2976
+      specbind (Qinhibit_quit (), Qt ());                       // C 2977
+
+      /* Try to hide the GTK+ system tip first.  */
+      if FRAMEP (tip_last_frame)                                // C 2980
+	{
+	  let f: *mut frame = XFRAME (tip_last_frame);          // C 2982
+
+	  if FRAME_LIVE_P (f)                                   // C 2984
+	    {
+	      if xg_hide_tooltip (f)                            // C 2986
+		{ was_open = Qt (); }                           // C 2987
+	    }
+	}
+
+      /* When using GTK+ system tooltips (compare Bug#41200) reset
+	 tip_last_frame.  It will be reassigned when showing the next
+	 GTK+ system tooltip.  */
+      if use_system_tooltips                                    // C 2994
+	{ tip_last_frame = Qnil (); }                           // C 2995
+
+      /* Now look whether there's an Emacs tip around.  */
+      if FRAMEP (tip_frame)                                     // C 2998
+	{
+	  let f: *mut frame = XFRAME (tip_frame);               // C 3000
+
+	  if FRAME_LIVE_P (f)                                   // C 3002
+	    {
+	      if delete || use_system_tooltips                   // C 3004
+		{
+		  /* Delete the Emacs tooltip frame when DELETE is true
+		     or we change the tooltip type from an Emacs one to
+		     a GTK+ system one.  */
+		  delete_frame (tip_frame, Qnil ());            // C 3009
+		  tip_frame = Qnil ();                          // C 3010
+		}
+	      else
+		{ pgtk_make_frame_invisible (f); }              // C 3013
+
+	      was_open = Qt ();                                 // C 3015
+	    }
+	  else
+	    { tip_frame = Qnil (); }                            // C 3018
+	}
+      else
+	{ tip_frame = Qnil (); }                                // C 3021
+
+      return unbind_to (count, was_open);                       // C 3023
+    }
 }

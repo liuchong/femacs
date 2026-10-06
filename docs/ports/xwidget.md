@@ -1409,3 +1409,12 @@ order stay **UNVERIFIED** - no GDK tree here, and no layout assertion is written
   tools/check-dead-file-coverage.py` reads the first table and both were updated identically).
 - **Nothing in this round is committed**: no git write of any kind was performed (the lane's
   mandate), so this ledger's readings describe the working tree, not a revision.
+
+## The `include/gtk.rs` move (2026-10-06, status 3.722)
+
+Two of this unit's own GDK declarations - `gdk_display_get_default_seat` (C 883/914) and
+`gdk_seat_get_pointer` (C 908) - were dropped when the mirror landed both rows for `src/pgtkfns.rs`'s
+tooltip position query: the mirror is in this unit's include graph, so the copies were duplicates by
+`tools/check-mirror-dupes.py`'s rule (it read `18 duplicate declaration(s), 16 ratchet row(s), 2
+failure(s)` and named both).  The two call sites are unchanged, and this unit's probe
+(`have_xwidgets + have_window_system`) compiles clean (exit 0, 0 errors, 0 warnings).

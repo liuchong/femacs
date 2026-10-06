@@ -13,10 +13,10 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**4,055** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> `femacs/src/pgtkfns.rs` (**4,278** lines, from the 11 of the placeholder), carrying **C 1-1147**,
 > **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208**, **C 2210-2403**,
-> **C 2405-2549** and **C 2551-2838** - eight slices - with **both arms of every `#if`**; the next
-> live definition is `compute_tip_xy` (**C 2846**).
+> **C 2405-2549**, **C 2551-2838** and **C 2840-3025** - nine slices - with **both arms of every
+> `#if`**; the next live definition is `Fx_show_tip` (**C 3027**).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -130,7 +130,8 @@ which exist only under those two features (Owed 6).
 | 2210-2403 | the miscellaneous group's first five definitions and the first seven colour/geometry subrs: C 2210-2214's banner, `check_x_display_info` (2216-2221), `pgtk_set_scroll_bar_default_width`/`_height` (2223-2241), `pgtk_get_string_resource` (2243-2268), `pgtk_get_focus_frame` (2270-2281) and `xw-color-defined-p`/`xw-color-values`/`xw-display-color-p`/`x-display-grayscale-p`/`x-display-pixel-width`/`x-display-pixel-height` (2283-2403) | the file gate - **transcribed** (the sixth slice) |
 | 2405-2549 | the monitor-attribute builder and the group's last three definitions: `Fpgtk_display_monitor_attributes_list` (C 2405-2510: the `FOR_EACH_FRAME` filing walk, the per-monitor records and the `make_monitor_attribute_list`/`free_monitors` pair), `pgtk_frame_scale_factor` (2512-2531), `x-display-planes` (2533-2539) and `x-display-color-cells` (2542-2549) | the file gate - **transcribed** (the seventh slice) |
 | 2551-2838 | the tooltip group: C 2551-2553's banner, the six file-scope statics (2555-2573), `unwind_create_tip_frame` (2576-2587) and `pgtk_create_tip_frame` (2590-2838: the frame's officialisation, the colour/name blocks, the two font drivers, the thirteen `gui_default_parameter` calls, the GTK window setup, the three `AUTO_FRAME_ARG` blocks and the tail) | the file gate - **transcribed** (the eighth slice) |
-| 2840-3906 | **the remainder of the file** - from C 2840-2844's comment and C 2846's `compute_tip_xy` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the tip position/`pgtk_hide_tip`/`Fx_show_tip`/`Fx_hide_tip` pair and their unwind helpers (2840-3311), the frame-geometry/edges/mouse/print/file-dialog/font subrs (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2840-3025 | `compute_tip_xy` (C 2846-2943: the four parameter reads, the GDK pointer query, the monitor walk and the two coordinate ladders) and `pgtk_hide_tip` (C 2946-3025: the `Qcancel_timer` call, C's five-condition early return, the two specbinds, the `xg_hide_tooltip` attempt and the delete-or-hide fork) | the file gate - **transcribed** (the ninth slice) |
+| 3027-3906 | **the remainder of the file** - from C 3027-3030's `DEFUN ("x-show-tip", …)` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the show/hide pair and their unwind helpers (3027-3311), the frame-geometry/edges/mouse/print/file-dialog/font subrs (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -554,6 +555,36 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     a placeholder), so P-87's two legs apply: `tools/check-all-units.sh` reads `checked 83 unit(s),
     0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`, `check-mirror-dupes.py` stays
     16/16/0, and the mirror's ledger carries the rows with a `### status 3.721` section.
+
+58. **C's `int`-and-`EMACS_INT` arithmetic in `compute_tip_xy` is written out** (Deviation 5's rule):
+    C's `XFIXNUM` returns an `EMACS_INT`, so C 2888/2889's `max_x = min_x + XFIXNUM (…);` widens
+    and then narrows again - `(min_x as EMACS_INT + XFIXNUM (Fnth (…))) as c_int` - and the four
+    comparisons and four assignments of C 2916-2942 follow the same shape
+    (`*root_y as EMACS_INT + XFIXNUM (dy) <= min_y as EMACS_INT`,
+    `*root_y = (*root_y as EMACS_INT - height as EMACS_INT - XFIXNUM (dy)) as c_int`).
+59. **The out-parameters keep C's pointer shape.**  `compute_tip_xy`'s `int *root_x`/`int *root_y`
+    are `*mut c_int` here (`gdk_device_get_position`'s third and fourth arguments, C 2872), and the
+    two `XFIXNUM` results written through them are the narrowing casts of Deviation 58;
+    `pgtk_hide_tip`'s `bool delete` and `compute_tip_xy`'s two `int` sizes keep C's own types.
+60. **This slice's declarations**: `pgtk_display_pixel_width`/`pgtk_display_pixel_height`
+    (pgtkterm.h 601/602; `src/pgtkterm.rs` 1355 defines the first, the second is that unit's
+    remainder) and `xg_hide_tooltip` (gtkutil.h 216; `src/gtkutil.rs` 1399/1438 defines it twice,
+    one per arm) stand in this unit's own blocks because their mirrors have not landed those rows.
+61. **The mirror change retired two copies in another unit.**  `src/xwidget.rs` declared
+    `gdk_display_get_default_seat` and `gdk_seat_get_pointer` itself (its C 883/914 and C 908), and
+    the moment this round's rows landed in `include/gtk.rs` - which is in *that* unit's include
+    graph - `check-mirror-dupes.py` read `18 duplicate declaration(s), 16 ratchet row(s), 2
+    failure(s)` and named both.  The two copies are dropped there (P-26's one spelling per
+    construct), the gate returns to 16/16/0, and that unit's own probe
+    (`have_xwidgets + have_window_system`) compiles clean (exit 0, 0 errors, 0 warnings) - P-87 ①'s
+    consumer sweep was re-run on the final tree and reads `checked 83 unit(s), 0 failure(s)`.
+62. **This unit's `docs/ports/line-drift-tolerance.tsv` row** (0.10, `total` basis): the port is
+    now 4,278 lines against C's 3,906, **+372 lines (+9.5%)**, which the 5% rule reports as a
+    `line count drifted` row.  The row and its reason (the fixed cost of a P-86 unit's per-item
+    gates and citations, C's two-arm macros and written-out conversions, C's `for` heads as the
+    init/`while`/step trio, and the two third-party segments and declaration blocks this unit
+    carries) stand in that table, and the `--check` row retires with them (67 -> 59 -> 57 rows
+    across this slice's steps, the last two being the drift row's return and its retirement).
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1099,3 +1130,56 @@ exists (`gtk_window_set_*` are declarations - the port has no GTK to link), and 
 are written by nothing in the port: they are zero-initialised declarations this slice's own
 functions would write.  The four arm readings are **compile** readings of text this machine cannot
 build.
+
+## The ninth slice (C 2840-3025): `compute_tip_xy` and `pgtk_hide_tip`
+
+**㉟ What is in it.**  C 2840-2844's comment and C 2846-2943's `compute_tip_xy` (the four
+`Fcdr (Fassq (…))` parameter reads, the GDK pointer query through
+`gdk_display_get_default_seat`/`gdk_seat_get_pointer`/`gdk_device_get_position`, the
+`Fpgtk_display_monitor_attributes_list` walk that finds the monitor under the pointer by comparing
+its `geometry` rectangle against the two root coordinates, the pixel-width/height fallback, and the
+two ladders that decide `*root_y` and `*root_x`); and C 2946-3025's `pgtk_hide_tip` (the
+`Qcancel_timer` call, C's five-condition early return, the `inhibit_redisplay`/`inhibit_quit`
+specbinds, the `xg_hide_tooltip` attempt on `tip_last_frame`, the `use_system_tooltips` reset, and
+the Emacs tip's delete-or-hide fork).  Rust: 4,055 -> **4,278** lines.
+
+**㊱ The arm readings (four arms, both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 182 errors / 11 warnings -> 187 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets   : 170 / 10 -> 175 / 10
+C = A + have_gsettings                             : 182 / 11 -> 187 / 11
+D = B + have_gsettings                             : 170 / 10 -> 175 / 10
+```
+All four arms read the same delta: **+3 `pgtk_output` and +2 `pgtk_display_info` sites**, both
+classes this ledger names - the three are the slice body's accessor expansions (attributed the
+Evidence ⑩ way: exactly three of the `in this macro invocation` notes fall inside the new text) and
+the two are the new `pgtk_display_pixel_width`/`_height` declarations' `*mut pgtk_display_info`
+parameters (which sit in this unit's own block, above the slice's text, so the site count is read
+from the whole diff, not the appended range).  **No new class and no new warning**, and this slice's
+first run needed no repair of its own text.
+
+**㊲ `extract-abi.py --check`.**  `missing function compute_tip_xy` and `missing function
+pgtk_hide_tip` retire (59 -> 57 rows), **but the step exposed a reading, not just a retirement**:
+the port's 4,278 lines are 9.5% over C's 3,906, so the `line count drifted` row came back for the
+first time since the seventh slice.  The project's answer is the tolerance table, not a hedge: this
+unit's `docs/ports/line-drift-tolerance.tsv` row (0.10, `total` basis) now records the measurement
+and the reason (Deviation 62), and the `--check` drift row retires with it - so the reading is
+**`FAIL` with 57 rows**, none of them a drift row, and the 57 are the text the file has not reached
+yet.
+
+**㊳ The gates, P-87's two legs, and what is not claimed.**  `check-declarations.py` **18 declaration
+sites (0 forbidden, 18 allowed literals), 0 failures**; `check-citations.py` **676 file(s) scanned,
+0 drift, 0 range, 2,040 external, 36 allowed, 0 stale**; `check-dead-file-coverage.py` **145
+ledger(s) bound, 0 failure(s)** (59 range rows now cover src/pgtkfns.c); `check-port-lines.py` **0
+file(s) under ten percent, 0 reference line(s), 0 ratchet row(s), 0 new, 0 stale**;
+`check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**; `check-cond-eval.py src/pgtkfns.c`
+**11 conditions, 0 unknown, 0 disagreements [VERIFIED]**; `check-mirror-dupes.py` **16 duplicate(s),
+16 ratchet row(s), 0 failure(s)** - after this round's three new GDK rows first read 18/16/2 and the
+two copies they exposed in `src/xwidget.rs` were dropped (Deviation 61).  **A mirror changed this
+round**, so P-87 ①'s consumer sweep was run twice (once after the mirror change, once on the final
+tree) and both readings are `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit
+failure(s)`.  **Not claimed**: no tooltip was positioned or hidden (`compute_tip_xy` and
+`pgtk_hide_tip` are called only by `Fx_show_tip`/`Fx_hide_tip`, still the remainder), no GDK pointer
+query ran (`gdk_device_get_position` is a declaration - the port has no GDK to link), and the four
+arm readings are **compile** readings of text this machine cannot build.

@@ -467,6 +467,17 @@ unsafe extern "C" {
   /// C: gdk/gdkmonitor.h: `void gdk_monitor_get_workarea (GdkMonitor *monitor, GdkRectangle
   /// *workarea);`
   pub fn gdk_monitor_get_workarea (monitor: *mut GdkMonitor, workarea: *mut GdkRectangle);
+  /// C 2866/2868/2872: `GdkSeat *seat = gdk_display_get_default_seat (FRAME_DISPLAY_INFO (f)->gdpy);`
+  /// / `GdkDevice *dev = gdk_seat_get_pointer (seat);` / `gdk_device_get_position (dev, &scr,
+  /// root_x, root_y);`
+  /// C: gdk/gdkdisplay.h: `GdkSeat *gdk_display_get_default_seat (GdkDisplay *display);`
+  /// C: gdk/gdkseat.h: `GdkDevice *gdk_seat_get_pointer (GdkSeat *seat);`
+  /// C: gdk/gdkdevice.h: `gboolean gdk_device_get_position (GdkDevice *device, GdkScreen **screen,
+  /// gint *x, gint *y);`
+  pub fn gdk_display_get_default_seat (display: *mut GdkDisplay) -> *mut GdkSeat;
+  pub fn gdk_seat_get_pointer (seat: *mut GdkSeat) -> *mut GdkDevice;
+  pub fn gdk_device_get_position (device: *mut GdkDevice, screen: *mut *mut GdkScreen,
+				  x: *mut c_int, y: *mut c_int) -> gboolean;
   /// C 2062: `int mm = gdk_monitor_get_height_mm (monitor);`
   /// C: gdk/gdkmonitor.h: `int gdk_monitor_get_height_mm (GdkMonitor *monitor);`
   pub fn gdk_monitor_get_height_mm (monitor: *mut GdkMonitor) -> c_int;

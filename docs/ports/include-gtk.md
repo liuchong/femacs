@@ -59,7 +59,9 @@ by header:
   entry points the pgtkfns subrs walk (`gdk_display_get_n_monitors`, `gdk_display_get_monitor`,
   `gdk_display_get_monitor_at_window`, `gdk_monitor_get_geometry`, `gdk_monitor_get_workarea`,
   `gdk_monitor_get_height_mm`, `gdk_monitor_get_width_mm`, `gdk_monitor_get_model`,
-  `gdk_monitor_get_scale_factor`, `gdk_monitor_is_primary`), and fifty entry points.
+  `gdk_monitor_get_scale_factor`, `gdk_monitor_is_primary`), the three seat/device rows the
+  tooltip position query needs (`gdk_display_get_default_seat`, `gdk_seat_get_pointer`,
+  `gdk_device_get_position`), and fifty-three entry points.
 - **GTK** (`<gtk/gtk.h>`): the opaque handles `GtkWidget`/`GtkWindow`/`GtkMenu`/`GtkImage`/
   `GtkBin`/`GtkContainer`/`GtkLabel`/`GtkMenuShell`/`GtkMenuBar`/`GtkMenuBarClass`/
   `GtkWidgetClass`/`GtkTooltip`/`GtkSettings`/`GtkStyleContext`/`GtkStyle`/`GtkRcStyle`/
@@ -260,3 +262,14 @@ calls and one `GdkWindowTypeHint` member, so those rows landed here (header-only
 GTK/GDK header on this machine, and the one named enumerator is a placeholder).  P-87 ①'s consumer
 sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`; the
 consumer's ledger records the pair (`docs/ports/pgtkfns.md` Deviations 53-57 and Evidence ㉜).
+
+### status 3.722 (the pgtkfns ninth-slice round this file took part in)
+
+`src/pgtkfns.c`'s `compute_tip_xy` (C 2866-2872) queries the pointer through
+`gdk_display_get_default_seat`, `gdk_seat_get_pointer` and `gdk_device_get_position`, so those three
+rows landed here (header-only citations: no GDK header on this machine) - and they retired two
+copies in `src/xwidget.rs`, which had declared the first two itself until `check-mirror-dupes.py`
+read `18 duplicate declaration(s), 2 failure(s)` and both were dropped there (P-26).  P-87 ①'s
+consumer sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit
+failure(s)`; the consumer's ledger records the pair (`docs/ports/pgtkfns.md` Deviations 58-62 and
+Evidence ㊱).
