@@ -288,6 +288,36 @@ failure(s)** (the test-programme rows now split at C 16889 and the table still t
 `check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new,
 0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**, 0 row(s) without a
 ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0 disagreements**.
+**⑯ Slice 21's readings.**  `cargo run -q -p xtask -- build-tu src/sfnt.c` -> exit 0, **336
+bytes**, md5 `dbed68837694579185377dbb0821ab62` (the empty object - a syntax reading).  The arm flip
+reads **0 errors at HEAD and 0 after this slice**, and the object is **98,448 bytes on both sides**
+again: the whole slice is behind `feature = "test"`, so the frozen arm is untouched (the same
+measurement slices 19-20 recorded).  `python3 tools/extract-abi.py --check emacs/src/sfnt.c
+femacs/src/sfnt.rs` -> **1 row**, the line-count row: 18,672 -> **20,073** Rust lines against C's
+21,215, **5.4%** (was 12.0%), i.e. this slice alone closed more than half of the drift the unit came
+in with.  **Two verifications are new, and both were run against C's own text rather than by
+eye.**  (i) **The four rounding arrays**: the C region (18002-18081) was extracted verbatim with its
+three initialiser macros and compiled here (`clang /tmp/cnt/t2.c`), which printed `54 48 9 8` bytes
+for `sfnt_sround_instructions`/`sfnt_sround_values`/`sfnt_s45round_instructions`/
+`sfnt_s45round_values` and then every byte of the two instruction arrays; the port's literals were
+evaluated element by element and compared - **54/54 and 9/9 identical**, and the four element counts
+match.  That measurement also *caught two errors in the first draft*: `SFNT_ROUND_VALUE` expands to
+**three** elements (`0xb0, value, 0x68`), so the two arrays are 54 and 9, not the 42 and 7 the draft
+declared - the counts were corrected from the clang reading, and the two `countof` fields with them.
+(ii) **All 81 `_test_args` objects**: a script parsed both sides (C's `static struct … = { … };`
+bodies, expanding the `(uint32_t []) { … }` compound literals and evaluating the same arithmetic in
+both languages) and compared name, values, element count, trap flag and IP for every object:
+**79 objects compared field by field, 0 mismatches**, the other two (`sround_test_args`,
+`s45round_test_args`) being the ones whose stack is a named array - covered by (i).  The slice's own
+`probe` runs are the frozen one on the arriving text, the same after the header comment was
+rewritten, and the HEAD baseline: all three 0 errors.  The other gates: `check-declarations.py`
+**17 declaration sites (0 forbidden, 17 allowed literals), 0 failures**; `check-citations.py` **676
+file(s) scanned, 0 drift, 0 range, 2029 external, 36 allowed, 0 stale**;
+`check-dead-file-coverage.py` **145 ledger(s) bound (a C range table), 0 failure(s)** (the
+test-programme rows now split at C 18182 and the table still tiles C 1-21215);
+`check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new,
+0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**, 0 row(s) without a
+ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0 unknown, 0 disagreements**.
 ## Deviations`.  Port: `femacs/src/sfnt.rs` (13,174 lines, `grep -c ''`; `extract-abi.py`'s
 > own count, 13,174, is the same newline count), both arms of every `#if` carried — except the
 > macros C 6559-8159, whose Rust home is inside the functions that call them (P-57; the range
@@ -521,9 +551,10 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 | 14555-16447 | **slice 8, the file's last non-TEST block**: C 14556-14561's comment and `sfnt_read_packed_deltas` (C 14562-14618; C 14573's `data >= end` bail, C 14584's `*data++` control byte, C 14593/14602 the two more bails, C 14596-14597's two-byte value, C 14612's write-back); the `cvar` reader `sfnt_read_cvar_table` (C 14626-14950; C 14649-14650 the `SFNT_ENDOF` minimum, C 14682's `& 0x0fff`, C 14683-14684 the signed `data_offset`, C 14692-14704 the three pointer initialisers and the zeroed `size`, C 14706-14717 the shared-point read, C 14720-14771 the size-computation walk with its five `ckd_add`s, C 14777-14780 the realloc and the two derived pointers, C 14787-14934 the second pass and its four `sfnt_read_packed_points`/`sfnt_read_packed_deltas` calls plus the four `cvt->num_elements` clamps, C 14937/14943 the two `(void *) -1` guards); the three blend helpers `sfnt_init_blend` (C 14959-14975; C 14972's `axis_count * sizeof *coords * 2` and the two pointers), `sfnt_free_blend` (C 14979-14983) and `sfnt_normalize_blend` (C 14988-15074; C 14998-15036 the three-way normalize with its two `sfnt_div_fixed` pairs, C 15041-15073 the avar walk and its `sfnt_multiply_divide_signed`); the record `struct sfnt_gvar_glyph_header` (C 15078-15088); `sfnt_compute_tuple_scale` (C 15096-15174; C 15103's two `UNINIT`, C 15107's `0200000`, C 15146-15148 the `MIN`/`MAX` fit test, C 15163/15167 the two `sfnt_multiply_divide` calls); the three interpolators `sfnt_infer_deltas_2` (C 15184-15356; C 15195's `j != pair_end` walk, C 15200-15208 the contour wrap, C 15262's `goto consider_y`, C 15334's `goto next`), `sfnt_infer_deltas_1` (C 15361-15406; C 15368's two `SIZE_MAX`, C 15380's `goto next`, C 15397's trailing pair) and `sfnt_infer_deltas` (C 15434-15457; C 15442-15456 the contour walk and its three-way bounds return); the two appliers `sfnt_vary_simple_glyph` (C 15488-15851; C 15518-15521 the offset fork, C 15530's `sizeof header` test, C 15559-15573 the shared-point read, C 15580-15587 the `alloca`/`xnmalloc` fork, C 15615-15663 the coordinate and intermediate reads, C 15668-15673 the scale test, C 15704-15813 the `switch (point_count)` with its `UINT16_MAX` and `default` arms, the touched/original arrays and the `sfnt_infer_deltas` call) and `sfnt_vary_compound_glyph` (C 15861-16212; the same walk against `num_components`, C 16152-16176 the two `flags` tests and the `argument1`/`argument2` writes); `sfnt_vary_interpreter` (C 16221-16277; C 16252-16254 the `ndeltas` ternary, C 16259's `points ? points[j] : j`, C 16261's `index > cvt_size` test, C 16271's `cvt[i] += delta`); and the two metadata readers `sfnt_read_OS_2_table` (C 16292-16381; C 16313-16317 the `minimum` sum with its `offsetof`, C 16331-16333 the read up to `panose`, C 16361-16364 the second read, the 23 swaps) and `sfnt_read_post_table` (C 16398-16444; C 16416's `sizeof *post` gate, the nine swaps) | file gate / `TEST_STATIC` on the fourteen public definitions |
 | 16448-16704 | C 16448's `#ifdef TEST` (whose matching `#endif` is C 21215, the file's last line) and its first block: `struct sfnt_test_dcontext` (C 16450-16460), the `sfnt_test_max` object (C 16463), the eight callbacks `sfnt_test_move_to`/`_line_to`/`_curve_to`/`_get_glyph`/`_free_glyph`/`_get_metrics`/`_span`/`_edge_ignore` (C 16465-16595) and the X11 debugger's state with `sfnt_test_edges`/`sfnt_debug_edges`/`sfnt_test_edge` (C 16596-16704; C 57-58's `<X11/Xlib.h>` mirror is `include/xlib.rs` and C 57's edge is added by slice 20, whose `sfnt_x_raster` needs `<X11/extensions/Xrender.h>`, which has no mirror - Owed 30) | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 19) |
 | 16705-16889 | the raster test: `sfnt_x_raster` (C 16704-16861, the XRender viewer - the `XOpenDisplay`/`XRenderQueryExtension` prologue, the `goto depth_found` loop, the two `alloca`d arrays, the fifteen `XImage` field writes, the picture pair and the event loop) and `sfnt_test_raster` (C 16863-16884, the ASCII printer that forks the viewer when `SFNT_X` is set); C 57's `include!` edge to `include/xlib.rs` lands here too | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 20) |
-| 16890-21215 | the interpreter test programme `sfnt_make_test_interpreter`/`sfnt_run_interpreter_test`/`sfnt_generic_check`/`sfnt_check_*` (**the next definition**, C 16890) with its 166 `_test_args` objects, ending at the file's last line (C 21215) | not this slice |
+| 16890-18182 | the interpreter test programme's fixtures, records, checks and argument objects: C 16890-16941's four fixtures, `sfnt_make_test_interpreter` (C 16943-16950), `struct sfnt_interpreter_test` with `sfnt_run_interpreter_test` (C 16952-16979), `struct sfnt_generic_test_args`/`struct sfnt_rounding_test_args` with the twenty `sfnt_check_*` functions (C 16981-17423) and **all 81 `_test_args` objects** (C 17425-18181, two of them carrying C's three initialiser macros and the four measured arrays) | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 21) |
+| 18183-21215 | `all_tests[]` (**the next definition**, C 18183) - the 166-entry table of instructions, argument pointers and check functions - and the programme's entry point with its `sfnt_setup_debugger` and the glyph-outline/raster benchmark (C 19656-21213), ending at the file's last line | not this slice |
 
-The sixty-nine rows above tile C 1-21215 **contiguously** (blank lines included) rather than
+The seventy rows above tile C 1-21215 **contiguously** (blank lines included) rather than
 skipping the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
 `femacs/src/include/sfnt.rs` (this file's header's mirror) to this same `sfnt.md` through its
 bare-stem fallback, so a table with gaps at blanks would leave `src/sfnt.h`'s non-blank lines
@@ -1709,6 +1740,34 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     `GC`, `XGCValues`, `XEvent`, `XRenderColor`, `XRenderPictFormat`, `Font` and the `X*`/`XRender*`
     procedures keep C's spelling, with this file's edge to `include/xlib.rs` added at C 57's
     position (Deviation 87 (b)'s correction, Owed 30).
+89. **Slice 21's six shapes.**  (a) **The fixtures are struct literals**: C 16890-16941's four
+    positional initialisers (a `sfnt_maxp_table` with fifteen values, a ten-element `sfnt_fword`
+    array, a `sfnt_cvt_table`, a `sfnt_head_table` with nineteen) become `static mut` objects
+    naming every field in C's order - the port's records are `#[repr(C)]` with those fields, so the
+    positional text has one Rust spelling (`Lisp_Subr_intspec`'s shape).  (b) **C's file-scope
+    compound literals are promoted arrays behind pointers**: each `(uint32_t []) { … }` is written
+    `&[…] as *const [uint32_t; N] as *mut uint32_t`, one expression per call site and no invented
+    item name (the `xmenu.rs` 3854 / `keyboard.rs` 7767 rulings for C's compound literals, whose
+    scalar cases are the casts `image.rs` 7486 records); a file-scope compound literal has *static*
+    storage, which the promotion matches.  (c) **C 18002-18016's three initialiser macros are
+    written out**: each expands to several initialiser *elements*, and Rust has no spelling for that
+    in `[MACRO! (), …]`, so the two arrays write the expansion with C's own arithmetic and name the
+    macro in the line's comment - with the element counts **measured** by compiling C's text rather
+    than counted by eye (Evidence ⑯ (i), which caught 42-vs-54 and 7-vs-9).  (d) **`countof (x)` in
+    a static initialiser is the value with C's spelling in the comment**: the mirror's
+    `countof!` is `size_of_val`-based and a `static mut` cannot be read from another initialiser
+    (measured: `E0133`), so the four sites carry C's own call as a comment beside the number it
+    denotes - a *measured* number, not a re-derived one.  (e) **The checks use the file's own
+    idioms**: `fprintf (stderr, c"…".as_ptr (), …)` (the `alloc.rs`/`bidi.rs` shape), C's
+    `(char *) SP - (char *) stack` byte count as `((*interpreter).SP as *const c_char).offset_from
+    ((*interpreter).stack as *const c_char) as size_t` (the `ralloc.rs` 431 idiom, which is the
+    byte-wise difference C's cast asks for - the element-wise `offset_from` on `uint32_t *` would be
+    four times too large), the `%td` argument as the same `.offset_from` in `c_int`, `memcmp`'s
+    pointer difference inside the call, and C's adjacent string literals folded into the one
+    `c"…"` they denote (Deviation 87 (e)).  (f) **`sfnt_run_interpreter_test` keeps C's `setjmp`
+    dispatch**: `if setjmp (&raw mut (*interpreter).trap) != 0 { test->check (…, true) } else { … }`,
+    with the record's function-pointer member spelled `Option<unsafe extern "C" fn (…)>` (P-27) and
+    called through `.unwrap ()` like the `sfnt_decompose_glyph` callbacks.
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
 1. **`TEST_STATIC`'s Rust form** — either a `docs/ports/excluded-macros.txt` row (`kind=syntax`,
@@ -2034,13 +2093,16 @@ object is 90,168 bytes - all three read by the compiler and never by a running p
 **no runtime evidence of any kind** for this port — no font was opened, no cmap subtable was
 parsed, no table directory was read, no glyph was outlined, no hmtx/name/meta/cvt/fpgm/prep table
 was read, no `read`/`lseek` returned a byte this port can claim to have interpreted, and no 26.6
-value was ever rounded, floored or scaled.  C 16890-21215 is **not ported here**: the interpreter test programme and its 166 `_test_args`
-objects (Owed 21).  The 1 `- missing …` line the delivered `--check` reads is the line-count row,
-and the 12.0% drift is that boundary (slice 20 moved it from 1 row and 13.1%, taking C 16705-16889).
-**These TEST-arm slices have no compile reading of their own and do not claim one**:
-`feature = "test"` is carried by no gate, and flipping it today reads 3,101 errors, the bulk of them
-in the mirrors (Evidence ⑭); what they do have is the frozen arm's 0 errors and an
-unchanged object, which proves the frozen arm was not touched.  The `.offset (i as isize)`  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
+value was ever rounded, floored or scaled.  C 18183-21215 is **not ported here**: `all_tests[]` and the test programme's entry point (Owed 21),
+which is the whole of what remains in this unit.  The 1 `- missing …` line the delivered `--check`
+reads is the line-count row, and the 5.4% drift is that boundary (slice 21 moved it from 1 row and
+12.0%, taking C 16890-18182 - the fixtures, the records, the twenty check functions and all 81
+`_test_args` objects).  **This slice's text has no compile reading of its own and does not claim
+one**: `feature = "test"` is carried by no gate, and flipping it today reads 3,101 errors, the bulk
+of them in the mirrors (Evidence ⑭).  What it does have is stronger than the earlier TEST slices
+got: the argument objects were compared field by field against C's text (79 of 79 identical) and the
+two instruction arrays byte by byte against C's own macro expansion (54 + 9 bytes identical) -
+Evidence ⑯.  The `.offset (i as isize)`  The `.offset (i as isize)`  The `.offset (i as isize)` / `&raw mut` / `overflowing_*` / `as` rewrites are
 compile-level and were measured by the compiler, not by a running program; so is the whole
 `feature = "no_ndebug"` arm (nothing flips it yet — Owed 8), and so are the four `MAYBE_UNUSED
 TEST_STATIC` readers' TEST arm and C's `#ifdef TEST` hooks in the remainder (Owed 9, Owed 12).

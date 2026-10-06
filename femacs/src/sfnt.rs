@@ -103,8 +103,17 @@
 // This slice also adds C 57's `<X11/Xlib.h>` edge to `include/xlib.rs` - the mirror the tree does
 // have - and records the names the two arms still owe it, plus the fact that
 // `<X11/extensions/Xrender.h>` has no mirror at all.
-// **What is left after slice 20** is C 16890-21215, the interpreter test programme and its 166
-// `_test_args` objects, and nothing else.
+// **Slice 21 takes C 16890-18182** - the interpreter test programme's fixtures, records, checks and
+// argument objects: the MAXP/CVT/HEAD fixtures with `sfnt_make_test_interpreter` (C 16890-16950),
+// `struct sfnt_interpreter_test` and `sfnt_run_interpreter_test` (C 16952-16979),
+// `struct sfnt_generic_test_args` with `sfnt_generic_check` and `struct sfnt_rounding_test_args`
+// with `sfnt_check_rounding` plus the other nineteen `sfnt_check_*` functions (C 16981-17423), and
+// all **81 `_test_args` objects** (C 17425-18181) - whose `countof` fields and two instruction
+// arrays were checked against C's own text (`clang` prints 54/48/9/8 bytes for the four arrays, and
+// the 54 + 9 bytes are identical to the port's literals; a script compared all 79 inline-array
+// objects field by field, 0 mismatches).
+// **What is left after slice 21** is `all_tests[]` (C 18183-19655) and the programme's entry point
+// (C 19656-21213), and nothing else.
 // The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
@@ -18670,3 +18679,1395 @@ unsafe fn sfnt_test_raster (raster: *mut sfnt_raster,   // C 16863-16884
 	{ sfnt_x_raster (&raw mut raster, &raw mut i, 1, hhea, scale); }   // C 16882
     }
 }
+
+/* C 16890-16941: the interpreter test programme's fixtures - the MAXP profile, the CVT values and
+   record, and the HEAD record, all file-scope.  C's initialisers are positional; the port's records
+   are `#[repr(C)]` with the same fields in the same order, so each initialiser becomes a struct
+   literal naming them (the `Lisp_Subr_intspec` shape).  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut test_interpreter_profile: sfnt_maxp_table =     // C 16890-16907
+  sfnt_maxp_table {
+    version: 0x00010000,
+    num_glyphs: 650,
+    max_points: 100,
+    max_contours: 100,
+    max_composite_points: 100,
+    max_composite_contours: 100,
+    max_zones: 2,
+    max_twilight_points: 100,
+    max_storage: 255,
+    max_function_defs: 12,
+    max_instruction_defs: 12,
+    max_stack_elements: 100,
+    max_size_of_instructions: 5000,
+    max_component_elements: 100,
+    max_component_depth: 1,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut test_cvt_values: [sfnt_fword; 10] =             // C 16909-16912
+  [100, 100, -100, -100, 50, 50, 50, 50, 0, 0];
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut test_interpreter_cvt: sfnt_cvt_table =          // C 16914-16918
+  sfnt_cvt_table {
+    num_elements: 10,
+    values: &raw mut test_cvt_values as *mut sfnt_fword,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut test_interpreter_head: sfnt_head_table =        // C 16920-16941
+  sfnt_head_table {
+    version: 0x00010000,
+    revision: 0x00010000,
+    checksum_adjustment: 0,
+    magic: 0x5f0f3cf5,
+    flags: 0,
+    units_per_em: 800,
+    created_high: 0,
+    created_low: 0,
+    modified_high: 0,
+    modified_low: 0,
+    xmin: -312,
+    ymin: -555,
+    xmax: 1315,
+    ymax: 2163,
+    mac_style: 0,
+    lowest_rec_ppem: 12,
+    font_direction_hint: 0,
+    index_to_loc_format: 0,
+    glyph_data_format: 0,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_make_test_interpreter () -> *mut sfnt_interpreter   // C 16943-16950
+{
+  return sfnt_make_interpreter (&raw mut test_interpreter_profile,   // C 16946-16949
+				&raw mut test_interpreter_cvt,
+				&raw mut test_interpreter_head,
+				std::ptr::null_mut (), 17, 17);
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+#[repr(C)]
+pub struct sfnt_interpreter_test                         // C 16952-16959
+{
+  pub name: *const c_char,
+  pub instructions: *mut c_uchar,
+  pub num_instructions: c_int,
+  pub arg: *mut c_void,
+  pub check: Option<unsafe extern "C" fn (*mut sfnt_interpreter, *mut c_void, bool)>,
+}
+
+/* The rest of this block follows C's own habit of splitting a message over two adjacent string
+   literals; the port folds each pair into the one `c"…"` they denote (the `sfnt_test_span` row's
+   spelling for C 16556's `PRIi32` concatenation, Deviation 87 (e)).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_run_interpreter_test (test: *mut sfnt_interpreter_test,   // C 16961-16979
+				     interpreter: *mut sfnt_interpreter)
+{
+  fprintf (stderr, c"Testing %s: ".as_ptr (), (*test).name);   // C 16965
+
+  if setjmp (&raw mut (*interpreter).trap) != 0        // C 16967
+    { (*test).check.unwrap () (interpreter, (*test).arg, true); }   // C 16968
+  else
+    {
+      (*interpreter).IP = 0;                           // C 16971
+      (*interpreter).SP = (*interpreter).stack;        // C 16972
+      (*interpreter).instructions = (*test).instructions;   // C 16973
+      (*interpreter).num_instructions = (*test).num_instructions as uint16_t;   // C 16974
+
+      sfnt_interpret_run (interpreter, SFNT_RUN_CONTEXT_TEST);   // C 16976
+      (*test).check.unwrap () (interpreter, (*test).arg, false);   // C 16977
+    }
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+#[repr(C)]
+pub struct sfnt_generic_test_args                      // C 16981-16987
+{
+  pub expected_stack: *mut uint32_t,
+  pub expected_stack_elements: c_int,
+  pub expected_trap: bool,
+  pub expected_IP: c_int,
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_generic_check (interpreter: *mut sfnt_interpreter,   // C 16989-17064
+					 arg: *mut c_void, trap: bool)
+{
+  let mut args: *mut sfnt_generic_test_args;
+  let mut i: c_int;
+
+  args = arg as *mut sfnt_generic_test_args;           // C 16996
+
+  if ((*interpreter).SP.offset_from ((*interpreter).stack)
+      != (*args).expected_stack_elements as isize)     // C 16998-16999
+    {
+      fprintf (stderr,
+	       c"failed at IP %d:%d (expected %d stack elements, got %td); last trap string: %s\n".as_ptr (),   // C 17001-17003
+	       (*interpreter).call_depth, (*interpreter).IP,
+	       (*args).expected_stack_elements,
+	       (*interpreter).SP.offset_from ((*interpreter).stack),
+	       if trap && !(*interpreter).trap_reason.is_null ()   // C 17007-17009
+		 { (*interpreter).trap_reason }
+	       else
+		 { c"NULL".as_ptr () });
+
+      i = 0;                                           // C 17011
+      while i < (*interpreter).SP.offset_from ((*interpreter).stack) as c_int
+	{
+	  fprintf (stderr, c"%8d ".as_ptr (), *(*interpreter).stack.offset (i as isize) as c_int);   // C 17012
+	  i += 1;
+	}
+      fprintf (stderr, c"\n".as_ptr ());               // C 17013
+      return;                                          // C 17014
+    }
+
+  if memcmp ((*interpreter).stack as *const c_void,    // C 17017-17019
+	     (*args).expected_stack as *const c_void,
+	     ((*interpreter).SP as *const c_char).offset_from (
+	       (*interpreter).stack as *const c_char) as size_t) != 0
+    {
+      fprintf (stderr, c"failed (inconsistent stack elements)\nmachine stack ------------------------->\n".as_ptr ());   // C 17021-17022
+
+      i = 0;                                           // C 17024
+      while i < (*args).expected_stack_elements
+	{
+	  fprintf (stderr, c"%8d ".as_ptr (), *(*interpreter).stack.offset (i as isize) as c_int);   // C 17025
+	  i += 1;
+	}
+
+      fprintf (stderr,
+	       c"\nexpected stack ------------------------>\n".as_ptr ());   // C 17027-17028
+
+      i = 0;                                           // C 17030
+      while i < (*args).expected_stack_elements
+	{
+	  fprintf (stderr, c"%8d ".as_ptr (), *(*args).expected_stack.offset (i as isize) as c_int);   // C 17031
+	  i += 1;
+	}
+
+      fprintf (stderr, c"\n".as_ptr ());               // C 17033
+      return;                                          // C 17034
+    }
+
+  if (*args).expected_IP != -1                         // C 17037-17038
+    && (*interpreter).IP != (*args).expected_IP
+    {
+      fprintf (stderr, c"failed (IP is %d, not %d)\n".as_ptr (),   // C 17040-17041
+	       (*interpreter).IP, (*args).expected_IP);
+      return;                                          // C 17042
+    }
+
+  if trap                                              // C 17045
+    {
+      if (*args).expected_trap
+	{ fprintf (stderr, c"passed (with trap %s)\n".as_ptr (),   // C 17048-17049
+		   (*interpreter).trap_reason); }
+      else
+	{ fprintf (stderr, c"failed (unexpected trap %s)\n".as_ptr (),   // C 17051-17052
+		   (*interpreter).trap_reason); }
+
+      return;                                          // C 17054
+    }
+
+  if (*args).expected_trap                             // C 17057
+    { fprintf (stderr, c"failed, trap not encountered\n".as_ptr ()); }   // C 17058
+  else
+    { fprintf (stderr, c"passed\n".as_ptr ()); }       // C 17060
+
+  return;                                              // C 17062
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_srp0 (interpreter: *mut sfnt_interpreter,   // C 17065-17105
+				      arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17069
+    {
+      fprintf (stderr, c"failed (unexpected trap %s)\n".as_ptr (),   // C 17071-17072
+	       (*interpreter).trap_reason);
+      return;                                          // C 17073
+    }
+
+  if (*interpreter).state.rp0 != 0                     // C 17076
+    {
+      fprintf (stderr, c"failed, rp0 is not 0, but %d\n".as_ptr (),   // C 17078-17079
+	       (*interpreter).state.rp0);
+      return;                                          // C 17080
+    }
+
+  if (*interpreter).state.rp1 != 1                     // C 17083
+    {
+      fprintf (stderr, c"failed, rp1 is not 1, but %d\n".as_ptr (),   // C 17085-17086
+	       (*interpreter).state.rp1);
+      return;                                          // C 17087
+    }
+
+  if (*interpreter).state.rp2 != 2                     // C 17090
+    {
+      fprintf (stderr, c"failed, rp2 is not 2, but %d\n".as_ptr (),   // C 17092-17093
+	       (*interpreter).state.rp2);
+      return;                                          // C 17094
+    }
+
+  if (*interpreter).SP != (*interpreter).stack         // C 17097
+    {
+      fprintf (stderr, c"failed, stack not empty\n".as_ptr ());   // C 17099
+      return;                                          // C 17100
+    }
+
+  fprintf (stderr, c"passed\n".as_ptr ());             // C 17103
+  return;                                              // C 17104
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_szp0 (interpreter: *mut sfnt_interpreter,   // C 17107-17137
+				      arg: *mut c_void, trap: bool)
+{
+  if !trap                                             // C 17111
+    {
+      fprintf (stderr, c"failed, expected trap\n".as_ptr ());   // C 17113
+      return;                                          // C 17114
+    }
+
+  if (*interpreter).state.zp0 != 1                     // C 17117-17119
+    || (*interpreter).state.zp1 != 1
+    || (*interpreter).state.zp2 != 0
+    {
+      fprintf (stderr,
+	       c"failed, unexpected values of zone pointers: %d %d %d\n".as_ptr (),   // C 17121-17122
+	       (*interpreter).state.zp0, (*interpreter).state.zp1,
+	       (*interpreter).state.zp2);
+      return;                                          // C 17125
+    }
+
+  if (*interpreter).SP != (*interpreter).stack         // C 17128
+    {
+      fprintf (stderr, c"failed, stack not empty\n".as_ptr ());   // C 17130
+      return;                                          // C 17131
+    }
+
+  fprintf (stderr, c"passed with expected trap %s\n".as_ptr (),   // C 17134-17135
+	   (*interpreter).trap_reason);
+  return;                                              // C 17136
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_sloop (interpreter: *mut sfnt_interpreter,   // C 17139-17166
+				       arg: *mut c_void, trap: bool)
+{
+  if (*interpreter).state.r#loop != 1                  // C 17143
+    {
+      /* The trap should've restored GS->loop to 1.  */
+      fprintf (stderr, c"failed, GS->loop should be 1, not %d\n".as_ptr (),   // C 17146-17147
+	       (*interpreter).state.r#loop);
+      return;                                          // C 17148
+    }
+
+  if !trap                                             // C 17151
+    {
+      fprintf (stderr, c"failed, expected trap\n".as_ptr ());   // C 17153
+      return;                                          // C 17154
+    }
+
+  if (*interpreter).SP != (*interpreter).stack         // C 17157
+    {
+      fprintf (stderr, c"failed, stack not empty\n".as_ptr ());   // C 17159
+      return;                                          // C 17160
+    }
+
+  fprintf (stderr, c"passed with expected trap %s\n".as_ptr (),   // C 17163-17164
+	   (*interpreter).trap_reason);
+  return;                                              // C 17165
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+#[repr(C)]
+pub struct sfnt_rounding_test_args                     // C 17168-17171
+{
+  pub value: sfnt_f26dot6,
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_rounding (interpreter: *mut sfnt_interpreter,   // C 17173-17206
+					  arg: *mut c_void, trap: bool)
+{
+  let mut value: sfnt_f26dot6;
+  let mut args: *mut sfnt_rounding_test_args;
+
+  if trap                                              // C 17180
+    {
+      fprintf (stderr, c"failed, unexpected trap: %s\n".as_ptr (),   // C 17182-17183
+	       (*interpreter).trap_reason);
+      return;                                          // C 17184
+    }
+
+  if (*interpreter).SP == (*interpreter).stack         // C 17187
+    {
+      fprintf (stderr, c"failed, empty stack\n".as_ptr ());   // C 17189
+      return;                                          // C 17190
+    }
+
+  value = *(*interpreter).SP.offset (-1);              // C 17193
+  args = arg as *mut sfnt_rounding_test_args;          // C 17194
+
+  if value != (*args).value                            // C 17196
+    {
+      fprintf (stderr, c"failed.  value is: %d %d, but wanted: %d %d\n".as_ptr (),   // C 17198-17200
+	       value >> 6, value & 63, (*args).value >> 6,
+	       (*args).value & 63);
+      return;                                          // C 17201
+    }
+
+  fprintf (stderr, c"passed, expected value %d\n".as_ptr (), value);   // C 17204
+  return;                                              // C 17205
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_smd (interpreter: *mut sfnt_interpreter,   // C 17208-17228
+				     arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17212
+    {
+      fprintf (stderr, c"failed, unexpected trap\n".as_ptr ());   // C 17214
+      return;                                          // C 17215
+    }
+
+  if (*interpreter).state.minimum_distance != 32       // C 17218
+    {
+      fprintf (stderr, c"failed, expected minimum distance of 32, got %d\n".as_ptr (),   // C 17220-17222
+	       (*interpreter).state.minimum_distance);
+      return;                                          // C 17223
+    }
+
+  fprintf (stderr, c"passed\n".as_ptr ());             // C 17226
+  return;                                              // C 17227
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_scvtci (interpreter: *mut sfnt_interpreter,   // C 17230-17249
+					arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17234
+    {
+      fprintf (stderr, c"failed, unexpected trap\n".as_ptr ());   // C 17236
+      return;                                          // C 17237
+    }
+
+  if (*interpreter).state.cvt_cut_in != 128            // C 17240
+    {
+      fprintf (stderr, c"failed, expected 128, got %d\n".as_ptr (),   // C 17242-17243
+	       (*interpreter).state.cvt_cut_in);
+      return;                                          // C 17244
+    }
+
+  fprintf (stderr, c"passed\n".as_ptr ());             // C 17247
+  return;                                              // C 17248
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_sswci (interpreter: *mut sfnt_interpreter,   // C 17251-17270
+				       arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17255
+    {
+      fprintf (stderr, c"failed, unexpected trap\n".as_ptr ());   // C 17257
+      return;                                          // C 17258
+    }
+
+  if (*interpreter).state.sw_cut_in != 512             // C 17261
+    {
+      fprintf (stderr, c"failed, expected 512, got %d\n".as_ptr (),   // C 17263-17264
+	       (*interpreter).state.sw_cut_in);
+      return;                                          // C 17265
+    }
+
+  fprintf (stderr, c"passed\n".as_ptr ());             // C 17268
+  return;                                              // C 17269
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_ssw (interpreter: *mut sfnt_interpreter,   // C 17272-17295
+				     arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17276
+    {
+      fprintf (stderr, c"failed, unexpected trap\n".as_ptr ());   // C 17278
+      return;                                          // C 17279
+    }
+
+  if (*interpreter).state.single_width_value           // C 17282-17283
+    != sfnt_mul_f26dot6_fixed (-1, (*interpreter).scale)
+    {
+      fprintf (stderr, c"failed, got %d at scale %d, expected %d\n".as_ptr (),   // C 17285-17287
+	       (*interpreter).state.single_width_value,
+	       (*interpreter).scale,
+	       sfnt_mul_f26dot6_fixed (-1, (*interpreter).scale));
+      return;                                          // C 17290
+    }
+
+  fprintf (stderr, c"passed\n".as_ptr ());             // C 17293
+  return;                                              // C 17294
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_flipon (interpreter: *mut sfnt_interpreter,   // C 17297-17313
+					arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17301
+    {
+      fprintf (stderr, c"failed, unexpected trap\n".as_ptr ());   // C 17303
+      return;                                          // C 17304
+    }
+
+  if !(*interpreter).state.auto_flip                   // C 17307
+    { fprintf (stderr, c"failed, auto flip not enabled\n".as_ptr ()); }   // C 17308
+  else
+    { fprintf (stderr, c"pass\n".as_ptr ()); }         // C 17310
+
+  return;                                              // C 17312
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_flipoff (interpreter: *mut sfnt_interpreter,   // C 17315-17331
+					 arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17319
+    {
+      fprintf (stderr, c"failed, unexpected trap\n".as_ptr ());   // C 17321
+      return;                                          // C 17322
+    }
+
+  if (*interpreter).state.auto_flip                    // C 17325
+    { fprintf (stderr, c"failed, auto flip not disabled\n".as_ptr ()); }   // C 17326
+  else
+    { fprintf (stderr, c"pass\n".as_ptr ()); }         // C 17328
+
+  return;                                              // C 17330
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_sdb (interpreter: *mut sfnt_interpreter,   // C 17333-17351
+				     arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17337
+    {
+      fprintf (stderr, c"failed, unexpected trap %s\n".as_ptr (),   // C 17339-17340
+	       (*interpreter).trap_reason);
+      return;                                          // C 17341
+    }
+
+  if (*interpreter).state.delta_base != 8              // C 17344
+    { fprintf (stderr, c"failed, delta base is %d, not 8\n".as_ptr (),   // C 17345-17346
+	       (*interpreter).state.delta_base); }
+  else
+    { fprintf (stderr, c"pass\n".as_ptr ()); }         // C 17348
+
+  return;                                              // C 17350
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_sds (interpreter: *mut sfnt_interpreter,   // C 17353-17371
+				     arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17357
+    {
+      fprintf (stderr, c"failed, unexpected trap %s\n".as_ptr (),   // C 17359-17360
+	       (*interpreter).trap_reason);
+      return;                                          // C 17361
+    }
+
+  if (*interpreter).state.delta_shift != 1             // C 17364
+    { fprintf (stderr, c"failed, delta shift is %d, not 1\n".as_ptr (),   // C 17365-17366
+	       (*interpreter).state.delta_shift); }
+  else
+    { fprintf (stderr, c"pass\n".as_ptr ()); }         // C 17368
+
+  return;                                              // C 17370
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_scanctrl (interpreter: *mut sfnt_interpreter,   // C 17373-17397
+					  arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17377
+    {
+      fprintf (stderr, c"failed, unexpected trap %s\n".as_ptr (),   // C 17379-17380
+	       (*interpreter).trap_reason);
+      return;                                          // C 17381
+    }
+
+  if (*interpreter).SP != (*interpreter).stack         // C 17384
+    {
+      fprintf (stderr, c"failed, expected empty stack\n".as_ptr ());   // C 17386
+      return;                                          // C 17387
+    }
+
+  if (*interpreter).state.scan_control != 1            // C 17390
+    { fprintf (stderr, c"failed, scan control is %d, not 1\n".as_ptr (),   // C 17391-17392
+	       (*interpreter).state.scan_control); }
+  else
+    { fprintf (stderr, c"pass\n".as_ptr ()); }         // C 17394
+
+  return;                                              // C 17396
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" fn sfnt_check_instctrl (interpreter: *mut sfnt_interpreter,   // C 17399-17423
+					  arg: *mut c_void, trap: bool)
+{
+  if trap                                              // C 17403
+    {
+      fprintf (stderr, c"failed, unexpected trap %s\n".as_ptr (),   // C 17405-17406
+	       (*interpreter).trap_reason);
+      return;                                          // C 17407
+    }
+
+  if (*interpreter).SP != (*interpreter).stack         // C 17410
+    {
+      fprintf (stderr, c"failed, expected empty stack\n".as_ptr ());   // C 17412
+      return;                                          // C 17413
+    }
+
+  if (*interpreter).state.instruct_control != 2        // C 17416
+    { fprintf (stderr, c"failed, inst control is %d, not 2\n".as_ptr (),   // C 17417-17418
+	       (*interpreter).state.instruct_control); }
+  else
+    { fprintf (stderr, c"pass\n".as_ptr ()); }         // C 17420
+
+  return;                                              // C 17422
+}
+
+/* C 17425-18181: the per-test argument records.  Each is a file-scope object whose first member C
+   fills with a **compound literal** - `(uint32_t []) { … }` - and a file-scope compound literal has
+   static storage, so the port spells each as a promoted array behind a pointer (`&[…] as *const
+   [uint32_t; N] as *mut uint32_t`), one expression per call site and no invented item name (the
+   `xmenu.rs` 3854 / `keyboard.rs` 7767 rulings for C's compound literals, whose scalar cases are
+   the casts `image.rs` 7486 records).  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut npushb_test_args: sfnt_generic_test_args =      // C 17425-17431
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 2, 3, 4] as *const [uint32_t; 4] as *mut uint32_t,
+    expected_stack_elements: 4,
+    expected_trap: true,
+    expected_IP: 6,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut npushw_test_args: sfnt_generic_test_args =      // C 17433-17439
+  sfnt_generic_test_args {
+    expected_stack: &[0x101u32, 0x202, 0x303, 0x404] as *const [uint32_t; 4] as *mut uint32_t,
+    expected_stack_elements: 4,
+    expected_trap: true,
+    expected_IP: 10,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut pushb_test_args: sfnt_generic_test_args =       // C 17441-17448
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 2, 3, 4, 5, 6, 7, 8, 1] as *const [uint32_t; 9] as *mut uint32_t,
+    expected_stack_elements: 9,
+    expected_trap: true,
+    expected_IP: 11,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut pushw_test_args: sfnt_generic_test_args =       // C 17450-17457
+  sfnt_generic_test_args {
+    expected_stack: &[0x203u32, 0x204, 0x205, 0x206, 0x207, 0x208, 0x909, 0x909,
+		      -1i32 as uint32_t] as *const [uint32_t; 9] as *mut uint32_t,
+    expected_stack_elements: 9,
+    expected_trap: true,
+    expected_IP: 20,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut stack_overflow_test_args: sfnt_generic_test_args =   // C 17459-17465
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 0,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut stack_underflow_test_args: sfnt_generic_test_args =   // C 17467-17473
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 4,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rtg_test_args: sfnt_rounding_test_args =        // C 17475-17478
+  sfnt_rounding_test_args { value: 64 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rtg_symmetric_test_args: sfnt_rounding_test_args =   // C 17480-17483
+  sfnt_rounding_test_args { value: -64 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rtg_1_test_args: sfnt_rounding_test_args =      // C 17485-17488
+  sfnt_rounding_test_args { value: 0 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rtg_1_symmetric_test_args: sfnt_rounding_test_args =   // C 17490-17493
+  sfnt_rounding_test_args { value: 0 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rthg_test_args: sfnt_rounding_test_args =       // C 17495-17498
+  sfnt_rounding_test_args { value: 32 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rthg_1_test_args: sfnt_rounding_test_args =     // C 17500-17503
+  sfnt_rounding_test_args { value: 96 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rtdg_test_args: sfnt_rounding_test_args =       // C 17505-17508
+  sfnt_rounding_test_args { value: 32 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rtdg_1_test_args: sfnt_rounding_test_args =     // C 17510-17513
+  sfnt_rounding_test_args { value: 0 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rtdg_2_test_args: sfnt_rounding_test_args =     // C 17515-17518
+  sfnt_rounding_test_args { value: 32 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rtdg_3_test_args: sfnt_rounding_test_args =     // C 17520-17523
+  sfnt_rounding_test_args { value: 64 };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut else_test_args: sfnt_generic_test_args =        // C 17525-17531
+  sfnt_generic_test_args {
+    expected_stack: &[77u32, 90, 83] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 40,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut jmpr_test_args: sfnt_generic_test_args =        // C 17533-17592
+  sfnt_generic_test_args {
+    /* What ends up on the stack?
+
+       First, there are the three words that the first PUSHW[2]
+       instruction has pushed:
+
+	 0, 0xb2, -3
+
+       After those three words are pushed, JMPR[] is called, and pops an
+       offset:
+
+	 -3
+
+       so now the stack is:
+
+	 0, 0xb2
+
+       as a result of the relative jump, IP is now at the least
+       significant byte of the word inside what was originally a
+       PUSHW[2] instruction, 0xb2, which itself is PUSHB[2]!
+
+       As a result of that instruction, three more bytes, including
+       JMPR[] itself are pushed onto the stack, making it:
+
+	 0, 0xb2, 255, 253, 0x1c
+
+       Then, execution continues as usual.  4 is pushed on to the
+       stack, making it:
+
+	 0, 0xb2, 255, 253, 0x1c, 4
+
+       Another JMPR[] pops:
+
+	 4
+
+       making the stack:
+
+	 0, 0xb2, 255, 253, 0x1c
+
+       And skips the next three padding bytes, finally reaching a
+       PUSHW[0] instruction which pushes -30 onto the stack:
+
+	 0, 0xb2, 255, 253, 0x1c, -30
+
+       and a JMPR[] instruction, which pops:
+
+	 -30
+
+       making:
+
+	 0, 0xb2, 255, 253,
+
+       and subsequently traps, as -30 would underflow the instruction
+       stream.  */
+    expected_stack: &[0u32, 0xb2, 255, 253, 0x1c] as *const [uint32_t; 5] as *mut uint32_t,
+    expected_stack_elements: 5,
+    expected_trap: true,
+    expected_IP: 17,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut dup_test_args: sfnt_generic_test_args =         // C 17594-17600
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 5,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut pop_test_args: sfnt_generic_test_args =         // C 17602-17608
+  sfnt_generic_test_args {
+    expected_stack: &[70u32, 70] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 5,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut clear_test_args: sfnt_generic_test_args =       // C 17610-17616
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: false,
+    expected_IP: 10,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut swap_test_args: sfnt_generic_test_args =        // C 17618-17624
+  sfnt_generic_test_args {
+    expected_stack: &[2u32, 1] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 4,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut depth_test_args: sfnt_generic_test_args =       // C 17626-17632
+  sfnt_generic_test_args {
+    expected_stack: &[3u32, 3, 3, 3] as *const [uint32_t; 4] as *mut uint32_t,
+    expected_stack_elements: 4,
+    expected_trap: false,
+    expected_IP: 5,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut cindex_test_args: sfnt_generic_test_args =      // C 17634-17640
+  sfnt_generic_test_args {
+    expected_stack: &[0u32, 3, 3, 4, 0] as *const [uint32_t; 5] as *mut uint32_t,
+    expected_stack_elements: 5,
+    expected_trap: true,
+    expected_IP: 10,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut mindex_test_args: sfnt_generic_test_args =      // C 17642-17648
+  sfnt_generic_test_args {
+    expected_stack: &[0u32, 3, 7, 4, 4] as *const [uint32_t; 5] as *mut uint32_t,
+    expected_stack_elements: 5,
+    expected_trap: false,
+    expected_IP: 10,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut raw_test_args: sfnt_generic_test_args =         // C 17650-17656
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 0,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut loopcall_test_args: sfnt_generic_test_args =    // C 17658-17664
+  sfnt_generic_test_args {
+    expected_stack: &[10u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: false,
+    expected_IP: 12,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut call_test_args: sfnt_generic_test_args =        // C 17666-17672
+  sfnt_generic_test_args {
+    expected_stack: &[11u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: true,
+    expected_IP: 2,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut fdef_test_args: sfnt_generic_test_args =        // C 17674-17680
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 4,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut fdef_1_test_args: sfnt_generic_test_args =      // C 17682-17688
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 9,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut endf_test_args: sfnt_generic_test_args =        // C 17690-17696
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 0,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut ws_test_args: sfnt_generic_test_args =          // C 17698-17704
+  sfnt_generic_test_args {
+    expected_stack: &[40u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: true,
+    expected_IP: 10,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rs_test_args: sfnt_generic_test_args =          // C 17706-17712
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 2,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut wcvtp_test_args: sfnt_generic_test_args =       // C 17714-17720
+  sfnt_generic_test_args {
+    expected_stack: &[32u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: true,
+    expected_IP: 10,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rcvt_test_args: sfnt_generic_test_args =        // C 17722-17728
+  sfnt_generic_test_args {
+    expected_stack: &[136u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: true,
+    expected_IP: 5,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut mppem_test_args: sfnt_generic_test_args =       // C 17730-17736
+  sfnt_generic_test_args {
+    expected_stack: &[17u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: false,
+    expected_IP: 1,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut mps_test_args: sfnt_generic_test_args =         // C 17738-17744
+  sfnt_generic_test_args {
+    expected_stack: &[17u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: false,
+    expected_IP: 1,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut debug_test_args: sfnt_generic_test_args =       // C 17746-17752
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: false,
+    expected_IP: 3,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut lt_test_args: sfnt_generic_test_args =          // C 17754-17760
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 0, 0] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 12,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut lteq_test_args: sfnt_generic_test_args =        // C 17762-17768
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 0, 1] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 12,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut gt_test_args: sfnt_generic_test_args =          // C 17770-17776
+  sfnt_generic_test_args {
+    expected_stack: &[0u32, 1, 0] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 12,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut gteq_test_args: sfnt_generic_test_args =        // C 17778-17784
+  sfnt_generic_test_args {
+    expected_stack: &[0u32, 1, 1] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 12,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut eq_test_args: sfnt_generic_test_args =          // C 17786-17792
+  sfnt_generic_test_args {
+    expected_stack: &[0u32, 1, 0] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 18,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut neq_test_args: sfnt_generic_test_args =         // C 17794-17800
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 0, 1] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 18,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut odd_test_args: sfnt_generic_test_args =         // C 17802-17808
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 0] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 9,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut even_test_args: sfnt_generic_test_args =        // C 17810-17816
+  sfnt_generic_test_args {
+    expected_stack: &[0u32, 1] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 9,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut if_test_args: sfnt_generic_test_args =          // C 17818-17825
+  sfnt_generic_test_args {
+    expected_stack: &[17u32, 24, 1, 2, 3, 4, 5, -1i32 as uint32_t, -1i32 as uint32_t,
+		      88, 1, 3] as *const [uint32_t; 12] as *mut uint32_t,
+    expected_stack_elements: 12,
+    expected_trap: false,
+    expected_IP: 185,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut eif_test_args: sfnt_generic_test_args =         // C 17827-17833
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: false,
+    expected_IP: 3,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut and_test_args: sfnt_generic_test_args =         // C 17835-17841
+  sfnt_generic_test_args {
+    expected_stack: &[0u32, 0, 1, 0] as *const [uint32_t; 4] as *mut uint32_t,
+    expected_stack_elements: 4,
+    expected_trap: false,
+    expected_IP: 16,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut or_test_args: sfnt_generic_test_args =          // C 17843-17849
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 1, 1, 0] as *const [uint32_t; 4] as *mut uint32_t,
+    expected_stack_elements: 4,
+    expected_trap: false,
+    expected_IP: 16,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut not_test_args: sfnt_generic_test_args =         // C 17851-17857
+  sfnt_generic_test_args {
+    expected_stack: &[0u32, 1] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 6,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut sds_test_args: sfnt_generic_test_args =         // C 17859-17865
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 5,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut add_test_args: sfnt_generic_test_args =         // C 17867-17873
+  sfnt_generic_test_args {
+    expected_stack: &[96u32, -1i32 as uint32_t] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 10,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut sub_test_args: sfnt_generic_test_args =         // C 17875-17881
+  sfnt_generic_test_args {
+    expected_stack: &[64u32, -64i32 as uint32_t, 431] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 14,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut div_test_args: sfnt_generic_test_args =         // C 17883-17889
+  sfnt_generic_test_args {
+    expected_stack: &[32u32, -64i32 as uint32_t] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: true,
+    expected_IP: 15,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut mul_test_args: sfnt_generic_test_args =         // C 17891-17897
+  sfnt_generic_test_args {
+    expected_stack: &[255u32, -255i32 as uint32_t, 255] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 16,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut abs_test_args: sfnt_generic_test_args =         // C 17899-17905
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 1] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 7,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut neg_test_args: sfnt_generic_test_args =         // C 17907-17913
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, -1i32 as uint32_t] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 7,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut floor_test_args: sfnt_generic_test_args =       // C 17915-17921
+  sfnt_generic_test_args {
+    expected_stack: &[-128i32 as uint32_t, -64i32 as uint32_t, 0, 64, 128] as *const [uint32_t; 5] as *mut uint32_t,
+    expected_stack_elements: 5,
+    expected_trap: false,
+    expected_IP: 17,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut ceiling_test_args: sfnt_generic_test_args =     // C 17923-17929
+  sfnt_generic_test_args {
+    expected_stack: &[-128i32 as uint32_t, -128i32 as uint32_t, -64i32 as uint32_t, 0, 64, 128, 128] as *const [uint32_t; 7] as *mut uint32_t,
+    expected_stack_elements: 7,
+    expected_trap: false,
+    expected_IP: 25,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut round_test_args: sfnt_generic_test_args =       // C 17931-17937
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: true,
+    expected_IP: 0,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut nround_test_args: sfnt_generic_test_args =      // C 17939-17945
+  sfnt_generic_test_args {
+    expected_stack: &[63u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: false,
+    expected_IP: 3,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut wcvtf_test_args: sfnt_generic_test_args =       // C 17947-17953
+  sfnt_generic_test_args {
+    expected_stack: &[((63 * 17 * 65535 / 800) >> 10) as uint32_t] as *const [uint32_t; 1]
+      as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: false,
+    expected_IP: 7,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut jrot_test_args: sfnt_generic_test_args =        // C 17955-17961
+  sfnt_generic_test_args {
+    expected_stack: &[40u32, 40] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 13,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut jrof_test_args: sfnt_generic_test_args =        // C 17963-17969
+  sfnt_generic_test_args {
+    expected_stack: &[4u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: false,
+    expected_IP: 13,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut deltac1_test_args: sfnt_generic_test_args =     // C 17971-17978
+  sfnt_generic_test_args {
+    expected_stack: &[((((50 * 17 * 65535) + 32767) / 800) >> 10) + 8,
+		      ((((50 * 17 * 65535) + 32767) / 800) >> 10) + 8] as *const [uint32_t; 2]
+      as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 22,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut deltac2_test_args: sfnt_generic_test_args =     // C 17980-17987
+  sfnt_generic_test_args {
+    expected_stack: &[((((50 * 17 * 65535) + 32767) / 800) >> 10) + 8,
+		      ((((50 * 17 * 65535) + 32767) / 800) >> 10) + 8] as *const [uint32_t; 2]
+      as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 22,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut deltac3_test_args: sfnt_generic_test_args =     // C 17989-17996
+  sfnt_generic_test_args {
+    expected_stack: &[((((50 * 17 * 65535) + 32767) / 800) >> 10) + 8,
+		      ((((50 * 17 * 65535) + 32767) / 800) >> 10) + 8] as *const [uint32_t; 2]
+      as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 22,
+  };
+
+/* Macros and instructions for detailed rounding tests.  */
+
+/* PUSHB[0] period:phase:threshold
+   SROUND[] */
+
+/* PUSHB[0] period:phase:threshold
+   S45ROUND[] */
+
+/* PUSHB[0] value
+   ROUND[] */
+
+/* C 18002-18016's three macros (`SFNT_ROUNDING_OPERAND`, `SFNT_ROUNDING_OPERAND_45`,
+   `SFNT_ROUND_VALUE`) each expand to **several initialiser elements** - two or three - and Rust has
+   no spelling for a macro in that position (`[MACRO! (), …]` parses its expansion as one
+   expression), so the two instruction arrays below write the expansion out with C's own arithmetic
+   and name the macro it came from on the line's comment.  C's `countof (…)` fields are the two
+   array lengths, written out with the same comment for the same reason (a `static mut` cannot be
+   read from a static initialiser: measured `E0133`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut sfnt_sround_instructions: [c_uchar; 54] =       // C 18018-18038
+  [
+    0xb0, ((0u8 << 6) | ((0u8 & 3) << 4) | (8u8 & 15)), 0x76,   // SFNT_ROUNDING_OPERAND (0, 0, 8)
+    0xb0, 15, 0x68,                                    // SFNT_ROUND_VALUE (15)
+    0xb0, 17, 0x68,                                    // SFNT_ROUND_VALUE (17)
+    0xb0, ((1u8 << 6) | ((0u8 & 3) << 4) | (8u8 & 15)), 0x76,   // SFNT_ROUNDING_OPERAND (1, 0, 8)
+    0xb0, 32, 0x68,                                    // SFNT_ROUND_VALUE (32)
+    0xb0, 16, 0x68,                                    // SFNT_ROUND_VALUE (16)
+    0xb0, ((2u8 << 6) | ((0u8 & 3) << 4) | (8u8 & 15)), 0x76,   // SFNT_ROUNDING_OPERAND (2, 0, 8)
+    0xb0, 64, 0x68,                                    // SFNT_ROUND_VALUE (64)
+    0xb0, 63, 0x68,                                    // SFNT_ROUND_VALUE (63)
+    0xb0, ((0u8 << 6) | ((1u8 & 3) << 4) | (8u8 & 15)), 0x76,   // SFNT_ROUNDING_OPERAND (0, 1, 8)
+    0xb0, 16, 0x68,                                    // SFNT_ROUND_VALUE (16)
+    0xb0, 24, 0x68,                                    // SFNT_ROUND_VALUE (24)
+    0xb0, ((0u8 << 6) | ((2u8 & 3) << 4) | (8u8 & 15)), 0x76,   // SFNT_ROUNDING_OPERAND (0, 2, 8)
+    0xb0, 20, 0x68,                                    // SFNT_ROUND_VALUE (20)
+    0xb0, 48, 0x68,                                    // SFNT_ROUND_VALUE (48)
+    0xb0, ((0u8 << 6) | ((3u8 & 3) << 4) | (8u8 & 15)), 0x76,   // SFNT_ROUNDING_OPERAND (0, 3, 8)
+    0xb0, 7, 0x68,                                     // SFNT_ROUND_VALUE (7)
+    0xb0, 70, 0x68,                                    // SFNT_ROUND_VALUE (70)
+  ];
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut sfnt_sround_values: [uint32_t; 12] =            // C 18040-18059
+  [
+    /* 0, 0, 8 = RTDG; 15 rounded to the double grid and becomes 0, 17
+       is 32.  */
+    0, 32,
+    /* 1, 0, 8 = RTG; 32 rounded to the grid is 64, 16 is 0.  */
+    64, 0,
+    /* 2, 0, 8 = round to a grid separated by 128s.  64 is 128, 63 is
+       0.  */
+    128, 0,
+    /* 0, 1, 8 = round to a double grid with a phase of 8.  16 rounds
+       down to 8, 24 rounds up to 40.  */
+    8, 40,
+    /* 0, 2, 8 = round to a double grid with a phase of 16.  20 rounds
+       down to 16, 40 rounds up to 48.  */
+    16, 48,
+    /* 0, 3, 8 = round to a double grid with a phase of 48.  7 rounds
+       up to 16, 70 rounds up to 80.  */
+    16, 80,
+  ];
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut sround_test_args: sfnt_generic_test_args =      // C 18061-18067
+  sfnt_generic_test_args {
+    expected_stack: &raw mut sfnt_sround_values as *mut uint32_t,
+    expected_stack_elements: 12,                       // countof (sfnt_sround_values)
+    expected_trap: false,
+    expected_IP: 54,                                   // countof (sfnt_sround_instructions)
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut sfnt_s45round_instructions: [c_uchar; 9] =      // C 18069-18074
+  [
+    0xb0, ((0u8 << 6) | ((0u8 & 3) << 4) | (0u8 & 15)), 0x77,   // SFNT_ROUNDING_OPERAND_45 (0, 0, 0)
+    0xb0, 1, 0x68,                                     // SFNT_ROUND_VALUE (1)
+    0xb0, 45, 0x68,                                    // SFNT_ROUND_VALUE (45)
+  ];
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut sfnt_s45round_values: [uint32_t; 2] =           // C 18076-18081
+  [
+    /* 0, 0, 0: 1 rounded to the double cubic grid becomes 45, and 46
+       rounded to the double cubic grid becomes 90.  */
+    45, 90,
+  ];
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut s45round_test_args: sfnt_generic_test_args =    // C 18083-18089
+  sfnt_generic_test_args {
+    expected_stack: &raw mut sfnt_s45round_values as *mut uint32_t,
+    expected_stack_elements: 2,                        // countof (sfnt_s45round_values)
+    expected_trap: false,
+    expected_IP: 9,                                    // countof (sfnt_s45round_instructions)
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rutg_test_args: sfnt_generic_test_args =        // C 18091-18097
+  sfnt_generic_test_args {
+    expected_stack: &[64u32, 64, 0] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 10,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut rdtg_test_args: sfnt_generic_test_args =        // C 18099-18105
+  sfnt_generic_test_args {
+    expected_stack: &[0u32, 0, 64] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 10,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut sangw_test_args: sfnt_generic_test_args =       // C 18107-18113
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: false,
+    expected_IP: 3,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut aa_test_args: sfnt_generic_test_args =          // C 18115-18121
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: false,
+    expected_IP: 3,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut getinfo_test_args: sfnt_generic_test_args =     // C 18123-18133
+  sfnt_generic_test_args {
+    /* Pretend to be the Macintosh System 7 scaler.
+
+       This lets the interpreter get away with only two phantom
+       points, as specified in Apple's TrueType reference manual.  */
+    expected_stack: &[2u32, 0] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: false,
+    expected_IP: 6,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut idef_test_args: sfnt_generic_test_args =        // C 18135-18141
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 2, 3] as *const [uint32_t; 3] as *mut uint32_t,
+    expected_stack_elements: 3,
+    expected_trap: false,
+    expected_IP: 11,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut roll_test_args: sfnt_generic_test_args =        // C 18143-18149
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 2, 4, 5, 3] as *const [uint32_t; 5] as *mut uint32_t,
+    expected_stack_elements: 5,
+    expected_trap: false,
+    expected_IP: 7,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut roll_1_test_args: sfnt_generic_test_args =      // C 18151-18157
+  sfnt_generic_test_args {
+    expected_stack: &[1u32, 2] as *const [uint32_t; 2] as *mut uint32_t,
+    expected_stack_elements: 2,
+    expected_trap: true,
+    expected_IP: 3,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut max_test_args: sfnt_generic_test_args =         // C 18159-18165
+  sfnt_generic_test_args {
+    expected_stack: &[70u32] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: false,
+    expected_IP: 6,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut min_test_args: sfnt_generic_test_args =         // C 18167-18173
+  sfnt_generic_test_args {
+    expected_stack: &[-70i32 as uint32_t] as *const [uint32_t; 1] as *mut uint32_t,
+    expected_stack_elements: 1,
+    expected_trap: false,
+    expected_IP: 6,
+  };
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+static mut scantype_test_args: sfnt_generic_test_args =    // C 18175-18181
+  sfnt_generic_test_args {
+    expected_stack: std::ptr::null_mut (),
+    expected_stack_elements: 0,
+    expected_trap: false,
+    expected_IP: 3,
+  };
