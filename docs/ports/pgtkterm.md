@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-17: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914 and C 2916-3012
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-18: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012 and C 3014-3110
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,15 +11,15 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**4,248 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**4,395 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
-> **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914** and
-> **C 2916-3012** - seventeen slices - with **both arms of every `#if`**; the **2,044** this line used to
+> **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
+> **C 2916-3012** and **C 3014-3110** - eighteen slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_draw_window_cursor` (C 3016-3017; C 3014 is its `/* RIF: … */` comment).**
+> `pgtk_scroll_run` (C 3114-3115; C 3112 is its comment above it).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -129,7 +129,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 2524-2825 | `pgtk_draw_glyph_string` (C 2524-2825: the successor-background loop, the relief/clipping prologue, the six-arm `match` over the glyph types and the underline/overline/strike-through epilogue) | the file gate - **transcribed** (the fifteenth slice) |
 | 2827-2914 | `pgtk_define_frame_cursor` (C 2829-2836), `pgtk_after_update_window_line` (C 2838-2867), `pgtk_clear_frame_area` (C 2869-2873) and `pgtk_draw_hollow_cursor` (C 2877-2914) | the file gate - **transcribed** (the sixteenth slice) |
 | 2916-3012 | `pgtk_draw_bar_cursor` (C 2923-3012: the glyph lookup, the xwidget/image early exits, the image arm's `draw_phys_cursor_glyph` and the bar/hbar arms with their two `pgtk_fill_rectangle` calls) | the file gate - **transcribed** (the seventeenth slice) |
-| 3014-7780 | **the remainder of the file** - from C 3016's `pgtk_draw_window_cursor` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3014-3110 | `pgtk_draw_window_cursor` (C 3016-3077: the `on_p` arm, the fringe early path, the five-arm `match` over `text_cursor_kinds` and the IM cursor-location call) and `pgtk_copy_bits` (C 3079-3110: the similar surface, the source-surface pair, the two paints and the destroy) | the file gate - **transcribed** (the eighteenth slice) |
+| 3112-7780 | **the remainder of the file** - from C 3114's `pgtk_scroll_run` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -656,6 +657,23 @@ their assertions are owed.
     named all four** - the missing `FACE_FROM_ID`, the two E0609 field reads and the matrix cast
     (`src/pgtkterm.rs` was the only unit in the tree that had never carried the inline pair) - and
     they are the only defects it produced.  No mirror changed, so P-87's two legs do not apply.
+
+40. **Six declarations, one accessor arm, and this function's `switch`.**  The unit gains
+    `draw_fringe_bitmap` (dispextern.h 3703, defined in `src/fringe.rs` 1280) at its C 3034 use; the
+    cairo content enum (`CAIRO_CONTENT_COLOR` 0x1000 / `_ALPHA` 0x2000 / `_COLOR_ALPHA` 0x3000,
+    cairo.h 392-396) with its `cairo_content_t` alias, `cairo_surface_create_similar`
+    (cairo.h 2358-2361) and the `cairo_rectangle_t` record (cairo.h 1054-1056, the two
+    `pgtk_copy_bits` parameters) - all four at the use site, because the mirror carries the cairo
+    pointers and `cairo_format_t` and none of these; `window_bits!` gains the `phys_cursor_on_p`
+    **setter** arm (C 3026 writes the window record's measured `bits` word at
+    `WINDOW_PHYS_CURSOR_ON_P_SHIFT` 7, `include/window.rs` 191).  C's `switch (cursor_type)` then
+    produced this unit's fourth `macro-body-notes.tsv` row (`break,case,default,switch`; the same
+    class as the dispatcher's).  **The first reading of this text named two defects**, both fixed:
+    the missing `cairo_rectangle_t` (two errors) and C 3031's
+    `w->phys_cursor.hpos >= glyph_row->used[TEXT_AREA]`, where `used`'s elements are the record's
+    `short` and the comparison promotes them to `int` (so the port writes `as c_int` - Deviation
+    22's class).  With those in place the repaired reading is a **zero delta**: this text adds no
+    error and no warning.  No mirror changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1309,6 +1327,48 @@ changed this round - the new `FRAME_FACE_CACHE`/`FACE_FROM_ID` copies are *defin
 so the tool reports them as definitions and never as duplicates, the same ruling the `src/term.rs`,
 `src/dispnew.rs`, `src/font.rs`, `src/alloc.rs`, `src/window.rs`, `src/fringe.rs` and `src/image.rs`
 copies rest on; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen
+configuration compiles none of this file, there is no GTK or cairo to draw with here, and the three
+arm readings are **compile** readings of text this machine cannot build.
+
+## The eighteenth slice (C 3014-3110): the window cursor and the bit copy
+
+**What is in it.**  `pgtk_draw_window_cursor` (C 3016-3077): the `on_p` guard with the
+`phys_cursor_type`/`phys_cursor_on_p` writes, the exact-window-width fringe early path (the
+`reversed_p` fork over `phys_cursor.hpos` and the `draw_fringe_bitmap` call), the five-arm `match`
+over `text_cursor_kinds` (`HOLLOW_BOX_CURSOR`, `FILLED_BOX_CURSOR`, `BAR_CURSOR`, `HBAR_CURSOR`,
+`NO_CURSOR` plus the `emacs_abort` wildcard) and the `XWINDOW (f->selected_window)` IM
+cursor-location call; and `pgtk_copy_bits` (C 3079-3110): the similar surface, the source-surface
+pair with its two negated offsets, the two clipped paints and the destroy.  Rust: 4,248 -> **4,395**
+lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 53 errors / 19 warnings -> 53 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 54 / 20 -> 54 / 20
+C = A + use_gtk + have_gtk3                        : 31 / 18 -> 31 / 18
+```
+**Every arm reads exactly the same number on both sides, and both sets diff empty**: this text adds
+no error and no warning - the second slice in this unit (after the tenth) whose repaired reading is a
+zero delta, and its two registrable names (`draw_fringe_bitmap`, `pgtk_im_set_cursor_location`) are
+mirror rows rather than unresolved ones.  **Arm reach is measured** (P-86 ⑦): injecting
+`let _: c_int = true;` as the first statement of both new functions moves arm A to 57 errors with two
+diagnostics anchored at those lines (the injected statements were then removed and the file
+re-measured at 4,395 lines).  **The first reading named two defects**, both fixed (Deviation 40): the
+missing `cairo_rectangle_t` record and the `short`-to-`int` promotion on
+`glyph_row->used[TEXT_AREA]`.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **144 rows -> 142**: the two items retire and the one token finding the `match` produced is the
+sanctioned `macro-body-notes.tsv` row (Deviation 40); the file's own `line count drifted` row is
+re-measured 45.4% -> **43.5%** (C 7,780 vs the port's 4,395).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2072/36/0** (the cairo.h rows this slice adds are the new externals);
+`check-dead-file-coverage.py` **145/0** (**50 range rows** over `src/pgtkterm.c`);
+`check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
 `checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen
 configuration compiles none of this file, there is no GTK or cairo to draw with here, and the three
 arm readings are **compile** readings of text this machine cannot build.

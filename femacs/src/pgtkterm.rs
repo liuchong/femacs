@@ -2862,6 +2862,9 @@ unsafe fn pgtk_draw_box_rect (s: *mut glyph_string, left_x: c_int, top_y: c_int,
 #[cfg (feature = "have_pgtk")]
 macro_rules! window_bits {
   (pseudo_window_p, $w:expr) => { ((*($w)).bits >> WINDOW_PSEUDO_WINDOW_P_SHIFT) & 1 != 0 };
+  (phys_cursor_on_p, $w:expr, $v:expr) =>
+    { (*($w)).bits = if $v { (*($w)).bits | (1 << WINDOW_PHYS_CURSOR_ON_P_SHIFT) }
+                     else { (*($w)).bits & !(1 << WINDOW_PHYS_CURSOR_ON_P_SHIFT) } };
 }
 
 /* C: dispextern.h 3581: `int window_box_right (struct window *, enum glyph_row_area);` - the
@@ -4245,4 +4248,148 @@ unsafe fn pgtk_draw_bar_cursor (w: *mut window, row: *mut glyph_row, mut width: 
 
       pgtk_end_cr_clip (f);                                             // C 3010
     }
+}
+
+/* C: dispextern.h 3703: `void draw_fringe_bitmap (struct window *, struct glyph_row *, int);` -
+   the C 3034 call (`src/fringe.rs` 1280 defines it); no mirror carries it, so the unit declares it
+   at the use site.  cairo.h 392-396: `typedef enum _cairo_content { CAIRO_CONTENT_COLOR =
+   0x1000, CAIRO_CONTENT_ALPHA = 0x2000, CAIRO_CONTENT_COLOR_ALPHA = 0x3000 } cairo_content_t;` -
+   the C 3088 argument (the mirror carries `cairo_format_t` and not this enum).
+   cairo.h 2358-2361: `cairo_surface_t *cairo_surface_create_similar (cairo_surface_t *other,
+   cairo_content_t content, int width, int height);` - the C 3087 call.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn draw_fringe_bitmap (w: *mut window, row: *mut glyph_row, left_p: c_int);
+}
+#[cfg (feature = "have_pgtk")]
+pub type cairo_content_t = c_int;
+#[cfg (feature = "have_pgtk")]
+pub const CAIRO_CONTENT_COLOR: cairo_content_t = 0x1000;                 // cairo.h 393
+#[cfg (feature = "have_pgtk")]
+pub const CAIRO_CONTENT_ALPHA: cairo_content_t = 0x2000;                 // cairo.h 394
+#[cfg (feature = "have_pgtk")]
+pub const CAIRO_CONTENT_COLOR_ALPHA: cairo_content_t = 0x3000;           // cairo.h 395
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_surface_create_similar (other: *mut cairo_surface_t, content: cairo_content_t,
+				       width: c_int, height: c_int) -> *mut cairo_surface_t;
+}
+/* C: cairo.h 1054-1056: `typedef struct _cairo_rectangle { double x, y, width, height; }
+   cairo_rectangle_t;` - the C 3080-3081 parameters' record (the mirror carries the
+   cairo types' pointers and not this record).  */
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+pub struct cairo_rectangle_t
+{
+  pub x: c_double,     // cairo.h 1055: `double x, y, width, height;`
+  pub y: c_double,
+  pub width: c_double,
+  pub height: c_double,
+}
+
+/* RIF: Draw cursor on window W.  */
+
+/// C 3016-3077: `static void pgtk_draw_window_cursor (struct window *w, struct glyph_row
+/// *glyph_row, int x, int y, enum text_cursor_kinds cursor_type, int cursor_width, bool on_p,
+/// bool active_p)` - `w->phys_cursor_on_p` is this unit's `window_bits!` setter (the window
+/// record's measured `bits` word, whose shift `include/window.rs` 191 names),
+/// `exact_window_width_line_p`/`reversed_p`/`cursor_in_fringe_p` are `glyph_row_bits!` members,
+/// `WINDOW_LEFT_FRINGE_WIDTH!`/`WINDOW_LEFT_MARGIN_WIDTH!`/`WINDOW_TO_FRAME_PIXEL_*!` are
+/// `window.rs`'s macros, and C's `switch (cursor_type)` is the port's `match` over the same
+/// enumerators (this function's own `macro-body-notes.tsv` row).  `active_p` is unused in C's body
+/// (`let _ =` keeps the name).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row, x: c_int, y: c_int,
+				   cursor_type: text_cursor_kinds, cursor_width: c_int,
+				   on_p: bool, active_p: bool)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 3021
+  let _ = active_p;
+
+  if on_p                                                               // C 3023
+    {
+      (*w).phys_cursor_type = cursor_type;                              // C 3025
+      window_bits! (phys_cursor_on_p, w, true);                         // C 3026
+
+      if glyph_row_bits! (exact_window_width_line_p, glyph_row)         // C 3028
+	  && (if glyph_row_bits! (reversed_p, glyph_row)                   // C 3029
+		{ (*w).phys_cursor.hpos < 0 }                                 // C 3030
+		else { (*w).phys_cursor.hpos >= (*glyph_row).used [TEXT_AREA as usize] as c_int })   // C 3031
+	{
+	  glyph_row_bits! (cursor_in_fringe_p, glyph_row, true);           // C 3033
+	  draw_fringe_bitmap (w, glyph_row,                               // C 3034
+				   glyph_row_bits! (reversed_p, glyph_row) as c_int);
+	}
+      else
+	{
+	  match cursor_type                                              // C 3038
+	    {
+	    HOLLOW_BOX_CURSOR =>
+		{ pgtk_draw_hollow_cursor (w, glyph_row); }                   // C 3041
+
+	    FILLED_BOX_CURSOR =>
+		{ draw_phys_cursor_glyph (w, glyph_row, DRAW_CURSOR); }       // C 3045
+
+	    BAR_CURSOR =>
+		{ pgtk_draw_bar_cursor (w, glyph_row, cursor_width, BAR_CURSOR); }    // C 3049
+
+	    HBAR_CURSOR =>
+		{ pgtk_draw_bar_cursor (w, glyph_row, cursor_width, HBAR_CURSOR); }   // C 3053
+
+	    NO_CURSOR =>
+		{ (*w).phys_cursor_width = 0; }                               // C 3057
+
+	    _ =>
+		{ emacs_abort (); }                                           // C 3061
+	    }
+	}
+
+      if w == XWINDOW ((*f).selected_window)                            // C 3065
+	{
+	  let frame_x: c_int = (WINDOW_TO_FRAME_PIXEL_X! (w, x)            // C 3067
+			+ WINDOW_LEFT_FRINGE_WIDTH! (w)                          // C 3068
+			+ WINDOW_LEFT_MARGIN_WIDTH! (w));                        // C 3069
+	  let frame_y: c_int = WINDOW_TO_FRAME_PIXEL_Y! (w, y);            // C 3070
+	  pgtk_im_set_cursor_location (f, frame_x, frame_y,                // C 3071
+					     (*w).phys_cursor_width,            // C 3072
+					     (*w).phys_cursor_height);          // C 3073
+	}
+    }
+
+}
+
+/// C 3079-3110: `static void pgtk_copy_bits (struct frame *f, cairo_rectangle_t *src_rect,
+/// cairo_rectangle_t *dst_rect)` - `FRAME_CR_SURFACE!` is the descriptor mirror's macro, the cairo
+/// calls are `include/gtk.rs`'s rows plus the two declared above, and C's four `(int)` casts of the
+/// record's `double` members are written out.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_copy_bits (f: *mut frame, src_rect: *mut cairo_rectangle_t,
+			  dst_rect: *mut cairo_rectangle_t)
+{
+  let mut cr: *mut cairo_t;                                             // C 3083
+  let surface: *mut cairo_surface_t;	/* temporary surface */          // C 3084
+
+  surface = cairo_surface_create_similar (FRAME_CR_SURFACE! (f),        // C 3086
+				  CAIRO_CONTENT_COLOR_ALPHA,                    // C 3088
+				  (*src_rect).width as c_int,                   // C 3089
+				  (*src_rect).height as c_int);                 // C 3090
+
+  cr = cairo_create (surface);                                          // C 3092
+  cairo_set_source_surface (cr, FRAME_CR_SURFACE! (f),                  // C 3093
+			    -((*src_rect).x), -((*src_rect).y));                // C 3094
+  cairo_rectangle (cr, 0.0, 0.0, (*src_rect).width, (*src_rect).height);   // C 3095
+  cairo_clip (cr);                                                      // C 3096
+  cairo_paint (cr);                                                     // C 3097
+  cairo_destroy (cr);                                                   // C 3098
+
+  cr = pgtk_begin_cr_clip (f);                                          // C 3100
+  cairo_set_source_surface (cr, surface, (*dst_rect).x, (*dst_rect).y);   // C 3101
+  cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);                       // C 3102
+  cairo_rectangle (cr, (*dst_rect).x, (*dst_rect).y, (*dst_rect).width,   // C 3103
+			   (*dst_rect).height);                                 // C 3104
+  cairo_clip (cr);                                                      // C 3105
+  cairo_paint (cr);                                                     // C 3106
+  pgtk_end_cr_clip (f);                                                 // C 3107
+
+  cairo_surface_destroy (surface);                                      // C 3109
 }
