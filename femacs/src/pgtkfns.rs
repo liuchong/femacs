@@ -473,6 +473,10 @@ unsafe extern "C" {
   /// C: dispextern.h 3918: `void update_single_window (struct window *);` (the mirror has not got
   /// it; `src/xdisp.rs` defines it)
   pub fn update_single_window (w: *mut window);
+  /// C 3710: `font = xg_get_font (f, default_name);`
+  /// C: gtkutil.h 94-95: `extern Lisp_Object xg_get_font (struct frame *f, char *);`
+  /// (`src/gtkutil.rs` defines it)
+  pub fn xg_get_font (f: *mut frame, default_name: *mut c_char) -> Lisp_Object;
   /// C 3609/3629: `pgtk_menu_set_in_use (false);` / `pgtk_menu_set_in_use (true);`
   /// C: pgtkterm.h 656: `extern void pgtk_menu_set_in_use (bool);` (`src/pgtkmenu.rs` 297 defines
   /// it)
@@ -607,6 +611,10 @@ unsafe extern "C" {
   /// C: frame.h 1869-1870: `extern void gui_set_borders_respect_alpha_background (struct frame *,
   /// Lisp_Object, Lisp_Object);`
   /* lisp.h.  */
+  /// C 3702/3707: `default_name = xlispstrdup (font_param);`
+  /// C: lisp.h 5553-5555: `extern char *xlispstrdup (Lisp_Object) ATTRIBUTE_MALLOC
+  /// ATTRIBUTE_RETURNS_NONNULL;` (`src/alloc.rs` defines it)
+  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
   /// C 3636: `record_unwind_protect_void (clean_up_dialog);`
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (alloc.c; the
   /// `Option<unsafe extern "C" fn ()>` shape `src/alloc.rs` 6266 uses)
@@ -5025,4 +5033,101 @@ DEFUN! ("pgtk-backend-display-class", Fpgtk_backend_display_class,         // C 
   let gdpy: *mut GdkDisplay = (*dpyinfo).gdpy;                          // C 3673
   let type_name: *const gchar = G_OBJECT_TYPE_NAME! (G_OBJECT! (gdpy));   // C 3674
   return build_string (type_name);                                      // C 3675
+});
+
+DEFUN! ("x-select-font", Fx_select_font, Sx_select_font, 0, 2, 0,          // C 3678-3719
+	doc: "SKIP: real doc in xfns.c.  ",
+	(frame: Lisp_Object, ignored: Lisp_Object),
+	{
+  let f: *mut frame = decode_window_system_frame (frame);               // C 3682
+  let mut font: Lisp_Object;                                            // C 3683
+  let mut font_param: Lisp_Object;                                      // C 3684
+  let mut default_name: *mut c_char = std::ptr::null_mut ();            // C 3685
+  let count: specpdl_ref = SPECPDL_INDEX ();                            // C 3686
+
+  if popup_activated () != 0                                            // C 3688
+    { error (c"Trying to use a menu from within a menu-entry".as_ptr ()); }   // C 3689
+  else
+    { pgtk_menu_set_in_use (true); }                                    // C 3691
+
+  /* Prevent redisplay.  */
+  specbind (Qinhibit_redisplay (), Qt ());                              // C 3694
+  record_unwind_protect_void (Some (clean_up_dialog));                  // C 3695
+
+  block_input ();                                                       // C 3697
+
+  XSETFONT! (font, FRAME_FONT! (f));                                    // C 3699
+  font_param = Ffont_get (font, QCname ());                             // C 3700
+  if STRINGP (font_param)                                               // C 3701
+    { default_name = xlispstrdup (font_param); }                        // C 3702
+  else
+    {
+      font_param = Fframe_parameter (frame, Qfont_parameter ());        // C 3705
+      if STRINGP (font_param)                                           // C 3706
+	{ default_name = xlispstrdup (font_param); }                       // C 3707
+    }
+
+  font = xg_get_font (f, default_name);                                 // C 3710
+  xfree (default_name as *mut c_void);                                  // C 3711
+
+  unblock_input ();                                                     // C 3713
+
+  if NILP (font)                                                        // C 3715
+    { quit (); }                                                        // C 3716
+
+  return unbind_to (count, font);                                       // C 3718
+});
+
+DEFUN! ("x-gtk-debug", Fx_gtk_debug, Sx_gtk_debug, 1, 1, 0,                // C 3721-3732
+	doc: "SKIP: real doc in xfns.c.  ",
+	(enable: Lisp_Object),
+	{
+  let enable_debug: gboolean = (!NILP (enable)) as gboolean;            // C 3725
+
+  block_input ();                                                       // C 3727
+  gtk_window_set_interactive_debugging (enable_debug);                  // C 3728
+  unblock_input ();                                                     // C 3729
+
+  return if !NILP (enable) { Qt () } else { Qnil () };                  // C 3731
+});
+
+/// C 3734-3740: `static void unwind_gerror_ptr (void *data)` - the `GError **` the unwind
+/// protector carries, cast out of its `void *`, with `g_error_free` for the non-null case.  Its
+/// address goes to `record_unwind_protect_ptr` (C 3761), so it is an `unsafe extern "C" fn`.
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn unwind_gerror_ptr (data: *mut c_void)
+{
+  let error: *mut GError = *(data as *mut *mut GError);                 // C 3737
+  if !error.is_null ()                                                  // C 3738
+    { g_error_free (error); }                                           // C 3739
+}
+
+DEFUN! ("x-gtk-launch-uri", Fx_gtk_launch_uri, Sx_gtk_launch_uri, 2, 2, 0,   // C 3742-3772
+	doc: "Tell GTK to launch the default application to show given URI.\n\nThis function is only available on PGTK.",
+	(frame: Lisp_Object, uri: Lisp_Object),
+	{
+  CHECK_FRAME! (frame);                                                 // C 3748
+
+  if !FRAME_LIVE_P (XFRAME (frame))                                     // C 3750
+    || !FRAME_PGTK_P (XFRAME (frame))                                   // C 3751
+    || FRAME_GTK_OUTER_WIDGET! (XFRAME (frame)).is_null ()              // C 3752
+    { error (c"GTK URI launch not available for this frame".as_ptr ()); }   // C 3753
+
+  CHECK_STRING (uri);                                                   // C 3755
+  let timestamp: guint32 = gtk_get_current_event_time ();               // C 3756
+
+  let mut err: *mut GError = std::ptr::null_mut ();                     // C 3758
+  let count: specpdl_ref = SPECPDL_INDEX ();                            // C 3759
+
+  record_unwind_protect_ptr (Some (unwind_gerror_ptr), &raw mut err as *mut c_void);   // C 3761
+
+  gtk_show_uri_on_window (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (XFRAME (frame))),   // C 3763
+			  SSDATA (uri),                                     // C 3764
+			  timestamp,                                        // C 3765
+			  &raw mut err);                                    // C 3766
+
+  if !err.is_null ()                                                    // C 3768
+    { error (c"Failed to launch URI via GTK: %s".as_ptr (), (*err).message); }   // C 3769
+
+  return unbind_to (count, Qnil ());                                    // C 3771
 });

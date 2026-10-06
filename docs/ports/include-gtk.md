@@ -301,3 +301,16 @@ it carried under `have_gfilenotify` (P-26, call site unchanged) and now reads **
 and P-87 ①'s consumer sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s),
 0 unit failure(s)`.  The consumer's ledger records the pair (`docs/ports/pgtkfns.md` Deviations
 74-77 and Evidence ㊽-㊿).
+
+### status 3.727 (the pgtkfns thirteenth-slice round this file took part in)
+
+`src/pgtkfns.c`'s `x-gtk-debug` (C 3728), its `x-gtk-launch-uri` (C 3756/3763) and that subr's
+`GError` handling call three GTK entry points, so this file gains
+`gtk_window_set_interactive_debugging` (gtk/gtkwindow.h), `gtk_get_current_event_time`
+(gtk/gtkmain.h) and `gtk_show_uri_on_window` (gtk/gtkshow.h) - header-only citations, no GTK header
+on this machine, and the headers are the API's own (checked against the GTK 3 sources: the show-uri
+entry point is `gtk/gtkshow.h`'s rather than `gtk/gtkutils.h`'s).  `check-mirror-dupes.py` stays
+16/16/0, no consumer in the include graph had declared them, and P-87 ①'s consumer sweep reads
+`checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`.  The consumer's
+ledger records the trio (`docs/ports/pgtkfns.md` Deviations 78-81 and the thirteenth slice's
+section).

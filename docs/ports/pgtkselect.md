@@ -370,3 +370,10 @@ Those are the numbers in the port's `const _:` assertions.  **No layout assertio
   and the call site is unchanged.  Measured: this unit's own probe (`have_pgtk +
   have_window_system`) reads **9 errors / 8 warnings** on both sides of the drop, so the change is
   neutral for this file, and `check-mirror-dupes.py` returns to 16/16/0.
+
+- **A second declaration left this unit (status 3.727).**  `gtk_get_current_event_time`
+  (gtk/gtkmain.h), declared here for C 157's call, is `include/gtk.rs`'s row now that the pgtkfns
+  thirteenth slice needed it there; the local copy is dropped under P-26's one spelling per
+  construct with the C 157 call site unchanged.  Measured: this unit's own probe (`have_pgtk +
+  have_window_system`) reads **9 errors / 8 warnings** on both sides of the drop, and
+  `check-mirror-dupes.py` returns to 16/16/0.

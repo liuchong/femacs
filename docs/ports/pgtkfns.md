@@ -13,11 +13,11 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**5,028** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> `femacs/src/pgtkfns.rs` (**5,133** lines, from the 11 of the placeholder), carrying **C 1-1147**,
 > **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208**, **C 2210-2403**,
-> **C 2405-2549**, **C 2551-2838**, **C 2840-3025**, **C 3027-3317**, **C 3319-3525** and
-> **C 3528-3676** - twelve slices - with **both arms of every `#if`**; the next live definition is
-> `Fx_select_font` (**C 3678**).
+> **C 2405-2549**, **C 2551-2838**, **C 2840-3025**, **C 3027-3317**, **C 3319-3525**,
+> **C 3528-3676** and **C 3678-3772** - thirteen slices - with **both arms of every `#if`**; the
+> next live definition is `syms_of_pgtkfns` (**C 3775**).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -135,7 +135,8 @@ which exist only under those two features (Owed 6).
 | 3027-3317 | `Fx_show_tip` (C 3027-3309: both `ENABLE_CHECKING` arms, the `'start_timer` label block, the `tip_frame` fork, the tooltip frame's setup, the two `Fset` writes and the `FRAME_TOTAL_COLS` sizing) and `Fx_hide_tip` (C 3312-3317) | the file gate - **transcribed** (the tenth slice) |
 | 3319-3525 | `frame_geometry` (C 3325-3414: the three edge branches and the association list), `Fpgtk_frame_geometry` (C 3416-3458), `Fpgtk_frame_edges` (C 3460-3481), `Fpgtk_set_mouse_absolute_pixel_position` (C 3483-3502) and `Fpgtk_mouse_absolute_pixel_position` (C 3504-3525) | the file gate - **transcribed** (the eleventh slice) |
 | 3528-3676 | `Fpgtk_page_setup_dialog` (C 3528-3539), `Fpgtk_get_page_setup` (C 3541-3569), `Fpgtk_print_frames_dialog` (C 3571-3604), `clean_up_dialog` (C 3606-3610), `Fx_file_dialog` (C 3612-3663) and `Fpgtk_backend_display_class` (C 3665-3676) | the file gate - **transcribed** (the twelfth slice) |
-| 3678-3906 | **the remainder of the file** - from C 3678's `DEFUN ("x-select-font", …)` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the font and GTK-debug subrs, the launch-uri pair (3678-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3678-3772 | `Fx_select_font` (C 3678-3719), `Fx_gtk_debug` (C 3721-3732), `unwind_gerror_ptr` (C 3734-3740) and `Fx_gtk_launch_uri` (C 3742-3772) | the file gate - **transcribed** (the thirteenth slice) |
+| 3774-3906 | **the last item of the file** - C 3775's `syms_of_pgtkfns` (**the next live definition**): its `DEFVAR_LISP`/`DEFVAR_BOOL`/`DEFSYM` groups, the `staticpro` calls and the forty `defsubr` registrations, through C 3906's closing brace | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -688,6 +689,33 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     docstring literals of the four subrs - `pgtk-get-page-setup`'s is 890 characters on C's own
     lines - and the per-site citations), and the `--check` drift row retires at that tolerance
     (45 -> 44 rows).
+
+78. **Two names that are macros here are called as macros.**  C 3699's `FRAME_FONT (f)` is this
+    unit's own `macro_rules! FRAME_FONT` (pgtkterm.h 482, Deviation 6's chain) and C 3748's
+    `CHECK_FRAME (frame)` is `include/frame.rs` 1701's macro (frame.h 1387), so the two call sites
+    read `FRAME_FONT! (…)`/`CHECK_FRAME! (…)`; the first reading of this slice named both (two
+    `cannot find function, tuple struct or tuple variant` sites, `E0423`) and the repairs are what
+    the final reading measures.
+79. **Three GTK rows landed in the mirror.**  `gtk_window_set_interactive_debugging`
+    (gtk/gtkwindow.h), `gtk_get_current_event_time` (gtk/gtkmain.h) and `gtk_show_uri_on_window`
+    (gtk/gtkshow.h) stand in `include/gtk.rs` (header-only citations: no GTK header on this
+    machine; the three headers are the API's own, checked against the GTK 3 sources' declarations -
+    `gtk_show_uri_on_window` is `gtk/gtkshow.h`'s, not `gtkutils.h`'s, and
+    `gtk_window_set_interactive_debugging` is `gtkwindow.h` 252's).  `check-mirror-dupes.py` read
+    `17 duplicate declaration(s), 1 failure` the moment the rows landed: `src/pgtkselect.rs` had
+    declared `gtk_get_current_event_time` itself (its C 157), and that copy is dropped there under
+    P-26 with its call site unchanged - that unit's own probe reads **9 errors / 8 warnings** on
+    both sides of the drop - so the gate returns to 16/16/0.
+80. **This slice's own declarations.**  `xlispstrdup` (lisp.h 5553-5555, in the new `lisp.h`
+    section) and `xg_get_font` (gtkutil.h 94-95, beside the other `xg_*` rows); `unwind_gerror_ptr`
+    (C 3734-3740) is an `unsafe extern "C" fn` because its address goes to
+    `record_unwind_protect_ptr` (C 3761), and the `GError **` it carries is C's own `void *` cast
+    written out (`*(data as *mut *mut GError)`).
+81. **The tolerance row moves 0.30 -> 0.35.**  5,133 lines against C's 3,906 is **+31.4%** (the row
+    read 0.30 at +28.7%);
+    the row's reason list grows by this slice's share (the three GTK rows' citations, `x-gtk-launch-uri`
+    's docstring and the per-site citations), and the `--check` drift row retires at that tolerance
+    (41 -> 40 rows).
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1428,3 +1456,47 @@ no dialog was opened and no file was chosen (the six items are registered by `sy
 still the remainder), the `xg_*` entry points and `popup_activated` are declarations - the port has
 no GTK to link and no menu to post - and the four arm readings are **compile** readings of text this
 machine cannot build.
+
+## The thirteenth slice (C 3678-3772): the font subr, the GTK debug subr and the launch-uri pair
+
+**What is in it.**  `Fx_select_font` (C 3678-3719: `decode_window_system_frame`, the
+`popup_activated` guard, the `specbind` plus `record_unwind_protect_void` pair, `XSETFONT` on
+`FRAME_FONT`, the `Ffont_get`/`QCname` read with the `Fframe_parameter`/`Qfont_parameter` fallback
+and its two `xlispstrdup` allocations, `xg_get_font`, the `xfree`, the `quit` and `unbind_to`);
+`Fx_gtk_debug` (C 3721-3732); `unwind_gerror_ptr` (C 3734-3740); and `Fx_gtk_launch_uri`
+(C 3742-3772: the three-condition frame guard, the timestamp, the unwind protector on the
+`GError *`, `gtk_show_uri_on_window` and the `err->message` error).  Rust: 5,028 -> **5,133** lines.
+
+**The arm readings (four arms, both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 210 errors / 11 warnings -> 213 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets   : 198 / 10 -> 201 / 10
+C = A + have_gsettings                             : 210 / 11 -> 213 / 11
+D = B + have_gsettings                             : 198 / 10 -> 201 / 10
+```
+All four arms read the same delta, **+3 sites of the unit's registered `cannot find type` class**
+(the `FRAME_FONT!`/`FRAME_X_OUTPUT` expansions of the new text), **no new class and no new
+warning**.  The first reading of this text was 214/202 with two `E0423` sites (Deviation 78) - the
+two macro names - and both were repaired rather than recorded.
+
+**What the slice calls, and what `--check` reads.**  Three GTK rows landed in `include/gtk.rs` and
+two declarations in this unit (Deviations 79-80).  `extract-abi.py --check emacs/src/pgtkfns.c
+femacs/src/pgtkfns.rs` reads **40 rows** (44 -> 40 + the drift row, retired by Deviation 81's
+tolerance): `missing function unwind_gerror_ptr`, `missing subr Fx_select_font`,
+`missing subr Fx_gtk_debug` and `missing subr Fx_gtk_launch_uri` retire, and the same reading
+compares `x-gtk-launch-uri`'s docstring (the other three carry C's own `SKIP: real doc in xfns.c.`).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18 declaration sites (0 forbidden,
+18 allowed literals), 0 failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range,
+2048 external, 36 allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound,
+0 failure(s)** (**63 range rows** now cover `src/pgtkfns.c`); `check-port-lines.py` **0 file(s) under
+ten percent, 0 reference line(s), 0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py`
+**238 ledger(s) bound, 0 failure(s)**; `check-cond-eval.py src/pgtkfns.c` **11 conditions, 0 unknown,
+0 disagreements [VERIFIED]**; `check-mirror-dupes.py` **16 duplicate(s), 16 ratchet row(s),
+0 failure(s)**.  A mirror changed this round, so P-87 ①'s consumer sweep was run and reads
+`checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`.  **Not claimed**:
+no font dialog was opened and no URI was launched (the four items are registered by
+`syms_of_pgtkfns`, still the remainder), `xg_get_font` and the three GTK entry points are
+declarations - the port has no GTK to link - and the four arm readings are **compile** readings of
+text this machine cannot build.

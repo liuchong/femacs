@@ -263,9 +263,9 @@ unsafe extern "C" {
   /// C: gdk/gdkdisplay.h: `void gdk_display_sync (GdkDisplay *display);`
   pub fn gdk_display_sync (display: *mut GdkDisplay);
 
-  /// C 157: `guint32 timestamp = gtk_get_current_event_time ();`
-  /// C: gtk/gtkmain.h: `guint32 gtk_get_current_event_time (void);`
-  pub fn gtk_get_current_event_time () -> guint32;
+  /* C 157's `gtk_get_current_event_time` used to be declared here; the row is
+     `include/gtk.rs`'s now (P-26's one spelling per construct, status 3.727) and the call site at
+     C 157 is unchanged.  */
   /// C 212/226-228: `gtk_selection_clear_targets (FRAME_GTK_WIDGET (f), selection_atom);` /
   /// `gtk_selection_add_targets (FRAME_GTK_WIDGET (f), selection_atom, gtargets, ntargets);`
   /// C: gtk/gtkselection.h: `void gtk_selection_clear_targets (GtkWidget *widget, GdkAtom

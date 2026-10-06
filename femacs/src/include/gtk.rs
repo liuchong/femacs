@@ -836,6 +836,18 @@ unsafe extern "C" {
   /// C 878: `gtk_window_set_title (x->ttip_window, "");`
   /// C: gtk/gtkwindow.h: `void gtk_window_set_title (GtkWindow *window, const gchar *title);`
   pub fn gtk_window_set_title (window: *mut GtkWindow, title: *const gchar);
+  /// C 3728: `gtk_window_set_interactive_debugging (enable_debug);`
+  /// C: gtk/gtkwindow.h: `void gtk_window_set_interactive_debugging (gboolean enable);`
+  pub fn gtk_window_set_interactive_debugging (enable: gboolean);
+  /// C 3756: `guint32 timestamp = gtk_get_current_event_time ();`
+  /// C: gtk/gtkmain.h: `guint32 gtk_get_current_event_time (void);`
+  pub fn gtk_get_current_event_time () -> guint32;
+  /// C 3763: `gtk_show_uri_on_window (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (XFRAME (frame))),
+  /// SSDATA (uri), timestamp, &err);`
+  /// C: gtk/gtkshow.h: `gboolean gtk_show_uri_on_window (GtkWindow *parent, const char *uri,
+  /// guint32 timestamp, GError **error);`
+  pub fn gtk_show_uri_on_window (parent: *mut GtkWindow, uri: *const c_char, timestamp: guint32,
+				 error: *mut *mut GError) -> gboolean;
   /// C 880-881: `gtk_widget_realize (GTK_WIDGET (x->ttip_window));` / `gtk_widget_realize
   /// (x->ttip_lbl);`
   /// C: gtk/gtkwidget.h: `void gtk_widget_realize (GtkWidget *widget);`
