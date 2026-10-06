@@ -4393,3 +4393,201 @@ unsafe fn pgtk_copy_bits (f: *mut frame, src_rect: *mut cairo_rectangle_t,
 
   cairo_surface_destroy (surface);                                      // C 3109
 }
+
+/* Scroll part of the display as described by RUN.  */
+
+/* C: dispextern.h 3574-3575: `void window_box (struct window *, enum glyph_row_area, int *, int *,
+   int *, int *);` - the C 3123/3203 calls (`src/window.rs` defines it).  dispextern.h 3657:
+   `extern void gui_clear_cursor (struct window *);` - the C 3246 call.  No mirror carries either,
+   so both are declared at the use site.  `<gtk/gtk.h>`: `gtk_widget_queue_allocate` - the C 3236
+   call, declared with the header alone and no line (the GTK segment's convention in this unit:
+   this machine has no GTK tree).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn window_box (w: *mut window, area: glyph_row_area, x: *mut c_int, y: *mut c_int,
+		     width: *mut c_int, height: *mut c_int);
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gui_clear_cursor (w: *mut window);
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gtk_widget_queue_allocate (widget: *mut GtkWidget);
+}
+
+/// C 3114-3255: `static void pgtk_scroll_run (struct window *w, struct run *run)` - `window_box`
+/// and `gui_clear_cursor` are the two use-site declarations above, `run` is
+/// `include/dispextern.rs`'s record, C's two `cairo_rectangle_t` initialisers are this unit's
+/// record (declared with the previous slice) written with the `int` -> `double` conversions C
+/// performs, and the whole `#ifdef HAVE_XWIDGETS` block (C 3160-3243) is dead in the frozen
+/// configuration and carried under `have_xwidgets` (P-51), with the `Emacs_Rectangle` record's
+/// `c_uint` members taking C's implicit widenings and the C cast macros (`GTK_CONTAINER`,
+/// `GTK_FIXED`, `G_OBJECT`) written as the mirror's pointer casts (P-72 rule 3).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_scroll_run (w: *mut window, run: *mut run)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 3117
+  let mut x: c_int = 0;                                                 // C 3118
+  let mut y: c_int = 0;
+  let mut width: c_int = 0;
+  let mut height: c_int = 0;
+  let mut from_y: c_int;
+  let mut to_y: c_int;
+  let mut bottom_y: c_int;
+
+  /* Get frame-relative bounding box of the text display area of W,
+     without mode lines.  Include in this box the left and right
+     fringe of W.  */
+  window_box (w, ANY_AREA, &raw mut x, &raw mut y, &raw mut width,      // C 3123
+		  &raw mut height);
+
+  from_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).current_y);              // C 3125
+  to_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).desired_y);                // C 3126
+  bottom_y = y + height;                                                // C 3127
+
+  if to_y < from_y                                                      // C 3129
+    {
+      /* Scrolling up.  Make sure we don't copy part of the mode
+	 line at the bottom.  */
+      if from_y + (*run).height > bottom_y                              // C 3133
+	{ height = bottom_y - from_y; }                                    // C 3134
+      else
+	{ height = (*run).height; }                                        // C 3136
+
+      /* Don't draw over the display parts above if destination is off
+	 the top of the current window.  */
+      if to_y < y                                                       // C 3140
+	{
+	  let d: c_int = y - to_y;                                         // C 3142
+	  height -= d;                                                     // C 3143
+	  to_y += d;                                                       // C 3144
+	  from_y += d;                                                     // C 3145
+	}
+    }
+  else
+    {
+      /* Scrolling down.  Make sure we don't copy over the mode line.
+	 at the bottom.  */
+      if to_y + (*run).height > bottom_y                                // C 3152
+	{ height = bottom_y - to_y; }                                      // C 3153
+      else
+	{ height = (*run).height; }                                        // C 3155
+    }
+
+  block_input ();                                                       // C 3158
+
+  /* C's `#ifdef HAVE_XWIDGETS` block (C 3160-3243): dead in the frozen configuration, carried
+     under its feature.  */
+  #[cfg (feature = "have_xwidgets")]
+  {
+    let mut tem: *mut GtkWidget;                                        // C 3162
+    let parent: *mut GtkWidget = FRAME_GTK_WIDGET! (f);
+    let children: *mut GList = gtk_container_get_children (parent as *mut GtkContainer);   // C 3163
+    let mut iter: *mut GList;                                           // C 3164
+    let mut view: *mut xwidget_view;                                    // C 3165
+
+    iter = children;                                                    // C 3167
+    while !iter.is_null ()
+	{
+	  tem = (*iter).data as *mut GtkWidget;                            // C 3169
+	  view = g_object_get_data (tem as *mut GObject, XG_XWIDGET_VIEW.as_ptr ()) as *mut xwidget_view;   // C 3170
+
+	  if !view.is_null () && !(*view).hidden                           // C 3172
+	    {
+		let window_y: c_int = (*view).y + (*view).clip_top;           // C 3174
+		let window_height: c_int = (*view).clip_bottom - (*view).clip_top;   // C 3175
+
+		let mut r1: Emacs_Rectangle = core::mem::zeroed ();           // C 3177
+		let mut r2: Emacs_Rectangle = core::mem::zeroed ();
+		let mut result: Emacs_Rectangle = core::mem::zeroed ();
+		r1.x = (*w).pixel_left;                                       // C 3178
+		r1.y = from_y;                                                // C 3179
+		r1.width = (*w).pixel_width as c_uint;                        // C 3180
+		r1.height = height as c_uint;                                 // C 3181
+		r2 = r1;                                                      // C 3182
+		r2.y = window_y;                                              // C 3183
+		r2.height = window_height as c_uint;                          // C 3184
+
+		/* The window is offscreen, just unmap it.  */
+		if window_height == 0                                         // C 3187
+		  {
+		    (*view).hidden = true;                                    // C 3189
+		    gtk_widget_hide (tem);                                    // C 3190
+		    iter = (*iter).next;                                      // C 3167's step
+		    continue;
+		  }
+
+		let intersects_p: bool                                       // C 3194
+		  = gui_intersect_rectangles (&raw const r1, &raw const r2, &raw mut result);   // C 3195
+
+		if XWINDOW ((*view).w) == w && intersects_p                  // C 3197
+		  {
+		    let mut y: c_int = (*view).y + (to_y - from_y);          // C 3199
+		    let mut text_area_x: c_int = 0;                              // C 3200
+		    let mut text_area_y: c_int = 0;
+		    let mut text_area_width: c_int = 0;
+		    let mut text_area_height: c_int = 0;
+		    let mut clip_top: c_int;                                 // C 3201
+		    let mut clip_bottom: c_int;
+
+		    window_box (w, (*view).area, &raw mut text_area_x,        // C 3203
+				 &raw mut text_area_y, &raw mut text_area_width,
+				 &raw mut text_area_height);                   // C 3204
+
+		    (*view).y = y;                                            // C 3206
+
+		    clip_top = 0;                                             // C 3208
+		    clip_bottom = (*XXWIDGET ((*view).model)).height;      // C 3209
+
+		    if y < text_area_y                                        // C 3211
+		      { clip_top = text_area_y - y; }                         // C 3212
+
+		    if (y + clip_bottom) > (text_area_y + text_area_height)   // C 3214
+		      {
+			clip_bottom -= (y + clip_bottom) - (text_area_y + text_area_height);   // C 3216
+		      }
+
+		    (*view).clip_top = clip_top;                              // C 3219
+		    (*view).clip_bottom = clip_bottom;                        // C 3220
+
+		    /* This means the view has moved offscreen.  Unmap
+		       it and hide it here.  */
+		    if ((*view).clip_bottom - (*view).clip_top) <= 0          // C 3224
+		      {
+			(*view).hidden = true;                                  // C 3226
+			gtk_widget_hide (tem);                                  // C 3227
+		      }
+		    else
+		      {
+			gtk_fixed_move (FRAME_GTK_WIDGET! (f) as *mut GtkFixed,   // C 3231
+				tem, (*view).x + (*view).clip_left,              // C 3232
+				(*view).y + (*view).clip_top);                   // C 3233
+			gtk_widget_set_size_request (tem,                       // C 3234
+						     (*view).clip_right - (*view).clip_left,
+						     (*view).clip_bottom - (*view).clip_top);   // C 3235
+			gtk_widget_queue_allocate (tem);                        // C 3236
+		      }
+		  }
+	    }
+	  iter = (*iter).next;                                             // C 3167's step
+	}
+
+    g_list_free (children);                                             // C 3242
+  }
+
+  /* Cursor off.  Will be switched on again in x_update_window_end.  */
+  gui_clear_cursor (w);                                                 // C 3246
+
+  {
+    let mut src_rect: cairo_rectangle_t = cairo_rectangle_t             // C 3249
+      { x: x as c_double, y: from_y as c_double, width: width as c_double,
+	height: height as c_double };
+    let mut dst_rect: cairo_rectangle_t = cairo_rectangle_t             // C 3250
+      { x: x as c_double, y: to_y as c_double, width: width as c_double,
+	height: height as c_double };
+    pgtk_copy_bits (f, &raw mut src_rect, &raw mut dst_rect);           // C 3251
+  }
+
+  unblock_input ();                                                     // C 3254
+}
