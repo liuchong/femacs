@@ -319,6 +319,14 @@ unsafe extern "C" {
   /// C 443: `cairo_t *cr = cairo_create (icon_surface);`
   /// C: cairo.h 539-540: `cairo_t *cairo_create (cairo_surface_t *target);`
   pub fn cairo_create (target: *mut cairo_surface_t) -> *mut cairo_t;
+  /// C 1361/1372: `cairo_set_source_rgba (cr, r, g, b, a);`
+  /// C: cairo.h 708-710: `void cairo_set_source_rgba (cairo_t *cr, double red, double green,
+  /// double blue, double alpha);`
+  pub fn cairo_set_source_rgba (cr: *mut cairo_t, red: c_double, green: c_double, blue: c_double,
+				alpha: c_double);
+  /// C 1373: `cairo_mask (cr, mask);`
+  /// C: cairo.h 980: `void cairo_mask (cairo_t *cr, cairo_pattern_t *pattern);`
+  pub fn cairo_mask (cr: *mut cairo_t, pattern: *mut cairo_pattern_t);
   /// C 444: `cairo_surface_destroy (icon_surface);`
   /// C: cairo.h 2489: `void cairo_surface_destroy (cairo_surface_t *surface);`
   pub fn cairo_surface_destroy (surface: *mut cairo_surface_t);

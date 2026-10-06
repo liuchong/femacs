@@ -1742,3 +1742,150 @@ unsafe fn pgtk_set_glyph_string_clipping (s: *mut glyph_string, cr: *mut cairo_t
       cairo_clip (cr);                                                  // C 1273
     }
 }
+
+/// C 1281-1293: `static void pgtk_set_glyph_string_clipping_exactly (struct glyph_string *src,
+/// struct glyph_string *dst, cairo_t *cr)` - C's four `dst->clip[0]` writes go through the
+/// degraded `NativeRectangle clip[2]` the mirror carries as `[c_int; 2]` (the cast device
+/// `src/xterm.rs`'s `x_set_glyph_string_clipping_exactly` uses), with C's implicit narrowing to
+/// `short`/`unsigned short` written out.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_glyph_string_clipping_exactly (src: *mut glyph_string, dst: *mut glyph_string,
+						  cr: *mut cairo_t)
+{
+  let clip: *mut XRectangle = (&raw mut (*dst).clip[0]) as *mut XRectangle;
+
+  /* C's `XRectangle` here is `pgtkgui.h`'s (the pgtk arm's - `{ int x, y; unsigned width,
+     height; }`, `include/pgtkgui.rs` 139, status 3.533/3.542), not Xlib's, so C 1285-1288 are a
+     plain int copy plus the two `int` -> `unsigned` conversions.  */
+  (*clip).x = (*src).x;                                                 // C 1285
+  (*clip).y = (*src).y;                                                 // C 1286
+  (*clip).width = (*src).width as c_uint;                               // C 1287
+  (*clip).height = (*src).height as c_uint;                             // C 1288
+  (*dst).num_clips = 1;                                                 // C 1289
+
+  cairo_rectangle (cr, (*src).x as c_double, (*src).y as c_double,      // C 1291
+		   (*src).width as c_double, (*src).height as c_double);
+  cairo_clip (cr);                                                      // C 1292
+}
+
+/* RIF:
+   Compute left and right overhang of glyph string S.  */
+
+/// C 1298-1333: `static void pgtk_compute_glyph_string_overhangs (struct glyph_string *s)` -
+/// `s->first_glyph->type` is the glyph record's bitfield run read through `glyph_bits!` and the
+/// `font->driver->text_extents` call is the driver's slot unwrapped, both the `src/xterm.rs`
+/// `x_compute_glyph_string_overhangs` shapes; C 1309's `alloca` goes to the stack pool the
+/// `AVAIL_ALLOCA!`/`SAFE_ALLOCA!` macros allocate from (PORTING.md P-05, the `src/alloc.rs`
+/// 7948-7957 shape - a plain `alloca` site takes the pool directly and accounts nothing against
+/// `sa_avail`).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_compute_glyph_string_overhangs (s: *mut glyph_string)
+{
+  if (*s).cmp.is_null ()                                               // C 1301
+    && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH          // C 1302
+	|| glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH) // C 1303
+    {
+      let mut metrics: font_metrics = std::mem::zeroed ();             // C 1305
+
+      if glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH         // C 1307
+	{
+	  let code: *mut c_uint = sa_stack_alloc (std::mem::size_of::<c_uint> ()
+						  * (*s).nchars as usize) as *mut c_uint;   // C 1309
+	  let font: *mut font = (*s).font;                                 // C 1310
+	  let mut i: c_int;                                                // C 1311
+
+	  i = 0;                                                           // C 1313
+	  while i < (*s).nchars
+	    {
+	      *code.offset (i as isize) = *(*s).char2b.offset (i as isize);   // C 1314
+	      i += 1;                                                      // C 1313's step
+	    }
+	  ((*((*font).driver as *const font_driver)).text_extents.unwrap ())
+	    (font, code, (*s).nchars, &raw mut metrics);                   // C 1315
+	}
+      else
+	{
+	  let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);   // C 1319
+
+	  composition_gstring_width (gstring, (*s).cmp_from as ptrdiff_t,  // C 1321
+				     (*s).cmp_to as ptrdiff_t,          // C 1322
+				     &raw mut metrics as *mut c_void);
+	}
+      (*s).right_overhang = if metrics.rbearing > metrics.width        // C 1324
+	{ (metrics.rbearing - metrics.width) as c_int } else { 0 };     // C 1325
+      (*s).left_overhang = if metrics.lbearing < 0                     // C 1326
+	{ (- metrics.lbearing) as c_int } else { 0 };
+    }
+  else if !(*s).cmp.is_null ()                                         // C 1328
+    {
+      (*s).right_overhang = ((*( (*s).cmp as *mut composition )).rbearing   // C 1330
+			     - (*( (*s).cmp as *mut composition )).pixel_width) as c_int;
+      (*s).left_overhang = (- (*( (*s).cmp as *mut composition )).lbearing) as c_int;   // C 1331
+    }
+}
+
+/* Fill rectangle X, Y, W, H with background color of glyph string
+   S.  */
+
+/// C 1337-1344: `static void pgtk_clear_glyph_string_rect (struct glyph_string *s, int x, int y,
+/// int w, int h)` - `pgtk_fill_rectangle` is C 5035's definition (forward-declared at C 114-115,
+/// dropped by PORTING.md 0.1-12), i.e. later in this unit: the call is the class this ledger's
+/// Evidence ③ table names for this file's not-yet-ported items.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_clear_glyph_string_rect (s: *mut glyph_string, x: c_int, y: c_int,
+					w: c_int, h: c_int)
+{
+  pgtk_fill_rectangle ((*s).f, (*s).xgcv.background, x, y, w, h,       // C 1341
+		       glyph_bits! (type, (*(*s).first_glyph)) != STRETCH_GLYPH   // C 1342
+		       || (*s).hl != DRAW_CURSOR);                         // C 1343
+}
+
+/// C 1346-1377: `static void fill_background_by_face (struct frame *f, struct face *face, int x,
+/// int y, int width, int height)` - the cairo source/pattern block, whose four channel values are
+/// C's integer shifts divided by the `double` 255.0 (the conversion written out) and whose stipple
+/// arm indexes `FRAME_DISPLAY_INFO (f)->bitmaps` through the pointer offset the `pgtk` lane uses
+/// (`src/pgtkfns.rs`'s monitor walk shape).
+#[cfg (feature = "have_pgtk")]
+unsafe fn fill_background_by_face (f: *mut frame, face: *mut face, x: c_int, y: c_int,
+				   width: c_int, height: c_int)
+{
+  let cr: *mut cairo_t = pgtk_begin_cr_clip (f);                        // C 1350
+  let mut r: c_double;                                                  // C 1351
+  let mut g: c_double;
+  let mut b: c_double;
+  let mut a: c_double;
+
+  cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);                       // C 1353
+  cairo_rectangle (cr, x as c_double, y as c_double,                    // C 1354
+		   width as c_double, height as c_double);
+  cairo_clip (cr);                                                      // C 1355
+
+  r = (((*face).background >> 16) & 0xff) as c_double / 255.0;          // C 1357
+  g = (((*face).background >> 8) & 0xff) as c_double / 255.0;           // C 1358
+  b = (((*face).background >> 0) & 0xff) as c_double / 255.0;           // C 1359
+  a = (*f).alpha_background;                                            // C 1360
+  cairo_set_source_rgba (cr, r, g, b, a);                               // C 1361
+  cairo_paint (cr);                                                     // C 1362
+
+  if (*face).stipple != 0                                               // C 1364
+    {
+      let mask: *mut cairo_pattern_t
+	= (*(*FRAME_DISPLAY_INFO! (f)).bitmaps.offset ((*face).stipple as isize - 1)).pattern;   // C 1367
+
+      r = (((*face).foreground >> 16) & 0xff) as c_double / 255.0;      // C 1369
+      g = (((*face).foreground >> 8) & 0xff) as c_double / 255.0;       // C 1370
+      b = (((*face).foreground >> 0) & 0xff) as c_double / 255.0;       // C 1371
+      cairo_set_source_rgba (cr, r, g, b, a);                           // C 1372
+      cairo_mask (cr, mask);                                            // C 1373
+    }
+
+  pgtk_end_cr_clip (f);                                                 // C 1376
+}
+
+/// C 1379-1383: `static void fill_background (struct glyph_string *s, int x, int y, int width,
+/// int height)` - C's `s->face` is the port's `*mut c_void` (the cast the six GC helpers use).
+#[cfg (feature = "have_pgtk")]
+unsafe fn fill_background (s: *mut glyph_string, x: c_int, y: c_int, width: c_int, height: c_int)
+{
+  fill_background_by_face ((*s).f, (*s).face as *mut face, x, y, width, height);   // C 1382
+}

@@ -623,6 +623,7 @@ Fbuffer_substring_no_properties	0	editfns.c 1445: the same call with `0` -> `fal
 Fbuffer_string	1	editfns.c 1471: C passes `1` to `make_buffer_string_both`'s `bool props`; the port spells `true`.  Residual as above
 Finsert_buffer_substring	0	editfns.c 1499: C passes `0` to `insert_from_buffer`'s `bool inherit`; the port spells `false`.  Residual as above
 Freplace_region_contents	alloca	editfns.c 2074: C's bare `alloca (bytes_needed)` is the port's stack pool, `sa_stack_alloc` (PORTING.md P-05's decision, the AVAIL_ALLOCA row and the eval.rs shape); the macro name cannot reappear
+pgtk_compute_glyph_string_overhangs	alloca	pgtkterm.c 1309: C's bare `alloca (sizeof (unsigned) * s->nchars)` is the port's stack pool, `sa_stack_alloc` (PORTING.md P-05's decision, the AVAIL_ALLOCA row's reason); the name cannot reappear
 Fsubst_char_in_region	goto	editfns.c 2318/2388: C's `goto restart` becomes `continue 'restart` (a label has no Rust site, PORTING.md 2.2); the `restart` token itself stays, and `goto` cannot reappear
 Ftranslate_region_internal	uninit	editfns.c 2504: `bool string_multibyte UNINIT;` is the port's zeroed `false` (UNINIT is `= {0,}` in the frozen configuration, conf_post.h 369; PORTING.md 1.5), so the macro's name cannot reappear (the Fmake_variable_buffer_local row)
 Fdelete_and_extract_region	1	editfns.c 2693: the two `bool` arguments of `del_range_1` are C's `1, 1`; the port spells `true, true` (the Fset_case_table row's residual)
