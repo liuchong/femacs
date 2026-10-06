@@ -54,10 +54,11 @@ by header:
   `GDK_WATCH`/`GDK_SB_H_DOUBLE_ARROW`/`GDK_SB_V_DOUBLE_ARROW`/`GDK_LEFT_SIDE`/`GDK_RIGHT_SIDE`/
   `GDK_TOP_SIDE`/`GDK_BOTTOM_SIDE`/`GDK_TOP_LEFT_CORNER`/`GDK_TOP_RIGHT_CORNER`/
   `GDK_BOTTOM_RIGHT_CORNER`/`GDK_BOTTOM_LEFT_CORNER`), the event records `GdkEvent`/`GdkEventAny`/`GdkEventKey`/`GdkEventProperty`/
-  `GdkEventSelection`/`GdkEventSequence`, the monitor handle `GdkMonitor` and the seven monitor
+  `GdkEventSelection`/`GdkEventSequence`, the monitor handle `GdkMonitor` and the ten monitor
   entry points the pgtkfns subrs walk (`gdk_display_get_n_monitors`, `gdk_display_get_monitor`,
-  `gdk_monitor_get_geometry`, `gdk_monitor_get_height_mm`, `gdk_monitor_get_width_mm`,
-  `gdk_monitor_get_model`, `gdk_monitor_get_scale_factor`), and forty-seven entry points.
+  `gdk_display_get_monitor_at_window`, `gdk_monitor_get_geometry`, `gdk_monitor_get_workarea`,
+  `gdk_monitor_get_height_mm`, `gdk_monitor_get_width_mm`, `gdk_monitor_get_model`,
+  `gdk_monitor_get_scale_factor`, `gdk_monitor_is_primary`), and fifty entry points.
 - **GTK** (`<gtk/gtk.h>`): the opaque handles `GtkWidget`/`GtkWindow`/`GtkMenu`/`GtkImage`/
   `GtkBin`/`GtkContainer`/`GtkLabel`/`GtkMenuShell`/`GtkMenuBar`/`GtkMenuBarClass`/
   `GtkWidgetClass`/`GtkTooltip`/`GtkSettings`/`GtkStyleContext`/`GtkStyle`/`GtkRcStyle`/
@@ -239,3 +240,12 @@ fall back to `gdk_monitor_get_scale_factor`, so those two GDK rows landed here (
 citations: no GDK header on this machine).  P-87 ①'s consumer sweep reads `checked 83 unit(s), 0
 failure(s)` with `checking 83 unit(s), 0 unit failure(s)`; the consumer's ledger records the pair
 (`docs/ports/pgtkfns.md` Deviations 43-47 and Evidence ㉔).
+
+### status 3.720 (the pgtkfns seventh-slice round this file took part in)
+
+`src/pgtkfns.c`'s monitor-attribute builder and `pgtk_frame_scale_factor` (C 2405-2531) walk the
+frames and monitors through `gdk_display_get_monitor_at_window`, `gdk_monitor_is_primary` and
+`gdk_monitor_get_workarea`, so those three rows landed here (header-only citations: no GDK header on
+this machine).  P-87 ①'s consumer sweep reads `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`; the consumer's ledger records the pair
+(`docs/ports/pgtkfns.md` Deviations 48-52 and Evidence ㉘).

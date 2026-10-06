@@ -455,6 +455,18 @@ unsafe extern "C" {
   /// C 2353/2391: `scale = gdk_monitor_get_scale_factor (monitor);`
   /// C: gdk/gdkmonitor.h: `int gdk_monitor_get_scale_factor (GdkMonitor *monitor);`
   pub fn gdk_monitor_get_scale_factor (monitor: *mut GdkMonitor) -> c_int;
+  /// C 2450/2521: `gdk_display_get_monitor_at_window (gdpy, gwin)`
+  /// C: gdk/gdkdisplay.h: `GdkMonitor *gdk_display_get_monitor_at_window (GdkDisplay *display,
+  /// GdkWindow *window);`
+  pub fn gdk_display_get_monitor_at_window (display: *mut GdkDisplay,
+					    window: *mut GdkWindow) -> *mut GdkMonitor;
+  /// C 2465: `if (gdk_monitor_is_primary (monitor))`
+  /// C: gdk/gdkmonitor.h: `gboolean gdk_monitor_is_primary (GdkMonitor *monitor);`
+  pub fn gdk_monitor_is_primary (monitor: *mut GdkMonitor) -> gboolean;
+  /// C 2471: `gdk_monitor_get_workarea (monitor, &work);`
+  /// C: gdk/gdkmonitor.h: `void gdk_monitor_get_workarea (GdkMonitor *monitor, GdkRectangle
+  /// *workarea);`
+  pub fn gdk_monitor_get_workarea (monitor: *mut GdkMonitor, workarea: *mut GdkRectangle);
   /// C 2062: `int mm = gdk_monitor_get_height_mm (monitor);`
   /// C: gdk/gdkmonitor.h: `int gdk_monitor_get_height_mm (GdkMonitor *monitor);`
   pub fn gdk_monitor_get_height_mm (monitor: *mut GdkMonitor) -> c_int;

@@ -602,6 +602,9 @@ unsafe extern "C" {
   /// C: string.h: `char *strstr (const char *haystack, const char *needle);` - C 2201's two calls
   /// (`lib/include/string.rs` has not got it; the `src/font.rs` 437-438 shape)
   pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
+  /// C: lisp.h 5555: `extern void dupstring (char **, char const *);` - C 2498's call (the mirror
+  /// `include/lisp.rs` has not got it; `src/frame.rs`'s `MonitorInfo.name` is the `char **` side)
+  pub fn dupstring (dest: *mut *mut c_char, src: *const c_char);
 
   /* font.h 991-993: the two FT/CR driver objects C 1387-1392 registers -
      `#if defined (USE_CAIRO) || defined (USE_BE_CAIRO)` / `extern struct font_driver const
@@ -3531,4 +3534,178 @@ DEFUN! ("x-display-pixel-height", Fx_display_pixel_height, Sx_display_pixel_heig
   unblock_input ();                                                          // C 2400
 
   return make_fixnum (height as EMACS_INT);                                  // C 2402
+});
+
+/* ==========================================================================
+
+   C 2405-2549: the monitor-attribute builder, `pgtk_frame_scale_factor` and
+   the last two display subrs of this group
+
+   ========================================================================== */
+
+/* C 2405-2422: `DEFUN ("pgtk-display-monitor-attributes-list", …)` with C's own docstring (C
+   2408-2421; its `\"Gdk\"` is make-docfile's escaped quote, whose value is `"Gdk"` - the literal
+   carries the value, Deviation 32's rule) and C 2422's one-parameter list.  C 2428's
+   `gint primary_monitor = 0` and C 2430's function-scope `static const char *source = "Gdk"`
+   keep their C shapes (the latter as Rust's own function-scope `static mut`, Deviation 30's
+   device); C 2437's `xcalloc (n_monitors, sizeof *monitors)` is the record's size.  */
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("pgtk-display-monitor-attributes-list", Fpgtk_display_monitor_attributes_list,   // C 2405-2510
+	Spgtk_display_monitor_attributes_list,
+	0, 1, 0,
+	doc: "Return a list of physical monitor attributes on the X display TERMINAL.\n\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n\nIn addition to the standard attribute keys listed in\n`display-monitor-attributes-list', the following keys are contained in\nthe attributes:\n\n source -- String describing the source from which multi-monitor\n	   information is obtained, \"Gdk\"\n\nInternal use only, use `display-monitor-attributes-list' instead.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut pgtk_display_info = check_pgtk_display_info (terminal);   // C 2424
+  let mut attributes_list: Lisp_Object = Qnil ();                             // C 2425
+
+  let mut gdpy: *mut GdkDisplay;                                           // C 2427
+  let mut primary_monitor: gint = 0;                                       // C 2428
+  let mut n_monitors: gint;
+  let mut i: gint;
+  let mut monitor_frames: Lisp_Object;                                     // C 2429
+  let mut rest: Lisp_Object;
+  let mut frame: Lisp_Object;
+  /* C 2430: `static const char *source = "Gdk";` - C's function-scope static, whose storage
+     duration is the program's; the port writes Rust's function-scope `static mut` with C's own
+     value (Deviation 30's device for the same C shape).  */
+  static mut source: *const c_char = c"Gdk".as_ptr ();
+  let mut monitors: *mut MonitorInfo;                                      // C 2431
+
+  block_input ();                                                          // C 2433
+  gdpy = (*dpyinfo).gdpy;                                                  // C 2434
+  n_monitors = gdk_display_get_n_monitors (gdpy);                          // C 2435
+  monitor_frames = make_nil_vector (n_monitors as EMACS_INT);              // C 2436
+  monitors = xcalloc (n_monitors as size_t,                                // C 2437
+		      std::mem::size_of::<MonitorInfo> ()) as *mut MonitorInfo;
+
+  FOR_EACH_FRAME! (rest, frame, {                                          // C 2439
+      let f: *mut frame = XFRAME (frame);                                  // C 2441
+
+      if FRAME_PGTK_P (f)                                                  // C 2443
+	  && FRAME_DISPLAY_INFO! (f) == dpyinfo
+	  && !FRAME_TOOLTIP_P (f)
+	{
+	  let gwin: *mut GdkWindow = gtk_widget_get_window (FRAME_GTK_WIDGET! (f));   // C 2447
+
+          i = 0;
+          while i < n_monitors                                            // C 2449
+	    {
+	      if gdk_display_get_monitor_at_window (gdpy, gwin)               // C 2450-2451
+		  == gdk_display_get_monitor (gdpy, i)
+		{ break; }
+	      i += 1;
+	    }
+	  ASET (monitor_frames, i as EMACS_INT,                               // C 2453
+		Fcons (frame, AREF (monitor_frames, i as EMACS_INT)));
+	}
+    });
+
+  i = 0;
+  while i < n_monitors                                                     // C 2457
+    {
+      let mut width_mm: gint;                                              // C 2459
+      let mut height_mm: gint;
+      let mut rec: GdkRectangle = std::mem::zeroed ();                     // C 2460
+      let mut work: GdkRectangle = std::mem::zeroed ();
+      /* C 2461's `struct MonitorInfo *mi = &monitors[i];` - the port's element address.  */
+      let mi: *mut MonitorInfo = monitors.offset (i as isize);
+      let mut scale: c_double = 1.0;                                       // C 2462
+
+      let monitor: *mut GdkMonitor = gdk_display_get_monitor (gdpy, i);     // C 2464
+      if gdk_monitor_is_primary (monitor) != 0                             // C 2465
+	{ primary_monitor = i; }                                           // C 2466
+      gdk_monitor_get_geometry (monitor, &raw mut rec);                    // C 2467
+
+      width_mm = gdk_monitor_get_width_mm (monitor);                       // C 2469
+      height_mm = gdk_monitor_get_height_mm (monitor);                     // C 2470
+      gdk_monitor_get_workarea (monitor, &raw mut work);                   // C 2471
+
+      /* GTK returns scaled sizes for the workareas.  */
+      scale = pgtk_get_monitor_scale_factor (gdk_monitor_get_model (monitor));   // C 2474
+      if scale == 0.0                                                      // C 2475
+	{ scale = gdk_monitor_get_scale_factor (monitor) as c_double; }     // C 2476
+      rec.x = (rec.x as c_double * scale + 0.5) as c_int;                  // C 2477
+      rec.y = (rec.y as c_double * scale + 0.5) as c_int;                  // C 2478
+      rec.width = (rec.width as c_double * scale + 0.5) as c_int;          // C 2479
+      rec.height = (rec.height as c_double * scale + 0.5) as c_int;        // C 2480
+      work.x = (work.x as c_double * scale + 0.5) as c_int;                // C 2481
+      work.y = (work.y as c_double * scale + 0.5) as c_int;                // C 2482
+      work.width = (work.width as c_double * scale + 0.5) as c_int;        // C 2483
+      work.height = (work.height as c_double * scale + 0.5) as c_int;      // C 2484
+
+      (*mi).geom.x = rec.x;                                               // C 2486
+      (*mi).geom.y = rec.y;                                               // C 2487
+      (*mi).geom.width = rec.width as c_uint;                             // C 2488
+      (*mi).geom.height = rec.height as c_uint;                           // C 2489
+      (*mi).work.x = work.x;                                              // C 2490
+      (*mi).work.y = work.y;                                              // C 2491
+      (*mi).work.width = work.width as c_uint;                            // C 2492
+      (*mi).work.height = work.height as c_uint;                          // C 2493
+      (*mi).mm_width = width_mm;                                          // C 2494
+      (*mi).mm_height = height_mm;                                        // C 2495
+      (*mi).scale_factor = scale;                                         // C 2496
+
+      dupstring (&raw mut (*mi).name, gdk_monitor_get_model (monitor));   // C 2498
+      i += 1;
+    }
+
+  attributes_list = make_monitor_attribute_list (monitors,                 // C 2501-2505
+						 n_monitors,
+						 primary_monitor,
+						 monitor_frames,
+						 source);
+  free_monitors (monitors, n_monitors);                                   // C 2506
+  unblock_input ();                                                       // C 2507
+
+  return attributes_list;                                                 // C 2509
+});
+
+/* C 2512-2531: `pgtk_frame_scale_factor` - the frame's monitor scale, the same lookup the two
+   scaling walks make (C's own `double` return).  */
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_frame_scale_factor (f: *mut frame) -> c_double
+{
+  let dpyinfo: *mut pgtk_display_info = FRAME_DISPLAY_INFO! (f);          // C 2515
+  let gdpy: *mut GdkDisplay = (*dpyinfo).gdpy;                            // C 2516
+
+  block_input ();                                                         // C 2518
+
+  let gwin: *mut GdkWindow = gtk_widget_get_window (FRAME_GTK_WIDGET! (f));   // C 2520
+  let gmon: *mut GdkMonitor = gdk_display_get_monitor_at_window (gdpy, gwin);  // C 2521
+
+  /* GTK returns scaled sizes for the workareas.  */
+  let mut scale: c_double = pgtk_get_monitor_scale_factor (gdk_monitor_get_model (gmon));   // C 2524
+  if scale == 0.0                                                         // C 2525
+    { scale = gdk_monitor_get_scale_factor (gmon) as c_double; }          // C 2526
+
+  unblock_input ();                                                       // C 2528
+
+  return scale;                                                           // C 2530
+}
+
+/* C 2533-2539: `x-display-planes` and C 2542-2549: `x-display-color-cells` - the group's last two
+   subrs; C 2548's `1 << min (dpyinfo->n_planes, 24)` keeps C's shift and folds the mirror's `min`
+   over two `isize`s (the `x-display-mm-*` rule, Deviation 38).  */
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-planes", Fx_display_planes, Sx_display_planes,   // C 2533-2539
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  check_pgtk_display_info (terminal);                           // C 2537
+  return make_fixnum (32);                                      // C 2538
+});
+
+#[cfg (feature = "have_pgtk")]
+DEFUN! ("x-display-color-cells", Fx_display_color_cells, Sx_display_color_cells,   // C 2542-2549
+	0, 1, 0,
+	doc: "SKIP: real doc in xfns.c.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut pgtk_display_info = check_pgtk_display_info (terminal);   // C 2546
+  /* We force 24+ bit depths to 24-bit to prevent an overflow.  */
+  return make_fixnum (((1 as isize) << min ((*dpyinfo).n_planes as isize, 24))   // C 2548
+		      as EMACS_INT);
 });

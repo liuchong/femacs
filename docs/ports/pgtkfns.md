@@ -13,10 +13,10 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**3,534** lines, from the 11 of the placeholder), carrying **C 1-1147**,
-> **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208** and **C 2210-2403** - six
-> slices - with **both arms of every `#if`**; after them the file's next live definition is
-> `Fpgtk_display_monitor_attributes_list` (**C 2405**).
+> `femacs/src/pgtkfns.rs` (**3,711** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208**, **C 2210-2403** and
+> **C 2405-2549** - seven slices - with **both arms of every `#if`**; the next live item is the
+> tooltip group's state (**C 2556**, `tip_frame`).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -128,7 +128,8 @@ which exist only under those two features (Owed 6).
 | 1754-1996 | the restack pair and the GSETTINGS block: C 1754-1757's comment and `pgtk_frame_restack` (C 1758-1764), `DEFUN ("pgtk-frame-restack", …)` with C's own 15-line docstring (C 1766-1791), and C 1793-1996's `#ifdef HAVE_GSETTINGS` region - the five `#define`s, the three `static inline` predicates, `parse_resource_key`, `pgtk_check_resource_key_length`, `pgtk_get_defaults_value`, `pgtk_set_defaults_value`, the five `#undef`s and the `#else` arm's own pair | the file gate plus `have_gsettings` for the `#if` arm (the `#else` arm is the frozen configuration's) - **transcribed** (the fourth slice) |
 | 1999-2208 | the resource subr, the eleven `x-*` display subrs and `pgtk-font-name`: `Fpgtk_set_resource` (C 1999-2019), `x-server-max-request-size`/`x-display-screens` (2022-2039), the two GDK monitor walks `x-display-mm-height`/`x-display-mm-width` (2042-2107), `x-display-backing-store`/`x-display-visual-class`/`x-display-save-under` (2110-2133), `x-open-connection`/`x-close-connection` (2136-2172), `x-display-list` (2175-2186) and `pgtk-font-name` (2188-2208) | the file gate - **transcribed** (the fifth slice) |
 | 2210-2403 | the miscellaneous group's first five definitions and the first seven colour/geometry subrs: C 2210-2214's banner, `check_x_display_info` (2216-2221), `pgtk_set_scroll_bar_default_width`/`_height` (2223-2241), `pgtk_get_string_resource` (2243-2268), `pgtk_get_focus_frame` (2270-2281) and `xw-color-defined-p`/`xw-color-values`/`xw-display-color-p`/`x-display-grayscale-p`/`x-display-pixel-width`/`x-display-pixel-height` (2283-2403) | the file gate - **transcribed** (the sixth slice) |
-| 2405-3906 | **the remainder of the file** - from C 2405-2407's `Fpgtk_display_monitor_attributes_list` (**the next live definition**) through C 3906's `syms_of_pgtkfns`: the monitor-attribute builder (2405-2576), the tip frame (2577-3311), the geometry/edges/mouse/print/file-dialog/subr tail (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2405-2549 | the monitor-attribute builder and the group's last three definitions: `Fpgtk_display_monitor_attributes_list` (C 2405-2510: the `FOR_EACH_FRAME` filing walk, the per-monitor records and the `make_monitor_attribute_list`/`free_monitors` pair), `pgtk_frame_scale_factor` (2512-2531), `x-display-planes` (2533-2539) and `x-display-color-cells` (2542-2549) | the file gate - **transcribed** (the seventh slice) |
+| 2551-3906 | **the remainder of the file** - from C 2551-2553's "Tool tips" banner and C 2556's `tip_frame` (**the next live item**) through C 3906's `syms_of_pgtkfns`: the tooltip frame (`pgtk_create_tip_frame`, `compute_tip_xy`, `Fx_show_tip`/`Fx_hide_tip` and their unwind helpers, 2551-3311), the frame-geometry/edges/mouse/print/file-dialog/font subrs (3312-3774) and `syms_of_pgtkfns` (3775-3906) | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -497,6 +498,32 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     path never reads it - and `x-display-grayscale-p`'s `terminal`, C 2324), and `XrmDatabase`
     is `include/pgtkterm.rs`'s (xlib.h's record, reached through this file's ungated `xlib.rs`
     edge).
+
+48. **C's function-scope `static const char *source = "Gdk";` (C 2430) is Rust's function-scope
+    `static mut`.**  C's static has static storage duration; Rust's `static` of a raw-pointer type
+    would need `Sync` (which `*const c_char` is not), so the port writes a function-scope
+    `static mut source: *const c_char` with C's own value - the same device Deviation 30 records
+    for C 1948's `static char holder[128]`.
+49. **C's `&monitors[i]` (C 2461) is the element's address, not a reference**:
+    `let mi: *mut MonitorInfo = monitors.offset (i as isize);` (Rust 2024's `static_mut_refs`-safe
+    shape for C's array element; everything else about the record goes through `(*mi)`).
+50. **`Emacs_Rectangle`'s two `unsigned` members** (`include/dispextern.rs` 72-73) take C's four
+    `int` assignments (C 2488/2489/2492/2493) with the conversion written out - `rec.width as c_uint`
+    - while the two `GdkRectangle`s C computes in stay `c_int` (GDK's own `gint` members).
+51. **C's implicit conversions in this slice, written out (Deviation 5's rule)**: C 2436's
+    `make_nil_vector (n_monitors)` widens a `gint` to `EMACS_INT`; C 2437's
+    `xcalloc (n_monitors, sizeof *monitors)` is `xcalloc (n_monitors as size_t,
+    std::mem::size_of::<MonitorInfo> ())` with the result cast to `*mut MonitorInfo`; C 2477-2484's
+    eight `rec.x = rec.x * scale + 0.5;`-family assignments are the same double-to-int truncation
+    Deviation 46 records, and C 2548's `1 << min (dpyinfo->n_planes, 24)` folds the mirror's `min`
+    over two `isize`s with C's own shift kept.
+52. **This slice's three GDK calls went into the mirror** (`gdk_display_get_monitor_at_window` C
+    2450/2521, `gdk_monitor_is_primary` C 2465, `gdk_monitor_get_workarea` C 2471 - `include/gtk.rs`
+    is the GDK surface's single home, and no GDK header exists here, so all three cite the header
+    alone), so P-87's two legs apply: `tools/check-all-units.sh` reads `checked 83 unit(s), 0
+    failure(s)` with `checking 83 unit(s), 0 unit failure(s)`, `check-mirror-dupes.py` stays 16/16/0,
+    and the mirror's ledger carries the three rows with a `### status 3.720` section.  The one new
+    declaration this unit needed of its own is `dupstring` (lisp.h 5555, this file's own block).
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -936,3 +963,55 @@ unit failure(s)`, and the mirror's ledger names both rows and carries a `status 
 looked up (`pgtk_get_defaults_value` is this file's own, and the frozen arm answers `error`), and no
 monitor was enumerated.  All four arm readings are **compile** readings of text this machine cannot
 build.
+
+## The seventh slice (C 2405-2549): the monitor-attribute builder and the group's last three definitions
+
+**㉗ What is in it.**  C 2405-2510's `DEFUN ("pgtk-display-monitor-attributes-list", …)` - the
+`pgtk_display_info` lookup, `make_nil_vector` + `xcalloc` for `n_monitors` records, the
+`FOR_EACH_FRAME` walk that files each frame under the monitor its `gtk_widget_get_window` reports
+(C 2447-2453, `gdk_display_get_monitor_at_window` compared against each
+`gdk_display_get_monitor`), the per-monitor loop (geometry, workarea, the two millimetre reads, the
+scale factor fallback and the twelve `mi->` member writes through `&monitors[i]`), the
+`make_monitor_attribute_list` call and `free_monitors`; C 2512-2531's `pgtk_frame_scale_factor` (the
+same scale lookup for one frame, C's own `double` return); and C 2533-2549's `x-display-planes` and
+`x-display-color-cells` (the `1 << min (n_planes, 24)` fold).  Rust: 3,534 -> **3,711** lines.
+
+**㉘ The arm readings (four arms, both sides) - and the first slice of this unit whose first run was
+clean.**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 156 errors / 11 warnings -> 163 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets   : 144 / 10 -> 151 / 10
+C = A + have_gsettings                             : 156 / 11 -> 163 / 11
+D = B + have_gsettings                             : 144 / 10 -> 151 / 10
+```
+All four arms read the same delta: **+4 `pgtk_output` and +3 `pgtk_display_info` sites**, both
+classes this ledger already names (attributed the Evidence ⑩ way: exactly four and three of the
+`in this macro invocation` notes fall inside the new text), with **no new class and no new
+warning**.  Unlike the previous four slices, the first run needed no repair: nothing in this slice's
+own text had to be revisited after the readings (the `static mut source` spelling and the
+`monitors.offset` element address were written from the recorded devices, Deviations 48-49).
+
+**㉙ `extract-abi.py --check`.**  `FAIL`, **72 `- ` rows -> 67**: `missing function
+pgtk_frame_scale_factor`, `missing subr Fpgtk_display_monitor_attributes_list
+(pgtk-display-monitor-attributes-list)`, `missing subr Fx_display_planes (x-display-planes)` and
+`missing subr Fx_display_color_cells (x-display-color-cells)` retire, no row appears - **and the
+line-count row retires too**: the port is now 3,711 lines against C's 3,906, **4.99% under** C, i.e.
+inside the 5% rule the row exists for (the row's history in this ledger: 54.7%, 53.5%, 51.4%,
+34.0%, 24.4%, 16.8%, 9.5%, gone).  The 67 rows left are the tooltip group (C 2551-3311) and the tail
+(C 3312-3906).
+
+**㉚ The gates, P-87's two legs, and what is not claimed.**  `check-declarations.py` **18
+declaration sites (0 forbidden, 18 allowed literals), 0 failures**; `check-citations.py` **676
+file(s) scanned, 0 drift, 0 range, 2,040 external, 36 allowed, 0 stale**;
+`check-dead-file-coverage.py` **145 ledger(s) bound, 0 failure(s)** (57 range rows now cover
+src/pgtkfns.c); `check-port-lines.py` **0 file(s) under ten percent, 0 reference line(s), 0 ratchet
+row(s), 0 new, 0 stale**; `check-ledger-ticks.py` **238 ledger(s) bound, 0 failure(s)**;
+`check-cond-eval.py src/pgtkfns.c` **11 conditions, 0 unknown, 0 disagreements [VERIFIED]**;
+`check-mirror-dupes.py` **16 duplicate(s), 16 ratchet row(s), 0 failure(s)**.  **A mirror changed
+this round** (three GDK monitor rows, Deviation 52), so P-87 ①'s consumer sweep was run and reads `checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)`.  **Not claimed**: no monitor
+attribute list was built (the DEFUN is registered by `syms_of_pgtkfns`, still the remainder, so
+nothing calls it; `make_monitor_attribute_list`/`free_monitors` are `frame.c`'s declarations), no
+frame's scale factor was computed (`pgtk_frame_scale_factor` is called by this file's own
+`FRAME_SCALE_FACTOR` arm only), and the four arm readings are **compile** readings of text this
+machine cannot build.
