@@ -1943,8 +1943,20 @@ pub const FACE_OVERSTRIKE: u32 = 1 << 21;
 #[cfg (feature = "have_pgtk")]
 macro_rules! face_bits {
   (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
+  (underline, $f:expr) =>
+    { (((*$f).bits & FACE_UNDERLINE_MASK) >> FACE_UNDERLINE_SHIFT) as c_int };
   (use_box_color_for_shadows_p, $f:expr) =>
     { ((*$f).bits & FACE_USE_BOX_COLOR_FOR_SHADOWS_P) != 0 };
+  (overline_p, $f:expr) => { ((*$f).bits & FACE_OVERLINE_P) != 0 };
+  (strike_through_p, $f:expr) => { ((*$f).bits & FACE_STRIKE_THROUGH_P) != 0 };
+  (underline_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_UNDERLINE_DEFAULTED_P) != 0 };
+  (overline_color_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_OVERLINE_COLOR_DEFAULTED_P) != 0 };
+  (strike_through_color_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P) != 0 };
+  (underline_at_descent_line_p, $f:expr) =>
+    { ((*$f).bits & FACE_UNDERLINE_AT_DESCENT_LINE_P) != 0 };
   (overstrike, $f:expr) => { ((*$f).bits & FACE_OVERSTRIKE) != 0 };
 }
 
@@ -3584,4 +3596,376 @@ unsafe fn pgtk_fill_underline (f: *mut frame, s: *mut glyph_string, foreground: 
     _ =>
       { emacs_abort (); }
     }
+}
+
+/* C: dispextern.h 3638: `extern struct font *font_for_underline_metrics (struct glyph_string *);`
+   - the C 2662 call (`src/xdisp.rs` defines it; no mirror carries it, so the unit declares it at
+   the use site - the `src/haikuterm.rs` 172 declaration of the same prototype).  cairo.h 561-562/564-565:
+   `void cairo_save (cairo_t *cr);` and `void cairo_restore (cairo_t *cr);` - the C 2777/2785 and
+   C 2803/2809 calls.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn font_for_underline_metrics (s: *mut glyph_string) -> *mut font;
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_save (cr: *mut cairo_t);
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_restore (cr: *mut cairo_t);
+}
+
+/// C 2524-2825: `static void pgtk_draw_glyph_string (struct glyph_string *s)` - the file's whole
+/// drawing entry point.  C's `for (width = 0, next = s->next; …; width += next->width, next =
+/// next->next)` is the port's init/`while`/step trio (Deviation 26's spelling), C's
+/// `switch (s->first_glyph->type)` is the port's `match` over the same enumerators (this
+/// function's own `macro-body-notes.tsv` row), `x_draw_xwidget_glyph_string` takes the mirror's
+/// `*mut c_void` parameter (the use-site cast, P-72 rule 3), and C's `s->row->stipple_p` write is
+/// `glyph_row_bits!`'s setter.  The epilogue's decoration arithmetic is spelled the way the
+/// sibling lane writes the same C text (`src/xterm.rs` 12558-12745): the `c_ulong` locals with
+/// `wrapping_sub`/`wrapping_add` for C's unsigned arithmetic, `position = max (position as isize,
+/// underline_minimum_offset as isize) as c_ulong` for C's `max`, and `font_for_underline_metrics`/
+/// `cairo_save`/`cairo_restore` declared above.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_glyph_string (s: *mut glyph_string)
+{
+  let mut relief_drawn_p: bool = false;                                 // C 2527
+
+  /* If S draws into the background of its successors, draw the
+     background of the successors first so that S can draw into it.
+     This makes S->next use XDrawString instead of XDrawImageString.  */
+  if !(*s).next.is_null () && (*s).right_overhang != 0                  // C 2532
+      && glyph_string_bits! (for_overlaps, (*s)) == 0
+    {
+      let mut width: c_int;                                             // C 2534
+      let mut next: *mut glyph_string;                                  // C 2535
+
+      width = 0; next = (*s).next;                                      // C 2537
+      while !next.is_null () && width < (*s).right_overhang             // C 2538
+	{
+	  if glyph_bits! (type, (*(*next).first_glyph)) != IMAGE_GLYPH     // C 2540
+	    {
+	      let cr: *mut cairo_t = pgtk_begin_cr_clip ((*next).f);      // C 2542
+	      pgtk_set_glyph_string_gc (next);                            // C 2543
+	      pgtk_set_glyph_string_clipping (next, cr);                  // C 2544
+	      if glyph_bits! (type, (*(*next).first_glyph)) == STRETCH_GLYPH   // C 2545
+		{ pgtk_draw_stretch_glyph_string (next); }                   // C 2546
+	      else
+		{ pgtk_draw_glyph_string_background (next, true); }          // C 2548
+	      (*next).num_clips = 0;                                      // C 2549
+	      pgtk_end_cr_clip ((*next).f);                               // C 2550
+	    }
+	  width += (*next).width;                                         // C 2539's step
+	  next = (*next).next;
+	}
+    }
+
+  /* Set up S->gc, set clipping and draw S.  */
+  pgtk_set_glyph_string_gc (s);                                         // C 2555
+
+  let cr: *mut cairo_t = pgtk_begin_cr_clip ((*s).f);                   // C 2557
+
+  /* Draw relief (if any) in advance for char/composition so that the
+     glyph string can be drawn over it.  */
+  if glyph_string_bits! (for_overlaps, (*s)) == 0                       // C 2561
+      && face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX        // C 2562
+      && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH         // C 2563
+	  || glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH)   // C 2564
+
+    {
+      pgtk_set_glyph_string_clipping (s, cr);                           // C 2567
+      pgtk_draw_glyph_string_background (s, true);                      // C 2568
+      pgtk_draw_glyph_string_box (s);                                   // C 2569
+      pgtk_set_glyph_string_clipping (s, cr);                           // C 2570
+      relief_drawn_p = true;                                            // C 2571
+    }
+  else if (*s).clip_head.is_null ()   /* draw_glyphs didn't specify a clip mask. */   // C 2573
+	   && (*s).clip_tail.is_null ()                                    // C 2574
+	   && ((!(*s).prev.is_null () && (*(*s).prev).hl != (*s).hl       // C 2575
+		&& (*s).left_overhang != 0)
+	       || (!(*s).next.is_null () && (*(*s).next).hl != (*s).hl
+		  && (*s).right_overhang != 0))                               // C 2576
+    /* We must clip just this glyph.  left_overhang part has already
+       drawn when s->prev was drawn, and right_overhang part will be
+       drawn later when s->next is drawn. */
+    { pgtk_set_glyph_string_clipping_exactly (s, s, cr); }              // C 2580
+  else
+    { pgtk_set_glyph_string_clipping (s, cr); }                         // C 2582
+
+  match glyph_bits! (type, (*(*s).first_glyph))                         // C 2584
+    {
+    IMAGE_GLYPH =>
+      {
+	pgtk_draw_image_glyph_string (s);                                  // C 2587
+      }
+
+    XWIDGET_GLYPH =>
+      {
+	x_draw_xwidget_glyph_string (s as *mut c_void);                    // C 2591
+      }
+
+    STRETCH_GLYPH =>
+      {
+	pgtk_draw_stretch_glyph_string (s);                                // C 2595
+      }
+
+    CHAR_GLYPH =>
+      {
+	if glyph_string_bits! (for_overlaps, (*s)) != 0                    // C 2599
+	  { glyph_string_bits! (background_filled_p, (*s), true); }        // C 2600
+	else
+	  { pgtk_draw_glyph_string_background (s, false); }                // C 2602
+	pgtk_draw_glyph_string_foreground (s);                             // C 2603
+      }
+
+    COMPOSITE_GLYPH =>
+      {
+	if glyph_string_bits! (for_overlaps, (*s)) != 0                    // C 2607
+	    || ((*s).cmp_from > 0                                          // C 2607
+		&& !glyph_u_cmp_bits! (automatic, (*s).first_glyph))          // C 2608
+	  { glyph_string_bits! (background_filled_p, (*s), true); }        // C 2609
+	else
+	  { pgtk_draw_glyph_string_background (s, true); }                 // C 2611
+	pgtk_draw_composite_glyph_string_foreground (s);                   // C 2612
+      }
+
+    GLYPHLESS_GLYPH =>
+      {
+	if glyph_string_bits! (for_overlaps, (*s)) != 0                    // C 2616
+	  { glyph_string_bits! (background_filled_p, (*s), true); }        // C 2617
+	else
+	  { pgtk_draw_glyph_string_background (s, true); }                 // C 2619
+	pgtk_draw_glyphless_glyph_string_foreground (s);                   // C 2620
+      }
+
+    _ =>
+      { emacs_abort (); }                                               // C 2624
+    }
+
+  if glyph_string_bits! (for_overlaps, (*s)) == 0                       // C 2627
+    {
+      /* Draw relief if not yet drawn.  */
+      if !relief_drawn_p && face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX   // C 2630
+	{ pgtk_draw_glyph_string_box (s); }                                // C 2631
+
+      /* Draw underline.  */
+      if face_bits! (underline, (*s).face as *mut face) != 0            // C 2634
+	{
+	  if face_bits! (underline, (*s).face as *mut face) == FACE_UNDERLINE_WAVE   // C 2636
+	    {
+	      if face_bits! (underline_defaulted_p, (*s).face as *mut face)          // C 2638
+		{ pgtk_draw_underwave (s, (*s).xgcv.foreground); }            // C 2639
+	      else
+		{ pgtk_draw_underwave (s, (*((*s).face as *mut face)).underline_color); }   // C 2641
+	    }
+	  else if face_bits! (underline, (*s).face as *mut face) >= FACE_UNDERLINE_SINGLE   // C 2643
+	    {
+	      let mut thickness: c_ulong;                                  // C 2645
+	      let mut position: c_ulong;
+	      let mut foreground: c_ulong;                                 // C 2646
+
+	      if !(*s).prev.is_null ()                                     // C 2648
+		  && (face_bits! (underline, (*((*s).prev)).face as *mut face) != FACE_UNDERLINE_WAVE   // C 2649
+			  && face_bits! (underline, (*((*s).prev)).face as *mut face)
+			     >= FACE_UNDERLINE_SINGLE)                           // C 2650
+		  && (face_bits! (underline_at_descent_line_p, (*((*s).prev)).face as *mut face)   // C 2651
+			  == face_bits! (underline_at_descent_line_p, (*s).face as *mut face))        // C 2652
+		  && ((*((*((*s).prev)).face as *mut face)).underline_pixels_above_descent_line    // C 2653
+			  == (*((*s).face as *mut face)).underline_pixels_above_descent_line)         // C 2654
+	{
+	  /* We use the same underline style as the previous one.  */
+	  thickness = (*(*s).prev).underline_thickness as c_ulong;         // C 2657
+	  position = (*(*s).prev).underline_position as c_ulong;           // C 2658
+	}
+	      else
+	{
+	  let font: *mut font = font_for_underline_metrics (s);            // C 2662
+
+	  /* Get the underline thickness.  Default is 1 pixel.  */
+	  if !font.is_null () && (*font).underline_thickness > 0           // C 2665
+		{ thickness = (*font).underline_thickness as c_ulong; }       // C 2666
+	  else
+		{ thickness = 1; }                                            // C 2668
+	  if x_underline_at_descent_line                                   // C 2669
+		  || face_bits! (underline_at_descent_line_p, (*s).face as *mut face)   // C 2670
+		{
+		  position = ((*s).height as c_ulong).wrapping_sub (thickness)   // C 2671
+			 .wrapping_sub (((*s).ybase - (*s).y) as c_ulong)        // C 2672
+			 .wrapping_sub ((*((*s).face as *mut face))
+					     .underline_pixels_above_descent_line as c_ulong);   // C 2673
+		}
+	  else
+		{
+		  /* Get the underline position.  This is the recommended
+		     vertical offset in pixels from the baseline to the top of
+		     the underline.  This is a signed value according to the
+		     specs, and its default is
+
+		     ROUND ((maximum descent) / 2), with
+		     ROUND(x) = floor (x + 0.5)  */
+
+		  if x_use_underline_position_properties                  // C 2684
+			  && !font.is_null () && (*font).underline_position >= 0   // C 2685
+			{ position = (*font).underline_position as c_ulong; }      // C 2686
+		  else if !font.is_null ()                                  // C 2687
+			{ position = (((*font).descent + 1) / 2) as c_ulong; }     // C 2688
+		  else
+			{ position = underline_minimum_offset as c_ulong; }        // C 2690
+		}
+
+		  /* Ignore minimum_offset if the amount of pixels was
+		     explicitly specified.  */
+		  if (*((*s).face as *mut face)).underline_pixels_above_descent_line == 0   // C 2695
+			{ position = max (position as isize, underline_minimum_offset as isize) as c_ulong; }   // C 2696
+		}
+	      /* Check the sanity of thickness and position.  We should
+	         avoid drawing underline out of the current line area.  */
+	      if (((*s).y + (*s).height) as c_ulong)                       // C 2700
+		  <= ((*s).ybase as c_ulong).wrapping_add (position)
+		{ position = (((*s).height - 1) - ((*s).ybase - (*s).y)) as c_ulong; }   // C 2701
+	      if (((*s).y + (*s).height) as c_ulong)                       // C 2702
+		  < ((*s).ybase as c_ulong).wrapping_add (position).wrapping_add (thickness)
+		{
+		  thickness = (((*s).y + (*s).height) as c_ulong)
+			      .wrapping_sub ((*s).ybase as c_ulong + position);   // C 2703
+		}
+	      (*s).underline_thickness = thickness as c_int;              // C 2704
+	      (*s).underline_position = position as c_int;                 // C 2705
+
+	      if face_bits! (underline_defaulted_p, (*s).face as *mut face)   // C 2707
+		{ foreground = (*s).xgcv.foreground; }                        // C 2708
+	      else
+		{ foreground = (*((*s).face as *mut face)).underline_color; }   // C 2710
+
+	      pgtk_fill_underline ((*s).f, s, foreground,                  // C 2712
+			     face_bits! (underline, (*s).face as *mut face),
+			     position as c_int, (*s).width, thickness as c_int);   // C 2713
+
+	      /* Place a second underline above the first if this was
+		 requested in the face specification.  */
+
+	      if face_bits! (underline, (*s).face as *mut face) == FACE_UNDERLINE_DOUBLE_LINE   // C 2718
+		{
+		  /* Compute the position of the second underline.  */
+		  position = position - thickness - 1;                        // C 2721
+		  pgtk_fill_underline ((*s).f, s, foreground,                 // C 2722
+				     face_bits! (underline, (*s).face as *mut face),
+				     position as c_int, (*s).width, thickness as c_int);   // C 2723
+		}
+	    }
+	}
+      /* Draw overline.  */
+      if face_bits! (overline_p, (*s).face as *mut face)                // C 2728
+	{
+	  let mut dy: c_ulong = 0;                                         // C 2730
+	  let h: c_ulong = 1;
+
+	  if face_bits! (overline_color_defaulted_p, (*s).face as *mut face)   // C 2732
+		{ pgtk_fill_rectangle ((*s).f, (*s).xgcv.foreground, (*s).x,   // C 2733
+				       ((*s).y as c_ulong + dy) as c_int,
+				       (*s).width, h as c_int, false); }              // C 2734
+	  else
+		{ pgtk_fill_rectangle ((*s).f, (*((*s).face as *mut face)).overline_color, (*s).x,   // C 2736
+				       ((*s).y as c_ulong + dy) as c_int,
+				       (*s).width, h as c_int, false); }              // C 2737
+	}
+
+      /* Draw strike-through.  */
+      if face_bits! (strike_through_p, (*s).face as *mut face)          // C 2741
+	{
+	  /* Y-coordinate and height of the glyph string's first
+	     glyph.  We cannot use s->y and s->height because those
+	     could be larger if there are taller display elements
+	     (e.g., characters displayed with a larger font) in the
+	     same glyph row.  */
+	  let glyph_y: c_int = (*s).ybase                                  // C 2748
+		- (*(*s).first_glyph).ascent as c_int;
+	  let glyph_height: c_int = (*(*s).first_glyph).ascent as c_int    // C 2749
+			+ (*(*s).first_glyph).descent as c_int;
+	  /* Strike-through width and offset from the glyph string's
+	     top edge.  */
+	  let h: c_ulong = 1;                                              // C 2752
+	  let dy: c_ulong = ((glyph_height as c_ulong).wrapping_sub (h)) / 2;   // C 2753
+
+	  if face_bits! (strike_through_color_defaulted_p, (*s).face as *mut face)   // C 2755
+		{ pgtk_fill_rectangle ((*s).f, (*s).xgcv.foreground, (*s).x,   // C 2756
+				       (glyph_y as c_ulong + dy) as c_int,
+				       (*s).width, h as c_int, false); }              // C 2757
+	  else
+		{ pgtk_fill_rectangle ((*s).f, (*((*s).face as *mut face)).strike_through_color,   // C 2759
+				       (*s).x, (glyph_y as c_ulong + dy) as c_int,
+				       (*s).width, h as c_int, false); }              // C 2760
+	}
+
+      if !(*s).prev.is_null ()                                          // C 2763
+	{
+	  let mut prev: *mut glyph_string;                                 // C 2765
+
+	  prev = (*s).prev;                                                // C 2767
+	  while !prev.is_null ()
+	    {
+	      if (*prev).hl != (*s).hl                                 // C 2768
+		  && (*prev).x + (*prev).width + (*prev).right_overhang > (*s).x   // C 2769
+		{
+		  /* As prev was drawn while clipped to its own area, we
+		     must draw the right_overhang part using s->hl now.  */
+		  let save: draw_glyphs_face = (*prev).hl;                    // C 2773
+
+		  (*prev).hl = (*s).hl;                                       // C 2775
+		  pgtk_set_glyph_string_gc (prev);                            // C 2776
+		  cairo_save (cr);                                            // C 2777
+		  pgtk_set_glyph_string_clipping_exactly (s, prev, cr);       // C 2778
+		  if glyph_bits! (type, (*(*prev).first_glyph)) == CHAR_GLYPH   // C 2779
+			{ pgtk_draw_glyph_string_foreground (prev); }            // C 2780
+		  else
+			{ pgtk_draw_composite_glyph_string_foreground (prev); }  // C 2782
+		  (*prev).hl = save;                                          // C 2783
+		  (*prev).num_clips = 0;                                      // C 2784
+		  cairo_restore (cr);                                         // C 2785
+		}
+	      prev = (*prev).prev;                                         // C 2767's step
+	    }
+	}
+
+      if !(*s).next.is_null ()                                          // C 2789
+	{
+	  let mut next: *mut glyph_string;                                 // C 2791
+
+	  next = (*s).next;                                                // C 2793
+	  while !next.is_null ()
+	    {
+	      if (*next).hl != (*s).hl                                 // C 2794
+		  && (*next).x - (*next).left_overhang < (*s).x + (*s).width   // C 2795
+		{
+		  /* As next will be drawn while clipped to its own area,
+		     we must draw the left_overhang part using s->hl now.  */
+		  let save: draw_glyphs_face = (*next).hl;                    // C 2799
+
+		  (*next).hl = (*s).hl;                                       // C 2801
+		  pgtk_set_glyph_string_gc (next);                            // C 2802
+		  cairo_save (cr);                                            // C 2803
+		  pgtk_set_glyph_string_clipping_exactly (s, next, cr);       // C 2804
+		  if glyph_bits! (type, (*(*next).first_glyph)) == CHAR_GLYPH   // C 2805
+			{ pgtk_draw_glyph_string_foreground (next); }            // C 2806
+		  else
+			{ pgtk_draw_composite_glyph_string_foreground (next); }  // C 2808
+		  cairo_restore (cr);                                         // C 2809
+		  (*next).hl = save;                                          // C 2810
+		  (*next).num_clips = 0;                                      // C 2811
+		  (*next).clip_head = (*s).next;                              // C 2812
+		}
+	      next = (*next).next;                                         // C 2793's step
+	    }
+	}
+    }
+
+  /* TODO: figure out in which cases the stipple is actually drawn on
+     PGTK.  */
+  if !glyph_row_bits! (stipple_p, (*s).row)                             // C 2819
+    { glyph_row_bits! (stipple_p, (*s).row, (*((*s).face as *mut face)).stipple != 0); }   // C 2820
+
+  /* Reset clipping.  */
+  pgtk_end_cr_clip ((*s).f);                                            // C 2823
+  (*s).num_clips = 0;                                                   // C 2824
 }

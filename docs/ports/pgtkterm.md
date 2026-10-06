@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-14: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455 and C 2457-2522
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-15: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522 and C 2524-2825
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,15 +11,15 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**3,587 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**3,971 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
-> **C 2294-2359**, **C 2361-2455** and **C 2457-2522** - fourteen slices - with **both arms of every
-> `#if`**; the **2,044** this line used to
+> **C 2294-2359**, **C 2361-2455**, **C 2457-2522** and **C 2524-2825** - fifteen slices - with
+> **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_draw_glyph_string` (C 2524-2525).**
+> `pgtk_define_frame_cursor` (C 2829-2830; C 2827 is its `/* RIF: … */` comment).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -126,7 +126,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 2294-2359 | `pgtk_draw_image_glyph_string` (C 2308-2359, with C 2294-2306's ASCII-art comment) | the file gate - **transcribed** (the twelfth slice) |
 | 2361-2455 | `pgtk_draw_stretch_glyph_string` (C 2363-2455) | the file gate - **transcribed** (the thirteenth slice) |
 | 2457-2522 | `pgtk_draw_dash` (C 2462-2481) and `pgtk_fill_underline` (C 2487-2522), with C 2458-2460/2483-2485's comments | the file gate - **transcribed** (the fourteenth slice) |
-| 2524-7780 | **the remainder of the file** - from C 2525's `pgtk_draw_glyph_string` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2524-2825 | `pgtk_draw_glyph_string` (C 2524-2825: the successor-background loop, the relief/clipping prologue, the six-arm `match` over the glyph types and the underline/overline/strike-through epilogue) | the file gate - **transcribed** (the fifteenth slice) |
+| 2827-7780 | **the remainder of the file** - from C 2829's `pgtk_define_frame_cursor` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -599,6 +600,26 @@ their assertions are owed.
     tokens of the C body"), so this unit's first row lands there with the reason, and the gate
     returns to the "function retires" reading alone.  No mirror changed, so P-87's two legs do not
     apply.
+
+37. **The dispatcher's own declarations, the seven accessor arms it needed, and its `switch`.**  The
+    unit gains `font_for_underline_metrics` (dispextern.h 3638, defined in `src/xdisp.rs`; the
+    `src/haikuterm.rs` 172 declaration of the same prototype), `cairo_save` (cairo.h 561-562) and
+    `cairo_restore` (cairo.h 564-565) at their use sites; `face_bits!` gains the seven arms the
+    epilogue reads (`underline`, `underline_defaulted_p`, `underline_at_descent_line_p`,
+    `overline_p`, `overline_color_defaulted_p`, `strike_through_p`,
+    `strike_through_color_defaulted_p` - all seven positions were already in the unit's own `FACE_*`
+    table, so this slice adds arms and no constants); `x_draw_xwidget_glyph_string` is called with
+    the mirror's `*mut c_void` parameter (`s as *mut c_void`, the use-site cast P-72 rule 3); and
+    C's `s->row->stipple_p = s->face->stipple` is `glyph_row_bits!`'s setter with the value's truth
+    conversion (the record stores the field in its measured 1-bit run).  C's `switch
+    (s->first_glyph->type)` then produced this unit's second `macro-body-notes.tsv` row
+    (`break,case,cmp,default,switch`; the `cmp` token is C's `s->first_glyph->u.cmp.automatic` read,
+    which the port spells `glyph_u_cmp_bits! (automatic, …)` - Deviation 24's accessor), so the gate
+    returns to the "function retires" reading alone.  **The first readings of this text named three
+    defects**, all fixed and all in this slice's own lines: two extra dereferences
+    (`(*(*prev)).hl` / `(*(*next)).hl` where the corpus spells `(*prev).hl` / `(*next).hl` - the
+    `src/xterm.rs` 12752 reading of the same C text) and a stipple write that named the field
+    instead of the storage unit.  No mirror changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1130,6 +1151,47 @@ produced is the sanctioned `macro-body-notes.tsv` row (Deviation 36), and the fi
 **676/0/0/2064/36/0** (the `cairo.h 861-865` row is the new external);
 `check-dead-file-coverage.py` **145/0** (**46 range rows** over `src/pgtkterm.c`);
 `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen
+configuration compiles none of this file, there is no GTK or cairo to draw with here, and the three
+arm readings are **compile** readings of text this machine cannot build.
+
+## The fifteenth slice (C 2524-2825): the glyph-string dispatcher
+
+**What is in it.**  `pgtk_draw_glyph_string` (C 2524-2825), the file's drawing entry point: the
+successor-background loop, the relief/clipping prologue with C's three-way clip choice, the six-arm
+`match` over `s->first_glyph->type` (image, xwidget, stretch, char, composite, glyphless, plus the
+`emacs_abort` wildcard), the underline epilogue (the wave arm, the shared style from `s->prev`, the
+`font_for_underline_metrics` path with `x_underline_at_descent_line` /
+`x_use_underline_position_properties` / `underline_minimum_offset`, the sanity clamps, the two
+`pgtk_fill_underline` calls for the double line), the overline and strike-through rectangles, the
+two `prev`/`next` overhang re-draw loops with `cairo_save`/`cairo_restore`, and the closing stipple
+write and clip reset.  Rust: 3,587 -> **3,971** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 45 errors / 19 warnings -> 49 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 46 / 20 -> 50 / 20
+C = A + use_gtk + have_gtk3                        : 23 / 18 -> 27 / 18
+```
+**Every arm's delta is one registered class and nothing else** - the error sets were diffed:
+`cannot find function pgtk_fill_rectangle` goes 13 -> **17** (the four calls in the epilogue's
+underline/overline/strike-through rectangles), with 0 new warnings and 0 new classes.  **Arm reach is
+measured** (P-86 ⑦): injecting `let _: c_int = true;` as the first statement of
+`pgtk_draw_glyph_string` moves arm A to 50 errors, anchored at that line (the injected statement was
+then removed and the file re-measured at 3,971 lines).  **The first readings named three defects**,
+all in this slice's own lines and all fixed (Deviation 37): two extra dereferences in the `prev`/
+`next` comparisons and a stipple write that named the field instead of its storage unit.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **150 rows -> 149**: `pgtk_draw_glyph_string` retires and the one token finding its `match`
+produced is the sanctioned `macro-body-notes.tsv` row (Deviation 37); the file's own
+`line count drifted` row is re-measured 53.9% -> **49.0%** (C 7,780 vs the port's 3,971).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2065/36/0**; `check-dead-file-coverage.py` **145/0** (**47 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
 `check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
 changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
 `checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen
