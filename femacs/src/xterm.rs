@@ -20299,3 +20299,105 @@ pub unsafe extern "C" fn x_uncatch_errors_for_lisp (dpyinfo: *mut x_display_info
   else
     { x_stop_ignoring_errors (dpyinfo); }                               // C 32498
 }
+
+/// C 32419-32469: `void mark_xterm (void)` - non-`static` and declared in xterm.h, so
+/// `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  C 32423-32425's five-way
+/// disjunction gates the declarations and the display walk, and C 32426-32428's inner pair gates
+/// `i`; both are carried as `any (…)`/`all (…)` over the same lowercase feature names (P-86 ①),
+/// and the four inner arms keep C's order.  `XSETFRAME!` is this file's macro (xterm.rs 5150), and
+/// `mark_object`/`x_display_list` are the `alloc.rs`/this file's names the unit's graph reaches as
+/// its readings show.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mark_xterm ()
+{
+  let mut val: Lisp_Object;                                             // C 32422
+#[cfg (any (feature = "have_xinput2", feature = "use_toolkit_scroll_bars",
+	    feature = "have_xrandr", feature = "use_gtk", feature = "have_x_i18n"))]
+  let mut dpyinfo: *mut x_display_info;                                 // C 32425
+#[cfg (any (feature = "have_xinput2", feature = "use_toolkit_scroll_bars"))]
+  let mut i: c_int;                                                     // C 32427
+
+  if !x_dnd_return_frame_object.is_null ()                              // C 32431
+    {
+      XSETFRAME! (val, x_dnd_return_frame_object);                      // C 32433
+      mark_object (val);                                                // C 32434
+    }
+
+  if !x_dnd_movement_frame.is_null ()                                   // C 32437
+    {
+      XSETFRAME! (val, x_dnd_movement_frame);                           // C 32439
+      mark_object (val);                                                // C 32440
+    }
+
+  if !x_dnd_wheel_frame.is_null ()                                      // C 32443
+    {
+      XSETFRAME! (val, x_dnd_wheel_frame);                              // C 32445
+      mark_object (val);                                                // C 32446
+    }
+
+#[cfg (any (feature = "have_xinput2", feature = "use_toolkit_scroll_bars",
+	    feature = "have_xrandr", feature = "use_gtk", feature = "have_x_i18n"))]
+  {
+    dpyinfo = x_display_list;                                           // C 32451
+    while !dpyinfo.is_null ()                                           // C 32451
+      {
+#[cfg (feature = "have_xinput2")]
+	{
+	  i = 0;                                                        // C 32454
+	  while i < (*dpyinfo).num_devices                              // C 32454
+	    {
+	      mark_object ((*(*dpyinfo).devices.offset (i as isize)).name);  // C 32455
+	      i += 1;                                                   // C 32454, the `for`'s step
+	    }
+	}
+#[cfg (feature = "use_toolkit_scroll_bars")]
+	{
+	  i = 0;                                                        // C 32458
+	  while i < (*dpyinfo).n_protected_windows                      // C 32458
+	    {
+	      mark_object (*(*dpyinfo).protected_windows.offset (i as isize));  // C 32459
+	      i += 1;                                                   // C 32458, the `for`'s step
+	    }
+	}
+#[cfg (any (feature = "have_xrandr", feature = "use_gtk"))]
+	{
+	  mark_object ((*dpyinfo).last_monitor_attributes_list);        // C 32462
+	}
+#[cfg (feature = "have_x_i18n")]
+	{
+	  mark_object ((*dpyinfo).xim_coding);                          // C 32465
+	}
+	dpyinfo = (*dpyinfo).next;                                      // C 32451, the `for`'s step
+      }
+  }
+}
+
+/// C 32642-32662: `Lisp_Object x_get_keyboard_modifiers (struct x_display_info *dpyinfo)` -
+/// non-`static` and declared in xterm.h, so the exported shape above; C 32649's `#ifdef HAVE_XKB`
+/// differs from its `#else` only in the first `!dpyinfo->xkb_desc` test, and both arms are carried.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_get_keyboard_modifiers (dpyinfo: *mut x_display_info) -> Lisp_Object
+{
+  /* This sometimes happens when the function is called during display
+     initialization, which can happen while obtaining vendor specific
+     keysyms.  */
+
+#[cfg (feature = "have_xkb")]
+  {
+    if (*dpyinfo).xkb_desc.is_null () && (*dpyinfo).modmap.is_null ()   // C 32650
+      { x_find_modifier_meanings (dpyinfo); }                           // C 32651
+  }
+#[cfg (not (feature = "have_xkb"))]
+  {
+    if (*dpyinfo).modmap.is_null ()                                     // C 32653
+      { x_find_modifier_meanings (dpyinfo); }                           // C 32654
+  }
+
+  return list5 (make_uint ((*dpyinfo).hyper_mod_mask as uintmax_t),     // C 32657
+		make_uint ((*dpyinfo).super_mod_mask as uintmax_t),     // C 32658
+		make_uint ((*dpyinfo).alt_mod_mask as uintmax_t),       // C 32659
+		make_uint ((*dpyinfo).shift_lock_mask as uintmax_t),    // C 32660
+		make_uint ((*dpyinfo).meta_mod_mask as uintmax_t));     // C 32661
+}
