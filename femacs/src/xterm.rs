@@ -22672,3 +22672,144 @@ unsafe fn xi_compute_root_window_offset_pinch (f: *mut frame, pev: *mut XIGestur
   x_compute_root_window_offset (f, (*pev).root_x as c_int, (*pev).root_y as c_int,  // C 14528-14529
 				(*pev).event_x as c_int, (*pev).event_y as c_int);
 }
+
+/* C 14536-14607: `static Bool x_query_pointer_1 (struct x_display_info *dpyinfo, int
+   client_pointer_device, Window w, Window *root_return, Window *child_return, int
+   *root_x_return, int *root_y_return, int *win_x_return, int *win_y_return, unsigned int
+   *mask_return)` - C's `static`, so a plain `unsafe fn`.  Four shapes are worth naming:
+   (a) C 14546-14553's `#ifdef HAVE_XINPUT2` is a block of locals that sits *before* the
+   `dpy = dpyinfo->display;` line, so the port writes seven cfg'd `let`s in C's order (the
+   `src/haikufns.rs` 3352 precedent, whose comment names the `#ifdef` the same way);
+   (b) C 14557-14601's `if`/`else` carries C's `#endif` *inside* it, so the `else` statement is
+   shared by both readings - the arm-continuation shape Decision 48 recorded: the XI2 arm is a
+   `#[cfg (feature = "have_xinput2")]` block whose own `else` holds the shared statement, and
+   the bare statement is written a second time under the negation;
+   (c) `XIQueryPointer`, `XIModifierState`, `XIButtonState` and `XIGroupState` are XInput2 names
+   with no mirror row (Decision 15's list), and `lrint` is `<math.h>`'s rounding function, which
+   no mirror in this graph carries either (this file 6055's note, the `xi_link_touch_point` row);
+   (d) `dpyinfo->client_pointer_device` is one of the `x_display_info` members `include/xterm.rs`
+   665 records as owed, so it is the registered `E0609` ("no field") class.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_query_pointer_1 (dpyinfo: *mut x_display_info,			      client_pointer_device: c_int, w: Window,
+			      root_return: *mut Window, child_return: *mut Window,
+			      root_x_return: *mut c_int, root_y_return: *mut c_int,
+			      win_x_return: *mut c_int, win_y_return: *mut c_int,
+			      mask_return: *mut c_uint) -> Bool
+{
+  let mut rc: Bool;                                                      // C 14544
+  let mut dpy: *mut Display;                                             // C 14545
+  /* C 14546-14553: `#ifdef HAVE_XINPUT2` around the seven locals; C 14549's `Unused` comment
+     stays with `group`, and C 14551's four declarators on one line are four `let`s here.  */
+  #[cfg (feature = "have_xinput2")]
+  let mut had_errors: bool;                                              // C 14547
+  #[cfg (feature = "have_xinput2")]
+  let mut modifiers: XIModifierState = std::mem::zeroed ();              // C 14548
+  #[cfg (feature = "have_xinput2")]
+  let mut buttons: XIButtonState = std::mem::zeroed ();                  // C 14549
+  #[cfg (feature = "have_xinput2")]
+  let mut group: XIGroupState = std::mem::zeroed ();  /* Unused.  */     // C 14550
+  #[cfg (feature = "have_xinput2")]
+  let mut root_x: c_double = 0.0;                                        // C 14551
+  #[cfg (feature = "have_xinput2")]
+  let mut root_y: c_double = 0.0;                                        // C 14551
+  #[cfg (feature = "have_xinput2")]
+  let mut win_x: c_double = 0.0;                                         // C 14551
+  #[cfg (feature = "have_xinput2")]
+  let mut win_y: c_double = 0.0;                                         // C 14551
+  #[cfg (feature = "have_xinput2")]
+  let mut state: c_uint;                                                 // C 14552
+
+  dpy = (*dpyinfo).display;                                              // C 14555
+
+  /* C 14557-14601: the XI2 arm whose `else` C's `#endif` splits (see the note above).  */
+  #[cfg (feature = "have_xinput2")]
+  {
+    if client_pointer_device != -1                                      // C 14558
+      {
+	/* Catch errors caused by the device going away.  This is not
+	   very expensive, since XIQueryPointer will sync anyway.  */
+	x_catch_errors (dpy);                                               // C 14562
+	rc = XIQueryPointer ((*dpyinfo).display,                            // C 14563-14567
+			      (*dpyinfo).client_pointer_device,
+			      w, root_return, child_return,
+			      &raw mut root_x, &raw mut root_y, &raw mut win_x, &raw mut win_y,
+			      &raw mut buttons, &raw mut modifiers, &raw mut group);
+	had_errors = x_had_errors_p (dpy);                                  // C 14568
+	x_uncatch_errors_after_check ();                                    // C 14569
+
+	if had_errors                                                       // C 14571
+	  {
+	    /* If the specified client pointer is the display's client
+	       pointer, clear it now.  A new client pointer might not be
+	       found before the next call to x_query_pointer_1 and
+	       waiting for the error leads to excessive syncing.  */
+
+	    if client_pointer_device == (*dpyinfo).client_pointer_device     // C 14578
+	      { (*dpyinfo).client_pointer_device = -1; }                     // C 14579
+
+	    rc = XQueryPointer ((*dpyinfo).display, w, root_return,           // C 14581-14584
+				child_return, root_x_return,
+				root_y_return, win_x_return,
+				win_y_return, mask_return);
+	  }
+	else
+	  {
+	    state = 0;                                                      // C 14588
+
+	    xi_convert_button_state (&raw mut buttons, &raw mut state);      // C 14590
+	    *mask_return = state | modifiers.effective;                      // C 14591
+
+	    XFree (buttons.mask);                                            // C 14593
+
+	    *root_x_return = lrint (root_x) as c_int;                        // C 14595
+	    *root_y_return = lrint (root_y) as c_int;                        // C 14596
+	    *win_x_return = lrint (win_x) as c_int;                          // C 14597
+	    *win_y_return = lrint (win_y) as c_int;                          // C 14598
+	  }
+      }
+    else
+      {
+	rc = XQueryPointer (dpy, w, root_return, child_return,              // C 14602-14605
+			      root_x_return, root_y_return, win_x_return,
+			      win_y_return, mask_return);
+      }
+  }
+  #[cfg (not (feature = "have_xinput2"))]
+  {
+    rc = XQueryPointer (dpy, w, root_return, child_return,               // C 14602-14605
+			    root_x_return, root_y_return, win_x_return,
+			    win_y_return, mask_return);
+  }
+
+  return rc;                                                            // C 14607
+}
+
+/* C 14610-14628: `Bool x_query_pointer (Display *dpy, Window w, Window *root_return, Window
+   *child_return, int *root_x_return, int *root_y_return, int *win_x_return, int
+   *win_y_return, unsigned int *mask_return)` - non-`static`, declared in xterm.h 1839-1840, so
+   the exported shape above.  C's `#ifdef HAVE_XINPUT2` selects the client-pointer-device
+   argument and each arm is its own `return`, so the port writes two cfg'd blocks (the
+   `x_preserve_selections` precedent for a chain C's `#else` splits).  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_query_pointer (dpy: *mut Display, w: Window, root_return: *mut Window,
+					  child_return: *mut Window, root_x_return: *mut c_int,
+					  root_y_return: *mut c_int, win_x_return: *mut c_int,
+					  win_y_return: *mut c_int, mask_return: *mut c_uint) -> Bool
+{
+  let dpyinfo: *mut x_display_info = x_dpyinfo (dpy);                    // C 14616
+
+  #[cfg (feature = "have_xinput2")]
+  {
+    return x_query_pointer_1 (dpyinfo, (*dpyinfo).client_pointer_device,  // C 14619-14622
+			      w, root_return, child_return, root_x_return,
+			      root_y_return, win_x_return, win_y_return,
+			      mask_return);
+  }
+  #[cfg (not (feature = "have_xinput2"))]
+  {
+    return x_query_pointer_1 (dpyinfo, -1, w, root_return, child_return,  // C 14624-14626
+			      root_x_return, root_y_return, win_x_return,
+			      win_y_return, mask_return);
+  }
+}
