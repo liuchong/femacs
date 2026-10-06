@@ -18633,3 +18633,56 @@ pub unsafe extern "C" fn x_free_frame_resources (f: *mut frame)
 
   unblock_input ();                                                     // C 29850
 }
+
+/* Destroy the X window of frame F.  */
+
+/// C 29856-29889: `static void x_destroy_window (struct frame *f)` - C's `static`, so a plain
+/// `unsafe fn` (PORTING.md 0.2); the caller is `x_term_init`'s error path and the frame delete
+/// chain, not a call inside this file.  `xfree` is the mirror's declaration (its definition is the
+/// allocator's), `XFree` is the bare Xlib class of `## Owed`, and C 29873-29883's nested
+/// `HAVE_XINPUT2`/`HAVE_XINPUT2_1` pair is carried with both arms (P-86 ①).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_destroy_window (f: *mut frame)
+{
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);           // C 29859
+
+  /* If a display connection is dead, don't try sending more
+     commands to the X server.  */
+  if (*dpyinfo).display != 0 as *mut Display                           // C 29863
+    { x_free_frame_resources (f); }                                     // C 29864
+
+  xfree ((*( (*f).output_data.x as *mut x_output )).saved_menu_event as *mut c_void);  // C 29866
+
+#[cfg (feature = "have_x_i18n")]
+  {
+    if !(*( (*f).output_data.x as *mut x_output )).preedit_chars.is_null ()  // C 29869
+      {
+	xfree ((*( (*f).output_data.x as *mut x_output )).preedit_chars as *mut c_void);  // C 29870
+      }
+  }
+
+#[cfg (feature = "have_xinput2")]
+  {
+#[cfg (feature = "have_xinput2_1")]
+    {
+      if !(*( (*f).output_data.x as *mut x_output )).xi_masks.is_null ()  // C 29875
+	{
+	  XFree ((*( (*f).output_data.x as *mut x_output )).xi_masks as *mut c_void);  // C 29876
+	}
+    }
+#[cfg (not (feature = "have_xinput2_1"))]
+    {
+      /* This is allocated by us under very old versions of libXi; see
+	 `setup_xi_event_mask'.  */
+      if !(*( (*f).output_data.x as *mut x_output )).xi_masks.is_null ()  // C 29880
+	{
+	  xfree ((*( (*f).output_data.x as *mut x_output )).xi_masks as *mut c_void);  // C 29881
+	}
+    }
+  }
+
+  xfree ((*f).output_data.x);                                           // C 29885
+  (*f).output_data.x = std::ptr::null_mut ();                           // C 29886
+
+  (*dpyinfo).reference_count -= 1;                                      // C 29888
+}
