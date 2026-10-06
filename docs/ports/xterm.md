@@ -113,6 +113,14 @@ own text resolves - but each gains **one warning**, C 18014's `lval` re-assigned
 `have_window_system` block, and the `have_xdbe` arm adds **3 rows** (C 18047's owed
 `buffer_flipping_blocked_p`, and the two `x_output` members `FRAME_X_COMPLETE_P!`/
 `FRAME_X_NEED_BUFFER_FLIP!` read when their bodies type-check for the first time).
+  Slice 91 (C 18058-18116, Decision 104) goes **26 -> 25**: `mouse_or_wdesc_frame` retires as a
+missing function, and `x_scroll_bar_configure` (`#ifdef HAVE_GTK3`, `undef` in the frozen table) is
+dead text with no item - so the slice adds **AG3** (`use_gtk` + `have_gtk3`) as the arm that reads
+it, and *every* other arm reads **0/0**: A/U/UT/UM/UG/UGX/AE/AI/AIU/AIUX/AX all hold their numbers
+exactly, warnings included, while AG3 goes 818/73 -> **835/73** (+17: twelve more `xconfigure`
+writes, two `GDK_WINDOW_XID`, `x_dispatch_event` and the two `GdkEventConfigure` members the mirror
+does not carry).  The two read-only locals of `mouse_or_wdesc_frame` are written without `mut` -
+that keyword is the port's own, and keeping it cost one `unused_mut` warning per arm (measured).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -311,7 +319,7 @@ own text resolves - but each gains **one warning**, C 18014's `lval` re-assigned
 - [x] x_scroll_bar_clear  (line 17777, static)
 - [x] x_net_wm_state  (line 18011, static)
 - [x] x_flush_dirty_back_buffer_on  (line 18043, static)
-- [ ] mouse_or_wdesc_frame  (line 18095, static)
+- [x] mouse_or_wdesc_frame  (line 18095, static)
 - [ ] x_dnd_compute_tip_xy  (line 18119, static)
 - [ ] x_dnd_update_tooltip_position  (line 18190, static)
 - [ ] x_dnd_update_tooltip_now  (line 18229, static)
@@ -4318,6 +4326,35 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   namespace") and `FULLSCREEN_NONE` read without the gate (one row in **every** arm).
 * **What `--check` reads.**  **28 -> 26** as above, with the line-count row at **27,585** against C's
   33,125 (16.7% drift, was 27,511 / 16.9%).
+
+### 104. Slice 91 (C 18058-18116): `x_scroll_bar_configure` and `mouse_or_wdesc_frame`, and two locals the port's own keyword made loud
+
+* **One dead-text function and one `--check` item.**  `x_scroll_bar_configure` (C 18059-18083) sits
+  inside C 18058's `#ifdef HAVE_GTK3` (`undef` in the frozen table), so it has no checklist row and no
+  `--check` item: the slice adds **AG3** (`use_gtk` + `have_gtk3`) to read it, because no arm the lane
+  ran before has `have_gtk3` on.  `mouse_or_wdesc_frame` (C 18094-18116) is ungated and *is* a
+  `--check` item - its callers C 21011/21774/21956 are inside `XTread_socket`/`handle_one_xevent`
+  (all unported), so nothing retires in rustc and **26 -> 25** is the reading.
+* **`mouse_or_wdesc_frame` is the second port of the same C function.**  androidterm.c 551-573 *is*
+  this function, and `src/androidterm.rs` 768-790 already landed it, so the rendering here is that
+  one's, line for line, with a single documented difference: `lm_f` and `w_f` are read-only, so they
+  are written without `mut`.  That keyword is the port's own word, not C's - and keeping it (as the
+  androidterm rendering does) costs **one `unused_mut` warning per arm**, measured (13 arms x 1, in
+  the first writing).  `gui_mouse_grabbed`'s declaration is this unit's own use-site block (C 15028),
+  and `track_mouse`/`Qdropping`/`Qdrag_source`/`FRAME_TOOLTIP_P`/`x_window_to_frame` all resolve, so
+  the function's whole footprint is that one `--check` row.
+* **What AG3 reads, and the classes its 17 rows are.**  C's uninitialised `XEvent configure;` is
+  `std::mem::zeroed ()` (the `xm_send_drop_message` reading) and its fourteen `xconfigure` writes are
+  the `[u8; 192]` placeholder's owed members - the file's biggest single addition of that class
+  (+12 rows over the two the file already had).  C 18074-18075's `GDK_WINDOW_XID` is the *system
+  header's* macro in this arm (xterm.h 1434-1440 redefines it only for the GTK2 arm), and no mirror
+  carries that arm's macro, so C's name stands and two rows are the record; `event->configure.width`/
+  `height` are `GdkEventConfigure` members the mirror does not carry yet (it has `type`, `window`,
+  `send_event`, `x`, `y`); and `x_dispatch_event` is this file's own still-unported definition,
+  whose `--check` row retires when it lands.
+* **What `--check` reads.**  **26 -> 25**: `mouse_or_wdesc_frame` retires as a missing item, no token
+  row arrives, and the line-count row moves to **27,664** against C's 33,125 (16.5% drift, was
+  27,585 / 16.7%).
 
 ## Evidence
 
@@ -8472,3 +8509,51 @@ against C's 33,125 (16.7% drift, was 27,511 / 16.9%).
 **Not claimed.**  The frozen configuration compiles none of this file: no window-manager state was
 read, no frame parameter was stored and no back buffer was flipped; the readings above are compile
 readings of text this machine cannot build.
+
+### Slice 91's readings (C 18058-18116), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s91/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s91/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI + `use_gtk`,
+AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, and **AG3 = A + `use_gtk` + `have_gtk3`** (new
+here).  Both sides were measured on this revision.
+
+| arm | HEAD's unit (slice 90 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 786 / 72 | **786 / 72** | 0 |
+| U `+use_toolkit_scroll_bars` | 815 / 72 | **815 / 72** | 0 |
+| UT `U +use_x_toolkit` | 801 / 71 | **801 / 71** | 0 |
+| UM `UT +use_motif` | 802 / 71 | **802 / 71** | 0 |
+| UG `U +use_gtk` | 796 / 74 | **796 / 74** | 0 |
+| UGX `UG +have_xinput2` | 899 / 76 | **899 / 76** | 0 |
+| AE `A +enable_checking` | 818 / 71 | **818 / 71** | 0 |
+| AI `A +have_x_i18n` | 794 / 73 | **794 / 73** | 0 |
+| AIU `AI +use_gtk` | 831 / 74 | **831 / 74** | 0 |
+| AIUX `AIU +have_xinput2` | 938 / 76 | **938 / 76** | 0 |
+| AX `A +have_xdbe` | 800 / 72 | **800 / 72** | 0 |
+| **AG3** `A +use_gtk +have_gtk3` | 818 / 73 | **835 / 73** | **+17** |
+
+**Additions, by name** (diffed as full `error[E..]: <message>` head lines with counts; nothing
+retires in any arm): only AG3 adds, and its seventeen are `XEvent.xconfigure` x12 (2 -> 14),
+`GDK_WINDOW_XID` x2, `x_dispatch_event` x1 (1 -> 2), `GdkEventConfigure.width` x1 and
+`GdkEventConfigure.height` x1 - every one a class the ledger counts except the two
+`GdkEventConfigure` members and the GTK3 arm's `GDK_WINDOW_XID`, all three recorded as owed.
+
+**Warning sets are identical to the baselines' in all twelve arms.**  The first writing had two
+`unused_mut` rows (the read-only `lm_f` and `w_f`), kept or dropped as Decision 104 2 says; dropping
+them is what makes this column zero, and the `mut` keyword is the port's own, so nothing of C's text
+changed.
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical sets.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18106's
+`let w_f: *mut frame = x_window_to_frame (dpyinfo, wdesc);` moves **A 786 -> 787** with `E0308`
+13 -> 14, anchored at `build/probes/xterm/_root.rs:27666:18`; removing it returns A to the table.
+
+**What `--check` reads.**  **26 -> 25** as Decision 104 4 says, with the line-count row at **27,664**
+against C's 33,125 (16.5% drift, was 27,585 / 16.7%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no scroll-bar configure event
+was synthesised, no event was dispatched and no frame was chosen from a mouse grab; the readings
+above are compile readings of text this machine cannot build.

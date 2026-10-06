@@ -27581,5 +27581,84 @@ unsafe fn x_flush_dirty_back_buffer_on (f: *mut frame)
   }
 }
 
-/* C 18058's `#ifdef HAVE_GTK3` opens `x_scroll_bar_configure` (C 18060-...), the next
-   definition.  */
+/* C 18058-18084: `#ifdef HAVE_GTK3` - `x_scroll_bar_configure`.  C's definition is not
+   `static` and xterm.h 1848 declares it, so this is the file's exported shape - `#[unsafe(no_mangle)]`
+   plus `extern "C"`, as in the unit's other header-declared functions; its callers are gtkutil.c
+   4579/4590, that unit's own.  Three shapes: C's
+   uninitialised `XEvent configure;` is `std::mem::zeroed ()` (the `xm_send_drop_message`
+   reading), its fourteen `xconfigure` writes are the `[u8; 192]` placeholder's owed members
+   (the counted class), and the two `GdkEventConfigure` reads at C 18071-18072 name members the
+   mirror does not carry yet (`include/gtk.rs` 1105's record has `type`/`window`/`send_event`/`x`/
+   `y`).  C 18074-18075's `GDK_WINDOW_XID` is the *system header's* macro in this arm - xterm.h
+   1434-1440 redefines it only for the GTK2 arm - and no mirror in this tree carries it (the
+   ledger's GDK_WINDOW_XID note), so C's name stands and those two rows are the record.
+   `x_dispatch_event` is this file's own still-unported definition.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_scroll_bar_configure (event: *mut GdkEvent)
+{
+  let mut configure: XEvent = std::mem::zeroed ();                     // C 18062
+  let gdpy: *mut GdkDisplay;                                           // C 18063
+  let dpy: *mut Display;                                               // C 18064
+
+  configure.xconfigure.r#type = ConfigureNotify;                       // C 18066
+  configure.xconfigure.serial = 0;                                     // C 18067
+  configure.xconfigure.send_event = (*event).configure.send_event;     // C 18068
+  configure.xconfigure.x = (*event).configure.x;                       // C 18069
+  configure.xconfigure.y = (*event).configure.y;                       // C 18070
+  configure.xconfigure.width = (*event).configure.width;               // C 18071
+  configure.xconfigure.height = (*event).configure.height;             // C 18072
+  configure.xconfigure.border_width = 0;                               // C 18073
+  configure.xconfigure.event = GDK_WINDOW_XID! ((*event).configure.window); // C 18074
+  configure.xconfigure.window = GDK_WINDOW_XID! ((*event).configure.window); // C 18075
+  configure.xconfigure.above = None as Window;                         // C 18076
+  configure.xconfigure.override_redirect = false;                      // C 18077
+
+  gdpy = gdk_window_get_display ((*event).configure.window);           // C 18079
+  dpy = gdk_x11_display_get_xdisplay (gdpy);                           // C 18080
+
+  x_dispatch_event (&raw mut configure, dpy);                          // C 18082
+}
+
+/**
+  mouse_or_wdesc_frame: When not dropping and the mouse was grabbed
+  for DPYINFO, return the frame where the mouse was seen last.  If
+  there's no such frame, return the frame according to WDESC.  When
+  dropping, return the frame according to WDESC.  If there's no such
+  frame and the mouse was grabbed for DPYINFO, return the frame where
+  the mouse was seen last.  In either case, never return a tooltip
+  frame.  */
+/// C 18094-18116: `static struct frame *mouse_or_wdesc_frame (struct x_display_info *dpyinfo,
+/// int wdesc)` - C's `static`, so a plain `unsafe fn`, and the definition C 21011/21774/21956's
+/// calls in `XTread_socket`/`handle_one_xevent` (still unported) are owed.  Its rendering is
+/// `src/androidterm.rs` 768-790's, line for line: androidterm.c 551-573 is the same function, so
+/// the two units read alike, with one difference - `lm_f` and `w_f` are read-only, so the port
+/// writes them without `mut` (that keyword is the port's own, not C's, and keeping it costs one
+/// `unused_mut` warning per arm; the androidterm rendering keeps it).  C's `?:` on the grab is an
+/// `if` expression, the two `!EQ`
+/// tests keep C's order, and `FRAME_TOOLTIP_P` plus the `Qdropping`/`Qdrag_source` pair are the
+/// mirror's (the `gui_mouse_grabbed` declaration is this unit's own, C 15028's use-site block).
+#[cfg (feature = "have_x_windows")]
+unsafe fn mouse_or_wdesc_frame (dpyinfo: *mut x_display_info, wdesc: c_int) -> *mut frame
+{
+  let lm_f: *mut frame = if gui_mouse_grabbed (dpyinfo)            // C 18097-18099
+    { (*dpyinfo).last_mouse_frame } else { std::ptr::null_mut () };
+
+  if !lm_f.is_null () && !EQ (track_mouse, Qdropping ())               // C 18101
+      && !EQ (track_mouse, Qdrag_source ())                            // C 18102
+    { return lm_f; }                                                   // C 18103
+  else
+    {
+      let w_f: *mut frame = x_window_to_frame (dpyinfo, wdesc);    // C 18106
+
+	/* Do not return a tooltip frame.  */
+      if w_f.is_null () || FRAME_TOOLTIP_P (w_f)                       // C 18109
+	{ return if EQ (track_mouse, Qdropping ()) { lm_f } else { std::ptr::null_mut () }; } // C 18110
+      else
+	/* When dropping it would be probably nice to raise w_f
+	   here.  */
+	{ return w_f; }                                                // C 18114
+    }
+}
+
+/* C 18118-18119's signature opens `x_dnd_compute_tip_xy` (C 18118-...), the next definition.  */
