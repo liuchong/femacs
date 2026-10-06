@@ -24647,3 +24647,66 @@ unsafe extern "C" fn xaw_scroll_callback (widget: Widget, client_data: XtPointer
 }
 
 /* C 16034's `#endif /* not USE_GTK and not USE_MOTIF */` closes this arm.  */
+
+/* C 16036-16037: the two scroll-bar widget names.  **Measured** - they are C's own text, the same
+   pair the pgtk lane declares at `src/pgtkterm.rs` 5927-5932.  Both sit inside C 15408's
+   `#ifdef USE_TOOLKIT_SCROLL_BARS`, so the file gate plus that feature is the pair.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
+pub const SCROLL_BAR_NAME: &core::ffi::CStr = c"verticalScrollBar";
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars"))]
+pub const SCROLL_BAR_HORIZONTAL_NAME: &core::ffi::CStr = c"horizontalScrollBar";
+
+/* Create the widget for scroll bar BAR on frame F.  Record the widget
+   and X window of the scroll bar in BAR.  */
+
+/* C 16042-16065: the `#ifdef USE_GTK` arms of the two creators.  The `#else` arm's twins of the
+   same two names (C 16067-16485, the Xt/Xaw pair with their `USE_MOTIF` sub-arms) are the next
+   slice's first item: nothing calls either name yet - `x_scroll_bar_create` does, and it is
+   further down - so the two arms are inert in the meantime, which the readings below measure
+   rather than assume.  `xg_create_scroll_bar`/`xg_create_horizontal_scroll_bar` are gtkutil.h
+   118-122/123-127's prototypes, which `include/gtkutil.rs` does not carry (the pgtk lane's Owed
+   12 records the same gap), so they stand here at the use site (P-88 ①, the pgtk lane's 5891-5902
+   shape); `G_CALLBACK` is `include/gtk.rs` 93's type and this file's `G_CALLBACK!` macro.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_create_scroll_bar (f: *mut frame, bar: *mut scroll_bar, scroll_callback: GCallback,
+			       end_callback: GCallback, scroll_bar_name: *const c_char);
+  pub fn xg_create_horizontal_scroll_bar (f: *mut frame, bar: *mut scroll_bar,
+					  scroll_callback: GCallback, end_callback: GCallback,
+					  scroll_bar_name: *const c_char);
+}
+
+/// C 16043-16053: `static void x_create_toolkit_scroll_bar (struct frame *f, struct scroll_bar
+/// *bar)` - C's `static`, so a plain `unsafe fn`, and the twin of the pgtk lane's
+/// `pgtk_create_toolkit_scroll_bar` (`src/pgtkterm.rs` 5943-5951) line for line: `SCROLL_BAR_NAME`
+/// is the constant above, and C 16049-16050's two `G_CALLBACK` casts are this file's
+/// `G_CALLBACK!`.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe fn x_create_toolkit_scroll_bar (f: *mut frame, bar: *mut scroll_bar)
+{
+  let scroll_bar_name: *const c_char = SCROLL_BAR_NAME.as_ptr ();       // C 16046
+
+  block_input ();                                                       // C 16048
+  xg_create_scroll_bar (f, bar, G_CALLBACK! (xg_scroll_callback),       // C 16049-16051
+			G_CALLBACK! (xg_end_scroll_callback),
+			scroll_bar_name);
+  unblock_input ();                                                     // C 16052
+}
+
+/// C 16055-16065: `static void x_create_horizontal_toolkit_scroll_bar (struct frame *f, struct
+/// scroll_bar *bar)` - the horizontal twin, with `SCROLL_BAR_HORIZONTAL_NAME` and
+/// `xg_create_horizontal_scroll_bar` (the pgtk lane's 5953-5963 pair).
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe fn x_create_horizontal_toolkit_scroll_bar (f: *mut frame, bar: *mut scroll_bar)
+{
+  let scroll_bar_name: *const c_char = SCROLL_BAR_HORIZONTAL_NAME.as_ptr ();  // C 16058
+
+  block_input ();                                                       // C 16060
+  xg_create_horizontal_scroll_bar (f, bar,                              // C 16061-16063
+				   G_CALLBACK! (xg_scroll_callback),
+				   G_CALLBACK! (xg_end_scroll_callback),
+				   scroll_bar_name);
+  unblock_input ();                                                     // C 16064
+}
+
+/* C 16067's `#else /* not USE_GTK */` opens the arm whose two twins are the next slice's.  */
