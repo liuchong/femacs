@@ -14976,6 +14976,14 @@ unsafe extern "C" {
                                rectangle: *mut XRectangle);
   pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
 }
+/* C: dispextern.h 4006: `extern bool gui_mouse_grabbed (Display_Info *);` - dispextern.h 115's
+   `typedef struct x_display_info Display_Info;`, and no mirror row carries it.  It is declared
+   here for the same reason as the pair above: the two callers are `x_fast_mouse_position`
+   (C 14906) and `XTmouse_position` (C 15092), and slice 67 moved it out of the first body.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn gui_mouse_grabbed (dpyinfo: *mut x_display_info) -> bool;
+}
 #[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
             feature = "have_x11r6_xim"))]
 unsafe extern "C" {
@@ -23121,12 +23129,6 @@ unsafe fn x_fast_mouse_position (fp: *mut *mut frame, insist: c_int,
   let mut frame: Lisp_Object;
   let mut f1: *mut frame;                                               // C 14872
 
-  unsafe extern "C" {
-    /// C: dispextern.h 4006: `extern bool gui_mouse_grabbed (Display_Info *);` -
-    /// dispextern.h 115's `typedef struct x_display_info Display_Info;`.
-    pub fn gui_mouse_grabbed (dpyinfo: *mut x_display_info) -> bool;
-  }
-
   dpyinfo = FRAME_DISPLAY_INFO! (*fp);                                  // C 14874
 
   if !(*dpyinfo).last_mouse_scroll_bar.is_null () && insist == 0        // C 14876
@@ -23230,4 +23232,352 @@ unsafe fn x_fast_mouse_position (fp: *mut *mut frame, insist: c_int,
 	  frame_bits! (mouse_moved, (*dpyinfo).last_mouse_motion_frame, false);  // C 14975
 	}
     }
+}
+
+/* Return the current position of the mouse.
+   *FP should be a frame which indicates which display to ask about.
+
+   If the mouse movement started in a scroll bar, set *FP, *BAR_WINDOW,
+   and *PART to the frame, window, and scroll bar part that the mouse
+   is over.  Set *X and *Y to the portion and whole of the mouse's
+   position on the scroll bar.
+
+   If the mouse movement started elsewhere, set *FP to the frame the
+   mouse is on, *BAR_WINDOW to nil, and *X and *Y to the character cell
+   the mouse is over.
+
+   Set *TIMESTAMP to the server time-stamp for the time at which the mouse
+   was at this position.
+
+   Don't store anything if we don't have a valid set of values to report.
+
+   This clears the mouse_moved flag, so we can wait for the next mouse
+   movement.  */
+
+/* C 15000-15296: `static void XTmouse_position (struct frame **fp, int insist, Lisp_Object
+   *bar_window, enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y, Time *timestamp)` -
+   C's `static`, so a plain `unsafe fn`, and the definition the landed `x_create_terminal`
+   (C 32259) installs as `mouse_position_hook`, so this slice resolves that row.  Seven shapes are
+   worth naming: `DefaultRootWindow` and `XtWindow` are bare Xlib/Xt names (Decision 15); the two
+   `struct scroll_bar *bar` C declares inside blocks are two `let`s; `while (true)` is `loop`; the
+   three `#ifdef USE_GTK` sites and the one `#ifdef USE_X_TOOLKIT` site are cfg'd blocks
+   (`first_win` exists only under GTK); the `menubar_widget` test in the toolkit arm needs the
+   `output_data.x` cast spelling and a `Widget` no mirror carries; and `unrelated_tooltip` is
+   `false`-initialised because C leaves it to `x_tooltip_window_to_frame`'s out-parameter
+   (Deviation 12's class - the callee's own first write is `false`).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTmouse_position (fp: *mut *mut frame, insist: c_int,
+			     bar_window: *mut Lisp_Object, part: *mut scroll_bar_part,
+			     x: *mut Lisp_Object, y: *mut Lisp_Object, timestamp: *mut Time)
+{
+  let mut f1: *mut frame;                                               // C 15005
+  let mut maybe_tooltip: *mut frame;
+  let mut dpyinfo: *mut x_display_info;                                 // C 15006
+  let mut unrelated_tooltip: bool = false;  /* PORTING.md 1.5 */        // C 15007
+
+  dpyinfo = FRAME_DISPLAY_INFO! (*fp);                                  // C 15009
+
+  if !NILP (Vx_use_fast_mouse_position)                                 // C 15011
+    {
+      /* The user says that Emacs is running over the network, and a
+	 fast approximation of `mouse-position' should be used.
+
+	 Depending on what the value of `x-use-fast-mouse-position'
+	 is, do one of two things: only perform the XQueryPointer to
+	 obtain the coordinates from the last mouse frame, or only
+	 return the last mouse motion frame and the
+	 last_mouse_motion_x and Y.  */
+
+      x_fast_mouse_position (fp, insist, bar_window, part, x,          // C 15022-15023
+			     y, timestamp);
+      return;                                                           // C 15024
+    }
+
+  block_input ();                                                       // C 15027
+
+  if !(*dpyinfo).last_mouse_scroll_bar.is_null () && insist == 0         // C 15029
+    {
+      let mut bar: *mut scroll_bar = (*dpyinfo).last_mouse_scroll_bar;   // C 15031
+
+      if (*bar).horizontal                                               // C 15033
+	{ x_horizontal_scroll_bar_report_motion (fp, bar_window, part, x, y, timestamp); }  // C 15034
+      else
+	{ x_scroll_bar_report_motion (fp, bar_window, part, x, y, timestamp); }             // C 15036
+    }
+  else
+    {
+      let mut root: Window;                                             // C 15040
+      let mut root_x: c_int;
+      let mut root_y: c_int;
+
+      let mut dummy_window: Window;                                     // C 15043
+      let mut dummy: c_int;                                             // C 15044
+
+      let mut frame: Lisp_Object;                                       // C 15046
+      let mut tail: Lisp_Object;
+
+      /* Clear the mouse-moved flag for every frame on this display.  */
+      FOR_EACH_FRAME! (tail, frame, {                                   // C 15049
+	  if FRAME_X_P (XFRAME (frame))                                 // C 15050
+	      && FRAME_X_DISPLAY! (XFRAME (frame)) == FRAME_X_DISPLAY! (*fp)  // C 15051
+	    { frame_bits! (mouse_moved, XFRAME (frame), false); }        // C 15052
+	});
+
+      (*dpyinfo).last_mouse_scroll_bar = std::ptr::null_mut ();         // C 15054
+
+      /* Figure out which root window we're on.  */
+      x_query_pointer (FRAME_X_DISPLAY! (*fp),                          // C 15057
+		       DefaultRootWindow (FRAME_X_DISPLAY! (*fp)),      // C 15058
+		       /* The root window which contains the pointer.  */
+		       &raw mut root,                                   // C 15060
+		       /* Trash which we can't trust if the pointer is on
+			  a different screen.  */
+		       &raw mut dummy_window,                           // C 15063
+		       /* The position on that root window.  */
+		       &raw mut root_x, &raw mut root_y,                // C 15065
+		       /* More trash we can't trust.  */
+		       &raw mut dummy, &raw mut dummy,                  // C 15067
+		       /* Modifier keys and pointer buttons, about which
+			  we don't care.  */
+		       (&raw mut dummy) as *mut c_uint);                // C 15070
+
+      /* Now we have a position on the root; find the innermost window
+	 containing the pointer.  */
+      {
+	let mut win: Window;                                            // C 15075
+	let mut child: Window;
+	#[cfg (feature = "use_gtk")]
+	let mut first_win: Window = 0;                                  // C 15077
+	let mut win_x: c_int;                                           // C 15079
+	let mut win_y: c_int;
+	let mut parent_x: c_int;                                        // C 15080
+	let mut parent_y: c_int;
+
+	win = root;                                                     // C 15082
+	parent_x = root_x;                                              // C 15083
+	parent_y = root_y;                                              // C 15084
+
+	/* XTranslateCoordinates can get errors if the window
+	   structure is changing at the same time this function
+	   is running.  So at least we must not crash from them.  */
+
+	x_catch_errors (FRAME_X_DISPLAY! (*fp));                          // C 15090
+
+	if gui_mouse_grabbed (dpyinfo) && !EQ (track_mouse, Qdropping ())  // C 15092-15093
+	    && !EQ (track_mouse, Qdrag_source ())
+	  {
+	    /* If mouse was grabbed on a frame, give coords for that frame
+	       even if the mouse is now outside it.  */
+	    XTranslateCoordinates (FRAME_X_DISPLAY! (*fp),                 // C 15097-15105
+			       /* From-window.  */
+			       root,
+			       /* To-window.  */
+			       FRAME_X_WINDOW! ((*dpyinfo).last_mouse_frame),
+			       /* From-position, to-position.  */
+			       root_x, root_y, &raw mut win_x, &raw mut win_y,
+			       /* Child of win.  */
+			       &raw mut child);
+	    f1 = (*dpyinfo).last_mouse_frame;                              // C 15106
+	  }
+	else
+	  {
+	    loop                                                           // C 15110
+	      {
+		XTranslateCoordinates (FRAME_X_DISPLAY! (*fp),              // C 15112-15118
+				       /* From-window, to-window.  */
+				       root, win,
+				       /* From-position, to-position.  */
+				       root_x, root_y, &raw mut win_x, &raw mut win_y,
+				       /* Child of win.  */
+				       &raw mut child);
+
+		/* If CHILD is a tooltip frame, look below it if
+		   track-mouse is drag-source.  */
+		if child != None as Window                                    // C 15122
+		    && (EQ (track_mouse, Qdrag_source ())                      // C 15123
+			|| EQ (track_mouse, Qdropping ()))                     // C 15124
+		  {
+		    maybe_tooltip = x_tooltip_window_to_frame (dpyinfo, child,  // C 15126-15127
+					       &raw mut unrelated_tooltip);
+
+		    if !maybe_tooltip.is_null () || unrelated_tooltip          // C 15129
+				{ child = x_get_window_below ((*dpyinfo).display, child,  // C 15130-15132
+						      parent_x, parent_y, &raw mut win_x,
+						      &raw mut win_y); }
+		  }
+
+		if child == None as Window || child == win                    // C 15135
+		  {
+		    #[cfg (feature = "use_gtk")]
+		    {
+		      /* On GTK we have not inspected WIN yet.  If it has
+			 a frame and that frame has a parent, use it.  */
+		      let f: *mut frame = x_window_to_frame (dpyinfo, win as c_int);  // C 15140
+
+		      if !f.is_null () && !FRAME_PARENT_FRAME (f).is_null ()   // C 15142
+			{ first_win = win; }                                   // C 15143
+		    }
+		    break;                                                      // C 15145
+		  }
+		#[cfg (feature = "use_gtk")]
+		{
+		  /* We don't want to know the innermost window.  We
+		     want the edit window.  For non-Gtk+ the innermost
+		     window is the edit window.  For Gtk+ it might not
+		     be.  It might be the tool bar for example.  */
+		  if !x_window_to_frame (dpyinfo, win as c_int).is_null ()     // C 15152
+		    /* But don't hurry.  We might find a child frame
+		       beneath.  */
+		    { first_win = win; }                                       // C 15155
+		}
+		win = child;                                                   // C 15157
+		parent_x = win_x;                                              // C 15158
+		parent_y = win_y;                                              // C 15159
+	      }
+
+	    #[cfg (feature = "use_gtk")]
+	    {
+	      if first_win != 0                                            // C 15163
+		{ win = first_win; }                                       // C 15164
+	    }
+
+	    /* Now we know that:
+	       win is the innermost window containing the pointer
+	       (XTC says it has no child containing the pointer),
+	       win_x and win_y are the pointer's position in it
+	       (XTC did this the last time through), and
+	       parent_x and parent_y are the pointer's position in win's parent.
+	       (They are what win_x and win_y were when win was child.
+	       If win is the root window, it has no parent, and
+	       parent_{x,y} are invalid, but that's okay, because we'll
+	       never use them in that case.)  */
+
+	    #[cfg (feature = "use_gtk")]
+	    {
+	      /* We don't want to know the innermost window.  We
+		 want the edit window.  */
+	      f1 = x_window_to_frame (dpyinfo, win as c_int);             // C 15181
+	    }
+	    #[cfg (not (feature = "use_gtk"))]
+	    {
+	      /* Is win one of our frames?  C's one name has two shapes with complementary gates:
+		 C 12344's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)` function and C
+		 12486's `#else` macro, so the call is split the same way (this file 21460 and
+		 21654).  */
+	      #[cfg (feature = "use_x_toolkit")]
+	      { f1 = x_any_window_to_frame (dpyinfo, win as c_int); }        // C 15184
+	      #[cfg (not (feature = "use_x_toolkit"))]
+	      { f1 = x_any_window_to_frame! (dpyinfo, win as c_int); }       // C 15184
+	    }
+
+	    #[cfg (feature = "use_x_toolkit")]
+	    {
+	      /* If we end up with the menu bar window, say it's not
+		 on the frame.  */
+	      if !f1.is_null ()                                            // C 15190
+		  && !(*( (*f1).output_data.x as *mut x_output )).menubar_widget.is_null ()  // C 15191
+		  && win == XtWindow ((*( (*f1).output_data.x as *mut x_output )).menubar_widget)  // C 15192
+		{ f1 = std::ptr::null_mut (); }                            // C 15193
+	    }
+	  }
+
+	/* Set last user time to avoid confusing some window managers
+	   about the tooltip displayed during drag-and-drop.  */
+
+	if (EQ (track_mouse, Qdrag_source ())                              // C 15200-15201
+	     || EQ (track_mouse, Qdropping ()))
+	    && ((*dpyinfo).last_user_time < (*dpyinfo).last_mouse_movement_time)  // C 15202-15203
+	  { x_display_set_last_user_time (dpyinfo,                        // C 15204-15207
+				      (*dpyinfo).last_mouse_movement_time,
+				      (*dpyinfo).last_mouse_movement_time_send_event,
+				      true); }
+
+	if (f1.is_null () || FRAME_TOOLTIP_P (f1))                         // C 15209
+	    && (EQ (track_mouse, Qdropping ())                             // C 15210
+		|| EQ (track_mouse, Qdrag_source ()))                      // C 15211
+	    && gui_mouse_grabbed (dpyinfo)                                 // C 15212
+	  {
+	    /* When dropping then if we didn't get a frame or only a
+	       tooltip frame and the mouse was grabbed on a frame,
+	       give coords for that frame even if the mouse is now
+	       outside it.  */
+	    XTranslateCoordinates (FRAME_X_DISPLAY! (*fp),                 // C 15218-15226
+			       /* From-window.  */
+			       root,
+			       /* To-window.  */
+			       FRAME_X_WINDOW! ((*dpyinfo).last_mouse_frame),
+			       /* From-position, to-position.  */
+			       root_x, root_y, &raw mut win_x, &raw mut win_y,
+			       /* Child of win.  */
+			       &raw mut child);
+
+	    if !EQ (track_mouse, Qdrag_source ())                          // C 15228
+		/* Don't let tooltips interfere.  */
+		|| (!f1.is_null () && FRAME_TOOLTIP_P (f1))                 // C 15230
+	      { f1 = (*dpyinfo).last_mouse_frame; }                        // C 15231
+	    else
+	      {
+		/* Don't set FP but do set WIN_X and WIN_Y in this
+		   case, so make_lispy_movement knows which
+		   coordinates to report.  */
+		*bar_window = Qnil ();                                     // C 15237
+		*part = 0;                                                 // C 15238
+		*fp = std::ptr::null_mut ();                               // C 15239
+		XSETINT! (*x, win_x as EMACS_INT);                         // C 15240
+		XSETINT! (*y, win_y as EMACS_INT);                         // C 15241
+		*timestamp = (*dpyinfo).last_mouse_movement_time;          // C 15242
+	      }
+	  }
+	else if !f1.is_null () && FRAME_TOOLTIP_P (f1)                     // C 15245
+	  { f1 = std::ptr::null_mut (); }                                  // C 15246
+
+	if x_had_errors_p ((*dpyinfo).display)                             // C 15248
+	  { f1 = std::ptr::null_mut (); }                                  // C 15249
+
+	x_uncatch_errors_after_check ();                                   // C 15251
+
+	/* If not, is it one of our scroll bars?  */
+	if f1.is_null ()                                                  // C 15254
+	  {
+	    let mut bar: *mut scroll_bar;                                  // C 15256
+
+	    bar = x_window_to_scroll_bar ((*dpyinfo).display, win, 2);     // C 15258
+
+	    if !bar.is_null ()                                             // C 15260
+	      {
+		f1 = XFRAME (WINDOW_FRAME! (XWINDOW ((*bar).window)));      // C 15262
+		win_x = parent_x;                                           // C 15263
+		win_y = parent_y;                                           // C 15264
+	      }
+	  }
+
+	if f1.is_null () && insist > 0                                     // C 15268
+	  { f1 = SELECTED_FRAME (); }                                      // C 15269
+
+	if !f1.is_null () && FRAME_X_P (f1)                                // C 15271
+	  {
+	    /* Ok, we found a frame.  Store all the values.
+	       last_mouse_glyph is a rectangle used to reduce the
+	       generation of mouse events.  To not miss any motion
+	       events, we must divide the frame into rectangles of the
+	       size of the smallest character that could be displayed
+	       on it, i.e. into the same rectangles that matrices on
+	       the frame are divided into.  */
+
+	    dpyinfo = FRAME_DISPLAY_INFO! (f1);                            // C 15281
+	    remember_mouse_glyph (f1, win_x, win_y,                        // C 15282
+				      &raw mut (*dpyinfo).last_mouse_glyph);
+	    (*dpyinfo).last_mouse_glyph_frame = f1;                        // C 15283
+
+	    *bar_window = Qnil ();                                        // C 15285
+	    *part = 0;                                                    // C 15286
+	    *fp = f1;                                                     // C 15287
+	    XSETINT! (*x, win_x as EMACS_INT);                            // C 15288
+	    XSETINT! (*y, win_y as EMACS_INT);                            // C 15289
+	    *timestamp = (*dpyinfo).last_mouse_movement_time;             // C 15290
+	  }
+      }
+    }
+
+  unblock_input ();                                                    // C 15295
 }
