@@ -13,7 +13,7 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**2,950** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> `femacs/src/pgtkfns.rs` (**2,954** lines, from the 11 of the placeholder), carrying **C 1-1147**,
 > **C 1149-1196**, **C 1197-1752** and **C 1754-1996** - four slices - with **both arms of every
 > `#if`**; after them the file's next live definition is `Fpgtk_set_resource` (**C 1999**).
 >
@@ -677,7 +677,7 @@ fork, the upper-to-lower walk with its four NOP arms, the `*sp++` step and the G
 C 1923-1928's `pgtk_check_resource_key_length`, C 1930-1955's `pgtk_get_defaults_value` (the
 `static char holder[128]` copy-and-free dance) and C 1957-1974's `pgtk_set_defaults_value`, C
 1976-1980's five `#undef`s, and C 1982-1996's `#else /* not HAVE_GSETTINGS */` arm with its own
-three-line pair.  Rust: 2,578 -> **2,950** lines.
+three-line pair.  Rust: 2,578 -> **2,954** lines.
 
 **⑮ The arm readings (four arms; P-86 ⑥'s rule - every sub-gate must be set).**  This slice has a
 second condition inside the file gate, so the lane's two arm sets are each measured with and
@@ -703,7 +703,10 @@ before that fix the two arms read 148 and 136 errors, i.e. the arm pair is what 
 **⑯ `extract-abi.py --check`.**  `FAIL`, **99 `- ` rows -> 95**: `missing function
 pgtk_frame_restack`, `missing function pgtk_get_defaults_value`, `missing function
 pgtk_set_defaults_value` and `missing subr Fpgtk_frame_restack (pgtk-frame-restack)` retire, no row
-appears, and the line-count row moves 34.0% -> **24.5%** (C 3,906 vs Rust 2,950).  The first run read
+appears, and the line-count row moves 34.0% -> **24.4%** (C 3,906 vs Rust 2,954 - the value this
+slice's *committed* text measures; it read 2,950 lines / 24.5% when the reading was taken, and the
+citation reword of Deviation 35 added the four lines afterwards, so the number here is the one the
+tree prints).  The first run read
 one *new* row - `subr Fpgtk_frame_restack: docstring differs` - which is the measured half of
 Deviation 32: C's `\(stacking)` is make-docfile's escape and the literal must carry the value
 `(stacking)`, not C's spelling.  The 95 rows left are the remainder's.
