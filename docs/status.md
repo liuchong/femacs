@@ -1916,7 +1916,7 @@
   单元 `femacs/lib-src/ebrowse.rs`（**4,414 行** / C 3,926）落地，`--check` 从不 OK 到 **`OK`** 靠的正是集成者该补的
   15 条共享行：`macro-body-notes.tsv` 14 条（`switch`→`match` 与 `goto`→标签的必然缺 token，含 `FALLTHROUGH` 合并臂；
   `version` 的 `PACKAGE_VERSION`/`COPYRIGHT` 被折进一个字面量）+ `line-drift-tolerance.tsv` 的 `ebrowse 0.13`
-  （实测 +12.4%）；台账 150 个框按 `--check` = OK 的读数勾满。
+  （实测 +12.3%）；台账 150 个框按 `--check` = OK 的读数勾满。
   **行为差分（本批最有分量的证据）**：lane 把物化单元在 `/tmp` 编成可执行文件（副本改名 `main`，仓库文件未改），
   与用参照 `ebrowse.c` 编出的二进制并排跑，比对 **BROWSE 输出 / stdout / stderr / 退出码**：
   参照树全部 661 个 C/C++ 文件（`-x`）、`src|lib|lib-src` 488 文件 × 3 组选项（1,464 次）、26 个 C++ 文件、
@@ -11412,7 +11412,7 @@
   ④ **它报出的工具陷阱（我记账，未改工具）**：`xtask` 的 `gate_states` 只认"属性在前几行、项在下一行"，
      **同一行写成 `#[cfg (…)] include!(…)` 的边被判为无门**——判据是冻结点下编出 43 条镜像错误。规避写法是
      include 边一律两行（该 lane 已这么做并记 Deviation 14）；**修 `gate_states` 或写进 PORTING.md P-86 是欠账**。
-  ⑤ **集成者登记**：容差行 `sfntfont-android 0.23`（821 vs 1005 = 22.4%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件；
+  ⑤ **集成者登记**：容差行 `sfntfont-android 0.23`（821 vs 1005 = 22.3%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件；
      `port-lines-pending.tsv` 去掉本件的行。该 lane 的两行 `macro-body-notes.tsv` 已随 3.567 的提交进库（只追加）。
   ⑥ **门读数（本轮现读）**：`check-mirror-dupes` 17/17/0、`check-citations` **0 drift / 0 stale**、`check-declarations`
      0 failures、`check-dead-file-coverage` **139/0**、`check-ledger-ticks` 236/0、`check-port-lines`
@@ -11598,7 +11598,7 @@
      **590 文件 / C 678,320 行 → 目标 546,868 行**（80.6% 的行数比，且 Rust 逐条转写通常更"厚"，所以真实覆盖率更低）。
      其中 **C 行数 ≥200 的 289 件里有 94 件低于 90%**，合计**缺约 183,400 参照行**；最大缺口：
      `src/xterm.c`（33,125 → 4,525，13.7%）、`src/xdisp.c`（39,805 → 26,406，66.3%）、`src/sfnt.c`（21,215 → 8,447，39.8%）、
-     `src/w32fns.c`（12,488 → 1,548，12.4%）、`src/xfns.c`（10,662 → 1,116，10.5%）、`src/w32.c`（11,362 → 1,846，16.2%）、
+     `src/w32fns.c`（12,488 → 1,548，12.3%）、`src/xfns.c`（10,662 → 1,116，10.5%）、`src/w32.c`（11,362 → 1,846，16.2%）、
      `src/image.c`（13,805 → 4,874，35.3%）、`src/androidvfs.c`（18.0%）、`src/pgtkterm.c`（19.2%）、`src/androidterm.c`（15.0%）、
      `src/android.c`（27.8%）、`src/w32term.c`（8,414 → 2,941，35.0%）、`src/comp.c`（20.4%）、`src/treesit.c`（21.6%）、
      `src/gtkutil.c`（41.5%）。这些文件的台账记着它们**只落了 C 的某几段切片**（如 `w32term.md` 明写"carries C 1-1949"），
@@ -14754,10 +14754,10 @@
   ⑤ **门**：`check-declarations` **18/0/18/0**、`check-citations` **676/0 drift/0 range/2085 external/36 allowed/0 stale**、`check-dead-file-coverage` **145/0**（`src/pgtkterm.c` **72 区间行**）、`check-port-lines` **0/0/0/0**、`check-ledger-ticks` **238/0**、`check-cond-eval src/pgtkterm.c` **31/0/0**、`check-mirror-dupes` **16/16/0**。
   ⑥ **预算与清理**：探针调用 16 次（首读三臂两侧 6 + 修后三臂 3 + 第二轮修后三臂 3 + 变异 1 + xwidget 两侧 3），全在 `CARGO_TARGET_DIR=/tmp/pt40`；P-87 的全单元扫描两次（各 83 + 83 次 build-tu），`CARGO_TARGET_DIR=/tmp/pt40sweep`；**没有全量构建、没有跑程序**。收尾删 `/tmp/pt40`、`/tmp/pt40sweep`、`/tmp/pt40keep.rs`、`/tmp/pt40.rs`、`/tmp/dev62.md`、`/tmp/owed18.md`、`/tmp/section40.md`、`/tmp/status3770.md`、`build/probes/pgtkterm`、`build/femacs/units/pgtkterm` 与 HEAD 副本探针文件（`build/femacs/*.o` 231 个保留）。**未声称**：本机没有 GTK 树与 PGTK 目标——no pinch was delivered and no rectangle was filled；两个 `GDK_TOUCHPAD_*` 占位值与新记录的偏移都仍是 **UNVERIFIED**。
 
-- **3.771 `src/pgtkterm.c` 切片 41（C 5095-5192）落地：draw 处理、尺寸分配与修饰键一对（`pgtk_handle_draw`／`size_allocate`／`get_modifier_values`／`pgtk_gtk_to_emacs_modifiers`）进树——三臂两侧**完全相同**（A 51/19、B 52/20、C 9/18：第十六个零差量读数）；`check-citations` 首读点名**一条 drift**（我那条 limits 引注的首个反引号片段 `INT_MAX` 命中 `lisp.h` 81 的 `EMACS_INT_MAX`），改写成以 `#include <limits.h>` 开头后回到 0 drift；Rust 7,439 → 7,597 行（2026-10-06）**：
+- **3.771 `src/pgtkterm.c` 切片 41（C 5095-5192）落地：draw 处理、尺寸分配与修饰键一对（`pgtk_handle_draw`／`size_allocate`／`get_modifier_values`／`pgtk_gtk_to_emacs_modifiers`）进树——三臂两侧**完全相同**（A 51/19、B 52/20、C 9/18：第十六个零差量读数）；`check-citations` 首读点名**一条 drift**（我那条 limits 引注的首个反引号片段 `INT_MAX` 命中 `lisp.h` 81 的 `EMACS_INT_MAX`），改写成以 `#include <limits.h>` 开头后回到 0 drift；Rust 7,439 → 7,598 行（2026-10-06）**：
   ① **区间与内容**：C 5095-5119 `pgtk_handle_draw`（可见铃 cairo 面、`FRAME_CR_ACTIVE_CONTEXT!` 与三个 cairo 入口）、C 5121-5135 `size_allocate`（C 5128 的 `gpointer`→`struct frame *` 隐式转换写出来，`xg_frame_resized` 用点声明）、C 5137-5164 `get_modifier_values`（五条 `Fget`/`Qmodifier_value` 读，保留 C 的 `XFIXNUM (tem) & INT_MAX` 掩码再窄化）、C 5166-5192 `pgtk_gtk_to_emacs_modifiers`（非 `static`、无取址 ⇒ `#[unsafe(no_mangle)]` + `extern "C"`；C 的五个局部为 `&raw mut` 交出而零初始化——第四十片 `E0381` 的教训）。本片另加：`lisp.h` 33 的 `<limits.h>` 边（`INT_MAX` 的来源，`src/pgtkfns.rs` 89 的形状）、六个 `GDK_*_MASK` 单元内常量（与 `src/xwidget.rs` 306-316 同占位值；镜像不得占 includer 已有的名字）。
-  ② **读数与判据（三臂两侧；基线 = HEAD 副本，用完即删）**：A **51/19 → 51/19**、B **52/20 → 52/20**、C **9/18 → 9/18**——**三臂两侧集合 diff 都为空**（只剩探针文件名那一行）：158 行新文本、六个常量、一条 include 边与两条声明**没有带来任何一条错误或警告**。**臂触达实测**（P-86 ⑦）：往 `pgtk_handle_draw` 首句注入 `let _: c_int = true;` ⇒ A 变 **52** 且锚在该行，删除后文件重测 **7,597** 行。
+  ② **读数与判据（三臂两侧；基线 = HEAD 副本，用完即删）**：A **51/19 → 51/19**、B **52/20 → 52/20**、C **9/18 → 9/18**——**三臂两侧集合 diff 都为空**（只剩探针文件名那一行）：158 行新文本、六个常量、一条 include 边与两条声明**没有带来任何一条错误或警告**。**臂触达实测**（P-86 ⑦）：往 `pgtk_handle_draw` 首句注入 `let _: c_int = true;` ⇒ A 变 **52** 且锚在该行，删除后文件重测 **7,598** 行。
   ③ **偏差与登记**：Deviation 63 记 include 边与那条 drift 的改写、六个 mask 的单元内落法（P-90 ⑦；第四十片实测过同类是 `E0428`）、C 5174 的局部 `int mod` 在端口写成 `mod_`（`mod` 是 Rust 关键字；令牌比对会折叠尾部 `_`，故 `--check` 不再报它）、`xg_frame_resized` 的用点声明与 **Owed 19**，以及三条签名判据：`pgtk_handle_draw`/`size_allocate` 的地址在 C 6836/6860/6890 被 `G_CALLBACK` 取走 ⇒ 留裸 `unsafe fn` 到 C 6831 那片（Deviation 55 形状），`get_modifier_values` 两个调用点无取址，`pgtk_gtk_to_emacs_modifiers` 非 `static` 无取址。
-  ④ **`--check` 与台账**：`extract-abi.py --check` **73 行 → 69**（四件函数退场，**没有新令牌行**），文件自己的 `line count drifted` 行继续**不存在**（7,597 对 C 7,780 = 2.4%）；区间表把末行 5095-7780 拆成 **5095-5192**（transcribed）与 **5194-7780**（remainder，下一 live 定义 `pgtk_emacs_to_gtk_modifiers`，C 5194-5195），**73 区间行仍盖满 C 1-7780**；标题升到四十一片、表头 7,597 行。
+  ④ **`--check` 与台账**：`extract-abi.py --check` **73 行 → 69**（四件函数退场，**没有新令牌行**），文件自己的 `line count drifted` 行继续**不存在**（7,598 对 C 7,780 = 2.3%）；区间表把末行 5095-7780 拆成 **5095-5192**（transcribed）与 **5194-7780**（remainder，下一 live 定义 `pgtk_emacs_to_gtk_modifiers`，C 5194-5195），**73 区间行仍盖满 C 1-7780**；标题升到四十一片、表头 7,598 行（**同轮改正**：先前记的 7,597 是引注改写**之前**测的，那次改写多出一行注释；重测 7,598 行 = 2.3%，漂移行照旧不存在）。
   ⑤ **门**：`check-declarations` **18/0/18/0**、`check-citations` **676/0 drift/0 range/2085 external/36 allowed/0 stale**（首读 1 drift，见 ③，已改）、`check-dead-file-coverage` **145/0**（`src/pgtkterm.c` **73 区间行**）、`check-port-lines` **0/0/0/0**、`check-ledger-ticks` **238/0**、`check-cond-eval src/pgtkterm.c` **31/0/0**、`check-mirror-dupes` **16/16/0**（本片**没改镜像**，P-87 两条腿不适用）。
   ⑥ **预算与清理**：8 次探针调用（三臂两侧 6 + 变异 1 + 首读 1），全在 `CARGO_TARGET_DIR=/tmp/pt41`，**没有全量构建、没有跑程序**；收尾删 `/tmp/pt41`、`/tmp/pt41.rs`、`/tmp/pt41keep.rs`、`/tmp/dev63.md`、`/tmp/owed19.md`、`/tmp/section41.md`、`/tmp/status3771.md`、`build/probes/pgtkterm`、`build/femacs/units/pgtkterm` 与 HEAD 副本探针文件（`build/femacs/*.o` 231 个保留）。**未声称**：本机没有 GTK 树与 PGTK 目标——no draw arrived, no allocation happened and no modifier was translated；六个 `GDK_*_MASK` 占位值仍是 **UNVERIFIED**。

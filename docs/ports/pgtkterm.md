@@ -11,7 +11,7 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,597 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**7,598 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
@@ -2788,7 +2788,7 @@ cannot build (the two `GDK_TOUCHPAD_*` values and the new record's offsets stay 
 **What is in it.**  `pgtk_handle_draw` (C 5095-5119), `size_allocate` (C 5121-5135),
 `get_modifier_values` (C 5137-5164, whose five `Fget`/`Qmodifier_value` reads keep C's
 `XFIXNUM (tem) & INT_MAX` mask) and `pgtk_gtk_to_emacs_modifiers` (C 5166-5192, non-`static` in C).
-Rust: 7,439 -> **7,597** lines, 2.4% drift against C's 7,780.
+Rust: 7,439 -> **7,598** lines, 2.3% drift against C's 7,780.
 
 **The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
 ```
@@ -2801,12 +2801,12 @@ diff prints is the probe's own file name): 158 lines of new text, six constants,
 two declarations add **no error and no warning** in any arm - the sixteenth zero-delta reading in this
 unit.  **Arm reach is measured** (P-86 7): injecting `let _: c_int = true;` as the first statement of
 `pgtk_handle_draw` moves arm A to **52** errors anchored at the injected line (removed, the file
-re-measured at **7,597** lines).
+re-measured at **7,598** lines).
 
 **What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
 **73 rows -> 69**: the four functions retire and **no token row arrives** - C 5174's `int mod` is the
 port's `mod_`, which the token comparison folds (trailing `_`), and every other token of the four
-bodies is in the port's text.  The file's `line count drifted` row stays gone (2.4%).
+bodies is in the port's text.  The file's `line count drifted` row stays gone (2.3%).
 
 **The citation reading.**  The first run of `check-citations.py` named **one drift**: the new
 `lisp.h 33` line's first backticked snippet `INT_MAX` matches `lisp.h` 81's `EMACS_INT_MAX`, which the
@@ -2817,8 +2817,8 @@ again.
 **Ledger.**  Deviation 63 (the edge, the six masks, `mod_` and the deferrals), Owed 19
 (`include/gtkutil.rs` owes `xg_frame_resized`), the range table's remainder row split into
 `5095-5192` (**transcribed**) and `5194-7780` (whose next live definition is
-`pgtk_emacs_to_gtk_modifiers`, C 5194-5195), the title to forty-one slices and the header to 7,597
-lines.  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2085/36/0,
+`pgtk_emacs_to_gtk_modifiers`, C 5194-5195), the title to forty-one slices and the header to 7,598
+lines.  (**Corrected in the same round**: the count first recorded here, 7,597, was measured before the citation rewrite above added its third comment line; the re-measured file is **7,598** lines, i.e. 2.3% against C's 7,780, so the `line count drifted` row stays gone.)  **The gates** read `check-declarations.py` 18/0/18/0, `check-citations.py` 676/0/0/2085/36/0,
 `check-dead-file-coverage.py` 145/0 (**73 range rows** over `src/pgtkterm.c`), `check-port-lines.py`
 0/0/0/0, `check-ledger-ticks.py` 238/0, `check-cond-eval.py src/pgtkterm.c` 31/0/0 and
 `check-mirror-dupes.py` 16/16/0 (no mirror changed, so P-87's two legs do not apply).  **Not
