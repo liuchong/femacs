@@ -19652,3 +19652,43 @@ unsafe fn xi_check_toolkit (display: *mut Display) -> c_int
 
   return 2;                                                             // C 30657
 }
+
+/* Remove all the selection input events on the keyboard buffer
+   intended for DPYINFO.  */
+
+/// C 31845-31867: `static void x_delete_selection_requests (struct x_display_info *dpyinfo)` - C's
+/// `static`, so a plain `unsafe fn` (PORTING.md 0.2).  The `for`'s body has a `continue`, so the
+/// port writes the increment at the loop's end and the `continue` as `break 'body` (PORTING.md 2.2,
+/// the `x_dnd_get_target_window_1` row); `event->kind` is the unit's `input_event_bits!` reader
+/// (P-80), `EVENT_INIT` is the mirror's function (xterm.rs 5163's shape) and `SELECTION_EVENT_DPYINFO!`
+/// is xterm.h's mappable.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_delete_selection_requests (dpyinfo: *mut x_display_info)
+{
+  let mut event: *mut buffered_input_event;                             // C 31848
+
+  event = kbd_fetch_ptr;                                                // C 31850
+  loop
+    {
+      if !(event != kbd_store_ptr)                                      // C 31850
+	{ break; }
+
+      'body: {
+	if input_event_bits! (kind, &raw mut (*event).ie) == SELECTION_REQUEST_EVENT  // C 31853
+	    || input_event_bits! (kind, &raw mut (*event).ie) == SELECTION_CLEAR_EVENT  // C 31854
+	  {
+	    if SELECTION_EVENT_DPYINFO! (&raw mut (*event).sie) != dpyinfo  // C 31856
+	      { break 'body; }                                          // C 31857's `continue`
+
+	    EVENT_INIT (&raw mut (*event).ie);                          // C 31859
+	    input_event_bits! (kind, &raw mut (*event).ie, NO_EVENT);   // C 31860
+
+	    /* `detect_input_pending' will then recompute whether or not
+	       pending input events exist.  */
+	    input_pending = false;                                      // C 31864
+	  }
+      }
+
+      event = X_NEXT_KBD_EVENT! (event);                                // C 31851, the `for`'s step
+    }
+}
