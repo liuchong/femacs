@@ -15596,3 +15596,168 @@ unsafe fn x_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravity:
 
   unblock_input ();                                                     // C 27688
 }
+/// C 27691-27719: `static Window x_get_wm_check_window (struct x_display_info *dpyinfo)` - a
+/// `static` whose callers are this file's (C 27759/27766), so a plain `unsafe fn`.  `None` and
+/// `Success` are the xlib mirror's constants, `XA_WINDOW` its atom, and the argument sequence is
+/// the one this file's C 1758 site already spells.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_get_wm_check_window (dpyinfo: *mut x_display_info) -> Window
+{
+  use crate::x11_constants::{None, Success, XA_WINDOW};
+
+  let mut result: Window;                                               // C 27694
+  let mut tmp_data: *mut u8 = std::ptr::null_mut ();                    // C 27695
+  let mut rc: c_int;                                                    // C 27696
+  let mut actual_format: c_int;
+  let mut actual_size: c_ulong;                                         // C 27697
+  let mut bytes_remaining: c_ulong;
+  let mut actual_type: Atom;                                            // C 27698
+
+  rc = XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,   // C 27700-27704
+			   (*dpyinfo).Xatom_net_supporting_wm_check,
+			   0, 1, 0, XA_WINDOW, &raw mut actual_type,
+			   &raw mut actual_format, &raw mut actual_size,
+			   &raw mut bytes_remaining, &raw mut tmp_data);
+
+  if rc != Success || actual_type != XA_WINDOW                         // C 27706-27707
+      || actual_format != 32 || actual_size != 1
+    {
+      if !tmp_data.is_null ()                                          // C 27709
+	{ XFree (tmp_data as *mut c_void); }                           // C 27710
+
+      return None as Window;                                           // C 27712
+    }
+
+  result = *(tmp_data as *mut Window);                                 // C 27715
+  XFree (tmp_data as *mut c_void);                                     // C 27716
+
+  return result;                                                       // C 27718
+}
+
+/* Return true if _NET_SUPPORTING_WM_CHECK window exists and _NET_SUPPORTED
+   on the root window for frame F contains ATOMNAME.
+   This is how a WM check shall be done according to the Window Manager
+   Specification/Extended Window Manager Hints at
+   https://freedesktop.org/wiki/Specifications/wm-spec/.  */
+
+/// C 27727-27823: `bool x_wm_supports_1 (struct x_display_info *dpyinfo, Atom want_atom)` -
+/// non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`
+/// (PORTING.md 0.2/1.4).  C 27761/27768's `x_special_window_exists_p` is this file's `static`
+/// (C 1979) and is not ported yet, so the calls stand without a declaration and their `E0425`
+/// rows are the owed record.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_wm_supports_1 (dpyinfo: *mut x_display_info, want_atom: Atom) -> bool
+{
+  use crate::x11_constants::{None, Success, XA_ATOM, XA_WINDOW};
+
+  let mut actual_type: Atom;                                            // C 27730
+  let mut actual_size: c_ulong;                                         // C 27731
+  let mut bytes_remaining: c_ulong;
+  let mut i: c_int;                                                     // C 27732
+  let mut rc: c_int;
+  let mut actual_format: c_int;
+  let mut ret: bool;                                                    // C 27733
+  let mut wmcheck_window: Window;                                       // C 27734
+  let target_window: Window = (*dpyinfo).root_window;                   // C 27735
+  let max_len: c_int = 65536;                                           // C 27736
+  let dpy: *mut Display = (*dpyinfo).display;                           // C 27737
+  let mut tmp_data: *mut u8 = std::ptr::null_mut ();                    // C 27738
+  let mut target_type: Atom = XA_WINDOW;                                // C 27739
+
+  /* The user says there's no window manager, so take him up on
+     it.  */
+  if !NILP (Vx_no_window_manager)                                       // C 27743
+    { return false; }                                                   // C 27744
+
+  /* If the window system says Emacs is untrusted, there will be no
+     way to send any information to the window manager, making any
+     hints useless.  */
+  if (*dpyinfo).untrusted                                               // C 27749
+    { return false; }                                                   // C 27750
+
+  block_input ();                                                       // C 27752
+  x_catch_errors (dpy);                                                 // C 27754
+
+  wmcheck_window = (*dpyinfo).net_supported_window;                     // C 27756
+
+  if wmcheck_window == None as Window                                   // C 27758
+    { wmcheck_window = x_get_wm_check_window (dpyinfo); }               // C 27759
+
+  if !x_special_window_exists_p (dpyinfo, wmcheck_window)               // C 27761
+    {
+      if (*dpyinfo).net_supported_window != None as Window              // C 27763
+	{
+	  (*dpyinfo).net_supported_window = None as Window;             // C 27765
+	  wmcheck_window = x_get_wm_check_window (dpyinfo);             // C 27766
+
+	  if !x_special_window_exists_p (dpyinfo, wmcheck_window)       // C 27768
+	    {
+	      x_uncatch_errors ();                                      // C 27770
+	      unblock_input ();                                         // C 27771
+	      return false;                                             // C 27772
+	    }
+	}
+      else
+	{
+	  x_uncatch_errors ();                                          // C 27777
+	  unblock_input ();                                             // C 27778
+	  return false;                                                 // C 27779
+	}
+    }
+
+  if (*dpyinfo).net_supported_window != wmcheck_window                  // C 27783
+    {
+      /* Window changed, reload atoms */
+      if !(*dpyinfo).net_supported_atoms.is_null ()                     // C 27786
+	{ XFree ((*dpyinfo).net_supported_atoms as *mut c_void); }      // C 27787
+      (*dpyinfo).net_supported_atoms = std::ptr::null_mut ();           // C 27788
+      (*dpyinfo).nr_net_supported_atoms = 0;                            // C 27789
+      (*dpyinfo).net_supported_window = 0;                              // C 27790
+
+      target_type = XA_ATOM;                                            // C 27792
+      tmp_data = std::ptr::null_mut ();                                 // C 27793
+      rc = XGetWindowProperty (dpy, target_window,                      // C 27794-27798
+			       (*dpyinfo).Xatom_net_supported,
+			       0, max_len, 0, target_type,
+			       &raw mut actual_type, &raw mut actual_format, &raw mut actual_size,
+			       &raw mut bytes_remaining, &raw mut tmp_data);
+
+      if rc != Success || actual_type != XA_ATOM || x_had_errors_p (dpy)  // C 27800
+	{
+	  if !tmp_data.is_null ()                                       // C 27802
+	    { XFree (tmp_data as *mut c_void); }                        // C 27803
+	  x_uncatch_errors ();                                          // C 27804
+	  unblock_input ();                                             // C 27805
+	  return false;                                                 // C 27806
+	}
+
+      (*dpyinfo).net_supported_atoms = tmp_data as *mut Atom;           // C 27809
+      (*dpyinfo).nr_net_supported_atoms = actual_size as c_int;         // C 27810
+      (*dpyinfo).net_supported_window = wmcheck_window;                 // C 27811
+    }
+
+  ret = false;                                                          // C 27814
+
+  i = 0;                                                                // C 27816
+  while !ret && i < (*dpyinfo).nr_net_supported_atoms
+    {
+      ret = *(*dpyinfo).net_supported_atoms.offset (i as isize) == want_atom;
+      i += 1;
+    }
+
+  x_uncatch_errors ();                                                  // C 27819
+  unblock_input ();                                                     // C 27820
+
+  return ret;                                                           // C 27822
+}
+
+/// C 27825-27830: `bool x_wm_supports (struct frame *f, Atom want_atom)` - non-`static` and
+/// declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_wm_supports (f: *mut frame, want_atom: Atom) -> bool
+{
+  return x_wm_supports_1 (FRAME_DISPLAY_INFO! (f),                       // C 27828-27829
+			  want_atom);
+}

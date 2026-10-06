@@ -27,7 +27,10 @@ callback is behind `HAVE_X11R6_XIM` and `xim_initialize`'s arms are behind `HAVE
 `undef` in the frozen table.  Slice 20 (C 27436-27487, Decision 32) **stays 158** for the same reason.  Slice 21 (C 27493-27581, Decision 33) moves it to **157**: the
 function's missing row retires and its `output_data` token row is closed by a
 `docs/ports/macro-body-notes.tsv` row.  Slice 22 (C 27583-27689, Decision 34) moves it to **156**:
-`x_set_offset` retires as a missing item and no token row arrives.
+`x_set_offset` retires as a missing item and no token row arrives.  Slice 23 (C 27691-27830,
+Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` retire as missing
+items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
+arrives.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -274,9 +277,9 @@ function's missing row retires and its `output_data` token row is closed by a
 - [x] x_new_font  (line 27137, static)
 - [ ] x_calc_absolute_position  (line 27497, static)
 - [x] x_set_offset  (line 27590, static)
-- [ ] x_get_wm_check_window  (line 27692, static)
-- [ ] x_wm_supports_1  (line 27728)
-- [ ] x_wm_supports  (line 27826)
+- [x] x_get_wm_check_window  (line 27692, static)
+- [x] x_wm_supports_1  (line 27728)
+- [x] x_wm_supports  (line 27826)
 - [ ] set_wm_state  (line 27833, static)
 - [ ] x_set_sticky  (line 27858)
 - [ ] x_set_shaded  (line 27870)
@@ -2089,6 +2092,29 @@ expressions (Decision 25).
   `#else`, so arm B loses the one `E0425` that declaration resolves.
 
 
+### 35. Slice 23 (C 27691-27830): the WM-check trio, and what declaring `XGetWindowProperty` costs
+
+* **Two exported functions and one static.**  `x_wm_supports_1` (C 27727) and `x_wm_supports`
+  (C 27825) are non-`static` and declared in xterm.h, so both are
+  `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4) - and that definition is
+  what resolves the two callers this file already had (`E0425 x_wm_supports` at C 13247/13254's
+  sites, the reading's `-2`); `x_get_wm_check_window` (C 27691) is a `static` whose callers are
+  C 27759/27766.
+* **`x_special_window_exists_p` is this file's `static` and is not ported.**  C 27761/27768 (and
+  the older C 1979 site) call it; the port writes the calls without a declaration and the rows
+  are the owed record (Decision 34's first shape).
+* **`XGetWindowProperty` is a measured, deferred declaration.**  No mirror of this unit's graph
+  declares the name, and the unit calls it in seven places (C 1758, C 1853, C 1972, C 2199,
+  C 2600, C 27700, C 27794) - none of which had been type-checked, because an unresolved function
+  silences its arguments.  Declaring it once at this use site (Xlib.h 2686-2697) was measured this
+  slice and **not landed**: it retires **13 `E0425`** rows and surfaces **12 `E0308`** (ten older
+  sites pass Rust `false` where C's `False` is the `Bool` `int`, and `AnyPropertyType` is a
+  `c_long` where the prototype takes an `Atom`) **plus 8 `E0381`** (output locals the older sites
+  declare without an initializer, C's own uninitialised-output shape) and five warnings.  Those
+  twenty rows are the *older* slices' text and want their own round with those numbers in hand;
+  this slice's own two sites therefore stand unresolved, and the two rows are its `+2`.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3714,3 +3740,24 @@ arrives.  The line-count row moves to 15,598 against C's 33,125 (52.9%).
 **Not claimed.**  The frozen configuration compiles none of this file: no frame was moved, no
 window manager was asked anything and no configure request was synced.  The remaining
 `E0425`/`E0609` rows are unresolved names and unstored members, not behaviour.
+
+
+### Slice 23's readings (C 27691-27830), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_get_wm_check_window` (C 27691-27719), `x_wm_supports_1`
+(C 27727-27823) and `x_wm_supports` (C 27825-27830).  Rust 15,598 -> 15,763 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Every arm's **net delta is
+zero**, and both halves of it are measured: **-2 `E0425`** (`x_wm_supports`'s two existing callers,
+which this slice's definition resolves) and **+2 `E0425`** (this slice's own two
+`XGetWindowProperty` sites, Decision 35's third shape).  Arm A (`have_x_windows`) **558 / 55 ->
+558 / 55**, arm B (A + `have_gtk3` + `use_gtk`) **557 / 60 -> 559 / 60**, arm C (A +
+`have_xinput2`) **586 / 57 -> 586 / 57**; no warning moved.
+
+**What `--check` reads.**  **156 -> 154**: `missing function x_get_wm_check_window` and
+`missing function x_wm_supports` retire and no token row arrives.  The line-count row moves to
+15,763 against C's 33,125 (52.4%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no window property was
+read, no WM check window was looked up and no atom list was walked.  The remaining `E0425` rows
+are unresolved names, not behaviour.
