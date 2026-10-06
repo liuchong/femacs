@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.  Slice 30 (C 28745-28819, Decision 43) goes **133 -> 129**: `x_lower_frame_1`, `x_lower_frame`, `XTframe_raise_lower` and `xembed_request_focus` retire as missing items, and the one token row the slice brings (`alloca`) is closed by a `docs/ports/macro-body-notes.tsv` row.  Slice 31 (C 28821-28947, Decision 44) goes **129 -> 126**: `server_timestamp_predicate`, `x_get_server_time` and `x_ewmh_activate_frame` retire as missing items, and the slice brings no token row.  Slice 32 (C 28949-29139, Decision 45) goes **126 -> 123**: `x_get_focus_frame`, `x_set_input_focus` and `x_focus_frame` retire as missing items, and the one token row the slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -310,9 +310,9 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] server_timestamp_predicate  (line 28822, static)
 - [x] x_get_server_time  (line 28839, static)
 - [x] x_ewmh_activate_frame  (line 28882, static)
-- [ ] x_get_focus_frame  (line 28950, static)
-- [ ] x_set_input_focus  (line 28964, static)
-- [ ] x_focus_frame  (line 29024, static)
+- [x] x_get_focus_frame  (line 28950, static)
+- [x] x_set_input_focus  (line 28964, static)
+- [x] x_focus_frame  (line 29024, static)
 - [ ] xembed_set_info  (line 29151, static)
 - [ ] xembed_send_message  (line 29166, static)
 - [ ] x_make_frame_visible  (line 29202)
@@ -2325,6 +2325,28 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `X_ULONG_MAX` masking are dead text here.  `server_timestamp_predicate` is an
   `unsafe extern "C" fn` (the `x_atoms_compare` shape) because C hands it to `XIfEvent`.
 
+### 45. Slice 32 (C 28949-29139): the input-focus trio
+
+* **`x_set_input_focus` retires slice 31's owed row.**  C 28934/29126/29130's three calls find
+  their definition here, so the `E0425` row slice 31 brought for that name is gone.  The XI2 arm
+  keeps `HAVE_XINPUT2`'s gate, and `RevertToParent`/`XSetInputFocus`/`XISetFocus` are the bare
+  Xlib/XInput2 class (`XIMasterPointer` sits inside `eassert!`, which only `enable_checking`
+  compiles, so arm C does not even name it).
+* **C's `goto out` is a labelled block.**  C 29102 jumps to the `out:` label at C 29137, so the
+  body between them is `'out: { … break 'out; … }` with `unblock_input ()` after it (PORTING.md
+  2.2; `docs/ports/macro-body-notes.tsv` records the lost `goto` token, the
+  `x_alloc_nearest_color_1`/`x_dnd_free_toplevels` class).
+* **Two first-draft defects the probe caught.**  C's `!FRAME_OVERRIDE_REDIRECT (f)` is truthiness on
+  a `c_int`-returning macro, so the port writes `FRAME_OVERRIDE_REDIRECT (f) == 0` (the
+  `src/gtkutil.rs` 2289/2409 spelling) - the first draft's `!` was an `E0308`; and `lisp_focus`
+  (C 28952) takes no `mut`, because `XSETFRAME!`'s write is its initialisation (the `x_set_sticky`
+  shape), which the first draft's `mut` turned into `unused_mut`.
+* **One more `E0609` from a recorded member.**  `FRAME_X_EMBEDDED_P` (C 29070) reads
+  `x_output.explicit_parent`, a member `include/xterm.rs` records as a comment rather than as
+  storage (P-80), so the macro's own text stays and the row is that class; arm C's two
+  `client_pointer_device` rows (C 28982/28985) are the same class from `include/xterm.rs`
+  662-666's owed run.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -4177,3 +4199,26 @@ sites spell it).  The line-count row moves to 17,495 against C's 33,125 (52.8%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no server time was
 round-tripped, no property was changed and no activation message was sent.
+
+
+### Slice 32's readings (C 28949-29139), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_get_focus_frame` (C 28949-28961), `x_set_input_focus` (C 28963-29012, both
+`HAVE_XINPUT2` arms) and `x_focus_frame` (C 29023-29139, the `HAVE_GTK3` arm and the `'out`
+labelled block included).  Rust 17,495 -> 17,707 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**586 / 68 -> 588 / 68**: **+1 `E0425`** (`RevertToParent`; `XSetInputFocus` is one row while
+`x_set_input_focus`'s slice-31 row retires) and **+1 `E0609`** (`explicit_parent`), with no warning
+delta; arm B (`+have_gtk3+use_gtk`) **602 / 70 -> 606 / 70**: the same two plus **two more
+`GDK_WINDOW_XID` instances** (C 29126/29130); arm C (`+have_xinput2`)
+**616 / 70 -> 621 / 70**: the same two plus `XISetFocus` and two `client_pointer_device` `E0609`
+rows.  **Arm reachability** (P-86 ⑦): `let _: c_int = true;` as `x_get_focus_frame`'s first
+statement moves `E0308` 14 -> 15, anchored exactly at that line.
+
+**What `--check` reads.**  **126 -> 123**: the three functions retire as missing items and the one
+token row this slice brings (`goto`) is closed by a `docs/ports/macro-body-notes.tsv` row.  The
+line-count row moves to 17,707 against C's 33,125 (53.5%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no focus request was made,
+no window manager was asked to activate anything and no frame was raised.

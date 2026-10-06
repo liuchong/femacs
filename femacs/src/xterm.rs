@@ -17493,3 +17493,215 @@ unsafe fn x_ewmh_activate_frame (f: *mut frame)
 		  | SubstructureNotifyMask, &raw mut msg);
     }
 }
+
+/// C 28949-28961: `static Lisp_Object x_get_focus_frame (struct frame *f)` - `static` (its
+/// callers are this file's own), so a plain `unsafe fn`; `x_display_info`'s `x_focus_frame` is
+/// `include/xterm.rs` 509's member and `FRAME_DISPLAY_INFO`/`XSETFRAME` are the mirror's.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_get_focus_frame (f: *mut frame) -> Lisp_Object
+{
+  let lisp_focus: Lisp_Object;                                          // C 28952
+
+  let focus: *mut frame = (*FRAME_DISPLAY_INFO! (f)).x_focus_frame;     // C 28954
+
+  if focus.is_null ()                                                   // C 28956
+    { return Qnil (); }
+
+  XSETFRAME! (lisp_focus, focus);                                       // C 28959
+  return lisp_focus;                                                    // C 28960
+}
+
+/// C 28963-29012: `static void x_set_input_focus (struct x_display_info *dpyinfo, Window
+/// window, Time time)` - `static` (its callers are C 28934 and C 29126/29130), so a plain
+/// `unsafe fn`.  C's `HAVE_XINPUT2` arm carries that gate; `xi_device_from_id` and
+/// `x_ignore_errors_for_next_request`/`x_stop_ignoring_errors` are this file's own definitions,
+/// while `XISetFocus`/`XSetInputFocus` and the two constants they take (`XIMasterPointer`,
+/// `RevertToParent`) are Xlib/XInput2 names no mirror of this graph carries - kept bare (the
+/// owed class of `## Owed`).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_input_focus (dpyinfo: *mut x_display_info, window: Window, time: Time)
+{
+#[cfg (feature = "have_xinput2")]
+  let mut device: *mut xi_device_t;                                     // C 28968
+
+  /* Do the equivalent of XSetInputFocus with the specified window and
+     time, but use the attachment to the device that Emacs has
+     designated the client pointer on X Input Extension builds.
+     Asynchronously trap errors around the generated XI_SetFocus or
+     SetInputFocus request, in case the device has been destroyed or
+     the window obscured.
+
+     The revert_to will be set to RevertToParent for generated
+     SetInputFocus requests.  */
+
+#[cfg (feature = "have_xinput2")]
+  {
+    if (*dpyinfo).supports_xi2                                          // C 28982
+	&& (*dpyinfo).client_pointer_device != -1
+      {
+	device = xi_device_from_id (dpyinfo,                            // C 28985
+		(*dpyinfo).client_pointer_device);
+
+	/* The device is a master pointer.  Use its attachment, which
+	   should be the master keyboard.  */
+
+	if !device.is_null ()                                           // C 28990
+	  {
+	    eassert! ((*device).r#use == XIMasterPointer);              // C 28992
+
+	    x_ignore_errors_for_next_request (dpyinfo, 0);              // C 28994
+	    XISetFocus ((*dpyinfo).display, (*device).attachment,       // C 28995-28999
+		    /* Note that the input extension
+		       only supports RevertToParent-type
+		       behavior.  */
+		    window, time);
+	    x_stop_ignoring_errors (dpyinfo);                           // C 29000
+
+	    return;                                                     // C 29002
+	  }
+      }
+  }
+
+  /* Otherwise, use the pointer device that the X server says is the
+     client pointer.  */
+  x_ignore_errors_for_next_request (dpyinfo, 0);                        // C 29009
+  XSetInputFocus ((*dpyinfo).display, window, RevertToParent, time);    // C 29010
+  x_stop_ignoring_errors (dpyinfo);                                     // C 29011
+}
+
+/* In certain situations, when the window manager follows a
+   click-to-focus policy, there seems to be no way around calling
+   XSetInputFocus to give another frame the input focus.
+
+   In an ideal world, XSetInputFocus should generally be avoided so
+   that applications don't interfere with the window manager's focus
+   policy.  But I think it's okay to use when it's clearly done
+   following a user-command.  */
+
+/// C 29023-29139: `static void x_focus_frame (struct frame *f, bool noactivate)` - `static`
+/// (the terminal's `focus_frame_hook`), so a plain `unsafe fn`.  C 29102's `goto out` and the
+/// `out:` label at C 29137 are the port's labelled block (`'out`, PORTING.md 2.2 -
+/// `docs/ports/macro-body-notes.tsv` records the lost `goto` token), the `HAVE_GTK3` arm carries
+/// that gate, and `focus_follows_mouse`/`Vx_no_window_manager`/`Vx_allow_focus_stealing` are
+/// `include/globals.rs`'s.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_focus_frame (f: *mut frame, noactivate: bool)
+{
+  let dpyinfo: *mut x_display_info;                                     // C 29026
+  let mut time: Time;                                                   // C 29027
+
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 29029
+
+  if (*dpyinfo).untrusted                                               // C 29031
+    /* The X server ignores all input focus related requests from
+       untrusted clients.  */
+    { return; }
+
+  /* The code below is not reentrant wrt to dpyinfo->x_focus_frame and
+     friends being set.  */
+  block_input ();                                                       // C 29038
+
+#[cfg (feature = "have_gtk3")]
+  {
+	/* read_minibuf assumes that calling Fx_focus_frame on a frame that
+	   is already selected won't move the focus elsewhere, and thereby
+	   disrupt any focus redirection to e.g. a minibuffer frame that
+	   might be activated between that call being made and the
+	   consequent XI_FocusIn/Out events arriving.  This is true whether
+	   the focus is ultimately transferred back to the frame it was
+	   initially on or not.
+
+	   GTK 3 moves the keyboard focus to the edit widget's window
+	   whenever it receives a FocusIn event targeting the outer window.
+	   This operation gives rise to a FocusOut event that clears
+	   device->focus_frame, which in turn prompts xi_handle_focus_change
+	   to clear the display's focus frame.  The next FocusIn event
+	   destined for the same frame registers as a new focus, which
+	   cancels any focus redirection from that frame.
+
+	   To prevent this chain of events from disrupting focus redirection
+	   when the minibuffer is activated twice in rapid succession while
+	   configured to redirect focus to a minibuffer frame, ignore frames
+	   which hold the input focus and are connected to a minibuffer
+	   window.  (bug#65116)*/
+
+    if f == (*dpyinfo).x_focus_frame && !FRAME_HAS_MINIBUF_P (f)        // C 29063
+      {
+	unblock_input ();                                               // C 29065
+	return;                                                         // C 29066
+      }
+  }
+
+  'out: {                                                               // C 29137's `out:` label
+    if FRAME_X_EMBEDDED_P! (f)                                          // C 29070
+	/* For Xembedded frames, normally the embedder forwards key
+	   events.  See XEmbed Protocol Specification at
+	   https://freedesktop.org/wiki/Specifications/xembed-spec/  */
+	{ xembed_request_focus (f); }                                   // C 29074
+    else
+      {
+	if !noactivate                                                  // C 29077
+	  /* If F is override-redirect, use SetInputFocus instead.
+	    Override-redirect frames are not subject to window
+	    management.  */
+	  && FRAME_OVERRIDE_REDIRECT (f) == 0                             // C 29081
+	  /* If F is a child frame, use SetInputFocus instead.  This
+	    may not work if its parent is not activated.  */
+	  && FRAME_PARENT_FRAME (f).is_null ()                            // C 29084
+	  /* If the focus is being transferred from a child frame to
+	    another frame, also use SetInputFocus.  */
+	  && ((*dpyinfo).x_focus_frame.is_null ()                         // C 29087-29088
+	      || FRAME_PARENT_FRAME ((*dpyinfo).x_focus_frame).is_null ())
+	  && !EQ (focus_follows_mouse, Qauto_raise ())                    // C 29089
+	  {
+	    /* When window manager activation is possible, use it
+	       instead.  The window manager is expected to perform any
+	       necessary actions such as raising the frame, moving it to
+	       the current workspace, and mapping it, etc, before moving
+	       input focus to the frame.
+
+	       Don't use window manager activation when giving focus to a
+	       frame when the mouse would auto-raise it.  At least xfwm
+	       won't give a frame focus via x_ewmh_activate_frame in that
+	       case.  */
+	    x_ewmh_activate_frame (f);                                  // C 29101
+	    break 'out;                                                 // C 29102
+	  }
+
+	if NILP (Vx_no_window_manager)                                  // C 29105
+	  {
+	    /* Use the last user time.  It is invalid to use CurrentTime
+	       according to the ICCCM:
+
+		 Clients that use a SetInputFocus request must set the
+		 time field to the timestamp of the event that caused
+		 them to make the attempt. [...] Note that clients must
+		 not use CurrentTime in the time field.  */
+	    time = (*dpyinfo).last_user_time;                           // C 29114
+
+	    /* Unless the focus doesn't belong to Emacs anymore and
+	       `x-allow-focus-stealing' is set to Qnewer_time.  */
+	    if EQ (Vx_allow_focus_stealing, Qnewer_time ())             // C 29118-29119
+	      && (*dpyinfo).x_focus_frame.is_null ()
+	      { time = x_get_server_time (f); }                          // C 29120
+
+	    /* Ignore any BadMatch error this request might result in.
+	       A BadMatch error can occur if the window was obscured
+	       after the time of the last user interaction without
+	       changing the last-focus-change-time.  */
+	    x_set_input_focus (FRAME_DISPLAY_INFO! (f), FRAME_OUTER_WINDOW! (f),  // C 29126-29127
+				  time);
+	  }
+	else
+	  {
+	    x_set_input_focus (FRAME_DISPLAY_INFO! (f), FRAME_OUTER_WINDOW! (f),  // C 29130-29134
+				  /* But when no window manager is in use,
+				     respecting the ICCCM doesn't really
+				     matter.  */
+				  CurrentTime);
+	  }
+      }
+  }
+
+  unblock_input ();                                                     // C 29138
+}
