@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-22: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465 and C 3467-3567
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-23: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567 and C 3569-3645
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,18 +11,17 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**5,049 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**5,193 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465** and
-> **C 3467-3567** - twenty-two
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567** and **C 3569-3645** - twenty-three
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_define_fringe_bitmap` (C 3574-3575; C 3571-3572 are the `max_fringe_bmp` and `fringe_bmp`
-> file-scope objects above it).**
+> `pgtk_draw_fringe_bitmap` (C 3647-3648; the fringe-bitmap pair and `pgtk_clip_to_row` above it are
+> transcribed).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -137,7 +136,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 3257-3379 | `pgtk_bitmap_icon` (C 3259-3326, whose body is C 3267-3324's `#if 0` carried as C's own text), `pgtk_text_icon` (C 3332-3342), `pgtk_update_begin` (C 3354-3358) and `pgtk_draw_vertical_window_border` (C 3362-3379) | the file gate - **transcribed** (the twentieth slice) |
 | 3381-3465 | `pgtk_draw_window_divider` (C 3383-3442), `pgtk_update_end` (C 3447-3452) and `pgtk_frame_up_to_date` (C 3454-3465) | the file gate - **transcribed** (the twenty-first slice) |
 | 3467-3567 | `pgtk_mouse_position` (C 3487-3567, with C 3467-3485's comment above it: the frame loop that clears `mouse_moved`, the grabbed branch, the else branch's seat/device query and `pgtk_any_window_to_frame`, the terminal-frame early return and the `remember_mouse_glyph` pair) | the file gate - **transcribed** (the twenty-second slice) |
-| 3569-7780 | **the remainder of the file** - from C 3571-3572's `max_fringe_bmp`/`fringe_bmp` and C 3574's `pgtk_define_fringe_bitmap` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3569-3645 | `max_fringe_bmp` and `fringe_bmp` (C 3571-3572), `pgtk_define_fringe_bitmap` (C 3574-3611), `pgtk_destroy_fringe_bitmap` (C 3613-3626) and `pgtk_clip_to_row` (C 3628-3645) | the file gate - **transcribed** (the twenty-third slice) |
+| 3647-7780 | **the remainder of the file** - from C 3647's `pgtk_draw_fringe_bitmap` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -185,7 +185,7 @@ statement text:
 | `cannot find type pgtk_device_t` | 7 | `include/pgtkterm.rs` (pgtkterm.h 51-64) |
 | `cannot find function pgtk_frame_rehighlight` / `pgtk_new_focus_frame` / `pgtk_set_event_handler` / `pgtk_unlink_touch_points` / `pgtk_fill_rectangle` | 5 | this file, later in it (C 4770 / 4835 / 6831 / 6655 / 5035) - outside the slice; the fifth arrived with the third slice's `pgtk_clear_glyph_string_rect`, which calls the definition at C 5035 |
 | `cannot find function pgtk_any_window_to_frame` | 1 | this file, later in it (C 7314's definition, forward-declared at C 118) - the name this ledger's twenty-second slice reaches first (C 3526, inside `pgtk_mouse_position`) |
-| `cannot find function pgtk_clip_to_row` | 1 | this file, later in it (C 3629's definition) - the name this ledger's sixteenth slice reaches first (`pgtk_draw_hollow_cursor`, C 2910); `pgtk_fill_rectangle`'s count grows slice by slice (13 -> 17 in the fifteenth slice) |
+| `cannot find function pgtk_clip_to_row` | **retired** | the class the sixteenth slice reached first (`pgtk_draw_hollow_cursor`, C 2910) and the seventeenth slice grew to two sites (`pgtk_draw_bar_cursor`); the **twenty-third slice** transcribes its C 3628-3645 definition, and with it both sites leave this table |
 | `evaluation panicked: size_of::<font> () == 184` (and 7 more offsets in `font`/`font_driver`) | 8 | **`include/font.rs` 143-149/577-583**: those assertions are the *frozen* arm's measurements and the mirror's `#[cfg(feature = "have_window_system")]` members change the record |
 | `unstable library feature c_variadic` | 1 | **`include/lisp.rs` 3756**: `verror`'s `core::ffi::VaList<'_>` parameter |
 | `dereference of raw pointer is unsafe …` | 1 (only with `have_xwidgets`) | **`include/xwidget.rs` 203**: `XWIDGET_LIVE_P`'s `(*w).buffer` |
@@ -753,6 +753,25 @@ their assertions are owed.
     same site) - without it the first reading was two `E0308`s.  `pgtk_any_window_to_frame` is a
     registered class of its own (C 7314, in the remainder).  No mirror changed, so P-87's two legs
     do not apply.
+45. **One cairo record, six cairo declarations, four zero-initialised locals, and a latent defect
+    the retirement of `pgtk_clip_to_row` unmasked.**  The unit gains `cairo_rectangle_int_t`
+    (cairo.h 532-535, C 3633's local - and since this machine *has* that header,
+    `/opt/homebrew/include/cairo/cairo.h`, the record is a read of it rather than a placeholder;
+    C assigns its four members one at a time, which Rust's no-partial-initialisation rule has no
+    counterpart for, PORTING.md 1.13) and the six cairo entry points C 3594-3622 call that no mirror
+    carried (`cairo_image_surface_create`, `cairo_image_surface_get_stride`,
+    `cairo_image_surface_get_data`, `cairo_surface_mark_dirty`,
+    `cairo_pattern_create_for_surface`, `cairo_pattern_destroy` - P-88 ①'s use-site convention, the
+    seventh, `cairo_surface_destroy`, being `include/gtk.rs` 338).  `pgtk_clip_to_row`'s definition
+    retires the last `cannot find function pgtk_clip_to_row` site, which **unmasked** three `E0381`s
+    in `pgtk_draw_hollow_cursor` (`let mut x: c_int;` / `y` / `h`, C 2881, passed by `&raw mut`):
+    a `cannot find function` error inside an item stops that item before MIR borrow-checking, so
+    seven slices' arm readings had hidden them behind the E0425 in the same function - a one-line
+    rustc reading (`let mut x: c_int; g (&raw mut x);`) reproduces the rule.  The four locals are
+    zero-initialised (PORTING.md 1.5, Deviation 12's class).  One token row follows from the same
+    text: `pgtk_destroy_fringe_bitmap`'s two null sites are the port's `.is_null ()` /
+    `core::ptr::null_mut ()`, recorded in `docs/ports/macro-body-notes.tsv` (the
+    `Fpgtk_selection_exists_p` row's class).  No mirror changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -1608,3 +1627,56 @@ the frozen configuration compiles none of this file, there is no GTK or cairo to
 device with here, and the three arm readings are **compile** readings of text this machine cannot
 build.  Note also Deviation 13's standing gap: `FRAME_PGTK_P` is the mirror's non-pgtk arm, so a
 pgtk build reads `false` at C 3507/3531/3539 until `include/frame.rs` gains that arm.
+
+## The twenty-third slice (C 3569-3645): the fringe-bitmap pair and the row clip
+
+**What is in it.**  `max_fringe_bmp` and `fringe_bmp` (C 3571-3572, the file-scope pair - C's `= 0`
+initialiser for the pointer is the port's null), `pgtk_define_fringe_bitmap` (C 3574-3611: the
+growth arm with `which + 20` and the `xrealloc` whose result C assigns back, the `while` that nulls
+the new tail, then the `CAIRO_FORMAT_A1` surface, the stride/data pair, the per-row
+`*((unsigned short *) data) = bits[i]` store with `data += stride`, and the mark-dirty / pattern /
+destroy triple), `pgtk_destroy_fringe_bitmap` (C 3613-3626: the early return past the table's end,
+the guarded `cairo_pattern_destroy` pair and the closing null store) and `pgtk_clip_to_row`
+(C 3628-3645: `window_box`'s five outputs with C's `0` height, the four record assignments with C's
+two `max` calls, and the `cairo_rectangle`/`cairo_clip` pair).  Rust: 5,049 -> **5,193** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 54 errors / 19 warnings -> 52 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 55 / 20 -> 53 / 20
+C = A + use_gtk + have_gtk3                        : 32 / 18 -> 30 / 18
+```
+Every arm **loses two and gains none**: both `cannot find function pgtk_clip_to_row` sites retire as
+C 3628-3645 is transcribed (the class this table carried since the sixteenth slice), with the error
+set and the warning set diffed line by line against the HEAD copy - **0 new errors, 0 new warnings**.
+
+**The retirement unmasked three latent defects of an earlier slice, and that is the reading worth
+keeping.**  A `cannot find function` error *inside an item* stops that item before MIR
+borrow-checking, so the three `E0381`s this slice's first reading produced - `pgtk_draw_hollow_cursor`
+(slice 16) declares `let mut x: c_int;` / `y` / `h` at C 2881 and passes them by `&raw mut` to
+`get_phys_cursor_geometry` - had been invisible for seven slices behind the E0425 that sat in the same
+function.  A one-line rustc reading settles the rule instead of arguing it: `let mut x: c_int;
+g (&raw mut x);` is `E0381`, so the four locals (`x`, `y`, `wd`, `h`) are zero-initialised
+(PORTING.md 1.5, Deviation 45).  With that, the delta is exactly the two retirements above in every
+arm.  **Arm reach is measured** (P-86 ⑦): injecting `let _: c_int = true;` as the first statement of
+`pgtk_define_fringe_bitmap` moves arm A to 53 errors anchored at that line (the injected statement
+was then removed and the file re-measured at **5,193** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**133 rows -> 128**: five retire (`pgtk_define_fringe_bitmap`, `pgtk_destroy_fringe_bitmap`,
+`pgtk_clip_to_row` and the two file-scope objects) and one arrives -
+`function pgtk_destroy_fringe_bitmap does not mention 0` - which the sanctioned
+`docs/ports/macro-body-notes.tsv` row closes (C's two null sites are the port's `.is_null ()` /
+`core::ptr::null_mut ()`; `pgtk_define_fringe_bitmap` keeps its own `0` in C 3598's `i = 0`).  The
+file's own `line count drifted` row is re-measured 35.1% -> **33.3%** (C 7,780 vs the port's 5,193).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2081/36/0** (`2072 -> 2081`: this slice's section and the `macro-body-notes.tsv` row
+add the references above); `check-dead-file-coverage.py` **145/0** (**55 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round, so P-87's two legs do not apply).  **Not claimed**: none of this has been run -
+the frozen configuration compiles none of this file, there is no GTK tree here, and the three arm
+readings are **compile** readings of text this machine cannot build.  The cairo side is a real
+header read (`/opt/homebrew/include/cairo/cairo.h`) but not a runtime one: no fringe bitmap was ever
+drawn.  Deviation 13's standing gap (`FRAME_PGTK_P` is the mirror's non-pgtk arm) is unchanged.

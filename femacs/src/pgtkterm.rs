@@ -4090,10 +4090,10 @@ unsafe fn pgtk_clear_frame_area (f: *mut frame, x: c_int, y: c_int, width: c_int
 unsafe fn pgtk_draw_hollow_cursor (w: *mut window, row: *mut glyph_row)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 2880
-  let mut x: c_int;                                                     // C 2881
-  let mut y: c_int;
-  let mut wd: c_int;
-  let mut h: c_int;
+  let mut x: c_int = 0;                                                 // C 2881
+  let mut y: c_int = 0;
+  let mut wd: c_int = 0;
+  let mut h: c_int = 0;
   let mut cursor_glyph: *mut glyph;                                     // C 2882
 
   /* Get the glyph the cursor is on.  If we can't tell because
@@ -5046,4 +5046,148 @@ unsafe fn pgtk_mouse_position (fp: *mut *mut frame, insist: c_int,
     }
 
   unblock_input ();                                                     // C 3566
+}
+
+/* Fringe bitmaps.  */
+
+/// C 3571: `static int max_fringe_bmp = 0;`
+#[cfg (feature = "have_pgtk")]
+static mut max_fringe_bmp: c_int = 0;
+/// C 3572: `static cairo_pattern_t **fringe_bmp = 0;` - C's `0` is the null pattern-table pointer
+/// the first `xrealloc` replaces.
+#[cfg (feature = "have_pgtk")]
+static mut fringe_bmp: *mut *mut cairo_pattern_t = core::ptr::null_mut ();
+
+/// C: cairo.h 532-535: `typedef struct _cairo_rectangle_int { int x, y; int width, height; }
+/// cairo_rectangle_int_t;` - C 3633's local `rect`.  The machine *has* this header
+/// (`/opt/homebrew/include/cairo/cairo.h`), so the record's fields are a read of it; C assigns the
+/// four members one at a time, which Rust's "no partial initialisation" rule has no counterpart
+/// for (PORTING.md 1.13), so the port zero-initialises it first (Deviation 45).
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct cairo_rectangle_int_t
+{
+  pub x: c_int,        // cairo.h 533: `int x, y;`
+  pub y: c_int,
+  pub width: c_int,    // cairo.h 534: `int width, height;`
+  pub height: c_int,
+}
+
+/* C: cairo.h 2710-2712: `cairo_surface_t *cairo_image_surface_create (cairo_format_t format, int
+   width, int height);` - the C 3594 call.  cairo.h 2738: `int cairo_image_surface_get_stride
+   (cairo_surface_t *surface);` - the C 3595 call.  cairo.h 2726: `unsigned char
+   *cairo_image_surface_get_data (cairo_surface_t *surface);` - the C 3596 call.  cairo.h 2659:
+   `void cairo_surface_mark_dirty (cairo_surface_t *surface);` - the C 3604 call.  cairo.h 2923:
+   `cairo_pattern_t *cairo_pattern_create_for_surface (cairo_surface_t *surface);` - the C 3605
+   call.  cairo.h 2940: `void cairo_pattern_destroy (cairo_pattern_t *pattern);` - the C 3622 call.
+   The seventh, `cairo_surface_destroy` (C 3606), is `include/gtk.rs` 338; the six above are this
+   unit's own rows, the P-88 ① convention this file's cairo segment uses.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_image_surface_create (format: cairo_format_t, width: c_int, height: c_int)
+				     -> *mut cairo_surface_t;
+  pub fn cairo_image_surface_get_stride (surface: *mut cairo_surface_t) -> c_int;
+  pub fn cairo_image_surface_get_data (surface: *mut cairo_surface_t) -> *mut c_uchar;
+  pub fn cairo_surface_mark_dirty (surface: *mut cairo_surface_t);
+  pub fn cairo_pattern_create_for_surface (surface: *mut cairo_surface_t) -> *mut cairo_pattern_t;
+  pub fn cairo_pattern_destroy (pattern: *mut cairo_pattern_t);
+}
+
+/// C 3574-3611: `static void pgtk_define_fringe_bitmap (int which, unsigned short *bits, int h,
+/// int wd)` - the growth arm (`which + 20`, the `xrealloc` whose result C assigns back, the
+/// `while` that nulls the new tail), then the A1 surface: `cairo_image_surface_create`, the
+/// stride/data pair, the per-row `*((unsigned short *) data) = bits[i]` store with `data +=
+/// stride`, and the mark-dirty / create-for-surface / destroy triple.  Rust's statics need the
+/// `unsafe` the callers already carry, and C's `fringe_bmp[i]` reads and writes are the port's
+/// `*fringe_bmp.offset (i as isize)`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_define_fringe_bitmap (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)
+{
+  let mut i: c_int;                                                     // C 3577
+  let mut stride: c_int;                                                // C 3577
+  let mut surface: *mut cairo_surface_t;                                // C 3578
+  let mut data: *mut c_uchar;                                           // C 3579
+  let mut pattern: *mut cairo_pattern_t;                                // C 3580
+
+  if which >= max_fringe_bmp                                           // C 3582
+    {
+      i = max_fringe_bmp;                                               // C 3584
+      max_fringe_bmp = which + 20;                                      // C 3585
+      fringe_bmp = xrealloc (fringe_bmp as *mut c_void,                 // C 3586-3587
+			     core::mem::size_of::<*mut cairo_pattern_t> ()
+			     * max_fringe_bmp as usize) as *mut *mut cairo_pattern_t;
+      while i < max_fringe_bmp                                          // C 3588
+	{
+	  *fringe_bmp.offset (i as isize) = core::ptr::null_mut ();     // C 3589
+	  i += 1;                                                       // C 3589's `i++`
+	}
+    }
+
+  block_input ();                                                       // C 3592
+
+  surface = cairo_image_surface_create (CAIRO_FORMAT_A1, wd, h);        // C 3594
+  stride = cairo_image_surface_get_stride (surface);                    // C 3595
+  data = cairo_image_surface_get_data (surface);                        // C 3596
+
+  i = 0;                                                                // C 3598
+  while i < h
+    {
+      *(data as *mut c_ushort) = *bits.offset (i as isize);             // C 3600
+      data = data.offset (stride as isize);                             // C 3601
+      i += 1;                                                           // C 3598's `i++`
+    }
+
+  cairo_surface_mark_dirty (surface);                                   // C 3604
+  pattern = cairo_pattern_create_for_surface (surface);                 // C 3605
+  cairo_surface_destroy (surface);                                      // C 3606
+
+  unblock_input ();                                                     // C 3608
+
+  *fringe_bmp.offset (which as isize) = pattern;                        // C 3610
+}
+
+/// C 3613-3626: `static void pgtk_destroy_fringe_bitmap (int which)` - the early return past the
+/// table's end, the guarded `cairo_pattern_destroy` pair and the closing null store.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_destroy_fringe_bitmap (which: c_int)
+{
+  if which >= max_fringe_bmp                                           // C 3616
+    { return; }                                                        // C 3617
+
+  if !(*fringe_bmp.offset (which as isize)).is_null ()                 // C 3619
+    {
+      block_input ();                                                  // C 3621
+      cairo_pattern_destroy (*fringe_bmp.offset (which as isize));     // C 3622
+      unblock_input ();                                                // C 3623
+    }
+  *fringe_bmp.offset (which as isize) = core::ptr::null_mut ();        // C 3625
+}
+
+/// C 3628-3645: `static void pgtk_clip_to_row (struct window *w, struct glyph_row *row, enum
+/// glyph_row_area area, cairo_t *cr)` - `window_box`'s five outputs (`0` for the height is C's
+/// null), the record's four assignments with C's two `max` calls, and the rectangle/clip pair.
+/// `window_box` is this unit's own declaration (C 3123's call site), `WINDOW_TO_FRAME_PIXEL_Y!` is
+/// `include/window.rs`'s macro and `max` is the mirror's C-`max` helper (the C 3125 spelling).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_clip_to_row (w: *mut window, row: *mut glyph_row, area: glyph_row_area,
+			    cr: *mut cairo_t)
+{
+  let mut window_x: c_int = 0;                                          // C 3632
+  let mut window_y: c_int = 0;                                          // C 3632
+  let mut window_width: c_int = 0;                                      // C 3632
+  let mut rect: cairo_rectangle_int_t = cairo_rectangle_int_t { x: 0, y: 0, width: 0, height: 0 };   // C 3633
+
+  window_box (w, area, &raw mut window_x, &raw mut window_y,            // C 3635
+	      &raw mut window_width, core::ptr::null_mut ());
+
+  rect.x = window_x;                                                    // C 3637
+  rect.y = WINDOW_TO_FRAME_PIXEL_Y! (w, max (0, (*row).y as isize) as c_int);   // C 3638
+  rect.y = max (rect.y as isize, window_y as isize) as c_int;           // C 3639
+  rect.width = window_width;                                            // C 3640
+  rect.height = (*row).visible_height;                                  // C 3641
+
+  cairo_rectangle (cr, rect.x as c_double, rect.y as c_double,          // C 3643
+		   rect.width as c_double, rect.height as c_double);
+  cairo_clip (cr);                                                      // C 3644
 }
