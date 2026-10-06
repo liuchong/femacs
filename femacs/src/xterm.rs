@@ -19973,3 +19973,42 @@ pub unsafe extern "C" fn x_delete_terminal (terminal: *mut terminal)
   x_delete_display (dpyinfo);                                           // C 32206
   unblock_input ();                                                     // C 32207
 }
+
+/// C 32393-32417: `void init_xterm (void)` - non-`static` and declared in xterm.h, so
+/// `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  Four nested conditions are
+/// carried with their features (P-86 ①); arm A (`have_x_windows` alone) compiles the
+/// `! HAVE_XINPUT2`/`! HAVE_GTK3` arm, arm B the `HAVE_GTK3` one, arm C neither - and the
+/// `HAVE_X_I18N` arm names `text_conversion_interface` (C 32386-32389), which this slice leaves
+/// unlanded: no arm this lane runs sets `have_x_i18n`, so that reference is carried text (P-86 ③).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn init_xterm ()
+{
+#[cfg (all (feature = "have_xwidgets", not (feature = "have_pgtk")))]
+  {
+    /* Emacs uses off-screen gtk widgets for webkit views, which do not support
+       DMABUF or Compositing Mode; webkit aborts unless we disable those.  */
+    xputenv (c"WEBKIT_DISABLE_DMABUF_RENDERER=1".as_ptr ());            // C 32399
+    xputenv (c"WEBKIT_DISABLE_COMPOSITING_MODE=1".as_ptr ());           // C 32400
+  }
+
+#[cfg (not (feature = "have_xinput2"))]
+  {
+    /* Emacs can handle only core input events when built without XI2
+       support, so make sure Gtk doesn't use Xinput or Xinput2
+       extensions.  */
+#[cfg (not (feature = "have_gtk3"))]
+    {
+      xputenv (c"GDK_CORE_DEVICE_EVENTS=1".as_ptr ());                  // C 32408
+    }
+#[cfg (feature = "have_gtk3")]
+    {
+      gdk_disable_multidevice ();                                       // C 32410
+    }
+  }
+
+#[cfg (feature = "have_x_i18n")]
+  {
+    register_textconv_interface (&raw mut text_conversion_interface);   // C 32415
+  }
+}
