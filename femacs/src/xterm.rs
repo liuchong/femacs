@@ -25517,4 +25517,330 @@ unsafe fn x_create_horizontal_toolkit_scroll_bar (f: *mut frame, bar: *mut scrol
   unblock_input ();                                                     // C 16482
 }
 
-/* C 16485's `#endif /* not USE_GTK */` closes this arm.  */
+/* Set the thumb size and position of scroll bar BAR.  We are currently
+   displaying PORTION out of a whole WHOLE, and our position POSITION.  */
+
+/* C 16491's `#ifdef USE_GTK` opens the GTK pair (two one-call functions) and C 16504's
+   `#else /* not USE_GTK */` the Xt pair, whose Motif sub-arm (C 16515-16558 / C 16627-16636) and
+   Xaw sub-arm (C 16559-16611 / C 16637-16694) carry the thumb arithmetic; C 16699 closes the pair
+   and C 16701 closes `USE_TOOLKIT_SCROLL_BARS`.  The GTK pair carries slice 75's two gates, the
+   Xt pair slice 76's (the region's API is Xt's there).  */
+
+/* The names this slice needs that no mirror carries.  Four of them are the third-party headers'
+   own spellings and are **UNVERIFIED** (this machine has no Motif, Xaw or libXt tree; the
+   citations are the headers' own prototypes - the class slice 72's Motif block and slice 74's
+   Xt rows carry).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe extern "C" {
+  /* C: gtkutil.h 143-146: `extern void xg_set_toolkit_scroll_bar_thumb (struct scroll_bar *bar,
+     int portion, int position, int whole);` and 147-150's horizontal twin - the declarations the
+     pgtk lane writes at `src/pgtkterm.rs` 5898-5901 from the same header, which
+     `include/gtkutil.rs` does not carry (its Owed 12 records the gap).  */
+  pub fn xg_set_toolkit_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int, position: c_int,
+					  whole: c_int);
+  pub fn xg_set_toolkit_horizontal_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int,
+						     position: c_int, whole: c_int);
+}
+/* C: `<X11/Intrinsic.h>`: `extern Widget XtWindowToWidget (Display *, Window);` - the mirror's
+   `SCROLL_BAR_X_WIDGET!` (include/xterm.rs 1347) body calls it and no declaration carried it
+   until this slice, whose two calls are the first text that expands that macro.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe extern "C" {
+  pub fn XtWindowToWidget (display: *mut Display, window: Window) -> Widget;
+}
+/* C: `<Xm/ScrollBar.h>`: `extern void XmScrollBarSetValues (Widget, int, int, int, int,
+   Boolean);` - C 16557/16635's call.  **UNVERIFIED** (no Motif header here); the five arguments
+   are the header's own order and the last one is Motif's `Boolean`, which is Xt's `int`.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+unsafe extern "C" {
+  pub fn XmScrollBarSetValues (widget: Widget, value: c_int, slider_size: c_int,
+			       increment: c_int, page_increment: c_int, notify: Boolean);
+}
+/* C: `<X11/StringDefs.h>`/`<Xaw/Scrollbar.h>`: `#define XtNtopOfThumb "topOfThumb"` - C
+   16573/16651's `XtVaGetValues` name.  **UNVERIFIED** placeholder.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNtopOfThumb () -> *mut c_char { c"topOfThumb".as_ptr () as *mut c_char }
+/* C: `<Xaw/Scrollbar.h>`: `extern void XawScrollbarSetThumb (Widget, float, float);` - C
+   16601/16608/16678's call.  **UNVERIFIED** (no Xaw header here).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+unsafe extern "C" {
+  pub fn XawScrollbarSetThumb (widget: Widget, top: f32, shown: f32);
+}
+
+/// C 16492-16496: `static void x_set_toolkit_scroll_bar_thumb (struct scroll_bar *bar, int
+/// portion, int position, int whole)` - C's `static`, so a plain `unsafe fn`, and in the GTK arm
+/// its whole body is one call (the pgtk lane's `pgtk_set_toolkit_scroll_bar_thumb`, 5943-5951's
+/// sibling).
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe fn x_set_toolkit_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int, position: c_int,
+					  whole: c_int)
+{
+  xg_set_toolkit_scroll_bar_thumb (bar, portion, position, whole);      // C 16495
+}
+
+/// C 16498-16502: the horizontal twin, the same one call.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe fn x_set_toolkit_horizontal_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int,
+						     position: c_int, whole: c_int)
+{
+  xg_set_toolkit_horizontal_scroll_bar_thumb (bar, portion, position, whole);  // C 16501
+}
+
+/// C 16505-16615: `static void x_set_toolkit_scroll_bar_thumb (struct scroll_bar *bar, int
+/// portion, int position, int whole)` - the `#else /* not USE_GTK */` twin, C's `static` and this
+/// time two sub-arms.  C's `float top, shown;` are assigned on both paths of each sub-arm's
+/// `if`, so both take `mut` and neither needs C's own zero; C 16537/16562's comma operator is the
+/// two statements; C's `(float)` conversions are stated (`as f32`); `size`/`value` state C's
+/// `int` and `value` is reassigned at C 16555; `clip_to_bounds` is `include/lisp.rs` 804's
+/// `isize` row, so its two arguments and its result state the conversions C gets implicitly; and
+/// C 16536's `whole <= 0` and 16561's `whole == 0` are C's own two different tests, kept as
+/// written.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+unsafe fn x_set_toolkit_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int, position: c_int,
+					  whole: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (XWINDOW ((*bar).window)));  // C 16509
+  let widget: Widget = SCROLL_BAR_X_WIDGET! (FRAME_X_DISPLAY! (f), bar);  // C 16510
+  /* C's `float top, shown;` - the `mut` is C's own arm's: the Motif arm assigns each once per
+     path while the Xaw arm reassigns them (C 16580-16592), so the lint is arm-dependent here
+     (the `src/w32uniscribe.rs` 2324 `#[allow(unused_mut)]` shape).  */
+  #[allow(unused_mut)]
+  let mut top: f32;                                                     // C 16511
+  #[allow(unused_mut)]
+  let mut shown: f32;
+
+  block_input ();                                                       // C 16513
+
+#[cfg (feature = "use_motif")]
+  {
+    /* C 16530/16533 assign the two *parameters*, so the port re-binds them mutable (PORTING.md
+       2.2's parameter class) - inside C's own arm, because the Xaw arm below never assigns them
+       and a top-level re-binding would be an `unused_mut` there.  */
+    let mut portion = portion;
+    let mut whole = whole;
+
+    if scroll_bar_adjust_thumb_portion_p                                  // C 16517
+      {
+	/* We use an estimate of 30 chars per line rather than the real
+	   `portion' value.  This has the disadvantage that the thumb size
+	   is not very representative, but it makes our life a lot easier.
+	   Otherwise, we have to constantly adjust the thumb size, which
+	   we can't always do quickly enough: while dragging, the size of
+	   the thumb might prevent the user from dragging the thumb all the
+	   way to the end.  but Motif and some versions of Xaw3d don't allow
+	   updating the thumb size while dragging.  Also, even if we can update
+	   its size, the update will often happen too late.
+	   If you don't believe it, check out revision 1.650 of xterm.c to see
+	   what hoops we were going through and the still poor behavior we got.  */
+	portion = WINDOW_TOTAL_LINES (XWINDOW ((*bar).window)) * 30;        // C 16530
+	/* When the thumb is at the bottom, position == whole.
+	   So we need to increase `whole' to make space for the thumb.  */
+	whole += portion;                                                   // C 16533
+      }
+
+    if whole <= 0                                                        // C 16536
+      { top = 0.0; shown = 1.0; }                                        // C 16537
+    else
+      {
+	top = position as f32 / whole as f32;                             // C 16540
+	shown = portion as f32 / whole as f32;                            // C 16541
+      }
+
+    if (*bar).dragging == -1                                              // C 16544
+      {
+	let size: c_int;                                                  // C 16546
+	let mut value: c_int;
+
+	/* Slider size.  Must be in the range [1 .. MAX - MIN] where MAX
+	   is the scroll bar's maximum and MIN is the scroll bar's minimum
+	   value.  */
+	size = clip_to_bounds (1, (shown * XM_SB_MAX as f32) as isize,     // C 16551
+			       XM_SB_MAX as isize) as c_int;
+
+	/* Position.  Must be in the range [MIN .. MAX - SLIDER_SIZE].  */
+	value = (top * XM_SB_MAX as f32) as c_int;                        // C 16554
+	value = min (value, XM_SB_MAX - size);                            // C 16555
+
+	XmScrollBarSetValues (widget, value, size, 0, 0, False);          // C 16557
+      }
+  }
+
+#[cfg (not (feature = "use_motif"))]
+  {
+    if whole == 0                                                         // C 16561
+      { top = 0.0; shown = 1.0; }                                        // C 16562
+    else
+      {
+	top = position as f32 / whole as f32;                             // C 16565
+	shown = portion as f32 / whole as f32;                            // C 16566
+      }
+
+    {
+      let mut old_top: f32 = 0.0;   /* PORTING.md 1.5 */                  // C 16570
+      let mut old_shown: f32 = 0.0;
+      let mut height: Dimension = 0;
+
+      XtVaGetValues (widget,                                              // C 16572-16576
+		     XtNtopOfThumb (), &raw mut old_top as XtPointer,
+		     XtNshown (), &raw mut old_shown as XtPointer,
+		     XtNheight (), &raw mut height as XtPointer,
+		     std::ptr::null_mut::<c_void> ());
+
+      /* Massage the top+shown values.  */
+      if (*bar).dragging == -1 || (*bar).last_seen_part == scroll_bar_down_arrow  // C 16579
+	{ top = max (0.0, min (1.0, top)); }                              // C 16580
+      else
+	{ top = old_top; }                                                // C 16582
+#[cfg (not (feature = "have_xaw3d"))]
+      /* With Xaw, 'top' values too closer to 1.0 may
+	 cause the thumb to disappear.  Fix that.  */
+      { top = min (top, 0.99); }                                          // C 16586
+      /* Keep two pixels available for moving the thumb down.  */
+      shown = max (0.0, min (1.0 - top - (2.0 / height as f32), shown));  // C 16589
+#[cfg (not (feature = "have_xaw3d"))]
+      /* Likewise with too small 'shown'.  */
+      { shown = max (shown, 0.01); }                                      // C 16592
+
+      /* If the call to XawScrollbarSetThumb below doesn't seem to
+	 work, check that 'NARROWPROTO' is defined in src/config.h.
+	 If this is not so, most likely you need to fix configure.  */
+      if top != old_top || shown != old_shown                             // C 16598
+	{
+	  if (*bar).dragging == -1                                        // C 16600
+	    { XawScrollbarSetThumb (widget, top, shown); }                // C 16601
+	  else
+	    {
+	      /* Try to make the scrolling a tad smoother.  */
+	      if xaw3d_pick_top == 0                                      // C 16605
+		{ shown = min (shown, old_shown); }                       // C 16606
+
+	      XawScrollbarSetThumb (widget, top, shown);                  // C 16608
+	    }
+	}
+    }
+  }
+
+  unblock_input ();                                                       // C 16614
+}
+
+/// C 16617-16698: `static void x_set_toolkit_horizontal_scroll_bar_thumb (struct scroll_bar *bar,
+/// int portion, int position, int whole)` - the horizontal twin of the function above, C's
+/// `static`.  Both sub-arms write `bar->whole` (C 16628/16638), C 16630's divisor is
+/// `whole - portion` (kept, and its result states `as f32`), and C 16633's third argument is
+/// `XM_SB_MAX - size` written twice because C's `clip_to_bounds` takes it twice - the two blocks
+/// C 16656-16673 and C 16679-16693 keep under `#if false` are carried as C's own text in the
+/// comments below (the C 5127-5156 `record_event` shape, Decision 91).
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+unsafe fn x_set_toolkit_horizontal_scroll_bar_thumb (bar: *mut scroll_bar, portion: c_int,
+						     position: c_int, whole: c_int)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (XWINDOW ((*bar).window)));  // C 16621
+  let widget: Widget = SCROLL_BAR_X_WIDGET! (FRAME_X_DISPLAY! (f), bar);  // C 16622
+  /* The same pair as the vertical function's; here C's Xaw arm never reassigns them (the only
+     reassignments, C 16659/16665/16668/16671, are inside C 16656's `#if false`), so the Motif
+     arm is the one that assigns once per path and the Xaw arm is the one that does not - the
+     lint is still arm-dependent, which is what the attribute records.  */
+  #[allow(unused_mut)]
+  let mut top: f32;                                                       // C 16623
+  #[allow(unused_mut)]
+  let mut shown: f32;
+
+  block_input ();                                                         // C 16625
+
+#[cfg (feature = "use_motif")]
+  {
+    (*bar).whole = whole;                                                 // C 16628
+    shown = portion as f32 / whole as f32;                                // C 16629
+    top = position as f32 / (whole - portion) as f32;                     // C 16630
+    {
+      let size: c_int = clip_to_bounds (1, (shown * XM_SB_MAX as f32) as isize,  // C 16632
+					XM_SB_MAX as isize) as c_int;
+      let value: c_int = clip_to_bounds (0, (top * ((XM_SB_MAX - size) as f32)) as isize,  // C 16633
+					 (XM_SB_MAX - size) as isize) as c_int;
+
+      XmScrollBarSetValues (widget, value, size, 0, 0, False);            // C 16635
+    }
+  }
+
+#[cfg (not (feature = "use_motif"))]
+  {
+    (*bar).whole = whole;                                                 // C 16638
+    if whole == 0                                                         // C 16639
+      { top = 0.0; shown = 1.0; }                                         // C 16640
+    else
+      {
+	top = position as f32 / whole as f32;                             // C 16643
+	shown = portion as f32 / whole as f32;                            // C 16644
+      }
+
+    {
+      let mut old_top: f32 = 0.0;   /* PORTING.md 1.5 */                  // C 16648
+      let mut old_shown: f32 = 0.0;
+      let mut height: Dimension = 0;
+
+      XtVaGetValues (widget,                                              // C 16650-16654
+		     XtNtopOfThumb (), &raw mut old_top as XtPointer,
+		     XtNshown (), &raw mut old_shown as XtPointer,
+		     XtNheight (), &raw mut height as XtPointer,
+		     std::ptr::null_mut::<c_void> ());
+
+      /* C 16656-16673's `#if false` - C's own text, dead in every configuration and carried as
+	 the comment it is (the C 5127-5156 `record_event` shape; Decision 91 records the block and
+	 `tools/cinventory.py`'s dead-branch map marks every line of it `False`):
+
+	 #if false
+	 /* Massage the top+shown values.  */
+	 if (bar->dragging == -1 || bar->last_seen_part == scroll_bar_down_arrow)
+	   top = max (0, min (1, top));
+	 else
+	   top = old_top;
+	 #if ! defined (HAVE_XAW3D)
+	 /* With Xaw, 'top' values too closer to 1.0 may
+	    cause the thumb to disappear.  Fix that.  */
+	 top = min (top, 0.99f);
+	 #endif
+	 /* Keep two pixels available for moving the thumb down.  */
+	 shown = max (0, min (1 - top - (2.0f / height), shown));
+	 #if ! defined (HAVE_XAW3D)
+	 /* Likewise with too small 'shown'.  */
+	 shown = max (shown, 0.01f);
+	 #endif
+	 #endif
+      */
+
+      /* If the call to XawScrollbarSetThumb below doesn't seem to
+	 work, check that 'NARROWPROTO' is defined in src/config.h.
+	 If this is not so, most likely you need to fix configure.  */
+      XawScrollbarSetThumb (widget, top, shown);                          // C 16678
+      /* C 16679-16693's `#if false` - the second one, the same shape:
+
+	 #if false
+	 if (top != old_top || shown != old_shown)
+	   {
+	     if (bar->dragging == -1)
+	       XawScrollbarSetThumb (widget, top, shown);
+	     else
+	       {
+		 /* Try to make the scrolling a tad smoother.  */
+		 if (!xaw3d_pick_top)
+		   shown = min (shown, old_shown);
+
+		 XawScrollbarSetThumb (widget, top, shown);
+	       }
+	   }
+	 #endif
+      */
+    }
+  }
+
+  unblock_input ();                                                       // C 16697
+}
+
+/* C 16699's `#endif /* not USE_GTK */` closes this arm.  */

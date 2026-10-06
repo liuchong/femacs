@@ -3145,11 +3145,19 @@ pub fn lisp2size_passthrough (n: isize) -> isize { n }
 
 // --- small utilities -------------------------------------------------------
 
+/// C: lisp.h 71-72: `#define max(a, b) ((a) > (b) ? (a) : (b))` and
+/// `#define min(a, b) ((a) < (b) ? (a) : (b))` - type-generic macros, so the port's rows are
+/// generic too.  They were the `isize` pair until slice 76 (2026-10-07): C 16580/16589/16592's
+/// float uses cannot call that pair (`error[E0308]: expected f32, found isize`, measured), which
+/// is the shape the `eabs!` row below records for slice 74.  Every existing call site still
+/// infers `isize` (its arguments are already cast, e.g. the `min (... as isize, ... as isize)`
+/// rows the scroll-bar and glyph text use), so the widening is a superset - and P-87 1's first
+/// leg is what says so (`check-all-units.sh`: 83 units, 0 failures).
 #[inline(always)]
-pub fn max (a: isize, b: isize) -> isize { if a > b { a } else { b } }
+pub fn max<T: PartialOrd> (a: T, b: T) -> T { if a > b { a } else { b } }
 
 #[inline(always)]
-pub fn min (a: isize, b: isize) -> isize { if a < b { a } else { b } }
+pub fn min<T: PartialOrd> (a: T, b: T) -> T { if a < b { a } else { b } }
 
 /// eabs (x): C's macro (lisp.h 5597), which works for any signed type and — like C —
 /// evaluates its argument twice when it is negative.  The port used to spell it as a
