@@ -6,8 +6,9 @@
 > one line earlier at 2598; 2605-2606 is the other branch, where `ANDROID_STUBIFY` is defined), and
 > `docs/baseline/frozen-build-sources.txt` lists no `sfntfont.o`.  What follows is P-86 ②'s **C
 > line-range table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/sfntfont.rs` (**3,800 lines** after slice 10, `grep -c ''`), both arms of every `#if`
-> carried.
+> `femacs/src/sfntfont.rs` (**4,210 lines** after slice 11, `grep -c ''`), both arms of every `#if`
+> carried.  **The line-count drift row is gone** as of this slice: 4,210 against C's 4,222 is inside
+> the 5% the rule allows (Evidence ㉖).
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not in the frozen
 > build, so the port is the empty unit plus a note"): P-86 ① rules that a three-line header
@@ -91,6 +92,16 @@
 > `}`: **the next live definition is C 3119's `sfnt_reference_font_tables`** (its comment is
 > C 3115-3116), and the table's last row carries it.
 >
+> **Slice 11 is C 3114-3472** - the reference-counting pair and the file's biggest function:
+> `sfnt_reference_font_tables` (C 3119-3134), `sfnt_dereference_font_tables` (C 3140-3151) and
+> `sfntfont_open` (C 3156-3472, under C 3153-3154's comment: the pixel-size/instance resolution, the
+> `font_info` initialisation, `sfnt_reference_font_tables`, the table copies, the charset and
+> ascent/descent/width arithmetic, the style `ASET`s, the interpreter setup, the blend/instance
+> block with its `cancel_blend:` forward label, `sfntfont_probe_widths`, the XLFD and fullname
+> properties, the `open_fonts` link, and C 3466-3471's `bail6:`/`bail:` pair).  The boundary is
+> C 3472's `}`: **the next live definition is C 3483's `sfntfont_encode_char`** (the
+> `/* Metrics computation … */` banner is C 3476), and the table's last row carries it.
+>
 
 ## Gate mapping
 
@@ -143,7 +154,8 @@ this tree has not registered yet is `HAVE_HB_FONT_SET_VAR_NAMED_INSTANCE` (C 409
 | 2560-2742 | C 2561's form feed, C 2563's `/* Opening fonts.  */` banner, `struct sfnt_font_info` (C 2565-2645, with its measured `core::assert!` block), C 2647-2653's `open_fonts` list, C 2655-2656's comment with `sfntfont_lookup_glyph` (C 2658-2679), C 2681-2682's forward declaration (carried as a use-site declaration) and C 2684-2690's comment with `sfntfont_probe_widths` (C 2692-2742) | `have_window_system` on the two items that read `font.encoding_charset` (Deviation 23 (a)); the file gate on the rest - **transcribed** (slice 8) |
 | 2743-2915 | C 2743's blank, C 2744-2751's comment with `sfntfont_setup_interpreter` (C 2753-2860, whose `bail1`/`bail` pair and zero-initialised locals are Deviation 24's (a)/(b)) and C 2862-2863's comment with `sfnt_close_tables` (C 2865-2915, whose `HAVE_MMAP` arms are ungated and whose `HAVE_HARFBUZZ` block is gated) | file gate - **transcribed** (slice 9) |
 | 2916-3113 | C 2916's blank, C 2917-2918's comment and `sfnt_open_tables` (C 2920-3113: the open/seek/cmap/UVS block, the ungated `HAVE_MMAP` arms, the loca/hmtx/instruction/distortion reads and the six-label `bailN` ladder of Deviation 25) | file gate - **transcribed** (slice 10) |
-| 3114-4222 | **the remainder** — C 3114's blank, C 3115-3116's comment and from C 3119 (`sfnt_reference_font_tables`, **the next live definition**) to C 4222: the reference/dereference pair and `sfntfont_open`/`sfntfont_close` (C 3119-3470), the eight driver callbacks (C 3483-3960), the mmap sigbus pair (C 3961-3983) and the HarfBuzz entry points (C 3989-4110), and the three initialization subrs (C 4115-4222) - among them C 3504's `sfntfont_measure_pcm` definition, which replaces Deviation 23 (b)'s declaration | not this slice |
+| 3114-3472 | C 3114's blank, C 3115-3116's comment with `sfnt_reference_font_tables` (C 3119-3134), C 3136-3137's comment with `sfnt_dereference_font_tables` (C 3140-3151), and C 3153-3154's comment with `sfntfont_open` (C 3156-3472; Deviation 26's seven shapes) | file gate; `have_window_system` on `sfntfont_open` (Deviation 26 (a)) - **transcribed** (slice 11) |
+| 3473-4222 | **the remainder** — C 3474's form feed, C 3476's banner and from C 3483 (`sfntfont_encode_char`, **the next live definition**) to C 4222: the metrics/callback family (C 3483-3960), the mmap sigbus pair (C 3961-3983) and the HarfBuzz entry points (C 3989-4110), and the three initialization subrs (C 4115-4222) - among them C 3504's `sfntfont_measure_pcm` definition, which replaces Deviation 23 (b)'s declaration | not this slice |
 
 The 23 rows above tile C 1-1240 **contiguously** (blank lines included) rather than skipping
 the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
@@ -531,6 +543,35 @@ it - the function is `sfnt_open_tables`, the file is `sfntfont.c`).  The other g
 `check-citations.py` `676 file(s) scanned, 0 drift, 0 range, 2011 external, 36 allowed, 0 stale`;
 `check-port-lines.py` `0 file(s) under ten percent, 0 ratchet row(s), 0 new, 0 stale`;
 `check-cond-eval.py src/sfntfont.c` `27 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
+**㉕ Slice 11's frozen reading, its arm flips, and the object size.**  `cd femacs && cargo run -q -p
+xtask -- build-tu src/sfntfont.c` -> `built src/sfntfont.rs -> ../build/femacs/sfntfont.o`, exit 0,
+**336 bytes**, the standing md5.  Both cfg sets are run as HEAD-baseline pairs (P-86 ⑦): file gate
+alone **0 errors** on both sides (this slice's two `have_window_system`-gated items are compiled out
+there) and file gate plus `have_window_system` **0 errors** on both sides - and in that second run
+**the emitted object grows from 22,256 to 29,656 bytes**, because `sfntfont_open` is a
+`#[unsafe(no_mangle)]` driver entry point and it reaches the whole glyph/cache machinery.  That is
+the slice-5 class again: code placement, not behaviour - and it is why the object size is reported
+here rather than treated as a success signal.
+
+The first run of this slice read **three errors** (`E0277 cannot multiply i32 by f64`, `E0277 cannot
+divide f64 by {integer}`, `E0608 cannot index into a value of type *mut sfnt_instance`), and the
+second read **two more** of the same two classes; all are Deviation 26's (a)-(c).  That is the arm
+flip doing its job on the file's biggest function, where `build-tu` compiles nothing and `--check`
+sees only names and tokens.
+
+**㉖ Slice 11's `--check` and the gates.**  `python3 tools/extract-abi.py --check
+emacs/src/sfntfont.c femacs/src/sfntfont.rs` -> **FAIL**, **13** `- ` rows: **12** `- missing
+function …` and **1** `- missing file-scope object …` (`sfnt_put_glyphs`) - **and no line-count row
+at all**: with 4,210 Rust lines against C's 4,222 the drift is inside the 5% the rule allows, so the
+`line count drifted …` row this ledger has carried since slice 1 is **gone** (slice 10 read 17 rows
+with `10.0%: C 4222 vs Rust 3800`).  The three functions that left the list are
+`sfnt_reference_font_tables`, `sfnt_dereference_font_tables` and `sfntfont_open`, and **one token
+row** was needed (`sfntfont_open bail6,goto,underline_position_set`).  The other gates:
+`check-dead-file-coverage.py` `145 ledger(s) bound (a C range table), 0 failure(s)`;
+`check-declarations.py` `17 declaration sites (0 forbidden, 17 allowed literals), 0 failures`;
+`check-citations.py` `676 file(s) scanned, 0 drift, 0 range, 2011 external, 36 allowed, 0 stale`;
+`check-port-lines.py` `0 file(s) under ten percent, 0 ratchet row(s), 0 new, 0 stale`;
+`check-cond-eval.py src/sfntfont.c` `27 conditions, 0 unknown, 0 disagreements [VERIFIED]`.
 
 ## Deviations
 
@@ -724,6 +765,28 @@ it - the function is `sfnt_open_tables`, the file is `sfntfont.c`).  The other g
     guards, which is what C's text means in this configuration.  (d) **C 3064-3073's
     `HAVE_HARFBUZZ` `#ifdef`/`#else`** is two `#[cfg]`-selected blocks (its two members carry that
     gate), and the port adds no defensive check C does not have (see Evidence ㉓).
+26. **Slice 11's seven shapes.**  (a) **`sfntfont_open` carries `have_window_system`** on top of the
+    file gate: it reads `font.encoding_charset`/`repertory_charset`, and the four
+    `HAVE_WINDOW_SYSTEM` members C 3323-3326 clears (`baseline_offset`, `relative_compose`,
+    `default_ascent`, `vertical_centering`), plus `FRAME_FONT`/`FRAME_DISPLAY_INFO` - the same
+    reading as Deviation 23 (a).  (b) **C's two labels `bail6:`/`bail:` are the depth-carrying
+    `'body: loop`** (0 = `goto bail` at C 3247, 6 = `goto bail6` at C 3279), and C 3410's
+    **`cancel_blend:` is a *forward* label**: C 3386 jumps past the instance block, so the port
+    wraps that block in `'cancel_blend: { … }` whose end is the label (the `sfnt.rs` shape).  (c)
+    **C's implicit conversions are written as casts**: `font->ascent = ceil (…)` and
+    `font->max_width = (…)` are `double`-to-`int` (the `as c_int` at C 3286-3298), `XFIXNUM`'s
+    `EMACS_INT` values narrow to `c_int` at C 3171/3196, `sfnt_coerce_fixed (…) + 0.5` truncates at
+    C 3335-3340, and `PT_PER_INCH` (a `double` in C too) makes C 3345's first argument a `double`
+    (`pixel_size as c_double`, the `font.rs` 5379 call's shape).  (d) **The fvar instance is a
+    pointer, not an array**: C 3369's `fvar->instance[i].coords[j]` is
+    `(*(*fvar).instance.add (i)).coords.add (j)` in the port (both `instance` and `coords` are
+    pointers in the mirror), and the `<=`/`<` guards around it are C's own.  (e) **The two `bool`
+    members are the `bits` masks**: C 3328's `desc->underline_position_set` is
+    `SFNT_FONT_DESC_UNDERLINE_POSITION_SET` (Deviation 14's packing).  (f) **`font_make_object` is
+    declared at its use site** (`font.h` 846, no mirror carries it; the `src/haikufont.rs` 123
+    shape).  (g) **The drivers' `HAVE_HARFBUZZ` blocks are `#[cfg]`-selected** (C 3234-3238's
+    initialisers and C 3418-3424's fd/directory copies), while C 3231-3233's and C 3430-3434's
+    `HAVE_MMAP` arms are ungated.
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
@@ -781,12 +844,12 @@ object (①) is 336 bytes of nothing, and the arm reading (④) never produced a
 flip stops at the mirror's `E0428`.  So there is **no runtime evidence of any kind** for this port:
 no font file was opened, no name table was decoded, no style was parsed, no cmap was identified, no
 `lseek`/`read`/`memmem` returned.  The reading above is slice 1's, and it still holds item for item;
-**slices 2-10 add no runtime evidence either** (Evidence ⑦/⑨/⑪/⑬/⑯/⑰/⑳/㉑/㉓: every arm flip's
-diagnostics are unchanged; slice 5's object grew because of its two `no_mangle` entry points and the
-rest did not - all of it code placement rather than behaviour).
-C 3114-4222 is **not ported here**; the 15 `- missing function` rows, the 1 remaining object
-(`sfnt_put_glyphs`) and the 10.0% drift of Evidence ㉔ are that boundary, not a defect of these ten
-slices.  The clang probe's
+**slices 2-11 add no runtime evidence either** (Evidence ⑦/⑨/⑪/⑬/⑯/⑰/⑳/㉑/㉓/㉕: every arm flip's
+diagnostics are unchanged; slices 5 and 11 grew their objects because of `no_mangle` entry points
+that reach the glyph machinery - all of it code placement rather than behaviour).
+C 3473-4222 is **not ported here**; the 12 `- missing function` rows and the 1 remaining object
+(`sfnt_put_glyphs`) of Evidence ㉖ are that boundary, not a defect of these eleven slices (the
+line-count row the earlier readings carried is gone).  The clang probe's
 numbers are layout, not behavior.  The one feature this unit uses besides the file gate's pair
 (`harfbuzz`) is the tree's registered name, not this lane's invention, and `have_mmap` is
 deliberately unused (the condition has no second arm).

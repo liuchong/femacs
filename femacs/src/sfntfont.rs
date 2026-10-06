@@ -8,7 +8,8 @@
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
 // C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559, C 2560-2742,
-// C 2743-2915 and C 2916-3113.**  The next live definition is `sfnt_reference_font_tables` (C 3119).  The ledger `docs/ports/sfntfont.md`
+// C 2743-2915, C 2916-3113 and C 3114-3472.**  The next live definition is `sfntfont_encode_char`
+// (C 3483).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -3797,4 +3798,414 @@ unsafe fn sfnt_open_tables (desc: *mut sfnt_font_desc) -> *mut sfnt_font_tables
   /* C 3110: `bail:`.  */
   xfree (tables as *mut c_void);                           // C 3111
   return std::ptr::null_mut ();                            // C 3112
+}
+
+/* Open or reference font tables corresponding to the specified font
+   DESC.  Return NULL upon failure.  */
+
+/// C 3119-3134: `sfnt_reference_font_tables`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_reference_font_tables (desc: *mut sfnt_font_desc) -> *mut sfnt_font_tables
+{                                                          // C 3119-3134
+  if (*desc).refcount != 0                                 // C 3121
+    {
+      (*desc).refcount += 1;                               // C 3123
+      return (*desc).tables;                               // C 3124
+    }
+
+  (*desc).tables = sfnt_open_tables (desc);                // C 3127
+
+  if (*desc).tables.is_null ()
+    { return std::ptr::null_mut (); }                      // C 3130
+
+  (*desc).refcount += 1;                                   // C 3132
+  return (*desc).tables;                                   // C 3133
+}
+
+/* Dereference font tables corresponding to the specified font
+   DESC.  */
+
+/// C 3140-3151: `sfnt_dereference_font_tables`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_dereference_font_tables (desc: *mut sfnt_font_desc)
+{                                                          // C 3140-3151
+  if (*desc).refcount == 0                                 // C 3142
+    { emacs_abort (); }                                    // C 3143
+
+  (*desc).refcount -= 1;                                   // C 3145's `--desc->refcount`
+
+  if (*desc).refcount != 0
+    { return; }                                            // C 3146
+
+  sfnt_close_tables ((*desc).tables);                      // C 3148
+  (*desc).tables = std::ptr::null_mut ();                  // C 3149
+  return;                                                  // C 3150
+}
+
+/* Open the font corresponding to the font-entity FONT_ENTITY.  Return
+   nil upon failure, else the opened font-object.  */
+
+/* `font_make_object` is `font.h` 846's `extern Lisp_Object font_make_object (int, Lisp_Object,
+   int);`, declared here at its use site (the `src/haikufont.rs` 123 shape, P-91 4);
+   `sfntfont_open` is the user.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: font.h 846: `extern Lisp_Object font_make_object (int, Lisp_Object, int);`
+  pub fn font_make_object (size: c_int, entity: Lisp_Object, pixelsize: c_int) -> Lisp_Object;
+}
+
+/// C 3156-3472: `sfntfont_open` - C's non-`static` driver entry point.  It reads the
+/// `HAVE_WINDOW_SYSTEM` members of `struct font` (`encoding_charset`, `baseline_offset`,
+/// `relative_compose`, `default_ascent`, `vertical_centering`, and `font.h`'s
+/// `FRAME_FONT`/`FRAME_DISPLAY_INFO`), so the item carries that gate as well (Deviation 23 (a)'s
+/// reading).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	   feature = "have_window_system"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfntfont_open (f: *mut c_void, font_entity: Lisp_Object,
+					mut pixel_size: c_int) -> Lisp_Object
+{                                                          // C 3156-3472
+  let mut font_info: *mut sfnt_font_info;
+  let mut font: *mut font;
+  let mut desc: *mut sfnt_font_desc;
+  let mut font_object: Lisp_Object;
+  let mut charset: *mut charset;
+  let mut point_size: c_int;
+  let mut instance: c_int;
+  let mut i: c_int;
+  let mut dpyinfo: *mut Display_Info;
+  let mut tables: *mut sfnt_font_tables;
+  let mut tem: Lisp_Object;
+
+  if XFIXNUM (AREF (font_entity, FONT_SIZE_INDEX as isize)) != 0   // C 3170
+    { pixel_size = XFIXNUM (AREF (font_entity, FONT_SIZE_INDEX as isize)) as c_int; }   // C 3171
+  else if pixel_size == 0                                  // C 3172
+    {
+      /* This bit was copied from xfont.c.  The values might need
+	 adjustment.  */
+
+      if !FRAME_FONT! (f as *mut frame).is_null ()         // C 3177
+	{ pixel_size = (*FRAME_FONT! (f as *mut frame)).pixel_size; }   // C 3178
+      else
+	{ pixel_size = 12; }                               // C 3180
+    }
+
+  /* Now find the font description corresponding to FONT_ENTITY.  */
+
+  tem = AREF (font_entity, FONT_EXTRA_INDEX as isize);     // C 3185
+  if NILP (tem)
+    { return Qnil (); }                                    // C 3187
+
+  desc = xmint_pointer (XCDR (XCAR (tem))) as *mut sfnt_font_desc;   // C 3189
+
+  /* Finally, see if a specific instance is associated with
+     FONT_ENTITY.  */
+
+  instance = -1;                                           // C 3194
+  if !NILP (XCDR (tem))
+    { instance = XFIXNUM (XCDR (XCAR (XCDR (tem)))) as c_int; }   // C 3196
+
+  /* Build the font object.  */
+  font_object = font_make_object (VECSIZE (std::mem::size_of::<sfnt_font_info> ()) as c_int,
+				  font_entity, pixel_size);   // C 3199-3200
+  font_info = XFONT_OBJECT (font_object) as *mut sfnt_font_info;   // C 3201
+
+  block_input ();                                          // C 3203
+
+  /* C 3466/3469's `bail6:`/`bail:` pair: 0 is `goto bail` (C 3247), 6 is `goto bail6` (C 3279);
+     the port carries the jump's depth (the `sfnt_enum_font_1` shape).  */
+  let mut bail: c_int = 0;
+
+  'body: loop
+    {
+      /* Initialize all the font driver specific data.  */
+
+      (*font_info).cmap = std::ptr::null_mut ();           // C 3207
+      (*font_info).hhea = std::ptr::null_mut ();           // C 3208
+      (*font_info).maxp = std::ptr::null_mut ();           // C 3209
+      (*font_info).head = std::ptr::null_mut ();           // C 3210
+      (*font_info).glyf = std::ptr::null_mut ();           // C 3211
+      (*font_info).hmtx = std::ptr::null_mut ();           // C 3212
+      (*font_info).loca_short = std::ptr::null_mut ();     // C 3213
+      (*font_info).loca_long = std::ptr::null_mut ();      // C 3214
+      (*font_info).cmap_data = std::ptr::null_mut ();      // C 3215
+      (*font_info).prep = std::ptr::null_mut ();           // C 3216
+      (*font_info).fpgm = std::ptr::null_mut ();           // C 3217
+      (*font_info).cvt = std::ptr::null_mut ();            // C 3218
+      (*font_info).uvs = std::ptr::null_mut ();            // C 3219
+
+      (*font_info).outline_cache.next = &raw mut (*font_info).outline_cache;   // C 3221
+      (*font_info).outline_cache.last = &raw mut (*font_info).outline_cache;   // C 3222
+      (*font_info).outline_cache_size = 0;                 // C 3223
+      (*font_info).raster_cache.next = &raw mut (*font_info).raster_cache;   // C 3224
+      (*font_info).raster_cache.last = &raw mut (*font_info).raster_cache;   // C 3225
+      (*font_info).raster_cache_size = 0;                  // C 3226
+      (*font_info).interpreter = std::ptr::null_mut ();    // C 3227
+      (*font_info).scale = 0;                              // C 3228
+      (*font_info).instance = -1;                          // C 3229
+      (*font_info).blend.coords = std::ptr::null_mut ();   // C 3230
+      /* C 3231-3233's `#ifdef HAVE_MMAP`: live (the file's gate mapping).  */
+      (*font_info).glyf_table_mapped = false;              // C 3232
+      #[cfg (feature = "harfbuzz")]
+      {
+	(*font_info).hb_font = std::ptr::null_mut ();      // C 3235
+	(*font_info).fd = -1;                              // C 3236
+	(*font_info).directory = std::ptr::null_mut ();    // C 3237
+      }
+
+      /* Read required tables.  This font backend is supposed to be used
+	 mostly on devices with flash memory, so the order in which they
+	 are read is insignificant.  */
+
+      tables = sfnt_reference_font_tables (desc);          // C 3244
+
+      if tables.is_null ()
+	{ break 'body; }                                   // C 3247: `goto bail;`
+
+      /* Copy fields from the table structure to the font for fast
+	 access.  */
+      (*font_info).cmap = (*tables).cmap;                  // C 3251
+      (*font_info).hhea = (*tables).hhea;                  // C 3252
+      (*font_info).maxp = (*tables).maxp;                  // C 3253
+      (*font_info).head = (*tables).head;                  // C 3254
+      (*font_info).hmtx = (*tables).hmtx;                  // C 3255
+      (*font_info).glyf = (*tables).glyf;                  // C 3256
+      (*font_info).loca_short = (*tables).loca_short;      // C 3257
+      (*font_info).loca_long = (*tables).loca_long;        // C 3258
+      (*font_info).prep = (*tables).prep;                  // C 3259
+      (*font_info).fpgm = (*tables).fpgm;                  // C 3260
+      (*font_info).cvt = (*tables).cvt;                    // C 3261
+      (*font_info).cmap_data = (*tables).cmap_data;        // C 3262
+      (*font_info).cmap_subtable = (*tables).cmap_subtable;   // C 3263
+      (*font_info).uvs = (*tables).uvs;                    // C 3264
+
+      /* Calculate the font's scaling factor.  */
+      (*font_info).scale = sfnt_get_scale ((*font_info).head, pixel_size);   // C 3267
+
+      /* Fill in font data.  */
+      font = &raw mut (*font_info).font;                   // C 3270
+      (*font).pixel_size = pixel_size;                     // C 3271
+      (*font).driver = sfnt_font_driver as *const c_void;   // C 3272
+      /* C 3273's chained assignment is two statements (PORTING.md 0.1-13).  */
+      (*font).encoding_charset = -1;
+      (*font).repertory_charset = -1;
+
+      /* Figure out which character set to use.  */
+      charset = sfntfont_charset_for_cmap ((*font_info).cmap_subtable);   // C 3276
+
+      if charset.is_null ()
+	{ bail = 6; break 'body; }                         // C 3279: `goto bail6;`
+
+      /* Set the character set IDs.  */
+      (*font).encoding_charset = (*charset).id;            // C 3282
+      (*font).repertory_charset = (*charset).id;           // C 3283
+
+      /* Figure out the font ascent and descent.  */
+      (*font).ascent
+	= ceil ((*(*font_info).hhea).ascent as c_double
+		* pixel_size as c_double
+		* (1.0 / (*(*font_info).head).units_per_em as c_double)) as c_int;   // C 3286-3289
+      (*font).descent
+	= ceil (-((*(*font_info).hhea).descent as c_double)
+		* pixel_size as c_double
+		* (1.0 / (*(*font_info).head).units_per_em as c_double)) as c_int;   // C 3290-3293
+      (*font).height = (*font).ascent + (*font).descent;   // C 3294
+
+      /* Set font->max_width to the maximum advance width.  */
+      (*font).max_width
+	= ((*(*font_info).hhea).advance_width_max as c_double
+	   * pixel_size as c_double * 1.0
+	   / (*(*font_info).head).units_per_em as c_double) as c_int;   // C 3297-3298
+
+      /* Set generic attributes such as type and style.  */
+      ASET (font_object, FONT_TYPE_INDEX as isize, sfnt_vendor_name);   // C 3301
+      ASET (font_object, FONT_FOUNDRY_INDEX as isize, (*desc).designer);   // C 3302
+      ASET (font_object, FONT_FAMILY_INDEX as isize, Fintern ((*desc).family, Qnil ()));   // C 3303
+      ASET (font_object, FONT_ADSTYLE_INDEX as isize, (*desc).adstyle);   // C 3304
+      ASET (font_object, FONT_REGISTRY_INDEX as isize,
+	    sfntfont_registry_for_desc (desc));            // C 3305-3306
+
+      /* Size of 0 means the font is scalable.  */
+      ASET (font_object, FONT_SIZE_INDEX as isize, make_fixnum (0));   // C 3309
+      ASET (font_object, FONT_AVGWIDTH_INDEX as isize, make_fixnum (0));   // C 3310
+      ASET (font_object, FONT_SPACING_INDEX as isize,
+	    make_fixnum ((*desc).spacing as EMACS_INT));   // C 3311
+
+      /* Set the font style.  */
+
+      FONT_SET_STYLE! (font_object, FONT_WIDTH_INDEX,
+		       make_fixnum ((*desc).width as EMACS_INT));   // C 3315-3316
+      FONT_SET_STYLE! (font_object, FONT_WEIGHT_INDEX,
+		       make_fixnum ((*desc).weight as EMACS_INT));   // C 3317-3318
+      FONT_SET_STYLE! (font_object, FONT_SLANT_INDEX,
+		       make_fixnum ((*desc).slant as EMACS_INT));   // C 3319-3320
+
+      /* Clear various offsets.  */
+      (*font).baseline_offset = 0;                         // C 3323
+      (*font).relative_compose = 0;                        // C 3324
+      (*font).default_ascent = 0;                          // C 3325
+      (*font).vertical_centering = false;                  // C 3326
+
+      if (*desc).bits & SFNT_FONT_DESC_UNDERLINE_POSITION_SET == 0   // C 3328
+	{
+	  (*font).underline_position = -1;                 // C 3330
+	  (*font).underline_thickness = 0;                 // C 3331
+	}
+      else
+	{
+	  (*font).underline_position
+	    = (sfnt_coerce_fixed ((-((*desc).underline_position as sfnt_fixed))
+				  * (*font_info).scale)
+	       + 0.5) as c_int;                            // C 3335-3337
+	  (*font).underline_thickness
+	    = (sfnt_coerce_fixed ((*desc).underline_thickness as sfnt_fixed
+				  * (*font_info).scale)
+	       + 0.5) as c_int;                            // C 3338-3340
+	}
+
+      /* Now try to set up grid fitting for this font.  */
+      dpyinfo = FRAME_DISPLAY_INFO! (f as *mut frame);     // C 3344
+      /* C 3345-3347: `PT_PER_INCH` is a `double` in C too, so the macro's first argument is
+	 converted (the `font.rs` 5379 call does the same).  */
+      point_size = PIXEL_TO_POINT! (pixel_size as c_double, ((*dpyinfo).resx
+							     * (*dpyinfo).resy
+							     / 2.0)) as c_int;   // C 3345-3347
+      sfntfont_setup_interpreter (font_info, desc, point_size);   // C 3348
+
+      /* If an instance was specified and the font is distortable, set up
+	 the blend.  */
+
+      'cancel_blend: {
+      if instance != -1
+	 && !(*(*desc).tables).fvar.is_null () && !(*(*desc).tables).gvar.is_null ()   // C 3353-3354
+	 /* Make sure the instance is within range.  */
+	 && (instance as u32) < (*(*(*desc).tables).fvar).instance_count as u32   // C 3356
+	{
+	  tem = AREF ((*desc).instances, instance as isize);   // C 3358
+
+	  if !NILP (tem)
+	    {
+	      sfnt_init_blend (&raw mut (*font_info).blend, (*(*desc).tables).fvar,
+			       (*(*desc).tables).gvar, (*(*desc).tables).avar,
+			       (*(*desc).tables).cvar);   // C 3362-3364
+
+	      /* Copy over the coordinates.  */
+	      i = 0;
+	      while i < (*(*(*desc).tables).fvar).axis_count as c_int   // C 3367
+		{
+		  *(*font_info).blend.coords.add (i as usize)
+		    = *((*(*(*(*desc).tables).fvar).instance.add (instance as usize))
+			.coords.add (i as usize));         // C 3368-3369
+		  i += 1;
+		}
+
+	      sfnt_normalize_blend (&raw mut (*font_info).blend);   // C 3371
+
+	      /* Test whether or not the instance is actually redundant,
+		 as all of its axis are at their default values.  If so,
+		 free the instance.  */
+
+	      i = 0;
+	      while i < (*(*(*desc).tables).fvar).axis_count as c_int   // C 3377
+		{
+		  if *(*font_info).blend.norm_coords.add (i as usize) != 0
+		    { break; }                                 // C 3380
+		  i += 1;
+		}
+
+	      if i == (*(*(*desc).tables).fvar).axis_count as c_int   // C 3383
+		{
+		  sfnt_free_blend (&raw mut (*font_info).blend);   // C 3385
+		  break 'cancel_blend;                         // C 3386: `goto cancel_blend;`
+		}
+
+	      /* If an interpreter was specified, distort it now.  */
+
+	      if !(*font_info).interpreter.is_null ()          // C 3391
+		{ sfnt_vary_interpreter ((*font_info).interpreter,
+					 &raw mut (*font_info).blend); }   // C 3392-3393
+
+	      (*font_info).instance = instance;                // C 3395
+
+	      /* Replace the style information with that of the
+		 instance.  */
+
+	      FONT_SET_STYLE! (font_object, FONT_WIDTH_INDEX,
+			       AREF (tem, 2));                 // C 3400-3401
+	      FONT_SET_STYLE! (font_object, FONT_WEIGHT_INDEX,
+			       AREF (tem, 3));                 // C 3402-3403
+	      FONT_SET_STYLE! (font_object, FONT_SLANT_INDEX,
+			       AREF (tem, 4));                 // C 3404-3405
+	      ASET (font_object, FONT_ADSTYLE_INDEX as isize, AREF (tem, 1));   // C 3406
+	    }
+	}
+      }                                                    /* C 3410: `cancel_blend:`.  */
+
+      /* Find out the minimum, maximum and average widths.  */
+      sfntfont_probe_widths (font_info);                   // C 3413
+
+      /* Calculate the xfld name.  */
+      (*font).props[FONT_NAME_INDEX as usize]
+	= Ffont_xlfd_name (font_object, Qnil (), Qt ());   // C 3416
+
+      #[cfg (feature = "harfbuzz")]
+      {
+	/* HarfBuzz will potentially read font tables after the font has
+	   been opened by Emacs.  Keep the font open, and record its offset
+	   subtable.  */
+	(*font_info).fd = (*tables).fd;                    // C 3422
+	(*font_info).directory = (*tables).directory;      // C 3423
+      }
+
+      /* Set font->desc so that font tables can be dereferenced if
+	 anything goes wrong.  */
+      (*font_info).desc = desc;                            // C 3428
+
+      /* C 3430-3434's `#ifdef HAVE_MMAP`: live.  */
+      /* Link the font onto the font table.  */
+      (*font_info).next = open_fonts;                      // C 3432
+      open_fonts = font_info;                              // C 3433
+
+      /* Now ascertain if vertical centering is desired by matching the
+	 font XLFD against vertical-centering-font-regexp.  */
+
+      if !NILP ((*font).props[FONT_NAME_INDEX as usize])   // C 3439
+	{
+	  (*font).vertical_centering
+	    = STRINGP (Vvertical_centering_font_regexp)
+	      && (fast_string_match_ignore_case
+		  (Vvertical_centering_font_regexp,
+		   (*font).props[FONT_NAME_INDEX as usize]) >= 0);   // C 3440-3444
+	}
+
+      /* Set the name of the font file.  */
+      (*font).props[FONT_FILE_INDEX as usize]
+	= DECODE_FILE (build_unibyte_string ((*desc).path));   // C 3447-3448
+
+      /* Encapsulate some information on the font useful while debugging
+	 (along with being informative in general) in the font name.  */
+
+      AUTO_STRING! (format, c"%s %s interpreted: %s upem: %s charset: %s instance: %s".as_ptr ());
+      (*font).props[FONT_FULLNAME_INDEX as usize]
+	= CALLN! (Fformat, format, (*desc).family, (*desc).style,
+		  if !(*font_info).interpreter.is_null () { Qt () } else { Qnil () },
+		  make_fixnum ((*(*font_info).head).units_per_em as EMACS_INT),
+		  CHARSET_NAME! (charset),
+		  make_fixnum (instance as EMACS_INT));    // C 3455-3460
+
+      /* All done.  */
+      unblock_input ();                                    // C 3463
+      return font_object;                                  // C 3464
+    }
+
+  /* C 3466: `bail6:`.  */
+  if bail >= 6
+    {
+      sfnt_dereference_font_tables (desc);                 // C 3467
+      (*font_info).desc = std::ptr::null_mut ();           // C 3468
+    }
+
+  /* C 3469: `bail:`.  */
+  unblock_input ();                                        // C 3470
+  return Qnil ();                                          // C 3471
 }
