@@ -145,6 +145,16 @@ pub mod x11_constants {
   pub const CWEventMask: c_long = 1 << 11;
   /// X11/X.h 406: `#define CWCursor (1L<<14)` - the same arm, C 16740.
   pub const CWCursor: c_long = 1 << 14;
+  /// X11/X.h 410: `#define CWX (1<<0)` - `XTset_vertical_scroll_bar`'s `XWindowChanges` mask
+  /// (C 17038).  C's own body is a plain `int` literal, so this row is `c_int` where the three
+  /// `1L<<` rows above are `c_long`.
+  pub const CWX: c_int = 1 << 0;
+  /// X11/X.h 411: `#define CWY (1<<1)` - C 17040.
+  pub const CWY: c_int = 1 << 1;
+  /// X11/X.h 412: `#define CWWidth (1<<2)` - C 17042.
+  pub const CWWidth: c_int = 1 << 2;
+  /// X11/X.h 413: `#define CWHeight (1<<3)` - C 17044.
+  pub const CWHeight: c_int = 1 << 3;
   /// X11/X.h 445: `#define IsUnmapped 0` - an `XWindowAttributes.map_state`.
   pub const IsUnmapped: c_int = 0;
   /// X11/X.h 456: `#define DestroyAll 0` - `XSetCloseDownMode`'s first mode.

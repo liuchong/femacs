@@ -26202,3 +26202,215 @@ unsafe fn x_scroll_bar_set_handle (bar: *mut scroll_bar, start: c_int, end: c_in
 }
 
 /* C 16958's `#endif /* !USE_TOOLKIT_SCROLL_BARS */` closes it.  */
+
+/* Destroy scroll bar BAR, and set its Emacs window's scroll bar to
+   nil.  */
+
+/* The names this slice needs that no mirror carries.  `xg_remove_scroll_bar` is gtkutil.h's (the
+   pgtk lane's `src/pgtkterm.rs` 5993-6001 row, whose `ptrdiff_t` parameter C 4198's call gives the
+   same way), `XtDestroyWidget` is `<X11/Intrinsic.h>`'s (C 29689 already calls it as a bare name in
+   this file - a declaration retires that row), and `window_box` is dispextern.h's, whose prototype
+   `src/frame.rs` 460 declares for its own unit and this one has to repeat (P-88 1).  The four
+   `CW*` values go into `include/xlib.rs`'s `x11_constants` with the other `<X11/X.h>` rows
+   (measured: 410 `(1<<0)`, 411 `(1<<1)`, 412 `(1<<2)`, 413 `(1<<3)` - C's own bodies are plain
+   `int` literals here, so these rows are `c_int` and the use site states the `as c_uint` C 17038
+   gets implicitly).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_remove_scroll_bar (f: *mut frame, scrollbar_id: ptrdiff_t);
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe extern "C" {
+  pub fn XtDestroyWidget (widget: Widget);
+}
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /* C: dispextern.h 3574-3575: `void window_box (struct window *, enum glyph_row_area, int *,
+     int *, int *, int *);` - C 17004's call, with C's two `0` arguments as the null pointers C
+     means.  */
+  pub fn window_box (w: *mut window, area: glyph_row_area, x: *mut c_int, y: *mut c_int,
+		     width: *mut c_int, height: *mut c_int);
+}
+
+/// C 16963-16986: `static void x_scroll_bar_remove (struct scroll_bar *bar)` - C's `static`, so a
+/// plain `unsafe fn`.  Three arms: C 16970's `USE_GTK` (`xg_remove_scroll_bar`), C 16972's
+/// `#else` (`XtDestroyWidget` of the mirrored `SCROLL_BAR_X_WIDGET!`) and C 16975's plain `#else`
+/// (`XDestroyWindow`, the bare-name class this file has counted since slices 1-9); the
+/// `wset_horizontal_scroll_bar`/`wset_vertical_scroll_bar` pair is `include/window.rs` 233-237's.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_scroll_bar_remove (bar: *mut scroll_bar)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (XWINDOW ((*bar).window)));  // C 16966
+  block_input ();                                                       // C 16967
+
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  {
+#[cfg (feature = "use_gtk")]
+    { xg_remove_scroll_bar (f, (*bar).x_window as ptrdiff_t); }         // C 16971
+#[cfg (not (feature = "use_gtk"))]
+    { XtDestroyWidget (SCROLL_BAR_X_WIDGET! (FRAME_X_DISPLAY! (f), bar)); }  // C 16973
+  }
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  { XDestroyWindow (FRAME_X_DISPLAY! (f), (*bar).x_window); }           // C 16976
+
+  /* Dissociate this scroll bar from its window.  */
+  if (*bar).horizontal                                                  // C 16980
+    { wset_horizontal_scroll_bar (XWINDOW ((*bar).window), Qnil ()); }  // C 16981
+  else
+    { wset_vertical_scroll_bar (XWINDOW ((*bar).window), Qnil ()); }    // C 16983
+
+  unblock_input ();                                                     // C 16985
+}
+
+/* Set the handle of the vertical scroll bar for WINDOW to indicate
+   that we are displaying PORTION characters out of a total of WHOLE
+   characters, starting at POSITION.  If WINDOW has no scroll bar,
+   create one.  */
+
+/// C 16994-17116: `static void XTset_vertical_scroll_bar (struct window *w, int portion, int whole,
+/// int position)` - C's `static`.  Its three arms are C's: the `#ifdef USE_TOOLKIT_SCROLL_BARS`
+/// block (C 17046-17062, with C 17055's `USE_GTK` sub-arm), the `#else` plain-X block
+/// (C 17063-17078), and the tail's `#ifdef`/`#else` pair (C 17094-17112).  `top`/`height`/`left`/
+/// `width` and `window_y`/`window_height` are assigned on this straight path (`window_box` writes
+/// the last two, so they take C's own zero, PORTING.md 1.5), the `bar` binding is assigned once by
+/// either branch of C 17011's `if`, `mask` is C's `unsigned int`, and C 17107-17108's `double`
+/// arithmetic keeps both conversions (`((double) position * top_range) / whole` written with
+/// `as f64` on each operand and `as c_int` on the result).
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTset_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+				     position: c_int)
+{
+  use crate::x11_constants::{CWHeight, CWWidth, CWX, CWY};   /* C 17038-17044's four masks */
+
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 16997
+  let barobj: Lisp_Object;                                              // C 16998
+  let bar: *mut scroll_bar;                                             // C 16999
+  let top: c_int;                                                       // C 17000
+  let height: c_int;
+  let left: c_int;
+  let width: c_int;
+  let mut window_y: c_int = 0;   /* PORTING.md 1.5 */                   // C 17001
+  let mut window_height: c_int = 0;
+
+  /* Get window dimensions.  */
+  window_box (w, ANY_AREA, std::ptr::null_mut (), &raw mut window_y,     // C 17004
+	      std::ptr::null_mut (), &raw mut window_height);
+  top = window_y;                                                       // C 17005
+  height = window_height;                                               // C 17006
+  left = WINDOW_SCROLL_BAR_AREA_X! (w);                                 // C 17007
+  width = WINDOW_SCROLL_BAR_AREA_WIDTH! (w);                            // C 17008
+
+  /* Does the scroll bar exist yet?  */
+  if NILP ((*w).vertical_scroll_bar)                                    // C 17011
+    {
+      if width > 0 && height > 0                                        // C 17013
+	{
+	  block_input ();                                               // C 17015
+	  x_clear_area (f, left, top, width, height);                   // C 17016
+	  unblock_input ();                                             // C 17017
+	}
+
+      bar = x_scroll_bar_create (w, top, left, width, max (height, 1), false);  // C 17020
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+      /* Since non-toolkit scroll bars don't display their contents to
+	 a dedicated window, no expose event will be generated.
+	 Redraw the scroll bar manually.  */
+      { x_scroll_bar_redraw (bar); }                                    // C 17025
+    }
+  else
+    {
+      /* It may just need to be moved and resized.  */
+      let mut mask: c_uint = 0;                                         // C 17031
+
+      bar = XSCROLL_BAR! ((*w).vertical_scroll_bar);                    // C 17033
+
+      block_input ();                                                   // C 17035
+
+      if left != (*bar).left                                            // C 17037
+	{ mask |= CWX as c_uint; }                                      // C 17038
+      if top != (*bar).top                                              // C 17039
+	{ mask |= CWY as c_uint; }                                      // C 17040
+      if width != (*bar).width                                          // C 17041
+	{ mask |= CWWidth as c_uint; }                                  // C 17042
+      if height != (*bar).height                                        // C 17043
+	{ mask |= CWHeight as c_uint; }                                 // C 17044
+
+#[cfg (feature = "use_toolkit_scroll_bars")]
+      {
+	/* Move/size the scroll bar widget.  */
+	if mask != 0                                                    // C 17049
+	  {
+	    /* Since toolkit scroll bars are smaller than the space reserved
+	       for them on the frame, we have to clear "under" them.  */
+	    if width > 0 && height > 0                                  // C 17053
+	      { x_clear_area (f, left, top, width, height); }            // C 17054
+#[cfg (feature = "use_gtk")]
+	    {
+	      xg_update_scrollbar_pos (f, (*bar).x_window as ptrdiff_t,   // C 17056-17057
+				       top, left, width, max (height, 1));
+	    }
+#[cfg (not (feature = "use_gtk"))]
+	    {
+	      XtConfigureWidget (SCROLL_BAR_X_WIDGET! (FRAME_X_DISPLAY! (f), bar),  // C 17059-17060
+				 left as Position, top as Position, width as Dimension,
+				 max (height, 1) as Dimension, 0);
+	    }
+	  }
+      }
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+      {
+	/* Move/size the scroll bar window.  */
+	if mask != 0                                                     // C 17066
+	  {
+	    let mut wc: XWindowChanges = std::mem::zeroed ();   /* PORTING.md 1.5 */  // C 17068
+
+	    wc.x = left;                                                 // C 17070
+	    wc.y = top;                                                  // C 17071
+	    wc.width = width;                                            // C 17072
+	    wc.height = height;                                          // C 17073
+	    XConfigureWindow (FRAME_X_DISPLAY! (f), (*bar).x_window,      // C 17074-17075
+			      mask, &raw mut wc);
+	  }
+      }
+
+      /* Remember new settings.  */
+      (*bar).left = left;                                                // C 17081
+      (*bar).top = top;                                                  // C 17082
+      (*bar).width = width;                                              // C 17083
+      (*bar).height = height;                                            // C 17084
+
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+      /* Redraw the scroll bar.  */
+      { x_scroll_bar_redraw (bar); }                                     // C 17088
+
+      unblock_input ();                                                  // C 17091
+    }
+
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  { x_set_toolkit_scroll_bar_thumb (bar, portion, position, whole); }     // C 17095
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  {
+    /* Set the scroll bar's current state, unless we're currently being
+       dragged.  */
+    if (*bar).dragging == -1                                              // C 17099
+      {
+	let top_range: c_int = VERTICAL_SCROLL_BAR_TOP_RANGE! (f, height);  // C 17101
+
+	if whole == 0                                                     // C 17103
+	  { x_scroll_bar_set_handle (bar, 0, top_range, false); }          // C 17104
+	else
+	  {
+	    let start: c_int = ((position as f64 * top_range as f64)     // C 17107
+				/ whole as f64) as c_int;
+	    let end: c_int = (((position + portion) as f64 * top_range as f64)  // C 17108
+			      / whole as f64) as c_int;
+	    x_scroll_bar_set_handle (bar, start, end, false);              // C 17109
+	  }
+      }
+  }
+
+  XSETVECTOR! (barobj, bar);                                              // C 17114
+  wset_vertical_scroll_bar (w, barobj);                                   // C 17115
+}
+
+/* C 17116's `}` closes `XTset_vertical_scroll_bar`; C 17119 opens its horizontal twin.  */
