@@ -18141,3 +18141,160 @@ unsafe fn x_make_frame_visible_invisible (f: *mut frame, visible: bool)
   else
     { x_make_frame_invisible (f); }
 }
+
+/// C 29483-29492: `Cursor x_create_font_cursor (struct x_display_info *dpyinfo, int glyph)` -
+/// non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`
+/// (PORTING.md 0.2/1.4); `XCreateFontCursor` is the bare Xlib class (`## Owed`), and
+/// `make_invisible_cursor` is this file's own definition (C 12067-12095).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_create_font_cursor (dpyinfo: *mut x_display_info, glyph: c_int)
+					       -> Cursor
+{
+  if glyph <= 65535                                                    // C 29486
+    { return XCreateFontCursor ((*dpyinfo).display, glyph); }          // C 29487
+
+  /* x-pointer-invisible cannot fit in CARD16, and thus cannot be any
+     existing cursor.  */
+  return make_invisible_cursor (dpyinfo);                              // C 29491
+}
+
+/* Change window state from mapped to iconified.  */
+
+/// C 29497-29614: `void x_iconify_frame (struct frame *f)` - non-`static` and declared in xterm.h,
+/// so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  C's `#if defined
+/// (USE_GTK)` block (C 29515-29527) sits *outside* the `#ifdef USE_X_TOOLKIT`/`#else` pair that
+/// follows it, so the port writes it as its own cfg block before the two toolkit arms.  The
+/// `IconicState` C 29534/29581/29600 name stands at the end of this slice (Xutil.h 148, P-72 rule
+/// 4), `XEvent msg` (C 29575) is zero-initialised per Deviation 12 - the `set_wm_state` shape
+/// (C 27836) - and the Xlib/Xt/GTK entry points are the recorded bare-name class (`## Owed`).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_iconify_frame (f: *mut frame)
+{
+  use crate::x11_constants::ClientMessage;
+
+#[cfg (feature = "use_x_toolkit")]
+  let mut result: c_int;                                                // C 29501
+
+  /* Don't keep the highlight on an invisible frame.  */
+  if (*FRAME_DISPLAY_INFO! (f)).highlight_frame == f                    // C 29505
+    { (*FRAME_DISPLAY_INFO! (f)).highlight_frame = std::ptr::null_mut (); }  // C 29506
+
+  if FRAME_ICONIFIED_P (f)                                              // C 29508
+    { return; }                                                         // C 29509
+
+  block_input ();                                                       // C 29511
+
+  gui_set_bitmap_icon (f);                                              // C 29513
+
+#[cfg (feature = "use_gtk")]
+  {
+    if !FRAME_GTK_OUTER_WIDGET! (f).is_null ()                          // C 29516
+      {
+	if !FRAME_VISIBLE_P (f)                                         // C 29518
+	  { gtk_widget_show_all (FRAME_GTK_OUTER_WIDGET! (f)); }        // C 29519
+
+	gtk_window_iconify (GTK_WINDOW! (FRAME_GTK_OUTER_WIDGET! (f))); // C 29521
+	SET_FRAME_VISIBLE! (f, false);                                  // C 29522
+	SET_FRAME_ICONIFIED (f, true as c_int);                         // C 29523
+	unblock_input ();                                               // C 29524
+	return;                                                         // C 29525
+      }
+  }
+
+#[cfg (feature = "use_x_toolkit")]
+  {
+    if !FRAME_VISIBLE_P (f)                                             // C 29531
+      {
+	if !EQ (Vx_no_window_manager, Qt ())                            // C 29533
+	  { x_wm_set_window_state (f, IconicState); }                   // C 29534
+	/* This was XtPopup, but that did nothing for an iconified frame.  */
+	XtMapWidget ((*( (*f).output_data.x as *mut x_output )).widget);  // C 29536
+	/* The server won't give us any event to indicate
+	   that an invisible frame was changed to an icon,
+	   so we have to record it here.  */
+	SET_FRAME_VISIBLE! (f, false);                                  // C 29540
+	SET_FRAME_ICONIFIED (f, true as c_int);                         // C 29541
+	unblock_input ();                                               // C 29542
+	return;                                                         // C 29543
+      }
+
+    result = XIconifyWindow (FRAME_X_DISPLAY! (f),                      // C 29546-29548
+			     XtWindow ((*( (*f).output_data.x as *mut x_output )).widget),
+			     DefaultScreen (FRAME_X_DISPLAY! (f)));
+    unblock_input ();                                                   // C 29549
+
+    if result == 0                                                      // C 29551
+      { error (c"Can't notify window manager of iconification".as_ptr ()); }  // C 29552
+
+    SET_FRAME_ICONIFIED (f, true as c_int);                             // C 29554
+    SET_FRAME_VISIBLE! (f, false);                                      // C 29555
+
+    block_input ();                                                     // C 29557
+    XFlush (FRAME_X_DISPLAY! (f));                                      // C 29558
+    unblock_input ();                                                   // C 29559
+  }
+
+#[cfg (not (feature = "use_x_toolkit"))]
+  {
+    /* Make sure the X server knows where the window should be positioned,
+       in case the user deiconifies with the window manager.  */
+    if !FRAME_VISIBLE_P (f)                                             // C 29564
+	&& !FRAME_ICONIFIED_P (f)                                       // C 29565
+	&& !FRAME_X_EMBEDDED_P! (f)                                     // C 29566
+      { x_set_offset (f, (*f).left_pos, (*f).top_pos, 0); }             // C 29567
+
+    /* Since we don't know which revision of X we're running, we'll use both
+       the X11R3 and X11R4 techniques.  I don't know if this is a good idea.  */
+
+    /* X11R4: send a ClientMessage to the window manager using the
+       WM_CHANGE_STATE type.  */
+    {
+      let mut msg: XEvent = std::mem::zeroed ();                        // C 29575
+
+      msg.xclient.window = FRAME_X_WINDOW! (f);                         // C 29577
+      msg.xclient.r#type = ClientMessage;                               // C 29578
+      msg.xclient.message_type = (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_change_state;  // C 29579
+      msg.xclient.format = 32;                                          // C 29580
+      msg.xclient.data.l[0] = IconicState;                              // C 29581
+      msg.xclient.data.l[1] = 0;                                        // C 29582
+      msg.xclient.data.l[2] = 0;                                        // C 29583
+      msg.xclient.data.l[3] = 0;                                        // C 29584
+      msg.xclient.data.l[4] = 0;                                        // C 29585
+
+      if XSendEvent (FRAME_X_DISPLAY! (f),                              // C 29587-29591
+		     (*FRAME_DISPLAY_INFO! (f)).root_window,
+		     false,
+		     SubstructureRedirectMask | SubstructureNotifyMask,
+		     &raw mut msg) == 0
+	{
+	  unblock_input ();                                             // C 29593
+	  error (c"Can't notify window manager of iconification".as_ptr ());  // C 29594
+	}
+    }
+
+    /* X11R3: set the initial_state field of the window manager hints to
+       IconicState.  */
+    x_wm_set_window_state (f, IconicState);                             // C 29600
+
+    if !FRAME_VISIBLE_P (f)                                             // C 29602
+      {
+	/* If the frame was withdrawn, before, we must map it.  */
+	XMapRaised (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f));         // C 29605
+      }
+
+    SET_FRAME_ICONIFIED (f, true as c_int);                             // C 29608
+    SET_FRAME_VISIBLE! (f, false);                                      // C 29609
+
+    XFlush (FRAME_X_DISPLAY! (f));                                      // C 29611
+    unblock_input ();                                                   // C 29612
+  }
+}
+
+/* C: Xutil.h 148: `#define IconicState 3` - C 29534/29581/29600's state argument.  This unit's
+   `x11_constants` module carries `NormalState` (Xutil.h 147) but not this sibling (measured), so
+   it stands at this use site (P-72 rule 4; the `PropertyNotify`/`MapNotify` shape this file
+   already has), and the mirror row is owed.  */
+#[cfg (feature = "have_x_windows")]
+pub const IconicState: c_int = 3;
