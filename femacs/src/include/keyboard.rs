@@ -20,6 +20,14 @@ pub const EMACS_KEYBOARD_H: bool = true;
 // `termhooks.rs` (`*mut coding_system`) resolves it through this mirror (P-72 rule ④).
 include!("coding.rs");                        // C 23: `#include "coding.h"`
 include!("termhooks.rs");                     // C 24: `#include "termhooks.h"`
+/* keyboard.h 30-32: C reaches `struct selection_input_event` through the backend header, one per
+   window system and each behind its own macro.  **The port does not carry that edge**: an
+   `include!` is read by `tools/check-mirror-dupes.py` whatever its attribute, and the pgtkterm.h
+   mirror brings pgtkterm.h's whole prototype surface with the record, so wiring it here made 24 of
+   this mirror's 31 includers collide with names they declare themselves (the first reading of this
+   slice: `40 duplicate declaration(s), 24 failure(s)`).  The member below is carried behind the same
+   arm's macro instead, and the pgtk documentation unit resolves the type through its own include of
+   the pgtkterm.h mirror, which precedes this one in C's own order (pgtkterm.c 28 vs 61).  */
 // keyboard.h 267-269 declare `struct buffer *buffer_before_last_command_or_undo` and
 // `struct buffer *prev_buffer`; C's `keyboard.h` does **not** include `buffer.h`, so the two
 // tags are incomplete there and only legal behind pointers.  Rust has no incomplete types, and
@@ -91,6 +99,11 @@ pub union buffered_input_event
 {
   pub kind: u16,                                    // keyboard.h 230 (`kind : EVENT_KIND_WIDTH`)
   pub ie: input_event,                              // 231
+  /// keyboard.h 233: `struct selection_input_event sie;` - the pgtkterm.h record the gated include
+  /// above reaches (this mirror's own note used to call the member dead under the frozen
+  /// configuration; the PGTK arm needs it, so it is carried behind that arm's macro).
+  #[cfg (feature = "have_pgtk")]
+  pub sie: selection_input_event,                   // 233
 }
 
 /* Most code should use these functions to set Lisp fields in struct kboard.  */

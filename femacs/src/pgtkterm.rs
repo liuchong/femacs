@@ -9953,3 +9953,70 @@ unsafe fn pgtk_find_selection_owner (window: *mut GdkWindow) -> *mut frame
 
   return std::ptr::null_mut ();                                         // C 6975
 }
+
+/// C 6978-7025: `static gboolean pgtk_selection_event (GtkWidget *widget, GdkEvent *event, gpointer
+/// user_data)` - `static` with its address taken at C 6892-6898 (the four `g_signal_connect!`s in
+/// this file's own `pgtk_set_event_handler`, the fifty-seventh slice), so the port defines it
+/// **`unsafe extern "C" fn`** (PORTING.md 1.4) - and that is why this definition closes the four
+/// `E0425`s that slice registered.  C's three-way chain is the port's `if`/`else if`/`else if` with
+/// C's two `||` arms merged as written; `inev.sie.kind` goes through this unit's `input_event_bits!`
+/// (the record's own `bits` storage, `include/pgtkterm.rs` 594-607), the six `SELECTION_EVENT_*!`
+/// macros are that mirror's rows, `GDK_PROPERTY_NOTIFY`/`GDK_SELECTION_*` are this round's mirror
+/// placeholders and C's `TRUE`/`FALSE` are `true`/`false as gboolean`.  C 7012's assignment puns a `GdkAtom` into
+/// the record's `GdkWindow *requestor` (C's own warning-level conversion), so the port writes the
+/// cast out (`as *mut GdkWindow`) - the reading named the `E0308` that skips.
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn pgtk_selection_event (widget: *mut GtkWidget, event: *mut GdkEvent,
+					   user_data: gpointer) -> gboolean
+{
+  let mut f: *mut frame;                                                // C 6982
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 6983
+
+  if (*event).r#type == GDK_PROPERTY_NOTIFY                             // C 6985
+    { pgtk_handle_property_notify (&raw mut (*event).property); }       // C 6986
+  else if (*event).r#type == GDK_SELECTION_CLEAR
+	   || (*event).r#type == GDK_SELECTION_REQUEST                  // C 6987-6988
+    {
+      f = pgtk_find_selection_owner ((*event).selection.window);        // C 6990
+
+      if !f.is_null ()                                                  // C 6992
+	{
+	  EVENT_INIT (&raw mut inev.ie);                                // C 6994
+
+	  input_event_bits! (kind, &raw mut inev.sie,
+			     if (*event).r#type == GDK_SELECTION_CLEAR
+			       { SELECTION_CLEAR_EVENT }
+			       else { SELECTION_REQUEST_EVENT });       // C 6996-6998
+
+	  SELECTION_EVENT_DPYINFO! (&raw mut inev.sie)
+	    = FRAME_DISPLAY_INFO! (f);                                  // C 7000
+	  SELECTION_EVENT_SELECTION! (&raw mut inev.sie)
+	    = (*event).selection.selection;                             // C 7001
+	  SELECTION_EVENT_TIME! (&raw mut inev.sie)
+	    = (*event).selection.time;                                  // C 7002
+
+	  if (*event).r#type == GDK_SELECTION_REQUEST                   // C 7004
+	    {
+	      /* FIXME: when does GDK destroy the requestor GdkWindow
+		 object?
+
+		 It would make sense to wait for the transfer to
+		 complete.  But I don't know if GDK actually does
+		 that.  */
+	      SELECTION_EVENT_REQUESTOR! (&raw mut inev.sie)
+		= (*event).selection.requestor as *mut GdkWindow;       // C 7012
+	      SELECTION_EVENT_TARGET! (&raw mut inev.sie)
+		= (*event).selection.target;                            // C 7013
+	      SELECTION_EVENT_PROPERTY! (&raw mut inev.sie)
+		= (*event).selection.property;                          // C 7014
+	    }
+
+	  evq_enqueue (&raw mut inev);                                  // C 7017
+	  return true as gboolean;                                      // C 7018
+	}
+    }
+  else if (*event).r#type == GDK_SELECTION_NOTIFY                       // C 7021
+    { pgtk_handle_selection_notify (&raw mut (*event).selection); }     // C 7022
+
+  return false as gboolean;                                             // C 7024
+}
