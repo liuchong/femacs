@@ -191,6 +191,12 @@ include!("include/pgtkterm.rs");               // C 48's chain: `"gtkutil.h"` 29
 #[cfg (feature = "have_pgtk")]
 macro_rules! input_event_bits {
   (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+                 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
 }
 /// C: dispextern.h 3026: `INLINE void reset_mouse_highlight (Mouse_HLInfo *hlinfo)` (C 535's call).
 /// The mirror declares it inside `pub mod dispextern_externs`, which no glob import brings into this
@@ -5681,4 +5687,183 @@ unsafe fn pgtk_read_socket (terminal: *mut terminal, hold_quit: *mut input_event
     }
 
   return 0;                                                             // C 3969
+}
+
+/* Lisp window being scrolled.  Set when starting to interact with
+   a toolkit scroll bar, reset to nil when ending the interaction.  */
+
+/// C 3975: `static Lisp_Object window_being_scrolled;` - C leaves it uninitialised (a file-scope
+/// object, so C's own storage is zero-filled); the port writes `lisp_h_Qnil ()` (`NIL_IS_ZERO`).
+#[cfg (feature = "have_pgtk")]
+static mut window_being_scrolled: Lisp_Object = lisp_h_Qnil ();
+
+/// C 3977-3998: `static void pgtk_send_scroll_bar_event (Lisp_Object window, enum scroll_bar_part
+/// part, int portion, int whole, bool horizontal)` - C's local `union buffered_input_event inev` is
+/// zero-initialised (`EVENT_INIT (inev.ie)` fills the member C uses), `include/termhooks.rs` 114-131
+/// folds `kind`/`part` into the record's `bits` word (PORTING.md 1.3), so C's two members are this
+/// unit's own `input_event_bits!` writer pair (C 214-222), and C's implicit `int` -> `EMACS_INT`
+/// conversions at the two `make_fixnum` calls are spelled out (the `src/androidterm.rs` 814-815
+/// shape, Deviation 44's class).  `evq_enqueue` is this file's own C 604 definition.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_send_scroll_bar_event (window: Lisp_Object, part: scroll_bar_part,
+				      portion: c_int, whole: c_int, horizontal: bool)
+{
+  let mut inev: buffered_input_event = core::mem::zeroed ();            // C 3981
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 3983
+
+  input_event_bits! (kind, &raw mut inev.ie,                            // C 3985-3987
+		     if horizontal { HORIZONTAL_SCROLL_BAR_CLICK_EVENT }
+		     else { SCROLL_BAR_CLICK_EVENT });
+  inev.ie.frame_or_window = window;                                     // C 3988
+  inev.ie.arg = Qnil ();                                                // C 3989
+  inev.ie.timestamp = 0;                                                // C 3990
+  inev.ie.code = 0;                                                     // C 3991
+  input_event_bits! (part, &raw mut inev.ie, part);                     // C 3992
+  inev.ie.x = make_fixnum (portion as EMACS_INT);                       // C 3993
+  inev.ie.y = make_fixnum (whole as EMACS_INT);                         // C 3994
+  inev.ie.modifiers = 0;                                                // C 3995
+
+  evq_enqueue (&raw mut inev);                                          // C 3997
+}
+
+/* Scroll bar callback for GTK scroll bars.  WIDGET is the scroll
+   bar widget.  DATA is a pointer to the scroll_bar structure. */
+
+/* <gtk/gtkrange.h>: `GtkAdjustment *gtk_range_get_adjustment (GtkRange *range);` - the C 4011 call,
+   whose C-side checked cast `GTK_ADJUSTMENT (…)` has no counterpart because the declared return
+   type is already the record the cast produces (P-72 rule 3).  <gtk/gtkadjustment.h>: `gdouble
+   gtk_adjustment_get_upper (GtkAdjustment *adjustment);` - the C 4022/4030 calls; `gdouble
+   gtk_adjustment_get_page_size (GtkAdjustment *adjustment);` - the C 4023/4031 calls.  The three
+   are the GTK segment's convention (header alone, no line: this machine has no GTK tree), and
+   `include/gtk.rs` carries neither them nor the two records below - that mirror is the
+   `<gtk/gtk.h>` chain's home, so these five rows are owed to it (Owed 11).  */
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+pub struct GtkRange
+{
+  _private: [u8; 0],
+}
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+pub struct GtkAdjustment
+{
+  _private: [u8; 0],
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gtk_range_get_adjustment (range: *mut GtkRange) -> *mut GtkAdjustment;
+  pub fn gtk_adjustment_get_upper (adjustment: *mut GtkAdjustment) -> gdouble;
+  pub fn gtk_adjustment_get_page_size (adjustment: *mut GtkAdjustment) -> gdouble;
+}
+/* C: gtypes.h 61-64: `typedef double gdouble;` - C 4006's parameter type and the two
+   `gtk_adjustment_get_*` returns.  `include/gtk.rs` 40-41 has `gint`/`gboolean` and not this row,
+   so it stands here (the mirror gap is Owed 11's fourth item).  */
+#[cfg (feature = "have_pgtk")]
+pub type gdouble = c_double;
+/* C 4013's `xg_ignore_gtk_scrollbar` is `gtkutil.c` 4351's `bool xg_ignore_gtk_scrollbar;`;
+   `include/gtkutil.rs` 36 names it as owed and no mirror carries it, so it is declared here.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub static mut xg_ignore_gtk_scrollbar: bool;
+}
+/* C: gtk/gtkenums.h: `typedef enum { GTK_SCROLL_NONE, GTK_SCROLL_JUMP, GTK_SCROLL_STEP_BACKWARD,
+   GTK_SCROLL_STEP_FORWARD, GTK_SCROLL_PAGE_BACKWARD, GTK_SCROLL_PAGE_FORWARD, GTK_SCROLL_STEP_UP,
+   … } GtkScrollType;` - the type of C 4006's `scroll` parameter and of the five labels C 4018-4054
+   names.  GTK's values cannot be measured on this machine (no GTK tree), so each is a placeholder
+   in the same sense as `include/gtk.rs`'s `GDK_*` rows, and the enum's ABI is `c_int`
+   (PORTING.md 1.3/P-51).  */
+#[cfg (feature = "have_pgtk")]
+pub type GtkScrollType = c_int;
+#[cfg (feature = "have_pgtk")]
+pub const GTK_SCROLL_JUMP: GtkScrollType = 1;                 // placeholder, not GTK's value
+#[cfg (feature = "have_pgtk")]
+pub const GTK_SCROLL_STEP_BACKWARD: GtkScrollType = 2;        // placeholder, not GTK's value
+#[cfg (feature = "have_pgtk")]
+pub const GTK_SCROLL_STEP_FORWARD: GtkScrollType = 3;         // placeholder, not GTK's value
+#[cfg (feature = "have_pgtk")]
+pub const GTK_SCROLL_PAGE_BACKWARD: GtkScrollType = 4;        // placeholder, not GTK's value
+#[cfg (feature = "have_pgtk")]
+pub const GTK_SCROLL_PAGE_FORWARD: GtkScrollType = 5;         // placeholder, not GTK's value
+
+/// C 4004-4067: `static gboolean xg_scroll_callback (GtkRange *range, GtkScrollType scroll, gdouble
+/// value, gpointer user_data)` - C's `struct scroll_bar *bar = user_data` is the pointer cast the
+/// port spells (P-72 rule 3; `scroll_bar` is `include/pgtkterm.rs` 141's record), C's `switch
+/// (scroll)` is the port's `match` over the five labels (PORTING.md 2.2, this function's own
+/// `macro-body-notes.tsv` row), the two `(int)` casts of `gdouble` expressions and the two
+/// `min ((int) value, whole)` calls are spelled with C's conversions (`min` is the mirror's
+/// C-`max`/`min` helper, `include/lisp.rs` 3152), `user_data`'s `gpointer` arrives as the record
+/// pointer C casts it to, and C's two `false` returns from a `gboolean` function are the port's
+/// `false as gboolean` (the `gtk_widget_set_has_window` conversion, slice 25).
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn xg_scroll_callback (range: *mut GtkRange, scroll: GtkScrollType,
+					 value: gdouble, user_data: gpointer) -> gboolean
+{
+  let mut whole: c_int = 0;                                             // C 4008
+  let mut portion: c_int = 0;                                           // C 4008
+  let bar: *mut scroll_bar = user_data as *mut scroll_bar;              // C 4009
+  let mut part: scroll_bar_part = scroll_bar_nowhere;                   // C 4010
+  let adj: *mut GtkAdjustment = gtk_range_get_adjustment (range);       // C 4011
+
+  if xg_ignore_gtk_scrollbar                                            // C 4013
+    { return false as gboolean; }                                       // C 4014
+
+  match scroll                                                          // C 4016
+    {
+      GTK_SCROLL_JUMP =>                                                // C 4018
+	{
+	  if (*bar).horizontal                                          // C 4019
+	    {
+	      part = scroll_bar_horizontal_handle;                      // C 4021
+	      whole = (gtk_adjustment_get_upper (adj)                   // C 4022-4023
+		       - gtk_adjustment_get_page_size (adj)) as c_int;
+	      portion = min (value as c_int as isize, whole as isize) as c_int;   // C 4024
+	      (*bar).dragging = portion;                                // C 4025
+	    }
+	  else
+	    {
+	      part = scroll_bar_handle;                                 // C 4029
+	      whole = (gtk_adjustment_get_upper (adj)                   // C 4030-4031
+		       - gtk_adjustment_get_page_size (adj)) as c_int;
+	      portion = min (value as c_int as isize, whole as isize) as c_int;   // C 4032
+	      (*bar).dragging = portion;                                // C 4033
+	    }
+	}
+      GTK_SCROLL_STEP_BACKWARD =>                                       // C 4036
+	{
+	  part = if (*bar).horizontal { scroll_bar_left_arrow }         // C 4037
+		 else { scroll_bar_up_arrow };
+	  (*bar).dragging = -1;                                         // C 4038
+	}
+      GTK_SCROLL_STEP_FORWARD =>                                        // C 4040
+	{
+	  part = if (*bar).horizontal { scroll_bar_right_arrow }        // C 4041-4042
+		 else { scroll_bar_down_arrow };
+	  (*bar).dragging = -1;                                         // C 4043
+	}
+      GTK_SCROLL_PAGE_BACKWARD =>                                       // C 4045
+	{
+	  part = if (*bar).horizontal { scroll_bar_before_handle }      // C 4046-4047
+		 else { scroll_bar_above_handle };
+	  (*bar).dragging = -1;                                         // C 4048
+	}
+      GTK_SCROLL_PAGE_FORWARD =>                                        // C 4050
+	{
+	  part = if (*bar).horizontal { scroll_bar_after_handle }       // C 4051-4052
+		 else { scroll_bar_below_handle };
+	  (*bar).dragging = -1;                                         // C 4053
+	}
+      _ =>                                                              // C 4055
+	{
+	}
+    }
+
+  if part != scroll_bar_nowhere                                         // C 4059
+    {
+      window_being_scrolled = (*bar).window;                            // C 4061
+      pgtk_send_scroll_bar_event ((*bar).window, part, portion, whole,  // C 4062-4063
+				  (*bar).horizontal);
+    }
+
+  return false as gboolean;                                             // C 4066
 }
