@@ -446,6 +446,10 @@ pub const GDK_LEFT_PTR: GdkCursorType = 0;
 /// **no GDK header exists on this machine** (`docs/ports/include-gtk.md`), so each value is a
 /// placeholder in the same sense as `GDK_LEFT_PTR` - the real one is owed to a GTK toolchain.
 pub const GDK_XTERM: GdkCursorType = 0;              // placeholder, not GDK's value
+/// C 7293: `gdk_cursor_new_for_display (dpyinfo->gdpy, GDK_BLANK_CURSOR)`.  **No GDK tree exists on
+/// this machine**, so the value is a **placeholder** (distinct from the two above) and joins
+/// Owed 21's round.  **UNVERIFIED**.
+pub const GDK_BLANK_CURSOR: GdkCursorType = 1;
 pub const GDK_HAND2: GdkCursorType = 0;              // placeholder, not GDK's value
 pub const GDK_WATCH: GdkCursorType = 0;              // placeholder, not GDK's value
 pub const GDK_SB_H_DOUBLE_ARROW: GdkCursorType = 0;  // placeholder, not GDK's value
@@ -1700,6 +1704,16 @@ unsafe extern "C" {
   /// C 7044: `dialog_widget = gtk_dialog_new ();`
   /// C: gtk/gtkdialog.h: `GtkWidget *gtk_dialog_new (void);`
   pub fn gtk_dialog_new () -> *mut GtkWidget;
+  /// C 7233: `dpi = gdk_screen_get_resolution (gscr);`
+  /// C: gdk/gdkscreen.h: `gdouble gdk_screen_get_resolution (GdkScreen *screen);` - its result is
+  /// `-1` when the screen does not know, which C 7235 tests.
+  pub fn gdk_screen_get_resolution (screen: *mut GdkScreen) -> c_double;
+  /// C 7143: `gtk_init (&argc, &argv2);` - C's `int *`/`char ***` pair.
+  /// C: gtk/gtkmain.h: `void gtk_init (int *argc, char ***argv);`
+  pub fn gtk_init (argc: *mut c_int, argv: *mut *mut *mut c_char);
+  /// C 7141: `gtk_disable_setlocale ();`
+  /// C: gtk/gtkmain.h: `void gtk_disable_setlocale (void);`
+  pub fn gtk_disable_setlocale ();
   /// C 873: `gtk_label_set_line_wrap (GTK_LABEL (w), FALSE);`
   /// C: gtk/gtklabel.h: `void gtk_label_set_line_wrap (GtkLabel *label, gboolean wrap);`
   pub fn gtk_label_set_line_wrap (label: *mut GtkLabel, wrap: gboolean);

@@ -1556,6 +1556,27 @@ their assertions are owed.
     past the 0.30 the fifty-fifth slice registered, so `docs/ports/line-drift-tolerance.tsv`'s row now
     reads **0.35** with its reason re-measured (10,210 against C's 7,780).
 
+85. **A second preparatory mirror round, this time for the owed block (C 7065-7311).**
+    `pgtk_term_init` is the file's largest function, and the sixty-second slice needs four rows no
+    includer owns: `gdk_screen_get_resolution` (C 7233; its `-1` return is what C 7235 tests),
+    `gtk_init` (C 7143's `int *`/`char ***` pair), `gtk_disable_setlocale` (C 7141) and
+    `GDK_BLANK_CURSOR` (C 7293, a **placeholder** beside `GDK_LEFT_PTR`/`GDK_XTERM`, joining Owed
+    21's round).  The round is landed ahead of its slice for the same reason as the selection
+    records: the rows are verified clean now (`check-mirror-dupes` 16/16/0, `tools/check-all-units.sh`
+    83/0, the named `src/xwidget.rs` reading identical on both sides at 197/52) and the function
+    itself has a long tail of its own.  **The measurement that follows from this round, for the
+    sixty-second slice**: `g_log_set_handler`/`g_log_remove_handler`/`G_LOG_LEVEL_WARNING`/
+    `gdk_cursor_new_for_display`/`gdk_display_get_name` and the rest of the GLib surface are already
+    in `include/gtk.rs`; `gdk_atom_name`-class names an includer owns must stay unit-local
+    (`GDK_SB_V_DOUBLE_ARROW`/`GDK_SB_H_DOUBLE_ARROW` are `src/pgtkfns.rs` 2581's, so this unit needs
+    its own copies); `xsettings_initialize`, `pgtk_im_init`, `xg_display_open`, `xg_initialize`,
+    `xg_create_default_cursor` and `same_x_server` are `include/pgtkterm.rs`/`include/gtkutil.rs`
+    rows; `add_keyboard_wait_descriptor`, `init_sigio`, `Fset_input_interrupt_mode`, `allocate_kboard`
+    and the rest are the include graph's; and the `GDK_WINDOWING_WAYLAND` arm still needs one
+    decision this round did not guess at - `GDK_IS_WAYLAND_DISPLAY` is a `G_TYPE_CHECK_INSTANCE_TYPE`
+    chain (the mirror's cast-chain deviation) and `struct wl_display` comes from
+    `<gdk/gdkwayland.h>`, so the arm's rows are the sixty-second slice's to place.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -4242,3 +4263,20 @@ slices and the header to 10,210 lines.  **The gates** read `check-declarations.p
 nothing has been run - the frozen configuration compiles none of this file, this machine has no GTK
 tree and no PGTK target, no display was deleted and no XLFD converted, and the arm readings are
 **compile** readings of text this machine cannot build.
+
+## The second preparatory mirror round, ahead of the owed C 7065-7311 block
+
+**Why it is here.**  `pgtk_term_init` (the block the sixty-first slice left owed) needs four rows no
+includer owns, and landing them now keeps the function's own slice to unit-local rows (Deviation 85).
+
+**What it changes.**  `include/gtk.rs` gains `gdk_screen_get_resolution`, `gtk_init`,
+`gtk_disable_setlocale` and `GDK_BLANK_CURSOR` (**placeholder**, Owed 21's round).  **No C range**, so
+the title and the header are unchanged (sixty-one slices, 10,210 lines).
+
+**The readings.**  The unit's three arms are **unchanged** against HEAD's mirror (`44/19`, `45/20`,
+`2/18` on both sides, sets diffing empty - the unit text is untouched this round), the named
+`src/xwidget.rs` reading is **identical** on both sides (197 errors / 52 warnings),
+`check-mirror-dupes` reads **16/16/0** and `tools/check-all-units.sh` reads
+`checked 83 unit(s), 0 failure(s)` and `checking 83 unit(s), 0 unit failure(s)`.  `extract-abi.py
+--check` still reads 23 rows.  **Not claimed**: nothing in this round has been called, the
+`GDK_BLANK_CURSOR` value is a placeholder and this machine has no GTK tree.
