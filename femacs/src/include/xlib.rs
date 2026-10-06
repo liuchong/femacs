@@ -140,6 +140,11 @@ pub mod x11_constants {
   pub const InputOnly: c_int = 2;
   /// X11/X.h 401: `#define CWOverrideRedirect (1L<<9)`.
   pub const CWOverrideRedirect: c_long = 1 << 9;
+  /// X11/X.h 403: `#define CWEventMask (1L<<11)` - `x_scroll_bar_create`'s plain-X arm
+  /// (C 16740) is the first text to name it.
+  pub const CWEventMask: c_long = 1 << 11;
+  /// X11/X.h 406: `#define CWCursor (1L<<14)` - the same arm, C 16740.
+  pub const CWCursor: c_long = 1 << 14;
   /// X11/X.h 445: `#define IsUnmapped 0` - an `XWindowAttributes.map_state`.
   pub const IsUnmapped: c_int = 0;
   /// X11/X.h 456: `#define DestroyAll 0` - `XSetCloseDownMode`'s first mode.
@@ -203,6 +208,11 @@ pub mod x11_constants {
   pub const LeaveWindowMask: c_long = 1 << 5;
   /// X11/X.h 157: `#define PointerMotionMask (1L<<6)`.
   pub const PointerMotionMask: c_long = 1 << 6;
+  /// X11/X.h 158: `#define PointerMotionHintMask (1L<<7)` - `x_scroll_bar_create`'s
+  /// event mask (C 16736-16737).
+  pub const PointerMotionHintMask: c_long = 1 << 7;
+  /// X11/X.h 164: `#define ButtonMotionMask (1L<<13)` - the same mask, C 16736-16737.
+  pub const ButtonMotionMask: c_long = 1 << 13;
   /// X11/X.h 166: `#define ExposureMask (1L<<15)`.
   pub const ExposureMask: c_long = 1 << 15;
   /// X11/X.h 167: `#define VisibilityChangeMask (1L<<16)`.

@@ -25843,4 +25843,193 @@ unsafe fn x_set_toolkit_horizontal_scroll_bar_thumb (bar: *mut scroll_bar, porti
   unblock_input ();                                                       // C 16697
 }
 
-/* C 16699's `#endif /* not USE_GTK */` closes this arm.  */
+/************************************************************************
+			 Scroll bars, general
+ ************************************************************************/
+
+/* Create a scroll bar and return the scroll bar vector for it.  W is
+   the Emacs window on which to create the scroll bar. TOP, LEFT,
+   WIDTH and HEIGHT are the pixel coordinates and dimensions of the
+   scroll bar. */
+
+/* C 16725's `#ifdef USE_TOOLKIT_SCROLL_BARS` is the arm that calls the two creators slices 75/76
+   landed (C 16727/16729 - the pair this function has been waiting for); C 16730's `#else` builds a
+   plain input-only X window instead, and the two arms rejoin at C 16777.  */
+
+/* The names this function needs that no mirror carries.  `window_box_height` is `window.h`'s
+   prototype (its mirror does not carry it and the definition is `src/window.c`'s), the three Xlib
+   and libXt procedures are their headers' own, and the GTK pair is `gtkutil.h`'s (the pgtk lane's
+   `src/pgtkterm.rs` 5994-6005 rows, which `include/gtkutil.rs` does not carry).  */
+/* C: window.h: `extern int window_box_height (struct window *);` - C 16745/16746's two calls.
+   The mirror of that header does not carry it and the definition is `src/window.c`'s, so it is a
+   use-site declaration (P-88 1) until that mirror's own round.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_toolkit_scroll_bars")))]
+unsafe extern "C" {
+  pub fn window_box_height (w: *mut window) -> c_int;
+}
+/* C: Xlib.h: `extern int XLowerWindow (Display *, Window);` - C 16813/16819's calls (and the
+   two `x_make_frame_*`-side uses this unit already had, which this declaration retires: those
+   rows were the bare-name class until now).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XLowerWindow (display: *mut Display, w: Window) -> c_int;
+}
+/* C: Xlib.h: `extern int XMapWindow (Display *, Window);` - C 16817's call, in the plain-X arm
+   this slice is the first to reach.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_toolkit_scroll_bars")))]
+unsafe extern "C" {
+  pub fn XMapWindow (display: *mut Display, w: Window) -> c_int;
+}
+/* C: `<X11/Intrinsic.h>`: `extern void XtMapWidget (Widget);` - C 16811's call (and the two
+   `x_make_frame_*`-side uses this unit already had, whose rows this declaration retires).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe extern "C" {
+  pub fn XtMapWidget (widget: Widget);
+}
+/* C: gtkutil.h 129-134: `extern void xg_update_scrollbar_pos (struct frame *f, Window wdesc, int
+   top, int left, int width, int height);` and 135-140's horizontal twin - C 16803/16806's calls,
+   in the `USE_TOOLKIT_SCROLL_BARS && USE_GTK` arm (the pgtk lane's rows).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_update_scrollbar_pos (f: *mut frame, scrollbar_id: ptrdiff_t, top: c_int, left: c_int,
+				  width: c_int, height: c_int);
+  pub fn xg_update_horizontal_scrollbar_pos (f: *mut frame, scrollbar_id: ptrdiff_t, top: c_int,
+					     left: c_int, width: c_int, height: c_int);
+}
+
+/// C 16714-16824: `static struct scroll_bar *x_scroll_bar_create (struct window *w, int top, int
+/// left, int width, int height, bool horizontal)` - C's `static`, so a plain `unsafe fn`.  Six
+/// shapes: C 16719-16720's `ALLOCATE_PSEUDOVECTOR` is `include/lisp.rs` 2970's macro (the
+/// `src/alloc.rs` call shape, `pvec_type::PVEC_OTHER` for C's `PVEC_OTHER`); C 16732's
+/// `XSetWindowAttributes a;` is written field-wise below, so it takes `std::mem::zeroed ()`
+/// (PORTING.md 1.5) while C 16733/16734's `mask`/`window` are assigned once and take no `mut`;
+/// C 16736-16740's four X11 mask names are `crate::x11_constants`' rows - the four this slice adds
+/// to that mirror (the module's `ButtonPressMask` shape, measured against `X11/X.h`) - imported
+/// per function the way C 27531's block does; C 16803/16806 pass `bar->x_window` to a `ptrdiff_t`
+/// parameter, so the port states `as ptrdiff_t` (the pgtk lane's 6054-6057 shape); and C 16810's
+/// `XtConfigureWidget` states the `Position`/`Dimension` conversions slice 74's ruling requires
+/// (this file's 17139 spelling).  `if (horizontal)`/`else` and the two-arm `#ifdef`/`#else` are
+/// C's own nesting, kept with `#[cfg]` blocks (P-86 1).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_scroll_bar_create (w: *mut window, top: c_int, left: c_int, width: c_int,
+			       height: c_int, horizontal: bool) -> *mut scroll_bar
+{
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 16718
+  let bar: *mut scroll_bar
+    = ALLOCATE_PSEUDOVECTOR! (scroll_bar, prev, pvec_type::PVEC_OTHER); // C 16719-16720
+  let barobj: Lisp_Object;                                              // C 16721
+
+  block_input ();                                                       // C 16723
+
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  {
+    if horizontal
+      { x_create_horizontal_toolkit_scroll_bar (f, bar); }              // C 16727
+    else
+      { x_create_toolkit_scroll_bar (f, bar); }                         // C 16729
+  }
+
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  {
+    use crate::x11_constants::{ButtonMotionMask, ButtonPressMask, ButtonReleaseMask, CWCursor,
+			       CWEventMask, CopyFromParent, InputOnly, PointerMotionHintMask};
+
+    let mut a: XSetWindowAttributes = std::mem::zeroed ();   /* PORTING.md 1.5 */  // C 16732
+    let mask: c_ulong;                                                  // C 16733
+    let window: Window;                                                 // C 16734
+
+    a.event_mask = ButtonPressMask | ButtonReleaseMask                   // C 16736-16737
+		   | ButtonMotionMask | PointerMotionHintMask;
+    a.cursor = (*FRAME_DISPLAY_INFO! (f)).vertical_scroll_bar_cursor;   // C 16738
+
+    mask = (CWEventMask | CWCursor) as c_ulong;                         // C 16740
+
+    /* Clear the area of W that will serve as a scroll bar.  This is
+       for the case that a window has been split horizontally.  In
+       this case, no clear_frame is generated to reduce flickering.  */
+    if width > 0 && window_box_height (w) > 0                           // C 16745
+      { x_clear_area (f, left, top, width, window_box_height (w)); }    // C 16746
+
+    /* Create an input only window.  Scroll bar contents are drawn to
+       the frame window itself, so they can be double buffered and
+       synchronized using the same mechanism as the frame.  */
+    window = XCreateWindow (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),   // C 16751
+			    /* Position and size of scroll bar.  */
+			    left, top, width, height,
+			    /* Border width.  */
+			    0,
+			    /* Depth.  */
+			    CopyFromParent,
+			    /* Class.  */
+			    InputOnly,
+			    /* Visual class.  */
+			    CopyFromParent,
+			     /* Attributes.  */
+			    mask, &raw mut a);
+
+#[cfg (feature = "have_xinput2")]
+    /* Ask for input extension button and motion events.  This lets us
+       send the proper `wheel-up' or `wheel-down' events to Emacs.  */
+    if (*FRAME_DISPLAY_INFO! (f)).supports_xi2                           // C 16768
+      {
+	xi_select_scroll_bar_events (FRAME_DISPLAY_INFO! (f), window);   // C 16769-16770
+      }
+
+    (*bar).x_window = window;                                           // C 16773
+  }
+
+  XSETWINDOW! ((*bar).window, w);                                       // C 16777
+  (*bar).top = top;                                                     // C 16778
+  (*bar).left = left;                                                   // C 16779
+  (*bar).width = width;                                                 // C 16780
+  (*bar).height = height;                                               // C 16781
+  (*bar).start = 0;                                                     // C 16782
+  (*bar).end = 0;                                                       // C 16783
+  (*bar).dragging = -1;                                                 // C 16784
+  (*bar).horizontal = horizontal;                                       // C 16785
+#[cfg (all (feature = "use_toolkit_scroll_bars", feature = "use_lucid"))]
+  { (*bar).last_seen_part = scroll_bar_nowhere; }                       // C 16787
+
+  /* Add bar to its frame's list of scroll bars.  */
+  (*bar).next = FRAME_SCROLL_BARS (f);                                  // C 16791
+  (*bar).prev = Qnil ();                                                // C 16792
+  XSETVECTOR! (barobj, bar);                                            // C 16793
+  fset_scroll_bars (f, barobj);                                         // C 16794
+  if !NILP ((*bar).next)                                                // C 16795
+    { XSETVECTOR! ((*XSCROLL_BAR! ((*bar).next)).prev, bar); }          // C 16796
+
+  /* Map the window/widget.  */
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  {
+#[cfg (feature = "use_gtk")]
+    {
+      if horizontal
+	{ xg_update_horizontal_scrollbar_pos (f, (*bar).x_window as ptrdiff_t,  // C 16803-16804
+					      top, left, width, max (height, 1)); }
+      else
+	{ xg_update_scrollbar_pos (f, (*bar).x_window as ptrdiff_t,         // C 16806-16807
+				   top, left, width, max (height, 1)); }
+    }
+#[cfg (not (feature = "use_gtk"))]
+    {
+      let scroll_bar: Widget = SCROLL_BAR_X_WIDGET! (FRAME_X_DISPLAY! (f), bar);  // C 16809
+      XtConfigureWidget (scroll_bar, left as Position, top as Position,   // C 16810
+			 width as Dimension, max (height, 1) as Dimension, 0);
+      XtMapWidget (scroll_bar);                                           // C 16811
+      /* Don't obscure any child frames.  */
+      XLowerWindow (FRAME_X_DISPLAY! (f), (*bar).x_window);               // C 16813
+    }
+  }
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  {
+    XMapWindow (FRAME_X_DISPLAY! (f), (*bar).x_window);                   // C 16817
+    /* Don't obscure any child frames.  */
+    XLowerWindow (FRAME_X_DISPLAY! (f), (*bar).x_window);                 // C 16819
+  }
+
+  unblock_input ();                                                       // C 16822
+  return bar;                                                             // C 16823
+}
+
+/* C 16824's `}` closes `x_scroll_bar_create`; C 16827's `#ifndef USE_TOOLKIT_SCROLL_BARS` opens the
+   handle-drawing region the next slice starts.  */
