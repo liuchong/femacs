@@ -10101,3 +10101,110 @@ unsafe fn pgtk_display_x_warning (display: *mut GdkDisplay)
   gtk_widget_show (label);                                              // C 7061
   gtk_widget_show (dialog_widget);                                      // C 7062
 }
+
+/* Get rid of display DPYINFO, deleting all frames on it,
+   and without sending any more commands to the X server.  */
+
+/* <stdio.h>: `int sscanf (const char *s, const char *format, ...);` - the C 7364/7369 calls.  The
+   include graph carries `strncmp`/`strlen`/`strcpy`, so only this one stands here (P-88 1).
+   termhooks.h 906: `extern void delete_terminal (struct terminal *);` - the C 7324 call, whose
+   definition is `src/terminal.rs` 416 and whose sibling use-site declaration is `src/term.rs`
+   159-160; this unit declares its own (the `gen_help_event` shape).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn sscanf (s: *const c_char, format: *const c_char, ...) -> c_int;
+  pub fn delete_terminal (terminal: *mut terminal);
+}
+
+/// C 7313-7351: `static void pgtk_delete_display (struct pgtk_display_info *dpyinfo)` - `static` with
+/// no address taken (C 4606's call), so a plain `unsafe fn`.  C's `for (t = terminal_list; t;
+/// t = t->next_terminal)` is the port's `while` with C's step at the body's end and its `break` in
+/// the body; `terminal_list`/`next_terminal`/`r#type`/`display_info` are `include/termhooks.rs`'s
+/// rows, `output_pgtk` is that header's enumeration member, `delete_terminal` is this slice's new use-site
+/// declaration (its definition is `src/terminal.rs` 416) and `pgtk_free_devices` this unit's own,
+/// and C 7322's union member is the `*mut c_void` the mirror records, so the comparison casts
+/// (`dpyinfo as *mut c_void`, the P-72 rule-3 shape), and C's two `xfree`s take the `void *` conversions.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_delete_display (dpyinfo: *mut pgtk_display_info)
+{
+  let mut t: *mut terminal;                                             // C 7316
+  let mut last: *mut pgtk_touch_point;                                  // C 7317
+  let mut tem: *mut pgtk_touch_point;                                   // C 7317
+
+  /* Close all frames and delete the generic struct terminal for this
+     X display.  */
+  t = terminal_list;                                                    // C 7321
+  while !t.is_null ()                                                   // C 7321
+    {
+      if (*t).r#type == output_pgtk
+	  && (*t).display_info.pgtk == dpyinfo as *mut c_void           // C 7322
+	{
+	  delete_terminal (t);                                          // C 7324
+	  break;                                                        // C 7325
+	}
+      t = (*t).next_terminal;                                           // C 7321
+    }
+
+  if x_display_list == dpyinfo                                          // C 7328
+    { x_display_list = (*dpyinfo).next; }                               // C 7329
+  else
+    {
+      let mut tail: *mut pgtk_display_info;                             // C 7332
+
+      tail = x_display_list;                                            // C 7334
+      while !tail.is_null ()                                            // C 7334
+	{
+	  if (*tail).next == dpyinfo                                    // C 7335
+	    { (*tail).next = (*(*tail).next).next; }                    // C 7336
+	  tail = (*tail).next;                                          // C 7334
+	}
+    }
+
+  /* Free remaining touchpoints.  */
+  tem = (*dpyinfo).touchpoints;                                         // C 7340
+  while !tem.is_null ()                                                 // C 7341
+    {
+      last = tem;                                                       // C 7343
+      tem = (*tem).next;                                                // C 7344
+      xfree (last as *mut c_void);                                      // C 7345
+    }
+
+  pgtk_free_devices (dpyinfo);                                          // C 7348
+  xfree (dpyinfo as *mut c_void);                                       // C 7349
+}
+
+/// C 7352-7378: `char *pgtk_xlfd_to_fontname (const char *xlfd)` - a **non-`static`** C definition,
+/// so the port carries `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md 0.2).  C 7354-7358's
+/// comment sits between the signature and the body, which the port keeps as a comment above the
+/// body; `xmalloc`'s C `180` is `std::mem::size_of`-free here (a byte count) so it is passed as
+/// written, `strncmp`/`strlen`/`strcpy` are the include graph's rows, `sscanf` is the row above, and
+/// C's `name[0] = '\\0'` is the port's `*name = 0` while `"--%179[^-]-"`/`"-%*[^-]-%179[^-]-"`/
+/// `"Monospace"` are `c"…".as_ptr ()`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_xlfd_to_fontname (xlfd: *const c_char) -> *mut c_char
+/* --------------------------------------------------------------------------
+    Convert an X font name (XLFD) to an Gtk font name.
+    Only family is used.
+    The string returned is temporarily allocated.
+   -------------------------------------------------------------------------- */
+{
+  let mut name: *mut c_char = xmalloc (180) as *mut c_char;             // C 7360
+
+  if strncmp (xlfd, c"--".as_ptr (), 2) == 0                            // C 7362
+    {
+      if sscanf (xlfd, c"--%179[^-]-".as_ptr (), name) != 1             // C 7364
+	{ *name = 0; }                                                  // C 7365
+    }
+  else
+    {
+      if sscanf (xlfd, c"-%*[^-]-%179[^-]-".as_ptr (), name) != 1       // C 7369
+	{ *name = 0; }                                                  // C 7370
+    }
+
+  /* stopgap for malformed XLFD input */
+  if strlen (name) == 0                                                 // C 7374
+    { strcpy (name, c"Monospace".as_ptr ()); }                          // C 7375
+
+  return name;                                                          // C 7377
+}
