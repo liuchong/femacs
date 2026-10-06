@@ -1,4 +1,4 @@
-# emacs/src/pgtkfns.c (3906 lines) — first slice: C 1-1147
+# emacs/src/pgtkfns.c (3,906 lines) — ported in full: C 1-3906, fourteen slices
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkfns.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -13,11 +13,16 @@
 > not a vacuous pass.  What this ledger adds is P-86 ②'s substitute shape - the **C line-range
 > table**, accounting for every line of the reference because the arm cannot be compiled on this
 > machine - beside the `## Evidence` arm readings and the `## Deviations`.  Port:
-> `femacs/src/pgtkfns.rs` (**5,133** lines, from the 11 of the placeholder), carrying **C 1-1147**,
+> `femacs/src/pgtkfns.rs` (**5,319** lines, from the 11 of the placeholder), carrying **C 1-1147**,
 > **C 1149-1196**, **C 1197-1752**, **C 1754-1996**, **C 1999-2208**, **C 2210-2403**,
 > **C 2405-2549**, **C 2551-2838**, **C 2840-3025**, **C 3027-3317**, **C 3319-3525**,
-> **C 3528-3676** and **C 3678-3772** - thirteen slices - with **both arms of every `#if`**; the
-> next live definition is `syms_of_pgtkfns` (**C 3775**).
+> **C 3528-3676**, **C 3678-3772** and **C 3774-3906** - fourteen slices, i.e. **the whole file** -
+> with **both arms of every `#if`**.  **The unit closes** (status 3.728):
+> `python3 tools/extract-abi.py --check emacs/src/pgtkfns.c femacs/src/pgtkfns.rs` reads **OK**, so
+> the C line-range table below is the file's coverage evidence and no item is left; the last
+> reading's components are the two rows the closure retired (the `syms_of_pgtkfns` body's `doc:`
+> tokens, recorded as a `macro-body-notes.tsv` row - Deviation 84 - and the line-count row, which
+> this unit's `line-drift-tolerance.tsv` row holds at **0.40** - Deviation 85).
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -136,7 +141,7 @@ which exist only under those two features (Owed 6).
 | 3319-3525 | `frame_geometry` (C 3325-3414: the three edge branches and the association list), `Fpgtk_frame_geometry` (C 3416-3458), `Fpgtk_frame_edges` (C 3460-3481), `Fpgtk_set_mouse_absolute_pixel_position` (C 3483-3502) and `Fpgtk_mouse_absolute_pixel_position` (C 3504-3525) | the file gate - **transcribed** (the eleventh slice) |
 | 3528-3676 | `Fpgtk_page_setup_dialog` (C 3528-3539), `Fpgtk_get_page_setup` (C 3541-3569), `Fpgtk_print_frames_dialog` (C 3571-3604), `clean_up_dialog` (C 3606-3610), `Fx_file_dialog` (C 3612-3663) and `Fpgtk_backend_display_class` (C 3665-3676) | the file gate - **transcribed** (the twelfth slice) |
 | 3678-3772 | `Fx_select_font` (C 3678-3719), `Fx_gtk_debug` (C 3721-3732), `unwind_gerror_ptr` (C 3734-3740) and `Fx_gtk_launch_uri` (C 3742-3772) | the file gate - **transcribed** (the thirteenth slice) |
-| 3774-3906 | **the last item of the file** - C 3775's `syms_of_pgtkfns` (**the next live definition**): its `DEFVAR_LISP`/`DEFVAR_BOOL`/`DEFSYM` groups, the `staticpro` calls and the forty `defsubr` registrations, through C 3906's closing brace | not in these slices: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 3774-3906 | C 3775's `syms_of_pgtkfns`: the twenty `DEFSYM`s, the six `DEFVAR_LISP`/`DEFVAR_BOOL` registrations with their initial values, the two `Fprovide` calls with the two version-string blocks, the thirty-nine `defsubr` registrations and the six `staticpro` pairs, through C 3906's closing brace | the file gate - **transcribed** (the fourteenth slice; **the table now has no `not in these slices` row and no `remainder` row**) |
 
 ## Evidence
 
@@ -717,6 +722,28 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     's docstring and the per-site citations), and the `--check` drift row retires at that tolerance
     (41 -> 40 rows).
 
+82. **`DEFSYM!`/`DEFVAR_LISP!`/`DEFVAR_BOOL!` are the mirror's macros, and the seven registered
+    variables are defined in this unit.**  C's `DEFVAR_*` defines the object it registers
+    (`globals.f_##vname`), so the port defines `Vx_cursor_fore_pixel`, `Vgtk_version_string`,
+    `Vcairo_version_string`, `Vx_max_tooltip_size` and the three `x_gtk_*` flags here as
+    `#[unsafe(no_mangle)] pub static mut …` and `globals.rs`'s declarations are shadowed (the
+    `src/haikufns.rs` 4147-4168 and `src/alloc.rs` 8026-8032 shape).  The `defsubr` calls take the
+    subr records by `&raw mut` (the `src/alloc.rs` 8146-8149 shape), and `staticpro` takes
+    `&raw mut` (the `src/alloc.rs` 1791-1792 shape).
+83. **The two version-string blocks keep C's own calls.**  C 3793-3798's `g_strdup_printf` +
+    `strlen` + `make_specified_string` + `g_free` pair (and C 3807-3812's cairo twin) is written with
+    those four functions, not with `sprintf` into a stack buffer the way `src/haikufns.rs` 4290-4300
+    spells the same DEFVAR for the Haiku build; `make_specified_string`'s two `ptrdiff_t` arguments
+    are `strlen`'s `usize` and the `int` C stores it in, both written out.
+84. **One `macro-body-notes.tsv` row was needed at closure.**  The `syms_of_pgtkfns` body's tokens
+    include C's `doc:` field label (the six `DEFVAR_*` forms carry it); the port's macros take that
+    string positionally, exactly as `syms_of_data`/`syms_of_callint` do, so the row is the same
+    class with the same reason and the checker still compares every other token of the body.
+85. **The tolerance row's final value is 0.40.**  The closed file is 5,319 lines against C's 3,906
+    (**+36.2%**); the row's five measurements are in Owed 10, and the `--check` reading is **OK** at
+    that tolerance - the drift row is the only one a closed P-86 unit can still bring back, and the
+    tolerance row is what it retires against.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 1. **`include/pgtkterm.rs` is a placeholder and owes the records.**  `pgtk_output` (pgtkterm.h
@@ -771,9 +798,12 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
    (`0`), `pgtk_explicitly_set_name` (`true`), `pgtk_implicitly_set_name` (`false`),
    `pgtk_set_menu_bar_lines` (`update_mode_line`) and `x_change_tool_bar_height`
    (`update_mode_line`).  That file is not on the porter's writable list (P-86 ⑩).
-10. **`docs/ports/line-drift-tolerance.tsv`**: one row, `pgtkfns`, tolerance ≥ 0.51, basis `total` -
-    C 3906 vs the port's 1899 (Evidence ③); and `docs/port-map.md` 506's Rust count (11) needs the
-    integrator's `tools/check-port-lines.py --write-pending`.
+10. **`docs/ports/line-drift-tolerance.tsv`**: one row, `pgtkfns`, basis `total` - **written and
+    final**: the row's value moved with the measurements (0.10 at +9.5%, 0.20 at +19.6%, 0.25 at
+    +24.4%, 0.30 at +28.7%, 0.35 at +31.4%) and stands at **0.40** on the closed file, C 3,906 vs the
+    port's 5,319 (+36.2%, Deviation 85); the 0.51 this row predicted was the first slice's estimate
+    of a much longer file (C 3906 vs 1899) and the measurement replaced it.  `docs/port-map.md`'s
+    Rust count is regenerated by the inventory re-run at the closure.
 11. **The five `#ifdef`s' arm texts.**  C's four `GDK_PIXBUF_VERSION_2_44` `#pragma` lines and the
     four cairo arms' `#ifdef`/`else`/`#endif` tokens have no Rust counterpart (Deviation 4); if the
     fleet wants them occurrence-checked, they are `token-aliases.tsv` rows.
@@ -787,6 +817,16 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
     names GIO among the third-party headers it does not carry.  If that mirror grows a GIO part, the
     two units' segments move there in one commit (P-88 ⑤'s move rule), and this file's copy must be
     deleted in that same commit or the two collide (`E0428`).
+
+14. **The three `GTK_*_VERSION` constants are the reference's requirement, not a measured build's.**
+    C 3794's `gtk-version-string` DEFVAR reads `GTK_MAJOR_VERSION`/`GTK_MINOR_VERSION`/
+    `GTK_MICRO_VERSION` from `<gtk/gtkversion.h>`; no GTK header exists on this machine (the same
+    absence that makes every GTK row in `include/gtk.rs` header-only), so the unit carries 3/22/23 -
+    `configure.ac` 3745's `GTK_REQUIRED=3.22.23` for this toolkit - with the values marked
+    **UNVERIFIED** in the code.  A GTK toolchain would replace all three with the linked build's and
+    delete this item; until then the runtime `gtk-version-string` this unit would produce is the
+    requirement, not the build's version, and that is a *behaviour* difference and not only a
+    spelling one (the `--check` reading cannot see it).
 
 ## P-90's second step (2026-10-05): the toolkit segment moved out
 
@@ -1500,3 +1540,49 @@ no font dialog was opened and no URI was launched (the four items are registered
 `syms_of_pgtkfns`, still the remainder), `xg_get_font` and the three GTK entry points are
 declarations - the port has no GTK to link - and the four arm readings are **compile** readings of
 text this machine cannot build.
+
+## The fourteenth slice (C 3774-3906): `syms_of_pgtkfns` — and the unit closes
+
+**What is in it.**  The twenty `DEFSYM`s (C 3777-3782 and C 3890-3905, six before the DEFVARs and
+fourteen after them), the six `DEFVAR_LISP`/`DEFVAR_BOOL` registrations with their initial values
+(C 3784-3786, C 3790-3791, C 3804-3805, C 3874-3876, C 3878-3880, C 3882-3884 and C 3886-3888), the
+two `Fprovide` calls (C 3788's `gtk` and C 3802's `cairo`) with the two version-string blocks
+(C 3793-3798 from the three `GTK_*_VERSION` macros and C 3807-3812 from the three
+`CAIRO_VERSION_*` ones), the **thirty-nine** `defsubr` registrations (C 3815-3857, the list whose
+order and comments are C's own), and the six `staticpro` pairs (C 3859-3871: `monitor_scale_factor_alist`
+and the five tooltip statics this unit's earlier slices defined).  Rust: 5,133 -> **5,319** lines.
+
+**The arm readings (four arms, both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 213 errors / 11 warnings -> 213 / 11
+B wide   = A + use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+           gdk_windowing_wayland + have_xwidgets   : 201 / 10 -> 201 / 10
+C = A + have_gsettings                             : 213 / 11 -> 213 / 11
+D = B + have_gsettings                             : 201 / 10 -> 201 / 10
+```
+**Every arm reads exactly the same number on both sides**: the registration block adds no error and
+no warning of any class (the DEFVAR/DEFSYM macros expand to the mirror's own definitions and the
+seven variables shadow `globals.rs`'s declarations - Deviation 82), and the file's remaining
+diagnostics are the unit's registered placeholder classes, unchanged by this slice.
+
+**The closure.**  `python3 tools/extract-abi.py --check emacs/src/pgtkfns.c femacs/src/pgtkfns.rs`
+reads **OK**: the forty rows of the thirteenth slice's reading are gone.  Two of them needed
+decisions rather than transcription (Deviation 84's `macro-body-notes.tsv` row for the body's `doc:`
+tokens, and Deviation 85's tolerance row, whose final value is **0.40**) and one item is Owed 14
+(the three `GTK_*_VERSION` constants are `configure.ac` 3745's requirement, not a measured build's -
+a behaviour difference a `--check` reading cannot see).  The C line-range table above now has no
+`remainder` row: 63 rows tile C 1-3906.
+
+**Gates and what is not claimed.**  `check-declarations.py` **18 declaration sites (0 forbidden,
+18 allowed literals), 0 failures**; `check-citations.py` **676 file(s) scanned, 0 drift, 0 range,
+2054 external, 36 allowed, 0 stale**; `check-dead-file-coverage.py` **145 ledger(s) bound,
+0 failure(s)** (**63 range rows** over `src/pgtkfns.c`); `check-port-lines.py` **0 file(s) under ten
+percent, 0 reference line(s), 0 ratchet row(s), 0 new, 0 stale**; `check-ledger-ticks.py`
+**238 ledger(s) bound, 0 failure(s)**; `check-cond-eval.py src/pgtkfns.c` **11 conditions, 0 unknown,
+0 disagreements [VERIFIED]**; `check-mirror-dupes.py` **16 duplicate(s), 16 ratchet row(s),
+0 failure(s)** (no mirror changed this round).  **Not claimed**: nothing this file defines has been
+*run* - the frozen configuration compiles none of it, there is no GTK to link, and every function
+here is called by Emacs's own C at startup (`syms_of_pgtkfns` is called by `main`'s
+`syms_of_*` sequence, which this port also carries but cannot build here).  The closing `--check`
+reading is a **text** coverage statement: every item of the reference is transcribed, with the arms,
+the docstrings and the deviations named above - not a behaviour claim.

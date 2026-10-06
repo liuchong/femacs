@@ -611,6 +611,11 @@ unsafe extern "C" {
   /// C: frame.h 1869-1870: `extern void gui_set_borders_respect_alpha_background (struct frame *,
   /// Lisp_Object, Lisp_Object);`
   /* lisp.h.  */
+  /// C 3797/3811: `Vgtk_version_string = make_specified_string (ver, len, len, false);`
+  /// C: lisp.h 4566-4568: `extern Lisp_Object make_specified_string (const char *, ptrdiff_t,
+  /// ptrdiff_t, bool);` (`src/alloc.rs` defines it)
+  pub fn make_specified_string (contents: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
+				multibyte: bool) -> Lisp_Object;
   /// C 3702/3707: `default_name = xlispstrdup (font_param);`
   /// C: lisp.h 5553-5555: `extern char *xlispstrdup (Lisp_Object) ATTRIBUTE_MALLOC
   /// ATTRIBUTE_RETURNS_NONNULL;` (`src/alloc.rs` defines it)
@@ -5131,3 +5136,184 @@ DEFUN! ("x-gtk-launch-uri", Fx_gtk_launch_uri, Sx_gtk_launch_uri, 2, 2, 0,   // 
 
   return unbind_to (count, Qnil ());                                    // C 3771
 });
+
+/* C 3784-3888's seven `DEFVAR_LISP`/`DEFVAR_BOOL` variables: C's `DEFVAR_*` defines the object
+   (`globals.f_##vname`), so the port defines it here and `globals.rs`'s declaration is shadowed
+   (the `src/haikufns.rs` 4147-4168 and `src/alloc.rs` 8026-8032 shape).  */
+// C 3784: `DEFVAR_LISP ("x-cursor-fore-pixel", Vx_cursor_fore_pixel, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vx_cursor_fore_pixel: Lisp_Object = lisp_h_Qnil ();
+// C 3790: `DEFVAR_LISP ("gtk-version-string", Vgtk_version_string, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vgtk_version_string: Lisp_Object = lisp_h_Qnil ();
+// C 3804: `DEFVAR_LISP ("cairo-version-string", Vcairo_version_string, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vcairo_version_string: Lisp_Object = lisp_h_Qnil ();
+// C 3874: `DEFVAR_BOOL ("x-gtk-use-old-file-dialog", x_gtk_use_old_file_dialog, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut x_gtk_use_old_file_dialog: bool = false;
+// C 3878: `DEFVAR_BOOL ("x-gtk-show-hidden-files", x_gtk_show_hidden_files, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut x_gtk_show_hidden_files: bool = false;
+// C 3882: `DEFVAR_BOOL ("x-gtk-file-dialog-help-text", x_gtk_file_dialog_help_text, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut x_gtk_file_dialog_help_text: bool = true;
+// C 3886: `DEFVAR_LISP ("x-max-tooltip-size", Vx_max_tooltip_size, ...)`.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub static mut Vx_max_tooltip_size: Lisp_Object = lisp_h_Qnil ();
+
+/* C: `<cairo.h>`'s version macros, read from this machine's header (`/opt/homebrew/include/cairo/
+   cairo-version.h` 4-6) - the three operands of the `cairo-version-string` DEFVAR below (C 3808).  */
+const CAIRO_VERSION_MAJOR: c_int = 1;
+const CAIRO_VERSION_MINOR: c_int = 18;
+const CAIRO_VERSION_MICRO: c_int = 4;
+/* C: gtk/gtkversion.h: `#define GTK_MAJOR_VERSION …` / `GTK_MINOR_VERSION` / `GTK_MICRO_VERSION` -
+   the three operands of the `gtk-version-string` DEFVAR below (C 3794).  **No GTK header exists on
+   this machine** (the mirror's whole GTK surface is header-only for that reason), so the values are
+   the reference's own *requirement* rather than a measured build's: `configure.ac` 3745 sets
+   `GTK_REQUIRED=3.22.23` for this toolkit (`GTK_MODULES="gtk+-3.0 >= $GTK_REQUIRED …"`, 3747).
+   UNVERIFIED against a linked GTK - the ledger's Owed 14 names it.  */
+const GTK_MAJOR_VERSION: c_int = 3;
+const GTK_MINOR_VERSION: c_int = 22;
+const GTK_MICRO_VERSION: c_int = 23;
+
+/// C 3774-3906: `void syms_of_pgtkfns (void)` - the twenty `DEFSYM`s, the six `DEFVAR`s with their
+/// initial values, the two `Fprovide`s (with the two version strings built from the four version
+/// macro groups), the thirty-nine `defsubr` registrations and the six `staticpro` pairs.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_pgtkfns ()
+{
+  DEFSYM! (Qfont_parameter, "font-parameter");                              // C 3777
+  DEFSYM! (Qfontsize, "fontsize");                                          // C 3778
+  DEFSYM! (Qcancel_timer, "cancel-timer");                                  // C 3779
+  DEFSYM! (Qframe_title_format, "frame-title-format");                      // C 3780
+  DEFSYM! (Qicon_title_format, "icon-title-format");                        // C 3781
+  DEFSYM! (Qdark, "dark");                                                  // C 3782
+
+  DEFVAR_LISP! (c"x-cursor-fore-pixel", Vx_cursor_fore_pixel,
+		"SKIP: real doc in xfns.c.  ");                                  // C 3784-3785
+  Vx_cursor_fore_pixel = Qnil ();                                           // C 3786
+
+  Fprovide (intern_c_string (c"gtk".as_ptr ()), Qnil ());                   // C 3788
+
+  DEFVAR_LISP! (c"gtk-version-string", Vgtk_version_string,
+		"Version info for GTK+.  ");                                      // C 3790-3791
+  {
+    let ver: *mut c_char = g_strdup_printf (c"%d.%d.%d".as_ptr (),         // C 3793
+						GTK_MAJOR_VERSION, GTK_MINOR_VERSION,        // C 3794
+						GTK_MICRO_VERSION);                   // C 3795
+    let len: c_int = strlen (ver) as c_int;                                 // C 3796
+    Vgtk_version_string = make_specified_string (ver, len as ptrdiff_t,
+						 len as ptrdiff_t, false);         // C 3797
+    g_free (ver as gpointer);                                               // C 3798
+  }
+
+  Fprovide (intern_c_string (c"cairo".as_ptr ()), Qnil ());                 // C 3802
+
+  DEFVAR_LISP! (c"cairo-version-string", Vcairo_version_string,
+		"Version info for cairo.  ");                                     // C 3804-3805
+  {
+    let ver: *mut c_char = g_strdup_printf (c"%d.%d.%d".as_ptr (),         // C 3807
+						CAIRO_VERSION_MAJOR, CAIRO_VERSION_MINOR,    // C 3808
+						CAIRO_VERSION_MICRO);                 // C 3809
+    let len: c_int = strlen (ver) as c_int;                                 // C 3810
+    Vcairo_version_string = make_specified_string (ver, len as ptrdiff_t,
+						   len as ptrdiff_t, false);       // C 3811
+    g_free (ver as gpointer);                                               // C 3812
+  }
+
+  defsubr (&raw mut Spgtk_set_resource);                                // C 3815
+  defsubr (&raw mut Sxw_display_color_p);                               // C 3816  /* C's own: this and next called directly by C code */
+  defsubr (&raw mut Sx_display_grayscale_p);                            // C 3817
+  defsubr (&raw mut Spgtk_font_name);                                   // C 3818
+  defsubr (&raw mut Sxw_color_defined_p);                               // C 3819
+  defsubr (&raw mut Sxw_color_values);                                  // C 3820
+  defsubr (&raw mut Sx_server_max_request_size);                        // C 3821
+  defsubr (&raw mut Sx_display_pixel_width);                            // C 3822
+  defsubr (&raw mut Sx_display_pixel_height);                           // C 3823
+  defsubr (&raw mut Spgtk_display_monitor_attributes_list);             // C 3824
+  defsubr (&raw mut Spgtk_frame_geometry);                              // C 3825
+  defsubr (&raw mut Spgtk_frame_edges);                                 // C 3826
+  defsubr (&raw mut Spgtk_frame_restack);                               // C 3827
+  defsubr (&raw mut Spgtk_set_mouse_absolute_pixel_position);           // C 3828
+  defsubr (&raw mut Spgtk_mouse_absolute_pixel_position);               // C 3829
+  defsubr (&raw mut Sx_display_mm_width);                               // C 3830
+  defsubr (&raw mut Sx_display_mm_height);                              // C 3831
+  defsubr (&raw mut Sx_display_screens);                                // C 3832
+  defsubr (&raw mut Sx_display_planes);                                 // C 3833
+  defsubr (&raw mut Sx_display_color_cells);                            // C 3834
+  defsubr (&raw mut Sx_display_visual_class);                           // C 3835
+  defsubr (&raw mut Sx_display_backing_store);                          // C 3836
+  defsubr (&raw mut Sx_display_save_under);                             // C 3837
+  defsubr (&raw mut Sx_create_frame);                                   // C 3838
+  defsubr (&raw mut Sx_open_connection);                                // C 3839
+  defsubr (&raw mut Sx_close_connection);                               // C 3840
+  defsubr (&raw mut Sx_display_list);                                   // C 3841
+  defsubr (&raw mut Sx_gtk_debug);                                      // C 3842
+  defsubr (&raw mut Sx_gtk_launch_uri);                                 // C 3843
+  defsubr (&raw mut Sx_show_tip);                                       // C 3845
+  defsubr (&raw mut Sx_hide_tip);                                       // C 3846
+  defsubr (&raw mut Sx_export_frames);                                  // C 3848
+  defsubr (&raw mut Spgtk_page_setup_dialog);                           // C 3849
+  defsubr (&raw mut Spgtk_get_page_setup);                              // C 3850
+  defsubr (&raw mut Spgtk_print_frames_dialog);                         // C 3851
+  defsubr (&raw mut Spgtk_backend_display_class);                       // C 3852
+  defsubr (&raw mut Spgtk_set_monitor_scale_factor);                    // C 3854
+  defsubr (&raw mut Sx_file_dialog);                                    // C 3856
+  defsubr (&raw mut Sx_select_font);                                    // C 3857
+  monitor_scale_factor_alist = Qnil ();                                     // C 3859
+  staticpro (&raw mut monitor_scale_factor_alist);                          // C 3860
+
+  tip_timer = Qnil ();                                                      // C 3862
+  staticpro (&raw mut tip_timer);                                           // C 3863
+  tip_frame = Qnil ();                                                      // C 3864
+  staticpro (&raw mut tip_frame);                                           // C 3865
+  tip_last_frame = Qnil ();                                                 // C 3866
+  staticpro (&raw mut tip_last_frame);                                      // C 3867
+  tip_last_string = Qnil ();                                                // C 3868
+  staticpro (&raw mut tip_last_string);                                     // C 3869
+  tip_last_parms = Qnil ();                                                 // C 3870
+  staticpro (&raw mut tip_last_parms);                                      // C 3871
+
+  /* This is not ifdef:ed, so other builds than GTK can customize it.  */
+  DEFVAR_BOOL! (c"x-gtk-use-old-file-dialog", x_gtk_use_old_file_dialog,
+		"SKIP: real doc in xfns.c.  ");                                  // C 3874-3875
+  x_gtk_use_old_file_dialog = false;                                        // C 3876
+
+  DEFVAR_BOOL! (c"x-gtk-show-hidden-files", x_gtk_show_hidden_files,
+		"SKIP: real doc in xfns.c.  ");                                  // C 3878-3879
+  x_gtk_show_hidden_files = false;                                          // C 3880
+
+  DEFVAR_BOOL! (c"x-gtk-file-dialog-help-text", x_gtk_file_dialog_help_text,
+		"SKIP: real doc in xfns.c.  ");                                  // C 3882-3883
+  x_gtk_file_dialog_help_text = true;                                       // C 3884
+
+  DEFVAR_LISP! (c"x-max-tooltip-size", Vx_max_tooltip_size,
+		"SKIP: real doc in xfns.c.  ");                                  // C 3886-3887
+  Vx_max_tooltip_size = Qnil ();                                            // C 3888
+
+  DEFSYM! (Qmono, "mono");                                                  // C 3890
+  DEFSYM! (Qassq_delete_all, "assq-delete-all");                            // C 3891
+
+  DEFSYM! (Qpdf, "pdf");                                                    // C 3893
+
+  DEFSYM! (Qorientation, "orientation");                                    // C 3895
+  DEFSYM! (Qtop_margin, "top-margin");                                      // C 3896
+  DEFSYM! (Qbottom_margin, "bottom-margin");                                // C 3897
+  DEFSYM! (Qportrait, "portrait");                                          // C 3898
+  DEFSYM! (Qlandscape, "landscape");                                        // C 3899
+  DEFSYM! (Qreverse_portrait, "reverse-portrait");                          // C 3900
+  DEFSYM! (Qreverse_landscape, "reverse-landscape");                        // C 3901
+  DEFSYM! (Qtrue_color, "true-color");                                      // C 3902
+  DEFSYM! (Qcolor, "color");                                                // C 3903
+  DEFSYM! (Qrun_at_time, "run-at-time");                                    // C 3904
+  DEFSYM! (Qx_hide_tip, "x-hide-tip");                                      // C 3905
+}

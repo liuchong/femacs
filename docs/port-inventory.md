@@ -56,7 +56,7 @@
 
 | 参照文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | 批次 | 状态 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
-| `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 7 | 76 | E | wip |
+| `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 7 | 76 | E | done |
 | `src/xterm.c` | 33,125 | 438 | 0 | 35 | 86 | 105 | F | wip |
 | `src/sfnt.c` | 21,215 | 268 | 0 | 170 | 53 | 8 | E | done |
 | `src/keyboard.c` | 14,682 | 184 | 38 | 19 | 12 | 89 | E | done |
@@ -483,7 +483,7 @@
 | `src/disptab.h` | 117 | 0 | 0 | 20 | 14 | 0 | 0 | B | `femacs/src/include/disptab.rs` | done |
 | `src/doc.c` | 746 | 6 | 6 | 6 | 0 | 0 | 3 | B | `femacs/src/doc.rs` | done |
 | `src/doprnt.c` | 607 | 6 | 0 | 0 | 1 | 0 | 0 | B | `femacs/src/doprnt.rs` | done |
-| `src/dosfns.c` | 798 | 12 | 10 | 2 | 0 | 0 | 2 | F | `femacs/src/dosfns.rs` | done |
+| `src/dosfns.c` | 798 | 12 | 10 | 2 | 0 | 0 | 2 | F | `femacs/src/dosfns.rs` | wip |
 | `src/dosfns.h` | 35 | 0 | 0 | 1 | 1 | 0 | 1 | F | `femacs/src/include/dosfns.rs` | done |
 | `src/dynlib.c` | 340 | 14 | 0 | 3 | 2 | 0 | 2 | D | `femacs/src/dynlib.rs` | done |
 | `src/dynlib.h` | 41 | 0 | 0 | 1 | 0 | 0 | 0 | D | `femacs/src/include/dynlib.rs` | done |
@@ -658,7 +658,7 @@
 | `src/widgetprv.h` | 70 | 0 | 0 | 1 | 0 | 17 | 0 | E | `femacs/src/include/widgetprv.rs` | done |
 | `src/window.c` | 9,740 | 113 | 121 | 1 | 5 | 64 | 13 | E | `femacs/src/window.rs` | done |
 | `src/window.h` | 1,267 | 16 | 0 | 95 | 5 | 102 | 9 | E | `femacs/src/include/window.rs` | done |
-| `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 36 | 7 | 76 | E | `femacs/src/xdisp.rs` | wip |
+| `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 36 | 7 | 76 | E | `femacs/src/xdisp.rs` | done |
 | `src/xfaces.c` | 7,843 | 101 | 33 | 34 | 22 | 3 | 17 | E | `femacs/src/xfaces.rs` | done |
 | `src/xfns.c` | 10,662 | 116 | 53 | 7 | 17 | 18 | 11 | F | `femacs/src/xfns.rs` | done |
 | `src/xfont.c` | 1,166 | 21 | 0 | 0 | 0 | 4 | 2 | F | `femacs/src/xfont.rs` | done |
