@@ -6,6 +6,12 @@
 > 2598, which is why `src/android.c`'s file gate is `have_android` alone and this one is the
 > pair — and `docs/baseline/frozen-build-sources.txt` lists no `sfnt.o`.  What follows is P-86
 > ②'s **C line-range table** for these slices, the `## Evidence` readings and the
+>
+> **The file is COMPLETE as of slice 24 (2026-10-06): every line of C 1-21215 is transcribed**, the
+> `#ifdef TEST` programme and `main` included.  The range table's last row and `## Evidence` ⑲
+> carry that reading, and `docs/ports/line-drift-tolerance.tsv`'s newest `sfnt` row records what
+> the slice cost (C 21,215 vs Rust 22,955, 8.2%).  "Complete" is a **text** statement - no gate
+> compiles the TEST arm, so nothing here has been type-checked or run; see "Not claimed".
 > `**⑤ Slice 10's readings.**  `cargo run -q -p xtask -- build-tu src/sfnt.c` -> exit 0, **336
 bytes**, md5 `dbed68837694579185377dbb0821ab62` (the standing empty object - every item of this
 unit is behind the file gate the frozen configuration leaves false, so build-tu is a syntax reading
@@ -373,6 +379,48 @@ failure(s)** (the table now splits at C 20202 and still tiles C 1-21215);
 0 stale** (the +3.2% file ratio is inside the tolerance the ratchet records); `check-ledger-ticks.py`
 **238 ledger(s) bound, 0 failure(s)**, 0 row(s) without a ledger; `check-cond-eval.py src/sfnt.c`
 **31 conditions, 0 unknown, 0 disagreements**.
+**⑲ Slice 24's readings.**  `cargo run -q -p xtask -- build-tu src/sfnt.c` -> exit 0, **336
+bytes**, md5 `dbed68837694579185377dbb0821ab62` (the empty object - a syntax reading).  The arm flip
+reads **0 errors at HEAD and 0 after this slice**, and the object is **98,448 bytes on both
+sides** (the whole slice is behind `feature = "test"`), so 1,061 Rust lines leave the frozen arm
+the same size.  The md5 is a *source-sensitive* reading and is recorded that way: the two texts
+compared before this revision's header paragraph both read
+`b77d7449a2faa1ff45c0e6220e240172`; after the header paragraph the same 98,448 bytes read
+`dfceb47e2fbe93d50977a7647557fb83`, and **one added comment line moves it again**
+(`31033a291beca5a6195c8136c22d81aa`, measured twice, deterministic for a fixed text) - the object
+carries something content-dependent even though **no `__DWARF` section exists** (measured with
+`otool -l`) and no `sfnt.rs:` string is in it (`strings`), so the *cause* is not claimed here and
+the **size** is what a cross-revision comparison should use.  What this reading carries is the slice's
+*own* syntax, and it is worth keeping because of how it failed: the first run read **6 errors and
+every one of them was this unit's own text** - five parse errors where C writes a one-statement
+`if`/`else` body without braces (`if (data[i]) fprintf (…)`, C 20451-20453; the two `if (axis_name)
+fprintf (…)`, C 20545-20547 and C 20565-20567; the two `if (!hhea || !maxp) hmtx = …` sites,
+C 20625-20626 and C 20742-20743) and one line left in C's own spelling (`if (fvar->instance_count >
+1)`, C 20571, whose `->` is not Rust).  The frozen probe parses `#[cfg]`-disabled text - which is
+what caught all six, and it is the only checker that reads this arm at all.  Each body got the
+braces Rust requires and the arrow became `(*fvar)`, after which both runs are clean.  `python3
+tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` -> **`OK`**, with the unit
+**complete**: Rust 21,894 -> **22,955** lines against C's 21,215 = **+8.2%**, past the rule's 5%,
+so this slice appends the unit's one `docs/ports/line-drift-tolerance.tsv` row (**0.09**, the
+first *and* last one for it, since the file is finished); the row carries the measured composition
+of the 1,740-line excess - 2,352 comment-only lines, 2,487 lines carrying a `// C NNNN` citation,
+518 `#[cfg]` attribute lines, 24 `include!` edges - and the two shapes behind the rest (C's
+`for (i = 0; i < n; ++i)` heads cost three Rust lines, and every braces-less C body gained its
+braces).  The completeness half of that reading is the stronger one and it is exact and narrow:
+every function, `DEFUN`, macro, type, struct field, file-scope object and constant the tool
+compares is present and equal, which now includes the slice's two file-scope functions
+(`sfnt_test_uvs`, `main`), the two object-like `#define`s C 20473-20474 (answered as `const`s -
+`macro_body_of`'s documented const shape) and the two `#define` pairs inside `main` (`GG`/`FG`,
+`LB`/`RB`, answered as in-block `macro_rules!`).  It still knows nothing about the `#ifdef TEST`
+*text* it drops and nothing about behaviour.  The other gates: `check-declarations.py` **17
+declaration sites (0 forbidden, 17 allowed literals), 0 failures**; `check-citations.py` **676
+file(s) scanned, 0 drift, 0 range, 2029 external, 36 allowed, 0 stale**;
+`check-dead-file-coverage.py` **145 ledger(s) bound (a C range table), 0 failure(s)** (the table's
+last row is transcribed and still tiles C 1-21215); `check-port-lines.py` **0 file(s) under ten
+percent, 0 reference line(s); 0 ratchet row(s), 0 new, 0 stale** (the +8.2% file ratio is inside
+the tolerance this slice's row records); `check-ledger-ticks.py` **238 ledger(s) bound, 0
+failure(s)**, 0 row(s) without a ledger; `check-cond-eval.py src/sfnt.c` **31 conditions, 0
+unknown, 0 disagreements**.
 ## Deviations`.  Port: `femacs/src/sfnt.rs` (13,174 lines, `grep -c ''`; `extract-abi.py`'s
 > own count, 13,174, is the same newline count), both arms of every `#if` carried — except the
 > macros C 6559-8159, whose Rust home is inside the functions that call them (P-57; the range
@@ -609,7 +657,7 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 | 16890-18182 | the interpreter test programme's fixtures, records, checks and argument objects: C 16890-16941's four fixtures, `sfnt_make_test_interpreter` (C 16943-16950), `struct sfnt_interpreter_test` with `sfnt_run_interpreter_test` (C 16952-16979), `struct sfnt_generic_test_args`/`struct sfnt_rounding_test_args` with the twenty `sfnt_check_*` functions (C 16981-17423) and **all 81 `_test_args` objects** (C 17425-18181, two of them carrying C's three initialiser macros and the four measured arrays) | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 21) |
 | 18183-19651 | `all_tests[]` itself - **94 entries** (measured four ways, Evidence ⑰ (i); the ledger's earlier "166" was wrong and is corrected), each an instruction byte array (91 compound literals, one sized literal and two named arrays), a `num_instructions`, an `arg` pointer or `NULL`, and a check function | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 22) |
 | 19652-20202 | C 19652's blank line, C 19655's `/* Instruction debugger.  */` banner and the debugger itself: `sfnt_setup_debugger` (C 19657-19692), `sfnt_name_instruction` with its 256-name table (C 19694-19972), `sfnt_draw_debugger` (C 19974-20025), `sfnt_run_hook` (C 20027-20069), the two `exec_prep`/`exec_fpgm` objects (C 20071-20072), `sfnt_identify_instruction` (C 20074-20105), `test_raster_glyph_outline` (C 20109), `sfnt_verbose` (C 20112-20177) and `sfnt_push_hook`/`sfnt_pop_hook` (C 20179-20199) | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 23) |
-| 20203-21215 | `sfnt_test_uvs` (**the next definition**, C 20203-20300) and `main` (C 20301-21213) with its glyph-outline/raster benchmark and the `free_lab:` tail, ending at the file's last line | not this slice |
+| 20203-21215 | C 20203's blank line, `sfnt_test_uvs` (C 20203-20300) and `main` (C 20301-21213): the CMAP table read and its subtable prints, `--check-variation-selectors`, the two `#define FANCY_PPEM`/`EASY_PPEM` (C 20473-20474), the fifteen table readers and their prints (`head`/`hhea`/`glyf`/`maxp`/`name`/`meta`/`cvt`/`fpgm`/`prep`/`fvar`/`gvar`/`avar`/`OS_2`/`post`/`cvar`), the FVAR axis/instance walk with the two `goto free_lab` arms (C 20576/20579) and the instance selection, the `memset`/`sfnt_init_blend`/`sfnt_normalize_blend` block, the `fancy` benchmark (the interpreter, the two `alloca`d arrays, the 7-way `exit`, `sfnt_x_raster`), the meta/HEAD/HHEA prints, the second interpreter block with the `GG`/`FG`/`LB`/`RB` macros, and the `while (true)` query loop with `sfnt_decompose_glyph`, the outline/edge/raster timings and the `sfnt_interpret_simple_glyph`/`sfnt_interpret_compound_glyph` fork; ends with the `free_lab:` tail's twenty-four `xfree`s and `return 0`, at the file's last C line | `all (file gate, feature = "test")`; **no gate compiles it** - **transcribed** (slice 24) |
 
 The seventy-two rows above tile C 1-21215 **contiguously** (blank lines included) rather than
 skipping the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
@@ -617,6 +665,15 @@ skipping the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger
 bare-stem fallback, so a table with gaps at blanks would leave `src/sfnt.h`'s non-blank lines
 uncovered and fail (the `android.md`/`w32term.md` shape).  The last row reaches C 21215, which is
 what the gate requires of the final row.
+
+**The file is complete with slice 24.**  `sfnt_test_uvs` (C 20203-20300) and `main` (C 20301-21213)
+are transcribed, so every line of C 1-21215 now has a Rust counterpart (the `#endif` at C 21215 is
+the preprocessor's, not Rust's - the `feature = "test"` gate on the forty-one items is what carries
+C 16448's `#ifdef TEST`).  What that statement is worth is written in `## Evidence` ⑲ and in
+"Not claimed": it is a **text** reading - the unit's `--check` reads `OK`, and no gate compiles the
+TEST arm, so nothing here has been type-checked or run.  The line-count cost of the slice is the
+one `docs/ports/line-drift-tolerance.tsv`'s newest `sfnt` row records (C 21,215 vs Rust 22,955,
+8.2%, with the composition of the excess measured there).
 
 ## Evidence
 
@@ -1867,6 +1924,41 @@ macros' `#ifndef TEST`/`#else` pairs are all inside the frozen file the tool alr
     `%i` the inttypes mirror's measured `c"i"` denotes, and `sfnt_verbose`'s `struct
     sfnt_instructed_outline temp` - which C fills field by field - is zero-initialised at its
     declaration (Deviation 10's class).
+92. **Slice 24's seven shapes.**  (a) **The two `goto free_lab` sites (C 20576, C 20579) are one
+    labelled block** (Deviation 89 (a)'s class, `'exit` at sfnt.rs 3905 the precedent): the block
+    opens above C 20522's `if (fvar)` - the outermost block the two arms share with C 21178's label
+    - and closes after the `while (true)` loop, with C's `free_lab:` code standing after it, which
+    is where `break 'free_lab` lands the two arms.  (b) **C's braces-less one-statement bodies get
+    braces** (the six parse errors Evidence ⑲ names): C 20451-20453, C 20545-20547, C 20565-20567,
+    C 20625-20626, C 20630 and C 20742-20743, plus the four `fprintf` bodies at C 20746, C 20758,
+    C 20827 and C 21020 - the last being C's `for` body, whose step is written inside the braced
+    statement (the file's standing `while { …; i += 1; }` shape), and the two arms of C 21094's
+    `if (glyph->simple)` each a block.  (c) **C's implicit argument promotions are written out** as
+    `as c_int`/`as c_uint`: every `%u`/`%x`/`%i` whose C argument is a `uint16_t`/`int16_t` struct
+    field (`table->num_subtables`, `head->flags`, `head->units_per_em`, `post->underline_position`,
+    `record.length`, `fvar->axis_count`, `name->format`, `maxp->num_glyphs`, `outline->origin`,
+    `distortion.origin`, …).  Rust refuses such an argument to a C variadic (E0617, measured), so
+    the cast is C's promotion *and* the compiler's requirement; `%PRIi32`/`%PRIu32`/`%PRIx32`/
+    `%PRIi16`/`%PRIu16` are the folded `%i`/`%u`/`%x` the inttypes mirror's measured values denote,
+    and the five multi-line C concatenations (C 20524-20529, C 20777-20789, C 20827-20835,
+    C 20848-20854, C 21154-21156) each become one literal.  (d) **The two `#define` pairs inside
+    `main` are in-block `macro_rules!`** (P-57): `GG`/`FG` (C 21101-21102) expand to the two
+    callback names, so the call writes `Some (GG! ())`/`Some (FG! ())`, and `LB`/`RB`
+    (C 21130-21131) expand to C's two differences, used inside `sfnt_coerce_fixed`.  C's four
+    `#undef`s (C 21113-21114, C 21136-21137) have no Rust counterpart and are recorded in the
+    comments beside the definitions.  (e) **C 20473-20474's two function-scope `#define FANCY_PPEM
+    18`/`#define EASY_PPEM 18` are `const`s at C's position** - the value-shaped answer
+    `macro_body_of` documents for a macro whose body is a value.  (f) **C's two `alloca`s
+    (C 20682-20683) go to the stack pool** (P-05's `sa_stack_alloc`), each keeping C's own
+    `sizeof *x * length` as `std::mem::size_of::<T> () * length`, and C's `memset (&x, 0, sizeof
+    x)` sites are `memset (&raw mut x as *mut c_void, 0, std::mem::size_of::<T> ())` (the standing
+    shape at sfnt.rs 18620).  (g) **`clock_gettime` and `CLOCK_THREAD_CPUTIME_ID` stand at their
+    use site** (P-88 ①, the `waitpid` block's shape): C 52's `#include <time.h>` is inside the
+    `#ifdef TEST` block and the tree's `<time.h>` mirrors carry neither name, so the declaration is
+    an `unsafe extern "C"` block beside the arm that calls it and the constant is the frozen
+    target's **measured** value (`clang -dM -E` reads `CLOCK_THREAD_CPUTIME_ID
+    _CLOCK_THREAD_CPUTIME_ID`, whose enum member is 16) - the `timefns.rs` 107 shape.
+
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
 1. **`TEST_STATIC`'s Rust form** — either a `docs/ports/excluded-macros.txt` row (`kind=syntax`,
@@ -2287,3 +2379,18 @@ are that boundary, and the macros' absence is a *place* rule (P-57), not a gap.
    Owed 6's batch close (`check-port-lines.py --write-pending` would encode the parallel lanes' in-flight
    units into the table), and this unit gets **no** `line-drift-tolerance.tsv` row: it is still a partial
    port (37.9% drift), and tolerance rows are only written for finished files (3.434 ⑤, 3.489).
+
+   ✅ **Ruling (slice 24): the two claims above are superseded, and this is the correction.**  (i)
+   **`sfnt_test_uvs` and `main` are transcribed now.**  The paragraph above says "C 20203-21215 is
+   **not ported here**"; that was true of the revision it was written on, and the range table's
+   last row plus Evidence ⑲ are this revision's reading.  (ii) **The unit has a
+   `line-drift-tolerance.tsv` row now** (0.09, 8.2%).  The 3.600 ruling above says rows are written
+   only for finished files - and the file *is* finished, so its **reason** ("it is still a partial
+   port") no longer holds while its **rule** is exactly what licenses the row.  Nothing else in
+   this section changes: the unit's forty-one TEST-arm items and the `main` that drives them are
+   still compiled by no gate (`feature = "test"` has no `xtask` `FLIPS` entry - Evidence ⑭), so
+   this slice's text has **no type-checking reading at all** - only the frozen probe's syntax pass,
+   which is what caught its six errors (Evidence ⑲).  `main` in particular has never opened a font,
+   read a cmap subtable, benchmarked an outline, rastered a glyph or printed a timing: the
+   `clock_gettime` constant above is a *header* reading, not a measurement of this program, and the
+   `--check`'s `OK` is a declaration reading the tool itself calls narrow.

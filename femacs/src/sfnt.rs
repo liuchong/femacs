@@ -129,7 +129,16 @@
 // `sfnt_identify_instruction` (C 20074-20105), `test_raster_glyph_outline` (C 20109),
 // `sfnt_verbose` (C 20112-20177) and the two stack hooks (C 20179-20199).  The unit's checker still
 // reads `OK` at **21,888** Rust lines against C's 21,215 (+3.2%), inside the ratchet's tolerance.
-// **What is left after slice 23** is C 20203-21215: `sfnt_test_uvs` and `main`, and nothing else.
+// **Slice 24 takes C 20203-21215** - `sfnt_test_uvs` (C 20203-20300) and `main` (C 20301-21213):
+// the CMAP read and its subtable prints, the variation-selector arm, the two `#define`s at their C
+// position as `const`s, the fifteen table readers with their prints, the FVAR axis/instance walk
+// whose two `goto free_lab` arms are one labelled block (`break 'free_lab`), the blend block, the
+// `fancy` benchmark (`sa_stack_alloc` for C's two `alloca`s, the seven-way `exit`, `sfnt_x_raster`),
+// the meta/HEAD/HHEA prints, the second interpreter block with the four in-block `macro_rules!` C
+// spells as `#define`s, and the `while (true)` query loop with the decompose/outline/edge/raster
+// timings, ending at the `free_lab:` tail's twenty-four `xfree`s and `return 0`.  **This closes the
+// unit**: every line of C 1-21215 now has a Rust counterpart, and the unit's checker reads `OK` at
+// **22,955** Rust lines against C's 21,215 (+8.2%, the unit's one `line-drift-tolerance.tsv` row).
 // The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
@@ -21891,4 +21900,1065 @@ unsafe fn sfnt_pop_hook (interpreter: *mut sfnt_interpreter,   // C 20190-20199
 unsafe extern "C" {
   /// C: <sys/wait.h>: `pid_t waitpid (pid_t, int *, int);`
   pub fn waitpid (pid: pid_t, status: *mut c_int, options: c_int) -> pid_t;
+}
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn sfnt_test_uvs (fd: c_int, format14: *mut sfnt_cmap_format_14)   // C 20203-20267
+{
+  let mut context: *mut sfnt_uvs_context;
+  let mut i: size_t;
+  let mut j: size_t;
+  let mut k: size_t;
+  let mut glyph: sfnt_glyph;
+  let mut c: sfnt_char;
+  let mut uvs: *mut sfnt_nondefault_uvs_table;
+  let mut default_uvs: *mut sfnt_default_uvs_table;
+
+  context = sfnt_create_uvs_context (format14, fd);    // C 20213
+
+  /* Print each variation selector and its associated ranges.  */
+
+  if context.is_null ()                                // C 20217
+    { fprintf (stderr, c"failed to read uvs data\n".as_ptr ()); }   // C 20218
+  else
+    {
+      fprintf (stderr, c"UVS context with %zu records and %zu tables\n".as_ptr (),   // C 20221-20222
+	       (*context).num_records, (*context).nmemb);
+
+      i = 0;                                           // C 20224
+      while i < (*context).num_records
+	{
+	  if !(*((*context).records).offset (i as isize)).default_uvs.is_null ()   // C 20226
+	    {
+	      default_uvs = (*((*context).records).offset (i as isize)).default_uvs;   // C 20228
+
+	      j = 0;                                       // C 20230
+	      while j < (*default_uvs).num_unicode_value_ranges
+		{
+		  fprintf (stderr, c"   Default UVS: %u, %u\n".as_ptr (),   // C 20232-20234
+			   (*(*default_uvs).ranges.offset (j as isize)).start_unicode_value,
+			   (*(*default_uvs).ranges.offset (j as isize)).additional_count);
+
+		  c = (*(*default_uvs).ranges.offset (j as isize)).start_unicode_value;   // C 20236
+		  k = 0;                                   // C 20237
+
+		  while k <= (*(*default_uvs).ranges.offset (j as isize)).additional_count as size_t   // C 20239
+		    {
+		      if !sfnt_is_character_default (default_uvs, c + k as sfnt_char)   // C 20241
+			{ abort (); }                      // C 20242
+		      k += 1;
+		    }
+		  j += 1;
+		}
+	    }
+
+	  if (*((*context).records).offset (i as isize)).nondefault_uvs.is_null ()   // C 20247
+	    { i += 1; continue; }                          // C 20248
+
+	  uvs = (*((*context).records).offset (i as isize)).nondefault_uvs;   // C 20250
+
+	  j = 0;                                           // C 20252
+	  while j < (*uvs).num_uvs_mappings
+	    {
+	      c = (*(*uvs).mappings.offset (j as isize)).unicode_value;   // C 20254
+	      glyph = sfnt_variation_glyph_for_char (uvs, c);   // C 20255
+
+	      if glyph != (*(*uvs).mappings.offset (j as isize)).base_character_value   // C 20257
+		{ abort (); }                              // C 20258
+
+	      fprintf (stderr, c"   UVS: %x (%x) -> %u\n".as_ptr (),   // C 20260-20261
+		       c, (*((*context).records).offset (i as isize)).selector, glyph);
+	      j += 1;
+	    }
+	  i += 1;
+	}
+
+      sfnt_free_uvs_context (context);                 // C 20265
+    }
+}
+
+/* Main entry point.  */
+
+/* Simple tests that were used while developing this file.  By the
+   time you are reading this, they probably no longer work.
+
+   Compile like so in this directory:
+
+    gcc -Demacs -I. -I. -I../lib -I../lib -MMD -MF deps/.d -MP
+    -fno-common -Wall -Warith-conversion -Wdate-time
+    -Wdisabled-optimization -Wdouble-promotion -Wduplicated-cond
+    -Wextra -Wformat-signedness -Winit-self -Winvalid-pch -Wlogical-op
+    -Wmissing-declarations -Wmissing-include-dirs -Wmissing-prototypes
+    -Wnested-externs -Wnull-dereference -Wold-style-definition
+    -Wopenmp-simd -Wpacked -Wpointer-arith -Wstrict-prototypes
+    -Wsuggest-attribute=format -Wsuggest-final-methods
+    -Wsuggest-final-types -Wtrampolines -Wuninitialized
+    -Wunknown-pragmas -Wunused-macros -Wvariadic-macros
+    -Wvector-operation-performance -Wwrite-strings -Warray-bounds=2
+    -Wattribute-alias=2 -Wformat=2 -Wformat-truncation=2
+    -Wimplicit-fallthrough=5 -Wshift-overflow=2 -Wuse-after-free=3
+    -Wvla-larger-than=4031 -Wredundant-decls
+    -Wno-missing-field-initializers -Wno-override-init
+    -Wno-sign-compare -Wno-type-limits -Wno-unused-parameter
+    -Wno-format-nonliteral -Wno-bidi-chars -g3 -O0 -DTEST sfnt.c -o
+    sfnt ../lib/libgnu.a -lX11 -lXrender
+
+   after gnulib has been built.  Then, run ./sfnt
+   /path/to/font.ttf.  */
+
+/* C 20300-20301's `int main (int argc, char **argv)`: this tree's unit is not a program, so the
+   definition stays a plain `unsafe fn` - C's `main` has no `#[unsafe(no_mangle)]` here, exactly as
+   the other units spell a C entry point their target does not link (P-02).  The `goto free_lab`
+   sites land on one labelled block (Deviation 89 (a)'s class), and C's `%"PRIu32"`-style
+   concatenations are folded to the frozen conversions the inttypes mirror records
+   (`PRIu16`/`PRIi16` = `u`/`i`, `PRIu32`/`PRIx32` = `u`/`x`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe fn main (argc: c_int, argv: *mut *mut c_char)   // C 20300-21213
+{
+  let mut font: *mut sfnt_offset_subtable;
+  let mut subtables: *mut sfnt_cmap_encoding_subtable;
+  let mut data: *mut *mut sfnt_cmap_encoding_subtable_data;
+  let mut table: *mut sfnt_cmap_table;
+  let mut fd: c_int;
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut character: sfnt_char;
+  let mut head: *mut sfnt_head_table;
+  let mut hhea: *mut sfnt_hhea_table;
+  let mut loca_short: *mut sfnt_loca_table_short;
+  let mut loca_long: *mut sfnt_loca_table_long;
+  let mut glyf: *mut sfnt_glyf_table;
+  let mut glyph: *mut sfnt_glyph;
+  let mut code: sfnt_glyph;
+  let mut dcontext: sfnt_test_dcontext = std::mem::zeroed ();
+  let mut outline: *mut sfnt_glyph_outline;
+  let mut start: timespec;
+  let mut end: timespec;
+  let mut sub: timespec;
+  let mut sub1: timespec;
+  let mut sub2: timespec;
+  let mut sub3: timespec;
+  static mut maxp: *mut sfnt_maxp_table = std::ptr::null_mut ();   // C 20319 (C's function-scope static)
+  let mut raster: *mut sfnt_raster;
+  let mut hmtx: *mut sfnt_hmtx_table;
+  let mut metrics: sfnt_glyph_metrics;
+  let mut name: *mut sfnt_name_table;
+  let mut string: *mut c_uchar;
+  let mut record: sfnt_name_record;
+  let mut meta: *mut sfnt_meta_table;
+  let mut ttc: *mut sfnt_ttc_header;
+  let mut interpreter: *mut sfnt_interpreter;
+  let mut cvt: *mut sfnt_cvt_table;
+  let mut fpgm: *mut sfnt_fpgm_table;
+  let mut trap: *const c_char;
+  let mut prep: *mut sfnt_prep_table;
+  let mut state: sfnt_graphics_state;
+  let mut value: *mut sfnt_instructed_outline;
+  let mut fvar: *mut sfnt_fvar_table;
+  let mut gvar: *mut sfnt_gvar_table;
+  let mut avar: *mut sfnt_avar_table;
+  let mut cvar: *mut sfnt_cvar_table;
+  let mut OS_2: *mut sfnt_OS_2_table;
+  let mut post: *mut sfnt_post_table;
+  let mut scale: sfnt_fixed;
+  let mut fancy: *mut c_char;
+  let mut advances: *mut c_int;
+  let mut rasters: *mut *mut sfnt_raster;
+  let mut length: size_t;
+  let mut axis_name: *mut c_char;
+  let mut instance: *mut sfnt_instance;
+  let mut blend: sfnt_blend;
+  let mut distortion: sfnt_metrics_distortion;
+  let mut advance: sfnt_fixed;
+
+  if argc < 2                                         // C 20352
+    { return 1; }                                      // C 20353
+
+  instance = std::ptr::null_mut ();                    // C 20355
+
+  if strcmp (*argv.offset (1), c"--check-interpreter".as_ptr ()) == 0   // C 20357
+    {
+      interpreter = sfnt_make_test_interpreter ();     // C 20359
+
+      if interpreter.is_null ()                        // C 20361
+	{ abort (); }                                  // C 20362
+
+      if !getenv (c"SFNT_VERBOSE".as_ptr ()).is_null ()   // C 20364
+	{
+	  (*interpreter).run_hook = Some (sfnt_verbose);   // C 20366
+	  (*interpreter).push_hook = Some (sfnt_push_hook);   // C 20367
+	  (*interpreter).pop_hook = Some (sfnt_pop_hook);   // C 20368
+	}
+
+      i = 0;                                           // C 20371
+      while (i as size_t) < countof! (all_tests)
+	{
+	  sfnt_run_interpreter_test (&raw mut all_tests[i as usize], interpreter);   // C 20372
+	  i += 1;
+	}
+
+      exit (0);                                        // C 20374
+    }
+
+  if !getenv (c"SFNT_EXACT_SCALING".as_ptr ()).is_null ()   // C 20377
+    { test_raster_glyph_outline = Some (sfnt_raster_glyph_outline_exact); }   // C 20378
+  else
+    { test_raster_glyph_outline = Some (sfnt_raster_glyph_outline); }   // C 20380
+
+  fd = open (*argv.offset (1), O_RDONLY);              // C 20382
+
+  if fd < 0                                            // C 20384
+    { return 1; }                                      // C 20385
+
+  ttc = std::ptr::null_mut ();                         // C 20387
+
+  font = sfnt_read_table_directory (fd);               // C 20389
+
+  if font == usize::MAX as *mut sfnt_offset_subtable   // C 20391
+    {
+      if lseek (fd, 0, SEEK_SET) != 0                  // C 20393
+	{ return 1; }                                  // C 20394
+
+      ttc = sfnt_read_ttc_header (fd);                 // C 20396
+
+      if ttc.is_null ()                                // C 20398
+	{ return 1; }                                  // C 20399
+
+      fprintf (stderr, c"TrueType collection: %u fonts installed\n".as_ptr (),   // C 20401-20402
+	       (*ttc).num_fonts);
+      fflush (stderr);                                 // C 20403
+
+      printf (c"Which font? ".as_ptr ());              // C 20405
+      if scanf (c"%d".as_ptr (), &raw mut i) == EOF    // C 20406
+	{ return 1; }                                  // C 20407
+
+      if i >= (*ttc).num_fonts as c_int || i < 0       // C 20409
+	{
+	  printf (c"out of range\n".as_ptr ());        // C 20411
+	  return 1;                                    // C 20412
+	}
+
+      if lseek (fd, (*ttc).offset_table.offset (i as isize) as off_t, SEEK_SET)   // C 20415-20416
+	  != (*ttc).offset_table.offset (i as isize) as off_t
+	{ return 1; }                                  // C 20417
+
+      font = sfnt_read_table_directory (fd);           // C 20419
+    }
+
+  if font.is_null () || font == usize::MAX as *mut sfnt_offset_subtable   // C 20422
+    {
+      close (fd);                                      // C 20424
+      return 1;                                        // C 20425
+    }
+
+  i = 0;                                               // C 20428
+  while i < (*font).num_tables as c_int
+    {
+      fprintf (stderr, c"Found new subtable with tag %x at offset %u\n".as_ptr (),   // C 20429-20432
+	       (*font).subtables.offset (i as isize).read ().tag,
+	       (*font).subtables.offset (i as isize).read ().offset);
+      i += 1;
+    }
+
+  table = sfnt_read_cmap_table (fd, font, &raw mut subtables, &raw mut data);   // C 20434
+
+  if table.is_null ()                                  // C 20436
+    {
+      close (fd);                                      // C 20438
+      xfree (font as *mut c_void);                     // C 20439
+      return 1;                                        // C 20440
+    }
+
+  fprintf (stderr, c"number of subtables: %u\n".as_ptr (),   // C 20443-20444
+	   (*table).num_subtables as c_int);
+
+  i = 0;                                               // C 20446
+  while i < (*table).num_subtables as c_int
+    {
+      fprintf (stderr, c"Found cmap table %u: %p\n".as_ptr (),   // C 20448-20449
+	       (*subtables.offset (i as isize)).offset,
+	       *data.offset (i as isize) as *mut c_void);
+
+      if !(**data.offset (i as isize)).is_null ()      // C 20451
+	{ fprintf (stderr, c"  format: %u\n".as_ptr (),   // C 20452-20453
+		  (**data.offset (i as isize)).format as c_int); }
+      i += 1;
+    }
+
+  if argc >= 3 && strcmp (*argv.offset (2), c"--check-variation-selectors".as_ptr ()) == 0   // C 20456
+    {
+      /* Look for a format 14 cmap table.  */
+
+      i = 0;                                           // C 20461
+      while i < (*table).num_subtables as c_int
+	{
+	  if (**data.offset (i as isize)).format == 14   // C 20463
+	    {
+	      fprintf (stderr, c"format 14 subtable found\n".as_ptr ());   // C 20465
+	      sfnt_test_uvs (fd, *data.offset (i as isize) as *mut sfnt_cmap_format_14);   // C 20466
+	      return 0;                                    // C 20467
+	    }
+	  i += 1;
+	}
+
+      return 1;                                        // C 20471
+    }
+
+  /* C 20473-20474: `#define FANCY_PPEM 18` and `#define EASY_PPEM  18`, the two object-like
+     macros the rest of main names.  A macro whose whole body is a value answers as a `const`
+     (`extract-abi.py`'s `macro_body_of` reads a const's value), which is where C's `#define`
+     stands, and a const is also what C's two tokens are here: no address is taken of either.  */
+  const FANCY_PPEM: c_int = 18;
+  const EASY_PPEM: c_int = 18;
+
+  interpreter = std::ptr::null_mut ();                 // C 20476
+  head = sfnt_read_head_table (fd, font);              // C 20477
+  hhea = sfnt_read_hhea_table (fd, font);              // C 20478
+  glyf = sfnt_read_glyf_table (fd, font);              // C 20479
+  maxp = sfnt_read_maxp_table (fd, font);              // C 20480
+  name = sfnt_read_name_table (fd, font);              // C 20481
+  meta = sfnt_read_meta_table (fd, font);              // C 20482
+  cvt = sfnt_read_cvt_table (fd, font);                // C 20483
+  fpgm = sfnt_read_fpgm_table (fd, font);              // C 20484
+  prep = sfnt_read_prep_table (fd, font);              // C 20485
+  fvar = sfnt_read_fvar_table (fd, font);              // C 20486
+  gvar = sfnt_read_gvar_table (fd, font);              // C 20487
+  avar = sfnt_read_avar_table (fd, font);              // C 20488
+  OS_2 = sfnt_read_OS_2_table (fd, font);              // C 20489
+  post = sfnt_read_post_table (fd, font);              // C 20490
+  cvar = std::ptr::null_mut ();                        // C 20491
+  hmtx = std::ptr::null_mut ();                        // C 20492
+
+  if !fvar.is_null () && !cvt.is_null ()               // C 20494
+    { cvar = sfnt_read_cvar_table (fd, font, fvar, cvt); }   // C 20495
+
+  if !cvar.is_null ()                                  // C 20497
+    { fprintf (stderr, c"cvar table found\n".as_ptr ()); }   // C 20498
+
+  exec_prep = prep;                                    // C 20500
+  exec_fpgm = fpgm;                                    // C 20501
+  fancy = getenv (c"SFNT_FANCY_TEST".as_ptr ());       // C 20502
+
+  loca_long = std::ptr::null_mut ();                   // C 20504
+  loca_short = std::ptr::null_mut ();                  // C 20505
+
+  if !OS_2.is_null ()                                  // C 20507
+    { fprintf (stderr, c"OS/2 table found!\nach_vendor_id: %.4s\n".as_ptr (),   // C 20508-20509
+	       (*OS_2).ach_vendor_id.as_ptr ()); }
+
+  if !post.is_null ()                                  // C 20511
+    { fprintf (stderr, c"post table: format: %g; italic-angle: %g;\nunderline_position: %i; underline_thickness: %i;\nis_fixed_pitch: %u\n".as_ptr (),   // C 20512-20515
+	       sfnt_coerce_fixed ((*post).format),
+	       sfnt_coerce_fixed ((*post).italic_angle),
+	       (*post).underline_position as c_int,
+	       (*post).underline_thickness as c_int,
+	       (*post).is_fixed_pitch); }
+
+
+  /* C's `free_lab:` (C 21178) is where the two `goto free_lab` arms of C 20576 and C 20579
+     land; Rust spells the jump `break 'free_lab` and puts the label's own code after the
+     block (PORTING.md 2.2, the `'exit` shape at sfnt.rs 3905).  The block has to open above
+     C 20522's `if (fvar)`, because that is the outermost block the two arms share with C
+     21178's label.  */
+  'free_lab: {
+    if !fvar.is_null ()                                  // C 20522
+      {
+        fprintf (stderr, c"FVAR table found!\nversion: %u.%u\naxis_count: %u\naxis_size: %u\ninstance_count: %u\ninstance_size: %u\n".as_ptr (),   // C 20524-20529
+  	       (*fvar).major_version as c_int,
+  	       (*fvar).minor_version as c_int,
+  	       (*fvar).axis_count as c_int,
+  	       (*fvar).axis_size as c_int,
+  	       (*fvar).instance_count as c_int,
+  	       (*fvar).instance_size as c_int);
+
+        i = 0;                                           // C 20537
+        while i < (*fvar).axis_count as c_int
+  	{
+  	  if !name.is_null ()                          // C 20539
+  	    {
+  	      axis_name
+  		= sfnt_find_name (name, (*(*fvar).axis.offset (i as isize)).name_id,   // C 20541-20543
+  				  &raw mut record) as *mut c_char;
+
+  	      if !axis_name.is_null ()                 // C 20545
+  		{ fprintf (stderr, c"axis no: %d; name: %.*s\n".as_ptr (),   // C 20546-20547
+  			 i, record.length as c_int, axis_name); }
+  	    }
+
+  	  fprintf (stderr, c"  axis: %x %g %g %g\n".as_ptr (),   // C 20550-20554
+  		   (*(*fvar).axis.offset (i as isize)).axis_tag,
+  		   sfnt_coerce_fixed ((*(*fvar).axis.offset (i as isize)).min_value),
+  		   sfnt_coerce_fixed ((*(*fvar).axis.offset (i as isize)).default_value),
+  		   sfnt_coerce_fixed ((*(*fvar).axis.offset (i as isize)).max_value));
+  	  i += 1;
+  	}
+
+        i = 0;                                           // C 20557
+        while i < (*fvar).instance_count as c_int
+  	{
+  	  if !name.is_null ()                          // C 20559
+  	    {
+  	      axis_name
+  		= sfnt_find_name (name, (*(*fvar).instance.offset (i as isize)).name_id,   // C 20561-20563
+  				  &raw mut record) as *mut c_char;
+
+  	      if !axis_name.is_null ()                 // C 20565
+  		{ fprintf (stderr, c"instance no: %d; name: %.*s\n".as_ptr (),   // C 20566-20567
+  			 i, record.length as c_int, axis_name); }
+  	    }
+  	  i += 1;
+  	}
+
+        if (*fvar).instance_count > 1                       // C 20571
+  	{
+  	  printf (c"instance? ".as_ptr ());              // C 20573
+
+  	  if (scanf (c"%d".as_ptr (), &raw mut i) == EOF)   // C 20575
+  	    { break 'free_lab; }                           /* C's `goto free_lab` (C 20576) */
+
+  	  if i >= (*fvar).instance_count as c_int        // C 20578
+  	    { break 'free_lab; }                           /* C's `goto free_lab` (C 20579) */
+
+  	  if i >= 0                                      // C 20581
+  	    { instance = &raw mut (*(*fvar).instance.offset (i as isize)); }   // C 20582
+  	}
+      }
+
+    if !gvar.is_null ()                                    // C 20586
+      { fprintf (stderr, c"gvar table found\n".as_ptr ()); }   // C 20587
+
+    if !avar.is_null ()                                    // C 20589
+      {
+        fprintf (stderr, c"avar table found\n".as_ptr ());   // C 20591
+
+        i = 0;                                             // C 20593
+        while i < (*avar).axis_count
+  	{
+  	  fprintf (stderr, c"axis: %d, %u pairs\n".as_ptr (),   // C 20595-20596
+  		   i, (*(*avar).segments.offset (i as isize)).pair_count as c_int);
+
+  	  j = 0;                                         // C 20598
+  	  while j < (*(*avar).segments.offset (i as isize)).pair_count as c_int
+  	    {
+  	      fprintf (stderr, c"pair: %g, %g\n".as_ptr (),   // C 20599-20603
+  		       (*(*(*avar).segments.offset (i as isize)).correspondence.offset (j as isize)).from_coord
+  		       as f64 / 16384.0,
+  		       (*(*(*avar).segments.offset (i as isize)).correspondence.offset (j as isize)).to_coord
+  		       as f64 / 16384.0);
+  	      j += 1;
+  	    }
+  	  i += 1;
+  	}
+      }
+
+    memset (&raw mut blend as *mut c_void, 0, std::mem::size_of::<sfnt_blend> ());   // C 20607
+
+    if !instance.is_null () && !gvar.is_null ()            // C 20609
+      {
+        sfnt_init_blend (&raw mut blend, fvar, gvar, avar,   // C 20611-20612
+  		       cvar);
+
+        i = 0;                                             // C 20614
+        while i < (*fvar).axis_count as c_int
+  	{ *blend.coords.offset (i as isize) = *(*instance).coords.offset (i as isize); i += 1; }   // C 20615
+
+        sfnt_normalize_blend (&raw mut blend);             // C 20617
+      }
+
+    if !fancy.is_null ()                                   // C 20620
+      {
+        length = strlen (fancy);                           // C 20622
+        scale = sfnt_div_fixed (FANCY_PPEM, (*head).units_per_em);   // C 20623
+
+        if !hhea.is_null () && !maxp.is_null ()            // C 20625
+  	{ hmtx = sfnt_read_hmtx_table (fd, font, hhea, maxp); }   // C 20626
+
+        if maxp.is_null () || head.is_null () || prep.is_null () || hmtx.is_null () || hhea.is_null ()   // C 20628-20629
+  	|| (*table).num_subtables < 1
+  	{ exit (1); }                                    // C 20630
+
+        if (*head).index_to_loc_format != 0                // C 20632
+  	{
+  	  loca_long = sfnt_read_loca_table_long (fd, font);   // C 20634
+  	  if loca_long.is_null ()                        // C 20635
+  	    { return 1; }                                // C 20636
+
+  	  fprintf (stderr, c"long loca table has %zu glyphs\n".as_ptr (),   // C 20638-20639
+  		   (*loca_long).num_offsets);
+  	}
+        else
+  	{
+  	  loca_short = sfnt_read_loca_table_short (fd, font);   // C 20643
+  	  if loca_short.is_null ()                       // C 20644
+  	    { return 1; }                                // C 20645
+
+  	  fprintf (stderr, c"short loca table has %zu glyphs\n".as_ptr (),   // C 20647-20648
+  		   (*loca_short).num_offsets);
+  	}
+
+        interpreter = sfnt_make_interpreter (maxp, cvt, head, fvar,   // C 20651-20652
+  					   FANCY_PPEM, FANCY_PPEM);
+        if !instance.is_null () && !gvar.is_null ()        // C 20653
+  	{ sfnt_vary_interpreter (interpreter, &raw mut blend); }   // C 20654
+
+        if interpreter.is_null ()                          // C 20656
+  	{ exit (1); }                                    // C 20657
+
+        if !fpgm.is_null ()                                // C 20659
+  	{
+  	  fprintf (stderr, c"interpreting the font program, with %zu instructions\n".as_ptr (),   // C 20661-20662
+  		   (*fpgm).num_instructions);
+  	  trap = sfnt_interpret_font_program (interpreter, fpgm);   // C 20663
+
+  	  if !trap.is_null ()                            // C 20665
+  	    { fprintf (stderr, c"**TRAP**: %s\n".as_ptr (), trap); }   // C 20666
+  	}
+
+        if !prep.is_null ()                                // C 20669
+  	{
+  	  fprintf (stderr, c"interpreting the control value program, with %zu instructions\n".as_ptr (),   // C 20671-20672
+  		   (*prep).num_instructions);
+  	  trap = sfnt_interpret_control_value_program (interpreter, prep,   // C 20673-20674
+  						       &raw mut state);
+
+  	  if !trap.is_null ()                            // C 20676
+  	    { fprintf (stderr, c"**TRAP**: %s\n".as_ptr (), trap); }   // C 20677
+  	}
+
+        state = (*interpreter).state;                      // C 20680
+
+        advances = sa_stack_alloc (std::mem::size_of::<c_int> () * length) as *mut c_int;   // C 20682
+        rasters = sa_stack_alloc (std::mem::size_of::<*mut sfnt_raster> () * length) as *mut *mut sfnt_raster;   // C 20683
+
+        i = 0;                                             // C 20685
+        while i < length as c_int
+  	{
+  	  code = sfnt_lookup_glyph (*fancy.offset (i as isize), *data);   // C 20687
+
+  	  if code == 0                                   // C 20689
+  	    { exit (2); }                                // C 20690
+
+  	  glyph = sfnt_read_glyph (code, glyf, loca_short,   // C 20692-20693
+  				   loca_long);
+
+  	  if glyph.is_null () || (*glyph).simple.is_null ()   // C 20695
+  	    { exit (3); }                                // C 20696
+
+  	  if !instance.is_null () && !gvar.is_null ()    // C 20698
+  	    { sfnt_vary_simple_glyph (&raw mut blend, code, glyph,   // C 20699-20700
+  				      &raw mut distortion); }
+  	  else
+  	    { memset (&raw mut distortion as *mut c_void, 0, std::mem::size_of::<sfnt_metrics_distortion> ()); }   // C 20702
+
+  	  if sfnt_lookup_glyph_metrics (code, &raw mut metrics,   // C 20704-20705
+  					hmtx, hhea, maxp) != 0
+  	    { exit (4); }                                // C 20706
+
+  	  (*interpreter).state = state;                  // C 20708
+  	  trap = sfnt_interpret_simple_glyph (glyph, interpreter,   // C 20709-20710
+  					      &raw mut metrics, &raw mut value);
+
+  	  if !trap.is_null ()                            // C 20712
+  	    {
+  	      fprintf (stderr, c"*TRAP*: %s\n".as_ptr (), trap);   // C 20714
+  	      exit (5);                                  // C 20715
+  	    }
+
+  	  outline = sfnt_build_instructed_outline (value, &raw mut advance);   // C 20718
+  	  *advances.offset (i as isize) = (advance / 65536);   // C 20719
+
+  	  fprintf (stderr, c"advance: %d\n".as_ptr (), *advances.offset (i as isize));   // C 20721
+
+  	  if outline.is_null ()                          // C 20723
+  	    { exit (6); }                                // C 20724
+
+  	  xfree (value as *mut c_void);                  // C 20726
+
+  	  raster = test_raster_glyph_outline.unwrap () (outline);   // C 20728
+
+  	  if raster.is_null ()                           // C 20730
+  	    { exit (7); }                                // C 20731
+
+  	  xfree (outline as *mut c_void);                // C 20733
+
+  	  *rasters.offset (i as isize) = raster;         // C 20735
+  	  i += 1;
+  	}
+
+        sfnt_x_raster (rasters, advances, length as c_int, hhea, scale);   // C 20738
+        exit (0);                                          // C 20739
+      }
+
+    if !hhea.is_null () && !maxp.is_null ()                // C 20742
+      { hmtx = sfnt_read_hmtx_table (fd, font, hhea, maxp); }   // C 20743
+
+    if !maxp.is_null ()                                    // C 20745
+      { fprintf (stderr, c"maxp says num glyphs is %u\n".as_ptr (),   // C 20746-20747
+  	       (*maxp).num_glyphs as c_int); }
+
+    if !name.is_null ()                                    // C 20749
+      {
+        fprintf (stderr, c"name table of format: %u count: %u\n".as_ptr (),   // C 20751-20752
+  	       (*name).format as c_int, (*name).count as c_int);
+
+        string = sfnt_find_name (name, SFNT_NAME_FONT_FAMILY,   // C 20754-20755
+  			       &raw mut record);
+
+        if !string.is_null ()                              // C 20757
+  	{ fprintf (stderr, c"FONT_FAMILY: %u, %u\n".as_ptr (),   // C 20758-20759
+  		   record.platform_id as c_int, record.length as c_int); }
+      }
+
+    if !meta.is_null ()                                    // C 20762
+      {
+        fprintf (stderr, c"meta table with count: %u\n".as_ptr (),   // C 20764-20765
+  	       (*meta).num_data_maps);
+
+        i = 0;                                             // C 20767
+        while i < (*meta).num_data_maps as c_int
+  	{
+  	  fprintf (stderr, c"  meta tag: %x\n".as_ptr (),   // C 20768-20769
+  		   (*(*meta).data_maps.offset (i as isize)).tag);
+  	  i += 1;
+  	}
+      }
+
+    loca_long = std::ptr::null_mut ();                     // C 20772
+    loca_short = std::ptr::null_mut ();                    // C 20773
+
+    if !head.is_null ()                                    // C 20775
+      {
+        fprintf (stderr, c"HEAD table:\nversion: \t\t\t%g\nrevision: \t\t\t%g\nchecksum_adjustment: \t\t%u\nmagic: \t\t\t\t%x\nflags: \t\t\t\t%x\nunits_per_em: \t\t\t%u\nxmin, ymin, xmax, ymax: \t%d, %d, %d, %d\nmac_style: \t\t\t%x\nlowest_rec_ppem: \t\t%u\nfont_direction_hint: \t\t%i\nindex_to_loc_format: \t\t%i\nglyph_data_format: \t\t%i\n".as_ptr (),   // C 20777-20789
+  	       sfnt_coerce_fixed ((*head).version),
+  	       sfnt_coerce_fixed ((*head).revision),
+  	       (*head).checksum_adjustment,
+  	       (*head).magic,
+  	       (*head).flags as c_int,
+  	       (*head).units_per_em as c_int,
+  	       (*head).xmin as c_int,
+  	       (*head).ymin as c_int,
+  	       (*head).xmax as c_int,
+  	       (*head).ymax as c_int,
+  	       (*head).mac_style as c_int,
+  	       (*head).lowest_rec_ppem as c_int,
+  	       (*head).font_direction_hint as c_int,
+  	       (*head).index_to_loc_format as c_int,
+  	       (*head).glyph_data_format as c_int);
+
+        if (*head).index_to_loc_format != 0                // C 20806
+  	{
+  	  loca_long = sfnt_read_loca_table_long (fd, font);   // C 20808
+  	  if loca_long.is_null ()                        // C 20809
+  	    { return 1; }                                // C 20810
+
+  	  fprintf (stderr, c"long loca table has %zu glyphs\n".as_ptr (),   // C 20812-20813
+  		   (*loca_long).num_offsets);
+  	}
+        else
+  	{
+  	  loca_short = sfnt_read_loca_table_short (fd, font);   // C 20817
+  	  if loca_short.is_null ()                       // C 20818
+  	    { return 1; }                                // C 20819
+
+  	  fprintf (stderr, c"short loca table has %zu glyphs\n".as_ptr (),   // C 20821-20822
+  		   (*loca_short).num_offsets);
+  	}
+      }
+
+    if !hhea.is_null ()                                    // C 20826
+      { fprintf (stderr, c"HHEA table:\nversion: \t\t\t%g\nascent, descent: \t\t%d %d\nline_gap: \t\t\t%d\nadvance_width_max: \t\t%u\nmin_lsb: \t\t\t%d\nmin_rsb: \t\t\t%d\ncaret_srise: \t\t\t%d\ncaret_srun: \t\t\t%d\n".as_ptr (),   // C 20827-20835
+  	     sfnt_coerce_fixed ((*hhea).version),
+  	     (*hhea).ascent as c_int,
+  	     (*hhea).descent as c_int,
+  	     (*hhea).line_gap as c_int,
+  	     (*hhea).advance_width_max as c_uint,
+  	     (*hhea).min_left_side_bearing as c_int,
+  	     (*hhea).min_right_side_bearing as c_int,
+  	     (*hhea).caret_slope_rise as c_int,
+  	     (*hhea).caret_slope_run as c_int); }
+
+    if !head.is_null () && !maxp.is_null () && (*maxp).version >= 0x00010000   // C 20846
+      {
+        fprintf (stderr, c"creating interpreter\nthe size of the stack is %u\nthe size of the twilight zone is %u\nthe size of the storage area is %u\nthere are at most %u idefs\nthere are at most %u fdefs\nthe cvt is %zu fwords in length\n".as_ptr (),   // C 20848-20854
+  	       (*maxp).max_stack_elements as c_int,
+  	       (*maxp).max_twilight_points as c_int,
+  	       (*maxp).max_storage as c_int,
+  	       (*maxp).max_instruction_defs as c_int,
+  	       (*maxp).max_function_defs as c_int,
+  	       if cvt.is_null () { 0 } else { (*cvt).num_elements });   // C 20860
+
+        interpreter = sfnt_make_interpreter (maxp, cvt, head,   // C 20862-20864
+  					   fvar, FANCY_PPEM,
+  					   FANCY_PPEM);
+
+        if !getenv (c"SFNT_DEBUG".as_ptr ()).is_null ()    // C 20866
+  	{ (*interpreter).run_hook = Some (sfnt_run_hook); }   // C 20867
+        else if !getenv (c"SFNT_VERBOSE".as_ptr ()).is_null ()   // C 20868
+  	{
+  	  (*interpreter).run_hook = Some (sfnt_verbose);   // C 20870
+  	  (*interpreter).push_hook = Some (sfnt_push_hook);   // C 20871
+  	  (*interpreter).pop_hook = Some (sfnt_pop_hook);   // C 20872
+  	}
+
+        state = (*interpreter).state;                      // C 20875
+
+        if !instance.is_null () && !gvar.is_null ()        // C 20877
+  	{ sfnt_vary_interpreter (interpreter, &raw mut blend); }   // C 20878
+
+        if !fpgm.is_null ()                                // C 20880
+  	{
+  	  fprintf (stderr, c"interpreting the font program, with %zu instructions\n".as_ptr (),   // C 20882-20883
+  		   (*fpgm).num_instructions);
+
+  	  trap = sfnt_interpret_font_program (interpreter, fpgm);   // C 20885
+
+  	  if !trap.is_null ()                            // C 20887
+  	    { fprintf (stderr, c"**TRAP**: %s\n".as_ptr (), trap); }   // C 20888
+  	}
+
+        if !prep.is_null ()                                // C 20891
+  	{
+  	  fprintf (stderr, c"interpreting the control value program, with %zu instructions\n".as_ptr (),   // C 20893-20894
+  		   (*prep).num_instructions);
+
+  	  trap = sfnt_interpret_control_value_program (interpreter, prep,   // C 20896-20897
+  						       &raw mut state);
+
+  	  if !trap.is_null ()                            // C 20899
+  	    { fprintf (stderr, c"**TRAP**: %s\n".as_ptr (), trap); }   // C 20900
+  	}
+      }
+
+    while true                                             // C 20904
+      {
+        printf (c"table, character? ".as_ptr ());          // C 20906
+
+        if (scanf (c"%d %u".as_ptr (), &raw mut i, &raw mut character) == EOF)   // C 20908
+  	{ break; }                                       // C 20909
+
+        if i < 0 || i >= (*table).num_subtables as c_int   // C 20911
+  	{
+  	  printf (c"table out of range\n".as_ptr ());    // C 20913
+  	  continue;                                      // C 20914
+  	}
+
+        if (*data.offset (i as isize)).is_null ()          // C 20917
+  	{
+  	  printf (c"table not present\n".as_ptr ());     // C 20919
+  	  continue;                                      // C 20920
+  	}
+
+        code = sfnt_lookup_glyph (character, *data.offset (i as isize));   // C 20923
+        printf (c"glyph is %u\n".as_ptr (), code);         // C 20924
+
+        if (!loca_long.is_null () || !loca_short.is_null ()) && !glyf.is_null ()   // C 20926
+  	{
+  	  scale = sfnt_div_fixed (EASY_PPEM, (*head).units_per_em);   // C 20928
+  	  glyph = sfnt_read_glyph (code, glyf, loca_short,   // C 20929-20930
+  				   loca_long);
+
+  	  if !glyph.is_null ()                           // C 20932
+  	    {
+  	      printf (c"glyph is: %s\n".as_ptr (),       // C 20934-20935
+  		      if !(*glyph).simple.is_null () { c"simple".as_ptr () } else { c"compound".as_ptr () });
+
+  	      dcontext.glyf = glyf;                      // C 20937
+  	      dcontext.loca_short = loca_short;          // C 20938
+  	      dcontext.loca_long = loca_long;            // C 20939
+  	      dcontext.hmtx = hmtx;                      // C 20940
+  	      dcontext.hhea = hhea;                      // C 20941
+  	      dcontext.maxp = maxp;                      // C 20942
+
+  	      if !instance.is_null () && !gvar.is_null ()   // C 20944
+  		{ dcontext.blend = &raw mut blend; }     // C 20945
+  	      else
+  		{ dcontext.blend = std::ptr::null_mut (); }   // C 20947
+
+  	      if !(*glyph).simple.is_null () && !instance.is_null () && !gvar.is_null ()   // C 20949
+  		{
+  		  printf (c"applying variations to simple glyph...\n".as_ptr ());   // C 20951
+
+  		  clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut start);   // C 20953
+  		  if sfnt_vary_simple_glyph (&raw mut blend, code, glyph,   // C 20954-20955
+  					     &raw mut distortion) != 0
+  		    { printf (c"variation failed!\n".as_ptr ()); }   // C 20956
+  		  clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut end);   // C 20957
+  		  sub = timespec_sub (end, start);       // C 20958
+
+  		  printf (c"time spent varying: %lld sec %ld nsec\n".as_ptr (),   // C 20960-20961
+  			  sub.tv_sec as c_longlong, sub.tv_nsec);
+  		  printf (c"distortions: %i, %i\n".as_ptr (),   // C 20962-20963
+  			  distortion.origin as c_int, distortion.advance as c_int);
+  		}
+  	      else if !instance.is_null () && !gvar.is_null ()   // C 20965
+  		{
+  		  printf (c"applying variations to compound glyph...\n".as_ptr ());   // C 20967
+
+  		  if sfnt_vary_compound_glyph (&raw mut blend, code, glyph,   // C 20969-20970
+  					       &raw mut distortion) != 0
+  		    { printf (c"variation failed!\n".as_ptr ()); }   // C 20971
+  		}
+
+  	      if sfnt_lookup_glyph_metrics (code, &raw mut metrics,   // C 20974-20975
+  					    hmtx, hhea, maxp) != 0
+  		{
+  		  printf (c"metrics lookup failure".as_ptr ());   // C 20977
+  		  memset (&raw mut metrics as *mut c_void, 0, std::mem::size_of::<sfnt_glyph_metrics> ());   // C 20978
+  		}
+
+  	      if sfnt_decompose_glyph (glyph, &raw mut metrics,   // C 20981-20988
+  				       Some (sfnt_test_move_to),
+  				       Some (sfnt_test_line_to),
+  				       Some (sfnt_test_curve_to),
+  				       Some (sfnt_test_get_glyph),
+  				       Some (sfnt_test_free_glyph),
+  				       Some (sfnt_test_get_metrics),
+  				       &raw mut dcontext) != 0
+  		{ printf (c"decomposition failure\n".as_ptr ()); }   // C 20989
+
+  	      if sfnt_lookup_glyph_metrics (code, &raw mut metrics,   // C 20991-20992
+  					    hmtx, hhea, maxp) != 0
+  		{
+  		  printf (c"metrics lookup failure".as_ptr ());   // C 20994
+  		  memset (&raw mut metrics as *mut c_void, 0, std::mem::size_of::<sfnt_glyph_metrics> ());   // C 20995
+  		}
+
+  	      /* Time this important bit.  */
+  	      clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut start);   // C 20999
+  	      outline = sfnt_build_glyph_outline (glyph, scale,   // C 21000-21005
+  						  &raw mut metrics,
+  						  Some (sfnt_test_get_glyph),
+  						  Some (sfnt_test_free_glyph),
+  						  Some (sfnt_test_get_metrics),
+  						  &raw mut dcontext);
+
+  	      clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut end);   // C 21007
+  	      sub = timespec_sub (end, start);             // C 21008
+  	      memset (&raw mut sub1 as *mut c_void, 0, std::mem::size_of::<timespec> ());   // C 21009
+
+  	      if !outline.is_null ()                       // C 21011
+  		{
+  		  fprintf (stderr, c"outline origin, rbearing: %i %i\n".as_ptr (),   // C 21013-21016
+  			   (*outline).origin as c_int,
+  			   ((*outline).xmax - (*outline).origin) as c_int);
+  		  sfnt_test_max = (*outline).ymax - (*outline).ymin;   // C 21017
+
+  		  i = 0;                                   // C 21019
+  		  while (i as size_t) < (*outline).outline_used
+  		    { printf (c"ctx.%s (%g, %g) /* %g, %g */\n".as_ptr (),   // C 21020-21032
+  			    if ((*(*outline).outline.offset (i as isize)).flags
+  				& SFNT_GLYPH_OUTLINE_LINETO) != 0
+  			      { c"lineTo".as_ptr () } else { c"moveTo".as_ptr () },
+  			    sfnt_coerce_fixed ((*(*outline).outline.offset (i as isize)).x
+  					       - (*outline).xmin),
+  			    sfnt_coerce_fixed (sfnt_test_max
+  					       - ((*(*outline).outline.offset (i as isize)).y
+  						  - (*outline).ymin)),
+  			    sfnt_coerce_fixed ((*(*outline).outline.offset (i as isize)).x
+  					       - (*outline).xmin),
+  			    sfnt_coerce_fixed ((*(*outline).outline.offset (i as isize)).y
+  					       - (*outline).ymin)); }
+  		  i += 1;
+
+  		  clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut start);   // C 21034
+  		  sfnt_build_outline_edges (outline, Some (sfnt_test_edge_ignore),   // C 21035-21036
+  					    std::ptr::null_mut ());
+  		  clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut end);   // C 21037
+  		  sub1 = timespec_sub (end, start);      // C 21038
+
+  		  sfnt_build_outline_edges (outline, Some (sfnt_test_edge),   // C 21040-21041
+  					    std::ptr::null_mut ());
+
+  		  raster = std::ptr::null_mut ();        // C 21043
+
+  		  clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut start);   // C 21045
+
+  		  i = 0;                                 // C 21047
+  		  while i < 12800
+  		    {
+  		      xfree (raster as *mut c_void);     // C 21049
+  		      raster = test_raster_glyph_outline.unwrap () (outline);   // C 21050
+  		      i += 1;
+  		    }
+
+  		  clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut end);   // C 21053
+  		  sub2 = timespec_sub (end, start);      // C 21054
+
+  		  /* Print out the raster.  */
+  		  sfnt_test_raster (raster, hhea, scale);   // C 21057
+  		  printf (c"raster offsets: %d, %d\n".as_ptr (),   // C 21058-21059
+  			  (*raster).offx, (*raster).offy);
+
+  		  xfree (raster as *mut c_void);         // C 21061
+
+  		  printf (c"outline bounds: %g %g, %g %g\n".as_ptr (),   // C 21063-21067
+  			  sfnt_coerce_fixed ((*outline).xmin),
+  			  sfnt_coerce_fixed ((*outline).ymin),
+  			  sfnt_coerce_fixed ((*outline).xmax),
+  			  sfnt_coerce_fixed ((*outline).ymax));
+  		}
+
+  	      if !hmtx.is_null () && !head.is_null ()    // C 21070
+  		{
+  		  sfnt_scale_metrics (&raw mut metrics, scale);   // C 21072
+  		  printf (c"scaled lbearing, advance: %g, %g\n".as_ptr (),   // C 21073-21075
+  			  sfnt_coerce_fixed (metrics.lbearing),
+  			  sfnt_coerce_fixed (metrics.advance));
+
+  		  if sfnt_lookup_glyph_metrics (code, &raw mut metrics, hmtx,   // C 21077-21078
+  						hhea, maxp) == 0
+  		    {
+  		      sfnt_scale_metrics (&raw mut metrics, scale);   // C 21080
+  		      printf (c"lbearing, advance: %g, %g\n".as_ptr (),   // C 21081-21083
+  			      sfnt_coerce_fixed (metrics.lbearing),
+  			      sfnt_coerce_fixed (metrics.advance));
+  		    }
+
+  		  if !interpreter.is_null ()             // C 21086
+  		    {
+  		      if sfnt_lookup_glyph_metrics (code, &raw mut metrics,   // C 21088-21089
+  						    hmtx, hhea, maxp) == 0
+  			{
+  			  printf (c"interpreting glyph\n".as_ptr ());   // C 21091
+  			  (*interpreter).state = state;   // C 21092
+  			  clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut start);   // C 21093
+  			  if !(*glyph).simple.is_null ()   // C 21094
+  			    { trap = sfnt_interpret_simple_glyph (glyph,   // C 21095-21099
+  								interpreter,
+  								&raw mut metrics,
+  								&raw mut value); }
+  			  else
+  			    {
+  			      /* C 21101-21102: `#define GG sfnt_test_get_glyph` and
+  				 `#define FG sfnt_test_free_glyph`, the two object-like macros the
+  				 compound call names; C's `#undef`s at C 21113-21114 have no Rust
+  				 counterpart (a `macro_rules!` ends with its block).  */
+  			      macro_rules! GG { () => { sfnt_test_get_glyph }; }
+  			      macro_rules! FG { () => { sfnt_test_free_glyph }; }
+  			      trap = sfnt_interpret_compound_glyph (glyph,   // C 21103-21112
+  								    interpreter,
+  								    &raw mut state,
+  								    Some (GG! ()), Some (FG! ()),
+  								    hmtx, hhea,
+  								    maxp,
+  								    &raw mut metrics,
+  								    &raw mut dcontext,
+  								    &raw mut value);
+  			    }
+  			  clock_gettime (CLOCK_THREAD_CPUTIME_ID, &raw mut end);   // C 21115
+  			  sub3 = timespec_sub (end, start);   // C 21116
+
+  			  if !trap.is_null ()              // C 21118
+  			    { printf (c"**TRAP**: %s\n".as_ptr (), trap); }   // C 21119
+  			  else
+  			    {
+  			      printf (c"rasterizing instructed outline\n".as_ptr ());   // C 21122
+  			      if !outline.is_null ()       // C 21123
+  				{ xfree (outline as *mut c_void); }   // C 21124
+  			      outline = sfnt_build_instructed_outline (value,   // C 21125-21127
+  								       &raw mut advance);
+  			      xfree (value as *mut c_void);   // C 21128
+
+  			      /* C 21130-21131: `#define LB outline->xmin - outline->origin` and
+  				 `#define RB outline->xmax - outline->origin`; C's `#undef`s at
+  				 C 21136-21137 have no Rust counterpart.  */
+  			      macro_rules! LB { () => { (*outline).xmin - (*outline).origin }; }
+  			      macro_rules! RB { () => { (*outline).xmax - (*outline).origin }; }
+  			      printf (c"instructed advance, lb, rb: %g %g %g\n".as_ptr (),   // C 21132-21135
+  				      sfnt_coerce_fixed (advance),
+  				      sfnt_coerce_fixed (LB! ()),
+  				      sfnt_coerce_fixed (RB! ()));
+
+  			      if !outline.is_null ()       // C 21139
+  				{
+  				  raster = test_raster_glyph_outline.unwrap () (outline);   // C 21141-21142
+
+  				  if !raster.is_null ()    // C 21144
+  				    {
+  				      sfnt_test_raster (raster, hhea, scale);   // C 21146
+  				      printf (c"raster offsets: %d, %d\n".as_ptr (),   // C 21147-21148
+  					      (*raster).offx, (*raster).offy);
+  				      xfree (raster as *mut c_void);   // C 21149
+  				    }
+  				}
+  			    }
+
+  			  fprintf (stderr, c"execution time: %lld sec %ld nsec\n".as_ptr (),   // C 21154-21156
+  				   sub3.tv_sec as c_longlong, sub3.tv_nsec);
+  			}
+
+  		      (*interpreter).run_hook = None;  // C 21159
+  		    }
+  		}
+
+  	      printf (c"time spent outlining: %lld sec %ld nsec\n".as_ptr (),   // C 21163-21164
+  		      sub.tv_sec as c_longlong, sub.tv_nsec);
+  	      printf (c"time spent building edges: %lld sec %ld nsec\n".as_ptr (),   // C 21165-21166
+  		      sub1.tv_sec as c_longlong, sub1.tv_nsec);
+  	      printf (c"time spent rasterizing: %lld sec %ld nsec\n".as_ptr (),   // C 21167-21169
+  		      sub2.tv_sec as c_longlong / 12800,
+  		      sub2.tv_nsec / 12800);
+
+  	      xfree (outline as *mut c_void);          // C 21171
+  	    }
+
+  	  sfnt_free_glyph (glyph);                     // C 21174
+  	}
+      }
+  }                                                    /* 'free_lab (C 21178) */
+
+  /* free_lab: */
+
+  xfree (font as *mut c_void);                          // C 21180
+
+  i = 0;                                                // C 21182
+  while i < (*table).num_subtables as c_int
+    {
+      xfree (*data.offset (i as isize) as *mut c_void);  // C 21183
+      i += 1;
+    }
+
+  if !instance.is_null () && !gvar.is_null ()            // C 21185
+    { sfnt_free_blend (&raw mut blend); }                // C 21186
+
+  xfree (table as *mut c_void);                          // C 21188
+  xfree (data as *mut c_void);                           // C 21189
+  xfree (subtables as *mut c_void);                      // C 21190
+  xfree (head as *mut c_void);                           // C 21191
+  xfree (hhea as *mut c_void);                           // C 21192
+  xfree (loca_long as *mut c_void);                      // C 21193
+  xfree (loca_short as *mut c_void);                     // C 21194
+  xfree (glyf as *mut c_void);                           // C 21195
+  xfree (maxp as *mut c_void);                           // C 21196
+  xfree (hmtx as *mut c_void);                           // C 21197
+  xfree (name as *mut c_void);                           // C 21198
+  xfree (meta as *mut c_void);                           // C 21199
+  xfree (ttc as *mut c_void);                            // C 21200
+  xfree (cvt as *mut c_void);                            // C 21201
+  xfree (fpgm as *mut c_void);                           // C 21202
+  xfree (interpreter as *mut c_void);                    // C 21203
+  xfree (prep as *mut c_void);                           // C 21204
+  xfree (fvar as *mut c_void);                           // C 21205
+  xfree (gvar as *mut c_void);                           // C 21206
+  xfree (avar as *mut c_void);                           // C 21207
+  xfree (cvar as *mut c_void);                           // C 21208
+  xfree (OS_2 as *mut c_void);                           // C 21209
+  xfree (post as *mut c_void);                           // C 21210
+
+  return 0;                                              // C 21212
+}
+
+/* C 52's `#include <time.h>` is inside the `#ifdef TEST` block and is what supplies the two
+   names main's timing arms use; the tree's `<time.h>` mirrors carry neither, so both stand at
+   their use site (P-88 ①, the `waitpid` shape above).  The constant is the frozen target's
+   measured value, not a guess: `clang -dM -E` on the frozen <time.h> reads
+   `#define CLOCK_THREAD_CPUTIME_ID _CLOCK_THREAD_CPUTIME_ID`, and the `_CLOCK_*` enum it names
+   holds `_CLOCK_THREAD_CPUTIME_ID = 16` (measured 2026-10-06, the same reading timefns.rs 107
+   takes for `CLOCK_MONOTONIC_COARSE`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+pub const CLOCK_THREAD_CPUTIME_ID: c_int = 16;
+#[cfg (all (feature = "have_android", feature = "not_android_stubify", feature = "test"))]
+unsafe extern "C" {
+  /// C: `<time.h>`: `int clock_gettime (clockid_t, struct timespec *);`
+  pub fn clock_gettime (clockid: c_int, tp: *mut timespec) -> c_int;
 }
