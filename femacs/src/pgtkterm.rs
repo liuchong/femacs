@@ -10208,3 +10208,372 @@ pub unsafe extern "C" fn pgtk_xlfd_to_fontname (xlfd: *const c_char) -> *mut c_c
 
   return name;                                                          // C 7377
 }
+
+/* C 69's `<gdk/gdkwayland.h>` (and the two `GDK_IS_*`/`GDK_SB_*` names C 7223-7293 reads) have no
+   file in the reference tree and no mirror, so their declarations stand in this unit (Deviation 2's
+   class).  `GDK_SB_V_DOUBLE_ARROW`/`GDK_SB_H_DOUBLE_ARROW` are unit-local copies of names
+   `src/pgtkfns.rs` 2581 owns (P-90 7); `GDK_IS_WAYLAND_DISPLAY` keeps the placeholder-predicate shape
+   this unit already uses for `GTK_IS_CONTAINER!` (line 6685's reading: the test is a null-pointer
+   test until a GTK target can decide the real one).  **UNVERIFIED** (Owed 21's round).  */
+/* `GDK_SB_V_DOUBLE_ARROW`/`GDK_SB_H_DOUBLE_ARROW` need no row here: the include graph already
+   carries them (the first reading named the two `E0428`s a unit-local copy produced - the
+   `list3`/`strcmp` lesson again).  */
+#[cfg (feature = "have_pgtk")]
+macro_rules! GDK_IS_WAYLAND_DISPLAY {
+  ($o:expr) => { !($o).is_null () };
+}
+/// C: gdk/gdkwayland.h: `typedef struct _GdkWaylandDisplay GdkWaylandDisplay;`
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+pub struct GdkWaylandDisplay
+{
+  _private: [u8; 0],
+}
+/// C: wayland-client.h (reached through gdk/gdkwayland.h): `struct wl_display;` - the C 7272 local's
+/// pointee.  **UNVERIFIED**.
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+pub struct wl_display
+{
+  _private: [u8; 0],
+}
+/* <gdk/gdkwayland.h>: `struct wl_display *gdk_wayland_display_get_wl_display (GdkDisplay *display);`
+   - the C 7272 call, declared here because that header has no mirror (above).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gdk_wayland_display_get_wl_display (display: *mut GdkDisplay) -> *mut wl_display;
+}
+
+/* The twelve entry points `pgtk_term_init` calls and this unit's include graph does not bring into
+   scope, each with C's own prototype.  keyboard.h 477: `KBOARD *allocate_kboard (Lisp_Object);`
+   lisp.h 5194: `extern void add_keyboard_wait_descriptor (int);` dispextern.h 3708: `void
+   gui_init_fringe (struct redisplay_interface *);` dispextern.h 3781/3782/3785: `void request_sigio
+   (void);` / `void unrequest_sigio (void);` / `void init_sigio (int);` gtkutil.h 176/178/236: `extern
+   void xg_display_open (char *display_name, GdkDisplay **dpy);` / `extern GdkCursor
+   *xg_create_default_cursor (GdkDisplay *gdpy);` / `extern void xg_initialize (void);` lisp.h 5553:
+   `extern char *xlispstrdup (Lisp_Object);`  <dlfcn.h>: `void *dlopen (const char *file, int mode);`
+   - all of them stand here (P-88 1), with `FRAME_GTK_WIDGET`-class conversions at the call sites.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn allocate_kboard (type_: Lisp_Object) -> *mut kboard;
+  pub fn add_keyboard_wait_descriptor (fd: c_int);
+  pub fn gui_init_fringe (rif: *mut c_void);   // C's `struct redisplay_interface *` (P-87 3)
+  pub fn request_sigio ();
+  pub fn unrequest_sigio ();
+  pub fn init_sigio (fd: c_int);
+  pub fn xg_display_open (display_name: *mut c_char, dpy: *mut *mut GdkDisplay);
+  pub fn xg_create_default_cursor (gdpy: *mut GdkDisplay) -> *mut GdkCursor;
+  pub fn xg_initialize ();
+  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+  pub fn dlopen (file: *const c_char, mode: c_int) -> *mut c_void;
+  pub fn dlsym (handle: *mut c_void, name: *const c_char) -> *mut c_void;
+}
+/* <dlfcn.h> 25-30's `RTLD_*` values, measured on the frozen target (`src/dynlib.rs` 25-27: RTLD_LAZY
+   = 1, RTLD_NOW = 2); the unit keeps its own copy (P-90 7, the `GDK_BUTTON_PRESS` shape).  */
+#[cfg (feature = "have_pgtk")]
+pub const RTLD_LAZY: c_int = 1;
+/// gnulib's `ckd_add` macro, the body `src/coding.rs` 163-168 and `src/gtkutil.rs` 1062 carry (C
+/// 7210's call writes `nbytes` through it and tests the overflow).
+macro_rules! ckd_add {
+  ($dst:ident, $a:expr, $b:expr) => {{
+    let (ckd_add_value, ckd_add_overflow) = ($a).overflowing_add ($b);
+    $dst = ckd_add_value;
+    ckd_add_overflow
+  }};
+}
+
+/// C 7069-7308: `struct pgtk_display_info *pgtk_term_init (Lisp_Object display_name, char
+/// *resource_name)` - a **non-`static`** C definition, so the port carries `#[unsafe(no_mangle)]` and
+/// `extern "C"` (PORTING.md 0.2).  Its four **function statics** (`x_initialized`, `x_display_id`,
+/// `initial_display`, `handle`) are written where C declares them; C 7106's `#define NUM_ARGV 10` is
+/// the port's block-scoped `const NUM_ARGV: c_int = 10;`; the `argv` array C 7108 declares is
+/// `[*mut c_char; NUM_ARGV as usize]` with C's fill-in-a-loop; C 7125's `initial_argv0` is the
+/// include graph's global; C 7143's `gtk_init (&argc, &argv2)` hands over `&raw mut`; C 7138's
+/// `g_log_set_handler` takes the handler as `Some (my_log_handler)` (the function's own Rust type);
+/// C 7152's `xstrdup` and C 7169's `xzalloc` take their `void *`/`size_t` conversions; the `share`
+/// walk is the port's `while` with C's `break` in the body; C 7210's `ckd_add` writes through
+/// `&raw mut nbytes`; C 7212's pre-increment is written out; C 7215's `*nametail++ = '@'` is the store
+/// plus the step; and C 7252-7279's two `dlopen`/`dlsym` arms are the `dl`-surface's, gated
+/// `gdk_windowing_x11`/`gdk_windowing_wayland` (the latter with the two unit-local rows above).
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_term_init (display_name: Lisp_Object, resource_name: *mut c_char)
+    -> *mut pgtk_display_info
+{
+  let mut dpy: *mut GdkDisplay = core::mem::zeroed ();                  // C 7072 (written by C 7114 through `&raw mut`)
+  let mut terminal: *mut terminal;                                      // C 7073
+  let mut dpyinfo: *mut pgtk_display_info;                              // C 7074
+  static mut x_initialized: bool = false;                               // C 7075
+  static mut x_display_id: c_uint = 0;                                  // C 7076
+  static mut initial_display: *mut c_char = std::ptr::null_mut ();      // C 7077
+  let mut dpy_name: *mut c_char;                                        // C 7078
+  static mut handle: *mut c_void = std::ptr::null_mut ();               // C 7079
+  let mut lisp_dpy_name: Lisp_Object = Qnil ();                         // C 7080
+  let mut gscr: *mut GdkScreen;                                         // C 7081
+  let mut dpi: gdouble;                                                 // C 7082
+
+  block_input ();                                                       // C 7084
+
+  let was_initialized: bool = x_initialized;                            // C 7086
+  if !x_initialized                                                     // C 7087
+    {
+      any_help_event_p = false;                                         // C 7089
+
+      Fset_input_interrupt_mode (Qt ());                                // C 7091
+      baud_rate = 19200;                                                // C 7092
+
+      #[cfg (feature = "use_cairo")]
+      { gui_init_fringe (&raw mut pgtk_redisplay_interface as *mut c_void); }  // C 7095 (USE_CAIRO)
+      x_initialized = true;                                             // C 7097
+    }
+
+  dpy_name = SSDATA (display_name);                                     // C 7100
+  if strlen (dpy_name) == 0 && !initial_display.is_null ()              // C 7101
+    { dpy_name = initial_display; }                                     // C 7102
+  lisp_dpy_name = build_string (dpy_name);                              // C 7103
+
+  {
+    const NUM_ARGV: c_int = 10;                                         // C 7106
+    let mut argc: c_int;                                                // C 7107
+    let mut argv: [*mut c_char; NUM_ARGV as usize] = [std::ptr::null_mut ();
+						       NUM_ARGV as usize];  // C 7108
+    let mut argv2: *mut *mut c_char = argv.as_mut_ptr ();               // C 7109
+    let mut id: guint;                                                  // C 7110
+
+    if was_initialized                                                  // C 7112
+      {
+	xg_display_open (dpy_name, &raw mut dpy);                       // C 7114
+      }
+    else
+      {
+        static mut display_opt: [u8; 10] = *b"--display\0";            // C 7118
+        static mut name_opt: [u8; 7] = *b"--name\0";                   // C 7119
+
+        argc = 0;                                                       // C 7121
+        while argc < NUM_ARGV                                           // C 7121
+	  {
+	    argv[argc as usize] = std::ptr::null_mut ();                // C 7122
+	    argc += 1;                                                  // C 7121
+	  }
+
+        argc = 0;                                                       // C 7124
+        argv[argc as usize] = initial_argv0;                            // C 7125
+        argc += 1;                                                      // C 7125
+
+	if strlen (dpy_name) != 0                                       // C 7127
+	  {
+	    argv[argc as usize] = display_opt.as_mut_ptr () as *mut c_char;  // C 7129
+	    argc += 1;                                                  // C 7129
+	    argv[argc as usize] = dpy_name;                             // C 7130
+	    argc += 1;                                                  // C 7130
+	  }
+
+        argv[argc as usize] = name_opt.as_mut_ptr () as *mut c_char;      // C 7133
+        argc += 1;                                                      // C 7133
+        argv[argc as usize] = resource_name;                            // C 7134
+        argc += 1;                                                      // C 7134
+
+	/* Work around GLib bug that outputs a faulty warning. See
+	   https://bugzilla.gnome.org/show_bug.cgi?id=563627.  */
+	id = g_log_set_handler (c"GLib".as_ptr (),
+				G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL
+				| G_LOG_FLAG_RECURSION,
+				Some (my_log_handler),
+				std::ptr::null_mut ());                 // C 7138-7139
+
+	gtk_disable_setlocale ();                                       // C 7141
+	unrequest_sigio ();	/* See comment in x_display_ok.  */    // C 7142
+	gtk_init (&raw mut argc, &raw mut argv2);                       // C 7143
+	request_sigio ();                                               // C 7144
+
+        g_log_remove_handler (c"GLib".as_ptr (), id);                   // C 7146
+
+        xg_initialize ();                                               // C 7148
+
+        dpy = DEFAULT_GDK_DISPLAY! ();                                  // C 7150
+
+	initial_display = xstrdup (gdk_display_get_name (dpy));         // C 7152
+	dpy_name = initial_display;                                     // C 7153
+	lisp_dpy_name = build_string (dpy_name);                        // C 7154
+      }
+  }
+
+  /* Detect failure.  */
+  if dpy.is_null ()                                                     // C 7159
+    {
+      unblock_input ();                                                 // C 7161
+      return std::ptr::null_mut ();                                     // C 7162
+    }
+
+  /* If the PGTK port is being used under X, complain very loudly, as
+     that isn't supported.  */
+  pgtk_display_x_warning (dpy);                                         // C 7167
+
+  dpyinfo = xzalloc (std::mem::size_of::<pgtk_display_info> ())
+	    as *mut pgtk_display_info;                                  // C 7169
+  pgtk_initialize_display_info (dpyinfo);                               // C 7170
+  terminal = pgtk_create_terminal (dpyinfo);                            // C 7171
+
+  {
+    let mut share: *mut pgtk_display_info;                              // C 7174
+
+    share = x_display_list;                                             // C 7176
+    while !share.is_null ()                                             // C 7176
+      {
+	if same_x_server (SSDATA (XCAR ((*share).name_list_element)),
+			  dpy_name)                                     // C 7177
+	  { break; }
+	share = (*share).next;                                          // C 7176
+      }
+    if !share.is_null ()                                                // C 7179
+      { (*terminal).kboard = (*(*share).terminal).kboard; }             // C 7180 (both `void *`)
+    else
+      {
+	(*terminal).kboard = allocate_kboard (Qpgtk ()) as *mut c_void;   // C 7183
+
+	/* Don't let the initial kboard remain current longer than necessary.
+	   That would cause problems if a file loaded on startup tries to
+	   prompt in the mini-buffer.  */
+	if current_kboard == initial_kboard                             // C 7188
+	  { current_kboard = (*terminal).kboard as *mut kboard; }        // C 7189
+      }
+    let kb: *mut kboard = (*terminal).kboard as *mut kboard;            // C 7191
+    (*kb).reference_count += 1;                                         // C 7191
+  }
+
+  /* Put this display on the chain.  */
+  (*dpyinfo).next = x_display_list;                                     // C 7195
+  x_display_list = dpyinfo;                                             // C 7196
+
+  (*dpyinfo).name_list_element = Fcons (lisp_dpy_name, Qnil ());        // C 7198
+  (*dpyinfo).gdpy = dpy;                                                // C 7199
+
+  /* https://lists.gnu.org/r/emacs-devel/2015-11/msg00194.html  */
+  (*dpyinfo).smallest_font_height = 1;                                  // C 7202
+  (*dpyinfo).smallest_char_width = 1;                                   // C 7203
+
+  /* Set the name of the terminal. */
+  (*terminal).name = xlispstrdup (lisp_dpy_name);                       // C 7206
+
+  let system_name: Lisp_Object = Fsystem_name ();                       // C 7208
+  let mut nbytes: ptrdiff_t;                                            // C 7209
+  if ckd_add! (nbytes, SBYTES (Vinvocation_name),
+	       SBYTES (system_name) + 2)                                // C 7210
+    { memory_full_up (); }                                              // C 7211
+  x_display_id += 1;                                                    // C 7212
+  (*dpyinfo).x_id = x_display_id;                                       // C 7212
+  (*dpyinfo).x_id_name = xmalloc (nbytes as usize) as *mut c_char;      // C 7213
+  let mut nametail: *mut c_char
+    = lispstpcpy ((*dpyinfo).x_id_name, Vinvocation_name);              // C 7214
+  *nametail = b'@' as c_char;                                           // C 7215
+  nametail = nametail.offset (1);                                       // C 7215
+  lispstpcpy (nametail, system_name);                                   // C 7216
+
+  /* Get the scroll bar cursor.  */
+  /* We must create a GTK cursor, it is required for GTK widgets.  */
+  (*dpyinfo).xg_cursor = xg_create_default_cursor ((*dpyinfo).gdpy);    // C 7220
+
+  (*dpyinfo).vertical_scroll_bar_cursor
+    = gdk_cursor_new_for_display ((*dpyinfo).gdpy,
+				   GDK_SB_V_DOUBLE_ARROW) as *mut c_void;  // C 7222-7223
+
+  (*dpyinfo).horizontal_scroll_bar_cursor
+    = gdk_cursor_new_for_display ((*dpyinfo).gdpy,
+				   GDK_SB_H_DOUBLE_ARROW) as *mut c_void;  // C 7225-7226
+
+  (*dpyinfo).icon_bitmap_id = -1;                                       // C 7228
+
+  reset_mouse_highlight (&raw mut (*dpyinfo).mouse_highlight);          // C 7230
+
+  gscr = gdk_display_get_default_screen ((*dpyinfo).gdpy);              // C 7232
+  dpi = gdk_screen_get_resolution (gscr);                               // C 7233
+
+  if dpi < 0.0                                                          // C 7235
+    { dpi = 96.0; }                                                     // C 7236
+
+  (*dpyinfo).resx = dpi;                                                // C 7238
+  (*dpyinfo).resy = dpi;                                                // C 7239
+
+  g_signal_connect! (G_OBJECT! (gscr), c"monitors-changed".as_ptr (),
+		     pgtk_monitors_changed_cb,
+		     terminal as gpointer);                             // C 7241-7243
+
+  /* Set up scrolling increments.  */
+  (*dpyinfo).scroll.x_per_char = 1.0;                                   // C 7246
+  (*dpyinfo).scroll.y_per_line = 1.0;                                   // C 7247
+
+  (*dpyinfo).connection = -1;                                           // C 7249
+
+  if handle.is_null ()                                                  // C 7251
+    { handle = dlopen (std::ptr::null (), RTLD_LAZY); }                 // C 7252
+
+  #[cfg (feature = "gdk_windowing_x11")]
+  {
+    if strcmp (G_OBJECT_TYPE_NAME! (dpy), c"GdkX11Display".as_ptr ()) == 0
+	&& !handle.is_null ()                                           // C 7255
+      {
+	let gdk_x11_display_get_xdisplay:
+	  unsafe extern "C" fn (dpy: *mut GdkDisplay) -> *mut c_void
+	  = core::mem::transmute::<*mut c_void,
+				   unsafe extern "C" fn (dpy: *mut GdkDisplay) -> *mut c_void>
+	    (dlsym (handle, c"gdk_x11_display_get_xdisplay".as_ptr ()));  // C 7257-7258
+	let x_connection_number:
+	  unsafe extern "C" fn (arg1: *mut c_void) -> c_int
+	  = core::mem::transmute::<*mut c_void,
+				   unsafe extern "C" fn (arg1: *mut c_void) -> c_int>
+	    (dlsym (handle, c"XConnectionNumber".as_ptr ()));           // C 7259-7260
+
+	if x_connection_number as *const () != std::ptr::null ()
+	    && gdk_x11_display_get_xdisplay as *const () != std::ptr::null ()  // C 7262-7263
+	  {
+	    (*dpyinfo).connection
+	      = x_connection_number (gdk_x11_display_get_xdisplay (dpy));  // C 7264-7265
+	  }
+      }
+  }
+
+  #[cfg (feature = "gdk_windowing_wayland")]
+  {
+    if GDK_IS_WAYLAND_DISPLAY! (dpy) && !handle.is_null ()               // C 7270
+      {
+	let wl_dpy: *mut wl_display
+	  = gdk_wayland_display_get_wl_display (dpy);                   // C 7272
+	let display_get_fd:
+	  unsafe extern "C" fn (arg1: *mut wl_display) -> c_int
+	  = core::mem::transmute::<*mut c_void,
+				   unsafe extern "C" fn (arg1: *mut wl_display) -> c_int>
+	    (dlsym (handle, c"wl_display_get_fd".as_ptr ()));           // C 7273-7274
+
+	if display_get_fd as *const () != std::ptr::null ()             // C 7276
+	  { (*dpyinfo).connection = display_get_fd (wl_dpy); }          // C 7277
+      }
+  }
+
+  if (*dpyinfo).connection >= 0                                         // C 7281
+    {
+      add_keyboard_wait_descriptor ((*dpyinfo).connection);             // C 7283
+      #[cfg (feature = "f_setown")]
+      { fcntl ((*dpyinfo).connection, F_SETOWN, getpid ()); }           // C 7285
+
+      if interrupt_input                                               // C 7288
+	{ init_sigio ((*dpyinfo).connection); }                        // C 7289
+    }
+
+  (*dpyinfo).invisible_cursor
+    = gdk_cursor_new_for_display ((*dpyinfo).gdpy,
+				   GDK_BLANK_CURSOR) as *mut c_void;  // C 7292-7293
+
+  xsettings_initialize (dpyinfo as *mut c_void);                        // C 7295
+
+  pgtk_im_init (dpyinfo);                                               // C 7297
+
+  g_signal_connect! (G_OBJECT! ((*dpyinfo).gdpy), c"seat-added".as_ptr (),
+		     pgtk_seat_added_cb, dpyinfo as gpointer);          // C 7299-7300
+  g_signal_connect! (G_OBJECT! ((*dpyinfo).gdpy), c"seat-removed".as_ptr (),
+		     pgtk_seat_removed_cb, dpyinfo as gpointer);        // C 7301-7302
+  pgtk_enumerate_devices (dpyinfo, true);                               // C 7303
+
+  unblock_input ();                                                     // C 7305
+
+  return dpyinfo;                                                       // C 7307
+}
