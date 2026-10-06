@@ -1784,7 +1784,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
     }
 
   if !tmp_data.is_null ()
-    { XFree (tmp_data); }
+    { XFree (tmp_data as *mut c_void); }
 
   if drag_window == None as Window
     {
@@ -1881,7 +1881,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 			       &raw mut drag_window as *mut u8, 1); }
 
 	  if !tmp_data.is_null ()
-	    { XFree (tmp_data); }
+	    { XFree (tmp_data as *mut c_void); }
 
 	  if x_had_errors_p ((*dpyinfo).display)
 	    { drag_window = None as Window; }
@@ -2051,7 +2051,7 @@ unsafe fn xm_setup_dnd_targets (dpyinfo: *mut x_display_info,
 	{ rc = 0; }
 
       if !tmp_data.is_null ()
-	{ XFree (tmp_data); }
+	{ XFree (tmp_data as *mut c_void); }
 
       /* Now rc means whether or not the target lists weren't updated and shouldn't be written
 	 to the drag window.  */
@@ -2244,7 +2244,7 @@ unsafe fn xm_get_drag_atom_1 (dpyinfo: *mut x_display_info,
     }
 
   if !tmp_data.is_null ()
-    { XFree (tmp_data); }
+    { XFree (tmp_data as *mut c_void); }
 
   buffer = (*dpyinfo).motif_drag_atom_name.as_mut_ptr ();
 
@@ -2644,7 +2644,7 @@ unsafe fn xm_read_drag_receiver_info (dpyinfo: *mut x_display_info,
     }
 
   if !tmp_data.is_null ()
-    { XFree (tmp_data); }
+    { XFree (tmp_data as *mut c_void); }
 
   return (rc == 0) as c_int;
 }
@@ -2961,7 +2961,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 
   if format != 32 || r#type != XA_WINDOW
     {
-      XFree (data);
+      XFree (data as *mut c_void);
       return 1;
     }
 
@@ -3098,7 +3098,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 	  }
 
 	if !extent_data.is_null ()
-	  { XFree (extent_data); }
+	  { XFree (extent_data as *mut c_void); }
 
 	x_uncatch_errors ();
       }
@@ -3279,7 +3279,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 		      std::ptr::copy_nonoverlapping (rects, (*tem).bounding_rects,
 						     count as usize);
 
-		      XFree (rects);
+		      XFree (rects as *mut c_void);
 		    }
 		}
 		#[cfg (feature = "have_xcb_shape")]
@@ -3385,7 +3385,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 			  std::ptr::copy_nonoverlapping (rects, (*tem).input_rects,
 							 count as usize);
 
-			  XFree (rects);
+			  XFree (rects as *mut c_void);
 			}
 		    }
 		}
@@ -3496,7 +3496,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
       {
 	if !wmstate_data.is_null ()
 	  {
-	    XFree (wmstate_data);
+	    XFree (wmstate_data as *mut c_void);
 	    wmstate_data = std::ptr::null_mut ();
 	  }
       }
@@ -3507,7 +3507,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
   { SAFE_FREE! (); }
 
   if !data.is_null ()
-    { XFree (data); }
+    { XFree (data as *mut c_void); }
 
   return 0;
 }
@@ -3843,7 +3843,7 @@ unsafe fn x_dnd_get_wm_state_and_proto (dpyinfo: *mut x_display_info, window: Wi
     *proxy_out = x_dnd_get_window_proxy (dpyinfo, window);
 
     if !data.is_null ()
-      { XFree (data); }
+      { XFree (data as *mut c_void); }
   }
 
   #[cfg (feature = "use_xcb")]
@@ -4583,7 +4583,7 @@ unsafe fn x_dnd_get_window_proxy (dpyinfo: *mut x_display_info, wdesc: Window) -
     }
 
   if !tmp_data.is_null ()
-    { XFree (tmp_data); }
+    { XFree (tmp_data as *mut c_void); }
   x_uncatch_errors_after_check ();
 
   return proxy;
@@ -4621,12 +4621,12 @@ unsafe fn x_dnd_get_window_proto (dpyinfo: *mut x_display_info, wdesc: Window) -
       || tmp_data.is_null ()
     {
       if !tmp_data.is_null ()
-	{ XFree (tmp_data); }
+	{ XFree (tmp_data as *mut c_void); }
       return -1;
     }
 
   value = *(tmp_data as *mut Atom);
-  XFree (tmp_data);
+  XFree (tmp_data as *mut c_void);
 
   return min (X_DND_SUPPORTED_VERSION as isize, value as isize) as c_int;
 }
@@ -7439,7 +7439,7 @@ unsafe fn x_find_topmost_parent (f: *mut frame) -> Window
       win = wi;
       if XQueryTree (dpy, win, &raw mut root, &raw mut wi, &raw mut children,
 		     &raw mut nchildren) != 0
-	{ XFree (children); }
+	{ XFree (children as *mut c_void); }
       else
 	{ break; }
     }
@@ -14892,4 +14892,116 @@ unsafe extern "C" fn x_new_font (f: *mut frame, font_object: Lisp_Object,
   }
 
   return font_object;                                                   // C 27192
+}
+
+/***********************************************************************
+			   X Input Methods
+***********************************************************************/
+
+/* C 27200-27210: `#ifdef HAVE_X_I18N` / `#ifdef HAVE_X11R6` / `#ifdef HAVE_X11R6_XIM`.
+   `HAVE_X_I18N` is the port's `have_x_i18n`; the other two are `undef` in the frozen table
+   (`docs/baseline/config/darwin-arm64.macros.tsv` 1686-1687), so everything between C 27210 and
+   C 27282 is dead text there, and the arms are the features C tests.  */
+
+/* HAVE_X11R6 means Xlib conforms to the R6 specification or later.
+   HAVE_X11R6_XIM, OTOH, means that Emacs should try to use R6-style
+   callback driven input method initialization.  They are separate
+   because Sun apparently ships buggy Xlib with some versions of
+   Solaris... */
+
+/* If preedit text is set on F, cancel preedit, free the text, and
+   generate the appropriate events to cancel the preedit display.
+
+   This is mainly useful when the connection to the IM server is
+   dropped during preconversion.  */
+
+/// C 27218-27243: `static void x_maybe_clear_preedit (struct frame *f)` - a `static` whose
+/// callers are in this file, so a plain `unsafe fn`.  C 27235's `kbd_buffer_store_event` is
+/// `include/keyboard.rs`'s declaration, `PREEDIT_TEXT_EVENT` is `include/termhooks.rs`'s
+/// constant written through this unit's `input_event_bits!` (the C 1416-1417 spelling), and
+/// `ie` is zeroed because C hands an uninitialised `struct input_event` to `EVENT_INIT`
+/// (Deviation 12).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
+            feature = "have_x11r6_xim"))]
+unsafe fn x_maybe_clear_preedit (f: *mut frame)
+{
+  let output: *mut x_output;                                            // C 27221
+  let mut ie: input_event = core::mem::zeroed ();                       // C 27222 (Deviation 12)
+
+  output = FRAME_X_OUTPUT! (f) as *mut x_output;                        // C 27224
+
+  if (*output).preedit_chars.is_null ()                                 // C 27226
+    { return; }                                                         // C 27227
+
+  EVENT_INIT (&raw mut ie);                                             // C 27229
+  input_event_bits! (kind, &raw mut ie, PREEDIT_TEXT_EVENT);            // C 27230
+  ie.arg = Qnil ();                                                     // C 27231
+  XSETFRAME! (ie.frame_or_window, f);                                   // C 27232
+  XSETINT! (ie.x, 0);                                                   // C 27233
+  XSETINT! (ie.y, 0);                                                   // C 27234
+  kbd_buffer_store_event (&raw mut ie as *mut c_void);                  // C 27235
+
+  xfree ((*output).preedit_chars as *mut c_void);                       // C 27237
+
+  (*output).preedit_size = 0;                                           // C 27239
+  (*output).preedit_active = false;                                     // C 27240
+  (*output).preedit_chars = std::ptr::null_mut ();                      // C 27241
+  (*output).preedit_caret = 0;                                          // C 27242
+}
+
+/* XIM destroy callback function, which is called whenever the
+   connection to input method XIM dies.  CLIENT_DATA contains a
+   pointer to the x_display_info structure corresponding to XIM.  */
+
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
+            feature = "have_x11r6_xim"))]
+unsafe extern "C" {
+  /// C: xfns.c 3023-3025: `void xic_free_xfontset (struct frame *f);` - no `static`, and
+  /// `src/xfns.rs` 4592 defines it.
+  pub fn xic_free_xfontset (f: *mut frame);
+  /// C: Xlib.h 2526-2528: `extern int XFree (void *);`
+  pub fn XFree (data: *mut c_void) -> c_int;
+}
+
+/// C 27249-27280: `static void xim_destroy_callback (XIM xim, XPointer client_data, XPointer
+/// call_data)` - a `static` whose **address** goes to `XSetIMValues`' `XNDestroyCallback` (this
+/// file's `xim_open_dpy`, C 27330), so the ABI is `extern "C"` (PORTING.md 1.4) and the three
+/// `XPointer`/`XIM` parameters are Xlib's untyped pointers (`include/termhooks.rs`'s `XPointer`
+/// spelling, `lib-src/emacsclient.rs` 106's).  `FRAME_XIC! (f) = NULL` writes the value the
+/// mirror's macro names; C 27264's `xic_free_xfontset` is `src/xfns.rs`'s exported function
+/// (xfns.c 3025's `xic_free_xfontset (struct frame *f)` has no `static`), and C 27277's XFree is
+/// Xlib's (Xlib.h 2526-2528), so both are declared at this use site (P-72 rule 4).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_x11r6",
+            feature = "have_x11r6_xim"))]
+unsafe extern "C" fn xim_destroy_callback (xim: XIM, client_data: XPointer,
+					   call_data: XPointer)
+{
+  let dpyinfo: *mut x_display_info = client_data as *mut x_display_info;  // C 27252
+  let mut frame: Lisp_Object;                                           // C 27253
+  let mut tail: Lisp_Object;
+
+  block_input ();                                                       // C 27255
+
+  /* No need to call XDestroyIC.. */
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 27258
+    let f: *mut frame = XFRAME (frame);                                 // C 27260
+    if FRAME_X_P (f) && FRAME_DISPLAY_INFO! (f) == dpyinfo              // C 27261
+      {
+	FRAME_XIC! (f) = std::ptr::null_mut ();                         // C 27263
+	xic_free_xfontset (f);                                          // C 27264
+
+	/* Free the preedit text if necessary.  */
+	x_maybe_clear_preedit (f);                                      // C 27267
+      }
+  });
+
+  /* No need to call XCloseIM.  */
+  (*dpyinfo).xim = std::ptr::null_mut ();                               // C 27272
+
+  /* Also free IM values; those are allocated separately upon
+     XGetIMValues.  */
+  if !(*dpyinfo).xim_styles.is_null ()                                  // C 27276
+    { XFree ((*dpyinfo).xim_styles as *mut c_void); }                   // C 27277
+  (*dpyinfo).xim_styles = std::ptr::null_mut ();                        // C 27278
+  unblock_input ();                                                     // C 27279
 }

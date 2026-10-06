@@ -19,7 +19,9 @@
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
-9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.  Slice 15 (C 26994-27126, Decision 27) moves it to **159**: three functions retire, the two token rows the first reading brought are closed by `docs/ports/macro-body-notes.tsv` rows, and the invented-export row slice 14 left behind is gone.  Slice 16 (C 27128-27194, Decision 28) moves it to **158**: `x_new_font` retires as a missing item, and no token row came with it.
+9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.  Slice 15 (C 26994-27126, Decision 27) moves it to **159**: three functions retire, the two token rows the first reading brought are closed by `docs/ports/macro-body-notes.tsv` rows, and the invented-export row slice 14 left behind is gone.  Slice 16 (C 27128-27194, Decision 28) moves it to **158**: `x_new_font` retires as a missing item, and no token row came with it.  Slice 17 (C 27195-27284, Decision 29) **stays 158**: its two functions live inside
+`HAVE_X11R6_XIM`, which the frozen table leaves `undef` (P-66's dead text), so the tool never
+demanded them.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -1970,6 +1972,28 @@ expressions (Decision 25).
   `xfns.rs`'s copies.  The unit's own XIM arm then reads the masks directly, with no cast.
 
 
+### 29. Slice 17 (C 27195-27284): the XIM block's first two functions, and `XFree`'s prototypes
+
+* **The three nested guards are three features.**  C 27200/27202/27210 test `HAVE_X_I18N`,
+  `HAVE_X11R6` and `HAVE_X11R6_XIM`; the first two are `undef` in the frozen table
+  (`docs/baseline/config/darwin-arm64.macros.tsv` 1686-1687), so both functions are **dead text**
+  there - which is why `--check` never listed them as missing (P-66's evaluator) and why this
+  slice's `--check` reading does not move.
+* **Declaring `XFree` turned sixteen unresolved rows into sixteen call sites that needed C's own
+  conversion.**  The unit had sixteen `XFree (…)` calls whose name nothing declared (sixteen
+  `E0425`); declaring Xlib's `int XFree (void *)` at the use site resolved all sixteen and, in the
+  same reading, named fifteen of them as `E0308` - C's `void *` parameter accepts any object
+  pointer and Rust's does not, so each site now writes `as *mut c_void` (the `src/xterm.rs` 4113 /
+  5186 / 13429 sites already spelled it).  That is the whole `-16 E0425` this slice's arm F reads.
+* **A doc comment on an `unsafe extern "C"` block is an unused doc comment.**  The first layout put
+  the two use-site declarations under the function's `///` block; rustc answered
+  `unused doc comment` (a warning, and this file's warning count is part of every reading), so the
+  block stands above the comment.
+* **`EVENT_INIT` takes the zeroed `input_event`** (Deviation 12, the `src/pgtkterm.rs` 7714
+  shape), `PREEDIT_TEXT_EVENT` is written through this unit's `input_event_bits!` (the C 1416-1417
+  spelling), and `FRAME_X_OUTPUT!`'s union member is cast at the use site (the C 7428 shape).
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3437,3 +3461,31 @@ arrives.  The line-count row stays (14,857 against C's 33,125, 55.1%).
 **Not claimed.**  The frozen configuration compiles none of this file, so all four arms are **text**
 readings of an arm this machine cannot build: no frame was given a font, no scroll bar was sized
 and no frame was resized; the remaining `E0425` rows are unresolved names, not behaviour.
+
+
+### Slice 17's readings (C 27195-27284), as landed and measured (2026-10-06)
+
+**What it lands.**  The `X Input Methods` banner (C 27196-27198), C 27204-27208's note on the two
+R6 macros, `x_maybe_clear_preedit` (C 27218-27243) and `xim_destroy_callback` (C 27249-27280),
+all under C's three nested guards.  Rust 14,857 -> 15,007 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**563 error-lines / 55 warnings -> 563 / 55**; arm B **563 / 60 -> 563 / 60**; arm C
+**591 / 57 -> 591 / 57**; arm D (`have_x_i18n`) **564 / 55 -> 564 / 55** - the new text is behind
+`have_x11r6_xim`, so none of the four arms sees it.  Arm F (`have_x_windows` + `have_x_i18n` +
+`have_x11r6` + `have_x11r6_xim`), which is the arm this text exists in: **563 / 55 -> 547 / 55**,
+the whole delta **-16 `E0425`** (the sixteen `XFree` calls Decision 29 records) with every other
+class and the warning count unmoved.
+
+**Arm reach (P-86 7).**  Injecting `let _: c_int = true;` as the first statement of
+`x_maybe_clear_preedit` moves `E0308` from 13 to 14, anchored at the injected line
+(`_root.rs:14942`); removed, arm F re-measures at 547 error-lines / 55 warnings and the file at
+15,007 lines.
+
+**What `--check` reads.**  **158 -> 158**: neither function is a demanded item, because the frozen
+table leaves `HAVE_X11R6_XIM` `undef` and the tool reads C 27210-27282 as dead text (P-66).  The
+line-count row moves to 15,007 against C's 33,125 (54.7%).
+
+**Not claimed.**  The frozen configuration compiles none of this text: no preedit was cancelled,
+no input-method connection died and no frame was walked.  The remaining `E0425` rows are
+unresolved names, not behaviour.
