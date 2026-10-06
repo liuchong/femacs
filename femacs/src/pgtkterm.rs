@@ -2993,3 +2993,144 @@ unsafe fn pgtk_draw_horizontal_wave (f: *mut frame, color: c_ulong, x: c_int, mu
   cairo_stroke (cr);                                                    // C 2087
   pgtk_end_cr_clip (f);                                                 // C 2088
 }
+
+/// C 2091-2098: `static void pgtk_draw_underwave (struct glyph_string *s, unsigned long color)` -
+/// C's two `int` locals are the last two arguments the horizontal wave above takes.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_underwave (s: *mut glyph_string, color: c_ulong)
+{
+  let wave_height: c_int = 3;                                           // C 2094
+  let wave_length: c_int = 2;
+
+  pgtk_draw_horizontal_wave ((*s).f, color, (*s).x, (*s).ybase - wave_height + 3,   // C 2096
+				     (*s).width, wave_height, wave_length);      // C 2097
+}
+
+/* Draw a relief around the image glyph string S.  */
+
+/* C: dispextern.h 3774: `int image_ascent (struct image *, struct face *, struct glyph_slice *);`
+   - the C 2110 call (`src/image.rs` defines it, `#[unsafe(no_mangle)]`); no mirror carries it, so
+   the unit declares it at the use site, C's `&s->slice` being the port's `&raw mut` - the
+   `src/w32term.rs` 3121-3129 declaration of the same prototype.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn image_ascent (img: *mut image, face: *mut face, slice: *mut glyph_slice) -> c_int;
+}
+
+/// C 2102-2190: `static void pgtk_draw_image_relief (struct glyph_string *s)` - `s->slice`'s four
+/// members are `glyph_slice_bits!` reads (the record stores them in its two measured units), the
+/// `DRAW_IMAGE_SUNKEN`/`DRAW_IMAGE_RAISED` fork keeps C's `tab_bar_button_relief` /
+/// `tool_bar_button_relief` globals with C's `min (…, 1000000)` as the port's `isize` fold
+/// (`include/lisp.rs` 3152, `EMACS_INT` is `isize` there), the two `V*_button_margin` chains are
+/// C's `CONSP`/`FIXNUMP`/`XCAR`/`XCDR`/`XFIXNUM` spellings, and C's four comma expressions
+/// (`x -= thick + extra_x, left_p = true;`) are one statement per assignment - Deviation 26's
+/// spelling.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_image_relief (s: *mut glyph_string)
+{
+  let mut x1: c_int;                                                    // C 2105
+  let mut y1: c_int;
+  let mut thick: c_int;
+  let mut raised_p: bool;                                               // C 2106
+  let mut top_p: bool;
+  let mut bot_p: bool;
+  let mut left_p: bool;
+  let mut right_p: bool;
+  let mut extra_x: c_int;                                               // C 2107
+  let mut extra_y: c_int;
+  let mut r: XRectangle = core::mem::zeroed ();                         // C 2108
+  let mut x: c_int = (*s).x;                                            // C 2109
+  let mut y: c_int = (*s).ybase                                         // C 2110
+    - image_ascent ((*s).img, (*s).face as *mut face, &raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX            // C 2114
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))             // C 2115
+      && glyph_slice_bits! (x, (*s).slice) == 0                         // C 2116
+    { x += max ((*((*s).face as *mut face)).box_vertical_line_width as isize, 0) as c_int; }   // C 2117
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_slice_bits! (x, (*s).slice) == 0                             // C 2121
+    { x += (*(*s).img).hmargin; }                                       // C 2122
+  if glyph_slice_bits! (y, (*s).slice) == 0                             // C 2123
+    { y += (*(*s).img).vmargin; }                                       // C 2124
+
+  if (*s).hl == DRAW_IMAGE_SUNKEN                                       // C 2126
+      || (*s).hl == DRAW_IMAGE_RAISED                                   // C 2127
+    {
+      if (*((*s).face as *mut face)).id == TAB_BAR_FACE_ID              // C 2129
+	{ thick = (if tab_bar_button_relief < 0                            // C 2130
+		     { DEFAULT_TAB_BAR_BUTTON_RELIEF }                        // C 2131
+		     else { min (tab_bar_button_relief, 1000000) as c_int }); }   // C 2132
+      else
+	{ thick = (if tool_bar_button_relief < 0                           // C 2134
+		     { DEFAULT_TOOL_BAR_BUTTON_RELIEF }                       // C 2135
+		     else { min (tool_bar_button_relief, 1000000) as c_int }); }  // C 2136
+      raised_p = (*s).hl == DRAW_IMAGE_RAISED;                          // C 2137
+    }
+  else
+    {
+      thick = eabs! ((*(*s).img).relief);                               // C 2141
+      raised_p = (*(*s).img).relief > 0;                                // C 2142
+    }
+
+  x1 = x + glyph_slice_bits! (width, (*s).slice) as c_int - 1;          // C 2145
+  y1 = y + glyph_slice_bits! (height, (*s).slice) as c_int - 1;         // C 2146
+
+  extra_x = 0;                                                          // C 2148
+  extra_y = 0;
+  if (*((*s).face as *mut face)).id == TAB_BAR_FACE_ID                  // C 2149
+    {
+      if CONSP (Vtab_bar_button_margin)                                 // C 2151
+		  && FIXNUMP (XCAR (Vtab_bar_button_margin))
+		  && FIXNUMP (XCDR (Vtab_bar_button_margin))
+	{
+	  extra_x = XFIXNUM (XCAR (Vtab_bar_button_margin)) as c_int - thick;      // C 2155
+	  extra_y = XFIXNUM (XCDR (Vtab_bar_button_margin)) as c_int - thick;      // C 2156
+	}
+      else if FIXNUMP (Vtab_bar_button_margin)                          // C 2158
+	{
+	  extra_x = XFIXNUM (Vtab_bar_button_margin) as c_int - thick;             // C 2159
+	  extra_y = XFIXNUM (Vtab_bar_button_margin) as c_int - thick;
+	}
+    }
+
+  if (*((*s).face as *mut face)).id == TOOL_BAR_FACE_ID                 // C 2162
+    {
+      if CONSP (Vtool_bar_button_margin)                                // C 2164
+		  && FIXNUMP (XCAR (Vtool_bar_button_margin))
+		  && FIXNUMP (XCDR (Vtool_bar_button_margin))
+	{
+	  extra_x = XFIXNUM (XCAR (Vtool_bar_button_margin)) as c_int;             // C 2168
+	  extra_y = XFIXNUM (XCDR (Vtool_bar_button_margin)) as c_int;             // C 2169
+	}
+      else if FIXNUMP (Vtool_bar_button_margin)                         // C 2171
+	{
+	  extra_x = XFIXNUM (Vtool_bar_button_margin) as c_int;                    // C 2172
+	  extra_y = XFIXNUM (Vtool_bar_button_margin) as c_int;
+	}
+    }
+
+  top_p = false;                                                        // C 2175
+  bot_p = false;
+  left_p = false;
+  right_p = false;
+
+  if glyph_slice_bits! (x, (*s).slice) == 0                             // C 2177
+	{ x -= thick + extra_x; left_p = true; }                           // C 2178
+  if glyph_slice_bits! (y, (*s).slice) == 0                             // C 2179
+	{ y -= thick + extra_y; top_p = true; }                            // C 2180
+  if (glyph_slice_bits! (x, (*s).slice) as c_int                         // C 2181
+	+ glyph_slice_bits! (width, (*s).slice) as c_int) == (*(*s).img).width
+	{ x1 += thick + extra_x; right_p = true; }                         // C 2182
+  if (glyph_slice_bits! (y, (*s).slice) as c_int                         // C 2183
+	+ glyph_slice_bits! (height, (*s).slice) as c_int) == (*(*s).img).height
+	{ y1 += thick + extra_y; bot_p = true; }                           // C 2184
+
+  pgtk_setup_relief_colors (s);                                         // C 2186
+  get_glyph_string_clip_rect (s, &raw mut r);                           // C 2187
+  pgtk_draw_relief_rect ((*s).f, x, y, x1, y1, thick, thick, raised_p,  // C 2188
+				 top_p, bot_p, left_p, right_p, &raw mut r);    // C 2189
+}
