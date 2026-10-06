@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.  Slice 28 (C 28476-28621, Decision 41) goes **141 -> 137**: `x_set_window_size_1`, `x_suspend_background_fills`, `x_restore_background_fills` and `x_set_window_size` retire as missing items, and no token row arrives.  Slice 29 (C 28623-28743, Decision 42) goes **137 -> 133**: `x_set_window_size_and_position_1`, `x_set_window_size_and_position`, `frame_set_mouse_pixel_position` and `x_raise_frame` retire as missing items, and no token row arrives.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -299,10 +299,10 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_suspend_background_fills  (line 28565, static)
 - [x] x_restore_background_fills  (line 28574, static)
 - [x] x_set_window_size  (line 28587)
-- [ ] x_set_window_size_and_position_1  (line 28624, static)
-- [ ] x_set_window_size_and_position  (line 28666)
-- [ ] frame_set_mouse_pixel_position  (line 28705)
-- [ ] x_raise_frame  (line 28731, static)
+- [x] x_set_window_size_and_position_1  (line 28624, static)
+- [x] x_set_window_size_and_position  (line 28666)
+- [x] frame_set_mouse_pixel_position  (line 28705)
+- [x] x_raise_frame  (line 28731, static)
 - [ ] x_lower_frame_1  (line 28746, static)
 - [ ] x_lower_frame  (line 28779, static)
 - [ ] XTframe_raise_lower  (line 28801, static)
@@ -2259,6 +2259,27 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   calls `x_set_window_size_1` plus `x_clear_under_internal_border` (this file's own C 7696
   definition, already ported at xterm.rs 8290).
 
+### 42. Slice 29 (C 28623-28743): the size-and-position pair, the mouse mover and the raiser
+
+* **Six new `E0425` rows in arm A, every one a recorded class.**  `x_wm_set_size_hint` (C 28629,
+  this file's own later definition at C 30159, PORTING.md 1.3), `XFlush` (C 28739, the Xlib class's
+  third instance after C 5221/13248), `XMoveResizeWindow` (C 28651, the class's second after
+  C 13416), `XRaiseWindow` (C 28737) and `XWarpPointer` (C 28724) are Xlib entries no mirror of
+  this graph carries - the ledger's `## Owed` list keeps them bare (Decision 15's rule) - and the
+  sixth is `FRAME_MENUBAR_HEIGHT`'s `void` body, of which this slice's two expansions add the
+  second instance.  Arm C adds `XIWarpPointer` (C 28717) and one `E0609` for `x_display_info`'s
+  `client_pointer_device`, `include/xterm.rs` 662-666's owed run (C 885).
+* **The toolkit arm's two `core` writes need a record.**  C 28639/28640 write `widget->core.x`/`.y`
+  through Xt's `struct _WidgetRec`, whose `CorePart` no mirror of this graph has, so the slice
+  declares the two use-site records of the `src/xmenu.rs` 671-690 shape (members and order kept,
+  offsets UNVERIFIED - libXt is not on this machine) and `Position` (`int`) with them.
+* **C's `#ifdef` arms keep their `if`/`else` and the shared tail is written in both.**  Both the
+  `USE_X_TOOLKIT` arm (C 28631) and the `HAVE_XINPUT2` arm (C 28707) end in a statement every
+  configuration reaches, so `XMoveResizeWindow` and `XWarpPointer` each appear twice (P-86 ①).
+* **Two use-site declarations.**  `xg_frame_set_size_and_position` (gtkutil.h 166; the
+  `src/gtkutil.rs` 1801 definition) in the `use_gtk` gate, and `XtConfigureWidget` with the two
+  toolkit records above.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -4040,3 +4061,28 @@ row arrives.  The line-count row moves to 17,015 against C's 33,125 (51.4%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no window was resized, no
 inner widget was touched, no background pixmap was swapped and no frame was redisplayed.
+
+
+### Slice 29's readings (C 28623-28743), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_set_window_size_and_position_1` (C 28623-28663),
+`x_set_window_size_and_position` (C 28665-28700, both `USE_GTK` arms),
+`frame_set_mouse_pixel_position` (C 28704-28726, both `HAVE_XINPUT2` arms) and `x_raise_frame`
+(C 28730-28743).  Rust 17,015 -> 17,232 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**556 / 68 -> 562 / 68**: **+6 `E0425`** - `x_wm_set_size_hint`'s second instance, `XFlush`'s third,
+`XMoveResizeWindow`'s second, `XRaiseWindow`, `XWarpPointer`, and the `void` row of the two
+`FRAME_MENUBAR_HEIGHT` expansions - with no warning delta; arm B (`+have_gtk3+use_gtk`)
+**561 / 70 -> 569 / 70**: those six plus **two more `GDK_WINDOW_XID` instances** (C 28651 and
+C 28738, the class the earlier slices carry); arm C (`+have_xinput2`) **584 / 70 -> 592 / 70**: the
+six, plus `XIWarpPointer` and one `E0609` for `x_display_info`'s owed `client_pointer_device`
+(`include/xterm.rs` 662-666).  **Arm reachability** (P-86 ⑦): `let _: c_int = true;` as
+`x_set_window_size_and_position_1`'s first statement moves `E0308` 14 -> 15, anchored exactly at
+that line.
+
+**What `--check` reads.**  **137 -> 133**: the four functions retire as missing items and no token
+row arrives.  The line-count row moves to 17,232 against C's 33,125 (52.0%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no window was moved or
+resized, no pointer was warped and no frame was raised.

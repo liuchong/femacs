@@ -17013,3 +17013,220 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn xg_frame_set_char_size (f: *mut frame, width: c_int, height: c_int);
 }
+
+/// C 28623-28663: `static void x_set_window_size_and_position_1 (struct frame *f, int width, int
+/// height)` - `static` (its callers are C 28677/28679), so a plain `unsafe fn`.  C's
+/// `#ifdef USE_X_TOOLKIT` arm keeps its `if`/`else` and the `XMoveResizeWindow` every arm
+/// reaches is written in both (P-86 ①; a `#[cfg]` cannot cover half an `if`/`else`).  C
+/// 28629's `x_wm_set_size_hint` is this file's own later definition (C 30159), so the call
+/// stands undeclared (PORTING.md 1.3), and `XMoveResizeWindow`/`XtConfigureWidget` are Xlib/Xt
+/// entries no mirror of this graph carries - kept bare, the owed class of the ledger's
+/// `## Owed` list (C 13416's older `XMoveResizeWindow` site is the same row).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_set_window_size_and_position_1 (f: *mut frame, width: c_int, height: c_int)
+{
+  let x: c_int = (*f).left_pos;                                         // C 28626
+  let y: c_int = (*f).top_pos;                                          // C 28627
+
+  x_wm_set_size_hint (f, 0, false);                                     // C 28629
+
+#[cfg (feature = "use_x_toolkit")]
+  {
+    if !FRAME_PARENT_FRAME (f).is_null ()                               // C 28632
+	&& !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget.is_null ()
+      {
+	/* Clear widget's position coordinates because it only sends
+	   changed values with its XConfigureWindow command.  And these
+	   are likely outdated because XtDispatchEvent does not save them.
+	   The alternative would be to always use XtMoveWidget instead of
+	   XMoveWindow.  */
+	(*(*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget              // C 28639
+		as *mut _WidgetRec).core.x = -1;
+	(*(*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget              // C 28640
+		as *mut _WidgetRec).core.y = -1;
+	/* Resize all inner widgets and Cairo surface right away so the
+	   next redisplay drawing isn't clipped to the old size.  */
+	XtConfigureWidget ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget,  // C 28643-28644
+		x, y, width,
+		height + FRAME_MENUBAR_HEIGHT! (f), 0);
+#[cfg (feature = "use_cairo")]
+	{ x_cr_update_surface_desired_size (f, width, height); }        // C 28646
+      }
+    else
+      {
+	XMoveResizeWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),  // C 28651-28652
+		x, y, width as c_uint,
+		(height + FRAME_MENUBAR_HEIGHT! (f)) as c_uint);
+      }
+  }
+
+#[cfg (not (feature = "use_x_toolkit"))]
+  {
+    XMoveResizeWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),   // C 28651-28652
+	    x, y, width as c_uint,
+	    (height + FRAME_MENUBAR_HEIGHT! (f)) as c_uint);
+  }
+
+  SET_FRAME_GARBAGED! (f);                                              // C 28654
+
+  /* Same as x_set_window_size_1.  */
+  if FRAME_VISIBLE_P (f) && FRAME_PARENT_FRAME (f).is_null ()           // C 28657
+    { x_wait_for_event (f, ConfigureNotify); }
+  else
+    {
+      adjust_frame_size (f, FRAME_PIXEL_TO_TEXT_WIDTH (f, width),       // C 28660-28662
+	  FRAME_PIXEL_TO_TEXT_HEIGHT (f, height),
+	  5, false, Qx_set_window_size_1 ());
+    }
+}
+
+/* C: X11/IntrinsicP.h (libXt - **not on this machine**): `typedef struct { … Position x;
+   Position y; … } CorePart;` and `typedef struct _WidgetRec { CorePart core; … } *Widget;` -
+   C 28639/28640 write `widget->core.x`/`->core.y`.  The two records keep C's members and their
+   declared order; their *offsets* are UNVERIFIED (no libXt here) and the ledger's `## Owed`
+   names the machine that has to measure them (the `src/xmenu.rs` 671-690 copy of the same
+   pair).  `Position` is `int` (Intrinsic.h's `typedef int Position;`).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type Position = c_int;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+#[repr(C)]
+pub struct CorePart
+{
+  pub x: Position,        // IntrinsicP.h: `Position x;`
+  pub y: Position,        // `Position y;`
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+#[repr(C)]
+pub struct _WidgetRec
+{
+  pub core: CorePart,     // `_WidgetRec`'s first member is its `CorePart core`
+}
+
+/* C: X11/Intrinsic.h: `extern void XtConfigureWidget (Widget, Position, Position, Dimension,
+   Dimension, Dimension);` - C 28643's call, in the `USE_X_TOOLKIT` arm.  libXt's headers are
+   not on this machine, so the citation is the header's own prototype (the `XtVaGetValues`
+   block above).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe extern "C" {
+  pub fn XtConfigureWidget (w: Widget, x: Position, y: Position, width: Dimension,
+			    height: Dimension, border_width: Dimension);
+}
+
+/// C 28665-28700: `void x_set_window_size_and_position (struct frame *f, int width, int
+/// height)` - non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe
+/// extern "C" fn` (PORTING.md 0.2/1.4).  Both arms of C 28673's `#ifdef USE_GTK` are carried
+/// (P-86 ①); `xg_frame_set_size_and_position` is gtkutil.h 166's prototype and the
+/// `src/gtkutil.rs` 1801 definition, so it stands at this use site (P-72 rule 4).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_set_window_size_and_position (f: *mut frame, width: c_int,
+						 height: c_int)
+{
+  block_input ();                                                       // C 28668
+
+  if !FRAME_PARENT_FRAME (f).is_null ()                                 // C 28670
+    { x_suspend_background_fills (FRAME_PARENT_FRAME (f)); }          // C 28671
+
+#[cfg (feature = "use_gtk")]
+  {
+    if !FRAME_GTK_WIDGET! (f).is_null ()                                // C 28674
+	  { xg_frame_set_size_and_position (f, width, height); }
+	else
+	  { x_set_window_size_and_position_1 (f, width, height); }
+  }
+
+#[cfg (not (feature = "use_gtk"))]
+  {
+    x_set_window_size_and_position_1 (f, width, height);                // C 28679
+  }
+
+  if FRAME_PARENT_FRAME (f).is_null ()                                  // C 28682
+    { x_clear_under_internal_border (f); }                           // C 28683
+
+  if !FRAME_PARENT_FRAME (f).is_null ()                                 // C 28685
+    { x_restore_background_fills (FRAME_PARENT_FRAME (f)); }          // C 28686
+
+  /* If cursor was outside the new size, mark it as off.  */
+  mark_window_cursors_off (XWINDOW (FRAME_ROOT_WINDOW (f)));            // C 28689
+
+  /* Clear out any recollection of where the mouse highlighting was,
+     since it might be in a place that's outside the new frame size.
+     Actually checking whether it is outside is a pain in the neck,
+     so don't try--just let the highlighting be done afresh with new size.  */
+  cancel_mouse_face (f);                                                // C 28695
+
+  unblock_input ();                                                     // C 28697
+
+  do_pending_window_change (false);                                     // C 28699
+}
+
+/* C: gtkutil.h 166: `extern void xg_frame_set_size_and_position (struct frame *f, int width,
+   int height);` - C 28675's call, in the arm `USE_GTK` is (the declaration stands in that
+   arm's gate, the `xg_set_skip_taskbar` shape).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_frame_set_size_and_position (f: *mut frame, width: c_int, height: c_int);
+}
+
+/* Move the mouse to position pixel PIX_X, PIX_Y relative to frame F.  */
+
+/// C 28704-28726: `void frame_set_mouse_pixel_position (struct frame *f, int pix_x, int pix_y)`
+/// - non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`
+/// (PORTING.md 0.2/1.4); C's `#ifdef HAVE_XINPUT2` arm keeps its `if`/`else` and the
+/// `XWarpPointer` tail is written in both (P-86 ①).  `XIWarpPointer`/`XWarpPointer` are Xlib /
+/// XInput2 entries with no mirror row - kept bare, the owed class (the `src/xfns.rs` copy of
+/// the same call pair, xfns.c 7260/7267, has the same two rows).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_mouse_pixel_position (f: *mut frame, pix_x: c_int,
+						 pix_y: c_int)
+{
+#[cfg (feature = "have_xinput2")]
+  {
+    let deviceid: c_int = (*FRAME_DISPLAY_INFO! (f)).client_pointer_device;  // C 28710
+
+    if (*FRAME_DISPLAY_INFO! (f)).supports_xi2                          // C 28712
+	&& deviceid != -1
+      {
+	block_input ();                                                 // C 28715
+	x_ignore_errors_for_next_request (FRAME_DISPLAY_INFO! (f), 0);  // C 28716
+	XIWarpPointer (FRAME_X_DISPLAY! (f), deviceid, None as Window,  // C 28717-28718
+		FRAME_X_WINDOW! (f), 0.0, 0.0, 0, 0,
+		pix_x as c_double, pix_y as c_double);
+	x_stop_ignoring_errors (FRAME_DISPLAY_INFO! (f));               // C 28719
+	unblock_input ();                                               // C 28720
+      }
+    else
+      {
+	XWarpPointer (FRAME_X_DISPLAY! (f), None as Window,             // C 28724-28725
+		FRAME_X_WINDOW! (f), 0, 0, 0, 0, pix_x, pix_y);
+      }
+  }
+
+#[cfg (not (feature = "have_xinput2"))]
+  {
+    XWarpPointer (FRAME_X_DISPLAY! (f), None as Window,                 // C 28724-28725
+	    FRAME_X_WINDOW! (f), 0, 0, 0, 0, pix_x, pix_y);
+  }
+}
+
+/* Raise frame F.  */
+
+/// C 28730-28743: `static void x_raise_frame (struct frame *f)` - `static` (its callers are
+/// this file's own, C 21840/23612/28907), so a plain `unsafe fn`; `XRaiseWindow`/`XFlush` are
+/// Xlib entries no mirror row carries - kept bare (the owed class; `XFlush`'s two older sites
+/// at C 5221/13248 are the same row).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_raise_frame (f: *mut frame)
+{
+  block_input ();                                                       // C 28733
+
+  if FRAME_VISIBLE_P (f)                                                // C 28735
+    {
+      XRaiseWindow (FRAME_X_DISPLAY! (f),                               // C 28737-28738
+	  FRAME_OUTER_WINDOW! (f));
+      XFlush (FRAME_X_DISPLAY! (f));                                    // C 28739
+    }
+
+  unblock_input ();                                                     // C 28742
+}
