@@ -91,6 +91,17 @@ column of the two registration tables - prose this repository writes, not a meas
 so that column is read with the prose model too, beside the copied sentence and the ported
 line it justifies, which stay quoted and are what the remaining count is.
 
+Two sanctioned homes were left out whole until the nineteenth half (status 3.750): the running
+log (status.md) and the acceptance record, on the ground that they "quote the instructions and
+the reference's output by necessity".  That is a claim *about* a file, and the whole point of the
+halves above is that such a claim becomes a reading.  So `LOG_SCOPE` reads both files and
+classifies every line that carries the product's name: a citation when the name sits in a fenced
+code block, in a code span (including the one the log's hard wrap creates, a span the previous
+line left open), in a quote pair, or on a line carrying the instruction's own words - and a
+`title` finding when the log speaks in its own voice.  The run prints the reading and how each
+citation kind contributed, so the log may quote the reference's output but may not declare this
+program to be the reference product.
+
 This repository's own prose is a scope of its own (status 3.340).  The walk above is
 bounded by *suffix* over the ported trees and by `DOC_DIRS` over the ledgers, so the
 documents that say what this repository *is* - the root README, the plan set, the
@@ -200,14 +211,11 @@ BASELINE_DIR = "docs/baseline"
 PROSE_SUFFIXES = (".md", ".toml", ".lock", ".sha256")
 PROSE_CLASSES = ("version", "title")
 # The sanctioned homes, each with the reason it is left out.  They are counted and named in the
-# run output so an exemption is a reading rather than a silence: the log quotes the user's
-# instructions and the reference's measured output by necessity; `acceptance.md` records what
-# the *reference program* prints (`--version`, `PACKAGE_STRING`), which is evidence about the
-# reference and not a declaration by this repository; `docs/ports` is already the DOC_DIRS
-# scope above.
+# run output so an exemption is a reading rather than a silence: `docs/ports` is already the
+# DOC_DIRS scope above.  The running log and the acceptance record stood here until the
+# nineteenth half (status 3.750) with the reason that they quote the user's instructions and the
+# reference's measured output; they moved to `LOG_SCOPE` below, which reads that reason.
 PROSE_EXEMPT = (
-    ("docs/status.md", "the running log: quotes the instructions and the reference's output"),
-    ("docs/acceptance.md", "records the reference program's own --version output as evidence"),
     ("docs/ports/", "the per-unit ledgers (already the DOC_DIRS scope)"),
 )
 
@@ -246,6 +254,26 @@ PRODUCT = ("GNU Emacs", "gnu emacs", "org.gnu.emacs", "org_gnu_emacs", "GNU.Emac
 # negotiates - so every site of this class is allowlisted with that reason.
 PRODUCT_FRAGMENTS = ("SOFTWARE\GNU\Emacs", "SOFTWARE\\\\GNU\\\\Emacs",
                      "GNUEmacs_", "Gnu Emacs", "Emacs.lnk", "Emacs Clipboard")
+
+# The two sanctioned log files, read by their *citation band* rather than exempted whole
+# (status 3.750).  The exemption above says the log and the acceptance record quote the
+# instructions and the reference's output; this scope reads that claim.  A product-name line is a
+# citation when
+#   * it sits inside a fenced code block - the reference's measured output, pasted verbatim;
+#   * the name sits inside a code span: the line's own backticks, plus the one case the log's
+#     hard wrap creates, a span the previous line left open (counted as `carried`), since one C
+#     comment can be quoted across two wrapped lines;
+#   * the name sits inside a quote pair (`quoted_span`: the ASCII, CJK and corner pairs) - the
+#     log quotes C, the copied trees and its own tooling's output that way;
+#   * the line carries the user's instruction's own words (`INSTRUCTION_QUOTES`): the directive
+#     sentence is a quotation wherever it appears.
+# Anything else is this repository's prose, and on these two files it is a `title` finding: the
+# log may quote the reference's output, but it may not speak in its own voice as the product.
+LOG_SCOPE = ("docs/status.md", "docs/acceptance.md")
+INSTRUCTION_QUOTES = ("版本声明不要再说是", "把之前的代码中的这种声明也去掉")
+LOG_PRODUCT = PRODUCT + PRODUCT_FRAGMENTS
+LOG_PATTERN = re.compile("|".join(re.escape(name) for name in LOG_PRODUCT))
+SPAN_MARK = "`"
 
 # The Kept assembly files are the one kind in a scanned tree whose comments are not C's,
 # and the *suffix* is all the walk has (the target is not in the path: `loader-x86.s` and
@@ -514,6 +542,10 @@ def unread_files(root: Path) -> list[str]:
             # read by name.  Leaving them here would report them as a hole the run has closed.
             if rel in BASELINE_PROSE or rel.startswith(BASELINE_DIR + "/"):
                 continue
+            # The two sanctioned logs are read by `LOG_SCOPE` below (status 3.750), so they are
+            # no longer part of what the prose walk passed over.
+            if rel in LOG_SCOPE:
+                continue
             # Each scope's suffix set is scoped to its own directories: `.tsv` is read
             # under `docs/ports/` (DOC_DIRS) and is *not* read under `docs/baseline/`
             # (sanctioned), so a global suffix test would mark the second kind read when
@@ -593,6 +625,10 @@ def prose_files(root: Path) -> tuple[list[tuple[str, Path]], dict[str, tuple[int
             rel = path.relative_to(root).as_posix()
             if rel in seen:
                 continue
+            # The sanctioned logs are read by their own scope (status 3.750); reading them here
+            # as well would report every quoted product name as this repository's prose.
+            if rel in LOG_SCOPE:
+                continue
             for prefix in exempt:
                 if rel == prefix or rel.startswith(prefix):
                     exempt[prefix] = (exempt[prefix][0] + 1, exempt[prefix][1])
@@ -614,6 +650,96 @@ def prose_findings_text(text: str) -> list[tuple[str, str]]:
 
 def prose_findings(path: Path) -> list[tuple[str, str]]:
     return prose_findings_text(path.read_text(encoding="utf-8", errors="replace"))
+
+
+def quoted_span(line: str, start: int) -> bool:
+    """Is the position `start` inside a quote pair the log cites with?
+
+    Three marks, all measured on these two files: the ASCII double quote (symmetric, so an odd
+    count before the name means it sits between two of them), the CJK double quote, and the
+    corner quotes (both asymmetric, so more openers than closers before the name means the same).
+    """
+    before = line[:start]
+    return (before.count('"') % 2 == 1
+            or before.count("“") > before.count("”")
+            or before.count("「") > before.count("」"))
+
+
+def log_files(root: Path) -> list[tuple[str, Path]]:
+    """`(rel path, path)` for the sanctioned logs `LOG_SCOPE` names."""
+    return [(rel, root / rel) for rel in LOG_SCOPE if (root / rel).is_file()]
+
+
+def log_findings_text(text: str) -> tuple[list[tuple[str, str]],
+                                         tuple[int, int, int, int, int, int, int]]:
+    """`(findings, stats)` for one sanctioned log file.
+
+    `findings` is `(class, line)` for every line that carries the product's name in this
+    repository's own voice (`PROSE_CLASSES`).  `stats` is `(lines, fenced, spanned, carried,
+    quoted, instruction, own)`: the product-name lines, how many names each citation kind
+    covered, and how many were left as our prose.  `carried` is printed because it is the span
+    model's weak spot - a name covered only by a span the *previous* line left open; the log's
+    lines are hard-wrapped, so that is the normal shape of a quoted multi-line C comment, and a
+    reader can see how much of the reading rests on it.
+    """
+    findings: list[tuple[str, str]] = []
+    lines = fenced = spanned = carried = quoted = instruction = 0
+    in_fence = open_span = False
+    for raw in text.split("\n"):
+        if raw.lstrip().startswith("```"):
+            in_fence = not in_fence
+            open_span = False
+            continue
+        hits = list(LOG_PATTERN.finditer(raw)) if LOG_PATTERN.search(raw) else []
+        if hits:
+            lines += 1
+            if in_fence:
+                fenced += len(hits)
+            elif any(phrase in raw for phrase in INSTRUCTION_QUOTES):
+                instruction += len(hits)
+            else:
+                first_span = raw.find(SPAN_MARK)
+                uncited: list[str] = []
+                for match in hits:
+                    before = raw[:match.start()]
+                    if before.count(SPAN_MARK) % 2:
+                        spanned += 1
+                    elif open_span and (first_span < 0 or match.start() < first_span):
+                        carried += 1
+                    elif quoted_span(raw, match.start()):
+                        quoted += 1
+                    else:
+                        uncited.append(match.group(0))
+                if uncited:
+                    findings.append(("title", " ".join(raw.split())[:240]))
+        # A span left open at the end of a line continues on the next one (the wrap case); a
+        # blank line ends it, so a stray backtick cannot carry a citation across a paragraph.
+        open_span = bool(raw.strip()) and raw.count(SPAN_MARK) % 2 == 1
+    return findings, (lines, fenced, spanned, carried, quoted, instruction, len(findings))
+
+
+def log_findings(root: Path) -> list[tuple[str, str, str]]:
+    out: list[tuple[str, str, str]] = []
+    for rel, path in log_files(root):
+        found, _ = log_findings_text(path.read_text(encoding="utf-8", errors="replace"))
+        out.extend((rel, klass, snippet) for klass, snippet in found)
+    return out
+
+
+def log_stats(root: Path) -> tuple[int, int, int, int, int, int, int, int]:
+    """`(files, lines, fenced, spanned, carried, quoted, instruction, own)` for the logs."""
+    files = lines = fenced = spanned = carried = quoted = instruction = own = 0
+    for _, path in log_files(root):
+        _, stat = log_findings_text(path.read_text(encoding="utf-8", errors="replace"))
+        files += 1
+        lines += stat[0]
+        fenced += stat[1]
+        spanned += stat[2]
+        carried += stat[3]
+        quoted += stat[4]
+        instruction += stat[5]
+        own += stat[6]
+    return files, lines, fenced, spanned, carried, quoted, instruction, own
 
 
 def header_only(text: str) -> str:
@@ -802,6 +928,7 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
         for klass, snippet in prose_findings(path):
             out.append((rel, klass, snippet))
     out.extend(tool_findings(root)[0])
+    out.extend(log_findings(root))
     for rel in BASELINE_PROSE:
         path = root / rel
         if not path.is_file():
@@ -1070,6 +1197,28 @@ SELFTEST_LEDGER = (
 )
 
 
+# The log scope's cases (status 3.750).  One per citation kind, and one for the shape the whole
+# scope exists to catch: the log speaking in its own voice.  The second case is the `carried`
+# model - the span opens at the end of the first line and closes after the name on the second.
+SELFTEST_LOG = (
+    ("the reference's measured output pasted into a fence",
+     "```\n$ build/emacs-ref/src/emacs --version\nGNU Emacs 32.0.50\n```\n", []),
+    ("a code span the log wraps across two lines",
+     "**not rewritten**: the first line (`/* Cursor motion\n"
+     "subroutines for GNU Emacs.  */`) - it is the copied text, GPL requires it.\n", []),
+    ("a name inside a quote pair",
+     'the sentence ("a one-to-one replication of GNU Emacs") stays quoted\n', []),
+    ("a name inside the corner quotes",
+     "\u8bd1\u6587\u5904\uff081056\u300c\u672c\u6587\u4ef6\u4e3a GNU Emacs \u7684\u4e00\u90e8\u5206\u300d\uff09\n", []),
+    ("the instruction's own words",
+     '- \u7528\u6237\u7684\u957f\u671f\u6307\u4ee4\uff08"\u7248\u672c\u58f0\u660e\u4e0d\u8981\u518d\u8bf4\u662f GNU Emacs \u4e86"\uff09\n', []),
+    ("the log speaking in its own voice",
+     "- \u672c\u7a0b\u5e8f\u662f GNU Emacs \u7684\u91cd\u5199\u3002\n", ["title"]),
+    ("a stray backtick does not carry across a blank line",
+     "- `stray\n\n- \u672c\u7a0b\u5e8f\u662f GNU Emacs \u7684\u91cd\u5199\u3002\n", ["title"]),
+)
+
+
 def selftest() -> int:
     bad = 0
     for name, source, want in SELFTEST:
@@ -1107,6 +1256,11 @@ def selftest() -> int:
         ok = got == sorted(want)
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
         bad += 0 if ok else 1
+    for name, source, want in SELFTEST_LOG:
+        got = sorted({k for k, _ in log_findings_text(source)[0]})
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
     for name, source, want in SELFTEST_TOOL:
         got = sorted({k for _, k, _ in findings_text(source, ".py")})
         ok = got == sorted(want)
@@ -1125,7 +1279,8 @@ def selftest() -> int:
         bad += 0 if ok else 1
     total = (len(SELFTEST) + len(SELFTEST_DOC) + len(SELFTEST_PROSE) + len(SELFTEST_ASM)
              + len(SELFTEST_ASM_SPLIT) + len(SELFTEST_BASELINE) + len(SELFTEST_BASELINE_TABLE)
-             + len(SELFTEST_TOOL) + len(SELFTEST_LEDGER) + len(SELFTEST_BASELINE_OWN))
+             + len(SELFTEST_TOOL) + len(SELFTEST_LEDGER) + len(SELFTEST_BASELINE_OWN)
+             + len(SELFTEST_LOG))
     print(f"{total} cases, {bad} failures")
     return 1 if bad else 0
 
@@ -1215,6 +1370,12 @@ def main() -> int:
           f"{bpayload_files} file(s)")
     print(f"read {len(BASELINE_PROSE)} baseline header(s) by name "
           f"({', '.join(BASELINE_PROSE)}), records below the header left to the exemption")
+    lfiles, llines, lfence, lspan, lcarry, lquote, linstr, lown = log_stats(root)
+    print(f"read {lfiles} sanctioned log file(s) by their citation band "
+          f"({', '.join(LOG_SCOPE)}): {llines} line(s) carry the product's name - "
+          f"{lfence} in a fenced block, {lspan} in a code span ({lcarry} of them by a span the "
+          f"previous line left open), {lquote} in a quote pair, {linstr} the instruction's own "
+          f"words, {lown} as our own prose")
     if exempt:
         print("left out (sanctioned, counted): "
               + "; ".join(f"{prefix} {n} file(s) - {reason}"
@@ -1241,8 +1402,8 @@ def main() -> int:
           + (f" ({len(skip) - len(rest) - len(sanctioned_left)} of them read above)"
              if len(rest) != len(skip) - len(sanctioned_left) else ""))
     if sanctioned_left:
-        print(f"left under a sanctioned prefix (the log, the acceptance record, the "
-              f"reference's measured values - not a hole): {len(sanctioned_left)} file(s) "
+        print(f"left under a sanctioned prefix (the reference's measured values, the "
+              f"per-unit ledgers - not a hole): {len(sanctioned_left)} file(s) "
               f"- e.g. {sorted(sanctioned_left)[0]}")
     return 1 if failures else 0
 

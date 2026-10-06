@@ -411,6 +411,25 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     3 个冻结配置实测值 + 12 行移植字面量引文 + 55 行参照成员句引文，**自家列 0**。判别力：把一行理由改回旧写法 ⇒ 本半的读者报
     `19 (1 forbidden, 18 allowed), 1 failures` 并点名，**HEAD 的读者看不见**（两端还原后都是 `18/0/18/0`）。
 
+    这条规则现在有第十九半（2026-10-06，status 3.750）：**两条整文件豁免自称"那里只是引文"，而"引文"是一句关于文件的断言**。
+    第十七、十八半把 `docs/baseline/` 从"整目录豁免"变成带读数的读者之后，`PROSE_EXEMPT` 里还剩两条整文件豁免——
+    `docs/status.md`（运行日志）与 `docs/acceptance.md`（验收记录），理由写的是"按需要引用用户指令与参照的实测输出"。
+    本半把这条理由读出来：新增 `LOG_SCOPE`，逐行读这两个文件，**凡携带产品名的行**都必须落在一条引文里——
+    ⑴ 在 ```` ``` ```` 围栏里（参照 `--version` 的实测输出）；⑵ 产品名两侧是**行内代码跨**，其中含日志硬折行造成的
+    唯一形状：**上一行未闭合的跨覆盖到本行第一个反引号之前**（读数里单独计为 `carried`）；⑶ 产品名两侧是**引号对**
+    （`"…"`、中文引号与角括号引号——日志就是这样引 C、引照抄树、引自己工具的输出的）；⑷ 该行带着**用户指令自己的话**
+    （`版本声明不要再说是` / `把之前的代码中的这种声明也去掉`）。四条之外就是本仓库自己的散文 ⇒ `title` 类发现项。
+    读数：覆盖行新增 `read 2 sanctioned log file(s) by their citation band (docs/status.md, docs/acceptance.md):
+    78 line(s) carry the product's name - 2 in a fenced block, 70 in a code span (1 of them by a span the previous line
+    left open), 4 in a quote pair, 26 the instruction's own words, 0 as our own prose`（**本半自己写进 status 的那一条也在这 26 行里**——它按判据就该算指令引文，不是自家散文）；`left out (sanctioned, counted)`
+    那一行随之只剩 `docs/ports/`（台账面本就有读者）；门仍是 `18 (0 forbidden, 18 allowed literals), 0 failures`，
+    `--selftest` **68 → 75 例 / 0 失败**（新组 7 例：一例对一种引文形状，外加"日志用自己声音说话"与"空行截断 `carried`"）。
+    判别力（两次变异实测）：往 `docs/status.md` 追加一行"本程序是参照产品的重写" ⇒ **FAIL docs/status.md: title x1** 并点名该行、
+    读数变 `19 (1 forbidden, 18 allowed), 1 failures`，而同一棵树跑 HEAD 的读者 ⇒ `18/0/18/0` 且照样打印那条豁免（**看不见**）；
+    往 `docs/acceptance.md` 追加一句同类声明 ⇒ 同样被点名（两个文件都真的被读了）。还原后两端都回到 `18/0/18/0`。
+    **本半一处产品名文本都没改**：两个文件本来就只有引文，改动全在门、自测与文档。**未声称**：这是**文本**门，
+    "0 处自家散文"不证明日志里没有别种说法——裸 `Emacs` 仍按 3.692 ⑥ 的裁决留在门外的读数里，不冒充已清。
+
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
     因此不能调用排在它后面的宏——`call0` 按 lisp.h 3462-3471 的顺序挪到了 `calln!`
