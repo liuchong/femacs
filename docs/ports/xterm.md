@@ -24,7 +24,7 @@
 demanded them.  Slice 18 (C 27286-27342, Decision 30) **stays 158** as well: `xim_open_dpy` sits inside
 C 27200's `#ifdef HAVE_X_I18N`, which is `undef` in the frozen table too.  Slice 19 (C 27344-27433, Decision 31) **stays 158**: the instantiate
 callback is behind `HAVE_X11R6_XIM` and `xim_initialize`'s arms are behind `HAVE_XIM`, all
-`undef` in the frozen table.
+`undef` in the frozen table.  Slice 20 (C 27436-27487, Decision 32) **stays 158** for the same reason.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -2046,6 +2046,24 @@ expressions (Decision 25).
   `src/process.rs` 7811-7813 shape), which keeps C's single call and drops the warning.
 
 
+### 32. Slice 20 (C 27436-27487): `xim_close_dpy`, and C's stale `#endif` comment
+
+* **The guard C 27489 closes is `HAVE_X_I18N`, not what its comment says.**  C 27489 reads
+  `#endif /* not HAVE_X11R6_XIM */`, and no `#ifndef HAVE_X11R6_XIM` is open there: from
+  C 27200 on, the only unbalanced guard is `HAVE_X_I18N`, so that is the region's end - which is
+  what this slice's own gate (`have_x_i18n`) and slices 17-19 already assumed.  The port records
+  C's wording where it stands and the guard it really closes in the function's doc comment.
+* **Nothing stands in the `#else` positions.**  C 27486 ends the `HAVE_XIM` arm with no `#else`,
+  so `xim_close_dpy`'s body is the `have_xim` arm alone and there is no second arm to carry
+  (unlike C 27286-27342's `dpyinfo->xim = NULL;`, P-86 ①'s rule applies where C has an arm).
+* **The second `eassert` value takes the same shape as the first.**  C 27447 declares `Bool rc;`
+  and C 27459 assigns it; its only reader is C 27465's `eassert`, which compiles only under
+  `enable_checking`, so the port initialises it where it is assigned and leaves C's declaration
+  line as the comment that records it (the `src/pdumper.rs` 1027-1029 shape, Decision 31's third
+  shape).  `XUnregisterIMInstantiateCallback` (Xlib.h 3950-3957) is declared at the use site with
+  the same six parameters as its register sibling.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3597,3 +3615,28 @@ assignment) were fixed for.
 **Not claimed.**  The frozen configuration compiles none of this text: no XIM server appeared, no
 callback was registered and no XIC was created.  The remaining `E0425` rows are unresolved names,
 not behaviour.
+
+
+### Slice 20's readings (C 27436-27487), as landed and measured (2026-10-06)
+
+**What it lands.**  `xim_close_dpy` (C 27442-27487): the `HAVE_XIM` arm, its
+`HAVE_X11R6_XIM` sub-arm (unregister the instantiate callback, free the `xim_inst_t` and its
+resource name), C 27477's guarded `XCloseIM`, and the `xim_styles` release - closing C 27200's
+`HAVE_X_I18N` region at C 27489.  Rust 15,257 -> 15,333 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arms A **547 / 55**, B
+**547 / 60**, C **575 / 57**, D **548 / 55**, F **547 / 55** and G **545 / 55** all read what slice
+19 left, and arm H (`+have_x_i18n+have_xim+have_x11r6+have_x11r6_xim`), which compiles this
+slice's text, reads **545 / 55 -> 545 / 55** - delta zero, every class and the warning count
+unmoved.
+
+**Arm reach (P-86 7).**  Injecting `let _: c_int = true;` as the first statement of the `have_xim`
+arm moves `E0308` from 13 to 14, anchored at the injected line (`_root.rs:15300`); removed, arm H
+re-reads 545 / 55 and the file 15,333 lines.
+
+**What `--check` reads.**  **158 -> 158**: the function is dead text for the tool too.  The
+line-count row moves to 15,333 against C's 33,125 (53.7%).
+
+**Not claimed.**  The frozen configuration compiles none of this text: no callback was
+unregistered, no input-method connection was closed and no style list was freed.  The remaining
+`E0425` rows are unresolved names, not behaviour.

@@ -15255,3 +15255,79 @@ unsafe fn xim_initialize (dpyinfo: *mut x_display_info, resource_name: *mut c_ch
       }
   }
 }
+
+/* Close the connection to the XIM server on display DPYINFO.
+   Unregister any IM instantiation callback previously installed,
+   close the connection to the IM server if possible, and free any
+   retrieved IM values.  */
+
+/* C: Xlib.h 3950-3957: `extern Bool XUnregisterIMInstantiateCallback (Display *, struct
+   _XrmHashBucketRec *, char *, char *, XIDProc, XPointer);` - C 27459's call.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_xim",
+            feature = "have_x11r6", feature = "have_x11r6_xim"))]
+unsafe extern "C" {
+  pub fn XUnregisterIMInstantiateCallback (display: *mut Display, rdb: XrmDatabase,
+					   res_name: *mut c_char, res_class: *mut c_char,
+					   callback: XIDProc, client_data: XPointer) -> Bool;
+}
+
+/// C 27441-27487: `static void xim_close_dpy (struct x_display_info *dpyinfo)` - a `static` whose
+/// callers are this file's, so a plain `unsafe fn`; it sits inside C 27200's `#ifdef HAVE_X_I18N`,
+/// whose `#endif` is C 27489's (that line's own comment says "not HAVE_X11R6_XIM", which no `#if`
+/// in the region opens - C's comment is stale, and the guard it really closes is `HAVE_X_I18N`,
+/// the one this function's gate carries).  `HAVE_XIM` and `HAVE_X11R6_XIM` are both `undef` in the
+/// frozen table, so the whole body is dead there and the port carries C's own structure: the
+/// `have_xim` arm, its `have_x11r6_xim` sub-arm, and nothing in the `#else` positions - which is
+/// what C writes (`#endif /* HAVE_XIM */` with no `#else`).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe fn xim_close_dpy (dpyinfo: *mut x_display_info)
+{
+  #[cfg (feature = "have_xim")]
+  {
+    #[cfg (all (feature = "have_x11r6", feature = "have_x11r6_xim"))]
+    {
+      let xim_inst: *mut xim_inst_t;                                    // C 27446
+      /* C 27447's `Bool rc;` is declared here and assigned at C 27459; the port initialises it
+	 where it is assigned, because `eassert!` - its only reader - compiles only under
+	 `enable_checking` (the `src/pdumper.rs` 1027-1029 shape).  */
+
+      /* If dpyinfo->xim_callback_data is not set, then IM support wasn't
+	 initialized, which can happen if Xlib doesn't understand the C
+	 locale being used.  */
+
+      if !(*dpyinfo).xim_callback_data.is_null ()                       // C 27453
+	{
+	  xim_inst = (*dpyinfo).xim_callback_data;                      // C 27455
+
+	  if !(*dpyinfo).display.is_null ()                             // C 27457
+	    {
+	      let rc: Bool                                             // C 27459-27464
+		= XUnregisterIMInstantiateCallback ((*dpyinfo).display,
+						    (*dpyinfo).rdb,
+						    (*xim_inst).resource_name,
+						    emacs_class.as_mut_ptr (),
+						    Some (xim_instantiate_callback),
+						    xim_inst as XPointer);
+	      eassert! (rc);                                            // C 27465
+	    }
+
+	  xfree ((*xim_inst).resource_name as *mut c_void);             // C 27468
+	  xfree (xim_inst as *mut c_void);                              // C 27469
+	}
+    }
+
+    /* Now close the connection to the input method server.  This may
+       access the display connection, and isn't safe if the display has
+       already been closed.  */
+
+    if !(*dpyinfo).display.is_null () && !(*dpyinfo).xim.is_null ()     // C 27477
+      { XCloseIM ((*dpyinfo).xim); }                                    // C 27478
+    (*dpyinfo).xim = std::ptr::null_mut ();                             // C 27479
+
+    /* Free the list of XIM styles retrieved.  */
+
+    if !(*dpyinfo).xim_styles.is_null ()                                // C 27483
+      { XFree ((*dpyinfo).xim_styles as *mut c_void); }                 // C 27484
+    (*dpyinfo).xim_styles = std::ptr::null_mut ();                      // C 27485
+  }
+}
