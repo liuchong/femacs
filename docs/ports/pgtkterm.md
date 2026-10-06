@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-32: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365 and C 4367-4512
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-33: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190, C 2192-2292, C 2294-2359, C 2361-2455, C 2457-2522, C 2524-2825, C 2827-2914, C 2916-3012, C 3014-3110, C 3112-3255, C 3257-3379, C 3381-3465, C 3467-3567, C 3569-3645, C 3647-3752, C 3754-3798, C 3800-3922, C 3924-3970, C 3972-4067, C 4069-4134, C 4136-4207, C 4209-4365, C 4367-4512 and C 4514-4560
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,16 +11,16 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**6,433 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**6,522 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
 > **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190**, **C 2192-2292**,
 > **C 2294-2359**, **C 2361-2455**, **C 2457-2522**, **C 2524-2825**, **C 2827-2914**,
-> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365** and **C 4367-4512** - thirty-two
+> **C 2916-3012**, **C 3014-3110**, **C 3112-3255**, **C 3257-3379**, **C 3381-3465**, **C 3467-3567**, **C 3569-3645**, **C 3647-3752**, **C 3754-3798**, **C 3800-3922**, **C 3924-3970**, **C 3972-4067**, **C 4069-4134**, **C 4136-4207**, **C 4209-4365**, **C 4367-4512** and **C 4514-4560** - thirty-three
 > slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `set_fullscreen_state` (C 4514-4515).**
+> `pgtk_delete_terminal` (C 4563-4565; C 4562 is its comment above it).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -145,7 +145,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 4136-4207 | `pgtk_scroll_bar_create` (C 4136-4187, with its comment) and `pgtk_scroll_bar_remove` (C 4189-4207, with its comment) | the file gate - **transcribed** (the thirtieth slice) |
 | 4209-4365 | `pgtk_set_vertical_scroll_bar` (C 4209-4285, with its comment) and `pgtk_set_horizontal_scroll_bar` (C 4287-4365) | the file gate - **transcribed** (the thirty-first slice) |
 | 4367-4512 | the three scroll-bar hooks with both comment blocks: `pgtk_condemn_scroll_bars` (C 4379-4399), `pgtk_redeem_scroll_bar` (C 4404-4484, whose C 4426 `goto horizontal` is the port's labelled block) and `pgtk_judge_scroll_bars` (C 4489-4512) | the file gate - **transcribed** (the thirty-second slice) |
-| 4514-7780 | **the remainder of the file** - from C 4514's `set_fullscreen_state` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 4514-4560 | `set_fullscreen_state` (C 4514-4549) and `pgtk_fullscreen_hook` (C 4551-4560) | the file gate - **transcribed** (the thirty-third slice) |
+| 4562-7780 | **the remainder of the file** - from C 4562's comment and C 4563's `pgtk_delete_terminal` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the fringe bitmaps, the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -929,6 +930,21 @@ their assertions are owed.
     mirror's other arm.  All three functions' addresses go to the terminal's hook slots at C 7442, so
     they stay plain `unsafe fn` until that slice converts them.  No mirror changed, so P-87's two legs
     do not apply.
+55. **A two-armed field macro whose word is `bits2`, and four GTK window calls.**  C 4521 reads
+    `f->want_fullscreen` and C 4548 writes it, so the unit defines `want_fullscreen!` with both arms:
+    the reader is that mirror's `frame_field` (`include/frame.rs` 1457, the `src/haikufns.rs`
+    1312-1318 copy) over `FRAME_WANT_FULLSCREEN_UNIT`/`_SHIFT`/`_MASK` (frame.rs 609/607/757), and the
+    writer is C's own masked write on **`bits2`** - the unit the mirror records is 2, so the
+    `bits1`-shaped writers this file already had would have hit the wrong word (the `FRAME_Z_GROUP!`
+    shape at 1508-1511, which the same reasoning made `bits2`).  The four `gtk_window_*` entry points
+    (gtk/gtkwindow.h) are GTK-segment use-site declarations (header alone, no line), C's
+    `GTK_WINDOW (…)` cast is the port's pointer cast (P-72 rule 3), and C's `switch` becomes a `match`
+    over the five `FULLSCREEN_*` constants with the two shared-body labels as one alternative plus a
+    `_` arm (C has no `default`) - this function's `macro-body-notes.tsv` row records that and the
+    `gtk_window` cast token.  `store_frame_param` is this unit's own use-site declaration and the three
+    `Qfull*` symbols are `include/globals.rs` 2734/2728/3829's.  C 7442 takes `pgtk_fullscreen_hook`'s
+    address (the terminal's `fullscreen_hook`), so it stays a plain `unsafe fn` until that slice
+    converts it.  No mirror changed, so P-87's two legs do not apply.
 
 ## Owed (2026-10-05, PORTING.md P-90)
 
@@ -2208,3 +2224,38 @@ the frozen configuration compiles none of this file, no judgment cycle ran and n
 condemned or redeemed, and the three arm readings are **compile** readings of text this machine
 cannot build.  Both standing mirror reads are unchanged: Deviation 13's `FRAME_PGTK_P` and Deviation
 54's `WINDOW_HAS_HORIZONTAL_SCROLL_BAR` (`false` in every arm here).
+
+## The thirty-third slice (C 4514-4560): the fullscreen state and its hook
+
+**What is in it.**  `set_fullscreen_state` (C 4514-4549: the widget guard, the five-arm `switch` over
+`want_fullscreen` with two shared-body labels, the three `store_frame_param` calls and the closing
+reset) and `pgtk_fullscreen_hook` (C 4551-4560: the `FRAME_VISIBLE_P` guard around the pair).
+Rust: 6,433 -> **6,522** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 51 errors / 19 warnings -> 51 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 52 / 20 -> 52 / 20
+C = A + use_gtk + have_gtk3                        : 29 / 18 -> 29 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty** (the only line the
+diff prints is the probe's own file name): this text adds no error and no warning - the thirteenth
+zero-delta reading in this unit.  **Arm reach is measured** (P-86 ⑦): injecting
+`let _: c_int = true;` as the first statement of `set_fullscreen_state` moves arm A to 52 errors
+anchored at that line (removed, the file re-measured at **6,522** lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs` goes
+**96 rows -> 94**: the two items retire and one token row arrives (`set_fullscreen_state does not
+mention break, case, gtk_window, switch`, closed by the sanctioned
+`docs/ports/macro-body-notes.tsv` row).  The file's own `line count drifted` row is re-measured
+17.3% -> **16.2%** (C 7,780 vs the port's 6,522).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2085/36/0**; `check-dead-file-coverage.py` **145/0** (**65 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round, so P-87's two legs do not apply).  **Not claimed**: none of this has been run -
+the frozen configuration compiles none of this file, no window was fullscreened or maximized, and the
+three arm readings are **compile** readings of text this machine cannot build.  The one behaviour the
+slice names but cannot measure is the field's *word*: the mirror's unit for `want_fullscreen` is 2
+(`bits2`), which is why both the reader and the writer take that word.

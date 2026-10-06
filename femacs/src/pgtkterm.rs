@@ -6431,3 +6431,92 @@ unsafe fn pgtk_judge_scroll_bars (f: *mut frame)
   /* Now there should be no references to the condemned scroll bars,
      and they should get garbage-collected.  */
 }
+
+/* <gtk/gtkwindow.h>: `void gtk_window_unfullscreen (GtkWindow *window);` / `void
+   gtk_window_fullscreen (GtkWindow *window);` / `void gtk_window_maximize (GtkWindow *window);` /
+   `void gtk_window_unmaximize (GtkWindow *window);` - the C 4524-4537 calls (the GTK segment's
+   convention: the header alone, no line, since this machine has no GTK tree).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gtk_window_unfullscreen (window: *mut GtkWindow);
+  pub fn gtk_window_fullscreen (window: *mut GtkWindow);
+  pub fn gtk_window_maximize (window: *mut GtkWindow);
+  pub fn gtk_window_unmaximize (window: *mut GtkWindow);
+}
+
+/// C: frame.h 460: `ENUM_BF (fullscreen_type) want_fullscreen : 4;` - **read at C 4521 and written
+/// at C 4548**, i.e. this unit needs both arms.  `include/frame.rs` 757/607/609 has the mask and
+/// the shift/unit of the packed word and no accessor, so the reader is that mirror's `frame_field`
+/// (the `src/haikufns.rs` 1312-1318 copy) and the writer is C's own masked write on `bits2` (unit
+/// 2; the `FRAME_Z_GROUP!` shape this unit already carries at 1508-1511).
+#[cfg (feature = "have_pgtk")]
+macro_rules! want_fullscreen {
+  ($f:expr) => {
+    frame_field ($f, FRAME_WANT_FULLSCREEN_UNIT, FRAME_WANT_FULLSCREEN_SHIFT,
+		 FRAME_WANT_FULLSCREEN_MASK) as fullscreen_type };
+  ($f:expr, $v:expr) => {
+    (*$f).bits2 = ((*$f).bits2 & !(FRAME_WANT_FULLSCREEN_MASK << FRAME_WANT_FULLSCREEN_SHIFT))
+                  | (((($v) as u32) & FRAME_WANT_FULLSCREEN_MASK) << FRAME_WANT_FULLSCREEN_SHIFT) };
+}
+
+/// C 4514-4549: `static void set_fullscreen_state (struct frame *f)` - `FRAME_GTK_OUTER_WIDGET`
+/// is `include/pgtkterm.rs`'s macro and C's `GTK_WINDOW (…)` cast is the port's pointer cast
+/// (P-72 rule 3, the `pgtk_text_icon` spelling), `store_frame_param` is this unit's own use-site
+/// declaration (C 966's call site, line 221-223), the three `Qfull*` symbols are
+/// `include/globals.rs` 2734/2728/3829's, and C's `switch (f->want_fullscreen)` is the port's
+/// `match` over the five `FULLSCREEN_*` constants with the two shared-body labels written as one
+/// alternative (PORTING.md 2.2; this function's own `macro-body-notes.tsv` row).
+#[cfg (feature = "have_pgtk")]
+unsafe fn set_fullscreen_state (f: *mut frame)
+{
+  if FRAME_GTK_OUTER_WIDGET! (f).is_null ()                             // C 4517
+    { return; }                                                         // C 4518
+
+  let widget: *mut GtkWindow = FRAME_GTK_OUTER_WIDGET! (f) as *mut GtkWindow;   // C 4520
+  match want_fullscreen! (f)                                            // C 4521
+    {
+      FULLSCREEN_NONE =>                                                // C 4523
+	{
+	  gtk_window_unfullscreen (widget);                             // C 4524
+	  gtk_window_unmaximize (widget);                               // C 4525
+	  store_frame_param (f, Qfullscreen (), Qnil ());               // C 4526
+	}
+      FULLSCREEN_BOTH =>                                                // C 4529
+	{
+	  gtk_window_unmaximize (widget);                               // C 4530
+	  gtk_window_fullscreen (widget);                               // C 4531
+	  store_frame_param (f, Qfullscreen (), Qfullboth ());          // C 4532
+	}
+      FULLSCREEN_MAXIMIZED =>                                           // C 4535
+	{
+	  gtk_window_unfullscreen (widget);                             // C 4536
+	  gtk_window_maximize (widget);                                 // C 4537
+	  store_frame_param (f, Qfullscreen (), Qmaximized ());         // C 4538
+	}
+      FULLSCREEN_WIDTH | FULLSCREEN_HEIGHT =>                           // C 4541-4542
+	{
+	  /* Restoring from fullscreen to tiled (Bug#81165, Bug#81320).  */
+	  gtk_window_unfullscreen (widget);                             // C 4544
+	}
+      _ =>                                                              // C's `switch` has no `default`
+	{
+	}
+    }
+
+  want_fullscreen! (f, FULLSCREEN_NONE);                                // C 4548
+}
+
+/// C 4551-4560: `static void pgtk_fullscreen_hook (struct frame *f)` - `FRAME_VISIBLE_P` is
+/// `include/frame.rs` 1120's accessor; C 7442 takes this function's address (the terminal's
+/// `fullscreen_hook`), so it stays a plain `unsafe fn` until that slice converts it (the
+/// `pgtk_ring_bell` note).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_fullscreen_hook (f: *mut frame)
+{
+  if FRAME_VISIBLE_P (f)                                                // C 4554
+    {
+      block_input ();                                                   // C 4556
+      set_fullscreen_state (f);                                         // C 4557
+      unblock_input ();                                                 // C 4558
+    }
+}
