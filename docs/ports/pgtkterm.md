@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-10: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089 and C 2091-2190
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-11: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483, C 1485-1572, C 1575-1662, C 1664-1804, C 1806-1951, C 1953-2089, C 2091-2190 and C 2192-2292
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,14 +11,14 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**3,136 lines**), carrying **C 1-1078**,
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**3,293 lines**), carrying **C 1-1078**,
 > **C 1079-1279**, **C 1281-1383**, **C 1385-1483**, **C 1485-1572**, **C 1575-1662**,
-> **C 1664-1804**, **C 1806-1951**, **C 1953-2089** and **C 2091-2190** - ten slices - with **both
-> arms of every `#if`**; the **2,044** this line used to
+> **C 1664-1804**, **C 1806-1951**, **C 1953-2089**, **C 2091-2190** and **C 2192-2292** - eleven
+> slices - with **both arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_draw_glyph_string_bg_rect` (C 2195-2196; C 2192-2193 is its comment block).**
+> `pgtk_draw_image_glyph_string` (C 2308-2309; C 2294-2306 is the ASCII-art comment above it).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -121,7 +121,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 1806-1951 | `pgtk_setup_relief_color` (C 1806-1822), `pgtk_setup_relief_colors` (C 1824-1853), `pgtk_set_clip_rectangles` (C 1855-1866) and `pgtk_draw_relief_rect` (C 1868-1951) | the file gate - **transcribed** (the eighth slice) |
 | 1953-2089 | `pgtk_draw_box_rect` (C 1960-2000), `pgtk_draw_glyph_string_box` (C 2005-2048) and `pgtk_draw_horizontal_wave` (C 2050-2089) | the file gate - **transcribed** (the ninth slice) |
 | 2091-2190 | `pgtk_draw_underwave` (C 2091-2098) and `pgtk_draw_image_relief` (C 2102-2190) | the file gate - **transcribed** (the tenth slice) |
-| 2192-7780 | **the remainder of the file** - from C 2195's `pgtk_draw_glyph_string_bg_rect` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 2192-2292 | `pgtk_draw_glyph_string_bg_rect` (C 2195-2203), `pgtk_cr_draw_image` (C 2205-2239) and `pgtk_draw_image_foreground` (C 2243-2292) | the file gate - **transcribed** (the eleventh slice) |
+| 2294-7780 | **the remainder of the file** - from C 2308's `pgtk_draw_image_glyph_string` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -544,6 +545,20 @@ their assertions are owed.
     slice's section).  No mirror changed this round, so P-87's two legs do not apply; the consumer
     sweep is re-read anyway and stays green.
 
+33. **Six cairo rows this slice needs, all at the use site.**  `cairo_set_source` (cairo.h 701-702),
+    `cairo_translate` (870-871), `cairo_fill_preserve` (998-999) and
+    `cairo_image_surface_get_format` (2728-2729) are declared in this unit, each in its own
+    `unsafe extern "C"` block with the header line it was read from, and the two
+    `CAIRO_FORMAT_*` values C 2226 tests (`CAIRO_FORMAT_A8` 2, `CAIRO_FORMAT_A1` 3) are the unit's
+    constants beside them (`CAIRO_FORMAT_RGB24` 1 joins them because it is the same enum run; the
+    mirror carries `CAIRO_FORMAT_ARGB32` and `src/image.rs` 353-358 is the tree's copy of the same
+    measurement).  The other five cairo names this slice calls are the mirror's rows
+    (`cairo_pattern_get_surface`, `cairo_mask` and the operator/format rows in `include/gtk.rs`).
+    No mirror changed, so P-87's two legs do not apply; the consumer sweep is re-read anyway and
+    stays green.  C's `cairo_surface_t *surface;` is uninitialised and takes the port's zero
+    initialisation (PORTING.md 1.5), and `cr_data` - the mirror's `*mut c_void`, C's `void
+    *cr_data;` - is cast at the `pgtk_cr_draw_image` call (P-72 rule 3).
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -930,6 +945,43 @@ re-measured 61.5% -> **59.7%** (C 7,780 vs the port's 3,136).
 **Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
 **676/0/0/2055/36/0**; `check-dead-file-coverage.py` **145/0** (**42 range rows** over
 `src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
+`checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen
+configuration compiles none of this file, there is no GTK or cairo to draw with here, and the three
+arm readings are **compile** readings of text this machine cannot build.
+
+## The eleventh slice (C 2192-2292): the background rectangle, the cairo image call and the image foreground
+
+**What is in it.**  `pgtk_draw_glyph_string_bg_rect` (C 2195-2203: the `stippled_p` fork over
+`fill_background`/`pgtk_clear_glyph_string_rect`), `pgtk_cr_draw_image` (C 2205-2239: the clip pair,
+the `overlay_p` fork with `cairo_fill_preserve`, the translate, the `cairo_pattern_get_surface` /
+`cairo_image_surface_get_format` pair and the `CAIRO_FORMAT_A8`/`_A1` fork between `cairo_set_source`
++ `cairo_fill` and `cairo_mask`) and `pgtk_draw_image_foreground` (C 2243-2292: the `image_ascent`
+offset, the box-line shift, the two margin reads, the `cr_data` branch with its `DRAW_CURSOR`
+relief rectangle and the unloaded-image rectangle).  Rust: 3,136 -> **3,293** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` + `use_cairo` both sides).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 43 errors / 19 warnings -> 43 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 44 / 20 -> 44 / 20
+C = A + use_gtk + have_gtk3                        : 21 / 18 -> 21 / 18
+```
+**Every arm reads exactly the same number on both sides and both sets diff empty**: like the tenth
+slice, this text adds no error and no warning - the first reading of it already resolved every name
+(the six cairo rows are Deviation 33).  **Arm reach is measured** (P-86 ⑦): injecting
+`let _: c_int = true;` as the first statement of both `pgtk_cr_draw_image` and
+`pgtk_draw_image_foreground` moves arm A to 47 errors with two diagnostics anchored at those lines
+(the injected statements were then removed and the file re-measured at 3,293 lines).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **157 rows -> 154**: the three items retire, and the file's own `line count drifted` row is
+re-measured 59.7% -> **57.7%** (C 7,780 vs the port's 3,293).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2063/36/0** (this slice's cairo rows are the new externals);
+`check-dead-file-coverage.py` **145/0** (**43 range rows** over `src/pgtkterm.c`);
+`check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
 `check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
 changed this round; the consumer sweep is re-read and stays `checked 83 unit(s), 0 failure(s)` with
 `checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the frozen

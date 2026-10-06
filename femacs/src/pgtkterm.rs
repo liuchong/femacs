@@ -3134,3 +3134,160 @@ unsafe fn pgtk_draw_image_relief (s: *mut glyph_string)
   pgtk_draw_relief_rect ((*s).f, x, y, x1, y1, thick, thick, raised_p,  // C 2188
 				 top_p, bot_p, left_p, right_p, &raw mut r);    // C 2189
 }
+
+/// C 2195-2203: `static void pgtk_draw_glyph_string_bg_rect (struct glyph_string *s, int x, int y,
+/// int w, int h)` - C's `s->stippled_p` read is `glyph_string_bits!`'s member, and the two
+/// branches call this unit's own `fill_background`/`pgtk_clear_glyph_string_rect` (the third and
+/// fourth slices).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_glyph_string_bg_rect (s: *mut glyph_string, x: c_int, y: c_int, w: c_int,
+						  h: c_int)
+{
+  if glyph_string_bits! (stippled_p, (*s))                              // C 2199
+    { fill_background (s, x, y, w, h); }                                // C 2200
+  else
+    { pgtk_clear_glyph_string_rect (s, x, y, w, h); }                   // C 2202
+}
+
+/* C: cairo.h 701-702: `void cairo_set_source (cairo_t *cr, cairo_pattern_t *source);` - the
+   C 2228 call; cairo.h 870-871: `void cairo_translate (cairo_t *cr, double tx, double ty);` - the
+   C 2221 call; cairo.h 998-999: `void cairo_fill_preserve (cairo_t *cr);` - the C 2218 call; and
+   cairo.h 2728-2729: `cairo_format_t cairo_image_surface_get_format (cairo_surface_t *surface);` -
+   the C 2225 call.  This machine's cairo header carries all four; `include/gtk.rs` has the other
+   five names this slice calls (`cairo_pattern_get_surface`, `cairo_mask`, the operator rows and
+   `CAIRO_FORMAT_ARGB32`), so these four are declared here at the use site.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_set_source (cr: *mut cairo_t, source: *mut cairo_pattern_t);
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_translate (cr: *mut cairo_t, tx: c_double, ty: c_double);
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_fill_preserve (cr: *mut cairo_t);
+}
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn cairo_image_surface_get_format (surface: *mut cairo_surface_t) -> cairo_format_t;
+}
+/* C: cairo.h 431-441: `typedef enum _cairo_format { CAIRO_FORMAT_INVALID = -1,
+   CAIRO_FORMAT_ARGB32 = 0, CAIRO_FORMAT_RGB24 = 1, CAIRO_FORMAT_A8 = 2, CAIRO_FORMAT_A1 = 3, … }`
+   - the C 2226 test's two values (the mirror carries `CAIRO_FORMAT_ARGB32`; `src/image.rs`
+   353-358 is the tree's copy of this same measurement).  */
+#[cfg (feature = "have_pgtk")]
+pub const CAIRO_FORMAT_RGB24: cairo_format_t = 1;                        // cairo.h 434
+#[cfg (feature = "have_pgtk")]
+pub const CAIRO_FORMAT_A8: cairo_format_t = 2;                           // cairo.h 435
+#[cfg (feature = "have_pgtk")]
+pub const CAIRO_FORMAT_A1: cairo_format_t = 3;                           // cairo.h 436
+
+/// C 2205-2239: `static void pgtk_cr_draw_image (struct frame *f, Emacs_GC *gc, cairo_pattern_t
+/// *image, int src_x, int src_y, int width, int height, int dest_x, int dest_y, bool overlay_p)` -
+/// C's `cairo_surface_t *surface;` is uninitialised and takes the port's zero initialisation
+/// (PORTING.md 1.5), the two `pgtk_set_cr_source_with_gc_*` calls come from the mirror
+/// (`include/pgtkterm.rs` 715-718), and C's `dest_x - src_x` widenings are written `as c_double`.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_cr_draw_image (f: *mut frame, gc: *mut Emacs_GC, image: *mut cairo_pattern_t,
+				      src_x: c_int, src_y: c_int, width: c_int, height: c_int,
+				      dest_x: c_int, dest_y: c_int, overlay_p: bool)
+{
+  let cr: *mut cairo_t = pgtk_begin_cr_clip (f);                        // C 2210
+
+  if overlay_p                                                          // C 2212
+    { cairo_rectangle (cr, dest_x as c_double, dest_y as c_double,      // C 2213
+			       width as c_double, height as c_double); }
+  else
+    {
+      pgtk_set_cr_source_with_gc_background (f, gc, false);             // C 2216
+      cairo_rectangle (cr, dest_x as c_double, dest_y as c_double,      // C 2217
+			       width as c_double, height as c_double);
+      cairo_fill_preserve (cr);                                         // C 2218
+    }
+
+  cairo_translate (cr, (dest_x - src_x) as c_double,                    // C 2221
+			   (dest_y - src_y) as c_double);
+
+  let mut surface: *mut cairo_surface_t = core::ptr::null_mut ();       // C 2223
+  cairo_pattern_get_surface (image, &raw mut surface);                  // C 2224
+  let format: cairo_format_t = cairo_image_surface_get_format (surface);        // C 2225
+  if format != CAIRO_FORMAT_A8 && format != CAIRO_FORMAT_A1            // C 2226
+    {
+      cairo_set_source (cr, image);                                     // C 2228
+      cairo_fill (cr);                                                  // C 2229
+    }
+  else
+    {
+      pgtk_set_cr_source_with_gc_foreground (f, gc, false);             // C 2233
+      cairo_clip (cr);                                                  // C 2234
+      cairo_mask (cr, image);                                           // C 2235
+    }
+
+  pgtk_end_cr_clip (f);                                                 // C 2238
+}
+
+/* Draw foreground of image glyph string S.  */
+
+/// C 2243-2292: `static void pgtk_draw_image_foreground (struct glyph_string *s)` - `cr_data` is
+/// the mirror's `*mut c_void` (C's `void *cr_data;`) handed to `pgtk_cr_draw_image` with the
+/// use-site cast (P-72 rule 3), `!s->img->mask` is the pointer's null test, and the two
+/// `pgtk_draw_rectangle` calls are this unit's own (slice 4).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_image_foreground (s: *mut glyph_string)
+{
+  let mut x: c_int = (*s).x;                                            // C 2246
+  let mut y: c_int = (*s).ybase                                         // C 2247
+    - image_ascent ((*s).img, (*s).face as *mut face, &raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX            // C 2251
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))             // C 2252
+      && glyph_slice_bits! (x, (*s).slice) == 0                         // C 2253
+    { x += max ((*((*s).face as *mut face)).box_vertical_line_width as isize, 0) as c_int; }   // C 2254
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_slice_bits! (x, (*s).slice) == 0                             // C 2258
+    { x += (*(*s).img).hmargin; }                                       // C 2259
+  if glyph_slice_bits! (y, (*s).slice) == 0                             // C 2260
+    { y += (*(*s).img).vmargin; }                                       // C 2261
+
+  if !(*(*s).img).cr_data.is_null ()                                    // C 2263
+    {
+      let cr: *mut cairo_t = pgtk_begin_cr_clip ((*s).f);               // C 2265
+      pgtk_set_glyph_string_clipping (s, cr);                           // C 2266
+      pgtk_cr_draw_image ((*s).f, &raw mut (*s).xgcv,                   // C 2267
+					  (*(*s).img).cr_data as *mut cairo_pattern_t,
+					  glyph_slice_bits! (x, (*s).slice) as c_int,   // C 2268
+					  glyph_slice_bits! (y, (*s).slice) as c_int,
+					  glyph_slice_bits! (width, (*s).slice) as c_int,
+					  glyph_slice_bits! (height, (*s).slice) as c_int,
+					  x, y, true);                          // C 2269
+      if (*(*s).img).mask.is_null ()                                    // C 2270
+	{
+	  /* When the image has a mask, we can expect that at
+	     least part of a mouse highlight or a block cursor will
+	     be visible.  If the image doesn't have a mask, make
+	     a block cursor visible by drawing a rectangle around
+	     the image.  I believe it's looking better if we do
+	     nothing here for mouse-face.  */
+	  if (*s).hl == DRAW_CURSOR                                        // C 2278
+	    {
+	      let relief: c_int = eabs! ((*(*s).img).relief);             // C 2280
+	      pgtk_draw_rectangle ((*s).f, (*s).xgcv.foreground, x - relief,        // C 2281
+				   y - relief,                                  // C 2282
+				   glyph_slice_bits! (width, (*s).slice) as c_int + relief * 2 - 1,
+				   glyph_slice_bits! (height, (*s).slice) as c_int + relief * 2 - 1,
+				   false);                                      // C 2283
+	    }
+	}
+      pgtk_end_cr_clip ((*s).f);                                        // C 2286
+    }
+  else
+    /* Draw a rectangle if image could not be loaded.  */
+    { pgtk_draw_rectangle ((*s).f, (*s).xgcv.foreground, x, y,          // C 2290
+				   glyph_slice_bits! (width, (*s).slice) as c_int - 1,   // C 2291
+				   glyph_slice_bits! (height, (*s).slice) as c_int - 1, false); }
+}
