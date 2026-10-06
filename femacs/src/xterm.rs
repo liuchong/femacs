@@ -22370,3 +22370,115 @@ unsafe fn x_find_modifier_meanings (dpyinfo: *mut x_display_info)
     { XFreeModifiermap ((*dpyinfo).modmap); }                           // C 14301
   (*dpyinfo).modmap = mods;                                             // C 14302
 }
+
+/* Convert between the modifier bits X uses and the modifier bits
+   Emacs uses.  */
+
+/// C 14308-14335: `int x_x_to_emacs_modifiers (struct x_display_info *dpyinfo, int state)` -
+/// non-`static` and declared in xterm.h 1808, so the exported shape above (PORTING.md
+/// 0.2/1.4).  C computes the mask tests in `unsigned int` (its `ShiftMask` and the `*_mod_mask`
+/// members are unsigned while `state` is `int`) and returns an `int`, so the port states both
+/// widths: each test is `state as c_uint` against the mirror's constants and the OR chain ends in
+/// `as c_int`; `XFIXNUM`'s `intmax_t` against `INT_MAX` (`lib/include/limits.in.rs` 43) is the same
+/// statement C's promotion makes.  `Vx_*_keysym` are slice 54's definitions and `Fget` is the
+/// mirror's subr prototype.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_x_to_emacs_modifiers (dpyinfo: *mut x_display_info, state: c_int) -> c_int
+{
+  use crate::x11_constants::{ControlMask, ShiftMask};
+
+  let mut mod_ctrl: c_int = ctrl_modifier;                              // C 14311
+  let mut mod_meta: c_int = meta_modifier;                              // C 14312
+  let mut mod_alt: c_int = alt_modifier;                                // C 14313
+  let mut mod_hyper: c_int = hyper_modifier;                            // C 14314
+  let mut mod_super: c_int = super_modifier;                            // C 14315
+  let mut tem: Lisp_Object;                                             // C 14316
+
+  tem = Fget (Vx_ctrl_keysym, Qmodifier_value ());                      // C 14318
+  if FIXNUMP (tem) { mod_ctrl = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }   // C 14319
+  tem = Fget (Vx_alt_keysym, Qmodifier_value ());                       // C 14320
+  if FIXNUMP (tem) { mod_alt = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }    // C 14321
+  tem = Fget (Vx_meta_keysym, Qmodifier_value ());                      // C 14322
+  if FIXNUMP (tem) { mod_meta = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }   // C 14323
+  tem = Fget (Vx_hyper_keysym, Qmodifier_value ());                     // C 14324
+  if FIXNUMP (tem) { mod_hyper = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }  // C 14325
+  tem = Fget (Vx_super_keysym, Qmodifier_value ());                     // C 14326
+  if FIXNUMP (tem) { mod_super = (XFIXNUM (tem) & INT_MAX as EMACS_INT) as c_int; }  // C 14327
+
+  return ((if ((state as c_uint) & (ShiftMask as c_uint              // C 14329
+				    | (*dpyinfo).shift_lock_mask)) != 0
+	     { shift_modifier as c_uint } else { 0 })
+	  | (if ((state as c_uint) & ControlMask as c_uint) != 0         // C 14330
+	       { mod_ctrl as c_uint } else { 0 })
+	  | (if ((state as c_uint) & (*dpyinfo).meta_mod_mask) != 0      // C 14331
+	       { mod_meta as c_uint } else { 0 })
+	  | (if ((state as c_uint) & (*dpyinfo).alt_mod_mask) != 0       // C 14332
+	       { mod_alt as c_uint } else { 0 })
+	  | (if ((state as c_uint) & (*dpyinfo).super_mod_mask) != 0     // C 14333
+	       { mod_super as c_uint } else { 0 })
+	  | (if ((state as c_uint) & (*dpyinfo).hyper_mod_mask) != 0     // C 14334
+	       { mod_hyper as c_uint } else { 0 })) as c_int;
+}
+
+/// C 14337-14366: `int x_emacs_to_x_modifiers (struct x_display_info *dpyinfo, intmax_t state)` -
+/// non-`static` and declared in xterm.h 1809, so the exported shape above.  The locals C declares
+/// there are `intmax_t`-width (the port's `EMACS_INT`) while the test operand is the `intmax_t`
+/// parameter, and the OR chain mixes the `unsigned int` members with the `unsigned long` masks, so
+/// the port states `as intmax_t` at each test, the width on the two `ShiftMask`/`ControlMask`
+/// terms, and `as c_int` at the end - which is C's own narrowing.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_emacs_to_x_modifiers (dpyinfo: *mut x_display_info, state: intmax_t) -> c_int
+{
+  use crate::x11_constants::{ControlMask, ShiftMask};
+
+  let mut mod_ctrl: EMACS_INT = ctrl_modifier as EMACS_INT;             // C 14340
+  let mut mod_meta: EMACS_INT = meta_modifier as EMACS_INT;             // C 14341
+  let mut mod_alt: EMACS_INT = alt_modifier as EMACS_INT;               // C 14342
+  let mut mod_hyper: EMACS_INT = hyper_modifier as EMACS_INT;           // C 14343
+  let mut mod_super: EMACS_INT = super_modifier as EMACS_INT;           // C 14344
+
+  let mut tem: Lisp_Object;                                             // C 14346
+
+  tem = Fget (Vx_ctrl_keysym, Qmodifier_value ());                      // C 14348
+  if FIXNUMP (tem) { mod_ctrl = XFIXNUM (tem); }                        // C 14349
+  tem = Fget (Vx_alt_keysym, Qmodifier_value ());                       // C 14350
+  if FIXNUMP (tem) { mod_alt = XFIXNUM (tem); }                         // C 14351
+  tem = Fget (Vx_meta_keysym, Qmodifier_value ());                      // C 14352
+  if FIXNUMP (tem) { mod_meta = XFIXNUM (tem); }                        // C 14353
+  tem = Fget (Vx_hyper_keysym, Qmodifier_value ());                     // C 14354
+  if FIXNUMP (tem) { mod_hyper = XFIXNUM (tem); }                       // C 14355
+  tem = Fget (Vx_super_keysym, Qmodifier_value ());                     // C 14356
+  if FIXNUMP (tem) { mod_super = XFIXNUM (tem); }                       // C 14357
+
+  return ((if (state & mod_alt as intmax_t) != 0                                    // C 14360
+	     { (*dpyinfo).alt_mod_mask } else { 0 })
+	  | (if (state & mod_super as intmax_t) != 0                                // C 14361
+	       { (*dpyinfo).super_mod_mask } else { 0 })
+	  | (if (state & mod_hyper as intmax_t) != 0                                // C 14362
+	       { (*dpyinfo).hyper_mod_mask } else { 0 })
+	  | (if (state & shift_modifier as intmax_t) != 0               // C 14363
+	       { ShiftMask as c_uint } else { 0 })
+	  | (if (state & mod_ctrl as intmax_t) != 0                                 // C 14364
+	       { ControlMask as c_uint } else { 0 })
+	  | (if (state & mod_meta as intmax_t) != 0                                 // C 14365
+	       { (*dpyinfo).meta_mod_mask } else { 0 })) as c_int;
+}
+
+/* Convert a keysym to its name.  */
+
+/// C 14370-14380: `char *get_keysym_name (int keysym)` - non-`static` and declared in lisp.h 5436, so the exported shape above; `XKeysymToString` is
+/// the bare Xlib class.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_keysym_name (keysym: c_int) -> *mut c_char
+{
+  let mut value: *mut c_char;                                           // C 14373
+
+  block_input ();                                                       // C 14375
+  value = XKeysymToString (keysym);                                     // C 14376
+  unblock_input ();                                                     // C 14377
+
+  return value;                                                         // C 14379
+}
