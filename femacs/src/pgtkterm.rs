@@ -3291,3 +3291,79 @@ unsafe fn pgtk_draw_image_foreground (s: *mut glyph_string)
 				   glyph_slice_bits! (width, (*s).slice) as c_int - 1,   // C 2291
 				   glyph_slice_bits! (height, (*s).slice) as c_int - 1, false); }
 }
+
+/* Draw image glyph string S.
+
+	    s->y
+   s->x      +-------------------------
+	     |   s->face->box
+	     |
+	     |     +-------------------------
+	     |     |  s->img->margin
+	     |     |
+	     |     |       +-------------------
+	     |     |       |  the image
+
+ */
+
+/// C 2308-2359: `static void pgtk_draw_image_glyph_string (struct glyph_string *s)` - the two
+/// `max` folds over the face's box line widths, C's `s->stippled_p` / `s->background_filled_p`
+/// bitfield **writes** through `glyph_string_bits!`'s setter arms (the record's measured
+/// `bits: [u8; 4]` run), the `slice.y + slice.height >= img->height` fold with the two `as c_int`
+/// promotions the tenth slice's Deviation 32 records, and the three calls this unit defines above.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_image_glyph_string (s: *mut glyph_string)
+{
+  let box_line_hwidth: c_int                                           // C 2311
+    = max ((*((*s).face as *mut face)).box_vertical_line_width as isize, 0) as c_int;
+  let box_line_vwidth: c_int                                           // C 2312
+    = max ((*((*s).face as *mut face)).box_horizontal_line_width as isize, 0) as c_int;
+  let mut height: c_int;                                               // C 2313
+
+  height = (*s).height;                                                // C 2315
+  if glyph_slice_bits! (y, (*s).slice) == 0                            // C 2316
+    { height -= box_line_vwidth; }                                     // C 2317
+  if (glyph_slice_bits! (y, (*s).slice) as c_int                       // C 2318
+	  + glyph_slice_bits! (height, (*s).slice) as c_int) >= (*(*s).img).height
+    { height -= box_line_vwidth; }                                     // C 2319
+
+  /* Fill background with face under the image.  Do it only if row is
+     taller than image or if image has a clip mask to reduce
+     flickering.  */
+  glyph_string_bits! (stippled_p, (*s),                                  // C 2324
+		      (*((*s).face as *mut face)).stipple != 0);
+  if height > glyph_slice_bits! (height, (*s).slice) as c_int          // C 2325
+      || (*(*s).img).hmargin != 0                                      // C 2326
+      || (*(*s).img).vmargin != 0                                      // C 2327
+      || !(*(*s).img).mask.is_null ()                                  // C 2328
+      || (*(*s).img).pixmap.is_null ()                                 // C 2329
+      || (*s).width != (*s).background_width                           // C 2330
+    {
+      let mut x: c_int = (*s).x;                                       // C 2332
+      let mut y: c_int = (*s).y;                                       // C 2333
+      let mut width: c_int = (*s).background_width;                    // C 2334
+
+      if glyph_bits! (left_box_line_p, (*(*s).first_glyph))            // C 2336
+	  && glyph_slice_bits! (x, (*s).slice) == 0                       // C 2337
+	{
+	  x += box_line_hwidth;                                           // C 2339
+	  width -= box_line_hwidth;                                       // C 2340
+	}
+
+      if glyph_slice_bits! (y, (*s).slice) == 0                        // C 2343
+	{ y += box_line_vwidth; }                                         // C 2344
+
+      pgtk_draw_glyph_string_bg_rect (s, x, y, width, height);         // C 2346
+
+      glyph_string_bits! (background_filled_p, (*s), true);            // C 2348
+    }
+
+  /* Draw the foreground.  */
+  pgtk_draw_image_foreground (s);                                      // C 2352
+
+  /* If we must draw a relief around the image, do it.  */
+  if (*(*s).img).relief != 0                                           // C 2355
+      || (*s).hl == DRAW_IMAGE_RAISED                                  // C 2356
+      || (*s).hl == DRAW_IMAGE_SUNKEN                                  // C 2357
+    { pgtk_draw_image_relief (s); }                                    // C 2358
+}
