@@ -19562,3 +19562,93 @@ pub unsafe extern "C" fn x_display_ok (display: *const c_char) -> bool
   XCloseDisplay (dpy);                                                  // C 30579
   return true;                                                          // C 30580
 }
+
+/// C 30583-30591: `static void my_log_handler (const gchar *log_domain, GLogLevelFlags log_level,
+/// const gchar *msg, gpointer user_data)` - C's `static`, so a plain `unsafe fn`, and C 30583's
+/// `#ifdef USE_GTK` is the port's `use_gtk` gate.  The three glib types are the mirror
+/// `include/gtk.rs`'s (`gchar` 39, `gpointer` 45, `GLogLevelFlags` 120 - this unit reaches them
+/// through C 731's `gtkutil.h`), and `strstr`/`fprintf` are the bare libc class (`fprintf` is
+/// `lib/include/stdio.rs`'s declaration).
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe fn my_log_handler (log_domain: *const gchar, log_level: GLogLevelFlags,
+			  msg: *const gchar, user_data: gpointer)
+{
+  if strstr (msg, c"g_set_prgname".as_ptr ()).is_null ()                // C 30588
+    {
+      fprintf (stderr, c"%s-WARNING **: %s\n".as_ptr (), log_domain, msg);  // C 30589
+    }
+}
+
+/* Current X display connection identifier.  Incremented for each next
+   connection established.  */
+#[cfg (feature = "have_x_windows")]
+pub static mut x_display_id: c_uint = 0;                                // C 30595 (tentative, i.e. zero)
+
+/* Select for device change events on the root window of DPYINFO.
+   These include device change and hierarchy change notifications.  */
+
+/// C 30602-30622: `static void xi_select_hierarchy_events (struct x_display_info *dpyinfo)` - C's
+/// `static`, so a plain `unsafe fn`; C 30597's `#if defined HAVE_XINPUT2 && ! defined HAVE_GTK3`
+/// is the port's pair of feature gates (P-86 ①), and C 30610's `alloca` is the port's stack pool
+/// (P-05, the `xm_find_targets_table_idx` shape).  `XISetMask`/`XISelectEvents` are the bare XInput2
+/// class; `XIEventMask`/`XIMaskLen`/`XIAllDevices` are already declared by the slice-10 block.
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2",
+	    not (feature = "have_gtk3")))]
+unsafe fn xi_select_hierarchy_events (dpyinfo: *mut x_display_info)
+{
+  let mut mask: XIEventMask;                                            // C 30605
+  let mut l: ptrdiff_t;                                                 // C 30606
+  let mut m: *mut c_uchar;                                              // C 30607
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  l = XIMaskLen (XI_LASTEVENT) as ptrdiff_t;                            // C 30609
+  m = SAFE_ALLOCA! (sa_avail, l as usize) as *mut c_uchar;              // C 30610
+  mask.mask = m;                                                        // C 30610, C's chained `mask.mask = m = …`
+  memset (m as *mut c_void, 0, l as usize);                             // C 30611
+  mask.mask_len = l;                                                    // C 30612
+
+  mask.deviceid = XIAllDevices;                                         // C 30614
+
+  XISetMask (m, XI_PropertyEvent);                                      // C 30616
+  XISetMask (m, XI_HierarchyChanged);                                   // C 30617
+  XISetMask (m, XI_DeviceChanged);                                      // C 30618
+
+  XISelectEvents ((*dpyinfo).display, (*dpyinfo).root_window,           // C 30620-30621
+		  &raw mut mask, 1);
+}
+
+/* Look up whether or not GTK already initialized the X input
+   extension.
+
+   Value is 0 if GTK was not built with the input extension, or if it
+   was explicitly disabled, 1 if GTK enabled the input extension and
+   the version was successfully determined, and 2 if that information
+   could not be determined.  */
+
+/// C 30636-30658: `static int xi_check_toolkit (Display *display)` - C's `static`, so a plain
+/// `unsafe fn`; C 30626's `#if defined HAVE_XINPUT2 && defined HAVE_GTK3` pairs two features no
+/// arm this lane runs sets at once (arm B has `have_gtk3` without `have_xinput2`, arm C the
+/// reverse), so the body is **carried text that no reading compiles** (P-86 ③ - named here rather
+/// than counted as verified).  `GdkDisplay`/`GdkDeviceManager` and the four `gdk_*`/`G_OBJECT_*`
+/// entries are the bare GDK class.
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2", feature = "have_gtk3"))]
+unsafe fn xi_check_toolkit (display: *mut Display) -> c_int
+{
+  let mut gdpy: *mut GdkDisplay;                                        // C 30639
+  let mut manager: *mut GdkDeviceManager;                               // C 30640
+
+  gdpy = gdk_x11_lookup_xdisplay (display);                             // C 30642
+  eassume! (gdpy);                                                      // C 30643
+  manager = gdk_display_get_device_manager (gdpy);                      // C 30644
+
+  if strcmp (G_OBJECT_TYPE_NAME (manager), c"GdkX11DeviceManagerXI2".as_ptr ()) == 0  // C 30646-30647
+    { return 1; }                                                       // C 30648
+
+  if strcmp (G_OBJECT_TYPE_NAME (manager), c"GdkX11DeviceManagerCore".as_ptr ()) == 0  // C 30650-30651
+    { return 0; }                                                       // C 30652
+
+  /* Something changed in GDK so this information is no longer
+     available.  */
+
+  return 2;                                                             // C 30657
+}
