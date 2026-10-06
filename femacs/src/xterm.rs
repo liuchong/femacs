@@ -16557,3 +16557,208 @@ unsafe extern "C" {
   pub fn change_frame_size (f: *mut frame, new_width: c_int, new_height: c_int,
 			    pretend: bool, delay: bool, safe: bool);
 }
+
+/* This function is called by x_set_offset to determine whether the window
+   manager interfered with the positioning of the frame.  Type A window
+   managers position the surrounding window manager decorations a small
+   amount above and left of the user-supplied position.  Type B window
+   managers position the surrounding window manager decorations at the
+   user-specified position.  If we detect a Type A window manager, we
+   compensate by moving the window right and down by the proper amount.  */
+
+/// C 28339-28374: `static void x_check_expected_move (struct frame *f, int expected_left, int
+/// expected_top)` - `static` (C 1183 is this file's own forward declaration and C 27679's
+/// `x_set_offset` the caller), so a plain `unsafe fn`.  `x_real_positions` is xterm.h 1906's
+/// prototype and `src/xfns.rs` 840's definition, so it stands at this use site (P-72 rule 4);
+/// `FRAME_X_OUTPUT`'s pointee is `x_output` (`include/xterm.rs` 748-896), whose
+/// `move_offset_left`/`_top` members exist, and `X_WMTYPE_A`/`_B` are that mirror's 725/727.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_check_expected_move (f: *mut frame, expected_left: c_int, expected_top: c_int)
+{
+  let mut current_left: c_int = 0;                                      // C 28342
+  let mut current_top: c_int = 0;                                       // C 28342
+
+  /* x_real_positions returns the left and top offsets of the outermost
+     window manager window around the frame.  */
+
+  x_real_positions (f, &raw mut current_left, &raw mut current_top);    // C 28347
+
+  if current_left != expected_left || current_top != expected_top       // C 28349
+    {
+      /* It's a "Type A" window manager. */
+
+      let adjusted_left: c_int;                                         // C 28353
+      let adjusted_top: c_int;                                          // C 28354
+
+      (*FRAME_DISPLAY_INFO! (f)).wm_type = X_WMTYPE_A;                  // C 28356
+      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).move_offset_left        // C 28357
+	  = expected_left - current_left;
+      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).move_offset_top         // C 28358
+	  = expected_top - current_top;
+
+      /* Now fix the mispositioned frame's location. */
+
+      adjusted_left = expected_left                                     // C 28362
+	  + (*(FRAME_X_OUTPUT! (f) as *mut x_output)).move_offset_left;
+      adjusted_top = expected_top                                       // C 28363
+	  + (*(FRAME_X_OUTPUT! (f) as *mut x_output)).move_offset_top;
+
+      XMoveWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),       // C 28365-28366
+		  adjusted_left, adjusted_top);
+
+      x_sync_with_move (f, expected_left, expected_top, false);         // C 28368
+    }
+  else
+    /* It's a "Type B" window manager.  We don't have to adjust the
+       frame's position. */
+      { (*FRAME_DISPLAY_INFO! (f)).wm_type = X_WMTYPE_B; }              // C 28373
+}
+
+/* C: xterm.h 1906: `extern void x_real_positions (struct frame *, int *, int *);` - C 28347 and
+   C 28401's calls.  The definition is another crate's (`src/xfns.rs` 840), so it stands at this
+   use site (P-72 rule 4, the `xg_set_skip_taskbar` shape above).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_real_positions (f: *mut frame, xptr: *mut c_int, yptr: *mut c_int);
+}
+
+/* Wait for XGetGeometry to return up-to-date position information for a
+   recently-moved frame.  Call this immediately after calling XMoveWindow.
+   If FUZZY is non-zero, then LEFT and TOP are just estimates of where the
+   frame has been moved to, so we use a fuzzy position comparison instead
+   of an exact comparison.  */
+
+/// C 28383-28427: `static void x_sync_with_move (struct frame *f, int left, int top, bool
+/// fuzzy)` - `static` (C 1184's forward declaration; its callers are C 27661 and C 28368), so a
+/// plain `unsafe fn`.  C 28393's `while (count++ < 50)` keeps its post-increment as the body's
+/// first statement - the increment is C's, evaluated with the condition (PORTING.md 2.2's
+/// rewriting class, recorded in the ledger).  `emptyset` is zero-initialised (Deviation 12),
+/// because `sigemptyset` writes it through a pointer; `fallback` takes no `mut` - its only write
+/// is C 28419 and C 28424 reads it through a `const` raw borrow, so `unused_mut` would fire.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_sync_with_move (f: *mut frame, left: c_int, top: c_int, fuzzy: bool)
+{
+  let mut emptyset: sigset_t = std::mem::zeroed ();                     // C 28386
+  let mut count: c_int;                                                 // C 28387
+  let mut current_left: c_int;                                          // C 28387
+  let mut current_top: c_int;                                           // C 28387
+  let fallback: timespec;                                               // C 28388
+
+  sigemptyset (&raw mut emptyset);                                      // C 28390
+  count = 0;                                                            // C 28391
+
+  while count < 50                                                      // C 28393
+    {
+      count += 1;                                                       // C 28393 (C's post-increment)
+      current_left = 0;                                                 // C 28395
+      current_top = 0;                                                  // C 28396
+
+	/* There is no need to call XSync (even when no window manager
+	   is present) because x_real_positions already does that
+	   implicitly.  */
+      x_real_positions (f, &raw mut current_left, &raw mut current_top);  // C 28401
+
+      if fuzzy                                                          // C 28403
+	  {
+	    /* The left fuzz-factor is 10 pixels.  The top fuzz-factor is 40
+	       pixels.  */
+
+	  if eabs! (current_left - left) <= 10                          // C 28408-28409
+	    && eabs! (current_top - top) <= 40
+	      { return; }
+	  }
+      else if current_left == left && current_top == top                // C 28412
+	  { return; }
+    }
+
+  /* As a last resort, just wait 0.5 seconds and hope that XGetGeometry
+     will then return up-to-date position info. */
+
+  fallback = dtotimespec (0.5);                                         // C 28419
+
+  /* This will hang if input is blocked, so use pselect to wait
+     instead.  */
+  if input_blocked_p ()                                                 // C 28423
+    {
+      pselect (0, std::ptr::null_mut (), std::ptr::null_mut (),         // C 28424
+	  std::ptr::null_mut (), &raw const fallback,
+	  &raw const emptyset);
+    }
+  else
+    {
+      wait_reading_process_output (0, 500000000, 0, false, Qnil (),     // C 28426
+	  std::ptr::null_mut (), 0);
+    }
+}
+
+/* C: lisp.h 5181: `extern int wait_reading_process_output (intmax_t, int, int, bool, Lisp_Object,
+   struct Lisp_Process *, int);` - C 28426's call.  The definition is another crate's
+   (`src/keyboard.rs` 9176's neighbourhood), so it stands at this use site (P-72 rule 4); the
+   `struct Lisp_Process *` parameter takes the P-55 stand-in (`src/pgtkselect.rs` 301-304, the
+   same prototype, whose only call passes NULL).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn wait_reading_process_output (time_limit: intmax_t, nsecs: c_int, read_kbd: c_int,
+				      do_display: bool, wait_for_cell: Lisp_Object,
+				      wait_proc: *mut c_void, just_wait_proc: c_int) -> c_int;
+}
+
+/* Wait for an event on frame F matching EVENTTYPE.  */
+/// C 28430-28475: `void x_wait_for_event (struct frame *f, int eventtype)` - non-`static`
+/// (xterm.h 1899 carries `extern void x_wait_for_event (struct frame *, int);`, and gtkutil.c
+/// 1274/1384 call it), so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md
+/// 0.2/1.4).  This is the definition C 28321's `x_check_fullscreen` waits on (slice 26's owed
+/// row), and `ConnectionNumber` is the one name here that stays unresolved: Xlib's macro reads
+/// `Display`'s `fd` member and `include/xlib.rs` 931's `_XDisplay` is opaque (the owed class
+/// C 13157's site already carries).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_wait_for_event (f: *mut frame, eventtype: c_int)
+{
+  if !FLOATP (Vx_wait_for_event_timeout)                                // C 28433
+    { return; }
+
+  let level: c_int = interrupt_input_blocked;                           // C 28436
+  let mut fds: fd_set = std::mem::zeroed ();                            // C 28437
+  let mut tmo: timespec;                                                // C 28438
+  let mut tmo_at: timespec;                                             // C 28438
+  let mut time_now: timespec;                                           // C 28438
+  let fd: c_int = ConnectionNumber (FRAME_X_DISPLAY! (f));              // C 28439
+
+  (*f).wait_event_type = eventtype;                                     // C 28441
+
+  /* Default timeout is 0.1 second.  Hopefully not noticeable.  */
+  let timeout: c_double = XFLOAT_DATA (Vx_wait_for_event_timeout);      // C 28444
+  let timeout_seconds: time_t = timeout as time_t;                      // C 28445
+  tmo = make_timespec                                                   // C 28446-28448
+	  (timeout_seconds, ((timeout - timeout_seconds as c_double)
+				* 1000.0 * 1000.0 * 1000.0) as c_long);
+  tmo_at = timespec_add (current_timespec (), tmo);                     // C 28449
+
+  while (*f).wait_event_type != 0                                       // C 28451
+    {
+      pending_signals = true;                                           // C 28453
+      totally_unblock_input ();                                         // C 28454
+	/* XTread_socket is called after unblock.  */
+      block_input ();                                                   // C 28456
+      interrupt_input_blocked = level;                                  // C 28457
+
+      if (*f).wait_event_type == 0                                      // C 28459
+	  { break; }
+
+      FD_ZERO (&raw mut fds);                                           // C 28462
+      FD_SET (fd, &raw mut fds);                                        // C 28463
+
+      time_now = current_timespec ();                                   // C 28465
+      if timespec_cmp (tmo_at, time_now) < 0                            // C 28466
+	  { break; }
+
+      tmo = timespec_sub (tmo_at, time_now);                            // C 28469
+      if pselect (fd + 1, &raw mut fds, std::ptr::null_mut (),          // C 28470
+	  std::ptr::null_mut (), &raw const tmo,
+	  std::ptr::null ()) == 0
+	  { break; } /* Timeout */
+    }
+
+  (*f).wait_event_type = 0;                                             // C 28474
+}

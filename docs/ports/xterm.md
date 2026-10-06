@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.  Slice 26 (C 28087-28329, Decision 39) goes **148 -> 144**: `do_ewmh_fullscreen`, `XTfullscreen_hook`, `x_handle_net_wm_state` and `x_check_fullscreen` retire as missing items, and the three `switch`-family token rows are `docs/ports/macro-body-notes.tsv`'s.  Slice 27 (C 28336-28475, Decision 40) goes **144 -> 141**: `x_check_expected_move`, `x_sync_with_move` and `x_wait_for_event` retire as missing items, and no token row arrives.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -292,9 +292,9 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] XTfullscreen_hook  (line 28222, static)
 - [x] x_handle_net_wm_state  (line 28234, static)
 - [x] x_check_fullscreen  (line 28270, static)
-- [ ] x_check_expected_move  (line 28340, static)
-- [ ] x_sync_with_move  (line 28384, static)
-- [ ] x_wait_for_event  (line 28431)
+- [x] x_check_expected_move  (line 28340, static)
+- [x] x_sync_with_move  (line 28384, static)
+- [x] x_wait_for_event  (line 28431)
 - [ ] x_set_window_size_1  (line 28484, static)
 - [ ] x_suspend_background_fills  (line 28565, static)
 - [ ] x_restore_background_fills  (line 28574, static)
@@ -2211,6 +2211,29 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   (PORTING.md 1.3); both sit inside the gate, so neither costs an `E0425` row in the probe arms and
   both resolve when their slices land.
 
+### 40. Slice 27 (C 28336-28475): the offset check, the move sync and the event wait
+
+* **Two owed rows retire and one arrives.**  `x_check_expected_move` and `x_sync_with_move` are the
+  two `static`s C 27679/27661's `x_set_offset` (slice 22) has been calling since that slice landed,
+  so defining them retires the file's two `E0425` rows for those names in every arm.  This slice's
+  own site for `ConnectionNumber` (C 28439) is one more instance of the owed class C 13157 already
+  carries: Xlib's macro reads `Display`'s `fd` member and `include/xlib.rs` 931's `_XDisplay` is
+  opaque, so the name has no Rust spelling until that record's members land.
+* **`while (count++ < 50)` keeps the post-increment as the body's first statement.**  The one
+  occurrence in the whole reference tree; the increment belongs to the condition (it is evaluated
+  before the body runs), so the port writes `count += 1;` at the top of the body and leaves C's own
+  line in the annotation (PORTING.md 2.2's rewriting class, the P-95 note's shape).
+* **`fallback` takes no `mut`.**  C 28388 declares it, C 28419 is its only write and C 28424 reads
+  it through a `const` raw borrow (`pselect` takes `const struct timespec *`), so Rust's
+  `unused_mut` would fire; `emptyset` keeps its `mut` (`sigemptyset` writes it through a pointer)
+  and is zero-initialised per Deviation 12, as is the `fd_set`.
+* **`x_wait_for_event` is the definition C 28321 waits on.**  It is `extern` in xterm.h 1899 and
+  gtkutil.c 1274/1384 call it, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md
+  0.2/1.4), and slice 26's in-gate call to it now resolves.
+* **Two use-site declarations.**  `x_real_positions` (xterm.h 1906; `src/xfns.rs` 840 defines it)
+  and `wait_reading_process_output` (lisp.h 5181; the same prototype `src/pgtkselect.rs` 301-304
+  carries, with the P-55 stand-in for the `struct Lisp_Process *` parameter).
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3948,3 +3971,25 @@ line-count row moves to 16,559 against C's 33,125 (50.0%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no fullscreen request was
 made, no `_NET_WM_STATE` was read, no frame was resized and no window manager was asked anything.
+
+
+### Slice 27's readings (C 28336-28475), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_check_expected_move` (C 28339-28374), `x_sync_with_move` (C 28383-28427) and
+`x_wait_for_event` (C 28430-28475), with the two use-site declarations they need.  Rust
+16,559 -> 16,764 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**555 / 68 -> 554 / 68**: **-1 `E0425`** - the two rows C 27661/27679's `x_set_offset` carried for
+`x_sync_with_move` and `x_check_expected_move` retire, and this slice's own `ConnectionNumber` site
+(C 28439) adds one back - with no warning delta; arm B (`+have_gtk3+use_gtk`)
+**558 / 70 -> 558 / 70**: the same `-2 +1`, plus one more instance of the `GDK_WINDOW_XID` class
+under `FRAME_OUTER_WINDOW` (C 28365, the class slice 26 named); arm C (`+have_xinput2`)
+**583 / 70 -> 582 / 70**.  **Arm reachability** (P-86 ⑦): `let _: c_int = true;` as
+`x_check_expected_move`'s first statement moves `E0308` 14 -> 15, anchored exactly at that line.
+
+**What `--check` reads.**  **144 -> 141**: the three functions retire as missing items and no token
+row arrives.  The line-count row moves to 16,764 against C's 33,125 (50.6%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no window was moved, no
+position was read back, no timeout was waited on and no frame was resized.
