@@ -995,6 +995,18 @@ unsafe extern "C" {
 /// 1414 writes `GDK_NOTHING`.  C's enum ABI is `c_int` (PORTING.md 1.3); **UNVERIFIED**.
 pub type GdkEventType = c_int;
 
+/// C: gdk/gdkdnd.h: `typedef enum { GDK_ACTION_DEFAULT = 1 << 0, GDK_ACTION_COPY = 1 << 1,
+/// GDK_ACTION_MOVE = 1 << 2, GDK_ACTION_LINK = 1 << 3, GDK_ACTION_PRIVATE = 1 << 4, … }
+/// GdkDragAction;` - the type of the C 6369/6390 pair.  **No GDK tree exists on this machine**, so
+/// the five values are **placeholders** and join Owed 21's round.  **UNVERIFIED**.
+pub type GdkDragAction = c_int;
+
+pub const GDK_ACTION_DEFAULT: GdkDragAction = 1 << 0;
+pub const GDK_ACTION_COPY: GdkDragAction = 1 << 1;
+pub const GDK_ACTION_MOVE: GdkDragAction = 1 << 2;
+pub const GDK_ACTION_LINK: GdkDragAction = 1 << 3;
+pub const GDK_ACTION_PRIVATE: GdkDragAction = 1 << 4;
+
 pub const GDK_NOTHING: GdkEventType = 0;              // placeholder, not GDK's value
 /// C: gdk/gdktypes.h: `typedef guint GdkWindowState;` and the twelve flags C 5632-5687 tests.  No GDK
 /// header exists on this machine, so each value is a **placeholder** with a distinct bit (the
@@ -1887,6 +1899,15 @@ pub fn gdk_event_get_scroll_direction (event: *mut GdkEvent,
 /// gdouble *delta_y);`
 pub fn gdk_event_get_scroll_deltas (event: *mut GdkEvent, delta_x: *mut c_double,
 				    delta_y: *mut c_double) -> gboolean;
+/// C 6423: `gdk_drag_status (current_drop_context, symbol_to_drag_action (action), time);`
+/// C: gdk/gdkdnd.h: `void gdk_drag_status (GdkDragContext *context, GdkDragAction action,
+/// guint32 time);`
+pub fn gdk_drag_status (context: *mut GdkDragContext, action: GdkDragAction, time: guint32);
+/// C 6439: `gtk_drag_finish (current_drop_context, !NILP (success), !NILP (del), time);`
+/// C: gtk/gtkdnd.h: `void gtk_drag_finish (GdkDragContext *context, gboolean success,
+/// gboolean del, guint32 time);`
+pub fn gtk_drag_finish (context: *mut GdkDragContext, success: gboolean, del: gboolean,
+			time: guint32);
 /// C 393: `return gdk_keyval_name (keysym);`
 /// C: gdk/gdkkeys.h: `gchar *gdk_keyval_name (guint keyval);`
 pub fn gdk_keyval_name (keyval: guint) -> *mut gchar;

@@ -9179,3 +9179,121 @@ unsafe fn scroll_event (widget: *mut GtkWidget, event: *mut GdkEvent,
     }
   return true as gboolean;                                              // C 6361
 }
+
+/* C: glib/gmem.h 135-145's `g_clear_pointer` macro (the `__GNUC__` arm this machine takes) - the
+   C 6443 call, which is this file's only one; `src/xwidget.rs` 2332-2341 carries the same macro for
+   its own two calls, and a `macro_rules!` is textually scoped, so the unit keeps its own copy (the
+   `mouse_face_hidden!`/`input_event_bits!` shape).  */
+macro_rules! g_clear_pointer {
+  ($pp:expr, $destroy:expr) => {
+    {
+      let pp = ($pp);
+      let ptr: *mut c_void = *pp as *mut c_void;
+      *pp = std::ptr::null_mut ();
+      if ! ptr.is_null () { $destroy (ptr as gpointer); }
+    }
+  };
+}
+
+/// C 6369-6388: `static GdkDragAction symbol_to_drag_action (Lisp_Object act)` - `static` and never
+/// used as a value (C 6424 is its only call), so a plain `unsafe fn`.  `Qcopy`/`Qmove`/`Qlink`/
+/// `Qprivate` are `include/globals.rs`'s symbol functions (the unit reads them bare, 1789's shape),
+/// and C 6387's `signal_error` is `include/lisp.rs` 4161's row (which the include graph brings into
+/// this unit, so the port declares no second one - the fifty-first slice's `list3` lesson).
+#[cfg (feature = "have_pgtk")]
+unsafe fn symbol_to_drag_action (act: Lisp_Object) -> GdkDragAction
+{
+  if EQ (act, Qcopy ())                                                 // C 6372
+    { return GDK_ACTION_COPY; }                                         // C 6373
+
+  if EQ (act, Qmove ())                                                 // C 6375
+    { return GDK_ACTION_MOVE; }                                         // C 6376
+
+  if EQ (act, Qlink ())                                                 // C 6378
+    { return GDK_ACTION_LINK; }                                         // C 6379
+
+  if EQ (act, Qprivate ())                                              // C 6381
+    { return GDK_ACTION_PRIVATE; }                                      // C 6382
+
+  if NILP (act)                                                         // C 6384
+    { return GDK_ACTION_DEFAULT; }                                      // C 6385
+
+  signal_error (c"Invalid drag action".as_ptr (), act);                 // C 6387
+}
+
+/// C 6390-6411: `static Lisp_Object drag_action_to_symbol (GdkDragAction action)` - `static` with no
+/// address taken, so a plain `unsafe fn`.  C's `switch` is the port's `match`; its last two labels
+/// (`case GDK_ACTION_DEFAULT: default:`) are two arms, as C writes them.
+#[cfg (feature = "have_pgtk")]
+unsafe fn drag_action_to_symbol (action: GdkDragAction) -> Lisp_Object
+{
+  match action
+    {
+      GDK_ACTION_COPY =>
+	{ return Qcopy (); }                                            // C 6396-6397
+
+      GDK_ACTION_MOVE =>
+	{ return Qmove (); }                                            // C 6399-6400
+
+      GDK_ACTION_LINK =>
+	{ return Qlink (); }                                            // C 6402-6403
+
+      GDK_ACTION_PRIVATE =>
+	{ return Qprivate (); }                                         // C 6405-6406
+
+      GDK_ACTION_DEFAULT =>
+	{ return Qnil (); }                                             // C 6408-6409
+      _ =>
+	{ return Qnil (); }                                             // C 6408-6409
+    }
+}
+
+/// C 6413-6426: `void pgtk_update_drop_status (Lisp_Object action, Lisp_Object event_time)` - a
+/// **non-`static`** C definition, so the port carries `#[unsafe(no_mangle)]` and `extern "C"`
+/// (PORTING.md 0.2).  C's `CONS_TO_INTEGER (event_time, guint32, time)` is the mirror's two-argument
+/// `CONS_TO_INTEGER!` (`include/lisp.rs` 3692 - the type is the local's), and C's
+/// `!current_drop_context` is the port's `is_null ()` test.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_update_drop_status (action: Lisp_Object, event_time: Lisp_Object)
+{
+  /* C 6418's `CONS_TO_INTEGER (event_time, guint32, time);` - the port's trait picks the helper
+     from the variable's type and has the two 64-bit impls, so C's `guint32` conversion is the
+     explicit cast (the `src/inotify.rs` 448-455 shape).  */
+  let mut time_wide: i64;
+  CONS_TO_INTEGER! (event_time, time_wide);
+  let time: guint32 = time_wide as guint32;
+
+  if current_drop_context.is_null () || time < current_drop_time        // C 6420
+    { return; }                                                         // C 6421
+
+  gdk_drag_status (current_drop_context,                               // C 6423
+		   symbol_to_drag_action (action),                      // C 6424
+		   time);                                               // C 6425
+}
+
+/// C 6428-6445: `void pgtk_finish_drop (Lisp_Object success, Lisp_Object event_time, Lisp_Object
+/// del)` - a **non-`static`** C definition, so the port carries `#[unsafe(no_mangle)]` and
+/// `extern "C"` (PORTING.md 0.2); the `guint32` local is zero-initialised (C's uninitialised-local
+/// rule, Deviation 12) because `CONS_TO_INTEGER!` writes it through the macro, and the `g_clear_pointer`
+/// macro above is the C 6443 call.
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_finish_drop (success: Lisp_Object, event_time: Lisp_Object,
+					   del: Lisp_Object)
+{
+  /* C 6434's `CONS_TO_INTEGER (event_time, guint32, time);` - the same cast as above.  */
+  let mut time_wide: i64;
+  CONS_TO_INTEGER! (event_time, time_wide);
+  let time: guint32 = time_wide as guint32;
+
+  if current_drop_context.is_null () || time < current_drop_time        // C 6436
+    { return; }                                                         // C 6437
+
+  gtk_drag_finish (current_drop_context, !NILP (success) as gboolean,   // C 6439
+		   !NILP (del) as gboolean, time);                      // C 6440
+
+  if current_drop_context_drop                                          // C 6442
+    { g_clear_pointer! (&raw mut current_drop_context,                  // C 6443
+			g_object_unref); }                              // C 6444
+}
