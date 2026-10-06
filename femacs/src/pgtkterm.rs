@@ -3,7 +3,9 @@
 // One-to-one port (PORTING.md): the same statements in the same order, the same names (function,
 // macro, struct, struct field, file-scope object, local), the same control flow and the same error
 // model.  The non-`static` C definitions carry `#[unsafe(no_mangle)]` (PORTING.md 0.2); the C
-// `static` helpers stay plain `unsafe fn`.
+// `static` helpers stay plain `unsafe fn` - except the fifteen whose **address** C's
+// `pgtk_redisplay_interface` takes (C 3756-3785), which PORTING.md 1.4's "one ABI per
+// function-pointer position" makes `unsafe extern "C" fn` (Deviation 47).
 //
 // **This file is one of P-86's class: the frozen configuration compiles none of it.**  `pgtkterm.o`
 // sits in `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
