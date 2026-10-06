@@ -32,7 +32,7 @@ Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` re
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
 arrives.  Decision 36's round (the `XGetWindowProperty`
 declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
-false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.  Slice 24 (C 27832-27908, Decision 37) goes **154 -> 150**: `set_wm_state`, `x_set_sticky`, `x_set_shaded` and `x_set_skip_taskbar` retire as missing items.  Slice 25 (C 27910-28085, Decision 38) goes **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as missing items, and no token row arrives.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -286,8 +286,8 @@ false` token rows the round's `0` spellings bring are closed by four `docs/ports
 - [x] x_set_sticky  (line 27858)
 - [x] x_set_shaded  (line 27870)
 - [x] x_set_skip_taskbar  (line 27892)
-- [ ] x_set_z_group  (line 27927)
-- [ ] x_get_current_wm_state  (line 27978, static)
+- [x] x_set_z_group  (line 27927)
+- [x] x_get_current_wm_state  (line 27978, static)
 - [ ] do_ewmh_fullscreen  (line 28090, static)
 - [ ] XTfullscreen_hook  (line 28222, static)
 - [ ] x_handle_net_wm_state  (line 28234, static)
@@ -2152,6 +2152,33 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   (the `src/gtkutil.rs` 2712 definition is another crate's) and the `#else` runs `set_wm_state`.
 
 
+### 38. Slice 25 (C 27910-28085): the z-group setter and the `_NET_WM_STATE` reader
+
+* **`FRAME_Z_GROUP`'s writer is the `src/haikufns.rs` copy of the same name.**  frame.h 1262's
+  macro writes the two-bit `z_group` field; `include/frame.rs` has the reader (1643), the mask
+  (759, ungated) and the shift (643, inside the mirror's `HAVE_WINDOW_SYSTEM` block) and no
+  writer, so xterm.rs carries the four-line `macro_rules!` of `src/haikufns.rs` 403-414.  Because
+  the shift is gated, the four writes carry that gate too - the same shape C 27906's `skip_taskbar`
+  write has one function above (Decision 37) - and so do the four statements that name a
+  `FULLSCREEN_*` value, frame.h 47-59's other `HAVE_WINDOW_SYSTEM` enum (the `src/frame.rs`
+  5499-5512 shape).  Left ungated those sixteen names are sixteen `E0425` rows.
+* **C 28004's lint arm is live in the frozen reading.**  `# if defined GCC_LINT || defined lint`
+  is true there (`GCC_LINT` is 1 in `docs/baseline/config/darwin-arm64.macros.tsv`, `lint` undef),
+  so its `reply_data = &raw mut reply_data_dummy;` seed is carried as text; the zero initialiser is
+  Deviation 12's and the dead store it leaves is Decision 36's warning class.  `--check`'s token
+  table asks for exactly that name and for C's local `typedef`'s `reply_data_object`, which Rust
+  cannot spell: the two `reply_data` declarations carry each arm's own pointee type and a comment
+  inside the body names the `typedef`.
+* **Both `USE_XCB` arms are carried** (P-86 ①): `xcb_get_property`/`_reply`/`_value`/
+  `_value_length` come from `include/xlib.rs`'s declarations, and the reply stays the opaque
+  `xcb_get_property_reply_t *` the mirror keeps.
+* **`actual_size` is zeroed at its declaration** (Deviation 12): the `#else` arm hands it to
+  `XGetWindowProperty` as an output, and Rust's definite-initialisation analysis rejects a raw
+  borrow of a local that has no initialiser (`E0381`, measured this slice).
+* **The loop bound carries C's promotion.**  C's `int i < unsigned long actual_size` promotes the
+  index; the port writes `actual_size as c_int` (the `src/bidi.rs`/`src/charset.rs` shape), which
+  is what the first draft's `E0308` asked for.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3838,3 +3865,30 @@ arrives.  The line-count row moves to 15,913 against C's 33,125 (52.0%).
 **Not claimed.**  The frozen configuration compiles none of this file: no client message was sent,
 no taskbar flag was set and no window manager was told anything.  The remaining
 `E0425`/`E0609` rows are unresolved names and the mirror's placeholder members, not behaviour.
+
+
+### Slice 25's readings (C 27910-28085), as landed and measured (2026-10-06)
+
+**What it lands.**  `x_set_z_group` (C 27925-27968, with `FRAME_Z_GROUP`'s writer and its four
+gated field writes) and `x_get_current_wm_state` (C 27977-28085, both `USE_XCB` arms and the live
+`GCC_LINT` seed).  Rust 15,919 -> 16,164 lines; the header's earlier rows read 15,913 for the same
+revision, so this slice measured both sides itself (`git show HEAD:femacs/src/xterm.rs` through
+`--check` reports 15,919).
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm, materialised and compiled the
+same way.  Arm A (`have_x_windows`) **555 / 65 -> 555 / 66**: no `E0425`, `E0308`, `E0381` or
+`E0609` delta at all, and **+1 warning** - `let mut rc: c_int;`, the same class as C 27696's `rc`
+four functions above (this arm assigns it once, so `unused_mut` fires); arm B
+(`+have_gtk3+use_gtk`) **557 / 67 -> 557 / 68**; arm C (`+have_xinput2`) **583 / 67 -> 583 / 68**.
+**Arm reachability** (P-86 ⑦): `let _: c_int = true;` injected as the body's first statement makes
+`E0308` 14 -> 15, anchored exactly at the injected line; removing it returns arm A to 555 / 66.
+`xtask build-tu src/xterm.c` builds, with the same warning set as before the slice.
+
+**What `--check` reads.**  **150 -> 148**: `x_set_z_group` and `x_get_current_wm_state` retire as
+missing items and no token row arrives - the body mentions every token C's text does, including
+C's local `reply_data_object` and the lint arm's `reply_data_dummy`.  The line-count row moves to
+16,164 against C's 33,125 (48.8%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no `_NET_WM_STATE` was
+read, no z-group was set and no frame was iconified.  The remaining `E0425`/`E0609` rows are
+unresolved names and the mirror's placeholder members, not behaviour.

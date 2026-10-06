@@ -15917,3 +15917,248 @@ pub unsafe extern "C" fn x_set_skip_taskbar (f: *mut frame, new_value: Lisp_Obje
 unsafe extern "C" {
   pub fn xg_set_skip_taskbar (f: *mut frame, skip_taskbar: Lisp_Object);
 }
+
+/**
+ * x_set_z_group:
+ *
+ * Set frame F's `z-group' parameter.  If `above', F's window-system
+ * window is displayed above all windows that do not have the `above'
+ * property set.  If nil, F's window is shown below all windows that
+ * have the `above' property set and above all windows that have the
+ * `below' property set.  If `below', F's window is displayed below all
+ * windows that do not have the `below' property set.
+ *
+ * Some window managers may not honor this parameter.
+ *
+ * Internally, this function also handles a value 'above-suspended'.
+ * That value is used to temporarily remove F from the 'above' group
+ * to make sure that it does not obscure a menu currently popped up.
+ */
+/* C: frame.h 1262-1267: `#define FRAME_Z_GROUP(f) ((f)->z_group)` - written at C 27942/27950/
+   27958/27964.  `z_group` is `ENUM_BF (z_group) z_group : 2`, so each write is C's own
+   read-modify-write of the two-bit field; `include/frame.rs` has the reader (1643) and the
+   two numbers (`FRAME_Z_GROUP_MASK` 759, `FRAME_Z_GROUP_FLAG_SHIFT` 643) and no setter, so
+   the writer takes the copy of the same name at `src/haikufns.rs` 403-414.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_Z_GROUP {
+  ($f:expr) => { FRAME_Z_GROUP ($f) };
+  ($f:expr, $v:expr) => {
+    (*$f).bits2 = ((*$f).bits2 & !(FRAME_Z_GROUP_MASK << FRAME_Z_GROUP_FLAG_SHIFT))
+                  | (((($v) as u32) & FRAME_Z_GROUP_MASK) << FRAME_Z_GROUP_FLAG_SHIFT) };
+}
+
+/// C 27925-27968: `void x_set_z_group (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)` - non-`static`, declared in xterm.h 1896, so `#[unsafe(no_mangle)] pub
+/// unsafe extern "C" fn` (PORTING.md 0.2/1.4); `old_value` is unused in C too, the shape
+/// C 27858's `x_set_sticky` has just above.  The four `z_group` writes are the macro above;
+/// the `Qabove`/`Qbelow`/`Qabove_suspended` symbols and the `z_group_*` constants are
+/// `include/globals.rs` 991/997/1249's and `include/frame.rs` 1589-1592's.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_set_z_group (f: *mut frame, new_value: Lisp_Object,
+					old_value: Lisp_Object)
+{
+  use crate::x11_constants::None;
+
+  /* We don't care about old_value.  The window manager might have
+     reset the value without telling us.  */
+  let frame: Lisp_Object;                                               // C 27931
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);           // C 27932
+
+  XSETFRAME! (frame, f);                                                // C 27934
+
+  if NILP (new_value)                                                   // C 27936
+    {
+      set_wm_state (frame, false,                                       // C 27938-27939
+		    (*dpyinfo).Xatom_net_wm_state_above, None as Atom);
+      set_wm_state (frame, false,                                       // C 27940-27941
+		    (*dpyinfo).Xatom_net_wm_state_below, None as Atom);
+      /* C's `z_group` member sits in frame.h's `HAVE_WINDOW_SYSTEM` block (C 452-479) and the
+	 mirror gates the field's own numbers with it, so each of the four writes carries that gate -
+	 C 27906's `skip_taskbar` write above is the same shape.  */
+      #[cfg (feature = "have_window_system")]
+      { FRAME_Z_GROUP! (f, z_group_none as u32); }                      // C 27942
+    }
+  else if EQ (new_value, Qabove ())                                     // C 27944
+    {
+      set_wm_state (frame, true,                                        // C 27946-27947
+		    (*dpyinfo).Xatom_net_wm_state_above, None as Atom);
+      set_wm_state (frame, false,                                       // C 27948-27949
+		    (*dpyinfo).Xatom_net_wm_state_below, None as Atom);
+      #[cfg (feature = "have_window_system")]
+      { FRAME_Z_GROUP! (f, z_group_above as u32); }                     // C 27950
+    }
+  else if EQ (new_value, Qbelow ())                                     // C 27952
+    {
+      set_wm_state (frame, false,                                       // C 27954-27955
+		    (*dpyinfo).Xatom_net_wm_state_above, None as Atom);
+      set_wm_state (frame, true,                                        // C 27956-27957
+		    (*dpyinfo).Xatom_net_wm_state_below, None as Atom);
+      #[cfg (feature = "have_window_system")]
+      { FRAME_Z_GROUP! (f, z_group_below as u32); }                     // C 27958
+    }
+  else if EQ (new_value, Qabove_suspended ())                           // C 27960
+    {
+      set_wm_state (frame, false,                                       // C 27962-27963
+		    (*dpyinfo).Xatom_net_wm_state_above, None as Atom);
+      #[cfg (feature = "have_window_system")]
+      { FRAME_Z_GROUP! (f, z_group_above_suspended as u32); }           // C 27964
+    }
+  else
+    { error (c"Invalid z-group specification".as_ptr ()); }             // C 27967
+}
+
+/* Return the current _NET_WM_STATE.
+   SIZE_STATE is set to one of the FULLSCREEN_* values.
+   Set *STICKY to the sticky state.
+
+   Return true iff we are not hidden.  */
+/// C 27977-28085: `static bool x_get_current_wm_state (struct frame *f, Window window, int
+/// *size_state, bool *sticky, bool *shaded)` - `static` (C 1195's forward declaration is this
+/// file's own, PORTING.md 1.3), so a plain `unsafe fn`.  Both arms of C 27991's `#ifdef
+/// USE_XCB` are carried as text (P-86, the P-51 shape this file's header describes): the
+/// `xcb_*` names are `include/xlib.rs`'s and the reply is its opaque record.  C 28004's
+/// `# if defined GCC_LINT || defined lint` arm is live in the frozen reading - `GCC_LINT` is 1
+/// in `docs/baseline/config/darwin-arm64.macros.tsv` and `lint` is undef - so its dummy seed
+/// stands here; C's two local `typedef ... reply_data_object` (C 27994/28001) have no Rust
+/// spelling, and the `reply_data` pairs below carry each arm's own pointee type instead.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_get_current_wm_state (f: *mut frame, window: Window, size_state: *mut c_int,
+				  sticky: *mut bool, shaded: *mut bool) -> bool
+{
+  use crate::x11_constants::{Success, XA_ATOM};
+
+  let mut actual_size: c_ulong = 0;                                     // C 27984
+  let mut i: c_int;                                                     // C 27985
+  let mut is_hidden: bool = false;                                      // C 27986
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);           // C 27987
+  let max_len: c_long = 65536;                                          // C 27988
+  let target_type: Atom = XA_ATOM;                                      // C 27989
+  /* If XCB is available, we can avoid three XSync calls.  */           // C 27990
+  #[cfg (feature = "use_xcb")]
+  let mut prop_cookie: xcb_get_property_cookie_t;                       // C 27992
+  #[cfg (feature = "use_xcb")]
+  let mut prop: *mut xcb_get_property_reply_t;                          // C 27993
+  #[cfg (not (feature = "use_xcb"))]
+  let dpy: *mut Display = FRAME_X_DISPLAY! (f);                         // C 27996
+  #[cfg (not (feature = "use_xcb"))]
+  let mut bytes_remaining: c_ulong = 0;                                 // C 27997
+  #[cfg (not (feature = "use_xcb"))]
+  let mut rc: c_int;                                                    // C 27998
+  #[cfg (not (feature = "use_xcb"))]
+  let mut actual_format: c_int = 0;                                     // C 27998
+  #[cfg (not (feature = "use_xcb"))]
+  let mut actual_type: Atom = 0;                                        // C 27999
+  #[cfg (not (feature = "use_xcb"))]
+  let mut tmp_data: *mut c_uchar = std::ptr::null_mut ();               // C 28000
+
+  #[cfg (feature = "use_xcb")]
+  let mut reply_data: *mut xcb_atom_t;                                  // C 28003
+  #[cfg (not (feature = "use_xcb"))]
+  let mut reply_data: *mut Atom;                                        // C 28003
+  /* C 28004-28007's lint arm seeds the pointer with a dummy object's address so a static
+     analyser sees an initialised `reply_data`; the zero initialiser is Deviation 12's, and
+     the dead store it leaves is Decision 36's warning price.  */
+  #[cfg (feature = "use_xcb")]
+  let mut reply_data_dummy: xcb_atom_t = 0;                             // C 28005
+  #[cfg (not (feature = "use_xcb"))]
+  let mut reply_data_dummy: Atom = 0;                                   // C 28005
+  reply_data = &raw mut reply_data_dummy;                               // C 28006
+
+  *sticky = false;                                                      // C 28009
+  /* The five `FULLSCREEN_*` values are frame.h 47-59's `enum fullscreen_type`, which the
+	 mirror carries inside its `HAVE_WINDOW_SYSTEM` block, so every statement that names one
+	 carries that gate (the `src/frame.rs` 5499-5512 shape).  */
+  #[cfg (feature = "have_window_system")]
+  { *size_state = FULLSCREEN_NONE; }                                    // C 28010
+  *shaded = false;                                                      // C 28011
+
+  block_input ();                                                       // C 28013
+
+  #[cfg (feature = "use_xcb")]
+  {
+    prop_cookie = xcb_get_property ((*dpyinfo).xcb_connection, 0, window,  // C 28016-28018
+				    (*dpyinfo).Xatom_net_wm_state, target_type, 0, max_len as u32);
+    prop = xcb_get_property_reply ((*dpyinfo).xcb_connection, prop_cookie,  // C 28019
+				   std::ptr::null_mut ());
+    if !prop.is_null () && (*prop).r#type == target_type                // C 28020
+      {
+	let actual_bytes: c_int = xcb_get_property_value_length (prop);  // C 28022
+	eassume! (0 <= actual_bytes);                                   // C 28023
+	actual_size = actual_bytes as c_ulong                           // C 28024
+	  / std::mem::size_of::<xcb_atom_t> () as c_ulong;
+	reply_data = xcb_get_property_value (prop);                     // C 28025
+      }
+    else
+      {
+	actual_size = 0;                                                // C 28029
+	is_hidden = FRAME_ICONIFIED_P (f);                              // C 28030
+      }
+  }
+
+  #[cfg (not (feature = "use_xcb"))]
+  {
+    x_catch_errors (dpy);                                               // C 28033
+    rc = XGetWindowProperty (dpy, window, (*dpyinfo).Xatom_net_wm_state,  // C 28034-28037
+			    0, max_len, 0, target_type,
+			    &raw mut actual_type, &raw mut actual_format, &raw mut actual_size,
+			    &raw mut bytes_remaining, &raw mut tmp_data);
+
+    if rc == Success && actual_type == target_type && !x_had_errors_p (dpy)  // C 28039
+      { reply_data = tmp_data as *mut Atom; }                           // C 28040
+    else
+      {
+	actual_size = 0;                                                // C 28043
+	is_hidden = FRAME_ICONIFIED_P (f);                              // C 28044
+      }
+
+    x_uncatch_errors ();                                                // C 28047
+  }
+
+  i = 0;                                                                // C 28050
+  while i < actual_size as c_int
+    {
+      let a: Atom = *reply_data.offset (i as isize);                    // C 28052
+      if a == (*dpyinfo).Xatom_net_wm_state_hidden                      // C 28053
+	{ is_hidden = true; }                                           // C 28054
+      else if a == (*dpyinfo).Xatom_net_wm_state_maximized_horz         // C 28055
+	{
+	  #[cfg (feature = "have_window_system")]
+	  {
+	    if *size_state == FULLSCREEN_HEIGHT                           // C 28057
+	      { *size_state = FULLSCREEN_MAXIMIZED; }                     // C 28058
+	    else
+	      { *size_state = FULLSCREEN_WIDTH; }                         // C 28060
+	  }
+	}
+      else if a == (*dpyinfo).Xatom_net_wm_state_maximized_vert         // C 28062
+	{
+	  #[cfg (feature = "have_window_system")]
+	  {
+	    if *size_state == FULLSCREEN_WIDTH                            // C 28064
+	      { *size_state = FULLSCREEN_MAXIMIZED; }                     // C 28065
+	    else
+	      { *size_state = FULLSCREEN_HEIGHT; }                        // C 28067
+	  }
+	}
+      else if a == (*dpyinfo).Xatom_net_wm_state_fullscreen             // C 28069
+	{
+	  #[cfg (feature = "have_window_system")]
+	  { *size_state = FULLSCREEN_BOTH; }                              // C 28070
+	}
+      else if a == (*dpyinfo).Xatom_net_wm_state_sticky                 // C 28071
+	{ *sticky = true; }                                             // C 28072
+      else if a == (*dpyinfo).Xatom_net_wm_state_shaded                 // C 28073
+	{ *shaded = true; }                                             // C 28074
+      i += 1;
+    }
+
+  #[cfg (feature = "use_xcb")]
+  { free (prop); }                                                      // C 28078
+
+  #[cfg (not (feature = "use_xcb"))]
+  { if !tmp_data.is_null () { XFree (tmp_data as *mut c_void); } }      // C 28080
+
+  unblock_input ();                                                     // C 28083
+  return !is_hidden;                                                    // C 28084
+}
