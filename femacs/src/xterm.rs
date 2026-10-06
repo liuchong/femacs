@@ -22813,3 +22813,102 @@ pub unsafe extern "C" fn x_query_pointer (dpy: *mut Display, w: Window, root_ret
 			      win_y_return, mask_return);
   }
 }
+
+/* Mouse clicks and mouse movement.  Rah.
+
+   Formerly, we used PointerMotionHintMask (in standard_event_mask)
+   so that we would have to call XQueryPointer after each MotionNotify
+   event to ask for another such event.  However, this made mouse tracking
+   slow, and there was a bug that made it eventually stop.
+
+   Simply asking for MotionNotify all the time seems to work better.
+
+   In order to avoid asking for motion events and then throwing most
+   of them away or busy-polling the server for mouse positions, we ask
+   the server for pointer motion hints.  This means that we get only
+   one event per group of mouse movements.  "Groups" are delimited by
+   other kinds of events (focus changes and button clicks, for
+   example), or by XQueryPointer calls; when one of these happens, we
+   get another MotionNotify event the next time the mouse moves.  This
+   is at least as efficient as getting motion events when mouse
+   tracking is on, and I suspect only negligibly worse when tracking
+   is off.  */
+
+/* Prepare a mouse-event in *RESULT for placement in the input queue.
+
+   If the event is a button press, then note that we have grabbed
+   the mouse.
+
+   The XButtonEvent structure passed as EVENT might not come from the
+   X server, and instead be artificially constructed from input
+   extension events.  In these special events, the only fields that
+   are initialized are `time', `button', `state', `type', `window' and
+   `x', `y', `x_root' and `y_root'.  This function should not access
+   any other fields in EVENT without also initializing the
+   corresponding fields in `bv' under the XI_ButtonPress and
+   XI_ButtonRelease labels inside `handle_one_xevent'.
+
+   XI2 indicates that this click comes from XInput2 rather than core
+   event.   */
+
+/* C 14667-14719: `static Lisp_Object x_construct_mouse_click (struct input_event *result, const
+   XButtonEvent *event, struct frame *f, bool xi2)`.  Five shapes are worth naming: the two
+   `?:` chains are `if` expressions (PORTING.md 2.2, one C line per term so C's order stays);
+   the bitfield write `result->kind = ...` is this unit's `input_event_bits!` accessor
+   (PORTING.md P-80, the C 893 macro above); `XSETINT`/`XSETFRAME` are the mirrors' macros with
+   their `EMACS_INT` argument; `result->modifiers` is C's `unsigned int`, so the two compound
+   assignments state their width and C's `~` on an `int` is written `!(...) as c_uint` (the same
+   value); and `Button1`/`ButtonRelease`/`XButtonEvent` are X11 names the mirror's
+   `x11_constants` does not carry, so they stay bare (Decision 15's ruling).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_construct_mouse_click (result: *mut input_event, event: *const XButtonEvent,
+				   f: *mut frame, xi2: bool) -> Lisp_Object
+{
+  let mut x: c_int = (*event).x;                                         // C 14672
+  let mut y: c_int = (*event).y;                                         // C 14673
+
+  input_event_bits! (kind, result, MOUSE_CLICK_EVENT);                   // C 14675
+  (*result).code = (*event).button - Button1;                            // C 14676
+  (*result).timestamp = (*event).time;                                   // C 14677
+  (*result).modifiers = (x_x_to_emacs_modifiers (FRAME_DISPLAY_INFO! (f),  // C 14678-14682
+					       (*event).state as c_int)
+		       | (if (*event).r#type == ButtonRelease
+			{ up_modifier } else { down_modifier })) as c_uint;
+
+  /* Convert pre-XInput2 wheel events represented as mouse-clicks.  */
+  if !xi2                                                                // C 14685
+    {
+      let base: Lisp_Object = Fcdr_safe (Fassq (make_fixnum (((*result).code + 1) as EMACS_INT),
+					      Fsymbol_value (Qmouse_wheel_buttons ())));  // C 14687-14689
+      let wheel: c_int = if NILP (base) { -1 }                           // C 14690-14696
+			  else if BASE_EQ (base, Qwheel_down ()) { 0 }
+			  else if BASE_EQ (base, Qwheel_up ()) { 1 }
+			  else if BASE_EQ (base, Qwheel_left ()) { 2 }
+			  else if BASE_EQ (base, Qwheel_right ()) { 3 }
+			  else { -1 };
+      if wheel >= 0                                                      // C 14697
+        {
+          input_event_bits! (kind, result,                               // C 14699-14700
+			     (if (*event).r#type != ButtonRelease { NO_EVENT }
+			      else if wheel & 2 != 0 { HORIZ_WHEEL_EVENT }
+			      else { WHEEL_EVENT }));
+          (*result).code = 0;         /* Not used.  */                  // C 14701
+          (*result).modifiers &= !((up_modifier | down_modifier) as c_uint);  // C 14702
+          (*result).modifiers |= (if wheel & 1 != 0 { up_modifier }      // C 14703
+			       else { down_modifier }) as c_uint;
+        }
+    }
+
+  /* If result->window is not the frame's edit widget (which can
+     happen with GTK+ scroll bars, for example), translate the
+     coordinates so they appear at the correct position.  */
+  if (*event).window != FRAME_X_WINDOW! (f)                              // C 14710
+    { x_translate_coordinates (f, (*event).x_root, (*event).y_root,
+			       &raw mut x, &raw mut y); }                            // C 14711-14712
+
+  XSETINT! ((*result).x, x as EMACS_INT);                                // C 14714
+  XSETINT! ((*result).y, y as EMACS_INT);                                // C 14715
+  XSETFRAME! ((*result).frame_or_window, f);                             // C 14716
+  (*result).arg = Qnil ();                                               // C 14717
+  return Qnil ();                                                        // C 14718
+}
