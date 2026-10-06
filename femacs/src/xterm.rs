@@ -27403,5 +27403,109 @@ carry it.
   return 0;                                                            // C 17918
 }
 
-/* C 17923's `#ifdef USE_GTK` opens `event_handler_gdk` (C 17927-...), whose first line is the
-   next definition; C 17921's `#endif` closes the `HAVE_X_I18N` pair this slice reads.  */
+/* This is the filter function invoked by the GTK event loop.
+   It is invoked before the XEvent is translated to a GdkEvent,
+   so we have a chance to act on the event before GTK.  */
+
+/// C 17927-18002: `static GdkFilterReturn event_handler_gdk (GdkXEvent *gxev, GdkEvent *ev,
+/// gpointer data)` - C's `static`, whose *address* C 30760's `gdk_window_add_filter` takes, so
+/// the `unsafe extern "C"` shape (`x_atoms_compare`'s precedent), and inside C 17923's
+/// `#ifdef USE_GTK` (undef in the frozen table), so the file gate plus `use_gtk` is the pair and
+/// this slice's readings live in the `use_gtk` arms.
+/// Four shapes.  (1) `GdkEvent`/`gpointer` are `include/gtk.rs`'s records (reached through
+/// `include/gtkutil.rs` 53's own `include!` of it), while `GdkFilterReturn`, `GdkXEvent` and the
+/// two `GDK_FILTER_*` values are that mirror's *owed* surface - no mirror in this tree carries
+/// them, so they stay C's names and the arms' rows are the record (the treatment slice 88 gave
+/// `prefer_native_input`).  (2) C 17950's `#elif USE_GTK` is tautological inside C 17923's
+/// `#ifdef USE_GTK`, so that half is gated `not (feature = "have_x_i18n")` alone.  (3) C
+/// 17954-17965's `#ifdef HAVE_XINPUT2` disjunct sits inside the condition, which Rust cannot
+/// write as a cfg'd sub-expression (Decision 101 3's measured `E0658`), so the port hoists it
+/// into a cfg'd `let` term - C's own text for the arm that has the feature, `false` for the arm
+/// that does not (the forced substitute for a removed disjunct), the shape slice 88's Decision
+/// opened.  (4) `handle_one_xevent` and `x_dispatch_event` are this file's own still-unported
+/// definitions, so their call rows are the ledger's "definition not yet landed" class; the
+/// `--check` rows for those two retire when they land.
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" fn event_handler_gdk (gxev: *mut GdkXEvent, ev: *mut GdkEvent,
+				       data: gpointer) -> GdkFilterReturn
+{
+  let xev: *mut XEvent = gxev as *mut XEvent;                          // C 17930
+
+  block_input ();                                                      // C 17932
+  if current_count >= 0                                                // C 17933
+    {
+      let mut dpyinfo: *mut x_display_info;                            // C 17935
+
+      dpyinfo = x_display_info_for_display ((*xev).xany.display);      // C 17937
+
+#[cfg (feature = "have_x_i18n")]
+      {
+      /* Filter events for the current X input method.
+	 GTK calls XFilterEvent but not for key press and release,
+	 so we do it here.  */
+      if ((*xev).r#type == KeyPress || (*xev).r#type == KeyRelease)    // C 17943
+	  && !dpyinfo.is_null ()                                       // C 17944
+	  && x_filter_event (dpyinfo, xev) != 0                        // C 17945
+	{
+	  unblock_input ();                                            // C 17947
+	  return GDK_FILTER_REMOVE;                                    // C 17948
+	}
+      }
+#[cfg (not (feature = "have_x_i18n"))]
+      {
+      /* C 17954-17965's `#ifdef HAVE_XINPUT2` disjunct, hoisted out of the condition.  */
+#[cfg (feature = "have_xinput2")]
+      let xinput_key_event: bool = (*dpyinfo).supports_xi2             // C 17957
+	  && (*xev).r#type == GenericEvent                             // C 17958
+	  && (*xev).xgeneric.extension == (*dpyinfo).xi2_opcode        // C 17959-17960
+	  && ((*xev).xgeneric.evtype == XI_KeyPress                    // C 17961-17962
+	      || (*xev).xgeneric.evtype == XI_KeyRelease);             // C 17963-17964
+#[cfg (not (feature = "have_xinput2"))]
+      let xinput_key_event: bool = false;                       // C 17954-17965 (absent)
+      if !dpyinfo.is_null () && ((*dpyinfo).prefer_native_input        // C 17951-17952
+				 || x_gtk_use_native_input)
+	  && ((*xev).r#type == KeyPress                                // C 17953
+	      || xinput_key_event)                                     // C 17966
+	{
+	  let mut f: *mut frame;                                       // C 17968
+
+#[cfg (feature = "have_xinput2")]
+	  {
+	    if (*xev).r#type == GenericEvent                           // C 17971
+	      { f = x_any_window_to_frame (dpyinfo,                    // C 17972-17973
+					   (*( (*xev).xcookie.data as *mut XIDeviceEvent )).event); }
+	    else
+	      { f = x_any_window_to_frame (dpyinfo, (*xev).xany.window); } // C 17976
+	  }
+#[cfg (not (feature = "have_xinput2"))]
+	  { f = x_any_window_to_frame (dpyinfo, (*xev).xany.window); } // C 17976
+
+	  if !f.is_null () && xg_filter_key (f, xev) != 0              // C 17978
+	    {
+	      unblock_input ();                                        // C 17980
+	      return GDK_FILTER_REMOVE;                                // C 17981
+	    }
+	}
+      }
+
+      if dpyinfo.is_null ()                                            // C 17986
+	{ current_finish = X_EVENT_NORMAL; }                           // C 17987
+      else
+	{ current_count                                                // C 17989
+	    += handle_one_xevent (dpyinfo, xev, &raw mut current_finish, // C 17989-17991
+				  current_hold_quit); }
+    }
+  else
+    { current_finish = x_dispatch_event (xev, (*xev).xany.display); }  // C 17994
+
+  unblock_input ();                                                    // C 17996
+
+  if current_finish == X_EVENT_GOTO_OUT || current_finish == X_EVENT_DROP // C 17998
+    { return GDK_FILTER_REMOVE; }                                      // C 17999
+
+  return GDK_FILTER_CONTINUE;                                          // C 18001
+}
+
+/* C 18006-18008's forward declaration of `xembed_send_message` and C 18010-18038's
+   `x_net_wm_state` are the next items; C 18003's `#endif /* USE_GTK */` closes the pair this
+   slice reads.  */

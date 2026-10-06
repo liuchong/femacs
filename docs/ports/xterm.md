@@ -94,6 +94,17 @@ C 894-896's `prefer_native_input` - an `x_display_info` member the mirror does n
 here as an owed row); the six default arms read **0/0** because the gate hides the whole
 definition, and the slice's one warning is arm AI's `unreachable statement` - C's own `return 0;`
 behind the non-GTK arm's unconditional return.
+  Slice 89 (C 17923-18002, Decision 102) **stays 28**: `event_handler_gdk` is inside C 17923's
+`#ifdef USE_GTK` (`undef` in the frozen table), so it is dead text with no checklist row and no
+`--check` item, and its readings live in the `use_gtk` arms.  Four of them move and six read 0/0:
+UG 786 -> **796** (+10), a fifth arm **UGX** (`use_gtk` + `have_xinput2`, added because the
+`#elif USE_GTK` half's `#ifdef HAVE_XINPUT2` disjunct is compiled by no other arm) 884 -> **899**
+(+15), AIU 822 -> **831** (+9) and AIUX 929 -> **938** (+9); A/U/UT/UM/AE/AI are all 0/0.  Nothing
+retires and **no warning moves in any of the ten arms**; the rows are the counted classes - the
+`XEvent` placeholder's members, Decision 15's bare X11/XInput2 names, `xg_filter_key`, the
+`GdkFilterReturn`/`GdkXEvent`/`GDK_FILTER_*` surface `include/gtk.rs` does not carry yet, the
+`E0425` type class, and the two still-unported definitions `handle_one_xevent`/`x_dispatch_event`
+(whose `--check` rows retire when they land).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -4232,6 +4243,38 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   token row arrives); the line-count row moves to **27,407** against C's 33,125 (17.3% drift, was
   27,302 / 17.6%).
 
+### 102. Slice 89 (C 17923-18002): `event_handler_gdk`, a fifth arm for a disjunct, and two definitions this file still owes
+
+* **The slice is dead text again, and its readings need five arms.**  C 17923's `#ifdef USE_GTK` is
+  `undef` in the frozen table, so nothing the tool reads covers this function; the arm that compiles
+  it is the `use_gtk` one, and its two halves are selected by `HAVE_X_I18N` (`#ifdef HAVE_X_I18N` /
+  `#elif USE_GTK`), whose disjunct inside the second half is selected by `HAVE_XINPUT2` again.  That
+  is why this slice's table needs **UG** (use_gtk), a *new* **UGX** (use_gtk + have_xinput2 - the
+  only arm that compiles the `#elif` half's own disjunct), and the two `have_x_i18n` arms slice 88
+  added (**AIU**, **AIUX**).  A two-arm reading would have left the `#elif` half never compiled
+  (P-86 6's rule, the `have_gsettings`/`enable_checking` precedents of slices 4 and 87).
+* **Shape 1: `#elif USE_GTK` inside `#ifdef USE_GTK` is tautological.**  Inside C 17923's guard the
+  `#elif` at C 17950 is *always* true, so its port gate is `not (feature = "have_x_i18n")` alone -
+  the two halves are written as two cfg'd blocks, which is also what keeps C's shared tail (C
+  17986-18001) single.
+* **Shape 2: a disjunct hoisted into a cfg'd `let`.**  C 17954-17965's `#ifdef HAVE_XINPUT2`
+  disjunct sits inside the condition, and a `#[cfg]` on a sub-expression is `E0658` (Decision 101
+  3's measurement).  The port hoists it into `let xinput_key_event: bool = …` - C's own text for the
+  arm that has the feature and `false` for the one that does not, the forced substitute for a
+  removed disjunct - and writes `|| xinput_key_event` in C's condition.  That is the second half of
+  the shape slice 88 opened, and UGX is the arm that measures the feature-on text of it.
+* **What the rows are.**  `GdkEvent`/`gpointer` are `include/gtk.rs`'s records (xterm.rs reaches them
+  through `include/gtkutil.rs` 53's own `include!` of that mirror); `GdkFilterReturn`, `GdkXEvent`
+  and the two `GDK_FILTER_*` values are that mirror's **owed** surface - no mirror here carries them,
+  so they stay C's names and the arms' rows are the record, the treatment slice 88 gave
+  `prefer_native_input` (which this slice reads again, in UG, through C 17951).  `handle_one_xevent`
+  and `x_dispatch_event` are this file's own still-unported definitions: their two call rows are the
+  ledger's "definition not yet landed" class, and their `--check` rows (still in the list of 28)
+  retire when they land.  `x_any_window_to_frame` needs no three-way split here - the whole function
+  is under `use_gtk`, where it is the unit's function.
+* **What `--check` reads.**  **stays 28** (dead text: no item, no token row); the line-count row
+  moves to **27,511** against C's 33,125 (16.9% drift, was 27,407 / 17.3%).
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -8281,4 +8324,53 @@ against C's 33,125 (17.3% drift, was 27,302 / 17.6%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no event was filtered, no
 input method was consulted, no GDK key was filtered and no XNoOp was flushed; the readings above are
+compile readings of text this machine cannot build.
+
+### Slice 89's readings (C 17923-18002), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s89/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s89/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+**UGX = UG + `have_xinput2`** (new here), AE = A + `enable_checking`, AI = A + `have_x_i18n`,
+AIU = AI + `use_gtk`, AIUX = AIU + `have_xinput2`.  Both sides were measured on this revision.
+
+| arm | HEAD's unit (slice 88 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 786 / 71 | **786 / 71** | 0 |
+| U `+use_toolkit_scroll_bars` | 815 / 71 | **815 / 71** | 0 |
+| UT `U +use_x_toolkit` | 801 / 70 | **801 / 70** | 0 |
+| UM `UT +use_motif` | 802 / 70 | **802 / 70** | 0 |
+| **UG** `U +use_gtk` | 786 / 73 | **796 / 73** | **+10** |
+| **UGX** `UG +have_xinput2` | 884 / 75 | **899 / 75** | **+15** |
+| AE `A +enable_checking` | 818 / 70 | **818 / 70** | 0 |
+| AI `A +have_x_i18n` | 794 / 72 | **794 / 72** | 0 |
+| **AIU** `AI +use_gtk` | 822 / 73 | **831 / 73** | **+9** |
+| **AIUX** `AIU +have_xinput2` | 929 / 75 | **938 / 75** | **+9** |
+
+**Additions, by name** (diffed as full `error[E..]: <message>` head lines with counts; nothing
+retires in any arm):
+
+| arm | added |
+| --- | --- |
+| UG | `handle_one_xevent` x1, `x_dispatch_event` x1, `xg_filter_key` x1, `GdkFilterReturn` x1, `GdkXEvent` x1, `GDK_FILTER_CONTINUE` x1, `GDK_FILTER_REMOVE` x2, `KeyPress` x1, `x_display_info.prefer_native_input` x1 |
+| UGX | UG's set plus `XIDeviceEvent` x1, `GenericEvent` x2, `XI_KeyPress` x1, `XI_KeyRelease` x1 (and `GDK_FILTER_REMOVE` x2 as above) |
+| AIU, AIUX | `handle_one_xevent` x1, `x_dispatch_event` x1, `GdkFilterReturn` x1, `GdkXEvent` x1, `GDK_FILTER_CONTINUE` x1, `GDK_FILTER_REMOVE` x2, `KeyPress` x2, `KeyRelease` x2 |
+
+The `have_x_i18n` arms do not read the `#elif` half (so no `prefer_native_input` row there), and UGX
+is what reads that half's own `#ifdef HAVE_XINPUT2` disjunct - the reason it exists.
+
+**Warnings**: identical to the baselines in **all ten arms** - the function adds one unused callback
+with C's own parameter names and no dead code rustc names.
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical sets.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 17930's `let xev: *mut XEvent = ...`
+moves **UG 796 -> 797** with `E0308` 17 -> 18, anchored at `build/probes/xterm/_root.rs:27447:18`;
+removing it returns UG to the table.
+
+**What `--check` reads.**  **stays 28** as Decision 102 5 says, with the line-count row at **27,511**
+against C's 33,125 (16.9% drift, was 27,407 / 17.3%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no GDK filter ran, no
+`XEvent` was dispatched, no input was blocked and no keysym was handled; the readings above are
 compile readings of text this machine cannot build.
