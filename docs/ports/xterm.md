@@ -73,6 +73,16 @@ empty body's unused `f` costs no warning, measured rather than assumed (all five
 identical to their baselines'): the unit's own `#![allow (...)]` at its line 638 is why.  C
 17799-17801's comma-expression loop is the same rendering slice 82 gave C 17435, so the file's two
 copies of C's "trick" read alike.
+  Slice 87 (C 17811-17848, Decision 100) goes **31 -> 28**: `missing macro STORE_KEYSYM_FOR_DEBUG`,
+`missing file-scope object XTread_socket_fake_io_error` and `missing file-scope object
+next_noop_dpyinfo` all retire and no token row arrives.  The slice's rustc footprint is **-2 in all
+six arms** - A 788 -> **786**, U 817 -> **815**, UT 803 -> **801**, UM 804 -> **802**, UG 788 ->
+**786**, and a *sixth* arm AE (A + `enable_checking`, which no configuration here turns on) 820 ->
+**818** - and the two rows are not this slice's own: C 31925-31926's two uses of
+`next_noop_dpyinfo` are already ported text, so the definition retires them.  The region's other
+half exists only under `enable_checking` (`undef` in the frozen table), which is why AE exists:
+with a temporary reader after the macro's definition, AE reads 0 error and 0 warning delta, and a
+deliberate type error in the macro body moves it 818 -> 819 at the macro's own line.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -393,7 +403,7 @@ copies of C's "trick" read alike.
 - [x] ATOM_REFS_INIT  (line 989, body 38ea51a9ed88)
 - [x] HIGHLIGHT_COLOR_DARK_BOOST_LIMIT  (line 9580, body bdbb3f155244)
 - [x] OPAQUE  (line 6929, body d524558178b7)
-- [ ] STORE_KEYSYM_FOR_DEBUG  (line 17826, body faabc0e0dbea)
+- [x] STORE_KEYSYM_FOR_DEBUG  (line 17826, body faabc0e0dbea)
 - [x] SWAPCARD16  (line 1584, body f50347531e4d)
 - [x] SWAPCARD32  (line 1583, body 393d2f43a49a)
 - [ ] XEMBED_VERSION  (line 29148, body b6589fc6ab0d)
@@ -502,8 +512,8 @@ copies of C's "trick" read alike.
 - [x] static struct x_client_list_window x_dnd_toplevels  (line 1536, static)
 - [x] static bool x_dnd_use_toplevels  (line 1540, static)
 - [x] static volatile bool xm_drag_window_error  (line 1548, static)
-- [ ] static struct x_display_info XTread_socket_fake_io_error  (line 17833, static)
-- [ ] static struct x_display_info next_noop_dpyinfo  (line 17840, static)
+- [x] static struct x_display_info XTread_socket_fake_io_error  (line 17833, static)
+- [x] static struct x_display_info next_noop_dpyinfo  (line 17840, static)
 - [x] static struct x_error_message_stack x_error_message  (line 26249, static)
 - [x] int x_error_message_count  (line 26252)
 - [x] static char error_msg  (line 26722, static)
@@ -4127,6 +4137,44 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **32 -> 31**: the function retires as a missing item and no token row
   arrives (`x_get_wm_check_window does not mention false` remains the standing one); the line-count
   row moves to **27,251** against C's 33,125 (17.7% drift, was 27,190 / 17.9%).
+
+### 100. Slice 87 (C 17811-17848): the `ENABLE_CHECKING` buffer and the two no-op objects, read in a sixth arm
+
+* **Three items, and half of them exist only under a macro no arm turns on.**  C 17811-17828 is the
+  `#ifdef ENABLE_CHECKING` region - `undef` in the frozen table
+  (`docs/baseline/config/darwin-arm64.macros.tsv` 872) - so `temp_index` and `temp_buffer` exist only
+  in the checking arm, and `STORE_KEYSYM_FOR_DEBUG` has *two* definitions there: C 17819-17822's
+  three-statement one and C 17826's `((void)0)`.  C 17833's `XTread_socket_fake_io_error` and C
+  17840's `next_noop_dpyinfo` are plain file-scope pointers and carry the file gate alone.  The slice
+  therefore needed a **sixth arm** - AE = A + `enable_checking` - because none of the five arms
+  contains the checking text (P-86 6's rule, the slice-4 `have_gsettings` precedent: a two-arm
+  reading leaves half a slice never compiled).  AE's own baseline is **820 / 70**, and the file's
+  other `#ifdef ENABLE_CHECKING` regions are why its `E0308` count is 45 rather than A's 13.
+* **The macro is a statement macro, and the arm this configuration compiles throws its argument
+  away.**  C 17819-17822's last line carries no `;`, so the port's arm is one block expression and a
+  call site keeps C's trailing `;`.  Three shapes inside it: C's post-increment is the load-then-step
+  pair (the store writes `temp_buffer[temp_index as usize]` and the step follows it); `countof` is the
+  mirror's `countof!` (`lib/include/stdcountof.rs`, lisp.h 28) with C's `int` comparison stated as
+  `as c_int` (the `alloc.rs` 4510 shape); and C's `short` element write states its narrowing
+  (`as c_short`).  C 17826's arm *discards* its argument rather than evaluating it, so the port's
+  expansion is the recorded `let _ = 0;` shape (`src/pgtkfns.rs` 2938) and deliberately never names
+  `$keysym`.
+* **Two readings, both measured rather than argued.**  (1) *The pointer objects are already
+  referenced*: C 31925-31926's uses of `next_noop_dpyinfo` are ported text (slice 12's region,
+  `src/xterm.rs` 19860-19861), so landing the definition retires their two `E0425 cannot find value`
+  rows in **all six arms** - which is why the slice's rustc footprint is -2 everywhere and not the 0
+  the four visible lines suggest.  `XTread_socket_fake_io_error` has no reader yet (0 rows either
+  way).  (2) *The checking arm's text type-checks*: with a temporary reader placed *after* the
+  definition (`zz_probe_store_keysym`; no C text needs it yet - C's call sites are C 20629/20654/
+  24536/24550, all unported), AE reads **0 error delta and 0 warning delta**, and a deliberate type
+  error inside the macro body moves AE 818 -> 819 anchored at the macro's own line - so it is the
+  *expansion*, not merely the definition, that the arm compiles.  The same reader placed *before* the
+  definition is one `cannot find macro STORE_KEYSYM_FOR_DEBUG` row: `macro_rules!` is visible only
+  after its definition, which is also why the port's file order (C's order) is what will keep C's
+  future call sites inside its scope.
+* **What `--check` reads.**  **31 -> 28**: the macro row and the two object rows retire, and no token
+  row arrives (`x_get_wm_check_window does not mention false` remains the standing one); the
+  line-count row moves to **27,302** against C's 33,125 (17.6% drift, was 27,251 / 17.7%).
 
 ## Evidence
 
@@ -8077,3 +8125,49 @@ against C's 33,125 (17.7% drift, was 27,190 / 17.9%).
 **Not claimed.**  The frozen configuration compiles none of this file: no scroll bar was cleared or
 redrawn, no foreground or background pixel was set and no condemned list was walked; in the four
 toolkit arms the function is one empty body.
+
+### Slice 87's readings (C 17811-17848), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s87/<tag>.o <cfg flags> --crate-type=lib
+--emit=metadata -C panic=abort`, all into `CARGO_TARGET_DIR=/tmp/s87/cargo`; A = `have_x_windows`,
+U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+and **AE = A + `enable_checking`** - the arm this slice's `#ifdef ENABLE_CHECKING` region needs and no
+configuration here turns on.  Both sides were measured in all six arms on this revision.
+
+| arm | HEAD's unit (slice 86 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 788 / 71 | **786 / 71** | **-2** |
+| U `+use_toolkit_scroll_bars` | 817 / 71 | **815 / 71** | **-2** |
+| UT `U +use_x_toolkit` | 803 / 70 | **801 / 70** | **-2** |
+| UM `UT +use_motif` | 804 / 70 | **802 / 70** | **-2** |
+| UG `U +use_gtk` | 788 / 73 | **786 / 73** | **-2** |
+| **AE** `A +enable_checking` | 820 / 70 | **818 / 70** | **-2** |
+
+**Retirements and additions, by name** (diffed as full `error[E..]: <message>` head lines with
+counts, both directions): every arm retires `cannot find value next_noop_dpyinfo` **x2** and adds
+nothing.  The two rows are C 31925-31926's uses in text slice 12 landed; the slice's own four lines
+(the two statics, the two macro arms) move no error at all.
+
+**Every arm's warning set is identical to its baseline's**, row for row - including AE, where the two
+statics and the checking macro body are compiled: the unit's own `#![allow (..., unused_variables,
+unused_macros, dead_code, ...)]` is what keeps a not-yet-used object and macro free, the same reading
+slice 86 recorded for its empty toolkit body.
+
+**The checking arm's macro body, measured.**  A temporary reader appended after the definition
+(`unsafe fn zz_probe_store_keysym () { STORE_KEYSYM_FOR_DEBUG! (0 as c_int); }`) leaves **A and AE
+both at 0 error and 0 warning delta** (A 786, AE 818) - the non-checking arm's `let _ = 0;` and the
+checking arm's three-statement body both type-check.  A deliberate `let _: c_int = true;` inside the
+checking arm's body then moves **AE 818 -> 819** with `E0308` 45 -> 46, anchored at the macro's own
+line (`build/probes/xterm/_root.rs:27291`), so the arm compiles the *expansion*.  Placing the reader
+*before* the definition instead is one `cannot find macro STORE_KEYSYM_FOR_DEBUG` row (A 787) - the
+textual-order reading above.  Both temporary edits are removed; the file measured 27,302 lines.
+
+**Two legs of `build-tu`**: exit 0 and `30 warnings emitted` on **both** sides, identical sets (the
+frozen configuration compiles neither the checking arm nor a reader of the macro).
+
+**What `--check` reads.**  **31 -> 28** as Decision 100 4 says, with the line-count row at **27,302**
+against C's 33,125 (17.6% drift, was 27,251 / 17.7%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no keysym was stored, and
+`STORE_KEYSYM_FOR_DEBUG` still has no call site in the port (C's four are in unported text), so the
+macro's *value* is a shape that one temporary reader verified compiles - not a behaviour that ran.

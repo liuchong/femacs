@@ -27247,5 +27247,56 @@ unsafe fn x_scroll_bar_clear (f: *mut frame)
   }
 }
 
-/* C 17811's `#ifdef ENABLE_CHECKING` opens the debug region whose first object is
-   `STORE_KEYSYM_FOR_DEBUG` (C 17819-17822), the `missing macro` row `--check` still carries.  */
+/* C 17811-17828: the keysym debug buffer, in `#ifdef ENABLE_CHECKING` - `undef` in the frozen
+   table (`docs/baseline/config/darwin-arm64.macros.tsv` 872), so the definition this
+   configuration compiles is C 17826's one-line `#else` arm; both arms are carried, the
+   `enable_checking` feature selecting them (P-66's shape, the `SWAPCARD32` pair above).  */
+
+/* Record the last 100 characters stored
+   to help debug the loss-of-chars-during-GC problem.  */
+
+#[cfg (all (feature = "have_x_windows", feature = "enable_checking"))]
+pub static mut temp_index: c_int = 0;                                  // C 17816
+#[cfg (all (feature = "have_x_windows", feature = "enable_checking"))]
+pub static mut temp_buffer: [c_short; 100] = [0; 100];                 // C 17817
+
+/// C 17819-17822: C's macro is a *statement* macro - its last line, `temp_buffer[temp_index++]
+/// = (keysym)`, carries no `;` - so the port's arm is one block expression and a call site keeps
+/// C's trailing `;`.  Three shapes inside it: C's post-increment is the load-then-step pair (the
+/// `ccl.rs` reading of `x++` as an index), so the store uses `temp_index` and the step follows it;
+/// `countof` is the mirror's `countof!` (`lib/include/stdcountof.rs`, lisp.h 28) with C's `int`
+/// comparison stated as `as c_int` (the `alloc.rs` 4510 shape); and C's `short` element write
+/// states its narrowing (`as c_short`, the slice-83 reading of the same conversion).
+#[cfg (all (feature = "have_x_windows", feature = "enable_checking"))]
+macro_rules! STORE_KEYSYM_FOR_DEBUG {
+  ($keysym:expr) => {
+    {
+	if temp_index == countof! (temp_buffer) as c_int               // C 17820
+	  { temp_index = 0; }
+	temp_buffer[temp_index as usize] = ($keysym) as c_short;       // C 17822
+	temp_index += 1;
+    }
+  };
+}
+/// C 17826: the arm the frozen configuration compiles - `((void)0)`, which *discards* its
+/// argument rather than evaluating it, so the port's expansion is the recorded `let _ = 0;`
+/// shape (`src/pgtkfns.rs` 2938) and does not name `$keysym` at all.
+#[cfg (all (feature = "have_x_windows", not (feature = "enable_checking")))]
+macro_rules! STORE_KEYSYM_FOR_DEBUG { ($keysym:expr) => { { let _ = 0; } }; }
+
+/* Set this to nonzero to fake an "X I/O error"
+   on a particular display.  */
+
+#[cfg (feature = "have_x_windows")]
+pub static mut XTread_socket_fake_io_error: *mut x_display_info = std::ptr::null_mut (); // C 17833
+
+/* When we find no input here, we occasionally do a no-op command
+   to verify that the X server is still running and we can still talk with it.
+   We try all the open displays, one by one.
+   This variable is used for cycling thru the displays.  */
+
+#[cfg (feature = "have_x_windows")]
+pub static mut next_noop_dpyinfo: *mut x_display_info = std::ptr::null_mut (); // C 17840
+
+/* C 17842-17849's comment opens `x_filter_event` (C 17850-17930), whose C gate is
+   `HAVE_X_I18N` (undef in the frozen table): the next slice reads it under that feature.  */
