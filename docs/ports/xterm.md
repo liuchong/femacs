@@ -30,7 +30,9 @@ function's missing row retires and its `output_data` token row is closed by a
 `x_set_offset` retires as a missing item and no token row arrives.  Slice 23 (C 27691-27830,
 Decision 35) goes **156 -> 154**: `x_get_wm_check_window` and `x_wm_supports` retire as missing
 items, `x_wm_supports_1` was already resolved as a name by the callers above it, and no token row
-arrives.
+arrives.  Decision 36's round (the `XGetWindowProperty`
+declaration and the twenty rows Decision 35 predicted) **stays 154**: the four `does not mention
+false` token rows the round's `0` spellings bring are closed by four `docs/ports/macro-body-notes.tsv` rows.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -2115,6 +2117,23 @@ expressions (Decision 25).
   this slice's own two sites therefore stand unresolved, and the two rows are its `+2`.
 
 
+### 36. Decision 35's round: `XGetWindowProperty` declared, and the twenty rows it predicted
+
+Decision 35 predicted 13 `E0425` rows retiring and 12 `E0308` + 8 `E0381` rows surfacing; the
+round landed them and the measurement was close to the prediction but not equal to it: the
+declaration (Xlib.h 2686-2697, at the use site) retires **13 `E0425`** rows, and the older text it
+type-checks for the first time needed **12 `E0308`** fixes (ten `XGetWindowProperty` calls passed
+Rust `false` where C's `False` is the `Bool` `int`, and two passed `AnyPropertyType`, a `c_long`,
+where the prototype takes an `Atom` - written `as Atom`), **9 `E0381`** fixes (the output locals
+those calls hand over: C's own uninitialised-output shape, which the port zeroes per Deviation 12)
+and one `max_len as c_long` widening (C's `int` argument where the prototype takes a `long`).
+Arm A goes **558 / 55 -> 545 / 65**: `-13 E0425`, every other class at its baseline value, and
+**+10 warnings** - the price of the Deviation 12 initialisers, which the call overwrites through a
+raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classes fire.  The four
+`does not mention false` token rows this creates are closed by
+`docs/ports/macro-body-notes.tsv` rows, so `--check` **stays 154**.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -3761,3 +3780,23 @@ which this slice's definition resolves) and **+2 `E0425`** (this slice's own two
 **Not claimed.**  The frozen configuration compiles none of this file: no window property was
 read, no WM check window was looked up and no atom list was walked.  The remaining `E0425` rows
 are unresolved names, not behaviour.
+
+
+### Decision 35's round's readings, as landed and measured (2026-10-06)
+
+**What it lands.**  The `XGetWindowProperty` declaration and the twenty-odd fixes it surfaced
+(Decision 36).  Rust 15,763 -> 15,779 lines.
+
+**What the probes read.**  Baseline = HEAD's unit with the same arm.  Arm A (`have_x_windows`)
+**558 / 55 -> 545 / 65**: `-13 E0425` (the seven call sites' name), `E0308 13 -> 13` and
+`E0381 1 -> 1` (the fixes bring them back to their baseline counts), `+10 warnings` (Deviation 12's
+initialisers); arm B **557 / 60 -> 547 / 67** (`-9 E0425`, +7 warnings); arm C
+**586 / 57 -> 574 / 67** (`-13 E0425`, +10 warnings).
+
+**What `--check` reads.**  **154 -> 154**: the four `does not mention false` token rows are closed
+by `docs/ports/macro-body-notes.tsv` rows.  The line-count row moves to 15,779 against C's 33,125
+(52.4%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no window property was
+read and none of the five DND/state functions ran.  The remaining `E0425` rows are unresolved
+names, not behaviour, and the new warnings are the initialiser price Decision 36 records.

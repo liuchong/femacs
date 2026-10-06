@@ -1747,11 +1747,11 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
                              NoEventMask, None, PropModeReplace, RetainPermanent, Success,
                              XA_WINDOW};
 
-  let mut actual_type: Atom;
+  let mut actual_type: Atom = 0;
   let mut rc: c_int;
-  let mut actual_format: c_int;
-  let mut nitems: c_ulong;
-  let mut bytes_remaining: c_ulong;
+  let mut actual_format: c_int = 0;
+  let mut nitems: c_ulong = 0;
+  let mut bytes_remaining: c_ulong = 0;
   let mut tmp_data: *mut u8 = std::ptr::null_mut ();
   let mut drag_window: Window;
   let mut attrs: XSetWindowAttributes = std::mem::zeroed ();
@@ -1765,7 +1765,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
   drag_window = None as Window;
   rc = (XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
 			    (*dpyinfo).Xatom_MOTIF_DRAG_WINDOW,
-			    0, 1, false, XA_WINDOW, &raw mut actual_type,
+			    0, 1, 0, XA_WINDOW, &raw mut actual_type,
 			    &raw mut actual_format, &raw mut nitems, &raw mut bytes_remaining,
 			    &raw mut tmp_data) == Success) as c_int;
 
@@ -1859,7 +1859,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 
 	  rc = (XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
 				    (*dpyinfo).Xatom_MOTIF_DRAG_WINDOW,
-				    0, 1, false, XA_WINDOW, &raw mut actual_type,
+				    0, 1, 0, XA_WINDOW, &raw mut actual_type,
 				    &raw mut actual_format, &raw mut nitems,
 				    &raw mut bytes_remaining,
 				    &raw mut tmp_data) == Success) as c_int;
@@ -1940,12 +1940,12 @@ unsafe fn xm_setup_dnd_targets (dpyinfo: *mut x_display_info,
 
   let mut drag_window: Window;
   let mut targets_sorted: *mut Atom;
-  let mut actual_type: Atom;
+  let mut actual_type: Atom = 0;
   let mut tmp_data: *mut u8 = std::ptr::null_mut ();
-  let mut nitems: c_ulong;
-  let mut bytes_remaining: c_ulong;
+  let mut nitems: c_ulong = 0;
+  let mut bytes_remaining: c_ulong = 0;
   let mut rc: c_int;
-  let mut actual_format: c_int;
+  let mut actual_format: c_int = 0;
   let mut idx: c_int;
   let mut had_errors: bool;
   let mut header: xm_targets_table_header;
@@ -1978,7 +1978,7 @@ unsafe fn xm_setup_dnd_targets (dpyinfo: *mut x_display_info,
       x_catch_errors ((*dpyinfo).display);
       rc = (XGetWindowProperty ((*dpyinfo).display, drag_window,
 				(*dpyinfo).Xatom_MOTIF_DRAG_TARGETS,
-				0, LONG_MAX, false,
+				0, LONG_MAX, 0,
 				(*dpyinfo).Xatom_MOTIF_DRAG_TARGETS,
 				&raw mut actual_type, &raw mut actual_format,
 				&raw mut nitems, &raw mut bytes_remaining,
@@ -2188,14 +2188,14 @@ unsafe fn xm_get_drag_atom_1 (dpyinfo: *mut x_display_info,
 {
   use crate::x11_constants::{None, PropModeAppend, PropModeReplace, Success, XA_ATOM};
 
-  let mut actual_type: Atom;
+  let mut actual_type: Atom = 0;
   let mut atoms: *mut Atom;
   let mut atom: Atom;
-  let mut nitems: c_ulong;
-  let mut bytes_remaining: c_ulong;
+  let mut nitems: c_ulong = 0;
+  let mut bytes_remaining: c_ulong = 0;
   let mut tmp_data: *mut u8;
   let mut rc: c_int;
-  let mut actual_format: c_int;
+  let mut actual_format: c_int = 0;
   let mut i: c_ulong;
   let mut buffer: *mut c_char;
   let mut owner: Window;
@@ -2205,7 +2205,7 @@ unsafe fn xm_get_drag_atom_1 (dpyinfo: *mut x_display_info,
 
   rc = XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
 			   (*dpyinfo).Xatom_EMACS_DRAG_ATOM,
-			   0, LONG_MAX, false, XA_ATOM, &raw mut actual_type,
+			   0, LONG_MAX, 0, XA_ATOM, &raw mut actual_type,
 			   &raw mut actual_format, &raw mut nitems, &raw mut bytes_remaining,
 			   &raw mut tmp_data);
   atom = None as Atom;
@@ -2595,18 +2595,18 @@ unsafe fn xm_read_drag_receiver_info (dpyinfo: *mut x_display_info,
 {
   use crate::x11_constants::Success;
 
-  let mut actual_type: Atom;
+  let mut actual_type: Atom = 0;
   let mut rc: c_int;
-  let mut actual_format: c_int;
-  let mut nitems: c_ulong;
-  let mut bytes_remaining: c_ulong;
+  let mut actual_format: c_int = 0;
+  let mut nitems: c_ulong = 0;
+  let mut bytes_remaining: c_ulong = 0;
   let mut tmp_data: *mut u8 = std::ptr::null_mut ();
   let mut data: *mut u8;
 
   x_catch_errors ((*dpyinfo).display);
   rc = (XGetWindowProperty ((*dpyinfo).display, wdesc,
 			    (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO,
-			    0, 4, false,
+			    0, 4, 0,
 			    (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO,
 			    &raw mut actual_type, &raw mut actual_format, &raw mut nitems,
 			    &raw mut bytes_remaining,
@@ -2861,12 +2861,12 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 			     ShapeBounding, ShapeInput, ShapeNotifyMask, StructureNotifyMask,
 			     Success, XA_CARDINAL, XA_WINDOW};
 
-  let mut r#type: Atom;
+  let mut r#type: Atom = 0;
   let mut toplevels: *mut Window;
-  let mut format: c_int;
+  let mut format: c_int = 0;
   let mut rc: c_int;
-  let mut nitems: c_ulong;
-  let mut bytes_after: c_ulong;
+  let mut nitems: c_ulong = 0;
+  let mut bytes_after: c_ulong = 0;
   let mut i: c_ulong;
   let mut real_nitems: c_ulong;
   let mut data: *mut u8 = std::ptr::null_mut ();
@@ -2953,7 +2953,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 
   rc = XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
 			   (*dpyinfo).Xatom_net_client_list_stacking,
-			   0, LONG_MAX, false, XA_WINDOW, &raw mut r#type,
+			   0, LONG_MAX, 0, XA_WINDOW, &raw mut r#type,
 			   &raw mut format, &raw mut nitems, &raw mut bytes_after, &raw mut data);
 
   if rc != Success
@@ -3074,7 +3074,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 	    rc = ((XGetWindowProperty ((*dpyinfo).display,
 				       *toplevels.offset (i as isize),
 				       (*dpyinfo).Xatom_wm_state,
-				       0, 2, false, AnyPropertyType,
+				       0, 2, 0, AnyPropertyType as Atom,
 				       &raw mut r#type, &raw mut format, &raw mut wmstate_items,
 				       &raw mut bytes_after, &raw mut wmstate_data)
 		   == Success)
@@ -3085,7 +3085,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 
 	if XGetWindowProperty ((*dpyinfo).display, *toplevels.offset (i as isize),
 			       (*dpyinfo).Xatom_net_frame_extents,
-			       0, 4, false, XA_CARDINAL, &raw mut r#type,
+			       0, 4, 0, XA_CARDINAL, &raw mut r#type,
 			       &raw mut format, &raw mut extent_items, &raw mut bytes_after,
 			       &raw mut extent_data) == Success
 	    && !x_had_errors_p ((*dpyinfo).display)
@@ -3788,13 +3788,13 @@ unsafe fn x_dnd_get_wm_state_and_proto (dpyinfo: *mut x_display_info, window: Wi
   use crate::x11_constants::{None, XA_ATOM, XA_WINDOW};
 
   #[cfg (not (feature = "use_xcb"))]
-  let mut r#type: Atom;
+  let mut r#type: Atom = 0;
   #[cfg (not (feature = "use_xcb"))]
-  let mut format: c_int;
+  let mut format: c_int = 0;
   #[cfg (not (feature = "use_xcb"))]
-  let mut nitems: c_ulong;
+  let mut nitems: c_ulong = 0;
   #[cfg (not (feature = "use_xcb"))]
-  let mut bytes_after: c_ulong;
+  let mut bytes_after: c_ulong = 0;
   #[cfg (not (feature = "use_xcb"))]
   let mut data: *mut u8 = std::ptr::null_mut ();
   #[cfg (not (feature = "use_xcb"))]
@@ -3822,7 +3822,7 @@ unsafe fn x_dnd_get_wm_state_and_proto (dpyinfo: *mut x_display_info, window: Wi
     x_catch_errors ((*dpyinfo).display);
     rc = (XGetWindowProperty ((*dpyinfo).display, window,
 			      (*dpyinfo).Xatom_wm_state,
-			      0, 2, false, AnyPropertyType,
+			      0, 2, 0, AnyPropertyType as Atom,
 			      &raw mut r#type, &raw mut format, &raw mut nitems,
 			      &raw mut bytes_after, &raw mut data)
 	  == Success
@@ -4549,19 +4549,19 @@ unsafe fn x_dnd_get_window_proxy (dpyinfo: *mut x_display_info, wdesc: Window) -
   use crate::x11_constants::{None, Success, XA_WINDOW};
 
   let mut rc: c_int;
-  let mut actual_format: c_int;
+  let mut actual_format: c_int = 0;
   let mut actual_size: c_ulong;
-  let mut bytes_remaining: c_ulong;
+  let mut bytes_remaining: c_ulong = 0;
   let mut tmp_data: *mut u8 = std::ptr::null_mut ();
   let mut attrs: XWindowAttributes = std::mem::zeroed ();
-  let mut actual_type: Atom;
+  let mut actual_type: Atom = 0;
   let mut proxy: Window;
 
   proxy = None as Window;
   x_catch_errors ((*dpyinfo).display);
   rc = XGetWindowProperty ((*dpyinfo).display, wdesc,
 			   (*dpyinfo).Xatom_XdndProxy,
-			   0, 1, false, XA_WINDOW,
+			   0, 1, 0, XA_WINDOW,
 			   &raw mut actual_type, &raw mut actual_format,
 			   &raw mut actual_size, &raw mut bytes_remaining,
 			   &raw mut tmp_data);
@@ -4596,13 +4596,13 @@ unsafe fn x_dnd_get_window_proto (dpyinfo: *mut x_display_info, wdesc: Window) -
 {
   use crate::x11_constants::{None, Success, XA_ATOM};
 
-  let mut actual: Atom;
+  let mut actual: Atom = 0;
   let mut value: Atom;
   let mut tmp_data: *mut u8 = std::ptr::null_mut ();
   let mut rc: c_int;
-  let mut format: c_int;
-  let mut n: c_ulong;
-  let mut left: c_ulong;
+  let mut format: c_int = 0;
+  let mut n: c_ulong = 0;
+  let mut left: c_ulong = 0;
   let mut had_errors: bool;
 
   if wdesc == None as Window || (x_dnd_allow_current_frame == false
@@ -4611,7 +4611,7 @@ unsafe fn x_dnd_get_window_proto (dpyinfo: *mut x_display_info, wdesc: Window) -
 
   x_catch_errors ((*dpyinfo).display);
   rc = XGetWindowProperty ((*dpyinfo).display, wdesc, (*dpyinfo).Xatom_XdndAware,
-			   0, 1, false, XA_ATOM, &raw mut actual, &raw mut format,
+			   0, 1, 0, XA_ATOM, &raw mut actual, &raw mut format,
 			   &raw mut n, &raw mut left,
 			   &raw mut tmp_data);
   had_errors = x_had_errors_p ((*dpyinfo).display);
@@ -15596,6 +15596,22 @@ unsafe fn x_set_offset (f: *mut frame, xoff: c_int, yoff: c_int, change_gravity:
 
   unblock_input ();                                                     // C 27688
 }
+/* C: Xlib.h 2686-2697: `extern int XGetWindowProperty (Display *, Window, Atom, long, long,
+   Bool, Atom, Atom *, int *, unsigned long *, unsigned long *, unsigned char **);` - this unit
+   calls it in seven places and no mirror of its graph declared the name, so declaring it once
+   here resolves all of them (P-72 rule 4, Decision 35's measured round).  C's `False` argument
+   is this file's `0` and `AnyPropertyType` (a `c_long`) converts where the prototype takes an
+   `Atom`.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XGetWindowProperty (display: *mut Display, w: Window, property: Atom,
+			     long_offset: c_long, long_length: c_long, delete: Bool,
+			     req_type: Atom, actual_type_return: *mut Atom,
+			     actual_format_return: *mut c_int, nitems_return: *mut c_ulong,
+			     bytes_after_return: *mut c_ulong,
+			     prop_return: *mut *mut c_uchar) -> c_int;
+}
+
 /// C 27691-27719: `static Window x_get_wm_check_window (struct x_display_info *dpyinfo)` - a
 /// `static` whose callers are this file's (C 27759/27766), so a plain `unsafe fn`.  `None` and
 /// `Success` are the xlib mirror's constants, `XA_WINDOW` its atom, and the argument sequence is
@@ -15608,10 +15624,10 @@ unsafe fn x_get_wm_check_window (dpyinfo: *mut x_display_info) -> Window
   let mut result: Window;                                               // C 27694
   let mut tmp_data: *mut u8 = std::ptr::null_mut ();                    // C 27695
   let mut rc: c_int;                                                    // C 27696
-  let mut actual_format: c_int;
-  let mut actual_size: c_ulong;                                         // C 27697
-  let mut bytes_remaining: c_ulong;
-  let mut actual_type: Atom;                                            // C 27698
+  let mut actual_format: c_int = 0;
+  let mut actual_size: c_ulong = 0;                                         // C 27697
+  let mut bytes_remaining: c_ulong = 0;
+  let mut actual_type: Atom = 0;                                            // C 27698
 
   rc = XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,   // C 27700-27704
 			   (*dpyinfo).Xatom_net_supporting_wm_check,
@@ -15651,12 +15667,12 @@ pub unsafe extern "C" fn x_wm_supports_1 (dpyinfo: *mut x_display_info, want_ato
 {
   use crate::x11_constants::{None, Success, XA_ATOM, XA_WINDOW};
 
-  let mut actual_type: Atom;                                            // C 27730
-  let mut actual_size: c_ulong;                                         // C 27731
-  let mut bytes_remaining: c_ulong;
+  let mut actual_type: Atom = 0;                                            // C 27730
+  let mut actual_size: c_ulong = 0;                                         // C 27731
+  let mut bytes_remaining: c_ulong = 0;
   let mut i: c_int;                                                     // C 27732
   let mut rc: c_int;
-  let mut actual_format: c_int;
+  let mut actual_format: c_int = 0;
   let mut ret: bool;                                                    // C 27733
   let mut wmcheck_window: Window;                                       // C 27734
   let target_window: Window = (*dpyinfo).root_window;                   // C 27735
@@ -15719,7 +15735,7 @@ pub unsafe extern "C" fn x_wm_supports_1 (dpyinfo: *mut x_display_info, want_ato
       tmp_data = std::ptr::null_mut ();                                 // C 27793
       rc = XGetWindowProperty (dpy, target_window,                      // C 27794-27798
 			       (*dpyinfo).Xatom_net_supported,
-			       0, max_len, 0, target_type,
+			       0, max_len as c_long, 0, target_type,
 			       &raw mut actual_type, &raw mut actual_format, &raw mut actual_size,
 			       &raw mut bytes_remaining, &raw mut tmp_data);
 
