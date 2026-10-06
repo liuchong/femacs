@@ -5191,3 +5191,158 @@ unsafe fn pgtk_clip_to_row (w: *mut window, row: *mut glyph_row, area: glyph_row
 		   rect.width as c_double, rect.height as c_double);
   cairo_clip (cr);                                                      // C 3644
 }
+
+/* C: dispextern.h 3711: `void gui_define_fringe_bitmap (struct frame *, int);` - the C 3676 call
+   (`src/fringe.rs` defines it).  The mirror's extern block carries dispextern.h 3710's
+   `max_used_fringe_bitmap` and not this line, so it is declared here at the use site.  */
+/* <gtk/gtkeventbox.h>: `GtkWidget *gtk_event_box_new (void);` - the C 3708 call (the GTK
+   segment's convention: the header alone, no line).  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gui_define_fringe_bitmap (f: *mut frame, which: c_int);
+  pub fn gtk_event_box_new () -> *mut GtkWidget;
+}
+
+/// C 3647-3689: `static void pgtk_draw_fringe_bitmap (struct window *w, struct glyph_row *row,
+/// struct draw_fringe_bitmap_params *p)` - **the record's name is the module path, not C's bare
+/// one**: `include/dispextern.rs` carries the five records of C 2159-3200 (`bidi_it`,
+/// `draw_fringe_bitmap_params`, `composition_it`, `it`, `redisplay_interface`) inside
+/// `pub mod dispextern_unit_names`, "because every unit that includes the mirror declares its own
+/// copy of each", and this unit is no C record's owner - so the type, its two `bool_bf` accessors
+/// (`get_overlay_p`/`get_cursor_p`) and the `max_used_fringe_bitmap` extern are named the way
+/// `src/w32term.rs` 1489 does (that unit records the reading: the unqualified name is `E0425` in
+/// the flip arm, `src/abi_shim.rs` 2087 being the other precedent).  `fringe_bmp` is this unit's
+/// C 3572 object (the C 3684 store's own table), `pgtk_cr_draw_image` is this file's C 2205 definition,
+/// and C's `Emacs_GC gcv;` is zero-initialised because C fills two of its members one at a time
+/// (PORTING.md 1.13, Deviation 46).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_fringe_bitmap (w: *mut window, row: *mut glyph_row,
+				   p: *mut dispextern_unit_names::draw_fringe_bitmap_params)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 3651
+  let face: *mut face = (*p).face;                                      // C 3652
+
+  let cr: *mut cairo_t = pgtk_begin_cr_clip (f);                        // C 3654
+
+  /* Must clip because of partially visible lines.  */
+  pgtk_clip_to_row (w, row, ANY_AREA, cr);                              // C 3657
+
+  if (*p).bx >= 0 && !dispextern_unit_names::get_overlay_p (p)                                 // C 3659
+    { fill_background_by_face (f, face, (*p).bx, (*p).by, (*p).nx,      // C 3660
+			       (*p).ny); }
+  if (*p).which != 0                                                    // C 3662
+      && (*p).which < max_fringe_bmp                                    // C 3663
+      && (*p).which < dispextern_unit_names::max_used_fringe_bitmap                            // C 3664
+    {
+      let mut gcv: Emacs_GC = Emacs_GC { foreground: 0, background: 0 };   // C 3666
+
+      if (*fringe_bmp.offset ((*p).which as isize)).is_null ()          // C 3668
+	{
+	  /* This fringe bitmap is known to fringe.c, but lacks the
+	     cairo_pattern_t pattern which shadows that bitmap.  This
+	     is typical to define-fringe-bitmap being called when the
+	     selected frame was not a GUI frame, for example, when
+	     packages that define fringe bitmaps are loaded by a
+	     daemon Emacs.  Create the missing pattern now.  */
+	  gui_define_fringe_bitmap (f, (*p).which);                     // C 3676
+	}
+
+      gcv.foreground = if dispextern_unit_names::get_cursor_p (p)                              // C 3679
+	{
+	  if dispextern_unit_names::get_overlay_p (p)                                          // C 3680
+	    { (*face).background }                                      // C 3680
+	  else
+	    { (*FRAME_X_OUTPUT! (f)).cursor_color }                     // C 3681
+	}
+      else
+	{ (*face).foreground };                                         // C 3682
+      gcv.background = (*face).background;                              // C 3683
+      pgtk_cr_draw_image (f, &mut gcv,                                  // C 3684
+			  *fringe_bmp.offset ((*p).which as isize), 0, (*p).dh,
+			  (*p).wd, (*p).h, (*p).x, (*p).y, dispextern_unit_names::get_overlay_p (p));   // C 3685
+    }
+
+  pgtk_end_cr_clip (f);                                                 // C 3688
+}
+
+/// C 3691: `static struct atimer *hourglass_atimer = NULL;`
+#[cfg (feature = "have_pgtk")]
+static mut hourglass_atimer: *mut atimer = core::ptr::null_mut ();
+/// C 3692: `static int hourglass_enter_count = 0;`
+#[cfg (feature = "have_pgtk")]
+static mut hourglass_enter_count: c_int = 0;
+
+/// C 3694-3698: `static void hourglass_cb (struct atimer *timer)` - **C's body is empty**, so the
+/// port keeps it empty (the `frame_set_mouse_pixel_position` (C 401) shape); the function's
+/// *address* is what C hands to `start_atimer`, which is why it is `extern "C"` (atimer.h 44's
+/// `atimer_callback`, `include/atimer.rs` 29).
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" fn hourglass_cb (timer: *mut atimer)
+{
+}
+
+/// C 3700-3727: `static void pgtk_show_hourglass (struct frame *f)` - the four GTK calls that
+/// build the `GDK_INPUT_ONLY` window (`GTK_FIXED!` is `include/gtk.rs` 1677's cast macro,
+/// `gtk_event_box_new` the use-site declaration above), the cursor call with C's `Emacs_Cursor`
+/// pointer cast (P-72 rule 3), and the timer arm.  C's `hourglass_enter_count++ == 0` keeps the
+/// post-increment inside the condition (`src/keyboard.rs` 3889's shape): the increment must happen
+/// on the test too, so the port spells it as a block expression evaluated once per test.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_show_hourglass (f: *mut frame)
+{
+  let x: *mut pgtk_output = FRAME_X_OUTPUT! (f);                        // C 3703
+  if !(*x).hourglass_widget.is_null ()                                  // C 3704
+    { gtk_widget_destroy ((*x).hourglass_widget); }                     // C 3705
+
+  /* This creates a GDK_INPUT_ONLY window.  */
+  (*x).hourglass_widget = gtk_event_box_new ();                         // C 3708
+  gtk_widget_set_has_window ((*x).hourglass_widget, true as gboolean);  // C 3709
+  gtk_fixed_put (GTK_FIXED! (FRAME_GTK_WIDGET! (f)), (*x).hourglass_widget, 0, 0);   // C 3710
+  gtk_widget_show ((*x).hourglass_widget);                              // C 3711
+  gtk_widget_set_size_request ((*x).hourglass_widget, 30000, 30000);    // C 3712
+  gdk_window_raise (gtk_widget_get_window ((*x).hourglass_widget));     // C 3713
+  gdk_window_set_cursor (gtk_widget_get_window ((*x).hourglass_widget), // C 3714
+			 (*x).hourglass_cursor as *mut GdkCursor);      // C 3715
+
+  /* For cursor animation, we receive signals, set pending_signals,
+     and wait for the signal handler to run.  */
+  if { hourglass_enter_count += 1; hourglass_enter_count - 1 == 0 }     // C 3719
+    {
+      let ts: timespec = make_timespec (0, 50 * 1000 * 1000);           // C 3721
+      if !hourglass_atimer.is_null ()                                   // C 3722
+	{ cancel_atimer (hourglass_atimer); }                           // C 3723
+      hourglass_atimer = start_atimer (ATIMER_CONTINUOUS, ts,           // C 3724-3725
+				       Some (hourglass_cb), core::ptr::null_mut ());
+    }
+}
+
+/// C 3729-3746: `static void pgtk_hide_hourglass (struct frame *f)` - C's `--hourglass_enter_count
+/// == 0` is the pre-decrement (the new value is the one tested), so the port spells the pair as one
+/// block expression; the timer's cancel pair and the widget's destroy/null pair follow.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_hide_hourglass (f: *mut frame)
+{
+  let x: *mut pgtk_output = FRAME_X_OUTPUT! (f);                        // C 3732
+  if { hourglass_enter_count -= 1; hourglass_enter_count == 0 }         // C 3733
+    {
+      if !hourglass_atimer.is_null ()                                   // C 3735
+	{
+	  cancel_atimer (hourglass_atimer);                             // C 3737
+	  hourglass_atimer = core::ptr::null_mut ();                    // C 3738
+	}
+    }
+  if !(*x).hourglass_widget.is_null ()                                  // C 3741
+    {
+      gtk_widget_destroy ((*x).hourglass_widget);                       // C 3743
+      (*x).hourglass_widget = core::ptr::null_mut ();                   // C 3744
+    }
+}
+
+/* Flushes changes to display.  */
+
+/// C 3748-3752: `static void pgtk_flush_display (struct frame *f)` - **C's body is empty**, kept
+/// empty (the same shape as `hourglass_cb` above and C 401's `frame_set_mouse_pixel_position`).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_flush_display (f: *mut frame)
+{
+}
