@@ -704,14 +704,17 @@ pub type Emacs_XIOErrorHandler = Option<unsafe extern "C" fn (*mut c_void) -> c_
 /* C 766-768: `#ifndef XtNpickTop` / `#define XtNpickTop "pickTop"`, inside `USE_X_TOOLKIT`
    (750) + `USE_TOOLKIT_SCROLL_BARS` (753) + the `#else` of `USE_MOTIF` (754-769).  The
    `#ifndef` exists because Xaw3d's own header defines the name; the port cannot see the X11
-   headers, so the arm is carried under its enclosing features and the ledger records that.  */
+   headers, so the arm is carried under its enclosing features and the ledger records that.  The
+   macro yields C's `char *` (a string literal in the pointer context C 16243 passes it in) rather
+   than a `&str`, because slice 76's `XtVaGetValues` call is variadic.  */
 #[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit",
             feature = "use_toolkit_scroll_bars", not (feature = "use_motif")))]
-macro_rules! XtNpickTop { () => { "pickTop" } }
+macro_rules! XtNpickTop { () => { c"pickTop".as_ptr () as *mut c_char } }
 
-/* C 774-778: the toolkit's `initialState` resource name, again behind an `#ifndef` guard.  */
+/* C 774-778: the toolkit's `initialState` resource name, again behind an `#ifndef` guard, in
+   the same `char *` form - slice 76's `XtSetArg!` assigns it to `Arg.name`.  */
 #[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
-macro_rules! XtNinitialState { () => { "initialState" } }
+macro_rules! XtNinitialState { () => { c"initialState".as_ptr () as *mut c_char } }
 
 /* C 797-799: `#if defined USE_XCB && defined USE_CAIRO_XCB` -> `USE_CAIRO_XCB_SURFACE`.  C's
    `#define` has no body, so the port's arm defines the name with an empty expansion (the
@@ -10065,6 +10068,40 @@ pub type XtAppContext = *mut c_void;
 #[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
 pub type String = *mut c_char;
 
+/// C: `<X11/Intrinsic.h>`: `typedef long XtArgVal;` / `typedef struct { String name; XtArgVal
+/// value; } Arg;` / `typedef Arg *ArgList;` - the three types C 16074's `Arg av[20]` and every
+/// `XtSetArg` call in this file need - plus the header's own
+/// `#define XtSetArg(arg, n, d) ((void)((arg).name = (n), (arg).value = (XtArgVal)(d)))`, kept as a
+/// macro so C's call text reads the same (the `src/xmenu.rs` 633-697 and `src/xfns.rs` 1186-1199
+/// shapes).  The name it assigns is `*mut c_char` - C's string literal in the pointer context
+/// `(arg).name = (n)` - which is why this file's resource-name rows are functions returning that
+/// pointer, and why C 766-768's and C 774-778's own two macros below return one too.
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtArgVal = c_long;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+#[repr(C)]
+pub struct Arg
+{
+  pub name: *mut c_char,
+  pub value: XtArgVal,
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type ArgList = *mut Arg;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+macro_rules! XtSetArg {
+  ($arg:expr, $n:expr, $d:expr) => {
+    { $arg.name = $n; $arg.value = $d as XtArgVal; } };
+}
+/// C: `<X11/Intrinsic.h>`: `typedef void (*XtCallbackProc) (Widget, XtPointer, XtPointer);` and
+/// `typedef void (*XtActionHookProc) (Widget, XtPointer, String, XEvent *, String *, Cardinal *);`
+/// - the two callback types C 16111/16265's `XtAddCallback`/`XtAppAddActionHook` take, in the
+/// `Option<...>` form this file's `hook!` macro produces.
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtCallbackProc = Option<unsafe extern "C" fn (Widget, XtPointer, XtPointer)>;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtActionHookProc =
+  Option<unsafe extern "C" fn (Widget, XtPointer, String, *mut XEvent, *mut String, *mut Cardinal)>;
+
 /* C 8900-8932: `#ifdef USE_LUCID` - `x_frame_of_widget`.  `FOR_EACH_FRAME` is
    `include/frame.rs` 800-808's macro (the `androidterm.rs` 282 call shape), `XtDisplay`/
    `XtIsTopLevelShell`/`XtParent` are Xt's (no mirror) and `x_dpyinfo` is this file's.  */
@@ -15403,6 +15440,13 @@ arm (and, since slice 74, the Xaw arm's four calls too).  libXt's headers are no
    `docs/ports/xterm.md` is what showed the narrower gate.  */
 #[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
 pub type Widget = *mut _WidgetRec;
+/// C: `<X11/Intrinsic.h>`: `typedef struct _WidgetClassRec *WidgetClass;` - the class pointer C
+/// 16233/16441's `XtCreateWidget` and `scrollbarWidgetClass` take, and the type
+/// `include/widget.rs` 170 gives `emacsFrameClass`'s return without a declaration of its own.
+/// The record is Xaw's, so the pointee is untyped (`include/widget.rs` 155-157's
+/// `EmacsFrame`/`EmacsFrameClass` shape).
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type WidgetClass = *mut c_void;
 #[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
 pub fn XtNheight () -> *mut c_char { c"height".as_ptr () as *mut c_char }
 #[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
@@ -19108,7 +19152,7 @@ unsafe fn x_wm_set_window_state (f: *mut frame, state: c_int)
 
 #[cfg (feature = "use_x_toolkit")]
   {
-    XtSetArg! (al[0], XtNinitialState (), state);                       // C 30350
+    XtSetArg! (al[0], XtNinitialState! (), state);                       // C 30350
     XtSetValues ((*( (*f).output_data.x as *mut x_output )).widget,      // C 30351
 		 al.as_mut_ptr (), 1);
   }
@@ -21238,7 +21282,7 @@ unsafe fn x_toggle_visible_pointer (f: *mut frame, invisible: bool)
   use crate::x11_constants::None;
 
   let mut invisible = invisible;
-  let mut dpyinfo: *mut x_display_info;                                 // C 12102
+  let dpyinfo: *mut x_display_info;                                     // C 12102
 
   dpyinfo = FRAME_DISPLAY_INFO! (f);                                    // C 12104
 
@@ -24709,4 +24753,768 @@ unsafe fn x_create_horizontal_toolkit_scroll_bar (f: *mut frame, bar: *mut scrol
   unblock_input ();                                                     // C 16064
 }
 
-/* C 16067's `#else /* not USE_GTK */` opens the arm whose two twins are the next slice's.  */
+/* C 16067's `#else /* not USE_GTK */` opens this arm: C 16069-16485 is the two creators again,
+   this time over Xt, with C 16081's `#ifdef USE_MOTIF` sub-arm, C 16141's
+   `#else /* !USE_MOTIF i.e. use Xaw */` sub-arm (the second creator's twins are C 16289-16348 and
+   C 16349-16468), and the two Xaw-header guards C 16194/16240 keep for Xaw3d.  The API here is
+   Xt's (`XtSetArg`/`XmCreateScrollBar`/`XtCreateWidget`/`XtAddCallback`/`XtVaGetValues`), so the
+   arm's gate states `use_x_toolkit`: a `use_toolkit_scroll_bars` build without Xt is not one C
+   compiles (slice 72's UM ruling, "the region's whole API is Xt's").  */
+
+/* The names this arm needs that no mirror carries.  **UNVERIFIED**: this machine has no
+   `<X11/StringDefs.h>`, no `<Xaw/Scrollbar.h>` and no Motif headers (`/opt/homebrew/include/X11`
+   holds Xlib's only; `docs/ports/xterm.md`'s Owed 0 names all three), so every resource *string*
+   below is written from the header's own name and is a placeholder - the class slice 72's
+   `XmNsliderSize ()` and slice 74's `XtNwidth`/`XtNshown` already carry.  Each is the
+   `*mut c_char` form `XtSetArg!`'s `(arg).name = (n)` and the variadic `XtVaGetValues` need (C's
+   string literal decays to `char *` there; a Rust `&CStr` would not), which is why these are
+   functions rather than the `&CStr` constants `include/widget.rs` keeps for the names C's own
+   `src/widget.h` defines.  `XtNforeground` is the one such name a mirror *does* own
+   (`include/widget.rs` 56), so C 16155/16363 spell it as that constant's pointer.  */
+
+/// C: `<Xm/ScrollBar.h>`: `#define XmNminimum "minimum"` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNminimum () -> *mut c_char { c"minimum".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNmaximum "maximum"` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNmaximum () -> *mut c_char { c"maximum".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNorientation "orientation"` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNorientation () -> *mut c_char { c"orientation".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNprocessingDirection "processingDirection"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNprocessingDirection () -> *mut c_char { c"processingDirection".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNincrement "increment"` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNincrement () -> *mut c_char { c"increment".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNpageIncrement "pageIncrement"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNpageIncrement () -> *mut c_char { c"pageIncrement".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNbackground "background"` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNbackground () -> *mut c_char { c"background".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNtroughColor "troughColor"` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNtroughColor () -> *mut c_char { c"troughColor".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNdecrementCallback "decrementCallback"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNdecrementCallback () -> *mut c_char { c"decrementCallback".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNdragCallback "dragCallback"` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNdragCallback () -> *mut c_char { c"dragCallback".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNincrementCallback "incrementCallback"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNincrementCallback () -> *mut c_char { c"incrementCallback".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNpageDecrementCallback "pageDecrementCallback"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNpageDecrementCallback () -> *mut c_char { c"pageDecrementCallback".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNpageIncrementCallback "pageIncrementCallback"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNpageIncrementCallback () -> *mut c_char { c"pageIncrementCallback".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNtoBottomCallback "toBottomCallback"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNtoBottomCallback () -> *mut c_char { c"toBottomCallback".as_ptr () as *mut c_char }
+/// C: `<Xm/ScrollBar.h>`: `#define XmNtoTopCallback "toTopCallback"` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub fn XmNtoTopCallback () -> *mut c_char { c"toTopCallback".as_ptr () as *mut c_char }
+
+/* C: `<Xm/ScrollBar.h>`/`<Xm/Xm.h>`: the four `Xm*` scalars C 16086/16087/16294/16295 pass.  The
+   numbers are **UNVERIFIED** placeholders, not Motif's values (the class slice 72's eight
+   `XmCR_*` reasons carry); Owed 0 names the header that would measure them.  */
+/// C: `<Xm/Xm.h>`: `#define XmVERTICAL ...` - **UNVERIFIED** placeholder (not Motif's value).
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub const XmVERTICAL: c_int = 1;
+/// C: `<Xm/Xm.h>`: `#define XmHORIZONTAL ...` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub const XmHORIZONTAL: c_int = 2;
+/// C: `<Xm/ScrollBar.h>`: `#define XmMAX_ON_BOTTOM ...` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub const XmMAX_ON_BOTTOM: c_int = 1;
+/// C: `<Xm/ScrollBar.h>`: `#define XmMAX_ON_RIGHT ...` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+pub const XmMAX_ON_RIGHT: c_int = 3;
+
+/* C: `<Xm/ScrollBar.h>`: `extern Widget XmCreateScrollBar (Widget parent, String name, ArgList
+   args, Cardinal argcount);` - C 16107/16315's factory.  The header has no mirror and is not on
+   this machine, so the citation is the header's own prototype (the `include/gtk.rs` rule).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"), feature = "use_motif"))]
+unsafe extern "C" {
+  pub fn XmCreateScrollBar (parent: Widget, name: String, args: ArgList, argcount: Cardinal)
+    -> Widget;
+}
+
+/// C: `<X11/StringDefs.h>`: `#define XtNmappedWhenManaged "mappedWhenManaged"` - C 16083/16147/
+/// 16291/16355 pass it, in both sub-arms, so it carries the region's gate.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+pub fn XtNmappedWhenManaged () -> *mut c_char { c"mappedWhenManaged".as_ptr () as *mut c_char }
+/// C: `<X11/StringDefs.h>`: `#define XtNiconPixmap "iconPixmap"` - C 30396's `XtSetArg`, which
+/// this slice's `XtSetArg!` is what let rustc reach: with the macro unresolved the whole call was
+/// one "cannot find macro" row and the name inside it was never read (the rows the readings below
+/// call out).  **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+pub fn XtNiconPixmap () -> *mut c_char { c"iconPixmap".as_ptr () as *mut c_char }
+/// C: `<X11/StringDefs.h>`: `#define XtNiconMask "iconMask"` - C 30398's `XtSetArg`, the same
+/// reading.  **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+pub fn XtNiconMask () -> *mut c_char { c"iconMask".as_ptr () as *mut c_char }
+/* C: `<X11/Intrinsic.h>`: `extern Widget XtCreateWidget (String, WidgetClass, Widget, ArgList,
+   Cardinal);` - C 16107's twin in the Xaw sub-arm, C 16233/16441.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+unsafe extern "C" {
+  pub fn XtCreateWidget (name: String, widget_class: WidgetClass, parent: Widget, args: ArgList,
+			 num_args: Cardinal) -> Widget;
+}
+/* C: `<X11/Intrinsic.h>`: `extern void XtAddCallback (Widget, String, XtCallbackProc,
+   XtPointer);` - C 16111-16123's seven Motif callbacks and C 16253/16461's two Xaw ones.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+unsafe extern "C" {
+  pub fn XtAddCallback (widget: Widget, callback_name: String, callback: XtCallbackProc,
+			client_data: XtPointer);
+  /// C: `<X11/Intrinsic.h>`: `extern void XtRealizeWidget (Widget);` - C 16127/16258/16335/16466.
+  pub fn XtRealizeWidget (widget: Widget);
+  /// C: `<X11/Intrinsic.h>`: `#define XtDisplay(w) ((w)->core.screen->display)` and
+  /// `#define XtWindow(w) ((w)->core.window)` - C 16131/16269 read them.  C's two macros are
+  /// written as the calls their bodies name, `include/xlib.rs`'s `XtWindow`-free rule: the Xaw
+  /// `_WidgetRec` has no `screen` member (C's own `CorePart` above carries width/height/border
+  /// only), so the port keeps C's spelling as the two procedures.
+  pub fn XtDisplay (widget: Widget) -> *mut Display;
+  pub fn XtWindow (widget: Widget) -> Window;
+  /// C: `<X11/Intrinsic.h>`: `extern XtActionHookId XtAppAddActionHook (XtAppContext,
+  /// XtActionHookProc, XtPointer);` - C 16265/16471, the hook `xt_action_hook`/
+  /// `xt_horizontal_action_hook` (this file's) register with.
+  pub fn XtAppAddActionHook (app: XtAppContext, proc_: XtActionHookProc,
+			     client_data: XtPointer) -> XtActionHookId;
+}
+/* C: `<Xaw/Scrollbar.h>`: `extern WidgetClass scrollbarWidgetClass;` - C 16441/16233's argument.
+   Declaring it also gives `XtIsSubclass (widget, scrollbarWidgetClass)` (C 15462/15505, this
+   file's `xt_action_hook` pair) the name it had been reading as a bare one.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+unsafe extern "C" {
+  pub static mut scrollbarWidgetClass: WidgetClass;
+}
+
+/// C: `<X11/StringDefs.h>`: `#define XtNorientation "orientation"` - C 16148/16356.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNorientation () -> *mut c_char { c"orientation".as_ptr () as *mut c_char }
+/// C: `<X11/StringDefs.h>`: `#define XtNbackground "background"` - C 16162/16370.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNbackground () -> *mut c_char { c"background".as_ptr () as *mut c_char }
+/// C: `<X11/StringDefs.h>`: `#define XtorientVertical 0` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub const XtorientVertical: c_int = 0;
+/// C: `<X11/StringDefs.h>`: `#define XtorientHorizontal 1` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub const XtorientHorizontal: c_int = 1;
+/// C: `<Xaw/Scrollbar.h>`: `#define XtNbeNiceToColormap "beNiceToColormap"` - C 16203/16214/
+/// 16411/16422, the name C 16194's `#ifdef` tests for.  **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNbeNiceToColormap () -> *mut c_char { c"beNiceToColormap".as_ptr () as *mut c_char }
+/// C: `<Xaw/Scrollbar.h>`: `#define XtNtopShadowPixel "topShadowPixel"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNtopShadowPixel () -> *mut c_char { c"topShadowPixel".as_ptr () as *mut c_char }
+/// C: `<Xaw/Scrollbar.h>`: `#define XtNbottomShadowPixel "bottomShadowPixel"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNbottomShadowPixel () -> *mut c_char { c"bottomShadowPixel".as_ptr () as *mut c_char }
+/// C: `<Xaw/Scrollbar.h>`: `#define XtNscrollVCursor "scrollVCursor"` - **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNscrollVCursor () -> *mut c_char { c"scrollVCursor".as_ptr () as *mut c_char }
+/// C: `<Xaw/Scrollbar.h>`: `#define XtNarrowScrollbars "arrowScrollbars"` - C 16448's guard and
+/// C 16241/16449's argument.  **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNarrowScrollbars () -> *mut c_char { c"arrowScrollbars".as_ptr () as *mut c_char }
+/// C: `<X11/StringDefs.h>`: `#define XtNcursorName "cursorName"` - **UNVERIFIED** placeholder.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNcursorName () -> *mut c_char { c"cursorName".as_ptr () as *mut c_char }
+/// C: `<Xaw/Scrollbar.h>`: `#define XtNjumpProc "jumpProc"` - C 16253/16461.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNjumpProc () -> *mut c_char { c"jumpProc".as_ptr () as *mut c_char }
+/// C: `<Xaw/Scrollbar.h>`: `#define XtNscrollProc "scrollProc"` - C 16254/16462.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+pub fn XtNscrollProc () -> *mut c_char { c"scrollProc".as_ptr () as *mut c_char }
+/* C: `<X11/Intrinsic.h>`: `extern void XtVaSetValues (Widget, ...);` - C 16248/16456's
+   `XtNcursorName`/`"top_left_arrow"` pair, whose sentinel takes the type `include/gtk.rs`'s
+   `XtVaGetValues` reading gave it (`std::ptr::null_mut::<c_void> ()`, Decision 85).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk"),
+	  not (feature = "use_motif")))]
+unsafe extern "C" {
+  pub fn XtVaSetValues (widget: Widget, ...);
+}
+/* C: Xlib.h: `extern int XDefineCursor (Display *, Window, Cursor);` - C 16131/16339's call,
+   the `src/xfns.rs` 1136 use-site row (Xlib's own header is on this machine, but no mirror of
+   this unit's graph carries the name).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+unsafe extern "C" {
+  pub fn XDefineCursor (display: *mut Display, w: Window, cursor: Cursor) -> c_int;
+}
+
+/* Create the widget for scroll bar BAR on frame F.  Record the widget
+   and X window of the scroll bar in BAR.  */
+
+/// C 16069-16275: `static void x_create_toolkit_scroll_bar (struct frame *f, struct scroll_bar
+/// *bar)` - C's `static`, so a plain `unsafe fn`.  The body is C's, arm for arm: C 16081's
+/// `#ifdef USE_MOTIF` block and C 16141's `#else /* !USE_MOTIF i.e. use Xaw */` block, in that
+/// order, with the shared tail (C 16262-16274) after both.  `widget` is assigned once per path by
+/// either block, so it takes no `mut` (the `xt_action_hook` pair's shape); `av` is C's
+/// uninitialised `Arg av[20]` (PORTING.md 1.5: a binding C's own convention leaves to a call, and
+/// Rust's definite-initialisation needs the whole array before `as_mut_ptr`); C's `++ac` is
+/// `ac += 1;`; C's `pixel != -1` states the conversion C relies on
+/// (`(-1 as c_int) as c_ulong`, this file's 18516 shape); C 16087/16295's comma operator
+/// (`... , ++ac;`) is the same two statements; the two `(String)` casts C 16203-16227 puts on the
+/// Xaw names are no-ops here (the names are already `*mut c_char`); and C's `0` in
+/// `XtAppAddActionHook`'s third argument is the null pointer C means.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+unsafe fn x_create_toolkit_scroll_bar (f: *mut frame, bar: *mut scroll_bar)
+{
+  let xwindow: Window;                                                  // C 16072
+  let widget: Widget;                                                   // C 16073
+  let mut av: [Arg; 20] = core::mem::zeroed ();                         // C 16074
+  let mut ac: c_int = 0;                                                // C 16075
+  let scroll_bar_name: *const c_char = SCROLL_BAR_NAME.as_ptr ();       // C 16076
+  let mut pixel: c_ulong;                                               // C 16077
+
+  block_input ();                                                       // C 16079
+
+#[cfg (feature = "use_motif")]
+  {
+    /* Set resources.  Create the widget.  */
+    XtSetArg! (av[ac as usize], XtNmappedWhenManaged (), False);        // C 16083
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNminimum (), 0);                      // C 16084
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNmaximum (), XM_SB_MAX);              // C 16085
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNorientation (), XmVERTICAL);         // C 16086
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNprocessingDirection (), XmMAX_ON_BOTTOM);  // C 16087
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNincrement (), 1);                    // C 16088
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNpageIncrement (), 1);                // C 16089
+    ac += 1;
+
+    /* Note: "background" is the thumb color, and "trough" is the color behind
+       everything. */
+    pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel;  // C 16093
+    if pixel != (-1 as c_int) as c_ulong                                // C 16094
+      {
+	XtSetArg! (av[ac as usize], XmNbackground (), pixel);           // C 16096
+	ac += 1;                                                        // C 16097
+      }
+
+    pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel;  // C 16100
+    if pixel != (-1 as c_int) as c_ulong                                // C 16101
+      {
+	XtSetArg! (av[ac as usize], XmNtroughColor (), pixel);          // C 16103
+	ac += 1;                                                        // C 16104
+      }
+
+    widget = XmCreateScrollBar ((*( (*f).output_data.x as *mut x_output )).edit_widget,  // C 16107
+				scroll_bar_name as *mut c_char, av.as_mut_ptr (),
+				ac as Cardinal);
+
+    /* Add one callback for everything that can happen.  */
+    XtAddCallback (widget, XmNdecrementCallback (),                      // C 16111-16112
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNdragCallback (),                           // C 16113-16114
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNincrementCallback (),                      // C 16115-16116
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNpageDecrementCallback (),                  // C 16117-16118
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNpageIncrementCallback (),                  // C 16119-16120
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNtoBottomCallback (),                       // C 16121-16122
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNtoTopCallback (),                          // C 16123-16124
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+
+    /* Realize the widget.  Only after that is the X window created.  */
+    XtRealizeWidget (widget);                                           // C 16127
+
+    /* Set the cursor to an arrow.  I didn't find a resource to do that.
+       And I'm wondering why it hasn't an arrow cursor by default.  */
+    XDefineCursor (XtDisplay (widget), XtWindow (widget),               // C 16131-16132
+		   (*( (*f).output_data.x as *mut x_output )).nontext_cursor);
+
+#[cfg (feature = "have_xinput2")]
+    /* Ask for input extension button and motion events.  This lets us
+       send the proper `wheel-up' or `wheel-down' events to Emacs.  */
+    if (*FRAME_DISPLAY_INFO! (f)).supports_xi2                          // C 16137
+      {
+	xi_select_scroll_bar_events (FRAME_DISPLAY_INFO! (f),           // C 16138-16139
+				     XtWindow (widget));
+      }
+  }
+
+#[cfg (not (feature = "use_motif"))]
+  {
+    /* Set resources.  Create the widget.  The background of the
+       Xaw3d scroll bar widget is a little bit light for my taste.
+       We don't alter it here to let users change it according
+       to their taste with `emacs*verticalScrollBar.background: xxx'.  */
+    XtSetArg! (av[ac as usize], XtNmappedWhenManaged (), False);        // C 16147
+    ac += 1;
+    XtSetArg! (av[ac as usize], XtNorientation (), XtorientVertical);   // C 16148
+    ac += 1;
+    /* For smoother scrolling with Xaw3d   -sm */
+    /* XtSetArg (av[ac], XtNpickTop, True); ++ac; */
+
+    pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel;  // C 16152
+    if pixel != (-1 as c_int) as c_ulong                                // C 16153
+      {
+	XtSetArg! (av[ac as usize], XtNforeground.as_ptr () as *mut c_char, pixel);  // C 16155
+	ac += 1;                                                        // C 16156
+      }
+
+    pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel;  // C 16159
+    if pixel != (-1 as c_int) as c_ulong                                // C 16160
+      {
+	XtSetArg! (av[ac as usize], XtNbackground (), pixel);           // C 16162
+	ac += 1;                                                        // C 16163
+      }
+
+    /* Top/bottom shadow colors.  */
+
+    /* Allocate them, if necessary.  */
+    if (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel
+	 == (-1 as c_int) as c_ulong                                    // C 16169
+      {
+	pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel;  // C 16171
+	if pixel != (-1 as c_int) as c_ulong                            // C 16172
+	  {
+	    if !x_alloc_lighter_color (f, FRAME_X_DISPLAY! (f),         // C 16174-16176
+				       FRAME_X_COLORMAP! (f),
+				       &raw mut pixel, 1.2, 0x8000)
+	      { pixel = (-1 as c_int) as c_ulong; }                     // C 16177
+	    (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel = pixel;  // C 16178
+	  }
+      }
+    if (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel
+	 == (-1 as c_int) as c_ulong                                    // C 16181
+      {
+	pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel;  // C 16183
+	if pixel != (-1 as c_int) as c_ulong                            // C 16184
+	  {
+	    if !x_alloc_lighter_color (f, FRAME_X_DISPLAY! (f),         // C 16186-16188
+				       FRAME_X_COLORMAP! (f),
+				       &raw mut pixel, 0.6, 0x4000)
+	      { pixel = (-1 as c_int) as c_ulong; }                     // C 16189
+	    (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel = pixel;  // C 16190
+	  }
+      }
+
+#[cfg (feature = "xtnbenicetocolormap")]
+    {
+      /* Tell the toolkit about them.  */
+      if (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel
+	   == (-1 as c_int) as c_ulong
+	  || (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel
+	   == (-1 as c_int) as c_ulong                                   // C 16196-16197
+	/* We tried to allocate a color for the top/bottom shadow, and
+	   failed, so tell Xaw3d to use dithering instead.   */
+	/* But only if we have a small colormap.  Xaw3d can allocate nice
+	   colors itself.  */
+	{
+	  XtSetArg! (av[ac as usize], XtNbeNiceToColormap (),           // C 16203-16205
+		     DefaultDepthOfScreen (FRAME_X_SCREEN! (f)) < 16);
+	  ac += 1;
+	}
+      else
+	/* Tell what colors Xaw3d should use for the top/bottom shadow, to
+	   be more consistent with other emacs 3d colors, and since Xaw3d is
+	   not good at dealing with allocation failure.  */
+	{
+	  /* This tells Xaw3d to use real colors instead of dithering for
+	     the shadows.  */
+	  XtSetArg! (av[ac as usize], XtNbeNiceToColormap (), False);   // C 16214
+	  ac += 1;                                                      // C 16215
+
+	  /* Specify the colors.  */
+	  pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel;  // C 16218
+	  if pixel != (-1 as c_int) as c_ulong                          // C 16219
+	    {
+	      XtSetArg! (av[ac as usize], XtNtopShadowPixel (), pixel); // C 16221
+	      ac += 1;                                                  // C 16222
+	    }
+	  pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel;  // C 16224
+	  if pixel != (-1 as c_int) as c_ulong                          // C 16225
+	    {
+	      XtSetArg! (av[ac as usize], XtNbottomShadowPixel (), pixel);  // C 16227
+	      ac += 1;                                                  // C 16228
+	    }
+	}
+    }
+
+    widget = XtCreateWidget (scroll_bar_name as *mut c_char, scrollbarWidgetClass,  // C 16233-16234
+			     (*( (*f).output_data.x as *mut x_output )).edit_widget,
+			     av.as_mut_ptr (), ac as Cardinal);
+
+    {
+      /* C 16237-16238's `char const *initial = ""; char const *val = initial;` - `val` is written
+	 by the variadic call below, so it takes `mut`.  */
+      let initial: *const c_char = c"".as_ptr ();                       // C 16237
+      let mut val: *const c_char = initial;                             // C 16238
+      /* C 16239-16243's argument list carries `#ifdef XtNarrowScrollbars` (C 16240-16242) *inside*
+	 the call, which Rust cannot express (an attribute on an expression is not stable), so the
+	 call is written once per arm - the "each arm carries the statement" shape Decisions 48/76
+	 record - and C's `NULL` sentinel takes the type Decision 85 gave it.  */
+      #[cfg (feature = "xtnnarrowscrollbars")]
+      XtVaGetValues (widget, XtNscrollVCursor (), &raw mut val as XtPointer,  // C 16239-16243
+		     XtNarrowScrollbars (), &raw mut xaw3d_arrow_scroll as XtPointer,
+		     XtNpickTop! (), &raw mut xaw3d_pick_top as XtPointer,
+		     std::ptr::null_mut::<c_void> ());
+      #[cfg (not (feature = "xtnnarrowscrollbars"))]
+      XtVaGetValues (widget, XtNscrollVCursor (), &raw mut val as XtPointer,  // C 16239/16243
+		     XtNpickTop! (), &raw mut xaw3d_pick_top as XtPointer,
+		     std::ptr::null_mut::<c_void> ());
+      if xaw3d_arrow_scroll != 0 || val == initial                      // C 16244
+	{	/* ARROW_SCROLL */
+	  xaw3d_arrow_scroll = True;                                    // C 16246
+	  /* Isn't that just a personal preference ?   --Stef */
+	  XtVaSetValues (widget, XtNcursorName (),                      // C 16248
+			 c"top_left_arrow".as_ptr (), std::ptr::null_mut::<c_void> ());
+	}
+    }
+
+    /* Define callbacks.  */
+    XtAddCallback (widget, XtNjumpProc (),                              // C 16253
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xaw_jump_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XtNscrollProc (),                            // C 16254-16255
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xaw_scroll_callback),
+		   bar as XtPointer);
+
+    /* Realize the widget.  Only after that is the X window created.  */
+    XtRealizeWidget (widget);                                           // C 16258
+  }
+
+  /* Install an action hook that lets us detect when the user
+     finishes interacting with a scroll bar.  */
+  if action_hook_id.is_null ()                                          // C 16264
+    { action_hook_id = XtAppAddActionHook (Xt_app_con,                  // C 16265
+					   hook! (unsafe extern "C" fn (Widget, XtPointer, String, *mut XEvent, *mut String, *mut Cardinal), xt_action_hook),
+					   std::ptr::null_mut ()); }
+
+  /* Remember X window and widget in the scroll bar vector.  */
+  SET_SCROLL_BAR_X_WIDGET! (bar, widget);                               // C 16268
+  xwindow = XtWindow (widget);                                          // C 16269
+  (*bar).x_window = xwindow;                                            // C 16270
+  (*bar).whole = 1;                                                     // C 16271
+  (*bar).horizontal = false;                                            // C 16272
+
+  unblock_input ();                                                     // C 16274
+}
+
+/// C 16277-16483: `static void x_create_horizontal_toolkit_scroll_bar (struct frame *f, struct
+/// scroll_bar *bar)` - the horizontal twin of the function above, C's `static` and therefore a
+/// plain `unsafe fn`.  Every shape is the vertical one's with C's own differences: C
+/// 16284/16394/16432 pass `SCROLL_BAR_HORIZONTAL_NAME` and C 16294/16356
+/// `XmHORIZONTAL`/`XtorientHorizontal`, C 16295's processing direction is `XmMAX_ON_RIGHT`, the
+/// tail's hook is `horizontal_action_hook_id`/`xt_horizontal_action_hook` (C 16470-16473) and C
+/// 16480 sets `bar->horizontal = true`.
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", not (feature = "use_gtk")))]
+unsafe fn x_create_horizontal_toolkit_scroll_bar (f: *mut frame, bar: *mut scroll_bar)
+{
+  let xwindow: Window;                                                  // C 16280
+  let widget: Widget;                                                   // C 16281
+  let mut av: [Arg; 20] = core::mem::zeroed ();                         // C 16282
+  let mut ac: c_int = 0;                                                // C 16283
+  let scroll_bar_name: *const c_char = SCROLL_BAR_HORIZONTAL_NAME.as_ptr ();  // C 16284
+  let mut pixel: c_ulong;                                               // C 16285
+
+  block_input ();                                                       // C 16287
+
+#[cfg (feature = "use_motif")]
+  {
+    /* Set resources.  Create the widget.  */
+    XtSetArg! (av[ac as usize], XtNmappedWhenManaged (), False);        // C 16291
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNminimum (), 0);                      // C 16292
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNmaximum (), XM_SB_MAX);              // C 16293
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNorientation (), XmHORIZONTAL);       // C 16294
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNprocessingDirection (), XmMAX_ON_RIGHT);  // C 16295
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNincrement (), 1);                    // C 16296
+    ac += 1;
+    XtSetArg! (av[ac as usize], XmNpageIncrement (), 1);                // C 16297
+    ac += 1;
+
+    /* Note: "background" is the thumb color, and "trough" is the color behind
+       everything. */
+    pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel;  // C 16301
+    if pixel != (-1 as c_int) as c_ulong                                // C 16302
+      {
+	XtSetArg! (av[ac as usize], XmNbackground (), pixel);           // C 16304
+	ac += 1;                                                        // C 16305
+      }
+
+    pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel;  // C 16308
+    if pixel != (-1 as c_int) as c_ulong                                // C 16309
+      {
+	XtSetArg! (av[ac as usize], XmNtroughColor (), pixel);          // C 16311
+	ac += 1;                                                        // C 16312
+      }
+
+    widget = XmCreateScrollBar ((*( (*f).output_data.x as *mut x_output )).edit_widget,  // C 16315
+				scroll_bar_name as *mut c_char, av.as_mut_ptr (),
+				ac as Cardinal);
+
+    /* Add one callback for everything that can happen.  */
+    XtAddCallback (widget, XmNdecrementCallback (),                      // C 16319-16320
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNdragCallback (),                           // C 16321-16322
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNincrementCallback (),                      // C 16323-16324
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNpageDecrementCallback (),                  // C 16325-16326
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNpageIncrementCallback (),                  // C 16327-16328
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNtoBottomCallback (),                       // C 16329-16330
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XmNtoTopCallback (),                          // C 16331-16332
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xm_scroll_callback),
+		   bar as XtPointer);
+
+    /* Realize the widget.  Only after that is the X window created.  */
+    XtRealizeWidget (widget);                                           // C 16335
+
+    /* Set the cursor to an arrow.  I didn't find a resource to do that.
+       And I'm wondering why it hasn't an arrow cursor by default.  */
+    XDefineCursor (XtDisplay (widget), XtWindow (widget),               // C 16339-16340
+		   (*( (*f).output_data.x as *mut x_output )).nontext_cursor);
+
+#[cfg (feature = "have_xinput2")]
+    /* Ask for input extension button and motion events.  This lets us
+       send the proper `wheel-up' or `wheel-down' events to Emacs.  */
+    if (*FRAME_DISPLAY_INFO! (f)).supports_xi2                          // C 16345
+      {
+	xi_select_scroll_bar_events (FRAME_DISPLAY_INFO! (f),           // C 16346-16347
+				     XtWindow (widget));
+      }
+  }
+
+#[cfg (not (feature = "use_motif"))]
+  {
+    /* Set resources.  Create the widget.  The background of the
+       Xaw3d scroll bar widget is a little bit light for my taste.
+       We don't alter it here to let users change it according
+       to their taste with `emacs*verticalScrollBar.background: xxx'.  */
+    XtSetArg! (av[ac as usize], XtNmappedWhenManaged (), False);        // C 16355
+    ac += 1;
+    XtSetArg! (av[ac as usize], XtNorientation (), XtorientHorizontal);  // C 16356
+    ac += 1;
+    /* For smoother scrolling with Xaw3d   -sm */
+    /* XtSetArg (av[ac], XtNpickTop, True); ++ac; */
+
+    pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_foreground_pixel;  // C 16360
+    if pixel != (-1 as c_int) as c_ulong                                // C 16361
+      {
+	XtSetArg! (av[ac as usize], XtNforeground.as_ptr () as *mut c_char, pixel);  // C 16363
+	ac += 1;                                                        // C 16364
+      }
+
+    pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel;  // C 16367
+    if pixel != (-1 as c_int) as c_ulong                                // C 16368
+      {
+	XtSetArg! (av[ac as usize], XtNbackground (), pixel);           // C 16370
+	ac += 1;                                                        // C 16371
+      }
+
+    /* Top/bottom shadow colors.  */
+
+    /* Allocate them, if necessary.  */
+    if (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel
+	 == (-1 as c_int) as c_ulong                                    // C 16377
+      {
+	pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel;  // C 16379
+	if pixel != (-1 as c_int) as c_ulong                            // C 16380
+	  {
+	    if !x_alloc_lighter_color (f, FRAME_X_DISPLAY! (f),         // C 16382-16384
+				       FRAME_X_COLORMAP! (f),
+				       &raw mut pixel, 1.2, 0x8000)
+	      { pixel = (-1 as c_int) as c_ulong; }                     // C 16385
+	    (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel = pixel;  // C 16386
+	  }
+      }
+    if (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel
+	 == (-1 as c_int) as c_ulong                                    // C 16389
+      {
+	pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_background_pixel;  // C 16391
+	if pixel != (-1 as c_int) as c_ulong                            // C 16392
+	  {
+	    if !x_alloc_lighter_color (f, FRAME_X_DISPLAY! (f),         // C 16394-16396
+				       FRAME_X_COLORMAP! (f),
+				       &raw mut pixel, 0.6, 0x4000)
+	      { pixel = (-1 as c_int) as c_ulong; }                     // C 16397
+	    (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel = pixel;  // C 16398
+	  }
+      }
+
+#[cfg (feature = "xtnbenicetocolormap")]
+    {
+      /* Tell the toolkit about them.  */
+      if (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel
+	   == (-1 as c_int) as c_ulong
+	  || (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel
+	   == (-1 as c_int) as c_ulong                                   // C 16404-16405
+	/* We tried to allocate a color for the top/bottom shadow, and
+	   failed, so tell Xaw3d to use dithering instead.   */
+	/* But only if we have a small colormap.  Xaw3d can allocate nice
+	   colors itself.  */
+	{
+	  XtSetArg! (av[ac as usize], XtNbeNiceToColormap (),           // C 16411-16412
+		     DefaultDepthOfScreen (FRAME_X_SCREEN! (f)) < 16);
+	  ac += 1;
+	}
+      else
+	/* Tell what colors Xaw3d should use for the top/bottom shadow, to
+	   be more consistent with other emacs 3d colors, and since Xaw3d is
+	   not good at dealing with allocation failure.  */
+	{
+	  /* This tells Xaw3d to use real colors instead of dithering for
+	     the shadows.  */
+	  XtSetArg! (av[ac as usize], XtNbeNiceToColormap (), False);   // C 16422
+	  ac += 1;                                                      // C 16423
+
+	  /* Specify the colors.  */
+	  pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_top_shadow_pixel;  // C 16426
+	  if pixel != (-1 as c_int) as c_ulong                          // C 16427
+	    {
+	      XtSetArg! (av[ac as usize], XtNtopShadowPixel (), pixel); // C 16429
+	      ac += 1;                                                  // C 16430
+	    }
+	  pixel = (*( (*f).output_data.x as *mut x_output )).scroll_bar_bottom_shadow_pixel;  // C 16432
+	  if pixel != (-1 as c_int) as c_ulong                          // C 16433
+	    {
+	      XtSetArg! (av[ac as usize], XtNbottomShadowPixel (), pixel);  // C 16435
+	      ac += 1;                                                  // C 16436
+	    }
+	}
+    }
+
+    widget = XtCreateWidget (scroll_bar_name as *mut c_char, scrollbarWidgetClass,  // C 16441-16442
+			     (*( (*f).output_data.x as *mut x_output )).edit_widget,
+			     av.as_mut_ptr (), ac as Cardinal);
+
+    {
+      let initial: *const c_char = c"".as_ptr ();                       // C 16445
+      let mut val: *const c_char = initial;                             // C 16446
+      #[cfg (feature = "xtnnarrowscrollbars")]
+      XtVaGetValues (widget, XtNscrollVCursor (), &raw mut val as XtPointer,  // C 16447-16451
+		     XtNarrowScrollbars (), &raw mut xaw3d_arrow_scroll as XtPointer,
+		     XtNpickTop! (), &raw mut xaw3d_pick_top as XtPointer,
+		     std::ptr::null_mut::<c_void> ());
+      #[cfg (not (feature = "xtnnarrowscrollbars"))]
+      XtVaGetValues (widget, XtNscrollVCursor (), &raw mut val as XtPointer,  // C 16447/16451
+		     XtNpickTop! (), &raw mut xaw3d_pick_top as XtPointer,
+		     std::ptr::null_mut::<c_void> ());
+      if xaw3d_arrow_scroll != 0 || val == initial                      // C 16452
+	{	/* ARROW_SCROLL */
+	  xaw3d_arrow_scroll = True;                                    // C 16454
+	  /* Isn't that just a personal preference ?   --Stef */
+	  XtVaSetValues (widget, XtNcursorName (),                      // C 16456
+			 c"top_left_arrow".as_ptr (), std::ptr::null_mut::<c_void> ());
+	}
+    }
+
+    /* Define callbacks.  */
+    XtAddCallback (widget, XtNjumpProc (),                              // C 16461
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xaw_jump_callback),
+		   bar as XtPointer);
+    XtAddCallback (widget, XtNscrollProc (),                            // C 16462-16463
+		   hook! (unsafe extern "C" fn (Widget, XtPointer, XtPointer), xaw_scroll_callback),
+		   bar as XtPointer);
+
+    /* Realize the widget.  Only after that is the X window created.  */
+    XtRealizeWidget (widget);                                           // C 16466
+  }
+
+  /* Install an action hook that lets us detect when the user
+     finishes interacting with a scroll bar.  */
+  if horizontal_action_hook_id.is_null ()                               // C 16472
+    { horizontal_action_hook_id = XtAppAddActionHook (Xt_app_con,       // C 16473
+						      hook! (unsafe extern "C" fn (Widget, XtPointer, String, *mut XEvent, *mut String, *mut Cardinal), xt_horizontal_action_hook),
+						      std::ptr::null_mut ()); }
+
+  /* Remember X window and widget in the scroll bar vector.  */
+  SET_SCROLL_BAR_X_WIDGET! (bar, widget);                               // C 16475
+  xwindow = XtWindow (widget);                                          // C 16476
+  (*bar).x_window = xwindow;                                            // C 16477
+  (*bar).whole = 1;                                                     // C 16478
+  (*bar).horizontal = true;                                             // C 16480
+
+  unblock_input ();                                                     // C 16482
+}
+
+/* C 16485's `#endif /* not USE_GTK */` closes this arm.  */
