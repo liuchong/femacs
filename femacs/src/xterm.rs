@@ -18948,3 +18948,102 @@ pub unsafe extern "C" fn x_get_atom_name (dpyinfo: *mut x_display_info, atom: At
 
   return value;                                                         // C 30073
 }
+
+/* Intern an array of atoms, and do so quickly, avoiding extraneous
+   roundtrips to the X server.
+
+   Avoid sending atoms that have already been found to the X server.
+   This cannot do anything that will end up triggering garbage
+   collection.  */
+
+/// C 30083-30121: `void x_intern_atoms (struct x_display_info *dpyinfo, char **names, int count,
+/// Atom *atoms_return)` - non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub
+/// unsafe extern "C" fn` (PORTING.md 0.2/1.4).  C's three fixed `[256]` arrays are zero-initialised
+/// (Deviation 12 - C leaves them uninitialised and only ever writes before reading), and
+/// `XInternAtoms` is the bare Xlib class (`## Owed`).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_intern_atoms (dpyinfo: *mut x_display_info, names: *mut *mut c_char,
+					 count: c_int, atoms_return: *mut Atom)
+{
+  let mut i: c_int;                                                     // C 30087
+  let mut j: c_int;                                                     // C 30087
+  let mut indices: [c_int; 256] = [0; 256];                             // C 30087
+  let mut new_names: [*mut c_char; 256] = [std::ptr::null_mut (); 256];  // C 30088
+  let mut results: [Atom; 256] = [0; 256];                              // C 30089
+  let mut candidate: Atom;                                              // C 30089
+
+  if count > 256                                                        // C 30091
+    /* Atoms array too big to inspect reasonably, just send it to the
+       server and back.  */
+    {
+      XInternAtoms ((*dpyinfo).display, new_names.as_mut_ptr (), count, false,  // C 30094
+		    atoms_return);
+    }
+  else
+    {
+      i = 0;                                                            // C 30097
+      j = 0;                                                            // C 30097
+      loop
+	{
+	  if !(i < count)                                               // C 30097
+	    { break; }
+
+	  candidate = x_intern_cached_atom (dpyinfo,                     // C 30099-30100
+					    *names.offset (i as isize), true);
+
+	  if candidate != 0                                             // C 30102
+	    { *atoms_return.offset (i as isize) = candidate; }           // C 30103
+	  else
+	    {
+	      indices[j as usize] = i;                                   // C 30106, C's `indices[j++]`
+	      j += 1;
+	      new_names[(j - 1) as usize] = *names.offset (i as isize);  // C 30107
+	    }
+
+	  i += 1;                                                        // C 30097, the `for`'s step
+	}
+
+      if j == 0                                                         // C 30111
+	{ return; }                                                     // C 30112
+
+      /* Now, get the results back from the X server.  */
+      XInternAtoms ((*dpyinfo).display, new_names.as_mut_ptr (), j, false,  // C 30115-30116
+		    results.as_mut_ptr ());
+
+      i = 0;                                                            // C 30118
+      loop
+	{
+	  if !(i < j)                                                   // C 30118
+	    { break; }
+	  *atoms_return.offset (indices[i as usize] as isize) = results[i as usize];  // C 30119
+	  i += 1;                                                        // C 30118, the `for`'s step
+	}
+    }
+}
+
+/* Set up XEmbed for F, and change its save set to handle the parent
+   being destroyed.  */
+
+/// C 30128-30144: `bool x_embed_frame (struct x_display_info *dpyinfo, struct frame *f)` -
+/// non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`
+/// (PORTING.md 0.2/1.4); C 30123's `#ifndef USE_GTK` is the port's gate, and the four
+/// `x_*_errors*` helpers and `XReparentWindow` are the recorded bare-name classes.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_embed_frame (dpyinfo: *mut x_display_info, f: *mut frame) -> bool
+{
+  let mut rc: bool;                                                     // C 30131
+
+  x_catch_errors ((*dpyinfo).display);                                  // C 30133
+  /* Catch errors; the target window might no longer exist.  */
+  XReparentWindow ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),         // C 30135-30136
+		   (*(FRAME_OUTPUT_DATA! (f) as *mut x_output)).parent_desc, 0, 0);
+  rc = x_had_errors_p ((*dpyinfo).display);                             // C 30137
+  x_uncatch_errors_after_check ();                                      // C 30138
+
+  if rc                                                                 // C 30140
+    { return false; }                                                   // C 30141
+
+  return true;                                                          // C 30143
+}
