@@ -1745,3 +1745,4 @@ DELTAP1	goto,deltap1_start	C 7714's `deltap1_start:` and C 7722's `goto deltap1_
 DELTAP2	goto,deltap2_start	the same reading as DELTAP1's row at C 7731/7739, with `sfnt_deltap (2, ...)`
 DELTAP3	goto,deltap3_start	the same reading as DELTAP1's row at C 7748/7756, with `sfnt_deltap (3, ...)`
 sfnt_interpret_simple_glyph	alloca	C 12339's `alloca (zone_size)` is the port's stack pool (`sa_stack_alloc`, PORTING.md P-05 - the `sfnt_build_outline_edges` and `sfnt_build_outline_fedges` rows' class), so the token cannot reappear; the size, the `1024 * 16` threshold and the two arms' pointer assignments are still compared
+sfnt_interpret_compound_glyph_2	alloca	C 12634's `alloca (zone_size)` is the port's stack pool (`sa_stack_alloc`, PORTING.md P-05), the same row as `sfnt_interpret_simple_glyph`'s: the token cannot reappear, while the size, the `1024 * 16` threshold and the two arms are still compared

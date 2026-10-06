@@ -67,8 +67,15 @@
 // frees the heap-allocated zone through the preserved pointer before returning the trap reason.
 // The outline it builds is the `sfnt_instructed_outline` that C 12450-12475 lays out after one
 // `xmalloc`.
-// **What is left after slice 16** is C 12591-13369's three compound-glyph interpreters and
-// C 16448-21215, the TEST programme (the ledger's Owed 21).
+// **Slice 17 takes C 12567-12739** - `sfnt_interpret_compound_glyph_2` (C 12590-12739), the first
+// of the three compound-glyph interpreters: C's plain `static`, the same zone-building shapes as
+// slice 16 (the `ckd_mul`/`ckd_add` sizing, the `alloca`/`xmalloc` fork, the two `volatile`
+// locals, the type-spelled `sizeof *zone->…` sites), the contour renumbering and the two
+// coordinate-copy loops, S1/S2 written into the zone's original x array, and the phantom points
+// written back into `context` through the two `x_base`/`y_base` pointers.
+// **What is left after slice 17** is `sfnt_interpret_compound_glyph_1` (C 12750-13201), the
+// `TEST_STATIC` `sfnt_interpret_compound_glyph` (C 13229-13321) and C 16448-21215, the TEST
+// programme (the ledger's Owed 21).
 // The ledger
 // `docs/ports/sfnt.md` carries the C line-range table for the rows (up to C 21215), the
 // `## Evidence` readings and the `## Deviations`.
@@ -17235,4 +17242,229 @@ pub unsafe extern "C" fn sfnt_interpret_simple_glyph (glyph: *mut sfnt_glyph,
   /* Return the outline and NULL.  */
   *value = outline;                                    // C 12482
   return std::ptr::null ();                            // C 12483
+}
+
+/* Internal helper for sfnt_interpret_compound_glyph_3.
+
+   Instruct the compound glyph GLYPH using INTERPRETER after all of
+   its components have been instructed.  Save the resulting points
+   within CONTEXT, and set its phantom point fields to match as well.
+
+   Use the unscaled METRICS to compute the phantom points of this
+   glyph.
+
+   CONTEXT contains the points and contours of this compound glyph,
+   numbered starting from BASE_INDEX and BASE_CONTOUR respectively.
+   In addition, CONTEXT also contains two additional ``phantom
+   points'' supplying the left and right side bearings of GLYPH.
+
+   S1 and S2 are the unrounded values of the last two phantom points,
+   which supply the original values saved into the glyph zone.  In
+   practical terms, they are set as the last two values of the glyph
+   zone's original position array.
+
+   Value is NULL upon success, or a description of the error upon
+   failure.  */
+
+/* C 12590's `static const char *` is C's plain `static` (not `TEST_STATIC`), so the port's
+   `unsafe fn`: the zone sizing, the `alloca`/`xmalloc` fork, the two `volatile` locals and the
+   three `sizeof *zone->…` spellings are slice 16's shapes (Deviations 84 (a)-(d)), and the two
+   `ckd_mul`s keep C's multiplicand inside the call for the reason measured there.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_interpret_compound_glyph_2 (glyph: *mut sfnt_glyph,
+					   interpreter: *mut sfnt_interpreter,
+					   context: *mut sfnt_compound_glyph_context,
+					   base_index: size_t, base_contour: size_t,
+					   metrics: *mut sfnt_glyph_metrics,
+					   s1: sfnt_f26dot6, s2: sfnt_f26dot6)
+  -> *const c_char                                       // C 12590-12739
+{
+  let mut num_points: size_t;
+  let mut num_contours: size_t;
+  let mut i: size_t;
+  let mut zone_size: size_t;
+  let mut temp: size_t;
+  let mut zone: *mut sfnt_interpreter_zone;
+  let mut preserved_zone: *mut sfnt_interpreter_zone;
+  let mut zone_was_allocated: bool;
+  let mut x_base: *mut sfnt_f26dot6;
+  let mut y_base: *mut sfnt_f26dot6;
+
+  /* Figure out how many points and contours there are to instruct.  A
+     minimum of two points must be present, namely: the origin and
+     advance phantom points.  */
+  num_points = (*context).num_points - base_index;       // C 12608
+  num_contours = (*context).num_end_points - base_contour;   // C 12609
+  eassert! (num_points >= 2);                            // C 12610
+
+  /* Nothing to instruct! */
+  if num_points == 0 && num_contours == 0                 // C 12613
+    { return std::ptr::null (); }                        // C 12614
+
+  /* Build the zone.  First, calculate the size of the zone
+     structure.  */
+
+  zone_size = 0;                                         // C 12619
+  zone_was_allocated = false;                            // C 12620
+
+  let (ckd_result, ckd_overflow)
+    = size_t::overflowing_mul (num_points + 2,
+			       std::mem::size_of::<sfnt_f26dot6> () * 4);   // C 12622
+  temp = ckd_result;
+  if ckd_overflow
+    { return c"Glyph exceeded maximum permissible size".as_ptr (); }   // C 12629
+  let (ckd_result, ckd_overflow) = zone_size.overflowing_add (temp);   // C 12623
+  zone_size = ckd_result;
+  if ckd_overflow
+    { return c"Glyph exceeded maximum permissible size".as_ptr (); }
+  let (ckd_result, ckd_overflow)
+    = size_t::overflowing_mul (num_contours,
+			       std::mem::size_of::<size_t> ());   // C 12624
+  temp = ckd_result;
+  if ckd_overflow
+    { return c"Glyph exceeded maximum permissible size".as_ptr (); }
+  let (ckd_result, ckd_overflow) = zone_size.overflowing_add (temp);   // C 12625
+  zone_size = ckd_result;
+  if ckd_overflow
+    { return c"Glyph exceeded maximum permissible size".as_ptr (); }
+  let (ckd_result, ckd_overflow)
+    = size_t::overflowing_mul (num_points + 2,
+			       std::mem::size_of::<c_uchar> ());   // C 12626
+  temp = ckd_result;
+  if ckd_overflow
+    { return c"Glyph exceeded maximum permissible size".as_ptr (); }
+  let (ckd_result, ckd_overflow) = zone_size.overflowing_add (temp);   // C 12627
+  zone_size = ckd_result;
+  if ckd_overflow
+    { return c"Glyph exceeded maximum permissible size".as_ptr (); }
+  let (ckd_result, ckd_overflow)
+    = zone_size.overflowing_add (std::mem::size_of::<sfnt_interpreter_zone> ());   // C 12628
+  zone_size = ckd_result;
+  if ckd_overflow
+    { return c"Glyph exceeded maximum permissible size".as_ptr (); }
+
+  /* Don't use malloc if possible.  */
+
+  if zone_size <= 1024 * 16                            // C 12633
+    { zone = sa_stack_alloc (zone_size) as *mut sfnt_interpreter_zone; }   // C 12634
+  else
+    {
+      zone = xmalloc (zone_size) as *mut sfnt_interpreter_zone;   // C 12637
+      zone_was_allocated = true;                       // C 12638
+    }
+
+  /* Now load the zone with data.  */
+  (*zone).num_points = num_points;                     // C 12642
+  (*zone).num_contours = num_contours;                 // C 12643
+  (*zone).contour_end_points = zone.offset (1) as *mut size_t;   // C 12644
+  (*zone).x_points = (*zone).contour_end_points.offset ((*zone).num_contours as isize)
+    as *mut sfnt_f26dot6;                              // C 12645-12646
+  (*zone).x_current = (*zone).x_points.offset ((*zone).num_points as isize);   // C 12647
+  (*zone).y_points = (*zone).x_current.offset ((*zone).num_points as isize);   // C 12648
+  (*zone).y_current = (*zone).y_points.offset ((*zone).num_points as isize);   // C 12649
+  (*zone).flags = (*zone).y_current.offset ((*zone).num_points as isize) as *mut c_uchar;   // C 12650-12651
+  (*zone).simple = std::ptr::null_mut ();              // C 12652
+
+  /* Copy and renumber all contour end points to start from
+     base_index.  */
+
+  i = 0;                                               // C 12657
+  while i < (*zone).num_contours
+    {
+      *(*zone).contour_end_points.offset (i as isize)  // C 12658-12660
+	= *(*context).contour_end_points.offset ((base_contour + i) as isize)
+	  - base_index;
+      i += 1;
+    }
+
+  /* Now copy over x_points, x_current, y_points and y_current.  */
+
+  i = 0;                                               // C 12664
+  while i < num_points
+    {
+      *(*zone).x_current.offset (i as isize)
+	= *(*context).x_coordinates.offset ((i + base_index) as isize);   // C 12666
+      *(*zone).x_points.offset (i as isize)
+	= *(*context).x_coordinates.offset ((i + base_index) as isize);   // C 12667
+      i += 1;
+    }
+
+  i = 0;                                               // C 12670
+  while i < num_points
+    {
+      *(*zone).y_current.offset (i as isize)
+	= *(*context).y_coordinates.offset ((i + base_index) as isize);   // C 12672
+      *(*zone).y_points.offset (i as isize)
+	= *(*context).y_coordinates.offset ((i + base_index) as isize);   // C 12673
+
+      /* Set flags.  */
+      *(*zone).flags.offset (i as isize)               // C 12676-12677
+	= *(*context).flags.offset ((i + base_index) as isize)
+	  & !(SFNT_POINT_TOUCHED_BOTH as c_uchar);
+      i += 1;
+    }
+
+  /* Copy S1 and S2 into the glyph zone.  */
+  eassert! (num_points >= 2);                           // C 12681
+  *(*zone).x_points.offset ((num_points - 1) as isize) = s2;   // C 12682
+  *(*zone).x_points.offset ((num_points - 2) as isize) = s1;   // C 12683
+
+  /* Load the compound glyph program.  */
+  (*interpreter).IP = 0;                               // C 12686
+  (*interpreter).SP = (*interpreter).stack;            // C 12687
+  (*interpreter).instructions = (*(*glyph).compound).instructions;   // C 12688
+  (*interpreter).num_instructions = (*(*glyph).compound).instruction_length;   // C 12689
+  (*interpreter).glyph_zone = zone;                    // C 12690
+
+  /* Copy zone over to this volatile variable.  */
+  preserved_zone = zone;                               // C 12693
+
+  if setjmp (&raw mut (*interpreter).trap) != 0        // C 12695
+    {
+      if zone_was_allocated
+	{ xfree (preserved_zone as *mut c_void); }     // C 12698
+
+      (*interpreter).glyph_zone = std::ptr::null_mut ();   // C 12700
+      return (*interpreter).trap_reason;               // C 12701
+    }
+
+  sfnt_interpret_run (interpreter, SFNT_RUN_CONTEXT_GLYPH_PROGRAM);   // C 12704
+  (*interpreter).glyph_zone = std::ptr::null_mut ();   // C 12705
+
+  /* Move preserved_zone back to zone.  */
+  zone = preserved_zone;                               // C 12708
+
+  /* Now copy the instructed points back, and add the two phantom
+     points to the end.  */
+
+  i = 0;                                               // C 12713
+  while i < num_points
+    {
+      *(*context).x_coordinates.offset ((base_index + i) as isize)
+	= *(*zone).x_current.offset (i as isize);       // C 12715
+      *(*context).y_coordinates.offset ((base_index + i) as isize)
+	= *(*zone).y_current.offset (i as isize);       // C 12716
+      i += 1;
+    }
+
+  /* Return the phantom points after instructing completes to the
+     context's coordinate arrays.  */
+  x_base = &raw mut *(*context).x_coordinates.offset ((i - 2) as isize);   // C 12721
+  y_base = &raw mut *(*context).y_coordinates.offset ((i - 2) as isize);   // C 12722
+  *x_base.offset (0) = *(*zone).x_current.offset ((num_points - 2) as isize);   // C 12723
+  *x_base.offset (1) = *(*zone).x_current.offset ((num_points - 1) as isize);   // C 12724
+  *y_base.offset (0) = *(*zone).y_current.offset ((num_points - 2) as isize);   // C 12725
+  *y_base.offset (1) = *(*zone).y_current.offset ((num_points - 1) as isize);   // C 12726
+  (*context).phantom_point_1_x = *x_base.offset (0);    // C 12727
+  (*context).phantom_point_1_y = *y_base.offset (0);    // C 12728
+  (*context).phantom_point_1_s = *x_base.offset (0);    // C 12729
+  (*context).phantom_point_2_x = *x_base.offset (1);    // C 12730
+  (*context).phantom_point_2_y = *y_base.offset (1);    // C 12731
+  (*context).phantom_point_2_s = *x_base.offset (1);    // C 12732
+
+  /* Free the zone if needed.  */
+  if zone_was_allocated
+    { xfree (zone as *mut c_void); }                   // C 12736
+
+  return std::ptr::null ();                            // C 12738
 }
