@@ -6758,3 +6758,119 @@ unsafe extern "C" {
    `include/gtk.rs` 805-817 carries for `GTK_IS_MENU`/`GTK_IS_WINDOW`/`GTK_IS_LABEL` ("each keeping
    the macro's name and its result type"): no GTK tree on this machine can measure the real type
    check, so the stand-in is the null test that mirror already uses for its three.  */
+
+/* C 4702-4731: `static void frame_highlight (struct frame *f)` - C defines it `static` and the
+   only use is C 4792's call inside this file (no site takes its address), so it stays a plain
+   `unsafe fn`; PORTING.md 1.4's `unsafe extern "C" fn` form is for the positions whose address
+   C takes.  */
+#[cfg (feature = "have_pgtk")]
+unsafe fn frame_highlight (f: *mut frame)
+{
+  block_input ();                                                       // C 4705
+  let w: *mut GtkWidget = FRAME_WIDGET! (f);                            // C 4706
+
+  let css: *mut c_char = g_strdup_printf (c"decoration { border: solid %dpx #%06x; }".as_ptr (),   // C 4708
+					  (*f).border_width,            // C 4709
+					  ((*FRAME_X_OUTPUT! (f)).border_pixel as c_uint) & 0x00ffffff);   // C 4710-4711
+
+  let ctxt: *mut GtkStyleContext = gtk_widget_get_style_context (w);    // C 4713
+  let css_provider: *mut GtkCssProvider = gtk_css_provider_new ();      // C 4714
+  gtk_css_provider_load_from_data (css_provider, css, -1, core::ptr::null_mut ());   // C 4715
+  gtk_style_context_add_provider (ctxt, GTK_STYLE_PROVIDER! (css_provider),   // C 4716
+				  GTK_STYLE_PROVIDER_PRIORITY_USER);    // C 4717
+  g_free (css as gpointer);                                                         // C 4718
+
+  let old: *mut GtkCssProvider = (*FRAME_X_OUTPUT! (f)).border_color_css_provider;   // C 4720
+  (*FRAME_X_OUTPUT! (f)).border_color_css_provider = css_provider;      // C 4721
+  if !old.is_null ()                                                    // C 4722
+    {
+      gtk_style_context_remove_provider (ctxt, GTK_STYLE_PROVIDER! (old));   // C 4724
+      g_object_unref (old as gpointer);                                 // C 4725
+    }
+
+  unblock_input ();                                                     // C 4728
+  gui_update_cursor (f, true);                                          // C 4729
+  pgtk_set_frame_alpha (f);                                             // C 4730
+}
+
+/* C 4733-4766: `static void frame_unhighlight (struct frame *f)` - `static` again and one call
+   site (C 4790), so a plain `unsafe fn`.  C declares its five locals at the top and assigns
+   them below; the port keeps C's order with uninitialised `let` bindings (this unit's
+   `pgtk_free_devices` shape, C 1869-1870).  */
+#[cfg (feature = "have_pgtk")]
+unsafe fn frame_unhighlight (f: *mut frame)
+{
+  let w: *mut GtkWidget;
+  let css: *mut c_char;
+  let ctxt: *mut GtkStyleContext;
+  let css_provider: *mut GtkCssProvider;
+  let old: *mut GtkCssProvider;
+
+  block_input ();                                                       // C 4741
+
+  w = FRAME_WIDGET! (f);                                                // C 4743
+
+  css = g_strdup_printf (c"decoration { border: dotted %dpx #ffffff; }".as_ptr (),   // C 4745
+			 (*f).border_width);                            // C 4746
+
+  ctxt = gtk_widget_get_style_context (w);                              // C 4748
+  css_provider = gtk_css_provider_new ();                               // C 4749
+  gtk_css_provider_load_from_data (css_provider, css, -1, core::ptr::null_mut ());   // C 4750
+  gtk_style_context_add_provider (ctxt, GTK_STYLE_PROVIDER! (css_provider),   // C 4751
+				  GTK_STYLE_PROVIDER_PRIORITY_USER);    // C 4752
+  g_free (css as gpointer);                                                         // C 4753
+
+  old = (*FRAME_X_OUTPUT! (f)).border_color_css_provider;               // C 4755
+  (*FRAME_X_OUTPUT! (f)).border_color_css_provider = css_provider;      // C 4756
+  if !old.is_null ()                                                    // C 4757
+    {
+      gtk_style_context_remove_provider (ctxt, GTK_STYLE_PROVIDER! (old));   // C 4759
+      g_object_unref (old as gpointer);                                 // C 4760
+    }
+
+  unblock_input ();                                                     // C 4763
+  gui_update_cursor (f, true);                                          // C 4764
+  pgtk_set_frame_alpha (f);                                             // C 4765
+}
+
+/* C 4768-4793: `void pgtk_frame_rehighlight (struct pgtk_display_info *dpyinfo)` - non-`static`
+   in C (pgtkterm.h 648 declares it and C 513 calls it), so it carries `#[unsafe(no_mangle)]` and
+   `extern "C"` (PORTING.md 0.2).  C 4776-4779's assignment is one ternary over two `FRAME_*`
+   reads, and C 4787's `= 0` is the null pointer of this record's `struct frame *x_focus_frame`
+   type.  */
+#[cfg (feature = "have_pgtk")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn pgtk_frame_rehighlight (dpyinfo: *mut pgtk_display_info)
+{
+  let old_highlight: *mut frame = (*dpyinfo).highlight_frame;           // C 4772
+
+  if !(*dpyinfo).x_focus_frame.is_null ()                               // C 4774
+    {
+      (*dpyinfo).highlight_frame                                        // C 4776-4779
+	= if FRAMEP (FRAME_FOCUS_FRAME ((*dpyinfo).x_focus_frame))
+	    { XFRAME (FRAME_FOCUS_FRAME ((*dpyinfo).x_focus_frame)) }
+	  else
+	    { (*dpyinfo).x_focus_frame };
+      if !FRAME_LIVE_P ((*dpyinfo).highlight_frame)                     // C 4780
+	{
+	  fset_focus_frame ((*dpyinfo).x_focus_frame, Qnil ());            // C 4782
+	  (*dpyinfo).highlight_frame = (*dpyinfo).x_focus_frame;        // C 4783
+	}
+    }
+  else
+    { (*dpyinfo).highlight_frame = core::ptr::null_mut (); }            // C 4787
+
+  if !old_highlight.is_null ()                                          // C 4789
+    { frame_unhighlight (old_highlight); }                              // C 4790
+  if !(*dpyinfo).highlight_frame.is_null ()                             // C 4791
+    { frame_highlight ((*dpyinfo).highlight_frame); }                   // C 4792
+}
+
+/* C: dispextern.h 3656: `extern void gui_update_cursor (struct frame *, bool);` - the C 4729 and
+   C 4764 calls.  This unit's own use-site declaration (the `src/haikufns.rs` 138 and
+   `src/pgtkfns.rs` 547 shape); `include/dispextern.rs` carries no row for it yet, which Owed 14
+   names.  */
+#[cfg (feature = "have_pgtk")]
+unsafe extern "C" {
+  pub fn gui_update_cursor (f: *mut frame, on_p: bool);
+}
