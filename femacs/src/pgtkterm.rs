@@ -6074,3 +6074,187 @@ unsafe fn pgtk_scroll_bar_remove (bar: *mut scroll_bar)
 
   unblock_input ();                                                     // C 4206
 }
+
+/* Set the handle of the vertical scroll bar for WINDOW to indicate
+   that we are displaying PORTION characters out of a total of WHOLE
+   characters, starting at POSITION.  If WINDOW has no scroll bar,
+   create one.  */
+
+/// C 4214-4285: `static void pgtk_set_vertical_scroll_bar (struct window *w, int portion, int whole,
+/// int position)` - `window_box` is this unit's own declaration (C 3123's call site) and C's two
+/// `0`s are its null outputs, `WINDOW_SCROLL_BAR_AREA_X`/`_WIDTH` are `include/window.rs`
+/// 750/744's macros, the record's two Lisp_Object slots are that mirror's plain fields
+/// (`vertical_scroll_bar` 92), `XSCROLL_BAR` is `include/pgtkterm.rs` 520-522's, and C's
+/// `max (height, 1)` carries its `int` conversion back (`as c_int`).  C 7442 takes this function's
+/// address (the terminal's `set_vertical_scroll_bar_hook`), so it stays a plain `unsafe fn` until
+/// that slice converts it (the `pgtk_ring_bell` note).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+					position: c_int)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 4218
+  let mut barobj: Lisp_Object;                                          // C 4219
+  let bar: *mut scroll_bar;                                             // C 4220
+  let mut top: c_int;                                                   // C 4221
+  let mut height: c_int;
+  let mut left: c_int;
+  let mut width: c_int;
+  let mut window_y: c_int = 0;                                          // C 4222
+  let mut window_height: c_int = 0;
+
+  /* Get window dimensions.  */
+  window_box (w, ANY_AREA, core::ptr::null_mut (), &raw mut window_y,   // C 4225
+	      core::ptr::null_mut (), &raw mut window_height);
+  top = window_y;                                                       // C 4226
+  height = window_height;                                               // C 4227
+  left = WINDOW_SCROLL_BAR_AREA_X! (w);                                 // C 4228
+  width = WINDOW_SCROLL_BAR_AREA_WIDTH! (w);                            // C 4229
+
+  /* Does the scroll bar exist yet?  */
+  if NILP ((*w).vertical_scroll_bar)                                    // C 4232
+    {
+      if width > 0 && height > 0                                        // C 4234
+	{
+	  block_input ();                                               // C 4236
+	  pgtk_clear_area (f, left, top, width, height);                // C 4237
+	  unblock_input ();                                             // C 4238
+	}
+
+      bar = pgtk_scroll_bar_create (w, top, left, width,                // C 4241
+				    max (height as isize, 1) as c_int, false);
+    }
+  else
+    {
+      /* It may just need to be moved and resized.  */
+      let mut mask: c_uint = 0;                                         // C 4246
+
+      bar = XSCROLL_BAR! ((*w).vertical_scroll_bar);                    // C 4248
+
+      block_input ();                                                   // C 4250
+
+      if left != (*bar).left                                            // C 4252
+	{ mask |= 1; }                                                  // C 4253
+      if top != (*bar).top                                              // C 4254
+	{ mask |= 1; }                                                  // C 4255
+      if width != (*bar).width                                          // C 4256
+	{ mask |= 1; }                                                  // C 4257
+      if height != (*bar).height                                        // C 4258
+	{ mask |= 1; }                                                  // C 4259
+
+      /* Move/size the scroll bar widget.  */
+      if mask != 0                                                      // C 4262
+	{
+	  /* Since toolkit scroll bars are smaller than the space reserved
+	     for them on the frame, we have to clear "under" them.  */
+	  if width > 0 && height > 0                                    // C 4266
+	    { pgtk_clear_area (f, left, top, width, height); }          // C 4267
+	  xg_update_scrollbar_pos (f, (*bar).x_window as ptrdiff_t, top, // C 4268-4269
+				   left, width, max (height as isize, 1) as c_int);
+	}
+
+      /* Remember new settings.  */
+      (*bar).left = left;                                               // C 4273
+      (*bar).top = top;                                                 // C 4274
+      (*bar).width = width;                                             // C 4275
+      (*bar).height = height;                                           // C 4276
+
+      unblock_input ();                                                 // C 4278
+    }
+
+  pgtk_set_toolkit_scroll_bar_thumb (bar, portion, position, whole);    // C 4281
+
+  XSETVECTOR! (barobj, bar);                                            // C 4283
+  wset_vertical_scroll_bar (w, barobj);                                 // C 4284
+}
+
+/// C 4287-4365: `static void pgtk_set_horizontal_scroll_bar (struct window *w, int portion, int
+/// whole, int position)` - the horizontal twin: `WINDOW_PIXEL_WIDTH` is `include/window.rs` 415's
+/// function, `WINDOW_SCROLL_BAR_AREA_Y`/`_HEIGHT` are its 827/778 macros, and the clear area in the
+/// move arm spans `WINDOW_LEFT_EDGE_X` (601) to `WINDOW_RIGHT_DIVIDER_WIDTH` (582) short of the
+/// window's pixel width.  Its address is taken by the same slice as the vertical one's.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_set_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+					  position: c_int)
+{
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 4291
+  let mut barobj: Lisp_Object;                                          // C 4292
+  let bar: *mut scroll_bar;                                             // C 4293
+  let mut top: c_int;                                                   // C 4294
+  let mut height: c_int;
+  let mut left: c_int;
+  let mut width: c_int;
+  let mut window_x: c_int = 0;                                          // C 4295
+  let mut window_width: c_int = 0;
+  let pixel_width: c_int = WINDOW_PIXEL_WIDTH (w);                      // C 4296
+
+  /* Get window dimensions.  */
+  window_box (w, ANY_AREA, &raw mut window_x, core::ptr::null_mut (),   // C 4299
+	      &raw mut window_width, core::ptr::null_mut ());
+  left = window_x;                                                      // C 4300
+  width = window_width;                                                 // C 4301
+  top = WINDOW_SCROLL_BAR_AREA_Y! (w);                                  // C 4302
+  height = WINDOW_SCROLL_BAR_AREA_HEIGHT! (w);                          // C 4303
+
+  /* Does the scroll bar exist yet?  */
+  if NILP ((*w).horizontal_scroll_bar)                                  // C 4306
+    {
+      if width > 0 && height > 0                                        // C 4308
+	{
+	  block_input ();                                               // C 4310
+
+	  /* Clear also part between window_width and
+	     WINDOW_PIXEL_WIDTH.  */
+	  pgtk_clear_area (f, left, top, pixel_width, height);          // C 4314
+	  unblock_input ();                                             // C 4315
+	}
+
+      bar = pgtk_scroll_bar_create (w, top, left, width, height, true);  // C 4318
+    }
+  else
+    {
+      /* It may just need to be moved and resized.  */
+      let mut mask: c_uint = 0;                                         // C 4323
+
+      bar = XSCROLL_BAR! ((*w).horizontal_scroll_bar);                  // C 4325
+
+      block_input ();                                                   // C 4327
+
+      if left != (*bar).left                                            // C 4329
+	{ mask |= 1; }                                                  // C 4330
+      if top != (*bar).top                                              // C 4331
+	{ mask |= 1; }                                                  // C 4332
+      if width != (*bar).width                                          // C 4333
+	{ mask |= 1; }                                                  // C 4334
+      if height != (*bar).height                                        // C 4335
+	{ mask |= 1; }                                                  // C 4336
+
+      /* Move/size the scroll bar widget.  */
+      if mask != 0                                                      // C 4339
+	{
+	  /* Since toolkit scroll bars are smaller than the space reserved
+	     for them on the frame, we have to clear "under" them.  */
+	  if width > 0 && height > 0                                    // C 4343
+	    {
+	      pgtk_clear_area (f,                                        // C 4344-4347
+			       WINDOW_LEFT_EDGE_X! (w), top,
+			       pixel_width - WINDOW_RIGHT_DIVIDER_WIDTH! (w),
+			       height);
+	    }
+	  xg_update_horizontal_scrollbar_pos (f, (*bar).x_window as ptrdiff_t, top, left,   // C 4348-4349
+					      width, height);
+	}
+
+      /* Remember new settings.  */
+      (*bar).left = left;                                               // C 4353
+      (*bar).top = top;                                                 // C 4354
+      (*bar).width = width;                                             // C 4355
+      (*bar).height = height;                                           // C 4356
+
+      unblock_input ();                                                 // C 4358
+    }
+
+  pgtk_set_toolkit_horizontal_scroll_bar_thumb (bar, portion, position, whole);   // C 4361
+
+  XSETVECTOR! (barobj, bar);                                            // C 4363
+  wset_horizontal_scroll_bar (w, barobj);                               // C 4364
+}
