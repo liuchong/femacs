@@ -21699,3 +21699,199 @@ unsafe fn x_next_event_from_any_display (event: *mut XEvent)
 	{ rfds = fds; }                                                 // C 12536
     }
 }
+
+/// C 12542-12554: `static void x_handle_pending_selection_requests_1 (struct
+/// x_selection_request_event *tem)` - C's `static`, so a plain `unsafe fn`.  C's `se = tem->se`
+/// copies the record `include/xterm.rs` 1476 carries without `Copy`, so the port's assignment
+/// moves it out of the pointer (the same bytes, and C frees `tem` on the next line through
+/// `record_unwind_protect_ptr`); the `xfree` argument is the mirror's `xfree_wrapper`
+/// (`include/lisp.rs` 3073, the `x_create_gc`-neighbour site's rule) and `x_handle_selection_event`
+/// is xterm.h 1921's prototype, declared here because no mirror this graph reaches carries it
+/// (the `x_preserve_selections` row).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_handle_pending_selection_requests_1 (tem: *mut x_selection_request_event)
+{
+  unsafe extern "C" {
+    /// C: xterm.h 1919-1921: `extern void x_handle_selection_event (struct selection_input_event *);`
+    pub fn x_handle_selection_event (event: *mut selection_input_event);
+  }
+
+  let count: specpdl_ref;                                               // C 12545
+  let mut se: selection_input_event = core::mem::zeroed ();             // C 12546 (Deviation 12)
+
+  count = SPECPDL_INDEX ();                                             // C 12548
+  /* C's `se = tem->se` is the record's own bytes; `include/xterm.rs`'s record carries no
+     `Copy` (a C struct assignment is the port's `copy_nonoverlapping`, the `src/buffer.rs`
+     820 shape).  */
+  std::ptr::copy_nonoverlapping (&raw const (*tem).se, &raw mut se, 1);  // C 12549
+
+  record_unwind_protect_ptr (Some (xfree_wrapper), tem as *mut c_void);  // C 12551
+  x_handle_selection_event (&raw mut se);                               // C 12552
+  unbind_to (count, Qnil ());                                           // C 12553
+}
+
+/* Handle all pending selection request events from modal event
+   loops.  */
+
+/// C 12558-12570: `void x_handle_pending_selection_requests (void)` - non-`static` and declared
+/// in xterm.h 1857, so the exported shape above; this is the definition the C 958 call site (unit
+/// 1396) has been owing since slice 1.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_handle_pending_selection_requests ()
+{
+  let mut tem: *mut x_selection_request_event;                          // C 12561
+
+  while !pending_selection_requests.is_null ()                          // C 12563
+    {
+      tem = pending_selection_requests;                                 // C 12565
+      pending_selection_requests = (*tem).next;                         // C 12566
+
+      x_handle_pending_selection_requests_1 (tem);                      // C 12568
+    }
+}
+
+/// C 12572-12581: `static void x_push_selection_request (struct selection_input_event *se)` - C's
+/// `static` (C 891's forward declaration has no Rust counterpart, PORTING.md 0.1-12); the record
+/// is `xmalloc`'d from the mirror's prototype and both struct assignments are C's own member
+/// copies.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_push_selection_request (se: *mut selection_input_event)
+{
+  let tem: *mut x_selection_request_event;                              // C 12575
+
+  tem = xmalloc (std::mem::size_of::<x_selection_request_event> ())     // C 12577
+	  as *mut x_selection_request_event;
+  (*tem).next = pending_selection_requests;                             // C 12578
+  std::ptr::copy_nonoverlapping (se, &raw mut (*tem).se, 1);            // C 12579
+  pending_selection_requests = tem;                                     // C 12580
+}
+
+/// C 12583-12587: `bool x_detect_pending_selection_requests (void)` - non-`static` and declared in
+/// xterm.h 1857-1858, so the exported shape above; C's `!!pending_selection_requests` is the
+/// port's pointer test (the `x_error_message` 14156 shape).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_detect_pending_selection_requests () -> bool
+{
+  return !pending_selection_requests.is_null ();                        // C 12586
+}
+
+/// C 12589-12593: `static void x_clear_dnd_action (void)` - C's `static`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_clear_dnd_action ()
+{
+  x_dnd_action_symbol = Qnil ();                                        // C 12592
+}
+
+/* Delete action descriptions from F after drag-and-drop.  */
+
+/// C 12595-12617: `static void x_dnd_delete_action_list (Lisp_Object frame)` - C's `static`;
+/// `XDeleteProperty` is the bare Xlib class (the reading names it) and the two atoms are the
+/// display record's members this file already reads.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_delete_action_list (frame: Lisp_Object)
+{
+  let mut f: *mut frame;                                                // C 12599
+
+  /* Delete those two properties, since some clients look at them and
+     not the action to decide whether or not the user should be
+     prompted to select an action.  This can be called with FRAME no
+     longer alive (or its display dead).  */
+
+  f = XFRAME (frame);                                                   // C 12606
+
+  if !FRAME_LIVE_P (f) || (*FRAME_DISPLAY_INFO! (f)).display.is_null ()  // C 12608
+    { return; }                                                         // C 12609
+
+  block_input ();                                                       // C 12611
+  XDeleteProperty (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),           // C 12612-12613
+		   (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionList);
+  XDeleteProperty (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),           // C 12614-12615
+		   (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionDescription);
+  unblock_input ();                                                     // C 12616
+}
+
+/// C 12619-12630: `static void x_dnd_lose_ownership (Lisp_Object timestamp_and_frame)` - C's
+/// `static`; the subr is the mirror's `Fx_disown_selection_internal` and the selection symbol is
+/// the mirror's `QXdndSelection`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_lose_ownership (timestamp_and_frame: Lisp_Object)
+{
+  let f: *mut frame;                                                    // C 12622
+
+  f = XFRAME (XCDR (timestamp_and_frame));                              // C 12624
+
+  if FRAME_LIVE_P (f)                                                   // C 12626
+    {
+      Fx_disown_selection_internal (QXdndSelection (),                   // C 12627-12629
+				    XCAR (timestamp_and_frame),
+				    XCDR (timestamp_and_frame));
+    }
+}
+
+/* Clean up an existing drag-and-drop operation in preparation for its
+   sudden termination.  */
+
+/// C 12632-12683: `static void x_dnd_process_quit (struct frame *f, Time timestamp)` - C's
+/// `static`.  The `dmsg` record's narrow members take C's own casts (the xterm.rs 4944-4960
+/// block's shape, `XM_DRAG_REASON!`/`XM_DRAG_SIDE_EFFECT!` included), `XM_DRAG_STYLE_IS_DROP_ONLY`
+/// is this unit's `XM_DRAG_STYLE_IS_DROP_ONLY!` and C's `!` becomes `== false` (the same block's
+/// reading); `None` is the mirror's X11 constant.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_process_quit (f: *mut frame, timestamp: Time)
+{
+  use crate::x11_constants::None;
+
+  let mut dmsg: xm_drop_start_message = std::mem::zeroed ();            // C 12638 (Deviation 12)
+
+  if x_dnd_in_progress                                                // C 12640
+    {
+      if x_dnd_last_seen_window != None as Window                       // C 12642
+	  && x_dnd_last_protocol_version != -1                          // C 12643
+	{
+	  x_dnd_send_leave (f, x_dnd_last_seen_window,                  // C 12644-12645
+			    x_dnd_last_seen_toplevel);
+	}
+      else if x_dnd_last_seen_window != None as Window                  // C 12646
+	       && XM_DRAG_STYLE_IS_DROP_ONLY! (x_dnd_last_motif_style) == false  // C 12647
+	       && x_dnd_last_motif_style != xm_drag_style::XM_DRAG_STYLE_NONE as c_int  // C 12648
+	       && x_dnd_motif_setup_p                                       // C 12649
+	{
+	  dmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR  // C 12651-12652
+					 as c_int,
+					 xm_drag_reason::XM_DRAG_REASON_DROP_START
+					 as c_int) as u8;
+	  dmsg.byte_order = XM_BYTE_ORDER_CUR_FIRST as u8;              // C 12653
+	  dmsg.timestamp = timestamp as u32;                            // C 12654
+	  dmsg.side_effects                                             // C 12655-12659
+	    = XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (FRAME_DISPLAY_INFO! (f),
+							       x_dnd_wanted_action),
+				   xm_drop_site_status::XM_DROP_SITE_VALID as c_int,
+				   x_dnd_motif_operations as c_int,
+				   xm_drag_action::XM_DROP_ACTION_DROP_CANCEL
+				   as c_int) as u16;
+	  dmsg.x = 0;                                                   // C 12660
+	  dmsg.y = 0;                                                   // C 12661
+	  dmsg.index_atom = x_dnd_motif_atom as u32;                    // C 12662
+	  dmsg.source_window = FRAME_X_WINDOW! (f) as u32;              // C 12663
+
+	  x_dnd_send_xm_leave_for_drop (FRAME_DISPLAY_INFO! (f), f,     // C 12665-12667
+					x_dnd_last_seen_window,
+					timestamp);
+	  xm_send_drop_message (FRAME_DISPLAY_INFO! (f), FRAME_X_WINDOW! (f),  // C 12668-12669
+				x_dnd_last_seen_window, &raw mut dmsg);
+	}
+
+      x_dnd_end_window = x_dnd_last_seen_window;                        // C 12672
+      x_dnd_last_seen_window = None as Window;                          // C 12673
+      x_dnd_last_seen_toplevel = None as Window;                        // C 12674
+      x_dnd_in_progress = false;                                        // C 12675
+      x_dnd_frame = std::ptr::null_mut ();                              // C 12676
+    }
+
+  x_dnd_waiting_for_finish = false;                                     // C 12679
+  x_dnd_return_frame_object = std::ptr::null_mut ();                    // C 12680
+  x_dnd_movement_frame = std::ptr::null_mut ();                         // C 12681
+  x_dnd_wheel_frame = std::ptr::null_mut ();                            // C 12682
+}
