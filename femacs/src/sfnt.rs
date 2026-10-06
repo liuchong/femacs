@@ -34,10 +34,15 @@
 // `sfnt_interpret_shp`, the four point-access macros with `IUP_SINGLE_PAIR`,
 // `sfnt_interpret_iup_1`, `sfnt_interpret_iup`, `sfnt_interpret_mirp`,
 // `sfnt_project_zp1_zp0_org` and `sfnt_interpret_mdrp`.
-// **What is left after slice 11** is C 6559-8159 (the interpreter macros, whose home is
-// `sfnt_interpret_run`'s slice, above), C 11396-13917 (`sfnt_interpret_run` itself through the
-// instructed-outline builders, the three compound-glyph interpreters and the UVS family) and
-// C 16448-21215, the TEST programme (the ledger's Owed 21);
+// **Slice 12 takes C 13370-13915** (the variation-selector and table-mapping block, out of
+// order: the two UVS readers, the three comparators, `sfnt_create_uvs_context`/`sfnt_free_uvs_context`,
+// `sfnt_variation_glyph_for_char`, `sfnt_is_character_default` and the mapping trio
+// `sfnt_map_table`/`sfnt_unmap_table`/`sfnt_read_table`, the last three of which `src/sfntfont.rs`
+// already calls).
+// **What is left after slice 12** is C 6559-8159 (the interpreter macros, whose home is
+// `sfnt_interpret_run`'s slice, above), C 11396-13369 (`sfnt_interpret_run` itself through the
+// instructed-outline builders and the three compound-glyph interpreters) and C 16448-21215, the
+// TEST programme (the ledger's Owed 21);
 // C 9832's `sfnt_interpret_call` is the one landed call whose callee (`sfnt_interpret_run`) is
 // still unported
 // (P-91 ④ names it).  The ledger
@@ -13997,4 +14002,644 @@ unsafe fn sfnt_interpret_mdrp (interpreter: *mut sfnt_interpreter, opcode: uint3
 
   if (opcode & 16) != 0                                    // C 11380
     { (*interpreter).state.rp0 = p as uint16_t; }          // C 11381
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 13370-13915: the variation-selector and table-mapping block, in C's order - C 13370-13372's
+   comment with `sfnt_read_default_uvs_table` (C 13375-13438), C 13440-13442's with
+   `sfnt_read_nondefault_uvs_table` (C 13445-13512), C 13514's with `sfnt_compare_table_offsets`
+   (C 13517-13530), C 13532-13540's with `sfnt_create_uvs_context` (C 13543-13701),
+   C 13703's with `sfnt_free_uvs_context` (C 13706-13717), C 13719-13720's with
+   `sfnt_compare_uvs_mapping` (C 13723-13737), C 13739's with `sfnt_compare_unicode_value_range`
+   (C 13742-13757), C 13759-13763's with `sfnt_variation_glyph_for_char` (C 13765-13776),
+   C 13778-13779's with `sfnt_is_character_default` (C 13782-13791), and C 13797-13899's comments
+   with the mapping trio under C 13795's `#if defined HAVE_MMAP && !defined TEST` and C 13871's
+   `#ifndef TEST`: `sfnt_map_table` (C 13815-13856), `sfnt_unmap_table` (C 13862-13865) and
+   `sfnt_read_table` (C 13880-13915).  **The next live definition is C 13918's glyph-metrics
+   block** (`sfnt_scale_metrics`, ported in slice 7), and the ledger's `## C line ranges` names both
+   boundaries.
+
+   `qsort`/`bsearch` are declared at their use site (`<stdlib.h>`, no mirror carries them; the
+   `buffer.rs` 129-134 `qsort` shape), and the three comparators are `unsafe extern "C" fn` because
+   C takes their addresses (PORTING.md 1.4).  C's `TEST_STATIC` (C 128/137) is
+   `#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]`, and the three functions C puts
+   inside `#ifndef TEST` are gated `not (feature = "test")` on top of the file gate.
+   ---------------------------------------------------------------------------------------------- */
+/// C 13375-13438: `sfnt_read_default_uvs_table` - C's `static`, called by `sfnt_create_uvs_context`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_read_default_uvs_table (fd: c_int, offset: off_t) -> *mut sfnt_default_uvs_table
+{                                                          // C 13375-13438
+  let mut uvs: *mut sfnt_default_uvs_table;
+  /* C 13378's counters are filled in through `read` (their addresses are taken); zero-initialised
+     so Rust's analysis sees what C's flow guarantees (PORTING.md 1.5, Deviation 10's class).  */
+  let mut num_ranges: uint32_t = 0;
+  let mut i: uint32_t;
+  let mut j: uint32_t;
+  let mut size: ssize_t;
+  let mut temp: ssize_t;
+  /* C 13380's `char data[512]` is written by `read` before it is read; zero-initialised
+     (PORTING.md 1.5).  */
+  let mut data: [c_char; 512] = [0; 512];
+
+  /* First, seek to the given offset.  */
+
+  if lseek (fd, offset, SEEK_SET) != offset             // C 13384
+    { return std::ptr::null_mut (); }                    // C 13385
+
+  /* Next, read the number of ranges present.  */
+
+  if read (fd, &raw mut num_ranges as *mut c_void, std::mem::size_of::<uint32_t> ())
+     != std::mem::size_of::<uint32_t> () as ssize_t      // C 13389-13390
+    { return std::ptr::null_mut (); }                    // C 13391
+
+  /* Swap the number of ranges present.  */
+  sfnt_swap32! (&raw mut num_ranges);                     // C 13394
+
+  /* Now, allocate enough to hold the UVS table.  */
+
+  size = std::mem::size_of::<sfnt_default_uvs_table> () as ssize_t;   // C 13398
+  /* C 13399-13401's `ckd_mul (&temp, num_ranges, sizeof *uvs->ranges) || ckd_add (&size, size,
+     temp)`: the two `__builtin_*_overflow` calls write their result through the pointer and return
+     the flag, so the port writes the two halves out and returns early (P-15's spelling, the
+     `sfnt_read_cmap_table` site).  */
+  let (ckd_temp, mul_overflow)
+    = (num_ranges as ssize_t).overflowing_mul (std::mem::size_of::<sfnt_unicode_value_range> ()
+					       as ssize_t);
+  temp = ckd_temp;
+  if mul_overflow
+    { return std::ptr::null_mut (); }
+  let (ckd_size, add_overflow) = size.overflowing_add (temp);
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  uvs = xmalloc (size as usize) as *mut sfnt_default_uvs_table;   // C 13403
+
+  /* Fill in the data which was already read.  */
+  (*uvs).num_unicode_value_ranges = num_ranges;            // C 13406
+
+  /* Fill in the pointer to the ranges.  */
+  (*uvs).ranges = uvs.offset (1) as *mut sfnt_unicode_value_range;   // C 13409
+  i = 0;                                                   // C 13410
+
+  /* Read each default UVS range in multiples of 512 bytes.  Then,
+     fill in uvs->ranges.  */
+
+  while num_ranges != 0                                    // C 13415
+    {
+      size = (if num_ranges > 128 { 512 } else { num_ranges * 4 }) as ssize_t;   // C 13417
+
+      if read (fd, data.as_mut_ptr () as *mut c_void, size as usize) != size   // C 13419
+	{
+	  xfree (uvs as *mut c_void);                      // C 13421
+	  return std::ptr::null_mut ();                    // C 13422
+	}
+
+      j = 0;                                               // C 13425
+      while j < (size / 4) as uint32_t
+	{
+	  (*(*uvs).ranges.offset ((i + j) as isize)).start_unicode_value
+	    = sfnt_read_24 ((data.as_mut_ptr () as *mut c_uchar).offset ((j * 4) as isize));   // C 13427-13428
+	  (*(*uvs).ranges.offset ((i + j) as isize)).additional_count
+	    = data[(j * 4 + 1) as usize] as u8;            // C 13429
+	  j += 1;
+	}
+
+      i += j;                                              // C 13432
+      num_ranges -= (size / 4) as uint32_t;                // C 13433
+    }
+
+  /* Return the resulting default UVS table.  */
+  return uvs;                                              // C 13437
+}
+
+/// C 13445-13512: `sfnt_read_nondefault_uvs_table` - C's `static`, called by
+/// `sfnt_create_uvs_context`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_read_nondefault_uvs_table (fd: c_int, offset: off_t)
+					   -> *mut sfnt_nondefault_uvs_table
+{                                                          // C 13445-13512
+  let mut uvs: *mut sfnt_nondefault_uvs_table;
+  /* The same class as `sfnt_read_default_uvs_table`'s counters.  */
+  let mut num_mappings: uint32_t = 0;
+  let mut i: uint32_t;
+  let mut j: uint32_t;
+  let mut size: ssize_t;
+  let mut temp: ssize_t;
+  /* C 13450's `char data[500]`, the same class as the 512-byte one above.  */
+  let mut data: [c_char; 500] = [0; 500];
+
+  /* First, seek to the given offset.  */
+
+  if lseek (fd, offset, SEEK_SET) != offset             // C 13454
+    { return std::ptr::null_mut (); }                    // C 13455
+
+  /* Next, read the number of mappings present.  */
+
+  if read (fd, &raw mut num_mappings as *mut c_void, std::mem::size_of::<uint32_t> ())
+     != std::mem::size_of::<uint32_t> () as ssize_t      // C 13459-13460
+    { return std::ptr::null_mut (); }                    // C 13461
+
+  /* Swap the number of mappings present.  */
+  sfnt_swap32! (&raw mut num_mappings);                   // C 13464
+
+  /* Now, allocate enough to hold the UVS table.  */
+
+  size = std::mem::size_of::<sfnt_nondefault_uvs_table> () as ssize_t;   // C 13468
+  let (ckd_temp, mul_overflow)
+    = (num_mappings as ssize_t).overflowing_mul (std::mem::size_of::<sfnt_uvs_mapping> ()
+						 as ssize_t);   // C 13469
+  temp = ckd_temp;
+  if mul_overflow
+    { return std::ptr::null_mut (); }
+  let (ckd_size, add_overflow) = size.overflowing_add (temp);   // C 13470
+  size = ckd_size;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  uvs = xmalloc (size as usize) as *mut sfnt_nondefault_uvs_table;   // C 13473
+
+  /* Fill in the data which was already read.  */
+  (*uvs).num_uvs_mappings = num_mappings;                  // C 13476
+
+  /* Fill in the pointer to the mappings.  */
+  (*uvs).mappings = uvs.offset (1) as *mut sfnt_uvs_mapping;   // C 13479
+
+  i = 0;                                                   // C 13481
+
+  /* Read each nondefault UVS mapping in multiples of 500 bytes.
+     Then, fill in uvs->ranges.  */
+
+  while num_mappings != 0                                  // C 13486
+    {
+      size = (if num_mappings > 100 { 500 } else { num_mappings * 5 }) as ssize_t;   // C 13488
+
+      if read (fd, data.as_mut_ptr () as *mut c_void, size as usize) != size   // C 13490
+	{
+	  xfree (uvs as *mut c_void);                      // C 13492
+	  return std::ptr::null_mut ();                    // C 13493
+	}
+
+      j = 0;                                               // C 13496
+      while j < (size / 5) as uint32_t
+	{
+	  (*(*uvs).mappings.offset ((i + j) as isize)).unicode_value
+	    = sfnt_read_24 ((data.as_mut_ptr () as *mut c_uchar).offset ((j * 5) as isize));   // C 13498-13499
+	  memcpy (
+	    &raw mut (*(*uvs).mappings.offset ((i + j) as isize)).base_character_value
+	    as *mut uint16_t as *mut c_void,
+	    (data.as_mut_ptr () as *mut c_char).offset ((j * 5 + 3) as isize) as *const c_void,
+	    std::mem::size_of::<uint16_t> ());             // C 13500-13502
+	  sfnt_swap16! (&raw mut (*(*uvs).mappings.offset ((i + j) as isize))
+			.base_character_value);            // C 13503
+	  j += 1;
+	}
+
+      i += j;                                              // C 13506
+      num_mappings -= (size / 5) as uint32_t;              // C 13507
+    }
+
+  /* Return the nondefault UVS table.  */
+  return uvs;                                              // C 13511
+}
+
+/// C 13517-13530: `sfnt_compare_table_offsets` - C's `static`, whose address `qsort`/`bsearch`
+/// take (PORTING.md 1.4).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_compare_table_offsets (a: *const c_void, b: *const c_void) -> c_int
+{                                                          // C 13517-13530
+  let mut rec_a: *const sfnt_table_offset_rec;
+  let mut rec_b: *const sfnt_table_offset_rec;
+
+  rec_a = a as *const sfnt_table_offset_rec;               // C 13521
+  rec_b = b as *const sfnt_table_offset_rec;               // C 13522
+
+  if (*rec_a).offset < (*rec_b).offset                     // C 13524
+    { return -1; }                                         // C 13525
+  else if (*rec_a).offset > (*rec_b).offset                // C 13526
+    { return 1; }                                          // C 13527
+
+  return 0;                                                // C 13529
+}
+
+/* C: <stdlib.h>: `void qsort (void *, size_t, size_t, int (*) (const void *, const void *));` and
+   `void *bsearch (const void *, const void *, size_t, size_t,
+   int (*) (const void *, const void *));` - no mirror carries either, so they are declared at the
+   use site (P-72 rule 3 / P-55; the `buffer.rs` 129-134 `qsort` shape), and `bsearch`'s result is
+   the untyped pointer C assigns to `struct sfnt_table_offset_rec *`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  pub fn qsort (base: *mut c_void, nmemb: usize, size: usize,
+		compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
+  pub fn bsearch (key: *const c_void, base: *const c_void, nmemb: usize, size: usize,
+		  compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>)
+		  -> *mut c_void;
+}
+
+/// C 13543-13701: `sfnt_create_uvs_context` - C's `TEST_STATIC` (C 128/137), so the port spells
+/// the macro's bit with the attribute.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_create_uvs_context (cmap: *mut sfnt_cmap_format_14,
+						  fd: c_int) -> *mut sfnt_uvs_context
+{                                                          // C 13543-13701
+  let mut table_offsets: *mut sfnt_table_offset_rec;
+  let mut rec: *mut sfnt_table_offset_rec;
+  /* C 13545's `template` is only ever given its `offset` field, which is what the comparator
+     reads; zero-initialised (PORTING.md 1.5, Deviation 10's class).  */
+  let mut template: sfnt_table_offset_rec = std::mem::zeroed ();
+  let mut i: size_t;
+  let mut nmemb: size_t;
+  let mut j: size_t;
+  let mut offset: off_t;
+  let mut context: *mut sfnt_uvs_context;
+
+  context = std::ptr::null_mut ();                         // C 13550
+
+  /* First, record and sort the UVS and nondefault UVS table offsets
+     in ascending order.  */
+
+  table_offsets = xcalloc ((*cmap).num_var_selector_records as usize,
+			   std::mem::size_of::<sfnt_table_offset_rec> ())
+    as *mut sfnt_table_offset_rec;                         // C 13555-13556
+  nmemb = (*cmap).num_var_selector_records as usize * 2;   // C 13557
+  j = 0;                                                   // C 13558
+
+  /* C 13569/13578's two `goto bail`s leave the scan and land at C 13685; the labelled block is
+     that region (the `sfnt_open_tables` reading).  */
+  'bail: {
+    i = 0;                                                 // C 13560
+    while i < (*cmap).num_var_selector_records as usize
+      {
+	/* Note that either offset may be 0, meaning there is no such
+	   table.  */
+
+	if (*(*cmap).records.offset (i as isize)).default_uvs_offset != 0   // C 13565
+	  {
+	    let (o, overflow)
+	      = (*cmap).offset.overflowing_add (
+		  (*(*cmap).records.offset (i as isize)).default_uvs_offset as off_t);   // C 13567-13568
+	    (*table_offsets.offset (j as isize)).offset = o;
+	    if overflow
+	      { break 'bail; }                             // C 13569
+
+	    (*table_offsets.offset (j as isize)).is_nondefault_table = false;   // C 13571
+	    j += 1;
+	  }
+
+	if (*(*cmap).records.offset (i as isize)).nondefault_uvs_offset != 0   // C 13574
+	  {
+	    let (o, overflow)
+	      = (*cmap).offset.overflowing_add (
+		  (*(*cmap).records.offset (i as isize)).nondefault_uvs_offset as off_t);   // C 13576-13577
+	    (*table_offsets.offset (j as isize)).offset = o;
+	    if overflow
+	      { break 'bail; }                             // C 13578
+
+	    (*table_offsets.offset (j as isize)).is_nondefault_table = true;   // C 13580
+	    j += 1;
+	  }
+
+	i += 1;
+      }
+
+    /* Make nmemb the number of offsets actually looked up.  */
+    nmemb = j;                                             // C 13585
+
+    qsort (table_offsets as *mut c_void, nmemb,
+	   std::mem::size_of::<sfnt_table_offset_rec> (),
+	   Some (sfnt_compare_table_offsets));             // C 13587-13588
+
+    /* Now go through table_offsets, and read everything.  nmemb is the
+       number of elements in table_offsets[i]; it is kept up to date
+       when duplicate members are removed.  */
+    offset = -1;                                           // C 13593
+
+    i = 0;                                                 // C 13595
+    while i < nmemb
+      {
+	/* Skip past duplicate tables.  */
+
+	while (*(table_offsets.offset (i as isize))).offset == offset && i < nmemb   // C 13599
+	  {
+	    nmemb -= 1;                                    // C 13601
+	    *(table_offsets.offset (i as isize))
+	      = *(table_offsets.offset ((i + 1) as isize));   // C 13602
+	  }
+
+	/* If the last element of the array is a duplicate, break out of
+	   the loop.  */
+
+	if i == nmemb                                       // C 13608
+	  { break; }                                       // C 13609
+
+	/* Read the correct type of table depending on
+	   table_offsets[i].is_nondefault_table.  Then skip past
+	   duplicate tables.  Don't handle the case where two different
+	   kind of tables share the same offset, because that is not
+	   possible in a valid variation selector record.  */
+
+	offset = (*(table_offsets.offset (i as isize))).offset;   // C 13617
+
+	if (*(table_offsets.offset (i as isize))).is_nondefault_table   // C 13619
+	  { (*(table_offsets.offset (i as isize))).table
+	      = sfnt_read_nondefault_uvs_table (fd, offset) as *mut c_void; }   // C 13620-13621
+	else
+	  { (*(table_offsets.offset (i as isize))).table
+	      = sfnt_read_default_uvs_table (fd, offset) as *mut c_void; }   // C 13623-13624
+
+	i += 1;
+      }
+
+    /* Now make the context.  C 13628's `sizeof *context` and C 13631's `sizeof
+       *context->records` are the `sizeof`-over-a-place spelling that keeps the registered
+       `context` family token (`docs/ports/token-aliases.tsv` 30; Deviation 17's ruling, the
+       C 2694/2709 sites above): `size_of_val` sizes the place and never reads it, so the NULL
+       `context` of C 13550 and the not-yet-assigned `records` are the operands C has too.  */
+    context = xmalloc (std::mem::size_of_val (&(*context)) as usize)
+      as *mut sfnt_uvs_context;                            // C 13628
+    (*context).num_records = (*cmap).num_var_selector_records as usize;   // C 13629
+    (*context).nmemb = nmemb;                              // C 13630
+    (*context).records = xmalloc (std::mem::size_of_val (&(*(*context).records))
+				  * (*cmap).num_var_selector_records as usize)
+      as *mut sfnt_mapped_variation_selector_record;       // C 13631-13632
+
+    i = 0;                                                 // C 13634
+    while i < (*cmap).num_var_selector_records as usize
+      {
+	(*(*context).records.offset (i as isize)).selector
+	  = (*(*cmap).records.offset (i as isize)).var_selector;   // C 13636
+
+	/* Either offset may be 0, meaning no such table exists.  Also,
+	   the code below will lose if more than one kind of table
+	   shares the same offset, because that is impossible.  */
+
+	if (*(*cmap).records.offset (i as isize)).default_uvs_offset != 0   // C 13642
+	  {
+	    /* Resolve the default table.  */
+	    template.offset
+	      = (*(*cmap).records.offset (i as isize)).default_uvs_offset as off_t
+		+ (*cmap).offset;                          // C 13645-13646
+	    rec = bsearch (&raw const template as *const c_void,
+			   table_offsets as *const c_void,
+			   nmemb, std::mem::size_of::<sfnt_table_offset_rec> (),
+			   Some (sfnt_compare_table_offsets)) as *mut sfnt_table_offset_rec;   // C 13647-13649
+
+	    /* Make sure this record is the right type.  */
+	    if rec.is_null () || (*rec).is_nondefault_table || (*rec).table.is_null ()   // C 13652
+	      { break 'bail; }                             // C 13653
+
+	    (*(*context).records.offset (i as isize)).default_uvs
+	      = (*rec).table as *mut sfnt_default_uvs_table;   // C 13655
+	  }
+	else
+	  { (*(*context).records.offset (i as isize)).default_uvs = std::ptr::null_mut (); }   // C 13658
+
+	if (*(*cmap).records.offset (i as isize)).nondefault_uvs_offset != 0   // C 13660
+	  {
+	    /* Resolve the nondefault table.  */
+	    template.offset
+	      = (*(*cmap).records.offset (i as isize)).nondefault_uvs_offset as off_t
+		+ (*cmap).offset;                          // C 13663-13664
+	    rec = bsearch (&raw const template as *const c_void,
+			   table_offsets as *const c_void,
+			   nmemb, std::mem::size_of::<sfnt_table_offset_rec> (),
+			   Some (sfnt_compare_table_offsets)) as *mut sfnt_table_offset_rec;   // C 13665-13667
+
+	    if rec.is_null ()                              // C 13669
+	      { break 'bail; }                             // C 13670
+
+	    /* Make sure this record is the right type.  */
+	    if rec.is_null () || !(*rec).is_nondefault_table || (*rec).table.is_null ()   // C 13673
+	      { break 'bail; }                             // C 13674
+
+	    (*(*context).records.offset (i as isize)).nondefault_uvs
+	      = (*rec).table as *mut sfnt_nondefault_uvs_table;   // C 13676
+	  }
+	else
+	  { (*(*context).records.offset (i as isize)).nondefault_uvs = std::ptr::null_mut (); }   // C 13679
+
+	i += 1;
+      }
+
+    (*context).tables = table_offsets;                     // C 13682
+    return context;                                        // C 13683
+  }
+
+  /* C 13685: `bail:`.  */
+
+  if !context.is_null ()                                   // C 13687
+    {
+      xfree ((*context).records as *mut c_void);           // C 13689
+      xfree (context as *mut c_void);                      // C 13690
+    }
+
+  /* Loop through and free any tables that might have been read
+     already.  */
+
+  i = 0;                                                   // C 13696
+  while i < nmemb
+    {
+      xfree ((*(table_offsets.offset (i as isize))).table);   // C 13697
+      i += 1;
+    }
+
+  xfree (table_offsets as *mut c_void);                    // C 13699
+  return std::ptr::null_mut ();                            // C 13700
+}
+
+/// C 13706-13717: `sfnt_free_uvs_context` - C's `TEST_STATIC`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_free_uvs_context (c: *mut sfnt_uvs_context)
+{                                                          // C 13706-13717
+  let mut i: size_t;
+
+  xfree ((*c).records as *mut c_void);                     // C 13710
+
+  i = 0;                                                   // C 13712
+  while i < (*c).nmemb
+    {
+      xfree ((*(*c).tables.offset (i as isize)).table);    // C 13713
+      i += 1;
+    }
+
+  xfree ((*c).tables as *mut c_void);                      // C 13715
+  xfree (c as *mut c_void);                                // C 13716
+}
+
+/// C 13723-13737: `sfnt_compare_uvs_mapping` - C's `static`, whose address `bsearch` takes.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_compare_uvs_mapping (k: *const c_void, v: *const c_void) -> c_int
+{                                                          // C 13723-13737
+  let mut key: *const sfnt_char;
+  let mut value: *const sfnt_uvs_mapping;
+
+  key = k as *const sfnt_char;                             // C 13728
+  value = v as *const sfnt_uvs_mapping;                    // C 13729
+
+  if *key < (*value).unicode_value                          // C 13731
+    { return -1; }                                         // C 13732
+  else if *key == (*value).unicode_value                    // C 13733
+    { return 0; }                                          // C 13734
+
+  return 1;                                                // C 13736
+}
+
+/// C 13742-13757: `sfnt_compare_unicode_value_range` - C's `static`, whose address `bsearch` takes.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_compare_unicode_value_range (k: *const c_void, v: *const c_void)
+						       -> c_int
+{                                                          // C 13742-13757
+  let mut key: *const sfnt_char;
+  let mut value: *const sfnt_unicode_value_range;
+
+  key = k as *const sfnt_char;                             // C 13747
+  value = v as *const sfnt_unicode_value_range;            // C 13748
+
+  if *key < (*value).start_unicode_value                   // C 13750
+    { return -1; }                                         // C 13751
+  else if ((*key - (*value).start_unicode_value) as uint32_t
+	   <= (*value).additional_count as uint32_t)       // C 13752-13753
+    { return 0; }                                          // C 13754
+
+  return 1;                                                // C 13756
+}
+
+/// C 13765-13776: `sfnt_variation_glyph_for_char` - C's `TEST_STATIC`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_variation_glyph_for_char (uvs: *mut sfnt_nondefault_uvs_table,
+							c: sfnt_char) -> sfnt_glyph_index
+{                                                          // C 13765-13776
+  /* C 13765's return type is the `sfnt_glyph` *scalar* typedef, which this port spells
+     `sfnt_glyph_index` because C's `struct sfnt_glyph` owns the other name (`include/sfnt.rs`
+     208).  */
+  let mut mapping: *mut sfnt_uvs_mapping;
+
+  mapping = bsearch (&raw const c as *const c_void, (*uvs).mappings as *const c_void,
+		     (*uvs).num_uvs_mappings as usize, std::mem::size_of::<sfnt_uvs_mapping> (),
+		     Some (sfnt_compare_uvs_mapping)) as *mut sfnt_uvs_mapping;   // C 13771-13773
+
+  return if !mapping.is_null () { (*mapping).base_character_value as sfnt_glyph_index } else { 0 };   // C 13775
+}
+
+/// C 13782-13791: `sfnt_is_character_default` - C's `TEST_STATIC`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_is_character_default (uvs: *mut sfnt_default_uvs_table,
+						    c: sfnt_char) -> bool
+{                                                          // C 13782-13791
+  /* UVS->ranges comprises ranges of characters sorted in increasing
+     order; these ranges cannot overlap.  */
+
+  return !bsearch (&raw const c as *const c_void, (*uvs).ranges as *const c_void,
+		   (*uvs).num_unicode_value_ranges as usize,
+		   std::mem::size_of::<sfnt_unicode_value_range> (),
+		   Some (sfnt_compare_unicode_value_range)).is_null ();   // C 13788-13790
+}
+
+/// C 13815-13856: `sfnt_map_table` - C's non-`static` definition, in C 13795's live
+/// `#if defined HAVE_MMAP && !defined TEST` arm.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	    not (feature = "test")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfnt_map_table (fd: c_int, subtable: *mut sfnt_offset_subtable,
+					 tag: uint32_t, table: *mut sfnt_mapped_table) -> c_int
+{                                                          // C 13815-13856
+  let mut directory: *mut sfnt_table_directory;
+  let mut offset: size_t;
+  let mut page: size_t;
+  let mut map_offset: size_t;
+  let mut data: *mut c_void;
+  let mut i: c_int;
+
+  /* Find the table in the directory.  */
+
+  i = 0;                                                   // C 13825
+  loop
+    {
+      if !(i < (*subtable).num_tables as c_int)             // C 13827
+	{ return 1; }                                      // C 13828
+      directory = &raw mut *(*subtable).subtables.offset (i as isize);   // C 13829
+      if (*directory).tag == tag                            // C 13830
+	{ break; }                                         // C 13831
+      i += 1;
+    }
+
+  /* Now try to map the glyph data.  Make sure offset is a multiple of
+     the page size.  */
+
+  page = getpagesize () as size_t;                          // C 13837
+  offset = (*directory).offset as size_t & !(page - 1);     // C 13838
+
+  /* Figure out how much larger the mapping should be.  */
+  map_offset = (*directory).offset as size_t - offset;      // C 13841
+
+  /* Do the mmap.  */
+  data = mmap (std::ptr::null_mut (), (*directory).length as size_t + map_offset,
+	       PROT_READ, MAP_PRIVATE, fd, offset as off_t);   // C 13844-13845
+
+  if data == MAP_FAILED                                     // C 13847
+    { return 1; }                                          // C 13848
+
+  /* Fill in *TABLE.  */
+  (*table).data = (data as *mut u8).offset (map_offset as isize) as *mut c_void;   // C 13851
+  (*table).mapping = data;                                  // C 13852
+  (*table).length = (*directory).length as usize;           // C 13853
+  (*table).size = (*directory).length as size_t + map_offset;   // C 13854
+  return 0;                                                 // C 13855
+}
+
+/// C 13862-13865: `sfnt_unmap_table` - C's non-`static` definition in the same arm.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	    not (feature = "test")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfnt_unmap_table (table: *mut sfnt_mapped_table) -> c_int
+{                                                          // C 13862-13865
+  return (munmap ((*table).mapping, (*table).size) != 0) as c_int;   // C 13864
+}
+
+/// C 13880-13915: `sfnt_read_table` - C's non-`static` definition, in C 13871's live
+/// `#ifndef TEST` arm.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	    not (feature = "test")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sfnt_read_table (fd: c_int, subtable: *mut sfnt_offset_subtable,
+					  tag: uint32_t, length: *mut size_t) -> *mut c_void
+{                                                          // C 13880-13915
+  let mut directory: *mut sfnt_table_directory;
+  let mut data: *mut c_void;
+  let mut i: c_int;
+
+  /* Find the table in the directory.  */
+
+  i = 0;                                                   // C 13889
+  loop
+    {
+      if !(i < (*subtable).num_tables as c_int)             // C 13891
+	{ return std::ptr::null_mut (); }                   // C 13892
+      directory = &raw mut *(*subtable).subtables.offset (i as isize);   // C 13893
+      if (*directory).tag == tag                            // C 13894
+	{ break; }                                         // C 13895
+      i += 1;
+    }
+
+  /* Seek to the table.  */
+
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) != (*directory).offset as off_t   // C 13900
+    { return std::ptr::null_mut (); }                      // C 13901
+
+  /* Now allocate enough to hold the data and read into it.  */
+
+  data = xmalloc ((*directory).length as usize);           // C 13905
+  if read (fd, data, (*directory).length as usize) != (*directory).length as ssize_t   // C 13906
+    {
+      xfree (data);                                        // C 13908
+      return std::ptr::null_mut ();                        // C 13909
+    }
+
+  /* Return the length and table data.  */
+  *length = (*directory).length as usize;                  // C 13913
+  return data;                                             // C 13914
 }
