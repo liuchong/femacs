@@ -327,6 +327,12 @@ unsafe extern "C" {
   /// C 1373: `cairo_mask (cr, mask);`
   /// C: cairo.h 980: `void cairo_mask (cairo_t *cr, cairo_pattern_t *pattern);`
   pub fn cairo_mask (cr: *mut cairo_t, pattern: *mut cairo_pattern_t);
+  /// C 1434: `cairo_set_line_width (cr, 1);`
+  /// C: cairo.h 811: `void cairo_set_line_width (cairo_t *cr, double width);`
+  pub fn cairo_set_line_width (cr: *mut cairo_t, width: c_double);
+  /// C 1435: `cairo_stroke (cr);`
+  /// C: cairo.h 990: `void cairo_stroke (cairo_t *cr);`
+  pub fn cairo_stroke (cr: *mut cairo_t);
   /// C 444: `cairo_surface_destroy (icon_surface);`
   /// C: cairo.h 2489: `void cairo_surface_destroy (cairo_surface_t *surface);`
   pub fn cairo_surface_destroy (surface: *mut cairo_surface_t);

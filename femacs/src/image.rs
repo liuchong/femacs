@@ -464,11 +464,9 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn cairo_set_source_rgb (cr: *mut cairo_t, red: c_double, green: c_double, blue: c_double);
 }
-/// C: cairo.h 810-811: `cairo_public void cairo_set_line_width (cairo_t *cr, double width);`
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-unsafe extern "C" {
-  pub fn cairo_set_line_width (cr: *mut cairo_t, width: c_double);
-}
+/* C: cairo.h 810-811: `cairo_public void cairo_set_line_width (cairo_t *cr, double width);` -
+   the row is `include/gtk.rs`'s now (P-26's one spelling per construct, status 3.732) and this
+   unit's call sites are unchanged.  */
 /// C: cairo.h 906-907: `cairo_public void cairo_move_to (cairo_t *cr, double x, double y);`
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
 unsafe extern "C" {
@@ -484,11 +482,8 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn cairo_rel_line_to (cr: *mut cairo_t, dx: c_double, dy: c_double);
 }
-/// C: cairo.h 989-990: `cairo_public void cairo_stroke (cairo_t *cr);`
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-unsafe extern "C" {
-  pub fn cairo_stroke (cr: *mut cairo_t);
-}
+/* C: cairo.h 989-990: `cairo_public void cairo_stroke (cairo_t *cr);` - the row is
+   `include/gtk.rs`'s now (P-26's one spelling per construct, status 3.732).  */
 
 /// C: C 93: `#define GET_PIXEL image_pix_context_get_pixel`
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]

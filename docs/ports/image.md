@@ -1932,3 +1932,11 @@ No mirror changed.
   `syms_of_image` has never been called - it is reached from `emacs.c`'s `syms_of_*` chain, which
   no gate links here.  The arm probe is a **compile** reading of the NS configuration: it proves the
   new text type-checks there, not that any of it behaves.
+
+### status 3.732 (the pgtkterm fourth-slice round this file took part in)
+
+`cairo_set_line_width` and `cairo_stroke`, declared in this unit's own cairo block for C's drawing
+calls, are `include/gtk.rs`'s rows now that the pgtkterm lane needed them there; both copies are
+dropped under P-26's one spelling per construct with this unit's call sites unchanged.  Measured:
+this unit's own probe (`have_ns`) reads **clean, exit 0** on both sides of the drop, and
+`check-mirror-dupes.py` returns to 16/16/0.

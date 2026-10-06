@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-3: C 1-1078, C 1079-1279 and C 1281-1383
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-4: C 1-1078, C 1079-1279, C 1281-1383 and C 1385-1483
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,12 +11,13 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**1,891 lines**), carrying **C 1-1078**,
-> **C 1079-1279** and **C 1281-1383** - three slices - with **both arms of every `#if`**; the **2,044** this line used to
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**2,071 lines**), carrying **C 1-1078**,
+> **C 1079-1279**, **C 1281-1383** and **C 1385-1483** - four slices - with **both arms of every
+> `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_draw_glyph_string_background` (C 1391, its comment at C 1385).**
+> `pgtk_draw_composite_glyph_string_foreground` (C 1487, its comment at C 1485).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -112,7 +113,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 1072-1078 | `pgtk_set_no_accept_focus` | file gate - **this slice's last definition** |
 | 1079-1279 | `pgtk_set_z_group` (C 1080-1118), `pgtk_initialize_display_info` (C 1120-1137), the six GC helpers `pgtk_set_cursor_gc`/`pgtk_set_mouse_face_gc`/`pgtk_set_mode_line_face_gc`/`pgtk_set_glyph_string_gc`/`pgtk_set_glyph_string_clipping` (C 1142-1275, five of them `static` in C) | the file gate - **transcribed** (the second slice) |
 | 1281-1383 | `pgtk_set_glyph_string_clipping_exactly` (C 1281-1293), `pgtk_compute_glyph_string_overhangs` (C 1295-1333, C's `alloca` going to the port's stack pool), `pgtk_clear_glyph_string_rect` (C 1335-1344), `fill_background_by_face` (C 1346-1377) and `fill_background` (C 1379-1383) | the file gate - **transcribed** (the third slice) |
-| 1385-7780 | **the remainder of the file** - from C 1385's comment and C 1391's `pgtk_draw_glyph_string_background` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1385-1483 | `pgtk_draw_glyph_string_background` (C 1385-1422), `pgtk_draw_rectangle` (C 1425-1437) and `pgtk_draw_glyph_string_foreground` (C 1440-1483) | the file gate - **transcribed** (the fourth slice) |
+| 1485-7780 | **the remainder of the file** - from C 1485's comment and C 1487's `pgtk_draw_composite_glyph_string_foreground` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -389,6 +391,35 @@ their assertions are owed.
     `cairo_rectangle` row is the same class).  `check-mirror-dupes.py` stays 16/16/0 and the
     consumer sweep reads `checked 83 unit(s), 0 failure(s)`.
 
+21. **The `FACE_*` mask table and `face_bits!` are this unit's own copy.**  C's `ENUM_BF (face_box_type)
+    box : 2` / `underline : 3` and the seventeen `bool_bf` members (dispextern.h 1893-1935, stored by
+    `include/dispextern.rs` 2256 as one `u32`) are named by masks a unit carries: the
+    `src/haikuterm.rs` 300-348 and `src/font.rs` 228-250 copies are the precedent, and this file's
+    copy is the same twenty-one rows in C's declaration order with a `face_bits!` covering the two
+    members this slice reads (`box`, `overstrike`).  One spelling difference is deliberate: the call
+    sites pass **the pointer** (`face_bits! (box, (*s).face as *mut face)`), because a
+    `$f:expr` fragment is a value context - `src/xterm.rs` 9673/9722's value form
+    (`face_bits! (box, (*((*s).face as *mut face)))`) is that unit's registered `E0614` class
+    (`docs/ports/xterm.md` 2931 and its own note at 2942), not a shape this file copies.  Measured:
+    the pointer form reads zero `E0614` in all three arms below, the value form read two.
+22. **C's `short` -> `int` promotions are written out.**  `struct glyph`'s `pixel_width` is C's
+    `short` (dispextern.h 503, the mirror's `c_short`), so `g->pixel_width - 1` and
+    `x += g->pixel_width` take `as c_int` (C 1461/1463); and `s->for_overlaps` is C's
+    `unsigned for_overlaps : 3` (dispextern.h 1456), not a `bool_bf`, so the read is
+    `glyph_string_bits! (for_overlaps, (*s)) != 0` - the `src/haikuterm.rs` 1380 and
+    `src/w32term.rs` 2273/2457 spelling, where `src/xterm.rs` 9714/9736's bare form is that unit's
+    own registered mismatch (`docs/ports/xterm.md` 2942).
+23. **Two cairo rows landed in the mirror, and two copies left `src/image.rs`.**  `cairo_set_line_width`
+    (cairo.h 811) and `cairo_stroke` (cairo.h 990) stand in `include/gtk.rs` beside the surface's
+    other cairo rows, both with line citations (cairo is on this machine) - and
+    `check-mirror-dupes.py` immediately read `18 duplicate declaration(s), 2 failure(s)` because
+    `src/image.rs` 467-491 declared both itself under `all (have_window_system, use_cairo)`.  The two
+    copies are dropped there under P-26's one spelling per construct with that unit's call sites
+    unchanged, and it is measured rather than assumed that this is neutral for it: its own probe
+    (`have_ns`, the arm its ledger reads) is **clean, exit 0** on both sides of the drop.  The gate
+    returns to 16/16/0 and the consumer sweep reads `checked 83 unit(s), 0 failure(s)` with
+    `checking 83 unit(s), 0 unit failure(s)`.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -515,4 +546,44 @@ class this unit carries until the port reaches C's size.
 consumer sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit
 failure(s)`.  **Not claimed**: none of this has been run - the frozen configuration compiles none of
 this file, there is no GTK or cairo drawing to link here, and the three arm readings are **compile**
+readings of text this machine cannot build.
+
+## The fourth slice (C 1385-1483): the background, the rectangle and the string foreground
+
+**What is in it.**  `pgtk_draw_glyph_string_background` (C 1385-1422: the
+`background_filled_p` guard, the `max (box_horizontal_line_width, 0)` fold, the stipple arm's
+`fill_background` and the four-condition `FONT_HEIGHT`/`FONT_TOO_HIGH`/`font_not_found_p`/
+`extends_to_end_of_line_p`/`force_p` arm with `pgtk_clear_glyph_string_rect`),
+`pgtk_draw_rectangle` (C 1425-1437: `pgtk_begin_cr_clip` through
+`pgtk_set_cr_source_with_color`, the `x + 0.5` coordinates, `cairo_set_line_width (cr, 1)` and
+`cairo_stroke`) and `pgtk_draw_glyph_string_foreground` (C 1440-1483: the `box`/
+`left_box_line_p` offset, the `font_not_found_p` rectangle arm, and the `font->driver->draw` trio
+with `VCENTER_BASELINE_OFFSET` and `overstrike`).  Rust: 1,891 -> **2,071** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` both sides - Deviation 17).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 40 errors / 19 warnings -> 40 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 41 / 20 -> 41 / 20
+C = A + use_gtk + have_gtk3                        : 18 / 18 -> 18 / 18
+```
+**Every arm reads exactly the same number on both sides and no class changes**: the slice's text
+adds no error and no warning.  Three repairs got it there, each recorded: the unit's own
+`FACE_*`/`face_bits!` block with the **pointer** call form (Deviation 21 - the first reading used
+xterm.rs's value form and read two `E0614`s), C's two `short` -> `int` promotions and
+`for_overlaps != 0` (Deviation 22 - the first reading read one mismatch), and two cairo rows in the
+mirror (Deviation 23).
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **181 rows -> 178**: `pgtk_draw_glyph_string_background`, `pgtk_draw_rectangle` and
+`pgtk_draw_glyph_string_foreground` retire, and the file's own `line count drifted` row is
+re-measured 75.7% -> **73.4%** (C 7,780 vs the port's 2,071) - the class this unit carries until the
+port reaches C's size.
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2047/36/0**; `check-dead-file-coverage.py` **145/0** (**36 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0**; P-87 ①'s
+consumer sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s), 0 unit
+failure(s)`.  **Not claimed**: none of this has been run - the frozen configuration compiles none of
+this file, there is no GTK or cairo to draw with here, and the three arm readings are **compile**
 readings of text this machine cannot build.

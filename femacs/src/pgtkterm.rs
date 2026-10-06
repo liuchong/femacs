@@ -1889,3 +1889,183 @@ unsafe fn fill_background (s: *mut glyph_string, x: c_int, y: c_int, width: c_in
 {
   fill_background_by_face ((*s).f, (*s).face as *mut face, x, y, width, height);   // C 1382
 }
+
+/* The `ENUM_BF (face_box_type) box : 2` / `ENUM_BF (face_underline_type) underline : 3`
+   members and the seventeen `bool_bf` members C declares at dispextern.h 1893-1935, in C's
+   declaration order (the `src/haikuterm.rs` 300-348 and `src/font.rs` 228-250 copies of the same
+   run; `include/dispextern.rs` 2256 stores C's bytes as one `u32`, so the masks are what names
+   every member).  The `face_bits!` macro below covers the members this file's slices read.  */
+#[cfg (feature = "have_pgtk")]
+pub const FACE_BOX_SHIFT: u32 = 0;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_BOX_MASK: u32 = 0x3;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_UNDERLINE_SHIFT: u32 = 2;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_UNDERLINE_MASK: u32 = 0x7;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_USE_BOX_COLOR_FOR_SHADOWS_P: u32 = 1 << 5;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_OVERLINE_P: u32 = 1 << 6;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_STRIKE_THROUGH_P: u32 = 1 << 7;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_FOREGROUND_DEFAULTED_P: u32 = 1 << 8;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_BACKGROUND_DEFAULTED_P: u32 = 1 << 9;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_UNDERLINE_DEFAULTED_P: u32 = 1 << 10;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_OVERLINE_COLOR_DEFAULTED_P: u32 = 1 << 11;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P: u32 = 1 << 12;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_BOX_COLOR_DEFAULTED_P: u32 = 1 << 13;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_UNDERLINE_AT_DESCENT_LINE_P: u32 = 1 << 14;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_TTY_BOLD_P: u32 = 1 << 15;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_TTY_ITALIC_P: u32 = 1 << 16;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_TTY_REVERSE_P: u32 = 1 << 17;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_TTY_STRIKE_THROUGH_P: u32 = 1 << 18;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_TTY_OVERLINE_P: u32 = 1 << 19;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_COLORS_COPIED_BITWISE_P: u32 = 1 << 20;
+#[cfg (feature = "have_pgtk")]
+pub const FACE_OVERSTRIKE: u32 = 1 << 21;
+
+/* C's member names are the macro's first argument, so they survive the `--check` body comparison
+   (the `src/xterm.rs` 9575-9589 `face_bits!` shape).  */
+#[cfg (feature = "have_pgtk")]
+macro_rules! face_bits {
+  (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
+  (overstrike, $f:expr) => { ((*$f).bits & FACE_OVERSTRIKE) != 0 };
+}
+
+/* Draw the background of glyph_string S.  If S->background_filled_p
+   is non-zero don't draw it.  FORCE_P non-zero means draw the
+   background even if it wouldn't be drawn normally.  This is used
+   when a string preceding S draws into the background of S, or S
+   contains the first component of a composition.  */
+
+/// C 1390-1422: `static void pgtk_draw_glyph_string_background (struct glyph_string *s, bool
+/// force_p)` - C's four `s->*_p` bitfields are the mirror's `glyph_string_bits!` reads and C's
+/// `max` is the port's own fold (`include/lisp.rs` 3149), whose `isize` signature makes the two
+/// operands' conversions explicit (the `src/xterm.rs` `x_draw_glyph_string_background` shape).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_glyph_string_background (s: *mut glyph_string, force_p: bool)
+{
+  /* Nothing to do if background has already been drawn or if it
+     shouldn't be drawn in the first place.  */
+  if !glyph_string_bits! (background_filled_p, (*s))                    // C 1395
+    {
+      let box_line_width: c_int
+	= max ((*((*s).face as *mut face)).box_horizontal_line_width as isize, 0) as c_int;   // C 1397
+
+      if glyph_string_bits! (stippled_p, (*s))                          // C 1399
+	{
+	  /* Fill background with a stipple pattern.  */
+	  fill_background (s, (*s).x, (*s).y + box_line_width,          // C 1402
+			   (*s).background_width,                       // C 1403
+			   (*s).height - 2 * box_line_width);           // C 1404
+	  glyph_string_bits! (background_filled_p, (*s), true);         // C 1405
+	}
+      else if FONT_HEIGHT! ((*s).font) < (*s).height - 2 * box_line_width   // C 1407
+	       /* When xdisp.c ignores FONT_HEIGHT, we cannot trust
+	          font dimensions, since the actual glyphs might be
+	          much smaller.  So in that case we always clear the
+	          rectangle with background color.  */
+	       || FONT_TOO_HIGH! ((*s).font)                            // C 1412
+	       || glyph_string_bits! (font_not_found_p, (*s))           // C 1413
+	       || glyph_string_bits! (extends_to_end_of_line_p, (*s))   // C 1414
+	       || force_p
+	{
+	  pgtk_clear_glyph_string_rect (s, (*s).x, (*s).y + box_line_width,   // C 1416
+					(*s).background_width,          // C 1417
+					(*s).height - 2 * box_line_width);   // C 1418
+	  glyph_string_bits! (background_filled_p, (*s), true);         // C 1419
+	}
+    }
+}
+
+/// C 1425-1437: `static void pgtk_draw_rectangle (struct frame *f, unsigned long color, int x,
+/// int y, int width, int height, bool respect_alpha_background)` - C's `x + 0.5` widening and the
+/// `cairo_set_line_width (cr, 1)` are written out.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_rectangle (f: *mut frame, color: c_ulong, x: c_int, y: c_int,
+			       width: c_int, height: c_int, respect_alpha_background: bool)
+{
+  let cr: *mut cairo_t;                                                 // C 1429
+
+  cr = pgtk_begin_cr_clip (f);                                          // C 1431
+  pgtk_set_cr_source_with_color (f, color, respect_alpha_background);   // C 1432
+  cairo_rectangle (cr, x as c_double + 0.5, y as c_double + 0.5,        // C 1433
+		   width as c_double, height as c_double);
+  cairo_set_line_width (cr, 1.0);                                       // C 1434
+  cairo_stroke (cr);                                                    // C 1435
+  pgtk_end_cr_clip (f);                                                 // C 1436
+}
+
+/* Draw the foreground of glyph string S.  */
+
+/// C 1440-1483: `static void pgtk_draw_glyph_string_foreground (struct glyph_string *s)` -
+/// `face_bits!`/`glyph_bits!` for C's `s->face->box`/`s->first_glyph->left_box_line_p`/
+/// `s->face->overstrike`, the `font->driver->draw` slot unwrapped, and C's `i`/`x` counters as
+/// the port's `while` trio (the `src/xterm.rs` `x_draw_glyph_string_foreground` shapes).
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut i: c_int;                                                     // C 1443
+  let mut x: c_int;
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX           // C 1447
+    && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+    { x = (*s).x + max ((*((*s).face as *mut face)).box_vertical_line_width as isize, 0) as c_int; }   // C 1448
+  else
+    { x = (*s).x; }                                                     // C 1450
+
+  /* Draw characters of S as rectangles if S's font could not be
+     loaded.  */
+  if glyph_string_bits! (font_not_found_p, (*s))                        // C 1454
+    {
+      i = 0;                                                            // C 1456
+      while i < (*s).nchars
+	{
+	  let g: *mut glyph = (*s).first_glyph.offset (i as isize);      // C 1458
+	  pgtk_draw_rectangle ((*s).f,                                   // C 1459
+			       (*((*s).face as *mut face)).foreground, x, (*s).y,   // C 1460
+			       (*g).pixel_width as c_int - 1,               // C 1461
+			       (*s).height - 1,
+			       false);                                      // C 1462
+	  x += (*g).pixel_width as c_int;                               // C 1463
+	  i += 1;                                                       // C 1456's step
+	}
+    }
+  else
+    {
+      let font: *mut font = (*s).font;                                  // C 1468
+      let mut boff: c_int = (*font).baseline_offset;                    // C 1469
+      let mut y: c_int;                                                 // C 1470
+
+      if (*font).vertical_centering                                     // C 1472
+	{ boff = VCENTER_BASELINE_OFFSET! (font, (*s).f) - boff; }          // C 1473
+
+      y = (*s).ybase - boff;                                            // C 1475
+      if glyph_string_bits! (for_overlaps, (*s)) != 0                   // C 1476 (C's 3-bit field)
+	  || (glyph_string_bits! (background_filled_p, (*s)) && (*s).hl != DRAW_CURSOR)
+	{ ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, (*s).nchars, x, y, false); }                          // C 1477
+      else
+	{ ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, (*s).nchars, x, y, true); }                           // C 1479
+      if face_bits! (overstrike, (*s).face as *mut face)               // C 1480
+	{ ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, 0, (*s).nchars, x + 1, y, false); }                      // C 1481
+    }
+}
