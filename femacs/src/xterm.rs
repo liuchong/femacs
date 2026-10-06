@@ -23581,3 +23581,126 @@ unsafe fn XTmouse_position (fp: *mut *mut frame, insist: c_int,
 
   unblock_input ();                                                    // C 15295
 }
+
+/* Select for input extension events used by scroll bars.  This will
+   result in the corresponding core events not being generated for
+   SCROLL_BAR.  */
+
+/* C 15312-15333: `MAYBE_UNUSED static void xi_select_scroll_bar_events (struct x_display_info
+   *dpyinfo, Window scroll_bar)` - C's `static`, so a plain `unsafe fn` (the `MAYBE_UNUSED` is
+   C's attribute and adds no arm: the call in `x_scroll_bar_create` is a later slice).  C's
+   `alloca` is the port's stack pool (P-05, the `xi_select_hierarchy_events` shape at this file
+   19620), C 15321's chained `mask.mask = m = alloca (length)` is split where C's own comment
+   puts it, `length` is C's `ptrdiff_t` and is what `XIMaskLen` hands back (the same cast), and
+   `XIEventMask`, `XIMaskLen`, `XI_LASTEVENT`, `XIAllMasterDevices` and the five `XI_*` event
+   constants are the bare XInput2 class (Decision 15; `xi_select_hierarchy_events`'s note names
+   the same three).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe fn xi_select_scroll_bar_events (dpyinfo: *mut x_display_info, scroll_bar: Window)
+{
+  let mut mask: XIEventMask;                                            // C 15316
+  let mut m: *mut c_uchar;                                              // C 15317
+  let mut length: ptrdiff_t;                                            // C 15318
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  length = XIMaskLen (XI_LASTEVENT) as ptrdiff_t;                        // C 15320
+  m = SAFE_ALLOCA! (sa_avail, length as usize) as *mut c_uchar;          // C 15321
+  mask.mask = m;  /* C 15321's chained `mask.mask = m = alloca (length);` */
+  memset (m as *mut c_void, 0, length as usize);                         // C 15322
+  mask.mask_len = length;                                                // C 15323
+
+  mask.deviceid = XIAllMasterDevices;                                    // C 15325
+  XISetMask (m, XI_ButtonPress);                                         // C 15326
+  XISetMask (m, XI_ButtonRelease);                                       // C 15327
+  XISetMask (m, XI_Motion);                                              // C 15328
+  XISetMask (m, XI_Enter);                                               // C 15329
+  XISetMask (m, XI_Leave);                                               // C 15330
+
+  XISelectEvents ((*dpyinfo).display, scroll_bar, &raw mut mask, 1);      // C 15332
+}
+
+/* Given an X window ID and a DISPLAY, find the struct scroll_bar which
+   manages it.
+   This can be called in GC, so we have to make sure to strip off mark
+   bits.  */
+
+/* C 15342-15377: `static struct scroll_bar *x_window_to_scroll_bar (Display *display, Window
+   window_id, int type)` - C's `static`, so a plain `unsafe fn`; the parameter C names `type` is
+   `type_` (the `x_focus_changed` row at this file 21297).  Four shapes: C 15347-15349's
+   `USE_GTK && !HAVE_GTK3 && USE_TOOLKIT_SCROLL_BARS` arm is a cfg'd block over those three
+   features; C 15356's `continue` inside `FOR_EACH_FRAME` is the labelled block's `break 'body`
+   (PORTING.md 2.2 - the macro's own step follows the body); C 15361-15367's `for` header is the
+   port's `while` with the step at the body's end, and its **comma expression**
+   (`bar = condemned, condemned = Qnil, !NILP (bar)`) is a block expression in the `||`'s right
+   operand, because Rust has no comma operator and `||` short-circuits exactly as C's does (the
+   right side runs only when `!NILP (bar)` is false); and `XSCROLL_BAR` is this file's own macro
+   (`XSCROLL_BAR!`, `include/xterm.rs` 1336).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_window_to_scroll_bar (display: *mut Display, window_id: Window,
+				   type_: c_int) -> *mut scroll_bar
+{
+  let mut tail: Lisp_Object;                                            // C 15345
+  let mut frame: Lisp_Object;
+
+  #[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"),
+	     feature = "use_toolkit_scroll_bars"))]
+  { window_id = xg_get_scroll_id_for_window (display, window_id) as Window; }  // C 15348
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 15351
+      let mut bar: Lisp_Object;                                         // C 15353
+      let mut condemned: Lisp_Object;
+
+      'body:
+	{
+	  if !FRAME_X_P (XFRAME (frame))                                // C 15355
+	    { break 'body; }                                            // C 15356's `continue`
+
+	  /* Scan this frame's scroll bar list for a scroll bar with the
+	     right window ID.  */
+	  condemned = FRAME_CONDEMNED_SCROLL_BARS (XFRAME (frame));     // C 15360
+	  bar = FRAME_SCROLL_BARS (XFRAME (frame));                     // C 15361
+	  while !NILP (bar)                                             // C 15362-15366
+	      || { bar = condemned; condemned = Qnil (); !NILP (bar) }  // C 15364-15366, C's comma operator
+	    {
+	      if (*XSCROLL_BAR! (bar)).x_window == window_id             // C 15368
+		  && FRAME_X_DISPLAY! (XFRAME (frame)) == display        // C 15369
+		  && (type_ == 2                                          // C 15370
+		      || (type_ == 1 && (*XSCROLL_BAR! (bar)).horizontal)  // C 15371
+		      || (type_ == 0 && !(*XSCROLL_BAR! (bar)).horizontal))  // C 15372
+		{ return XSCROLL_BAR! (bar); }                            // C 15373
+
+	      bar = (*XSCROLL_BAR! (bar)).next;                          // C 15367, the `for`'s step
+	    }
+	}
+    });
+
+  return std::ptr::null_mut ();                                         // C 15376
+}
+
+/* Return the Lucid menu bar WINDOW is part of.  Return null
+   if WINDOW is not part of a menu bar.  */
+
+/* C 15385-15399: `static Widget x_window_to_menu_bar (Window window)` - C's `static` inside
+   C 15380's `#if defined USE_LUCID`, so the feature pair is `have_x_windows` + `use_lucid`
+   (P-86 ①: the arm is carried even though **no arm this lane runs compiles it** - the reading
+   below says which).  `Widget` has no mirror row, `xlwmenu_window_p` is lwlib's
+   `extern int xlwmenu_window_p (Widget w, Window window)` (xlwmenu.h 40) with no mirror in this
+   graph either, and C's `menu_bar && xlwmenu_window_p (...)` is therefore a null test plus C's
+   `int` truth test written `!= 0` (the `!insist`/`!FRAME_X_WINDOW` class of this lane).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_lucid"))]
+unsafe fn x_window_to_menu_bar (window: Window) -> Widget
+{
+  let mut tail: Lisp_Object;                                            // C 15388
+  let mut frame: Lisp_Object;
+
+  FOR_EACH_FRAME! (tail, frame, {                                       // C 15390
+      if FRAME_X_P (XFRAME (frame))                                     // C 15391
+	{
+	  let menu_bar: Widget = (*( (*XFRAME (frame)).output_data.x as *mut x_output )).menubar_widget;  // C 15393
+
+	  if !menu_bar.is_null () && xlwmenu_window_p (menu_bar, window) != 0  // C 15395
+	    { return menu_bar; }                                            // C 15396
+	}
+    });
+  return std::ptr::null_mut ();                                         // C 15398
+}
