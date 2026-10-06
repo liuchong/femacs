@@ -2069,3 +2069,131 @@ unsafe fn pgtk_draw_glyph_string_foreground (s: *mut glyph_string)
 	    (s, 0, (*s).nchars, x + 1, y, false); }                      // C 1481
     }
 }
+
+/* C 597-598's `bool_bf automatic : 1; unsigned id : 31;` are the `glyph.u.cmp` members C 1513
+   and the composition readers below name; the constants are `include/dispextern.rs` 454-455's and
+   the macro is this unit's own copy (the `src/xterm.rs` 9596 and `src/w32term.rs` 1732 shape), with
+   the call sites passing the **pointer** (`$g:expr` is a value context - the reason written in
+   Deviation 21).  */
+#[cfg (feature = "have_pgtk")]
+macro_rules! glyph_u_cmp_bits {
+  (automatic, $g:expr) => { (((*$g).u.cmp.bits & GLYPH_U_CMP_AUTOMATIC) != 0) };
+  (id, $g:expr) => { (((*$g).u.cmp.bits & GLYPH_U_CMP_ID_SHIFT) as ptrdiff_t) };
+}
+
+/* Draw the foreground of composite glyph string S.  */
+
+/// C 1486-1572: `static void pgtk_draw_composite_glyph_string_foreground (struct glyph_string
+/// *s)` - `face_bits!`/`glyph_bits!`/`glyph_u_cmp_bits!` for C's face-bit, glyph-bit and
+/// `u.cmp.automatic` reads, `composition`'s two `offsets` reads through the pointer offset (the
+/// `src/xterm.rs` shape), `COMPOSITION_GLYPH` for the TAB test, and `LGSTRING_GLYPH`/`LGLYPH_*`
+/// from the composite mirror with C's conversions written out.
+#[cfg (feature = "have_pgtk")]
+unsafe fn pgtk_draw_composite_glyph_string_foreground (s: *mut glyph_string)
+{
+  let mut i: c_int;                                                     // C 1489
+  let mut j: c_int;
+  let mut x: c_int;
+  let font: *mut font = (*s).font;                                      // C 1490
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if !(*s).face.is_null () && face_bits! (box, (*s).face as *mut face) != FACE_NO_BOX   // C 1494
+    && glyph_bits! (left_box_line_p, (*(*s).first_glyph))               // C 1495
+    { x = (*s).x + max ((*((*s).face as *mut face)).box_vertical_line_width as isize, 0) as c_int; }   // C 1496
+  else
+    { x = (*s).x; }                                                     // C 1498
+
+  /* S is a glyph string for a composition.  S->cmp_from is the index
+     of the first character drawn for glyphs of this composition.
+     S->cmp_from == 0 means we are drawing the very first character of
+     this composition.  */
+
+  /* Draw a rectangle for the composition if the font for the very
+     first character of the composition could not be loaded.  */
+  if glyph_string_bits! (font_not_found_p, (*s))                        // C 1507
+    {
+      if (*s).cmp_from == 0                                             // C 1509
+	{ pgtk_draw_rectangle ((*s).f, (*((*s).face as *mut face)).foreground, x, (*s).y,   // C 1510
+			       (*s).width - 1, (*s).height - 1, false); }         // C 1511
+    }
+  else if !glyph_u_cmp_bits! (automatic, (*s).first_glyph)              // C 1513
+    {
+      let y: c_int = (*s).ybase;                                        // C 1515
+
+      i = 0;                                                            // C 1517
+      j = (*s).cmp_from;
+      while i < (*s).nchars
+	{
+	  /* TAB in a composition means display glyphs with padding
+	     space on the left or right.  */
+	  if COMPOSITION_GLYPH (((*s).cmp as *mut composition), j as ptrdiff_t) != b'\t' as isize   // C 1520
+	    {
+	      let cmp: *mut composition = (*s).cmp as *mut composition;
+	      let xx: c_int
+		= x + *(*cmp).offsets.offset ((j * 2) as isize) as c_int;   // C 1522
+	      let yy: c_int
+		= y - *(*cmp).offsets.offset ((j * 2 + 1) as isize) as c_int;   // C 1523
+
+	      ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, j, j + 1, xx, yy, false);                           // C 1525
+	      if face_bits! (overstrike, (*s).face as *mut face)        // C 1526
+		{ ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		    (s, j, j + 1, xx + 1, yy, false); }                 // C 1527
+	    }
+	  i += 1; j += 1;                                               // C 1517's step
+	}
+    }
+  else
+    {
+      let gstring: Lisp_Object = composition_gstring_from_id ((*s).cmp_id);   // C 1532
+      let mut glyph: Lisp_Object;                                       // C 1533
+      let y: c_int = (*s).ybase;                                        // C 1534
+      let mut width: c_int = 0;                                         // C 1535
+
+      i = (*s).cmp_from;                                                // C 1537
+      j = (*s).cmp_from;
+      while i < (*s).cmp_to
+	{
+	  glyph = LGSTRING_GLYPH (gstring, i as ptrdiff_t);            // C 1539
+	  if NILP (LGLYPH_ADJUSTMENT (glyph))                           // C 1540
+	    { width += LGLYPH_WIDTH (glyph) as c_int; }                 // C 1541
+	  else
+	    {
+	      let mut xoff: c_int;                                      // C 1544
+	      let mut yoff: c_int;
+	      let mut wadjust: c_int;
+
+	      if j < i                                                  // C 1546
+		{
+		  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		    (s, j, i, x, y, false);                             // C 1548
+		  if face_bits! (overstrike, (*s).face as *mut face)    // C 1549
+		    { ((*((*font).driver as *const font_driver)).draw.unwrap ())
+			(s, j, i, x + 1, y, false); }                   // C 1550
+		  x += width;                                           // C 1551
+		}
+	      xoff = LGLYPH_XOFF (glyph) as c_int;                      // C 1553
+	      yoff = LGLYPH_YOFF (glyph) as c_int;                      // C 1554
+	      wadjust = LGLYPH_WADJUST (glyph) as c_int;                // C 1555
+	      ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, i, i + 1, x + xoff, y + yoff, false);               // C 1556
+	      if face_bits! (overstrike, (*s).face as *mut face)        // C 1557
+		{ ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		    (s, i, i + 1, x + xoff + 1, y + yoff, false); }     // C 1558-1559
+	      x += wadjust;                                             // C 1560
+	      j = i + 1;                                                // C 1561
+	      width = 0;                                                // C 1562
+	    }
+	  i += 1;                                                       // C 1537's step
+	}
+      if j < i                                                          // C 1565
+	{
+	  ((*((*font).driver as *const font_driver)).draw.unwrap ())
+	    (s, j, i, x, y, false);                                     // C 1567
+	  if face_bits! (overstrike, (*s).face as *mut face)                // C 1568
+	    { ((*((*font).driver as *const font_driver)).draw.unwrap ())
+		(s, j, i, x + 1, y, false); }                           // C 1569
+	}
+    }
+}

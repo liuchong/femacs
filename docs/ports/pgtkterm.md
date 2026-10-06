@@ -1,4 +1,4 @@
-# emacs/src/pgtkterm.c (7,780 lines) — slices 1-4: C 1-1078, C 1079-1279, C 1281-1383 and C 1385-1483
+# emacs/src/pgtkterm.c (7,780 lines) — slices 1-5: C 1-1078, C 1079-1279, C 1281-1383, C 1385-1483 and C 1485-1571
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `pgtkterm.o` sits in
 > `PGTK_OBJ` (`emacs/src/Makefile.in` 325, `PGTK_OBJ=@PGTK_OBJ@`, filled by `configure.ac`
@@ -11,13 +11,13 @@
 > `--check` reading in Evidence ③ was never vacuous.  What this ledger adds is the mandate's P-86 ②
 > shape - the **C line-range table**, accounting for every line of the reference because the arm
 > cannot be compiled on this machine - beside the `## Evidence` arm readings and the
-> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**2,071 lines**), carrying **C 1-1078**,
-> **C 1079-1279**, **C 1281-1383** and **C 1385-1483** - four slices - with **both arms of every
-> `#if`**; the **2,044** this line used to
+> `## Deviations`.  Port: `femacs/src/pgtkterm.rs` (**2,199 lines**), carrying **C 1-1078**,
+> **C 1079-1279**, **C 1281-1383**, **C 1385-1483** and **C 1485-1572** - five slices - with **both
+> arms of every `#if`**; the **2,044** this line used to
 > read was a stale figure (the file measured 1,493 lines at the second slice's HEAD, i.e. the
 > number had been wrong for a while - the second slice's section records the measurement, and
 > `docs/port-map.md` is the generated authority).  **The next live definition is
-> `pgtk_draw_composite_glyph_string_foreground` (C 1487, its comment at C 1485).**
+> `pgtk_draw_glyphless_glyph_string_foreground` (C 1577, its comment at C 1575).**
 >
 > **This ledger replaces, not extends, what it said before.**  Until this batch it read "the frozen
 > configuration does not compile this file ⇒ the port is the empty unit plus the note that names the
@@ -114,7 +114,8 @@ on an absent name as false).  `have_pgtk` (151), `have_window_system` (163), `ha
 | 1079-1279 | `pgtk_set_z_group` (C 1080-1118), `pgtk_initialize_display_info` (C 1120-1137), the six GC helpers `pgtk_set_cursor_gc`/`pgtk_set_mouse_face_gc`/`pgtk_set_mode_line_face_gc`/`pgtk_set_glyph_string_gc`/`pgtk_set_glyph_string_clipping` (C 1142-1275, five of them `static` in C) | the file gate - **transcribed** (the second slice) |
 | 1281-1383 | `pgtk_set_glyph_string_clipping_exactly` (C 1281-1293), `pgtk_compute_glyph_string_overhangs` (C 1295-1333, C's `alloca` going to the port's stack pool), `pgtk_clear_glyph_string_rect` (C 1335-1344), `fill_background_by_face` (C 1346-1377) and `fill_background` (C 1379-1383) | the file gate - **transcribed** (the third slice) |
 | 1385-1483 | `pgtk_draw_glyph_string_background` (C 1385-1422), `pgtk_draw_rectangle` (C 1425-1437) and `pgtk_draw_glyph_string_foreground` (C 1440-1483) | the file gate - **transcribed** (the fourth slice) |
-| 1485-7780 | **the remainder of the file** - from C 1485's comment and C 1487's `pgtk_draw_composite_glyph_string_foreground` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
+| 1485-1572 | `pgtk_draw_composite_glyph_string_foreground` (C 1485-1572: the box-line offset, the `font_not_found_p` rectangle arm, the non-automatic `COMPOSITION_GLYPH`/`offsets` loop and the `LGSTRING_GLYPH`/`LGLYPH_*` automatic arm with its two deferred draws) | the file gate - **transcribed** (the fifth slice) |
+| 1573-7780 | **the remainder of the file** - from C 1575's comment and C 1577's `pgtk_draw_glyphless_glyph_string_foreground` (**the next live definition**) through C 7780's `syms_of_pgtkterm`: the scroll-bar layer, `pgtk_read_socket`, the event handlers, `pgtk_term_init`, `pgtk_delete_display` (C 7314), `syms_of_pgtkterm` (C 7472) and the cairo surface helpers | not in this slice: recorded here so the table covers the reference, to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -420,6 +421,17 @@ their assertions are owed.
     returns to 16/16/0 and the consumer sweep reads `checked 83 unit(s), 0 failure(s)` with
     `checking 83 unit(s), 0 unit failure(s)`.
 
+24. **`glyph_u_cmp_bits!` is this unit's own copy, and one index takes a cast.**  C 1513's
+    `s->first_glyph->u.cmp.automatic` is the `bool_bf automatic : 1; unsigned id : 31;` pair C
+    declares at dispextern.h 597-598, whose constants are `include/dispextern.rs` 454-455's and
+    whose macro the units carry themselves (`src/xterm.rs` 9596, `src/w32term.rs` 1732, `src/term.rs`
+    840): this file's copy has the two arms and, like Deviation 21's `face_bits!`, its call sites
+    pass the **pointer** (`glyph_u_cmp_bits! (automatic, (*s).first_glyph)`) rather than the value
+    form those units' registered `E0614` class records.  C 1539's `LGSTRING_GLYPH (gstring, i)`
+    takes the mirror's `ptrdiff_t` index, so the port writes `i as ptrdiff_t` (C's `int` -> the
+    `ASIZE`-derived index type; `src/character.rs` 430's `j as isize` is the same conversion) - the
+    first reading of this slice named that one site.
+
 ## Owed (2026-10-05, PORTING.md P-90)
 
 - **The SDK surface moves out of the unit.**  `femacs/src/pgtkterm.rs` carries the cairo, GLib,
@@ -587,3 +599,38 @@ consumer sweep reads `checked 83 unit(s), 0 failure(s)` with `checking 83 unit(s
 failure(s)`.  **Not claimed**: none of this has been run - the frozen configuration compiles none of
 this file, there is no GTK or cairo to draw with here, and the three arm readings are **compile**
 readings of text this machine cannot build.
+
+## The fifth slice (C 1485-1571): the composite glyph-string foreground
+
+**What is in it.**  `pgtk_draw_composite_glyph_string_foreground` (C 1485-1572): the box-line
+offset, the `font_not_found_p`/`cmp_from == 0` rectangle arm, the two-arm `u.cmp.automatic` fork -
+the non-automatic one walking `s->cmp_from .. s->cmp_from + s->nchars` with `COMPOSITION_GLYPH`'s
+TAB test and the two `offsets` reads, the automatic one walking `cmp_from .. cmp_to` over
+`LGSTRING_GLYPH`/`LGLYPH_ADJUSTMENT`/`LGLYPH_WIDTH`/`LGLYPH_XOFF`/`LGLYPH_YOFF`/`LGLYPH_WADJUST`
+with its two deferred `font->driver->draw` pairs and the closing `j < i` flush.  Rust:
+2,071 -> **2,199** lines.
+
+**The arm readings (three arms, both sides, `dispextern_face_records` both sides - Deviation 17).**
+```
+A narrow = have_pgtk + have_window_system          : HEAD 40 errors / 19 warnings -> 40 / 19
+B = A + gdk_windowing_wayland + have_xwidgets      : 41 / 20 -> 41 / 20
+C = A + use_gtk + have_gtk3                        : 18 / 18 -> 18 / 18
+```
+**Every arm reads exactly the same number on both sides and no class changes**: the slice's text
+adds no error and no warning.  One repair got it there and it is recorded: the mirror's
+`LGSTRING_GLYPH` index is a `ptrdiff_t`, so C 1539 takes `i as ptrdiff_t` (Deviation 24) - the first
+reading of this text read one mismatch.  The unit's own `glyph_u_cmp_bits!` copy uses the pointer
+call form for the same reason Deviation 21 gives for `face_bits!`.
+
+**What `--check` reads.**  `extract-abi.py --check emacs/src/pgtkterm.c femacs/src/pgtkterm.rs`
+goes **178 rows -> 177**: `pgtk_draw_composite_glyph_string_foreground` retires, and the file's own
+`line count drifted` row is re-measured 73.4% -> **71.7%** (C 7,780 vs the port's 2,199).
+
+**Gates and what is not claimed.**  `check-declarations.py` **18/0/18/0**; `check-citations.py`
+**676/0/0/2049/36/0**; `check-dead-file-coverage.py` **145/0** (**37 range rows** over
+`src/pgtkterm.c`); `check-port-lines.py` **0/0/0/0**; `check-ledger-ticks.py` **238/0**;
+`check-cond-eval.py src/pgtkterm.c` **31/0/0**; `check-mirror-dupes.py` **16/16/0** (no mirror
+changed this round - the round reads the sweep anyway and it is `checked 83 unit(s), 0 failure(s)`
+with `checking 83 unit(s), 0 unit failure(s)`).  **Not claimed**: none of this has been run - the
+frozen configuration compiles none of this file, there is no GTK or cairo to draw with here, and
+the three arm readings are **compile** readings of text this machine cannot build.
