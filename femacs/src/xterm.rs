@@ -24100,3 +24100,164 @@ unsafe fn x_horizontal_scroll_bar_to_input_event (dpyinfo: *mut x_display_info,
   (*ievent).y = make_fixnum ((*event).xclient.data.l[4]);               // C 15694
   (*ievent).modifiers = 0;                                              // C 15695
 }
+
+/* C 15699's `#ifdef USE_MOTIF` opens this arm.  C 15703's `#define XM_SB_MAX 10000000` is C's own
+   text, so its value is measurable; the Xm names C 15709-15786 needs come from
+   `<Xm/ScrollBar.h>`, and **this machine has no Motif headers** - the same situation the Xt block
+   above records for libXt, and `include/gtk.rs` 1421-1425 records for GTK.  So the port writes C's
+   own names with the header's published layout/order, marks every *value* **UNVERIFIED**, and
+   writes no size or offset assertion for anything it did not measure.  What the branch order is,
+   is C's; what 1..8 or the record's offsets are, is not claimed.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XM_SB_MAX: c_int = 10000000;  /* C 15703, C's own text */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+/// C: `<Xm/ScrollBar.h>`: `typedef struct { int reason; XEvent *event; Widget widget; int value;
+/// int pixel; int slider_size; int x; int y; int width; int height; int click_count; }
+/// XmScrollBarCallbackStruct;` - **UNVERIFIED** (no Motif header on this machine): the layout is
+/// the header's published form, C 15718/15760/15768/15772 read `reason` and `value`, and no size
+/// assertion is written for a record nothing here could measure.
+#[repr(C)]
+pub struct XmScrollBarCallbackStruct
+{
+  pub reason: c_int,
+  pub event: *mut XEvent,
+  pub widget: Widget,
+  pub value: c_int,
+  pub pixel: c_int,
+  pub slider_size: c_int,
+  pub x: c_int,
+  pub y: c_int,
+  pub width: c_int,
+  pub height: c_int,
+  pub click_count: c_int,
+}
+/* C: `<Xm/ScrollBar.h>`: the eight `case` values of C 15720-15776, in C's own order.
+   **UNVERIFIED**: these numbers are placeholders, not Motif's values - `docs/ports/xterm.md`'s
+   Owed list names `<Xm/ScrollBar.h>` as what would measure them.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XmCR_DECREMENT: c_int = 1;
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XmCR_INCREMENT: c_int = 2;
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XmCR_PAGE_DECREMENT: c_int = 3;
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XmCR_PAGE_INCREMENT: c_int = 4;
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XmCR_TO_TOP: c_int = 5;
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XmCR_TO_BOTTOM: c_int = 6;
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XmCR_DRAG: c_int = 7;
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XmCR_VALUE_CHANGED: c_int = 8;
+/* C: `<Xm/ScrollBar.h>`: `#define XmNsliderSize "sliderSize"` - the resource name C 15755 passes
+   to `XtVaGetValues`, the `XtNheight ()` shape above.  **UNVERIFIED**: the string is a
+   placeholder (Motif's resource names follow the property names, but that is inference, not a
+   measurement).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+pub fn XmNsliderSize () -> *mut c_char { c"sliderSize".as_ptr () as *mut c_char }
+
+/* Scroll bar callback for Motif scroll bars.  WIDGET is the scroll
+   bar widget.  CLIENT_DATA is a pointer to the scroll_bar structure.
+   CALL_DATA is a pointer to a XmScrollBarCallbackStruct.  */
+
+/* C 15709-15786: `static void xm_scroll_callback (Widget widget, XtPointer client_data, XtPointer
+   call_data)` - C's `static`, so a plain `unsafe fn`.  Five shapes: C 15712-15713's two casts are
+   C's implicit pointer conversions written out (`XtPointer` to the two records' pointers); C
+   15718-15778's `switch` is the port's `match` over the eight `XmCR_*` constants in C's order,
+   with the `_` arm standing for the `break` C leaves implicit (the `x_handle_net_wm_state` row's
+   shape, and the notes rows carry the `switch`/`case`/`break` tokens); C 15760-15761's `float`
+   arithmetic is written `f32` (PORTING.md 590) with both operands stated, C 15762/15768's `min`
+   is `include/lisp.rs` 3152's `min (isize, isize)` so the two arguments state `as isize` and the
+   result `as c_int` (this file's `min` call shape); C 15755's `XtVaGetValues` is the use-site
+   declaration above with C's `NULL` sentinel as `std::ptr::null_mut ()`; and C 15782's
+   `window_being_scrolled` is slice 69's file-scope object.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_toolkit_scroll_bars",
+	  feature = "use_x_toolkit", feature = "use_motif"))]
+unsafe fn xm_scroll_callback (widget: Widget, client_data: XtPointer, call_data: XtPointer)
+{
+  let bar: *mut scroll_bar = client_data as *mut scroll_bar;            // C 15712
+  let cs: *mut XmScrollBarCallbackStruct = call_data as *mut XmScrollBarCallbackStruct;  // C 15713
+  let mut part: scroll_bar_part = scroll_bar_nowhere;                   // C 15714
+  let horizontal: bool = (*bar).horizontal;                             // C 15715
+  let mut whole: c_int = 0;                                             // C 15716
+  let mut portion: c_int = 0;
+
+  match (*cs).reason                                                     // C 15718
+    {
+      XmCR_DECREMENT =>                                                 // C 15720
+	{
+	  (*bar).dragging = -1;                                         // C 15721
+	  part = if horizontal { scroll_bar_left_arrow } else { scroll_bar_up_arrow };  // C 15722
+	}
+      XmCR_INCREMENT =>                                                 // C 15725
+	{
+	  (*bar).dragging = -1;                                         // C 15726
+	  part = if horizontal { scroll_bar_right_arrow } else { scroll_bar_down_arrow };  // C 15727
+	}
+      XmCR_PAGE_DECREMENT =>                                            // C 15730
+	{
+	  (*bar).dragging = -1;                                         // C 15731
+	  part = if horizontal { scroll_bar_before_handle } else { scroll_bar_above_handle };  // C 15732
+	}
+      XmCR_PAGE_INCREMENT =>                                            // C 15735
+	{
+	  (*bar).dragging = -1;                                         // C 15736
+	  part = if horizontal { scroll_bar_after_handle } else { scroll_bar_below_handle };  // C 15737
+	}
+      XmCR_TO_TOP =>                                                    // C 15740
+	{
+	  (*bar).dragging = -1;                                         // C 15741
+	  part = if horizontal { scroll_bar_to_leftmost } else { scroll_bar_to_top };  // C 15742
+	}
+      XmCR_TO_BOTTOM =>                                                 // C 15745
+	{
+	  (*bar).dragging = -1;                                         // C 15746
+	  part = if horizontal { scroll_bar_to_rightmost } else { scroll_bar_to_bottom };  // C 15747
+	}
+      XmCR_DRAG =>                                                      // C 15750
+	{
+	  let mut slider_size: c_int = 0;  /* PORTING.md 1.5 */          // C 15752
+
+	  block_input ();                                               // C 15754
+	  XtVaGetValues (widget, XmNsliderSize (), &raw mut slider_size, std::ptr::null_mut::<c_void> ());  // C 15755
+	  unblock_input ();                                             // C 15756
+
+	  if horizontal                                                 // C 15758
+	    {
+	      portion = ((*bar).whole as f32 * ((*cs).value as f32 / XM_SB_MAX as f32)) as c_int;  // C 15760
+	      whole = ((*bar).whole as f32 * ((XM_SB_MAX - slider_size) as f32 / XM_SB_MAX as f32)) as c_int;  // C 15761
+	      portion = min (portion as isize, whole as isize) as c_int;  // C 15762
+	      part = scroll_bar_horizontal_handle;                      // C 15763
+	    }
+	  else
+	    {
+	      whole = XM_SB_MAX - slider_size;                          // C 15767
+	      portion = min ((*cs).value as isize, whole as isize) as c_int;  // C 15768
+	      part = scroll_bar_handle;                                 // C 15769
+	    }
+
+	  (*bar).dragging = (*cs).value;                                // C 15772
+	}
+      XmCR_VALUE_CHANGED => {}                                          // C 15776-15777
+      _ => {}                                                           // C's implicit `break`
+    }
+
+  if part != scroll_bar_nowhere                                         // C 15780
+    {
+      window_being_scrolled = (*bar).window;                            // C 15782
+      x_send_scroll_bar_event ((*bar).window, part, portion, whole,      // C 15783-15784
+			       (*bar).horizontal);
+    }
+}
