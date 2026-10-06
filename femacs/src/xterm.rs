@@ -26413,4 +26413,174 @@ unsafe fn XTset_vertical_scroll_bar (w: *mut window, portion: c_int, whole: c_in
   wset_vertical_scroll_bar (w, barobj);                                   // C 17115
 }
 
-/* C 17116's `}` closes `XTset_vertical_scroll_bar`; C 17119 opens its horizontal twin.  */
+/// C 17119-17246: `static void XTset_horizontal_scroll_bar (struct window *w, int portion, int
+/// whole, int position)` - the vertical function's twin, C's `static`, with the same three arms in
+/// the same order and four differences C has: the window_box call takes the *x/width* pair
+/// (C 17130), the plain-X side clears the area the scroll bar does not cover before moving it
+/// (C 17193-17198, a block of its own with `area_height`/`rest`), the toolkit arm passes `height`
+/// uncapped and clears from `WINDOW_LEFT_EDGE_X` (C 17176-17178), and the tail uses
+/// `HORIZONTAL_SCROLL_BAR_LEFT_RANGE! (f, width)` and
+/// `x_set_toolkit_horizontal_scroll_bar_thumb` (C 17225/17231).  `pixel_width` is assigned at its
+/// declaration (C 17127), `window_x`/`window_width` are written by `window_box` and take C's own
+/// zero (PORTING.md 1.5), and the `CW*` mask needs this function's own
+/// `use crate::x11_constants::...` (the module's names are not glob-imported; slice 80's reading).
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTset_horizontal_scroll_bar (w: *mut window, portion: c_int, whole: c_int,
+				       position: c_int)
+{
+  use crate::x11_constants::{CWHeight, CWWidth, CWX, CWY};   /* C 17160-17167's four masks */
+
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 17122
+  let barobj: Lisp_Object;                                              // C 17123
+  let bar: *mut scroll_bar;                                             // C 17124
+  let top: c_int;                                                       // C 17125
+  let height: c_int;
+  let left: c_int;
+  let width: c_int;
+  let mut window_x: c_int = 0;   /* PORTING.md 1.5 */                   // C 17126
+  let mut window_width: c_int = 0;
+  let pixel_width: c_int = WINDOW_PIXEL_WIDTH (w);                      // C 17127
+
+  /* Get window dimensions.  */
+  window_box (w, ANY_AREA, &raw mut window_x, std::ptr::null_mut (),     // C 17130
+	      &raw mut window_width, std::ptr::null_mut ());
+  left = window_x;                                                      // C 17131
+  width = window_width;                                                 // C 17132
+  top = WINDOW_SCROLL_BAR_AREA_Y! (w);                                  // C 17133
+  height = WINDOW_SCROLL_BAR_AREA_HEIGHT! (w);                          // C 17134
+
+  /* Does the scroll bar exist yet?  */
+  if NILP ((*w).horizontal_scroll_bar)                                 // C 17137
+    {
+      if width > 0 && height > 0                                        // C 17139
+	{
+	  block_input ();                                               // C 17141
+
+	  /* Clear also part between window_width and
+	     WINDOW_PIXEL_WIDTH.  */
+	  x_clear_area (f, left, top, pixel_width, height);             // C 17145
+	  unblock_input ();                                             // C 17146
+	}
+
+      bar = x_scroll_bar_create (w, top, left, width, height, true);    // C 17149
+    }
+  else
+    {
+      /* It may just need to be moved and resized.  */
+      let mut mask: c_uint = 0;                                         // C 17154
+
+      bar = XSCROLL_BAR! ((*w).horizontal_scroll_bar);                  // C 17156
+
+      block_input ();                                                   // C 17158
+
+      if left != (*bar).left                                            // C 17160
+	{ mask |= CWX as c_uint; }                                      // C 17161
+      if top != (*bar).top                                              // C 17162
+	{ mask |= CWY as c_uint; }                                      // C 17163
+      if width != (*bar).width                                          // C 17164
+	{ mask |= CWWidth as c_uint; }                                  // C 17165
+      if height != (*bar).height                                        // C 17166
+	{ mask |= CWHeight as c_uint; }                                 // C 17167
+
+#[cfg (feature = "use_toolkit_scroll_bars")]
+      {
+	/* Move/size the scroll bar widget.  */
+	if mask != 0                                                    // C 17171
+	  {
+	    /* Since toolkit scroll bars are smaller than the space reserved
+	       for them on the frame, we have to clear "under" them.  */
+	    if width > 0 && height > 0                                  // C 17175
+	      {
+		x_clear_area (f, WINDOW_LEFT_EDGE_X! (w), top,          // C 17176-17178
+			      pixel_width - WINDOW_RIGHT_DIVIDER_WIDTH! (w), height);
+	      }
+#[cfg (feature = "use_gtk")]
+	    {
+	      xg_update_horizontal_scrollbar_pos (f, (*bar).x_window as ptrdiff_t,  // C 17180-17181
+						  top, left, width, height);
+	    }
+#[cfg (not (feature = "use_gtk"))]
+	    {
+	      XtConfigureWidget (SCROLL_BAR_X_WIDGET! (FRAME_X_DISPLAY! (f), bar),  // C 17183-17184
+				 left as Position, top as Position, width as Dimension,
+				 height as Dimension, 0);
+	    }
+	  }
+      }
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+      {
+	/* Clear areas not covered by the scroll bar because it's not as
+	   wide as the area reserved for it.  This makes sure a
+	   previous mode line display is cleared after C-x 2 C-x 1, for
+	   example.  */
+	{
+	  let area_height: c_int = WINDOW_CONFIG_SCROLL_BAR_HEIGHT! (w);  // C 17194
+	  let rest: c_int = area_height - height;                         // C 17195
+	  if rest > 0 && width > 0                                        // C 17196
+	    { x_clear_area (f, left, top, width, rest); }                 // C 17197
+	}
+
+	/* Move/size the scroll bar window.  */
+	if mask != 0                                                     // C 17201
+	  {
+	    let mut wc: XWindowChanges = std::mem::zeroed ();   /* PORTING.md 1.5 */  // C 17203
+
+	    wc.x = left;                                                 // C 17205
+	    wc.y = top;                                                  // C 17206
+	    wc.width = width;                                            // C 17207
+	    wc.height = height;                                          // C 17208
+	    XConfigureWindow (FRAME_X_DISPLAY! (f), (*bar).x_window,      // C 17209-17210
+			      mask, &raw mut wc);
+	  }
+      }
+
+      /* Remember new settings.  */
+      (*bar).left = left;                                                // C 17216
+      (*bar).top = top;                                                  // C 17217
+      (*bar).width = width;                                              // C 17218
+      (*bar).height = height;                                            // C 17219
+
+      unblock_input ();                                                  // C 17221
+    }
+
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  { x_set_toolkit_horizontal_scroll_bar_thumb (bar, portion, position, whole); }  // C 17225
+#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+  {
+    /* Set the scroll bar's current state, unless we're currently being
+       dragged.  */
+    if (*bar).dragging == -1                                              // C 17229
+      {
+	let left_range: c_int = HORIZONTAL_SCROLL_BAR_LEFT_RANGE! (f, width);  // C 17231
+
+	if whole == 0                                                     // C 17233
+	  { x_scroll_bar_set_handle (bar, 0, left_range, false); }        // C 17234
+	else
+	  {
+	    let start: c_int = ((position as f64 * left_range as f64)     // C 17237
+				/ whole as f64) as c_int;
+	    let end: c_int = (((position + portion) as f64 * left_range as f64)  // C 17238
+			      / whole as f64) as c_int;
+	    x_scroll_bar_set_handle (bar, start, end, false);             // C 17239
+	  }
+      }
+  }
+
+  XSETVECTOR! (barobj, bar);                                              // C 17244
+  wset_horizontal_scroll_bar (w, barobj);                                 // C 17245
+}
+
+/* The following three hooks are used when we're doing a thorough
+   redisplay of the frame.  We don't explicitly know which scroll bars
+   are going to be deleted, because keeping track of when windows go
+   away is a real pain - "Can you say set-window-configuration, boys
+   and girls?"  Instead, we just assert at the beginning of redisplay
+   that *all* scroll bars are to be removed, and then save a scroll bar
+   from the fiery pit when we actually redisplay its window.  */
+
+/* Arrange for all scroll bars on FRAME to be removed at the next call
+   to `*judge_scroll_bars_hook'.  A scroll bar may be spared if
+   `*redeem_scroll_bar_hook' is applied to its window before the judgment.  */
+
+/* C 17246's `}` closes `XTset_horizontal_scroll_bar`; C 17261 opens the three hooks the next slice
+   lands.  */
