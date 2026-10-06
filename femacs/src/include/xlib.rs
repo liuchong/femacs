@@ -93,6 +93,25 @@ pub mod x11_constants {
   pub const PropertyChangeMask: c_long = 1 << 22;
   /// X11/X.h 212: `#define ClientMessage 33` - the `XEvent` union member `xclient` selects.
   pub const ClientMessage: c_int = 33;
+  /// X11/X.h 186: `#define EnterNotify 7` - an event type the focus machinery dispatches on
+  /// (measured against this target's header, the `spikes` probe in the slice-59 reading).
+  pub const EnterNotify: c_int = 7;
+  /// X11/X.h 187: `#define LeaveNotify 8` - the event type paired with `EnterNotify`.
+  pub const LeaveNotify: c_int = 8;
+  /// X11/X.h 188: `#define FocusIn 9` - the event type `x_focus_changed` reports.
+  pub const FocusIn: c_int = 9;
+  /// X11/X.h 189: `#define FocusOut 10` - the event type paired with `FocusIn`.
+  pub const FocusOut: c_int = 10;
+  /// X11/X.h 268: `#define NotifyGrab 1` - an `XFocusChangeEvent.mode` value to ignore.
+  pub const NotifyGrab: c_int = 1;
+  /// X11/X.h 269: `#define NotifyUngrab 2` - an `XFocusChangeEvent.mode` value to ignore.
+  pub const NotifyUngrab: c_int = 2;
+  /// X11/X.h 278: `#define NotifyInferior 2` - the `XCrossingEvent.detail` value that means the
+  /// pointer stayed inside the same window's hierarchy.
+  pub const NotifyInferior: c_int = 2;
+  /// X11/X.h 281: `#define NotifyPointer 5` - the `XFocusChangeEvent.detail` value that means the
+  /// change came from a pointer grab.
+  pub const NotifyPointer: c_int = 5;
   /// X11/X.h 388: `#define InputOnly 2` - the `XCreateWindow` class.
   pub const InputOnly: c_int = 2;
   /// X11/X.h 401: `#define CWOverrideRedirect (1L<<9)`.

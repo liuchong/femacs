@@ -92,3 +92,15 @@ to the frozen legs).  No runtime, layout or symbol evidence beyond those measure
   **exit 0**: `src/pgtkim.rs` (`have_pgtk` + `have_gtk3`, 14,083,208-byte rlib) and
   `src/hbfont.rs` (`harfbuzz`, 14,580,952-byte rlib); `layout-check` passes and
   `tools/check-all-units.sh` is **83/0 + 83/0**.
+
+### status 3.850 (slice 59's eight X11 event constants)
+
+- `x_detect_focus_change`'s `switch (event->type)` and `x_focus_changed`'s two tests needed eight
+  constants this module did not carry: `EnterNotify` (7), `LeaveNotify` (8), `FocusIn` (9),
+  `FocusOut` (10), `NotifyGrab` (1), `NotifyUngrab` (2), `NotifyInferior` (2) and `NotifyPointer`
+  (5).  Each is carried with `<X11/X.h>`'s own line (186, 187, 188, 189, 268, 269, 278, 281) and
+  the value a clang probe of this target's header printed (the measurement is this slice's
+  evidence in `docs/ports/xterm.md`); `ClientMessage` (33) was already here.
+- The change is additive (eight `pub const`s inside the existing `x11_constants` module), so
+  P-87 ①'s legs read **83/0 + 83/0** and `check-mirror-dupes` stays 16/16/0; the unit side of the
+  reading is `docs/ports/xterm.md`'s slice-59 section.

@@ -21270,7 +21270,9 @@ unsafe fn XTtoggle_invisible_pointer (f: *mut frame, invisible: bool)
 unsafe fn x_focus_changed (type_: c_int, state: c_int, dpyinfo: *mut x_display_info,
 			   frame: *mut frame, bufp: *mut input_event)
 {
-  if type_ == FocusIn                                                   // C 12166
+  use crate::x11_constants::{FocusIn, FocusOut};
+
+  if type_ == FocusIn                                                   // C 12166 (`FocusIn` is the x11 mirror's 9)
     {
       if (*dpyinfo).x_focus_event_frame != frame                        // C 12168
 	{
@@ -21300,7 +21302,7 @@ unsafe fn x_focus_changed (type_: c_int, state: c_int, dpyinfo: *mut x_display_i
 	}
       }
     }
-  else if type_ == FocusOut                                             // C 12194
+  else if type_ == FocusOut                                             // C 12194 (`FocusOut` is the x11 mirror's 10)
     {
       (*( (*frame).output_data.x as *mut x_output )).focus_state &= !state;  // C 12196
 
@@ -21977,4 +21979,190 @@ unsafe fn x_tooltip_window_to_frame (dpyinfo: *mut x_display_info, wdesc: Window
   });
 
   return std::ptr::null_mut ();                                         // C 12341
+}
+
+/// C 13979-14031: `static void x_detect_focus_change (struct x_display_info *dpyinfo, struct frame
+/// *frame, const XEvent *event, struct input_event *bufp)` - C's `static`, so a plain `unsafe fn`.
+/// C 13986's `switch (event->type)` is the port's `match` over the mirror's event constants
+/// (P-04/P-86, the `x_handle_net_wm_state` shape; `switch`/`case`/`break` are closed by a
+/// `docs/ports/macro-body-notes.tsv` row), and C's three case groups keep their order as the three
+/// arms plus the `_` arm C's `break` leaves implicit.  Every `XEvent` member read is the recorded
+/// `E0609` class (`include/xlib.rs`'s 192-byte placeholder - `event->type` is `r#type`,
+/// PORTING.md 0.2's keyword rule), so the scrutinee's type is the placeholder's and the arm
+/// **patterns are the mirror's constants**, which is why this slice measures them against the real
+/// header first (`EnterNotify` 7, `LeaveNotify` 8, `FocusIn` 9, `FocusOut` 10; `NotifyGrab` 1,
+/// `NotifyUngrab` 2, `NotifyInferior` 2, `NotifyPointer` 5 - `client_matching`'s clang probe of the
+/// turn).  `x_focus_changed` is this unit's slice-55 definition.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_detect_focus_change (dpyinfo: *mut x_display_info, frame: *mut frame,
+				 event: *const XEvent, bufp: *mut input_event)
+{
+  use crate::x11_constants::{ClientMessage, EnterNotify, FocusIn, FocusOut, LeaveNotify,
+			     NotifyGrab, NotifyInferior, NotifyPointer, NotifyUngrab};
+
+  if frame.is_null ()                                                   // C 13983
+    { return; }                                                         // C 13984
+
+  match (*event).r#type                                                 // C 13986
+    {
+      EnterNotify | LeaveNotify =>                                      // C 13988-13989
+	{
+	  let focus_frame: *mut frame = (*dpyinfo).x_focus_event_frame;  // C 13991
+	  let focus_state: c_int = if !focus_frame.is_null ()            // C 13992-13993
+	    { (*( (*focus_frame).output_data.x as *mut x_output )).focus_state }
+	    else { 0 };
+
+	  if (*event).xcrossing.detail != NotifyInferior                 // C 13995
+	      && (*event).xcrossing.focus                                // C 13996
+	      && (focus_state & FOCUS_EXPLICIT) == 0                     // C 13997
+	    {
+	      x_focus_changed (if (*event).r#type == EnterNotify         // C 13998
+				 { FocusIn } else { FocusOut },
+			       FOCUS_IMPLICIT,                           // C 13999
+			       dpyinfo, frame, bufp);                    // C 14000
+	    }
+	}
+      FocusIn | FocusOut =>                                             // C 14004-14005
+	{
+	  /* Ignore transient focus events from hotkeys, window manager
+	     gadgets, and other odd sources.  Some buggy window managers
+	     (e.g., Muffin 4.2.4) send FocusIn events of this type without
+	     corresponding FocusOut events even when some other window
+	     really has focus, and these kinds of focus event don't
+	     correspond to real user input changes.  GTK+ uses the same
+	     filtering. */
+	  if (*event).xfocus.mode == NotifyGrab                          // C 14013
+	      || (*event).xfocus.mode == NotifyUngrab                    // C 14014
+	    { return; }                                                 // C 14015
+	  x_focus_changed ((*event).r#type,                              // C 14016
+			   if (*event).xfocus.detail == NotifyPointer    // C 14017
+			     { FOCUS_IMPLICIT } else { FOCUS_EXPLICIT },  // C 14018
+			   dpyinfo, frame, bufp);                       // C 14019
+	}
+      ClientMessage =>                                                  // C 14022
+	{
+	  if (*event).xclient.message_type == (*dpyinfo).Xatom_XEMBED   // C 14023
+	    {
+	      let msg: xembed_message                                    // C 14025
+		= (*event).xclient.data.l[1] as xembed_message;
+	      x_focus_changed (if msg == xembed_message::XEMBED_FOCUS_IN  // C 14026
+				 { FocusIn } else { FocusOut },
+			       FOCUS_EXPLICIT, dpyinfo, frame, bufp);    // C 14027
+	    }
+	}
+      _ => {}
+    }
+}
+
+/* Handle an event saying the mouse has moved out of an Emacs frame.  */
+
+/// C 14038-14083: `void x_mouse_leave (struct x_display_info *dpyinfo)` - non-`static` and
+/// declared in xterm.h, so the exported shape above (PORTING.md 0.2/1.4).  C's
+/// `#if defined HAVE_XINPUT2 && !defined USE_X_TOOLKIT` gate wraps C 14042-14043's declaration,
+/// C 14054-14062 and C 14064-14082, while C 14063's call sits *between* the two blocks, so the
+/// port writes that one statement per arm (the slice-35 shared-`else` shape).  `clear_mouse_face`
+/// is dispextern.h 3691's prototype, declared at this use site (P-88); `xi_device_from_id`
+/// (C 5794) and `xi_handle_focus_change` (C 13348) are this file's own definitions still ahead of
+/// the lane, so the XInput2 arm adds those two owed names.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_mouse_leave (dpyinfo: *mut x_display_info)
+{
+  unsafe extern "C" {
+    /// C: dispextern.h 3691: `extern bool clear_mouse_face (Mouse_HLInfo *);`
+    pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
+  }
+
+#[cfg (all (feature = "have_xinput2", not (feature = "use_x_toolkit")))]
+  let mut device: *mut xi_device_t;                                     // C 14042
+  let hlinfo: *mut Mouse_HLInfo;                                        // C 14044
+
+  hlinfo = &raw mut (*dpyinfo).mouse_highlight;                         // C 14046
+
+  if !(*hlinfo).mouse_face_mouse_frame.is_null ()                       // C 14048
+    {
+      clear_mouse_face (hlinfo);                                        // C 14050
+      (*hlinfo).mouse_face_mouse_frame = std::ptr::null_mut ();         // C 14051
+    }
+
+#[cfg (all (feature = "have_xinput2", not (feature = "use_x_toolkit")))]
+  {
+    if !(*dpyinfo).supports_xi2                                         // C 14055
+      /* The call below is supposed to reset the implicit focus and
+	 revert the focus back to the last explicitly focused frame.  It
+	 doesn't work on input extension builds because focus tracking
+	 does not set x_focus_event_frame, and proceeds on a per-device
+	 basis.  On such builds, clear the implicit focus of the client
+	 pointer instead.  */
+      { x_new_focus_frame (dpyinfo, (*dpyinfo).x_focus_event_frame); }  // C 14063
+    else
+      {
+	if (*dpyinfo).client_pointer_device == -1                       // C 14067
+	  /* If there's no client pointer device, then no implicit focus
+	     is currently set.  */
+	  { return; }                                                   // C 14070
+
+	device = xi_device_from_id (dpyinfo, (*dpyinfo).client_pointer_device);  // C 14072
+
+	if !device.is_null () && !(*device).focus_implicit_frame.is_null ()  // C 14074
+	  {
+	    (*device).focus_implicit_frame = std::ptr::null_mut ();      // C 14076
+
+	    /* The focus might have changed; compute the new focus.  */
+	    xi_handle_focus_change (dpyinfo);                            // C 14079
+	  }
+      }
+  }
+#[cfg (not (all (feature = "have_xinput2", not (feature = "use_x_toolkit"))))]
+  { x_new_focus_frame (dpyinfo, (*dpyinfo).x_focus_event_frame); }     // C 14063
+}
+
+/* The focus has changed, or we have redirected a frame's focus to
+   another frame (this happens when a frame uses a surrogate
+   mini-buffer frame).  Shift the highlight as appropriate.
+
+   The FRAME argument doesn't necessarily have anything to do with which
+   frame is being highlighted or un-highlighted; we only use it to find
+   the appropriate X display info.  */
+
+/// C 14094-14098: `static void XTframe_rehighlight (struct frame *frame)` - C's `static`; the
+/// name is C's hook name.
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTframe_rehighlight (frame: *mut frame)
+{
+  x_frame_rehighlight (FRAME_DISPLAY_INFO! (frame));                    // C 14097
+}
+
+/// C 14100-14127: `static void x_frame_rehighlight (struct x_display_info *dpyinfo)` - C's
+/// `static`; this is the definition slices 55 and 56 owed (their two call sites' `E0425`s), and
+/// `FRAMEP`/`FRAME_FOCUS_FRAME`/`FRAME_LIVE_P`/`fset_focus_frame` are `include/lisp.rs`'s and
+/// `include/frame.rs`'s (the first is a function, not a macro).  C's `?:` is the port's `if`
+/// expression (PORTING.md 2.2).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_frame_rehighlight (dpyinfo: *mut x_display_info)
+{
+  let old_highlight: *mut frame = (*dpyinfo).highlight_frame;           // C 14103
+
+  if !(*dpyinfo).x_focus_frame.is_null ()                               // C 14105
+    {
+      (*dpyinfo).highlight_frame                                       // C 14107-14110
+	= if FRAMEP (FRAME_FOCUS_FRAME ((*dpyinfo).x_focus_frame))
+	    { XFRAME (FRAME_FOCUS_FRAME ((*dpyinfo).x_focus_frame)) }
+	    else { (*dpyinfo).x_focus_frame };
+      if !FRAME_LIVE_P ((*dpyinfo).highlight_frame)                     // C 14111
+	{
+	  fset_focus_frame ((*dpyinfo).x_focus_frame, Qnil ());         // C 14113
+	  (*dpyinfo).highlight_frame = (*dpyinfo).x_focus_frame;        // C 14114
+	}
+    }
+  else
+    { (*dpyinfo).highlight_frame = std::ptr::null_mut (); }             // C 14118
+
+  if (*dpyinfo).highlight_frame != old_highlight                        // C 14120
+    {
+      if !old_highlight.is_null ()                                      // C 14122
+	{ x_frame_unhighlight (old_highlight); }                        // C 14123
+      if !(*dpyinfo).highlight_frame.is_null ()                         // C 14124
+	{ x_frame_highlight ((*dpyinfo).highlight_frame); }             // C 14125
+    }
 }
