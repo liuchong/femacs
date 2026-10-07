@@ -212,7 +212,7 @@
 - [x] ns_delete_display  (line 5872, static) — C 5871-5875, landed as `fileprivate func ns_delete_display (_:)`: C's whole body is the comment `/* TODO...  */`, so the body is empty here too and the parameter unread (the `ns_default_font_parameter`/`applicationWillBecomeActive` reading: a body C leaves empty is transcribed empty rather than stubbed)
 - [x] ns_delete_terminal  (line 5880, static) — C 5877-5902, landed as `fileprivate func ns_delete_terminal (_:)`: it needed `terminal_display_info_ns` (already the core's own shim, `femacs/src/abi_shim.rs` 412), `image_destroy_all_bitmaps` (the core's, `femacs/src/image.rs` 1841) and one new member entry, `terminal_name`, for C 5888's guard; `ns_delete_display` (C 5900) landed in round 38, and C 5896's `setActivationPolicy:` is `NSApp.setActivationPolicy (.prohibited)`
 - [x] ns_create_terminal  (line 5908, static) — C 5906-5961, landed as `fileprivate func ns_create_terminal (_:) -> UnsafeMutableRawPointer?`: round 50 landed the entry layer (create_terminal/output_ns/ns_display_info_set_terminal + the 36 setters) and round 51 the last hook it needed (`ns_new_font`), so round 52 is the body - C 5917's create call with the round-39 table's address, C 5919's `terminal_set_display_info_ns` write, C 5920's setter, the 36 hook writes as non-capturing `@convention(c)` closures over the ported functions (seven of them the nsfns/nsmenu lanes' `@_cdecl` entries), and C 5960's return
-- [ ] ns_term_init  (line 5965) - **open, first half landed in round 54**: the entry layer its body needs is in the unit now (17 core names - `baud_rate`, `Fset_input_interrupt_mode`, `emacs_pipe`, `emacs_strerror`, `fcntl`, `xzalloc`, `allocate_kboard`, `Qns`, `current_kboard`, `initial_kboard`, `Fcons`, `xlispstrdup`, `gui_init_fringe`, `inhibit_x_resources`, `extract_float`, `ns_antialias_text`, `delete_keyboard_wait_descriptor` - plus the `terminal`/`kboard`/`ns_display_info` member writes it makes).  **Round 55 landed the rest of that layer**: `EmacsMenu`'s `-initWithTitle:` (declared here; the class is `nsmenu.swift` 829 and that lane has no entry for it yet - the `EmacsWindow_initWithEmacsFrame` shape), `CGDisplayRegisterReconfigurationCallback` (C 6184), `terminal_rif` (C 6058's read) and the file-scope `ns_initialized` (C 5972's function-local `static`), and it **corrected round 54's claim** about `ns_antialias_text` (see `## File-scope objects`).  **The body (C 5969-6193) is the remainder**, and round 56 settled its last two unknowns: `svcsMenu` is **`src/nsmenu.m` 50's global** (declared src/nsterm.h 776), so the port reaches it as a data entry whose provider is the `nsmenu` lane's (the `ns_window_parm_handlers` shape); and C 6137's `[NSApp setAppleMenu: appMenu]` **cannot be written the way Swift spells AppKit** - the modern SDK has no `NSApplication.appleMenu` (measured: `error: value of type 'NSApplication' has no member 'appleMenu'`), so that one call goes through the selector dynamically (`NSApp.perform (Selector ("setAppleMenu:"), with: appMenu)`), which is C's own call and not an invention
+- [x] ns_term_init  (line 5965) - **landed in round 57** (the body whole, C 5969-6193; rounds 54/55 built its entry layer and round 56 settled the last two unknowns): the entry layer its body needs is in the unit now (17 core names - `baud_rate`, `Fset_input_interrupt_mode`, `emacs_pipe`, `emacs_strerror`, `fcntl`, `xzalloc`, `allocate_kboard`, `Qns`, `current_kboard`, `initial_kboard`, `Fcons`, `xlispstrdup`, `gui_init_fringe`, `inhibit_x_resources`, `extract_float`, `ns_antialias_text`, `delete_keyboard_wait_descriptor` - plus the `terminal`/`kboard`/`ns_display_info` member writes it makes).  **Round 55 landed the rest of that layer**: `EmacsMenu`'s `-initWithTitle:` (declared here; the class is `nsmenu.swift` 829 and that lane has no entry for it yet - the `EmacsWindow_initWithEmacsFrame` shape), `CGDisplayRegisterReconfigurationCallback` (C 6184), `terminal_rif` (C 6058's read) and the file-scope `ns_initialized` (C 5972's function-local `static`), and it **corrected round 54's claim** about `ns_antialias_text` (see `## File-scope objects`).  **The body (C 5969-6193) is the remainder**, and round 56 settled its last two unknowns: `svcsMenu` is **`src/nsmenu.m` 50's global** (declared src/nsterm.h 776), so the port reaches it as a data entry whose provider is the `nsmenu` lane's (the `ns_window_parm_handlers` shape); and C 6137's `[NSApp setAppleMenu: appMenu]` **cannot be written the way Swift spells AppKit** - the modern SDK has no `NSApplication.appleMenu` (measured: `error: value of type 'NSApplication' has no member 'appleMenu'`), so that one call goes through the selector dynamically (`NSApp.perform (Selector ("setAppleMenu:"), with: appMenu)`), which is C's own call and not an invention; round 57 then wrote the body whole - the guarded arms decided by the frozen configuration, the two dynamic sends, the three `Unmanaged.passRetained` stores and the pasteboard triple - see `### Round 57` in `## Evidence`
 - [x] ns_term_shutdown  (line 6198) — C 6197-6215, landed as `@_cdecl("ns_term_shutdown")` (declared src/nsterm.h 1206): C's `[[NSAutoreleasePool alloc] init]`/`[pool release]` pair is this unit's own push/pop entries, C 6209's `unlink` takes C's `SSDATA`, and C 6212's `[NSApp terminate: NSApp]` is `NSApp.terminate (NSApp)`
 - [x] runAlertPanel  (line 6634, static) — landed as `fileprivate func runAlertPanel (_:_:_:_:) -> Bool`: the `NS_IMPL_COCOA` arm builds an `NSAlert` (the GNUstep `NSRunAlertPanel` at C 6640 is dead), and C 6649's `[alert release]` is the reference being dropped under ARC
 - [x] not_in_argv  (line 6672, static) — landed as `fileprivate func not_in_argv (_:) -> Int32`: C's `[arg UTF8String]` is the `withCString` view, and `initial_argc`/`initial_argv`/`strcmp` are imports in the lane's established shapes
@@ -3964,3 +3964,79 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no shutdown, no pool released); the compile
   gate reaches parsing and type checking only; `ns_term_init`'s body is still unwritten - it is next
   round's single piece, with every name and every spelling it needs now settled.
+
+### Round 57: `ns_term_init`'s body (C 5969-6193)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-56 carry, so **no new warning**.  Object
+  `/tmp/nsterm57.o`, **919,064 bytes**, md5 `f6c5e2c55c49ffade57476997432ece3`.  The unit is
+  **10,572 lines**.  The first measurement stopped on one call; the failure and its fix are the
+  "first measurement" entry below.
+* **The body lands whole** (C 5969-6193): the early return plus its `block_input`, the two pool
+  operations, `baud_rate = 38400` and `Fset_input_interrupt_mode (Qnil)`, the `selfds[0] == -1`
+  block (the pipe, the two `fcntl`s, the two `FD_ZERO`s, `pthread_mutex_init`), the three pending
+  arrays, C 6011-6018's `registerDefaults:` pair, `[EmacsApp sharedApplication]` with its nil test
+  and the delegate/thread pair, `xzalloc`+`ns_initialize_display_info`+`ns_create_terminal`, the
+  kboard triple (allocate, the `current_kboard` test, `reference_count++`), the display-list and
+  name wiring, `gui_init_fringe`, the anti-alias defaults, `delete_keyboard_wait_descriptor`,
+  `ns_app_name`, the whole menu block, the three pasteboard types, `[NSApp run]`/`activate`,
+  `ns_do_open_file`, the reconfiguration callback and `last_known_monitors`.
+* **The guards are decided by the frozen configuration, not by a Swift `#if`** (the `hide_bell`
+  reading: `__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__` is 260000, `MAC_OS_X_VERSION_MAX_ALLOWED`
+  is that same macro, `NS_IMPL_COCOA` defined): C 6011-6018's `>= 260000` block, C 6083-6142's menu
+  block and C 6165-6169's `>= 140000` pair (the live arm is `[NSApp activate]`) are transcribed;
+  C 6158's `NSFilenamesPboardType` arm (`NS_USE_NSPasteboardTypeFileURL` is 1 for this target,
+  src/nsterm.h 44-49 - the `nsselect` lane's reading of the same macro) and C 6173-6177's
+  `#ifdef NS_IMPL_GNUSTEP` `catch_child_signal ()` are recorded, not transcribed.
+* **One correction this round makes**: round 55's `@_silgen_name ("CGDisplayRegisterReconfigurationCallback")`
+  entry is **removed**.  Measured: the SDK's own CoreGraphics module exports that name to Swift with
+  C's two nominal typedefs in the callback type, so the entry was unnecessary - and it made C 6184
+  **ambiguous** (`error: ambiguous use of 'CGDisplayRegisterReconfigurationCallback'`, two
+  candidates, one per declaration).  The call is now by name with no declaration of this unit's own,
+  which is the `strtod` reading of round 36.  The removal is why the import count drops by one
+  (579 -> 578) in the coverage reading below.
+* **Two calls have no Swift spelling of C's own shape, so both are sent as C sends them**:
+  `[NSApp setDelegate: NSApp]` (C 6026) - the reference's `@interface EmacsApp : NSApplication`
+  (src/nsterm.h 378) declares no protocol list, and Swift types `NSApplication.delegate` as
+  `(any NSApplicationDelegate)?`, so the property needs a conformance the reference does not declare
+  while an `as?` cast would *drop* the delegate (the ObjC runtime reports none); the selector is
+  `#selector (setter: NSApplication.delegate)`.  `[NSApp setAppleMenu: appMenu]` (C 6137) keeps
+  round 56's `Selector (("setAppleMenu:"))` reading.  Everything else is AppKit's own spelling:
+  `EmacsApp.shared`, `Thread.detachNewThreadSelector`, `UserDefaults.standard.register (defaults:)`,
+  `NSMenu`/`NSMenuItem.separator ()`/`setSubmenu (_:for:)`, `NSPasteboard.PasteboardType`, `NSApp.run`
+  and `NSApp.activate ()`, and the selectors that *are* visible are `#selector` expressions
+  (`orderFrontStandardAboutPanel:`, `hide:`, `hideOtherApplications:`, `terminate:` and this unit's
+  own `showPreferencesWindow:`, `newFrame:`, `fd_handler:`), with `Selector (("menuDown:"))` for the
+  one whose method (`EmacsView`'s, C 9231) has not landed.
+* **Memory management, read rather than invented**: C's three `[[EmacsMenu alloc] initWithTitle:]`
+  results are the +1 the file's statics keep forever, so each store into `svcsMenu`/`mainMenu`/
+  `dockMenu` is `Unmanaged.passRetained (…).toOpaque ()` - the pair round 1's `dockMenu` reader
+  undoes with `takeUnretainedValue ()`; C's `[[NSArray arrayWithObjects: …] retain]` is ARC's strong
+  reference in the same three storages; and `xzalloc (sizeof *dpyinfo)` is C's own `sizeof`, which is
+  280 for the `ns_cocoa` arm (`docs/baseline/ns_display_info-layout.tsv` 11), because this unit holds
+  that record as P-55's untyped stand-in.
+* **The rescapes C's expressions need, each with its reason**: `FD_ZERO (&x)` is `x = fd_set ()`
+  (the initialiser the two declarations above already use); `emacs_pipe (selfds)`'s `int *` is the
+  tuple's own storage rebound with `assumingMemoryBound (to: Int32.self)`; C 6070's `float = <double>`
+  is the explicit `Float (…)` (the round-37 `color_p ? 1 : 0` reading); C's single `NSMenuItem *item`
+  is one Swift `var item` assigned three times as C assigns it; and the `NSTRACE`/`NSTRACE_MSG` calls
+  are the empty macro's comments.
+* **The first measurement's one failure, and the fix**: `fprintf (stderr, "Failed to create pipe:
+  %s\n", emacs_strerror (errno))` did not type-check - the C-typed entry is declared
+  `-> UnsafeMutablePointer<CChar>?`, an optional pointer is not one of the variadic list's `CVarArg`
+  cases, so overload resolution fell through to Swift's own `fprintf`
+  (`error: 'fprintf' is unavailable: Variadic function is unavailable`, with the second warning
+  `expression implicitly coerced from 'UnsafeMutablePointer<CChar>?' to 'Any'`).  C's own value here
+  is that errno's message and never NULL, so the call now spells the unwrap C's `%s` implies
+  (`emacs_strerror (errno)!`), which is the same shape C 5735's `value!` already has at C 8398.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **11** unported,
+  11 row(s); **578** C symbol import(s)` - one fewer unported than round 56's 12 (this definition)
+  and one fewer import (the removed CoreGraphics entry), with the one stale row cleared by name from
+  `docs/baseline/swift-units.tsv` 18.  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: **no run evidence** - the terminal has never been initialised,
+  no pipe was created, no menu was built, nothing was drawn or activated; the compile gate reaches
+  parsing and type checking only; and `check-swift-units.py` compares name sets, not signatures,
+  bodies, layouts or ABI.  The unit still owes nine definitions (`ns_create_font_panel_buttons`,
+  `ns_font_desc_to_font_spec`, `ns_xlfd_to_fontname`, `syms_of_nsterm`,
+  `cancel_ns_deferred_UAZoomChangeFocus_timer`, the three `nstrace*` dead entries) plus the two
+  classes `EmacsLayer` (C 11128-11396) and `EmacsDocument` (C 11404-11406).

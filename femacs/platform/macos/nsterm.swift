@@ -10263,11 +10263,12 @@ func ns_display_info_set_name_list_element(_ f: UnsafeMutableRawPointer?, _ v: L
 func EmacsMenu_initWithTitle(_ title: String) -> AnyObject?
 
 /// C: `CGError CGDisplayRegisterReconfigurationCallback (CGDisplayReconfigurationCallBack, void *)`
-/// (CoreGraphics) - C 6184 registers round 40's callback through it.
-@_silgen_name("CGDisplayRegisterReconfigurationCallback")
-func CGDisplayRegisterReconfigurationCallback(
-  _ callback: (@convention(c) (UInt32, UInt32, UnsafeMutableRawPointer?) -> Void)?,
-  _ userInfo: UnsafeMutableRawPointer?) -> Int32
+/// (CoreGraphics) - **round 57 removed the local declaration round 55 put here**.  Measured: the
+/// SDK's own CoreGraphics module exports that name to Swift, with C's two nominal typedefs in the
+/// callback type, so the entry was not needed - and it made the call **ambiguous**
+/// (`error: ambiguous use of 'CGDisplayRegisterReconfigurationCallback'`, two candidates, one per
+/// declaration).  C 6184 is therefore reached by name with no declaration of this unit's own; that
+/// is the `strtod` reading of round 36.
 
 /// C: the `struct terminal` member C 6058 reads, `terminal->rif` - a `<record>_<member>` reader of
 /// the family round 54 added the writer-side of.
@@ -10318,4 +10319,254 @@ func ns_term_shutdown(_ sig: Int32) {
   } else { /* Force a stack trace to happen.  */
     emacs_abort()                                    // C 6214
   }
+}
+
+// ==========================================================================
+// Round 57: `ns_term_init`'s body (C 5969-6193)
+// ==========================================================================
+
+/// C 5965-6194: `struct ns_display_info *ns_term_init (Lisp_Object display_name)` - "Start the
+/// Application and get things rolling."  Declared src/nsterm.h 1108 and called from src/emacs.c,
+/// so it is a `@_cdecl` export of the `ns_term_shutdown` shape.  Rounds 54/55 landed every name the
+/// body needs and round 56 the last two, so this round is the body alone - one slice, because a
+/// half-written `ns_term_init` leaves the terminal half-constructed.
+///
+/// The guards this target's frozen configuration decides (`docs/baseline/config/darwin-arm64.macros.tsv`,
+/// the `hide_bell` reading: `__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__` is 260000 and
+/// `MAC_OS_X_VERSION_MAX_ALLOWED` is that same macro, `NS_IMPL_COCOA` defined):
+///  * C 6011-6018's `>= 260000` block - the live arm, so the two `registerDefaults:` keys are
+///    transcribed; the Swift `#if` can only test the macro's definedness, which is why the arm is
+///    written out instead of a `#if`.
+///  * C 6083-6142's `#ifdef NS_IMPL_COCOA` menu block - live, transcribed in C's order.
+///  * C 6165-6169's `>= 140000` pair - the live arm is `[NSApp activate]`; the
+///    `activateIgnoringOtherApps:` arm is dead here.
+///  * C 6158's `NSFilenamesPboardType` arm (`#if NS_USE_NSPasteboardTypeFileURL != 0`; src/nsterm.h
+///    44-49 defines it 1 for Cocoa with a minimum of 101300 or more) and C 6173-6177's
+///    `#ifdef NS_IMPL_GNUSTEP` `catch_child_signal ()` - the two arms this target does not take,
+///    recorded and not transcribed (the `docs/ports/nsselect.md` reading of the same macro).
+///
+/// Three spellings C has that Swift does not, each with the reading that fixes it:
+///  * `[NSApp setDelegate: NSApp]` (C 6026): the reference's `@interface EmacsApp : NSApplication`
+///    (src/nsterm.h 378) declares no protocol list, while Swift's `NSApplication.delegate` is typed
+///    `(any NSApplicationDelegate)?` - so the property would need a conformance the reference does
+///    not declare, and `as?` would *drop* the delegate (the ObjC runtime reports no conformance for
+///    a class that never declares one).  C's message is therefore sent as a message, through
+///    `perform`, with the setter's selector spelled `#selector(setter: NSApplication.delegate)`.
+///  * `[NSApp setAppleMenu: appMenu]` (C 6137): no Swift member (round 56's probe reading
+///    `error: value of type 'NSApplication' has no member 'appleMenu'`), so the same dynamic send
+///    with `Selector(("setAppleMenu:"))` (the round-42 `orderedIndex` spelling).
+///  * `@selector (menuDown:)` (C 6106, C 6127) belongs to `EmacsView` (C 9231), whose method batch
+///    has not landed, so it is `Selector(("menuDown:"))` too; the four AppKit selectors and the
+///    three of this unit's own class are `#selector` expressions (measured: the parenthesised form
+///    is what silences the compiler's "no method declared" note for the two unknown ones).
+///
+/// The memory-management and representation readings this body needs: C's three
+/// `[[EmacsMenu alloc] initWithTitle:]` results are the `+1` the file's statics keep forever
+/// (`svcsMenu`, `mainMenu`, `dockMenu`), so each store is `Unmanaged.passRetained (...).toOpaque ()`
+/// - the same pair round 1's `dockMenu` reader undoes with `takeUnretainedValue ()`; C's
+/// `[[NSArray arrayWithObjects: ...] retain]` is the strong reference of ARC in the same three
+/// storages; `xzalloc (sizeof *dpyinfo)` is C's own `sizeof`, which is **280** for the `ns_cocoa`
+/// arm (`docs/baseline/ns_display_info-layout.tsv` 11) because this unit holds that record as
+/// P-55's untyped stand-in; `FD_ZERO (&x)` is `x = fd_set ()`, the initialiser the two declarations
+/// above already use; `emacs_pipe (selfds)`'s `int *` is the tuple's own storage rebound to `Int32`
+/// (`assumingMemoryBound`, the `input_event` reading); C 6070's `float = double` narrowing is
+/// Swift's explicit `Float (...)` (the round-37 `color_p ? 1 : 0` reading); and C's
+/// `NSTRACE`/`NSTRACE_MSG` calls are the empty macro's comments.
+@_cdecl("ns_term_init")
+func ns_term_init(_ display_name: Lisp_Object) -> UnsafeMutableRawPointer? {
+  var tmp: Lisp_Object = Qnil()                      // C 5973 (C declares it here; C 6066 sets it)
+  // C 5970-5971: `struct terminal *terminal;` and `struct ns_display_info *dpyinfo;` - both are
+  // declared where C assigns them (round 52's reading of the same pair in `ns_create_terminal`).
+
+  if ns_initialized != 0 { return x_display_list }   // C 5975
+  ns_initialized = 1                                 // C 5976
+
+  block_input()                                      // C 5978
+
+  // C 5980: `NSTRACE ("ns_term_init");` - empty at `NSTRACE_ENABLED` 0.
+
+  objc_autoreleasePoolPop(outerpool)                 // C 5982 (C's `[outerpool release]`)
+  outerpool = objc_autoreleasePoolPush()             // C 5983
+
+  /* count object allocs (About, click icon); on macOS use ObjectAlloc tool */
+  /*GSDebugAllocationActive (YES); */                // C 5985-5986 (the reference's own comment)
+  block_input()                                      // C 5987
+
+  baud_rate = 38400                                  // C 5989
+  _ = Fset_input_interrupt_mode(Qnil())              // C 5990
+
+  if selfds.0 == -1 {                                // C 5992
+    /// C 5994: `emacs_pipe (selfds)` - C's array decays to `int *`, so the pointer handed over is
+    /// the tuple's own storage rebound to `Int32`.
+    if withUnsafeMutablePointer(to: &selfds, { p -> Int32 in
+         emacs_pipe(UnsafeMutableRawPointer(p).assumingMemoryBound(to: Int32.self)) }) != 0 {
+      // C 5996-5997: C's `%s` takes `emacs_strerror (errno)`'s `char *`; the entry is
+      // optional-typed like this unit's other string entries, and C's value here is that errno's
+      // message, which is never NULL (`fprintf` measures the same at C 5735's `value!`).
+      fprintf(stderr, "Failed to create pipe: %s\n", emacs_strerror(errno)!)
+      emacs_abort()                                  // C 5998
+    }
+
+    _ = fcntl(selfds.0, F_SETFL, O_NONBLOCK | fcntl(selfds.0, F_GETFL))       // C 6001
+    select_readfds = fd_set()                        // C 6002 (C's `FD_ZERO (&select_readfds)`)
+    select_writefds = fd_set()                       // C 6003 (C's `FD_ZERO (&select_writefds)`)
+    _ = pthread_mutex_init(&select_mutex, nil)       // C 6004 (C discards the result)
+  }
+
+  ns_pending_files = NSMutableArray()                // C 6007
+  ns_pending_service_names = NSMutableArray()        // C 6008
+  ns_pending_service_args = NSMutableArray()         // C 6009
+
+  /* Disable problematic event processing on macOS 26 (Tahoe) to avoid
+     scrolling lag and input handling issues.  These are undocumented
+     options as of macOS 26.0.  */
+  UserDefaults.standard.register(defaults: ["NSEventConcurrentProcessingEnabled": "NO",
+                                            "NSApplicationUpdateCycleEnabled": "NO"])  // C 6015-6017
+
+  /* Start app and create the main menu, window, view.
+     Needs to be here because ns_initialize_display_info () uses AppKit classes.
+     The view will then ask the NSApp to stop and return to Emacs.  */
+  _ = EmacsApp.shared                                // C 6023 (C's `[EmacsApp sharedApplication]`)
+  if NSApp == nil {                                  // C 6024
+    return nil                                       // C 6025 (C's `return NULL`)
+  }
+  NSApp.perform(#selector(setter: NSApplication.delegate), with: NSApp!)   // C 6026
+
+  /* Start the select thread.  */
+  Thread.detachNewThreadSelector(#selector(EmacsApp.fd_handler(_:)),       // C 6029-6031
+                                 toTarget: NSApp!, with: nil)
+
+  /* debugging: log all notifications */
+  /*   [[NSNotificationCenter defaultCenter] addObserver: NSApp
+                                         selector: @selector (logNotification:)
+                                             name: nil object: nil]; */    // C 6033-6036
+
+  let dpyinfo = xzalloc(280)                         // C 6038 (`sizeof *dpyinfo`, the note above)
+
+  ns_initialize_display_info(dpyinfo)                // C 6040
+  let terminal = ns_create_terminal(dpyinfo)         // C 6041
+
+  terminal_set_kboard(terminal, allocate_kboard(Qns()))    // C 6043
+  /* Don't let the initial kboard remain current longer than necessary.
+     That would cause problems if a file loaded on startup tries to
+     prompt in the mini-buffer.  */
+  if current_kboard == initial_kboard {              // C 6047
+    current_kboard = terminal_kboard(terminal)       // C 6048
+  }
+  kboard_set_reference_count(terminal_kboard(terminal),                    // C 6049
+                             kboard_reference_count(terminal_kboard(terminal)) + 1)
+
+  ns_display_info_set_next(dpyinfo, x_display_list)  // C 6051
+  x_display_list = dpyinfo                           // C 6052
+
+  ns_display_info_set_name_list_element(dpyinfo, Fcons(display_name, Qnil()))   // C 6054
+
+  terminal_set_name(terminal, xlispstrdup(display_name))                     // C 6056
+
+  gui_init_fringe(terminal_rif(terminal))            // C 6058
+
+  unblock_input()                                    // C 6060
+
+  if !inhibit_x_resources {                          // C 6062
+    ns_default("GSFontAntiAlias", &ns_antialias_text, Qt(), Qnil(), false, false)   // C 6064-6065
+    tmp = Qnil()                                     // C 6066
+    /* this is a standard variable */
+    ns_default("AppleAntiAliasingThreshold", &tmp,   // C 6068-6069
+               make_float(10.0), make_float(6.0), true, false)
+    // C 6070: C's `float = <double>` narrowing is written as the explicit conversion.
+    ns_antialias_threshold = NILP(tmp) ? 10.0 : Float(extract_float(tmp))
+  }
+
+  // C 6073: `NSTRACE_MSG ("Versions");` - empty at `NSTRACE_ENABLED` 0.
+
+  delete_keyboard_wait_descriptor(0)                 // C 6075
+
+  ns_app_name_storage = ProcessInfo.processInfo.processName as NSString   // C 6077
+
+  /* Set up macOS app menu */
+
+  // C 6081: `NSTRACE_MSG ("Menu init");` - empty at `NSTRACE_ENABLED` 0.
+
+  var item: NSMenuItem                               // C 6086 (C's `NSMenuItem *item;`)
+  /* set up the application menu */
+  let servicesMenu = EmacsMenu_initWithTitle("Services") as! NSMenu       // C 6088
+  svcsMenu = Unmanaged.passRetained(servicesMenu).toOpaque()              // C 6088's store
+  servicesMenu.autoenablesItems = false              // C 6089
+  let appMenu = EmacsMenu_initWithTitle("Emacs") as! NSMenu               // C 6090
+  appMenu.autoenablesItems = false                   // C 6091
+  let theMainMenu = EmacsMenu_initWithTitle("") as! NSMenu                // C 6092
+  mainMenu = Unmanaged.passRetained(theMainMenu).toOpaque()               // C 6092's store
+  let theDockMenu = EmacsMenu_initWithTitle("") as! NSMenu                // C 6093
+  dockMenu = Unmanaged.passRetained(theDockMenu).toOpaque()               // C 6093's store
+
+  _ = appMenu.insertItem(withTitle: "About Emacs",                        // C 6095-6098
+                         action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+                         keyEquivalent: "", at: 0)
+  appMenu.insertItem(NSMenuItem.separator(), at: 1)                       // C 6099
+  _ = appMenu.insertItem(withTitle: "Preferences...",                     // C 6100-6103
+                         action: #selector(EmacsApp.showPreferencesWindow(_:)),
+                         keyEquivalent: ",", at: 2)
+  appMenu.insertItem(NSMenuItem.separator(), at: 3)                       // C 6104
+  item = appMenu.insertItem(withTitle: "Services",                        // C 6105-6108
+                            action: Selector(("menuDown:")),
+                            keyEquivalent: "", at: 4)
+  appMenu.setSubmenu(servicesMenu, for: item)                             // C 6109
+  appMenu.insertItem(NSMenuItem.separator(), at: 5)                       // C 6110
+  _ = appMenu.insertItem(withTitle: "Hide Emacs",                         // C 6111-6114
+                         action: #selector(NSApplication.hide(_:)),
+                         keyEquivalent: "h", at: 6)
+  item = appMenu.insertItem(withTitle: "Hide Others",                     // C 6115-6118
+                            action: #selector(NSApplication.hideOtherApplications(_:)),
+                            keyEquivalent: "h", at: 7)
+  item.keyEquivalentModifierMask = [.command, .option]                    // C 6119
+  appMenu.insertItem(NSMenuItem.separator(), at: 8)                       // C 6120
+  _ = appMenu.insertItem(withTitle: "Quit Emacs",                         // C 6121-6124
+                         action: #selector(NSApplication.terminate(_:)),
+                         keyEquivalent: "q", at: 9)
+
+  item = theMainMenu.insertItem(withTitle: ns_app_name_storage! as String,   // C 6126-6129
+                                action: Selector(("menuDown:")),
+                                keyEquivalent: "", at: 0)
+  theMainMenu.setSubmenu(appMenu, for: item)                              // C 6130
+  _ = theDockMenu.insertItem(withTitle: "New Frame",                      // C 6131-6134
+                             action: #selector(EmacsApp.newFrame(_:)),
+                             keyEquivalent: "", at: 0)
+
+  NSApp.mainMenu = theMainMenu                        // C 6136
+  NSApp.perform(Selector(("setAppleMenu:")), with: appMenu)               // C 6137
+  NSApp.servicesMenu = servicesMenu                   // C 6138
+  /* Needed at least on Cocoa, to get dock menu to show windows */
+  NSApp.windowsMenu = NSMenu()                        // C 6140
+
+  /* Register our external input/output types, used for determining
+     applicable services and also drag/drop eligibility.  */
+
+  // C 6147: `NSTRACE_MSG ("Input/output types");` - empty at `NSTRACE_ENABLED` 0.
+
+  ns_send_types_storage = NSArray(object: NSPasteboard.PasteboardType.string)     // C 6149
+  ns_return_types_storage = NSArray(object: NSPasteboard.PasteboardType.string)   // C 6150-6151
+  ns_drag_types = NSArray(objects: NSPasteboard.PasteboardType.string,            // C 6152-6160
+                          NSPasteboard.PasteboardType.tabularText,
+                          NSPasteboard.PasteboardType.fileURL,
+                          NSPasteboard.PasteboardType.URL)
+
+  // C 6162: `NSTRACE_MSG ("Call NSApp run");` - empty at `NSTRACE_ENABLED` 0.
+  NSApp.run()                                         // C 6163
+
+  NSApp.activate()                                    // C 6166 (the `>= 140000` arm)
+
+  ns_do_open_file = true                              // C 6171
+
+  /* Begin listening for display reconfiguration, so we can run the
+     appropriate hooks.  FIXME: is this called when the resolution of
+     a monitor changes?  */
+
+  _ = CGDisplayRegisterReconfigurationCallback(ns_displays_reconfigured, nil)   // C 6184-6185
+  last_known_monitors = Fns_display_monitor_attributes_list(Qnil())             // C 6187
+
+  // C 6189: `NSTRACE_MSG ("ns_term_init done");` - empty at `NSTRACE_ENABLED` 0.
+
+  unblock_input()                                     // C 6191
+
+  return dpyinfo                                      // C 6193
 }
