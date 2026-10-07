@@ -9332,6 +9332,70 @@ class EmacsScroller: NSScroller {
       self.sendScrollEventAtLoc(Float(pos), fromEvent: e)   // C 11046
     }
   }
+
+  /// C 11050-11090: `- (void)mouseDragged: (NSEvent *)e` - "Called as we manually track scroller
+  /// drags, rather than superclass."  C's two locals are `double` (not `CGFloat`), C 11077-11079's
+  /// bound is `length + last_mouse_offset` with C's own promotions, and C 11087's
+  /// `pos * pixel_length / length` keeps C's per-operator promotion; C 11090 hands the `double` to
+  /// the `float` parameter of the method above, so the port converts where C's call does.
+  @objc override func mouseDragged(with e: NSEvent) {
+    var sr = NSRect.zero                               // C 11053
+    var loc: Double = 0                                // C 11054
+    var pos: Double = 0
+    var length: Int32 = 0                              // C 11055
+
+    // C 11057: `NSTRACE ("[EmacsScroller mouseDragged:]");` - empty.
+
+    sr = self.convert(self.rect(for: .knobSlot), to: nil)          // C 11059-11060
+    if horizontal {                                    // C 11062
+      length = Int32(NSWidth(sr))                      // C 11064
+      loc = Double(e.locationInWindow.x - NSMinX(sr))  // C 11065
+    } else {
+      length = Int32(NSHeight(sr))                     // C 11069
+      loc = Double(length) - Double(e.locationInWindow.y - NSMinY(sr))   // C 11070
+    }
+
+    if loc <= 0.0 {                                    // C 11073
+      loc = 0.0                                        // C 11075
+    } else if loc >= Double(length) + Double(last_mouse_offset) {        // C 11077
+      loc = Double(length) + Double(last_mouse_offset) // C 11079
+    }
+
+    pos = (loc - Double(last_mouse_offset))            // C 11082
+
+    /* If there are buttons in the scroller area, we need to
+       recalculate pos as emacs expects the scroller slot to take up
+       the entire available length.  */
+    if length != pixel_length {                        // C 11087
+      pos = pos * Double(pixel_length) / Double(length)   // C 11088
+    }
+
+    self.sendScrollEventAtLoc(Float(pos), fromEvent: e)      // C 11090
+  }
+
+  /// C 11094-11105: `- (void)mouseUp: (NSEvent *)e`.  C 11101's `release` is the reference the
+  /// method drops (the `repeatScroll:` reading), and C 11104's enumerator is the entry this unit
+  /// already imports.
+  @objc override func mouseUp(with e: NSEvent) {
+    // C 11096: `NSTRACE ("[EmacsScroller mouseUp:]");` - empty.
+
+    if scroll_repeat_entry != nil {                    // C 11098
+      scroll_repeat_entry?.invalidate()                // C 11100
+      scroll_repeat_entry = nil                        // C 11101-11102 (C's `release`, then `nil`)
+    }
+    last_hit_part = scroll_bar_above_handle()          // C 11104
+  }
+
+  /// C 11108-11115: `- (void) scrollWheel: (NSEvent *)theEvent` - "Treat scrollwheel events in
+  /// the bar as though they were in the main window."  C's `EmacsView *view = (EmacsView *)
+  /// FRAME_NS_VIEW (frame);` is the unit's `as? EmacsView` cast, and C's message to a nil view is
+  /// the optional chain's no-op.
+  @objc override func scrollWheel(with theEvent: NSEvent) {
+    // C 11111: `NSTRACE ("[EmacsScroller scrollWheel:]");` - empty.
+
+    let view = FRAME_NS_VIEW(emacs_frame) as? EmacsView     // C 11113
+    view?.mouseDown(with: theEvent)                    // C 11114
+  }
 }
 
 /// C 10623-10624: the two `#define`s the class's repeat timer uses, spelled as this file's other
