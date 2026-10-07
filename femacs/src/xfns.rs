@@ -205,6 +205,38 @@ const _: () = core::assert! (core::mem::offset_of! (PropMotifWmHints, status) ==
 /// C: xfns.c 159: `#define PROP_MOTIF_WM_HINTS_ELEMENTS 5`
 pub const PROP_MOTIF_WM_HINTS_ELEMENTS: c_int = 5;
 
+/* C 101-108: the six `<Xm/…>` includes C takes under `USE_MOTIF` (`Xm/Xm.h`, `Xm/DialogS.h`,
+   `Xm/FileSB.h`, `Xm/List.h`, `Xm/TextF.h`, `Xm/MwmUtil.h`).  None of them has a mirror in this
+   tree, so the `USE_MOTIF` arm's names are the use-site declarations this file already carries
+   for the other toolchain headers (P-88 ①).  C's block above is the file's *own* copy of the
+   record `<Xm/MwmUtil.h>` defines; the block below is the header's, which is what a `USE_MOTIF`
+   build sees instead, and it is what this file's `USE_MOTIF` arm reads them from.  */
+/// C: Xm/MwmUtil.h: `typedef struct { unsigned long flags; unsigned long functions; unsigned
+/// long decorations; long input_mode; unsigned long status; } PropMotifWmHints;` - the same
+/// record as C 151-157's copy, with the layout that copy was measured at (`sizeof=40`, `flags`
+/// 0, `functions` 8, `decorations` 16, `input_mode` 24, `status` 32).  **UNVERIFIED** against the
+/// header itself (no Motif headers on this machine).
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct PropMotifWmHints
+{
+  pub flags: c_ulong,          // C: unsigned long flags;
+  pub functions: c_ulong,      // C: unsigned long functions;
+  pub decorations: c_ulong,    // C: unsigned long decorations;
+  pub input_mode: c_long,      // C: long input_mode;
+  pub status: c_ulong,         // C: unsigned long status;
+}
+/// C: Xm/MwmUtil.h: `#define MWM_HINTS_DECORATIONS (1L << 1)` - C 908's read.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const MWM_HINTS_DECORATIONS: c_long = 1 << 1;
+/// C: Xm/MwmUtil.h: `#define MWM_DECOR_ALL (1L << 0)` - C 909's read.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const MWM_DECOR_ALL: c_long = 1 << 0;
+/// C: Xm/MwmUtil.h: `#define PROP_MOTIF_WM_HINTS_ELEMENTS 5` - C 918's read.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const PROP_MOTIF_WM_HINTS_ELEMENTS: c_int = 5;
+
 /* C 163-164 drop C's two forward declarations (PORTING.md 0.1-12: Rust has no forward
    declarations, and both functions are defined later in this same unit - `set_up_x_back_buffer`
    at C 3972 and `x_display_info_for_name` at C 7613, both in the remainder):
@@ -12910,3 +12942,81 @@ DEFUN! ("x-uses-old-gtk-dialog", Fx_uses_old_gtk_dialog,
   }
   return Qnil ();                                                            // C 9414
 });
+
+
+/* C 9416-9453: C's `#ifdef USE_MOTIF` (C 9418) opens here and runs to C 9660, so this is the
+   unit's first `USE_MOTIF`-gated region - the `<Xm/FileSB.h>` file selection dialog's two
+   callbacks and its teardown callback.  The names they read have no mirror in this tree:
+   `XmAnyCallbackStruct` and `XmCR_CANCEL` are `<Xm/Xm.h>`'s (C 102), `XtUnmanageChild` and
+   `XtDestroyWidget` are `<X11/Intrinsic.h>`'s (the header the toolkit arm's block above already
+   names), so each row stands at its use site (P-88 ①, the `<Xm/MwmUtil.h>` block's twin up in the
+   include list).  `x_menu_set_in_use` is `xterm.h` 1991's, declared under that header's own
+   `#if defined USE_GTK || defined USE_MOTIF`; `src/xmenu.rs` 976 defines it and no mirror carries
+   the row, so C 9451's call is its use site (P-55/P-72 rule 3).  */
+
+/* C 9419-9427: "Callback for "OK" and "Cancel" on file selection dialog."  */
+/// C: Xm/Xm.h: `typedef struct { int reason; XEvent *event; } XmAnyCallbackStruct;` - C 9425's
+/// `cb` and C 9426's `cb->reason` are the record's only two reads, carried in the header's order;
+/// every offset is **UNVERIFIED** (no Motif headers on this machine).
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+#[derive (Copy, Clone)]
+#[repr (C)]
+pub struct XmAnyCallbackStruct
+{
+  pub reason: c_int,        // C: int reason;
+  pub event: *mut XEvent,   // C: XEvent *event;
+}
+
+/* C: X11/Intrinsic.h: `extern void XtUnmanageChild (Widget);` and `extern void XtDestroyWidget
+   (Widget);` - C 9449-9450's two calls.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+unsafe extern "C" {
+  pub fn XtUnmanageChild (widget: Widget);
+  pub fn XtDestroyWidget (widget: Widget);
+}
+
+/* C: xterm.h 1991: `extern void x_menu_set_in_use (bool);` - C 9451's call.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+unsafe extern "C" {
+  pub fn x_menu_set_in_use (in_use: bool);
+}
+
+/* C 9421-9427.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+unsafe extern "C" fn file_dialog_cb (widget: Widget, client_data: XtPointer, call_data: XtPointer)
+{
+  let result: *mut c_int = client_data as *mut c_int;                        // C 9424
+  let cb: *mut XmAnyCallbackStruct = call_data as *mut XmAnyCallbackStruct;  // C 9425
+  *result = (*cb).reason;                                                    // C 9426
+}
+
+/* C: Xm/Xm.h: `#define XmCR_CANCEL 20` - C 9439's assignment.  **UNVERIFIED** (no Motif headers
+   here); the value is Motif's own reason code.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmCR_CANCEL: c_int = 20;
+
+/* C 9430-9440: "Callback for unmapping a file selection dialog.  This is used to capture the
+   case where a dialog is closed via a window manager's closer button, for example.  Using a
+   XmNdestroyCallback didn't work in this case."  */
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+unsafe extern "C" fn file_dialog_unmap_cb (widget: Widget, client_data: XtPointer,
+					   call_data: XtPointer)
+{
+  let result: *mut c_int = client_data as *mut c_int;                        // C 9438
+  *result = XmCR_CANCEL;                                                     // C 9439
+}
+
+/* C 9442-9453: the teardown the Motif `x-file-dialog` registers with C 9561's
+   `record_unwind_protect_ptr`.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+unsafe extern "C" fn clean_up_file_dialog (arg: *mut c_void)
+{
+  let dialog: Widget = arg;                                                  // C 9445
+
+  /* Clean up.  */                                                           // C 9447
+  block_input ();                                                            // C 9448
+  XtUnmanageChild (dialog);                                                  // C 9449
+  XtDestroyWidget (dialog);                                                  // C 9450
+  x_menu_set_in_use (false);                                                 // C 9451
+  unblock_input ();                                                          // C 9452
+}

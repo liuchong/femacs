@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372 and C 9375-9415
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415 and C 9418-9453
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -27,13 +27,13 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **11,493 lines** after the thirty-second, **11,554 lines** after the thirty-third and
 > **12,025 lines** after the thirty-fourth, **12,155 lines** after the thirty-fifth and
 > **12,303 lines** after the thirty-sixth, **12,855 lines** after the thirty-seventh and
-> **12,912 lines** after the thirty-eighth - C 803-2149,
+> **12,912 lines** after the thirty-eighth and **13,022 lines** after the thirty-ninth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
-> C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372 and
-> C 9375-9415, whose own
+> C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415 and
+> C 9418-9453, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -66,11 +66,12 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 | C 74 `#ifdef USE_X_TOOLKIT` … C 122 | `all (feature = "have_x_windows", feature = "use_x_toolkit")` | an X toolkit configuration |
 | C 78 `#ifdef HAVE_XAW3D` … C 84 (C 81 the `#else`) | `feature = "have_xaw3d"` (**not registered**; owed) | a Lucid toolkit configuration with Xaw3d |
 | C 87 `#ifdef USG` … C 95 (C 93-95 the `#else`) | `feature = "usg"` for C's arm; `<X11/Xos.h>` is the toolchain's header and has no mirror, so both arms stand as the port's comment and there is no Rust item to gate (P-88 ①) | a USG-derived X11 configuration |
-| C 101 `#ifdef USE_MOTIF` … C 108 | `feature = "use_motif"` (**not registered**; owed) | the Motif configuration |
+| C 101 `#ifdef USE_MOTIF` … C 108 | `feature = "use_motif"` (**not registered**; owed - the six headers have no mirror, so their `USE_MOTIF` names are declared at the use sites below, status 3.944) | the Motif configuration |
 | C 110 `#ifdef USE_LUCID` … C 112 (`xlwmenu.h`) | `all (feature = "have_x_windows", feature = "use_lucid")` | the Lucid configuration |
 | C 124 `#ifdef USE_GTK` … C 126 (empty) | `feature = "use_gtk"` | the GTK configuration |
 | C 130 `#ifdef GLYPH_DEBUG` … C 132 (`dpyinfo_refcount`) | `all (feature = "have_x_windows", feature = "glyph_debug")` | a GLYPH_DEBUG configuration |
 | C 134-135 `#ifndef USE_MOTIF` / `#ifndef USE_GTK` … C 160-161 | `all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk"))` | neither Motif nor GTK |
+| C 9418 `#ifdef USE_MOTIF` … C 9660 | `all (feature = "have_x_windows", feature = "use_motif")` | the Motif configuration - measured by the probe matrix's **MOTIF** arm from status 3.944 |
 | C 251/279/292/331/343/383/416/450/482/490/539/557/567 (`USE_XCB` and its `#else` partners, inside `x_real_pos_and_offsets`) | `use_xcb` / `not (use_xcb)` | both arms carried |
 | C 673 `#ifdef USE_GTK` (inside `x_defined_color`) | `use_gtk`, nested in the file gate | the GTK configuration |
 | C 699 `#if false` … C 712 (inside `x_decode_color`) | no gate: C's own condition is the literal `false` | never - recorded, not transcribed |
@@ -111,7 +112,7 @@ defines both features.
 | 123-126 | the empty `#ifdef USE_GTK` block | `use_gtk` |
 | 127-128 | `#define MAXREQUEST(dpy) (XMaxRequestSize (dpy))` | file gate |
 | 129-132 | `#ifdef GLYPH_DEBUG` / `static int dpyinfo_refcount;` / `#endif` | `glyph_debug`, nested in the file gate |
-| 133-161 | the Motif hints: `MWM_HINTS_DECORATIONS`, C's four commented-out members, `MWM_DECOR_ALL`, the commented-out `_XA_MOTIF_WM_HINTS`, `PropMotifWmHints` (C 149-157) and `PROP_MOTIF_WM_HINTS_ELEMENTS`, all inside C 134-135's `#ifndef USE_MOTIF` / `#ifndef USE_GTK` | `all (have_x_windows, not (use_motif), not (use_gtk))` |
+| 133-161 | the Motif hints: `MWM_HINTS_DECORATIONS`, C's four commented-out members, `MWM_DECOR_ALL`, the commented-out `_XA_MOTIF_WM_HINTS`, `PropMotifWmHints` (C 149-157) and `PROP_MOTIF_WM_HINTS_ELEMENTS`, all inside C 134-135's `#ifndef USE_MOTIF` / `#ifndef USE_GTK`, with C 107's `<Xm/MwmUtil.h>` twin of the same four names beside them under `use_motif` | `all (have_x_windows, not (use_motif), not (use_gtk))` / `all (have_x_windows, use_motif)` (slice 39) |
 | 162-164 | the two `static` forward declarations (`x_display_info_for_name`, `set_up_x_back_buffer`) | dropped (PORTING.md 0.1-12; both definitions are in the remainder - C 3972 and C 7613) |
 | 165-205 | `check_x_display_info` (C 166-169 its comment) | file gate |
 | 206-215 | the comment of `x_real_pos_and_offsets` | file gate |
@@ -221,7 +222,8 @@ defines both features.
 | 8896-9028 | C 8896-8908's doc comment and `x_hide_tip` (C 8909-9028: C 8912-8916's timer cancel, C 8918-8987's `USE_GTK` arm - the early-return test, the two `specbind`s, `xg_hide_tooltip`, the `tip_last_frame` reset and the delete-or-hide pair - and C 8988-9027's `not USE_GTK` arm) | `have_x_windows`, with `use_gtk` splitting the two arms (slice 36) |
 | 9031-9372 | the `x-show-tip` `DEFUN` (C 9031-9061's verbatim doc string, C 9065-9078 the locals and `AUTO_STRING`, C 9080-9105 the argument defaults, C 9107-9127's `USE_GTK` arm, C 9129-9209's reuse/delete/hide block with its two parameter walks, C 9211-9238's `tip_frame` creation, C 9240-9278's window setup, C 9280-9311's buffer/`try_window` block with its `ENABLE_CHECKING` arm, C 9314-9323's size and position, C 9325-9348's show block with its `not USE_XCB`/`USE_XCB` pair, and C 9350-9371's garbage/update/timer tail) | `have_x_windows`, with `use_gtk`, `use_cairo`, `enable_checking` and the `use_xcb` pair inside (slice 37) |
 | 9375-9415 | the three subrs `x-hide-tip` (C 9375-9381), `x-double-buffered-p` (C 9383-9394, with C 9388-9393's `HAVE_XDBE` pair) and `x-uses-old-gtk-dialog` (C 9401-9415, with C 9407-9414's `USE_GTK` guard), plus C 9396-9399's `File selection dialog` banner | `have_x_windows`, with `have_xdbe` and `use_gtk` inside (slice 38) |
-| 9418-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,244 lines, whose first live item is C 9418's `#ifdef USE_MOTIF` and the three callbacks it guards (C 9421-9453) - the next slice's first items | not ported in this slice |
+| 9418-9453 | C 9418's `#ifdef USE_MOTIF` and the three statics it guards: `file_dialog_cb` (C 9421-9427), `file_dialog_unmap_cb` (C 9430-9440) and `clean_up_file_dialog` (C 9442-9453), with C 9419's and C 9430-9433's comments | `all (have_x_windows, use_motif)` (slice 39) |
+| 9456-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,206 lines, whose first live item is C 9456's `DEFUN ("x-file-dialog", …)` - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -3683,3 +3685,96 @@ drift row moving from `20.6%` to `21.1%: C 10662 vs Rust 12912`.  `check-mirror-
 The frozen configuration compiles none of this file: no tooltip was hidden, no frame was asked
 about its buffering and no dialog policy was read; the fourteen arms' counts are text compile
 readings.
+
+## Slice 39 (2026-10-08, status 3.944): C 9418-9453
+
+**The slice is C 9418-9453**: the unit's first `USE_MOTIF` region - C 9419's comment, the two
+`<Xm/FileSB.h>` callbacks `file_dialog_cb` (C 9421-9427) and `file_dialog_unmap_cb` (C 9430-9440),
+and the teardown `clean_up_file_dialog` (C 9442-9453) - 110 Rust lines (12,912 -> 13,022).  C 9418's
+`#ifdef USE_MOTIF` closes at C 9660, so the following slices stay inside it, and the next live item
+is C 9456's Motif `DEFUN ("x-file-dialog", ...)`.
+
+**The probe matrix gains a fifteenth arm, `MOTIF`** (plain-X + `use_x_toolkit` + `use_motif`, the
+combination configure produces for `--with-x-toolkit=motif`).  Every `USE_MOTIF` region of this file
+was unmeasured until now: no arm set `use_motif`, so `#[cfg (feature = "use_motif")]` items were
+removed before type-checking and an injected error inside one would have moved no count at all.
+The arm's first reading (on the in-tree HEAD text) is **29 errors / 12 warnings**.  **The other
+fourteen arms are byte-identical to slice 38** - plain-X **18 / 9**, WS, WSX, WSR, WSRX, WSR12 and
+XSN **16 / 9**, LUCID **25 / 12**, GTK and GTK22 **47 / 20**, XI2 and XR **22 / 9**, Xt **20 / 12**
+and XCB **18 / 9** - with both the `^error` and the `^warning` sets empty-diff.
+
+**Nine of that 29 were the `<Xm/MwmUtil.h>` gap this slice closes as well.**  A `USE_MOTIF` build
+takes `PropMotifWmHints` (four uses: C 904's declaration and its `sizeof`), `MWM_HINTS_DECORATIONS`
+(two: C 908 and C 4402/4598), `MWM_DECOR_ALL` (one: C 909) and `PROP_MOTIF_WM_HINTS_ELEMENTS` (two:
+C 918 and C 4411/4607) from C 107's header, while the port's copy of C 151-159 is gated on
+`not (use_motif)`.  **Both are C's own text** - the file carries the record twice, once as its own
+copy and once through the header - so the header's copy now stands beside C's under `use_motif`, at
+the layout the file's copy was already measured at (`sizeof=40`; `flags` 0, `functions` 8,
+`decorations` 16, `input_mode` 24, `status` 32).  With it the arm reads **20 / 12**: those nine rows
+retired, **nothing appeared**, warnings unchanged.  The remaining 20 rows are the arm's pre-existing
+ones - LUCID's list minus its five Lucid-only rows (`_XlwMenuRec`, `_XlwMenuClassRec` and the three
+`XtN*` duplicate names): `explicit_parent` six times (the mirror's `// C:` rows, slice 34's Owed),
+`FRAME_EXTERNAL_MENU_BAR_FLAG_SHIFT` twice, `gray_width`/`gray_height`/`gray_bits`,
+`XWindowAttributes`, `screens`/`nscreens`, `wait_for_wm`, `update_mode_line`, `alpha_identical_p`,
+the `c_variadic` E0658, one E0308 and the `HAVE_X_WINDOWS` layout assert.  **None of them is this
+slice's.**
+
+**The five declaration rows the three functions read** stand at their use sites (P-88 ①, the
+`<Xm/MwmUtil.h>` block's twin): `XmAnyCallbackStruct` (`<Xm/Xm.h>`, its two members in the header's
+order, **UNVERIFIED** offsets), `XmCR_CANCEL` (**UNVERIFIED** value, `20` - the placeholder class
+`lwlib/lwlib-Xm.rs` 683's `XmCR_DISARM` belongs to), `XtUnmanageChild` and `XtDestroyWidget`
+(`<X11/Intrinsic.h>`) and `x_menu_set_in_use` (`xterm.h` 1991, declared there under
+`#if defined USE_GTK || defined USE_MOTIF`; `src/xmenu.rs` 976 defines it).
+
+**Arm touch measured** (P-86 ⑦): an injection at `file_dialog_cb`'s first statement (A, C 9424)
+moves MOTIF **20 -> 21**; one before C 9451's `x_menu_set_in_use (false);` (B) moves MOTIF **20 ->
+21** and leaves plain-X at **18** - MOTIF is the only arm that compiles the region, which is what it
+was added for.  Both logs carry the injected line's text once.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object
+(`sha256 d1ea88b2fe3d960975d134e566e65932...`, the identity every unit's frozen object has), on the
+final `femacs/src/xfns.rs` md5 `9e0af05033877f8ac54dcb803ba579ce` (slice 38's end hash was
+`79e7dfa8acb3f9ea8ecd74e1a88c4293`).
+
+**② The fifteen arms.**  See above: fourteen byte-identical, MOTIF 29 -> 20 with the nine named
+rows retired.
+
+**③ `extract-abi.py --check`**: **89 rows -> 86** - three `missing function` rows retiring
+(`file_dialog_cb`, `file_dialog_unmap_cb`, `clean_up_file_dialog`) with nothing appearing, and the
+drift row moving from `21.1%` to `22.1%: C 10662 vs Rust 13022`.  `check-mirror-dupes.py` stays at
+**16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at
+**18 declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **The `MOTIF` arm is new**, and its baseline is the in-tree HEAD text's 29 / 12 rather than a
+   zero reading: nine of those rows are the `<Xm/MwmUtil.h>` gap retired above and the twenty that
+   remain are the arm's pre-existing rows.  The ledger's gate-mapping table records the arm.
+2. **C 107's `<Xm/MwmUtil.h>` names are declared at the use site** (P-88 ①, no `include/xm.rs`
+   exists): `PropMotifWmHints`, `MWM_HINTS_DECORATIONS`, `MWM_DECOR_ALL` and
+   `PROP_MOTIF_WM_HINTS_ELEMENTS` stand beside C's own copy of the same text under `use_motif`.
+3. **`XmCR_CANCEL` is `20` and `XmAnyCallbackStruct` carries the header's two members**
+   (`int reason; XEvent *event;`) - C's spelling, value and offsets **UNVERIFIED**: no Motif headers
+   on this machine.
+4. **C 9419's and C 9430-9433's comments are described, not transcribed**, in the port's `/* */`
+   banners (P-86 ① rule for a C `/** */` block), and the two callbacks keep C's parameter names in
+   C's order although only `client_data` is read.
+
+### Owed (this slice)
+
+- `syms_of_xfns`' `defsubr` sites (45) and the rest of the remainder from C 9456: 1,206 C lines
+  plus the 6 missing functions, 1 macro, 0 objects, 12 subrs and 45 defsubrs `--check` reads.
+- The real shapes of the Xt/Motif surface - every offset in `XmAnyCallbackStruct` and
+  `XmCR_CANCEL`'s value - are the toolchain row `docs/ports/lwlib-Xm.md`'s `## Owed` 5 names.
+- `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from
+  `femacs/xtask/Cargo.toml`'s feature table; the fifteen-arm probe passes it with `--cfg`.
+- The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
+  Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no dialog was created, no callback fired and
+no widget was destroyed; the fifteen arms' counts are text compile readings, and the MOTIF arm's
+twenty pre-existing rows are not this slice's.
