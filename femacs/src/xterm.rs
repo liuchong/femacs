@@ -20166,11 +20166,19 @@ pub unsafe extern "C" fn x_term_init (display_name: Lisp_Object, xrm_option: *mu
 #[cfg (all (not (feature = "use_x_toolkit"), not (feature = "use_gtk")))]
       { error (c"Display %s can't be opened".as_ptr (), SSDATA (display_name)); }  // C 30851
 
-      unblock_input ();                                                  // C 30854
+      /* C 30854-30859's `unblock_input ()`, `SAFE_FREE ()` and `return 0`: in the arm that
+	 compiles C 30851 above they are unreachable (C's `error` is `_Noreturn`), and the port's
+	 `error` is `-> !` too, so the port gates them to the two toolkit arms - where C 30851 is
+	 not compiled - instead of inventing the `unreachable statement` warning C's own text
+	 produces.  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+      {
+	unblock_input ();                                                // C 30854
 
 #[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
-      SAFE_FREE! (sa_count);                                             // C 30857
-      return std::ptr::null_mut ();                                      // C 30859
+	SAFE_FREE! (sa_count);                                           // C 30857
+	return std::ptr::null_mut ();                                    // C 30859
+      }
     }
 
 #[cfg (feature = "use_xcb")]

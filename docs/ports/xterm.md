@@ -19,6 +19,9 @@
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
+> Slice 109 (C 30667-31838, the whole of `x_term_init`) moves it to **2**: only
+> `handle_one_xevent` and the pre-existing `x_get_wm_check_window does not mention false` row are
+> left, and the line-count row is gone (31,682 against C's 33,125, 4.4% drift).
 9 moves it to **212** (Decision 21) slice 10 (C 9786-11915, Decision 22) to **185** slice 11 (C 12066-12095, Decision 23) to **184** slice 12 (C 26217-26347, Decision 24) to **176** slice 13 (C 26349-26689, Decision 25) to **165** and slice 14 (C 26704-26992, Decision 26) to **163**.  Slice 15 (C 26994-27126, Decision 27) moves it to **159**: three functions retire, the two token rows the first reading brought are closed by `docs/ports/macro-body-notes.tsv` rows, and the invented-export row slice 14 left behind is gone.  Slice 16 (C 27128-27194, Decision 28) moves it to **158**: `x_new_font` retires as a missing item, and no token row came with it.  Slice 17 (C 27195-27284, Decision 29) **stays 158**: its two functions live inside
 `HAVE_X11R6_XIM`, which the frozen table leaves `undef` (P-66's dead text), so the tool never
 demanded them.  Slice 18 (C 27286-27342, Decision 30) **stays 158** as well: `xim_open_dpy` sits inside
@@ -608,7 +611,7 @@ in Decision 119 4-5.
 - [x] same_x_server  (line 30496, static)
 - [x] get_bits_and_offset  (line 30546, static)
 - [x] x_display_ok  (line 30571)
-- [ ] x_term_init  (line 30668)
+- [x] x_term_init  (line 30668)
 - [x] x_delete_selection_requests  (line 31846, static)
 - [x] x_delete_display  (line 31873, static)
 - [x] x_delete_terminal  (line 32064)
@@ -10083,3 +10086,79 @@ The line-count row is **30,214** against C's 33,125 (8.8% drift, was 29,493 / 11
 selection was released, no event loop was entered and no `handle_one_xevent` was called; the XKB,
 Xt, XInput2, GTK and XRANDR arms have never been compiled by any configuration in this tree (the
 frozen table leaves those macros undefined), so their rows are text readings too.
+
+### Slice 109's readings (C 30667-31838), as landed and measured (2026-10-07)
+
+| arm | baseline | slice 109 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 825 / 74 | **905 / 74** | **+80 / 0** |
+| U `A +use_toolkit_scroll_bars` | 838 / 74 | **918 / 74** | **+80 / 0** |
+| UT `U +use_x_toolkit` | 824 / 73 | **905 / 73** | **+81 / 0** |
+| UM `UT +use_motif` | 825 / 73 | **906 / 73** | **+81 / 0** |
+| UG `U +use_gtk` | 817 / 75 | **911 / 75** | **+94 / 0** |
+| UGX `UG +have_xinput2` | 896 / 77 | **1002 / 77** | **+106 / 0** |
+| AE `A +enable_checking` | 857 / 73 | **937 / 73** | **+80 / 0** |
+| AI `A +have_x_i18n` | 834 / 75 | **929 / 75** | **+95 / 0** |
+| AIU `AI +use_gtk` | 869 / 75 | **978 / 75** | **+109 / 0** |
+| AIUX `AIU +have_xinput2` | 952 / 77 | **1073 / 77** | **+121 / 0** |
+| AX `A +have_xdbe` | 839 / 74 | **920 / 74** | **+81 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 871 / 74 | **962 / 74** | **+91 / 0** |
+| AXF `A +have_xfixes` | 827 / 74 | **915 / 74** | **+88 / 0** |
+| AXPM `A +have_xpm` | 826 / 74 | **906 / 74** | **+80 / 0** |
+| AXKB `A +have_xkb` | 845 / 74 | **943 / 74** | **+98 / 0** |
+| AXR `A +have_xrandr` | 826 / 74 | **912 / 74** | **+86 / 0** |
+
+Both sides were measured in this revision: the baseline side by restoring `femacs/src/xterm.rs`
+to `9411622e:femacs/src/xterm.rs` and putting it back (md5 `e43c6647db8369b990521fc6b4519df9` on
+both sides of that swap), the slice's own file md5 `bec354a7a35280db33ccd7ad9bd76a98`.  **No
+warning moved in any arm** (kind sets compared): the first reading brought exactly one,
+`unreachable statement` after C 30851's `error` - C's own text, whose three following statements
+are dead in the one arm that compiles it - and it is closed by gating C 30854-30859's tail to the
+two toolkit arms, with that reason written at the gate.
+
+**The seventeenth arm, AWS.**  This round does not carry it: the ledger's definition
+(`A + have_window_system`, slice 90's) measured **885 / 74** with both features set, and the bare
+`have_window_system` flag aborts early at **4 errors / 28 warnings**, so neither reproduces the
+recorded 509 / 0.  The ledger owes the next round a decision on that arm's cfg set; the sixteen
+above are the ones this file states in full.
+
+**Two legs of `build-tu`** (`cargo run -q -p xtask -- build-tu src/xterm.c`, from `femacs/`):
+**identical on both sides** - `aborting due to 2 previous errors; 28 warnings emitted`, the two
+errors being the ungated `x_atom_refs` static's `def_x_atom_refs!`/`x_atom_ref` (a property of the
+no-feature compile, not of this slice).
+
+**What `--check` reads.**  **4 -> 2**: `x_term_init` retires as a missing item, leaving
+`handle_one_xevent` and the pre-existing `x_get_wm_check_window does not mention false` row; the
+line-count row is gone (31,682 against C's 33,125, 4.4% drift, was 30,404 / 8.2%).
+`tools/check-citations.py` is **676 files / 0 drift / 0 range / 0 stale** after the new include
+edge's citation was written as `lisp.h 27`.
+
+**Additions, by name.**  The new rows are the E0425 class this unit has counted since slice 1, now
+with this function's share: Xlib entry points no mirror of its graph declares (`XSelectInput`,
+`XInternAtoms`, `XCreateFontCursor`, `XAllocColor`, `XCreateColormap`, `XCopyColormapAndFree`,
+`XQueryFont`, `XSynchronize`, `XSupportsLocale`, `XGetDefault`, `XGrabServer`/`XUngrabServer`,
+`XGetKeyboardControl`, `XAutoRepeatOn`/`XAutoRepeatOff`, `XrmPutLineResource`, `XFreeFontInfo`,
+`ServerVendor`, `ConnectionNumber`, `DefaultRootWindow`, `ScreenOfDisplay`, `DefaultScreen`,
+`DefaultColormapOfScreen`, `RootWindowOfScreen`, `DefaultVisualOfScreen`, `XVisualIDFromVisual`,
+`XCreatePixmapFromBitmapData`); the toolkit, GTK, XCB and extension families only their own arms
+compile (`XtOpenDisplay`, `XtSetLanguageProc`, `XtCallConverter`, `XSetLocaleModifiers`,
+`XGetXCBConnection`, `xcb_*`, `XRender*`, `XComposite*`, `XShape*`, `XSync*`, `Xinerama*`, `Xdbe*`,
+`XRR*`, `XFixes*`, `Xkb*`, `XI*`, `g_log_*`, `gdk_*`, `g_signal_connect`, `gtk_init`,
+`gtk_rc_parse`, `fixup_locale`, `xg_*`); the types no mirror carries (`XKeyboardState`, `XColor`,
+`XFontStruct`, `XrmValue`, `Font`, `XPointer`); the lisp-side names C reads bare here
+(`allocate_kboard`, `kset_system_key_alist`, `terminal_list`, `current_kboard`, `initial_kboard`,
+`IS_DAEMON`, `Qx`); and `x_load_resources`, which `xrdb.rs` defines and this unit declares at its
+use site (P-72 rule 4).  **Two readings this slice exposes and does not close**: `gray_bits`,
+`gray_width` and `gray_height` are the `src/bitmaps/gray.xbm` data file's constants - the gap
+`femacs/src/xfns.rs` 97-98 and `docs/ports/xfns.md` already record, which this unit now shares; and
+`EMACS_CLASS` is frame.h 1840's resource class, kept as C's bytes (0.1-19's eighth half) with the
+reason at its declaration.
+
+**Arm reachability (P-86 7).**  Not taken this round: the surface is a whole function, so every
+arm's error count moved and a one-line injection's `E0308` anchor is the next round's to place.
+
+**Not claimed.**  The frozen configuration compiles none of this file, so nothing here is
+behaviour: no display was opened, no toolkit initialised, no XCB connection obtained, no atom
+interned and no XIM opened.  Sixteen of the seventeen arms were measured; AWS is named above as the
+one whose cfg set this ledger still owes.  What the slice adds is a text reading of C's own
+statements in C's own order.
