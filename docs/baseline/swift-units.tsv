@@ -12,11 +12,8 @@ femacs/platform/macos/nsfont.swift	ns_dump_glyphstring	src/nsfont.m
 femacs/platform/macos/nsfont.swift	nsfont_draw	src/nsfont.m
 femacs/platform/macos/nsterm.swift	cancel_ns_deferred_UAZoomChangeFocus_timer	src/nsterm.m
 femacs/platform/macos/nsterm.swift	hide_bell	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_create_font_panel_buttons	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redraw_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_update_window_end	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_xlfd_to_fontname	src/nsterm.m
 femacs/platform/macos/nsterm.swift	nstrace_fullscreen_type_name	src/nsterm.m
 femacs/platform/macos/nsterm.swift	nstrace_leave	src/nsterm.m
 femacs/platform/macos/nsterm.swift	nstrace_restore_global_trace_state	src/nsterm.m

@@ -10570,3 +10570,217 @@ func ns_term_init(_ display_name: Lisp_Object) -> UnsafeMutableRawPointer? {
 
   return dpyinfo                                      // C 6193
 }
+
+// ==========================================================================
+// Round 58: the font-panel trio - `ns_font_desc_to_font_spec` (C 6914-6988),
+// `ns_create_font_panel_buttons` (C 6990-7030) and `ns_xlfd_to_fontname` (C 11483-11526)
+// ==========================================================================
+
+/// C: the eight keywords C 6929-6966 writes into the font spec - `Qbold`/`Qitalic`/`Qmedium`/
+/// `Qsemi_light` are `femacs/src/xfaces.rs` 5320-5331's, `Qreverse_italic`/`Qcondensed`/`Qexpanded`
+/// `femacs/src/haikufont.rs` 1916-1924's and `Qnormal` `femacs/src/androidselect.rs` 1297's;
+/// `Qlight`, the ninth, is the entry this unit already has beside `Qdark` (C 2236 above).  Each is a
+/// C data symbol the core exports under its own name (the shape that entry records).
+@_silgen_name("Qbold") func Qbold() -> Lisp_Object
+@_silgen_name("Qitalic") func Qitalic() -> Lisp_Object
+@_silgen_name("Qnormal") func Qnormal() -> Lisp_Object
+@_silgen_name("Qreverse_italic") func Qreverse_italic() -> Lisp_Object
+@_silgen_name("Qcondensed") func Qcondensed() -> Lisp_Object
+@_silgen_name("Qexpanded") func Qexpanded() -> Lisp_Object
+@_silgen_name("Qmedium") func Qmedium() -> Lisp_Object
+@_silgen_name("Qsemi_light") func Qsemi_light() -> Lisp_Object
+
+/// C: `QCwidth`/`QCslant`/`QCweight`/`QCfamily` (`femacs/src/xfaces.rs` 5281-5290) and `QCsize`
+/// (`femacs/src/fns.rs` 7040) - the five keywords of C 6983-6985's `Ffont_spec` array.
+@_silgen_name("QCwidth") func QCwidth() -> Lisp_Object
+@_silgen_name("QCslant") func QCslant() -> Lisp_Object
+@_silgen_name("QCweight") func QCweight() -> Lisp_Object
+@_silgen_name("QCsize") func QCsize() -> Lisp_Object
+@_silgen_name("QCfamily") func QCfamily() -> Lisp_Object
+
+/// C: `Lisp_Object Ffont_spec (ptrdiff_t, Lisp_Object *)` (src/font.c's `<font-spec>` subr, which
+/// `femacs/src/font.rs` 5157 registers) - C 6982's `CALLN` target.  C's `CALLN (f, ...)` is
+/// `f (count, array)` with the array holding exactly the arguments (src/lisp.h 3453-3461), so the
+/// ten elements are built on the stack and passed with their count - the `Fmake_hash_table` reading
+/// of the lane.
+@_silgen_name("Ffont_spec")
+func Ffont_spec(_ nargs: Int, _ args: UnsafeMutablePointer<Lisp_Object>?) -> Lisp_Object
+
+/// C: `int c_toupper (int)` (lib/c-ctype.h, gnulib) - the port's `femacs/lib/c-ctype.rs` 103-104
+/// re-exports it under the C name (`#[unsafe(export_name = "c_toupper")]`), so it is a
+/// `@_silgen_name` import like this unit's other core entries.
+@_silgen_name("c_toupper") func c_toupper(_ c: Int32) -> Int32
+
+/// C: `void *xmalloc (size_t)` (src/lisp.h 5535) - the `xzalloc` entry's family, and C's text is
+/// why it is never NULL.  (`xfree`, C 11491's other half, is already the entry C 1776 added.)
+@_silgen_name("xmalloc") func xmalloc(_ size: Int) -> UnsafeMutableRawPointer?
+
+/// C: `int sscanf (const char *, const char *, ...)` (stdio.h) - variadic, so Swift marks the SDK's
+/// own declaration unavailable (measured: `error: 'sscanf' is unavailable: Variadic function is
+/// unavailable`), and the lane reaches the C entry by name - the `fprintf` reading above.
+@_silgen_name("sscanf")
+func sscanf(_ s: UnsafePointer<CChar>, _ format: UnsafePointer<CChar>,
+            _ args: CVarArg...) -> Int32
+
+/// C 6914-6988: `static Lisp_Object ns_font_desc_to_font_spec (NSFontDescriptor *desc, NSFont
+/// *font)` - "Convert a font descriptor to a font spec."  The `NS_IMPL_GNUSTEP` half of C 6951-6955
+/// and its `#endif` at C 6970 are the arm this target does not take (the `hide_bell` reading), so
+/// C 6957-6969's Cocoa ladder is what is transcribed; the descriptor spellings
+/// (`symbolicTraits`, `object (forKey:)` with `NSFontDescriptor.AttributeName`/`TraitKey` and their
+/// `.rawValue`) are this lane's own, the ones `nsfont.swift` 601-603 and 642-666 use for the same
+/// reads.
+fileprivate func ns_font_desc_to_font_spec(_ desc: NSFontDescriptor, _ font: NSFont) -> Lisp_Object {
+  let traits = desc.symbolicTraits                              // C 6917
+  let dict = desc.object(forKey: NSFontDescriptor.AttributeName.traits) as? NSDictionary  // C 6918
+  let family = font.familyName.map { $0 as NSString }           // C 6919
+  var tem: NSNumber?                                            // C 6921
+
+  var lwidth: Lisp_Object = Qnil()                              // C 6920 (C's declaration) / C 6923
+  var lslant: Lisp_Object = Qnil()                              // C 6924
+  var lweight: Lisp_Object = Qnil()                             // C 6925
+  var lheight: Lisp_Object = Qnil()                             // C 6926
+
+  if traits.contains(.bold) { lweight = Qbold() }               // C 6928-6929
+  if traits.contains(.italic) { lslant = Qitalic() }            // C 6931-6932
+  if traits.contains(.condensed) { lwidth = Qcondensed() }      // C 6934-6935
+  else if traits.contains(.expanded) { lwidth = Qexpanded() }   // C 6936-6937
+
+  if dict != nil {                                              // C 6939
+    tem = dict!.object(forKey: NSFontDescriptor.TraitKey.slant.rawValue) as? NSNumber   // C 6941
+
+    if tem != nil {                                             // C 6943
+      lslant = tem!.floatValue > 0
+        ? Qitalic() : (tem!.floatValue < 0 ? Qreverse_italic() : Qnormal())   // C 6944-6947
+    }
+
+    tem = dict!.object(forKey: NSFontDescriptor.TraitKey.weight.rawValue) as? NSNumber  // C 6949
+
+    if tem != nil {                                             // C 6957 (the Cocoa arm)
+      if tem!.floatValue >= 0.4 { lweight = Qbold() }           // C 6959-6960
+      else if tem!.floatValue >= 0.24 { lweight = Qmedium() }   // C 6961-6962
+      else if tem!.floatValue >= 0 { lweight = Qnormal() }      // C 6963-6964
+      else if tem!.floatValue >= -0.24 { lweight = Qsemi_light() }   // C 6965-6966
+      else { lweight = Qlight() }                               // C 6967-6968
+    }
+
+    tem = dict!.object(forKey: NSFontDescriptor.TraitKey.width.rawValue) as? NSNumber   // C 6972
+
+    if tem != nil {                                             // C 6974
+      lwidth = tem!.floatValue > 0
+        ? Qexpanded() : (tem!.floatValue < 0 ? Qcondensed() : Qnormal())   // C 6975-6977
+    }
+  }
+
+  lheight = make_float(Double(font.pointSize))                  // C 6980
+
+  // C 6982-6987: `CALLN (Ffont_spec, QCwidth, lwidth, QCslant, lslant, QCweight, lweight, QCsize,
+  // lheight, QCfamily, (family ? [family lispString] : Qnil))` - the ten elements of `CALLN`'s
+  // array, and the count C passes with them.
+  return withUnsafeTemporaryAllocation(of: Lisp_Object.self, capacity: 10) { args in
+    args[0] = QCwidth()
+    args[1] = lwidth
+    args[2] = QCslant()
+    args[3] = lslant
+    args[4] = QCweight()
+    args[5] = lweight
+    args[6] = QCsize()
+    args[7] = lheight
+    args[8] = QCfamily()
+    args[9] = family != nil ? lispString(family!) : Qnil()
+    return Ffont_spec(10, args.baseAddress)
+  }
+}
+
+/// C 6990-7030: `static NSView *ns_create_font_panel_buttons (id target, SEL select, SEL
+/// cancel_action)` - the `NS_IMPL_COCOA` arm C 6990 opens and C 7030 closes, i.e. this target's.
+/// C's `[[NSButtonCell alloc] init]` is `NSButtonCell ()`, C 7011's `release` is the runtime
+/// decrement (`Unmanaged.passUnretained (…).release ()`, round 3's reading), C 7001's
+/// `NSBezelStyleRounded` and C 7019's `NSButtonTypeMomentaryPushIn` are the SDK's own Swift
+/// spellings, and the two casts of C 7013-7014 are the `as!` this lane uses for C's unchecked
+/// `(NSButtonCell *)`.
+fileprivate func ns_create_font_panel_buttons(_ target: AnyObject?, _ select: Selector,
+                                             _ cancel_action: Selector) -> NSView {
+  let prototype = NSButtonCell()                                // C 7000
+  prototype.bezelStyle = .rounded                               // C 7001
+  prototype.title = "Cancel"                                    // C 7002
+  let cell_size = prototype.cellSize                            // C 7003
+  let frame = NSMakeRect(0, 0, cell_size.width * 2,             // C 7004-7005
+                         cell_size.height)
+  let matrix = NSMatrix(frame: frame, mode: .trackModeMatrix, prototype: prototype,
+                        numberOfRows: 1, numberOfColumns: 2)    // C 7006-7010
+  Unmanaged.passUnretained(prototype).release()                 // C 7011 (C's `[prototype release]`)
+
+  let ok = matrix.cell(atRow: 0, column: 0) as! NSButtonCell     // C 7013
+  let cancel = matrix.cell(atRow: 0, column: 1) as! NSButtonCell // C 7014
+
+  ok.title = "OK"                                               // C 7016
+  ok.target = target                                            // C 7017
+  ok.action = select                                            // C 7018
+  ok.setButtonType(.momentaryPushIn)                            // C 7019
+
+  cancel.title = "Cancel"                                       // C 7021
+  cancel.target = target                                        // C 7022
+  cancel.action = cancel_action                                 // C 7023
+  cancel.setButtonType(.momentaryPushIn)                        // C 7024
+
+  matrix.selectCell(ok)                                         // C 7026
+
+  return matrix                                                 // C 7028
+}
+
+/// C 11483-11526 (non-static - `@_cdecl`: src/nsterm.h 1129 declares it, and `nsfns.swift` 1099-1101
+/// imports it): `const char *ns_xlfd_to_fontname (const char *xlfd)` - "Convert an X font name
+/// (XLFD) to an NS font name.  Only family is used.  The string returned is temporarily
+/// allocated."  `@_cdecl` refuses an `UnsafePointer<T>?` result in Swift 6.4, so the result is
+/// spelled as the mutable pointer (the `ns_get_defaults_value` reading of `nsfns.swift`), the same
+/// C ABI.  `strncmp`/`strcpy`/`strlen` are the SDK's own (the `nsmenu.swift` 416 reading); `sscanf`
+/// is the variadic entry declared above; and the returned pointer belongs to an *autoreleased*
+/// `NSString`, which is why the string is kept alive with the `ns_relocate` pair below.
+@_cdecl("ns_xlfd_to_fontname")
+func ns_xlfd_to_fontname(_ xlfd: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>? {
+  let name = xmalloc(180)!.assumingMemoryBound(to: CChar.self)   // C 11491
+  var i: Int32 = 0                                               // C 11492 (C's `int i, len;`)
+  var len: Int32 = 0                                             // C 11492
+
+  if strncmp(xlfd, "--", 2) == 0 {                              // C 11495
+    _ = sscanf(xlfd, "--%*[^-]-%179[^-]-", name)                 // C 11496
+  } else {
+    _ = sscanf(xlfd, "-%*[^-]-%179[^-]-", name)                  // C 11498
+  }
+
+  /* stopgap for malformed XLFD input */
+  if name[0] == 0 {                                              // C 11501
+    _ = strcpy(name, "Monaco")                                   // C 11502
+  }
+
+  /* undo hack in ns_fontname_to_xlfd, converting '$' to '-', '_' to ' '
+     also uppercase after '-' or ' ' */
+  name[0] = CChar(truncatingIfNeeded: c_toupper(Int32(name[0])))  // C 11506
+  len = Int32(strlen(name))                                      // C 11507 (C's for-init)
+  i = 0                                                          // C 11507 (C's for-init)
+  while i < len {                                                // C 11507
+    if name[Int(i)] == UInt8(ascii: "$") {                       // C 11509
+      name[Int(i)] = CChar(UInt8(ascii: "-"))                     // C 11511
+      if i + 1 < len {                                            // C 11512
+        name[Int(i + 1)] = CChar(truncatingIfNeeded: c_toupper(Int32(name[Int(i + 1)])))  // C 11513
+      }
+    } else if name[Int(i)] == UInt8(ascii: "_") {                // C 11515
+      name[Int(i)] = CChar(UInt8(ascii: " "))                     // C 11517
+      if i + 1 < len {                                            // C 11518
+        name[Int(i + 1)] = CChar(truncatingIfNeeded: c_toupper(Int32(name[Int(i + 1)])))  // C 11519
+      }
+    }
+    i += 1                                                       // C 11507 (C's `i++`)
+  }
+
+  /* fprintf (stderr, "converted '%s' to '%s'\n",xlfd,name); */   // C 11522
+
+  // C 11523-11525: C builds an autoreleased `NSString` and returns its `UTF8String`; an input that
+  // is not UTF-8 leaves the string nil, where C's send to nil yields NULL.  `passRetained` +
+  // `autorelease` is exactly C's autorelease (the `ns_relocate` reading above).
+  let string = NSString(utf8String: name)                        // C 11523
+  _ = string.map { Unmanaged.passRetained($0).autorelease() }     // C 11523
+  xfree(UnsafeMutableRawPointer(name))                           // C 11524
+  if string == nil { return nil }                                // C 11525
+  return UnsafeMutablePointer(mutating: string!.utf8String!)      // C 11525
+}

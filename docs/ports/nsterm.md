@@ -216,15 +216,15 @@
 - [x] ns_term_shutdown  (line 6198) — C 6197-6215, landed as `@_cdecl("ns_term_shutdown")` (declared src/nsterm.h 1206): C's `[[NSAutoreleasePool alloc] init]`/`[pool release]` pair is this unit's own push/pop entries, C 6209's `unlink` takes C's `SSDATA`, and C 6212's `[NSApp terminate: NSApp]` is `NSApp.terminate (NSApp)`
 - [x] runAlertPanel  (line 6634, static) — landed as `fileprivate func runAlertPanel (_:_:_:_:) -> Bool`: the `NS_IMPL_COCOA` arm builds an `NSAlert` (the GNUstep `NSRunAlertPanel` at C 6640 is dead), and C 6649's `[alert release]` is the reference being dropped under ARC
 - [x] not_in_argv  (line 6672, static) — landed as `fileprivate func not_in_argv (_:) -> Int32`: C's `[arg UTF8String]` is the `withCString` view, and `initial_argc`/`initial_argv`/`strcmp` are imports in the lane's established shapes
-- [ ] ns_font_desc_to_font_spec  (line 6915, static)
-- [ ] ns_create_font_panel_buttons  (line 6992, static)
+- [x] ns_font_desc_to_font_spec  (line 6915, static) — C 6914-6988, landed as `fileprivate func ns_font_desc_to_font_spec (_:_:)` (round 58): the `NS_IMPL_GNUSTEP` half of C 6951-6955 is dead on this target, so the Cocoa weight ladder of C 6957-6969 is what is transcribed; the descriptor reads are `nsfont.swift` 601-603/642-666's spellings (`symbolicTraits`, `object (forKey:)`, `TraitKey`/`AttributeName` with `.rawValue`), and C 6982's `CALLN (Ffont_spec, …)` is the ten-element array passed with its count (src/lisp.h 3453-3461)
+- [x] ns_create_font_panel_buttons  (line 6992, static) — C 6990-7030 (the `NS_IMPL_COCOA` arm C 6990 opens and C 7030 closes), landed as `fileprivate func ns_create_font_panel_buttons (_:_:_:) -> NSView` (round 58): `NSButtonCell()`/`NSMatrix(frame:mode:prototype:numberOfRows:numberOfColumns:)` with `.trackModeMatrix`, C 7011's `release` as the runtime decrement, and C 7013-7014's two unchecked casts as `as!`
 - [x] ns_in_echo_area_1  (line 7624, static) — landed as `fileprivate func ns_in_echo_area_1 (_:) -> Lisp_Object`: C 7628's `safe_calln (Qns_in_echo_area)` is one `safe_funcall` call (the macro's own expansion at lisp.h 4846-4847), and `Qns_in_echo_area` is this file's own `DEFSYM` (C 11799) imported as a data symbol
 - [x] ns_in_echo_area_2  (line 7633, static) — landed as `fileprivate func ns_in_echo_area_2 (_:_:) -> Lisp_Object`: C's whole body is `return Qnil;`
 - [x] ns_in_echo_area  (line 7639, static) — landed as `fileprivate func ns_in_echo_area () -> Bool`: the `internal_catch_all` call takes C 7644-7645's two helpers as `@convention(c)` closures and its `NULL`, and C 7647's `!NILP` is the predicate the entry returns
 - [ ] cancel_ns_deferred_UAZoomChangeFocus_timer  (line 8460, static)
 - [x] nswindow_orderedIndex_sort  (line 10085, static) — landed as `fileprivate func nswindow_orderedIndex_sort (_:_:_:) -> Int`: C sends `orderedIndex` as a **message**, and on Cocoa that selector is not declared on `NSWindow` at all (C's own definition of it is the GNUstep arm at C 10074-10077), so the port sends the same dynamic message instead of inventing a property; the three `NSOrdered*` results are C 10090-10095's three returns
 - [x] ns_new_font  (line 11418, static) — C 11410-11476, landed as `fileprivate func ns_new_font (_:_:_:)` (round 51 took it ahead of `ns_create_terminal`'s body because C 5942 hands it to `terminal->set_new_font_hook`, the dependency order P-91 ① allows): C's `font` reads are the `font_<member>` family, the `struct ns_output` writes are `ns_output_set_*` and the `struct frame` writes `frame_set_*` (this round's entry rule), C's parameter reassignment is the shadow spelling, and C 11470's `! [view isFullscreen]` on a possibly-nil view is C's nil-receiver answer
-- [ ] ns_xlfd_to_fontname  (line 11484)
+- [x] ns_xlfd_to_fontname  (line 11484) — C 11483-11526, landed as `@_cdecl("ns_xlfd_to_fontname")` (declared src/nsterm.h 1129, imported by `nsfns.swift` 1099-1101): `sscanf` is variadic and reaches the C entry by name (the `fprintf` reading), `strncmp`/`strcpy`/`strlen` are the SDK's, `c_toupper` is `femacs/lib/c-ctype.rs` 103-104's export, and the returned pointer belongs to an autoreleased `NSString` (the `ns_relocate` pair)
 - [x] mark_nsterm  (line 11529) — C 11528-11547, landed as `@_cdecl("mark_nsterm")` (C's own non-static entry): it walks every frame's scrollers and sends each the `mark` method round 43 landed; the `FOR_EACH_FRAME` spelling, `FRAME_NS_P`, `FRAME_NS_VIEW` and the `isKindOfClass:` test are the unit's own already, so it needed **no new entry**
 - [ ] syms_of_nsterm  (line 11550)
 
@@ -4040,3 +4040,43 @@ call site takes an entry and the definition lands at its own C line - and **both
   `ns_font_desc_to_font_spec`, `ns_xlfd_to_fontname`, `syms_of_nsterm`,
   `cancel_ns_deferred_UAZoomChangeFocus_timer`, the three `nstrace*` dead entries) plus the two
   classes `EmacsLayer` (C 11128-11396) and `EmacsDocument` (C 11404-11406).
+
+### Round 58: the font-panel trio - `ns_font_desc_to_font_spec` (C 6914-6988), `ns_create_font_panel_buttons` (C 6990-7030), `ns_xlfd_to_fontname` (C 11483-11526)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-57 carry, so **no new warning**.  Object
+  `/tmp/nsterm58.o`, **954,672 bytes**, md5 `f23997532b7662c8b7d35fb8e9205619`.  The unit is
+  **10,786 lines**.  The first measurement stopped on three errors; they are the entry below.
+* **The three functions land**: `ns_font_desc_to_font_spec` (the trait ladder, the two trait
+  dictionaries and the `CALLN (Ffont_spec, …)` array), `ns_create_font_panel_buttons` (the
+  prototype cell, the two-column matrix and the two button cells) and `ns_xlfd_to_fontname` (the
+  XLFD split, the `Monaco` stopgap, the `$`/`_` rewrite and the autoreleased `NSString`).
+* **The guards and readings this slice needs**: C 6990-7030 is the `NS_IMPL_COCOA` arm (this
+  target's); the `NS_IMPL_GNUSTEP` half of C 6951-6955 is dead here, so C 6957-6969's Cocoa ladder
+  is transcribed; `CALLN (f, …)` is `f (count, array)` with the array holding exactly the
+  arguments (src/lisp.h 3453-3461), so the ten elements are built on the stack; `ns_xlfd_to_fontname`
+  is non-static and declared src/nsterm.h 1129, so it is a `@_cdecl` (with the result spelled as the
+  mutable pointer, the `ns_get_defaults_value` reading) and `nsfns.swift` 1099-1101's import is its
+  caller.
+* **The one first-measurement failure, and the fixes** (three errors, measured):
+  (1) `invalid redeclaration of 'xfree'` - this unit already has that entry (C 1776, line 1909 above),
+  so this round declares `xmalloc` only;
+  (2) and (3) `value of type 'Any' expected to be an instance of a class or class-constrained type in
+  assignment` at the two `setTarget:` writes - `NSCell.target` is `AnyObject?`, so C's `id target`
+  parameter is spelled `AnyObject?` and not `Any?`, which is what C's `id` means at the ObjC level.
+  After the two fixes the round compiled first try.
+* **New entries this round declares** (17, all named): the eight font keywords (`Qbold`, `Qitalic`,
+  `Qnormal`, `Qreverse_italic`, `Qcondensed`, `Qexpanded`, `Qmedium`, `Qsemi_light`; `Qlight` was
+  already here), the five `Ffont_spec` keywords (`QCwidth`, `QCslant`, `QCweight`, `QCsize`,
+  `QCfamily`), `Ffont_spec` itself, `c_toupper` (`femacs/lib/c-ctype.rs` 103-104 re-exports it under
+  the C name), `xmalloc` and the variadic `sscanf` (Swift marks the SDK's own unavailable - measured).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **8** unported,
+  8 row(s); **595** C symbol import(s)` - three fewer unported than round 57's 11 (these three
+  definitions; 17 more imports are the entries above), with the three stale rows cleared by name from
+  `docs/baseline/swift-units.tsv`.  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.  **Two live
+  definitions remain** (`syms_of_nsterm` and `cancel_ns_deferred_UAZoomChangeFocus_timer`) plus the
+  six recorded dead entries and the two classes `EmacsLayer` (C 11128-11396) and `EmacsDocument`
+  (C 11404-11406).
+* **What this round does not claim**: **no run evidence** - no font descriptor was converted, no
+  panel was built, no XLFD was converted; the compile gate reaches parsing and type checking only,
+  and `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.
