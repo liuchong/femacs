@@ -40,6 +40,15 @@ REF = REPO / "emacs"
 TREES = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/nt",
          "femacs/lwlib", "femacs/oldXMenu", "femacs/exec", "femacs/msdos")
 
+# The walk was bound to `*.rs` from its first round (status 3.803), and the platform tree is
+# Swift/Kotlin/C++ (status 3.136 names it; status 3.250 writes the rule: a tree whose files no
+# suffix of the walk matches is a tree the walk never reads).  A Kotlin, Swift or C++ file is
+# copied from a `.java`, `.m` or `.cc` reference exactly the way a unit is copied from its C
+# file - its own first line names that reference - so the same reading applies to its comments.
+# The twenty-fourth half (status 3.887) binds the walk to these suffixes instead of to one.
+PLATFORM_TREE = "femacs/platform"
+PLATFORM_SUFFIXES = (".swift", ".kt", ".cc")
+
 # The declaration is a *prefix* of the file's first line, not the whole of it (the twenty-third
 # half, status 3.886): `// femacs: port of lib/c-strcasecmp.c @ fd7afced403.  The file is` names
 # the reference and carries on - the strict `\s*$` form this regex used to require left those
@@ -245,6 +254,8 @@ def files() -> list[Path]:
     out: list[Path] = []
     for tree in TREES:
         out.extend(sorted((REPO / tree).rglob("*.rs")))
+    for suffix in PLATFORM_SUFFIXES:
+        out.extend(sorted((REPO / PLATFORM_TREE).rglob(f"*{suffix}")))
     return out
 
 
@@ -363,6 +374,33 @@ def selftest() -> int:
 
     # The twenty-third half's two cases: the declaration is a prefix of the first line, and a
     # file that declares none is read (its comment prose is ours, so nothing in it is C's).
+    # The twenty-fourth half's case: the walk the platform files were never in.  A `.swift`,
+    # `.kt` or `.cc` file is named by a suffix the walk binds now; before this half every tree
+    # was walked as `*.rs`, so a Kotlin, Swift or C++ file was a file no walk read (status
+    # 3.250's rule for a tree whose files no suffix of the walk matches).
+    global REPO, REF
+    cases += 1
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        for tree, name in (("femacs/platform/macos", "demo.swift"),
+                           ("femacs/platform/android/kotlin", "Demo.kt"),
+                           ("femacs/platform/haiku", "demo.cc"),
+                           ("femacs/src", "demo.rs"),
+                           ("femacs/platform/macos", "demo.m")):
+            (root / tree).mkdir(parents=True, exist_ok=True)
+            (root / tree / name).write_text("// x\n", encoding="utf-8")
+        saved = (REPO, REF)
+        REPO = root
+        try:
+            walked = sorted(p.name for p in files())
+        finally:
+            REPO, REF = saved
+        if walked != ["Demo.kt", "demo.cc", "demo.rs", "demo.swift"]:
+            failed += 1
+            print(f"FAIL selftest the walk binds the platform suffixes: {walked}")
+        else:
+            print("ok   selftest the walk binds the platform suffixes")
+
     check_pair("a first line that names a reference and carries on",
                "// femacs: port of src/demo.c @ deadbeef.  The file is a demo.",
                "/* Demo does a thing.  */", 0)

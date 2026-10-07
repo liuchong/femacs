@@ -1623,7 +1623,8 @@ func ns_explicitly_set_name(_ f: UnsafeMutableRawPointer?, _ arg: Lisp_Object,
   ns_set_name(f, arg, 1)
 }
 
-/// C 536-549.  Called by Emacs redisplay code; names set this way never override the user's.
+/// C 536-549.  Called by the reference's redisplay code; names set this way never
+/// override the user's.
 @_cdecl("ns_implicitly_set_name")
 func ns_implicitly_set_name(_ f: UnsafeMutableRawPointer?, _ arg: Lisp_Object,
                             _ oldval: Lisp_Object) {
