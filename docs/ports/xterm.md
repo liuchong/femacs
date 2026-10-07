@@ -270,6 +270,22 @@ arm** (the port's `x_create_terminal`, C 30668+, is not landed, so no landed tex
 functions).  The first writing's one defect (a `pub type Emacs_Cursor = Cursor;` the mirror already
 carries, `E0428`) is named in Decision 117 5.
 
+  Slice 105 (C 26104-26214, Decision 118) goes **7 -> 5**: `x_bitmap_icon` and `x_text_icon` both
+retire as missing functions, and no token row arrives.  The reading is **-1 in nine of the fifteen
+arms** (A, U, UT, UM, AE, AI, AX, AXF, AWS: the `cannot find value x_bitmap_icon` row retires,
+because landed text already named it), **+1 in five** (UG, UGX, AIU, AIUX, AG3: the same retirement
+less two new rows - `gnu_xpm_bits`, the XPM array `include/emacs-icon.rs` records as dead text
+rather than transcribing, read by the `USE_GTK` arm's `xg_set_icon_from_xpm_data` call, and the GTK
+arms' `GDK_WINDOW_XWINDOW`/`GDK_WINDOW_XID`, which the new `FRAME_X_WINDOW` uses reach through
+`include/xterm.rs`'s macros) and **0 in AXPM** (the fifteenth arm this slice adds, `A + have_xpm`:
+the retirement less the `#elif` half's own `gnu_xpm_bits`): A 824 -> **823**, U 853 -> **852**, UT 838
+-> **837**, UM 839 -> **838**, UG 836 -> **837**, UGX 938 -> **939**, AE 856 -> **855**, AI 833 ->
+**832**, AIU 872 -> **873**, AIUX 978 -> **979**, AX 838 -> **837**, AG3 874 -> **875**, AXF 837 ->
+**836**, AWS 511/0 -> **510/0** and AXPM 824/74 -> **824/74**, with **no warning set moved in any of
+the fifteen arms**.  The first writing's three defects (a second `XA_STRING` the unit already
+carries at 18924, C's two implicit `int` -> `unsigned int` conversions left without the port's
+casts, and a `mut` rustc did not need) are named in Decision 118 5.
+
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
 
@@ -487,8 +503,8 @@ carries, `E0428`) is named in Decision 117 5.
 - [x] x_define_frame_cursor  (line 26020, static)
 - [x] x_clear_frame_area  (line 26032, static)
 - [x] x_draw_window_cursor  (line 26041, static)
-- [ ] x_bitmap_icon  (line 26104, static)
-- [ ] x_text_icon  (line 26194)
+- [x] x_bitmap_icon  (line 26104, static)
+- [x] x_text_icon  (line 26194)
 - [x] x_is_serial_more_than  (line 26261, static)
 - [x] x_is_serial_more_than_or_equal_to  (line 26270, static)
 - [x] x_is_serial_less_than  (line 26279, static)
@@ -4884,6 +4900,45 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   identity cast in the real X configuration, unwrapping only in the lane's arms.
 * **What `--check` reads.**  **10 -> 7** as above, with the line-count row at **29,302** against C's
   33,125 (11.5% drift, was 29,181 / 11.9%).
+
+### 118. Slice 105 (C 26104-26214): `x_bitmap_icon` and `x_text_icon`, and the two mirror gaps their `FRAME_X_WINDOW` uses read
+
+* **The two `--check` items.**  `--check` goes **7 -> 5**: `x_bitmap_icon` and `x_text_icon` retire
+  as missing functions, and this slice brings no token row.  The five left are
+  `handle_one_xevent`, `x_dnd_begin_drag_and_drop`, `x_term_init`,
+  `x_get_wm_check_window does not mention false` and the line-count row.
+* **The reading is four sizes, and only two of them are new rows.**  Nine arms read **-1**: the
+  `cannot find value x_bitmap_icon` row retires, because landed text already named the function
+  (which was missing was its definition).  Five arms (UG, UGX, AIU, AIUX, AG3) read **+1**: the same
+  retirement, less two rows the new text earns - `cannot find value gnu_xpm_bits` (the
+  `#ifdef USE_GTK` arm's `xg_set_icon_from_xpm_data (f, gnu_xpm_bits)`; the array is the header's own
+  `#if (defined (HAVE_XPM) && defined (HAVE_X_WINDOWS)) || defined (USE_GTK)` dead text, recorded in
+  `docs/ports/include-emacs-icon.md` rather than transcribed, P-08) and `GDK_WINDOW_XWINDOW` (the
+  `have_gtk3`-less GTK arms' `GDK_WINDOW_XID` expands to it at `include/xterm.rs` 1043 - the new
+  `FRAME_X_WINDOW` uses are the first to reach that arm).  AXPM - the fifteenth arm this slice adds,
+  `A + have_xpm` - reads **0**: the retirement less the `#elif` half's own `gnu_xpm_bits` row.  AWS
+  reads **-1** as well (`have_window_system` changes none of these names).
+* **`GDK_WINDOW_XID`'s GTK3 arm is a mirror gap, not a port defect.**  AG3 (`A + use_gtk +
+  have_gtk3`) reads `cannot find macro GDK_WINDOW_XID`, anchored in `include/xterm.rs` 1056-1063's
+  `GTK_WIDGET_TO_X_WIN`: the mirror carries that macro's `not (feature = "have_gtk3")` arm only, so
+  the arm that sets `have_gtk3` has no `GDK_WINDOW_XID` to expand - a pre-existing gap this slice is
+  the first to read (recorded in `## Owed`, with the GDK header this machine lacks).
+* **C's gates, one axis at a time.**  C's `#ifdef USE_GTK` / `#elif defined (HAVE_XPM) &&
+  defined (HAVE_X_WINDOWS)` pair is the port's two `#[cfg]` blocks (P-86 1) - the `#elif` half
+  carries `not (feature = "use_gtk")` because C's `#elif` is reached only when `USE_GTK` is not
+  defined; the frozen table leaves `USE_GTK` (3861) and `HAVE_XPM` (1708) undef, so neither arm is
+  live in the frozen reading, and `x_text_icon`'s `XSetWMIconName`/`XTextProperty` are C's
+  unguarded Xlib calls.
+* **Three defects the first writing read.**  (1) `pub const XA_STRING: Atom = 31;` is `E0428` - the
+  unit already carries `XA_STRING` at 18924 (the `XA_INTEGER` neighbour), so the copy is deleted and
+  C 26202 reads the existing constant; (2) C 26164/26165 pass `gnu_xbm_width`/`gnu_xbm_height`
+  (`int`) to `unsigned int` parameters - C's implicit conversion, so the port states `as c_uint`
+  (the file's casting convention); and (3) `let mut bitmap_id` is `unused_mut` (one initialization
+  on each path needs no `mut`; the warning set is what said so - `variable does not need to be
+  mutable`), and the doc comment that describes `x_text_icon` sat above the declaration block
+  instead of the function, which is `unused doc comment` (the mirrors' seven).
+* **What `--check` reads.**  **7 -> 5** as above, with the line-count row at **29,493** against C's
+  33,125 (11.0% drift, was 29,302 / 11.5%).
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -6310,6 +6365,15 @@ is carried text that **no configuration in this tree has compiled**.  `build-tu`
 the probe's numbers are unresolved names, not behaviour; and nothing here is device, GUI or
 end-to-end evidence for any of the functions this slice lands.
 
+**Slice 105 reads two mirror gaps for the first time** (2026-10-07, Decision 118): the GTK arms'
+`GDK_WINDOW_XWINDOW` (`femacs/src/include/xterm.rs` 1043, the `not (feature = "have_gtk3")` arm of
+`GDK_WINDOW_XID`) has no declaration anywhere - GDK's header is not on this machine and no mirror
+carries it - and that macro's `have_gtk3` arm is missing from the mirror altogether, which arm AG3
+reads as `cannot find macro GDK_WINDOW_XID` (anchored at `include/xterm.rs` 1056-1063's
+`GTK_WIDGET_TO_X_WIN`).  Both are the mirror's owed work, not this unit's: closing them needs either
+the GTK tree (the third-party-SDK gap of item 0) or a decision about what that arm expands to.
+`gnu_xpm_bits` is *not* on this list: `docs/ports/include-emacs-icon.md` records it as the header's
+dead text, so the two arms that name it record a bare name by design (P-08).
 
 ### Slice 15's readings (C 26994-27126), as landed and measured (2026-10-06)
 
@@ -9744,3 +9808,56 @@ closed by the `docs/ports/macro-body-notes.tsv` row this slice adds.  The line-c
 **Not claimed.**  The frozen configuration compiles none of this file: no cursor was defined on any
 frame, no area was cleared and no preedit area was set; the readings above are compile readings of
 text this machine cannot build.
+
+### Slice 105's readings (C 26104-26214), as landed and measured (2026-10-07)
+
+| arm | baseline | slice 105 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 824 / 74 | **823 / 74** | **-1 / 0** |
+| U `A +use_toolkit_scroll_bars` | 853 / 74 | **852 / 74** | **-1 / 0** |
+| UT `U +use_x_toolkit` | 838 / 73 | **837 / 73** | **-1 / 0** |
+| UM `UT +use_motif` | 839 / 73 | **838 / 73** | **-1 / 0** |
+| UG `U +use_gtk` | 836 / 75 | **837 / 75** | **+1 / 0** |
+| UGX `UG +have_xinput2` | 938 / 77 | **939 / 77** | **+1 / 0** |
+| AE `A +enable_checking` | 856 / 73 | **855 / 73** | **-1 / 0** |
+| AI `A +have_x_i18n` | 833 / 75 | **832 / 75** | **-1 / 0** |
+| AIU `AI +use_gtk` | 872 / 75 | **873 / 75** | **+1 / 0** |
+| AIUX `AIU +have_xinput2` | 978 / 77 | **979 / 77** | **+1 / 0** |
+| AX `A +have_xdbe` | 838 / 74 | **837 / 74** | **-1 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 874 / 74 | **875 / 74** | **+1 / 0** |
+| AXF `A +have_xfixes` | 837 / 74 | **836 / 74** | **-1 / 0** |
+| **AWS** `A +have_window_system` | 511 / 0 | **510 / 0** | **-1 / 0** |
+| **AXPM** `A +have_xpm` (new) | 824 / 74 | **824 / 74** | **0 / 0** |
+
+**Retirements and additions, by name.**  All fifteen arms lose one row,
+`cannot find value x_bitmap_icon` - landed text already named the function, so its definition is
+what the reading was waiting for.  The five `use_gtk` arms (UG, UGX, AIU, AIUX, AG3) gain two:
+`cannot find value gnu_xpm_bits` (the `#ifdef USE_GTK` arm's `xg_set_icon_from_xpm_data (f,
+gnu_xpm_bits)`; `include/emacs-icon.rs` records that array as the header's dead text, so the name is
+written and the arm records it, P-08) and, in the four arms that do not set `have_gtk3`,
+`cannot find function, tuple struct or tuple variant GDK_WINDOW_XWINDOW` anchored in
+`include/xterm.rs`:1043 (the GTK2 arm of `GDK_WINDOW_XID`, which the new `FRAME_X_WINDOW` uses are
+the first to expand); AG3's second new row is instead `cannot find macro GDK_WINDOW_XID`, anchored at
+`include/xterm.rs`:1060 (`GTK_WIDGET_TO_X_WIN`), because the mirror carries only that macro's
+`not (feature = "have_gtk3")` arm.  **AXPM** - this slice's own fifteenth arm - loses the
+`x_bitmap_icon` row and gains `gnu_xpm_bits` from the `#elif` half's
+`x_create_bitmap_from_xpm_data (f, gnu_xpm_bits)`, exactly cancelling.  Nothing else moves, and
+**`x_text_icon` retires a `--check` row without earning a single arm row** (no arm names it yet).
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has no window system, so none of this region is compiled
+there).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` before C 26108's `if (FRAME_X_WINDOW (f) ==
+0)` moves **A 823 -> 824** with `E0308` 13 -> 14, anchored at
+`build/probes/xterm/_root.rs:29357:18`; removing the line returns A to the table.
+
+**What `--check` reads.**  **7 -> 5**: both functions retire as missing items, and no token row
+arrives (C's `#ifdef`/`#elif` are the port's `#[cfg]` blocks and the checker reads the function's
+own body tokens, which match).  The line-count row is **29,493** against C's 33,125 (11.0% drift,
+was 29,302 / 11.5%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no icon was set on any frame,
+neither an XBM nor an XPM bitmap was created, no mask was made and no WM icon name was written; the
+GTK and XPM arms have never been compiled by any configuration in this tree (the frozen table
+leaves `USE_GTK` and `HAVE_XPM` undef), so their two new rows are text readings too.

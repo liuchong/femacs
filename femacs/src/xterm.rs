@@ -29298,5 +29298,196 @@ unsafe fn x_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row, x: c_
 
 /* Icons.  */
 
-/* C 26100-26103's comment and `x_bitmap_icon` (C 26104-...), then `x_text_icon` (C 26194-...), come
-   next in C's order.  */
+/* Make the x-window of frame F use the gnu icon bitmap.  */
+
+/// C 26101-26187: `static bool x_bitmap_icon (struct frame *f, Lisp_Object file)` - C's `static`,
+/// so a plain `unsafe fn`, and this slice's first `--check` item.  C's `#ifdef USE_GTK` /
+/// `#elif defined (HAVE_XPM) && defined (HAVE_X_WINDOWS)` pair is the port's two `#[cfg]` blocks
+/// (P-86 1); the frozen table leaves `USE_GTK` undef (3861) and `HAVE_XPM` undef (1708), so the
+/// frozen reading compiles neither arm, and the arm that sets `have_xpm` is the only one that can
+/// read the `#elif` half.  `gnu_xbm_bits` and its two dimensions are `include/emacs-icon.rs`'s
+/// (C 712's `#include "emacs-icon.h"`); `gnu_xpm_bits` is that header's own
+/// `#if (defined (HAVE_XPM) && defined (HAVE_X_WINDOWS)) || defined (USE_GTK)` dead text, recorded
+/// in `docs/ports/include-emacs-icon.md` rather than transcribed (P-08), so the two arms that name
+/// it record a bare name in the readings.  C 26164/26165's two `unsigned int` arguments are
+/// `c_int` constants in the port, so they carry C's implicit conversions as `as c_uint`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_bitmap_icon (f: *mut frame, file: Lisp_Object) -> bool
+{
+  /* C: dispextern.h 3728-3743 (`#ifdef HAVE_WINDOW_SYSTEM`): the `image.c` prototypes C's body
+     calls.  No mirror of this unit's graph carries a row for them and the definitions are another
+     unit's (`src/image.rs`), so they are declared here at this use site (the
+     `draw_phys_cursor_glyph` block's reading, slice 103); `image_bitmap_pixmap` and
+     `x_bitmap_mask` at C 30373/30375 keep slice 93's bare treatment.  */
+  unsafe extern "C" {
+    pub fn image_destroy_bitmap (f: *mut frame, id: ptrdiff_t);
+    pub fn image_create_bitmap_from_file (f: *mut frame, file: Lisp_Object) -> ptrdiff_t;
+    pub fn image_create_bitmap_from_data (f: *mut frame, data: *mut c_char,
+					 width: c_uint, height: c_uint) -> ptrdiff_t;
+    pub fn image_reference_bitmap (f: *mut frame, id: ptrdiff_t);
+    pub fn x_create_bitmap_mask (f: *mut frame, id: ptrdiff_t);
+    pub fn x_create_bitmap_from_xpm_data (f: *mut frame, bits: *const *const c_char) -> ptrdiff_t;
+  }
+  /* C: gtkutil.h 143-144: `extern bool xg_set_icon (struct frame *f, Lisp_Object file);` and
+     `xg_set_icon_from_xpm_data (struct frame *, const char **)` - the `src/xfns.rs` 1662-1700
+     use-site pair (the definitions are `src/gtkutil.rs`'s and no mirror of this unit's graph
+     carries either).  Gated as C's `#ifdef USE_GTK` blocks are.  */
+  #[cfg (feature = "use_gtk")]
+  unsafe extern "C" {
+    pub fn xg_set_icon (f: *mut frame, file: Lisp_Object) -> bool;
+    pub fn xg_set_icon_from_xpm_data (f: *mut frame, data: *const *const c_char) -> bool;
+  }
+
+  let bitmap_id: ptrdiff_t;                                             // C 26106
+
+  if FRAME_X_WINDOW! (f) == 0                                           // C 26108
+    { return true; }                                                    // C 26109
+
+  /* Free up our existing icon bitmap and mask if any.  */
+  if (*( (*f).output_data.x as *mut x_output )).icon_bitmap > 0          // C 26112
+    {
+      image_destroy_bitmap (f, (*( (*f).output_data.x as *mut x_output )).icon_bitmap);  // C 26113
+    }
+  (*( (*f).output_data.x as *mut x_output )).icon_bitmap = 0;            // C 26114
+
+  if STRINGP (file)                                                     // C 26116
+    {
+#[cfg (feature = "use_gtk")]
+      {
+	/* Use gtk_window_set_icon_from_file () if available,
+	   It's not restricted to bitmaps */
+	if xg_set_icon (f, file)                                        // C 26121
+	  { return false; }                                             // C 26122
+      }
+      bitmap_id = image_create_bitmap_from_file (f, file);              // C 26124
+      x_create_bitmap_mask (f, bitmap_id);                              // C 26125
+    }
+  else
+    {
+      /* Create the GNU bitmap and mask if necessary.  */
+      if (*FRAME_DISPLAY_INFO! (f)).icon_bitmap_id < 0                  // C 26130
+	{
+	  let mut rc: ptrdiff_t = -1;                                   // C 26132
+
+#[cfg (feature = "use_gtk")]
+	  {
+	    if xg_set_icon (f, xg_default_icon_file)                    // C 26136
+		|| xg_set_icon_from_xpm_data (f, gnu_xpm_bits)          // C 26137
+	      {
+		(*FRAME_DISPLAY_INFO! (f)).icon_bitmap_id = -2;         // C 26139
+		return false;                                           // C 26140
+	      }
+	  }
+
+#[cfg (all (not (feature = "use_gtk"), feature = "have_xpm", feature = "have_x_windows"))]
+	  {
+	    /* This allocates too many colors.  */
+	    if (*FRAME_X_VISUAL_INFO! (f)).r#class == TrueColor           // C 26145
+		|| (*FRAME_X_VISUAL_INFO! (f)).r#class == StaticColor     // C 26146
+		|| (*FRAME_X_VISUAL_INFO! (f)).r#class == StaticGray      // C 26147
+		/* That pixmap needs about 240 colors, and we should
+		   also leave some more space for other colors as
+		   well.  */
+		|| (*FRAME_X_VISUAL_INFO! (f)).colormap_size >= (240 * 4)  // C 26151
+	      {
+		rc = x_create_bitmap_from_xpm_data (f, gnu_xpm_bits);   // C 26153
+		if rc != -1                                             // C 26154
+		  { (*FRAME_DISPLAY_INFO! (f)).icon_bitmap_id = rc; }   // C 26155
+	      }
+	  }
+
+	  /* If all else fails, use the (black and white) xbm image. */
+	  if rc == -1                                                   // C 26160
+	    {
+	      rc = image_create_bitmap_from_data (f,                   // C 26162
+						  gnu_xbm_bits.as_mut_ptr () as *mut c_char,  // C 26163
+						  gnu_xbm_width as c_uint,      // C 26164
+						  gnu_xbm_height as c_uint);    // C 26165
+	      if rc == -1
+		{ return true; }                                        // C 26167
+
+	      (*FRAME_DISPLAY_INFO! (f)).icon_bitmap_id = rc;           // C 26169
+	      x_create_bitmap_mask (f, (*FRAME_DISPLAY_INFO! (f)).icon_bitmap_id);  // C 26170
+	    }
+	}
+
+      /* The first time we create the GNU bitmap and mask,
+	 this increments the ref-count one extra time.
+	 As a result, the GNU bitmap and mask are never freed.
+	 That way, we don't have to worry about allocating it again.  */
+      image_reference_bitmap (f, (*FRAME_DISPLAY_INFO! (f)).icon_bitmap_id);  // C 26178
+
+      bitmap_id = (*FRAME_DISPLAY_INFO! (f)).icon_bitmap_id;             // C 26180
+    }
+
+  x_wm_set_icon_pixmap (f, bitmap_id);                                  // C 26183
+  (*( (*f).output_data.x as *mut x_output )).icon_bitmap = bitmap_id;    // C 26184
+
+  return false;                                                         // C 26186
+}
+
+/* Make the x-window of frame F use a rectangle with text.
+   Use ICON_NAME as the text.  */
+
+/* C: Xutil.h 163-168: `typedef struct { unsigned char *value; Atom encoding; int format;
+   unsigned long nitems; } XTextProperty;` - measured against this machine's header
+   (`sizeof=32 align=8`, offsets `value 0 encoding 8 format 16 nitems 24`), the same record
+   `src/xfns.rs` 1255-1272 declares for its own use.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XTextProperty
+{
+  pub value: *mut c_uchar,   // C: unsigned char *value;
+  pub encoding: Atom,        // C: Atom encoding;
+  pub format: c_int,         // C: int format;
+  pub nitems: c_ulong,       // C: unsigned long nitems;
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::size_of::<XTextProperty> () == 32);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XTextProperty, nitems) == 24);
+/* C: Xutil.h 647: `extern void XSetWMIconName (Display *, Window, XTextProperty *);` and
+   dispextern.h 3739's `extern void image_destroy_bitmap (struct frame *, ptrdiff_t);` - the two
+   names C 26205/26209 call.  No mirror of this unit's graph carries either (`src/image.rs`
+   defines the second; `src/xfns.rs` 1169-1170 is the same declaration for the same header), so
+   they are declared at this use site; `image_destroy_bitmap` is not shared with
+   `x_bitmap_icon`'s block because a use-site declaration is per unit *and* per function
+   scope.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XSetWMIconName (display: *mut Display, w: Window, text_prop: *mut XTextProperty);
+  pub fn image_destroy_bitmap (f: *mut frame, id: ptrdiff_t);
+}
+
+/// C 26193-26214: `bool x_text_icon (struct frame *f, const char *icon_name)` - a **non-`static`**
+/// C definition, so the port carries `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md 0.2), and
+/// this slice's second `--check` item.  C's local `XTextProperty text` is `Xutil.h` 163-168's
+/// record (declared above), and `XA_STRING` is `<X11/Xatom.h>` 39's atom - the unit's own constant
+/// at 18924 (`XA_INTEGER`'s neighbour), so C 26202 needs no second copy of the name.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_text_icon (f: *mut frame, icon_name: *const c_char) -> bool
+{
+  if FRAME_X_WINDOW! (f) == 0                                           // C 26196
+    { return true; }                                                    // C 26197
+
+  {
+    let mut text: XTextProperty = std::mem::zeroed ();                  // C 26200
+    text.value = icon_name as *mut c_uchar;                             // C 26201
+    text.encoding = XA_STRING;                                          // C 26202
+    text.format = 8;                                                    // C 26203
+    text.nitems = strlen (icon_name) as c_ulong;                        // C 26204
+    XSetWMIconName (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),      // C 26205
+		    &raw mut text);
+  }
+
+  if (*( (*f).output_data.x as *mut x_output )).icon_bitmap > 0          // C 26208
+    {
+      image_destroy_bitmap (f, (*( (*f).output_data.x as *mut x_output )).icon_bitmap);  // C 26209
+    }
+  (*( (*f).output_data.x as *mut x_output )).icon_bitmap = 0;            // C 26210
+  x_wm_set_icon_pixmap (f, 0);                                          // C 26211
+
+  return false;                                                         // C 26213
+}
