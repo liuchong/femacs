@@ -208,7 +208,7 @@
 - [x] ns_default_font_parameter  (line 5770, static) — C 5769-5773, landed as `fileprivate func ns_default_font_parameter (_:_:)`: C's body is empty and the comment above the definition (C 5766-5768) says why, so both parameters stay unread (the `applicationWillBecomeActive` reading)
 - [x] ns_update_window_end  (line 5776, static) — **dead in this build**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 5774 and closes it at C 5783, so the whole definition is the arm this target does not take.  Recorded, not transcribed (the `-updateMonitors:` reading); its two statements, named in the round's note, are `NSTRACE` (empty) and `ns_redraw_scroll_bars (WINDOW_XFRAME (w))`
 - [x] ns_flush_display  (line 5786, static) — C 5785-5792, landed as `fileprivate func ns_flush_display (_:)`: C's body is `EVENT_INIT` plus one `ns_read_socket_1` call whose value C discards; it waited on `FRAME_TERMINAL (f)`, which this round declares as a macro entry under the construct's own name (the `FRAME_DISPLAY_INFO` shape, and the other direction of `nsfns.swift` 639's `frame_set_terminal`)
-- [ ] ns_displays_reconfigured  (line 5839, static)
+- [x] ns_displays_reconfigured  (line 5839, static) — C 5837-5868 (the `NS_IMPL_COCOA` arm), landed as `fileprivate func ns_displays_reconfigured (_:_:_:)`: it needed this unit's view of `union buffered_input_event` (src/keyboard.h 228-235), the kbd buffer's three data entries (`kbd_buffer`/`kbd_fetch_ptr`/`kbd_store_ptr`, the core's `#[unsafe(no_mangle)]` statics), `Fequal`, the nsfns lane's `Fns_display_monitor_attributes_list`, `XSETTERMINAL` (a macro entry) and the member reader `ns_display_info_terminal` this round adds; the two enumerators it reads are mirror-valued constants (`KBD_BUFFER_SIZE` 4096, `MONITORS_CHANGED_EVENT` 35 - the values `femacs/src/include/keyboard.rs` 43 and `termhooks.rs` 62 fix)
 - [x] ns_delete_display  (line 5872, static) — C 5871-5875, landed as `fileprivate func ns_delete_display (_:)`: C's whole body is the comment `/* TODO...  */`, so the body is empty here too and the parameter unread (the `ns_default_font_parameter`/`applicationWillBecomeActive` reading: a body C leaves empty is transcribed empty rather than stubbed)
 - [ ] ns_delete_terminal  (line 5880, static)
 - [ ] ns_create_terminal  (line 5908, static)
@@ -2170,6 +2170,17 @@ call site takes an entry and the definition lands at its own C line - and **both
   `src/xdisp.c`'s (the xdisp lane's), imported by name with C's own signatures.  And the table's own
   C symbol, `ns_redisplay_interface`, needs a port-side definition for the same reason the handlers
   array does: Swift cannot emit a C-named data symbol, so the port carries it as a file-scope value.
+* **the core, round 40's names**: the kbd buffer's three data symbols are already the core's
+  (`femacs/src/keyboard.rs` 178-186: `kbd_buffer`, `kbd_fetch_ptr`, `kbd_store_ptr`, all
+  `#[unsafe(no_mangle)] static mut`), as are `kbd_buffer_store_event` (keyboard.rs 4118) and
+  `Fequal` (the globals mirror, `femacs/src/include/globals.rs` 7577); the nsfns lane already
+  exports `Fns_display_monitor_attributes_list` (`nsfns.swift` 3669).  What is *not* supplied
+  anywhere and is therefore this round's own addition: the member reader
+  `ns_display_info_terminal`, the macro entry `XSETTERMINAL` (src/lisp.h 1384 - the core owes the
+  C-ABI entry the way it owes `XSETFRAME`), and the two enumerator values, which this unit takes
+  from its own mirror instead (`KBD_BUFFER_SIZE` 4096 at `femacs/src/include/keyboard.rs` 43,
+  `MONITORS_CHANGED_EVENT` 35 at `femacs/src/include/termhooks.rs` 62) because neither the frozen
+  macro table nor the core's exports carry them.
 
 ## Evidence
 
@@ -3377,3 +3388,48 @@ call site takes an entry and the definition lands at its own C line - and **both
   record's layout is *documented* from the probe's `ns_cocoa` rows, not asserted at run time, and
   the seven `gui_*` entries plus `ns_frame_parm_handlers` are declarations whose definitions live in
   the xdisp and nsfns lanes.
+
+### Round 40: `ns_displays_reconfigured` (C 5837-5868)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-39 carry, so **no new warning**.  Object
+  `/tmp/nsterm40.o`, **760,632 bytes**, md5 `2267c28a739f4b03af29f98a05638e0a` (**taken after the
+  citation fix below**).  The unit is **8,780 lines**.
+* **What the definition needed** (C 5837-5868, live: C 5837 opens the `NS_IMPL_COCOA` guard and
+  C 5869 closes it): ⑴ this unit's own view of `union buffered_input_event` (src/keyboard.h
+  228-235) - the union's members all start at offset 0 and this arm has only the `kind` bitfield and
+  `struct input_event ie` (`sie` is X11/PGTK's), so the view carries `ie` and C's `ev->ie.kind` is
+  read as `input_event_kind (&ev!.pointee.ie)`, i.e. the same low 16 bits the record's own view
+  documents; ⑵ the kbd buffer's three data entries - `kbd_buffer` (declared with the element type,
+  because C's use here is the array's address), `kbd_fetch_ptr`, `kbd_store_ptr`, all
+  `#[unsafe(no_mangle)] static mut` in the core (`femacs/src/keyboard.rs` 178-186); ⑶ `Fequal`
+  (the core's globals mirror, `femacs/src/include/globals.rs` 7577); ⑷ the nsfns lane's
+  `Fns_display_monitor_attributes_list` (`nsfns.swift` 3669); ⑸ `XSETTERMINAL` as a macro entry
+  (src/lisp.h 1384, the `XSETFRAME` shape); ⑹ a new member reader `ns_display_info_terminal` for
+  C 5865's `x_display_list->terminal` (the `ns_display_info_next` family, which the mouse-move
+  block at C 6389 already walks).
+* **The two enumerators, and why they are mirror-valued constants.**  `KBD_BUFFER_SIZE` (4096) and
+  `MONITORS_CHANGED_EVENT` (35) are *not* in `docs/baseline/config/*.tsv` nor exported by the core,
+  and C's `enum event_kind` has guarded members before `MONITORS_CHANGED_EVENT` (`HAVE_DBUS`,
+  `THREADS_ENABLED`, …), so neither the frozen macro table nor counting alone decides them.  Both
+  values are taken from this tree's own mirror (`femacs/src/include/keyboard.rs` 43,
+  `femacs/src/include/termhooks.rs` 62) - the reading round 33's
+  `MULTIBYTE_CHAR_KEYSTROKE_EVENT` established for exactly this class.
+* **One compile failure and its fix**: `kbd_buffer_store_event` was already this unit's entry (the
+  C 1373 block's declaration), so C 5867's call reuses it rather than redeclaring it - the fix
+  removed the duplicate declaration and left a note where it stood.
+* **A citation drift, and its fix** (the round 24 lesson): the first version of the
+  `MONITORS_CHANGED_EVENT` note named `enum event_kind` on the line that cites `src/termhooks.h
+  342`, and `tools/check-citations.py` read it as a claim that the *enum* is declared at 342
+  (`drift ... enum event_kind is at termhooks.h:72`, exit 1; the second attempt hit the same rule
+  with `NO_EVENT`, which is at termhooks.h:74).  The note now names only the enumerator the citing
+  line is about, and the same command reads **0 drift** - the object digest above is the one taken
+  after that fix.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **22** unported,
+  22 row(s); **466** C symbol import(s)` - one fewer unported than round 39's 23 (the definition
+  above), **one stale row cleared** by name, and the round's imports are 462 -> 466.  Final:
+  `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no monitor change has fired the callback, no
+  event stored in the buffer, no terminal set); the compile gate reaches parsing and type checking
+  only; the two enumerator values are mirror-derived rather than measured on this machine, and
+  `kbd_buffer`'s address is taken the way round 39 takes the handlers array's.

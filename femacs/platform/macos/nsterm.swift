@@ -8671,3 +8671,110 @@ fileprivate var ns_redisplay_interface = redisplay_interface(
   hide_hourglass: { f in ns_hide_hourglass(f) },                            // C 5833
   default_font_parameter: { f, parms in                                     // C 5834
     ns_default_font_parameter(f, parms) })
+
+// ==========================================================================
+// Round 40: `ns_displays_reconfigured` (C 5837-5868)
+// ==========================================================================
+
+/// C: `union buffered_input_event` (src/keyboard.h 228-235) - the kbd buffer's element.  Its
+/// members all begin at offset 0, and this target's arm has only two of them: the `kind` bitfield
+/// and `struct input_event ie` (the third, `sie`, is `HAVE_X11`/`HAVE_PGTK`'s).  C's
+/// `ev->ie.kind` therefore reads the same low 16 bits the record above already reads, so this
+/// unit's view carries `ie` and reads the field through `input_event_kind` - the reader the
+/// record's own view documents (`input_event`'s note says the two bitfields share one `UInt32`).
+struct buffered_input_event {
+  /// C: `struct input_event ie;` (src/keyboard.h 231)
+  var ie: input_event
+}
+
+/// C: `enum { … KBD_BUFFER_SIZE = 4096 };` (src/keyboard.h 380-383).  An enumerator the frozen
+/// macro table cannot decide, so the value is this tree's own mirror's
+/// (`femacs/src/include/keyboard.rs` 43, `pub const KBD_BUFFER_SIZE: c_int = 4096`) - the reading
+/// round 33 used for `MULTIBYTE_CHAR_KEYSTROKE_EVENT`.
+fileprivate let KBD_BUFFER_SIZE: Int32 = 4096
+
+/// C: `MONITORS_CHANGED_EVENT` (src/termhooks.h 342) - the same reading as the constant above,
+/// and for the same reason: the value comes from the mirror
+/// (`femacs/src/include/termhooks.rs` 62,
+/// `pub const MONITORS_CHANGED_EVENT: event_kind = 35`), because C's enum has guarded members
+/// before it (`HAVE_DBUS`, `THREADS_ENABLED`, …), which is why the frozen macro table cannot
+/// decide it either.
+fileprivate let MONITORS_CHANGED_EVENT: UInt32 = 35
+
+/// C: the kbd buffer and its two pointers - `extern union buffered_input_event
+/// kbd_buffer[KBD_BUFFER_SIZE];`, `*kbd_fetch_ptr`, `*kbd_store_ptr` (src/keyboard.h 455-457).
+/// The core owns all three as `#[unsafe(no_mangle)] static mut` (`femacs/src/keyboard.rs`
+/// 178-186), so they are data entries; `kbd_buffer` is declared with the *element* type, because
+/// C's own use of the array name here is its address (`kbd_buffer + KBD_BUFFER_SIZE - 1`), and
+/// the address is taken the way round 39 takes the handlers array's (`withUnsafeMutablePointer
+/// (to:)`; Swift cannot emit or address another unit's Swift array).
+@_silgen_name("kbd_buffer") var kbd_buffer_entry: buffered_input_event
+@_silgen_name("kbd_fetch_ptr")
+var kbd_fetch_ptr_entry: UnsafeMutablePointer<buffered_input_event>?
+@_silgen_name("kbd_store_ptr")
+var kbd_store_ptr_entry: UnsafeMutablePointer<buffered_input_event>?
+
+/// C: `void kbd_buffer_store_event (struct input_event *)` - already this unit's own entry (the
+/// block at C 1373's line, declared for that round's `ns_send_appdefined` path); C 5867's call
+/// reuses it rather than redeclaring it.
+
+/// C: `Lisp_Object Fequal (Lisp_Object, Lisp_Object)` (src/fns.c) - declared by the core's globals
+/// mirror (`femacs/src/include/globals.rs` 7577); the `Fns_get_resource` import shape.
+@_silgen_name("Fequal") func Fequal(_ o1: Lisp_Object, _ o2: Lisp_Object) -> Lisp_Object
+
+/// C: `Lisp_Object Fns_display_monitor_attributes_list (Lisp_Object)` (a `DEFUN` of src/nsfns.m,
+/// C 3135) - the `nsfns` lane's export (`nsfns.swift` 3669), reached the `Fns_get_resource` way.
+@_silgen_name("Fns_display_monitor_attributes_list")
+func Fns_display_monitor_attributes_list(_ terminal: Lisp_Object) -> Lisp_Object
+
+/// C: `XSETTERMINAL (a, b)` = `XSETPSEUDOVECTOR (a, b, PVEC_TERMINAL)` (src/lisp.h 1384) - a macro
+/// entry under the construct's own name, the `XSETFRAME` shape above.
+@_silgen_name("XSETTERMINAL")
+func XSETTERMINAL(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
+
+/// C: the `struct ns_display_info` member `x_display_list->terminal` (this file's static at
+/// C 305 is the record's head) - a reader entry of the `ns_display_info_<member>` family round 7
+/// settled and round 37 added setters to.
+@_silgen_name("ns_display_info_terminal")
+func ns_display_info_terminal(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C 5837-5868: `static void ns_displays_reconfigured (CGDirectDisplayID display,
+/// CGDisplayChangeSummaryFlags flags, void *user_info)` - the `NS_IMPL_COCOA` arm (C 5837 opens
+/// the guard, C 5869 closes it).  C's three parameters are unread in its body, as are the two
+/// `CGDirectDisplayID`/flags types' uses elsewhere; the buffer walk keeps C's own arithmetic and
+/// its two early returns.
+fileprivate func ns_displays_reconfigured(_ display: CGDirectDisplayID,
+                                          _ flags: CGDisplayChangeSummaryFlags,
+                                          _ user_info: UnsafeMutableRawPointer?) {
+  var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                       frame_or_window: nil, arg: nil, device: nil)   // C 5843
+  var ev: UnsafeMutablePointer<buffered_input_event>? = nil           // C 5844
+  var new_monitors: Lisp_Object = nil                                 // C 5845
+
+  EVENT_INIT(&ie)                                                     // C 5847
+
+  new_monitors = Fns_display_monitor_attributes_list(Qnil())          // C 5849
+
+  if !NILP(Fequal(new_monitors, last_known_monitors)) {               // C 5851
+    return
+  }
+
+  last_known_monitors = new_monitors                                  // C 5854
+
+  // C 5856-5858: the buffer's address is C's array decay, and the two branches are C's own
+  // (a wrap to the last slot when the store pointer is at the array's start).
+  let kbd_buffer_ptr = withUnsafeMutablePointer(to: &kbd_buffer_entry) { $0 }
+  ev = (kbd_store_ptr_entry == kbd_buffer_ptr
+        ? kbd_buffer_ptr + Int(KBD_BUFFER_SIZE) - 1
+        : kbd_store_ptr_entry! - 1)
+
+  if kbd_store_ptr_entry != kbd_fetch_ptr_entry                      // C 5860
+       && input_event_kind(&ev!.pointee.ie) == MONITORS_CHANGED_EVENT {  // C 5860-5861
+    return
+  }
+
+  input_event_set_kind(&ie, MONITORS_CHANGED_EVENT)                  // C 5864
+  XSETTERMINAL(&ie.arg, ns_display_info_terminal(x_display_list))    // C 5865
+
+  kbd_buffer_store_event(&ie)                                        // C 5867
+}
