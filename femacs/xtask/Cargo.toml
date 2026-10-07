@@ -803,6 +803,8 @@ use_gtk                                    = []  # USE_GTK
 use_motif                                  = []  # USE_MOTIF (xfns.c 84/102-107, the six <Xm/…> headers and the Motif branch of the toolkit block)
 have_xaw3d                                 = []  # HAVE_XAW3D (xfns.c 78-83, the <X11/Xaw3d/…> pair)
 have_xrandr                                = []  # HAVE_XRANDR (xfns.c 54-57, <X11/extensions/Xrandr.h> and the Ninerama arm)
+have_xrandr_1_3                            = []  # the derived condition `RANDR_MAJOR > 1 || (RANDR_MAJOR == 1 && RANDR_MINOR >= 3)` (xfns.c 6413-6414's RANDR13_LIBRARY; registered by the integrator in 3.920)
+have_xrandr_1_5                            = []  # the derived condition `RANDR_MAJOR > 1 || (RANDR_MAJOR == 1 && RANDR_MINOR >= 5)` (xfns.c 6312; registered by the integrator in 3.920)
 have_xinerama                              = []  # HAVE_XINERAMA (xfns.c 54-60, <X11/extensions/Xinerama.h>)
 internal_terminal                          = []  # INTERNAL_TERMINAL (src/termcap.c 359)
 is_ebcdic_host                             = []  # IS_EBCDIC_HOST (src/termcap.c 111/193)

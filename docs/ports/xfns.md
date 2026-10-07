@@ -1,6 +1,6 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
-C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215 and C 6217-6297
+C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297 and C 6300-6513
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -14,11 +14,12 @@ C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215 and C 6217-6297
 > **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
 > eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
 > the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth,
-> **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth and **8,768 lines**
-> after the sixteenth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428,
-> C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991,
-> C 5993-6123, C 6125-6215 and C 6217-6297, whose own ledger sections are at the end of this
-> file - measured with `grep -c ''`), both arms of every `#if` carried.
+> **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth, **8,768 lines** after
+> the sixteenth and **9,167 lines** after the seventeenth - C 803-2149, C 2150-3811, C 3812-3956,
+> C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
+> C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297 and C 6300-6513, whose own
+> ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
+> `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -182,7 +183,8 @@ defines both features.
 | 5993-6123 | C 5993's `#if !(defined USE_GTK && defined HAVE_GTK3)`, `x_get_net_workarea` (C 5995-5997 its comment, C 5999-6000 the `static bool`, C 6002-6055 the `#ifndef USE_XCB` arm, C 6056-6120 the `#else` arm) and C 6123's `#endif` | `all (have_x_windows, not (all (use_gtk, have_gtk3)))`, with `not (use_xcb)` / `use_xcb` for the two arms (slice 14) |
 | 6125-6215 | C 6125's `#ifndef USE_GTK`, `x_get_monitor_for_frame` (C 6127 its comment, C 6128-6131 the `static int`) and `x_make_monitor_attribute_list` (C 6190-6195 the `static Lisp_Object`) | `all (have_x_windows, not (use_gtk), have_window_system)` - C's own `#ifndef USE_GTK` narrowed by frame.h 1926's `#ifdef HAVE_WINDOW_SYSTEM`, which is where `struct MonitorInfo` lives (slice 15) |
 | 6217-6297 | `x_get_monitor_attributes_fallback` (C 6217-6238) and C 6241's `#ifdef HAVE_XINERAMA`, `x_get_monitor_attributes_xinerama` (C 6242-6296) and C 6297's `#endif` | the slice 15 pair, with `have_xinerama` for the second (the record and entry point stand at the use site; slice 16) |
-| 6299-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,363 lines, whose first live definition is `x_get_monitor_attributes_xrandr` (C 6301-6302, a `static Lisp_Object` under C 6300's `#ifdef HAVE_XRANDR`) - the next slice's first item | not ported in this slice |
+| 6300-6513 | C 6300's `#ifdef HAVE_XRANDR`, `x_get_monitor_attributes_xrandr` (C 6301-6302 the `static Lisp_Object`, C 6312's `#if RANDR_MAJOR … >= 5` with C 6314's `#ifdef USE_XCB` inside it, C 6413-6414's `RANDR13_LIBRARY`, C 6438-6440's own 1.3 arm) and C 6513's `#endif` | `all (have_x_windows, not (use_gtk), have_window_system, have_xrandr)`, with the derived `have_xrandr_1_5` / `have_xrandr_1_3` and `use_xcb` inside (slice 17) |
+| 6515-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,148 lines, whose first live definition is `x_get_monitor_attributes` (C 6515-6516, a `static Lisp_Object` called by both C 6529 and the Lucid code below) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1951,8 +1953,9 @@ slice is **118 Rust lines** (8,768 - 8,650, `grep -c ''`) against C's 81; md5
 `bc5b60c371ecdb5ad0c46b241ccb3d95` (the slice 15 tree) -> `862bdbed15cf2467a644f212b5183005`.
 
 **What it reads.**  One new group: `X11/extensions/Xinerama.h`'s record and entry point
-(`XineramaScreenInfo` - `int` + `short` + `short` + `unsigned short` + `unsigned short`, 12 bytes
-with align 4 - and `XineramaQueryScreens`), declared at the use site under the same guard as the
+(`XineramaScreenInfo` - the members the C reads, in the header's own order, with its size and
+align pair left **UNVERIFIED**: this machine has no `<X11/extensions/Xinerama.h>` - and
+`XineramaQueryScreens`), declared at the use site under the same guard as the
 function that calls them; every other name is already there (`xstrdup` at `include/lisp.rs` 4220,
 `xcalloc` at 4042, `free_monitors` at `include/frame.rs` 1956, the two `MMOfScreen` macros from
 slice 12 and `x_make_monitor_attribute_list` from slice 15).  `x_get_monitor_attributes_xinerama`
@@ -1997,3 +2000,82 @@ failures**.
 
 The frozen configuration compiles none of this file: no monitor was queried, no rectangle was
 intersected and no attribute list was built; the six arms' counts are text compile readings.
+
+
+## Slice 17 (2026-10-08, status 3.920 - the integrator sets the round number): C 6300-6513
+
+**The slice is C 6300-6513**, the file's largest function so far: `x_get_monitor_attributes_xrandr`
+- C 6304-6310's locals, C 6312-6410's `have_xrandr_1_5` block (the `XRRGetMonitors` walk with its
+own `USE_XCB` arm for the atom names, the `goto fallback` at C 6335 and the `goto out` at C 6407),
+C 6413-6428's `RANDR13_LIBRARY` pair (`XRRGetScreenResourcesCurrent` or `XRRGetScreenResources`),
+C 6429-6499's output/crtc walk (the `default`/`LVDS` checks, the primary pick and the workarea
+intersection) and C 6503-6511's attribute list.  The port's slice is **399 Rust lines**
+(9,167 - 8,768, `grep -c ''`) against C's 214; md5 `862bdbed15cf2467a644f212b5183005` (the slice 16
+tree) -> `db6a1d16b2b3caf94d91fce55360d615`.
+
+**Three new arms.**  The function only compiles with `have_xrandr`, and its two version conditions
+decide which halves of it exist, so the table gains **WSR** = the slice 15 pair + `have_xrandr` +
+both version features, **WSRX** = WSR + `use_xcb` (the inner atom-name arm) and **WSR12** = the
+pair + `have_xrandr` + `have_xrandr_1_3` only (the `resources` path without the 1.5 block).  All
+three read **14 / 9** on both sides of the change.
+
+**The RandR surface is UNVERIFIED.**  This machine has no `<X11/extensions/Xrandr.h>`
+(`/opt/homebrew/include/X11/extensions/` carries XKB/XI/XRes/Xdbe/… and no Xrandr), so the four
+records (`XRRScreenResources`, `XRRMonitorInfo`, `XRROutputInfo`, `XRRCrtcInfo`) carry only the
+members the C reads, in the header's own order, with their layouts left to the integrator - and the
+eleven entry points plus `XGetAtomName` and the four `xcb_get_atom_name_*` names stand beside them.
+The two version conditions are the **derived features** `have_xrandr_1_3`/`have_xrandr_1_5`
+(registered in `femacs/xtask/Cargo.toml`, the `have_xrender_0_2` shape).
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0), both sides.
+
+**② The nine arms.**  The three arms this slice adds read **14 / 9** on both sides - WSR (the
+slice 15 pair plus `have_xrandr`, `have_xrandr_1_3` and `have_xrandr_1_5`), WSRX (WSR plus
+`use_xcb`) and WSR12 (the pair plus `have_xrandr` and `have_xrandr_1_3` only): the baseline is the
+slice 16 tree (`base_WSR`/`base_WSRX`/`base_WSR12`) and the second readings (`i_WSR`/`i_WSX`)
+follow the last comment edit, so they are taken at the hash below.  The other six are re-read at
+the final hash and stand where the slice 16 ledger left them: plain-X **14 / 9**, WS **14 / 9**,
+WSX **14 / 9**, XCB **14 / 9**, GTK **34 / 20** and Xt **15 / 12** - the slice adds no diagnostic
+and no warning in any of the nine, and the GTK arm still excludes the whole monitor block by
+C's own `#ifndef USE_GTK`.  The first
+measurement's own rows were the ordinary ones: a `return Qnil;` that needed its call, three
+`XRectangle`/`int` casts, one function-scoped C local (`randr13_avail`) that Rust scopes to its
+block, one `XRRMonitorInfo`-typed declaration pair that had to move under the record's own guard,
+and one doc comment on an `extern` block.
+
+**③ `extract-abi.py --check`**: **130 rows -> 129** - the `missing function
+x_get_monitor_attributes_xrandr` row retiring - with the one new token row
+(`alloca, goto, randr_major, randr_minor`) answered by a row in
+`docs/ports/macro-body-notes.tsv`, and the drift reads `C 10662 vs Rust 9167` (**14.0%**, was
+17.8%).  `check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0
+failure(s)** and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed
+literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **C's two `goto`s are Rust labelled blocks**: `goto fallback` is `break 'fallback` (the 1.5
+   block's own label, so the 1.3 path still runs) and `goto out` is `break 'out` (the label around
+   the whole 1.3 path, so the tail still runs) - the file's 4714 shape.
+2. **C's bare `alloca` at C 6339** is the port's stack pool (`sa_stack_alloc`, PORTING.md P-05).
+3. **`randr13_avail` moves to the locals** (C declares it at C 6418 inside its RANDR13 section, but
+   C's scope is the function and Rust's is the block).
+4. **C's mixed widths** (`XRectangle`'s `short`/`unsigned short` against the RandR records' `int`s)
+   are written out with `as c_short` / `as c_ushort`, and `XRRMonitorInfo.primary`'s `Bool` is
+   compared with `!= 0`.
+
+### Owed (this slice)
+
+- The four RandR records' layouts, the eleven RandR entry points, `XGetAtomName` and the four
+  `xcb_get_atom_name_*` names (rows owed to `include/xlib.rs` or a future RandR mirror); the
+  `have_xrandr_1_3`/`have_xrandr_1_5` features are registered but their *arms* are unmeasured
+  against a real Xrandr build.
+- `syms_of_xfns` (unchanged: no subr lands here), and the rest of the remainder: the 23 missing
+  functions, 1 macro, 4 objects, 33 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no RandR query was made, no monitor was
+enumerated and no output/crtc was read; the nine arms' counts are text compile readings.

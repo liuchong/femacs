@@ -8654,10 +8654,12 @@ unsafe fn x_make_monitor_attribute_list (monitors: *mut MonitorInfo, n_monitors:
    C 6125's `#ifndef USE_GTK` and name `struct MonitorInfo` (frame.h 1926's
    `HAVE_WINDOW_SYSTEM`), so their guard is the slice 15 pair; the Xinerama one adds C 6241's own
    gate.  */
-/* X11/extensions/Xinerama.h's record and entry point - the header is the toolchain's, so no
-   mirror carries them and the rows are owed (`docs/ports/xfns.md`).  Layout measured from the
-   header's own text: `int screen_number; short x_org, y_org; unsigned short width, height;` =
-   12 bytes with align 4.  */
+/* X11/extensions/Xinerama.h's record and entry point - the header is the toolchain's and this
+   machine has no `<X11/extensions/Xinerama.h>` (`/opt/homebrew/include/X11/extensions/` carries
+   XKB/XI/XRes/… and no Xinerama), so no mirror carries them, the rows are owed
+   (`docs/ports/xfns.md`) and the record's layout is **UNVERIFIED**: it carries the members the
+   C reads (`int screen_number; short x_org, y_org; unsigned short width, height;`) in the
+   header's own order, and the size/align pair is the integrator's to measure.  */
 #[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
 	    feature = "have_xinerama"))]
 #[repr (C)]
@@ -8765,4 +8767,401 @@ unsafe fn x_get_monitor_attributes_xinerama (dpyinfo: *mut x_display_info) -> Li
 						   c"Xinerama".as_ptr ());
   free_monitors (monitors, n_monitors);                                    // C 6294
   return attributes_list;                                                  // C 6295
+}
+
+/* C 6300-6513: `#ifdef HAVE_XRANDR` and `static Lisp_Object x_get_monitor_attributes_xrandr
+   (struct x_display_info *dpyinfo)`.  Its condition has three layers: the outer `HAVE_XRANDR`,
+   C 6312's `#if RANDR_MAJOR > 1 || (RANDR_MAJOR == 1 && RANDR_MINOR >= 5)` (the derived
+   `have_xrandr_1_5`), C 6314's `#ifdef USE_XCB` inside that, and C 6413-6414's `RANDR13_LIBRARY`
+   (the derived `have_xrandr_1_3`).  **Every RandR record and entry point below is UNVERIFIED**:
+   this machine has no `<X11/extensions/Xrandr.h>` (`/opt/homebrew/include/X11/extensions/` carries
+   XKB/XI/XRes/Xdbe/… and no Xrandr), so each record carries only the members C reads, in the
+   header's own order, and the layouts are the integrator's to measure.  C's two `goto`s are Rust
+   labelled blocks (the file's 4714 shape): `goto fallback` is `break 'fallback`, `goto out` is
+   `break 'out`; C's bare `alloca` at C 6339 is the port's stack pool (PORTING.md P-05, the
+   `src/eval.rs` 1579 shape).  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr"))]
+pub type RROutput = XID;                    /* C: Xrandr.h: `typedef XID RROutput;`  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr"))]
+pub type RRCrtc = XID;                      /* C: Xrandr.h: `typedef XID RRCrtc;`  */
+/// C: Xrandr.h's `Connection`: `typedef enum { RR_Connected, RR_Disconnected,
+/// RR_UnknownConnection } Connection;` - the value C 6461 compares against.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr"))]
+pub const RR_Disconnected: c_int = 1;
+/// C: Xrandr.h's `XRRScreenResources` - only the two members C 6429/6435/6448/6481 read, in the
+/// header's own order; the layout is **UNVERIFIED** (no Xrandr.h on this machine).
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr"))]
+#[repr (C)]
+pub struct XRRScreenResources
+{
+  pub noutput: c_int,                       /* C: `int noutput;`  */
+  pub outputs: *mut RROutput,               /* C: `RROutput *outputs;`  */
+}
+/// C: Xrandr.h's `XRRMonitorInfo` - the eight members C 6344-6369 read, in the header's own
+/// order; the layout is **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr", feature = "have_xrandr_1_5"))]
+#[repr (C)]
+pub struct XRRMonitorInfo
+{
+  pub name: Atom,                           /* C: `Atom name;`  */
+  pub primary: Bool,                        /* C: `Bool primary, automatic;`  */
+  pub x: c_int,                             /* C: `int x, y, width, height;`  */
+  pub y: c_int,
+  pub width: c_int,
+  pub height: c_int,
+  pub mwidth: c_int,                        /* C: `int mwidth, mheight;`  */
+  pub mheight: c_int,
+}
+/* C: Xrandr.h: `extern XRRMonitorInfo *XRRGetMonitors (Display *, Window, Bool, int *);` and
+   `extern void XRRFreeMonitors (XRRMonitorInfo *);` - C 6331 and C 6405's calls, which only
+   the `have_xrandr_1_5` arm makes (so they stand under the record's own guard).  Block
+   comment, because a doc comment on an `extern` block is the `unused doc comment` warning
+   this file's baseline counts.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr", feature = "have_xrandr_1_5"))]
+unsafe extern "C" {
+  pub fn XRRGetMonitors (dpy: *mut Display, window: Window, get_active: Bool,
+			 nmonitors: *mut c_int) -> *mut XRRMonitorInfo;
+  pub fn XRRFreeMonitors (monitors: *mut XRRMonitorInfo);
+}
+/// C: Xrandr.h's `XRROutputInfo` - the five members C 6452-6479 read, in the header's own order;
+/// the layout is **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr"))]
+#[repr (C)]
+pub struct XRROutputInfo
+{
+  pub crtc: RRCrtc,                         /* C: `RRCrtc crtc;` (C 6461/6463 read it)  */
+  pub mm_width: c_int,                      /* C: `int mm_width, mm_height;`  */
+  pub mm_height: c_int,
+  pub connection: c_int,                    /* C: `Connection connection;` (an enum: `int`)  */
+  pub name: *mut c_char,                    /* C: `char *name;`  */
+}
+/// C: Xrandr.h's `XRRCrtcInfo` - the four members C 6473-6476 read, in the header's own order;
+/// the layout is **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr"))]
+#[repr (C)]
+pub struct XRRCrtcInfo
+{
+  pub x: c_int,                             /* C: `int x, y;`  */
+  pub y: c_int,
+  pub width: c_uint,                        /* C: `unsigned int width, height;`  */
+  pub height: c_uint,
+}
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr"))]
+unsafe extern "C" {
+  /// C: Xrandr.h: `extern XRRScreenResources *XRRGetScreenResourcesCurrent (Display *, Window);`
+  /// - C 6423's call.
+  pub fn XRRGetScreenResourcesCurrent (dpy: *mut Display, window: Window)
+				       -> *mut XRRScreenResources;
+  /// C: Xrandr.h: `extern XRRScreenResources *XRRGetScreenResources (Display *, Window);` - C
+  /// 6425/6427's call.
+  pub fn XRRGetScreenResources (dpy: *mut Display, window: Window) -> *mut XRRScreenResources;
+  /// C: Xrandr.h: `extern void XRRFreeScreenResources (XRRScreenResources *);` - C 6432/6456/6499.
+  pub fn XRRFreeScreenResources (resources: *mut XRRScreenResources);
+  /// C: Xrandr.h: `extern RROutput XRRGetOutputPrimary (Display *, Window);` - C 6440's call.
+  pub fn XRRGetOutputPrimary (dpy: *mut Display, window: Window) -> RROutput;
+  /// C: Xrandr.h: `extern XRROutputInfo *XRRGetOutputInfo (Display *, XRRScreenResources *,
+  /// RROutput);` - C 6447's call.
+  pub fn XRRGetOutputInfo (dpy: *mut Display, resources: *mut XRRScreenResources,
+			   output: RROutput) -> *mut XRROutputInfo;
+  /// C: Xrandr.h: `extern void XRRFreeOutputInfo (XRROutputInfo *);` - C 6455/6469/6497's calls.
+  pub fn XRRFreeOutputInfo (output_info: *mut XRROutputInfo);
+  /// C: Xrandr.h: `extern XRRCrtcInfo *XRRGetCrtcInfo (Display *, XRRScreenResources *, RRCrtc);`
+  /// - C 6463's call.
+  pub fn XRRGetCrtcInfo (dpy: *mut Display, resources: *mut XRRScreenResources,
+			 crtc: RRCrtc) -> *mut XRRCrtcInfo;
+  /// C: Xrandr.h: `extern void XRRFreeCrtcInfo (XRRCrtcInfo *);` - C 6495's call.
+  pub fn XRRFreeCrtcInfo (crtc_info: *mut XRRCrtcInfo);
+  /// C: Xlib.h 2319: `extern char *XGetAtomName (Display *, Atom);` - C 6352's call (the non-XCB
+  /// side of the 1.5 arm); its row is owed to `include/xlib.rs`.
+  pub fn XGetAtomName (dpy: *mut Display, atom: Atom) -> *mut c_char;
+}
+/// C: xproto.h 10593/10596: `xcb_get_atom_name_cookie_t xcb_get_atom_name (xcb_connection_t *,
+/// xcb_atom_t);` and `xcb_get_atom_name_reply_t *xcb_get_atom_name_reply (xcb_connection_t *,
+/// xcb_get_atom_name_cookie_t, xcb_generic_error_t **);` plus the two accessors C 6395/6397 name -
+/// the four rows are owed to `include/xlib.rs` (it carries the property/geometry families).
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr", feature = "have_xrandr_1_5", feature = "use_xcb"))]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct xcb_get_atom_name_cookie_t
+{
+  pub sequence: c_uint,
+}
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr", feature = "have_xrandr_1_5", feature = "use_xcb"))]
+#[repr (C)]
+pub struct xcb_get_atom_name_reply_t
+{
+  pub response_type: u8,
+  pub pad0: u8,
+  pub sequence: u16,
+  pub length: u32,
+  pub name_len: u16,
+  pub pad1: [u8; 22],
+}
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr", feature = "have_xrandr_1_5", feature = "use_xcb"))]
+unsafe extern "C" {
+  pub fn xcb_get_atom_name (c: *mut xcb_connection_t, name: xcb_atom_t)
+			    -> xcb_get_atom_name_cookie_t;
+  pub fn xcb_get_atom_name_reply (c: *mut xcb_connection_t, cookie: xcb_get_atom_name_cookie_t,
+				  e: *mut *mut xcb_generic_error_t)
+				  -> *mut xcb_get_atom_name_reply_t;
+  pub fn xcb_get_atom_name_name_length (r: *const xcb_get_atom_name_reply_t) -> c_int;
+  pub fn xcb_get_atom_name_name (r: *const xcb_get_atom_name_reply_t) -> *mut c_char;
+}
+
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system",
+	    feature = "have_xrandr"))]
+unsafe fn x_get_monitor_attributes_xrandr (dpyinfo: *mut x_display_info) -> Lisp_Object
+{
+  let mut attributes_list: Lisp_Object = Qnil ();                          // C 6304
+  let mut resources: *mut XRRScreenResources;                              // C 6305
+  let dpy: *mut Display = (*dpyinfo).display;                              // C 6306
+  let mut i: c_int;                                                        // C 6307
+  let mut n_monitors: c_int = 0;
+  let mut primary: c_int = -1;
+  let mut pxid: RROutput = 0;                                              // C 6308 (C: `None`)
+  let mut monitors: *mut MonitorInfo = std::ptr::null_mut ();              // C 6309
+  let mut randr15_p: bool = false;                                         // C 6310
+#[cfg (feature = "have_xrandr_1_3")]
+  /* Check if the display supports 1.3 too.  (C declares this at C 6418-6420, inside its
+     RANDR13 section; C's scope is the whole function, so the port's declaration stands with
+     the other locals.)  */
+  let randr13_avail: bool = (*dpyinfo).xrandr_major_version > 1
+    || ((*dpyinfo).xrandr_major_version == 1 && (*dpyinfo).xrandr_minor_version >= 3);
+
+  'out: {
+#[cfg (feature = "have_xrandr_1_5")]
+    {
+      let mut rr_monitors: *mut XRRMonitorInfo;                            // C 6313
+#[cfg (feature = "use_xcb")]
+      let mut atom_name_cookies: *mut xcb_get_atom_name_cookie_t;          // C 6315
+#[cfg (feature = "use_xcb")]
+      let mut reply: *mut xcb_get_atom_name_reply_t;                       // C 6316
+#[cfg (feature = "use_xcb")]
+      let mut error: *mut xcb_generic_error_t = std::ptr::null_mut ();     // C 6317
+#[cfg (feature = "use_xcb")]
+      let mut length: c_int;                                               // C 6318
+
+      'fallback: {
+	/* If RandR 1.5 or later is available, use that instead, as some
+	   video drivers don't report correct dimensions via other versions
+	   of RandR.  */
+	if (*dpyinfo).xrandr_major_version > 1                                  // C 6324
+	    || ((*dpyinfo).xrandr_major_version == 1
+		&& (*dpyinfo).xrandr_minor_version >= 5)                        // C 6326
+	  {
+	    let mut workarea: XRectangle = std::mem::zeroed ();                 // C 6328
+	    let mut name: *mut c_char;                                          // C 6329
+
+	    rr_monitors = XRRGetMonitors ((*dpyinfo).display,                   // C 6331-6333
+					  (*dpyinfo).root_window,
+					  True, &raw mut n_monitors);
+	    if rr_monitors.is_null () { break 'fallback; }                      // C 6334-6335
+
+	    monitors = xcalloc (n_monitors as usize,                            // C 6337
+				std::mem::size_of::<MonitorInfo> ()) as *mut MonitorInfo;
+#[cfg (feature = "use_xcb")]
+	    /* C's bare `alloca` is the port's stack pool (PORTING.md P-05's decision).  */
+	    { atom_name_cookies = sa_stack_alloc (n_monitors as usize
+						  * std::mem::size_of::<xcb_get_atom_name_cookie_t> ())
+		as *mut xcb_get_atom_name_cookie_t; }                           // C 6339
+
+	    i = 0;
+	    while i < n_monitors                                               // C 6342
+	      {
+		(*monitors.offset (i as isize)).geom.x
+		  = (*rr_monitors.offset (i as isize)).x as c_short;                  // C 6344
+		(*monitors.offset (i as isize)).geom.y
+		  = (*rr_monitors.offset (i as isize)).y as c_short;                  // C 6345
+		(*monitors.offset (i as isize)).geom.width
+		  = (*rr_monitors.offset (i as isize)).width as c_ushort;       // C 6346
+		(*monitors.offset (i as isize)).geom.height
+		  = (*rr_monitors.offset (i as isize)).height as c_ushort;      // C 6347
+		(*monitors.offset (i as isize)).mm_width
+		  = (*rr_monitors.offset (i as isize)).mwidth;                  // C 6348
+		(*monitors.offset (i as isize)).mm_height
+		  = (*rr_monitors.offset (i as isize)).mheight;                 // C 6349
+
+#[cfg (not (feature = "use_xcb"))]
+		{
+		  name = XGetAtomName ((*dpyinfo).display,                     // C 6352
+				       (*rr_monitors.offset (i as isize)).name);
+		  if !name.is_null ()                                          // C 6353
+		    {
+		      (*monitors.offset (i as isize)).name = xstrdup (name);    // C 6355
+		      XFree (name as *mut c_void);                              // C 6356
+		    }
+		  else
+		    { (*monitors.offset (i as isize)).name
+			= xstrdup (c"Unknown Monitor".as_ptr ()); }             // C 6359
+		}
+#[cfg (feature = "use_xcb")]
+		{
+		  *atom_name_cookies.offset (i as isize)
+		    = xcb_get_atom_name ((*dpyinfo).xcb_connection,             // C 6361-6363
+					 (*rr_monitors.offset (i as isize)).name as xcb_atom_t);
+		}
+
+		if (*rr_monitors.offset (i as isize)).primary != 0              // C 6366
+		  { primary = i; }                                             // C 6367
+
+		if (*rr_monitors.offset (i as isize)).primary != 0              // C 6369
+		    && x_get_net_workarea (dpyinfo, &raw mut workarea)          // C 6370
+		  {
+		    (*monitors.offset (i as isize)).work = workarea;             // C 6372
+		    if !gui_intersect_rectangles (&raw const (*monitors.offset (i as isize)).geom,   // C 6373
+						  &raw const (*monitors.offset (i as isize)).work,
+						  &raw mut (*monitors.offset (i as isize)).work)  // C 6375
+		      { (*monitors.offset (i as isize)).work
+			  = (*monitors.offset (i as isize)).geom; }             // C 6376
+		  }
+		else
+		  { (*monitors.offset (i as isize)).work
+		      = (*monitors.offset (i as isize)).geom; }                 // C 6379
+		i += 1;                                                         // C 6342's `++i`
+	      }
+
+#[cfg (feature = "use_xcb")]
+	    {
+	      i = 0;
+	      while i < n_monitors                                             // C 6383
+		{
+		  reply = xcb_get_atom_name_reply ((*dpyinfo).xcb_connection,   // C 6385-6386
+						   *atom_name_cookies.offset (i as isize),
+						   &raw mut error);
+
+		  if reply.is_null ()                                           // C 6388
+		    {
+		      (*monitors.offset (i as isize)).name
+			= xstrdup (c"Unknown monitor".as_ptr ());               // C 6390
+		      free (error as *mut c_void);                              // C 6391
+		    }
+		  else
+		    {
+		      length = xcb_get_atom_name_name_length (reply);           // C 6395
+		      name = xmalloc (length as usize + 1) as *mut c_char;      // C 6396
+		      memcpy (name as *mut c_void,                              // C 6397
+			      xcb_get_atom_name_name (reply) as *const c_void,
+			      length as usize);
+		      *name.offset (length as isize) = 0;                       // C 6398
+		      (*monitors.offset (i as isize)).name = name;              // C 6399
+		      free (reply as *mut c_void);                              // C 6400
+		    }
+		  i += 1;                                                       // C 6383's `++i`
+		}
+	    }
+
+	    XRRFreeMonitors (rr_monitors);                                      // C 6405
+	    randr15_p = true;                                                   // C 6406
+	    break 'out;                                                         // C 6407's `goto out`
+	  }
+      }
+    }
+
+    /* C 6413-6414's `RANDR13_LIBRARY`: the library is at least 1.3 (the derived feature).  */
+#[cfg (feature = "have_xrandr_1_3")]
+    {
+      if randr13_avail
+	{ resources = XRRGetScreenResourcesCurrent (dpy, (*dpyinfo).root_window); }   // C 6422-6423
+      else
+	{ resources = XRRGetScreenResources (dpy, (*dpyinfo).root_window); }          // C 6425
+    }
+#[cfg (not (feature = "have_xrandr_1_3"))]
+    { resources = XRRGetScreenResources (dpy, (*dpyinfo).root_window); }       // C 6427
+
+    if resources.is_null () || (*resources).noutput == 0                        // C 6429
+      {
+	if !resources.is_null () { XRRFreeScreenResources (resources); }         // C 6431-6432
+	return Qnil ();                                                         // C 6433
+      }
+    n_monitors = (*resources).noutput;                                          // C 6435
+    monitors = xcalloc (n_monitors as usize,                                    // C 6436
+			std::mem::size_of::<MonitorInfo> ()) as *mut MonitorInfo;
+
+#[cfg (feature = "have_xrandr_1_3")]
+    {
+      if randr13_avail
+	{ pxid = XRRGetOutputPrimary (dpy, (*dpyinfo).root_window); }           // C 6439-6440
+    }
+
+    i = 0;
+    while i < n_monitors                                                        // C 6445
+      {
+	let info: *mut XRROutputInfo = XRRGetOutputInfo (dpy, resources,         // C 6447-6448
+							 *(*resources).outputs.offset (i as isize));
+	if info.is_null () { i += 1; continue; }                                // C 6449-6450
+
+	if strcmp ((*info).name, c"default".as_ptr ()) == 0                     // C 6452
+	  {
+	    /* Non XRandr 1.2 driver, does not give useful data.  */
+	    XRRFreeOutputInfo (info);                                           // C 6455
+	    XRRFreeScreenResources (resources);                                 // C 6456
+	    free_monitors (monitors, n_monitors);                               // C 6457
+	    return Qnil ();                                                     // C 6458
+	  }
+
+	if (*info).connection != RR_Disconnected                            // C 6461
+	    && (*info).crtc != 0                                            // C 6461 (C: `None`)
+	  {
+	    let crtc: *mut XRRCrtcInfo = XRRGetCrtcInfo (dpy, resources, (*info).crtc);  // C 6463
+	    let mi: *mut MonitorInfo = monitors.offset (i as isize);        // C 6464
+	    let mut workarea_r: XRectangle = std::mem::zeroed ();           // C 6465
+
+	    if crtc.is_null ()                                              // C 6467
+	      {
+		XRRFreeOutputInfo (info);                                   // C 6469
+		i += 1; continue;                                           // C 6470
+	      }
+
+	    (*mi).geom.x = (*crtc).x as c_short;                            // C 6473
+	    (*mi).geom.y = (*crtc).y as c_short;                            // C 6474
+	    (*mi).geom.width = (*crtc).width as c_ushort;                   // C 6475
+	    (*mi).geom.height = (*crtc).height as c_ushort;                 // C 6476
+	    (*mi).mm_width = (*info).mm_width;                              // C 6477
+	    (*mi).mm_height = (*info).mm_height;                            // C 6478
+	    (*mi).name = xstrdup ((*info).name);                            // C 6479
+
+	    if pxid != 0 && pxid == *(*resources).outputs.offset (i as isize)   // C 6481
+	      { primary = i; }
+	    else if primary == -1 && strcmp ((*info).name, c"LVDS".as_ptr ()) == 0   // C 6483
+	      { primary = i; }                                              // C 6484
+
+	    if i == primary && x_get_net_workarea (dpyinfo, &raw mut workarea_r)   // C 6486
+	      {
+		(*mi).work = workarea_r;                                    // C 6488
+		if ! gui_intersect_rectangles (&raw const (*mi).geom,        // C 6489
+					       &raw const (*mi).work,
+					       &raw mut (*mi).work)
+		  { (*mi).work = (*mi).geom; }                              // C 6490
+	      }
+	    else
+	      { (*mi).work = (*mi).geom; }                                  // C 6493
+
+	    XRRFreeCrtcInfo (crtc);                                         // C 6495
+	  }
+	XRRFreeOutputInfo (info);                                           // C 6497
+	i += 1;                                                             // C 6445's `++i`
+      }
+    XRRFreeScreenResources (resources);                                     // C 6499
+  }
+
+  attributes_list = x_make_monitor_attribute_list (monitors,                // C 6503-6506
+						   n_monitors,
+						   primary,
+						   dpyinfo,
+						   if randr15_p { c"XRandR 1.5".as_ptr () }  // C 6507-6509
+						   else { c"XRandr".as_ptr () });
+  free_monitors (monitors, n_monitors);                                     // C 6510
+  return attributes_list;                                                   // C 6511
 }
