@@ -1833,3 +1833,5 @@ x_draw_window_cursor	break,case,default,switch	C 26064-26088's `switch (cursor_t
 setup_xi_event_mask	alloca	C 4076's `alloca (l)` is the port's stack pool (PORTING.md P-05): `USE_SAFE_ALLOCA!` + `SAFE_ALLOCA!`, with `SAFE_FREE!` at C 4167's `unblock_input` - the token cannot reappear in the body (docs/ports/xfns.md, slice 5)
 Fxw_display_color_p	case,default,switch	PORTING.md 2.2/P-04: C's `switch` on `dpyinfo->visual_info.class` and its four `case` labels plus `default` become the port's `match` arms and `_` (the do_symval_forwarding precedent, line 117; src/xfns.c 5624-5634)
 Fx_display_grayscale_p	case,default,switch	same reading as Fxw_display_color_p - six `case` labels and one `default` (src/xfns.c 5651-5663)
+Fx_display_backing_store	break,case,default,switch	PORTING.md 2.2/P-04: C's `switch` on `DoesBackingStore (dpyinfo->screen)` and its three `case` labels plus `default` become the port's `match` arms and `_` (src/xfns.c 5909-5924)
+Fx_display_visual_class	break,case,default,switch	PORTING.md 2.2/P-04: C's `switch` on `dpyinfo->visual_info.class` and its six `case` labels plus `default` become the port's `match` arms and `_` (src/xfns.c 5948-5969)

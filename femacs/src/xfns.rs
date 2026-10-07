@@ -8294,3 +8294,96 @@ DEFUN! ("x-display-mm-width", Fx_display_mm_width, Sx_display_mm_width,
 
   return make_fixnum (WidthMMOfScreen! ((*dpyinfo).screen) as EMACS_INT);  // C 5888
 });
+
+/* C 5891-5991: the next three subrs of the remainder - `x-display-backing-store` (C 5891-5928),
+   `x-display-visual-class` (C 5930-5973) and `x-display-save-under` (C 5975-5991).  The two
+   `switch` bodies are the port's `match` arms plus `_` (PORTING.md 2.2), whose
+   `break`/`case`/`default`/`switch` tokens `docs/ports/macro-body-notes.tsv` answers.  */
+/* X11/X.h 440-441: `#define WhenMapped 1` / `#define Always 2` (measured on this machine's
+   header) - the two `BackingStore` values C 5909-5920 compares against; their partner
+   `NotUseful 0` already stands at 6077.  No mirror carries the three.  Xlib.h 269-270's two
+   `Screen` macros keep C's name and read the mirror's members (`include/xlib.rs` 1142-1143).  */
+#[cfg (feature = "have_x_windows")]
+pub const WhenMapped: c_int = 1;
+#[cfg (feature = "have_x_windows")]
+pub const Always: c_int = 2;
+#[cfg (feature = "have_x_windows")]
+macro_rules! DoesBackingStore { ($s:expr) => { (*$s).backing_store }; }   // Xlib.h 269
+#[cfg (feature = "have_x_windows")]
+macro_rules! DoesSaveUnders { ($s:expr) => { (*$s).save_unders }; }       // Xlib.h 270
+
+/* C 5891-5928: `DEFUN ("x-display-backing-store", Fx_display_backing_store, Sx_display_backing_store, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-backing-store", Fx_display_backing_store, Sx_display_backing_store,
+	0, 1, 0,
+	doc: "Return an indication of whether X display TERMINAL does backing store.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n\nThe value may be `always', `when-mapped', or `not-useful'.\n\nOn Nextstep and PGTK, the value may be `buffered', `retained', or\n`non-retained'.\n\nOn MS Windows, this returns nothing useful.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);    // C 5906
+  let result: Lisp_Object;                                               // C 5907
+
+  match DoesBackingStore! ((*dpyinfo).screen)                            // C 5909
+    {
+      Always                                                             // C 5911
+	=> { result = Qalways (); }                                          // C 5912
+      WhenMapped                                                         // C 5915
+	=> { result = Qwhen_mapped (); }                                     // C 5916
+      NotUseful                                                          // C 5919
+	=> { result = Qnot_useful (); }                                      // C 5920
+
+      _                                                                  // C 5923
+	=> { error (c"Strange value for BackingStore parameter of screen".as_ptr ()); }  // C 5924
+    }
+
+  return result;                                                         // C 5927
+});
+
+/* C 5930-5973: `DEFUN ("x-display-visual-class", Fx_display_visual_class, Sx_display_visual_class, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-visual-class", Fx_display_visual_class, Sx_display_visual_class,
+	0, 1, 0,
+	doc: "Return the visual class of the X display TERMINAL.\nThe value is one of the symbols `static-gray', `gray-scale',\n`static-color', `pseudo-color', `true-color', or `direct-color'.\n(On MS Windows, the second and last result above are not possible.)\n\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n(On MS Windows, this function does not accept terminal objects.)\n\nOn PGTK, always return `true-color'.  ",
+	(terminal: Lisp_Object),
+	{
+  use crate::x11_constants::{DirectColor, GrayScale, PseudoColor, StaticColor, StaticGray,
+				     TrueColor};
+
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);    // C 5945
+  let result: Lisp_Object;                                               // C 5946
+
+  match (*dpyinfo).visual_info.class                                     // C 5948
+    {
+      StaticGray                                                         // C 5950
+	=> { result = Qstatic_gray (); }                                     // C 5951
+      GrayScale                                                          // C 5953
+	=> { result = Qgray_scale (); }                                      // C 5954
+      StaticColor                                                        // C 5956
+	=> { result = Qstatic_color (); }                                    // C 5957
+      PseudoColor                                                        // C 5959
+	=> { result = Qpseudo_color (); }                                    // C 5960
+      TrueColor                                                          // C 5962
+	=> { result = Qtrue_color (); }                                      // C 5963
+      DirectColor                                                        // C 5965
+	=> { result = Qdirect_color (); }                                    // C 5966
+
+      _                                                                  // C 5968
+	=> { error (c"Display has an unknown visual class".as_ptr ()); }     // C 5969
+    }
+
+  return result;                                                         // C 5972
+});
+
+/* C 5975-5991: `DEFUN ("x-display-save-under", Fx_display_save_under, Sx_display_save_under, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-save-under", Fx_display_save_under, Sx_display_save_under,
+	0, 1, 0,
+	doc: "Return t if the X display TERMINAL supports the save-under feature.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n\nOn MS Windows, this just returns nil.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);    // C 5985
+
+  if DoesSaveUnders! ((*dpyinfo).screen) == True                         // C 5987
+    { return Qt (); }
+  else
+    { return Qnil (); }                                                   // C 5990
+});

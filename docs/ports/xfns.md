@@ -1,6 +1,6 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
-C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758 and
-C 5760-5889
+C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
+C 5760-5889 and C 5891-5991
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -13,10 +13,10 @@ C 5760-5889
 > **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
 > **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
 > eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
-> the eleventh and **8,296 lines** after the twelfth - C 803-2149, C 2150-3811, C 3812-3956,
-> C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758 and
-> C 5760-5889, whose own ledger sections are at the end of this file - measured with
-> `grep -c ''`), both arms of every `#if` carried.
+> the eleventh, **8,296 lines** after the twelfth and **8,389 lines** after the thirteenth - C
+> 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783,
+> C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889 and C 5891-5991, whose own ledger sections
+> are at the end of this file - measured with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -176,7 +176,8 @@ defines both features.
 | 4918-5582 | `Fx_create_frame` (C 4918-4927 the DEFUN and its doc string, C 4930-4943 the `USE_GTK` local, C 4945-5130 the display/name/parent/colour setup, C 5131-5146 the font drivers, C 5151-5393 the parameter block, the two `x_window` call arms (C 5316-5320) and the Xt/GTK-only blocks, C 5395-5579 the menu bar, the visibility block, the machine/pid properties and the XSync block) | `have_x_windows`, with C's own nested arms: `use_gtk` (C 5184-5188/5213-5217/5322-5326/5378-5386), `use_x_toolkit` (C 5316-5320), `all (use_x_toolkit, use_gtk)` (C 5395-5411), `use_cairo` (C 5131-5145/5432-5441), `have_gtk3` (C 4941-4943/5243-5248), `have_xsync` (C 5500-5546) - slice 10 |
 | 5583-5758 | the first nine subrs of the remainder: `xw-color-defined-p` (C 5583), `xw-color-values` (C 5599), `xw-display-color-p` (C 5615), `x-display-grayscale-p` (C 5637), `x-display-pixel-width` (C 5666), `x-display-pixel-height` (C 5684), `x-display-planes` (C 5702), `x-display-color-cells` (C 5716) and `x-server-max-request-size` (C 5743) | `have_x_windows` (slice 11; the two `switch` bodies' `case`/`default` tokens are answered in `docs/ports/macro-body-notes.tsv`) |
 | 5760-5889 | the next six subrs: `x-server-vendor` (C 5760), `x-server-version` (C 5783), `x-server-input-extension-version` (C 5810, the `HAVE_XINPUT2` pair), `x-display-screens` (C 5831), `x-display-mm-height` (C 5851) and `x-display-mm-width` (C 5871) | `have_x_windows`, with `have_xinput2` for C 5820-5828 (slice 12) |
-| 5891-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,772 lines, whose first live definition is `x-display-backing-store` (C 5891, a `DEFUN` whose body is a `switch`) - the next slice's first item | not ported in this slice |
+| 5891-5991 | the next three subrs: `x-display-backing-store` (C 5891), `x-display-visual-class` (C 5930) and `x-display-save-under` (C 5975) | `have_x_windows` (slice 13; the two `switch` bodies' `break`/`case`/`default`/`switch` tokens are answered in `docs/ports/macro-body-notes.tsv`) |
+| 5993-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,670 lines, whose first live definition is `x_get_net_workarea` (C 5999-6000, a `static bool` under C 5993's `#if !(defined USE_GTK && defined HAVE_GTK3)`, whose body is the `USE_XCB` pair) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1756,3 +1757,59 @@ failures**.
 
 The frozen configuration compiles none of this file: no display was consulted and no server
 attribute was read; the three arms' counts are text compile readings.
+
+
+## Slice 13 (2026-10-08, status 3.916 - the integrator sets the round number): C 5891-5991
+
+**The slice is C 5891-5991**, three more subrs of the remainder - `x-display-backing-store`
+(C 5891-5928, a `switch` over `DoesBackingStore (dpyinfo->screen)`),
+`x-display-visual-class` (C 5930-5973, a `switch` over `dpyinfo->visual_info.class`) and
+`x-display-save-under` (C 5975-5991).  The port's slice is **93 Rust lines** (8,389 - 8,296,
+`grep -c ''`) against C's 101; md5 `42ac276cc1678832e96889ff582a673d` (the slice 12 tree) ->
+`8f799d73d94af03837485e1a1a417f95`.
+
+**What it reads.**  The two `BackingStore` values `WhenMapped 1` and `Always 2` (X11/X.h 440-441,
+measured on this machine's header) with their partner `NotUseful 0` already at 6077, and Xlib.h
+269-270's two `Screen` macros (`DoesBackingStore`, `DoesSaveUnders`) as `macro_rules!`s over the
+mirror's `backing_store`/`save_unders` members (`include/xlib.rs` 1142-1143) - the slice 12 shape
+for an Xlib macro whose record members *are* mirrored.  Both `switch`es are the port's `match` arms
+plus `_` (PORTING.md 2.2) with C's `error` in the `default` arm, and the six `visual_info.class`
+constants come from `x11_constants` through a per-arm `use` - **the first measurement's five
+`unreachable pattern` warnings** were what an un-imported class name costs (an unresolved path in a
+pattern is a *binding*, so the first arm matched everything); the two `macro-body-notes.tsv` rows
+answer the `break`/`case`/`default`/`switch` tokens.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0), both sides.
+
+**② The three arms are byte-for-byte the baseline's readings**: plain-X **14 / 9**, GTK **34 / 20**
+and Xt **15 / 12**, before and after, with the five `unreachable pattern` warnings closed by the
+class import above.
+
+**③ `extract-abi.py --check`**: **138 rows -> 135** - exactly the three `missing subr` rows retiring,
+with the two token rows answered by the notes table - and the drift reads `C 10662 vs Rust 8389`
+(**21.3%**, was 22.2%).  `check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)** and `check-declarations.py` at **18 declaration sites (0 forbidden, 18
+allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **The two `switch`es** are `match` arms with C's case order, `_` for `default` and C's `error`
+   call in that arm (PORTING.md 2.2); the `break`s are the arm ends.
+2. **`WhenMapped`/`Always`** stand at this use site with the header's measured values (X11/X.h
+   440-441), and the two Xlib `Screen` macros keep C's name over the mirror's members.
+3. **`x-display-save-under`'s `== True`** keeps C's comparison, reading `include/xterm.rs` 76's
+   constant (the same file's `False` is at 79).
+
+### Owed (this slice)
+
+- `include/xlib.rs`'s rows for `DoesBackingStore`/`DoesSaveUnders` and the two X.h constants.
+- `syms_of_xfns` (the three registrations this slice's subrs are still owed), and the rest of the
+  remainder: the 29 missing functions, 1 macro, 4 objects, 33 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no display or screen was consulted and no
+backing-store attribute was read; the three arms' counts are text compile readings.
