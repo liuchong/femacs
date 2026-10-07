@@ -10187,3 +10187,63 @@ func mark_nsterm() {
     tail = XCDR(tail)
   }
 }
+
+// ==========================================================================
+// Round 54: the `ns_term_init` entry layer (C 5965-6194)
+// ==========================================================================
+
+/// C: the core names `ns_term_init`'s body needs, each with C's own prototype or type.  The body
+/// itself (the prologue's pipe/FD setup, the anti-alias defaults, the whole macOS menu block of
+/// C 6083-6141, the pasteboard types, `[NSApp run]` and the reconfiguration callback) is the
+/// remainder, cut the way `ns_create_terminal`'s was (the box's text records it), together with
+/// three names this round names rather than guesses: `EmacsMenu`'s `-initWithTitle:` (the class is
+/// `nsmenu.swift` 829 and that lane has no entry for it yet - the `EmacsWindow_initWithEmacsFrame`
+/// shape is what it needs), `CGDisplayRegisterReconfigurationCallback` (CoreGraphics, C 6184) and
+/// the `fd_set`/`FD_ZERO` spelling C 6002-6003 uses (this unit's `select_readfds`/`select_writefds`
+/// are `fd_set` values, and the operation's Swift form has not been settled yet).
+@_silgen_name("baud_rate") var baud_rate: Int32                          // C 5989
+@_silgen_name("Fset_input_interrupt_mode")
+func Fset_input_interrupt_mode(_ value: Lisp_Object) -> Lisp_Object      // C 5990
+@_silgen_name("emacs_pipe") func emacs_pipe(_ fds: UnsafeMutablePointer<Int32>?) -> Int32   // C 5994
+@_silgen_name("emacs_strerror")
+func emacs_strerror(_ errnum: Int32) -> UnsafeMutablePointer<CChar>?     // C 5997
+/// C: `int fcntl (int, int, ...)` (fcntl.h) - variadic, so it is reached the way this unit reaches
+/// `fprintf` (a `@_silgen_name` declaration with a Swift variadic list).
+@_silgen_name("fcntl") func fcntl(_ fd: Int32, _ cmd: Int32, _ args: CVarArg...) -> Int32   // C 6001
+@_silgen_name("xzalloc") func xzalloc(_ size: Int) -> UnsafeMutableRawPointer?   // C 6038
+@_silgen_name("allocate_kboard")
+func allocate_kboard(_ type: Lisp_Object) -> UnsafeMutableRawPointer?    // C 6043
+@_silgen_name("Qns") func Qns() -> Lisp_Object                           // C 6043
+@_silgen_name("current_kboard") var current_kboard: UnsafeMutableRawPointer?   // C 6047-6048
+@_silgen_name("initial_kboard") var initial_kboard: UnsafeMutableRawPointer?   // C 6047
+@_silgen_name("Fcons") func Fcons(_ car: Lisp_Object, _ cdr: Lisp_Object) -> Lisp_Object   // C 6054
+@_silgen_name("xlispstrdup")
+func xlispstrdup(_ string: Lisp_Object) -> UnsafeMutablePointer<CChar>?  // C 6056
+@_silgen_name("gui_init_fringe") func gui_init_fringe(_ rif: UnsafeMutableRawPointer?)   // C 6058
+@_silgen_name("inhibit_x_resources") var inhibit_x_resources: Bool       // C 6062
+@_silgen_name("extract_float") func extract_float(_ f: Lisp_Object) -> Double   // C 6070
+/// C: `ns_antialias_text` - the variable C 11685's `DEFVAR_LISP ("ns-antialias-text", …)` defines
+/// (it is not one of the objects `tools/extract-abi.py` lists for this file - a hand-added row of
+/// the `## File-scope objects` kind, named in the ledger by this round).
+@_silgen_name("ns_antialias_text") var ns_antialias_text: Lisp_Object     // C 6064
+@_silgen_name("delete_keyboard_wait_descriptor")
+func delete_keyboard_wait_descriptor(_ fd: Int32)                        // C 6075
+/// C: the `struct terminal` writes C 6043/6049/6056 makes (`kboard`, its `reference_count++` and
+/// `name`) and the `struct kboard` reader/writer pair they need, as `<record>_set_<member>` /
+/// `<record>_<member>` entries.
+@_silgen_name("terminal_set_kboard")
+func terminal_set_kboard(_ t: UnsafeMutableRawPointer?, _ k: UnsafeMutableRawPointer?)
+@_silgen_name("terminal_kboard")
+func terminal_kboard(_ t: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("kboard_reference_count")
+func kboard_reference_count(_ k: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("kboard_set_reference_count")
+func kboard_set_reference_count(_ k: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("terminal_set_name")
+func terminal_set_name(_ t: UnsafeMutableRawPointer?, _ v: UnsafeMutablePointer<CChar>?)
+/// C: the `struct ns_display_info` writes C 6051/6054 make (`next`, `name_list_element`) - the
+/// round-37 setter family.
+@_silgen_name("ns_display_info_set_next")
+func ns_display_info_set_next(_ f: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+@_silgen_name("ns_display_info_set_name_list_element")
+func ns_display_info_set_name_list_element(_ f: UnsafeMutableRawPointer?, _ v: Lisp_Object)
