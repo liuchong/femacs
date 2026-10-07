@@ -232,6 +232,17 @@ twice: A 803 -> **807**, U 832 -> **836**, UT 818 -> **822**, UM 819 -> **823**,
 arms**.  C 25656's `0` for `hold_quit` puts a `does not mention 0` row on `x_dispatch_event` (closed
 by a `docs/ports/macro-body-notes.tsv` row), and C 25640's `#ifdef USE_GTK` picking the *linkage* is
 the slice's one named deviation (Decision 114 1).
+  Slice 102 (C 25816-25902, Decision 115) goes **13 -> 11**: `x_clip_to_row` and
+`x_draw_hollow_cursor` both retire as missing functions, and the slice reads **+3** in the thirteen
+arms that do not turn `have_window_system` on (`GCLineWidth` x2 and `XChangeGC` x1 arrive, and
+`x_clip_to_row`'s own reference retires) and **+2** in the lane's `have_window_system` arm **AWS**,
+where C's `w->phys_cursor_width` resolves instead of reading one `E0609`: A 807 -> **810**, U 836 ->
+**839**, UT 822 -> **825**, UM 823 -> **826**, UG 819 -> **822**, UGX 921 -> **924**, AE 839 -> **842**,
+AI 815 -> **818**, AIU 854 -> **857**, AIUX 960 -> **963**, AX 821 -> **824**, AG3 857 -> **860**, AXF
+820 -> **823** and AWS 501/0 -> **503/0**, with **no warning moved in any of the fourteen arms**.  The
+first writing's five defects (an `x11_constants::GCLineWidth` import that does not exist, a
+`resolved_level!` call for the mirror's `glyph_bits!` member, two `pixel_width` reads missing C's
+`short` conversion, and a partially initialised `clip_rect`) are named in Decision 115 4.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -444,8 +455,8 @@ the slice's one named deviation (Decision 114 1).
 - [ ] handle_one_xevent  (line 18876, static)
 - [x] x_dispatch_event  (line 25645, static)
 - [x] XTread_socket  (line 25672, static)
-- [ ] x_clip_to_row  (line 25831, static)
-- [ ] x_draw_hollow_cursor  (line 25857, static)
+- [x] x_clip_to_row  (line 25831, static)
+- [x] x_draw_hollow_cursor  (line 25857, static)
 - [ ] x_draw_bar_cursor  (line 25913, static)
 - [ ] x_define_frame_cursor  (line 26020, static)
 - [ ] x_clear_frame_area  (line 26032, static)
@@ -4748,6 +4759,34 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   quit event's kind through `input_event_bits!`'s three-argument form.
 * **What `--check` reads.**  **15 -> 13** (11 missing + 1 `does not mention false` + the drift row),
   with the line-count row at **28,874** against C's 33,125 (12.8% drift, was 28,657 / 13.5%).
+
+### 115. Slice 102 (C 25816-25902): `x_clip_to_row` and `x_draw_hollow_cursor`, and the arm `have_window_system` splits
+
+* **Two `--check` items retired.**  `x_clip_to_row` (C 25830-25851) and `x_draw_hollow_cursor`
+  (C 25856-25902) are both C's `static`, so plain `unsafe fn`s, and **13 -> 11** with no token row
+  between them.
+* **The reading is the `have_window_system` split.**  The thirteen arms that leave the feature off read
+  **+3**: `GCLineWidth` x2 (C 25882/25885 - a name no mirror carries, the baseline's five rows), and
+  `XChangeGC` x1 (likewise, the baseline's nine) arrive, while `x_clip_to_row`'s own reference
+  retires; the lane's **AWS** arm (`A + have_window_system`, slice 90's) reads **+2**, because C's
+  `w->phys_cursor_width` is the mirror's `#[cfg (feature = "have_window_system")]` member
+  (`include/window.rs` 152-153) and resolves there instead of reading one `E0609`.  That is the first
+  slice whose reading differs by that gate rather than by `use_gtk`, and it is why the ledger's table
+  now carries AWS as a row of its own.
+* **`get_phys_cursor_glyph`/`get_phys_cursor_geometry` are use-site declarations, not rows.**  They
+  are other units' definitions (`src/window.rs` 8061, `src/abi_shim.rs` 2419) and no mirror in this
+  unit's graph carries them, so the port declares both in the function that reads them - P-72 rule 4,
+  the block `src/pgtkterm.rs` 4013-4025 wrote for the same pair.
+* **Five defects the first writing read, all in this slice's own text.**  (1) `GCLineWidth` is *not*
+  a member of `crate::x11_constants` (importing it is `E0432`), so it is written bare like the file's
+  five existing sites; (2) C 25891's `cursor_glyph->resolved_level` is the mirror's *bit-field
+  accessor* - `glyph_bits! (resolved_level, (*cursor_glyph))`, `include/dispextern.rs` 587, whose
+  first use this is; (3) and (4) C's two `short` reads of `pixel_width` state `as c_int`
+  (Deviation 22's class, `src/pgtkterm.rs` 4136's reading of the same two expressions); and (5)
+  `clip_rect` is C's uninitialised `XRectangle`, zeroed per Deviation 12 because C 25850 copies the
+  whole value back through `rect_return`.
+* **What `--check` reads.**  **13 -> 11** (9 missing + 1 `does not mention false` + the drift row),
+  with the line-count row at **29,000** against C's 33,125 (12.5% drift, was 28,874 / 12.8%).
 
 ## Evidence
 
@@ -9462,3 +9501,53 @@ against C's 33,125 (12.8% drift, was 28,657 / 13.5%).
 **Not claimed.**  The frozen configuration compiles none of this file: no X event was read, no no-op
 was requested and no frame was raised; the readings above are compile readings of text this machine
 cannot build.
+
+### Slice 102's readings (C 25816-25902), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s102/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`; A = `have_x_windows`, U = A +
+`use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI +
+`use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`,
+AXF = A + `have_xfixes` (slice 100's) and **AWS = A + `have_window_system`** (slice 90's, the arm
+this slice's reading splits on).  Both sides were measured on this revision (the baseline by
+restoring `src/xterm.rs` from HEAD, then putting the saved copy back - its md5 is the copy's).
+
+| arm | HEAD's unit (slice 101 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 807 / 74 | **810 / 74** | **+3 / 0** |
+| U `+use_toolkit_scroll_bars` | 836 / 74 | **839 / 74** | **+3 / 0** |
+| UT `U +use_x_toolkit` | 822 / 73 | **825 / 73** | **+3 / 0** |
+| UM `UT +use_motif` | 823 / 73 | **826 / 73** | **+3 / 0** |
+| UG `U +use_gtk` | 819 / 75 | **822 / 75** | **+3 / 0** |
+| UGX `UG +have_xinput2` | 921 / 77 | **924 / 77** | **+3 / 0** |
+| AE `A +enable_checking` | 839 / 73 | **842 / 73** | **+3 / 0** |
+| AI `A +have_x_i18n` | 815 / 75 | **818 / 75** | **+3 / 0** |
+| AIU `AI +use_gtk` | 854 / 75 | **857 / 75** | **+3 / 0** |
+| AIUX `AIU +have_xinput2` | 960 / 77 | **963 / 77** | **+3 / 0** |
+| AX `A +have_xdbe` | 821 / 74 | **824 / 74** | **+3 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 857 / 74 | **860 / 74** | **+3 / 0** |
+| AXF `A +have_xfixes` | 820 / 74 | **823 / 74** | **+3 / 0** |
+| **AWS** `A +have_window_system` | 501 / 0 | **503 / 0** | **+2 / 0** |
+
+**Additions and retirements, by name.**  The thirteen arms: `cannot find value GCLineWidth` x2 (C
+25882/25885), `cannot find function XChangeGC` x1 (C 25882) and the retirement of
+`cannot find function x_clip_to_row` x1 (its reference in the ported text).  AWS reads the same except
+that C 25875's `w->phys_cursor_width` resolves - the mirror carries it under
+`#[cfg (feature = "have_window_system")]` (`include/window.rs` 152-153), so one `E0609` row does not
+exist there.  **Warning sets are identical to the baselines' in all fourteen arms** (AWS carries none
+in either).
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has no window system, so neither function is compiled
+there).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 25835's `struct frame *f = ...` moves
+**A 810 -> 811** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:28903:18`; removing
+the line returns A to the table.
+
+**What `--check` reads.**  **13 -> 11** as Decision 115 5 says, with the line-count row at **29,000**
+against C's 33,125 (12.5% drift, was 28,874 / 12.8%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no clipping was set and no
+cursor was drawn; the readings above are compile readings of text this machine cannot build.

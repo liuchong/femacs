@@ -28868,7 +28868,133 @@ unsafe fn XTread_socket (terminal: *mut terminal,
   return count;                                                       // C 25810
 }
 
-/* C 25813-25829's comment and `x_clip_to_row` (C 25831-...), `x_draw_hollow_cursor` (C 25857-...),
-   `x_draw_bar_cursor` (C 25913-...), `x_define_frame_cursor` (C 26020-...), `x_clear_frame_area`
-   (C 26032-...), `x_draw_window_cursor` (C 26041-...) and `x_bitmap_icon` (C 26104-...) come next in
-   C's order; C 26194-26214 is `x_text_icon`.  */
+/***********************************************************************
+			     Text Cursor
+ ***********************************************************************/
+
+/// C 25830-25851: `static void x_clip_to_row (struct window *w, struct glyph_row *row, enum
+/// glyph_row_area area, GC gc, XRectangle *rect_return)` - C's `static`, so a plain `unsafe fn`,
+/// and this slice's first `--check` item.  Four shapes: C's four implicit conversions into
+/// `XRectangle`'s `short`/`unsigned short` members are stated (`as c_short`/`as c_ushort`; C 25843
+/// promotes `clip_rect.y` to `int` for `max` first), `window_box`'s sixth argument is C's `0` for an
+/// output parameter (`std::ptr::null_mut ()`, this file 13336's call), C's `if (rect_return)` is
+/// `!rect_return.is_null ()` (the file's pointer test), and `XFRAME (WINDOW_FRAME (w))` is the
+/// mirror's `WINDOW_FRAME!` (this file 8039's shape).  `clip_rect` is C's uninitialised `XRectangle`
+/// zeroed per Deviation 12 (C 25850 reads the whole value back through `rect_return`), and the three
+/// names the slice's arms read as rows are recorded classes: `GCLineWidth` (no mirror carries it -
+/// the baseline's five sites), `XChangeGC` (likewise - the baseline's nine) and, in the arms that
+/// leave `have_window_system` off, `phys_cursor_width` (the mirror's gated member, this file 1840's
+/// class) - the last of which the lane's AWS arm reads as a field, which is why this slice's reading
+/// is +3 there and +2 in the thirteen.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_clip_to_row (w: *mut window, row: *mut glyph_row,
+			 area: glyph_row_area, gc: GC,
+			 rect_return: *mut XRectangle)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                      // C 25835
+  let mut clip_rect: XRectangle = std::mem::zeroed ();                 // C 25836 (Deviation 12)
+  let mut window_x: c_int = 0;                                         // C 25837
+  let mut window_y: c_int = 0;
+  let mut window_width: c_int = 0;
+
+  window_box (w, area, &raw mut window_x, &raw mut window_y,           // C 25839
+	      &raw mut window_width, std::ptr::null_mut ());
+
+  clip_rect.x = window_x as c_short;                                   // C 25841
+  clip_rect.y                                                          // C 25842
+    = WINDOW_TO_FRAME_PIXEL_Y! (w, max (0, (*row).y)) as c_short;
+  clip_rect.y = max (clip_rect.y as c_int, window_y) as c_short;       // C 25843
+  clip_rect.width = window_width as c_ushort;                          // C 25844
+  clip_rect.height = (*row).visible_height as c_ushort;                // C 25845
+
+  x_set_clip_rectangles (f, gc, &raw mut clip_rect, 1);                // C 25847
+
+  if !rect_return.is_null ()                                           // C 25849
+    { *rect_return = clip_rect; }                                      // C 25850
+}
+
+/* Draw a hollow box cursor on window W in glyph row ROW.  */
+
+/// C 25856-25902: `static void x_draw_hollow_cursor (struct window *w, struct glyph_row *row)` -
+/// C's `static` and this slice's second `--check` item.  Shapes: `get_phys_cursor_glyph` and
+/// `get_phys_cursor_geometry` are other units' definitions (`src/window.rs` 8061 and
+/// `src/abi_shim.rs` 2419) with no mirror in this unit's graph, so both are declared at this use
+/// site (P-72 rule 4, `src/pgtkterm.rs` 4014-4025's block for the same pair); `xgcv` is C's
+/// uninitialised `XGCValues`, zeroed per Deviation 12; the scratch-GC block keeps C's `if`/`else`
+/// and the file's own casts (`&raw mut xgcv as *mut c_void`, this file 9275-9286's shape);
+/// `cursor_pixel` is the `x_output` pointer cast this file uses (9246); and C 25891's
+/// `cursor_glyph->resolved_level` is the mirror's bit-field accessor
+/// (`include/dispextern.rs` 587, whose first use this is).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_hollow_cursor (w: *mut window, row: *mut glyph_row)
+{
+  use crate::x11_constants::GCForeground;
+
+  /* C: dispextern.h 3652-3653: `extern void get_phys_cursor_geometry (struct window *, struct
+     glyph_row *, struct glyph *, int *, int *, int *);` and window.h 1186:
+     `struct glyph *get_phys_cursor_glyph (struct window *w);` - the definitions are
+     `src/abi_shim.rs` 2419's and `src/window.rs` 8061's, and no mirror carries either.  */
+  unsafe extern "C" {
+    pub fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph;
+    pub fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row, glyph: *mut glyph,
+				     xp: *mut c_int, yp: *mut c_int, heightp: *mut c_int);
+  }
+
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                      // C 25859
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);          // C 25860
+  let dpy: *mut Display = FRAME_X_DISPLAY! (f);                        // C 25861
+  let mut x: c_int = 0;                                                // C 25862
+  let mut y: c_int = 0;
+  let mut wd: c_int = 0;
+  let mut h: c_int = 0;
+  let mut xgcv: XGCValues = std::mem::zeroed ();                       // C 25863 (Deviation 12)
+  let cursor_glyph: *mut glyph;                                        // C 25864
+  let mut gc: GC;                                                      // C 25865
+
+  /* Get the glyph the cursor is on.  If we can't tell because
+     the current matrix is invalid or such, give up.  */
+  cursor_glyph = get_phys_cursor_glyph (w);                            // C 25869
+  if cursor_glyph.is_null ()                                           // C 25870
+    { return; }                                                        // C 25871
+
+  /* Compute frame-relative coordinates for phys cursor.  */
+  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut x,          // C 25874
+			    &raw mut y, &raw mut h);
+  wd = (*w).phys_cursor_width - 1;                                     // C 25875
+
+  /* The foreground of cursor_gc is typically the same as the normal
+     background color, which can cause the cursor box to be invisible.  */
+  xgcv.foreground = (*( (*f).output_data.x as *mut x_output )).cursor_pixel;  // C 25879
+  xgcv.line_width = 1;                                                 // C 25880
+  if !(*dpyinfo).scratch_cursor_gc.is_null ()                          // C 25881
+    {
+      XChangeGC (dpy, (*dpyinfo).scratch_cursor_gc,                    // C 25882
+		 (GCForeground | GCLineWidth) as c_ulong,
+		 &raw mut xgcv as *mut c_void);
+    }
+  else
+    {
+      (*dpyinfo).scratch_cursor_gc                                     // C 25884-25885
+	= XCreateGC (dpy, FRAME_X_DRAWABLE! (f),
+		     (GCForeground | GCLineWidth) as c_ulong,
+		     &raw mut xgcv as *mut c_void);
+    }
+  gc = (*dpyinfo).scratch_cursor_gc;                                   // C 25886
+
+  /* When on R2L character, show cursor at the right edge of the
+     glyph, unless the cursor box is as wide as the glyph or wider
+     (the latter happens when x-stretch-cursor is non-nil).  */
+  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0          // C 25891
+      && (*cursor_glyph).pixel_width as c_int > wd                     // C 25892
+    {
+      x += (*cursor_glyph).pixel_width as c_int - wd;                  // C 25894
+      if wd > 0                                                        // C 25895
+	{ wd -= 1; }                                                   // C 25896
+    }
+  /* Set clipping, draw the rectangle, and reset clipping again.  */
+  x_clip_to_row (w, row, TEXT_AREA, gc, std::ptr::null_mut ());        // C 25899
+  x_draw_rectangle (f, gc, x, y, wd, h - 1);                           // C 25900
+  x_reset_clip_rectangles (f, gc);                                     // C 25901
+}
+
+/* C 25905-25911's comment opens `x_draw_bar_cursor` (C 25913-...), the next definition.  */
