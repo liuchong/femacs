@@ -28997,4 +28997,185 @@ unsafe fn x_draw_hollow_cursor (w: *mut window, row: *mut glyph_row)
   x_reset_clip_rectangles (f, gc);                                     // C 25901
 }
 
-/* C 25905-25911's comment opens `x_draw_bar_cursor` (C 25913-...), the next definition.  */
+/* Draw a bar cursor on window W in glyph row ROW.
+
+   Implementation note: One would like to draw a bar cursor with an
+   angle equal to the one given by the font property XA_ITALIC_ANGLE.
+   Unfortunately, I didn't find a font yet that has this property set.
+   --gerd.  */
+
+/// C 25912-26014: `static void x_draw_bar_cursor (struct window *w, struct glyph_row *row, int
+/// width, enum text_cursor_kinds kind)` - C's `static`, so a plain `unsafe fn`, and this slice's
+/// `--check` item; `width` is reassigned in C's body, so the parameter is `mut` (the
+/// `src/pgtkterm.rs` 4196 shape, which is C 2923-3012's sibling of this function and the source of
+/// most spellings here).  Shapes: `cursor_glyph->type`/`resolved_level`/`face_id` are the mirror's
+/// bit-field members read through `glyph_bits!`, C's two `min` calls are the port's `isize` fold
+/// (`src/pgtkterm.rs` 2975/2996), `pixel_width` is C's `short` so its reads state `as c_int`
+/// (Deviation 22), `MATRIX_ROW!`/`WINDOW_TEXT_TO_FRAME_PIXEL_X!`/`WINDOW_TO_FRAME_PIXEL_Y!`/
+/// `FRAME_CURSOR_WIDTH` are the mirrors', `xgcv` is C's uninitialised `XGCValues` zeroed per
+/// Deviation 12, the three `dummy_*` locals are C's output arguments (zeroed the same way), and
+/// C 25953/25955's *chained* assignments (`xgcv.background = xgcv.foreground = ...`) are two Rust
+/// statements - assignment is not an expression in Rust (Decision 116 4).  `draw_phys_cursor_glyph`
+/// is another unit's definition (`src/abi_shim.rs` 2499) with no mirror here, so it is declared at
+/// this use site (P-72 rule 4, `src/pgtkterm.rs` 4180-4187's block); `XChangeGC` and `GCLineWidth`
+/// are the recorded unresolved classes (Decision 115 3), and `w->phys_cursor_width` is the mirror's
+/// `have_window_system` member, which the AWS arm resolves and the other thirteen read as a row.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_bar_cursor (w: *mut window, row: *mut glyph_row, mut width: c_int,
+			     kind: text_cursor_kinds)
+{
+  use crate::x11_constants::{GCBackground, GCForeground};
+
+  /* C: dispextern.h 3652-3653: `extern void get_phys_cursor_geometry (struct window *,
+     struct glyph_row *, struct glyph *, int *, int *, int *);`, window.h 1186:
+     `struct glyph *get_phys_cursor_glyph (struct window *w);` and dispextern.h 3649-3651:
+     `extern void draw_phys_cursor_glyph (struct window *, struct glyph_row *, enum
+     draw_glyphs_face);` - the definitions are `src/abi_shim.rs` 2419/2499's and
+     `src/window.rs` 8061's, and no mirror carries any of them.  */
+  unsafe extern "C" {
+    pub fn get_phys_cursor_glyph (w: *mut window) -> *mut glyph;
+    pub fn get_phys_cursor_geometry (w: *mut window, row: *mut glyph_row, glyph: *mut glyph,
+				     xp: *mut c_int, yp: *mut c_int, heightp: *mut c_int);
+    pub fn draw_phys_cursor_glyph (w: *mut window, row: *mut glyph_row, draw: draw_glyphs_face);
+  }
+
+  /* C: frame.h 1379 / 1646-1650: `#define FRAME_FACE_CACHE(f) ((struct frame *) (f))->face_cache`
+     and the two `INLINE` accessors.  C pastes these into every unit that includes the header, and
+     the port's live form is one copy per including unit (the `src/pgtkterm.rs` 4156-4170 block,
+     whose shape this is; `include/frame.rs` 1534-1552 records why that mirror's own copy is a
+     module instead).  */
+  #[inline(always)]
+  pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
+  { unsafe { (*f).face_cache as *mut face_cache } }
+  #[inline(always)]
+  pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
+  {
+    eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+    unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
+  }
+
+  let f: *mut frame = XFRAME ((*w).frame);                              // C 25915
+  let mut cursor_glyph: *mut glyph;                                     // C 25916
+
+  /* If cursor is out of bounds, don't draw garbage.  This can happen
+     in mini-buffer windows when switching between echo area glyphs
+     and mini-buffer.  */
+  cursor_glyph = get_phys_cursor_glyph (w);                             // C 25921
+  if cursor_glyph.is_null ()                                            // C 25922
+    { return; }                                                         // C 25923
+
+  /* Experimental avoidance of cursor on xwidget.  */
+  if glyph_bits! (type, (*cursor_glyph)) == XWIDGET_GLYPH                // C 25926
+    { return; }                                                         // C 25927
+
+  /* If on an image, draw like a normal cursor.  That's usually better
+     visible than drawing a bar, esp. if the image is large so that
+     the bar might not be in the window.  */
+  if glyph_bits! (type, (*cursor_glyph)) == IMAGE_GLYPH                 // C 25932
+    {
+      let mut r: *mut glyph_row;                                        // C 25934
+      r = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix,        // C 25935
+		       (*w).phys_cursor.vpos);
+      draw_phys_cursor_glyph (w, r, DRAW_CURSOR);                       // C 25936
+    }
+  else
+    {
+      let dpy: *mut Display = FRAME_X_DISPLAY! (f);                     // C 25940
+      let drawable: Drawable = FRAME_X_DRAWABLE! (f);                   // C 25941
+      let mut gc: GC = (*FRAME_DISPLAY_INFO! (f)).scratch_cursor_gc;    // C 25942
+      let mut mask: c_ulong                                             // C 25943
+	= (GCForeground | GCBackground | GCGraphicsExposures) as c_ulong;
+      let face: *mut face                                               // C 25944
+	= FACE_FROM_ID (f, glyph_bits! (face_id, (*cursor_glyph)));
+      let mut xgcv: XGCValues = std::mem::zeroed ();                    // C 25945 (Deviation 12)
+
+      /* If the glyph's background equals the color we normally draw
+	 the bars cursor in, the bar cursor in its normal color is
+	 invisible.  Use the glyph's foreground color instead in this
+	 case, on the assumption that the glyph's colors are chosen so
+	 that the glyph is legible.  */
+      if (*face).background                                             // C 25952
+	  == (*( (*f).output_data.x as *mut x_output )).cursor_pixel
+	{
+	  xgcv.background = (*face).foreground;                         // C 25953
+	  xgcv.foreground = (*face).foreground;
+	}
+      else
+	{
+	  xgcv.background                                               // C 25955
+	    = (*( (*f).output_data.x as *mut x_output )).cursor_pixel;
+	  xgcv.foreground
+	    = (*( (*f).output_data.x as *mut x_output )).cursor_pixel;
+	}
+      xgcv.graphics_exposures = false as Bool;                          // C 25956
+      xgcv.line_width = 1;                                              // C 25957
+
+      mask |= GCLineWidth as c_ulong;                                   // C 25959
+
+      if !gc.is_null ()                                                 // C 25961
+	{ XChangeGC (dpy, gc, mask, &raw mut xgcv as *mut c_void); }    // C 25962
+      else
+	{
+	  gc = XCreateGC (dpy, drawable, mask,                          // C 25965
+			  &raw mut xgcv as *mut c_void);
+	  (*FRAME_DISPLAY_INFO! (f)).scratch_cursor_gc = gc;             // C 25966
+	}
+
+      x_clip_to_row (w, row, TEXT_AREA, gc, std::ptr::null_mut ());      // C 25969
+
+      if kind == BAR_CURSOR                                             // C 25971
+	{
+	  let mut x: c_int                                              // C 25973
+	    = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);
+
+	  if width < 0                                                   // C 25975
+	    { width = FRAME_CURSOR_WIDTH (f); }                          // C 25976
+	  width = min ((*cursor_glyph).pixel_width as isize,             // C 25977
+		       width as isize) as c_int;
+
+	  (*w).phys_cursor_width = width;                                // C 25979
+
+	  /* If the character under cursor is R2L, draw the bar cursor
+	     on the right of its glyph, rather than on the left.  */
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0     // C 25983
+	    { x += (*cursor_glyph).pixel_width as c_int - width; }       // C 25984
+
+	  x_fill_rectangle (f, gc, x,                                    // C 25986
+			    WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y),  // C 25987
+			    width, (*row).height, false);                // C 25988
+	}
+      else /* HBAR_CURSOR */                                            // C 25990
+	{
+	  let mut dummy_x: c_int = 0;                                    // C 25992
+	  let mut dummy_y: c_int = 0;
+	  let mut dummy_h: c_int = 0;
+	  let mut x: c_int                                              // C 25993
+	    = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, (*w).phys_cursor.x);
+
+	  if width < 0                                                   // C 25995
+	    { width = (*row).height; }                                   // C 25996
+
+	  width = min ((*row).height as isize, width as isize) as c_int;  // C 25998
+
+	  get_phys_cursor_geometry (w, row, cursor_glyph, &raw mut dummy_x,  // C 26000
+				    &raw mut dummy_y, &raw mut dummy_h);  // C 26001
+
+	  if (glyph_bits! (resolved_level, (*cursor_glyph)) & 1) != 0     // C 26003
+	      && (*cursor_glyph).pixel_width as c_int                     // C 26004
+		 > (*w).phys_cursor_width - 1
+	    {
+	      x += (*cursor_glyph).pixel_width as c_int                   // C 26005
+		- (*w).phys_cursor_width + 1;
+	    }
+	  x_fill_rectangle (f, gc, x,                                    // C 26006
+			    WINDOW_TO_FRAME_PIXEL_Y! (w, (*w).phys_cursor.y + (*row).height - width),  // C 26007-26008
+			    (*w).phys_cursor_width - 1, width, false);    // C 26009
+	}
+
+      x_reset_clip_rectangles (f, gc);                                // C 26012
+    }
+}
+
+/* C 26016-26019's comment and `x_define_frame_cursor` (C 26020-...), `x_clear_frame_area`
+   (C 26032-...), `x_draw_window_cursor` (C 26041-...), `x_bitmap_icon` (C 26104-...) and
+   `x_text_icon` (C 26194-...) come next in C's order.  */

@@ -243,6 +243,18 @@ AI 815 -> **818**, AIU 854 -> **857**, AIUX 960 -> **963**, AX 821 -> **824**, A
 first writing's five defects (an `x11_constants::GCLineWidth` import that does not exist, a
 `resolved_level!` call for the mirror's `glyph_bits!` member, two `pixel_width` reads missing C's
 `short` conversion, and a partially initialised `clip_rect`) are named in Decision 115 4.
+  Slice 103 (C 25905-26014, Decision 116) goes **11 -> 10**: `x_draw_bar_cursor` retires as a missing
+function, and the slice reads **+11** in the thirteen arms that leave `have_window_system` off -
+`phys_cursor_width` x4, `window_box_left` x2 (the `WINDOW_TEXT_TO_FRAME_PIXEL_X!` expansion),
+`face_cache` x2 (the per-unit `FRAME_FACE_CACHE`/`FACE_FROM_ID` copies' `dispextern_face_records`
+type), `GCGraphicsExposures` x1, `GCLineWidth` x1 and `XChangeGC` x1, all recorded classes - and
+**+7** in AWS, where the four `phys_cursor_width` rows do not exist: A 810 -> **821**, U 839 -> **850**,
+UT 825 -> **836**, UM 826 -> **837**, UG 822 -> **833**, UGX 924 -> **935**, AE 842 -> **853**, AI 818
+-> **829**, AIU 857 -> **868**, AIUX 963 -> **974**, AX 824 -> **835**, AG3 860 -> **871**, AXF 823 ->
+**834** and AWS 503/0 -> **510/0**, with **no warning moved in any of the fourteen arms**.  The first
+writing's four defects (a `GCGraphicsExposures` import that does not exist, two cursor-helper
+declarations missing from this function's own use-site block, an absent `FACE_FROM_ID` and C's two
+*chained* assignments) are named in Decision 116 4.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -457,7 +469,7 @@ first writing's five defects (an `x11_constants::GCLineWidth` import that does n
 - [x] XTread_socket  (line 25672, static)
 - [x] x_clip_to_row  (line 25831, static)
 - [x] x_draw_hollow_cursor  (line 25857, static)
-- [ ] x_draw_bar_cursor  (line 25913, static)
+- [x] x_draw_bar_cursor  (line 25913, static)
 - [ ] x_define_frame_cursor  (line 26020, static)
 - [ ] x_clear_frame_area  (line 26032, static)
 - [ ] x_draw_window_cursor  (line 26041, static)
@@ -4787,6 +4799,37 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   whole value back through `rect_return`.
 * **What `--check` reads.**  **13 -> 11** (9 missing + 1 `does not mention false` + the drift row),
   with the line-count row at **29,000** against C's 33,125 (12.5% drift, was 28,874 / 12.8%).
+
+### 116. Slice 103 (C 25905-26014): `x_draw_bar_cursor`, the GC block and the per-unit inline copies
+
+* **The `--check` item.**  `x_draw_bar_cursor` is C's `static`, so a plain `unsafe fn`, and this
+  slice's `--check` reading is **11 -> 10** with no token row: C's `0`, `1` and `false` all survive in
+  the port's spelling.
+* **The reading is rows of recorded classes, +11 / +7.**  Thirteen arms: `phys_cursor_width` x4 (C
+  25979/26004/26005/26009 - the mirror's `have_window_system` member, Decision 115 2's class),
+  `window_box_left` x2 (the `WINDOW_TEXT_TO_FRAME_PIXEL_X!` expansion - the baseline already reads one
+  of these from the same macro), `face_cache` x2 (this slice's own `FRAME_FACE_CACHE`/`FACE_FROM_ID`
+  copies name a type the mirror gates behind `dispextern_face_records`, which no arm sets),
+  `GCGraphicsExposures` x1, `GCLineWidth` x1 and `XChangeGC` x1 (the three unresolved-value/function
+  classes the baseline carries 3/5/9 rows of).  AWS reads **+7**: the four `phys_cursor_width` rows do
+  not exist under `have_window_system`, everything else does.
+* **C's inline accessors are one copy per including unit.**  C's `FRAME_FACE_CACHE` (frame.h 1379) and
+  `FACE_FROM_ID` (frame.h 1646-1650) are text C pastes into every unit that includes the header, and
+  the mirror's own copy is a *module* (`include/frame.rs` 1534-1552) so it is not in any unit's scope;
+  the port's live form is therefore a copy here, written in `src/pgtkterm.rs` 4156-4170's shape (the
+  same pair for the pgtk arm).  `draw_phys_cursor_glyph`, `get_phys_cursor_glyph` and
+  `get_phys_cursor_geometry` are other units' definitions (`src/abi_shim.rs` 2419/2499,
+  `src/window.rs` 8061), declared at this use site by P-72 rule 4 - the block slice 102 opened for
+  its own function, repeated here because a use-site declaration is per unit (and per function's own
+  scope).
+* **Four defects the first writing read.**  (1) `GCGraphicsExposures` is *not* a member of
+  `crate::x11_constants` (importing it is `E0432`), so it is written bare like this file's 9269 site;
+  (2) and (3) the two cursor-helper declarations belong to *this* function's scope, not slice 102's;
+  and (4) C 25953/25955's *chained* assignments (`xgcv.background = xgcv.foreground = ...`) are two
+  Rust statements each, because assignment is not an expression in Rust - C's one line per site stays
+  named on both (Decision 116 4's deviation, this file's only one).
+* **What `--check` reads.**  **11 -> 10** (8 missing + 1 `does not mention false` + the drift row),
+  with the line-count row at **29,181** against C's 33,125 (11.9% drift, was 29,000 / 12.5%).
 
 ## Evidence
 
@@ -9551,3 +9594,55 @@ against C's 33,125 (12.5% drift, was 28,874 / 12.8%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no clipping was set and no
 cursor was drawn; the readings above are compile readings of text this machine cannot build.
+
+### Slice 103's readings (C 25905-26014), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s103/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`; A = `have_x_windows`, U = A +
+`use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI +
+`use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`,
+AXF = A + `have_xfixes`, AWS = A + `have_window_system`.  Both sides were measured on this revision
+(the baseline by restoring `src/xterm.rs` from HEAD, then putting the saved copy back - its md5 is
+the copy's).
+
+| arm | HEAD's unit (slice 102 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 810 / 74 | **821 / 74** | **+11 / 0** |
+| U `+use_toolkit_scroll_bars` | 839 / 74 | **850 / 74** | **+11 / 0** |
+| UT `U +use_x_toolkit` | 825 / 73 | **836 / 73** | **+11 / 0** |
+| UM `UT +use_motif` | 826 / 73 | **837 / 73** | **+11 / 0** |
+| UG `U +use_gtk` | 822 / 75 | **833 / 75** | **+11 / 0** |
+| UGX `UG +have_xinput2` | 924 / 77 | **935 / 77** | **+11 / 0** |
+| AE `A +enable_checking` | 842 / 73 | **853 / 73** | **+11 / 0** |
+| AI `A +have_x_i18n` | 818 / 75 | **829 / 75** | **+11 / 0** |
+| AIU `AI +use_gtk` | 857 / 75 | **868 / 75** | **+11 / 0** |
+| AIUX `AIU +have_xinput2` | 963 / 77 | **974 / 77** | **+11 / 0** |
+| AX `A +have_xdbe` | 824 / 74 | **835 / 74** | **+11 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 860 / 74 | **871 / 74** | **+11 / 0** |
+| AXF `A +have_xfixes` | 823 / 74 | **834 / 74** | **+11 / 0** |
+| **AWS** `A +have_window_system` | 503 / 0 | **510 / 0** | **+7 / 0** |
+
+**Additions, by name.**  The thirteen arms: `no field phys_cursor_width on type window` x4
+(C 25979/26004/26005/26009), `cannot find function window_box_left` x2 (the
+`WINDOW_TEXT_TO_FRAME_PIXEL_X!` expansion), `cannot find type face_cache` x2 (the per-unit
+`FRAME_FACE_CACHE`/`FACE_FROM_ID` copies naming a type the mirror gates behind
+`dispextern_face_records`), `cannot find value GCGraphicsExposures` x1, `cannot find value
+GCLineWidth` x1 and `cannot find function XChangeGC` x1 - every one of them a class the baseline
+already carries rows of (3, 5 and 9 respectively for the last three).  AWS: the same minus the four
+`phys_cursor_width` rows.  **Warning sets are identical to the baselines' in all fourteen arms**
+(AWS carries none in either), and nothing retires in any arm.
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has no window system, so this function is not compiled
+there).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 25915's `struct frame *f = ...` moves
+**A 821 -> 822** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:29072:18`; removing
+the line returns A to the table.
+
+**What `--check` reads.**  **11 -> 10** as Decision 116 5 says, with the line-count row at **29,181**
+against C's 33,125 (11.9% drift, was 29,000 / 12.5%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no cursor was drawn and no GC
+was changed; the readings above are compile readings of text this machine cannot build.
