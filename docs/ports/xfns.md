@@ -3390,9 +3390,20 @@ port writes as member paths; the row's sanctioned home is `docs/ports/macro-body
    `tip_window = FRAME_X_WINDOW! (f)` after the `FRAME_X_WINDOW` store.
 3. The xcb block's doc comments are block comments (the slice 5 note).
 
-### Owed
+### Owed (closed or re-scoped, status 3.939)
 
-- `include/xterm.rs`'s `x_output.explicit_parent` row (the +1 in every arm) and the
-  `have_window_system` gate on `frame.rs`'s tooltip rows (the +2).
-- `docs/ports/macro-body-notes.tsv`: one row for the four `FRAME_*` macro names.
-- WSRX/XCB's `unused doc comment`.
+- **Closed**: `docs/ports/macro-body-notes.tsv` gained the four-token row (`frame_background_pixel`,
+  `frame_fontset`, `frame_foreground_pixel`, `frame_x_visual_info`), and `--check` reads
+  **96 -> 95** with no token row left for this function.
+- **Re-scoped (not this lane's to fix)**: the +1 `explicit_parent` instance is the mirror's own
+  decision, not a gap: `include/xterm.rs` 924-927 records six `x_output` bitfields (`hourglass_p`,
+  `explicit_parent`, `asked_for_visible`, `has_been_visible`, `wait_for_wm`, `alpha_identical_p`)
+  as `// C:` lines rather than as fields, so every write of C 8467's kind reads the class's row;
+  the file's baseline already carries five.  Carrying the bitfields is a mirror round of its own
+  (the layout of each bit has to be measured first).
+- **Re-scoped (arms, not code)**: the +2 in the five arms without `have_window_system` and the
+  +1 warning are arm-configuration artifacts: C guards the tooltip bit itself (`frame.h` 455-457,
+  `#ifdef HAVE_WINDOW_SYSTEM`), so the mirror's gate matches C and the arms that omit the feature
+  read the slice-24 `nscreens`/`screens` class; the `unused doc comment` is in
+  `lib/include/stdbit.in.rs` 644-647 (a mirror's doc block, materialized once per including arm),
+  not in this unit's text.
