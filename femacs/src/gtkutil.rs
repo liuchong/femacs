@@ -1481,6 +1481,19 @@ pub unsafe extern "C" fn xg_is_menu_window (dpy: *mut Display, wdesc: Window) ->
    C's statements appear once in C's text, so the port keeps one copy of them and puts the two
    features on the *arm chooser* (`take_body`), C's `if`/`else` and both bodies following in C's
    order - the one `## Deviations` entry this shape needs.  */
+/* C 1076/1082's two callees, declared at this unit's own use site (P-72 rule 4): their definition
+   is `src/xterm.rs`'s C 18481-18497 pair, which landed after this unit, and `include/gtk.rs`'s
+   copy of the pair had to go with it - this unit and that one both include the mirror, so a copy
+   there is `E0428 the name ... is defined multiple times` in every `use_gtk` arm (the
+   `include/frame.rs` 45-50 rule).  The parameter keeps the P-55 stand-in `*mut c_void`, because
+   C 1076/1082's call sites cast (the `include/xsettings.rs` 12-14 reading of the same pair).  */
+#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+unsafe extern "C" {
+  /// C: xterm.h 1863: `extern int x_display_pixel_height (struct x_display_info *);`
+  pub fn x_display_pixel_height (dpyinfo: *mut c_void) -> c_int;
+  /// C: xterm.h 1864: `extern int x_display_pixel_width (struct x_display_info *);`
+  pub fn x_display_pixel_width (dpyinfo: *mut c_void) -> c_int;
+}
 #[cfg (feature = "use_gtk")]
 unsafe fn xg_set_geometry (f: *mut frame)                // C 1059-1139
 {

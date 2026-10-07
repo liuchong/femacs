@@ -27674,16 +27674,16 @@ unsafe fn mouse_or_wdesc_frame (dpyinfo: *mut x_display_info, wdesc: c_int) -> *
 /// rows are the recorded class; `tip_frame`/`tip_dx`/`tip_dy`/`x_dnd_frame` are this unit's
 /// file-scope objects (`include/xterm.rs` 736-741's block).
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_dnd_compute_tip_xy (root_x: *mut c_int, root_y: *mut c_int, attributes: Lisp_Object)
+unsafe fn x_dnd_compute_tip_xy (root_x: *mut c_int, root_y: *mut c_int, mut attributes: Lisp_Object)
 {
   let mut monitor: Lisp_Object;                                               // C 18121
   let mut geometry: Lisp_Object;
-  let mut min_x: c_int;                                                       // C 18122
-  let mut min_y: c_int;
-  let mut max_x: c_int;
+  let mut min_x: c_int = 0;                                                       // C 18122
+  let mut min_y: c_int = 0;
+  let mut max_x: c_int = 0;
   let mut max_y: c_int;
-  let mut width: c_int;                                                       // C 18123
-  let mut height: c_int;
+  let width: c_int;                                                       // C 18123
+  let height: c_int;
 
   width = FRAME_PIXEL_WIDTH (XFRAME (tip_frame));                             // C 18125
   height = FRAME_PIXEL_HEIGHT (XFRAME (tip_frame));                           // C 18126
@@ -27845,4 +27845,37 @@ unsafe fn x_dnd_update_tooltip_now ()
     { x_dnd_update_tooltip_position (root_x, root_y); }                // C 18258
 }
 
-/* C 18261-18262's comment opens `x_dnd_update_state` (C 18263-...), the next definition.  */
+/* C 18261-18479: `x_dnd_update_state` (217 lines, a slice of its own) is the next definition;
+   C 18481-18497 is the pair below.  */
+
+/// C 18481-18488: `int x_display_pixel_height (struct x_display_info *dpyinfo)` - non-`static` and
+/// declared in xterm.h 1863, so the exported shape; C's `if (dpyinfo->screen_height) return ...;`
+/// is the port's early return and the fallback is Xlib's `HeightOfScreen` macro, which no mirror in
+/// this tree carries - a bare name of Decision 15's class (`DefaultRootWindow`'s), so it is one row
+/// an arm.  Landing this pair retires the call rows the earlier slices recorded - C 18160-18161's
+/// two (slice 92) and the ones inside `x_calc_absolute_position` (C 27531/27573, slice 21),
+/// `do_ewmh_fullscreen` (C 28294-28309, slice 26) and `x_wm_set_size_hint` (C 30266-30268).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_display_pixel_height (dpyinfo: *mut x_display_info) -> c_int
+{
+  if (*dpyinfo).screen_height != 0                                     // C 18484
+    { return (*dpyinfo).screen_height; }                               // C 18485
+
+  return HeightOfScreen ((*dpyinfo).screen);                           // C 18487
+}
+
+/// C 18490-18497: `int x_display_pixel_width (struct x_display_info *dpyinfo)` - the width twin of
+/// the definition above (xterm.h 1864 declares it the same way), with `WidthOfScreen` in the same
+/// bare-name class.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_display_pixel_width (dpyinfo: *mut x_display_info) -> c_int
+{
+  if (*dpyinfo).screen_width != 0                                      // C 18493
+    { return (*dpyinfo).screen_width; }                                // C 18494
+
+  return WidthOfScreen ((*dpyinfo).screen);                            // C 18496
+}
+
+/* C 18499-18500's comment opens `x_wait_for_cell_change` (C 18501-...), the next definition.  */

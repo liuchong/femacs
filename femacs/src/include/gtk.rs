@@ -1752,25 +1752,15 @@ unsafe extern "C" {
                                         minimum_size: *mut GtkRequisition,
                                         natural_size: *mut GtkRequisition);
 }
-/* The two X11 display measurements (and the two frame utilities C 1280-1281 uses) are the X arm's
-   alone: their parameter is `include/xterm.rs`'s `x_display_info`, which the pgtk arm does not
-   have (C calls them under `#ifndef HAVE_PGTK`).  */
-#[cfg (not (feature = "have_pgtk"))]
-unsafe extern "C" {
-  /// C 1062's `f->size_hint_flags & (USPosition | PPosition)`, C 1076/1082's two display
-  /// measurements, C 1099/1131's two GTK calls that take the widget, and C 1280-1281's two frame
-  /// utilities with their frame.h lines.
-  /// C: xterm.h 1863-1864: `extern int x_display_pixel_height (struct x_display_info *);` /
-  /// `extern int x_display_pixel_width (struct x_display_info *);`
-  /// P-55/P-87 ③: `x_display_info` is `include/xterm.rs`'s record (xterm.h 383), not this
-  /// mirror's, and the crate the layout probe builds compiles neither the record nor the
-  /// `have_x_windows` arm that declares it, so this mirror must not name it.  It appears only
-  /// behind a pointer, so the parameter takes the P-55 stand-in and keeps C's text in the
-  /// `/// C:` line above; the consumer converts at the call site - the `include/xsettings.rs`
-  /// 12-14 rule for this same pair (PORTING.md 0.1-9); C's two call sites at 1076/1082 do that.
-  pub fn x_display_pixel_width (dpyinfo: *mut c_void) -> c_int;
-  pub fn x_display_pixel_height (dpyinfo: *mut c_void) -> c_int;
-}
+/* C 1062's `f->size_hint_flags & (USPosition | PPosition)`, C 1099/1131's two GTK calls that take
+   the widget, and C 1280-1281's two frame utilities with their frame.h lines are the declarations
+   below; **C 1076/1082's two display measurements are no longer declared in this mirror**: their
+   definition landed in `src/xterm.rs` (C 18481-18497, status 3.885), and this mirror is included
+   by both that unit and `src/gtkutil.rs`, so a copy here is `E0428 the name ... is defined
+   multiple times` in every `use_gtk` arm.  Each calling unit declares its own copy instead -
+   `src/gtkutil.rs` 1494-1504's block, with the P-55 `*mut c_void` stand-in its call sites cast to
+   (the `include/xsettings.rs` 12-14 reading of the same rule; the `include/frame.rs` 45-50 note is
+   its other half for a use-site copy of an enum).  */
 /* C 768-800's `#ifdef HAVE_GTK3` arm of `xg_check_special_colors`: the three GTK3 style calls
    are that arm's, so they carry the version gate.  */
 #[cfg (feature = "have_gtk3")]

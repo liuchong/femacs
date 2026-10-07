@@ -137,6 +137,18 @@ one row an arm) in the ten arms without that feature, while the two `have_xinput
 UM 804 -> **805**, UG 798 -> **799**, AE 820 -> **821**, AI 796 -> **797**, AIU 833 -> **834**, AX
 802 -> **803**, AG3 837 -> **838**, and UGX 901 -> **901**, AIUX 940 -> **940**.  No warning moved in
 any of the twelve arms.
+  Slice 94 (C 18481-18497, Decision 107) goes **22 -> 20**: `x_display_pixel_height` and
+`x_display_pixel_width` both retire as missing functions, and the call rows the earlier slices
+carried retire with them - C 27531/27573 in `x_calc_absolute_position`, C 30266-30269 in
+`x_wm_set_size_hint` and C 18160-18161 in slice 92's own `x_dnd_compute_tip_xy`, one row per name per
+site - while every arm reads one new row per name for `HeightOfScreen`/`WidthOfScreen`, two Xlib
+macros no mirror here carries: A 789 -> **785**, U 818 -> **814**, UT 804 -> **800**, UM 805 ->
+**801**, UG 799 -> **797**, UGX 901 -> **899**, AE 821 -> **817**, AI 797 -> **793**, AIU 834 ->
+**832**, AIUX 940 -> **938**, AX 803 -> **799** and AG3 838 -> **836**, with no warning moved in any
+of the twelve arms.  The five `use_gtk` arms move by two rather than four because their retirements
+read `E0308` instead of `E0425`: the mirror's own P-55 `*mut c_void` declaration is what made those
+`FRAME_DISPLAY_INFO!` arguments mismatches, and C's own signature retires the mismatch - and their
+`x_wm_set_size_hint` pair is not compiled at all.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -340,8 +352,8 @@ any of the twelve arms.
 - [x] x_dnd_update_tooltip_position  (line 18190, static)
 - [x] x_dnd_update_tooltip_now  (line 18229, static)
 - [ ] x_dnd_update_state  (line 18264, static)
-- [ ] x_display_pixel_height  (line 18482)
-- [ ] x_display_pixel_width  (line 18491)
+- [x] x_display_pixel_height  (line 18482)
+- [x] x_display_pixel_width  (line 18491)
 - [ ] x_wait_for_cell_change  (line 18502)
 - [ ] x_find_monitors_changed_event  (line 18619, static)
 - [ ] x_coords_from_dnd_message  (line 18685, static)
@@ -4425,6 +4437,44 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **24 -> 22**: both functions retire as missing items and no token row
   arrives; the line-count row moves to **27,848** against C's 33,125 (15.9% drift, was 27,753 /
   16.2%).
+
+### 107. Slice 94 (C 18481-18497): the two display measurements, and the declaration the mirror had to give up
+
+* **Two `--check` items, and the call rows they retire.**  `x_display_pixel_height` (C 18481-18488) and
+  `x_display_pixel_width` (C 18490-18497) are both declared in xterm.h 1863-1864, so both are the
+  exported shape (`#[unsafe(no_mangle)] pub unsafe extern "C" fn`), and **22 -> 20** is the checklist
+  half of the reading.  Their bodies are C 18484-18487's `if (dpyinfo->screen_height) return ...;` plus
+  Xlib's `HeightOfScreen`/`WidthOfScreen` macro, which no mirror in this tree carries: two bare names of
+  Decision 15's class (`DefaultRootWindow`'s), one row an arm each.  The other half is the calls: C
+  27531-27532 and C 27573-27574 (inside `x_calc_absolute_position`, slice 9's region), C 30266-30269
+  (inside `x_wm_set_size_hint`) and C 18160-18161 (slice 92's own two, inside `x_dnd_compute_tip_xy`) -
+  three rows per name where that half compiles, and the `x_wm_set_size_hint` pair is the seven non-GTK
+  arms' alone.  C 28294-28309's six calls inside `do_ewmh_fullscreen` read nothing in any of the twelve
+  arms, and the reason is measured rather than assumed: they sit in that function's
+  `#[cfg (feature = "have_window_system")]` block, and no arm here sets that feature.
+* **The declaration had to leave the mirror, and that is the slice's structural reading.**  The pair was
+  declared in `include/gtk.rs` (behind `not (feature = "have_pgtk")`) - one declaration serving every
+  unit that includes that mirror - and once the definitions landed in this unit, every `use_gtk` arm
+  read `E0428 the name ... is defined multiple times` (`_root.rs`'s definition against
+  `_gtk.rs`'s row).  The fix is P-72 rule 4's: the calling unit declares its own copy at the use site
+  (`src/gtkutil.rs` C 1076/1082's two callees, `#[cfg (all (feature = "use_gtk", not (feature =
+  "have_pgtk")))]`, keeping the P-55 `*mut c_void` stand-in because C's call sites cast) - the
+  `include/frame.rs` 45-50 and `include/xsettings.rs` 12-14 precedent, and the mirror keeps a note
+  saying where the name went instead of a copy of it.
+* **The four `E0308` rows the `use_gtk` arms lose are the same four sites as the `E0425` rows the other
+  seven lose.**  With the mirror's `*mut c_void` declaration in scope, `x_display_pixel_width
+  (FRAME_DISPLAY_INFO! (f))` resolved but mismatched (`*mut x_display_info` into `*mut c_void`);
+  landing the definition replaces the stand-in with C's own `struct x_display_info *` and the four
+  mismatches retire with it.  That is why the two halves of the table move by -4 and by -2: same six
+  call rows, two different diagnostics.
+* **Four lines of slice 92's text that only this slice could expose.**  With the callees unresolved,
+  the MIR diagnostics of `x_dnd_compute_tip_xy`'s body did not run (slice 85's mechanism); landing the
+  definitions turned them on, and the four readings are: C 18151's reassignment needs `mut attributes`,
+  C 18122's `min_x`/`min_y` read before assignment need the Deviation 12 zeroes, and C 18119/18120's
+  `width`/`height` must lose the port's own `mut` (one `unused_mut` an arm otherwise - slice 91's
+  reading).  The four are slice 92's debt, named here rather than buried.
+* **What `--check` reads.**  **22 -> 20** (18 missing functions + 1 `does not mention` + the drift row):
+  the line-count row moves to **27,881** against C's 33,125 (15.8% drift, was 27,848 / 15.9%).
 
 ## Evidence
 
@@ -8723,3 +8773,65 @@ against C's 33,125 (15.9% drift, was 27,753 / 16.2%).
 **Not claimed.**  The frozen configuration compiles none of this file: no pointer was queried, no
 tooltip was moved and no DND state was advanced; the readings above are compile readings of text this
 machine cannot build.
+
+### Slice 94's readings (C 18481-18497), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s94/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`, all into `CARGO_TARGET_DIR=/tmp/s94/cargo`; A =
+`have_x_windows`, U = A + `use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`,
+UG = U + `use_gtk`, UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`,
+AIU = AI + `use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` +
+`have_gtk3`.  Both sides were measured on this revision (the baseline side by restoring
+`src/xterm.rs` and `src/include/gtk.rs` from HEAD, then putting both back - the restored text's md5 is
+the saved copy's).
+
+| arm | HEAD's unit (slice 93 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 789 / 72 | **785 / 72** | **-4** |
+| U `+use_toolkit_scroll_bars` | 818 / 72 | **814 / 72** | **-4** |
+| UT `U +use_x_toolkit` | 804 / 71 | **800 / 71** | **-4** |
+| UM `UT +use_motif` | 805 / 71 | **801 / 71** | **-4** |
+| **UG** `U +use_gtk` | 799 / 74 | **797 / 74** | **-2** |
+| **UGX** `UG +have_xinput2` | 901 / 76 | **899 / 76** | **-2** |
+| AE `A +enable_checking` | 821 / 71 | **817 / 71** | **-4** |
+| AI `A +have_x_i18n` | 797 / 73 | **793 / 73** | **-4** |
+| **AIU** `AI +use_gtk` | 834 / 74 | **832 / 74** | **-2** |
+| **AIUX** `AIU +have_xinput2` | 940 / 76 | **938 / 76** | **-2** |
+| AX `A +have_xdbe` | 803 / 72 | **799 / 72** | **-4** |
+| AG3 `A +use_gtk +have_gtk3` | 838 / 73 | **836 / 73** | **-2** |
+
+**Retirements, by name and by site** (diffed as `error[E..]: <message>` head lines with their
+locations, both directions).  The seven non-`use_gtk` arms: `cannot find function
+x_display_pixel_width` x3 at C 27531, C 30266 and C 18160, `cannot find function
+x_display_pixel_height` x3 at C 27573, C 30268 and C 18161, and nothing else.  The five `use_gtk`
+arms: `E0308 mismatched types` x4 at the same C 27531/C 27573/C 18160/C 18161 sites (their resolution
+came from the mirror's `*mut c_void` declaration, so what retires is the mismatch - the two
+`x_wm_set_size_hint` rows are not compiled there).
+
+**Additions, by name**: `cannot find function, tuple struct or tuple variant HeightOfScreen` x1 and
+`... WidthOfScreen` x1 in **all twelve** arms - the two new bodies' Xlib macros, the bare-name class.
+
+**Warning sets are identical to the baselines' in all twelve arms** (compared as multiset of
+`warning:` messages, including the two `suspicious definition of the runtime write/read symbol` rows
+and the 24 macro-parenthesis rows).
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets.  The mirror this slice edits has 15 includers (`emacsgtkfixed`, `ftcrfont`,
+`gfilenotify`, `gtkutil`, `image`, `pgtkfns`, `pgtkim`, `pgtkmenu`, `pgtkselect`, `pgtkterm`, `xfns`,
+`xgselect`, `xmenu`, `xsettings`, `xwidget`), and the mirror-change leg builds all 15 on both sides:
+12 `built`, and three whose errors are the dead-text class, **identical error sets at HEAD and here**
+(`gfilenotify` 4 `cannot find macro DEFUN`; `pgtkfns` 12 `DEFUN` + 6 `cannot find type c_int` + 4
+`resource_types`; `pgtkterm` `GtkWidget`/`GdkWindow`) - so the declaration's move adds no failure
+anywhere in the set.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` before C 18484's `if (*dpyinfo).screen_height
+!= 0` moves **A 785 -> 786** with `E0308` 13 -> 14, anchored at
+`build/probes/xterm/_root.rs:27876:18`; removing it returns A to the table (and the restored file's
+md5 is the saved copy's).
+
+**What `--check` reads.**  **22 -> 20** as Decision 107 5 says, with the line-count row at **27,881**
+against C's 33,125 (15.8% drift, was 27,848 / 15.9%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no screen was measured, no
+frame was positioned and no display's dimensions were taken; the readings above are compile readings
+of text this machine cannot build.
