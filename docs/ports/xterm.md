@@ -1140,14 +1140,16 @@ Three decisions this slice had to make, because C cannot be transcribed literall
 
 ### 9. Deferred by slice 2, and what it needs
 
-**`x_atom_refs` (C 987-1130, 122 entries) is not landed**: its `ATOM_REFS_INIT` rows name
+**`x_atom_refs` (C 987-1130, 122 entries) is not landed** (taken by slice 108, Decision 121): its `ATOM_REFS_INIT` rows name
 **115** different `Xatom_*` members of `struct x_display_info`, and `femacs/src/include/xterm.rs`
 carries **61** of them.  The 58 that are missing are xterm.h's own **unconditional** text at
 **xterm.h 772-817** (measured: none of them is inside an `#if` other than the include guard), so
 that mirror is simply a WIP slice of its header.  Writing the table now would put 58 names in
 the file that nothing defines.  It opens the next slice as soon as the mirror has them (or you
 rule that the table is written 1:1 and the names wait), and the request is in this round's
-report.
+report.  **Closed by slice 108 (Decision 121)**: measured then, the mirror already carried all 123
+`Xatom_*` members, so the table landed with the two `def_x_atom_refs!` instantiations its own
+`#ifdef HAVE_XKB` needs.
 
 ### 10. Feature names slice 2 adds to the request list
 
@@ -5051,6 +5053,36 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `checked 83 unit(s), 0 failure(s)` + `checking 83 unit(s), 0 unit failure(s)`.
 * **Not claimed.**  The frozen configuration compiles none of this (`USE_X_TOOLKIT` is `undef`
   there); only the UT and UM arms compile the table, and their readings are the line above.
+
+### 121. Slice 108 (C 985-1130): `x_atom_refs`, and the blocker Decision 9 recorded was already gone
+
+* **What it lands.**  C 987-1130's `static const struct x_atom_ref x_atom_refs[]` - the 121
+  `ATOM_REFS_INIT` rows C writes, in C's order, each on one line with its own `// C NNNN` (the six
+  rows C hard-wraps are one line here, cited at the first line's number).  Its readers landed in
+  slices 39 and 41 (`x_intern_cached_atom` at C 29962, `x_intern_atoms` at C 30050), which is why
+  the table was this file's most-named owed object.
+* **Decision 9's blocker had been closed under it.**  That decision deferred the table because the
+  mirror carried 61 of the 115 `Xatom_*` members it names.  Measured now: xterm.h declares 123
+  `Xatom_*` members and **all 123 are in the mirror** (the slices since, and status 3.902's round,
+  carried the rest), and every one of the 121 rows' members resolves.  The table therefore lands -
+  and Decision 9's "it opens the next slice" is answered by saying what actually blocked it.
+* **C's `#ifdef HAVE_XKB` sits *inside* the table.**  C 1073-1079 puts five rows (Meta, Super,
+  Hyper, ShiftLock, Alt) in the middle of the other 116, so the table's *length* is
+  per-configuration (121 with XKB, 116 without) and its *order* differs too.  A `#[cfg]` cannot sit
+  on an array element (`E0658`), and writing the 116 shared rows twice would put C's text in the
+  file twice, so the rows live once inside `def_x_atom_refs!`, which each arm instantiates with C's
+  five rows spliced at C's own position.
+* **The names are C strings.**  C's `ATOM_REFS_INIT` takes a string literal; the port's macro stores
+  `*const c_char` (its readers hand `name` to `strcmp`), so every row passes `c"…".as_ptr ()` - the
+  file's C-string spelling.
+* **What the probes read.**  **Every one of the seventeen arms retires exactly six rows** - the six
+  `cannot find value x_atom_refs` sites the unit's two readers carry: A 830/74 -> **824/74**, U 843
+  -> **837**, UT 829/73 -> **823/73**, UM 830 -> **824**, UG 822/75 -> **816/75**, UGX 901/77 ->
+  **895/77**, AE 862 -> **856**, AI 839 -> **833**, AIU 874 -> **868**, AIUX 957 -> **951**, AX 844
+  -> **838**, AG3 876 -> **870**, AXF 832 -> **826**, AWS 515/0 -> **509/0**, AXPM 831 -> **825**,
+  AXKB 850 -> **844** and AXR 831 -> **825** - and **no warning moved in any arm**.
+* **What `--check` reads.**  Unchanged at four rows (`handle_one_xevent`, `x_term_init`, the `false`
+  row and the drift row), with the line count at 30,404 against C's 33,125 (8.2%).
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).

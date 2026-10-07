@@ -1346,9 +1346,9 @@ pub struct x_atom_ref
   pub offset: c_int,
 }
 
-/* C 989-990, the `ATOM_REFS_INIT` macro the `x_atom_refs` table at C 987 is written with.  The
-   table itself needs all 122 `Xatom_*` members of `struct x_display_info`, so it opens the next
-   slice; the macro is here because C defines it outside the table's braces.  */
+/* C 989-990, the `ATOM_REFS_INIT` macro the `x_atom_refs` table at C 987 is written with.  C
+   defines it between the table's own braces; a Rust `macro_rules!` has to stand at item scope, so
+   the port keeps the macro here and the table right below it.  */
 #[cfg (feature = "have_x_windows")]
 macro_rules! ATOM_REFS_INIT {
   ($string:expr, $member:ident) => {
@@ -1356,6 +1356,155 @@ macro_rules! ATOM_REFS_INIT {
     x_atom_ref { name: $string, offset: core::mem::offset_of! (x_display_info, $member) as c_int }
   };
 }
+
+/* List of all atoms that should be interned when connecting to a
+   display.  */
+/// C 987-1130: `static const struct x_atom_ref x_atom_refs[]` - C's `static const`, kept here as a
+/// `static mut` (this file's one table convention), with C's rows in C's order and each row's own
+/// `// C NNNN` line.  C 1073-1079's `#ifdef HAVE_XKB` puts five rows *in the middle* of the table,
+/// so the length is per-configuration (121 with XKB, 116 without) and the order differs too: a
+/// `#[cfg]` cannot sit on an array element (`E0658`), and writing the 116 shared rows twice would
+/// put C's text in the file twice.  The rows therefore live once inside `def_x_atom_refs!`, which
+/// each arm instantiates with C's five rows spliced at C's own position.
+///
+/// Decision 9 deferred this table until the mirror carried every `Xatom_*` member it names; the
+/// mirror has carried all 123 since status 3.902's round, so the table lands here (Decision 121).
+#[cfg (feature = "have_x_windows")]
+macro_rules! def_x_atom_refs {
+  ($($xkb:tt)*) => {
+    [
+      ATOM_REFS_INIT! (c"WM_PROTOCOLS".as_ptr (), Xatom_wm_protocols),   // C 991
+      ATOM_REFS_INIT! (c"WM_TAKE_FOCUS".as_ptr (), Xatom_wm_take_focus),   // C 992
+      ATOM_REFS_INIT! (c"WM_SAVE_YOURSELF".as_ptr (), Xatom_wm_save_yourself),   // C 993
+      ATOM_REFS_INIT! (c"WM_DELETE_WINDOW".as_ptr (), Xatom_wm_delete_window),   // C 994
+      ATOM_REFS_INIT! (c"WM_CHANGE_STATE".as_ptr (), Xatom_wm_change_state),   // C 995
+      ATOM_REFS_INIT! (c"WM_STATE".as_ptr (), Xatom_wm_state),   // C 996
+      ATOM_REFS_INIT! (c"WM_CONFIGURE_DENIED".as_ptr (), Xatom_wm_configure_denied),   // C 997
+      ATOM_REFS_INIT! (c"WM_MOVED".as_ptr (), Xatom_wm_window_moved),   // C 998
+      ATOM_REFS_INIT! (c"WM_CLIENT_LEADER".as_ptr (), Xatom_wm_client_leader),   // C 999
+      ATOM_REFS_INIT! (c"WM_TRANSIENT_FOR".as_ptr (), Xatom_wm_transient_for),   // C 1000
+      ATOM_REFS_INIT! (c"Editres".as_ptr (), Xatom_editres),   // C 1001
+      ATOM_REFS_INIT! (c"CLIPBOARD".as_ptr (), Xatom_CLIPBOARD),   // C 1002
+      ATOM_REFS_INIT! (c"TIMESTAMP".as_ptr (), Xatom_TIMESTAMP),   // C 1003
+      ATOM_REFS_INIT! (c"TEXT".as_ptr (), Xatom_TEXT),   // C 1004
+      ATOM_REFS_INIT! (c"COMPOUND_TEXT".as_ptr (), Xatom_COMPOUND_TEXT),   // C 1005
+      ATOM_REFS_INIT! (c"UTF8_STRING".as_ptr (), Xatom_UTF8_STRING),   // C 1006
+      ATOM_REFS_INIT! (c"DELETE".as_ptr (), Xatom_DELETE),   // C 1007
+      ATOM_REFS_INIT! (c"MULTIPLE".as_ptr (), Xatom_MULTIPLE),   // C 1008
+      ATOM_REFS_INIT! (c"INCR".as_ptr (), Xatom_INCR),   // C 1009
+      ATOM_REFS_INIT! (c"_EMACS_TMP_".as_ptr (), Xatom_EMACS_TMP),   // C 1010
+      ATOM_REFS_INIT! (c"_EMACS_SERVER_TIME_PROP".as_ptr (), Xatom_EMACS_SERVER_TIME_PROP),   // C 1011
+      ATOM_REFS_INIT! (c"TARGETS".as_ptr (), Xatom_TARGETS),   // C 1012
+      ATOM_REFS_INIT! (c"NULL".as_ptr (), Xatom_NULL),   // C 1013
+      ATOM_REFS_INIT! (c"ATOM".as_ptr (), Xatom_ATOM),   // C 1014
+      ATOM_REFS_INIT! (c"ATOM_PAIR".as_ptr (), Xatom_ATOM_PAIR),   // C 1015
+      ATOM_REFS_INIT! (c"CLIPBOARD_MANAGER".as_ptr (), Xatom_CLIPBOARD_MANAGER),   // C 1016
+      ATOM_REFS_INIT! (c"_XEMBED_INFO".as_ptr (), Xatom_XEMBED_INFO),   // C 1017
+      ATOM_REFS_INIT! (c"_MOTIF_WM_HINTS".as_ptr (), Xatom_MOTIF_WM_HINTS),   // C 1018
+      ATOM_REFS_INIT! (c"_EMACS_DRAG_ATOM".as_ptr (), Xatom_EMACS_DRAG_ATOM),   // C 1019
+      ATOM_REFS_INIT! (c"PIXEL_SIZE".as_ptr (), Xatom_PIXEL_SIZE),   // C 1021
+      ATOM_REFS_INIT! (c"AVERAGE_WIDTH".as_ptr (), Xatom_AVERAGE_WIDTH),   // C 1022
+      ATOM_REFS_INIT! (c"_MULE_BASELINE_OFFSET".as_ptr (), Xatom_MULE_BASELINE_OFFSET),   // C 1023
+      ATOM_REFS_INIT! (c"_MULE_RELATIVE_COMPOSE".as_ptr (), Xatom_MULE_RELATIVE_COMPOSE),   // C 1024
+      ATOM_REFS_INIT! (c"_MULE_DEFAULT_ASCENT".as_ptr (), Xatom_MULE_DEFAULT_ASCENT),   // C 1025
+      ATOM_REFS_INIT! (c"DONE".as_ptr (), Xatom_DONE),   // C 1027
+      ATOM_REFS_INIT! (c"PAGE".as_ptr (), Xatom_PAGE),   // C 1028
+      ATOM_REFS_INIT! (c"_EMACS_SCROLLBAR".as_ptr (), Xatom_Scrollbar),   // C 1029
+      ATOM_REFS_INIT! (c"_EMACS_HORIZONTAL_SCROLLBAR".as_ptr (), Xatom_Horizontal_Scrollbar),   // C 1030
+      ATOM_REFS_INIT! (c"_XEMBED".as_ptr (), Xatom_XEMBED),   // C 1031
+      ATOM_REFS_INIT! (c"_NET_WM_STATE".as_ptr (), Xatom_net_wm_state),   // C 1033
+      ATOM_REFS_INIT! (c"_NET_WM_STATE_FULLSCREEN".as_ptr (), Xatom_net_wm_state_fullscreen),   // C 1034
+      ATOM_REFS_INIT! (c"_NET_WM_STATE_MAXIMIZED_HORZ".as_ptr (), Xatom_net_wm_state_maximized_horz),   // C 1035
+      ATOM_REFS_INIT! (c"_NET_WM_STATE_MAXIMIZED_VERT".as_ptr (), Xatom_net_wm_state_maximized_vert),   // C 1037
+      ATOM_REFS_INIT! (c"_NET_WM_STATE_STICKY".as_ptr (), Xatom_net_wm_state_sticky),   // C 1039
+      ATOM_REFS_INIT! (c"_NET_WM_STATE_SHADED".as_ptr (), Xatom_net_wm_state_shaded),   // C 1040
+      ATOM_REFS_INIT! (c"_NET_WM_STATE_HIDDEN".as_ptr (), Xatom_net_wm_state_hidden),   // C 1041
+      ATOM_REFS_INIT! (c"_NET_WM_WINDOW_TYPE".as_ptr (), Xatom_net_window_type),   // C 1042
+      ATOM_REFS_INIT! (c"_NET_WM_WINDOW_TYPE_TOOLTIP".as_ptr (), Xatom_net_window_type_tooltip),   // C 1043
+      ATOM_REFS_INIT! (c"_NET_WM_ICON_NAME".as_ptr (), Xatom_net_wm_icon_name),   // C 1045
+      ATOM_REFS_INIT! (c"_NET_WM_NAME".as_ptr (), Xatom_net_wm_name),   // C 1046
+      ATOM_REFS_INIT! (c"_NET_SUPPORTED".as_ptr (), Xatom_net_supported),   // C 1047
+      ATOM_REFS_INIT! (c"_NET_SUPPORTING_WM_CHECK".as_ptr (), Xatom_net_supporting_wm_check),   // C 1048
+      ATOM_REFS_INIT! (c"_NET_WM_WINDOW_OPACITY".as_ptr (), Xatom_net_wm_window_opacity),   // C 1049
+      ATOM_REFS_INIT! (c"_NET_ACTIVE_WINDOW".as_ptr (), Xatom_net_active_window),   // C 1050
+      ATOM_REFS_INIT! (c"_NET_FRAME_EXTENTS".as_ptr (), Xatom_net_frame_extents),   // C 1051
+      ATOM_REFS_INIT! (c"_NET_CURRENT_DESKTOP".as_ptr (), Xatom_net_current_desktop),   // C 1052
+      ATOM_REFS_INIT! (c"_NET_WORKAREA".as_ptr (), Xatom_net_workarea),   // C 1053
+      ATOM_REFS_INIT! (c"_NET_WM_SYNC_REQUEST".as_ptr (), Xatom_net_wm_sync_request),   // C 1054
+      ATOM_REFS_INIT! (c"_NET_WM_SYNC_REQUEST_COUNTER".as_ptr (), Xatom_net_wm_sync_request_counter),   // C 1055
+      ATOM_REFS_INIT! (c"_NET_WM_SYNC_FENCES".as_ptr (), Xatom_net_wm_sync_fences),   // C 1056
+      ATOM_REFS_INIT! (c"_NET_WM_BYPASS_COMPOSITOR".as_ptr (), Xatom_net_wm_bypass_compositor),   // C 1057
+      ATOM_REFS_INIT! (c"_NET_WM_FRAME_DRAWN".as_ptr (), Xatom_net_wm_frame_drawn),   // C 1058
+      ATOM_REFS_INIT! (c"_NET_WM_FRAME_TIMINGS".as_ptr (), Xatom_net_wm_frame_timings),   // C 1059
+      ATOM_REFS_INIT! (c"_NET_WM_USER_TIME".as_ptr (), Xatom_net_wm_user_time),   // C 1060
+      ATOM_REFS_INIT! (c"_NET_WM_USER_TIME_WINDOW".as_ptr (), Xatom_net_wm_user_time_window),   // C 1061
+      ATOM_REFS_INIT! (c"_NET_CLIENT_LIST_STACKING".as_ptr (), Xatom_net_client_list_stacking),   // C 1062
+      ATOM_REFS_INIT! (c"SM_CLIENT_ID".as_ptr (), Xatom_SM_CLIENT_ID),   // C 1064
+      ATOM_REFS_INIT! (c"_XSETTINGS_SETTINGS".as_ptr (), Xatom_xsettings_prop),   // C 1065
+      ATOM_REFS_INIT! (c"MANAGER".as_ptr (), Xatom_xsettings_mgr),   // C 1066
+      ATOM_REFS_INIT! (c"_NET_WM_STATE_SKIP_TASKBAR".as_ptr (), Xatom_net_wm_state_skip_taskbar),   // C 1067
+      ATOM_REFS_INIT! (c"_NET_WM_STATE_ABOVE".as_ptr (), Xatom_net_wm_state_above),   // C 1068
+      ATOM_REFS_INIT! (c"_NET_WM_STATE_BELOW".as_ptr (), Xatom_net_wm_state_below),   // C 1069
+      ATOM_REFS_INIT! (c"_NET_WM_OPAQUE_REGION".as_ptr (), Xatom_net_wm_opaque_region),   // C 1070
+      ATOM_REFS_INIT! (c"_NET_WM_PING".as_ptr (), Xatom_net_wm_ping),   // C 1071
+      ATOM_REFS_INIT! (c"_NET_WM_PID".as_ptr (), Xatom_net_wm_pid),   // C 1072
+      $($xkb)*
+      ATOM_REFS_INIT! (c"XdndAware".as_ptr (), Xatom_XdndAware),   // C 1081
+      ATOM_REFS_INIT! (c"XdndSelection".as_ptr (), Xatom_XdndSelection),   // C 1082
+      ATOM_REFS_INIT! (c"XdndTypeList".as_ptr (), Xatom_XdndTypeList),   // C 1083
+      ATOM_REFS_INIT! (c"XdndActionCopy".as_ptr (), Xatom_XdndActionCopy),   // C 1084
+      ATOM_REFS_INIT! (c"XdndActionMove".as_ptr (), Xatom_XdndActionMove),   // C 1085
+      ATOM_REFS_INIT! (c"XdndActionLink".as_ptr (), Xatom_XdndActionLink),   // C 1086
+      ATOM_REFS_INIT! (c"XdndActionAsk".as_ptr (), Xatom_XdndActionAsk),   // C 1087
+      ATOM_REFS_INIT! (c"XdndActionPrivate".as_ptr (), Xatom_XdndActionPrivate),   // C 1088
+      ATOM_REFS_INIT! (c"XdndActionList".as_ptr (), Xatom_XdndActionList),   // C 1089
+      ATOM_REFS_INIT! (c"XdndActionDescription".as_ptr (), Xatom_XdndActionDescription),   // C 1090
+      ATOM_REFS_INIT! (c"XdndProxy".as_ptr (), Xatom_XdndProxy),   // C 1091
+      ATOM_REFS_INIT! (c"XdndEnter".as_ptr (), Xatom_XdndEnter),   // C 1092
+      ATOM_REFS_INIT! (c"XdndPosition".as_ptr (), Xatom_XdndPosition),   // C 1093
+      ATOM_REFS_INIT! (c"XdndStatus".as_ptr (), Xatom_XdndStatus),   // C 1094
+      ATOM_REFS_INIT! (c"XdndLeave".as_ptr (), Xatom_XdndLeave),   // C 1095
+      ATOM_REFS_INIT! (c"XdndDrop".as_ptr (), Xatom_XdndDrop),   // C 1096
+      ATOM_REFS_INIT! (c"XdndFinished".as_ptr (), Xatom_XdndFinished),   // C 1097
+      ATOM_REFS_INIT! (c"XdndDirectSave0".as_ptr (), Xatom_XdndDirectSave0),   // C 1099
+      ATOM_REFS_INIT! (c"XdndActionDirectSave".as_ptr (), Xatom_XdndActionDirectSave),   // C 1100
+      ATOM_REFS_INIT! (c"text/plain".as_ptr (), Xatom_text_plain),   // C 1101
+      ATOM_REFS_INIT! (c"_MOTIF_DRAG_WINDOW".as_ptr (), Xatom_MOTIF_DRAG_WINDOW),   // C 1103
+      ATOM_REFS_INIT! (c"_MOTIF_DRAG_TARGETS".as_ptr (), Xatom_MOTIF_DRAG_TARGETS),   // C 1104
+      ATOM_REFS_INIT! (c"_MOTIF_DRAG_AND_DROP_MESSAGE".as_ptr (), Xatom_MOTIF_DRAG_AND_DROP_MESSAGE),   // C 1105
+      ATOM_REFS_INIT! (c"_MOTIF_DRAG_INITIATOR_INFO".as_ptr (), Xatom_MOTIF_DRAG_INITIATOR_INFO),   // C 1107
+      ATOM_REFS_INIT! (c"_MOTIF_DRAG_RECEIVER_INFO".as_ptr (), Xatom_MOTIF_DRAG_RECEIVER_INFO),   // C 1109
+      ATOM_REFS_INIT! (c"XmTRANSFER_SUCCESS".as_ptr (), Xatom_XmTRANSFER_SUCCESS),   // C 1111
+      ATOM_REFS_INIT! (c"XmTRANSFER_FAILURE".as_ptr (), Xatom_XmTRANSFER_FAILURE),   // C 1112
+      ATOM_REFS_INIT! (c"DndProtocol".as_ptr (), Xatom_DndProtocol),   // C 1114
+      ATOM_REFS_INIT! (c"_DND_PROTOCOL".as_ptr (), Xatom_DND_PROTOCOL),   // C 1115
+      ATOM_REFS_INIT! (c"text/plain;charset=utf-8".as_ptr (), Xatom_text_plain_charset_utf_8),   // C 1118
+      ATOM_REFS_INIT! (c"LENGTH".as_ptr (), Xatom_LENGTH),   // C 1119
+      ATOM_REFS_INIT! (c"FILE_NAME".as_ptr (), Xatom_FILE_NAME),   // C 1120
+      ATOM_REFS_INIT! (c"CHARACTER_POSITION".as_ptr (), Xatom_CHARACTER_POSITION),   // C 1121
+      ATOM_REFS_INIT! (c"LINE_NUMBER".as_ptr (), Xatom_LINE_NUMBER),   // C 1122
+      ATOM_REFS_INIT! (c"COLUMN_NUMBER".as_ptr (), Xatom_COLUMN_NUMBER),   // C 1123
+      ATOM_REFS_INIT! (c"OWNER_OS".as_ptr (), Xatom_OWNER_OS),   // C 1124
+      ATOM_REFS_INIT! (c"HOST_NAME".as_ptr (), Xatom_HOST_NAME),   // C 1125
+      ATOM_REFS_INIT! (c"USER".as_ptr (), Xatom_USER),   // C 1126
+      ATOM_REFS_INIT! (c"CLASS".as_ptr (), Xatom_CLASS),   // C 1127
+      ATOM_REFS_INIT! (c"NAME".as_ptr (), Xatom_NAME),   // C 1128
+      ATOM_REFS_INIT! (c"SAVE_TARGETS".as_ptr (), Xatom_SAVE_TARGETS),   // C 1129
+    ]
+  };
+}
+
+#[cfg (not (feature = "have_xkb"))]
+pub static mut x_atom_refs: [x_atom_ref; 116] = def_x_atom_refs! ();
+
+#[cfg (feature = "have_xkb")]
+pub static mut x_atom_refs: [x_atom_ref; 121] = def_x_atom_refs! (
+      ATOM_REFS_INIT! (c"Meta".as_ptr (), Xatom_Meta),   // C 1074
+      ATOM_REFS_INIT! (c"Super".as_ptr (), Xatom_Super),   // C 1075
+      ATOM_REFS_INIT! (c"Hyper".as_ptr (), Xatom_Hyper),   // C 1076
+      ATOM_REFS_INIT! (c"ShiftLock".as_ptr (), Xatom_ShiftLock),   // C 1077
+      ATOM_REFS_INIT! (c"Alt".as_ptr (), Xatom_Alt),   // C 1078
+);
 
 /* C 891: `static void x_push_selection_request (struct selection_input_event *);` - a forward
    declaration of the static C defines at 12573.  Rust has no prototypes and resolves items by
