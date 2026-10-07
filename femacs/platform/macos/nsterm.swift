@@ -2838,6 +2838,10 @@ func emacs_view_frame(_ view: AnyObject?) -> UnsafeMutableRawPointer?
 /// `src/nsmenu.m`'s class (`nsmenu.swift`'s `EmacsTooltip`), so this entry's definition belongs
 /// on that side, the way `is_emacs_view`'s belongs here.
 @_silgen_name("is_emacs_tooltip") func is_emacs_tooltip(_ obj: AnyObject?) -> Bool
+/// `EmacsImage`'s class test C 9731 sends (`isKindOfClass: [EmacsImage class]`) - the same
+/// receiver-first shape as `is_emacs_tooltip` above: the class is `nsimage.swift`'s (`src/nsterm.h`
+/// 542), so that unit defines this entry.
+@_silgen_name("is_emacs_image") func is_emacs_image(_ obj: AnyObject?) -> Bool
 
 /// C 2408-2430: `void frame_set_mouse_pixel_position (struct frame *f, int pix_x, int pix_y)` -
 /// "Programmatically reposition mouse pointer in pixel coordinates".  Declared src/frame.h 1882
@@ -10370,6 +10374,118 @@ class EmacsView: NSView {
   override var isOpaque: Bool {
     false                                             // C 8555
   }
+
+  // ==========================================================================
+  // C 9657-9744: the class's last five methods - the pasteboard pair the informal
+  // `NSServicesRequests` protocol asks for, `setMiniwindowImage:` and the
+  // `fullscreenState` read.  C 9746 closes the class's own text.
+  // ==========================================================================
+
+  /// C 9657-9670: `- (id) validRequestorForSendType: (NSString *)typeSent returnType:
+  /// (NSString *)typeReturned`.  The selector is `NSResponder`'s own, declared in NSResponder.h 29,
+  /// so the port overrides the imported spelling; C 9661's `[ns_send_types indexOfObject:
+  /// typeSent]` is an `NSArray` message to the pointer global and the reading keeps the **nil
+  /// receiver's 0** - `ns_send_types_storage` is nil until C 6149 runs, and 0 passes C's
+  /// `!= NSNotFound` test, which is what the C does; C 9660's `NSTRACE` is empty at
+  /// `NSTRACE_ENABLED` 0.
+  override func validRequestor(forSendType typeSent: NSPasteboard.PasteboardType?,
+                               returnType typeReturned: NSPasteboard.PasteboardType?) -> Any? {
+    // C 9660: `NSTRACE ("[EmacsView validRequestorForSendType:returnType:]");` - empty.
+
+    if typeSent != nil
+         /* C 9661: `[ns_send_types indexOfObject: typeSent] != NSNotFound`.  An `NSArray` message
+            to the global, so a nil `ns_send_types` reads as the nil receiver's 0 and passes the
+            test - what the C does.  */
+         && ((ns_send_types_storage as? [NSPasteboard.PasteboardType])
+               .map { $0.firstIndex(of: typeSent!) ?? NSNotFound } ?? 0) != NSNotFound
+         && typeReturned == nil {                                 // C 9662
+      if !NILP(ns_get_local_selection(QPRIMARY(), QUTF8_STRING())) {   // C 9664
+        return self                                              // C 9665
+      }
+    }
+
+    return super.validRequestor(forSendType: typeSent, returnType: typeReturned)   // C 9668-9669
+  }
+
+  /// C 9673-9686: `- (BOOL) readSelectionFromPasteboard: (NSPasteboard *)pb`.  The selector belongs
+  /// to the **informal** `NSServicesRequests` protocol: AppKit declares it on `NSApplication`, not
+  /// on `NSView`, so it is a plain `@objc` method with the selector pinned rather than an override.
+  /// C 9682-9684's comment is the body's whole reason and C 9685 returns `NO`.
+  @objc(readSelectionFromPasteboard:)
+  func readSelectionFromPasteboard(_ pb: NSPasteboard) -> Bool {
+    /* C 9682-9684: "We could call ns_string_from_pasteboard(pboard) here but then it should be
+       written into the buffer in place of the existing selection.  Ordinary service calls go
+       through functions defined in ns-win.el."  */
+    return false                                              // C 9685
+  }
+
+  /// C 9688-9714: `- (BOOL) writeSelectionToPasteboard: (NSPasteboard *)pb types: (NSArray *)types`
+  /// (the same informal protocol as the method above).  Readings: C 9696's `[types containsObject:
+  /// NSPasteboardTypeString]` is `NSArray`'s own `contains`; `CONSP`/`SYMBOLP`/`XCAR`/`XCDR`/
+  /// `NILP`/`STRINGP` are the entries this unit already declares (C 1183-1186); C 9710's
+  /// `[NSArray arrayWithObject: NSPasteboardTypeString]` is `NSArray (object:)`; `declareTypes:`
+  /// `owner:` takes the typed array and its change-count result is C's discarded one, and
+  /// `ns_string_to_pasteboard` (C 9712) is `nsselect.swift`'s own C-ABI export.
+  @objc(writeSelectionToPasteboard:types:)
+  func writeSelectionToPasteboard(_ pb: NSPasteboard, types: NSArray) -> Bool {
+    var val: Lisp_Object                                      // C 9691
+
+    // C 9693: `NSTRACE ("[EmacsView writeSelectionToPasteboard:types:]");` - empty.
+
+    /* C 9695: "We only support NSPasteboardTypeString."  */
+    if types.contains(NSPasteboard.PasteboardType.string) == false {   // C 9696
+      return false                                            // C 9697
+    }
+
+    val = ns_get_local_selection(QPRIMARY(), QUTF8_STRING())  // C 9700
+    if CONSP(val) && SYMBOLP(XCAR(val)) {                     // C 9701
+      val = XCDR(val)                                         // C 9703
+      if CONSP(val) && NILP(XCDR(val)) {                      // C 9704
+        val = XCAR(val)                                       // C 9705
+      }
+    }
+    if !STRINGP(val) {                                        // C 9707
+      return false                                            // C 9708
+    }
+
+    let typesDeclared = NSArray(object: NSPasteboard.PasteboardType.string)   // C 9690/9710
+    _ = pb.declareTypes(typesDeclared as! [NSPasteboard.PasteboardType], owner: nil)   // C 9711
+    ns_string_to_pasteboard(pb, val)                          // C 9712
+    return true                                               // C 9713
+  }
+
+  /// C 9716-9738: `- (instancetype)setMiniwindowImage: (BOOL) setMini` - C 9717-9720's comment is
+  /// the caller's contract.  Readings: the `instancetype` return is this class's own dynamic self;
+  /// C 9729's `image != emacsframe->output_data.ns->miniimage` is the frame-member read
+  /// (`ns_output_miniimage`, C 1900's entry); C 9731's `[image isKindOfClass: [EmacsImage class]]`
+  /// is the class-kind entry `is_emacs_image` (the class is `nsimage.swift`'s, so this unit
+  /// imports it the `is_emacs_tooltip` way); C 9732's `[image release]` is the ARC decrement the
+  /// `ns_release_object` reading uses (C 602); C 9733-9734's ternary is the property write.
+  @objc(setMiniwindowImage:)
+  func setMiniwindowImage(_ setMini: Bool) -> AnyObject? {
+    let image = self.window?.miniwindowImage                 // C 9723
+
+    // C 9724: `NSTRACE ("[EmacsView setMiniwindowImage:%d]", setMini);` - empty.
+
+    /* C 9726-9728: "NOTE: under Cocoa miniwindowImage always returns nil, documentation about
+       "AppleDockIconEnabled" notwithstanding, however the set message below has its effect
+       nonetheless."  */
+    if image != ns_output_miniimage(emacsframe) {            // C 9729
+      if image != nil && is_emacs_image(image) {             // C 9731
+        Unmanaged.passUnretained(image!).release()           // C 9732
+      }
+      self.window?.miniwindowImage =
+        setMini ? ns_output_miniimage(emacsframe) : nil      // C 9733-9734
+    }
+
+    return self                                              // C 9737
+  }
+
+  /// C 9741-9744: `- (int) fullscreenState` - C's whole body is the ivar read the rest of the
+  /// class already writes (C 7065, C 8567, C 8853, C 9130-9199); C 9746's `@end` closes the class.
+  @objc func fullscreenState() -> Int32 {
+    fs_state                                                 // C 9743
+  }
 }
 
 /// C 5086-5107: `static void check_native_fs (void)` - the function C 5127 and C 5218 call from
@@ -14405,6 +14521,11 @@ func ns_get_local_selection(_ selection_name: Lisp_Object, _ target_type: Lisp_O
 /// is `DEFSYM`'d by this file itself at C 11564, the C 555 `QCmouse` shape).
 @_silgen_name("QPRIMARY") func QPRIMARY() -> Lisp_Object
 @_silgen_name("QUTF8_STRING") func QUTF8_STRING() -> Lisp_Object
+/// C: `extern void ns_string_to_pasteboard (id pb, Lisp_Object str);` (src/nsterm.h 1134, the
+/// `__OBJC__` half; defined src/nsselect.m, and `nsselect.swift` 560 already exports the C-ABI
+/// definition) - C 9712's call.
+@_silgen_name("ns_string_to_pasteboard")
+func ns_string_to_pasteboard(_ pb: NSPasteboard?, _ str: Lisp_Object)
 
 // ==========================================================================
 // Round 68: the entries the focus/notification batch needs
@@ -14954,3 +15075,21 @@ func record_unwind_protect_ptr(_ func: (@convention(c) (UnsafeMutableRawPointer?
 /// at src/termhooks.h 74-348; the value is 17 - the mirror-valued-constant reading,
 /// `femacs/src/include/termhooks.rs` 44).
 fileprivate let DRAG_N_DROP_EVENT: UInt32 = 17
+
+// ==========================================================================
+// Round 80: the two entries `nsfns.swift` has been waiting for
+// ==========================================================================
+
+/// The C-ABI half of `setMiniwindowImage:` above (the `@_cdecl("isFullscreen")` pattern): the
+/// entry `nsfns.swift` 408 declares, whose call sites are `nsfns.swift` 1969 and 2007.
+@_cdecl("setMiniwindowImage")
+func setMiniwindowImage_definition(_ view: NSView?, _ mini: Bool) {
+  _ = (view as? EmacsView)?.setMiniwindowImage(mini)
+}
+
+/// The C-ABI half of `fullscreenState` above: the entry `nsfns.swift` 410 declares, whose call
+/// site is `nsfns.swift` 1841.
+@_cdecl("fullscreenState")
+func fullscreenState_definition(_ view: NSView?) -> Int32 {
+  (view as? EmacsView)?.fullscreenState() ?? 0
+}

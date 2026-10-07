@@ -16931,3 +16931,45 @@
      跑完即删，无全盘/大内存扫描。
      **未声称**：本半**没有运行证据**——这些手册没有被 `makeinfo` 重建过，也没有 `info` 的读数，
      "Info 目录里那一格现在印什么"只是文本读数；交叉引用的标题栏与手册自己的书名一致由逐字节门与逐行复核保证，不是编译或运行证据。
+
+- **4.021 `src/nsterm.m` round 80（Swift lane）：`EmacsView` 最后五个方法落地（C 9657-9744），类的 C 正文走到 `@end`，两个延迟入口随之收口（2026-10-08）**：
+  ① **本片落的五件**（`femacs/platform/macos/nsterm.swift`，C 顺序）：`validRequestorForSendType:returnType:`（C 9657-9670）、
+     `readSelectionFromPasteboard:`（C 9680-9686）、`writeSelectionToPasteboard:types:`（C 9688-9714）、
+     `setMiniwindowImage:`（C 9721-9738）与 `fullscreenState`（C 9741-9744）。台账里 `EmacsView` 类盒子下的
+     **5 个方法框一次勾完**（勾 419 → **424**、未勾 11 → **6**），类盒子文字改成"**5 个方法框剩余**"并写明：
+     类自己的 C 正文（`@implementation` 7039 - `@end` 9746）**已走到**，剩下的是五个协议要求
+     （`firstRectForCharacterRange:` 一族 C 7458/7464/7651/7733/7769）与 `src/nsterm.h` 466 的协议表——那正是首轮就点名的延后项，
+     它们一到，`EmacsView` 与 `EmacsWindow` 一样整类收口。
+  ② **两个延迟入口收口**（第四片的跨单元契约）：`@_cdecl("setMiniwindowImage")` 与 `@_cdecl("fullscreenState")` 落在类旁
+     （`isFullscreen`/`copyRect` 那条 shape），`nsfns.swift` 408/410 声明的那两条入口（调用点 nsfns.swift 1969/2007 与 1841）由此有定义。
+     **读数**：本单元对象里 `nm` 读 `T _setMiniwindowImage`、`T _fullscreenState`，`nm -u` **两条名字都不再列为未定义**；
+     **这条读数不是什么**：本单元对象**从来没有**列过这两条入口为未定义（它们是 `nsfns.swift` 的 import），所以这里能读的是"定义已在"，
+     链接才是最终验收；`nm -u` 里确实出现的那个 `setMiniwindowImage` 字样是 `_objc_msgSend$setMiniwindowImage:`——C 9733-9734 那次写发送的
+     `NSWindow` 属性 setter 的 selector 桩，与入口不是同一个符号。
+  ③ **三处 selector 读法（协议表把话说清之后）**：C 9657 的 selector 是 `NSResponder` 自己的（NSResponder.h 29 声明），所以照导入名 `override`；
+     C 9680 与 C 9688 属**非正式协议** `NSServicesRequests`（AppKit 把它们声明在 `NSApplication` 上、不在 `NSView` 上），所以是写了
+     `@objc(<selector>)` 把名字钉死的普通方法、不是 override；C 9741 的 `fullscreenState` 是本类自己的（src/nsterm.h 516 声明）。
+  ④ **C 9661 的 nil receiver 读法**：`[ns_send_types indexOfObject: typeSent]` 是给指针全局发消息，`ns_send_types` 在 C 6149 之前是 nil ——
+     ObjC 的 nil 消息返回 **0**，而 0 **通过** C 的 `!= NSNotFound` 测试。移植照抄这个形状
+     （`(ns_send_types_storage as? [NSPasteboard.PasteboardType]).map { $0.firstIndex(of: typeSent!) ?? NSNotFound } ?? 0`），
+     没有把它"修"成更合理的空数组语义。
+  ⑤ **门抓到的三处（一处 error + 两处引用，全部在落盘前修掉）**：⑴ 首跑一条 `cannot find type 'EmacsImage' in scope`——
+     `EmacsImage` 是 `nsimage.swift` 的类（src/nsterm.h 542），本单元单独编译看不见它 ⇒ C 9731 的 `isKindOfClass: [EmacsImage class]`
+     落成 receiver-first 入口 `is_emacs_image`（C 2534 那行 `is_emacs_tooltip` 记录的同一 shape），并在台账 ABI 里按"该类的单元定义它"记为 **open**；
+     ⑵ 新写的 doc 行把 `ns_release_object` 读法的出处写成 C 1959，而它的 C home 是 **C 602** ⇒ 改掉；
+     ⑶ `NSResponder` 那句补上头部路径（NSResponder.h 29，外部引用 2,416 → **2,417**）。`check-citations` 终读
+     **676 / 0 drift / 0 range / 2,417 external / 36 allowed / 0 stale**。
+  ⑥ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 73-79 的九条逐条相同，**无新增**；
+     首跑那一条 error 就是 ⑤⑴）；对象 `/tmp/nsterm80.o` **1,386,696 字节**、md5 `be875a202c1ee752faf81ea7fec70d4a`
+     （⑤⑵⑶ 的纯注释修复**前后逐字节相同**——同一 md5）；单元 **15,095 行**（round 79 是 14,956）。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **711** C symbol import(s)`
+     （round 79 是 709：本轮新增 `ns_string_to_pasteboard` 与 `is_emacs_image` 两条 import），终读
+     **`0 new, 0 stale, 7 Swift unit(s) landed`**。⑶ 十门其余：declarations **18/0/18/0**、own-voice **0**、
+     mirror-dupes **16/16/0**、port-lines **0/0/0/0**、ledger-ticks **238/0**、carried **11/11/4/0**、
+     verbatim **6 树 / 4604 文件 / 8,419 行 / 0 失败**、verbatim-declarations **710 候选 / 6 登记 / 0 失败**、
+     dead-file-coverage **145/0**。
+  ⑦ **预算与清理**：本片**单文件编译门 6 发**（每发是 `swiftc -parse-as-library -c` 对同一文件的解析/类型检查，各约 2 秒：首跑 1 发、
+     修 `is_emacs_image` 后 1 发、对象字节与警告计数各 1 发、注释修完的复读 1 发，共约 10 秒）；另用 **5 组只读 grep**
+     钉准入口、selector 与 SDK 声明；**对象 `/tmp/nsterm80.o` 与 `/tmp/r80_*.py` 跑完即删**，无全盘/大内存扫描。
+     **未声称**：本轮**没有运行证据**——没有服务菜单项被选中、没有选区写进粘贴板、没有 miniwindow 图像被设置；
+     编译门只到解析与类型检查，两个入口定义的**链接期验收**在本 lane 里不可得。
