@@ -9545,3 +9545,257 @@ DEFUN! ("x-display-monitor-attributes-list", Fx_display_monitor_attributes_list,
 
   return attributes_list;                                               // C 6776
 });
+
+/* C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);` - `frame.c` defines it
+   (the port's `src/frame.rs`) and this unit's include graph carries no declaration, so it stands
+   at the use site (PORTING.md P-55/P-72 rule 3; `src/dispnew.rs` 270-271 declares the same row).
+   C 6788's call, the only one here.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
+}
+
+/* -----------------------------------------------------------------------------------------
+   C 6785-7035: `frame_geometry` (its comment is C 6779-6783) and the two subrs it backs,
+   `x-frame-geometry` (C 6964-7011) and `x-frame-edges` (C 7013-7035).  The `HAVE_EXT_MENU_BAR`
+   and `HAVE_EXT_TOOL_BAR` arms C 6860-6922 carries decide where the menu and tool bars sit.
+   -------------------------------------------------------------------------------------- */
+
+/* C 6779-6783: "Return geometric attributes of FRAME.  According to the value of ATTRIBUTES
+   return the outer edges of FRAME (Qouter_edges), the native edges of FRAME (Qnative_edges), or
+   the inner edges of frame (Qinner_edges).  Any other value means to return the geometry as
+   returned by Fx_frame_geometry."  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn frame_geometry (frame: Lisp_Object, attribute: Lisp_Object) -> Lisp_Object
+{
+  let f: *mut frame = decode_live_frame (frame);                          // C 6788
+  /* C 6789: `/**   XWindowAttributes atts; **/` - the file's own commented-out declaration.  */
+  let mut rootw: Window = 0;                                              // C 6790
+  let mut ign: c_uint = 0;                                                // C 6791
+  let mut native_width: c_uint = 0;
+  let mut native_height: c_uint = 0;
+  let mut x_border_width: c_uint = 0;
+  let mut x_native: c_int = 0;                                            // C 6792
+  let mut y_native: c_int = 0;
+  let mut xptr: c_int = 0;
+  let mut yptr: c_int = 0;
+  let mut left_off: c_int = 0;                                            // C 6793
+  let mut right_off: c_int = 0;
+  let mut top_off: c_int = 0;
+  let mut bottom_off: c_int = 0;
+  let mut outer_left: c_int;                                              // C 6794
+  let mut outer_top: c_int;
+  let mut outer_right: c_int;
+  let mut outer_bottom: c_int;
+  let mut native_left: c_int;                                             // C 6795
+  let mut native_top: c_int;
+  let mut native_right: c_int;
+  let mut native_bottom: c_int;
+  let mut inner_left: c_int;                                              // C 6796
+  let mut inner_top: c_int;
+  let mut inner_right: c_int;
+  let mut inner_bottom: c_int;
+  let mut internal_border_width: c_int;                                   // C 6797
+  let mut menu_bar_external: bool = false;                                // C 6798
+  let mut tool_bar_external: bool = false;
+  let mut menu_bar_height: c_int = 0;                                     // C 6799
+  let mut menu_bar_width: c_int = 0;
+  let mut tab_bar_height: c_int = 0;                                      // C 6800
+  let mut tab_bar_width: c_int = 0;
+  let mut tool_bar_height: c_int = 0;                                     // C 6801
+  let mut tool_bar_width: c_int = 0;
+
+  if FRAME_INITIAL_P (f) || !FRAME_X_P (f) || FRAME_OUTER_WINDOW! (f) == 0   // C 6803
+    { return Qnil (); }                                                    // C 6804
+
+  block_input ();                                                          // C 6806
+  XGetGeometry (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),             // C 6807-6809
+		&raw mut rootw, &raw mut x_native, &raw mut y_native,
+		&raw mut native_width, &raw mut native_height,
+		&raw mut x_border_width, &raw mut ign);
+  /* C 6810: `/**   XGetWindowAttributes (FRAME_X_DISPLAY (f), FRAME_OUTER_WINDOW (f), &atts); **/`  */
+  if FRAME_PARENT_FRAME (f).is_null ()                                     // C 6811
+    { x_real_pos_and_offsets (f, &raw mut left_off, &raw mut right_off,      // C 6812-6813
+			      &raw mut top_off, &raw mut bottom_off,
+			      std::ptr::null_mut (), std::ptr::null_mut (),
+			      &raw mut xptr, &raw mut yptr, std::ptr::null_mut ()); }
+  unblock_input ();                                                        // C 6814
+
+  /* C 6816-6817: `/**   native_width = atts.width; **/` and `/**   native_height = atts.height; **/`  */
+
+  if !FRAME_PARENT_FRAME (f).is_null ()                                    // C 6819
+    {
+      let mut parent: Lisp_Object = Qnil ();                               // C 6821
+      let mut edges: Lisp_Object = Qnil ();
+
+      XSETFRAME! (parent, FRAME_PARENT_FRAME (f));                          // C 6823
+      edges = Fx_frame_edges (parent, Qnative_edges ());                    // C 6824
+      if !NILP (edges)                                                      // C 6825
+	{
+	  x_native += XFIXNUM (Fnth (make_fixnum (0), edges)) as c_int;      // C 6827
+	  y_native += XFIXNUM (Fnth (make_fixnum (1), edges)) as c_int;      // C 6828
+	}
+
+      outer_left = x_native;                                                // C 6831
+      outer_top = y_native;                                                 // C 6832
+      outer_right = outer_left + native_width as c_int + 2 * (x_border_width as c_int);   // C 6833
+      outer_bottom = outer_top + native_height as c_int + 2 * (x_border_width as c_int);  // C 6834
+
+      native_left = x_native + x_border_width as c_int;                     // C 6836
+      native_top = y_native + x_border_width as c_int;                      // C 6837
+      native_right = native_left + native_width as c_int;                   // C 6838
+      native_bottom = native_top + native_height as c_int;                  // C 6839
+    }
+  else
+    {
+      outer_left = xptr;                                                    // C 6843
+      outer_top = yptr;                                                     // C 6844
+      outer_right = outer_left + left_off + native_width as c_int + right_off;    // C 6845
+      outer_bottom = outer_top + top_off + native_height as c_int + bottom_off;   // C 6846
+
+      native_left = outer_left + left_off;                                  // C 6848
+      native_top = outer_top + top_off;                                     // C 6849
+      native_right = native_left + native_width as c_int;                   // C 6850
+      native_bottom = native_top + native_height as c_int;                  // C 6851
+    }
+
+  internal_border_width = FRAME_INTERNAL_BORDER_WIDTH (f);                  // C 6854
+  inner_left = native_left + internal_border_width;                         // C 6855
+  inner_top = native_top + internal_border_width;                           // C 6856
+  inner_right = native_right - internal_border_width;                       // C 6857
+  inner_bottom = native_bottom - internal_border_width;                     // C 6858
+
+  #[cfg (feature = "have_ext_menu_bar")]                                    // C 6860
+  {
+    menu_bar_external = true;                                               // C 6861
+    menu_bar_height = FRAME_MENUBAR_HEIGHT! (f);                            // C 6862
+    native_top += menu_bar_height;                                          // C 6863
+    inner_top += menu_bar_height;                                           // C 6864
+  }
+  #[cfg (not (feature = "have_ext_menu_bar"))]                              // C 6865
+  {
+    menu_bar_height = FRAME_MENU_BAR_HEIGHT (f);                            // C 6866
+    inner_top += menu_bar_height;                                           // C 6867
+  }
+  menu_bar_width = if menu_bar_height != 0 { native_width as c_int } else { 0 };   // C 6869
+
+  tab_bar_height = FRAME_TAB_BAR_HEIGHT (f);                                // C 6871
+  tab_bar_width = if tab_bar_height != 0                                    // C 6872-6874
+    { native_width as c_int - 2 * internal_border_width } else { 0 };
+  inner_top += tab_bar_height;                                              // C 6875
+
+  #[cfg (feature = "have_ext_tool_bar")]                                    // C 6877
+  {
+    tool_bar_external = true;                                               // C 6878
+    if EQ (FRAME_TOOL_BAR_POSITION (f), Qleft ())                           // C 6879
+      {
+	tool_bar_width = FRAME_TOOLBAR_WIDTH! (f);                          // C 6881
+	native_left += tool_bar_width;                                      // C 6882
+	inner_left += tool_bar_width;                                       // C 6883
+	tool_bar_height = if tool_bar_width != 0                            // C 6884-6885
+	  { native_height as c_int - menu_bar_height } else { 0 };
+      }
+    else if EQ (FRAME_TOOL_BAR_POSITION (f), Qtop ())                       // C 6887
+      {
+	tool_bar_height = FRAME_TOOLBAR_HEIGHT! (f);                        // C 6889
+	native_top += tool_bar_height;                                      // C 6890
+	inner_top += tool_bar_height;                                       // C 6891
+	tool_bar_width = if tool_bar_height != 0 { native_width as c_int } else { 0 };   // C 6892
+      }
+    else if EQ (FRAME_TOOL_BAR_POSITION (f), Qright ())                     // C 6894
+      {
+	tool_bar_width = FRAME_TOOLBAR_WIDTH! (f);                          // C 6896
+	native_right -= tool_bar_width;                                     // C 6897
+	inner_right -= tool_bar_width;                                      // C 6898
+	tool_bar_height = if tool_bar_width != 0                            // C 6899-6900
+	  { native_height as c_int - menu_bar_height } else { 0 };
+      }
+    else
+      {
+	tool_bar_height = FRAME_TOOLBAR_HEIGHT! (f);                        // C 6904
+	native_bottom -= tool_bar_height;                                   // C 6905
+	inner_bottom -= tool_bar_height;                                    // C 6906
+	tool_bar_width = if tool_bar_height != 0 { native_width as c_int } else { 0 };  // C 6907
+      }
+  }
+  #[cfg (not (feature = "have_ext_tool_bar"))]                              // C 6909
+  {
+    tool_bar_height = FRAME_TOOL_BAR_HEIGHT (f);                            // C 6910
+    tool_bar_width = if tool_bar_height != 0                                // C 6911-6913
+      { native_width as c_int - 2 * internal_border_width } else { 0 };
+
+    /* Subtract or add to the inner dimensions based on the tool bar position.  */   // C 6915-6916
+
+    if EQ (FRAME_TOOL_BAR_POSITION (f), Qtop ())                            // C 6918
+      { inner_top += tool_bar_height; }                                     // C 6919
+    else
+      { inner_bottom -= tool_bar_height; }                                  // C 6921
+  }
+
+  /* Construct list.  */                                                    // C 6924
+  if EQ (attribute, Qouter_edges ())                                        // C 6925
+    { return list4i (outer_left as EMACS_INT, outer_top as EMACS_INT,       // C 6926
+		     outer_right as EMACS_INT, outer_bottom as EMACS_INT); }
+  else if EQ (attribute, Qnative_edges ())                                  // C 6927
+    { return list4i (native_left as EMACS_INT, native_top as EMACS_INT,     // C 6928
+		     native_right as EMACS_INT, native_bottom as EMACS_INT); }
+  else if EQ (attribute, Qinner_edges ())                                   // C 6929
+    { return list4i (inner_left as EMACS_INT, inner_top as EMACS_INT,       // C 6930
+		     inner_right as EMACS_INT, inner_bottom as EMACS_INT); }
+  else
+    { return                                                                // C 6932
+      list! (Fcons (Qouter_position (),                                     // C 6933-6935
+		    Fcons (make_fixnum (outer_left as EMACS_INT),
+			   make_fixnum (outer_top as EMACS_INT))),
+	     Fcons (Qouter_size (),                                         // C 6936-6938
+		    Fcons (make_fixnum ((outer_right - outer_left) as EMACS_INT),
+			   make_fixnum ((outer_bottom - outer_top) as EMACS_INT))),
+	     /* Approximate.  */                                            // C 6939
+	     Fcons (Qexternal_border_size (),                               // C 6940-6942
+		    Fcons (make_fixnum (right_off as EMACS_INT),
+			   make_fixnum (bottom_off as EMACS_INT))),
+	     Fcons (Qouter_border_width (), make_fixnum (x_border_width as EMACS_INT)),  // C 6943
+	     /* Approximate.  */                                            // C 6944
+	     Fcons (Qtitle_bar_size (),                                     // C 6945-6947
+		    Fcons (make_fixnum (0),
+			   make_fixnum ((top_off - bottom_off) as EMACS_INT))),
+	     Fcons (Qmenu_bar_external (),                                  // C 6948
+		    if menu_bar_external { Qt () } else { Qnil () }),
+	     Fcons (Qmenu_bar_size (),                                      // C 6949-6951
+		    Fcons (make_fixnum (menu_bar_width as EMACS_INT),
+			   make_fixnum (menu_bar_height as EMACS_INT))),
+	     Fcons (Qtab_bar_size (),                                       // C 6952-6954
+		    Fcons (make_fixnum (tab_bar_width as EMACS_INT),
+			   make_fixnum (tab_bar_height as EMACS_INT))),
+	     Fcons (Qtool_bar_external (),                                  // C 6955
+		    if tool_bar_external { Qt () } else { Qnil () }),
+	     Fcons (Qtool_bar_position (), FRAME_TOOL_BAR_POSITION (f)),    // C 6956
+	     Fcons (Qtool_bar_size (),                                      // C 6957-6959
+		    Fcons (make_fixnum (tool_bar_width as EMACS_INT),
+			   make_fixnum (tool_bar_height as EMACS_INT))),
+	     Fcons (Qinternal_border_width (),                              // C 6960-6961
+		    make_fixnum (internal_border_width as EMACS_INT)));
+    }
+}
+
+/* C 6964-7011.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-frame-geometry", Fx_frame_geometry, Sx_frame_geometry,
+	0, 1, 0,
+	doc: "Return geometric attributes of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is an association list of the attributes listed below.  All height\nand width values are in pixels.\n\n`outer-position' is a cons of the outer left and top edges of FRAME\n  relative to the origin - the position (0, 0) - of FRAME's display.\n\n`outer-size' is a cons of the outer width and height of FRAME.  The\n  outer size includes the title bar and the external borders as well as\n  any menu and/or tool bar of frame.  For a child frame the value\n  includes FRAME's X borders, if any.\n\n`external-border-size' is a cons of the horizontal and vertical width of\n  FRAME's external borders as supplied by the window manager.\n\n`title-bar-size' is a cons of the width and height of the title bar of\n  FRAME as supplied by the window manager.  If both of them are zero,\n  FRAME has no title bar.  If only the width is zero, Emacs was not\n  able to retrieve the width information.\n\n`menu-bar-external', if non-nil, means the menu bar is external (never\n  included in the inner edges of FRAME).\n\n`menu-bar-size' is a cons of the width and height of the menu bar of\n  FRAME.\n\n`tool-bar-external', if non-nil, means the tool bar is external (never\n  included in the inner edges of FRAME).\n\n`tool-bar-position' tells on which side the tool bar on FRAME is and can\n  be one of `left', `top', `right' or `bottom'.  If this is nil, FRAME\n  has no tool bar.\n\n`tool-bar-size' is a cons of the width and height of the tool bar of\n  FRAME.\n\n`internal-border-width' is the width of the internal border of\n  FRAME.\n\n`outer-border-width' is the width of the X border of FRAME.  The X\n  border is usually shown only for frames without window manager\n  decorations, such as child and tooltip frames.  ",
+	(frame: Lisp_Object),
+	{
+  return frame_geometry (frame, Qnil ());                                   // C 7010
+});
+
+/* C 7013-7035.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-frame-edges", Fx_frame_edges, Sx_frame_edges,
+	0, 2, 0,
+	doc: "Return edge coordinates of FRAME.\nFRAME must be a live frame and defaults to the selected one.  The return\nvalue is a list of the form (LEFT, TOP, RIGHT, BOTTOM).  All values are\nin pixels relative to the origin - the position (0, 0) - of FRAME's\ndisplay.\n\nIf optional argument TYPE is the symbol `outer-edges', return the outer\nedges of FRAME.  The outer edges comprise the decorations of the window\nmanager (like the title bar or external borders) as well as any external\nmenu or tool bar of FRAME.  If optional argument TYPE is the symbol\n`native-edges' or nil, return the native edges of FRAME.  The native\nedges exclude the decorations of the window manager and any external\nmenu or tool bar of FRAME.  If TYPE is the symbol `inner-edges', return\nthe inner edges of FRAME.  These edges exclude title bar, any borders,\nmenu bar or tool bar of FRAME.  ",
+	(frame: Lisp_Object, r#type: Lisp_Object),
+	{
+  return frame_geometry (frame, if EQ (r#type, Qouter_edges ())             // C 7031-7034
+				   || EQ (r#type, Qinner_edges ())
+				 { r#type } else { Qnative_edges () });
+});

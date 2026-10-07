@@ -1,7 +1,7 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
-C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601 and
-C 6604-6777
+C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
+C 6604-6777 and C 6785-7035
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -16,11 +16,11 @@ C 6604-6777
 > eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
 > the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth,
 > **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth, **8,768 lines** after
-> the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth and
-> **9,547 lines** after the nineteenth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170,
-> C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889,
-> C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601 and C 6604-6777,
-> whose own
+> the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth,
+> **9,547 lines** after the nineteenth and **9,801 lines** after the twentieth - C 803-2149,
+> C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
+> C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
+> C 6300-6513, C 6515-6601, C 6604-6777 and C 6785-7035, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -189,7 +189,8 @@ defines both features.
 | 6300-6513 | C 6300's `#ifdef HAVE_XRANDR`, `x_get_monitor_attributes_xrandr` (C 6301-6302 the `static Lisp_Object`, C 6312's `#if RANDR_MAJOR … >= 5` with C 6314's `#ifdef USE_XCB` inside it, C 6413-6414's `RANDR13_LIBRARY`, C 6438-6440's own 1.3 arm) and C 6513's `#endif` | `all (have_x_windows, not (use_gtk), have_window_system, have_xrandr)`, with the derived `have_xrandr_1_5` / `have_xrandr_1_3` and `use_xcb` inside (slice 17) |
 | 6515-6601 | C 6515-6516's `static Lisp_Object`, the dispatcher `x_get_monitor_attributes` (C 6523-6530 the `HAVE_XRANDR` arm, C 6532-6538 the `HAVE_XINERAMA` arm, C 6540-6541 the fallback), C 6546's `#endif /* !USE_GTK */`, C 6548's `#ifdef USE_LUCID`, `xlw_monitor_dimensions_at_pos_1` (C 6551-6554 the `static void`) with `xlw_monitor_dimensions_at_pos` (C 6589-6591 the `void`) and C 6601's `#endif` | the slice 15 pair for the dispatcher (its three callees' own gate, `all (have_x_windows, not (use_gtk), have_window_system)`); `use_lucid` alone for the two Lucid functions, whose callee is the pair's, so the ledger's Lucid arm carries it (slice 18) |
 | 6604-6777 | the `x-display-monitor-attributes-list` `DEFUN` (C 6604-6606 its header, C 6607-6621 the verbatim doc string, C 6627-6767 the `USE_GTK` arm with its 3.22 / pre-3.22 sub-arms and C 6768-6773 the plain-X one) | `have_x_windows`, with `use_gtk` and, inside it, `gtk_check_version_ge_3_22` / `have_gtk3` for C's three-way workarea and scale arms (slice 19) |
-| 6779-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,884 lines, whose first live definition is `frame_geometry` (C 6785-6786, the comment C 6779-6783) - the next slice's first item | not ported in this slice |
+| 6785-7035 | `frame_geometry` (C 6785-6786 the `static Lisp_Object`, the comment C 6779-6783; C 6860-6868 the `HAVE_EXT_MENU_BAR` pair, C 6877-6922 the `HAVE_EXT_TOOL_BAR` pair) and the two subrs it backs, `x-frame-geometry` (C 6964) and `x-frame-edges` (C 7013) | `have_x_windows`, with `have_ext_menu_bar` and `have_ext_tool_bar` inside (slice 20) |
+| 7037-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,026 lines, whose first live definition is `x_frame_list_z_order` (C 7044-7045, the comment C 7037-7043) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2255,3 +2256,80 @@ The frozen configuration compiles none of this file: no Gdk display was looked u
 enumerated, no workarea was intersected and no attribute list was built; the eleven arms' counts
 are text compile readings, and GTK/GTK22 are text compiles of a build this machine cannot link
 (there are no GTK headers and no libgtk here).
+## Slice 20 (2026-10-08, status 3.923 - the integrator sets the round number): C 6785-7035
+
+**The slice is C 6785-7035**: `frame_geometry` (C 6785-6786 the `static Lisp_Object`, C 6788-6801
+its locals, C 6803-6804 the three-way early exit, C 6806-6814's `block_input`/`XGetGeometry`/
+`x_real_pos_and_offsets`/`unblock_input`, C 6819-6852 the parent-frame and window-manager halves of
+the outer and native edges, C 6854-6858 the internal border, C 6860-6922 the menu-bar and tool-bar
+arms with their `HAVE_EXT_*` pairs, C 6924-6961 the four-way return) and the two subrs it backs,
+`x-frame-geometry` (C 6964-7011) and `x-frame-edges` (C 7013-7035).  The port's slice is **254 Rust
+lines** (9,801 - 9,547, `grep -c ''`, seven of them the use-site `decode_live_frame` declaration)
+against C's 251; md5 `4d8e2c054ee0babbc731d2f195d7f41f` (the slice 19 tree) ->
+`dc2d459a0798179262db4ca6d58cfeb8`.
+
+**Eleven arms.**  The three items sit under the file's own gate (`have_x_windows`), so all eleven
+compile them.  Eight of the eleven do not move - plain-X **14 / 9**, WS **14 / 9**, WSX **14 / 9**,
+WSR **14 / 9**, WSRX **14 / 9**, WSR12 **14 / 9**, XCB **14 / 9**, LUCID **22 / 12**, Xt
+**15 / 12** - and the GTK pair reads **34 / 20 -> 37 / 20**, its three additions being further
+instances of two classes this lane already counts: two `GDK_WINDOW_XID` rows (the mirror's
+`GTK_WIDGET_TO_X_WIN` placeholder - slice 8's own reading, `Payload` hits 13 -> 15) and one `void`
+row (`FRAME_MENUBAR_HEIGHT`'s recorded `{ (void) ($f); 0 }` body, `docs/ports/xterm.md` 2520-2524
+and this ledger's 816-828: 2 -> 3).  No warning moves in any arm.
+
+**The first measurement's four rows.**  (1) `decode_live_frame` was an `E0425` in **every** arm
+(frame.h 1476's declaration is in no mirror this unit's include graph carries): closed by the
+use-site declaration that opens this slice.  (2) `rootw` was an `E0381` in every arm
+(`let mut rootw: Window;` with no initialiser): closed with the file's zero initialiser.  (3) and
+(4) are the GTK pair's two recorded classes, named above and left open as their further instances.
+
+**Arm touch measured** (P-86 ⑦): two injections - at `frame_geometry`'s first statement (A) and at
+`Fx_frame_edges`' body's first statement (B) - move plain-X **14 -> 16** and GTK **37 -> 39**, each
+log naming both injected lines; the injections were removed and the file's hash re-checked.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0) on the final hash.
+
+**② The eleven arms.**  See above.
+
+**③ `extract-abi.py --check`**: **125 rows -> 122** (the in-tree baseline re-measured this slice) -
+the `missing function frame_geometry`, `missing subr Fx_frame_geometry` and `missing subr
+Fx_frame_edges` rows retiring, nothing added but the line-count row's own text, and the drift reads
+`C 10662 vs Rust 9801` (**8.1%**, was 10.5%).  No token row arrived, so
+`docs/ports/macro-body-notes.tsv` gains nothing here.  `check-mirror-dupes.py` stays at **16
+duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at **18
+declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **C's mixed-width arithmetic** (`int` against `unsigned int` and `Window`) is written out in
+   `c_int` - `native_width as c_int`, `2 * (x_border_width as c_int)`, `native_height as c_int -
+   menu_bar_height` - which is the same result C's unsigned arithmetic leaves.
+2. **C 6803's `!FRAME_OUTER_WINDOW (f)`** is `FRAME_OUTER_WINDOW! (f) == 0`: the port's macro
+   yields a `Window` (an integer), not a pointer.
+3. **C's three `/** … **/` lines** (C 6789, 6810 and 6816-6817 - the commented-out
+   `XWindowAttributes` declaration and assignments) are carried as comments.
+4. **C's `list4i` and `make_fixnum` arguments** are written `as EMACS_INT` (the port's `list4i`
+   takes `EMACS_INT`, `include/lisp.rs` 2088).
+5. **C 6807-6809's nine-argument `XGetGeometry`** and C 6812-6813's ten-argument
+   `x_real_pos_and_offsets` keep C's argument order, with `std::ptr::null_mut ()` where C passes
+   `NULL` (the file's 842 shape).
+
+### Owed (this slice)
+
+- The GTK pair's three new rows are further instances of the two recorded classes named above; the
+  rows' homes are `include/gtk.rs` (the `GDK_WINDOW_XID` macro) and `include/xterm.rs` (the
+  `FRAME_MENUBAR_HEIGHT` body).
+- `decode_live_frame` is owed to `include/frame.rs`; it stands at the use site here
+  (`src/dispnew.rs` 270-271's shape).
+- `syms_of_xfns`' three new `defsubr` sites and the rest of the remainder from C 7037
+  (`x_frame_list_z_order`, C 7044-7045): 4,026 C lines plus the 19 missing functions, 1 macro,
+  4 objects, 30 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no `XGetGeometry` call was made, no window
+manager offset was read, no frame edge was computed and no attribute list was built; the eleven
+arms' counts are text compile readings.
