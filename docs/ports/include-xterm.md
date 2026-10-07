@@ -359,3 +359,14 @@ so `src/xfont.rs` carried its own declaration at the use site (its Owed 5, statu
 now in `xterm_bitmap_decls`, the module this mirror glob-imports for names whose *definition* is a
 unit's (`xterm.c` defines it): a crate-root declaration would be `E0428` there, while a glob
 import is shadowed by the definition.
+
+## 2026-10-07: `x_error_message_count` 的缺席有了机器可读的登记（3.900）
+
+C 2019 的 `extern int x_error_message_count;` 按 0.1-2 本该在这面镜像里，而它的**定义**是
+`src/xterm.rs` 13702-13707 的（C 26252 的非 `static` 定义，`#[no_mangle] pub static mut`），
+镜像再声明一次就是 `E0428`（P-90 7 的同一条，两次读数都记在本镜像 1644-1647 的注释里）。
+此前这道缺席**只有注释**，`tools/extract-abi.py --check` 一直把它读成 `missing file-scope
+object`（整树 13 份 failing 里最便宜的那一条）。现在它登记在
+`docs/ports/excluded-objects.txt`（P-90 7 与 PORTING.md 0.1-2 的新例外），门的读数是
+`OK` 并打印规模：`(1 file-scope object(s) recorded as not carried, with their reasons:
+x_error_message_count)`；读到它的单元仍自己声明（`src/eval.rs` 1835-1836）。

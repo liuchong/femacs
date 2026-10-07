@@ -38,3 +38,13 @@
   declarator is re-read.  The line's own tokens are exempted in
   docs/ports/macro-body-notes.tsv because the extractor's body span for a one-liner is
   the whole line.
+
+## 2026-10-07: 行数容差 3.70 -> 3.80（3.900）
+
+`docs/ports/line-drift-tolerance.tsv` 的这一行是在端口 32 行时写的（357.1%）。第二十三半
+（status 3.886）给本文件补上了 P-86 1 的出处行（`// femacs: port of lib/openat-die.c @
+fd7afced403.`），33 行的比值因此是 371.4%，越过 3.70 的容差——`--check` 从 `OK` 变 `FAIL`，
+**一行之差**。容差按同一张表的规则上调到 3.80，并把原因写成同一行：7 行的基线放不下端口自己的
+固定开销（出处行、`#![allow (…)]` 块、`abort () -> !` 声明、两个 `include!` 与它们的说明），
+而**一行对 7 行就是 14 个百分点**——这张表在小文件上量的是比值，不是密度。
+读数：`python3 tools/extract-abi.py --check emacs/lib/openat-die.c femacs/lib/openat-die.rs` **OK**。

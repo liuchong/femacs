@@ -1,0 +1,14 @@
+# C file-scope objects (a header's `extern …` declarations) that its mirror deliberately does
+# not carry, with the reason.  One `<reference path>\t<object>\t<reason>` per line.
+#
+# Why this table exists (status 3.900).  PORTING.md 0.1-2 puts a header's declarations in its
+# mirror, but a name the *defining unit* also defines cannot be declared from that mirror: in
+# the single-crate layout a unit and its own mirrors are one crate, so an
+# `unsafe extern "C" { pub static mut X: T; }` next to the unit's
+# `#[no_mangle] pub static mut X: T` is `E0428` (measured twice - the sixty-sixth `xterm`
+# slice).  The port's answer is that the readers declare the object at their own use sites and
+# the mirror records why it is absent, which `tools/extract-abi.py --check` could not see: it
+# read the reference header's object list against the mirror's names and called the absence a
+# gap.  A row here says "this absence is decided, and this is where the name lives instead";
+# a row that names an object its own reference does not declare is a failure (a stale row).
+src/xterm.h	x_error_message_count	its definition is the unit's (`src/xterm.rs` 13702-13707, C 26252's non-`static` `int x_error_message_count;`, exported), so a declaration in this mirror would be `E0428` in the single-crate layout (P-90 7); the readers declare it themselves (`src/eval.rs` 1835-1836), and the mirror's own comment at 1644-1647 is the same record

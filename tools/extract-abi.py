@@ -245,6 +245,22 @@ def canon_token(low: str) -> str:
 
 # `docs/ports/macro-body-notes.tsv`: C macros whose Rust body legitimately cannot
 # mention one of the C body's tokens (a recorded deviation with a reason).
+def read_excluded_objects(path: Path) -> dict[str, dict[str, str]]:
+    """`<reference path>\t<object>\t<reason>` rows: a C header's file-scope object a mirror
+    deliberately does not carry, because the name's definition is the unit's own (status 3.900).
+    Keyed by the reference path as the check sees it (`src/xterm.h`), then by object name."""
+    out: dict[str, dict[str, str]] = {}
+    if not path.is_file():
+        return out
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 3:
+            out.setdefault(parts[0].strip(), {})[parts[1].strip()] = parts[2].strip()
+    return out
+
+
 def read_macro_notes(path: Path) -> list[tuple[str, set[str]]]:
     """(name pattern, allowed tokens) rows; a `*` token allows any token, and the
     pattern may be a shell glob (`DEFVAR_*`), so a whole family is one recorded row."""
@@ -1160,6 +1176,47 @@ def token_selftest() -> int:
     return bad
 
 
+def object_selftest() -> int:
+    """docs/ports/excluded-objects.txt (status 3.900): a recorded object is skipped and printed,
+    an unrecorded one still fails, and a row naming an object its reference lacks is a failure."""
+    import tempfile
+    bad = 0
+    cases: list[tuple[str, dict[str, dict[str, str]], list[str]]] = [
+        ("no row: both objects are gaps", {},
+         ["missing file-scope object demo_object", "missing file-scope object other_object"]),
+        ("a row for one object", {"src/demo.h": {"demo_object": "its definition is the unit's"}},
+         ["missing file-scope object other_object"]),
+        ("a stale row", {"src/demo.h": {"nope": "reason"}},
+         ["missing file-scope object demo_object", "missing file-scope object other_object",
+          "excluded object nope is not declared by this reference "
+          "(docs/ports/excluded-objects.txt row is stale)"]),
+    ]
+    for name, rows, want in cases:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "emacs/src").mkdir(parents=True)
+            (root / "femacs/src/include").mkdir(parents=True)
+            (root / "emacs/src/demo.h").write_text(
+                "extern int demo_object;\nextern int other_object;\n", encoding="utf-8")
+            (root / "femacs/src/include/demo.rs").write_text(
+                "// femacs: mirror of src/demo.h @ deadbeef.\n", encoding="utf-8")
+            got = compare(root / "emacs/src/demo.h", root / "femacs/src/include/demo.rs",
+                          excluded_objects=rows)
+        ok = got == want
+        print(f"{'ok  ' if ok else 'FAIL'} excluded objects, {name}: {got}"
+              + ("" if ok else f" (want {want})"))
+        bad += 0 if ok else 1
+    # The reader itself: comments, blank lines and a short row are ignored rather than crash.
+    with tempfile.TemporaryDirectory() as tmp:
+        table = Path(tmp) / "t.txt"
+        table.write_text("# comment\n\nsrc/demo.h\tdemo_object\twhy\nshort\n", encoding="utf-8")
+        got = read_excluded_objects(table)
+    ok = got == {"src/demo.h": {"demo_object": "why"}}
+    print(f"{'ok  ' if ok else 'FAIL'} excluded objects, table reading: {got}")
+    bad += 0 if ok else 1
+    return bad
+
+
 def selftest() -> int:
     bad = 0
     for name, source, want in SELFTEST:
@@ -1179,8 +1236,9 @@ def selftest() -> int:
         bad += 0 if ok else 1
     bad += token_selftest ()
     bad += family_selftest ()
+    bad += object_selftest ()
     print(f"{len(SELFTEST) + len(WHOLE_FILE_SELFTEST)} cases, {len(TOKEN_SELFTEST)} token "
-          f"cases, {len(FAMILY_SELFTEST)} family cases, {bad} failures")
+          f"cases, {len(FAMILY_SELFTEST)} family cases, 4 excluded-object cases, {bad} failures")
     return 1 if bad else 0
 
 
@@ -1661,6 +1719,7 @@ def whole_file_defsubr_names(text: str) -> set[str]:
 def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             excluded: dict[str, str] | None = None,
             macro_notes: dict[str, set[str]] | None = None,
+            excluded_objects: dict[str, dict[str, str]] | None = None,
             ledger: Path | None = None) -> list[str]:
     c = ci.inventory(c_path)
     # status 3.31: nothing in this configuration compiles such a file, so a unit that ports it
@@ -1680,6 +1739,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     r = rust_inventory(rs_path)
     excluded = excluded or {}
     macro_notes = macro_notes or {}
+    excluded_objects = excluded_objects or {}
     problems: list[str] = []
 
     # PORTING.md P-86: a unit whose whole body hangs on an `#if` the frozen configuration
@@ -2037,9 +2097,27 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         if missing:
             problems.append(f"struct {name}: missing fields {missing}")
 
+    # An object the mirror does not carry on purpose (docs/ports/excluded-objects.txt, status
+    # 3.900): the name's definition is the unit's own, so the mirror may not repeat it - the
+    # declaration would be `E0428` in the single-crate layout - and the readers declare it at
+    # their use sites.  The skip prints its own count, and a row that names an object the
+    # reference does not declare is a problem, so the table cannot rot.
+    object_rows = excluded_objects.get("/".join(c_path.parts[-2:]), {})
+    recorded: list[str] = []
     for obj in c["globals"]:
         if obj["name"] not in set(r["statics"]) | set(r["constants"]):
+            if obj["name"] in object_rows:
+                recorded.append(obj["name"])
+                continue
             problems.append(f"missing file-scope object {obj['name']}")
+    declared_objects = {o["name"] for o in c["globals"]}
+    for name in object_rows:
+        if name not in declared_objects:
+            problems.append(f"excluded object {name} is not declared by this reference "
+                            f"(docs/ports/excluded-objects.txt row is stale)")
+    if recorded:
+        print(f"  ({len(recorded)} file-scope object(s) recorded as not carried, with their "
+              f"reasons: {', '.join(sorted(recorded))})")
 
     # A C aggregate the frozen build compiles has to appear on the Rust side under one of its names
     # - the tag or the typedef alias.  Nothing asked that until now: the field loop above walks the
@@ -2379,6 +2457,8 @@ def main() -> int:
                     help="directory holding the per-file checklists")
     ap.add_argument("--excluded", default="docs/ports/excluded-macros.txt",
                     help="C macros with no Rust counterpart, with reasons")
+    ap.add_argument("--excluded-objects", default="docs/ports/excluded-objects.txt",
+                    help="C header objects a mirror deliberately does not carry")
     ap.add_argument("--macro-notes", default="docs/ports/macro-body-notes.tsv",
                     help="C macros whose Rust body legitimately omits a named token")
     ap.add_argument("--token-aliases", default="docs/ports/token-aliases.tsv",
@@ -2403,6 +2483,13 @@ def main() -> int:
     excluded = read_exclusions(Path(args.excluded)) if Path(args.excluded).is_file() else {}
     notes_path = Path(args.macro_notes)
     macro_notes = read_macro_notes(notes_path) if notes_path.is_file() else {}
+    object_rows_path = Path(args.excluded_objects)
+    if not object_rows_path.is_file():
+        # The other tables are given as paths relative to the repository root, and this one is
+        # read by `xtask gate-fast` through that same relative form; the tool's own directory is
+        # the fallback so a run from another working directory still finds its table.
+        object_rows_path = HERE.parent / object_rows_path
+    object_rows = read_excluded_objects(object_rows_path)
     load_token_aliases(Path(args.token_aliases))
     cond_macros = Path(args.cond_macros)
     cond_paths = Path(args.cond_macro_paths)
@@ -2448,7 +2535,8 @@ def main() -> int:
             # in for a header is what let a half-written header read `done` (status 3.218).
             checklist = own_ledger(c, reference, Path(args.checklists))
             problems = compare(c, rs, strict_lines=not args.loose_lines, excluded=excluded,
-                               macro_notes=macro_notes, ledger=checklist)
+                               macro_notes=macro_notes, excluded_objects=object_rows,
+                               ledger=checklist)
             if not problems:
                 done += 1
                 continue
@@ -2476,7 +2564,7 @@ def main() -> int:
         c, rs = Path(args.paths[0]), Path(args.paths[1])
         ex = read_exclusions(Path(args.excluded)) if Path(args.excluded).is_file() else {}
         problems = compare(c, rs, strict_lines=not args.loose_lines, excluded=ex,
-                           macro_notes=macro_notes,
+                           macro_notes=macro_notes, excluded_objects=object_rows,
                            ledger=ledger_for(c, Path(args.reference), Path(args.checklists)))
         for p in problems:
             print(f"- {p}")

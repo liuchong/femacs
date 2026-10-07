@@ -32,6 +32,13 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
    - 参照里**只以指针出现的不完整类型**（`struct buffer *`）在“不含 buffer.h 的编译单元也要
      能编译”的镜像里拼不出来：Rust 侧写 ABI 等价的 `*mut c_void`，并在该声明上方留一行
      `/// C: <参照原型>`，`spikes/lisp-abi-probe.sh` 按这一行核对参照头（P-55）。
+   - **例外：定义在单元里的名字，镜像不能再声明**（2026-10-07 定案，status 3.900）。镜像与单元在
+     单 crate 布局里是同一个 crate，`unsafe extern "C" { pub static mut X: T; }` 与单元里的
+     `#[no_mangle] pub static mut X: T` 并存就是 `E0428`（第六十六个 `xterm` 切片实测两次）。这类缺席
+     写进 `docs/ports/excluded-objects.txt`（一行一个对象，格式 `<参照路径>\t<对象>\t<理由>`），
+     `tools/extract-abi.py --check` 照读并**打印规模**（`(N file-scope object(s) recorded as not
+     carried …)`），读它的单元按 P-72 rule 4 在用法点自己声明；表里点名了一个参照并不声明的对象算失败
+     （陈旧行），所以这本表不会腐烂。
 3. **单一定义点**：每个函数/全局对象在**唯一一个** `.rs`（其 `.c` 的镜像）里定义，
    并 `#[no_mangle] pub unsafe extern "C"` 导出；其余单元只通过头镜像声明引用。
 4. **包含去重**：`xtask` 先展开包含图（`include!` 链）并按文件去重，等价于 C 的
