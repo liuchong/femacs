@@ -16601,3 +16601,36 @@
      **对象 `/tmp/nsterm70.o` 与两个 `/tmp/r70*.swift` 片段跑完即删**，无全盘/大内存扫描。
   ⑦ **未声称**：本轮**没有运行证据**——没有窗口被关闭、移动、缩放或退出全屏；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.011 `src/nsterm.m` round 71（Swift lane）：窗口委托与全屏族落地（C 8645-8950，十六个方法），两个延迟入口随之收口（2026-10-08）**：
+  ① **落地十六个 `EmacsView` 方法**：`windowDidMove:`（C 8645-8650）、`windowShouldZoom:toFrame:`（C 8656-8664）、
+     `windowWillUseStandardFrame:defaultFrame:`（C 8670-8785，三击缩放循环）、`windowDidDeminiaturize:`（C 8788-8803）、
+     `windowDidExpose:`（C 8806-8817）、`windowDidMiniaturize:`（C 8820-8834）、
+     `window:willUseFullScreenPresentationOptions:`（C 8836-8843），以及全屏族的四对
+     "通知臂 + 直接调用臂" 与 `adjustEmacsFrameRect`（C 8845-8950）。台账勾 **16 个框**（勾 **369 → 385**、
+     未勾 **61 → 45**），`EmacsView` 类盒子同时改成"还剩 **44** 个方法盒子"。
+  ② **两个延迟入口本轮收口**（这正是它们自己写下的验收判据）：round 70 的 `windowDidMove_entry` 与 round 68 的
+     `adjustEmacsFrameRect_entry` 现在都有类旁的定义（`@_cdecl("windowDidMove")`、
+     `@_cdecl("adjustEmacsFrameRect")`，`@_cdecl("isFullscreen")` 那条形状），调用点分别是 C 8350 与 C 8425。
+  ③ **一条死臂记名不转写**：C 8882-8898 的 10.7 菜单修复（`MAC_OS_X_VERSION_MIN_REQUIRED <= 1070`）⇒ C 8881 的 `else`
+     臂在端口里是空的，并当场记名。
+  ④ **"参数有没有类型"照 C 自己写**：C 8645/8788/8806/8820 的 `sender` 是无类型的、C 8845/8856/8906/8924 的
+     `NSNotification *` 有类型 ⇒ 端口分别写 `Any?` 与 `Notification`（两种拼法的选择子相同）。类尚未声明
+     `NSWindowDelegate` 一致性（那是类盒子里点名的延后项），将来那一批要把协议自己的参数类型与这四个对平——盒子文字已写明。
+  ⑤ **本轮新增 1 个入口 + 两个文件级常量**：`FULLSCREEN_BOTH`（src/frame.h 54，`0x3`；**open**，镜像里的 Rust 常量
+     还没有 C 符号）与镜像取值常量 `ICONIFY_EVENT` 14、`DEICONIFY_EVENT` 15（`femacs/src/include/termhooks.rs` 41/42）。
+  ⑥ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 70 的九条逐条相同，**首跑零新警告**）；
+     对象 `/tmp/nsterm71.o` **1,270,592 字节**、md5 `303a877c84886fb120df23dc79963e21`；单元 **13,687 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **680** C symbol import(s)`
+     （round 70 是 679），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**，`docs/baseline/swift-units.tsv` 一行未动。
+  ⑦ **`check-citations` 抓到的一处引用漂移，与它量出的"只改注释"读数**：本片首跑就有一处 `drift`——
+     `FULLSCREEN_BOTH` 的注释把 `enum fullscreen_type` 这个**反引号名**写在引用 `src/frame.h 54` 的那一行上，而枚举
+     声明在 frame.h 49（门的判据是"引用行里提到的名字必须与所引行号一致"，r64/r68 同一条）。改法是照 round 70 已被接受的
+     形状把这一族引成**区间**（`src/frame.h 51-55's \`enum fullscreen_type\``），终读 **`676 / 0 drift / 0 range /
+     2,416 external / 36 allowed / 0 stale`**；另量到：这两次**纯注释**改写前后对象 **md5 逐字节相同**
+     （`303a877c84886fb120df23dc79963e21`），即编译产物里没有注释这一层（既有那条读法的又一例）。
+  ⑧ **预算与清理**：本片编译 **3 发**（首跑一次即过；另两发是注释改写后的复读，其中一发证明对象逐字节相同，都是单文件
+     `swiftc -c`）；另用 **6 组只读 grep/awk** 钉准入口名与 C 行号；**对象 `/tmp/nsterm71.o` 与两个 `/tmp/r71*.swift`
+     片段跑完即删**，无全盘/大内存扫描。
+  ⑨ **未声称**：本轮**没有运行证据**——没有窗口被移动、缩放、最小化或进出全屏；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。

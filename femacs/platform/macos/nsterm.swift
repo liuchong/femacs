@@ -8927,6 +8927,283 @@ class EmacsView: NSView {
     ns_send_appdefined(-1)                                      // C 8400
   }
 
+  // ==========================================================================
+  // C 8645-8950: the window delegate and fullscreen family.  Four of C's methods here take an
+  // untyped `sender`, three come in a notification/direct pair, and the two `@_cdecl` providers
+  // round 70 and round 68 left waiting land with their methods at the end of this block.
+  // ==========================================================================
+
+  /// C 8645-8650: `- (void)windowDidMove: sender` - C's parameter is untyped (the port keeps
+  /// `Any?`, which is the same selector) and its body is the direct call below.  This is also
+  /// the method round 70's deferred entry waited for.
+  @objc func windowDidMove(_ sender: Any?) {
+    // C 8647: `NSTRACE ("[EmacsView windowDidMove:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    self.updateFramePosition()                                  // C 8649
+  }
+
+  /// C 8653-8655: "Called AFTER method below, but before our windowWillResize call there leads
+  /// to windowDidResize -> ns_set_window_size.  Update emacs' notion of frame location so
+  /// set_window_size moves the frame."  C 8662's `output_data.ns->zooming = 1` is the member
+  /// write (`ns_output_set_zooming`; C's member is `int zooming`, the entry takes the `Bool`
+  /// the reader above it already returns).
+  @objc func windowShouldZoom(_ sender: NSWindow, toFrame newFrame: NSRect) -> Bool {
+    // C 8658-8660: the `NSTRACE` call - empty.
+
+    ns_output_set_zooming(emacsframe, true)                     // C 8662
+    return true                                                 // C 8663
+  }
+
+  /// C 8667-8669: "Override to do something slightly nonstandard, but nice.  First click on zoom
+  /// button will zoom vertically.  Second will zoom completely.  Third returns to original."
+  /// C 8673-8674's TODO comment is kept beside the initial `result`; C 8884-8897's 10.7 bug fix
+  /// is **dead** on this target (`MIN_REQUIRED <= 1070`), recorded not transcribed here.
+  @objc func windowWillUseStandardFrame(_ sender: NSWindow,
+                                        defaultFrame: NSRect) -> NSRect {
+    // TODO: Rename to "currentFrame" and assign "result" properly in
+    // all paths.
+    var result = sender.frame                                    // C 8675
+
+    // C 8677-8684: the five `NSTRACE*` calls - empty.
+
+    if fs_before_fs != -1 {  /* Entering fullscreen */           // C 8686
+      // C 8688: `NSTRACE_MSG ("Entering fullscreen");` - empty.
+      result = defaultFrame                                      // C 8689
+    } else {
+      // Save the window size and position (frame) before the resize.
+      if fs_state != FULLSCREEN_MAXIMIZED()
+           && fs_state != FULLSCREEN_WIDTH() {                    // C 8694-8695
+        ns_userRect.size.width = result.size.width                // C 8697
+        ns_userRect.origin.x   = result.origin.x                  // C 8698
+      }
+
+      if fs_state != FULLSCREEN_MAXIMIZED()
+           && fs_state != FULLSCREEN_HEIGHT() {                   // C 8701-8702
+        ns_userRect.size.height = result.size.height              // C 8704
+        ns_userRect.origin.y    = result.origin.y                 // C 8705
+      }
+
+      // C 8708: `NSTRACE_RECT ("ns_userRect (2)", ns_userRect);` - empty.
+
+      if next_maximized == FULLSCREEN_HEIGHT()
+           || (next_maximized == -1
+               && abs(Int32(defaultFrame.size.height - result.size.height))
+                    > FRAME_LINE_HEIGHT(emacsframe)) {            // C 8710-8713
+        /* C 8715: "first click" */
+        // C 8716: `NSTRACE_MSG ("FULLSCREEN_HEIGHT");` - empty.
+        maximized_height = Int32(defaultFrame.size.height)        // C 8717 (C's chained assignment)
+        result.size.height = defaultFrame.size.height             // C 8717
+        maximized_width = -1                                      // C 8718
+        result.origin.y = defaultFrame.origin.y                   // C 8719
+        if ns_userRect.size.height != 0 {                         // C 8720
+          result.origin.x = ns_userRect.origin.x                  // C 8722
+          result.size.width = ns_userRect.size.width              // C 8723
+        }
+        setFSValue(self, FULLSCREEN_HEIGHT())                     // C 8725
+        maximizing_resize = true                                  // C 8727 (the `NS_IMPL_COCOA` arm)
+      } else if next_maximized == FULLSCREEN_WIDTH() {            // C 8730
+        // C 8732: `NSTRACE_MSG ("FULLSCREEN_WIDTH");` - empty.
+        maximized_width = Int32(defaultFrame.size.width)          // C 8733 (C's chained assignment)
+        result.size.width = defaultFrame.size.width               // C 8733
+        maximized_height = -1                                     // C 8734
+        result.origin.x = defaultFrame.origin.x                   // C 8735
+        if ns_userRect.size.width != 0 {                          // C 8736
+          result.origin.y = ns_userRect.origin.y                  // C 8738
+          result.size.height = ns_userRect.size.height            // C 8739
+        }
+        setFSValue(self, FULLSCREEN_WIDTH())                      // C 8741
+      } else if next_maximized == FULLSCREEN_MAXIMIZED()
+                  || (next_maximized == -1
+                      && abs(Int32(defaultFrame.size.width - result.size.width))
+                           > FRAME_COLUMN_WIDTH(emacsframe)) {    // C 8743-8746
+        // C 8748: `NSTRACE_MSG ("FULLSCREEN_MAXIMIZED");` - empty.
+
+        result = defaultFrame  /* second click */                 // C 8750
+        maximized_width = Int32(result.size.width)                // C 8751
+        maximized_height = Int32(result.size.height)              // C 8752
+        setFSValue(self, FULLSCREEN_MAXIMIZED())                  // C 8753
+        maximizing_resize = true                                  // C 8755 (the `NS_IMPL_COCOA` arm)
+      } else {
+        /* restore */
+        // C 8761: `NSTRACE_MSG ("Restore");` - empty.
+        result = ns_userRect.size.height != 0 ? ns_userRect : result   // C 8762
+        // C 8763: `NSTRACE_RECT ("restore (2)", result);` - empty.
+        ns_userRect = NSRect(x: 0, y: 0, width: 0, height: 0)     // C 8764
+        maximizing_resize = fs_state != FULLSCREEN_NONE()          // C 8766 (the `NS_IMPL_COCOA` arm)
+        setFSValue(self, FULLSCREEN_NONE())                       // C 8768
+        maximized_width = -1                                      // C 8769
+        maximized_height = -1                                     // C 8769 (C's chained assignment)
+      }
+    }
+
+    if fs_before_fs == -1 { next_maximized = -1 }                 // C 8773
+
+    // C 8775-8778: the four `NSTRACE*` calls - empty.
+
+    _ = self.windowWillResize(sender, to: result.size)            // C 8780
+
+    // C 8782: `NSTRACE_RETURN_RECT (result);` - empty.
+
+    return result                                                 // C 8784
+  }
+
+  /// C 8788-8803: `- (void)windowDidDeminiaturize: sender` - C's parameter is untyped.  C
+  /// 8791's `output_data.ns` guard is the member read, `SET_FRAME_ICONIFIED`/`SET_FRAME_VISIBLE`
+  /// are the bitfield setters, `windows_or_buffers_changed` a core global and
+  /// `EV_TRAILER ((id)nil)` the same `emacsframe` this unit's other callers pass.
+  @objc func windowDidDeminiaturize(_ sender: Any?) {
+    // C 8790: `NSTRACE ("[EmacsView windowDidDeminiaturize:]");` - empty.
+    if frame_output_data_ns(emacsframe) == nil {                  // C 8791
+      return                                                      // C 8792
+    }
+
+    SET_FRAME_ICONIFIED(emacsframe, 0)                            // C 8794
+    SET_FRAME_VISIBLE(emacsframe, true)                           // C 8795
+    windows_or_buffers_changed = 63                               // C 8796
+
+    if emacs_event != nil {                                       // C 8798
+      input_event_set_kind(emacs_event!, DEICONIFY_EVENT)         // C 8800
+      EV_TRAILER(nil, emacsframe)                                 // C 8801
+    }
+  }
+
+  /// C 8806-8817: `- (void)windowDidExpose: sender` - C's parameter is untyped; the guard, the
+  /// two `SET_FRAME_*` setters and the `send_appdefined` pair are the same entries as above.
+  @objc func windowDidExpose(_ sender: Any?) {
+    // C 8808: `NSTRACE ("[EmacsView windowDidExpose:]");` - empty.
+    if frame_output_data_ns(emacsframe) == nil {                  // C 8809
+      return                                                      // C 8810
+    }
+
+    SET_FRAME_VISIBLE(emacsframe, true)                           // C 8812
+    SET_FRAME_GARBAGED(emacsframe)                                // C 8813
+
+    if send_appdefined {                                          // C 8815
+      ns_send_appdefined(-1)                                      // C 8816
+    }
+  }
+
+  /// C 8820-8834: `- (void)windowDidMiniaturize: sender` - C's parameter is untyped; its event
+  /// kind is `ICONIFY_EVENT`, the twin of the deminiaturize above.
+  @objc func windowDidMiniaturize(_ sender: Any?) {
+    // C 8822: `NSTRACE ("[EmacsView windowDidMiniaturize:]");` - empty.
+    if frame_output_data_ns(emacsframe) == nil {                  // C 8823
+      return                                                      // C 8824
+    }
+
+    SET_FRAME_ICONIFIED(emacsframe, 1)                            // C 8826
+    SET_FRAME_VISIBLE(emacsframe, false)                          // C 8827
+
+    if emacs_event != nil {                                       // C 8829
+      input_event_set_kind(emacs_event!, ICONIFY_EVENT)           // C 8831
+      EV_TRAILER(nil, emacsframe)                                 // C 8832
+    }
+  }
+
+  /// C 8836-8843: `- (NSApplicationPresentationOptions)window: willUseFullScreenPresentationOptions:`
+  /// - the `NS_IMPL_COCOA` arm this target has; C's `proposedOptions|…AutoHideToolbar` is the
+  /// option set's union.
+  @objc func window(_ window: NSWindow,
+                    willUseFullScreenPresentationOptions proposedOptions:
+                      NSApplication.PresentationOptions)
+    -> NSApplication.PresentationOptions {
+    proposedOptions.union(.autoHideToolbar)                       // C 8841
+  }
+
+  /// C 8845-8849: `- (void)windowWillEnterFullScreen: (NSNotification *)notification` - the
+  /// notification arm of the direct-call twin below.
+  @objc func windowWillEnterFullScreen(_ notification: Notification) {
+    // C 8847: `NSTRACE ("[EmacsView windowWillEnterFullScreen:]");` - empty.
+    self.windowWillEnterFullScreen()                              // C 8848
+  }
+
+  /// C 8850-8854: `- (void)windowWillEnterFullScreen` - "provided for direct calls".
+  func windowWillEnterFullScreen() {
+    // C 8852: `NSTRACE ("[EmacsView windowWillEnterFullScreen]");` - empty.
+    fs_before_fs = fs_state                                       // C 8853
+  }
+
+  /// C 8856-8860: `- (void)windowDidEnterFullScreen: (NSNotification *)notification`.
+  @objc func windowDidEnterFullScreen(_ notification: Notification) {
+    // C 8858: `NSTRACE ("[EmacsView windowDidEnterFullScreen:]");` - empty.
+    self.windowDidEnterFullScreen()                               // C 8859
+  }
+
+  /// C 8862-8869: `- (void)adjustEmacsFrameRect` - C's `f->left_pos`/`f->top_pos` writes are the
+  /// member entries C 8224-8227 already uses, and C's `[frame_window frame]` on a nil window is
+  /// the rect's zero value.  This is the method round 68's deferred entry waited for.
+  func adjustEmacsFrameRect() {
+    let f = emacsframe                                            // C 8864
+    let frame_window = FRAME_NS_VIEW(f)?.window                   // C 8865
+    let r = frame_window?.frame ?? .zero                          // C 8866
+    frame_set_left_pos(f,
+                       Int32(NSMinX(r) - NS_PARENT_WINDOW_LEFT_POS(f)))    // C 8867
+    frame_set_top_pos(f,
+                      Int32(NS_PARENT_WINDOW_TOP_POS(f) - NSMaxY(r)))      // C 8868
+  }
+
+  /// C 8871-8904: `- (void)windowDidEnterFullScreen` - "provided for direct calls".  C
+  /// 8882-8898's 10.7 bug fix is **dead** on this target (`MIN_REQUIRED <= 1070`), so C's
+  /// `else` arm is empty here and recorded.
+  func windowDidEnterFullScreen() {
+    // C 8873: `NSTRACE ("[EmacsView windowDidEnterFullScreen]");` - empty.
+    setFSValue(self, FULLSCREEN_BOTH())                           // C 8874
+    if !self.fsIsNative() {                                       // C 8875
+      self.windowDidBecomeKey()                                   // C 8877
+      nonfs_window?.orderOut(self)                                // C 8878
+    } else {
+      /* C 8884-8897: the 10.7 menu fix, dead on this target.  */
+    }
+
+    /* C 8901-8902: "Do what windowDidMove does which isn't called when entering/exiting
+       fullscreen mode."  */
+    self.adjustEmacsFrameRect()                                   // C 8903
+  }
+
+  /// C 8906-8910: `- (void)windowWillExitFullScreen: (NSNotification *)notification`.
+  @objc func windowWillExitFullScreen(_ notification: Notification) {
+    // C 8908: `NSTRACE ("[EmacsView windowWillExitFullScreen:]");` - empty.
+    self.windowWillExitFullScreen()                               // C 8909
+  }
+
+  /// C 8912-8922: `- (void)windowWillExitFullScreen` - "provided for direct calls".
+  func windowWillExitFullScreen() {
+    // C 8914: `NSTRACE ("[EmacsView windowWillExitFullScreen]");` - empty.
+    if !FRAME_LIVE_P(emacsframe) {                                // C 8915
+      // C 8917: `NSTRACE_MSG ("Ignored (frame dead)");` - empty.
+      return                                                      // C 8918
+    }
+    if next_maximized != -1 {                                     // C 8920
+      fs_before_fs = next_maximized                               // C 8921
+    }
+  }
+
+  /// C 8924-8928: `- (void)windowDidExitFullScreen: (NSNotification *)notification`.
+  @objc func windowDidExitFullScreen(_ notification: Notification) {
+    // C 8926: `NSTRACE ("[EmacsView windowDidExitFullScreen:]");` - empty.
+    self.windowDidExitFullScreen()                                // C 8927
+  }
+
+  /// C 8930-8950: `- (void)windowDidExitFullScreen` - "provided for direct calls".
+  func windowDidExitFullScreen() {
+    // C 8932: `NSTRACE ("[EmacsView windowDidExitFullScreen]");` - empty.
+    if !FRAME_LIVE_P(emacsframe) {                                // C 8933
+      // C 8935: `NSTRACE_MSG ("Ignored (frame dead)");` - empty.
+      return                                                      // C 8936
+    }
+    setFSValue(self, fs_before_fs)                                // C 8938
+    fs_before_fs = -1                                             // C 8939
+    self.updateCollectionBehavior()                               // C 8941 (the `NS_IMPL_COCOA` arm)
+
+    if next_maximized != -1 {                                     // C 8944
+      self.window!.performZoom(self)                              // C 8945
+    }
+
+    /* C 8947-8948: "Do what windowDidMove does which isn't called when entering/exiting
+       fullscreen mode."  */
+    self.adjustEmacsFrameRect()                                   // C 8949
+  }
+
   /// C 8404-8408: `- (void)windowDidBecomeKey: (NSNotification *)notification` - C's comment above
   /// it is "cf. x_detect_focus_change(), x_focus_changed(), x_new_focus_frame()" and its body is
   /// the direct-call variant below.
@@ -13373,3 +13650,38 @@ func esprintf(_ buf: UnsafeMutablePointer<CChar>?, _ format: UnsafePointer<CChar
 /// C: `void cancel_mouse_face (struct frame *)` (declared src/dispextern.h 3690, defined
 /// src/xdisp.c 37724) - C 8399's call.  Provided: `femacs/src/xdisp.rs` 31985.
 @_silgen_name("cancel_mouse_face") func cancel_mouse_face(_ f: UnsafeMutableRawPointer?)
+
+// ==========================================================================
+// Round 71: the entries the window delegate/fullscreen family needs
+// ==========================================================================
+
+/// C: `ICONIFY_EVENT` and `DEICONIFY_EVENT` (src/termhooks.h 196-197, members of the `enum
+/// event_kind` declared at src/termhooks.h 74) - C 8800's and C 8831's writes.  Mirror-valued
+/// constants, the `MONITORS_CHANGED_EVENT` reading (`femacs/src/include/termhooks.rs` 41/42:
+/// 14 and 15).
+fileprivate let ICONIFY_EVENT: UInt32 = 14
+fileprivate let DEICONIFY_EVENT: UInt32 = 15
+
+/// C: `FULLSCREEN_BOTH` (src/frame.h 51-55's `enum fullscreen_type`, the `0x3` member) - C
+/// 8874's `setFSValue:` argument.  **Open**: the mirror's Rust constant carries no C symbol yet,
+/// the same reading as `FULLSCREEN_WIDTH`/`HEIGHT`/`MAXIMIZED` in round 70's block.
+@_silgen_name("FULLSCREEN_BOTH") func FULLSCREEN_BOTH() -> Int32
+
+// ==========================================================================
+// Round 71: the two providers the deferred entries waited for
+// ==========================================================================
+
+/// The C-ABI half of `windowDidMove:` above (the `@_cdecl("isFullscreen")` pattern): round 70's
+/// deferred entry `windowDidMove_entry` reaches this class through it, and its call site is
+/// C 8350.
+@_cdecl("windowDidMove")
+func windowDidMove_definition(_ view: NSView?, _ sender: UnsafeMutableRawPointer?) {
+  (view as? EmacsView)?.windowDidMove(sender)
+}
+
+/// The same half for `adjustEmacsFrameRect` above: round 68 landed the deferred entry
+/// `adjustEmacsFrameRect_entry` with C 8425's call site, and this round lands the method.
+@_cdecl("adjustEmacsFrameRect")
+func adjustEmacsFrameRect_definition(_ view: NSView?) {
+  (view as? EmacsView)?.adjustEmacsFrameRect()
+}

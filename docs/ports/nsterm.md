@@ -295,7 +295,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) - **60 of the class's method boxes remain**
+- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) - **44 of the class's method boxes remain**
   - [ ] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041)
   - [ ] `- (void) setWindowClosing: (BOOL)closing`  (line 7047)
   - [ ] `- (void)dealloc`  (line 7055)
@@ -353,22 +353,22 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (BOOL)isFlipped`  (line 8547) — landed as `override var isFlipped: Bool` (round 68), C's `return YES;` and nothing else
   - [x] `- (BOOL)isOpaque`  (line 8553) — landed as `override var isOpaque: Bool` (round 68), C's `return NO;` and nothing else
   - [ ] `- (instancetype) initFrameFromEmacs: (struct frame *)f`  (line 8559)
-  - [ ] `- (void)windowDidMove: sender`  (line 8645)
-  - [ ] `- (BOOL)windowShouldZoom: (NSWindow *)sender toFrame: (NSRect)newFrame`  (line 8656)
-  - [ ] `- (NSRect)windowWillUseStandardFrame:(NSWindow *)sender defaultFrame:(NSRect)defaultFrame`  (line 8670)
-  - [ ] `- (void)windowDidDeminiaturize: sender`  (line 8788)
-  - [ ] `- (void)windowDidExpose: sender`  (line 8806)
-  - [ ] `- (void)windowDidMiniaturize: sender`  (line 8820)
-  - [ ] `- (NSApplicationPresentationOptions)window:(NSWindow *)window willUseFullScreenPresentationOptions: (NSApplicationPresentationOptions)proposedOptions`  (line 8837)
-  - [ ] `- (void)windowWillEnterFullScreen:(NSNotification *)notification`  (line 8845)
-  - [ ] `- (void)windowWillEnterFullScreen`  (line 8850)
-  - [ ] `- (void)windowDidEnterFullScreen:(NSNotification *)notification`  (line 8856)
-  - [ ] `- (void)adjustEmacsFrameRect`  (line 8862)
-  - [ ] `- (void)windowDidEnterFullScreen`  (line 8871)
-  - [ ] `- (void)windowWillExitFullScreen:(NSNotification *)notification`  (line 8906)
-  - [ ] `- (void)windowWillExitFullScreen`  (line 8912)
-  - [ ] `- (void)windowDidExitFullScreen:(NSNotification *)notification`  (line 8924)
-  - [ ] `- (void)windowDidExitFullScreen`  (line 8930)
+  - [x] `- (void)windowDidMove: sender`  (line 8645) — landed as `@objc func windowDidMove (_:)` (C's parameter is untyped, so the port keeps `Any?` - the same selector); C's body is the call to `updateFramePosition`, and this round also lands the `@_cdecl("windowDidMove")` provider round 70's deferred entry waited for
+  - [x] `- (BOOL)windowShouldZoom: (NSWindow *)sender toFrame: (NSRect)newFrame`  (line 8656) — landed as `@objc func windowShouldZoom (_:toFrame:) -> Bool`: C 8662's `output_data.ns->zooming = 1` is the `ns_output_set_zooming` member write and C 8663's answer is `YES`
+  - [x] `- (NSRect)windowWillUseStandardFrame:(NSWindow *)sender defaultFrame:(NSRect)defaultFrame`  (line 8670) — landed as `@objc func windowWillUseStandardFrame (_:defaultFrame:) -> NSRect`: C 8673-8674's TODO comment is kept, C 8884-8897's 10.7 bug fix is **dead on this target** (`MIN_REQUIRED <= 1070`, recorded not transcribed), the three `setFSValue:` calls go through round 70's deferred entry, and C 8780's discarded `windowWillResize:toSize:` result is `_ = self.windowWillResize (sender, to:)`
+  - [x] `- (void)windowDidDeminiaturize: sender`  (line 8788) — landed as `@objc func windowDidDeminiaturize (_:)`: the two `SET_FRAME_*` setters, the `windows_or_buffers_changed = 63` global and C 8801's `EV_TRAILER ((id)nil)` (the same `emacsframe` this unit's other callers pass)
+  - [x] `- (void)windowDidExpose: sender`  (line 8806) — landed as `@objc func windowDidExpose (_:)`: `SET_FRAME_VISIBLE` + `SET_FRAME_GARBAGED` and C 8815's `send_appdefined` guard
+  - [x] `- (void)windowDidMiniaturize: sender`  (line 8820) — landed as `@objc func windowDidMiniaturize (_:)`: the twin of the deminiaturize above with `ICONIFY_EVENT`
+  - [x] `- (NSApplicationPresentationOptions)window:(NSWindow *)window willUseFullScreenPresentationOptions: (NSApplicationPresentationOptions)proposedOptions`  (line 8837) — landed as `@objc func window (_:willUseFullScreenPresentationOptions:) -> NSApplication.PresentationOptions` (the `NS_IMPL_COCOA` arm this target has); C 8841's `proposedOptions|NSApplicationPresentationAutoHideToolbar` is the option set's union with `.autoHideToolbar`
+  - [x] `- (void)windowWillEnterFullScreen:(NSNotification *)notification`  (line 8845) — landed as `@objc func windowWillEnterFullScreen (_ notification: Notification)` - the notification arm of the direct-call twin below
+  - [x] `- (void)windowWillEnterFullScreen`  (line 8850) — landed as `func windowWillEnterFullScreen ()` - "provided for direct calls"; C 8853's one statement is `fs_before_fs = fs_state`
+  - [x] `- (void)windowDidEnterFullScreen:(NSNotification *)notification`  (line 8856) — landed as `@objc func windowDidEnterFullScreen (_ notification: Notification)` - the notification arm of the direct-call twin below
+  - [x] `- (void)adjustEmacsFrameRect`  (line 8862) — landed as `func adjustEmacsFrameRect ()`: C's `f->left_pos`/`f->top_pos` writes are the member entries C 8224-8227 uses and C 8866's `[frame_window frame]` on a nil window is the rect's zero value; this round also lands the `@_cdecl("adjustEmacsFrameRect")` provider round 68's deferred entry waited for (C 8425's call site)
+  - [x] `- (void)windowDidEnterFullScreen`  (line 8871) — landed as `func windowDidEnterFullScreen ()` - "provided for direct calls": `FULLSCREEN_BOTH` is a new mirror-valued entry, the `fsIsNative` arm calls this unit's own `windowDidBecomeKey` and orders out `nonfs_window`, C 8882-8898's 10.7 menu fix is **dead on this target** (so C's `else` arm is empty and recorded), and C 8903's call is the new `adjustEmacsFrameRect`
+  - [x] `- (void)windowWillExitFullScreen:(NSNotification *)notification`  (line 8906) — landed as `@objc func windowWillExitFullScreen (_ notification: Notification)` - the notification arm
+  - [x] `- (void)windowWillExitFullScreen`  (line 8912) — landed as `func windowWillExitFullScreen ()` - "provided for direct calls": C 8915's `FRAME_LIVE_P` guard and C 8920's `next_maximized` copy
+  - [x] `- (void)windowDidExitFullScreen:(NSNotification *)notification`  (line 8924) — landed as `@objc func windowDidExitFullScreen (_ notification: Notification)` - the notification arm
+  - [x] `- (void)windowDidExitFullScreen`  (line 8930) — landed as `func windowDidExitFullScreen ()` - "provided for direct calls": the frame-live guard, `setFSValue (self, fs_before_fs)`, `updateCollectionBehavior` (the `NS_IMPL_COCOA` arm), C 8945's `performZoom:` message to the window and C 8949's `adjustEmacsFrameRect`
   - [x] `- (BOOL)fsIsNative`  (line 8952) — landed as `func fsIsNative () -> Bool`; C's whole body is the ivar read
   - [x] `- (BOOL)isFullscreen`  (line 8957) — landed as `func isFullscreen () -> Bool`; C 8967-8971's `#else` is dead on this target, and C 8968's `styleMask & NSWindowStyleMaskFullScreen` is the option-set's `contains`
   - [x] `- (void)updateCollectionBehavior`  (line 8981) — landed as `func updateCollectionBehavior ()`; the three `b &=`/`b |=` lines are the collection-behavior option set's insert/remove, `ns_use_native_fullscreen` is imported as the C 11702 `DEFVAR_BOOL`'s data symbol (the `ns_auto_hide_menu_bar` shape), and `FRAME_PARENT_FRAME`/`FRAME_TOOLTIP_P` are this unit's existing entries
@@ -4675,3 +4675,37 @@ call site takes an entry and the definition lands at its own C line - and **both
   Swift unit(s) landed`**, so no `docs/baseline/swift-units.tsv` row moves.
 * **Not claimed**: this round has **no runtime evidence** - no window was closed, moved, resized
   or un-fullscreened; the compile gate reaches type checking only.
+
+### Round 71: the window delegate and fullscreen family (C 8645-8950)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings - the same nine round 70 leaves, with **nothing new on the first run**.
+  Object `/tmp/nsterm71.o`, **1,270,592 bytes**, md5 `303a877c84886fb120df23dc79963e21`.  The unit
+  is **13,687 lines**.
+* **Sixteen `EmacsView` methods land**: `windowDidMove:` (C 8645-8650),
+  `windowShouldZoom:toFrame:` (C 8656-8664), `windowWillUseStandardFrame:defaultFrame:`
+  (C 8670-8785, the three-click zoom cycle), `windowDidDeminiaturize:` (C 8788-8803),
+  `windowDidExpose:` (C 8806-8817), `windowDidMiniaturize:` (C 8820-8834),
+  `window:willUseFullScreenPresentationOptions:` (C 8836-8843) and the fullscreen family's four
+  notification/direct pairs plus `adjustEmacsFrameRect` (C 8845-8950).  The class box's own count
+  moves to **44 method boxes remaining**.
+* **Two deferred entries close**: round 70's `windowDidMove_entry` and round 68's
+  `adjustEmacsFrameRect_entry` now have their `@_cdecl` definitions beside the class
+  (`windowDidMove_definition`, `adjustEmacsFrameRect_definition` - the
+  `@_cdecl("isFullscreen")` pattern), which is the acceptance test both entries named.
+* **One dead arm recorded, not transcribed**: C 8882-8898's 10.7 menu fix
+  (`MAC_OS_X_VERSION_MIN_REQUIRED <= 1070`), so C 8881's `else` arm is empty in the port.
+* **C's own typing is the rule for the untyped ones**: C 8645/8788/8806/8820 declare `sender`
+  untyped while C 8845/8856/8906/8924 declare `NSNotification *`; the port writes `Any?` and
+  `Notification` respectively - the same selector either way.  The class's `NSWindowDelegate`
+  conformance, still the named deferral, is the batch that will reconcile the protocol's own
+  parameter types with those four, and the class box says so.
+* **The ABI block adds one entry and two file-scope constants**: `FULLSCREEN_BOTH` (src/frame.h
+  54, `0x3`; **open** - the mirror's Rust constant carries no C symbol yet) and the
+  mirror-valued `ICONIFY_EVENT` 14 / `DEICONIFY_EVENT` 15
+  (`femacs/src/include/termhooks.rs` 41/42).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **680** C symbol imports (round 70 read 679) and the tail line **`0 new, 0 stale, 7
+  Swift unit(s) landed`**, so no `docs/baseline/swift-units.tsv` row moves.
+* **Not claimed**: this round has **no runtime evidence** - no window was moved, zoomed,
+  miniaturized or taken in and out of fullscreen; the compile gate reaches type checking only.
