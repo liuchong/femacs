@@ -1,8 +1,8 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
-C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606 and
-C 7609-7729
+C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
+C 7609-7729 and C 7731-7950
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -20,12 +20,12 @@ C 7609-7729
 > the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth,
 > **9,547 lines** after the nineteenth, **9,801 lines** after the twentieth, **10,033 lines**
 > after the twenty-first, **10,157 lines** after the twenty-second, **10,332 lines** after the
-> twenty-third, **10,404 lines** after the twenty-fourth, **10,631 lines** after the twenty-fifth
-> and **10,782 lines** after the twenty-sixth - C 803-2149, C 2150-3811, C 3812-3956,
-> C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
-> C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
-> C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606 and
-> C 7609-7729, whose own
+> twenty-third, **10,404 lines** after the twenty-fourth, **10,631 lines** after the twenty-fifth,
+> **10,782 lines** after the twenty-sixth and **11,042 lines** after the twenty-seventh - C 803-2149,
+> C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
+> C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
+> C 6300-6513, C 6515-6601, C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447,
+> C 7449-7491, C 7494-7606, C 7609-7729 and C 7731-7950, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -201,7 +201,8 @@ defines both features.
 | 7449-7491 | C 7449-7451's `X Displays` section comment, C 7454-7470's `visual_class` record and its `visual_classes[]` table (the six X11/X.h class constants) and C 7473-7491's `#ifndef HAVE_XSCREENNUMBEROFSCREEN` `XScreenNumberOfScreen` substitute (the file's own non-`static` definition) | `have_x_windows` on every item (P-86 ⑧, caught by the frozen `build-tu`), with `not (have_xscreennumberofscreen)` on the substitute and the feature on Xlib's declaration at 1960-1961 (slice 24) |
 | 7494-7606 | `select_visual` (C 7494-7496 its comment) - the `visualClass` resource lookup, the CLASS-DEPTH parse (C's bare `alloca`), the `visual_classes` walk, `XMatchVisualInfo` and the default-visual fallback with its `#if !defined USE_X_TOOLKIT && !(defined USE_GTK && !defined HAVE_GTK3) && defined HAVE_XRENDER` alpha-mask attempt | `have_x_windows` on the function, with `have_xrender` (and C's two negations) on that block's `#[cfg]` (slice 25) |
 | 7609-7729 | the connection group: `x_display_info_for_name` (C 7609-7610 its comment, C 7612-7634), `x-open-connection` (C 7637-7677), `x-close-connection` (C 7679-7695), `x-display-list` (C 7697-7708) and `x-synchronize` (C 7710-7729) | `have_x_windows`, with no nested `#if` (slice 26) |
-| 7731-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,932 lines, opening with C 7732-7734's `Window properties` section comment and the `x-change-window-property` `DEFUN` (C 7736, with C 7783/7858's `USE_XCB` pair inside it) - the next slice's first item | not ported in this slice |
+| 7731-7950 | C 7732-7734's `Window properties` section comment and `x-change-window-property` (C 7736-7950: the FORMAT check, the two VALUE arms with C 7821/7837's `elsize`, the target-window choice, C 7783-7791 and C 7858-7933's `USE_XCB` pair, C 7937-7939's `XChangeProperty` and C 7944-7946's error pair) | `have_x_windows` on the DEFUN, with `use_xcb` on C 7867's arm (slice 27) |
+| 7953-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,710 lines, whose first live definition is `x-delete-window-property` (C 7953-7995) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2802,3 +2803,80 @@ literals), 0 failures**.
 The frozen configuration compiles none of this file: no connection was opened, no display was
 deleted, no display list was walked and no synchronization mode was set; the fourteen arms' counts
 are text compile readings.
+## Slice 27 (2026-10-08, status 3.930 - the integrator sets the round number): C 7731-7950
+
+**The slice is C 7731-7950**: C 7732-7734's `Window properties` section comment and
+`x-change-window-property` - the FORMAT check (C 7798-7806), the two VALUE arms (C 7808-7841, with
+C 7821/7837's `elsize` and C 7824's `x_fill_property_data`), the target-window choice
+(C 7843-7855), C 7783-7791's `USE_XCB` declarations with C 7858-7933's two arms (the cached-atom
+pair and the four `xcb_intern_atom`/`xcb_intern_atom_reply` calls), C 7937-7939's `XChangeProperty`
+and C 7944-7946's error pair.  It is this file's first subr with an XCB arm.  The port's slice is
+**260 Rust lines** (11,042 - 10,782, `grep -c ''`) against C's 213; md5
+`592d1f83c02ad2f26113cbca2052b9f7` (the slice 26 tree) -> `00de98651732c8b4e46c975629b29169`.
+
+**Twelve arms are byte-identical; the GTK pair moves by one named row.**  Twelve of the fourteen
+read their baselines with error sets identical to the last slice's - plain-X, WS, WSX, WSR, WSRX,
+WSR12 and XCB **15 / 9**, LUCID **23 / 12**, XI2 **19 / 9**, XSN **13 / 9**, XR **19 / 9**, Xt
+**16 / 12** - and GTK and GTK22 read **41 / 20 -> 42 / 20**, the single addition being a
+`GDK_WINDOW_XID` instance of the class slice 8 named (the mirror's `GTK_WIDGET_TO_X_WIN`
+placeholder, reached by C 7852's `FRAME_OUTER_WINDOW`).  No warning moves in any arm.
+
+**The first measurement's five rows, all closed but one.**  Three `E0425`s were the `_for_lisp`
+trio: slice 22 declared `x_catch_errors_for_lisp`/`x_uncatch_errors_for_lisp` under its XInput2
+gate for C 7259/7263, and C 7935/7944/7946 use all three in every arm, so the row's gate widened to
+the file gate and `x_check_errors_for_lisp` joined it.  One `E0308` was C 7875's
+`prop_atom != None` (an `Atom` against X.h's `c_long`), written `!= None as Atom`.  One `E0381` was
+C 7789's `xcb_generic_error_t *generic_error`, an out-parameter that takes the file's zero
+initialiser.  The fifth is the GTK pair's `GDK_WINDOW_XID` instance, named above and left as the
+class's further instance.
+
+**Arm touch measured** (P-86 ⑦): two injections - the body's first statement (A) and the
+`use_xcb` arm's first statement (B) - move plain-X **15 -> 16** and GTK **42 -> 43** with A alone
+(the XCB arm is not compiled there) and XCB **15 -> 17** with both, which measures C 7867's gate
+from the reading side.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash.
+
+**② The fourteen arms.**  See above.
+
+**③ `extract-abi.py --check`**: **106 rows -> 105** - `missing subr Fx_change_window_property
+(x-change-window-property)` retiring, and nothing appearing in its place (the 220-line body with
+its XCB pair satisfies the mechanical check as it stands); `missing subr` 21 -> 20.  The drift is
+`C 10662 vs Rust 11,042` = **4.3%**, and the unit still carries no line-count row (it retired at
+slice 22, when the port passed the 5% bar); what remains is `missing function` 14, `missing subr`
+20, `missing defsubr` 45, 1 macro and 4 file-scope objects.  `check-mirror-dupes.py` stays at **16 duplicate declaration(s),
+16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at **18 declaration sites
+(0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **The XCB records and the two calls stand at the use site** (`xcb_intern_atom_cookie_t` and
+   `xcb_intern_atom_reply_t` from xcb/xproto.h 1851-1856 and 1875-1881, `xcb_intern_atom` and
+   `xcb_intern_atom_reply` from 6676-6680 and 6723-6726), which is the family this file's slice 14
+   declared the `xproto.h` rows of (262-268); they are owed to an `xcb.rs` mirror.
+2. **The `_for_lisp` trio's gate widened** from slice 22's XInput2 arm to the file gate, and
+   `x_check_errors_for_lisp` joined it (C 7935/7944/7946 use all three unconditionally).
+3. **C 7875's `prop_atom != None`** is `!= None as Atom` (X.h's `None` is `c_long`).
+4. **C 7789's `generic_error`** takes the file's zero initialiser (it is an out-parameter).
+5. **C's widths** are written out where the port needs them: `XFIXNUM (format) as c_int`,
+   `xnmalloc (nelements as isize, elsize as isize)`, `nelements as ptrdiff_t`,
+   `SBYTES (prop) as u16` and `(SBYTES (value) / elsize) as c_int`.
+
+### Owed (this slice)
+
+- The XCB rows are owed to an `xcb.rs` mirror; the `_for_lisp` trio to `include/xterm.rs`;
+  `x_intern_cached_atom`, `x_check_property_data` and `x_fill_property_data` to `include/xterm.rs`
+  as well (`src/xselect.rs` declares the same three rows).
+- The GTK pair's new row is a further instance of the `GDK_WINDOW_XID` class
+  (`include/gtk.rs`/`include/xterm.rs` are its homes).
+- `syms_of_xfns`' `defsubr` sites (the count stays 45) and the rest of the remainder from C 7953
+  (`x-delete-window-property`, C 7953-7995): 2,710 C lines plus the 14 missing functions, 1 macro,
+  4 objects, 20 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no window property was changed, no atom was
+interned and no XCB connection was used; the fourteen arms' counts are text compile readings.

@@ -10068,12 +10068,16 @@ unsafe extern "C" {
 			dest_x: c_int, dest_y: c_int) -> c_int;
 }
 
-/* C: xterm.h 1755/1756: `extern void x_catch_errors_for_lisp (struct x_display_info *);` /
-   `… x_uncatch_errors_for_lisp (…);` - C 7259/7263's calls (`src/xterm.rs` 21835/21858 define
-   them; `src/xselect.rs` 497-502 declares the same two rows).  */
-#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+/* C: xterm.h 1755/1756/1759: `extern void x_catch_errors_for_lisp (struct x_display_info *);` /
+   `… x_uncatch_errors_for_lisp (…);` / `extern void x_check_errors_for_lisp (struct
+   x_display_info *, const char *);` - C 7259/7263's pair uses the XInput2 gate's arm, and
+   C 7935/7944/7946's uses stand under the file gate (status 3.930 widened the row's gate and
+   added the third name).  `src/xterm.rs` 21835/21858 define the pair; `src/xselect.rs` 497-502
+   declares the same rows.  */
+#[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   pub fn x_catch_errors_for_lisp (dpyinfo: *mut x_display_info);
+  pub fn x_check_errors_for_lisp (dpyinfo: *mut x_display_info, format: *const c_char);
   pub fn x_uncatch_errors_for_lisp (dpyinfo: *mut x_display_info);
 }
 
@@ -10779,4 +10783,260 @@ DEFUN! ("x-synchronize", Fx_synchronize, Sx_synchronize,
   XSynchronize ((*dpyinfo).display, !NILP (on) as Bool);                  // C 7726
 
   return Qnil ();                                                         // C 7728
+});
+
+/* -----------------------------------------------------------------------------------------
+   C 7731-7950: the `Window properties` section comment (C 7731-7734) and
+   `x-change-window-property` - the FORMAT check, the two VALUE arms, the target-window choice,
+   C 7783-7791's `USE_XCB` declarations and C 7858-7933's two arms, C 7937-7939's
+   `XChangeProperty` and C 7944-7946's error pair.
+   -------------------------------------------------------------------------------------- */
+
+/* C: xterm.h 1841/1934/1935: `extern Atom x_intern_cached_atom (struct x_display_info *,
+   const char *, bool);` / `extern int x_check_property_data (Lisp_Object);` /
+   `extern void x_fill_property_data (struct x_display_info *, Lisp_Object, void *, ptrdiff_t,
+   int);` - C 7859/7872/7886, C 7812 and C 7824's calls.  `src/xterm.rs` and `src/xselect.rs`
+   define them (`src/xselect.rs` declares the same three rows) and no mirror carries them, so they
+   stand at the use site (P-55/P-72 rule 3).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_intern_cached_atom (dpyinfo: *mut x_display_info, name: *const c_char,
+			       only_if_exists: bool) -> Atom;
+  pub fn x_check_property_data (value: Lisp_Object) -> c_int;
+  pub fn x_fill_property_data (dpyinfo: *mut x_display_info, value: Lisp_Object,
+			       data: *mut c_void, nelements: ptrdiff_t, format: c_int);
+}
+
+/* C: xcb/xproto.h 1851-1856, 1875-1881, 6676-6680 and 6723-6726:
+   `typedef struct xcb_intern_atom_cookie_t { unsigned int sequence; } xcb_intern_atom_cookie_t;`,
+   `typedef struct xcb_intern_atom_reply_t { uint8_t response_type; uint8_t pad0; uint16_t
+   sequence; uint32_t length; xcb_atom_t atom; } xcb_intern_atom_reply_t;`, `xcb_intern_atom_cookie_t
+   xcb_intern_atom (xcb_connection_t *, uint8_t, uint16_t, const char *);` and
+   `xcb_intern_atom_reply_t *xcb_intern_atom_reply (xcb_connection_t *, xcb_intern_atom_cookie_t,
+   xcb_generic_error_t **);` - C 7786-7788 and C 7878/7892/7899/7916's names, the `xcb_*` family
+   this file's slice 14 declared the `xproto.h` rows of (262-268).  This machine has
+   `<xcb/xproto.h>`, so the records' members are the header's.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct xcb_intern_atom_cookie_t
+{
+  pub sequence: c_uint,                    /* C: `unsigned int sequence;`  */
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct xcb_intern_atom_reply_t
+{
+  pub response_type: u8,                   /* C: `uint8_t response_type;`  */
+  pub pad0: u8,                            /* C: `uint8_t pad0;`  */
+  pub sequence: u16,                       /* C: `uint16_t sequence;`  */
+  pub length: u32,                         /* C: `uint32_t length;`  */
+  pub atom: xcb_atom_t,                    /* C: `xcb_atom_t atom;` (C 7904/7921 read it)  */
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+unsafe extern "C" {
+  pub fn xcb_intern_atom (c: *mut xcb_connection_t, only_if_exists: u8, name_len: u16,
+			  name: *const c_char) -> xcb_intern_atom_cookie_t;
+  pub fn xcb_intern_atom_reply (c: *mut xcb_connection_t, cookie: xcb_intern_atom_cookie_t,
+				e: *mut *mut xcb_generic_error_t) -> *mut xcb_intern_atom_reply_t;
+}
+
+/* C 7736-7950.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-change-window-property", Fx_change_window_property, Sx_change_window_property,
+	2, 7, 0,
+	doc: "Change window property PROP to VALUE on the X window of FRAME.\nPROP must be a string.  VALUE may be a string or a list of conses,\nnumbers and/or strings.  If an element in the list is a string, it is\nconverted to an atom and the value of the atom is used.  If an element\nis a cons, it is converted to a 32 bit number where the car is the 16\ntop bits and the cdr is the lower 16 bits.\n\nFRAME nil or omitted means use the selected frame.  If TYPE is given\nand non-nil, it is the name of the type of VALUE.  If TYPE is not\ngiven or nil, the type is STRING.\n\nFORMAT gives the size in bits of each element if VALUE is a list.  It\nmust be one of 8, 16 or 32.\n\nIf VALUE is a string or FORMAT is nil or not given, FORMAT defaults to\n8.  If OUTER-P is non-nil, the property is changed for the outer X\nwindow of FRAME.  Default is to change on the edit X window.\n\nIf WINDOW-ID is non-nil, change the property of that window instead of\nFRAME's X window; the number 0 denotes the root window.  This argument\nis separate from FRAME because window IDs are not unique across X\ndisplays or screens on the same display, so FRAME provides context for\nthe window ID.\n\nIf VALUE is a string and FORMAT is 32, then the format of VALUE is\nsystem-specific.  VALUE must contain unsigned integer data in native\nendian-ness in multiples of the size of the C type 'long': the low 32\nbits of each such number are used as the value of each element of the\nproperty.\n\nWait for the request to complete and signal any error, unless\n`x-fast-protocol-requests' is non-nil, in which case errors will be\nsilently ignored.  ",
+	(prop: Lisp_Object, value: Lisp_Object, frame: Lisp_Object, r#type: Lisp_Object,
+	 format: Lisp_Object, outer_p: Lisp_Object, window_id: Lisp_Object),
+	{
+  use crate::x11_constants::PropModeReplace;                             // C 7939
+
+  let f: *mut frame;                                                     // C 7775
+  let mut prop_atom: Atom;                                               // C 7776
+  let mut target_type: Atom = XA_STRING;                                 // C 7777
+  let mut element_format: c_int = 8;                                     // C 7778
+  let mut data: *mut c_uchar;                                            // C 7779
+  let mut nelements: c_int;                                              // C 7780
+  let mut target_window: Window;                                         // C 7781
+  let dpyinfo: *mut x_display_info;                                      // C 7782
+  #[cfg (feature = "use_xcb")]                                           // C 7783
+  let mut intern_prop: bool = false;                                     // C 7784
+  #[cfg (feature = "use_xcb")]
+  let mut intern_target: bool = false;                                   // C 7785
+  #[cfg (feature = "use_xcb")]
+  let mut prop_atom_cookie: xcb_intern_atom_cookie_t = std::mem::zeroed ();   // C 7786
+  #[cfg (feature = "use_xcb")]
+  let mut target_type_cookie: xcb_intern_atom_cookie_t = std::mem::zeroed ();  // C 7787
+  #[cfg (feature = "use_xcb")]
+  let mut reply: *mut xcb_intern_atom_reply_t;                           // C 7788
+  #[cfg (feature = "use_xcb")]
+  let mut generic_error: *mut xcb_generic_error_t = std::ptr::null_mut ();   // C 7789
+  #[cfg (feature = "use_xcb")]
+  let mut rc: bool;                                                      // C 7790
+
+  f = decode_window_system_frame (frame);                                // C 7793
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                     // C 7794
+
+  CHECK_STRING (prop);                                                   // C 7796
+
+  if !NILP (format)                                                      // C 7798
+    {
+      CHECK_FIXNUM (format);                                             // C 7800
+
+      if XFIXNUM (format) != 8 && XFIXNUM (format) != 16                 // C 7802-7803
+	  && XFIXNUM (format) != 32
+	{ error (c"FORMAT must be one of 8, 16 or 32".as_ptr ()); }      // C 7804
+      element_format = XFIXNUM (format) as c_int;                        // C 7805
+    }
+
+  if CONSP (value)                                                       // C 7808
+    {
+      let mut elsize: ptrdiff_t;                                         // C 7810
+
+      nelements = x_check_property_data (value);                         // C 7812
+      if nelements == -1                                                 // C 7813
+	{ error (c"Bad data in VALUE, must be number, string or cons".as_ptr ()); }   // C 7814
+
+      /* The man page for XChangeProperty:
+	 "If the specified format is 32, the property data must be a
+	  long array."
+	 This applies even if long is more than 32 bits.  The X library
+	 converts to 32 bits before sending to the X server.  */         // C 7816-7820
+      elsize = if element_format == 32                                    // C 7821
+	{ std::mem::size_of::<c_long> () as ptrdiff_t }
+      else { (element_format >> 3) as ptrdiff_t };
+      data = xnmalloc (nelements as isize, elsize as isize) as *mut c_uchar;   // C 7822
+
+      x_fill_property_data (FRAME_DISPLAY_INFO! (f), value,              // C 7824-7825
+			    data as *mut c_void, nelements as ptrdiff_t, element_format);
+    }
+  else
+    {
+      let mut elsize: ptrdiff_t;                                          // C 7829
+
+      CHECK_STRING (value);                                               // C 7831
+      data = SDATA (value);                                               // C 7832
+      if (INT_MAX as EMACS_INT) < SBYTES (value)                          // C 7833
+	{ error (c"VALUE too long".as_ptr ()); }                          // C 7834
+
+      /* See comment above about longs and format=32.  */                 // C 7836
+      elsize = if element_format == 32                                    // C 7837
+	{ std::mem::size_of::<c_long> () as ptrdiff_t }
+      else { (element_format >> 3) as ptrdiff_t };
+      if SBYTES (value) % elsize != 0                                     // C 7838
+	{ error (c"VALUE must contain an integral number of octets for FORMAT".as_ptr ()); }   // C 7839
+      nelements = (SBYTES (value) / elsize) as c_int;                     // C 7840
+    }
+
+  if !NILP (window_id)                                                    // C 7843
+    {
+      CONS_TO_INTEGER! (window_id, target_window);                        // C 7845
+      if target_window == 0                                               // C 7846
+	{ target_window = (*dpyinfo).root_window; }                       // C 7847
+    }
+  else
+    {
+      if !NILP (outer_p)                                                  // C 7851
+	{ target_window = FRAME_OUTER_WINDOW! (f); }                      // C 7852
+      else
+	{ target_window = FRAME_X_WINDOW! (f); }                          // C 7854
+    }
+
+  block_input ();                                                         // C 7857
+  #[cfg (not (feature = "use_xcb"))]                                      // C 7858
+  {
+    prop_atom = x_intern_cached_atom (dpyinfo, SSDATA (prop), false);      // C 7859-7860
+    if !NILP (r#type)                                                     // C 7861
+      {
+	CHECK_STRING (r#type);                                            // C 7863
+	target_type = x_intern_cached_atom (dpyinfo, SSDATA (r#type), false);   // C 7864-7865
+      }
+  }
+  #[cfg (feature = "use_xcb")]                                            // C 7867
+  {
+    use crate::x11_constants::None;                                       // C 7875's `None`
+
+    rc = true;                                                            // C 7868
+    intern_target = true;                                                 // C 7869
+    intern_prop = true;                                                   // C 7870
+
+    prop_atom = x_intern_cached_atom (dpyinfo, SSDATA (prop), true);      // C 7872-7873
+
+    if prop_atom != None as Atom                                          // C 7875
+      { intern_prop = false; }                                            // C 7876
+    else
+      {
+	prop_atom_cookie = xcb_intern_atom ((*dpyinfo).xcb_connection,    // C 7878-7880
+					    0, SBYTES (prop) as u16, SSDATA (prop));
+      }
+
+    if !NILP (r#type)                                                     // C 7882
+      {
+	CHECK_STRING (r#type);                                            // C 7884
+
+	target_type = x_intern_cached_atom (dpyinfo, SSDATA (r#type), true);   // C 7886-7887
+
+	if target_type != 0                                               // C 7889
+	  { intern_target = false; }                                      // C 7890
+	else
+	  {
+	    target_type_cookie = xcb_intern_atom ((*dpyinfo).xcb_connection,   // C 7892-7894
+						  0, SBYTES (r#type) as u16, SSDATA (r#type));
+	  }
+      }
+
+    if intern_prop                                                        // C 7897
+      {
+	reply = xcb_intern_atom_reply ((*dpyinfo).xcb_connection,         // C 7899-7900
+				       prop_atom_cookie, &raw mut generic_error);
+
+	if !reply.is_null ()                                              // C 7902
+	  {
+	    prop_atom = (*reply).atom as Atom;                            // C 7904
+	    free (reply as *mut c_void);                                  // C 7905
+	  }
+	else
+	  {
+	    free (generic_error as *mut c_void);                          // C 7909
+	    rc = false;                                                   // C 7910
+	  }
+      }
+
+    if !NILP (r#type) && intern_target                                     // C 7914
+      {
+	reply = xcb_intern_atom_reply ((*dpyinfo).xcb_connection,         // C 7916-7917
+				       target_type_cookie, &raw mut generic_error);
+
+	if !reply.is_null ()                                              // C 7919
+	  {
+	    target_type = (*reply).atom as Atom;                          // C 7921
+	    free (reply as *mut c_void);                                  // C 7922
+	  }
+	else
+	  {
+	    free (generic_error as *mut c_void);                          // C 7926
+	    rc = false;                                                   // C 7927
+	  }
+      }
+
+    if !rc                                                               // C 7931
+      { error (c"Failed to intern type or property atom".as_ptr ()); }   // C 7932
+  }
+
+  x_catch_errors_for_lisp (dpyinfo);                                      // C 7935
+
+  XChangeProperty ((*dpyinfo).display, target_window,                     // C 7937-7939
+		   prop_atom, target_type, element_format,
+		   PropModeReplace, data, nelements);
+
+  if CONSP (value)                                                        // C 7941
+    { xfree (data as *mut c_void); }                                      // C 7942
+
+  x_check_errors_for_lisp (dpyinfo,                                       // C 7944-7945
+			   c"Couldn't change window property: %s".as_ptr ());
+  x_uncatch_errors_for_lisp (dpyinfo);                                    // C 7946
+
+  unblock_input ();                                                       // C 7948
+  return value;                                                           // C 7949
 });
