@@ -466,16 +466,16 @@ casts, and a `mut` rustc did not need) are named in Decision 118 5.
 - [x] x_fast_mouse_position  (line 14862, static)
 - [x] XTmouse_position  (line 15001, static)
 - [x] x_window_to_scroll_bar  (line 15343, static)
-- [ ] x_scroll_bar_create  (line 16715, static)
-- [ ] x_scroll_bar_set_handle  (line 16843, static)
-- [ ] x_scroll_bar_remove  (line 16964, static)
-- [ ] XTset_vertical_scroll_bar  (line 16995, static)
-- [ ] XTset_horizontal_scroll_bar  (line 17120, static)
-- [ ] XTcondemn_scroll_bars  (line 17262, static)
-- [ ] XTredeem_scroll_bar  (line 17288, static)
-- [ ] XTjudge_scroll_bars  (line 17372, static)
-- [ ] x_scroll_bar_handle_exposure  (line 17402, static)
-- [ ] x_scroll_bar_redraw  (line 17459, static)
+- [x] x_scroll_bar_create  (line 16715, static)
+- [x] x_scroll_bar_set_handle  (line 16843, static)
+- [x] x_scroll_bar_remove  (line 16964, static)
+- [x] XTset_vertical_scroll_bar  (line 16995, static)
+- [x] XTset_horizontal_scroll_bar  (line 17120, static)
+- [x] XTcondemn_scroll_bars  (line 17262, static)
+- [x] XTredeem_scroll_bar  (line 17288, static)
+- [x] XTjudge_scroll_bars  (line 17372, static)
+- [x] x_scroll_bar_handle_exposure  (line 17402, static)
+- [x] x_scroll_bar_redraw  (line 17459, static)
 - [x] x_scroll_bar_handle_click  (line 17503, static)
 - [x] x_scroll_bar_note_movement  (line 17606, static)
 - [x] x_scroll_bar_report_motion  (line 17638, static)
@@ -529,7 +529,7 @@ casts, and a `mut` rustc did not need) are named in Decision 118 5.
 - [x] x_error_quitter  (line 27082, static)
 - [x] x_io_error_quitter  (line 27115, static)
 - [x] x_new_font  (line 27137, static)
-- [ ] x_calc_absolute_position  (line 27497, static)
+- [x] x_calc_absolute_position  (line 27497, static)
 - [x] x_set_offset  (line 27590, static)
 - [x] x_get_wm_check_window  (line 27692, static)
 - [x] x_wm_supports_1  (line 27728)
@@ -608,7 +608,7 @@ casts, and a `mut` rustc did not need) are named in Decision 118 5.
 - [x] STORE_KEYSYM_FOR_DEBUG  (line 17826, body faabc0e0dbea)
 - [x] SWAPCARD16  (line 1584, body f50347531e4d)
 - [x] SWAPCARD32  (line 1583, body 393d2f43a49a)
-- [ ] XEMBED_VERSION  (line 29148, body b6589fc6ab0d)
+- [x] XEMBED_VERSION  (line 29148, body b6589fc6ab0d)
 - [x] XM_DRAG_OPERATION_IS_LINK  (line 1706, body 19c218f1041c)
 - [x] XM_DRAG_PROTOCOL_VERSION  (line 1761, body b6589fc6ab0d)
 - [x] XM_DRAG_REASON  (line 1716, body 9456c43f5e20)
@@ -6374,6 +6374,18 @@ reads as `cannot find macro GDK_WINDOW_XID` (anchored at `include/xterm.rs` 1056
 the GTK tree (the third-party-SDK gap of item 0) or a decision about what that arm expands to.
 `gnu_xpm_bits` is *not* on this list: `docs/ports/include-emacs-icon.md` records it as the header's
 dead text, so the two arms that name it record a bare name by design (P-08).
+**The tick check does not read the other direction** (2026-10-07, status 3.899).  The gate
+`check-ledger-ticks` binds a ledger's ticked rows to functions (238 ledgers, 0 failures), and this
+round found the gap it leaves: 12 of this ledger's 15 unchecked boxes were *false* -
+`x_calc_absolute_position` (27497), the ten scroll-bar functions (16715-17459) and `XEMBED_VERSION`
+(29148) are all defined in `femacs/src/xterm.rs` while their boxes stayed unchecked (their slices'
+readings say the `--check` rows retired, and `git log -S"- [x] x_scroll_bar_create"` is empty: never
+ticked).  The boxes are ticked now, and the criterion to add to the gate is the one this round used:
+for every unchecked box, look for `macro_rules! NAME`, `fn NAME` or `pub (const|static) NAME` in
+the target unit's text, and fail with the name and the line on a hit.  What must stay out of it is
+the other direction's false-positive class: this ledger's ticked-but-no-`fn` rows (19) are all
+macro/const landings (`ATOM_REFS_INIT`, `SWAPCARD16/32`, `XM_DRAG_*`, `OPAQUE`, …), so an `fn`-only
+reading would report 19 false failures.
 
 ### Slice 15's readings (C 26994-27126), as landed and measured (2026-10-06)
 
