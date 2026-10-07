@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453 and C 9456-9658
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453, C 9456-9658 and C 9660-9733
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -28,13 +28,13 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **12,025 lines** after the thirty-fourth, **12,155 lines** after the thirty-fifth and
 > **12,303 lines** after the thirty-sixth, **12,855 lines** after the thirty-seventh and
 > **12,912 lines** after the thirty-eighth, **13,022 lines** after the thirty-ninth and
-> **13,637 lines** after the fortieth - C 803-2149,
+> **13,637 lines** after the fortieth and **13,724 lines** after the forty-first - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
 > C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415 and
-> C 9418-9453 and C 9456-9658, whose own
+> C 9418-9453, C 9456-9658 and C 9660-9733, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -74,6 +74,7 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 | C 134-135 `#ifndef USE_MOTIF` / `#ifndef USE_GTK` … C 160-161 | `all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk"))` | neither Motif nor GTK |
 | C 9418 `#ifdef USE_MOTIF` … C 9660 | `all (feature = "have_x_windows", feature = "use_motif")` | the Motif configuration - measured by the probe matrix's **MOTIF** arm from status 3.944, and its C 9585-9628 `HAVE_XINPUT2` arm by the **MOTIFXI2** arm from status 3.945 |
 | C 9585 `#ifdef HAVE_XINPUT2` … C 9628 (inside the Motif subr) | `all (feature = "have_x_windows", feature = "use_motif", feature = "have_xinput2")` | a Motif configuration with XInput2 - the **MOTIFXI2** arm |
+| C 9662 `#ifdef USE_GTK` … C 9787 (`clean_up_dialog`, the second `x-file-dialog`, `x-select-font` under C 9736's `HAVE_FREETYPE`) | `all (feature = "have_x_windows", feature = "use_gtk")` (and `have_freetype` for the third item) | the GTK configuration - the **GTK**/**GTK22** arms, whose C 9667/C 9698 `x_menu_set_in_use` reads are why that row carries C's own `USE_GTK`/`USE_MOTIF` pair |
 | C 251/279/292/331/343/383/416/450/482/490/539/557/567 (`USE_XCB` and its `#else` partners, inside `x_real_pos_and_offsets`) | `use_xcb` / `not (use_xcb)` | both arms carried |
 | C 673 `#ifdef USE_GTK` (inside `x_defined_color`) | `use_gtk`, nested in the file gate | the GTK configuration |
 | C 699 `#if false` … C 712 (inside `x_decode_color`) | no gate: C's own condition is the literal `false` | never - recorded, not transcribed |
@@ -226,7 +227,8 @@ defines both features.
 | 9375-9415 | the three subrs `x-hide-tip` (C 9375-9381), `x-double-buffered-p` (C 9383-9394, with C 9388-9393's `HAVE_XDBE` pair) and `x-uses-old-gtk-dialog` (C 9401-9415, with C 9407-9414's `USE_GTK` guard), plus C 9396-9399's `File selection dialog` banner | `have_x_windows`, with `have_xdbe` and `use_gtk` inside (slice 38) |
 | 9418-9453 | C 9418's `#ifdef USE_MOTIF` and the three statics it guards: `file_dialog_cb` (C 9421-9427), `file_dialog_unmap_cb` (C 9430-9440) and `clean_up_file_dialog` (C 9442-9453), with C 9419's and C 9430-9433's comments | `all (have_x_windows, use_motif)` (slice 39) |
 | 9456-9658 | the Motif `x-file-dialog` (C 9456-9459's `DEFUN` header with the `SKIP` docstring, C 9461-9469's locals, the setup C 9471-9501, the three `XtAddCallback`s and the two `XtUnmanageChild`/`XtVaSetValues` runs C 9503-9517, the `MUSTMATCH` block C 9519-9530, C 9532-9559's dialog fill-in, C 9561's `record_unwind_protect_ptr`, C 9563-9632's event loop with C 9585-9628's `HAVE_XINPUT2` arm, and C 9634-9657's result) | `all (have_x_windows, use_motif)`, with `have_xinput2` for the XI2 arm inside (slice 40) |
-| 9660-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,002 lines, whose first live items are C 9660's `#endif /* USE_MOTIF */`, C 9662's `#ifdef USE_GTK` with `clean_up_dialog` (C 9664-9668) and C 9670's second `DEFUN ("x-file-dialog", …)` | not ported in this slice |
+| 9660-9733 | C 9660's `#endif /* USE_MOTIF */`, C 9662's `#ifdef USE_GTK`, `clean_up_dialog` (C 9664-9668) and the **second** `x-file-dialog` `DEFUN` (C 9670-9733), whose docstring is the real doc C 9457's Motif definition skips to | `all (have_x_windows, use_gtk)` (slice 41) |
+| 9736-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 926 lines, whose first live items are C 9736's `#ifdef HAVE_FREETYPE` and C 9738's `DEFUN ("x-select-font", …)` | not ported in this slice |
 
 ## Evidence
 
@@ -3884,3 +3886,85 @@ docstring row at all.  **The row retires with C 9670.**  `check-mirror-dupes.py`
 The frozen configuration compiles none of this file: no dialog was created, no callback fired, no
 event was waited for and no file name was returned; the sixteen arms' counts are text compile
 readings, and the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.
+
+## Slice 41 (2026-10-08, status 3.946): C 9660-9733
+
+**The slice is C 9660-9733**: `#endif /* USE_MOTIF */` (C 9660), `#ifdef USE_GTK` (C 9662),
+`clean_up_dialog` (C 9664-9668) and the file's **second** `x-file-dialog` `DEFUN` (C 9670-9733,
+whose docstring is the real doc C 9457's Motif definition skips to) - 87 Rust lines
+(13,637 -> 13,724).
+
+**All sixteen arms are byte-identical to slice 40** - plain-X **18 / 9**, WS, WSX, WSR, WSRX,
+WSR12 and XSN **16 / 9**, LUCID **25 / 12**, MOTIF **20 / 12**, MOTIFXI2 **24 / 12**, GTK and
+GTK22 **47 / 20**, XI2 and XR **22 / 9**, Xt **20 / 12** and XCB **18 / 9** - with both the
+`^error` and the `^warning` sets empty-diff, and **the first measurement needed no repair at
+all**: the one row this slice moves was known from C's own text.
+
+**`x_menu_set_in_use`'s gate is now C's own pair.**  Slice 39 declared that row under `use_motif`
+(the only arm that read it then); xterm.h 1990-1991 wraps it in `#if defined USE_GTK || defined
+USE_MOTIF`, and C 9667/C 9698 read it under `use_gtk`, so the row carries
+`all (have_x_windows, any (use_gtk, use_motif))` - the widening C's own header makes.
+
+**Arm touch measured** (P-86 ⑦): an injection before C 9693's `check_window_system (f);` (A, the
+body's first statement) moves GTK **47 -> 48** and GTK22 **47 -> 48**, leaving plain-X at 18,
+MOTIF at 20 and MOTIFXI2 at 24; one before C 9730's `decoded_file = DECODE_FILE (file);` (B)
+moves the same pair, leaving plain-X at 18, MOTIF at 20 and XCB at 18.  Both logs carry the
+injected line's text once.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+`femacs/src/xfns.rs` md5 `28c4434a6c85a0b748b63b510c74a144` (slice 40's end hash was
+`ba821e3add72169d17c10607c8bf7283`).
+
+**② The sixteen arms.**  See above.
+
+**③ `extract-abi.py --check`**: **85 rows -> 84** - `missing function clean_up_dialog` retires
+with nothing appearing, and the drift row moves from `27.9%` to `28.7%: C 10662 vs Rust 13724`.
+
+**④ The `subr Fx_file_dialog: docstring differs` row does not retire, and the prediction in
+slice 40's ledger entry that it would is corrected here.**  Measured this slice: the checker walks
+every C `DEFUN` and pairs each with the **first** Rust subr of the same C name
+(`tools/extract-abi.py` 1914-1915), so with two C definitions and two Rust ones, C 9670's real doc
+(digest `f815b0f78fba`) is compared against the Motif literal (digest `10ae11f31944`) and the row
+stands even though the pairwise digests agree in both orders (`10ae11f3`/`f815b0f7` on each side).
+`src/xmenu.c` has the same two-definition shape and reads `OK` **only** because it is one of the
+429 files in `docs/baseline/config/cond-eval-verified.txt` (line 419), where the frozen table
+drops its second `DEFUN`; with `--cond-macros ''` it prints the same row
+(`subr Fx_menu_bar_open_internal: docstring differs`).  `src/xfns.c` is not on that list - P-66's
+rule that elsewhere the table is not consulted and every condition keeps both branches live - so
+both C definitions remain and the row cannot be retired from the port side.
+
+### Deviations (this slice)
+
+1. **`x_menu_set_in_use`'s row is widened** to C's own `#if defined USE_GTK || defined USE_MOTIF`
+   (xterm.h 1990-1991); slice 39's narrower gate is superseded by it.
+2. **`xg_get_file_name` stands at its use site** (gtkutil.h 88-92, gated
+   `all (have_x_windows, use_gtk)`): `src/gtkutil.rs` defines it and no mirror carries the row -
+   P-55/P-72 rule 3, the `xg_uses_old_file_dialog` shape of slice 38.
+3. **C's `char *fn;` is `fn_`** (the `fn` keyword; the `src/fileio.rs` 4489 spelling), and C 9721's
+   `xfree (fn)` is `xfree (fn_ as *mut c_void)`, since the mirror's `xfree` takes `*mut c_void`.
+4. **C 9671-9683's docstring is one Rust literal with `\n` escapes** (the file's 8111/8422 shape)
+   carrying `doc_comment_value`'s value: the `"remembers"` pair is escaped and the blank run before
+   `*/` is not carried.
+
+### Owed (this slice)
+
+- `syms_of_xfns`' `defsubr` sites (45) and the rest of the remainder from C 9736: 926 C lines plus
+  the 5 missing functions, 1 macro, 0 objects, 10 subrs and 45 defsubrs `--check` reads.
+- **`subr Fx_file_dialog: docstring differs` stays** (Evidence ④): it retires only when
+  `src/xfns.c` joins `docs/baseline/config/cond-eval-verified.txt` (P-66's tool-side state) or when
+  the checker pairs definitions in order - neither is a port change.
+- The real shapes of the Xt/Motif surface - the Xm type widths, the thirteen Xm values and the
+  three XInput2 records' offsets - are the toolchain rows `docs/ports/lwlib-Xm.md`'s `## Owed` 5
+  names; `src/xfns.c`'s absence from the verified condition list is the tool-side row above.
+- `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from
+  `femacs/xtask/Cargo.toml`'s feature table; the sixteen-arm probe passes it with `--cfg`.
+- The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
+  Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no dialog was created, no GTK file chooser
+was opened, no file name was returned and no cleanup ran; the sixteen arms' counts are text
+compile readings, and the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.

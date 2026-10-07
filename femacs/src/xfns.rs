@@ -12975,8 +12975,10 @@ unsafe extern "C" {
   pub fn XtDestroyWidget (widget: Widget);
 }
 
-/* C: xterm.h 1991: `extern void x_menu_set_in_use (bool);` - C 9451's call.  */
-#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+/* C: xterm.h 1991: `extern void x_menu_set_in_use (bool);`, inside that header's own
+   `#if defined USE_GTK || defined USE_MOTIF` (xterm.h 1990-1991) - C 9451's, C 9667's and
+   C 9698's calls all read it, so the row carries C's own pair of arms.  */
+#[cfg (all (feature = "have_x_windows", any (feature = "use_gtk", feature = "use_motif")))]
 unsafe extern "C" {
   pub fn x_menu_set_in_use (in_use: bool);
 }
@@ -13633,5 +13635,90 @@ DEFUN! ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,              /
   decoded_file = DECODE_FILE (file);                                          // C 9655
 
   return unbind_to (count, decoded_file);                                     // C 9657
+});
+
+
+/* ==============================================================================================
+   C 9660-9733: `#endif /* USE_MOTIF */` (C 9660), `#ifdef USE_GTK` (C 9662) and the two items that
+   guard holds - `clean_up_dialog` (C 9664-9668) and the file's **second** `x-file-dialog`
+   (C 9670-9733), whose docstring is the real one C 9457's Motif `DEFUN` delegates to ("SKIP: real
+   doc in USE_GTK definition in xfns.c.").  `#endif /* USE_GTK */` is C 9787, so the rest of the
+   region (`x-select-font`, C 9736-9785, under `#ifdef HAVE_FREETYPE`) is the remainder's.
+
+   The GTK arm compiles this region and the `have_gtk` gate is C's own; the one row this slice
+   moves is `x_menu_set_in_use`'s, which C declares under `#if defined USE_GTK || defined
+   USE_MOTIF` (xterm.h 1990-1991) - slice 39 gated it `use_motif` because that was the only arm
+   reading it, and C 9667/C 9698 read it under `use_gtk`.  */
+
+/* C: `gtkutil.h` 88-92: `extern char *xg_get_file_name (struct frame *f, char *prompt, char
+   *default_filename, bool mustmatch_p, bool only_dir_p);` - C 9714's call.  `src/gtkutil.rs`
+   defines it and no mirror carries the row, so it stands at the use site (P-55/P-72 rule 3, the
+   `xg_uses_old_file_dialog` row of slice 38).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_get_file_name (f: *mut frame, prompt: *mut c_char, default_filename: *mut c_char,
+			   mustmatch_p: bool, only_dir_p: bool) -> *mut c_char;
+}
+
+/* C 9664-9668.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" fn clean_up_dialog ()
+{
+  x_menu_set_in_use (false);                                                 // C 9667
+}
+
+/* C 9670-9733.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+DEFUN! ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,              // C 9670
+	doc: "Read file name, prompting with PROMPT in directory DIR.\nUse a file selection dialog.  Select DEFAULT-FILENAME in the dialog's file\nselection box, if specified.  If MUSTMATCH is non-nil, the returned file\nor directory must exist.\n\nThis function is defined only on PGTK, NS, Haiku, MS Windows, and X Windows with\nthe Motif or Gtk toolkits.  With the Motif toolkit, ONLY-DIR-P is ignored.\nOtherwise, if ONLY-DIR-P is non-nil, the user can select only directories.\n\nOn MS Windows 7 and later, the file selection dialog \"remembers\" the last\ndirectory where the user selected a file, and will open that directory\ninstead of DIR on subsequent invocations of this function with the same\nvalue of DIR as in previous invocations; this is standard MS Windows behavior.",  // C 9671-9683
+	(prompt: Lisp_Object, dir: Lisp_Object, default_filename: Lisp_Object,
+	 mustmatch: Lisp_Object, only_dir_p: Lisp_Object),                     // C 9684
+	{
+  let f: *mut frame = SELECTED_FRAME ();                                      // C 9686
+  let mut fn_: *mut c_char;                                                   // C 9687
+  let mut file: Lisp_Object = Qnil ();                                        // C 9688
+  let decoded_file: Lisp_Object;                                              // C 9689
+  let count: specpdl_ref = SPECPDL_INDEX ();                                  // C 9690
+  let mut cdef_file: *mut c_char;                                             // C 9691
+
+  check_window_system (f);                                                    // C 9693
+
+  if popup_activated () != 0                                                  // C 9695
+    { error (c"Trying to use a menu from within a menu-entry".as_ptr ()); }   // C 9696
+  else
+    { x_menu_set_in_use (true); }                                             // C 9697-9698
+
+  CHECK_STRING (prompt);                                                      // C 9700
+  CHECK_STRING (dir);                                                         // C 9701
+
+  /* Prevent redisplay.  */                                                   // C 9703
+  specbind (Qinhibit_redisplay (), Qt ());                                    // C 9704
+  record_unwind_protect_void (Some (clean_up_dialog));                        // C 9705
+
+  block_input ();                                                             // C 9707
+
+  if STRINGP (default_filename)                                               // C 9709
+    { cdef_file = SSDATA (default_filename); }                                // C 9710
+  else
+    { cdef_file = SSDATA (dir); }                                             // C 9712
+
+  fn_ = xg_get_file_name (f, SSDATA (prompt), cdef_file,                      // C 9714
+			  !NILP (mustmatch), !NILP (only_dir_p));             // C 9715-9716
+
+  if !fn_.is_null ()                                                          // C 9718
+    {
+      file = build_string (fn_);                                              // C 9720
+      xfree (fn_ as *mut c_void);                                             // C 9721
+    }
+
+  unblock_input ();                                                           // C 9724
+
+  /* Make "Cancel" equivalent to C-g.  */                                     // C 9726
+  if NILP (file)                                                              // C 9727
+    { quit (); }                                                              // C 9728
+
+  decoded_file = DECODE_FILE (file);                                          // C 9730
+
+  return unbind_to (count, decoded_file);                                     // C 9732
 });
 
