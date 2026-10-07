@@ -8933,6 +8933,87 @@ class EmacsView: NSView {
   // round 70 and round 68 left waiting land with their methods at the end of this block.
   // ==========================================================================
 
+  /// C 8559-8642: `- (instancetype) initFrameFromEmacs: (struct frame *)f` - the class's
+  /// initializer, and the method `nsfns.swift` 703 has carried a deferred entry for since round
+  /// 29 (`EmacsView_initFrameFromEmacs`, call site nsfns.swift 2490), whose provider lands below.
+  ///
+  /// Readings this body needs: ⑴ C 8571-8576's `#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` arm is
+  /// this target's and its inner `#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070` guard around the
+  /// `NSAppKitVersionNumber` test (C 8572-8574) is **dead**, so the live statement is C 8575;
+  /// ⑵ C 8590-8594 and C 8596-8603 are the `NS_IMPL_COCOA` arms (this target's) and C 8599-8602's
+  /// `>= 140000` arm is the live one; ⑶ C 8605-8625's
+  /// `(NS_IMPL_COCOA) && MAC_OS_X_VERSION_MIN_REQUIRED >= 101400` arm is this target's, whose
+  /// layer calls are the `NSView` properties; ⑷ C 8630-8636's
+  /// `!defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED <= 1090` guard is **dead as a
+  /// whole** (the `allocateGState` block, recorded not transcribed); ⑸ C 8582's
+  /// `[self initWithFrame: …]` is the Swift initializer delegation, so C 8564-8581's ivar writes
+  /// run *after* it instead of before (nothing reads them in between - the `EmacsWindow`
+  /// `initWithEmacsFrame:` reading), and the delegation is why this is a `convenience` init.
+  convenience init(frameFromEmacs f: UnsafeMutableRawPointer?) {
+    // C 8561-8562: the two `NSTRACE*` calls - empty at `NSTRACE_ENABLED` 0.
+
+    self.init(frame: NSRect(x: 0, y: 0,                       // C 8582-8584
+                            width: CGFloat(FRAME_TEXT_COLS_TO_PIXEL_WIDTH(f, frame_text_cols(f))),
+                            height: CGFloat(FRAME_TEXT_LINES_TO_PIXEL_HEIGHT(f, frame_text_lines(f)))))
+
+    windowClosing = false                                     // C 8564
+    processingCompose = false                                 // C 8565
+    scrollbarsNeedingUpdate = 0                               // C 8566
+    fs_state = FULLSCREEN_NONE()                              // C 8567
+    fs_before_fs = -1                                         // C 8568 (C's chained assignment)
+    next_maximized = -1                                       // C 8568
+
+    fs_is_native = false                                      // C 8570
+    fs_is_native = ns_use_native_fullscreen                   // C 8575 (the live arm)
+
+    maximized_width = -1                                      // C 8578 (C's chained assignment)
+    maximized_height = -1                                     // C 8578
+    nonfs_window = nil                                        // C 8579
+
+    ns_userRect = NSRect(x: 0, y: 0, width: 0, height: 0)     // C 8581
+    self.autoresizingMask = [.width, .height]                 // C 8585
+
+    /* C 8587: `FRAME_NS_VIEW (f) = self;` - the member write `nsfns.swift` 276's family names.  */
+    ns_output_set_view(f, self)                               // C 8587
+    emacsframe = f                                            // C 8588
+
+    ns_UAZoom_cursor_rect_new = NSRect.zero                   // C 8592 (C's `NSZeroRect`)
+    ns_UAZoom_cursor_rect_old = NSRect.zero                   // C 8593
+
+    old_title = nil                                           // C 8597
+    maximizing_resize = false                                 // C 8598
+    self.clipsToBounds = true                                 // C 8601 (the `>= 140000` arm)
+
+    /* C 8605-8609: "These settings mean AppKit will retain the contents of the frame on resize.
+       Unfortunately it also means the frame will not be automatically marked for display, but we
+       can do that ourselves in resizeWithOldSuperviewSize."  */
+    self.wantsLayer = true                                    // C 8610
+    self.layerContentsRedrawPolicy = .onSetNeedsDisplay       // C 8611-8612
+    self.layerContentsPlacement = .topLeft                    // C 8613
+
+    _ = EmacsWindow_initWithEmacsFrame(f)                     // C 8615
+
+    /* C 8617-8618: "Now the NSWindow has been created, we can finish up configuring the layer."  */
+    (self.layer as? EmacsLayer)?.setColorSpace(self.window?.colorSpace?.cgColorSpace)  // C 8619-8620
+    (self.layer as? EmacsLayer)?.contentsScale = self.window!.backingScaleFactor       // C 8621-8622
+
+    if ns_drag_types != nil {                                 // C 8627
+      /* C 8628: C passes the `NSArray *ns_drag_types`; Swift's `registerForDraggedTypes` takes
+         the typed array, so the cast is the message's own parameter type.  */
+      self.registerForDraggedTypes(ns_drag_types as? [NSPasteboard.PasteboardType] ?? [])
+    }
+
+    /* C 8630-8636: the dead `allocateGState` block (see reading ⑷).  */
+
+    /* C 8637-8638: `[NSApp registerServicesMenuSendTypes: ns_send_types returnTypes: [NSArray
+       array]];` - the same typed-array reading as C 8628, with C's empty array literal.  */
+    NSApp.registerServicesMenuSendTypes(
+      ns_send_types_storage as? [NSPasteboard.PasteboardType] ?? [], returnTypes: [])
+
+    ns_window_num += 1                                        // C 8640
+    return                                                    // C 8641 (C's `return self;`)
+  }
+
   /// C 8645-8650: `- (void)windowDidMove: sender` - C's parameter is untyped (the port keeps
   /// `Any?`, which is the same selector) and its body is the direct call below.  This is also
   /// the method round 70's deferred entry waited for.
@@ -13684,4 +13765,23 @@ func windowDidMove_definition(_ view: NSView?, _ sender: UnsafeMutableRawPointer
 @_cdecl("adjustEmacsFrameRect")
 func adjustEmacsFrameRect_definition(_ view: NSView?) {
   (view as? EmacsView)?.adjustEmacsFrameRect()
+}
+
+// ==========================================================================
+// Round 72: the entries the class initializer needs, and the provider it closes
+// ==========================================================================
+
+/// C: the `struct ns_output` member `f->output_data.ns->view` (src/nsterm.h 938) - C 8587's
+/// **write** (`FRAME_NS_VIEW (f) = self;`); the read's entry is `FRAME_NS_VIEW` above.
+/// **Provided**: `femacs/src/abi_shim.rs` 692 (`ns_output_set_view`, whose comment names this
+/// very call site), the shape `nsfns.swift` 276 uses.
+@_silgen_name("ns_output_set_view")
+func ns_output_set_view(_ f: UnsafeMutableRawPointer?, _ v: NSView?)
+
+/// The C-ABI half of `initFrameFromEmacs:` above (the `EmacsWindow_initWithEmacsFrame_impl`
+/// pattern): `nsfns.swift` 703's deferred entry `EmacsView_initFrameFromEmacs` reaches this class
+/// through it, and its call site is nsfns.swift 2490.
+@_cdecl("EmacsView_initFrameFromEmacs")
+func EmacsView_initFrameFromEmacs_impl(_ f: UnsafeMutableRawPointer?) -> AnyObject? {
+  EmacsView(frameFromEmacs: f)
 }

@@ -16634,3 +16634,33 @@
      片段跑完即删**，无全盘/大内存扫描。
   ⑨ **未声称**：本轮**没有运行证据**——没有窗口被移动、缩放、最小化或进出全屏；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.012 `src/nsterm.m` round 72（Swift lane）：类构造器 `initFrameFromEmacs:` 落地（C 8559-8642），并为 `nsfns.swift` 的延迟入口补上提供者（2026-10-08）**：
+  ① **落地一个 `EmacsView` 方法**：`initFrameFromEmacs:`（C 8559-8642），落成 **`convenience init (frameFromEmacs:)`**。
+     台账勾 **1 个框**（勾 **385 → 386**、未勾 **45 → 44**），`EmacsView` 类盒子同时改成"还剩 **42** 个方法盒子"
+     （即该类盒子下缩进的 `- [ ]` 行；另外两条未勾是类盒子本身与 `NS_KEYLOG`）。
+  ② **这条体需要的读数（逐条实测）**：⑴ C 8571-8576 的 `MAX_ALLOWED >= 1070` 臂是本目标的，而它内层
+     `MIN_REQUIRED < 1070` 的 `NSAppKitVersionNumber` 守卫（C 8572-8574）**是死臂** ⇒ 活语句是 C 8575；
+     ⑵ C 8590-8603 与 C 8605-8625 两块 `NS_IMPL_COCOA` 是本目标的（其中 C 8599-8602 的 `>= 140000` 是活臂，
+     所以 C 8601 落成 Swift 的 `clipsToBounds`）；⑶ C 8630-8636 的 `!Cocoa || MIN_REQUIRED <= 1090`
+     整块 `allocateGState` **是死的**（记名不转写）；⑷ C 8582 的 `[self initWithFrame: …]` 是 Swift 的初始化器委托，
+     所以 C 8564-8581 的 ivar 写入**移到它之后**（中间没有任何读者——`EmacsWindow initWithEmacsFrame:` 那条读法），
+     这也正是它落成 `convenience init` 的原因；⑸ C 8587 的 `FRAME_NS_VIEW (f) = self` 走新增的 `ns_output_set_view`
+     入口（`femacs/src/abi_shim.rs` 692 **已提供**，它自己的注释点的就是这个调用点），C 8619-8622 的两个 layer 调用是
+     `EmacsLayer` 自己的 `setColorSpace`/`contentsScale`。
+  ③ **补上 `nsfns.swift` 从 round 29 起就一直等着的提供者**：`@_cdecl("EmacsView_initFrameFromEmacs")`
+     （`EmacsWindow_initWithEmacsFrame_impl` 那条形状），调用点是 nsfns.swift 2490——这就是那个延迟入口的验收判据。
+  ④ **首跑量到十警告、第二发回到九（如实记录）**：首跑**零错误**但多一条**本端口自己写出来**的警告——
+     `cast from '() -> NSArray?' to unrelated type '[NSPasteboard.PasteboardType]' always fails`：`ns_send_types`
+     在本单元是 C-ABI 的**入口函数**，存储量是 `ns_send_types_storage`；改用存储量后条数回到 round 69-71 的九条
+     （`accessibilityAttributeValue`/`context`/`lockFocus`/`unlockFocus`/`scanFloat` 那五类）。
+  ⑤ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**；对象 `/tmp/nsterm72.o`
+     **1,279,136 字节**、md5 `3e6938b6a4be943249b33d147251661e`；单元 **13,787 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **681** C symbol import(s)`
+     （round 71 是 680），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**；`check-citations` **676 / 0 drift /
+     0 range / 2,416 external / 36 allowed / 0 stale**。
+  ⑥ **预算与清理**：本片编译 **2 发**（首跑一次即过、零错误；第二发是修掉那条自家警告后的复读，都是单文件 `swiftc -c`，
+     每次约 2 秒）；另用 **4 组只读 grep** 钉准入口名与存储量名；**对象 `/tmp/nsterm72.o` 与两个 `/tmp/r72*.swift`
+     片段跑完即删**，无全盘/大内存扫描。
+  ⑦ **未声称**：本轮**没有运行证据**——没有任何 frame 走过这个构造器；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。

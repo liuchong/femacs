@@ -295,7 +295,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) - **44 of the class's method boxes remain**
+- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) and round 72 the class initializer (C 8559-8642) - **42 of the class's method boxes remain** (the `- [ ]` rows indented under this box; the box itself and `NS_KEYLOG` are the other two open rows)
   - [ ] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041)
   - [ ] `- (void) setWindowClosing: (BOOL)closing`  (line 7047)
   - [ ] `- (void)dealloc`  (line 7055)
@@ -352,7 +352,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)setFrame:(NSRect)frameRect`  (line 8538) — landed as the **`frame` property's setter** (round 68): AppKit imports C's selector as that property and Swift's `NSView` has no `setFrame` member (measured), so the port overrides the setter and calls `super.frame` - the `EmacsScroller` reading of the same rename
   - [x] `- (BOOL)isFlipped`  (line 8547) — landed as `override var isFlipped: Bool` (round 68), C's `return YES;` and nothing else
   - [x] `- (BOOL)isOpaque`  (line 8553) — landed as `override var isOpaque: Bool` (round 68), C's `return NO;` and nothing else
-  - [ ] `- (instancetype) initFrameFromEmacs: (struct frame *)f`  (line 8559)
+  - [x] `- (instancetype) initFrameFromEmacs: (struct frame *)f`  (line 8559) — landed as `convenience init (frameFromEmacs:)`: C 8571-8576's `MAX_ALLOWED >= 1070` arm is this target's and its inner `MIN_REQUIRED < 1070` guard (C 8572-8574, the `NSAppKitVersionNumber` test) is **dead**; C 8590-8603's and C 8605-8625's `NS_IMPL_COCOA` arms are this target's (C 8599-8602's `>= 140000` arm live, so C 8601 is `clipsToBounds`); C 8630-8636's `!Cocoa || MIN_REQUIRED <= 1090` `allocateGState` block is **dead as a whole** (recorded, not transcribed); C 8582's `[self initWithFrame: …]` is the Swift delegation, so C 8564-8581's ivar writes run after it (nothing reads them in between - the `EmacsWindow` reading), which is why it is a `convenience` init; C 8587's `FRAME_NS_VIEW (f) = self` is the new `ns_output_set_view` entry and C 8619-8622's layer calls are `EmacsLayer`'s own `setColorSpace`/`contentsScale`; and this round also lands the `@_cdecl("EmacsView_initFrameFromEmacs")` provider `nsfns.swift` 703's deferred entry waited for (call site nsfns.swift 2490)
   - [x] `- (void)windowDidMove: sender`  (line 8645) — landed as `@objc func windowDidMove (_:)` (C's parameter is untyped, so the port keeps `Any?` - the same selector); C's body is the call to `updateFramePosition`, and this round also lands the `@_cdecl("windowDidMove")` provider round 70's deferred entry waited for
   - [x] `- (BOOL)windowShouldZoom: (NSWindow *)sender toFrame: (NSRect)newFrame`  (line 8656) — landed as `@objc func windowShouldZoom (_:toFrame:) -> Bool`: C 8662's `output_data.ns->zooming = 1` is the `ns_output_set_zooming` member write and C 8663's answer is `YES`
   - [x] `- (NSRect)windowWillUseStandardFrame:(NSWindow *)sender defaultFrame:(NSRect)defaultFrame`  (line 8670) — landed as `@objc func windowWillUseStandardFrame (_:defaultFrame:) -> NSRect`: C 8673-8674's TODO comment is kept, C 8884-8897's 10.7 bug fix is **dead on this target** (`MIN_REQUIRED <= 1070`, recorded not transcribed), the three `setFSValue:` calls go through round 70's deferred entry, and C 8780's discarded `windowWillResize:toSize:` result is `_ = self.windowWillResize (sender, to:)`
@@ -4709,3 +4709,35 @@ call site takes an entry and the definition lands at its own C line - and **both
   Swift unit(s) landed`**, so no `docs/baseline/swift-units.tsv` row moves.
 * **Not claimed**: this round has **no runtime evidence** - no window was moved, zoomed,
   miniaturized or taken in and out of fullscreen; the compile gate reaches type checking only.
+
+### Round 72: the class initializer (C 8559-8642), and the provider `nsfns.swift` has waited for
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings.  The first run had none, but the *second* (after the send-types fix below)
+  is the one that reads nine: the first run carried a **tenth** warning Swift raised on the port's
+  own line ("cast from '() -> NSArray?' to unrelated type '[NSPasteboard.PasteboardType]' always
+  fails") because `ns_send_types` is this unit's C-ABI *entry function* and the storage is
+  `ns_send_types_storage`; with the storage variable in place the count is the same nine rounds
+  69-71 leave.  Object `/tmp/nsterm72.o`, **1,279,136 bytes**, md5
+  `3e6938b6a4be943249b33d147251661e`.  The unit is **13,787 lines**.
+* **One `EmacsView` method lands**: `initFrameFromEmacs:` (C 8559-8642), as a `convenience init`.
+  The class box's own count moves to **42 method boxes remaining**.
+* **Readings this body needs** (all measured while writing it): C 8571-8576's
+  `MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` arm is this target's and its inner
+  `MAC_OS_X_VERSION_MIN_REQUIRED < 1070` guard (C 8572-8574, the `NSAppKitVersionNumber` test) is
+  **dead**, so C 8575 is the live statement; C 8590-8603's and C 8605-8625's `NS_IMPL_COCOA` arms
+  are this target's (C 8599-8602's `>= 140000` arm is live, so C 8601 is Swift's `clipsToBounds`);
+  C 8630-8636's `!Cocoa || MIN_REQUIRED <= 1090` `allocateGState` block is **dead as a whole**
+  (recorded, not transcribed); and C 8582's `[self initWithFrame: …]` is the Swift initializer
+  delegation, so C 8564-8581's ivar writes run *after* it instead of before - nothing reads them in
+  between (the `EmacsWindow initWithEmacsFrame:` reading), and that delegation is why the method is
+  a `convenience` init.
+* **The provider `nsfns.swift` has waited for since round 29 lands**: `@_cdecl("EmacsView_initFrameFromEmacs")`
+  (the `EmacsWindow_initWithEmacsFrame_impl` pattern), whose call site is nsfns.swift 2490.
+* **The ABI block adds one entry**: `ns_output_set_view` (C 8587's `FRAME_NS_VIEW (f) = self;`),
+  **provided** by `femacs/src/abi_shim.rs` 692 - whose own comment names this very call site.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **681** C symbol imports (round 71 read 680) and **`0 new, 0 stale, 7 Swift unit(s)
+  landed`**.
+* **Not claimed**: no runtime evidence - no frame was ever built by this initializer; the compile
+  gate reaches type checking only.
