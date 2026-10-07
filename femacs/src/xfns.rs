@@ -8536,3 +8536,115 @@ unsafe fn x_get_net_workarea (dpyinfo: *mut x_display_info, rect: *mut XRectangl
     return rc;                                                             // C 6120
   }
 }
+
+/* C 6125-6215: `#ifndef USE_GTK` and the two statics under it - `x_get_monitor_for_frame`
+   (C 6127-6188) and `x_make_monitor_attribute_list` (C 6190-6215).  Both name `struct
+   MonitorInfo`, which frame.h 1926 guards with `#ifdef HAVE_WINDOW_SYSTEM` (the mirror row is
+   `include/frame.rs` 1937), so C's own `#ifndef USE_GTK` is *implicitly* narrowed to that
+   feature; the guard below spells the pair out, which is why neither function lands in any of the
+   four arms measured so far (`have_window_system` is absent from all four).  */
+/// C 6127: `/* Return monitor number where F is "most" or closest to.  */`
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system"))]
+unsafe fn x_get_monitor_for_frame (f: *mut frame, monitors: *mut MonitorInfo,
+				   n_monitors: c_int) -> c_int
+{
+  let mut frect: XRectangle = std::mem::zeroed ();                        // C 6133
+  let mut area: c_int = 0;                                                // C 6134
+  let mut dist: c_int = -1;
+  let mut best_area: c_int = -1;                                          // C 6135
+  let mut best_dist: c_int = -1;
+  let mut i: c_int;                                                       // C 6136
+
+  if n_monitors == 1 { return 0; }                                        // C 6138
+  frect.x = (*f).left_pos as c_short;                                     // C 6139
+  frect.y = (*f).top_pos as c_short;                                      // C 6140
+  frect.width = FRAME_PIXEL_WIDTH (f) as c_ushort;                        // C 6141
+  frect.height = FRAME_PIXEL_HEIGHT (f) as c_ushort;                      // C 6142
+
+  i = 0;
+  while i < n_monitors                                                   // C 6144
+    {
+      let mi: *mut MonitorInfo = monitors.offset (i as isize);            // C 6146
+      let mut res: XRectangle = std::mem::zeroed ();                      // C 6147
+      let mut a: c_int = 0;                                               // C 6148
+
+      if (*mi).geom.width == 0 { i += 1; continue; }                      // C 6150
+
+      /* `gui_intersect_rectangles`'s three parameters are C's `Emacs_Rectangle *`
+	 (dispextern.h 3676); in the x11 arm that name is dispextern.h 38's `typedef XRectangle
+	 Emacs_Rectangle`, and the mirror carries the other arm's record, so the two `XRectangle`
+	 locals convert at the call site (the owed row `docs/ports/xfns.md` names).  */
+      if gui_intersect_rectangles (&raw const (*mi).geom,                   // C 6152
+				   &raw const frect as *const Emacs_Rectangle,
+				   &raw mut res as *mut Emacs_Rectangle)
+	{
+	  a = res.width as c_int * res.height as c_int;                     // C 6154
+	  if a > area                                                       // C 6155
+	    {
+	      area = a;                                                     // C 6157
+	      best_area = i;                                                // C 6158
+	    }
+	}
+
+      if a == 0 && area == 0                                            // C 6162
+	{
+	  let mut dx: c_int;                                                // C 6164
+	  let mut dy: c_int;
+	  let mut d: c_int;
+	  /* C's operands are an `XRectangle`'s `short`/`unsigned short` members and an
+	     `Emacs_Rectangle`'s `int`s; the port writes the promotions the C compilers imply.  */
+	  if (frect.x as c_int + frect.width as c_int) < (*mi).geom.x as c_int   // C 6165
+	    { dx = ((*mi).geom.x as c_int - frect.x as c_int) + frect.width as c_int; }
+	  else if frect.x as c_int > ((*mi).geom.x as c_int + (*mi).geom.width as c_int)  // C 6167
+	    { dx = (frect.x as c_int - (*mi).geom.x as c_int) + (*mi).geom.width as c_int; }
+	  else
+	    { dx = 0; }                                                     // C 6170
+	  if (frect.y as c_int + frect.height as c_int) < (*mi).geom.y as c_int  // C 6171
+	    { dy = ((*mi).geom.y as c_int - frect.y as c_int) + frect.height as c_int; }
+	  else if frect.y as c_int > ((*mi).geom.y as c_int + (*mi).geom.height as c_int)  // C 6173
+	    { dy = (frect.y as c_int - (*mi).geom.y as c_int) + (*mi).geom.height as c_int; }
+	  else
+	    { dy = 0; }                                                     // C 6176
+
+	  d = dx * dx + dy * dy;                                            // C 6178
+	  if dist == -1 || dist > d                                         // C 6179
+	    {
+	      dist = d;                                                     // C 6181
+	      best_dist = i;                                                // C 6182
+	    }
+	}
+
+      i += 1;                                                           // C 6144's `++i`
+    }
+
+  return if best_area != -1 { best_area }                               // C 6187
+    else if best_dist != -1 { best_dist }
+    else { 0 };
+}
+
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system"))]
+unsafe fn x_make_monitor_attribute_list (monitors: *mut MonitorInfo, n_monitors: c_int,
+					 primary_monitor: c_int,
+					 dpyinfo: *mut x_display_info,
+					 source: *const c_char) -> Lisp_Object
+{
+  let monitor_frames: Lisp_Object = make_nil_vector (n_monitors as isize);   // C 6197
+  let mut frame: Lisp_Object;                                                // C 6198
+  let mut rest: Lisp_Object;
+
+  FOR_EACH_FRAME! (rest, frame, {                                          // C 6200
+    let f: *mut frame = XFRAME (frame);                                    // C 6202
+
+    if FRAME_X_P (f)                                                       // C 6204
+	&& FRAME_DISPLAY_INFO! (f) == dpyinfo                             // C 6205
+	&& !FRAME_TOOLTIP_P (f)                                           // C 6206
+      {
+	let i: c_int = x_get_monitor_for_frame (f, monitors, n_monitors);  // C 6208
+	ASET (monitor_frames, i as isize,                                  // C 6209
+	      Fcons (frame, AREF (monitor_frames, i as isize)));
+      }
+  });
+
+  return make_monitor_attribute_list (monitors, n_monitors, primary_monitor,   // C 6213-6214
+				      monitor_frames, source);
+}

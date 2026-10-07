@@ -1,6 +1,6 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
-C 5760-5889, C 5891-5991 and C 5993-6123
+C 5760-5889, C 5891-5991, C 5993-6123 and C 6125-6215
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -13,11 +13,12 @@ C 5760-5889, C 5891-5991 and C 5993-6123
 > **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
 > **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
 > eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
-> the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth and
-> **8,538 lines** after the fourteenth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170,
-> C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889,
-> C 5891-5991 and C 5993-6123, whose own ledger sections are at the end of this file - measured
-> with `grep -c ''`), both arms of every `#if` carried.
+> the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth,
+> **8,538 lines** after the fourteenth and **8,650 lines** after the fifteenth - C 803-2149,
+> C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
+> C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123 and C 6125-6215, whose own
+> ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
+> `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -179,7 +180,8 @@ defines both features.
 | 5760-5889 | the next six subrs: `x-server-vendor` (C 5760), `x-server-version` (C 5783), `x-server-input-extension-version` (C 5810, the `HAVE_XINPUT2` pair), `x-display-screens` (C 5831), `x-display-mm-height` (C 5851) and `x-display-mm-width` (C 5871) | `have_x_windows`, with `have_xinput2` for C 5820-5828 (slice 12) |
 | 5891-5991 | the next three subrs: `x-display-backing-store` (C 5891), `x-display-visual-class` (C 5930) and `x-display-save-under` (C 5975) | `have_x_windows` (slice 13; the two `switch` bodies' `break`/`case`/`default`/`switch` tokens are answered in `docs/ports/macro-body-notes.tsv`) |
 | 5993-6123 | C 5993's `#if !(defined USE_GTK && defined HAVE_GTK3)`, `x_get_net_workarea` (C 5995-5997 its comment, C 5999-6000 the `static bool`, C 6002-6055 the `#ifndef USE_XCB` arm, C 6056-6120 the `#else` arm) and C 6123's `#endif` | `all (have_x_windows, not (all (use_gtk, have_gtk3)))`, with `not (use_xcb)` / `use_xcb` for the two arms (slice 14) |
-| 6125-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,538 lines, whose first live definition is `x_get_monitor_for_frame` (C 6128-6129, a `static int` under C 6125's `#ifndef USE_GTK`) - the next slice's first item | not ported in this slice |
+| 6125-6215 | C 6125's `#ifndef USE_GTK`, `x_get_monitor_for_frame` (C 6127 its comment, C 6128-6131 the `static int`) and `x_make_monitor_attribute_list` (C 6190-6195 the `static Lisp_Object`) | `all (have_x_windows, not (use_gtk), have_window_system)` - C's own `#ifndef USE_GTK` narrowed by frame.h 1926's `#ifdef HAVE_WINDOW_SYSTEM`, which is where `struct MonitorInfo` lives (slice 15) |
+| 6217-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,445 lines, whose first live definition is `x_get_monitor_attributes_fallback` (C 6217-6218, a `static Lisp_Object` under C 6125's `#ifndef USE_GTK`) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1874,3 +1876,63 @@ allowed literals), 0 failures**.
 
 The frozen configuration compiles none of this file: no display was opened, no property was read
 and no workarea was stored; the four arms' counts are text compile readings.
+
+
+## Slice 15 (2026-10-08, status 3.918 - the integrator sets the round number): C 6125-6215
+
+**The slice is C 6125-6215**: C 6125's `#ifndef USE_GTK` and the two statics under it -
+`x_get_monitor_for_frame` (C 6127's comment and C 6128-6188's body: the `frect` build, the
+intersection/area pass and the distance pass) and `x_make_monitor_attribute_list` (C 6190-6215,
+the `FOR_EACH_FRAME` walk and the call into frame.c).  The port's slice is **112 Rust lines**
+(8,650 - 8,538, `grep -c ''`) against C's 91; md5 `7ae1b7b6d7723f1e9a8edc39b395eb76` (the slice 14
+tree) -> `bc5b60c371ecdb5ad0c46b241ccb3d95`.
+
+**The guard is the slice's finding.**  C's own condition is `#ifndef USE_GTK`, but both bodies name
+`struct MonitorInfo`, which frame.h 1926 puts under `#ifdef HAVE_WINDOW_SYSTEM` (the mirror row is
+`include/frame.rs` 1937, guarded the same way) - so C's condition is *implicitly* narrowed, and the
+port spells the pair out: `all (have_x_windows, not (use_gtk), have_window_system)`.  **None of the
+four arms measured before this slice has `have_window_system`**, so the slice adds a fifth reading
+to this ledger's table - **WS** = `have_x_windows` + `have_window_system` - which reads **14 / 9**
+on both sides of the change.  `gui_intersect_rectangles`'s three parameters are C's
+`Emacs_Rectangle *` (dispextern.h 3676), which the x11 arm reads as `XRectangle` through
+dispextern.h 38's alias, so the two `XRectangle` locals convert at the call site (the row slices 11
+and 14 also name).
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0), both sides.
+
+**② The five arms.**  plain-X **14 / 9**, WS **14 / 9** (first reading), XCB **14 / 9**, GTK
+**34 / 20** and Xt **15 / 12**, before and after - the two new statics change no count in any arm
+that carries them, and the GTK arm excludes them by C's own `#ifndef USE_GTK`.  The first
+measurement's own rows were the ordinary ones: two parse-level rows (`frect.width as c_int <` reads
+as a generic argument list, so the sums are parenthesised) and four type rows (`XRectangle`'s
+`short`/`unsigned short` against `Emacs_Rectangle`'s `int`, written as C's promotions).
+
+**③ `extract-abi.py --check`**: **134 rows -> 132** - exactly the two `missing function` rows
+(`x_get_monitor_for_frame`, `x_make_monitor_attribute_list`) retiring, with nothing added - and the
+drift reads `C 10662 vs Rust 8650` (**18.9%**, was 19.9%).  `check-mirror-dupes.py` stays at
+**16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at
+**18 declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **C's for-loop with `continue`** becomes a `while` whose `i += 1` sits at the body's end *and*
+   before the `continue` (the `src/xterm.rs` 13568-13574 shape), so the increment still runs where
+   C's does.
+2. **C's mixed-width arithmetic** (`XRectangle`'s `short`/`unsigned short` members against
+   `Emacs_Rectangle`'s `int`) is written out with `as c_int`, and the two comparisons that would
+   read as generic arguments are parenthesised.
+3. **C 6187's nested conditional** is the port's `if`/`else if`/`else` expression, and the two
+   `XRectangle` locals are zero-initialised (C declares them without an initialiser).
+
+### Owed (this slice)
+
+- `syms_of_xfns` (unchanged: no subr lands here), and the rest of the remainder: the 26 missing
+  functions, 1 macro, 4 objects, 33 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no frame was walked, no monitor was compared
+and no attribute list was built; the five arms' counts are text compile readings.
