@@ -8489,3 +8489,31 @@ fileprivate func ns_initialize_display_info(_ dpyinfo: UnsafeMutableRawPointer?)
 
   reset_mouse_highlight (ns_display_info_mouse_highlight (dpyinfo))  // C 5763
 }
+
+// ==========================================================================
+// Round 38: `ns_flush_display` and the empty `ns_delete_display` (C 5785-5875)
+// ==========================================================================
+
+/// C: `struct terminal *FRAME_TERMINAL (struct frame *f)` (src/frame.h) - a macro entry under the
+/// construct's own name, the `FRAME_DISPLAY_INFO` shape above (the `frame_set_terminal` writer
+/// `nsfns.swift` 639 carries is the same member's other direction).
+@_silgen_name("FRAME_TERMINAL")
+func FRAME_TERMINAL(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C 5785-5792: `static void ns_flush_display (struct frame *f)` - C's body is `EVENT_INIT` and one
+/// `ns_read_socket_1` call whose value C discards.  The record's own initializer is round 3's
+/// (`input_event` at C 5121, the same nine members), and the third argument is C's `YES`.
+fileprivate func ns_flush_display(_ f: UnsafeMutableRawPointer?) {
+  var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                       frame_or_window: nil, arg: nil, device: nil)      // C 5788
+  EVENT_INIT(&ie)                                                        // C 5790
+  _ = ns_read_socket_1(FRAME_TERMINAL(f), &ie, true)                     // C 5791
+}
+
+/// C 5871-5875: `static void ns_delete_display (struct ns_display_info *dpyinfo)` - C's whole body
+/// is the comment `/* TODO...  */`, so the body is empty here too and the parameter is unread
+/// (the `ns_default_font_parameter` reading of round 36: a body C leaves empty is transcribed as
+/// empty rather than stubbed).
+fileprivate func ns_delete_display(_ dpyinfo: UnsafeMutableRawPointer?) {
+  // C 5874: nothing - C's body is the TODO comment above the definition.
+}

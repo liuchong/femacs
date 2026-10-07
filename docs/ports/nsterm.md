@@ -207,9 +207,9 @@
 - [x] ns_initialize_display_info  (line 5742, static) — C 5741-5764, landed as `fileprivate func ns_initialize_display_info (_:)`: C 5758's chained assignment is written in C's own order (`a = b = NULL` assigns `b` first), C 5752-5755's two `isEqualToString:` reads are the eight member entries this round declares (`ns_display_info_set_resx` through `ns_display_info_set_smallest_char_width`, plus `ns_display_info_mouse_highlight` for C's `&dpyinfo->mouse_highlight`), and the AppKit spellings are the compiler's own renames (`NSColorSpaceName.deviceWhite`, `depth.colorSpaceName`, `depth.bitsPerPixel` - class B)
 - [x] ns_default_font_parameter  (line 5770, static) — C 5769-5773, landed as `fileprivate func ns_default_font_parameter (_:_:)`: C's body is empty and the comment above the definition (C 5766-5768) says why, so both parameters stay unread (the `applicationWillBecomeActive` reading)
 - [x] ns_update_window_end  (line 5776, static) — **dead in this build**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 5774 and closes it at C 5783, so the whole definition is the arm this target does not take.  Recorded, not transcribed (the `-updateMonitors:` reading); its two statements, named in the round's note, are `NSTRACE` (empty) and `ns_redraw_scroll_bars (WINDOW_XFRAME (w))`
-- [ ] ns_flush_display  (line 5786, static)
+- [x] ns_flush_display  (line 5786, static) — C 5785-5792, landed as `fileprivate func ns_flush_display (_:)`: C's body is `EVENT_INIT` plus one `ns_read_socket_1` call whose value C discards; it waited on `FRAME_TERMINAL (f)`, which this round declares as a macro entry under the construct's own name (the `FRAME_DISPLAY_INFO` shape, and the other direction of `nsfns.swift` 639's `frame_set_terminal`)
 - [ ] ns_displays_reconfigured  (line 5839, static)
-- [ ] ns_delete_display  (line 5872, static)
+- [x] ns_delete_display  (line 5872, static) — C 5871-5875, landed as `fileprivate func ns_delete_display (_:)`: C's whole body is the comment `/* TODO...  */`, so the body is empty here too and the parameter unread (the `ns_default_font_parameter`/`applicationWillBecomeActive` reading: a body C leaves empty is transcribed empty rather than stubbed)
 - [ ] ns_delete_terminal  (line 5880, static)
 - [ ] ns_create_terminal  (line 5908, static)
 - [ ] ns_term_init  (line 5965)
@@ -562,6 +562,15 @@ otherwise skips); they are added by hand so the checklist is complete - see Deci
       file-scope `let` (`500 * NSEC_PER_MSEC`); a generator gap of the `static const` kind
 - [x] static NSTimeInterval NS_UAZOOMENABLED_DEFER_INTERVAL_SECS  (line 1097) — landed as a
       file-scope `var` (0.2); the same gap family
+- [ ] struct redisplay_interface ns_redisplay_interface  (lines 5801-5835, static) — **a second
+      generator gap of this hand-added family, found by round 38 and named here rather than left
+      invisible**: `tools/extract-abi.py` lists neither the table nor a row for it, so no gate sees
+      its absence (rounds 37/38 walked past the block C 5796-5835).  It is not landed: the table's
+      28 members are function pointers (`ns_frame_parm_handlers`, the six `gui_*` entries of the
+      xdisp lane, `ns_scroll_run`, `ns_after_update_window_line`, the two `NULL`s this arm takes
+      for `update_window_begin`/`update_window_end`, `ns_flush_display`, …), so landing it needs
+      the `struct redisplay_interface` spelling plus those imports settled first
+      (`docs/baseline/redisplay_interface-layout.tsv` is the record's measured layout).
 
 # ----------------------------------------------------------------------
 ## Decisions
@@ -3282,3 +3291,34 @@ call site takes an entry and the definition lands at its own C line - and **both
   The nine member entries are *declarations*: the core side that exports them is the
   `src/nsterm.h` unit's, which is not landed yet - the same standing state round 7's member
   entries are in.
+
+### Round 38: `ns_flush_display`, the empty `ns_delete_display`, and the object nobody tracked (C 5785-5875)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-37 carry, so **no new warning**, and this round
+  needed **no fix round**: it compiled on the first attempt.  Object `/tmp/nsterm38.o`,
+  **713,480 bytes**, md5 `6819aed85a22bdec8a6b17db5990c2d7`.  The unit is **8,519 lines**.
+* **Two C definitions and the one entry they need**: `ns_flush_display` (C 5785-5792, whose body is
+  `EVENT_INIT` plus one discarded `ns_read_socket_1` result) and `ns_delete_display` (C 5871-5875,
+  whose body is C's `/* TODO...  */` alone, so the Swift body is empty and the parameter unread -
+  the `ns_default_font_parameter` reading).  `ns_flush_display` waited on `FRAME_TERMINAL (f)`,
+  which this round declares as a macro entry under the construct's own name (the
+  `FRAME_DISPLAY_INFO` shape round 7 settled; `nsfns.swift` 639's `frame_set_terminal` is the same
+  member's other direction).
+* **The finding that changed the next action**: C 5796-5835 is the `static struct
+  redisplay_interface ns_redisplay_interface` table, and **neither `tools/extract-abi.py` nor this
+  ledger had a row for it** - rounds 37 and 38 walked past that block without anything to compare
+  against.  It is now a hand row in `## File-scope objects` (the second member of that
+  already-documented family), **unticked**, with the reason it cannot land yet: its 28 members are
+  function pointers over this lane and the xdisp lane (`ns_frame_parm_handlers`, `gui_*` ×6,
+  `ns_scroll_run`, `ns_after_update_window_line`, the two `NULL`s this arm takes, …), so the
+  `struct redisplay_interface` spelling and those imports come first.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **23** unported,
+  23 row(s); **455** C symbol import(s)` - two fewer unported than round 37's 25 (the two
+  definitions above), **two stale rows cleared** by name, and the round's import count rises
+  454 -> 455 (`FRAME_TERMINAL`).  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no socket read, no event record initialised
+  in a live loop, nothing deleted); the compile gate reaches parsing and type checking only, and
+  `tools/check-swift-units.py` compares name sets, not signatures, bodies, layout or ABI.
+  `FRAME_TERMINAL` is a declaration: the core side that exports it lands with the `src/frame.h`
+  unit, the standing state of round 7's macro entries.

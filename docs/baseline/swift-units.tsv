@@ -16,10 +16,8 @@ femacs/platform/macos/nsterm.swift	mark_nsterm	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_condemn_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_create_font_panel_buttons	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_create_terminal	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_delete_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_delete_terminal	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_displays_reconfigured	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_flush_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_judge_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_new_font	src/nsterm.m
