@@ -16759,3 +16759,37 @@
      无全盘/大内存扫描。
   ⑧ **未声称**：本轮**没有运行证据**——没有窗口进/出过全屏；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.016 `src/nsterm.m` round 76（Swift lane）：鼠标进入/离开、工具栏与图层批落地（C 9202-9336，十个方法）（2026-10-08）**：
+  ① **落地十个 `EmacsView` 方法**：`mouseEntered:`（C 9202-9208）、`mouseExited:`（C 9211-9228）、`menuDown:`（C 9231-9246）、
+     `toolbarClicked:`（C 9249-9268）、`validateToolbarItem:`（C 9270-9273）、`toggleToolbar:`（C 9275-9286），以及
+     `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` 臂里的 `makeBackingLayer`（C 9290-9298）、`lockFocus`（C 9301-9311）、
+     `unlockFocus`（C 9314-9320）、`windowDidChangeBackingProperties:`（C 9323-9336）。台账勾 **10 个框**
+     （勾 **401 → 411**、未勾 **29 → 19**；缩进的方法盒子剩 **18**），`EmacsView` 类盒子同步改成"还剩 **18** 个方法盒子"。
+  ② **本轮自带的一条读数值得记**：`menuDown:` 与 `toggleToolbar:` 一落地，早先各轮为它们写的**按名选择子**
+     （`Selector(("menuDown:"))` 两处、`Selector(("toggleToolbar:"))` 一处）就开始报警
+     （"use '#selector' instead of explicitly constructing a 'Selector'"），本轮把它们改成**有类型**的 `#selector`——
+     与 round 68 落地 `deferred_UAZoomChangeFocus_handler:` 时同一步。首跑另有两处错误：本单元没有
+     `frame_menu_bar_vector` 入口（`femacs/src/abi_shim.rs` 94 已提供）、以及 `CALayer` 的 `delegate` 有类型 ⇒
+     C 9295 的 `[l setDelegate:(id)self]` 按 C 9808 那条读法**动态发送**。
+  ③ **本轮的门抓到的两处引用缺陷与改法**：`find_and_call_menu_selection` 声明在 **src/menu.h 41-42**
+     （不是 `keyboard.h`——范围检查报出它只有 535 行）、`expose_frame` 在 **src/dispextern.h 3675**；
+     另有一行把 `src/termhooks.h 202` 与声明在别处的名字（`enum event_kind` 72、`MONITORS_CHANGED_EVENT` 339）
+     写在同一条引用上，连漂两次（r64/r68 那条判据），直到那些反引号名离开该行。终读
+     `check-citations` **676 / 0 drift / 0 range / 2,416 external / 36 allowed / 0 stale**。
+  ④ **本轮新增 8 个入口 + 4 个常量**：`mouse_highlight_set_mouse_face_mouse_frame`（成员写，**open**）、
+     `find_and_call_menu_selection`（声明 src/menu.h 41-42，**open**）、`frame_menu_bar_items_used`（**open**）、
+     `frame_menu_bar_vector`（**已提供**，`femacs/src/abi_shim.rs` 94）、`frame_tool_bar_items`（**open**）、
+     `AREF`（class A，**open**）、`ns_output_double_buffered`（**open**，即 `FRAME_DOUBLE_BUFFERED` 成员）与
+     `expose_frame`（**open**）；常量是 `TOOL_BAR_EVENT` 21（`femacs/src/include/termhooks.rs` 47）、
+     `TOOL_BAR_ITEM_KEY` 0 与 `TOOL_BAR_ITEM_NSLOTS` 12（`femacs/src/include/dispextern.rs` 3942/3966）、
+     `KEY_NS_TOGGLE_TOOLBAR`（`UInt32((1 << 28) | (0 << 16) | 13)`，src/nsterm.h 805 的表达式）。
+  ⑤ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 73-75 的九条逐条相同）；对象
+     `/tmp/nsterm76.o` **1,343,240 字节**、md5 `911d9fe9160ef01cdae20460d4e2a78b`；单元 **14,609 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **698** C symbol import(s)`
+     （round 75 是 690），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**。
+  ⑥ **预算与清理**：本片编译 **5 发**（首跑 2 错 → 修后 12 警告 → 改选择子后 9 → 两轮引用改写各 1，都是单文件 `swiftc -c`，
+     每次约 2 秒；其中两次是**纯注释**改写、对象 md5 逐字节相同）；另用 **6 组只读 grep** 钉准入口名与判据行号；
+     **对象 `/tmp/nsterm76.o` 与两个 `/tmp/r76*.swift` 片段跑完即删**，无全盘/大内存扫描。
+  ⑦ **未声称**：本轮**没有运行证据**——没有鼠标进入/离开视图、没有点过工具栏按钮、没有索要过图层；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。

@@ -7579,7 +7579,7 @@ class EmacsWindow: NSWindow {
 
     let toggleButton = standardWindowButton(.toolbarButton)    // C 9905
     toggleButton?.target = view                                // C 9906
-    toggleButton?.action = Selector(("toggleToolbar:"))        // C 9907
+    toggleButton?.action = #selector(EmacsView.toggleToolbar(_:))        // C 9907
   }
 
   /// C 9912-9926: `- (void)dealloc` - Swift's `deinit` (a class cannot name `dealloc`, the
@@ -8631,6 +8631,162 @@ class EmacsView: NSView {
     }
     store_frame_param(emacsframe, Qfullscreen(), lval)          // C 9198
     fs_state = value                                            // C 9199
+  }
+
+  /// C 9202-9208: `- (void)mouseEntered: (NSEvent *)theEvent` - C's `if (emacsframe)` guard and
+  /// the display-info member write round 69's setter pairs with.
+  @objc override func mouseEntered(with theEvent: NSEvent) {
+    // C 9204: `NSTRACE ("[EmacsView mouseEntered:]");` - empty.
+    if emacsframe != nil {                                      // C 9205
+      ns_display_info_set_last_mouse_movement_time(
+        FRAME_DISPLAY_INFO(emacsframe), UInt(EV_TIMESTAMP(theEvent)))   // C 9206-9207
+    }
+  }
+
+  /// C 9211-9228: `- (void)mouseExited: (NSEvent *)theEvent`.  C 9213's conditional
+  /// `MOUSE_HL_INFO` is the entry called only when the frame exists, C 9226's write is the
+  /// `mouse_highlight_set_mouse_face_mouse_frame` member entry, and C 9225's call is the
+  /// `clear_mouse_face` entry round 69 added.
+  @objc override func mouseExited(with theEvent: NSEvent) {
+    let hlinfo = emacsframe != nil ? MOUSE_HL_INFO(emacsframe) : nil   // C 9213
+
+    // C 9215: `NSTRACE ("[EmacsView mouseExited:]");` - empty.
+
+    if hlinfo == nil {                                          // C 9217
+      return                                                    // C 9218
+    }
+
+    ns_display_info_set_last_mouse_movement_time(
+      FRAME_DISPLAY_INFO(emacsframe), UInt(EV_TIMESTAMP(theEvent)))   // C 9220-9221
+
+    if emacsframe == mouse_highlight_mouse_face_mouse_frame(hlinfo) {   // C 9223
+      _ = clear_mouse_face(hlinfo)                              // C 9225
+      mouse_highlight_set_mouse_face_mouse_frame(hlinfo, nil)   // C 9226
+    }
+  }
+
+  /// C 9231-9246: `- (instancetype)menuDown: sender` - "Called when a menu item is selected"; C's
+  /// `context_menu_value` is this unit's own exported data symbol (its storage), `[sender tag]` is
+  /// the menu item's own property and C 9239-9241's call is the
+  /// `find_and_call_menu_selection` entry with C's own `menu_bar_items_used`/`menu_bar_vector`
+  /// member reads.
+  @objc func menuDown(_ sender: Any?) -> AnyObject? {
+    // C 9233: `NSTRACE ("[EmacsView menuDown:]");` - empty.
+    if context_menu_value_storage == -1 {                        // C 9234
+      context_menu_value_storage = (sender as? NSMenuItem)?.tag ?? 0   // C 9235
+    } else {
+      let tag = (sender as? NSMenuItem)?.tag ?? 0                // C 9238
+      find_and_call_menu_selection(emacsframe,
+                                   frame_menu_bar_items_used(emacsframe),
+                                   frame_menu_bar_vector(emacsframe),
+                                   UnsafeMutableRawPointer(bitPattern: tag))   // C 9239-9241
+    }
+
+    ns_send_appdefined(-1)                                      // C 9244
+    return self                                                 // C 9245
+  }
+
+  /// C 9249-9268: `- (instancetype)toolbarClicked: (id)item` - "This gets called on toolbar button
+  /// click."  C 9253's `TOOL_BAR_ITEM_NSLOTS` and `TOOL_BAR_ITEM_KEY` are mirror-valued constants
+  /// (`femacs/src/include/dispextern.rs` 3942/3966: 0 and 12), C 9263's `AREF` is the lisp.h
+  /// element read and `frame_tool_bar_items` the frame member.
+  @objc func toolbarClicked(_ item: Any?) -> AnyObject? {
+    let theEvent = self.window?.currentEvent                    // C 9252 (assigned at C 9260)
+    let idx = ((item as? NSToolbarItem)?.tag ?? 0) * Int(TOOL_BAR_ITEM_NSLOTS)   // C 9253
+
+    // C 9255: `NSTRACE ("[EmacsView toolbarClicked:]");` - empty.
+
+    if emacs_event == nil {                                     // C 9257
+      return self                                               // C 9258
+    }
+
+    input_event_set_kind(emacs_event!, TOOL_BAR_EVENT)          // C 9261
+    /* C 9262: `/* XSETINT (emacs_event->code, 0); */` - C's own comment.  */
+    emacs_event!.pointee.arg = AREF(frame_tool_bar_items(emacsframe)!,
+                                    idx + Int(TOOL_BAR_ITEM_KEY))   // C 9263-9264
+    emacs_event!.pointee.modifiers = EV_MODIFIERS(theEvent!)    // C 9265
+    EV_TRAILER(theEvent, emacsframe)                            // C 9266
+    return self                                                 // C 9267
+  }
+
+  /// C 9270-9273: `- (BOOL) validateToolbarItem: (NSToolbarItem *) toolbarItem` - C's whole body
+  /// is the item's own `isEnabled`.
+  @objc func validateToolbarItem(_ toolbarItem: NSToolbarItem) -> Bool {
+    toolbarItem.isEnabled                                       // C 9272
+  }
+
+  /// C 9275-9286: `- (instancetype)toggleToolbar: (id)sender`; C 9282's kind is the
+  /// `NS_NONKEY_EVENT` constant (the unit's UNVERIFIED-constant reading) and C 9283's code is
+  /// `KEY_NS_TOGGLE_TOOLBAR` (src/nsterm.h 805's own expression).
+  @objc func toggleToolbar(_ sender: Any?) -> AnyObject? {
+    // C 9277: `NSTRACE ("[EmacsView toggleToolbar:]");` - empty.
+
+    if emacs_event == nil {                                     // C 9279
+      return self                                               // C 9280
+    }
+
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)         // C 9282
+    emacs_event!.pointee.code = KEY_NS_TOGGLE_TOOLBAR           // C 9283
+    EV_TRAILER(nil, emacsframe)                                 // C 9284
+    return self                                                 // C 9285
+  }
+
+  /* C 9289-9337: the `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm this target has.  */
+
+  /// C 9290-9298: `- (CALayer *)makeBackingLayer`.  C's `[[EmacsLayer alloc]
+  /// initWithDoubleBuffered: …]` is this unit's own convenience initializer (C 11152, round 61),
+  /// `FRAME_DOUBLE_BUFFERED` the `ns_output_double_buffered` member read and `[l setDelegate:]`
+  /// the layer's own property.
+  @objc override func makeBackingLayer() -> CALayer {
+    let l = EmacsLayer(doubleBuffered: ns_output_double_buffered(emacsframe))   // C 9292-9293
+
+    /* C 9295: `[l setDelegate:(id)self];` - `CALayer`'s `delegate` is typed
+       `(any CALayerDelegate)?` in Swift and this class declares no protocol list (the class
+       box's named deferral), so the message is sent as C sends it (the `setDelegate:` reading
+       of C 9808).  */
+    _ = l.perform(#selector(setter: CALayer.delegate), with: self)   // C 9295
+
+    return l                                                    // C 9297
+  }
+
+  /// C 9301-9311: `- (void)lockFocus` - one of the two deprecated `NSView` methods this class
+  /// overrides (which is why the unit's warning baseline names `lockFocus()`), and C 9305's
+  /// `getContext` is `EmacsLayer`'s own method.
+  @objc override func lockFocus() {
+    // C 9303: `NSTRACE ("[EmacsView lockFocus]");` - empty.
+
+    let context = (self.layer as? EmacsLayer)?.getContext()      // C 9305
+
+    NSGraphicsContext.current = NSGraphicsContext(cgContext: context!,
+                                                  flipped: true)  // C 9307-9310
+  }
+
+  /// C 9314-9320: `- (void)unlockFocus`.
+  @objc override func unlockFocus() {
+    // C 9316: `NSTRACE ("[EmacsView unlockFocus]");` - empty.
+
+    NSGraphicsContext.current = nil                              // C 9318
+    self.needsDisplay = true                                     // C 9319
+  }
+
+  /// C 9323-9336: `- (void)windowDidChangeBackingProperties: (NSNotification *)notification` -
+  /// "Update the drawing buffer when the backing properties change."  C's `[notification object]`
+  /// is the notification's own object (an `NSWindow` in AppKit's contract), its `backingScaleFactor`
+  /// and `colorSpace` the window's properties, and C 9334/9335's two calls are `ns_clear_frame`
+  /// (this unit's own) and the `expose_frame` entry.
+  @objc func windowDidChangeBackingProperties(_ notification: Notification) {
+    // C 9326: `NSTRACE ("EmacsView windowDidChangeBackingProperties:]");` - empty.
+
+    let frame = self.frame                                       // C 9328
+    let layer = self.layer as? EmacsLayer                        // C 9329
+
+    layer?.contentsScale = (notification.object as? NSWindow)?.backingScaleFactor ?? 0   // C 9331
+    layer?.setColorSpace(
+      (notification.object as? NSWindow)?.colorSpace?.cgColorSpace)     // C 9332
+
+    ns_clear_frame(emacsframe)                                   // C 9334
+    expose_frame(emacsframe, 0, 0,
+                 Int32(frame.width), Int32(frame.height))        // C 9335
   }
 
   /// C 8952-8955: `- (BOOL)fsIsNative` - C's whole body is the ivar read.
@@ -12592,7 +12748,7 @@ func ns_term_shutdown(_ sig: Int32) {
 ///    `error: value of type 'NSApplication' has no member 'appleMenu'`), so the same dynamic send
 ///    with `Selector(("setAppleMenu:"))` (the round-42 `orderedIndex` spelling).
 ///  * `@selector (menuDown:)` (C 6106, C 6127) belongs to `EmacsView` (C 9231), whose method batch
-///    has not landed, so it is `Selector(("menuDown:"))` too; the four AppKit selectors and the
+///    has not landed, so it is `#selector(EmacsView.menuDown(_:))` too; the four AppKit selectors and the
 ///    three of this unit's own class are `#selector` expressions (measured: the parenthesised form
 ///    is what silences the compiler's "no method declared" note for the two unknown ones).
 ///
@@ -12744,7 +12900,7 @@ func ns_term_init(_ display_name: Lisp_Object) -> UnsafeMutableRawPointer? {
                          keyEquivalent: ",", at: 2)
   appMenu.insertItem(NSMenuItem.separator(), at: 3)                       // C 6104
   item = appMenu.insertItem(withTitle: "Services",                        // C 6105-6108
-                            action: Selector(("menuDown:")),
+                            action: #selector(EmacsView.menuDown(_:)),
                             keyEquivalent: "", at: 4)
   appMenu.setSubmenu(servicesMenu, for: item)                             // C 6109
   appMenu.insertItem(NSMenuItem.separator(), at: 5)                       // C 6110
@@ -12761,7 +12917,7 @@ func ns_term_init(_ display_name: Lisp_Object) -> UnsafeMutableRawPointer? {
                          keyEquivalent: "q", at: 9)
 
   item = theMainMenu.insertItem(withTitle: ns_app_name_storage! as String,   // C 6126-6129
-                                action: Selector(("menuDown:")),
+                                action: #selector(EmacsView.menuDown(_:)),
                                 keyEquivalent: "", at: 0)
   theMainMenu.setSubmenu(appMenu, for: item)                              // C 6130
   _ = theDockMenu.insertItem(withTitle: "New Frame",                      // C 6131-6134
@@ -14389,3 +14545,65 @@ func handleFS_definition(_ view: NSView?) {
 func setFSValue_definition(_ view: NSView?, _ value: Int32) {
   (view as? EmacsView)?.setFSValue(value)
 }
+
+// ==========================================================================
+// Round 76: the entries the mouse/toolbar/layer batch needs
+// ==========================================================================
+
+/// C: the `Mouse_HLInfo` member `hlinfo->mouse_face_mouse_frame` (src/dispextern.h's record) -
+/// C 9226's **write** (C 9223 and C 2561/2567/2570 read it through
+/// `mouse_highlight_mouse_face_mouse_frame` above).  **Open**, the `<record>_set_<member>` shape.
+@_silgen_name("mouse_highlight_set_mouse_face_mouse_frame")
+func mouse_highlight_set_mouse_face_mouse_frame(_ hlinfo: UnsafeMutableRawPointer?,
+                                                _ v: UnsafeMutableRawPointer?)
+
+/// C: `void find_and_call_menu_selection (struct frame *, int, Lisp_Object, void *)` (declared
+/// src/menu.h 41-42, defined src/keyboard.c) - C 9239's call.  **Open**: the mirror declares it
+/// in the platform units' blocks only (`femacs/src/pgtkmenu.rs` 137, `femacs/src/xmenu.rs` 910).
+@_silgen_name("find_and_call_menu_selection")
+func find_and_call_menu_selection(_ f: UnsafeMutableRawPointer?, _ items: Int32,
+                                  _ vector: Lisp_Object, _ client_data: UnsafeMutableRawPointer?)
+
+/// C: the `struct frame` member `f->menu_bar_items_used` (src/frame.h) - C 9239's read.
+/// **Open**, the member-read shape `frame_<member>`.
+@_silgen_name("frame_menu_bar_items_used")
+func frame_menu_bar_items_used(_ f: UnsafeMutableRawPointer?) -> Int32
+
+/// C: the `struct frame` member `f->menu_bar_vector` (src/frame.h 234) - C 9240's read.
+/// Provided: `femacs/src/abi_shim.rs` 94 (`frame_menu_bar_vector`).
+@_silgen_name("frame_menu_bar_vector")
+func frame_menu_bar_vector(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: the `struct frame` member `f->tool_bar_items` (src/frame.h, a `Lisp_Object *`) - C 9263's
+/// read.  **Open**, the same family.
+@_silgen_name("frame_tool_bar_items")
+func frame_tool_bar_items(_ f: UnsafeMutableRawPointer?) -> UnsafeMutablePointer<Lisp_Object>?
+
+/// C: `#define AREF(array, idx) …` (src/lisp.h 4357-4365) - C 9263's array element read; class A,
+/// header-only.  **Open**: the mirror carries it as a Rust macro, so it has no C symbol yet.
+@_silgen_name("AREF") func AREF(_ array: Lisp_Object, _ idx: Int) -> Lisp_Object
+
+/// C: the `struct ns_output` member `f->output_data.ns->double_buffered`
+/// (`#define FRAME_DOUBLE_BUFFERED(f) ((f)->output_data.ns->double_buffered)`, src/nsterm.h 1052) -
+/// C 9293's read.  **Open**, the `ns_output_<member>` family.
+@_silgen_name("ns_output_double_buffered")
+func ns_output_double_buffered(_ f: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `void expose_frame (struct frame *, int, int, int, int)` (declared src/dispextern.h 3675,
+/// defined src/xdisp.c 35466) - C 9335's call.  **Open**: the mirror declares it in other units' blocks
+/// only (`femacs/src/pgtkterm.rs` 10881, `femacs/src/widget.rs` 985).
+@_silgen_name("expose_frame")
+func expose_frame(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32, _ w: Int32, _ h: Int32)
+
+/// C: `TOOL_BAR_EVENT` (src/termhooks.h 202; the value is 21 - the mirror-valued-constant reading
+/// `femacs/src/include/termhooks.rs` 47 records) and the two enumerators C 9253/9264 index with:
+/// `TOOL_BAR_ITEM_KEY` 0 and `TOOL_BAR_ITEM_NSLOTS` 12 (`femacs/src/include/dispextern.rs`
+/// 3942/3966, src/dispextern.h 3449-3495's item-index enumeration).
+fileprivate let TOOL_BAR_EVENT: UInt32 = 21
+fileprivate let TOOL_BAR_ITEM_KEY: Int32 = 0
+fileprivate let TOOL_BAR_ITEM_NSLOTS: Int32 = 12
+
+/// C: `#define KEY_NS_TOGGLE_TOOLBAR ((1<<28)|(0<<16)|13)` (src/nsterm.h 805) - C 9283's code.
+/// The macro's own expression is kept (the `SCROLL_BAR_*` reading of a literal macro), typed the
+/// way C's `unsigned code` field uses it.
+fileprivate let KEY_NS_TOGGLE_TOOLBAR: UInt32 = UInt32((1 << 28) | (0 << 16) | 13)
