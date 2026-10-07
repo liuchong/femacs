@@ -4537,3 +4537,54 @@ differs`, and the drift row.  **Every `missing …` row the file had at slice 1 
 The frozen configuration compiles none of this file: no subr was registered, no variable was
 defined and no feature was provided; the twenty-two arms' counts are text compile readings, and
 the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.
+
+## Slice 48 (2026-10-08, status 3.955): the `output_data` token class - `--check` 24 -> 15
+
+**This round is a fidelity repair, not a new region**: `extract-abi.py --check` compares C's
+function bodies with the port's by *token*, and fifteen `xfns.c` functions were reported as not
+mentioning `output_data` although the port's `FRAME_X_OUTPUT! (f)` macro *expands* to
+`((*f).output_data.x)` (`include/xterm.rs` 1055-1057).  C writes the member path out at those
+sites and the macro name at others, so the repair is site-by-site:
+
+- **Thirty-three sites in twelve functions now spell C's own path**: `FRAME_X_OUTPUT! (f) as *mut
+  x_output` became `(*f).output_data.x as *mut x_output`, and the deref form
+  `(*(FRAME_X_OUTPUT! (f) as *mut x_output)).field` became
+  `(*((*f).output_data.x as *mut x_output)).field` - C 1223's `struct x_output *x =
+  f->output_data.x;` and its `x->field` uses (`x_set_background_color`, `x_set_border_pixel`,
+  `x_set_cursor_color`, `x_set_foreground_color`, `x_set_icon_name`, `x_set_menu_bar_lines`,
+  `x_set_mouse_color`, `x_set_no_accept_focus`, `x_set_override_redirect`,
+  `x_set_scroll_bar_foreground`, `x_set_scroll_bar_background`, `x_change_tool_bar_height`).
+- **Six sites keep C's macro name**: those two scroll-bar functions also write
+  `FRAME_X_OUTPUT (f)->scrollbar_*_css_provider` (C 2018/2022/2121/2125), so their four CSS
+  provider accesses were restored to `(*(FRAME_X_OUTPUT! (f) as *mut x_output)).…` - the gate asks
+  for both tokens because C's text carries both forms.
+
+**Readings.**  `extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs`: **24 rows -> 15**, and
+the diff is nine rows closed (`x_change_tool_bar_height`, `x_set_background_color`,
+`x_set_border_pixel`, `x_set_cursor_color`, `x_set_foreground_color`, `x_set_icon_name`,
+`x_set_menu_bar_lines`, `x_set_scroll_bar_foreground`, `x_set_scroll_bar_background`) plus three
+rows that *shrank* by one token each (`x_set_mouse_color` and `x_set_no_accept_focus` lost
+`output_data` from their missing-lists, and `subr Fx_create_frame` lost `frame_x_output`) - **no row was added**.  **All twenty-two arms end at their exact slice-47 levels**
+(plain-X, XKB and XKBX 18/9, WS, WSX, WSR, WSRX, WSR12, XSN 16/9, LUCID 25/12, MOTIF 20/12,
+MOTIFXI2 24/12, GTK, GTK22, GTKFT, GTK22FT, GTK314 and CAIRO 47/20, XI2 and XR 22/9, Xt 20/12, XCB
+18/9), which is the point of the repair's shape: the two spellings expand to the same expression,
+so no reading moves.  `build-tu` is exit 0 / the 336-byte empty object; the end hash is md5
+`0b6ac4f15938d98ec52066c616be9681` (the same 14,918 lines as slice 47: this round rewrites
+member paths, it adds none).
+
+**One reading this slice measured and reverted.**  The first attempt rewrote *all* 53
+`FRAME_X_OUTPUT!` sites in the file, which closed the fifteen `output_data` rows but opened fifteen
+`does not mention frame_x_output` rows (one per function whose C text names the macro) and, worse,
+dropped the frame deref (`(f).output_data.x` instead of `(*f).output_data.x`) - the arms read
+plain-X **35**/GTK **65** instead of 18/47.  The scope (twelve functions) and the deref are what the
+final text carries; the reverted attempt is recorded here because the arm readings are what caught
+it.
+
+### What the fifteen remaining rows are (not this slice's)
+
+`x_window`'s three `frame_menubar_height` rows are the mirror's `FRAME_MENUBAR_HEIGHT!` placeholder
+body (`include/xterm.rs` 1181-1183, `{ (void) ($f); 0 }`); `x_icon`'s `int_max, int_min` and
+`x_set_*`'s `false, true`/`0` are literal tokens; `xg_set_icon_from_xpm_data`'s row is C 5300's
+`gnuc_prereq`/`__clang`/`gdk_pixbuf_version_*` condition; `unwind_create_frame`'s `frame_live_p` is
+a macro body; `INSTALL_CURSOR` and `RANDR13_LIBRARY` are macro rows; `subr Fx_file_dialog:
+docstring differs` is slice 41's pairing artifact; and the drift row is the file's line count.

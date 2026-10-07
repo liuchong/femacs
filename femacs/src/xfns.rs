@@ -1657,16 +1657,16 @@ unsafe extern "C" fn x_set_no_accept_focus (f: *mut frame, new_value: Lisp_Objec
         let mut al: [Arg; 1] = [Arg { name: std::ptr::null_mut (), value: 0 }];
 
         XtSetArg! (al[0], XtNinput (), if NILP (new_value) { 1 } else { 0 }); /* C: True / False */
-        XtSetValues ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget, al.as_mut_ptr (), 1);
+        XtSetValues ((*((*f).output_data.x as *mut x_output)).widget, al.as_mut_ptr (), 1);
       }
       #[cfg (all (not (feature = "use_gtk"), not (feature = "use_x_toolkit")))]
       {
         let window: Window = FRAME_X_WINDOW! (f);
 
-        (*(FRAME_X_OUTPUT! (f) as *mut x_output)).wm_hints.input
+        (*((*f).output_data.x as *mut x_output)).wm_hints.input
           = if NILP (new_value) { 1 } else { 0 };   /* C: True / False */
         XSetWMHints (FRAME_X_DISPLAY! (f), window,
-                     &raw mut (*(FRAME_X_OUTPUT! (f) as *mut x_output)).wm_hints);
+                     &raw mut (*((*f).output_data.x as *mut x_output)).wm_hints);
       }
       FRAME_NO_ACCEPT_FOCUS! (f, !NILP (new_value));
     }
@@ -1783,7 +1783,7 @@ macro_rules! FRAME_BACKGROUND_PIXEL {
 
 unsafe extern "C" fn x_set_foreground_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
-  let x: *mut x_output = FRAME_X_OUTPUT! (f) as *mut x_output;
+  let x: *mut x_output = (*f).output_data.x as *mut x_output;
   let fg: c_ulong;
   let old_fg: c_ulong;
 
@@ -1822,7 +1822,7 @@ unsafe extern "C" fn x_set_foreground_color (f: *mut frame, arg: Lisp_Object, ol
 
 unsafe extern "C" fn x_set_background_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
-  let x: *mut x_output = FRAME_X_OUTPUT! (f) as *mut x_output;
+  let x: *mut x_output = (*f).output_data.x as *mut x_output;
   let bg: c_ulong;
 
   bg = x_decode_color (f, arg, WHITE_PIX_DEFAULT! (f) as c_int) as c_ulong;
@@ -2231,7 +2231,7 @@ unsafe extern "C" fn x_set_mouse_color_handler (dpy: *mut Display, event: *mut X
 
 unsafe extern "C" fn x_set_mouse_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
-  let x: *mut x_output = FRAME_X_OUTPUT! (f) as *mut x_output;
+  let x: *mut x_output = (*f).output_data.x as *mut x_output;
   let dpy: *mut Display = FRAME_X_DISPLAY! (f);
   /* C's `struct mouse_cursor_data cursor_data = { -1, -1 };` - C's aggregate initialisation
      writes the first two members and zero-fills the rest.  */
@@ -2344,10 +2344,10 @@ unsafe extern "C" fn x_set_mouse_color (f: *mut frame, arg: Lisp_Object, oldval:
 
   if FRAME_X_WINDOW! (f) != 0
     {
-      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).current_cursor
+      (*((*f).output_data.x as *mut x_output)).current_cursor
         = cursor_data.cursor[mouse_cursor_text as usize];
       XDefineCursor (dpy, FRAME_X_WINDOW! (f),
-                     (*(FRAME_X_OUTPUT! (f) as *mut x_output)).current_cursor);
+                     (*((*f).output_data.x as *mut x_output)).current_cursor);
     }
 
   /* C 1450-1454's `INSTALL_CURSOR(FIELD, SHORT_INDEX)`: C's `##` paste has no Rust equivalent,
@@ -2398,7 +2398,7 @@ unsafe extern "C" fn x_set_cursor_color (f: *mut frame, arg: Lisp_Object, oldval
   let mut pixel: c_ulong;
   let mut fore_pixel_allocated_p: bool = false;
   let mut pixel_allocated_p: bool = false;
-  let x: *mut x_output = FRAME_X_OUTPUT! (f) as *mut x_output;
+  let x: *mut x_output = (*f).output_data.x as *mut x_output;
 
   if !NILP (Vx_cursor_fore_pixel)
     {
@@ -2464,15 +2464,15 @@ unsafe extern "C" fn x_set_cursor_color (f: *mut frame, arg: Lisp_Object, oldval
 #[cfg (feature = "have_x_windows")]
 unsafe fn x_set_border_pixel (f: *mut frame, pix: c_ulong)
 {
-  unload_color (f, (*(FRAME_X_OUTPUT! (f) as *mut x_output)).border_pixel);
-  (*(FRAME_X_OUTPUT! (f) as *mut x_output)).border_pixel = pix;
+  unload_color (f, (*((*f).output_data.x as *mut x_output)).border_pixel);
+  (*((*f).output_data.x as *mut x_output)).border_pixel = pix;
 
   #[cfg (feature = "use_x_toolkit")]
   {
-    if !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget.is_null () && (*f).border_width > 0
+    if !(*((*f).output_data.x as *mut x_output)).widget.is_null () && (*f).border_width > 0
       {
         block_input ();
-        XtVaSetValues ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).widget, XtNborderColor (),
+        XtVaSetValues ((*((*f).output_data.x as *mut x_output)).widget, XtNborderColor (),
                        pix as Pixel, std::ptr::null_mut::<c_void> ());
         unblock_input ();
 
@@ -2570,7 +2570,7 @@ unsafe extern "C" fn x_set_icon_name (f: *mut frame, arg: Lisp_Object, oldval: L
 
   fset_icon_name (f, arg);
 
-  if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).icon_bitmap != 0
+  if (*((*f).output_data.x as *mut x_output)).icon_bitmap != 0
     { return; }
 
   block_input ();
@@ -2624,7 +2624,7 @@ unsafe extern "C" fn x_set_menu_bar_lines (f: *mut frame, value: Lisp_Object, ol
            `#ifdef HAVE_WINDOW_SYSTEM` (C 382-390).  */
         #[cfg (feature = "have_window_system")]
         FRAME_EXTERNAL_MENU_BAR! (f, 1);
-        if FRAME_X_P (f) && (*(FRAME_X_OUTPUT! (f) as *mut x_output)).menubar_widget.is_null ()
+        if FRAME_X_P (f) && (*((*f).output_data.x as *mut x_output)).menubar_widget.is_null ()
           {
             /* Make sure next redisplay shows the menu bar.  */
             (*XWINDOW (FRAME_SELECTED_WINDOW (f))).update_mode_line = true;
@@ -2637,7 +2637,7 @@ unsafe extern "C" fn x_set_menu_bar_lines (f: *mut frame, value: Lisp_Object, ol
         #[cfg (feature = "have_window_system")]
         FRAME_EXTERNAL_MENU_BAR! (f, 0);
         if FRAME_X_P (f)
-          { (*(FRAME_X_OUTPUT! (f) as *mut x_output)).menubar_widget = std::ptr::null_mut (); }
+          { (*((*f).output_data.x as *mut x_output)).menubar_widget = std::ptr::null_mut (); }
       }
   }
   #[cfg (all (not (feature = "use_x_toolkit"), not (feature = "use_gtk")))]
@@ -2830,7 +2830,7 @@ pub unsafe extern "C" fn x_change_tool_bar_height (f: *mut frame, height: c_int)
         #[cfg (feature = "have_window_system")]
         FRAME_EXTERNAL_TOOL_BAR! (f, true);
         if FRAME_X_P (f)
-            && (*(FRAME_X_OUTPUT! (f) as *mut x_output)).toolbar_widget.is_null ()
+            && (*((*f).output_data.x as *mut x_output)).toolbar_widget.is_null ()
           {
             /* Make sure next redisplay shows the tool bar.  */
             (*XWINDOW (FRAME_SELECTED_WINDOW (f))).update_mode_line = true;
@@ -2978,10 +2978,10 @@ unsafe extern "C" fn x_set_scroll_bar_foreground (f: *mut frame, value: Lisp_Obj
   else
     { pixel = (-1 as c_int) as c_ulong; }                 /* C: `unsigned long pixel = -1;` */
 
-  if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_foreground_pixel != (-1 as c_int) as c_ulong
-    { unload_color (f, (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_foreground_pixel); }
+  if (*((*f).output_data.x as *mut x_output)).scroll_bar_foreground_pixel != (-1 as c_int) as c_ulong
+    { unload_color (f, (*((*f).output_data.x as *mut x_output)).scroll_bar_foreground_pixel); }
 
-  (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_foreground_pixel = pixel;
+  (*((*f).output_data.x as *mut x_output)).scroll_bar_foreground_pixel = pixel;
   if FRAME_X_WINDOW! (f) != 0 && FRAME_VISIBLE_P (f)
     {
       /* Remove all scroll bars because they have wrong colors.  */
@@ -3045,30 +3045,30 @@ unsafe extern "C" fn x_set_scroll_bar_background (f: *mut frame, value: Lisp_Obj
   else
     { pixel = (-1 as c_int) as c_ulong; }                 /* C: `unsigned long pixel = -1;` */
 
-  if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_background_pixel != (-1 as c_int) as c_ulong
+  if (*((*f).output_data.x as *mut x_output)).scroll_bar_background_pixel != (-1 as c_int) as c_ulong
     {
       unload_color (f,
-                    (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_background_pixel);
+                    (*((*f).output_data.x as *mut x_output)).scroll_bar_background_pixel);
     }
 
   #[cfg (all (feature = "use_lucid", feature = "use_toolkit_scroll_bars"))]
   {
     /* Scrollbar shadow colors.  */
-    if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_top_shadow_pixel != -1
+    if (*((*f).output_data.x as *mut x_output)).scroll_bar_top_shadow_pixel != -1
       {
         unload_color (f,
-                      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_top_shadow_pixel);
-        (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_top_shadow_pixel = -1;
+                      (*((*f).output_data.x as *mut x_output)).scroll_bar_top_shadow_pixel);
+        (*((*f).output_data.x as *mut x_output)).scroll_bar_top_shadow_pixel = -1;
       }
-    if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_bottom_shadow_pixel != -1
+    if (*((*f).output_data.x as *mut x_output)).scroll_bar_bottom_shadow_pixel != -1
       {
         unload_color (f,
-                      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_bottom_shadow_pixel);
-        (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_bottom_shadow_pixel = -1;
+                      (*((*f).output_data.x as *mut x_output)).scroll_bar_bottom_shadow_pixel);
+        (*((*f).output_data.x as *mut x_output)).scroll_bar_bottom_shadow_pixel = -1;
       }
   }
 
-  (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scroll_bar_background_pixel = pixel;
+  (*((*f).output_data.x as *mut x_output)).scroll_bar_background_pixel = pixel;
   if FRAME_X_WINDOW! (f) != 0 && FRAME_VISIBLE_P (f)
     {
       /* Remove all scroll bars because they have wrong colors.  */
@@ -7698,9 +7698,9 @@ DEFUN! ("x-create-frame", Fx_create_frame, Sx_create_frame,
 
 #[cfg (feature = "have_gtk3")]
   {
-    (*((*f).output_data.x as *mut x_output)).scrollbar_background_css_provider
+    (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scrollbar_background_css_provider
       = gtk_css_provider_new ();                                        // C 5244-5245
-    (*((*f).output_data.x as *mut x_output)).scrollbar_foreground_css_provider
+    (*(FRAME_X_OUTPUT! (f) as *mut x_output)).scrollbar_foreground_css_provider
       = gtk_css_provider_new ();                                        // C 5246-5247
   }
 
