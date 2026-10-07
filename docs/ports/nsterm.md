@@ -199,10 +199,10 @@
 - [ ] ns_condemn_scroll_bars  (line 5575, static)
 - [ ] ns_redeem_scroll_bar  (line 5597, static)
 - [ ] ns_judge_scroll_bars  (line 5622, static)
-- [ ] ns_free_pixmap  (line 5649, static)
-- [ ] ns_display_pixel_height  (line 5661)
-- [ ] ns_display_pixel_width  (line 5676)
-- [ ] ns_string_to_lispmod  (line 5691, static)
+- [x] ns_free_pixmap  (line 5649, static) — C 5648-5652, landed as `fileprivate func ns_free_pixmap (_:_:)`: C's whole body is the `ns_release_object` call (C 5651), and the pixmap parameter is spelled the way that export spells its own (an optional untyped pointer, C 805-811), so C's NULL arm needs no code here (round 35's Evidence)
+- [x] ns_display_pixel_height  (line 5661) — C 5660-5673, landed as `func ns_display_pixel_height (_:) -> Int32`: C's enumerator over the screen list, with `NSUnionRect` accumulating each `-frame`, is the Swift `for` loop over `NSScreen.screens`; `dpyinfo` is unused in C too
+- [x] ns_display_pixel_width  (line 5676) — C 5675-5688, landed as `func ns_display_pixel_width (_:) -> Int32`: the same union read as a width, in C's own two-call shape (round 35's Evidence)
+- [x] ns_string_to_lispmod  (line 5691, static) — C 5691-5710, landed as `fileprivate func ns_string_to_lispmod (_:) -> Lisp_Object`: C's six `strncmp (SSDATA (SYMBOL_NAME (Q…)), s, 10)` tests keep their order and their length 10, and the five modifier symbols are read through this file's own `DEFSYM` names (C 11799's `syms_of_nsterm`)
 - [ ] ns_default  (line 5714, static)
 - [ ] ns_initialize_display_info  (line 5742, static)
 - [ ] ns_default_font_parameter  (line 5770, static)
@@ -3171,3 +3171,32 @@ call site takes an entry and the definition lands at its own C line - and **both
   `cannot find 'emacsframe' in scope` - the last because the method was written as a file-scope
   function instead of a member).  They get their own round, with those four spellings settled
   first.
+
+### Round 35: `ns_free_pixmap`, the two display metrics, and `ns_string_to_lispmod` (C 5648-5710)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-34 carry, so **no new warning**.  Object
+  `/tmp/nsterm35.o`, **695,696 bytes**, md5 `18df1c23bd60508bcd24783a908ffc78` (taken after the
+  fix below, per the round 24 note about object digests following comment edits).  The unit is
+  **8,334 lines**.
+* **Four C definitions and the imports they need**: `ns_free_pixmap` (C 5648, the image hook's
+  free entry), `ns_display_pixel_height` (C 5660), `ns_display_pixel_width` (C 5675) and
+  `ns_string_to_lispmod` (C 5691).  The imports are the five modifier symbols this file's own
+  `syms_of_nsterm` defines (`Qmeta`, `Qsuper`, `Qcontrol`, `Qalt`, `Qhyper`, read as data symbols
+  the way `Qnone` already is) plus `strncmp` in the `fputs` shape, and `SSDATA`/`SYMBOL_NAME`,
+  which C 2254/2255 already declare in this unit.
+* **The one compile failure and its fix**: `cannot convert value of type 'AnyObject?' to expected
+  argument type 'UnsafeMutableRawPointer?'` at the `ns_release_object (pixmap)` call (C 5651).
+  The pixmap parameter was written `AnyObject?` (the round 18 `image_pixmap` reading); the call's
+  callee is this unit's own `@_cdecl` entry, whose parameter is documented at C 805-811 as an
+  optional untyped pointer (and which carries C's nil-receiver no-op itself).  The fix follows the
+  callee rather than forcing a bridge: the parameter is `UnsafeMutableRawPointer?`, so C's body
+  stays the single call C writes, and a NULL pixmap needs no arm of its own.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **28** unported,
+  28 row(s); **442** C symbol import(s)` - four fewer unported than round 34's 32 (the four C
+  functions above), **four stale rows cleared** by name, and the round's imports are the new
+  symbol count (436 -> 442).  Final: `0 new, 0 stale, 7 Swift unit(s) landed`;
+  `tools/check-own-voice.py` reads 0 failure(s).  Four boxes are ticked (260 -> 264).
+* **What this round does not claim**: no run evidence (no pixmap freed, no screen list walked, no
+  modifier string converted); the compile gate reaches parsing and type checking only, and
+  `tools/check-swift-units.py` compares name sets, not signatures, bodies, layout or ABI.

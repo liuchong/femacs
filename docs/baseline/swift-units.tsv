@@ -20,12 +20,9 @@ femacs/platform/macos/nsterm.swift	ns_default	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_default_font_parameter	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_delete_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_delete_terminal	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_display_pixel_height	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_display_pixel_width	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_displays_reconfigured	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_flush_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_free_pixmap	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_initialize_display_info	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_judge_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_new_font	src/nsterm.m
@@ -33,7 +30,6 @@ femacs/platform/macos/nsterm.swift	ns_redeem_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redraw_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_horizontal_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_vertical_scroll_bar	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_string_to_lispmod	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_init	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_shutdown	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_update_window_end	src/nsterm.m

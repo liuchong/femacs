@@ -8269,4 +8269,66 @@ fileprivate func ns_in_echo_area() -> Bool {
   return !NILP(in_echo_area)                           // C 7647
 }
 
+// ==========================================================================
+// Round 35: `ns_free_pixmap`, the two display metrics, and `ns_string_to_lispmod`
+// ==========================================================================
+
+/// C: the five modifier symbols `ns_string_to_lispmod` compares against, all `DEFSYM`s of this
+/// file's own `syms_of_nsterm` and imported in the `Qnone` shape the unit already uses.
+@_silgen_name("Qmeta") func Qmeta() -> Lisp_Object
+@_silgen_name("Qsuper") func Qsuper() -> Lisp_Object
+@_silgen_name("Qcontrol") func Qcontrol() -> Lisp_Object
+@_silgen_name("Qalt") func Qalt() -> Lisp_Object
+@_silgen_name("Qhyper") func Qhyper() -> Lisp_Object
+
+/// C: `int strncmp (const char *, const char *, size_t)` (string.h) - the `fputs` shape.
+@_silgen_name("strncmp")
+func strncmp(_ a: UnsafePointer<CChar>?, _ b: UnsafePointer<CChar>?, _ n: Int) -> Int32
+
+/// C 5648-5652: `static void ns_free_pixmap (struct frame *_f, Emacs_Pixmap pixmap)` - C's whole
+/// body is the `ns_release_object` call, which is this unit's own `@_cdecl` entry (C 602-638).
+/// The pixmap parameter is therefore spelled the way that export spells its own (C 805-811): an
+/// optional untyped pointer (src/nsgui.h 55-59's `typedef id` arm, read untyped as the round 18
+/// `ns_display_info_bitmaps_img` note reads it), and because the export is what carries C's
+/// nil-receiver no-op (C 808-810), a NULL pixmap needs no arm here.
+fileprivate func ns_free_pixmap(_ _f: UnsafeMutableRawPointer?, _ pixmap: UnsafeMutableRawPointer?) {
+  ns_release_object(pixmap)                          // C 5651
+}
+
+/// C 5660-5673: `int ns_display_pixel_height (struct ns_display_info *dpyinfo)` - the union of
+/// every screen's frame, which C builds with an enumerator; `NSScreen.screens` is the array and
+/// `NSHeight` is the rect's own height.
+func ns_display_pixel_height(_ dpyinfo: UnsafeMutableRawPointer?) -> Int32 {
+  let screens = NSScreen.screens                     // C 5663
+  var frame = NSRect.zero                            // C 5668
+  for screen in screens {                            // C 5669
+    frame = NSUnionRect(frame, screen.frame)         // C 5670
+  }
+  return Int32(frame.height)                         // C 5672
+}
+
+/// C 5675-5688: `int ns_display_pixel_width (struct ns_display_info *dpyinfo)` - the same union,
+/// read as a width.
+func ns_display_pixel_width(_ dpyinfo: UnsafeMutableRawPointer?) -> Int32 {
+  let screens = NSScreen.screens                     // C 5678
+  var frame = NSRect.zero                            // C 5683
+  for screen in screens {                            // C 5684
+    frame = NSUnionRect(frame, screen.frame)         // C 5685
+  }
+  return Int32(frame.width)                          // C 5687
+}
+
+/// C 5691-5710: `static Lisp_Object ns_string_to_lispmod (const char *s)` - "Convert modifier name
+/// to lisp symbol."  C's six `strncmp (SSDATA (SYMBOL_NAME (Q…)), s, 10)` tests keep their order
+/// and their length 10; `SYMBOL_NAME`/`SSDATA` are entries this unit already declares (C 2255 and
+/// 2254) and `Qnone` is its own (C 3092).
+fileprivate func ns_string_to_lispmod(_ s: UnsafePointer<CChar>) -> Lisp_Object {
+  if strncmp(SSDATA(SYMBOL_NAME(Qmeta())), s, 10) == 0 { return Qmeta() }        // C 5696-5697
+  if strncmp(SSDATA(SYMBOL_NAME(Qsuper())), s, 10) == 0 { return Qsuper() }      // C 5698-5699
+  if strncmp(SSDATA(SYMBOL_NAME(Qcontrol())), s, 10) == 0 { return Qcontrol() }  // C 5700-5701
+  if strncmp(SSDATA(SYMBOL_NAME(Qalt())), s, 10) == 0 { return Qalt() }          // C 5702-5703
+  if strncmp(SSDATA(SYMBOL_NAME(Qhyper())), s, 10) == 0 { return Qhyper() }      // C 5704-5705
+  if strncmp(SSDATA(SYMBOL_NAME(Qnone())), s, 10) == 0 { return Qnone() }        // C 5706-5707
+  return Qnil()                                      // C 5709
+}
 
