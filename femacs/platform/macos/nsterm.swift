@@ -8196,3 +8196,77 @@ fileprivate func surrogates_to_codepoint(_ low: UInt32, _ high: UInt32) -> UInt3
   0x10000 + (low - 0xDC00) + ((high - 0xD800) * 0x400) // C coding.h 767
 }
 
+// ==========================================================================
+// Round 34: `ns_in_echo_area` and `firstRectForCharacterRange:`
+// ==========================================================================
+
+/// C: `typedef struct { ptrdiff_t bytes; } specpdl_ref;` (src/lisp.h 3646) - this unit's own view
+/// of it, the way `nsselect.swift` 87 and `nsfns.swift` 97 each carry theirs (a Swift unit
+/// compiles alone, so each spells what it reads).
+struct specpdl_ref {
+  var bytes: Int
+}
+
+/// C: `Lisp_Object FRAME_SELECTED_WINDOW (struct frame *f)` (src/frame.h 1204, `f->selected_window`)
+/// - the entry `nsfns.swift` 505 already declares.
+@_silgen_name("frame_selected_window")
+func frame_selected_window(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: `extern Lisp_Object echo_area_window;` (src/window.h; the port's mirror declares it at
+/// `femacs/src/include/window.rs` 280 as an `extern "C"` static).
+@_silgen_name("echo_area_window") var echo_area_window: Lisp_Object
+
+/// C: `Lisp_Object Qns_in_echo_area` - this file's own `DEFSYM ("ns-in-echo-area")` at C 11799,
+/// imported as the data symbol the core exports (the `ns_working_text` shape).
+@_silgen_name("Qns_in_echo_area") var Qns_in_echo_area: Lisp_Object
+
+/// C: `Lisp_Object internal_catch_all (Lisp_Object (*) (void *), void *,
+/// Lisp_Object (*) (enum nonlocal_exit, Lisp_Object))` (src/lisp.h) - the port defines it in
+/// `femacs/src/eval.rs`; the two callbacks are `@convention(c)` pointers and the exit enum is the
+/// integer it is.
+typealias catch_all_func = @convention(c) (UnsafeMutableRawPointer?) -> Lisp_Object
+typealias catch_all_handler = @convention(c) (Int32, Lisp_Object) -> Lisp_Object
+@_silgen_name("internal_catch_all")
+func internal_catch_all(_ func: catch_all_func?, _ arg: UnsafeMutableRawPointer?,
+                        _ handler: catch_all_handler?) -> Lisp_Object
+
+/// C: `Lisp_Object safe_funcall (ptrdiff_t, Lisp_Object *)` (src/lisp.h 4845) - what C's
+/// `safe_calln (Qns_in_echo_area)` macro (lisp.h 4846-4847) expands to for one argument.
+@_silgen_name("safe_funcall")
+func safe_funcall(_ nargs: Int, _ args: UnsafeMutablePointer<Lisp_Object>?) -> Lisp_Object
+
+/// C: the `WINDOWP`, `SPECPDL_INDEX`, `specbind` and `unbind_to` entries the two functions below
+/// read; each is the shape this unit's neighbours already use (`nsfns.swift` 191/716/721,
+/// `nsselect.swift` 147/174).
+@_silgen_name("WINDOWP") func WINDOWP(_ x: Lisp_Object) -> Bool
+@_silgen_name("SPECPDL_INDEX") func SPECPDL_INDEX() -> specpdl_ref
+@_silgen_name("specbind") func specbind(_ symbol: Lisp_Object, _ value: Lisp_Object)
+@_silgen_name("unbind_to") func unbind_to(_ count: specpdl_ref, _ value: Lisp_Object) -> Lisp_Object
+@_silgen_name("Qinhibit_quit") func Qinhibit_quit() -> Lisp_Object
+
+/// C 7623-7630: `static Lisp_Object ns_in_echo_area_1 (void *ptr)`.
+fileprivate func ns_in_echo_area_1(_ ptr: UnsafeMutableRawPointer?) -> Lisp_Object {
+  let count = SPECPDL_INDEX()                         // C 7626
+  specbind(Qinhibit_quit(), Qt())                     // C 7627
+  var args: [Lisp_Object] = [Qns_in_echo_area]        // C 7628 (C's `safe_calln`, one argument)
+  let in_echo_area = safe_funcall(1, &args)
+  return unbind_to(count, in_echo_area)               // C 7629
+}
+
+/// C 7632-7636: `static Lisp_Object ns_in_echo_area_2 (enum nonlocal_exit exit, Lisp_Object
+/// error)` - C's whole body is `return Qnil;`.
+fileprivate func ns_in_echo_area_2(_ exit: Int32, _ error: Lisp_Object) -> Lisp_Object {
+  Qnil()                                              // C 7635
+}
+
+/// C 7638-7648: `static bool ns_in_echo_area (void)` - the `internal_catch_all` wrapper, whose
+/// three arguments are C 7644-7645's two helpers and its `NULL`.
+fileprivate func ns_in_echo_area() -> Bool {
+  let in_echo_area = internal_catch_all(
+    { ptr in ns_in_echo_area_1(ptr) },
+    nil,
+    { exit, error in ns_in_echo_area_2(exit, error) })   // C 7643-7645
+  return !NILP(in_echo_area)                           // C 7647
+}
+
+

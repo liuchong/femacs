@@ -26,9 +26,6 @@ femacs/platform/macos/nsterm.swift	ns_displays_reconfigured	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_flush_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_free_pixmap	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_in_echo_area	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_in_echo_area_1	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_in_echo_area_2	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_initialize_display_info	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_judge_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_new_font	src/nsterm.m

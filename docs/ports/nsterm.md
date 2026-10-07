@@ -218,9 +218,9 @@
 - [x] not_in_argv  (line 6672, static) — landed as `fileprivate func not_in_argv (_:) -> Int32`: C's `[arg UTF8String]` is the `withCString` view, and `initial_argc`/`initial_argv`/`strcmp` are imports in the lane's established shapes
 - [ ] ns_font_desc_to_font_spec  (line 6915, static)
 - [ ] ns_create_font_panel_buttons  (line 6992, static)
-- [ ] ns_in_echo_area_1  (line 7624, static)
-- [ ] ns_in_echo_area_2  (line 7633, static)
-- [ ] ns_in_echo_area  (line 7639, static)
+- [x] ns_in_echo_area_1  (line 7624, static) — landed as `fileprivate func ns_in_echo_area_1 (_:) -> Lisp_Object`: C 7628's `safe_calln (Qns_in_echo_area)` is one `safe_funcall` call (the macro's own expansion at lisp.h 4846-4847), and `Qns_in_echo_area` is this file's own `DEFSYM` (C 11799) imported as a data symbol
+- [x] ns_in_echo_area_2  (line 7633, static) — landed as `fileprivate func ns_in_echo_area_2 (_:_:) -> Lisp_Object`: C's whole body is `return Qnil;`
+- [x] ns_in_echo_area  (line 7639, static) — landed as `fileprivate func ns_in_echo_area () -> Bool`: the `internal_catch_all` call takes C 7644-7645's two helpers as `@convention(c)` closures and its `NULL`, and C 7647's `!NILP` is the predicate the entry returns
 - [ ] cancel_ns_deferred_UAZoomChangeFocus_timer  (line 8460, static)
 - [x] nswindow_orderedIndex_sort  (line 10085, static) — landed as `fileprivate func nswindow_orderedIndex_sort (_:_:_:) -> Int`: C sends `orderedIndex` as a **message**, and on Cocoa that selector is not declared on `NSWindow` at all (C's own definition of it is the GNUstep arm at C 10074-10077), so the port sends the same dynamic message instead of inventing a property; the three `NSOrdered*` results are C 10090-10095's three returns
 - [ ] ns_new_font  (line 11418, static)
@@ -3141,3 +3141,33 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **Still waiting**: `firstRectForCharacterRange:` (C 7651) and the Cocoa arm's two callers
   (C 7458, C 7464).  Its body reaches five macros and `ns_in_echo_area`, which is why it is a
   round of its own rather than a tail on this one.
+
+
+
+### Round 34: `ns_in_echo_area` (C 7623-7648)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-33 carry, so **no new warning**.  Object
+  `/tmp/nsterm34.o`, **691,024 bytes**, md5 `8a76d3d2b4e0775e9d6fca03735223f6`.
+* **Three C functions and the imports they need**: `ns_in_echo_area_1` (C 7623),
+  `ns_in_echo_area_2` (C 7632) and `ns_in_echo_area` (C 7638).  The imports are `frame_selected_window`,
+  `echo_area_window`, `Qns_in_echo_area` (this file's own `DEFSYM` at C 11799, as a data symbol),
+  `internal_catch_all` (whose two callbacks are `@convention(c)` types here), `safe_funcall`, and
+  the four entries `nsfns.swift`/`nsselect.swift` already declare for `WINDOWP`, `SPECPDL_INDEX`,
+  `specbind` and `unbind_to`, plus this unit's own view of `specpdl_ref` (the `nsselect.swift` 87 /
+  `nsfns.swift` 97 reading: each unit spells what it reads).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **32** unported,
+  32 row(s); **436** C symbol import(s)` - three fewer unported than round 33's 35 (the three C
+  functions above), **three stale rows cleared** by name, and the eight new symbols
+  (`frame_selected_window`, `echo_area_window`, `Qns_in_echo_area`, `internal_catch_all`,
+  `safe_funcall`, `WINDOWP`, `SPECPDL_INDEX`, `specbind`, `unbind_to`, `Qinhibit_quit` minus the two
+  this unit already had) are the round's imports.  Final: `0 new, 0 stale, 7 Swift unit(s) landed`;
+  `tools/check-own-voice.py` reads 0 failure(s).  Three boxes are ticked (257 -> 260).
+* **What moved out of this round, by name**: `firstRectForCharacterRange:` (C 7651) and the Cocoa
+  arm's two callers (C 7458, C 7464).  Its body reaches four macros (`FRAME_COLUMN_WIDTH`,
+  `FRAME_LINE_HEIGHT`, `WINDOW_TEXT_TO_FRAME_PIXEL_X`, `WINDOW_TO_FRAME_PIXEL_Y`) whose Swift
+  spellings this unit has not yet settled plus `window_box_left`/`TEXT_AREA`, and the first compile
+  showed exactly that (`invalid redeclaration of 'TEXT_AREA'`, `cannot find 'FRAME_LINE_HEIGHT'`,
+  `cannot find 'emacsframe' in scope` - the last because the method was written as a file-scope
+  function instead of a member).  They get their own round, with those four spellings settled
+  first.
