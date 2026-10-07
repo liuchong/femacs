@@ -319,6 +319,16 @@ C 18951-25595 writes as the slices that follow, so that row's own text is the re
 the four `cannot find function handle_one_xevent` rows the two call sites (`x_dispatch_event`
 C 25656 and `XTread_socket` C 25732) carried **retire**.
 
+  Slice 111 (C 19473-19561, Decision 122) takes the switch's own frame and its first three arms:
+`OTHER:`'s block (C 25558-25587) and `done:`'s (C 25590-25595), then `SelectionNotify`,
+`SelectionClear` and `SelectionRequest` - 89 C lines in C's order.  The two labels C writes
+*inside* the `GenericEvent` case are the whole switch's tail (thirty sites `goto OTHER`), so they
+are carried once at the end of the `match` with `break 'other` at each site, and `done:`'s six
+lines come with their label.  The other twenty-seven `case` bodies are the slices that follow, at
+their own C line numbers.  The row `--check` reads keeps its two lines and its token list goes
+**531 -> 484**; the mirror round this slice needed (C's own guard for `buffered_input_event`'s
+`sie` member, and the `Copy` the union requires) is Decision 122's third item.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5093,6 +5103,58 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   AXKB 850 -> **844** and AXR 831 -> **825** - and **no warning moved in any arm**.
 * **What `--check` reads.**  Unchanged at four rows (`handle_one_xevent`, `x_term_init`, the `false`
   row and the drift row), with the line count at 30,404 against C's 33,125 (8.2%).
+### 122. Slice 111 (C 19473-19561): the switch's two labels, and the first three `case` arms
+
+* **What it lands.**  `handle_one_xevent`'s `OTHER:` block (C 25558-25587) and `done:` block
+  (C 25590-25595), then `SelectionNotify` (C 19473-19486), `SelectionClear` (C 19487-19515) and
+  `SelectionRequest` (C 19516-19561), each line with its own `// C NNNN` comment.  C's `case` order
+  starts at `ClientMessage` (C 18951-19472); that 522-line XDND/Motif state machine is a slice of
+  its own, and no arm of the port's `match` depends on arm order.
+* **Why the two labels land here, and where.**  C's `OTHER:` sits *inside* the `GenericEvent`
+  case, but it is the switch's shared tail: thirty sites `goto OTHER` (C 19254, 19372, 19385,
+  19458, 19476, 19490, 19519, 19803, 19861, ...) and the last case falls into it.  Rust has no
+  forward jump, so the text is carried **once**, at the end of the `match`, inside a labelled
+  `'other:` block; a site that C sends there is `break 'other`, which runs the block and then C's
+  own `break` - the same sequence C's control flow produces.  The block reads only function-scope
+  names (`*finish`, `event`, `use_copy`, `copy`), so moving it cannot change what it sees.
+  `done:` (C 25590) is its mirror: the six lines every `goto done` reaches *and* what the switch
+  falls into when no case matches, as one labelled `'done:` block.
+* **Three spellings the first writing read (each measured, each fixed in place).**  (1) C's
+  `if (!x_window_to_frame (dpyinfo, ...))` is a *pointer* test in the port, so it is
+  `.is_null ()` (the 2331/2387 spelling) - with C's own `!` kept, the three toolkit arms read
+  `cannot apply unary operator ! to type *mut frame` x3.  (2) C 19501's `dpyinfo->motif_drag_atom
+  = None` and C 19557's `x_dnd_action = None` need `None as Atom`: X11/X.h 115's `None` is `0L`
+  (`c_long`) while both targets are `Atom`.  (3) `x_dnd_waiting_for_finish` is `bool` in the port
+  and `x_dnd_waiting_for_motif_finish` is `c_int`, so C's `= false` and `== 2` are C's own types.
+* **The union member's guard was narrower than C's, and this slice's arms are what read it.**
+  C 19503-19506 and C 19527-19533 write `inev.sie` (keyboard.h 232-234's `struct
+  selection_input_event sie;`, guarded by `#if defined HAVE_X11 || defined HAVE_PGTK`), and
+  `include/keyboard.rs` carried that member behind `have_pgtk` alone - so in every arm this lane
+  measures the thirteen uses were `E0609`.  The mirror now carries C's own condition
+  (`any (feature = "have_x11", feature = "have_pgtk")`), which is a **measured no-op for every
+  reading the tree carries today** (nothing enables either macro: `docs/baseline/feature-coverage.tsv`
+  moves `have_x11` 7 sites / 2 files -> **8 / 3** and no arm's number).  The arm that reads the
+  member is therefore new: **AX11 = A + `have_x11`**, the lane's seventeenth arm, where the
+  thirteen rows retire and the record's own fields resolve.  One more thing the arm needed:
+  `include/xterm.rs`'s `selection_input_event` had no `#[derive (Clone, Copy)]` (the pgtkterm.h
+  mirror's twin at 597 has it), without which the union's member is two errors of its own
+  (`the trait `Copy` cannot be implemented for this type` and the union's `field must implement
+  `Copy` or be wrapped in `ManuallyDrop<...>``) - measured in AX11 before the derive was added.
+  The three selection records C names (`XSelectionClearEvent` C 19496, `XSelectionRequestEvent`
+  C 19525) are declared at the use site (P-88 1, the `src/xselect.rs` 202 shape, whose own unit
+  declares the same pair), because `include/xlib.rs`'s `XEvent` is the measured 192-byte opaque
+  stand-in; the four `X11/X.h` constants the arms and the tail read (`ConfigureNotify` 22,
+  `SelectionClear` 29, `SelectionRequest` 30, `SelectionNotify` 31) joined `x11_constants`.
+* **What `--check` reads.**  Unchanged at two rows - `handle_one_xevent`'s and
+  `x_get_wm_check_window`'s - and the long row's own token list shrinks **531 -> 484** (the
+  selection vocabulary and the tail's words the three arms now name).  The unit is 32,019 lines
+  against C's 33,125 (**3.34%** drift, was 3.8%), file md5 `5b27bbc2c16fbd198a452f715dd103bc`.
+* **Not claimed.**  No runtime evidence: this lane does not link, and the events these three arms
+  handle never arrive here.  The readings are the seventeen arm compiles, the `--check` row and
+  this ledger; the `sie` member's own type is still reached through a mirror the frozen
+  configuration does not compile (`HAVE_X11` and `HAVE_PGTK` are both `#undef` there).
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -10274,3 +10336,86 @@ are the same one row.
 **Not claimed**: no runtime evidence - the events the `case` blocks handle never arrive (this lane
 does not link, and the unit's `XEvent` members the slice reads are still owed mirrors); the
 readings are the sixteen arm compiles, the `--check` row's new shape and this ledger.
+
+### Slice 111's readings (C 19473-19561), as landed and measured (2026-10-08)
+
+`handle_one_xevent`'s two labels and its first three `case` arms: C 25558-25587's `OTHER:` block and
+C 25590-25595's `done:` block, then `SelectionNotify` (C 19473-19486), `SelectionClear`
+(C 19487-19515) and `SelectionRequest` (C 19516-19561).  Twenty-seven `case` bodies are the slices
+that follow.
+
+| arm | baseline | slice 111 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 931 / 75 | **948 / 77** | **+17 / +2** |
+| U `A +use_toolkit_scroll_bars` | 944 / 75 | **961 / 77** | **+17 / +2** |
+| UT `U +use_x_toolkit` | 931 / 74 | **955 / 75** | **+24 / +1** |
+| UM `UT +use_motif` | 932 / 74 | **956 / 75** | **+24 / +1** |
+| UG `U +use_gtk` | 939 / 76 | **958 / 77** | **+19 / +1** |
+| UGX `UG +have_xinput2` | 1033 / 78 | **1054 / 79** | **+21 / +1** |
+| AE `A +enable_checking` | 963 / 74 | **980 / 76** | **+17 / +2** |
+| AI `A +have_x_i18n` | 955 / 76 | **972 / 78** | **+17 / +2** |
+| AIU `AI +use_gtk` | 1006 / 76 | **1025 / 77** | **+19 / +1** |
+| AIUX `AIU +have_xinput2` | 1104 / 78 | **1125 / 79** | **+21 / +1** |
+| AX `A +have_xdbe` | 941 / 75 | **958 / 77** | **+17 / +2** |
+| AG3 `A +use_gtk +have_gtk3` | 990 / 75 | **1009 / 76** | **+19 / +1** |
+| AXF `A +have_xfixes` | 941 / 75 | **958 / 77** | **+17 / +2** |
+| AXPM `A +have_xpm` | 932 / 75 | **949 / 77** | **+17 / +2** |
+| AXKB `A +have_xkb` | 969 / 75 | **986 / 77** | **+17 / +2** |
+| AXR `A +have_xrandr` | 938 / 75 | **955 / 77** | **+17 / +2** |
+| **AX11** `A +have_x11` (this slice's, the seventeenth) | 931 / 75 | **932 / 77** | **+1 / +2** |
+
+**Both sides were measured in this revision**.  The baseline column is HEAD (`5070c250`, slice 110),
+re-measured here for A, UT, UG, UGX and AX11 (931/75, 931/74, 939/76, 1033/78, 931/75 - the first
+four are the ledger's own slice-110 numbers to the digit) and the slice's own file md5
+`5b27bbc2c16fbd198a452f715dd103bc`.  `AX11`'s baseline is A's because on HEAD's text `have_x11`
+enables nothing (`sie` stood behind `have_pgtk`): the arm exists to read what *this* slice's mirror
+change made reachable.
+
+**The `of which`, by name and by arm class** (each arm's dump diffed against its own baseline):
+
+| rows | A-class (A U AE AI AX AXF AXPM AXKB AXR) | UT/UM | UG/AIU/AG3 | UGX/AIUX | AX11 |
+| --- | --- | --- | --- | --- | --- |
+| `no field sie` (C 19503-19510, C 19527-19541) | +13 | +13 | +13 | +13 | **-3** |
+| `no field xselection` (C 19475/19484) | +1 | +2 | +2 | +2 | +1 |
+| `no field xselectionclear` (C 19489/19496) | +1 | +2 | +2 | +2 | +1 |
+| `no field xselectionrequest` (C 19518/19525) | +1 | +2 | +1 | +1 | +1 |
+| `cannot find function x_handle_selection_notify` (C 19484) | +1 | +1 | +1 | +1 | +1 |
+| the `OTHER:` block's own rows (C 25560-25587) | 0 | +4 | 0 | +2 | 0 |
+| total | +17 | +24 | +19 | +21 | +1 |
+
+* The thirteen `sie` rows are one per use site (two of them are the `++`/`=` pair inside
+  `selection_input_event_bits!`'s setter arm, which names its argument twice) and are the class the
+  mirror change above answers: AX11 reads **-3**, because the three `sie` uses the unit already
+  carried elsewhere (`x_preserve_selections`, C 32611) resolve there too.
+* The `xselection*` rows are the `XEvent` stand-in's owed members (the same class slice 110's
+  `r#type`/`xany` rows are).  The toolkit and GTK arms read each of the first two **twice** because
+  C 19475/19489's `if` is theirs and C 19496's local is every arm's; `SelectionRequest`'s `if` is
+  `USE_X_TOOLKIT` alone, so its member arrives once in the GTK arms.
+* The `OTHER:` block's rows are only in the arms that compile it: `no field xconfigure` x2
+  (C 25566-25567 - the block's own `width`/`height`), `no field r#type` x1 (C 25565) and
+  `cannot find function XtDispatchEvent` x1 (C 25570/25572) in UT/UM, plus
+  `cannot find function gdk_event_free` / `gtk_main_do_event` x1 each (C 25580/25585) in the
+  `use_gtk + have_xinput2` arms.  AG3's fourteen `xconfigure` rows and the twelve of the other
+  arms are the baselines' own and do not move.
+* The warning column moves **+2 in every arm without a toolkit and +1 in every arm with one**,
+  and every moved row is `unused label`: `'other` is unused where the three `break 'other` sites
+  are all behind `use_x_toolkit`/`use_gtk`, and `'done` is unused until a `goto done` site lands
+  (the seventy-six of them are in the `case` bodies to come).  Nothing is silenced; the labels are
+  what makes the twenty-seven remaining arms expressible.
+
+**What `--check` reads** (unchanged in shape, and the token list is the reading): still two rows,
+`function handle_one_xevent does not mention <the remaining 484 tokens>` and
+`function x_get_wm_check_window does not mention false`; the long row's list went **531 -> 484**.
+Unit **32,019 lines** against C's 33,125 (**3.34%** drift, was 3.8%, status 4.026).
+
+**One repair the first writing read** that is not in the code: `docs/baseline/feature-coverage.tsv`
+was regenerated (`python3 tools/feature-coverage.py --write`) because the mirror's gate is one of
+its rows; the write also carried the drift the table had accumulated since its last write
+(96 insertions / 68 deletions: `have_x_windows` 2,276 sites -> 3,181, `have_pgtk` 1,019 -> 1,506,
+and so on), and the reading this slice needs is inside it: `have_x11` **7 sites / 2 files -> 8 / 3**.
+
+**Not claimed**: no runtime evidence - the events these arms handle were never delivered (this lane
+does not link), and the two runtime rows the arms now name (`x_handle_selection_notify`, the
+`XSelectionClearEvent`/`XSelectionRequestEvent` records) are still C's text, not a measured
+behaviour.  The readings are the seventeen arm compiles, the `--check` row's new token count and
+this ledger.

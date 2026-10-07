@@ -1553,6 +1553,12 @@ use font_fwd::*;
 /// C: x_display_info *dpyinfo; Window requestor; Atom selection, target, property; Time time; };
 #[cfg (feature = "have_x_windows")]
 #[repr(C)]
+/* The record is trivial in C, so the union below can hold it; Rust needs the derive for that
+   (measured: `buffered_input_event`'s `sie` member is two errors without it - `the trait
+   `Copy` cannot be implemented for this type` and the union's own `field must implement
+   `Copy` or be wrapped in `ManuallyDrop<...>``, the pgtkterm.h mirror's twin at 597
+   already carrying it).  */
+#[derive(Clone, Copy)]
 pub struct selection_input_event
 {
   pub bits: u32,                      // kind:16 - C: `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH;`

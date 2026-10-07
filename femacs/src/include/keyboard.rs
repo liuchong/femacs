@@ -99,10 +99,16 @@ pub union buffered_input_event
 {
   pub kind: u16,                                    // keyboard.h 230 (`kind : EVENT_KIND_WIDTH`)
   pub ie: input_event,                              // 231
-  /// keyboard.h 233: `struct selection_input_event sie;` - the pgtkterm.h record the gated include
-  /// above reaches (this mirror's own note used to call the member dead under the frozen
-  /// configuration; the PGTK arm needs it, so it is carried behind that arm's macro).
-  #[cfg (feature = "have_pgtk")]
+  /// keyboard.h 233: `struct selection_input_event sie;` - the record comes from a backend
+  /// header C reaches through its own include, one per window system, and (keyboard.h 27-32)
+  /// C's guard is `defined HAVE_X11 || defined HAVE_PGTK`.  The member is therefore carried
+  /// behind **both** arms' macros: a PGTK unit resolves the record through the pgtkterm.h
+  /// mirror, an X unit (`src/xterm.rs`'s selection cases are the readers) through xterm.h's,
+  /// which that unit includes itself.  The member used to stand behind `have_pgtk` alone -
+  /// that narrowing is what the xterm lane's arm `AX11` (`have_x_windows` + `have_x11`)
+  /// measured, and neither macro is defined in the frozen configuration, so this widening is
+  /// a no-op for every reading the tree carries today.
+  #[cfg (any (feature = "have_x11", feature = "have_pgtk"))]
   pub sie: selection_input_event,                   // 233
 }
 

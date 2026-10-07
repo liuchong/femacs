@@ -17091,3 +17091,29 @@
   ⑤ **预算与清理**：本片 rustc 编译 **约 55 发**（16 臂 × 3 轮读数 + 两侧 baseline + 若干探针；每次 15-30 秒，都是单文件 `--emit=metadata` 的类型检查），`build-tu` 材化 4 次（各约 2 秒）；
      产物 `build/femacs/units/xterm/`、`/tmp/x83*`… 全部由本轮的清理步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——`case` 体处理的事件一个也没到达（本 lane 不链接，且本片读的 `XEvent` 成员仍是欠账镜像）；读数只有十六臂编译、`--check` 行的新形状与台账。
+
+- **4.027 `src/xterm.c` round 86（xterm lane，slice 111）：`handle_one_xevent` 的 `OTHER:`/`done:` 两块与前三个 `case` 臂（C 19473-19561）落地；同轮复算产品名声明那条长期指令（2026-10-08）**：
+  ① **长期指令的复算（`版本声明不要再说是gnu emacs了` + `把之前的代码中的这种声明也去掉`，3.226/3.250/3.295 的处置一处没退）**：`python3 tools/check-declarations.py` 读
+     **18 declaration sites (0 forbidden, 18 allowed literals), 0 failures**（`read 683 files: 625 .rs / 40 .kt / 7 .swift / 6 .s / 5 .cc`），
+     并且门自己打印的覆盖行是 **`walked past 0 file(s) of an unscanned kind: none`**——3.250（`femacs/platform` 的七个 `.swift` 只按名字被扫）与 3.295（`femacs/exec` 的六个 `.s` 对每道门不可见）那两个洞仍然关着。
+     三条定向扫描的重算：⑴ 版本行括注（`@ fd7afced403 (` + 产品名）：**0 命中**，剩下的括注都是来源词（`gnulib`、`PORTING.md` 条目一类）；⑵ 许可/声明散文五式（`part of GNU Emacs` / `GNU Emacs is free software` / `under the terms of the GNU` / `along with GNU Emacs` / `Free Software Foundation`）
+     在非逐字树里命中 8 处，**每一处都是 `docs/baseline/declarations-allowlist.tsv` 上的 C 字面量或实测值**（`femacs/src/emacs.rs` 2、`femacs/lib-src/etags.rs` 2、`femacs/lib-src/ebrowse.rs` 2、`docs/baseline/config/darwin-arm64.macros.tsv` 的 `PACKAGE_STRING` 2），log/门/许可正文/`docs/` 散文那几处是"提到参照"而不是"声明自己是该产品"；
+     ⑶ 标识符族（`org.gnu.emacs` / `GNUEmacs_` / `Gnu Emacs` / `Emacs.lnk` / `Emacs Clipboard`）只落在 18 条白名单字面量与两棵逐字节树（`femacs/etc/DEBUG`、`femacs/etc/org.gnu.emacs.defaults.gschema.xml`）里。
+     那 18 条全是**外部名字**（注册表键、开始菜单目录/快捷方式、MCI 设备别名、窗口类）或**许可人的署名句**（`COPYRIGHT`、GPL 横幅三句）：改名即改行为或写出一句假署名，所以它们留在表里逐条记理由，**本轮新落的文本零命中**。
+     结论：这条指令在 HEAD `5070c250` 上是**已完成状态**，本轮是复算与回归确认，无新增改动需要。
+  ② **本片落的文本**：C 25558-25587 的 `OTHER:` 块与 C 25590-25595 的 `done:` 块（C 把 `OTHER:` 写在 `GenericEvent` 的 case **内部**，但它是整个 `switch` 的共享尾块——三十处 `goto OTHER` 加最后一个 case 的 fall-through——Rust 没有前向跳转，所以正文只留一份放在 `match` 末尾、每个站点写成 `break 'other`，与 C 的控制流同序；`done:` 的六行与标签同落），
+     以及前三个 `case` 臂 `SelectionNotify`（C 19473-19486）、`SelectionClear`（C 19487-19515）、`SelectionRequest`（C 19516-19561），共 89 C 行、按 C 的行号逐行注释。`case` 顺序上从 `ClientMessage`（C 18951-19472，522 行的 XDND/Motif 状态机）起是它自己的片，`match` 的臂序不影响语义。
+  ③ **首写读出的三处拼法与一次镜像收口（逐条实测后修）**：⑴ C 的 `if (!x_window_to_frame (…))` 是**指针**判定 ⇒ 端口写 `.is_null ()`（2331/2387 的写法；照抄 C 的 `!` 时三个工具臂读 `cannot apply unary operator ! to type *mut frame` ×3）；
+     ⑵ `motif_drag_atom = None` 与 `x_dnd_action = None` 要 `None as Atom`（X11/X.h 115 的 `None` 是 `0L`=`c_long`，两个目标都是 `Atom`）；⑶ `x_dnd_waiting_for_finish` 在端口是 `bool`、`x_dnd_waiting_for_motif_finish` 是 `c_int`，C 的 `= false` 与 `== 2` 各按自己的类型写。
+     **镜像收口**：C 的 `union buffered_input_event` 里 `struct selection_input_event sie;` 的守卫是 `#if defined HAVE_X11 || defined HAVE_PGTK`（keyboard.h 232-234），`include/keyboard.rs` 此前只按 `have_pgtk` 携带 ⇒ 本 lane 的每一个臂里那十三处 `inev.sie` 都是 `E0609`。
+     镜像改成 C 自己的条件（`any (feature = "have_x11", feature = "have_pgtk")`），并**实测为今日全部读数的 no-op**（树里没有任何东西打开这两个宏；`docs/baseline/feature-coverage.tsv` 再生后 `have_x11` 7 sites / 2 files → **8 / 3**，无一个臂的数字移动）；
+     读出这块正文的臂是本片的**第十七臂 `AX11 = A + have_x11`**，它还要一处 `#[derive (Clone, Copy)]`——`include/xterm.rs` 的 `selection_input_event` 少了它（pgtkterm.h 镜像的同名孪生 597 有），没有它该臂自己再多吃两条错（`the trait Copy cannot be implemented for this type` 与联合体的 `field must implement Copy or be wrapped in ManuallyDrop<...>`）。
+     C 点名的两个记录（`XSelectionClearEvent` C 19496、`XSelectionRequestEvent` C 19525）按 P-88 ① 在使用点声明（`src/xselect.rs` 202 的形状），四个 `X11/X.h` 常量（`ConfigureNotify` 22、`SelectionClear` 29、`SelectionRequest` 30、`SelectionNotify` 31）进 `x11_constants`。
+  ④ **读数（两侧都在本修订测）**：⑴ **十七臂表**（baseline = HEAD `5070c250` 的单元；A/UT/UG/UGX/AX11 在本轮重测、与 slice 110 台账逐位相同）：A 931/75 → **948/77**、U 944/75 → **961/77**、UT 931/74 → **955/75**、UM 932/74 → **956/75**、UG 939/76 → **958/77**、UGX 1033/78 → **1054/79**、
+     AE 963/74 → **980/76**、AI 955/76 → **972/78**、AIU 1006/76 → **1025/77**、AIUX 1104/78 → **1125/79**、AX 941/75 → **958/77**、AG3 990/75 → **1009/76**、AXF 941/75 → **958/77**、AXPM 932/75 → **949/77**、AXKB 969/75 → **986/77**、AXR 938/75 → **955/77**、AX11（新）931/75 → **932/77**。
+     按名字的 `of which`：`no field sie` +13（纯 X 臂与工具臂一样，AX11 **-3**：单元里原有的三处 `sie` 用点也一并解析）、`no field xselection`/`xselectionclear` 工具与 GTK 臂各 +2（C 19475/19489 的 `if` 与 C 19496 的局部各读一次）、`xselectionrequest` 纯 X 臂 +1、工具与 GTK 臂 +2/+1、`cannot find function x_handle_selection_notify` 各 +1；
+     `OTHER:` 块自己的行只在编译它的臂里出现（UT/UM：`no field xconfigure` ×2、`no field r#type` ×1、`cannot find function XtDispatchEvent` ×1；`use_gtk + have_xinput2` 臂：`gdk_event_free`/`gtk_main_do_event` 各 +1）。警告列：**无工具臂 +2、工具臂 +1，全部是 `unused label`**（`'other` 在三个站点都被门挡住的臂里没有用户，`'done` 要等 76 处 `goto done` 随 case 落），不静音、只在台账里点名。
+     ⑵ **`--check`**：仍是 2 行，长行从 `missing function handle_one_xevent` 变成 `does not mention <剩余 token 清单>`，**清单从 531 个 token 缩到 484**；单元 **32,019 行**（C 33,125，**3.34%** 漂移，was 3.8%），文件 md5 `5b27bbc2c16fbd198a452f715dd103bc`。
+     ⑶ **一次工具再生**：`python3 tools/feature-coverage.py --write`（镜像的门是它的一行；这次写入顺带带上该表自上次写入以来的漂移：96 insertions / 68 deletions，`have_x_windows` 2,276 → 3,181 sites 等）。
+  ⑤ **预算与清理**：本片 rustc 编译 **约 70 发**（17 臂 × 2 轮 + 5 个 baseline 复测 + 若干探针；每次 12-25 秒，都是单文件 `--emit=metadata` 的类型检查），`build/probes/xterm/` 与 `/tmp/s111/` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，这三个臂处理的事件一次也没到过；读数只有十七臂编译、`--check` 的 token 数与台账。剩余二十七个 `case` 体（C 18951-25595）是后续 slice，其中 `ClientMessage` 一件就 522 行。

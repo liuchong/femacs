@@ -30926,6 +30926,16 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
   let mut dy: c_int;                                                    // C 18908
 
   use crate::x11_constants::LASTEvent;
+  /* C 25565's own event type, and C 18951's case label - the two names the switch's frame
+     reads (the case arms add theirs as they land).  */
+  use crate::x11_constants::ConfigureNotify;
+  use crate::x11_constants::ClientMessage;
+  /* C 19473/19487/19516's three case labels - the first arms this slice lands - and the
+     one bare X11 word they read (C 19501's `None`).  */
+  use crate::x11_constants::SelectionNotify;
+  use crate::x11_constants::SelectionClear;
+  use crate::x11_constants::SelectionRequest;
+  use crate::x11_constants::None;
   /* C 18935's other name, read only in the `HAVE_XINPUT2` arm - the per-function `use` the
      ledger's Decision 4 spells for the bare X11 vocabulary.  */
 #[cfg (feature = "have_xinput2")]
@@ -30978,12 +30988,169 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
   if !any.is_null () && (*any).wait_event_type == (*event).r#type       // C 18946
     { (*any).wait_event_type = 0; }                                     // C 18947
 
-  match (*event).r#type                                                 // C 18949
-    {
-      /* C 18951-25595's thirty `case` blocks are the slices that follow this one - the map is in
-	 the item's `///` block above - and C's own no-case path is this `_` arm until then.  */
-      _ => {}
+  'done: {
+    'other: {
+      match (*event).r#type                                             // C 18949
+	{
+	  /* C 19473-19486: `case SelectionNotify:`.  The toolkit and GTK arms look the event's
+	     window up among this display's frames and hand everything else to the toolkit; the
+	     other arms go straight to the handler.  `xselection` is one of the 33 owed members
+	     of `include/xlib.rs`'s measured 192-byte opaque `XEvent`, so the read is C's own
+	     text and its row is counted (slice 110's `r#type`/`xany` class).  */
+	  SelectionNotify =>
+	    {
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+	      if x_window_to_frame (dpyinfo, (*event).xselection.requestor).is_null ()  // C 19475
+		{ break 'other; }                                          // C 19476
+#[cfg (feature = "have_gtk3")]
+	      /* "GTK 3 apparently chokes on these events since they have no associated device.
+		 (bug#56869, another bug as well that I can't find)"  */
+	      { *finish = X_EVENT_DROP; }                                // C 19482
+	      x_handle_selection_notify (&raw mut (*event).xselection);  // C 19484
+	    }
+
+	  /* C 19487-19515: `case SelectionClear:` - "someone has grabbed ownership".  */
+	  SelectionClear =>
+	    {
+	      /* Xlib.h 1005-1010's `XSelectionClearEvent`, the `XEvent` union member C names in
+		 the local below and the opaque stand-in does not carry: the record stands at this
+		 use site (P-88 1, the `src/xselect.rs` 202 shape), with C's three read members.  */
+	      #[repr(C)]
+	      struct XSelectionClearEvent
+		{
+		  window: Window,                                  // C: Window window;
+		  selection: Atom,                                 // C: Atom selection;
+		  time: Time,                                      // C: Time time;
+		}
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+	      if x_window_to_frame (dpyinfo, (*event).xselectionclear.window).is_null ()  // C 19489
+		{ break 'other; }                                          // C 19490
+#[cfg (feature = "have_gtk3")]
+	      { *finish = X_EVENT_DROP; }                                // C 19493
+	      let eventp: *const XSelectionClearEvent
+		= &raw const (*event).xselectionclear;                   // C 19496
+
+	      if (*eventp).selection == (*dpyinfo).motif_drag_atom        // C 19498
+		&& ((*eventp).time == CurrentTime                        // C 19499
+		    || (*dpyinfo).motif_drag_atom_time <= (*eventp).time) // C 19500
+		{ (*dpyinfo).motif_drag_atom = None as Atom; }            // C 19501
+
+	      selection_input_event_bits! (kind, &raw mut inev.sie, SELECTION_CLEAR_EVENT);  // C 19503
+	      SELECTION_EVENT_DPYINFO! (&raw mut inev.sie) = dpyinfo;     // C 19504
+	      SELECTION_EVENT_SELECTION! (&raw mut inev.sie) = (*eventp).selection;  // C 19505
+	      SELECTION_EVENT_TIME! (&raw mut inev.sie) = (*eventp).time; // C 19506
+
+	      if x_use_pending_selection_requests != 0                    // C 19508
+		{
+		  x_push_selection_request (&raw mut inev.sie);           // C 19510
+		  EVENT_INIT (&raw mut inev.ie);                          // C 19511
+		}
+	    }
+
+	  /* C 19516-19561: `case SelectionRequest:` - "someone wants our selection".  */
+	  SelectionRequest =>
+	    {
+	      /* Xlib.h 1005-1011's `XSelectionRequestEvent`, the same use-site record the
+		 sibling unit declares for its own reads (`src/xselect.rs` 202's pair).  */
+	      #[repr(C)]
+	      struct XSelectionRequestEvent
+		{
+		  owner: Window,                                    // C: Window owner;
+		  requestor: Window,                                // C: Window requestor;
+		  selection: Atom,                                  // C: Atom selection;
+		  target: Atom,                                     // C: Atom target;
+		  property: Atom,                                   // C: Atom property;
+		  time: Time,                                       // C: Time time;
+		}
+#[cfg (feature = "use_x_toolkit")]
+	      if x_window_to_frame (dpyinfo, (*event).xselectionrequest.owner).is_null ()  // C 19518
+		{ break 'other; }                                          // C 19519
+#[cfg (feature = "have_gtk3")]
+	      { *finish = X_EVENT_DROP; }                                // C 19522
+	      let eventp: *const XSelectionRequestEvent
+		= &raw const (*event).xselectionrequest;                 // C 19525
+
+	      selection_input_event_bits! (kind, &raw mut inev.sie, SELECTION_REQUEST_EVENT);  // C 19527
+	      SELECTION_EVENT_DPYINFO! (&raw mut inev.sie) = dpyinfo;     // C 19528
+	      SELECTION_EVENT_REQUESTOR! (&raw mut inev.sie) = (*eventp).requestor;  // C 19529
+	      SELECTION_EVENT_SELECTION! (&raw mut inev.sie) = (*eventp).selection;  // C 19530
+	      SELECTION_EVENT_TARGET! (&raw mut inev.sie) = (*eventp).target;        // C 19531
+	      SELECTION_EVENT_PROPERTY! (&raw mut inev.sie) = (*eventp).property;    // C 19532
+	      SELECTION_EVENT_TIME! (&raw mut inev.sie) = (*eventp).time;            // C 19533
+
+	      /* If drag-and-drop or another modal dialog/menu is in progress, handle
+		 SelectionRequest events immediately, by pushing it onto the selection queue.  */
+
+	      if x_use_pending_selection_requests != 0                    // C 19539
+		{
+		  x_push_selection_request (&raw mut inev.sie);           // C 19541
+		  EVENT_INIT (&raw mut inev.ie);                          // C 19542
+		}
+
+	      if x_dnd_waiting_for_finish                                 // C 19545
+		&& x_dnd_waiting_for_motif_finish == 2                    // C 19546
+		&& dpyinfo == x_dnd_waiting_for_motif_finish_display      // C 19547
+		&& (*eventp).selection == x_dnd_motif_atom                // C 19548
+		&& ((*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_SUCCESS     // C 19549
+		    || (*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_FAILURE) // C 19550
+		{
+		  x_dnd_waiting_for_finish = false;                       // C 19552
+
+		  /* If the transfer failed, then return nil from `x-begin-drag'.  */
+		  if (*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_FAILURE  // C 19556
+		    { x_dnd_action = None as Atom; }                       // C 19557
+		}
+	    }
+
+	  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
+	     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
+	  _ => {}
+	}
+
+      /* C 25558-25587: the `OTHER:` label's block.  C writes it *inside* the `GenericEvent`
+	 case, but it is the switch's shared tail: the earlier cases `goto OTHER` thirty times
+	 (C 19254, 19372, 19385, 19458, 19476, 19490, 19519, 19803, 19861, ...) and the last
+	 case falls into it.  Rust has no forward jump, so the text keeps one copy here at the
+	 switch's end and each site becomes a `break 'other` - which runs this block and then
+	 C's own `break` (Decision 121).  It reads only function-scope names (`*finish`, `event`,
+	 `use_copy`, `copy`), so the move preserves C's semantics.  */
+#[cfg (feature = "use_x_toolkit")]
+      if *finish != X_EVENT_DROP                                        // C 25560
+	{
+	  /* Ignore some obviously bogus ConfigureNotify events that other clients have been
+	     known to send Emacs.  (bug#54051)  */
+	  if (*event).r#type != ConfigureNotify                          // C 25565
+	    || ((*event).xconfigure.width != 0                           // C 25566
+		&& (*event).xconfigure.height != 0)                      // C 25567
+	    {
+	      /* C 25569-25573's `#if defined USE_X_TOOLKIT && defined HAVE_XINPUT2` arm picks
+		 `use_copy ? &copy : event`; the other arm passes C's own `event`.  */
+#[cfg (feature = "have_xinput2")]
+	      XtDispatchEvent (if use_copy { &raw mut copy } else { event });   // C 25570
+#[cfg (not (feature = "have_xinput2"))]
+	      XtDispatchEvent (event);                                   // C 25572
+	    }
+	}
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
+      if *finish != X_EVENT_DROP && !copy.is_null ()                    // C 25578
+	{
+	  gtk_main_do_event (copy);                                      // C 25580
+	  *finish = X_EVENT_DROP;                                        // C 25581
+	}
+#[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
+      if !copy.is_null ()                                               // C 25584
+	{ gdk_event_free (copy); }                                       // C 25585
     }
+
+    /* C 25590-25595: the `done:` label's block - what every `goto done` reaches, and what
+       the switch falls into when no case matched.  Slice 110 took the tail to start at C
+       25596 and left these six lines unwritten; this slice lands them with their label.  */
+    if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT            // C 25591
+      {
+	kbd_buffer_store_buffered_event (&raw mut inev, hold_quit);      // C 25593
+	count += 1;                                                      // C 25594
+      }
+  }
 
   if do_help != 0                                                       // C 25597
     && !(!hold_quit.is_null ()
