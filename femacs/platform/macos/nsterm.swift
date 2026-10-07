@@ -7221,3 +7221,194 @@ fileprivate func check_native_fs() {
   }
 }
 
+// ==========================================================================
+// Round 26: C 5203-5385 - `ns_select_1`, `ns_select` and `ns_run_loop_break`
+// ==========================================================================
+
+/// C 323: `enum { SELECT_HAVE_READ = 1, SELECT_HAVE_WRITE = 2, SELECT_HAVE_TMO = 4 };` - the three
+/// bits `ns_select_1` accumulates into `select_valid` (C 5277/5282/5288); C 322's statics are this
+/// unit's own entries above.
+let SELECT_HAVE_READ = 1
+let SELECT_HAVE_WRITE = 2
+let SELECT_HAVE_TMO = 4
+
+/// C: `typedef int select_func (int, fd_set *, fd_set *, fd_set *, const struct timespec *,
+/// const sigset_t *);` (src/thread.h 337-338) - the function-pointer type `thread_select` takes,
+/// spelled as the `@convention(c)` type the port's own `select_func` alias names
+/// (`femacs/src/include/thread.rs` 300, P-27's `atimer_callback` shape).
+typealias select_func = @convention(c) (Int32, UnsafeMutablePointer<fd_set>?,
+                                       UnsafeMutablePointer<fd_set>?,
+                                       UnsafeMutablePointer<fd_set>?,
+                                       UnsafePointer<timespec>?,
+                                       UnsafePointer<sigset_t>?) -> Int32
+
+/// C: `int thread_select (select_func *func, int max_fds, fd_set *rfds, fd_set *wfds,
+/// fd_set *efds, struct timespec *timeout, sigset_t *sigmask);` (src/thread.h 338) - the port
+/// defines it at `femacs/src/thread.rs` 666 as an `extern "C"` entry, so this unit imports the
+/// symbol and passes `pselect` (C's own argument at C 5242/5247).
+@_silgen_name("thread_select")
+func thread_select(_ func: select_func?, _ max_fds: Int32,
+                   _ rfds: UnsafeMutablePointer<fd_set>?, _ wfds: UnsafeMutablePointer<fd_set>?,
+                   _ efds: UnsafeMutablePointer<fd_set>?,
+                   _ timeout: UnsafeMutablePointer<timespec>?,
+                   _ sigmask: UnsafeMutablePointer<sigset_t>?) -> Int32
+
+/// C: `ptrdiff_t emacs_write_sig (int, const void *, ptrdiff_t)` (src/sysdep.h) - the port
+/// defines it at `femacs/src/sysdep.rs` 4022; the `fputs` import shape.
+@_silgen_name("emacs_write_sig")
+func emacs_write_sig(_ fd: Int32, _ buf: UnsafeRawPointer?, _ nbyte: Int) -> Int
+
+/// C: `FD_ISSET (fd, set)` (sys/select.h) - the macro's Darwin expansion, `__darwin_fd_isset`
+/// (the `fputs` story again: Swift marks the fd_set family unavailable).
+@_silgen_name("__darwin_fd_isset")
+func __darwin_fd_isset(_ fd: Int32, _ set: UnsafePointer<fd_set>?) -> Int32
+
+/// C: `timespectod (t)` (src/systime.h) - "Convert a struct timespec to a double"; the two
+/// members and their units, as C's own `(t).tv_sec + (t).tv_nsec / 1e9` states them.
+fileprivate func timespectod(_ t: timespec) -> Double {
+  Double(t.tv_sec) + Double(t.tv_nsec) / 1e9
+}
+
+/// C 5203-5363: `static int ns_select_1 (int nfds, fd_set *readfds, fd_set *writefds,
+/// fd_set *exceptfds, struct timespec *timeout, sigset_t *sigmask, BOOL run_loop_only)` - C's
+/// replacement for `select`, "checking for events".  It is the second caller of `check_native_fs`
+/// (C 5218) that round 25 unblocked.
+fileprivate func ns_select_1(_ nfds: Int32, _ readfds: UnsafeMutablePointer<fd_set>?,
+                             _ writefds: UnsafeMutablePointer<fd_set>?,
+                             _ exceptfds: UnsafeMutablePointer<fd_set>?,
+                             _ timeout: UnsafeMutablePointer<timespec>?,
+                             _ sigmask: UnsafeMutablePointer<sigset_t>?,
+                             _ run_loop_only: Bool) -> Int32 {
+  var result: Int32
+  var t: Int32
+  var k: Int32
+  var nr: Int32 = 0
+  var event = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                          frame_or_window: nil, arg: nil, device: nil)
+  var c: CChar
+
+  check_native_fs()                                   // C 5218
+
+  /* C 5221-5224: store the held events so the reference can recognize C-g (C's own comment
+     says "so that Emacs can recognize C-g"; the citation is what the reading above counts).  */
+  if hold_event_q_nr > 0 {                            // C 5225
+    var i: Int32 = 0
+    while i < hold_event_q_nr {
+      kbd_buffer_store_event_hold(&(hold_event_q_q![Int(i)]), nil)   // C 5228
+      i += 1
+    }
+    hold_event_q_nr = 0                               // C 5229
+  }
+
+  /* C 5232's `eassert` is the no-op of an unset `ENABLE_CHECKING` (this unit's reading).  */
+  k = 0
+  while k < nfds {                                    // C 5233
+    if readfds != nil && __darwin_fd_isset(k, readfds) != 0 { nr += 1 }   // C 5235
+    if writefds != nil && __darwin_fd_isset(k, writefds) != 0 { nr += 1 } // C 5236
+    k += 1
+  }
+
+  if NSApp == nil                                     // C 5239
+       || !Thread.current.isMainThread                // C 5240
+       || (timeout != nil && timeout!.pointee.tv_sec == 0 && timeout!.pointee.tv_nsec == 0) {
+    return thread_select(pselect, nfds, readfds, writefds, exceptfds, timeout, sigmask)   // C 5242
+  } else {
+    var t2 = timespec(tv_sec: 0, tv_nsec: 1)          // C 5246
+    _ = thread_select(pselect, 0, nil, nil, nil, &t2, sigmask)   // C 5247
+  }
+
+  /* C 5250-5265: the `outerpool` drain is commented out in the reference itself, and the comment
+     is carried at C 5250-5265 rather than restated here.  */
+
+  send_appdefined = true                              // C 5268
+  if nr > 0 {                                         // C 5269
+    pthread_mutex_lock(&select_mutex)                 // C 5271
+    select_nfds = nfds                                // C 5272
+    select_valid = 0                                  // C 5273
+    if readfds != nil {                               // C 5274
+      select_readfds = readfds!.pointee               // C 5276
+      select_valid += Int32(SELECT_HAVE_READ)         // C 5277
+    }
+    if writefds != nil {                              // C 5279
+      select_writefds = writefds!.pointee             // C 5281
+      select_valid += Int32(SELECT_HAVE_WRITE)        // C 5282
+    }
+    if timeout != nil {                               // C 5285
+      select_timeout = timeout!.pointee               // C 5287
+      select_valid += Int32(SELECT_HAVE_TMO)          // C 5288
+    }
+    pthread_mutex_unlock(&select_mutex)               // C 5291
+
+    /* C 5293-5295: inform fd_handler that select should be called.  */
+    c = CChar(UInt8(ascii: "g"))
+    _ = emacs_write_sig(selfds.1, &c, 1)
+  } else if nr == 0 && timeout != nil {               // C 5297
+    /* C 5299-5300: no file descriptor, just a timeout.  */
+    let time = timespectod(timeout!.pointee)
+    /* C 5301-5307's `[[NSTimer scheduledTimerWithTimeInterval:…] retain]`: Swift's factory is
+       `timeInterval:` and the run loop already holds the timer, which is what C's `retain` buys
+       (the ARC reading this lane uses for `release`).  */
+    timed_entry = Timer.scheduledTimer(timeInterval: time,
+                                       target: NSApp!,
+                                       selector: #selector(EmacsApp.timeout_handler(_:)),
+                                       userInfo: nil,
+                                       repeats: false)
+  } else {
+    /* C 5309-5312: no timeout and no file descriptors - "can this happen?"  */
+    ns_send_appdefined(-1)                            // C 5312
+  }
+
+  block_input()                                       // C 5315
+  ns_init_events(&event)                              // C 5316
+  NSApp.run()                                         // C 5318
+  ns_finish_events()                                  // C 5320
+  if nr > 0 && readfds != nil {                       // C 5321
+    c = CChar(UInt8(ascii: "s"))
+    _ = emacs_write_sig(selfds.1, &c, 1)              // C 5324
+  }
+  unblock_input()                                     // C 5326
+
+  t = last_appdefined_event_data                      // C 5328
+  if t != NO_APPDEFINED_DATA {                        // C 5330
+    last_appdefined_event_data = NO_APPDEFINED_DATA   // C 5332
+    if t == -2 {                                      // C 5334
+      result = 0                                      // C 5337 (a timeout)
+    } else if t == -1 {                               // C 5339
+      errno = EINTR                                   // C 5343
+      result = -1                                     // C 5344
+    } else {
+      /* C 5348: received back from `select ()` in fd_handler - copy the results.  */
+      pthread_mutex_lock(&select_mutex)               // C 5349
+      if readfds != nil { readfds!.pointee = select_readfds }    // C 5350
+      if writefds != nil { writefds!.pointee = select_writefds } // C 5351
+      pthread_mutex_unlock(&select_mutex)             // C 5352
+      result = t                                        // C 5353
+    }
+  } else {
+    errno = EINTR                                     // C 5358
+    result = -1                                       // C 5359
+  }
+
+  return result                                       // C 5362
+}
+
+/// C 5365-5372: `int ns_select (int nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds,
+/// struct timespec *timeout, sigset_t *sigmask)` - C's body is the `ns_select_1` call with
+/// `NO`.
+func ns_select(_ nfds: Int32, _ readfds: UnsafeMutablePointer<fd_set>?,
+               _ writefds: UnsafeMutablePointer<fd_set>?,
+               _ exceptfds: UnsafeMutablePointer<fd_set>?,
+               _ timeout: UnsafeMutablePointer<timespec>?,
+               _ sigmask: UnsafeMutablePointer<sigset_t>?) -> Int32 {
+  ns_select_1(nfds, readfds, writefds, exceptfds, timeout, sigmask, false)   // C 5370-5371
+}
+
+/// C 5374-5385: `void ns_run_loop_break (void)` (the `HAVE_PTHREAD` arm) - "Break out of the NS
+/// run loop in ns_select or ns_read_socket."
+func ns_run_loop_break() {
+  /* C 5381-5383: "If we don't have a GUI, don't send the event."  */
+  if NSApp != nil {                                   // C 5382
+    ns_send_appdefined(-1)                            // C 5383
+  }
+}
+

@@ -191,9 +191,9 @@
 - [x] check_native_fs  (line 5088, static) — landed in round 25 as `fileprivate func check_native_fs ()`: the body's `FOR_EACH_FRAME` keeps the spelling C 1011's reading above gives it, and C 5103's `[view updateCollectionBehavior]` is the method that landed with this record - so the two callers C 5127/5218 were waiting for are both here now
 - [ ] ns_read_socket_1  (line 5111, static)
 - [ ] ns_read_socket  (line 5196, static)
-- [ ] ns_select_1  (line 5203, static)
-- [ ] ns_select  (line 5366)
-- [ ] ns_run_loop_break  (line 5376)
+- [x] ns_select_1  (line 5203, static) — landed as `fileprivate func ns_select_1 (_:_:_:_:_:_:_:)`: C 5235/5236's `FD_ISSET` is Darwin's `__darwin_fd_isset` (the macro's own expansion, imported in the `fputs` shape), `thread_select` is imported with the `select_func` `@convention(c)` alias its C typedef names, and C 5250-5265's commented-out outerpool drain is carried as that comment rather than restated
+- [x] ns_select  (line 5366) — landed as `func ns_select (_:_:_:_:_:_:)`: C's body is the `ns_select_1` call with `NO`
+- [x] ns_run_loop_break  (line 5376) — landed as `func ns_run_loop_break ()` (the `HAVE_PTHREAD` arm): C's two lines are the `NSApp` guard and the `ns_send_appdefined (-1)` it wraps
 - [ ] ns_set_vertical_scroll_bar  (line 5396, static)
 - [ ] ns_set_horizontal_scroll_bar  (line 5490, static)
 - [ ] ns_condemn_scroll_bars  (line 5575, static)
@@ -658,7 +658,7 @@ C 4747-4780) and the RIF's `ns_draw_glyph_string` (C 4782-5001) - **no new C exp
 C `static`s) - so the covered range is now **C 60-5001**.  The boundary is the `Event loop` banner
 at C 5005-5009: the dispatcher is the Glyph drawing operations section's last definition (the
 section the ledger has walked since round 17), and the next live definition - C 5013's
-`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.  **Round 22 lands C 5012-5084's `ns_send_appdefined` with C 448-470's `EV_TRAILER`/`EV_TRAILER2`** - the two macro boxes round 2 held open now close - plus `EmacsApp`'s `timeout_handler:` (C 6769) and `sendFromMainThread:` (C 6778), the two methods whose bodies call it; `check_native_fs` (C 5088) stays held on an `EmacsView` method.  The covered range is **C 60-5001 plus C 5012-5084 and C 6769-6781**.  **Round 23 lands `EmacsApp`'s four notification methods** (C 6556-6613: `antialiasThresholdDidChange:` C 6556, `systemWillSleep:` C 6565, `systemDidWake:` C 6577 and `applicationSupportsSecureRestorableState:` C 6610), so the range becomes **C 60-5001, C 5012-5084, C 6556-6613 and C 6769-6781**.  C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair stays held on `check_native_fs`, i.e. on `EmacsView`'s class - the two `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` guards at C 5126 and C 5217 are the live arm, so the dependency is hard.  **Round 24 lands `EmacsWindow`'s record** (`src/nsterm.h` 419-430's four Cocoa ivars) with `borderWidth` (C 9928), `setFrameTopLeftPoint:` (C 10444), `canBecomeKeyWindow` (C 10452), `canBecomeMainWindow` (C 10457) and `setLastDragEvent:` (C 10463) - the type `EmacsView`'s own `nonfs_window` ivar needs, so that class's record is the next round's.  **Round 25 lands `EmacsView`'s record** (the fifteen ivars of `src/nsterm.h` 470-488) with `fsIsNative` (C 8952), `isFullscreen` (C 8957), `updateCollectionBehavior` (C 8981) and the `check_native_fs` (C 5086-5107) they were blocking - so C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair is unblocked for the next round.  The class's protocol list (nsterm.h 466) is this round's named deferral: Swift enforces those protocols' required methods where the conformance is declared, so it lands with that batch.
+`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.  **Round 22 lands C 5012-5084's `ns_send_appdefined` with C 448-470's `EV_TRAILER`/`EV_TRAILER2`** - the two macro boxes round 2 held open now close - plus `EmacsApp`'s `timeout_handler:` (C 6769) and `sendFromMainThread:` (C 6778), the two methods whose bodies call it; `check_native_fs` (C 5088) stays held on an `EmacsView` method.  The covered range is **C 60-5001 plus C 5012-5084 and C 6769-6781**.  **Round 23 lands `EmacsApp`'s four notification methods** (C 6556-6613: `antialiasThresholdDidChange:` C 6556, `systemWillSleep:` C 6565, `systemDidWake:` C 6577 and `applicationSupportsSecureRestorableState:` C 6610), so the range becomes **C 60-5001, C 5012-5084, C 6556-6613 and C 6769-6781**.  C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair stays held on `check_native_fs`, i.e. on `EmacsView`'s class - the two `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` guards at C 5126 and C 5217 are the live arm, so the dependency is hard.  **Round 24 lands `EmacsWindow`'s record** (`src/nsterm.h` 419-430's four Cocoa ivars) with `borderWidth` (C 9928), `setFrameTopLeftPoint:` (C 10444), `canBecomeKeyWindow` (C 10452), `canBecomeMainWindow` (C 10457) and `setLastDragEvent:` (C 10463) - the type `EmacsView`'s own `nonfs_window` ivar needs, so that class's record is the next round's.  **Round 25 lands `EmacsView`'s record** (the fifteen ivars of `src/nsterm.h` 470-488) with `fsIsNative` (C 8952), `isFullscreen` (C 8957), `updateCollectionBehavior` (C 8981) and the `check_native_fs` (C 5086-5107) they were blocking - so C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair is unblocked for the next round.  The class's protocol list (nsterm.h 466) is that round's named deferral: Swift enforces those protocols' required methods where the conformance is declared, so it lands with that batch.  **Round 26 lands C 5203-5385** - `ns_select_1` (C 5203), `ns_select` (C 5366) and `ns_run_loop_break` (C 5376), the three the unblocked dependency was for - so the covered range becomes **C 60-5001, C 5012-5084, C 5203-5385, C 6556-6613 and C 6769-6781**, and C 5109-5199's `ns_read_socket_1`/`ns_read_socket` is the pair that remains (it calls `-openFile:`/`-fulfillService:withArg:`, whose `NS_NONKEY_EVENT` value is the item that round must settle first).
 
 Ticked above: **109 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
@@ -2939,4 +2939,28 @@ call site takes an entry and the definition lands at its own C line - and **both
   the method batch that implements those requirements.  Until then the class's own text is what
   the reference has - the record and the three methods above - and no method below reads a
   protocol requirement.
+
+### Round 26: `ns_select_1`, `ns_select` and `ns_run_loop_break` (C 5203-5385)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - back to the level rounds 22-25 carry, so **no new warning** once the
+  intermediate ones were cleared, and `tools/check-own-voice.py`'s one reading of this round is repaired in the same commit (a paraphrase that used the bare product name became "the reference", with C's own sentence carried as a citation).  Object `/tmp/nsterm26.o`, **575,784 bytes**, md5 `e8d700136a0e6e5ea7de10d44d832b66` - taken after that repair, a comment reaching the object the way round 24's did.
+* **Five errors on the first compile and one new warning after them**, all repaired in place:
+  `SELECT_HAVE_READ`/`_WRITE`/`_TMO` (C 323's enum, now this unit's own entries beside the statics
+  they feed) were missing; the `NSTimer` factory's Swift label is `timeInterval:`; `retain` has no
+  Swift counterpart (`Unmanaged.passRetained` returns a wrapper, and the run loop already holds the
+  timer, which is what C's `retain` buys); and passing `NSApp` (an implicitly-unwrapped optional)
+  to the factory's `Any` target earned `coercion of implicitly unwrappable value … does not
+  unwrap`, cleared by unwrapping it - C's argument is a bare pointer.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **40** unported,
+  40 row(s); 418 C symbol import(s)` - three fewer unported than round 25's 43, and **three stale
+  rows cleared**: the manifest named `ns_select_1`, `ns_select` and `ns_run_loop_break`, and the
+  gate named exactly those three the moment they landed.  Final: `0 new, 0 stale, 7 Swift unit(s)
+  landed`.
+* **What remains in the event loop's neighbourhood**: `ns_read_socket_1` (C 5110) and
+  `ns_read_socket` (C 5195).  They call `(EmacsApp *) NSApp`'s `-openFile:` (C 6433) and
+  `-fulfillService:withArg:` (C 6891), both of which write `emacs_event->kind = NS_NONKEY_EVENT` -
+  an `enum event_kind` member whose value this unit must take from a source that can decide it
+  (the frozen macro table cannot; the Rust mirror carries the enum under `HAVE_NS`).  That is the
+  one thing the next round settles before writing the pair.
 
