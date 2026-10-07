@@ -6889,6 +6889,79 @@ class EmacsApp: NSApplication {
   @objc func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
     true                                              // C 6612
   }
+
+  /// C 6655-6669: `- (NSApplicationTerminateReply)applicationShouldTerminate: (id)sender`.
+  @objc func applicationShouldTerminate(_ sender: Any?) -> NSApplication.TerminateReply {
+    if NILP(ns_confirm_quit) { return .terminateNow } // C 6661-6662
+    let ret = runAlertPanel(ns_app_name()! as String, // C 6664
+                            "Exit requested.  Would you like to Save Buffers and Exit, or Cancel the request?",
+                            "Save Buffers and Exit", "Cancel")  // C 6665-6666
+    return ret ? .terminateNow : .terminateCancel     // C 6668
+  }
+
+  /// C 6682-6687: `- (BOOL)application: sender openFile: (NSString *)file` - "Notification from
+  /// the Workspace to open a file."
+  @objc func application(_ sender: NSApplication, openFile file: String) -> Bool {
+    if ns_do_open_file || not_in_argv(file) != 0 {    // C 6684
+      ns_pending_files?.add(file)                     // C 6685
+    }
+    return true                                       // C 6686
+  }
+
+  /// C 6691-6696: `- (BOOL)application: sender openTempFile: (NSString *)file` - "Open a file as a
+  /// temporary file."
+  @objc func application(_ sender: NSApplication, openTempFile file: String) -> Bool {
+    if ns_do_open_file || not_in_argv(file) != 0 {    // C 6693
+      ns_pending_files?.add(file)                     // C 6694
+    }
+    return true                                       // C 6695
+  }
+
+  /// C 6700-6705: `- (BOOL)application: sender openFileWithoutUI: (NSString *)file`.
+  @objc func application(_ sender: NSApplication, openFileWithoutUI file: String) -> Bool {
+    if ns_do_open_file || not_in_argv(file) != 0 {    // C 6702
+      ns_pending_files?.add(file)                     // C 6703
+    }
+    return true                                       // C 6704
+  }
+
+  /// C 6708-6721: `- (void)application: sender openFiles: (NSArray *)fileList`.  C's
+  /// `NSEnumerator` walk is the loop below, and its comment about Cocoa's command-line parsing
+  /// (C 6712-6714) is why `not_in_argv` gates every element.
+  @objc func application(_ sender: NSApplication, openFiles fileList: [String]) {
+    for file in fileList {                            // C 6710-6717
+      if ns_do_open_file || not_in_argv(file) != 0 {
+        ns_pending_files?.add(file)
+      }
+    }
+    reply(toOpenOrPrint: .success)                    // C 6719
+  }
+
+  /// C 6725-6728: `- (NSMenu *)applicationDockMenu: (NSApplication *) sender` - C's body is
+  /// `return dockMenu;`, and this unit keeps that record as the untyped stand-in above (the
+  /// `EmacsMenu` class has not landed), so the pointer is handed back as the menu it points at.
+  @objc func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+    dockMenu.map { Unmanaged<NSMenu>.fromOpaque($0).takeUnretainedValue() }
+  }
+
+  /// C 6732-6736: `- (void)applicationWillBecomeActive: (NSNotification *)notification` - C's body
+  /// is the commented-out `ns_app_active` line and nothing else.
+  @objc func applicationWillBecomeActive(_ notification: Notification) {
+  }
+
+  /// C 6738-6751: `- (void)applicationDidBecomeActive: (NSNotification *)notification`.  C's
+  /// `NS_IMPL_GNUSTEP` arm (C 6742-6745) is dead here, and its `// ns_app_active=YES;` is the
+  /// comment C 6746 carries.
+  @objc func applicationDidBecomeActive(_ notification: Notification) {
+    ns_update_auto_hide_menu_bar()                    // C 6748
+    /* C 6749: "No constraining takes place when the application is not active."  */
+    ns_constrain_all_frames()                         // C 6750
+  }
+
+  /// C 6752-6758: `- (void)applicationDidResignActive: (NSNotification *)notification`.
+  @objc func applicationDidResignActive(_ notification: Notification) {
+    ns_send_appdefined(-1)                            // C 6757
+  }
 }
 
 // ==========================================================================
@@ -7409,6 +7482,52 @@ func ns_run_loop_break() {
   /* C 5381-5383: "If we don't have a GUI, don't send the event."  */
   if NSApp != nil {                                   // C 5382
     ns_send_appdefined(-1)                            // C 5383
+  }
+}
+
+// ==========================================================================
+// Round 27: `EmacsApp`'s termination and file-open handlers (C 6633-6758)
+// ==========================================================================
+
+/// C: `Lisp_Object ns_confirm_quit` - this file's own `DEFVAR_BOOL` (`ns-confirm-quit`), imported
+/// as the data symbol the core exports (the `ns_auto_hide_menu_bar` shape above).
+@_silgen_name("ns_confirm_quit") var ns_confirm_quit: Lisp_Object
+
+/// C: `extern int initial_argc;` and `extern char **initial_argv;` (src/emacs.c) - the command line
+/// `not_in_argv` compares against; two more imports of the core's data symbols.
+@_silgen_name("initial_argc") var initial_argc: Int32
+@_silgen_name("initial_argv")
+var initial_argv: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+
+/// C: `int strcmp (const char *, const char *)` (string.h) - the `fputs` shape again.
+@_silgen_name("strcmp") func strcmp(_ a: UnsafePointer<CChar>, _ b: UnsafePointer<CChar>) -> Int32
+
+/// C 6633-6652: `static bool runAlertPanel (NSString *title, NSString *msgFormat, NSString
+/// *defaultButton, NSString *alternateButton)`.  The `NS_IMPL_COCOA` arm builds an `NSAlert`
+/// (`NS_IMPL_GNUSTEP`'s `NSRunAlertPanel` at C 6640-6641 is dead here); C's `[alert release]`
+/// (C 6649) is the reference being dropped under ARC, the reading this lane already uses.
+fileprivate func runAlertPanel(_ title: String, _ msgFormat: String,
+                               _ defaultButton: String, _ alternateButton: String) -> Bool {
+  let alert = NSAlert()                              // C 6643
+  alert.alertStyle = .critical                       // C 6644
+  alert.messageText = msgFormat                      // C 6645
+  alert.addButton(withTitle: defaultButton)          // C 6646
+  alert.addButton(withTitle: alternateButton)        // C 6647
+  let ret = alert.runModal()                         // C 6648
+  return ret == .alertFirstButtonReturn              // C 6650
+}
+
+/// C 6671-6679: `static int not_in_argv (NSString *arg)`.  C's `[arg UTF8String]` is the
+/// `withCString` view the two notification methods use, and the walk keeps C's `k` and its two
+/// returns.
+fileprivate func not_in_argv(_ arg: String) -> Int32 {
+  var k: Int32 = 1                                   // C 6674
+  return arg.withCString { p in                      // C 6675
+    while k < initial_argc {                         // C 6676
+      if strcmp(p, initial_argv![Int(k)]!) == 0 { return 0 }   // C 6677
+      k += 1
+    }
+    return 1                                         // C 6678
   }
 }
 

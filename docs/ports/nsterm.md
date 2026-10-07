@@ -214,8 +214,8 @@
 - [ ] ns_create_terminal  (line 5908, static)
 - [ ] ns_term_init  (line 5965)
 - [ ] ns_term_shutdown  (line 6198)
-- [ ] runAlertPanel  (line 6634, static)
-- [ ] not_in_argv  (line 6672, static)
+- [x] runAlertPanel  (line 6634, static) — landed as `fileprivate func runAlertPanel (_:_:_:_:) -> Bool`: the `NS_IMPL_COCOA` arm builds an `NSAlert` (the GNUstep `NSRunAlertPanel` at C 6640 is dead), and C 6649's `[alert release]` is the reference being dropped under ARC
+- [x] not_in_argv  (line 6672, static) — landed as `fileprivate func not_in_argv (_:) -> Int32`: C's `[arg UTF8String]` is the `withCString` view, and `initial_argc`/`initial_argv`/`strcmp` are imports in the lane's established shapes
 - [ ] ns_font_desc_to_font_spec  (line 6915, static)
 - [ ] ns_create_font_panel_buttons  (line 6992, static)
 - [ ] ns_in_echo_area_1  (line 7624, static)
@@ -280,16 +280,16 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void) systemWillSleep:(NSNotification *)notification`  (line 6565) — landed as `@objc func systemWillSleep (_:)`: C 6569's `struct input_event ie` is the state C 6570's `EVENT_INIT` writes, `SLEEP_EVENT`'s value comes from the port's own mirror (`src/include/termhooks.rs` 55), and the `kind` write is a bitfield setter that keeps `part`
   - [x] `- (void) systemDidWake:(NSNotification *)notification`  (line 6577) — landed as `@objc func systemDidWake (_:)`, `Qpre_sleep`'s twin with `Qpost_wake` (C 6584)
   - [x] `- (BOOL) applicationSupportsSecureRestorableState: (NSApplication *)app`  (line 6610) — landed as `@objc func applicationSupportsSecureRestorableState (_:) -> Bool`: C's `return YES;` and nothing else
-  - [ ] `- (void) terminate: (id)sender`  (line 6615)
-  - [ ] `- (NSApplicationTerminateReply)applicationShouldTerminate: (id)sender`  (line 6655)
-  - [ ] `- (BOOL)application: sender openFile: (NSString *)file`  (line 6682)
-  - [ ] `- (BOOL)application: sender openTempFile: (NSString *)file`  (line 6691)
-  - [ ] `- (BOOL)application: sender openFileWithoutUI: (NSString *)file`  (line 6700)
-  - [ ] `- (void)application: sender openFiles: (NSArray *)fileList`  (line 6708)
-  - [ ] `- (NSMenu *)applicationDockMenu: (NSApplication *) sender`  (line 6725)
-  - [ ] `- (void)applicationWillBecomeActive: (NSNotification *)notification`  (line 6732)
-  - [ ] `- (void)applicationDidBecomeActive: (NSNotification *)notification`  (line 6738)
-  - [ ] `- (void)applicationDidResignActive: (NSNotification *)notification`  (line 6752)
+  - [ ] `- (void) terminate: (id)sender`  (line 6615) — **deferred**: its body writes `ie.kind = NS_NONKEY_EVENT` (C 6625), the `enum event_kind` member whose value this unit must take from a source that can decide it (the frozen macro table cannot; the C enum gates it on `HAVE_NS`).  It lands with the `ns_read_socket_1` pair, which needs the same value
+  - [x] `- (NSApplicationTerminateReply)applicationShouldTerminate: (id)sender`  (line 6655) — landed as `@objc func applicationShouldTerminate (_:) -> NSApplication.TerminateReply`: C's two returns are the enum's `.terminateNow`/`.terminateCancel`, and `ns_confirm_quit` is imported as this file's own `DEFVAR_BOOL`'s data symbol
+  - [x] `- (BOOL)application: sender openFile: (NSString *)file`  (line 6682) — landed as `@objc func application (_:openFile:) -> Bool`: C's `[ns_pending_files addObject: file]` is the array's `add`, and the `not_in_argv` guard is the one C 6684 names
+  - [x] `- (BOOL)application: sender openTempFile: (NSString *)file`  (line 6691) — landed as `@objc func application (_:openTempFile:) -> Bool`, the same three lines as the row above
+  - [x] `- (BOOL)application: sender openFileWithoutUI: (NSString *)file`  (line 6700) — landed as `@objc func application (_:openFileWithoutUI:) -> Bool`, the same three lines again
+  - [x] `- (void)application: sender openFiles: (NSArray *)fileList`  (line 6708) — landed as `@objc func application (_:openFiles:)`: C's `NSEnumerator` walk is the loop, and C 6719's `replyToOpenOrPrint:` is Swift's `reply (toOpenOrPrint:)`
+  - [x] `- (NSMenu *)applicationDockMenu: (NSApplication *) sender`  (line 6725) — landed as `@objc func applicationDockMenu (_:) -> NSMenu?`: C's `return dockMenu;` hands back the untyped stand-in C 205 holds for the `EmacsMenu` class that has not landed
+  - [x] `- (void)applicationWillBecomeActive: (NSNotification *)notification`  (line 6732) — landed as an empty `@objc func applicationWillBecomeActive (_:)`: C's body is the commented-out `ns_app_active` line and nothing else
+  - [x] `- (void)applicationDidBecomeActive: (NSNotification *)notification`  (line 6738) — landed as `@objc func applicationDidBecomeActive (_:)`: the GNUstep arm (C 6742-6745) is dead, and C 6748/6750's two calls are this unit's own entries
+  - [x] `- (void)applicationDidResignActive: (NSNotification *)notification`  (line 6752) — landed as `@objc func applicationDidResignActive (_:)`: C's one live statement is the `ns_send_appdefined (-1)` call
   - [x] `- (void)timeout_handler: (NSTimer *)timedEntry`  (line 6769) — landed as `@objc func timeout_handler (_ timedEntry: Timer)`: its one statement calls `ns_send_appdefined (-2)`, so it lands with round 22
   - [x] `- (void)sendFromMainThread:(id)unused`  (line 6778) — landed as `@objc func sendFromMainThread (_ unused: Any?)`: the main-thread half of `ns_send_appdefined`'s non-main-thread arm (C 5027 posts this very selector), which is why the two land together
   - [ ] `- (void)fd_handler:(id)unused`  (line 6783)
@@ -2963,4 +2963,25 @@ call site takes an entry and the definition lands at its own C line - and **both
   an `enum event_kind` member whose value this unit must take from a source that can decide it
   (the frozen macro table cannot; the Rust mirror carries the enum under `HAVE_NS`).  That is the
   one thing the next round settles before writing the pair.
+
+### Round 27: `EmacsApp`'s termination and file-open handlers (C 6633-6758)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-26 carry, so **no new warning**.  Object
+  `/tmp/nsterm27.o`, **604,976 bytes**, md5 `1e71802d7b4e842a599cfd7a07f50ca0`.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **38** unported,
+  38 row(s); **419** C symbol import(s)` - two fewer unported than round 26's 40, and **two stale
+  rows cleared** (`runAlertPanel` and `not_in_argv`, the two C *functions* this round lands; the
+  nine Objective-C selectors sit outside that gate's subject).  Final: `0 new, 0 stale, 7 Swift
+  unit(s) landed`.  `tools/check-own-voice.py` reads 0 failure(s).
+* **Four imports, each in a shape the lane already uses**: `ns_confirm_quit` (this file's own
+  `DEFVAR_BOOL` data symbol, the `ns_auto_hide_menu_bar` reading), `initial_argc`/`initial_argv`
+  (`src/emacs.c`'s command line) and `strcmp` (the `fputs` story).  `dockMenu` is the existing
+  untyped stand-in (C 205) for the `EmacsMenu` class that has not landed, so the dock-menu getter
+  hands back the menu that pointer points at.
+* **The one deferral, by name**: `-terminate:` (C 6615-6631) writes
+  `ie.kind = NS_NONKEY_EVENT` (C 6625) - the same `enum event_kind` member the `ns_read_socket_1`
+  pair needs.  The frozen macro table cannot decide that value because C gates it on `HAVE_NS`
+  (`src/termhooks.h` 273-279), so `terminate:` and the read-socket pair land together once it has
+  a home; the ledger's box for `terminate:` records exactly that.
 
