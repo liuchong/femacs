@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893, C 9895-10045 and C 10047-10129
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893, C 9895-10045, C 10047-10129 and C 10131-10296
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -30,13 +30,15 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **12,912 lines** after the thirty-eighth, **13,022 lines** after the thirty-ninth and
 > **13,637 lines** after the fortieth, **13,724 lines** after the forty-first,
 > **13,791 lines** after the forty-second, **14,019 lines** after the forty-third,
-> **14,192 lines** after the forty-fourth and **14,311 lines** after the forty-fifth - C 803-2149,
+> **14,192 lines** after the forty-fourth, **14,311 lines** after the forty-fifth and
+> **14,580 lines** after the forty-sixth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
 > C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415 and
-> C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893, C 9895-10045 and C 10047-10129,
+> C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893, C 9895-10045, C 10047-10129 and
+> C 10131-10296,
 > whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
@@ -79,6 +81,8 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 | C 9585 `#ifdef HAVE_XINPUT2` … C 9628 (inside the Motif subr) | `all (feature = "have_x_windows", feature = "use_motif", feature = "have_xinput2")` | a Motif configuration with XInput2 - the **MOTIFXI2** arm |
 | C 9736 `#ifdef HAVE_FREETYPE` … C 9785 (`x-select-font`) | `all (feature = "have_x_windows", feature = "use_gtk", feature = "freetype")` - the tree's registered spelling of C's `HAVE_FREETYPE` | a GTK configuration with FreeType - the **GTKFT**/**GTK22FT** arms, added by status 3.947 |
 | C 9794 `#ifdef HAVE_XKB` … C 9797 (the two `<X11/XKBlib.h>`/`<X11/keysym.h>` includes) and C 9808-9814 with C 9816-9873 (the XKB arm against its `return Qlambda` arm) | `all (feature = "have_x_windows", feature = "have_xkb")` / `not` it - `have_xkb` is the tree's registered spelling (`src/xterm.rs` 1498/1501, 20818) | an X11 configuration with XKB - the **XKB** arm, added by status 3.948 |
+| C 10131 `#if 0` … C 10175 (`x-test-string-conversion`) | no gate: C's own condition is the literal `0` | never - **recorded, not transcribed** (the C 699-712 class) |
+| C 10248 `#ifdef HAVE_XKB` with C 10249/C 10257's `#ifndef HAVE_XKBREFRESHKEYBOARDMAPPING`/`HAVE_XKBFREENAMES`, and C 10266/C 10279's `#ifndef HAVE_XDISPLAYCELLS`/`HAVE_XDESTROYSUBWINDOWS` | `all (have_x_windows, have_xkb, not (feature = "have_xkbrefreshkeyboardmapping"))` and its three siblings - none of the four features is registered, so every arm takes the `not (…)` side | an X11 build whose libX11 lacks the symbols - the **XKB** arm for the pair and **XKBX** (the four features set) for the other side |
 | C 10047 `#ifdef USE_GTK`/`#ifdef HAVE_GTK3`/`#if GTK_CHECK_VERSION (3, 14, 0)` … C 10064 (`x-gtk-debug`) | `all (feature = "have_x_windows", feature = "use_gtk", feature = "have_gtk3", feature = "gtk_check_version_ge_3_14")` (**not registered**; owed) | a GTK 3.14-3.21 build - the **GTK314** arm, added by status 3.950 |
 | C 9900 `#ifdef USE_CAIRO` … C 10045 (`x-export-frames`) and C 9966 `#ifdef USE_GTK` … C 10044 (the three print dialogs) | `all (feature = "have_x_windows", feature = "use_cairo")` and `all (…, feature = "use_gtk")` for the three dialogs - `use_cairo` is the tree's registered spelling of C's `USE_CAIRO`, and the four cairo arms of C 9932-9961 are `cfg!` guards on `cairo_has_pdf_surface`, `cairo_has_png_functions`, `cairo_has_ps_surface` and `cairo_has_svg_surface` | a cairo configuration - the **CAIRO** arm, added by status 3.949 |
 | C 9662 `#ifdef USE_GTK` … C 9787 (`clean_up_dialog`, the second `x-file-dialog`, `x-select-font` under C 9736's `HAVE_FREETYPE`) | `all (feature = "have_x_windows", feature = "use_gtk")` (and `freetype` for the third item) | the GTK configuration - the **GTK**/**GTK22** arms, whose C 9667/C 9698 `x_menu_set_in_use` reads are why that row carries C's own `USE_GTK`/`USE_MOTIF` pair |
@@ -239,7 +243,8 @@ defines both features.
 | 9787-9893 | C 9787's `#endif /* USE_GTK */`, the `Keyboard` banner (C 9790-9792), C 9794's `#ifdef HAVE_XKB` includes, `x-backspace-delete-keys-p` (C 9799-9874) and `x-get-modifier-masks` (C 9876-9893) | file gate, with C 9794's and C 9808-9873's `have_xkb` pair inside (slice 43) |
 | 9895-10045 | the `Printing` banner (C 9896-9898), `#ifdef USE_CAIRO` (C 9900) with `x-export-frames` (C 9901-9964), and `#ifdef USE_GTK` (C 9966) with `x-page-setup-dialog` (C 9967-9977), `x-get-page-setup` (C 9979-10006) and `x-print-frames-dialog` (C 10008-10043) - the whole `USE_CAIRO` region | `all (have_x_windows, use_cairo)`, and `use_gtk` for the three dialogs (slice 44) |
 | 10047-10129 | `x-gtk-debug` (C 10050-10061, under C 10047-10049's three-way GTK guard), `x-display-set-last-user-time` (C 10066-10088) and `x-internal-focus-input-context` (C 10090-10129, whose body is C 10097's `#ifdef USE_GTK`) | file gate, with C 10047-10064's `use_gtk`/`have_gtk3`/`gtk_check_version_ge_3_14` triple and C 10097's `use_gtk` inside (slice 45) |
-| 10131-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 531 lines, whose first live items are C 10131's dead `#if 0` block with `x-test-string-conversion` (C 10133-10173), the `Initialization` banner (C 10178-10180) and the four `#ifndef HAVE_X…` shims C 10251-10296 | not ported in this slice |
+| 10131-10296 | C 10131's dead `#if 0` block (recorded), the `Initialization` banner (C 10178-10180), `x_frame_parm_handlers` (C 10185-10243, with C 10226-10230's `HAVE_XDBE` pair) and the four libX11 replacements (C 10248-10296) | file gate, with `have_xkb` for the first pair and the `not (…)` side of the four `#ifndef`s in every arm (slice 46) |
+| 10298-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 364 lines, whose first live item is C 10298's `syms_of_xfns` (its 45 `defsubr`s, the `staticpro`d objects and the six `Fprovide`s C 10503/10525/10529/10531/10544/10545) | not ported in this slice |
 
 ## Evidence
 
@@ -4338,3 +4343,108 @@ moves from `33.1%` to `34.2%: C 10662 vs Rust 14311`.
 The frozen configuration compiles none of this file: no GTK debugging was toggled, no last-user
 time was set and no input context was focused; the twenty-one arms' counts are text compile
 readings, and the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.
+
+## Slice 46 (2026-10-08, status 3.951): C 10131-10296
+
+**The slice is C 10131-10296**: C 10131's dead `#if 0` block, the `Initialization` banner
+(C 10178-10180), the frame-parameter handler table (C 10185-10243) and the four libX11
+replacements (C 10248-10296) - 269 Rust lines (14,311 -> 14,580).
+
+**The dead `#if 0` block is recorded, not transcribed.**  C 10131's condition is the literal `0`,
+so C 10133-10173's `x-test-string-conversion` (with its `XIMStringConversionCallbackStruct`
+locals and C 10163's `xic_string_conversion_callback` call) never compiles - the class this ledger
+records for C 699-712 and `src/xterm.rs` records for its own dead arms.  `tools/extract-abi.py`'s
+inventory drops it too, so no subr row exists for `Fx_test_string_conversion`.
+
+**The table's three first-measurement classes**, all named:
+
+1. **28 `E0308`s: the handlers' ABI.**  The table's element type is `frame_parm_handler`
+   (`dispextern.h` 3063: `void (*) (struct frame *, Lisp_Object, Lisp_Object)`) and *this unit's*
+   own handlers were plain `unsafe fn` (the Rust ABI), so `Some (x_set_background_color)` and its
+   27 siblings did not unify.  C's definitions are `static void` (measured: C 1222-1223 for
+   `x_set_background_color`), so the fix is **`unsafe extern "C" fn`** - C's own static linkage
+   plus the C ABI the pointer type needs, which is what `src/pgtkfns.rs` 1092 spells for the
+   `pgtk_set_*` family.  **The reading was over-corrected first**: the initial repair added
+   `pub` + `#[unsafe(no_mangle)]`, and `extract-abi.py --check` answered with 27
+   `carries #[unsafe(no_mangle)] but the reference does not define a non-static function of that
+   name (invented exported symbol)` rows - so the 28 definitions carry `unsafe extern "C" fn`
+   with neither marker now, and those rows are gone (Evidence ③).  This is a pre-existing omission
+   in this unit that only the table could expose: no earlier slice took a handler's address.
+2. **`Success`** in `XkbRefreshKeyboardMapping`: the constant lives in the mirror's
+   `x11_constants` module, so C 10253 takes this function's own `use crate::x11_constants::Success;`
+   (the file's 449/3182 shape).
+3. (No third class: the four shims and the table typed in on the second measurement.)
+
+**The table lives in a module.**  The mirror `include/xterm.rs` 1630 declares
+`x_frame_parm_handlers` at the crate root (xterm.h 1735's row, whose reader is `xterm.c` 32026),
+and a crate-root definition beside that declaration is `E0428` in the single-crate layout, so the
+definition stands in `pub mod xfns_globals` with `use xfns_globals::*;` below it - the
+`xterm_globals` device (`src/xterm.rs` 754-780 for `x_display_list`, PORTING.md P-21/P-90 7).
+C 10226-10230's `#ifdef HAVE_XDBE` pair cannot be an attribute on an array element, so it is two
+cfg'd constants (`internal_border_default!`'s 7230/7232 device read as a value).
+
+**Arm touch measured** (P-86 ⑦), three injections: one before C 10270's `let dpyinfo: *mut
+x_display_info = x_dpyinfo (dpy);` (A1, `XDisplayCells`' first statement) moves plain-X **18 -> 19**,
+XKB **18 -> 19**, GTK **47 -> 48** and LUCID **25 -> 26**; one before C 10261's `return;` (A2,
+`XkbFreeNames`' body) moves **XKB 18 -> 19** and leaves XKBX at **18** (the
+`not (have_xkbfreenames)` side) and plain-X at 18; and one replacing C 10187's first array element
+(T) moves plain-X **18 -> 19**, XKB **18 -> 19**, GTK and GTK22 **47 -> 48**, LUCID **25 -> 26**,
+MOTIF and Xt **20 -> 21** and XCB **18 -> 19** - the table is compiled in every arm that the file
+gate lets in.  All three were reverted (the two texts' sha256 agree).
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+`femacs/src/xfns.rs` md5 `c2b7a3d42ea021b066402b2fe520768a` (slice 45's end hash was
+`157215841edd59c35961c3b6a61d9663`).
+
+**② The twenty-two arms.**  All end at their level - plain-X, XKB and XKBX **18 / 9**, WS, WSX,
+WSR, WSRX, WSR12 and XSN **16 / 9**, LUCID **25 / 12**, MOTIF **20 / 12**, MOTIFXI2 **24 / 12**,
+GTK, GTK22, GTKFT, GTK22FT, GTK314 and CAIRO **47 / 20**, XI2 and XR **22 / 9**, Xt **20 / 12** and
+XCB **18 / 9** - with both the `^error` and the `^warning` sets empty-diff in all twenty-two.
+
+**③ `extract-abi.py --check`**: **74 rows -> 70** - `missing function XkbRefreshKeyboardMapping`,
+`XkbFreeNames`, `XDisplayCells` and `XDestroySubwindows` retire with **nothing appearing**, and the
+drift row moves from `34.2%` to `36.7%: C 10662 vs Rust 14580`.  What is left is the next slice's
+(`missing function syms_of_xfns`, the 45 `missing defsubr`s and one macro row) plus slice 41's
+explained `subr Fx_file_dialog: docstring differs`.
+
+**④ The ABI correction is itself measured**: the intermediate reading of the first repair was
+**27 invented-exported-symbol rows** (cited above), and the final text reads **0** of them.
+
+### Deviations (this slice)
+
+1. **C 10131-10175 is recorded, not transcribed** (C's `#if 0`), the C 699-712 class.
+2. **The 28 handler definitions are `unsafe extern "C" fn`** (Deviation 1 above): C's `static`
+   linkage with the C ABI the table's element type requires, no `pub` and no `#[unsafe(no_mangle)]`.
+3. **The table lives in `pub mod xfns_globals` + `use xfns_globals::*;`** (the `xterm_globals`
+   device), and its `HAVE_XDBE` pair is two cfg'd constants.
+4. **The four `#ifndef HAVE_X…` features are unregistered** (`have_xkbrefreshkeyboardmapping`,
+   `have_xkbfreenames`, `have_xdisplaycells`, `have_xdestroysubwindows`): like `use_motif` they
+   stay out of `femacs/xtask/Cargo.toml` and the probe passes them with `--cfg` (the **XKBX** arm).
+5. **`XkbMapNotifyEvent`** (XKBlib.h 61-88) is carried as its measured shape (`sizeof` **104**,
+   align 8) with its member records owed - the `XEvent` rule of `include/xlib.rs` 1405-1413; and
+   **`Status`** is `c_int` (measured **4**).
+6. **C's `for` over the children (C 10289)** is the port's `i = 0; while i < nchildren { …; i += 1; }`
+   and the four locals C 10283-10284 leaves uninitialised take zero values (the `E0381` device).
+
+### Owed (this slice)
+
+- `syms_of_xfns` (C 10298-10662): 364 C lines - the last function of the file, with its 45
+  `defsubr`s, its `staticpro`s and its six `Fprovide`s.
+- **`subr Fx_file_dialog: docstring differs` stays** (slice 41's Evidence ④): the checker pairs each
+  C `DEFUN` with the first Rust subr of that name; it retires only when `src/xfns.c` joins
+  `docs/baseline/config/cond-eval-verified.txt` or the checker pairs definitions in order.
+- The four `#ifndef` features and `gtk_check_version_ge_3_14` (with `use_motif`, `have_xrandr`,
+  `have_xinerama`, `have_xaw3d` and the four cairo features) are still absent from
+  `femacs/xtask/Cargo.toml`; the twenty-two-arm probe passes them with `--cfg`.
+- `XkbMapNotifyEvent`'s member records are owed with the other XKB records
+  (`docs/ports/lwlib-Xm.md`'s `## Owed` 5 names the toolchain row for that surface).
+- The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
+  Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no frame parameter was set, no display was
+queried and no subwindow was destroyed; the twenty-two arms' counts are text compile readings, and
+the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.

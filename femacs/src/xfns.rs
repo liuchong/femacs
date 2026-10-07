@@ -1020,7 +1020,8 @@ unsafe fn x_decode_color (f: *mut frame, color_name: Lisp_Object, mono_color: c_
    See also the comment of wait_for_wm in struct x_output.  */
 
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_wait_for_wm (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+
+unsafe extern "C" fn x_set_wait_for_wm (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   /* C: `f->output_data.x->wait_for_wm = !NILP (new_value);`.  `wait_for_wm` is a `bool_bf`
      member of `struct x_output` (xterm.h 1226 and the six-member group at 1209-1230), and
@@ -1072,7 +1073,8 @@ pub struct GObjectClass
 
 /* C 732-802.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_alpha_background (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_alpha_background (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   use crate::x11_constants::{PropModeReplace, XA_CARDINAL};
 
@@ -1435,7 +1437,8 @@ pub type Pixel = c_ulong;
 
 /* C 804-849.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_tool_bar_position (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+
+unsafe extern "C" fn x_set_tool_bar_position (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   #[cfg (feature = "use_gtk")]
   let mut choice: Lisp_Object = std::ptr::null_mut ();
@@ -1483,7 +1486,8 @@ unsafe fn x_set_tool_bar_position (f: *mut frame, new_value: Lisp_Object, old_va
 
 /* C 850-880: `#ifdef HAVE_XDBE`.  */
 #[cfg (all (feature = "have_x_windows", feature = "have_xdbe"))]
-unsafe fn x_set_inhibit_double_buffering (f: *mut frame, new_value: Lisp_Object,
+
+unsafe extern "C" fn x_set_inhibit_double_buffering (f: *mut frame, new_value: Lisp_Object,
                                           old_value: Lisp_Object)
 {
   let mut want_double_buffering: bool = false;
@@ -1516,7 +1520,8 @@ unsafe fn x_set_inhibit_double_buffering (f: *mut frame, new_value: Lisp_Object,
 
 /* C 882-921: the doc comment C 882-894 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_undecorated (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+
+unsafe extern "C" fn x_set_undecorated (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   use crate::x11_constants::PropModeReplace;
 
@@ -1551,7 +1556,8 @@ unsafe fn x_set_undecorated (f: *mut frame, new_value: Lisp_Object, old_value: L
 
 /* C 923-1003: the doc comment C 923-953 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_parent_frame (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+
+unsafe extern "C" fn x_set_parent_frame (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   let mut p: *mut frame = std::ptr::null_mut ();
   #[cfg (feature = "have_gtk3")]
@@ -1611,7 +1617,8 @@ unsafe fn x_set_parent_frame (f: *mut frame, new_value: Lisp_Object, old_value: 
 
 /* C 1005-1033: the doc comment C 1005-1017 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_no_focus_on_map (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+
+unsafe extern "C" fn x_set_no_focus_on_map (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   use crate::x11_constants::{PropModeReplace, XA_CARDINAL};
 
@@ -1638,7 +1645,8 @@ unsafe fn x_set_no_focus_on_map (f: *mut frame, new_value: Lisp_Object, old_valu
 
 /* C 1035-1069: the doc comment C 1035-1044 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_no_accept_focus (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+
+unsafe extern "C" fn x_set_no_accept_focus (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   if !EQ (new_value, old_value)
     {
@@ -1666,7 +1674,8 @@ unsafe fn x_set_no_accept_focus (f: *mut frame, new_value: Lisp_Object, old_valu
 
 /* C 1071-1100: the doc comment C 1071-1079 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_override_redirect (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
+
+unsafe extern "C" fn x_set_override_redirect (f: *mut frame, new_value: Lisp_Object, old_value: Lisp_Object)
 {
   use crate::x11_constants::CWOverrideRedirect;
 
@@ -1771,7 +1780,8 @@ macro_rules! FRAME_BACKGROUND_PIXEL {
 
 /* C 1186-1220.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_foreground_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_foreground_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let x: *mut x_output = FRAME_X_OUTPUT! (f) as *mut x_output;
   let fg: c_ulong;
@@ -1809,7 +1819,8 @@ unsafe fn x_set_foreground_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_
 
 /* C 1222-1252.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_background_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_background_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let x: *mut x_output = FRAME_X_OUTPUT! (f) as *mut x_output;
   let bg: c_ulong;
@@ -2217,7 +2228,8 @@ unsafe extern "C" fn x_set_mouse_color_handler (dpy: *mut Display, event: *mut X
 
 /* C 1352-1478.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_mouse_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_mouse_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let x: *mut x_output = FRAME_X_OUTPUT! (f) as *mut x_output;
   let dpy: *mut Display = FRAME_X_DISPLAY! (f);
@@ -2379,7 +2391,8 @@ unsafe fn x_set_mouse_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Objec
 
 /* C 1480-1545.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_cursor_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_cursor_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let mut fore_pixel: c_ulong;
   let mut pixel: c_ulong;
@@ -2483,7 +2496,8 @@ unsafe fn x_set_border_pixel (f: *mut frame, pix: c_ulong)
 
 /* C 1583-1603: the comment C 1583-1592 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_border_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_border_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let pix: c_ulong;
 
@@ -2495,14 +2509,16 @@ unsafe fn x_set_border_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Obje
 
 /* C 1606-1610.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_cursor_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_cursor_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   set_frame_cursor_types (f, arg);
 }
 
 /* C 1612-1642.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_icon_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_icon_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let mut result: bool;
 
@@ -2539,7 +2555,8 @@ unsafe fn x_set_icon_type (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 
 /* C 1644-1679.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_icon_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_icon_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let mut result: bool;
 
@@ -2575,7 +2592,8 @@ unsafe fn x_set_icon_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 
 /* C 1682-1766.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {
   let mut nlines: c_int;
   #[cfg (all (not (feature = "use_x_toolkit"), not (feature = "use_gtk")))]
@@ -2674,7 +2692,8 @@ unsafe fn x_set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_
 
 /* C 1769-1794: the comment C 1769-1774 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_tab_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_tab_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {
   let olines: c_int = FRAME_TAB_BAR_LINES (f);
   let mut nlines: c_int;
@@ -2769,7 +2788,8 @@ pub unsafe extern "C" fn x_change_tab_bar_height (f: *mut frame, height: c_int)
 
 /* C 1862-1891: the comment C 1862-1866 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_tool_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_tool_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {
   let nlines: c_int;
 
@@ -2886,7 +2906,8 @@ pub unsafe extern "C" fn x_change_tool_bar_height (f: *mut frame, height: c_int)
 
 /* C 1966-1994.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let border: c_int;
 
@@ -2917,7 +2938,8 @@ unsafe fn x_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object, oldva
 
 /* C 1996-2017.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_internal_border_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_internal_border_width (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   let border: c_int = check_int_nonnegative (arg);
 
@@ -2941,7 +2963,8 @@ unsafe fn x_set_internal_border_width (f: *mut frame, arg: Lisp_Object, oldval: 
 
 /* C 2020-2076: the comment C 2020-2023 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_scroll_bar_foreground (f: *mut frame, value: Lisp_Object,
+
+unsafe extern "C" fn x_set_scroll_bar_foreground (f: *mut frame, value: Lisp_Object,
                                        oldval: Lisp_Object)
 {
   let mut pixel: c_ulong;
@@ -3008,7 +3031,8 @@ unsafe fn x_set_scroll_bar_foreground (f: *mut frame, value: Lisp_Object,
 
 /* C 2079-2149: the comment C 2079-2082 and the function.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_scroll_bar_background (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_scroll_bar_background (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {
   let mut pixel: c_ulong;
   #[cfg (feature = "have_gtk3")]
@@ -3349,7 +3373,8 @@ unsafe fn x_set_name (f: *mut frame, mut name: Lisp_Object, explicit: bool)
 
 /* C 2354-2358.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_explicitly_set_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_explicitly_set_name (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
 {
   x_set_name (f, arg, true);
 }
@@ -3372,7 +3397,8 @@ pub unsafe extern "C" fn x_implicitly_set_name (f: *mut frame, arg: Lisp_Object,
 
 /* C 2372-2389.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_title (f: *mut frame, mut name: Lisp_Object, old_name: Lisp_Object)
+
+unsafe extern "C" fn x_set_title (f: *mut frame, mut name: Lisp_Object, old_name: Lisp_Object)
 {
   /* Don't change the title if it's already NAME.  */
   if EQ (name, (*f).title)
@@ -3480,7 +3506,8 @@ pub unsafe extern "C" fn x_set_scroll_bar_default_height (f: *mut frame)
 
 /* C 2435-2490.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_alpha (f: *mut frame, mut arg: Lisp_Object, oldval: Lisp_Object)
+
+unsafe extern "C" fn x_set_alpha (f: *mut frame, mut arg: Lisp_Object, oldval: Lisp_Object)
 {
   let mut alpha: c_double = 1.0;
   let mut newval: [c_double; 2] = [0.0; 2];
@@ -3557,7 +3584,8 @@ unsafe extern "C" {
 }
 
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_set_use_frame_synchronization (f: *mut frame, arg: Lisp_Object,
+
+unsafe extern "C" fn x_set_use_frame_synchronization (f: *mut frame, arg: Lisp_Object,
                                            oldval: Lisp_Object)
 {
   use crate::x11_constants::{PropModeReplace, XA_CARDINAL};   // C 2510/2512 (X.h 477, Xatom.h 14)
@@ -14308,4 +14336,245 @@ DEFUN! ("x-internal-focus-input-context", Fx_internal_focus_input_context,
 
   return Qnil ();                                                              // C 10128
 });
+
+
+/* ==============================================================================================
+   C 10131-10296: C 10131's dead `#if 0` block, the `Initialization` banner (C 10178-10180), the
+   frame-parameter handler table (C 10185-10243) and the four libX11 replacements (C 10248-10296).
+
+   The `#if 0` block (C 10131-10175) carries `x-test-string-conversion` (C 10133-10173), its
+   `XIMStringConversionCallbackStruct`/`XIMStringConversionText` locals and C 10163's
+   `xic_string_conversion_callback` call.  C's own condition is the literal `0`, so the block is
+   **recorded, not transcribed** - the `#if false` class of this file's C 699-712 (`x_decode_color`)
+   and of `src/xterm.rs`, which has the same rule for C's dead arms; `tools/extract-abi.py`'s
+   inventory drops it too, so no subr row exists for `Fx_test_string_conversion`.
+
+   The four replacements are C's own fallbacks for libX11 builds whose symbols are missing
+   (C 10245-10246's comment); each is exported with `#[unsafe(no_mangle)]` because C links them by
+   their libX11 names.  */
+
+/* The `Initialization` banner (C 10178-10180) and C 10182-10183's "Keep this list in the same
+   order as frame_parms in frame.c.  Use 0 for unsupported frame parameters." are comments with no
+   item of their own.  */
+
+/* C: `dispextern.h` 3063: `typedef void (*frame_parm_handler) (struct frame *, Lisp_Object,
+   Lisp_Object);` - the element type of C 10185's table.  The mirror `include/dispextern.rs` does
+   not carry the alias (its `redisplay_interface.frame_parm_handlers` is `*mut c_void`), so the
+   table spells the typedef's own body here - what `src/pgtkfns.rs` 519-520 and
+   `src/haikufns.rs` 223-224 do for their own handler arrays.  */
+#[cfg (feature = "have_x_windows")]
+type frame_parm_handler =
+  Option<unsafe extern "C" fn (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object)>;
+
+/* C: `frame.h` 1844-1871 and `xterm.h` 1893-1896 - the twenty-four handlers C 10187-10242 names
+   that this unit does not define: the twenty `gui_set_*` rows live in `frame.c` and the four
+   `x_set_*` rows (`sticky`, `shaded`, `skip_taskbar`, `z_group`) in `xterm.c`, and no mirror of
+   this unit's include graph carries any of them (P-55/P-72 rule 3).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn gui_set_fullscreen (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1844
+  pub fn gui_set_line_spacing (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1845
+  pub fn gui_set_screen_gamma (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1846
+  pub fn gui_set_font (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);        // frame.h 1847
+  pub fn gui_set_font_backend (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1848
+  pub fn gui_set_left_fringe (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1849
+  pub fn gui_set_right_fringe (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1850
+  pub fn gui_set_border_width (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1851
+  pub fn gui_set_right_divider_width (f: *mut frame, val: Lisp_Object,
+				      oldval: Lisp_Object);                      // frame.h 1852
+  pub fn gui_set_bottom_divider_width (f: *mut frame, val: Lisp_Object,
+				       oldval: Lisp_Object);                     // frame.h 1854
+  pub fn gui_set_visibility (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);   // frame.h 1856
+  pub fn gui_set_autoraise (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);    // frame.h 1857
+  pub fn gui_set_autolower (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);    // frame.h 1858
+  pub fn gui_set_unsplittable (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);  // frame.h 1859
+  pub fn gui_set_vertical_scroll_bars (f: *mut frame, val: Lisp_Object,
+				       oldval: Lisp_Object);                     // frame.h 1860
+  pub fn gui_set_horizontal_scroll_bars (f: *mut frame, val: Lisp_Object,
+					 oldval: Lisp_Object);                   // frame.h 1861
+  pub fn gui_set_scroll_bar_width (f: *mut frame, val: Lisp_Object,
+				   oldval: Lisp_Object);                         // frame.h 1862
+  pub fn gui_set_scroll_bar_height (f: *mut frame, val: Lisp_Object,
+				    oldval: Lisp_Object);                        // frame.h 1863
+  pub fn gui_set_borders_respect_alpha_background (f: *mut frame, val: Lisp_Object,
+						   oldval: Lisp_Object);         // frame.h 1869
+  pub fn gui_set_no_special_glyphs (f: *mut frame, val: Lisp_Object,
+				    oldval: Lisp_Object);                        // frame.h 1871
+  pub fn x_set_sticky (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);         // xterm.h 1893
+  pub fn x_set_shaded (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);         // xterm.h 1894
+  pub fn x_set_skip_taskbar (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);   // xterm.h 1895
+  pub fn x_set_z_group (f: *mut frame, val: Lisp_Object, oldval: Lisp_Object);        // xterm.h 1896
+}
+
+/* C 10185-10243.  The table lives in this module, which is glob-imported just below, because the
+   mirror `include/xterm.rs` 1630 declares the name at the crate root (xterm.h 1735's row, whose
+   reader is `xterm.c` 32026) and a crate-root definition beside that declaration is `E0428` in
+   the single-crate layout - the `xterm_globals` device (`src/xterm.rs` 754-780, PORTING.md
+   P-21/P-90 7, where `x_display_list` has the same pair).  */
+#[cfg (feature = "have_x_windows")]
+pub mod xfns_globals {
+  use super::*;
+
+  /* C 10226-10230's `#ifdef HAVE_XDBE` pair: C's element is either the handler or `NULL`, and
+     Rust cannot put an attribute on an array element, so the pair is two cfg'd constants - the
+     `internal_border_default!` device of 7230/7232 read as a value.  */
+  #[cfg (feature = "have_xdbe")]
+  const X_SET_INHIBIT_DOUBLE_BUFFERING_ENTRY: frame_parm_handler =
+    Some (x_set_inhibit_double_buffering);
+  #[cfg (not (feature = "have_xdbe"))]
+  const X_SET_INHIBIT_DOUBLE_BUFFERING_ENTRY: frame_parm_handler = None;
+
+  /// C: xfns.c 10185-10243: `frame_parm_handler x_frame_parm_handlers[] = …`
+  #[unsafe(no_mangle)]
+  pub static mut x_frame_parm_handlers: [frame_parm_handler; 53] =
+    [
+      Some (gui_set_autoraise),                     // C 10187
+      Some (gui_set_autolower),                     // C 10188
+      Some (x_set_background_color),                // C 10189
+      Some (x_set_border_color),                    // C 10190
+      Some (gui_set_border_width),                  // C 10191
+      Some (x_set_cursor_color),                    // C 10192
+      Some (x_set_cursor_type),                     // C 10193
+      Some (gui_set_font),                          // C 10194
+      Some (x_set_foreground_color),                // C 10195
+      Some (x_set_icon_name),                       // C 10196
+      Some (x_set_icon_type),                       // C 10197
+      Some (x_set_child_frame_border_width),        // C 10198
+      Some (x_set_internal_border_width),           // C 10199
+      Some (gui_set_right_divider_width),           // C 10200
+      Some (gui_set_bottom_divider_width),          // C 10201
+      Some (x_set_menu_bar_lines),                  // C 10202
+      Some (x_set_mouse_color),                     // C 10203
+      Some (x_explicitly_set_name),                 // C 10204
+      Some (gui_set_scroll_bar_width),              // C 10205
+      Some (gui_set_scroll_bar_height),             // C 10206
+      Some (x_set_title),                           // C 10207
+      Some (gui_set_unsplittable),                  // C 10208
+      Some (gui_set_vertical_scroll_bars),          // C 10209
+      Some (gui_set_horizontal_scroll_bars),        // C 10210
+      Some (gui_set_visibility),                    // C 10211
+      Some (x_set_tab_bar_lines),                   // C 10212
+      Some (x_set_tool_bar_lines),                  // C 10213
+      Some (x_set_scroll_bar_foreground),           // C 10214
+      Some (x_set_scroll_bar_background),           // C 10215
+      Some (gui_set_screen_gamma),                  // C 10216
+      Some (gui_set_line_spacing),                  // C 10217
+      Some (gui_set_left_fringe),                   // C 10218
+      Some (gui_set_right_fringe),                  // C 10219
+      Some (x_set_wait_for_wm),                     // C 10220
+      Some (gui_set_fullscreen),                    // C 10221
+      Some (gui_set_font_backend),                  // C 10222
+      Some (x_set_alpha),                           // C 10223
+      Some (x_set_sticky),                          // C 10224
+      Some (x_set_tool_bar_position),               // C 10225
+      X_SET_INHIBIT_DOUBLE_BUFFERING_ENTRY,        // C 10227 (`HAVE_XDBE`)
+      X_SET_INHIBIT_DOUBLE_BUFFERING_ENTRY,        // C 10229 (the `#else` arm)
+      Some (x_set_undecorated),                     // C 10231
+      Some (x_set_parent_frame),                    // C 10232
+      Some (x_set_skip_taskbar),                    // C 10233
+      Some (x_set_no_focus_on_map),                 // C 10234
+      Some (x_set_no_accept_focus),                 // C 10235
+      Some (x_set_z_group),                         // C 10236
+      Some (x_set_override_redirect),               // C 10237
+      Some (gui_set_no_special_glyphs),             // C 10238
+      Some (x_set_alpha_background),                // C 10239
+      Some (gui_set_borders_respect_alpha_background), // C 10240
+      Some (x_set_use_frame_synchronization),       // C 10241
+      Some (x_set_shaded),                          // C 10242
+    ];
+}
+#[cfg (feature = "have_x_windows")]
+use xfns_globals::*;
+
+/* C 10245-10246's "Some versions of libX11 don't have symbols for a few functions we need, so
+   define replacements here." is the sentence the four items below answer.  */
+
+/* C: `<X11/Xlib.h>`: `typedef int Status;` (measured: **4** bytes on this machine's xorgproto),
+   `extern Status XQueryTree (Display *, Window, Window *, Window *, Window **, unsigned int *);`
+   and `extern Status XDestroyWindow (Display *, Window);` - C 10250/10286/10290's uses; the
+   mirror carries no row for the typedef and none for `XDestroyWindow`.  */
+#[cfg (feature = "have_x_windows")]
+pub type Status = c_int;
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XDestroyWindow (display: *mut Display, w: Window) -> Status;          // Xlib.h 961
+}
+
+/* C: `<X11/extensions/XKBlib.h>` 61-88: `typedef struct _XkbMapNotifyEvent { … }
+   XkbMapNotifyEvent;` - C 10251's parameter, which C 10253 never reads.  The record is carried as
+   its measured shape (the `XEvent` rule of `include/xlib.rs` 1405-1413): `sizeof` **104**,
+   align 8, and its member records are owed.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb",
+	    not (feature = "have_xkbrefreshkeyboardmapping")))]
+#[repr(C, align(8))]
+pub struct XkbMapNotifyEvent { _private: [u8; 104] }
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb",
+	    not (feature = "have_xkbrefreshkeyboardmapping")))]
+const _: () = core::assert! (core::mem::size_of::<XkbMapNotifyEvent> () == 104);
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb",
+	    not (feature = "have_xkbrefreshkeyboardmapping")))]
+const _: () = core::assert! (core::mem::align_of::<XkbMapNotifyEvent> () == 8);
+
+/* C 10248-10264's first pair: C 10249's `#ifndef HAVE_XKBREFRESHKEYBOARDMAPPING` and C 10257's
+   `#ifndef HAVE_XKBFREENAMES`, both inside C 10248's `#ifdef HAVE_XKB`.  Neither feature is in
+   `femacs/xtask/Cargo.toml`'s table, so `not (…)` is true in every arm and the two replacements
+   compile wherever `have_xkb` does.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb",
+	    not (feature = "have_xkbrefreshkeyboardmapping")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn XkbRefreshKeyboardMapping (event: *mut XkbMapNotifyEvent) -> Status
+{
+  use crate::x11_constants::Success;   // C 10253's `Success` (X.h 471, the module's `c_int` row)
+  return Success;                                                              // C 10253
+}
+
+/// C 10259-10262.
+#[cfg (all (feature = "have_x_windows", feature = "have_xkb",
+	    not (feature = "have_xkbfreenames")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn XkbFreeNames (xkb: XkbDescPtr, which: c_uint, free_map: Bool)
+{
+  return;                                                                      // C 10261
+}
+
+/* C 10266-10277.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "have_xdisplaycells")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn XDisplayCells (dpy: *mut Display, screen_number: c_int) -> c_int
+{
+  let dpyinfo: *mut x_display_info = x_dpyinfo (dpy);                           // C 10270
+
+  /* Not strictly correct, since the display could be using a
+     non-default visual, but it satisfies the callers we need to care
+     about.  */                                                                 // C 10272-10274
+  return (*dpyinfo).visual_info.colormap_size;                                  // C 10275
+}
+
+/* C 10279-10296.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "have_xdestroysubwindows")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn XDestroySubwindows (dpy: *mut Display, w: Window) -> c_int
+{
+  let mut root: Window = 0;                                                     // C 10283
+  let mut parent: Window = 0;
+  let mut children: *mut Window = std::ptr::null_mut ();
+  let mut nchildren: c_uint = 0;                                                // C 10284
+  let mut i: c_uint;
+
+  if XQueryTree (dpy, w, &raw mut root, &raw mut parent, &raw mut children,
+		 &raw mut nchildren) != 0                                      // C 10286
+    {
+      /* C 10289's `for (i = 0; i < nchildren; ++i)`: init, test, body, then the increment C
+	 writes in the loop head.  */
+      i = 0;
+      while i < nchildren
+	{
+	  XDestroyWindow (dpy, *children.offset (i as isize));                  // C 10290
+	  i += 1;
+	}
+      XFree (children as *mut c_void);                                          // C 10291
+    }
+
+  return 0;                                                                     // C 10294
+}
 
