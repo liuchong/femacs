@@ -7250,6 +7250,7 @@ unsafe extern "C" {
   pub fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object, default_pixelwise: bool,
 				 window_pixelwise: bool) -> c_long;
   pub fn x_iconify_frame (f: *mut frame);
+  pub fn x_cr_destroy_frame_context (f: *mut frame);                          // xterm.h 1811
   pub fn x_cr_update_surface_desired_size (f: *mut frame, width: c_int, height: c_int);
   pub fn x_sync_init_fences (f: *mut frame);
   pub fn XIGetSelectedEvents (dpy: *mut Display, win: Window, count: *mut c_int)
@@ -12470,11 +12471,9 @@ unsafe extern "C" {
   /* (the `#ifndef HAVE_PGTK` arm; `src/gtkutil.rs` 1380 defines it)  */
   pub fn xg_show_tooltip (f: *mut frame, root_x: c_int, root_y: c_int);
 }
-#[cfg (all (feature = "have_x_windows", feature = "use_cairo"))]
-unsafe extern "C" {
-  /* C: xterm.h 1812: `extern void x_cr_update_surface_desired_size (struct frame *, int, int);`  */
-  pub fn x_cr_update_surface_desired_size (f: *mut frame, width: c_int, height: c_int);
-}
+/* C: xterm.h 1812's `x_cr_update_surface_desired_size` is declared once, in the file-gate block
+   above (the reference declares it once too); the `use_cairo` duplicate that stood here was an
+   `E0428` no arm could see until status 3.949 added the CAIRO arm.  */
 #[cfg (all (feature = "have_x_windows", not (feature = "use_xcb")))]
 unsafe extern "C" {
   /* C: Xlib.h 2806: `extern int XMapRaised (Display *, Window);`  */
@@ -14015,5 +14014,179 @@ DEFUN! ("x-get-modifier-masks", Fx_get_modifier_masks, Sx_get_modifier_masks,
 
   dpyinfo = check_x_display_info (terminal);                                   // C 9891
   return x_get_keyboard_modifiers (dpyinfo);                                   // C 9892
+});
+
+
+/* ==============================================================================================
+   C 9895-10045: the `Printing` banner (C 9896-9898), C 9900's `#ifdef USE_CAIRO` with
+   `x-export-frames` (C 9901-9964) and C 9966's `#ifdef USE_GTK` with the three print dialogs
+   (`x-page-setup-dialog`, C 9967-9977; `x-get-page-setup`, C 9979-10006; `x-print-frames-dialog`,
+   C 10008-10043), closing at C 10044/C 10045.  The whole `USE_CAIRO` region ends here.
+
+   C 9932-9961's four `#ifdef`s each wrap one `if (…) …; else`, so the chain C compiles holds
+   exactly the arms whose cairo feature is defined and ends in C 9961's `error`; Rust cannot let
+   the `else` of one `#[cfg]` arm be supplied by the next, so each arm's presence is the
+   compile-time `cfg!` of its feature and C's chain follows once, in C's order - the arm-chooser
+   idiom `src/pgtkfns.rs` 1874-1907 carries for the same C text (`pgtk-export-frames`), recorded
+   in `docs/ports/gtkutil.md`'s Deviation 4.  The `use_cairo` feature is the tree's registered
+   spelling of C's `USE_CAIRO`; the four cairo features are `cairo_has_pdf_surface`,
+   `cairo_has_png_functions`, `cairo_has_ps_surface` and `cairo_has_svg_surface`.
+
+   This slice also carries the two rows the `use_cairo` dimension had hidden: `use_cairo` had no
+   arm until status 3.949, and with the **CAIRO** arm the file read 50 / 20 against the GTK arm's
+   47 / 20 - `x_cr_destroy_frame_context` (xterm.h 1811) was undeclared at C 3990/4033 and
+   `x_cr_update_surface_desired_size` (xterm.h 1812) was declared twice (its file-gate row and the
+   `use_cairo` row below).  Both are fixed here.  */
+
+/* C: `xterm.h` 1818: `extern Lisp_Object x_cr_export_frames (Lisp_Object,
+   cairo_surface_type_t);` - C 9963's call; `src/xterm.c` defines it and no mirror carries the row
+   (P-55/P-72 rule 3).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo"))]
+unsafe extern "C" {
+  pub fn x_cr_export_frames (frames: Lisp_Object,
+			     surface_type: cairo_surface_type_t) -> Lisp_Object;   // xterm.h 1818
+}
+
+/* C 9901-9964.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo"))]
+DEFUN! ("x-export-frames", Fx_export_frames, Sx_export_frames, 0, 2, 0,        // C 9901
+	doc: "Return image data of FRAMES in TYPE format.\nFRAMES should be nil (the selected frame), a frame, or a list of\nframes (each of which corresponds to one page).  Each frame should be\nvisible.  Optional arg TYPE should be either `pdf' (default), `png',\n`postscript', or `svg'.  Supported types are determined by the\ncompile-time configuration of cairo.\n\nNote: Text drawn with the `x' font backend is shown with hollow boxes\nunless TYPE is `png'.",  // C 9902-9910
+	(frames: Lisp_Object, r#type: Lisp_Object),                            // C 9911
+	{
+  /* C's `frames` is reassigned on the next line and the `DEFUN!` macro's `$arg:ident` cannot say
+     `mut`.  */
+  let mut frames = frames;
+  let mut rest: Lisp_Object;                                                   // C 9913
+  let mut tmp: Lisp_Object;
+  let surface_type: cairo_surface_type_t;                                      // C 9914
+
+  if !CONSP (frames)                                                           // C 9916
+    { frames = list1 (frames); }                                               // C 9917
+
+  tmp = Qnil ();                                                               // C 9919
+  /* C 9920's `for (rest = frames; CONSP (rest); rest = XCDR (rest))`: init, test, body, then the
+     increment C writes in the loop head (the `src/pgtkfns.rs` 1861-1872 shape).  */
+  rest = frames;
+  while CONSP (rest)
+    {
+      let f: *mut frame = decode_window_system_frame (XCAR (rest));            // C 9922
+      let mut frame: Lisp_Object;                                              // C 9923
+
+      XSETFRAME! (frame, f);                                                   // C 9925
+      if !FRAME_VISIBLE_P (f)                                                  // C 9926
+	{ error (c"Frames to be exported must be visible".as_ptr ()); }        // C 9927
+      tmp = Fcons (frame, tmp);                                                // C 9928
+      rest = XCDR (rest);
+    }
+  frames = Fnreverse (tmp);                                                    // C 9930
+
+  /* C 9932-9961's four `#ifdef`s as one chain of `cfg!` guards (see the banner above).  */
+  if cfg! (feature = "cairo_has_pdf_surface") && (NILP (r#type) || EQ (r#type, Qpdf ()))
+    { surface_type = CAIRO_SURFACE_TYPE_PDF; }                                 // C 9933-9934
+  else if cfg! (feature = "cairo_has_png_functions") && EQ (r#type, Qpng ())   // C 9937-9938
+    {
+      if !NILP (XCDR (frames))                                                 // C 9940
+	{ error (c"PNG export cannot handle multiple frames".as_ptr ()); }     // C 9941
+      surface_type = CAIRO_SURFACE_TYPE_IMAGE;                                 // C 9942
+    }
+  else if cfg! (feature = "cairo_has_ps_surface") && EQ (r#type, Qpostscript ())  // C 9946-9947
+    { surface_type = CAIRO_SURFACE_TYPE_PS; }                                  // C 9948
+  else if cfg! (feature = "cairo_has_svg_surface") && EQ (r#type, Qsvg ())     // C 9951-9952
+    {
+      /* For now, we stick to SVG 1.1.  */                                     // C 9954
+      if !NILP (XCDR (frames))                                                 // C 9955
+	{ error (c"SVG export cannot handle multiple frames".as_ptr ()); }     // C 9956
+      surface_type = CAIRO_SURFACE_TYPE_SVG;                                   // C 9957
+    }
+  else
+    { error (c"Unsupported export type".as_ptr ()); }                          // C 9961
+
+  return x_cr_export_frames (frames, surface_type);                            // C 9963
+});
+
+/* C: `gtkutil.h` 219-221: `extern void xg_page_setup_dialog (void);`, `extern Lisp_Object
+   xg_get_page_setup (void);` and `extern void xg_print_frames_dialog (Lisp_Object);` - C
+   9973/10002/10039's calls; `src/gtkutil.rs` defines all three and no mirror carries the rows.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_page_setup_dialog ();                                              // gtkutil.h 219
+  pub fn xg_get_page_setup () -> Lisp_Object;                                  // gtkutil.h 220
+  pub fn xg_print_frames_dialog (frames: Lisp_Object);                          // gtkutil.h 221
+}
+
+/* C: `dispextern.h` 3589: `void redisplay_preserve_echo_area (int);` - C 10036's call; the
+   mirror carries no row.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn redisplay_preserve_echo_area (n: c_int);                              // dispextern.h 3589
+}
+
+/* C 9967-9977.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo", feature = "use_gtk"))]
+DEFUN! ("x-page-setup-dialog", Fx_page_setup_dialog, Sx_page_setup_dialog, 0, 0, 0,  // C 9967
+	doc: "Pop up a page setup dialog.\nThe current page setup can be obtained using `x-get-page-setup'.",  // C 9968-9969
+	(),                                                                    // C 9970
+	{
+  block_input ();                                                              // C 9972
+  xg_page_setup_dialog ();                                                     // C 9973
+  unblock_input ();                                                            // C 9974
+
+  return Qnil ();                                                              // C 9976
+});
+
+/* C 9979-10006.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo", feature = "use_gtk"))]
+DEFUN! ("x-get-page-setup", Fx_get_page_setup, Sx_get_page_setup, 0, 0, 0,     // C 9979
+	doc: "Return the value of the current page setup.\nThe return value is an alist containing the following keys:\n\n  orientation: page orientation (symbol `portrait', `landscape',\n\t`reverse-portrait', or `reverse-landscape').\n  width, height: page width/height in points not including margins.\n  left-margin, right-margin, top-margin, bottom-margin: print margins,\n\twhich is the parts of the page that the printer cannot print\n\ton, in points.\n\nThe paper width can be obtained as the sum of width, left-margin, and\nright-margin values if the page orientation is `portrait' or\n`reverse-portrait'.  Otherwise, it is the sum of width, top-margin,\nand bottom-margin values.  Likewise, the paper height is the sum of\nheight, top-margin, and bottom-margin values if the page orientation\nis `portrait' or `reverse-portrait'.  Otherwise, it is the sum of\nheight, left-margin, and right-margin values.",  // C 9980-9996
+	(),                                                                    // C 9997
+	{
+  let result: Lisp_Object;                                                     // C 9999
+
+  block_input ();                                                              // C 10001
+  result = xg_get_page_setup ();                                               // C 10002
+  unblock_input ();                                                            // C 10003
+
+  return result;                                                               // C 10005
+});
+
+/* C 10008-10043.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo", feature = "use_gtk"))]
+DEFUN! ("x-print-frames-dialog", Fx_print_frames_dialog, Sx_print_frames_dialog,
+	0, 1, "",                                                              // C 10008
+	doc: "Pop up a print dialog to print the current contents of FRAMES.\nFRAMES should be nil (the selected frame), a frame, or a list of\nframes (each of which corresponds to one page).  Each frame should be\nvisible.\n\nNote: Text drawn with the `x' font backend is shown with hollow boxes.",  // C 10009-10014
+	(frames: Lisp_Object),                                                 // C 10015
+	{
+  /* C's `frames` is written at C 10020 and C 10033, and the `DEFUN!` macro's `$arg:ident` cannot
+     say `mut`.  */
+  let mut frames = frames;
+  let mut rest: Lisp_Object;                                                   // C 10017
+  let mut tmp: Lisp_Object;
+
+  if !CONSP (frames)                                                           // C 10019
+    { frames = list1 (frames); }                                               // C 10020
+
+  tmp = Qnil ();                                                               // C 10022
+  rest = frames;                                                               // C 10023
+  while CONSP (rest)
+    {
+      let f: *mut frame = decode_window_system_frame (XCAR (rest));            // C 10025
+      let mut frame: Lisp_Object;                                              // C 10026
+
+      XSETFRAME! (frame, f);                                                   // C 10028
+      if !FRAME_VISIBLE_P (f)                                                  // C 10029
+	{ error (c"Frames to be printed must be visible".as_ptr ()); }         // C 10030
+      tmp = Fcons (frame, tmp);                                                // C 10031
+      rest = XCDR (rest);
+    }
+  frames = Fnreverse (tmp);                                                    // C 10033
+
+  /* Make sure the current matrices are up-to-date.  */                        // C 10035
+  redisplay_preserve_echo_area (32);                                           // C 10036
+
+  block_input ();                                                              // C 10038
+  xg_print_frames_dialog (frames);                                             // C 10039
+  unblock_input ();                                                            // C 10040
+
+  return Qnil ();                                                              // C 10042
 });
 
