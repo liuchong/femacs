@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1994, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -897,7 +897,7 @@ exceeding this limit is abbreviated with an ellipsis.  A value of
 These are the values for @code{print-length} and @code{print-level}
 used by @code{eval-expression}, and thus, indirectly, by many
 interactive evaluation commands (@pxref{Lisp Eval,, Evaluating
-Emacs Lisp Expressions, emacs, The GNU Emacs Manual}).
+Emacs Lisp Expressions, emacs, The femacs Manual}).
 @end defopt
 
   These variables are used for detecting and reporting circular

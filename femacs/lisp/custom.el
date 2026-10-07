@@ -27,7 +27,7 @@
 ;;
 ;; This file only contains the code needed to declare and initialize
 ;; user options.  The code to customize options is autoloaded from
-;; `cus-edit.el' and is documented in the Emacs Lisp Reference manual.
+;; `cus-edit.el' and is documented in the femacs Lisp Reference manual.
 
 ;; The code implementing face declarations is in `cus-face.el'.
 
@@ -371,7 +371,7 @@ The following common keywords are also meaningful.
         You can specify the text to use in the customization buffer by
         adding `:tag NAME' after the first element of the LINK-DATA; for
         example, (info-link :tag \"foo\" \"(emacs)Top\") makes a link to the
-        Emacs manual which appears in the buffer as `foo'.
+        femacs manual which appears in the buffer as `foo'.
 
         An item can have more than one external link; however, most items
         have none at all.
@@ -409,7 +409,7 @@ programmatically alter a customizable variable (for instance, to
 write a package that extends the syntax of a variable), you can
 call that function directly.
 
-See Info node `(elisp) Customization' in the Emacs Lisp manual
+See Info node `(elisp) Customization' in the femacs Lisp manual
 for more information."
   (declare (doc-string 3) (debug (name body))
            (indent defun))
@@ -490,7 +490,7 @@ In the ATTS property list, possible attributes are `:family', `:font',
 `:overline', `:strike-through', `:box', `:foreground', `:distant-foreground',
 `:background', `:stipple', `:inverse-video', `:extend', and `:inherit'.
 
-See Info node `(elisp) Faces' in the Emacs Lisp manual for more
+See Info node `(elisp) Faces' in the femacs Lisp manual for more
 information."
   (declare (doc-string 3) (indent defun))
   ;; It is better not to use backquote in this file,
@@ -558,7 +558,7 @@ removed from variable names before creating unlispified names,
 when the user option `custom-unlispify-remove-prefixes' is
 non-nil.
 
-See Info node `(elisp) Customization' in the Emacs Lisp manual
+See Info node `(elisp) Customization' in the femacs Lisp manual
 for more information."
   (declare (doc-string 3) (indent defun))
   ;; It is better not to use backquote in this file,

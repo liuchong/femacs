@@ -1,5 +1,5 @@
 @c -*- mode: texinfo; coding: utf-8 -*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--2026 Free Software Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
 @node Display
@@ -242,7 +242,7 @@ This variable is automatically buffer-local in every buffer.
 and for echoing keystrokes.  It is not the same as the minibuffer,
 despite the fact that the minibuffer appears (when active) in the same
 place on the screen as the echo area.  @xref{Minibuffer,, The
-Minibuffer, emacs, The GNU Emacs Manual}.
+Minibuffer, emacs, The femacs Manual}.
 
   Apart from the functions documented in this section, you can print
 Lisp objects to the echo area by specifying @code{t} as the output
@@ -2031,7 +2031,7 @@ Properties}, for details.
 
 @item isearch-open-invisible
 This property tells incremental search (@pxref{Incremental Search,,,
-emacs, The GNU Emacs Manual}) how to make an invisible overlay
+emacs, The femacs Manual}) how to make an invisible overlay
 visible, permanently, if the final match overlaps it.  @xref{Invisible
 Text}.
 
@@ -2073,7 +2073,7 @@ and ending positions is deleted from the buffer.
 @kindex display-line-numbers-disable @r{(overlay property)}
 @item display-line-numbers-disable
 This property prevents display of line numbers (@pxref{Display Custom,
-display-line-numbers,, emacs, The GNU Emacs Manual}) for the text which
+display-line-numbers,, emacs, The femacs Manual}) for the text which
 is within an overlay having this property.  One situation where using an
 overlay with this property is useful is an empty overlay at
 end-of-buffer, since otherwise there's no way of preventing the display
@@ -2538,7 +2538,7 @@ current buffer must be displayed in some window.
 @end defun
 
 When a buffer is displayed with line numbers (@pxref{Display Custom,,,
-emacs, The GNU Emacs Manual}), it is sometimes useful to know the
+emacs, The femacs Manual}), it is sometimes useful to know the
 width taken for displaying the line numbers.  The following function
 is for Lisp programs which need this information for layout
 calculations.
@@ -2753,14 +2753,14 @@ attribute is ignored.
 @table @code
 @item :family
 Font family name (a string).  @xref{Fonts,,, emacs, The GNU
-Emacs Manual}, for more information about font families.  The function
+femacs Manual}, for more information about font families.  The function
 @code{font-family-list} (see below) returns a list of available family
 names.
 
 @item :foundry
 The name of the @dfn{font foundry} for the font family specified by
 the @code{:family} attribute (a string).  @xref{Fonts,,, emacs, The
-GNU Emacs Manual}.
+femacs Manual}.
 
 @item :width
 Relative character width.  This should be one of the symbols
@@ -3570,7 +3570,7 @@ at the next level of face merging.
   The variable @code{face-remapping-alist} is used for buffer-local or
 global changes in the appearance of a face.  For instance, it is used
 to implement the @code{text-scale-adjust} command (@pxref{Text
-Scale,,, emacs, The GNU Emacs Manual}).
+Scale,,, emacs, The femacs Manual}).
 
 @defvar face-remapping-alist
 The value of this variable is an alist whose elements have the form
@@ -3867,7 +3867,7 @@ unspecified (and so given by @code{default}).
 @item shadow
 For dimmed-out text.  For example, it is used for the ignored
 part of a filename in the minibuffer (@pxref{Minibuffer File,,
-Minibuffers for File Names, emacs, The GNU Emacs Manual}).
+Minibuffers for File Names, emacs, The femacs Manual}).
 
 @item link
 @itemx link-visited
@@ -3907,7 +3907,7 @@ these are used for messages in @file{*Compilation*} buffers.
   Before Emacs can draw a character on a graphical display, it must
 select a @dfn{font} for that character@footnote{In this context, the
 term @dfn{font} has nothing to do with Font Lock (@pxref{Font Lock
-Mode}).}.  @xref{Fonts,,, emacs, The GNU Emacs Manual}.  Normally,
+Mode}).}.  @xref{Fonts,,, emacs, The femacs Manual}.  Normally,
 Emacs automatically chooses a font based on the faces assigned to that
 character---specifically, the face attributes @code{:family},
 @code{:weight}, @code{:slant}, and @code{:width} (@pxref{Face
@@ -4018,7 +4018,7 @@ nominal heights and widths would suggest.
 This function returns a list of available font names that match
 @var{name}.  @var{name} should be a string containing a font name in
 either the Fontconfig, GTK+, or XLFD format (@pxref{Fonts,,, emacs, The
-GNU Emacs Manual}).  Within an XLFD string, wildcard characters may be
+femacs Manual}).  Within an XLFD string, wildcard characters may be
 used: the @samp{*} character matches any substring, and the @samp{?}
 character matches any single character.  Case is ignored when matching
 font names.
@@ -4309,7 +4309,7 @@ specifications are as follows:
 @table @code
 @item :name
 The font name (a string), in either XLFD, Fontconfig, or GTK+ format.
-@xref{Fonts,,, emacs, The GNU Emacs Manual}.
+@xref{Fonts,,, emacs, The femacs Manual}.
 
 @item :family
 @itemx :foundry
@@ -4487,7 +4487,7 @@ specified by @var{font}.
 
 @defun font-xlfd-name font &optional fold-wildcards long-xlfds
 This function returns the XLFD (X Logical Font Descriptor), a string,
-matching @var{font}.  @xref{Fonts,,, emacs, The GNU Emacs Manual}, for
+matching @var{font}.  @xref{Fonts,,, emacs, The femacs Manual}, for
 information about XLFDs.
 
 If the optional argument @var{fold-wildcards} is non-@code{nil},
@@ -6529,7 +6529,7 @@ specifies the actual color to use for displaying that name.
 
   If your Emacs build has ImageMagick support, you can use the
 ImageMagick library to load many image formats (@pxref{File
-Conveniences,,, emacs, The GNU Emacs Manual}).  The image type symbol
+Conveniences,,, emacs, The femacs Manual}).  The image type symbol
 for images loaded via ImageMagick is @code{imagemagick}, regardless of
 the actual underlying image format.
 
@@ -7416,7 +7416,7 @@ Interactively crop the image (@code{image-crop}).
 Interactively cut a rectangle from the image (@code{image-cut}).
 @end table
 
-@xref{Image Mode,,, emacs, The GNU Emacs Manual}, for more details
+@xref{Image Mode,,, emacs, The femacs Manual}, for more details
 about these image-specific key bindings.
 
 @node Multi-Frame Images
@@ -7695,7 +7695,7 @@ example:
 
 Which alternative will actually be displayed depends on the value of
 the user option @code{icon-preference} (@pxref{Icons,,, emacs, The GNU
-Emacs Manual}) and on the results of run-time checks for what the
+femacs Manual}) and on the results of run-time checks for what the
 current frame's terminal can actually display.
 
 The macro in the example above defines @code{outline-open} as an icon,
@@ -8895,7 +8895,7 @@ through 126 (consisting of numerals, English letters, and symbols like
 @item
 The tab character (character code 9) displays as whitespace stretching
 up to the next tab stop column.  @xref{Text Display,,, emacs, The GNU
-Emacs Manual}.  The variable @code{tab-width} controls the number of
+femacs Manual}.  The variable @code{tab-width} controls the number of
 spaces per tab stop (see below).
 
 @item
@@ -9007,7 +9007,7 @@ The glyph for the end of a truncated screen line (the default for this
 is @samp{$}).  @xref{Glyphs}.  On graphical terminals, Emacs by
 default uses arrows in the fringes to indicate truncation, so the
 display table has no effect, unless you disable the fringes
-(@pxref{Fringes,, Window Fringes, emacs, the GNU Emacs Manual}).
+(@pxref{Fringes,, Window Fringes, emacs, the femacs Manual}).
 
 @item 1
 The glyph for the end of a continued line (the default is @samp{\}).
@@ -9300,7 +9300,7 @@ them.
 @acronym{ASCII} control characters @code{U+0000} to @code{U+001F},
 excluding the newline and tab characters (normally displayed as escape
 sequences like @samp{^A}; @pxref{Text Display,, How Text Is Displayed,
-emacs, The GNU Emacs Manual}).
+emacs, The femacs Manual}).
 
 @item c1-control
 Non-@acronym{ASCII}, non-printing characters @code{U+0080} to
@@ -9417,7 +9417,7 @@ first frame created by Emacs during startup.  (When Emacs is invoked
 as a daemon, it does not create any initial
 frames, so @code{initial-window-system} is @code{nil}, except on
 MS-Windows, where it is still @code{w32}.  @xref{Initial Options,
-daemon,, emacs, The GNU Emacs Manual}.)
+daemon,, emacs, The femacs Manual}.)
 @end defvar
 
 @defun window-system &optional frame
@@ -9475,7 +9475,7 @@ corresponding attributes of the @code{tooltip} face are used instead.
 If @code{left} or @code{top} parameters are included, they are used as
 absolute frame-relative coordinates where the tooltip should be shown.
 (Mouse-relative position of the tooltip can be customized using the
-variables described in @ref{Tooltips,,, emacs, The GNU Emacs Manual}.)
+variables described in @ref{Tooltips,,, emacs, The femacs Manual}.)
 Note that the @code{left} and @code{top} parameters, if present,
 override the values of mouse-relative offsets.
 @end defopt

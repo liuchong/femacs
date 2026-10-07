@@ -267,17 +267,17 @@ $ for t in lisp test etc doc leim admin; do echo "$t $(git -C emacs ls-files $t 
 lisp 1627/1627   test 1555/1555   etc 886/886   doc 255/255   leim 28/28   admin 253/253
 
 $ python3 tools/check-verbatim.py
-OK      lisp: 1627 files, byte-identical, 6385 sanctioned line(s)
+OK      lisp: 1627 files, byte-identical, 6472 sanctioned line(s)
 OK      test: 1555 files, byte-identical
-OK      etc: 886 files, byte-identical, 465 sanctioned line(s)
-OK      doc: 255 files, byte-identical, 89 sanctioned line(s)
+OK      etc: 886 files, byte-identical, 473 sanctioned line(s)
+OK      doc: 255 files, byte-identical, 953 sanctioned line(s)
 OK      leim: 28 files, byte-identical, 15 sanctioned line(s)
-OK      admin: 253 files, byte-identical, 256 sanctioned line(s)
-6 trees, 4604 files, 7210 sanctioned line(s), 0 failures
+OK      admin: 253 files, byte-identical, 260 sanctioned line(s)
+6 trees, 4604 files, 8173 sanctioned line(s), 0 failures
 ```
 
 即：六棵树的**已跟踪文件数逐个相等**，`check-verbatim`（按树、逐文件比对）读 **0 failures**。
-**7,210 行例外**（`docs/baseline/verbatim-substitutions.tsv` 逐行登记，每行一条理由；这张表随第十～第二十九半
+**8,173 行例外**（`docs/baseline/verbatim-substitutions.tsv` 逐行登记，每行一条理由；这张表随第十～第三十半
 逐面增长，下面先点名最早的几批）：其中 24 行是
 `lisp/` 里被程序**打印出来**（或以帧/splash 自称、或写进它生成的文件）的产品名字符串（PORTING.md 0.1-19 的
 第十半，status 3.619）；另外 1,772 行是照抄树里**文件自称属于参照产品**的那句话
@@ -287,11 +287,11 @@ OK      admin: 253 files, byte-identical, 256 sanctioned line(s)
 （第十二半，status 3.641，2026-10-06）。**两处按判据不动**：`test/`
 （goal 文本禁止改测试文件；它的 647 个文件仍逐字节相同）与 `ChangeLog*`（把这句话当历史引用）；
 版权行与许可正文三句同样不动（第十半 ⑥⑶ 的理由不变）。此后每一半把它的那批行登记进来：许可三句的**第二十半**
-（status 3.765，`femacs is free software` 一族）、平台面与工具面的**第二十四/二十五半**、安装登记面上的
-**第二十七/二十八半**（AppStream 名、`.TH` 第四栏与 `NAME` 段、手册页与 metainfo 的 id）、以及**第二十九半**
-（status 3.974，菜单标签与桌面/服务显示名），本表当前 **7,210** 行。
+（status 3.765，`femacs is free software` 一族）、平台面与工具面的**第二十四/二十五半**、安装登记面上的**第二十七/二十八半**（AppStream 名、`.TH` 第四栏与 `NAME` 段、手册页与 metainfo 的 id）、
+**第二十九半**（status 3.974，菜单标签与桌面/服务显示名）与**第三十半**（status 4.008，这棵树自己的手册名——
+两本手册的标题、116 行成员句与指向它们的行，963 行 / 207 个文件），本表当前 **8,173** 行。
 除此之外仍是逐字节相同：一行要不同就必须在表里有行，有行就必被读。
-第十一半之后 `diff -r` 还会在 `lisp`/`etc`/`doc`/`admin` 上打印一批 `Files … differ`，就是这 7,210 行；
+第十一半之后 `diff -r` 还会在 `lisp`/`etc`/`doc`/`admin` 上打印一批 `Files … differ`，就是这 8,173 行；
 `test` 仍是**无差异**。
 **注意**：`emacs/` 是**外部只读检出，不在本仓库的索引里**（`git ls-files emacs/lisp` = 0），
 所以这条判据只能在有该检出的机器上跑（`docs/port-plan.md` §10 已记 CI 的这一限制）。

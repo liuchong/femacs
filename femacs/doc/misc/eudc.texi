@@ -988,7 +988,7 @@ key shortcut (@pxref{Inline Query Expansion}), EUDC also provides a
 function to contribute search results to the Emacs in-buffer
 completion system available via the function
 @code{completion-at-point} (@pxref{List Identifiers,,,emacs, The GNU
-Emacs Manual}) in @code{message-mode} buffers
+femacs Manual}) in @code{message-mode} buffers
 (@pxref{Top,Message,, message, Message}).  When using this mechanism,
 queries are made in the multi-server query mode of operation
 (@pxref{Multi-server Queries}).

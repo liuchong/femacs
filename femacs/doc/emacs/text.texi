@@ -1,5 +1,5 @@
 @c -*- coding: utf-8 -*-
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -1130,7 +1130,7 @@ chapters.  This works as long as no other command starts with
   Instead of setting the variable @code{outline-regexp}, you can set
 the variable @code{outline-search-function} to a function that
 matches the current heading and searches for the next one
-(@pxref{Outline Minor Mode,,,elisp, the Emacs Lisp Reference Manual}).
+(@pxref{Outline Minor Mode,,,elisp, the femacs Lisp Reference Manual}).
 
 @vindex outline-level
   You can explicitly specify a rule for calculating the level of a
@@ -2307,7 +2307,7 @@ find-file-literally} (@pxref{Visiting}).
   @xref{Format Conversion,, Format Conversion, elisp, the Emacs Lisp
 Reference Manual}, for details of how Emacs recognizes and converts
 file formats like @samp{text/enriched}.  @xref{Text Properties,,,
-elisp, the Emacs Lisp Reference Manual}, for more information about
+elisp, the femacs Lisp Reference Manual}, for more information about
 text properties.
 
 @node Hard and Soft Newlines

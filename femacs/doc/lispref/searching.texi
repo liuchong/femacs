@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -39,7 +39,7 @@ buffer.  They are meant for use in programs, but you may call them
 interactively.  If you do so, they prompt for the search string; the
 arguments @var{limit} and @var{noerror} are @code{nil}, and @var{repeat}
 is 1.  For more details on interactive searching, @pxref{Search,,
-Searching and Replacement, emacs, The GNU Emacs Manual}.
+Searching and Replacement, emacs, The femacs Manual}.
 
   These search functions convert the search string to multibyte if the
 buffer is multibyte; they convert the search string to unibyte if the
@@ -213,7 +213,7 @@ case letters, the search ignores case, but when the search string
 contains one or more upper case letters, the search becomes
 case-sensitive.  But this has nothing to do with the searching
 functions used in Lisp code.  @xref{Incremental Search,,, emacs,
-The GNU Emacs Manual}.
+The femacs Manual}.
 
 @defopt case-fold-search
 This buffer-local variable determines whether searches should ignore
@@ -2003,7 +2003,7 @@ was compiled with @code{--enable-checking}.
   In GNU Emacs, you can search for the next match for a regular
 expression (@pxref{Syntax of Regexps}) either incrementally or not.
 For incremental search commands, see @ref{Regexp Search, , Regular
-Expression Search, emacs, The GNU Emacs Manual}.  Here we describe
+Expression Search, emacs, The femacs Manual}.  Here we describe
 only the search functions useful in programs.  The principal one is
 @code{re-search-forward}.
 
@@ -2368,7 +2368,7 @@ This stands for a single @samp{\} in the replacement text.
 @item @samp{\?}
 This stands for itself (for compatibility with @code{replace-regexp}
 and related commands; @pxref{Regexp Replace,,, emacs, The GNU
-Emacs Manual}).
+femacs Manual}).
 @end table
 
 @noindent

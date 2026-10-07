@@ -1,5 +1,5 @@
 @c -*- mode: texinfo -*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1994, 1998--2026 Free Software Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
 @node Keymaps
@@ -1684,7 +1684,7 @@ an input event, in its Lisp form.  @xref{Input Events}.  For example,
 the vector @code{[?\C-x ?l]} represents the key sequence @kbd{C-x l}.
 
   For examples of key sequences written in string and vector
-representations, @ref{Init Rebinding,,, emacs, The GNU Emacs Manual}.
+representations, @ref{Init Rebinding,,, emacs, The femacs Manual}.
 
 @defun kbd keyseq-text
 This function converts the text @var{keyseq-text} (a string constant)
@@ -2148,7 +2148,7 @@ actually bind the multibyte character with code 246, not the byte
 code 246 (@kbd{M-v}) sent by a Latin-1 terminal.  In order to use this
 binding, you need to teach Emacs how to decode the keyboard by using an
 appropriate input method (@pxref{Input Methods, , Input Methods, emacs, The GNU
-Emacs Manual}).
+femacs Manual}).
 
 @deffn Command keymap-global-set key binding
 This function sets the binding of @var{key} in the current global map
@@ -2211,7 +2211,7 @@ local map.
 keymaps for the sake of printing help information.  To display the
 bindings in a particular keymap, you can use the
 @code{describe-keymap} command (@pxref{Misc Help, , Other Help
-Commands, emacs, The GNU Emacs Manual})
+Commands, emacs, The femacs Manual})
 
 @defun accessible-keymaps keymap &optional prefix
 This function returns a list of all the keymaps that can be reached (via
@@ -2303,7 +2303,7 @@ in a keymap.
 
 @defun where-is-internal command &optional keymap firstonly noindirect no-remap
 This function is a subroutine used by the @code{where-is} command
-(@pxref{Help, , Help, emacs,The GNU Emacs Manual}).  It returns a list
+(@pxref{Help, , Help, emacs,The femacs Manual}).  It returns a list
 of all key sequences (of any length) that are bound to @var{command} in a
 set of keymaps.
 
@@ -2890,7 +2890,7 @@ can do it this way:
 @cindex menu bar
 
   Emacs usually shows a @dfn{menu bar} at the top of each frame.
-@xref{Menu Bars,,,emacs, The GNU Emacs Manual}.  Menu bar items are
+@xref{Menu Bars,,,emacs, The femacs Manual}.  Menu bar items are
 subcommands of the fake function key @key{MENU-BAR}, as defined
 in the active keymaps.
 

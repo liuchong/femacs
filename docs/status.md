@@ -16480,3 +16480,54 @@
   ④ **读数（实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 67 的九条逐条相同，**无新增**）；对象 `/tmp/nsterm68.o` **1,177,568 字节**、md5 `3e60fb6df5ee7cc231dc507e33f2381d`；单元 **12,518 行**。⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **649** C symbol import(s)`（round 67 是 647），无 `stale`；终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**。⑶ 台账本轮勾 **13 个框**（九个方法 + EmacsApp 类 + EmacsDocument + 两个宏）并追加 `### Round 68`（勾 **352**、未勾 **78**）——**未勾的只剩 `EmacsView` 的 78 个子盒子与 `NS_KEYLOG` 一行**，这就是"lane 只剩一个类"的机器可数证据。
   ⑤ **预算与清理**：本片编译 **5 发**（首跑 6 错 + 标签/属性改法各 1 + 去重复入口 1 + 复读 1）；期间**一次插入脚本切片算错**（用 `rstrip` 后的长度做偏移，把文件撑到 20,807 行、出现两个 `class EmacsView`）——按既有还原手法 `git show HEAD:<path> > <path>` 复原到 12,354 行并核对编译 0 error，然后用**字面锚点**重做插入（终态 12,517 行、1 个 `class EmacsView`）；另用 **2 个小探针**（`/tmp/nsp3{5,6}`）量 `setFrame`/`scheduledTimer` 的拼法；**探针源、探针对象、编译对象与 `/tmp/nsterm68_methods.swift` 跑完即删**，无全盘/大内存扫描。
   ⑥ **未声称**：本轮**没有运行证据**——没有窗口获得/失去过焦点、没有定时器触发过、没有设置过任何矩形；编译门只到解析与类型检查；`check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.008 版本声明这条长期指令的第三十半：这棵树自己的手册叫什么——两本手册的标题、指向它们的行与 116 行成员句一次改清（963 行 / 207 文件），`manual-membership` 那一类整类撤出登记表（2026-10-08）**：
+  ① **指令的读法不变**（与 3.433 … 3.974 同一条，这是它的第三十半）：`版本声明不要再说是gnu emacs了` 与它的后半
+     `把之前的代码中的这种声明也去掉` 是同一条——**已写进树的产出物也要清**。第十四/十五半点名登记、此后历半"按判据不动"
+     的那一类（`docs/baseline/verbatim-declaration-keeps.tsv` 的 `manual-membership`，116 行）自己的理由里写着出口：
+     **"要清这一类，动的是手册自己的标题"**——本半就动它，并按第八半"一族字面量一次量清"的手法，把**本仓库自己的两本手册**
+     （`doc/emacs` 与 `doc/lispref`）在六棵照抄树里被点名的**每一个**地方当成一个身份一次改名。
+  ② **九个站点面（逐条点名）**：⑴ 手册自己的标题：`@settitle`/`@title`/`@titlefont`/`@shorttitlepage` 与封面/书脊/
+     copying 页（`doc/emacs/back.texi` 9/14、`doc/emacs/emacs.texi` 4/17/20/72/77、`doc/emacs/book-spine.texi` 14、
+     `doc/lispref/back.texi` 8/13、`doc/lispref/elisp.texi` 16/19/127、`doc/lispref/book-spine.texi` 14——`@settitle` 一类
+     共 **5 行**改到）；⑵ 指向这两本手册的 `@ref`/`@xref`/`@pxref`/`@cite`（含跨手册的第五栏"手册名"与 `@cite{}` 的标题，
+     `doc/lispintro/emacs-lisp-intro.texi` 一族最密）；⑶ 照抄树里对这个名字的**散文**引用（`etc/PROBLEMS` 3903/3961/4049、
+     `etc/DEBUG` 663、`doc/translations/README`、`admin/admin.el` 351/511）；⑷ 程序自己名字里带手册名的字符串：菜单标签
+     （`lisp/menu-bar.el` 2027-2164）、快速帮助的标签表（`lisp/help.el` 429-433）、`:tag`/`:help`/`:help-echo`
+     （`lisp/cus-edit.el` 1871/1872、`lisp/font-lock.el` 215、`lisp/custom.el`、`lisp/progmodes/fortran.el` 2139）、
+     splash 的 `:link`（`lisp/startup.el` 1917/1918/2020/2021/2479/2482/2542）；⑸ docstring 与注释（`lisp/info.el`、
+     `lisp/emacs-lisp/edebug.el`、`lisp/abbrev.el`、`lisp/dired.el`、`lisp/ldefs-boot.el` 一族）；⑹ 文件头标题行里的同一句话
+     （`lisp/window.el` 1、`lisp/rect.el` 1、`lisp/calc/calc.el` 1 一族）；⑺ 第十四/十五半登记的那 116 行**成员句**
+     （`@c This is part of the … manual.` 一族，含两条**换行句**：`doc/emacs/emacs-xtra.texi` 12-14 与 85-87）；
+     ⑻ `doc/` 的序言/致谢面（`doc/emacs/emacs.texi` 134、`doc/lispintro/emacs-lisp-intro.texi` 一族）；
+     ⑼ 生成物 `lisp/ldefs-boot.el` 里的同一批字符串。字形仍是第十半的**机械替换**：只换产品名那一个 token
+     （`GNU ` 前缀随产品名一起去掉），同一行其余字符一个都不动；**963 行 / 207 个文件**（逐树 `doc` 864、`lisp` 87、
+     `etc` 8、`admin` 4）逐行写进 `docs/baseline/verbatim-substitutions.tsv`（登记行 **7,211 → 8,174**、文件行 7,232 → 8,195）。
+  ③ **两处表的收口**：`docs/baseline/verbatim-declaration-keeps.tsv` 的 `manual-membership` 类**整类删除**（116 → 0；
+     表从 117 行降到 7 行 = 列头 + 6 行其它类），表头写明"何时、为什么这一类是**撤掉**而不是留着"——它们不再需要豁免
+     （行已改名，门不再读成候选；留着一行"已不是候选"的登记行反而是失败）。余下 6 行逐条是 `narrative`×3、`attribution`、
+     `history-quote`、`licence-recital`，本半一个都没动（判据不变：主语是程序的功能、归属句、历史引用与许可复述）。
+  ④ **读数（全部实测）**：⑴ `python3 tools/check-verbatim.py` ⇒ **`6 trees, 4604 files, 8,173 sanctioned line(s), 0 failures`**
+     （逐树 `lisp` 6,385 → **6,472**、`etc` 465 → **473**、`doc` 89 → **953**、`admin` 256 → **260**；`test`/`leim` 不动，
+     六棵树的文件数逐个不变）。⑵ `python3 tools/check-verbatim-declarations.py` ⇒ **`710 candidate(s) of which 0 wrapped across
+     two lines, 6 enumerated keep(s), 710 classified, 0 failure(s)`**（上一步 820/116；掉下来的 110 个候选正是改名后的成员句、
+     2 个是那两条换行句），`--selftest` **15 例 / 0 失败**（含真 `lisp/` 树端到端读数 32 候选 / 0 未分类）。
+     ⑶ 十门其余：declarations **18 declaration sites (0 forbidden, 18 allowed literals), 0 failures**、own-voice **0 failure(s)**、
+     citations **676 / 0 drift / 0 range / 2,416 external / 36 allowed / 0 stale**、mirror-dupes **16/16/0**、port-lines **0/0/0/0**、
+     ledger-ticks **238/0**、carried **11/11/4/0**、dead-file-coverage **145/0**。
+  ⑤ **按判据不动、逐条点名（11 处）**：句子的主语不是本程序的手册、而是**参照方的发行渠道**那一族——
+     `admin/make-manuals` 2/42 与 `admin/upload-manuals` 3/45（上传到 `gnu.org`）、`doc/man/emacs.1.in` 561、
+     `doc/misc/efaq.texi` 564/569、`doc/emacs/help.texi` 835、`lisp/help.el` 731（**从 FSF 买印刷本**那一句）、
+     `doc/misc/efaq-w32.texi` 2361（指向 gnu.org 手册集合的链接标签）、`etc/DISTRIB` 30（FSF 的印刷本）——与第十半
+     "链接指向参照的站点、URL 不动"、第二十一半"上游链接与它们的标签"是同一判据。同族的**外部专名与路径**
+     （`(emacs)`/`(elisp)` 的 Info 文件名、`info-emacs-manual` 一族命令名/函数名、目录名、`XEmacs` 字样）本半一个都没动：
+     改的是"名字"，不是"指向"（这一族也是第十三/二十九半留下的那一面）。
+  ⑥ **仍未清、点名不冒充（本半只作读数）**：⑴ 这两本手册**叙述**里对这个程序的称呼——`doc/` 里仍有 **399 行**
+     带那个拼写的叙述，而 `doc/` 里含裸名的行共 **10,980 行**（含语言名、命令名、协议名）；⑵ 其余 19 本手册自己的标题
+     （`@settitle` 那一族里**另外 24 行**，小型库/模式手册）；⑶ `doc/translations/` 的译本里同一批字符串的非英文写法；
+     ⑷ 裸名的对外字样里剩下的那些（命令名、协议名、`:tag` 一族余下的标签）。
+  ⑦ **预算与清理**：**零编译**（本半只改文本与两张表；`check-verbatim` 与声明门各跑 2 次、其余八门各 1 次，
+     声明门的 `--selftest` 跑 2 次）；一个**流式**脚本生成 963 行登记（只按行读写、逐文件落盘即释放，3,049 个在册文件
+     分三趟扫完，不把整棵树读进内存）；`/tmp/half30*.py`、`/tmp/half30_rows.tsv` 与两个旧脚本跑完即删，无全盘/大内存扫描。
+     **未声称**：本半没有跑过任何东西——改的是文本，证据只有逐字节门（963 行每一行都被读回并与登记的整行文本核对）
+     与声明门；这些手册没有被 `makeinfo` 重建过，"交叉引用的第五栏与新标题一致"由逐字节门与逐条复核保证，不是编译证据。

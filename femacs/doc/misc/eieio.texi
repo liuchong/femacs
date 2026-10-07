@@ -258,7 +258,7 @@ To create a new class, use the @code{defclass} macro:
 Create a new class named @var{class-name}.  The class is represented
 by a symbol with the name @var{class-name}.  @eieio{} stores the structure of
 the class as a symbol property of @var{class-name} (@pxref{Symbol
-Components,,,elisp,GNU Emacs Lisp Reference Manual}).
+Components,,,elisp,femacs Lisp Reference Manual}).
 
 When defining a class, @eieio{} overwrites any preexisting variable or
 function bindings for the symbol @var{class-name}, which may lead to
@@ -266,7 +266,7 @@ undesired consequences.  Before naming a new class, you should check
 for name conflicts.  To help avoid cross-package conflicts you should
 choose a name with the same prefix you chose for the rest of your
 package's functions and variables (@pxref{Coding
-Conventions,,,elisp,GNU Emacs Lisp Reference Manual}).
+Conventions,,,elisp,femacs Lisp Reference Manual}).
 
 The @var{class-name} symbol's variable documentation string is a
 modified version of the doc string found in @var{options-and-doc}.
@@ -694,7 +694,7 @@ It can also be used on objects defined by @code{cl-defstruct}.
 
 This is a generalized variable that can be used with @code{setf} to
 modify the value stored in @var{slot}.
-@xref{Generalized Variables,,,elisp,GNU Emacs Lisp Reference Manual}.
+@xref{Generalized Variables,,,elisp,femacs Lisp Reference Manual}.
 @end defun
 
 @defun set-slot-value object slot value
@@ -713,7 +713,7 @@ unbound slot can signal an error.
 
 The following accessors follow a naming and argument-order conventions
 are similar to those used for referencing vectors
-(@pxref{Vectors,,,elisp,GNU Emacs Lisp Reference Manual}).
+(@pxref{Vectors,,,elisp,femacs Lisp Reference Manual}).
 
 @defmac oref obj slot
 @anchor{oref}
@@ -723,7 +723,7 @@ not be quoted.
 
 This is a generalized variable that can be used with @code{setf} to
 modify the value stored in @var{slot}.  @xref{Generalized
-Variables,,,elisp,GNU Emacs Lisp Reference Manual}.
+Variables,,,elisp,femacs Lisp Reference Manual}.
 @end defmac
 
 @defmac oref-default class slot
@@ -733,7 +733,7 @@ This macro returns the value of the class-allocated @var{slot} from
 
 This is a generalized variable that can be used with @code{setf} to
 modify the value stored in @var{slot}.  @xref{Generalized
-Variables,,,elisp,GNU Emacs Lisp Reference Manual}.
+Variables,,,elisp,femacs Lisp Reference Manual}.
 @end defmac
 
 @defmac oset object slot value
@@ -811,7 +811,7 @@ multiple definitions under the same function symbol.
 
 You do it using Emacs Lisp's built-in support for CLOS-style generic
 functions via the @code{cl-defgeneric} and @code{cl-defmethod} macros
-(@pxref{Generic Functions,,,elisp,GNU Emacs Lisp Reference Manual}).
+(@pxref{Generic Functions,,,elisp,femacs Lisp Reference Manual}).
 
 EIEIO provides one extension to @code{cl-defmethod} to allow methods to
 dispatch on a class argument: so-called ``static'' methods do not depend

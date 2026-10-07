@@ -426,11 +426,11 @@ Do not call this in the scope of `with-help-window'."
        ("describe-variable" "Show help for variable")
        ("describe-symbol" "Show help for function or variable"))
       ("Manuals"
-       ("info-emacs-manual" "Show Emacs manual")
+       ("info-emacs-manual" "Show femacs manual")
        ("Info-goto-emacs-command-node"
-        "Show Emacs manual section for command")
+        "Show femacs manual section for command")
        ("Info-goto-emacs-key-command-node"
-        "Show Emacs manual section for a key sequence")
+        "Show femacs manual section for a key sequence")
        ("info" "Show all installed manuals")
        ("info-display-manual" "Show a specific manual")
        ("info-lookup-symbol" "Show description of symbol in pertinent manual"))

@@ -19259,9 +19259,9 @@ See a list of available Info commands in `Info-mode'.
 
 (fn &optional FILE-OR-NODE BUFFER)" t)
 (autoload 'info-emacs-manual "info"
-"Display the Emacs manual in Info mode." t)
+"Display the femacs manual in Info mode." t)
 (autoload 'info-emacs-bug "info"
-"Display the \"Reporting Bugs\" section of the Emacs manual in Info mode." t)
+"Display the \"Reporting Bugs\" section of the femacs manual in Info mode." t)
 (autoload 'info-standalone "info"
 "Run Emacs as a standalone Info reader.
 Usage:  emacs -f info-standalone [filename]
@@ -19364,8 +19364,8 @@ run, this mode runs the hook `Info-mode-hook', as the final or
 penultimate step during initialization." t)
  (put 'Info-goto-emacs-command-node 'info-file "emacs")
 (autoload 'Info-goto-emacs-command-node "info"
-"Go to the Info node in the Emacs manual for command COMMAND.
-The command is found by looking up in Emacs manual's indices
+"Go to the Info node in the femacs manual for command COMMAND.
+The command is found by looking up in femacs manual's indices
 or in another manual found via COMMAND's `info-file' property or
 the variable `Info-file-list-for-emacs'.
 COMMAND must be a symbol or string.
@@ -19373,10 +19373,10 @@ COMMAND must be a symbol or string.
 (fn COMMAND)" t)
  (put 'Info-goto-emacs-key-command-node 'info-file "emacs")
 (autoload 'Info-goto-emacs-key-command-node "info"
-"Go to the node in the Emacs manual which describes the command bound to KEY.
+"Go to the node in the femacs manual which describes the command bound to KEY.
 KEY is a string.
 Interactively, if the binding is `execute-extended-command', a command is read.
-The command is found by looking up in Emacs manual's indices
+The command is found by looking up in femacs manual's indices
 or in another manual found via COMMAND's `info-file' property or
 the variable `Info-file-list-for-emacs'.
 
@@ -19493,7 +19493,7 @@ checked.
 
 The search for \"all\" info files is rather permissive, since
 info files don't necessarily have a \".info\" extension and in
-particular the Emacs manuals normally don't.  If you have a
+particular the femacs manuals normally don't.  If you have a
 source code directory in `Info-directory-list' then a lot of
 extraneous files might be read.  This will be time consuming but
 should be harmless." t)
@@ -25752,7 +25752,7 @@ bound earlier in the pattern by a SYMBOL pattern.
 Additional patterns can be defined using `pcase-defmacro'.
 
 See Info node `(elisp) Pattern-Matching Conditional' in the
-Emacs Lisp manual for more information and examples.
+femacs Lisp manual for more information and examples.
 
 (fn EXP &rest CASES)" nil t)
 (put 'pcase 'function-documentation '(pcase--make-docstring))

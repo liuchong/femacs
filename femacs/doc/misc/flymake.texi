@@ -538,7 +538,7 @@ without an overlay face.
 @vindex flymake-diagnostic-beg
 @vindex flymake-diagnostic-end
 As you might have guessed, Flymake's annotations are implemented as
-overlays (@pxref{Overlays,,, elisp, The Emacs Lisp Reference Manual}).
+overlays (@pxref{Overlays,,, elisp, The femacs Lisp Reference Manual}).
 Along with the properties that you specify for the specific type of
 diagnostic, Flymake adds the property @code{flymake-diagnostic} to
 these overlays, and sets it to the object that the backend created
@@ -737,7 +737,7 @@ Compute @var{buffer}'s region (@var{beg} .  @var{end}) corresponding
 to @var{line} and @var{col}.  If @var{col} is @code{nil}, return a
 region just for @var{line}.  Return @code{nil} if the region is
 invalid.  This function saves match data (@pxref{Saving Match Data,,,
-elisp, The Emacs Lisp Reference Manual}).
+elisp, The femacs Lisp Reference Manual}).
 @end deffn
 
 @cindex add a log message
@@ -748,7 +748,7 @@ buffer (@pxref{Troubleshooting}):
 @deffn Macro flymake-log level msg &optional args
 Log, at level @var{level}, the message @var{msg} formatted with
 @var{args}.  @var{level} is passed to @code{display-warning}
-(@pxref{Warning Basics,,, elisp, The Emacs Lisp reference Manual}), which is
+(@pxref{Warning Basics,,, elisp, The femacs Lisp reference Manual}), which is
 used to display the warning in Flymake's log buffer.
 @end deffn
 
@@ -815,11 +815,11 @@ backend as outlined above.
 
 The backend in question is used for checking Ruby source files.  It
 uses asynchronous sub-processes (@pxref{Asynchronous Processes,,, elisp,
-The Emacs Lisp Reference Manual}), a common technique for performing
+The femacs Lisp Reference Manual}), a common technique for performing
 parallel processing in Emacs.
 
 The following code needs lexical binding (@pxref{Using Lexical
-Binding,,, elisp, The Emacs Lisp Reference Manual}) to be active.
+Binding,,, elisp, The femacs Lisp Reference Manual}) to be active.
 
 @example
 @group

@@ -1,4 +1,4 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 1999--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -331,7 +331,7 @@ original encoding and end-of-line convention.  @xref{Coding Systems}.
 characters with no special encoding or conversion, use the @kbd{M-x
 find-file-literally} command.  This visits a file, like @kbd{C-x C-f},
 but does not do format conversion (@pxref{Format Conversion,, Format
-Conversion, elisp, the Emacs Lisp Reference Manual}), character code
+Conversion, elisp, the femacs Lisp Reference Manual}), character code
 conversion (@pxref{Coding Systems}), or automatic uncompression
 (@pxref{Compressed Files}), and does not add a final newline because
 of @code{require-final-newline} (@pxref{Customize Save}).  If you have
@@ -827,7 +827,7 @@ symbolic link, Emacs will break the symbolic link upon saving the
 buffer, and will write the buffer to a file with the same name as the
 symbolic link, if the value of @code{file-precious-flag} is
 non-@code{nil} (@pxref{Saving Buffers, file-precious-flag,, elisp, The
-Emacs Lisp Reference Manual}).  If you want Emacs to save the buffer
+femacs Lisp Reference Manual}).  If you want Emacs to save the buffer
 to the file the symbolic link points to (thereby preserving the link)
 in these cases, customize the variable
 @code{file-preserve-symlinks-on-save} to @code{t}.
@@ -1467,7 +1467,7 @@ to a value less than 20, Emacs will behave as if the value is 20.
   Auto-saving also takes place when you stop typing for a while.  By
 default, it does this after 30 seconds of idleness (at this time,
 Emacs may also perform garbage collection; @pxref{Garbage
-Collection,,, elisp, The Emacs Lisp Reference Manual}).  To change
+Collection,,, elisp, The femacs Lisp Reference Manual}).  To change
 this interval, customize the variable @code{auto-save-timeout}.  The
 actual time period is longer if the current buffer is long; this is a
 heuristic which aims to keep out of your way when you are editing long

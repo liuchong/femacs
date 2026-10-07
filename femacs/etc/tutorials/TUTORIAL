@@ -882,7 +882,7 @@ the search is reversed.
 One of the nice features of Emacs is that you can display more than
 one window on the screen at the same time.  (Note that Emacs uses the
 term "frames"--described in the next section--for what some other
-applications call "windows".  The Emacs manual contains a Glossary of
+applications call "windows".  The femacs manual contains a Glossary of
 Emacs terms.)
 
 >> Move the cursor to this line and type C-l C-l.
@@ -1069,7 +1069,7 @@ corresponding command names (such as C-x C-f beside find-file).
    C-h i	Read included Manuals (a.k.a. Info).  This command puts
 		you into a special buffer called "*info*" where you
 		can read manuals for the packages installed on your system.
-		Type m emacs <Return> to read the Emacs manual.
+		Type m emacs <Return> to read the femacs manual.
 		If you have never before used Info, type h and Emacs
 		will take you on a guided tour of Info mode facilities.
 		Once you are through with this tutorial, you should

@@ -24,7 +24,7 @@
 ;;; Commentary:
 
 ;; This package provides the operations on rectangles that are documented
-;; in the Emacs manual.
+;; in the femacs manual.
 
 ;; ### NOTE: this file was almost completely rewritten by Didier Verna
 ;; in July 1999.

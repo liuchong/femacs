@@ -324,7 +324,7 @@ checked.
 
 The search for \"all\" info files is rather permissive, since
 info files don't necessarily have a \".info\" extension and in
-particular the Emacs manuals normally don't.  If you have a
+particular the femacs manuals normally don't.  If you have a
 source code directory in `Info-directory-list' then a lot of
 extraneous files might be read.  This will be time consuming but
 should be harmless."

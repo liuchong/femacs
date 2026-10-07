@@ -1,4 +1,4 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -590,7 +590,7 @@ platforms, Emacs can yank these objects with the @code{yank-media}
 command---but only in modes that have support for it.  By default, it
 auto-selects the preferred media type available in the clipboard but
 this can be overridden by giving the prefix argument to the command
-(@pxref{Yanking Media,,, elisp, The Emacs Lisp Reference Manual}).
+(@pxref{Yanking Media,,, elisp, The femacs Lisp Reference Manual}).
 
 @cindex clipboard manager
 @vindex x-select-enable-clipboard-manager

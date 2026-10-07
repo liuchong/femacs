@@ -1,7 +1,7 @@
 \input texinfo
 
 @setfilename ../../info/emacs.info
-@settitle GNU Emacs Manual
+@settitle femacs Manual
 @documentlanguage en
 @include docstyle.texi
 @include emacsver.texi
@@ -14,10 +14,10 @@
 
 @copying
 @ifset EDITION
-This is the @value{EDITION} edition of the @cite{GNU Emacs Manual},@*
+This is the @value{EDITION} edition of the @cite{femacs Manual},@*
 @end ifset
 @ifclear EDITION
-This is the @cite{GNU Emacs Manual},
+This is the @cite{femacs Manual},
 @end ifclear
 updated for Emacs version @value{EMACSVER}.
 
@@ -69,12 +69,12 @@ developing GNU and promoting software freedom.''
 @iftex
 @kbdinputstyle code
 
-@shorttitlepage GNU Emacs Manual
+@shorttitlepage femacs Manual
 @end iftex
 
 @titlepage
 @sp 6
-@center @titlefont{GNU Emacs Manual}
+@center @titlefont{femacs Manual}
 @sp 4
 @ifset EDITION
 @center @value{EDITION} Edition, Updated for Emacs Version @value{EMACSVER}.
@@ -131,7 +131,7 @@ introduction to the Info documentation system.
 @end ifinfo
 
 For information on extending Emacs, see @ref{Top, Emacs Lisp,, elisp, The
-Emacs Lisp Reference Manual}.
+femacs Lisp Reference Manual}.
 
 @insertcopying
 @end ifnottex

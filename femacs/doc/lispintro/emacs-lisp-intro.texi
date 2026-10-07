@@ -215,7 +215,7 @@ supports it in developing GNU and promoting software freedom.''
 @c program using this book.
 @c
 @c If you DO know how to program in some other language, you can probably
-@c learn Emacs Lisp starting with the Emacs Lisp Reference Manual.
+@c learn Emacs Lisp starting with the femacs Lisp Reference Manual.
 @c
 @c        Richard Stallman <rms@gnu.org>,
 @c        https://lists.gnu.org/r/emacs-devel/2018-05/msg00374.html
@@ -891,11 +891,11 @@ as a daunting mountain.
 This book, @cite{An Introduction to Programming in Emacs Lisp}, has a
 companion document,
 @iftex
-@cite{The GNU Emacs Lisp Reference Manual}.
+@cite{The femacs Lisp Reference Manual}.
 @end iftex
 @ifnottex
-@ref{Top, , The GNU Emacs Lisp Reference Manual, elisp, The GNU
-Emacs Lisp Reference Manual}.
+@ref{Top, , The femacs Lisp Reference Manual, elisp, The GNU
+femacs Lisp Reference Manual}.
 @end ifnottex
 The reference manual has more detail than this introduction.  In the
 reference manual, all the information about one topic is concentrated
@@ -958,7 +958,7 @@ Thus, to indent a region of plain text by 6 spaces, mark the region,
 and then type @w{@kbd{C-u 6 C-M-\}}.  (If you do not specify a number,
 Emacs either passes the number 4 to the command or otherwise runs the
 command differently than it would otherwise.)  @xref{Arguments, ,
-Numeric Arguments, emacs, The GNU Emacs Manual}.
+Numeric Arguments, emacs, The femacs Manual}.
 
 If you are reading this in Info using GNU Emacs, you can read through
 this whole document just by pressing the space bar, @key{SPC}.
@@ -1010,7 +1010,7 @@ bob@@gnu.org
 @c   has been already used, duplicate ignored
 @c I guess that is harmless (what happens if a later part of the text
 @c makes a link to something in the first 4 pages though?).
-@c E.g., note that the Emacs manual has a preface, but does not bother
+@c E.g., note that the femacs manual has a preface, but does not bother
 @c resetting the page numbers back to 1 after that.
 @c Alternatively, uncomment the 3 lines above (search for ``pageno'')
 @c to have the preface numbered in roman numerals.
@@ -1596,7 +1596,7 @@ to read are those with @file{.el} extensions.
 As a practical matter, for most things you might do to customize or
 extend Emacs, you do not need to byte compile; and I will not discuss
 the topic here.  @xref{Byte Compilation, , Byte Compilation, elisp,
-The GNU Emacs Lisp Reference Manual}, for a full description of byte
+The femacs Lisp Reference Manual}, for a full description of byte
 compilation.
 
 @node Evaluation
@@ -3411,7 +3411,7 @@ as its argument.  Emacs has more than twenty characters predefined for
 use with @code{interactive}.  In almost every case, one of these
 options will enable you to pass the right information interactively to
 a function.  (@xref{Interactive Codes, , Code Characters for
-@code{interactive}, elisp, The GNU Emacs Lisp Reference Manual}.)
+@code{interactive}, elisp, The femacs Lisp Reference Manual}.)
 
 @need 1250
 Consider the function @code{zap-to-char}.  Its interactive expression
@@ -3476,7 +3476,7 @@ a list.
 
 @xref{append-to-buffer, , The Definition of @code{append-to-buffer}},
 for an example.  @xref{Using Interactive, , Using @code{Interactive},
-elisp, The GNU Emacs Lisp Reference Manual}, for a more complete
+elisp, The femacs Lisp Reference Manual}, for a more complete
 explanation about this technique.
 
 @node Permanent Installation
@@ -3528,7 +3528,7 @@ others, it may be included in the next release of Emacs.  In large
 part, this is how Emacs has grown over the past years, by contributions.
 
 @xref{Contributing, Contributing to Emacs Development,, emacs, The GNU
-Emacs Manual}, for how to contribute your code for inclusion in Emacs.
+femacs Manual}, for how to contribute your code for inclusion in Emacs.
 
 @node let
 @section @code{let}
@@ -3774,7 +3774,7 @@ the first line of your Emacs Lisp file:
 @end example
 
 For more information about this, @pxref{Variable Scoping, , ,
-elisp, The Emacs Lisp Reference Manual}.
+elisp, The femacs Lisp Reference Manual}.
 
 @menu
 * Lexical & Dynamic Binding Differences::
@@ -4451,7 +4451,7 @@ rather than one.
 @end table
 
 @xref{Interactive Codes, , Code Characters for @samp{interactive},
-elisp, The GNU Emacs Lisp Reference Manual}, for a complete list of
+elisp, The femacs Lisp Reference Manual}, for a complete list of
 code characters.
 
 @item let
@@ -4699,7 +4699,7 @@ text as well.  For example, @code{xref-find-definitions} will jump to
 the various nodes in the Texinfo source file of this document
 (provided that you've run the @command{etags} utility to record all
 the nodes in the manuals that come with Emacs; @pxref{Create Tags
-Table,,, emacs, The GNU Emacs Manual}).
+Table,,, emacs, The femacs Manual}).
 
 To use the @code{xref-find-definitions} command, type @kbd{M-.}
 (i.e., press the period key while holding down the @key{META} key, or
@@ -4727,7 +4727,7 @@ functions that relate to a particular topic or activity, such as
 shortcuts, and @file{help.el} for help.  (Sometimes several
 libraries provide code for a single activity, as the various
 @file{rmail@dots{}} files provide code for reading electronic mail.)
-In @cite{The GNU Emacs Manual}, you will see sentences such as ``The
+In @cite{The femacs Manual}, you will see sentences such as ``The
 @kbd{C-h p} command lets you search the standard Emacs Lisp libraries
 by topic keywords.''
 
@@ -6436,7 +6436,7 @@ expression.  This @samp{\\} tells the Lisp interpreter to substitute
 whatever key is currently bound to the @samp{[@dots{}]}.  In the case
 of @code{universal-argument}, that is usually @kbd{C-u}, but it might
 be different.  (@xref{Documentation Tips, , Tips for Documentation
-Strings, elisp, The GNU Emacs Lisp Reference Manual}, for more
+Strings, elisp, The femacs Lisp Reference Manual}, for more
 information.)
 
 @need 1200
@@ -7013,7 +7013,7 @@ access to the parts of an array, an array is considered an atom.
 Conversely, the other fundamental function, @code{cons}, can put
 together or construct a list, but not an array.  (Arrays are handled
 by array-specific functions.  @xref{Arrays, , Arrays, elisp, The GNU
-Emacs Lisp Reference Manual}.)
+femacs Lisp Reference Manual}.)
 
 @node cons
 @section @code{cons}
@@ -7060,7 +7060,7 @@ Like @code{car} and @code{cdr}, @code{cons} is non-destructive.
 @code{cons} must have a list to attach to.@footnote{Actually, you can
 @code{cons} an element to an atom to produce a dotted pair.  Dotted
 pairs are not discussed here; see @ref{Dotted Pair Notation, , Dotted
-Pair Notation, elisp, The GNU Emacs Lisp Reference Manual}.}  You
+Pair Notation, elisp, The femacs Lisp Reference Manual}.}  You
 cannot start from absolutely nothing.  If you are building a list, you
 need to provide at least an empty list at the beginning.  Here is a
 series of @code{cons} expressions that build up a list of flowers.  If
@@ -7180,7 +7180,7 @@ In an earlier version:
     that indicates that the function @code{length} is one of the primitive
     functions written in C rather than in Emacs Lisp.  (@samp{subr} is an
     abbreviation for ``subroutine''.)  @xref{What Is a Function, , What Is a
-    Function?, elisp , The GNU Emacs Lisp Reference Manual}, for more
+    Function?, elisp , The femacs Lisp Reference Manual}, for more
     about subroutines.
 @end ignore
 
@@ -7758,7 +7758,7 @@ character exists, or to the character itself.  (This becomes important
 for certain characters in non-European languages.  The @code{aref}
 function extracts an element from an array.  It is an array-specific
 function that is not described in this document.  @xref{Arrays, ,
-Arrays, elisp, The GNU Emacs Lisp Reference Manual}.)
+Arrays, elisp, The femacs Lisp Reference Manual}.)
 
 @noindent
 @code{(point)} is the current position of the cursor.
@@ -8291,7 +8291,7 @@ like an @code{if} except that it has no then-clause, and it supplies
 an implicit @code{nil} for that.
 
 For more about Lisp macros, see @ref{Macros, , Macros, elisp, The GNU
-Emacs Lisp Reference Manual}.  The C programming language also
+femacs Lisp Reference Manual}.  The C programming language also
 provides macros.  These are different, but also useful.
 
 @ignore
@@ -9354,7 +9354,7 @@ are now more than 700 such variables, far too many to remember
 readily.  Fortunately, you can press @key{TAB} after calling the
 @code{M-x set-variable} command to see the list of variables.
 (@xref{Examining, , Examining and Setting Variables, emacs,
-The GNU Emacs Manual}.)
+The femacs Manual}.)
 
 @need 1250
 @node cons & search-fwd Review
@@ -9648,7 +9648,7 @@ and the second of which holds the address of @code{buttercup}.
 A pair of address-boxes is called a @dfn{cons cell} or @dfn{dotted
 pair}.  @xref{Cons Cell Type, , Cons Cell and List Types, elisp, The GNU Emacs Lisp
 Reference Manual}, and @ref{Dotted Pair Notation, , Dotted Pair
-Notation, elisp, The GNU Emacs Lisp Reference Manual}, for more
+Notation, elisp, The femacs Lisp Reference Manual}, for more
 information about cons cells and dotted pairs.
 
 @need 1200
@@ -10727,7 +10727,7 @@ number of times.
 In addition to @code{while}, both @code{dolist} and @code{dotimes}
 provide for looping.  Sometimes these are quicker to write than the
 equivalent @code{while} loop.  Both are Lisp macros.  (@xref{Macros, ,
-Macros, elisp, The GNU Emacs Lisp Reference Manual}. )
+Macros, elisp, The femacs Lisp Reference Manual}. )
 
 @code{dolist} works like a @code{while} loop that @sc{cdr}s down a
 list:  @code{dolist} automatically shortens the list each time it
@@ -11924,7 +11924,7 @@ where to move point.  The phrase ``regular expression'' is often written
 as ``regexp''.
 
 Regular expression searches are described in @ref{Regexp Search, ,
-Regular Expression Search, emacs, The GNU Emacs Manual}, as well as in
+Regular Expression Search, emacs, The femacs Manual}, as well as in
 @ref{Regular Expressions, , , elisp, The GNU Emacs Lisp Reference
 Manual}.  In writing this chapter, I am presuming that you have at
 least a mild acquaintance with them.  The major point to remember is
@@ -12635,7 +12635,7 @@ the beginning of each line.  For example, in Lisp code, it is a
 convention to start each line of a paragraph-long comment with
 @samp{;;; }.  In Text mode, four blank spaces make up another common
 fill prefix, creating an indented paragraph.  (@xref{Fill Prefix, , ,
-emacs, The GNU Emacs Manual}, for more information about fill
+emacs, The femacs Manual}, for more information about fill
 prefixes.)
 
 The existence of a fill prefix means that in addition to being able to
@@ -14247,7 +14247,7 @@ one syntax category.  Other syntax categories include the class of
 punctuation characters, such as the period and the comma, and the
 class of whitespace characters, such as the blank space and the tab
 character.  (For more information, @pxref{Syntax Tables, , Syntax
-Tables, elisp, The GNU Emacs Lisp Reference Manual}.)
+Tables, elisp, The femacs Lisp Reference Manual}.)
 
 Syntax tables specify which characters belong to which categories.
 Usually, a hyphen is not specified as a word constituent character.
@@ -16450,7 +16450,7 @@ particularly fonts, that I find easier to manipulate using the
 
 Most of this chapter is about writing expressions yourself.  It
 describes a simple @file{.emacs} file; for more information, see
-@ref{Init File, , The Init File, emacs, The GNU Emacs Manual}, and
+@ref{Init File, , The Init File, emacs, The femacs Manual}, and
 @ref{Init File, , The Init File, elisp, The GNU Emacs Lisp Reference
 Manual}.
 
@@ -16471,7 +16471,7 @@ dumped version of Emacs is created, as is most common.  (Dumped
 copies of Emacs load more quickly.  However, once a file is loaded and
 dumped, a change to it does not lead to a change in Emacs unless you
 load it yourself or re-dump Emacs.  @xref{Building Emacs, , Building
-Emacs, elisp, The GNU Emacs Lisp Reference Manual}, and the
+Emacs, elisp, The femacs Lisp Reference Manual}, and the
 @file{INSTALL} file.)
 
 Three other site-wide initialization files are loaded automatically
@@ -16564,7 +16564,7 @@ find it.
 
 The @code{defcustom} macro recognizes more than a dozen keywords.
 For more information, see @ref{Customization, , Writing Customization
-Definitions, elisp, The GNU Emacs Lisp Reference Manual}.
+Definitions, elisp, The femacs Lisp Reference Manual}.
 
 Consider @code{text-mode-hook} as an example.
 
@@ -16710,7 +16710,7 @@ adding to it ever since.
 This describes the usual conventions for comments in Emacs Lisp.
 Everything on a line that follows a semicolon is a comment.  Two,
 three, and four semicolons are used as subsection and section markers.
-(@xref{Comments, ,, elisp, The GNU Emacs Lisp Reference Manual}, for
+(@xref{Comments, ,, elisp, The femacs Lisp Reference Manual}, for
 more about comments.)
 
 @smallexample
@@ -16790,14 +16790,14 @@ per-buffer, local variables list, if any.
 
 @ifinfo
 @xref{Choosing Modes, , How Major Modes are Chosen, emacs, The GNU
-Emacs Manual}.
+femacs Manual}.
 
 @xref{File Variables, , Local Variables in Files, emacs, The GNU Emacs
 Manual}.
 @end ifinfo
 @iftex
 See sections ``How Major Modes are Chosen'' and ``Local Variables in
-Files'' in @cite{The GNU Emacs Manual}.
+Files'' in @cite{The femacs Manual}.
 @end iftex
 
 Now, back to the @file{.emacs} file.
@@ -16939,14 +16939,14 @@ sets values only in buffers that do not have their own local
 values for the variable.
 
 @ifinfo
-@xref{Just Spaces, , Tabs vs.@: Spaces, emacs, The GNU Emacs Manual}.
+@xref{Just Spaces, , Tabs vs.@: Spaces, emacs, The femacs Manual}.
 
 @xref{File Variables, , Local Variables in Files, emacs, The GNU Emacs
 Manual}.
 @end ifinfo
 @iftex
 See sections ``Tabs vs.@: Spaces'' and ``Local Variables in
-Files'' in @cite{The GNU Emacs Manual}.
+Files'' in @cite{The femacs Manual}.
 @end iftex
 
 @need 1700
@@ -16982,7 +16982,7 @@ the @kbd{w} key.  The key binding is surrounded by double quotation
 marks.  (If you were binding a @key{META} key, rather than a @key{CTRL}
 key, you would write @w{@code{M-c}} in your @file{.emacs} file.
 @xref{Init Rebinding, , Rebinding Keys in Your Init File, emacs, The GNU
-Emacs Manual}, for details.)
+femacs Manual}, for details.)
 
 The command invoked by the keys is @code{compare-windows}.  Note that
 @code{compare-windows} is preceded by a single-quote; otherwise, Emacs
@@ -17270,7 +17270,7 @@ The name of the function, @code{load-library}, comes from the use of
 
 Another interactive command that does a slightly different job is
 @code{load-file}.  @xref{Lisp Libraries, , Libraries of Lisp Code for
-Emacs, emacs, The GNU Emacs Manual}, for information on the
+Emacs, emacs, The femacs Manual}, for information on the
 distinction between @code{load-library} and this command.
 
 @node Autoload
@@ -17384,7 +17384,7 @@ this:
 @end smallexample
 
 For more information, see @ref{Init Rebinding, , Rebinding Keys in
-Your Init File, emacs, The GNU Emacs Manual}.
+Your Init File, emacs, The femacs Manual}.
 
 @cindex Conditional 'twixt two versions of Emacs
 @cindex Version of Emacs, choosing
@@ -17818,7 +17818,7 @@ string format can be repeated.
 
 @xref{Text Properties, , Text Properties, elisp, The GNU Emacs Lisp
 Reference Manual}, and see @ref{Mode Line Format, , Mode Line Format,
-elisp, The GNU Emacs Lisp Reference Manual}, for more information.
+elisp, The femacs Lisp Reference Manual}, for more information.
 
 @code{mode-line-buffer-identification}
 displays the current buffer name.  It is a list
@@ -17883,7 +17883,7 @@ first is built into the internals of Emacs and is always with you;
 the second requires that you instrument a function before you can use it.
 
 Both debuggers are described extensively in @ref{Debugging, ,
-Debugging Lisp Programs, elisp, The GNU Emacs Lisp Reference Manual}.
+Debugging Lisp Programs, elisp, The femacs Lisp Reference Manual}.
 In this chapter, I will walk through a short example of each.
 
 @menu
@@ -18184,7 +18184,7 @@ where you want the debugger to start, like this:
 @end smallexample
 
 The @code{debug} function is described in detail in @ref{Debugger, ,
-The Lisp Debugger, elisp, The GNU Emacs Lisp Reference Manual}.
+The Lisp Debugger, elisp, The femacs Lisp Reference Manual}.
 
 @node edebug
 @section The @code{edebug} Source Level Debugger
@@ -18392,11 +18392,11 @@ easy to use that we have not touched.
 A path you can follow right now lies among the sources to GNU Emacs
 and in
 @ifnotinfo
-@cite{The GNU Emacs Lisp Reference Manual}.
+@cite{The femacs Lisp Reference Manual}.
 @end ifnotinfo
 @ifinfo
-@ref{Top, , The GNU Emacs Lisp Reference Manual, elisp, The GNU
-Emacs Lisp Reference Manual}.
+@ref{Top, , The femacs Lisp Reference Manual, elisp, The GNU
+femacs Lisp Reference Manual}.
 @end ifinfo
 
 The Emacs Lisp sources are an adventure.  When you read the sources and
@@ -18520,7 +18520,7 @@ word, a space.  (For more information about regular expressions, see
 @ref{Regexp Search, , Regular Expression Searches}, as well as
 @ref{Regexps, , Syntax of Regular Expressions, emacs, The GNU Emacs
 Manual}, and @ref{Regular Expressions, , Regular Expressions, elisp,
-The GNU Emacs Lisp Reference Manual}.)
+The femacs Lisp Reference Manual}.)
 
 You might try searching just for duplicated word-constituent
 characters but that does not work since the pattern detects doubles
@@ -19684,7 +19684,7 @@ function takes two arguments: the first tells it how long the string
 will be and the second is a symbol for the character to insert, in a
 special format.  The format is a question mark followed by a blank
 space, like this, @samp{? }.  @xref{Character Type, , Character Type,
-elisp, The GNU Emacs Lisp Reference Manual}, for a description of the
+elisp, The femacs Lisp Reference Manual}, for a description of the
 syntax for characters.  (Of course, you might want to replace the
 blank space by some other character @dots{}  You know what to do.)
 

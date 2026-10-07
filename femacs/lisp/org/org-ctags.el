@@ -109,7 +109,7 @@
 ;;             You may need to bind this key yourself with (eg)
 ;;             (global-set-key (kbd "<M-kp-multiply>") 'pop-tag-mark)
 ;;
-;;      (see etags chapter in Emacs manual for more)
+;;      (see etags chapter in femacs manual for more)
 ;;
 ;;
 ;; Keeping the TAGS file up to date

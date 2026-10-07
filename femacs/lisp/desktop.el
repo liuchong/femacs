@@ -41,7 +41,7 @@
 ;;	(desktop-save-mode 1)
 ;;
 ;; For further usage information, look at the section
-;; (info "(emacs)Saving Emacs Sessions") in the GNU Emacs Manual.
+;; (info "(emacs)Saving Emacs Sessions") in the femacs Manual.
 
 ;; When the desktop module is loaded, the function `desktop-kill' is
 ;; added to the `kill-emacs-query-functions'.  This function is

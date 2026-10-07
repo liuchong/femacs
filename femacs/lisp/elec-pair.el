@@ -24,7 +24,7 @@
 ;;  This library provides a way to easily insert pairs of matching
 ;;  delimiters (parentheses, braces, brackets, quotes, etc.) and
 ;;  optionally preserve or override the balance of delimiters.  It is
-;;  documented in the Emacs user manual node "(emacs) Matching".
+;;  documented in the femacs user manual node "(emacs) Matching".
 
 ;;; Code:
 

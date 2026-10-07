@@ -1632,7 +1632,7 @@ suffixes.  In other words, if you have set @code{gnus-init-file} to
 @file{~/.gnus}, it will look for @file{~/.gnus.elc}, @file{~/.gnus.el},
 and finally @file{~/.gnus} (in this order).  If Emacs was invoked with
 the @option{-q} or @option{--no-init-file} options (@pxref{Initial
-Options, ,Initial Options, emacs, The Emacs Manual}), Gnus doesn't read
+Options, ,Initial Options, emacs, The femacs Manual}), Gnus doesn't read
 @code{gnus-init-file}.
 
 
@@ -12079,7 +12079,7 @@ Emacs's built-in, plain elisp Simple HTML Renderer @code{shr}
 @footnote{@code{shr} displays colors as declared in the @acronym{HTML}
 article but tries to adjust them in order to be readable.  If you
 prefer more contrast, @xref{FAQ 4-16}.} which is also used by Emacs'
-browser EWW (@pxref{EWW, ,EWW, emacs, The Emacs Manual}).
+browser EWW (@pxref{EWW, ,EWW, emacs, The femacs Manual}).
 
 If your Emacs copy lacks libxml2 support but you have @code{w3m}
 installed on your system, Gnus uses that to render @acronym{HTML} mail
@@ -16660,7 +16660,7 @@ Hook run narrowed to an article before saving.
 @vindex nnml-use-compressed-files
 If non-@code{nil}, @code{nnml} will allow using compressed message
 files.  This requires @code{auto-compression-mode} to be enabled
-(@pxref{Compressed Files, ,Compressed Files, emacs, The Emacs Manual}).
+(@pxref{Compressed Files, ,Compressed Files, emacs, The femacs Manual}).
 If the value of @code{nnml-use-compressed-files} is a string, it is used
 as the file extension specifying the compression program.  You can set it
 to @samp{.bz2} if your Emacs supports it.  A value of @code{t} is
@@ -23056,7 +23056,7 @@ special @code{balloon-help} property set to
 variables should be either strings or symbols naming functions that
 return a string.  When the mouse passes over text with this property
 set, a balloon window will appear and display the string.  Please
-refer to @ref{Tooltips, ,Tooltips, emacs, The Emacs Manual} for more
+refer to @ref{Tooltips, ,Tooltips, emacs, The femacs Manual} for more
 information on this.  (For technical reasons, the guillemets have been
 approximated as @samp{<<} and @samp{>>} in this paragraph.)
 
@@ -23995,7 +23995,7 @@ X-Face images.  The default value is @code{((pbm . (:face gnus-x-face))
         (png . (:relief -2))))
 @end lisp
 
-@xref{Image Descriptors,,, elisp, The Emacs Lisp Reference Manual},
+@xref{Image Descriptors,,, elisp, The femacs Lisp Reference Manual},
 for the valid properties for various image types.  Currently,
 @code{pbm} is used for X-Face images and @code{png} is used for Face
 images in Emacs.
@@ -24270,7 +24270,7 @@ value of @code{gravatar-size}.
 @item gnus-gravatar-properties
 @vindex gnus-gravatar-properties
 List of image properties applied to Gravatar images (@pxref{Image
-Descriptors,,, elisp, The Emacs Lisp Reference Manual}).
+Descriptors,,, elisp, The femacs Lisp Reference Manual}).
 
 @item gnus-gravatar-too-ugly
 @vindex gnus-gravatar-too-ugly
@@ -29394,7 +29394,7 @@ format, which is more compact and much faster to read and parse than the
 normal @sc{head} format.
 
 The @acronym{NOV} data consist of one or more text lines (@pxref{Text
-Lines, ,Motion by Text Lines, elisp, The Emacs Lisp Reference Manual})
+Lines, ,Motion by Text Lines, elisp, The femacs Lisp Reference Manual})
 where each line has the header information of one article.  The header
 information is a tab-separated series of the header's contents including
 an article number, a subject, an author, a date, a message-id,

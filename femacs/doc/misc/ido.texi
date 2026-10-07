@@ -137,7 +137,7 @@ any additional files in order to start using it.  To activate, use
 @noindent
 You may wish to add the following expressions to your initialization
 file (@pxref{Init File,,The Emacs Initialization File, emacs, GNU
-Emacs Manual}), if you make frequent use of features from this
+femacs Manual}), if you make frequent use of features from this
 package.
 
 @example

@@ -2,7 +2,7 @@ Copyright (C) 2001-2026 Free Software Foundation, Inc.  -*- outline -*-
 See the end of the file for license conditions.
 
 
-README for the Emacs Lisp Reference Manual.
+README for the femacs Lisp Reference Manual.
 
 * This directory contains the texinfo source files for the Emacs Lisp
 Reference Manual.
@@ -10,7 +10,7 @@ Reference Manual.
 * Report bugs in the Lisp Manual (or in Emacs) using M-x report-emacs-bug.
 To ask questions, use the help-gnu-emacs mailing list.
 
-* The Emacs Lisp Reference Manual is quite large.  It totals around
+* The femacs Lisp Reference Manual is quite large.  It totals around
 1100 pages in smallbook format; the info files total around 3.0 megabytes.
 
 * You can format this manual for Info, for printing hardcopy using TeX,

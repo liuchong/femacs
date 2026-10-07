@@ -1,9 +1,9 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 2004--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @c
 @c This file is included either in emacs-xtra.texi (when producing the
-@c printed version) or in the main Emacs manual (for the on-line version).
+@c printed version) or in the main femacs manual (for the on-line version).
 @node Fortran
 @section Fortran Mode
 @cindex Fortran mode
@@ -31,14 +31,14 @@ Fortran mode has support for Auto Fill mode that breaks long lines into
 proper Fortran continuation lines.  Fortran mode also supports Hideshow
 minor mode
 @iftex
-(@pxref{Hideshow,,, emacs, the Emacs Manual}),
+(@pxref{Hideshow,,, emacs, the femacs Manual}),
 @end iftex
 @ifnottex
 (@pxref{Hideshow}),
 @end ifnottex
 and Imenu
 @iftex
-(@pxref{Imenu,,, emacs, the Emacs Manual}).
+(@pxref{Imenu,,, emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Imenu}).
@@ -51,7 +51,7 @@ typing when you insert Fortran keywords.
   Use @kbd{M-x fortran-mode} to switch to this major mode.  This
 command runs the hook @code{fortran-mode-hook}.
 @iftex
-@xref{Hooks,,, emacs, the Emacs Manual}.
+@xref{Hooks,,, emacs, the femacs Manual}.
 @end iftex
 @ifnottex
 @xref{Hooks}.
@@ -209,7 +209,7 @@ form}.  (In GNU Emacs we always count columns from 0; but note that
 the Fortran standard counts from 1.  You can customize the variable
 @code{column-number-indicator-zero-based} to make the column display
 @iftex
-Fortran-like; @pxref{Optional Mode Line,,, emacs, the Emacs Manual}.)
+Fortran-like; @pxref{Optional Mode Line,,, emacs, the femacs Manual}.)
 @end iftex
 @ifnottex
 Fortran-like; @pxref{Optional Mode Line}.)
@@ -262,7 +262,7 @@ through 4.  (Columns always count from 0 in Emacs, but setting
 @code{column-number-indicator-zero-based} to @code{nil} can change
 that,
 @iftex
-@pxref{Optional Mode Line,,, emacs, the Emacs Manual}.)
+@pxref{Optional Mode Line,,, emacs, the femacs Manual}.)
 @end iftex
 @ifnottex
 @pxref{Optional Mode Line}.)
@@ -480,7 +480,7 @@ continuation lines using @code{fortran-continuation-string}
 Fortran indentation commands.  You activate Auto Fill in Fortran mode
 in the normal way.
 @iftex
-@xref{Auto Fill,,, emacs, the Emacs Manual}.
+@xref{Auto Fill,,, emacs, the femacs Manual}.
 @end iftex
 @ifnottex
 @xref{Auto Fill}.
@@ -498,7 +498,7 @@ Otherwise (and by default), the break comes before the delimiter.
   To enable Auto Fill in all Fortran buffers, add
 @code{auto-fill-mode} to @code{fortran-mode-hook}.
 @iftex
-@xref{Hooks,,, emacs, the Emacs Manual}.
+@xref{Hooks,,, emacs, the femacs Manual}.
 @end iftex
 @ifnottex
 @xref{Hooks}.
@@ -549,7 +549,7 @@ statement body.  Column numbers appear above them.
 (but customizing @code{column-number-indicator-zero-based} can change
 column display to match that of Fortran;
 @iftex
-@pxref{Optional Mode Line,,, emacs, the Emacs Manual}.)
+@pxref{Optional Mode Line,,, emacs, the femacs Manual}.)
 @end iftex
 @ifnottex
 @pxref{Optional Mode Line}.)
@@ -595,7 +595,7 @@ numbers.
 declarations.  These are the same sort of abbrev that you can define
 yourself.  To use them, you must turn on Abbrev mode.
 @iftex
-@xref{Abbrevs,,, emacs, the Emacs Manual}.
+@xref{Abbrevs,,, emacs, the femacs Manual}.
 @end iftex
 @ifnottex
 @xref{Abbrevs}.

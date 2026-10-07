@@ -1,4 +1,4 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -892,7 +892,7 @@ information (such as passwords) may end up recorded in the dribble
 file.
 
 @item
-If the bug is that the Emacs Manual or the Emacs Lisp Reference Manual
+If the bug is that the femacs Manual or the femacs Lisp Reference Manual
 fails to describe the actual behavior of Emacs, or that the text is
 confusing, copy in the text from the manual which you think is
 at fault.  If the section is small, just the section name is enough.
@@ -1105,7 +1105,7 @@ report.  (The backtrace is more detailed if you load the relevant Lisp
 you know how to find and load those files.)
 
 To debug the error, we suggest using Edebug.  @xref{Edebug,, Edebug,
-elisp, the Emacs Lisp Reference Manual}, for information on debugging
+elisp, the femacs Lisp Reference Manual}, for information on debugging
 Emacs Lisp programs with the Edebug package.
 
 This use of the debugger is possible only if you know how to make the
@@ -1453,29 +1453,29 @@ desired change), refer to:
 @item
 @ifset WWW_GNU_ORG
 @ifhtml
-the Emacs Manual
+the femacs Manual
 @url{https://www.gnu.org/software/emacs/manual/emacs.html}.
 @end ifhtml
 @ifnothtml
-@xref{Top, Emacs Manual,,emacs}.
+@xref{Top, femacs Manual,,emacs}.
 @end ifnothtml
 @end ifset
 @ifclear WWW_GNU_ORG
-@xref{Top, Emacs Manual,,emacs}.
+@xref{Top, femacs Manual,,emacs}.
 @end ifclear
 
 @item
 @ifset WWW_GNU_ORG
 @ifhtml
-the Emacs Lisp Reference Manual
+the femacs Lisp Reference Manual
 @url{https://www.gnu.org/software/emacs/manual/elisp.html}.
 @end ifhtml
 @ifnothtml
-@xref{Top, Emacs Lisp Reference Manual,,elisp}.
+@xref{Top, femacs Lisp Reference Manual,,elisp}.
 @end ifnothtml
 @end ifset
 @ifclear WWW_GNU_ORG
-@xref{Top, Emacs Lisp Reference Manual,,elisp}.
+@xref{Top, femacs Lisp Reference Manual,,elisp}.
 @end ifclear
 
 @item

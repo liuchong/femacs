@@ -24,7 +24,7 @@
 ;;; Commentary:
 
 ;; This code provides the page-oriented movement and selection commands
-;; documented in the Emacs manual.
+;; documented in the femacs manual.
 
 ;;; Code:
 

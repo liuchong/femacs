@@ -50,7 +50,7 @@ make improvements that are suggested, but we may choose not to.
 
 If you are on the Internet, report bugs to bug-gnu-emacs@gnu.org.
 You can use the Emacs command M-x report-bug RET to mail a bug report.
-Please read the Bugs section of the Emacs manual before reporting bugs.
+Please read the Bugs section of the femacs manual before reporting bugs.
 
 General questions about the GNU Project can be asked of gnu@gnu.org.
 

@@ -11,7 +11,7 @@
 .
 @sp 7
 
-@center @titlefont{GNU Emacs Manual}
+@center @titlefont{femacs Manual}
 @sp 5
 @center @value{EDITION} edition, for Emacs version @value{EMACSVER}
 @sp 5

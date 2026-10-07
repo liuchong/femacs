@@ -45,7 +45,7 @@ The current customization groups (see "M-x customize-group RET RET") and
 their hierarchy are sporadic and do not systematically cover all the
 areas and domains of Emacs features.  They need to be extensively
 re-thought and overhauled.  One idea is to take the top-level chapters
-of the Emacs user manual and use those as customization groups, then
+of the femacs user manual and use those as customization groups, then
 define sub-groups using the sections.  Sub-sections could then be used
 where a third level of groups makes sense.  The place to define this
 hierarchy is mainly in cus-edit.el.

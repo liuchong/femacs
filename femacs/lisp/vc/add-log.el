@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;; This facility is documented in the Emacs Manual.
+;; This facility is documented in the femacs Manual.
 
 ;; Todo:
 

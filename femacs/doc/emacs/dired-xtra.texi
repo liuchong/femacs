@@ -1,9 +1,9 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 2004--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @c
 @c This file is included either in emacs-xtra.texi (when producing the
-@c printed version) or in the main Emacs manual (for the on-line version).
+@c printed version) or in the main femacs manual (for the on-line version).
 @node Subdir Switches
 @section Subdirectory Switches in Dired
 
@@ -16,7 +16,7 @@ subdirectory forgets about its switches.
 
 Using @code{dired-undo}
 @iftex
-(@pxref{Marks vs Flags,,, emacs, the Emacs Manual})
+(@pxref{Marks vs Flags,,, emacs, the femacs Manual})
 @end iftex
 @ifnottex
 (@pxref{Marks vs Flags})

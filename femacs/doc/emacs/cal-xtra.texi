@@ -1,11 +1,11 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 2004--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @c
 @c This file is included either in emacs-xtra.texi (when producing the
-@c printed version) or in the main Emacs manual (for the on-line version).
+@c printed version) or in the main femacs manual (for the on-line version).
 
-@c Moved here from the Emacs Lisp Reference Manual, 2005-03-26.
+@c Moved here from the femacs Lisp Reference Manual, 2005-03-26.
 @node Advanced Calendar/Diary Usage
 @section More advanced features of the Calendar and Diary
 
@@ -344,7 +344,7 @@ haab/tzolkin date combination you have typed is impossible.
 
   Emacs uses strict completion
 @iftex
-(@pxref{Completion Exit,,, emacs, the Emacs Manual})
+(@pxref{Completion Exit,,, emacs, the femacs Manual})
 @end iftex
 @ifnottex
 (@pxref{Completion Exit})
@@ -652,7 +652,7 @@ days to be shown in the fancy diary buffer, set the variable
 
   The fancy diary buffer enables View mode
 @iftex
-(@pxref{View Mode,,, emacs, the Emacs Manual}).
+(@pxref{View Mode,,, emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{View Mode}).
@@ -688,7 +688,7 @@ hidden.  After preparing the buffer, it runs the hook
 @code{diary-print-entries-hook}.  The default value of this hook sends
 the data directly to the printer with the command @code{lpr-buffer}
 @iftex
-(@pxref{Printing,,, emacs, the Emacs Manual}).
+(@pxref{Printing,,, emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Printing}).
@@ -741,7 +741,7 @@ strings that delimit comments.  The fancy display does not print
 comments.  You might want to put meta-data for the use of other packages
 (e.g., the appointment package,
 @iftex
-@pxref{Appointments,,,emacs, the Emacs Manual})
+@pxref{Appointments,,,emacs, the femacs Manual})
 @end iftex
 @ifnottex
 @pxref{Appointments})

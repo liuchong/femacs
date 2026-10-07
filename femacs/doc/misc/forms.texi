@@ -127,7 +127,7 @@ If you modify the contents of the fields, Forms mode will analyze your
 changes and update the file appropriately.  You cannot modify the
 interspersed explanatory text (unless you go to some trouble about it),
 because that is marked read-only (@pxref{Text Properties,,, elisp, The
-Emacs Lisp Reference Manual}).
+femacs Lisp Reference Manual}).
 
 The Forms mode control file specifies the relationship between the
 format of @file{/etc/passwd} and what appears on the screen in Forms

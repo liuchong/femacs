@@ -348,7 +348,7 @@ Optional argument TYPE is type of output (nil means all)."
     (when (member type '(nil "emacs" "emacs-pdf" "pdf"))
       (manual-pdf emacs (expand-file-name "emacs.pdf" pdf-dir))
       ;; emacs-xtra exists only in pdf/ps format.
-      ;; In other formats it is included in the Emacs manual.
+      ;; In other formats it is included in the femacs manual.
       (manual-pdf emacs-xtra (expand-file-name "emacs-xtra.pdf" pdf-dir)))
     (when (member type '(nil "emacs" "emacs-ps" "ps"))
       (manual-ps emacs (expand-file-name "emacs.ps" ps-dir))
@@ -508,7 +508,7 @@ the @import directive."
     (call-process "gzip" nil nil nil dest)))
 
 (defun manual-html-fix-headers ()
-  "Fix up HTML headers for the Emacs manual in the current buffer."
+  "Fix up HTML headers for the femacs manual in the current buffer."
   (let ((texi5 (search-forward "<!DOCTYPE" nil t))
 	opoint)
     ;; Texinfo 5 supplies a DOCTYPE.

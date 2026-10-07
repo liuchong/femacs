@@ -30,7 +30,7 @@
 ;;   A buffer index is an alist of names and buffer positions.
 ;;   For instance all functions in a C-file and their positions.
 ;;
-;;   It is documented in the Emacs Lisp manual.
+;;   It is documented in the femacs Lisp manual.
 ;;
 ;; How it works:
 

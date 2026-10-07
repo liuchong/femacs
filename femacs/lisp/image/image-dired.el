@@ -81,7 +81,7 @@
 ;; =====
 ;;
 ;; This information has been moved to the manual.  Type `C-h r' to open
-;; the Emacs manual and go to the node Thumbnails by typing `g
+;; the femacs manual and go to the node Thumbnails by typing `g
 ;; Image-Dired RET'.
 ;;
 ;; Quickstart: M-x image-dired RET DIRNAME RET

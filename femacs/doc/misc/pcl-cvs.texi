@@ -138,7 +138,7 @@ PCL-CVS is a front-end to CVS versions 1.9 and later.
 It concisely shows the present status of a checked out module in an
 Emacs buffer and provides single-key access to the most frequently used CVS
 commands.  Note that the @code{vc-dir} command (@pxref{VC Directory
-Mode, , , emacs, The GNU Emacs Manual}) provides similar
+Mode, , , emacs, The femacs Manual}) provides similar
 functionality, but for several version control systems, including CVS.
 
 PCL-CVS was originally written many years ago by Per Cederqvist who
@@ -840,7 +840,7 @@ files.
 @item f
 Find the file that the cursor points to (@code{cvs-mode-find-file}).  If
 the cursor points to a directory, run @code{dired} on that directory;
-@pxref{Dired, Emacs Manual, , emacs}.
+@pxref{Dired, femacs Manual, , emacs}.
 
 @item o
 Like @kbd{f}, but use another window
@@ -1181,13 +1181,13 @@ kill the contents of the buffer with @kbd{C-w}.
 
 @findex log-edit-insert-changelog
 If you work by writing entries in the @file{ChangeLog}
-(@pxref{Change Log,,, emacs, The GNU Emacs Manual}) and then commit the change under revision
+(@pxref{Change Log,,, emacs, The femacs Manual}) and then commit the change under revision
 control, you can generate the Log Edit text from the ChangeLog using
 @kbd{C-c C-a} (@kbd{log-edit-insert-changelog}).  This looks for
 entries for the file(s) concerned in the top entry in the ChangeLog
 and uses those paragraphs as the log text.  This text is only inserted
 if the top entry was made under your user name on the current date.
-@xref{Change Logs and VC,,, emacs, The GNU Emacs Manual}, for the opposite way of
+@xref{Change Logs and VC,,, emacs, The femacs Manual}, for the opposite way of
 working---generating ChangeLog entries from the revision control log.
 
 In the Log Edit buffer, @kbd{C-c C-f} (@kbd{M-x log-edit-show-files})

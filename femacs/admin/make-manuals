@@ -23,7 +23,7 @@
 
 ### Commentary:
 
-## This is a helper script to create the Emacs manuals as used on the
+## This is a helper script to create the femacs manuals as used on the
 ## gnu.org website.  After this, use upload-manuals to upload them.
 ##
 ## Usage:

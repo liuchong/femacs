@@ -32,7 +32,7 @@
 ;; Error handling code, global variables, and user options relevant for the
 ;; entire iCalendar library remain in this file.
 
-;; The diary-icalendar feature is documented in the Emacs Manual.
+;; The diary-icalendar feature is documented in the femacs Manual.
 
 
 ;;; History:

@@ -257,7 +257,7 @@ dangerous, since you will always have the original contents of the file
 saved in another file that has the extension @file{.orig}.
 Furthermore, if the file is under version control, then you can always back
 out to one of the previous versions (see the section on Version Control in
-the Emacs manual).
+the femacs manual).
 
 @code{ediff-patch-file} is careful about versions control: if the file
 to be patched is checked in, then Ediff will offer to check it out, because
@@ -1178,7 +1178,7 @@ With respect to the latter, please note that the X resource
 for Ediff customization is ``Ediff'', @emph{not} ``emacs''.
 @xref{Window and Frame Configuration},
 @xref{Highlighting Difference Regions}, for further details.  Please also
-refer to Emacs manual for the information on how to set Emacs X resources.
+refer to femacs manual for the information on how to set Emacs X resources.
 
 @menu
 * Hooks::                       Customization via the hooks.
@@ -1651,7 +1651,7 @@ begin/end at the beginning/end of a line or in a middle of a line.
 Ediff uses these faces to highlight current differences on devices where
 Emacs can display faces.  These and subsequently described faces can be set
 either in @file{.emacs} or in @file{.Xdefaults}.  The X resource for Ediff
-is @samp{Ediff}, @emph{not} @samp{emacs}.  Please refer to Emacs manual for
+is @samp{Ediff}, @emph{not} @samp{emacs}.  Please refer to femacs manual for
 the information on how to set X resources.
 @item ediff-fine-diff-face-A
 @itemx ediff-fine-diff-face-B

@@ -1235,7 +1235,7 @@ Knuth, and Patashnik; Steele's @emph{Common Lisp, the Language}; the
 @emph{CRC Standard Math Tables} (William H. Beyer, ed.); and
 Abramowitz and Stegun's venerable @emph{Handbook of Mathematical
 Functions}.  Also, of course, Calc could not have been written without
-the excellent @emph{GNU Emacs Lisp Reference Manual}, by Bil Lewis and
+the excellent @emph{femacs Lisp Reference Manual}, by Bil Lewis and
 Dan LaLiberte.
 
 Final thanks go to Richard Stallman, without whose fine implementations
@@ -15434,7 +15434,7 @@ allow you to teach custom notations to Calc's formula parser.
 Calc keeps a separate syntax table for each language mode.
 
 (Note that the Calc ``syntax tables'' discussed here are completely
-unrelated to the syntax tables described in the Emacs manual.)
+unrelated to the syntax tables described in the femacs manual.)
 
 @kindex Z S
 @pindex calc-edit-user-syntax
@@ -17399,7 +17399,7 @@ YGT  PGT  MGT  CGT  EGT  AGT    NGT    BGT   WEGT    MEGT   MEGZ
 With no arguments, @code{calc-time-zone} or @samp{tzone()} will by
 default get the time zone and daylight saving information from the
 calendar (@pxref{Daylight Saving,Calendar/Diary,The Calendar and the Diary,
-emacs,The GNU Emacs Manual}).  To use a different time zone, or if the
+emacs,The femacs Manual}).  To use a different time zone, or if the
 calendar does not give the desired result, you can set the Calc variable
 @code{TimeZone} (which is by default @code{nil}) to an appropriate
 time zone name.  (The easiest way to do this is to edit the
@@ -31104,7 +31104,7 @@ The Local Variables section must be within 3000 characters of the
 end of the file for Emacs to find it, and it must be in the last
 page of the file if the file has any page separators.
 @xref{File Variables, , Local Variables in Files, emacs, the
-Emacs manual}.
+femacs manual}.
 
 Note that @kbd{C-x * a} does not update the formulas it finds.
 To do this, type, say, @kbd{M-1 C-x * u} after @w{@kbd{C-x * a}}.
@@ -31334,14 +31334,14 @@ variables described here.  These variables are customizable
 to adjust a variable on the fly.
 (Another possibility would be to use a file-local variable annotation at
 the end of the file;
-@pxref{File Variables, , Local Variables in Files, emacs, the Emacs manual}.)
+@pxref{File Variables, , Local Variables in Files, emacs, the femacs manual}.)
 Many of the variables given mentioned here can be set to depend on the
 major mode of the editing buffer (@pxref{Customizing Calc}).
 
 @vindex calc-embedded-open-formula
 The @code{calc-embedded-open-formula} variable holds a regular
 expression for the opening delimiter of a formula.  @xref{Regexp Search,
-, Regular Expression Search, emacs, the Emacs manual}, to see
+, Regular Expression Search, emacs, the femacs manual}, to see
 how regular expressions work.  Basically, a regular expression is a
 pattern that Calc can search for.  A regular expression that considers
 blank lines, @samp{$}, and @samp{$$} to be opening delimiters is
@@ -31388,7 +31388,7 @@ latter expressions consume zero or two newlines, respectively.
 The former choice gives the most natural behavior when Calc
 must operate on a whole formula including its delimiters.
 
-See the Emacs manual for complete details on regular expressions.
+See the femacs manual for complete details on regular expressions.
 But just for your convenience, here is a list of all characters
 which must be quoted with backslash (like @samp{\$}) to avoid
 some special interpretation:  @samp{. * + ? [ ] ^ $ \}.  (Note
@@ -31616,7 +31616,7 @@ this point on, keystrokes you type will be saved away as well as
 performing their usual functions.  Press @kbd{C-x )} to end recording.
 Press shift-@kbd{X} (or the standard Emacs key sequence @kbd{C-x e}) to
 execute your keyboard macro by replaying the recorded keystrokes.
-@xref{Keyboard Macros, , , emacs, the Emacs Manual}, for further
+@xref{Keyboard Macros, , , emacs, the femacs Manual}, for further
 information.
 
 When you use @kbd{X} to invoke a keyboard macro, the entire macro is
@@ -31963,7 +31963,7 @@ input with ``Power: '' in the minibuffer, then return 2 to the provided
 power.  (The response to the prompt that's given, 3 in this example,
 will not be part of the macro.)
 
-@xref{Keyboard Macro Query, , , emacs, the Emacs Manual}, for a description of
+@xref{Keyboard Macro Query, , , emacs, the femacs Manual}, for a description of
 @kbd{C-x q} (@code{kbd-macro-query}), the standard Emacs way to accept
 keyboard input during a keyboard macro.  In particular, you can use
 @kbd{C-x q} to enter a recursive edit, which allows the user to perform
@@ -32129,7 +32129,7 @@ standard Calculator data types.  You can then use @kbd{Z D} if you wish to
 bind your new command to a @kbd{z}-prefix key sequence.  The @kbd{Z E} command
 will not edit a Lisp-based definition.
 
-Emacs Lisp is described in the GNU Emacs Lisp Reference Manual.  This section
+Emacs Lisp is described in the femacs Lisp Reference Manual.  This section
 assumes a familiarity with Lisp programming concepts; if you do not know
 Lisp, you may find keyboard macros or rewrite rules to be an easier way
 to program the Calculator.
@@ -35301,7 +35301,7 @@ to use a different prefix, you can put
 @noindent
 in your .emacs file.
 (@xref{Key Bindings,,Customizing Key Bindings,emacs,
-The GNU Emacs Manual}, for more information on binding keys.)
+The femacs Manual}, for more information on binding keys.)
 A convenient way to start Calc is with @kbd{C-x * *}; to make it equally
 convenient for users who use a different prefix, the prefix can be
 followed by  @kbd{=}, @kbd{&}, @kbd{#}, @kbd{\}, @kbd{/}, @kbd{+} or
@@ -35317,7 +35317,7 @@ which the variable's value can be redefined.  Typing @kbd{M-x
 customize-group @key{RET} calc @key{RET}} will bring up a buffer which
 contains all of Calc's customizable variables.  (These variables can
 also be reset by putting the appropriate lines in your .emacs file;
-@xref{Init File, ,Init File, emacs, The GNU Emacs Manual}.)
+@xref{Init File, ,Init File, emacs, The femacs Manual}.)
 
 Some of the customizable variables are regular expressions.  A regular
 expression is basically a pattern that Calc can search for.

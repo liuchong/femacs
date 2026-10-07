@@ -2024,7 +2024,7 @@ key, a click, or a menu-item"))
     menu))
 
 (defun menu-bar-read-lispref ()
-  "Display the Emacs Lisp Reference manual in Info mode."
+  "Display the femacs Lisp Reference manual in Info mode."
   (interactive)
   (info "elisp"))
 
@@ -2034,7 +2034,7 @@ key, a click, or a menu-item"))
   (info "eintr"))
 
 (defun search-emacs-glossary ()
-  "Display the Glossary node of the Emacs manual in Info mode."
+  "Display the Glossary node of the femacs manual in Info mode."
   (interactive)
   (info "(emacs)Glossary"))
 
@@ -2049,13 +2049,13 @@ key, a click, or a menu-item"))
             topic))))
 
 (defun emacs-index-search (topic)
-  "Look up TOPIC in the indices of the Emacs User Manual."
+  "Look up TOPIC in the indices of the femacs User Manual."
   (interactive (emacs-index--prompt))
   (info "emacs")
   (Info-index topic))
 
 (defun elisp-index-search (topic)
-  "Look up TOPIC in the indices of the Emacs Lisp Reference Manual."
+  "Look up TOPIC in the indices of the femacs Lisp Reference Manual."
   (interactive (emacs-index--prompt))
   (info "elisp")
   (Info-index topic))
@@ -2092,13 +2092,13 @@ key, a click, or a menu-item"))
                   :help "Display manual section that describes a key"))
     (define-key menu [lookup-subject-in-elisp-manual]
       '(menu-item "Look Up Subject in Elisp Manual..." elisp-index-search
-                  :help "Find description of a subject in Emacs Lisp manual"))
+                  :help "Find description of a subject in femacs Lisp manual"))
     (define-key menu [lookup-subject-in-emacs-manual]
       '(menu-item "Look Up Subject in User Manual..." emacs-index-search
-                  :help "Find description of a subject in Emacs User manual"))
+                  :help "Find description of a subject in femacs User manual"))
     (define-key menu [emacs-terminology]
       '(menu-item "Emacs Terminology" search-emacs-glossary
-                  :help "Display the Glossary section of the Emacs manual"))
+                  :help "Display the Glossary section of the femacs manual"))
     menu))
 
 (defvar menu-bar-manuals-menu
@@ -2120,7 +2120,7 @@ key, a click, or a menu-item"))
                   :help "Read any of the installed manuals"))
     (define-key menu [emacs-lisp-reference]
       '(menu-item "Emacs Lisp Reference" menu-bar-read-lispref
-                  :help "Read the Emacs Lisp Reference manual"))
+                  :help "Read the femacs Lisp Reference manual"))
     (define-key menu [emacs-lisp-intro]
       '(menu-item "Introduction to Emacs Lisp" menu-bar-read-lispintro
                   :help "Read the Introduction to Emacs Lisp Programming"))
@@ -2161,7 +2161,7 @@ key, a click, or a menu-item"))
     (define-key menu [more-manuals]
       `(menu-item "More Manuals" ,menu-bar-manuals-menu))
     (define-key menu [emacs-manual]
-      '(menu-item "Read the Emacs Manual" info-emacs-manual
+      '(menu-item "Read the femacs Manual" info-emacs-manual
                   :help "Full documentation of Emacs features"))
     (define-key menu [describe]
       `(menu-item "Describe" ,menu-bar-describe-menu))

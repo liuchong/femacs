@@ -1,4 +1,4 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -961,7 +961,7 @@ mode; @code{pdb-mode-hook}, for PDB; @code{jdb-mode-hook}, for JDB@.
 @xref{Hooks}.
 
   The @code{gud-def} Lisp macro (@pxref{Defining Macros,,, elisp, the
-Emacs Lisp Reference Manual}) provides a convenient way to define an
+femacs Lisp Reference Manual}) provides a convenient way to define an
 Emacs command that sends a particular command string to the debugger,
 and set up a key binding for in the GUD interaction buffer:
 
@@ -1600,14 +1600,14 @@ takes up less space, and executes faster.  By convention, compiled
 Emacs Lisp code goes in a separate file whose name ends in
 @samp{.elc}.  For example, the compiled code for @file{foo.el} goes in
 @file{foo.elc}.  @xref{Byte Compilation,, Byte Compilation, elisp, the
-Emacs Lisp Reference Manual}.
+femacs Lisp Reference Manual}.
 
 @cindex native compilation
   Emacs Lisp code can also be compiled into @dfn{native code}: machine
 code not unlike the one produced by a C or Fortran compiler.  Native
 code runs even faster than byte-code.  Natively compiled Emacs Lisp
 code is stored in files whose names end in @samp{.eln}.  @xref{Native
-Compilation,, Native Compilation, elisp, the Emacs Lisp Reference Manual}.
+Compilation,, Native Compilation, elisp, the femacs Lisp Reference Manual}.
 
 @findex load-file
   To @dfn{load} an Emacs Lisp file, type @kbd{M-x load-file}.  This
@@ -1651,7 +1651,7 @@ when it finishes compilation.
   Emacs Lisp programs usually load Emacs Lisp files using the
 @code{load} function.  This is similar to @code{load-library}, but is
 lower-level and accepts additional arguments.  @xref{How Programs Do
-Loading,,, elisp, the Emacs Lisp Reference Manual}.
+Loading,,, elisp, the femacs Lisp Reference Manual}.
 
 @vindex load-path
   The Emacs Lisp load path is specified by the variable
@@ -1830,7 +1830,7 @@ forms the same way that @code{eval-last-sexp} does.
 
   With a prefix argument, @kbd{C-M-x} instruments the function
 definition for Edebug, the Emacs Lisp Debugger.  @xref{Instrumenting,
-Instrumenting for Edebug,, elisp, the Emacs Lisp Reference Manual}.
+Instrumenting for Edebug,, elisp, the femacs Lisp Reference Manual}.
 
 @findex eval-region
 @findex eval-buffer

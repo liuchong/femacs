@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1993, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -1110,7 +1110,7 @@ the shared library in a directory mentioned in @code{load-path}
 
 If you wish to verify the conformance of a module to the Emacs dynamic
 module @acronym{API}, invoke Emacs with the @kbd{--module-assertions}
-option.  @xref{Initial Options,,,emacs, The GNU Emacs Manual}.
+option.  @xref{Initial Options,,,emacs, The femacs Manual}.
 
 @menu
 * Module Initialization::
@@ -1374,7 +1374,7 @@ Collection}.  They may only interact with Emacs from Lisp interpreter
 threads (including the main thread) created by Emacs; @pxref{Threads}.
 The @kbd{--module-assertions} command-line option can detect some
 violations of the above requirements.  @xref{Initial Options,,,emacs,
-The GNU Emacs Manual}.
+The femacs Manual}.
 
 Using the module @acronym{API}, it is possible to define more complex
 function and data types: inline functions, macros, etc.  However, the

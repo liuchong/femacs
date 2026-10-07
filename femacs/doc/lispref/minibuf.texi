@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -309,7 +309,7 @@ The function now has a list of regular expressions that it passes to
 element of the list is the default result in case of empty input.  All
 elements of the list are available to the user as the ``future
 minibuffer history'' list (@pxref{Minibuffer History, future list,,
-emacs, The GNU Emacs Manual}).
+emacs, The femacs Manual}).
 
 The optional argument @var{history}, if non-@code{nil}, is a symbol
 specifying a minibuffer history list to use (@pxref{Minibuffer
@@ -1601,11 +1601,11 @@ The selected frame is on a graphical display supporting such dialogs.
 
 @item
 The variable @code{use-dialog-box} is non-@code{nil}.
-@xref{Dialog Boxes,, Dialog Boxes, emacs, The GNU Emacs Manual}.
+@xref{Dialog Boxes,, Dialog Boxes, emacs, The femacs Manual}.
 
 @item
 The @var{directory} argument, described below, does not specify a
-remote file.  @xref{Remote Files,, Remote Files, emacs, The GNU Emacs Manual}.
+remote file.  @xref{Remote Files,, Remote Files, emacs, The femacs Manual}.
 @end enumerate
 
 @noindent
@@ -1852,7 +1852,7 @@ Emacs moves to the next listed completion style and calls its
 returns a non-@code{nil} value.  A similar procedure is used for
 listing completions, via the @var{all-completions} functions.
 
-@xref{Completion Styles,,, emacs, The GNU Emacs Manual}, for a
+@xref{Completion Styles,,, emacs, The femacs Manual}, for a
 description of the available completion styles.
 @end defvar
 
@@ -1874,7 +1874,7 @@ The value should be a list of completion styles (symbols).
 
 @item cycle
 The value should be a value for @code{completion-cycle-threshold}
-(@pxref{Completion Options,,, emacs, The GNU Emacs Manual}) for this
+(@pxref{Completion Options,,, emacs, The femacs Manual}) for this
 category.
 
 @item cycle-sort-function
@@ -1887,7 +1887,7 @@ sorting function from metadata or if that is @code{nil}, fall back to
 @code{completions-sort}; @code{identity}, which means not to sort at
 all, leaving the original order; or any other value out of those used
 in @code{completions-sort} (@pxref{Completion Options,,, emacs, The
-GNU Emacs Manual}).
+femacs Manual}).
 
 @item group-function
 The function to group completions.
@@ -2088,7 +2088,7 @@ list destructively.
 The value should be a function for sorting completions, when
 @code{completion-cycle-threshold} is non-@code{nil} and the user is
 cycling through completion alternatives.  @xref{Completion Options,,,
-emacs, The GNU Emacs Manual}.  Its argument list and return value are
+emacs, The femacs Manual}.  Its argument list and return value are
 the same as for @code{display-sort-function}.
 @end table
 
@@ -2139,7 +2139,7 @@ completion facility can also be used on the text in ordinary Emacs
 buffers.  In many major modes, in-buffer completion is performed by
 the @kbd{C-M-i} or @kbd{M-@key{TAB}} command, bound to
 @code{completion-at-point}.  @xref{Symbol Completion,,, emacs, The GNU
-Emacs Manual}.  This command uses the abnormal hook variable
+femacs Manual}.  This command uses the abnormal hook variable
 @code{completion-at-point-functions}:
 
 @defvar completion-at-point-functions

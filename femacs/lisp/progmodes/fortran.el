@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;; This mode is documented in the Emacs manual.
+;; This mode is documented in the femacs manual.
 ;;
 ;; Note that it is for editing Fortran77 or Fortran90 fixed source
 ;; form.  For editing Fortran 90 free format source, use `f90-mode'
@@ -2136,7 +2136,7 @@ arg DO-SPACE prevents stripping the whitespace."
 (easy-menu-define fortran-menu fortran-mode-map "Menu for Fortran mode."
   `("Fortran"
     ["Manual" (info "(emacs)Fortran") :active t
-     :help "Read the Emacs manual chapter on Fortran mode"]
+     :help "Read the femacs manual chapter on Fortran mode"]
     ("Customization"
      ,(progn
         ;; Tell the byte compiler that `features' is lexical.

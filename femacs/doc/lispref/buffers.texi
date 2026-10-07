@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -781,7 +781,7 @@ read-only.  To temporarily ignore all read-only states, bind
 
 When enabling Read Only mode, this mode command also enables View mode
 if the option @code{view-read-only} is non-@code{nil}.  @xref{Misc
-Buffer,,Miscellaneous Buffer Operations, emacs, The GNU Emacs Manual}.
+Buffer,,Miscellaneous Buffer Operations, emacs, The femacs Manual}.
 When disabling Read Only mode, it disables View mode if View mode was
 enabled.
 @end deffn

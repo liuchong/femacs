@@ -3900,7 +3900,7 @@ allowed by free versions of Android, such as Replicant):
   $ adb push DroidSansMono.ttf.rpl /system/fonts/DroidSansMono.ttf
 
 or to the user fonts directory described in the "Android Fonts" node
-of the Emacs manual.  You may want to perform this procedure even if
+of the femacs manual.  You may want to perform this procedure even if
 you are not experiencing problems with character display, as the
 automatically generated instructions result in more legible text.
 
@@ -3958,7 +3958,7 @@ utilizing CFF (Compact Font Format) outlines, which the CJK fonts
 bundled with Android have been distributed as since Android 7.0.
 
 The solution is to install a TrueType CJK font to the user fonts
-directory detailed in the "Android Fonts" node of the Emacs manual.
+directory detailed in the "Android Fonts" node of the femacs manual.
 
 Introducing support for the byzantine CFF font format into the Android
 port is a large undertaking that we are looking for volunteers to
@@ -4046,7 +4046,7 @@ executing:
 This is a product of librsvg's failing to locate a suitable MIME
 database enabling it automatically to detect image file formats.  The
 procedure by which to obtain such a database is documented in the node
-'(emacs)Android Software' in the Emacs manual; you may also download a
+'(emacs)Android Software' in the femacs manual; you may also download a
 pre-compiled MIME database from this SourceForge repository:
 
   https://sourceforge.net/projects/android-ports-for-gnu-emacs/files/mime-database.tar.gz/download

@@ -595,7 +595,7 @@ The following attributes are meaningful:
 	    treated.  Within this regexp, there must be at least one
 	    group of characters (typically whitespace) identified by
 	    the special opening and closing parens used in regexp
-	    expressions (`\\\\(' and `\\\\)') (see the Emacs manual on
+	    expressions (`\\\\(' and `\\\\)') (see the femacs manual on
 	    the syntax of regular expressions for more info).
 
 	    If `regexp' is a function, it will be called as a

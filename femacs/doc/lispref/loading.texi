@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -194,7 +194,7 @@ precisely the file name to load.
 @deffn Command load-library library
 This command loads the library named @var{library}.  It is equivalent to
 @code{load}, except for the way it reads its argument interactively.
-@xref{Lisp Libraries,,,emacs, The GNU Emacs Manual}.
+@xref{Lisp Libraries,,,emacs, The femacs Manual}.
 @end deffn
 
 @defvar load-in-progress
@@ -410,7 +410,7 @@ containing a file named @file{.nosearch}.
 
   Next, Emacs adds any extra load directories that you specify using the
 @option{-L} command-line option (@pxref{Action Arguments,,,emacs, The
-GNU Emacs Manual}).  It also adds the directories where optional
+femacs Manual}).  It also adds the directories where optional
 packages are installed, if any (@pxref{Packaging Basics}).
 
   It is common to add code to one's init file (@pxref{Init File}) to

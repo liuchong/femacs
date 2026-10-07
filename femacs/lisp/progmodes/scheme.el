@@ -24,7 +24,7 @@
 ;;; Commentary:
 
 ;; The major mode for editing Scheme-type Lisp code, very similar to
-;; the Lisp mode documented in the Emacs manual.  `dsssl-mode' is a
+;; the Lisp mode documented in the femacs manual.  `dsssl-mode' is a
 ;; variant of scheme-mode for editing DSSSL specifications for SGML
 ;; documents.  [As of Apr 1997, some pointers for DSSSL may be found,
 ;; for instance, at <URL:https://www.sil.org/sgml/related.html#dsssl>.]

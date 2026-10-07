@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1994, 1999, 2001--2026 Free Software Foundation,
 @c Inc.
 @c See the file elisp.texi for copying conditions.
@@ -43,7 +43,7 @@ nonstandard way.
   If the minor mode Abbrev mode is enabled, the buffer-local variable
 @code{abbrev-mode} is non-@code{nil}, and abbrevs are automatically
 expanded in the buffer.  For the user-level commands for abbrevs, see
-@ref{Abbrevs,, Abbrev Mode, emacs, The GNU Emacs Manual}.
+@ref{Abbrevs,, Abbrev Mode, emacs, The femacs Manual}.
 
 @menu
 * Tables: Abbrev Tables.        Creating and working with abbrev tables.
@@ -328,7 +328,7 @@ is set by @code{abbrev-prefix-mark}.
 This is the @code{abbrev-symbol} of the most recent abbrev expanded.  This
 information is left by @code{expand-abbrev} for the sake of the
 @code{unexpand-abbrev} command (@pxref{Expanding Abbrevs,, Expanding
-Abbrevs, emacs, The GNU Emacs Manual}).
+Abbrevs, emacs, The femacs Manual}).
 @end defvar
 
 @defvar last-abbrev-location

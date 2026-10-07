@@ -1,9 +1,9 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 2004--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @c
 @c This file is included either in emacs-xtra.texi (when producing the
-@c printed version) or in the main Emacs manual (for the on-line version).
+@c printed version) or in the main femacs manual (for the on-line version).
 
 @node Non-File Buffers
 @subsection Auto Reverting Non-File Buffers
@@ -56,7 +56,7 @@ explained in the corresponding sections.
 
 If auto-reverting of non-file buffers is enabled, the Buffer Menu
 @iftex
-(@pxref{Several Buffers,,, emacs, the Emacs Manual})
+(@pxref{Several Buffers,,, emacs, the femacs Manual})
 @end iftex
 @ifnottex
 (@pxref{Several Buffers})

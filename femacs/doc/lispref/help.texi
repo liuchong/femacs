@@ -1,5 +1,5 @@
 @c -*- mode: texinfo; coding: utf-8 -*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -19,7 +19,7 @@ function or variable does.  @xref{Documentation Tips}, for how to
 write good documentation strings.
 
   Note that the documentation strings for Emacs are not the same thing
-as the Emacs manual.  Manuals have their own source files, written in
+as the femacs manual.  Manuals have their own source files, written in
 the Texinfo language; documentation strings are specified in the
 definitions of the functions and variables they apply to.  A collection
 of documentation strings is not sufficient as a manual because a good
@@ -27,7 +27,7 @@ manual is not organized in that fashion; it is organized in terms of
 topics of discussion.
 
   For commands to display documentation strings, see @ref{Help, ,
-Help, emacs, The GNU Emacs Manual}.
+Help, emacs, The femacs Manual}.
 
 @menu
 * Documentation Basics::      Where doc strings are defined and stored.
@@ -619,7 +619,7 @@ non-@code{nil}, the return value is always a vector.
 
   Emacs provides a variety of built-in help functions, all accessible to
 the user as subcommands of the prefix @kbd{C-h}.  For more information
-about them, see @ref{Help, , Help, emacs, The GNU Emacs Manual}.  Here
+about them, see @ref{Help, , Help, emacs, The femacs Manual}.  Here
 we describe some program-level interfaces to the same information.
 
 @deffn Command apropos pattern &optional do-all

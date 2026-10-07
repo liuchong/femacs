@@ -1,4 +1,4 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -1078,7 +1078,7 @@ Load the specified Emacs Lisp files (@code{dired-do-load}).
 @item B
 Byte compile the specified Emacs Lisp files
 (@code{dired-do-byte-compile}).  @xref{Byte Compilation,, Byte
-Compilation, elisp, The Emacs Lisp Reference Manual}.
+Compilation, elisp, The femacs Lisp Reference Manual}.
 
 @findex dired-do-info
 @kindex I @r{(Dired)}

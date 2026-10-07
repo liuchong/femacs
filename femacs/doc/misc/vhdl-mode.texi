@@ -608,7 +608,7 @@ style can be added and automatically set.  @xref{Sample Init File}.
 @cindex   File Styles
 
 @cindex local variables
-The Emacs manual describes how you can customize certain variables on a
+The femacs manual describes how you can customize certain variables on a
 per-file basis by including a @dfn{Local Variable} block at the end of
 the file.  So far, you've only seen a functional interface to
 VHDL Mode, which is highly inconvenient for use in a Local Variable

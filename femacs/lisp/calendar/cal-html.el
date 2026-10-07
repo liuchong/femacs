@@ -26,7 +26,7 @@
 ;;; Commentary:
 
 ;; This package writes HTML calendar files using the user's diary
-;; file.  See the Emacs manual for details.
+;; file.  See the femacs manual for details.
 
 
 ;;; Code:

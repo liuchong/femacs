@@ -1914,8 +1914,8 @@ If this is nil, no message will be displayed."
                  (browse-url "https://www.gnu.org/software/emacs/tour/")))
 	    "Browse https://www.gnu.org/software/emacs/tour/")
      "\tOverview of Emacs features at gnu.org\n"
-     :link ("View Emacs Manual" ,(lambda (_button) (info-emacs-manual)))
-     "\tView the Emacs manual using Info\n"
+     :link ("View femacs Manual" ,(lambda (_button) (info-emacs-manual)))
+     "\tView the femacs manual using Info\n"
      :link ("Absence of Warranty" ,(lambda (_button) (describe-no-warranty)))
      "\tfemacs comes with "
      :face (variable-pitch (:slant oblique))
@@ -2017,8 +2017,8 @@ Each element in the list should be a list of strings or pairs
                  (browse-url "https://www.gnu.org/software/emacs/tour/")))
 	    "Browse https://www.gnu.org/software/emacs/tour/")
      "\tSee an overview of Emacs features at gnu.org\n"
-     :link ("Emacs Manual" ,(lambda (_button) (info-emacs-manual)))
-     "\tDisplay the Emacs manual in Info mode"))
+     :link ("femacs Manual" ,(lambda (_button) (info-emacs-manual)))
+     "\tDisplay the femacs manual in Info mode"))
   "A list of texts to show in the middle part of the About screen.
 Each element in the list should be a list of strings or pairs
 `:KEYWORD VALUE', like what `fancy-splash-insert' accepts.")
@@ -2476,10 +2476,10 @@ To quit a partially entered command, type Control-g.\n")
 		 'action (lambda (_button) (help-with-tutorial))
 		 'follow-link t)
   (insert "\t\tLearn basic Emacs keystroke commands\n")
-  (insert-button "Read the Emacs Manual"
+  (insert-button "Read the femacs Manual"
 		 'action (lambda (_button) (info-emacs-manual))
 		 'follow-link t)
-  (insert "\tView the Emacs manual using Info\n")
+  (insert "\tView the femacs manual using Info\n")
   (insert-button "(Non)Warranty"
 		 'action (lambda (_button) (describe-no-warranty))
 		 'follow-link t)
@@ -2539,7 +2539,7 @@ To quit a partially entered command, type Control-g.\n")
                         "C-h  (Hold down CTRL and press h)")
                        (where (key-description where))
                        (t "M-x help")))))
-    (insert-button "Emacs manual"
+    (insert-button "femacs manual"
                    'action (lambda (_button) (info-emacs-manual))
                    'follow-link t)
     (insert (substitute-command-keys"\t   \\[info-emacs-manual]\t"))

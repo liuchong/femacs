@@ -185,7 +185,7 @@ This function creates a buffer connected to a specific @var{host} and
 @var{service} (port number or service name).  The mandatory arguments
 and their syntax are the same as those given to
 @code{open-network-stream} (@pxref{Network,, Network Connections,
-elisp, The Emacs Lisp Reference Manual}).  The connection process is
+elisp, The femacs Lisp Reference Manual}).  The connection process is
 called @var{name} (made unique if necessary).  This function returns
 the connection process.
 

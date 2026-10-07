@@ -514,7 +514,7 @@ preferred character set encodings, e.g., Latin-9 or Big5, and these
 can be weighted.  The default series is generated automatically from
 the associated MIME types of all defined coding systems, sorted by the
 coding system priority specified in Emacs.  @xref{Recognize Coding, ,
-Recognizing Coding Systems, emacs, The GNU Emacs Manual}.
+Recognizing Coding Systems, emacs, The femacs Manual}.
 @end defopt
 
 @defopt url-mime-language-string
@@ -591,7 +591,7 @@ file://@var{user}:@var{password}@@@var{host}:@var{port}/@var{file}
 If the URL specifies a local file, it is retrieved by reading the file
 contents in the usual way.  If it specifies a remote file, it is
 retrieved using either the Tramp or the Ange-FTP package.
-@xref{Remote Files,,, emacs, The GNU Emacs Manual}.
+@xref{Remote Files,,, emacs, The femacs Manual}.
 
   When retrieving a compressed file, it is automatically uncompressed
 if it has the file suffix @file{.z}, @file{.gz}, @file{.Z},
@@ -646,7 +646,7 @@ should check them before sending the message.
 The value of this variable is the function called whenever url needs
 to send mail.  This should normally be left its default, which is the
 standard mail-composition command @code{compose-mail}.  @xref{Sending
-Mail,,, emacs, The GNU Emacs Manual}.
+Mail,,, emacs, The femacs Manual}.
 @end defopt
 
   If the document containing the @code{mailto} URL itself possessed a

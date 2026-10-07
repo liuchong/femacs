@@ -1,4 +1,4 @@
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1994, 2001--2026 Free Software Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
 
@@ -23,7 +23,7 @@ and parameters for customization are ordinary Lisp variables.
 beginner's introduction to Emacs Lisp, see @cite{An Introduction to
 Emacs Lisp Programming}, by Bob Chassell, also published by the Free
 Software Foundation.  This manual presumes considerable familiarity with
-the use of Emacs for editing; see @cite{The GNU Emacs Manual} for this
+the use of Emacs for editing; see @cite{The femacs Manual} for this
 basic information.
 
   Generally speaking, the earlier chapters describe features of Emacs
@@ -37,7 +37,7 @@ specifically to editing.
 edition @value{VERSION} of
 @end ifset
 @end iftex
-the @cite{GNU Emacs Lisp Reference Manual},
+the @cite{femacs Lisp Reference Manual},
 corresponding to Emacs version @value{EMACSVER}.
 
 @menu

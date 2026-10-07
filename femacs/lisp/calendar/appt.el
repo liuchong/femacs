@@ -36,7 +36,7 @@
 ;;
 ;; This functions in this file will alert the user of a
 ;; pending appointment based on his/her diary file.  This package
-;; is documented in the Emacs manual.
+;; is documented in the femacs manual.
 ;;
 ;; To activate this package, simply use (appt-activate 1).
 ;; A `diary-file' with appointments of the format described in the

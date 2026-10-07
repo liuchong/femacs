@@ -26,7 +26,7 @@ The user functionality of GNU Emacs encompasses everything other
 editors do, and it is easily extensible since its editing commands are
 written in Lisp.
 .PP
-The primary documentation of GNU Emacs is in the GNU Emacs Manual,
+The primary documentation of GNU Emacs is in the femacs Manual,
 which you can read using Info, either from Emacs or as a standalone
 program.
 Please look there for complete and up-to-date documentation.
@@ -289,7 +289,7 @@ for more information.
 The width and height are specified in characters; the default for GUI
 frames is a width of 80 and a height between 35 and 40, depending on
 the OS and the window manager.
-See the Emacs manual, section "Options for Window Size and Position",
+See the femacs manual, section "Options for Window Size and Position",
 for information on how window sizes interact
 with selecting or deselecting the tool bar, tab bar and menu bar.
 .TP
@@ -458,7 +458,7 @@ Gives frames menu bars if
 .IR on ;
 don't have menu bars if
 .IR off .
-See the Emacs manual, sections "Lucid Resources" and "Motif
+See the femacs manual, sections "Lucid Resources" and "Motif
 Resources", for how to control the appearance of the menu bar
 if you have one.
 .TP
@@ -504,7 +504,7 @@ The scroll bar width in pixels, equivalent to the frame parameter
 .BR selectionFont " (class " SelectionFont )
 Font name for pop-up menu items, in non-toolkit versions of
 .IR Emacs .
-(For toolkit versions, see the Emacs manual, sections
+(For toolkit versions, see the femacs manual, sections
 "Lucid Resources" and "Motif Resources".)
 .TP
 .BR selectionTimeout " (class " SelectionTimeout )
@@ -564,7 +564,7 @@ See the online store at <https://shop.fsf.org/>.
 .br
 Your local administrator might also have copies available.
 As with all software and publications from FSF, everyone is permitted
-to make and distribute copies of the Emacs manual.
+to make and distribute copies of the femacs manual.
 The Texinfo source to the manual is also included in the Emacs source
 distribution.
 .
@@ -573,7 +573,7 @@ distribution.
 /usr/local/share/info \(em files for the Info documentation browser.
 The complete text of the Emacs reference manual is included in a
 convenient tree structured form.
-This includes the Emacs Lisp Reference Manual, useful to anyone
+This includes the femacs Lisp Reference Manual, useful to anyone
 wishing to write programs in the Emacs Lisp extension language,
 and the Introduction to Programming in Emacs Lisp.
 
@@ -599,7 +599,7 @@ There is a mailing list, @PACKAGE_BUGREPORT@, for reporting Emacs
 bugs and fixes.
 But before reporting something as a bug, please try to be sure that
 it really is a bug, not a misunderstanding or a deliberate feature.
-We ask you to read the section "Reporting Bugs" in the Emacs manual
+We ask you to read the section "Reporting Bugs" in the femacs manual
 for hints on how and when to report bugs.
 Also, include the version number of the Emacs you are running in
 \fIevery\fR bug report that you send in.
@@ -659,7 +659,7 @@ Everyone will be free to use, copy, study and change the GNU system.
 .SH AUTHORS
 .I Emacs
 was written by Richard Stallman and the Free Software Foundation.
-For detailed credits and acknowledgments, see the GNU Emacs manual.
+For detailed credits and acknowledgments, see the femacs manual.
 .
 .
 .

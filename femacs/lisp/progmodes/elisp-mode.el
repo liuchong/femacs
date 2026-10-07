@@ -24,7 +24,7 @@
 ;;; Commentary:
 
 ;; The major mode for editing Emacs Lisp code.
-;; This mode is documented in the Emacs manual.
+;; This mode is documented in the femacs manual.
 
 ;;; Code:
 

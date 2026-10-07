@@ -781,7 +781,7 @@ Changes in the state of the custom options should notify the buttons via the
 :notify property, so buttons can be enabled/disabled correctly at all times.")
 
 (defun Custom-help ()
-  "Read the node on Easy Customization in the Emacs manual."
+  "Read the node on Easy Customization in the femacs manual."
   (interactive)
   (info "(emacs)Easy Customization"))
 
@@ -1868,8 +1868,8 @@ Otherwise use brackets."
 		     "(emacs)Easy Customization")
       (widget-insert " in the ")
       (widget-create 'custom-manual
-		     :tag "Emacs manual"
-		     :help-echo "Read the Emacs manual."
+		     :tag "femacs manual"
+		     :help-echo "Read the femacs manual."
 		     "(emacs)Top")
       (widget-insert "."))
     (widget-insert "\n")

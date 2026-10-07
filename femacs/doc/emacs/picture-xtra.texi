@@ -1,9 +1,9 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 2004--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @c
 @c This file is included either in emacs-xtra.texi (when producing the
-@c printed version) or in the main Emacs manual (for the on-line version).
+@c printed version) or in the main femacs manual (for the on-line version).
 @node Picture Mode
 @section Editing Pictures
 @cindex pictures
@@ -87,7 +87,7 @@ update the current picture column to 0.)
   Insertion of text is adapted to the quarter-plane screen model
 through the use of Overwrite mode
 @iftex
-(@pxref{Minor Modes,,, emacs, the Emacs Manual}.)
+(@pxref{Minor Modes,,, emacs, the femacs Manual}.)
 @end iftex
 @ifnottex
 (@pxref{Minor Modes}.)
@@ -249,7 +249,7 @@ up the picture.  You can do this by setting the variable
 the text in ways that fit with the quarter-plane model.  The standard
 rectangle commands may also be useful.
 @iftex
-@xref{Rectangles,,, emacs, the Emacs Manual}.
+@xref{Rectangles,,, emacs, the femacs Manual}.
 @end iftex
 @ifnottex
 @xref{Rectangles}.
@@ -264,7 +264,7 @@ text.
 Similar, but save rectangle contents in register @var{r} first
 (@code{picture-clear-rectangle-to-register}).
 @iftex
-@xref{Registers,,, emacs, the Emacs Manual}.
+@xref{Registers,,, emacs, the femacs Manual}.
 @end iftex
 @ifnottex
 @xref{Registers}.

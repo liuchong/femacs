@@ -25,7 +25,7 @@
 
 ;; These functions exploit the load-history system variable.
 ;; Entry points include `unload-feature', `symbol-file', and
-;; `feature-file', documented in the Emacs Lisp manual.
+;; `feature-file', documented in the femacs Lisp manual.
 
 ;;; Code:
 

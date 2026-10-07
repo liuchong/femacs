@@ -896,13 +896,13 @@ See a list of available Info commands in `Info-mode'."
 
 ;;;###autoload
 (defun info-emacs-manual ()
-  "Display the Emacs manual in Info mode."
+  "Display the femacs manual in Info mode."
   (interactive)
   (info "emacs"))
 
 ;;;###autoload
 (defun info-emacs-bug ()
-  "Display the \"Reporting Bugs\" section of the Emacs manual in Info mode."
+  "Display the \"Reporting Bugs\" section of the femacs manual in Info mode."
   (interactive)
   (info "(emacs)Bugs"))
 
@@ -4776,8 +4776,8 @@ in the first element of the returned list (which is treated specially in
 ;;;###autoload (put 'Info-goto-emacs-command-node 'info-file "emacs")
 ;;;###autoload
 (defun Info-goto-emacs-command-node (command)
-  "Go to the Info node in the Emacs manual for command COMMAND.
-The command is found by looking up in Emacs manual's indices
+  "Go to the Info node in the femacs manual for command COMMAND.
+The command is found by looking up in femacs manual's indices
 or in another manual found via COMMAND's `info-file' property or
 the variable `Info-file-list-for-emacs'.
 COMMAND must be a symbol or string."
@@ -4818,10 +4818,10 @@ COMMAND must be a symbol or string."
 ;;;###autoload (put 'Info-goto-emacs-key-command-node 'info-file "emacs")
 ;;;###autoload
 (defun Info-goto-emacs-key-command-node (key)
-  "Go to the node in the Emacs manual which describes the command bound to KEY.
+  "Go to the node in the femacs manual which describes the command bound to KEY.
 KEY is a string.
 Interactively, if the binding is `execute-extended-command', a command is read.
-The command is found by looking up in Emacs manual's indices
+The command is found by looking up in femacs manual's indices
 or in another manual found via COMMAND's `info-file' property or
 the variable `Info-file-list-for-emacs'."
   (interactive

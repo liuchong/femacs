@@ -143,7 +143,7 @@ bound earlier in the pattern by a SYMBOL pattern.
 Additional patterns can be defined using `pcase-defmacro'.
 
 See Info node `(elisp) Pattern-Matching Conditional' in the
-Emacs Lisp manual for more information and examples."
+femacs Lisp manual for more information and examples."
   (declare (indent 1) (debug (form &rest (pcase-PAT body))))
   ;; We want to use a weak hash table as a cache, but the key will unavoidably
   ;; be based on `exp' and `cases', yet `cases' is a fresh new list each time

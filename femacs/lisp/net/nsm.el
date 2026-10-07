@@ -52,7 +52,7 @@ The following values are possible:
 compatibility concerns.
 `paranoid': On this level, the user is queried for most new connections.
 
-See the Emacs manual for a description of all things that are
+See the femacs manual for a description of all things that are
 checked and warned against."
   :version "25.1"
   :type '(choice (const :tag "Low" low)

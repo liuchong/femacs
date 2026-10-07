@@ -285,7 +285,7 @@ Destroy the current remember buffer.
 
 @defun remember-mode
 This enters the major mode (@pxref{Major Modes, , Major Modes, emacs,
-GNU Emacs Manual}) for output from @code{remember}.  This buffer is
+femacs Manual}) for output from @code{remember}.  This buffer is
 used to collect data that you want remember.  Just hit @kbd{C-c C-c}
 when you're done entering, and it will go ahead and file the data for
 latter retrieval, and possible indexing.

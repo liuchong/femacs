@@ -23,7 +23,7 @@
 ;;; Commentary:
 
 ;; Commands for making and changing indentation in text.  These are
-;; described in the Emacs manual.
+;; described in the femacs manual.
 
 ;;; Code:
 

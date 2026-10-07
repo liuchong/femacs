@@ -1,4 +1,4 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 1994--1997, 1999--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @c

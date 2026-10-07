@@ -21,9 +21,9 @@
 
 ;;; Commentary:
 
-;; See the node "(emacs)Embedded WebKit Widgets" in the Emacs manual for
+;; See the node "(emacs)Embedded WebKit Widgets" in the femacs manual for
 ;; help on user-facing features, and "(elisp)Embedded Native Widgets" in
-;; the Emacs Lisp reference manual for help on more API functions.
+;; the femacs Lisp reference manual for help on more API functions.
 
 ;;; Code:
 

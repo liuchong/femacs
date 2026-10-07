@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -3419,7 +3419,7 @@ Lisp strings).
 @c (Same value, 9600, appears below as well.)
 @var{speed} is the speed of the serial port in bits per second.  9600
 is a common value.  The buffer is in Term mode; see @ref{Term Mode,,,
-emacs, The GNU Emacs Manual}, for the commands to use in that buffer.
+emacs, The femacs Manual}, for the commands to use in that buffer.
 You can change the speed and the configuration in the mode line menu.
 If @var{line-mode} is non-@code{nil}, @code{term-line-mode} is used;
 otherwise @code{term-raw-mode} is used.

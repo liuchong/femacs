@@ -873,7 +873,7 @@ The help buffers are divided into \"pages\" by the ^L character."
                       help-window-keep-selected))
 
 (defun help-goto-lispref-info ()
-  "View the Emacs Lisp manual *info* node of the current help item."
+  "View the femacs Lisp manual *info* node of the current help item."
   (interactive nil help-mode)
   (unless help-mode--current-data
     (error "No symbol to look up in the current buffer"))

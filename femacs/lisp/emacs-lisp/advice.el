@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 
-;; Advice is documented in the Emacs Lisp Manual.
+;; Advice is documented in the femacs Lisp Manual.
 
 ;; @ Introduction:
 ;; ===============

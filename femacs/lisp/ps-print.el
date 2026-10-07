@@ -910,7 +910,7 @@
 ;; out some special printing instructions from the actual print.  Special
 ;; printing instructions may be appended to the end of the file just like any
 ;; other buffer-local variables.  See section "Local Variables in Files" on
-;; Emacs manual for more information.
+;; femacs manual for more information.
 ;;
 ;; Variables `ps-begin-cut-regexp' and `ps-end-cut-regexp' control together
 ;; what actually gets printed.  Both variables may be set to nil in which case

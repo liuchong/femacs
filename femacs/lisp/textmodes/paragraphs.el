@@ -25,7 +25,7 @@
 ;;; Commentary:
 
 ;; This package provides the paragraph-oriented commands documented in the
-;; Emacs manual.
+;; femacs manual.
 
 ;;; Code:
 

@@ -30,7 +30,7 @@
 ;; This file is a replacement for the diary import/export features
 ;; previously provided by icalendar.el.  It uses a new parser and offers
 ;; more flexibility and features than the old implementation.  It is
-;; documented in the Emacs manual.
+;; documented in the femacs manual.
 
 ;;; Code:
 

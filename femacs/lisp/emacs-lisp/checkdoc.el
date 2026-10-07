@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;;   The Emacs Lisp manual has a nice chapter on how to write
+;;   The femacs Lisp manual has a nice chapter on how to write
 ;; documentation strings.  Many stylistic suggestions are fairly
 ;; deterministic and easy to check for syntactically, but also easy
 ;; to forget.  The main checkdoc engine will perform the stylistic
@@ -1387,7 +1387,7 @@ checking of documentation strings.
 Check for style only, such as the first line always being a complete
 sentence, whitespace restrictions, and making sure there are no
 hard-coded key-codes such as C-[char] or mouse-[number] in the comment.
-See the style guide in the Emacs Lisp manual for more details.
+See the style guide in the femacs Lisp manual for more details.
 
 With a non-nil TAKE-NOTES, store all errors found in a warnings
 buffer, otherwise stop after the first error."
@@ -2332,7 +2332,7 @@ News agents may remove it"
      ;; end of different lines.
      (progn
        (goto-char start)
-       ;; There is no documentation in the Emacs Lisp manual about this check,
+       ;; There is no documentation in the femacs Lisp manual about this check,
        ;; it is intended to help clean up messy code and reduce the file size.
        (while (and (not msg) (re-search-forward "[^ \t\n;]\\([ \t]+\\)$" end t))
 	 ;; This is not a complex activity

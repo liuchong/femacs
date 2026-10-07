@@ -38,7 +38,7 @@
 ;; through the code with SPC, mark breakpoints with b, go until a
 ;; breakpoint is reached with g, and quit execution with q.  Use the
 ;; "?" command in edebug to describe other commands.
-;; See the Emacs Lisp Reference Manual for more details.
+;; See the femacs Lisp Reference Manual for more details.
 
 ;; If you wish to change the default edebug global command prefix, change:
 ;; (setq edebug-global-prefix "\C-xX")

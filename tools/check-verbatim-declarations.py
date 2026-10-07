@@ -72,7 +72,9 @@ KEEPS = REPO / "docs/baseline/verbatim-declaration-keeps.tsv"
 # literals below are why this file is on that gate's tool exemption list (the tool has to
 # write the name it looks for).  The bare `Emacs` is wanted here and *not* there: the
 # manual-membership sentence names the manual, and a scan that only knew the spelled-out
-# name would miss the 54 `the Emacs manual` rows.
+# name would miss the manual-membership sentence (`@c This is part of the Emacs manual.`
+# and its Lisp-reference sibling: 116 rows the rule's thirtieth half renamed, status 4.008 -
+# the spelling stays in the pattern because a re-copy brings the sentence back).
 PRODUCT = re.compile(r"\bGNU Emacs\b|\bgnu emacs\b|\bGNU\.Emacs\b|\bGnu Emacs\b|(?<!GNU )\bEmacs\b")
 MEMBERSHIP = re.compile(r"\bpart of\b|\bannex of\b|\bbelongs to\b", re.I)
 # The subject has to be a thing this repository carries: this document, these files, or a

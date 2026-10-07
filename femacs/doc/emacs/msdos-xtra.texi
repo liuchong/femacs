@@ -1,9 +1,9 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 2004--2026 Free Software Foundation, Inc.
 @c See file emacs.texi for copying conditions.
 @c
 @c This file is included either in emacs-xtra.texi (when producing the
-@c printed version) or in the main Emacs manual (for the on-line version).
+@c printed version) or in the main femacs manual (for the on-line version).
 @node MS-DOS
 @section Emacs and MS-DOS
 @cindex MS-DOS peculiarities
@@ -12,8 +12,8 @@
 MS-DOS.
 @iftex
 Information about Emacs and Microsoft's current operating system
-Windows is in the main Emacs manual
-(@pxref{Microsoft Windows,,, emacs, the Emacs Manual}).
+Windows is in the main femacs manual
+(@pxref{Microsoft Windows,,, emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 Information about peculiarities common to MS-DOS and Microsoft's
@@ -27,7 +27,7 @@ application; all of this chapter applies for all of those systems, if
 you use an Emacs that was built for MS-DOS.
 
 @iftex
-  @xref{Text and Binary,,,emacs, the Emacs Manual}, for information
+  @xref{Text and Binary,,,emacs, the femacs Manual}, for information
 @end iftex
 @ifnottex
   @xref{Text and Binary}, for information
@@ -63,7 +63,7 @@ character, just like @kbd{C-g}.  This is because Emacs cannot detect
 that you have typed @kbd{C-g} until it is ready for more input.  As a
 consequence, you cannot use @kbd{C-g} to stop a running command
 @iftex
-(@pxref{Quitting,,,emacs, the Emacs Manual}).
+(@pxref{Quitting,,,emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Quitting}).
@@ -72,7 +72,7 @@ By contrast, @kbd{C-@key{Break}} @emph{is} detected as soon as you
 type it (as @kbd{C-g} is on other systems), so it can be used to stop
 a running command and for emergency escape
 @iftex
-(@pxref{Emergency Escape,,,emacs, the Emacs Manual}).
+(@pxref{Emergency Escape,,,emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Emergency Escape}).
@@ -116,7 +116,7 @@ following line into your @file{_emacs} file:
 The mouse commands work as documented, including those that use menus
 and the menu bar
 @iftex
-(@pxref{Menu Bar,,,emacs, the Emacs Manual}).
+(@pxref{Menu Bar,,,emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Menu Bar}).
@@ -131,7 +131,7 @@ the 3 buttons function normally, as on X.
 area when the mouse pointer moves across the menu items.  Highlighting
 of mouse-sensitive text
 @iftex
-(@pxref{Mouse References,,,emacs, the Emacs Manual})
+(@pxref{Mouse References,,,emacs, the femacs Manual})
 @end iftex
 @ifnottex
 (@pxref{Mouse References})
@@ -160,7 +160,7 @@ Windows.  Commands that put text on the kill ring, or yank text from
 the ring, check the Windows clipboard first, just as Emacs does on the
 X Window System
 @iftex
-(@pxref{Mouse Commands,,,emacs, the Emacs Manual}).
+(@pxref{Mouse Commands,,,emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Mouse Commands}).
@@ -198,14 +198,14 @@ of Emacs packages that use fonts (such as @code{font-lock}, Enriched
 Text mode, and others) by defining the relevant faces to use different
 colors.  Use the @code{list-colors-display} command
 @iftex
-(@pxref{Colors,,,emacs, the Emacs Manual})
+(@pxref{Colors,,,emacs, the femacs Manual})
 @end iftex
 @ifnottex
 (@pxref{Colors})
 @end ifnottex
 and the @code{list-faces-display} command
 @iftex
-(@pxref{Faces,,,emacs, the Emacs Manual})
+(@pxref{Faces,,,emacs, the femacs Manual})
 @end iftex
 @ifnottex
 (@pxref{Faces})
@@ -223,7 +223,7 @@ default in Emacs.  This default shape can be changed to a bar by
 specifying the @code{cursor-type} parameter in the variable
 @code{default-frame-alist}
 @iftex
-(@pxref{Creating Frames,,,emacs, the Emacs Manual}).
+(@pxref{Creating Frames,,,emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Creating Frames}).
@@ -249,7 +249,7 @@ begins at the top of the character cell.
 Emacs frame facilities work on MS-DOS much as they do on text
 terminals
 @iftex
-(@pxref{Frames,,,emacs, the Emacs Manual}).
+(@pxref{Frames,,,emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Frames}).
@@ -314,7 +314,7 @@ meant for other operating systems.  For instance, leading dots
 @samp{.}  in file names are invalid in MS-DOS, so Emacs transparently
 converts them to underscores @samp{_}; thus your default init file
 @iftex
-(@pxref{Init File,,,emacs, the Emacs Manual})
+(@pxref{Init File,,,emacs, the femacs Manual})
 @end iftex
 @ifnottex
 (@pxref{Init File})
@@ -331,7 +331,7 @@ described above only works on file names built into Emacs.
   The above restrictions on the file names on MS-DOS make it almost
 impossible to construct the name of a backup file
 @iftex
-(@pxref{Backup Names,,,emacs, the Emacs Manual})
+(@pxref{Backup Names,,,emacs, the femacs Manual})
 @end iftex
 @ifnottex
 (@pxref{Backup Names})
@@ -373,8 +373,8 @@ using an actual directory named @file{/dev} on any disk.
 
   Printing commands, such as @code{lpr-buffer}
 @iftex
-(@pxref{Printing,,,emacs, the Emacs Manual}) and @code{ps-print-buffer}
-(@pxref{PostScript,,,emacs, the Emacs Manual})
+(@pxref{Printing,,,emacs, the femacs Manual}) and @code{ps-print-buffer}
+(@pxref{PostScript,,,emacs, the femacs Manual})
 @end iftex
 @ifnottex
 (@pxref{Printing}) and @code{ps-print-buffer} (@pxref{PostScript})
@@ -385,7 +385,7 @@ variables control printing on all systems, but in some cases they have
 different default values on MS-DOS.
 
 @iftex
-@xref{Windows Printing,,,emacs, the Emacs Manual},
+@xref{Windows Printing,,,emacs, the femacs Manual},
 @end iftex
 @ifnottex
 @xref{Windows Printing},
@@ -417,7 +417,7 @@ will print the region while converting it to the codepage 850 encoding.
   Emacs on MS-DOS supports the same international character sets as it
 does on GNU, Unix and other platforms
 @iftex
-(@pxref{International,,,emacs, the Emacs Manual}),
+(@pxref{International,,,emacs, the femacs Manual}),
 @end iftex
 @ifnottex
 (@pxref{International}),
@@ -501,7 +501,7 @@ coding system and the default coding system for file I/O are set to
 the proper @code{cp@var{nnn}} coding system at startup, it is normal
 for the mode line on MS-DOS to begin with @samp{-DD\-}.
 @iftex
-@xref{Mode Line,,,emacs, the Emacs Manual}.
+@xref{Mode Line,,,emacs, the femacs Manual}.
 @end iftex
 @ifnottex
 @xref{Mode Line}.
@@ -514,7 +514,7 @@ default.
 Emacs automatically runs @code{set-language-environment} to select the
 language environment for that script
 @iftex
-(@pxref{Language Environments,,,emacs, the Emacs Manual}).
+(@pxref{Language Environments,,,emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{Language Environments}).
@@ -572,7 +572,7 @@ implements a POSIX-like shell entirely in Emacs Lisp.
   By contrast, Emacs compiled as a native Windows application
 @strong{does} support asynchronous subprocesses.
 @iftex
-@xref{Windows Processes,,,emacs, the Emacs Manual}.
+@xref{Windows Processes,,,emacs, the femacs Manual}.
 @end iftex
 @ifnottex
 @xref{Windows Processes}.
@@ -581,10 +581,10 @@ implements a POSIX-like shell entirely in Emacs Lisp.
 @cindex printing under MS-DOS
   Printing commands, such as @code{lpr-buffer}
 @iftex
-(@pxref{Printing,,,emacs, the Emacs Manual}) and
-@code{ps-print-buffer} (@pxref{PostScript,,,emacs, the Emacs Manual}),
+(@pxref{Printing,,,emacs, the femacs Manual}) and
+@code{ps-print-buffer} (@pxref{PostScript,,,emacs, the femacs Manual}),
 work in MS-DOS by sending the output to one of the printer ports.
-@xref{MS-DOS Printing,,,emacs, the Emacs Manual}.
+@xref{MS-DOS Printing,,,emacs, the femacs Manual}.
 @end iftex
 @ifnottex
 (@pxref{Printing}) and @code{ps-print-buffer} (@pxref{PostScript}),
@@ -608,7 +608,7 @@ MS-DOS with some network redirector.
 @vindex dired-listing-switches @r{(MS-DOS)}
   Dired on MS-DOS uses the @code{ls-lisp} package
 @iftex
-(@pxref{ls in Lisp,,,emacs, the Emacs Manual}).
+(@pxref{ls in Lisp,,,emacs, the femacs Manual}).
 @end iftex
 @ifnottex
 (@pxref{ls in Lisp}).

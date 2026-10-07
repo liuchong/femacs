@@ -591,6 +591,34 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     `.TH` 第一栏）——第八半的边界（与 WM/桌面/图标/路径的约定）不变。
     **未声称**：没有任何运行证据——本机没有把改后的手册页装进 `man` 的路径树、也没有重建 `whatis`/`apropos` 数据库；
     改的是文本，读数全部来自逐字节门与变异实测。同一批读数与上面的"不动"清单记在 `docs/status.md` 3.956。
+    这条规则现在有第三十半（2026-10-08，status 4.008）：**"这棵树自己的手册叫什么"这一面第一次被读**。
+    第十四/十五半点名登记、此后历半"按判据不动"的那一类（`manual-membership`，116 行）自己写着出口：
+    **要清它，动的是手册自己的标题**——本半就动它，并按第八半"一族字面量一次量清"的手法，把**本仓库自己的两本手册**
+    （`doc/emacs` 与 `doc/lispref`）在六棵照抄树里被点名的**每一个**地方当成一个身份一次改名：手册自己的标题
+    （`@settitle`/`@title`/`@titlefont`/`@shorttitlepage`、封面/书脊/copying 页）、指向它们的
+    `@ref`/`@xref`/`@pxref`/`@cite`（含跨手册的第五栏）、照抄树里对这个名字的散文引用、程序自己名字里带手册名的
+    字符串（菜单标签、快速帮助标签表、`:tag`/`:help`/`:help-echo`、splash 的 `:link`）、docstring 与注释、
+    文件头标题行、以及那 116 行**成员句**（含两条换行句：`doc/emacs/emacs-xtra.texi` 12-14 与 85-87）。
+    字形仍是第十半的**机械替换**（只换产品名那一个 token，`GNU ` 前缀随产品名一起去掉，同一行其余字符一个都不动），
+    **963 行 / 207 个文件**逐行记进 `docs/baseline/verbatim-substitutions.tsv`（登记行 **7,211 → 8,174**），
+    读数 `python3 tools/check-verbatim.py` → **`6 trees, 4604 files, 7,210 → 8,173 sanctioned line(s), 0 failures`**
+    （逐树 `doc` 89 → **953**、`lisp` 6,385 → **6,472**、`etc` 465 → **473**、`admin` 256 → **260**；`test`/`leim`
+    与六棵树的文件数不动）。那一类豁免随之**整类撤出** `docs/baseline/verbatim-declaration-keeps.tsv`
+    （116 → 0；表从 117 行降到 7 行 = 列头 + 6 行其它类）：行已改名，门不再把它们读成候选，读数
+    **`710 candidate(s) of which 0 wrapped across two lines, 6 enumerated keep(s), 710 classified, 0 failure(s)`**
+    （上一步 820/116）。
+    **按判据不动、逐条点名（11 处）**：句子的主语是**参照方的发行渠道**、不是本程序的手册——`admin/make-manuals` 2/42 与
+    `admin/upload-manuals` 3/45（上传到 `gnu.org`）、`doc/man/emacs.1.in` 561、`doc/misc/efaq.texi` 564/569、
+    `doc/emacs/help.texi` 835、`lisp/help.el` 731（**从 FSF 买印刷本**那一句）、`doc/misc/efaq-w32.texi` 2361
+    （指向 gnu.org 手册集合的链接标签）、`etc/DISTRIB` 30（FSF 的印刷本）；同族的**外部专名与路径**
+    （`(emacs)`/`(elisp)` 的 Info 文件名、`info-emacs-manual` 一族命令名/函数名、目录名、`XEmacs` 字样）本半一个都没动：
+    改的是"名字"，不是"指向"（第十半"链接指向参照的站点、URL 不动"同一条）。
+    **仍未清、点名不冒充**：这两本手册**叙述**里对这个程序的称呼（`doc/` 里仍有 **399 行**带那个拼写的叙述，
+    以及 10,980 行里其余的裸名用法）、其余 19 本手册自己的标题（`@settitle` 那一族里**另外 24 行**）、
+    `doc/translations/` 的译本里同一批字符串的非英文写法。
+    **未声称**：本半没有跑过任何东西——改的是文本，证据只有逐字节门（963 行每行都被读回）与声明门；
+    这些手册没有被 `makeinfo` 重建过（交叉引用的第五栏与新标题一致这件事由逐字节门与逐条复核保证）。
+    同一批读数记在 `docs/status.md` 4.008。
 
 
 

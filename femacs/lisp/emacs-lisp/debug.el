@@ -23,7 +23,7 @@
 
 ;;; Commentary:
 
-;; This is a major mode documented in the Emacs Lisp manual.
+;; This is a major mode documented in the femacs Lisp manual.
 
 ;;; Code:
 

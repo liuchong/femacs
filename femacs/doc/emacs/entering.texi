@@ -1,4 +1,4 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -140,7 +140,7 @@ default value of @code{confirm-kill-emacs} is @code{nil}.
 subprocesses started by Emacs.  The value is @code{t} by default.
 
   To further customize what happens when Emacs is exiting, see
-@ref{Killing Emacs,,, elisp, The GNU Emacs Lisp Reference Manual}.
+@ref{Killing Emacs,,, elisp, The femacs Lisp Reference Manual}.
 
 @findex kill-emacs
   To kill Emacs without being prompted about saving, type @kbd{M-x

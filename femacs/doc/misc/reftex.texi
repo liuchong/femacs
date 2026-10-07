@@ -2945,8 +2945,8 @@ will actually ask you for each new file about the master file and insert
 this comment automatically.  For more details see the documentation of
 the @AUCTeX{} (@pxref{Multifile,,,auctex, The AUCTeX User Manual}), the
 documentation about the Emacs (La)TeX mode (@pxref{TeX Print,,,emacs,
-The GNU Emacs Manual}) and the Emacs documentation on File Variables
-(@pxref{File Variables,,,emacs, The GNU Emacs Manual}).
+The femacs Manual}) and the Emacs documentation on File Variables
+(@pxref{File Variables,,,emacs, The femacs Manual}).
 
 @item
 The context of a label definition must be found in the same file as the

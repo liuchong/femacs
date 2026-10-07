@@ -7073,7 +7073,7 @@ affected by this variable.
 This option is provided for backward compatibility only.  New
 code should use a `pop-up-frame-parameters' action alist entry in
 `display-buffer-alist' instead.  See Info node `(elisp) Choosing
-Window Options' in the Emacs Lisp manual."
+Window Options' in the femacs Lisp manual."
   :type '(repeat (cons :format "%v"
 		       (symbol :tag "Parameter")
 		       (sexp :tag "Value")))
@@ -7348,7 +7348,7 @@ ignored.
 This variable is provided for backward compatibility only and
 should not be used in new code.  Customize `display-buffer-alist'
 instead.  See Info node `(elisp) Choosing Window Options' in the
-Emacs Lisp manual for an example.
+femacs Lisp manual for an example.
 
 See also `same-window-regexps'."
  :type '(repeat (string :format "%v"))
@@ -7368,7 +7368,7 @@ the buffer name.  This is for compatibility with
 This variable is provided for backward compatibility only and
 should not be used in new code.  Customize `display-buffer-alist'
 instead.  See Info node `(elisp) Choosing Window Options' in the
-Emacs Lisp manual for an example.
+femacs Lisp manual for an example.
 
 See also `same-window-buffer-names'."
   :type '(repeat (regexp :format "%v"))
@@ -7407,7 +7407,7 @@ This variable is provided mainly for backward compatibility and
 should not be used in new code.  To make `display-buffer' behave
 as if this were t, customize `display-buffer-base-action'
 instead.  See Info node `(elisp) Choosing Window Options' in the
-Emacs Lisp manual for an example."
+femacs Lisp manual for an example."
   :type '(choice
 	  (const :tag "Never" nil)
 	  (const :tag "On graphic displays only" graphic-only)
@@ -7440,7 +7440,7 @@ This variable is provided mainly for backward compatibility and
 should not be used in new code.  To make `display-buffer' behave
 as if this were t, customize `display-buffer-base-action'
 instead.  See Info node `(elisp) Choosing Window Options' in the
-Emacs Lisp manual for an example."
+femacs Lisp manual for an example."
   :type 'boolean
   :group 'windows)
 

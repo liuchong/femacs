@@ -904,7 +904,7 @@ for @code{rcirc} buffers:
                              (flyspell-mode 1)))
 @end example
 
-@xref{Spelling, , Flyspell mode, emacs, The GNU Emacs Manual},
+@xref{Spelling, , Flyspell mode, emacs, The femacs Manual},
 for details.
 
 @node Scrolling conservatively

@@ -1,4 +1,4 @@
-@c This is part of the Emacs manual.
+@c This is part of the femacs manual.
 @c Copyright (C) 1985--1987, 1993--1995, 1997, 2000--2026 Free Software
 @c Foundation, Inc.
 @c See file emacs.texi for copying conditions.
@@ -320,7 +320,7 @@ window has no effect on the buffer it used to display; the buffer
 continues to exist, and you can still switch to it with @kbd{C-x b}.
 The option @code{delete-window-choose-selected} controls which
 window is chosen as the new selected window instead (@pxref{Deleting
-Windows,,, elisp, The Emacs Lisp Reference Manual}).
+Windows,,, elisp, The femacs Lisp Reference Manual}).
 
 @findex kill-buffer-and-window
 @kindex C-x 4 0
@@ -425,7 +425,7 @@ these commands are bound in the @kbd{C-x 5} prefix key.
 
 @cindex dedicated window
   Sometimes, a window is ``dedicated'' to its current buffer.
-@xref{Dedicated Windows,,, elisp, The Emacs Lisp Reference Manual}.
+@xref{Dedicated Windows,,, elisp, The femacs Lisp Reference Manual}.
 @code{display-buffer} will avoid reusing dedicated windows most of the
 time.  This is indicated by a @samp{d} in the mode line (@pxref{Mode
 Line}).  A window can also be strongly dedicated, which prevents any
@@ -457,7 +457,7 @@ buffer.  With a prefix argument, it makes the window strongly dedicated.
 The @code{display-buffer} command (as well as commands that call it
 internally) chooses a window to display by following the steps given
 below.  @xref{Choosing Window,,Choosing a Window for Displaying a
-Buffer, elisp, The Emacs Lisp Reference Manual}, for details about how
+Buffer, elisp, The femacs Lisp Reference Manual}, for details about how
 to alter this sequence of steps.
 
 @itemize
@@ -468,9 +468,9 @@ step is skipped, but you can tell Emacs not to skip it by adding a
 regular expression matching the buffer's name together with a
 reference to the @code{display-buffer-same-window} action function
 (@pxref{Buffer Display Action Functions,,Action Functions for Buffer
-Display, elisp, The Emacs Lisp Reference Manual}) to the option
+Display, elisp, The femacs Lisp Reference Manual}) to the option
 @code{display-buffer-alist} (@pxref{Choosing Window,,Choosing a Window
-for Displaying a Buffer, elisp, The Emacs Lisp Reference Manual}).
+for Displaying a Buffer, elisp, The femacs Lisp Reference Manual}).
 For example, to display the buffer @file{*scratch*} preferably in the
 selected window write:
 
@@ -490,7 +490,7 @@ reuse that window.  Normally, only windows on the selected frame are
 considered, but windows on other frames are also reusable if you use
 the corresponding @code{reusable-frames} action alist entry
 (@pxref{Buffer Display Action Alists,,Action Alists for Buffer
-Display, elisp, The Emacs Lisp Reference Manual}).  See the
+Display, elisp, The femacs Lisp Reference Manual}).  See the
 next step for an example of how to do that.
 
 @item
@@ -574,7 +574,7 @@ number of windows already shown on that frame.
   If you prefer Emacs to display a temporary buffer in a different
 fashion, customize the variable @code{display-buffer-alist}
 (@pxref{Choosing Window,,Choosing a Window for Displaying a Buffer,
-elisp, The Emacs Lisp Reference Manual}) appropriately.  For example,
+elisp, The femacs Lisp Reference Manual}) appropriately.  For example,
 to display @file{*Completions*} always below the selected window, use
 the following form in your initialization file (@pxref{Init File}):
 
@@ -607,7 +607,7 @@ Reference Manual}), and cannot exceed the size of the containing frame.
 @vindex warning-display-at-bottom
   Buffers showing warnings (such as byte-compilation warnings,
 @pxref{Compilation Functions,, Byte Compilation Functions, elisp, The
-Emacs Lisp Reference Manual}) are also by default shown in a window at
+femacs Lisp Reference Manual}) are also by default shown in a window at
 the bottom of the selected frame.  You can control this using the
 variable @code{warning-display-at-bottom}: if set to @code{nil}, Emacs
 will use the normal logic of @code{display-buffer} (@pxref{Window
@@ -727,7 +727,7 @@ Also note that the tab line displays in the same space as the window
 tool bar, so only one of them can be displayed at any given time, unless
 you customize the value of @code{tab-line-format} in Lisp to add
 @w{@code{(:eval (tab-line-format))}} to @code{tab-line-format}.
-@xref{Mode Line Format,,, elisp, The Emacs Lisp Reference Manual}.
+@xref{Mode Line Format,,, elisp, The femacs Lisp Reference Manual}.
 
 
 @node Window Tool Bar
@@ -773,4 +773,4 @@ Note that the window tool bar displays in the same space as the tab
 line, so only one of them can be displayed at any given time, unless you
 customize the value of @code{tab-line-format} to add @w{@code{(:eval
 (window-tool-bar-string))}} to @code{tab-line-format}.  @xref{Mode Line
-Format,,, elisp, The Emacs Lisp Reference Manual}.
+Format,,, elisp, The femacs Lisp Reference Manual}.

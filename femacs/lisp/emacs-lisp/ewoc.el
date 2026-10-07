@@ -85,7 +85,7 @@
 ;; limit!  It is even possible to have another ewoc as an
 ;; element.  In that way some kind of tree hierarchy can be created.
 ;;
-;; The Emacs Lisp Reference Manual documents ewoc.el's "public interface".
+;; The femacs Lisp Reference Manual documents ewoc.el's "public interface".
 
 ;;     Coding conventions
 ;;     ==================

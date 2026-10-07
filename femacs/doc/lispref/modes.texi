@@ -1,5 +1,5 @@
 @c -*-texinfo-*-
-@c This is part of the GNU Emacs Lisp Reference Manual.
+@c This is part of the femacs Lisp Reference Manual.
 @c Copyright (C) 1990--1995, 1998--1999, 2001--2026 Free Software
 @c Foundation, Inc.
 @c See the file elisp.texi for copying conditions.
@@ -469,7 +469,7 @@ provided by tree-sitter for this, @pxref{Parser-based Font Lock}.)
 @item
 If the mode handles a language that has a syntax for comments, it should
 set the variables that define the comment syntax.  @xref{Options for
-Comments,, Options Controlling Comments, emacs, The GNU Emacs Manual}.
+Comments,, Options Controlling Comments, emacs, The femacs Manual}.
 
 @item
 @cindex abbrev tables in modes
@@ -501,7 +501,7 @@ and efficiently.
 @vindex context-menu-functions
 Consider adding mode-specific context menus for the mode, to be used
 if and when users activate the @code{context-menu-mode} (@pxref{Menu
-Mouse Clicks,,, emacs, The Emacs Manual}).  To this end, define a
+Mouse Clicks,,, emacs, The femacs Manual}).  To this end, define a
 mode-specific function which builds one or more menus depending on the
 location of the @kbd{mouse-3} click in the buffer, and then add that
 function to the buffer-local value of @code{context-menu-functions}.
@@ -644,7 +644,7 @@ If the @var{find-file} argument to @code{normal-mode} is non-@code{nil},
 it.  In this case, it may process local variables in the @samp{-*-}
 line or at the end of the file.  The variable
 @code{enable-local-variables} controls whether to do so.  @xref{File
-Variables, , Local Variables in Files, emacs, The GNU Emacs Manual},
+Variables, , Local Variables in Files, emacs, The femacs Manual},
 for the syntax of the local variables section of a file.
 
 If you run @code{normal-mode} interactively, the argument
@@ -670,7 +670,7 @@ variable near the end of a file, on the @w{@samp{#!}} line (using
 @code{interpreter-mode-alist}), on the text at the beginning of the
 buffer (using @code{magic-mode-alist}), and finally on the visited
 file name (using @code{auto-mode-alist}).  @xref{Choosing Modes, , How
-Major Modes are Chosen, emacs, The GNU Emacs Manual}.  If
+Major Modes are Chosen, emacs, The femacs Manual}.  If
 @code{enable-local-variables} is @code{nil}, @code{set-auto-mode} does
 not check the @w{@samp{-*-}} line, or near the end of the file, for
 any mode tag.
@@ -1065,7 +1065,7 @@ Text mode is a major mode for editing human languages.  It defines the
 dictionary (@pxref{Completion in Buffers}).
 
 An example of a major mode derived from Text mode is HTML mode.
-@xref{HTML Mode,,SGML and HTML Modes, emacs, The GNU Emacs Manual}.
+@xref{HTML Mode,,SGML and HTML Modes, emacs, The femacs Manual}.
 @end deffn
 
 @deffn Command prog-mode
@@ -1090,7 +1090,7 @@ for @code{revert-buffer} (@pxref{Reverting}).
 
 An example of a major mode derived from Special mode is Buffer Menu
 mode, which is used by the @file{*Buffer List*} buffer.  @xref{List
-Buffers,,Listing Existing Buffers, emacs, The GNU Emacs Manual}.
+Buffers,,Listing Existing Buffers, emacs, The femacs Manual}.
 @end deffn
 
   In addition, modes for buffers of tabulated data can inherit from
@@ -1187,7 +1187,7 @@ for more information.
   Tabulated List mode is intended to be used as a parent mode by a more
 specialized major mode.  Examples include Process Menu mode
 (@pxref{Process Information}) and Package Menu mode (@pxref{Package
-Menu,,, emacs, The GNU Emacs Manual}).
+Menu,,, emacs, The femacs Manual}).
 
 @findex tabulated-list-mode
   Such a derived mode should use @code{define-derived-mode} in the usual
@@ -1860,7 +1860,7 @@ One of the effects of making a minor mode global is that the
 @var{mode} variable becomes a customization variable.  Toggling it
 through the Customize interface turns the mode on and off, and its
 value can be saved for future Emacs sessions (@pxref{Saving
-Customizations,,, emacs, The GNU Emacs Manual}.  For the saved
+Customizations,,, emacs, The femacs Manual}.  For the saved
 variable to work, you should ensure that the minor mode function
 is available each time Emacs starts; usually this is done by
 marking the @code{define-minor-mode} form as autoloaded.
@@ -2201,7 +2201,7 @@ If parts of the string have @code{face} properties, they control
 display of the text just as they would text in the buffer.  Any
 characters which have no @code{face} properties are displayed, by
 default, in the face @code{mode-line} or @code{mode-line-inactive}
-(@pxref{Standard Faces,,, emacs, The GNU Emacs Manual}).  The
+(@pxref{Standard Faces,,, emacs, The femacs Manual}).  The
 @code{help-echo} and @code{keymap} properties in @var{string} have
 special meanings.  @xref{Properties in Mode}.
 
@@ -2355,7 +2355,7 @@ could have the same effects on the mode line if the value of
 of Emacs set these variables on the understanding that they will control
 parts of the mode line; therefore, practically speaking, it is essential
 for the mode line to use them.  Also see
-@ref{Optional Mode Line,,, emacs, The GNU Emacs Manual}.
+@ref{Optional Mode Line,,, emacs, The femacs Manual}.
 
 @defvar mode-line-mule-info
 This variable holds the value of the mode line construct that displays
@@ -2471,7 +2471,7 @@ shows the information specified by @code{global-mode-string}.
 
 @defvar mode-line-position-line-format
 The format used to display line numbers when @code{line-number-mode}
-(@pxref{Optional Mode Line,,, emacs, The GNU Emacs Manual}) is
+(@pxref{Optional Mode Line,,, emacs, The femacs Manual}) is
 switched on.  @samp{%l} in the format will be replaced with the line
 number.
 @end defvar
@@ -2479,7 +2479,7 @@ number.
 @defvar mode-line-position-column-format
 The format used to display column numbers when
 @code{column-number-mode} (@pxref{Optional Mode Line,,, emacs, The GNU
-Emacs Manual}) is switched on.  @samp{%c} in the format will be
+femacs Manual}) is switched on.  @samp{%c} in the format will be
 replaced with a zero-based column number, and @samp{%C} will be
 replaced with a one-based column number.
 @end defvar
@@ -2757,7 +2757,7 @@ line.
 
 If @code{display-line-numbers-mode} is turned on in a buffer
 (@pxref{Display Custom, display-line-numbers-mode,, emacs, The GNU
-Emacs Manual}), the buffer text is indented on display by the amount
+femacs Manual}), the buffer text is indented on display by the amount
 of screen space needed to show the line numbers.  By contrast, text of
 the header line is not automatically indented, because a header line
 never displays a line number, and because the text of the header line
@@ -2840,8 +2840,8 @@ and header line are visible, the tab line appears above the header line.
 The tab line feature is controlled like the mode line feature, except
 that it's controlled by @code{tab-line-format}.  Unlike the mode line,
 the tab line is only expected to be used to display a list of tabs
-(@pxref{Tab Line,,, emacs, The GNU Emacs Manual}) or the window
-tool bar (@pxref{Window Tool Bar,,, emacs, The GNU Emacs Manual}):
+(@pxref{Tab Line,,, emacs, The femacs Manual}) or the window
+tool bar (@pxref{Window Tool Bar,,, emacs, The femacs Manual}):
 
 @defvar tab-line-format
 This variable, local in every buffer, specifies how to display the tab
@@ -2915,7 +2915,7 @@ to run Imenu.
 @end deffn
 
   The user-level commands for using Imenu are described in the Emacs
-Manual (@pxref{Imenu,, Imenu, emacs, the Emacs Manual}).  This section
+Manual (@pxref{Imenu,, Imenu, emacs, the femacs Manual}).  This section
 explains how to customize Imenu's method of finding definitions or
 buffer portions for a particular major mode.
 
@@ -3136,7 +3136,7 @@ If this variable is non-@code{nil}, it overrides
   @dfn{Outline minor mode} is a buffer-local minor mode that hides
 parts of the buffer and leaves only heading lines visible.
 This minor mode can be used in conjunction with other major modes
-(@pxref{Outline Minor Mode,, Outline Minor Mode, emacs, the Emacs Manual}).
+(@pxref{Outline Minor Mode,, Outline Minor Mode, emacs, the femacs Manual}).
 
   There are two ways to define which lines are headings: with the
 variable @code{outline-regexp} or @code{outline-search-function}.
@@ -3889,7 +3889,7 @@ can define multiple levels by using a list of symbols for @var{keywords}
 in @code{font-lock-defaults}.  Each symbol specifies one level of
 fontification; it is up to the user to choose one of these levels,
 normally by setting @code{font-lock-maximum-decoration} (@pxref{Font
-Lock,,, emacs, the GNU Emacs Manual}).  The chosen level's symbol value
+Lock,,, emacs, the femacs Manual}).  The chosen level's symbol value
 is used to initialize @code{font-lock-keywords}.
 
   Here are the conventions for how to define the levels of
@@ -5216,7 +5216,7 @@ the previous @code{"else"}, rather than going all the way back to the
 first @code{"if"} of the sequence.
 @end itemize
 
-@c In some sense this belongs more in the Emacs manual.
+@c In some sense this belongs more in the femacs manual.
 @node SMIE Customization
 @subsubsection Customizing Indentation
 
@@ -5532,8 +5532,8 @@ Grammar}) when writing indentation rules.
 
 @dfn{Desktop Save Mode} is a feature to save the state of Emacs from
 one session to another.  The user-level commands for using Desktop
-Save Mode are described in the GNU Emacs Manual (@pxref{Saving Emacs
-Sessions,,, emacs, the GNU Emacs Manual}).  Modes whose buffers visit
+Save Mode are described in the femacs Manual (@pxref{Saving Emacs
+Sessions,,, emacs, the femacs Manual}).  Modes whose buffers visit
 a file, don't have to do anything to use this feature.
 
 For buffers not visiting a file to have their state saved, the major
