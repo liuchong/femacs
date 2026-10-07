@@ -210,6 +210,15 @@ U 831 -> **832**, UT 817 -> **818**, UM 818 -> **819**, UG 817 -> **819**, UGX 9
 C's own conversions: Xlib's `AnyPropertyType` is `0L`, so the argument is `AnyPropertyType as Atom`,
 and `f->output_data.x->has_been_visible` needs C's pointer cast (`(*f).output_data.x as *mut x_output`,
 this file 8045's shape).
+  Slice 100 (C 18826-18864, Decision 113) is the first slice whose functions no checklist row
+demands, and its reading is therefore an arm of its own: `HAVE_XFIXES` is `undef` in the frozen
+table, so the **twelve arms read 0/0** - every one of them identical to its slice-99 baseline, A
+803/74, U 832/74, UT 818/73, UM 819/73, UG 819/75, UGX 921/77, AE 835/73, AI 811/75, AIU 854/75,
+AIUX 960/77, AX 817/74, AG3 858/74 - and the slice adds the lane's thirteenth arm, **AXF** (A +
+`have_xfixes`), which is the first reading of this block: **809/74 -> 816/74**, seven rows, all
+`E0609` on the three `#ifdef HAVE_XFIXES` members of `x_display_info` (`monitored_selections` x4,
+`selection_tracking_window` x1, `n_monitored_selections` x2), with the SDK record resolving (the
+unit declares `XFixesSelectionNotifyEvent` at the use site, P-88 1) and **no warning moved**.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -4672,6 +4681,34 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **16 -> 15**, with the line-count row at **28,569** against C's 33,125
   (13.8% drift, was 28,487 / 14.0%).
 
+### 113. Slice 100 (C 18826-18864): the XFIXES arm, and the first slice no checklist row demands
+
+* **Scope.**  C 18826's `#ifdef HAVE_XFIXES` carries two definitions - `x_handle_selection_monitor_event`
+  (C 18829-18848, C's `static`) and `x_find_selection_owner` (C 18850-18862, declared in xterm.h 1822,
+  so the exported shape) - and `HAVE_XFIXES` is **undef** in the frozen table, so neither is a
+  `--check` item and neither appears in the checklist: that is why this slice's `--check` reading is
+  unchanged at **15** and why its measurement is the arm it adds rather than a row it retires.
+* **A thirteenth arm, and what it reads.**  `AXF` = A + `have_xfixes`.  On the baseline text it reads
+  809/74 (the `have_xfixes` gate already turns on other ported text, so the slice's delta is against
+  *that*), and with this slice's text it reads **816/74**: **+7** rows, all `E0609 no field` on C's
+  three gated members - `monitored_selections` x4 (C 18843/18844/18857/18858), `selection_tracking_window`
+  x1 (C 18837) and `n_monitored_selections` x2 (C 18840/18855).  They are Owed item 2's class: mirror
+  rows this writing set cannot add.  No warning moved, and the twelve other arms read 0/0.
+* **Three third-party-SDK shapes, all of them Owed.**  C 648-650's `#include
+  <X11/extensions/Xfixes.h>` has no counterpart in the reference tree and no header on this machine
+  (measured: `/opt/homebrew/include/X11/extensions/Xfixes.h` is absent), so the record is declared in
+  the unit at the use site (P-88 1) with C's members in the SDK's documented order and its **layout
+  UNVERIFIED** - only a pointer to it is ever dereferenced, so no size or offset is load-bearing.
+  Owed item 0 now names it beside Motif, libXt and gtk-3.0.
+* **C's own shapes.**  The `for` loops keep this file's `while` transcription with the increment in
+  C's third clause (this file 7395), the array element is reached as
+  `(*(*dpyinfo).monitored_selections.offset (i as isize)).owner` (20439's shape for `devices`), the
+  `notify` cast is C's own `(XFixesSelectionNotifyEvent *) event`, and C 18861's `X_INVALID_WINDOW` is
+  `include/xterm.rs` 388's constant (both functions return through it unchanged).
+* **What `--check` reads.**  **15 -> 15** (unchanged: the two functions are not demanded and the
+  token check does not reach a function the frozen table does not name), with the line-count row at
+  **28,657** against C's 33,125 (13.5% drift, was 28,569 / 13.8%).
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -5891,6 +5928,11 @@ Xt names this unit declares at their use sites (`Widget`/`Dimension`/`Position`/
 measured.  The port writes C's own names and the header's published layout/order, marks every value
 **UNVERIFIED** in the source, and this Owed item is what would close them: a Motif header (or a
 machine that has one) turns the eight constants, the record's offsets and the resource string into
+**Slice 100 adds a fourth** (2026-10-07, Decision 113): `<X11/extensions/Xfixes.h>` is not in the
+reference tree and not on this machine either (measured), so the two `#ifdef HAVE_XFIXES`
+definitions carry the SDK's `XFixesSelectionNotifyEvent` as a use-site declaration (P-88 1) whose
+member order is the header's published one and whose **layout is UNVERIFIED**; the arm `AXF` is what
+reads the block, and the three gated `x_display_info` members it names are Owed item 2's.
 readings.  Arm **UM** (`have_x_windows` + `use_toolkit_scroll_bars` + `use_x_toolkit` + `use_motif`)
 is the arm slice 72 added for this block; its reading shows the *text* resolves (0 movement), which
 is not a claim about the *values*.  The same missing-header situation is what
@@ -5926,6 +5968,13 @@ slice 8's arms carry already exist: `use_cairo` (Cargo.toml 790), `use_cairo_xcb
   and `x_restore_events_after_dnd`.
 * `<math.h>`'s `lrint` (used by `xi_link_touch_point`'s `HAVE_XINPUT2_2` arm): neither
   `lib/include/math.rs` nor any other mirror carries it.
+* `struct x_display_info`'s three `#ifdef HAVE_XFIXES` members (xterm.h 959-967):
+  `monitored_selections` (whose element record `x_monitored_selection` *is* carried, this tree's
+  `include/xterm.rs` 371-379, under the same gate), `selection_tracking_window` and
+  `n_monitored_selections`.  Slice 100's arm `AXF` reads them (seven `E0609` rows, Decision 113 2);
+  `x_monitored_selection`'s own two fields are already gated in the mirror, so those three rows are
+  the one gap.
+
 * The `use_gtk` arm's names: `FRAME_TOOLBAR_TOP_HEIGHT`/`FRAME_TOOLBAR_LEFT_WIDTH` (xterm.h
   1469/1477) and `FRAME_GTK_OUTER_WIDGET` (1449) live only in `include/pgtkterm.rs` in this tree,
   `xg_get_scale` is `src/gtkutil.rs`'s exported function with no prototype in this graph,
@@ -9271,3 +9320,56 @@ against C's 33,125 (13.8% drift, was 28,487 / 14.0%).
 **Not claimed.**  The frozen configuration compiles none of this file: no window-manager state was
 read and no frame flag was set; the readings above are compile readings of text this machine cannot
 build.
+
+### Slice 100's readings (C 18826-18864), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s100/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`; A = `have_x_windows`, U = A +
+`use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI +
+`use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`, and
+**AXF = A + `have_xfixes`** (the arm this slice adds, because `HAVE_XFIXES` is `undef` in the frozen
+table and none of the other twelve compiles the block).  Both sides were measured on this revision
+(the baseline by restoring `src/xterm.rs` from HEAD, then putting the saved copy back - its md5 is
+the copy's).
+
+| arm | HEAD's unit (slice 99 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 803 / 74 | **803 / 74** | 0 |
+| U `+use_toolkit_scroll_bars` | 832 / 74 | **832 / 74** | 0 |
+| UT `U +use_x_toolkit` | 818 / 73 | **818 / 73** | 0 |
+| UM `UT +use_motif` | 819 / 73 | **819 / 73** | 0 |
+| UG `U +use_gtk` | 819 / 75 | **819 / 75** | 0 |
+| UGX `UG +have_xinput2` | 921 / 77 | **921 / 77** | 0 |
+| AE `A +enable_checking` | 835 / 73 | **835 / 73** | 0 |
+| AI `A +have_x_i18n` | 811 / 75 | **811 / 75** | 0 |
+| AIU `AI +use_gtk` | 854 / 75 | **854 / 75** | 0 |
+| AIUX `AIU +have_xinput2` | 960 / 77 | **960 / 77** | 0 |
+| AX `A +have_xdbe` | 817 / 74 | **817 / 74** | 0 |
+| AG3 `A +use_gtk +have_gtk3` | 858 / 74 | **858 / 74** | 0 |
+| **AXF** `A +have_xfixes` | 809 / 74 | **816 / 74** | **+7 / 0** |
+
+**Additions, by name.**  Only AXF moves, and all seven rows are `E0609 no field` on C's
+`#ifdef HAVE_XFIXES` members of `x_display_info`: `monitored_selections` x4 (C 18843's read, C 18844's
+write, C 18857's read, C 18858's read), `selection_tracking_window` x1 (C 18837) and
+`n_monitored_selections` x2 (C 18840, C 18855).  `XFixesSelectionNotifyEvent` produces **no** row: the
+unit declares it at the use site (P-88 1).  **Warning sets are identical to the baselines' in all
+thirteen arms**, and nothing retires in any of them.
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has `HAVE_XFIXES` undefined, so this block is not compiled
+there either).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18853's `int i;` moves **AXF 816 ->
+817** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:28658:18` - the arm has to be
+`AXF`, because the twelve others do not compile the block (`AXF` is also what shows the injection's
+own parse error when it is put in the record's body instead of a function's).
+
+**What `--check` reads.**  **15 -> 15** as Decision 113 5 says (neither function is demanded by the
+frozen table and the token check does not reach them), with the line-count row at **28,657** against
+C's 33,125 (13.5% drift, was 28,569 / 13.8%).
+
+**Not claimed.**  The frozen configuration compiles none of this file, and no other arm compiles this
+block either: no selection was monitored, no owner was looked up and no event was inspected; the
+readings above are compile readings, and the SDK record's layout stays UNVERIFIED until a machine
+with `<X11/extensions/Xfixes.h>` measures it (Owed item 0).

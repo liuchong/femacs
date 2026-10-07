@@ -28565,5 +28565,93 @@ unsafe fn x_handle_wm_state (f: *mut frame, ie: *mut input_event)
   XFree (data as *mut c_void);                                        // C 18823
 }
 
-/* C 18826's `#ifdef HAVE_XFIXES` opens `x_handle_selection_monitor_event` (C 18828-...) and
-   `x_find_selection_owner` (C 18850-...), the next definitions.  */
+/* C 18826-18864: the XFIXES arm - the selection-monitor handler and the owner lookup.  `HAVE_XFIXES`
+   is `undef` in the frozen table (measured), so both are dead text carried with the gate (P-86 1)
+   and the arm this slice adds to the lane's list, `AXF` (A + `have_xfixes`), is what measures them.
+   The record the handler reads through is the SDK's - see the surface note below - and the three
+   `x_display_info` members it names are C's own `#ifdef HAVE_XFIXES` fields (xterm.h 959-967), which
+   the mirror does not carry: their `E0609` rows in `AXF` are this unit's owed record, the class
+   slice 92's `prefer_native_input` and slice 97's `last_monitor_attributes_list` opened.  */
+
+/* C 648-650's `#ifdef HAVE_XFIXES` / `#include <X11/extensions/Xfixes.h>`: the reference tree has no
+   such header and none exists on this machine (`ls /opt/homebrew/include/X11/extensions/Xfixes.h` ->
+   absent, measured), so this is P-86 3(2)'s **text-only** class.  The record is declared with C's
+   members in the SDK's documented order, and its **layout is UNVERIFIED**: the port only ever
+   dereferences it through a pointer (no value, size or offset of it is load-bearing), so the owed
+   reading is a machine with the header - `docs/ports/xterm.md`'s `## Owed` names it.  */
+#[cfg (feature = "have_xfixes")]
+#[repr(C)]
+pub struct XFixesSelectionNotifyEvent
+{
+  /// C: `int type;` - X11's event base, the one member this arm never reads.
+  pub r#type: c_int,
+  pub serial: c_ulong,
+  pub send_event: Bool,
+  pub display: *mut Display,
+  pub window: Window,          // C 18837 reads this.
+  pub subtype: c_int,
+  pub owner: Window,           // C 18844/18858 read this.
+  pub selection: Atom,         // C 18843/18857 read this.
+  pub timestamp: Time,
+  pub selection_timestamp: Time,
+}
+
+/// C 18829-18848: `static bool x_handle_selection_monitor_event (struct x_display_info *dpyinfo,
+/// const XEvent *event)` - C's `static` inside C 18826's `#ifdef HAVE_XFIXES`, so a plain `unsafe fn`
+/// whose whole item carries `have_xfixes`; C's `for` keeps the file's `while` transcription
+/// (this file 7395) with the increment in C's own third clause, and the array element is reached the
+/// way this file reaches other pointer arrays (`(*(*dpyinfo).devices.offset (i as isize)).name`,
+/// 20439).
+#[cfg (all (feature = "have_x_windows", feature = "have_xfixes"))]
+unsafe fn x_handle_selection_monitor_event (dpyinfo: *mut x_display_info,
+					    event: *const XEvent) -> bool
+{
+  let mut notify: *mut XFixesSelectionNotifyEvent;                     // C 18832
+  let mut i: c_int;                                                    // C 18833
+
+  notify = event as *mut XFixesSelectionNotifyEvent;                   // C 18835
+
+  if (*notify).window != (*dpyinfo).selection_tracking_window          // C 18837
+    { return false; }                                                  // C 18838
+
+  i = 0;                                                               // C 18840
+  while i < (*dpyinfo).n_monitored_selections                          // C 18840
+    {
+      /* We don't have to keep track of timestamps here.  */
+      if (*notify).selection                                           // C 18843
+	  == (*(*dpyinfo).monitored_selections.offset (i as isize)).name
+	{
+	  (*(*dpyinfo).monitored_selections.offset (i as isize)).owner  // C 18844
+	    = (*notify).owner;
+	}
+
+      i += 1;                                                          // C 18840
+    }
+
+  return true;                                                         // C 18847
+}
+
+/// C 18850-18862: `Window x_find_selection_owner (struct x_display_info *dpyinfo, Atom selection)` -
+/// non-`static` and declared in xterm.h 1822, so the exported shape; it carries the same gate as the
+/// handler above (C 18826's `#ifdef` covers both), and C 18861's `X_INVALID_WINDOW` is
+/// `include/xterm.rs` 388's constant.
+#[cfg (all (feature = "have_x_windows", feature = "have_xfixes"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_find_selection_owner (dpyinfo: *mut x_display_info,
+						 selection: Atom) -> Window
+{
+  let mut i: c_int;                                                    // C 18853
+
+  i = 0;                                                               // C 18855
+  while i < (*dpyinfo).n_monitored_selections                          // C 18855
+    {
+      if selection == (*(*dpyinfo).monitored_selections.offset (i as isize)).name  // C 18857
+	{ return (*(*dpyinfo).monitored_selections.offset (i as isize)).owner; }   // C 18858
+
+      i += 1;                                                          // C 18855
+    }
+
+  return X_INVALID_WINDOW;                                             // C 18861
+}
+
+/* C 18866-18874's comment opens `XTread_socket` (C 18876-...), the next definition.  */
