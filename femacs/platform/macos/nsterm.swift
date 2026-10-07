@@ -6838,4 +6838,128 @@ class EmacsApp: NSApplication {
 
     super.sendEvent(theEvent)                         // C 6398
   }
+
+  /// C 6769-6776: `- (void)timeout_handler: (NSTimer *)timedEntry` - "The timeout specified to
+  /// ns_select has passed."  It lands here with round 22 because its one statement calls the
+  /// function this round adds (the class's other methods stay open).
+  @objc func timeout_handler(_ timedEntry: Timer) {
+    ns_send_appdefined(-2)                            // C 6775
+  }
+
+  /// C 6778-6781: `- (void)sendFromMainThread:(id)unused` - the main-thread half of
+  /// `ns_send_appdefined`'s non-main-thread arm (C 5027 posts this very selector), which is why
+  /// the two land together.
+  @objc func sendFromMainThread(_ unused: Any?) {
+    ns_send_appdefined(nextappdefined)                // C 6780
+  }
+}
+
+// ==========================================================================
+// Round 22: C 448-470's event-trailer pair and C 5012-5084's `ns_send_appdefined`
+// ==========================================================================
+
+/// C: `Qt` (src/globals.h) - the `Qnil` import above is the same shape; the two held
+/// `EV_TRAILER` macros are this unit's first readers.
+@_silgen_name("Qt") func Qt() -> Lisp_Object
+
+/// C: `Lisp_Object Vinhibit_quit` (src/globals.h; the port defines it at `femacs/src/eval.rs`
+/// 4275) - imported as the C data symbol the core exports (the `ns_auto_hide_menu_bar` shape
+/// above), and the only core global this round writes.
+@_silgen_name("Vinhibit_quit") var Vinhibit_quit: Lisp_Object
+
+/// C: `void kbd_buffer_store_event_hold (struct input_event *, struct input_event *)`
+/// (src/keyboard.h) - the port defines it at `femacs/src/include/keyboard.rs` 149; the import
+/// shape is `fputs`'s above.
+@_silgen_name("kbd_buffer_store_event_hold")
+func kbd_buffer_store_event_hold(_ event: UnsafeMutablePointer<input_event>?,
+                                 _ hold_quit: UnsafeMutablePointer<input_event>?)
+
+/// C: `NO_EVENT` (`src/termhooks.h` 74, the first enumerator of `enum event_kind`).  C reads it
+/// through the record's `kind` bitfield; this unit's view of `input_event` keeps the two
+/// bitfields packed in one `UInt32` (the struct's own reading above says so), so the field is
+/// masked out by the reader below.
+fileprivate let NO_EVENT: UInt32 = 0
+
+/// C: `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH;` - the low 16 bits of `input_event.bits`
+/// (`EVENT_KIND_WIDTH` is `src/termhooks.h` 360's 16, the struct's reading above).
+fileprivate func input_event_kind(_ e: UnsafeMutablePointer<input_event>) -> UInt32 {
+  e.pointee.bits & 0xffff
+}
+
+/// C 448-453: `#define EV_TRAILER(e)`.  Its body reads two names from the caller's scope:
+/// `emacs_event` (this unit's static) and `emacsframe`, which every handler declares as a local
+/// (C 6404 is the first expansion's).  The port passes both - the `EV_MODIFIERS2` shape above.
+fileprivate func EV_TRAILER(_ e: NSEvent?, _ emacsframe: UnsafeMutableRawPointer?) {
+  if input_event_kind(emacs_event!) != NO_EVENT {                 // C 449
+    XSETFRAME(&emacs_event!.pointee.frame_or_window, emacsframe)  // C 451
+    EV_TRAILER2(e)                                                // C 452
+  }
+}
+
+/// C 455-470: `#define EV_TRAILER2(e)`.  C's save/restore of `Vinhibit_quit` around the store
+/// is kept as written; `EVENT_INIT` (C 468) and `ns_send_appdefined` (C 469) are this unit's
+/// own - the function below is the one the two held macro boxes waited for.
+fileprivate func EV_TRAILER2(_ e: NSEvent?) {
+  if e != nil { emacs_event!.pointee.timestamp = UInt(EV_TIMESTAMP(e!)) }  // C 457
+  if let q = q_event_ptr {                                      // C 458
+    let tem = Vinhibit_quit                                     // C 460
+    Vinhibit_quit = Qt()                                        // C 461
+    n_emacs_events_pending += 1                                 // C 462
+    kbd_buffer_store_event_hold(emacs_event, q)                 // C 463
+    Vinhibit_quit = tem                                         // C 464
+  } else {
+    hold_event(emacs_event)                                     // C 467
+  }
+  EVENT_INIT(emacs_event!)                                      // C 468
+  ns_send_appdefined(-1)                                        // C 469
+}
+
+/// C 5012-5084: `static void ns_send_appdefined (int value)` - "post an appdefined event which
+/// EmacsApp-sendEvent will recognize and take as a command to halt the event loop".  The
+/// non-main-thread arm (C 5023-5031) is why `EmacsApp` had to land first: it reaches
+/// `nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, which is the
+/// entry/definition split the ledger's `## ABI` (4) records.
+fileprivate func ns_send_appdefined(_ value: Int32) {
+  // C 5021-5023: GNUstep needs `postEvent` on the main thread, Cocoa needs
+  // `nextEventMatchingMask` there too.
+  if !Thread.current.isMainThread {
+    let app = NSApp as! EmacsApp                                 // C 5025
+    app.nextappdefined = value                                   // C 5026
+    app.performSelector(onMainThread: #selector(EmacsApp.sendFromMainThread(_:)),
+                        with: nil, waitUntilDone: false)         // C 5027-5029
+    return
+  }
+
+  /* C 5033-5035: "Only post this event if we haven't already posted one."  */
+  if send_appdefined {                                           // C 5036
+    send_appdefined = false                                      // C 5042
+
+    if timed_entry != nil {                                      // C 5045
+      timed_entry!.invalidate()                                  // C 5047
+      timed_entry = nil                                          // C 5049 (ARC: C's `release` is the
+    }                                                            //         reference being dropped)
+
+    /* C 5052-5057: address the event to a window that actually exists.  */
+    var dest = NSApp.mainWindow                                  // C 5058
+    if dest == nil { dest = NSApp.keyWindow }                    // C 5059-5060
+    if dest == nil {                                             // C 5061
+      for cand in NSApp.windows where cand.windowNumber > 0 {    // C 5062-5063
+        dest = cand
+        break                                                    // C 5066
+      }
+    }
+
+    let nxev = NSEvent.otherEvent(with: .applicationDefined,     // C 5069-5077
+                                  location: NSMakePoint(0, 0),
+                                  modifierFlags: [],
+                                  timestamp: 0,
+                                  windowNumber: dest?.windowNumber ?? 0,
+                                  context: NSApp.context,
+                                  subtype: 0,
+                                  data1: Int(value),
+                                  data2: 0)
+
+    /* C 5079-5081: post it so `[NXApp run]` returns after the queued events.  */
+    NSApp.postEvent(nxev!, atStart: false)                       // C 5082
+  }
 }

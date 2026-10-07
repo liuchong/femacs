@@ -187,8 +187,8 @@
 - [x] ns_draw_glyphless_glyph_string_foreground  (line 4659, static) — C 4658-4741, landed as `fileprivate func ns_draw_glyphless_glyph_string_foreground` (the `char2b`/`buf` lifetimes are two `withUnsafeMutableBufferPointer` closures)
 - [x] ns_set_glyph_string_gc  (line 4748, static) — C 4747-4780, landed as `fileprivate func ns_set_glyph_string_gc`
 - [x] ns_draw_glyph_string  (line 4783, static) — C 4782-5001, landed as `fileprivate func ns_draw_glyph_string` (the RIF's main draw-text call)
-- [ ] ns_send_appdefined  (line 5013, static)
-- [ ] check_native_fs  (line 5088, static)
+- [x] ns_send_appdefined  (line 5013, static) — landed as `fileprivate func ns_send_appdefined (_ value: Int32)`: the non-main-thread arm reaches `nextappdefined` and `-sendFromMainThread:` through `NSApp as! EmacsApp` (round 21's class), `send_appdefined`/`timed_entry` are C 317/320's own entries, and `[NSApp context]` is kept as C writes it (that call carries a new deprecation warning, recorded in Evidence)
+- [ ] check_native_fs  (line 5088, static) — **held** to the `EmacsView` round: C 5103 calls `[view updateCollectionBehavior]`, a method of the class that lands at C 7039 (its own box below), so no Swift text can exist before it does
 - [ ] ns_read_socket_1  (line 5111, static)
 - [ ] ns_read_socket  (line 5196, static)
 - [ ] ns_select_1  (line 5203, static)
@@ -290,8 +290,8 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void)applicationWillBecomeActive: (NSNotification *)notification`  (line 6732)
   - [ ] `- (void)applicationDidBecomeActive: (NSNotification *)notification`  (line 6738)
   - [ ] `- (void)applicationDidResignActive: (NSNotification *)notification`  (line 6752)
-  - [ ] `- (void)timeout_handler: (NSTimer *)timedEntry`  (line 6769)
-  - [ ] `- (void)sendFromMainThread:(id)unused`  (line 6778)
+  - [x] `- (void)timeout_handler: (NSTimer *)timedEntry`  (line 6769) — landed as `@objc func timeout_handler (_ timedEntry: Timer)`: its one statement calls `ns_send_appdefined (-2)`, so it lands with round 22
+  - [x] `- (void)sendFromMainThread:(id)unused`  (line 6778) — landed as `@objc func sendFromMainThread (_ unused: Any?)`: the main-thread half of `ns_send_appdefined`'s non-main-thread arm (C 5027 posts this very selector), which is why the two land together
   - [ ] `- (void)fd_handler:(id)unused`  (line 6783)
   - [ ] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881)
   - [ ] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891)
@@ -463,8 +463,8 @@ spelling the same selector is one box and is named where it occurs.)
 - [x] EV_MODIFIERS  (line 425, body 0a951d59f9e1) — landed as `func EV_MODIFIERS (_ e: NSEvent) -> UInt32`
 - [x] EV_MODIFIERS2  (line 397, body 8155b8d11eb3) — landed as `func EV_MODIFIERS2 (_ flags: UInt, _ kind: Lisp_Object) -> UInt32`; C's `NSUInteger`→`unsigned int` conversions are `truncatingIfNeeded:`
 - [x] EV_TIMESTAMP  (line 444, body 8e139f589481) — landed as `func EV_TIMESTAMP (_ e: NSEvent) -> Double`
-- [ ] EV_TRAILER  (line 448, body 0dd430c310a9) — **held** to C 5013: its body calls the hold queue and `EV_TRAILER2`, and `ns_send_appdefined` (C 5013) is this file's own function, so no Swift text can exist before it does (see Decisions)
-- [ ] EV_TRAILER2  (line 455, body bf5ab84e8621) — **held** to C 5013, like `EV_TRAILER` (its callees are C 498's `hold_event` and C 5013's `ns_send_appdefined`).  Round 21 landed the `EmacsApp` class it also needs, so the C 5005-6224 round is the one that closes this box
+- [x] EV_TRAILER  (line 448, body 0dd430c310a9) — landed as `fileprivate func EV_TRAILER (_ e: NSEvent?, _ emacsframe: UnsafeMutableRawPointer?)`: the body reads two names from the caller's scope, so the port passes both (the `EV_MODIFIERS2` shape), and `emacsframe` is the local every handler declares (C 6404 is the first expansion's)
+- [x] EV_TRAILER2  (line 455, body bf5ab84e8621) — landed as `fileprivate func EV_TRAILER2 (_ e: NSEvent?)`: C's `Vinhibit_quit` save/restore is kept as written (the core global is imported as a data symbol), and C 457's `if (e)` guard is `if e != nil`
 - [x] EV_UDMODIFIERS  (line 427, body 89301cbc268c) — landed as `func EV_UDMODIFIERS (_ e: NSEvent) -> Int32`, C's ten comparisons transcribed one for one
 - [x] NO_APPDEFINED_DATA  (line 318, body 9d95217d51d9)  — landed as a file-scope `let` of the same name
 - [x] NSAppKitVersionNumber10_10  (line 10407, body ed9f6e93628b) — the *name* is used at
@@ -658,7 +658,7 @@ C 4747-4780) and the RIF's `ns_draw_glyph_string` (C 4782-5001) - **no new C exp
 C `static`s) - so the covered range is now **C 60-5001**.  The boundary is the `Event loop` banner
 at C 5005-5009: the dispatcher is the Glyph drawing operations section's last definition (the
 section the ledger has walked since round 17), and the next live definition - C 5013's
-`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.
+`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.  **Round 22 lands C 5012-5084's `ns_send_appdefined` with C 448-470's `EV_TRAILER`/`EV_TRAILER2`** - the two macro boxes round 2 held open now close - plus `EmacsApp`'s `timeout_handler:` (C 6769) and `sendFromMainThread:` (C 6778), the two methods whose bodies call it; `check_native_fs` (C 5088) stays held on an `EmacsView` method.  The covered range is **C 60-5001 plus C 5012-5084 and C 6769-6781**.
 
 Ticked above: **109 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
@@ -2844,3 +2844,27 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **No `nm` audit and no new C export**: the five additions are Objective-C selectors, so the
   unit's exported surface is unchanged and the symbol audit that rounds 2-20 ran has nothing new
   to read.
+
+### Round 22: `ns_send_appdefined`, `EV_TRAILER`/`EV_TRAILER2`, and the two `EmacsApp` methods that call it
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  and **eight** warnings against the previous rounds' seven.  The new one is
+  `'context' was deprecated in macOS 10.12: This method always returns nil` at C 5074's
+  `context: NSApp.context` - C's own `[NSApp context]`, kept as the reference writes it (the
+  `lockFocus` precedent: the port keeps the call and records the deprecation instead of silencing
+  it).  Object `/tmp/nsterm22.o`, **472328 bytes**, md5 `738b92bd18467f2da42e06ee24ecddbb`.
+* **`python3 tools/check-swift-units.py`**: `femacs/platform/macos/nsterm.swift: 150 C
+  definition(s), **44** unported, 44 row(s); 411 C symbol import(s)` - one fewer unported than
+  round 21's 45, and **one stale row was cleared**: `docs/baseline/swift-units.tsv` named
+  `ns_send_appdefined`, and the gate reported exactly that row as `stale` the moment the function
+  landed, which is the gate working as designed.  Final reading: `0 new, 0 stale, 7 Swift unit(s)
+  landed`.
+* **What this round unlocks**: the two `Macros defined` boxes round 2 opened (`EV_TRAILER` C 448
+  and `EV_TRAILER2` C 455) close here - the first boxes this unit has closed for a *macro* rather
+  than for a function.  Both were held "to C 5013, where their two callees exist", which is where
+  they land, and the three entries they needed (`Qt`, the `Vinhibit_quit` data symbol and
+  `kbd_buffer_store_event_hold`) are imports in the lane's three established shapes.
+* **`check_native_fs` (C 5088) is the row that stays**: its body calls
+  `[view updateCollectionBehavior]` (C 5103), a method of `EmacsView`, which lands at C 7039 - so
+  that function is held on a class exactly the way `ns_send_appdefined` was held on `EmacsApp`.
+
