@@ -7543,6 +7543,55 @@ class EmacsWindow: NSWindow {
     }
   }
 
+  /// C 9878-9910: `- (void)createToolbar: (struct frame *)f`.  The guard C 9888 opens
+  /// (`defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MIN_REQUIRED >= 101400`) is this target's, so
+  /// the `EmacsLayer` test is transcribed; `[self toolbar]` is `NSWindow`'s own property; and
+  /// `[[EmacsToolbar alloc] initForView:withIdentifier:]` is another unit's class method
+  /// (`nsmenu.swift` ports it), reached through the C-ABI entry declared below - the
+  /// `EmacsMenu_initWithTitle` shape.  C 9907's `@selector (toggleToolbar:)` is `EmacsView`'s own
+  /// method (C 9275), still owed by that class's batch, so the action is the selector itself (the
+  /// runtime sends it), not a call - the `menuDown:` reading.
+  func createToolbar(_ f: UnsafeMutableRawPointer?) {
+    if FRAME_UNDECORATED(f)                                   // C 9880
+         || styleMask == .borderless                          // C 9881
+         || !FRAME_EXTERNAL_TOOL_BAR(f)                       // C 9882
+         || toolbar != nil {                                  // C 9883
+      return                                                  // C 9884
+    }
+
+    let view = FRAME_NS_VIEW(f)                               // C 9886
+
+    /* If the view's layer isn't an EmacsLayer then we can't create the
+       toolbar yet.  */
+    if !(view?.layer is EmacsLayer) {                         // C 9891
+      return                                                  // C 9892
+    }
+
+    // C 9897's `[NSString stringWithFormat:@"%p", f]`: `%p` with a Swift pointer is spelled through
+    // its bit pattern, and measured - `String (format: "%p", UInt (bitPattern: p))` prints exactly
+    // what C's `printf ("%p", p)` prints (`0x1234abcd` in the probe), including the all-zero form
+    // for a nil pointer, which is what the optional initializer gives.
+    let newToolbar = EmacsToolbar_initForView(view,
+                                              String(format: "%p", UInt(bitPattern: f)) as NSString)   // C 9895-9897
+
+    self.toolbar = newToolbar as? NSToolbar                    // C 9899
+    update_frame_tool_bar_1(f, newToolbar)                     // C 9900
+
+    let toggleButton = standardWindowButton(.toolbarButton)    // C 9905
+    toggleButton?.target = view                                // C 9906
+    toggleButton?.action = Selector(("toggleToolbar:"))        // C 9907
+  }
+
+  /// C 9912-9926: `- (void)dealloc` - Swift's `deinit` (a class cannot name `dealloc`, the
+  /// `EmacsScroller` reading).  C's three statements are the references ARC owns: C 9917's
+  /// `[[self toolbar] release]` with C 9918's `[self setToolbar: nil]` are the strong reference's
+  /// teardown and the property assignment in one, and C 9922-9923's `[last_drag_event release]` is
+  /// the same for that ivar; C 9925's `[super dealloc]` is implicit.
+  deinit {
+    toolbar = nil                                             // C 9917-9918
+    last_drag_event = nil                                     // C 9922-9923
+  }
+
   /// C 10299-10304: `- (void)performZoom:(id)sender` - C's body is the `super` call and nothing
   /// else (C 10301's `NSTRACE` is the empty macro).
   override func performZoom(_ sender: Any?) {
@@ -7881,6 +7930,73 @@ class EmacsWindow: NSWindow {
     }
 
     return true                                           // C 10154
+  }
+
+  /* Constrain size and placement of a frame.
+
+     By returning the original "frameRect", the frame is not
+     constrained. This can lead to unwanted situations where, for
+     example, the menu bar covers the frame.
+
+     The default implementation (accessed using "super") constrains the
+     frame to the visible area of SCREEN, minus the menu bar (if
+     present) and the Dock.  Note that default implementation also calls
+     windowWillResize, with the frame it thinks should have.  (This can
+     make the frame exit maximized mode.)
+
+     Note that this should work in situations where multiple monitors
+     are present.  Common configurations are side-by-side monitors and a
+     monitor on top of another (e.g. when a laptop is placed under a
+     large screen).  */
+
+  /// C 10230-10296: `- (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen *)screen`.
+  /// The SDK's own rename is `constrainFrameRect (_:to:)` (measured: the `toScreen:` spelling is
+  /// refused with "has been renamed to"), used for the override and for C 10253/10287's two `super`
+  /// calls.  The guards this target decides: C 10243's `>= 1090` is live and C 10247-10249's `< 1090`
+  /// `respondsToSelector:` wrapper is dead (the target is 260000), so `NSScreen`'s
+  /// `screensHaveSeparateSpaces` class property is read directly - the SDK's own spelling of the
+  /// message C 10250 sends.  C 10295's `[(EmacsView *)[self delegate] isFullscreen]` goes through
+  /// the deferred entry round 65 provided.
+  override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+    let f = emacs_view_frame(delegate)                 // C 10239 (C's `…->emacsframe`)
+    if FRAME_PARENT_FRAME(f) != nil {                  // C 10240
+      return frameRect                                 // C 10241
+    }
+
+    // If separate spaces is on, it is like each screen is independent.  There is
+    // no spanning of frames across screens.
+    if NSScreen.screensHaveSeparateSpaces {            // C 10250
+      // C 10252: `NSTRACE_MSG ("Screens have separate spaces");` - empty.
+      return super.constrainFrameRect(frameRect, to: screen)   // C 10253-10255
+    }
+
+    // Check that the proposed frameRect is visible in at least one
+    // screen.  If it is not, ask the system to reposition it (only
+    // for non-child windows).
+
+    if FRAME_PARENT_FRAME(emacs_view_frame(delegate)) == nil {   // C 10264
+      let screens = NSScreen.screens                   // C 10266
+      let nr_screens = screens.count                   // C 10267
+
+      var frame_on_screen = false                      // C 10270
+
+      for i in 0..<nr_screens {                        // C 10272
+        let s = screens[i]                             // C 10274
+        let scrRect = s.frame                          // C 10275
+
+        if NSIntersectsRect(frameRect, scrRect) {      // C 10277
+          frame_on_screen = true                       // C 10279
+          break                                        // C 10280
+        }
+      }
+
+      if !frame_on_screen {                            // C 10284
+        // C 10286: `NSTRACE_MSG ("Frame outside screens; constraining");` - empty.
+        return super.constrainFrameRect(frameRect, to: screen)   // C 10287-10289
+      }
+    }
+
+    return constrain_frame_rect(frameRect, isFullscreen_entry(delegate as? NSView))   // C 10294-10295
   }
 }
 
@@ -12095,4 +12211,36 @@ func isFullscreen_definition(_ view: NSView?) -> Bool {
 @_cdecl("fsIsNative")
 func fsIsNative_definition(_ view: NSView?) -> Bool {
   (view as? EmacsView)?.fsIsNative() ?? false
+}
+
+// ==========================================================================
+// Round 66: the two entries `createToolbar:` needs, and the `createToolbar` provider
+// ==========================================================================
+
+/// C: `FRAME_EXTERNAL_TOOL_BAR (f)` (src/frame.h, the `HAVE_WINDOW_SYSTEM` arm) - C 9882's test; a
+/// macro over a frame member, so it is an entry of the family above.
+@_silgen_name("FRAME_EXTERNAL_TOOL_BAR")
+func FRAME_EXTERNAL_TOOL_BAR(_ f: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `void update_frame_tool_bar_1 (struct frame *f, EmacsToolbar *toolbar)` (declared
+/// src/nsterm.h 1177, defined in src/xdisp.c) - C 9900's call, so an entry with the two values C
+/// passes (the toolbar is another lane's class, hence the `AnyObject?` the class-pointer entries of
+/// this unit already use).
+@_silgen_name("update_frame_tool_bar_1")
+func update_frame_tool_bar_1(_ f: UnsafeMutableRawPointer?, _ toolbar: AnyObject?)
+
+/// C: `-[EmacsToolbar initForView: (EmacsView *)view withIdentifier: (NSString *)identifier]`
+/// (defined src/nsmenu.m 1265) - **another unit's class** (`nsmenu.swift` ports `EmacsToolbar`), so
+/// this is the cross-file class-method entry of the `EmacsMenu_initWithTitle` shape: the class name
+/// with the selector's first segment, and the provider that lane's to add.
+@_silgen_name("EmacsToolbar_initForView")
+func EmacsToolbar_initForView(_ view: NSView?, _ identifier: NSString?) -> AnyObject?
+
+/// C 9878-9910's own method, which round 64's initializer reaches through the deferred entry
+/// declared at C 2285's family (`createToolbar_entry`).  That entry's provider is this C-ABI
+/// definition - the `setAppearance`/`setParentChildRelationships` shape, where the call-site
+/// declaration keeps its Swift name and the definition takes another.
+@_cdecl("createToolbar")
+func createToolbar_definition(_ window: NSWindow?, _ f: UnsafeMutableRawPointer?) {
+  (window as? EmacsWindow)?.createToolbar(f)
 }
