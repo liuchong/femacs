@@ -295,7 +295,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) round 72 the class initializer (C 8559-8642) round 73 the class prologue and the font panel (C 7041-7235) and round 74 `keyDown:` (C 7243-7427) and round 75 the fullscreen trio (C 9017-9200) and round 76 the mouse/toolbar/layer batch (C 9202-9336) and round 77 the copy/layout/draw batch (C 9340-9446) and round 78 the drag-and-drop batch's first four (C 9452-9536) - **11 of the class's method boxes remain** (the `- [ ]` rows indented under this box; the box itself and `NS_KEYLOG` are the other two open rows)
+- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) round 72 the class initializer (C 8559-8642) round 73 the class prologue and the font panel (C 7041-7235) and round 74 `keyDown:` (C 7243-7427) and round 75 the fullscreen trio (C 9017-9200) and round 76 the mouse/toolbar/layer batch (C 9202-9336) and round 77 the copy/layout/draw batch (C 9340-9446) and round 78 the drag-and-drop batch's first four (C 9452-9536) and round 79 `performDragOperation:` (C 9538-9654) - **10 of the class's method boxes remain** (the `- [ ]` rows indented under this box; the box itself and `NS_KEYLOG` are the other two open rows)
   - [x] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041) — landed as `@objc func windowDidEndLiveResize (_:)`; C's body is the forward to `updateFramePosition`
   - [x] `- (void) setWindowClosing: (BOOL)closing`  (line 7047) — landed as `@objc func setWindowClosing (_:)`: C's one statement assigns the ivar the class keeps as `windowClosing` (Swift's stored property is not Objective-C visible, which leaves the selector free)
   - [x] `- (void)dealloc`  (line 7055) — landed as `deinit`: the three `release` calls are the references ARC drops (C 7066's `nonfs_window`, C 7071's layer, C 7074's menu), `[super dealloc]` has no Swift statement, and C 7068-7072's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this target's
@@ -392,7 +392,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `-(BOOL) prepareForDragOperation: (id <NSDraggingInfo>) sender`  (line 9468) — landed as `@objc override func prepareForDragOperation (_:) -> Bool` - the same selector test and send, with C's `NO`/`YES` answers
   - [x] `- (BOOL) wantsPeriodicDraggingUpdates`  (line 9481) — landed as `@objc override func wantsPeriodicDraggingUpdates () -> Bool`; C's whole body is `return YES;`
   - [x] `- (NSDragOperation) draggingUpdated: (id <NSDraggingInfo>) sender`  (line 9486) — landed as `@objc override func draggingUpdated (_:) -> NSDragOperation`: C's `NSAutoreleasePool` alloc/init is the runtime's `objc_autoreleasePoolPush` (the C 560 reading), C 9500's `record_unwind_protect_ptr` is a new entry carrying this unit's own `ns_release_autorelease_pool`, the `NS_IMPL_GNUSTEP` arms (C 9488-9492, C 9502-9522) are **dead** on this target, so C 9524-9531 is the live body (`XSETFRAME` + C 9528-9529's `safe_calln`, spelled through the `safe_funcall` entry the round-34 reading of the same macro uses, + round 77's `redisplay`), and C 9534's `unbind_to` closes the specpdl
-  - [ ] `- (BOOL) performDragOperation: (id <NSDraggingInfo>) sender`  (line 9538)
+  - [x] `- (BOOL) performDragOperation: (id <NSDraggingInfo>) sender`  (line 9538) — landed as `@objc override func performDragOperation (_:) -> Bool`: the same `respondsToSelector:` + `mustNotDropOn:` pair as the two methods above (a new entry for the selector cast, since the method is `EmacsWindow`'s); `NSDragOperationLink`/`Copy`/`Generic` are the option set's `.link`/`.copy`/`.generic`; C 9563's `availableTypeFromArray:` is the typed-array reading of C 8628; C 9578's `NS_USE_NSPasteboardTypeFileURL` arm is the live one (src/nsterm.h 47/49 make it 1 for Cocoa), so C 9590-9617's `NSFilenamesPboardType` arm is **dead**; `[type isEqualToString: …]` is the pasteboard types' own `==`; C 9583-9588's `readObjectsForClasses:` and its `NSEnumerator` walk are `readObjects (forClasses:options:)` and the array's own iteration; and C 9643-9651's event is the `input_event` mirror with the new `DRAG_N_DROP_EVENT` constant over the five new `Q…` entries
   - [ ] `- (id) validRequestorForSendType: (NSString *)typeSent returnType: (NSString *)typeReturned`  (line 9657)
   - [ ] `- (BOOL) readSelectionFromPasteboard: (NSPasteboard *)pb`  (line 9680)
   - [ ] `- (BOOL) writeSelectionToPasteboard: (NSPasteboard *)pb types: (NSArray *)types`  (line 9688)
@@ -4959,4 +4959,36 @@ call site takes an entry and the definition lands at its own C line - and **both
   landed`**; `check-citations` reads **676 / 0 drift / 0 range / 2,416 external / 36 allowed /
   0 stale**.
 * **Not claimed**: no runtime evidence - nothing was dragged onto this view; the compile gate
+  reaches type checking only.
+
+### Round 79: `performDragOperation:` (C 9538-9654)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings - the same nine round 78 leaves, and **nothing new on the first run**.  Object
+  `/tmp/nsterm79.o`, **1,372,752 bytes**, md5 `9832b7b4007f851d1acda2966ed7f8f9`.  The unit is
+  **14,956 lines**.
+* **One `EmacsView` method lands**: `performDragOperation:` (C 9538-9654), the drag-and-drop
+  family's payload path.  The class box's own count moves to **10 method boxes remaining**.
+* **Readings written into the code**: C 9578's `#if NS_USE_NSPasteboardTypeFileURL` arm is the
+  live one (src/nsterm.h 47/49 make it 1 for Cocoa), so C 9590-9617's `NSFilenamesPboardType` arm
+  is **dead** on this target (recorded, not transcribed); `NSDragOperationLink`/`Copy`/`Generic`
+  are the option set's `.link`/`.copy`/`.generic`; C 9563's `availableTypeFromArray:` takes the
+  typed array (the C 8628 reading); `[type isEqualToString: …]` is the pasteboard types' own `==`;
+  C 9583-9588's `readObjectsForClasses:` and its `NSEnumerator` walk are
+  `readObjects (forClasses:options:)` and the array's own iteration (the enumerator ends where the
+  array does); and C 9643-9651's event is the unit's `input_event` mirror with the new
+  `DRAG_N_DROP_EVENT` constant.
+* **One citation defect the round's own gate caught**: the new `Qns_drag_operation_*` entry cited
+  "src/nsterm.m 11741-11743" and named the enclosing function in backticks (declared at 11550) -
+  the r64/r68 rule - so the line now cites the three `DEFSYM`s' own lines (11569-11571) and the
+  function's declaration separately.  The reword left the object byte-identical (same md5).
+* **The ABI block adds six entries and one constant**: `Qfile`/`Qurl` (the generated-globals
+  family) and the three `Qns_drag_operation_*` this file's own `DEFSYM`s carry (**open** - the
+  `QCordinary`/`QCmouse` reading), plus `DRAG_N_DROP_EVENT` 17
+  (`femacs/src/include/termhooks.rs` 44).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **709** C symbol imports (round 78 read 704) and **`0 new, 0 stale, 7 Swift unit(s)
+  landed`**; `check-citations` reads **676 / 0 drift / 0 range / 2,416 external / 36 allowed /
+  0 stale**.
+* **Not claimed**: no runtime evidence - no drag was ever dropped on this view; the compile gate
   reaches type checking only.

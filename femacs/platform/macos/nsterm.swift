@@ -8969,6 +8969,99 @@ class EmacsView: NSView {
     return .generic                                            // C 9535
   }
 
+  /// C 9538-9654: `-(BOOL) performDragOperation: (id <NSDraggingInfo>) sender`.  Readings: the
+  /// same `respondsToSelector:` + `mustNotDropOn:` pair as the two methods above (the method is
+  /// `EmacsWindow`'s); `NSDragOperationLink`/`Copy`/`Generic` are the option set's `.link`/`.copy`/
+  /// `.generic`; C 9563's `[pb availableTypeFromArray: ns_drag_types]` is the typed-array reading
+  /// of C 8628; C 9578's `#if NS_USE_NSPasteboardTypeFileURL` arm is the live one (src/nsterm.h
+  /// 47/49 make it 1 for Cocoa), so C 9590-9617's `NSFilenamesPboardType` arm is **dead**;
+  /// `[type isEqualToString: …]` is the pasteboard types' own `==`; C 9583-9588's
+  /// `readObjectsForClasses:` and its `NSEnumerator` walk are `readObjects (forClasses:options:)`
+  /// and the array's own iteration (the enumerator ends where the array does); `lispString` is the
+  /// entry round 34 added; and C 9643-9651's event is the `input_event` mirror with the
+  /// `DRAG_N_DROP_EVENT` constant this round adds.
+  @objc override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+    let source: AnyObject? = sender.draggingSource as AnyObject?   // C 9552
+    var x: Int32 = 0, y: Int32 = 0                           // C 9541
+    var type: NSPasteboard.PasteboardType?                   // C 9542
+    var position: NSPoint = .zero                            // C 9543
+    let op = sender.draggingSourceOperationMask              // C 9544
+    var operations: Lisp_Object = Qnil()                     // C 9545
+    var strings: Lisp_Object = Qnil()                        // C 9546
+    var type_sym: Lisp_Object = Qnil()                       // C 9547
+
+    // C 9550: `NSTRACE ("[EmacsView performDragOperation:]");` - empty.
+
+    if source != nil
+         && source!.responds(to: #selector(EmacsWindow.mustNotDropOn(_:)))   // C 9554
+         && ((source as? EmacsWindow)?.mustNotDropOn(self) ?? false) {      // C 9555
+      return false                                           // C 9556
+    }
+
+    position = self.convert(sender.draggingLocation, from: nil)   // C 9558
+    x = Int32(lrint(Double(position.x)))                     // C 9559
+    y = Int32(lrint(Double(position.y)))                     // C 9560
+
+    let pb = sender.draggingPasteboard                       // C 9562
+    type = pb.availableType(from: ns_drag_types as? [NSPasteboard.PasteboardType] ?? [])   // C 9563
+
+    /* C 9565-9568: "We used to convert these drag operations to keyboard modifiers, but because
+       they can be set by the sending program as well as the keyboard modifiers it was difficult
+       to work out a sensible key mapping for drag and drop."  */
+    if op.contains(.link) {                                  // C 9569
+      operations = Fcons(Qns_drag_operation_link(), operations)     // C 9570
+    }
+    if op.contains(.copy) {                                  // C 9571
+      operations = Fcons(Qns_drag_operation_copy(), operations)     // C 9572
+    }
+    if op.contains(.generic) || NILP(operations) {           // C 9573
+      operations = Fcons(Qns_drag_operation_generic(), operations)  // C 9574
+    }
+
+    if type == nil {                                         // C 9576
+      return false                                           // C 9577
+    } else if type! == .fileURL {                            // C 9578-9579 (the live arm)
+      type_sym = Qfile()                                     // C 9581
+
+      let urls = pb.readObjects(forClasses: [NSURL.self], options: nil) ?? []   // C 9583-9584
+      for case let url as NSURL in urls {                    // C 9585-9587
+        strings = Fcons(lispString(url.path! as NSString), strings)   // C 9588
+      }
+    /* C 9590-9617: the `NSFilenamesPboardType` arm - dead on this target.  */
+    } else if type! == .URL {                                // C 9618
+      let url = NSURL(from: pb)                              // C 9620
+      if url == nil { return false }                         // C 9621
+
+      type_sym = Qurl()                                      // C 9623
+
+      strings = list1(lispString(url!.absoluteString! as NSString))   // C 9625
+    } else if type! == .string || type! == .tabularText {    // C 9627-9628
+      let data = pb.string(forType: type!)                   // C 9632
+
+      if data == nil {                                       // C 9634
+        return false                                         // C 9635
+      }
+
+      type_sym = Qnil()                                      // C 9637
+      strings = list1(lispString(data! as NSString))          // C 9638
+    } else {
+      return false                                           // C 9641
+    }
+
+    var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                         frame_or_window: nil, arg: nil, device: nil)   // C 9548
+    EVENT_INIT(&ie)                                          // C 9643
+    input_event_set_kind(&ie, DRAG_N_DROP_EVENT)             // C 9644
+    ie.arg = Fcons(type_sym, Fcons(operations, strings))      // C 9645-9646
+    XSETINT(&ie.x, Int(x))                                   // C 9647
+    XSETINT(&ie.y, Int(y))                                   // C 9648
+    XSETFRAME(&ie.frame_or_window, emacsframe)               // C 9649
+
+    kbd_buffer_store_event(&ie)                              // C 9651
+    ns_send_appdefined(-1)                                   // C 9652
+    return true                                              // C 9653
+  }
+
   /// C 8952-8955: `- (BOOL)fsIsNative` - C's whole body is the ivar read.
   func fsIsNative() -> Bool {
     fs_is_native                                      // C 8954
@@ -14837,3 +14930,27 @@ func copyRect_definition(_ view: NSView?, _ srcRect: NSRect, _ dest: NSPoint) {
 @_silgen_name("record_unwind_protect_ptr")
 func record_unwind_protect_ptr(_ func: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?,
                                _ arg: UnsafeMutableRawPointer?)
+
+// ==========================================================================
+// Round 79: the entries `performDragOperation:` needs
+// ==========================================================================
+
+/// C: `Qfile` and `Qurl` (globals.h; `DEFSYM (Qfile, "file")` is src/fileio.c's and
+/// `Qurl`, "url", src/fns.c's) - C 9581/9623's symbols.  The core exports one C-ABI entry per
+/// generated global (the `Qnil`/`Qleft` family).
+@_silgen_name("Qfile") func Qfile() -> Lisp_Object
+@_silgen_name("Qurl") func Qurl() -> Lisp_Object
+
+/// C: `Qns_drag_operation_link`/`Qns_drag_operation_copy`/`Qns_drag_operation_generic` - this
+/// file's own `DEFSYM`s (src/nsterm.m 11569-11571, in the function declared at src/nsterm.m
+/// 11550).  **Open**:
+/// this file's own symbols and absent from `docs/baseline/globals/symbols.tsv` (the frozen build
+/// never compiles this file) - the `QCordinary`/`QCmouse` reading.
+@_silgen_name("Qns_drag_operation_link") func Qns_drag_operation_link() -> Lisp_Object
+@_silgen_name("Qns_drag_operation_copy") func Qns_drag_operation_copy() -> Lisp_Object
+@_silgen_name("Qns_drag_operation_generic") func Qns_drag_operation_generic() -> Lisp_Object
+
+/// C: `DRAG_N_DROP_EVENT` (src/termhooks.h 174, a member of the event-kind enumeration declared
+/// at src/termhooks.h 74-348; the value is 17 - the mirror-valued-constant reading,
+/// `femacs/src/include/termhooks.rs` 44).
+fileprivate let DRAG_N_DROP_EVENT: UInt32 = 17

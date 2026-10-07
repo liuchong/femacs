@@ -16847,3 +16847,29 @@
      片段跑完即删**，无全盘/大内存扫描。
   ⑦ **未声称**：本轮**没有运行证据**——没有任何东西被拖到这个视图上；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.019 `src/nsterm.m` round 79（Swift lane）：`performDragOperation:` 落地（C 9538-9654）（2026-10-08）**：
+  ① **落地一个 `EmacsView` 方法**：`performDragOperation:`（C 9538-9654）——拖放家族的载荷路径。台账勾 **1 个框**
+     （勾 **418 → 419**、未勾 **12 → 11**；缩进的方法盒子剩 **10**），`EmacsView` 类盒子同步改成"还剩 **10** 个方法盒子"。
+  ② **写进代码的读数**：C 9578 的 `#if NS_USE_NSPasteboardTypeFileURL` 臂是活的（src/nsterm.h 47/49 对 Cocoa 取 1），
+     所以 C 9590-9617 的 `NSFilenamesPboardType` 臂在本目标是**死的**（记名不转写）；
+     `NSDragOperationLink`/`Copy`/`Generic` 是选项集的 `.link`/`.copy`/`.generic`；C 9563 的
+     `availableTypeFromArray:` 收**类型化数组**（C 8628 那条读法）；`[type isEqualToString: …]` 是粘贴板类型自己的 `==`；
+     C 9583-9588 的 `readObjectsForClasses:` 与它的 `NSEnumerator` 走查落成
+     `readObjects (forClasses:options:)` 与数组自身迭代（枚举器在数组末尾结束）；C 9643-9651 的事件用本单元的
+     `input_event` 镜像 + 新增的 `DRAG_N_DROP_EVENT` 常量。
+  ③ **门抓到的一处引用缺陷**：新增的 `Qns_drag_operation_*` 入口把 "src/nsterm.m 11741-11743" 与反引号里的**外层函数名**
+     （声明在 11550）写在同一条引用上——r64/r68 那条判据——改成引用三个 `DEFSYM` 自己的行（11569-11571）与外层函数的声明行
+     分开写；这次**纯注释**改写前后对象 md5 逐字节相同。
+  ④ **本轮新增 6 个入口 + 1 个常量**：`Qfile`/`Qurl`（生成全局那一族）与本文件自己的三个 `Qns_drag_operation_*`
+     （**open**——`QCordinary`/`QCmouse` 那条读法），以及 `DRAG_N_DROP_EVENT` 17（`femacs/src/include/termhooks.rs` 44）。
+  ⑤ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 78 的九条逐条相同，**首跑零新警告**）；
+     对象 `/tmp/nsterm79.o` **1,372,752 字节**、md5 `9832b7b4007f851d1acda2966ed7f8f9`；单元 **14,956 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **709** C symbol import(s)`
+     （round 78 是 704），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**；`check-citations` **676 / 0 drift /
+     0 range / 2,416 external / 36 allowed / 0 stale**。
+  ⑥ **预算与清理**：本片编译 **2 发**（首跑 0 错、第二发是修引用后的复读，都是单文件 `swiftc -c`，各约 2 秒）；另用
+     **4 组只读 grep** 钉准 `DEFSYM` 行号与入口名；**对象 `/tmp/nsterm79.o` 与两个 `/tmp/r79*.swift` 片段跑完即删**，
+     无全盘/大内存扫描。
+  ⑦ **未声称**：本轮**没有运行证据**——没有任何东西被拖放到这个视图；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
