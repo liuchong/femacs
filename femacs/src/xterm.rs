@@ -13217,7 +13217,7 @@ unsafe fn x_show_hourglass (f: *mut frame)
 	 avoid displaying the hourglass at all while popups are
 	 active.  */
 
-      if popup_activated ()
+      if popup_activated () != 0
 	{ return; }
 
       x_send_hourglass_message (f, true);
@@ -23535,7 +23535,7 @@ pub unsafe extern "C" fn x_dnd_begin_drag_and_drop (f: *mut frame, time: Time, x
     pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
     pub fn redisplay_preserve_echo_area (a: c_int);
     pub fn quit () -> Lisp_Object;
-    pub fn popup_activated () -> bool;
+    pub fn popup_activated () -> c_int;
     pub fn x_timestamp_for_selection (dpyinfo: *mut x_display_info,
 				      selection: Lisp_Object) -> Lisp_Object;
     pub fn XSetTextProperty (display: *mut Display, w: Window, text_prop: *mut XTextProperty,
@@ -23604,7 +23604,7 @@ pub unsafe extern "C" fn x_dnd_begin_drag_and_drop (f: *mut frame, time: Time, x
   if NILP (local_value)                                                // C 12761
     { error (c"No local value for XdndSelection".as_ptr ()); }        // C 12762
 
-  if popup_activated ()                                                // C 12764
+  if popup_activated () != 0                                           // C 12764
     { error (c"Trying to drag-and-drop from within a menu-entry".as_ptr ()); } // C 12765
 
   x_set_dnd_targets (target_atoms, ntargets);                          // C 12767
@@ -30904,6 +30904,38 @@ macro_rules! mouse_face_hidden {
 		 else { (*$h).bits & ! MOUSE_FACE_HIDDEN } };
 }
 
+/// Xlib.h 589-603's `XMotionEvent` - the record `event->xmotion` names, which the `XEvent`
+/// stand-in does not carry, so it stands at this use site (P-88 1, `src/xwidget.rs` 2896's
+/// measured 96-byte twin: `time`@56, `x`@64, `y`@68, `x_root`@72, `y_root`@76, `state`@80).
+/// The `MotionNotify` arm reads it through C's own member text, and C 21000's copy is the one
+/// place the port needs the type itself.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct XMotionEvent
+{
+  pub r#type: c_int,          // Xlib.h 590
+  pub serial: c_ulong,        // Xlib.h 591
+  pub send_event: Bool,       // Xlib.h 592
+  pub display: *mut Display,  // Xlib.h 593
+  pub window: Window,         // Xlib.h 594
+  pub root: Window,           // Xlib.h 595
+  pub subwindow: Window,      // Xlib.h 596
+  pub time: Time,             // Xlib.h 597
+  pub x: c_int,               // Xlib.h 598
+  pub y: c_int,
+  pub x_root: c_int,          // Xlib.h 599
+  pub y_root: c_int,
+  pub state: c_uint,          // Xlib.h 600
+  pub is_hint: c_char,        // Xlib.h 601
+  pub same_screen: Bool,      // Xlib.h 602
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::size_of::<XMotionEvent> () == 96);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XMotionEvent, x) == 64);
+#[cfg (feature = "have_x_windows")]
+const _: () = core::assert! (core::mem::offset_of! (XMotionEvent, state) == 80);
+
 /// Xlib.h 557-570's `XKeyEvent` - the record `event->xkey` names, which the `XEvent` stand-in does
 /// not carry, so it stands at this use site (P-88 1, `src/xmenu.rs` 232's measured 96-byte twin);
 /// `KeyPress`/`KeyRelease` read it through C's own member text.
@@ -30984,6 +31016,42 @@ unsafe extern "C" {
 unsafe extern "C" {
   /// C: lwlib.h 85: `extern void xlwmenu_redisplay (Widget);`
   pub fn xlwmenu_redisplay (w: Widget);
+}
+
+/* C 21254's `xg_event_is_for_scrollbar` is gtkutil.h 151-152's `extern bool xg_event_is_for_scrollbar
+   (struct frame *, const EVENT *, bool for_valuator);` - `EVENT` is that header's own `typedef
+   XEvent EVENT;` (this unit's graph reaches no mirror that declares it), so it stands at this use
+   site (P-88 1, the `src/pgtkterm.rs` 8630 shape).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  /// C: gtkutil.h 151-152: `extern bool xg_event_is_for_scrollbar (struct frame *,
+  /// const EVENT *, bool for_valuator);`
+  pub fn xg_event_is_for_scrollbar (f: *mut frame, event: *mut XEvent,
+				    for_valuator: bool) -> bool;
+}
+
+/* C 21002-21003's `help_echo_string`/`previous_help_echo_string` and C 25616-25622's
+   `help_echo_window`/`help_echo_object`/`help_echo_pos` are dispextern.h 3614-3620's five
+   objects (keyboard.c defines all five).  The mirror declares them inside `pub mod
+   dispextern_externs`, which no glob import brings into this unit, so the five stand at this
+   use site (P-88 1) - which also closes the five `cannot find value` lines the slice-110 tail
+   has carried since it landed.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: dispextern.h 3614: `extern Lisp_Object help_echo_string, help_echo_window;`
+  pub static mut help_echo_string: Lisp_Object;
+  pub static mut help_echo_window: Lisp_Object;
+  /// C: dispextern.h 3615: `extern Lisp_Object help_echo_object, previous_help_echo_string;`
+  pub static mut help_echo_object: Lisp_Object;
+  pub static mut previous_help_echo_string: Lisp_Object;
+  /// C: dispextern.h 3616: `extern ptrdiff_t help_echo_pos;`
+  pub static mut help_echo_pos: ptrdiff_t;
+  /// C: dispextern.h 3879: `int popup_activated (void);` - C 21271's call.  `src/xfns.rs`
+  /// 13331, `src/pgtkfns.rs` 545, `src/pgtkmenu.rs` 1445 and `src/androidterm.rs` 162 declare
+  /// the same prototype with C's own return type; the copy this unit already carried stands
+  /// inside `x_dnd_begin_drag_and_drop`'s body, out of every other function's scope (one of the
+  /// four rows this round's reading retires).
+  pub fn popup_activated () -> c_int;
 }
 
 /// C 18866-25632: `handle_one_xevent (struct x_display_info *dpyinfo, XEvent *event, int *finish,
@@ -31071,7 +31139,8 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
   use crate::x11_constants::SelectionClear;
   use crate::x11_constants::SelectionRequest;
   /* C 20715/20806/20853/20979's four case labels (this slice).  */
-  use crate::x11_constants::{EnterNotify, FocusIn, FocusOut, LeaveNotify};
+  use crate::x11_constants::{EnterNotify, FocusIn, FocusOut, LeaveNotify,
+			       MotionNotify};
   use crate::x11_constants::None;
   /* C 19579/19699's `PropertyDelete`, and the Xlib/Xatom names the toplevel scan and
      the opacity reader read (C 19597-19621, C 19709-19721).  */
@@ -31808,7 +31877,7 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			    /* "Bloodcurdling hack alert: The Lucid menu bar widget's redisplay procedure
 			       is not called when a tip frame over menu items is unmapped.  Redisplay the
 			       menu manually…"  */
-			    if FRAME_TOOLTIP_P (f) && popup_activated ()            // C 20039
+			    if FRAME_TOOLTIP_P (f) && popup_activated () != 0        // C 20039
 			      {
 				let mut w: Widget;                                  // C 20041
 				let mut tail: Lisp_Object;                          // C 20042
@@ -32001,7 +32070,7 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	      /* C 20204-20208's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)`: "Dispatch
 		 KeyPress events when in menu."  */
 #[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
-	      if popup_activated ()                                           // C 20206
+	      if popup_activated () != 0                                     // C 20206
 		{ break 'switch; }                                            // C 20207
 
 	      f = any;                                                        // C 20210
@@ -32806,6 +32875,384 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	      break 'switch;                                                 // C 20996
 	    }
 
+	/* C 20998-21342: `case MotionNotify:`.  C's block declares `XMotionEvent xmotion =
+	   event->xmotion;` (C 21000) - the record the arm reads and rewrites - then the help-echo
+	   bookkeeping, the frame lookup, the XdndMotion block (C 21021-21251, whose `goto OTHER`
+	   at C 21250 is this `break 'switch`), the GTK scrollbar test, the xwidget dispatch, the
+	   `mouse-autoselect-window` block, and the scroll-bar/help-echo tail.  C's `event->xbutton`
+	   reads at C 21165/21198/21212/21213/21238 are C's own member text (the `XEvent` stand-in
+	   owns no `xbutton`, so those are the registered `no field` class).  */
+	MotionNotify =>
+		{
+			let mut xmotion: XMotionEvent = (*event).xmotion;                // C 21000
+			
+			previous_help_echo_string = help_echo_string;                    // C 21002
+			help_echo_string = Qnil ();                                      // C 21003
+			
+			if mouse_face_hidden! (hlinfo)                                   // C 21005
+				{
+				  mouse_face_hidden! (hlinfo, 0);                              // C 21007
+				  clear_mouse_face (hlinfo);                                   // C 21008
+				}
+			
+			f = mouse_or_wdesc_frame (dpyinfo, (*event).xmotion.window);     // C 21011
+			
+			/* "See the comment above x_compute_root_window_offset for why this optimization is
+			   performed."  */
+			if !f.is_null () && (*event).xmotion.window == FRAME_X_WINDOW! (f)  // C 21013
+				{
+				  x_compute_root_window_offset (f, (*event).xmotion.x_root,     // C 21016
+								(*event).xmotion.y_root,           // C 21017
+								(*event).xmotion.x,                // C 21018
+								(*event).xmotion.y);               // C 21019
+				}
+			
+			if x_dnd_in_progress                                           // C 21021
+			  /* "Handle these events normally if the recursion level is higher than when the
+			     drag-and-drop operation was initiated.  This is so that mouse input works while
+			     we're in the debugger for, say, `x-dnd-movement-function`."  */
+			  && (command_loop_level + minibuf_level                        // C 21027
+			      <= x_dnd_recursion_depth as EMACS_INT)                    // C 21028
+			  && dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)                // C 21029
+				{
+				  let mut target: Window;                                     // C 21031
+				  let mut toplevel: Window;
+				  let mut target_proto: c_int;                                // C 21032
+				  let mut motif_style: c_int;
+				  let mut lmsg: xm_top_level_leave_message
+				    = std::mem::zeroed ();                                    // C 21033
+				  let mut emsg: xm_top_level_enter_message
+				    = std::mem::zeroed ();                                    // C 21034
+				  let mut dmsg: xm_drag_motion_message = std::mem::zeroed ();   // C 21035
+				  let mut r: *mut XRectangle;                                  // C 21036
+				  let mut was_frame: bool;                                     // C 21037
+				
+				  /* "Always clear mouse face."  */
+				  clear_mouse_face (hlinfo);                                   // C 21040
+				  mouse_face_hidden! (hlinfo, 1);                              // C 21041
+				
+				  /* "Sometimes the drag-and-drop operation starts with the pointer of a frame invisible
+				     due to input.  Since motion events are ignored during that, make the pointer visible
+				     manually."  */
+				  if !f.is_null ()                                             // C 21048
+					{
+					  XTtoggle_invisible_pointer (f, false);                   // C 21050
+					
+					  r = &raw mut (*dpyinfo).last_mouse_glyph;                // C 21052
+					
+					  /* "Also remember the mouse glyph and set mouse_moved."  */
+					  if f != (*dpyinfo).last_mouse_glyph_frame                // C 21056
+					    || (*event).xmotion.x < (*r).x                         // C 21057
+					    || (*event).xmotion.x >= (*r).x as c_int + (*r).width as c_int  // C 21058
+					    || (*event).xmotion.y < (*r).y                         // C 21059
+					    || (*event).xmotion.y >= (*r).y as c_int + (*r).height as c_int  // C 21060
+					    {
+					      frame_bits! (mouse_moved, f, true);                  // C 21062
+					      (*f).last_mouse_device = Qnil ();                    // C 21063
+					      (*dpyinfo).last_mouse_scroll_bar = std::ptr::null_mut ();  // C 21064
+					
+					      remember_mouse_glyph (f, (*event).xmotion.x,          // C 21066
+								    (*event).xmotion.y, r);         // C 21067
+					      (*dpyinfo).last_mouse_glyph_frame = f;               // C 21068
+					    }
+					}
+				
+				  if (*event).xmotion.same_screen != 0                         // C 21072
+				    {
+				      target = x_dnd_get_target_window (dpyinfo,                // C 21073
+									(*event).xmotion.x_root,    // C 21074
+									(*event).xmotion.y_root,    // C 21075
+									&raw mut target_proto,      // C 21076
+									&raw mut motif_style, &raw mut toplevel,  // C 21077
+									&raw mut was_frame);        // C 21078
+				    }
+				  else
+				    {
+				      target = x_dnd_fill_empty_target (&raw mut target_proto,  // C 21080
+									&raw mut motif_style,       // C 21080
+									&raw mut toplevel, &raw mut was_frame);  // C 21081
+				    }
+				
+				  if toplevel != x_dnd_last_seen_toplevel                      // C 21083
+					{
+					  if toplevel != FRAME_OUTER_WINDOW! (x_dnd_frame)         // C 21085
+					    && x_dnd_return_frame == 1                             // C 21086
+					    { x_dnd_return_frame = 2; }                            // C 21087
+					
+					  /* C 21090's `x_any_window_to_frame` is C 12344's `static` function under
+				     `USE_X_TOOLKIT || USE_GTK` and the `#else` arm's macro of the same name
+				     otherwise (P-86 1); `#[cfg]` cannot stand on a condition term (E0658), so
+				     the test is computed once (Decision 2 2, the 30164 spelling).  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+				  let any_window_p: bool
+				    = !x_any_window_to_frame (dpyinfo, toplevel as c_int).is_null ();  // C 21090
+#[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+				  let any_window_p: bool
+				    = !x_any_window_to_frame! (dpyinfo, toplevel as c_int).is_null (); // C 21090
+
+				  if x_dnd_return_frame == 2                               // C 21089
+					    && any_window_p                                     // C 21090
+					    {
+					      if x_dnd_last_seen_window != None as Window           // C 21092
+						&& x_dnd_last_protocol_version != -1              // C 21093
+						&& x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 21094
+						{ x_dnd_send_leave (x_dnd_frame, x_dnd_last_seen_window,  // C 21095
+								    x_dnd_last_seen_toplevel); }      // C 21096
+					      else if x_dnd_last_seen_window != None as Window       // C 21097
+						&& XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)  // C 21098
+						&& !x_dnd_disable_motif_drag                      // C 21099
+						&& x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 21100
+						{
+						  if !x_dnd_motif_setup_p                           // C 21102
+						    { xm_setup_drag_info (dpyinfo, x_dnd_frame); }  // C 21103
+					
+						  lmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 21105
+										 xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_LEAVE as c_int) as u8;  // C 21106
+						  lmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;   // C 21107
+						  lmsg.zero = 0;                                    // C 21108
+						  lmsg.timestamp = (*event).xmotion.time as u32;     // C 21109
+						  lmsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;  // C 21110
+					
+						  if x_dnd_motif_setup_p                            // C 21112
+						    { xm_send_top_level_leave_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 21113
+									       x_dnd_last_seen_window, &raw mut lmsg); }  // C 21114
+						}
+					
+					      x_dnd_end_window = x_dnd_last_seen_window;            // C 21117
+					      x_dnd_last_seen_window = None as Window;              // C 21118
+					      x_dnd_last_seen_toplevel = None as Window;            // C 21119
+					      x_dnd_in_progress = false;                            // C 21120
+					      /* C 21121-21122's assignment, split the way C 18330's call site is.  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+					      { x_dnd_return_frame_object = x_any_window_to_frame (dpyinfo, toplevel as c_int); }  // C 21122
+#[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+					      { x_dnd_return_frame_object = x_any_window_to_frame! (dpyinfo, toplevel as c_int); }  // C 21122
+					      x_dnd_return_frame = 3;                               // C 21123
+					      x_dnd_waiting_for_finish = false;                     // C 21124
+					      target = None as Window;                              // C 21125
+					    }
+					}
+				
+				  if target != x_dnd_last_seen_window                          // C 21129
+					{
+					  if x_dnd_last_seen_window != None as Window               // C 21131
+					    && x_dnd_last_protocol_version != -1                    // C 21132
+					    && x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 21133
+					    { x_dnd_send_leave (x_dnd_frame, x_dnd_last_seen_window,  // C 21134
+								x_dnd_last_seen_toplevel); }          // C 21135
+					  else if x_dnd_last_seen_window != None as Window           // C 21136
+					    && XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)   // C 21137
+					    && x_dnd_disable_motif_drag                             // C 21138
+					    && x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 21139
+					    {
+					      if !x_dnd_motif_setup_p                               // C 21141
+						{ xm_setup_drag_info (dpyinfo, x_dnd_frame); }      // C 21142
+					
+					      /* "This is apparently required.  If we don't send a motion event with the current
+						 root window coordinates of the pointer before the top level leave, then Motif
+						 displays an ugly black border around the previous drop site."  */
+					
+					      dmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 21150
+									     xm_drag_reason::XM_DRAG_REASON_DRAG_MOTION as c_int) as u8;  // C 21151
+					      dmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;       // C 21152
+					      dmsg.side_effects                                     // C 21153
+						= XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (dpyinfo,  // C 21153
+									 x_dnd_wanted_action),      // C 21154
+								       xm_drop_site_status::XM_DROP_SITE_NONE as c_int,  // C 21155
+								       x_dnd_motif_operations as c_int,
+								       xm_drag_action::XM_DROP_ACTION_DROP_CANCEL as c_int) as u16;  // C 21156
+					      dmsg.timestamp = (*event).xmotion.time as u32;        // C 21157
+					      dmsg.x = (*event).xmotion.x_root as u16;              // C 21158
+					      dmsg.y = (*event).xmotion.y_root as u16;              // C 21159
+					
+					      lmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 21161
+									     xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_LEAVE as c_int) as u8;  // C 21162
+					      lmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;       // C 21163
+					      lmsg.zero = 0;                                        // C 21164
+					      lmsg.timestamp = (*event).xbutton.time as u32;        // C 21165
+					      lmsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;  // C 21166
+					
+					      if x_dnd_motif_setup_p                                // C 21168
+						{
+						  xm_send_drag_motion_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 21170
+									       x_dnd_last_seen_window, &raw mut dmsg);  // C 21171
+						  xm_send_top_level_leave_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 21172
+										   x_dnd_last_seen_window, &raw mut lmsg);  // C 21173
+						}
+					    }
+					
+					  x_dnd_action = None as Atom;                              // C 21177
+					  x_dnd_last_seen_toplevel = toplevel;                      // C 21178
+					  x_dnd_last_seen_window = target;                          // C 21179
+					  x_dnd_last_protocol_version = target_proto;               // C 21180
+					  x_dnd_last_motif_style = motif_style;                     // C 21181
+					  x_dnd_last_window_is_frame = was_frame;                   // C 21182
+					
+					  if target != None as Window && x_dnd_last_protocol_version != -1  // C 21184
+					    { x_dnd_send_enter (x_dnd_frame, target,                // C 21185
+								x_dnd_last_seen_toplevel,             // C 21186
+								x_dnd_last_protocol_version); }       // C 21187
+					  else if target != None as Window                          // C 21188
+					    && XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)   // C 21188
+					    && !x_dnd_disable_motif_drag                            // C 21189
+					    {
+					      if !x_dnd_motif_setup_p                               // C 21191
+						{ xm_setup_drag_info (dpyinfo, x_dnd_frame); }      // C 21192
+					
+					      emsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 21194
+									     xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_ENTER as c_int) as u8;  // C 21195
+					      emsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;       // C 21196
+					      emsg.zero = 0;                                        // C 21197
+					      emsg.timestamp = (*event).xbutton.time as u32;        // C 21198
+					      emsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;  // C 21199
+					      emsg.index_atom = x_dnd_motif_atom as u32;            // C 21200
+					
+					      if x_dnd_motif_setup_p                                // C 21202
+						{ xm_send_top_level_enter_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 21203
+										   target, &raw mut emsg); }  // C 21204
+					    }
+					}
+				  else
+				    { x_dnd_last_seen_toplevel = toplevel; }                  // C 21208
+				
+				  if x_dnd_last_window_is_frame && target != None as Window    // C 21210
+				    { x_dnd_note_self_position (dpyinfo, target,              // C 21211
+								(*event).xbutton.x_root as c_ushort,  // C 21212
+								(*event).xbutton.y_root as c_ushort); }  // C 21213
+				  else if x_dnd_last_protocol_version != -1 && target != None as Window  // C 21214
+				    { x_dnd_send_position (x_dnd_frame, target,               // C 21215
+							   x_dnd_last_seen_toplevel,           // C 21216
+							   x_dnd_last_protocol_version,        // C 21217
+							   (*event).xmotion.x_root as c_ushort,  // C 21218
+							   (*event).xmotion.y_root as c_ushort,  // C 21219
+							   x_dnd_selection_timestamp,          // C 21220
+							   x_dnd_wanted_action, 0,             // C 21221
+							   (*event).xmotion.state as c_uint); }  // C 21222
+				  else if XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)  // C 21223
+				    && target != None as Window && !x_dnd_disable_motif_drag  // C 21224
+				    {
+				      if !x_dnd_motif_setup_p                                 // C 21226
+					{ xm_setup_drag_info (dpyinfo, x_dnd_frame); }        // C 21227
+				
+				      dmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 21229
+								     xm_drag_reason::XM_DRAG_REASON_DRAG_MOTION as c_int) as u8;  // C 21230
+				      dmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;         // C 21231
+				      dmsg.side_effects                                       // C 21232
+					= XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (dpyinfo,  // C 21232
+								 x_dnd_wanted_action),        // C 21233
+							       xm_drop_site_status::XM_DROP_SITE_VALID as c_int,  // C 21234
+							       x_dnd_motif_operations as c_int,
+							       (if !x_dnd_xm_use_help             // C 21235
+								{ xm_drag_action::XM_DROP_ACTION_DROP as c_int }  // C 21236
+								else { xm_drag_action::XM_DROP_ACTION_DROP_HELP as c_int })) as u16;  // C 21237
+				      dmsg.timestamp = (*event).xbutton.time as u32;          // C 21238
+				      dmsg.x = (*event).xmotion.x_root as u16;                // C 21239
+				      dmsg.y = (*event).xmotion.y_root as u16;                // C 21240
+				
+				      if x_dnd_motif_setup_p                                  // C 21242
+					{ xm_send_drag_motion_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 21243
+								       target, &raw mut dmsg); }      // C 21244
+				    }
+				
+				  x_dnd_update_tooltip_position ((*event).xmotion.x_root,     // C 21247
+								 (*event).xmotion.y_root);    // C 21248
+				
+				  break 'switch;                                              // C 21250
+				}
+			
+			/* C 21253-21256's `#ifdef USE_GTK`: the same scrollbar test the EnterNotify arm runs, so
+			   the arm's `f` is 0 afterwards.  */
+			#[cfg (feature = "use_gtk")]
+			if !f.is_null () && xg_event_is_for_scrollbar (f, event, false)  // C 21254
+				{ f = std::ptr::null_mut (); }                                 // C 21255
+			
+			/* C 21257-21264's `#ifdef HAVE_XWIDGETS` block.  */
+			#[cfg (feature = "have_xwidgets")]
+				{
+				  let mut xvw: *mut xwidget_view;                             // C 21258
+				
+				  xvw = xwidget_view_from_window ((*event).xmotion.window);   // C 21260
+				
+				  if !xvw.is_null ()                                          // C 21262
+				    { xwidget_motion_or_crossing (xvw, event); }              // C 21263
+				}
+			
+			if !f.is_null ()                                               // C 21265
+				{
+				  /* "Maybe generate a SELECT_WINDOW_EVENT for `mouse-autoselect-window' but don't let
+				     popup menus interfere with this (Bug#1261)."  */
+				  if !NILP (Vmouse_autoselect_window)                        // C 21270
+				    && popup_activated () == 0                               // C 21271
+				    /* "Don't switch if we're currently in the minibuffer.  This tries to work around
+					problems where the minibuffer gets unselected unexpectedly, and where you then have
+					to move your mouse all the way down to the minibuffer to select it."  */
+				    && !MINI_WINDOW_P (XWINDOW (selected_window))             // C 21277
+				    /* "With `focus-follows-mouse' non-nil create an event also when the target window
+					is on another frame."  */
+				    && (f == XFRAME (selected_frame)                          // C 21280
+					|| !NILP (focus_follows_mouse))                       // C 21281
+				    {
+				      if xmotion.window != FRAME_X_WINDOW! (f)                // C 21283
+					{
+					  x_translate_coordinates (f, xmotion.x_root, xmotion.y_root,  // C 21285
+								   &raw mut xmotion.x, &raw mut xmotion.y);  // C 21286
+					  xmotion.window = FRAME_X_WINDOW! (f);                 // C 21287
+					}
+				
+				      let window: Lisp_Object = window_from_coordinates        // C 21290
+					(f as *mut c_void, xmotion.x, xmotion.y, std::ptr::null_mut (),  // C 21291
+					 false, false, false);
+				
+				      /* "A window will be autoselected only when it is not selected now and the last
+					 mouse movement event was not in it.  The remainder of the code is a bit vague wrt
+					 what a \"window\" is.  For immediate autoselection, the window is usually the entire
+					 window but for GTK where the scroll bars don't count.  For delayed autoselection the
+					 window is usually the window's text area including the margins."  */
+				      if WINDOWP (window)                                     // C 21301
+					&& !EQ (window, last_mouse_window)                    // C 21302
+					&& !EQ (window, selected_window)                      // C 21303
+					{
+					  input_event_bits! (kind, &raw mut inev.ie, SELECT_WINDOW_EVENT);  // C 21305
+					  inev.ie.frame_or_window = window;                     // C 21306
+					}
+				
+				      /* "Remember the last window where we saw the mouse."  */
+				      last_mouse_window = window;                             // C 21310
+				    }
+				
+				  if !x_note_mouse_movement (f, &raw const xmotion, Qnil ())  // C 21313
+				    { help_echo_string = previous_help_echo_string; }        // C 21314
+				}
+			else
+				{
+				  /* C 21318-21325's `#ifndef USE_TOOLKIT_SCROLL_BARS` block.  */
+				#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+					{
+					  let mut bar: *mut scroll_bar                            // C 21319
+					    = x_window_to_scroll_bar ((*event).xmotion.display,   // C 21320
+								      (*event).xmotion.window, 2);  // C 21321
+					
+					  if !bar.is_null ()                                      // C 21323
+					    { x_scroll_bar_note_movement (bar, &raw const (*event).xmotion); }  // C 21324
+					}
+				
+				  /* "If we move outside the frame, then we're certainly no longer on any text in the
+				     frame."  */
+				  clear_mouse_face (hlinfo);                                  // C 21329
+				}
+			
+			/* "If the contents of the global variable help_echo_string has changed, generate a
+			   HELP_EVENT."  */
+			if !NILP (help_echo_string)                                    // C 21334
+			  || !NILP (previous_help_echo_string)                         // C 21335
+			{ do_help = 1; }                                               // C 21336
+			
+			if !f.is_null ()                                               // C 21338
+				{ x_flush_dirty_back_buffer_on (f); }                        // C 21339
+			
+			break 'switch;                                                 // C 21340
+		}
+		
 		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
 		     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
 		  _ => {}

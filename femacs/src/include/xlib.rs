@@ -109,6 +109,10 @@ pub mod x11_constants {
   /// X11/X.h 446: `#define PropertyDelete 1` - the `XPropertyEvent.state` value
   /// C 19579 and C 19699 test for.
   pub const PropertyDelete: c_int = 1;
+  /// X11/X.h 185: `#define MotionNotify 6` - C 20998's case label (the arm whose
+  /// `event->xmotion` record the slice reads; `src/xwidget.rs` 2801 declares the same
+  /// value for its own unit).
+  pub const MotionNotify: c_int = 6;
   /// X11/X.h 186: `#define EnterNotify 7` - an event type the focus machinery dispatches on
   /// (measured against this target's header, the `spikes` probe in the slice-59 reading).
   pub const EnterNotify: c_int = 7;

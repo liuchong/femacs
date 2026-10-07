@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 590 |
-| 其中 done / wip | 587 / 3 |
+| 其中 done / wip | 589 / 1 |
 | 待开工 | 0 |
 
 ## 2 按目录
@@ -478,12 +478,12 @@
 | `src/dbusbind.c` | 2,190 | 24 | 6 | 19 | 1 | 0 | 3 | D | `femacs/src/dbusbind.rs` | done |
 | `src/decompress.c` | 349 | 6 | 2 | 4 | 1 | 5 | 3 | D | `femacs/src/decompress.rs` | done |
 | `src/dired.c` | 1,213 | 14 | 8 | 3 | 3 | 0 | 0 | D | `femacs/src/dired.rs` | done |
-| `src/dispextern.h` | 4,025 | 11 | 0 | 130 | 219 | 583 | 17 | E | `femacs/src/include/dispextern.rs` | wip |
+| `src/dispextern.h` | 4,025 | 11 | 0 | 130 | 219 | 583 | 17 | E | `femacs/src/include/dispextern.rs` | done |
 | `src/dispnew.c` | 7,584 | 150 | 13 | 4 | 1 | 13 | 20 | E | `femacs/src/dispnew.rs` | done |
 | `src/disptab.h` | 117 | 0 | 0 | 20 | 14 | 0 | 0 | B | `femacs/src/include/disptab.rs` | done |
 | `src/doc.c` | 746 | 6 | 6 | 6 | 0 | 0 | 3 | B | `femacs/src/doc.rs` | done |
 | `src/doprnt.c` | 607 | 6 | 0 | 0 | 1 | 0 | 0 | B | `femacs/src/doprnt.rs` | done |
-| `src/dosfns.c` | 798 | 12 | 10 | 2 | 0 | 0 | 2 | F | `femacs/src/dosfns.rs` | wip |
+| `src/dosfns.c` | 798 | 12 | 10 | 2 | 0 | 0 | 2 | F | `femacs/src/dosfns.rs` | done |
 | `src/dosfns.h` | 35 | 0 | 0 | 1 | 1 | 0 | 1 | F | `femacs/src/include/dosfns.rs` | done |
 | `src/dynlib.c` | 340 | 14 | 0 | 3 | 2 | 0 | 2 | D | `femacs/src/dynlib.rs` | done |
 | `src/dynlib.h` | 41 | 0 | 0 | 1 | 0 | 0 | 0 | D | `femacs/src/include/dynlib.rs` | done |

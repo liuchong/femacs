@@ -374,6 +374,17 @@ repaired.
 carried verbatim, and where C's `just_clear_mouse_face:` label becomes a flag of C's own name
 because Rust cannot jump forward into the middle of a block.
 
+  Slice 117 (C 20998-21342, Decision 129) lands `MotionNotify` - the switch's largest case so far,
+345 C lines - where C copies `event->xmotion` into a local the arm then reads and rewrites, keeps
+the help-echo pair, reads the frame, carries the whole `XdndMotion` block (C 21021-21251, whose
+`goto OTHER` is this arm's `break 'switch`), tests the GTK scroll bar, dispatches to the xwidget
+view, runs `mouse-autoselect-window`, and closes with the scroll-bar/help-echo tail.  Two names
+stand at this round's use sites - the `XMotionEvent` record (`XKeyEvent`'s shape,
+`src/xwidget.rs` 2896's measured 96-byte twin) and `xg_event_is_for_scrollbar` - and six owed rows
+are retired: the five help-echo objects the slice-110 tail has read since it landed, and
+`popup_activated`, which this round also makes C's `int` in every declaration the unit carries
+(the four call sites that answered it with a bare test now carry C's own comparison).
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5458,6 +5469,49 @@ expected direction once the file starts carrying records the X11 headers would s
 * **What `--check` reads.**  Unchanged at two rows; the long row's token list goes **268 -> 250**.
   The unit is **33,728 lines** against C's 33,125 (**603 lines longer, +1.82%**), file md5
   `9a0ca789f786b1ec57512be9a51f4a7f`.
+
+### 129. Slice 117 (C 20998-21342): `MotionNotify`, the XdndMotion block, and six names that stop being owed
+
+* **What it lands.**  `case MotionNotify:` (C 20998-21342), each line with its own `// C NNNN`
+  comment: C 21000's `XMotionEvent` copy (the record the arm reads from then on), the help-echo
+  pair, the mouse-face-hidden clear, `mouse_or_wdesc_frame` and `x_compute_root_window_offset`,
+  the whole `XdndMotion` block (C 21021-21251 - its first half's toplevel/window bookkeeping with
+  the Motif leave message, its second half's `x_dnd_note_self_position` / `x_dnd_send_position` /
+  Motif-motion trio, and `x_dnd_update_tooltip_position`), the GTK scroll-bar test, the xwidget
+  dispatch, `mouse-autoselect-window` (C 21265-21315) and the scroll-bar/help-echo tail.  C
+  21250's `goto OTHER` and C 21340's are this arm's two `break 'switch` sites.
+* **Six names stop being owed.**  `XMotionEvent` (the record `event->xmotion` names) and
+  `xg_event_is_for_scrollbar` stand at this round's use sites; the five help-echo objects
+  (`help_echo_string`, `help_echo_window`, `help_echo_object`, `previous_help_echo_string`,
+  `help_echo_pos`) and `popup_activated` close rows the unit has carried since slices 110, 113 and
+  115 wrote their calls.  The reading names them, per arm: `cannot find type XMotionEvent` -2 (the
+  plain arms) / -1 (the toolkit ones), `help_echo_string` -2, `help_echo_window` / `-object` /
+  `-pos` -1 each, `cannot find function popup_activated` -1 / -2 / -3.
+* **`popup_activated` is C's `int`, and three sites asked it bare.**  C's own prototype is
+  `int popup_activated (void);` (dispextern.h 3879) and the port's four other units
+  (`src/xfns.rs` 13331, `src/pgtkfns.rs` 545, `src/pgtkmenu.rs` 1445, `src/androidterm.rs` 162)
+  declare it with C's return type, while this unit carried a `bool` copy inside
+  `x_dnd_begin_drag_and_drop` and left the sites that had no declaration at all as bare tests
+  (`if popup_activated ()`, C 11450 and C 20206, and C 20039's term).  The new declaration is C's
+  type and every call site carries C's own test - `!= 0`, and `== 0` where C 21271 negates it - a
+  repair of four lines three earlier slices wrote, named here rather than left to the reader.
+* **C 21090's `x_any_window_to_frame` has two shapes.**  Under `USE_X_TOOLKIT || USE_GTK` it is
+  C 12344's `static` function; C's `#else` arm defines a macro of the same name instead
+  (`src/xterm.rs` 23205).  Rust's `#[cfg]` cannot stand on a condition term (E0658), so the test
+  is computed once (`any_window_p`, Decision 2 item 2's shape, the 30164 line's spelling) and C
+  21122's assignment is spelled as the C 18330 pair.
+* **Two bitfields keep C's member names.**  C 21062's `f->mouse_moved` is
+  `frame_bits! (mouse_moved, f, true)` and C 21305's `inev.ie.kind = SELECT_WINDOW_EVENT;` is
+  `input_event_bits! (kind, &raw mut inev.ie, SELECT_WINDOW_EVENT)` - the two per-unit accessor
+  macros this file already carries; C 21306's `inev.ie.frame_or_window` is a plain field.
+* **Three C promotions the first writing read.**  C 21027-21028's `command_loop_level +
+  minibuf_level <= x_dnd_recursion_depth` compares C's `int` against an `EMACS_INT`, so the port
+  widens C's own operand (`as EMACS_INT`); C 21058/C 21060's `r->x + r->width` arithmetic is
+  C's int arithmetic, so the `XRectangle`'s `short`/`unsigned short` members are widened exactly
+  as the C 14768 site in this file already widens them.
+* **What `--check` reads.**  Unchanged at two rows; the long row's token list goes **250 -> 168**.
+  The unit is **34,176 lines** against C's 33,125 (**1,051 lines longer, +3.17%**), file md5
+  `3852704629b6e966b4597d5c5e2263c1`.
 
 ## Evidence
 
@@ -11014,3 +11068,55 @@ measured), so the counted delta is the one row.
 **Not claimed**: no runtime evidence - this lane does not link, and no crossing or focus event was
 ever delivered; the readings are the nineteen arm compiles, the `--check` row's token count and
 this ledger.
+
+### Slice 117's readings (C 20998-21342), as landed and measured (2026-10-08)
+
+`MotionNotify`.  Thirteen `case` bodies remain.
+
+| arm | baseline | slice 117 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1027 / 78 | **1054 / 80** | **+27 / +2** |
+| U `A +use_toolkit_scroll_bars` | 1040 / 78 | **1065 / 80** | **+25 / +2** |
+| UT `U +use_x_toolkit` | 1036 / 77 | **1060 / 79** | **+24 / +2** |
+| UM `UT +use_motif` | 1041 / 77 | **1065 / 79** | **+24 / +2** |
+| UG `U +use_gtk` | 1048 / 79 | **1077 / 81** | **+29 / +2** |
+| UGX `UG +have_xinput2` | 1152 / 81 | **1181 / 83** | **+29 / +2** |
+| AE `A +enable_checking` | 1059 / 77 | **1086 / 79** | **+27 / +2** |
+| AI `A +have_x_i18n` | 1052 / 78 | **1079 / 80** | **+27 / +2** |
+| AIU `AI +use_gtk` | 1116 / 78 | **1146 / 80** | **+30 / +2** |
+| AIUX `AIU +have_xinput2` | 1224 / 80 | **1254 / 82** | **+30 / +2** |
+| AX `A +have_xdbe` | 1037 / 78 | **1064 / 80** | **+27 / +2** |
+| AG3 `A +use_gtk +have_gtk3` | 1097 / 78 | **1128 / 80** | **+31 / +2** |
+| AG3X `AG3 +have_xinput2` | 1176 / 80 | **1207 / 82** | **+31 / +2** |
+| AXF `A +have_xfixes` | 1037 / 78 | **1064 / 80** | **+27 / +2** |
+| AXPM `A +have_xpm` | 1028 / 78 | **1055 / 80** | **+27 / +2** |
+| AXKB `A +have_xkb` | 1068 / 78 | **1095 / 80** | **+27 / +2** |
+| AXR `A +have_xrandr` | 1034 / 78 | **1061 / 80** | **+27 / +2** |
+| AX11 `A +have_x11` | 1011 / 78 | **1038 / 80** | **+27 / +2** |
+| AUX `A +use_xcb` | 1110 / 76 | **1137 / 78** | **+27 / +2** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`bcef6bbc`, slice 116) with
+its own `_root.rs` re-materialised per arm - the nineteen baseline numbers reproduce the ledger's
+slice-116 column to the digit - and the slice's file md5 is
+`3852704629b6e966b4597d5c5e2263c1` (34,176 lines against C's 33,125).
+
+**The `of which`, by arm class:**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `no field xmotion` +30 / +27 | +30 where `USE_TOOLKIT_SCROLL_BARS` is off (the `#ifndef` block adds three), +27 where it is on | C 21000, 21011, 21013, 21016-21019, 21056-21060, 21072, 21074, 21075, 21218, 21219, 21222, 21247, 21248, 21254, 21260, 21320, 21321, 21324 |
+| `no field xbutton` +5 | every arm | C 21165, 21198, 21212, 21213, 21238 - C's own member text (the `XEvent` stand-in owns no `xbutton`) |
+| `GDK_WINDOW_XWINDOW` +5 (UG, UGX, AIU, AIUX) / `cannot find macro GDK_WINDOW_XID` +5 (AG3, AG3X) | the GTK arms | the five `FRAME_OUTER_WINDOW! (x_dnd_frame)` expansions this slice adds: C 21085, 21094, 21100, 21133, 21139 |
+| `cannot find type XMotionEvent` **-2** (plain arms) / **-1** (toolkit arms) | every arm | retired by the record this slice declares (the plain arms' second row is `x_scroll_bar_note_movement`'s own parameter, which `USE_TOOLKIT_SCROLL_BARS` drops) |
+| `help_echo_string` **-2**, `help_echo_window` / `-object` / `-pos` **-1** each | every arm | the five objects the slice-110 tail reads, retired by the use-site declarations |
+| `cannot find function popup_activated` **-1 / -2 / -3** | -1 in the plain arms (C 11450, `x_show_hourglass`), -2 where `USE_X_TOOLKIT`/`USE_GTK` compiles C 20206, -3 where C 17907's `x_filter_event` site is compiled too | retired by the declaration, which this round makes C's `int` (three bare tests become C's own comparison) |
+
+The warning column moves **+2 in every arm**, and the two rows are not this slice's text:
+`variable does not need to be mutable` at C 14742/C 14743 - `x_note_mouse_movement`'s own two
+declarations - which the new `XMotionEvent` record lets rustc reach for the first time (that
+function's parameter named the type, so its body had never been type-checked).  The class is this
+file's own and pre-existing (23 rows in the baseline).
+
+**Not claimed**: no runtime evidence - this lane does not link, and no motion event was ever
+delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
+ledger.

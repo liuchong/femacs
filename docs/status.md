@@ -17260,3 +17260,45 @@
      这些 `.el`/`.tex`/`.svg` 一件也没被加载、渲染或 `makeinfo` 过；`.el` 首行是 `lm-summary` 运行期读的字符串
      （`finder`/`checkdoc`/`package-vc` 用它），改名后**没有跑过**其中任何一个；本半的读者只读"文件的开头标题行"这一个行形，
      它不证明照抄树里**别处**没有以别的形状写着产品名（第九条把那几处逐个点名，数量以本条的清单为准）。
+
+- **4.035 `src/xterm.c` round 93（xterm lane，slice 117）：`MotionNotify` 落地（C 20998-21342，345 C 行），六个欠账名字收口、`popup_activated` 统一成 C 的 `int`（2026-10-08）**：
+  ① **本片落的文本**：`case MotionNotify:`——C 21000 的 `XMotionEvent` 副本、help-echo 两条、鼠标脸隐藏清除、
+     `mouse_or_wdesc_frame`/`x_compute_root_window_offset`、整块 `XdndMotion`（C 21021-21251：toplevel/window 记账 + Motif 的
+     leave/motion/enter 消息 + `x_dnd_note_self_position`/`x_dnd_send_position` 与 Motif-motion 三处 + `x_dnd_update_tooltip_position`）、
+     GTK 滚动条测试、xwidget 派发、`mouse-autoselect-window`（C 21265-21315）与滚动条/help-echo 尾。C 21250 与 C 21340 的
+     `goto OTHER` 是本臂的两处 `break 'switch`；臂的两处局部块（C 21030/21317）照 C 写成 `{ … }`。
+  ② **六个欠账名字收口**：`XMotionEvent`（`event->xmotion` 指的记录，按 `XKeyEvent` 的形状放在使用点，`src/xwidget.rs` 2896 的
+     96 字节孪生：`time`@56、`x`@64、`state`@80，三条 `const` 断言随行）、`xg_event_is_for_scrollbar`（gtkutil.h 151-152），
+     以及 slice-110 尾巴自落地起一直读的五个 help-echo 对象（`help_echo_string`/`help_echo_window`/`help_echo_object`/
+     `previous_help_echo_string`/`help_echo_pos`）与 `popup_activated`（C 11450、C 17907、C 20039、C 20206 四处调用）。
+  ③ **`popup_activated` 是 C 的 `int`，而三个站点问得太裸**：C 自己的原型是 `int popup_activated (void);`（dispextern.h 3879），
+     本端口另外四个单元（`xfns.rs` 13331、`pgtkfns.rs` 545、`pgtkmenu.rs` 1445、`androidterm.rs` 162）都按 C 的类型声明，
+     而本单元只有 `x_dnd_begin_drag_and_drop` 体内一份 `bool` 副本、其余站点**没有声明**于是写成裸测（`if popup_activated ()`）。
+     本轮按 C 的类型在**使用点**声明，四个调用点改成 C 自己的比较（`!= 0`；C 21271 取反处写 `== 0`）——这是对三个更早切片的四行文本的**修理**，
+     Decision 129 逐行点名。
+  ④ **C 21090 的 `x_any_window_to_frame` 有两种形状**：`USE_X_TOOLKIT || USE_GTK` 下是 C 12344 的 `static` 函数，
+    否则是 C `#else` 臂的**同名宏**。Rust 的 `#[cfg]` **不能加在条件项上**（E0658），所以这个测试**算一次**（`any_window_p`，
+     Decision 2 第 2 条的形状，与 30164 行同一写法），并以 C 18330 那一对的形式写 C 21122 的赋值。
+  ⑤ **两处位域仍写 C 的成员名**：C 21062 的 `f->mouse_moved` 落成 `frame_bits! (mouse_moved, f, true)`，
+     C 21305 的 `inev.ie.kind = SELECT_WINDOW_EVENT;` 落成 `input_event_bits! (kind, &raw mut inev.ie, SELECT_WINDOW_EVENT)`。
+  ⑥ **首写读出的三处 C 提升**：C 21027-21028 是 `command_loop_level + minibuf_level <= x_dnd_recursion_depth`（C 的 `int` 对 `EMACS_INT`），
+     端口按 C 自己那一侧加宽；C 21058/C 21060 的 `r->x + r->width` 是 C 的 int 算术，`XRectangle` 的 `short`/`unsigned short`
+     按本文件 C 14768 站点既有的写法显式加宽。
+  ⑦ **读数（两侧都在本修订测）**：⑴ **十九臂表**（baseline = HEAD `bcef6bbc`，十九个数字与 slice 116 台账逐位相同）：
+     A 1027/78 → **1054/80**、U 1040/78 → **1065/80**、UT 1036/77 → **1060/79**、UM 1041/77 → **1065/79**、UG 1048/79 → **1077/81**、
+     UGX 1152/81 → **1181/83**、AE 1059/77 → **1086/79**、AI 1052/78 → **1079/80**、AIU 1116/78 → **1146/80**、AIUX 1224/80 → **1254/82**、
+     AX 1037/78 → **1064/80**、AG3 1097/78 → **1128/80**、AG3X 1176/80 → **1207/82**、AXF 1037/78 → **1064/80**、AXPM 1028/78 → **1055/80**、
+     AXKB 1068/78 → **1095/80**、AXR 1034/78 → **1061/80**、AX11 1011/78 → **1038/80**、AUX 1110/76 → **1137/78**。
+     ⑵ 按类点名（增量）：`no field xmotion` **+30**（`USE_TOOLKIT_SCROLL_BARS` 关的臂）/ **+27**（开的臂，`#ifndef` 块不编译）、
+     `no field xbutton` **+5**（每臂；C 21165/21198/21212/21213/21238，`XEvent` 替身没有这个成员）、GTK 臂的五个
+     `FRAME_OUTER_WINDOW! (x_dnd_frame)` 展开（`GDK_WINDOW_XWINDOW` +5 / `cannot find macro GDK_WINDOW_XID` +5）。
+     **退掉的**：`cannot find type XMotionEvent` -2/-1、`help_echo_string` -2、`help_echo_window`/`-object`/`-pos` 各 -1、
+     `cannot find function popup_activated` -1/-2/-3。
+     ⑶ **警告列每臂 +2**，两行都不是本片文本：C 14742/C 14743（`x_note_mouse_movement` 自己的两条声明）因 `XMotionEvent` 声明到位
+     而**第一次被类型检查到**（该函数的参数原本就点着这个类型名）；该类是本文件既有的（baseline 23 行）。
+     ⑷ **`--check`** 仍 2 行，长行的 token 清单 **250 → 168**；单元 **34,176 行**（C 33,125，**长 1,051 行 / +3.17%**），
+     文件 md5 `3852704629b6e966b4597d5c5e2263c1`。
+  ⑧ **预算与清理**：本片 rustc 编译 **约 62 发**（19 臂 × 3 轮 + 若干定点复测；每次 12-19 秒，单文件 `--emit=metadata`），
+     `build/probes/xterm/`、`/tmp/s117/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，motion 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。
+     剩余十三个 `case` 体，下一片从 `ConfigureNotify`（C 21343）起。
