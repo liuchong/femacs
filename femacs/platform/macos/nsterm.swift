@@ -10035,3 +10035,117 @@ fileprivate func ns_new_font(_ f: UnsafeMutableRawPointer?, _ font_object: Lisp_
 
   return font_object                                 // C 11475
 }
+
+// ==========================================================================
+// Round 52: `ns_create_terminal` (C 5906-5961) and the seven cross-lane hooks
+// ==========================================================================
+
+/// C: the `struct terminal` member write `terminal->display_info.ns = dpyinfo` (C 5919) - the writer
+/// of round 40's `terminal_display_info_ns` reader.
+@_silgen_name("terminal_set_display_info_ns")
+func terminal_set_display_info_ns(_ t: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+
+/// C: the seven hook functions C 5943-5957 hands the terminal that this unit does not define - the
+/// `nsfns.swift` and `nsmenu.swift` lanes export them under C's names (`@_cdecl`), so this unit
+/// reaches them by declaring the same C-ABI signature (the `Fns_get_resource` import shape).
+@_silgen_name("ns_implicitly_set_name")
+func ns_implicitly_set_name(_ f: UnsafeMutableRawPointer?, _ arg: Lisp_Object, _ oldval: Lisp_Object)
+@_silgen_name("ns_menu_show")
+func ns_menu_show(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32, _ menuflags: Int32,
+                  _ title: Lisp_Object, _ error: UnsafeMutablePointer<UnsafePointer<CChar>?>?)
+  -> Lisp_Object
+@_silgen_name("ns_popup_dialog")
+func ns_popup_dialog(_ f: UnsafeMutableRawPointer?, _ header: Lisp_Object,
+                     _ contents: Lisp_Object) -> Lisp_Object
+@_silgen_name("ns_set_scroll_bar_default_width")
+func ns_set_scroll_bar_default_width(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("ns_set_scroll_bar_default_height")
+func ns_set_scroll_bar_default_height(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("ns_get_string_resource")
+func ns_get_string_resource(_ rdb: UnsafeMutableRawPointer?, _ name: UnsafePointer<CChar>,
+                            _ class_: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>?
+@_silgen_name("ns_change_tab_bar_height")
+func ns_change_tab_bar_height(_ f: UnsafeMutableRawPointer?, _ height: Int32)
+
+/// C 5906-5961: `static struct terminal *ns_create_terminal (struct ns_display_info *dpyinfo)` -
+/// "Set up use of NS before we make the first connection."  C 5915's `NSTRACE` is the empty macro;
+/// C 5917's `&ns_redisplay_interface` is round 39's table, whose address is taken the way that
+/// round takes it; C 5920's write is round 50's setter; and C 5922-5957's 36 hook writes are
+/// non-capturing `@convention(c)` closures over the ported hook functions (the round-39 shape),
+/// with the record-typed parameters C's own C prototypes cannot name converted where they cross
+/// (C 5926's `input_event *`, C 5929's `Emacs_Color *` and C 5953's `char *` return).
+fileprivate func ns_create_terminal(_ dpyinfo: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer? {
+  // C 5915: `NSTRACE ("ns_create_terminal");` - empty at `NSTRACE_ENABLED` 0.
+
+  let terminal = create_terminal(output_ns,
+                                 withUnsafeMutablePointer(to: &ns_redisplay_interface) { $0 })   // C 5917
+
+  terminal_set_display_info_ns(terminal, dpyinfo)    // C 5919
+  ns_display_info_set_terminal(dpyinfo, terminal)    // C 5920
+
+  terminal_set_clear_frame_hook(terminal, { f in ns_clear_frame(f) })            // C 5922
+  terminal_set_ring_bell_hook(terminal, { f in ns_ring_bell(f) })                // C 5923
+  terminal_set_update_begin_hook(terminal, { f in ns_update_begin(f) })          // C 5924
+  terminal_set_update_end_hook(terminal, { f in ns_update_end(f) })              // C 5925
+  terminal_set_read_socket_hook(terminal, { t, hold_quit in                      // C 5926
+    ns_read_socket(t, hold_quit?.assumingMemoryBound(to: input_event.self)) })
+  terminal_set_frame_up_to_date_hook(terminal, { f in ns_frame_up_to_date(f) })  // C 5927
+  terminal_set_defined_color_hook(terminal, { f, name, color_def, alloc, make_index in   // C 5928
+    ns_defined_color(f, name, color_def, alloc, make_index) })
+  terminal_set_query_frame_background_color(terminal, { f, bgcolor in            // C 5929
+    ns_query_frame_background_color(f, bgcolor!.assumingMemoryBound(to: Emacs_Color.self)) })
+  terminal_set_mouse_position_hook(terminal, { fp, insist, bar_window, part, x, y, time in  // C 5930
+    ns_mouse_position(fp, insist, bar_window, part, x, y, time) })
+  terminal_set_get_focus_frame(terminal, { f in ns_get_focus_frame(f) })         // C 5931
+  terminal_set_focus_frame_hook(terminal, { f, noactivate in                     // C 5932
+    ns_focus_frame(f, noactivate) })
+  terminal_set_frame_rehighlight_hook(terminal, { f in ns_frame_rehighlight(f) })  // C 5933
+  terminal_set_frame_raise_lower_hook(terminal, { f, raise_flag in               // C 5934
+    ns_frame_raise_lower(f, raise_flag) })
+  terminal_set_frame_visible_invisible_hook(terminal, { f, visible in            // C 5935
+    ns_make_frame_visible_invisible(f, visible) })
+  terminal_set_fullscreen_hook(terminal, { f in ns_fullscreen_hook(f) })         // C 5936
+  terminal_set_iconify_frame_hook(terminal, { f in ns_iconify_frame(f) })        // C 5937
+  terminal_set_set_window_size_hook(terminal, { f, change_gravity, width, height in   // C 5938
+    ns_set_window_size(f, change_gravity, width, height) })
+  terminal_set_set_window_size_and_position_hook(terminal, { f, width, height in      // C 5939
+    ns_set_window_size_and_position(f, width, height) })
+  terminal_set_set_frame_offset_hook(terminal, { f, xoff, yoff, change_gravity in     // C 5940
+    ns_set_offset(f, xoff, yoff, change_gravity) })
+  terminal_set_set_frame_alpha_hook(terminal, { f in ns_set_frame_alpha(f) })    // C 5941
+  terminal_set_set_new_font_hook(terminal, { f, font_object, fontset in          // C 5942
+    ns_new_font(f, font_object, fontset) })
+  terminal_set_implicit_set_name_hook(terminal, { f, arg, oldval in              // C 5943
+    ns_implicitly_set_name(f, arg, oldval) })
+  terminal_set_menu_show_hook(terminal, { f, x, y, menuflags, title, error_name in   // C 5944
+    ns_menu_show(f, x, y, menuflags, title, error_name) })
+  terminal_set_popup_dialog_hook(terminal, { f, header, contents in              // C 5945
+    ns_popup_dialog(f, header, contents) })
+  terminal_set_set_vertical_scroll_bar_hook(terminal,                            // C 5946
+    { window, portion, whole, position in
+      ns_set_vertical_scroll_bar(window, portion, whole, position) })
+  terminal_set_set_horizontal_scroll_bar_hook(terminal,                          // C 5947
+    { window, portion, whole, position in
+      ns_set_horizontal_scroll_bar(window, portion, whole, position) })
+  terminal_set_set_scroll_bar_default_width_hook(terminal, { frame in            // C 5948
+    ns_set_scroll_bar_default_width(frame) })
+  terminal_set_set_scroll_bar_default_height_hook(terminal, { frame in           // C 5949
+    ns_set_scroll_bar_default_height(frame) })
+  terminal_set_condemn_scroll_bars_hook(terminal, { frame in                     // C 5950
+    ns_condemn_scroll_bars(frame) })
+  terminal_set_redeem_scroll_bar_hook(terminal, { window in                      // C 5951
+    ns_redeem_scroll_bar(window) })
+  terminal_set_judge_scroll_bars_hook(terminal, { frame in                       // C 5952
+    ns_judge_scroll_bars(frame) })
+  terminal_set_get_string_resource_hook(terminal, { rdb, name, class_ in         // C 5953
+    UnsafePointer(ns_get_string_resource(rdb, name!, class_!)) })
+  terminal_set_free_pixmap(terminal, { f, pixmap in ns_free_pixmap(f, pixmap) }) // C 5954
+  terminal_set_delete_frame_hook(terminal, { f in ns_destroy_window(f) })        // C 5955
+  terminal_set_delete_terminal_hook(terminal, { t in ns_delete_terminal(t) })    // C 5956
+  terminal_set_change_tab_bar_height_hook(terminal, { f, height in               // C 5957
+    ns_change_tab_bar_height(f, height) })
+
+  /* Other hooks are NULL by default.  */
+
+  return terminal                                   // C 5960
+}

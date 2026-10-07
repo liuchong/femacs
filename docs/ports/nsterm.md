@@ -211,7 +211,7 @@
 - [x] ns_displays_reconfigured  (line 5839, static) — C 5837-5868 (the `NS_IMPL_COCOA` arm), landed as `fileprivate func ns_displays_reconfigured (_:_:_:)`: it needed this unit's view of `union buffered_input_event` (src/keyboard.h 228-235), the kbd buffer's three data entries (`kbd_buffer`/`kbd_fetch_ptr`/`kbd_store_ptr`, the core's `#[unsafe(no_mangle)]` statics), `Fequal`, the nsfns lane's `Fns_display_monitor_attributes_list`, `XSETTERMINAL` (a macro entry) and the member reader `ns_display_info_terminal` this round adds; the two enumerators it reads are mirror-valued constants (`KBD_BUFFER_SIZE` 4096, `MONITORS_CHANGED_EVENT` 35 - the values `femacs/src/include/keyboard.rs` 43 and `termhooks.rs` 62 fix)
 - [x] ns_delete_display  (line 5872, static) — C 5871-5875, landed as `fileprivate func ns_delete_display (_:)`: C's whole body is the comment `/* TODO...  */`, so the body is empty here too and the parameter unread (the `ns_default_font_parameter`/`applicationWillBecomeActive` reading: a body C leaves empty is transcribed empty rather than stubbed)
 - [x] ns_delete_terminal  (line 5880, static) — C 5877-5902, landed as `fileprivate func ns_delete_terminal (_:)`: it needed `terminal_display_info_ns` (already the core's own shim, `femacs/src/abi_shim.rs` 412), `image_destroy_all_bitmaps` (the core's, `femacs/src/image.rs` 1841) and one new member entry, `terminal_name`, for C 5888's guard; `ns_delete_display` (C 5900) landed in round 38, and C 5896's `setActivationPolicy:` is `NSApp.setActivationPolicy (.prohibited)`
-- [ ] ns_create_terminal  (line 5908, static) - **open, first half landed in round 50**: the entry layer C 5913-5921's body needs is in the unit now - `create_terminal` (src/terminal.c's own entry, `femacs/src/terminal.rs` 366), `output_ns` (src/termhooks.h 64's enumerator, mirror-valued 5), the `ns_display_info_set_terminal` writer C 5920 needs, and the **36 `terminal_set_<member>` hook setters** C 5922-5957 writes, each carrying C's own function-pointer prototype from src/termhooks.h.  The body itself - the create call, the two display-info writes and the 36 hook assignments with their `@convention(c)` closures - is the remainder, and the box stays open until it lands
+- [x] ns_create_terminal  (line 5908, static) — C 5906-5961, landed as `fileprivate func ns_create_terminal (_:) -> UnsafeMutableRawPointer?`: round 50 landed the entry layer (create_terminal/output_ns/ns_display_info_set_terminal + the 36 setters) and round 51 the last hook it needed (`ns_new_font`), so round 52 is the body - C 5917's create call with the round-39 table's address, C 5919's `terminal_set_display_info_ns` write, C 5920's setter, the 36 hook writes as non-capturing `@convention(c)` closures over the ported functions (seven of them the nsfns/nsmenu lanes' `@_cdecl` entries), and C 5960's return
 - [ ] ns_term_init  (line 5965)
 - [ ] ns_term_shutdown  (line 6198)
 - [x] runAlertPanel  (line 6634, static) — landed as `fileprivate func runAlertPanel (_:_:_:_:) -> Bool`: the `NS_IMPL_COCOA` arm builds an `NSAlert` (the GNUstep `NSRunAlertPanel` at C 6640 is dead), and C 6649's `[alert release]` is the reference being dropped under ARC
@@ -3817,3 +3817,30 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no font set, no frame resized); the compile
   gate reaches parsing and type checking only; the entries are declarations (several of the core
   items are mirrored Rust functions rather than C-ABI exports, so the export side is owed).
+
+### Round 52: `ns_create_terminal` (C 5906-5961)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-51 carry, so **no new warning**, and the round
+  **compiled first try** (the 36-entry table included).  Object `/tmp/nsterm52.o`, **883,472 bytes**,
+  md5 `2cbf5e8968af8fc18aabcd1e542ba8eb`.  The unit is **10,151 lines**.
+* **The body, and what each piece is**: C 5917's `create_terminal (output_ns,
+  &ns_redisplay_interface)` is round 50's entry plus the round-39 table's address (taken the way
+  that round takes it); C 5919's `terminal->display_info.ns = dpyinfo` is this round's
+  `terminal_set_display_info_ns` (the writer of round 40's reader); C 5920 is round 50's
+  `ns_display_info_set_terminal`; C 5922-5957's 36 writes are non-capturing `@convention(c)`
+  closures over the ported hooks, 7 of them reached through the nsfns/nsmenu lanes' `@_cdecl`
+  entries (this round declares those C-ABI signatures); and C 5960 returns the terminal.
+* **Three crossings the closures spell out** (each because a `@convention(c)` type cannot name this
+  unit's Swift records): C 5926's `input_event *`
+  (`hold_quit?.assumingMemoryBound (to: input_event.self)`), C 5929's `Emacs_Color *`
+  (`bgcolor!.assumingMemoryBound (to: Emacs_Color.self)`) and C 5953's `char *` return
+  (`UnsafePointer (ns_get_string_resource (…))`).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **14** unported,
+  14 row(s); **557** C symbol import(s)` - one fewer unported than round 51's 15 (this definition),
+  one stale row cleared by name, and the round's imports are 549 -> 557 (`terminal_set_display_info_ns`
+  and the 7 cross-lane entries).  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no terminal created, no hook ever called
+  through the table); the compile gate reaches parsing and type checking only; the entries remain
+  declarations the core owes, and the seven cross-lane hooks are reached through symbols those lanes
+  export.
