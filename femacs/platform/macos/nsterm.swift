@@ -9083,4 +9083,149 @@ class EmacsScroller: NSScroller {
 
     /* C 10796-10802: the pre-10.13 / GNUstep arm, dead here (recorded, not transcribed).  */
   }
+
+  /// C 10806-10812: `- (int) checkSamePosition: (int) position portion: (int) portion
+  /// whole: (int) whole`.  C's whole body is the four-way conjunct and it returns an `int`, so the
+  /// port spells C's own integral conversion of it (`? 1 : 0`).
+  func checkSamePosition(_ position: Int32, portion: Int32, whole: Int32) -> Int32 {
+    return (em_position == position && em_portion == portion && em_whole == whole
+            && portion != whole) /* Needed for resizing empty buffer.  */
+           ? 1 : 0
+  }
+
+  /// C 10814-10847: `- (instancetype)setPosition: (int)position portion: (int)portion whole:
+  /// (int)whole`.  The `NS_IMPL_COCOA` arms are the live ones (C 10825-10826 and C 10839-10840;
+  /// C 10828 and C 10842 are dead here), and the two AppKit setters are Swift's `knobProportion`
+  /// and `doubleValue` properties.  C 10835's `max ((float)whole*min_portion/pixel_length, portion)`
+  /// is `Swift.max` over C's own promoted `float` arithmetic with C's truncation back into the
+  /// `int` it assigns, and C 10836-10837 keep C's two divisions (a `float` one and a `CGFloat` one).
+  func setPosition(_ position: Int32, portion portionIn: Int32, whole: Int32) -> EmacsScroller {
+    // C 10816: `NSTRACE ("[EmacsScroller setPosition:portion:whole:]");` - empty.
+
+    em_position = position                             // C 10818
+    em_portion = portionIn                             // C 10819
+    em_whole = whole                                   // C 10820
+
+    if portionIn >= whole {                            // C 10822
+      knobProportion = 1.0                             // C 10825 (the `NS_IMPL_COCOA` arm)
+      doubleValue = 1.0                                // C 10826
+    } else {
+      var pos: Float = 0                               // C 10833
+      var por: CGFloat = 0                             // C 10834
+      /* C's `portion` is reassigned here, so the port shadows the parameter with C's own name.  */
+      let portion = Int32(Swift.max(Float(whole) * min_portion / Float(pixel_length),
+                                    Float(portionIn))) // C 10835
+      pos = Float(position) / Float(whole - portion)   // C 10836
+      por = CGFloat(portion) / CGFloat(whole)          // C 10837
+      knobProportion = por                             // C 10839 (the `NS_IMPL_COCOA` arm)
+      doubleValue = Double(pos)                        // C 10840
+    }
+
+    return self                                        // C 10846
+  }
+
+  /// C 10849-10890: `- (void) sendScrollEventAtLoc: (float)loc fromEvent: (NSEvent *)e` - "Set up
+  /// emacs_event."  C 10854's `NSTRACE` is empty; the member writes are this unit's own view of the
+  /// record; `part` is the high bitfield, which the core spells with `input_event_set_part` (the
+  /// `input_event_set_kind` counterpart); `XSETINT` takes C's `int`, so C's `float` expressions are
+  /// converted where C's `make_number` converts them; and **C's `EV_MODIFIERS (e)`/`EV_TIMESTAMP
+  /// (e)` read a possibly-nil event** (nil's `modifierFlags`/`timestamp` are zero), which the port
+  /// writes out because both macros take a live `NSEvent`.
+  func sendScrollEventAtLoc(_ loc: Float, fromEvent e: NSEvent?) {
+    var win: Lisp_Object = nil                         // C 10852
+
+    // C 10854: `NSTRACE ("[EmacsScroller sendScrollEventAtLoc:fromEvent:]");` - empty.
+
+    if emacs_event == nil {                            // C 10856
+      return
+    }
+
+    input_event_set_part(emacs_event!, last_hit_part)  // C 10859
+    emacs_event!.pointee.code = 0                      // C 10860
+    /* C's `EV_MODIFIERS (e) | down_modifier` mixes an `unsigned int` with the `int` enumerator,
+       which C's own promotion converts; the port spells that conversion (the `EV_MODIFIERS2`
+       reading's `truncatingIfNeeded:` shape).  */
+    emacs_event!.pointee.modifiers =
+      (e == nil ? EV_MODIFIERS2(0, QCmouse()) : EV_MODIFIERS(e!))
+        | UInt32(truncatingIfNeeded: down_modifier())   // C 10861
+    XSETWINDOW(&win, emacs_window)                     // C 10862
+    emacs_event!.pointee.frame_or_window = win         // C 10863
+    emacs_event!.pointee.timestamp =
+      UInt(e == nil ? 0 : EV_TIMESTAMP(e!))            // C 10864 (C stores the double into `Time`)
+    emacs_event!.pointee.arg = Qnil()                  // C 10865
+
+    if horizontal {                                    // C 10867
+      input_event_set_kind(emacs_event!, HORIZONTAL_SCROLL_BAR_CLICK_EVENT)   // C 10869
+      XSETINT(&emacs_event!.pointee.x,
+              Int(Float(em_whole) * loc / Float(pixel_length)))               // C 10870
+      XSETINT(&emacs_event!.pointee.y, Int(em_whole))                         // C 10871
+    } else {
+      input_event_set_kind(emacs_event!, SCROLL_BAR_CLICK_EVENT)              // C 10875
+      XSETINT(&emacs_event!.pointee.x, Int(loc))                              // C 10876
+      XSETINT(&emacs_event!.pointee.y, Int(pixel_length - 20))                // C 10877
+    }
+
+    if q_event_ptr != nil {                            // C 10880
+      n_emacs_events_pending += 1                      // C 10882
+      kbd_buffer_store_event_hold(emacs_event, q_event_ptr)   // C 10883
+    } else {
+      hold_event(emacs_event)                          // C 10886
+    }
+    EVENT_INIT(emacs_event!)                           // C 10887
+    ns_send_appdefined(-1)                             // C 10888
+  }
+
+  /// C 10892-10924: `- (instancetype)repeatScroll: (NSTimer *)scrollEntry` - "Called manually
+  /// through timer to implement repeated button action with hold-down."  C 10896-10897's `[self
+  /// window]` is AppKit's own message, not the class's `window` ivar (which is why that ivar is
+  /// `emacs_window` here) and its nil receiver answers the zero-valued point, C 10906's `release` is
+  /// the reference the method drops, C 10912-10919's `retain` is ARC's strong reference to the timer
+  /// `scheduledTimer` already returns, and C 10916's `@selector (repeatScroll:)` is the `#selector`
+  /// this method's own `@objc` name provides.
+  @objc func repeatScroll(_ scrollEntry: Timer) -> EmacsScroller {
+    let e = self.window?.currentEvent                  // C 10896
+    let p = self.window?.mouseLocationOutsideOfEventStream ?? .zero   // C 10897
+    let inKnob = self.testPart(p) == .knob             // C 10898
+
+    // C 10900: `NSTRACE ("[EmacsScroller repeatScroll:]");` - empty.
+
+    /* Clear timer if need be.  */
+    if inKnob || scroll_repeat_entry?.timeInterval == SCROLL_BAR_FIRST_DELAY {   // C 10903
+      scroll_repeat_entry?.invalidate()                // C 10905
+      scroll_repeat_entry = nil                        // C 10906-10907 (C's `release`, then `nil`)
+
+      if inKnob {                                      // C 10909
+        return self                                    // C 10910
+      }
+
+      scroll_repeat_entry =
+        Timer.scheduledTimer(timeInterval: SCROLL_BAR_CONTINUOUS_DELAY,     // C 10912-10919
+                             target: self,
+                             selector: #selector(EmacsScroller.repeatScroll(_:)),
+                             userInfo: nil,
+                             repeats: true)
+    }
+
+    self.sendScrollEventAtLoc(0, fromEvent: e)         // C 10922
+    return self                                        // C 10923
+  }
 }
+
+/// C 10623-10624: the two `#define`s the class's repeat timer uses, spelled as this file's other
+/// numeric macros are (`DOCK_IGNORE_LIMIT`): `#define SCROLL_BAR_FIRST_DELAY 0.5` and
+/// `#define SCROLL_BAR_CONTINUOUS_DELAY (1.0 / 15)`.
+fileprivate let SCROLL_BAR_FIRST_DELAY: TimeInterval = 0.5
+fileprivate let SCROLL_BAR_CONTINUOUS_DELAY: TimeInterval = 1.0 / 15
+
+/// C: `ENUM_BF (scroll_bar_part) part : 16;` (src/termhooks.h 377) - the high half of
+/// `input_event.bits`, whose writer is this entry (the `input_event_set_kind` counterpart C 10859
+/// is the first use of).
+@_silgen_name("input_event_set_part")
+func input_event_set_part(_ e: UnsafeMutablePointer<input_event>, _ v: Int32)
+
+/// C: `SCROLL_BAR_CLICK_EVENT` and `HORIZONTAL_SCROLL_BAR_CLICK_EVENT` (members of `event_kind`,
+/// src/termhooks.h) - mirror-valued constants, the `MONITORS_CHANGED_EVENT` reading: the frozen
+/// macro table cannot decide that enum's members, and the tree's own mirror fixes both
+/// (`femacs/src/include/termhooks.rs` 35 and 36 give 8 and 9).
+fileprivate let SCROLL_BAR_CLICK_EVENT: UInt32 = 8
+fileprivate let HORIZONTAL_SCROLL_BAR_CLICK_EVENT: UInt32 = 9

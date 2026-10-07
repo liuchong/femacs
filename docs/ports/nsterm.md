@@ -426,7 +426,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void) draggedImage: (NSImage *) dragged_image movedTo: (NSPoint) screen_point`  (line 10482)
   - [ ] `- (BOOL) mustNotDropOn: (NSView *) receiver`  (line 10522)
   - [ ] `- (NSDragOperation) beginDrag: (NSDragOperation) op forPasteboard: (NSPasteboard *) pasteboard withMode: (enum ns_return_frame_mode) mode returnFrameTo: (struct frame **) frame_return prohibitSame: (BOOL) prohibit_same_frame followTooltip: (BOOL) follow_tooltip`  (line 10528)
-- [ ] EmacsScroller  (`@implementation` 10620, `@end` 11117) - round 42 landed **the class record** (the eleven ivars of `src/nsterm.h` 716-733, two of whose C names `NSView` already owns: `window`/`frame`, carried as `emacs_window`/`emacs_frame` - a declared deviation) and two methods (`initFrame:window:` C 10650 and, in round 43, `setFrame:` C 10703, `dealloc` C 10719, `condemn` C 10734, `reprieve` C 10742, `judge` C 10750, `mark` C 10777 and `resetCursorRects` C 10788); `+scrollerWidth` (C 10626) is **omitted** because Swift refuses both spellings of it (the `EmacsFileDelegate` class of refusal), and the seven methods below keep this box open
+- [ ] EmacsScroller  (`@implementation` 10620, `@end` 11117) - round 42 landed **the class record** (the eleven ivars of `src/nsterm.h` 716-733, two of whose C names `NSView` already owns: `window`/`frame`, carried as `emacs_window`/`emacs_frame` - a declared deviation) and two methods (`initFrame:window:` C 10650 and, in round 43, `setFrame:` C 10703, `dealloc` C 10719, `condemn` C 10734, `reprieve` C 10742, `judge` C 10750, `mark` C 10777 and `resetCursorRects` C 10788); `+scrollerWidth` (C 10626) is **omitted** because Swift refuses both spellings of it (the `EmacsFileDelegate` class of refusal), and the three methods below keep this box open (round 44 added `checkSamePosition:portion:whole:` C 10806, `setPosition:portion:whole:` C 10814, `sendScrollEventAtLoc:fromEvent:` C 10850 and `repeatScroll:` C 10894)
   - [x] `+ (CGFloat) scrollerWidth`  (line 10626) — **omitted, recorded**: Swift refuses the override (`cannot override 'scrollerWidth' which has been marked unavailable`) *and* the `@objc(scrollerWidth)` renamed spelling (`conflicts with method 'scrollerWidth()' from superclass 'NSScroller'`), and nothing in the reference calls it, so omitting it changes no caller's behaviour (the `EmacsFileDelegate` shape; the ledger's `## ABI` (3) carries the gap)
   - [x] `- (instancetype)initFrame: (NSRect )r window: (Lisp_Object)nwin`  (line 10650) — landed as `@objc(initFrame:window:) init(frame:window:)`: C's descending `for` is the `while`, C 10679's `20 / pixel_length` keeps C's integer division, C 10666-10667's GNUstep arm is dead here, and the `isKindOfClass: [EmacsScroller class]` count is the `is EmacsScroller` test
   - [x] `- (void)setFrame: (NSRect)newRect`  (line 10703) — landed as the `frame` property's **setter** (`override var frame: NSRect { get { super.frame } set(newRect) { … } }`): AppKit's `-setFrame:` is imported as the property (measured: a plain `override func setFrame(_:)` is refused, and `super.setFrame` has no member of that name), and C overrides only the setter, so the getter is the superclass's; C 10713's `20 / pixel_length` keeps C's integer division
@@ -436,10 +436,10 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `-(bool)judge`  (line 10750) — landed as `func judge () -> Bool`: C's `block_input ()`/`unblock_input ()` pair wraps the teardown, C 10759's cast is the `as? EmacsView` the unit already uses, and C 10771's `[self release]` is the reference the method drops (`Unmanaged.passUnretained (self).release ()`)
   - [x] `- (void) mark`  (line 10777) — landed as `func mark ()` (C's own spacing in the selector): it needs `XSETWINDOW` (a macro entry of the `XSETFRAME` family) and the collector's `mark_object` (already the core's, `femacs/src/alloc.rs` 7308)
   - [x] `- (void)resetCursorRects`  (line 10788) — landed as `override func resetCursorRects ()`: the `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 101300` block at C 10796-10802 (its `setOnMouseEntered:` message included) is dead on this target (260000), so it is recorded, not transcribed
-  - [ ] `- (int) checkSamePosition: (int) position portion: (int) portion whole: (int) whole`  (line 10806)
-  - [ ] `- (instancetype)setPosition: (int)position portion: (int)portion whole: (int)whole`  (line 10814)
-  - [ ] `- (void) sendScrollEventAtLoc: (float)loc fromEvent: (NSEvent *)e`  (line 10850)
-  - [ ] `- (instancetype)repeatScroll: (NSTimer *)scrollEntry`  (line 10894)
+  - [x] `- (int) checkSamePosition: (int) position portion: (int) portion whole: (int) whole`  (line 10806) — landed as `func checkSamePosition (_:portion:whole:) -> Int32`: C's whole body is the four-way conjunct and it returns an `int`, so the port spells C's integral conversion of it
+  - [x] `- (instancetype)setPosition: (int)position portion: (int)portion whole: (int)whole`  (line 10814) — landed as `func setPosition (_:portion:whole:) -> EmacsScroller`: the `NS_IMPL_COCOA` arms are the live ones (C 10825-10826, C 10839-10840), the two setters are Swift's `knobProportion`/`doubleValue`, C 10835's `max ((float)whole*min_portion/pixel_length, portion)` is `Swift.max` over C's promoted `float` arithmetic with C's truncation back into the `int`, and C's reassignment of the `portion` parameter is the shadow the lane already uses for that shape
+  - [x] `- (void) sendScrollEventAtLoc: (float)loc fromEvent: (NSEvent *)e`  (line 10850) — landed as `func sendScrollEventAtLoc (_:fromEvent:)`: `part` is written through the new bitfield entry `input_event_set_part` (the `input_event_set_kind` counterpart), C's `float` expressions are converted where C's `make_number` converts them (`XSETINT` takes C's `int`), C's mixed `unsigned int`/`int` modifier OR is `truncatingIfNeeded:`, and C's `EV_MODIFIERS (e)`/`EV_TIMESTAMP (e)` on a **possibly-nil** event are written out (nil's `modifierFlags`/`timestamp` are zero) because both macros take a live `NSEvent`
+  - [x] `- (instancetype)repeatScroll: (NSTimer *)scrollEntry`  (line 10894) — landed as `@objc func repeatScroll (_:) -> EmacsScroller`: C 10896-10897's `[self window]` is AppKit's own message (not the class's `window` ivar, which is why that ivar is `emacs_window` here) and its nil receiver answers the zero-valued point, C 10906's `release` is the reference the method drops, C 10912-10919's `retain` is ARC's strong reference to the timer `scheduledTimer` returns (the `SCROLL_BAR_CONTINUOUS_DELAY` macro is a file-scope `let`), and C 10916's `@selector (repeatScroll:)` is this method's own `#selector`
   - [ ] `- (void)mouseDown: (NSEvent *)e`  (line 10929)
   - [ ] `- (void)mouseDragged: (NSEvent *)e`  (line 11051)
   - [ ] `- (void)mouseUp: (NSEvent *)e`  (line 11094)
@@ -2192,6 +2192,11 @@ call site takes an entry and the definition lands at its own C line - and **both
   `wset_horizontal_scroll_bar`/`wset_vertical_scroll_bar` (src/window.h's INLINE setters - the port
   mirrors them as Rust functions at `femacs/src/include/window.rs` 233/236) and the macro entry
   `XSETWINDOW` (src/window.h, the `XSETFRAME` family) are C-ABI entries the core still owes.
+* **round 44's names**: the bitfield writer `input_event_set_part` (src/termhooks.h 377's
+  `scroll_bar_part part : 16`, the `input_event_set_kind` counterpart) is the one C-ABI entry this
+  round adds and the core still owes; the two enumerators it writes
+  (`SCROLL_BAR_CLICK_EVENT` 8, `HORIZONTAL_SCROLL_BAR_CLICK_EVENT` 9) are mirror-valued constants
+  (`femacs/src/include/termhooks.rs` 35/36), not exports.
 
 ## Evidence
 
@@ -3541,3 +3546,34 @@ call site takes an entry and the definition lands at its own C line - and **both
   cursor rect added, no object marked); the compile gate reaches parsing and type checking only;
   the three names the core still owes (`wset_*`, `XSETWINDOW`) are declarations, recorded in
   `## ABI` (3).
+
+### Round 44: `EmacsScroller`'s position and event methods (C 10806-10927)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-43 carry, so **no new warning**.  Object
+  `/tmp/nsterm44.o`, **831,912 bytes**, md5 `d12150a92426ec8d2ba3a0f5a47162e0`.  The unit is
+  **9,231 lines**.
+* **Four methods land**: `checkSamePosition:portion:whole:` (C 10806), `setPosition:portion:whole:`
+  (C 10814), `sendScrollEventAtLoc:fromEvent:` (C 10850) and `repeatScroll:` (C 10894), plus the two
+  `#define`s at the `@implementation`'s head (C 10623-10624) as file-scope `let`s.
+* **One compile failure and its fix**: C's `EV_MODIFIERS (e) | down_modifier` mixes an
+  `unsigned int` with the `int` enumerator, and Swift refuses the bare `|` (measured:
+  `cannot convert value of type 'Int32' to expected argument type 'UInt32'`); the port spells C's
+  own promotion (`UInt32 (truncatingIfNeeded: down_modifier ())`), the shape `EV_MODIFIERS2`'s
+  reading already uses.
+* **The one place this round writes C's nil-receiver semantics out**: `sendScrollEventAtLoc:`'s
+  event may be nil in C (its `EV_MODIFIERS (e)`/`EV_TIMESTAMP (e)` then read a nil receiver's zero
+  `modifierFlags`/`timestamp`), while both ported macros take a live `NSEvent`; the method's two
+  reads therefore carry C's own nil branch (`EV_MODIFIERS2 (0, QCmouse ())` is exactly what
+  `EV_MODIFIERS` computes from zero flags).
+* **`repeatScroll:`'s two `window`s**: C 10896-10897's `[self window]` is AppKit's message to the
+  view's window, *not* the class's `window` ivar - the round-42 rename (`emacs_window`) is what
+  makes them distinguishable in Swift; and the timer C allocates and `retain`s is
+  `Timer.scheduledTimer (…)` with this method's own `#selector`.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **21** unported,
+  21 row(s); **474** C symbol import(s)` - unported unchanged (Objective-C methods are not C
+  definitions), and the round's import is 473 -> 474 (`input_event_set_part`).  Final:
+  `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no scroll event stored or sent, no timer
+  fired, no knob moved); the compile gate reaches parsing and type checking only; `input_event_set_part`
+  is a declaration the core still owes.
