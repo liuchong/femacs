@@ -11595,23 +11595,23 @@ macro_rules! can_set_window_size {
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
 pub type xcb_cursor_t = u32;                /// C: xcb/xproto.h 60: `typedef uint32_t xcb_cursor_t;`
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-pub const XCB_EVENT_MASK_STRUCTURE_NOTIFY: u32 = 131072;   /// C: xcb/xproto.h 360
+pub const XCB_EVENT_MASK_STRUCTURE_NOTIFY: u32 = 131072;   /* C: xcb/xproto.h 360  */
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-pub const XCB_WINDOW_CLASS_INPUT_OUTPUT: u8 = 1;           /// C: xcb/xproto.h 1350
+pub const XCB_WINDOW_CLASS_INPUT_OUTPUT: u8 = 1;           /* C: xcb/xproto.h 1350  */
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-pub const XCB_CW_BACK_PIXEL: u32 = 2;        /// C: xcb/xproto.h 1369
+pub const XCB_CW_BACK_PIXEL: u32 = 2;        /* C: xcb/xproto.h 1369  */
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-pub const XCB_CW_BORDER_PIXEL: u32 = 8;      /// C: xcb/xproto.h 1383
+pub const XCB_CW_BORDER_PIXEL: u32 = 8;      /* C: xcb/xproto.h 1383  */
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-pub const XCB_CW_OVERRIDE_REDIRECT: u32 = 512;   /// C: xcb/xproto.h 1420
+pub const XCB_CW_OVERRIDE_REDIRECT: u32 = 512;   /* C: xcb/xproto.h 1420  */
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-pub const XCB_CW_EVENT_MASK: u32 = 2048;     /// C: xcb/xproto.h 1429
+pub const XCB_CW_EVENT_MASK: u32 = 2048;     /* C: xcb/xproto.h 1429  */
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-pub const XCB_CW_COLORMAP: u32 = 8192;       /// C: xcb/xproto.h 1437
+pub const XCB_CW_COLORMAP: u32 = 8192;       /* C: xcb/xproto.h 1437  */
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-pub const XCB_CW_CURSOR: u32 = 16384;        /// C: xcb/xproto.h 1448
+pub const XCB_CW_CURSOR: u32 = 16384;        /* C: xcb/xproto.h 1448  */
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-pub const XCB_PROP_MODE_REPLACE: u8 = 0;     /// C: xcb/xproto.h 1916
+pub const XCB_PROP_MODE_REPLACE: u8 = 0;     /* C: xcb/xproto.h 1916  */
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
 unsafe extern "C" {
   /* C: xcb/xcb.h 603: `uint32_t xcb_generate_id (xcb_connection_t *c);`  */
@@ -12301,3 +12301,555 @@ unsafe fn x_hide_tip (delete: bool) -> Lisp_Object                            //
       }
   }                                                                        // C 9027
 }                                                                            // C 9028
+/* C: dispextern.h 3069-3196's `struct redisplay_interface` - the mirror carries it behind
+   `feature = "dispextern_face_records"` (off in every configuration today), so this unit
+   carries C's record itself for `flush_frame!`'s expansion, as `src/haikufns.rs` 1331-1379
+   and `src/androidterm.rs` 111-126 do for their own uses.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "dispextern_face_records")))]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct redisplay_interface
+{
+  pub frame_parm_handlers: *mut c_void,                                        // offset 0
+  /// C: dispextern.h 3076: `void (*produce_glyphs) (struct it *it);` - `struct it` is a record in
+  /// the mirror's `dispextern_unit_names` module (not glob-imported), so only the pointee is
+  /// untyped here (PORTING.md P-55/P-72 rule 3); the field is one pointer wide either way.
+  pub produce_glyphs: Option<unsafe extern "C" fn (*mut c_void)>,             // offset 8
+  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,
+  pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,
+  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,
+  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut c_void, run: *mut run)>,
+  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut c_void, desired_row: *mut glyph_row)>,
+  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut c_void)>,
+  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,
+  /* the mirror's `flush_frame!` passes its own `$f` (a `*mut frame`) to this hook, so the
+     pointee is C's `struct frame` here (unlike the other hooks, which this unit never calls) */
+  pub flush_display: Option<unsafe extern "C" fn (f: *mut frame)>,            // 72
+  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut c_void)>,  // 80
+  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,
+  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,  // 96
+  /// C: dispextern.h 3134: `void (*draw_fringe_bitmap) (struct window *, struct glyph_row *,
+  /// struct draw_fringe_bitmap_params *);` - `draw_fringe_bitmap_params` is in the same
+  /// non-glob-imported module, so only the pointee is untyped (as above).
+  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut c_void)>,
+  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,
+  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,
+  /* C's `glyph_string` is in the mirror's non-glob-imported module, so only the pointee is untyped */
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut c_void)>,
+  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut c_void)>,
+  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)>,
+  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>,
+  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut c_void)>,
+  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int, cursor_type: text_cursor_kinds, cursor_width: c_int, on_p: bool, active_p: bool)>,
+  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,
+  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>,
+  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int, shift_by: c_int)>,
+  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,
+  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,
+  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)>,  // 216
+}
+#[cfg (all (feature = "have_x_windows", not (feature = "dispextern_face_records")))]
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, default_font_parameter)
+                             == 216);
+
+/* C: frame.h 1835-1840: `INLINE void flush_frame (struct frame *f)` - the mirror
+   `include/frame.rs`'s macro spells `FRAME_RIF` without the `*mut c_void` cast this unit's
+   `FRAME_RIF!` needs (`terminal.rif` is `*mut c_void` there), so the unit shadows it with C's
+   own body (the `src/haikufns.rs` 2049-2056 shape).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! flush_frame {
+  ($f:expr) => {
+    {
+      let rif: *mut redisplay_interface = FRAME_RIF! ($f) as *mut redisplay_interface;
+      if !rif.is_null () && (*rif).flush_display.is_some ()
+	{ ((*rif).flush_display.unwrap ()) ($f); }
+    }
+  };
+}
+
+/* C 9293/9294/9277/9249/9358's macro and function names are not in this unit's include graph
+   (each ported unit that touches them keeps its own copy - the `src/haikufns.rs` 279-289,
+   2070-2077 and 193-199 device; the `WINDOW_*_SHIFT` rows are `include/window.rs`'s).  */
+/* C: dispextern.h 291-294: `#define SET_TEXT_POS(POS, CHARPOS, BYTEPOS) ((POS).charpos = (CHARPOS),  */
+/* (POS).bytepos = BYTEPOS)`  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! SET_TEXT_POS {
+  ($pos:expr, $charpos:expr, $bytepos:expr) => {
+    { ($pos).charpos = ($charpos); ($pos).bytepos = ($bytepos); }
+  };
+}
+/* C: frame.h 1118-1120: `#define FRAME_TOTAL_COLS(f) ((f)->total_cols)` - C 9277 writes it.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! FRAME_TOTAL_COLS {
+  ($f:expr, $v:expr) => { (*($f)).total_cols = $v };
+}
+/* C: window.h's `WINDOW_PSEUDO_WINDOW_P`/`WINDOW_MUST_BE_UPDATED_P` setters (C 9249/9358).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! window_bits {
+  (update_mode_line, $w:expr, $value:expr) =>
+    { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_UPDATE_MODE_LINE_SHIFT) }
+        else { (*($w)).bits & !(1u32 << WINDOW_UPDATE_MODE_LINE_SHIFT) }; };
+  (pseudo_window_p, $w:expr, $value:expr) =>
+    { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }
+        else { (*($w)).bits & !(1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }; };
+  (must_be_updated_p, $w:expr, $value:expr) =>
+    { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_MUST_BE_UPDATED_P_SHIFT) }
+        else { (*($w)).bits & !(1u32 << WINDOW_MUST_BE_UPDATED_P_SHIFT) }; };
+}
+/* C: window.h 1139-1140: `void set_window_buffer (Lisp_Object window, Lisp_Object buffer,  */
+/* bool run_hooks_p, bool keep_margins_p);` - C 9247's call.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object, run_hooks_p: bool,
+			    keep_margins_p: bool);
+}
+/* C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);` - C 9294's call.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
+}
+/* C: dispextern.h 3918: `void update_single_window (struct window *);` - C 9359's call.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn update_single_window (w: *mut window);
+}
+
+/* C: Xlib.h 2844: `extern int XMoveWindow (Display *, Window, int, int);` - C 9148 calls it
+   in every arm (it sits outside the `#ifndef USE_XCB` pair), so its gate is the file gate.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XMoveWindow (display: *mut Display, w: Window, x: c_int, y: c_int) -> c_int;
+}
+
+/* The names C 9107-9343's two arms call and that no mirror carries: the two `gtkutil.h`
+   entry points (207-210 and 212), the three Xlib calls (Xlib.h 2806/2835/2844) and the xcb pair
+   with its five enum members (xproto.h 6298/6447 and 1717-1727).  Each keeps C's prototype with
+   its header and line (P-55/P-72 rule 3).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  /* C: gtkutil.h 207-210: `extern bool xg_prepare_tooltip (struct frame *f, Lisp_Object string,  */
+  /* int *width, int *height);`  */
+  pub fn xg_prepare_tooltip (f: *mut frame, string: Lisp_Object, width: *mut c_int,
+			     height: *mut c_int) -> bool;
+  /* C: gtkutil.h 212: `extern void xg_show_tooltip (struct frame *f, int root_x, int root_y);`  */
+  /* (the `#ifndef HAVE_PGTK` arm; `src/gtkutil.rs` 1380 defines it)  */
+  pub fn xg_show_tooltip (f: *mut frame, root_x: c_int, root_y: c_int);
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo"))]
+unsafe extern "C" {
+  /* C: xterm.h 1812: `extern void x_cr_update_surface_desired_size (struct frame *, int, int);`  */
+  pub fn x_cr_update_surface_desired_size (f: *mut frame, width: c_int, height: c_int);
+}
+#[cfg (all (feature = "have_x_windows", not (feature = "use_xcb")))]
+unsafe extern "C" {
+  /* C: Xlib.h 2806: `extern int XMapRaised (Display *, Window);`  */
+  pub fn XMapRaised (display: *mut Display, w: Window) -> c_int;
+  /* C: Xlib.h 2835: `extern int XMoveResizeWindow (Display *, Window, int, int, unsigned int,  */
+  /* unsigned int);`  */
+  pub fn XMoveResizeWindow (display: *mut Display, w: Window, x: c_int, y: c_int, width: c_uint,
+			    height: c_uint) -> c_int;
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CONFIG_WINDOW_X: u32 = 1;              /* C: xcb/xproto.h 1717  */
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CONFIG_WINDOW_Y: u32 = 2;              /* C: xcb/xproto.h 1718  */
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CONFIG_WINDOW_WIDTH: u32 = 4;          /* C: xcb/xproto.h 1719  */
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CONFIG_WINDOW_HEIGHT: u32 = 8;         /* C: xcb/xproto.h 1720  */
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CONFIG_WINDOW_STACK_MODE: u32 = 64;    /* C: xcb/xproto.h 1723  */
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_STACK_MODE_ABOVE: u32 = 0;             /* C: xcb/xproto.h 1727  */
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+unsafe extern "C" {
+  /* C: xcb/xproto.h 6298-6301: `xcb_void_cookie_t xcb_map_window (xcb_connection_t *c,
+     xcb_window_t window);`  */
+  pub fn xcb_map_window (c: *mut xcb_connection_t, window: xcb_window_t) -> c_int;
+  /* C: xcb/xproto.h 6447-6452: `xcb_void_cookie_t xcb_configure_window (xcb_connection_t *c,
+     xcb_window_t window, uint16_t value_mask, const void *value_list);`  */
+  pub fn xcb_configure_window (c: *mut xcb_connection_t, window: xcb_window_t,
+			       value_mask: u16, value_list: *const c_void) -> c_int;
+}
+
+/* C 9031-9372.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-show-tip", Fx_show_tip, Sx_show_tip, 1, 6, 0,
+	doc: "Show STRING in a \"tooltip\" window on frame FRAME.
+A tooltip window is a small X window displaying a string.
+
+This is an internal function; Lisp code should call `tooltip-show'.
+
+FRAME nil or omitted means use the selected frame.
+
+PARMS is an optional list of frame parameters which can be used to
+change the tooltip's appearance.
+
+Automatically hide the tooltip after TIMEOUT seconds.  TIMEOUT nil
+means use the default timeout from the `x-show-tooltip-timeout'
+variable.
+
+If the list of frame parameters PARMS contains a `left' parameter,
+display the tooltip at that x-position.  If the list of frame parameters
+PARMS contains no `left' but a `right' parameter, display the tooltip
+right-adjusted at that x-position. Otherwise display it at the
+x-position of the mouse, with offset DX added (default is 5 if DX isn't
+specified).
+
+Likewise for the y-position: If a `top' frame parameter is specified, it
+determines the position of the upper edge of the tooltip window.  If a
+`bottom' parameter but no `top' frame parameter is specified, it
+determines the position of the lower edge of the tooltip window.
+Otherwise display the tooltip window at the y-position of the mouse,
+with offset DY added (default is -10).
+
+A tooltip's maximum size is specified by `x-max-tooltip-size'.
+Text larger than the specified size is clipped. ",
+	(string: Lisp_Object, frame: Lisp_Object, parms: Lisp_Object,
+	 timeout: Lisp_Object, dx: Lisp_Object, dy: Lisp_Object),
+	{
+  let mut f: *mut frame;                                                   // C 9065
+  let mut tip_f: *mut frame;
+  let mut w: *mut window;                                                  // C 9066
+  let mut root_x: c_int = 0;                                               // C 9067
+  let mut root_y: c_int = 0;
+  let mut old_buffer: *mut buffer;                                         // C 9068
+  let mut pos: text_pos = std::mem::zeroed ();                             // C 9069
+  let mut width: c_int = 0;                                                // C 9070
+  let mut height: c_int = 0;
+  let old_windows_or_buffers_changed: c_int = windows_or_buffers_changed;   // C 9071
+  let count: specpdl_ref = SPECPDL_INDEX ();                               // C 9072
+  let mut window: Lisp_Object;                                             // C 9073
+  let mut size: Lisp_Object;
+  let mut tip_buf: Lisp_Object;
+  let mut displayed: bool;                                                 // C 9074
+  /* C 9075-9077: `#ifdef ENABLE_CHECKING` around the two row locals.  */
+  #[cfg (feature = "enable_checking")]
+  let mut row: *mut glyph_row = std::ptr::null_mut ();
+  #[cfg (feature = "enable_checking")]
+  let mut end: *mut glyph_row;
+  AUTO_STRING! (tip, c" *tip*".as_ptr ());                                  // C 9078
+
+  /* C's two `goto start_timer` jumps (C 9125/9152) and its label (C 9367) become this labelled
+     block, whose `break 'start_timer` is the port's spelling of the jump (PORTING.md 2.2).  */
+  let mut string = string;
+  let mut frame = frame;
+  let mut parms = parms;
+  let mut timeout = timeout;
+  let mut dx = dx;
+  let mut dy = dy;
+
+  'start_timer: {
+  specbind (Qinhibit_redisplay (), Qt ());                                  // C 9080
+
+  CHECK_STRING (string);                                                    // C 9082
+  if SCHARS (string) == 0                                                   // C 9083
+    { string = make_unibyte_string (c" ".as_ptr (), 1); }                    // C 9084
+
+  if NILP (frame)                                                           // C 9086
+    { frame = selected_frame; }                                              // C 9087
+  f = decode_window_system_frame (frame);                                   // C 9088
+
+  if NILP (timeout)                                                         // C 9090
+    { timeout = Vx_show_tooltip_timeout; }                                   // C 9091
+  CHECK_FIXNAT (timeout);                                                   // C 9092
+
+  if NILP (dx)                                                              // C 9094
+    { dx = make_fixnum (5); }                                                // C 9095
+  else
+    { CHECK_FIXNUM (dx); }                                                   // C 9097
+
+  if NILP (dy)                                                              // C 9099
+    { dy = make_fixnum (-10); }                                              // C 9100
+  else
+    { CHECK_FIXNUM (dy); }                                                   // C 9102
+
+  tip_dx = dx;                                                              // C 9104
+  tip_dy = dy;                                                              // C 9105
+
+#[cfg (feature = "use_gtk")]                                                // C 9107
+  {
+    if use_system_tooltips                                                   // C 9108
+      {
+	let ok: bool;                                                          // C 9110
+
+	/* Hide a previous tip, if any.  */                                   // C 9112
+	Fx_hide_tip ();                                                       // C 9113
+
+	block_input ();                                                       // C 9115
+	ok = xg_prepare_tooltip (f, string, &raw mut width, &raw mut height);  // C 9116
+	if ok                                                                 // C 9117
+	  {
+	    compute_tip_xy (f, parms, dx, dy, width, height, &raw mut root_x,   // C 9119
+			    &raw mut root_y);
+	    xg_show_tooltip (f, root_x, root_y);                               // C 9120
+	    tip_last_frame = frame;                                            // C 9121
+	  }
+
+	unblock_input ();                                                     // C 9124
+	if ok { break 'start_timer; }                                          // C 9125
+      }
+  }                                                                        // C 9127
+
+  if !NILP (tip_frame) && FRAME_LIVE_P (XFRAME (tip_frame))                 // C 9129
+    {
+      if (FRAME_VISIBLE_P (XFRAME (tip_frame))                              // C 9131
+	  && (FRAME_X_DISPLAY! (XFRAME (frame))                               // C 9132
+	      == FRAME_X_DISPLAY! (XFRAME (tip_last_frame)))                   // C 9133
+	  && !NILP (Fequal_including_properties (tip_last_string, string))     // C 9134
+	  && !NILP (Fequal (tip_last_parms, parms)))                           // C 9135
+	{                                                                      // C 9136
+	  /* Only DX and DY have changed.  */                                 // C 9137
+	  tip_f = XFRAME (tip_frame);                                          // C 9138
+	  if !NILP (tip_timer)                                                 // C 9139
+	    {
+	      calln! (Qcancel_timer (), tip_timer);                            // C 9141
+	      tip_timer = Qnil ();                                              // C 9142
+	    }
+
+	  block_input ();                                                       // C 9145
+	  compute_tip_xy (tip_f, parms, dx, dy, FRAME_PIXEL_WIDTH (tip_f),      // C 9146-9147
+			  FRAME_PIXEL_HEIGHT (tip_f), &raw mut root_x, &raw mut root_y);
+	  XMoveWindow (FRAME_X_DISPLAY! (tip_f), FRAME_X_WINDOW! (tip_f),       // C 9148-9149
+		       root_x, root_y);
+	  unblock_input ();                                                     // C 9150
+
+	  break 'start_timer;                                                    // C 9152
+	}
+      else if (tooltip_reuse_hidden_frame && BASE_EQ (frame, tip_last_frame))
+	{                                                                      // C 9155
+	  let mut delete: bool = false;                                         // C 9156
+	  let mut tail: Lisp_Object;                                            // C 9157
+	  let mut elt: Lisp_Object;
+	  let mut parm: Lisp_Object;
+	  let mut last: Lisp_Object;
+
+	  /* Check if every parameter in PARMS has the same value in
+	     tip_last_parms.  This may destruct tip_last_parms which,
+	     however, will be recreated below.  */
+	  tail = parms;                                                         // C 9162
+	  while CONSP (tail)
+	    {
+	      elt = XCAR (tail);                                                 // C 9164
+	      parm = CAR (elt);                                                 // C 9165
+	      /* The left, top, right and bottom parameters are handled
+		 by compute_tip_xy so they can be ignored here.  */
+	      if !EQ (parm, Qleft ()) && !EQ (parm, Qtop ())                     // C 9168
+		  && !EQ (parm, Qright ()) && !EQ (parm, Qbottom ())              // C 9169
+		{
+		  last = Fassq (parm, tip_last_parms);                            // C 9171
+		  if NILP (Fequal (CDR (elt), CDR (last)))                      // C 9172
+		    {
+		      /* We lost, delete the old tooltip.  */
+		      delete = true;                                              // C 9175
+		      break;
+		    }
+		  else
+		    { tip_last_parms                                                   // C 9179-9180
+			= calln! (Qassq_delete_all (), parm, tip_last_parms); }
+		}
+	      else
+		{ tip_last_parms                                                     // C 9183-9184
+		    = calln! (Qassq_delete_all (), parm, tip_last_parms); }
+	      tail = XCDR (tail);                                                // (C 9162's increment)
+	    }
+
+	  /* Now check if every parameter in what is left of
+	     tip_last_parms with a non-nil value has an association in
+	     PARMS.  */
+	  tail = tip_last_parms;                                                // C 9190
+	  while CONSP (tail)
+	    {
+	      elt = XCAR (tail);                                                 // C 9192
+	      parm = CAR (elt);                                                 // C 9193
+	      if (!EQ (parm, Qleft ()) && !EQ (parm, Qtop ()) && !EQ (parm, Qright ())   // C 9194
+		  && !EQ (parm, Qbottom ()) && !NILP (CDR (elt)))                 // C 9195
+		{
+		  /* We lost, delete the old tooltip.  */
+		  delete = true;                                                  // C 9198
+		  break;
+		}
+	      tail = XCDR (tail);                                                // (C 9190's increment)
+	    }
+
+	  x_hide_tip (delete);                                                   // C 9203
+	}
+      else
+	{ x_hide_tip (true); }                                                  // C 9206
+    }
+  else
+    { x_hide_tip (true); }                                                   // C 9209
+
+  tip_last_frame = frame;                                                   // C 9211
+  tip_last_string = string;                                                 // C 9212
+  tip_last_parms = parms;                                                   // C 9213
+
+  if NILP (tip_frame) || !FRAME_LIVE_P (XFRAME (tip_frame))                  // C 9215
+    {
+      /* Add default values to frame parameters.  */
+      if NILP (Fassq (Qname (), parms))                                      // C 9218
+	{ parms = Fcons (Fcons (Qname (), build_string (c"tooltip".as_ptr ())), parms); }   // C 9219
+      if NILP (Fassq (Qinternal_border_width (), parms))                     // C 9220
+	{ parms = Fcons (Fcons (Qinternal_border_width (), make_fixnum (3)), parms); }   // C 9221
+      if NILP (Fassq (Qborder_width (), parms))                              // C 9222
+	{ parms = Fcons (Fcons (Qborder_width (), make_fixnum (1)), parms); }   // C 9223
+      if NILP (Fassq (Qborder_color (), parms))                              // C 9224
+	{ parms = Fcons (Fcons (Qborder_color (),
+			   build_string (c"lightyellow".as_ptr ())), parms); }         // C 9225
+      if NILP (Fassq (Qbackground_color (), parms))                          // C 9226
+	{ parms = Fcons (Fcons (Qbackground_color (),
+			   build_string (c"lightyellow".as_ptr ())), parms); }         // C 9227-9228
+
+      /* Create a frame for the tooltip, and record it in the global
+	 variable tip_frame.  */
+      tip_frame = x_create_tip_frame (FRAME_DISPLAY_INFO! (f), parms);        // C 9232
+      if NILP (tip_frame)
+	/* Creating the tip frame failed.  */                                   // C 9233
+	{ return unbind_to (count, Qnil ()); }                                  // C 9234
+    }
+  else
+    /* Required by X11 drag and drop.  */                                   // C 9237
+    { tip_window = FRAME_X_WINDOW! (XFRAME (tip_frame)); }                   // C 9238
+
+  tip_f = XFRAME (tip_frame);                                               // C 9240
+  window = FRAME_ROOT_WINDOW (tip_f);                                       // C 9241
+  tip_buf = Fget_buffer_create (tip, Qnil ());                              // C 9242
+  /* We will mark the tip window a "pseudo-window" below, and such
+     windows cannot have display margins.  */
+  bset_left_margin_cols (XBUFFER (tip_buf), make_fixnum (0));               // C 9245
+  bset_right_margin_cols (XBUFFER (tip_buf), make_fixnum (0));              // C 9246
+  set_window_buffer (window, tip_buf, false, false);                        // C 9247
+  w = XWINDOW (window);                                                      // C 9248
+  window_bits! (pseudo_window_p, w, true);                                   // C 9249
+  /* Try to avoid that `other-window' select us (Bug#47207).  */             // C 9250
+  Fset_window_parameter (window, Qno_other_window (), Qt ());                 // C 9251
+
+  /* Set up the frame's root window.  Note: The following code does not
+     try to size the window or its frame correctly.  Its only purpose is
+     to make the subsequent text size calculations work.  The right
+     sizes should get installed when the toolkit gets back to us.  */
+  (*w).left_col = 0;                                                        // C 9257
+  (*w).top_line = 0;                                                        // C 9258
+  (*w).pixel_left = 0;                                                      // C 9259
+  (*w).pixel_top = 0;                                                       // C 9260
+
+  if CONSP (Vx_max_tooltip_size)                                            // C 9262
+      && RANGED_FIXNUMP (1, XCAR (Vx_max_tooltip_size), INT_MAX as EMACS_INT)   // C 9263
+      && RANGED_FIXNUMP (1, XCDR (Vx_max_tooltip_size), INT_MAX as EMACS_INT)   // C 9264
+    {
+      (*w).total_cols = XFIXNAT (XCAR (Vx_max_tooltip_size)) as c_int;       // C 9266
+      (*w).total_lines = XFIXNAT (XCDR (Vx_max_tooltip_size)) as c_int;      // C 9267
+    }
+  else
+    {
+      (*w).total_cols = 80;                                                  // C 9271
+      (*w).total_lines = 40;                                                 // C 9272
+    }
+
+  (*w).pixel_width = (*w).total_cols * FRAME_COLUMN_WIDTH (tip_f);           // C 9275
+  (*w).pixel_height = (*w).total_lines * FRAME_LINE_HEIGHT (tip_f);          // C 9276
+  FRAME_TOTAL_COLS! (tip_f, (*w).total_cols);                                // C 9277
+  adjust_frame_glyphs (tip_f);                                               // C 9278
+
+  /* Insert STRING into root window's buffer and fit the frame to the
+     buffer.  */
+  let count_1: specpdl_ref = SPECPDL_INDEX ();                               // C 9282
+  old_buffer = current_buffer! ();                                           // C 9283
+  set_buffer_internal_1 (XBUFFER ((*w).contents));                           // C 9284
+  bset_truncate_lines (current_buffer! (), Qnil ());                         // C 9285
+  specbind (Qinhibit_read_only (), Qt ());                                   // C 9286
+  specbind (Qinhibit_modification_hooks (), Qt ());                          // C 9287
+  specbind (Qinhibit_point_motion_hooks (), Qt ());                          // C 9288
+  Ferase_buffer ();                                                          // C 9289
+  Finsert (1, &raw mut string);                                              // C 9290
+  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);             // C 9291
+  clear_glyph_matrix ((*w).current_matrix as *mut glyph_matrix);             // C 9292
+  SET_TEXT_POS! (pos, BEGV! (), BEGV_BYTE! ());                              // C 9293
+  displayed = try_window (window, pos, TRY_WINDOW_IGNORE_FONTS_CHANGE) != 0;  // C 9294
+
+  if !displayed && NILP (Vx_max_tooltip_size)                                // C 9296
+    {
+      /* C 9298-9311: `#ifdef ENABLE_CHECKING`.  */
+      #[cfg (feature = "enable_checking")]
+      {
+	row = (*((*w).desired_matrix as *mut glyph_matrix)).rows;              // C 9299
+	end = (*((*w).desired_matrix as *mut glyph_matrix)).rows                // C 9300
+	  .offset ((*((*w).desired_matrix as *mut glyph_matrix)).nrows as isize);
+
+	while row < end                                                       // C 9302
+	  {
+	    if !glyph_row_bits! (displays_text_p, row)                          // C 9304
+		|| glyph_row_bits! (ends_at_zv_p, row)                           // C 9305
+	      { break; }                                                        // C 9306
+	    row = row.offset (1);                                               // C 9307
+	  }
+
+	eassert! (row < end && glyph_row_bits! (ends_at_zv_p, row));           // C 9310
+      }
+    }
+
+  /* Calculate size of tooltip window.  */                                  // C 9314
+  size = Fwindow_text_pixel_size (window, Qnil (), Qnil (), Qnil (),         // C 9315-9317
+				  make_fixnum ((*w).pixel_height as EMACS_INT), Qnil (),
+				  Qnil ());
+  /* Add the frame's internal border to calculated size.  */                // C 9318
+  width = (XFIXNUM (CAR (size)) as c_int) + 2 * FRAME_INTERNAL_BORDER_WIDTH (tip_f);   // C 9319
+  height = (XFIXNUM (CDR (size)) as c_int) + 2 * FRAME_INTERNAL_BORDER_WIDTH (tip_f);  // C 9320
+
+  /* Calculate position of tooltip frame.  */                               // C 9322
+  compute_tip_xy (tip_f, parms, dx, dy, width, height, &raw mut root_x,      // C 9323
+		  &raw mut root_y);
+
+  /* Show tooltip frame.  */                                                // C 9325
+  block_input ();                                                           // C 9326
+#[cfg (not (feature = "use_xcb"))]                                         // C 9327
+  {
+    XMoveResizeWindow (FRAME_X_DISPLAY! (tip_f), FRAME_X_WINDOW! (tip_f),   // C 9328-9329
+		       root_x, root_y, width as c_uint, height as c_uint);
+    XMapRaised (FRAME_X_DISPLAY! (tip_f), FRAME_X_WINDOW! (tip_f));         // C 9330
+  }
+#[cfg (feature = "use_xcb")]                                               // C 9331
+  {
+    let values: [u32; 5] = [root_x as u32, root_y as u32, width as u32, height as u32,   // C 9332
+			   XCB_STACK_MODE_ABOVE];
+
+    xcb_configure_window ((*FRAME_DISPLAY_INFO! (tip_f)).xcb_connection,    // C 9334-9340
+			  FRAME_X_WINDOW! (tip_f) as xcb_window_t,
+			  (XCB_CONFIG_WINDOW_X
+			   | XCB_CONFIG_WINDOW_Y
+			   | XCB_CONFIG_WINDOW_WIDTH
+			   | XCB_CONFIG_WINDOW_HEIGHT
+			   | XCB_CONFIG_WINDOW_STACK_MODE) as u16,
+			  &raw const values as *const c_void);
+    xcb_map_window ((*FRAME_DISPLAY_INFO! (tip_f)).xcb_connection,          // C 9341-9342
+		    FRAME_X_WINDOW! (tip_f) as xcb_window_t);
+  }
+  unblock_input ();                                                         // C 9344
+
+#[cfg (feature = "use_cairo")]                                             // C 9346
+  { x_cr_update_surface_desired_size (tip_f, width, height); }              // C 9347
+
+  /* Garbage the tip frame too.  */                                         // C 9350
+  SET_FRAME_GARBAGED! (tip_f);                                              // C 9351
+
+  /* Block input around `update_single_window' and `flush_frame', lest a
+     ConfigureNotify and Expose event arrive during the update, and set
+     flags, e.g. garbaged_p, that are cleared once the update completes,
+     leaving the requested exposure or configuration outstanding.  */
+  block_input ();                                                           // C 9357
+  window_bits! (must_be_updated_p, w, true);                                // C 9358
+  update_single_window (w);                                                 // C 9359
+  flush_frame! (tip_f);                                                     // C 9360
+  unblock_input ();                                                         // C 9361
+
+  set_buffer_internal_1 (old_buffer);                                       // C 9363
+  unbind_to (count_1, Qnil ());                                             // C 9364
+  windows_or_buffers_changed = old_windows_or_buffers_changed;              // C 9365
+
+  }   /* 'start_timer: */
+
+  /* Let the tip disappear after timeout seconds.  */                       // C 9368
+  tip_timer = calln! (Qrun_at_time (), timeout, Qnil (), Qx_hide_tip ());   // C 9369
+
+  return unbind_to (count, Qnil ());                                        // C 9371
+});                                                                        // C 9372

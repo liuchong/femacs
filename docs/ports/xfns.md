@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893 and C 8896-9028
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028 and C 9031-9372
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -26,12 +26,13 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **11,286 lines** after the thirtieth, **11,371 lines** after the thirty-first and
 > **11,493 lines** after the thirty-second, **11,554 lines** after the thirty-third and
 > **12,025 lines** after the thirty-fourth, **12,155 lines** after the thirty-fifth and
-> **12,303 lines** after the thirty-sixth - C 803-2149,
+> **12,303 lines** after the thirty-sixth and **12,855 lines** after the thirty-seventh - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
-> C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893 and C 8896-9028, whose own
+> C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028 and C 9031-9372,
+> whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -217,7 +218,8 @@ defines both features.
 | 8406-8775 | C 8407-8414's comment and `x_create_tip_frame` (C 8416-8775: the terminal check, the name lookup, the frame's creation with its unwind-protect, the X output setup, the color block, the name/`explicit_name` pair, the font drivers, the `gui_default_parameter` runs, the `USE_XCB`/`not USE_XCB` window-creation pair, `init_frame_faces`, the `tooltip`/`display-type` parameters, the face-after-default pair and the tail) | `have_x_windows`, with `use_cairo`/`freetype`/`have_xft`/`harfbuzz` for the font drivers, `use_xcb` for the window pair, `glyph_debug`, `use_lucid`/`use_toolkit_scroll_bars` (slice 34) |
 | 8778-8893 | C 8778-8782's comment and `compute_tip_xy` (C 8784-8893: the four `Fassq` reads, C 8808-8811's `x_query_pointer` between `block_input`/`unblock_input`, C 8815-8824's `HAVE_XRANDR`/`USE_GTK` cached-list choice, C 8828-8849's monitor walk with C 8834-8837's four `Fnth` reads, C 8854-8860's defaults, and C 8862-8892's two four-arm chains) | `have_x_windows`, with `have_xrandr`/`use_gtk` for the cached-list choice (slice 35) |
 | 8896-9028 | C 8896-8908's doc comment and `x_hide_tip` (C 8909-9028: C 8912-8916's timer cancel, C 8918-8987's `USE_GTK` arm - the early-return test, the two `specbind`s, `xg_hide_tooltip`, the `tip_last_frame` reset and the delete-or-hide pair - and C 8988-9027's `not USE_GTK` arm) | `have_x_windows`, with `use_gtk` splitting the two arms (slice 36) |
-| 9031-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,632 lines, whose first live item is the `x-show-tip` `DEFUN` (C 9031) - the next slice's first item | not ported in this slice |
+| 9031-9372 | the `x-show-tip` `DEFUN` (C 9031-9061's verbatim doc string, C 9065-9078 the locals and `AUTO_STRING`, C 9080-9105 the argument defaults, C 9107-9127's `USE_GTK` arm, C 9129-9209's reuse/delete/hide block with its two parameter walks, C 9211-9238's `tip_frame` creation, C 9240-9278's window setup, C 9280-9311's buffer/`try_window` block with its `ENABLE_CHECKING` arm, C 9314-9323's size and position, C 9325-9348's show block with its `not USE_XCB`/`USE_XCB` pair, and C 9350-9371's garbage/update/timer tail) | `have_x_windows`, with `use_gtk`, `use_cairo`, `enable_checking` and the `use_xcb` pair inside (slice 37) |
+| 9375-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,288 lines, whose first live item is the `x-hide-tip` `DEFUN` (C 9375) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -3538,3 +3540,86 @@ failures**.
 
 The frozen configuration compiles none of this file: no timer was cancelled, no tooltip was hidden
 and no frame was deleted; the fourteen arms' counts are text compile readings.
+
+## Slice 37 (2026-10-08, status 3.942): C 9031-9372
+
+**The slice is C 9031-9372**: the `x-show-tip` `DEFUN` (552 Rust lines, 12,303 -> 12,855): the
+verbatim doc string (C 9031-9061), C 9065-9078's locals with `AUTO_STRING`, C 9080-9105's argument
+defaults, C 9107-9127's `USE_GTK` arm (`xg_prepare_tooltip`/`xg_show_tooltip`), C 9129-9209's
+reuse/delete/hide block with its two parameter walks, C 9211-9238's `tip_frame` creation through
+C 9232's `x_create_tip_frame`, C 9240-9278's window setup, C 9280-9311's buffer/`try_window` block
+with its `ENABLE_CHECKING` arm, C 9314-9323's size and `compute_tip_xy` call, C 9325-9348's show
+block with the `not USE_XCB`/`USE_XCB` pair, and C 9350-9371's garbage/update/timer tail.  C's two
+`goto start_timer` (C 9125/9152) and its label (C 9367) are a labelled block, whose
+`break \'start_timer` is the jump's spelling.
+
+**Thirteen arms are byte-identical; the two `use_xcb` arms differ by one warning only.**  plain-X
+**18 / 9**, WS, WSX, WSR, WSR12 and XSN **16 / 9**, LUCID **25 / 12**, GTK and GTK22 **47 / 20**, XI2
+and XR **22 / 9**, Xt **20 / 12** - all with both sets empty-diff against the in-tree HEAD baseline -
+and WSRX **16 / 9** and XCB **18 / 9** read **one fewer `unused doc comment`** than their baselines
+(9 -> 8): the nine `pub const XCB_*` rows slice 34 left with a *trailing* `///` citation were a doc
+comment on the following `extern` block (the slice 5 note), so this slice writes them as `/* */`
+- that is slice 34's owed warning row closing as a side effect, and it is the only difference in
+either set.
+
+**Four first-measurement rounds, all named.**  ⑴ The file did not parse: two multi-line `if`
+conditions (C 9131-9135 and C 9194-9195) had kept C's closing paren but lost C's opening one; C's
+wrapping parens are restored.  ⑵ Seven rows: the `SET_TEXT_POS`, `FRAME_TOTAL_COLS` and
+`window_bits` macros and the `set_window_buffer`/`try_window`/`update_single_window` declarations
+are not in this unit's include graph (each ported unit keeps its own copy - the
+`src/haikufns.rs` 193-199/279-289/2070-2077 device), and the mirror's `flush_frame!` needs
+`redisplay_interface`, which the unit now carries (the `src/haikufns.rs` 1331-1379 shape, with its
+layout assert).  ⑶ The carried struct's `glyph_string` fields became `*mut c_void` (the mirror's
+non-glob-imported module) and `flush_display` takes `*mut frame` (the mirror's macro passes its own
+`$f`); then the mirror's `flush_frame!` still read `FRAME_RIF!` as `*mut c_void`, so the unit
+shadows `flush_frame` with C's own body (the `src/haikufns.rs` 2049-2056 shape).  ⑷ One token row,
+`subr Fx_show_tip does not mention car, cdr`, closed by spelling C's `CAR`/`CDR` instead of
+`Fcar`/`Fcdr` at the six sites.
+
+**Arm touch measured** (P-86 ⑦): an injection at the body's first statement (A, C 9080) moves
+plain-X **18 -> 19**, GTK **47 -> 48** and XCB **18 -> 19**; one before C 9368's timer comment (B)
+moves plain-X **18 -> 19**, GTK **47 -> 48**, XCB **18 -> 19** and Xt **20 -> 21**.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash (`450df1ba8c9201bd1caeaeb1ad88bafe`).
+
+**② The fourteen arms.**  See above.
+
+**③ `extract-abi.py --check`**: **93 rows -> 92** - `missing subr Fx_show_tip (x-show-tip)`
+retiring, with the token row above appearing and then closing; the drift row moves from `15.4%` to
+`20.6%: C 10662 vs Rust 12855`.  `check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16
+ratchet row(s), 0 failure(s)** and `check-declarations.py` at **18 declaration sites (0 forbidden,
+18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **The three macros and eight declarations stand in the unit** (`SET_TEXT_POS` dispextern.h
+   291-294, `FRAME_TOTAL_COLS` frame.h 1118-1120, `window_bits` window.h's bit setters,
+   `set_window_buffer` window.h 1139-1140, `try_window` dispextern.h 3573,
+   `update_single_window` dispextern.h 3918, `XMoveWindow` Xlib.h 2844 under the file gate,
+   `XMapRaised`/`XMoveResizeWindow` Xlib.h 2806/2835 under `not use_xcb`,
+   `xcb_map_window`/`xcb_configure_window` xproto.h 6298/6447 with five enum members 1717-1727,
+   `xg_prepare_tooltip`/`xg_show_tooltip` gtkutil.h 207-212, `x_cr_update_surface_desired_size`
+   xterm.h 1812).
+2. **`redisplay_interface` is carried** (dispextern.h 3069-3196, with the offset assert) and
+   `flush_frame` is shadowed, both because the mirror's `FRAME_RIF!` is `*mut c_void`.
+3. **`AUTO_STRING!` supplies `tip`**, and C's six reassigned arguments take the `let mut x = x;`
+   device (the `DEFUN!` macro's `$arg:ident`).
+4. **C 9125/9152's `goto` and C 9367's label** are a labelled block.
+5. **`CAR`/`CDR` keep C's spellings** at the six sites the token row named.
+6. **Slice 34's nine trailing `///` citations became `/* */`** (the one-warning reading above).
+
+### Owed (this slice)
+
+- `syms_of_xfns`' `defsubr` sites (45) and the rest of the remainder from C 9375 (the `x-hide-tip`
+  `DEFUN`): 1,288 C lines plus the 9 missing functions, 1 macro, 0 objects, 15 subrs and 45
+  defsubrs `--check` reads.
+- The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
+  Owed describes.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no tooltip was shown, no timer was started and
+no frame was created; the fourteen arms' counts are text compile readings.
