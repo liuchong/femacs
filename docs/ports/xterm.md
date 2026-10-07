@@ -312,6 +312,13 @@ mirror's `DEFER_SELECTIONS`), the two C locals the port must zero and the FIXME 
 in Decision 119 4-5.
 
 # ----------------------------------------------------------------------
+  Slice 110 (C 18866-18949 and C 25596-25632, Decision 120) **stays 2**: `handle_one_xevent`'s
+`missing function` row becomes `function handle_one_xevent does not mention <the remaining token
+list>` - the file's last missing definition is now *defined*, with the thirty `case` blocks
+C 18951-25595 writes as the slices that follow, so that row's own text is the remaining work - and
+the four `cannot find function handle_one_xevent` rows the two call sites (`x_dispatch_event`
+C 25656 and `XTread_socket` C 25732) carried **retire**.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -10208,3 +10215,62 @@ lines** of C, the largest single function in the reference and the reason this u
 one Rust item, so it cannot be sliced across commits the way this ledger's files are: the port has
 to land it whole, in one change with its own arm readings, which makes it the next round's work
 rather than this one's.
+
+### Slice 110's readings (C 18866-18949 and C 25596-25632), as landed and measured (2026-10-08)
+
+`handle_one_xevent`'s prologue and tail: the declaration block, C 18918-18919's abort, the
+`inev` initialisation, the `any` computation and C 18949's `switch` head, plus C 25596-25631's
+`do_help` epilogue and `return count`.  The thirty `case` bodies are the slices that follow.
+
+| arm | baseline | slice 110 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 924 / 74 | **931 / 75** | **+7 / +1** |
+| U `A +use_toolkit_scroll_bars` | 937 / 74 | **944 / 75** | **+7 / +1** |
+| UT `U +use_x_toolkit` | 924 / 73 | **931 / 74** | **+7 / +1** |
+| UM `UT +use_motif` | 925 / 73 | **932 / 74** | **+7 / +1** |
+| UG `U +use_gtk` | 930 / 75 | **939 / 76** | **+9 / +1** |
+| UGX `UG +have_xinput2` | 1021 / 77 | **1033 / 78** | **+12 / +1** |
+| AE `A +enable_checking` | 956 / 73 | **963 / 74** | **+7 / +1** |
+| AI `A +have_x_i18n` | 948 / 75 | **955 / 76** | **+7 / +1** |
+| AIU `AI +use_gtk` | 997 / 75 | **1006 / 76** | **+9 / +1** |
+| AIUX `AIU +have_xinput2` | 1092 / 77 | **1104 / 78** | **+12 / +1** |
+| AX `A +have_xdbe` | 934 / 74 | **941 / 75** | **+7 / +1** |
+| AG3 `A +use_gtk +have_gtk3` | 981 / 74 | **990 / 75** | **+9 / +1** |
+| AXF `A +have_xfixes` | 934 / 74 | **941 / 75** | **+7 / +1** |
+| AXPM `A +have_xpm` | 925 / 74 | **932 / 75** | **+7 / +1** |
+| AXKB `A +have_xkb` | 962 / 74 | **969 / 75** | **+7 / +1** |
+| AXR `A +have_xrandr` | 931 / 74 | **938 / 75** | **+7 / +1** |
+
+**Both sides were measured in this revision** (the lane's rule): the baseline side by restoring
+`femacs/src/xterm.rs` to `f3a3c531:femacs/src/xterm.rs` and re-materialising its `_root.rs`, the
+slice's own file md5 `c2f4ef3d2a64307f0e9818bb6a173932` (measured after every edit below).
+**The `of which`, arm A, by message identity** (the two dumps diffed): **new** - `no field
+r#type` on the `XEvent` stand-in x3 (C 18932/18935/18946), `no field xany` x1 (C 18937),
+`cannot find value help_echo_string` x2 (C 25616/25621), `cannot find function gen_help_event` x2
+(C 25616/25622), and `help_echo_window`/`help_echo_object`/`help_echo_pos` x1 each (C 25616-25617)
+- thirteen rows with the trailer line; **retired** - the four `cannot find function
+handle_one_xevent` rows above (their call sites now resolve).  11 - 4 = the +7 the table shows.
+`LASTEvent`, `XComposeStatus`, `composite_status` and the new `not_generic` condition resolve
+completely (0 rows each), and the arms that compile the toolkit arms gain two rows
+(`GdkEvent`/`GdkDisplay`/`gdk_x11_lookup_xdisplay`, C 18905-18906) or three (`xi_device_t`,
+`xi_handle_interaction`, C 18884/C 25612), which is the +9/+12 the table shows.
+
+**Repairs the first writes asked for** (each measured, each fixed in place): a stray C `#endif`
+line copied into the port's text (`expected one of ! or [, found endif`); C 18911-18913's
+`USE_SAFE_ALLOCA`/C 25628's `SAFE_FREE` need the port's macros' arguments (`SAFE_FREE (sa_count)`,
+`unexpected end of macro invocation` without it); C 18935/18939's `if`/`else` pair and the two
+`#ifdef`'d assignments are **statement pairs** - an attribute on the `else` or on an assignment
+expression is `attributes on expressions are experimental` (E0658), so C 18933-18942 becomes one
+cfg-computed `not_generic` condition with one copy of C 18937 (Decision 2 item 2) and C 18927's
+assignment is wrapped in a block; and C 18937's `x_any_window_to_frame` is the *macro* in the
+non-toolkit arms, so the call is the cfg'd pair 25731/25733 spells (`x_any_window_to_frame!`).
+
+**The warning column moves +1 in every arm** (`variable does not need to be mutable`), and its
+reported site is `include/xterm.rs` 1657 (a macro expansion's binding), not this slice's own text
+- named here, not silenced.  The locals C's remaining arms write (`nbytes`, `mouse_frame`,
+`coding`, `configureEvent`, `next_event`, `dx`, `dy`, `do_help`'s `mut`) are read only there and
+are the same one row.
+
+**Not claimed**: no runtime evidence - the events the `case` blocks handle never arrive (this lane
+does not link, and the unit's `XEvent` members the slice reads are still owed mirrors); the
+readings are the sixteen arm compiles, the `--check` row's new shape and this ledger.

@@ -93,6 +93,9 @@ pub mod x11_constants {
   pub const PropertyChangeMask: c_long = 1 << 22;
   /// X11/X.h 212: `#define ClientMessage 33` - the `XEvent` union member `xclient` selects.
   pub const ClientMessage: c_int = 33;
+  /// X11/X.h 216: `#define LASTEvent 36` - the bound C 18932 tests `event->type` against
+  /// (`handle_one_xevent`'s prologue, slice 110).
+  pub const LASTEvent: c_int = 36;
   /// X11/X.h 186: `#define EnterNotify 7` - an event type the focus machinery dispatches on
   /// (measured against this target's header, the `spikes` probe in the slice-59 reading).
   pub const EnterNotify: c_int = 7;
@@ -1401,6 +1404,20 @@ const _: () = core::assert! (core::mem::offset_of! (XVisualInfo, r#class) == 24)
 const _: () = core::assert! (core::mem::offset_of! (XVisualInfo, red_mask) == 32);
 #[cfg (feature = "have_x_windows")]
 const _: () = core::assert! (core::mem::offset_of! (XVisualInfo, bits_per_rgb) == 60);
+
+/// Xlib.h 338-342: `typedef struct { char *compose_ptr; int chars_matched; } XComposeStatus;`
+/// - C 18894's function-local `static XComposeStatus compose_status`, whose one reader is
+/// `XLookupString` in `handle_one_xevent`'s `KeyPress` arm.  **No Xlib header exists on this
+/// machine** (`ls` of the SDK's and Homebrew's `X11/Xlib.h` is empty - the `AXF` note's
+/// measurement), so the declaration follows Xlib's own text and the layout is the two members'
+/// natural `#[repr(C)]` one, a pointer and an `int`; the port only ever passes its address.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct XComposeStatus
+{
+  pub compose_ptr: *mut c_char,
+  pub chars_matched: c_int,
+}
 
 /// Xlib.h 969-1005: `typedef union _XEvent { … } XEvent;` - the measured size is 192 bytes with
 /// align 8 (the `long pad[24]` member).  **The 33 member records are not transcribed this

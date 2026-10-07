@@ -30851,10 +30851,176 @@ pub unsafe extern "C" fn x_find_selection_owner (dpyinfo: *mut x_display_info,
   return X_INVALID_WINDOW;                                             // C 18861
 }
 
-/* C 18866-25632: `handle_one_xevent` (6,757 lines) is the file's largest function and a slice of
-   its own - the lane's next target, with `XTread_socket`'s call site C 25732 and
-   `x_dispatch_event`'s C 25656 already waiting for it.  The two items below are its neighbours in
-   C's order, and the port keeps their text at their own C positions (P-91 2).  */
+/// C 18866-25632: `handle_one_xevent (struct x_display_info *dpyinfo, XEvent *event, int *finish,
+/// struct input_event *hold_quit)` - `static int` (C 18875), so a plain `unsafe fn`, and the
+/// file's largest function.  **Slice 110 lands its prologue and its tail** (C 18866-18949 and
+/// C 25596-25632): the declaration block, the `input_blocked_p` abort, the `inev`
+/// initialisation, the `any` computation, the `switch`'s head, and the `do_help` epilogue with
+/// C 25631's `return count`.  The **thirty `case` blocks** C 18951-25595 writes are the slices
+/// that follow, in C's order - `ClientMessage` (18951-19472, 522 lines), `SelectionNotify`
+/// (19473), `SelectionClear` (19487), `SelectionRequest` (19516), `PropertyNotify` (19562),
+/// `ReparentNotify` (19805), `Expose` (19863), `GraphicsExpose` (19973), `NoExpose` (19999),
+/// `UnmapNotify` (20007), `MapNotify` (20089), `KeyPress` (20196), `KeyRelease` (20705),
+/// `EnterNotify` (20715), `FocusIn` (20806), `LeaveNotify` (20853), `FocusOut` (20979),
+/// `MotionNotify` (20998), `ConfigureNotify` (21343), `ButtonRelease`/`ButtonPress` (21728),
+/// `CirculateNotify` (22188), `CirculateRequest` (22199), `VisibilityNotify` (22202),
+/// `MappingNotify` (22210), `DestroyNotify` (22223) and `GenericEvent` (22241-25595, the
+/// XInput2 arm and half the function).  Until they land the port's `match` keeps C's own
+/// fall-through as its `_` arm, and `tools/extract-abi.py --check` reports this function's row
+/// as `does not mention <the remaining tokens>` - the reading Slice 110's ledger entry records.
+///
+/// Readings: `union buffered_input_event inev` (`include/keyboard.rs` 98) is zeroed, because C
+/// hands it to `EVENT_INIT` uninitialised (the C 27229 reading at 15140); `EVENT_INIT (inev.ie)`,
+/// `inev.ie.kind = NO_EVENT` and `inev.ie.arg = Qnil` are the mirror's macro,
+/// `input_event_bits! (kind, …, NO_EVENT)` (the C 31860 spelling at 21249) and `Qnil ()`;
+/// C 18885's `Time gen_help_time UNINIT` is the port's zero initialiser (Decision 12's
+/// `conf_post.h` 369 reading); C 18894's function-local `static XComposeStatus compose_status` is
+/// a Rust function-local `static mut` (the `local_detail` shape at 6217) over
+/// `include/xlib.rs`'s new `XComposeStatus`; C 18898-18907's two arms are the `use_x_toolkit` and
+/// `use_gtk && !have_gtk3` pairs the toolkit arms measure, both with `have_xinput2`;
+/// `USE_SAFE_ALLOCA`/`SAFE_FREE` are the port's macros (C 1729/3661's shapes); and
+/// `event->type`/`event->xany.window` are the `XEvent` stand-in's members, which are **owed**
+/// (the `E0609` class slice 106's reading already counts); C 18932's two arms become one
+/// condition (`not_generic`, C 18935's `!= GenericEvent` or C's own unconditional path) with
+/// one copy of C 18937's body, which is Decision 2 item 2's spelling.  The locals C's remaining arms write
+/// (`nbytes`, `mouse_frame`, `coding`, `configureEvent`, `next_event`, `dx`, `dy` and the
+/// `have_xinput2` pair's use sites) are read only there, so every arm gains rustc's
+/// `unused_variables` rows until the cases land - named, not silenced.
+#[cfg (feature = "have_x_windows")]
+unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
+			     event: *mut XEvent,
+			     finish: *mut c_int,
+			     hold_quit: *mut input_event) -> c_int
+{
+  let mut inev: buffered_input_event = std::mem::zeroed ();             // C 18880
+  let mut count: c_int = 0;                                             // C 18881
+  let mut do_help: c_int = 0;                                           // C 18882
+#[cfg (feature = "have_xinput2")]
+  let mut gen_help_device: *mut xi_device_t;                            // C 18884
+#[cfg (feature = "have_xinput2")]
+  let mut gen_help_time: Time = 0;                                      // C 18885 (C's `UNINIT`)
+  let mut nbytes: isize = 0;                                            // C 18887
+  let mut any: *mut frame;                                              // C 18888
+  let mut f: *mut frame = std::ptr::null_mut ();                        // C 18888
+  let mut mouse_frame: *mut frame;                                      // C 18888
+  let hlinfo: *mut Mouse_HLInfo = &raw mut (*dpyinfo).mouse_highlight;  // C 18889
+  /* C 18890-18894: C's "letting the compiler initialize it to zeros will work okay" note, and
+     the `static XComposeStatus compose_status;` it belongs to - a Rust function-local static
+     keeps C's storage.  */
+  static mut compose_status: XComposeStatus = XComposeStatus {
+    compose_ptr: std::ptr::null_mut (),
+    chars_matched: 0,
+  };
+  let mut configureEvent: XEvent = std::mem::zeroed ();                 // C 18895
+  let mut next_event: XEvent = std::mem::zeroed ();                     // C 18896
+  let mut coding: Lisp_Object;                                          // C 18897
+  #[cfg (all (feature = "use_x_toolkit", feature = "have_xinput2"))]
+  let mut use_copy: bool = false;                                       // C 18902
+  #[cfg (all (feature = "use_x_toolkit", feature = "have_xinput2"))]
+  let mut copy: XEvent = std::mem::zeroed ();                           // C 18903
+  #[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
+  let mut copy: *mut GdkEvent = std::ptr::null_mut ();                  // C 18905
+  #[cfg (all (feature = "use_gtk", not (feature = "have_gtk3"), feature = "have_xinput2"))]
+  let gdpy: *mut GdkDisplay = gdk_x11_lookup_xdisplay ((*dpyinfo).display);   // C 18906
+  let mut dx: c_int;                                                    // C 18908
+  let mut dy: c_int;                                                    // C 18908
+
+  use crate::x11_constants::LASTEvent;
+  /* C 18935's other name, read only in the `HAVE_XINPUT2` arm - the per-function `use` the
+     ledger's Decision 4 spells for the bare X11 vocabulary.  */
+#[cfg (feature = "have_xinput2")]
+  use crate::x11_constants::GenericEvent;
+
+  /* C 18910-18913: `USE_SAFE_ALLOCA`, "to avoid warnings when SAFE_ALLOCA is not actually
+     used".  */
+#[cfg (any (feature = "have_xinput2", feature = "have_xkb", feature = "have_x_i18n"))]
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+
+  /* This function is not reentrant, so input should be blocked before it is called.  */
+
+  if !input_blocked_p ()                                                // C 18918
+    { emacs_abort (); }                                                 // C 18919
+
+  *finish = X_EVENT_NORMAL;                                             // C 18921
+
+  EVENT_INIT (&raw mut inev.ie);                                        // C 18923
+  input_event_bits! (kind, &raw mut inev.ie, NO_EVENT);                 // C 18924
+  inev.ie.arg = Qnil ();                                                // C 18925
+#[cfg (feature = "have_xinput2")]
+  { gen_help_device = std::ptr::null_mut (); }                          // C 18927
+
+  /* Ignore events coming from various extensions, such as XFIXES and XKB.  */
+  if (*event).r#type < LASTEvent                                        // C 18932
+    {
+      /* C 18933-18942: C's condition is `event->type != GenericEvent` when HAVE_XINPUT2 is
+	 defined and unconditionally true otherwise, so the port computes it once with the two
+	 cfg'd spellings (Decision 2 item 2) and keeps one copy of C 18937's body.  */
+#[cfg (feature = "have_xinput2")]
+      let not_generic: bool = (*event).r#type != GenericEvent;          // C 18935
+#[cfg (not (feature = "have_xinput2"))]
+      let not_generic: bool = true;                                     // C 18937's own path
+      if not_generic
+	{
+	  /* C's `x_any_window_to_frame` is the function in the toolkit arms and the
+	     `x_window_to_frame` macro in the others, so the call is the cfg'd pair 25731/25733
+	     spells (C 18937).  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+	  { any = x_any_window_to_frame (dpyinfo, (*event).xany.window); }   // C 18937
+#[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+	  { any = x_any_window_to_frame! (dpyinfo, (*event).xany.window); }  // C 18937
+	}
+      else
+	{ any = std::ptr::null_mut (); }                                // C 18940
+    }
+  else
+    { any = std::ptr::null_mut (); }                                    // C 18944
+
+  if !any.is_null () && (*any).wait_event_type == (*event).r#type       // C 18946
+    { (*any).wait_event_type = 0; }                                     // C 18947
+
+  match (*event).r#type                                                 // C 18949
+    {
+      /* C 18951-25595's thirty `case` blocks are the slices that follow this one - the map is in
+	 the item's `///` block above - and C's own no-case path is this `_` arm until then.  */
+      _ => {}
+    }
+
+  if do_help != 0                                                       // C 25597
+    && !(!hold_quit.is_null ()
+	 && input_event_bits! (kind, &raw mut (*hold_quit)) != NO_EVENT)  // C 25598
+    {
+      let mut frame: Lisp_Object;                                       // C 25600
+
+      if !f.is_null ()                                                  // C 25602
+	{ XSETFRAME! (frame, f); }                                      // C 25603
+      else
+	{ frame = Qnil (); }                                            // C 25605
+
+      if do_help > 0                                                    // C 25607
+	{
+	  any_help_event_p = true;                                      // C 25609
+#[cfg (feature = "have_xinput2")]
+	  {
+	    if !gen_help_device.is_null ()                              // C 25611
+	      { xi_handle_interaction (dpyinfo, f, gen_help_device,      // C 25612-25614
+				       gen_help_time); }
+	  }
+	  gen_help_event (help_echo_string, frame, help_echo_window,     // C 25616-25617
+			  help_echo_object, help_echo_pos);
+	}
+      else
+	{
+	  help_echo_string = Qnil ();                                   // C 25621
+	  gen_help_event (Qnil (), frame, Qnil (), Qnil (), 0);         // C 25622
+	}
+      count += 1;                                                       // C 25624
+    }
+
+#[cfg (any (feature = "have_xinput2", feature = "have_xkb", feature = "have_x_i18n"))]
+  SAFE_FREE! (sa_count);                                                // C 25628
+
+  return count;                                                         // C 25631
+}
 
 /* Handles the XEvent EVENT on display DISPLAY.
    This is used for event loops outside the normal event handling,

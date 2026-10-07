@@ -17073,3 +17073,21 @@
      verbatim-declarations **710 候选 / 6 登记 / 0 失败**、dead-file-coverage **145/0**、check-swift-units **`0 new, 0 stale, 7 Swift unit(s) landed`**。
   ⑤ **预算与清理**：本片**零编译**（只改台账、manifest 与日志），3 组只读 grep（宏定义、`#if` 配对、全树未勾框计数），无 `/tmp` 产物。
      **未声称**：本轮**没有代码产出**——它是记账轮（把三条死臂的读数写进台账与 manifest），不是移植；`handle_one_xevent` 仍未落地。
+
+- **4.026 `src/xterm.c` round 85（xterm lane，slice 110）：`handle_one_xevent` 的**前言与尾巴**落地（C 18866-18949 与 C 25596-25632）——文件最后一个缺失的定义由此**定义为存在**，剩下的是三十个 `case` 体（C 18951-25595）（2026-10-08）**：
+  ① **本片落的文本**：`static int handle_one_xevent (…)` 是 `static`（C 18875）⇒ 普通 `unsafe fn`；前言含声明块（C 18883-18887 的 `HAVE_XINPUT2` 对、C 18898-18907 的两条工具臂、C 18911-18913 的 `USE_SAFE_ALLOCA`）、C 18918-18919 的 `input_blocked_p`/`emacs_abort`、`*finish`、
+     `EVENT_INIT`/`inev.ie.kind = NO_EVENT`/`inev.ie.arg = Qnil`、C 18932-18947 的 `any` 计算与 C 18949 的 `switch` 头；尾巴含 C 25597-25625 的 `do_help` 收尾、C 25628 的 `SAFE_FREE` 与 C 25631 的 `return count`。
+     三十个 `case` 体（`ClientMessage` 至 `GenericEvent`，`GenericEvent` 一件就 3,355 行）是后续 slice，`match` 现在以 C 自己的 fall-through（`_` 臂）收尾。
+  ② **几处已定的读法**：`union buffered_input_event`（`include/keyboard.rs` 98）起零（C 27229 那条读法）；`Time gen_help_time UNINIT` 起零（Decision 12）；C 18894 的函数内 `static XComposeStatus compose_status` 落成 Rust 的函数内 `static mut`（`local_detail` 形状），
+     `XComposeStatus` 是 `include/xlib.rs` **新增**的类型（Xlib.h 338-342；本机没有任何 Xlib 头，"只有指针被传递"）；`LASTEvent`（X11/X.h 216）**新增**常量、`GenericEvent` 按臂 `use`；
+     C 18933-18942 的 `#ifdef` 对落成**一次 cfg 计算的条件**（`not_generic`）加一份 C 18937 的体（Decision 2 第 2 条的写法），C 18937 的 `x_any_window_to_frame` 按 25731/25733 的既有写法落成**函数/宏的 cfg 对**。
+  ③ **首写要求的四处修复（逐条实测）**：⑴ 误把 C 的 `#endif` 抄进正文（`expected one of ! or [, found endif`）；⑵ `SAFE_FREE (sa_count)` 少了实参（`unexpected end of macro invocation`）；⑶ `#[cfg]` 加在 `else`/赋值表达式上是 E0658（`attributes on expressions are experimental`）⇒ 条件合并 + 赋值包块；⑷ `x_any_window_to_frame` 在非工具臂是**宏** ⇒ 调用要 `!`（`E0423 expected function, found macro`）。
+  ④ **读数（全部实测，两侧都在本修订测）**：⑴ **十六臂表**（baseline = `f3a3c531` 的单元、重材化后测）：A 924/74 → **931/75**、U 937/74 → **944/75**、UT 924/73 → **931/74**、UM 925/73 → **932/74**、UG 930/75 → **939/76**、UGX 1021/77 → **1033/78**、
+     AE 956/73 → **963/74**、AI 948/75 → **955/76**、AIU 997/75 → **1006/76**、AIUX 1092/77 → **1104/78**、AX 934/74 → **941/75**、AG3 981/74 → **990/75**、AXF 934/74 → **941/75**、AXPM 925/74 → **932/75**、AXKB 962/74 → **969/75**、AXR 931/74 → **938/75**；
+     纯 X 臂一律 **+7 / +1**，工具臂 +9（多 `GdkEvent`/`GdkDisplay`/`gdk_x11_lookup_xdisplay` 两行）、XInput2 臂 +12（再多 `xi_device_t`/`xi_handle_interaction`/`gen_help_time` 的用点）。
+     ⑵ **按消息身份做的 `of which`**（A 臂两侧 dump 相减）：**新增** 13 行（`r#type` 无字段 ×3、`xany` ×1、`help_echo_string` ×2、`gen_help_event` ×2、`help_echo_window`/`_object`/`_pos` 各 1、加尾部行），**退场** 4 行（`cannot find function handle_one_xevent`，两处调用点由此解析）；11 - 4 = 表里的 +7 ✓。
+     `LASTEvent`/`XComposeStatus`/`compose_status`/`not_generic` 全部 0 行。⑶ **`--check`**：`emacs/src/xterm.c → femacs/src/xterm.rs` 仍是 **2** 行，但 `missing function handle_one_xevent` 变成
+     `function handle_one_xevent does not mention <剩余 token 清单>`——**这一个文件的最后一件真移植从"缺失"变成"已定义、按 30 个 case 继续"**。⑷ 单元 31,852 行（C 33,125，**3.8%** 漂移）、文件 md5 `c2f4ef3d2a64307f0e9818bb6a173932`。
+  ⑤ **预算与清理**：本片 rustc 编译 **约 55 发**（16 臂 × 3 轮读数 + 两侧 baseline + 若干探针；每次 15-30 秒，都是单文件 `--emit=metadata` 的类型检查），`build-tu` 材化 4 次（各约 2 秒）；
+     产物 `build/femacs/units/xterm/`、`/tmp/x83*`… 全部由本轮的清理步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——`case` 体处理的事件一个也没到达（本 lane 不链接，且本片读的 `XEvent` 成员仍是欠账镜像）；读数只有十六臂编译、`--check` 行的新形状与台账。
