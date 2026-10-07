@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404 and C 8406-8775
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775 and C 8778-8893
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -25,12 +25,12 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **11,088 lines** after the twenty-eighth, **11,179 lines** after the twenty-ninth and
 > **11,286 lines** after the thirtieth, **11,371 lines** after the thirty-first and
 > **11,493 lines** after the thirty-second, **11,554 lines** after the thirty-third and
-> **12,025 lines** after the thirty-fourth - C 803-2149,
+> **12,025 lines** after the thirty-fourth and **12,155 lines** after the thirty-fifth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
-> C 8178-8256, C 8258-8360, C 8362-8404 and C 8406-8775, whose own
+> C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775 and C 8778-8893, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -214,7 +214,8 @@ defines both features.
 | 8258-8360 | the `Coordinate management` section comment (C 8259-8261) and `x-translate-coordinates` (C 8263-8360: C 8265-8285's verbatim doc string, C 8290-8295 the locals, C 8297's `check_x_display_info`, C 8301-8311 the two `CHECK_FIXNUM`/`XFIXNUM` pairs, C 8313-8321's `source_frame`/`source_window` pair, C 8323-8332's `require_child` early return, C 8334-8340's `src`/`dest` defaults, C 8342-8350's `XTranslateCoordinates` with the error pair, C 8352-8359's `list3` result) | `have_x_windows`, with no nested `#if` (slice 32) |
 | 8362-8404 | the `Tool tips` banner (C 8362-8364), C 8366-8367's forward declaration of `compute_tip_xy`, the eight objects (C 8369-8390: `tip_frame`, `tip_window`, `tip_dx`, `tip_dy` exported; `tip_timer`, `tip_last_string`, `tip_last_frame`, `tip_last_parms` private) and `unwind_create_tip_frame` (C 8393-8404) | `have_x_windows`, with no nested `#if` (slice 33) |
 | 8406-8775 | C 8407-8414's comment and `x_create_tip_frame` (C 8416-8775: the terminal check, the name lookup, the frame's creation with its unwind-protect, the X output setup, the color block, the name/`explicit_name` pair, the font drivers, the `gui_default_parameter` runs, the `USE_XCB`/`not USE_XCB` window-creation pair, `init_frame_faces`, the `tooltip`/`display-type` parameters, the face-after-default pair and the tail) | `have_x_windows`, with `use_cairo`/`freetype`/`have_xft`/`harfbuzz` for the font drivers, `use_xcb` for the window pair, `glyph_debug`, `use_lucid`/`use_toolkit_scroll_bars` (slice 34) |
-| 8778-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,959 lines, whose first live item is C 8778-8782's comment and `compute_tip_xy` (C 8784-8785) - the next slice's first item | not ported in this slice |
+| 8778-8893 | C 8778-8782's comment and `compute_tip_xy` (C 8784-8893: the four `Fassq` reads, C 8808-8811's `x_query_pointer` between `block_input`/`unblock_input`, C 8815-8824's `HAVE_XRANDR`/`USE_GTK` cached-list choice, C 8828-8849's monitor walk with C 8834-8837's four `Fnth` reads, C 8854-8860's defaults, and C 8862-8892's two four-arm chains) | `have_x_windows`, with `have_xrandr`/`use_gtk` for the cached-list choice (slice 35) |
+| 8896-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,767 lines, whose first live item is C 8896-8908's doc comment and `x_hide_tip` (C 8909-8910, the `static Lisp_Object`) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -3407,3 +3408,67 @@ port writes as member paths; the row's sanctioned home is `docs/ports/macro-body
   read the slice-24 `nscreens`/`screens` class; the `unused doc comment` is in
   `lib/include/stdbit.in.rs` 644-647 (a mirror's doc block, materialized once per including arm),
   not in this unit's text.
+
+## Slice 35 (2026-10-08, status 3.940): C 8778-8893
+
+**The slice is C 8778-8893**: the comment and `compute_tip_xy` (127 Rust lines, 12,025 -> 12,155).
+The four `Fassq` reads (C 8796-8799), C 8801-8802's comment with C 8803-8804's four-way test,
+C 8808-8811's `x_query_pointer` between `block_input`/`unblock_input`, C 8815-8824's
+`HAVE_XRANDR`/`USE_GTK` cached-attributelist choice, C 8826-8849's monitor walk (C 8834-8837's four
+`Fnth` reads, C 8839-8843's containment test with its `break`, C 8845's `max_y = -1`),
+C 8852-8860's sane defaults, and C 8862-8892's two four-arm chains for `root_y` and `root_x`.
+
+**Every one of the fourteen arms is byte-identical.**  Each reads exactly its slice-34 level -
+plain-X **18 / 9**, WS, WSX, WSR, WSRX, WSR12 and XSN **16 / 9** (WSRX **16 / 10**), LUCID
+**25 / 12**, GTK and GTK22 **47 / 20**, XI2 and XR **22 / 9**, Xt **20 / 12** and XCB **18 / 10** -
+and both the `^error` and the `^warning` sets are empty-diff against the in-tree HEAD baseline in
+all fourteen, so this slice adds no diagnostic and no warning.  (Those levels themselves carry the
+slice-34 readings that are re-scoped in its Owed section: the `x_output` bitfield class and the
+`have_window_system`-gated tooltip rows.)
+
+**The first measurement's eight rows were one class.**  All eight were `E0381` (`used binding
+isn't initialized`) - `root`, `child`, `win_x`, `win_y`, `pmask`, `min_x`, `min_y`, `max_x` - and
+they close with the file's own device: C's out-parameters and its geometry locals take zero
+initialisers (C 8790-8793), as the earlier slices' `generic_error`, `actual_type` and `found` did.
+
+**Arm touch measured** (P-86 ⑦): an injection at the body's first statement (A) moves plain-X
+**18 -> 19**, GTK **47 -> 48**, XCB **18 -> 19** and XI2 **22 -> 23**; one before C 8878's
+`if FIXNUMP (left)` (B) moves plain-X **18 -> 19**, GTK **47 -> 48**, XCB **18 -> 19**, LUCID
+**25 -> 26** and Xt **20 -> 21**; both logs carry the injected line's text once.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash.
+
+**② The fourteen arms.**  See above: every arm at its slice-34 level, both sets empty-diff.
+
+**③ `extract-abi.py --check`**: **95 rows -> 94** - `missing function compute_tip_xy` retiring with
+nothing appearing in its place, and the drift row moving from `12.8%` to `14.0%: C 10662 vs Rust
+12155`.  `check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0
+failure(s)** and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed
+literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **C's out-parameters and geometry locals take the file's zero initialisers** (the first
+   measurement's eight `E0381`s).
+2. **C 8815-8823's preprocessor choice is two cfg blocks**: the `have_xrandr`/`use_gtk` arms keep
+   C's `if`/`else` (cached list or `Fx_display_monitor_attributes_list`), and the arms without
+   either feature carry C 8824's single assignment under `not (any (...))`.
+3. **`XFIXNUM` results are narrowed with `as c_int`** where C assigns them to its `int` locals or
+   adds them to one (C 8834-8837, 8863-8886), and the sums are parenthesised the way C's
+   precedence reads.
+
+### Owed (this slice)
+
+- Nothing new: the four `Fnth` reads, `x_query_pointer`, `x_display_pixel_*` and the Q symbols all
+  stand already.
+- `syms_of_xfns`' `defsubr` sites (45) and the rest of the remainder from C 8896 (the doc comment
+  and `x_hide_tip`, C 8909): 1,767 C lines plus the 11 missing functions, 1 macro, 0 objects, 16
+  subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no pointer was queried, no monitor list was
+walked and no tooltip was placed; the fourteen arms' counts are text compile readings.

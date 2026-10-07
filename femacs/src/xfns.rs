@@ -12023,3 +12023,133 @@ unsafe fn x_create_tip_frame (dpyinfo: *mut x_display_info,                // C 
   /* Discard the unwind_protect.  */                                       // C 8773
   return unbind_to (count, frame);                                         // C 8774
 }                                                                          // C 8775
+
+/* Compute where to display tip frame F.  PARMS is the list of frame
+   parameters for F.  DX and DY are specified offsets from the current
+   location of the mouse.  WIDTH and HEIGHT are the width and height
+   of the tooltip.  Return coordinates relative to the root window of
+   the display in *ROOT_X, and *ROOT_Y.  */
+
+/* C 8784-8893.  */
+#[cfg (feature = "have_x_windows")]
+/* C's out-parameters and the geometry locals take the file's zero initialisers (`root`,
+   `child`, `win_x`, `win_y`, `pmask`, `min_x`, `min_y`, `max_x`; C 8790-8793).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn compute_tip_xy (f: *mut frame, parms: Lisp_Object, dx: Lisp_Object,   // C 8784-8787
+			  dy: Lisp_Object, width: c_int, height: c_int, root_x: *mut c_int,
+			  root_y: *mut c_int)
+{                                                                              // C 8788
+  let mut left: Lisp_Object;                                                   // C 8789
+  let mut top: Lisp_Object;
+  let mut right: Lisp_Object;
+  let mut bottom: Lisp_Object;
+  let mut win_x: c_int = 0;                                                    // C 8790
+  let mut win_y: c_int = 0;
+  let mut root: Window = 0;                                                    // C 8791
+  let mut child: Window = 0;
+  let mut pmask: c_uint = 0;                                                   // C 8792
+  let mut min_x: c_int = 0;                                                    // C 8793
+  let mut min_y: c_int = 0;
+  let mut max_x: c_int = 0;
+  let mut max_y: c_int = -1;
+
+  /* User-specified position?  */                                              // C 8795
+  left = CDR (Fassq (Qleft (), parms));                                        // C 8796
+  top  = CDR (Fassq (Qtop (), parms));                                         // C 8797
+  right = CDR (Fassq (Qright (), parms));                                      // C 8798
+  bottom = CDR (Fassq (Qbottom (), parms));                                    // C 8799
+
+  /* Move the tooltip window where the mouse pointer is.  Resize and
+     show it.  */
+  if (!FIXNUMP (left) && !FIXNUMP (right))                                     // C 8803
+    || (!FIXNUMP (top) && !FIXNUMP (bottom))                                   // C 8804
+    {                                                                          // C 8805
+      let mut frame: Lisp_Object;                                              // C 8806
+      let mut attributes: Lisp_Object;
+      let mut monitor: Lisp_Object;
+      let mut geometry: Lisp_Object;
+
+      block_input ();                                                          // C 8808
+      x_query_pointer (FRAME_X_DISPLAY! (f), (*FRAME_DISPLAY_INFO! (f)).root_window,   // C 8809-8810
+		       &raw mut root, &raw mut child, root_x, root_y, &raw mut win_x,
+		       &raw mut win_y, &raw mut pmask);
+      unblock_input ();                                                        // C 8811
+
+      XSETFRAME! (frame, f);                                                   // C 8813
+
+#[cfg (any (feature = "have_xrandr", feature = "use_gtk"))]                    // C 8815
+      if !NILP ((*FRAME_DISPLAY_INFO! (f)).last_monitor_attributes_list)       // C 8816
+	{ attributes = (*FRAME_DISPLAY_INFO! (f)).last_monitor_attributes_list; }   // C 8821
+      else
+	{ attributes = Fx_display_monitor_attributes_list (frame); }                // C 8824
+#[cfg (not (any (feature = "have_xrandr", feature = "use_gtk")))]
+      { attributes = Fx_display_monitor_attributes_list (frame); }             // C 8824
+
+      /* Try to determine the monitor where the mouse pointer is and
+         its geometry.  See bug#22549.  */
+      while CONSP (attributes)                                                 // C 8828
+	{                                                                      // C 8829
+	  monitor = XCAR (attributes);                                         // C 8830
+	  geometry = Fassq (Qgeometry (), monitor);                            // C 8831
+	  if CONSP (geometry)                                                  // C 8832
+	    {                                                                  // C 8833
+	      min_x = XFIXNUM (Fnth (make_fixnum (1), geometry)) as c_int;     // C 8834
+	      min_y = XFIXNUM (Fnth (make_fixnum (2), geometry)) as c_int;     // C 8835
+	      max_x = min_x + (XFIXNUM (Fnth (make_fixnum (3), geometry)) as c_int);   // C 8836
+	      max_y = min_y + (XFIXNUM (Fnth (make_fixnum (4), geometry)) as c_int);   // C 8837
+
+	      if min_x <= *root_x && *root_x < max_x                         // C 8839
+		  && min_y <= *root_y && *root_y < max_y                       // C 8840
+		{
+		  break;                                                       // C 8842
+		}
+
+	      max_y = -1;                                                      // C 8845
+	    }
+
+	  attributes = XCDR (attributes);                                      // C 8848
+	}                                                                      // C 8849
+    }                                                                          // C 8850
+
+  /* It was not possible to determine the monitor's geometry, so we
+     assign some sane defaults here: */
+  if max_y < 0                                                                 // C 8854
+    {                                                                          // C 8855
+      min_x = 0;                                                               // C 8856
+      min_y = 0;                                                               // C 8857
+      max_x = x_display_pixel_width (FRAME_DISPLAY_INFO! (f));                 // C 8858
+      max_y = x_display_pixel_height (FRAME_DISPLAY_INFO! (f));                // C 8859
+    }                                                                          // C 8860
+
+  if FIXNUMP (top)                                                             // C 8862
+    { *root_y = XFIXNUM (top) as c_int; }                                      // C 8863
+  else if FIXNUMP (bottom)                                                     // C 8864
+    { *root_y = XFIXNUM (bottom) as c_int - height; }                          // C 8865
+  else if *root_y + (XFIXNUM (dy) as c_int) <= min_y                           // C 8866
+    { *root_y = min_y; } /* Can happen for negative dy */                      // C 8867
+  else if *root_y + (XFIXNUM (dy) as c_int) + height <= max_y                  // C 8868
+    /* It fits below the pointer */                                            // C 8869
+    { *root_y += XFIXNUM (dy) as c_int; }                                      // C 8870
+  else if height + (XFIXNUM (dy) as c_int) + min_y <= *root_y                  // C 8871
+    /* It fits above the pointer.  */                                          // C 8872
+    { *root_y -= height + (XFIXNUM (dy) as c_int); }                           // C 8873
+  else
+    /* Put it on the top.  */                                                  // C 8875
+    { *root_y = min_y; }                                                       // C 8876
+
+  if FIXNUMP (left)                                                            // C 8878
+    { *root_x = XFIXNUM (left) as c_int; }                                     // C 8879
+  else if FIXNUMP (right)                                                      // C 8880
+    { *root_x = XFIXNUM (right) as c_int - width; }                            // C 8881
+  else if *root_x + (XFIXNUM (dx) as c_int) <= min_x                           // C 8882
+    { *root_x = 0; } /* Can happen for negative dx */                          // C 8883
+  else if *root_x + (XFIXNUM (dx) as c_int) + width <= max_x                   // C 8884
+    /* It fits to the right of the pointer.  */                                // C 8885
+    { *root_x += XFIXNUM (dx) as c_int; }                                      // C 8886
+  else if width + (XFIXNUM (dx) as c_int) + min_x <= *root_x                   // C 8887
+    /* It fits to the left of the pointer.  */                                 // C 8888
+    { *root_x -= width + (XFIXNUM (dx) as c_int); }                            // C 8889
+  else
+    /* Put it left justified on the screen -- it ought to fit that way.  */    // C 8891
+    { *root_x = min_x; }                                                       // C 8892
+}                                                                              // C 8893
