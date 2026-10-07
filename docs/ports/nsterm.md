@@ -295,17 +295,17 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) and round 72 the class initializer (C 8559-8642) - **42 of the class's method boxes remain** (the `- [ ]` rows indented under this box; the box itself and `NS_KEYLOG` are the other two open rows)
-  - [ ] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041)
-  - [ ] `- (void) setWindowClosing: (BOOL)closing`  (line 7047)
-  - [ ] `- (void)dealloc`  (line 7055)
-  - [ ] `- (void) changeFont: (id) sender`  (line 7080)
-  - [ ] `- (void) noteUserSelectedFont`  (line 7109)
-  - [ ] `- (void) noteUserCancelledSelection`  (line 7128)
-  - [ ] `- (Lisp_Object) showFontPanel`  (line 7140)
-  - [ ] `- (BOOL)acceptsFirstResponder`  (line 7204)
-  - [ ] `- (BOOL)acceptsFirstMouse:(NSEvent *)theEvent`  (line 7211)
-  - [ ] `- (void)resetCursorRects`  (line 7217)
+- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) round 72 the class initializer (C 8559-8642) and round 73 the class prologue and the font panel (C 7041-7235) - **32 of the class's method boxes remain** (the `- [ ]` rows indented under this box; the box itself and `NS_KEYLOG` are the other two open rows)
+  - [x] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041) — landed as `@objc func windowDidEndLiveResize (_:)`; C's body is the forward to `updateFramePosition`
+  - [x] `- (void) setWindowClosing: (BOOL)closing`  (line 7047) — landed as `@objc func setWindowClosing (_:)`: C's one statement assigns the ivar the class keeps as `windowClosing` (Swift's stored property is not Objective-C visible, which leaves the selector free)
+  - [x] `- (void)dealloc`  (line 7055) — landed as `deinit`: the three `release` calls are the references ARC drops (C 7066's `nonfs_window`, C 7071's layer, C 7074's menu), `[super dealloc]` has no Swift statement, and C 7068-7072's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this target's
+  - [x] `- (void) changeFont: (id) sender`  (line 7080) — landed as `@objc func changeFont (_:)`: the `NS_IMPL_GNUSTEP` arm (C 7085-7086) and the `#ifndef NS_IMPL_COCOA` arm (C 7102-7105) are **dead** on this target, so C 7088's `macfont_get_nsctfont` is the live one (the borrowed `CTFontRef` becomes an `NSFont` unretained - the `macfont.swift` 951 reading); Swift's `NSFontManager.convert (_:)` takes a non-optional font, so C's nil argument keeps C's own `nil` result, and the `release`/`retain` pair is ARC's
+  - [x] `- (void) noteUserSelectedFont`  (line 7109) — landed as `@objc func noteUserSelectedFont ()` (the `NS_IMPL_COCOA` arm this target has): the same font read as `changeFont:`, then `NSApp.stop`
+  - [x] `- (void) noteUserCancelledSelection`  (line 7128) — landed as `@objc func noteUserCancelledSelection ()`; C's `release` plus nil assignment is ARC's, and C ends with the same `NSApp.stop`
+  - [x] `- (Lisp_Object) showFontPanel`  (line 7140) — landed as `@objc func showFontPanel () -> Lisp_Object`: the `NS_IMPL_GNUSTEP` arms (C 7151-7152 and C 7176-7177) are **dead** on this target, `ns_create_font_panel_buttons`/`ns_font_desc_to_font_spec` are this unit's round-58 helpers, `make_timespec` is the `lib/timespec.h` 55-59 inline (the round's new entry, open), C 7163/7184's `release`/`autorelease` are ARC's, and C 7173-7179's condition (which assigns `canceled` inside the test) is written as the assignment plus the test
+  - [x] `- (BOOL)acceptsFirstResponder`  (line 7204) — landed as `override var acceptsFirstResponder: Bool { true }` - the property form of that selector; C's whole body is `return YES;`
+  - [x] `- (BOOL)acceptsFirstMouse:(NSEvent *)theEvent`  (line 7211) — landed as `@objc override func acceptsFirstMouse (for:) -> Bool`, whose answer is the `ns_click_through` variable; C 7213-7214's `NSTRACE_MSG` is empty
+  - [x] `- (void)resetCursorRects`  (line 7217) — landed as `@objc override func resetCursorRects ()`: `FRAME_POINTER_TYPE`'s read is the `ns_output_current_pointer` member entry, C's `NSIsEmptyRect` is the rect's own `isEmpty`, `[NSCursor arrowCursor]` is the class property, and C 7229-7234's `NS_IMPL_GNUSTEP || MIN_REQUIRED < 101300` arm is **dead** on this target
   - [ ] `- (void)keyDown: (NSEvent *)theEvent`  (line 7243)
   - [x] `- (void) insertText: (id) string replacementRange: (NSRange) replacementRange`  (line 7435) — landed as `@objc func insertText (_:replacementRange:)`: C unmarks and hands the string to the older method (C 7440-7441), the `NSAttributedString` arm being C 7438-7439
   - [x] `- (void) setMarkedText: (id) string selectedRange: (NSRange) selectedRange replacementRange: (NSRange) replacementRange`  (line 7444) — landed as `@objc func setMarkedText (_:selectedRange:replacementRange:)`, whose body is C 7448's two-argument call
@@ -4741,3 +4741,39 @@ call site takes an entry and the definition lands at its own C line - and **both
   landed`**.
 * **Not claimed**: no runtime evidence - no frame was ever built by this initializer; the compile
   gate reaches type checking only.
+
+### Round 73: the class prologue and the font panel (C 7041-7235)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings - the same nine round 72 leaves, and **nothing new on the first run**.
+  Object `/tmp/nsterm73.o`, **1,296,632 bytes**, md5 `6af9ed35db8c47484bde04a6438d7148`.  The unit
+  is **13,993 lines**.
+* **Ten `EmacsView` methods land**: `windowDidEndLiveResize:` (C 7041-7044),
+  `setWindowClosing:` (C 7046-7052), `dealloc` (C 7055-7076, as `deinit`), `changeFont:`
+  (C 7079-7106), `noteUserSelectedFont` (C 7109-7126), `noteUserCancelledSelection`
+  (C 7128-7137), `showFontPanel` (C 7140-7202), `acceptsFirstResponder` (C 7204-7208),
+  `acceptsFirstMouse:` (C 7210-7216) and `resetCursorRects` (C 7217-7235).  The class box's own
+  count moves to **32 method boxes remaining**.
+* **Where the block sits**: it is placed at the head of the class's method region (the class's
+  ivars, then this block, then round 25's `fsIsNative`/`isFullscreen`/`updateCollectionBehavior`),
+  because C 7041-7235 opens the `@implementation` - the file's order is by round within each
+  C-order neighbourhood, as the C 8952-before-C 7451 rows already show.
+* **Readings written into the code**: C 7085-7086's `NS_IMPL_GNUSTEP` arm and C 7102-7105's
+  `#ifndef NS_IMPL_COCOA` arm are **dead** on this target (so C 7088's `macfont_get_nsctfont` is
+  the live font read); C 7068-7072's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this
+  target's; C 7151-7152 and C 7176-7177's `NS_IMPL_GNUSTEP` arms are **dead**; C 7229-7234's
+  `NS_IMPL_GNUSTEP || MIN_REQUIRED < 101300` arm is **dead** (recorded, not transcribed); the
+  `release`/`retain`/`autorelease` calls throughout are ARC's references; `[super dealloc]` has no
+  Swift statement (the `EmacsWindow` reading); and Swift's `NSFontManager.convert (_:)` takes a
+  non-optional font, so C 7097's nil argument keeps C's own `nil` result.
+* **The ABI block adds two entries**: `macfont_get_nsctfont` (declared src/macfont.h 83, defined
+  src/macfont.m 4206-4213; **provided** by `macfont.swift` 11105's `@_cdecl`) and
+  `make_timespec` (`lib/timespec.h` 55-59's inline; **open** - the mirror declares it at
+  `femacs/lib/timespec.rs` 22 without a definition yet).  `FRAME_FONT` (C 6375) is the read C's
+  `output_data.ns->font` needs, and `FRAME_POINTER_TYPE`'s read is the `ns_output_current_pointer`
+  member entry.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **683** C symbol imports (round 72 read 681) and **`0 new, 0 stale, 7 Swift unit(s)
+  landed`**.
+* **Not claimed**: no runtime evidence - no font panel was opened, no cursor rect was reset and no
+  view was deallocated; the compile gate reaches type checking only.

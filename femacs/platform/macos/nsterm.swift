@@ -8113,6 +8113,194 @@ class EmacsView: NSView {
     super.init(coder: coder)
   }
 
+  // ==========================================================================
+  // C 7041-7235: the class prologue and the font panel - the window-close setter,
+  // `dealloc`, the three font-panel callbacks, `acceptsFirst*` and `resetCursorRects`.
+  // `keyDown:` (C 7243) is the next round's.
+  // ==========================================================================
+
+  /// C 7041-7044: `- (void)windowDidEndLiveResize: (NSNotification *)notification` - C's body is
+  /// the forward to `updateFramePosition`.
+  @objc func windowDidEndLiveResize(_ notification: Notification) {
+    self.updateFramePosition()                                  // C 7043
+  }
+
+  /// C 7046-7052: `- (void) setWindowClosing: (BOOL)closing` - "Needed to inform when window
+  /// closed from lisp."  C's one statement assigns the ivar this class keeps as `windowClosing`;
+  /// Swift's stored property is not Objective-C visible, so the selector C names is free to be
+  /// this method's own.
+  @objc func setWindowClosing(_ closing: Bool) {
+    // C 7049: `NSTRACE ("[EmacsView setWindowClosing:%d]", closing);` - empty.
+    windowClosing = closing                                     // C 7051
+  }
+
+  /// C 7055-7076: `- (void)dealloc`.  C's three `release` calls are the references ARC drops
+  /// (C 7066's `nonfs_window`, C 7071's layer, C 7074's menu) and `[super dealloc]` (C 7075) has
+  /// no Swift statement - the `EmacsWindow` `dealloc` reading of round 66.  C 7068-7072's
+  /// `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this target's.
+  deinit {
+    // C 7057: `NSTRACE ("[EmacsView dealloc]");` - empty.
+
+    /* C 7059-7063: "Clear the view resize notification."  */
+    NotificationCenter.default.removeObserver(
+      self, name: NSView.frameDidChangeNotification, object: nil)     // C 7060-7063
+
+    if fs_state == FULLSCREEN_BOTH() {                          // C 7065
+      nonfs_window = nil                                        // C 7066 (C's `release`)
+    }
+
+    /* C 7068-7072: the `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm -
+       `EmacsLayer *layer = (EmacsLayer *)[self layer]; [layer release];` - and C 7074's
+       `[[self menu] release]` are ARC's own references.  */
+  }
+
+  /// C 7079-7106: `- (void) changeFont: (id) sender` - "Called on font panel selection."  The
+  /// `NS_IMPL_GNUSTEP` arm (C 7085-7086) is **dead** on this target, so C 7088's
+  /// `macfont_get_nsctfont` is the live one (`macfont.swift` 11105 exports the entry) and the
+  /// borrowed `CTFontRef` becomes an `NSFont` unretained (the `macfont.swift` 951 reading); the
+  /// `#ifndef NS_IMPL_COCOA` arm (C 7102-7105) is **dead** too; and C 7095/7100's
+  /// `release`/`retain` pair is ARC's.
+  @objc func changeFont(_ sender: Any?) {
+    let font = FRAME_FONT(emacsframe)                           // C 7082 (C's `output_data.ns->font`)
+    let nsfont: NSFont? = macfont_get_nsctfont(font).map {
+      Unmanaged<NSFont>.fromOpaque($0).takeUnretainedValue()    // C 7088
+    }
+
+    if !font_panel_active {                                     // C 7091
+      return                                                    // C 7092
+    }
+
+    font_panel_result = nil                                     // C 7095 (C's `release`)
+
+    /* C 7097: `font_panel_result = (NSFont *) [sender convertFont: nsfont];`.  Swift's
+       `NSFontManager.convert (_:)` takes a non-optional font, so C's nil argument cannot be
+       passed through it: the port keeps C's own answer for that case (`nil`), which is what the
+       message to a manager with no font to convert gives.  */
+    if let manager = sender as? NSFontManager, let f = nsfont {
+      font_panel_result = manager.convert(f)                    // C 7097
+    } else {
+      font_panel_result = nil
+    }
+
+    /* C 7099-7100: `if (font_panel_result) [font_panel_result retain];` - ARC's hold.  */
+    /* C 7102-7105: the `#ifndef NS_IMPL_COCOA` arm - dead on this target.  */
+  }
+
+  /* C 7108-7138: the `NS_IMPL_COCOA` arm's two callbacks (this target's).  */
+
+  /// C 7109-7126: `- (void) noteUserSelectedFont`.
+  @objc func noteUserSelectedFont() {
+    font_panel_active = false                                   // C 7111
+
+    /* C 7113-7114: "If no font was previously selected, use the currently selected font."  */
+    if font_panel_result == nil && FRAME_FONT(emacsframe) != nil {    // C 7116
+      font_panel_result = macfont_get_nsctfont(FRAME_FONT(emacsframe)).map {
+        Unmanaged<NSFont>.fromOpaque($0).takeUnretainedValue()  // C 7118-7119
+      }
+      /* C 7121-7122: `if (font_panel_result) [font_panel_result retain];` - ARC's hold.  */
+    }
+
+    NSApp.stop(self)                                            // C 7125
+  }
+
+  /// C 7128-7137: `- (void) noteUserCancelledSelection`.
+  @objc func noteUserCancelledSelection() {
+    font_panel_active = false                                   // C 7130
+
+    font_panel_result = nil                                     // C 7134 (C's `release` at 7132-7133)
+    NSApp.stop(self)                                            // C 7136
+  }
+
+  /// C 7140-7202: `- (Lisp_Object) showFontPanel`.  The `NS_IMPL_GNUSTEP` arms (C 7151-7152 and
+  /// C 7176-7177) are **dead** on this target; `ns_create_font_panel_buttons` and
+  /// `ns_font_desc_to_font_spec` are this unit's round-58 helpers; `make_timespec` is the
+  /// `lib/timespec.h` 55-59 inline (its entry, **open**); C 7163/7184's `release`/`autorelease`
+  /// are ARC's; and C 7173-7179's loop condition carries an assignment, which the port writes as
+  /// the assignment plus the test (C's own order: the assignment is evaluated before every test).
+  @objc func showFontPanel() -> Lisp_Object {
+    let fm = NSFontManager.shared                               // C 7142
+    let font = FRAME_FONT(emacsframe)                           // C 7143
+    let nsfont: NSFont? = macfont_get_nsctfont(font).map {
+      Unmanaged<NSFont>.fromOpaque($0).takeUnretainedValue()    // C 7154
+    }
+    var result: NSFont?                                         // C 7144
+    var timeout = timespec()                                    // C 7145
+
+    let buttons = ns_create_font_panel_buttons(
+      self, #selector(EmacsView.noteUserSelectedFont),          // C 7158-7161
+      #selector(EmacsView.noteUserCancelledSelection))
+    fm.fontPanel(true)?.accessoryView = buttons                 // C 7162
+    /* C 7163: `[buttons release];` - the panel's own view holds it (ARC).  */
+
+    fm.setSelectedFont(nsfont!, isMultiple: false)              // C 7166
+    fm.orderFrontFontPanel(NSApp)                               // C 7167
+
+    font_panel_active = true                                    // C 7169
+    timeout = make_timespec(0, 100_000_000)                     // C 7170
+
+    block_input()                                               // C 7172
+    var canceled = false                                        // C 7148
+    while true {                                                // C 7173
+      canceled = fm.fontPanel(true)?.isVisible ?? false         // C 7175 (C's assignment in the test)
+      if !(font_panel_active && canceled) {                     // C 7173
+        break
+      }
+      _ = ns_select_1(0, nil, nil, nil, &timeout, nil, true)    // C 7180
+    }
+    unblock_input()                                             // C 7181
+
+    /* C 7183-7184: `if (font_panel_result) [font_panel_result autorelease];` - ARC's.  */
+
+    if !canceled {                                              // C 7187
+      font_panel_result = nil                                   // C 7188
+    }
+
+    result = font_panel_result                                   // C 7191
+    font_panel_result = nil                                     // C 7192
+
+    fm.fontPanel(true)?.setIsVisible(false)                      // C 7194
+    font_panel_active = false                                   // C 7195
+
+    if result != nil {                                          // C 7197
+      return ns_font_desc_to_font_spec(result!.fontDescriptor, result!)    // C 7198-7199
+    }
+
+    return Qnil()                                               // C 7201
+  }
+
+  /// C 7204-7208: `- (BOOL)acceptsFirstResponder` - C's whole body is `return YES;`, and the
+  /// property is the form Swift overrides for that selector.
+  override var acceptsFirstResponder: Bool {
+    true                                                        // C 7207
+  }
+
+  /// C 7210-7216: `- (BOOL)acceptsFirstMouse: (NSEvent *)theEvent` - "Tell NS we want to accept
+  /// clicks that activate the window"; C 7213-7214's `NSTRACE_MSG` is empty and C's answer is the
+  /// `ns_click_through` variable.
+  @objc override func acceptsFirstMouse(for theEvent: NSEvent?) -> Bool {
+    ns_click_through                                            // C 7215
+  }
+
+  /// C 7217-7235: `- (void)resetCursorRects`.  `FRAME_POINTER_TYPE`'s read is the
+  /// `ns_output_current_pointer` member entry (C 3083's family, the round-8 reading), C's
+  /// `NSIsEmptyRect` is the rect's own `isEmpty` and C's `[NSCursor arrowCursor]` the class
+  /// property; C 7229-7234's `NS_IMPL_GNUSTEP || MIN_REQUIRED < 101300` arm is **dead** on this
+  /// target (recorded, not transcribed).
+  @objc override func resetCursorRects() {
+    let visible = self.visibleRect                               // C 7219
+    var currentCursor: NSCursor? = ns_output_current_pointer(emacsframe) as? NSCursor   // C 7220
+    // C 7221: `NSTRACE ("[EmacsView resetCursorRects]");` - empty.
+
+    if currentCursor == nil {                                    // C 7223
+      currentCursor = NSCursor.arrow                             // C 7224
+    }
+
+    if !visible.isEmpty {                                        // C 7226 (C's `NSIsEmptyRect`)
+      self.addCursorRect(visible, cursor: currentCursor!)        // C 7227
+    }
+    /* C 7229-7234: the dead `setOnMouseEntered:` arm.  */
+  }
+
   /// C 8952-8955: `- (BOOL)fsIsNative` - C's whole body is the ivar read.
   func fsIsNative() -> Bool {
     fs_is_native                                      // C 8954
@@ -9013,6 +9201,7 @@ class EmacsView: NSView {
     ns_window_num += 1                                        // C 8640
     return                                                    // C 8641 (C's `return self;`)
   }
+
 
   /// C 8645-8650: `- (void)windowDidMove: sender` - C's parameter is untyped (the port keeps
   /// `Any?`, which is the same selector) and its body is the direct call below.  This is also
@@ -13785,3 +13974,20 @@ func ns_output_set_view(_ f: UnsafeMutableRawPointer?, _ v: NSView?)
 func EmacsView_initFrameFromEmacs_impl(_ f: UnsafeMutableRawPointer?) -> AnyObject? {
   EmacsView(frameFromEmacs: f)
 }
+
+// ==========================================================================
+// Round 73: the entries the class prologue and the font panel need
+// ==========================================================================
+
+/// C: `void *macfont_get_nsctfont (struct font *font)` (declared src/macfont.h 83, defined
+/// src/macfont.m 4206-4213) - C 7088/7154/7119's three reads of the frame's font.  Provided:
+/// `macfont.swift` 11105's `@_cdecl`.
+@_silgen_name("macfont_get_nsctfont")
+func macfont_get_nsctfont(_ font: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: `_GL_TIMESPEC_INLINE struct timespec make_timespec (time_t s, long int ns)`
+/// (lib/timespec.h 55-59, "Return a timespec with seconds S and nanoseconds NS") - C 7170's
+/// call.  A header-only construct, class A; **open**: the mirror declares it
+/// (`femacs/lib/timespec.rs` 22) without a `#[unsafe(no_mangle)]` definition yet.
+@_silgen_name("make_timespec")
+func make_timespec(_ s: Int, _ ns: Int) -> timespec

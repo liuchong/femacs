@@ -16664,3 +16664,32 @@
      片段跑完即删**，无全盘/大内存扫描。
   ⑦ **未声称**：本轮**没有运行证据**——没有任何 frame 走过这个构造器；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.013 `src/nsterm.m` round 73（Swift lane）：类前言与字体面板落地（C 7041-7235，十个方法），五处死臂记名（2026-10-08）**：
+  ① **落地十个 `EmacsView` 方法**：`windowDidEndLiveResize:`（C 7041-7044）、`setWindowClosing:`（C 7046-7052）、
+     `dealloc`（C 7055-7076，落成 Swift `deinit`）、`changeFont:`（C 7079-7106）、`noteUserSelectedFont`（C 7109-7126）、
+     `noteUserCancelledSelection`（C 7128-7137）、`showFontPanel`（C 7140-7202）、`acceptsFirstResponder`（C 7204-7208）、
+     `acceptsFirstMouse:`（C 7210-7216）、`resetCursorRects`（C 7217-7235）。台账勾 **10 个框**（勾 **386 → 396**、
+     未勾 **45 → 34**；其中缩进的方法盒子 **32**），`EmacsView` 类盒子同时改成"还剩 **32** 个方法盒子"。
+  ② **这块放在类方法区的**头部**（ivar 之后、round 25 的 `fsIsNative`/`isFullscreen`/`updateCollectionBehavior` 之前）：
+     C 7041-7235 开的是 `@implementation`；文件里每个 C 顺序邻域内按轮次排，C 8952 排在 C 7451 前就是既有实情。
+  ③ **写进代码的读数**：C 7085-7086 的 `NS_IMPL_GNUSTEP` 臂与 C 7102-7105 的 `#ifndef NS_IMPL_COCOA` 臂都是**死臂**
+     （所以 C 7088 的 `macfont_get_nsctfont` 是活的取字体路径）；C 7068-7072 的
+     `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` 是本目标的；C 7151-7152 与 C 7176-7177 的 `NS_IMPL_GNUSTEP` 臂是**死臂**；
+     C 7229-7234 的 `NS_IMPL_GNUSTEP || MIN_REQUIRED < 101300` 整块**是死的**（记名不转写）；各处的
+     `release`/`retain`/`autorelease` 是 ARC 的引用；`[super dealloc]` 没有 Swift 语句（`EmacsWindow` 那条读法）；
+     Swift 的 `NSFontManager.convert (_:)` 收非可选字体，所以 C 7097 的 nil 实参保留 C 自己的 `nil` 结果。
+  ④ **本轮新增 2 个入口**：`macfont_get_nsctfont`（声明 src/macfont.h 83、定义 src/macfont.m 4206-4213；
+     **已提供**——`macfont.swift` 11105 的 `@_cdecl`）与 `make_timespec`（`lib/timespec.h` 55-59 的内联；**open**——
+     镜像在 `femacs/lib/timespec.rs` 22 只声明未定义）。C 的 `output_data.ns->font` 走既有的 `FRAME_FONT`（C 6375），
+     `FRAME_POINTER_TYPE` 的读走 `ns_output_current_pointer` 成员入口。
+  ⑤ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 72 的九条逐条相同，**首跑零新警告**）；
+     对象 `/tmp/nsterm73.o` **1,296,632 字节**、md5 `6af9ed35db8c47484bde04a6438d7148`；单元 **13,993 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **683** C symbol import(s)`
+     （round 72 是 681），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**；`check-citations` **676 / 0 drift /
+     0 range / 2,416 external / 36 allowed / 0 stale**。
+  ⑥ **预算与清理**：本片编译 **2 发**（首跑一次即过、零错误；第二发是把这块挪到类方法区头部后的复读，都是单文件
+     `swiftc -c`，每次约 2 秒）；另用 **7 组只读 grep** 钉准入口名、宏拼法与判据行号；**对象 `/tmp/nsterm73.o` 与两个
+     `/tmp/r73*.swift` 片段跑完即删**，无全盘/大内存扫描。
+  ⑦ **未声称**：本轮**没有运行证据**——没有打开过字体面板、没有复位过光标矩形、没有视图被释放；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
