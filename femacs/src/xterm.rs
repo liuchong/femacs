@@ -28145,4 +28145,159 @@ pub unsafe extern "C" fn x_display_pixel_width (dpyinfo: *mut x_display_info) ->
   return WidthOfScreen ((*dpyinfo).screen);                            // C 18496
 }
 
-/* C 18499-18500's comment opens `x_wait_for_cell_change` (C 18501-...), the next definition.  */
+/* Handle events from each display until CELL's car becomes non-nil,
+   or TIMEOUT elapses.  */
+
+/// C 18499-18612: `void x_wait_for_cell_change (Lisp_Object cell, struct timespec timeout)` - the
+/// declaration in xterm.h 1803 is what makes this the exported shape, and a `--check` item this
+/// slice retires.  It is the file's first function whose *whole* body is one `#ifndef USE_GTK` /
+/// `#else` pair, so the port writes each arm as cfg'd statement blocks (the `event_handler_gdk`
+/// shape, slice 89) and carries C's declarations of the arm's own locals with the same gate - the
+/// `x_find_modifier_meanings` shape (this file 22291).  Four names the body reads are recorded
+/// classes rather than mirrors: `ConnectionNumber`, `XPending` and `XNextEvent` (Xlib's bare class,
+/// the one this file's `x_any_window_to_frame` doc names) and `handle_one_xevent` (unported text,
+/// its own `--check` row) - measured, one row per site in the seven arms that compile the C 18532
+/// block and only `ConnectionNumber` in the five that do not.  The GTK arm's two calls resolve:
+/// `include/gtk.rs` declares `gtk_events_pending`/`gtk_main_iteration`, and it reaches this unit
+/// through `include/xterm.rs` 53's C 69 edge.  C's `while (true)` is the port's `loop` (this file
+/// 21756's rule; Rust's `while true` draws the `while_true` lint - the slice's first reading), so
+/// `true` is a token row in `docs/ports/macro-body-notes.tsv` rather than a keyword here.
+/// `hold_quit` is C's uninitialised `struct input_event`, zeroed per Deviation 12 and then handed to
+/// `EVENT_INIT` (the `src/xterm.rs` 5166 shape); `finish` is written by `handle_one_xevent` through
+/// `&raw mut`, so it is zeroed the same way; `event` is C's uninitialised `XEvent`, zeroed per
+/// Deviation 12 (this file 2566).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_wait_for_cell_change (cell: Lisp_Object, mut timeout: timespec)
+{
+  let mut dpyinfo: *mut x_display_info;                                // C 18504
+  let mut fds: fd_set;                                                 // C 18505
+  let mut fd: c_int = 0;                                               // C 18506
+  let mut maxfd: c_int = 0;
+#[cfg (not (feature = "use_gtk"))]
+  let mut finish: c_int = 0;                                           // C 18508
+#[cfg (not (feature = "use_gtk"))]
+  let mut rc: c_int = 0;
+#[cfg (not (feature = "use_gtk"))]
+  let mut event: XEvent = std::mem::zeroed ();                          // C 18509
+#[cfg (not (feature = "use_gtk"))]
+  let mut rfds: fd_set;                                                // C 18510
+  let mut hold_quit: input_event = std::mem::zeroed ();                 // C 18512
+  let mut current: timespec;                                           // C 18513
+  let mut at: timespec;
+
+  at = timespec_add (current_timespec (), timeout);                     // C 18515
+
+#[cfg (not (feature = "use_gtk"))]
+  {
+    FD_ZERO (&raw mut rfds);                                            // C 18518
+    rc = -1;                                                           // C 18519
+  }
+
+  loop                                                                  // C 18522
+    {
+      FD_ZERO (&raw mut fds);                                           // C 18524
+      maxfd = -1;                                                       // C 18525
+
+      dpyinfo = x_display_list;                                         // C 18527
+      while !dpyinfo.is_null ()                                         // C 18527-18528
+	{
+	  fd = ConnectionNumber ((*dpyinfo).display);                     // C 18530
+
+#[cfg (not (feature = "use_gtk"))]
+	  {
+	    if (rc < 0 || FD_ISSET (fd, &rfds))                             // C 18533
+		/* If pselect failed, the erroring display's IO error
+		   handler will eventually be called.  */
+		&& XPending ((*dpyinfo).display) != 0                       // C 18536
+	      {
+		while XPending ((*dpyinfo).display) != 0                    // C 18538
+		  {
+		    EVENT_INIT (&raw mut hold_quit);                        // C 18540
+
+		    XNextEvent ((*dpyinfo).display, &raw mut event);        // C 18542
+		    handle_one_xevent (dpyinfo, &raw mut event,             // C 18543-18544
+				       &raw mut finish, &raw mut hold_quit);
+
+		    if !NILP (XCAR (cell))                                  // C 18546
+		      { return; }                                           // C 18547
+
+		    if finish == X_EVENT_GOTO_OUT                           // C 18549
+		      { break; }                                            // C 18550
+
+		    /* Make us quit now.  */
+		    if input_event_bits! (kind, &raw mut hold_quit)         // C 18553
+			!= NO_EVENT
+		      { kbd_buffer_store_event (&raw mut hold_quit           // C 18554
+						as *mut c_void); }
+		  }
+	      }
+	  }
+
+	  if fd > maxfd                                                     // C 18559
+	    { maxfd = fd; }                                                 // C 18560
+
+	  eassert! (fd < FD_SETSIZE);                                       // C 18562
+	  FD_SET (fd, &raw mut fds);                                        // C 18563
+	  dpyinfo = (*dpyinfo).next;                                        // C 18528
+	}
+
+      /* Prevent events from being lost (from GTK's point of view) by
+	 using GDK to run the event loop.  */
+#[cfg (feature = "use_gtk")]
+      {
+	while gtk_events_pending () != 0                                // C 18569
+	  {
+	    EVENT_INIT (&raw mut hold_quit);                            // C 18571
+	    current_count = 0;                                          // C 18572
+	    current_hold_quit = &raw mut hold_quit;                      // C 18573
+	    current_finish = X_EVENT_NORMAL;                             // C 18574
+
+	    gtk_main_iteration ();                                      // C 18576
+
+	    current_count = -1;                                         // C 18578
+	    current_hold_quit = std::ptr::null_mut ();                   // C 18579
+
+	    /* Make us quit now.  */
+	    if input_event_bits! (kind, &raw mut hold_quit)             // C 18582
+		!= NO_EVENT
+	      { kbd_buffer_store_event (&raw mut hold_quit                 // C 18583
+					as *mut c_void); }
+
+	    if !NILP (XCAR (cell))                                      // C 18585
+	      { return; }                                               // C 18586
+
+	    if current_finish == X_EVENT_GOTO_OUT                       // C 18588
+	      { break; }                                                // C 18589
+	  }
+      }
+
+      eassert! (maxfd >= 0);                                            // C 18593
+
+      current = current_timespec ();                                    // C 18595
+
+      if timespec_cmp (at, current) < 0                                 // C 18597
+	  || !NILP (XCAR (cell))                                        // C 18598
+	{ return; }                                                     // C 18599
+
+      timeout = timespec_sub (at, current);                             // C 18601
+
+#[cfg (not (feature = "use_gtk"))]
+      {
+	rc = pselect (maxfd + 1, &raw mut fds, std::ptr::null_mut (),    // C 18604
+		      std::ptr::null_mut (), &raw mut timeout,
+		      std::ptr::null_mut ());
+
+	if rc >= 0                                                       // C 18606
+	  { rfds = fds; }                                                // C 18607
+      }
+#[cfg (feature = "use_gtk")]
+      {
+	pselect (maxfd + 1, &raw mut fds, std::ptr::null_mut (),         // C 18609
+		 std::ptr::null_mut (), &raw mut timeout, std::ptr::null_mut ());
+      }
+    }
+}
+
+/* C 18614-18616's comment opens `x_find_monitors_changed_event` (C 18618-...), the next
+   definition.  */

@@ -160,6 +160,18 @@ around it fills `dsmsg`, which Rust's `unused_assignments` names.  The five `use
 are the mirror chain's class: `FRAME_OUTER_WINDOW!`'s GTK arm ends in `GDK_WINDOW_XID` ->
 `GDK_WINDOW_XWINDOW`, and neither name is in a mirror - one row per site (C 18294/18303/18309/18342/
 18348).
+  Slice 96 (C 18499-18612, Decision 109) goes **19 -> 18**: `x_wait_for_cell_change` retires as a
+missing function, and the one row it brings is a *token* row - C 18522's `while (true)` is the port's
+`loop` (this file 21756's rule), so `true` is closed by a `docs/ports/macro-body-notes.tsv` row while
+`x_get_wm_check_window does not mention false` stays.  Its rustc footprint is the bare classes the
+body reads: the seven arms that compile C 18532's block each add five rows (`ConnectionNumber` x1,
+`XPending` x2, `XNextEvent` x1, `handle_one_xevent` x1), and the five `use_gtk` arms add one
+(`ConnectionNumber`) because that block is not compiled there - A 785 -> **790**, U 814 -> **819**, UT
+800 -> **805**, UM 801 -> **806**, UG 802 -> **803**, UGX 904 -> **905**, AE 817 -> **822**, AI 793 ->
+**798**, AIU 837 -> **838**, AIUX 943 -> **944**, AX 799 -> **804**, AG3 841 -> **842**, with **no
+warning moved in any of the twelve arms**.  The GTK arm's two calls resolve: `include/gtk.rs`
+declares `gtk_events_pending`/`gtk_main_iteration` and reaches this unit through `include/xterm.rs`
+53's C 69 edge - which is also what the earlier slices' includer counts missed.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -365,7 +377,7 @@ are the mirror chain's class: `FRAME_OUTER_WINDOW!`'s GTK arm ends in `GDK_WINDO
 - [x] x_dnd_update_state  (line 18264, static)
 - [x] x_display_pixel_height  (line 18482)
 - [x] x_display_pixel_width  (line 18491)
-- [ ] x_wait_for_cell_change  (line 18502)
+- [x] x_wait_for_cell_change  (line 18502)
 - [ ] x_find_monitors_changed_event  (line 18619, static)
 - [ ] x_coords_from_dnd_message  (line 18685, static)
 - [ ] x_handle_wm_state  (line 18764, static)
@@ -4517,6 +4529,32 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   never read` warning in **every** arm.
 * **What `--check` reads.**  **20 -> 19**: the function retires as a missing item; the line-count row
   moves to **28,148** against C's 33,125 (15.0% drift, was 27,881 / 15.8%).
+
+### 109. Slice 96 (C 18499-18612): `x_wait_for_cell_change`, the first body that is one `#ifndef USE_GTK` pair
+
+* **The `--check` item and its one token row.**  `x_wait_for_cell_change` is declared in xterm.h 1803,
+  so the exported shape, and **19 -> 18**: the function retires as a missing item, and C 18522's
+  `while (true)` - which the port spells `loop` (this file 21756's rule, measured again: the first
+  writing's `while true` drew Rust's `while_true` lint in every arm) - is a token row the notes table
+  closes rather than a keyword the port can carry.
+* **One `#ifndef USE_GTK` pair around the whole body.**  C 18507-18511's three declarations, C
+  18517-18520's two statements and C 18532-18557's block are all this arm's alone, so they carry
+  `#[cfg (not (feature = "use_gtk"))]` (`x_find_modifier_meanings`'s shape for the declarations,
+  `event_handler_gdk`'s for the statements), and the GTK arm's C 18568-18591 is the other cfg block.
+  C's `for (dpyinfo = x_display_list; dpyinfo; dpyinfo = dpyinfo->next)` keeps the file's `while`
+  transcription of a C `for` (this file 7395), with the increment where C's own third clause sits.
+* **What the body's names cost, measured.**  Seven arms add five rows apiece - `ConnectionNumber` x1
+  (C 18530), `XPending` x2 (C 18536/18538), `XNextEvent` x1 (C 18542) and `handle_one_xevent` x1
+  (C 18543, its own `--check` row) - and the five `use_gtk` arms add only `ConnectionNumber`, because
+  C 18532's block is not compiled there.  The GTK arm's `gtk_events_pending`/`gtk_main_iteration`
+  resolve without a row: `include/gtk.rs` declares them (937-939, 2026-2028) and `include/xterm.rs`
+  53's C 69 edge brings it into this unit.
+* **Deviation 12's zeroes.**  `hold_quit` (C's uninitialised `struct input_event`, handed to
+  `EVENT_INIT`), `finish` (written by `handle_one_xevent` through `&raw mut`) and `event` (C's
+  uninitialised `XEvent`) are zeroed at their declarations; the two `fd_set`s are C's own
+  uninitialised locals and stay that way (`FD_ZERO` writes them through the address).
+* **What `--check` reads.**  **19 -> 18**, with the line-count row at **28,303** against C's 33,125
+  (14.6% drift, was 28,148 / 15.0%).
 
 ## Evidence
 
@@ -8928,3 +8966,52 @@ against C's 33,125 (15.0% drift, was 27,881 / 15.8%).
 **Not claimed.**  The frozen configuration compiles none of this file: no pointer was queried, no
 DND state was advanced and no Motif message was built; the readings above are compile readings of
 text this machine cannot build.
+
+### Slice 96's readings (C 18499-18612), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s96/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`; A = `have_x_windows`, U = A +
+`use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI +
+`use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`.
+Both sides were measured on this revision (the baseline by restoring `src/xterm.rs` from HEAD, then
+putting the saved copy back - its md5 is the copy's).
+
+| arm | HEAD's unit (slice 95 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 785 / 73 | **790 / 73** | **+5 / 0** |
+| U `+use_toolkit_scroll_bars` | 814 / 73 | **819 / 73** | **+5 / 0** |
+| UT `U +use_x_toolkit` | 800 / 72 | **805 / 72** | **+5 / 0** |
+| UM `UT +use_motif` | 801 / 72 | **806 / 72** | **+5 / 0** |
+| **UG** `U +use_gtk` | 802 / 74 | **803 / 74** | **+1 / 0** |
+| **UGX** `UG +have_xinput2` | 904 / 76 | **905 / 76** | **+1 / 0** |
+| AE `A +enable_checking` | 817 / 72 | **822 / 72** | **+5 / 0** |
+| AI `A +have_x_i18n` | 793 / 74 | **798 / 74** | **+5 / 0** |
+| **AIU** `AI +use_gtk` | 837 / 74 | **838 / 74** | **+1 / 0** |
+| **AIUX** `AIU +have_xinput2` | 943 / 76 | **944 / 76** | **+1 / 0** |
+| AX `A +have_xdbe` | 799 / 73 | **804 / 73** | **+5 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 841 / 73 | **842 / 73** | **+1 / 0** |
+
+**Additions, by name.**  Seven arms: `cannot find function, tuple struct or tuple variant
+ConnectionNumber` x1, the same for `XPending` x2 and `XNextEvent` x1, and `cannot find function
+handle_one_xevent` x1 - all of them the recorded classes (Xlib's bare names, and the unported
+`handle_one_xevent`, which is a `--check` row of its own).  Five arms: `ConnectionNumber` x1 only,
+because C 18532-18557 is inside the `#ifndef USE_GTK` half and those arms compile the `#else` half.
+**Warning sets are identical to the baselines' in all twelve arms** - the first writing's `while
+true` cost one `denote infinite loops with `loop { ... }`` warning per arm, and that is why the
+port's spelling is `loop` (this file 21756).
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has no window system, so this function is not compiled
+there).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18515's `at = timespec_add (...)` moves
+**A 790 -> 791** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:28204:18`; removing
+the line returns A to the table.
+
+**What `--check` reads.**  **19 -> 18** as Decision 109 5 says, with the line-count row at **28,303**
+against C's 33,125 (14.6% drift, was 28,148 / 15.0%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no display was polled, no
+event was read and no cell was inspected; the readings above are compile readings of text this
+machine cannot build.
