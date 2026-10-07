@@ -8468,6 +8468,171 @@ class EmacsView: NSView {
     nsEvArray!.remove(theEvent)                                 // C 7426
   }
 
+  /// C 9017-9124: `- (void)toggleFullScreen: (id)sender`.  Readings: C 9034-9039's
+  /// `NS_IMPL_COCOA && MAX_ALLOWED >= 1070` arm is this target's and its inner
+  /// `MIN_REQUIRED < 1070` guard around `respondsToSelector: (toggleFullScreen:)` is **dead**, so
+  /// C 9038 is the live statement; C 9044's `[[w screen] isEqual: …]` is the optional `isEqual`;
+  /// C 9053-9061's `NS_IMPL_COCOA && MAX_ALLOWED >= 1090` arm is this target's (its inner
+  /// `MIN_REQUIRED < 1090` `respondsToSelector: (screensHaveSeparateSpaces)` guard is **dead**, and
+  /// the SDK's class property is read directly - the C 7957 reading); C 9066-9073 and C 9100-9104
+  /// are the `NS_IMPL_COCOA` arms (`NSApplicationPresentationDefault` is Swift's empty option set,
+  /// the `ns_update_auto_hide_menu_bar` reading); C 9076-9078's `[[EmacsWindow alloc]
+  /// initWithEmacsFrame:fullscreen:screen:]` is this unit's own convenience initializer (round 64);
+  /// C 9080/9112's `f->border_width` writes are the `frame_set_border_width` entry; C 9114-9115's
+  /// "To do" comment is kept; and the four `[self windowWill…]`/`[self windowDid…]` messages are
+  /// round 71's own methods.
+  @objc func toggleFullScreen(_ sender: Any?) {
+    var w: EmacsWindow?                                         // C 9019
+    var fw: EmacsWindow?                                        // C 9019
+    var onFirstScreen: Bool = false                             // C 9020
+    var f: UnsafeMutableRawPointer?                             // C 9021
+    var r = NSRect.zero                                         // C 9022
+    var col: NSColor?                                           // C 9023
+
+    // C 9025: `NSTRACE ("[EmacsView toggleFullScreen:]");` - empty.
+
+    /* C 9027-9028: "Reset fs_is_native to value of ns-use-native-full-screen if not fullscreen
+       already"  */
+    if fs_state != FULLSCREEN_BOTH() {                          // C 9029
+      fs_is_native = ns_use_native_fullscreen                   // C 9030
+    }
+
+    if fs_is_native {                                           // C 9032
+      self.window?.toggleFullScreen(sender)                     // C 9038 (the live arm)
+      return                                                    // C 9040
+    }
+
+    w = self.window as? EmacsWindow                             // C 9043
+    onFirstScreen = w?.screen?.isEqual(NSScreen.screens[0]) ?? false   // C 9044
+    f = emacsframe                                              // C 9045
+    col = NSColor.colorWithUnsignedLong(
+      NS_FACE_BACKGROUND(FACE_FROM_ID(f, DEFAULT_FACE_ID())))   // C 9046-9047
+
+    if fs_state != FULLSCREEN_BOTH() {                          // C 9049
+      let screen = w?.screen                                    // C 9051
+
+      /* C 9053-9054: "Hide ghost menu bar on secondary monitor?"  */
+      if !onFirstScreen {                                       // C 9055
+        onFirstScreen = NSScreen.screensHaveSeparateSpaces      // C 9060
+      }
+      /* C 9062: "Hide dock and menubar if we are on the primary screen."  */
+      if onFirstScreen {                                        // C 9063
+        let options: NSApplication.PresentationOptions =
+          [.autoHideDock, .autoHideMenuBar]                     // C 9066-9068
+        NSApp.presentationOptions = options                     // C 9070
+      }
+
+      fw = EmacsWindow(frame: emacsframe, fullscreen: true, screen: screen)   // C 9076-9078
+
+      frame_set_border_width(f, 0)                              // C 9080
+
+      nonfs_window = w                                          // C 9082
+
+      self.windowWillEnterFullScreen()                          // C 9084
+      fw?.makeKeyAndOrderFront(NSApp)                           // C 9085
+      w?.orderOut(self)                                         // C 9086
+      r = fw?.frameRect(forContentRect: screen!.frame) ?? .zero // C 9087
+      fw?.setFrame(r, display: true, animate: ns_use_fullscreen_animation)   // C 9088
+      self.windowDidEnterFullScreen()                           // C 9089
+      fw?.display()                                             // C 9090
+    } else {
+      fw = w                                                    // C 9094
+      w = nonfs_window                                          // C 9095
+      nonfs_window = nil                                        // C 9096
+
+      if onFirstScreen {                                        // C 9098
+        NSApp.presentationOptions = []                          // C 9101 (C's `…Default`, see above)
+      }
+
+      w?.contentView = fw?.contentView                           // C 9107
+      w?.backgroundColor = col                                   // C 9108
+      if col?.alphaComponent != EmacsCGFloat(1.0) {              // C 9109
+        w?.isOpaque = false                                      // C 9110
+      }
+
+      frame_set_border_width(f, Int32(w!.borderWidth()))         // C 9112 (EmacsWindow's own method)
+
+      /* C 9114-9115: "To do: consider using [NSNotificationCenter postNotificationName:] to send
+         notifications."  */
+
+      self.windowWillExitFullScreen()                            // C 9117
+      fw?.setFrame(w!.contentView!.frame, display: true,
+                   animate: ns_use_fullscreen_animation)         // C 9118-9119
+      fw?.close()                                                // C 9120
+      w?.makeKeyAndOrderFront(NSApp)                             // C 9121
+      self.windowDidExitFullScreen()                             // C 9122
+    }
+  }
+
+  /// C 9126-9175: `- (void)handleFS`.  C's `switch` over `emacsframe->want_fullscreen` compares a
+  /// raw int against the `FULLSCREEN_*` constants, which are entries here, so the port writes
+  /// C's `case` labels as an `if`/`else if` chain in C's own order and keeps each label's
+  /// `NSTRACE_MSG` (empty) as a recorded comment.  `[[self window] performZoom:self]` is
+  /// `NSWindow`'s own method.
+  @objc func handleFS() {
+    // C 9128: `NSTRACE ("[EmacsView handleFS]");` - empty.
+
+    if fs_state != frame_want_fullscreen(emacsframe) {          // C 9130
+      if fs_state == FULLSCREEN_BOTH() {                        // C 9132
+        // C 9134: `NSTRACE_MSG ("fs_state == FULLSCREEN_BOTH");` - empty.
+        self.toggleFullScreen(self)                             // C 9135
+      }
+
+      let want = frame_want_fullscreen(emacsframe)              // C 9138
+      if want == FULLSCREEN_BOTH() {                            // C 9140
+        // C 9141: `NSTRACE_MSG ("FULLSCREEN_BOTH");` - empty.
+        self.toggleFullScreen(self)                             // C 9142
+      } else if want == FULLSCREEN_WIDTH() {                    // C 9144
+        // C 9145: `NSTRACE_MSG ("FULLSCREEN_WIDTH");` - empty.
+        next_maximized = FULLSCREEN_WIDTH()                     // C 9146
+        if fs_state != FULLSCREEN_BOTH() {                      // C 9147
+          self.window?.performZoom(self)                        // C 9148
+        }
+      } else if want == FULLSCREEN_HEIGHT() {                   // C 9150
+        // C 9151: `NSTRACE_MSG ("FULLSCREEN_HEIGHT");` - empty.
+        next_maximized = FULLSCREEN_HEIGHT()                    // C 9152
+        if fs_state != FULLSCREEN_BOTH() {                      // C 9153
+          self.window?.performZoom(self)                        // C 9154
+        }
+      } else if want == FULLSCREEN_MAXIMIZED() {                // C 9156
+        // C 9157: `NSTRACE_MSG ("FULLSCREEN_MAXIMIZED");` - empty.
+        next_maximized = FULLSCREEN_MAXIMIZED()                 // C 9158
+        if fs_state != FULLSCREEN_BOTH() {                      // C 9159
+          self.window?.performZoom(self)                        // C 9160
+        }
+      } else if want == FULLSCREEN_NONE() {                     // C 9162
+        // C 9163: `NSTRACE_MSG ("FULLSCREEN_NONE");` - empty.
+        if fs_state != FULLSCREEN_BOTH() {                      // C 9164
+          next_maximized = FULLSCREEN_NONE()                    // C 9166
+          self.window?.performZoom(self)                        // C 9167
+        }
+      }
+
+      frame_set_want_fullscreen(emacsframe, FULLSCREEN_NONE())   // C 9172
+    }
+  }
+
+  /// C 9177-9200: `- (void) setFSValue: (int)value`.  C's `switch` over `value` becomes the same
+  /// `if`/`else if` chain `handleFS` uses (the case labels are entries, not constants the Swift
+  /// `case` pattern could carry), and the four `Q…` symbols are the generated globals family.  This
+  /// is the method round 70's deferred entry waited for.
+  func setFSValue(_ value: Int32) {
+    // C 9179-9180: the `NSTRACE` call - empty.
+
+    var lval: Lisp_Object = Qnil()                              // C 9182
+    if value == FULLSCREEN_BOTH() {                             // C 9185
+      lval = Qfullboth()                                        // C 9186
+    } else if value == FULLSCREEN_WIDTH() {                     // C 9188
+      lval = Qfullwidth()                                       // C 9189
+    } else if value == FULLSCREEN_HEIGHT() {                    // C 9191
+      lval = Qfullheight()                                      // C 9192
+    } else if value == FULLSCREEN_MAXIMIZED() {                 // C 9194
+      lval = Qmaximized()                                       // C 9195
+    }
+    store_frame_param(emacsframe, Qfullscreen(), lval)          // C 9198
+    fs_state = value                                            // C 9199
+  }
+
   /// C 8952-8955: `- (BOOL)fsIsNative` - C's whole body is the ivar read.
   func fsIsNative() -> Bool {
     fs_is_native                                      // C 8954
@@ -9143,13 +9308,13 @@ class EmacsView: NSView {
     if fs_state == FULLSCREEN_MAXIMIZED()
          && (maximized_width != Int32(frameSize.width)
              || maximized_height != Int32(frameSize.height)) {   // C 8257-8259
-      setFSValue(self, FULLSCREEN_NONE())                     // C 8260
+      self.setFSValue(FULLSCREEN_NONE())                     // C 8260
     } else if fs_state == FULLSCREEN_WIDTH()
                 && maximized_width != Int32(frameSize.width) {  // C 8261-8262
-      setFSValue(self, FULLSCREEN_NONE())                     // C 8263
+      self.setFSValue(FULLSCREEN_NONE())                     // C 8263
     } else if fs_state == FULLSCREEN_HEIGHT()
                 && maximized_height != Int32(frameSize.height) {  // C 8264-8265
-      setFSValue(self, FULLSCREEN_NONE())                     // C 8266
+      self.setFSValue(FULLSCREEN_NONE())                     // C 8266
     }
 
     if fs_state == FULLSCREEN_NONE() {                        // C 8268
@@ -9436,7 +9601,7 @@ class EmacsView: NSView {
           result.origin.x = ns_userRect.origin.x                  // C 8722
           result.size.width = ns_userRect.size.width              // C 8723
         }
-        setFSValue(self, FULLSCREEN_HEIGHT())                     // C 8725
+        self.setFSValue(FULLSCREEN_HEIGHT())                     // C 8725
         maximizing_resize = true                                  // C 8727 (the `NS_IMPL_COCOA` arm)
       } else if next_maximized == FULLSCREEN_WIDTH() {            // C 8730
         // C 8732: `NSTRACE_MSG ("FULLSCREEN_WIDTH");` - empty.
@@ -9448,7 +9613,7 @@ class EmacsView: NSView {
           result.origin.y = ns_userRect.origin.y                  // C 8738
           result.size.height = ns_userRect.size.height            // C 8739
         }
-        setFSValue(self, FULLSCREEN_WIDTH())                      // C 8741
+        self.setFSValue(FULLSCREEN_WIDTH())                      // C 8741
       } else if next_maximized == FULLSCREEN_MAXIMIZED()
                   || (next_maximized == -1
                       && abs(Int32(defaultFrame.size.width - result.size.width))
@@ -9458,7 +9623,7 @@ class EmacsView: NSView {
         result = defaultFrame  /* second click */                 // C 8750
         maximized_width = Int32(result.size.width)                // C 8751
         maximized_height = Int32(result.size.height)              // C 8752
-        setFSValue(self, FULLSCREEN_MAXIMIZED())                  // C 8753
+        self.setFSValue(FULLSCREEN_MAXIMIZED())                  // C 8753
         maximizing_resize = true                                  // C 8755 (the `NS_IMPL_COCOA` arm)
       } else {
         /* restore */
@@ -9467,7 +9632,7 @@ class EmacsView: NSView {
         // C 8763: `NSTRACE_RECT ("restore (2)", result);` - empty.
         ns_userRect = NSRect(x: 0, y: 0, width: 0, height: 0)     // C 8764
         maximizing_resize = fs_state != FULLSCREEN_NONE()          // C 8766 (the `NS_IMPL_COCOA` arm)
-        setFSValue(self, FULLSCREEN_NONE())                       // C 8768
+        self.setFSValue(FULLSCREEN_NONE())                       // C 8768
         maximized_width = -1                                      // C 8769
         maximized_height = -1                                     // C 8769 (C's chained assignment)
       }
@@ -9584,7 +9749,7 @@ class EmacsView: NSView {
   /// `else` arm is empty here and recorded.
   func windowDidEnterFullScreen() {
     // C 8873: `NSTRACE ("[EmacsView windowDidEnterFullScreen]");` - empty.
-    setFSValue(self, FULLSCREEN_BOTH())                           // C 8874
+    self.setFSValue(FULLSCREEN_BOTH())                           // C 8874
     if !self.fsIsNative() {                                       // C 8875
       self.windowDidBecomeKey()                                   // C 8877
       nonfs_window?.orderOut(self)                                // C 8878
@@ -9628,7 +9793,7 @@ class EmacsView: NSView {
       // C 8935: `NSTRACE_MSG ("Ignored (frame dead)");` - empty.
       return                                                      // C 8936
     }
-    setFSValue(self, fs_before_fs)                                // C 8938
+    self.setFSValue(fs_before_fs)                                // C 8938
     fs_before_fs = -1                                             // C 8939
     self.updateCollectionBehavior()                               // C 8941 (the `NS_IMPL_COCOA` arm)
 
@@ -14033,12 +14198,6 @@ fileprivate let MINHEIGHT: Int32 = 10
 @_silgen_name("FULLSCREEN_HEIGHT") func FULLSCREEN_HEIGHT() -> Int32
 @_silgen_name("FULLSCREEN_MAXIMIZED") func FULLSCREEN_MAXIMIZED() -> Int32
 
-/// C: `- (void) setFSValue: (int)value` on this class (declared src/nsterm.h 504, defined
-/// src/nsterm.m 9177) - C 8260/8263/8266's message.  That body has not landed, so the call goes
-/// through the entry of the method's own name with the receiver first (the shape
-/// `nsfns.swift` 411 already declares for its own unit); the definition lands with that
-/// method's round, and `nm -u` stopping to list `_setFSValue` is the acceptance test.
-@_silgen_name("setFSValue") func setFSValue(_ view: NSView?, _ value: Int32)
 
 /// C: `- (void)windowDidMove: sender` (C 8645, this class's own method) - C 8350's direct call.
 /// **Deferred** (`## ABI` (4)): that batch has not landed, so the message uses a C-ABI entry of
@@ -14190,3 +14349,43 @@ fileprivate var nsEvArray: NSMutableArray? = nil
 /// (`docs/ports/nsmenu.md` 311-328).
 @_silgen_name("mouse_highlight_mouse_face_window")
 func mouse_highlight_mouse_face_window(_ hlinfo: UnsafeMutableRawPointer?) -> Lisp_Object
+
+// ==========================================================================
+// Round 75: the entries the fullscreen trio needs, and its two providers
+// ==========================================================================
+
+/// C: the generated globals `Qfullboth`, `Qfullwidth`, `Qfullheight`, `Qmaximized` and
+/// `Qfullscreen` (globals.h; `iQfullboth` 906, `iQfullwidth` 909, `iQfullheight` 907,
+/// `iQmaximized` 1273 and `iQfullscreen` 908 in `docs/baseline/globals/symbols.tsv`, all
+/// `frame.c`'s `DEFSYM`s) - C 9186/9189/9192/9195's and C 9198's arguments.  The core exports one
+/// C-ABI entry per name (the `Qnil`/`Qleft` family); the mirror carries them at
+/// `femacs/src/include/globals.rs` 2728-2737 and 3829.
+@_silgen_name("Qfullboth") func Qfullboth() -> Lisp_Object
+@_silgen_name("Qfullwidth") func Qfullwidth() -> Lisp_Object
+@_silgen_name("Qfullheight") func Qfullheight() -> Lisp_Object
+@_silgen_name("Qmaximized") func Qmaximized() -> Lisp_Object
+@_silgen_name("Qfullscreen") func Qfullscreen() -> Lisp_Object
+
+/// C: the `struct frame` member `f->want_fullscreen` (src/frame.h) - C 9172's **write**
+/// (C 9130/9138 read it through `frame_want_fullscreen` above).  **Open**, the member-write shape
+/// `frame_set_<member>`.
+@_silgen_name("frame_set_want_fullscreen")
+func frame_set_want_fullscreen(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+// ==========================================================================
+// Round 75: the two providers rounds 25 and 70 left waiting
+// ==========================================================================
+
+/// The C-ABI half of `handleFS` above (the `@_cdecl("isFullscreen")` pattern): round 25 landed the
+/// deferred entry `handleFS_entry` beside `fsIsNative`, and its call site is C 8985.
+@_cdecl("handleFS")
+func handleFS_definition(_ view: NSView?) {
+  (view as? EmacsView)?.handleFS()
+}
+
+/// The same half for `setFSValue:` above: round 70 landed the deferred entry for C 8260/8263/8266
+/// and round 71 for C 8874/8938.
+@_cdecl("setFSValue")
+func setFSValue_definition(_ view: NSView?, _ value: Int32) {
+  (view as? EmacsView)?.setFSValue(value)
+}

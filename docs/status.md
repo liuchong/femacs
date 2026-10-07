@@ -16726,3 +16726,36 @@
      无全盘/大内存扫描。
   ⑦ **未声称**：本轮**没有运行证据**——没有任何按键事件被投递给这个视图；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.015 `src/nsterm.m` round 75（Swift lane）：全屏三件落地（C 9017-9200），两个延迟入口随之收口、一个入口改直呼（2026-10-08）**：
+  ① **落地三个 `EmacsView` 方法**：`toggleFullScreen:`（C 9017-9124）、`handleFS`（C 9126-9175）、`setFSValue:`
+     （C 9177-9200）。台账勾 **3 个框**（勾 **398 → 401**、未勾 **32 → 29**；缩进的方法盒子剩 **28**），
+     `EmacsView` 类盒子同时改成"还剩 **28** 个方法盒子"。
+  ② **两个提供者落地、一个延迟入口改成直呼**：`@_cdecl("handleFS")`（round 25 在 `fsIsNative` 旁落的入口，调用点 C 8985）
+     与 `@_cdecl("setFSValue")`（`nsfns.swift` 411 的入口与本单元 round 70 的入口都在等它）。方法既已落地，
+     round 70 在本单元里的 `@_silgen_name("setFSValue")` 声明**撤掉**，它的九处调用点
+     （`windowWillUseStandardFrame:` 的 C 8260/8263/8266、`windowDidEnterFullScreen` 的 C 8874、
+     `windowDidExitFullScreen` 的 C 8938）改成 `self.setFSValue (…)`——正是 C 自己的 `[self setFSValue:]` 写法。
+  ③ **首跑十一处编译错误，逐处量到判据**：⑴ `toggleFullScreen:` 在 Swift 里**不是** `NSResponder` 的方法 ⇒
+     不能写 `override`（编译器原话"method does not override any method from its superclass"）；⑵ C 9112 的
+     `[w borderWidth]` 是 **`EmacsWindow` 自己的方法**（`borderWidth ()` C 9928），不是 `NSWindow` 的属性 ⇒ 要带 `()` 调；
+     ⑶ `setFSValue` 作为**全局入口**（round 70 那条）与本轮落地的**方法**重名 ⇒ 九处调用点被编译器逐一点名。
+  ④ **写进代码的读数**：C 9034-9039 与 C 9053-9061 两块 `NS_IMPL_COCOA` 是本目标的，各自内层 `MIN_REQUIRED` 的
+     `respondsToSelector:` 守卫**是死的**（所以 C 9038 与 C 9060 是活语句，SDK 的 `screensHaveSeparateSpaces`
+     类属性直读——C 7957 那条读法）；C 9066-9073 与 C 9101 是 Cocoa 的演示选项臂
+     （`NSApplicationPresentationDefault` 是 Swift 的空选项集）；C 9076-9078 的
+     `[[EmacsWindow alloc] initWithEmacsFrame:fullscreen:screen:]` 是本单元自己的便利构造器（round 64）；
+     C 9114-9115 的 "To do" 注释保留；两处按 `FULLSCREEN_*` 常量的 `switch` 落成 C 顺序的 `if`/`else if` 链
+     （那些 `case` 标签是入口、Swift 的 `case` 模式拿不动），每个标签的 `NSTRACE_MSG` 按既有写法记名。
+  ⑤ **本轮新增 6 个入口**：五个生成全局 `Qfullboth`/`Qfullwidth`/`Qfullheight`/`Qmaximized`/`Qfullscreen`
+     （`docs/baseline/globals/symbols.tsv` 906/909/907/1273/908，`Qnil`/`Qleft` 那一族）与成员写
+     `frame_set_want_fullscreen`（**open**）。
+  ⑥ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 74 的九条逐条相同）；对象
+     `/tmp/nsterm75.o` **1,324,136 字节**、md5 `1febe78e3bdf95279ab072ecb6f8045c`；单元 **14,391 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **690** C symbol import(s)`
+     （round 74 是 685），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**。
+  ⑦ **预算与清理**：本片编译 **3 发**（首跑 11 错、第二发 1 错、第三发即过，都是单文件 `swiftc -c`，各约 2 秒）；
+     另用 **5 组只读 grep** 钉准入口名与判据行号；**对象 `/tmp/nsterm75.o` 与两个 `/tmp/r75*.swift` 片段跑完即删**，
+     无全盘/大内存扫描。
+  ⑧ **未声称**：本轮**没有运行证据**——没有窗口进/出过全屏；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
