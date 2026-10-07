@@ -649,6 +649,7 @@ include!("../lib/include/math.rs");               // C 627: `#include <math.h>`
 include!("../lib/include/signal.rs");             // C 628: `#include <signal.h>`
 include!("include/lisp.rs");                      // C 630: `#include "lisp.h"`
 include!("../lib/include/stdcountof.rs");    // lisp.h 28: `#include <stdcountof.h>`
+include!("../lib/include/stdckdint.in.rs");     // lisp.h 27: `#include <stdckdint.h>` (lisp.h's ckd_add)
 include!("../lib/include/string.rs");                 // lisp.h 30: `#include <string.h>` (memcmp)
 include!("../lib/include/limits.in.rs");                 // lisp.h 33: `#include <limits.h>` (LONG_MAX)
 include!("include/blockinput.rs");                // C 631: `#include "blockinput.h"`
@@ -19938,6 +19939,1275 @@ unsafe fn xi_check_toolkit (display: *mut Display) -> c_int
 
 /* Remove all the selection input events on the keyboard buffer
    intended for DPYINFO.  */
+
+/* Open a connection to X display DISPLAY_NAME, and return the
+   structure that describes the open display.  If obtaining the XCB
+   connection or toolkit-specific display fails, return NULL.  Signal
+   an error if opening the display itself failed.  */
+
+/// C 30667-31838: `struct x_display_info *x_term_init (Lisp_Object display_name, char *xrm_option,
+/// char *resource_name)` - non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub
+/// unsafe extern "C" fn` (PORTING.md 0.2/1.4).  It is the file's **third** longest body and the
+/// last thing this region owes `--check`; every arm is C's own nesting (P-86 1), and the three
+/// display-opening arms are C's `USE_GTK` / `USE_X_TOOLKIT` / plain-X chain.  `cm_atom_fmt` is C's
+/// function-`static` array (PORTING.md 1.3 keeps it here) and `cm_atom_sprintf`'s size is C's
+/// `sizeof cm_atom_fmt - 2 + INT_STRLEN_BOUND (int)` - 12 plus this file's own `INT_STRLEN_BOUND!`
+/// macro (18792).  C 31017's `title[] = "GNU Emacs"` is the *default display name* PORTING.md's
+/// eighth half names: this repository's own name goes there (0.1-19's name half, status 3.433/
+/// 3.599), so the port writes `c"femacs"`.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_term_init (display_name: Lisp_Object, xrm_option: *mut c_char,
+				       resource_name: *mut c_char) -> *mut x_display_info
+{
+  let dpy: *mut Display;                                                // C 30670
+  let mut keyboard_state: XKeyboardState = std::mem::zeroed ();          // C 30671
+  let terminal: *mut terminal_type;                                     // C 30672
+  let dpyinfo: *mut x_display_info;                                     // C 30673
+  let xrdb: XrmDatabase;                                                // C 30674
+  let mut tem: Lisp_Object;                                             // C 30675
+  let mut quit_keysym: Lisp_Object;                                     // C 30675
+#[cfg (feature = "use_xcb")]
+  let xcb_conn: *mut xcb_connection_t;                                  // C 30677
+  let cm_atom_fmt: &CStr = c"_NET_WM_CM_S%d";                           // C 30679
+  /* frame.h 1840's `EMACS_CLASS`: the toolkit resource class - C 30822 hands it to
+     `XtOpenDisplay` and C 31053 to `x_load_resources`.  An *external* name (the X server and the
+     user's own resource file read it, like the `*EmacsShell.title` specifiers slice 107's table
+     keeps), so it keeps C's bytes - 0.1-19's eighth half, status 3.599.  */
+  let EMACS_CLASS: &CStr = c"Emacs";
+  let mut cm_atom_sprintf: [c_char; 12 + INT_STRLEN_BOUND! (c_int) as usize]
+    = [0; 12 + INT_STRLEN_BOUND! (c_int) as usize];                     // C 30680
+#[cfg (feature = "use_gtk")]
+  let gdpy: *mut GdkDisplay;                                            // C 30682
+#[cfg (feature = "use_gtk")]
+  let mut gscr: *mut GdkScreen;                                         // C 30683
+#[cfg (feature = "have_xfixes")]
+  let mut lisp_name: Lisp_Object;                                       // C 30686
+#[cfg (feature = "have_xfixes")]
+  let mut num_fast_selections: c_int;                                   // C 30687
+#[cfg (feature = "have_xfixes")]
+  let mut selection_name: Atom;                                         // C 30688
+#[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
+  let selection_cookies: *mut xcb_get_selection_owner_cookie_t;         // C 30690
+#[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
+  let selection_reply: *mut xcb_get_selection_owner_reply_t;            // C 30691
+#[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
+  let selection_error: *mut xcb_generic_error_t;                        // C 30692
+  let mut i: c_int;                                                     // C 30695
+
+#[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                // C 30698
+
+  block_input ();                                                       // C 30701
+
+#[cfg (feature = "use_gtk")]
+  let was_initialized: bool = x_initialized;                            // C 30704
+  if !x_initialized                                                      // C 30706
+    {
+      x_initialize ();                                                  // C 30708
+      x_initialized = true;                                             // C 30709
+    }
+
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+  if !x_display_ok (SSDATA (display_name))                              // C 30714
+    { error (c"Display %s can't be opened".as_ptr (), SSDATA (display_name)); }  // C 30715
+
+/* C 30719-30794: `#ifdef USE_GTK` - the GTK arm builds its own argv and calls `gtk_init`; C 30721's
+   `#define NUM_ARGV 10` is the block's own `const`.  */
+#[cfg (feature = "use_gtk")]
+  {
+    const NUM_ARGV: usize = 10;                                         // C 30721
+    let mut argc: c_int;                                                // C 30722
+    let mut argv: [*mut c_char; NUM_ARGV] = [std::ptr::null_mut (); NUM_ARGV];  // C 30723
+    let mut argv2: *mut *mut c_char = argv.as_mut_ptr ();                // C 30724
+    let id: guint;                                                      // C 30725
+
+    if was_initialized                                                 // C 30727
+      {
+	xg_display_open (SSDATA (display_name), &raw mut dpy);       // C 30729
+      }
+    else
+      {
+	let display_opt: &CStr = c"--display";                        // C 30733
+	let name_opt: &CStr = c"--name";                              // C 30734
+
+	argc = 0;   /* C 30736's `for` step stands at the body's end.  */
+	while argc < NUM_ARGV as c_int                                  // C 30736
+	  {
+	    argv[argc as usize] = std::ptr::null_mut ();            // C 30737
+	    argc += 1;
+	  }
+
+	argc = 0;                                                   // C 30739
+	argv[argc as usize] = initial_argv0;                        // C 30740
+	argc += 1;
+
+	if !NILP (display_name)                                     // C 30742
+	  {
+	    argv[argc as usize] = display_opt.as_ptr () as *mut c_char;  // C 30744
+	    argc += 1;
+	    argv[argc as usize] = SSDATA (display_name);            // C 30745
+	    argc += 1;
+	  }
+
+	argv[argc as usize] = name_opt.as_ptr () as *mut c_char;    // C 30748
+	argc += 1;
+	argv[argc as usize] = resource_name;                        // C 30749
+	argc += 1;
+
+	XSetLocaleModifiers (c"".as_ptr ());                        // C 30751
+
+	/* Work around GLib bug that outputs a faulty warning. See
+	   https://bugzilla.gnome.org/show_bug.cgi?id=563627.  */
+	id = g_log_set_handler (c"GLib".as_ptr (),                 // C 30755
+				(G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL
+				 | G_LOG_FLAG_RECURSION) as c_uint,
+				Some (my_log_handler), std::ptr::null_mut ());
+
+	/* NULL window -> events for all windows go to our function.
+	   Call before gtk_init so Gtk+ event filters comes after our.  */
+	gdk_window_add_filter (std::ptr::null_mut (),              // C 30760
+			       Some (event_handler_gdk), std::ptr::null_mut ());
+
+	gtk_disable_setlocale ();                                   // C 30762
+	unrequest_sigio (); /* See comment in x_display_ok.  */     // C 30763
+	gtk_init (&raw mut argc, &raw mut argv2);                   // C 30764
+	request_sigio ();                                           // C 30765
+
+	g_log_remove_handler (c"GLib".as_ptr (), id);               // C 30767
+
+	xg_initialize ();                                           // C 30769
+	/* When Fontconfig is used, xg_initialize calls its initialization
+	   function which in some versions of Fontconfig calls setlocale.  */
+	fixup_locale ();                                            // C 30773
+
+	dpy = DEFAULT_GDK_DISPLAY! ();                              // C 30775
+
+#[cfg (not (feature = "have_gtk3"))]
+	{
+	  /* Load our own gtkrc if it exists.  */
+	  let file: &CStr = c"~/.emacs.d/gtkrc";                      // C 30780
+	  let mut s: Lisp_Object;                                   // C 30781
+	  let mut abs_file: Lisp_Object;
+
+	  s = build_string (file.as_ptr ());                        // C 30783
+	  abs_file = Fexpand_file_name (s, Qnil ());                // C 30784
+
+	  if !NILP (abs_file) && !NILP (Ffile_readable_p (abs_file))  // C 30786
+	    { gtk_rc_parse (SSDATA (abs_file)); }                   // C 30787
+	}
+
+	XSetErrorHandler (Some (x_error_handler));                  // C 30791
+	XSetIOErrorHandler (Some (x_io_error_quitter));             // C 30792
+      }
+  }
+
+/* C 30795-30883: the rest of the display-opening chain and its two failure exits.  C's `#else`
+   cannot carry a Rust attribute, so each arm is its own `#[cfg]` block (slice 106's shape):
+   the `USE_X_TOOLKIT` arm (whose `XtOpenDisplay` is handed `emacs_options` and `EMACS_CLASS`),
+   the plain-X arm, then the two `return 0` paths (`dpy == 0`, and a null XCB connection).  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "use_x_toolkit"))]
+  {
+    /* weiner@footloose.sps.mot.com reports that this causes
+       errors with X11R5:
+	     X protocol error: BadAtom (invalid Atom parameter)
+	     on protocol request 18skiloaf.
+       So let's not use it until R6.  */
+#[cfg (feature = "have_x11xtr6")]
+    { XtSetLanguageProc (std::ptr::null_mut (), None, std::ptr::null_mut ()); }   // C 30803
+
+    let mut argc: c_int = 0;                                             // C 30807
+    let mut argv: [*mut c_char; 3];                                      // C 30808
+
+    const MT: &CStr = c"";                                               // C 30810
+    argv[0] = MT.as_ptr () as *mut c_char;                               // C 30811
+    argc = 1;                                                            // C 30812
+    if !xrm_option.is_null ()                                            // C 30813
+      {
+	const XRMOPT: &CStr = c"-xrm";                                   // C 30815
+	argv[argc as usize] = XRMOPT.as_ptr () as *mut c_char;           // C 30816
+	argc += 1;
+	argv[argc as usize] = xrm_option;                                // C 30817
+	argc += 1;
+      }
+    turn_on_atimers (false);                                             // C 30819
+    unrequest_sigio ();  /* See comment in x_display_ok.  */             // C 30820
+    dpy = XtOpenDisplay (Xt_app_con, SSDATA (display_name),              // C 30821-30824
+			 resource_name, EMACS_CLASS.as_ptr (),
+			 emacs_options.as_mut_ptr (),
+			 (std::mem::size_of_val (&emacs_options)
+			  / std::mem::size_of_val (&emacs_options[0])) as c_uint,
+			 &raw mut argc, argv.as_mut_ptr ());
+    request_sigio ();                                                    // C 30825
+    turn_on_atimers (true);                                              // C 30826
+#[cfg (feature = "have_x11xtr6")]
+    /* I think this is to compensate for XtSetLanguageProc.  */
+    { fixup_locale (); }  // C 30830
+  }
+
+/* C 30834-30839: the plain-X arm, the one C compiles when neither toolkit is configured.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"),
+	    not (feature = "use_x_toolkit")))]
+  {
+    XSetLocaleModifiers (c"".as_ptr ());                                 // C 30835
+    unrequest_sigio ();  /* See comment in x_display_ok.  */             // C 30836
+    dpy = XOpenDisplay (SSDATA (display_name));                          // C 30837
+    request_sigio ();                                                    // C 30838
+  }
+
+  /* Detect failure.  */
+  if dpy.is_null ()                                                      // C 30843
+    {
+      /* Avoid opening a display three times (once in dispextern.c
+	 upon startup, once in x_display_ok, and once above) to
+	 determine whether or not the display is alive on no toolkit
+	 builds, where no toolkit initialization happens at all.  */
+
+#[cfg (all (not (feature = "use_x_toolkit"), not (feature = "use_gtk")))]
+      { error (c"Display %s can't be opened".as_ptr (), SSDATA (display_name)); }  // C 30851
+
+      unblock_input ();                                                  // C 30854
+
+#[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
+      SAFE_FREE! (sa_count);                                             // C 30857
+      return std::ptr::null_mut ();                                      // C 30859
+    }
+
+#[cfg (feature = "use_xcb")]
+  {
+    xcb_conn = XGetXCBConnection (dpy);                                   // C 30863
+    if xcb_conn.is_null ()                                                // C 30864
+      {
+#[cfg (feature = "use_gtk")]
+	{ xg_display_close (dpy); }                                      // C 30867
+#[cfg (all (not (feature = "use_gtk"), feature = "use_x_toolkit"))]
+	{ XtCloseDisplay (dpy); }                                        // C 30870
+#[cfg (all (not (feature = "use_gtk"), not (feature = "use_x_toolkit")))]
+	{ XCloseDisplay (dpy); }                                         // C 30872
+
+	unblock_input ();                                                // C 30876
+
+#[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
+	SAFE_FREE! (sa_count);                                           // C 30879
+	return std::ptr::null_mut ();                                    // C 30881
+      }
+  }
+  /* Select for structure events on the root window, since this allows
+     us to record changes to the size of the screen.  */
+
+  XSelectInput (dpy, DefaultRootWindow (dpy), StructureNotifyMask);     // C 30888
+
+  /* We have definitely succeeded.  Record the new connection.  */
+
+  dpyinfo = xzalloc (std::mem::size_of::<x_display_info> ()) as *mut x_display_info;  // C 30892
+  terminal = x_create_terminal (dpyinfo);                               // C 30893
+
+  if !NILP (Vx_detect_server_trust)                                     // C 30895
+    {
+      /* Detect whether or not the X server trusts this client, which
+	 is done by making a SetKeyboardControl request and checking
+	 for an Access error.  */
+      XGrabServer (dpy);                                                // C 30900
+      XGetKeyboardControl (dpy, &raw mut keyboard_state);               // C 30901
+
+      x_catch_errors (dpy);                                             // C 30903
+
+      /* At this point, the display is not on x_display_list, so
+	 x_uncatch_errors won't sync.  However, that's okay because
+	 x_had_errors_p will.  */
+
+      if keyboard_state.global_auto_repeat == AutoRepeatModeOn         // C 30909-30910
+	{ XAutoRepeatOn (dpy); }                                        // C 30911
+      else
+	{ XAutoRepeatOff (dpy); }                                       // C 30913
+
+      if x_had_errors_p (dpy)                                           // C 30915
+	{ (*dpyinfo).untrusted = true; }                                // C 30916
+      x_uncatch_errors_after_check ();                                  // C 30917
+      XUngrabServer (dpy);                                              // C 30918
+    }
+
+  (*dpyinfo).next_failable_request
+    = &raw mut (*dpyinfo).failable_requests as *mut x_failable_request;  // C 30921
+
+  {
+    let mut share: *mut x_display_info;                                 // C 30924
+
+    share = x_display_list;                                             // C 30926
+    while !share.is_null ()
+      {
+	if same_x_server (SSDATA (XCAR ((*share).name_list_element)),  // C 30927-30928
+			  SSDATA (display_name))
+	  { break; }                                                    // C 30929
+	share = (*share).next;
+      }
+    if !share.is_null ()                                                // C 30930
+      { (*terminal).kboard = (*(*share).terminal).kboard; }             // C 30931
+    else
+      {
+	(*terminal).kboard = allocate_kboard (Qx);                      // C 30934
+
+	if !BASE_EQ ((*XSYMBOL (Qvendor_specific_keysyms)).u.s.function,  // C 30936-30937
+		     Qunbound ())
+	  {
+	    let vendor: *mut c_char = ServerVendor (dpy);               // C 30939
+
+	    /* Temporarily hide the partially initialized terminal.
+	       Use safe_call so that if a signal happens, a partially
+	       initialized display (and display connection) is not
+	       kept around.  */
+	    terminal_list = (*terminal).next_terminal;                  // C 30945
+	    unblock_input ();                                           // C 30946
+	    kset_system_key_alist ((*terminal).kboard,                  // C 30947-30951
+				   safe_calln! (Qvendor_specific_keysyms,
+						if vendor.is_null ()
+						  { empty_unibyte_string }
+						else
+						  { build_string (vendor) }));
+	    block_input ();                                             // C 30952
+	    (*terminal).next_terminal = terminal_list;                  // C 30953
+	    terminal_list = terminal;                                   // C 30954
+	  }
+
+	/* Don't let the initial kboard remain current longer than necessary.
+	   That would cause problems if a file loaded on startup tries to
+	   prompt in the mini-buffer.  */
+	if current_kboard == initial_kboard                             // C 30960
+	  { current_kboard = (*terminal).kboard; }                      // C 30961
+      }
+    (*(*terminal).kboard).reference_count += 1;                         // C 30963
+  }
+
+  /* Now look through Vx_quit_keysym for the quit keysym associated
+     with this display.  */
+  tem = Vx_quit_keysym;                                                 // C 30968
+  FOR_EACH_TAIL_SAFE! (tem, {                                           // C 30969
+      quit_keysym = XCAR (tem);                                         // C 30971
+
+      /* Check if its car is a string and its cdr a valid keysym.
+	 Skip if it is not.  */
+
+      if !CONSP (quit_keysym) || !FIXNUMP (XCDR (quit_keysym))          // C 30976-30977
+	|| !STRINGP (XCAR (quit_keysym))
+	{ continue; }                                                   // C 30978
+
+      /* Check if this is the keysym to be used.  */
+
+      if strcmp (SSDATA (XCAR (quit_keysym)), ServerVendor (dpy)) != 0  // C 30982
+	{ continue; }                                                   // C 30983
+
+      (*dpyinfo).quit_keysym = XFIXNUM (XCDR (quit_keysym)) as KeySym;  // C 30985
+  });
+
+  /* Put this display on the chain.  */
+  (*dpyinfo).next = x_display_list;                                     // C 30989
+  x_display_list = dpyinfo;                                             // C 30990
+
+  (*dpyinfo).name_list_element = Fcons (display_name, Qnil ());         // C 30992
+  (*dpyinfo).display = dpy;                                             // C 30993
+  (*dpyinfo).connection = ConnectionNumber ((*dpyinfo).display);        // C 30994
+#[cfg (feature = "use_xcb")]
+  { (*dpyinfo).xcb_connection = xcb_conn; }                            // C 30996
+
+  /* https://lists.gnu.org/r/emacs-devel/2015-11/msg00194.html  */
+  (*dpyinfo).smallest_font_height = 1;                                  // C 31000
+  (*dpyinfo).smallest_char_width = 1;                                   // C 31001
+
+  (*dpyinfo).color_names_size = 256;                                    // C 31003
+  (*dpyinfo).color_names = xzalloc ((*dpyinfo).color_names_size as usize
+				    * std::mem::size_of::<*mut color_name_cache_entry> ())
+    as *mut *mut color_name_cache_entry;                                // C 31004-31005
+  (*dpyinfo).color_names_length = xzalloc ((*dpyinfo).color_names_size as usize
+					   * std::mem::size_of::<ptrdiff_t> ())
+    as *mut ptrdiff_t;                                                  // C 31006-31007
+
+  /* Set the name of the terminal. */
+  (*terminal).name = xlispstrdup (display_name);                        // C 31010
+
+  /* C 31012-31014: C's own `#if false` block (`XSetAfterFunction (dpyinfo->display,
+     x_trace_wire);`) - no arm of the frozen configuration compiles it, so the port carries the
+     text out and records it here rather than inventing a Rust `cfg` for it.  */
+
+  let system_name: Lisp_Object = Fsystem_name ();                       // C 31016
+  /* C 31017's `title[] = "GNU Emacs"` is the *default display name* 0.1-19's eighth half names:
+     this repository's own name goes there, and the two sizes follow C's `sizeof` (NUL included).  */
+  let title: &CStr = c"femacs";
+  if STRINGP (system_name)                                              // C 31018
+    {
+      let at: &CStr = c" at ";                                          // C 31020
+      let mut nbytes: ptrdiff_t = (title.to_bytes_with_nul ().len ()
+				   + at.to_bytes_with_nul ().len ()) as ptrdiff_t;  // C 31021
+      if ckd_add! (&raw mut nbytes, nbytes, SBYTES (system_name))       // C 31022
+	{ memory_full_up (); }                                          // C 31023
+      (*dpyinfo).x_id_name = xmalloc (nbytes as usize) as *mut c_char;  // C 31024
+      sprintf ((*dpyinfo).x_id_name, c"%s%s%s".as_ptr (), title.as_ptr (),  // C 31025
+	       at.as_ptr (), SDATA (system_name));
+    }
+  else
+    {
+      (*dpyinfo).x_id_name
+	= xmalloc (title.to_bytes_with_nul ().len ()) as *mut c_char;   // C 31029
+      strcpy ((*dpyinfo).x_id_name, title.as_ptr ());                   // C 31030
+    }
+
+  x_display_id += 1;                                                    // C 31033
+  (*dpyinfo).x_id = x_display_id;                                       // C 31033
+
+#[cfg (not (feature = "have_xkb"))]
+  /* Figure out which modifier bits mean what.  */
+  { x_find_modifier_meanings (dpyinfo); }  // C 31037
+
+  /* Get the scroll bar cursor.  */
+#[cfg (feature = "use_gtk")]
+  /* We must create a GTK cursor, it is required for GTK widgets.  */
+  { (*dpyinfo).xg_cursor = xg_create_default_cursor ((*dpyinfo).display); }  // C 31043
+
+  (*dpyinfo).vertical_scroll_bar_cursor                                 // C 31046-31047
+    = XCreateFontCursor ((*dpyinfo).display, XC_sb_v_double_arrow);
+
+  (*dpyinfo).horizontal_scroll_bar_cursor                               // C 31049-31050
+    = XCreateFontCursor ((*dpyinfo).display, XC_sb_h_double_arrow);
+
+  xrdb = x_load_resources ((*dpyinfo).display, xrm_option,              // C 31052-31053
+			   resource_name, EMACS_CLASS.as_ptr ());
+#[cfg (feature = "have_xrmsetdatabase")]
+  { XrmSetDatabase ((*dpyinfo).display, xrdb); }                       // C 31055
+#[cfg (not (feature = "have_xrmsetdatabase"))]
+  { (*(*dpyinfo).display).db = xrdb; }                                 // C 31057
+#[cfg (feature = "have_xrender")]
+  {
+    let mut event_base: c_int = 0;                                      // C 31061 (Deviation 12)
+    let mut error_base: c_int = 0;                                      // C 31061 (Deviation 12)
+    (*dpyinfo).xrender_supported_p                                      // C 31062-31063
+      = XRenderQueryExtension ((*dpyinfo).display, &raw mut event_base, &raw mut error_base);
+
+    if (*dpyinfo).xrender_supported_p                                   // C 31065
+      { (*dpyinfo).xrender_supported_p                                  // C 31066-31068
+	  = XRenderQueryVersion ((*dpyinfo).display, &raw mut (*dpyinfo).xrender_major,
+				 &raw mut (*dpyinfo).xrender_minor); }
+  }
+
+  /* This must come after XRenderQueryVersion! */
+#[cfg (feature = "have_xcomposite")]
+  {
+    let mut composite_event_base: c_int = 0;                            // C 31073 (Deviation 12)
+    let mut composite_error_base: c_int = 0;                            // C 31073 (Deviation 12)
+    (*dpyinfo).composite_supported_p                                    // C 31074-31076
+      = XCompositeQueryExtension ((*dpyinfo).display, &raw mut composite_event_base,
+				  &raw mut composite_error_base);
+
+    if (*dpyinfo).composite_supported_p                                 // C 31078
+      { (*dpyinfo).composite_supported_p                                // C 31079-31082
+	  = XCompositeQueryVersion ((*dpyinfo).display, &raw mut (*dpyinfo).composite_major,
+				    &raw mut (*dpyinfo).composite_minor); }
+  }
+
+#[cfg (feature = "have_xshape")]
+  {
+    (*dpyinfo).xshape_supported_p                                       // C 31086-31089
+      = XShapeQueryExtension ((*dpyinfo).display, &raw mut (*dpyinfo).xshape_event_base,
+			      &raw mut (*dpyinfo).xshape_error_base);
+
+    if (*dpyinfo).xshape_supported_p                                    // C 31091
+      { (*dpyinfo).xshape_supported_p                                   // C 31092-31095
+	  = XShapeQueryVersion ((*dpyinfo).display, &raw mut (*dpyinfo).xshape_major,
+				&raw mut (*dpyinfo).xshape_minor); }
+  }
+
+  /* Put the rdb where we can find it in a way that works on
+     all versions.  */
+  (*dpyinfo).rdb = xrdb;                                                // C 31100
+
+  (*dpyinfo).screen = ScreenOfDisplay ((*dpyinfo).display,               // C 31102-31103
+				       DefaultScreen ((*dpyinfo).display));
+  select_visual (dpyinfo);                                              // C 31104
+  (*dpyinfo).cmap = DefaultColormapOfScreen ((*dpyinfo).screen);         // C 31105
+  (*dpyinfo).root_window = RootWindowOfScreen ((*dpyinfo).screen);       // C 31106
+  (*dpyinfo).icon_bitmap_id = -1;                                        // C 31107
+  (*dpyinfo).wm_type = X_WMTYPE_UNKNOWN;                                 // C 31108
+
+  reset_mouse_highlight (&raw mut (*dpyinfo).mouse_highlight);           // C 31110
+
+#[cfg (feature = "have_xrender")]
+  if (*dpyinfo).xrender_supported_p                                      // C 31113
+      /* This could already have been initialized by
+	 `select_visual'.  */
+      && (*dpyinfo).pict_format.is_null ()                               // C 31116
+    { (*dpyinfo).pict_format                                           // C 31117-31118
+	= XRenderFindVisualFormat ((*dpyinfo).display, (*dpyinfo).visual); }
+
+#[cfg (feature = "have_xsync")]
+  {
+    let mut xsync_event_base: c_int = 0;                                // C 31122 (Deviation 12)
+    let mut xsync_error_base: c_int = 0;                                // C 31122 (Deviation 12)
+    (*dpyinfo).xsync_supported_p                                        // C 31123-31126
+      = XSyncQueryExtension ((*dpyinfo).display, &raw mut xsync_event_base,
+			     &raw mut xsync_error_base);
+
+    if (*dpyinfo).xsync_supported_p                                     // C 31128
+      { (*dpyinfo).xsync_supported_p                                    // C 31129-31131
+	  = XSyncInitialize ((*dpyinfo).display, &raw mut (*dpyinfo).xsync_major,
+			     &raw mut (*dpyinfo).xsync_minor); }
+
+    {
+      AUTO_STRING! (synchronizeResize, "synchronizeResize");            // C 31134
+      AUTO_STRING! (SynchronizeResize, "SynchronizeResize");            // C 31135
+
+      let value: Lisp_Object = gui_display_get_resource (dpyinfo,       // C 31137-31140
+							 synchronizeResize,
+							 SynchronizeResize,
+							 Qnil (), Qnil ());
+
+      if STRINGP (value)                                                // C 31142
+	&& (strcmp (SSDATA (value), c"false".as_ptr ()) == 0            // C 31143
+	    || strcmp (SSDATA (value), c"off".as_ptr ()) == 0)          // C 31144
+	{ (*dpyinfo).xsync_supported_p = false; }                       // C 31145
+    }
+  }
+
+#[cfg (feature = "have_xinerama")]
+  {
+    let mut xin_event_base: c_int = 0;                                  // C 31150 (Deviation 12)
+    let mut xin_error_base: c_int = 0;                                  // C 31150 (Deviation 12)
+    (*dpyinfo).xinerama_supported_p                                     // C 31151-31152
+      = XineramaQueryExtension (dpy, &raw mut xin_event_base, &raw mut xin_error_base);
+  }
+
+  /* See if a private colormap is requested.  */
+  if (*dpyinfo).visual == DefaultVisualOfScreen ((*dpyinfo).screen)      // C 31156
+    {
+      if (*dpyinfo).visual_info.class == PseudoColor                    // C 31158
+	{
+	  AUTO_STRING! (privateColormap, "privateColormap");            // C 31160
+	  AUTO_STRING! (PrivateColormap, "PrivateColormap");            // C 31161
+	  let value: Lisp_Object                                        // C 31162-31164
+	    = gui_display_get_resource (dpyinfo, privateColormap,
+					PrivateColormap, Qnil (), Qnil ());
+	  if STRINGP (value)                                            // C 31165
+	      && (strcmp (SSDATA (value), c"true".as_ptr ()) == 0       // C 31166
+		  || strcmp (SSDATA (value), c"on".as_ptr ()) == 0)     // C 31167
+	    { (*dpyinfo).cmap = XCopyColormapAndFree ((*dpyinfo).display,  // C 31168
+						      (*dpyinfo).cmap); }
+	}
+    }
+  else
+    { (*dpyinfo).cmap = XCreateColormap ((*dpyinfo).display, (*dpyinfo).root_window,  // C 31172-31173
+					 (*dpyinfo).visual, AllocNone); }
+
+  /* See if we can construct pixel values from RGB values.  */
+  if (*dpyinfo).visual_info.class == TrueColor                          // C 31176
+    {
+      get_bits_and_offset ((*dpyinfo).visual_info.red_mask,             // C 31178-31179
+			   &raw mut (*dpyinfo).red_bits, &raw mut (*dpyinfo).red_offset);
+      get_bits_and_offset ((*dpyinfo).visual_info.blue_mask,            // C 31180-31181
+			   &raw mut (*dpyinfo).blue_bits, &raw mut (*dpyinfo).blue_offset);
+      get_bits_and_offset ((*dpyinfo).visual_info.green_mask,           // C 31182-31183
+			   &raw mut (*dpyinfo).green_bits, &raw mut (*dpyinfo).green_offset);
+
+      /* C 31185-31198: `#ifdef HAVE_XRENDER` puts the `pict_format` arm first, and C's `else`
+	 (the `XAllocColor` fallback) is compiled in *both* configurations - a Rust `else` cannot
+	 carry an attribute (slice 106's note), so the port hoists the guard the attribute would
+	 have to sit on and keeps C's two arms in C's order.  */
+#[cfg (feature = "have_xrender")]
+      let have_pict_format: bool = !(*dpyinfo).pict_format.is_null ();
+#[cfg (not (feature = "have_xrender"))]
+      let have_pict_format: bool = false;
+      if have_pict_format                                               // C 31186
+	{
+	  let channel_mask: c_ulong                                      // C 31188-31190
+	    = ((*(*dpyinfo).pict_format).direct.alphaMask as c_ulong)
+	      << (*dpyinfo).pict_format.as_ref ().unwrap ().direct.alpha;
+
+	  if channel_mask != 0                                          // C 31192
+	    { get_bits_and_offset (channel_mask, &raw mut (*dpyinfo).alpha_bits,  // C 31193-31194
+				   &raw mut (*dpyinfo).alpha_offset); }
+	  (*dpyinfo).alpha_mask = channel_mask;                          // C 31195
+	}
+      else
+	{
+	  let mut xc: XColor = std::mem::zeroed ();                      // C 31200
+	  let mut alpha_mask: c_ulong;                                   // C 31201
+	  xc.red = 65535;                                                // C 31202
+	  xc.green = 65535;                                              // C 31203
+	  xc.blue = 65535;                                               // C 31204
+
+	  if XAllocColor ((*dpyinfo).display, (*dpyinfo).cmap,            // C 31206-31207
+			  &raw mut xc) != 0
+	    {
+	      alpha_mask = xc.pixel & !((*dpyinfo).visual_info.red_mask   // C 31209-31211
+					| (*dpyinfo).visual_info.blue_mask
+					| (*dpyinfo).visual_info.green_mask);
+
+	      if alpha_mask != 0                                         // C 31213
+		{ get_bits_and_offset (alpha_mask, &raw mut (*dpyinfo).alpha_bits,  // C 31214-31215
+				       &raw mut (*dpyinfo).alpha_offset); }
+	      (*dpyinfo).alpha_mask = alpha_mask;                         // C 31216
+	    }
+	}
+    }
+
+#[cfg (feature = "have_xdbe")]
+  {
+    (*dpyinfo).supports_xdbe = false;                                    // C 31222
+    let mut xdbe_major: c_int = 0;                                       // C 31223 (Deviation 12)
+    let mut xdbe_minor: c_int = 0;                                       // C 31224 (Deviation 12)
+    if XdbeQueryExtension ((*dpyinfo).display, &raw mut xdbe_major, &raw mut xdbe_minor) != 0  // C 31225
+      { (*dpyinfo).supports_xdbe = true; }                               // C 31226
+  }
+#[cfg (feature = "use_xcb")]
+  {
+    let mut xcb_screen: *mut xcb_screen_t = std::ptr::null_mut ();      // C 31230
+    let mut iter: xcb_screen_iterator_t;                                // C 31231
+    let wanted: xcb_visualid_t = XVisualIDFromVisual ((*dpyinfo).visual);  // C 31232
+    let mut depth_iter: xcb_depth_iterator_t;                           // C 31233
+    let mut visual_iter: xcb_visualtype_iterator_t;                     // C 31234
+
+    let mut screen: c_int = DefaultScreen ((*dpyinfo).display);         // C 31236
+
+    iter = xcb_setup_roots_iterator (xcb_get_setup ((*dpyinfo).xcb_connection));  // C 31238
+    while iter.rem != 0                                                 // C 31239
+      {
+	if screen == 0                                                  // C 31241
+	  { xcb_screen = iter.data; }                                    // C 31242
+	screen -= 1;
+	xcb_screen_next (&raw mut iter);
+      }
+
+    if !xcb_screen.is_null ()                                           // C 31245
+      {
+	depth_iter = xcb_screen_allowed_depths_iterator (xcb_screen);   // C 31247
+	while depth_iter.rem != 0                                       // C 31248
+	  {
+	    visual_iter = xcb_depth_visuals_iterator (depth_iter.data);  // C 31250
+	    while visual_iter.rem != 0                                  // C 31251
+	      {
+		if wanted == (*visual_iter.data).visual_id              // C 31253
+		  {
+		    (*dpyinfo).xcb_visual = visual_iter.data;           // C 31255
+		    break;                                              // C 31256
+		  }
+		xcb_visualtype_next (&raw mut visual_iter);
+	      }
+	    xcb_depth_next (&raw mut depth_iter);
+	  }
+      }
+  }
+
+  /* C 31263-31408: the `HAVE_XINPUT2` block, whose two labels C's `goto` reads - `skip_xi_setup`
+     (the resource check below and `xi_check_toolkit`'s failure both jump to it) and `query` (the
+     minor-version retry loop).  The port writes the first as a labeled block and the second as a
+     labeled `loop` (the `'toplevel:`/`'body:` shape this file already uses at 3831-3836).  */
+#[cfg (feature = "have_xinput2")]
+  'skip_xi_setup: {
+    (*dpyinfo).supports_xi2 = false;                                    // C 31264
+    let mut rc: c_int = 0;                                              // C 31265 (Deviation 12)
+    let mut major: c_int = 2;                                           // C 31266
+    let mut xi_first_event: c_int = 0;                                  // C 31267 (Deviation 12)
+    let mut xi_first_error: c_int = 0;                                  // C 31267 (Deviation 12)
+
+#[cfg (not (feature = "have_gtk3"))]
+    {
+      AUTO_STRING! (disableInputExtension, "disableInputExtension");    // C 31271
+      AUTO_STRING! (DisableInputExtension, "DisableInputExtension");    // C 31272
+
+      let value: Lisp_Object = gui_display_get_resource (dpyinfo,       // C 31274-31277
+							 disableInputExtension,
+							 DisableInputExtension,
+							 Qnil (), Qnil ());
+
+      if STRINGP (value)                                                // C 31279
+	  && (strcmp (SSDATA (value), c"on".as_ptr ()) == 0             // C 31280
+	      || strcmp (SSDATA (value), c"true".as_ptr ()) == 0)       // C 31281
+	{ break 'skip_xi_setup; }                                       // C 31282
+    }
+
+    /* C 31286-31296: `minor`'s five arms, C's `#ifdef HAVE_XINPUT2_n` chain in order.  */
+#[cfg (feature = "have_xinput2_4")]
+    let mut minor: c_int = 4;                                           // C 31287
+#[cfg (all (not (feature = "have_xinput2_4"), feature = "have_xinput2_3"))]
+    let mut minor: c_int = 3;                                           // C 31289
+#[cfg (all (not (feature = "have_xinput2_4"), not (feature = "have_xinput2_3"),
+	    feature = "have_xinput2_2"))]
+    let mut minor: c_int = 2;                                           // C 31291
+#[cfg (all (not (feature = "have_xinput2_4"), not (feature = "have_xinput2_3"),
+	    not (feature = "have_xinput2_2"), feature = "have_xinput2_1"))]
+    let mut minor: c_int = 1;                                           // C 31293
+#[cfg (all (not (feature = "have_xinput2_4"), not (feature = "have_xinput2_3"),
+	    not (feature = "have_xinput2_2"), not (feature = "have_xinput2_1")))]
+    let mut minor: c_int = 0;                                           // C 31295
+
+    (*dpyinfo).client_pointer_device = -1;                              // C 31298
+
+#[cfg (feature = "have_gtk3")]
+    {
+      /* GTK gets a chance to request use of the input extension first.
+	 If we later try to enable it if GDK did not, then GTK will not
+	 get the resulting extension events.  */
+
+      rc = xi_check_toolkit ((*dpyinfo).display);                       // C 31305
+
+      if rc == 0                                                        // C 31307
+	{ break 'skip_xi_setup; }                                       // C 31308
+    }
+
+    if XQueryExtension ((*dpyinfo).display, c"XInputExtension".as_ptr (),  // C 31311-31313
+			&raw mut (*dpyinfo).xi2_opcode, &raw mut xi_first_event,
+			&raw mut xi_first_error) != 0
+      {
+#[cfg (feature = "have_gtk3")]
+	{
+	  let mut move_backwards: bool = false;                         // C 31316
+	  let original_minor: c_int = minor;                            // C 31317
+
+	  'query: loop                                                 // C 31319
+	    {
+	      /* Catch errors caused by GTK requesting a different version of
+		 XInput 2 than what Emacs was built with.  Usually, the X
+		 server tolerates these mistakes, but a BadValue error can
+		 result if only one of GTK or Emacs wasn't built with support
+		 for XInput 2.2.
+
+		 To work around the first, it suffices to increase the minor
+		 version until the X server is happy if the XIQueryVersion
+		 request results in an error.  If that doesn't work, however,
+		 then it's the latter, so decrease the minor until the version
+		 that GTK requested is found.  */
+
+	      x_catch_errors ((*dpyinfo).display);                      // C 31334
+
+	      rc = XIQueryVersion ((*dpyinfo).display, &raw mut major, &raw mut minor);  // C 31336
+
+	      /* Increase the minor version until we find one the X
+		 server agrees with.  If that didn't work, then
+		 decrease the version until it either hits zero or
+		 becomes agreeable to the X server.  */
+
+	      if x_had_errors_p ((*dpyinfo).display) != 0               // C 31344
+		{
+		  x_uncatch_errors_after_check ();                      // C 31346
+
+		  /* Since BadValue errors can't be generated if both the
+		     prior and current requests specify a version of 2.2 or
+		     later, this means the prior request specified a version
+		     of the input extension less than 2.2.  */
+		  if minor >= 2                                         // C 31352
+		    {
+		      move_backwards = true;                            // C 31354
+		      minor = original_minor;                           // C 31355
+
+		      minor -= 1;
+		      if minor < 0                                      // C 31357
+			{ rc = BadRequest; }                            // C 31358
+		      else
+			{ continue 'query; }                            // C 31360
+		    }
+		  else
+		    {
+		      if !move_backwards                                // C 31364
+			{
+			  minor += 1;                                   // C 31366
+			  continue 'query;                              // C 31367
+			}
+
+		      minor -= 1;
+		      if minor < 0                                      // C 31370
+			{ rc = BadRequest; }                            // C 31371
+		      else
+			{ continue 'query; }                            // C 31373
+		    }
+		}
+	      else
+		{ x_uncatch_errors_after_check (); }                    // C 31378
+
+	      /* But don't delude ourselves into thinking that we can use
+		 features provided by a version of the input extension that
+		 libXi itself doesn't support.  */
+
+	      if minor > original_minor                                 // C 31384
+		{ minor = original_minor; }                             // C 31385
+
+	      break 'query;                                             // C 31391 (the loop leaves here)
+	    }
+	}
+#[cfg (not (feature = "have_gtk3"))]
+	{
+	  x_catch_errors ((*dpyinfo).display);                          // C 31334
+	  rc = XIQueryVersion ((*dpyinfo).display, &raw mut major, &raw mut minor);  // C 31336
+
+	  if x_had_errors_p ((*dpyinfo).display) != 0                   // C 31387
+	    { rc = BadRequest; }                                        // C 31388
+
+	  x_uncatch_errors_after_check ();                              // C 31390
+	}
+
+	if rc == Success                                                // C 31393
+	  {
+	    (*dpyinfo).supports_xi2 = true;                             // C 31395
+#[cfg (not (feature = "have_gtk3"))]
+	    /* Select for hierarchy events on the root window.  GTK 3.x
+	       does this itself.  */
+	    xi_select_hierarchy_events (dpyinfo);                       // C 31399
+
+	    (*dpyinfo).xi2_version = minor;                             // C 31402
+	    x_cache_xi_devices (dpyinfo);                               // C 31403
+	  }
+      }
+  }
+#[cfg (any (feature = "have_xrandr", feature = "use_gtk"))]
+  let mut term: Lisp_Object = Qnil ();                                  // C 31411 (Deviation 12)
+#[cfg (any (feature = "have_xrandr", feature = "use_gtk"))]
+  XSETTERMINAL! (term, terminal);                                       // C 31413
+
+#[cfg (feature = "have_xrandr")]
+  {
+    (*dpyinfo).xrandr_supported_p                                       // C 31417-31419
+      = XRRQueryExtension (dpy, &raw mut (*dpyinfo).xrandr_event_base,
+			   &raw mut (*dpyinfo).xrandr_error_base);
+
+#[cfg (not (feature = "use_gtk"))]
+    { (*dpyinfo).last_monitor_attributes_list = Qnil (); }             // C 31422
+
+    if (*dpyinfo).xrandr_supported_p                                    // C 31425
+      {
+	XRRQueryVersion (dpy, &raw mut (*dpyinfo).xrandr_major_version,  // C 31427-31428
+			 &raw mut (*dpyinfo).xrandr_minor_version);
+
+#[cfg (not (feature = "use_gtk"))]
+	if (*dpyinfo).xrandr_major_version == 1                         // C 31431
+	    && (*dpyinfo).xrandr_minor_version >= 2                     // C 31432
+	  {
+	    /* C 31439-31444's `#ifdef USE_GTK` arm adds `RROutputPropertyNotifyMask`, with C's
+	       own two-line comment - dead text where this block is compiled (`#ifndef USE_GTK`),
+	       so the port names it instead of writing an arm no build reaches.  */
+	    XRRSelectInput ((*dpyinfo).display,                         // C 31434-31445
+			    (*dpyinfo).root_window,
+			    RRScreenChangeNotifyMask
+			    | RRCrtcChangeNotifyMask
+			    | RROutputChangeNotifyMask);
+
+	    (*dpyinfo).last_monitor_attributes_list                     // C 31447-31448
+	      = Fx_display_monitor_attributes_list (term);
+	  }
+      }
+  }
+
+#[cfg (feature = "use_gtk")]
+  {
+    (*dpyinfo).last_monitor_attributes_list                             // C 31455-31456
+      = Fx_display_monitor_attributes_list (term);
+
+    gdpy = gdk_x11_lookup_xdisplay ((*dpyinfo).display);                // C 31458
+    gscr = gdk_display_get_default_screen (gdpy);                       // C 31459
+
+    g_signal_connect (G_OBJECT! (gscr), c"monitors-changed".as_ptr (),  // C 31461-31463
+		      Some (x_monitors_changed_cb), std::ptr::null_mut ());
+  }
+
+#[cfg (feature = "have_xkb")]
+  {
+    let mut xkb_major: c_int = 0;                                       // C 31467 (Deviation 12)
+    let mut xkb_minor: c_int = 0;                                       // C 31467 (Deviation 12)
+    let mut xkb_op: c_int = 0;                                          // C 31467 (Deviation 12)
+    let mut xkb_error_code: c_int = 0;                                  // C 31467 (Deviation 12)
+    xkb_major = XkbMajorVersion;                                        // C 31468
+    xkb_minor = XkbMinorVersion;                                        // C 31469
+
+    if XkbLibraryVersion (&raw mut xkb_major, &raw mut xkb_minor) != 0  // C 31471
+	&& XkbQueryExtension ((*dpyinfo).display, &raw mut xkb_op,      // C 31472-31473
+			      &raw mut (*dpyinfo).xkb_event_type, &raw mut xkb_error_code,
+			      &raw mut xkb_major, &raw mut xkb_minor) != 0
+      {
+	(*dpyinfo).supports_xkb = true;                                 // C 31475
+	(*dpyinfo).xkb_desc = XkbGetMap ((*dpyinfo).display,            // C 31476-31481
+					 XkbKeySymsMask
+					 | XkbKeyTypesMask
+					 | XkbModifierMapMask
+					 | XkbVirtualModsMask, XkbUseCoreKbd);
+
+	if !(*dpyinfo).xkb_desc.is_null ()                              // C 31483
+	  { XkbGetNames ((*dpyinfo).display, XkbAllNamesMask,           // C 31484-31485
+			 (*dpyinfo).xkb_desc); }
+
+	XkbSelectEvents ((*dpyinfo).display, XkbUseCoreKbd,             // C 31487-31489
+			 XkbNewKeyboardNotifyMask | XkbMapNotifyMask,
+			 XkbNewKeyboardNotifyMask | XkbMapNotifyMask);
+      }
+
+    /* XFree86 extends XKBlib with a new Xlib control `ControlFallback',
+       which enables a search for symbols designating ASCII characters
+       within inactive groups during keycode translation when
+       ControlMask is set.  Users find this behavior gratuitous, so
+       disable it if present.  */
+
+#[cfg (feature = "xkb_lc_controlfallback")]
+    { XkbSetXlibControls ((*dpyinfo).display, XkbLC_ControlFallback, 0); }  // C 31499
+  }
+
+#[cfg (feature = "have_xfixes")]
+  {
+    let mut xfixes_error_base: c_int = 0;                               // C 31504 (Deviation 12)
+    (*dpyinfo).xfixes_supported_p                                       // C 31505-31508
+      = XFixesQueryExtension ((*dpyinfo).display, &raw mut (*dpyinfo).xfixes_event_base,
+			      &raw mut xfixes_error_base) != 0;
+
+    if (*dpyinfo).xfixes_supported_p                                    // C 31510
+      {
+	if XFixesQueryVersion ((*dpyinfo).display,                      // C 31512-31513
+			       &raw mut (*dpyinfo).xfixes_major,
+			       &raw mut (*dpyinfo).xfixes_minor) == 0
+	  { (*dpyinfo).xfixes_supported_p = false; }                    // C 31514
+      }
+  }
+
+#[cfg (any (feature = "use_cairo", feature = "have_xft"))]
+  {
+    /* If we are using Xft, the following precautions should be made:
+
+       1. Make sure that the Xrender extension is added before the Xft one.
+       Otherwise, the close-display hook set by Xft is called after the one
+       for Xrender, and the former tries to re-add the latter.  This results
+       in inconsistency of internal states and leads to X protocol error when
+       one reconnects to the same X server (Bug#1696).
+
+       2. Check dpi value in X resources.  It is better we use it as well,
+       since Xft will use it, as will all Gnome applications.  If our real DPI
+       is smaller or larger than the one Xft uses, our font will look smaller
+       or larger than other for other applications, even if it is the same
+       font name (monospace-10 for example).  */
+
+    let v: *mut c_char = XGetDefault ((*dpyinfo).display, c"Xft".as_ptr (),  // C 31534
+				      c"dpi".as_ptr ());
+    let mut d: c_double = 0.0;                                          // C 31535 (Deviation 12)
+    if !v.is_null () && sscanf (v, c"%lf".as_ptr (), &raw mut d) == 1   // C 31536
+      { (*dpyinfo).resy = d; (*dpyinfo).resx = d; }                     // C 31537
+  }
+
+  if (*dpyinfo).resy < 1.0                                              // C 31541
+    {
+      let screen_number: c_int = XScreenNumberOfScreen ((*dpyinfo).screen);  // C 31543
+      let mut pixels: c_double                                          // C 31544
+	= DisplayHeight ((*dpyinfo).display, screen_number) as c_double;
+      let mut mm: c_double                                              // C 31545
+	= DisplayHeightMM ((*dpyinfo).display, screen_number) as c_double;
+      /* Mac OS X 10.3's Xserver sometimes reports 0.0mm.  */
+      (*dpyinfo).resy = if mm < 1.0 { 100.0 } else { pixels * 25.4 / mm };  // C 31547
+      pixels = DisplayWidth ((*dpyinfo).display, screen_number) as c_double;  // C 31548
+      mm = DisplayWidthMM ((*dpyinfo).display, screen_number) as c_double;    // C 31549
+      /* Mac OS X 10.3's Xserver sometimes reports 0.0mm.  */
+      (*dpyinfo).resx = if mm < 1.0 { 100.0 } else { pixels * 25.4 / mm };    // C 31551
+    }
+
+  sprintf (cm_atom_sprintf.as_mut_ptr (), cm_atom_fmt.as_ptr (),        // C 31554-31555
+	   XScreenNumberOfScreen ((*dpyinfo).screen));
+
+  {
+    /* C 31558-31560: the block's two local `enum` constants.  `countof (x_atom_refs)` is that
+       array's own length - 116 without XFIXES and 121 with, exactly the two sizes this file
+       declares at 1498/1501 - and the element types follow the mirror's fields.  */
+    const atom_count: usize = countof! (x_atom_refs);   // C 31558 (116 without XFIXES, 121 with)
+    const total_atom_count: usize = 2 + atom_count;                     // C 31560
+    let mut atoms_return: [Atom; total_atom_count] = [0; total_atom_count];  // C 31561
+    let mut atom_names: [*mut c_char; total_atom_count]                 // C 31562
+      = [std::ptr::null_mut (); total_atom_count];
+    let xsettings_fmt: &CStr = c"_XSETTINGS_S%d";                       // C 31563
+    let mut xsettings_atom_name: [c_char; 15 - 2 + INT_STRLEN_BOUND! (c_int)]  // C 31564-31565
+      = [0; 15 - 2 + INT_STRLEN_BOUND! (c_int)];
+
+    i = 0;
+    while i < atom_count as c_int                                       // C 31567
+      {
+	atom_names[i as usize] = x_atom_refs[i as usize].name;          // C 31568
+	i += 1;
+      }
+
+    /* Build _XSETTINGS_SN atom name.  */
+    sprintf (xsettings_atom_name.as_mut_ptr (), xsettings_fmt.as_ptr (),  // C 31571-31572
+	     XScreenNumberOfScreen ((*dpyinfo).screen));
+    atom_names[i as usize] = xsettings_atom_name.as_mut_ptr ();          // C 31573
+    atom_names[(i + 1) as usize] = cm_atom_sprintf.as_mut_ptr ();        // C 31574
+
+    XInternAtoms ((*dpyinfo).display, atom_names.as_mut_ptr (),          // C 31576-31577
+		  total_atom_count as c_int, False, atoms_return.as_mut_ptr ());
+
+    i = 0;
+    while i < atom_count as c_int                                       // C 31579
+      {
+	*(dpyinfo as *mut c_char).offset (x_atom_refs[i as usize].offset) as *mut Atom
+	  = atoms_return[i as usize];                                   // C 31580
+	i += 1;
+      }
+
+    /* Manually copy last two atoms.  */
+    (*dpyinfo).Xatom_xsettings_sel = atoms_return[i as usize];           // C 31583
+    (*dpyinfo).Xatom_NET_WM_CM_Sn = atoms_return[(i + 1) as usize];      // C 31584
+  }
+
+#[cfg (feature = "have_xkb")]
+  /* Figure out which modifier bits mean what.  */
+  { x_find_modifier_meanings (dpyinfo); }  // C 31589
+
+  (*dpyinfo).x_dnd_atoms_size = 16;                                     // C 31592
+  (*dpyinfo).x_dnd_atoms
+    = xmalloc (std::mem::size_of::<Atom> () * (*dpyinfo).x_dnd_atoms_size as usize)
+    as *mut Atom;                                                       // C 31593-31594
+  (*dpyinfo).gray = XCreatePixmapFromBitmapData ((*dpyinfo).display,     // C 31595-31598
+						 (*dpyinfo).root_window,
+						 gray_bits.as_ptr (), gray_width, gray_height,
+						 1, 0, 1);
+  (*dpyinfo).invisible_cursor = make_invisible_cursor (dpyinfo);        // C 31600
+#[cfg (all (feature = "have_xfixes", feature = "xfixes_version_4"))]
+  /* C 31601-31603's `#if defined HAVE_XFIXES && XFIXES_VERSION >= 40000`: wrapped in a block
+     because an attribute cannot sit on a bare expression statement (E0658).  */
+  { (*dpyinfo).fixes_pointer_blanking = !egetenv (c"EMACS_XFIXES".as_ptr ()).is_null (); }  // C 31602
+
+  xsettings_initialize (dpyinfo);                                       // C 31605
+
+  /* This is only needed for distinguishing keyboard and process input.  */
+  if (*dpyinfo).connection != 0                                         // C 31608
+    { add_keyboard_wait_descriptor ((*dpyinfo).connection); }           // C 31609
+
+#[cfg (feature = "f_setown")]
+  { fcntl ((*dpyinfo).connection, F_SETOWN, getpid ()); }               // C 31612
+
+  if interrupt_input                                                     // C 31615
+    { init_sigio ((*dpyinfo).connection); }                             // C 31616
+#[cfg (feature = "use_lucid")]
+  {
+    let mut d: XrmValue = std::mem::zeroed ();                          // C 31620
+    let mut fr: XrmValue = std::mem::zeroed ();                         // C 31620
+    let mut to: XrmValue = std::mem::zeroed ();                         // C 31620
+    let mut font: Font = 0;                                             // C 31621
+    let query_result: *mut XFontStruct;                                 // C 31622
+
+    dpy = (*dpyinfo).display;                                           // C 31624
+    d.addr = &raw mut dpy as XPointer;                                  // C 31625
+    d.size = std::mem::size_of::<*mut Display> () as c_uint;            // C 31626
+    fr.addr = XtDefaultFont;                                            // C 31627
+    fr.size = std::mem::size_of_val (&XtDefaultFont) as c_uint;         // C 31628
+    to.size = std::mem::size_of::<*mut Font> () as c_uint;              // C 31629
+    to.addr = &raw mut font as XPointer;                                // C 31630
+    x_catch_errors (dpy);                                               // C 31631
+    if XtCallConverter (dpy, XtCvtStringToFont, &raw mut d, 1, &raw mut fr, &raw mut to,
+			std::ptr::null_mut ()) == 0                     // C 31632
+      { emacs_abort (); }                                               // C 31633
+    query_result = XQueryFont (dpy, font);                              // C 31634
+
+    /* Set the dialog font to some fallback (here, 9x15) if the font
+       specified is invalid.  */
+    if x_had_errors_p (dpy) != 0 || font == 0                           // C 31638
+      { XrmPutLineResource (&raw mut xrdb,                             // C 31639
+			    c"Emacs.dialog.*.font: 9x15".as_ptr ()); }
+
+    /* Do not destroy the font struct returned above with XFreeFont;
+       that also destroys the font, leading to X protocol errors at
+       XtCloseDisplay.  Just free the font info structure.
+       (Bug#18403) */
+    XFreeFontInfo (std::ptr::null_mut (), query_result, 1);             // C 31645
+    x_uncatch_errors ();                                                // C 31646
+  }
+
+  /* See if we should run in synchronous mode.  This is useful
+     for debugging X code.  */
+  {
+    AUTO_STRING! (synchronous, "synchronous");                          // C 31653
+    AUTO_STRING! (Synchronous, "Synchronous");                          // C 31654
+    let value: Lisp_Object = gui_display_get_resource (dpyinfo, synchronous,  // C 31655-31656
+						       Synchronous, Qnil (), Qnil ());
+    if STRINGP (value)                                                  // C 31657
+	&& (strcmp (SSDATA (value), c"true".as_ptr ()) == 0             // C 31658
+	    || strcmp (SSDATA (value), c"on".as_ptr ()) == 0)           // C 31659
+      { XSynchronize ((*dpyinfo).display, True); }                      // C 31660
+  }
+
+#[cfg (feature = "have_x_i18n")]
+  {
+    AUTO_STRING! (useXIM, "useXIM");                                    // C 31665
+    AUTO_STRING! (UseXIM, "UseXIM");                                    // C 31666
+    let value: Lisp_Object = gui_display_get_resource (dpyinfo, useXIM, UseXIM,  // C 31667-31668
+						       Qnil (), Qnil ());
+
+    /* `USE_XIM' controls whether Emacs should use X input methods by
+       default, not whether or not XIM is available.  */
+
+#[cfg (feature = "use_xim")]
+    {
+      (*dpyinfo).use_xim = true;                                        // C 31674
+
+      if STRINGP (value)                                                // C 31676
+	  && (strcmp (SSDATA (value), c"false".as_ptr ()) == 0          // C 31677
+	      || strcmp (SSDATA (value), c"off".as_ptr ()) == 0)        // C 31678
+	{ (*dpyinfo).use_xim = false; }                                 // C 31679
+    }
+#[cfg (not (feature = "use_xim"))]
+    {
+      (*dpyinfo).use_xim = false;                                       // C 31681
+
+      if STRINGP (value)                                                // C 31683
+	  && (strcmp (SSDATA (value), c"true".as_ptr ()) == 0           // C 31684
+	      || strcmp (SSDATA (value), c"on".as_ptr ()) == 0)         // C 31685
+	{ (*dpyinfo).use_xim = true; }                                  // C 31686
+    }
+
+  /* C 31690-31722: this block and the `xim_initialize` call below are *inside* `HAVE_X_I18N`
+     too - C's `#endif` stands after the call - so all three share the one cfg'd block the
+     `AUTO_STRING (useXIM, ...)` opened.  */
+  {
+    AUTO_STRING! (inputStyle, "inputStyle");                            // C 31691
+    AUTO_STRING! (InputStyle, "InputStyle");                            // C 31692
+    let value: Lisp_Object = gui_display_get_resource (dpyinfo, inputStyle, InputStyle,  // C 31693-31694
+						       Qnil (), Qnil ());
+
+    if STRINGP (value)                                                  // C 31696
+      {
+	if strcmp (SSDATA (value), c"callback".as_ptr ()) == 0          // C 31698
+	  { (*dpyinfo).preferred_xim_style = STYLE_CALLBACK; }          // C 31699
+	else if strcmp (SSDATA (value), c"none".as_ptr ()) == 0         // C 31700
+	  { (*dpyinfo).preferred_xim_style = STYLE_NONE; }              // C 31701
+	else if strcmp (SSDATA (value), c"overthespot".as_ptr ()) == 0  // C 31702
+	  { (*dpyinfo).preferred_xim_style = STYLE_OVERTHESPOT; }       // C 31703
+	else if strcmp (SSDATA (value), c"offthespot".as_ptr ()) == 0   // C 31704
+	  { (*dpyinfo).preferred_xim_style = STYLE_OFFTHESPOT; }        // C 31705
+	else if strcmp (SSDATA (value), c"root".as_ptr ()) == 0         // C 31706
+	  { (*dpyinfo).preferred_xim_style = STYLE_ROOT; }              // C 31707
+	else
+	  {
+	    /* C 31708-31711's `#ifdef USE_GTK` is the chain's last arm: an attribute cannot sit
+	       on an `else if` (E0658), so the port nests it in the final `else`.  */
+#[cfg (feature = "use_gtk")]
+	    if strcmp (SSDATA (value), c"native".as_ptr ()) == 0        // C 31709
+	      { (*dpyinfo).prefer_native_input = true; }                // C 31710
+	  }
+      }
+  }
+
+  /* Now that defaults have been set up, initialize input method
+     support.  */
+
+  /* Avoid initializing input methods if the X library does not
+     support Emacs's locale.  When the current locale is not
+     supported, decoding input method strings becomes undefined.  */
+  if XSupportsLocale ()                                                 // C 31721
+    { xim_initialize (dpyinfo, resource_name); }                        // C 31722
+  }
+
+#[cfg (feature = "have_x_sm")]
+  /* Only do this for the very first display in the Emacs session.
+     Ignore X session management when Emacs was first started on a
+     tty or started as a daemon.  */
+  if (*dpyinfo).next.is_null () && !IS_DAEMON                          // C 31729
+    { x_session_initialize (dpyinfo); }                                 // C 31730
+
+#[cfg (any (feature = "use_cairo", feature = "have_xrender"))]
+  { x_extension_initialize (dpyinfo); }                                // C 31734
+
+#[cfg (feature = "use_toolkit_scroll_bars")]
+  {
+    (*dpyinfo).protected_windows                                        // C 31738
+      = xmalloc (std::mem::size_of::<Lisp_Object> () * 256) as *mut Lisp_Object;
+    (*dpyinfo).n_protected_windows = 0;                                 // C 31739
+    (*dpyinfo).protected_windows_max = 256;                             // C 31740
+  }
+
+#[cfg (feature = "have_xfixes")]
+  {
+    /* Initialize selection tracking for the selections in
+       x-fast-selection-list.  */
+
+    if CONSP (Vx_fast_selection_list)                                   // C 31747
+	&& (*dpyinfo).xfixes_supported_p                                // C 31748
+	&& (*dpyinfo).xfixes_major >= 1                                 // C 31749
+      {
+	num_fast_selections = 0;                                        // C 31751
+	tem = Vx_fast_selection_list;                                   // C 31752
+
+	FOR_EACH_TAIL_SAFE! (tem, {                                     // C 31754
+	    if !SYMBOLP (XCAR (tem))                                    // C 31756
+	      { continue; }                                             // C 31757
+
+	    num_fast_selections += 1;                                   // C 31759
+	});
+
+	(*dpyinfo).n_monitored_selections = num_fast_selections;        // C 31762
+	(*dpyinfo).selection_tracking_window                            // C 31763-31764
+	  = x_create_special_window (dpyinfo, (*dpyinfo).root_window);
+	(*dpyinfo).monitored_selections                                 // C 31765-31767
+	  = xmalloc (num_fast_selections as usize
+		     * std::mem::size_of::<x_selection_tracking_info> ()) as *mut _;
+
+	num_fast_selections = 0;                                        // C 31769
+	tem = Vx_fast_selection_list;                                   // C 31770
+
+	FOR_EACH_TAIL_SAFE! (tem, {                                     // C 31772
+	    lisp_name = XCAR (tem);                                     // C 31774
+
+	    if !SYMBOLP (lisp_name)                                     // C 31776
+	      { continue; }                                             // C 31777
+
+	    selection_name = symbol_to_x_atom (dpyinfo, lisp_name);      // C 31779
+	    (*(*dpyinfo).monitored_selections.offset (num_fast_selections as isize)).name
+	      = selection_name;                                         // C 31780-31781
+	    num_fast_selections += 1;
+	    (*(*dpyinfo).monitored_selections.offset ((num_fast_selections - 1) as isize)).owner
+	      = X_INVALID_WINDOW;                                       // C 31782-31783
+
+	    /* Select for selection input.  */
+	    XFixesSelectSelectionInput ((*dpyinfo).display,             // C 31786-31790
+					(*dpyinfo).selection_tracking_window,
+					selection_name,
+					XFixesSetSelectionOwnerNotifyMask
+					| XFixesSelectionClientCloseNotifyMask);
+	});
+
+#[cfg (feature = "use_xcb")]
+	SAFE_NALLOCA! (sa_avail, selection_cookies, 1, num_fast_selections);  // C 31794
+
+	/* Now, ask for the current owners of all those selections.  */
+	i = 0;
+	while i < num_fast_selections                                   // C 31798
+	  {
+#[cfg (feature = "use_xcb")]
+	    { selection_cookies[i as usize]                             // C 31801-31803
+		= xcb_get_selection_owner ((*dpyinfo).xcb_connection,
+					   (*(*dpyinfo).monitored_selections
+					     .offset (i as isize)).name); }
+#[cfg (not (feature = "use_xcb"))]
+	    { (*(*dpyinfo).monitored_selections.offset (i as isize)).owner  // C 31805-31807
+		= XGetSelectionOwner ((*dpyinfo).display,
+				      (*(*dpyinfo).monitored_selections
+					.offset (i as isize)).name); }
+	    i += 1;
+	  }
+
+#[cfg (feature = "use_xcb")]
+	{
+	  i = 0;
+	  while i < num_fast_selections                                 // C 31812
+	    {
+	      selection_reply                                           // C 31814-31817
+		= xcb_get_selection_owner_reply ((*dpyinfo).xcb_connection,
+						 selection_cookies[i as usize],
+						 &raw mut selection_error);
+
+	      if !selection_reply.is_null ()                            // C 31819
+		{
+		  (*(*dpyinfo).monitored_selections.offset (i as isize)).owner
+		    = (*selection_reply).owner;                         // C 31821-31822
+		  free (selection_reply as *mut c_void);                // C 31823
+		}
+	      else if !selection_error.is_null ()                       // C 31825
+		{ free (selection_error as *mut c_void); }              // C 31826
+	      i += 1;
+	    }
+	}
+      }
+  }
+
+  unblock_input ();                                                 // C 31832
+
+#[cfg (all (feature = "have_xfixes", feature = "use_xcb"))]
+  SAFE_FREE! (sa_count);                                            // C 31835
+  return dpyinfo;                                                   // C 31837
+}
 
 /// C 31845-31867: `static void x_delete_selection_requests (struct x_display_info *dpyinfo)` - C's
 /// `static`, so a plain `unsafe fn` (PORTING.md 0.2).  The `for`'s body has a `continue`, so the
