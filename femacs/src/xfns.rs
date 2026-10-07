@@ -56,6 +56,8 @@ include!("../lib/include/unistd.in.rs");       // C 24: `#include <unistd.h>`
 include!("include/lisp.rs");                   // C 26: `#include "lisp.h"`
 include!("../lib/include/stdcountof.rs");   // lisp.h 28: `#include <stdcountof.h>` (countof)
 #[cfg (feature = "have_x_windows")]
+include!("../lib/include/limits.in.rs");      // lisp.h 33: `#include <limits.h>` (LONG_WIDTH)
+#[cfg (feature = "have_x_windows")]
 include!("include/character.rs");              // C 27: `#include "character.h"`
 #[cfg (feature = "have_x_windows")]
 include!("include/xterm.rs");                  // C 28: `#include "xterm.h"` (brings `xlib.rs`)
@@ -11086,3 +11088,92 @@ silently ignored.  ",
   unblock_input ();                                                       // C 7993
   return prop;                                                            // C 7994
 });
+
+/* C: xterm.h 1937-1941: `extern Lisp_Object x_property_data_to_lisp (struct frame *,
+   const unsigned char *, Atom, int, unsigned long);` - C 8062-8066's call.  `src/xselect.rs`
+   defines it (C 3074) and no mirror carries the row, so it stands at the use site
+   (P-55/P-72 rule 3).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_property_data_to_lisp (f: *mut frame, data: *const c_uchar, actual_type: Atom,
+				  actual_format: c_int, actual_size: c_ulong) -> Lisp_Object;
+}
+
+/* C 7998-8073.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_window_property_intern (f: *mut frame, target_window: Window,   // C 7998-7999
+				    prop_atom: Atom, target_type: Atom,
+				    delete_p: Lisp_Object, vector_ret_p: Lisp_Object,
+				    found: *mut bool) -> Lisp_Object       // C 8000-8005
+{                                                                          // C 8006
+  use crate::x11_constants::Success;                                       // C 8021/8032
+  let mut tmp_data: *mut c_uchar = std::ptr::null_mut ();                  // C 8007
+  let mut prop_value: Lisp_Object = Qnil ();                               // C 8008
+  let mut actual_type: Atom = 0;                                           // C 8009
+  let mut actual_format: c_int = 0;                                        // C 8010
+  let mut actual_size: c_ulong = 0;                                        // C 8011
+  let mut bytes_remaining: c_ulong = 0;
+  let mut rc: c_int;                                                       // C 8012
+
+  rc = XGetWindowProperty (FRAME_X_DISPLAY! (f), target_window,            // C 8014-8017
+			   prop_atom, 0, 0, False, target_type,
+			   &raw mut actual_type, &raw mut actual_format, &raw mut actual_size,
+			   &raw mut bytes_remaining, &raw mut tmp_data);
+
+  *found = actual_format != 0;                                             // C 8019
+
+  if rc == Success && *found                                               // C 8021
+    {                                                                      // C 8022
+      XFree (tmp_data as *mut c_void);                                     // C 8023
+      tmp_data = std::ptr::null_mut ();                                    // C 8024
+
+      rc = XGetWindowProperty (FRAME_X_DISPLAY! (f), target_window,        // C 8026-8031
+			       prop_atom, 0, bytes_remaining as c_long,
+			       !NILP (delete_p) as Bool, target_type,
+			       &raw mut actual_type, &raw mut actual_format,
+			       &raw mut actual_size, &raw mut bytes_remaining,
+			       &raw mut tmp_data);
+      if rc == Success && ! tmp_data.is_null ()                            // C 8032
+	{                                                                      // C 8033
+          /* The man page for XGetWindowProperty says:
+             "If the returned format is 32, the returned data is represented
+             as a long array and should be cast to that type to obtain the
+             elements."
+             This applies even if long is more than 32 bits, the X library
+             converts from 32 bit elements received from the X server to long
+             and passes the long array to us.  Thus, for that case memcpy can not
+             be used.  We convert to a 32 bit type here, because so much code
+             assume on that.
+
+             The bytes and offsets passed to XGetWindowProperty refers to the
+             property and those are indeed in 32 bit quantities if format is
+             32.  */
+
+          if LONG_WIDTH > 32 && actual_format == 32                       // C 8048
+	    {                                                                  // C 8049
+	      let mut i: c_ulong;                                              // C 8050
+	      let idata: *mut c_int = tmp_data as *mut c_int;                   // C 8051
+	      let ldata: *const c_long = tmp_data as *const c_long;              // C 8052
+
+	      i = 0;
+	      while i < actual_size                                            // C 8054
+		{
+		  *idata.offset (i as isize) = *ldata.offset (i as isize) as c_int;   // C 8055
+		  i += 1;
+		}
+	    }
+
+	  if NILP (vector_ret_p)                                               // C 8058
+	    { prop_value = make_string (tmp_data as *mut c_char,                // C 8059-8060
+					((actual_format >> 3) as c_ulong * actual_size) as ptrdiff_t); }
+	  else
+	    { prop_value = x_property_data_to_lisp (f,                          // C 8062-8066
+						      tmp_data, actual_type, actual_format,
+						      actual_size); }
+	}                                                                      // C 8067
+
+      if ! tmp_data.is_null () { XFree (tmp_data as *mut c_void); }        // C 8069
+    }                                                                      // C 8070
+
+  return prop_value;                                                       // C 8072
+}                                                                          // C 8073

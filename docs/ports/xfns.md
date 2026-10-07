@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950 and C 7953-7995
+C 7609-7729, C 7731-7950, C 7953-7995 and C 7998-8073
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -22,11 +22,11 @@ C 7609-7729, C 7731-7950 and C 7953-7995
 > after the twenty-first, **10,157 lines** after the twenty-second, **10,332 lines** after the
 > twenty-third, **10,404 lines** after the twenty-fourth, **10,631 lines** after the twenty-fifth,
 > **10,782 lines** after the twenty-sixth, **11,042 lines** after the twenty-seventh and
-> **11,088 lines** after the twenty-eighth - C 803-2149,
+> **11,088 lines** after the twenty-eighth and **11,179 lines** after the twenty-ninth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
-> C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950 and C 7953-7995, whose own
+> C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995 and C 7998-8073, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -204,7 +204,8 @@ defines both features.
 | 7609-7729 | the connection group: `x_display_info_for_name` (C 7609-7610 its comment, C 7612-7634), `x-open-connection` (C 7637-7677), `x-close-connection` (C 7679-7695), `x-display-list` (C 7697-7708) and `x-synchronize` (C 7710-7729) | `have_x_windows`, with no nested `#if` (slice 26) |
 | 7731-7950 | C 7732-7734's `Window properties` section comment and `x-change-window-property` (C 7736-7950: the FORMAT check, the two VALUE arms with C 7821/7837's `elsize`, the target-window choice, C 7783-7791 and C 7858-7933's `USE_XCB` pair, C 7937-7939's `XChangeProperty` and C 7944-7946's error pair) | `have_x_windows` on the DEFUN, with `use_xcb` on C 7867's arm (slice 27) |
 | 7953-7995 | `x-delete-window-property` (C 7953-7955 the `DEFUN` header, C 7956-7967 the verbatim doc string, C 7970-7994 the body: the `CHECK_STRING`, the `WINDOW-ID` pair with its root-window fallback, the cached-atom intern and the error pair around `XDeleteProperty`) | `have_x_windows`, with no nested `#if` (slice 28) |
-| 7998-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,665 lines, whose first live definition is `x_window_property_intern` (C 7998-8000) - the next slice's first item | not ported in this slice |
+| 7998-8073 | `x_window_property_intern` (C 7998-8005 the `static Lisp_Object` and its seven parameters, C 8007-8012 the locals, C 8014-8017 the first `XGetWindowProperty`, C 8019's `*found`, C 8026-8031 the second call with C 8029's `! NILP (delete_p)`, C 8034-8046 the quoted `XGetWindowProperty` man page, C 8048-8056 the `LONG_WIDTH > 32` arm, C 8058-8066 the `make_string`/`x_property_data_to_lisp` pair, C 8069's `XFree`) | `have_x_windows`, with no nested `#if` (slice 29) |
+| 8075-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,588 lines, whose first live definition is `Fx_window_property` (C 8075, the `DEFUN`) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2960,3 +2961,84 @@ failures** - this slice adds no declaration site and touches no mirror.
 
 The frozen configuration compiles none of this file: no window property was deleted, no atom was
 interned and no frame was decoded; the fourteen arms' counts are text compile readings.
+
+## Slice 29 (2026-10-08, status 3.933 - the integrator sets the round number): C 7998-8073
+
+**The slice is C 7998-8073**: `x_window_property_intern` - the `static Lisp_Object` and its seven
+parameters (C 7998-8005), the locals (C 8007-8012), the first `XGetWindowProperty` (C 8014-8017)
+with C 8019's `*found = actual_format != 0`, the second call (C 8026-8031, whose delete argument is
+C 8029's `! NILP (delete_p)`), C 8034-8046's quoted `XGetWindowProperty` man page, C 8048-8056's
+`LONG_WIDTH > 32` arm, C 8058-8066's `make_string`/`x_property_data_to_lisp` pair and C 8069's
+`XFree`.  The port's slice is **91 Rust lines** (11,179 - 11,088, `grep -c ''`) against C's 76; md5
+`d687aa97281a68a50b20616fc557d0b5` (the slice 28 tree) -> `4e1ca29e27a49d3ddaf9e955cf34963b`.
+
+**All fourteen arms read their baselines, and the frozen build caught one row the arms could not.**
+plain-X, WS, WSX, WSR, WSRX, WSR12 and XCB **15 / 9**, LUCID **23 / 12**, GTK and GTK22 **42 / 20**,
+XI2 **19 / 9**, XSN **13 / 9**, XR **19 / 9** and Xt **16 / 12**, with both the `^error` and the
+`^warning` sets empty-diff against the in-tree HEAD baseline (the same two-sided method the last
+slice used).  The one row the arms could not see was the *include edge*: C reaches `LONG_WIDTH`
+through lisp.h 33's `#include <limits.h>`, the port's mirror for it is `lib/include/limits.in.rs`,
+and the first placement of that edge was ungated (beside the `stdcountof.rs` line, which is itself
+ungated because it is macro-only).  The X arms compiled it happily - every one of them imports the
+`c_int`/`c_long` names the mirror needs - while the **frozen configuration read 48 `E0425`/`E0433`
+errors** (`cannot find type c_int`), i.e. the 336-byte empty object became a failing build.  The
+edge now carries the file gate as two lines (attribute first, P-86 ⑫) and the frozen build is back
+to exit 0 / 336 bytes; this is why the frozen reading is taken on every slice.
+
+**Two rows the first measurement raised, both closed.**  The first arm run read two `E0425`s for
+`Success` (C 8021/8032) - this body tests it while no earlier body of the file does, so it imports
+the constant the way the file's other bodies do (`use crate::x11_constants::Success;` as the body's
+first item, the C 415 body's device); after that the arms read their baselines.
+
+**Arm touch measured** (P-86 ⑦) on the final hash: an injection at the body's first statement (A)
+moves plain-X **15 -> 16**, GTK **42 -> 43**, XCB **15 -> 16** and XI2 **19 -> 20**; one before
+C 8072's `return prop_value;` (B) moves plain-X **15 -> 16**, GTK **42 -> 43**, XCB **15 -> 16**,
+LUCID **23 -> 24** and Xt **16 -> 17**; both logs carry the injected line's text once and the
+diagnostic's anchor is the injected line.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash - and the reading that failed before the include edge was gated (48 errors) is recorded above.
+
+**② The fourteen arms.**  See above: every arm at its baseline, both sets empty-diff.
+
+**③ `extract-abi.py --check`**: **104 rows -> 103** - `missing function x_window_property_intern`
+retiring, and nothing appearing in its place; the drift is `C 10662 vs Rust 11,179` = **4.9%**.
+`check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**
+and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed literals), 0
+failures** - this slice adds no declaration site (its one declaration is a use-site extern block
+inside the unit, which the gate reads as the unit's own text) and touches no mirror.
+
+### Deviations (this slice)
+
+1. **The `limits.in.rs` include edge stands at lisp.h 33** (C reaches `LONG_WIDTH` through that
+   `#include <limits.h>`), written as two lines under the file gate, and its first ungated placement
+   is the frozen-build failure recorded above.
+2. **`Success` is imported inside the body** (`use crate::x11_constants::Success;`), the file's
+   device for that constant (C 415's body, and `PropModeReplace` in the last slice).
+3. **`x_property_data_to_lisp` stands at the use site** (xterm.h 1937-1941: `extern Lisp_Object
+   x_property_data_to_lisp (struct frame *, const unsigned char *, Atom, int, unsigned long);`),
+   because no mirror carries the row and `src/xselect.rs` defines it (P-55/P-72 rule 3).
+4. **C's out-parameters take the file's zero initialisers** (`actual_type`, `actual_format`,
+   `actual_size`, `bytes_remaining`); C declares them uninitialised and fills them through the
+   `XGetWindowProperty` call.
+5. **C's implicit conversions are written out**: `XFree (tmp_data as *mut c_void)` (the file's
+   cast form), `bytes_remaining as c_long` (the fifth argument) and `!NILP (delete_p) as Bool`
+   (C's `! NILP`), plus the `make_string` length `((actual_format >> 3) as c_ulong * actual_size) as
+   ptrdiff_t` (C's `unsigned long` product handed to `ptrdiff_t`).
+6. **C 8051/8052's pointer casts keep their forms**: `tmp_data as *mut c_int` and
+   `tmp_data as *const c_long` (the `src/xselect.rs` reading of the same two lines, C 1871/1872).
+
+### Owed (this slice)
+
+- `x_property_data_to_lisp` is owed to `include/xterm.rs` (xterm.h 1937-1941); the names the last
+  slices owed (`x_intern_cached_atom`, the `_for_lisp` trio) keep their entry.
+- `syms_of_xfns`' `defsubr` sites (45) and the rest of the remainder from C 8075
+  (`Fx_window_property`, the `DEFUN`): 2,588 C lines plus the 13 missing functions, 1 macro, 4
+  objects, 19 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no window property was read, no X server was
+asked for a value and no string was built; the fourteen arms' counts are text compile readings.
