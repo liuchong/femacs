@@ -1,5 +1,5 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
-C 3957-4170, C 4430-4623 and C 4624-4783
+C 3957-4170, C 4430-4623, C 4624-4783 and C 4785-4916
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -10,9 +10,9 @@ C 3957-4170, C 4430-4623 and C 4624-4783
 > table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
 > `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice,
 > **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
-> **6,325 lines** after the sixth, **6,543 lines** after the seventh - C 803-2149, C 2150-3811,
-> C 3812-3956, C 3957-4170, C 4430-4623 and C 4624-4783, whose own ledger sections are at the end of
-> this file - measured
+> **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
+> eighth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4430-4623, C 4624-4783 and
+> C 4785-4916, whose own ledger sections are at the end of this file - measured
 > with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
@@ -169,7 +169,8 @@ defines both features.
 | 4172-4428 | the `USE_X_TOOLKIT` arm of `x_window` (C 4176 the `static void`, C 4177 the name: the `XtSetArg`/`XtAppCreateShell`/`lw_create_widget` body) | not in this slice: the next slice's first item, and the reason the table's next row starts at C 4430 |
 | 4430-4623 | C 4430's `#else /* not USE_X_TOOLKIT */` with the two arms of `x_window` - the GTK one (C 4431-4474) and the plain-X one (C 4476-4619) - up to C 4622's `#endif /* not USE_X_TOOLKIT */` | the file gate plus `use_gtk` / `not (feature = "use_gtk")`, and each item's own guard inside them (`have_x_i18n`, `have_xinput2`) |
 | 4624-4783 | C 4624's comment and `x_icon_verify` (C 4626 the `static void`, C 4627 the name), C 4644-4646's comment and `x_icon` (C 4648/4649), C 4693-4695's comment and `x_make_gc` (C 4697/4698), and C 4747-4748's comment and `x_free_gcs` (C 4750 the `void`, C 4751 the name) | the file gate |
-| 4785-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 5,878 lines, whose first live definition is `unwind_create_frame` (C 4789 is its `static Lisp_Object`, C 4790 the name) - the next slice's first item | not ported in this slice |
+| 4785-4916 | C 4785-4787's comment with `unwind_create_frame` (C 4789 the `static Lisp_Object`, C 4790 the name), `do_unwind_create_frame` (C 4816/4817), `x_default_font_parameter` (C 4822 the `void`, C 4823 the name), the `x-wm-set-size-hint` `DEFUN` (C 4885) and `set_machine_and_pid_properties` (C 4900/4901) | the file gate |
+| 4917-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 5,746 lines, whose first live definition is `Fx_create_frame` (C 4918) - the file's largest function - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1345,3 +1346,70 @@ this file's own declaration.
 The frozen configuration compiles none of this file: no GC was created or freed, no pixmap was
 made, no icon position was set and no window title was written.  The two arms' error counts are
 text compile readings.
+
+## Slice 8 (2026-10-08, status 3.910 - the integrator sets the round number): C 4785-4916
+
+**The slice is C 4785-4916**: the five items between slice 7's `x_free_gcs` and the giant
+`Fx_create_frame` (C 4918).  Four definitions - `unwind_create_frame` (C 4789-4814, `static
+Lisp_Object`), `do_unwind_create_frame` (C 4816-4820, `static void`), `x_default_font_parameter`
+(C 4822-4882, no `static`) and `set_machine_and_pid_properties` (C 4900-4916, `static void`) -
+plus **this file's first subr**: the `x-wm-set-size-hint` `DEFUN` (C 4885-4898).  The port's slice
+is **184 Rust lines** (6,727 - 6,543) against C's 132.
+
+**What the five read.**  Five names the unit's own declarations and its include graph's mirrors do
+not carry stand in the use-site block - `free_glyphs`, `gui_default_parameter`,
+`font_open_by_name`, `x_wm_set_size_hint` (xterm.rs's definition) and `XSetWMProperties` - and
+seven others this slice first wrote there are already declared elsewhere (`XFRAME`, `Vframe_list`,
+`Fmemq`, `gui_display_get_arg`, `decode_window_system_frame`, `xsettings_get_system_font`,
+`getpid`), so they are *not* repeated: `E0428` is what the compiler says to the six it can see,
+and `check-mirror-dupes.py` reports the seventh (`Fmemq`, `include/globals.rs`) as a failure.  C 4797's
+`FRAME_LIVE_P` is frame.h 1097's `((f)->terminal != 0)` written as the field test the mirror's
+`frame` has, C 4805-4809's `GLYPH_DEBUG && ENABLE_CHECKING` arm is the port's feature pair, and
+C 4851-4867's `names[]` has one *element* under `#if defined USE_CAIRO || defined HAVE_XFT` - an
+attribute cannot sit on an array element - so its rows live in a `macro_rules!` the two arms
+instantiate (the `def_x_atom_refs!` shape, `src/xterm.rs`'s slice 108).
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the
+**336-byte** empty object (exit 0).
+
+**② The plain-X11 arm**: **10 errors / 9 warnings before, 10 / 9 after** - *unchanged*.  Every
+name this slice reads resolves in that arm.
+
+**③ The GTK arm** (the ten-cfg set): **26 / 20 before, 28 / 20 after** - the two additions are
+`GDK_WINDOW_XID` rows (the mirror's `GTK_WIDGET_TO_X_WIN` placeholder, which this slice's
+`FRAME_X_WINDOW!`/`FRAME_OUTER_WINDOW!` reads reach), a class slices 1-5 already count.  **No
+warning moved**: the first measurement added one `unused doc comment` (a doc comment cannot sit on
+a `macro_rules!` or on the `DEFUN!` invocation), and both notes are block comments now, which is
+why the count is back at the baseline's 20.
+
+**④ `extract-abi.py --check`**: `missing function` **33 -> 29** (all four definitions leave the
+list) and `missing subr` **53 -> 52** (the `x-wm-set-size-hint` DEFUN - this file's first subr;
+its *registration* is still `syms_of_xfns`'s, which is in the remainder).  Drift reads
+`C 10662 vs Rust 6727` (**36.9%**, was 38.6%).  The function-token rows stay at 20.
+
+**⑤ No mirror change**, so P-87's legs are not this slice's: `check-mirror-dupes` still reads
+**16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**.
+
+### Deviations (this slice)
+
+1. **`unwind_create_frame`'s `FRAME_LIVE_P`** is the field test `(*f).terminal.is_null ()` (the
+   mirror carries no such macro), and `XChangeProperty`'s `(unsigned char *) &xpid` is the port's
+   `&raw mut xpid as *mut c_uchar` with `xpid` made `mut` for the address.
+2. **C's `0xffffffffu` suffix** is not Rust's: the comparison is written
+   `pid as c_uint <= 0xffff_ffff`.
+3. **The `names[]` table** is instantiated by a macro (the pointer casts `.as_ptr () as *mut c_char`
+   are the array's element type, and the two arms take the seven- and eight-row forms), and the
+   `default_font_names!`/`DEFUN!` notes are block comments.
+
+### Owed (this slice)
+
+- `syms_of_xfns` (the file's subr registrations, `--check`'s `missing defsubr` class), the Xt arm
+  of `x_window` (C 4172-4428) and `Fx_create_frame` (C 4918-5582, the next slice's first item).
+- The 29 missing functions, 1 macro, 4 objects, 52 subrs and 45 defsubrs `--check` still reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no frame was unwound, no font was opened, no
+size hint was sent and no WM property was written.  The two arms' counts are text compile readings.

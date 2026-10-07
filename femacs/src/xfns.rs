@@ -6536,3 +6536,191 @@ pub unsafe extern "C" fn x_free_gcs (f: *mut frame)
 
   unblock_input ();                                                     // C 4781
 }
+
+/* C 4785-4916: the comment that documents the unwind handler, `unwind_create_frame`
+   (C 4789-4814), `do_unwind_create_frame` (C 4816-4820), `x_default_font_parameter`
+   (C 4822-4882), the file's first `DEFUN` - `x-wm-set-size-hint` (C 4885-4898) - and
+   `set_machine_and_pid_properties` (C 4900-4916).  Everything between slice 7's `x_free_gcs`
+   and the giant `Fx_create_frame` at C 4918.  The names the mirrors of this unit's include graph
+   do not carry stand in the use-site block below (P-72 rule 4).  */
+
+/* C: lisp.h 3699: `extern Lisp_Object Fmemq (Lisp_Object, Lisp_Object);` - C 4801's.
+   C: dispextern.h 3902: `extern void free_glyphs (struct frame *);` - C 4804's.
+   C: dispextern.h 4017-4020: `extern void gui_default_parameter (struct frame *, Lisp_Object,
+   Lisp_Object, Lisp_Object, const char *, const char *, enum resource_types);` - C 4881's.
+   C: font.h 883: `extern Lisp_Object font_open_by_name (struct frame *, Lisp_Object);` - C 4839/4872's.
+   C: xterm.h 1782-1784: `extern void x_wm_set_size_hint (struct frame *, long, bool);` - C 4895's.
+   C: Xlib.h 2300-2303: `extern void XSetWMProperties (Display *, Window, XTextProperty *,
+   XTextProperty *, char **, int, XSizeHints *, XWMHints *, XClassHint *);` - C 4904's.
+   Seven other names this slice reads - `XFRAME`, `Vframe_list`, `Fmemq`,
+   `gui_display_get_arg`, `decode_window_system_frame`, `xsettings_get_system_font` and `getpid` -
+   are already declared by this unit or by a mirror in its include graph, so nothing of those
+   seven is repeated (`E0428` from the compiler, a `check-mirror-dupes` failure from the gate).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn free_glyphs (f: *mut frame);
+  pub fn x_free_frame_resources (f: *mut frame);
+  pub fn gui_default_parameter (f: *mut frame, alist: Lisp_Object, prop: Lisp_Object,
+				default_value: Lisp_Object, attribute: *const c_char,
+				class: *const c_char, r#type: resource_types);
+  pub fn font_open_by_name (f: *mut frame, name: Lisp_Object) -> Lisp_Object;
+  pub fn x_wm_set_size_hint (f: *mut frame, flags: c_long, user_position: bool);
+  pub fn XSetWMProperties (dpy: *mut Display, w: Window, window_name: *mut XTextProperty,
+			   icon_name: *mut XTextProperty, argv: *mut *mut c_char, argc: c_int,
+			   normal_hints: *mut XSizeHints, wm_hints: *mut XWMHints,
+			   class_hints: *mut XClassHint) -> c_int;
+}
+
+/* Handler for signals raised during x_create_frame and
+   Fx_create_tip_frame.  FRAME is the frame which is partially
+   constructed.  */
+
+/// C 4789-4814: `static Lisp_Object unwind_create_frame (Lisp_Object frame)` - C's `static`, so a
+/// plain `unsafe fn`.  C 4797's `FRAME_LIVE_P` is frame.h 1097's `((f)->terminal != 0)` written as
+/// the field test the mirror's `frame` has, and C 4805-4809's `GLYPH_DEBUG && ENABLE_CHECKING`
+/// arm is the port's pair of feature gates.
+#[cfg (feature = "have_x_windows")]
+unsafe fn unwind_create_frame (frame: Lisp_Object) -> Lisp_Object
+{
+  let f: *mut frame = XFRAME (frame);                                   // C 4792
+
+  /* If frame is already dead, nothing to do.  This can happen if the
+     display is disconnected after the frame has become official, but
+     before Fx_create_frame removes the unwind protect.  */
+  if (*f).terminal.is_null ()                                           // C 4797 (FRAME_LIVE_P)
+    { return Qnil (); }                                                 // C 4798
+
+  /* If frame is ``official'', nothing to do.  */
+  if NILP (Fmemq (frame, Vframe_list))                                  // C 4801
+    {
+      x_free_frame_resources (f);                                       // C 4803
+      free_glyphs (f);                                                  // C 4804
+#[cfg (all (feature = "glyph_debug", feature = "enable_checking"))]
+      {
+	/* Check that reference counts are indeed correct.  */
+	let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);      // C 4807
+	eassert! ((*dpyinfo).reference_count == dpyinfo_refcount);       // C 4808
+      }
+      return Qt ();                                                     // C 4810
+    }
+
+  Qnil ()                                                               // C 4813
+}
+
+/// C 4816-4820: `static void do_unwind_create_frame (Lisp_Object frame)` - the handler C's
+/// `record_unwind_protect` takes.
+#[cfg (feature = "have_x_windows")]
+unsafe fn do_unwind_create_frame (frame: Lisp_Object)
+{
+  unwind_create_frame (frame);                                          // C 4819
+}
+
+/* C 4851-4867's `names[]`: C's `#if defined USE_CAIRO || defined HAVE_XFT` is one *element* of
+   the initialiser, and an attribute cannot sit on an array element, so the rows live in this
+   macro and each of the two arms instantiates it (the `def_x_atom_refs!` shape, `src/xterm.rs`'s
+   slice 108).  It is a block comment because a doc comment cannot sit on a `macro_rules!`
+   without the `unused doc comment` warning this file's baseline already counts.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! default_font_names {
+  ($($xft:expr),*) => {
+    [ $($xft,)*
+      c"-adobe-courier-medium-r-*-*-*-120-*-*-*-*-iso8859-1".as_ptr () as *mut c_char,    // C 4857
+      c"-misc-fixed-medium-r-normal-*-*-140-*-*-c-*-iso8859-1".as_ptr () as *mut c_char,  // C 4858
+      c"-*-*-medium-r-normal-*-*-140-*-*-c-*-iso8859-1".as_ptr () as *mut c_char,         // C 4859
+      c"-*-*-medium-r-*-*-*-*-*-*-c-*-iso8859-1".as_ptr () as *mut c_char,                // C 4862
+      c"-*-fixed-*-*-*-*-*-140-*-*-c-*-iso8859-1".as_ptr () as *mut c_char,               // C 4865
+      c"fixed".as_ptr () as *mut c_char,                                                 // C 4866
+      std::ptr::null_mut () ] };
+}
+
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_default_font_parameter (f: *mut frame, parms: Lisp_Object)
+{
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);           // C 4825
+  let mut font_param: Lisp_Object                                       // C 4826-4827
+    = gui_display_get_arg (dpyinfo, parms, Qfont (), std::ptr::null (),
+			   std::ptr::null (), RES_TYPE_STRING);
+  let mut font: Lisp_Object = Qnil ();                                  // C 4828
+  if BASE_EQ (font_param, Qunbound ())                                  // C 4829
+    { font_param = Qnil (); }                                           // C 4830
+
+  if NILP (font_param)                                                  // C 4832
+    {
+      /* System font should take precedence over X resources.  We suggest this
+	 regardless of font-use-system-font because .emacs may not have been
+	 read yet.  */
+      let system_font: *const c_char = xsettings_get_system_font ();    // C 4837
+      if !system_font.is_null ()                                        // C 4838
+	{ font = font_open_by_name (f, build_unibyte_string (system_font)); }  // C 4839
+    }
+
+  if NILP (font)                                                        // C 4842
+    { font = if !NILP (font_param)                                      // C 4843-4847
+	{ font_param }
+      else
+	{ gui_display_get_arg (dpyinfo, parms, Qfont (), c"font".as_ptr (),
+			       c"Font".as_ptr (), RES_TYPE_STRING) }; }
+
+  if !FONTP (font) && !STRINGP (font)                                   // C 4849
+    {
+      #[cfg (any (feature = "use_cairo", feature = "have_xft"))]
+      let names: [*mut c_char; 8] = default_font_names! (c"monospace-10".as_ptr () as *mut c_char);  // C 4855
+      #[cfg (not (any (feature = "use_cairo", feature = "have_xft")))]
+      let names: [*mut c_char; 7] = default_font_names! ();             // C 4851-4867
+      let mut i: c_int;                                                 // C 4868
+
+      i = 0;
+      while !names[i as usize].is_null ()                               // C 4870
+	{
+	  font = font_open_by_name (f, build_unibyte_string (names[i as usize]));  // C 4872
+	  if !NILP (font)                                               // C 4873
+	    { break; }                                                  // C 4874
+	  i += 1;
+	}
+      if NILP (font)                                                    // C 4876
+	{ error (c"No suitable font was found".as_ptr ()); }            // C 4877
+    }
+
+  /* This call will make X resources override any system font setting.  */
+  gui_default_parameter (f, parms, Qfont (), font, c"font".as_ptr (),    // C 4881
+			 c"Font".as_ptr (), RES_TYPE_STRING);
+}
+
+/* C 4885-4898: `DEFUN ("x-wm-set-size-hint", Fx_wm_set_size_hint, Sx_wm_set_size_hint, 0, 1, 0,
+   doc: …)` - this file's first subr, whose registration belongs to the still-missing
+   `syms_of_xfns` (`--check`'s `missing defsubr` class); a macro invocation carries no doc
+   comment, so the note is a block comment.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-wm-set-size-hint", Fx_wm_set_size_hint, Sx_wm_set_size_hint, 0, 1, 0,
+       doc: "Send the size hints for frame FRAME to the window manager.\nIf FRAME is omitted or nil, use the selected frame.\nSignal error if FRAME is not an X frame.",
+       (frame: Lisp_Object),
+       {
+  let f: *mut frame = decode_window_system_frame (frame);               // C 4892
+
+  block_input ();                                                       // C 4894
+  x_wm_set_size_hint (f, 0, false);                                     // C 4895
+  unblock_input ();                                                     // C 4896
+  Qnil ()                                                               // C 4897
+});
+
+/// C 4900-4916: `static void set_machine_and_pid_properties (struct frame *f)`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn set_machine_and_pid_properties (f: *mut frame)
+{
+  use crate::x11_constants::{PropModeReplace, XA_CARDINAL};
+
+  /* This will set WM_CLIENT_MACHINE and WM_LOCALE_NAME.  */
+  XSetWMProperties (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),       // C 4904-4905
+		    std::ptr::null_mut (), std::ptr::null_mut (), std::ptr::null_mut (),
+		    0, std::ptr::null_mut (), std::ptr::null_mut (), std::ptr::null_mut ());
+  let pid: pid_t = getpid ();                                           // C 4906
+  if pid as c_uint <= 0xffff_ffff                                       // C 4907
+    {
+      let mut xpid: c_ulong = pid as c_ulong;                           // C 4909
+      XChangeProperty (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),   // C 4910-4914
+		       (*FRAME_DISPLAY_INFO! (f)).Xatom_net_wm_pid,
+		       XA_CARDINAL as Atom, 32, PropModeReplace,
+		       &raw mut xpid as *mut c_uchar, 1);
+    }
+}
