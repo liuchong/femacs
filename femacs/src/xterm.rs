@@ -31070,6 +31070,8 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
   use crate::x11_constants::SelectionNotify;
   use crate::x11_constants::SelectionClear;
   use crate::x11_constants::SelectionRequest;
+  /* C 20715/20806/20853/20979's four case labels (this slice).  */
+  use crate::x11_constants::{EnterNotify, FocusIn, FocusOut, LeaveNotify};
   use crate::x11_constants::None;
   /* C 19579/19699's `PropertyDelete`, and the Xlib/Xatom names the toplevel scan and
      the opacity reader read (C 19597-19621, C 19709-19721).  */
@@ -32524,6 +32526,284 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	      { break 'other; }                                             // C 20710
 #[cfg (not (feature = "have_x_i18n"))]
 	      { break 'switch; }                                            // C 20712
+	    }
+
+	  /* C 20715-20804: `case EnterNotify:`.  The user-time pair, the xwidget-view arm (C's
+	     `#ifdef HAVE_XWIDGETS`), the two halves of C's "fix for bug#57468" condition (which C
+	     splits so that exactly one of them compiles per configuration), the XInput2 bail-out,
+	     and then the mouse-movement bookkeeping.  `xcrossing` members and `&event->xmotion` are
+	     the `XEvent` stand-in's owed class, so C's own member text stays.  */
+	  EnterNotify =>
+	    {
+	      x_display_set_last_user_time (dpyinfo, (*event).xcrossing.time,   // C 20716
+					    (*event).xcrossing.send_event,      // C 20717
+					    false);                             // C 20718
+
+	      /* C 20720-20745's `#ifdef HAVE_XWIDGETS` block.  */
+#[cfg (feature = "have_xwidgets")]
+	      {
+		let mut xvw: *mut xwidget_view;                                 // C 20722
+		let mut hlinfo: *mut Mouse_HLInfo;                              // C 20723
+
+		xvw = xwidget_view_from_window ((*event).xcrossing.window);     // C 20725
+
+		if !xvw.is_null ()                                              // C 20727
+		  {
+		    xwidget_motion_or_crossing (xvw, event);                    // C 20729
+		    hlinfo = MOUSE_HL_INFO! ((*xvw).frame);                     // C 20730
+
+		    if (*xvw).frame == (*hlinfo).mouse_face_mouse_frame         // C 20732
+		      {
+			clear_mouse_face (hlinfo);                              // C 20734
+			(*hlinfo).mouse_face_mouse_frame = std::ptr::null_mut ();  // C 20735
+			x_flush_dirty_back_buffer_on ((*xvw).frame);            // C 20736
+		      }
+
+		    if any_help_event_p                                         // C 20739
+		      { do_help = -1; }                                         // C 20740
+
+		    break 'switch;                                              // C 20742
+		  }
+	      }
+
+	      /* "Apply the fix for bug#57468 on GTK 3.x and no toolkit builds, but not GTK+ 2.x and
+		 X toolkit builds, where it is required to treat implicit focus correctly.
+		 (bug#65919)" - C 20750-20753's first half.  */
+#[cfg (any (feature = "use_x_toolkit",
+	    all (feature = "use_gtk", not (feature = "have_gtk3"))))]
+	      if !x_top_window_to_frame (dpyinfo, (*event).xcrossing.window).is_null ()  // C 20751
+		{ x_detect_focus_change (dpyinfo, any, event, &raw mut inev.ie); }  // C 20752
+
+	      /* C 20755-20765's `#ifdef HAVE_XINPUT2`: "For whatever reason, the X server continues
+		 to deliver EnterNotify and LeaveNotify events despite us selecting for related
+		 XI_Enter and XI_Leave events. … Simply ignore all such events while the input
+		 extension is enabled.  (bug#57468)"  */
+#[cfg (feature = "have_xinput2")]
+	      if (*dpyinfo).supports_xi2                                     // C 20763
+		{ break 'switch; }                                           // C 20764
+
+	      /* C 20769-20772: the same fix's other half.  */
+#[cfg (any (not (feature = "use_x_toolkit"),
+	    all (feature = "use_gtk", feature = "have_gtk3")))]
+	      if !x_top_window_to_frame (dpyinfo, (*event).xcrossing.window).is_null ()  // C 20770
+		{ x_detect_focus_change (dpyinfo, any, event, &raw mut inev.ie); }  // C 20771
+
+	      f = any;                                                       // C 20774
+
+	      if !f.is_null ()                                               // C 20776
+		&& (*event).xcrossing.window == FRAME_X_WINDOW! (f)
+		{
+		  x_compute_root_window_offset (f, (*event).xcrossing.x_root,  // C 20777
+						(*event).xcrossing.y_root,   // C 20778
+						(*event).xcrossing.x,        // C 20779
+						(*event).xcrossing.y);       // C 20780
+		}
+
+	      /* "The code below relies on the first several fields of XCrossingEvent being laid out
+		 the same way as XMotionEvent."  */
+	      if !f.is_null () && x_mouse_click_focus_ignore_position        // C 20786
+		{
+		  ignore_next_mouse_click_timeout = ((*event).xmotion.time    // C 20788
+						     + x_mouse_click_focus_ignore_time);
+		  mouse_click_timeout_display = dpyinfo;                     // C 20790
+		}
+
+	      /* "EnterNotify counts as mouse movement, so update things that depend on mouse
+		 position."  */
+	      if !f.is_null ()                                               // C 20795
+		&& !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).hourglass_p
+		{ x_note_mouse_movement (f, &raw const (*event).xmotion, Qnil ()); }  // C 20796
+	      /* C 20797-20803's `#ifdef USE_GTK`: "We may get an EnterNotify on the buttons in the
+		 toolbar.  In that case we moved out of any highlighted area and need to note
+		 this."  */
+#[cfg (feature = "use_gtk")]
+	      if f.is_null ()                                                // C 20800
+		&& !(*dpyinfo).last_mouse_glyph_frame.is_null ()
+		{
+		  x_note_mouse_movement ((*dpyinfo).last_mouse_glyph_frame,  // C 20801
+					 &raw const (*event).xmotion,
+					 Qnil ());                       // C 20802
+		}
+	      break 'switch;                                                 // C 20804
+	    }
+
+	  /* C 20806-20851: `case FocusIn:`.  C's long-looking condition (C 20807-20808) enables the
+	     XInput2 bail-out only where focus is tracked per master device; the `#ifdef USE_GTK`
+	     around the condition at C 20822-20837 is the cfg-computed shape Decision 2 item 2
+	     spells, and without GTK the block is unconditional, which is what C compiles there.  */
+	  FocusIn =>
+	    {
+	      /* C 20807-20821's pair.  */
+#[cfg (all (feature = "have_xinput2",
+	    any (feature = "have_gtk3",
+		 all (not (feature = "use_gtk"), not (feature = "use_x_toolkit")))))]
+	      if (*dpyinfo).supports_xi2                                     // C 20819
+		{ break 'switch; }                                           // C 20820
+
+	      /* C 20822-20837's `#ifdef USE_GTK` wraps the *condition* (C 20835-20836), and C 20838's
+		 block runs unconditionally where the header drops it - so the port computes the condition
+		 once, the cfg-computed shape Decision 2 item 2 spells.  */
+	      let focus_more_laxly: bool = true;                             // C 20838's `#else` reading
+#[cfg (feature = "use_gtk")]
+	      let focus_more_laxly: bool
+		= EQ (x_set_frame_visibility_more_laxly, Qfocus_in ())          // C 20835
+		  || EQ (x_set_frame_visibility_more_laxly, Qt ());            // C 20836
+
+	      /* "Some WMs (e.g. Mutter in Gnome Shell), don't unmap minimized/iconified windows; …
+		 The option x_set_frame_visibility_more_laxly enables overriding the default behavior
+		 (Bug#49955, Bug#53298)."  */
+	      if focus_more_laxly
+		{
+		  f = any;                                                   // C 20839
+		  if !f.is_null () && FRAME_ICONIFIED_P (f)                  // C 20840
+		    {
+		      SET_FRAME_VISIBLE! (f, 1);                             // C 20842
+		      SET_FRAME_ICONIFIED (f, false as c_int);               // C 20843
+		      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;  // C 20844
+		      input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);  // C 20845
+		      XSETFRAME! (inev.ie.frame_or_window, f);               // C 20846
+		    }
+		}
+
+	      x_detect_focus_change (dpyinfo, any, event, &raw mut inev.ie);  // C 20850
+	      break 'switch;                                                 // C 20851
+	    }
+
+	  /* C 20853-20977: `case LeaveNotify:`.  C's `just_clear_mouse_face:` label sits inside this
+	     case (C 20913) and one of the XInput2 arms jumps to it (C 20885), so the port carries
+	     C's own name as a flag: the flag's `true` is that jump, and the tail below is what the
+	     label names.  */
+	  LeaveNotify =>
+	    {
+	      x_display_set_last_user_time (dpyinfo, (*event).xcrossing.time,   // C 20854
+					    (*event).xcrossing.send_event,      // C 20855
+					    false);
+
+	      /* C 20857-20863: the first half of the bug#57468 fix.  */
+#[cfg (any (feature = "use_x_toolkit",
+	    all (feature = "use_gtk", not (feature = "have_gtk3"))))]
+	      if !x_top_window_to_frame (dpyinfo, (*event).xcrossing.window).is_null ()  // C 20861
+		{ x_detect_focus_change (dpyinfo, any, event, &raw mut inev.ie); }  // C 20862
+
+	      let mut just_clear_mouse_face: bool = false;                   // C 20913's label
+	      /* C 20865-20888's `#ifdef HAVE_XINPUT2` block.  */
+#[cfg (feature = "have_xinput2")]
+	      if (*dpyinfo).supports_xi2                                     // C 20873
+		{
+		  /* C 20875-20886's pair.  */
+		  #[cfg (all (not (feature = "use_x_toolkit"),
+			  any (not (feature = "use_gtk"), feature = "have_gtk3")))]
+		  { break 'switch; }                                         // C 20876 (the `goto OTHER`)
+		  /* "Unfortunately, X toolkit popups generate LeaveNotify events due to the core
+		     grabs they acquire (and our releasing of the device grab).  This leads to the
+		     mouse face persisting if a popup is activated by clicking on a button, and then
+		     dismissed by releasing the mouse button outside the frame, in which case no
+		     XI_Enter event is generated for the grab."  */
+		  #[cfg (any (feature = "use_x_toolkit",
+			  all (feature = "use_gtk", not (feature = "have_gtk3"))))]
+		  { just_clear_mouse_face = true; }                          // C 20885's `goto`
+		}
+
+	      if !just_clear_mouse_face
+		{
+		  /* C 20890-20895: the same fix's other half.  */
+#[cfg (any (not (feature = "use_x_toolkit"),
+	    all (feature = "use_gtk", feature = "have_gtk3")))]
+		  if !x_top_window_to_frame (dpyinfo, (*event).xcrossing.window).is_null ()  // C 20893
+		    { x_detect_focus_change (dpyinfo, any, event, &raw mut inev.ie); }  // C 20894
+
+		  /* C 20897-20909's `#ifdef HAVE_XWIDGETS` block.  */
+#[cfg (feature = "have_xwidgets")]
+		  {
+		    let mut xvw: *mut xwidget_view;                         // C 20899
+
+		    xvw = xwidget_view_from_window ((*event).xcrossing.window);  // C 20901
+
+		    if !xvw.is_null ()                                      // C 20903
+		      {
+			xwidget_motion_or_crossing (xvw, event);             // C 20905
+			break 'switch;                                      // C 20906
+		      }
+		  }
+		}
+
+	      /* C 20913's `just_clear_mouse_face:` - the tail both paths reach.  */
+	      /* C 20916-20925's pair: "If the mouse leaves the edit widget, then any mouse
+		 highlight should be cleared."  */
+#[cfg (feature = "use_x_toolkit")]
+	      {
+		f = x_window_to_frame (dpyinfo, (*event).xcrossing.window);   // C 20919
+
+		if f.is_null ()                                              // C 20921
+		  { f = x_top_window_to_frame (dpyinfo, (*event).xcrossing.window); }  // C 20922
+	      }
+#[cfg (not (feature = "use_x_toolkit"))]
+	      { f = x_top_window_to_frame (dpyinfo, (*event).xcrossing.window); }  // C 20924
+
+	      if !f.is_null ()                                              // C 20927
+		{
+		  /* "Now clear dpyinfo->last_mouse_motion_frame, or gui_redo_mouse_highlight will
+		     end up highlighting the last known position of the mouse if a tooltip frame is
+		     later unmapped."  */
+		  if f == (*dpyinfo).last_mouse_motion_frame                  // C 20934
+		    { (*dpyinfo).last_mouse_motion_frame = std::ptr::null_mut (); }  // C 20935
+
+		  /* "Something similar applies to dpyinfo->last_mouse_glyph_frame."  */
+		  if f == (*dpyinfo).last_mouse_glyph_frame                   // C 20939
+		    { (*dpyinfo).last_mouse_glyph_frame = std::ptr::null_mut (); }  // C 20940
+
+		  if f == (*hlinfo).mouse_face_mouse_frame                    // C 20942
+		    {
+		      /* "If we move outside the frame, then we're certainly no longer on any text
+			 in the frame."  */
+		      clear_mouse_face (hlinfo);                              // C 20946
+		      (*hlinfo).mouse_face_mouse_frame = std::ptr::null_mut ();  // C 20947
+		      x_flush_dirty_back_buffer_on (f);                       // C 20948
+		    }
+
+		  /* "Generate a nil HELP_EVENT to cancel a help-echo.  Do it only if there's
+		     something to cancel.  Otherwise, the startup message is cleared when the mouse
+		     leaves the frame."  */
+		  if any_help_event_p                                         // C 20955
+		    /* "But never if `mouse-drag-and-drop-region' is in progress, since that results
+		       in the tooltip being dismissed when the mouse moves on top."  */
+		    && !((EQ (track_mouse, Qdrag_source ())                   // C 20959
+			  || EQ (track_mouse, Qdropping ()))                  // C 20960
+			 && gui_mouse_grabbed (dpyinfo))                      // C 20961
+		    { do_help = -1; }                                         // C 20962
+
+		  if (*event).xcrossing.window == FRAME_X_WINDOW! (f)         // C 20964
+		    {
+		      x_compute_root_window_offset (f, (*event).xcrossing.x_root,  // C 20965
+						    (*event).xcrossing.y_root,  // C 20966
+						    (*event).xcrossing.x,       // C 20967
+						    (*event).xcrossing.y);      // C 20968
+		    }
+		}
+	      /* C 20971-20976's `#ifdef USE_GTK`: "See comment in EnterNotify above".  */
+#[cfg (feature = "use_gtk")]
+	      if f.is_null ()                                                // C 20973
+		&& !(*dpyinfo).last_mouse_glyph_frame.is_null ()
+		{
+		  x_note_mouse_movement ((*dpyinfo).last_mouse_glyph_frame,  // C 20974
+					 &raw const (*event).xmotion, Qnil ());  // C 20975
+		}
+	      break 'switch;                                                 // C 20977
+	    }
+
+	  /* C 20979-20996: `case FocusOut:`.  C's condition at C 20980-20981 is the FocusIn one's
+	     twin, and the XInput2 bail-out is inside it.  */
+	  FocusOut =>
+	    {
+	      /* C 20980-20994's pair.  */
+#[cfg (all (feature = "have_xinput2",
+	    any (feature = "have_gtk3",
+		 all (not (feature = "use_gtk"), not (feature = "use_x_toolkit")))))]
+	      if (*dpyinfo).supports_xi2                                     // C 20992
+		{ break 'switch; }                                           // C 20993
+
+	      x_detect_focus_change (dpyinfo, any, event, &raw mut inev.ie);  // C 20995
+	      break 'switch;                                                 // C 20996
 	    }
 
 		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in

@@ -368,6 +368,12 @@ site, and the `mouse_face_hidden` bitfield macro the mouse-highlight clear reads
 `done_keysym` label all land with their gates, and the `break`/`goto` sites use the frame round 90
 repaired.
 
+  Slice 116 (C 20715-20996, Decision 128) lands the four crossing/focus cases - `EnterNotify`,
+`FocusIn`, `LeaveNotify` and `FocusOut`, 279 C lines - where C's three-condition "bug#57468" family
+(the two halves of the toolkit/GTK split, the XInput2 bail-out and the `HAVE_GTK3` variants) is
+carried verbatim, and where C's `just_clear_mouse_face:` label becomes a flag of C's own name
+because Rust cannot jump forward into the middle of a block.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5418,6 +5424,40 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   The unit is **33,448 lines** against C's 33,125 (**323 lines longer than C's 33,125, +0.98%** - the
 expected direction once the file starts carrying records the X11 headers would supply; the
   earlier readings were short of C), file md5 `b58f992a2a900edec49c953eb0200ce5`.
+
+### 128. Slice 116 (C 20715-20996): the four crossing/focus cases, and a label that becomes a flag
+
+* **What it lands.**  `case EnterNotify:` (C 20715-20804), `case FocusIn:` (C 20806-20851),
+  `case LeaveNotify:` (C 20853-20977) and `case FocusOut:` (C 20979-20996), each line with its own
+  `// C NNNN` comment: the user-time pairs, the xwidget arms (C's `HAVE_XWIDGETS`), C's
+  "bug#57468" family of conditions, the XInput2 bail-outs, the mouse-movement bookkeeping
+  (`x_note_mouse_movement` with its `USE_GTK` second site), the FocusIn deiconify block behind
+  `x-set-frame-visibility-more-laxly`, LeaveNotify's mouse-face clear with its
+  `last_mouse_motion_frame`/`last_mouse_glyph_frame` resets and its help-echo cancellation.
+  `xcrossing`/`xmotion` are owed `XEvent` members, so C's own member text stays.
+* **C's condition family is kept condition for condition.**  C writes the same predicate three
+  times in different spellings - `USE_X_TOOLKIT || (USE_GTK && !HAVE_GTK3)` (C 20750/20860, the
+  "treat implicit focus correctly" half), its negation (C 20769/20892), and
+  `HAVE_XINPUT2 && (HAVE_GTK3 || (!USE_GTK && !USE_X_TOOLKIT))` (C 20807/20980, the
+  device-specific-focus half) - and inside the XInput2 block a third pair
+  (`!USE_X_TOOLKIT && (!USE_GTK || HAVE_GTK3)` for `goto OTHER` versus its negation for the label,
+  C 20875-20886).  All five land as C wrote them, as `#[cfg (any (…))]`/`#[cfg (all (…))]` pairs;
+  the `#ifdef USE_GTK` that wraps *FocusIn's condition* (C 20822-20837) is the cfg-computed shape
+  Decision 2 item 2 spells (`focus_more_laxly`), so C 20838's block is written once.
+* **`just_clear_mouse_face:` becomes a flag of C's own name.**  C 20913's label sits inside the
+  `LeaveNotify` case and C 20885 jumps *forward into the middle* of that case; Rust's `break
+  'label` can only leave a block, so the port carries C's name as a `bool` the jump site sets
+  (`just_clear_mouse_face = true` at C 20885) and the code C's jump skips (C 20890-20914) as the
+  `if !just_clear_mouse_face` arm.  C's own name is the variable's, so the text still says where the
+  jump went; the `mut` is only needed in the arms that set it, which is why the `variable does not
+  need to be mutable` row stands in the others (Decision 128's reading names it).
+* **Four spellings the first writing read.**  `x_mouse_click_focus_ignore_position`,
+  `any_help_event_p` (twice) and `gui_mouse_grabbed` are `bool` in this port, so C's truth tests are
+  bare (the first writing kept `!= 0` and four `E0308`s came back).  Nothing else in the four cases
+  needed a cast.
+* **What `--check` reads.**  Unchanged at two rows; the long row's token list goes **268 -> 250**.
+  The unit is **33,728 lines** against C's 33,125 (**603 lines longer, +1.82%**), file md5
+  `9a0ca789f786b1ec57512be9a51f4a7f`.
 
 ## Evidence
 
@@ -10923,3 +10963,54 @@ inside the XIC arm C 20362's `else` stands behind.
 **Not claimed**: no runtime evidence - this lane does not link, and no key event was ever delivered;
 the readings are the nineteen arm compiles, the `--check` row's token count and this ledger.  The
 `have_window_system` gap the two `frame` rows mark is the next round's work, not this one's.
+
+### Slice 116's readings (C 20715-20996), as landed and measured (2026-10-08)
+
+`EnterNotify`, `FocusIn`, `LeaveNotify` and `FocusOut`.  Fourteen `case` bodies remain.
+
+| arm | baseline | slice 116 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 1005 / 77 | **1027 / 78** | **+22 / +1** |
+| U `A +use_toolkit_scroll_bars` | 1018 / 77 | **1040 / 78** | **+22 / +1** |
+| UT `U +use_x_toolkit` | 1013 / 76 | **1036 / 77** | **+23 / +1** |
+| UM `UT +use_motif` | 1018 / 76 | **1041 / 77** | **+23 / +1** |
+| UG `U +use_gtk` | 1022 / 78 | **1048 / 79** | **+26 / +1** |
+| UGX `UG +have_xinput2` | 1126 / 80 | **1152 / 81** | **+26 / +1** |
+| AE `A +enable_checking` | 1037 / 76 | **1059 / 77** | **+22 / +1** |
+| AI `A +have_x_i18n` | 1030 / 77 | **1052 / 78** | **+22 / +1** |
+| AIU `AI +use_gtk` | 1090 / 77 | **1116 / 78** | **+26 / +1** |
+| AIUX `AIU +have_xinput2` | 1198 / 79 | **1224 / 80** | **+26 / +1** |
+| AX `A +have_xdbe` | 1015 / 77 | **1037 / 78** | **+22 / +1** |
+| AG3 `A +use_gtk +have_gtk3` | 1073 / 77 | **1097 / 78** | **+24 / +1** |
+| AG3X `AG3 +have_xinput2` | 1152 / 79 | **1176 / 80** | **+24 / +1** |
+| AXF `A +have_xfixes` | 1015 / 77 | **1037 / 78** | **+22 / +1** |
+| AXPM `A +have_xpm` | 1006 / 77 | **1028 / 78** | **+22 / +1** |
+| AXKB `A +have_xkb` | 1046 / 77 | **1068 / 78** | **+22 / +1** |
+| AXR `A +have_xrandr` | 1012 / 77 | **1034 / 78** | **+22 / +1** |
+| AX11 `A +have_x11` | 989 / 77 | **1011 / 78** | **+22 / +1** |
+| AUX `A +use_xcb` | 1088 / 75 | **1110 / 76** | **+22 / +1** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`cdc7f3b5`, slice 115) with its
+own `_root.rs` re-materialised per arm - the nineteen baseline numbers reproduce the ledger's
+slice-115 column to the digit - and the slice's file md5 is
+`9a0ca789f786b1ec57512be9a51f4a7f`.
+
+**The `of which`, by arm class:**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `no field xcrossing` +17 / +18 / +19 | 17 in the plain arms, 18 where the toolkit arm's `x_window_to_frame` adds C 20919, 19 where GTK adds C 20751's or 20770's second lookup | C 20716-20718, 20725, 20751, 20770, 20776-20780, 20801, 20854, 20861, 20873, 20893, 20901, 20919-20922, 20964-20968, 20974 |
+| `no field xmotion` +2 / +4 | +2 in the plain arms (C 20788, C 20796), +4 where GTK compiles the two `!f` sites (C 20801, C 20974) | C 20788, 20796, 20801, 20974 |
+| `no field hourglass_p` +1 | every arm | C 20795 (the `x_output` bitfield class slices 112/115 keep naming) |
+| `no field has_been_visible` +1 | every arm | C 20844 |
+| `mismatched types` +1 | every arm | C 20796's `&event->xmotion` into `x_note_mouse_movement`'s `*const XMotionEvent` (the owed member's type is what the stand-in lacks) |
+
+The warning column moves **+1 in every arm**, and the set delta is one row:
+`unnecessary parentheses around assigned value` (C 20788's own parentheses, kept - the file has
+many of that class).  The second new warning the region shows (`variable does not need to be
+mutable`, for the `just_clear_mouse_face` flag) leaves that class's count unchanged (23 -> 23,
+measured), so the counted delta is the one row.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no crossing or focus event was
+ever delivered; the readings are the nineteen arm compiles, the `--check` row's token count and
+this ledger.
