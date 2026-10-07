@@ -8317,6 +8317,142 @@ class EmacsView: NSView {
       EV_TRAILER(nil, emacsframe)                     // C 7721
     }
   }
+
+  /// C 8404-8408: `- (void)windowDidBecomeKey: (NSNotification *)notification` - C's comment above
+  /// it is "cf. x_detect_focus_change(), x_focus_changed(), x_new_focus_frame()" and its body is
+  /// the direct-call variant below.
+  @objc func windowDidBecomeKey(_ notification: Notification) {
+    windowDidBecomeKey()                              // C 8407
+  }
+
+  /// C 8411-8457: `- (void)windowDidBecomeKey` - "for direct calls".  C 8427-8451's `NS_IMPL_COCOA`
+  /// arm is this target's: the timer is AppKit's own factory
+  /// (`Timer.scheduledTimer (timeInterval:target:selector:userInfo:repeats:)`), C's selector is now
+  /// typed (`#selector (EmacsView.deferred_UAZoomChangeFocus_handler(_:))`, the method below), and
+  /// C 8449's `retain` is ARC's strong reference (the `scheduledTimer` reading round 45 recorded).
+  /// `FRAME_DISPLAY_INFO`'s family gives the display-info members as frame-taking entries
+  /// (`ns_display_info_ns_focus_frame`/`_set_ns_focus_frame`), `adjustEmacsFrameRect` is this
+  /// class's own method (C 8862) whose batch has not landed, so that call goes through the deferred
+  /// entry declared below, and C 8455/8456 are the kbd-buffer pair this unit already imports.
+  @objc func windowDidBecomeKey() {
+    let old_focus = ns_display_info_ns_focus_frame(emacsframe)   // C 8414
+    var event = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                            frame_or_window: nil, arg: nil, device: nil)   // C 8415
+
+    EVENT_INIT(&event)                                // C 8417
+
+    // C 8419: `NSTRACE ("[EmacsView windowDidBecomeKey]");` - empty at `NSTRACE_ENABLED` 0.
+
+    if emacsframe != old_focus {                      // C 8421
+      ns_display_info_set_ns_focus_frame(emacsframe, emacsframe)   // C 8422
+    }
+
+    ns_frame_rehighlight(emacsframe)                  // C 8424
+    adjustEmacsFrameRect_entry(self)                  // C 8425
+
+    /* Make sure we have focus and the timer isn't already scheduled.  */
+    if window?.firstResponder == (self as NSResponder)
+         && ns_deferred_UAZoomChangeFocus_timer == nil {   // C 8430-8431
+      /* Calls to ns_UAZoomChangeFocus are synchronous.  We defer the
+         call to give macOS time to finish window compositing or the
+         calls can be silently ignored by the Zoom daemon and with no
+         errors reported.  This also helps ensure ns_draw_window_cursor
+         has populated ns_UAZoom_cursor_rect_new.  The 200 ms delay was
+         chosen as a balance between macOS headroom and user
+         perception.  */
+      ns_deferred_UAZoomChangeFocus_timer = Timer.scheduledTimer(   // C 8440-8449
+        timeInterval: NS_UAZOOMENABLED_DEFER_INTERVAL_SECS, target: self,
+        selector: #selector(EmacsView.deferred_UAZoomChangeFocus_handler(_:)),
+        userInfo: nil, repeats: false)
+    }
+
+    input_event_set_kind(&event, FOCUS_IN_EVENT)      // C 8453 (C's `event.kind = …`, a bitfield write)
+    XSETFRAME(&event.frame_or_window, emacsframe)     // C 8454
+    kbd_buffer_store_event(&event)                    // C 8455
+    ns_send_appdefined(-1)                            // C 8456 ("Kick main loop")
+  }
+
+  /// C 8472-8479: `- (void)windowWillClose: (NSNotification *)notification` - C's `NS_IMPL_COCOA`
+  /// arm is this target's, and the call is round 59's own function.
+  @objc func windowWillClose(_ notification: Notification) {
+    /* Cancel the zoom focus change timer if its window is closed before
+       it runs.  */
+    cancel_ns_deferred_UAZoomChangeFocus_timer()      // C 8477
+  }
+
+  /// C 8481-8492: `- (void)deferred_UAZoomChangeFocus_handler: (NSTimer *)timer` (the
+  /// `NS_IMPL_COCOA` arm C 8481 opens and C 8492 closes): C 8485's `FRAME_LIVE_P` guard is the entry
+  /// below, and `ns_UAZoomChangeFocus`/`cancel_ns_deferred_UAZoomChangeFocus_timer` are this unit's
+  /// own (C 1164 and C 8459; round 59 landed the second).
+  @objc func deferred_UAZoomChangeFocus_handler(_ timer: Timer) {
+    /* The frame may be deleted before the timer fires.  */
+    if FRAME_LIVE_P(emacsframe) {                     // C 8485
+      let view = FRAME_NS_VIEW(emacsframe)            // C 8487
+      ns_UAZoomChangeFocus(view, true)                // C 8488
+    }
+    cancel_ns_deferred_UAZoomChangeFocus_timer()      // C 8490
+  }
+
+  /// C 8494-8529: `- (void)windowDidResignKey: (NSNotification *)notification` - C's comment above
+  /// it is the same "cf. x_detect_focus_change(), …" line.  C 8524's `emacs_event` is this unit's
+  /// own file-scope pointer (C 329) and C 8527's `EV_TRAILER ((id)nil)` is round 22's macro, which
+  /// reaches the same `emacsframe` its other callers pass.
+  @objc func windowDidResignKey(_ notification: Notification) {
+    let is_focus_frame = ns_display_info_ns_focus_frame(emacsframe) == emacsframe   // C 8498
+    // C 8499: `NSTRACE ("[EmacsView windowDidResignKey:]");` - empty.
+
+    if is_focus_frame {                               // C 8501
+      ns_display_info_set_ns_focus_frame(emacsframe, nil)   // C 8502
+    }
+
+    frame_set_mouse_moved(emacsframe, false)          // C 8504
+    ns_frame_rehighlight(emacsframe)                  // C 8505
+
+    /* FIXME: for some reason needed on second and subsequent clicks away
+              from sole-frame Emacs to get hollow box to show.  */
+    if !windowClosing && (window?.isVisible ?? false) == true {   // C 8509
+      gui_update_cursor(emacsframe, true)             // C 8511
+      ns_set_frame_alpha(emacsframe)                  // C 8512
+    }
+
+    if any_help_event_p {                             // C 8515
+      var frame: Lisp_Object = nil                    // C 8517
+      XSETFRAME(&frame, emacsframe)                   // C 8518
+      help_echo_string_entry = Qnil()                 // C 8519
+      _ = gen_help_event(Qnil(), frame, Qnil(), Qnil(), 0)   // C 8520
+      any_help_event_p = false                        // C 8521
+    }
+
+    if emacs_event != nil && is_focus_frame {         // C 8524
+      input_event_set_kind(emacs_event!, FOCUS_OUT_EVENT)   // C 8526 (C's `emacs_event->kind = …`)
+      EV_TRAILER(nil, emacsframe)                     // C 8527
+    }
+  }
+
+  /// C 8532-8535: `- (void)windowWillMiniaturize: sender` - C's body is the empty macro's comment
+  /// and nothing else.
+  @objc func windowWillMiniaturize(_ sender: Any?) {
+    // C 8534: `NSTRACE ("[EmacsView windowWillMiniaturize:]");` - empty at `NSTRACE_ENABLED` 0.
+  }
+
+  /// C 8538-8544: `- (void)setFrame:(NSRect)frameRect` - C's body is the `super` call and nothing
+  /// else.  AppKit imports that selector as the `frame` property, so the port overrides its setter
+  /// (the `EmacsScroller` reading of the same rename; measured: `value of type 'NSView' has no
+  /// member 'setFrame'`), and C's `(NSRect)frameRect` is the value it hands the superclass.
+  override var frame: NSRect {
+    get { super.frame }
+    set(frameRect) { super.frame = frameRect }        // C 8543
+  }
+
+  /// C 8547-8550: `- (BOOL)isFlipped` - C's whole body is `return YES;`.
+  override var isFlipped: Bool {
+    true                                              // C 8549
+  }
+
+  /// C 8553-8556: `- (BOOL)isOpaque` - C's whole body is `return NO;`.
+  override var isOpaque: Bool {
+    false                                             // C 8555
+  }
 }
 
 /// C 5086-5107: `static void check_native_fs (void)` - the function C 5127 and C 5218 call from
@@ -12352,3 +12488,31 @@ func ns_get_local_selection(_ selection_name: Lisp_Object, _ target_type: Lisp_O
 /// is `DEFSYM`'d by this file itself at C 11564, the C 555 `QCmouse` shape).
 @_silgen_name("QPRIMARY") func QPRIMARY() -> Lisp_Object
 @_silgen_name("QUTF8_STRING") func QUTF8_STRING() -> Lisp_Object
+
+// ==========================================================================
+// Round 68: the entries the focus/notification batch needs
+// ==========================================================================
+
+/// C: `FOCUS_IN_EVENT` and `FOCUS_OUT_EVENT` (src/termhooks.h 234/236, two members of the
+/// `enum event_kind` declared at src/termhooks.h 72) - the two enumerators C 8453/8526 write.  They
+/// are mirror-valued constants, this unit's reading for the values neither the frozen macro table
+/// nor the core's exports carry (`femacs/src/include/termhooks.rs` 49-50: 22 and 23), the
+/// `MONITORS_CHANGED_EVENT` shape.
+fileprivate let FOCUS_IN_EVENT: UInt32 = 22
+fileprivate let FOCUS_OUT_EVENT: UInt32 = 23
+
+/// C 8425's `[self adjustEmacsFrameRect]` - this class's own method (defined at C 8862), whose batch
+/// has not landed, so the call site uses the deferred entry of the selector's first segment (the
+/// `setParentChildRelationships` shape); the definition lands with that method's round.
+@_silgen_name("adjustEmacsFrameRect")
+func adjustEmacsFrameRect_entry(_ view: NSView?)
+
+/// C: `Lisp_Object help_echo_string` (src/keyboard.c's global) - C 8519's write, a data entry of
+/// the same family as this unit's other core globals.
+@_silgen_name("help_echo_string") var help_echo_string_entry: Lisp_Object
+
+/// C: `void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, ptrdiff_t)`
+/// (declared src/keyboard.h 513) - C 8520's call, whose result C discards.
+@_silgen_name("gen_help_event")
+func gen_help_event(_ a: Lisp_Object, _ b: Lisp_Object, _ c: Lisp_Object, _ d: Lisp_Object,
+                    _ n: Int) -> Lisp_Object

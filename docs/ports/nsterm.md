@@ -265,7 +265,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)show:(NSView *)view`  (line 1373) -> `@objc func show(_ view: NSView)`
   - [x] `- (void)hide`  (line 1402) -> `@objc func hide()`
   - [x] `-(void)remove`  (line 1418) -> `@objc func remove()`
-- [ ] EmacsApp  (`@implementation` 6225, `@end` 6912) - round 21 landed **C 6225-6400**: the class record with its `NS_IMPL_COCOA` ivars (`src/nsterm.h` 378-389) and the five methods below; the twenty-five that remain (C 6402-6912) are what keeps this box open
+- [x] EmacsApp  (`@implementation` 6225, `@end` 6912) - **closed in round 68**: round 21 landed **C 6225-6400** (the class record with its `NS_IMPL_COCOA` ivars, `src/nsterm.h` 378-389, and its first five methods) and rounds 22-29 the remaining twenty-five (C 6402-6912), every one of them ticked above - the last three rows are the ones that had waited on other units (`openFile:`/`requestService:userData:error:`/`fulfillService:withArg:`) and the `updateMonitors:` dead arm.  The box line was stale until this round: the list under it was complete while the line still said twenty-five methods remained, and that is what the tick corrects
   - [x] `- (id)init`  (line 6227) — landed as `override init ()`: C 6238's `self->isFirst = YES;` is the one live statement (the `NS_IMPL_GNUSTEP` ivar at 6241 and the notification-centre observer at 6245-6251 are the arm this target does not take)
   - [x] `- (void)run`  (line 6257) — landed as `override func run ()`: C 6261-6263's `#ifndef NSAppKitVersionNumber10_9` fallback is `NSAppKitVersion.macOS10_9` (the `NSAppKitVersionNumber10_10` reading above, class B) and `NSAutoreleasePool` is this unit's own `objc_autoreleasePoolPush`/`Pop` (C 560)
   - [x] `- (void)stop: (id)sender`  (line 6295) — landed as `override func stop (_ sender: Any?)` (the `NS_IMPL_COCOA` arm; C 6304 closes it)
@@ -343,15 +343,15 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (NSSize)windowWillResize: (NSWindow *)sender toSize: (NSSize)frameSize`  (line 8243)
   - [ ] `- (void)viewDidEndLiveResize`  (line 8357)
   - [ ] `- (void)resizeWithOldSuperviewSize: (NSSize)oldSize`  (line 8373)
-  - [ ] `- (void)windowDidBecomeKey: (NSNotification *)notification`  (line 8404)
-  - [ ] `- (void)windowDidBecomeKey`  (line 8411)
-  - [ ] `- (void)windowWillClose: (NSNotification *)notification`  (line 8472)
-  - [ ] `- (void)deferred_UAZoomChangeFocus_handler: (NSTimer *)timer`  (line 8482)
-  - [ ] `- (void)windowDidResignKey: (NSNotification *)notification`  (line 8494)
-  - [ ] `- (void)windowWillMiniaturize: sender`  (line 8532)
-  - [ ] `- (void)setFrame:(NSRect)frameRect`  (line 8538)
-  - [ ] `- (BOOL)isFlipped`  (line 8547)
-  - [ ] `- (BOOL)isOpaque`  (line 8553)
+  - [x] `- (void)windowDidBecomeKey: (NSNotification *)notification`  (line 8404) — landed as `@objc func windowDidBecomeKey (_:)` (round 68): its whole body is the direct-call variant below (C's own comment above it, "cf. x_detect_focus_change(), x_focus_changed(), x_new_focus_frame()", is kept with the pair)
+  - [x] `- (void)windowDidBecomeKey`  (line 8411) — landed as `@objc func windowDidBecomeKey ()` (round 68): C 8427-8451's `NS_IMPL_COCOA` arm is this target's, the timer is AppKit's own factory with C's selector now typed (`Timer.scheduledTimer (timeInterval:target:selector:userInfo:repeats:)` + `#selector (EmacsView.deferred_UAZoomChangeFocus_handler(_:))`), C 8449's `retain` is ARC's strong reference, the display-info member pair is the frame-taking `ns_display_info_ns_focus_frame`/`_set_ns_focus_frame`, and C 8425's `adjustEmacsFrameRect` (this class's own method, C 8862) goes through the new deferred entry
+  - [x] `- (void)windowWillClose: (NSNotification *)notification`  (line 8472) — landed as `@objc func windowWillClose (_:)` (round 68): C's `NS_IMPL_COCOA` arm is this target's and its one call is round 59's own `cancel_ns_deferred_UAZoomChangeFocus_timer`
+  - [x] `- (void)deferred_UAZoomChangeFocus_handler: (NSTimer *)timer`  (line 8482) — landed as `@objc func deferred_UAZoomChangeFocus_handler (_:)` (round 68, the `NS_IMPL_COCOA` arm C 8481 opens and C 8492 closes): C 8485's `FRAME_LIVE_P` guard is the entry this unit already carries, and the two calls are this unit's own `ns_UAZoomChangeFocus` (C 1164) and `cancel_ns_deferred_UAZoomChangeFocus_timer` (C 8459, round 59)
+  - [x] `- (void)windowDidResignKey: (NSNotification *)notification`  (line 8494) — landed as `@objc func windowDidResignKey (_:)` (round 68): the focus-frame test is the member pair, C 8504's write is `frame_set_mouse_moved`, C 8515-8522's help-event block writes the `help_echo_string` global entry and calls `gen_help_event` (declared src/keyboard.h 513 - the core owes it), and C 8524-8527's `emacs_event` write goes through the `input_event_set_kind` bitfield setter with round 22's `EV_TRAILER`
+  - [x] `- (void)windowWillMiniaturize: sender`  (line 8532) — landed as an empty `@objc func windowWillMiniaturize (_:)` (round 68): C's body is the `NSTRACE` empty macro and nothing else
+  - [x] `- (void)setFrame:(NSRect)frameRect`  (line 8538) — landed as the **`frame` property's setter** (round 68): AppKit imports C's selector as that property and Swift's `NSView` has no `setFrame` member (measured), so the port overrides the setter and calls `super.frame` - the `EmacsScroller` reading of the same rename
+  - [x] `- (BOOL)isFlipped`  (line 8547) — landed as `override var isFlipped: Bool` (round 68), C's `return YES;` and nothing else
+  - [x] `- (BOOL)isOpaque`  (line 8553) — landed as `override var isOpaque: Bool` (round 68), C's `return NO;` and nothing else
   - [ ] `- (instancetype) initFrameFromEmacs: (struct frame *)f`  (line 8559)
   - [ ] `- (void)windowDidMove: sender`  (line 8645)
   - [ ] `- (BOOL)windowShouldZoom: (NSWindow *)sender toFrame: (NSRect)newFrame`  (line 8656)
@@ -455,7 +455,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void) releaseContext`  (line 11324) — landed as `func releaseContext ()`: C 11331's `CGContextFlush` is the SDK's rename `CGContext.flush ()`, C 11332's release is dropped, and C 11335's unlock keeps its status test
   - [x] `- (void) display`  (line 11341) — landed as `override func display ()` (`CALayer`'s own method): C 11345's `[[NSGraphicsContext currentContext] CGContext]` is `NSGraphicsContext.current?.cgContext`, and C's `setContents:` pair plus the cache push keep C's order
   - [x] `- (void) copyContentsTo: (IOSurfaceRef) destination`  (line 11364) — landed as `func copyContentsTo (_:)`: C 11367's unconditional cast of `[self contents]` is the nil test plus `as!` (the `checkDimensions` reading), the two lock/unlock pairs keep C's `kIOSurfaceLockReadOnly` (Swift's `.readOnly`) and their status tests, and C 11387's `memcpy` is the same call
-- [ ] EmacsDocument  (`@implementation` 11404, `@end` 11406)
+- [x] EmacsDocument  (`@implementation` 11404, `@end` 11406) — **dead in this build, recorded** (round 68): C opens `#ifdef NS_IMPL_GNUSTEP` at C 11402 and closes it at C 11407, and the class's own comment says what it is - "Dummy class to get rid of startup warnings."  The body is empty (`@implementation` then `@end`), so there is nothing to transcribe (the `hide_bell`/`nstrace_*` reading)
 
 ## Macros defined — 23
 - [x] DOCK_IGNORE_LIMIT  (line 708, body c1dfd96eea8c) — landed as a file-scope `let` (CGFloat, C's `int` promoted at the comparisons)
@@ -480,11 +480,11 @@ spelling the same selector is one box and is named where it occurs.)
 - [x] NSRightCommandKeyMask  (line 354, body 9d1bbbd0282a)  — landed as a file-scope `let` of the same name
 - [x] NSRightControlKeyMask  (line 352, body 5a769eb9b670)  — landed as a file-scope `let` of the same name
 - [x] NS_FUNCTION_KEY_MASK  (line 350, body 91eddf5a25af)  — landed as a file-scope `let` of the same name
-- [ ] NS_KEYLOG  (line 7241, body b6589fc6ab0d)
+- [ ] NS_KEYLOG  (line 7241, body b6589fc6ab0d) — **still open, and named** (round 68): C's body is `0`, and every `#if NS_KEYLOG` block in the file is therefore dead (earlier rounds record those sites by name), but the macro's own C line sits inside `EmacsView`'s unlanded `keyDown:` region (C 7243), so the constant lands with that method's batch rather than early
 - [x] NS_PARENT_WINDOW_LEFT_POS  (line 803, body 74769de1ca23) — landed as `func NS_PARENT_WINDOW_LEFT_POS (_ f:) -> CGFloat` = `NSMinX (ns_parent_window_rect (f))`
 - [x] NS_PARENT_WINDOW_TOP_POS  (line 804, body 7f398f29c646) — landed as `func NS_PARENT_WINDOW_TOP_POS (_ f:) -> CGFloat` = `NSMaxY (ns_parent_window_rect (f))`
-- [ ] SCROLL_BAR_CONTINUOUS_DELAY  (line 10624, body cea8ad3417bc)
-- [ ] SCROLL_BAR_FIRST_DELAY  (line 10623, body 1b390cd54a0c)
+- [x] SCROLL_BAR_CONTINUOUS_DELAY  (line 10624, body cea8ad3417bc) — landed as `fileprivate let SCROLL_BAR_CONTINUOUS_DELAY: TimeInterval = 1.0 / 15` (the unit's line 10021): C's macro body is `(1.0 / 15)`, kept as the same expression rather than its rounded value, and the two `EmacsScroller` sites that read it (C 10903/10912) are landed
+- [x] SCROLL_BAR_FIRST_DELAY  (line 10623, body 1b390cd54a0c) — landed as `fileprivate let SCROLL_BAR_FIRST_DELAY: TimeInterval = 0.5` (the unit's line 10020), C's own value; the same two sites read it
 
 ## Types and their fields — 1
 - [x] EmacsMargins: CGFloat top, CGFloat bottom, CGFloat left, CGFloat right — landed as a Swift
@@ -2295,6 +2295,11 @@ call site takes an entry and the definition lands at its own C line - and **both
   `adjust_frame_size` and `Qfont` (the last already the core's, `src/textprop.c` 2439) - are what that
   round adds and the core owes.  The rule it settles: **reads keep the accessor macro's name, writes go
   through the setter of the family the record belongs to** (`ns_output_set_*` vs `frame_set_*`).
+* **round 68's names**: `adjustEmacsFrameRect` is a new *deferred* entry (EmacsView's own method,
+  C 8862, whose batch has not landed), `gen_help_event` (declared src/keyboard.h 513) and the
+  `help_echo_string` global are entries the core owes, and `FOCUS_IN_EVENT`/`FOCUS_OUT_EVENT` are
+  mirror-valued constants (22/23 at `femacs/src/include/termhooks.rs` 49-50) because neither the
+  frozen macro table nor the core's exports carry them - the `MONITORS_CHANGED_EVENT` reading.
 * **round 67's names**: the buffer/window readers C 10162-10183 needs - `XBUFFER`,
   `window_contents` (C 10162's `XWINDOW (…)->contents`), the two per-field `BVAR` readers
   `buffer_mark_active` and `buffer_enable_multibyte_characters`, the four INLINE position accessors
@@ -4537,3 +4542,36 @@ call site takes an entry and the definition lands at its own C line - and **both
   `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.  With the class
   closed, what `src/nsterm.m` still owes is `EmacsView`'s and `EmacsApp`'s method batches, the three
   macro boxes and the `EmacsDocument` dead arm.
+
+### Round 68: the focus/notification batch (C 8404-8556), and three stale boxes closed
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings - the same nine round 67 leaves (the eight of rounds 22-66 plus
+  `accessibilityAttributeValue`'s own deprecation), so **no new warning**.  Object
+  `/tmp/nsterm68.o`, **1,177,568 bytes**, md5 `3e60fb6df5ee7cc231dc507e33f2381d`.  The unit is
+  **12,518 lines**.
+* **Nine `EmacsView` methods land**: `windowDidBecomeKey:`/`windowDidBecomeKey` (C 8404-8457, the
+  focus pair), `windowWillClose:` (C 8472-8479), `deferred_UAZoomChangeFocus_handler:` (C 8481-8492),
+  `windowDidResignKey:` (C 8494-8529), `windowWillMiniaturize:` (C 8532-8535), `setFrame:` (C 8538-8544),
+  `isFlipped` (C 8547-8550) and `isOpaque` (C 8553-8556).  Landing the pair together is what lets
+  C 8446's `@selector (deferred_UAZoomChangeFocus_handler:)` be a typed `#selector` rather than a
+  string.
+* **The SDK readings this round measures**: `NSView.setFrame (_:)` does not exist in Swift (the
+  message is "value of type 'NSView' has no member 'setFrame'"), so C 8538's selector is the `frame`
+  property and the port overrides its setter (the `EmacsScroller` reading of the same rename); and
+  `Timer.scheduledTimer`'s first label is `timeInterval:` and not `withTimeInterval:` (the probe's
+  "incorrect argument label" is what settled it).
+* **A stale-box correction this round makes**: the `EmacsApp` class box still said "the twenty-five
+  that remain … keep this box open" while every one of those twenty-five sub-boxes had been ticked
+  by rounds 22-29 - the line, not the list, was out of date, so round 68 ticks it with the reason.
+  The same round ticks `EmacsDocument` (C 11402-11407: the GNUstep-only "Dummy class to get rid of
+  startup warnings", an empty body, recorded not transcribed) and the two `SCROLL_BAR_*` macro boxes
+  (landed as `fileprivate let`s carrying C's own expressions, `0.5` and `1.0 / 15`), and names why
+  `NS_KEYLOG`'s box stays open (its C line 7241 sits inside `EmacsView`'s unlanded `keyDown:` region).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **6** unported,
+  6 row(s); **649** C symbol import(s)` - two more than round 67's 647, with no stale row.  Final:
+  `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: **no run evidence** - no window gained or lost focus, no timer
+  fired, no rect was set; the compile gate reaches parsing and type checking only, and
+  `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.  After this
+  round the lane's only open class is `EmacsView` (78 boxes) plus `NS_KEYLOG`.
