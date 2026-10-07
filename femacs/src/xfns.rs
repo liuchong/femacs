@@ -6834,8 +6834,11 @@ unsafe extern "C" {
 
 /* C: lisp.h 5553: `extern char *xlispstrdup (Lisp_Object string)` - `alloc.c` 842 defines it
    and no mirror of this unit's graph carries the row, so it stands here (P-72 rule 4; the
-   `docs/ports/xfns.md` owed row names `include/lisp.rs`).  */
-#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+   `docs/ports/xfns.md` owed row names `include/lisp.rs`).  C's row carries no guard of its own
+   (lisp.h is included in every configuration), and its callers are the `USE_X_TOOLKIT` arm of
+   C 4892 and the `USE_GTK`+`HAVE_FREETYPE` arm of C 9767/9772, so it stands under the file
+   gate - slice 9's narrower `use_x_toolkit` gate is superseded.  */
+#[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
 }
@@ -13720,5 +13723,69 @@ DEFUN! ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,              /
   decoded_file = DECODE_FILE (file);                                          // C 9730
 
   return unbind_to (count, decoded_file);                                     // C 9732
+});
+
+
+/* ==============================================================================================
+   C 9736-9785: `#ifdef HAVE_FREETYPE` inside C 9662's `#ifdef USE_GTK` - `x-select-font`, the
+   file's second GTK dialog and the GTK region's last item (`#endif /* USE_GTK */` is C 9787).
+
+   Two of the names it reads are already in this unit's graph: `clean_up_dialog` (C 9760, slice
+   41) and `XSETFONT!` (`include/font.rs` 275, C 9764's assignment, C's `font.h` 552).  The third,
+   `xg_get_font`, is `gtkutil.h`'s and stands at its use site (P-55/P-72 rule 3, the
+   `xg_get_file_name` shape above); `xlispstrdup`'s row moves to the file gate here, because
+   C's `lisp.h` 5553 declares it unconditionally and slice 9 gated it `use_x_toolkit` when that
+   was its only arm.  */
+
+/* C: `gtkutil.h` 94: `extern Lisp_Object xg_get_font (struct frame *f, char *);` - C 9775's
+   call; `src/gtkutil.rs` defines it and no mirror carries the row.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk", feature = "freetype"))]
+unsafe extern "C" {
+  pub fn xg_get_font (f: *mut frame, default_name: *mut c_char) -> Lisp_Object;
+}
+
+/* C 9738-9784.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk", feature = "freetype"))]
+DEFUN! ("x-select-font", Fx_select_font, Sx_select_font, 0, 2, 0,              // C 9738
+	doc: "Read a font using a GTK dialog.\nReturn either a font spec (for GTK versions >= 3.2) or a string\ncontaining a GTK-style font name.\n\nFRAME is the frame on which to pop up the font chooser.  If omitted or\nnil, it defaults to the selected frame.",  // C 9739-9744
+	(frame: Lisp_Object, ignored: Lisp_Object),                               // C 9745
+	{
+  let f: *mut frame = decode_window_system_frame (frame);                     // C 9747
+  let mut font: Lisp_Object;                                                  // C 9748
+  let mut font_param: Lisp_Object;                                            // C 9749
+  let mut default_name: *mut c_char = std::ptr::null_mut ();                  // C 9750
+  let count: specpdl_ref = SPECPDL_INDEX ();                                  // C 9751
+
+  if popup_activated () != 0                                                  // C 9753
+    { error (c"Trying to use a menu from within a menu-entry".as_ptr ()); }   // C 9754
+  else
+    { x_menu_set_in_use (true); }                                             // C 9755-9756
+
+  /* Prevent redisplay.  */                                                   // C 9758
+  specbind (Qinhibit_redisplay (), Qt ());                                    // C 9759
+  record_unwind_protect_void (Some (clean_up_dialog));                        // C 9760
+
+  block_input ();                                                             // C 9762
+
+  XSETFONT! (font, FRAME_FONT! (f));                                          // C 9764
+  font_param = Ffont_get (font, QCname ());                                   // C 9765
+  if STRINGP (font_param)                                                     // C 9766
+    { default_name = xlispstrdup (font_param); }                              // C 9767
+  else
+    {
+      font_param = Fframe_parameter (frame, Qfont_parameter ());              // C 9770
+      if STRINGP (font_param)                                                 // C 9771
+	{ default_name = xlispstrdup (font_param); }                          // C 9772
+    }
+
+  font = xg_get_font (f, default_name);                                       // C 9775
+  xfree (default_name as *mut c_void);                                        // C 9776
+
+  unblock_input ();                                                           // C 9778
+
+  if NILP (font)                                                              // C 9780
+    { quit (); }                                                              // C 9781
+
+  return unbind_to (count, font);                                             // C 9783
 });
 
