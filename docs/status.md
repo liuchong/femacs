@@ -16693,3 +16693,36 @@
      `/tmp/r73*.swift` 片段跑完即删**，无全盘/大内存扫描。
   ⑦ **未声称**：本轮**没有运行证据**——没有打开过字体面板、没有复位过光标矩形、没有视图被释放；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.014 `src/nsterm.m` round 74（Swift lane）：`keyDown:` 落地（C 7243-7427，本文件最大的方法），并关掉它一直等着的 `NS_KEYLOG` 盒子（2026-10-08）**：
+  ① **关掉两个框**：`keyDown:`（C 7243-7427）与 `NS_KEYLOG`（C 7241）——后者正是因为它的 C 行落在 `keyDown:` 区间里，
+     round 68 才把它留着。台账勾 **2 个框**（勾 **396 → 398**、未勾 **34 → 32**；缩进的方法盒子剩 **31**），
+     `EmacsView` 类盒子同时改成"还剩 **31** 个方法盒子"。`NS_KEYLOG` 是"字面量的宏"⇒ 落成文件级
+     `fileprivate let NS_KEYLOG: Int32 = 0`（`MINWIDTH` 那条读法），文件里每一处 `#if NS_KEYLOG` 都是死的：早先各轮点过名的站点，
+     加上本轮这个方法里的两处（C 7352-7360 的 `#ifndef NS_IMPL_GNUSTEP` fprintf 与 C 7403-7404 的 fputs），
+     按既有写法落成**记名注释**。
+  ② **首跑两处编译错误，逐处量到判据**：`NSWindow` 在 Swift 里没有 `isKindOfClass`（C 7261 的测试落成
+     `theEvent.window is EmacsWindow`）；本单元自己拼的 `flags` 必须是 `UInt`——那是 `NS_FUNCTION_KEY_MASK`（C 474）
+     所用的类型，而不是 `UInt32`。
+  ③ **这条体需要的其它读数**：C 7248 的 `static NSMutableArray *nsEvArray` 是新增的文件级数组（`ns_initialized` 读法）；
+     C 7254 的 `NSEventTypeKeyDown` 是 Swift 的 `.keyDown`；C 7263 的委托比较是**同一性**（`!==`，不是 `isEqual:`）；
+     C 7278 的 `[NSCursor setHiddenUntilMouseMoves:]` 是类方法、`Vmake_pointer_invisible` 是新增的 `DEFVAR_LISP` 入口
+     （**已提供**，`femacs/src/frame.rs` 7427）；C 7280-7286 的三处成员读是 `mouse_face_hidden`（round 69）、
+     `mouse_face_window`（新增）与 `frame_tab_bar_window`（round 70）；C 7298/7300 的数字键盘标志是选项集的 `.numericPad`；
+     C 7312-7318 的 `#ifdef NS_IMPL_GNUSTEP` 臂**是死的**；C 7376-7381 的 `#ifdef NS_IMPL_COCOA` 臂是本目标的；
+     C 7411-7420 的工厂是 `NSEvent.keyEvent (with:…)`，Swift 的可失败导入 ⇒ 端口对它做 C 所假定的强解包，
+     C 7413 的 `& ~NSEventModifierFlagCommand` 是选项集的 `subtracting`（`styleMask` 那条读法）。
+  ④ **本轮新增 4 个入口 + 1 个常量**：上面的常量、文件级 `nsEvArray`、两个数据入口
+     `Vmake_pointer_invisible`/`Vmouse_highlight`（**已提供**，`femacs/src/frame.rs` 7427/7425）、
+     `QCfunction`（本文件自己的 `DEFSYM`，**open**——`QCordinary`/`QCmouse` 那条读法）与成员读
+     `mouse_highlight_mouse_face_window`（**open**）。
+  ⑤ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 73 的九条逐条相同）；对象
+     `/tmp/nsterm74.o` **1,310,784 字节**、md5 `ce3309135ce7307eee993749cf0a61c0`；单元 **14,192 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **685** C symbol import(s)`
+     （round 73 是 683），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**；`check-citations` **676 / 0 drift /
+     0 range / 2,416 external / 36 allowed / 0 stale**。
+  ⑥ **预算与清理**：本片编译 **2 发**（首跑 2 错、修后 1 发即过，都是单文件 `swiftc -c`，各约 2 秒）；
+     另用 **6 组只读 grep** 钉准入口名、拼法与判据行号；**对象 `/tmp/nsterm74.o` 与两个 `/tmp/r74*.swift` 片段跑完即删**，
+     无全盘/大内存扫描。
+  ⑦ **未声称**：本轮**没有运行证据**——没有任何按键事件被投递给这个视图；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。

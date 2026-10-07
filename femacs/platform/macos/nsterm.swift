@@ -8301,6 +8301,173 @@ class EmacsView: NSView {
     /* C 7229-7234: the dead `setOnMouseEntered:` arm.  */
   }
 
+  /// C 7243-7427: `- (void) keyDown: (NSEvent *)theEvent` - the file's largest method.  Readings
+  /// this body needs: C 7248's `static NSMutableArray *nsEvArray` is the file-scope array this
+  /// round adds; C 7254's `NSEventTypeKeyDown` is Swift's `.keyDown`; C 7261/7263's
+  /// `[EmacsWindow class]` and delegate tests use this unit's own class (the `isKindOfClass:`
+  /// reading `EmacsWindow`'s record carries) and C 7263's `!= self` is Swift's `!==`; C 7278's
+  /// `[NSCursor setHiddenUntilMouseMoves:]` is the class method and `Vmake_pointer_invisible` the
+  /// `DEFVAR_LISP` the core exports; C 7280-7286's member reads are `mouse_face_hidden` (round 69)
+  /// plus `mouse_face_window` (this round) and `frame_tab_bar_window` (round 70); C 7298/7300's
+  /// `NSEventModifierFlagNumericPad` is the option set's `.numericPad` (the `styleMask` reading);
+  /// C 7312-7318's `#ifdef NS_IMPL_GNUSTEP` arm inside the delete hack is **dead**; C 7352-7360's
+  /// log line is `NS_KEYLOG`-guarded and `NS_KEYLOG` is 0 (the macro's box is ticked with this
+  /// round); C 7376-7381's `#ifdef NS_IMPL_COCOA` arm is this target's; C 7403-7404's log line is
+  /// the same dead guard; and C 7411-7420's `keyEventWithType:…` factory is
+  /// `NSEvent.keyEvent (with:…)`, whose Swift import is failable.
+  @objc override func keyDown(with theEvent: NSEvent) {
+    var theEvent = theEvent                                     // C 7411 reassigns it
+    let hlinfo = MOUSE_HL_INFO(emacsframe)                      // C 7245
+    var code: Int32 = 0                                         // C 7246
+    var fnKeysym: UInt32 = 0                                    // C 7247
+    var flags = UInt(theEvent.modifierFlags.rawValue)          // C 7249
+
+    // C 7251: `NSTRACE ("[EmacsView keyDown:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    /* C 7253: "Rhapsody and macOS give up and down events for the arrow keys."  */
+    if theEvent.type != .keyDown {                              // C 7254
+      return                                                    // C 7255
+    }
+
+    if emacs_event == nil {                                     // C 7257
+      return                                                    // C 7258
+    }
+
+    if !(self.window?.isKeyWindow ?? false)                     // C 7260
+         && (theEvent.window is EmacsWindow)                    // C 7261
+         /* C 7262: "We must avoid an infinite loop here."  */
+         && (theEvent.window?.delegate as? EmacsView) !== self {          // C 7263
+      /* C 7265-7270: "XXX: There is an occasional condition in which, when Emacs display updates a
+         different frame from the current one, and temporarily selects it, then processes some
+         interrupt-driven input (dispnew.c:3878), OS will send the event to the correct NSWindow,
+         but for some reason that window has its first responder set to the NSView most recently
+         updated (I guess), which is not the correct one."  */
+      (theEvent.window?.delegate as? EmacsView)?.keyDown(with: theEvent)  // C 7271
+      return                                                    // C 7272
+    }
+
+    if nsEvArray == nil {                                       // C 7275
+      nsEvArray = NSMutableArray(capacity: 1)                   // C 7276
+    }
+
+    NSCursor.setHiddenUntilMouseMoves(!NILP(Vmake_pointer_invisible))     // C 7278
+
+    if !mouse_highlight_mouse_face_hidden(hlinfo)               // C 7280
+         && FIXNUMP(Vmouse_highlight)                           // C 7281
+         && !EQ(frame_tab_bar_window(emacsframe),
+                 mouse_highlight_mouse_face_window(hlinfo)) {   // C 7282
+      _ = clear_mouse_face(hlinfo)                              // C 7284
+      mouse_highlight_set_mouse_face_hidden(hlinfo, 1)          // C 7285
+    }
+
+    if !processingCompose {                                     // C 7288
+      /* C 7290-7291: "FIXME: What should happen for key sequences with more than one
+         character?"  */
+      code = (theEvent.charactersIgnoringModifiers?.utf16.first).map { Int32($0) } ?? 0  // C 7292-7293
+
+      /* C 7295-7297: "Is it a "function key"?"  Note: Sometimes a plain key will have the
+         NSEventModifierFlagNumericPad flag set (this is probably a bug in the OS).  */
+      if code < 0x00ff && theEvent.modifierFlags.contains(.numericPad) {  // C 7298
+        fnKeysym = ns_convert_key(UInt32(theEvent.keyCode)
+                                  | UInt32(NSEvent.ModifierFlags.numericPad.rawValue))  // C 7300
+      }
+      if fnKeysym == 0 {                                        // C 7302
+        fnKeysym = ns_convert_key(UInt32(code))                 // C 7304
+      }
+
+      if fnKeysym != 0 {                                        // C 7307
+        /* C 7309-7310: "COUNTERHACK: map 'Delete' on upper-right main KB to 'Backspace',
+           because Emacs treats Delete and KP-Delete same (in simple.el)."  */
+        if fnKeysym == 0xFFFF && theEvent.keyCode == 0x33 {     // C 7311
+          code = 0xFF08  /* backspace */                        // C 7320
+        } else {
+          code = Int32(fnKeysym)                                // C 7322
+        }
+
+        /* C 7324-7329: "Function keys (such as the F-keys, arrow keys, etc.) set modifiers as
+           though the fn key has been pressed when it hasn't.  Also some combinations of fn and a
+           function key return a different key than was pressed (e.g. fn-<left> gives <home>).  We
+           need to unset the fn key flag in these cases."  */
+        flags &= ~NS_FUNCTION_KEY_MASK                          // C 7330
+      }
+
+      /* C 7333-7343: "The ⌘ and ⌥ modifiers can be either shift-like (for alternate character
+         input) or control-like (as command prefix). …"  */
+      /* C 7345-7348: "EV_MODIFIERS2 uses parse_solitary_modifier on all known modifier keys,
+         which returns 0 for shift-like modifiers.  Therefore its return value is the set of
+         control-like modifiers."  */
+      let kind: Lisp_Object = fnKeysym != 0 ? QCfunction() : QCordinary()   // C 7349
+      emacs_event!.pointee.modifiers = EV_MODIFIERS2(flags, kind)           // C 7350
+
+      /* C 7352-7360: the `#ifndef NS_IMPL_GNUSTEP` `NS_KEYLOG` fprintf - `NS_KEYLOG` is 0.  */
+
+      /* C 7362-7363: "If it was a function key or had control-like modifiers, pass it directly
+         to Emacs."  */
+      if fnKeysym != 0
+           || (emacs_event!.pointee.modifiers != 0
+               && emacs_event!.pointee.modifiers
+                    != UInt32(truncatingIfNeeded: shift_modifier())
+               && (theEvent.charactersIgnoringModifiers?.count ?? 0) > 0) {   // C 7364-7366
+        input_event_set_kind(emacs_event!, NON_ASCII_KEYSTROKE_EVENT)          // C 7368
+        /* C 7369: "FIXME: What are the next four lines supposed to do?"  */
+        if code < 0x20 {                                        // C 7370
+          code |= (1 << 28) | (3 << 16)                         // C 7371
+        } else if code == 0x7f {                                // C 7372
+          code |= (1 << 28) | (3 << 16)                         // C 7373
+        } else if fnKeysym == 0 {                               // C 7374
+          /* C 7377-7379: "We potentially have both shift- and control-like modifiers in use, so
+             find the correct character ignoring any control-like ones."  */
+          code = Int32(ns_get_shifted_character(theEvent))      // C 7380
+
+          /* C 7383-7386: "FIXME: This seems wrong, characters in the range [0x80, 0xFF] are not
+             ASCII characters.  Can't we just use MULTIBYTE_CHAR_KEYSTROKE_EVENT here for all
+             kinds of characters?"  */
+          input_event_set_kind(emacs_event!, code > 0xFF
+                               ? MULTIBYTE_CHAR_KEYSTROKE_EVENT
+                               : ASCII_KEYSTROKE_EVENT)         // C 7387-7388
+        }
+
+        emacs_event!.pointee.code = UInt32(truncatingIfNeeded: code)   // C 7391
+        EV_TRAILER(theEvent, emacsframe)                        // C 7392
+        processingCompose = false                               // C 7393
+        return                                                  // C 7394
+      }
+    }
+
+    /* C 7398-7401: "If we get here, a non-function key without control-like modifiers was hit.
+       Use interpretKeyEvents, which in turn will call insertText; see
+       https://developer.apple.com/library/mac/documentation/Cocoa/Conceptual/EventOverview/HandlingKeyEvents/HandlingKeyEvents.html."  */
+
+    /* C 7403-7404: the `NS_KEYLOG && !processingCompose` fputs - `NS_KEYLOG` is 0.  */
+
+    /* C 7406-7409: "FIXME: interpretKeyEvents doesn't seem to send insertText if ⌘ is used as
+       shift-like modifier, at least on El Capitan.  Mask it out.  This shouldn't be needed
+       though; we should figure out what the correct way of handling ⌘ is."  */
+    if theEvent.modifierFlags.contains(.command) {              // C 7410
+      /* C 7411-7420: `[NSEvent keyEventWithType:…]` - Swift imports the factory as failable.  */
+      theEvent = NSEvent.keyEvent(with: theEvent.type,
+                                  location: theEvent.locationInWindow,
+                                  modifierFlags: theEvent.modifierFlags
+                                    .subtracting(.command),      // C 7413 (`& ~…Command`)
+                                  timestamp: theEvent.timestamp,
+                                  windowNumber: theEvent.windowNumber,
+                                  context: nil,
+                                  characters: theEvent.characters ?? "",
+                                  charactersIgnoringModifiers:
+                                    theEvent.charactersIgnoringModifiers ?? "",
+                                  isARepeat: theEvent.isARepeat,
+                                  keyCode: theEvent.keyCode)!
+    }
+
+    processingCompose = true                                    // C 7422
+    /* C 7423: "FIXME: Use [NSArray arrayWithObject:theEvent]?"  */
+    nsEvArray!.add(theEvent)                                    // C 7424
+    /* C 7425: `[self interpretKeyEvents: nsEvArray];` - C's array holds exactly this event
+       (added on C 7424, removed on C 7426), which is why the port passes it alone.  */
+    self.interpretKeyEvents([theEvent])                         // C 7425
+    nsEvArray!.remove(theEvent)                                 // C 7426
+  }
+
   /// C 8952-8955: `- (BOOL)fsIsNative` - C's whole body is the ivar read.
   func fsIsNative() -> Bool {
     fs_is_native                                      // C 8954
@@ -13991,3 +14158,35 @@ func macfont_get_nsctfont(_ font: UnsafeMutableRawPointer?) -> UnsafeMutableRawP
 /// (`femacs/lib/timespec.rs` 22) without a `#[unsafe(no_mangle)]` definition yet.
 @_silgen_name("make_timespec")
 func make_timespec(_ s: Int, _ ns: Int) -> timespec
+
+// ==========================================================================
+// Round 74: the entries `keyDown:` needs, and the NS_KEYLOG constant
+// ==========================================================================
+
+/// C 7241: `#define NS_KEYLOG 0` - the constant whose every `#if NS_KEYLOG` block in the file is
+/// dead (the earlier rounds record those sites by name: C 7607-7608, C 7715-7716, C 7352-7360 and
+/// C 7403-7404 among them).  A macro over a literal, landed as a file-scope `let` (the `MINWIDTH`
+/// reading), and the one C 7243's method was waiting for.
+fileprivate let NS_KEYLOG: Int32 = 0
+
+/// C 7248: `static NSMutableArray *nsEvArray;` - the keyboard's own event array, file-scope in C
+/// and here (the `ns_initialized` reading); C 7275-7276 fills it on first use.
+fileprivate var nsEvArray: NSMutableArray? = nil
+
+/// C: `Lisp_Object Vmake_pointer_invisible` and `Lisp_Object Vmouse_highlight` (this file's own
+/// `DEFVAR_LISP`s, C 11705-11720) - C 7278's and C 7281's reads.  Provided:
+/// `femacs/src/frame.rs` 7427 and 7425 (`#[unsafe(no_mangle)]`).
+@_silgen_name("Vmake_pointer_invisible") var Vmake_pointer_invisible: Lisp_Object
+@_silgen_name("Vmouse_highlight") var Vmouse_highlight: Lisp_Object
+
+/// C: `QCfunction` - src/nsterm.m 11794's own `DEFSYM (QCfunction, ":function")`, the symbol
+/// C 7349 chooses.  **Open**: this file's own symbol and absent from
+/// `docs/baseline/globals/symbols.tsv` (the frozen build never compiles this file) - the
+/// `QCordinary`/`QCmouse` reading.
+@_silgen_name("QCfunction") func QCfunction() -> Lisp_Object
+
+/// C: the `Mouse_HLInfo` member `hlinfo->mouse_face_window` (src/dispextern.h's record) - C 7282's
+/// read.  **Open**, the member-read shape `mouse_highlight_mouse_face_mouse_frame` above sets
+/// (`docs/ports/nsmenu.md` 311-328).
+@_silgen_name("mouse_highlight_mouse_face_window")
+func mouse_highlight_mouse_face_window(_ hlinfo: UnsafeMutableRawPointer?) -> Lisp_Object

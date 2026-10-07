@@ -295,7 +295,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) round 72 the class initializer (C 8559-8642) and round 73 the class prologue and the font panel (C 7041-7235) - **32 of the class's method boxes remain** (the `- [ ]` rows indented under this box; the box itself and `NS_KEYLOG` are the other two open rows)
+- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) round 72 the class initializer (C 8559-8642) round 73 the class prologue and the font panel (C 7041-7235) and round 74 `keyDown:` (C 7243-7427) - **31 of the class's method boxes remain** (the `- [ ]` rows indented under this box; the box itself and `NS_KEYLOG` are the other two open rows)
   - [x] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041) — landed as `@objc func windowDidEndLiveResize (_:)`; C's body is the forward to `updateFramePosition`
   - [x] `- (void) setWindowClosing: (BOOL)closing`  (line 7047) — landed as `@objc func setWindowClosing (_:)`: C's one statement assigns the ivar the class keeps as `windowClosing` (Swift's stored property is not Objective-C visible, which leaves the selector free)
   - [x] `- (void)dealloc`  (line 7055) — landed as `deinit`: the three `release` calls are the references ARC drops (C 7066's `nonfs_window`, C 7071's layer, C 7074's menu), `[super dealloc]` has no Swift statement, and C 7068-7072's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this target's
@@ -306,7 +306,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (BOOL)acceptsFirstResponder`  (line 7204) — landed as `override var acceptsFirstResponder: Bool { true }` - the property form of that selector; C's whole body is `return YES;`
   - [x] `- (BOOL)acceptsFirstMouse:(NSEvent *)theEvent`  (line 7211) — landed as `@objc override func acceptsFirstMouse (for:) -> Bool`, whose answer is the `ns_click_through` variable; C 7213-7214's `NSTRACE_MSG` is empty
   - [x] `- (void)resetCursorRects`  (line 7217) — landed as `@objc override func resetCursorRects ()`: `FRAME_POINTER_TYPE`'s read is the `ns_output_current_pointer` member entry, C's `NSIsEmptyRect` is the rect's own `isEmpty`, `[NSCursor arrowCursor]` is the class property, and C 7229-7234's `NS_IMPL_GNUSTEP || MIN_REQUIRED < 101300` arm is **dead** on this target
-  - [ ] `- (void)keyDown: (NSEvent *)theEvent`  (line 7243)
+  - [x] `- (void)keyDown: (NSEvent *)theEvent`  (line 7243) — landed as `@objc override func keyDown (with:)` - the file's largest method.  Readings: C 7248's `static NSMutableArray *nsEvArray` is a new file-scope array; C 7254's `NSEventTypeKeyDown` is Swift's `.keyDown`; C 7261/7263's `[EmacsWindow class]`/delegate tests are `is EmacsWindow` and `!==`; C 7278's `[NSCursor setHiddenUntilMouseMoves:]` is the class method and `Vmake_pointer_invisible` a new DEFVAR_LISP entry; C 7280-7286 reads `mouse_face_hidden` (round 69), `mouse_face_window` (new) and `frame_tab_bar_window` (round 70); C 7298/7300's numeric-pad flag is the option set's `.numericPad`; C 7312-7318's `NS_IMPL_GNUSTEP` arm inside the delete hack is **dead**; C 7352-7360's and C 7403-7404's log lines are `NS_KEYLOG`-guarded and `NS_KEYLOG` is 0; C 7376-7381's `NS_IMPL_COCOA` arm is this target's; and C 7411-7420's factory is `NSEvent.keyEvent (with:…)`, whose Swift import is failable (so the port force-unwraps what C assumes), with C 7413's `& ~Command` the option set's `subtracting` (the `styleMask` reading)
   - [x] `- (void) insertText: (id) string replacementRange: (NSRange) replacementRange`  (line 7435) — landed as `@objc func insertText (_:replacementRange:)`: C unmarks and hands the string to the older method (C 7440-7441), the `NSAttributedString` arm being C 7438-7439
   - [x] `- (void) setMarkedText: (id) string selectedRange: (NSRange) selectedRange replacementRange: (NSRange) replacementRange`  (line 7444) — landed as `@objc func setMarkedText (_:selectedRange:replacementRange:)`, whose body is C 7448's two-argument call
   - [x] `- (nullable NSAttributedString *) attributedSubstringForProposedRange: (NSRange) range actualRange: (nullable NSRangePointer) actualRange`  (line 7451) — landed as `@objc func attributedSubstring (forProposedRange:actualRange:) -> NSAttributedString?`: C's whole body is `return nil;`
@@ -480,7 +480,7 @@ spelling the same selector is one box and is named where it occurs.)
 - [x] NSRightCommandKeyMask  (line 354, body 9d1bbbd0282a)  — landed as a file-scope `let` of the same name
 - [x] NSRightControlKeyMask  (line 352, body 5a769eb9b670)  — landed as a file-scope `let` of the same name
 - [x] NS_FUNCTION_KEY_MASK  (line 350, body 91eddf5a25af)  — landed as a file-scope `let` of the same name
-- [ ] NS_KEYLOG  (line 7241, body b6589fc6ab0d) — **still open, and named** (round 68): C's body is `0`, and every `#if NS_KEYLOG` block in the file is therefore dead (earlier rounds record those sites by name), but the macro's own C line sits inside `EmacsView`'s unlanded `keyDown:` region (C 7243), so the constant lands with that method's batch rather than early
+- [x] NS_KEYLOG  (line 7241, body b6589fc6ab0d) — **landed with round 74** (the round that landed `keyDown:`, the region this box named): C's body is `0`, so the constant is the file-scope `fileprivate let NS_KEYLOG: Int32 = 0` (the `MINWIDTH` reading of a macro over a literal) and every `#if NS_KEYLOG` block in the file is dead - the earlier rounds recorded those sites by name (C 7607-7608, C 7715-7716, C 7352-7360, C 7403-7404), and round 74's `keyDown:` writes the two it contains as recorded comments
 - [x] NS_PARENT_WINDOW_LEFT_POS  (line 803, body 74769de1ca23) — landed as `func NS_PARENT_WINDOW_LEFT_POS (_ f:) -> CGFloat` = `NSMinX (ns_parent_window_rect (f))`
 - [x] NS_PARENT_WINDOW_TOP_POS  (line 804, body 7f398f29c646) — landed as `func NS_PARENT_WINDOW_TOP_POS (_ f:) -> CGFloat` = `NSMaxY (ns_parent_window_rect (f))`
 - [x] SCROLL_BAR_CONTINUOUS_DELAY  (line 10624, body cea8ad3417bc) — landed as `fileprivate let SCROLL_BAR_CONTINUOUS_DELAY: TimeInterval = 1.0 / 15` (the unit's line 10021): C's macro body is `(1.0 / 15)`, kept as the same expression rather than its rounded value, and the two `EmacsScroller` sites that read it (C 10903/10912) are landed
@@ -4777,3 +4777,41 @@ call site takes an entry and the definition lands at its own C line - and **both
   landed`**.
 * **Not claimed**: no runtime evidence - no font panel was opened, no cursor rect was reset and no
   view was deallocated; the compile gate reaches type checking only.
+
+### Round 74: `keyDown:` (C 7243-7427), and the `NS_KEYLOG` box it was waiting for
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings - the same nine round 73 leaves.  The first run had **two errors**, both
+  settled by measurement: `NSWindow` has no `isKindOfClass` in Swift (C 7261's test is
+  `theEvent.window is EmacsWindow`) and the port's own `flags` had to be `UInt` (the type
+  `NS_FUNCTION_KEY_MASK`, C 474, is spelled with), not `UInt32`.  Object `/tmp/nsterm74.o`,
+  **1,310,784 bytes**, md5 `ce3309135ce7307eee993749cf0a61c0`.  The unit is **14,192 lines**.
+* **Two boxes close**: `keyDown:` (C 7243-7427, the file's largest method) and `NS_KEYLOG`
+  (C 7241) - the latter because C's own line sits inside that method's region, which is exactly why
+  round 68 left it open.  `NS_KEYLOG` is a macro over a literal, so it lands as a file-scope
+  `fileprivate let NS_KEYLOG: Int32 = 0` (the `MINWIDTH` reading), and every `#if NS_KEYLOG` block
+  in the file is dead - the sites the earlier rounds named, plus the two this round's method
+  contains (C 7352-7360's `#ifndef NS_IMPL_GNUSTEP` fprintf and C 7403-7404's fputs), which are
+  written as recorded comments.  The class box's own count moves to **31 method boxes remaining**.
+* **Other readings this body needed**: C 7248's `static NSMutableArray *nsEvArray` is a new
+  file-scope array (the `ns_initialized` reading); C 7254's `NSEventTypeKeyDown` is Swift's
+  `.keyDown`; C 7263's delegate test is `!==` (identity, not `isEqual:`); C 7278's
+  `[NSCursor setHiddenUntilMouseMoves:]` is the class method and `Vmake_pointer_invisible` a new
+  `DEFVAR_LISP` entry (provided, `femacs/src/frame.rs` 7427); C 7280-7286's three member reads are
+  `mouse_face_hidden` (round 69), `mouse_face_window` (new) and `frame_tab_bar_window` (round 70);
+  C 7298/7300's numeric-pad flag is the option set's `.numericPad`; C 7312-7318's
+  `#ifdef NS_IMPL_GNUSTEP` arm inside the delete hack is **dead**; C 7376-7381's
+  `#ifdef NS_IMPL_COCOA` arm is this target's; and C 7411-7420's factory is
+  `NSEvent.keyEvent (with:…)`, whose Swift import is failable - the port force-unwraps what C
+  assumes - with C 7413's `& ~NSEventModifierFlagCommand` the option set's `subtracting`
+  (the `styleMask` reading).
+* **The ABI block adds four entries and one constant**: the constant above, the file-scope
+  `nsEvArray`, the two data entries `Vmake_pointer_invisible`/`Vmouse_highlight` (**provided** by
+  `femacs/src/frame.rs` 7427/7425), `QCfunction` (this file's own `DEFSYM`, **open** - the
+  `QCordinary`/`QCmouse` reading) and the member read `mouse_highlight_mouse_face_window`
+  (**open**).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **685** C symbol imports (round 73 read 683) and **`0 new, 0 stale, 7 Swift unit(s)
+  landed`**.
+* **Not claimed**: no runtime evidence - no key event was ever delivered to this view; the compile
+  gate reaches type checking only.
