@@ -196,6 +196,20 @@ already carries 153 + 9 of these rows), and the two KDE atoms are `include/xterm
 so this function adds no *name* row: A 790 -> **802**, U 819 -> **831**, UT 805 -> **817**, UM 806 ->
 **818**, UG 805 -> **817**, UGX 907 -> **919**, AE 822 -> **834**, AI 798 -> **810**, AIU 840 -> **852**,
 AIUX 946 -> **958**, AX 804 -> **816**, AG3 844 -> **856**.
+  Slice 99 (C 18763-18824, Decision 112) goes **16 -> 15**: `x_handle_wm_state` retires as a missing
+function and brings one *token* row instead - C 18796/18811's `SET_FRAME_VISIBLE (f, 1)`/`(f, 0)` are
+the port's `true`/`false` (this file 17924-17925's reading), so the `1` is closed by a
+`docs/ports/macro-body-notes.tsv` row.  Its rustc footprint is one row in **every** arm -
+`E0609 no field has_been_visible on type x_output`, the mirror's `bool_bf` member (`include/xterm.rs`
+849 carries it as a `// C:` line, PORTING.md 1.3) that `x_calc_absolute_position` opened as this
+unit's owed record - plus one more in the five `use_gtk` arms, where C 18776's `FRAME_OUTER_WINDOW (f)`
+reaches the mirror chain's `GDK_WINDOW_XWINDOW`/`GDK_WINDOW_XID` gap slice 95 opened: A 802 -> **803**,
+U 831 -> **832**, UT 817 -> **818**, UM 818 -> **819**, UG 817 -> **819**, UGX 919 -> **921**, AE 834
+-> **835**, AI 810 -> **811**, AIU 852 -> **854**, AIUX 958 -> **960**, AX 816 -> **817**, AG3 856 ->
+**858**, with **no warning moved in any of the twelve arms**.  The first writing read two defects, both
+C's own conversions: Xlib's `AnyPropertyType` is `0L`, so the argument is `AnyPropertyType as Atom`,
+and `f->output_data.x->has_been_visible` needs C's pointer cast (`(*f).output_data.x as *mut x_output`,
+this file 8045's shape).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -404,7 +418,7 @@ AIUX 946 -> **958**, AX 804 -> **816**, AG3 844 -> **856**.
 - [x] x_wait_for_cell_change  (line 18502)
 - [x] x_find_monitors_changed_event  (line 18619, static)
 - [x] x_coords_from_dnd_message  (line 18685, static)
-- [ ] x_handle_wm_state  (line 18764, static)
+- [x] x_handle_wm_state  (line 18764, static)
 - [ ] handle_one_xevent  (line 18876, static)
 - [ ] x_dispatch_event  (line 25645, static)
 - [ ] XTread_socket  (line 25672, static)
@@ -4631,6 +4645,32 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   structs, zeroed at their declarations because the readers write them through `&raw mut`.
 * **What `--check` reads.**  **17 -> 16**, with the line-count row at **28,487** against C's 33,125
   (14.0% drift, was 28,389 / 14.3%).
+
+### 112. Slice 99 (C 18763-18824): `x_handle_wm_state`, and the member the mirror records as a comment
+
+* **The `--check` item, and the token row it brings.**  `x_handle_wm_state` is C's `static`, so a plain
+  `unsafe fn`, and **16 -> 15**: the function retires as a missing item, and C 18796/18811's
+  `SET_FRAME_VISIBLE (f, 1)`/`(f, 0)` - which the port spells `true`/`false` (this file 17924-17925's
+  reading of the same pair) - put a `does not mention 1` row on the checklist, closed by a
+  `docs/ports/macro-body-notes.tsv` row rather than by weakening the call.
+* **One row in every arm, and it is this unit's owed record.**  `E0609 no field has_been_visible on
+  type x_output`: C's member is `bool_bf has_been_visible : 1` (xterm.h 1219), and the mirror carries
+  bit-fields as `// C:` lines instead of storage (`include/xterm.rs` 849, PORTING.md 1.3), so a unit
+  that reads one spells C's name and books the row - the class `x_calc_absolute_position` opened
+  (this file 15463-15466) for this very member.
+* **One more row in the five `use_gtk` arms.**  C 18776's `FRAME_OUTER_WINDOW (f)` reaches the GTK
+  arm's mirror chain, whose end (`GDK_WINDOW_XID` -> `GDK_WINDOW_XWINDOW`) no mirror declares - the
+  class slice 95 opened, here as a new site (each of the five arms reads one row).
+* **Two conversion defects the first writing read, both C's own.**  `AnyPropertyType` is Xlib's `0L`
+  (`include/xlib.rs` 87), so C's implicit widening of it into `XGetWindowProperty`'s `Atom` argument
+  is written `AnyPropertyType as Atom`; and `f->output_data.x->has_been_visible` needs C's own cast
+  route in this port (`(*f).output_data.x as *mut x_output`, the shape this file already uses at
+  8045).  C's `data = NULL` is `std::ptr::null_mut ()`, `!data` is `is_null ()`, `XFree` takes
+  `*mut c_void` (15403), and `state = (unsigned long *) data` states the cast; the five
+  out-parameters are zeroed per Deviation 12 because `XGetWindowProperty` writes them through
+  `&raw mut`.
+* **What `--check` reads.**  **16 -> 15**, with the line-count row at **28,569** against C's 33,125
+  (13.8% drift, was 28,487 / 14.0%).
 
 ## Evidence
 
@@ -9183,4 +9223,51 @@ against C's 33,125 (14.0% drift, was 28,389 / 14.3%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no client message was read and
 no coordinates were extracted; the readings above are compile readings of text this machine cannot
+build.
+
+### Slice 99's readings (C 18763-18824), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s99/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`; A = `have_x_windows`, U = A +
+`use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI +
+`use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`.
+Both sides were measured on this revision (the baseline by restoring `src/xterm.rs` from HEAD, then
+putting the saved copy back - its md5 is the copy's).
+
+| arm | HEAD's unit (slice 98 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 802 / 74 | **803 / 74** | **+1 / 0** |
+| U `+use_toolkit_scroll_bars` | 831 / 74 | **832 / 74** | **+1 / 0** |
+| UT `U +use_x_toolkit` | 817 / 73 | **818 / 73** | **+1 / 0** |
+| UM `UT +use_motif` | 818 / 73 | **819 / 73** | **+1 / 0** |
+| **UG** `U +use_gtk` | 817 / 75 | **819 / 75** | **+2 / 0** |
+| **UGX** `UG +have_xinput2` | 919 / 77 | **921 / 77** | **+2 / 0** |
+| AE `A +enable_checking` | 834 / 73 | **835 / 73** | **+1 / 0** |
+| AI `A +have_x_i18n` | 810 / 75 | **811 / 75** | **+1 / 0** |
+| **AIU** `AI +use_gtk` | 852 / 75 | **854 / 75** | **+2 / 0** |
+| **AIUX** `AIU +have_xinput2` | 958 / 77 | **960 / 77** | **+2 / 0** |
+| AX `A +have_xdbe` | 816 / 74 | **817 / 74** | **+1 / 0** |
+| **AG3** `A +use_gtk +have_gtk3` | 856 / 74 | **858 / 74** | **+2 / 0** |
+
+**Additions, by name.**  Every arm reads one `E0609 no field has_been_visible on type x_output` (C
+18798, the mirror's bit-field carried as a `// C:` line), and the five `use_gtk` arms read one more:
+`cannot find function, tuple struct or tuple variant GDK_WINDOW_XWINDOW` in UG/UGX/AIU and
+`cannot find macro GDK_WINDOW_XID` in AG3 - C 18776's `FRAME_OUTER_WINDOW (f)` inside the GTK arm's
+mirror chain, the class slice 95 opened.  **Warning sets are identical to the baselines' in all
+twelve arms**, and nothing retires in any arm.
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has no window system, so this function is not compiled
+there).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18773's `data = NULL;` moves
+**A 803 -> 804** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:28529:18`; removing
+the line returns A to the table.
+
+**What `--check` reads.**  **16 -> 15** as Decision 112 5 says, with the line-count row at **28,569**
+against C's 33,125 (13.8% drift, was 28,487 / 14.0%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no window-manager state was
+read and no frame flag was set; the readings above are compile readings of text this machine cannot
 build.

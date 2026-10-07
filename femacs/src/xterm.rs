@@ -28484,4 +28484,86 @@ unsafe fn x_coords_from_dnd_message (dpyinfo: *mut x_display_info,
   return false;                                                        // C 18760
 }
 
-/* C 18763-18764 is `x_handle_wm_state` (C 18764-...), the next definition.  */
+/// C 18763-18824: `static void x_handle_wm_state (struct frame *f, struct input_event *ie)` - C's
+/// `static`, so a plain `unsafe fn`, and this slice's `--check` item.  Five shapes: C's five
+/// out-parameters (`type`, `format`, `nitems`, `bytes_after`, `data`) are declared with C's own
+/// uninitialised form and zeroed per Deviation 12 (`XGetWindowProperty` writes them through
+/// `&raw mut`), C's `data = NULL` is `std::ptr::null_mut ()`, C's `!data` test is `is_null ()`,
+/// `XFree` takes `*mut c_void` (this file 15403's shape) and `state = (unsigned long *) data` states
+/// the cast; `NormalState` is `include/xlib.rs` 208's constant while its sibling `IconicState` is
+/// this unit's own use-site constant (18390, P-72 rule 4 - the mirror row is owed), so both compare
+/// against `*state` as `c_ulong`.  `ie->kind = ...` is the masked write through
+/// `input_event_bits!`, and `(*f).output_data.x->has_been_visible` is C's own member expression with
+/// the pointer cast (this file 8045's shape) - a `bool_bf` the mirror records as a `// C:` line
+/// rather than storage (PORTING.md 1.3, `include/xterm.rs` 849), so the one `E0609 no field
+/// has_been_visible` row it reads is the class `x_calc_absolute_position` opened for the same member
+/// (this file 15463-15466).
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_handle_wm_state (f: *mut frame, ie: *mut input_event)
+{
+  use crate::x11_constants::{AnyPropertyType, NormalState, Success};
+
+  let mut dpyinfo: *mut x_display_info;                                // C 18766
+  let mut r#type: Atom = 0;                                            // C 18767
+  let mut format: c_int = 0;                                           // C 18768
+  let mut nitems: c_ulong = 0;                                         // C 18769
+  let mut bytes_after: c_ulong = 0;
+  let mut data: *mut u8;                                               // C 18770
+  let mut state: *mut c_ulong;                                         // C 18771
+
+  data = std::ptr::null_mut ();                                        // C 18773
+  dpyinfo = FRAME_DISPLAY_INFO! (f);                                   // C 18774
+
+  if XGetWindowProperty (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f), // C 18776-18777
+			 (*dpyinfo).Xatom_wm_state, 0, 2, 0,
+			 AnyPropertyType as Atom, &raw mut r#type, &raw mut format,
+			 &raw mut nitems, &raw mut bytes_after,
+			 &raw mut data) != Success                     // C 18779
+    { return; }                                                        // C 18780
+
+  if data.is_null () || nitems != 2 || format != 32                    // C 18782
+    {
+      if !data.is_null ()                                              // C 18784
+	{ XFree (data as *mut c_void); }                               // C 18785
+
+      return;                                                          // C 18787
+    }
+
+  state = data as *mut c_ulong;                                        // C 18790
+
+  if *state == NormalState as c_ulong && FRAME_ICONIFIED_P (f)         // C 18792
+    {
+      /* The frame has been deiconified.  It has not been withdrawn
+	 and is now visible.  */
+      SET_FRAME_VISIBLE! (f, true);                                    // C 18796
+      SET_FRAME_ICONIFIED (f, false as c_int);                         // C 18797
+      (*((*f).output_data.x as *mut x_output)).has_been_visible = true;  // C 18798
+
+      input_event_bits! (kind, ie, DEICONIFY_EVENT);                   // C 18800
+      XSETFRAME! ((*ie).frame_or_window, f);                           // C 18801
+    }
+  else if *state == IconicState as c_ulong                             // C 18803
+	   /* _NET_WM_STATE_HIDDEN should be used if the window
+	      manager supports that.  */
+	   && !x_wm_supports (f, (*dpyinfo).Xatom_net_wm_state_hidden)  // C 18806
+    {
+      /* The frame is actually iconified right now.  Mark it as
+	 such.  */
+
+      SET_FRAME_VISIBLE! (f, false);                                   // C 18811
+      SET_FRAME_ICONIFIED (f, true as c_int);                          // C 18812
+
+      input_event_bits! (kind, ie, ICONIFY_EVENT);                     // C 18814
+      XSETFRAME! ((*ie).frame_or_window, f);                           // C 18815
+    }
+
+  /* state[0] can also be WithdrawnState, meaning that the window has
+     been withdrawn and is no longer iconified.  However, Emacs sets
+     the correct flags upon withdrawing the window, so there is no
+     need to do anything here.  */
+
+  XFree (data as *mut c_void);                                        // C 18823
+}
+
+/* C 18826's `#ifdef HAVE_XFIXES` opens `x_handle_selection_monitor_event` (C 18828-...) and
+   `x_find_selection_owner` (C 18850-...), the next definitions.  */
