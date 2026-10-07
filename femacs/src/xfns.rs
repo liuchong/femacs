@@ -6018,10 +6018,11 @@ unsafe fn setup_xi_event_mask (f: *mut frame)
    neither the file nor the mirror declares stand in the use-site blocks below, each under the
    guard its arm has.  */
 
-/// C: Xutil.h 632-636: `typedef struct { char *res_name; char *res_class; } XClassHint;` - no
+/// C: Xutil.h 189-192: `typedef struct { char *res_name; char *res_class; } XClassHint;` - no
 /// mirror of this unit's graph declares it, so it stands here with the header's field order
-/// (P-88 rule 1); C 4482/4552-4554 write the two fields.
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit")))]
+/// (P-88 rule 1); C 4482/4552-4554 write the two fields, and the Xt arm's C 4179/4331-4333 do
+/// the same through `XSetClassHint`, so the guard is the whole `have_x_windows` family.
+#[cfg (feature = "have_x_windows")]
 #[repr (C)]
 pub struct XClassHint
 {
@@ -6051,43 +6052,37 @@ pub struct XWindowAttributes
 #[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
 pub const XNFilterEvents: &core::ffi::CStr = c"filterEvents";
 
-/// C: X11/X.h 387, 393, 395, 396, 405, 431, 439 and 568, plus X11/Xutil.h 74, 75 and 134, every
-/// value measured on this machine's headers: `InputOutput 1`, `CWBackPixel (1L<<1)`,
+/// C: X11/X.h 387, 393, 395, 396, 405, 431, 439 and 568, plus X11/Xutil.h 74, 75, 102 and 134,
+/// every value measured on this machine's headers: `InputOutput 1`, `CWBackPixel (1L<<1)`,
 /// `CWBorderPixel (1L<<3)`, `CWBitGravity (1L<<4)`, `CWColormap (1L<<13)`, `StaticGravity 10`,
-/// `NotUseful 0`, `GCLineWidth (1L<<4)`, `XNegative 0x0010`, `YNegative 0x0020` and
-/// `InputHint (1L<<0)` - the eleven C 4486-4562's plain-X arm reads and the five `x11_constants`
-/// does not carry (`CWEventMask`, `CWOverrideRedirect`, `GCForeground`, `GCBackground` and
-/// `PropModeReplace` are the mirror's).
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+/// `NotUseful 0`, `GCLineWidth (1L<<4)`, `XNegative 0x0010`, `YNegative 0x0020`,
+/// `USPosition (1L<<0)` and `InputHint (1L<<0)` - the plain-X arm (C 4486-4562) reads ten of
+/// them and the Xt arm four (`XNegative`/`YNegative` at C 4283-4296, `USPosition` at C 4299,
+/// `InputHint` at C 4342), so the guard is the whole `have_x_windows` family (the five names
+/// `include/xlib.rs`'s `x11_constants` module carries - `CWEventMask`, `CWOverrideRedirect`,
+/// `GCForeground`, `GCBackground` and `PropModeReplace` - are read from there instead).
+#[cfg (feature = "have_x_windows")]
 pub const InputOutput: c_uint = 1;                        // X11/X.h 387
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+#[cfg (feature = "have_x_windows")]
 pub const CWBackPixel: c_long = 1 << 1;                 // X11/X.h 393
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+#[cfg (feature = "have_x_windows")]
 pub const CWBorderPixel: c_long = 1 << 3;               // X11/X.h 395
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+#[cfg (feature = "have_x_windows")]
 pub const CWBitGravity: c_long = 1 << 4;                // X11/X.h 396
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+#[cfg (feature = "have_x_windows")]
 pub const CWColormap: c_long = 1 << 13;                 // X11/X.h 405
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+#[cfg (feature = "have_x_windows")]
 pub const StaticGravity: c_int = 10;                     // X11/X.h 431
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+#[cfg (feature = "have_x_windows")]
 pub const NotUseful: c_int = 0;                          // X11/X.h 439
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+#[cfg (feature = "have_x_windows")]
 pub const XNegative: c_int = 0x0010;                    // X11/Xutil.h 74
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+#[cfg (feature = "have_x_windows")]
 pub const YNegative: c_int = 0x0020;                    // X11/Xutil.h 75
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
+#[cfg (feature = "have_x_windows")]
 pub const InputHint: c_long = 1 << 0;                    // X11/Xutil.h 134
+#[cfg (feature = "have_x_windows")]
+pub const USPosition: c_long = 1 << 0;                   // X11/Xutil.h 102
 
 /* C: Xlib.h 2995-3003: `extern Window XCreateWindow (Display *, Window, int, int, unsigned int,
    unsigned int, unsigned int, int, unsigned int, Visual *, unsigned long,
@@ -6096,18 +6091,28 @@ pub const InputHint: c_long = 1 << 0;                    // X11/Xutil.h 134
    C: Xlib.h 2896: `extern Status XSetWMProtocols (Display *, Window, Atom *, int);` - C 4572's.
    C: Xlib.h 1424: `extern Status XGetWindowAttributes (Display *, Window, XWindowAttributes *);`
    - C 4456-4457's.  Block comments, because a doc comment on an `extern` block is the
-   `unused doc comment` warning the file's baseline already counts (slice 5's note).  */
+   `unused doc comment` warning the file's baseline already counts (slice 5's note).
+   C: Xutil.h 642: `extern void XSetClassHint (Display *, Window, XClassHint *);` is not
+   here: both `x_window` arms call it (C 4333 and C 4554) and the other three entry points
+   name the plain-X-only records, so it stands in its own block below.  */
 #[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit")))]
 unsafe extern "C" {
   pub fn XCreateWindow (dpy: *mut Display, parent: Window, x: c_int, y: c_int, width: c_uint,
 			height: c_uint, border_width: c_uint, depth: c_int, class: c_uint,
 			visual: *mut Visual, valuemask: c_ulong,
 			attributes: *mut XSetWindowAttributes) -> Window;
-  pub fn XSetClassHint (dpy: *mut Display, w: Window, class_hints: *mut XClassHint) -> c_int;
   pub fn XSetWMProtocols (dpy: *mut Display, w: Window, protocols: *mut Atom, count: c_int)
 			  -> c_int;
   pub fn XGetWindowAttributes (dpy: *mut Display, w: Window, attr: *mut XWindowAttributes)
 			       -> c_int;
+}
+
+/* C: Xutil.h 642: `extern void XSetClassHint (Display *, Window, XClassHint *);` - C 4333 (the
+   Xt arm) and C 4554 (the plain-X arm) both call it, and it names `XClassHint` alone, so it
+   stands under the whole family's guard rather than in the plain-X-only block above.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XSetClassHint (dpy: *mut Display, w: Window, class_hints: *mut XClassHint) -> c_int;
 }
 
 /* C: src/gtkutil.h 78: `extern bool xg_create_frame_widgets (struct frame *f);` - C 4435's call.
@@ -6182,8 +6187,8 @@ unsafe fn x_window (f: *mut frame)
   use crate::x11_constants::{CWEventMask, CWOverrideRedirect, GCForeground, GCBackground,
 			     PropModeReplace, NoEventMask};
 
-  let mut class_hints: XClassHint;                                     // C 4482
-  let mut attributes: XSetWindowAttributes;                            // C 4483
+  let mut class_hints: XClassHint = std::mem::zeroed ();               // C 4482 (the fields at C 4552-4553)
+  let mut attributes: XSetWindowAttributes = std::mem::zeroed ();       // C 4483 (the fields at C 4486-4541)
   let mut attribute_mask: c_long;                                      // C 4484 (C: unsigned long; the mirror's CW* words are c_long)
 
   attributes.background_pixel = FRAME_BACKGROUND_PIXEL! (f);           // C 4486
@@ -6265,7 +6270,7 @@ unsafe fn x_window (f: *mut frame)
 
   /* Request "save yourself" and "delete window" commands from wm.  */
   {
-    let mut protocols: [Atom; 2];                                       // C 4569
+    let mut protocols: [Atom; 2] = std::mem::zeroed ();                  // C 4569 (the two members at C 4573-4578)
     protocols[0] = (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_delete_window;   // C 4570
     protocols[1] = (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_save_yourself;    // C 4571
     XSetWMProtocols (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), protocols.as_mut_ptr (), 2);  // C 4572
@@ -6723,4 +6728,406 @@ unsafe fn set_machine_and_pid_properties (f: *mut frame)
 		       XA_CARDINAL as Atom, 32, PropModeReplace,
 		       &raw mut xpid as *mut c_uchar, 1);
     }
+}
+
+/* C 4172-4428: the `USE_X_TOOLKIT` arm of `x_window` (C 4176 the `static void`, C 4177 the name) -
+   the third and last body of that function, and the one slice 6 recorded as the C-range table's
+   next-item row.  It is the only arm that builds its widgets through libXt's `XtSetArg`
+   vocabulary, so the resource names and the entry points no declaration of this unit or its
+   mirrors carries stand in the blocks below (P-72 rule 4).  */
+
+/// C: X11/StringDefs.h's resource names C 4198-4236 and C 4316-4320 hand to `XtSetArg`.  This
+/// file's own shape for them (its `XtNinput`/`XtNborderColor` pair at 1382/1384): a function
+/// returning `String`, which is Xt's `char *`.  The six names `src/widget.h` itself defines -
+/// `XtNshowGrip`, `XtNallowResize`, `XtNresizeToPreferred`, `XtNemacsFrame`,
+/// `XtNinternalBorderWidth` and `XtNgeometry` - do **not** stand here: this unit includes that
+/// header's mirror (`include/widget.rs` 35/105/112/120/124/128), so the call sites read the
+/// mirror's own `&CStr` rows (`XtNgeometry.as_ptr () as String`) - `check-mirror-dupes.py`'s
+/// rule that a name a mirror in the include graph carries is not declared a second time.
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNallowShellResize () -> String { c"allowShellResize".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNmappedWhenManaged () -> String { c"mappedWhenManaged".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNborderWidth () -> String { c"borderWidth".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNvisual () -> String { c"visual".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNdepth () -> String { c"depth".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNcolormap () -> String { c"colormap".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNx () -> String { c"x".as_ptr () as *mut c_char }
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub fn XtNy () -> String { c"y".as_ptr () as *mut c_char }
+
+/// C: <intprops.h> 305-312's `INT_STRLEN_BOUND (t)`, which this tree records as a blind mirror
+/// (`lib/include/intprops.rs`) that no unit includes - the `src/xterm.rs` 18944 shape.
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+macro_rules! INT_STRLEN_BOUND {
+  ($t:ty) => { ((std::mem::size_of::<$t> () * 8 - 1) * 146 + 484) / 485 + 1 };
+}
+
+/* C: X11/Intrinsic.h's entry points and the three lwlib/this-file shims C 4212/4346/4422 call.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe extern "C" {
+  pub fn XtAppCreateShell (application_name: String, application_class: *const c_char,
+			   widget_class: WidgetClass, display: *mut Display, args: *mut Arg,
+			   num_args: c_uint) -> Widget;
+  pub fn XtCreateWidget (name: String, widget_class: WidgetClass, parent: Widget,
+			 args: *mut Arg, num_args: c_uint) -> Widget;
+  pub fn XtManageChild (widget: Widget);
+  pub fn XtRealizeWidget (widget: Widget);
+  pub fn XtMapWidget (widget: Widget);
+  pub fn XtVaGetValues (widget: Widget, ...);
+  pub fn XtAddEventHandler (widget: Widget, event_mask: c_ulong, nonmaskable: Bool,
+			    proc_: XtEventHandler, client_data: XtPointer);
+  pub fn lw_create_widget (r#type: *const c_char, name: *const c_char, id: LWLIB_ID,
+			   val: *mut widget_value, parent: Widget, pop_up_p: Boolean,
+			   pre_activate_cb: lw_callback, selection_cb: lw_callback,
+			   post_activate_cb: lw_callback, highlight_cb: lw_callback) -> Widget;
+  pub fn lw_set_main_areas (parent: Widget, menubar: Widget, work_area: Widget);
+  pub static mut applicationShellWidgetClass: WidgetClass;
+}
+
+/* C: lisp.h 5553: `extern char *xlispstrdup (Lisp_Object string)` - `alloc.c` 842 defines it
+   and no mirror of this unit's graph carries the row, so it stands here (P-72 rule 4; the
+   `docs/ports/xfns.md` owed row names `include/lisp.rs`).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe extern "C" {
+  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+}
+
+/* C: `frame.c` 6180 defines `validate_x_resource_name` and no header declares it - the
+   reference calls it from xfns.c 4329/4550, pgtkfns.c 156, xsmfns.c 377 and frame.c 6263 the
+   same way.  Both arms of this file call it, so the row stands under the whole family's guard
+   (P-72 rule 4; the owed row for the declaring header is in `docs/ports/xfns.md`).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn validate_x_resource_name ();
+}
+
+/* C: X11/Intrinsic.h: `typedef int Boolean;`, `typedef char *XtPointer;` and `typedef struct
+   _WidgetClassRec *WidgetClass;` - the X toolkit's own types, none of them mirrored in this
+   tree (the same header-alone rule as `Widget` at 1386).  The block below names all three, and
+   so do the two mirrors its include graph pulls in - `include/widget.rs`'s `emacsFrameClass`
+   and `../lwlib/include/lwlib.rs`'s nine `lw_*` prototypes - which is why the three rows are
+   owed to `include/xlib.rs` in `docs/ports/xfns.md` (the `Widget` row's twin).  `emacsFrameClass`
+   is **not** declared here: `include/widget.rs` 165-177 puts it in `widget_decls` and glob-imports
+   that module in this arm, and a definition in the including unit shadows a glob import - which is
+   why the compiler stayed silent while `check-mirror-dupes.py` read the duplicate.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type Boolean = c_int;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtPointer = *mut c_void;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type WidgetClass = *mut c_void;
+/// C: X.h: `typedef unsigned short Dimension;` - the `CorePart` members below are
+/// `Dimension`s (the `lwlib/lwlib-utils.rs` 64 spelling of the same typedef).
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type Dimension = c_ushort;
+/// C: IntrinsicP.h's `WidgetRec`/`CorePart` - the record carries only the members C 4251-4252
+/// reads (`core.height`, `core.border_width`), in C's own relative order, and its offsets are
+/// **UNVERIFIED** (the `lwlib/lwlib-utils.rs` 89-108 shape for the same record).
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+#[derive (Copy, Clone)]
+#[repr (C)]
+pub struct WidgetRec
+{
+  pub core: CorePart,
+}
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+#[derive (Copy, Clone)]
+#[repr (C)]
+pub struct CorePart
+{
+  pub height: Dimension,                       // C: `Dimension height;`
+  pub border_width: Dimension,                 // C: `Dimension border_width;`
+}
+
+/// C: X11/Intrinsic.h: `typedef void (*XtEventHandler) (Widget, XtPointer, XEvent *, Boolean *);`
+/// - the header's own event-handler type, whose four parameter types are the three above and
+/// `XEvent` (the mirror's).
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtEventHandler =
+  Option<unsafe extern "C" fn (Widget, XtPointer, *mut XEvent, *mut Boolean)>;
+
+/// C 4176-4428: `static void x_window (struct frame *f, long window_prompting)`, the
+/// `USE_X_TOOLKIT` arm.  C 4245-4322's geometry block is C's own scope; the two `#if false`
+/// blocks (C 4255-4263 and C 4674's twin in the other arm) are C's dead text and are carried as
+/// comments.
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe fn x_window (f: *mut frame, mut window_prompting: c_long)
+{
+  use crate::x11_constants::{CWEventMask, CWOverrideRedirect, PropModeAppend, PropModeReplace,
+			     XA_ATOM};
+
+  let mut class_hints: XClassHint = std::mem::zeroed ();                // C 4179 (the fields at C 4331-4332)
+  let mut attributes: XSetWindowAttributes = std::mem::zeroed ();       // C 4180 (the fields at C 4360-4372)
+  let mut attribute_mask: c_long;                                       // C 4181
+  let shell_widget: Widget;                                             // C 4182
+  let pane_widget: Widget;                                              // C 4183
+  let frame_widget: Widget;                                             // C 4184
+  let mut al: [Arg; 25] = std::array::from_fn (|_| std::mem::zeroed ());  // C 4185 (C: `Arg al[25];`)
+  let mut ac: c_int;                                                    // C 4186
+
+  block_input ();                                                       // C 4188
+
+  /* Use the resource name as the top-level widget name
+     for looking up resources.  Make a non-Lisp copy
+     for the window manager, so GC relocation won't bother it.
+
+     Elsewhere we specify the window name for the window manager.  */
+  (*f).namebuf = xlispstrdup (Vx_resource_name);                        // C 4195
+
+  ac = 0;                                                               // C 4197
+  XtSetArg! (al[ac as usize], XtNallowShellResize (), 1); ac += 1;      // C 4198
+  XtSetArg! (al[ac as usize], XtNinput (), 1); ac += 1;                 // C 4199
+  XtSetArg! (al[ac as usize], XtNmappedWhenManaged (), 0); ac += 1;     // C 4200
+  XtSetArg! (al[ac as usize], XtNborderWidth (), (*f).border_width); ac += 1;      // C 4201
+  XtSetArg! (al[ac as usize], XtNvisual (), FRAME_X_VISUAL! (f)); ac += 1;         // C 4202
+  XtSetArg! (al[ac as usize], XtNdepth (), (*FRAME_DISPLAY_INFO! (f)).n_planes); ac += 1;  // C 4203
+  XtSetArg! (al[ac as usize], XtNcolormap (), FRAME_X_COLORMAP! (f)); ac += 1;     // C 4204
+  /* frame.h 1840's `EMACS_CLASS`: the toolkit resource class C 4206 hands to
+     `XtAppCreateShell`.  An *external* name (the X server and the user's own resource file
+     read it), so it keeps C's bytes (PORTING.md 0.1-19's kept list, status 3.648); the
+     `src/xterm.rs` 19974-19978 shape.  */
+  let EMACS_CLASS: &core::ffi::CStr = c"Emacs";
+  shell_widget = XtAppCreateShell ((*f).namebuf, EMACS_CLASS.as_ptr (),     // C 4205-4207
+				   applicationShellWidgetClass, FRAME_X_DISPLAY! (f),
+				   al.as_mut_ptr (), ac as c_uint);
+
+  (*((*f).output_data.x as *mut x_output)).widget = shell_widget;        // C 4209
+  /* maybe_set_screen_title_format (shell_widget); */                   // C 4210 (C's own comment)
+
+  pane_widget = lw_create_widget (c"main".as_ptr (), c"pane".as_ptr (),   // C 4212-4214
+				  widget_id_tick, std::ptr::null_mut (), shell_widget, 0,
+				  None, None, None, None);
+  widget_id_tick += 1;
+
+  ac = 0;                                                               // C 4216
+  XtSetArg! (al[ac as usize], XtNvisual (), FRAME_X_VISUAL! (f)); ac += 1;         // C 4217
+  XtSetArg! (al[ac as usize], XtNdepth (), (*FRAME_DISPLAY_INFO! (f)).n_planes); ac += 1;  // C 4218
+  XtSetArg! (al[ac as usize], XtNcolormap (), FRAME_X_COLORMAP! (f)); ac += 1;     // C 4219
+  XtSetArg! (al[ac as usize], XtNborderWidth (), 0); ac += 1;           // C 4220
+  XtSetValues (pane_widget, al.as_mut_ptr (), ac as c_uint);            // C 4221
+  (*((*f).output_data.x as *mut x_output)).column_widget = pane_widget;  // C 4222
+  /* mappedWhenManaged to false tells to the paned window to not map/unmap
+     the emacs screen when changing menubar.  This reduces flickering.  */
+
+  ac = 0;                                                               // C 4227
+  XtSetArg! (al[ac as usize], XtNmappedWhenManaged (), 0); ac += 1;     // C 4228
+  XtSetArg! (al[ac as usize], XtNshowGrip.as_ptr () as String, 0); ac += 1; // C 4229
+  XtSetArg! (al[ac as usize], XtNallowResize.as_ptr () as String, 1); ac += 1; // C 4230
+  XtSetArg! (al[ac as usize], XtNresizeToPreferred.as_ptr () as String, 1); ac += 1; // C 4231
+  XtSetArg! (al[ac as usize], XtNemacsFrame.as_ptr () as String, f); ac += 1; // C 4232
+  XtSetArg! (al[ac as usize], XtNvisual (), FRAME_X_VISUAL! (f)); ac += 1;         // C 4233
+  XtSetArg! (al[ac as usize], XtNdepth (), (*FRAME_DISPLAY_INFO! (f)).n_planes); ac += 1;  // C 4234
+  XtSetArg! (al[ac as usize], XtNcolormap (), FRAME_X_COLORMAP! (f)); ac += 1;     // C 4235
+  XtSetArg! (al[ac as usize], XtNborderWidth (), 0); ac += 1;           // C 4236
+  frame_widget = XtCreateWidget ((*f).namebuf, emacsFrameClass (), pane_widget,  // C 4237-4238
+				 al.as_mut_ptr (), ac as c_uint);
+
+  (*((*f).output_data.x as *mut x_output)).edit_widget = frame_widget;   // C 4240
+
+  XtManageChild (frame_widget);                                         // C 4242
+
+  /* Do some needed geometry management.  */
+  {
+    let mut gal: [Arg; 3] = std::array::from_fn (|_| std::mem::zeroed ());  // C 4246
+    let mut gac: c_int = 0;                                             // C 4247
+    let mut extra_borders: c_int = 0;                                   // C 4248
+    let menubar_size: c_int                                             // C 4249-4253
+      = if !(*((*f).output_data.x as *mut x_output)).menubar_widget.is_null ()
+	{
+	  /* C's `menubar_widget->core.height + menubar_widget->core.border_width`: the widget's
+	     `core` is libXt's own record, which no mirror in this tree carries, so the port reads it
+	     through the two fields C's expression names (P-72 rule 3).  */
+	  (*((*((*f).output_data.x as *mut x_output)).menubar_widget as *mut WidgetRec)).core.height
+	      as c_int
+	    + (*((*((*f).output_data.x as *mut x_output)).menubar_widget as *mut WidgetRec)).core.border_width
+	      as c_int
+	}
+      else
+	{ 0 };
+
+    /* C 4255-4263: `#if false` - the `FRAME_EXTERNAL_MENU_BAR` arm C's own comment (24 Aug 96,
+       rms) disables; carried as this comment.  */
+
+    /* C 4265: `FRAME_MENUBAR_HEIGHT (f) = menubar_size;`.  The mirror carries only C xterm.h
+       1463-1464's `#else` variant (`include/xterm.rs` 1177-1181: `((void) f, 0)`, which is not
+       an lvalue), while C 1461-1462's `USE_X_TOOLKIT || USE_GTK` variant is
+       `((f)->output_data.x->menubar_height)`; the assignment is therefore spelled through that
+       member (P-72 rule 3's use-site form, the `FRAME_LIVE_P` shape at C 4797).  The missing
+       mirror row is owed and named in `docs/ports/xfns.md` - its other face is the two reads at
+       4929/4976, which the non-toolkit body answers with 0 in the GTK arm.  */
+    (*((*f).output_data.x as *mut x_output)).menubar_height = menubar_size;  // C 4265
+
+#[cfg (not (feature = "use_lucid"))]
+    {
+      /* Motif seems to need this amount added to the sizes
+	 specified for the shell widget.  The Athena/Lucid widgets don't.
+	 Both conclusions reached experimentally.  -- rms.  */
+      XtVaGetValues ((*((*f).output_data.x as *mut x_output)).edit_widget,  // C 4271-4272
+		     XtNinternalBorderWidth.as_ptr () as String, &raw mut extra_borders,
+		     std::ptr::null_mut::<c_void> ());
+      extra_borders *= 2;                                               // C 4273
+    }
+
+    (*f).shell_position                                                // C 4276
+      = xmalloc (4 + 4 * INT_STRLEN_BOUND! (c_int) as usize) as *mut c_char;
+
+    /* Convert our geometry parameters into a geometry string
+       and specify it.
+       Note that we do not specify here whether the position
+       is a user-specified or program-specified one.
+       We pass that information later, in x_wm_set_size_hint.  */
+    let xneg: bool = (window_prompting & XNegative as c_long) != 0;     // C 4283
+    let yneg: bool = (window_prompting & YNegative as c_long) != 0;     // C 4284
+
+    if !FRAME_PARENT_FRAME (f).is_null ()                               // C 4286
+      {
+	if window_prompting & XNegative as c_long != 0                  // C 4288
+	  { (*f).left_pos = FRAME_PIXEL_WIDTH (FRAME_PARENT_FRAME (f))  // C 4289-4290
+	      - FRAME_PIXEL_WIDTH (f) + (*f).left_pos; }
+
+	if window_prompting & YNegative as c_long != 0                  // C 4292
+	  { (*f).top_pos = FRAME_PIXEL_HEIGHT (FRAME_PARENT_FRAME (f))  // C 4293-4294
+	      - FRAME_PIXEL_HEIGHT (f) + (*f).top_pos; }
+
+	window_prompting &= !(XNegative as c_long | YNegative as c_long);  // C 4296
+      }
+
+    if window_prompting & USPosition as c_long != 0                     // C 4299
+      { sprintf ((*f).shell_position, c"=%dx%d%c%d%c%d".as_ptr (),      // C 4300-4304
+		 FRAME_PIXEL_WIDTH (f) + extra_borders,
+		 FRAME_PIXEL_HEIGHT (f) + menubar_size + extra_borders,
+		 if xneg { b'-' as c_int } else { b'+' as c_int }, (*f).left_pos,
+		 if yneg { b'-' as c_int } else { b'+' as c_int }, (*f).top_pos); }
+    else
+      {
+	sprintf ((*f).shell_position, c"=%dx%d".as_ptr (),              // C 4307-4309
+		 FRAME_PIXEL_WIDTH (f) + extra_borders,
+		 FRAME_PIXEL_HEIGHT (f) + menubar_size + extra_borders);
+
+	/* Setting x and y when the position is not specified in
+	   the geometry string will set program position in the WM hints.
+	   If Emacs had just one program position, we could set it in
+	   fallback resources, but since each make-frame call can specify
+	   different program positions, this is easier.  */
+	XtSetArg! (gal[gac as usize], XtNx (), (*f).left_pos); gac += 1;    // C 4316
+	XtSetArg! (gal[gac as usize], XtNy (), (*f).top_pos); gac += 1;     // C 4317
+      }
+
+    XtSetArg! (gal[gac as usize], XtNgeometry.as_ptr () as String, (*f).shell_position); // C 4320
+    gac += 1;
+    XtSetValues (shell_widget, gal.as_mut_ptr (), gac as c_uint);        // C 4321
+  }
+
+  XtManageChild (pane_widget);                                          // C 4324
+  XtRealizeWidget (shell_widget);                                       // C 4325
+
+  FRAME_X_WINDOW! (f) = XtWindow (frame_widget);                        // C 4327
+  initial_set_up_x_back_buffer (f);                                     // C 4328
+  validate_x_resource_name ();                                          // C 4329
+
+  class_hints.res_name = SSDATA (Vx_resource_name);                     // C 4331
+  class_hints.res_class = SSDATA (Vx_resource_class);                   // C 4332
+  XSetClassHint (FRAME_X_DISPLAY! (f), XtWindow (shell_widget),          // C 4333
+		 &raw mut class_hints);
+
+#[cfg (feature = "have_x_i18n")]
+  {
+    FRAME_XIC! (f) = std::ptr::null_mut ();                             // C 4336
+    if (*FRAME_DISPLAY_INFO! (f)).use_xim                              // C 4337
+      { create_frame_xic (f); }                                        // C 4338
+  }
+
+  (*((*f).output_data.x as *mut x_output)).wm_hints.input = True;        // C 4341
+  (*((*f).output_data.x as *mut x_output)).wm_hints.flags |= InputHint;  // C 4342
+  XSetWMHints (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),                // C 4343-4344
+	       &raw mut (*((*f).output_data.x as *mut x_output)).wm_hints);
+
+  hack_wm_protocols (f, shell_widget);                                  // C 4346
+  append_wm_protocols (FRAME_DISPLAY_INFO! (f), f);                     // C 4347
+
+#[cfg (feature = "x_toolkit_editres")]
+  XtAddEventHandler (shell_widget, 0, 1, Some (_XEditResCheckMessages),  // C 4350
+		     std::ptr::null_mut ());
+
+  /* Do a stupid property change to force the server to generate a
+     PropertyNotify event so that the event_stream server timestamp will
+     be initialized to something relevant to the time we created the window.
+     */
+  XChangeProperty (XtDisplay (frame_widget), XtWindow (frame_widget),    // C 4357-4359
+		   (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_protocols, XA_ATOM as Atom, 32,
+		   PropModeAppend, std::ptr::null_mut (), 0);
+
+  /* Make all the standard events reach the Emacs frame.  */
+  attributes.event_mask = STANDARD_EVENT_SET;                           // C 4362
+
+#[cfg (feature = "have_x_i18n")]
+  if !FRAME_XIC! (f).is_null ()                                         // C 4365
+    {
+      /* XIM server might require some X events. */
+      let mut fevent: c_long = NoEventMask;                             // C 4368
+      XGetICValues (FRAME_XIC! (f), XNFilterEvents.as_ptr (), &raw mut fevent,  // C 4369
+		    std::ptr::null_mut::<c_void> ());
+      attributes.event_mask |= fevent;                                  // C 4370
+    }
+
+  attributes.override_redirect = FRAME_OVERRIDE_REDIRECT! (f);           // C 4374
+  attribute_mask = CWEventMask | CWOverrideRedirect;                     // C 4375
+  XChangeWindowAttributes (XtDisplay (shell_widget), XtWindow (shell_widget),  // C 4376-4377
+			   attribute_mask as c_ulong, &raw mut attributes);
+
+  XtMapWidget (frame_widget);                                           // C 4379
+
+  /* x_set_name normally ignores requests to set the name if the
+     requested name is the same as the current name.  This is the one
+     place where that assumption isn't correct; f->name is set, but
+     the X server hasn't been told.  */
+  {
+    let name: Lisp_Object;                                              // C 4386
+    let explicit: bool = explicit_name! (f);                            // C 4387
+
+    explicit_name! (f, false);                                          // C 4389
+    name = (*f).name;                                                   // C 4390
+    fset_name (f, Qnil ());                                             // C 4391
+    x_set_name (f, name, explicit);                                     // C 4392
+  }
+
+  if FRAME_UNDECORATED! (f) != 0                                        // C 4395
+    {
+      let dpy: *mut Display = FRAME_X_DISPLAY! (f);                     // C 4397
+      let mut hints: PropMotifWmHints = std::mem::zeroed ();            // C 4398
+      let prop: Atom = (*FRAME_DISPLAY_INFO! (f)).Xatom_MOTIF_WM_HINTS;  // C 4399
+
+      memset (&raw mut hints as *mut c_void, 0, std::mem::size_of::<PropMotifWmHints> ());  // C 4401
+      hints.flags = MWM_HINTS_DECORATIONS as c_ulong;                   // C 4402
+      hints.decorations = 0;                                            // C 4403
+
+      /* For some reason the third and fourth arguments in the following
+	 call must be identical: ...  */
+      XChangeProperty (dpy, FRAME_OUTER_WINDOW! (f), prop, prop, 32, PropModeReplace,
+		       &raw mut hints as *mut c_uchar,
+		       PROP_MOTIF_WM_HINTS_ELEMENTS);                       // C 4409-4411
+    }
+
+  /* C passes an assignment expression; Rust has no such expression, so the assignment is its own
+     statement and the value it leaves is passed (slice 6's note).  */
+  (*((*f).output_data.x as *mut x_output)).current_cursor               // C 4415-4416
+    = (*((*f).output_data.x as *mut x_output)).text_cursor;
+  XDefineCursor (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),              // C 4414
+		 (*((*f).output_data.x as *mut x_output)).current_cursor);
+
+  unblock_input ();                                                     // C 4418
+
+  /* This is a no-op, except under Motif.  Make sure main areas are
+     set to something reasonable, in case we get an error later.  */
+  lw_set_main_areas (pane_widget, std::ptr::null_mut (), frame_widget);  // C 4422
+
+#[cfg (feature = "have_xinput2")]
+  if (*FRAME_DISPLAY_INFO! (f)).supports_xi2                            // C 4425
+    { setup_xi_event_mask (f); }                                        // C 4426
 }

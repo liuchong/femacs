@@ -1,5 +1,5 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
-C 3957-4170, C 4430-4623, C 4624-4783 and C 4785-4916
+C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783 and C 4785-4916
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -11,9 +11,9 @@ C 3957-4170, C 4430-4623, C 4624-4783 and C 4785-4916
 > `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice,
 > **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
 > **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
-> eighth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4430-4623, C 4624-4783 and
-> C 4785-4916, whose own ledger sections are at the end of this file - measured
-> with `grep -c ''`), both arms of every `#if` carried.
+> eighth and **7,133 lines** after the ninth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170,
+> C 4172-4428, C 4430-4623, C 4624-4783 and C 4785-4916, whose own ledger sections are at the end
+> of this file - measured with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -166,7 +166,7 @@ defines both features.
 | 3636-3811 | C 3636's blank and `xic_preedit_draw_callback` (C 3668/3680/3694/3709/3717/3726/3738/3764 the eight `goto im_abort` and C 3802's `im_abort:` label) | `have_x_i18n` |
 | 3812-3956 | C 3812's blank, `xic_set_xfontset` (C 3813 the `void`, C 3814 the name; C's definition has no `static`), C 3833-3836's blanks and comment and `xic_string_conversion_callback` (C 3837 the `static void`, C 3850/3907/3924/3943 the four `goto failure`, C 3947 the `failure:` label, C 3956 the `#endif` that closes C 2728) | `have_x_i18n` |
 | 3957-4170 | C 3961's `void` and `x_mark_frame_dirty` (C 3962), C 3971's `static void` and `set_up_x_back_buffer` (C 3972), `tear_down_x_back_buffer` (C 4012 the `void`, C 4013 the name), `initial_set_up_x_back_buffer` (C 4046 the `void`, C 4047 the name), C 4057's `#if defined HAVE_XINPUT2` with `setup_xi_event_mask` (C 4059 the `static void`, C 4060 the name) and C 4170's `#endif` that closes it | the file gate plus `have_xdbe`/`have_xrender`/`use_cairo`/`have_xinput2`/`have_xinput2_1`/`have_xinput2_2`/`have_xinput2_4`/`use_gtk`/`use_gtk3`/`have_gtk3`/`use_x_toolkit`, each item carrying the guard C gives its statements |
-| 4172-4428 | the `USE_X_TOOLKIT` arm of `x_window` (C 4176 the `static void`, C 4177 the name: the `XtSetArg`/`XtAppCreateShell`/`lw_create_widget` body) | not in this slice: the next slice's first item, and the reason the table's next row starts at C 4430 |
+| 4172-4428 | the `USE_X_TOOLKIT` arm of `x_window` (C 4176 the `static void`, C 4177 the name: the `XtSetArg`/`XtAppCreateShell`/`lw_create_widget` body, C 4245-4322 the geometry block, C 4255-4263's `#if false` region, C 4395-4411 the `PropMotifWmHints` branch) | `all (feature = "have_x_windows", feature = "use_x_toolkit")` (slice 9) |
 | 4430-4623 | C 4430's `#else /* not USE_X_TOOLKIT */` with the two arms of `x_window` - the GTK one (C 4431-4474) and the plain-X one (C 4476-4619) - up to C 4622's `#endif /* not USE_X_TOOLKIT */` | the file gate plus `use_gtk` / `not (feature = "use_gtk")`, and each item's own guard inside them (`have_x_i18n`, `have_xinput2`) |
 | 4624-4783 | C 4624's comment and `x_icon_verify` (C 4626 the `static void`, C 4627 the name), C 4644-4646's comment and `x_icon` (C 4648/4649), C 4693-4695's comment and `x_make_gc` (C 4697/4698), and C 4747-4748's comment and `x_free_gcs` (C 4750 the `void`, C 4751 the name) | the file gate |
 | 4785-4916 | C 4785-4787's comment with `unwind_create_frame` (C 4789 the `static Lisp_Object`, C 4790 the name), `do_unwind_create_frame` (C 4816/4817), `x_default_font_parameter` (C 4822 the `void`, C 4823 the name), the `x-wm-set-size-hint` `DEFUN` (C 4885) and `set_machine_and_pid_properties` (C 4900/4901) | the file gate |
@@ -1413,3 +1413,109 @@ its *registration* is still `syms_of_xfns`'s, which is in the remainder).  Drift
 
 The frozen configuration compiles none of this file: no frame was unwound, no font was opened, no
 size hint was sent and no WM property was written.  The two arms' counts are text compile readings.
+
+
+## Slice 9 (2026-10-08, status 3.912 - the integrator sets the round number): C 4172-4428
+
+**The slice is C 4172-4428**, the `USE_X_TOOLKIT` arm of `x_window` - the body slice 6 recorded as
+this table's next-item row.  It is C 4176's `static void` and C 4177's name, C 4179-4186's locals,
+C 4188's `block_input`, C 4195's `xlispstrdup`, C 4197-4207 the shell widget's `XtSetArg` block and
+`XtAppCreateShell`, C 4209/4212-4240 the pane and frame widgets, C 4245-4322 the geometry block
+(C 4255-4263 C's `#if false` region, C 4283-4299 the `window_prompting` flags), C 4324-4348
+`XtManageChild`/`XtRealizeWidget`/`XSetClassHint`/`XSetWMHints`/`hack_wm_protocols`, C 4360-4392 the
+widget sizes and the `explicit_name` block, C 4395-4411 the `PropMotifWmHints` branch, C 4414-4416
+the cursor pair, C 4418's `unblock_input`, C 4422's `lw_set_main_areas` and C 4424-4427's XInput2
+pair.  The port's slice is **407 Rust lines** (7,133 - 6,726, `grep -c ''`) against C's 257.
+
+**What it reads.**  This is the only arm of any unit here that builds widgets through libXt, so the
+slice is mostly *declarations*: `Boolean`/`XtPointer`/`WidgetClass`/`Dimension` (X11/Intrinsic.h and
+X.h - the `Widget` row's twins, at 1386-1392), a use-site `WidgetRec`/`CorePart` pair for the one
+record member C 4251-4252 reads, `xlispstrdup` (lisp.h 5553), `validate_x_resource_name` (frame.c
+6180; no header declares it), `USPosition` (Xutil.h 102) and `PropModeReplace` (read from
+`x11_constants`, `include/xlib.rs` 164).  Three names are **not** declared here: the six `src/widget.h`
+resource names (`XtNshowGrip`, `XtNallowResize`, `XtNresizeToPreferred`, `XtNemacsFrame`,
+`XtNinternalBorderWidth`, `XtNgeometry`) are read from that header's mirror, which is what
+`check-mirror-dupes.py` requires, and `emacsFrameClass` is read from `include/widget.rs` 165-177's
+`widget_decls` glob - a *definition* in the including unit shadows a glob import, so the compiler
+stayed silent while the gate read the duplicate.  Three guards were widened because C's other arm
+reads the same header names: the eleven X11 constants (`USPosition` added), `XClassHint` (Xutil.h
+189-192) and `XSetClassHint` (Xutil.h 642, now its own block - the plain-X block's other three entry
+points name plain-X-only records).
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0), both sides.
+
+**② The plain-X11 arm**: **10 errors / 9 warnings before, 9 / 9 after**.  One row retires -
+`validate_x_resource_name`'s `E0425`, since both arms call it now - and the three `E0381` rows the
+missing callee had been *suppressing* surface: `class_hints` (C 4482), `attributes` (C 4483) and
+`protocols` (C 4569) are C locals whose fields the branch writes, so the port gives them the file's
+zero initialiser (PORTING.md 1.5, the rule slice 1's `outer_trans_cookie` note already carries) and
+they close.  Net: 10 -> 9 errors, warnings unchanged.
+
+**③ The GTK arm** (the ten-cfg set): **28 / 20 before, 28 / 20 after**, the same error *set* shifted
+by this slice's five lines.  **No warning moved in any arm**: the three arms' warning kinds are
+identical to their baselines (12 for the Xt arm, 9 / 20 for the other two), and none of them is in
+this slice's own text.
+
+**④ The Xt arm's first reading** (`have_x_windows` + `use_x_toolkit` + `use_toolkit_scroll_bars`):
+**21 errors / 12 warnings on the baseline tree -> 10 / 12**.  The eleven that retire are nine
+`Boolean` rows in `../lwlib/include/lwlib.rs`'s nine `lw_*` prototypes, one `WidgetClass` row in
+`include/widget.rs`'s `emacsFrameClass` and this file's own `XClassHint` `E0425`; the ten that
+remain are the file's pre-existing readings - `gray_bits`/`gray_width`/`gray_height` (and the
+`XCreatePixmapFromBitmapData` `E0308` they cascade into) from `src/bitmaps/gray.xbm`, the
+`x_display_info_for_name` `E0425` at C 3972's forward declaration, the three `E0609` member rows
+(`wait_for_wm`, `alpha_identical_p`, `update_mode_line`), the `verror` `c_variadic` row and the
+`HAVE_X_WINDOWS` static assert.
+
+**⑤ `extract-abi.py --check`**: **156 rows -> 153**, and the delta is entirely the `x_window`
+comparison: the three giant `function x_window does not mention <~60 tokens>` rows (one per C body,
+since C defines the function once per arm) shrink to three one-token rows
+(`frame_menubar_height`), and their three `family null: the C body uses it 9 time(s), the port 3`
+rows retire.  Every other class is unchanged: `missing function` **29**, `missing subr` **52**,
+`missing defsubr` **45**, `missing file-scope object` **4**, `missing macro` **1**.  Drift reads
+`C 10662 vs Rust 7133` (**33.1%**, was 36.9%).  `check-mirror-dupes.py` is back at **16 duplicate
+declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at **18 declaration
+sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **C 4265's `FRAME_MENUBAR_HEIGHT (f) = menubar_size;`** is spelled through the member C's macro
+   names, `(*((*f).output_data.x as *mut x_output)).menubar_height = menubar_size;`: the mirror
+   carries only xterm.h 1463-1464's `#else` variant (`include/xterm.rs` 1177-1181, `((void) f, 0)`),
+   which is not an lvalue.  The P-72 rule 3 form is the `FRAME_LIVE_P` precedent at C 4797; the owed
+   mirror row is below, and `--check` still reads the one-token row that this spelling leaves.
+2. **C 4387/4389's `explicit_name`** is the file's own `explicit_name!` macro (the `x_set_name`
+   sites' spelling at 3246-3248) rather than an open-coded `frame_flag`/`frame_set_flag` pair, so
+   C's own name stays in the body (`include/frame.rs` records the flag as a comment only).
+3. **`window_prompting` is `mut`**: C 4296 assigns it (`&= ~(XNegative | YNegative)`), and C's
+   `bool explicit = f->explicit_name;` becomes a `let` with the type C's initialiser gives it.
+4. **The 2,048-byte `al`/`gal` `Arg` arrays** keep the file's `std::array::from_fn (|_| std::mem::zeroed ())`
+   shape, and `class_hints`/`attributes` are zero-initialised where C declares them without one.
+5. **The `WidgetRec`/`CorePart` record carries only the two members C 4251-4252 reads, and its
+   offsets are UNVERIFIED** (the `lwlib/lwlib-utils.rs` 89-108 shape); `core.height as c_int +
+   core.border_width as c_int` writes C's usual arithmetic conversions out because both members are
+   `Dimension`s (X.h's `unsigned short`).
+6. **C 4283-4299's `window_prompting` tests and C 4342's `InputHint`** read the file's own constant
+   rows, whose guards this slice widened to the whole `have_x_windows` family.
+
+### Owed (this slice)
+
+- `include/xlib.rs`, the `Widget` row's twins: `Boolean`, `XtPointer`, `WidgetClass`, `Dimension`
+  (X11/Intrinsic.h, X.h) and `USPosition` (Xutil.h 102) stand at this unit's use sites.
+- `include/lisp.rs`: `xlispstrdup` (lisp.h 5553); `src/frame.rs`: `validate_x_resource_name`
+  (frame.c 6180 - *no* header declares it, which is why both `x_window` arms declare it here).
+- `include/xterm.rs` 1177-1181: the missing `USE_X_TOOLKIT || USE_GTK` variant of
+  `FRAME_MENUBAR_HEIGHT` (xterm.h 1461-1462).  Its other face is a *semantic* gap this slice found:
+  the two reads at 4929/4976 get the non-toolkit body's `0` in the GTK arm.
+- `src/bitmaps/gray.xbm`'s three constants (slice 7's row) and the three mirror bitfield rows
+  (`wait_for_wm`, `alpha_identical_p`, `update_mode_line`) are the other residual arm readings.
+- `syms_of_xfns` (the subr registrations), `Fx_create_frame` (C 4918-5582) and the rest of the
+  remainder: the 29 missing functions, 1 macro, 4 objects, 52 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no shell/pane/frame widget was created, no
+geometry was negotiated, no WM protocol was installed and no Motif hint was written.  The three
+arms' counts are text compile readings.
