@@ -6615,7 +6615,7 @@ unsafe fn unwind_create_frame (frame: Lisp_Object) -> Lisp_Object
 /// C 4816-4820: `static void do_unwind_create_frame (Lisp_Object frame)` - the handler C's
 /// `record_unwind_protect` takes.
 #[cfg (feature = "have_x_windows")]
-unsafe fn do_unwind_create_frame (frame: Lisp_Object)
+unsafe extern "C" fn do_unwind_create_frame (frame: Lisp_Object)
 {
   unwind_create_frame (frame);                                          // C 4819
 }
@@ -7131,3 +7131,851 @@ unsafe fn x_window (f: *mut frame, mut window_prompting: c_long)
   if (*FRAME_DISPLAY_INFO! (f)).supports_xi2                            // C 4425
     { setup_xi_event_mask (f); }                                        // C 4426
 }
+
+/* frame.h's packed flags the body of C 4918-5582 writes (`no_split` at C 5311,
+   `can_set_window_size` at C 5414 and `was_invisible` at C 5460-5478): `include/frame.rs` records
+   them as `// C:` lines, so each unit whose bodies touch them defines its own writers over the
+   mirror's `bits1`/`bits2` (PORTING.md 1.3; the `src/androidfns.rs` 186-250 shape, and the
+   `explicit_name!` macro above for the fourth).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! set_frame_flag1 {
+  ($f:expr, $shift:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << $shift)) | (($v as u32) << $shift)
+  };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! set_frame_flag2 {
+  ($f:expr, $shift:expr, $v:expr) => {
+    (*$f).bits2 = ((*$f).bits2 & ! (1u32 << $shift)) | (($v as u32) << $shift)
+  };
+}
+/// C: frame.h 411: `bool_bf no_split : 1;` (read and written at C 5311)
+#[cfg (feature = "have_x_windows")]
+macro_rules! no_split {
+  ($f:expr) => { (*$f).bits1 >> FRAME_NO_SPLIT_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_NO_SPLIT_SHIFT, $v) };
+}
+/// C: frame.h 491: `bool_bf can_set_window_size : 1;` (written at C 5414)
+#[cfg (feature = "have_x_windows")]
+macro_rules! can_set_window_size {
+  ($f:expr) => { (*$f).bits1 >> FRAME_CAN_SET_WINDOW_SIZE_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_CAN_SET_WINDOW_SIZE_SHIFT, $v) };
+}
+/// C: frame.h 530: `bool_bf was_invisible : 1;` (read and written at C 5460-5478)
+#[cfg (feature = "have_x_windows")]
+macro_rules! was_invisible {
+  ($f:expr) => { (*$f).bits2 >> FRAME_WAS_INVISIBLE_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag2! ($f, FRAME_WAS_INVISIBLE_SHIFT, $v) };
+}
+
+/* C: frame.h 471: `bool_bf override_redirect : 1;` - `include/frame.rs` 624-627 emits its
+   unit/shift pair only under `have_window_system`, while the measured numbering is the same for
+   every configuration (`// A 2:7; B 2:7; C 2:7`), so the arms without that feature read the two
+   constants from here and the mirror row is owed (`docs/ports/xfns.md`).  The file's own
+   `FRAME_OVERRIDE_REDIRECT!` at 1306-1312 is the writer this slice first expands.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "have_window_system")))]
+pub const FRAME_OVERRIDE_REDIRECT_FLAG_SHIFT: u32 = 7;
+#[cfg (all (feature = "have_x_windows", not (feature = "have_window_system")))]
+pub const FRAME_OVERRIDE_REDIRECT_FLAG_UNIT: u32 = 2;
+
+/* The two arguments C 5184-5188 and C 5213-5217 pick per arm: an attribute cannot sit on a call's
+   argument, so each pair is a macro the two arms instantiate (the slice 8 `default_font_names!`
+   shape).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+macro_rules! internal_border_default { () => { make_fixnum (0) } }      // C 5185
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk")))]
+macro_rules! internal_border_default { () => { make_fixnum (1) } }      // C 5187
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk", feature = "use_toolkit_scroll_bars"))]
+macro_rules! vertical_scroll_bars_default { () => { Qright () } }       // C 5214
+#[cfg (all (feature = "have_x_windows",
+	     not (all (feature = "use_gtk", feature = "use_toolkit_scroll_bars"))))]
+macro_rules! vertical_scroll_bars_default { () => { Qleft () } }        // C 5216
+
+/* The names C 5132-5543 reads that no mirror of this unit's graph carries: the five font-driver
+   objects (ftcrfont.c, xftfont.c and xfont.c define them), `register_font_driver` (font.h 896),
+   and the frame, face, Cairo and XSync entry points.  `sysdep.h`'s two XSync types stand with
+   them.  Each row is owed to `docs/ports/xfns.md` (P-72 rule 4).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn register_font_driver (driver: *const c_void, f: *mut frame);
+  pub fn init_frame_faces (f: *mut frame);
+  pub fn initialize_frame_menubar (f: *mut frame);
+  pub fn x_embed_frame (dpyinfo: *mut x_display_info, f: *mut frame) -> bool;
+  pub fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -> Lisp_Object;
+  pub fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object, default_pixelwise: bool,
+				 window_pixelwise: bool) -> c_long;
+  pub fn x_iconify_frame (f: *mut frame);
+  pub fn x_cr_update_surface_desired_size (f: *mut frame, width: c_int, height: c_int);
+  pub fn x_sync_init_fences (f: *mut frame);
+  pub fn XIGetSelectedEvents (dpy: *mut Display, win: Window, count: *mut c_int)
+			      -> *mut c_void;
+  pub fn XSyncIntToValue (value: *mut XSyncValue, i: c_int);
+  pub fn XSyncCreateCounter (dpy: *mut Display, value: XSyncValue) -> XSyncCounter;
+  pub static mut ftcrfont_driver: font_driver;
+  pub static mut ftcrhbfont_driver: font_driver;
+  pub static mut xftfont_driver: font_driver;
+  pub static mut xfthbfont_driver: font_driver;
+  pub static mut xfont_driver: font_driver;
+}
+/// C: sysdep.h's X11/extensions/sync.h types the block above names (they have no mirror either).
+#[cfg (feature = "have_x_windows")]
+#[repr (C)] #[derive (Copy, Clone)]
+pub struct XSyncValue
+{
+  pub hi: c_int,
+  pub lo: c_uint,
+}
+/// C: `<X11/extensions/sync.h>`: `typedef XID XSyncCounter;`
+#[cfg (feature = "have_x_windows")]
+pub type XSyncCounter = XID;
+
+/* C 4918-5582: `DEFUN ("x-create-frame", Fx_create_frame, Sx_create_frame, 1, 1, 0, …)` - the
+   file's largest function (665 C lines), the item slice 8 named as the next one.  C's own `#ifdef`
+   arms are the font-driver block (C 5131-5146), the GTK3 CSS providers (C 5243-5248), the `USE_GTK`
+   arms at C 5184-5188/5213-5217/5322-5326/5378-5386, the `USE_X_TOOLKIT` `x_window` call
+   (C 5316-5320), the toolkit/GTK menu bar (C 5395-5411), the Cairo surface size (C 5432-5441) and
+   the XSync block (C 5500-5546).  */
+/// C: frame.h 1145's `ENUM_BF (output_method)` is the four-bit field in the middle of `bits1`; the
+/// mirror's reader is private to `include/frame.rs`, so the writer C spells
+/// (`f->output_method = …`, C 5046) stands here (the `src/androidfns.rs` 285-297 shape).
+#[cfg (feature = "have_x_windows")]
+macro_rules! set_output_method {
+  ($f:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (FRAME_OUTPUT_METHOD_MASK << FRAME_OUTPUT_METHOD_SHIFT))
+                  | ((($v as u32) & FRAME_OUTPUT_METHOD_MASK) << FRAME_OUTPUT_METHOD_SHIFT)
+  };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! output_method {
+  ($f:expr) => { output_method ($f) };
+  ($f:expr, $v:expr) => { set_output_method! ($f, $v) };
+}
+
+/// C: X11/X.h 289: `#define VisibilityFullyObscured 2` (measured on this machine's header) - the
+/// value C 5058 stores and xterm.h 1500's `FRAME_X_VISIBLE` tests - no mirror carries the
+/// constant: `include/xterm.rs` 1264 names it with no definition, and the same mirror's
+/// 1236 cites the macro as 2035, a wrong row of that mirror (owed).
+#[cfg (feature = "have_x_windows")]
+pub const VisibilityFullyObscured: c_int = 2;
+
+/* C 4929-4943's four declarations the include graph does not carry.  frame.h 1479/1489/1491's
+   `make_frame`, `make_minibuffer_frame` and `make_frame_without_minibuffer` are frame.c's
+   definitions, and frame.h 1430's `frame_set_id_from_params` is frame.c's; the rows are owed to
+   `include/frame.rs` in `docs/ports/xfns.md` (the `src/androidfns.rs` 100-111 shape).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn make_frame (mini_p: bool) -> *mut frame;
+  pub fn make_minibuffer_frame () -> *mut frame;
+  pub fn make_frame_without_minibuffer (mini_window: Lisp_Object, kb: *mut KBOARD,
+					display: Lisp_Object) -> *mut frame;
+  pub fn frame_set_id_from_params (f: *mut frame, params: Lisp_Object) -> EMACS_UINT;
+}
+
+/* C 4918-5582: the DEFUN and the whole body (C 4930-4939's locals, C 4945-5130 the display,
+   name, parent and colour setup).  The `USE_GTK` declaration C 4941-4943 is the cfg'd local
+   below, and the token rows this body leaves are recorded in `docs/ports/xfns.md`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-create-frame", Fx_create_frame, Sx_create_frame,
+	1, 1, 0,
+	doc: "Make a new X window, which is called a \"frame\" in Emacs terms.\nReturn an Emacs frame object.  PARMS is an alist of frame parameters.\nIf the parameters specify that the frame should not have a minibuffer,\nand do not specify a specific minibuffer window to use, then\n`default-minibuffer-frame' must be a frame whose minibuffer can be\nshared by the new frame.\n\nThis function is an internal primitive--use `make-frame' instead.  ",
+	(parms: Lisp_Object),
+	{
+  let f: *mut frame;                                                    // C 4930
+  let frame: Lisp_Object;                                               // C 4931
+  let mut tem: Lisp_Object;                                             // C 4931
+  let name: Lisp_Object;                                                // C 4932
+  let mut minibuffer_only: bool = false;                                // C 4933
+  let mut undecorated: bool = false;                                    // C 4934
+  let mut override_redirect: bool = false;                              // C 4934
+  let mut window_prompting: c_long = 0;                                 // C 4935
+  let count: specpdl_ref = SPECPDL_INDEX ();                            // C 4936
+  let mut display: Lisp_Object;                                         // C 4937
+  let mut dpyinfo: *mut x_display_info = std::ptr::null_mut ();         // C 4938
+  let mut parent: Lisp_Object;                                          // C 4939
+  let mut parent_frame: Lisp_Object;                                    // C 4939
+  let mut kb: *mut KBOARD;                                              // C 4940
+  use crate::x11_constants::{PropModeReplace, XA_CARDINAL, XA_WINDOW};
+#[cfg (feature = "have_gtk3")]
+  let mut gwin: *mut GdkWindow;                                         // C 4942
+  let mut parms = parms;                          /* C 4945 reassigns the parameter.  */
+
+  parms = Fcopy_alist (parms);                                          // C 4945
+
+  /* Use this general default value to start with
+     until we know if this frame has a specified name.  */
+  Vx_resource_name = Vinvocation_name;                                  // C 4949
+
+  display = gui_display_get_arg (dpyinfo, parms, Qterminal (), std::ptr::null (),
+				 std::ptr::null (), RES_TYPE_NUMBER);   // C 4951-4952
+  if BASE_EQ (display, Qunbound ())                                     // C 4953
+    { display = gui_display_get_arg (dpyinfo, parms, Qdisplay (), std::ptr::null (),
+				     std::ptr::null (), RES_TYPE_STRING); }
+  if BASE_EQ (display, Qunbound ())                                     // C 4956
+    { display = Qnil (); }
+  dpyinfo = check_x_display_info (display);                             // C 4958
+  /* C 4959: `dpyinfo->terminal->kboard` - the mirror's `terminal.kboard` is `*mut c_void`
+     (`struct kboard`'s record is keyboard.h's, P-72 rule 3), so the port casts it.  */
+  kb = (*((*dpyinfo).terminal)).kboard as *mut KBOARD;
+
+  if (*((*dpyinfo).terminal)).name.is_null ()                           // C 4961
+    { error (c"Terminal is not live, can't create new frames on it".as_ptr ()); }
+
+  /* C 5016/5028 put the call inside the `!NILP (…)` test; the assignment is a statement of its
+     own in Rust (the `src/androidfns.rs` 1187-1190 note for the same C).  */
+  name = gui_display_get_arg (dpyinfo, parms, Qname (), c"name".as_ptr (),
+			      c"Name".as_ptr (), RES_TYPE_STRING);      // C 4964-4965
+  if !STRINGP (name)
+      && ! BASE_EQ (name, Qunbound ())
+      && ! NILP (name)
+    { error (c"Invalid frame name--not a string or nil".as_ptr ()); }   // C 4966-4969
+
+  if STRINGP (name)                                                     // C 4971
+    { Vx_resource_name = name; }
+
+  /* See if parent window is specified.  */
+  parent = gui_display_get_arg (dpyinfo, parms, Qparent_id (), std::ptr::null (),
+				std::ptr::null (), RES_TYPE_NUMBER);    // C 4975-4976
+  if BASE_EQ (parent, Qunbound ())                                      // C 4977
+    { parent = Qnil (); }
+  if ! NILP (parent)                                                    // C 4979
+    { CHECK_FIXNUM (parent); }
+
+  frame = Qnil ();                                                      // C 4982
+  tem = gui_display_get_arg (dpyinfo,
+			     parms, Qminibuffer (), c"minibuffer".as_ptr (),
+			     c"Minibuffer".as_ptr (),
+			     RES_TYPE_SYMBOL);                          // C 4983-4985
+  if EQ (tem, Qnone ()) || NILP (tem)                                   // C 4986
+    { f = make_frame_without_minibuffer (Qnil (), kb, display); }
+  else if EQ (tem, Qonly ())                                            // C 4988
+    {
+      f = make_minibuffer_frame ();                                     // C 4990
+      minibuffer_only = true;                                           // C 4991
+    }
+  else if WINDOWP (tem)                                                 // C 4993
+    { f = make_frame_without_minibuffer (tem, kb, display); }           // C 4994
+  else
+    { f = make_frame (true); }                                          // C 4996
+
+  parent_frame = gui_display_get_arg (dpyinfo,
+				      parms,
+				      Qparent_frame (),
+				      std::ptr::null (),
+				      std::ptr::null (),
+				      RES_TYPE_SYMBOL);                     // C 4998-5003
+  /* Accept parent-frame iff parent-id was not specified.  */
+  if !NILP (parent)                                                     // C 5005
+      || BASE_EQ (parent_frame, Qunbound ())
+      || NILP (parent_frame)
+      || !FRAMEP (parent_frame)
+      || !FRAME_LIVE_P (XFRAME (parent_frame))
+      || !FRAME_X_P (XFRAME (parent_frame))
+    { parent_frame = Qnil (); }                                         // C 5011
+
+  fset_parent_frame (f, parent_frame);                                  // C 5013
+  store_frame_param (f, Qparent_frame (), parent_frame);                // C 5014
+
+  /* C 5016-5023's assignment the `!NILP (…)` tests is a statement of its own here.  */
+  tem = gui_display_get_arg (dpyinfo,
+			     parms,
+			     Qundecorated (),
+			     std::ptr::null (),
+			     std::ptr::null (),
+			     RES_TYPE_BOOLEAN);                             // C 5016-5021
+  if !NILP (tem)
+      && !(BASE_EQ (tem, Qunbound ()))                                  // C 5022
+    { undecorated = true; }                                             // C 5023
+
+  FRAME_UNDECORATED! (f, undecorated);                                  // C 5025
+  store_frame_param (f, Qundecorated (), if undecorated { Qt () } else { Qnil () });  // C 5026
+
+  tem = gui_display_get_arg (dpyinfo,
+			     parms,
+			     Qoverride_redirect (),
+			     std::ptr::null (),
+			     std::ptr::null (),
+			     RES_TYPE_BOOLEAN);                             // C 5028-5033
+  if !NILP (tem)
+      && !(BASE_EQ (tem, Qunbound ()))                                  // C 5034
+    { override_redirect = true; }                                       // C 5035
+
+  FRAME_OVERRIDE_REDIRECT! (f, override_redirect);                       // C 5037
+  store_frame_param (f, Qoverride_redirect (), if override_redirect { Qt () } else { Qnil () });  // C 5038
+
+  XSETFRAME! (frame, f);                                                // C 5040
+
+  frame_set_id_from_params (f, parms);                                  // C 5042
+
+  (*f).terminal = (*dpyinfo).terminal;                                  // C 5044
+
+  output_method! (f, output_x_window);                                  // C 5046
+  (*f).output_data.x = xzalloc (std::mem::size_of::<x_output> ());      // C 5047
+  (*((*f).output_data.x as *mut x_output)).icon_bitmap = -1;            // C 5048
+  /* C 5049: `FRAME_FONTSET (f) = -1;` - C's macro is an l-value and the mirror carries the read
+     arm only (`E0428` forbids a second `FRAME_FONTSET!`), so the write is C's own member path
+     (the `src/androidfns.rs` 1216-1219 shape).  */
+  (*((*f).output_data.x as *mut x_output)).fontset = -1;                 // C 5049 (C: `c_int`)
+  (*((*f).output_data.x as *mut x_output)).scroll_bar_foreground_pixel = (-1 as c_long) as c_ulong;  // C 5050
+  (*((*f).output_data.x as *mut x_output)).scroll_bar_background_pixel = (-1 as c_long) as c_ulong;  // C 5051
+#[cfg (all (feature = "use_lucid", feature = "use_toolkit_scroll_bars"))]
+  {
+    (*((*f).output_data.x as *mut x_output)).scroll_bar_top_shadow_pixel = (-1 as c_long) as c_ulong;     // C 5053
+    (*((*f).output_data.x as *mut x_output)).scroll_bar_bottom_shadow_pixel = (-1 as c_long) as c_ulong;  // C 5054
+  }
+  (*((*f).output_data.x as *mut x_output)).white_relief.pixel = (-1 as c_long) as c_ulong;   // C 5056
+  (*((*f).output_data.x as *mut x_output)).black_relief.pixel = (-1 as c_long) as c_ulong;   // C 5057
+  (*((*f).output_data.x as *mut x_output)).visibility_state = VisibilityFullyObscured;       // C 5058
+
+  fset_icon_name (f, gui_display_get_arg (dpyinfo,
+					  parms,
+					  Qicon_name (),
+					  c"iconName".as_ptr (),
+					  c"Title".as_ptr (),
+					  RES_TYPE_STRING));            // C 5060-5065
+  if ! STRINGP ((*f).icon_name)                                         // C 5066
+    { fset_icon_name (f, Qnil ()); }                                    // C 5067
+
+  /* C 5069: `FRAME_DISPLAY_INFO (f) = dpyinfo;` - the same l-value case as C 5049.  */
+  (*((*f).output_data.x as *mut x_output)).display_info = dpyinfo;       // C 5069
+
+  /* With FRAME_DISPLAY_INFO set up, this unwind-protect is safe.  */
+  record_unwind_protect (Some (do_unwind_create_frame), frame);         // C 5072
+
+  /* These colors will be set anyway later, but it's important
+     to get the color reference counts right, so initialize them!  */
+  {
+    let black: Lisp_Object;
+
+    /* Function x_decode_color can signal an error.  Make
+       sure to initialize color slots so that we won't try
+       to free colors we haven't allocated.  */
+    (*f).foreground_pixel = (-1 as c_long) as c_ulong;                  // C 5082 (the macro is an l-value)
+    (*f).background_pixel = (-1 as c_long) as c_ulong;                  // C 5083 (the macro is an l-value)
+    (*((*f).output_data.x as *mut x_output)).cursor_pixel = (-1 as c_long) as c_ulong;      // C 5084
+    (*((*f).output_data.x as *mut x_output)).cursor_foreground_pixel = (-1 as c_long) as c_ulong;  // C 5085
+    (*((*f).output_data.x as *mut x_output)).border_pixel = (-1 as c_long) as c_ulong;      // C 5086
+    (*((*f).output_data.x as *mut x_output)).mouse_pixel = (-1 as c_long) as c_ulong;       // C 5087
+
+    black = build_string (c"black".as_ptr ());                          // C 5089
+    (*f).foreground_pixel
+      = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 5090-5091
+    (*f).background_pixel
+      = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 5092-5093
+    (*((*f).output_data.x as *mut x_output)).cursor_pixel
+      = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 5094-5095
+    (*((*f).output_data.x as *mut x_output)).cursor_foreground_pixel
+      = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 5096-5097
+    (*((*f).output_data.x as *mut x_output)).border_pixel
+      = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 5098-5099
+    (*((*f).output_data.x as *mut x_output)).mouse_pixel
+      = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 5100-5101
+  }
+
+  /* Specify the parent under which to make this X window.  */
+  if !NILP (parent)                                                     // C 5105
+    {
+      (*((*f).output_data.x as *mut x_output)).parent_desc = XFIXNAT (parent) as Window;  // C 5107
+      (*((*f).output_data.x as *mut x_output)).explicit_parent = true;   // C 5108 (C: `bool_bf` - the mirror's comment row)
+    }
+  else
+    {
+      (*((*f).output_data.x as *mut x_output)).parent_desc
+	= (*FRAME_DISPLAY_INFO! (f)).root_window;                       // C 5112
+      (*((*f).output_data.x as *mut x_output)).explicit_parent = false;  // C 5113
+    }
+
+  /* Set the name; the functions to which we pass f expect the name to
+     be set.  */
+  if BASE_EQ (name, Qunbound ()) || NILP (name)                         // C 5118
+    {
+      fset_name (f, build_string ((*dpyinfo).x_id_name));               // C 5120
+      explicit_name! (f, false);                                        // C 5121
+    }
+  else
+    {
+      fset_name (f, name);                                              // C 5125
+      explicit_name! (f, true);                                         // C 5126
+      /* Use the frame's title when getting resources for this frame.  */
+      specbind (Qx_resource_name (), name);                             // C 5128
+    }
+
+  /* C 5131-5146: the font drivers.  C's `#ifdef USE_CAIRO` / `#else` pair nests three more
+     `#ifdef`s; each arm registers the same kind of object, so every arm keeps C's own call and the
+     guards follow C's.  The driver objects are the other units' definitions (ftcrfont.c,
+     xftfont.c, xfont.c), declared at this use site because no mirror carries them.  */
+#[cfg (feature = "use_cairo")]
+  {
+    register_font_driver (&raw mut ftcrfont_driver as *const c_void, f);     // C 5132
+#[cfg (feature = "harfbuzz")]
+    { register_font_driver (&raw mut ftcrhbfont_driver as *const c_void, f); }  // C 5134
+  }
+#[cfg (not (feature = "use_cairo"))]
+  {
+#[cfg (feature = "freetype")]
+    {
+#[cfg (feature = "have_xft")]
+      {
+	register_font_driver (&raw mut xftfont_driver as *const c_void, f);   // C 5139
+#[cfg (feature = "harfbuzz")]
+	{ register_font_driver (&raw mut xfthbfont_driver as *const c_void, f); }  // C 5141
+      }
+    }
+  }
+  register_font_driver (&raw mut xfont_driver as *const c_void, f);          // C 5146
+#[cfg (feature = "glyph_debug")]
+  { dpyinfo_refcount = (*dpyinfo).reference_count; }                        // C 5148
+
+  gui_default_parameter (f, parms, Qfont_backend (), Qnil (),
+			 c"fontBackend".as_ptr (), c"FontBackend".as_ptr (),
+			 RES_TYPE_STRING);                              // C 5151-5152
+
+  /* Extract the window parameters from the supplied values
+     that are needed to determine window geometry.  */
+  x_default_font_parameter (f, parms);                                      // C 5156
+  if FRAME_FONT! (f).is_null ()                                             // C 5157
+    {
+      delete_frame (frame, Qnoelisp ());                                    // C 5159
+      error (c"Invalid frame font".as_ptr ());                              // C 5160
+    }
+
+  /* Frame contents get displaced if an embedded X window has a border.  */
+  if ! FRAME_X_EMBEDDED_P! (f)                                              // C 5164
+    { gui_default_parameter (f, parms, Qborder_width (), make_fixnum (0),
+			     c"borderWidth".as_ptr (), c"BorderWidth".as_ptr (),
+			     RES_TYPE_NUMBER); }                        // C 5165-5166
+
+  /* This defaults to 1 in order to match xterm.  We recognize either
+     internalBorderWidth or internalBorder (which is what xterm calls
+     it).  */
+  if NILP (Fassq (Qinternal_border_width (), parms))                        // C 5171
+    {
+      let value: Lisp_Object;
+
+      value = gui_display_get_arg (dpyinfo, parms, Qinternal_border_width (),
+				   c"internalBorder".as_ptr (), c"internalBorder".as_ptr (),
+				   RES_TYPE_NUMBER);                    // C 5175-5177
+      if ! BASE_EQ (value, Qunbound ())                                     // C 5178
+	{ parms = Fcons (Fcons (Qinternal_border_width (), value), parms); }  // C 5179-5180
+    }
+
+  gui_default_parameter (f, parms, Qinternal_border_width (),
+			 internal_border_default! (),                   // C 5184-5188
+			 c"internalBorderWidth".as_ptr (), c"internalBorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5189-5190
+
+  /* Same for child frames.  */
+  if NILP (Fassq (Qchild_frame_border_width (), parms))                     // C 5193
+    {
+      let value: Lisp_Object;
+
+      value = gui_display_get_arg (dpyinfo, parms, Qchild_frame_border_width (),
+				   c"childFrameBorder".as_ptr (),
+				   c"childFrameBorder".as_ptr (),
+				   RES_TYPE_NUMBER);                    // C 5197-5199
+      if ! BASE_EQ (value, Qunbound ())                                     // C 5200
+	{ parms = Fcons (Fcons (Qchild_frame_border_width (), value), parms); }  // C 5201-5202
+    }
+
+  gui_default_parameter (f, parms, Qchild_frame_border_width (), Qnil (),
+			 c"childFrameBorderWidth".as_ptr (),
+			 c"childFrameBorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5205-5207
+  gui_default_parameter (f, parms, Qright_divider_width (), make_fixnum (0),
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_NUMBER);   // C 5208-5209
+  gui_default_parameter (f, parms, Qbottom_divider_width (), make_fixnum (0),
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_NUMBER);   // C 5210-5211
+  gui_default_parameter (f, parms, Qvertical_scroll_bars (),
+			 vertical_scroll_bars_default! (),              // C 5213-5217
+			 c"verticalScrollBars".as_ptr (), c"ScrollBars".as_ptr (),
+			 RES_TYPE_SYMBOL);                              // C 5218-5219
+  gui_default_parameter (f, parms, Qhorizontal_scroll_bars (), Qnil (),
+			 c"horizontalScrollBars".as_ptr (), c"ScrollBars".as_ptr (),
+			 RES_TYPE_SYMBOL);                              // C 5220-5222
+  /* Also do the stuff which must be set before the window exists.  */
+  gui_default_parameter (f, parms, Qforeground_color (), build_string (c"black".as_ptr ()),
+			 c"foreground".as_ptr (), c"Foreground".as_ptr (),
+			 RES_TYPE_STRING);                              // C 5224-5225
+  gui_default_parameter (f, parms, Qbackground_color (), build_string (c"white".as_ptr ()),
+			 c"background".as_ptr (), c"Background".as_ptr (),
+			 RES_TYPE_STRING);                              // C 5226-5227
+  gui_default_parameter (f, parms, Qmouse_color (), build_string (c"black".as_ptr ()),
+			 c"pointerColor".as_ptr (), c"Foreground".as_ptr (),
+			 RES_TYPE_STRING);                              // C 5228-5229
+  gui_default_parameter (f, parms, Qborder_color (), build_string (c"black".as_ptr ()),
+			 c"borderColor".as_ptr (), c"BorderColor".as_ptr (),
+			 RES_TYPE_STRING);                              // C 5230-5231
+  gui_default_parameter (f, parms, Qscreen_gamma (), Qnil (),
+			 c"screenGamma".as_ptr (), c"ScreenGamma".as_ptr (),
+			 RES_TYPE_FLOAT);                               // C 5232-5233
+  gui_default_parameter (f, parms, Qline_spacing (), Qnil (),
+			 c"lineSpacing".as_ptr (), c"LineSpacing".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5234-5235
+  gui_default_parameter (f, parms, Qleft_fringe (), Qnil (),
+			 c"leftFringe".as_ptr (), c"LeftFringe".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5236-5237
+  gui_default_parameter (f, parms, Qright_fringe (), Qnil (),
+			 c"rightFringe".as_ptr (), c"RightFringe".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5238-5239
+  gui_default_parameter (f, parms, Qno_special_glyphs (), Qnil (),
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_BOOLEAN);   // C 5240-5241
+
+#[cfg (feature = "have_gtk3")]
+  {
+    (*((*f).output_data.x as *mut x_output)).scrollbar_background_css_provider
+      = gtk_css_provider_new ();                                        // C 5244-5245
+    (*((*f).output_data.x as *mut x_output)).scrollbar_foreground_css_provider
+      = gtk_css_provider_new ();                                        // C 5246-5247
+  }
+
+  x_default_scroll_bar_color_parameter (f, parms, Qscroll_bar_foreground (),
+					c"scrollBarForeground".as_ptr (),
+					c"ScrollBarForeground".as_ptr (), true);   // C 5250-5252
+  x_default_scroll_bar_color_parameter (f, parms, Qscroll_bar_background (),
+					c"scrollBarBackground".as_ptr (),
+					c"ScrollBarBackground".as_ptr (), false);  // C 5253-5255
+
+  /* Init faces before gui_default_parameter is called for the
+     scroll-bar-width parameter because otherwise we end up in
+     init_iterator with a null face cache, which should not happen.  */
+  init_frame_faces (f);                                                     // C 5260
+
+  tem = gui_display_get_arg (dpyinfo, parms, Qmin_width (), std::ptr::null (),
+			     std::ptr::null (), RES_TYPE_NUMBER);       // C 5262-5263
+  if FIXNUMP (tem)                                                          // C 5264
+    { store_frame_param (f, Qmin_width (), tem); }                          // C 5265
+  tem = gui_display_get_arg (dpyinfo, parms, Qmin_height (), std::ptr::null (),
+			     std::ptr::null (), RES_TYPE_NUMBER);       // C 5266-5267
+  if FIXNUMP (tem)                                                          // C 5268
+    { store_frame_param (f, Qmin_height (), tem); }                         // C 5269
+
+  adjust_frame_size (f, FRAME_COLS (f) * FRAME_COLUMN_WIDTH (f),
+		     FRAME_LINES (f) * FRAME_LINE_HEIGHT (f), 5, true,
+		     Qx_create_frame_1 ());                             // C 5271-5273
+
+  /* Set the menu-bar-lines and tool-bar-lines parameters.  We don't
+     look up the X resources controlling the menu-bar and tool-bar
+     here; they are processed specially at startup, and reflected in
+     the values of the mode variables.  */
+
+  gui_default_parameter (f, parms, Qmenu_bar_lines (),
+			 if NILP (Vmenu_bar_mode) { make_fixnum (0) } else { make_fixnum (1) },
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_NUMBER);  // C 5280-5283
+  gui_default_parameter (f, parms, Qtab_bar_lines (),
+			 if NILP (Vtab_bar_mode) { make_fixnum (0) } else { make_fixnum (1) },
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_NUMBER);  // C 5284-5287
+  gui_default_parameter (f, parms, Qtool_bar_lines (),
+			 if NILP (Vtool_bar_mode) { make_fixnum (0) } else { make_fixnum (1) },
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_NUMBER);  // C 5288-5291
+
+  gui_default_parameter (f, parms, Qbuffer_predicate (), Qnil (),
+			 c"bufferPredicate".as_ptr (), c"BufferPredicate".as_ptr (),
+			 RES_TYPE_SYMBOL);                              // C 5293-5295
+  gui_default_parameter (f, parms, Qtitle (), Qnil (),
+			 c"title".as_ptr (), c"Title".as_ptr (),
+			 RES_TYPE_STRING);                              // C 5296-5297
+  gui_default_parameter (f, parms, Qwait_for_wm (), Qt (),
+			 c"waitForWM".as_ptr (), c"WaitForWM".as_ptr (),
+			 RES_TYPE_BOOLEAN);                             // C 5298-5299
+  gui_default_parameter (f, parms, Qtool_bar_position (),
+			 FRAME_TOOL_BAR_POSITION (f), std::ptr::null (), std::ptr::null (),
+			 RES_TYPE_SYMBOL);                              // C 5300-5301
+  gui_default_parameter (f, parms, Qinhibit_double_buffering (), Qnil (),
+			 c"inhibitDoubleBuffering".as_ptr (),
+			 c"InhibitDoubleBuffering".as_ptr (),
+			 RES_TYPE_BOOLEAN);                             // C 5302-5304
+
+  /* Compute the size of the X window.  */
+  window_prompting = gui_figure_window_size (f, parms, true, true);         // C 5307
+
+  tem = gui_display_get_arg (dpyinfo, parms, Qunsplittable (), std::ptr::null (),
+			     std::ptr::null (), RES_TYPE_BOOLEAN);      // C 5309-5310
+  no_split! (f, minibuffer_only || EQ (tem, Qt ()));                        // C 5311
+
+  x_icon_verify (f, parms);                                                 // C 5313
+
+  /* Create the X widget or window.  */
+#[cfg (feature = "use_x_toolkit")]
+  { x_window (f, window_prompting); }                                       // C 5317
+#[cfg (not (feature = "use_x_toolkit"))]
+  { x_window (f); }                                                         // C 5319
+
+#[cfg (not (feature = "use_gtk"))]
+  {
+    if FRAME_X_EMBEDDED_P! (f)
+	&& !x_embed_frame (dpyinfo, f)                                  // C 5323-5324
+      { error (c"The frame could not be embedded; does the embedder exist?".as_ptr ()); }  // C 5325
+  }
+
+  x_icon (f, parms);                                                        // C 5328
+  x_make_gc (f);                                                            // C 5329
+
+  /* While this function is present in versions of libXi that only
+     support 2.0, it does not release the display lock after
+     finishing, leading to a deadlock.  */
+#[cfg (all (feature = "have_xinput2", feature = "have_xinput2_1"))]
+  {
+    if (*dpyinfo).supports_xi2                                            // C 5335
+      {
+	(*((*f).output_data.x as *mut x_output)).xi_masks
+	  = XIGetSelectedEvents ((*dpyinfo).display, FRAME_X_WINDOW! (f),
+				 &raw mut (*((*f).output_data.x as *mut x_output)).num_xi_masks);  // C 5336-5338
+      }
+  }
+
+  /* Now consider the frame official.  */
+  (*((*f).terminal)).reference_count += 1;                                  // C 5342
+  (*FRAME_DISPLAY_INFO! (f)).reference_count += 1;                          // C 5343
+  Vframe_list = Fcons (frame, Vframe_list);                                 // C 5344
+
+  /* We need to do this after creating the X window, so that the
+     icon-creation functions can say whose icon they're describing.  */
+  gui_default_parameter (f, parms, Qicon_type (), Qt (),
+			 c"bitmapIcon".as_ptr (), c"BitmapIcon".as_ptr (),
+			 RES_TYPE_BOOLEAN);                             // C 5348-5349
+
+  gui_default_parameter (f, parms, Qauto_raise (), Qnil (),
+			 c"autoRaise".as_ptr (), c"AutoRaiseLower".as_ptr (),
+			 RES_TYPE_BOOLEAN);                             // C 5351-5352
+  gui_default_parameter (f, parms, Qauto_lower (), Qnil (),
+			 c"autoLower".as_ptr (), c"AutoRaiseLower".as_ptr (),
+			 RES_TYPE_BOOLEAN);                             // C 5353-5354
+  gui_default_parameter (f, parms, Qcursor_type (), Qbox (),
+			 c"cursorType".as_ptr (), c"CursorType".as_ptr (),
+			 RES_TYPE_SYMBOL);                              // C 5355-5356
+  gui_default_parameter (f, parms, Qscroll_bar_width (), Qnil (),
+			 c"scrollBarWidth".as_ptr (), c"ScrollBarWidth".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5357-5359
+  gui_default_parameter (f, parms, Qscroll_bar_height (), Qnil (),
+			 c"scrollBarHeight".as_ptr (), c"ScrollBarHeight".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5360-5362
+  gui_default_parameter (f, parms, Qalpha (), Qnil (),
+			 c"alpha".as_ptr (), c"Alpha".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5363-5364
+  gui_default_parameter (f, parms, Qalpha_background (), Qnil (),
+			 c"alphaBackground".as_ptr (), c"AlphaBackground".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5365-5366
+  gui_default_parameter (f, parms, Qborders_respect_alpha_background (), Qnil (),
+			 c"bordersRespectAlphaBackground".as_ptr (),
+			 c"BordersRespectAlphaBackground".as_ptr (),
+			 RES_TYPE_NUMBER);                              // C 5367-5369
+
+  if !NILP (parent_frame)                                                   // C 5371
+    {
+      let p: *mut frame = XFRAME (parent_frame);                            // C 5373
+
+      block_input ();                                                       // C 5375
+      XReparentWindow (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),
+		       FRAME_X_WINDOW! (p), (*f).left_pos, (*f).top_pos);  // C 5376-5377
+#[cfg (feature = "use_gtk")]
+      {
+	if EQ (x_gtk_resize_child_frames, Qresize_mode ())              // C 5379
+	  { gtk_container_set_resize_mode
+	      (GTK_CONTAINER! (FRAME_GTK_OUTER_WIDGET! (f)), GTK_RESIZE_IMMEDIATE); }  // C 5380-5381
+      }
+#[cfg (feature = "have_gtk3")]
+      {
+	gwin = gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET! (f));      // C 5384
+	gdk_x11_window_set_frame_sync_enabled (gwin, 0);                 // C 5385
+      }
+      unblock_input ();                                                     // C 5387
+    }
+
+  gui_default_parameter (f, parms, Qno_focus_on_map (), Qnil (),
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_BOOLEAN);   // C 5390-5391
+  gui_default_parameter (f, parms, Qno_accept_focus (), Qnil (),
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_BOOLEAN);   // C 5392-5393
+
+  /* C 5395-5411: the menu bar, under C's `USE_X_TOOLKIT || USE_GTK`.  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+  {
+    if !minibuffer_only && FRAME_EXTERNAL_MENU_BAR (f)                     // C 5397
+      {
+	/* If this signals an error, we haven't set size hints for the
+	   frame and we didn't make it visible.  */
+	initialize_frame_menubar (f);                                      // C 5401
+
+#[cfg (not (feature = "use_gtk"))]
+	{
+	  /* This is a no-op, except under Motif where it arranges the
+	     main window for the widgets on it.  */
+	  lw_set_main_areas ((*((*f).output_data.x as *mut x_output)).column_widget,
+			     (*((*f).output_data.x as *mut x_output)).menubar_widget,
+			     (*((*f).output_data.x as *mut x_output)).edit_widget);   // C 5406-5408
+	}
+      }
+  }
+
+  /* Consider frame official, now.  */
+  can_set_window_size! (f, true);                                           // C 5414
+
+  /* Tell the server what size and position, etc, we want, and how
+     badly we want them.  This should be done after we have the menu
+     bar so that its size can be taken into account.  */
+  block_input ();                                                           // C 5419
+  x_wm_set_size_hint (f, window_prompting, false);                          // C 5420
+  unblock_input ();                                                         // C 5421
+
+  adjust_frame_size (f, FRAME_TEXT_WIDTH (f), FRAME_TEXT_HEIGHT (f),
+		     0, true, Qx_create_frame_2 ());                       // C 5423-5424
+
+  /* Process fullscreen parameter here in the hope that normalizing a
+     fullheight/fullwidth frame will produce the size set by the last
+     adjust_frame_size call.  */
+  gui_default_parameter (f, parms, Qfullscreen (), Qnil (),
+			 c"fullscreen".as_ptr (), c"Fullscreen".as_ptr (),
+			 RES_TYPE_SYMBOL);                              // C 5429-5430
+
+#[cfg (feature = "use_cairo")]
+  { x_cr_update_surface_desired_size (f, FRAME_PIXEL_WIDTH (f),
+				      FRAME_PIXEL_HEIGHT (f)); }         // C 5439-5440
+
+  /* Make the window appear on the frame and enable display, unless
+     the caller says not to.  However, with explicit parent, Emacs
+     cannot control visibility, so don't try.  */
+  if !(*((*f).output_data.x as *mut x_output)).explicit_parent               // C 5446
+    {
+      /* When called from `x-create-frame-with-faces' visibility is
+	 always explicitly nil.  */
+      let mut visibility: Lisp_Object
+	= gui_display_get_arg (dpyinfo, parms, Qvisibility (), std::ptr::null (),
+			       std::ptr::null (),
+			       RES_TYPE_SYMBOL);                        // C 5450-5452
+      let height: Lisp_Object
+	= gui_display_get_arg (dpyinfo, parms, Qheight (), std::ptr::null (),
+			       std::ptr::null (),
+			       RES_TYPE_NUMBER);                        // C 5453-5454
+      let width: Lisp_Object
+	= gui_display_get_arg (dpyinfo, parms, Qwidth (), std::ptr::null (),
+			       std::ptr::null (),
+			       RES_TYPE_NUMBER);                        // C 5455-5456
+
+      if EQ (visibility, Qicon ())                                          // C 5458
+	{
+	  was_invisible! (f, true);                                         // C 5460
+	  x_iconify_frame (f);                                              // C 5461
+	}
+      else
+	{
+	  if BASE_EQ (visibility, Qunbound ())                              // C 5465
+	    { visibility = Qt (); }                                         // C 5466
+
+	  if !NILP (visibility)                                             // C 5468
+	    { x_make_frame_visible (f); }                                   // C 5469
+	  else
+	    { was_invisible! (f, true); }                                   // C 5471
+	}
+
+      /* Leave f->was_invisible true only if height or width were
+	 specified too.  This takes effect only when we are not called
+	 from `x-create-frame-with-faces' (see above comment).  */
+      was_invisible! (f, was_invisible! (f)
+			 && (!BASE_EQ (height, Qunbound ()) || !BASE_EQ (width, Qunbound ())));  // C 5477-5479
+
+      store_frame_param (f, Qvisibility (), visibility);                    // C 5481
+    }
+
+  block_input ();                                                           // C 5484
+
+  /* Set machine name and pid for the purpose of window managers.  */
+  set_machine_and_pid_properties (f);                                       // C 5487
+
+  /* Set the WM leader property.  GTK does this itself, so this is not
+     needed when using GTK.  */
+  if (*dpyinfo).client_leader_window != 0                                  // C 5491
+    {
+      XChangeProperty (FRAME_X_DISPLAY! (f),
+		       FRAME_OUTER_WINDOW! (f),
+		       (*dpyinfo).Xatom_wm_client_leader,
+		       XA_WINDOW as Atom, 32, PropModeReplace,
+		       &raw mut (*dpyinfo).client_leader_window as *mut c_uchar, 1);  // C 5493-5497
+    }
+
+#[cfg (feature = "have_xsync")]
+  {
+    if (*dpyinfo).xsync_supported_p                                       // C 5501
+	/* Frame synchronization isn't supported in child frames.  */
+	&& NILP (parent_frame)                                            // C 5503
+	&& !(*((*f).output_data.x as *mut x_output)).explicit_parent      // C 5504
+      {
+#[cfg (not (feature = "have_gtk3"))]
+	{
+	  let mut initial_value: XSyncValue;
+	  let mut counters: [XSyncCounter; 2];
+
+	  AUTO_STRING! (synchronizeResize, c"synchronizeResize");          // C 5510
+	  AUTO_STRING! (SynchronizeResize, c"SynchronizeResize");          // C 5511
+
+	  let value: Lisp_Object = gui_display_get_resource (dpyinfo,
+							     synchronizeResize,
+							     SynchronizeResize,
+							     Qnil (), Qnil ());  // C 5513-5516
+
+	  XSyncIntToValue (&raw mut initial_value, 0);                     // C 5518
+	  counters[0] = FRAME_X_BASIC_COUNTER! (f)
+	    = XSyncCreateCounter (FRAME_X_DISPLAY! (f),
+				  initial_value);                          // C 5519-5522
+
+	  if STRINGP (value) && strcmp (SSDATA (value), c"extended".as_ptr ()) == 0
+	    { counters[1] = FRAME_X_EXTENDED_COUNTER! (f)
+		= XSyncCreateCounter (FRAME_X_DISPLAY! (f),
+				      initial_value); }                    // C 5524-5528
+
+	  (*((*f).output_data.x as *mut x_output)).current_extended_counter_value
+	    = initial_value;                                              // C 5530-5531
+
+	  XChangeProperty (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),
+			   (*dpyinfo).Xatom_net_wm_sync_request_counter,
+			   XA_CARDINAL as Atom, 32, PropModeReplace,
+			   &raw mut counters as *mut c_uchar,
+			   (if STRINGP (value)
+			       && strcmp (SSDATA (value), c"extended".as_ptr ()) == 0
+			     { 2 } else { 1 }));                          // C 5533-5538
+
+#[cfg (all (feature = "have_xsynctriggerfence", not (feature = "use_gtk"),
+	    feature = "have_clock_gettime"))]
+	  { x_sync_init_fences (f); }                                     // C 5542
+	}
+      }
+  }
+
+  unblock_input ();                                                         // C 5548
+
+  /* Set whether or not frame synchronization is enabled.  */
+  gui_default_parameter (f, parms, Quse_frame_synchronization (), Qt (),
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_BOOLEAN);  // C 5551-5552
+
+  /* Works iff frame has been already mapped.  */
+  gui_default_parameter (f, parms, Qskip_taskbar (), Qnil (),
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_BOOLEAN);  // C 5555-5556
+  /* The `z-group' parameter works only for visible frames.  */
+  gui_default_parameter (f, parms, Qz_group (), Qnil (),
+			 std::ptr::null (), std::ptr::null (), RES_TYPE_SYMBOL);   // C 5558-5559
+
+  /* Initialize `default-minibuffer-frame' in case this is the first
+     frame on this terminal.  */
+  /* C 5564-5565: `KVAR (kb, Vdefault_minibuffer_frame)` is keyboard.h 38's token-pasting
+     macro (`(kboard)->field ## _`), which Rust cannot spell; keyboard.h 160's member is
+     `Vdefault_minibuffer_frame_`, so the port writes the member (the `src/androidfns.rs`
+     1550-1554 shape; `KVAR` is in `docs/ports/excluded-macros.txt`).  */
+  if FRAME_HAS_MINIBUF_P (f)                                                // C 5563
+      && (!FRAMEP ((*kb).Vdefault_minibuffer_frame_)
+	  || !FRAME_LIVE_P (XFRAME ((*kb).Vdefault_minibuffer_frame_)))
+    { kset_default_minibuffer_frame (kb, frame); }                          // C 5566
+
+  /* All remaining specified parameters, which have not been "used" by
+     gui_display_get_arg and friends, now go in the misc. alist of the
+     frame.  */
+  tem = parms;                                                              // C 5571
+  while CONSP (tem)
+    {
+      if CONSP (XCAR (tem)) && !NILP (XCAR (XCAR (tem)))                    // C 5572
+	{ fset_param_alist (f, Fcons (XCAR (tem), (*f).param_alist)); }     // C 5573
+      tem = XCDR (tem);                                                     // C 5571
+    }
+
+  /* Make sure windows on this frame appear in calls to next-window
+     and similar functions.  */
+  Vwindow_list = Qnil ();                                                   // C 5577
+
+  unbind_to (count, frame)                                                  // C 5579
+});
