@@ -8677,6 +8677,9 @@ unsafe extern "C" {
   /// C: `<X11/extensions/Xinerama.h>`: `extern XineramaScreenInfo *XineramaQueryScreens
   /// (Display *, int *);`
   pub fn XineramaQueryScreens (dpy: *mut Display, number: *mut c_int) -> *mut XineramaScreenInfo;
+  /// C: `<X11/extensions/Xinerama.h>`: `extern Bool XineramaIsActive (Display *);` - C 6535's
+  /// truth test, the dispatcher's `have_xinerama` arm (the same header, so the same home).
+  pub fn XineramaIsActive (dpy: *mut Display) -> Bool;
 }
 
 #[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system"))]
@@ -9164,4 +9167,130 @@ unsafe fn x_get_monitor_attributes_xrandr (dpyinfo: *mut x_display_info) -> Lisp
 						   else { c"XRandr".as_ptr () });
   free_monitors (monitors, n_monitors);                                     // C 6510
   return attributes_list;                                                   // C 6511
+}
+
+/* -----------------------------------------------------------------------------------------
+   C 6515-6601: `x_get_monitor_attributes` - the dispatcher the subr at C 6771 and the Lucid
+   helper below both call - and, under C 6548's `#ifdef USE_LUCID`, `xlw_monitor_dimensions_at_pos_1`
+   with `xlw_monitor_dimensions_at_pos` (`lwlib/xlwmenu.c` 1475/1479/2822 are their three
+   callers).  C 6546's `#endif /* !USE_GTK */` closes the region the monitor functions from
+   C 6125 on live in, and the dispatcher keeps the slice 15 guard pair (C's `#ifndef USE_GTK`
+   narrowed by frame.h 1926's `#ifdef HAVE_WINDOW_SYSTEM`, where `struct MonitorInfo` and the
+   three callees live).  C's own gate for the two Lucid functions is `USE_LUCID` alone, but
+   their callee is the pair's, so the ledger's Lucid arm carries the pair (the WSX arm's shape,
+   slice 16).
+   -------------------------------------------------------------------------------------- */
+
+/* Xlib.h 129-130: `#define WidthOfScreen(s) ((s)->width)` / `#define HeightOfScreen(s)
+   ((s)->height)` - the mirror's `Screen` carries both members (`include/xlib.rs` 1124-1125),
+   so the two macros keep C's name and read them (the `WidthMMOfScreen` pair at 8194-8200 is
+   the shape).  C 6585-6586's calls are the only two.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! WidthOfScreen { ($s:expr) => { (*$s).width }; }                     // Xlib.h 129
+#[cfg (feature = "have_x_windows")]
+macro_rules! HeightOfScreen { ($s:expr) => { (*$s).height }; }                   // Xlib.h 130
+
+/* C: xterm.h 1001/1913: `extern struct x_display_info *x_dpyinfo (Display *) ATTRIBUTE_MALLOC;`
+   and `extern void xlw_monitor_dimensions_at_pos (Display *, Screen *, int, int, int *, int *,
+   int *, int *);` - the first is `src/xterm.c` 6883's definition (the port's `src/xterm.rs`
+   7543 carries C's linkage) and this unit's include graph declares neither, so it stands at the
+   use site (PORTING.md P-55/P-72 rule 3); the second is this unit's own export, so the
+   definition below is its home.  C 6593's call is the only use of the first.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_dpyinfo (dpy: *mut Display) -> *mut x_display_info;
+}
+
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk"), feature = "have_window_system"))]
+unsafe fn x_get_monitor_attributes (dpyinfo: *mut x_display_info) -> Lisp_Object
+{
+  let mut attributes_list: Lisp_Object = Qnil ();                       // C 6518
+  let dpy: *mut Display = (*dpyinfo).display;                           // C 6519
+
+  let _ = dpy;  /* C 6521: `(void) dpy;` - "Suppress unused variable warning."  */
+
+  #[cfg (feature = "have_xrandr")]                                      // C 6523
+  {
+    let xrr_ok: bool = ((*dpyinfo).xrandr_major_version == 1           // C 6524
+			&& (*dpyinfo).xrandr_minor_version >= 2         // C 6525
+			|| (*dpyinfo).xrandr_major_version > 1);        // C 6526
+
+    if xrr_ok
+      { attributes_list = x_get_monitor_attributes_xrandr (dpyinfo); }  // C 6528-6529
+  }
+
+  #[cfg (feature = "have_xinerama")]                                    // C 6532
+  {
+    if NILP (attributes_list)                                           // C 6533
+      {
+	if (*dpyinfo).xinerama_supported_p && XineramaIsActive (dpy) != 0   // C 6535
+	  { attributes_list = x_get_monitor_attributes_xinerama (dpyinfo); }  // C 6536
+      }
+  }
+
+  if NILP (attributes_list)                                             // C 6540
+    { attributes_list = x_get_monitor_attributes_fallback (dpyinfo); }  // C 6541
+
+  return attributes_list;                                               // C 6543
+}
+
+/* C 6549-6550: "This is used by the Lucid menu widget, but it's defined here so we can make use
+   of a great deal of existing code."  */
+#[cfg (feature = "use_lucid")]
+unsafe fn xlw_monitor_dimensions_at_pos_1 (dpyinfo: *mut x_display_info,        // C 6551-6554
+					   screen: *mut Screen, src_x: c_int, src_y: c_int,
+					   x: *mut c_int, y: *mut c_int, width: *mut c_int,
+					   height: *mut c_int)
+{
+  let attrs: Lisp_Object = x_get_monitor_attributes (dpyinfo);          // C 6556/6558
+  let mut tem: Lisp_Object = attrs;                                     // C 6560
+  let mut val: Lisp_Object = Qnil ();                                   // C 6556
+
+  while CONSP (tem)                                                     // C 6560
+    {
+      let mut sx: c_int = 0;                                            // C 6562
+      let mut sy: c_int = 0;
+      let mut swidth: c_int = 0;
+      let mut sheight: c_int = 0;
+      val = assq_no_quit (Qworkarea (), XCAR (tem));                    // C 6563
+      if ! NILP (val)                                                   // C 6564
+	{
+	  sx = XFIXNUM (XCAR (XCDR (val))) as c_int;                    // C 6566
+	  sy = XFIXNUM (XCAR (XCDR (XCDR (val)))) as c_int;             // C 6567
+	  swidth = XFIXNUM (XCAR (XCDR (XCDR (XCDR (val))))) as c_int;  // C 6568
+	  sheight = XFIXNUM (XCAR (XCDR (XCDR (XCDR (XCDR (val)))))) as c_int;  /* C 6569 */
+
+	  if sx <= src_x && src_x < (sx + swidth)                       // C 6571
+	    && sy <= src_y && src_y < (sy + swidth)                     // C 6572
+	    {
+	      *x = sx;                                                  // C 6574
+	      *y = sy;                                                  // C 6575
+	      *width = swidth;                                          // C 6576
+	      *height = sheight;                                        // C 6577
+	      return;                                                   // C 6578
+	    }
+	}
+      tem = XCDR (tem);                                                 // C 6560: `tem = XCDR (tem)`
+    }
+
+  *x = 0;                                                               // C 6583
+  *y = 0;                                                               // C 6584
+  *width = WidthOfScreen! (screen);                                     // C 6585
+  *height = HeightOfScreen! (screen);                                   // C 6586
+}
+
+#[cfg (feature = "use_lucid")]
+#[unsafe(no_mangle)]
+pub unsafe fn xlw_monitor_dimensions_at_pos (dpy: *mut Display,         // C 6589-6591
+					     screen: *mut Screen, src_x: c_int, src_y: c_int,
+					     x: *mut c_int, y: *mut c_int, width: *mut c_int,
+					     height: *mut c_int)
+{
+  let dpyinfo: *mut x_display_info = x_dpyinfo (dpy);                   // C 6593
+
+  block_input ();                                                       // C 6595
+  xlw_monitor_dimensions_at_pos_1 (dpyinfo, screen, src_x, src_y,       // C 6596-6597
+				   x, y, width, height);
+
+  unblock_input ();                                                     // C 6599
 }

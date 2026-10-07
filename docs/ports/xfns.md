@@ -1,6 +1,6 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
-C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297 and C 6300-6513
+C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513 and C 6515-6601
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -15,9 +15,10 @@ C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297 and C 6300-6513
 > eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
 > the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth,
 > **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth, **8,768 lines** after
-> the sixteenth and **9,167 lines** after the seventeenth - C 803-2149, C 2150-3811, C 3812-3956,
-> C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
-> C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297 and C 6300-6513, whose own
+> the sixteenth, **9,167 lines** after the seventeenth and **9,296 lines** after the eighteenth -
+> C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783,
+> C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215,
+> C 6217-6297, C 6300-6513 and C 6515-6601, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -184,7 +185,8 @@ defines both features.
 | 6125-6215 | C 6125's `#ifndef USE_GTK`, `x_get_monitor_for_frame` (C 6127 its comment, C 6128-6131 the `static int`) and `x_make_monitor_attribute_list` (C 6190-6195 the `static Lisp_Object`) | `all (have_x_windows, not (use_gtk), have_window_system)` - C's own `#ifndef USE_GTK` narrowed by frame.h 1926's `#ifdef HAVE_WINDOW_SYSTEM`, which is where `struct MonitorInfo` lives (slice 15) |
 | 6217-6297 | `x_get_monitor_attributes_fallback` (C 6217-6238) and C 6241's `#ifdef HAVE_XINERAMA`, `x_get_monitor_attributes_xinerama` (C 6242-6296) and C 6297's `#endif` | the slice 15 pair, with `have_xinerama` for the second (the record and entry point stand at the use site; slice 16) |
 | 6300-6513 | C 6300's `#ifdef HAVE_XRANDR`, `x_get_monitor_attributes_xrandr` (C 6301-6302 the `static Lisp_Object`, C 6312's `#if RANDR_MAJOR … >= 5` with C 6314's `#ifdef USE_XCB` inside it, C 6413-6414's `RANDR13_LIBRARY`, C 6438-6440's own 1.3 arm) and C 6513's `#endif` | `all (have_x_windows, not (use_gtk), have_window_system, have_xrandr)`, with the derived `have_xrandr_1_5` / `have_xrandr_1_3` and `use_xcb` inside (slice 17) |
-| 6515-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,148 lines, whose first live definition is `x_get_monitor_attributes` (C 6515-6516, a `static Lisp_Object` called by both C 6529 and the Lucid code below) - the next slice's first item | not ported in this slice |
+| 6515-6601 | C 6515-6516's `static Lisp_Object`, the dispatcher `x_get_monitor_attributes` (C 6523-6530 the `HAVE_XRANDR` arm, C 6532-6538 the `HAVE_XINERAMA` arm, C 6540-6541 the fallback), C 6546's `#endif /* !USE_GTK */`, C 6548's `#ifdef USE_LUCID`, `xlw_monitor_dimensions_at_pos_1` (C 6551-6554 the `static void`) with `xlw_monitor_dimensions_at_pos` (C 6589-6591 the `void`) and C 6601's `#endif` | the slice 15 pair for the dispatcher (its three callees' own gate, `all (have_x_windows, not (use_gtk), have_window_system)`); `use_lucid` alone for the two Lucid functions, whose callee is the pair's, so the ledger's Lucid arm carries it (slice 18) |
+| 6604-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,059 lines, whose first live definition is the `x-display-monitor-attributes-list` `DEFUN` (C 6604-6605, with a `USE_GTK` arm and a plain-X one) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2079,3 +2081,81 @@ literals), 0 failures**.
 
 The frozen configuration compiles none of this file: no RandR query was made, no monitor was
 enumerated and no output/crtc was read; the nine arms' counts are text compile readings.
+## Slice 18 (2026-10-08, status 3.921 - the integrator sets the round number): C 6515-6601
+
+**The slice is C 6515-6601**: the dispatcher `x_get_monitor_attributes` (C 6515-6544) and, under
+C 6548's `#ifdef USE_LUCID`, `xlw_monitor_dimensions_at_pos_1` (C 6551-6587) together with
+`xlw_monitor_dimensions_at_pos` (C 6589-6600).  C 6546's `#endif /* !USE_GTK */` closes the region
+the monitor functions from C 6125 on live in and C 6601's `#endif` closes the Lucid pair.  The
+dispatcher keeps the slice 15 guard pair - its three callees were ported under it - while C's own
+gate for the two Lucid functions is `USE_LUCID` alone; their callee is the pair's, so the ledger's
+**LUCID arm** carries the pair (the WSX arm's shape, slice 16).  The port's slice is **129 Rust
+lines** (9,296 - 9,167, `grep -c ''`) against C's 87; md5 `db6a1d16b2b3caf94d91fce55360d615` (the
+slice 17 tree) -> `8268c83472d493ec76de55a4ddb1060c`.
+
+**One new arm, and five arms that only gain the dispatcher.**  `x_get_monitor_attributes` sits
+under the slice 15 pair, so the five pair arms (WS, WSX, WSR, WSRX and WSR12) compile it; the two
+Lucid functions compile only in **LUCID** = the pair + `use_x_toolkit` + `use_lucid` (C's `USE_LUCID`
+belongs to the X toolkit family, and the exported one's callers are `lwlib/xlwmenu.c`
+1475/1479/2822).  The five pair arms read their slice 17 counts unchanged - **14 / 9** each, with
+the WS arm's error set byte-identical to its baseline - and LUCID reads **22 / 12 on both sides**,
+its baseline measured on the slice 17 tree before this slice's text landed.
+
+**The three new names.**  `x_dpyinfo` is `src/xterm.c` 6883's definition (the port's
+`src/xterm.rs` 7543, which carries C's linkage) and this unit's include graph declares it nowhere,
+so it stands at the use site (P-55/P-72 rule 3, the `x_display_info_for_name` shape at 7199);
+`WidthOfScreen`/`HeightOfScreen` are Xlib.h 129-130's two `Screen` macros, spelled through the
+mirror's `width`/`height` members the way the `WidthMMOfScreen` pair at 8194-8200 is;
+`XineramaIsActive` (Xinerama.h) joins `XineramaQueryScreens` in that header's own block - the
+second entry point of one header, so one home (P-90 ②).
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0) on the final hash.
+
+**② The arms.**  LUCID **22 / 12** on both sides, and the five arms that compile the dispatcher
+read **14 / 9** each (WS, WSX, WSR, WSRX, WSR12 - the slice 17 counts, re-read at this hash).
+**Arm touch measured** (P-86 ⑦): a `let _: c_int = true;` injected at the dispatcher's first
+statement moves WS **14 -> 15** (9 warnings unmoved) and one injected at
+`xlw_monitor_dimensions_at_pos_1`'s first statement as well moves LUCID **22 -> 24**, with the
+injected lines naming both touched definitions - so both functions are read by the arms that claim
+them; the injections were removed and the file is byte-identical to the hash above again.
+
+**③ `extract-abi.py --check`**: **129 rows -> 126** (the in-tree baseline re-measured this slice) -
+exactly the three `missing function` rows retiring (`x_get_monitor_attributes`,
+`xlw_monitor_dimensions_at_pos_1`, `xlw_monitor_dimensions_at_pos`), nothing added but the
+line-count row's own text, `missing function` 23 -> 20, and the drift reads
+`C 10662 vs Rust 9296` (**12.8%**, was 14.0%).  No token row arrived, so
+`docs/ports/macro-body-notes.tsv` gains nothing here.  `check-mirror-dupes.py` stays at **16
+duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at **18
+declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **C's declaration-then-assignment locals** (`Lisp_Object attrs, tem, val;`, C 6556) are the
+   port's three `let`s - `attrs` initialised at its single assignment (C 6558), `tem` at C 6560's
+   `for` initialiser, `val` with the file's zero initialiser - so neither `unused_mut` nor an
+   E0381 row is added.
+2. **C's `for (tem = attrs; CONSP (tem); tem = XCDR (tem))`** is the port's `while` with C's
+   increment at the body's end (the slice 15/17 shape; this body carries no `continue`).
+3. **C's `int sx, sy, swidth, sheight;`** (C 6562) take the file's zero initialisers.
+4. **C 6521's `(void) dpy;`** is `let _ = dpy;` (the `abi_shim.rs` 279 shape).
+5. **C's `XFIXNUM (...)` results** are written `as c_int` - the port's `XFIXNUM` is a function
+   returning `EMACS_INT` (`include/lisp.rs` 757), and C assigns each to an `int`.
+
+### Owed (this slice)
+
+- `xterm.h` 1913's other-side declaration of the exported function is the same-unit case P-55
+  covers; the definition below carries C's linkage.
+- The Lucid pair's three callers are `lwlib/`'s (not this unit) and nothing in this unit calls
+  them; the dispatcher's own single in-file caller (C 6771) is in the remainder.
+- `syms_of_xfns` (unchanged: no subr lands here) and the rest of the remainder from the
+  `x-display-monitor-attributes-list` DEFUN (C 6604): 4,059 C lines plus the 20 missing functions,
+  1 macro, 4 objects, 33 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no monitor list was asked for, no workarea was
+consulted, no screen size was read and no widget was resized; the arms' counts are text compile
+readings, and C's `USE_LUCID` path is a build no reading here compiles end to end.
