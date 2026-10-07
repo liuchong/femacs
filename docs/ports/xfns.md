@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893 and C 9895-10045
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893, C 9895-10045 and C 10047-10129
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -29,14 +29,15 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **12,303 lines** after the thirty-sixth, **12,855 lines** after the thirty-seventh and
 > **12,912 lines** after the thirty-eighth, **13,022 lines** after the thirty-ninth and
 > **13,637 lines** after the fortieth, **13,724 lines** after the forty-first,
-> **13,791 lines** after the forty-second, **14,019 lines** after the forty-third and
-> **14,192 lines** after the forty-fourth - C 803-2149,
+> **13,791 lines** after the forty-second, **14,019 lines** after the forty-third,
+> **14,192 lines** after the forty-fourth and **14,311 lines** after the forty-fifth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
 > C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415 and
-> C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893 and C 9895-10045, whose own
+> C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893, C 9895-10045 and C 10047-10129,
+> whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -78,6 +79,7 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 | C 9585 `#ifdef HAVE_XINPUT2` … C 9628 (inside the Motif subr) | `all (feature = "have_x_windows", feature = "use_motif", feature = "have_xinput2")` | a Motif configuration with XInput2 - the **MOTIFXI2** arm |
 | C 9736 `#ifdef HAVE_FREETYPE` … C 9785 (`x-select-font`) | `all (feature = "have_x_windows", feature = "use_gtk", feature = "freetype")` - the tree's registered spelling of C's `HAVE_FREETYPE` | a GTK configuration with FreeType - the **GTKFT**/**GTK22FT** arms, added by status 3.947 |
 | C 9794 `#ifdef HAVE_XKB` … C 9797 (the two `<X11/XKBlib.h>`/`<X11/keysym.h>` includes) and C 9808-9814 with C 9816-9873 (the XKB arm against its `return Qlambda` arm) | `all (feature = "have_x_windows", feature = "have_xkb")` / `not` it - `have_xkb` is the tree's registered spelling (`src/xterm.rs` 1498/1501, 20818) | an X11 configuration with XKB - the **XKB** arm, added by status 3.948 |
+| C 10047 `#ifdef USE_GTK`/`#ifdef HAVE_GTK3`/`#if GTK_CHECK_VERSION (3, 14, 0)` … C 10064 (`x-gtk-debug`) | `all (feature = "have_x_windows", feature = "use_gtk", feature = "have_gtk3", feature = "gtk_check_version_ge_3_14")` (**not registered**; owed) | a GTK 3.14-3.21 build - the **GTK314** arm, added by status 3.950 |
 | C 9900 `#ifdef USE_CAIRO` … C 10045 (`x-export-frames`) and C 9966 `#ifdef USE_GTK` … C 10044 (the three print dialogs) | `all (feature = "have_x_windows", feature = "use_cairo")` and `all (…, feature = "use_gtk")` for the three dialogs - `use_cairo` is the tree's registered spelling of C's `USE_CAIRO`, and the four cairo arms of C 9932-9961 are `cfg!` guards on `cairo_has_pdf_surface`, `cairo_has_png_functions`, `cairo_has_ps_surface` and `cairo_has_svg_surface` | a cairo configuration - the **CAIRO** arm, added by status 3.949 |
 | C 9662 `#ifdef USE_GTK` … C 9787 (`clean_up_dialog`, the second `x-file-dialog`, `x-select-font` under C 9736's `HAVE_FREETYPE`) | `all (feature = "have_x_windows", feature = "use_gtk")` (and `freetype` for the third item) | the GTK configuration - the **GTK**/**GTK22** arms, whose C 9667/C 9698 `x_menu_set_in_use` reads are why that row carries C's own `USE_GTK`/`USE_MOTIF` pair |
 | C 251/279/292/331/343/383/416/450/482/490/539/557/567 (`USE_XCB` and its `#else` partners, inside `x_real_pos_and_offsets`) | `use_xcb` / `not (use_xcb)` | both arms carried |
@@ -236,7 +238,8 @@ defines both features.
 | 9736-9785 | `#ifdef HAVE_FREETYPE` (C 9736) and `x-select-font` (C 9738-9784), the file's second GTK dialog | `all (have_x_windows, use_gtk, freetype)` (slice 42) |
 | 9787-9893 | C 9787's `#endif /* USE_GTK */`, the `Keyboard` banner (C 9790-9792), C 9794's `#ifdef HAVE_XKB` includes, `x-backspace-delete-keys-p` (C 9799-9874) and `x-get-modifier-masks` (C 9876-9893) | file gate, with C 9794's and C 9808-9873's `have_xkb` pair inside (slice 43) |
 | 9895-10045 | the `Printing` banner (C 9896-9898), `#ifdef USE_CAIRO` (C 9900) with `x-export-frames` (C 9901-9964), and `#ifdef USE_GTK` (C 9966) with `x-page-setup-dialog` (C 9967-9977), `x-get-page-setup` (C 9979-10006) and `x-print-frames-dialog` (C 10008-10043) - the whole `USE_CAIRO` region | `all (have_x_windows, use_cairo)`, and `use_gtk` for the three dialogs (slice 44) |
-| 10047-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 615 lines, whose first live items are C 10047's `#ifdef USE_GTK`/`HAVE_GTK3` pair and C 10050's `DEFUN ("x-gtk-debug", …)` | not ported in this slice |
+| 10047-10129 | `x-gtk-debug` (C 10050-10061, under C 10047-10049's three-way GTK guard), `x-display-set-last-user-time` (C 10066-10088) and `x-internal-focus-input-context` (C 10090-10129, whose body is C 10097's `#ifdef USE_GTK`) | file gate, with C 10047-10064's `use_gtk`/`have_gtk3`/`gtk_check_version_ge_3_14` triple and C 10097's `use_gtk` inside (slice 45) |
+| 10131-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 531 lines, whose first live items are C 10131's dead `#if 0` block with `x-test-string-conversion` (C 10133-10173), the `Initialization` banner (C 10178-10180) and the four `#ifndef HAVE_X…` shims C 10251-10296 | not ported in this slice |
 
 ## Evidence
 
@@ -4247,3 +4250,91 @@ decodes to C's value (the fix is one character inside the string).
 The frozen configuration compiles none of this file: no frame was exported, no page setup dialog
 was popped up and no print dialog ran; the twenty arms' counts are text compile readings, and the
 MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.
+
+## Slice 45 (2026-10-08, status 3.950): C 10047-10129
+
+**The slice is C 10047-10129**: the unit's last three subrs - `x-gtk-debug` (C 10050-10061, under
+C 10047's `#ifdef USE_GTK`, C 10048's `#ifdef HAVE_GTK3` and C 10049's `#if GTK_CHECK_VERSION
+(3, 14, 0)`), `x-display-set-last-user-time` (C 10066-10088) and `x-internal-focus-input-context`
+(C 10090-10129, whose body is C 10097's `#ifdef USE_GTK` and whose `return Qnil ();` (C 10128) sits
+outside it) - 119 Rust lines (14,192 -> 14,311).  What follows is C 10131's dead `#if 0` block and
+`syms_of_xfns`.
+
+**The probe matrix gains a twenty-first arm, `GTK314`** (the `GTK` arm plus
+`gtk_check_version_ge_3_14`): C 10049's version test is read by no other arm, so `x-gtk-debug` was
+compiled by nobody - the gap `MOTIF` (39), `MOTIFXI2` (40), `GTKFT`/`GTK22FT` (42), `XKB` (43) and
+`CAIRO` (44) closed before it.  Its baseline is the in-tree HEAD text's **47 / 20**, i.e. the
+`GTK`/`GTK22`/`CAIRO` level, which is right: the DEFUN does not exist at HEAD.  **All twenty-one
+arms end at their level** - plain-X and XKB **18 / 9**, WS, WSX, WSR, WSRX, WSR12 and XSN
+**16 / 9**, LUCID **25 / 12**, MOTIF **20 / 12**, MOTIFXI2 **24 / 12**, GTK, GTK22, GTKFT, GTK22FT,
+GTK314 and CAIRO **47 / 20**, XI2 and XR **22 / 9**, Xt **20 / 12** and XCB **18 / 9** - with both
+the `^error` and the `^warning` sets empty-diff in all twenty-one.
+
+**The first measurement's four rows**, all named: ⑴ `CONS_TO_INTEGER! (time_object, time)` with a
+`u32` binding - the port's trait has the two signed/unsigned 64-bit impls only
+(`include/lisp.rs` 3694-3704), so C 10079/10084's `uint32_t` needs the wide binding and the cast
+(the `src/inotify.rs` 449-453 shape); ⑵ four `(*FRAME_X_OUTPUT! (f)).im_context` reads - the macro
+yields `*mut c_void`, so the member access states the cast the file's own 1603/1652 call sites
+state (`(*(FRAME_X_OUTPUT! (f) as *mut x_output)).im_context`); ⑶ and ⑷ two `E0384` - C 10099's
+`f` and C 10100's `widget` are assigned once per loop iteration, so both bindings are `mut`.
+
+**Arm touch measured** (P-86 ⑦), three injections: one before C 10054's `let enable_debug: gboolean
+= …` (A1, `x-gtk-debug`'s first statement) moves **GTK314 47 -> 48** while GTK, GTK22, CAIRO and
+plain-X stay at 47/47/47/18 - the `gtk_check_version_ge_3_14` dimension is what compiles it; one
+before C 10083's `dpyinfo = check_x_display_info (terminal);` (A2, the second DEFUN's first
+statement) moves plain-X **18 -> 19**, XKB **18 -> 19**, GTK **47 -> 48** and XCB **18 -> 19** (the
+file gate); one before C 10125's `unblock_input ();` (B, the third DEFUN's last statement inside
+C 10097's block) moves GTK **47 -> 48**, GTK314 **47 -> 48** and CAIRO **47 -> 48**, leaving
+plain-X at 18 and Xt at 20.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+`femacs/src/xfns.rs` md5 `157215841edd59c35961c3b6a61d9663` (slice 44's end hash was
+`cb66f3f2dc4bfe92ab4377e779bb398f`).
+
+**② The twenty-one arms.**  See above.
+
+**③ `extract-abi.py --check`**: **77 rows -> 74** - `missing subr Fx_gtk_debug`,
+`missing subr Fx_display_set_last_user_time` and `missing subr Fx_internal_focus_input_context`
+retire with **nothing appearing** (all three docstring literals match the reference's values: C
+10051's three trailing spaces are not carried, as `doc_comment_value` reads them) and the drift row
+moves from `33.1%` to `34.2%: C 10662 vs Rust 14311`.
+
+### Deviations (this slice)
+
+1. **The `GTK314` arm is new**, its baseline is the in-tree HEAD text's 47 / 20, and
+   `gtk_check_version_ge_3_14` is **not registered** in `femacs/xtask/Cargo.toml` (the `## Owed`
+   row, the same state `use_motif`/`have_xrandr`/`have_xaw3d` are in); the probe passes it with
+   `--cfg`.
+2. **C 10084's `CONS_TO_INTEGER (time_object, uint32_t, time)`** is the wide binding plus cast
+   (the first of the four rows above): the port's trait has no `u32` impl, so C's narrowing conversion is written
+   at the assignment - the `src/inotify.rs` 449-453 device, whose comment records the same reason.
+3. **`CONS_TO_INTEGER!`'s two-argument form** (`include/lisp.rs` 3707) drops C's type argument; the
+   target's type is the binding's.
+4. **C 10086's `x_set_last_user_time_from_lisp (dpyinfo, time)`** states `time as Time`, because
+   `xterm.h` 1772's prototype takes `Time` where C passes a `uint32_t`.
+5. **The three `gtk_im_context_*` entry points stand at their use sites** (C 10113-10121;
+   `include/gtk.rs` 1626-1631 carries `gtk_im_context_set_use_preedit` and `GtkIMContext` but not
+   these three), and **C's `for` over `x_display_list` (C 10103)** is the port's
+   `dpyinfo = x_display_list; while !dpyinfo.is_null () { …; dpyinfo = (*dpyinfo).next; }`.
+
+### Owed (this slice)
+
+- `syms_of_xfns`' `defsubr` sites (45) and the rest of the remainder from C 10131: 531 C lines plus
+  the 5 missing functions, 1 macro, 0 objects, 0 subrs and 45 defsubrs `--check` reads.
+- **`subr Fx_file_dialog: docstring differs` stays** (slice 41's Evidence ④ and slice 42's Owed):
+  the checker pairs each C `DEFUN` with the first Rust subr of that name, and it retires only when
+  `src/xfns.c` joins `docs/baseline/config/cond-eval-verified.txt` or the checker pairs
+  definitions in order - neither is a port change.
+- `gtk_check_version_ge_3_14` (and `use_motif`, `have_xrandr`, `have_xinerama`, `have_xaw3d` and
+  the four cairo features) is still absent from `femacs/xtask/Cargo.toml`'s feature table; the
+  twenty-one-arm probe passes them with `--cfg`.
+- The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
+  Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no GTK debugging was toggled, no last-user
+time was set and no input context was focused; the twenty-one arms' counts are text compile
+readings, and the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.

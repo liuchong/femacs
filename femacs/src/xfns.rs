@@ -14190,3 +14190,122 @@ DEFUN! ("x-print-frames-dialog", Fx_print_frames_dialog, Sx_print_frames_dialog,
   return Qnil ();                                                              // C 10042
 });
 
+
+/* ==============================================================================================
+   C 10047-10129: the last three subrs of the unit's body - `x-gtk-debug` (C 10050-10061, under
+   C 10047's `#ifdef USE_GTK`, C 10048's `#ifdef HAVE_GTK3` and C 10049's `#if GTK_CHECK_VERSION
+   (3, 14, 0)`), `x-display-set-last-user-time` (C 10066-10088) and `x-internal-focus-input-context`
+   (C 10090-10129, whose body is C 10097's `#ifdef USE_GTK` and whose `return Qnil ();` (C 10128)
+   sits outside it).  What follows them is C 10131's dead `#if 0` block and the `syms_of_xfns`.
+
+   `gtk_check_version_ge_3_14` is this slice's reading of C 10049's version test; like
+   `use_motif`/`have_xrandr`/`have_xaw3d` it is **not registered** in `femacs/xtask/Cargo.toml`
+   (the `## Owed` row), and the probe passes it with `--cfg`.  */
+
+/* C: `<gtk/gtkimcontext.h>`: `extern void gtk_im_context_focus_in (GtkIMContext *);`, `extern void
+   gtk_im_context_focus_out (GtkIMContext *);` and `extern void gtk_im_context_set_client_window
+   (GtkIMContext *, GdkWindow *);` - C 10113-10121's three pairs; `include/gtk.rs` carries
+   `gtk_im_context_set_use_preedit` (1626-1631) and `GtkIMContext` but not these three rows.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn gtk_im_context_focus_in (context: *mut GtkIMContext);
+  pub fn gtk_im_context_focus_out (context: *mut GtkIMContext);
+  pub fn gtk_im_context_set_client_window (context: *mut GtkIMContext,
+					   window: *mut GdkWindow);
+}
+
+/* C 10050-10061.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk", feature = "have_gtk3",
+	    feature = "gtk_check_version_ge_3_14"))]
+DEFUN! ("x-gtk-debug", Fx_gtk_debug, Sx_gtk_debug, 1, 1, 0,                    // C 10050
+	doc: "Toggle interactive GTK debugging.",                              // C 10051
+	(enable: Lisp_Object),                                                 // C 10052
+	{
+  let enable_debug: gboolean = (!NILP (enable)) as gboolean;                   // C 10054
+
+  block_input ();                                                              // C 10056
+  gtk_window_set_interactive_debugging (enable_debug);                         // C 10057
+  unblock_input ();                                                            // C 10058
+
+  return if NILP (enable) { Qnil () } else { Qt () };                          // C 10060
+});
+
+/* C: `xterm.h` 1772: `extern void x_set_last_user_time_from_lisp (struct x_display_info *, Time);`
+   - C 10086's call; `src/xterm.c` defines it and no mirror carries the row (P-55/P-72 rule 3).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_set_last_user_time_from_lisp (dpyinfo: *mut x_display_info, time: Time);  // xterm.h 1772
+}
+
+/* C 10066-10088.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-set-last-user-time", Fx_display_set_last_user_time,
+	Sx_display_set_last_user_time, 1, 2, 0,                                // C 10066-10067
+	doc: "Set the last user time of TERMINAL to TIME-OBJECT.\nTIME-OBJECT is the X server time, in milliseconds, of the last user\ninteraction.  This is the timestamp that `x-get-selection-internal'\nwill use by default to fetch selection data.\nThe optional second argument TERMINAL specifies which display to act\non.  TERMINAL should be a terminal object, a frame or a display name\n(a string).  If TERMINAL is omitted or nil, that stands for the\nselected frame's display.",  // C 10068-10075
+	(time_object: Lisp_Object, terminal: Lisp_Object),                     // C 10076
+	{
+  let dpyinfo: *mut x_display_info;                                            // C 10078
+  /* C 10079's `uint32_t time;` with C 10084's `CONS_TO_INTEGER (time_object, uint32_t, time)`: the
+     port's trait has the two signed/unsigned 64-bit impls and picks the helper from the binding's
+     type, so C's `uint32_t` conversion is the explicit cast (the `src/inotify.rs` 449-453 shape).
+     */
+  let mut time_wide: u64 = 0;
+  let time: u32;
+
+  /* time should be a 32-bit integer, regardless of what the size of
+     the X type `Time' is on this system.  */                                 // C 10081-10082
+  dpyinfo = check_x_display_info (terminal);                                   // C 10083
+  CONS_TO_INTEGER! (time_object, time_wide);                                   // C 10084
+  time = time_wide as u32;
+
+  x_set_last_user_time_from_lisp (dpyinfo, time as Time);                      // C 10086
+  return Qnil ();                                                              // C 10087
+});
+
+/* C 10090-10129.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-internal-focus-input-context", Fx_internal_focus_input_context,
+	Sx_internal_focus_input_context, 1, 1, 0,                              // C 10090-10091
+	doc: "Focus and set the client window of all focused frames' GTK input context.\nIf FOCUS is nil, focus out and remove the client window instead.\nThis should be called from a variable watcher for `x-gtk-use-native-input'.",  // C 10092-10094
+	(focus: Lisp_Object),                                                  // C 10095
+	{
+  #[cfg (feature = "use_gtk")]                                            // C 10097-10126
+  {
+    let mut dpyinfo: *mut x_display_info;                                      // C 10098
+    let mut f: *mut frame;                                                     // C 10099
+    let mut widget: *mut GtkWidget;                                            // C 10100
+
+    block_input ();                                                            // C 10102
+    /* C 10103's `for (dpyinfo = x_display_list; dpyinfo; dpyinfo = dpyinfo->next)`: init, test,
+       body, then the increment C writes in the loop head (the `src/pgtkfns.rs` 1861-1872 shape).
+       */
+    dpyinfo = x_display_list;
+    while !dpyinfo.is_null ()
+      {
+	f = (*dpyinfo).x_focus_frame;                                          // C 10105
+
+	if !f.is_null ()                                                       // C 10107
+	  {
+	    widget = FRAME_GTK_OUTER_WIDGET! (f);                              // C 10109
+
+	    if !NILP (focus)                                                   // C 10111
+	      {
+		gtk_im_context_focus_in ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).im_context);   // C 10113
+		gtk_im_context_set_client_window ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).im_context,  // C 10114
+						  gtk_widget_get_window (widget));  // C 10115
+	      }
+	    else
+	      {
+		gtk_im_context_focus_out ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).im_context);  // C 10119
+		gtk_im_context_set_client_window ((*(FRAME_X_OUTPUT! (f) as *mut x_output)).im_context,  // C 10120
+						  std::ptr::null_mut ());      // C 10121
+	      }
+	  }
+	dpyinfo = (*dpyinfo).next;
+      }
+    unblock_input ();                                                          // C 10125
+  }
+
+  return Qnil ();                                                              // C 10128
+});
+
