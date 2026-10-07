@@ -7744,6 +7744,95 @@ class EmacsWindow: NSWindow {
     }
   }
 
+  /// C 9934-10037: `- (void)setParentChildRelationships` - "After certain operations, for example
+  /// making a frame visible or resetting the NSWindow through modifying the undecorated status, the
+  /// parent/child relationship may be broken.  We can also use this method to set them, as long as
+  /// the frame struct already has the correct relationship set."  The guards this target decides:
+  /// C 9955-9957's `#if MAC_OS_X_VERSION_MIN_REQUIRED < 101000` and C 9987-9989/10012-10014's
+  /// `< 1070` are **dead** (the target is 260000), so the `respondsToSelector:` wrapper is the same
+  /// recorded arm as elsewhere and the body it guards is transcribed directly, the way the C
+  /// compiler takes it; C 9964-9966's `>= 1070` arm is live.  `ourView` is `[self delegate]` read as
+  /// this unit's own `EmacsView` class (whose `updateCollectionBehavior`/`fsIsNative`/`isFullscreen`
+  /// are landed methods); `toggleFullScreen:` is its own, still owed by that class's box, so those
+  /// two calls go through the deferred entry declared below.
+  func setParentChildRelationships() {
+    let ourView = delegate as? EmacsView                  // C 9944
+    let ourFrame = emacs_view_frame(ourView)              // C 9945 (C's `ourView->emacsframe`)
+    let parentFrame = FRAME_PARENT_FRAME(ourFrame)        // C 9946
+    let oldParentWindow = parent as? EmacsWindow          // C 9947 (C's `[self parentWindow]`)
+
+    /* We have to set the accessibility subroles and/or the collection
+       behaviors early otherwise child windows may not go fullscreen as
+       expected later.  */
+
+    /* Set the accessibility subroles.  */
+    if parentFrame != nil {                               // C 9959
+      setAccessibilitySubrole(.floatingWindow)            // C 9960
+    } else {
+      setAccessibilitySubrole(.standardWindow)            // C 9962
+    }
+
+    ourView?.updateCollectionBehavior()                   // C 9965 (the live arm)
+
+    /* Child frames are often used in ways that may mean they should
+       "disappear" into the contents of the parent frame.  macOs's
+       drop-shadows break this effect, so remove them on undecorated
+       child frames.  */
+    if parentFrame != nil && FRAME_UNDECORATED(ourFrame) {   // C 9972
+      hasShadow = false                                  // C 9973
+    } else {
+      hasShadow = true                                   // C 9975
+    }
+
+    /* Check if we have an incorrectly set parent.  */
+    if (parentFrame == nil && oldParentWindow != nil)     // C 9980
+         || (parentFrame != nil && oldParentWindow != nil
+             && emacs_view_frame(oldParentWindow?.delegate) != parentFrame) {   // C 9981-9982
+      parent?.removeChildWindow(self)                     // C 9984
+
+      /* If we are the descendent of a fullscreen window and we
+         have no new parent, go fullscreen.  */
+      var p: NSWindow? = oldParentWindow                  // C 9993
+      while p != nil {                                    // C 9994
+        if p!.styleMask.contains(.fullScreen) {           // C 9996
+          toggleFullScreen_entry(ourView, self)           // C 9998
+          break                                           // C 9999
+        }
+        p = p!.parent                                      // C 10001
+      }
+    }
+
+    if parentFrame != nil {                               // C 10007
+      let parentWindow = FRAME_NS_VIEW(parentFrame)?.window   // C 10009
+
+      /* Child frames must not be fullscreen.  */
+      if ourView!.fsIsNative() && ourView!.isFullscreen() {   // C 10016
+        toggleFullScreen_entry(ourView, self)                 // C 10017
+      }
+
+      /* -addChildWindow: also orders the child window onto the screen, so
+         attaching a child frame Emacs considers invisible is what
+         resurrects a dismissed completion popup (corfu, company-box, ...)
+         when relationships are rebuilt.  Only attach a visible child; a
+         hidden one is re-attached by ns_make_frame_visible when it is
+         shown again.  */
+      if FRAME_VISIBLE_P(ourFrame) {                      // C 10026
+        parentWindow?.addChildWindow(self, ordered: .above)   // C 10027-10028
+      }
+    }
+
+    /* Check our child windows are configured correctly.  */
+    var tail: Lisp_Object = Vframe_list                   // C 10032 (C's `FOR_EACH_FRAME`)
+    while CONSP(tail) {
+      let frame = XCAR(tail)
+      if FRAME_PARENT_FRAME(XFRAME(frame)) == ourFrame {  // C 10034
+        (FRAME_NS_VIEW(XFRAME(frame))?.window as? EmacsWindow)?
+          .setParentChildRelationships()                  // C 10035
+      }
+      tail = XCDR(tail)
+    }
+  }
+
   /// C 10098-10122: `- (void)orderBack:(id)sender`.  C sorts the parent's children with the
   /// comparator above, re-adds the receiver above them all, then walks the sorted list re-adding
   /// every other window in turn; the `else` is the `super` call.
@@ -7764,6 +7853,34 @@ class EmacsWindow: NSWindow {
     } else {
       super.orderBack(sender)                             // C 10121
     }
+  }
+
+  /// C 10124-10155: `- (BOOL)restackWindow:(NSWindow *)win above:(BOOL)above`.  C's comparator call
+  /// is this unit's own `nswindow_orderedIndex_sort` (C 10084-10096, the function `orderBack:`
+  /// above also uses), and C 10133's `orderWindow:relativeTo:` is the SDK's own rename
+  /// `order (_:relativeTo:)` (measured).
+  func restackWindow(_ win: NSWindow, above: Bool) -> Bool {
+    /* If parent windows don't match we can't restack these frames
+       without changing the parents.  */
+    if parent != win.parent {                             // C 10130
+      return false                                        // C 10131
+    } else if parent == nil {                             // C 10132
+      order(above ? .above : .below, relativeTo: win.windowNumber)   // C 10133-10134
+    } else {
+      let p = parent!                                     // C 10138
+      let children = NSMutableArray(array: (p.childWindows ?? [])
+        .sorted { nswindow_orderedIndex_sort($0 as AnyObject, $1 as AnyObject, nil) < 0 })   // C 10139-10142
+      children.remove(self)                               // C 10143
+      let index = children.index(of: win)                 // C 10144
+      children.insert(self, at: above ? index + 1 : index)   // C 10145
+
+      for w in children {                                 // C 10147
+        p.removeChildWindow(w as! NSWindow)               // C 10149
+        p.addChildWindow(w as! NSWindow, ordered: .above)  // C 10150
+      }
+    }
+
+    return true                                           // C 10154
   }
 }
 
@@ -11944,4 +12061,38 @@ func colorWithUnsignedLong(_ cls: UnsafeMutableRawPointer?, _ c: UInt) -> NSColo
 @_cdecl("EmacsWindow_initWithEmacsFrame")
 func EmacsWindow_initWithEmacsFrame_impl(_ f: UnsafeMutableRawPointer?) -> AnyObject? {
   EmacsWindow(frame: f)
+}
+
+// ==========================================================================
+// Round 65: the three providers rounds 25/62 left waiting, and one new deferred entry
+// ==========================================================================
+
+/// C 9017's `- (void)toggleFullScreen: (id)sender` is `EmacsView`'s own method (not `NSView`'s:
+/// measured, `value of type 'NSView' has no member 'toggleFullScreen'`), and it has not landed, so
+/// C 9998/10017's two calls go through this deferred entry - the selector's own name with the
+/// receiver first, the `setParentChildRelationships` shape.  The definition lands with that class's
+/// method batch.
+@_silgen_name("toggleFullScreen")
+func toggleFullScreen_entry(_ view: NSView?, _ sender: Any?)
+
+/// C 9934-10037's own method, which round 64's initializer reaches through the deferred entry above
+/// (`setParentChildRelationships_entry`, declared at C 2285's family).  That entry's provider is
+/// this C-ABI definition - the `setAppearance`/`EmacsWindow_initWithEmacsFrame` shape, where the
+/// call-site declaration keeps its Swift name and the definition takes another.
+@_cdecl("setParentChildRelationships")
+func setParentChildRelationships_definition(_ window: NSWindow?) {
+  (window as? EmacsWindow)?.setParentChildRelationships()
+}
+
+/// C 8957's `- (BOOL)isFullscreen` and C 8952's `- (BOOL)fsIsNative` are `EmacsView`'s own methods
+/// (landed beside that class's record), and rounds 5/25 declared the two deferred entries for call
+/// sites that preceded them; both entries' providers were still owed, so this round adds them - the
+/// same pair of directions, and the two names `nm -u` listed until now.
+@_cdecl("isFullscreen")
+func isFullscreen_definition(_ view: NSView?) -> Bool {
+  (view as? EmacsView)?.isFullscreen() ?? false
+}
+@_cdecl("fsIsNative")
+func fsIsNative_definition(_ view: NSView?) -> Bool {
+  (view as? EmacsView)?.fsIsNative() ?? false
 }
