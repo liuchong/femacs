@@ -10149,3 +10149,41 @@ fileprivate func ns_create_terminal(_ dpyinfo: UnsafeMutableRawPointer?) -> Unsa
 
   return terminal                                   // C 5960
 }
+
+// ==========================================================================
+// Round 53: `mark_nsterm` (C 11528-11547), and the dead `hide_bell` (C 1469-1483)
+// ==========================================================================
+
+/* C 1469-1483: `static void hide_bell (void)` - **dead in this build**: C opens
+   `#if !defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED < 101400` at C 1469 and closes it at
+   C 1483, and this target is both Cocoa and 260000, so the whole definition is the arm that does not
+   exist here.  Recorded, not transcribed (the `ns_redraw_scroll_bars` reading); its body would send
+   the file's own `bell_view` the `remove` message.  */
+
+/// C 11528-11547: `void mark_nsterm (void)` - the GC marker (declared src/nsterm.h 1276), which walks
+/// every frame's scrollers and sends each the `mark` method round 43 landed.  It needs **no new
+/// entry**: the `FOR_EACH_FRAME` spelling, `FRAME_NS_P`, `FRAME_NS_VIEW`, `CONSP`/`XCAR`/`XCDR` and
+/// the `isKindOfClass:` test are all the unit's own already, and C's descending `for` is the `while`
+/// the class rounds use.
+@_cdecl("mark_nsterm")
+func mark_nsterm() {
+  // C 11531: `NSTRACE ("mark_nsterm");` - empty at `NSTRACE_ENABLED` 0.
+
+  var tail: Lisp_Object = Vframe_list                 // C 11532-11533 (C's `FOR_EACH_FRAME`)
+  while CONSP(tail) {
+    let frame = XCAR(tail)
+    let f = XFRAME(frame)                             // C 11535
+    if FRAME_NS_P(f) {                                // C 11536
+      let subviews = FRAME_NS_VIEW(f)?.superview?.subviews   // C 11538
+      var i = Int32(subviews?.count ?? 0) - 1         // C 11539
+      while i >= 0 {                                  // C 11539 (C's descending `for`)
+        let scroller = subviews?[Int(i)]              // C 11541
+        if scroller is EmacsScroller {                // C 11542
+          _ = (scroller as? EmacsScroller)?.mark()    // C 11543
+        }
+        i -= 1
+      }
+    }
+    tail = XCDR(tail)
+  }
+}

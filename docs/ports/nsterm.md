@@ -225,7 +225,7 @@
 - [x] nswindow_orderedIndex_sort  (line 10085, static) — landed as `fileprivate func nswindow_orderedIndex_sort (_:_:_:) -> Int`: C sends `orderedIndex` as a **message**, and on Cocoa that selector is not declared on `NSWindow` at all (C's own definition of it is the GNUstep arm at C 10074-10077), so the port sends the same dynamic message instead of inventing a property; the three `NSOrdered*` results are C 10090-10095's three returns
 - [x] ns_new_font  (line 11418, static) — C 11410-11476, landed as `fileprivate func ns_new_font (_:_:_:)` (round 51 took it ahead of `ns_create_terminal`'s body because C 5942 hands it to `terminal->set_new_font_hook`, the dependency order P-91 ① allows): C's `font` reads are the `font_<member>` family, the `struct ns_output` writes are `ns_output_set_*` and the `struct frame` writes `frame_set_*` (this round's entry rule), C's parameter reassignment is the shadow spelling, and C 11470's `! [view isFullscreen]` on a possibly-nil view is C's nil-receiver answer
 - [ ] ns_xlfd_to_fontname  (line 11484)
-- [ ] mark_nsterm  (line 11529)
+- [x] mark_nsterm  (line 11529) — C 11528-11547, landed as `@_cdecl("mark_nsterm")` (C's own non-static entry): it walks every frame's scrollers and sends each the `mark` method round 43 landed; the `FOR_EACH_FRAME` spelling, `FRAME_NS_P`, `FRAME_NS_VIEW` and the `isKindOfClass:` test are the unit's own already, so it needed **no new entry**
 - [ ] syms_of_nsterm  (line 11550)
 
 Two definitions the pre-3.260 reader missed for the same comment-stop reason as `ns_focus` above
@@ -3844,3 +3844,24 @@ call site takes an entry and the definition lands at its own C line - and **both
   through the table); the compile gate reaches parsing and type checking only; the entries remain
   declarations the core owes, and the seven cross-lane hooks are reached through symbols those lanes
   export.
+
+### Round 53: `mark_nsterm` (C 11528-11547)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-52 carry, so **no new warning**, and the round
+  **compiled first try**.  Object `/tmp/nsterm53.o`, **885,736 bytes**, md5
+  `90e4176a5263d8fd0dd94d706306adf4`.  The unit is **10,189 lines**.
+* **`mark_nsterm` needed no new entry at all**: its whole body is `FOR_EACH_FRAME` over
+  `Vframe_list`, `FRAME_NS_P`, `FRAME_NS_VIEW (f)?.superview?.subviews`, the `isKindOfClass:` test
+  and round 43's `mark` method - every one of those landed in earlier rounds.  It is `@_cdecl` because
+  C's own definition is non-static (declared src/nsterm.h 1276).
+* **A re-check rather than a discovery**: this round also looked at `hide_bell` (C 1469-1483), which
+  is the file's *third* dead arm - and found it **already recorded** as such (this ledger's line 62,
+  an earlier round's tick, with its one call site C 9388 named).  The round adds the same reading to
+  the source at its C position; the ledger's existing row stands.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **13** unported,
+  13 row(s); **557** C symbol import(s)` - one fewer unported than round 52's 14 (this definition),
+  one stale row cleared by name, and the imports are unchanged, the expected reading for a round that
+  adds no entry.  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (nothing marked, no bell hidden); the compile
+  gate reaches parsing and type checking only.
