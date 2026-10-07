@@ -6962,6 +6962,61 @@ class EmacsApp: NSApplication {
   @objc func applicationDidResignActive(_ notification: Notification) {
     ns_send_appdefined(-1)                            // C 6757
   }
+
+  /// C 6615-6631: `- (void) terminate: (id)sender`.  It waited for `NS_NONKEY_EVENT`'s value (the
+  /// entry above records how this unit takes it); C 6617's uninitialized record is the state
+  /// C 6623's `EVENT_INIT` writes, as in `systemWillSleep:`.
+  @objc override func terminate(_ sender: Any?) {
+    let f = SELECTED_FRAME()                          // C 6622
+    var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                         frame_or_window: nil, arg: nil, device: nil)    // C 6617
+    EVENT_INIT(&ie)                                   // C 6623
+    input_event_set_kind(&ie, NS_NONKEY_EVENT)        // C 6625
+    ie.code = UInt32(KEY_NS_POWER_OFF)                // C 6626
+    ie.arg = Qt() /* mark as non-key event */         // C 6627
+    XSETFRAME(&ie.frame_or_window, f)                 // C 6628
+    kbd_buffer_store_event(&ie)                       // C 6630
+  }
+
+  /// C 6433-6451: `- (BOOL) openFile: (NSString *)fileName` - the event constructor the pending
+  /// open-file queue drains into (`ns_read_socket_1` above is its caller).
+  @objc func openFile(_ fileName: String) -> Bool {
+    let emacsframe = SELECTED_FRAME()                 // C 6437
+    let theEvent = NSApp.currentEvent                 // C 6438
+
+    if emacs_event == nil {                           // C 6440
+      return false                                    // C 6441
+    }
+
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)                 // C 6443
+    emacs_event!.pointee.code = UInt32(KEY_NS_OPEN_FILE_LINE)           // C 6444
+    ns_input_file = append2(ns_input_file, lispString(fileName as NSString))  // C 6445
+    ns_input_line = Qnil() /* can be start or cons start,end */         // C 6446
+    emacs_event!.pointee.modifiers = 0                                  // C 6447
+    EV_TRAILER(theEvent, emacsframe)                                    // C 6448
+
+    return true                                       // C 6450
+  }
+
+  /// C 6891-6909: `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg` - the
+  /// service-request twin of `openFile:`, and the second method `ns_read_socket_1` drains into.
+  @objc func fulfillService(_ name: String, withArg arg: String) -> Bool {
+    let emacsframe = SELECTED_FRAME()                 // C 6893
+    let theEvent = NSApp.currentEvent                 // C 6894
+
+    if emacs_event == nil {                           // C 6898
+      return false                                    // C 6899
+    }
+
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)                 // C 6901
+    emacs_event!.pointee.code = UInt32(KEY_NS_SPI_SERVICE_CALL)         // C 6902
+    ns_input_spi_name = lispString(name as NSString)                    // C 6903
+    ns_input_spi_arg = lispString(arg as NSString)                      // C 6904
+    emacs_event!.pointee.modifiers = EV_MODIFIERS(theEvent!)            // C 6905
+    EV_TRAILER(theEvent, emacsframe)                                    // C 6906
+
+    return true                                       // C 6908
+  }
 }
 
 // ==========================================================================
@@ -7529,5 +7584,124 @@ fileprivate func not_in_argv(_ arg: String) -> Int32 {
     }
     return 1                                         // C 6678
   }
+}
+
+// ==========================================================================
+// Round 28: the `NS_NONKEY_EVENT` value, `ns_read_socket_1` and `ns_read_socket`
+// ==========================================================================
+
+/// C: `NS_NONKEY_EVENT` - an `enum event_kind` member C gates on `HAVE_NS`
+/// (`src/termhooks.h` 273-279, between `CONFIG_CHANGED_EVENT` and `XWIDGET_EVENT`).  Its value is
+/// the declaration order of that enum (C's members carry no initialiser), and this unit's number
+/// comes from counting it under the Cocoa build's configuration: the frozen table cannot decide it
+/// (it has no `HAVE_NS` and no `MAC_OS_X_*`), and neither mirror defines it (the Rust side carries
+/// the member only inside `#[cfg (feature = "have_ns")]` arms, which the frozen configuration
+/// never compiles).
+///
+/// **Calibration**: the port's own mirror fixes `SLEEP_EVENT` at 28
+/// (`femacs/src/include/termhooks.rs` 55, a value the constant gate compares), and that is what the
+/// same count gives for the frozen configuration (`THREADS_ENABLED`, `USE_FILE_NOTIFY` and
+/// `HAVE_XWIDGETS` all off there).  Under Cocoa, `THREADS_ENABLED` and `USE_FILE_NOTIFY` are on
+/// and `HAVE_XWIDGETS`/`HAVE_DBUS`/`HAVE_NTGUI` off, which puts `NS_TEXT_EVENT` at 29 and this
+/// member at **30** - the first value this unit takes as **UNVERIFIED** (no Cocoa build exists here
+/// to check it against C; the row is recorded rather than hidden, the `XmVERSION_STRING` shape
+/// round 47 of the X11 lane used).
+fileprivate let NS_NONKEY_EVENT: UInt32 = 30
+
+/// C `src/nsterm.h` 796/800/803: `#define KEY_NS_POWER_OFF ((1<<28)|(0<<16)|1)`,
+/// `KEY_NS_OPEN_FILE_LINE` (`|8`) and `KEY_NS_SPI_SERVICE_CALL` (`|11`) - the three `code` values
+/// the functions below write.
+let KEY_NS_POWER_OFF = (1 << 28) | (0 << 16) | 1
+let KEY_NS_OPEN_FILE_LINE = (1 << 28) | (0 << 16) | 8
+let KEY_NS_SPI_SERVICE_CALL = (1 << 28) | (0 << 16) | 11
+
+/// C `void *inputs`: `static Lisp_Object ns_input_file, ns_input_line, ns_input_spi_name,
+/// ns_input_spi_arg;` (src/nsterm.m 3395-3400 area) - this file's own file-scope objects, imported
+/// as the data symbols the core exports (the `ns_auto_hide_menu_bar` reading).
+@_silgen_name("ns_input_file") var ns_input_file: Lisp_Object
+@_silgen_name("ns_input_line") var ns_input_line: Lisp_Object
+@_silgen_name("ns_input_spi_name") var ns_input_spi_name: Lisp_Object
+@_silgen_name("ns_input_spi_arg") var ns_input_spi_arg: Lisp_Object
+
+/// C: `Lisp_Object lispString (NSString *)` - a helper of the Cocoa lane, exported by
+/// `nsfns.swift` 4968-4969 (`@_cdecl`) and imported here in the shape `nsselect.swift` 230 and
+/// `nsmenu.swift` 429 already use.
+@_silgen_name("lispString") func lispString(_ string: NSString) -> Lisp_Object
+
+/// C 5110-5193: `static int ns_read_socket_1 (struct terminal *terminal, struct input_event
+/// *hold_quit, BOOL no_release)` - "Post an event to ourself and keep reading events until we read
+/// it back again."  Its three callees are the ones rounds 22-25 landed (`check_native_fs`,
+/// `ns_send_appdefined`, `EmacsApp -openFile:`/`-fulfillService:withArg:`), which is why it waited.
+fileprivate func ns_read_socket_1(_ terminal: UnsafeMutableRawPointer?,
+                                  _ hold_quit: UnsafeMutablePointer<input_event>?,
+                                  _ no_release: Bool) -> Int32 {
+  var ev = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                       frame_or_window: nil, arg: nil, device: nil)          // C 5121
+  var nevents: Int32
+
+  check_native_fs()                                  // C 5127
+
+  if NSApp.modalWindow != nil {                      // C 5130
+    return -1                                        // C 5131
+  }
+
+  if hold_event_q_nr > 0 {                           // C 5133
+    var i: Int32 = 0                                 // C 5135
+    while i < hold_event_q_nr {                      // C 5136
+      kbd_buffer_store_event_hold(&(hold_event_q_q![Int(i)]), hold_quit)   // C 5137
+      i += 1
+    }
+    hold_event_q_nr = 0                              // C 5138
+    return i                                         // C 5139
+  }
+
+  if Thread.current.isMainThread {                   // C 5142
+    block_input()                                    // C 5144
+    n_emacs_events_pending = 0                       // C 5145
+    ns_init_events(&ev)                              // C 5146
+    q_event_ptr = hold_quit                          // C 5147
+
+    if !no_release {                                 // C 5149
+      /* C 5151-5153: the pool is allocated/reallocated around the loop; C's
+         `[outerpool release]` + `[[NSAutoreleasePool alloc] init]` pair is the pop/push below
+         (this unit's pool reading).  */
+      objc_autoreleasePoolPop(outerpool)              // C 5154
+      outerpool = objc_autoreleasePoolPush()          // C 5155
+    }
+
+    /* C 5158: "If have pending open-file requests, attend to the next one of those."  */
+    if ns_pending_files != nil && ns_pending_files!.count != 0
+         && (NSApp as! EmacsApp).openFile(ns_pending_files![0] as! String) { // C 5159-5160
+      ns_pending_files!.removeObject(at: 0)          // C 5162
+    } else if ns_pending_service_names != nil && ns_pending_service_names!.count != 0
+         && (NSApp as! EmacsApp).fulfillService(ns_pending_service_names![0] as! String,
+                                                withArg: ns_pending_service_args![0] as! String) {  // C 5165-5168
+      ns_pending_service_names!.removeObject(at: 0)  // C 5170
+      ns_pending_service_args!.removeObject(at: 0)   // C 5171
+    } else {
+      /* C 5175-5176: "Run and wait for events.  We must always send one NX_APPDEFINED event to
+         ourself, otherwise [NXApp run] will never exit."  */
+      send_appdefined = true                         // C 5177
+      ns_send_appdefined(-1)                         // C 5178
+      NSApp.run()                                    // C 5180
+    }
+
+    nevents = n_emacs_events_pending                 // C 5183
+    n_emacs_events_pending = 0                       // C 5184
+    ns_finish_events()                               // C 5185
+    q_event_ptr = nil                                // C 5186
+    unblock_input()                                  // C 5187
+  } else {
+    return -1                                        // C 5190
+  }
+
+  return nevents                                     // C 5192
+}
+
+/// C 5195-5199: `static int ns_read_socket (struct terminal *terminal, struct input_event
+/// *hold_quit)` - C's body is the `ns_read_socket_1` call with `NO`.
+fileprivate func ns_read_socket(_ terminal: UnsafeMutableRawPointer?,
+                                _ hold_quit: UnsafeMutablePointer<input_event>?) -> Int32 {
+  ns_read_socket_1(terminal, hold_quit, false)       // C 5198
 }
 

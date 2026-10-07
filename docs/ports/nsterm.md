@@ -189,8 +189,8 @@
 - [x] ns_draw_glyph_string  (line 4783, static) — C 4782-5001, landed as `fileprivate func ns_draw_glyph_string` (the RIF's main draw-text call)
 - [x] ns_send_appdefined  (line 5013, static) — landed as `fileprivate func ns_send_appdefined (_ value: Int32)`: the non-main-thread arm reaches `nextappdefined` and `-sendFromMainThread:` through `NSApp as! EmacsApp` (round 21's class), `send_appdefined`/`timed_entry` are C 317/320's own entries, and `[NSApp context]` is kept as C writes it (that call carries a new deprecation warning, recorded in Evidence)
 - [x] check_native_fs  (line 5088, static) — landed in round 25 as `fileprivate func check_native_fs ()`: the body's `FOR_EACH_FRAME` keeps the spelling C 1011's reading above gives it, and C 5103's `[view updateCollectionBehavior]` is the method that landed with this record - so the two callers C 5127/5218 were waiting for are both here now
-- [ ] ns_read_socket_1  (line 5111, static)
-- [ ] ns_read_socket  (line 5196, static)
+- [x] ns_read_socket_1  (line 5111, static) — landed as `fileprivate func ns_read_socket_1 (_:_:_:) -> Int32`: the three callees it was waiting for are `check_native_fs` (round 25), `ns_send_appdefined` (round 22) and `EmacsApp`'s `-openFile:`/`-fulfillService:withArg:` (round 28), and C 5154/5155's `[outerpool release]` + `[[NSAutoreleasePool alloc] init]` pair is this unit's pop/push
+- [x] ns_read_socket  (line 5196, static) — landed as `fileprivate func ns_read_socket (_:_:) -> Int32`: C's body is the `ns_read_socket_1` call with `NO`
 - [x] ns_select_1  (line 5203, static) — landed as `fileprivate func ns_select_1 (_:_:_:_:_:_:_:)`: C 5235/5236's `FD_ISSET` is Darwin's `__darwin_fd_isset` (the macro's own expansion, imported in the `fputs` shape), `thread_select` is imported with the `select_func` `@convention(c)` alias its C typedef names, and C 5250-5265's commented-out outerpool drain is carried as that comment rather than restated
 - [x] ns_select  (line 5366) — landed as `func ns_select (_:_:_:_:_:_:)`: C's body is the `ns_select_1` call with `NO`
 - [x] ns_run_loop_break  (line 5376) — landed as `func ns_run_loop_break ()` (the `HAVE_PTHREAD` arm): C's two lines are the `NSApp` guard and the `ns_send_appdefined (-1)` it wraps
@@ -273,14 +273,14 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)sendEvent: (NSEvent *)theEvent`  (line 6317) — landed as `override func sendEvent (_:)`: C's `NSEventTypeXxx` constants are `NSEvent.EventType` cases (C 6323's `int type` becomes the enum), the `NS_IMPL_GNUSTEP` keyboard arm (6329-6337) is dead, C 6344/6349's two `data2` values are `src/nsterm.h` 1189/1192's own `let`s, and C 6389's `di->next` walk is the new `ns_display_info_next` shim
   - [ ] `- (void)showPreferencesWindow: (id)sender`  (line 6402)
   - [ ] `- (void)newFrame: (id)sender`  (line 6416)
-  - [ ] `- (BOOL) openFile: (NSString *)fileName`  (line 6433)
+  - [x] `- (BOOL) openFile: (NSString *)fileName`  (line 6433) — landed as `@objc func openFile (_:) -> Bool`, the event constructor the pending open-file queue drains into; `ns_input_file`/`ns_input_line` are this file's own file-scope objects imported as data symbols, and `lispString` is the Cocoa lane's exported helper
   - [ ] `- (void) updateMonitors: (NSNotification *) notification`  (line 6454)
   - [ ] `- (void)applicationDidFinishLaunching: (NSNotification *)notification`  (line 6490)
   - [x] `- (void)antialiasThresholdDidChange:(NSNotification *)notification`  (line 6556) — landed as `@objc func antialiasThresholdDidChange (_:)`: its one statement calls the Mac font lane's exported entry (`macfont.swift` 1376 over `src/macfont.m` 747)
   - [x] `- (void) systemWillSleep:(NSNotification *)notification`  (line 6565) — landed as `@objc func systemWillSleep (_:)`: C 6569's `struct input_event ie` is the state C 6570's `EVENT_INIT` writes, `SLEEP_EVENT`'s value comes from the port's own mirror (`src/include/termhooks.rs` 55), and the `kind` write is a bitfield setter that keeps `part`
   - [x] `- (void) systemDidWake:(NSNotification *)notification`  (line 6577) — landed as `@objc func systemDidWake (_:)`, `Qpre_sleep`'s twin with `Qpost_wake` (C 6584)
   - [x] `- (BOOL) applicationSupportsSecureRestorableState: (NSApplication *)app`  (line 6610) — landed as `@objc func applicationSupportsSecureRestorableState (_:) -> Bool`: C's `return YES;` and nothing else
-  - [ ] `- (void) terminate: (id)sender`  (line 6615) — **deferred**: its body writes `ie.kind = NS_NONKEY_EVENT` (C 6625), the `enum event_kind` member whose value this unit must take from a source that can decide it (the frozen macro table cannot; the C enum gates it on `HAVE_NS`).  It lands with the `ns_read_socket_1` pair, which needs the same value
+  - [x] `- (void) terminate: (id)sender`  (line 6615) — landed as `@objc override func terminate (_:)` (AppKit's own method, hence the override): it was the box that waited for `NS_NONKEY_EVENT`'s value, which this round takes from the enum's declaration order under Cocoa's configuration - `fileprivate let NS_NONKEY_EVENT: UInt32 = 30`, the unit's first **UNVERIFIED** constant (no Cocoa build exists here to check it against C)
   - [x] `- (NSApplicationTerminateReply)applicationShouldTerminate: (id)sender`  (line 6655) — landed as `@objc func applicationShouldTerminate (_:) -> NSApplication.TerminateReply`: C's two returns are the enum's `.terminateNow`/`.terminateCancel`, and `ns_confirm_quit` is imported as this file's own `DEFVAR_BOOL`'s data symbol
   - [x] `- (BOOL)application: sender openFile: (NSString *)file`  (line 6682) — landed as `@objc func application (_:openFile:) -> Bool`: C's `[ns_pending_files addObject: file]` is the array's `add`, and the `not_in_argv` guard is the one C 6684 names
   - [x] `- (BOOL)application: sender openTempFile: (NSString *)file`  (line 6691) — landed as `@objc func application (_:openTempFile:) -> Bool`, the same three lines as the row above
@@ -294,7 +294,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)sendFromMainThread:(id)unused`  (line 6778) — landed as `@objc func sendFromMainThread (_ unused: Any?)`: the main-thread half of `ns_send_appdefined`'s non-main-thread arm (C 5027 posts this very selector), which is why the two land together
   - [ ] `- (void)fd_handler:(id)unused`  (line 6783)
   - [ ] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881)
-  - [ ] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891)
+  - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
 - [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch
   - [ ] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041)
   - [ ] `- (void) setWindowClosing: (BOOL)closing`  (line 7047)
@@ -2961,8 +2961,13 @@ call site takes an entry and the definition lands at its own C line - and **both
   `ns_read_socket` (C 5195).  They call `(EmacsApp *) NSApp`'s `-openFile:` (C 6433) and
   `-fulfillService:withArg:` (C 6891), both of which write `emacs_event->kind = NS_NONKEY_EVENT` -
   an `enum event_kind` member whose value this unit must take from a source that can decide it
-  (the frozen macro table cannot; the Rust mirror carries the enum under `HAVE_NS`).  That is the
-  one thing the next round settles before writing the pair.
+  (the frozen macro table cannot; the Rust mirror carries the enum under `HAVE_NS`).  **Round 28
+  settles that value and lands all five**: `NS_NONKEY_EVENT` is counted out of the C enum's
+  declaration order under Cocoa's configuration and recorded as the unit's first **UNVERIFIED**
+  constant, and `-terminate:` (C 6615), `-openFile:` (C 6433), `-fulfillService:withArg:` (C 6891),
+  `ns_read_socket_1` (C 5110) and `ns_read_socket` (C 5195) land with it.  The covered range is now
+  **C 60-5001, C 5012-5084, C 5109-5199, C 5203-5385, C 6433-6451, C 6556-6613, C 6615-6631,
+  C 6769-6781 and C 6891-6909**.
 
 ### Round 27: `EmacsApp`'s termination and file-open handlers (C 6633-6758)
 
@@ -2985,3 +2990,32 @@ call site takes an entry and the definition lands at its own C line - and **both
   (`src/termhooks.h` 273-279), so `terminate:` and the read-socket pair land together once it has
   a home; the ledger's box for `terminate:` records exactly that.
 
+
+
+
+### Round 28: `NS_NONKEY_EVENT`'s value, `ns_read_socket_1` and `ns_read_socket` (C 5109-5199, C 6433-6451, C 6615-6631, C 6891-6909)
+
+* **The value this round had to settle first**: `NS_NONKEY_EVENT`.  C gates the member on `HAVE_NS`
+  (`src/termhooks.h` 273-279), the frozen macro table has neither `HAVE_NS` nor the `MAC_OS_X_*`
+  values, and neither mirror defines it (the Rust side carries it only inside
+  `#[cfg (feature = "have_ns")]` arms, which the frozen configuration never compiles).  C's enum
+  gives no initialisers, so the value is the declaration order counted under the Cocoa build's
+  configuration: `NS_TEXT_EVENT` 29 and `NS_NONKEY_EVENT` **30**.  The count is calibrated against
+  the one value that is machine-checked - `SLEEP_EVENT = 28`
+  (`femacs/src/include/termhooks.rs` 55) - which is what the same count yields for the frozen
+  configuration.  **This is the unit's first UNVERIFIED constant**: there is no Cocoa build here to
+  check it against the reference, and the entry above records that rather than hiding it.
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-27 carry, so **no new warning**.  Object
+  `/tmp/nsterm28.o`, **620,952 bytes**, md5 `51e13f5dd66d43807294200ea901e25b`.  The first compile failed with one error,
+  `overriding declaration requires an 'override' keyword`, because `-terminate:` overrides
+  `NSApplication`'s own method; the override is spelled and recorded in the source.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **36** unported,
+  36 row(s); **420** C symbol import(s)` - two fewer unported than round 27's 38, and **two stale
+  rows cleared** (`ns_read_socket_1` and `ns_read_socket`, the two C *functions* this round lands).
+  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this closes**: the event-loop entry pair (`ns_read_socket_1`/`ns_read_socket`) and the
+  three `EmacsApp` members that were bound to it (`-terminate:`, `-openFile:`,
+  `-fulfillService:withArg:`).  Five ledger boxes are ticked (228 -> 233), and the covered range
+  now spans C 60-5001, C 5012-5084, C 5109-5199, C 5203-5385, C 6433-6451, C 6556-6613,
+  C 6615-6631, C 6769-6781 and C 6891-6909.

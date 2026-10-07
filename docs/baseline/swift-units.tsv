@@ -32,8 +32,6 @@ femacs/platform/macos/nsterm.swift	ns_in_echo_area_2	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_initialize_display_info	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_judge_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_new_font	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_read_socket	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_read_socket_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redeem_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redraw_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_horizontal_scroll_bar	src/nsterm.m
