@@ -426,16 +426,16 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void) draggedImage: (NSImage *) dragged_image movedTo: (NSPoint) screen_point`  (line 10482)
   - [ ] `- (BOOL) mustNotDropOn: (NSView *) receiver`  (line 10522)
   - [ ] `- (NSDragOperation) beginDrag: (NSDragOperation) op forPasteboard: (NSPasteboard *) pasteboard withMode: (enum ns_return_frame_mode) mode returnFrameTo: (struct frame **) frame_return prohibitSame: (BOOL) prohibit_same_frame followTooltip: (BOOL) follow_tooltip`  (line 10528)
-- [ ] EmacsScroller  (`@implementation` 10620, `@end` 11117) - round 42 landed **the class record** (the eleven ivars of `src/nsterm.h` 716-733, two of whose C names `NSView` already owns: `window`/`frame`, carried as `emacs_window`/`emacs_frame` - a declared deviation) and one method (`initFrame:window:` C 10650); `+scrollerWidth` (C 10626) is **omitted** because Swift refuses both spellings of it (the `EmacsFileDelegate` class of refusal), and the fourteen methods below keep this box open
+- [ ] EmacsScroller  (`@implementation` 10620, `@end` 11117) - round 42 landed **the class record** (the eleven ivars of `src/nsterm.h` 716-733, two of whose C names `NSView` already owns: `window`/`frame`, carried as `emacs_window`/`emacs_frame` - a declared deviation) and two methods (`initFrame:window:` C 10650 and, in round 43, `setFrame:` C 10703, `dealloc` C 10719, `condemn` C 10734, `reprieve` C 10742, `judge` C 10750, `mark` C 10777 and `resetCursorRects` C 10788); `+scrollerWidth` (C 10626) is **omitted** because Swift refuses both spellings of it (the `EmacsFileDelegate` class of refusal), and the seven methods below keep this box open
   - [x] `+ (CGFloat) scrollerWidth`  (line 10626) — **omitted, recorded**: Swift refuses the override (`cannot override 'scrollerWidth' which has been marked unavailable`) *and* the `@objc(scrollerWidth)` renamed spelling (`conflicts with method 'scrollerWidth()' from superclass 'NSScroller'`), and nothing in the reference calls it, so omitting it changes no caller's behaviour (the `EmacsFileDelegate` shape; the ledger's `## ABI` (3) carries the gap)
   - [x] `- (instancetype)initFrame: (NSRect )r window: (Lisp_Object)nwin`  (line 10650) — landed as `@objc(initFrame:window:) init(frame:window:)`: C's descending `for` is the `while`, C 10679's `20 / pixel_length` keeps C's integer division, C 10666-10667's GNUstep arm is dead here, and the `isKindOfClass: [EmacsScroller class]` count is the `is EmacsScroller` test
-  - [ ] `- (void)setFrame: (NSRect)newRect`  (line 10703)
-  - [ ] `- (void)dealloc`  (line 10719)
-  - [ ] `- (instancetype)condemn`  (line 10734)
-  - [ ] `- (instancetype)reprieve`  (line 10742)
-  - [ ] `-(bool)judge`  (line 10750)
-  - [ ] `- (void) mark`  (line 10777)
-  - [ ] `- (void)resetCursorRects`  (line 10788)
+  - [x] `- (void)setFrame: (NSRect)newRect`  (line 10703) — landed as the `frame` property's **setter** (`override var frame: NSRect { get { super.frame } set(newRect) { … } }`): AppKit's `-setFrame:` is imported as the property (measured: a plain `override func setFrame(_:)` is refused, and `super.setFrame` has no member of that name), and C overrides only the setter, so the getter is the superclass's; C 10713's `20 / pixel_length` keeps C's integer division
+  - [x] `- (void)dealloc`  (line 10719) — landed as `deinit`: a Swift class cannot name `dealloc`, and C 10730's `[super dealloc]` is implicit in the runtime's own teardown (the `ns_free_frame_resources` reading); the two `wset_*_scroll_bar` writes are imported setters
+  - [x] `- (instancetype)condemn`  (line 10734) — landed as `func condemn () -> EmacsScroller` (C's `instancetype` is this class's own type); C 10736's `NSTRACE` is the empty macro
+  - [x] `- (instancetype)reprieve`  (line 10742) — landed as `func reprieve () -> EmacsScroller`, `condemn`'s sibling
+  - [x] `-(bool)judge`  (line 10750) — landed as `func judge () -> Bool`: C's `block_input ()`/`unblock_input ()` pair wraps the teardown, C 10759's cast is the `as? EmacsView` the unit already uses, and C 10771's `[self release]` is the reference the method drops (`Unmanaged.passUnretained (self).release ()`)
+  - [x] `- (void) mark`  (line 10777) — landed as `func mark ()` (C's own spacing in the selector): it needs `XSETWINDOW` (a macro entry of the `XSETFRAME` family) and the collector's `mark_object` (already the core's, `femacs/src/alloc.rs` 7308)
+  - [x] `- (void)resetCursorRects`  (line 10788) — landed as `override func resetCursorRects ()`: the `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 101300` block at C 10796-10802 (its `setOnMouseEntered:` message included) is dead on this target (260000), so it is recorded, not transcribed
   - [ ] `- (int) checkSamePosition: (int) position portion: (int) portion whole: (int) whole`  (line 10806)
   - [ ] `- (instancetype)setPosition: (int)position portion: (int)portion whole: (int)whole`  (line 10814)
   - [ ] `- (void) sendScrollEventAtLoc: (float)loc fromEvent: (NSEvent *)e`  (line 10850)
@@ -2188,6 +2188,10 @@ call site takes an entry and the definition lands at its own C line - and **both
   live body is one message (`NSScroller.scrollerWidth (for: .regular, scrollerStyle: .legacy)`), and no reference
   caller reaches it (`[EmacsScroller scrollerWidth]` occurs nowhere; C 10645's call is on `NSScroller`, in a dead
   arm), so the class is declared with the method omitted - the gap named here rather than hidden.
+* **round 43's names**: `mark_object` is already the core's (`femacs/src/alloc.rs` 7308), while
+  `wset_horizontal_scroll_bar`/`wset_vertical_scroll_bar` (src/window.h's INLINE setters - the port
+  mirrors them as Rust functions at `femacs/src/include/window.rs` 233/236) and the macro entry
+  `XSETWINDOW` (src/window.h, the `XSETFRAME` family) are C-ABI entries the core still owes.
 
 ## Evidence
 
@@ -3507,3 +3511,33 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no scroller created, no frame read, no
   subview added); the compile gate reaches parsing and type checking only; the omitted
   `+scrollerWidth` is a gap named in `## ABI` (3), not a transcribed method.
+
+### Round 43: `EmacsScroller`'s record-keeping methods (C 10703-10804)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-42 carry, so **no new warning**.  Object
+  `/tmp/nsterm43.o`, **813,304 bytes**, md5 `bb3129da32d8656740cc4cfe6a7fb3fb`.  The unit is
+  **9,086 lines**.
+* **Seven methods land**: `setFrame:` (C 10703), `dealloc` (C 10719), `condemn` (C 10734),
+  `reprieve` (C 10742), `judge` (C 10750), `mark` (C 10777) and `resetCursorRects` (C 10788).
+* **Two compile failures and the reshape they force** (both in the source's doc comment): Swift
+  imports AppKit's `-setFrame:` as the `frame` *property*, so ⑴ `override func setFrame(_:)` is
+  refused (`error: method does not override any method from its superclass`) and ⑵
+  `super.setFrame(newRect)` has no such member (`error: value of type 'NSScroller' has no member
+  'setFrame'`).  C's body is therefore the property's **setter** (`set(newRect)`, keeping C's
+  parameter name) and the getter is the superclass's, because C overrides only the setter.
+* **The two other spellings this round fixes**: C's `dealloc` is Swift's `deinit` (a class cannot
+  name `dealloc`; C 10730's `[super dealloc]` is implicit), and C's `NSTRACE` lines are the empty
+  macro (recorded where they stand).  C 10713's `20 / pixel_length` keeps C's *integer* division,
+  the same expression `initFrame:window:` has at C 10679.
+* **The dead arm**: C 10796-10802's `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 101300`
+  block (with its `setOnMouseEntered:` message) is not transcribed - this target is 260000.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **21** unported,
+  21 row(s); **473** C symbol import(s)` - unported unchanged again (Objective-C methods are not C
+  definitions), and the round's imports are 469 -> 473 (`wset_horizontal_scroll_bar`,
+  `wset_vertical_scroll_bar`, `XSETWINDOW`, `mark_object`).  Final:
+  `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no scroll bar resized, freed or judged, no
+  cursor rect added, no object marked); the compile gate reaches parsing and type checking only;
+  the three names the core still owes (`wset_*`, `XSETWINDOW`) are declarations, recorded in
+  `## ABI` (3).

@@ -8953,4 +8953,134 @@ class EmacsScroller: NSScroller {
 
     // C 10697: `/* [self setFrame: r]; */` - C's commented-out line, carried as the comment.
   }
+
+  /// C: `INLINE void wset_horizontal_scroll_bar (struct window *w, Lisp_Object val)` and its
+  /// vertical sibling (src/window.h) - the two setters C 10725/10727 and C 10765/10767 call.  The
+  /// port's mirror carries them as Rust functions (`femacs/src/include/window.rs` 233/236), so the
+  /// C-ABI entry they are imported by is one the core still owes (the `ns_display_info_*` class).
+  @_silgen_name("wset_horizontal_scroll_bar")
+  func wset_horizontal_scroll_bar(_ w: UnsafeMutableRawPointer?, _ val: Lisp_Object)
+  @_silgen_name("wset_vertical_scroll_bar")
+  func wset_vertical_scroll_bar(_ w: UnsafeMutableRawPointer?, _ val: Lisp_Object)
+
+  /// C: `XSETWINDOW (a, b)` (src/window.h) - a macro entry of the `XSETFRAME`/`XSETTERMINAL`
+  /// family, which C 10782 uses to build the `Lisp_Object` `mark_object` takes.
+  @_silgen_name("XSETWINDOW")
+  func XSETWINDOW(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
+
+  /// C: `void mark_object (Lisp_Object)` (src/alloc.c) - the collector's own entry, which the core
+  /// provides (`femacs/src/alloc.rs` 7308, `pub unsafe extern "C" fn`).
+  @_silgen_name("mark_object") func mark_object(_ obj: Lisp_Object)
+
+  /// C 10703-10717: `- (void)setFrame: (NSRect)newRect`.  **C's method is Swift's `frame` property
+  /// setter**: AppKit's `-setFrame:` is imported as `var frame: NSRect` (measured: a plain
+  /// `override func setFrame(_:)` is refused - `error: method does not override any method from its
+  /// superclass`, and `super.setFrame` read as `error: value of type 'NSScroller' has no member
+  /// 'setFrame'`), so C's body is the setter below and the getter is the superclass's own (C
+  /// overrides only the setter).  The setter's parameter keeps C's name.  C's `NSTRACE` is the
+  /// empty macro, C 10707 and C 10715 are C's own commented-out `block_input ()`/`unblock_input ()`
+  /// pair (carried as the comments), and C 10713's `20 / pixel_length` keeps C's integer division
+  /// before the `float` store - the same expression `initFrame:window:`'s C 10679 has.
+  override var frame: NSRect {
+    get { super.frame }
+    set(newRect) {
+      // C 10705: `NSTRACE ("[EmacsScroller setFrame:]");` - empty at `NSTRACE_ENABLED` 0.
+      // C 10707: `/* block_input (); */`
+
+      if horizontal {                                  // C 10708
+        pixel_length = Int32(NSWidth(newRect))         // C 10709
+      } else {
+        pixel_length = Int32(NSHeight(newRect))        // C 10711
+      }
+      if pixel_length == 0 { pixel_length = 1 }        // C 10712
+      min_portion = Float(20 / Int(pixel_length))      // C 10713 (C's integer division)
+
+      super.frame = newRect                            // C 10714
+      // C 10715: `/* unblock_input (); */`
+    }
+  }
+
+  /// C 10719-10732: `- (void)dealloc` - Swift's `deinit`, because a class cannot name `dealloc`;
+  /// C 10730's `[super dealloc]` is implicit in the runtime's own teardown (the
+  /// `ns_free_frame_resources` reading of the reference's manual release under ARC).
+  deinit {
+    // C 10721: `NSTRACE ("[EmacsScroller dealloc]");` - empty.
+
+    if emacs_window != nil {                           // C 10722
+      if horizontal {                                  // C 10724
+        wset_horizontal_scroll_bar(emacs_window, Qnil())   // C 10725
+      } else {
+        wset_vertical_scroll_bar(emacs_window, Qnil())     // C 10727
+      }
+    }
+    emacs_window = nil                                 // C 10729
+    // C 10730: `[super dealloc];` - implicit in `deinit`.
+  }
+
+  /// C 10734-10740: `- (instancetype)condemn` - C's `instancetype` is this class's own type.
+  func condemn() -> EmacsScroller {
+    // C 10736: `NSTRACE ("[EmacsScroller condemn]");` - empty.
+    condemned = true                                   // C 10737
+    return self                                        // C 10738
+  }
+
+  /// C 10742-10748: `- (instancetype)reprieve`.
+  func reprieve() -> EmacsScroller {
+    // C 10744: `NSTRACE ("[EmacsScroller reprieve]");` - empty.
+    condemned = false                                  // C 10745
+    return self                                        // C 10746
+  }
+
+  /// C 10750-10775: `-(bool)judge`.  C's `block_input ()`/`unblock_input ()` pair wraps the
+  /// teardown, C 10759's cast is the `as? EmacsView` the unit already uses, C 10771's
+  /// `[self release]` is the reference the method drops (the `Unmanaged` reading), and C's `bool`
+  /// return is Swift's `Bool`.
+  func judge() -> Bool {
+    // C 10752: `NSTRACE ("[EmacsScroller judge]");` - empty.
+    let ret = condemned                                // C 10753
+    if condemned {                                     // C 10754
+      block_input()                                    // C 10757
+      /* Ensure other scrollbar updates after deletion.  */
+      let view = FRAME_NS_VIEW(emacs_frame) as? EmacsView   // C 10759
+      if view != nil {                                 // C 10760
+        view?.scrollbarsNeedingUpdate += 1             // C 10761
+      }
+      if emacs_window != nil {                         // C 10762
+        if horizontal {                                // C 10764
+          wset_horizontal_scroll_bar(emacs_window, Qnil())   // C 10765
+        } else {
+          wset_vertical_scroll_bar(emacs_window, Qnil())     // C 10767
+        }
+      }
+      emacs_window = nil                               // C 10769
+      removeFromSuperview()                            // C 10770
+      Unmanaged.passUnretained(self).release()         // C 10771 (C's `[self release]`)
+      unblock_input()                                  // C 10772
+    }
+    return ret                                         // C 10774
+  }
+
+  /// C 10777-10786: `- (void) mark` - C's own spacing in the selector, kept.
+  func mark() {
+    if emacs_window != nil {                           // C 10779
+      var win: Lisp_Object = nil                       // C 10781
+      XSETWINDOW(&win, emacs_window)                   // C 10782
+      mark_object(win)                                 // C 10783
+    }
+  }
+
+  /// C 10788-10804: `- (void)resetCursorRects`.  The
+  /// `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 101300` block at C 10796-10802 (its
+  /// `setOnMouseEntered:` message included) is dead on this target - the frozen configuration's
+  /// 260000 - so it is recorded, not transcribed.
+  override func resetCursorRects() {
+    let visible = self.visibleRect                     // C 10790
+    // C 10791: `NSTRACE ("[EmacsScroller resetCursorRects]");` - empty.
+
+    if !NSIsEmptyRect(visible) {                       // C 10793
+      self.addCursorRect(visible, cursor: NSCursor.arrow)   // C 10794
+    }
+
+    /* C 10796-10802: the pre-10.13 / GNUstep arm, dead here (recorded, not transcribed).  */
+  }
 }
