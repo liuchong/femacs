@@ -6010,3 +6010,316 @@ unsafe fn setup_xi_event_mask (f: *mut frame)
   unblock_input ();                                                     // C 4167
   SAFE_FREE! (sa_count);
 }
+
+/* C 4430-4621: the two `#else` arms of `x_window` - the GTK one (C 4431-4474) and the plain-X one
+   (C 4476-4619).  The Xt arm (C 4172-4428) is outside this slice and opens the C-range table's
+   next row.  `create_frame_xic` (C 2740's block) and `append_wm_protocols` (C 1573) are this
+   file's own definitions, `setup_xi_event_mask` is slice 5's, and the four Xlib entry points
+   neither the file nor the mirror declares stand in the use-site blocks below, each under the
+   guard its arm has.  */
+
+/// C: Xutil.h 632-636: `typedef struct { char *res_name; char *res_class; } XClassHint;` - no
+/// mirror of this unit's graph declares it, so it stands here with the header's field order
+/// (P-88 rule 1); C 4482/4552-4554 write the two fields.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit")))]
+#[repr (C)]
+pub struct XClassHint
+{
+  pub res_name: *mut c_char,
+  pub res_class: *mut c_char,
+}
+
+/// C: Xlib.h 304-330: the `XWindowAttributes` record, fields in the header's own order and the
+/// header's own types (measured on this machine) - no mirror of this unit's graph declares it,
+/// and C 4453/4458 reads `your_event_mask` out of it (P-88 rule 1; the layout is **UNVERIFIED**
+/// beyond that field, which is the only one this file touches).
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit")))]
+#[repr (C)]
+pub struct XWindowAttributes
+{
+  pub x: c_int, pub y: c_int, pub width: c_int, pub height: c_int, pub border_width: c_int,
+  pub depth: c_int, pub visual: *mut Visual, pub root: Window, pub class: c_int,
+  pub bit_gravity: c_int, pub win_gravity: c_int, pub backing_store: c_int,
+  pub backing_planes: c_ulong, pub backing_pixel: c_ulong, pub save_under: Bool,
+  pub colormap: Colormap, pub map_installed: Bool, pub map_state: c_int,
+  pub all_event_masks: c_long, pub your_event_mask: c_long, pub do_not_propagate_mask: c_long,
+  pub override_redirect: Bool, pub screen: *mut Screen,
+}
+
+/// C: Xlib.h 1188: `#define XNFilterEvents "filterEvents"` - the atom name C 4448/4535 hand to
+/// `XGetICValues` (measured on this machine's header).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XNFilterEvents: &core::ffi::CStr = c"filterEvents";
+
+/// C: X11/X.h 387, 393, 395, 396, 405, 431, 439 and 568, plus X11/Xutil.h 74, 75 and 134, every
+/// value measured on this machine's headers: `InputOutput 1`, `CWBackPixel (1L<<1)`,
+/// `CWBorderPixel (1L<<3)`, `CWBitGravity (1L<<4)`, `CWColormap (1L<<13)`, `StaticGravity 10`,
+/// `NotUseful 0`, `GCLineWidth (1L<<4)`, `XNegative 0x0010`, `YNegative 0x0020` and
+/// `InputHint (1L<<0)` - the eleven C 4486-4562's plain-X arm reads and the five `x11_constants`
+/// does not carry (`CWEventMask`, `CWOverrideRedirect`, `GCForeground`, `GCBackground` and
+/// `PropModeReplace` are the mirror's).
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const InputOutput: c_uint = 1;                        // X11/X.h 387
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const CWBackPixel: c_long = 1 << 1;                 // X11/X.h 393
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const CWBorderPixel: c_long = 1 << 3;               // X11/X.h 395
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const CWBitGravity: c_long = 1 << 4;                // X11/X.h 396
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const CWColormap: c_long = 1 << 13;                 // X11/X.h 405
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const StaticGravity: c_int = 10;                     // X11/X.h 431
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const NotUseful: c_int = 0;                          // X11/X.h 439
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const GCLineWidth: c_long = 1 << 4;                 // X11/X.h 568
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const XNegative: c_int = 0x0010;                    // X11/Xutil.h 74
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const YNegative: c_int = 0x0020;                    // X11/Xutil.h 75
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+pub const InputHint: c_long = 1 << 0;                    // X11/Xutil.h 134
+
+/* C: Xlib.h 2995-3003: `extern Window XCreateWindow (Display *, Window, int, int, unsigned int,
+   unsigned int, unsigned int, int, unsigned int, Visual *, unsigned long,
+   XSetWindowAttributes *);` - C 4512-4521's call.
+   C: Xutil.h 642: `extern void XSetClassHint (Display *, Window, XClassHint *);` - C 4554's.
+   C: Xlib.h 2896: `extern Status XSetWMProtocols (Display *, Window, Atom *, int);` - C 4572's.
+   C: Xlib.h 1424: `extern Status XGetWindowAttributes (Display *, Window, XWindowAttributes *);`
+   - C 4456-4457's.  Block comments, because a doc comment on an `extern` block is the
+   `unused doc comment` warning the file's baseline already counts (slice 5's note).  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit")))]
+unsafe extern "C" {
+  pub fn XCreateWindow (dpy: *mut Display, parent: Window, x: c_int, y: c_int, width: c_uint,
+			height: c_uint, border_width: c_uint, depth: c_int, class: c_uint,
+			visual: *mut Visual, valuemask: c_ulong,
+			attributes: *mut XSetWindowAttributes) -> Window;
+  pub fn XSetClassHint (dpy: *mut Display, w: Window, class_hints: *mut XClassHint) -> c_int;
+  pub fn XSetWMProtocols (dpy: *mut Display, w: Window, protocols: *mut Atom, count: c_int)
+			  -> c_int;
+  pub fn XGetWindowAttributes (dpy: *mut Display, w: Window, attr: *mut XWindowAttributes)
+			       -> c_int;
+}
+
+/* C: src/gtkutil.h 78: `extern bool xg_create_frame_widgets (struct frame *f);` - C 4435's call.
+   (gtkutil.rs defines it; this unit declares it at the use site, P-72 rule 4.)  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"), feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_create_frame_widgets (f: *mut frame) -> bool;
+}
+
+/// C 4432-4474: `static void x_window (struct frame *f)`, the `USE_GTK` arm of C 4430's
+/// `#else /* not USE_X_TOOLKIT */`.  C 4470-4473's `HAVE_XINPUT2` pair calls slice 5's
+/// `setup_xi_event_mask`; `XNFilterEvents` is Xlib.h 3895's atom name and `NoEventMask`/`CWEventMask`
+/// are the mirror's `x11_constants` members.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"), feature = "use_gtk"))]
+unsafe fn x_window (f: *mut frame)
+{
+  use crate::x11_constants::{CWEventMask, NoEventMask};
+
+  let res: bool = xg_create_frame_widgets (f);                          // C 4435
+  if res == false
+    { error (c"Unable to create window".as_ptr ()); }                   // C 4436
+
+#[cfg (feature = "have_x_i18n")]
+  {
+    FRAME_XIC! (f) = std::ptr::null_mut ();                             // C 4439
+    if (*FRAME_DISPLAY_INFO! (f)).use_xim                              // C 4440
+      {
+	block_input ();                                                // C 4442
+	create_frame_xic (f);                                          // C 4443
+	if !FRAME_XIC! (f).is_null ()                                  // C 4444
+	  {
+	    /* XIM server might require some X events. */
+	    let mut fevent: c_long = NoEventMask;                      // C 4447 (C: unsigned long)
+	    XGetICValues (FRAME_XIC! (f), XNFilterEvents.as_ptr (), &raw mut fevent,
+			  std::ptr::null_mut::<c_void> ());            // C 4448
+
+	    if fevent != NoEventMask                                   // C 4450
+	      {
+		let mut attributes: XSetWindowAttributes = std::mem::zeroed ();   // C 4452
+		let mut wattr: XWindowAttributes = std::mem::zeroed ();           // C 4453
+		let attribute_mask: c_long;                            // C 4454 (C: unsigned long; the mirror's CW* words are c_long)
+
+		XGetWindowAttributes (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),
+				      &raw mut wattr);                     // C 4456-4457
+		attributes.event_mask = wattr.your_event_mask | fevent;    // C 4458
+		attribute_mask = CWEventMask;                          // C 4459
+		XChangeWindowAttributes (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),
+					 attribute_mask as c_ulong, &raw mut attributes);  // C 4460-4461
+	      }
+	  }
+	unblock_input ();                                              // C 4464
+      }
+  }
+
+  append_wm_protocols (FRAME_DISPLAY_INFO! (f), f);                    // C 4468
+
+#[cfg (feature = "have_xinput2")]
+  if (*FRAME_DISPLAY_INFO! (f)).supports_xi2                           // C 4471
+    { setup_xi_event_mask (f); }                                       // C 4472
+}
+
+/* Create and set up the X window for frame F.  */
+
+/// C 4479-4619: `static void x_window (struct frame *f)`, the plain-X arm (C 4476's
+/// `#else /*! USE_GTK */`).  `STANDARD_EVENT_SET` is the mirror's own constant (xterm.h 146),
+/// `XNegative`/`YNegative` are Xlib's `Xutil.h 417-418`, and the `MWM_*` trio plus
+/// `PropMotifWmHints` are this file's C 137-170 block, already carried by slice 1.
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+unsafe fn x_window (f: *mut frame)
+{
+  use crate::x11_constants::{CWEventMask, CWOverrideRedirect, GCForeground, GCBackground,
+			     PropModeReplace, NoEventMask};
+
+  let mut class_hints: XClassHint;                                     // C 4482
+  let mut attributes: XSetWindowAttributes;                            // C 4483
+  let mut attribute_mask: c_long;                                      // C 4484 (C: unsigned long; the mirror's CW* words are c_long)
+
+  attributes.background_pixel = FRAME_BACKGROUND_PIXEL! (f);           // C 4486
+  attributes.border_pixel = (*((*f).output_data.x as *mut x_output)).border_pixel;       // C 4487
+  attributes.bit_gravity = StaticGravity;                              // C 4488
+  attributes.backing_store = NotUseful;                                // C 4489
+  attributes.save_under = True;                                        // C 4490
+  attributes.event_mask = STANDARD_EVENT_SET;                          // C 4491
+  attributes.colormap = FRAME_X_COLORMAP! (f);                         // C 4492
+  attributes.override_redirect = FRAME_OVERRIDE_REDIRECT! (f);         // C 4493
+  attribute_mask = CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask  // C 4494-4495
+    | CWOverrideRedirect | CWColormap;
+
+  if !FRAME_PARENT_FRAME (f).is_null ()                                // C 4497
+    {
+      if (*f).size_hint_flags & XNegative != 0                          // C 4499
+	{ (*f).left_pos = FRAME_PIXEL_WIDTH (FRAME_PARENT_FRAME (f))  // C 4500-4501
+	    - FRAME_PIXEL_WIDTH (f) + (*f).left_pos; }
+
+      if (*f).size_hint_flags & YNegative != 0                          // C 4503
+	{ (*f).top_pos = FRAME_PIXEL_HEIGHT (FRAME_PARENT_FRAME (f))  // C 4504-4505
+	    - FRAME_PIXEL_HEIGHT (f) + (*f).top_pos; }
+
+      (*f).size_hint_flags &= !(XNegative | YNegative);                 // C 4507
+    }
+
+  block_input ();                                                       // C 4510
+  FRAME_X_WINDOW! (f)                                                   // C 4511-4521
+    = XCreateWindow (FRAME_X_DISPLAY! (f), (*FRAME_DISPLAY_INFO! (f)).root_window,
+		     (*f).left_pos, (*f).top_pos, FRAME_PIXEL_WIDTH (f) as c_uint,
+		     FRAME_PIXEL_HEIGHT (f) as c_uint, (*f).border_width as c_uint,
+		     (*FRAME_DISPLAY_INFO! (f)).n_planes, InputOutput,
+		     FRAME_X_VISUAL! (f), attribute_mask as c_ulong, &raw mut attributes);
+  initial_set_up_x_back_buffer (f);                                     // C 4522
+
+#[cfg (feature = "have_x_i18n")]
+  {
+    if (*FRAME_DISPLAY_INFO! (f)).use_xim                               // C 4525
+      {
+	create_frame_xic (f);                                           // C 4527
+	if !FRAME_XIC! (f).is_null ()                                   // C 4528
+	  {
+	    /* XIM server might require some X events. */
+	    let mut fevent: c_ulong = NoEventMask;                      // C 4531
+
+	    if fevent != 0                                              // C 4533
+	      {
+		XGetICValues (FRAME_XIC! (f), XNFilterEvents.as_ptr (), &raw mut fevent,
+			      std::ptr::null_mut::<c_void> ());             // C 4535
+		attributes.event_mask |= fevent;                        // C 4536
+		attribute_mask = CWEventMask;                           // C 4537
+		XChangeWindowAttributes (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),
+					 attribute_mask as c_ulong, &raw mut attributes);  // C 4538-4539
+	      }
+	  }
+      }
+  }
+
+#[cfg (feature = "have_xinput2")]
+  if (*FRAME_DISPLAY_INFO! (f)).supports_xi2                            // C 4546
+    { setup_xi_event_mask (f); }                                        // C 4547
+
+  validate_x_resource_name ();                                          // C 4550
+
+  class_hints.res_name = SSDATA (Vx_resource_name);                     // C 4552
+  class_hints.res_class = SSDATA (Vx_resource_class);                   // C 4553
+  XSetClassHint (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), &raw mut class_hints);  // C 4554
+
+  /* This indicates that we use the "Passive Input" input model.
+     Unless we do this, we don't get the Focus{In,Out} events that we
+     need to draw the cursor correctly.  Accursed bureaucrats.
+   XWhipsAndChains (FRAME_X_DISPLAY (f), IronMaiden, &TheRack);  */
+
+  (*((*f).output_data.x as *mut x_output)).wm_hints.input = True;                         // C 4561
+  (*((*f).output_data.x as *mut x_output)).wm_hints.flags |= InputHint;                   // C 4562
+  XSetWMHints (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),               // C 4563-4564
+	       &raw mut (*((*f).output_data.x as *mut x_output)).wm_hints);
+  (*((*f).output_data.x as *mut x_output)).wm_hints.icon_pixmap = 0;  /* C's `None` */    // C 4565
+
+  /* Request "save yourself" and "delete window" commands from wm.  */
+  {
+    let mut protocols: [Atom; 2];                                       // C 4569
+    protocols[0] = (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_delete_window;   // C 4570
+    protocols[1] = (*FRAME_DISPLAY_INFO! (f)).Xatom_wm_save_yourself;    // C 4571
+    XSetWMProtocols (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), protocols.as_mut_ptr (), 2);  // C 4572
+  }
+
+  append_wm_protocols (FRAME_DISPLAY_INFO! (f), f);                     // C 4575
+
+  /* x_set_name normally ignores requests to set the name if the
+     requested name is the same as the current name.  This is the one
+     place where that assumption isn't correct; f->name is set, but
+     the X server hasn't been told.  */
+  {
+    let name: Lisp_Object;                                              // C 4582
+    /* C's `f->explicit_name` is one of frame.h 417's bitfields; the mirror reads and writes
+       those through `frame_flag`/`frame_set_flag` with the target's own unit/shift pair.  */
+    let explicit: bool                                                  // C 4583
+      = frame_flag (f, FRAME_EXPLICIT_NAME_UNIT, FRAME_EXPLICIT_NAME_SHIFT);
+
+    frame_set_flag (f, FRAME_EXPLICIT_NAME_UNIT, FRAME_EXPLICIT_NAME_SHIFT, 0);  // C 4585
+    name = (*f).name;                                                   // C 4586
+    fset_name (f, Qnil ());                                             // C 4587
+    x_set_name (f, name, explicit);                                     // C 4588
+  }
+
+  if FRAME_UNDECORATED! (f) != 0                                        // C 4591
+    {
+      let dpy: *mut Display = FRAME_X_DISPLAY! (f);                     // C 4593
+      let mut hints: PropMotifWmHints = std::mem::zeroed ();            // C 4594
+      let prop: Atom = (*FRAME_DISPLAY_INFO! (f)).Xatom_MOTIF_WM_HINTS;  // C 4595
+
+      memset (&raw mut hints as *mut c_void, 0, std::mem::size_of::<PropMotifWmHints> ());  // C 4597
+      hints.flags = MWM_HINTS_DECORATIONS as c_ulong;                   // C 4598
+      hints.decorations = 0;                                            // C 4599
+
+      /* For some reason the third and fourth arguments in the following
+	 call must be identical: ...  */
+      XChangeProperty (dpy, FRAME_OUTER_WINDOW! (f), prop, prop, 32, PropModeReplace,
+		       &raw mut hints as *mut c_uchar,
+		       PROP_MOTIF_WM_HINTS_ELEMENTS);                       // C 4605-4607
+    }
+
+
+  /* C passes an assignment expression; Rust has no such expression, so the assignment is its
+     own statement and the value it leaves is passed (PORTING.md 2.2's statement class).  */
+  (*((*f).output_data.x as *mut x_output)).current_cursor                 // C 4612-4613
+    = (*((*f).output_data.x as *mut x_output)).text_cursor;
+  XDefineCursor (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),              // C 4611
+		 (*((*f).output_data.x as *mut x_output)).current_cursor);
+
+  unblock_input ();                                                     // C 4615
+
+  if FRAME_X_WINDOW! (f) == 0                                           // C 4617
+    { error (c"Unable to create window".as_ptr ()); }                   // C 4618
+}

@@ -1,5 +1,5 @@
-# emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956 and
-C 3957-4170
+# emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
+C 3957-4170 and C 4430-4621
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -9,9 +9,9 @@ C 3957-4170
 > sections cannot be coverage evidence.  What follows is P-86 ②'s substitute: the **C line-range
 > table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
 > `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice,
-> **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth -
-> C 803-2149, C 2150-3811, C 3812-3956 and C 3957-4170, whose own ledger sections are at the end of
-> this file - measured
+> **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
+> **6,325 lines** after the sixth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170 and C 4430-4621,
+> whose own ledger sections are at the end of this file - measured
 > with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
@@ -165,7 +165,9 @@ defines both features.
 | 3636-3811 | C 3636's blank and `xic_preedit_draw_callback` (C 3668/3680/3694/3709/3717/3726/3738/3764 the eight `goto im_abort` and C 3802's `im_abort:` label) | `have_x_i18n` |
 | 3812-3956 | C 3812's blank, `xic_set_xfontset` (C 3813 the `void`, C 3814 the name; C's definition has no `static`), C 3833-3836's blanks and comment and `xic_string_conversion_callback` (C 3837 the `static void`, C 3850/3907/3924/3943 the four `goto failure`, C 3947 the `failure:` label, C 3956 the `#endif` that closes C 2728) | `have_x_i18n` |
 | 3957-4170 | C 3961's `void` and `x_mark_frame_dirty` (C 3962), C 3971's `static void` and `set_up_x_back_buffer` (C 3972), `tear_down_x_back_buffer` (C 4012 the `void`, C 4013 the name), `initial_set_up_x_back_buffer` (C 4046 the `void`, C 4047 the name), C 4057's `#if defined HAVE_XINPUT2` with `setup_xi_event_mask` (C 4059 the `static void`, C 4060 the name) and C 4170's `#endif` that closes it | the file gate plus `have_xdbe`/`have_xrender`/`use_cairo`/`have_xinput2`/`have_xinput2_1`/`have_xinput2_2`/`have_xinput2_4`/`use_gtk`/`use_gtk3`/`have_gtk3`/`use_x_toolkit`, each item carrying the guard C gives its statements |
-| 4172-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 8,492 lines, whose first live definition is `x_window` (C 4176 is its `static void`, C 4177 the name) - the next slice's first item | not ported in this slice |
+| 4172-4428 | the `USE_X_TOOLKIT` arm of `x_window` (C 4176 the `static void`, C 4177 the name: the `XtSetArg`/`XtAppCreateShell`/`lw_create_widget` body) | not in this slice: the next slice's first item, and the reason the table's next row starts at C 4430 |
+| 4430-4623 | C 4430's `#else /* not USE_X_TOOLKIT */` with the two arms of `x_window` - the GTK one (C 4431-4474) and the plain-X one (C 4476-4619) - up to C 4622's `#endif /* not USE_X_TOOLKIT */` | the file gate plus `use_gtk` / `not (feature = "use_gtk")`, and each item's own guard inside them (`have_x_i18n`, `have_xinput2`) |
+| 4624-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 6,039 lines, whose first live definition is `x_icon_verify` (C 4626 is its `static void`, C 4627 the name) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1192,3 +1194,80 @@ The frozen configuration compiles none of this file, so nothing here is behaviou
 opened, no back buffer allocated, no picture freed, no XI event mask selected and no frame marked
 dirty.  The GTK arm's error count moving 24 -> 22 is a *text* compile reading; the two retirements
 are the rows slice 4 named, not a claim that the functions work.
+
+## Slice 6 (2026-10-07, status 3.908 - the integrator sets the round number): C 4430-4623
+
+**The slice is C 4430-4623**: the `#else /* not USE_X_TOOLKIT */` half of `x_window`, i.e. the GTK
+arm (C 4431-4474), the plain-X arm (C 4476-4619) and C 4622's `#endif` that closes the block.  The Xt arm (C 4172-4428) is *not* in this
+slice - it opens the table's next row - so `--check`'s `missing function x_window` retires on the
+two arms landed here, which is C's own shape for a function with three mutually exclusive bodies
+(the port writes three `#[cfg]`-gated definitions, exactly one of which compiles per arm).  The
+port's slice is **334 Rust lines** (6,325 - 5,991) against C's 192.
+
+**What the two arms needed.**  `create_frame_xic` (C 2740's block) and `append_wm_protocols`
+(C 1573) are this file's own definitions and `setup_xi_event_mask` is slice 5's, so the arms read
+them directly; the Xlib entry points neither they nor the mirror declare - `XCreateWindow`,
+`XSetClassHint`, `XSetWMProtocols`, `XGetWindowAttributes`, `xg_create_frame_widgets`, the two
+records `XClassHint` (Xutil.h 632-636) and `XWindowAttributes` (Xlib.h 304-330) and the atom name
+`XNFilterEvents` (Xlib.h 1188) - stand in this slice's use-site blocks, each under the guard its
+arm has, with the headers' published field orders (P-72 rule 4, P-88 rule 1; the
+`XWindowAttributes` layout is marked UNVERIFIED beyond `your_event_mask`, the one field this file
+reads).  Eleven X11 constants the mirror's `x11_constants` does not carry (`InputOutput`,
+`CWBackPixel`, `CWBorderPixel`, `CWBitGravity`, `CWColormap`, `StaticGravity`, `NotUseful`,
+`GCLineWidth`, `XNegative`, `YNegative`, `InputHint`) are declared with the values measured on
+this machine's `X11/X.h` and `X11/Xutil.h` - the five `x11_constants` does carry are imported.
+
+**The frame-name flag goes through the mirror's bitfield accessors.**  C 4583-4585 read and clear
+`f->explicit_name`, which is one of frame.h 417's bitfields; the port has no such field, so the
+access is `frame_flag (f, FRAME_EXPLICIT_NAME_UNIT, FRAME_EXPLICIT_NAME_SHIFT)` and
+`frame_set_flag (…)`, the pair `include/frame.rs` carries for every one of those flags.  The first
+attempt instead added a struct field to `include/frame.rs` and the mirror failed to parse (an
+`E0282`/`E0425` cascade across every consumer); the field is reverted and no mirror change ships
+with this slice.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the
+**336-byte** empty object (exit 0).
+
+**② The plain-X11 arm** (`--cfg 'feature="have_x_windows"'`): **5 errors / 9 warnings before,
+6 / 9 after**.  The one addition is `cannot find function *validate_x_resource_name*` - C 4550's
+call to the static C 8388 defines, which lives in the remainder; the warning set is unchanged.
+
+**③ The GTK arm** (the ten-cfg set of slices 4-5): **22 errors / 20 warnings before, 22 / 20
+after** - this slice's own two definitions *and* the GTK arm of `x_window` resolve completely (the
+`x_window` row retires from `--check`), and no warning moved.  The first measurement added an
+`E0283` (`std::ptr::null_mut ()` in the variadic `XGetICValues` call) which is typed at the call
+site now.
+
+**④ `extract-abi.py --check`**: `missing function` **38 -> 37** (`x_window` leaves the list; the
+Xt arm's absence is what the C-range table records, not what the tool demands).  Drift reads
+`C 10662 vs Rust 6325` (**40.7%**, was 43.8%).  The other classes are unchanged.
+
+**⑤ No mirror change**, so P-87's legs are not this slice's: `check-mirror-dupes` still reads
+**16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**.
+
+### Deviations (this slice)
+
+1. **`XDefineCursor`'s assignment expression** (C 4611-4613): Rust has no assignment expression,
+   so C's `current_cursor = text_cursor` is its own statement and the value it leaves is passed -
+   C's order kept (PORTING.md 2.2).
+2. **The eleven X11 constants** stand at the use site with measured values, because
+   `x11_constants` carries five of the sixteen this arm reads.
+3. **`XWindowAttributes` and `XClassHint`** are carried at the use site with the headers' field
+   order; the first is UNVERIFIED beyond `your_event_mask`.
+
+### Owed (this slice)
+
+- The Xt arm of `x_window` (C 4172-4428) and the four definitions that follow this slice
+  (`x_icon_verify`, `x_icon`, `x_make_gc`, `x_free_gcs`, C 4624-4789) - the next slice's items.
+- `validate_x_resource_name` (C 8388, still in the remainder) is the one row this slice's
+  plain-X arm names.
+- The 37 missing functions, 1 macro, 4 objects, 53 subrs and 45 defsubrs `--check` still reads for
+  this file.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no window was created, no class hint or WM
+hint was set, no cursor was defined and no GC was made.  The GTK arm's unchanged count and the
+plain-X arm's +1 are *text* compile readings.
