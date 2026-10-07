@@ -8893,6 +8893,82 @@ class EmacsView: NSView {
     unblock_input()                                             // C 9445
   }
 
+  /// C 9452-9465: `-(NSDragOperation) draggingEntered: (id <NSDraggingInfo>) sender`.  C's
+  /// `[source respondsToSelector: @selector (mustNotDropOn:)]` is kept as the selector test and
+  /// the send reaches this class's own `@objc(mustNotDropOn:)` (round 62); `NSDragOperationNone`
+  /// and `NSDragOperationGeneric` are the option set's `.init ()`/`.generic` (the
+  /// `NSApplicationPresentationDefault` reading).
+  @objc override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
+    let source: AnyObject? = sender.draggingSource as AnyObject?   // C 9458
+
+    // C 9456: `NSTRACE ("[EmacsView draggingEntered:]");` - empty.
+
+    if source != nil
+         && source!.responds(to: #selector(EmacsWindow.mustNotDropOn(_:)))   // C 9460
+         && ((source as? EmacsWindow)?.mustNotDropOn(self) ?? false) {      // C 9461
+      return []                                               // C 9462 (C's `NSDragOperationNone`)
+    }
+
+    return .generic                                           // C 9464
+  }
+
+  /// C 9468-9479: `-(BOOL) prepareForDragOperation: (id <NSDraggingInfo>) sender` - the same
+  /// selector test and send as above, with C's `NO`/`YES` answers.
+  @objc override func prepareForDragOperation(_ sender: NSDraggingInfo) -> Bool {
+    let source: AnyObject? = sender.draggingSource as AnyObject?   // C 9472
+
+    if source != nil
+         && source!.responds(to: #selector(EmacsWindow.mustNotDropOn(_:)))   // C 9474
+         && ((source as? EmacsWindow)?.mustNotDropOn(self) ?? false) {      // C 9475
+      return false                                            // C 9476
+    }
+
+    return true                                               // C 9478
+  }
+
+  /// C 9481-9484: `- (BOOL) wantsPeriodicDraggingUpdates` - C's whole body is `return YES;`.
+  @objc override func wantsPeriodicDraggingUpdates() -> Bool {
+    true                                                      // C 9483
+  }
+
+  /// C 9486-9536: `-(NSDragOperation) draggingUpdated: (id <NSDraggingInfo>) sender`.  C's
+  /// `NSAutoreleasePool` alloc/init is the runtime's `objc_autoreleasePoolPush` (the
+  /// `ns_init_pool` reading of C 560), C 9500's `record_unwind_protect_ptr` is a new entry with
+  /// C's own callback, the `NS_IMPL_GNUSTEP` arms (C 9488-9492 and C 9502-9522) are **dead** on
+  /// this target, so C 9524-9531 is the live body: `XSETFRAME` plus C 9528-9529's `safe_calln`,
+  /// which C's macro expands through `safe_funcall` (the round-34 reading of the same macro), and
+  /// C 9531's `redisplay` is the round-77 entry.
+  @objc override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
+    var frame: Lisp_Object = Qnil()                           // C 9491
+    var position: NSPoint = .zero                             // C 9493
+    var x: Int32 = 0, y: Int32 = 0                            // C 9494
+
+    let ap = objc_autoreleasePoolPush()                        // C 9498
+    let count = SPECPDL_INDEX()                                // C 9499
+    record_unwind_protect_ptr(ns_release_autorelease_pool, ap) // C 9500
+
+    /* C 9507: "Get rid of mouse face."  */
+    self.mouseExited(with: self.window!.currentEvent!)         // C 9508
+
+    position = self.convert(sender.draggingLocation, from: nil)   // C 9510-9511
+    x = Int32(lrint(Double(position.x)))                       // C 9512
+    y = Int32(lrint(Double(position.y)))                       // C 9513
+
+    /* C 9524-9525: "Input events won't be processed until the drop happens on macOS, so call
+       this function instead."  */
+    XSETFRAME(&frame, emacsframe)                              // C 9526
+
+    var args: [Lisp_Object] = [frame, make_fixnum(Int(x)), make_fixnum(Int(y))]   // C 9528-9529
+    _ = args.withUnsafeMutableBufferPointer {
+      safe_funcall(Int($0.count), $0.baseAddress)              // C 9528-9529 (C's `safe_calln`)
+    }
+
+    redisplay()                                                // C 9531
+
+    _ = unbind_to(count, Qnil())                               // C 9534
+    return .generic                                            // C 9535
+  }
+
   /// C 8952-8955: `- (BOOL)fsIsNative` - C's whole body is the ivar read.
   func fsIsNative() -> Bool {
     fs_is_native                                      // C 8954
@@ -14749,3 +14825,15 @@ func frame_garbaged_p(_ f: UnsafeMutableRawPointer?) -> Bool
 func copyRect_definition(_ view: NSView?, _ srcRect: NSRect, _ dest: NSPoint) {
   (view as? EmacsView)?.copyRect(srcRect, to: dest)
 }
+
+// ==========================================================================
+// Round 78: the entries the drag-and-drop batch needs
+// ==========================================================================
+
+/// C: `void record_unwind_protect_ptr (void (*) (void *), void *)` (declared src/lisp.h 4875,
+/// defined src/eval.c) - C 9500's call, whose callback is this unit's own
+/// `@_cdecl("ns_release_autorelease_pool")`.  **Open**: the core's to export (the `record_unwind_*`
+/// family's first use in this lane).
+@_silgen_name("record_unwind_protect_ptr")
+func record_unwind_protect_ptr(_ func: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?,
+                               _ arg: UnsafeMutableRawPointer?)

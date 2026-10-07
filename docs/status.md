@@ -16822,3 +16822,28 @@
      `/tmp/r77*.swift` 片段跑完即删**，无全盘/大内存扫描。
   ⑧ **未声称**：本轮**没有运行证据**——没有拷贝过任何矩形、没有做过图层布局、没有绘制过视图；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.018 `src/nsterm.m` round 78（Swift lane）：拖放批的前四件落地（C 9452-9536）（2026-10-08）**：
+  ① **落地四个 `EmacsView` 方法**：`draggingEntered:`（C 9452-9465）、`prepareForDragOperation:`（C 9468-9479）、
+     `wantsPeriodicDraggingUpdates`（C 9481-9484）、`draggingUpdated:`（C 9486-9536）。台账勾 **4 个框**
+     （勾 **414 → 418**、未勾 **16 → 12**；缩进的方法盒子剩 **11**），`EmacsView` 类盒子同步改成"还剩 **11** 个方法盒子"。
+  ② **首跑十二处编译错误，逐处量到判据**：⑴ 这四个方法都要 `override`（Swift 里 `NSView` 一致于
+     `NSDraggingDestination`，编译器据此要求）；⑵ `mustNotDropOn:` 是 **`EmacsWindow`** 的方法（round 62），不是
+     `EmacsView` 的——编译器把两处写错的强转都点了名；⑶ C 的无类型 `id source` 是经 `responds (to:)` 到达的，
+     所以局部量类型写成 `AnyObject?`（`[source respondsToSelector:]` 那条读法）。
+  ③ **写进代码的读数**：C 9488-9492 与 C 9502-9522 两块 `NS_IMPL_GNUSTEP` 臂在本目标是**死的**，所以 C 9524-9531
+     是活体；C 9498 的 `[[NSAutoreleasePool alloc] init]` 是运行时的 `objc_autoreleasePoolPush`（C 560 那条读法）；
+     C 9528-9529 的 `safe_calln` 宏按 round 34 对同一宏的读法经 `safe_funcall` 入口拼出（C 的 `CALLMANY`
+     复合字面量落成数组 + `withUnsafeMutableBufferPointer`）；`NSDragOperationNone`/`Generic` 是选项集的 `[]`/`.generic`。
+  ④ **本轮新增 1 个入口**：`record_unwind_protect_ptr`（声明 src/lisp.h 4875，**open**——`record_unwind_*` 这一族
+     在本 lane 的首次使用），回调是本单元自己的 `@_cdecl("ns_release_autorelease_pool")`。
+  ⑤ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 77 的九条逐条相同）；对象
+     `/tmp/nsterm78.o` **1,359,552 字节**、md5 `ff18f710953ac9c1c19637a3b4ad4916`；单元 **14,839 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **704** C symbol import(s)`
+     （round 77 是 703），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**；`check-citations` **676 / 0 drift /
+     0 range / 2,416 external / 36 allowed / 0 stale**。
+  ⑥ **预算与清理**：本片编译 **3 发**（首跑 12 错 → 4 错 → 一次即过，都是单文件 `swiftc -c`，各约 2 秒）；
+     另用 **4 组只读 grep** 钉准入口名与 `safe_calln` 的既有拼法；**对象 `/tmp/nsterm78.o` 与两个 `/tmp/r78*.swift`
+     片段跑完即删**，无全盘/大内存扫描。
+  ⑦ **未声称**：本轮**没有运行证据**——没有任何东西被拖到这个视图上；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
