@@ -106,6 +106,9 @@ pub mod x11_constants {
   /// X11/X.h 210: `#define SelectionNotify 31` - C 19473's case label (`src/xselect.rs` 127
   /// declares the same value for its own unit).
   pub const SelectionNotify: c_int = 31;
+  /// X11/X.h 446: `#define PropertyDelete 1` - the `XPropertyEvent.state` value
+  /// C 19579 and C 19699 test for.
+  pub const PropertyDelete: c_int = 1;
   /// X11/X.h 186: `#define EnterNotify 7` - an event type the focus machinery dispatches on
   /// (measured against this target's header, the `spikes` probe in the slice-59 reading).
   pub const EnterNotify: c_int = 7;

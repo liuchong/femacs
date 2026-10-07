@@ -3658,7 +3658,7 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
     }
 
   #[cfg (feature = "use_xcb")]
-  { SAFE_FREE! (); }
+  { SAFE_FREE! (sa_count); }
 
   if !data.is_null ()
     { XFree (data as *mut c_void); }
@@ -7605,6 +7605,12 @@ unsafe fn x_find_topmost_parent (f: *mut frame) -> Window
    reads it as (the `X_DND_SUPPORTED_VERSION` shape).  */
 #[cfg (feature = "have_x_windows")]
 pub const OPAQUE: c_ulong = 0xffffffff;
+
+/* C 19608: `tem->wm_state = WithdrawnState;` - X11/Xutil.h 265's `#define
+   WithdrawnState 0`, the `WM_STATE` value that says no window manager owns the
+   window (this unit is its only reader in the port).  */
+#[cfg (feature = "have_x_windows")]
+pub const WithdrawnState: c_ulong = 0;
 
 /* C 6932-6989.  */
 #[cfg (feature = "have_x_windows")]
@@ -30851,6 +30857,17 @@ pub unsafe extern "C" fn x_find_selection_owner (dpyinfo: *mut x_display_info,
   return X_INVALID_WINDOW;                                             // C 18861
 }
 
+/* C 19801's `x_handle_property_notify` is another unit's definition (`src/xselect.rs` 2025)
+   whose header - xterm.h 1919 - this unit's mirror graph does not carry, so it stands at
+   this use site (P-88 1) with C's own prototype.  C 19802's `xft_settings_event` needs no
+   row: `include/xsettings.rs` 38 declares it for every includer (with `void *` parameters,
+   xsettings.h's `Display_Info` being this unit's `x_display_info`).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: xterm.h 1919: `extern void x_handle_property_notify (const XPropertyEvent *);`
+  pub fn x_handle_property_notify (event: *const XPropertyEvent);
+}
+
 /// C 18866-25632: `handle_one_xevent (struct x_display_info *dpyinfo, XEvent *event, int *finish,
 /// struct input_event *hold_quit)` - `static int` (C 18875), so a plain `unsafe fn`, and the
 /// file's largest function.  **Slice 110 lands its prologue and its tail** (C 18866-18949 and
@@ -30936,6 +30953,10 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
   use crate::x11_constants::SelectionClear;
   use crate::x11_constants::SelectionRequest;
   use crate::x11_constants::None;
+  /* C 19579/19699's `PropertyDelete`, and the Xlib/Xatom names the toplevel scan and
+     the opacity reader read (C 19597-19621, C 19709-19721).  */
+  use crate::x11_constants::{AnyPropertyType, PropertyDelete, Success};
+  use crate::x11_constants::{XA_ATOM, XA_CARDINAL, XA_WINDOW};
   /* C 18935's other name, read only in the `HAVE_XINPUT2` arm - the per-function `use` the
      ledger's Decision 4 spells for the bare X11 vocabulary.  */
 #[cfg (feature = "have_xinput2")]
@@ -31100,6 +31121,355 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 		  if (*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_FAILURE  // C 19556
 		    { x_dnd_action = None as Atom; }                       // C 19557
 		}
+	    }
+
+	  /* C 19562-19804: `case PropertyNotify:`.  The XDND toplevel table's `wm_state` reader, the
+	     two frame-state readers (`_NET_WM_STATE` and `WM_STATE`), the `_NET_WM_WINDOW_OPACITY`
+	     reader with its two `USE_XCB` arms, the root-window toplevel-list refresh, and the two
+	     handlers C ends on.  `event->xproperty` is one of the `XEvent` stand-in's owed members
+	     (`docs/ports/include-xlib.md`), so the port keeps C's own member text - the class slices
+	     110 and 111 carry - and the two `XEvent` records C's calls need (`XPropertyEvent`, the
+	     unit's own at 16681) are what makes the call sites type as C's do.  */
+	  PropertyNotify =>
+	    {
+	      if x_dnd_in_progress                                          // C 19563
+		&& x_dnd_use_toplevels
+		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)             // C 19564
+		&& (*event).xproperty.atom == (*dpyinfo).Xatom_wm_state     // C 19565
+		{
+		  let mut tem: *mut x_client_list_window;                   // C 19567
+		  let mut last: *mut x_client_list_window;                  // C 19567
+
+		  last = std::ptr::null_mut ();                             // C 19569
+		  tem = x_dnd_toplevels;
+		  while !tem.is_null ()                                     // C 19569
+		    {
+		      if (*tem).window == (*event).xproperty.window         // C 19572
+			{
+			  let mut actual_type: Atom;                        // C 19574
+			  let mut actual_format: c_int;                     // C 19575
+			  let mut rc: c_int;                                // C 19575
+			  let mut nitems: c_ulong;                          // C 19576
+			  let mut bytesafter: c_ulong;                      // C 19576
+			  let mut data: *mut c_uchar                        // C 19577
+			    = std::ptr::null_mut ();
+
+			  if (*event).xproperty.state == PropertyDelete     // C 19579
+			    {
+			      if last.is_null ()                            // C 19581
+				{ x_dnd_toplevels = (*tem).next; }          // C 19582
+			      else
+				{ (*last).next = (*tem).next; }             // C 19584
+
+			      /* C 19586-19591's `#ifdef HAVE_XSHAPE` block - the same shape
+				 `x_dnd_free_toplevels` landed (2959-2966).  */
+#[cfg (feature = "have_xshape")]
+			      {
+				if (*tem).n_input_rects != -1               // C 19587
+				  { xfree ((*tem).input_rects as *mut c_void); }   // C 19588
+				if (*tem).n_bounding_rects != -1            // C 19589
+				  { xfree ((*tem).bounding_rects as *mut c_void); } // C 19590
+			      }
+			      xfree (tem as *mut c_void);                   // C 19592
+			    }
+			  else
+			    {
+			      x_catch_errors ((*dpyinfo).display);          // C 19596
+			      rc = XGetWindowProperty ((*dpyinfo).display,   // C 19597
+						       (*event).xproperty.window,   // C 19598
+						       (*dpyinfo).Xatom_wm_state,   // C 19599
+						       0, 2, 0, AnyPropertyType as Atom,   // C 19600
+						       &raw mut actual_type,        // C 19601
+						       &raw mut actual_format,
+						       &raw mut nitems,             // C 19602
+						       &raw mut bytesafter,
+						       &raw mut data);
+
+			      if !x_had_errors_p ((*dpyinfo).display)       // C 19604
+				&& rc == Success && !data.is_null ()        // C 19605
+				&& nitems == 2 && actual_format == 32
+				{ (*tem).wm_state = *(data as *mut c_ulong).offset (0); }  // C 19606
+			      else
+				{ (*tem).wm_state = WithdrawnState; }       // C 19608
+
+			      if !data.is_null ()                           // C 19610
+				{ XFree (data as *mut c_void); }            // C 19611
+			      x_uncatch_errors_after_check ();              // C 19612
+			    }
+
+			  x_dnd_update_state (dpyinfo, (*event).xproperty.time);  // C 19615
+			  break;                                        // C 19616
+			}
+		      last = tem;                                       // C 19570
+		      tem = (*tem).next;                                // C 19570
+		    }
+		}
+
+	      f = x_top_window_to_frame (dpyinfo, (*event).xproperty.window);  // C 19621
+	      if !f.is_null ()                                          // C 19622
+		&& (*event).xproperty.atom == (*dpyinfo).Xatom_net_wm_state
+		/* This should never happen with embedded windows.  */  // C 19623
+		&& !FRAME_X_EMBEDDED_P! (f)                             // C 19624
+		{
+		  let not_hidden: bool
+		    = x_handle_net_wm_state (f, &raw const (*event).xproperty);  // C 19626
+
+		  if not_hidden && FRAME_ICONIFIED_P (f)                // C 19628
+		    {
+		      if CONSP (frame_size_history)                     // C 19630
+			{
+			  frame_size_history_plain                      // C 19631-19632
+			    (f, build_string (c"PropertyNotify, not hidden & iconified".as_ptr ()));
+			}
+
+		      /* "Gnome shell does not iconify us when C-z is pressed.  It hides the
+			 frame.  So if our state says we aren't hidden anymore, treat it as
+			 deiconified."  */
+		      SET_FRAME_VISIBLE! (f, 1);                        // C 19638
+		      SET_FRAME_ICONIFIED (f, false as c_int);          // C 19639
+
+		      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;   // C 19641
+		      input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);  // C 19642
+		      /* C 19643-19652's `#if defined USE_GTK && defined HAVE_GTK3` block: "If GTK3
+			 wants to impose some old size here (Bug#24526), tell it that the current
+			 size is what we want."  */
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+		      if frame_flag (f, FRAME_WAS_INVISIBLE_UNIT,        // C 19647
+				     FRAME_WAS_INVISIBLE_SHIFT)
+			{
+			  xg_frame_set_char_size (f,                     // C 19649
+						  FRAME_PIXEL_WIDTH! (f),
+						  FRAME_PIXEL_HEIGHT! (f));
+			  frame_set_flag (f, FRAME_WAS_INVISIBLE_UNIT,   // C 19650
+					  FRAME_WAS_INVISIBLE_SHIFT, 0);
+			}
+		      XSETFRAME! (inev.ie.frame_or_window, f);          // C 19653
+		    }
+		  else if !not_hidden && !FRAME_ICONIFIED_P (f)         // C 19655
+		    {
+		      if CONSP (frame_size_history)                     // C 19657
+			{
+			  frame_size_history_plain                      // C 19658-19659
+			    (f, build_string (c"PropertyNotify, hidden & not iconified".as_ptr ()));
+			}
+
+		      SET_FRAME_VISIBLE! (f, 0);                        // C 19661
+		      SET_FRAME_ICONIFIED (f, true as c_int);           // C 19662
+		      input_event_bits! (kind, &raw mut inev.ie, ICONIFY_EVENT);  // C 19663
+		      XSETFRAME! (inev.ie.frame_or_window, f);          // C 19664
+		    }
+		}
+
+	      if !f.is_null ()                                          // C 19668
+		&& (*event).xproperty.atom == (*dpyinfo).Xatom_wm_state
+		&& !FRAME_X_EMBEDDED_P! (f) && FRAME_PARENT_FRAME (f).is_null ()  // C 19669
+		/* "Handle WM_STATE.  We use this to clear the iconified flag on a frame if it is
+		   set.  GTK builds ignore deiconifying frames on FocusIn or Expose by default, and
+		   cannot wait for the window manager to remove _NET_WM_STATE_HIDDEN, as it is
+		   ambiguous when not set.  Handling UnmapNotify also checks for
+		   _NET_WM_STATE_HIDDEN, and thus suffers from the same problem."  */
+		{ x_handle_wm_state (f, &raw mut inev.ie); }            // C 19679
+
+	      if !f.is_null ()                                          // C 19681
+		&& (*(FRAME_X_OUTPUT! (f) as *mut x_output)).alpha_identical_p
+		&& (*event).xproperty.atom == (*dpyinfo).Xatom_net_wm_window_opacity  // C 19682
+		{
+		  /* C 19684-19697: the two arms' locals.  */
+		  #[cfg (not (feature = "use_xcb"))]
+		  let (mut rc, mut actual_format): (c_int, c_int);      // C 19685
+		  #[cfg (not (feature = "use_xcb"))]
+		  let mut actual: Atom;                                 // C 19686
+		  #[cfg (not (feature = "use_xcb"))]
+		  let mut tmp_data: *mut c_uchar;                       // C 19687
+		  #[cfg (not (feature = "use_xcb"))]
+		  let (mut n, mut left, mut opacity): (c_ulong, c_ulong, c_ulong);  // C 19688
+
+		  #[cfg (not (feature = "use_xcb"))]
+		  { tmp_data = std::ptr::null_mut (); }                 // C 19690
+
+		  #[cfg (feature = "use_xcb")]
+		  let mut opacity_cookie: xcb_get_property_cookie_t;    // C 19692
+		  #[cfg (feature = "use_xcb")]
+		  let mut opacity_reply: *mut xcb_get_property_reply_t; // C 19693
+		  #[cfg (feature = "use_xcb")]
+		  let mut error: *mut xcb_generic_error_t;              // C 19694
+		  #[cfg (feature = "use_xcb")]
+		  let mut rc: bool;                                     // C 19695
+		  #[cfg (feature = "use_xcb")]
+		  let mut value: u32;                                   // C 19696
+
+		  if (*event).xproperty.state == PropertyDelete         // C 19699
+		    {
+		      (*f).alpha[0] = 1.0;                              // C 19701
+		      (*f).alpha[1] = 1.0;                              // C 19702
+
+		      store_frame_param (f, Qalpha (), Qnil ());        // C 19704
+		    }
+		  else
+		    {
+		      /* C 19708-19736's `#ifndef USE_XCB` arm.  */
+		      #[cfg (not (feature = "use_xcb"))]
+		      {
+			rc = XGetWindowProperty ((*dpyinfo).display,    // C 19709
+						 FRAME_OUTER_WINDOW! (f),
+						 (*dpyinfo).Xatom_net_wm_window_opacity,  // C 19710
+						 0, 1, 0, AnyPropertyType as Atom, &raw mut actual,  // C 19711
+						 &raw mut actual_format, &raw mut n,      // C 19712
+						 &raw mut left, &raw mut tmp_data);
+
+			if rc == Success && actual_format == 32         // C 19716
+			  && (actual == XA_CARDINAL                     // C 19717
+			      || actual == XA_ATOM                      // C 19720
+			      || actual == XA_WINDOW) && n != 0         // C 19721
+			  {
+			    opacity = *(tmp_data as *mut c_ulong) & OPAQUE;  // C 19723
+			    (*f).alpha[0] = (opacity as c_double) / (OPAQUE as c_double);  // C 19724
+			    (*f).alpha[1] = (opacity as c_double) / (OPAQUE as c_double);  // C 19725
+
+			    store_frame_param (f, Qalpha (), make_float ((*f).alpha[0]));  // C 19727
+			  }
+			else
+			  {
+			    (*f).alpha[0] = 1.0;                        // C 19731
+			    (*f).alpha[1] = 1.0;                        // C 19732
+
+			    store_frame_param (f, Qalpha (), Qnil ());  // C 19734
+			  }
+		      }
+
+		      /* C 19737-19772's `#else` arm.  */
+		      #[cfg (feature = "use_xcb")]
+		      {
+			opacity_cookie
+			  = xcb_get_property ((*dpyinfo).xcb_connection, 0,   // C 19737
+					      FRAME_OUTER_WINDOW! (f) as xcb_window_t,  // C 19738
+					      (*dpyinfo).Xatom_net_wm_window_opacity as xcb_atom_t,  // C 19739
+					      XA_CARDINAL as xcb_atom_t, 0, 1);  // C 19740
+			opacity_reply
+			  = xcb_get_property_reply ((*dpyinfo).xcb_connection,  // C 19742
+						    opacity_cookie, &raw mut error);
+
+			if opacity_reply.is_null ()                          // C 19745
+			  { free (error as *mut c_void); rc = false; }       // C 19746
+			else
+			  {
+			    rc = (*opacity_reply).format == 32               // C 19748
+			      && ((*opacity_reply).r#type == XA_CARDINAL as xcb_atom_t  // C 19749
+				  || (*opacity_reply).r#type == XA_ATOM as xcb_atom_t  // C 19750
+				  || (*opacity_reply).r#type == XA_WINDOW as xcb_atom_t)  // C 19751
+			      && xcb_get_property_value_length (opacity_reply) >= 4;  // C 19752
+			  }
+
+			if rc                                                // C 19754
+			  {
+			    value = *(xcb_get_property_value (opacity_reply) as *mut u32);  // C 19756
+
+			    (*f).alpha[0] = (value as c_double) / (OPAQUE as c_double);  // C 19758
+			    (*f).alpha[1] = (value as c_double) / (OPAQUE as c_double);  // C 19759
+			    store_frame_param (f, Qalpha (), make_float ((*f).alpha[0]));  // C 19760
+			  }
+			else
+			  {
+			    (*f).alpha[0] = 1.0;                        // C 19764
+			    (*f).alpha[1] = 1.0;                        // C 19765
+
+			    store_frame_param (f, Qalpha (), Qnil ());  // C 19767
+			  }
+
+			if !opacity_reply.is_null ()                     // C 19770
+			  { free (opacity_reply as *mut c_void); }       // C 19771
+		      }
+		    }
+
+		  /* C 19775-19778: the `#ifndef USE_XCB` tail.  */
+		  #[cfg (not (feature = "use_xcb"))]
+		  if !tmp_data.is_null ()                               // C 19776
+		    { XFree (tmp_data as *mut c_void); }                // C 19777
+		}
+
+	      if (*event).xproperty.window == (*dpyinfo).root_window    // C 19781
+		&& ((*event).xproperty.atom == (*dpyinfo).Xatom_net_client_list_stacking  // C 19782
+		    || (*event).xproperty.atom == (*dpyinfo).Xatom_net_current_desktop)  // C 19783
+		&& x_dnd_in_progress                                    // C 19784
+		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)          // C 19785
+		{
+		  if x_dnd_use_toplevels                                // C 19787
+		    {
+		      x_dnd_free_toplevels (true);                      // C 19789
+
+		      if x_dnd_compute_toplevels (dpyinfo) != 0         // C 19791
+			{
+			  x_dnd_free_toplevels (true);                  // C 19793
+			  x_dnd_use_toplevels = false;                  // C 19794
+			}
+		    }
+
+		  x_dnd_update_state (dpyinfo, (*event).xproperty.time);  // C 19798
+		}
+
+	      x_handle_property_notify (&raw const (*event).xproperty);  // C 19801
+	      xft_settings_event (dpyinfo as *mut c_void,           // C 19802
+			  event as *const c_void);
+	      break 'other;                                          // C 19803
+	    }
+
+	  /* C 19805-19862: `case ReparentNotify:` - the embedder/`parent_desc` bookkeeping C does
+	     when a window is reparented by the window manager.  */
+	  ReparentNotify =>
+	    {
+	      f = x_top_window_to_frame (dpyinfo, (*event).xreparent.window);  // C 19806
+	      if !f.is_null ()                                       // C 19807
+		{
+		  /* C 19809-19827's `#ifndef USE_GTK` block.  */
+#[cfg (not (feature = "use_gtk"))]
+		  if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).parent_desc != 0  // C 19810
+		    && FRAME_X_EMBEDDED_P! (f)                       // C 19811
+		    {
+		      /* "The frame's embedder was destroyed; mark the frame as no longer
+			 embedded, and map the frame.  An UnmapNotify event must have previously
+			 been received during the start of save-set processing."  */
+		      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).explicit_parent = false;  // C 19818
+
+		      /* "Remove the leftover XEMBED_INFO property."  */
+		      XDeleteProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),  // C 19821
+				       (*dpyinfo).Xatom_XEMBED_INFO);    // C 19822
+		      x_make_frame_visible (f);                      // C 19823
+		    }
+
+		  /* "Maybe we shouldn't set this for child frames ??"  */
+		  (*(FRAME_X_OUTPUT! (f) as *mut x_output)).parent_desc = (*event).xreparent.parent;  // C 19828
+
+		  if FRAME_PARENT_FRAME (f).is_null ()               // C 19830
+		    {
+		      x_real_positions (f, &raw mut (*f).left_pos, &raw mut (*f).top_pos);  // C 19832
+
+		      /* "Perhaps reparented due to a WM restart.  Reset this."  */
+		      (*dpyinfo).wm_type = X_WMTYPE_UNKNOWN;         // C 19835
+		      (*dpyinfo).net_supported_window = 0;           // C 19836
+
+		      /* C 19838-19846's `#ifndef USE_GTK` block: "The window manager could have
+			 restarted and the new window manager might not support user time windows,
+			 so update what is used accordingly.  Note that this doesn't handle changes
+			 between non-reparenting window managers."  */
+#[cfg (not (feature = "use_gtk"))]
+		      if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible  // C 19844
+			{ x_update_frame_user_time_window (f); }     // C 19845
+		    }
+		  else
+		    {
+		      let mut root: Window;                          // C 19850
+		      let mut dummy_uint: c_uint;                    // C 19851
+
+		      XGetGeometry (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),  // C 19853
+				    &raw mut root, &raw mut (*f).left_pos,   // C 19854
+				    &raw mut (*f).top_pos,
+				    &raw mut dummy_uint, &raw mut dummy_uint,   // C 19855
+				    &raw mut dummy_uint, &raw mut dummy_uint);
+		    }
+
+		  x_set_frame_alpha (f);                             // C 19860
+		}
+	      break 'other;                                          // C 19862
 	    }
 
 	  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in

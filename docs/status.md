@@ -17117,3 +17117,28 @@
      ⑶ **一次工具再生**：`python3 tools/feature-coverage.py --write`（镜像的门是它的一行；这次写入顺带带上该表自上次写入以来的漂移：96 insertions / 68 deletions，`have_x_windows` 2,276 → 3,181 sites 等）。
   ⑤ **预算与清理**：本片 rustc 编译 **约 70 发**（17 臂 × 2 轮 + 5 个 baseline 复测 + 若干探针；每次 12-25 秒，都是单文件 `--emit=metadata` 的类型检查），`build/probes/xterm/` 与 `/tmp/s111/` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，这三个臂处理的事件一次也没到过；读数只有十七臂编译、`--check` 的 token 数与台账。剩余二十七个 `case` 体（C 18951-25595）是后续 slice，其中 `ClientMessage` 一件就 522 行。
+
+- **4.028 `src/xterm.c` round 87（xterm lane，slice 112）：`PropertyNotify` 与 `ReparentNotify` 落地（C 19562-19862，301 C 行），并加上本 lane 的**第十八臂** `AUX = A + use_xcb`——它从一个"宏展开就中止"的读数里抓出一处从未编译过的缺陷（2026-10-08）**：
+  ① **本片落的文本**：`case PropertyNotify:`（C 19562-19804，243 行）与 `case ReparentNotify:`（C 19805-19862，58 行）。C 的
+     `for (last = NULL, tem = x_dnd_toplevels; tem; last = tem, tem = tem->next)` 落成"增量写在体尾"的 `while !tem.is_null ()`，于是匹配 `if` 里的 `break` 与 C 的出口同序；
+     toplevel 表的 `wm_state` 读、两个帧状态读（`_NET_WM_STATE`/`WM_STATE`）、`_NET_WM_WINDOW_OPACITY` 读（含 C 的两条 `USE_XCB` 臂）、根窗口的 toplevel 表刷新与 C 收尾的两个处理函数，全部按 C 的行号落。
+  ② **首写读出的六处拼法（逐条实测后修）**：⑴ `FRAME_PARENT_FRAME` 是**函数**（`include/frame.rs` 826），C 的 `!FRAME_PARENT_FRAME (f)` ⇒ `FRAME_PARENT_FRAME (f).is_null ()`；`SET_FRAME_ICONIFIED` 也是函数（1417，`c_int`）⇒ C 的 `false`/`true` 写 `false as c_int`/`true as c_int`，而 `SET_FRAME_VISIBLE` **是**本文件已在用的宏。
+     ⑵ `XFree` 收 `*mut c_void`，C 19611/19777 的 `*mut c_uchar` 实参要转（3652 的写法）。⑶ 15859 的声明里 `AnyPropertyType` 是 `c_long` 而形参是 `Atom`，C 的 `False` 实参是本文件的 `0`（15855 自己写下的规则）——两处 `XGetWindowProperty` 都写 `0, …, AnyPropertyType as Atom`。
+     ⑷ `x_output` 走本文件已在用的 `as *mut x_output` 转型（8201/8232），记录自己的 `parent_desc` 由此解析；**位域仍是欠账**——`include/xterm.rs` 821-928 把六个位域记成 `// C:` 行而不是字段，所以 `has_been_visible` ×2、`explicit_parent` ×4、`alpha_identical_p` ×1 是本片读数里的行。
+     ⑸ C 的 `&& n`（`unsigned long`）写 `n != 0`，`FRAME_OUTPUT_DATA (f)->parent_desc`（`Window`）的真值判定写 `!= 0` 而不是 `is_null ()`。⑹ `WithdrawnState`（X11/Xutil.h 265）按 C 赋给它的字段类型声明成 `c_ulong`。
+  ③ **镜像轮**：`x11_constants` 增 `PropertyDelete`（X11/X.h 446）；单元作用域增 `WithdrawnState`；C 19801 的 `x_handle_property_notify` 按 P-88 ① 在使用点声明（xterm.h 1919；定义在 `src/xselect.rs` 2025）。
+     C 19802 的 `xft_settings_event` **不需要新行**：`include/xsettings.rs` 38 已经为每个包含者声明过它，首写多声明一次时实测读到 `E0428 the name xft_settings_event is defined multiple times`。
+  ④ **第十八臂 `AUX = A + use_xcb`，以及它抓到的真缺陷**：C 19684-19778 的 `#ifndef USE_XCB`/`#else` 对**此前没有任何臂覆盖**（十七臂里没有一个拼 `use_xcb`），这段正文从没被编译过。
+     加上 AUX 后第一次读数**不是数字**：HEAD 的 `{ SAFE_FREE! (); }`（`x_dnd_compute_toplevels`，C 3607 的正文）让 rustc 在**宏展开**阶段停止，整条臂只报 1 条错、根本没走到类型检查。
+     修成的形状是 3.374 已经为同一个站点写下的 `SAFE_FREE! (sa_count)`（端口的宏要求显式取 C 隐式使用的 `sa_count`），修后该臂类型检查通过、读数 **1,058** 行。
+     **实测证据**：这行空形态由 `ac9e3b37`（slice 6）加入且**从未被移除**（`git log -S` 只命中该提交），所以 3.374 记的"改后 564 条"是在一份**没有落地**的副本上量的——本轮把它落进树里。
+     该臂其余 1,058 行全是本文件既有的欠账类（X11 入口、`xlib_surface::XEvent` 的占位成员、`c_void` 模型），**没有一条是本片新增的正文**；另三处 `SAFE_FREE! ()` 在 `femacs/src/sysdep.rs`（另一单元、挂在它自己的臂后），本臂不达。
+  ⑤ **读数（两侧都在本修订测）**：⑴ **十八臂表**（baseline = HEAD `fd556ccb`；十七个 baseline 与 slice 111 台账逐位相同，这正是"两侧同文"的证据）：A 948/77 → **975/76**、U 961/77 → **988/76**、UT 955/75 → **982/75**、UM 956/75 → **983/75**、
+     UG 958/77 → **983/77**、UGX 1054/79 → **1079/79**、AE 980/76 → **1007/75**、AI 972/78 → **999/77**、AIU 1025/77 → **1050/77**、AIUX 1125/79 → **1150/79**、AX 958/77 → **985/76**、AG3 1009/76 → **1036/76**、AXF 958/77 → **985/76**、
+     AXPM 949/77 → **976/76**、AXKB 986/77 → **1013/76**、AXR 955/77 → **982/76**、AX11 932/77 → **959/76**、**AUX（新）1 条中止 → 1058/74**。
+     ⑵ 按名字的 `of which`（A 臂，其余非 GTK 臂同集）：`no field xproperty` **+16**（C 19565/19572/19579/19598/19615/19621/19622/19626/19668/19682/19699/19781/19782/19783/19798/19801）、`no field xreparent` +2（C 19806/19828）、`no field explicit_parent` +4（C 19624/19669/19811 三处宏展开 + C 19818 的写）、`no field has_been_visible` +2（C 19641/19844）、`no field alpha_identical_p` +1（C 19681）、`cannot find function XDeleteProperty` +1（C 19821）、`cannot find function XGetGeometry` +1（C 19853）。
+     `use_gtk` 臂是 **+25**：C 19809-19827 与 C 19838-19846 的两段 `#ifndef USE_GTK` 不编译（少 `XDeleteProperty`、`explicit_parent`、`has_been_visible` 各 1），而 `FRAME_OUTER_WINDOW` 的 GTK 展开让 C 19709/19853 两处用点变成 `GDK_WINDOW_XWINDOW` ×2（**AG3** 同样两处读 `GDK_WINDOW_XID` ×2，另加只有它编译的 `HAVE_GTK3` 块 C 19647-19651 的 `FRAME_PIXEL_WIDTH`/`_HEIGHT` 各 1）。
+     ⑶ **警告列无工具臂 -1、工具臂持平**：那一行是 `unused label`——`break 'other` 现在在纯 X 臂里也有了用户（此前只有 slice 111 那三个被门挡住的站点），`'done` 仍等 76 处 `goto done`。
+     ⑷ **`--check`** 仍 2 行，长行的 token 清单 **484 → 388**；单元 **32,389 行**（C 33,125，**2.22%** 漂移，was 3.34%），文件 md5 `fbc0d1e591673668ae46e1489ca84922`。
+  ⑥ **预算与清理**：本片 rustc 编译 **约 80 发**（18 臂 × 3 轮 + 若干探针；每次 12-15 秒，单文件 `--emit=metadata`），`build/probes/xterm/`、`/tmp/s112/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
+     **未声称**：无运行证据——本 lane 不链接，这两个臂处理的事件一次也没到过；读数只有十八臂编译、`--check` 的 token 数与台账。剩余二十五个 `case` 体（C 18951-25595 内），下一片是 `Expose`/`GraphicsExpose`/`NoExpose`（C 19863-20006）。

@@ -329,6 +329,12 @@ their own C line numbers.  The row `--check` reads keeps its two lines and its t
 **531 -> 484**; the mirror round this slice needed (C's own guard for `buffered_input_event`'s
 `sie` member, and the `Copy` the union requires) is Decision 122's third item.
 
+  Slice 112 (C 19562-19862, Decision 123) lands `case PropertyNotify:` and `case ReparentNotify:`
+(301 C lines), and adds the lane's **eighteenth arm**, `AUX = A + use_xcb`, because C's
+`#ifndef USE_XCB` / `#else` pair inside the opacity reader is text no earlier arm had compiled -
+that arm's first reading was not a number at all (an abort at macro expansion, from HEAD's
+`SAFE_FREE! ()` at C 3607), and the fix it forced is Decision 123's fourth item.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5154,6 +5160,56 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   this ledger; the `sie` member's own type is still reached through a mirror the frozen
   configuration does not compile (`HAVE_X11` and `HAVE_PGTK` are both `#undef` there).
 
+
+### 123. Slice 112 (C 19562-19862): `PropertyNotify` and `ReparentNotify`, and the eighteenth arm
+
+* **What it lands.**  `case PropertyNotify:` (C 19562-19804, 243 lines) and `case ReparentNotify:`
+  (C 19805-19862, 58 lines), each line with its own `// C NNNN` comment.  C's
+  `for (last = NULL, tem = x_dnd_toplevels; tem; last = tem, tem = tem->next)` becomes the
+  `while !tem.is_null ()` whose two increments stand at the body's end, so the `break` inside the
+  matching `if` leaves the loop exactly where C's does.  The toplevel `wm_state` reader, the two
+  frame-state readers (`_NET_WM_STATE` and `WM_STATE`), the `_NET_WM_WINDOW_OPACITY` reader with
+  C's two `USE_XCB` arms, the root-window toplevel-list refresh and the two handlers C ends on all
+  land in C's order.
+* **Six spellings the first writing read (each measured, each fixed in place).**  (1)
+  `FRAME_PARENT_FRAME` is a *function* returning `*mut frame` (include/frame.rs 826), so C's
+  `!FRAME_PARENT_FRAME (f)` is `FRAME_PARENT_FRAME (f).is_null ()`; `SET_FRAME_ICONIFIED` is a
+  function taking `c_int` (1417), so C 19639/19662's `false`/`true` are `false as c_int` /
+  `true as c_int`, while `SET_FRAME_VISIBLE` **is** the macro this file already calls.  (2) `XFree`
+  takes `*mut c_void`, so C 19611/19777's `*mut c_uchar` arguments are cast (the 3652 idiom).
+  (3) The declaration at 15859 has `AnyPropertyType` as a `c_long` where the parameter is an
+  `Atom`, and C's `False` argument is this file's `0` (15855's own rule): both
+  `XGetWindowProperty` calls spell `0, … , AnyPropertyType as Atom`.  (4) `x_output` is reached
+  through the `as *mut x_output` cast the file already uses (8201/8232), so the record's own
+  `parent_desc` resolves and only the *bitfields* stay owed - include/xterm.rs 821-928 records
+  those six members as `// C:` lines rather than fields, which is why `has_been_visible` x2,
+  `explicit_parent` x4 and `alpha_identical_p` x1 are rows in this slice's reading.
+  (5) C's `&& n` on an `unsigned long` is `n != 0`, and C's `FRAME_OUTPUT_DATA (f)->parent_desc`
+  truth test on a `Window` is `!= 0` rather than `is_null ()`.  (6) `WithdrawnState`
+  (X11/Xutil.h 265) is declared at unit scope as `c_ulong`, the type of the field C assigns it to.
+* **The mirror round.**  `x11_constants` gains `PropertyDelete` (X11/X.h 446); the unit declares
+  `WithdrawnState`; C 19801's `x_handle_property_notify` stands at the use site (xterm.h 1919, its
+  definition is `src/xselect.rs` 2025).  C 19802's `xft_settings_event` needs no row of its own:
+  `include/xsettings.rs` 38 already declares it for every includer, and the first writing's second
+  declaration read `E0428 the name xft_settings_event is defined multiple times` (measured).
+* **The eighteenth arm, and the defect it found.**  C 19684-19778's `#ifndef USE_XCB` / `#else`
+  pair had no arm at all: none of the seventeen spells `use_xcb`, so the block had never been
+  compiled by anything.  This slice adds **AUX = A + `use_xcb`** to read it - and the arm's first
+  reading was not a number: HEAD's `{ SAFE_FREE! (); }` in `x_dnd_compute_toplevels` (C 3607's
+  text) stops rustc at *macro expansion*, so the arm read one error and never reached type
+  checking.  The fix is the shape status 3.374 already spelled for this same site
+  (`SAFE_FREE! (sa_count)`, the port's macro taking the argument C's `sa_count` supplies
+  implicitly), and after it the arm type-checks at **1,058** rows.  Measured: the empty form was
+  added by `ac9e3b37` (slice 6) and never removed, so 3.374's "改后 564" was taken on a copy that
+  did not land; this round lands it.  The rest of the arm's 1,058 rows are the file's owed classes
+  (the X11 entry points, the `xlib_surface::XEvent` stand-in's members, the `c_void` model), not
+  this slice's text.  The three other `SAFE_FREE! ()` sites the port carries are in
+  `femacs/src/sysdep.rs`, another unit's text behind its own arms, and this arm does not reach
+  them.
+* **What `--check` reads.**  Unchanged at two rows (`handle_one_xevent`'s long token row and
+  `x_get_wm_check_window does not mention false`); the long row's list goes **484 -> 388**.  The
+  unit is **32,389 lines** against C's 33,125 (**2.22%** drift, was 3.34%), file md5
+  `fbc0d1e591673668ae46e1489ca84922`.
 
 ## Evidence
 
@@ -10419,3 +10475,76 @@ does not link), and the two runtime rows the arms now name (`x_handle_selection_
 `XSelectionClearEvent`/`XSelectionRequestEvent` records) are still C's text, not a measured
 behaviour.  The readings are the seventeen arm compiles, the `--check` row's new token count and
 this ledger.
+
+### Slice 112's readings (C 19562-19862), as landed and measured (2026-10-08)
+
+`case PropertyNotify:` (C 19562-19804) and `case ReparentNotify:` (C 19805-19862), plus the lane's
+eighteenth arm `AUX = A + have_x_windows + use_xcb`, which is the arm C 19684-19778's two `USE_XCB`
+branches needed.  Twenty-five `case` bodies remain.
+
+| arm | baseline | slice 112 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 948 / 77 | **975 / 76** | **+27 / -1** |
+| U `A +use_toolkit_scroll_bars` | 961 / 77 | **988 / 76** | **+27 / -1** |
+| UT `U +use_x_toolkit` | 955 / 75 | **982 / 75** | **+27 / 0** |
+| UM `UT +use_motif` | 956 / 75 | **983 / 75** | **+27 / 0** |
+| UG `U +use_gtk` | 958 / 77 | **983 / 77** | **+25 / 0** |
+| UGX `UG +have_xinput2` | 1054 / 79 | **1079 / 79** | **+25 / 0** |
+| AE `A +enable_checking` | 980 / 76 | **1007 / 75** | **+27 / -1** |
+| AI `A +have_x_i18n` | 972 / 78 | **999 / 77** | **+27 / -1** |
+| AIU `AI +use_gtk` | 1025 / 77 | **1050 / 77** | **+25 / 0** |
+| AIUX `AIU +have_xinput2` | 1125 / 79 | **1150 / 79** | **+25 / 0** |
+| AX `A +have_xdbe` | 958 / 77 | **985 / 76** | **+27 / -1** |
+| AG3 `A +use_gtk +have_gtk3` | 1009 / 76 | **1036 / 76** | **+27 / 0** |
+| AXF `A +have_xfixes` | 958 / 77 | **985 / 76** | **+27 / -1** |
+| AXPM `A +have_xpm` | 949 / 77 | **976 / 76** | **+27 / -1** |
+| AXKB `A +have_xkb` | 986 / 77 | **1013 / 76** | **+27 / -1** |
+| AXR `A +have_xrandr` | 955 / 77 | **982 / 76** | **+27 / -1** |
+| AX11 `A +have_x11` | 932 / 77 | **959 / 76** | **+27 / -1** |
+| **AUX** `A +use_xcb` (this slice's, the eighteenth) | 1 error, *no type checking* | **1058 / 74** | — |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`fd556ccb`, slice 111) with
+its own `_root.rs` re-materialised per arm, and the slice's file md5 is
+`fbc0d1e591673668ae46e1489ca84922`.  The seventeen baseline numbers reproduce the ledger's slice-111
+column to the digit (A 948/77, UT 955/75, UG 958/77, UGX 1054/79, AX 958/77, AG3 1009/76, AX11
+932/77), which is what says the two revolutions are the same text.
+
+**The `of which`, by name**, arm A (the other non-GTK arms read the same set):
+
+| rows | C sites |
+| --- | --- |
+| `no field xproperty` +16 | C 19565, 19572, 19579, 19598, 19615, 19621, 19622, 19626, 19668, 19682, 19699, 19781, 19782, 19783, 19798, 19801 |
+| `no field xreparent` +2 | C 19806 `window`, C 19828 `parent` |
+| `no field explicit_parent` +4 | C 19624, C 19669 and C 19811 (`FRAME_X_EMBEDDED_P`'s three expansions) + the write at C 19818 |
+| `no field has_been_visible` +2 | C 19641 (write), C 19844 (read) |
+| `no field alpha_identical_p` +1 | C 19681 |
+| `cannot find function XDeleteProperty` +1 | C 19821 |
+| `cannot find function XGetGeometry` +1 | C 19853 |
+
+* The two `XEvent` members (`xproperty`, `xreparent`) are the `include/xlib.rs` stand-in's owed
+  members - the class slices 110 and 111 carry.  The five `x_output` rows are a *different* debt,
+  named in the mirror itself: include/xterm.rs 821-928 records `hourglass_p`, `explicit_parent`,
+  `asked_for_visible`, `has_been_visible`, `wait_for_wm` and `alpha_identical_p` as `// C:` lines
+  rather than fields because that record cannot be compiled on this target, and the
+  `FRAME_X_EMBEDDED_P` macro (1740) already reads one of them the same way.  Nothing is silenced.
+* The `use_gtk` arms read **+25**: C 19809-19827 and C 19838-19846's two `#ifndef USE_GTK` blocks
+  are off there, which takes away one `XDeleteProperty`, one `explicit_parent` and one
+  `has_been_visible` - and adds two `GDK_WINDOW_XWINDOW` rows, because `FRAME_OUTER_WINDOW`'s GTK
+  expansion is what C 19709's and C 19853's two uses reach in those arms (**AG3** reads
+  `GDK_WINDOW_XID` x2 for the same two sites instead, plus `FRAME_PIXEL_WIDTH`/`_HEIGHT` x1 each
+  from the `HAVE_GTK3` block C 19647-19651, which only that arm compiles).
+* **Warnings go -1 in every arm without a toolkit and hold in every arm with one**: the row is
+  `unused label`, because `break 'other` now has users in the plain-X arms too (`'other` had none
+  there while only slice 111's three GTK/toolkit-gated sites existed).  `'done` still waits for the
+  76 `goto done` sites.
+* **AUX's baseline is an abort, not a reading.**  On HEAD's text the arm dies at macro expansion
+  (`unexpected end of macro invocation`, one error, `{ SAFE_FREE! (); }` at C 3607) and rustc never
+  type-checks the unit, so `1` and `1058` are not comparable: the second is the first reading this
+  arm has ever produced.  Its rows are the file's owed classes (164 `xclient`, 62 `mismatched
+  types`, 45 `XSetForeground`, …), and **none of them is this slice's text**.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no event in these two arms was
+ever delivered; the readings are the eighteen arm compiles, the `--check` row's token count and
+this ledger.  The `x_output` bitfield rows and the `XEvent` member rows are debts this slice
+*names*, not repairs it makes: the first belongs to the include/xterm.rs mirror's own round and the
+second to include/xlib.rs's owed-member list.
