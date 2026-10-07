@@ -1,6 +1,6 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
-C 5760-5889 and C 5891-5991
+C 5760-5889, C 5891-5991 and C 5993-6123
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -13,10 +13,11 @@ C 5760-5889 and C 5891-5991
 > **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
 > **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
 > eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
-> the eleventh, **8,296 lines** after the twelfth and **8,389 lines** after the thirteenth - C
-> 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783,
-> C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889 and C 5891-5991, whose own ledger sections
-> are at the end of this file - measured with `grep -c ''`), both arms of every `#if` carried.
+> the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth and
+> **8,538 lines** after the fourteenth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170,
+> C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889,
+> C 5891-5991 and C 5993-6123, whose own ledger sections are at the end of this file - measured
+> with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -177,7 +178,8 @@ defines both features.
 | 5583-5758 | the first nine subrs of the remainder: `xw-color-defined-p` (C 5583), `xw-color-values` (C 5599), `xw-display-color-p` (C 5615), `x-display-grayscale-p` (C 5637), `x-display-pixel-width` (C 5666), `x-display-pixel-height` (C 5684), `x-display-planes` (C 5702), `x-display-color-cells` (C 5716) and `x-server-max-request-size` (C 5743) | `have_x_windows` (slice 11; the two `switch` bodies' `case`/`default` tokens are answered in `docs/ports/macro-body-notes.tsv`) |
 | 5760-5889 | the next six subrs: `x-server-vendor` (C 5760), `x-server-version` (C 5783), `x-server-input-extension-version` (C 5810, the `HAVE_XINPUT2` pair), `x-display-screens` (C 5831), `x-display-mm-height` (C 5851) and `x-display-mm-width` (C 5871) | `have_x_windows`, with `have_xinput2` for C 5820-5828 (slice 12) |
 | 5891-5991 | the next three subrs: `x-display-backing-store` (C 5891), `x-display-visual-class` (C 5930) and `x-display-save-under` (C 5975) | `have_x_windows` (slice 13; the two `switch` bodies' `break`/`case`/`default`/`switch` tokens are answered in `docs/ports/macro-body-notes.tsv`) |
-| 5993-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,670 lines, whose first live definition is `x_get_net_workarea` (C 5999-6000, a `static bool` under C 5993's `#if !(defined USE_GTK && defined HAVE_GTK3)`, whose body is the `USE_XCB` pair) - the next slice's first item | not ported in this slice |
+| 5993-6123 | C 5993's `#if !(defined USE_GTK && defined HAVE_GTK3)`, `x_get_net_workarea` (C 5995-5997 its comment, C 5999-6000 the `static bool`, C 6002-6055 the `#ifndef USE_XCB` arm, C 6056-6120 the `#else` arm) and C 6123's `#endif` | `all (have_x_windows, not (all (use_gtk, have_gtk3)))`, with `not (use_xcb)` / `use_xcb` for the two arms (slice 14) |
+| 6125-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,538 lines, whose first live definition is `x_get_monitor_for_frame` (C 6128-6129, a `static int` under C 6125's `#ifndef USE_GTK`) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1813,3 +1815,62 @@ allowed literals), 0 failures**.
 
 The frozen configuration compiles none of this file: no display or screen was consulted and no
 backing-store attribute was read; the three arms' counts are text compile readings.
+
+
+## Slice 14 (2026-10-08, status 3.917 - the integrator sets the round number): C 5993-6123
+
+**The slice is C 5993-6123**: C 5993's `#if !(defined USE_GTK && defined HAVE_GTK3)` and
+`x_get_net_workarea` (C 5999-6000's `static bool`, the `#ifndef USE_XCB` arm at C 6002-6055 - the
+two `XGetWindowProperty` rounds, the `_NET_CURRENT_DESKTOP` lookup and the four `rect` members -
+and the `#else` arm at C 6056-6120, the two `xcb_get_property` cookies and their replies), closed
+by C 6123's `#endif`.  The port's slice is **149 Rust lines** (8,538 - 8,389, `grep -c ''`) against
+C's 131; md5 `8f799d73d94af03837485e1a1a417f95` (the slice 13 tree) ->
+`7ae1b7b6d7723f1e9a8edc39b395eb76`.
+
+**What it reads.**  Nothing new: every declaration it needs is this unit's (`x_catch_errors`,
+`x_had_errors_p` and `x_uncatch_errors` at 313-317, `XGetWindowProperty`/`XFree` at 222/231, the
+xcb family at 260-275 and `include/xlib.rs` 575-908), `False` is `include/xterm.rs` 79's constant
+and `UINT32_MAX` is `lib/include/stdint.in.rs` 178's - **the last one cost two measurements**: the
+first arm reading's single `does not mention uint32_max` token row said the C name was not in the
+port text, and a use-site `const UINT32_MAX` written for it was an `E0428` (the mirror carries the
+name), so the call site reads the mirror's constant and the row is gone.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0), both sides.
+
+**② The four arms.**  plain-X **14 / 9** before and after, the **XCB arm gets its first reading**
+(`have_x_windows` + `use_xcb`: **14 / 9** on the slice 13 tree and **14 / 9** after), GTK
+**34 / 20** and Xt **15 / 12** - this slice's function is *absent* from the GTK arm by its own C
+guard, and no arm's warning count moved.  The first measurement's own rows were closed on the way:
+one `E0425` (`c_ubyte` for C's `unsigned char *`; the port's spelling is `c_uchar`), four `E0381`
+rows and two more in the XCB arm (the six out-parameters and locals C leaves uninitialised get the
+file's zero initialisers: `actual_type`/`actual_format`/`actual_size`/`bytes_remaining`, `error`
+and `current_workspace`).
+
+**③ `extract-abi.py --check`**: **135 rows -> 134** - exactly the `missing function
+x_get_net_workarea` row retiring, with nothing added - and the drift reads `C 10662 vs Rust 8538`
+(**19.9%**, was 21.3%).  `check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet
+row(s), 0 failure(s)** and `check-declarations.py` at **18 declaration sites (0 forbidden, 18
+allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **C's `(long *) tmp_data` and `values[i]`** are the port's `tmp_data.cast::<c_long> ()` and
+   `*values.offset (i)` (the file's 744-747 shape), and the four `rect->` members write C's
+   narrowing conversions out (`as c_short` / `as c_ushort`, XRectangle's own field types).
+2. **C's `UINT32_MAX` and `False`** are the mirror constants, not values written in place.
+3. **The two arms are `#[cfg]` blocks** (`not (use_xcb)` / `use_xcb`), each with C's own
+   `return`, and the function's guard is C 5993's own condition - so nothing of this slice is
+   compiled by the GTK arm.
+
+### Owed (this slice)
+
+- `syms_of_xfns` (unchanged: no subr lands here), and the rest of the remainder: the 28 missing
+  functions, 1 macro, 4 objects, 33 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no display was opened, no property was read
+and no workarea was stored; the four arms' counts are text compile readings.

@@ -8387,3 +8387,152 @@ DEFUN! ("x-display-save-under", Fx_display_save_under, Sx_display_save_under,
   else
     { return Qnil (); }                                                   // C 5990
 });
+
+/* C 5993-6123: `#if !(defined USE_GTK && defined HAVE_GTK3)` ... `static bool
+   x_get_net_workarea (struct x_display_info *dpyinfo, XRectangle *rect)` ... `#endif` - the two
+   arms of the `_NET_WORKAREA` query (C's own `#ifndef USE_XCB` pair).  The declarations it needs
+   are this unit's already (`x_catch_errors`/`x_had_errors_p`/`x_uncatch_errors` at 313-317,
+   `XGetWindowProperty`/`XFree` at 222/231, the xcb family at 260-275 and `include/xlib.rs`
+   575-908); `False` is `include/xterm.rs` 79's constant.  */
+/// C 5995-5997: "Store the geometry of the workarea on display DPYINFO into *RECT.  Return false
+/// if and only if the workarea information cannot be obtained via the _NET_WORKAREA root window
+/// property."  A `static` function whose address never leaves the unit, so a plain `unsafe fn`
+/// (the file's shape for its other statics).
+#[cfg (all (feature = "have_x_windows", not (all (feature = "use_gtk", feature = "have_gtk3"))))]
+unsafe fn x_get_net_workarea (dpyinfo: *mut x_display_info, rect: *mut XRectangle) -> bool
+{
+#[cfg (not (feature = "use_xcb"))]
+  {
+    use crate::x11_constants::{Success, XA_CARDINAL};
+
+    let dpy: *mut Display = (*dpyinfo).display;                           // C 6003
+    let mut offset: c_long;                                               // C 6004
+    let mut max_len: c_long;
+    let mut target_type: Atom;                                            // C 6005
+    let mut actual_type: Atom = 0;                 /* XGetWindowProperty fills these four.  */
+    let mut actual_size: c_ulong = 0;                                     // C 6006
+    let mut bytes_remaining: c_ulong = 0;
+    let mut rc: c_int;                                                    // C 6007
+    let mut actual_format: c_int = 0;
+    let mut tmp_data: *mut c_uchar = std::ptr::null_mut ();               // C 6008
+    let mut result: bool = false;                                         // C 6009
+
+    x_catch_errors (dpy);                                                 // C 6011
+    offset = 0;                                                           // C 6012
+    max_len = 1;                                                          // C 6013
+    target_type = XA_CARDINAL;                                            // C 6014
+    rc = XGetWindowProperty (dpy, (*dpyinfo).root_window,                  // C 6015-6019
+			     (*dpyinfo).Xatom_net_current_desktop,
+			     offset, max_len, False, target_type,
+			     &raw mut actual_type, &raw mut actual_format, &raw mut actual_size,
+			     &raw mut bytes_remaining, &raw mut tmp_data);
+    if rc == Success && actual_type == target_type && !x_had_errors_p (dpy)   // C 6020
+	&& actual_format == 32 && actual_size == max_len as c_ulong       // C 6021
+      {
+	let current_desktop: c_long = *tmp_data.cast::<c_long> ();        // C 6023
+
+	XFree (tmp_data as *mut c_void);                                  // C 6025
+	tmp_data = std::ptr::null_mut ();                                 // C 6026
+
+	offset = 4 * current_desktop;                                     // C 6028
+	max_len = 4;                                                      // C 6029
+	rc = XGetWindowProperty (dpy, (*dpyinfo).root_window,              // C 6030-6034
+				 (*dpyinfo).Xatom_net_workarea,
+				 offset, max_len, False, target_type,
+				 &raw mut actual_type, &raw mut actual_format,
+				 &raw mut actual_size, &raw mut bytes_remaining,
+				 &raw mut tmp_data);
+	if rc == Success && actual_type == target_type && !x_had_errors_p (dpy)   // C 6035
+	    && actual_format == 32 && actual_size == max_len as c_ulong       // C 6036
+	  {
+	    let values: *mut c_long = tmp_data.cast::<c_long> ();          // C 6038
+
+	    (*rect).x = *values.offset (0) as c_short;                     // C 6040
+	    (*rect).y = *values.offset (1) as c_short;                     // C 6041
+	    (*rect).width = *values.offset (2) as c_ushort;                // C 6042
+	    (*rect).height = *values.offset (3) as c_ushort;               // C 6043
+
+	    XFree (tmp_data as *mut c_void);                               // C 6045
+	    tmp_data = std::ptr::null_mut ();                              // C 6046
+
+	    result = true;                                                 // C 6048
+	  }
+      }
+    if !tmp_data.is_null ()                                               // C 6051
+      { XFree (tmp_data as *mut c_void); }
+    x_uncatch_errors ();                                                  // C 6053
+
+    return result;                                                        // C 6055
+  }
+#[cfg (feature = "use_xcb")]
+  {
+    use crate::x11_constants::XA_CARDINAL;
+
+    let mut current_desktop_cookie: xcb_get_property_cookie_t;            // C 6057
+    let mut workarea_cookie: xcb_get_property_cookie_t;                   // C 6058
+    let mut reply: *mut xcb_get_property_reply_t;                         // C 6059
+    let mut error: *mut xcb_generic_error_t = std::ptr::null_mut ();      // C 6060 (the callee sets it)
+    let mut rc: bool;                                                     // C 6061
+    let mut current_workspace: u32 = 0;                                   // C 6062 (read only when rc)
+    let mut values: *mut u32;
+
+    current_desktop_cookie
+      = xcb_get_property ((*dpyinfo).xcb_connection, 0,                    // C 6064-6068
+			  (*dpyinfo).root_window as xcb_window_t,
+			  (*dpyinfo).Xatom_net_current_desktop as xcb_atom_t,
+			  XA_CARDINAL as xcb_atom_t, 0, 1);
+
+    workarea_cookie
+      = xcb_get_property ((*dpyinfo).xcb_connection, 0,                    // C 6070-6074
+			  (*dpyinfo).root_window as xcb_window_t,
+			  (*dpyinfo).Xatom_net_workarea as xcb_atom_t,
+			  XA_CARDINAL as xcb_atom_t, 0, UINT32_MAX);
+
+    reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,             // C 6076-6077
+				    current_desktop_cookie, &raw mut error);
+    rc = true;                                                             // C 6078
+
+    if reply.is_null ()                                                    // C 6080
+      { free (error as *mut c_void); rc = false; }                         // C 6081
+    else
+      {
+	if xcb_get_property_value_length (reply) != 4                      // C 6084
+	    || (*reply).r#type != XA_CARDINAL as xcb_atom_t
+	    || (*reply).format != 32
+	  { rc = false; }                                                  // C 6086
+	else
+	  { current_workspace = *(xcb_get_property_value (reply) as *mut u32); }  // C 6088
+
+	free (reply as *mut c_void);                                       // C 6090
+      }
+
+    reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,             // C 6093-6094
+				    workarea_cookie, &raw mut error);
+
+    if reply.is_null ()                                                    // C 6096
+      { free (error as *mut c_void); rc = false; }                         // C 6097
+    else
+      {
+	let value_count: usize = xcb_get_property_value_length (reply) as usize  // C 6100-6101
+	  / std::mem::size_of::<u32> ();
+
+	if rc && (*reply).r#type == XA_CARDINAL as xcb_atom_t && (*reply).format == 32   // C 6103
+	    && (current_workspace as usize) < value_count / 4              // C 6104
+	  {
+	    let offset: usize = 4 * current_workspace as usize;            // C 6106
+	    values = xcb_get_property_value (reply) as *mut u32;           // C 6107
+
+	    (*rect).x = *values.offset (offset as isize) as c_short;       // C 6109
+	    (*rect).y = *values.offset ((offset + 1) as isize) as c_short;  // C 6110
+	    (*rect).width = *values.offset ((offset + 2) as isize) as c_ushort;   // C 6111
+	    (*rect).height = *values.offset ((offset + 3) as isize) as c_ushort;  // C 6112
+	  }
+	else
+	  { rc = false; }                                                  // C 6115
+
+	free (reply as *mut c_void);                                       // C 6117
+      }
+
+    return rc;                                                             // C 6120
+  }
+}
