@@ -4588,3 +4588,81 @@ body (`include/xterm.rs` 1181-1183, `{ (void) ($f); 0 }`); `x_icon`'s `int_max, 
 `gnuc_prereq`/`__clang`/`gdk_pixbuf_version_*` condition; `unwind_create_frame`'s `frame_live_p` is
 a macro body; `INSTALL_CURSOR` and `RANDR13_LIBRARY` are macro rows; `subr Fx_file_dialog:
 docstring differs` is slice 41's pairing artifact; and the drift row is the file's line count.
+
+## Slice 49 (2026-10-08, status 3.957): the token-spelling class and one macro-body registration - `--check` 15 -> 10 -> 7
+
+**This round is a fidelity repair, not a new region**, and it has two halves.  `extract-abi.py
+--check` compares C's function bodies with the port's by *token* (case folded, trailing `_`
+stripped), so a site where the port spells C's constant in Rust's own way reads as "this body does
+not mention it".  Five sites are repaired back to C's spelling; one token whose C form cannot
+appear in the port at all is registered in `docs/ports/macro-body-notes.tsv`.
+
+**The five spelling repairs** - each an equivalent expression, and the arm readings below are what
+says so:
+
+- `x_set_no_accept_focus` (C 1051): both `{ 1 } else { 0 }` sites became `{ True } else { False }`.
+  C passes `True`/`False` in both arms (C 1061 is `XtSetArg (al[0], XtNinput, NILP (new_value) ?
+  True : False);`, and the plain arm writes the same pair into `wm_hints.input`), and the two
+  carrier comments the port had used while the literals stood for them go with the change.
+- `x_set_override_redirect` (C 1084): `{ 0 } else { 1 }` became `{ False } else { True }` - C 1097
+  is `attributes.override_redirect = NILP (new_value) ? False : True;`.
+- `x_icon` (C 4649): `check_integer_range (icon_x, c_int::MIN as intmax_t, c_int::MAX as
+  intmax_t)` became `... INT_MIN as intmax_t, ... INT_MAX as intmax_t` (C 4665-4666) - the
+  `INT_MIN`/`INT_MAX` of the `<limits.h>` mirror at `lib/include/limits.in.rs` 42-43.
+- `x_icon_verify` (C 4627): the four `std::ptr::null::<c_char> ()` arguments of C 4633-4634's two
+  `gui_frame_get_and_record_arg` calls became `0 as *const c_char` - C passes a literal `0`, and
+  `0` is the token the gate asks for.
+- `unwind_create_frame` (C 4790): `if (*f).terminal.is_null ()` became `if !FRAME_LIVE_P (f)` -
+  C 4797 is `if (!FRAME_LIVE_P (f))` and `include/frame.rs` 830 defines the macro (C `frame.h`
+  1043), so the port uses the macro instead of spelling its expansion out.
+
+**The one registration row.**  The three `function x_window does not mention frame_menubar_height`
+rows are a different shape.  C 4265 is `FRAME_MENUBAR_HEIGHT (f) = menubar_size;`, and that form
+needs an lvalue: `include/xterm.rs` 1179-1183 carries only C `xterm.h` 1463-1464's `#else` variant
+(`((void) ($f); 0)`, not an lvalue; C 1462 holds the `USE_X_TOOLKIT || USE_GTK` variant).  The port
+therefore spells the assignment through the member, which is what its own comment at `src/xfns.rs`
+7033-7040 records, and the macro's name then appears nowhere in that body.  The name has two more
+arms (C 4432-4474, C 4479-4619) that never use the macro; C 3289/3331's two reads belong to
+`xic_set_preeditarea` and `xic_set_statusarea`, and C 6862's read is spelled as the macro call in
+its own port.  But the token check reads one C text per name and compares *every* arm against it,
+so this one row covers all three.  The row records the cause; it is not a permission.
+
+**Readings** - `extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs`, measured on three
+states of the same tree:
+
+- **15 -> 10**: the five repairs close five rows whole (`unwind_create_frame does not mention
+  frame_live_p`, `x_icon does not mention int_max, int_min`, `x_icon_verify does not mention 0`,
+  `x_set_no_accept_focus does not mention false, true`, `x_set_override_redirect does not mention
+  false, true`) and add none.
+- **10 -> 7**: the registration row closes the three `x_window does not mention
+  frame_menubar_height` rows and adds none.
+- **Seven rows remain**, none of this class, each with a recorded cause: `missing macro
+  RANDR13_LIBRARY`; `macro INSTALL_CURSOR does not mention mouse_cursor, short_index` (Rust has no
+  `##`, and this table's own row records the paste prefix); `subr Fx_file_dialog: docstring
+  differs` (slice 41's explanation); `xg_set_icon_from_xpm_data` (`__clang`, `gnuc_prereq` and the
+  GDK version macros); `x_set_mouse_color` (the two `INSTALL_CURSOR` families, eighteen tokens);
+  `subr Fx_create_frame` (`frame_background_pixel`, `frame_foreground_pixel`, `frame_output_data`,
+  `have_clock_gettime`, `qleft`, `qright`); and the line-count ratchet at 39.9% (C 10,662 vs Rust
+  14,918).
+
+**Arms** - seven arms taken on **both** sides (the port as it stands, and `git show HEAD:`'s text of
+the same file), each side ending at its exact slice-48 level: plain-X and XCB 18/9, LUCID 25/12,
+MOTIF 20/12, GTK 47/20, CAIRO 47/20, Xt 20/12.  In all seven the **error set and the warning set
+are identical on the two sides** (`sort`ed `^error|^warning` lines, diffed both ways - 29, 39, 34,
+69, 69, 34 and 29 lines).  That is the point of the repair's shape: both spellings are the same
+expression, so no reading may move.  **Arm reach** (P-86 7), two injections, each removed with the
+tree hash checked afterwards: `let _: c_int = true;` at the head of the override-redirect body's
+statements takes plain-X **18 -> 19**; the same line before `x_icon`'s first `check_integer_range`
+takes plain-X **18 -> 19** and GTK **47 -> 48**.  The repaired bodies are therefore compiled in the
+arms the zero-displacement reading is read from, and that reading is not empty.  `build-tu
+src/xfns.c` is **exit 0** and writes the **336-byte empty object** (`build/femacs/xfns.o`).
+
+**Line count** - 14,918 before and after: every repair is an in-place rewrite (`git diff --stat`
+for this file: 12 insertions, 12 deletions), so this slice moves no line number and the slice table
+above gains no C range.
+
+**Not claimed** - the frozen configuration still compiles nothing from this file: no subr is
+registered, no frame parameter is set, no icon is placed.  The arms are text-compile readings
+(`rustc --emit=metadata`), not runtime ones.  The seven rows above are named, not fixed - in
+particular `x_set_mouse_color`'s eighteen tokens are still the `INSTALL_CURSOR` family's debt, and
+the line-count ratchet belongs to `docs/ports/line-drift-tolerance.tsv`, not to this lane.

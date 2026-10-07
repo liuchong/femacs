@@ -1656,7 +1656,7 @@ unsafe extern "C" fn x_set_no_accept_focus (f: *mut frame, new_value: Lisp_Objec
       {
         let mut al: [Arg; 1] = [Arg { name: std::ptr::null_mut (), value: 0 }];
 
-        XtSetArg! (al[0], XtNinput (), if NILP (new_value) { 1 } else { 0 }); /* C: True / False */
+        XtSetArg! (al[0], XtNinput (), if NILP (new_value) { True } else { False });
         XtSetValues ((*((*f).output_data.x as *mut x_output)).widget, al.as_mut_ptr (), 1);
       }
       #[cfg (all (not (feature = "use_gtk"), not (feature = "use_x_toolkit")))]
@@ -1664,7 +1664,7 @@ unsafe extern "C" fn x_set_no_accept_focus (f: *mut frame, new_value: Lisp_Objec
         let window: Window = FRAME_X_WINDOW! (f);
 
         (*((*f).output_data.x as *mut x_output)).wm_hints.input
-          = if NILP (new_value) { 1 } else { 0 };   /* C: True / False */
+          = if NILP (new_value) { True } else { False };
         XSetWMHints (FRAME_X_DISPLAY! (f), window,
                      &raw mut (*((*f).output_data.x as *mut x_output)).wm_hints);
       }
@@ -1691,7 +1691,7 @@ unsafe extern "C" fn x_set_override_redirect (f: *mut frame, new_value: Lisp_Obj
       {
         let mut attributes: XSetWindowAttributes = std::mem::zeroed ();
 
-        attributes.override_redirect = if NILP (new_value) { 0 } else { 1 }; /* C: False / True */
+        attributes.override_redirect = if NILP (new_value) { False } else { True };
         XChangeWindowAttributes (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),
                                  CWOverrideRedirect as c_ulong, &raw mut attributes);
       }
@@ -6457,11 +6457,11 @@ unsafe fn x_icon_verify (f: *mut frame, parms: Lisp_Object)
   /* Set the position of the icon.  Note that twm groups all
      icons in an icon window.  */
   icon_x = gui_frame_get_and_record_arg (f, parms, Qicon_left (),       // C 4633
-					 std::ptr::null::<c_char> (),
-					 std::ptr::null::<c_char> (), RES_TYPE_NUMBER);
+					 0 as *const c_char,
+					 0 as *const c_char, RES_TYPE_NUMBER);
   icon_y = gui_frame_get_and_record_arg (f, parms, Qicon_top (),        // C 4634
-					 std::ptr::null::<c_char> (),
-					 std::ptr::null::<c_char> (), RES_TYPE_NUMBER);
+					 0 as *const c_char,
+					 0 as *const c_char, RES_TYPE_NUMBER);
   if !BASE_EQ (icon_x, Qunbound ()) && !BASE_EQ (icon_y, Qunbound ())   // C 4635
     {
       CHECK_FIXNUM (icon_x);                                            // C 4637
@@ -6498,10 +6498,10 @@ unsafe fn x_icon (f: *mut frame, parms: Lisp_Object)
     { error (c"Both left and top icon corners of icon must be specified".as_ptr ()); }  // C 4662
   if xgiven                                                             // C 4663
     {
-      icon_xval = check_integer_range (icon_x, c_int::MIN as intmax_t,  // C 4665
-				       c_int::MAX as intmax_t) as c_int;
-      icon_yval = check_integer_range (icon_y, c_int::MIN as intmax_t,  // C 4666
-				       c_int::MAX as intmax_t) as c_int;
+      icon_xval = check_integer_range (icon_x, INT_MIN as intmax_t,  // C 4665
+				       INT_MAX as intmax_t) as c_int;
+      icon_yval = check_integer_range (icon_y, INT_MIN as intmax_t,  // C 4666
+				       INT_MAX as intmax_t) as c_int;
     }
 
   block_input ();                                                       // C 4669
@@ -6662,7 +6662,7 @@ unsafe fn unwind_create_frame (frame: Lisp_Object) -> Lisp_Object
   /* If frame is already dead, nothing to do.  This can happen if the
      display is disconnected after the frame has become official, but
      before Fx_create_frame removes the unwind protect.  */
-  if (*f).terminal.is_null ()                                           // C 4797 (FRAME_LIVE_P)
+  if !FRAME_LIVE_P (f)                                                  // C 4797
     { return Qnil (); }                                                 // C 4798
 
   /* If frame is ``official'', nothing to do.  */
