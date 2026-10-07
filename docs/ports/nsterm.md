@@ -276,10 +276,10 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (BOOL) openFile: (NSString *)fileName`  (line 6433)
   - [ ] `- (void) updateMonitors: (NSNotification *) notification`  (line 6454)
   - [ ] `- (void)applicationDidFinishLaunching: (NSNotification *)notification`  (line 6490)
-  - [ ] `- (void)antialiasThresholdDidChange:(NSNotification *)notification`  (line 6556)
-  - [ ] `- (void) systemWillSleep:(NSNotification *)notification`  (line 6565)
-  - [ ] `- (void) systemDidWake:(NSNotification *)notification`  (line 6577)
-  - [ ] `- (BOOL) applicationSupportsSecureRestorableState: (NSApplication *)app`  (line 6610)
+  - [x] `- (void)antialiasThresholdDidChange:(NSNotification *)notification`  (line 6556) — landed as `@objc func antialiasThresholdDidChange (_:)`: its one statement calls the Mac font lane's exported entry (`macfont.swift` 1376 over `src/macfont.m` 747)
+  - [x] `- (void) systemWillSleep:(NSNotification *)notification`  (line 6565) — landed as `@objc func systemWillSleep (_:)`: C 6569's `struct input_event ie` is the state C 6570's `EVENT_INIT` writes, `SLEEP_EVENT`'s value comes from the port's own mirror (`src/include/termhooks.rs` 55), and the `kind` write is a bitfield setter that keeps `part`
+  - [x] `- (void) systemDidWake:(NSNotification *)notification`  (line 6577) — landed as `@objc func systemDidWake (_:)`, `Qpre_sleep`'s twin with `Qpost_wake` (C 6584)
+  - [x] `- (BOOL) applicationSupportsSecureRestorableState: (NSApplication *)app`  (line 6610) — landed as `@objc func applicationSupportsSecureRestorableState (_:) -> Bool`: C's `return YES;` and nothing else
   - [ ] `- (void) terminate: (id)sender`  (line 6615)
   - [ ] `- (NSApplicationTerminateReply)applicationShouldTerminate: (id)sender`  (line 6655)
   - [ ] `- (BOOL)application: sender openFile: (NSString *)file`  (line 6682)
@@ -658,7 +658,7 @@ C 4747-4780) and the RIF's `ns_draw_glyph_string` (C 4782-5001) - **no new C exp
 C `static`s) - so the covered range is now **C 60-5001**.  The boundary is the `Event loop` banner
 at C 5005-5009: the dispatcher is the Glyph drawing operations section's last definition (the
 section the ledger has walked since round 17), and the next live definition - C 5013's
-`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.  **Round 22 lands C 5012-5084's `ns_send_appdefined` with C 448-470's `EV_TRAILER`/`EV_TRAILER2`** - the two macro boxes round 2 held open now close - plus `EmacsApp`'s `timeout_handler:` (C 6769) and `sendFromMainThread:` (C 6778), the two methods whose bodies call it; `check_native_fs` (C 5088) stays held on an `EmacsView` method.  The covered range is **C 60-5001 plus C 5012-5084 and C 6769-6781**.
+`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.  **Round 22 lands C 5012-5084's `ns_send_appdefined` with C 448-470's `EV_TRAILER`/`EV_TRAILER2`** - the two macro boxes round 2 held open now close - plus `EmacsApp`'s `timeout_handler:` (C 6769) and `sendFromMainThread:` (C 6778), the two methods whose bodies call it; `check_native_fs` (C 5088) stays held on an `EmacsView` method.  The covered range is **C 60-5001 plus C 5012-5084 and C 6769-6781**.  **Round 23 lands `EmacsApp`'s four notification methods** (C 6556-6613: `antialiasThresholdDidChange:` C 6556, `systemWillSleep:` C 6565, `systemDidWake:` C 6577 and `applicationSupportsSecureRestorableState:` C 6610), so the range becomes **C 60-5001, C 5012-5084, C 6556-6613 and C 6769-6781**.  C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair stays held on `check_native_fs`, i.e. on `EmacsView`'s class - the two `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` guards at C 5126 and C 5217 are the live arm, so the dependency is hard.
 
 Ticked above: **109 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
@@ -2867,4 +2867,29 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **`check_native_fs` (C 5088) is the row that stays**: its body calls
   `[view updateCollectionBehavior]` (C 5103), a method of `EmacsView`, which lands at C 7039 - so
   that function is held on a class exactly the way `ns_send_appdefined` was held on `EmacsApp`.
+
+### Round 23: `EmacsApp`'s four notification methods (C 6556-6613)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight round 22 ended with, so **no new warning** this round.
+  Object `/tmp/nsterm23.o`, **477184 bytes**, md5 `3f25b82186a480e057d595e645bb4dca`.
+* **`python3 tools/check-swift-units.py`**: `femacs/platform/macos/nsterm.swift: 150 C
+  definition(s), 44 unported, 44 row(s); **415** C symbol import(s)` - the unported count is
+  unchanged by construction (these four are Objective-C methods, outside that reader's subject),
+  and the three imports it adds - `Qpre_sleep`, `Qpost_wake` and `kbd_buffer_store_event` - plus
+  the cross-unit `macfont_update_antialias_threshold` account for the 411 -> 415.  Reading: `0 new,
+  0 stale, 7 Swift unit(s) landed`.
+* **The bitfield writer**: `input_event_set_kind` is this unit's second reader/writer of that
+  field (`input_event_kind` above is the reader).  Both exist because the port's view of `struct
+  input_event` packs C's `kind`/`part` bitfields into one `UInt32` (`src/termhooks.h` 374/377), and
+  C's two uses here are a *write* (C 6571/6583's `ie.kind = SLEEP_EVENT`) whose `part` half must
+  survive - which is what the mask keeps.
+* **What stays held**: `ns_read_socket_1` (C 5110) and `ns_select_1` (C 5203) both call
+  `check_native_fs ()` from their live `NS_IMPL_COCOA` arm (C 5126 and C 5217), and that function
+  calls `[view updateCollectionBehavior]`, a method of `EmacsView` (C 7039) - which needs
+  `EmacsWindow`'s class for its own `nonfs_window` ivar (`src/nsterm.h` 482) and declares protocol
+  conformances (`NSTextInput`, `NSTextInputClient`, `NSWindowDelegate`, `src/nsterm.h` 466) whose
+  required methods Swift enforces.  Those two facts are why the event-loop pair is the next round's
+  subject and not this one's: no `EmacsView` shell can compile without deciding that class's
+  conformance question first.
 

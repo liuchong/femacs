@@ -6852,6 +6852,43 @@ class EmacsApp: NSApplication {
   @objc func sendFromMainThread(_ unused: Any?) {
     ns_send_appdefined(nextappdefined)                // C 6780
   }
+
+  /// C 6556-6561: `- (void)antialiasThresholdDidChange: (NSNotification *)notification`.  Its
+  /// one statement calls the Mac font lane's entry, which that unit already exports
+  /// (`macfont.swift` 1376 over `src/macfont.m` 747).
+  @objc func antialiasThresholdDidChange(_ notification: Notification) {
+    macfont_update_antialias_threshold()              // C 6559
+  }
+
+  /// C 6565-6575: `- (void)systemWillSleep: (NSNotification *)notification`.  C 6569's
+  /// uninitialized `struct input_event ie` is the state C 6570's `EVENT_INIT` writes (its compound
+  /// literal sets `device` and zeroes the rest), so the all-zero initializer below is that same
+  /// state, not an invented one.
+  @objc func systemWillSleep(_ notification: Notification) {
+    var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                         frame_or_window: nil, arg: nil, device: nil)      // C 6569
+    EVENT_INIT(&ie)                                   // C 6570
+    input_event_set_kind(&ie, SLEEP_EVENT)            // C 6571
+    ie.arg = list1(Qpre_sleep())                      // C 6572
+    kbd_buffer_store_event(&ie)                       // C 6573
+  }
+
+  /// C 6577-6587: `- (void)systemDidWake: (NSNotification *)notification` - `Qpre_sleep`'s twin
+  /// with `Qpost_wake` (C 6584).
+  @objc func systemDidWake(_ notification: Notification) {
+    var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                         frame_or_window: nil, arg: nil, device: nil)      // C 6581
+    EVENT_INIT(&ie)                                   // C 6582
+    input_event_set_kind(&ie, SLEEP_EVENT)            // C 6583
+    ie.arg = list1(Qpost_wake())                      // C 6584
+    kbd_buffer_store_event(&ie)                       // C 6585
+  }
+
+  /// C 6610-6613: `- (BOOL)applicationSupportsSecureRestorableState: (NSApplication *)app` -
+  /// C's `return YES;` and nothing else.
+  @objc func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
+    true                                              // C 6612
+  }
 }
 
 // ==========================================================================
@@ -6962,4 +6999,35 @@ fileprivate func ns_send_appdefined(_ value: Int32) {
     /* C 5079-5081: post it so `[NXApp run]` returns after the queued events.  */
     NSApp.postEvent(nxev!, atStart: false)                       // C 5082
   }
+}
+
+// ==========================================================================
+// Round 23: `EmacsApp`'s four notification methods (C 6556-6613)
+// ==========================================================================
+
+/// C: `Lisp_Object Qpre_sleep, Qpost_wake;` (src/globals.h; the port's builtin symbols are
+/// `femacs/src/include/globals.rs` 4561 and 4549).  The `Qnil`/`Qt` shape above.
+@_silgen_name("Qpre_sleep") func Qpre_sleep() -> Lisp_Object
+@_silgen_name("Qpost_wake") func Qpost_wake() -> Lisp_Object
+
+/// C: `void kbd_buffer_store_event (struct input_event *)` (src/keyboard.h) - the port defines it
+/// at `femacs/src/include/keyboard.rs` 310; `kbd_buffer_store_event_hold`'s shape above.
+@_silgen_name("kbd_buffer_store_event")
+func kbd_buffer_store_event(_ event: UnsafeMutablePointer<input_event>?)
+
+/// C: `void macfont_update_antialias_threshold (void)` (src/macfont.h 85, defined src/macfont.m
+/// 747) - the Mac font lane exports it (`macfont.swift` 1376), so this unit imports the symbol
+/// (`ns_run_ascript`'s cross-unit shape above).
+@_silgen_name("macfont_update_antialias_threshold") func macfont_update_antialias_threshold()
+
+/// C: `SLEEP_EVENT`, an `enum event_kind` member (the enum at `src/termhooks.h` 74, its `HAVE_NS`
+/// arm); the port's mirror fixes the value at `femacs/src/include/termhooks.rs` 55.  Like
+/// `NO_EVENT` above, C writes it into the record's `kind` bitfield.
+fileprivate let SLEEP_EVENT: UInt32 = 28
+
+/// C: `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH;` as a **writer** - the low 16 bits of
+/// `input_event.bits`, with the `part` half preserved, which is what C's bitfield assignment does
+/// (C 6571's `ie.kind = SLEEP_EVENT`).  The reader is `input_event_kind` above.
+fileprivate func input_event_set_kind(_ e: UnsafeMutablePointer<input_event>, _ kind: UInt32) {
+  e.pointee.bits = (e.pointee.bits & 0xffff0000) | (kind & 0xffff)
 }
