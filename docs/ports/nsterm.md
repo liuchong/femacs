@@ -4150,6 +4150,15 @@ call site takes an entry and the definition lands at its own C line - and **both
   definition remains**: the six unported rows are the recorded dead arms (`hide_bell`,
   `ns_redraw_scroll_bars`, `ns_update_window_end` and the three `nstrace*`), so what the checklist
   still lacks is the two classes `EmacsLayer` (C 11128-11396) and `EmacsDocument` (C 11404-11406).
+* **The import gate's reading (not one of the ten gates; its ratchet is the integrator's)**:
+  `python3 tools/check-swift-imports.py` reads `1340 import(s) in 7 Swift file(s), 5037 core
+  export(s), 1069 unprovided, 801 ratchet row(s), 290 failure(s)` after this round (the run before
+  it saw three of this unit's rows fail as "provided by nothing"), and its by-kind line
+  `reference=155 reference-source=528 rust-side=84 rust-side-gated=73 system=0 unclassified=229`.
+  The 21 imports this round adds are all in that owed class by construction - the 13 `DEFVAR`
+  storage symbols (the generated `globals` members), the four enumerator providers and the four
+  `Q*s` - so the count moves and `docs/baseline/swift-import-pending.txt` is left for the
+  integrator to rewrite (`--write-pending`), as round 41's record says.
 * **What this round does not claim**: **no run evidence** - `syms_of_nsterm` was never called, no
   `defvar` was registered and no dump was made; the compile gate reaches parsing and type checking
   only, and `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.  The
