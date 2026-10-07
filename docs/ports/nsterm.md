@@ -194,7 +194,7 @@
 - [x] ns_select_1  (line 5203, static) — landed as `fileprivate func ns_select_1 (_:_:_:_:_:_:_:)`: C 5235/5236's `FD_ISSET` is Darwin's `__darwin_fd_isset` (the macro's own expansion, imported in the `fputs` shape), `thread_select` is imported with the `select_func` `@convention(c)` alias its C typedef names, and C 5250-5265's commented-out outerpool drain is carried as that comment rather than restated
 - [x] ns_select  (line 5366) — landed as `func ns_select (_:_:_:_:_:_:)`: C's body is the `ns_select_1` call with `NO`
 - [x] ns_run_loop_break  (line 5376) — landed as `func ns_run_loop_break ()` (the `HAVE_PTHREAD` arm): C's two lines are the `NSApp` guard and the `ns_send_appdefined (-1)` it wraps
-- [ ] ns_set_vertical_scroll_bar  (line 5396, static)
+- [x] ns_set_vertical_scroll_bar  (line 5396, static) — C 5396-5486, landed as `fileprivate func ns_set_vertical_scroll_bar (_:_:_:_:)`: the `EmacsScroller` it builds and drives landed in rounds 42-46, C's `XNS_SCROLL_BAR` cast is `as? EmacsScroller`, `NSEqualRects (a, b)` is `a == b`, the possibly-nil view's reads are C's nil-receiver answers (`?? .zero` for the rect), and C 5466's `make_mint_ptr (bar)` is the object's own opaque pointer
 - [ ] ns_set_horizontal_scroll_bar  (line 5490, static)
 - [ ] ns_condemn_scroll_bars  (line 5575, static)
 - [ ] ns_redeem_scroll_bar  (line 5597, static)
@@ -2202,6 +2202,11 @@ call site takes an entry and the definition lands at its own C line - and **both
   `scroll_bar_handle`, `scroll_bar_horizontal_handle`, `scroll_bar_move_ratio`) are enumerator
   entries of the `scroll_bar_above_handle` family this unit already imports, so the core owes them
   the same way.
+* **round 47's names**: `XNS_SCROLL_BAR` (src/nsterm.h 1056's macro - the `xmint_pointer` inside it
+  is the mirror's, `femacs/src/include/lisp.rs` 1679), `make_mint_ptr` (src/lisp.h's INLINE, mirrored
+  at lisp.rs 1664), the member reader `window_vertical_scroll_bar` (the `window_frame` family) and
+  the three macros `WINDOW_SCROLL_BAR_AREA_WIDTH`/`WINDOW_SCROLL_BAR_AREA_X`/`WINDOW_TOTAL_LINES`
+  are the C-ABI entries this round adds and the core still owes.
 
 ## Evidence
 
@@ -3640,3 +3645,33 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no drag tracked, no button released, no
   wheel event forwarded); the compile gate reaches parsing and type checking only; the omitted
   `+scrollerWidth` remains a named gap.
+
+### Round 47: `ns_set_vertical_scroll_bar` (C 5396-5486)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-46 carry, so **no new warning**.  Object
+  `/tmp/nsterm47.o`, **849,096 bytes**, md5 `ea9a9a0d055d36c26b107cc24795f0b2`.  The unit is
+  **9,561 lines**.
+* **A structural slip this round found and corrected**: the four entries round 43 added
+  (`wset_horizontal_scroll_bar`, `wset_vertical_scroll_bar`, `XSETWINDOW`, `mark_object`) had landed
+  *inside* `class EmacsScroller` - C keeps those macros and INLINEs at file scope, and the first
+  compile of this round is what showed it (three `error: cannot find … in scope` lines from
+  `ns_set_vertical_scroll_bar`, which C writes outside the class).  They are file-scope now, with a
+  note saying why; their call sites inside the class were unaffected.
+* **The hook itself lands whole**: C 5412-5425's optimization (with the `EmacsView` counter and the
+  `windows_or_buffers_changed` early return), C 5431's `window_box` call with its two NULL
+  out-parameters, C 5437-5440's flipped-y rect arithmetic, C 5446-5458's "at least 5 lines" teardown
+  (C 5453's `[bar release]` is the reference C drops, and `wset_vertical_scroll_bar (window, Qnil ())`
+  is the round-43 entry), C 5460-5481's create-vs-update split (C 5466's `make_mint_ptr (bar)` is the
+  object's own opaque pointer), and C 5483-5485's conditional `setPosition:` plus `unblock_input`.
+* **The `EmacsScroller` it drives is fully landed now** (rounds 42-46), which is why this box could
+  finally open: `initFrame:window:` (C 5465), `checkSamePosition:portion:whole:` (C 5415),
+  `setPosition:portion:whole:` (C 5484), `frame`'s setter (C 5473/5479) and `removeFromSuperview`
+  (C 5451) are all the port's own methods by now.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **20** unported,
+  20 row(s); **486** C symbol import(s)` - one fewer unported than round 46's 21 (this definition),
+  one stale row cleared by name, and the round's imports are 480 -> 486 (the six entries above).
+  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no scroll bar created, resized or removed);
+  the compile gate reaches parsing and type checking only; the six entries are declarations the core
+  still owes.

@@ -22,7 +22,6 @@ femacs/platform/macos/nsterm.swift	ns_new_font	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redeem_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redraw_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_horizontal_scroll_bar	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_set_vertical_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_init	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_shutdown	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_update_window_end	src/nsterm.m

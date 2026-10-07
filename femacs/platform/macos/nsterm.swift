@@ -8954,24 +8954,6 @@ class EmacsScroller: NSScroller {
     // C 10697: `/* [self setFrame: r]; */` - C's commented-out line, carried as the comment.
   }
 
-  /// C: `INLINE void wset_horizontal_scroll_bar (struct window *w, Lisp_Object val)` and its
-  /// vertical sibling (src/window.h) - the two setters C 10725/10727 and C 10765/10767 call.  The
-  /// port's mirror carries them as Rust functions (`femacs/src/include/window.rs` 233/236), so the
-  /// C-ABI entry they are imported by is one the core still owes (the `ns_display_info_*` class).
-  @_silgen_name("wset_horizontal_scroll_bar")
-  func wset_horizontal_scroll_bar(_ w: UnsafeMutableRawPointer?, _ val: Lisp_Object)
-  @_silgen_name("wset_vertical_scroll_bar")
-  func wset_vertical_scroll_bar(_ w: UnsafeMutableRawPointer?, _ val: Lisp_Object)
-
-  /// C: `XSETWINDOW (a, b)` (src/window.h) - a macro entry of the `XSETFRAME`/`XSETTERMINAL`
-  /// family, which C 10782 uses to build the `Lisp_Object` `mark_object` takes.
-  @_silgen_name("XSETWINDOW")
-  func XSETWINDOW(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
-
-  /// C: `void mark_object (Lisp_Object)` (src/alloc.c) - the collector's own entry, which the core
-  /// provides (`femacs/src/alloc.rs` 7308, `pub unsafe extern "C" fn`).
-  @_silgen_name("mark_object") func mark_object(_ obj: Lisp_Object)
-
   /// C 10703-10717: `- (void)setFrame: (NSRect)newRect`.  **C's method is Swift's `frame` property
   /// setter**: AppKit's `-setFrame:` is imported as `var frame: NSRect` (measured: a plain
   /// `override func setFrame(_:)` is refused - `error: method does not override any method from its
@@ -9398,6 +9380,28 @@ class EmacsScroller: NSScroller {
   }
 }
 
+/// C: the names below are **file-scope** C constructs (macros and INLINEs of src/window.h and
+/// src/alloc.c) - they sat inside the class between rounds 43 and 46, which was a structural slip
+/// this round corrects (C keeps them outside `@implementation`), and round 47's
+/// `ns_set_vertical_scroll_bar` needs them at file scope.
+/// C: `INLINE void wset_horizontal_scroll_bar (struct window *w, Lisp_Object val)` and its
+/// vertical sibling (src/window.h) - the two setters C 10725/10727 and C 10765/10767 call.  The
+/// port's mirror carries them as Rust functions (`femacs/src/include/window.rs` 233/236), so the
+/// C-ABI entry they are imported by is one the core still owes (the `ns_display_info_*` class).
+@_silgen_name("wset_horizontal_scroll_bar")
+func wset_horizontal_scroll_bar(_ w: UnsafeMutableRawPointer?, _ val: Lisp_Object)
+@_silgen_name("wset_vertical_scroll_bar")
+func wset_vertical_scroll_bar(_ w: UnsafeMutableRawPointer?, _ val: Lisp_Object)
+
+/// C: `XSETWINDOW (a, b)` (src/window.h) - a macro entry of the `XSETFRAME`/`XSETTERMINAL`
+/// family, which C 10782 uses to build the `Lisp_Object` `mark_object` takes.
+@_silgen_name("XSETWINDOW")
+func XSETWINDOW(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
+
+/// C: `void mark_object (Lisp_Object)` (src/alloc.c) - the collector's own entry, which the core
+/// provides (`femacs/src/alloc.rs` 7308, `pub unsafe extern "C" fn`).
+@_silgen_name("mark_object") func mark_object(_ obj: Lisp_Object)
+
 /// C 10623-10624: the two `#define`s the class's repeat timer uses, spelled as this file's other
 /// numeric macros are (`DOCK_IGNORE_LIMIT`): `#define SCROLL_BAR_FIRST_DELAY 0.5` and
 /// `#define SCROLL_BAR_CONTINUOUS_DELAY (1.0 / 15)`.
@@ -9409,6 +9413,129 @@ fileprivate let SCROLL_BAR_CONTINUOUS_DELAY: TimeInterval = 1.0 / 15
 /// is the first use of).
 @_silgen_name("input_event_set_part")
 func input_event_set_part(_ e: UnsafeMutablePointer<input_event>, _ v: Int32)
+
+/// C: `#define XNS_SCROLL_BAR(vec) ((id) xmint_pointer (vec))` (src/nsterm.h 1056, the
+/// `NS_IMPL_COCOA` arm) - a macro entry under the construct's own name; the `xmint_pointer` inside
+/// it is the INLINE the tree mirrors (`femacs/src/include/lisp.rs` 1679), and the `(id)` cast is
+/// what the call sites' `as? EmacsScroller` reads.
+@_silgen_name("XNS_SCROLL_BAR")
+func XNS_SCROLL_BAR(_ vec: Lisp_Object) -> AnyObject?
+
+/// C: `INLINE Lisp_Object make_mint_ptr (void *a)` (src/lisp.h) and its reader `xmint_pointer` -
+/// macros/INLINEs of that family, mirrored at `femacs/src/include/lisp.rs` 1664/1679, so the C-ABI
+/// entries are the core's to provide.
+@_silgen_name("make_mint_ptr")
+func make_mint_ptr(_ a: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: the `struct window` member `window->vertical_scroll_bar` (src/window.h) - a member reader of
+/// the `window_frame` family this unit already carries.
+@_silgen_name("window_vertical_scroll_bar")
+func window_vertical_scroll_bar(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: `WINDOW_SCROLL_BAR_AREA_WIDTH (w)`, `WINDOW_SCROLL_BAR_AREA_X (w)` and
+/// `WINDOW_TOTAL_LINES (w)` (src/window.h) - macro entries of the `WINDOW_FRAME` family.
+@_silgen_name("WINDOW_SCROLL_BAR_AREA_WIDTH")
+func WINDOW_SCROLL_BAR_AREA_WIDTH(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("WINDOW_SCROLL_BAR_AREA_X")
+func WINDOW_SCROLL_BAR_AREA_X(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("WINDOW_TOTAL_LINES")
+func WINDOW_TOTAL_LINES(_ w: UnsafeMutableRawPointer?) -> Int32
+
+/// C 5396-5486: `static void ns_set_vertical_scroll_bar (struct window *window, int portion, int
+/// whole, int position)` - "External (hook): Update or add scrollbar".  C's `XNS_SCROLL_BAR` cast is
+/// the `as? EmacsScroller` here, `NSEqualRects (a, b)` is `a == b`, the two `[view …]` reads on a
+/// possibly-nil view are C's nil-receiver answers (`?? .zero` for the rect), and C 5417-5423's
+/// counter writes are `EmacsView`'s own member; `bar` keeps C's own assumption that the value it
+/// casts is live.
+fileprivate func ns_set_vertical_scroll_bar(_ window: UnsafeMutableRawPointer?,
+                                            _ portion: Int32, _ whole: Int32,
+                                            _ position: Int32) {
+  var win: Lisp_Object = nil                         // C 5402
+  var r = NSRect.zero                                // C 5403
+  var v = NSRect.zero
+  let f = XFRAME(WINDOW_FRAME(window))               // C 5404
+  let view = FRAME_NS_VIEW(f) as? EmacsView          // C 5405
+  var bar: EmacsScroller? = nil                      // C 5406
+  var window_y: Int32 = 0                            // C 5407
+  var window_height: Int32 = 0
+  var top: Int32 = 0                                 // C 5408
+  var left: Int32 = 0
+  var height: Int32 = 0
+  var width: Int32 = 0
+  var update_p = true                                // C 5409
+
+  /* Optimization; display engine sends WAY too many of these.  */
+  if !NILP(window_vertical_scroll_bar(window)) {     // C 5412
+    bar = XNS_SCROLL_BAR(window_vertical_scroll_bar(window)) as? EmacsScroller    // C 5414
+    if bar!.checkSamePosition(position, portion: portion, whole: whole) != 0 {    // C 5415
+      if view?.scrollbarsNeedingUpdate == 0 {        // C 5417
+        if windows_or_buffers_changed == 0 {         // C 5419
+          return                                     // C 5420
+        }
+      } else {
+        view?.scrollbarsNeedingUpdate -= 1           // C 5423
+      }
+      update_p = false                               // C 5424
+    }
+  }
+
+  // C 5428: `NSTRACE ("ns_set_vertical_scroll_bar");` - empty at `NSTRACE_ENABLED` 0.
+
+  /* Get dimensions.  */
+  window_box(window, ANY_AREA(), nil, &window_y, nil, &window_height)   // C 5431
+  top = window_y                                     // C 5432
+  height = window_height                             // C 5433
+  width = WINDOW_SCROLL_BAR_AREA_WIDTH(window)       // C 5434
+  left = WINDOW_SCROLL_BAR_AREA_X(window)            // C 5435
+
+  r = NSMakeRect(CGFloat(left), CGFloat(top), CGFloat(width), CGFloat(height))   // C 5437
+  /* The parent view is flipped, so we need to flip y value.  */
+  v = view?.frame ?? .zero                           // C 5439 (C's nil receiver answers a zero rect)
+  r.origin.y = (v.size.height - r.size.height - r.origin.y)      // C 5440
+
+  XSETWINDOW(&win, window)                           // C 5442
+  block_input()                                      // C 5443
+
+  /* We want at least 5 lines to display a scrollbar.  */
+  if WINDOW_TOTAL_LINES(window) < 5 {                // C 5446
+    if !NILP(window_vertical_scroll_bar(window)) {   // C 5448
+      bar = XNS_SCROLL_BAR(window_vertical_scroll_bar(window)) as? EmacsScroller   // C 5450
+      bar!.removeFromSuperview()                     // C 5451
+      wset_vertical_scroll_bar(window, Qnil())       // C 5452
+      Unmanaged.passUnretained(bar!).release()       // C 5453 (C's `[bar release]`)
+      ns_clear_frame_area(f, left, top, width, height)   // C 5454
+    }
+    unblock_input()                                  // C 5456
+    return                                           // C 5457
+  }
+
+  if NILP(window_vertical_scroll_bar(window)) {      // C 5460
+    if width > 0 && height > 0 {                     // C 5462
+      ns_clear_frame_area(f, left, top, width, height)   // C 5463
+    }
+
+    bar = EmacsScroller(frame: r, window: win)       // C 5465
+    wset_vertical_scroll_bar(window,
+                             make_mint_ptr(Unmanaged.passUnretained(bar!).toOpaque()))   // C 5466
+    update_p = true                                  // C 5467
+  } else {
+    var oldRect = NSRect.zero                        // C 5471
+    bar = XNS_SCROLL_BAR(window_vertical_scroll_bar(window)) as? EmacsScroller   // C 5472
+    oldRect = bar!.frame                             // C 5473
+    r.size.width = oldRect.size.width                // C 5474
+    if FRAME_LIVE_P(f) && !(oldRect == r) {          // C 5475 (C's `NSEqualRects` is `==`)
+      if !(oldRect == r) {                           // C 5477
+        ns_clear_frame_area(f, left, top, width, height)   // C 5478
+      }
+      bar!.frame = r                                 // C 5479
+    }
+  }
+
+  if update_p {                                      // C 5483
+    _ = bar!.setPosition(position, portion: portion, whole: whole)   // C 5484
+  }
+  unblock_input()                                    // C 5485
+}
 
 /// C: the `enum scroll_bar_part` enumerators C 10942-10954 assigns to `last_hit_part` (src/termhooks.h
 /// 37's family, whose `scroll_bar_above_handle` this unit already imports) - enumerator entries, one
