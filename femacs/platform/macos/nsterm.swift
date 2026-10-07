@@ -6659,3 +6659,183 @@ fileprivate func ns_draw_glyph_string(_ s: UnsafeMutableRawPointer?) {
   }
   glyph_string_set_num_clips(s, 0)
 }
+
+// ---------------------------------------------------------------------------
+// Round 21: `EmacsApp` (C 6225-6400) - the class C 5013's `ns_send_appdefined` and the two
+// held `EV_TRAILER` macros wait for
+// ---------------------------------------------------------------------------
+
+/// `src/nsterm.h` 1189/1192: `#define NSAPP_DATA2_RUNASSCRIPT 10` and
+/// `#define NSAPP_DATA2_RUNFILEDIALOG 11` - the two `data2` values `EmacsApp`'s `sendEvent:`
+/// switches on (C 6344 and C 6349).  `NSEvent`'s `data2` is `Int` in Swift, so these are `let`s
+/// of that type (the `NS_FUNCTION_KEY_MASK` shape the round-1 block records).
+let NSAPP_DATA2_RUNASSCRIPT = 10
+let NSAPP_DATA2_RUNFILEDIALOG = 11
+
+/// C: `char *strstr (const char *, const char *)` (string.h) - the `fputs` shape above; Swift
+/// marks the C string family unavailable.  C 6311-6312 is the one call site.
+@_silgen_name("strstr")
+func strstr(_ haystack: UnsafePointer<CChar>,
+            _ needle: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>?
+
+/// The `struct ns_display_info` walk C 6389 does
+/// (`for (di = x_display_list; ! has_focus && di; di = di->next)`).  The record's definition is
+/// Rust's `src/include/nsterm.rs` 326, so the Swift side keeps C's pointer depth with the
+/// untyped stand-in (P-55) and reaches the fields through shims - `ns_display_info_ns_focus_frame`
+/// above is the read half this one pairs with.
+@_silgen_name("ns_display_info_next")
+func ns_display_info_next(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: `extern void ns_run_ascript (void);` (`src/nsterm.h` 1190) and
+/// `extern void ns_run_file_dialog (void);` (1193) - the two cross-unit entries C 6345/6350
+/// call.  Both are defined in `femacs/platform/macos/nsfns.swift` (3362 and 2716, `@_cdecl`)
+/// over `src/nsfns.m` 2447 and 1726, so this unit declares the import it reads
+/// (`emacs_view_frame`'s cross-unit shape above) and links the C symbol the other unit exports.
+@_silgen_name("ns_run_ascript") func ns_run_ascript()
+@_silgen_name("ns_run_file_dialog") func ns_run_file_dialog()
+
+/// C 6225-6912: `@implementation EmacsApp` - the eight-class section's third entry, the object
+/// `NSApp` is, and the class the held `EV_TRAILER`/`EV_TRAILER2` macros and C 5013's
+/// `ns_send_appdefined` both need (`app->nextappdefined` at C 5026, `-sendFromMainThread:` at
+/// C 6778).
+///
+/// **Round 21 lands C 6225-6400**: the record with its `NS_IMPL_COCOA` ivars (`src/nsterm.h`
+/// 378-389) and the five methods that close over names this unit already has - `init`
+/// (C 6227-6254), `run` (C 6256-6293), `stop:` (C 6295-6303), `logNotification:` (C 6306-6314)
+/// and `sendEvent:` (C 6317-6399).  Its remaining twenty-five methods (C 6402-6912) stay open in
+/// the ledger; C 5005-6224's event-loop functions land after this class because they call it (the
+/// entry/definition split the ledger's `## ABI` (4) records).
+class EmacsApp: NSApplication {
+  /// `src/nsterm.h` 381-382, the `NS_IMPL_COCOA` arm: `BOOL shouldKeepRunning; BOOL isFirst;`.
+  var shouldKeepRunning: Bool = false
+  var isFirst: Bool = false
+  /// `src/nsterm.h` 388: `@public int nextappdefined;` - `@public` because C 5026 and C 6780 reach
+  /// it through an `EmacsApp *` cast, so the port keeps it a plain property.
+  var nextappdefined: Int32 = 0
+
+  /// C 6227-6254: `- (id)init`.  The `NS_IMPL_GNUSTEP` half - the
+  /// `applicationDidFinishLaunchingCalled` ivar (C 6241) and the notification-center observer
+  /// (C 6245-6251) - is the arm this target does not take, so C 6238's `self->isFirst = YES;` is
+  /// what remains; C's `if ((self = [super init]))` is Swift's `super.init ()`.
+  override init() {
+    super.init()
+    isFirst = true
+  }
+
+  /// Swift's requirement on an `NSApplication` subclass; C has no unarchiving path for this class
+  /// and never builds one (the `required` override `EmacsBell` records above).
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+  }
+
+  /// C 6256-6293: `- (void)run`.  C 6261-6263's `#ifndef NSAppKitVersionNumber10_9` fallback
+  /// names the vintage constant, which Swift spells `NSAppKitVersion.macOS10_9`
+  /// (`NSAppKitVersionNumber10_10`'s reading above; C 6265's `(int) NSAppKitVersionNumber` is the
+  /// `rawValue` comparison), and `NSAutoreleasePool` is the `objc_autoreleasePoolPush`/`Pop` pair
+  /// this unit declares at C 560.
+  override func run() {
+    if NSAppKitVersion.current.rawValue != NSAppKitVersion.macOS10_9.rawValue {
+      super.run()
+      return
+    }
+
+    var pool = objc_autoreleasePoolPush()
+
+    if isFirst { finishLaunching() }                  // C 6273
+    isFirst = false                                   // C 6274
+
+    shouldKeepRunning = true                          // C 6276
+    repeat {
+      objc_autoreleasePoolPop(pool)                   // C 6279
+      pool = objc_autoreleasePoolPush()               // C 6280
+
+      let event = nextEvent(matching: .any,           // C 6282-6286
+                            until: Date.distantFuture,
+                            inMode: .default,
+                            dequeue: true)
+
+      /* C hands the pointer on unchanged: `nextEventMatchingMask:` returns nil only when
+         `untilDate` expires, and C 6284 passes `distantFuture`, so the unwrap cannot fire.  */
+      sendEvent(event!)                               // C 6288
+      updateWindows()                                 // C 6289
+    } while shouldKeepRunning                         // C 6290
+
+    objc_autoreleasePoolPop(pool)                     // C 6292
+  }
+
+  /// C 6295-6303: `- (void)stop: (id)sender` (the `NS_IMPL_COCOA` arm; C 6304 closes it).
+  override func stop(_ sender: Any?) {
+    shouldKeepRunning = false                         // C 6299
+    super.stop(sender)                                // C 6302
+  }
+
+  /// C 6306-6314: `- (void)logNotification: (NSNotification *)notification`.  C's
+  /// `const char *name = [[notification name] UTF8String];` is a UTF-8 view over the
+  /// notification's name, which Swift spells with `withCString` so the three `strstr` calls read
+  /// the same bytes.  `@objc` is what makes the selector reachable (the GNUstep observer that
+  /// names it at C 6248 is the arm this target does not take).
+  @objc func logNotification(_ notification: Notification) {
+    let name = notification.name.rawValue
+    name.withCString { p in
+      if strstr(p, "Update") == nil && strstr(p, "NSMenu") == nil
+           && strstr(p, "WindowNumber") == nil {
+        NSLog("notification: '%@'", name)
+      }
+    }
+  }
+
+  /// C 6317-6399: `- (void)sendEvent: (NSEvent *)theEvent`.  C's `[theEvent type]` is Swift's
+  /// `NSEvent.EventType` and C's `NSEventTypeXxx` constants are that enum's cases; the
+  /// `NS_IMPL_GNUSTEP` keyboard-forwarding arm (C 6329-6337) is dead here.
+  override func sendEvent(_ theEvent: NSEvent) {
+    let type = theEvent.type                          // C 6323
+    let window = theEvent.window                      // C 6324
+
+    if type == .applicationDefined {                  // C 6339
+      switch theEvent.data2 {                         // C 6341
+      case NSAPP_DATA2_RUNASSCRIPT:                   // C 6344 (the `NS_IMPL_COCOA` case)
+        ns_run_ascript()
+        stop(self)                                    // C 6346
+        return
+      case NSAPP_DATA2_RUNFILEDIALOG:                 // C 6349
+        ns_run_file_dialog()
+        stop(self)                                    // C 6351
+        return
+      default:
+        break
+      }
+    }
+
+    if type == .cursorUpdate && window == nil {       // C 6356
+      fputs("Dropping external cursor update event.\n", stderr)   // C 6358
+      return
+    }
+
+    if type == .applicationDefined {                  // C 6362
+      /* C 6364-6367: "Events posted by ns_send_appdefined interrupt the run loop here.  But, if
+         a modal window is up, an appdefined can still come through ... Just defer it until
+         later."  */
+      if NSApp.modalWindow == nil {                   // C 6368
+        last_appdefined_event_data = Int32(theEvent.data1)        // C 6370
+        stop(self)                                    // C 6371
+      } else {
+        send_appdefined = true                        // C 6375
+      }
+    }
+
+    /* C 6380-6394, the `NS_IMPL_COCOA` arm: skip a mouse move that belongs to an auxiliary menu
+       (the top-right one) when none of our frames has focus.  C's `for` loop is the `while`
+       below, which keeps C's two conjuncts and its short-circuit.  */
+    if type == .mouseMoved && NSApp.modalWindow == nil {          // C 6385
+      var has_focus = false                           // C 6388
+      var di = x_display_list                         // C 6389
+      while !has_focus && di != nil {
+        has_focus = ns_display_info_ns_focus_frame(di) != nil
+        di = ns_display_info_next(di)
+      }
+      if !has_focus { return }                        // C 6391
+    }
+
+    super.sendEvent(theEvent)                         // C 6398
+  }
+}

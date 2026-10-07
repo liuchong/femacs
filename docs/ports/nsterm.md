@@ -265,12 +265,12 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)show:(NSView *)view`  (line 1373) -> `@objc func show(_ view: NSView)`
   - [x] `- (void)hide`  (line 1402) -> `@objc func hide()`
   - [x] `-(void)remove`  (line 1418) -> `@objc func remove()`
-- [ ] EmacsApp  (`@implementation` 6225, `@end` 6912)
-  - [ ] `- (id)init`  (line 6227)
-  - [ ] `- (void)run`  (line 6257)
-  - [ ] `- (void)stop: (id)sender`  (line 6295)
-  - [ ] `- (void)logNotification: (NSNotification *)notification`  (line 6306)
-  - [ ] `- (void)sendEvent: (NSEvent *)theEvent`  (line 6317)
+- [ ] EmacsApp  (`@implementation` 6225, `@end` 6912) - round 21 landed **C 6225-6400**: the class record with its `NS_IMPL_COCOA` ivars (`src/nsterm.h` 378-389) and the five methods below; the twenty-five that remain (C 6402-6912) are what keeps this box open
+  - [x] `- (id)init`  (line 6227) — landed as `override init ()`: C 6238's `self->isFirst = YES;` is the one live statement (the `NS_IMPL_GNUSTEP` ivar at 6241 and the notification-centre observer at 6245-6251 are the arm this target does not take)
+  - [x] `- (void)run`  (line 6257) — landed as `override func run ()`: C 6261-6263's `#ifndef NSAppKitVersionNumber10_9` fallback is `NSAppKitVersion.macOS10_9` (the `NSAppKitVersionNumber10_10` reading above, class B) and `NSAutoreleasePool` is this unit's own `objc_autoreleasePoolPush`/`Pop` (C 560)
+  - [x] `- (void)stop: (id)sender`  (line 6295) — landed as `override func stop (_ sender: Any?)` (the `NS_IMPL_COCOA` arm; C 6304 closes it)
+  - [x] `- (void)logNotification: (NSNotification *)notification`  (line 6306) — landed as `@objc func logNotification (_:)`: C's `[[notification name] UTF8String]` is `withCString` over `notification.name.rawValue`, so the three `strstr` calls read the same bytes (the new declaration is the `fputs` shape)
+  - [x] `- (void)sendEvent: (NSEvent *)theEvent`  (line 6317) — landed as `override func sendEvent (_:)`: C's `NSEventTypeXxx` constants are `NSEvent.EventType` cases (C 6323's `int type` becomes the enum), the `NS_IMPL_GNUSTEP` keyboard arm (6329-6337) is dead, C 6344/6349's two `data2` values are `src/nsterm.h` 1189/1192's own `let`s, and C 6389's `di->next` walk is the new `ns_display_info_next` shim
   - [ ] `- (void)showPreferencesWindow: (id)sender`  (line 6402)
   - [ ] `- (void)newFrame: (id)sender`  (line 6416)
   - [ ] `- (BOOL) openFile: (NSString *)fileName`  (line 6433)
@@ -464,7 +464,7 @@ spelling the same selector is one box and is named where it occurs.)
 - [x] EV_MODIFIERS2  (line 397, body 8155b8d11eb3) — landed as `func EV_MODIFIERS2 (_ flags: UInt, _ kind: Lisp_Object) -> UInt32`; C's `NSUInteger`→`unsigned int` conversions are `truncatingIfNeeded:`
 - [x] EV_TIMESTAMP  (line 444, body 8e139f589481) — landed as `func EV_TIMESTAMP (_ e: NSEvent) -> Double`
 - [ ] EV_TRAILER  (line 448, body 0dd430c310a9) — **held** to C 5013: its body calls the hold queue and `EV_TRAILER2`, and `ns_send_appdefined` (C 5013) is this file's own function, so no Swift text can exist before it does (see Decisions)
-- [ ] EV_TRAILER2  (line 455, body bf5ab84e8621) — **held** to C 5013, like `EV_TRAILER` (its callees are C 498's `hold_event` and C 5013's `ns_send_appdefined`)
+- [ ] EV_TRAILER2  (line 455, body bf5ab84e8621) — **held** to C 5013, like `EV_TRAILER` (its callees are C 498's `hold_event` and C 5013's `ns_send_appdefined`).  Round 21 landed the `EmacsApp` class it also needs, so the C 5005-6224 round is the one that closes this box
 - [x] EV_UDMODIFIERS  (line 427, body 89301cbc268c) — landed as `func EV_UDMODIFIERS (_ e: NSEvent) -> Int32`, C's ten comparisons transcribed one for one
 - [x] NO_APPDEFINED_DATA  (line 318, body 9d95217d51d9)  — landed as a file-scope `let` of the same name
 - [x] NSAppKitVersionNumber10_10  (line 10407, body ed9f6e93628b) — the *name* is used at
@@ -472,7 +472,7 @@ spelling the same selector is one box and is named where it occurs.)
       (class B of the 3.255 ruling: the AppKit apinotes rename the vintage constants, and no
       symbol is invented); C's own `#define … 1343` fallback at C 10406-10408 is inside the later
       `-[EmacsWindow setAppearance]` slice, whose box stays where it is
-- [ ] NSAppKitVersionNumber10_9  (line 6262, body 74b10c057ded)
+- [x] NSAppKitVersionNumber10_9  (line 6262, body 74b10c057ded) — landed with round 21: C 6261-6263's `#ifndef` fallback names the vintage constant, which `EmacsApp run` spells `NSAppKitVersion.macOS10_9` (the `NSAppKitVersionNumber10_10` reading above, class B: the apinotes rename it and no symbol is invented)
 - [x] NSLeftAlternateKeyMask  (line 355, body a08e8dccf9c4)  — landed as a file-scope `let` of the same name
 - [x] NSLeftCommandKeyMask  (line 353, body 6f54877ddc32)  — landed as a file-scope `let` of the same name
 - [x] NSLeftControlKeyMask  (line 351, body 5cc979ee22b5)  — landed as a file-scope `let` of the same name
@@ -658,7 +658,7 @@ C 4747-4780) and the RIF's `ns_draw_glyph_string` (C 4782-5001) - **no new C exp
 C `static`s) - so the covered range is now **C 60-5001**.  The boundary is the `Event loop` banner
 at C 5005-5009: the dispatcher is the Glyph drawing operations section's last definition (the
 section the ledger has walked since round 17), and the next live definition - C 5013's
-`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.
+`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.
 
 Ticked above: **109 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
@@ -2822,3 +2822,25 @@ call site takes an entry and the definition lands at its own C line - and **both
   the core exports a same-name C-ABI entry from `femacs/src/abi_shim.rs` and the ratchet row stays
   until it does.  The audit recorded above (24 macro names, 0 symbols in `build/emacs-ref/**/*.o`)
   is what puts this file's remaining macro entries in class A.
+
+### Round 21: the `EmacsApp` class's first five methods (C 6225-6400)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`** (this lane's compile gate,
+  the form `docs/ports/nsselect.md` uses): **exit 0**, **0 errors**, the same **seven** warnings
+  every round since C 1500 carries (four `lockFocus`/`unlockFocus` deprecations, three
+  `'scanFloat' was deprecated in macOS 10.15`), and **no new one**.  Object `/tmp/nsterm21.o`,
+  **446,512 bytes**, md5 `6820bba82f832c7708019df040cf6b5f`.  **The first compile failed with one
+  error** - `value of optional type 'NSEvent?' must be unwrapped to a value of type 'NSEvent'` at
+  C 6288's `sendEvent` call - because Swift's `nextEvent(matching:until:inMode:dequeue:)` returns
+  an optional where C's `NSEvent *event` is a bare pointer; the port unwraps it, and the comment
+  beside the call records why the unwrap cannot fire (`untilDate` is `distantFuture`).
+* **`python3 tools/check-swift-units.py`**: **`0 new, 0 stale, 7 Swift unit(s) landed`**, with
+  `femacs/platform/macos/nsterm.swift: 150 C definition(s), 45 unported, 45 row(s); 409 C symbol
+  import(s)` - every number unchanged from round 20, which is the expected reading: an
+  Objective-C *method* is not one of C's functions, so this round's five methods sit outside the
+  reader's subject, and the two `@_silgen_name` imports it adds (`ns_run_ascript` and
+  `ns_run_file_dialog`, both defined in `nsfns.swift` over `src/nsfns.m` 2447 and 1726) are imports
+  and never coverage.  The ledger's Objective-C boxes are what this round's coverage rests on.
+* **No `nm` audit and no new C export**: the five additions are Objective-C selectors, so the
+  unit's exported surface is unchanged and the symbol audit that rounds 2-20 ran has nothing new
+  to read.
