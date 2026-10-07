@@ -1957,7 +1957,10 @@ unsafe extern "C" {
   /* C: Xlib.h 1806's `extern unsigned long XNextRequest (Display *);` moved to
      `include/xlib.rs` in the sixty-sixth `xterm` slice (P-90 5's move-back): xfns.rs reaches that
      mirror, and the row's second copy was one of `check-mirror-dupes.py`'s two failures.  */
-  /// C: Xlib.h 1839-1842: `extern int XScreenNumberOfScreen (Screen *);`
+  /// C: Xlib.h 1839-1842: `extern int XScreenNumberOfScreen (Screen *);` - Xlib's own row, which
+  /// stands only where `configure` found the function (`src/config.in` 1905's template); the
+  /// substitute C 7473-7491 defines takes the other arm (status 3.927).
+  #[cfg (feature = "have_xscreennumberofscreen")]
   pub fn XScreenNumberOfScreen (screen: *mut Screen) -> c_int;
   /// C: Xlib.h 93: `#define BlackPixel(dpy, scr) (ScreenOfDisplay(dpy,scr)->black_pixel)`
   pub fn BlackPixel (dpy: *mut Display, scr: c_int) -> c_ulong;
@@ -10330,3 +10333,72 @@ DEFUN! ("x-begin-drag", Fx_begin_drag, Sx_begin_drag,
   SAFE_FREE! (sa_count);                                                 // C 7445
   return lval;                                                          // C 7446
 });
+
+/* -----------------------------------------------------------------------------------------
+   C 7449-7491: the `X Displays` section (C 7449-7451), C 7454-7470's visual-name table and
+   C 7473-7491's `XScreenNumberOfScreen` substitute.  `select_visual` (C 7494-7606) follows in the
+   next slice and is the table's only reader.
+   -------------------------------------------------------------------------------------- */
+
+/* C: X11/X.h 704-709: `#define StaticGray 0` / `#define GrayScale 1` / `#define StaticColor 2` /
+   `#define PseudoColor 3` / `#define TrueColor 4` / `#define DirectColor 5` - the six class names
+   C 7463-7468's table initialises `class` with.  All six are the mirror's `x11_constants` rows
+   (`include/xlib.rs` 180-185, with the same header lines) and `include/xterm.rs` 114-125 already
+   imports three of them (`StaticColor`, `StaticGray`, `TrueColor`) at the crate root this
+   `include!` graph builds, so only the other three are imported here - the file's own shape
+   (412's `use crate::x11_constants::{…}`), and no glob (which would bring the module's `None`
+   into the crate root, as `include/xterm.rs` 109-111 records).  */
+#[cfg (feature = "have_x_windows")]
+use crate::x11_constants::{GrayScale, PseudoColor, DirectColor};
+
+/* C 7454-7470: "Mapping visual names to visuals."  C's record and its table.  The table's only
+   reader is `select_visual` (C 7532-7535), the next slice's first item, so it carries the
+   `dead_code` allowance until that slice lands (`src/sysdep.rs` 4245's device).  */
+#[cfg (feature = "have_x_windows")]
+#[repr (C)]
+pub struct visual_class
+{
+  pub name: *const c_char,                 /* C: `const char *name;`  */
+  pub class: c_int,                        /* C: `int class;`  */
+}
+#[cfg (feature = "have_x_windows")]
+#[allow (dead_code)]
+static mut visual_classes: [visual_class; 7] =
+  [
+    visual_class { name: c"StaticGray".as_ptr (), class: StaticGray },     // C 7463
+    visual_class { name: c"GrayScale".as_ptr (), class: GrayScale },       // C 7464
+    visual_class { name: c"StaticColor".as_ptr (), class: StaticColor },   // C 7465
+    visual_class { name: c"PseudoColor".as_ptr (), class: PseudoColor },   // C 7466
+    visual_class { name: c"TrueColor".as_ptr (), class: TrueColor },       // C 7467
+    visual_class { name: c"DirectColor".as_ptr (), class: DirectColor },   // C 7468
+    visual_class { name: std::ptr::null (), class: 0 },                    // C 7469's sentinel
+  ];
+
+/* C 7473-7491: `#ifndef HAVE_XSCREENNUMBEROFSCREEN` … `#endif /* not HAVE_XSCREENNUMBEROFSCREEN */`
+   - "Value is the screen number of screen SCR.  This is a substitute for the X function with the
+   same name when that doesn't exist."  `configure` tests the macro (`src/config.in` 1905's
+   template) and this tree's feature table does not register it, so this is the live arm and the
+   file's `extern` row (1960-1961) stands under the feature instead (P-86 ①: both arms carried,
+   the gate written as the lowercase feature).  C's definition is non-`static` and Xlib.h declares
+   it, so it carries C's linkage (PORTING.md 0.2/1.4) - which retires `--check`'s standing row
+   ("function XScreenNumberOfScreen is not static in C but has no #[unsafe(no_mangle)] in the
+   port").  The two members C reads (`dpy->nscreens`, `dpy->screens`) are inside `_XDisplay`'s
+   body, which this machine's Xlib.h keeps behind `XLIB_ILLEGAL_ACCESS`, so the mirror's
+   `_XDisplay` stays opaque (`include/xlib.rs` 1043) and those two reads are that class's rows.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "have_xscreennumberofscreen")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn XScreenNumberOfScreen (scr: *mut Screen) -> c_int
+{
+  let dpy: *mut Display = (*scr).display;                                 // C 7481
+  let mut i: c_int;                                                       // C 7482
+
+  i = 0;                                                                  // C 7484
+  while i < (*dpy).nscreens
+    {
+      if scr == (*dpy).screens.offset (i as isize)                        // C 7485
+	{ break; }                                                        // C 7486
+      i += 1;
+    }
+
+  return i;                                                               // C 7488
+}

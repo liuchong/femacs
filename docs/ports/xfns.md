@@ -1,7 +1,7 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
-C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273 and C 7275-7447
+C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447 and C 7449-7491
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -18,11 +18,12 @@ C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273 and C 7275-7447
 > **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth, **8,768 lines** after
 > the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth,
 > **9,547 lines** after the nineteenth, **9,801 lines** after the twentieth, **10,033 lines**
-> after the twenty-first, **10,157 lines** after the twenty-second and **10,332 lines** after
-> the twenty-third - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428,
-> C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991,
-> C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601, C 6604-6777, C 6785-7035,
-> C 7037-7207, C 7210-7273 and C 7275-7447, whose own
+> after the twenty-first, **10,157 lines** after the twenty-second, **10,332 lines** after the
+> twenty-third and **10,404 lines** after the twenty-fourth - C 803-2149, C 2150-3811,
+> C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582,
+> C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513,
+> C 6515-6601, C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447 and C 7449-7491,
+> whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -195,7 +196,8 @@ defines both features.
 | 7037-7207 | `x_frame_list_z_order` (C 7037-7043 its comment, C 7044-7045 the `static Lisp_Object`; C 7063-7096 the `_NET_CLIENT_LIST_STACKING` arm, C 7098-7119 the `XQueryTree` walk) with its subr `x-frame-list-z-order` (C 7125), then `x_frame_restack` (C 7150-7157 its comment, C 7161-7178 the `USE_GTK` pair) with its subr `x-frame-restack` (C 7182) | `have_x_windows`, with `use_gtk` for the restack helper's two arms (slice 21) |
 | 7210-7273 | the two mouse subrs: `x-mouse-absolute-pixel-position` (C 7210-7233, `x_query_pointer`'s nine arguments) and `x-set-mouse-absolute-pixel-position` (C 7235-7273, whose C 7251-7266 `HAVE_XINPUT2` pair chooses `XIWarpPointer` or `XWarpPointer`) | `have_x_windows`, with `have_xinput2` for the client-pointer-device arm (slice 22) |
 | 7275-7447 | the `x-begin-drag` `DEFUN` (C 7275 its header, C 7276-7334 its doc string; C 7350-7368 the target walk, C 7370-7426 the action dispatch, C 7430-7437 the atom interning under C 7432's error trap, C 7439-7443 the `x_dnd_begin_drag_and_drop` call, all inside C 7348/7445's `USE_SAFE_ALLOCA`/`SAFE_FREE` pair) | `have_x_windows`, with no nested `#if` (slice 23) |
-| 7449-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,214 lines, opening with C 7449-7455's `X Displays` section comment, the `visual_classes[]` table (C 7456-7470) and C 7473-7491's `#ifndef HAVE_XSCREENNUMBEROFSCREEN` fallback - the next slice's first item | not ported in this slice |
+| 7449-7491 | C 7449-7451's `X Displays` section comment, C 7454-7470's `visual_class` record and its `visual_classes[]` table (the six X11/X.h class constants) and C 7473-7491's `#ifndef HAVE_XSCREENNUMBEROFSCREEN` `XScreenNumberOfScreen` substitute (the file's own non-`static` definition) | `have_x_windows` on every item (P-86 ⑧, caught by the frozen `build-tu`), with `not (have_xscreennumberofscreen)` on the substitute and the feature on Xlib's declaration at 1960-1961 (slice 24) |
+| 7494-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,169 lines, whose first live definition is `select_visual` (C 7494-7606, the table's only reader) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2569,3 +2571,82 @@ declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
 
 The frozen configuration compiles none of this file: no drag was begun, no atom was interned and
 no selection target was offered; the twelve arms' counts are text compile readings.
+## Slice 24 (2026-10-08, status 3.927 - the integrator sets the round number): C 7449-7491
+
+**The slice is C 7449-7491**: C 7449-7451's `X Displays` section comment, C 7454-7470's
+`visual_class` record with the `visual_classes[]` table (the six `X11/X.h` class constants and C's
+`{NULL, 0}` sentinel) and C 7473-7491's `#ifndef HAVE_XSCREENNUMBEROFSCREEN` substitute for
+`XScreenNumberOfScreen`.  The port's slice is **72 Rust lines** (10,404 - 10,332, `grep -c ''`)
+against C's 43; md5 `383c1b3fd5a0a3842f9c32573752bbf5` (the slice 23 tree) ->
+`f7247a85422a83e1f6df61bf5bccf5ed`.
+
+**A thirteenth arm, and the substitute's two arms split by it.**  `configure` tests
+`HAVE_XSCREENNUMBEROFSCREEN` (`src/config.in` 1905's template) and this tree's feature table does
+not register it, so the substitute is the live arm here and Xlib's own declaration (this file's
+1960-1961 row) takes the other; the table gains **XSN** = `have_x_windows` +
+`have_xscreennumberofscreen`, whose first reading is **14 / 9**.  The twelve arms that do not carry
+the feature read their baselines **+2** each - and the two rows are exactly
+`no field \`nscreens\` on type \`_XDisplay\`` and `no field \`screens\` on type \`_XDisplay\``,
+the class this machine's Xlib.h creates by keeping `_XDisplay`'s body behind `XLIB_ILLEGAL_ACCESS`
+(`include/xlib.rs` 1043's note; C's own text would need that macro to compile) - while XSN reads
+**0** new rows.  No warning moves in any arm.
+
+**The first measurement, and the frozen unit's own catch.**  Three `E0255` rows
+(`StaticColor`/`StaticGray`/`TrueColor` defined twice) and then three `E0252`s after the first fix
+say the same thing: those three are already imported at the crate root by `include/xterm.rs`
+114-125, so the port imports only the three the mirror does *not* bring (`GrayScale`,
+`PseudoColor`, `DirectColor`) from `x11_constants` (`include/xlib.rs` 180-185, the same header
+lines).  One `E0277` (`*const i8` cannot be shared between threads safely) says the table cannot be
+a plain `static` - a C mutable `static` array of records with a raw pointer needs Rust's
+`static mut` - and the frozen `build-tu` caught what the arms could not: without the file gate the
+frozen configuration read six `E0425`s (`c_char`/`c_int`/`Screen`/`Display`), so the record and the
+substitute carry `have_x_windows` (P-86 ⑧) as every other item of this unit does.
+
+**Arm touch measured** (P-86 ⑦): one injection at the substitute's first statement moves the twelve
+non-feature arms (plain-X **16 -> 17**) and leaves XSN at **14** untouched - the cfg's two arms
+measured from the reading side.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash - after the file gate was added (the first attempt failed with six `E0425`s; see above).
+
+**② The thirteen arms.**  See above.
+
+**③ `extract-abi.py --check`**: **114 rows -> 112** - `missing function XScreenNumberOfScreen`
+retiring with the standing `function XScreenNumberOfScreen is not static in C but has no
+#[unsafe(no_mangle)] in the port` row, and nothing appearing in their place (`missing function`
+17 -> 16).  `check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0
+failure(s)** and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed
+literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **The six class constants are imported, not declared**: they are the mirror's `x11_constants`
+   rows, and three of them are already at the crate root through `include/xterm.rs` 114-125, so
+   only `GrayScale`, `PseudoColor` and `DirectColor` are imported here (no glob: that would bring
+   the module's `None` into the crate root, `include/xterm.rs` 109-111's recorded reason).
+2. **C's `static struct visual_class visual_classes[]`** is the port's `static mut` (a plain
+   `static` cannot hold a raw pointer: `E0277`, measured), with a `dead_code` allowance until
+   `select_visual` lands (`src/sysdep.rs` 4245's device).
+3. **The file gate on the new items** (P-86 ⑧): the record and the substitute carry
+   `have_x_windows`, and the substitute's own gate is `all (have_x_windows, not
+   (have_xscreennumberofscreen))`.
+4. **C's `for (i = 0; i < dpy->nscreens; ++i) if (scr == dpy->screens + i) break;`** is the port's
+   `while` with C's increment at the body's end and C's `dpy->screens + i` as
+   `(*dpy).screens.offset (i as isize)`.
+
+### Owed (this slice)
+
+- The two `_XDisplay`-body rows (`nscreens`, `screens`) belong to the mirror's opacity decision
+  (`include/xlib.rs` 1043: the body is behind `XLIB_ILLEGAL_ACCESS`, so carrying it needs a
+  mirror round); they are the twelve arms' two-row reading, not a transcription defect.
+- `syms_of_xfns`' `defsubr` site and the rest of the remainder from C 7494 (`select_visual`,
+  C 7494-7606, which is `visual_classes`' only reader): 3,169 C lines plus the 16 missing
+  functions, 1 macro, 4 objects, 25 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no display was opened, no visual was matched
+and no screen number was computed; the thirteen arms' counts are text compile readings, and XSN's
+14/9 is a text compile of a build whose Xlib is assumed to provide the function.
