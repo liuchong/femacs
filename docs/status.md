@@ -17211,3 +17211,52 @@
      ⑷ **`--check`** 仍 2 行，长行的 token 清单 **268 → 250**；单元 **33,728 行**（C 33,125，**长 603 行 / +1.82%**），文件 md5 `9a0ca789f786b1ec57512be9a51f4a7f`。
   ⑥ **预算与清理**：本片 rustc 编译 **约 45 发**（19 臂 × 2 轮 + 若干定点复测；每次 12-18 秒，单文件 `--emit=metadata`），`build/probes/xterm/`、`/tmp/s116/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，crossing/focus 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。剩余十四个 `case` 体，下一片从 `MotionNotify`（C 20998）起。
+
+- **4.034 版本声明规则第三十二半：照抄树的"文件自己开头那一行"第一次被读，44 行改名、1 行登记为语言名；这一类同时装上机器读者（2026-10-08）**：
+  ① **读到的是哪一面**：前三十一半读的是"句"——成员句（第十四/十五半）、许可三句（第二十半）、手册书名（第三十/三十一半）、
+     显示标签与注册名（第二十七/二十八/二十九半）。而每个照抄文件**自己开头那一行**——`;;; array.el --- array editing commands for GNU Emacs`、`% Reference Card for GNU Emacs`、`#+title: Modus themes for GNU Emacs`——从来没有任何读者：它既不是成员句
+     （`check-verbatim-declarations.py` 的候选要"part of"那一族），也不是逐字节门看得见的差（与参照逐字相同 ⇒ 登记表里没有行）。
+     它就待在三行下面那句 "This file is part of femacs." 之上——同一段文件头里，第一行说"给某产品用"、第五行说"属于本仓库"。
+  ② **判据与字形**：判据是第十四半那句"这句话说的是谁"。这一行的主语是**这个文件自己**（它是什么模式/工具/参考卡），
+     而文件是本仓库自己的副本 ⇒ 里面的产品名指的就是本程序 ⇒ 按第十半的机械字形改名：**只换产品名那一个 token**，
+     `GNU ` 前缀随产品名一起去掉，同一行其余字符一个都不动（`% Title:  GNU Emacs Survival Card` 的双空格、
+     `;;; x.el --- …  -*- lexical-binding: t; -*-` 的两空格与文件变量、`.svg` 注释里的整行形状都照旧）。
+  ③ **第二形状（首行必须是指令的文件）**：`%&tex`/`%&mex` 必须居首，标题因此落在第二行——`survival.tex`、`es-survival.tex`、
+     `fr-survival.tex`、`pl-refcard.tex` 四张 refcard 这样读；`.svg` 同理（首行 `<?xml …?>`、第二行 `<!-- Gnu Emacs Logo`，
+     四个文件：`splash.svg`、`gnus/gnus.svg`、`gnus/gnus-pointer.svg`、`icons/hicolor/scalable/mimetypes/emacs-document23.svg`）。
+  ④ **规模**：**44 行 / 44 个文件**（`lisp` 21、`etc` 21 = 15 张 refcard + `DEBUG`/`PROBLEMS` 2 + `.svg` 4、`doc` 1（`misc/modus-themes.org`）、
+     `admin` 1（`release-process`）），逐行记进 `docs/baseline/verbatim-substitutions.tsv`（**8,419 → 8,463** 行）。
+  ⑤ **这一类现在有机器读者**：`tools/check-verbatim-declarations.py` 的候选扩成两个形状，第二条是"文件自己的开头标题行 +
+     **拼写完整**的产品名"。裸名在这一条里**故意不算**：标题里的裸名是**语言名**（`;;; x.el --- Emacs Lisp mode`），
+     那是第十四/三十一半已经裁定的边界。`--selftest` **15 → 21 例 / 0 失败**（六例新增：标题行无行无表 ⇒ 1 条失败、标题行有登记行 ⇒ 0、
+     标题行在 `test/` ⇒ `forbidden-tree`、`%&tex` 之后的第二行、token 是语言名的那一行有登记行 ⇒ 0、已是本仓库名字的标题 ⇒ 0 候选）。
+  ⑥ **读数（全部实测，同一修订）**：⑴ `python3 tools/check-verbatim.py` → **`6 trees, 4604 files, 8,419 → 8,463 sanctioned line(s),
+     0 failures`**（逐树 `lisp` 6,474 → **6,495**、`etc` 473 → **494**、`doc` 1,197 → **1,198**、`admin` 260 → **261**；`test`/`leim`
+     与六棵树的文件数不动）。⑵ `python3 tools/check-verbatim-declarations.py` → **`734 candidate(s) of which 0 wrapped across two lines,
+     7 enumerated keep(s), 734 classified, 0 failure(s)`**（上一步 710/6；逐类 `forbidden-tree` 653 → **659**、`history` 38 → **55**、
+     `negation` 13、`enumerated` 6 → **7**）。⑶ 十门其余不变：`check-declarations` **18 / 0 / 18 / 0**、`check-own-voice` **0**、
+     `check-citations` **676 文件 / 0 drift / 0 range / 2,489 external / 36 allowed / 0 stale**、`check-mirror-dupes` **16/16/0**、
+     `check-port-lines` **0/0/0/0**、`check-ledger-ticks` **238/0**、`check-carried` **11/11/4/0**、`check-dead-file-coverage` **145/0**。
+  ⑦ **判别力实测（真树变异，复原后回绿）**：把 `femacs/lisp/array.el` 第 1 行改回参照 ⇒ 逐字节门报
+     `array.el: line 1 is '… GNU Emacs …', the table says '… femacs …'`（1 条失败），声明门报 `a substitution row says this line
+     carries this repository's name, but the statement still names the product`（1 条失败）；复原后两侧都回 `0 failures`。
+     两次读数都留在这里：**一条行既被登记行读、又被声明门读**，这是这一类不会随一次"重新 cp"回潮的证据。
+  ⑧ **按判据不动、逐条点名（17 + 1 + 6）**：⑴ **历史件 17**——`etc/NEWS` 与 `NEWS.1-17`…`NEWS.31`（16 个文件）的首行
+     `GNU Emacs NEWS -- history of user-visible changes.` 与 `etc/HISTORY` 的 `	GNU Emacs history, versions, and release dates`：
+     这些文件**记录的是参照产品的发行史**，改标题就把那些发行写成本仓库自己的（`history` 类，与 `ChangeLog*` 同一条）。
+     门的老判据在这里有一个缺口，本半实测到并补上：`HISTORY` 正则只认 `NEWS.18` 这种**纯数字后缀**，`NEWS.1-17` 会掉成"未归类"，
+     改成 `NEWS\.[0-9][0-9.-]*`（读法扩一格，没有任何既有行因此改类）。⑵ **语言名 1**——`femacs/lisp/obsolete/cl-compat.el:1`
+     的 token 是 `GNU Emacs Lisp`（**语言**的名字）：改它就是造一个不存在的语言名，逐行登记进
+     `docs/baseline/verbatim-declaration-keeps.tsv`（**6 → 7 行**，class `language-name`，理由写在行里；先例是
+     `doc/lispintro/emacs-lisp-intro.texi` 4/169）。⑶ **`test/` 6**——`INSTALL_BEGIN`、`biditest.el`、`etags.c`、
+     `c-src/emacs/src/lisp.h`、`mod-test.c`、`emacs-module-tests.el`：`test/` 是目标文本禁止改动的树，保持参照的字节。
+  ⑨ **仍未清、点名不冒充**：⑴ 六个照抄树里**首行以外**的标题/题头行本半没有读（`etc/DISTRIB` 2、`etc/MACHINES` 6、
+     `etc/NEXTSTEP` 4、`etc/AUTHORS` 2、`admin/notes/spelling` 3、`doc/misc/dired-x.texi` 3；`doc/lispref/internals.texi` 6 那种
+     **节点名**按第三十一半已经裁定不动）；⑵ 裸名（`Emacs`）仍按 3.692 的裁决留在表外，标题里的裸名本半也一律不读；
+     ⑶ `etc/org.gnu.emacs.defaults.gschema.xml` 的 `<schema id="org.gnu.emacs.defaults">` 与 `femacs/src/pgtkfns.rs` 的同一字符串是
+     **外部注册名**（第十三半的类：改了就是改行为），一处不动；⑷ 一份记账更正：第三十半的散文把逐树读数里的 `doc` 记成
+     `953 → 1,199`，而那一版提交的登记表里 `doc` 是 **1,197** 行（总数 `8,419` 正确，逐树那一格高 2），本半重算时发现，照实录下。
+     **未声称**：本半**没有跑过任何东西**——改的是文本，证据只有逐字节门（44 行每行读回）、两个声明门的读者与一次真树变异；
+     这些 `.el`/`.tex`/`.svg` 一件也没被加载、渲染或 `makeinfo` 过；`.el` 首行是 `lm-summary` 运行期读的字符串
+     （`finder`/`checkdoc`/`package-vc` 用它），改名后**没有跑过**其中任何一个；本半的读者只读"文件的开头标题行"这一个行形，
+     它不证明照抄树里**别处**没有以别的形状写着产品名（第九条把那几处逐个点名，数量以本条的清单为准）。

@@ -1,4 +1,4 @@
-;;; gnus.el --- a newsreader for GNU Emacs  -*- lexical-binding:t -*-
+;;; gnus.el --- a newsreader for femacs  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1987-1990, 1993-1998, 2000-2026 Free Software
 ;; Foundation, Inc.

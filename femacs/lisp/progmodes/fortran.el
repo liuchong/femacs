@@ -1,4 +1,4 @@
-;;; fortran.el --- Fortran mode for GNU Emacs -*- lexical-binding: t -*-
+;;; fortran.el --- Fortran mode for femacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 1986-2026 Free Software Foundation, Inc.
 

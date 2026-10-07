@@ -651,6 +651,47 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     即除 token 与那两处第二字形外整行逐字相同）与声明门；这些手册没有被 `makeinfo` 重建过，
     "Info 目录里那一格现在印什么"只是文本读数、不是 `info` 的输出。
 
+    这条规则现在有第三十二半（2026-10-08，status 4.034）：**照抄树里"文件自己开头那一行"这一面第一次被读**。
+    前三十一半读的是**句**（成员句、许可句、手册书名、显示标签、注册名），而每个照抄文件**自己那一行标题/摘要**
+    （`;;; array.el --- array editing commands for <产品名>`、`% Reference Card for <产品名>`、`#+title: …`）
+    既不是成员句、也不是逐字节门看得见的差——它就待在 "This file is part of femacs." 上面三行，**写明这个文件是给谁用的**。
+    判据仍是第十四半那一句"这句话说的是谁"：这一行的主语是**这个文件自己**，而文件是本仓库自己的副本 ⇒ 该行里的产品名指的就是本程序
+    ⇒ 按第十半的机械字形改名（只换产品名那一个 token，`GNU ` 前缀随产品名一起去掉，同行其余字符一个都不动：
+    `% Title:  <产品名> Survival Card` 的双空格、`;;; x.el --- …  -*- lexical-binding: t; -*-` 的两空格与文件变量照旧）。
+    **第二形状**：首行是必须居首的指令（`%&tex`/`%&mex`）时标题在第二行——`survival.tex`、`es-survival.tex`、`fr-survival.tex`、
+    `pl-refcard.tex` 四张 refcard 按这条读；同理四个 `.svg`（首行 `<?xml …?>`、第二行那行注释写的是自己的 logo）。
+    规模与读数：**44 行 / 44 个文件**（`lisp` 21、`etc` 21 = 15 张 refcard + `DEBUG`/`PROBLEMS` 2 + `.svg` 4、`doc` 1、`admin` 1）
+    逐行记进 `docs/baseline/verbatim-substitutions.tsv`（**8,419 → 8,463** 行）；`python3 tools/check-verbatim.py` →
+    **`6 trees, 4604 files, 8,463 sanctioned line(s), 0 failures`**（逐树 `lisp` 6,474 → **6,495**、`etc` 473 → **494**、
+    `doc` 1,197 → **1,198**、`admin` 260 → **261**；`test`/`leim` 与六棵树的文件数逐个不动）。
+    **同一半给这一类装上读者**：`tools/check-verbatim-declarations.py` 的候选从"成员句"一个形状扩成**两个**，第二条是
+    "文件自己的开头标题行 + **拼写完整**的产品名"（裸名在这一条里**故意不算**：标题里的裸名是**语言名**，第十四/三十一半的边界）。
+    `--selftest` **15 → 21 例 / 0 失败**（新增六例：标题行无行无表 ⇒ 1 条失败、标题行有登记行 ⇒ 0、标题行在 `test/` ⇒ `forbidden-tree`、
+    `%&tex` 之后的第二行、token 是语言名的那一行有登记行 ⇒ 0、已经是本仓库名字的标题 ⇒ 0 候选）。读数
+    **`734 candidate(s) of which 0 wrapped across two lines, 7 enumerated keep(s), 734 classified, 0 failure(s)`**
+    （上一步 710/6；逐类 `forbidden-tree` 653 → **659**、`history` 38 → **55**、`negation` 13、`enumerated` 6 → **7**）。
+    **判别力实测**（真树变异、复原后回绿）：把 `femacs/lisp/array.el` 第 1 行改回参照 ⇒ 逐字节门报
+    `line 1 is '… <产品名> …', the table says '… femacs …'`、声明门报 `a substitution row says this line carries this
+    repository's name, but the statement still names the product`，各 1 条失败、复原后两侧都回 `0 failures`。
+    **按判据不动、逐条点名（17 + 1 + 6 处）**：⑴ **历史件（17）**——`etc/NEWS` 与 `NEWS.1-17`…`NEWS.31` 十六个文件的首行
+    （`<产品名> NEWS -- history of user-visible changes.`）加 `etc/HISTORY`：这些文件**记录的是参照产品的发行史**，改标题就把那些发行
+    写成本仓库自己的（`history` 类，与 `ChangeLog*` 同一条）；门为此把**版本区间**的文件名 `NEWS.1-17` 也算进该类——这是本半实测到的
+    老判据缺口（原正则只认 `NEWS.18` 这种纯数字后缀，`NEWS.1-17` 会掉成"未归类"）。⑵ **语言名（1）**——
+    `femacs/lisp/obsolete/cl-compat.el:1` 把产品名缀在**语言名**上（`… Lisp`），改它就是造一个不存在的语言名
+    （第十四/三十一半的边界，`doc/lispintro/emacs-lisp-intro.texi` 4/169 是先例）：逐行登记进
+    `docs/baseline/verbatim-declaration-keeps.tsv`（**6 → 7 行**，class `language-name`）。⑶ **`test/`（6）**——目标文本禁止改动的树
+    （`INSTALL_BEGIN`、`biditest.el`、`etags.c`、`c-src/emacs/src/lisp.h`、`mod-test.c`、`emacs-module-tests.el`），保持参照的字节。
+    **仍未清、点名不冒充**：⑴ 六个照抄树里**首行以外**的标题/题头行本半没有读（`etc/DISTRIB` 2、`etc/MACHINES` 6、`etc/NEXTSTEP` 4、
+    `etc/AUTHORS` 2、`admin/notes/spelling` 3、`doc/misc/dired-x.texi` 3，以及 `doc/lispref/internals.texi` 6 那种**节点名**——
+    第三十一半已判节点名不动）；⑵ 裸名（`Emacs`）仍按 3.692 的裁决留在表外；⑶ `etc/org.…defaults.gschema.xml` 里的 schema id 与
+    `femacs/src/pgtkfns.rs` 的同一字符串是**外部注册名**（第十三半的类：改了就是改行为），一处不动。
+    **未声称**：本半没有跑过任何东西——改的是文本，读数只有逐字节门（44 行每行读回）、两个声明门的读者与一次真树变异；
+    这些 `.el`/`.tex`/`.svg` 一件也没被加载、渲染或 `makeinfo` 过；`.el` 的首行是 `lm-summary` 运行期读的字符串
+    （`finder`/`checkdoc`/`package-vc` 用它），改名后**没有跑过**其中任何一个。
+    **顺带一处记账更正**：第三十半的散文把逐树读数里的 `doc` 记成 `953 → 1,199`，而那一版提交的登记表里 `doc` 是 **1,197** 行
+    （总数 `8,419` 是对的，逐树那一格高 2）：本半重算时才发现，照实录在这里。
+    同一批读数记在 `docs/status.md` 4.034。
+
 
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike

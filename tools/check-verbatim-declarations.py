@@ -17,7 +17,8 @@ candidate line has to be one of
                    would turn a true statement into a false one;
   enumerated       `docs/baseline/verbatim-declaration-keeps.tsv` names it, line by line
                    (`<path>\t<line>\t<the line's text>\t<class>\t<reason>`), with the class
-                   it falls in and the reason it stays.
+                   it falls in and the reason it stays (`language-name` for a title that
+                   names the language rather than this program).
 
 Anything else is a failure, printed with its path, line number and text - including the one
 shape a byte gate cannot see: a candidate that a `docs/baseline/verbatim-substitutions.tsv`
@@ -29,7 +30,16 @@ are the *shape* (a file being made part of something), not the word "part of" al
   <This|These|The following|They|…|NAME.el|NAME.rnc> … <is|are> … <part of|annex of>
 
 and the line must also carry the product's readable name (bare `Emacs` included - that is
-the spelling the manual-membership sentence uses).  The bound is a model, like the other
+the spelling the manual-membership sentence uses).
+
+The rule has a second shape (the thirty-second half, status 4.034): the file's own *opening
+title line* - line 1, or the line after a directive that must stay first (`%&tex`/`%&mex`,
+`#!`, `<?xml …?>`) - is a candidate whenever it carries the *spelled-out* product name.  A
+copied file's title says what the file is (`;;; array.el --- array editing commands for GNU
+Emacs`), and it sits three lines above a membership sentence that already carries this
+repository's name, so a re-copy brings the product back in a line no reader read before.
+Bare `Emacs` is out of this shape on purpose: in a title it is the language's name (`;;
+cl-compat.el --- Common Lisp extensions for GNU Emacs Lisp`, kept and enumerated).  The bound is a model, like the other
 gates' pattern tables: prose whose subject is not a thing of this repository (`Emacs
 deletes the part of the file name that matched REGEXP`) is not a declaration and is out of
 scope here, and `--selftest` has a case for exactly that line.
@@ -89,7 +99,7 @@ NEGATION = re.compile(r"\bnot\b[^.;]{0,24}?\bpart of\b|\bnever\b[^.;]{0,24}?\bpa
                       r"\bisn't\b[^.;]{0,24}?\bpart of\b|\bno longer\b[^.;]{0,24}?\bpart of\b", re.I)
 # The files that *quote* the sentence as history (`lisp/ChangeLog.17`, `etc/NEWS.22`,
 # `etc/HISTORY`); the classes and their readings are in the module docstring.
-HISTORY = re.compile(r"(?:^|/)ChangeLog(?:\.|$)|(?:^|/)(?:NEWS|NEWS\.[0-9][0-9.]*|HISTORY|"
+HISTORY = re.compile(r"(?:^|/)ChangeLog(?:\.|$)|(?:^|/)(?:NEWS|NEWS\.[0-9][0-9.-]*|HISTORY|"
                      r"MH-E-NEWS|ORG-NEWS|PROBLEMS|DEBUG)$")
 # A continuation line: the file's line prefix and then the statement's verb.  The prefixes
 # below are the measured ones (`@c ` in `doc/`, `;;` in `lisp/`, `# ` in the shell scripts);
@@ -98,6 +108,26 @@ HISTORY = re.compile(r"(?:^|/)ChangeLog(?:\.|$)|(?:^|/)(?:NEWS|NEWS\.[0-9][0-9.]
 PREFIX = re.compile(r"^(?:\s*(?:@c|@comment|;;+|;|#+|//+|\*+|%)\s+|\s*)")
 CONTINUATION = re.compile(r"(?:is|are|was|were)\b", re.I)
 CLASSES = ("forbidden-tree", "history", "negation", "enumerated")
+# The file's own *opening title line*: what a copied file calls itself (`;;; foo.el --- …`,
+# `% Reference Card for …`, `#+title: …`), or - when the file opens with a directive that has
+# to stay first (`%&tex`, `%&mex`, `#!`, `<?xml …?>`) - the line right after it (the 32nd half).
+# A file re-copied from the reference brings that line back the same way it brings a
+# membership sentence back, and until this reader existed nothing read it: the byte gate
+# compares bytes, and the membership shape above wants a "part of" phrase.
+TITLE_DIRECTIVE = re.compile(r"^(?:%&(?:tex|mex|latex|plain)\b|#!|<\?xml)")
+# The spelled-out product name only.  The bare `Emacs` the membership shape needs is the
+# *language's* name in the titles these trees write (`Emacs Lisp`, `An Emacs mode`, the
+# `emacs-lisp-intro` manual the fourteenth and thirty-first halves keep), so the title shape
+# bounds itself to the spelled-out forms the substitutions table carries.
+PRODUCT_SPELLED = re.compile(r"\bGNU Emacs\b|\bgnu emacs\b|\bGNU\.Emacs\b|\bGnu Emacs\b")
+
+
+def opening_title(lines: list[str]) -> int | None:
+    """The index of the file's own opening title line, or None when it has none."""
+    if not lines or not lines[0].strip():
+        return None
+    idx = 1 if TITLE_DIRECTIVE.match(lines[0]) and len(lines) > 1 else 0
+    return idx if idx < len(lines) and lines[idx].strip() else None
 
 
 def continuation_body(text: str) -> str | None:
@@ -185,13 +215,18 @@ def census(repo: Path, subs: dict[str, list[tuple[int, str]]],
             except OSError as exc:
                 failures.append(f"{rel}: {exc}")
                 continue
+            title_idx = opening_title(lines)
             for idx, line in enumerate(lines):
                 # A candidate is one line's text, or - when this line opens with the
                 # continuation's verb - the line above joined with it.
                 line_no = idx + 1
                 where = f"{rel}:{line_no}"
                 text = line
-                if not is_declaration(text):
+                if idx == title_idx and PRODUCT_SPELLED.search(line):
+                    # The file's own opening title line (the 32nd half): a candidate as it
+                    # stands - no join, no membership phrase needed.
+                    pass
+                elif not is_declaration(text):
                     # A wrapped statement: the line above must *not* carry the phrase
                     # already, or the join would merely glue two statements together and
                     # report the one above a second time (`etc/images/README:45-46`).
@@ -262,7 +297,7 @@ def main() -> int:
           f"wrapped across two lines, {sanctioned} enumerated keep(s), {sum(counts.values())} "
           f"classified, {len(failures)} failure(s)")
     print(f"the substitution table carries {rows} row(s) for these trees - the lines the tenth"
-          f" to fifteenth halves renamed")
+          f" to thirty-second halves renamed")
     for line in failures[:20]:
         print(f"          {line}")
     return 1 if failures else 0
@@ -300,6 +335,20 @@ def selftest() -> int:
          ";; This file is part of GNU Emacs.\nare part of the manual.", {}, {}, 1, 1),
         ("a statement whose object is not the product",
          ";; like Emacs, they are part of the window's body", {}, {}, 0, 0),
+        ("a file's opening title line that names the product",
+         ";;; x.el --- a mode for GNU Emacs", {}, {}, 1, 1),
+        ("an opening title line a keep row enumerates",
+         ";;; x.el --- a mode for GNU Emacs", {}, {"x.el": [(1, ";;; x.el --- a mode for GNU Emacs")]},
+         0, 1),
+        ("an opening title line under test/",
+         ";;; x.el --- a mode for GNU Emacs", {}, {}, 0, 1),
+        ("an opening title line after a format directive",
+         "%&tex\n%% Reference Card for GNU Emacs", {}, {}, 1, 1),
+        ("an opening title line whose token is the language's name",
+         ";;; x.el --- Common Lisp extensions for GNU Emacs Lisp", {},
+         {"x.el": [(1, ";;; x.el --- Common Lisp extensions for GNU Emacs Lisp")]}, 0, 1),
+        ("a title line that already says this repository's name",
+         ";;; x.el --- a mode for femacs", {}, {}, 0, 0),
     ]
     bad = 0
     with tempfile.TemporaryDirectory() as tmp:

@@ -1,4 +1,4 @@
-;;; cdl.el --- Common Data Language (CDL) utility functions for GNU Emacs -*- lexical-binding: t -*-
+;;; cdl.el --- Common Data Language (CDL) utility functions for femacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 1993, 2001-2026 Free Software Foundation, Inc.
 

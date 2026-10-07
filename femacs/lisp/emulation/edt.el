@@ -1,4 +1,4 @@
-;;; edt.el --- enhanced EDT keypad mode emulation for GNU Emacs  -*- lexical-binding: t; -*-
+;;; edt.el --- enhanced EDT keypad mode emulation for femacs  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 1986, 1992-1995, 2000-2026 Free Software Foundation,
 ;; Inc.

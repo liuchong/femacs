@@ -1,4 +1,4 @@
-;;; timezone.el --- time zone package for GNU Emacs  -*- lexical-binding: t -*-
+;;; timezone.el --- time zone package for femacs  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 1990-1993, 1996, 1999, 2001-2026 Free Software
 ;; Foundation, Inc.

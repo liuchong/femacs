@@ -1,4 +1,4 @@
-;;; nroff-mode.el --- GNU Emacs major mode for editing nroff source  -*- lexical-binding: t -*-
+;;; nroff-mode.el --- femacs major mode for editing nroff source  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 1985-2026 Free Software Foundation, Inc.
 

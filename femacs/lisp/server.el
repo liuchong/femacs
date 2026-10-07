@@ -1,4 +1,4 @@
-;;; server.el --- Lisp code for GNU Emacs running as server process -*- lexical-binding: t -*-
+;;; server.el --- Lisp code for femacs running as server process -*- lexical-binding: t -*-
 
 ;; Copyright (C) 1986-1987, 1992, 1994-2026 Free Software Foundation,
 ;; Inc.

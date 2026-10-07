@@ -1,4 +1,4 @@
-;;; array.el --- array editing commands for GNU Emacs  -*- lexical-binding: t; -*-
+;;; array.el --- array editing commands for femacs  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 1987, 2000-2026 Free Software Foundation, Inc.
 

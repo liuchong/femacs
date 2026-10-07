@@ -1,4 +1,4 @@
-;;; nnspool.el --- spool access for GNU Emacs  -*- lexical-binding: t; -*-
+;;; nnspool.el --- spool access for femacs  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 1988-1990, 1993-1998, 2000-2026 Free Software
 ;; Foundation, Inc.

@@ -1,4 +1,4 @@
-;;; rect.el --- rectangle functions for GNU Emacs  -*- lexical-binding:t -*-
+;;; rect.el --- rectangle functions for femacs  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1985, 1999-2026 Free Software Foundation, Inc.
 

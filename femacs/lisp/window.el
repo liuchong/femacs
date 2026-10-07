@@ -1,4 +1,4 @@
-;;; window.el --- GNU Emacs window commands aside from those written in C  -*- lexical-binding:t -*-
+;;; window.el --- femacs window commands aside from those written in C  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1985-2026 Free Software Foundation, Inc.
 

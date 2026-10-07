@@ -1,4 +1,4 @@
-;;; mpuz.el --- multiplication puzzle for GNU Emacs  -*- lexical-binding: t -*-
+;;; mpuz.el --- multiplication puzzle for femacs  -*- lexical-binding: t -*-
 
 ;; Copyright (C) 1990, 2001-2026 Free Software Foundation, Inc.
 

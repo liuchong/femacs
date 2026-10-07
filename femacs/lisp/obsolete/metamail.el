@@ -1,4 +1,4 @@
-;;; metamail.el --- Metamail interface for GNU Emacs  -*- lexical-binding: t; -*-
+;;; metamail.el --- Metamail interface for femacs  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 1993, 1996, 2001-2026 Free Software Foundation, Inc.
 

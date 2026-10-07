@@ -1,4 +1,4 @@
-;;; calc.el --- the GNU Emacs calculator  -*- lexical-binding:t -*-
+;;; calc.el --- the femacs calculator  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1990-1993, 2001-2026 Free Software Foundation, Inc.
 

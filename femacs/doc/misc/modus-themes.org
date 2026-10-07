@@ -1,4 +1,4 @@
-#+title: Modus themes for GNU Emacs
+#+title: Modus themes for femacs
 #+author: Protesilaos
 #+email: info@protesilaos.com
 #+language: en

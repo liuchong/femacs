@@ -1,4 +1,4 @@
-;;; bibtex.el --- BibTeX mode for GNU Emacs -*- lexical-binding: t -*-
+;;; bibtex.el --- BibTeX mode for femacs -*- lexical-binding: t -*-
 
 ;; Copyright (C) 1992-2026 Free Software Foundation, Inc.
 

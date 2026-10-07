@@ -1,4 +1,4 @@
-;;; tar-mode.el --- simple editing of tar files from GNU Emacs  -*- lexical-binding:t -*-
+;;; tar-mode.el --- simple editing of tar files from femacs  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1990-1991, 1993-2026 Free Software Foundation, Inc.
 

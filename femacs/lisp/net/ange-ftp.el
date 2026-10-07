@@ -1,4 +1,4 @@
-;;; ange-ftp.el --- transparent FTP support for GNU Emacs  -*- lexical-binding:t -*-
+;;; ange-ftp.el --- transparent FTP support for femacs  -*- lexical-binding:t -*-
 
 ;; Copyright (C) 1989-2026 Free Software Foundation, Inc.
 

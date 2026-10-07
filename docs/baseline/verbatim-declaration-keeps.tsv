@@ -11,6 +11,12 @@
 # this repository's name in its own title, so the sentences were renamed too and their
 # rows moved to `verbatim-substitutions.tsv` - a keep row whose line is no longer a
 # candidate would fail the gate, which is why the class is gone rather than kept.
+# The rule's thirty-second half (status 4.034, 2026-10-08) added a second candidate shape - a
+# file's own opening title line carrying the spelled-out product name - and with it this
+# table's one `language-name` row: `lisp/obsolete/cl-compat.el` 1 hangs the product name on
+# the *language's* name, so the row stays, with the class and the reason in it.  The shape's
+# other 23 candidates are classified `forbidden-tree` (6, under `test/`, which the goal text
+# forbids modifying) and `history` (17: `etc/NEWS`, `NEWS.1-17` .. `NEWS.31`, `etc/HISTORY`).
 # Columns: <repo-root-relative target path>\t<line>\t<the target's line>\t<class>\t<reason>.
 path	line	the target's line	class	reason
 femacs/doc/emacs/maintaining.texi	2424	This backend is part of Emacs and is enabled by default.  (Other	narrative	the subject is a feature of the program, not a file of this repository: the sentence describes the reference program's behaviour or history, so there is nothing here to rename (0.1-19's boundary: a class is read by asking who the sentence is about)
@@ -19,3 +25,4 @@ femacs/doc/lispref/tips.texi	1185	Free Software Foundation (or that the file is 
 femacs/doc/misc/efaq.texi	57	This FAQ is maintained as a part of GNU Emacs.  If you find any errors,	attribution	the sentence says who *maintains* the FAQ; renaming the product in it would make a false statement about maintenance, which is the class 0.1-19 keeps (`改它就是写一句假署名`)
 femacs/lisp/foldout.el	124	;; foldout.el is now part of the GNU Emacs distribution!!	history-quote	the line sits in the file's `;;; ChangeLog:` section: it records what the tree said on 1994-03-21, so it is history, not a declaration (the same reason `ChangeLog*` files keep the sentence)
 femacs/lisp/minibuffer.el	4249	      ;; Actually, claiming this feature was part of Emacs-22 completion	narrative	the subject is a feature of the program, not a file of this repository: the sentence describes the reference program's behaviour or history, so there is nothing here to rename (0.1-19's boundary: a class is read by asking who the sentence is about)
+femacs/lisp/obsolete/cl-compat.el	1	;;; cl-compat.el --- Common Lisp extensions for GNU Emacs Lisp (compatibility)  -*- lexical-binding: t; -*-	language-name: the token is `GNU Emacs Lisp`, the *language's* name rather than this program's - renaming it would name a language that does not exist (the fourteenth and thirty-first halves' boundary; `doc/lispintro/emacs-lisp-intro.texi` 4/169 is the precedent)
