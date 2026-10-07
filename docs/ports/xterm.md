@@ -360,6 +360,14 @@ C's `goto OTHER`, `break 'other` is C's `break`, and an arm that merely ends is 
 `OTHER:`.  The repair is a zero-difference reading in the arms it was measured in, and its
 evidence is `spikes/switch-frame-probe.rs`, which prints both shapes as paths.
 
+  Slice 115 (C 20196-20714, Decision 127) lands `KeyPress` and `KeyRelease` (519 C lines) together
+with the keysym vocabulary they need: thirty-eight `XK_*` constants and the five `XLookupString`
+status values in `x11_constants`, the five `Is…Key` macros and the `XKeyEvent` record at the use
+site, and the `mouse_face_hidden` bitfield macro the mouse-highlight clear reads.  C's three
+`#if`'d translation paths (XIC, XKB, plain), the two `#ifdef XK_F1`/`XK_dead_*` families and the
+`done_keysym` label all land with their gates, and the `break`/`goto` sites use the frame round 90
+repaired.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5360,6 +5368,56 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **Not claimed.**  No runtime evidence - this lane does not link; the probe is a Rust model of the
   frame, not the unit running.  What the repair changes is which path C's own jumps take, and that
   is what the C text (25586-25590) and the probe each show.
+
+### 127. Slice 115 (C 20196-20714): `KeyPress`/`KeyRelease`, the keysym vocabulary, and three named debts
+
+* **What it lands.**  `case KeyPress:` (C 20196-20704, 509 lines) and `case KeyRelease:`
+  (C 20705-20714, 10 lines), each line with its own `// C NNNN` comment: the user-time pair, the
+  mouse-highlight clear, the Motif scroll-bar key redirect, the `xkey` copy with
+  `x_compute_root_window_offset`, C's three translation paths (`XmbLookupString` for an XIC, the
+  `HAVE_XKB` pair, and the plain `XLookupString`), the quit-keysym pair, the four keysym classes
+  (ASCII, Unicode, the `Vx_keysym_table` lookup, the "random non-modifier sorts" condition with its
+  twenty-one `#ifdef XK_dead_*` terms), the raw-bytes tail and C 20686's `done_keysym` label with
+  the XIC preedit/status tail behind it.
+* **The vocabulary round it needed.**  `include/xlib.rs`'s `x11_constants` gains thirty-eight
+  `XK_*` names and the five `XLookupString` status values, all measured against this machine's
+  `<X11/keysymdef.h>` and `<X11/Xlib.h>` (each row's comment cites its line), plus `NoSymbol`
+  (X.h 141).  They carry `c_ulong` where the nine already there carry `c_int`, because C compares
+  these against `KeySym`; the module cannot see the mirror's own aliases (its own note at 63-67),
+  which the first writing's `: KeySym` typed rows showed by failing with 39 `cannot find type`
+  rows.  The unit gains: the five `Is…Key` macros (bodies measured against the SDK's
+  `…/Tk.framework/…/X11/Xutil.h` 189-207, whose ranges are the ones C's comments give - this
+  machine's `<X11/keysym.h>` has no such macros at all, which is why C's `#ifdef`s are the gate),
+  the `XKeyEvent` record at the use site (P-88 1, `src/xmenu.rs` 232's measured 96-byte twin, since
+  the `XEvent` stand-in does not carry `xkey`), a `mouse_face_hidden!` bitfield macro (the third
+  flag bit `include/dispextern.rs` 2139 carries as `MOUSE_FACE_HIDDEN`, the `src/msdos.rs` 3440
+  shape), and a use-site `clear_mouse_face` (dispextern.h 3691).
+* **Six spellings the first writing read (each measured, each fixed in place).**  (1) `XK_Hyper_R`
+  is one of the nine `c_int` rows, so `IsModifierKey`'s comparison needs `XK_Hyper_R as c_ulong`.
+  (2) An attribute on an *assignment* is `E0658` (slice 110's reading), so the `HAVE_XINPUT2`
+  assignment C 20285 is wrapped in a block.  (3) `STORE_KEYSYM_FOR_DEBUG` is this port's
+  `macro_rules!`, so its three call sites carry the `!`.  (4) C's `#if ! defined (USE_GTK)` term
+  stands *inside* C 20219's condition, so the port computes that term as a saved value the way
+  Decision 2 item 2 spells conditional terms (`in_hl_window`), and `mouse_frame`'s assignment from
+  the `c_void` model needs its cast.  (5) The type conversions C leaves implicit are stated:
+  `extra_keyboard_modifiers as intmax_t`, `as c_uint` for the three `inev.ie.code`/`modifiers`
+  assignments, `XFIXNAT (c) as intmax_t` into `SINGLE_BYTE_CHAR_P`, `as EMACS_INT` into
+  `make_fixnum` (twice).  (6) C 20331's `FRAME_XIC (f)` is the macro, so it is called with the `!`.
+* **Three debts this slice names rather than pays.**  (1) **The arms do not model
+  `HAVE_WINDOW_SYSTEM`.**  C's configuration implies it from `HAVE_X_WINDOWS`, and the mirror gates
+  `frame`'s `tab_bar_window`/`tool_bar_window` on it, so C 20221/20223's two reads are rows in
+  every arm (`no field tab_bar_window`/`tool_bar_window` x1 each) - the same class as slice 111's
+  `have_x11`, which that round widened; the arm set has to be re-baselined to pay it, which is a
+  round of its own.  (2) **The twenty-one `XK_dead_*` features** are named after C's macros and
+  none is enabled, which is how the frozen table reads them; `XK_dead_degree` is absent from this
+  machine's header altogether (measured), so its constant is carried only under its own feature and
+  is UNVERIFIED.  (3) **`'translate` is an unused label** in every arm that has `have_x_i18n` off
+  (its only `break 'translate` is inside the XIC arm) - one `unused label` warning, named, not
+  silenced.
+* **What `--check` reads.**  Unchanged at two rows; the long row's token list goes **343 -> 268**.
+  The unit is **33,448 lines** against C's 33,125 (**323 lines longer than C's 33,125, +0.98%** - the
+expected direction once the file starts carrying records the X11 headers would supply; the
+  earlier readings were short of C), file md5 `b58f992a2a900edec49c953eb0200ce5`.
 
 ## Evidence
 
@@ -10807,3 +10865,61 @@ compile slice 112's `FRAME_PIXEL_*` calls, so this round's repair shows up there
 **Not claimed**: no runtime evidence - this lane does not link, and no map/unmap event was ever
 delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
 ledger.
+
+### Slice 115's readings (C 20196-20714), as landed and measured (2026-10-08)
+
+`case KeyPress:` (C 20196-20704) and `case KeyRelease:` (C 20705-20714), the vocabulary the two
+need in `include/xlib.rs`'s `x11_constants` (thirty-eight keysyms and the five `XLookupString`
+status values), and the unit-scope records (`XKeyEvent`, the five `Is…Key` macros,
+`mouse_face_hidden!`).  Eighteen `case` bodies remain.
+
+| arm | baseline | slice 115 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 994 / 76 | **1005 / 77** | **+11 / +1** |
+| U `A +use_toolkit_scroll_bars` | 1007 / 76 | **1018 / 77** | **+11 / +1** |
+| UT `U +use_x_toolkit` | 1001 / 75 | **1013 / 76** | **+12 / +1** |
+| UM `UT +use_motif` | 1002 / 75 | **1018 / 76** | **+16 / +1** |
+| UG `U +use_gtk` | 1010 / 77 | **1022 / 78** | **+12 / +1** |
+| UGX `UG +have_xinput2` | 1106 / 79 | **1126 / 80** | **+20 / +1** |
+| AE `A +enable_checking` | 1026 / 75 | **1037 / 76** | **+11 / +1** |
+| AI `A +have_x_i18n` | 1018 / 77 | **1030 / 77** | **+12 / 0** |
+| AIU `AI +use_gtk` | 1077 / 77 | **1090 / 77** | **+13 / 0** |
+| AIUX `AIU +have_xinput2` | 1177 / 79 | **1198 / 79** | **+21 / 0** |
+| AX `A +have_xdbe` | 1004 / 76 | **1015 / 77** | **+11 / +1** |
+| AG3 `A +use_gtk +have_gtk3` | 1061 / 76 | **1073 / 77** | **+12 / +1** |
+| AG3X `AG3 +have_xinput2` | 1133 / 78 | **1152 / 79** | **+19 / +1** |
+| AXF `A +have_xfixes` | 1004 / 76 | **1015 / 77** | **+11 / +1** |
+| AXPM `A +have_xpm` | 995 / 76 | **1006 / 77** | **+11 / +1** |
+| AXKB `A +have_xkb` | 1032 / 76 | **1046 / 77** | **+14 / +1** |
+| AXR `A +have_xrandr` | 1001 / 76 | **1012 / 77** | **+11 / +1** |
+| AX11 `A +have_x11` | 978 / 76 | **989 / 77** | **+11 / +1** |
+| AUX `A +use_xcb` | 1077 / 74 | **1088 / 75** | **+11 / +1** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`b5c36550`, the frame repair)
+with its own `_root.rs` re-materialised per arm - the nineteen baseline numbers reproduce the
+ledger's slice-114 column to the digit - and the slice's file md5 is
+`b58f992a2a900edec49c953eb0200ce5`.
+
+**The `of which`, by arm class:**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `no field xkey` +8 / +9 / +16 / +17 | 8 in the plain arms, 9 where the Motif block compiles (C 20242), 16 where GTK does (C 20214), 17 with XInput2 too (C 20287, 20471, 20494, 20520, 20636, 20666) | C 20197, 20198, 20242, 20272, 20274, 20277-20279, 20287, ... |
+| `no field tab_bar_window` +1, `no field tool_bar_window` +1 | every arm but the GTK/XInput2 ones (their field set differs) | C 20221, C 20223 |
+| `cannot find function XLookupString` +1 | every arm | C 20414 |
+| `cannot find function popup_activated` +1 | UT, UM, UG, UGX, AIU, AIUX, AG3, AG3X | C 20206 |
+| `cannot find function XmIsScrollBar`/`XtParent` +1 each, `mismatched types` +1 | UM | C 20243, C 20245, C 20246 |
+| `cannot find function XmbLookupString` +2, `xic_set_preeditarea`/`xic_set_statusarea` +1 each | AI, AIU, AIUX | C 20335/20344, C 20691, C 20694 |
+| `cannot find function XkbTranslateKeyCode` +1, `XkbTranslateKeySym` +2 | AXKB | C 20377, C 20386, C 20400 |
+| `cannot find type Status` **-3** | AI, AIU, AIUX | retired by widening that declaration's gate (Decision 127, fourth item) |
+
+Every row is a class this lane already names: `xkey` is the `include/xlib.rs` `XEvent` stand-in's
+owed member (the record this slice declares), the two `frame` fields are the `have_window_system`
+modelling gap (named, not paid), and the rest are X11/XKB/XIM entry points this unit's graph has no
+mirror row for.  The warning column moves **+1 in every arm whose `have_x_i18n` is off** (and holds
+where it is on): the row is `unused label` for the `'translate` block, whose only `break` sits
+inside the XIC arm C 20362's `else` stands behind.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no key event was ever delivered;
+the readings are the nineteen arm compiles, the `--check` row's token count and this ledger.  The
+`have_window_system` gap the two `frame` rows mark is the next round's work, not this one's.

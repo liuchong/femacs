@@ -152,6 +152,110 @@ pub mod x11_constants {
   pub const XK_Super_R: c_int = 0xffec;
   pub const XK_Hyper_L: c_int = 0xffed;
   pub const XK_Hyper_R: c_int = 0xffee;
+
+  /* C 20464-20625: the keysyms and `XLookupString` status values the `KeyPress` case reads.
+     Unlike the nine above, these are compared against `KeySym` (`XKeyEvent.state`/`keysym`),
+     so they carry `c_ulong` (what `KeySym` is - the module cannot see the mirror's own aliases, its
+     own note at 63-67) rather than `c_int`; the values are measured against this target's
+     `<X11/keysymdef.h>` and `<X11/Xlib.h>` (the line numbers in each row are that header's).  */
+  /// X11/keysymdef.h 200: `#define XK_BackSpace 0xff08`.
+  pub const XK_BackSpace: c_ulong = 0xff08;
+  /// X11/keysymdef.h 209: `#define XK_Delete 0xffff`.
+  pub const XK_Delete: c_ulong = 0xffff;
+  /// X11/keysymdef.h 208: `#define XK_Escape 0xff1b`.
+  pub const XK_Escape: c_ulong = 0xff1b;
+  /// X11/keysymdef.h 391: `#define XK_Shift_L 0xffe1` (the `IsModifierKey` range's low end).
+  pub const XK_Shift_L: c_ulong = 0xffe1;
+  /// X11/keysymdef.h 248: `#define XK_Home 0xff50` (`IsCursorKey`'s low end).
+  pub const XK_Home: c_ulong = 0xff50;
+  /// X11/keysymdef.h 263: `#define XK_Select 0xff60` (`IsCursorKey`'s high end).
+  pub const XK_Select: c_ulong = 0xff60;
+  /// X11/keysymdef.h 72: `#define XK_KP_Space 0xff80` (`IsKeypadKey`'s low end).
+  pub const XK_KP_Space: c_ulong = 0xff80;
+  /// X11/keysymdef.h 300: `#define XK_KP_Equal 0xffbd` (`IsKeypadKey`'s high end).
+  pub const XK_KP_Equal: c_ulong = 0xffbd;
+  /// X11/keysymdef.h 273: `#define XK_Break 0xff6b` (`IsMiscFunctionKey`'s high end).
+  pub const XK_Break: c_ulong = 0xff6b;
+  /// X11/keysymdef.h 328: `#define XK_F1 0xffbe` (`IsFunctionKey`'s low end).
+  pub const XK_F1: c_ulong = 0xffbe;
+  /// X11/keysymdef.h 386: `#define XK_F35 0xffe0` (`IsFunctionKey`'s high end).
+  pub const XK_F35: c_ulong = 0xffe0;
+  /// X11/keysymdef.h 415: `#define XK_ISO_Lock 0xfe01`.
+  pub const XK_ISO_Lock: c_ulong = 0xfe01;
+  /// X11/keysymdef.h 433: `#define XK_ISO_Last_Group_Lock 0xfe0f`.
+  pub const XK_ISO_Last_Group_Lock: c_ulong = 0xfe0f;
+  /// X11/keysymdef.h 422: `#define XK_ISO_Level5_Lock 0xfe13`.
+  pub const XK_ISO_Level5_Lock: c_ulong = 0xfe13;
+  /// X11/keysymdef.h 435: `#define XK_ISO_Left_Tab 0xfe20`.
+  pub const XK_ISO_Left_Tab: c_ulong = 0xfe20;
+  /// X11/keysymdef.h 455: `#define XK_ISO_Enter 0xfe34`.
+  pub const XK_ISO_Enter: c_ulong = 0xfe34;
+  /// X11/keysymdef.h 274: `#define XK_Mode_switch 0xff7e`.
+  pub const XK_Mode_switch: c_ulong = 0xff7e;
+  /// X11/keysymdef.h 276: `#define XK_Num_Lock 0xff7f`.
+  pub const XK_Num_Lock: c_ulong = 0xff7f;
+  /// X11/X.h 141: `#define NoSymbol 0L` - "special KeySym".
+  pub const NoSymbol: c_ulong = 0;
+  /// X11/Xlib.h 1223: `#define XBufferOverflow -1` - `XmbLookupString`'s "input is too
+  /// long" status (C 20340).
+  pub const XBufferOverflow: c_int = -1;
+  /// X11/Xlib.h 1224: `#define XLookupNone 1`.
+  pub const XLookupNone: c_int = 1;
+  /// X11/Xlib.h 1225: `#define XLookupChars 2`.
+  pub const XLookupChars: c_int = 2;
+  /// X11/Xlib.h 1226: `#define XLookupKeySym 3`.
+  pub const XLookupKeySym: c_int = 3;
+  /// X11/Xlib.h 1227: `#define XLookupBoth 4`.
+  pub const XLookupBoth: c_int = 4;
+  /* X11/keysymdef.h 456-476's dead-key block, the twenty names C 20549-20611 guards with
+     `#ifdef` (and a twenty-first, `XK_dead_degree`, this target's header does not carry at
+     all - measured - so C's own guard is false here and the port's `xk_dead_degree` feature
+     stays off; its value is the pre-2024 header's and is UNVERIFIED).  */
+  /// X11/keysymdef.h 459: `#define XK_dead_circumflex 0xfe52`.
+  pub const XK_dead_circumflex: c_ulong = 0xfe52;
+  /// X11/keysymdef.h 457: `#define XK_dead_grave 0xfe50`.
+  pub const XK_dead_grave: c_ulong = 0xfe50;
+  /// X11/keysymdef.h 460: `#define XK_dead_tilde 0xfe53`.
+  pub const XK_dead_tilde: c_ulong = 0xfe53;
+  /// X11/keysymdef.h 465: `#define XK_dead_diaeresis 0xfe57`.
+  pub const XK_dead_diaeresis: c_ulong = 0xfe57;
+  /// X11/keysymdef.h 462: `#define XK_dead_macron 0xfe54`.
+  pub const XK_dead_macron: c_ulong = 0xfe54;
+  /// X11/keysymdef.h 458: `#define XK_dead_acute 0xfe51`.
+  pub const XK_dead_acute: c_ulong = 0xfe51;
+  /// X11/keysymdef.h 469: `#define XK_dead_cedilla 0xfe5b`.
+  pub const XK_dead_cedilla: c_ulong = 0xfe5b;
+  /// X11/keysymdef.h 463: `#define XK_dead_breve 0xfe55`.
+  pub const XK_dead_breve: c_ulong = 0xfe55;
+  /// X11/keysymdef.h 470: `#define XK_dead_ogonek 0xfe5c`.
+  pub const XK_dead_ogonek: c_ulong = 0xfe5c;
+  /// X11/keysymdef.h 468: `#define XK_dead_caron 0xfe5a`.
+  pub const XK_dead_caron: c_ulong = 0xfe5a;
+  /// X11/keysymdef.h 467: `#define XK_dead_doubleacute 0xfe59`.
+  pub const XK_dead_doubleacute: c_ulong = 0xfe59;
+  /// X11/keysymdef.h 464: `#define XK_dead_abovedot 0xfe56`.
+  pub const XK_dead_abovedot: c_ulong = 0xfe56;
+  /// X11/keysymdef.h 466: `#define XK_dead_abovering 0xfe58`.
+  pub const XK_dead_abovering: c_ulong = 0xfe58;
+  /// X11/keysymdef.h 474: `#define XK_dead_belowdot 0xfe60`.
+  pub const XK_dead_belowdot: c_ulong = 0xfe60;
+  /// X11/keysymdef.h 472: `#define XK_dead_voiced_sound 0xfe5e`.
+  pub const XK_dead_voiced_sound: c_ulong = 0xfe5e;
+  /// X11/keysymdef.h 473: `#define XK_dead_semivoiced_sound 0xfe5f`.
+  pub const XK_dead_semivoiced_sound: c_ulong = 0xfe5f;
+  /// X11/keysymdef.h 475: `#define XK_dead_hook 0xfe61`.
+  pub const XK_dead_hook: c_ulong = 0xfe61;
+  /// X11/keysymdef.h 476: `#define XK_dead_horn 0xfe62`.
+  pub const XK_dead_horn: c_ulong = 0xfe62;
+  /// X11/keysymdef.h 477: `#define XK_dead_stroke 0xfe63`.
+  pub const XK_dead_stroke: c_ulong = 0xfe63;
+  /// X11/keysymdef.h 478: `#define XK_dead_abovecomma 0xfe64`.
+  pub const XK_dead_abovecomma: c_ulong = 0xfe64;
+  /// X11/keysymdef.h (pre-2024): `#define XK_dead_degree 0xfe5f` - **this target's
+  /// header has no such name** (measured), which is the reading C's own `#ifdef` takes
+  /// there; UNVERIFIED.
+  #[cfg (feature = "xk_dead_degree")]
+  pub const XK_dead_degree: c_ulong = 0xfe5f;
   /// X11/X.h 388: `#define InputOnly 2` - the `XCreateWindow` class.
   pub const InputOnly: c_int = 2;
   /// X11/X.h 401: `#define CWOverrideRedirect (1L<<9)`.

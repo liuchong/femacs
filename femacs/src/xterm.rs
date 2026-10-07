@@ -15247,8 +15247,11 @@ unsafe extern "C" fn xim_destroy_callback (xim: XIM, client_data: XPointer,
 /* Open the connection to the XIM server on display DPYINFO.
    RESOURCE_NAME is the resource name Emacs uses.  */
 
-/// C: Xlib.h 79: `#define Status int` - `XCloseIM`'s return (`src/xmenu.rs` 477's spelling).
-#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n", feature = "have_xim"))]
+/// C: Xlib.h 79: `#define Status int` - `XCloseIM`'s return (`src/xmenu.rs` 477's spelling), and
+/// the type of C 20333's `status_return` in `handle_one_xevent`'s `HAVE_X_I18N` arm.  The gate
+/// is `have_x_i18n` alone: that use compiles without `HAVE_XIM` (the first reading had the
+/// narrower pair and arm AI read `cannot find type Status`, measured).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
 pub type Status = c_int;
 /// C: Xlib.h 1144-1148: `typedef void (*XIMProc)(XIM, XPointer, XPointer);` - `XIMCallback`'s
 /// second field.
@@ -30857,6 +30860,74 @@ pub unsafe extern "C" fn x_find_selection_owner (dpyinfo: *mut x_display_info,
   return X_INVALID_WINDOW;                                             // C 18861
 }
 
+/* C 20540-20617's five `Is…Key` macros.  Their bodies are the X11 header's, measured on this
+   machine against the copy the SDK ships (`…/Tk.framework/Versions/8.5/Headers/X11/Xutil.h`
+   189-207), whose ranges are the ones C's own comments give at each use ("0xff50 <= x < 0xff60",
+   "0xff80 <= x < 0xffbe", "0xffbe <= x < 0xffe1"); this machine's `<X11/keysym.h>` carries no such
+   macros at all, which is why C's `#ifdef`s are the gate and why the unit declares them here
+   (P-88 1, `src/pgtkterm.rs` 7646's same five).  `IsModifierKey` keeps the shipped copy's two
+   ranges: C 20623-20626 adds the ISO Lock pair itself, so the union is the same either way.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! IsCursorKey {
+  ($keysym:expr) => { (($keysym) >= XK_Home) && (($keysym) < XK_Select) };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! IsMiscFunctionKey {
+  ($keysym:expr) => { (($keysym) >= XK_Select) && (($keysym) <= XK_Break) };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! IsKeypadKey {
+  ($keysym:expr) => { (($keysym) >= XK_KP_Space) && (($keysym) <= XK_KP_Equal) };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! IsFunctionKey {
+  ($keysym:expr) => { (($keysym) >= XK_F1) && (($keysym) <= XK_F35) };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! IsModifierKey {
+  ($keysym:expr) => {
+    ((($keysym) >= XK_Shift_L) && (($keysym) <= XK_Hyper_R as c_ulong))
+    || (($keysym) == XK_Mode_switch)
+    || (($keysym) == XK_Num_Lock)
+  };
+}
+
+/* dispextern.h 3023's `bool_bf mouse_face_hidden : 1` - the record's third flag bit, which
+   `include/dispextern.rs` carries as `bits` with `MOUSE_FACE_HIDDEN` (2139).  C 20219 reads it and
+   C 20230 writes it, so the two-arm macro stands here (the `src/msdos.rs` 3440 copy of the same
+   name, whose `register_color` note is that unit's).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! mouse_face_hidden {
+  ($h:expr) => { (*$h).bits & MOUSE_FACE_HIDDEN != 0 };
+  ($h:expr, $v:expr) => {
+    (*$h).bits = if ($v) as c_int != 0 { (*$h).bits | MOUSE_FACE_HIDDEN }
+		 else { (*$h).bits & ! MOUSE_FACE_HIDDEN } };
+}
+
+/// Xlib.h 557-570's `XKeyEvent` - the record `event->xkey` names, which the `XEvent` stand-in does
+/// not carry, so it stands at this use site (P-88 1, `src/xmenu.rs` 232's measured 96-byte twin);
+/// `KeyPress`/`KeyRelease` read it through C's own member text.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct XKeyEvent
+{
+  pub r#type: c_int,          // Xlib.h 557
+  pub serial: c_ulong,        // Xlib.h 558
+  pub send_event: Bool,       // Xlib.h 559
+  pub display: *mut Display,  // Xlib.h 560
+  pub window: Window,         // Xlib.h 561
+  pub root: Window,           // Xlib.h 562
+  pub subwindow: Window,      // Xlib.h 563
+  pub time: Time,             // Xlib.h 564
+  pub x: c_int,               // Xlib.h 565
+  pub y: c_int,
+  pub x_root: c_int,
+  pub y_root: c_int,
+  pub state: c_uint,          // Xlib.h 566
+  pub keycode: c_uint,
+  pub same_screen: Bool,
+}
+
 /* C 19801's `x_handle_property_notify` is another unit's definition (`src/xselect.rs` 2025)
    whose header - xterm.h 1919 - this unit's mirror graph does not carry, so it stands at
    this use site (P-88 1) with C's own prototype.  C 19802's `xft_settings_event` needs no
@@ -30882,6 +30953,9 @@ unsafe extern "C" {
   /// C: dispextern.h 4007: `extern void gui_redo_mouse_highlight (Display_Info *);` -
   /// `Display_Info` is that header's name for `struct x_display_info`.
   pub fn gui_redo_mouse_highlight (dpyinfo: *mut x_display_info);
+  /// C: dispextern.h 3691: `extern bool clear_mouse_face (Mouse_HLInfo *);` - C 20229's call
+  /// (`src/dispnew.rs` defines it; no mirror of this unit's graph does).
+  pub fn clear_mouse_face (hlinfo: *mut Mouse_HLInfo) -> bool;
 }
 
 #[cfg (all (feature = "have_x_windows", feature = "have_xinput2", feature = "have_gtk3"))]
@@ -31000,6 +31074,15 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
   /* C 19579/19699's `PropertyDelete`, and the Xlib/Xatom names the toplevel scan and
      the opacity reader read (C 19597-19621, C 19709-19721).  */
   use crate::x11_constants::{AnyPropertyType, PropertyDelete, Success};
+  /* C 20202-20625's keysyms and lookup status values, the mask the modifiers step
+     clears, and the `NoSymbol` sentinel (this slice).  */
+  use crate::x11_constants::ControlMask;
+  use crate::x11_constants::{NoSymbol, XBufferOverflow, XLookupBoth, XLookupChars,
+			     XLookupKeySym, XLookupNone};
+  use crate::x11_constants::{XK_BackSpace, XK_Break, XK_Delete, XK_Escape, XK_F1,
+			     XK_F35, XK_Home, XK_ISO_Enter, XK_ISO_Last_Group_Lock,
+			     XK_ISO_Left_Tab, XK_ISO_Lock, XK_KP_Equal, XK_KP_Space,
+			     XK_Hyper_R, XK_Mode_switch, XK_Num_Lock, XK_Select, XK_Shift_L};
   use crate::x11_constants::{XA_ATOM, XA_CARDINAL, XA_WINDOW};
   /* C 18935's other name, read only in the `HAVE_XINPUT2` arm - the per-function `use` the
      ledger's Decision 4 spells for the bare X11 vocabulary.  */
@@ -31896,6 +31979,552 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 			}
 		      break 'switch;                                                 // C 20194
 		    }
+
+	  /* C 20196-20704: `case KeyPress:`.  The user-time bookkeeping, the mouse-highlight clear,
+	     the Motif scroll-bar key redirect, and then C's whole X key-translation block: the
+	     `xkey` copy, the three `#if`'d translation paths (`XmbLookupString` for an XIC, XKB, and
+	     the plain `XLookupString`), the quit-keysym pair, the four keysym classes and the
+	     raw-bytes tail.  `xkey`'s members are the same owed `XEvent` class the other cases read,
+	     so the record is declared at this use site (P-88 1, `Xlib.h` 557-570's measured 96-byte
+	     record, `src/xmenu.rs` 232's twin) and C's member text is kept.  */
+	  KeyPress =>
+	    {
+	      x_display_set_last_user_time (dpyinfo, (*event).xkey.time,      // C 20197
+					    (*event).xkey.send_event,         // C 20198
+					    true);                            // C 20199
+	      ignore_next_mouse_click_timeout = 0;                            // C 20200
+
+	      coding = Qlatin_1 ();                                           // C 20202
+
+	      /* C 20204-20208's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)`: "Dispatch
+		 KeyPress events when in menu."  */
+#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+	      if popup_activated ()                                           // C 20206
+		{ break 'switch; }                                            // C 20207
+
+	      f = any;                                                        // C 20210
+
+	      /* C 20212-20215's `#ifdef USE_GTK`.  */
+#[cfg (feature = "use_gtk")]
+	      if !f.is_null ()                                                // C 20213
+		{ x_set_gtk_user_time (f, (*event).xkey.time); }              // C 20214
+
+	      /* "If mouse-highlight is an integer, input clears out mouse highlighting."  C 20222-20224's
+		 `#if ! defined (USE_GTK)` term stands inside the condition, so it is the cfg-computed
+		 shape Decision 2 item 2 spells: where the header drops the term the port supplies
+		 `true`, which is what C's `&&` chain evaluates to there.  */
+	      /* C 20222-20224's `#if ! defined (USE_GTK)` term stands *inside* the condition, and an
+		 attribute cannot stand on a term there (slice 110's reading), so the port computes the
+		 inner conjunction as C's own value: the term is applied where C compiles it and C's
+		 `&&` chain is what the value already is where it does not.  */
+	      let mut in_hl_window: bool = f.is_null ();                      // C 20220
+	      if !f.is_null ()
+		{
+		  in_hl_window
+		    = !EQ ((*f).tab_bar_window, (*hlinfo).mouse_face_window);   // C 20221
+#[cfg (not (feature = "use_gtk"))]
+		  {
+		    in_hl_window = in_hl_window
+		      && !EQ ((*f).tool_bar_window,
+			      (*hlinfo).mouse_face_window);                   // C 20223
+		  }
+		}
+	      if !mouse_face_hidden! (hlinfo) && FIXNUMP (Vmouse_highlight)   // C 20219
+		&& in_hl_window
+		{
+		  mouse_frame = (*hlinfo).mouse_face_mouse_frame as *mut frame;              // C 20227
+
+		  clear_mouse_face (hlinfo);                                   // C 20229
+		  mouse_face_hidden! (hlinfo, 1);                              // C 20230
+
+		  if !mouse_frame.is_null ()                                   // C 20232
+		    { x_flush_dirty_back_buffer_on (mouse_frame); }            // C 20233
+		}
+
+	      /* C 20236-20249's `#if defined USE_MOTIF && defined USE_TOOLKIT_SCROLL_BARS`.  */
+#[cfg (all (feature = "use_motif", feature = "use_toolkit_scroll_bars"))]
+	      if f.is_null ()                                                  // C 20237
+		{
+		  /* "Scroll bars consume key events, but we want the keys to go to the scroll bar's
+		     frame."  */
+		  let widget: Widget = XtWindowToWidget ((*dpyinfo).display,   // C 20241
+							 (*event).xkey.window);    // C 20242
+		  if !widget.is_null () && XmIsScrollBar (widget) != 0         // C 20243
+		    {
+		      let widget: Widget = XtParent (widget);                  // C 20245
+		      f = x_any_window_to_frame (dpyinfo, XtWindow (widget));  // C 20246
+		    }
+		}
+
+	      if !f.is_null ()                                                 // C 20251
+		{
+		  let mut keysym: KeySym;                                      // C 20253
+		  let mut orig_keysym: KeySym;                                 // C 20253
+		  /* "al%imercury@uunet.uu.net says that making this 81 instead of 80 fixed a bug
+		     whereby meta chars made his Emacs hang. … 513 bytes (256 chars for two-byte
+		     character set) seems to be a fairly good approximation.  -- 2000.8.10 handa"  */
+		  let mut copy_buffer: [c_uchar; 513] = [0; 513];              // C 20265
+		  let mut copy_bufptr: *mut c_uchar = copy_buffer.as_mut_ptr ();  // C 20266
+		  let mut copy_bufsiz: c_int
+		    = core::mem::size_of_val (&copy_buffer) as c_int;          // C 20267
+		  let mut modifiers: c_int;                                    // C 20268
+		  let mut c: Lisp_Object;                                      // C 20269
+		  /* "`xkey` will be modified, but it's not important to modify `event` itself."  */
+		  let mut xkey: XKeyEvent = (*event).xkey;                     // C 20272
+
+		  if (*event).xkey.window == FRAME_X_WINDOW! (f)               // C 20274
+		    /* "See the comment above x_compute_root_window_offset for why this optimization
+		       is performed."  */
+		    {
+		      x_compute_root_window_offset (f, (*event).xkey.x_root,   // C 20277
+						    (*event).xkey.y_root,      // C 20278
+						    (*event).xkey.x, (*event).xkey.y);  // C 20279
+		    }
+
+		  /* C 20281-20298's `#ifdef HAVE_XINPUT2`.  */
+#[cfg (feature = "have_xinput2")]
+		  let mut pending_keystroke_time: Time = 0;                    // C 20282
+#[cfg (feature = "have_xinput2")]
+		  let mut source: *mut xi_device_t;                            // C 20283
+
+#[cfg (feature = "have_xinput2")]
+		  { pending_keystroke_time = (*dpyinfo).pending_keystroke_time; }  // C 20285
+
+		  /* C 20287-20297's pair: where `USE_GTK && !HAVE_GTK3` holds C has an `if`/`else`,
+		     and where it does not the same clear is unconditional (Decision 2 item 2's shape).  */
+#[cfg (all (feature = "have_xinput2",
+	    all (feature = "use_gtk", not (feature = "have_gtk3"))))]
+		  {
+		    if (*event).xkey.time >= pending_keystroke_time &&          // C 20287
+		      !(*dpyinfo).pending_keystroke_time_special_p              // C 20290
+		      { (*dpyinfo).pending_keystroke_time = 0; }                // C 20292
+		    else if (*event).xkey.time >= pending_keystroke_time        // C 20287
+		      { (*dpyinfo).pending_keystroke_time_special_p = false; }  // C 20295
+		  }
+#[cfg (all (feature = "have_xinput2",
+	    not (all (feature = "use_gtk", not (feature = "have_gtk3")))))]
+		  {
+		    if (*event).xkey.time >= pending_keystroke_time             // C 20287
+		      { (*dpyinfo).pending_keystroke_time = 0; }                // C 20292
+		  }
+
+		  /* C 20300-20306's `#ifdef USE_GTK`: "Don't pass keys to GTK.  A Tab will shift focus
+		     to the tool bar in GTK 2.4. …"  */
+#[cfg (feature = "use_gtk")]
+		  { *finish = X_EVENT_DROP; }                                   // C 20305
+
+		  xkey.state |= x_emacs_to_x_modifiers (dpyinfo,                // C 20308
+							extra_keyboard_modifiers as intmax_t);  // C 20309
+		  modifiers = xkey.state as c_int;                              // C 20310
+
+		  /* "This will have to go some day…" / "make_lispy_event turns chars into control
+		     chars.  Don't do it here because XLookupString is too eager."  */
+		  xkey.state &= !(ControlMask as c_uint);                       // C 20316
+		  xkey.state &= !(((*dpyinfo).meta_mod_mask                   // C 20317
+				   | (*dpyinfo).super_mod_mask                // C 20318
+				   | (*dpyinfo).hyper_mod_mask                // C 20319
+				   | (*dpyinfo).alt_mod_mask) as c_uint);     // C 20320
+
+		  /* "In case Meta is ComposeCharacter, clear its status.  According to Markus Ehrnsperger
+		     … this enables ComposeCharacter to work whether or not it is combined with Meta."  */
+		  if modifiers & ((*dpyinfo).meta_mod_mask as c_int) != 0       // C 20327
+		    {
+		      memset (&raw mut compose_status as *mut c_void, 0,        // C 20328
+			      core::mem::size_of_val (&compose_status));
+		    }
+
+		  'keysym: {                                                   // C 20686's `done_keysym:`
+		    /* C 20330-20362's `#ifdef HAVE_X_I18N` pair, whose `else` (C 20363) is the shared
+		       body below: with an XIC the Xmb path runs and does not fall through, without one
+		       (or with a null XIC) C reaches the body, which is written once here.  */
+		    'translate: {
+#[cfg (feature = "have_x_i18n")]
+		      if !FRAME_XIC! (f).is_null ()                           // C 20331
+			{
+			  let mut status_return: Status;                      // C 20333
+
+			  nbytes = XmbLookupString (FRAME_XIC! (f),          // C 20335
+						    &raw mut xkey,
+						    copy_bufptr as *mut c_char,  // C 20336
+						    copy_bufsiz, &raw mut keysym,  // C 20337
+						    &raw mut status_return) as isize;  // C 20338
+			  coding = FRAME_X_XIM_CODING! (f);                   // C 20339
+			  if status_return == XBufferOverflow                 // C 20340
+			    {
+			      copy_bufsiz = nbytes as c_int + 1;              // C 20342
+			      copy_bufptr = SAFE_ALLOCA! (sa_avail, copy_bufsiz) as *mut c_uchar;       // C 20343
+			      nbytes = XmbLookupString (FRAME_XIC! (f),       // C 20344
+							&raw mut xkey,
+							copy_bufptr as *mut c_char,  // C 20345
+							copy_bufsiz, &raw mut keysym,  // C 20346
+							&raw mut status_return) as isize;  // C 20347
+			    }
+			  /* "Xutf8LookupString is a new but already deprecated interface.  -stef"  */
+			  if status_return == XLookupNone                     // C 20350
+			    { break 'other; }                                 // C 20351
+			  else if status_return == XLookupChars               // C 20352
+			    {
+			      keysym = NoSymbol;                              // C 20354
+			      modifiers = 0;                                  // C 20355
+			    }
+			  else if status_return != XLookupKeySym              // C 20357
+			    && status_return != XLookupBoth                   // C 20358
+			    { emacs_abort (); }                               // C 20359
+
+			  break 'translate;                                   // C's `else` is not taken
+			}
+
+		      /* C 20364-20416's `#ifdef HAVE_XKB` pair: with the macro C's `xkb_desc` test
+			 chooses between the two, without it the plain lookup is the only statement C
+			 compiles there.  */
+		      {
+			let mut did_xkb: bool = false;
+#[cfg (feature = "have_xkb")]
+			{
+			  let mut overflow: c_int;                            // C 20365
+			  let mut consumed: c_uint;                           // C 20366
+			  let mut sym: KeySym;                                // C 20367
+
+			  if !(*dpyinfo).xkb_desc.is_null ()                  // C 20369
+			    {
+			      /* "Translate the keycode into the keysym it represents, using STATE.
+				 CONSUMED is set to the modifier bits consumed while undertaking this
+				 translation and should be subsequently ignored during keysym
+				 translation."  */
+			      if XkbTranslateKeyCode ((*dpyinfo).xkb_desc,    // C 20377
+						      xkey.keycode, xkey.state,
+						      &raw mut consumed, &raw mut keysym) == 0
+				{
+				  /* C 20380's `goto done_keysym`.  */
+				  break 'keysym;
+				}
+
+			      /* "Save the original keysym in case XkbTranslateKeysym overflows."  */
+			      sym = keysym;                                   // C 20384
+			      overflow = 0;                                   // C 20384
+
+			      nbytes = XkbTranslateKeySym ((*dpyinfo).display,  // C 20386
+							   &raw mut keysym,
+							   xkey.state & !consumed,  // C 20387
+							   copy_bufptr as *mut c_char,  // C 20388
+							   copy_bufsiz,
+							   &raw mut overflow) as isize;  // C 20389
+
+			      if overflow != 0                                // C 20391
+				{
+				  copy_bufsiz += overflow;                    // C 20393
+				  copy_bufptr = SAFE_ALLOCA! (sa_avail, copy_bufsiz) as *mut c_uchar;   // C 20394
+				  overflow = 0;                               // C 20395
+
+				  /* "Use the original keysym derived from the keycode translation in
+				     this second call to XkbTranslateKeysym."  */
+				  nbytes = XkbTranslateKeySym ((*dpyinfo).display,  // C 20400
+							       &raw mut sym,
+							       xkey.state & !consumed,  // C 20401
+							       copy_bufptr as *mut c_char,  // C 20402
+							       copy_bufsiz,
+							       &raw mut overflow) as isize;  // C 20403
+
+				  if overflow != 0                            // C 20405
+				    { nbytes = 0; }                           // C 20406
+				}
+
+			      if nbytes != 0                                // C 20409
+				{ coding = Qnil (); }                       // C 20410
+
+			      did_xkb = true;
+			    }
+			}
+			if !did_xkb
+			  {
+			    nbytes = XLookupString (&raw mut xkey,             // C 20414
+						    copy_bufptr as *mut c_char,  // C 20414
+						    copy_bufsiz, &raw mut keysym,  // C 20415
+						    &raw mut compose_status) as isize;  // C 20416
+			  }
+		      }
+		    }
+
+		    /* C 20419-20425's `#ifdef XK_F1`.  */
+#[cfg (feature = "xk_f1")]
+		    if x_dnd_in_progress && keysym == XK_F1                 // C 20420
+		      {
+			x_dnd_xm_use_help = true;                           // C 20422
+			break 'keysym;                                      // C 20423
+		      }
+
+		    /* "See if keysym should make Emacs quit."  */
+		    if (*dpyinfo).quit_keysym != 0                          // C 20429
+		      {
+			if keysym == (*dpyinfo).quit_keysym                 // C 20431
+			  && xkey.time - (*dpyinfo).quit_keysym_time <= 350  // C 20432-20433
+			  {
+			    Vquit_flag = Qt ();                             // C 20435
+			    break 'keysym;                                  // C 20436
+			  }
+
+			if keysym == (*dpyinfo).quit_keysym                 // C 20439
+			  {
+			    /* "Otherwise, set the last time that keysym was pressed."  */
+			    (*dpyinfo).quit_keysym_time = xkey.time;        // C 20443
+			    break 'keysym;                                  // C 20444
+			  }
+		      }
+
+		    /* "If not using XIM/XIC, and a compose sequence is in progress, we break here.
+		       Otherwise, chars_matched is always 0."  */
+		    if compose_status.chars_matched > 0 && nbytes == 0      // C 20450
+		      { break 'other; }                                     // C 20451
+
+		    memset (&raw mut compose_status as *mut c_void, 0,      // C 20453
+			    core::mem::size_of_val (&compose_status));
+		    orig_keysym = keysym;                                   // C 20454
+
+		    /* "Common for all keysym input events."  */
+		    XSETFRAME! (inev.ie.frame_or_window, f);                // C 20457
+		    inev.ie.modifiers
+		      = x_x_to_emacs_modifiers (dpyinfo, modifiers) as c_uint;  // C 20458
+		    inev.ie.timestamp = xkey.time;                          // C 20460
+
+		    /* "First deal with keysyms which have defined translations to characters."  */
+		    if keysym >= 32 && keysym < 128                         // C 20464
+		      {
+			/* "Avoid explicitly decoding each ASCII character."  */
+			input_event_bits! (kind, &raw mut inev.ie, ASCII_KEYSTROKE_EVENT);  // C 20467
+			inev.ie.code = keysym as c_uint;                    // C 20468
+
+			/* C 20470-20479's `#ifdef HAVE_XINPUT2`.  */
+#[cfg (feature = "have_xinput2")]
+			if (*event).xkey.time == pending_keystroke_time     // C 20471
+			  {
+			    source = xi_device_from_id (dpyinfo,            // C 20473
+							(*dpyinfo).pending_keystroke_source);
+
+			    if !source.is_null ()                           // C 20476
+			      { inev.ie.device = (*source).name; }          // C 20477
+			  }
+
+			break 'keysym;                                      // C 20481
+		      }
+
+		    /* "Keysyms directly mapped to Unicode characters."  */
+		    if keysym >= 0x01000000 && keysym <= 0x0110FFFF        // C 20485
+		      {
+			if keysym < 0x01000080                              // C 20487
+			  {
+			    input_event_bits! (kind, &raw mut inev.ie,      // C 20488
+					       ASCII_KEYSTROKE_EVENT);
+			  }
+			else
+			  {
+			    input_event_bits! (kind, &raw mut inev.ie,      // C 20490
+					       MULTIBYTE_CHAR_KEYSTROKE_EVENT);
+			  }
+			inev.ie.code = (keysym & 0xFFFFFF) as c_uint;       // C 20491
+
+			/* C 20493-20502's `#ifdef HAVE_XINPUT2`.  */
+#[cfg (feature = "have_xinput2")]
+			if (*event).xkey.time == pending_keystroke_time     // C 20494
+			  {
+			    source = xi_device_from_id (dpyinfo,            // C 20496
+							(*dpyinfo).pending_keystroke_source);
+
+			    if !source.is_null ()                           // C 20499
+			      { inev.ie.device = (*source).name; }          // C 20500
+			  }
+
+			break 'keysym;                                      // C 20504
+		      }
+
+		    /* "Now non-ASCII."  */
+		    if HASH_TABLE_P (Vx_keysym_table)                       // C 20508
+		      && {
+			   c = Fgethash (make_fixnum (keysym as EMACS_INT), // C 20509-20511
+					 Vx_keysym_table, Qnil ());
+			   FIXNATP (c)                                      // C 20512
+			 }
+		      {
+			input_event_bits! (kind, &raw mut inev.ie,
+					   if SINGLE_BYTE_CHAR_P (XFIXNAT (c) as intmax_t)  // C 20514
+					     { ASCII_KEYSTROKE_EVENT }
+					   else
+					     { MULTIBYTE_CHAR_KEYSTROKE_EVENT });  // C 20516
+			inev.ie.code = XFIXNAT (c) as c_uint;               // C 20517
+
+			/* C 20519-20528's `#ifdef HAVE_XINPUT2`.  */
+#[cfg (feature = "have_xinput2")]
+			if (*event).xkey.time == pending_keystroke_time     // C 20520
+			  {
+			    source = xi_device_from_id (dpyinfo,            // C 20522
+							(*dpyinfo).pending_keystroke_source);
+
+			    if !source.is_null ()                           // C 20525
+			      { inev.ie.device = (*source).name; }          // C 20526
+			  }
+
+			break 'keysym;                                      // C 20530
+		      }
+
+		    /* "Random non-modifier sorts of keysyms."  C 20549-20611's twenty-one
+		       `#ifdef XK_dead_<name>` terms are cfg'd statements, because an attribute cannot
+		       stand on a term inside a condition (Decision 2 item 2's shape); each feature is
+		       named after C's own macro, the spelling the keyboard lane's `xk_dead_*` rows
+		       use, and none is enabled here - which is how the frozen table reads them.  */
+		    let mut symbol_p: bool
+		      = (keysym >= XK_BackSpace && keysym <= XK_Escape)     // C 20534
+			|| keysym == XK_Delete;                             // C 20535
+#[cfg (feature = "xk_dead_circumflex")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_circumflex; }  // C 20550
+#[cfg (feature = "xk_dead_grave")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_grave; }  // C 20553
+#[cfg (feature = "xk_dead_tilde")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_tilde; }  // C 20556
+#[cfg (feature = "xk_dead_diaeresis")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_diaeresis; }  // C 20559
+#[cfg (feature = "xk_dead_macron")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_macron; }  // C 20562
+#[cfg (feature = "xk_dead_degree")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_degree; }  // C 20565
+#[cfg (feature = "xk_dead_acute")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_acute; }  // C 20568
+#[cfg (feature = "xk_dead_cedilla")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_cedilla; }  // C 20571
+#[cfg (feature = "xk_dead_breve")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_breve; }  // C 20574
+#[cfg (feature = "xk_dead_ogonek")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_ogonek; }  // C 20577
+#[cfg (feature = "xk_dead_caron")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_caron; }  // C 20580
+#[cfg (feature = "xk_dead_doubleacute")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_doubleacute; }  // C 20583
+#[cfg (feature = "xk_dead_abovedot")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_abovedot; }  // C 20586
+#[cfg (feature = "xk_dead_abovering")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_abovering; }  // C 20589
+#[cfg (feature = "xk_dead_belowdot")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_belowdot; }  // C 20592
+#[cfg (feature = "xk_dead_voiced_sound")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_voiced_sound; }  // C 20595
+#[cfg (feature = "xk_dead_semivoiced_sound")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_semivoiced_sound; }  // C 20598
+#[cfg (feature = "xk_dead_hook")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_hook; }  // C 20601
+#[cfg (feature = "xk_dead_horn")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_horn; }  // C 20604
+#[cfg (feature = "xk_dead_stroke")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_stroke; }  // C 20607
+#[cfg (feature = "xk_dead_abovecomma")]
+		    { symbol_p = symbol_p || orig_keysym == XK_dead_abovecomma; }  // C 20610
+		    symbol_p = symbol_p
+		      || IsKeypadKey! (keysym)                              // C 20612
+		      || IsFunctionKey! (keysym)                            // C 20613
+		      /* "Any `vendor-specific` key is ok."  */
+		      || (orig_keysym & (1 << 28)) != 0                     // C 20615
+		      || (keysym != NoSymbol && nbytes == 0);               // C 20616
+		    let mut modifier_p: bool
+		      = IsModifierKey! (orig_keysym);                       // C 20617
+#[cfg (all (feature = "xk_iso_lock", feature = "xk_iso_last_group_lock"))]
+		    { modifier_p = modifier_p
+			|| (XK_ISO_Lock <= orig_keysym
+			    && orig_keysym <= XK_ISO_Last_Group_Lock); }    // C 20624-20625
+
+		    if symbol_p && !modifier_p                              // C 20534 / C 20617
+		      {
+			STORE_KEYSYM_FOR_DEBUG! (keysym);                   // C 20629
+			/* "make_lispy_event will convert this to a symbolic key."  */
+			input_event_bits! (kind, &raw mut inev.ie, NON_ASCII_KEYSTROKE_EVENT);  // C 20632
+			inev.ie.code = keysym as c_uint;                    // C 20633
+
+			/* C 20635-20644's `#ifdef HAVE_XINPUT2`.  */
+#[cfg (feature = "have_xinput2")]
+			if (*event).xkey.time == pending_keystroke_time     // C 20636
+			  {
+			    source = xi_device_from_id (dpyinfo,            // C 20638
+							(*dpyinfo).pending_keystroke_source);
+
+			    if !source.is_null ()                           // C 20641
+			      { inev.ie.device = (*source).name; }          // C 20642
+			  }
+
+			break 'keysym;                                      // C 20646
+		      }
+
+		    /* C 20649-20684: "Raw bytes, not keysym."  */
+		    {
+		      let mut i: ptrdiff_t;                                 // C 20650
+
+		      i = 0;                                                // C 20652
+		      while i < nbytes                                       // C 20652
+			{
+			  STORE_KEYSYM_FOR_DEBUG! (*copy_bufptr.offset (i as isize));  // C 20654
+			  i += 1;                                           // C 20652
+			}
+
+		      if nbytes != 0                                        // C 20657
+			{
+			  input_event_bits! (kind, &raw mut inev.ie,        // C 20659
+					     MULTIBYTE_CHAR_KEYSTROKE_EVENT);
+			  inev.ie.arg = make_unibyte_string (copy_bufptr as *mut c_char,  // C 20660
+							     nbytes as isize);
+
+			  Fput_text_property (make_fixnum (0),              // C 20662
+					      make_fixnum (nbytes as EMACS_INT),  // C 20662
+					      Qcoding (), coding, inev.ie.arg);  // C 20663
+
+			  /* C 20665-20679's `#ifdef HAVE_XINPUT2`.  */
+#[cfg (feature = "have_xinput2")]
+			  if (*event).xkey.time == pending_keystroke_time   // C 20666
+			    /* "I-Bus sometimes sends events generated from multiple filtered
+			       keystrokes with a time of 0, so just use the recorded source device
+			       if it exists."  */
+			    || (pending_keystroke_time != 0 && (*event).xkey.time == 0)  // C 20671
+			    {
+			      source = xi_device_from_id (dpyinfo,          // C 20673
+							  (*dpyinfo).pending_keystroke_source);
+
+			      if !source.is_null ()                         // C 20676
+				{ inev.ie.device = (*source).name; }        // C 20677
+			    }
+			}
+
+		      if keysym == NoSymbol                                 // C 20682
+			{ break 'other; }                                   // C 20683
+		    }
+
+		    /* C 20687-20695: the `done_keysym:` tail.  C writes it after the label, outside
+		       its own `if (f != 0)`; here it closes the label's block, and its `if (f)`
+		       (C 20688) is the test this block already stands inside.  */
+		    #[cfg (feature = "have_x_i18n")]
+		    if !f.is_null ()                                        // C 20688
+		      {
+			let w: *mut window = XWINDOW ((*f).selected_window);  // C 20690
+			xic_set_preeditarea (w, (*w).cursor.x, (*w).cursor.y);  // C 20691
+
+			if !FRAME_XIC! (f).is_null ()                       // C 20693
+			  && FRAME_XIC_STYLE! (f) & XIMStatusArea != 0
+			  { xic_set_statusarea (f); }                       // C 20694
+		      }
+		  }
+		}
+
+	      /* C 20697-20703: "Don't dispatch this event since XtDispatchEvent calls XFilterEvent,
+		 and two calls in a row may freeze the client."  */
+#[cfg (feature = "have_x_i18n")]
+	      { break 'other; }                                             // C 20700
+#[cfg (not (feature = "have_x_i18n"))]
+	      { break 'switch; }                                            // C 20702
+	    }
+
+	  /* C 20705-20714: `case KeyRelease:`.  */
+	  KeyRelease =>
+	    {
+	      /* C 20706-20713's `#ifdef HAVE_X_I18N` pair: "Don't dispatch this event since
+		 XtDispatchEvent calls XFilterEvent, and two calls in a row may freeze the client."  */
+#[cfg (feature = "have_x_i18n")]
+	      { break 'other; }                                             // C 20710
+#[cfg (not (feature = "have_x_i18n"))]
+	      { break 'switch; }                                            // C 20712
+	    }
 
 		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
 		     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
