@@ -8166,3 +8166,131 @@ DEFUN! ("x-server-max-request-size", Fx_server_max_request_size, Sx_server_max_r
 
   return make_fixnum (MAXREQUEST! ((*dpyinfo).display) as EMACS_INT);   // C 5757
 });
+
+/* The seven Xlib names C 5776-5888 reads.  Xlib.h defines six of them as *macros* over private
+   `_XDisplay` fields (Xlib.h 103-107, 131-132) and the mirror's `_XDisplay` is opaque
+   (`include/xlib.rs` 1046), so the port calls the header's own function forms through a
+   `macro_rules!` that keeps C's name (the `MAXREQUEST`/`XMaxRequestSize` shape at 152-156); the
+   two `Screen` macros are spelled through the mirror's own members.  Two rows are owed here:
+   `include/xlib.rs`'s six `extern` rows, and the two `macros.rs`-style define bodies.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XServerVendor (dpy: *mut Display) -> *mut c_char;              // Xlib.h 1812
+  pub fn XProtocolVersion (dpy: *mut Display) -> c_int;                 // Xlib.h 2903
+  pub fn XProtocolRevision (dpy: *mut Display) -> c_int;                // Xlib.h 2899
+  pub fn XVendorRelease (dpy: *mut Display) -> c_int;                   // Xlib.h 3520
+  pub fn XScreenCount (dpy: *mut Display) -> c_int;                     // Xlib.h 3135
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! ServerVendor { ($dpy:expr) => { XServerVendor ($dpy) }; }          // Xlib.h 104
+#[cfg (feature = "have_x_windows")]
+macro_rules! ProtocolVersion { ($dpy:expr) => { XProtocolVersion ($dpy) }; }    // Xlib.h 105
+#[cfg (feature = "have_x_windows")]
+macro_rules! ProtocolRevision { ($dpy:expr) => { XProtocolRevision ($dpy) }; }  // Xlib.h 106
+#[cfg (feature = "have_x_windows")]
+macro_rules! VendorRelease { ($dpy:expr) => { XVendorRelease ($dpy) }; }        // Xlib.h 107
+#[cfg (feature = "have_x_windows")]
+macro_rules! ScreenCount { ($dpy:expr) => { XScreenCount ($dpy) }; }            // Xlib.h 103
+/* Xlib.h 131-132: `#define WidthMMOfScreen(s) ((s)->mwidth)` /
+   `#define HeightMMOfScreen(s) ((s)->mheight)` - the mirror's `Screen` carries both members
+   (`include/xlib.rs` 1130-1131), so the two macros keep C's name and read them.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! WidthMMOfScreen { ($s:expr) => { (*$s).mwidth }; }                 // Xlib.h 131
+#[cfg (feature = "have_x_windows")]
+macro_rules! HeightMMOfScreen { ($s:expr) => { (*$s).mheight }; }               // Xlib.h 132
+
+/* C 5760-5889: the next six subrs of the remainder - `x-server-vendor`, `x-server-version`,
+   `x-server-input-extension-version`, `x-display-screens`, `x-display-mm-height` and
+   `x-display-mm-width` - all `DEFUN`s of this file whose doc strings stay verbatim (decoded per
+   `lib-src/make-docfile.c`'s rule).  */
+
+/* C 5760-5781: `DEFUN ("x-server-vendor", Fx_server_vendor, Sx_server_vendor, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-server-vendor", Fx_server_vendor, Sx_server_vendor,
+	0, 1, 0,
+	doc: "Return the \"vendor ID\" string of the GUI software on TERMINAL.\n\n(Labeling every distributor as a \"vendor\" embodies the false assumption\nthat operating systems cannot be developed and distributed noncommercially.)\nThe optional argument TERMINAL specifies which display to ask about.\n\nFor GNU and Unix systems, this queries the X server software.\nFor Android systems, value is the manufacturer who developed the Android\nsystem that is being used.\nFor MS Windows and Nextstep the result is hard-coded.\n\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5776
+  let mut vendor: *const c_char = ServerVendor! ((*dpyinfo).display);    // C 5777
+
+  if vendor.is_null () { vendor = c"".as_ptr (); }                      // C 5779
+  return build_string (vendor);                                         // C 5780
+});
+
+/* C 5783-5808: `DEFUN ("x-server-version", Fx_server_version, Sx_server_version, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-server-version", Fx_server_version, Sx_server_version,
+	0, 1, 0,
+	doc: "Return the version numbers of the GUI software on TERMINAL.\nThe value is a list of three integers specifying the version of the GUI\nsoftware in use.\n\nFor GNU and Unix system, the first 2 numbers are the version of the X\nProtocol used on TERMINAL and the 3rd number is the distributor-specific\nrelease number.  For MS Windows, the 3 numbers report the OS major and\nminor version and build number.  For Nextstep, the first 2 numbers are\nhard-coded and the 3rd represents the OS version.  For Haiku, all 3\nnumbers are hard-coded.  For Android, the first number represents the\nAndroid API level, and the next two numbers are all zero.\n\nSee also the function `x-server-vendor'.\n\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5803
+  let dpy: *mut Display = (*dpyinfo).display;                           // C 5804
+
+  return list3i (ProtocolVersion! (dpy) as EMACS_INT,                    // C 5806
+		 ProtocolRevision! (dpy) as EMACS_INT,
+		 VendorRelease! (dpy) as EMACS_INT);                       // C 5807
+});
+
+/* C 5810-5829: `DEFUN ("x-server-input-extension-version", Fx_server_input_extension_version, Sx_server_input_extension_version, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-server-input-extension-version", Fx_server_input_extension_version, Sx_server_input_extension_version,
+	0, 1, 0,
+	doc: "Return the version of the X Input Extension supported by TERMINAL.\nThe value is nil if TERMINAL's X server doesn't support the X Input\nExtension extension, or if Emacs doesn't support the version present\non that server.  Otherwise, the return value is a list of the major\nand minor versions of the X Input Extension extension running on that\nserver.  ",
+	(terminal: Lisp_Object),
+	{
+#[cfg (feature = "have_xinput2")]
+  {
+    let dpyinfo: *mut x_display_info = check_x_display_info (terminal);  // C 5821
+
+    return if (*dpyinfo).supports_xi2                                    // C 5823
+      { list2i (2, (*dpyinfo).xi2_version as EMACS_INT) }                // C 5824
+    else
+      { Qnil () };                                                       // C 5825
+  }
+#[cfg (not (feature = "have_xinput2"))]
+  { return Qnil (); }                                                    // C 5827
+});
+
+/* C 5831-5849: `DEFUN ("x-display-screens", Fx_display_screens, Sx_display_screens, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-screens", Fx_display_screens, Sx_display_screens,
+	0, 1, 0,
+	doc: "Return the number of screens on the X server of display TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n\nOn PGTK and Nextstep, \"screen\" is in X terminology, not that of Wayland\nand Nextstep, respectively.\n\nOn MS Windows, this function just returns 1.\n\nFor the number of physical monitors, use `(length\n(display-monitor-attributes-list TERMINAL))' instead.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5846
+
+  return make_fixnum (ScreenCount! ((*dpyinfo).display) as EMACS_INT);   // C 5848
+});
+
+/* C 5851-5869: `DEFUN ("x-display-mm-height", Fx_display_mm_height, Sx_display_mm_height, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-mm-height", Fx_display_mm_height, Sx_display_mm_height,
+	0, 1, 0,
+	doc: "Return the height in millimeters of the X display TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n(On MS Windows, this function does not accept terminal objects.)\n\nOn \"multi-monitor\" setups this refers to the height in millimeters for\nall physical monitors associated with TERMINAL.  To get information\nfor each physical monitor, use `display-monitor-attributes-list'.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5863
+
+  if (*dpyinfo).screen_mm_height != 0                                   // C 5865
+    { return make_fixnum ((*dpyinfo).screen_mm_height as EMACS_INT); }   // C 5866
+
+  return make_fixnum (HeightMMOfScreen! ((*dpyinfo).screen) as EMACS_INT);  // C 5868
+});
+
+/* C 5871-5889: `DEFUN ("x-display-mm-width", Fx_display_mm_width, Sx_display_mm_width, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-mm-width", Fx_display_mm_width, Sx_display_mm_width,
+	0, 1, 0,
+	doc: "Return the width in millimeters of the X display TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n(On MS Windows, this function does not accept terminal objects.)\n\nOn \"multi-monitor\" setups this refers to the width in millimeters for\nall physical monitors associated with TERMINAL.  To get information\nfor each physical monitor, use `display-monitor-attributes-list'.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5883
+
+  if (*dpyinfo).screen_mm_width != 0                                    // C 5885
+    { return make_fixnum ((*dpyinfo).screen_mm_width as EMACS_INT); }    // C 5886
+
+  return make_fixnum (WidthMMOfScreen! ((*dpyinfo).screen) as EMACS_INT);  // C 5888
+});

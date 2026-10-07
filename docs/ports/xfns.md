@@ -1,5 +1,6 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
-C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582 and C 5583-5758
+C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758 and
+C 5760-5889
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -11,10 +12,11 @@ C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582 and
 > `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice,
 > **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
 > **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
-> eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth and **8,168 lines**
-> after the eleventh - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428,
-> C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582 and C 5583-5758, whose own ledger sections
-> are at the end of this file - measured with `grep -c ''`), both arms of every `#if` carried.
+> eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
+> the eleventh and **8,296 lines** after the twelfth - C 803-2149, C 2150-3811, C 3812-3956,
+> C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758 and
+> C 5760-5889, whose own ledger sections are at the end of this file - measured with
+> `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -173,7 +175,8 @@ defines both features.
 | 4785-4916 | C 4785-4787's comment with `unwind_create_frame` (C 4789 the `static Lisp_Object`, C 4790 the name), `do_unwind_create_frame` (C 4816/4817), `x_default_font_parameter` (C 4822 the `void`, C 4823 the name), the `x-wm-set-size-hint` `DEFUN` (C 4885) and `set_machine_and_pid_properties` (C 4900/4901) | the file gate |
 | 4918-5582 | `Fx_create_frame` (C 4918-4927 the DEFUN and its doc string, C 4930-4943 the `USE_GTK` local, C 4945-5130 the display/name/parent/colour setup, C 5131-5146 the font drivers, C 5151-5393 the parameter block, the two `x_window` call arms (C 5316-5320) and the Xt/GTK-only blocks, C 5395-5579 the menu bar, the visibility block, the machine/pid properties and the XSync block) | `have_x_windows`, with C's own nested arms: `use_gtk` (C 5184-5188/5213-5217/5322-5326/5378-5386), `use_x_toolkit` (C 5316-5320), `all (use_x_toolkit, use_gtk)` (C 5395-5411), `use_cairo` (C 5131-5145/5432-5441), `have_gtk3` (C 4941-4943/5243-5248), `have_xsync` (C 5500-5546) - slice 10 |
 | 5583-5758 | the first nine subrs of the remainder: `xw-color-defined-p` (C 5583), `xw-color-values` (C 5599), `xw-display-color-p` (C 5615), `x-display-grayscale-p` (C 5637), `x-display-pixel-width` (C 5666), `x-display-pixel-height` (C 5684), `x-display-planes` (C 5702), `x-display-color-cells` (C 5716) and `x-server-max-request-size` (C 5743) | `have_x_windows` (slice 11; the two `switch` bodies' `case`/`default` tokens are answered in `docs/ports/macro-body-notes.tsv`) |
-| 5760-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,903 lines, whose first live definition is `x-server-vendor` (C 5760, a `DEFUN`) - the next slice's first item | not ported in this slice |
+| 5760-5889 | the next six subrs: `x-server-vendor` (C 5760), `x-server-version` (C 5783), `x-server-input-extension-version` (C 5810, the `HAVE_XINPUT2` pair), `x-display-screens` (C 5831), `x-display-mm-height` (C 5851) and `x-display-mm-width` (C 5871) | `have_x_windows`, with `have_xinput2` for C 5820-5828 (slice 12) |
+| 5891-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,772 lines, whose first live definition is `x-display-backing-store` (C 5891, a `DEFUN` whose body is a `switch`) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1693,3 +1696,63 @@ failures**.
 The frozen configuration compiles none of this file: no display was consulted, no colour was
 defined or allocated and no server attribute was read; the three arms' counts are text compile
 readings.
+
+
+## Slice 12 (2026-10-08, status 3.915 - the integrator sets the round number): C 5760-5889
+
+**The slice is C 5760-5889**, six more subrs of the remainder - `x-server-vendor` (C 5760-5781),
+`x-server-version` (C 5783-5808), `x-server-input-extension-version` (C 5810-5829, whose body is
+C's `#ifdef HAVE_XINPUT2` pair), `x-display-screens` (C 5831-5849), `x-display-mm-height`
+(C 5851-5869) and `x-display-mm-width` (C 5871-5889).  The port's slice is **128 Rust lines**
+(8,296 - 8,168, `grep -c ''`) against C's 130; md5 `29ea2288899f1925b901888b49b6239e` (the slice 11
+tree) -> `42ac276cc1678832e96889ff582a673d`.
+
+**What it reads.**  One use-site block: the seven Xlib names these bodies call.  Xlib.h defines six
+of them as *macros* over private `_XDisplay` fields (Xlib.h 103-107) and the mirror's `_XDisplay` is
+opaque (`include/xlib.rs` 1046), so the port declares the header's own function forms
+(`XServerVendor` 1812, `XProtocolVersion` 2903, `XProtocolRevision` 2899, `XVendorRelease` 3520,
+`XScreenCount` 3135) and keeps C's name in a `macro_rules!` that calls them (the
+`MAXREQUEST`/`XMaxRequestSize` shape this file already has at 152-156).  The two `Screen` macros are
+the other way round: `Screen`'s members *are* mirrored (`include/xlib.rs` 1130-1131), so
+`WidthMMOfScreen!`/`HeightMMOfScreen!` keep C's name and read `mwidth`/`mheight` directly - which is
+also what keeps the `--check` token rows away (the first measurement's two rows
+`does not mention heightmmofscreen`/`widthmmofscreen` are what spelling the member *without* the
+macro name costs).
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0), both sides.
+
+**② The three arms are byte-for-byte the baseline's readings**: plain-X **14 / 9**, GTK **34 / 20**
+and Xt **15 / 12**, before and after - and unlike slices 9-11 this slice's first measurement was
+already clean (no warning, no `E0381`, no unresolved name), so the six `DEFUN`s cost nothing in any
+arm.
+
+**③ `extract-abi.py --check`**: **144 rows -> 138** - exactly the six `missing subr` rows retiring,
+with nothing added - and the drift reads `C 10662 vs Rust 8296` (**22.2%**, was 23.4%).
+`check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**
+and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed literals), 0
+failures**.
+
+### Deviations (this slice)
+
+1. **Five Xlib macros over the opaque `_XDisplay`** (`ServerVendor`, `ProtocolVersion`,
+   `ProtocolRevision`, `VendorRelease`, `ScreenCount`) are the port's `macro_rules!`s over the
+   header's `X*` functions; the two `Screen` ones read the mirror's members.
+2. **`ServerVendor`'s NULL fallback** is C's assignment (`vendor = ""`), so the local is `mut` and
+   the empty literal is `c"".as_ptr ()`.
+3. **`list3i`/`list2i`'s argument conversions** are written out (`... as EMACS_INT`), and C 5821's
+   declaration is inside the `have_xinput2` arm (the `#else` arm returns `Qnil` with no local).
+
+### Owed (this slice)
+
+- `include/xlib.rs`'s five `X*` function rows and the six macro rows (`docs/ports/xfns.md` names
+  the same gap slices 1 and 11 already record for the Xlib surface).
+- `syms_of_xfns` (the six registrations this slice's subrs are still owed), and the rest of the
+  remainder: the 29 missing functions, 1 macro, 4 objects, 36 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no display was consulted and no server
+attribute was read; the three arms' counts are text compile readings.
