@@ -17057,3 +17057,19 @@
   ⑥ **预算与清理**：本片**单文件编译门 4 发**（基线 1、首跑 1、修 `GSShowGlyphs` 后 1、修 `putc` 丢弃后 1；每发不到 1 秒）+ **3 组只读 grep** + 一次 `nm -g`/`nm -u` 读对象；
      `/tmp/nsfont83.o`、`/tmp/nsfont83base.o`、`/tmp/r83_*.py` 跑完即删，无全盘/大内存扫描。
      **未声称**：无运行证据——没有字形串被画、没有 dumper 跑过（本 lane 不链接，那 29 条入口是核心的，本片只声明）；读数只有编译门、导出/导入门与台账。
+
+- **4.025 `src/macfont.m` round 84：这个文件的最后三条定义记账收口（74/74 = 71 已落地 + 3 已记名死臂），全树逐文件清单只剩 1 个未勾框（2026-10-08）**：
+  ① **三条的读法**（都是本文件 `## Decisions` 已有的读数，本轮逐条重新实测）：`mac_ctfont_get_glyph_for_cid`（C 3995）整身在本树**从未被定义**的 `USE_CT_GLYPH_INFO` 的 `#if`（3993-4066）里
+     （判据：`grep -rn "define USE_CT_GLYPH_INFO" emacs/src emacs/configure.ac` 为空，macfont.h 70 的 `#define mac_font_get_glyph_for_cid mac_ctfont_get_glyph_for_cid` 因此也不成立）；
+     `mac_font_copy_default_descriptors_for_language`（C 4070）与 `mac_font_copy_default_name_for_charset_and_languages`（C 4162）整身都在 `#if MAC_OS_X_VERSION_MIN_REQUIRED < 1090`（4068 开、4203 关）里，
+     而后者的**唯一**调用点是 3639-3648 那段同一个 `#if` 内的死分支（`mac_font_create_preferred_family_for_attributes` 里）⇒ 在这个目标上它不只"未移植"，而是**无人引用**。
+  ② **记账落点**：`docs/ports/macfont.md` 三个框勾上（**110 勾 / 0 未勾**，标题行改成"71 of 74，其余三条是已记名死臂"），`docs/baseline/swift-units.tsv` 那两行补上 `permanent` 理由
+     （与 `mac_ctfont_get_glyph_for_cid` 那行同形：`MAC_OS_X_VERSION_MIN_REQUIRED < 1090`、4068-4203、唯一调用点在 3639-3648）⇒ `python3 tools/check-swift-units.py` 仍读
+     `macfont.swift: 74 C definition(s), 3 unported, 3 row(s); 131 C symbol imports`，终读 **`0 new, 0 stale`**——三条**按设计**仍计"未移植"，manifest 的理由列就是干这个的（`nsfns.swift` 那条永久死臂同一读法）。
+  ③ **全树读数**：`grep -h '^- \[ \]' docs/ports/*.md | wc -l` = **1**——606 本台账里只剩 `docs/ports/xterm.md` 522 的 `handle_one_xevent`（src/xterm.c 18876）一个未勾框，
+     那是 xterm lane 自己的活口（它**不是**记名死臂，是这一代剩下的最后一件真移植）；其余每个文件的清单都已"落地或记名"。
+  ④ **读数（全部实测）**：declarations **18/0/18/0**、own-voice **0**、citations **676 / 0 drift / 0 range / 2,421 external / 36 allowed / 0 stale**、
+     mirror-dupes **16/16/0**、port-lines **0/0/0/0**、ledger-ticks **238/0**、carried **11/11/4/0**、verbatim **6 树 / 4604 文件 / 8,419 行 / 0**、
+     verbatim-declarations **710 候选 / 6 登记 / 0 失败**、dead-file-coverage **145/0**、check-swift-units **`0 new, 0 stale, 7 Swift unit(s) landed`**。
+  ⑤ **预算与清理**：本片**零编译**（只改台账、manifest 与日志），3 组只读 grep（宏定义、`#if` 配对、全树未勾框计数），无 `/tmp` 产物。
+     **未声称**：本轮**没有代码产出**——它是记账轮（把三条死臂的读数写进台账与 manifest），不是移植；`handle_one_xevent` 仍未落地。

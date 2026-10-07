@@ -49,7 +49,7 @@
 
 ## Functions defined — 74
 
-Ported (71 of 74):
+Ported (71 of 74) - the other three are **recorded dead arms**, ticked below with their reason:
 
 - [x] cfdata_to_lisp  (line 138, static)
 - [x] cfstring_to_lisp_nodecode  (line 154, static)
@@ -118,9 +118,9 @@ Ported (71 of 74):
 - [x] mac_font_equal_in_postscript_name  (line 3750, static)
 - [x] mac_font_create_line_with_string_and_font  (line 3775, static)
 - [x] mac_font_shape  (line 3839, static)
-- [ ] mac_ctfont_get_glyph_for_cid  (line 3995, static)
-- [ ] mac_font_copy_default_descriptors_for_language  (line 4070, static)
-- [ ] mac_font_copy_default_name_for_charset_and_languages  (line 4162, static)
+- [x] mac_ctfont_get_glyph_for_cid  (line 3995, static) — **dead in this build, recorded** (round 84): `USE_CT_GLYPH_INFO` is defined nowhere in this tree (`grep -rn "define USE_CT_GLYPH_INFO" emacs/src emacs/configure.ac` is empty), so the `#if` at 3993-4066 is not taken (and neither is macfont.h 70's `#define mac_font_get_glyph_for_cid mac_ctfont_get_glyph_for_cid`) - the `## Decisions` table's own row
+- [x] mac_font_copy_default_descriptors_for_language  (line 4070, static) — **dead in this build, recorded** (round 84): its whole body sits inside `#if MAC_OS_X_VERSION_MIN_REQUIRED < 1090` (4068, closed at 4203), which this target's minimum leaves false, and its only caller is the function below - itself in that arm
+- [x] mac_font_copy_default_name_for_charset_and_languages  (line 4162, static) — **dead in this build, recorded** (round 84): the same `#if` (4068-4203), and its only caller is the `#if < 1090` branch at 3639-3648 inside `mac_font_create_preferred_family_for_attributes` - the `## Decisions` finding - so on this target it is not merely unported but unreferenced
 - [x] macfont_get_nsctfont  (line 4206)
 - [x] mac_register_font_driver  (line 4215)
 - [x] syms_of_macfont  (line 4225)
@@ -922,3 +922,19 @@ rows leaving, with the three permanent rows' `reason` text intact).
   trees, 4607 files, 0 failures`.
 - `emacs/` untouched; the round's `/tmp` probe files were removed after the readings.
 
+- **Round 84 records the file's last three definitions** (the checklist is now complete:
+  74 of 74, of which 71 ported and 3 recorded dead arms).  The readings are the ones the
+  file's own `## Decisions` already carried, re-measured here: `USE_CT_GLYPH_INFO` is defined
+  nowhere in this tree (the grep above is empty), so 3993-4066 is not taken; and
+  `#if MAC_OS_X_VERSION_MIN_REQUIRED < 1090` (4068, closed at 4203) holds both
+  `mac_font_copy_default_descriptors_for_language` (4070) and
+  `mac_font_copy_default_name_for_charset_and_languages` (4162), whose only caller is the dead
+  branch at 3639-3648.  Their manifest rows (`docs/baseline/swift-units.tsv`) now carry that
+  reason in the same `permanent` form the `mac_ctfont_get_glyph_for_cid` row already had, so
+  `python3 tools/check-swift-units.py` reads `macfont.swift: 74 C definition(s), 3 unported,
+  3 row(s); 131 C symbol imports` with **`0 new, 0 stale`** - the three stay counted as
+  unported *by design*, which is what the manifest's reason column is for.
+- **With this round the tree's per-file checklists have no open box left**
+  (`grep -c '^- \[ \]' docs/ports/*.md` over all 606 ledgers -> one row remains, and it is
+  `docs/ports/xterm.md` 522's `handle_one_xevent` (src/xterm.c 18876), the file's own live
+  gap).  Everything else is ported or recorded.
