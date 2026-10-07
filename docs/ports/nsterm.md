@@ -398,9 +398,9 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (BOOL) writeSelectionToPasteboard: (NSPasteboard *)pb types: (NSArray *)types`  (line 9688)
   - [ ] `- (instancetype)setMiniwindowImage: (BOOL) setMini`  (line 9721)
   - [ ] `- (int) fullscreenState`  (line 9741)
-- [ ] EmacsWindow  (`@implementation` 9756, `@end` 10610) - round 24 landed **the class record** (the four Cocoa ivars, `src/nsterm.h` 421-424) and five methods; the four drag-and-drop ivars (nsterm.h 426-429, whose `dnd_mode` is this unit's own `ns_return_frame_mode`, the `nsselect.swift` 102-107 shape) **landed in round 62** with `mustNotDropOn:` (C 10522-10526) and `beginDrag:…` (C 10528-10608, plus the cross-unit C-ABI entry `nsselect.swift` 220-224 imports); round 62 also **records the three methods of that family Swift refuses** (`draggingSourceOperationMaskForLocal:` C 10470-10473, `draggedImage:endedAt:operation:` C 10475-10480 and `draggedImage:movedTo:` C 10482-10520); `dealloc` stays a named deferral, and the remaining methods keep this box open
-  - [ ] `- (instancetype) initWithEmacsFrame: (struct frame *) f`  (line 9759)
-  - [ ] `- (instancetype) initWithEmacsFrame: (struct frame *) f fullscreen: (BOOL) fullscreen screen: (NSScreen *) screen`  (line 9765)
+- [ ] EmacsWindow  (`@implementation` 9756, `@end` 10610) - round 24 landed **the class record** (the four Cocoa ivars, `src/nsterm.h` 421-424) and five methods; the four drag-and-drop ivars (nsterm.h 426-429, whose `dnd_mode` is this unit's own `ns_return_frame_mode`, the `nsselect.swift` 102-107 shape) **landed in round 62** with `mustNotDropOn:` (C 10522-10526) and `beginDrag:…` (C 10528-10608, plus the cross-unit C-ABI entry `nsselect.swift` 220-224 imports); round 62 also **records the three methods of that family Swift refuses** (`draggingSourceOperationMaskForLocal:` C 10470-10473, `draggedImage:endedAt:operation:` C 10475-10480 and `draggedImage:movedTo:` C 10482-10520); **rounds 63 and 64 add the zoom/appearance/frame-setter five** (C 10299-10442) **and the two initializers** (C 9759-9875, whose `EmacsWindow_initWithEmacsFrame` entry this unit now provides); `dealloc` stays a named deferral, and the remaining methods keep this box open
+  - [x] `- (instancetype) initWithEmacsFrame: (struct frame *) f`  (line 9759) — landed as `convenience init(frame:)` (round 64): C's body is the forward to the designated initializer below and nothing else.  **The provider the deferred entry waited for** (`@_cdecl("EmacsWindow_initWithEmacsFrame")`, round 64) is what C 1983's call site - line 2317 of this unit - and C 8615/8624/9076 reach; the definition takes another Swift name because the import keeps its own (the `ns_set_offset`/`setAppearance` pair's shape)
+  - [x] `- (instancetype) initWithEmacsFrame: (struct frame *) f fullscreen: (BOOL) fullscreen screen: (NSScreen *) screen`  (line 9765) — landed as `convenience init(frame:fullscreen:screen:)` (round 64): the five-arm style mask, the two size macros, the delegate/subview/responder trio, the title pair (C 9825's `setMiniwindowTitle:` has no Swift member - measured - so it is sent dynamically), `setAppearance`, the transparent-titlebar/parent-child/z-group block, the `IN_BOUND`-clamped top-left point, the border width, the background colour, the deferred `createToolbar:` call and the tabbing-mode guard.  **It is a `convenience` initializer because C's super call is the `screen:` variant**, which Swift imports as `NSWindow`'s convenience (only the four-argument one is `NS_DESIGNATED_INITIALIZER`, NSWindow.h 293-294; measured: a designated initializer cannot call it), and a subclass inherits that convenience because this class overrides the designated one; C 9791's `last_drag_event = nil` is the one statement that moves below `self.init` for that reason
   - [ ] `- (void)createToolbar: (struct frame *)f`  (line 9878)
   - [ ] `- (void)dealloc`  (line 9912) — **deferred by name**: Swift forbids overriding `dealloc` (measured: `error: 'init(coder:)' is unavailable`'s family - ARC owns the releases C writes), so this box records the reference's three statements (`toolbar` release, `setToolbar: nil`, `last_drag_event` release) as the ARC equivalent they already read as
   - [x] `- (NSInteger) borderWidth`  (line 9928) — landed as `func borderWidth () -> Int`: C's `NSWidth` is the rect's own `width`, and the `contentView` read is optional-chained because C's own message to nil does nothing
@@ -2213,6 +2213,19 @@ call site takes an entry and the definition lands at its own C line - and **both
   cannot be represented in Objective-C` - C's own `enum ns_return_frame_mode`), so its selector is
   reached through this round's C-ABI entry instead, which is what `nsselect.swift` 220-224 already
   imports.
+* **round 64's two structural readings**: (1) `EmacsWindow`'s designated super call is C's
+  `initWithContentRect:styleMask:backing:defer:screen:` variant, and Swift imports that one as
+  `NSWindow`'s *convenience* initializer (NSWindow.h 293 marks only the four-argument spelling
+  `NS_DESIGNATED_INITIALIZER`; measured: the designated form is refused with "must call a designated
+  initializer of the superclass 'NSWindow'").  A subclass inherits that convenience because this
+  class overrides the designated one, so the port's initializer is a `convenience init` calling
+  `self.init (… screen:)` and C 9791's `last_drag_event = nil` - which runs *before* C's super call -
+  is the one statement that moves below it (nothing reads the ivar in between).  (2) Round 62
+  declared `colorWithUnsignedLong` as an *import* in this unit, but this unit is where the
+  `NSColor (EmacsColor)` category's body is ported (C 188-197), so it **owns** that cross-file
+  entry - `macfont.swift` 1321-1327 says as much ("the port of src/nsterm.m owns the definition")
+  and the import gate read the mistake as "imported by `nsterm.swift` and provided by nothing".
+  Round 64 turns it into the `@_cdecl` provider and calls the Swift class method at C 10550.
 * **round 43's names**: `mark_object` is already the core's (`femacs/src/alloc.rs` 7308), while
   `wset_horizontal_scroll_bar`/`wset_vertical_scroll_bar` (src/window.h's INLINE setters - the port
   mirrors them as Rust functions at `femacs/src/include/window.rs` 233/236) and the macro entry
@@ -2262,6 +2275,15 @@ call site takes an entry and the definition lands at its own C line - and **both
   `adjust_frame_size` and `Qfont` (the last already the core's, `src/textprop.c` 2439) - are what that
   round adds and the core owes.  The rule it settles: **reads keep the accessor macro's name, writes go
   through the setter of the family the record belongs to** (`ns_output_set_*` vs `frame_set_*`).
+* **round 64's names**: the `struct frame` readers/macros C 9765-9875 needs -
+  `FRAME_UNDECORATED`, `FRAME_Z_GROUP`, `FRAME_Z_GROUP_BELOW`, `FRAME_NS_TRANSPARENT_TITLEBAR`,
+  `FRAME_TEXT_COLS_TO_PIXEL_WIDTH`/`_LINES_TO_PIXEL_HEIGHT`, `frame_text_cols`, `frame_text_lines`,
+  `frame_name`, `frame_icon_name` - the writer `frame_set_border_width`, and the deferred
+  `createToolbar` entry C 9863 calls (its provider lands with that method's batch).  `SCREENMAX`
+  (16000, nsterm.h 1273) and `IN_BOUND` (nsterm.h 1283-1284) are macros with no C symbol, so they
+  are this unit's own value and function (the `KBD_BUFFER_SIZE` reading).  The round also *provides*
+  two entries other call sites waited for: `EmacsWindow_initWithEmacsFrame` (C 9759, whose only
+  in-unit caller is line 2317) and `colorWithUnsignedLong` (the correction above).
 * **round 62's names**: the `struct ns_display_info` member writer `ns_display_info_set_grabbed`
   (C 10602's `x_display_list->grabbed = 0`; the baseline row 24 has `int grabbed` at offset 80) and
   the DEFUN `Fx_hide_tip` (C 10597, defined by `nsfns.swift` 4433) are what that round
@@ -4329,3 +4351,44 @@ call site takes an entry and the definition lands at its own C line - and **both
   (C 9759/9765), `createToolbar:` (C 9878), `setParentChildRelationships` (C 9934), `orderedIndex`
   (C 10074), `restackWindow:above:` (C 10124), `accessibilityAttributeValue:` (C 10158),
   `constrainFrameRect:toScreen:` (C 10230) and the `dealloc` deferral.
+
+### Round 64: `EmacsWindow`'s two initializers (C 9759-9875), and two providers the unit owed
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-63 carry, so **no new warning**.  Object
+  `/tmp/nsterm64.o`, **1,125,664 bytes**, md5 `51da4272074d8c254560db12fbf0e749`.  The unit is
+  **11,947 lines**.  The first two measurements stopped on errors; they are the entries below.
+* **Both initializers land**: `initWithEmacsFrame:` (C 9759-9762) as a `convenience init(frame:)`
+  forwarding to the designated one, and `initWithEmacsFrame:fullscreen:screen:` (C 9765-9875) whole -
+  the five-arm style mask, `FRAME_TEXT_COLS_TO_PIXEL_WIDTH`/`_LINES_TO_PIXEL_HEIGHT`, the
+  delegate/subview/first-responder trio, the title pair, `setAppearance`, the
+  transparent-titlebar/parent-child/z-group block, the `IN_BOUND`-clamped top-left point, the border
+  width, the background colour, `createToolbar:` and the tabbing-mode guard.
+* **Decisions this round settles** (both in `## Decisions`): the port's initializer is a
+  `convenience init` because C's super call is NSWindow's `screen:` variant, which Swift imports as
+  a *convenience* initializer (NSWindow.h 293-294; measured), so C 9791's `last_drag_event = nil`
+  is the one statement that moves below `self.init`; and round 62's `colorWithUnsignedLong`
+  *import* was on the wrong side of the fence - this unit ports the category body (C 188-197) and
+  therefore owns the entry, so it is now `@_cdecl("colorWithUnsignedLong")` and C 10550 calls the
+  Swift class method.
+* **Two deferred entries gain their providers**: `EmacsWindow_initWithEmacsFrame` (C 1983's call
+  site is this unit's line 2317) and the new `createToolbar` entry stays deferred by name until
+  C 9878 lands.
+* **Measured refusals and readings this round adds**: `setMiniwindowTitle:` has a declaration the C
+  compiler sees but no Swift member (measured with a Swift probe), so C 9825 sends the message
+  dynamically (round 56's `setAppleMenu:` shape); the `setDelegate:` message is sent with
+  `#selector(setter: NSWindow.delegate)` (the round-57 spelling; the plain `Selector(("setDelegate:"))`
+  form is what produced the round's only *new* warning - `use '#selector' instead of explicitly
+  constructing a 'Selector'` - and it is gone now); and `SCREENMAX`/`IN_BOUND` are this unit's own
+  value and function, because they are macros with no C symbol.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **6** unported,
+  6 row(s); **628** C symbol import(s)` - eleven more than round 63's 617 (the twelve readers/macros
+  above minus `colorWithUnsignedLong`, which moved from the import side to the provider side), and
+  no stale row.  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: **no run evidence** - no window was created, no toolbar asked
+  for, no colour computed; the compile gate reaches parsing and type checking only, and
+  `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.  After this
+  round `EmacsWindow` owes `createToolbar:` (C 9878), `setParentChildRelationships` (C 9934, whose
+  provider the entry above waits for), `orderedIndex` (C 10074), `restackWindow:above:` (C 10124),
+  `accessibilityAttributeValue:` (C 10158), `constrainFrameRect:toScreen:` (C 10230) and the
+  `dealloc` deferral.

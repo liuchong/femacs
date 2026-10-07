@@ -7421,6 +7421,128 @@ class EmacsWindow: NSWindow {
     last_drag_event = event.copy() as? NSEvent         // C 10467
   }
 
+  /// C 9759-9762: `- (instancetype) initWithEmacsFrame: (struct frame *) f` - C's body is the
+  /// forward to the designated initializer below and nothing else, which is why it is a Swift
+  /// `convenience init`.
+  convenience init(frame f: UnsafeMutableRawPointer?) {
+    self.init(frame: f, fullscreen: false, screen: nil)   // C 9761
+  }
+
+  /// C 9765-9875: `- (instancetype) initWithEmacsFrame: (struct frame *) f fullscreen: (BOOL)
+  /// fullscreen screen: (NSScreen *) screen`.  Readings this body needs: C 9780's
+  /// `NSWindowStyleMaskResizable` sits inside the `NS_IMPL_COCOA` arm (this target's); C 9783's
+  /// `f->tooltip` is the `FRAME_TOOLTIP_P` entry C 2544/2560 already use; C 9812-9817's
+  /// `#if !defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED <= 1090` is **dead** on this
+  /// target (Cocoa and 260000), so the `useOptimizedDrawing:` block is recorded, not transcribed;
+  /// C 9808's `[self setDelegate: view]` is sent as C sends it (round 57's reading: `NSWindow`'s
+  /// `delegate` is typed `(any NSWindowDelegate)?` and the reference's `EmacsView` declares no
+  /// protocol list yet, that conformance being the deferred batch the class's box names); C 9825's
+  /// `[self setMiniwindowTitle: …]` has no Swift member (measured: the C compiler sees the
+  /// declaration, Swift does not surface it), so that message is sent dynamically too (round 56's
+  /// `setAppleMenu:` reading); C 9831/9869's `respondsToSelector:` guards are `#selector`-based,
+  /// the reading C 2158's sibling above already uses; and C 9856-9857's `[NSColor
+  /// colorWithUnsignedLong: …]` is the category method this unit's own `extension NSColor` ports
+  /// (C 188-197), so it is called as that class method.
+  ///
+  /// It is a `convenience` initializer because C's super call is the `screen:` variant, which
+  /// Swift imports as a *convenience* initializer of `NSWindow` (NSWindow.h 293 marks only the
+  /// four-argument one `NS_DESIGNATED_INITIALIZER`; measured: a designated initializer cannot call
+  /// it - "must call a designated initializer of the superclass 'NSWindow'"), and a subclass
+  /// inherits that convenience initializer because this class overrides the designated one.  One
+  /// statement therefore moves: C 9791's `last_drag_event = nil` runs *before* C 9796's super call,
+  /// while a Swift convenience initializer must reach `self.init` first - nothing reads the ivar in
+  /// between, so the two orders agree.
+  convenience init(frame f: UnsafeMutableRawPointer?, fullscreen: Bool, screen: NSScreen?) {
+    var styleMask: NSWindow.StyleMask = []             // C 9769
+
+    // C 9772: `NSTRACE ("[EmacsWindow initWithEmacsFrame:fullscreen:screen:]");` - empty.
+
+    if fullscreen {                                    // C 9774
+      styleMask = .borderless                          // C 9775
+    } else if FRAME_UNDECORATED(f) {                   // C 9776
+      styleMask = .borderless                          // C 9778
+      styleMask.insert(.resizable)                     // C 9780 (the `NS_IMPL_COCOA` arm)
+    } else if FRAME_TOOLTIP_P(f) {                     // C 9783 (C's `f->tooltip`)
+      styleMask = []                                   // C 9784
+    } else {
+      styleMask = [.titled, .resizable, .miniaturizable, .closable]   // C 9786-9789
+    }
+
+    let width = FRAME_TEXT_COLS_TO_PIXEL_WIDTH(f, frame_text_cols(f))       // C 9793
+    let height = FRAME_TEXT_LINES_TO_PIXEL_HEIGHT(f, frame_text_lines(f))   // C 9794
+
+    self.init(contentRect: NSMakeRect(0, 0, CGFloat(width), CGFloat(height)),   // C 9796-9800
+              styleMask: styleMask, backing: .buffered, defer: true, screen: screen)
+    // C 9801's `if (self)` is the initializer's own success in Swift (the `EmacsMenu` reading).
+
+    last_drag_event = nil                              // C 9791 (moved below `self.init`, above)
+
+    // C 9803-9804: `NSString *name; NSColor *col;` - each is declared where C assigns it; C 9805's
+    // `NSScreen *screen = [self screen]` shadows the parameter and is kept under its own name.
+    let screen_ = self.screen                          // C 9805
+    let view = FRAME_NS_VIEW(f)                        // C 9806
+
+    perform(#selector(setter: NSWindow.delegate), with: view)   // C 9808 (the reading above)
+    contentView!.addSubview(view!)                     // C 9809
+    _ = makeFirstResponder(view)                       // C 9810
+
+    acceptsMouseMovedEvents = true                     // C 9819
+
+    let name = NILP(frame_name(f))
+      ? "Emacs" : (stringWithLispString(frame_name(f)) as String?)!         // C 9821
+    title = name                                       // C 9822
+
+    if !NILP(frame_icon_name(f)) {                     // C 9824
+      perform(Selector(("setMiniwindowTitle:")),        // C 9825-9826 (the reading above)
+              with: stringWithLispString(frame_icon_name(f)))
+    }
+
+    setAppearance()                                    // C 9828 (this class's own method)
+
+    if responds(to: #selector(getter: NSWindow.titlebarAppearsTransparent)) {   // C 9831
+      titlebarAppearsTransparent = FRAME_NS_TRANSPARENT_TITLEBAR(f)             // C 9832
+    }
+
+    setParentChildRelationships_entry(self)            // C 9835 (the deferred entry above)
+
+    if FRAME_Z_GROUP(f) != z_group_none() {            // C 9837
+      level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue
+                                       + (FRAME_Z_GROUP_BELOW(f) ? -1 : 1))     // C 9838
+    }
+
+    if screen_ != nil {                                // C 9840
+      let pt = NSMakePoint(IN_BOUND(-SCREENMAX,
+                                    CGFloat(frame_left_pos(f)) + NS_PARENT_WINDOW_LEFT_POS(f),
+                                    SCREENMAX),
+                           IN_BOUND(-SCREENMAX,
+                                    NS_PARENT_WINDOW_TOP_POS(f) - CGFloat(frame_top_pos(f)),
+                                    SCREENMAX))        // C 9842-9847
+
+      setFrameTopLeftPoint(pt)                         // C 9849
+
+      // C 9851: `NSTRACE_RECT ("new frame", [self frame]);` - empty at `NSTRACE_ENABLED` 0.
+    }
+
+    frame_set_border_width(f, Int32(borderWidth()))    // C 9854
+
+    let col = NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(FACE_FROM_ID(f,
+                                                                  DEFAULT_FACE_ID())))   // C 9856-9857
+    backgroundColor = col                              // C 9858
+    if col.alphaComponent != 1.0 {                     // C 9859
+      isOpaque = false                                 // C 9860
+    }
+
+    /* toolbar support */
+    createToolbar_entry(self, f)                       // C 9863 (a deferred entry, below)
+
+    /* macOS Sierra automatically enables tabbed windows.  We can't
+       allow this to be enabled until it's available on a Free system.
+       Currently it only happens by accident and is buggy anyway.  */
+    if responds(to: #selector(setter: NSWindow.tabbingMode)) {   // C 9869
+      tabbingMode = .disallowed                        // C 9870
+    }
+  }
+
   /// C 10299-10304: `- (void)performZoom:(id)sender` - C's body is the `super` call and nothing
   /// else (C 10301's `NSTRACE` is the empty macro).
   override func performZoom(_ sender: Any?) {
@@ -7553,8 +7675,7 @@ class EmacsWindow: NSWindow {
 
     /* Now draw transparency onto the image.  */
     image.lockFocus()                                   // C 10549
-    colorWithUnsignedLong(unsafeBitCast(NSColor.self, to: UnsafeMutableRawPointer.self),
-                          0)?.set()                     // C 10550
+    NSColor.colorWithUnsignedLong(0).set()              // C 10550 (this unit's own category port)
     NSMakeRect(0, 0, 1, 1).fill(using: .copy)           // C 10551-10552
     image.unlockFocus()                                 // C 10553
 
@@ -11711,12 +11832,6 @@ func ns_display_info_set_grabbed(_ dpyinfo: UnsafeMutableRawPointer?, _ v: Int32
 /// `nsfns.swift` 4433 defines the C-ABI entry this unit imports.
 @_silgen_name("Fx_hide_tip") func Fx_hide_tip() -> Lisp_Object
 
-/// C: `+[NSColor colorWithUnsignedLong: (unsigned long)]` (declared src/nsterm.h 361, defined
-/// src/nsfns.m) - C 10550's call, imported exactly the way `macfont.swift` 1321-1327 imports it
-/// (the class object first, because a class method has no receiver of C's own to name).
-@_silgen_name("colorWithUnsignedLong")
-func colorWithUnsignedLong(_ cls: UnsafeMutableRawPointer?, _ c: UInt) -> NSColor?
-
 /// C 10528-10608's own method, reached from `src/nsselect.m` 771 by *selector*: the cross-unit
 /// entry `nsselect.swift` 220-224 imports (the receiver first, then C's six arguments, with the
 /// enum C narrows to its `Int32` raw value).  Its body is the class method above.
@@ -11752,4 +11867,81 @@ func FRAME_NS_APPEARANCE(_ f: UnsafeMutableRawPointer?) -> Int32
 @_cdecl("setAppearance")
 func setAppearance(_ window: NSWindow?) {
   (window as? EmacsWindow)?.setAppearance()
+}
+
+// ==========================================================================
+// Round 64: the entries and helpers `EmacsWindow`'s initializers need, and two providers
+// ==========================================================================
+
+/// C: the `struct frame` members and macros C 9765-9875 reads and writes, each an entry of the
+/// shape the section above already uses (`frame_<member>` for a member, the macro's own name for a
+/// macro).  `src/frame.h`'s `HAVE_WINDOW_SYSTEM` arm is the live one, which is why the reference
+/// carries their definitions at all.
+@_silgen_name("FRAME_UNDECORATED") func FRAME_UNDECORATED(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FRAME_Z_GROUP") func FRAME_Z_GROUP(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_Z_GROUP_BELOW") func FRAME_Z_GROUP_BELOW(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FRAME_NS_TRANSPARENT_TITLEBAR")
+func FRAME_NS_TRANSPARENT_TITLEBAR(_ f: UnsafeMutableRawPointer?) -> Bool
+/// C: `FRAME_TEXT_COLS_TO_PIXEL_WIDTH (f, cols)` / `FRAME_TEXT_LINES_TO_PIXEL_HEIGHT (f, lines)`
+/// (src/frame.h 1742-1751) - the two macros C 9793-9794 computes the window's size with.  Both are
+/// integer expressions over other frame members, so the entries take and return the `Int32` the
+/// reference's `int` is.
+@_silgen_name("FRAME_TEXT_COLS_TO_PIXEL_WIDTH")
+func FRAME_TEXT_COLS_TO_PIXEL_WIDTH(_ f: UnsafeMutableRawPointer?, _ cols: Int32) -> Int32
+@_silgen_name("FRAME_TEXT_LINES_TO_PIXEL_HEIGHT")
+func FRAME_TEXT_LINES_TO_PIXEL_HEIGHT(_ f: UnsafeMutableRawPointer?, _ lines: Int32) -> Int32
+@_silgen_name("frame_text_cols") func frame_text_cols(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_text_lines") func frame_text_lines(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: the `Lisp_Object` members `f->name` and `f->icon_name` - C 9821/9824-9825 read them, so they
+/// are readers of the same family (`frame_left_pos`'s shape) with the `Lisp_Object` value
+/// `nsfns.swift` 256's `frame_name` also carries.
+@_silgen_name("frame_name") func frame_name(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("frame_icon_name") func frame_icon_name(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: the `struct frame` member `f->border_width` (an `int`), written at C 9854 - a member-write
+/// entry of the family above (`frame_set_mouse_moved`'s shape).
+@_silgen_name("frame_set_border_width")
+func frame_set_border_width(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C 9878's `[self createToolbar: f]` - this class's own method, which has not landed yet, so the
+/// call site uses the deferred entry of the selector's first segment (the `setAppearance` /
+/// `setParentChildRelationships` shape): the definition lands with that method's batch.
+@_silgen_name("createToolbar")
+func createToolbar_entry(_ w: NSWindow?, _ f: UnsafeMutableRawPointer?)
+
+/// C: `#define SCREENMAX 16000` (src/nsterm.h 1273) - the clamp bound C 9843-9847 uses.  A macro
+/// with no C symbol, so it is the file-scope value the `KBD_BUFFER_SIZE` reading gives such
+/// constants, typed as the `CGFloat` the point C builds needs.
+fileprivate let SCREENMAX: CGFloat = 16000
+
+/// C: `#define IN_BOUND(min, x, max) (((x) < (min)) ? (min) : (((x) > (max)) ? (max) : (x)))`
+/// (src/nsterm.h 1283-1284) - C 9843-9847's clamp.
+/// It is spelled over the values `NSMakePoint` takes (this unit's `CGFloat`), which is the only
+/// width the file uses it at; `SCREENMAXBOUND` (nsterm.h 1285) is this same call with `SCREENMAX`
+/// on both sides, so only this one name is needed - nothing in the file calls the other.
+fileprivate func IN_BOUND(_ bmin: CGFloat, _ x: CGFloat, _ bmax: CGFloat) -> CGFloat {
+  x < bmin ? bmin : (x > bmax ? bmax : x)
+}
+
+/// C: `+[NSColor colorWithUnsignedLong: (unsigned long)]` (declared src/nsterm.h 361, defined
+/// src/nsterm.m 157 in the `NSColor (EmacsColor)` category) - **this unit ports that category**
+/// (`extension NSColor`'s `colorWithUnsignedLong (_:)` above, C 188-197), so it owns the cross-file
+/// C-ABI entry the other lanes import (`macfont.swift` 1321-1327 says as much: "the port of
+/// src/nsterm.m owns the definition").  Round 62 declared this as an *import* here by mistake -
+/// which is what the import gate reads as "imported by `nsterm.swift` and provided by nothing" -
+/// so round 64 turns it into the provider it was always meant to be; the receiver C's class method
+/// takes is dropped exactly as a class method's is, since the Swift class method above is
+/// `NSColor`'s own.
+@_cdecl("colorWithUnsignedLong")
+func colorWithUnsignedLong(_ cls: UnsafeMutableRawPointer?, _ c: UInt) -> NSColor? {
+  _ = cls
+  return NSColor.colorWithUnsignedLong(c)
+}
+
+/// C 9759-9762's initializer, reached by *entry* from this unit's own C 1983 (line 2317 above) and
+/// from C 8615/8624/9076: the deferred import above keeps its Swift name, so the definition takes
+/// another - the `ns_set_offset` / `setAppearance` pair's shape, and the other half of what that
+/// import was waiting for.
+@_cdecl("EmacsWindow_initWithEmacsFrame")
+func EmacsWindow_initWithEmacsFrame_impl(_ f: UnsafeMutableRawPointer?) -> AnyObject? {
+  EmacsWindow(frame: f)
 }
