@@ -412,11 +412,11 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (BOOL)restackWindow:(NSWindow *)win above:(BOOL)above`  (line 10124)
   - [ ] `- (id)accessibilityAttributeValue:(NSString *)attribute`  (line 10158)
   - [ ] `- (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen *)screen`  (line 10230)
-  - [ ] `- (void)performZoom:(id)sender`  (line 10299)
-  - [ ] `- (void)zoom:(id)sender`  (line 10306)
-  - [ ] `- (void)setAppearance`  (line 10398)
-  - [ ] `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews`  (line 10424)
-  - [ ] `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews animate:(BOOL)performAnimation`  (line 10433)
+  - [x] `- (void)performZoom:(id)sender`  (line 10299) — landed as `override func performZoom (_:)` (round 63): C's body is the `super` call and nothing else (C 10301's `NSTRACE` is the empty macro)
+  - [x] `- (void)zoom:(id)sender`  (line 10306) — landed as `override func zoom (_:)` (round 63; `zoom:` is `NSWindow`'s own method, NSWindow.h 397): C carries three implementations and compiles one — the `#if 0` arm (C 10315-10320) and the `#elif 0` arm (C 10321-10374) are **recorded as the dead arms they are** (C 10312-10313's own comment says the last is the one meant: "In the final commit, the idea is that the last should be included.") — so C 10376-10395 is transcribed: `ns_screen_margins_ignoring_hidden_dock`'s four adjustments, the `windowWillUseStandardFrame:defaultFrame:` message to the delegate force-called (the optional `NSWindowDelegate` requirement, NSWindow.h 833; C assumes an `EmacsView` answers it, C 8670), and `[self setFrame:display:NO]`
+  - [x] `- (void)setAppearance`  (line 10398) — landed as `func setAppearance ()` (round 63) **plus the C-ABI provider `@_cdecl("setAppearance")` that C 2144's deferred call site waits for** (the `ns_set_offset` shape: the call-site declaration keeps its Swift name, the definition takes another): C 10420's `[self setAppearance:appearance]` is `NSWindow`'s own property setter (not this method, whose selector takes no argument), C 10410's version test is the `NSAppKitVersion` entry pair C 2139's sibling already reads, and the two appearance names are `NSAppearance (named:)`'s `.vibrantDark`/`.aqua`
+  - [x] `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews`  (line 10424) — landed as `override func setFrame (_:display:)` (round 63): C's body is the `super` call and nothing else
+  - [x] `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews animate:(BOOL)performAnimation`  (line 10433) — landed as `override func setFrame (_:display:animate:)` (round 63): the same shape as the pair above
   - [x] `- (void)setFrameTopLeftPoint:(NSPoint)point`  (line 10444) — landed as `override func setFrameTopLeftPoint (_:)`; C's body is the `super` call and nothing else
   - [x] `- (BOOL)canBecomeKeyWindow`  (line 10452) — landed as `override var canBecomeKey: Bool` (the AppKit apinotes' rename, class B: no symbol is invented); the frame comes through this unit's `emacs_view_frame` shim and the predicate is the `frame_no_accept_focus` entry
   - [x] `- (BOOL)canBecomeMainWindow`  (line 10457) — landed as `override var canBecomeMain: Bool` (the same rename): C's whole body is `return YES;`
@@ -4284,3 +4284,48 @@ call site takes an entry and the definition lands at its own C line - and **both
   `accessibilityAttributeValue:` (C 10158), `constrainFrameRect:toScreen:` (C 10230),
   `performZoom:`/`zoom:` (C 10299/10306), `setAppearance` (C 10398), the two `setFrame:display:…`
   (C 10424/10433) and the `dealloc` deferral.
+
+### Round 63: `EmacsWindow`'s zoom, appearance and frame setters (C 10299-10442)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-62 carry, so **no new warning**.  Object
+  `/tmp/nsterm63.o`, **1,117,648 bytes**, md5 `6206cfed7a6ea4f999de69d45bc5dbd8`.  The unit is
+  **11,755 lines**.  The first measurement stopped on one error; it is the entry below.
+* **Five methods land**: `performZoom:` (C 10299-10304, C's `super` call), `zoom:` (C 10306-10396),
+  `setAppearance` (C 10398-10422), `setFrame:display:` (C 10424-10431) and
+  `setFrame:display:animate:` (C 10433-10442) - the last three as `override`s, `zoom:`'s because
+  `zoom:` is `NSWindow`'s own method (NSWindow.h 397).
+* **`zoom:`'s three implementations, and which one the reference compiles**: the `#if 0` arm
+  (C 10315-10320) and the `#elif 0` arm (C 10321-10374) are **dead and recorded**, and the `#else`
+  arm (C 10375-10395) is what is transcribed - C 10312-10313's own comment says as much ("In the
+  final commit, the idea is that the last should be included.").  The live arm's readings: the
+  margins come from this unit's own `ns_screen_margins_ignoring_hidden_dock` (C 953) with C's four
+  adjustments, and C 10391-10392's `[[self delegate] windowWillUseStandardFrame:self
+  defaultFrame:sr]` is the optional `NSWindowDelegate` requirement (NSWindow.h 833) **force-called**,
+  because C's message assumes the delegate answers it (an `EmacsView` does, C 8670) - no fallback is
+  invented for a case C does not handle.
+* **`setAppearance`'s two readings**: C 10420's `[self setAppearance:appearance]` is *`NSWindow`'s*
+  property setter (the method itself takes no argument - which is why C 2144's call site needed the
+  deferred entry, below), and C 10410's version test is the `NSAppKitVersion` entry pair C 2139's
+  sibling `ns_set_appearance` already reads.  The guard C 10400 opens
+  (`defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 101000`) is this target's.
+* **One new entry and one provider**: the `struct frame` member *reader* `FRAME_NS_APPEARANCE`
+  (src/frame.h 1258; the writer `frame_set_ns_appearance` is already here) is what this round adds,
+  and the C-ABI entry `@_cdecl("setAppearance")` is the provider C 2144's call site waits for - the
+  `ns_set_offset` shape, where the call-site declaration keeps its Swift name
+  (`setAppearance_entry`) and the definition takes another.
+* **The one first-measurement error, and the fix**: the provider was first written with the same
+  Swift name as the deferred import (`setAppearance_entry`), and `invalid redeclaration of
+  'setAppearance_entry'` is what the compiler said.  The fix is the shape the `ns_set_offset` pair
+  already uses (a second Swift name for the definition); after it the round compiled first try.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **6** unported,
+  6 row(s); **617** C symbol import(s)` - one more than round 62's 616 (the `FRAME_NS_APPEARANCE`
+  reader; the `setAppearance` provider is a definition, not an import), with no stale row.  Final:
+  `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: **no run evidence** - no window was zoomed, no appearance set,
+  no frame rect changed; an `NSTRACE_ARG_RECT`-era log line was never emitted; the compile gate
+  reaches parsing and type checking only, and `check-swift-units.py` compares name sets, not
+  signatures, bodies, layouts or ABI.  After this round `EmacsWindow` owes `initWithEmacsFrame:`
+  (C 9759/9765), `createToolbar:` (C 9878), `setParentChildRelationships` (C 9934), `orderedIndex`
+  (C 10074), `restackWindow:above:` (C 10124), `accessibilityAttributeValue:` (C 10158),
+  `constrainFrameRect:toScreen:` (C 10230) and the `dealloc` deferral.

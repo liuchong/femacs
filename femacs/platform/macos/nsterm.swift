@@ -7421,6 +7421,85 @@ class EmacsWindow: NSWindow {
     last_drag_event = event.copy() as? NSEvent         // C 10467
   }
 
+  /// C 10299-10304: `- (void)performZoom:(id)sender` - C's body is the `super` call and nothing
+  /// else (C 10301's `NSTRACE` is the empty macro).
+  override func performZoom(_ sender: Any?) {
+    super.performZoom(sender)                          // C 10303
+  }
+
+  /// C 10306-10396: `- (void)zoom:(id)sender`.  C carries three implementations and compiles one:
+  /// the `#if 0` arm (C 10315-10320), the `#elif 0` arm (C 10321-10374) and the `#else` arm
+  /// (C 10375-10395) - C 10312-10313's own comment says the last is the one meant to be included
+  /// ("In the final commit, the idea is that the last should be included."), so that arm is what is
+  /// transcribed and the other two are recorded as the dead arms they are.  C 10391-10392's
+  /// `[[self delegate] windowWillUseStandardFrame:self defaultFrame:sr]` is the optional
+  /// `NSWindowDelegate` requirement (NSWindow.h 833) force-called: C's message assumes the delegate
+  /// answers it (an `EmacsView` does, C 8670), so no fallback is invented for a case C does not
+  /// handle.
+  override func zoom(_ sender: Any?) {
+    // C 10308: `NSTRACE ("[EmacsWindow zoom:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    ns_update_auto_hide_menu_bar()                     // C 10310
+
+    // Below are three zoom implementations.  In the final commit, the
+    // idea is that the last should be included.                      // C 10312-10313
+
+    // Non-native zoom which is done instantaneously.  The resulting
+    // frame covers the entire screen, except the menu-bar and dock, if
+    // present.                                                        // C 10376-10378
+    let screen = self.screen                           // C 10379
+    if screen != nil {                                 // C 10380
+      var sr = screen!.frame                           // C 10382
+      let margins = ns_screen_margins_ignoring_hidden_dock(screen)   // C 10383-10384
+
+      sr.size.height -= (margins.top + margins.bottom)  // C 10386
+      sr.size.width  -= (margins.left + margins.right)  // C 10387
+      sr.origin.x += margins.left                       // C 10388
+      sr.origin.y += margins.bottom                     // C 10389
+
+      sr = delegate!.windowWillUseStandardFrame!(self, defaultFrame: sr)   // C 10391-10392
+      setFrame(sr, display: false)                      // C 10393
+    }
+  }
+
+  /// C 10398-10422: `- (void)setAppearance`.  The guard C 10400 opens
+  /// (`defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 101000`) is this target's, so the
+  /// body is transcribed; C 10406-10408's `NSAppKitVersionNumber10_10` fallback define is the same
+  /// one C 2139's sibling reads (this unit's `NSAppKitVersion` entry pair); and C 10420's
+  /// `[self setAppearance:appearance]` is `NSWindow`'s own property setter - not this method, whose
+  /// selector takes no argument (which is why the entry below is needed for C 2144's call).
+  func setAppearance() {
+    let f = emacs_view_frame(delegate)                 // C 10401
+    var appearance: NSAppearance? = nil                // C 10402
+
+    // C 10404: `NSTRACE ("[EmacsWindow setAppearance]");` - empty at `NSTRACE_ENABLED` 0.
+
+    if NSAppKitVersion.current.rawValue < NSAppKitVersion.macOS10_10.rawValue {   // C 10410
+      return                                           // C 10411
+    }
+
+    if FRAME_NS_APPEARANCE(f) == ns_appearance_vibrant_dark() {   // C 10413
+      appearance = NSAppearance(named: .vibrantDark)   // C 10414-10415
+    } else if FRAME_NS_APPEARANCE(f) == ns_appearance_aqua() {    // C 10416
+      appearance = NSAppearance(named: .aqua)          // C 10417-10418
+    }
+
+    self.appearance = appearance                       // C 10420
+  }
+
+  /// C 10424-10431: `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews` - C's body is
+  /// the `super` call and nothing else (the two `NSTRACE` lines are the empty macro).
+  override func setFrame(_ windowFrame: NSRect, display displayViews: Bool) {
+    super.setFrame(windowFrame, display: displayViews) // C 10430
+  }
+
+  /// C 10433-10442: `- (void)setFrame:(NSRect)windowFrame display:(BOOL)displayViews
+  /// animate:(BOOL)performAnimation` - the same shape as the pair above.
+  override func setFrame(_ windowFrame: NSRect, display displayViews: Bool,
+                         animate performAnimation: Bool) {
+    super.setFrame(windowFrame, display: displayViews, animate: performAnimation)   // C 10441
+  }
+
   /// **Round 62 lands this family**: `mustNotDropOn:` (C 10522-10526) and `beginDrag:…`
   /// (C 10528-10608) below, plus a `@objc(mustNotDropOn:)` name because C reaches it by selector
   /// (`respondsToSelector:` at C 9460/9474/9554).  Three of the five are **refused by Swift**, each
@@ -11651,4 +11730,26 @@ func beginDrag(_ window: UnsafeMutableRawPointer?, _ op: NSDragOperation,
                      withMode: ns_return_frame_mode(rawValue: mode)!,
                      returnFrameTo: returnFrameTo, prohibitSame: prohibitSameFrame,
                      followTooltip: followTooltip)
+}
+
+// ==========================================================================
+// Round 63: the entries the zoom/appearance methods need
+// ==========================================================================
+
+/// C: `#define FRAME_NS_APPEARANCE(f) ((f)->ns_appearance)` (src/frame.h 1258, the `NS_IMPL_COCOA`
+/// arm) - the *reader* of the member whose writer this unit already carries
+/// (`frame_set_ns_appearance`, C 2217's slice).  C 10413/10416 read it, and the value is an `enum
+/// ns_appearance_type` member, so the entry returns the same `Int32` its enumerator entries use.
+@_silgen_name("FRAME_NS_APPEARANCE")
+func FRAME_NS_APPEARANCE(_ f: UnsafeMutableRawPointer?) -> Int32
+
+/// C 2144's `[window setAppearance]` - the message `ns_set_appearance` sends to the window, whose
+/// receiver the unit reaches through the deferred entry declared at C 2285 (the `@_silgen_name
+/// ("setAppearance") func setAppearance_entry (_ window: NSWindow?)` line above).  The definition
+/// the class method above (C 10398) gives that entry is this provider - the `ns_set_offset` shape,
+/// where the call-site declaration keeps its own Swift name and the definition takes another, so
+/// C 2144's call keeps working unchanged.
+@_cdecl("setAppearance")
+func setAppearance(_ window: NSWindow?) {
+  (window as? EmacsWindow)?.setAppearance()
 }
