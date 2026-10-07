@@ -1,7 +1,7 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
-C 6604-6777, C 6785-7035, C 7037-7207 and C 7210-7273
+C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273 and C 7275-7447
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -18,10 +18,11 @@ C 6604-6777, C 6785-7035, C 7037-7207 and C 7210-7273
 > **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth, **8,768 lines** after
 > the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth,
 > **9,547 lines** after the nineteenth, **9,801 lines** after the twentieth, **10,033 lines**
-> after the twenty-first and **10,157 lines** after the twenty-second - C 803-2149, C 2150-3811,
-> C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582,
-> C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513,
-> C 6515-6601, C 6604-6777, C 6785-7035, C 7037-7207 and C 7210-7273, whose own
+> after the twenty-first, **10,157 lines** after the twenty-second and **10,332 lines** after
+> the twenty-third - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428,
+> C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991,
+> C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601, C 6604-6777, C 6785-7035,
+> C 7037-7207, C 7210-7273 and C 7275-7447, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -193,7 +194,8 @@ defines both features.
 | 6785-7035 | `frame_geometry` (C 6785-6786 the `static Lisp_Object`, the comment C 6779-6783; C 6860-6868 the `HAVE_EXT_MENU_BAR` pair, C 6877-6922 the `HAVE_EXT_TOOL_BAR` pair) and the two subrs it backs, `x-frame-geometry` (C 6964) and `x-frame-edges` (C 7013) | `have_x_windows`, with `have_ext_menu_bar` and `have_ext_tool_bar` inside (slice 20) |
 | 7037-7207 | `x_frame_list_z_order` (C 7037-7043 its comment, C 7044-7045 the `static Lisp_Object`; C 7063-7096 the `_NET_CLIENT_LIST_STACKING` arm, C 7098-7119 the `XQueryTree` walk) with its subr `x-frame-list-z-order` (C 7125), then `x_frame_restack` (C 7150-7157 its comment, C 7161-7178 the `USE_GTK` pair) with its subr `x-frame-restack` (C 7182) | `have_x_windows`, with `use_gtk` for the restack helper's two arms (slice 21) |
 | 7210-7273 | the two mouse subrs: `x-mouse-absolute-pixel-position` (C 7210-7233, `x_query_pointer`'s nine arguments) and `x-set-mouse-absolute-pixel-position` (C 7235-7273, whose C 7251-7266 `HAVE_XINPUT2` pair chooses `XIWarpPointer` or `XWarpPointer`) | `have_x_windows`, with `have_xinput2` for the client-pointer-device arm (slice 22) |
-| 7275-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,388 lines, whose first live definition is the `x-begin-drag` `DEFUN` (C 7275-7447) - the next slice's first item | not ported in this slice |
+| 7275-7447 | the `x-begin-drag` `DEFUN` (C 7275 its header, C 7276-7334 its doc string; C 7350-7368 the target walk, C 7370-7426 the action dispatch, C 7430-7437 the atom interning under C 7432's error trap, C 7439-7443 the `x_dnd_begin_drag_and_drop` call, all inside C 7348/7445's `USE_SAFE_ALLOCA`/`SAFE_FREE` pair) | `have_x_windows`, with no nested `#if` (slice 23) |
+| 7449-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,214 lines, opening with C 7449-7455's `X Displays` section comment, the `visual_classes[]` table (C 7456-7470) and C 7473-7491's `#ifndef HAVE_XSCREENNUMBEROFSCREEN` fallback - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2494,3 +2496,76 @@ failures**.
 The frozen configuration compiles none of this file: the pointer was not queried and no warp was
 performed; the twelve arms' counts are text compile readings, and XI2's 18/9 is a text compile of
 an XInput2 build this machine has no headers for.
+## Slice 23 (2026-10-08, status 3.926 - the integrator sets the round number): C 7275-7447
+
+**The slice is C 7275-7447**: the `x-begin-drag` subr - C 7276-7334's doc string verbatim
+(including its `"Drag-and-Drop Protocol for the X Window System"` quotation and the
+`https://freedesktop.org/…` URL), C 7339-7346's locals (the three 2048-element arrays among them),
+C 7348's `USE_SAFE_ALLOCA`, C 7350-7368's target walk (`CHECK_LIST`, `FOR_EACH_TAIL`,
+`SAFE_ALLOCA_STRING` per target, `CHECK_LIST_END`), C 7370-7426's action dispatch (the five
+`QXdndAction*` comparisons, `symbol_to_x_atom`, and the `CONSP` branch's second walk which builds
+`action_list`/`name_list`), C 7428's `SAFE_NALLOCA`, C 7430-7437's error trap around
+`x_intern_atoms`, C 7439-7443's `x_dnd_begin_drag_and_drop` call and C 7445's `SAFE_FREE`.  The
+port's slice is **175 Rust lines** (10,332 - 10,157, `grep -c ''`) against C's 173; md5
+`bcfc6bbad92b6262a6e5b5bda113710e` (the slice 22 tree) -> `383c1b3fd5a0a3842f9c32573752bbf5`.
+
+**Twelve arms, none of them moved.**  The DEFUN carries no nested `#if`, so every arm compiles all
+of it - plain-X, WS, WSX, WSR, WSRX, WSR12 and XCB **14 / 9**, LUCID **22 / 12**, GTK and GTK22
+**40 / 20**, XI2 **18 / 9**, Xt **15 / 12** - and every arm's error set is byte-identical to its
+baseline.  No warning moves anywhere.
+
+**The first measurement's five rows, all closed.**  (1) `decode_window_system_frame` was an `E0428`:
+the file already declares it at 308-309 (frame.h 1474-1475), so the duplicate block is gone.
+(2) `x_check_errors` was an `E0425`: it joins the file's own xterm.h block (after `x_catch_errors`,
+xterm.h 1760).  (3) `target_atoms` was an `E0381` (`SAFE_NALLOCA!` reads its buffer before
+assigning it): it takes the file's zero initialiser.  (4) and (5) were `E0384`s - C's two
+`FOR_EACH_TAIL`s assign their *parameters* back to themselves, and the port's `DEFUN!` takes
+`$arg:ident` without `mut`, so each walk reads a mutable copy of the same name
+(`androidfns.rs` 581's documented device).  One token row (`does not mention safe_alloca_string`)
+is closed by a `docs/ports/macro-body-notes.tsv` row, because the two `SAFE_ALLOCA_STRING`s stand in
+the body as their own expansion.
+
+**Arm touch measured** (P-86 ⑦): two injections - the body's first statement (A) and the `CONSP`
+branch (B) - move plain-X **14 -> 16** and XI2 **18 -> 20**, both logs naming both injected lines;
+the injections were removed and the file's hash re-checked.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0) on the final hash.
+
+**② The twelve arms.**  See above.
+
+**③ `extract-abi.py --check`**: **115 rows -> 114** - the `missing subr Fx_begin_drag
+(x-begin-drag)` row retiring, with the token row the slice first read closed by the notes row
+rather than left standing, and `missing subr` 26 -> 25.  `check-mirror-dupes.py` stays at **16
+duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at **18
+declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **C's two `SAFE_ALLOCA_STRING` calls stand as their own expansion** (`target_names[ntargets]` and
+   `name_list[nnames]` are array-element lvalues, and the mirror's macro takes a `$ptr:ident`) -
+   `image.rs` 8899-8906's shape, recorded in the notes row above.
+2. **The two mutable copies of the parameters** (`let mut targets = targets;`,
+   `let mut action = action;`) exist because the port's `DEFUN!` cannot spell `mut $arg`
+   (`androidfns.rs` 581).
+3. **C's three 2048-element arrays** are `[T; 2048]` locals with C's element type
+   (`*mut c_char`, `Atom`), and C's `(const char **) &name_list` is
+   `name_list.as_ptr () as *const *const c_char`.
+4. **`ENCODE_SYSTEM` is called three times** where C 7415's `SAFE_ALLOCA_STRING` expands - which is
+   what C's own macro does with its string argument.
+5. **C 7433's `target_names`** is `target_names.as_mut_ptr ()` (the `char **` the header declares).
+
+### Owed (this slice)
+
+- `symbol_to_x_atom` (xterm.h 1927), `x_intern_atoms` (xterm.h 1843), `x_dnd_begin_drag_and_drop`
+  (xterm.h 1859-1862) and `x_check_errors` (xterm.h 1760) are this file's use-site rows and are
+  owed to `include/xterm.rs`.
+- `syms_of_xfns`' `defsubr` site and the rest of the remainder from C 7449: 3,214 C lines plus the
+  17 missing functions, 1 macro, 4 objects, 25 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no drag was begun, no atom was interned and
+no selection target was offered; the twelve arms' counts are text compile readings.

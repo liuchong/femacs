@@ -311,6 +311,9 @@ unsafe extern "C" {
   pub fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal;
   /// C: xterm.h 1752: `extern void x_catch_errors (Display *);`
   pub fn x_catch_errors (dpy: *mut Display);
+  /// C: xterm.h 1760: `extern void x_check_errors (Display *, const char *);` - C 7435's call
+  /// (`src/xselect.rs` 495-496 declares the same row).
+  pub fn x_check_errors (dpy: *mut Display, format: *const c_char);
   /// C: xterm.h 1762: `extern bool x_had_errors_p (Display *);`
   pub fn x_had_errors_p (dpy: *mut Display) -> bool;
   /// C: xterm.h 1764: `extern void x_uncatch_errors (void);`
@@ -10154,4 +10157,176 @@ DEFUN! ("x-set-mouse-absolute-pixel-position", Fx_set_mouse_absolute_pixel_posit
   unblock_input ();                                                       // C 7270
 
   return Qnil ();                                                         // C 7272
+});
+
+/* -----------------------------------------------------------------------------------------
+   C 7275-7447: the `x-begin-drag` subr - the target list walk (C 7350-7368), the action dispatch
+   (C 7370-7426), the atom interning under C 7430-7437's error trap and C 7439-7443's
+   `x_dnd_begin_drag_and_drop` call, all inside C 7348/7445's `USE_SAFE_ALLOCA`/`SAFE_FREE` pair.
+   -------------------------------------------------------------------------------------- */
+
+/* C: xterm.h 1927: `extern Atom symbol_to_x_atom (struct x_display_info *, Lisp_Object);` -
+   C 7384's call (`src/xselect.rs` 540 defines it; `src/xselect.rs` 505-506 declares the
+   `x_intern_atoms` row below the same way).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn symbol_to_x_atom (dpyinfo: *mut x_display_info, sym: Lisp_Object) -> Atom;
+}
+
+/* C: xterm.h 1843 and 1859-1862: `extern void x_intern_atoms (struct x_display_info *, char **,
+   int, Atom *);` and `extern Lisp_Object x_dnd_begin_drag_and_drop (struct frame *, Time, Atom,
+   Lisp_Object, Atom *, const char **, int, bool, Atom *, int, Lisp_Object, bool);` - C 7433 and
+   C 7439's calls.  Both are `src/xterm.c`'s (the port's `src/xterm.rs` 19211 and 23502).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_intern_atoms (dpyinfo: *mut x_display_info, names: *mut *mut c_char, n: c_int,
+			 atoms: *mut Atom);
+  pub fn x_dnd_begin_drag_and_drop (f: *mut frame, time: Time, xaction: Atom,
+				    return_frame: Lisp_Object, ask_action_list: *mut Atom,
+				    ask_action_names: *const *const c_char, n_ask_actions: c_int,
+				    allow_current_frame: bool, target_atoms: *mut Atom,
+				    ntargets: c_int, selection_target_list: Lisp_Object,
+				    follow_tooltip: bool) -> Lisp_Object;
+}
+
+/* C 7275-7447.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-begin-drag", Fx_begin_drag, Sx_begin_drag,
+	1, 6, 0,
+	doc: "Begin dragging contents on FRAME, with targets TARGETS.\nTARGETS is a list of strings, which defines the X selection targets\nthat will be available to the drop target.  Block until the mouse\nbuttons are released, then return the action chosen by the target, or\n`nil' if the drop was not accepted by the drop target.  Dragging\nstarts when the mouse is pressed on FRAME, and the contents of the\nselection `XdndSelection' will be sent to the X window underneath the\nmouse pointer (the drop target) when the mouse button is released.\n\nACTION is a symbol which tells the target what it should do, and can\nbe one of the following:\n\n - `XdndActionCopy', which means to copy the contents from the drag\n   source (FRAME) to the drop target.\n\n - `XdndActionMove', which means to first take the contents of\n   `XdndSelection', and to delete whatever was saved into that\n   selection afterwards.\n\n`XdndActionPrivate' is also a valid return value, and means that the\ndrop target chose to perform an unspecified or unknown action.\n\nThe source is also expected to cooperate with the target to perform\nthe action chosen by the target.  For example, callers should delete\nthe buffer text that was dragged if `XdndActionMove' is returned.\n\nThere are also some other valid values of ACTION that depend on\ndetails of both the drop target's implementation details and that of\nEmacs.  For that reason, they are not mentioned here.  Consult\n\"Drag-and-Drop Protocol for the X Window System\" for more details:\nhttps://freedesktop.org/wiki/Specifications/XDND/.\n\nIf RETURN-FRAME is non-nil, this function will return the frame if the\nmouse pointer moves onto an Emacs frame, after first moving out of\nFRAME.  (This is not guaranteed to work on some systems.)  If\nRETURN-FRAME is the symbol `now', any frame underneath the mouse\npointer will be returned immediately.\n\nIf ACTION is a list and not nil, its elements are assumed to be a cons\nof (ITEM . STRING), where ITEM is the name of an action, and STRING is\na string describing ITEM to the user.  The drop target is expected to\nprompt the user to choose between any of the actions in the list.\n\nIf ACTION is not specified or nil, `XdndActionCopy' is used\ninstead.\n\nIf ALLOW-CURRENT-FRAME is not specified or nil, then the drop target\nis allowed to be FRAME.  Otherwise, no action will be taken if the\nmouse buttons are released on top of FRAME.\n\nIf FOLLOW-TOOLTIP is non-nil, any tooltip currently being displayed\nwill be moved to follow the mouse pointer while the drag is in\nprogress.  Note that this does not work with system tooltips (tooltips\ncreated when `use-system-tooltips' is non-nil).\n\nThis function will sometimes return immediately if no mouse buttons\nare currently held down.  It should only be called when it is known\nthat mouse buttons are being held down, such as immediately after a\n`down-mouse-1' (or similar) event.  ",
+	(targets: Lisp_Object, action: Lisp_Object, frame: Lisp_Object,
+	 return_frame: Lisp_Object, allow_current_frame: Lisp_Object,
+	 follow_tooltip: Lisp_Object),
+	{
+  let f: *mut frame = decode_window_system_frame (frame);                 // C 7339
+  let mut ntargets: c_int = 0;                                           // C 7340
+  let mut nnames: c_int = 0;
+  let mut target_names: [*mut c_char; 2048] = [std::ptr::null_mut (); 2048];   // C 7341
+  let mut target_atoms: *mut Atom = std::ptr::null_mut ();               // C 7342
+  let mut lval: Lisp_Object = Qnil ();                                   // C 7343
+  let mut original: Lisp_Object = Qnil ();
+  let mut targets_arg: Lisp_Object = Qnil ();
+  let mut tem: Lisp_Object = Qnil ();
+  let mut t1: Lisp_Object = Qnil ();
+  let mut t2: Lisp_Object = Qnil ();
+  let mut xaction: Atom;                                                 // C 7344
+  let mut action_list: [Atom; 2048] = [0; 2048];                         // C 7345
+  let mut name_list: [*mut c_char; 2048] = [std::ptr::null_mut (); 2048];   // C 7346
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);                                 // C 7348
+
+  /* C's two `FOR_EACH_TAIL`s walk their own parameters (the macro assigns the parameter back
+     to itself), and a DEFUN! argument carries no `mut` (the macro takes `$arg:ident`), so
+     each walk reads a mutable copy of the same name (`androidfns.rs` 581's shape).  */
+  let mut targets = targets;                                             // C 7354
+  let mut action = action;                                               // C 7391
+
+  CHECK_LIST (targets);                                                  // C 7350
+  original = targets;                                                    // C 7351
+  targets_arg = targets;                                                 // C 7352
+
+  FOR_EACH_TAIL! (targets, {                                             // C 7354
+      CHECK_STRING (XCAR (targets));                                     // C 7356
+
+      if ntargets < 2048                                                 // C 7358
+	{
+	  /* C's `SAFE_ALLOCA_STRING (target_names[ntargets], XCAR (targets));` - the mirror's
+	     macro takes a `$ptr:ident` and C passes an array-element lvalue, so the expansion
+	     stands here (`image.rs` 8899-8906's shape, `fileio.rs` 1034 the ident form).  */
+	  target_names[ntargets as usize]
+	    = SAFE_ALLOCA! (sa_avail, SBYTES (XCAR (targets)) + 1) as *mut c_char;
+	  std::ptr::copy_nonoverlapping (SDATA (XCAR (targets)),
+					 target_names[ntargets as usize] as *mut u8,
+					 (SBYTES (XCAR (targets)) + 1) as usize);
+	  ntargets += 1;                                                     // C 7362
+	}
+      else
+	{ error (c"Too many targets".as_ptr ()); }                           // C 7365
+  });
+
+  CHECK_LIST_END (targets, original);                                    // C 7368
+
+  if NILP (action) || EQ (action, QXdndActionCopy ())                    // C 7370
+    { xaction = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionCopy; }       // C 7371
+  else if EQ (action, QXdndActionMove ())                                // C 7372
+    { xaction = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionMove; }       // C 7373
+  else if EQ (action, QXdndActionLink ())                                // C 7374
+    { xaction = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionLink; }       // C 7375
+  else if EQ (action, QXdndActionPrivate ())                             // C 7376
+    { xaction = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionPrivate; }    // C 7377
+  else if EQ (action, QXdndActionAsk ())                                 // C 7378
+    { xaction = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionAsk; }        // C 7379
+  else if SYMBOLP (action)                                               // C 7380
+    /* This is to accommodate non-standard DND protocols such as XDS
+       that are explicitly implemented by Emacs, and is not documented
+       for that reason.  */                                             // C 7381-7383
+    { xaction = symbol_to_x_atom (FRAME_DISPLAY_INFO! (f), action); }    // C 7384
+  else if CONSP (action)                                                 // C 7385
+    {
+      xaction = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionAsk;          // C 7387
+      original = action;                                                 // C 7388
+
+      CHECK_LIST (action);                                               // C 7390
+      FOR_EACH_TAIL! (action, {                                          // C 7391
+	  tem = XCAR (action);                                           // C 7393
+	  CHECK_CONS (tem);                                              // C 7394
+	  t1 = XCAR (tem);                                               // C 7395
+	  t2 = XCDR (tem);                                               // C 7396
+	  CHECK_SYMBOL (t1);                                             // C 7397
+	  CHECK_STRING (t2);                                             // C 7398
+
+	  if nnames < 2048                                               // C 7400
+	    {
+	      if EQ (t1, QXdndActionCopy ())                             // C 7402
+		{ action_list[nnames as usize] = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionCopy; }    // C 7403
+	      else if EQ (t1, QXdndActionMove ())                        // C 7404
+		{ action_list[nnames as usize] = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionMove; }    // C 7405
+	      else if EQ (t1, QXdndActionLink ())                        // C 7406
+		{ action_list[nnames as usize] = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionLink; }    // C 7407
+	      else if EQ (t1, QXdndActionAsk ())                         // C 7408
+		{ action_list[nnames as usize] = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionAsk; }     // C 7409
+	      else if EQ (t1, QXdndActionPrivate ())                     // C 7410
+		{ action_list[nnames as usize] = (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionPrivate; }  // C 7411
+	      else
+		{ signal_error (c"Invalid drag-and-drop action".as_ptr (), tem); }   // C 7413
+
+	      /* C's `SAFE_ALLOCA_STRING (name_list[nnames], ENCODE_SYSTEM (t2));` - the same
+		 array-element expansion as above, and C's macro evaluates its string argument
+		 three times, which `ENCODE_SYSTEM`'s three calls here mirror.  */
+	      name_list[nnames as usize]
+		= SAFE_ALLOCA! (sa_avail, SBYTES (ENCODE_SYSTEM (t2)) + 1) as *mut c_char;
+	      std::ptr::copy_nonoverlapping (SDATA (ENCODE_SYSTEM (t2)),
+					     name_list[nnames as usize] as *mut u8,
+					     (SBYTES (ENCODE_SYSTEM (t2)) + 1) as usize);
+
+	      nnames += 1;                                                   // C 7418
+	    }
+	  else
+	    { error (c"Too many actions".as_ptr ()); }                       // C 7421
+      });
+      CHECK_LIST_END (action, original);                                 // C 7423
+    }
+  else
+    { signal_error (c"Invalid drag-and-drop action".as_ptr (), action); }   // C 7426
+
+  SAFE_NALLOCA! (sa_avail, target_atoms, 1, ntargets);                   // C 7428
+
+  /* Catch errors since interning lots of targets can potentially
+     generate a BadAlloc error.  */                                     // C 7430-7431
+  x_catch_errors (FRAME_X_DISPLAY! (f));                                 // C 7432
+  x_intern_atoms (FRAME_DISPLAY_INFO! (f), target_names.as_mut_ptr (),   // C 7433-7434
+		  ntargets, target_atoms);
+  x_check_errors (FRAME_X_DISPLAY! (f),                                  // C 7435-7436
+		  c"Failed to intern target atoms: %s".as_ptr ());
+  x_uncatch_errors_after_check ();                                       // C 7437
+
+  lval = x_dnd_begin_drag_and_drop (f,                                    // C 7439-7443
+				    (*FRAME_DISPLAY_INFO! (f)).last_user_time,
+				    xaction, return_frame, action_list.as_mut_ptr (),
+				    name_list.as_ptr () as *const *const c_char, nnames,
+				    !NILP (allow_current_frame), target_atoms, ntargets,
+				    targets_arg, !NILP (follow_tooltip));
+
+  SAFE_FREE! (sa_count);                                                 // C 7445
+  return lval;                                                          // C 7446
 });
