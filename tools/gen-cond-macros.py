@@ -25,16 +25,16 @@ from pathlib import Path
 def read_macros(config: Path, include_dirs: list[str]) -> dict[str, str]:
     """Every macro the frozen configuration's preprocessor defines, plus config.h's `#undef`s.
 
-    `clang -dM -E` is the only way to get the *whole* table: Emacs's `#if`s test library
+    `clang -dM -E` is the only way to get the *whole* table: the reference's `#if`s test library
     macros (`INTPTR_MAX`, `SIZE_MAX`, `__GNUC__`) and the platform's (`__APPLE__`) as well as
     config.h's, and an evaluator that guesses those would be wrong rather than blind —
     `USE_LSB_TAG (VAL_MAX / 2 < INTPTR_MAX)` (lisp.h 256) decides `GCALIGNMENT`, and with
     `INTPTR_MAX` unknown the gate demanded the wrong branch of lisp.h.
     """
     probe = Path("/tmp/femacs-cond-macros.c")
-    # The Emacs headers test system macros too (`_STRUCT_TIMEVAL` from <sys/time.h>,
-    # `__GLIBC__`, …), so the probe includes the C library and POSIX headers Emacs's own
-    # headers pull in.
+    # The reference headers test system macros too (`_STRUCT_TIMEVAL` from <sys/time.h>,
+    # `__GLIBC__`, …), so the probe includes the C library and POSIX headers the
+    # reference's own headers pull in.
     probe.write_text(
         "#include <config.h>\n"
         "#include <stdint.h>\n#include <stddef.h>\n#include <limits.h>\n"
@@ -73,8 +73,8 @@ def read_macros(config: Path, include_dirs: list[str]) -> dict[str, str]:
 def source_header_macros(include_dirs: list[str], table_file: Path) -> dict[str, str]:
     """The macros `docs/baseline/config/source-header-macros.tsv` lists, measured with clang.
 
-    config.h cannot decide a macro that Emacs' own headers define (`PROFILER_CPU_SUPPORT` is
-    syssignal.h 54's `#if defined SIGPROF && !defined PROFILING && (defined HAVE_SETITIMER ||
+    config.h cannot decide a macro that the reference's own headers define (`PROFILER_CPU_SUPPORT`
+    is syssignal.h 54's `#if defined SIGPROF && !defined PROFILING && (defined HAVE_SETITIMER ||
     defined HAVE_ITIMERSPEC)`), and the frozen build does define it, so the table has to
     carry it or the extractor calls a live region dead (a ported `defsubr` then reads as
     "unexpected").  A row is `<header>\t<macro>`; its value is whatever `clang -dM -E` says
@@ -116,7 +116,7 @@ def main() -> int:
     ap.add_argument("--out", default="docs/baseline/config/darwin-arm64.macros.tsv")
     ap.add_argument("--source-headers",
                     default="docs/baseline/config/source-header-macros.tsv",
-                    help="macros Emacs' own headers define, which config.h cannot decide")
+                    help="macros the reference's own headers define, which config.h cannot decide")
     args = ap.parse_args()
     config = Path(args.config)
     if not config.is_file():

@@ -62,7 +62,8 @@ WS = re.compile(r"\s+")
 
 
 def c_lines_text(text: str) -> list[str]:
-    """C's own line numbering: split on `\\n`, so an Emacs `^L` form feed is not a line break."""
+    """C's own line numbering: split on `\\n`, so the reference's `^L` form feed is not a line
+    break."""
     lines = text.split("\n")
     if lines and lines[-1] == "":
         lines.pop()

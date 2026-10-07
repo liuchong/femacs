@@ -491,6 +491,28 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 
     这条规则现在有第二十四半（2026-10-07，status 3.896）：**"被移植树"这句话的走路面从第一轮起就绑在 `*.rs` 上，平台面因此从未被读过**——`tools/check-own-voice.py` 的 `files()` 是 `for tree in TREES: rglob("*.rs")`，而 `femacs/platform` 是 Swift/Kotlin/C++（3.136 点名它、3.250 写下判据：**列在名单里而走路的后缀一条都不匹配的树，就是走路从不读的树**）。本半把走路**按后缀装订**：八个树的 `.rs` 之外，`femacs/platform` 按 `.swift`/`.kt`/`.cc` 走——这 52 个文件**每一个首行都点了参照**（`.kt` 走 `java/org/…/*.java`、`.swift` 走 `src/ns*.m`/`src/macfont.m`、`.cc` 走 `lib-src/be_resources.cc` 与 `src/haiku_*.cc`），所以同一条"这句话说的是谁"的判据直接适用。后缀面的实测：全 `femacs/` 里首行带出处声明的文件是 **600 `.rs` + 40 `.kt` + 7 `.swift` + 5 `.cc` = 652**，`.rs` 之外一个都没有漏在三种后缀之外。读数（两侧都在本修订）：走路集 **624 → 676 个文件**；注释面裸名 **834 + 169（平台面）= 1003 → 1002 = 910 照抄参照正文 + 92 引文 + 0 本仓库自己的声音**（`.rs` 一侧 755 + 79 + 0 不动；平台面 52 个文件贡献 169 处 = 155 照抄 + 13 引文 + **1 处自家声音**）。那 1 处逐条是 `femacs/platform/macos/nsfns.swift` 1626：`/// C 536-549.  Called by Emacs redisplay code; …` ⇒ `Called by the reference's redisplay code; …`——C 536-549 的原文那句（`This function should be called by … redisplay code to set the name…`）是照抄、照旧不动，改的只是这一行**转述句**里指称参照的那一个短语，同行其余字符一个都不动（改后该行折成两行，第一行 91 列）。`--selftest` **8 → 9 例 / 0 失败**（新增"走路按平台后缀装订"一例：`.swift`/`.kt`/`.cc` 被走，同目录的 `.m` 不被走）。**边界与未声称**：⑴ 平台面这一道读者只管**注释散文**——语法、导入面、`@_cdecl` 的导出符号与"能不能编"仍归各自的 `swiftc`/`kotlinc` 探针（3.164 的 `check-swift-units.py` 只比函数名集合）；⑵ 六个照抄树、`docs/` 与门的登记名表本半一字未动；⑶ 门报"0 处自家声音"仍只证明"这行字不在参照正文里"，不证明参照没这样写过。
 
+    这条规则现在有第二十五半（2026-10-07，status 3.905）：**裸名读者第一次走进"本仓库自己的工具、探针与 CI"这一面**。
+    前二十四半的走路面一直是"被移植树"（`TREES` 八个 + 第二十四半装订的 `femacs/platform` 后缀），而 `tools/`、`spikes/`、
+    `.github/`、`femacs/xtask` 这四处**没有任何读者读过**——声明门从第六半（status 3.462）起就按后缀读它们，理由写得很明白
+    （"我们自己写下的工具、探针与 CI 也在规则之内"），裸名那一面却从未跟上。这一面的判据比移植面简单：**这四个树里没有一行是
+    照抄的**（出处句、镜像、C 注释都不进来），所以**不需要参照集合**；读的是**散文**——注释、docstring、以及**工具打印出去的
+    字符串字面量**（移植面上"字符串是 C 的字节"这条理由在这里不成立；`femacs/xtask` 的 `gate-full` 消息是跨行续写的 `"… \`），
+    `` `…` `` 与注释里的 `"…"` 仍是引文，字面量自己的引号不是。三个文件按名字豁免并**打印规模**：
+    `tools/check-declarations.py`、`tools/check-own-voice.py`、`tools/check-verbatim-declarations.py`——把产品名写下来是它们的
+    本职（模式表与自测夹具），与声明门 `TOOL_EXEMPT` 给它们的 `literal` 类同一条理由。读数（两侧都在本修订）：移植面
+    **1003 = 911 照抄 + 92 引文 + 0 自家声音 / 676 个文件**不动；工具面 **23 处 = 0 引文 + 23 自家声音 ⇒ 22 处逐条改写 + 1 处
+    点名保留之后为 0**（走路集 **105** 个文件、豁免 **3**、`walked past 2 file(s) of an unscanned kind: spikes/miri/Cargo.lock,
+    spikes/shim/README.md`——3.250 那条规则第一次在这一面**打印**出来）；`--selftest` **9 → 16 例 / 0 失败**。22 处的分布是
+    `tools/cinventory.py` 10、`tools/gen-cond-macros.py` 5、`tools/gen-port-map.py` 2、`.github/workflows/ci.yml` 1、
+    `spikes/va_probe.c` 1、`femacs/xtask/src/main.rs` 1、`tools/acceptance-l1.py` 1、`tools/check-citations.py` 1、
+    `tools/check-citation-text.py` 1，改法**只换指称那些词**（`Emacs's K&R style` ⇒ `the reference's K&R style` 一类），
+    需要重新折行的段落按原文件自己的宽度重排。**点名保留的 1 处**是 `tools/gen-port-map.py` 16 的 `Emacs Lisp`——**这门语言
+    自己的名字**，与"手册成员句"同一条判据（主语不是本程序），动它就是动一个外部专名，本轮不改、只作读数。**本半不做**
+    （点名，不冒充已清）：本仓库的散文与台账仍按第十七半（3.692 ⑥）的裁决留在门外（那是**指称**：`README`／`plan`／
+    `PORTING`／评审记录说"我们在重写…"），其 76 处读数不变；这一面读的是**散文**，工具的行为、输出与它证明的事一字未动；
+    `femacs/xtask` 那条消息的**文本**改了、它所在的 `eprintln!` 没编译过（本片不编译任何东西）。
+
+
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
     因此不能调用排在它后面的宏——`call0` 按 lisp.h 3462-3471 的顺序挪到了 `calln!`

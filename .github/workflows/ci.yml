@@ -1,7 +1,7 @@
 # Two tiers.  The fast tier runs on every push and needs nothing but Python,
 # rustc and the frozen baselines: it proves the mechanical gates (inventory,
 # generated-artifact freshness, layout assertions) still hold.  The heavy tier
-# needs the reference Emacs configured and built and the ERT suite runnable, so
+# needs the reference configured and built and the ERT suite runnable, so
 # it is manual until the port reaches the loading ladder.
 name: ci
 

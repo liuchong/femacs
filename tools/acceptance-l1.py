@@ -82,9 +82,10 @@ def load_flags(binary: Path) -> list[str]:
 
     C's own build compiles with the load path of the dumped program (`make -C lisp` invokes
     `$(emacs) -f batch-byte-compile`), because the libraries a file `require`s live in
-    `lisp/progmodes`, `lisp/net`, ...  This harness has to name that path itself, and Emacs
-    searches `-L` directories in *command-line order*, ahead of the path its dump carries
-    (`-L /tmp/a -L /tmp/b` gives `load-path` head `(/tmp/a /tmp/b ...)`, measured 3.268).
+    `lisp/progmodes`, `lisp/net`, ...  This harness has to name that path itself, and the
+    reference searches `-L` directories in *command-line order*, ahead of the path its dump
+    carries (`-L /tmp/a -L /tmp/b` gives `load-path` head `(/tmp/a /tmp/b ...)`, measured
+    3.268).
 
     Two consequences fix this list's shape, and both are measurements rather than choices: the
     tree's own root has to be on it, and the subdirectories have to come in the dumped program's

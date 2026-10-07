@@ -13,7 +13,7 @@ Swift       macOS backends written in Objective-C (`src/*.m`) become Swift.
 Kotlin      the Android app layer (`java/**/*.java`) becomes Kotlin.
 C++         code that must talk to a C++ API (Haiku) stays modern C++.
 Kept        assembly and data files that are used as they are.
-Verbatim    copied unchanged, path preserved: Emacs Lisp, tests, data, manuals.
+Verbatim    copied unchanged, path preserved: the Lisp tree, tests, data, manuals.
 Replaced    build scaffolding, which is not part of the program: Cargo and the
             Rust `xtask` replace it.
 
@@ -286,7 +286,7 @@ def main() -> int:
     args = ap.parse_args()
     ref = Path(args.reference)
     if not (ref / "src").is_dir():
-        print(f"error: {ref} does not look like an Emacs checkout", file=sys.stderr)
+        print(f"error: {ref} does not look like the reference checkout", file=sys.stderr)
         return 1
     rows = collect(ref)
     out = Path(args.out)

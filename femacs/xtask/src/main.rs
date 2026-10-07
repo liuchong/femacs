@@ -43,7 +43,7 @@ fn main() {
         "gate-load" => gate_load(args.get(1).map(String::as_str)),
         "gate-full" => {
             eprintln!(
-                "gate-full needs the reference Emacs configured, built and its ERT suite \
+                "gate-full needs the reference configured, built and its ERT suite \
                  runnable; it is not available until the port reaches the loading ladder \
                  (docs/port-plan.md section 7). Nothing was checked."
             );

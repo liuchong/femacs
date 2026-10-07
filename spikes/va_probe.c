@@ -1,7 +1,7 @@
 /* The C side of spikes/va-probe.sh: the va_list shapes doprnt.c uses — a variadic entry,
    forwarding the list to a function that takes `va_list`, and va_copy giving the callee an
    independent cursor while the caller keeps reading its own.  Pure C on purpose: the probe
-   is about the mechanism, not about the Emacs mirrors.  Every read below reads an argument
+   is about the mechanism, not about the mirrors.  Every read below reads an argument
    that was actually passed: the first version read an `int` where the next argument was a
    `double`, so two of the six lines were deterministic garbage that matched on both sides
    and could not tell a correct cursor from an equally wrong pair (review D's F7).  */

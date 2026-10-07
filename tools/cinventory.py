@@ -62,8 +62,8 @@ def typed_def_name(line: str):
 
     The shape is one or more declaration specifiers (identifiers, `struct TAG`, `*`), then
     the name, then `(`.  At least two tokens are required: a line that opens with the name
-    itself is CFUNC's (Emacs's K&R style).  The caller requires the body's `{` to share this
-    physical line, so this never re-reads a declarator the multi-line rules already own.
+    itself is CFUNC's (the reference's K&R style).  The caller requires the body's `{` to share
+    this physical line, so this never re-reads a declarator the multi-line rules already own.
     """
     pos = tokens = 0
     while True:
@@ -452,7 +452,7 @@ def _cond_ident(name: str, depth: int = 0) -> int | None:
 def _cond_parse(tokens: list[str], depth: int = 0) -> tuple[int | None, list[str]]:
     """The condition grammar's entry point: a conditional expression.
 
-    `?:` is needed because Emacs defines macros that way — `VAL_MAX` is
+    `?:` is needed because the reference defines macros that way — `VAL_MAX` is
     `(USE_LSB_TAG ? - (1 << GCTYPEBITS) : VAL_MAX)` (lisp.h 262), and that mutually recursive
     pair decides `GCALIGNMENT` (see `_COND_EXPANDING`).  Only the taken branch is evaluated,
     as in C.
@@ -738,7 +738,7 @@ def dead_branch_map(text: str, path: str | None = None) -> list[bool]:
     """True for lines that are not inside a branch the frozen configuration disables.
 
     Literal-false conditions (`#if 0` / `#if false`) are always dead.  With the frozen
-    configuration's macro table loaded (`set_condition_macros`), the conditions Emacs
+    configuration's macro table loaded (`set_condition_macros`), the conditions the reference
     actually writes are evaluated against it, so `#ifdef HAVE_X_WINDOWS`'s body is dead for
     the minimal macOS build instead of being demanded of the mirror (P-08/P-66).  A condition
     the evaluator does not understand (`eval_condition` returns None) leaves both branches
@@ -1051,7 +1051,7 @@ def _defun_heads(text: str) -> list[tuple[str, str, int]]:
             chars.append(text[k])
             k += 1
         k += 1
-        # The C name may sit on the next line: Emacs's own style puts
+        # The C name may sit on the next line: the reference's own style puts
         # `DEFUN ("name",\n       Fname, Sname, ...)` (treesit.c, xwidget.c, process.c,
         # w32fns.c, xfaces.c, ...).  Skipping only ", \t" silently dropped every such
         # DEFUN from the body comparison, which is exactly the blind spot P-78 exists to
@@ -1097,7 +1097,7 @@ def function_spans(text: str) -> list[dict]:
     """Every function definition, with the body span it occupies.
 
     A definition is `NAME (...)` at column 0 whose parameter list is followed by
-    `{` (on the same line or a later one, as Emacs writes it).  Declarations end
+    `{` (on the same line or a later one, as the reference writes it).  Declarations end
     in `;` and macro invocations such as `DEFUN (...)` are followed by another
     argument list, so neither is reported.
     """
@@ -1151,8 +1151,8 @@ def function_spans(text: str) -> list[dict]:
                 #     load_with_autoload_queue
                 #       (Lisp_Object file, …)
                 #     {
-                # (Emacs's layout for a long name).  Neither CFUNC nor `typed_def_name` keys
-                # it: the name line has no `(`, and the parameter line starts with one.  The
+                # (the reference's layout for a long name).  Neither CFUNC nor `typed_def_name`
+                # keys it: the name line has no `(`, and the parameter line starts with one.  The
                 # scanner treats the name as the declarator and lets the walk below consume
                 # the parameter list, which is also what makes the `{`-on-the-next-line rule
                 # just after apply.  Measured over every `*.c` of the reference tree:
@@ -1210,7 +1210,7 @@ def function_spans(text: str) -> list[dict]:
             # The window is a safety bound, not the rule: the loop below stops at the first
             # line that is neither dead, nor blank, nor a preprocessor line, nor a comment,
             # and `{` on that line is what makes this a definition.  64 lines is enough for
-            # Emacs's longest documented declarator and still bounded.
+            # the reference's longest documented declarator and still bounded.
             for jj in range(j + 1, min(j + 64, len(rows))):
                 # A line the frozen configuration does not compile is not part of the
                 # declarator: src/emacs.c's `main` is written as
@@ -1240,8 +1240,8 @@ def function_spans(text: str) -> list[dict]:
                 # port's `nanosleep` as an invented exported symbol.
                 if nxt.startswith("#"):
                     continue
-                # A comment between the parameter list and the body is Emacs's own style for a
-                # documented function:
+                # A comment between the parameter list and the body is the reference's own style
+                # for a documented function:
                 #     static void
                 #     ns_set_undecorated (struct frame *f, Lisp_Object new_value, …)
                 #     /* Set the undecorated flag of frame F to NEW_VALUE … (many lines) */
@@ -1394,12 +1394,12 @@ def integer_literal(text: str) -> int | None:
 def enum_constants(text: str) -> dict[str, str]:
     """Enum members that carry an explicit value: name -> value.
 
-    Emacs writes both one-line enums (`enum { BEG = 1, BEG_BYTE = BEG };`) and
+    The reference writes both one-line enums (`enum { BEG = 1, BEG_BYTE = BEG };`) and
     multi-member lines, so this scans the comment-blanked text with brace matching
     instead of assuming one member per line (which silently extracted nothing from
     buffer.h, and left the enum's `}` unread).
 
-    The scanner reads a flattened text, not one line at a time, because Emacs also
+    The scanner reads a flattened text, not one line at a time, because the reference also
     writes the opening brace on the *next* line:
 
         enum char_bits

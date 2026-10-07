@@ -68,11 +68,11 @@ ROOTS = [REPO / "emacs", REPO / "emacs" / "src", REPO / "emacs" / "lib",
          REPO / "build" / "emacs-ref" / "lib", REPO / "build" / "emacs-ref"]
 
 
-# C's line numbering is `split ("\n")`: Emacs's sources are full of `^L` (form feed, \x0c) page
-# breaks, and Python's `str.splitlines ()` treats one as a line break too - which shifted every
-# citation's line number by the number of form feeds above it.  The first version of this tool
-# used splitlines (), and 124 of its 162 `drift` findings were that bug (found by the lane that
-# used the tool; status 3.172).
+# C's line numbering is `split ("\n")`: the reference's sources are full of `^L` (form feed,
+# \x0c) page breaks, and Python's `str.splitlines ()` treats one as a line break too - which
+# shifted every citation's line number by the number of form feeds above it.  The first version
+# of this tool used splitlines (), and 124 of its 162 `drift` findings were that bug (found by
+# the lane that used the tool; status 3.172).
 def c_lines_text (text: str) -> list[str]:
     lines = text.split ("\n")
     if lines and lines[-1] == "":
