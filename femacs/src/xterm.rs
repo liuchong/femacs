@@ -8357,6 +8357,10 @@ macro_rules! window_bits {
   (pseudo_window_p, $w:expr, $value:expr) =>
     { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }
 	else { (*($w)).bits & !(1u32 << WINDOW_PSEUDO_WINDOW_P_SHIFT) }; };
+  (phys_cursor_on_p, $w:expr) => { ((*($w)).bits >> WINDOW_PHYS_CURSOR_ON_P_SHIFT) & 1 != 0 };
+  (phys_cursor_on_p, $w:expr, $value:expr) =>
+    { (*($w)).bits = if $value { (*($w)).bits | (1u32 << WINDOW_PHYS_CURSOR_ON_P_SHIFT) }
+	else { (*($w)).bits & !(1u32 << WINDOW_PHYS_CURSOR_ON_P_SHIFT) }; };
 }
 
 /* C 7745-7809: `x_after_update_window_line`.  C's two comma expressions are `if`-condition
@@ -29176,6 +29180,123 @@ unsafe fn x_draw_bar_cursor (w: *mut window, row: *mut glyph_row, mut width: c_i
     }
 }
 
-/* C 26016-26019's comment and `x_define_frame_cursor` (C 26020-...), `x_clear_frame_area`
-   (C 26032-...), `x_draw_window_cursor` (C 26041-...), `x_bitmap_icon` (C 26104-...) and
-   `x_text_icon` (C 26194-...) come next in C's order.  */
+/* RIF: Define cursor CURSOR on frame F.  */
+
+/// C 26019-26026: `static void x_define_frame_cursor (struct frame *f, Emacs_Cursor cursor)` - C's
+/// `static`, so a plain `unsafe fn`, and this slice's first `--check` item.  `f->pointer_invisible`
+/// is this unit's `pointer_invisible!` read (the frame bit the mirror's shift names, this file
+/// 18390), and `current_cursor` is the `x_output` member the file already reads through C's own
+/// cast (21322's shape) - C 26025's store happens whether or not the cursor changed, which is why it
+/// sits outside the `if` in the port too.  `Emacs_Cursor` is the mirror's *pair* of C's typedef
+/// (`include/dispextern.rs` 106-114: `*mut c_void` for the arms without a window system, Xlib's
+/// `Cursor` under `have_window_system` + `have_x_windows`), so the two places C relies on the
+/// typedef being `Cursor` state `cursor as Cursor` - the cast is the identity in the real X
+/// configuration and only unwraps the stand-in in the lane's arms.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_define_frame_cursor (f: *mut frame, cursor: Emacs_Cursor)
+{
+  if !pointer_invisible! (f)                                          // C 26022
+      && (*( (*f).output_data.x as *mut x_output )).current_cursor      // C 26023
+	 != cursor as Cursor
+    {
+      XDefineCursor (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),        // C 26024
+		     cursor as Cursor);
+    }
+  (*( (*f).output_data.x as *mut x_output )).current_cursor             // C 26025
+    = cursor as Cursor;
+}
+
+/* RIF: Clear area on frame F.  */
+
+/// C 26031-26035: `static void x_clear_frame_area (struct frame *f, int x, int y, int width, int
+/// height)` - C's whole body is the call into this unit's `x_clear_area` (C 8320's definition), so
+/// the item retires its `--check` row with one statement and no other name.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_clear_frame_area (f: *mut frame, x: c_int, y: c_int, width: c_int, height: c_int)
+{
+  x_clear_area (f, x, y, width, height);                              // C 26034
+}
+
+/* RIF: Draw cursor on window W.  */
+
+/// C 26040-26096: `static void x_draw_window_cursor (struct window *w, struct glyph_row *glyph_row,
+/// int x, int y, enum text_cursor_kinds cursor_type, int cursor_width, bool on_p, bool active_p)` -
+/// C's `static`, so a plain `unsafe fn`, and this slice's third `--check` item; `src/pgtkterm.rs`
+/// 4338-4385 is C 3016-3077's sibling of the same function and the source of most spellings here.
+/// Shapes: C 26045-26047's `#ifdef HAVE_X_I18N` gates `f` alone (a cfg'd `let`), C 26052's
+/// `w->phys_cursor_on_p` is this unit's `window_bits!` setter (the arm this slice adds to that
+/// macro), `exact_window_width_line_p`/`reversed_p`/`cursor_in_fringe_p` are `glyph_row_bits!`
+/// members, C 26057's `used[TEXT_AREA]` is `[c_short; 4]` so the comparison takes `as c_int`
+/// (`src/msdos.rs` 1695's shape), C's `switch (cursor_type)` is the port's `match` over the same
+/// enumerators, C's `f->selected_window` is `XWINDOW`'s, and `draw_phys_cursor_glyph` /
+/// `draw_fringe_bitmap` are other units' definitions (`src/abi_shim.rs` 2499, `src/fringe.rs` 1280)
+/// declared at this use site (P-72 rule 4).  `active_p` is unused in C's body too and the unit's
+/// `#![allow (unused_variables)]` is what keeps C's parameter name.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_window_cursor (w: *mut window, glyph_row: *mut glyph_row, x: c_int,
+				y: c_int, cursor_type: text_cursor_kinds,
+				cursor_width: c_int, on_p: bool, active_p: bool)
+{
+  /* C: dispextern.h 3649-3651/3703: `extern void draw_phys_cursor_glyph (struct window *,
+     struct glyph_row *, enum draw_glyphs_face);` / `void draw_fringe_bitmap (struct window *,
+     struct glyph_row *, int);` - the definitions are `src/abi_shim.rs` 2499's and
+     `src/fringe.rs` 1280's, and no mirror carries either.  */
+  unsafe extern "C" {
+    pub fn draw_phys_cursor_glyph (w: *mut window, row: *mut glyph_row, draw: draw_glyphs_face);
+    pub fn draw_fringe_bitmap (w: *mut window, row: *mut glyph_row, left_p: c_int);
+  }
+
+#[cfg (feature = "have_x_i18n")]
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));                       // C 26046
+
+  if on_p                                                              // C 26049
+    {
+      (*w).phys_cursor_type = cursor_type;                             // C 26051
+      window_bits! (phys_cursor_on_p, w, true);                        // C 26052
+
+      if glyph_row_bits! (exact_window_width_line_p, glyph_row)        // C 26054
+	  && (if glyph_row_bits! (reversed_p, glyph_row)               // C 26055-26056
+	      { (*w).phys_cursor.hpos < 0 }                            // C 26056
+	      else { (*w).phys_cursor.hpos                            // C 26057
+		       >= (*glyph_row).used[TEXT_AREA as usize] as c_int })
+	{
+	  glyph_row_bits! (cursor_in_fringe_p, glyph_row, true);          // C 26059
+	  draw_fringe_bitmap (w, glyph_row,                              // C 26060
+			      glyph_row_bits! (reversed_p, glyph_row) as c_int);
+	}
+      else
+	{
+	  match cursor_type                                             // C 26064
+	    {
+	    HOLLOW_BOX_CURSOR =>                                        // C 26066
+		{ x_draw_hollow_cursor (w, glyph_row); }                // C 26067
+
+	    FILLED_BOX_CURSOR =>                                        // C 26070
+		{ draw_phys_cursor_glyph (w, glyph_row, DRAW_CURSOR); }  // C 26071
+
+	    BAR_CURSOR =>                                               // C 26074
+		{ x_draw_bar_cursor (w, glyph_row, cursor_width, BAR_CURSOR); }  // C 26075
+
+	    HBAR_CURSOR =>                                              // C 26078
+		{ x_draw_bar_cursor (w, glyph_row, cursor_width, HBAR_CURSOR); }  // C 26079
+
+	    NO_CURSOR =>                                                // C 26082
+		{ (*w).phys_cursor_width = 0; }                         // C 26083
+
+	    _ =>                                                        // C 26086
+		{ emacs_abort (); }                                     // C 26087
+	    }
+	}
+
+#[cfg (feature = "have_x_i18n")]
+      {
+	if w == XWINDOW ((*f).selected_window)                        // C 26092
+	  { xic_set_preeditarea (w, x, y); }                          // C 26093
+      }
+    }
+}
+
+/* Icons.  */
+
+/* C 26100-26103's comment and `x_bitmap_icon` (C 26104-...), then `x_text_icon` (C 26194-...), come
+   next in C's order.  */

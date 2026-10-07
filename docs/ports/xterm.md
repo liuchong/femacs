@@ -255,6 +255,20 @@ UT 825 -> **836**, UM 826 -> **837**, UG 822 -> **833**, UGX 924 -> **935**, AE 
 writing's four defects (a `GCGraphicsExposures` import that does not exist, two cursor-helper
 declarations missing from this function's own use-site block, an absent `FACE_FROM_ID` and C's two
 *chained* assignments) are named in Decision 116 4.
+  Slice 104 (C 26016-26096, Decision 117) goes **10 -> 7**: `x_define_frame_cursor`,
+`x_clear_frame_area` and `x_draw_window_cursor` all retire as missing functions, and the one token row
+the reading brings (`x_draw_window_cursor does not mention break, case, default, switch`) is closed by
+a `docs/ports/macro-body-notes.tsv` row.  The slice reads **+3** in the eleven arms that do not set
+`use_x_toolkit` (`XDefineCursor` x1 - the name is declared only in this file's own
+`use_x_toolkit`-gated block at 24997 - plus `phys_cursor_type` x1 and `phys_cursor_width` x1), **+2**
+in UT/UM (that declaration is in scope there), **+4** in AI/AIU/AIUX (`xic_set_preeditarea`'s row
+joins) and **+1** in AWS (only `XDefineCursor`): A 821 -> **824**, U 850 -> **853**, UT 836 -> **838**,
+UM 837 -> **839**, UG 833 -> **836**, UGX 935 -> **938**, AE 853 -> **856**, AI 829 -> **833**, AIU 868
+-> **872**, AIUX 974 -> **978**, AX 835 -> **838**, AG3 871 -> **874**, AXF 834 -> **837** and AWS
+510/0 -> **511/0**, with **no warning moved in any of the fourteen arms** and **nothing retired in any
+arm** (the port's `x_create_terminal`, C 30668+, is not landed, so no landed text names the three
+functions).  The first writing's one defect (a `pub type Emacs_Cursor = Cursor;` the mirror already
+carries, `E0428`) is named in Decision 117 5.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -470,9 +484,9 @@ declarations missing from this function's own use-site block, an absent `FACE_FR
 - [x] x_clip_to_row  (line 25831, static)
 - [x] x_draw_hollow_cursor  (line 25857, static)
 - [x] x_draw_bar_cursor  (line 25913, static)
-- [ ] x_define_frame_cursor  (line 26020, static)
-- [ ] x_clear_frame_area  (line 26032, static)
-- [ ] x_draw_window_cursor  (line 26041, static)
+- [x] x_define_frame_cursor  (line 26020, static)
+- [x] x_clear_frame_area  (line 26032, static)
+- [x] x_draw_window_cursor  (line 26041, static)
 - [ ] x_bitmap_icon  (line 26104, static)
 - [ ] x_text_icon  (line 26194)
 - [x] x_is_serial_more_than  (line 26261, static)
@@ -4831,6 +4845,45 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **11 -> 10** (8 missing + 1 `does not mention false` + the drift row),
   with the line-count row at **29,181** against C's 33,125 (11.9% drift, was 29,000 / 12.5%).
 
+
+### 117. Slice 104 (C 26016-26096): `x_define_frame_cursor`, `x_clear_frame_area` and `x_draw_window_cursor`
+
+* **The three `--check` items.**  `--check` goes **10 -> 7**: the three functions retire, and this
+  slice's reading brings one token row (`x_draw_window_cursor does not mention break, case, default,
+  switch`), which is closed by the `docs/ports/macro-body-notes.tsv` row this slice adds - C 26064's
+  `switch (cursor_type)`, its five `case` labels and the `default` arm are the port's `match` over the
+  same five enumerators with a `_` arm for C's `default` (`emacs_abort ()`), so the four keywords have
+  no counterpart of their own and C's five `break;` statements are each arm's end (the
+  `x_net_wm_state` row's reading, PORTING.md 2.2).  The seven rows left are the five missing functions
+  (`handle_one_xevent`, `x_bitmap_icon`, `x_dnd_begin_drag_and_drop`, `x_term_init`, `x_text_icon`),
+  `x_get_wm_check_window does not mention false` and the line-count row.
+* **The reading is +3 / +2 / +4 / +1, and every added row is one this file's own text earns.**
+  The eleven arms that do not set `use_x_toolkit` read **+3**: `XDefineCursor` x1 (C 26024's call -
+  the name *is* declared, but only in this file's own `use_x_toolkit`-gated block at 24997-25004, so
+  the arms without that feature read it as unresolved), `phys_cursor_type` x1 (C 26051's store - the
+  mirror's `have_window_system` member, Decision 115 2's class) and `phys_cursor_width` x1 (C 26083's
+  store).  **UT** and **UM** read **+2**: both set `use_x_toolkit`, so the declaration at 24997 is in
+  scope and `XDefineCursor` contributes no row there.  **AI**, **AIU** and **AIUX** read **+4**: C
+  26093's `xic_set_preeditarea` (inside C 26091's `#ifdef HAVE_X_I18N`) is a name no mirror of this
+  unit's graph carries, so it joins them.  **AWS** reads **+1**: it is `have_window_system`, where
+  both `phys_cursor_*` fields exist, so only `XDefineCursor` is added.
+* **Nothing retires in any arm, and that is the expected shape.**  The three functions are C's
+  `static`s whose addresses C 30668+'s `x_create_terminal` hands to the terminal hook table - a unit
+  this port has not landed - so no arm names them yet; their retirement is the `--check` row's (the
+  frozen reading), not an arm's.
+* **The gates are C's own, one axis at a time.**  `x_define_frame_cursor` and `x_clear_frame_area`
+  are unguarded in C (C 26019/26031) and carry this file's `have_x_windows` arm like every other item;
+  `x_draw_window_cursor`'s `#ifdef HAVE_X_I18N` gates `f` **alone** (a cfg'd `let`, C 26045-26047) and
+  the tail block C 26091-26094, which is why only the three `have_x_i18n` arms read the
+  `xic_set_preeditarea` row.
+* **One deviation the first writing had to fix** (this slice's own, and it was read, not guessed):
+  the first text declared `pub type Emacs_Cursor = Cursor;` in the unit - `E0428`, because the mirror
+  `include/dispextern.rs` 106-114 *already* carries C's two arms (`*mut c_void` for the arms without a
+  window system, Xlib's `Cursor` under `have_window_system` + `have_x_windows`).  The fix deletes the
+  alias and states `cursor as Cursor` at the two places C relies on the typedef being `Cursor` - the
+  identity cast in the real X configuration, unwrapping only in the lane's arms.
+* **What `--check` reads.**  **10 -> 7** as above, with the line-count row at **29,302** against C's
+  33,125 (11.5% drift, was 29,181 / 11.9%).
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -9646,3 +9699,48 @@ against C's 33,125 (11.9% drift, was 29,000 / 12.5%).
 
 **Not claimed.**  The frozen configuration compiles none of this file: no cursor was drawn and no GC
 was changed; the readings above are compile readings of text this machine cannot build.
+### Slice 104's readings (C 26016-26096), as landed and measured (2026-10-07)
+
+| arm | baseline | slice 104 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 821 / 74 | **824 / 74** | **+3 / 0** |
+| U `A +use_toolkit_scroll_bars` | 850 / 74 | **853 / 74** | **+3 / 0** |
+| UT `U +use_x_toolkit` | 836 / 73 | **838 / 73** | **+2 / 0** |
+| UM `UT +use_motif` | 837 / 73 | **839 / 73** | **+2 / 0** |
+| UG `U +use_gtk` | 833 / 75 | **836 / 75** | **+3 / 0** |
+| UGX `UG +have_xinput2` | 935 / 77 | **938 / 77** | **+3 / 0** |
+| AE `A +enable_checking` | 853 / 73 | **856 / 73** | **+3 / 0** |
+| AI `A +have_x_i18n` | 829 / 75 | **833 / 75** | **+4 / 0** |
+| AIU `AI +use_gtk` | 868 / 75 | **872 / 75** | **+4 / 0** |
+| AIUX `AIU +have_xinput2` | 974 / 77 | **978 / 77** | **+4 / 0** |
+| AX `A +have_xdbe` | 835 / 74 | **838 / 74** | **+3 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 871 / 74 | **874 / 74** | **+3 / 0** |
+| AXF `A +have_xfixes` | 834 / 74 | **837 / 74** | **+3 / 0** |
+| **AWS** `A +have_window_system` | 510 / 0 | **511 / 0** | **+1 / 0** |
+
+**Additions, by name.**  The eleven arms that do not set `use_x_toolkit` read three rows:
+`cannot find function, tuple struct or tuple variant XDefineCursor` x1 (C 26024),
+`no field phys_cursor_type on type window` x1 (C 26051) and `no field phys_cursor_width on type
+window` x1 (C 26083).  **UT** and **UM** read the last two only, because `use_x_toolkit` is what puts
+this file's own `XDefineCursor` declaration (24997-25004) in scope.  **AI**, **AIU** and **AIUX** read
+those three plus `cannot find function xic_set_preeditarea` x1 (C 26093, inside C 26091's
+`#ifdef HAVE_X_I18N`).  **AWS** reads `XDefineCursor` only - `have_window_system` is where both
+`phys_cursor_*` fields exist.  **Nothing retires in any arm**: the three functions are C's `static`s
+and no landed text names them (the caller is `x_create_terminal`, C 30668+, which is not landed).
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has no window system, so none of this region is compiled
+there).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` before C 26022's `if (!f->pointer_invisible
+...)` moves **A 824 -> 825** with `E0308` 13 -> 14, anchored at
+`build/probes/xterm/_root.rs:29212:18`; removing the line returns A to the table.
+
+**What `--check` reads.**  **10 -> 7**: the three functions retire as missing items, and the one token
+row the reading brings (`x_draw_window_cursor does not mention break, case, default, switch`) is
+closed by the `docs/ports/macro-body-notes.tsv` row this slice adds.  The line-count row is
+**29,302** against C's 33,125 (11.5% drift, was 29,181 / 11.9%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no cursor was defined on any
+frame, no area was cleared and no preedit area was set; the readings above are compile readings of
+text this machine cannot build.
