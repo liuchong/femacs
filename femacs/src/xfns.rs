@@ -11177,3 +11177,110 @@ unsafe fn x_window_property_intern (f: *mut frame, target_window: Window,   // C
 
   return prop_value;                                                       // C 8072
 }                                                                          // C 8073
+
+/* C 8075-8176.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-window-property", Fx_window_property, Sx_window_property,
+	1, 6, 0,
+	doc: "Value is the value of window property PROP on FRAME.
+If FRAME is nil or omitted, use the selected frame.
+
+On X Windows, the following optional arguments are also accepted: If
+TYPE is nil or omitted, get the property as a string.  Otherwise TYPE
+is the name of the atom that denotes the expected type.
+
+If TYPE is the string \"AnyPropertyType\", decode and return the data
+regardless of what the type really is.
+
+The format of the data returned is the same as a selection conversion
+to the given type.  For example, if `x-get-selection-internal' returns
+an integer when the selection data is a given type,
+`x-window-property' will do the same for that type.
+
+If WINDOW-ID is non-nil, get the property of that window instead of
+FRAME's X window; the number 0 denotes the root window.  This argument
+is separate from FRAME because window IDs are not unique across X
+displays, so FRAME provides context for the window ID.
+
+If DELETE-P is non-nil, delete the property after retrieving it.
+If VECTOR-RET-P is non-nil, return a vector of values instead of a string.
+
+X allows an arbitrary number of properties to be set on any window.
+However, properties are most often set by the window manager or other
+programs on the root window or FRAME's X window in order to
+communicate information to Emacs and other programs.  Most of these
+properties are specified as part of the Extended Window Manager Hints
+and the Inter-Client Communication Conventions Manual, which are
+located here:
+
+  https://specifications.freedesktop.org/wm-spec/wm-spec-latest.html
+
+and
+
+  https://x.org/releases/X11R7.6/doc/xorg-docs/specs/ICCCM/icccm.html
+
+Return value is nil if FRAME doesn't have a property with name PROP or
+if PROP has no value of TYPE (always a string in the MS Windows case).",
+	(prop: Lisp_Object, frame: Lisp_Object, r#type: Lisp_Object,
+	 window_id: Lisp_Object, delete_p: Lisp_Object, vector_ret_p: Lisp_Object),
+	{
+  use crate::x11_constants::AnyPropertyType;                               // C 8141
+
+  let f: *mut frame = decode_window_system_frame (frame);                 // C 8119
+  let mut prop_atom: Atom;                                                // C 8120
+  let mut prop_value: Lisp_Object = Qnil ();                              // C 8121
+  let mut target_type: Atom = XA_STRING;                                  // C 8122
+  let mut target_window: Window = FRAME_X_WINDOW! (f);                    // C 8123
+  let mut found: bool = false;                                            // C 8124
+
+  CHECK_STRING (prop);                                                    // C 8126
+
+  if !NILP (window_id)                                                    // C 8128
+    {
+      CONS_TO_INTEGER! (window_id, target_window);                        // C 8130
+      if target_window == 0                                               // C 8131
+	{ target_window = (*FRAME_DISPLAY_INFO! (f)).root_window; }          // C 8132
+    }
+
+  block_input ();                                                         // C 8135
+  x_catch_errors (FRAME_X_DISPLAY! (f));                                  // C 8136
+
+  if STRINGP (r#type)                                                     // C 8138
+    {
+      if strcmp (c"AnyPropertyType".as_ptr (), SSDATA (r#type)) == 0      // C 8140
+	{ target_type = AnyPropertyType as Atom; }                         // C 8141
+      else
+	{ target_type = x_intern_cached_atom (FRAME_DISPLAY_INFO! (f),       // C 8143-8144
+					      SSDATA (r#type), false); }
+    }
+
+  prop_atom = x_intern_cached_atom (FRAME_DISPLAY_INFO! (f),              // C 8147-8148
+				    SSDATA (prop), false);
+  prop_value = x_window_property_intern (f,                               // C 8149-8155
+					 target_window,
+					 prop_atom,
+					 target_type,
+					 delete_p,
+					 vector_ret_p,
+					 &raw mut found);
+  if NILP (prop_value)                                                    // C 8156
+    && ! found                                                            // C 8157
+    && NILP (window_id)                                                   // C 8158
+    && target_window != FRAME_OUTER_WINDOW! (f)                           // C 8159
+    {
+      prop_value = x_window_property_intern (f,                           // C 8161-8167
+					     FRAME_OUTER_WINDOW! (f),
+					     prop_atom,
+					     target_type,
+					     delete_p,
+					     vector_ret_p,
+					     &raw mut found);
+    }
+
+  x_check_errors (FRAME_X_DISPLAY! (f),                                   // C 8170-8171
+		  c"Can't retrieve window property: %s".as_ptr ());
+  x_uncatch_errors_after_check ();                                        // C 8172
+
+  unblock_input ();                                                       // C 8174
+  return prop_value;                                                      // C 8175
+});
