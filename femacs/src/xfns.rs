@@ -6103,7 +6103,9 @@ pub const USPosition: c_long = 1 << 0;                   // X11/Xutil.h 102
    C: Xutil.h 642: `extern void XSetClassHint (Display *, Window, XClassHint *);` is not
    here: both `x_window` arms call it (C 4333 and C 4554) and the other three entry points
    name the plain-X-only records, so it stands in its own block below.  */
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit")))]
+/* The gate widened from `not (use_x_toolkit)` to the file gate in slice 34: the tip-frame
+   body's C 8609 calls `XCreateWindow` in every arm, not only the plain-X one.  */
+#[cfg (feature = "have_x_windows")]
 unsafe extern "C" {
   pub fn XCreateWindow (dpy: *mut Display, parent: Window, x: c_int, y: c_int, width: c_uint,
 			height: c_uint, border_width: c_uint, depth: c_int, class: c_uint,
@@ -11538,9 +11540,10 @@ static mut tip_last_frame: Lisp_Object = std::ptr::null_mut ();                /
 #[cfg (feature = "have_x_windows")]
 static mut tip_last_parms: Lisp_Object = std::ptr::null_mut ();                // C 8390 (tentative)
 
-/* C 8393-8404.  */
+/* C 8393-8404.  The handler C's `record_unwind_protect` takes (C 8442), so it is
+   `unsafe extern "C" fn` - the `do_unwind_create_frame` shape at C 4816-4820.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn unwind_create_tip_frame (frame: Lisp_Object)                         // C 8393-8394
+unsafe extern "C" fn unwind_create_tip_frame (frame: Lisp_Object)             // C 8393-8394
 {                                                                              // C 8395
   use crate::x11_constants::None;                                              // C 8401
   let deleted: Lisp_Object;                                                    // C 8396
@@ -11552,3 +11555,471 @@ unsafe fn unwind_create_tip_frame (frame: Lisp_Object)                         /
       tip_frame = Qnil ();                                                      // C 8402
     }
 }                                                                              // C 8404
+
+/* -----------------------------------------------------------------------------------------
+   C 8406-8775: C 8407-8414's comment and `x_create_tip_frame` - the terminal check, the name
+   lookup, the frame's creation with its unwind-protect, the X output setup, the color block,
+   the name/`explicit_name` pair, the font drivers, the `gui_default_parameter` runs, the
+   `USE_XCB`/`not USE_XCB` window-creation pair, `init_frame_faces`, the `tooltip`/`display-type`
+   parameters, the face-after-default pair and the tail.
+   -------------------------------------------------------------------------------------- */
+
+/* C 8440/8463/8751/8762 write four frame bitfields; this unit carries each macro (the
+   `src/pgtkfns.rs` 267-300 device, `include/frame.rs` carries the `_SHIFT`/`_UNIT` rows).  */
+macro_rules! wants_modeline {
+  ($f:expr) => { frame_flag ($f, FRAME_WANTS_MODELINE_UNIT, FRAME_WANTS_MODELINE_SHIFT) };
+  ($f:expr, $v:expr) => {
+    frame_set_flag ($f, FRAME_WANTS_MODELINE_UNIT, FRAME_WANTS_MODELINE_SHIFT, ($v) as u32) };
+}
+macro_rules! tooltip {
+  ($f:expr) => { frame_flag ($f, FRAME_TOOLTIP_UNIT, FRAME_TOOLTIP_SHIFT) };
+  ($f:expr, $v:expr) => {
+    frame_set_flag ($f, FRAME_TOOLTIP_UNIT, FRAME_TOOLTIP_SHIFT, ($v) as u32) };
+}
+macro_rules! no_split {
+  ($f:expr) => { frame_flag ($f, FRAME_NO_SPLIT_UNIT, FRAME_NO_SPLIT_SHIFT) };
+  ($f:expr, $v:expr) => {
+    frame_set_flag ($f, FRAME_NO_SPLIT_UNIT, FRAME_NO_SPLIT_SHIFT, ($v) as u32) };
+}
+macro_rules! can_set_window_size {
+  ($f:expr) => { frame_flag ($f, FRAME_CAN_SET_WINDOW_SIZE_UNIT, FRAME_CAN_SET_WINDOW_SIZE_SHIFT) };
+  ($f:expr, $v:expr) => {
+    frame_set_flag ($f, FRAME_CAN_SET_WINDOW_SIZE_UNIT, FRAME_CAN_SET_WINDOW_SIZE_SHIFT,
+		    ($v) as u32) };
+}
+
+/* The names this slice needs that no mirror carries: the `use_xcb` arm's xcb entry points,
+   `xcb_cursor_t` and the enum constants (`xcb_colormap_t`/`xcb_visualid_t` are this file's own
+   rows at 266-268), and `CWSaveUnder` for the plain arm (C 8592).  Each
+   row keeps C's prototype with its header and line (xcb 1.17.0 under `/opt/homebrew/include`).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub type xcb_cursor_t = u32;                /// C: xcb/xproto.h 60: `typedef uint32_t xcb_cursor_t;`
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_EVENT_MASK_STRUCTURE_NOTIFY: u32 = 131072;   /// C: xcb/xproto.h 360
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_WINDOW_CLASS_INPUT_OUTPUT: u8 = 1;           /// C: xcb/xproto.h 1350
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CW_BACK_PIXEL: u32 = 2;        /// C: xcb/xproto.h 1369
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CW_BORDER_PIXEL: u32 = 8;      /// C: xcb/xproto.h 1383
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CW_OVERRIDE_REDIRECT: u32 = 512;   /// C: xcb/xproto.h 1420
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CW_EVENT_MASK: u32 = 2048;     /// C: xcb/xproto.h 1429
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CW_COLORMAP: u32 = 8192;       /// C: xcb/xproto.h 1437
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_CW_CURSOR: u32 = 16384;        /// C: xcb/xproto.h 1448
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+pub const XCB_PROP_MODE_REPLACE: u8 = 0;     /// C: xcb/xproto.h 1916
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+unsafe extern "C" {
+  /* C: xcb/xcb.h 603: `uint32_t xcb_generate_id (xcb_connection_t *c);`  */
+  pub fn xcb_generate_id (c: *mut xcb_connection_t) -> u32;
+  /* C: xcb/xproto.h 5774-5787: `xcb_void_cookie_t xcb_create_window (xcb_connection_t *c,
+     uint8_t depth, xcb_window_t wid, xcb_window_t parent, int16_t x, int16_t y, uint16_t width,
+     uint16_t height, uint16_t border_width, uint16_t _class, xcb_visualid_t visual,
+     uint32_t value_mask, const void *value_list);`  */
+  pub fn xcb_create_window (c: *mut xcb_connection_t, depth: u8, wid: xcb_window_t,
+			    parent: xcb_window_t, x: i16, y: i16, width: u16, height: u16,
+			    border_width: u16, class: u16, visual: xcb_visualid_t,
+			    value_mask: u32, value_list: *const c_void) -> c_int;
+  /* C: xcb/xproto.h 6847-6854: `xcb_void_cookie_t xcb_change_property (xcb_connection_t *c,
+     uint8_t mode, xcb_window_t window, xcb_atom_t property, xcb_atom_t type, uint8_t format,
+     uint32_t data_len, const void *data);`  */
+  pub fn xcb_change_property (c: *mut xcb_connection_t, mode: u8, window: xcb_window_t,
+			      property: xcb_atom_t, r#type: xcb_atom_t, format: u8,
+			      data_len: u32, data: *const c_void) -> c_int;
+}
+/* C: X11/X.h 405: `#define CWSaveUnder (1L<<13)` (C 8592).  */
+#[cfg (feature = "have_x_windows")]
+pub const CWSaveUnder: c_ulong = 1 << 13;
+
+
+/* Create a frame for a tooltip on the display described by DPYINFO.
+   PARMS is a list of frame parameters.  TEXT is the string to
+   display in the tip frame.  Value is the frame.
+
+   Note that functions called here, esp. gui_default_parameter can
+   signal errors, for instance when a specified color name is
+   undefined.  We have to make sure that we're in a consistent state
+   when this happens.  */
+
+/* C 8416-8775.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_create_tip_frame (dpyinfo: *mut x_display_info,                // C 8416-8417
+				mut parms: Lisp_Object) -> Lisp_Object
+{                                                                         // C 8418
+  use crate::dispextern_unit_names::face_change;                            // C 8423/8771
+  /* C 8589-8606's names: `CWOverrideRedirect`, `CWEventMask`, `CWCursor` and `StructureNotifyMask`
+     are `include/xlib.rs`'s `x11_constants`; `CWBackPixel`, `CWBorderPixel`, `CWColormap`,
+     `InputOutput` and `True` are this file's own block at 6055-6090.  */
+  use crate::x11_constants::{CWCursor, CWEventMask, CWOverrideRedirect, PropModeReplace,
+			      StructureNotifyMask, XA_ATOM};                          // C 8619-8621
+
+  let f: *mut frame;                                                       // C 8419
+  let mut frame: Lisp_Object;                                              // C 8420
+  let mut name: Lisp_Object;                                               // C 8421
+  let count: specpdl_ref = SPECPDL_INDEX ();                               // C 8422
+  let face_change_before: bool = face_change;                              // C 8423
+
+  if (*(*dpyinfo).terminal).name.is_null ()                                // C 8425
+    { error (c"Terminal is not live, can't create new frames on it".as_ptr ()); }   // C 8426
+
+  parms = Fcopy_alist (parms);                                             // C 8428
+
+  /* Get the name of the frame to use for resource lookup.  */
+  name = gui_display_get_arg (dpyinfo, parms, Qname (), c"name".as_ptr (),  // C 8431-8432
+			      c"Name".as_ptr (), RES_TYPE_STRING);
+  if !STRINGP (name)                                                       // C 8433
+    && !BASE_EQ (name, Qunbound ())                                        // C 8434
+    && !NILP (name)                                                        // C 8435
+    { error (c"Invalid frame name--not a string or nil".as_ptr ()); }       // C 8436
+
+  frame = Qnil ();                                                         // C 8438
+  f = make_frame (false);                                                  // C 8439
+  wants_modeline! (f, false);                                              // C 8440
+  XSETFRAME! (frame, f);                                                   // C 8441
+  record_unwind_protect (Some (unwind_create_tip_frame), frame);           // C 8442
+
+  (*f).terminal = (*dpyinfo).terminal;                                     // C 8444
+
+  /* By setting the output method, we're essentially saying that
+     the frame is live, as per FRAME_LIVE_P.  If we get a signal
+     from this point on, x_destroy_window might screw up reference
+     counts etc.  */
+  output_method! (f, output_x_window);                                     // C 8450
+  (*f).output_data.x = xzalloc (std::mem::size_of::<x_output> ());         // C 8451
+  (*((*f).output_data.x as *mut x_output)).icon_bitmap = -1;               // C 8452
+  /* C 8453: `FRAME_FONTSET (f) = -1;` (`frame_fontset`), the C 5049 case: C's macro is an l-value
+     and the mirror carries the read arm only, so the write is C's member path.  */
+  (*((*f).output_data.x as *mut x_output)).fontset = -1;                   // C 8453 (C: `c_int`)
+  (*((*f).output_data.x as *mut x_output)).scroll_bar_foreground_pixel = (-1 as c_long) as c_ulong;  // C 8454
+  (*((*f).output_data.x as *mut x_output)).scroll_bar_background_pixel = (-1 as c_long) as c_ulong;  // C 8455
+#[cfg (all (feature = "use_lucid", feature = "use_toolkit_scroll_bars"))]  // C 8456
+  {
+    (*((*f).output_data.x as *mut x_output)).scroll_bar_top_shadow_pixel = (-1 as c_long) as c_ulong;     // C 8457
+    (*((*f).output_data.x as *mut x_output)).scroll_bar_bottom_shadow_pixel = (-1 as c_long) as c_ulong;  // C 8458
+  }                                                                        // C 8459
+  (*((*f).output_data.x as *mut x_output)).white_relief.pixel = (-1 as c_long) as c_ulong;   // C 8460
+  (*((*f).output_data.x as *mut x_output)).black_relief.pixel = (-1 as c_long) as c_ulong;   // C 8461
+
+  tooltip! (f, true);                                                      // C 8463
+  fset_icon_name (f, Qnil ());                                             // C 8464
+  /* C 8465: `FRAME_DISPLAY_INFO (f) = dpyinfo;` - the same l-value case as C 5049.  */
+  (*((*f).output_data.x as *mut x_output)).display_info = dpyinfo;          // C 8465
+  (*((*f).output_data.x as *mut x_output)).parent_desc = (*FRAME_DISPLAY_INFO! (f)).root_window;   // C 8466
+  (*((*f).output_data.x as *mut x_output)).explicit_parent = false;         // C 8467
+
+  /* These colors will be set anyway later, but it's important
+     to get the color reference counts right, so initialize them!  */
+  /* C 8477/8478/8485/8487 write `FRAME_FOREGROUND_PIXEL`/`FRAME_BACKGROUND_PIXEL` (`f->`
+     fields; the mirror's macros read only), so the writes are C's member paths.  */
+  {                                                                        // C 8471
+    let black: Lisp_Object;                                                // C 8472
+
+    /* Function x_decode_color can signal an error.  Make
+       sure to initialize color slots so that we won't try
+       to free colors we haven't allocated.  */
+    (*f).foreground_pixel = (-1 as c_long) as c_ulong;              // C 8477
+    (*f).background_pixel = (-1 as c_long) as c_ulong;              // C 8478
+    (*((*f).output_data.x as *mut x_output)).cursor_pixel = (-1 as c_long) as c_ulong;      // C 8479
+    (*((*f).output_data.x as *mut x_output)).cursor_foreground_pixel = (-1 as c_long) as c_ulong;  // C 8480
+    (*((*f).output_data.x as *mut x_output)).border_pixel = (-1 as c_long) as c_ulong;      // C 8481
+    (*((*f).output_data.x as *mut x_output)).mouse_pixel = (-1 as c_long) as c_ulong;       // C 8482
+
+    black = build_string (c"black".as_ptr ());                             // C 8484
+    (*f).foreground_pixel = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 8485-8486
+    (*f).background_pixel = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 8487-8488
+    (*((*f).output_data.x as *mut x_output)).cursor_pixel = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 8489-8490
+    (*((*f).output_data.x as *mut x_output)).cursor_foreground_pixel = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 8491-8492
+    (*((*f).output_data.x as *mut x_output)).border_pixel = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;   // C 8493-8494
+    (*((*f).output_data.x as *mut x_output)).mouse_pixel = x_decode_color (f, black, BLACK_PIX_DEFAULT! (f) as c_int) as c_ulong;    // C 8495-8496
+  }                                                                        // C 8497
+
+  /* Set the name; the functions to which we pass f expect the name to
+     be set.  */
+  if BASE_EQ (name, Qunbound ()) || NILP (name)                            // C 8501
+    {
+      fset_name (f, build_string ((*dpyinfo).x_id_name));                  // C 8503
+      explicit_name! (f, false);                                           // C 8504
+    }
+  else
+    {
+      fset_name (f, name);                                                 // C 8508
+      explicit_name! (f, true);                                            // C 8509
+      /* use the frame's title when getting resources for this frame.  */  // C 8510
+      specbind (Qx_resource_name (), name);                                // C 8511
+    }
+
+#[cfg (feature = "use_cairo")]                                             // C 8514
+  {
+    register_font_driver (&raw mut ftcrfont_driver as *const c_void, f);   // C 8515
+#[cfg (feature = "harfbuzz")]
+    { register_font_driver (&raw mut ftcrhbfont_driver as *const c_void, f); }  // C 8517
+  }
+#[cfg (not (feature = "use_cairo"))]
+  {
+#[cfg (feature = "freetype")]
+    {
+#[cfg (feature = "have_xft")]
+      {
+	register_font_driver (&raw mut xftfont_driver as *const c_void, f);   // C 8522
+#[cfg (feature = "harfbuzz")]
+	{ register_font_driver (&raw mut xfthbfont_driver as *const c_void, f); }  // C 8524
+      }
+    }
+  }
+  register_font_driver (&raw mut xfont_driver as *const c_void, f);        // C 8529
+
+#[cfg (feature = "glyph_debug")]
+  { dpyinfo_refcount = (*dpyinfo).reference_count; }                       // C 8532
+
+  gui_default_parameter (f, parms, Qfont_backend (), Qnil (),              // C 8535-8536
+			 c"fontBackend".as_ptr (), c"FontBackend".as_ptr (),
+			 RES_TYPE_STRING);
+
+  /* Extract the window parameters from the supplied values that are
+     needed to determine window geometry.  */
+  x_default_font_parameter (f, parms);                                     // C 8540
+
+  gui_default_parameter (f, parms, Qborder_width (), make_fixnum (0),      // C 8542-8543
+			 c"borderWidth".as_ptr (), c"BorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);
+
+  /* This defaults to 1 in order to match xterm.  We recognize either
+     internalBorderWidth or internalBorder (which is what xterm calls
+     it).  */
+  if NILP (Fassq (Qinternal_border_width (), parms))                       // C 8548
+    {
+      let value: Lisp_Object;                                              // C 8550
+
+      value = gui_display_get_arg (dpyinfo, parms, Qinternal_border_width (),   // C 8552-8554
+				   c"internalBorder".as_ptr (), c"internalBorder".as_ptr (),
+				   RES_TYPE_NUMBER);
+      if !BASE_EQ (value, Qunbound ())                                     // C 8555
+	{ parms = Fcons (Fcons (Qinternal_border_width (), value),           // C 8556-8557
+			 parms); }
+    }
+
+  gui_default_parameter (f, parms, Qinternal_border_width (), make_fixnum (1),   // C 8560-8562
+			 c"internalBorderWidth".as_ptr (), c"internalBorderWidth".as_ptr (),
+			 RES_TYPE_NUMBER);
+  gui_default_parameter (f, parms, Qright_divider_width (), make_fixnum (0),   // C 8563-8564
+			 std::ptr::null_mut () as *const c_char,
+			 std::ptr::null_mut () as *const c_char, RES_TYPE_NUMBER);
+  gui_default_parameter (f, parms, Qbottom_divider_width (), make_fixnum (0),  // C 8565-8566
+			 std::ptr::null_mut () as *const c_char,
+			 std::ptr::null_mut () as *const c_char, RES_TYPE_NUMBER);
+
+  /* Also do the stuff which must be set before the window exists.  */
+  gui_default_parameter (f, parms, Qforeground_color (), build_string (c"black".as_ptr ()),  // C 8569-8570
+			 c"foreground".as_ptr (), c"Foreground".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qbackground_color (), build_string (c"white".as_ptr ()),  // C 8571-8572
+			 c"background".as_ptr (), c"Background".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qmouse_color (), build_string (c"black".as_ptr ()),       // C 8573-8574
+			 c"pointerColor".as_ptr (), c"Foreground".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qcursor_color (), build_string (c"black".as_ptr ()),      // C 8575-8576
+			 c"cursorColor".as_ptr (), c"Foreground".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qborder_color (), build_string (c"black".as_ptr ()),      // C 8577-8578
+			 c"borderColor".as_ptr (), c"BorderColor".as_ptr (), RES_TYPE_STRING);
+  gui_default_parameter (f, parms, Qno_special_glyphs (), Qnil (),         // C 8579-8580
+			 std::ptr::null_mut () as *const c_char,
+			 std::ptr::null_mut () as *const c_char, RES_TYPE_BOOLEAN);
+
+  {                                                                        // C 8582
+#[cfg (not (feature = "use_xcb"))]                                         // C 8583
+    {
+      let mut attrs: XSetWindowAttributes = std::mem::zeroed ();           // C 8584
+      let mut mask: c_ulong;                                               // C 8585
+      let r#type: Atom = (*FRAME_DISPLAY_INFO! (f)).Xatom_net_window_type_tooltip;   // C 8586
+
+      block_input ();                                                      // C 8588
+      mask = (CWBackPixel | CWOverrideRedirect | CWEventMask               // C 8589-8590
+	      | CWCursor | CWColormap | CWBorderPixel) as c_ulong;
+      if DoesSaveUnders! ((*dpyinfo).screen) == True                       // C 8591
+	{ mask |= CWSaveUnder; }                                            // C 8592
+
+    /* Window managers look at the override-redirect flag to determine
+       whether or net to give windows a decoration (Xlib spec, chapter
+       3.2.8).  */
+      attrs.override_redirect = True;                                      // C 8597
+      attrs.save_under = True;                                             // C 8598
+      attrs.background_pixel = (*f).background_pixel;                      // C 8599
+      attrs.colormap = FRAME_X_COLORMAP! (f);                              // C 8600
+      /* C 8601-8603's chain is two stores in C's order.  */
+      (*((*f).output_data.x as *mut x_output)).current_cursor               // C 8602-8603
+	= (*((*f).output_data.x as *mut x_output)).text_cursor;
+      attrs.cursor = (*((*f).output_data.x as *mut x_output)).current_cursor;   // C 8601
+      attrs.border_pixel = (*((*f).output_data.x as *mut x_output)).border_pixel;   // C 8604
+      /* Arrange for getting MapNotify and UnmapNotify events.  */         // C 8605
+      attrs.event_mask = StructureNotifyMask as c_long;                    // C 8606
+      FRAME_X_WINDOW! (f)                                                  // C 8607-8613
+	= XCreateWindow (FRAME_X_DISPLAY! (f), (*FRAME_DISPLAY_INFO! (f)).root_window,
+			 0, 0, 1, 1, (*f).border_width as c_uint,
+			 (*dpyinfo).n_planes, InputOutput, FRAME_X_VISUAL! (f),
+			 mask, &raw mut attrs);
+      tip_window = FRAME_X_WINDOW! (f);                                    // C 8607 (`tip_window =`)
+      initial_set_up_x_back_buffer (f);                                    // C 8618
+      XChangeProperty (FRAME_X_DISPLAY! (f), tip_window,                   // C 8619-8622
+		       (*FRAME_DISPLAY_INFO! (f)).Xatom_net_window_type,
+		       XA_ATOM, 32, PropModeReplace,
+		       &raw mut r#type as *mut c_uchar, 1);
+      unblock_input ();                                                    // C 8623
+    }
+#[cfg (feature = "use_xcb")]                                               // C 8624
+    {
+      let mut value_list: [u32; 6] = [0; 6];                               // C 8625
+      let net_wm_window_type_tooltip: xcb_atom_t =                         // C 8626-8627
+	(*dpyinfo).Xatom_net_window_type_tooltip as xcb_atom_t;
+      let visual_id: xcb_visualid_t =                                      // C 8628-8629
+	XVisualIDFromVisual (FRAME_X_VISUAL! (f)) as xcb_visualid_t;
+
+      (*((*f).output_data.x as *mut x_output)).current_cursor              // C 8631
+	= (*((*f).output_data.x as *mut x_output)).text_cursor;
+    /* Values are set in the order of their enumeration in `enum
+       xcb_cw_t'.  */
+      value_list[0] = (*f).background_pixel as u32;                        // C 8634
+      value_list[1] = (*((*f).output_data.x as *mut x_output)).border_pixel as u32;   // C 8635
+      value_list[2] = true as u32;                                         // C 8636
+      value_list[3] = XCB_EVENT_MASK_STRUCTURE_NOTIFY;                     // C 8637
+      value_list[4] = FRAME_X_COLORMAP! (f) as xcb_colormap_t;             // C 8638
+      value_list[5] = (*((*f).output_data.x as *mut x_output)).text_cursor as xcb_cursor_t;   // C 8639
+
+      block_input ();                                                      // C 8641
+      FRAME_X_WINDOW! (f)                                                  // C 8642-8644
+	= xcb_generate_id ((*dpyinfo).xcb_connection) as Window;
+      tip_window = FRAME_X_WINDOW! (f);                                    // C 8642 (`tip_window =`)
+
+      xcb_create_window ((*dpyinfo).xcb_connection,                        // C 8646-8659
+			 (*dpyinfo).n_planes as u8,
+			 tip_window as xcb_window_t,
+			 (*dpyinfo).root_window as xcb_window_t,
+			 0, 0, 1, 1, (*f).border_width as u16,
+			 XCB_WINDOW_CLASS_INPUT_OUTPUT as u16,
+			 visual_id,
+			 (XCB_CW_BACK_PIXEL
+			  | XCB_CW_BORDER_PIXEL
+			  | XCB_CW_OVERRIDE_REDIRECT
+			  | XCB_CW_EVENT_MASK
+			  | XCB_CW_COLORMAP
+			  | XCB_CW_CURSOR),
+			 &raw const value_list as *const c_void);
+
+      xcb_change_property ((*dpyinfo).xcb_connection,                      // C 8661-8666
+			   XCB_PROP_MODE_REPLACE,
+			   tip_window as xcb_window_t,
+			   (*dpyinfo).Xatom_net_window_type as xcb_atom_t,
+			   (*dpyinfo).Xatom_ATOM as xcb_atom_t,
+			   32, 1, &raw const net_wm_window_type_tooltip as *const c_void);
+
+      initial_set_up_x_back_buffer (f);                                    // C 8668
+      unblock_input ();                                                    // C 8669
+    }
+  }                                                                        // C 8671
+
+  /* Init faces before gui_default_parameter is called for the
+     scroll-bar-width parameter because otherwise we end up in
+     init_iterator with a null face cache, which should not happen.  */
+  init_frame_faces (f);                                                    // C 8676
+
+  gui_default_parameter (f, parms, Qinhibit_double_buffering (), Qnil (),  // C 8678-8680
+			 c"inhibitDoubleBuffering".as_ptr (),
+			 c"InhibitDoubleBuffering".as_ptr (), RES_TYPE_BOOLEAN);
+
+  gui_figure_window_size (f, parms, false, false);                         // C 8682
+
+  (*((*f).output_data.x as *mut x_output)).parent_desc = (*FRAME_DISPLAY_INFO! (f)).root_window;   // C 8684
+
+  x_make_gc (f);                                                           // C 8686
+
+  gui_default_parameter (f, parms, Qauto_raise (), Qnil (),                // C 8688-8689
+			 c"autoRaise".as_ptr (), c"AutoRaiseLower".as_ptr (), RES_TYPE_BOOLEAN);
+  gui_default_parameter (f, parms, Qauto_lower (), Qnil (),                // C 8690-8691
+			 c"autoLower".as_ptr (), c"AutoRaiseLower".as_ptr (), RES_TYPE_BOOLEAN);
+  gui_default_parameter (f, parms, Qcursor_type (), Qbox (),               // C 8692-8693
+			 c"cursorType".as_ptr (), c"CursorType".as_ptr (), RES_TYPE_SYMBOL);
+  gui_default_parameter (f, parms, Qalpha (), Qnil (),                     // C 8694-8695
+			 c"alpha".as_ptr (), c"Alpha".as_ptr (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parms, Qalpha_background (), Qnil (),          // C 8696-8697
+			 c"alphaBackground".as_ptr (), c"AlphaBackground".as_ptr (), RES_TYPE_NUMBER);
+  gui_default_parameter (f, parms, Qborders_respect_alpha_background (), Qnil (),   // C 8698-8700
+			 c"bordersRespectAlphaBackground".as_ptr (),
+			 c"BordersRespectAlphaBackground".as_ptr (), RES_TYPE_NUMBER);
+
+  /* Add `tooltip' frame parameter's default value. */                    // C 8702
+  if NILP (Fframe_parameter (frame, Qtooltip ()))                          // C 8703
+    {
+      AUTO_FRAME_ARG! (arg, Qtooltip (), Qt ());                           // C 8705
+      Fmodify_frame_parameters (frame, arg);                               // C 8706
+    }
+
+  /* FIXME - can this be done in a similar way to normal frames?
+     https://lists.gnu.org/r/emacs-devel/2007-10/msg00641.html */
+
+  /* Set the `display-type' frame parameter before setting up faces. */
+  {                                                                        // C 8713
+    let mut disptype: Lisp_Object;                                         // C 8714
+
+    /* C 8718-8719 read `FRAME_X_VISUAL_INFO (f)->class`; `FRAME_X_VISUAL_INFO` is xterm.h
+       1301's `FRAME_DISPLAY_INFO (f)->visual_info`, which this file reads directly (8060/8150).  */
+    if (*FRAME_DISPLAY_INFO! (f)).n_planes == 1                            // C 8716
+      { disptype = Qmono (); }                                             // C 8717
+    else if (*FRAME_DISPLAY_INFO! (f)).visual_info.class == GrayScale      // C 8718
+             || (*FRAME_DISPLAY_INFO! (f)).visual_info.class == StaticGray  // C 8719
+      { disptype = Qgrayscale (); }                                        // C 8720
+    else
+      { disptype = Qcolor (); }                                            // C 8722
+
+    if NILP (Fframe_parameter (frame, Qdisplay_type ()))                   // C 8724
+      {
+	AUTO_FRAME_ARG! (arg, Qdisplay_type (), disptype);                   // C 8726
+	Fmodify_frame_parameters (frame, arg);                               // C 8727
+      }
+  }                                                                        // C 8729
+
+  /* Set up faces after all frame parameters are known.  This call
+     also merges in face attributes specified for new frames.
+
+     Frame parameters may be changed if .Xdefaults contains
+     specifications for the default font.  For example, if there is an
+     `Emacs.default.attributeBackground: pink', the `background-color'
+     attribute of the frame gets set, which let's the internal border
+     of the tooltip frame appear in pink.  Prevent this.  */
+  {                                                                        // C 8739
+    let bg: Lisp_Object = Fframe_parameter (frame, Qbackground_color ());  // C 8740
+
+    calln! (Qface_set_after_frame_default (), frame, Qnil ());             // C 8742
+
+    if !EQ (bg, Fframe_parameter (frame, Qbackground_color ()))            // C 8744
+      {
+	AUTO_FRAME_ARG! (arg, Qbackground_color (), bg);                     // C 8746
+	Fmodify_frame_parameters (frame, arg);                               // C 8747
+      }
+  }                                                                        // C 8749
+
+  no_split! (f, true);                                                     // C 8751
+
+  /* Now that the frame will be official, it counts as a reference to
+     its display and terminal.  */
+  (*FRAME_DISPLAY_INFO! (f)).reference_count += 1;                         // C 8755
+  (*(*f).terminal).reference_count += 1;                                   // C 8756
+
+  /* It is now ok to make the frame official even if we get an error
+     below.  And the frame needs to be on Vframe_list or making it
+     visible won't work.  */
+  Vframe_list = Fcons (frame, Vframe_list);                                // C 8761
+  can_set_window_size! (f, true);                                          // C 8762
+  adjust_frame_size (f, FRAME_TEXT_WIDTH (f), FRAME_TEXT_HEIGHT (f),       // C 8763-8764
+		     0, true, Qtip_frame ());
+
+  /* Setting attributes of faces of the tooltip frame from resources
+     and similar will set face_change, which leads to the clearing of
+     all current matrices.  Since this isn't necessary here, avoid it
+     by resetting face_change to the value it had before we created
+     the tip frame.  */
+  face_change = face_change_before;                                        // C 8771
+
+  /* Discard the unwind_protect.  */                                       // C 8773
+  return unbind_to (count, frame);                                         // C 8774
+}                                                                          // C 8775

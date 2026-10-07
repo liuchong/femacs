@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360 and C 8362-8404
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404 and C 8406-8775
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -24,12 +24,13 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **10,782 lines** after the twenty-sixth, **11,042 lines** after the twenty-seventh and
 > **11,088 lines** after the twenty-eighth, **11,179 lines** after the twenty-ninth and
 > **11,286 lines** after the thirtieth, **11,371 lines** after the thirty-first and
-> **11,493 lines** after the thirty-second and **11,554 lines** after the thirty-third - C 803-2149,
+> **11,493 lines** after the thirty-second, **11,554 lines** after the thirty-third and
+> **12,025 lines** after the thirty-fourth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
-> C 8178-8256, C 8258-8360 and C 8362-8404, whose own
+> C 8178-8256, C 8258-8360, C 8362-8404 and C 8406-8775, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -212,7 +213,8 @@ defines both features.
 | 8178-8256 | `x-window-property-attributes` (C 8178-8179 the `DEFUN` header, C 8180-8194 the verbatim doc string, C 8197-8205 the locals, C 8207's `CHECK_STRING`, C 8209-8214 the `WINDOW-ID` pair, C 8218-8220's `x_catch_errors` and cached-atom intern, C 8221-8224's first `XGetWindowProperty`, C 8225-8238's four-way outer-window retry with C 8230-8232's comment, C 8240-8248's `XFree` and `CALLN (Fvector, ...)`, C 8250-8252's error pair) | `have_x_windows`, with no nested `#if` (slice 31) |
 | 8258-8360 | the `Coordinate management` section comment (C 8259-8261) and `x-translate-coordinates` (C 8263-8360: C 8265-8285's verbatim doc string, C 8290-8295 the locals, C 8297's `check_x_display_info`, C 8301-8311 the two `CHECK_FIXNUM`/`XFIXNUM` pairs, C 8313-8321's `source_frame`/`source_window` pair, C 8323-8332's `require_child` early return, C 8334-8340's `src`/`dest` defaults, C 8342-8350's `XTranslateCoordinates` with the error pair, C 8352-8359's `list3` result) | `have_x_windows`, with no nested `#if` (slice 32) |
 | 8362-8404 | the `Tool tips` banner (C 8362-8364), C 8366-8367's forward declaration of `compute_tip_xy`, the eight objects (C 8369-8390: `tip_frame`, `tip_window`, `tip_dx`, `tip_dy` exported; `tip_timer`, `tip_last_string`, `tip_last_frame`, `tip_last_parms` private) and `unwind_create_tip_frame` (C 8393-8404) | `have_x_windows`, with no nested `#if` (slice 33) |
-| 8406-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,257 lines, whose first live item is C 8407-8414's comment and `x_create_tip_frame` (C 8416-8417, the `static Lisp_Object`) - the next slice's first item | not ported in this slice |
+| 8406-8775 | C 8407-8414's comment and `x_create_tip_frame` (C 8416-8775: the terminal check, the name lookup, the frame's creation with its unwind-protect, the X output setup, the color block, the name/`explicit_name` pair, the font drivers, the `gui_default_parameter` runs, the `USE_XCB`/`not USE_XCB` window-creation pair, `init_frame_faces`, the `tooltip`/`display-type` parameters, the face-after-default pair and the tail) | `have_x_windows`, with `use_cairo`/`freetype`/`have_xft`/`harfbuzz` for the font drivers, `use_xcb` for the window pair, `glyph_debug`, `use_lucid`/`use_toolkit_scroll_bars` (slice 34) |
+| 8778-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,959 lines, whose first live item is C 8778-8782's comment and `compute_tip_xy` (C 8784-8785) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -3350,3 +3352,47 @@ failures**.
 
 The frozen configuration compiles none of this file: no tooltip frame was unwound, no tip object was
 read and no frame was created; the fourteen arms' counts are text compile readings.
+
+## Slice 34 (2026-10-08, status 3.938): C 8406-8775
+
+**The slice is C 8406-8775**: the comment and `x_create_tip_frame` (471 Rust lines, 11,554 -> 12,025).
+It carries four frame-bitfield macros (`wants_modeline!`/`tooltip!`/`no_split!`/
+`can_set_window_size!`, the `src/pgtkfns.rs` 267-300 device), the use-site declarations the two
+window-creation arms need (six xcb enum constants, `xcb_cursor_t`, `xcb_generate_id`,
+`xcb_create_window`, `xcb_change_property`, `CWSaveUnder`), the `use` of
+`crate::dispextern_unit_names::face_change`, and it widens `XCreateWindow`'s gate from
+`not (use_x_toolkit)` to the file gate (the tip body calls it in every arm, C 8609).  It also
+corrects slice 33's `unwind_create_tip_frame` to `unsafe extern "C" fn` (its address is taken at
+C 8442).
+
+**Readings (all fourteen arms, both sides).**  Every arm reads its baseline **+1**, one more
+instance of the class the file's earlier slices already report: `include/xterm.rs`'s `x_output`
+still lacks `explicit_parent` (the write is C 8467), a mirror gap the reader calls
+`no field explicit_parent on type x_output` - six instances in this unit now.  The five arms
+without `have_window_system` (plain-X, XI2, XSN, XR, XCB) and Xt read **+2 more**: the mirror's
+`FRAME_TOOLTIP_SHIFT`/`FRAME_TOOLTIP_UNIT` rows are gated by `have_window_system` (slice 24's
+`nscreens`/`screens` class).  WSRX and XCB carry **+1 warning** (`unused doc comment`) that this
+slice has not closed.  `build-tu` is exit 0 / the 336-byte empty object; `--check` is **96 rows ->
+96**: `missing function x_create_tip_frame` retires, the null-family row is closed (the six C
+`NULL`s are `std::ptr::null_mut () as *const c_char`), and one token row remains -
+`function x_create_tip_frame does not mention frame_background_pixel, frame_fontset,
+frame_foreground_pixel, frame_x_visual_info` (the four names are C's macros for `f->` fields the
+port writes as member paths; the row's sanctioned home is `docs/ports/macro-body-notes.tsv`, owed).
+
+### Deviations (this slice)
+
+1. Four frame bitfields through this unit's own macros (the `pgtkfns` device); the four
+   `FRAME_*_PIXEL!` macros read only, so those writes are C's member paths and the comment names
+   the macros.
+2. `XCreateWindow`'s gate widened to the file gate; `DoesSaveUnders! (...) == True` (the file's
+   8393 spelling, the macro yields the mirror's `c_int` field); `std::ptr::null_mut () as *const
+   c_char` for the six `NULL`s; C's two chained assignments split into two stores in C's order;
+   `tip_window = FRAME_X_WINDOW! (f)` after the `FRAME_X_WINDOW` store.
+3. The xcb block's doc comments are block comments (the slice 5 note).
+
+### Owed
+
+- `include/xterm.rs`'s `x_output.explicit_parent` row (the +1 in every arm) and the
+  `have_window_system` gate on `frame.rs`'s tooltip rows (the +2).
+- `docs/ports/macro-body-notes.tsv`: one row for the four `FRAME_*` macro names.
+- WSRX/XCB's `unused doc comment`.
