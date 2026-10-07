@@ -295,7 +295,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) and round 69 the mouse event family (C 7783-8193) - **65 of the class's method boxes remain**
+- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) - **60 of the class's method boxes remain**
   - [ ] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041)
   - [ ] `- (void) setWindowClosing: (BOOL)closing`  (line 7047)
   - [ ] `- (void)dealloc`  (line 7055)
@@ -338,11 +338,11 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)rightMouseDragged: (NSEvent *)e`  (line 8145) — landed as `@objc override func rightMouseDragged (with:)`; the forward to `mouseMoved:`, like its sibling above
   - [x] `- (void)otherMouseDragged: (NSEvent *)e`  (line 8152) — landed as `@objc override func otherMouseDragged (with:)`; the forward
   - [x] `- (void) magnifyWithEvent: (NSEvent *) event`  (line 8159) — landed as `@objc override func magnify (with:)` (Swift's own rename of the selector, class B): the body is the live `NS_IMPL_COCOA && MAC_OS_X_VERSION_10_7` arm, C 8162's `static CGFloat last_scale` is the file-scope `last_scale`, and C 8188's `last_scale += [event magnification]` is hoisted out of `make_float`'s argument list (that argument is the variable's only reader, so the list's value is unchanged)
-  - [ ] `- (BOOL)windowShouldClose: (id)sender`  (line 8195)
-  - [ ] `- (void)updateFramePosition`  (line 8212)
-  - [ ] `- (NSSize)windowWillResize: (NSWindow *)sender toSize: (NSSize)frameSize`  (line 8243)
-  - [ ] `- (void)viewDidEndLiveResize`  (line 8357)
-  - [ ] `- (void)resizeWithOldSuperviewSize: (NSSize)oldSize`  (line 8373)
+  - [x] `- (BOOL)windowShouldClose: (id)sender`  (line 8195) — landed as `@objc func windowShouldClose (_:) -> Bool`: C 8197's `[[self window] currentEvent]` is the window's own accessor, `windowClosing` is the class's ivar, and C 8207's comment is kept as the reason the answer is `NO`
+  - [x] `- (void)updateFramePosition`  (line 8212) — landed as `func updateFramePosition ()`: C 8216/8217's `[NSScreen screens]`/`objectAtIndex: 0` are the class accessor and the array's subscript (its element type is non-optional in Swift, so C 8222's `screen != nil` test cannot be false and is recorded rather than dropped), the two `left_pos`/`top_pos` writes are new member entries, and `MOVE_FRAME_EVENT` is a mirror-valued constant
+  - [x] `- (NSSize)windowWillResize: (NSWindow *)sender toSize: (NSSize)frameSize`  (line 8243) — landed as `@objc func windowWillResize (_:to:) -> NSSize`: C writes its by-value `frameSize`, so the port shadows it with a `var`; the `NS_IMPL_COCOA` arm (C 8285-8320) is live and its title text uses C's own `"  —  "` separator, C 8301's `[[self window] title] != NULL` is a pointer test Swift's non-optional `title` cannot express (written as the window test and named in the code), and `setFSValue:`/`windowDidMove:` are the round's two deferred entries
+  - [x] `- (void)viewDidEndLiveResize`  (line 8357) — landed as `@objc override func viewDidEndLiveResize ()` (the whole `NS_IMPL_COCOA` arm C 8356-8370); it restores `old_title` through the `title` property and frees the C string the resize path may have kept
+  - [x] `- (void)resizeWithOldSuperviewSize: (NSSize)oldSize`  (line 8373) — landed as `@objc override func resize (withOldSuperviewSize:)`: C 8385's `[[self superview] bounds]` reads as the optional chain with C's own zero rect, `NSWidth`/`NSHeight` are the rect's accessors, `[self setFrame:]` is the overridden property (C 8538's method) and the last three calls are entries (`SET_FRAME_GARBAGED` and `cancel_mouse_face` are new, recorded open and provided respectively)
   - [x] `- (void)windowDidBecomeKey: (NSNotification *)notification`  (line 8404) — landed as `@objc func windowDidBecomeKey (_:)` (round 68): its whole body is the direct-call variant below (C's own comment above it, "cf. x_detect_focus_change(), x_focus_changed(), x_new_focus_frame()", is kept with the pair)
   - [x] `- (void)windowDidBecomeKey`  (line 8411) — landed as `@objc func windowDidBecomeKey ()` (round 68): C 8427-8451's `NS_IMPL_COCOA` arm is this target's, the timer is AppKit's own factory with C's selector now typed (`Timer.scheduledTimer (timeInterval:target:selector:userInfo:repeats:)` + `#selector (EmacsView.deferred_UAZoomChangeFocus_handler(_:))`), C 8449's `retain` is ARC's strong reference, the display-info member pair is the frame-taking `ns_display_info_ns_focus_frame`/`_set_ns_focus_frame`, and C 8425's `adjustEmacsFrameRect` (this class's own method, C 8862) goes through the new deferred entry
   - [x] `- (void)windowWillClose: (NSNotification *)notification`  (line 8472) — landed as `@objc func windowWillClose (_:)` (round 68): C's `NS_IMPL_COCOA` arm is this target's and its one call is round 59's own `cancel_ns_deferred_UAZoomChangeFocus_timer`
@@ -4630,3 +4630,48 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **Not claimed**: this round has **no runtime evidence** - no mouse button, wheel, drag or pinch
   event was delivered to anything; the compile gate reaches type checking only, and
   `check-swift-units.py` compares name sets, not signatures, bodies or ABI.
+
+### Round 70: the window-shape family (C 8195-8401)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings - the same nine round 69 leaves.  The first run had **seven errors**; once
+  they were fixed it left one **new** warning (a non-optional `NSScreen` compared against `nil`),
+  whose fix keeps C 8217's subscript evaluation and records C 8222's test as one Swift's types
+  cannot make false - so the count returns to nine.  Object `/tmp/nsterm70.o`, **1,247,272
+  bytes**, md5 `c530148f7175dc192db135f624bb91cd`.  The unit is **13,375 lines**.
+* **Five `EmacsView` methods land**: `windowShouldClose:` (C 8195-8209), `updateFramePosition`
+  (C 8212-8240), `windowWillResize:toSize:` (C 8243-8353, the `NS_IMPL_COCOA` title arm C
+  8285-8320 included), `viewDidEndLiveResize` (C 8356-8370) and `resizeWithOldSuperviewSize:`
+  (C 8373-8401).  The class box's own count moves to **60 method boxes remaining**.
+* **The seven compile errors the first run found, and what each settled** (all measured): ⑴
+  `FRAME_NS_TITLEBAR_HEIGHT`/`FRAME_TOOLBAR_HEIGHT` are not entries of this unit - they are the
+  two macros this lane *spelled* (`frame_ns_titlebar_height`, C 2076, and `frame_toolbar_height`,
+  round 9's reading), so C 8273-8274 calls those; ⑵ `NSWindow.title` is a Swift `String`, not an
+  `NSString`, so C 8307's `[[[self window] title] UTF8String]` is the string itself; ⑶ `strdup`
+  and `xmalloc` return optionals, so C 8313's `strlen (old_title)` and the
+  `assumingMemoryBound` conversion needed the unwrap; ⑷ `esprintf` (declared the way this unit's
+  `fprintf` is) returns nothing, so C 8314's call carries no `_ =`; ⑸ C 8350's
+  `(NSNotification *)sender` cast is not a Swift `as`, so the deferred entry takes the pointer
+  and the call site passes `Unmanaged.passUnretained (sender).toOpaque ()`.
+* **Two readings written into the code, not silently dropped**: C 8222's `if (screen != nil)`
+  (`NSScreen.screens`'s element type is non-optional in Swift, so the guard cannot be false; the
+  subscript stays for C's own evaluation - it raises on an empty array, which is the trap Swift's
+  subscript has) and C 8301's `[[self window] title] != NULL` (the same shape: a message to a nil
+  window reads nil and a non-nil window always has a title string).
+* **The ABI block adds 12 entries and four file-scope constants**.  The constants are
+  `DELETE_WINDOW_EVENT` 12 and `MOVE_FRAME_EVENT` 24 (`femacs/src/include/termhooks.rs` 39/51,
+  the `MONITORS_CHANGED_EVENT` reading) and `MINWIDTH`/`MINHEIGHT` 10 (src/nsterm.h 1268-1269,
+  the `DOCK_IGNORE_LIMIT` reading).  **Provided**: `frame_resize_pixelwise`
+  (`femacs/src/frame.rs` 7445), `esprintf` (`femacs/src/doprnt.rs` 552) and `cancel_mouse_face`
+  (`femacs/src/xdisp.rs` 31985).  **Open**: `FULLSCREEN_WIDTH`/`FULLSCREEN_HEIGHT`/
+  `FULLSCREEN_MAXIMIZED` (the mirror's Rust constants), `frame_set_left_pos`/`frame_set_top_pos`,
+  `FRAME_PIXEL_WIDTH_TO_TEXT_COLS`/`FRAME_PIXEL_HEIGHT_TO_TEXT_LINES` (class A) and
+  `SET_FRAME_GARBAGED` (the mirror's macro, `femacs/src/term.rs` 127).  **Deferred** (`## ABI`
+  (4)): `setFSValue` (declared src/nsterm.h 504, defined src/nsterm.m 9177 and unlanded;
+  `nsfns.swift` 411 declares the same entry for its own unit) and `windowDidMove` (C 8645,
+  unlanded).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **679** C symbol imports (round 69 read 667) and the tail line **`0 new, 0 stale, 7
+  Swift unit(s) landed`**, so no `docs/baseline/swift-units.tsv` row moves.
+* **Not claimed**: this round has **no runtime evidence** - no window was closed, moved, resized
+  or un-fullscreened; the compile gate reaches type checking only.

@@ -8703,6 +8703,230 @@ class EmacsView: NSView {
     }
   }
 
+  // ==========================================================================
+  // C 8195-8401: the window-shape family - the close veto, the frame-position
+  // update, the resize normalization and its two companions.
+  // ==========================================================================
+
+  /// C 8195-8209: `- (BOOL)windowShouldClose: (id)sender` - C's `NSEvent *e = [[self window]
+  /// currentEvent];` is the window's own accessor, and `NSTRACE` is empty at `NSTRACE_ENABLED` 0.
+  @objc func windowShouldClose(_ sender: Any?) -> Bool {
+    let e = self.window?.currentEvent                        // C 8197
+
+    windowClosing = true                                     // C 8200
+    if emacs_event == nil {                                  // C 8201
+      return false                                           // C 8202
+    }
+    input_event_set_kind(emacs_event!, DELETE_WINDOW_EVENT)  // C 8203
+    emacs_event!.pointee.modifiers = 0                       // C 8204
+    emacs_event!.pointee.code = 0                            // C 8205
+    EV_TRAILER(e, emacsframe)                                // C 8206
+    /* C 8207: "Don't close this window, let this be done from lisp code."  */
+    return false                                             // C 8208
+  }
+
+  /// C 8212-8240: `- (void)updateFramePosition`.  C's `[NSScreen screens]` /
+  /// `[screens objectAtIndex: 0]` are the class accessor and the array's own subscript (the
+  /// reading `ns_update_begin` uses), `NSMinX`/`NSMaxY` are the rect's accessors, and the two
+  /// `left_pos`/`top_pos` writes are member entries of the `frame_set_<member>` shape.
+  func updateFramePosition() {
+    let win = self.window                                    // C 8214
+    let r = win!.frame                                       // C 8215
+    let screens = NSScreen.screens                           // C 8216
+    /* C 8217: `NSScreen *screen = [screens objectAtIndex: 0];` - the subscript stays for C's own
+       evaluation (it raises on an empty array, the trap Swift's subscript has), and it is named
+       `_` because C's only reader is the always-true test recorded below.  */
+    _ = screens[0]                                           // C 8217
+
+    if frame_output_data_ns(emacsframe) == nil {             // C 8219
+      return                                                 // C 8220
+    }
+
+    /* C 8222: `if (screen != nil)`.  `NSScreen.screens`'s element type is non-optional in Swift,
+       so the test C writes cannot be false here (C's own `objectAtIndex: 0` raises on an empty
+       array, which is the trap Swift's subscript has); the body stands unguarded and this is the
+       reading, not a dropped guard.  */
+    do {
+      frame_set_left_pos(
+        emacsframe,
+        Int32(NSMinX(r) - NS_PARENT_WINDOW_LEFT_POS(emacsframe)))   // C 8224-8225
+      frame_set_top_pos(
+        emacsframe,
+        Int32(NS_PARENT_WINDOW_TOP_POS(emacsframe) - NSMaxY(r)))    // C 8226-8227
+
+      if emacs_event != nil {                                // C 8229
+        var ie = input_event(bits: 0, code: 0, modifiers: 0, x: nil, y: nil, timestamp: 0,
+                             frame_or_window: nil, arg: nil, device: nil)   // C 8231
+        EVENT_INIT(&ie)                                      // C 8232
+        input_event_set_kind(&ie, MOVE_FRAME_EVENT)          // C 8233
+        XSETFRAME(&ie.frame_or_window, emacsframe)           // C 8234
+        XSETINT(&ie.x, Int(frame_left_pos(emacsframe)))      // C 8235
+        XSETINT(&ie.y, Int(frame_top_pos(emacsframe)))       // C 8236
+        kbd_buffer_store_event(&ie)                          // C 8237
+      }
+    }
+  }
+
+  /// C 8243-8353: `- (NSSize)windowWillResize: (NSWindow *)sender toSize: (NSSize)frameSize` -
+  /// "Normalize frame to gridded text size."  C writes its by-value `frameSize` parameter, so
+  /// the port shadows it with a `var`.  The `NS_IMPL_COCOA` arm C 8285-8320 is this target's,
+  /// and the title it builds is C's own `"…  —  …"` separator.  C 8301's
+  /// `[[self window] title] != NULL` is a pointer test Swift's non-optional `title` cannot
+  /// express: the message to a nil window reads nil, and a non-nil window always has a title
+  /// string, so the test is written as the window test and named here.
+  @objc func windowWillResize(_ sender: NSWindow, to frameSize: NSSize) -> NSSize {
+    var frameSize = frameSize
+    var extra: Int32 = 0                                     // C 8246
+    var cols: Int32 = 0, rows: Int32 = 0                     // C 8247
+
+    // C 8249-8252: the four `NSTRACE*` calls - empty at `NSTRACE_ENABLED` 0.
+
+    if !FRAME_LIVE_P(emacsframe) {                           // C 8254
+      return frameSize                                       // C 8255
+    }
+
+    if fs_state == FULLSCREEN_MAXIMIZED()
+         && (maximized_width != Int32(frameSize.width)
+             || maximized_height != Int32(frameSize.height)) {   // C 8257-8259
+      setFSValue(self, FULLSCREEN_NONE())                     // C 8260
+    } else if fs_state == FULLSCREEN_WIDTH()
+                && maximized_width != Int32(frameSize.width) {  // C 8261-8262
+      setFSValue(self, FULLSCREEN_NONE())                     // C 8263
+    } else if fs_state == FULLSCREEN_HEIGHT()
+                && maximized_height != Int32(frameSize.height) {  // C 8264-8265
+      setFSValue(self, FULLSCREEN_NONE())                     // C 8266
+    }
+
+    if fs_state == FULLSCREEN_NONE() {                        // C 8268
+      maximized_width = -1                                    // C 8269
+      maximized_height = -1
+    }
+
+    if !self.isFullscreen() {                                 // C 8271
+      extra = frame_ns_titlebar_height(emacsframe)
+        + frame_toolbar_height(emacsframe)                   // C 8273-8274
+    }
+
+    cols = FRAME_PIXEL_WIDTH_TO_TEXT_COLS(emacsframe,
+                                          Int32(frameSize.width))   // C 8277
+    if cols < MINWIDTH {                                      // C 8278
+      cols = MINWIDTH                                         // C 8279
+    }
+
+    rows = FRAME_PIXEL_HEIGHT_TO_TEXT_LINES(
+      emacsframe, Int32(frameSize.height - CGFloat(extra)))    // C 8281-8282
+    if rows < MINHEIGHT {                                     // C 8283
+      rows = MINHEIGHT                                        // C 8284
+    }
+
+    /* C 8286-8319: the `NS_IMPL_COCOA` arm - "This sets window title to have size in it; the
+       wm does this under GS."  */
+    do {
+      let r = self.window!.frame                              // C 8288
+      if r.size.height == frameSize.height
+           && r.size.width == frameSize.width {                // C 8289
+        if old_title != nil {                                  // C 8291
+          xfree(old_title)                                     // C 8293
+          old_title = nil                                      // C 8294
+        }
+      }
+      /* C 8297-8298: "Redraw the window title with new dimensions only when actively being
+         resized by a user."  */
+      else if self.window!.inLiveResize && fs_state == FULLSCREEN_NONE()
+                && !maximizing_resize
+                && self.window != nil {                        // C 8299-8301
+        var size_title: UnsafeMutablePointer<CChar>?           // C 8303
+        let window = self.window!                              // C 8304
+        if old_title == nil {                                  // C 8305
+          let t = strdup(self.window!.title)                    // C 8307
+          let pos = strstr(t, "  —  ")                          // C 8308
+          if pos != nil {                                      // C 8309
+            pos!.pointee = 0                                    // C 8310
+          }
+          old_title = t                                        // C 8311
+        }
+        /* C 8313: `size_title = xmalloc (strlen (old_title) + 40);`  */
+        size_title = xmalloc(strlen(old_title!) + 40)!.assumingMemoryBound(to: CChar.self)
+        esprintf(size_title, "%s  —  (%d × %d)", old_title!, cols, rows)   // C 8314
+        window.title = (NSString(utf8String: size_title!) as String?) ?? ""  // C 8315
+        window.display()                                       // C 8316
+        xfree(size_title)                                      // C 8317
+      }
+    }
+
+    // C 8322: `NSTRACE_MSG ("cols: %d  rows: %d", cols, rows);` - empty.
+
+    /* C 8324-8329: "Restrict the new size to the text grid.  Don't restrict the width if the
+       user only adjusted the height, and vice versa. …"  */
+    if !frame_resize_pixelwise {                               // C 8330
+      let r = self.window!.frame                               // C 8332
+
+      if r.size.width != frameSize.width {                     // C 8334
+        frameSize.width =
+          CGFloat(FRAME_TEXT_COLS_TO_PIXEL_WIDTH(emacsframe, cols))    // C 8336-8337
+      }
+
+      if r.size.height != frameSize.height {                   // C 8340
+        frameSize.height =
+          CGFloat(FRAME_TEXT_LINES_TO_PIXEL_HEIGHT(emacsframe, rows) + extra)  // C 8342-8343
+      }
+    }
+
+    // C 8347: `NSTRACE_RETURN_SIZE (frameSize);` - empty.
+
+    /* C 8349: "Trigger `move-frame-functions' (Bug#74074)."  */
+    windowDidMove_entry(self, Unmanaged.passUnretained(sender).toOpaque())  // C 8350
+
+    return frameSize                                           // C 8352
+  }
+
+  /// C 8356-8370: `- (void)viewDidEndLiveResize`, the whole `NS_IMPL_COCOA` arm.
+  @objc override func viewDidEndLiveResize() {
+    // C 8359: `NSTRACE ("[EmacsView viewDidEndLiveResize]");` - empty.
+
+    super.viewDidEndLiveResize()                               // C 8361
+    if old_title != nil {                                      // C 8362
+      /* C 8364: `[[self window] setTitle: [NSString stringWithUTF8String: old_title]];`  */
+      self.window!.title = (NSString(utf8String: old_title!) as String?) ?? ""
+      xfree(old_title)                                         // C 8365
+      old_title = nil                                          // C 8366
+    }
+    maximizing_resize = false                                  // C 8368
+  }
+
+  /// C 8373-8401: `- (void)resizeWithOldSuperviewSize: (NSSize)oldSize`.  C's
+  /// `[[self superview] bounds]` reads as the optional chain with C's own zero rect when there
+  /// is no superview, `NSWidth`/`NSHeight` are the rect's accessors, `[self setFrame:]` is the
+  /// overridden property (C 8538's method) and the `NSTRACE` pair is empty.
+  @objc override func resize(withOldSuperviewSize oldSize: NSSize) {
+    var frame: NSRect                                          // C 8375
+    var width: Int32 = 0, height: Int32 = 0                    // C 8376
+
+    // C 8378: `NSTRACE ("[EmacsView resizeWithOldSuperviewSize:]");` - empty.
+
+    super.resize(withOldSuperviewSize: oldSize)                 // C 8380
+
+    if !FRAME_LIVE_P(emacsframe) {                              // C 8382
+      return                                                    // C 8383
+    }
+
+    frame = self.superview?.bounds ?? .zero                     // C 8385
+    width = Int32(frame.width)                                  // C 8386
+    height = Int32(frame.height)                                // C 8387
+
+    // C 8389: `NSTRACE_SIZE ("New size", NSMakeSize (width, height));` - empty.
+
+    /* C 8391-8394: "Reset the frame size to match the bounds of the superview (the NSWindow's
+       contentView).  We need to do this as sometimes the view's frame isn't resized correctly,
+       or can end up with the wrong origin."  */
+    self.frame = frame                                          // C 8395
+    change_frame_size(emacsframe, width, height, false, true, false)   // C 8396
+
+    SET_FRAME_GARBAGED(emacsframe)                              // C 8398
+    cancel_mouse_face(emacsframe)                               // C 8399
+    ns_send_appdefined(-1)                                      // C 8400
+  }
+
   /// C 8404-8408: `- (void)windowDidBecomeKey: (NSNotification *)notification` - C's comment above
   /// it is "cf. x_detect_focus_change(), x_focus_changed(), x_new_focus_frame()" and its body is
   /// the direct-call variant below.
@@ -13068,3 +13292,84 @@ func mouse_highlight_set_mouse_face_hidden(_ hlinfo: UnsafeMutableRawPointer?, _
 /// reads.  Provided: `femacs/src/xdisp.rs` 2775.
 @_silgen_name("previous_help_echo_string")
 var previous_help_echo_string_entry: Lisp_Object
+
+// ==========================================================================
+// Round 70: the entries the window-shape family needs
+// ==========================================================================
+
+/// C: `DELETE_WINDOW_EVENT` and `MOVE_FRAME_EVENT` (src/termhooks.h 188 and 239, members of the
+/// `enum event_kind` declared at src/termhooks.h 74) - C 8203's and C 8233's writes.
+/// Mirror-valued constants, the `MONITORS_CHANGED_EVENT` reading
+/// (`femacs/src/include/termhooks.rs` 39 and 51: 12 and 24).
+fileprivate let DELETE_WINDOW_EVENT: UInt32 = 12
+fileprivate let MOVE_FRAME_EVENT: UInt32 = 24
+
+/// C: `#define MINWIDTH 10` and `#define MINHEIGHT 10` (src/nsterm.h 1268-1269) - C 8278/8283's
+/// two floors.  Macros over a literal, landed as file-scope `let`s (the `DOCK_IGNORE_LIMIT`
+/// reading, C 708).
+fileprivate let MINWIDTH: Int32 = 10
+fileprivate let MINHEIGHT: Int32 = 10
+
+/// C: `FULLSCREEN_WIDTH`, `FULLSCREEN_HEIGHT` and `FULLSCREEN_MAXIMIZED` (src/frame.h 51-55's
+/// `enum fullscreen_type`; `1`, `2` and `4`) - C 8257-8268's three tests and C 8260/8263/8266's
+/// three `setFSValue:` arguments.  **Open**: the mirror carries them as Rust constants
+/// (`femacs/src/include/frame.rs`) with no C symbol yet - the `FULLSCREEN_NONE` entry above and
+/// the `up_modifier` reading.
+@_silgen_name("FULLSCREEN_WIDTH") func FULLSCREEN_WIDTH() -> Int32
+@_silgen_name("FULLSCREEN_HEIGHT") func FULLSCREEN_HEIGHT() -> Int32
+@_silgen_name("FULLSCREEN_MAXIMIZED") func FULLSCREEN_MAXIMIZED() -> Int32
+
+/// C: `- (void) setFSValue: (int)value` on this class (declared src/nsterm.h 504, defined
+/// src/nsterm.m 9177) - C 8260/8263/8266's message.  That body has not landed, so the call goes
+/// through the entry of the method's own name with the receiver first (the shape
+/// `nsfns.swift` 411 already declares for its own unit); the definition lands with that
+/// method's round, and `nm -u` stopping to list `_setFSValue` is the acceptance test.
+@_silgen_name("setFSValue") func setFSValue(_ view: NSView?, _ value: Int32)
+
+/// C: `- (void)windowDidMove: sender` (C 8645, this class's own method) - C 8350's direct call.
+/// **Deferred** (`## ABI` (4)): that batch has not landed, so the message uses a C-ABI entry of
+/// the selector's name with the receiver first (the `adjustEmacsFrameRect` reading), under a
+/// Swift name that is not the definition's; C's own argument is the `sender` it casts to
+/// `NSNotification *`, and the port passes the pointer C passes (the cast itself is C's).
+@_silgen_name("windowDidMove")
+func windowDidMove_entry(_ view: NSView?, _ sender: UnsafeMutableRawPointer?)
+
+/// C: the `struct frame` members `f->left_pos` and `f->top_pos` (src/frame.h 604) - C
+/// 8224-8227's **writes**; C 8235/8236 read the same members back through `frame_left_pos`/
+/// `frame_top_pos` above.  **Open**, the member-write shape `frame_set_<member>`.
+@_silgen_name("frame_set_left_pos")
+func frame_set_left_pos(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("frame_set_top_pos")
+func frame_set_top_pos(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `#define FRAME_PIXEL_WIDTH_TO_TEXT_COLS(f, width)` and `#define
+/// FRAME_PIXEL_HEIGHT_TO_TEXT_LINES(f, height)` (src/frame.h 1774-1786) - C 8277/8281's two
+/// conversions; class A header-only constructs whose bodies divide by `FRAME_COLUMN_WIDTH` and
+/// `FRAME_LINE_HEIGHT`.  **Open**: the mirror carries them as Rust functions
+/// (`femacs/src/include/frame.rs` 1841), which have no C symbol yet.
+@_silgen_name("FRAME_PIXEL_WIDTH_TO_TEXT_COLS")
+func FRAME_PIXEL_WIDTH_TO_TEXT_COLS(_ f: UnsafeMutableRawPointer?, _ width: Int32) -> Int32
+@_silgen_name("FRAME_PIXEL_HEIGHT_TO_TEXT_LINES")
+func FRAME_PIXEL_HEIGHT_TO_TEXT_LINES(_ f: UnsafeMutableRawPointer?, _ height: Int32) -> Int32
+
+/// C: `bool frame_resize_pixelwise` (a `DEFVAR_BOOL` variable, src/frame.c 7625) - C 8330's
+/// read.  Provided: `femacs/src/frame.rs` 7445.
+@_silgen_name("frame_resize_pixelwise") var frame_resize_pixelwise: Bool
+
+/// C: `ptrdiff_t esprintf (char *buf, char const *format, ...)` (declared src/lisp.h 4717,
+/// defined src/doprnt.c 552) - C 8314's call, whose result C discards.  The variadic entry is
+/// declared the way this unit's `fprintf` is (C 728's reading).  Provided:
+/// `femacs/src/doprnt.rs` 552.
+@_silgen_name("esprintf")
+func esprintf(_ buf: UnsafeMutablePointer<CChar>?, _ format: UnsafePointer<CChar>,
+              _ args: CVarArg...)
+
+/// C: `#define SET_FRAME_GARBAGED(f) (frame_garbaged = true, fset_redisplay (f), f->garbaged =
+/// true)` (src/frame.h 1173-1174) - C 8398's call, the comma expression C discards.  **Open**:
+/// the mirror carries it as a Rust macro (`femacs/src/term.rs` 127), so it has no C symbol yet
+/// (the `SET_FRAME_VISIBLE` reading above).
+@_silgen_name("SET_FRAME_GARBAGED") func SET_FRAME_GARBAGED(_ f: UnsafeMutableRawPointer?)
+
+/// C: `void cancel_mouse_face (struct frame *)` (declared src/dispextern.h 3690, defined
+/// src/xdisp.c 37724) - C 8399's call.  Provided: `femacs/src/xdisp.rs` 31985.
+@_silgen_name("cancel_mouse_face") func cancel_mouse_face(_ f: UnsafeMutableRawPointer?)

@@ -16568,3 +16568,36 @@
      `check-citations` 会抓的那类漂移）；**对象 `/tmp/nsterm69.o` 与两个 `/tmp/r69*.swift` 片段跑完即删**，无全盘/大内存扫描。
   ⑧ **未声称**：本轮**没有运行证据**——没有任何鼠标按键、滚轮、拖动或捏合事件被投递过；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.010 `src/nsterm.m` round 70（Swift lane）：窗口形状族落地（C 8195-8401，五个方法），并写出两处"Swift 的类型让 C 的测试恒真"的读数（2026-10-08）**：
+  ① **落地五个 `EmacsView` 方法**：`windowShouldClose:`（C 8195-8209，关窗否决）、`updateFramePosition`（C 8212-8240）、
+     `windowWillResize:toSize:`（C 8243-8353，含 `NS_IMPL_COCOA` 的标题臂 C 8285-8320）、`viewDidEndLiveResize`
+     （C 8356-8370）与 `resizeWithOldSuperviewSize:`（C 8373-8401）。台账勾 **5 个框**（勾 **364 → 369**、未勾 **66 → 61**），
+     `EmacsView` 类盒子那行同时改成"还剩 **60** 个方法盒子"。
+  ② **首跑七处编译错误，逐处量到判据（实测）**：⑴ `FRAME_NS_TITLEBAR_HEIGHT`/`FRAME_TOOLBAR_HEIGHT` 在本单元
+     **不是入口而是被展开的宏**（`frame_ns_titlebar_height` C 2076 与 `frame_toolbar_height`，round 9 那条读法），
+     C 8273-8274 调这两个；⑵ `NSWindow.title` 在 Swift 里是 `String` 而不是 `NSString` ⇒ C 8307 的
+     `[[[self window] title] UTF8String]` 就是这个字符串本身；⑶ `strdup`/`xmalloc` 返回可选值 ⇒ C 8313 的
+     `strlen (old_title)` 与 `assumingMemoryBound` 转换要解包；⑷ `esprintf`（按本单元 `fprintf` 的形状声明）无返回值
+     ⇒ C 8314 的调用不带 `_ =`；⑸ C 8350 的 `(NSNotification *)sender` 强转不是 Swift 的 `as` ⇒ 延迟入口收指针、
+     调用点传 `Unmanaged.passUnretained (sender).toOpaque ()`（C 自己的强转写在注释里点名）。
+  ③ **两处"类型让测试恒真"的读数写进代码、不静默丢弃**：C 8222 的 `if (screen != nil)`（`NSScreen.screens` 的元素
+     在 Swift 里非可选 ⇒ 该守卫不可能为假；下标保留，因为它与 C 的 `objectAtIndex: 0` 一样在空数组上抛），
+     与 C 8301 的 `[[self window] title] != NULL`（同一形状：向 nil 窗口发消息得 nil，非 nil 窗口总有标题字符串）。
+  ④ **本轮新增 12 个入口 + 四个文件级常量**：常量是 `DELETE_WINDOW_EVENT` 12、`MOVE_FRAME_EVENT` 24
+     （`femacs/src/include/termhooks.rs` 39/51）与 `MINWIDTH`/`MINHEIGHT` 10（src/nsterm.h 1268-1269，`DOCK_IGNORE_LIMIT`
+     那条读法）；入口里 **3 个已提供**（`frame_resize_pixelwise` `femacs/src/frame.rs` 7445、`esprintf`
+     `femacs/src/doprnt.rs` 552、`cancel_mouse_face` `femacs/src/xdisp.rs` 31985），其余按既有写法记 **open**
+     （三个 `FULLSCREEN_*`、两个 `frame_set_left_pos/top_pos`、两个 `FRAME_PIXEL_*_TO_TEXT_*`、`SET_FRAME_GARBAGED`），
+     两个记 **deferred**（`setFSValue`：声明 src/nsterm.h 504、定义 src/nsterm.m 9177，未落地；`nsfns.swift` 411 为它自己
+     那一侧声明了同名入口。`windowDidMove`：C 8645，未落地）。
+  ⑤ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 69 的九条逐条相同；首跑七错，
+     修完后多出一条新警告——非可选的 `NSScreen` 与 `nil` 比较恒真——按 ③ 的写法消除，条数回到九）；对象
+     `/tmp/nsterm70.o` **1,247,272 字节**、md5 `c530148f7175dc192db135f624bb91cd`；单元 **13,375 行**。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **679** C symbol import(s)`
+     （round 69 是 667），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**，`docs/baseline/swift-units.tsv` 一行未动。
+  ⑥ **预算与清理**：本片编译 **3 发**（首跑 7 错 + 修后 1 错 1 新警告 + 复读 1，都是单文件 `swiftc -c`，每次约 2 秒）；
+     另用 **9 组只读 grep/awk** 把 C 的行号与入口名钉准（首版把宏当入口、把 `NSString`/`String` 混用，都由编译门当场量出）；
+     **对象 `/tmp/nsterm70.o` 与两个 `/tmp/r70*.swift` 片段跑完即删**，无全盘/大内存扫描。
+  ⑦ **未声称**：本轮**没有运行证据**——没有窗口被关闭、移动、缩放或退出全屏；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
