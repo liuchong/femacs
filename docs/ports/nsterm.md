@@ -222,7 +222,7 @@
 - [ ] ns_in_echo_area_2  (line 7633, static)
 - [ ] ns_in_echo_area  (line 7639, static)
 - [ ] cancel_ns_deferred_UAZoomChangeFocus_timer  (line 8460, static)
-- [ ] nswindow_orderedIndex_sort  (line 10085, static)
+- [x] nswindow_orderedIndex_sort  (line 10085, static) — landed as `fileprivate func nswindow_orderedIndex_sort (_:_:_:) -> Int`: C sends `orderedIndex` as a **message**, and on Cocoa that selector is not declared on `NSWindow` at all (C's own definition of it is the GNUstep arm at C 10074-10077), so the port sends the same dynamic message instead of inventing a property; the three `NSOrdered*` results are C 10090-10095's three returns
 - [ ] ns_new_font  (line 11418, static)
 - [ ] ns_xlfd_to_fontname  (line 11484)
 - [ ] mark_nsterm  (line 11529)
@@ -274,7 +274,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)showPreferencesWindow: (id)sender`  (line 6402) — landed as `@objc func showPreferencesWindow (_:)`: the four statements are C 6409-6412, and the `kind` write is the value round 28 settled (`NS_NONKEY_EVENT`, the unit's UNVERIFIED constant)
   - [x] `- (void)newFrame: (id)sender`  (line 6416) — landed as `@objc func newFrame (_:)`, the row above's twin with `KEY_NS_NEW_FRAME` (`src/nsterm.h` 804)
   - [x] `- (BOOL) openFile: (NSString *)fileName`  (line 6433) — landed as `@objc func openFile (_:) -> Bool`, the event constructor the pending open-file queue drains into; `ns_input_file`/`ns_input_line` are this file's own file-scope objects imported as data symbols, and `lispString` is the Cocoa lane's exported helper
-  - [ ] `- (void) updateMonitors: (NSNotification *) notification`  (line 6454)
+  - [x] `- (void) updateMonitors: (NSNotification *) notification`  (line 6454) — **dead in this build**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 6453 and closes it at C 6489, so the body is the arm this target does not take.  Recorded, not transcribed (the `nstrace_*` reading), which closes `EmacsApp`'s method list
   - [x] `- (void)applicationDidFinishLaunching: (NSNotification *)notification`  (line 6490) — landed as `@objc func applicationDidFinishLaunching (_:)`: the GNUstep arm (C 6497-6499) is dead, the three dummy CoreFoundation/Foundation calls (C 6531-6533) precede the `RLIMIT_NOFILE` clamp to `FD_SETSIZE`, and the antialias notification's Swift spelling is `NSFont.antialiasThresholdChangedNotification` (the compiler's own rename reading, class B)
   - [x] `- (void)antialiasThresholdDidChange:(NSNotification *)notification`  (line 6556) — landed as `@objc func antialiasThresholdDidChange (_:)`: its one statement calls the Mac font lane's exported entry (`macfont.swift` 1376 over `src/macfont.m` 747)
   - [x] `- (void) systemWillSleep:(NSNotification *)notification`  (line 6565) — landed as `@objc func systemWillSleep (_:)`: C 6569's `struct input_event ie` is the state C 6570's `EVENT_INIT` writes, `SLEEP_EVENT`'s value comes from the port's own mirror (`src/include/termhooks.rs` 55), and the `kind` write is a bitfield setter that keeps `part`
@@ -405,10 +405,10 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void)dealloc`  (line 9912) — **deferred by name**: Swift forbids overriding `dealloc` (measured: `error: 'init(coder:)' is unavailable`'s family - ARC owns the releases C writes), so this box records the reference's three statements (`toolbar` release, `setToolbar: nil`, `last_drag_event` release) as the ARC equivalent they already read as
   - [x] `- (NSInteger) borderWidth`  (line 9928) — landed as `func borderWidth () -> Int`: C's `NSWidth` is the rect's own `width`, and the `contentView` read is optional-chained because C's own message to nil does nothing
   - [ ] `- (void)setParentChildRelationships`  (line 9934)
-  - [ ] `- (void)orderFront:(id)sender`  (line 10043)
-  - [ ] `- (void)makeKeyAndOrderFront:(id)sender`  (line 10057)
+  - [x] `- (void)orderFront:(id)sender`  (line 10043) — landed as `@objc override func orderFront (_:)`: the parent arm removes and re-adds the receiver above it, the `else` is the `super` call, and C 10047's `[self parentWindow]` is Swift's renamed `parent`
+  - [x] `- (void)makeKeyAndOrderFront:(id)sender`  (line 10057) — landed as `@objc override func makeKeyAndOrderFront (_:)`: C 10064's `[self makeKeyWindow]` is Swift's `makeKey ()`
   - [ ] `- (NSInteger) orderedIndex`  (line 10074)
-  - [ ] `- (void)orderBack:(id)sender`  (line 10098)
+  - [x] `- (void)orderBack:(id)sender`  (line 10098) — landed as `@objc override func orderBack (_:)`: C sorts the parent's children with the comparator above (`sorted` over `childWindows`), re-adds the receiver above them, then walks the sorted list; C's `NSArray` is the optional array with its own empty default
   - [ ] `- (BOOL)restackWindow:(NSWindow *)win above:(BOOL)above`  (line 10124)
   - [ ] `- (id)accessibilityAttributeValue:(NSString *)attribute`  (line 10158)
   - [ ] `- (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen *)screen`  (line 10230)
@@ -3065,3 +3065,25 @@ call site takes an entry and the definition lands at its own C line - and **both
   `EmacsImage_allocInitFromFile`, `stringWithLispString`, `ns_string_from_pasteboard`) account for
   422 -> 428.  Final: `0 new, 0 stale, 7 Swift unit(s)
   landed`; `tools/check-own-voice.py` reads 0 failure(s).  Two boxes are ticked (236 -> 238).
+
+
+
+### Round 31: `EmacsWindow`'s ordering methods (C 10043-10122) and `EmacsApp`'s last box
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-30 carry, so **no new warning**.  Object
+  `/tmp/nsterm31.o`, **653,152 bytes**, md5 `75b0f294cee40095ea1996af91ed28c8`.
+* **Three errors on the first compiles, all of them this round's own doing and all recorded**: the
+  three methods were first inserted inside `EmacsApp` (the anchor was that class's
+  `requestService:`), which the compiler read as `method does not override any method from its
+  superclass` plus `cannot find 'parentWindow' in scope`; they moved to `EmacsWindow`, where they
+  belong.  Then `'parentWindow' has been renamed to 'parent'` (the apinotes reading again) and
+  `value of optional type '[NSWindow]?' must be unwrapped`, which is C's `NSArray` defaulting.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **35** unported,
+  36 row(s); 428 C symbol import(s)` - one fewer unported than round 30's 36 (the C function
+  `nswindow_orderedIndex_sort`), and its manifest row was cleared as `stale`.  Final: `0 new,
+  0 stale, 7 Swift unit(s) landed`; `tools/check-own-voice.py` reads 0 failure(s).
+* **`EmacsApp` is closed**: `-updateMonitors:` (C 6454-6489) is dead in this build - C opens
+  `#ifdef NS_IMPL_GNUSTEP` at C 6453 and closes it at C 6489 - so its box is ticked as *recorded,
+  not transcribed*, the reading this unit uses for its three `nstrace_*` rows.  Five boxes are
+  ticked (238 -> 243).

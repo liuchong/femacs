@@ -7402,6 +7402,51 @@ class EmacsWindow: NSWindow {
   func setLastDragEvent(_ event: NSEvent) {
     last_drag_event = event.copy() as? NSEvent         // C 10467
   }
+
+  /// C 10043-10055: `- (void)orderFront:(id)sender` - C's parent-window arm removes and re-adds
+  /// the receiver above it, and the `else` is the `super` call.
+  @objc override func orderFront(_ sender: Any?) {
+    let parent = parent                                   // C 10047 (the renamed spelling)
+    if parent != nil {                                    // C 10048
+      parent!.removeChildWindow(self)                     // C 10050
+      parent!.addChildWindow(self, ordered: .above)       // C 10051
+    } else {
+      super.orderFront(sender)                            // C 10054
+    }
+  }
+
+  /// C 10057-10068: `- (void)makeKeyAndOrderFront:(id)sender` - the parent arm orders the receiver
+  /// front and makes it key; the `else` is the `super` call.
+  @objc override func makeKeyAndOrderFront(_ sender: Any?) {
+    if parent != nil {                                    // C 10061 (the renamed spelling)
+      orderFront(sender)                                  // C 10063
+      makeKey()                                           // C 10064 (Swift's name for makeKeyWindow)
+    } else {
+      super.makeKeyAndOrderFront(sender)                  // C 10067
+    }
+  }
+
+  /// C 10098-10122: `- (void)orderBack:(id)sender`.  C sorts the parent's children with the
+  /// comparator above, re-adds the receiver above them all, then walks the sorted list re-adding
+  /// every other window in turn; the `else` is the `super` call.
+  @objc override func orderBack(_ sender: Any?) {
+    let parent = parent                                   // C 10102 (the renamed spelling)
+    if parent != nil {                                    // C 10103
+      let children = (parent!.childWindows ?? [])        // C 10105-10107
+        .sorted { nswindow_orderedIndex_sort($0 as AnyObject, $1 as AnyObject, nil) < 0 }
+      parent!.removeChildWindow(self)                     // C 10108
+      parent!.addChildWindow(self, ordered: .above)       // C 10109
+
+      for win in children {                               // C 10111
+        if win != self {                                  // C 10113
+          parent!.removeChildWindow(win)                  // C 10115
+          parent!.addChildWindow(win, ordered: .above)    // C 10116
+        }
+      }
+    } else {
+      super.orderBack(sender)                             // C 10121
+    }
+  }
 }
 
 // ==========================================================================
@@ -7917,4 +7962,25 @@ func EmacsImage_allocInitFromFile(_ file: Lisp_Object) -> AnyObject?
 @_silgen_name("stringWithLispString") func stringWithLispString(_ string: Lisp_Object) -> NSString?
 @_silgen_name("ns_string_from_pasteboard")
 func ns_string_from_pasteboard(_ pb: NSPasteboard?) -> Lisp_Object
+
+// ==========================================================================
+// Round 31: `EmacsWindow`'s ordering methods (C 10043-10122)
+// ==========================================================================
+
+/// C 10084-10096: `static NSInteger nswindow_orderedIndex_sort (id w1, id w2, void *c)` - the
+/// comparator `orderBack:` sorts its parent's children with.  C sends `orderedIndex` as a
+/// **message**, and on Cocoa that selector is not declared on `NSWindow` at all (C's own
+/// definition of it sits in the `NS_IMPL_GNUSTEP` arm at C 10074-10077), so the port sends the
+/// same dynamic message rather than inventing a property.
+fileprivate func nswindow_orderedIndex_sort(_ w1: AnyObject, _ w2: AnyObject,
+                                           _ c: UnsafeMutableRawPointer?) -> Int {
+  let i1 = Int(bitPattern: (w1 as AnyObject).perform(Selector(("orderedIndex")))?
+                 .takeUnretainedValue() as? UInt ?? 0)                       // C 10087
+  let i2 = Int(bitPattern: (w2 as AnyObject).perform(Selector(("orderedIndex")))?
+                 .takeUnretainedValue() as? UInt ?? 0)                       // C 10088
+
+  if i1 > i2 { return -1 } /* NSOrderedAscending */                         // C 10090-10091
+  if i1 < i2 { return 1 }  /* NSOrderedDescending */                        // C 10092-10093
+  return 0                 /* NSOrderedSame */                              // C 10095
+}
 
