@@ -295,7 +295,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch
+- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) and round 69 the mouse event family (C 7783-8193) - **65 of the class's method boxes remain**
   - [ ] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041)
   - [ ] `- (void) setWindowClosing: (BOOL)closing`  (line 7047)
   - [ ] `- (void)dealloc`  (line 7055)
@@ -326,18 +326,18 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (NSUInteger)characterIndexForPoint: (NSPoint)thePoint`  (line 7759) — landed as `@objc func characterIndexForPoint (_:) -> UInt`, C's whole body being `return 0;`
   - [x] `- (unsigned int)characterIndexForPoint: (NSPoint)thePoint`  (line 7761; the `#if defined (NS_IMPL_COCOA) || GNUSTEP_GUI…` arm of the box above) — the same selector and the same body; this target takes C 7757's first conjunct, so the row above is the live spelling and the two share one Swift `func`
   - [ ] `- (NSAttributedString *)attributedSubstringFromRange: (NSRange)theRange`  (line 7769)
-  - [ ] `- (void)mouseDown: (NSEvent *)theEvent`  (line 7783)
-  - [ ] `- (void)rightMouseDown: (NSEvent *)theEvent`  (line 8022)
-  - [ ] `- (void)otherMouseDown: (NSEvent *)theEvent`  (line 8029)
-  - [ ] `- (void)mouseUp: (NSEvent *)theEvent`  (line 8036)
-  - [ ] `- (void)rightMouseUp: (NSEvent *)theEvent`  (line 8043)
-  - [ ] `- (void)otherMouseUp: (NSEvent *)theEvent`  (line 8050)
-  - [ ] `- (void) scrollWheel: (NSEvent *)theEvent`  (line 8057)
-  - [ ] `- (void)mouseMoved: (NSEvent *)e`  (line 8065)
-  - [ ] `- (void)mouseDragged: (NSEvent *)e`  (line 8138)
-  - [ ] `- (void)rightMouseDragged: (NSEvent *)e`  (line 8145)
-  - [ ] `- (void)otherMouseDragged: (NSEvent *)e`  (line 8152)
-  - [ ] `- (void) magnifyWithEvent: (NSEvent *) event`  (line 8159)
+  - [x] `- (void)mouseDown: (NSEvent *)theEvent`  (line 7783) — landed as `@objc override func mouseDown (with:)`: C 7808-7810's `MAC_OS_X_VERSION_MIN_REQUIRED < 1070` guard around `respondsToSelector: (hasPreciseScrollingDeltas)` and C 7952-7955's `else` twin are **dead on this target**, C 7957-7979's `NS_IMPL_GNUSTEP || MIN_REQUIRED < 1070` coarse-wheel arm is **dead as a whole** (both recorded, not transcribed); C 7823's `bool horizontal;` is read by C 7944 when neither branch assigned it, and Swift has no indeterminate value, so the port starts it at zero and records the deviation; the wheel and tab-bar arms' entries are round 69's ABI block (`list3`, `mwheel_coalesce_scroll_events`, `default_line_pixel_height`, `NUMBERP`/`XFLOATINT`, `window_from_coordinates`, `handle_tab_bar_click`, `frame_tab_bar_window`, the `ns_display_info_grabbed` reader)
+  - [x] `- (void)rightMouseDown: (NSEvent *)theEvent`  (line 8022) — landed as `@objc override func rightMouseDown (with:)`; C's whole body is `[self mouseDown: theEvent]`
+  - [x] `- (void)otherMouseDown: (NSEvent *)theEvent`  (line 8029) — landed as `@objc override func otherMouseDown (with:)`; the forward, like its sibling above
+  - [x] `- (void)mouseUp: (NSEvent *)theEvent`  (line 8036) — landed as `@objc override func mouseUp (with:)`; the forward
+  - [x] `- (void)rightMouseUp: (NSEvent *)theEvent`  (line 8043) — landed as `@objc override func rightMouseUp (with:)`; the forward
+  - [x] `- (void)otherMouseUp: (NSEvent *)theEvent`  (line 8050) — landed as `@objc override func otherMouseUp (with:)`; the forward
+  - [x] `- (void) scrollWheel: (NSEvent *)theEvent`  (line 8057) — landed as `@objc override func scrollWheel (with:)`; C's `NSTRACE` spelling carries the space and the body is the forward
+  - [x] `- (void)mouseMoved: (NSEvent *)e`  (line 8065) — landed as `@objc override func mouseMoved (with:)`: C 8097's `static Lisp_Object last_mouse_window` is the file-scope `last_mouse_window`, the three `ns_display_info` member writes are new entries, `clear_mouse_face`, `gen_help_event`, the three `help_echo_*` readers, `previous_help_echo_string`, `Vmouse_autoselect_window`, `selected_window`, `focus_follows_mouse`, `MINI_WINDOW_P` and `frame_mouse_moved` are round 69's ABI block, and `NSTRACE_WHEN`/`NSTRACE_MSG` are empty at `NSTRACE_ENABLED` 0
+  - [x] `- (void)mouseDragged: (NSEvent *)e`  (line 8138) — landed as `@objc override func mouseDragged (with:)`; C's body is `[self mouseMoved: e]`
+  - [x] `- (void)rightMouseDragged: (NSEvent *)e`  (line 8145) — landed as `@objc override func rightMouseDragged (with:)`; the forward to `mouseMoved:`, like its sibling above
+  - [x] `- (void)otherMouseDragged: (NSEvent *)e`  (line 8152) — landed as `@objc override func otherMouseDragged (with:)`; the forward
+  - [x] `- (void) magnifyWithEvent: (NSEvent *) event`  (line 8159) — landed as `@objc override func magnify (with:)` (Swift's own rename of the selector, class B): the body is the live `NS_IMPL_COCOA && MAC_OS_X_VERSION_10_7` arm, C 8162's `static CGFloat last_scale` is the file-scope `last_scale`, and C 8188's `last_scale += [event magnification]` is hoisted out of `make_float`'s argument list (that argument is the variable's only reader, so the list's value is unchanged)
   - [ ] `- (BOOL)windowShouldClose: (id)sender`  (line 8195)
   - [ ] `- (void)updateFramePosition`  (line 8212)
   - [ ] `- (NSSize)windowWillResize: (NSWindow *)sender toSize: (NSSize)frameSize`  (line 8243)
@@ -4575,3 +4575,58 @@ call site takes an entry and the definition lands at its own C line - and **both
   fired, no rect was set; the compile gate reaches parsing and type checking only, and
   `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.  After this
   round the lane's only open class is `EmacsView` (78 boxes) plus `NS_KEYLOG`.
+
+### Round 69: the mouse event family (C 7783-8193), and a correction to round 68's `gen_help_event`
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **nine** warnings - the same nine round 68 leaves.  The first run added a **tenth**: C 7926's
+  `fabs` is deprecated in Swift ("renamed to 'abs'"), so the port takes the SDK's own spelling
+  (`abs`; class B, the `NSRectFill` -> `NSRect.fill` reading) and the count returns to nine.
+  Object `/tmp/nsterm69.o`, **1,226,624 bytes**, md5 `173eaf78bbd20b874a11359b03b31958`.  The unit
+  is **13,067 lines**.
+* **Twelve `EmacsView` methods land**: `mouseDown:` (C 7783-8019, the file's longest method - the
+  wheel arm and the tab-bar arm), the six one-line forwards (`rightMouseDown:` C 8022,
+  `otherMouseDown:` C 8029, `mouseUp:` C 8036, `rightMouseUp:` C 8043, `otherMouseUp:` C 8050,
+  `scrollWheel:` C 8057), `mouseMoved:` (C 8065-8135), the three forwards to it (`mouseDragged:`
+  C 8138, `rightMouseDragged:` C 8145, `otherMouseDragged:` C 8152) and `magnifyWithEvent:`
+  (C 8159-8192).  The class box's own text is brought up to date in the same round (65 of the
+  class's method boxes remain).
+* **Three dead arms recorded, not transcribed** (the `hide_bell`/`ns_update_window_end` reading):
+  C 7808-7810's `#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070` guard around
+  `respondsToSelector: (hasPreciseScrollingDeltas)` and its `else` twin at C 7952-7955 (both are
+  about a target older than this one, so C's live statement is the body C 7812-7951), and
+  C 7957-7979's `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 1070` coarse-wheel arm as a
+  whole.
+* **One deviation**: C 7823's `bool horizontal;` is read by C 7944 when neither branch of the
+  delta test assigned it.  Swift has no indeterminate value, so the port starts it at `false` and
+  says so at the declaration and here (upstream's own arm would read whatever was on the stack).
+* **The ABI block adds 26 entries and six mirror-valued enumerator constants**
+  (`MOUSE_CLICK_EVENT` 5, `WHEEL_EVENT` 6, `HORIZ_WHEEL_EVENT` 7, `SELECT_WINDOW_EVENT` 25,
+  `TOUCH_END_EVENT` 30, `PINCH_EVENT` 34 - read off `femacs/src/include/termhooks.rs`
+  32/33/34/52/57/61).  **Provided** (each measured by grep): `list3` (`femacs/src/alloc.rs` 2975),
+  `list4` (2982), `window_from_coordinates` (`femacs/src/window.rs` 1861),
+  `default_line_pixel_height` (`femacs/src/xdisp.rs` 3120), `clear_mouse_face` (30424),
+  `mwheel_coalesce_scroll_events` (`femacs/src/keyboard.rs` 14411), `Vmouse_autoselect_window`
+  (`femacs/src/xdisp.rs` 32065), `selected_window` (`femacs/src/window.rs` 253),
+  `focus_follows_mouse` (`femacs/src/frame.rs` 7443), `help_echo_window`/`help_echo_object`/
+  `help_echo_pos`/`previous_help_echo_string` (`femacs/src/xdisp.rs` 2766/2768/2770/2775) and
+  `frame_tab_bar_window` (`femacs/src/abi_shim.rs` 277, whose own comment carries the frozen
+  configuration's `Qnil` ruling).  **Open** (the core's to export, each with the reason in its
+  comment): `handle_tab_bar_click` (the port carries the tty spelling only,
+  `femacs/src/xdisp.rs` 15839), `NUMBERP`/`XFLOATINT` (class A header-only constructs the mirror
+  carries as Rust macros), `MINI_WINDOW_P`, `frame_mouse_moved` (the mirror's macro,
+  `femacs/src/term.rs` 121), and the member entries `ns_display_info_set_last_mouse_frame`,
+  `ns_display_info_set_last_mouse_movement_time`, `ns_display_info_set_last_mouse_motion_x`/`_y`,
+  `ns_display_info_grabbed` and `mouse_highlight_mouse_face_hidden`/
+  `mouse_highlight_set_mouse_face_hidden` (the `<record>_<member>` family, `docs/ports/nsmenu.md`
+  311-328).
+* **A correction to round 68**: the `gen_help_event` entry was declared `-> Lisp_Object` while C's
+  declaration (src/keyboard.h 513) and the port's own definition (`femacs/src/keyboard.rs` 4296)
+  return nothing - the `_ =` at C 8520's call site was the symptom.  This round removes both, and
+  C 8129's call in `mouseMoved:` uses the corrected shape.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **667** C symbol imports (round 68 read 649 - the entries above), and the tail line
+  **`0 new, 0 stale, 7 Swift unit(s) landed`**, so no `docs/baseline/swift-units.tsv` row moves.
+* **Not claimed**: this round has **no runtime evidence** - no mouse button, wheel, drag or pinch
+  event was delivered to anything; the compile gate reaches type checking only, and
+  `check-swift-units.py` compares name sets, not signatures, bodies or ABI.

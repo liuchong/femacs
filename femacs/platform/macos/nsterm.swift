@@ -8318,6 +8318,391 @@ class EmacsView: NSView {
     }
   }
 
+  // ==========================================================================
+  // C 7783-8193: the mouse event family.  `mouseDown:` is the one handler; its six button
+  // siblings forward to it and `mouseDragged:`'s three forward to `mouseMoved:`.
+  // ==========================================================================
+
+  /// C 7783-8019: `- (void)mouseDown: (NSEvent *)theEvent`.  The live body is C 7812-7951
+  /// (the precise-scrolling-deltas arm) plus C 7981-8019 (the tab-bar/mouse-click arm):
+  /// ⑴ C 7807-7810's `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1070`
+  /// is this build's arm, and the inner `#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070` guard
+  /// around `respondsToSelector: (hasPreciseScrollingDeltas)` (C 7808-7810) is **dead**, so
+  /// the live statement is the body C 7812-7951; ⑵ C 7952-7955's `else` twin of that guard
+  /// is **dead**; ⑶ C 7957-7979's `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 1070`
+  /// coarse-wheel arm is **dead as a whole** (the `ns_update_window_end` reading).  `NSTRACE`
+  /// is empty at `NSTRACE_ENABLED` 0.
+  @objc override func mouseDown(with theEvent: NSEvent) {
+    let dpyinfo = FRAME_DISPLAY_INFO(emacsframe)                     // C 7785
+    let p = self.convert(theEvent.locationInWindow, from: nil)       // C 7786
+    var window: EmacsWindow?                                        // C 7787
+
+    // C 7789: `NSTRACE ("[EmacsView mouseDown:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    if emacs_event == nil {                                         // C 7791
+      return                                                       // C 7792
+    }
+
+    if FRAME_TOOLTIP_P(emacsframe) {                                // C 7794
+      return                                                       // C 7795
+    }
+
+    ns_display_info_set_last_mouse_frame(dpyinfo, emacsframe)       // C 7797
+    /* C 7798-7799: "Appears to be needed to prevent spurious movement events generated on
+       button clicks."  */
+    frame_set_mouse_moved(emacsframe, false)                        // C 7800
+
+    window = (self.window as? EmacsWindow)                          // C 7802
+    window?.setLastDragEvent(theEvent)                              // C 7803
+
+    if theEvent.type == .scrollWheel {                              // C 7805
+      /* C 7812-7822: "If the input device is a touchpad or similar, use precise scrolling
+         deltas.  These are measured in pixels, so we have to add them up until they exceed
+         one line height, then we can send a scroll wheel event.  If the device only has
+         coarse scrolling deltas, like a real mousewheel, the deltas represent a ratio of
+         whole lines, so round up the number of lines.  …"  */
+      var horizontal: Bool = false     // C 7823 (C leaves it uninitialised - Deviation)
+      var lines: Int32 = 0                                          // C 7824
+      var x: Int32 = 0, y: Int32 = 0                                // C 7825
+      var scrollUp: Int32 = 0                                       // C 7826 (`NO`)
+
+      /* C 7828's `static bool end_flag` is the file-scope `end_flag` this round adds.  */
+      if !ns_use_mwheel_momentum && !end_flag
+           && theEvent.momentumPhase != [] {                        // C 7830-7831
+        input_event_set_kind(emacs_event!, TOUCH_END_EVENT)         // C 7833
+        emacs_event!.pointee.arg = Qnil()                           // C 7834
+        end_flag = theEvent.momentumPhase != []                     // C 7835
+        XSETINT(&emacs_event!.pointee.x, lrint(Double(p.x)))        // C 7836
+        XSETINT(&emacs_event!.pointee.y, lrint(Double(p.y)))        // C 7837
+        EV_TRAILER(theEvent, emacsframe)                            // C 7838
+        return                                                      // C 7839
+      }
+
+      end_flag = theEvent.momentumPhase != []                       // C 7842
+
+      /* C 7844-7845: "FIXME: At the top or bottom of the buffer we should ignore
+         momentum-phase events."  */
+      if !ns_use_mwheel_momentum && theEvent.momentumPhase != [] {  // C 7846-7847
+        return                                                      // C 7848
+      }
+
+      if theEvent.hasPreciseScrollingDeltas {                       // C 7850
+        /* C 7852's `static int totalDeltaX, totalDeltaY;` is the file-scope pair this round
+           adds.  */
+        var lineHeight: Int32 = 0                                   // C 7853
+        if FIXNUMP(ns_mwheel_line_height) {                         // C 7855
+          lineHeight = Int32(truncatingIfNeeded: XFIXNUM(ns_mwheel_line_height))  // C 7856
+        } else {
+          /* C 7859: "FIXME: Use actual line height instead of the default."  */
+          lineHeight = default_line_pixel_height(
+            XWINDOW(frame_selected_window(emacsframe)))             // C 7860-7861
+        }
+
+        if theEvent.phase == .began {                               // C 7864
+          totalDeltaX = 0                                           // C 7866
+          totalDeltaY = 0                                           // C 7867
+        }
+
+        totalDeltaX += Int32(theEvent.scrollingDeltaX)              // C 7870
+        totalDeltaY += Int32(theEvent.scrollingDeltaY)              // C 7871
+
+        /* C 7873-7875: "Calculate the number of lines, if any, to scroll, and reset the
+           total delta for the direction we're NOT scrolling so that small movements don't
+           add up."  */
+        if abs(totalDeltaX) > abs(totalDeltaY)
+             && (!mwheel_coalesce_scroll_events
+                 || abs(totalDeltaX) > lineHeight) {                // C 7876-7878
+          horizontal = true                                         // C 7880
+          scrollUp = totalDeltaX > 0 ? 1 : 0                        // C 7881
+
+          lines = abs(totalDeltaX / lineHeight)                     // C 7883
+          x = totalDeltaX                                           // C 7884
+          if !mwheel_coalesce_scroll_events {                       // C 7885
+            totalDeltaX = 0                                         // C 7886
+          } else {
+            totalDeltaX = totalDeltaX % lineHeight                  // C 7888
+          }
+          totalDeltaY = 0                                           // C 7889
+        } else if abs(totalDeltaY) >= abs(totalDeltaX)
+                    && (!mwheel_coalesce_scroll_events
+                        || abs(totalDeltaY) > lineHeight) {         // C 7891-7893
+          horizontal = false                                        // C 7895
+          scrollUp = totalDeltaY > 0 ? 1 : 0                        // C 7896
+
+          lines = abs(totalDeltaY / lineHeight)                     // C 7898
+          y = totalDeltaY                                           // C 7899
+          if !mwheel_coalesce_scroll_events {                       // C 7900
+            totalDeltaY = 0                                         // C 7901
+          } else {
+            totalDeltaY = totalDeltaY % lineHeight                  // C 7903
+          }
+          totalDeltaX = 0                                           // C 7904
+        }
+
+        if lines > 1 && !ns_use_mwheel_acceleration {               // C 7907
+          lines = 1                                                 // C 7908
+        }
+      } else {
+        var delta: CGFloat = 0                                      // C 7912
+
+        if theEvent.scrollingDeltaY == 0 {                          // C 7914
+          horizontal = true                                         // C 7916
+          delta = theEvent.scrollingDeltaX                          // C 7917
+        } else {
+          horizontal = false                                        // C 7921
+          delta = theEvent.scrollingDeltaY                          // C 7922
+        }
+
+        /* C 7926: C's `ceil (fabs (delta))`.  Swift marks `fabs` deprecated ("renamed to
+           'abs'") and the two are the same function; the port takes the SDK's own spelling
+           (class B, the `NSRectFill` -> `NSRect.fill` reading).  */
+        lines = ns_use_mwheel_acceleration
+          ? Int32(ceil(abs(delta))) : 1                             // C 7925-7926
+
+        scrollUp = delta > 0 ? 1 : 0                                // C 7928
+        x = Int32(theEvent.scrollingDeltaX
+                  * CGFloat(FRAME_COLUMN_WIDTH(emacsframe)))        // C 7929-7930
+        y = Int32(theEvent.scrollingDeltaY
+                  * CGFloat(FRAME_LINE_HEIGHT(emacsframe)))         // C 7931-7932
+      }
+
+      if lines == 0 && mwheel_coalesce_scroll_events {              // C 7935
+        return                                                      // C 7936
+      }
+
+      if NUMBERP(Vns_scroll_event_delta_factor) {                   // C 7938
+        x = Int32(Double(x) * XFLOATINT(Vns_scroll_event_delta_factor))  // C 7940
+        y = Int32(Double(y) * XFLOATINT(Vns_scroll_event_delta_factor))  // C 7941
+      }
+
+      input_event_set_kind(emacs_event!,
+                           horizontal ? HORIZ_WHEEL_EVENT : WHEEL_EVENT)  // C 7944
+      emacs_event!.pointee.arg = list3(make_fixnum(Int(lines)),     // C 7945-7947
+                                       make_float(Double(x)),
+                                       make_float(Double(y)))
+
+      emacs_event!.pointee.code = 0                                 // C 7949
+      emacs_event!.pointee.modifiers = EV_MODIFIERS(theEvent)
+        | UInt32(truncatingIfNeeded:
+                   scrollUp != 0 ? up_modifier() : down_modifier()) // C 7950-7951
+      /* C 7952-7955: the dead `else` twin of the MIN_REQUIRED guard; C 7957-7979: the dead
+         GNUstep/coarse-wheel arm - both recorded, not transcribed.  */
+    } else {
+      var tab_bar_arg: Lisp_Object = Qnil()                         // C 7983
+      var tab_bar_p = false                                         // C 7984
+
+      if WINDOWP(frame_tab_bar_window(emacsframe))                  // C 7986
+           && WINDOW_TOTAL_LINES(XWINDOW(frame_tab_bar_window(emacsframe))) != 0 {  // C 7987
+        let x = lrint(Double(p.x))                                  // C 7990
+        let y = lrint(Double(p.y))                                  // C 7991
+
+        let window = window_from_coordinates(emacsframe,
+                                             Int32(truncatingIfNeeded: x),
+                                             Int32(truncatingIfNeeded: y), nil,
+                                             true, true, true)      // C 7993
+        tab_bar_p = EQ(window, frame_tab_bar_window(emacsframe))    // C 7994
+
+        if tab_bar_p {                                              // C 7996
+          tab_bar_arg = handle_tab_bar_click(
+            emacsframe, Int32(truncatingIfNeeded: x),
+            Int32(truncatingIfNeeded: y),
+            (EV_UDMODIFIERS(theEvent) & down_modifier()) != 0,
+            Int32(truncatingIfNeeded: EV_MODIFIERS(theEvent)
+                    | UInt32(truncatingIfNeeded: EV_UDMODIFIERS(theEvent))))  // C 7997-7999
+        }
+      }
+
+      if !(tab_bar_p && NILP(tab_bar_arg)) {                        // C 8002
+        input_event_set_kind(emacs_event!, MOUSE_CLICK_EVENT)       // C 8003
+      }
+      emacs_event!.pointee.arg = tab_bar_arg                        // C 8004
+      emacs_event!.pointee.code = UInt32(EV_BUTTON(theEvent))       // C 8005
+      emacs_event!.pointee.modifiers = EV_MODIFIERS(theEvent)
+        | UInt32(truncatingIfNeeded: EV_UDMODIFIERS(theEvent))      // C 8006-8007
+
+      if (emacs_event!.pointee.modifiers
+            & UInt32(truncatingIfNeeded: down_modifier())) != 0 {   // C 8009
+        ns_display_info_set_grabbed(
+          dpyinfo,
+          ns_display_info_grabbed(dpyinfo)
+            | (1 << Int32(EV_BUTTON(theEvent))))                    // C 8010
+      } else {
+        ns_display_info_set_grabbed(
+          dpyinfo,
+          ns_display_info_grabbed(dpyinfo)
+            & ~(1 << Int32(EV_BUTTON(theEvent))))                   // C 8012
+      }
+    }
+
+    XSETINT(&emacs_event!.pointee.x, lrint(Double(p.x)))            // C 8015
+    XSETINT(&emacs_event!.pointee.y, lrint(Double(p.y)))            // C 8016
+    EV_TRAILER(theEvent, emacsframe)                                // C 8017
+    return                                                          // C 8018
+  }
+
+  /// C 8022-8025: `- (void)rightMouseDown: (NSEvent *)theEvent` - C's whole body is the forward
+  /// (`NSTRACE` is empty at `NSTRACE_ENABLED` 0, as in its five siblings below).
+  @objc override func rightMouseDown(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8024
+  }
+
+  /// C 8029-8032: `- (void)otherMouseDown: (NSEvent *)theEvent`.
+  @objc override func otherMouseDown(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8031
+  }
+
+  /// C 8036-8039: `- (void)mouseUp: (NSEvent *)theEvent`.
+  @objc override func mouseUp(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8038
+  }
+
+  /// C 8043-8046: `- (void)rightMouseUp: (NSEvent *)theEvent`.
+  @objc override func rightMouseUp(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8045
+  }
+
+  /// C 8050-8053: `- (void)otherMouseUp: (NSEvent *)theEvent`.
+  @objc override func otherMouseUp(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8052
+  }
+
+  /// C 8057-8062: `- (void) scrollWheel: (NSEvent *)theEvent` - C's `NSTRACE` spelling carries
+  /// the space, and its body is the forward too.
+  @objc override func scrollWheel(with theEvent: NSEvent) {
+    mouseDown(with: theEvent)                                       // C 8061
+  }
+
+  /// C 8065-8135: `- (void)mouseMoved: (NSEvent *)e` - "Tell emacs the mouse has moved."  C's
+  /// `NSTRACE_WHEN`/`NSTRACE_MSG` are empty at `NSTRACE_ENABLED` 0, and C 8097's
+  /// `static Lisp_Object last_mouse_window` is the file-scope `last_mouse_window` above.
+  @objc override func mouseMoved(with e: NSEvent) {
+    let hlinfo = MOUSE_HL_INFO(emacsframe)                          // C 8067
+    let dpyinfo = FRAME_DISPLAY_INFO(emacsframe)                    // C 8068
+    var frame: Lisp_Object = Qnil()                                 // C 8069
+    var pt: NSPoint = .zero                                         // C 8070
+    var dragging: Bool = false                                      // C 8071
+
+    if FRAME_TOOLTIP_P(emacsframe) {                                // C 8073
+      return                                                        // C 8074
+    }
+
+    // C 8076: `NSTRACE_WHEN (NSTRACE_GROUP_EVENTS, "[EmacsView mouseMoved:]");` - empty.
+
+    ns_display_info_set_last_mouse_movement_time(dpyinfo,
+                                                 UInt(EV_TIMESTAMP(e)))   // C 8078
+    pt = self.convert(e.locationInWindow, from: nil)                // C 8079
+    ns_display_info_set_last_mouse_motion_x(dpyinfo, Int32(pt.x))   // C 8080
+    ns_display_info_set_last_mouse_motion_y(dpyinfo, Int32(pt.y))   // C 8081
+
+    /* C 8083: "Update any mouse face."  */
+    if mouse_highlight_mouse_face_hidden(hlinfo) {                  // C 8084
+      mouse_highlight_set_mouse_face_hidden(hlinfo, 0)              // C 8086
+      _ = clear_mouse_face(hlinfo)                                  // C 8087
+    }
+
+    /* C 8090: "Tooltip handling."  */
+    previous_help_echo_string_entry = help_echo_string_entry        // C 8091
+    help_echo_string_entry = Qnil()                                 // C 8092
+
+    if !NILP(Vmouse_autoselect_window) {                            // C 8094
+      // C 8096: `NSTRACE_MSG ("mouse_autoselect_window");` - empty.
+
+      let window = window_from_coordinates(emacsframe,
+                                           Int32(pt.x), Int32(pt.y),
+                                           nil, false, false, false)  // C 8098-8099
+
+      if WINDOWP(window)                                            // C 8101
+           && !EQ(window, last_mouse_window)                        // C 8102
+           && !EQ(window, selected_window)                          // C 8103
+           && !MINI_WINDOW_P(XWINDOW(selected_window))              // C 8104
+           && (!NILP(focus_follows_mouse)                           // C 8105
+               || EQ(window_frame(XWINDOW(window)),                 // C 8106
+                     window_frame(XWINDOW(selected_window)))) {     // C 8107
+        // C 8109: `NSTRACE_MSG ("in_window");` - empty.
+
+        input_event_set_kind(emacs_event!, SELECT_WINDOW_EVENT)     // C 8110
+        emacs_event!.pointee.frame_or_window = window               // C 8111
+        EV_TRAILER2(e)                                              // C 8112
+      }
+      /* C 8114: "Remember the last window where we saw the mouse."  */
+      last_mouse_window = window                                    // C 8115
+    }
+
+    dragging = (e.type == .leftMouseDragged)                        // C 8118
+    if ns_note_mouse_movement(emacsframe, pt.x, pt.y, dragging) == 0 {  // C 8119
+      help_echo_string_entry = previous_help_echo_string_entry      // C 8120
+    }
+
+    XSETFRAME(&frame, emacsframe)                                   // C 8122
+    if !NILP(help_echo_string_entry)
+         || !NILP(previous_help_echo_string_entry) {                // C 8123
+      /* C 8125-8127: "NOTE: help_echo_{window,pos,object} are set in xdisp.c
+         (note_mouse_highlight), which is called through the ns_note_mouse_movement () call
+         above."  */
+      any_help_event_p = true                                       // C 8128
+      gen_help_event(help_echo_string_entry, frame, help_echo_window_entry,
+                     help_echo_object_entry, help_echo_pos_entry)   // C 8129-8130
+    }
+
+    if frame_mouse_moved(emacsframe) && send_appdefined {           // C 8133
+      ns_send_appdefined(-1)                                        // C 8134
+    }
+  }
+
+  /// C 8138-8141: `- (void)mouseDragged: (NSEvent *)e` - the forward to `mouseMoved:`.
+  @objc override func mouseDragged(with e: NSEvent) {
+    mouseMoved(with: e)                                             // C 8140
+  }
+
+  /// C 8145-8148: `- (void)rightMouseDragged: (NSEvent *)e`.
+  @objc override func rightMouseDragged(with e: NSEvent) {
+    mouseMoved(with: e)                                             // C 8147
+  }
+
+  /// C 8152-8155: `- (void)otherMouseDragged: (NSEvent *)e`.
+  @objc override func otherMouseDragged(with e: NSEvent) {
+    mouseMoved(with: e)                                             // C 8154
+  }
+
+  /// C 8159-8192: `- (void) magnifyWithEvent: (NSEvent *) event` - the whole body is the
+  /// `#if defined NS_IMPL_COCOA && defined MAC_OS_X_VERSION_10_7` arm, which this build has.
+  /// C 8162's `static CGFloat last_scale` is the file-scope `last_scale` above; C 8188's
+  /// `last_scale += [event magnification]` sits *inside* `make_float`'s argument, and the
+  /// port hoists it to its own statement before the list (that argument is the only reader
+  /// of the variable, so the call's result is the same - the file's other "spelled out"
+  /// cases).
+  @objc override func magnify(with event: NSEvent) {
+    let pt = self.convert(event.locationInWindow, from: nil)         // C 8161
+
+    // C 8164: `NSTRACE ("[EmacsView magnifyWithEvent]");` - empty.
+
+    if emacs_event != nil {                                         // C 8165
+      input_event_set_kind(emacs_event!, PINCH_EVENT)               // C 8167
+      emacs_event!.pointee.modifiers = EV_MODIFIERS(event)          // C 8168
+      XSETINT(&emacs_event!.pointee.x, lrint(Double(pt.x)))         // C 8169
+      XSETINT(&emacs_event!.pointee.y, lrint(Double(pt.y)))         // C 8170
+      XSETFRAME(&emacs_event!.pointee.frame_or_window, emacsframe)  // C 8171
+
+      if event.phase == .began {                                    // C 8173
+        last_scale = 1.0 + event.magnification                      // C 8175
+        emacs_event!.pointee.arg = list4(make_float(0.0),           // C 8176-8179
+                                         make_float(0.0),
+                                         make_float(last_scale),
+                                         make_float(0.0))
+      } else {
+        /* C 8182-8185: "Report a tiny change so that Lisp code doesn't think this is the
+           beginning of an event sequence.  This is the best we can do because NS doesn't
+           report pinch events in as much detail as XInput 2 or GTK+ do."  */
+        last_scale += event.magnification                           // C 8188 (hoisted)
+        emacs_event!.pointee.arg = list4(make_float(0.01),          // C 8186-8189
+                                         make_float(0.0),
+                                         make_float(last_scale),
+                                         make_float(0.0))
+      }
+      EV_TRAILER(event, emacsframe)                                 // C 8190
+    }
+  }
+
   /// C 8404-8408: `- (void)windowDidBecomeKey: (NSNotification *)notification` - C's comment above
   /// it is "cf. x_detect_focus_change(), x_focus_changed(), x_new_focus_frame()" and its body is
   /// the direct-call variant below.
@@ -8419,7 +8804,7 @@ class EmacsView: NSView {
       var frame: Lisp_Object = nil                    // C 8517
       XSETFRAME(&frame, emacsframe)                   // C 8518
       help_echo_string_entry = Qnil()                 // C 8519
-      _ = gen_help_event(Qnil(), frame, Qnil(), Qnil(), 0)   // C 8520
+      gen_help_event(Qnil(), frame, Qnil(), Qnil(), 0)       // C 8520
       any_help_event_p = false                        // C 8521
     }
 
@@ -12512,7 +12897,174 @@ func adjustEmacsFrameRect_entry(_ view: NSView?)
 @_silgen_name("help_echo_string") var help_echo_string_entry: Lisp_Object
 
 /// C: `void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, ptrdiff_t)`
-/// (declared src/keyboard.h 513) - C 8520's call, whose result C discards.
+/// (declared src/keyboard.h 513, defined src/keyboard.c 3923) - C 8520's call and C 8129's.
+/// **Corrected in round 69**: this entry was declared `-> Lisp_Object` when it landed, while
+/// both C's declaration and the port's own `femacs/src/keyboard.rs` 4296 return nothing (the
+/// `_ =` the call site carried was the symptom); C discards no result, it has none.
 @_silgen_name("gen_help_event")
 func gen_help_event(_ a: Lisp_Object, _ b: Lisp_Object, _ c: Lisp_Object, _ d: Lisp_Object,
-                    _ n: Int) -> Lisp_Object
+                    _ n: Int)
+
+// ==========================================================================
+// Round 69: the entries the mouse event family needs
+// ==========================================================================
+
+/// C 7828's `static bool end_flag = false;` and C 7852's `static int totalDeltaX, totalDeltaY;`
+/// - file-scope storage in C, and at file scope here for the same reason: Swift has no
+/// function-scope `static` (the `ns_initialized` reading, C 5972).  C's statics start zeroed,
+/// which is what these initialisers say.
+fileprivate var end_flag: Bool = false
+fileprivate var totalDeltaX: Int32 = 0
+fileprivate var totalDeltaY: Int32 = 0
+/// C 8097's `static Lisp_Object last_mouse_window;` - zero-initialised in C, which is what
+/// `nil` is here (the `last_known_monitors` reading, C 88).
+fileprivate var last_mouse_window: Lisp_Object = nil
+/// C 8162's `static CGFloat last_scale;`.
+fileprivate var last_scale: CGFloat = 0
+
+/// C: `MOUSE_CLICK_EVENT`, `WHEEL_EVENT`, `HORIZ_WHEEL_EVENT`, `SELECT_WINDOW_EVENT`,
+/// `TOUCH_END_EVENT` and `PINCH_EVENT` (src/termhooks.h 74's `enum event_kind`) - the six
+/// enumerators the mouse family writes (C 7833, 7944, 8003, 8110, 8167 and their siblings are
+/// C's writes).  Mirror-valued constants, the `MONITORS_CHANGED_EVENT` reading:
+/// `femacs/src/include/termhooks.rs` 32/33/34/52/57/61 carry 5, 6, 7, 25, 30 and 34.
+fileprivate let MOUSE_CLICK_EVENT: UInt32 = 5
+fileprivate let WHEEL_EVENT: UInt32 = 6
+fileprivate let HORIZ_WHEEL_EVENT: UInt32 = 7
+fileprivate let SELECT_WINDOW_EVENT: UInt32 = 25
+fileprivate let TOUCH_END_EVENT: UInt32 = 30
+fileprivate let PINCH_EVENT: UInt32 = 34
+
+/// C: `Lisp_Object list3 (Lisp_Object, Lisp_Object, Lisp_Object)` (declared src/lisp.h 4488,
+/// defined src/alloc.c 2678) - C 7945's list.  Provided: `femacs/src/alloc.rs` 2975.
+@_silgen_name("list3")
+func list3(_ a: Lisp_Object, _ b: Lisp_Object, _ c: Lisp_Object) -> Lisp_Object
+
+/// C: `Lisp_Object list4 (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)` (declared
+/// src/lisp.h 4489, defined src/alloc.c 2684) - C 8176/8186's list.  Provided:
+/// `femacs/src/alloc.rs` 2982.
+@_silgen_name("list4")
+func list4(_ a: Lisp_Object, _ b: Lisp_Object, _ c: Lisp_Object,
+           _ d: Lisp_Object) -> Lisp_Object
+
+/// C: `Lisp_Object window_from_coordinates (struct frame *, int, int, int *, bool, bool,
+/// bool)` (declared src/window.h 1124, defined src/window.c 1686) - C 7993/8098's call, whose
+/// `int *part` argument C passes as `0` (a null pointer).  Provided: `femacs/src/window.rs`
+/// 1861.
+@_silgen_name("window_from_coordinates")
+func window_from_coordinates(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32,
+                             _ part: UnsafeMutablePointer<Int32>?, _ tool_bar_p: Bool,
+                             _ tab_bar_p: Bool, _ menu_bar_p: Bool) -> Lisp_Object
+
+/// C: `int default_line_pixel_height (struct window *)` (declared src/dispextern.h 3567,
+/// defined src/xdisp.c 1595) - C 7860's call.  Provided: `femacs/src/xdisp.rs` 3120.
+@_silgen_name("default_line_pixel_height")
+func default_line_pixel_height(_ w: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `Lisp_Object handle_tab_bar_click (struct frame *, int, int, bool, int)` (declared
+/// src/dispextern.h 3668, defined src/xdisp.c 15335) - C 7997's call.  **Open**: the port
+/// carries the tty spelling only (`femacs/src/xdisp.rs` 15839's `tty_handle_tab_bar_click`),
+/// so this is the core's to export (the `up_modifier` reading).
+@_silgen_name("handle_tab_bar_click")
+func handle_tab_bar_click(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32,
+                          _ down_p: Bool, _ modifiers: Int32) -> Lisp_Object
+
+/// C: `bool clear_mouse_face (Mouse_HLInfo *)` (declared src/dispextern.h 3691, defined
+/// src/xdisp.c 35662) - C 8087's call, whose result C discards.  Provided:
+/// `femacs/src/xdisp.rs` 30424.
+@_silgen_name("clear_mouse_face")
+func clear_mouse_face(_ hlinfo: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `bool mwheel_coalesce_scroll_events` (src/keyboard.c 14439's
+/// `DEFVAR_BOOL ("mwheel-coalesce-scroll-events", …)`) - C 7877/7892/7935's reads, a data
+/// symbol.  Provided: `femacs/src/keyboard.rs` 14411.
+@_silgen_name("mwheel_coalesce_scroll_events")
+var mwheel_coalesce_scroll_events: Bool
+
+/// C: `INLINE bool NUMBERP (Lisp_Object x)` (src/lisp.h 3256) - C 7938's test: a header-only
+/// construct, class A.  **Open**: the mirror carries it as a Rust macro (`femacs/src/data.rs`
+/// 564), which has no C symbol yet - the `FIXNUMP` reading.
+@_silgen_name("NUMBERP") func NUMBERP(_ x: Lisp_Object) -> Bool
+
+/// C: `INLINE double XFLOATINT (Lisp_Object n)` (src/lisp.h 3370) - C 7940/7941's conversion,
+/// class A and **open** for the same reason as `NUMBERP` above.
+@_silgen_name("XFLOATINT") func XFLOATINT(_ n: Lisp_Object) -> Double
+
+/// C: `Lisp_Object Vmouse_autoselect_window` (a `DEFVAR_LISP` variable, src/xdisp.c) - C
+/// 8094's read.  Provided: `femacs/src/xdisp.rs` 32065.
+@_silgen_name("Vmouse_autoselect_window")
+var Vmouse_autoselect_window: Lisp_Object
+
+/// C: `selected_window` (src/window.c's global) - C 8103/8104's reads.  Provided:
+/// `femacs/src/window.rs` 253.
+@_silgen_name("selected_window") var selected_window: Lisp_Object
+
+/// C: `Lisp_Object focus_follows_mouse` (a `DEFVAR_LISP` variable, src/frame.c) - C 8105's
+/// read.  Provided: `femacs/src/frame.rs` 7443.
+@_silgen_name("focus_follows_mouse") var focus_follows_mouse: Lisp_Object
+
+/// C: `bool MINI_WINDOW_P (struct window *W)` (`#define MINI_WINDOW_P(W) ((W)->mini)`,
+/// src/window.h 565) - C 8104's test, reached by the macro's own name (the `FRAME_TOOLTIP_P`
+/// shape).  **Open**: the core's to export (`femacs/src/callint.rs` 397 uses it as a Rust
+/// macro).
+@_silgen_name("MINI_WINDOW_P") func MINI_WINDOW_P(_ w: UnsafeMutableRawPointer?) -> Bool
+
+/// C: the `struct frame` member `f->mouse_moved` (src/frame.h 434's `bool_bf mouse_moved : 1`)
+/// - C 8133's **read**; C 7800's write is `frame_set_mouse_moved` above.  **Open**: the mirror
+/// carries the read as a Rust macro (`femacs/src/term.rs` 121's `frame_mouse_moved!`), which
+/// has no C symbol yet (the `up_modifier` reading).
+@_silgen_name("frame_mouse_moved")
+func frame_mouse_moved(_ f: UnsafeMutableRawPointer?) -> Bool
+
+/// C: the `struct frame` member `f->tab_bar_window` (src/frame.h 254) - C 7986/7987/7994's
+/// reads.  Provided: `femacs/src/abi_shim.rs` 277, whose frozen-configuration answer is `Qnil`
+/// (the comment above it records the ruling).
+@_silgen_name("frame_tab_bar_window")
+func frame_tab_bar_window(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: the `struct ns_display_info` member `dpyinfo->last_mouse_frame` (src/nsterm.h 906) - C
+/// 7797's **write** (C 2561/2567/2570 read it through `ns_display_info_last_mouse_frame`).
+/// **Open**, the member-write shape `<record>_set_<member>`
+/// (`ns_display_info_set_ns_focus_frame`).
+@_silgen_name("ns_display_info_set_last_mouse_frame")
+func ns_display_info_set_last_mouse_frame(_ dpyinfo: UnsafeMutableRawPointer?,
+                                          _ v: UnsafeMutableRawPointer?)
+
+/// C: the `struct ns_display_info` member `dpyinfo->last_mouse_movement_time` (src/nsterm.h
+/// 920) - C 8078's write; its reader `ns_display_info_last_mouse_movement_time` is above.
+/// **Open**.
+@_silgen_name("ns_display_info_set_last_mouse_movement_time")
+func ns_display_info_set_last_mouse_movement_time(_ dpyinfo: UnsafeMutableRawPointer?,
+                                                  _ v: UInt)
+
+/// C: the `struct ns_display_info` members `dpyinfo->last_mouse_motion_x`/`_y` (src/nsterm.h
+/// 913-914) - C 8080/8081's writes.  **Open**, the same shape as the two above.
+@_silgen_name("ns_display_info_set_last_mouse_motion_x")
+func ns_display_info_set_last_mouse_motion_x(_ dpyinfo: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_last_mouse_motion_y")
+func ns_display_info_set_last_mouse_motion_y(_ dpyinfo: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: the `struct ns_display_info` member `dpyinfo->grabbed` (src/nsterm.h; the layout
+/// baseline's row 24 is `int grabbed`, offset 80) - C 8010/8012's read-modify-write, the
+/// **reader** the round-62 `ns_display_info_set_grabbed` write pairs with.  **Open**.
+@_silgen_name("ns_display_info_grabbed")
+func ns_display_info_grabbed(_ dpyinfo: UnsafeMutableRawPointer?) -> Int32
+
+/// C: the `Mouse_HLInfo` member `hlinfo->mouse_face_hidden` (src/dispextern.h's record) - C
+/// 8084's read and C 8086's write.  **Open**, the pair the `mouse_highlight_set_mouse_face_defer`
+/// write opened (`<record>_<member>`, `_set_` for the write).
+@_silgen_name("mouse_highlight_mouse_face_hidden")
+func mouse_highlight_mouse_face_hidden(_ hlinfo: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("mouse_highlight_set_mouse_face_hidden")
+func mouse_highlight_set_mouse_face_hidden(_ hlinfo: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `help_echo_window`, `help_echo_object` and `help_echo_pos` (src/xdisp.c's globals) - the
+/// three C 8129-8130 passes (`help_echo_string` is round 68's entry, above).  Provided:
+/// `femacs/src/xdisp.rs` 2766 (window), 2768 (object) and 2770 (pos, C's `ptrdiff_t`).
+@_silgen_name("help_echo_window") var help_echo_window_entry: Lisp_Object
+@_silgen_name("help_echo_object") var help_echo_object_entry: Lisp_Object
+@_silgen_name("help_echo_pos") var help_echo_pos_entry: Int
+
+/// C: `previous_help_echo_string` (src/xdisp.c's global) - C 8091's write and C 8120/8123's
+/// reads.  Provided: `femacs/src/xdisp.rs` 2775.
+@_silgen_name("previous_help_echo_string")
+var previous_help_echo_string_entry: Lisp_Object

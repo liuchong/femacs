@@ -16531,3 +16531,40 @@
      分三趟扫完，不把整棵树读进内存）；`/tmp/half30*.py`、`/tmp/half30_rows.tsv` 与两个旧脚本跑完即删，无全盘/大内存扫描。
      **未声称**：本半没有跑过任何东西——改的是文本，证据只有逐字节门（963 行每一行都被读回并与登记的整行文本核对）
      与声明门；这些手册没有被 `makeinfo` 重建过，"交叉引用的第五栏与新标题一致"由逐字节门与逐条复核保证，不是编译证据。
+
+- **4.009 `src/nsterm.m` round 69（Swift lane）：鼠标事件族落地（C 7783-8193，文件的十一个方法），并纠正 round 68 的 `gen_help_event` 返回型（2026-10-08）**：
+  ① **落地十二个 `EmacsView` 方法**：`mouseDown:`（C 7783-8019，本文件最长的方法——滚轮臂与 tab-bar 臂）、
+     六个一句转发（`rightMouseDown:` C 8022、`otherMouseDown:` C 8029、`mouseUp:` C 8036、`rightMouseUp:` C 8043、
+     `otherMouseUp:` C 8050、`scrollWheel:` C 8057）、`mouseMoved:`（C 8065-8135）、转发给它的三个
+     （`mouseDragged:` C 8138、`rightMouseDragged:` C 8145、`otherMouseDragged:` C 8152）与 `magnifyWithEvent:`
+     （C 8159-8192，Swift 自己的改名 `magnify (with:)`）。台账勾 **12 个框**（勾 **352 → 364**、未勾 **78 → 66**），
+     `EmacsView` 类盒子那行"round 25 落了三条方法"的过期文字同轮纠正为"此后 32/33、68、69 三批"，并写出还剩 **65** 个方法盒子。
+  ② **三条死臂记名、不转写**（`hide_bell`/`ns_update_window_end` 那条读法）：C 7808-7810 的
+     `#if MAC_OS_X_VERSION_MIN_REQUIRED < 1070` 守卫（`respondsToSelector: (hasPreciseScrollingDeltas)`）与它在
+     C 7952-7955 的 `else` 孪生（本目标比它新 ⇒ C 的活语句是 C 7812-7951 那个体），以及 C 7957-7979 整块
+     `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 1070` 的粗粒度滚轮臂。
+  ③ **一处偏离（Deviation，点名）**：C 7823 的 `bool horizontal;` 在两条 delta 分支都没赋值时被 C 7944 读到
+     （上游自己的未初始化读）；Swift 没有"不确定值"，端口把它起在 `false` 并在声明处与台账里都写明。
+  ④ **本轮新增 26 个入口 + 六个镜像取值常量**：常量是 `MOUSE_CLICK_EVENT` 5、`WHEEL_EVENT` 6、`HORIZ_WHEEL_EVENT` 7、
+     `SELECT_WINDOW_EVENT` 25、`TOUCH_END_EVENT` 30、`PINCH_EVENT` 34（读自 `femacs/src/include/termhooks.rs`
+     32/33/34/52/57/61，`MONITORS_CHANGED_EVENT` 那条读法）；入口里 **14 个已提供**（逐个 grep 量过：`list3`
+     `femacs/src/alloc.rs` 2975、`list4` 2982、`window_from_coordinates` `window.rs` 1861、`default_line_pixel_height`
+     `xdisp.rs` 3120、`clear_mouse_face` 30424、`mwheel_coalesce_scroll_events` `keyboard.rs` 14411、
+     `Vmouse_autoselect_window` `xdisp.rs` 32065、`selected_window` `window.rs` 253、`focus_follows_mouse`
+     `frame.rs` 7443、`help_echo_window`/`_object`/`_pos`/`previous_help_echo_string` `xdisp.rs` 2766/2768/2770/2775、
+     `frame_tab_bar_window` `abi_shim.rs` 277），其余按既有写法登记为 **open**（`handle_tab_bar_click` 只有 tty 版、
+     `NUMBERP`/`XFLOATINT` 是 class A 头内构造的 Rust 宏、`MINI_WINDOW_P`、`frame_mouse_moved` 与七个
+     `<record>_<member>` 成员入口）。
+  ⑤ **顺手纠正 round 68 的一处事实**：`gen_help_event` 的入口落成了 `-> Lisp_Object`，而 C 的声明（src/keyboard.h 513）
+     与本仓库自己的定义（`femacs/src/keyboard.rs` 4296）**都返回空**——C 8520 调用点上那个 `_ =` 就是症状。
+     本轮把入口与调用点一起改回无返回值，C 8129 的新调用点用纠正后的形状。
+  ⑥ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 9 warnings**（与 round 68 的九条逐条相同；**首跑多出第十条**——
+     C 7926 的 `fabs` 在 Swift 里标弃用"renamed to 'abs'"，端口改用 SDK 自己的拼法 `abs`（class B，`NSRectFill` →
+     `NSRect.fill` 那条读法），条数回到九）；对象 `/tmp/nsterm69.o` **1,226,624 字节**、md5 `173eaf78bbd20b874a11359b03b31958`；
+     单元 **13,067 行**。⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **667** C symbol import(s)`
+     （round 68 是 649），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**，`docs/baseline/swift-units.tsv` 一行未动。
+  ⑦ **预算与清理**：本片编译 **2 发**（写完后 1 + 改 `fabs` 后 1，都是单文件 `swiftc -c`）；另用 **11 组只读 grep/awk**
+     把 C 的行号逐条钉准（首版注释里的中段行号是手数出来的、错了三四处，全部按 `awk 'NR>=…'` 的编号改正——这正是
+     `check-citations` 会抓的那类漂移）；**对象 `/tmp/nsterm69.o` 与两个 `/tmp/r69*.swift` 片段跑完即删**，无全盘/大内存扫描。
+  ⑧ **未声称**：本轮**没有运行证据**——没有任何鼠标按键、滚轮、拖动或捏合事件被投递过；编译门只到解析与类型检查；
+     `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
