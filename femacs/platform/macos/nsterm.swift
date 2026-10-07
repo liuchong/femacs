@@ -10277,3 +10277,45 @@ func terminal_rif(_ t: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
 /// C: the function-local `static int ns_initialized = 0;` (C 5972) - a file-scope Swift `var`, since
 /// Swift has no function-local static storage (the `timed_entry` reading of round 22).
 fileprivate var ns_initialized: Int32 = 0
+
+// ==========================================================================
+// Round 56: `ns_term_shutdown` (C 6197-6215), and the two last names
+// `ns_term_init`'s body needs
+// ==========================================================================
+
+/// C: `Lisp_Object Vauto_save_list_file_name` (src/emacs.c) - C 6208's read, a data entry like the
+/// core variables this unit already imports.
+@_silgen_name("Vauto_save_list_file_name") var Vauto_save_list_file_name: Lisp_Object
+
+/// C: `EmacsMenu *svcsMenu` (src/nsmenu.m 50, declared src/nsterm.h 776) - **another unit's global**,
+/// which C 6088-6138 writes and reads inside `ns_term_init`'s menu block.  The class it points at is
+/// `nsmenu.swift` 829's, so this is the `ns_frame_parm_handlers` shape: the entry is declared here
+/// and its provider is that lane's to add (a Swift class cannot carry a C-named data symbol by
+/// itself).
+@_silgen_name("svcsMenu") var svcsMenu: UnsafeMutableRawPointer?
+
+/// C 6197-6215: `void ns_term_shutdown (int sig)` (declared src/nsterm.h 1206).  C's
+/// `[[NSAutoreleasePool alloc] init]`/`[pool release]` pair is this unit's own push/pop entries (the
+/// `ns_init_pool` reading), C 6204's `synchronize` is `UserDefaults.standard.synchronize ()`,
+/// C 6209's `unlink` takes C's `SSDATA`, and C 6212's `[NSApp terminate: NSApp]` is
+/// `NSApp.terminate (NSApp)`.
+@_cdecl("ns_term_shutdown")
+func ns_term_shutdown(_ sig: Int32) {
+  var pool: UnsafeMutableRawPointer? = nil           // C 6200
+  /* We also need an autorelease pool here, since this can be called
+     during dumping.  */
+  pool = objc_autoreleasePoolPush()                  // C 6203
+  UserDefaults.standard.synchronize()                // C 6204
+  objc_autoreleasePoolPop(pool)                      // C 6205 (C's `[pool release]`)
+
+  /* code not reached in emacs.c after this is called by shut_down_emacs: */
+  if STRINGP(Vauto_save_list_file_name) {            // C 6208
+    _ = unlink(SSDATA(Vauto_save_list_file_name))    // C 6209 (C discards `unlink`'s result)
+  }
+
+  if sig == 0 || sig == SIGTERM {                    // C 6211
+    NSApp.terminate(NSApp)                           // C 6212
+  } else { /* Force a stack trace to happen.  */
+    emacs_abort()                                    // C 6214
+  }
+}
