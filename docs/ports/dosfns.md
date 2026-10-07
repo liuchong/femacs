@@ -130,9 +130,9 @@ of `src/dosfns.h` are inside the rows above, which is what the coverage gate's t
 
 ## Macros defined — 2
 
-- [ ] `gettime dos_h_gettime_` (C 29) — not carried: the port declares no `<dos.h>`, so no DJGPP
+- [x] `gettime dos_h_gettime_` (C 29) — not carried: the port declares no `<dos.h>`, so no DJGPP
   prototype is in gnulib's way (Deviations 2).
-- [ ] `settime dos_h_settime_` (C 30) — same.
+- [x] `settime dos_h_settime_` (C 30) — same.
 
 ## Types and their fields — 0
 
@@ -355,3 +355,11 @@ copies (Evidence ②).  The file is **transcribed (C 1-798)**, and "transcribed"
 "measured" or "working": the two owed mirror rows (Owed 1/2), the nine owed items above and the
 absence of a DJGPP toolchain are what stand between this text and a green `msdos` arm.  The `msdos`
 arm does not compile today, and that is the mirror graph's state, not this unit's.
+
+## Box audit: the two `dos.h` macros (2026-10-08, status 3.954)
+
+`## Macros defined`'s two rows (`gettime dos_h_gettime_`, C 29 and `settime dos_h_settime_`, C 30)
+were unchecked rows that already state their answer: this unit declares no `<dos.h>`, so no DJGPP
+prototype is in gnulib's way, and the port carries neither (Deviations 2, which the rows cite).
+They are decisions with their evidence in the row itself, so they are ticked here rather than left
+to look like pending work; `--check` for `src/dosfns.c` was already `OK` before the tick.

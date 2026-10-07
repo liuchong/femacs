@@ -104,7 +104,7 @@
 - [x] MR_PARTIALLY_VISIBLE  (line 1257, body 3511fa7f7707)
 - [x] MR_PARTIALLY_VISIBLE_AT_BOTTOM  (line 1263, body 4cdbd4949124)
 - [x] MR_PARTIALLY_VISIBLE_AT_TOP  (line 1260, body 886ac09320dc)
-- [ ] NativeRectangle  (line 179, body 46f8ab7c0cff)
+- [x] NativeRectangle  (line 179, body 46f8ab7c0cff)
 - [x] No_Cursor  (line 58, body 48a28489fbe0)
 - [x] OVERLAY_STRING_CHUNK_SIZE  (line 2572, body 1574bddb75c7)
 - [x] PRODUCE_GLYPHS  (line 2962, body b381e080c20c)
@@ -1385,3 +1385,16 @@ pgtk build always defines, which is why the consumer's arms gained `use_cairo`
 legs - `tools/check-mirror-dupes.py` **16/16/0** and `check-all-units.sh` **83/0 + 83/0** - plus the
 consumer's three-arm reading, whose delta is one registered class with 0 new warnings.  The file
 stays **WIP** for the reasons above it.
+
+## Box audit: `NativeRectangle` (2026-10-08, status 3.954)
+
+The list's last unchecked row was `NativeRectangle` (dispextern.h 176-181), and it is a *decision*,
+not work: the macro's value belongs to the window system (`XRectangle` here, `RECT` on w32,
+`struct haiku_rect` on Haiku, the NS answer, and C 178-180's `int` fallback that the frozen
+configuration takes), so each platform mirror holds its own `macro_rules!` (w32gui.rs 148,
+haikugui.rs 64, pgtkgui.rs 214, nsgui.rs 91, androidgui.rs 245) and a second one here would
+collide with them in `layout-check`'s single crate - the same rule the file's `WINDOW_HANDLE_UINTPTR`
+note gives at 790-794.  The exclusion is recorded in `docs/ports/excluded-macros.txt` 239 and the
+resolved type is spelled at the use sites (`stem: [c_int; 2]` at 1732, with the comment at
+1733-1740).  Ticked with those three citations as its evidence; `--check` for the header was
+already `OK` before the tick.
