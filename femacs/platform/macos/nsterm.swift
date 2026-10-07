@@ -7105,3 +7105,119 @@ class EmacsWindow: NSWindow {
   }
 }
 
+// ==========================================================================
+// Round 25: `EmacsView`'s class record with `fsIsNative`, `isFullscreen`,
+// `updateCollectionBehavior`, and the `check_native_fs` they unblock
+// ==========================================================================
+
+/// C: `bool ns_use_native_fullscreen` - src/nsterm.m 11702's `DEFVAR_BOOL
+/// ("ns-use-native-fullscreen", …)`, this file's own variable, imported as the C data symbol the
+/// core exports (the `ns_auto_hide_menu_bar` shape above: it is owed until this unit's own
+/// `syms_of_nsterm` slice lands).  `ns_last_use_native_fullscreen` (C 335) is the static beside it.
+@_silgen_name("ns_use_native_fullscreen") var ns_use_native_fullscreen: Bool
+
+/// C `src/nsterm.h` 466-488: `@interface EmacsView : NSView <NSTextInput, NSTextInputClient,
+/// NSWindowDelegate>`.  **Round 25 lands the record** - the fifteen ivars of nsterm.h 470-488,
+/// `@public emacsframe` (485) included - and three of its methods.  The protocol list is the one
+/// named deferral: Swift enforces every required method of those protocols at the point the
+/// conformance is declared, so the `<…>` list lands in the round that carries that method batch,
+/// not with the record (the ledger's box for this class says so).  The reference's own text is
+/// unchanged by this split: no method below reads a protocol requirement it does not implement.
+class EmacsView: NSView {
+  /// C nsterm.h 472-474, the `NS_IMPL_COCOA` arm: `char *old_title; BOOL maximizing_resize;`
+  var old_title: UnsafeMutablePointer<CChar>? = nil
+  var maximizing_resize: Bool = false
+  /// C nsterm.h 475-479.
+  var font_panel_active: Bool = false
+  var font_panel_result: NSFont? = nil
+  var windowClosing: Bool = false
+  var workingText: String? = nil
+  var processingCompose: Bool = false
+  /// C nsterm.h 480-483.
+  var fs_state: Int32 = 0
+  var fs_before_fs: Int32 = 0
+  var next_maximized: Int32 = 0
+  var maximized_width: Int32 = 0
+  var maximized_height: Int32 = 0
+  var nonfs_window: EmacsWindow? = nil
+  var fs_is_native: Bool = false
+  /// C nsterm.h 485-487, the `@public` half: C 2538 reaches `emacsframe` through a cast, so the
+  /// property is the same stored slot.
+  var emacsframe: UnsafeMutableRawPointer? = nil
+  var scrollbarsNeedingUpdate: Int32 = 0
+  var ns_userRect: NSRect = .zero
+
+  /// `NSView`'s designated initializer, spelled out for the reason `EmacsWindow`'s is (Swift
+  /// marks `init (coder:)` unavailable on these AppKit classes; measured last round).
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+  }
+
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+  }
+
+  /// C 8952-8955: `- (BOOL)fsIsNative` - C's whole body is the ivar read.
+  func fsIsNative() -> Bool {
+    fs_is_native                                      // C 8954
+  }
+
+  /// C 8957-8978: `- (BOOL)isFullscreen`.  The `MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` arm is the
+  /// live one (C 8967-8971's `#else` is dead on this target), and C's
+  /// `([[self window] styleMask] & NSWindowStyleMaskFullScreen) != 0` is the style-mask contains.
+  func isFullscreen() -> Bool {
+    var res: Bool
+    if !fs_is_native {                                // C 8961
+      res = (nonfs_window != nil)                     // C 8963
+    } else {
+      res = (window?.styleMask.contains(.fullScreen) ?? false)   // C 8968
+    }
+    return res                                        // C 8977
+  }
+
+  /// C 8981-9014: `- (void)updateCollectionBehavior` (the `NS_IMPL_COCOA && MAX_ALLOWED >= 1070`
+  /// arm; C 9015 closes it).  C's three mask operations are the `NSWindowCollectionBehavior`
+  /// option-set's insert/remove pair, which is what the three `b &=`/`b |=` lines say.
+  func updateCollectionBehavior() {
+    if !isFullscreen() {                              // C 8985
+      let win = window                                // C 8987
+      var b = win?.collectionBehavior ?? []           // C 8988
+      if ns_use_native_fullscreen {                   // C 8989
+        if FRAME_PARENT_FRAME(emacsframe) != nil || FRAME_TOOLTIP_P(emacsframe) {
+          b.remove(.fullScreenPrimary)                // C 8994
+          b.insert(.fullScreenAuxiliary)              // C 8995
+        } else {
+          b.insert(.fullScreenPrimary)                // C 8999
+          b.remove(.fullScreenAuxiliary)              // C 9000
+        }
+      } else {
+        b.remove(.fullScreenPrimary)                  // C 9005
+      }
+      win?.collectionBehavior = b                     // C 9008
+      fs_is_native = ns_use_native_fullscreen         // C 9012
+    }
+  }
+}
+
+/// C 5086-5107: `static void check_native_fs (void)` - the function C 5127 and C 5218 call from
+/// their live `NS_IMPL_COCOA` arm, and the reason the event-loop pair was held: its body calls
+/// `[view updateCollectionBehavior]` (C 5103), which is the method above.  `FOR_EACH_FRAME` keeps
+/// the spelling `ns_constrain_all_frames` uses (C 1011's reading above).
+fileprivate func check_native_fs() {
+  if ns_last_use_native_fullscreen == ns_use_native_fullscreen {
+    return                                            // C 5093
+  }
+  ns_last_use_native_fullscreen = ns_use_native_fullscreen   // C 5095
+
+  var tail: Lisp_Object = Vframe_list                 // C 5097
+  while CONSP(tail) {
+    let frame = XCAR(tail)
+    let f = XFRAME(frame)
+    if FRAME_NS_P(f) {                                // C 5100
+      let view = FRAME_NS_VIEW(f)                     // C 5102
+      (view as? EmacsView)?.updateCollectionBehavior()   // C 5103
+    }
+    tail = XCDR(tail)
+  }
+}
+

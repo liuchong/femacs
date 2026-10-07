@@ -11,7 +11,6 @@ femacs/platform/macos/nsfns.swift	interpret_services_menu	src/nsfns.m	in the arm
 femacs/platform/macos/nsfont.swift	ns_dump_glyphstring	src/nsfont.m
 femacs/platform/macos/nsfont.swift	nsfont_draw	src/nsfont.m
 femacs/platform/macos/nsterm.swift	cancel_ns_deferred_UAZoomChangeFocus_timer	src/nsterm.m
-femacs/platform/macos/nsterm.swift	check_native_fs	src/nsterm.m
 femacs/platform/macos/nsterm.swift	hide_bell	src/nsterm.m
 femacs/platform/macos/nsterm.swift	mark_nsterm	src/nsterm.m
 femacs/platform/macos/nsterm.swift	not_in_argv	src/nsterm.m

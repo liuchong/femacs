@@ -188,7 +188,7 @@
 - [x] ns_set_glyph_string_gc  (line 4748, static) — C 4747-4780, landed as `fileprivate func ns_set_glyph_string_gc`
 - [x] ns_draw_glyph_string  (line 4783, static) — C 4782-5001, landed as `fileprivate func ns_draw_glyph_string` (the RIF's main draw-text call)
 - [x] ns_send_appdefined  (line 5013, static) — landed as `fileprivate func ns_send_appdefined (_ value: Int32)`: the non-main-thread arm reaches `nextappdefined` and `-sendFromMainThread:` through `NSApp as! EmacsApp` (round 21's class), `send_appdefined`/`timed_entry` are C 317/320's own entries, and `[NSApp context]` is kept as C writes it (that call carries a new deprecation warning, recorded in Evidence)
-- [ ] check_native_fs  (line 5088, static) — **held** to the `EmacsView` round: C 5103 calls `[view updateCollectionBehavior]`, a method of the class that lands at C 7039 (its own box below), so no Swift text can exist before it does
+- [x] check_native_fs  (line 5088, static) — landed in round 25 as `fileprivate func check_native_fs ()`: the body's `FOR_EACH_FRAME` keeps the spelling C 1011's reading above gives it, and C 5103's `[view updateCollectionBehavior]` is the method that landed with this record - so the two callers C 5127/5218 were waiting for are both here now
 - [ ] ns_read_socket_1  (line 5111, static)
 - [ ] ns_read_socket  (line 5196, static)
 - [ ] ns_select_1  (line 5203, static)
@@ -295,7 +295,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void)fd_handler:(id)unused`  (line 6783)
   - [ ] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881)
   - [ ] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746)
+- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch
   - [ ] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041)
   - [ ] `- (void) setWindowClosing: (BOOL)closing`  (line 7047)
   - [ ] `- (void)dealloc`  (line 7055)
@@ -369,9 +369,9 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void)windowWillExitFullScreen`  (line 8912)
   - [ ] `- (void)windowDidExitFullScreen:(NSNotification *)notification`  (line 8924)
   - [ ] `- (void)windowDidExitFullScreen`  (line 8930)
-  - [ ] `- (BOOL)fsIsNative`  (line 8952)
-  - [ ] `- (BOOL)isFullscreen`  (line 8957)
-  - [ ] `- (void)updateCollectionBehavior`  (line 8981)
+  - [x] `- (BOOL)fsIsNative`  (line 8952) — landed as `func fsIsNative () -> Bool`; C's whole body is the ivar read
+  - [x] `- (BOOL)isFullscreen`  (line 8957) — landed as `func isFullscreen () -> Bool`; C 8967-8971's `#else` is dead on this target, and C 8968's `styleMask & NSWindowStyleMaskFullScreen` is the option-set's `contains`
+  - [x] `- (void)updateCollectionBehavior`  (line 8981) — landed as `func updateCollectionBehavior ()`; the three `b &=`/`b |=` lines are the collection-behavior option set's insert/remove, `ns_use_native_fullscreen` is imported as the C 11702 `DEFVAR_BOOL`'s data symbol (the `ns_auto_hide_menu_bar` shape), and `FRAME_PARENT_FRAME`/`FRAME_TOOLTIP_P` are this unit's existing entries
   - [ ] `- (void)toggleFullScreen: (id)sender`  (line 9017)
   - [ ] `- (void)handleFS`  (line 9126)
   - [ ] `- (void) setFSValue: (int)value`  (line 9177)
@@ -658,7 +658,7 @@ C 4747-4780) and the RIF's `ns_draw_glyph_string` (C 4782-5001) - **no new C exp
 C `static`s) - so the covered range is now **C 60-5001**.  The boundary is the `Event loop` banner
 at C 5005-5009: the dispatcher is the Glyph drawing operations section's last definition (the
 section the ledger has walked since round 17), and the next live definition - C 5013's
-`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.  **Round 22 lands C 5012-5084's `ns_send_appdefined` with C 448-470's `EV_TRAILER`/`EV_TRAILER2`** - the two macro boxes round 2 held open now close - plus `EmacsApp`'s `timeout_handler:` (C 6769) and `sendFromMainThread:` (C 6778), the two methods whose bodies call it; `check_native_fs` (C 5088) stays held on an `EmacsView` method.  The covered range is **C 60-5001 plus C 5012-5084 and C 6769-6781**.  **Round 23 lands `EmacsApp`'s four notification methods** (C 6556-6613: `antialiasThresholdDidChange:` C 6556, `systemWillSleep:` C 6565, `systemDidWake:` C 6577 and `applicationSupportsSecureRestorableState:` C 6610), so the range becomes **C 60-5001, C 5012-5084, C 6556-6613 and C 6769-6781**.  C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair stays held on `check_native_fs`, i.e. on `EmacsView`'s class - the two `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` guards at C 5126 and C 5217 are the live arm, so the dependency is hard.  **Round 24 lands `EmacsWindow`'s record** (`src/nsterm.h` 419-430's four Cocoa ivars) with `borderWidth` (C 9928), `setFrameTopLeftPoint:` (C 10444), `canBecomeKeyWindow` (C 10452), `canBecomeMainWindow` (C 10457) and `setLastDragEvent:` (C 10463) - the type `EmacsView`'s own `nonfs_window` ivar needs, so that class's record is the next round's.
+`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.  **Round 21 lands C 6225-6400, the `EmacsApp` class's first five methods**, ahead of C 5005-6224: `ns_send_appdefined` (C 5013) reaches `app->nextappdefined` and `-sendFromMainThread:` through an `EmacsApp *` cast, so the class is what the event loop's own round needs (`## ABI` (4)'s entry/definition split).  The remaining twenty-five methods stay open.  **Round 22 lands C 5012-5084's `ns_send_appdefined` with C 448-470's `EV_TRAILER`/`EV_TRAILER2`** - the two macro boxes round 2 held open now close - plus `EmacsApp`'s `timeout_handler:` (C 6769) and `sendFromMainThread:` (C 6778), the two methods whose bodies call it; `check_native_fs` (C 5088) stays held on an `EmacsView` method.  The covered range is **C 60-5001 plus C 5012-5084 and C 6769-6781**.  **Round 23 lands `EmacsApp`'s four notification methods** (C 6556-6613: `antialiasThresholdDidChange:` C 6556, `systemWillSleep:` C 6565, `systemDidWake:` C 6577 and `applicationSupportsSecureRestorableState:` C 6610), so the range becomes **C 60-5001, C 5012-5084, C 6556-6613 and C 6769-6781**.  C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair stays held on `check_native_fs`, i.e. on `EmacsView`'s class - the two `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED >= 1070` guards at C 5126 and C 5217 are the live arm, so the dependency is hard.  **Round 24 lands `EmacsWindow`'s record** (`src/nsterm.h` 419-430's four Cocoa ivars) with `borderWidth` (C 9928), `setFrameTopLeftPoint:` (C 10444), `canBecomeKeyWindow` (C 10452), `canBecomeMainWindow` (C 10457) and `setLastDragEvent:` (C 10463) - the type `EmacsView`'s own `nonfs_window` ivar needs, so that class's record is the next round's.  **Round 25 lands `EmacsView`'s record** (the fifteen ivars of `src/nsterm.h` 470-488) with `fsIsNative` (C 8952), `isFullscreen` (C 8957), `updateCollectionBehavior` (C 8981) and the `check_native_fs` (C 5086-5107) they were blocking - so C 5109-5395's `ns_read_socket_1`/`ns_select_1` pair is unblocked for the next round.  The class's protocol list (nsterm.h 466) is this round's named deferral: Swift enforces those protocols' required methods where the conformance is declared, so it lands with that batch.
 
 Ticked above: **109 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
@@ -2919,4 +2919,24 @@ call site takes an entry and the definition lands at its own C line - and **both
   type is `ns_return_frame_mode`, which `nsselect.swift` 104 already spells, so they land with the
   drag methods that read them) and `dealloc` (C 9912-9926, which Swift forbids overriding - ARC
   owns the three releases C writes).
+
+### Round 25: `EmacsView`'s class record, `isFullscreen`, `updateCollectionBehavior` and `check_native_fs`
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-24 carry, so **no new warning**.  Object
+  `/tmp/nsterm25.o`, **563696 bytes**, md5 `fc27aa476b41e28d3c7b551b1d48ab62`.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **43** unported,
+  43 row(s); 415 C symbol import(s)` - one fewer than round 24's 44, and **one stale row cleared
+  again**: `docs/baseline/swift-units.tsv` named `check_native_fs`, and the gate reported exactly
+  that row as `stale` the moment the function landed (the same reading round 22 got for
+  `ns_send_appdefined`).  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this unblocks**: `ns_read_socket_1` (C 5110) and `ns_select_1` (C 5203) call
+  `check_native_fs ()` from their live arm (C 5127 and C 5218), and that call now has a target -
+  the C 5109-5395 pair is the next round's subject.  Four ledger boxes are ticked (210 -> 214).
+* **The named deferral**: `EmacsView`'s protocol list (`src/nsterm.h` 466's `<NSTextInput,
+  NSTextInputClient, NSWindowDelegate>`).  Swift enforces every required method of a conformed
+  protocol at the declaration site, so the conformance cannot land with the record; it lands with
+  the method batch that implements those requirements.  Until then the class's own text is what
+  the reference has - the record and the three methods above - and no method below reads a
+  protocol requirement.
 
