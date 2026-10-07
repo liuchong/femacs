@@ -8517,3 +8517,157 @@ fileprivate func ns_flush_display(_ f: UnsafeMutableRawPointer?) {
 fileprivate func ns_delete_display(_ dpyinfo: UnsafeMutableRawPointer?) {
   // C 5874: nothing - C's body is the TODO comment above the definition.
 }
+
+// ==========================================================================
+// Round 39: the redisplay interface table (C 5801-5835)
+// ==========================================================================
+
+/// C: `typedef void (*frame_parm_handler) (struct frame *, Lisp_Object, Lisp_Object);`
+/// (src/dispextern.h 3063) - this unit's own view of the typedef, which `nsfns.swift` 415 spells
+/// for its own unit (a Swift typealias is not visible across the lane's single-file compiles).
+typealias frame_parm_handler =
+  @convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Lisp_Object) -> Void
+
+/// C: `struct redisplay_interface` (src/dispextern.h) - **this unit's view, in the arm it ports**
+/// (the `NS_IMPL_COCOA` one).  The Rust mirror `femacs/src/include/dispextern.rs` 3794 is the
+/// *frozen* configuration's shape, which is 13 members wide because that configuration leaves
+/// `HAVE_WINDOW_SYSTEM` false; the Cocoa arm C 5801-5835 initialises **28** members, and the
+/// measured layout for it is `docs/baseline/redisplay_interface-layout.tsv`'s `ns_cocoa` rows:
+/// `sizeof 224`, `align 8`, members at 0, 8, 16, … 216, i.e. one pointer each, in the order below.
+/// Every member is a function pointer, so each is an *optional* `@convention(c)` type - C's
+/// `NULL` is the `nil` the table's two `NULL`s use - and `frame_parm_handlers` is the
+/// `frame_parm_handler *` C declares (offset 0).
+struct redisplay_interface {
+  var frame_parm_handlers: UnsafeMutablePointer<frame_parm_handler>?
+  var produce_glyphs: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var write_glyphs: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                     UnsafeMutableRawPointer?, Int32, Int32) -> Void)?
+  var insert_glyphs: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                      UnsafeMutableRawPointer?, Int32, Int32) -> Void)?
+  var clear_end_of_line: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                          Int32, Int32) -> Void)?
+  var scroll_run_hook: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void)?
+  var after_update_window_line_hook: (@convention(c) (UnsafeMutableRawPointer?,
+                                                      UnsafeMutableRawPointer?) -> Void)?
+  var update_window_begin_hook: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var update_window_end_hook: (@convention(c) (UnsafeMutableRawPointer?, Bool, Bool) -> Void)?
+  var flush_display: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var clear_window_mouse_face: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var get_glyph_overhangs: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                            UnsafeMutablePointer<Int32>?,
+                                            UnsafeMutablePointer<Int32>?) -> Void)?
+  var fix_overlapping_area: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                             Int32, Int32) -> Void)?
+  var draw_fringe_bitmap: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                           UnsafeMutableRawPointer?) -> Void)?
+  var define_fringe_bitmap: (@convention(c) (Int32, UnsafePointer<UInt16>?, Int32,
+                                             Int32) -> Void)?
+  var destroy_fringe_bitmap: (@convention(c) (Int32) -> Void)?
+  var compute_glyph_string_overhangs: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var draw_glyph_string: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var define_frame_cursor: (@convention(c) (UnsafeMutableRawPointer?, AnyObject?) -> Void)?
+  var clear_frame_area: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32,
+                                         Int32) -> Void)?
+  var clear_under_internal_border: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var draw_window_cursor: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?,
+                                           Int32, Int32, Int32, Int32, Bool, Bool) -> Void)?
+  var draw_vertical_window_border: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32,
+                                                    Int32) -> Void)?
+  var draw_window_divider: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32,
+                                            Int32) -> Void)?
+  var shift_glyphs_for_insert: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32,
+                                                Int32, Int32) -> Void)?
+  var show_hourglass: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var hide_hourglass: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  var default_font_parameter: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object) -> Void)?
+}
+
+/// C: the six `gui_*` entries C 5804-5819 hands the table, which are `src/xdisp.c`'s
+/// (the xdisp lane's) - imported by name with C's own signatures, as the unit imports the other
+/// core entries (`src/xdisp.c` 33768, 34548, 34592, 34649, 35052, 31409, 37706).
+@_silgen_name("gui_produce_glyphs")
+func gui_produce_glyphs(_ it: UnsafeMutableRawPointer?)
+@_silgen_name("gui_write_glyphs")
+func gui_write_glyphs(_ w: UnsafeMutableRawPointer?, _ updated_row: UnsafeMutableRawPointer?,
+                      _ string: UnsafeMutableRawPointer?, _ area: Int32, _ len: Int32)
+@_silgen_name("gui_insert_glyphs")
+func gui_insert_glyphs(_ w: UnsafeMutableRawPointer?, _ updated_row: UnsafeMutableRawPointer?,
+                       _ start: UnsafeMutableRawPointer?, _ area: Int32, _ len: Int32)
+@_silgen_name("gui_clear_end_of_line")
+func gui_clear_end_of_line(_ w: UnsafeMutableRawPointer?, _ updated_row: UnsafeMutableRawPointer?,
+                           _ area: Int32, _ x: Int32)
+@_silgen_name("gui_clear_window_mouse_face")
+func gui_clear_window_mouse_face(_ w: UnsafeMutableRawPointer?)
+@_silgen_name("gui_get_glyph_overhangs")
+func gui_get_glyph_overhangs(_ glyph: UnsafeMutableRawPointer?, _ f: UnsafeMutableRawPointer?,
+                             _ left: UnsafeMutablePointer<Int32>?,
+                             _ right: UnsafeMutablePointer<Int32>?)
+@_silgen_name("gui_fix_overlapping_area")
+func gui_fix_overlapping_area(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                              _ area: Int32, _ x: Int32)
+
+/// C: `extern frame_parm_handler ns_frame_parm_handlers[]` (src/nsterm.h 1262) - defined in
+/// src/nsfns.m 1058, which this lane's `nsfns.swift` 2070 carries as a Swift array and whose
+/// ledger records that **the C symbol itself still needs a port-side definition**
+/// (`docs/ports/nsfns.md`'s `## ABI` (3); Swift cannot emit a C-named data symbol).  C's table
+/// entry is the array's address - what the array name decays to - so this unit takes the imported
+/// symbol's own address.  A unit cannot see another unit's Swift array; this entry is the C
+/// symbol's side, and it is the reason the member below is written the way it is
+/// (see the round's note on that one reshaping).
+@_silgen_name("ns_frame_parm_handlers") var ns_frame_parm_handlers_entry: frame_parm_handler
+
+/// C 5801-5835: `static struct redisplay_interface ns_redisplay_interface = { … }` - C's own
+/// order, one line per entry, with C's comments kept where they say something C's code does not
+/// (`generic OK`, the two `NULL`s and their arm).  Swift cannot emit a C-named *data* symbol
+/// either, so the port carries the table as a file-scope value and the ledger's `## ABI` records
+/// that the C symbol needs a port-side definition - the same standing state `nsfns.swift` 2070's
+/// array has.
+///
+/// Two entries are the arm's `NULL`s (C 5810's `update_window_begin` and C 5812's
+/// `update_window_end`, the latter because C 5811 tests `#ifndef NS_IMPL_GNUSTEP` and this target
+/// takes the `NULL` side), so they are `nil`.
+fileprivate var ns_redisplay_interface = redisplay_interface(
+  frame_parm_handlers:
+    withUnsafeMutablePointer(to: &ns_frame_parm_handlers_entry) { $0 },     // C 5803
+  produce_glyphs: { it in gui_produce_glyphs(it) },                        // C 5804
+  write_glyphs: { w, row, string, area, len in                             // C 5805
+    gui_write_glyphs(w, row, string, area, len) },
+  insert_glyphs: { w, row, start, area, len in                             // C 5806
+    gui_insert_glyphs(w, row, start, area, len) },
+  clear_end_of_line: { w, row, area, x in                                  // C 5807
+    gui_clear_end_of_line(w, row, area, x) },
+  scroll_run_hook: { w, run in ns_scroll_run(w, run) },                    // C 5808
+  after_update_window_line_hook: { w, row in                               // C 5809
+    ns_after_update_window_line(w, row) },
+  update_window_begin_hook: nil,                                           // C 5810 (C's NULL)
+  update_window_end_hook: nil,                                             // C 5812 (C's NULL)
+  flush_display: { f in ns_flush_display(f) },                             // C 5816
+  clear_window_mouse_face: { w in gui_clear_window_mouse_face(w) },        // C 5817
+  get_glyph_overhangs: { glyph, f, left, right in                          // C 5818
+    gui_get_glyph_overhangs(glyph, f, left, right) },
+  fix_overlapping_area: { w, row, area, x in                               // C 5819
+    gui_fix_overlapping_area(w, row, area, x) },
+  draw_fringe_bitmap: { w, row, p in ns_draw_fringe_bitmap(w, row, p) },    // C 5820
+  define_fringe_bitmap: { which, bits, h, wd in                            // C 5821
+    ns_define_fringe_bitmap(which, bits, h, wd) },
+  destroy_fringe_bitmap: { which in ns_destroy_fringe_bitmap(which) },      // C 5822
+  compute_glyph_string_overhangs: { s in                                    // C 5823
+    ns_compute_glyph_string_overhangs(s) },
+  draw_glyph_string: { s in ns_draw_glyph_string(s) },                      // C 5824
+  define_frame_cursor: { f, cursor in                                       // C 5825
+    ns_define_frame_cursor(f, cursor as? NSObject) },
+  clear_frame_area: { f, x, y, width, height in                             // C 5826
+    ns_clear_frame_area(f, x, y, width, height) },
+  clear_under_internal_border: { f in ns_clear_under_internal_border(f) },  // C 5827
+  draw_window_cursor: { w, row, x, y, kind, width, on_p, active_p in        // C 5828
+    ns_draw_window_cursor(w, row, x, y, kind, width, on_p, active_p) },
+  draw_vertical_window_border: { w, x, y0, y1 in                            // C 5829
+    ns_draw_vertical_window_border(w, x, y0, y1) },
+  draw_window_divider: { w, x0, x1, y0, y1 in                               // C 5830
+    ns_draw_window_divider(w, x0, x1, y0, y1) },
+  shift_glyphs_for_insert: { f, x, y, width, height, shift_by in            // C 5831
+    ns_shift_glyphs_for_insert(f, x, y, width, height, shift_by) },
+  show_hourglass: { f in ns_show_hourglass(f) },                            // C 5832
+  hide_hourglass: { f in ns_hide_hourglass(f) },                            // C 5833
+  default_font_parameter: { f, parms in                                     // C 5834
+    ns_default_font_parameter(f, parms) })

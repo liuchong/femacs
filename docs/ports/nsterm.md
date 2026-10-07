@@ -562,7 +562,7 @@ otherwise skips); they are added by hand so the checklist is complete - see Deci
       file-scope `let` (`500 * NSEC_PER_MSEC`); a generator gap of the `static const` kind
 - [x] static NSTimeInterval NS_UAZOOMENABLED_DEFER_INTERVAL_SECS  (line 1097) — landed as a
       file-scope `var` (0.2); the same gap family
-- [ ] struct redisplay_interface ns_redisplay_interface  (lines 5801-5835, static) — **a second
+- [x] struct redisplay_interface ns_redisplay_interface  (lines 5801-5835, static) — **a second
       generator gap of this hand-added family, found by round 38 and named here rather than left
       invisible**: `tools/extract-abi.py` lists neither the table nor a row for it, so no gate sees
       its absence (rounds 37/38 walked past the block C 5796-5835).  It is not landed: the table's
@@ -571,6 +571,12 @@ otherwise skips); they are added by hand so the checklist is complete - see Deci
       for `update_window_begin`/`update_window_end`, `ns_flush_display`, …), so landing it needs
       the `struct redisplay_interface` spelling plus those imports settled first
       (`docs/baseline/redisplay_interface-layout.tsv` is the record's measured layout).
+      **Landed in round 39** as a file-scope `var ns_redisplay_interface`, with this unit's own view
+      of the record in the arm it ports (`NS_IMPL_COCOA`: the `ns_cocoa` rows, 28 members at
+      0…216, `sizeof 224`, all optional `@convention(c)` types) and C's own order kept entry by
+      entry.  The C symbol itself still needs a port-side definition, the state `nsfns.swift`
+      2070's array is in (Swift cannot emit a C-named data symbol), and that is the ledger's
+      `## ABI` note below.
 
 # ----------------------------------------------------------------------
 ## Decisions
@@ -2154,6 +2160,16 @@ call site takes an entry and the definition lands at its own C line - and **both
   `#[cfg (feature = "have_window_system")]` arm is the Rust side's carrier of the call (its own
   comment records that the name is not declared there, so nothing links against it today - the
   entry exists for the Cocoa build the way this whole lane does).
+* **the core and the xdisp lane, round 39's names**: the table's first entry is C's
+  `ns_frame_parm_handlers` (src/nsterm.h 1262, defined in src/nsfns.m 1058) - the `nsfns` lane
+  carries it as a Swift array and its own ledger's `## ABI` (3) records that **the C data symbol
+  still needs a port-side definition**; this unit now needs the same thing for the same reason, so
+  the requirement is owed once and used twice.  The seven `gui_*` entries C hands the table -
+  `gui_produce_glyphs`, `gui_write_glyphs`, `gui_insert_glyphs`, `gui_clear_end_of_line`,
+  `gui_clear_window_mouse_face`, `gui_get_glyph_overhangs`, `gui_fix_overlapping_area` - are
+  `src/xdisp.c`'s (the xdisp lane's), imported by name with C's own signatures.  And the table's own
+  C symbol, `ns_redisplay_interface`, needs a port-side definition for the same reason the handlers
+  array does: Swift cannot emit a C-named data symbol, so the port carries it as a file-scope value.
 
 ## Evidence
 
@@ -3322,3 +3338,42 @@ call site takes an entry and the definition lands at its own C line - and **both
   `tools/check-swift-units.py` compares name sets, not signatures, bodies, layout or ABI.
   `FRAME_TERMINAL` is a declaration: the core side that exports it lands with the `src/frame.h`
   unit, the standing state of round 7's macro entries.
+
+### Round 39: the redisplay interface table (C 5801-5835)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-38 carry, so **no new warning**, and like round 38
+  this one **needed no fix round**.  Object `/tmp/nsterm39.o`, **754,584 bytes**, md5
+  `93927fa69f456a94ce4ec8f5217f6a11`.  The unit is **8,673 lines**.
+* **The record, in the arm this unit ports.**  `struct redisplay_interface` is measured four times
+  in `docs/baseline/redisplay_interface-layout.tsv`: the *frozen* configuration is **13 members /
+  sizeof 104** (it leaves `HAVE_WINDOW_SYSTEM` false, and the Rust mirror
+  `femacs/src/include/dispextern.rs` 3794 is that shape), while `x11`, `x11_ext` and **`ns_cocoa`**
+  are **28 members / sizeof 224**.  C 5801-5835 initialises 28 members, so this unit carries its
+  own view of the `ns_cocoa` shape (members at 0, 8, 16, … 216) rather than the mirror's - the same
+  relationship `input_event` has to `termhooks.rs`.  Every member is a function pointer, spelled as
+  an optional `@convention(c)` type (C's `NULL` is the `nil` the table's two nulls use), with
+  `frame_parm_handler` as this unit's own view of src/dispextern.h 3063's typedef.
+* **The table itself.**  C's order is kept entry by entry (C 5803-5834), including C's own
+  comments where they say something the code does not (`generic OK`) and the two `NULL`s: C 5810's
+  `update_window_begin` and C 5812's `update_window_end`, the second because C 5811 tests
+  `#ifndef NS_IMPL_GNUSTEP` and this target takes the `NULL` side.  The entries are non-capturing
+  closures over this unit's own functions and over seven imported `gui_*` entries of the xdisp lane
+  (`docs/ports/nsfns.md` 234-236 is the same shape and the same reason: a `unsafeBitCast` of a
+  Swift function to a `@convention(c)` pointer is a Swift 6.4 warning).
+* **The one reshaping, named.**  C's first entry is the *address* of `ns_frame_parm_handlers`
+  (src/nsterm.h 1262, defined in src/nsfns.m 1058).  A unit cannot see another unit's Swift array
+  (`nsfns.swift` 2070 carries it) and Swift cannot emit the C data symbol, so the address is taken
+  from the imported symbol itself, `withUnsafeMutablePointer (to: &ns_frame_parm_handlers_entry)`.
+  C's value is a link-time constant; the port-side definition that would give this entry the same
+  standing is the gap `docs/ports/nsfns.md`'s `## ABI` (3) already records, and it is now owed by
+  two units instead of one.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **23** unported,
+  23 row(s); **462** C symbol import(s)` - unported is unchanged (the table is a variable, not a C
+  *function*, which is also why `extract-abi.py` never had a row for it), and the round's imports
+  are the seven `gui_*` entries (455 -> 462).  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (nothing has read the table, no glyph written
+  through it, no frame parameter set); the compile gate reaches parsing and type checking only; the
+  record's layout is *documented* from the probe's `ns_cocoa` rows, not asserted at run time, and
+  the seven `gui_*` entries plus `ns_frame_parm_handlers` are declarations whose definitions live in
+  the xdisp and nsfns lanes.
