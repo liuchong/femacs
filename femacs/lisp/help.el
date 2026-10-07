@@ -449,7 +449,7 @@ Do not call this in the scope of `with-help-window'."
                                 (lossage-size)))
        ("display-local-help" "Show local help at point"))
       ("Miscellaneous"
-       ("about-emacs" "About Emacs")
+       ("about-emacs" "About femacs")
        ("view-emacs-FAQ" "Emacs FAQ")
        ("C-n" "News of recent changes")
        ("view-emacs-problems" "Known problems")

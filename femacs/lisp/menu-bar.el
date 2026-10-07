@@ -2137,7 +2137,7 @@ key, a click, or a menu-item"))
       '(menu-item "About GNU" describe-gnu-project
                   :help "About the GNU System, GNU Project, and GNU/Linux"))
     (define-key menu [about-emacs]
-      '(menu-item "About Emacs" about-emacs
+      '(menu-item "About femacs" about-emacs
                   :help "Display version number, copyright info, and basic help"))
     (define-key menu [sep4]
       menu-bar-separator)
@@ -2201,7 +2201,7 @@ key, a click, or a menu-item"))
     (and (featurep 'ns)
          (not (eq system-type 'darwin))
          (define-key menu [info-panel]
-           '(menu-item "About Emacs..." ns-do-emacs-info-panel)))
+           '(menu-item "About femacs..." ns-do-emacs-info-panel)))
     menu))
 
 (define-key global-map [menu-bar tools]

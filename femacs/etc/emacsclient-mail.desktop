@@ -3,7 +3,7 @@ Categories=Network;Email;
 Comment=femacs is an extensible, customizable text editor - and more
 Exec=emacsclient --alternate-editor= --eval "(message-mailto (pop server-eval-args-left))" %u
 Icon=emacs
-Name=Emacs (Mail, Client)
+Name=femacs (Mail, Client)
 MimeType=x-scheme-handler/mailto;
 NoDisplay=true
 Terminal=false
