@@ -12153,3 +12153,151 @@ unsafe fn compute_tip_xy (f: *mut frame, parms: Lisp_Object, dx: Lisp_Object,   
     /* Put it left justified on the screen -- it ought to fit that way.  */    // C 8891
     { *root_x = min_x; }                                                       // C 8892
 }                                                                              // C 8893
+
+/* C: gtkutil.h 216: `extern bool xg_hide_tooltip (struct frame *f);` - C 8949's call in the
+   `USE_GTK` arm.  `src/gtkutil.rs` defines it twice, one per `use_gtk` arm, so it stands at the
+   use site (P-55/P-72 rule 3; the `src/pgtkfns.rs` 448-451 row).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_hide_tooltip (f: *mut frame) -> bool;
+}
+
+/**
+ * x_hide_tip:
+ *
+ * Hide currently visible tooltip and cancel its timer.
+ *
+ * If GTK+ system tooltips are used, this will try to hide the tooltip
+ * referenced by the x_output structure of tooltip_last_frame.  For
+ * Emacs tooltips this will try to make tooltip_frame invisible (if
+ * DELETE is false) or delete tooltip_frame (if DELETE is true).
+ *
+ * Return Qt if the tooltip was either deleted or made invisible, Qnil
+ * otherwise.
+ */
+
+
+/* C 8909-9028.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_hide_tip (delete: bool) -> Lisp_Object                            // C 8909-8910
+{                                                                            // C 8911
+  if !NILP (tip_timer)                                                       // C 8912
+    {
+      calln! (Qcancel_timer (), tip_timer);                                  // C 8914
+      tip_timer = Qnil ();                                                   // C 8915
+    }
+
+#[cfg (feature = "use_gtk")]                                                 // C 8918
+  {
+  /* Any GTK+ system tooltip can be found via the x_output structure
+     of tip_last_frame, provided that frame is still live.  Any Emacs
+     tooltip is found via the tip_frame variable.  Note that the
+     current value of use_system_tooltips might not be the same as
+     used for the tooltip we have to hide, see Bug#30399.  */
+    if (NILP (tip_last_frame) && NILP (tip_frame))                           // C 8924
+      || (!use_system_tooltips                                               // C 8925
+	  && !delete                                                           // C 8926
+	  && !NILP (tip_frame)                                                 // C 8927
+	  && FRAME_LIVE_P (XFRAME (tip_frame))                                 // C 8928
+	  && !FRAME_VISIBLE_P (XFRAME (tip_frame)))                            // C 8929
+    /* Either there's no tooltip to hide or it's an already invisible
+       Emacs tooltip and we don't want to change its type.  Return
+       quickly.  */
+      { return Qnil (); }                                                    // C 8933
+    else
+      {
+	let mut was_open: Lisp_Object = Qnil ();                              // C 8936
+
+	let count: specpdl_ref = SPECPDL_INDEX ();                            // C 8938
+	specbind (Qinhibit_redisplay (), Qt ());                              // C 8939
+	specbind (Qinhibit_quit (), Qt ());                                   // C 8940
+
+	/* Try to hide the GTK+ system tip first.  */                         // C 8942
+	if !NILP (tip_last_frame)                                             // C 8943
+	  {
+	    let f: *mut frame = XFRAME (tip_last_frame);                      // C 8945
+
+	    if FRAME_LIVE_P (f)                                               // C 8947
+	      {
+		if xg_hide_tooltip (f)                                        // C 8949
+		  { was_open = Qt (); }                                       // C 8950
+	      }
+	  }
+
+      /* When using GTK+ system tooltips (compare Bug#41200) reset
+	 tip_last_frame.  It will be reassigned when showing the next
+	 GTK+ system tooltip.  */
+	if use_system_tooltips                                               // C 8957
+	  { tip_last_frame = Qnil (); }                                       // C 8958
+
+	/* Now look whether there's an Emacs tip around.  */                  // C 8960
+	if !NILP (tip_frame)                                                 // C 8961
+	  {
+	    let f: *mut frame = XFRAME (tip_frame);                           // C 8963
+
+	    if FRAME_LIVE_P (f)                                               // C 8965
+	      {
+		if delete || use_system_tooltips                              // C 8967
+		  {
+		  /* Delete the Emacs tooltip frame when DELETE is true
+		     or we change the tooltip type from an Emacs one to
+		     a GTK+ system one.  */
+		    delete_frame (tip_frame, Qnil ());                        // C 8972
+		    tip_frame = Qnil ();                                      // C 8973
+		  }
+		else
+		  { x_make_frame_invisible (f); }                             // C 8976
+
+		was_open = Qt ();                                             // C 8978
+	      }
+	    else
+	      { tip_frame = Qnil (); }                                     // C 8981
+	  }
+	else
+	  { tip_frame = Qnil (); }                                           // C 8984
+
+	return unbind_to (count, was_open);                                  // C 8986
+      }
+  }
+#[cfg (not (feature = "use_gtk"))]                                          // C 8988
+  {
+    if NILP (tip_frame)                                                      // C 8989
+      || (!delete                                                            // C 8990
+	  && !NILP (tip_frame)                                                  // C 8991
+	  && FRAME_LIVE_P (XFRAME (tip_frame))                                  // C 8992
+	  && !FRAME_VISIBLE_P (XFRAME (tip_frame)))                             // C 8993
+      { return Qnil (); }                                                    // C 8994
+    else
+      {
+	let mut was_open: Lisp_Object = Qnil ();                              // C 8997
+
+	let count: specpdl_ref = SPECPDL_INDEX ();                            // C 8999
+	specbind (Qinhibit_redisplay (), Qt ());                              // C 9000
+	specbind (Qinhibit_quit (), Qt ());                                   // C 9001
+
+	if !NILP (tip_frame)                                                 // C 9003
+	  {
+	    let f: *mut frame = XFRAME (tip_frame);                           // C 9005
+
+	    if FRAME_LIVE_P (f)                                               // C 9007
+	      {
+		if delete                                                     // C 9009
+		  {
+		    delete_frame (tip_frame, Qnil ());                        // C 9011
+		    tip_frame = Qnil ();                                      // C 9012
+		  }
+		else
+		  { x_make_frame_invisible (XFRAME (tip_frame)); }             // C 9015
+
+		was_open = Qt ();                                             // C 9017
+	      }
+	    else
+	      { tip_frame = Qnil (); }                                     // C 9020
+	  }
+	else
+	  { tip_frame = Qnil (); }                                           // C 9023
+
+	return unbind_to (count, was_open);                                  // C 9025
+      }
+  }                                                                        // C 9027
+}                                                                            // C 9028

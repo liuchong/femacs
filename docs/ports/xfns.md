@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775 and C 8778-8893
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893 and C 8896-9028
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -25,12 +25,13 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **11,088 lines** after the twenty-eighth, **11,179 lines** after the twenty-ninth and
 > **11,286 lines** after the thirtieth, **11,371 lines** after the thirty-first and
 > **11,493 lines** after the thirty-second, **11,554 lines** after the thirty-third and
-> **12,025 lines** after the thirty-fourth and **12,155 lines** after the thirty-fifth - C 803-2149,
+> **12,025 lines** after the thirty-fourth, **12,155 lines** after the thirty-fifth and
+> **12,303 lines** after the thirty-sixth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
-> C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775 and C 8778-8893, whose own
+> C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893 and C 8896-9028, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -215,7 +216,8 @@ defines both features.
 | 8362-8404 | the `Tool tips` banner (C 8362-8364), C 8366-8367's forward declaration of `compute_tip_xy`, the eight objects (C 8369-8390: `tip_frame`, `tip_window`, `tip_dx`, `tip_dy` exported; `tip_timer`, `tip_last_string`, `tip_last_frame`, `tip_last_parms` private) and `unwind_create_tip_frame` (C 8393-8404) | `have_x_windows`, with no nested `#if` (slice 33) |
 | 8406-8775 | C 8407-8414's comment and `x_create_tip_frame` (C 8416-8775: the terminal check, the name lookup, the frame's creation with its unwind-protect, the X output setup, the color block, the name/`explicit_name` pair, the font drivers, the `gui_default_parameter` runs, the `USE_XCB`/`not USE_XCB` window-creation pair, `init_frame_faces`, the `tooltip`/`display-type` parameters, the face-after-default pair and the tail) | `have_x_windows`, with `use_cairo`/`freetype`/`have_xft`/`harfbuzz` for the font drivers, `use_xcb` for the window pair, `glyph_debug`, `use_lucid`/`use_toolkit_scroll_bars` (slice 34) |
 | 8778-8893 | C 8778-8782's comment and `compute_tip_xy` (C 8784-8893: the four `Fassq` reads, C 8808-8811's `x_query_pointer` between `block_input`/`unblock_input`, C 8815-8824's `HAVE_XRANDR`/`USE_GTK` cached-list choice, C 8828-8849's monitor walk with C 8834-8837's four `Fnth` reads, C 8854-8860's defaults, and C 8862-8892's two four-arm chains) | `have_x_windows`, with `have_xrandr`/`use_gtk` for the cached-list choice (slice 35) |
-| 8896-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,767 lines, whose first live item is C 8896-8908's doc comment and `x_hide_tip` (C 8909-8910, the `static Lisp_Object`) - the next slice's first item | not ported in this slice |
+| 8896-9028 | C 8896-8908's doc comment and `x_hide_tip` (C 8909-9028: C 8912-8916's timer cancel, C 8918-8987's `USE_GTK` arm - the early-return test, the two `specbind`s, `xg_hide_tooltip`, the `tip_last_frame` reset and the delete-or-hide pair - and C 8988-9027's `not USE_GTK` arm) | `have_x_windows`, with `use_gtk` splitting the two arms (slice 36) |
+| 9031-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,632 lines, whose first live item is the `x-show-tip` `DEFUN` (C 9031) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -3472,3 +3474,67 @@ literals), 0 failures**.
 
 The frozen configuration compiles none of this file: no pointer was queried, no monitor list was
 walked and no tooltip was placed; the fourteen arms' counts are text compile readings.
+
+## Slice 36 (2026-10-08, status 3.941): C 8896-9028
+
+**The slice is C 8896-9028**: C 8896-8908's doc comment and `x_hide_tip` (147 Rust lines, 12,155 ->
+12,303): C 8912-8916's timer cancel with `calln!`, C 8918-8987's `USE_GTK` arm (C 8924-8933's
+early-return test over `tip_last_frame`/`tip_frame`/`use_system_tooltips`, C 8938-8940's
+`SPECPDL_INDEX` and the two `specbind`s, C 8949's `xg_hide_tooltip` pair, C 8957-8958's
+`tip_last_frame` reset, C 8961-8984's delete-or-hide pair and C 8986's `unbind_to`) and
+C 8988-9027's `not USE_GTK` arm.
+
+**Every one of the fourteen arms is byte-identical.**  Each reads exactly its slice-35 level -
+plain-X **18 / 9**, WS, WSX, WSR, WSRX, WSR12 and XSN **16 / 9** (WSRX **16 / 10**), LUCID
+**25 / 12**, GTK and GTK22 **47 / 20**, XI2 and XR **22 / 9**, Xt **20 / 12** and XCB **18 / 10** -
+and both sets are empty-diff against the in-tree HEAD baseline in all fourteen.
+
+**The first measurement's one row was the declaration's placement.**  GTK read **47 / 21**, one
+`unused doc comment` in the file's own text: C's `/** ... */` block (C 8896-8908) is a *doc* comment
+in Rust too, and it sat before the slice's `xg_hide_tooltip` `unsafe extern "C"` block, so it
+documented nothing ("a doc comment on an `extern` block is the `unused doc comment` warning the
+file's baseline already counts" - slice 5's note).  Moving the extern block above the comment (so
+the comment attaches to `x_hide_tip`, where C puts it) returns GTK and GTK22 to **47 / 20**.
+
+**Arm touch measured** (P-86 ⑦), and it measures the cfg seam: an injection at the body's first
+statement (A, C 8912) moves plain-X **18 -> 19**, GTK **47 -> 48**, XCB **18 -> 19** and XI2
+**22 -> 23**; one before C 9003's `if (! NILP (tip_frame))` (B) - which sits inside the *not
+USE_GTK* arm - moves plain-X **18 -> 19**, XCB **18 -> 19**, LUCID **25 -> 26** and Xt **20 -> 21**
+while **GTK stays at 47**, so B is read by the arms that compile that arm and by no others.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash.
+
+**② The fourteen arms.**  See above.
+
+**③ `extract-abi.py --check`**: **94 rows -> 93** - `missing function x_hide_tip` retiring with
+nothing appearing, and the drift row moving from `14.0%` to `15.4%: C 10662 vs Rust 12303`.
+`check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**
+and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed literals), 0
+failures**.
+
+### Deviations (this slice)
+
+1. **`xg_hide_tooltip` stands at the use site** (gtkutil.h 216: `extern bool xg_hide_tooltip
+   (struct frame *f);`, gated `all (have_x_windows, use_gtk)`), because `src/gtkutil.rs` defines it
+   twice (C 971-992 and 1008-1016, one per `use_gtk` arm) and no mirror carries the row - the
+   `src/pgtkfns.rs` 448-451 shape.
+2. **That declaration block sits *above* C's doc comment**, so the comment attaches to the
+   function (the `unused doc comment` reading above).
+3. **The two arms are cfg-gated blocks** (`use_gtk` / `not use_gtk`), each carrying C's own
+   early-return test and body in C's order.
+
+### Owed (this slice)
+
+- `x_hide_tip`'s own name is the *static* helper; the `x-hide-tip` `DEFUN` (C 9375) and its
+  `defsubr` are still to come.
+- `syms_of_xfns`' `defsubr` sites (45) and the rest of the remainder from C 9031 (the `x-show-tip`
+  `DEFUN`): 1,632 C lines plus the 10 missing functions, 1 macro, 0 objects, 16 subrs and 45
+  defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no timer was cancelled, no tooltip was hidden
+and no frame was deleted; the fourteen arms' counts are text compile readings.
