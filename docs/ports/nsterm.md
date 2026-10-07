@@ -195,7 +195,7 @@
 - [x] ns_select  (line 5366) — landed as `func ns_select (_:_:_:_:_:_:)`: C's body is the `ns_select_1` call with `NO`
 - [x] ns_run_loop_break  (line 5376) — landed as `func ns_run_loop_break ()` (the `HAVE_PTHREAD` arm): C's two lines are the `NSApp` guard and the `ns_send_appdefined (-1)` it wraps
 - [x] ns_set_vertical_scroll_bar  (line 5396, static) — C 5396-5486, landed as `fileprivate func ns_set_vertical_scroll_bar (_:_:_:_:)`: the `EmacsScroller` it builds and drives landed in rounds 42-46, C's `XNS_SCROLL_BAR` cast is `as? EmacsScroller`, `NSEqualRects (a, b)` is `a == b`, the possibly-nil view's reads are C's nil-receiver answers (`?? .zero` for the rect), and C 5466's `make_mint_ptr (bar)` is the object's own opaque pointer
-- [ ] ns_set_horizontal_scroll_bar  (line 5490, static)
+- [x] ns_set_horizontal_scroll_bar  (line 5490, static) — C 5490-5571, landed as `fileprivate func ns_set_horizontal_scroll_bar (_:_:_:_:)`: the vertical hook's twin with the three differences C's own text shows - C 5525 takes the *x* pair out of `window_box`, C 5528-5529 read the horizontal bar's own height and y (the round's two new macro entries), and C 5548-5558's update branch sets `update_p = YES` without the vertical hook's C 5474 width copy; C 5561-5566's shared-corner clear keeps C's own `window->vertical_scroll_bar` test (the frame's read nothing else in this batch needs)
 - [ ] ns_condemn_scroll_bars  (line 5575, static)
 - [ ] ns_redeem_scroll_bar  (line 5597, static)
 - [ ] ns_judge_scroll_bars  (line 5622, static)
@@ -2207,6 +2207,11 @@ call site takes an entry and the definition lands at its own C line - and **both
   at lisp.rs 1664), the member reader `window_vertical_scroll_bar` (the `window_frame` family) and
   the three macros `WINDOW_SCROLL_BAR_AREA_WIDTH`/`WINDOW_SCROLL_BAR_AREA_X`/`WINDOW_TOTAL_LINES`
   are the C-ABI entries this round adds and the core still owes.
+* **round 48's names**: the member reader `window_horizontal_scroll_bar` (the vertical reader's
+  twin) and the two macros `WINDOW_SCROLL_BAR_AREA_HEIGHT`/`WINDOW_SCROLL_BAR_AREA_Y` are the three
+  entries the horizontal hook adds; the rest of its reads (`XNS_SCROLL_BAR`, `make_mint_ptr`,
+  `window_box`, `WINDOW_FRAME`, `WINDOW_TOTAL_LINES`, `WINDOW_SCROLL_BAR_AREA_X`/`_WIDTH`) landed
+  with round 47.
 
 ## Evidence
 
@@ -3675,3 +3680,27 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no scroll bar created, resized or removed);
   the compile gate reaches parsing and type checking only; the six entries are declarations the core
   still owes.
+
+### Round 48: `ns_set_horizontal_scroll_bar` (C 5490-5571)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-47 carry, so **no new warning**, and the round
+  **compiled first try**.  Object `/tmp/nsterm48.o`, **854,424 bytes**, md5
+  `844f126505fa3884d27ba6b84259b98a`.  The unit is **9,661 lines**.
+* **The twin, and the three differences C's own text shows** (no two hooks are copy-paste here):
+  ⑴ C 5525 takes the *x* pair out of `window_box` (`&window_x`, `0`, `&window_width`, `0`) where the
+  vertical hook takes the *y* pair; ⑵ C 5528-5529 read the horizontal bar's own height and y
+  (`WINDOW_SCROLL_BAR_AREA_HEIGHT`/`_Y`, this round's two new entries) instead of the width and x the
+  vertical hook uses; ⑶ C 5548-5558's update branch has **no** `oldRect`-into-`r.size.width` copy
+  (the vertical hook's C 5474) and sets `update_p = YES` after the frame write.  C 5561-5566's
+  shared-corner clear is its own step, kept with C's `window->vertical_scroll_bar` test.
+* **The two `EmacsScroller` calls are the landed methods**: `initFrame:window:` (C 5544, the round-42
+  initializer) and `setPosition:portion:whole:` (C 5569, round 44), with `checkSamePosition:`
+  (C 5509) and `frame`'s setter (C 5552/5556) from rounds 44 and 43.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **19** unported,
+  19 row(s); **489** C symbol import(s)` - one fewer unported than round 47's 20 (this definition),
+  one stale row cleared by name, and the round's imports are 486 -> 489 (the three entries above).
+  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no horizontal bar created, resized or
+  corner-cleared); the compile gate reaches parsing and type checking only; the three entries are
+  declarations the core still owes.

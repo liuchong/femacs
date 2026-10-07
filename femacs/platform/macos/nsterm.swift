@@ -9414,6 +9414,106 @@ fileprivate let SCROLL_BAR_CONTINUOUS_DELAY: TimeInterval = 1.0 / 15
 @_silgen_name("input_event_set_part")
 func input_event_set_part(_ e: UnsafeMutablePointer<input_event>, _ v: Int32)
 
+/// C: the `struct window` member `window->horizontal_scroll_bar` (src/window.h) - the vertical
+/// reader's twin, and the two `WINDOW_SCROLL_BAR_AREA_*` macros C 5528-5529 takes the horizontal
+/// bar's own height and y from (`WINDOW_SCROLL_BAR_AREA_WIDTH`/`_X` landed with round 47).
+@_silgen_name("window_horizontal_scroll_bar")
+func window_horizontal_scroll_bar(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("WINDOW_SCROLL_BAR_AREA_HEIGHT")
+func WINDOW_SCROLL_BAR_AREA_HEIGHT(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("WINDOW_SCROLL_BAR_AREA_Y")
+func WINDOW_SCROLL_BAR_AREA_Y(_ w: UnsafeMutableRawPointer?) -> Int32
+
+/// C 5490-5571: `static void ns_set_horizontal_scroll_bar (struct window *window, int portion, int
+/// whole, int position)` - "External (hook): Update or add scrollbar."  It is the vertical hook's
+/// twin with three differences C's own text shows: C 5525 takes the *x* pair out of `window_box`,
+/// C 5528-5529 read the horizontal bar's own height and y, and C 5548-5558's update branch has no
+/// inner `oldRect`/`r` width copy (the vertical hook's C 5474 line has no counterpart here) while
+/// setting `update_p = YES`.  C 5561-5566's shared-corner clear is kept with C's own
+/// `window->vertical_scroll_bar` test.
+fileprivate func ns_set_horizontal_scroll_bar(_ window: UnsafeMutableRawPointer?,
+                                              _ portion: Int32, _ whole: Int32,
+                                              _ position: Int32) {
+  var win: Lisp_Object = nil                         // C 5496
+  var r = NSRect.zero                                // C 5497
+  var v = NSRect.zero
+  let f = XFRAME(WINDOW_FRAME(window))               // C 5498
+  let view = FRAME_NS_VIEW(f) as? EmacsView          // C 5499
+  var bar: EmacsScroller? = nil                      // C 5500
+  var top: Int32 = 0                                 // C 5501
+  var height: Int32 = 0
+  var left: Int32 = 0
+  var width: Int32 = 0
+  var window_x: Int32 = 0                            // C 5502
+  var window_width: Int32 = 0
+  var update_p = true                                // C 5503
+
+  /* Optimization; display engine sends WAY too many of these.  */
+  if !NILP(window_horizontal_scroll_bar(window)) {   // C 5506
+    bar = XNS_SCROLL_BAR(window_horizontal_scroll_bar(window)) as? EmacsScroller  // C 5508
+    if bar!.checkSamePosition(position, portion: portion, whole: whole) != 0 {    // C 5509
+      if view?.scrollbarsNeedingUpdate == 0 {        // C 5511
+        if windows_or_buffers_changed == 0 {         // C 5513
+          return                                     // C 5514
+        }
+      } else {
+        view?.scrollbarsNeedingUpdate -= 1           // C 5517
+      }
+      update_p = false                               // C 5518
+    }
+  }
+
+  // C 5522: `NSTRACE ("ns_set_horizontal_scroll_bar");` - empty at `NSTRACE_ENABLED` 0.
+
+  /* Get dimensions.  */
+  window_box(window, ANY_AREA(), &window_x, nil, &window_width, nil)   // C 5525
+  left = window_x                                    // C 5526
+  width = window_width                               // C 5527
+  height = WINDOW_SCROLL_BAR_AREA_HEIGHT(window)     // C 5528
+  top = WINDOW_SCROLL_BAR_AREA_Y(window)             // C 5529
+
+  r = NSMakeRect(CGFloat(left), CGFloat(top), CGFloat(width), CGFloat(height))   // C 5531
+  /* The parent view is flipped, so we need to flip y value.  */
+  v = view?.frame ?? .zero                           // C 5533 (C's nil receiver answers a zero rect)
+  r.origin.y = (v.size.height - r.size.height - r.origin.y)      // C 5534
+
+  XSETWINDOW(&win, window)                           // C 5536
+  block_input()                                      // C 5537
+
+  if NILP(window_horizontal_scroll_bar(window)) {    // C 5539
+    if width > 0 && height > 0 {                     // C 5541
+      ns_clear_frame_area(f, left, top, width, height)   // C 5542
+    }
+
+    bar = EmacsScroller(frame: r, window: win)       // C 5544
+    wset_horizontal_scroll_bar(window,
+                               make_mint_ptr(Unmanaged.passUnretained(bar!).toOpaque()))   // C 5545
+    update_p = true                                  // C 5546
+  } else {
+    var oldRect = NSRect.zero                        // C 5550
+    bar = XNS_SCROLL_BAR(window_horizontal_scroll_bar(window)) as? EmacsScroller   // C 5551
+    oldRect = bar!.frame                             // C 5552
+    if FRAME_LIVE_P(f) && !(oldRect == r) {          // C 5553 (C's `NSEqualRects` is `==`)
+      ns_clear_frame_area(f, left, top, width, height)   // C 5555
+      bar!.frame = r                                 // C 5556
+      update_p = true                                // C 5557
+    }
+  }
+
+  /* If there are both horizontal and vertical scroll-bars they leave
+     a square that belongs to neither. We need to clear it otherwise
+     it fills with junk.  */
+  if !NILP(window_vertical_scroll_bar(window)) {     // C 5564
+    ns_clear_frame_area(f, WINDOW_SCROLL_BAR_AREA_X(window), top,      // C 5565
+                        WINDOW_SCROLL_BAR_AREA_WIDTH(window), height)  // C 5566
+  }
+
+  if update_p {                                      // C 5568
+    _ = bar!.setPosition(position, portion: portion, whole: whole)   // C 5569
+  }
+  unblock_input()                                    // C 5570
+}
+
 /// C: `#define XNS_SCROLL_BAR(vec) ((id) xmint_pointer (vec))` (src/nsterm.h 1056, the
 /// `NS_IMPL_COCOA` arm) - a macro entry under the construct's own name; the `xmint_pointer` inside
 /// it is the INLINE the tree mirrors (`femacs/src/include/lisp.rs` 1679), and the `(id)` cast is
