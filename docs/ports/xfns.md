@@ -1,7 +1,7 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
-C 6604-6777 and C 6785-7035
+C 6604-6777, C 6785-7035 and C 7037-7207
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -17,10 +17,11 @@ C 6604-6777 and C 6785-7035
 > the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth,
 > **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth, **8,768 lines** after
 > the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth,
-> **9,547 lines** after the nineteenth and **9,801 lines** after the twentieth - C 803-2149,
-> C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
-> C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
-> C 6300-6513, C 6515-6601, C 6604-6777 and C 6785-7035, whose own
+> **9,547 lines** after the nineteenth, **9,801 lines** after the twentieth and **10,033 lines**
+> after the twenty-first - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428,
+> C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991,
+> C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601, C 6604-6777, C 6785-7035 and
+> C 7037-7207, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -190,7 +191,8 @@ defines both features.
 | 6515-6601 | C 6515-6516's `static Lisp_Object`, the dispatcher `x_get_monitor_attributes` (C 6523-6530 the `HAVE_XRANDR` arm, C 6532-6538 the `HAVE_XINERAMA` arm, C 6540-6541 the fallback), C 6546's `#endif /* !USE_GTK */`, C 6548's `#ifdef USE_LUCID`, `xlw_monitor_dimensions_at_pos_1` (C 6551-6554 the `static void`) with `xlw_monitor_dimensions_at_pos` (C 6589-6591 the `void`) and C 6601's `#endif` | the slice 15 pair for the dispatcher (its three callees' own gate, `all (have_x_windows, not (use_gtk), have_window_system)`); `use_lucid` alone for the two Lucid functions, whose callee is the pair's, so the ledger's Lucid arm carries it (slice 18) |
 | 6604-6777 | the `x-display-monitor-attributes-list` `DEFUN` (C 6604-6606 its header, C 6607-6621 the verbatim doc string, C 6627-6767 the `USE_GTK` arm with its 3.22 / pre-3.22 sub-arms and C 6768-6773 the plain-X one) | `have_x_windows`, with `use_gtk` and, inside it, `gtk_check_version_ge_3_22` / `have_gtk3` for C's three-way workarea and scale arms (slice 19) |
 | 6785-7035 | `frame_geometry` (C 6785-6786 the `static Lisp_Object`, the comment C 6779-6783; C 6860-6868 the `HAVE_EXT_MENU_BAR` pair, C 6877-6922 the `HAVE_EXT_TOOL_BAR` pair) and the two subrs it backs, `x-frame-geometry` (C 6964) and `x-frame-edges` (C 7013) | `have_x_windows`, with `have_ext_menu_bar` and `have_ext_tool_bar` inside (slice 20) |
-| 7037-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,026 lines, whose first live definition is `x_frame_list_z_order` (C 7044-7045, the comment C 7037-7043) - the next slice's first item | not ported in this slice |
+| 7037-7207 | `x_frame_list_z_order` (C 7037-7043 its comment, C 7044-7045 the `static Lisp_Object`; C 7063-7096 the `_NET_CLIENT_LIST_STACKING` arm, C 7098-7119 the `XQueryTree` walk) with its subr `x-frame-list-z-order` (C 7125), then `x_frame_restack` (C 7150-7157 its comment, C 7161-7178 the `USE_GTK` pair) with its subr `x-frame-restack` (C 7182) | `have_x_windows`, with `use_gtk` for the restack helper's two arms (slice 21) |
+| 7210-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,453 lines, whose first live definition is the `x-mouse-absolute-pixel-position` `DEFUN` (C 7210) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2333,3 +2335,85 @@ declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
 The frozen configuration compiles none of this file: no `XGetGeometry` call was made, no window
 manager offset was read, no frame edge was computed and no attribute list was built; the eleven
 arms' counts are text compile readings.
+## Slice 21 (2026-10-08, status 3.924 - the integrator sets the round number): C 7037-7207
+
+**The slice is C 7037-7207**: `x_frame_list_z_order` (C 7037-7043 its comment, C 7044-7045 the
+`static Lisp_Object`, C 7047-7057 its locals, C 7059-7096 the `_NET_CLIENT_LIST_STACKING` arm -
+`x_wm_supports_1` then `XGetWindowProperty`, `XFree`, `x_top_window_to_frame` per toplevel - and
+C 7098-7119's `XQueryTree` walk with C 7110-7112's `parent_desc`/`FRAME_OUTER_WINDOW` test) and its
+subr `x-frame-list-z-order` (C 7125-7148), then `x_frame_restack` (C 7150-7157 its comment,
+C 7161-7178 the `USE_GTK` pair - gtkutil.c's `xg_frame_restack`, or `XReconfigureWMWindow` with an
+`XWindowChanges` record on the `#else` arm) and its subr `x-frame-restack` (C 7182-7207).  The
+port's slice is **232 Rust lines** (10,033 - 9,801, `grep -c ''`) against C's 171; md5
+`dc2d459a0798179262db4ca6d58cfeb8` (the slice 20 tree) -> `327df657fffb507803472c41b617e7cc`.
+
+**Eleven arms.**  Nine read their baselines unchanged, error sets included - plain-X **14 / 9**, WS
+**14 / 9**, WSX **14 / 9**, WSR **14 / 9**, WSRX **14 / 9**, WSR12 **14 / 9**, XCB **14 / 9**,
+LUCID **22 / 12**, Xt **15 / 12** - and the GTK pair reads **37 / 20 -> 40 / 20**, its three
+additions being `GDK_WINDOW_XID` instances of the class slice 8 named (the mirror's
+`GTK_WIDGET_TO_X_WIN` placeholder, reached by C 7112's `FRAME_OUTER_WINDOW` and C 7143's
+`FRAME_X_WINDOW`).  No warning moves in any arm.
+
+**The first measurement's six rows, all closed.**  (1) an `unknown character escape: (` and (5) the
+matching `subr Fx_frame_restack: docstring differs` - C 7194's `\(stacking)` is one of
+make-docfile's escapes, whose *value* is `(stacking)` (`tools/cinventory.py` 935's rule drops the
+backslash), and the checker decodes the port's literal with Rust's own escapes, so the literal
+carries the plain paren.  (2) `Success` and two `XA_WINDOW` rows - the two constants come from the
+mirror's `x11_constants` module and need this file's own `use crate::x11_constants::{…};` line (the
+`x_real_pos_and_offsets` shape at 412).  (3) `casting c_void as *mut x_output is invalid` with
+(4) its `no field parent_desc` companion - C 7111's `cf->output_data.x->parent_desc` needs the cast
+parenthesised, because Rust's unary `*` binds tighter than `as` (the 999 shape).  (6)
+`does not mention false` - C 7069's `False` argument is written `false as Bool`.
+
+**Arm touch measured** (P-86 ⑦): two injections - `x_frame_list_z_order`'s first statement (A) and
+`x_frame_restack`'s `not (use_gtk)` arm (B) - move plain-X **14 -> 16** (both read) and GTK
+**40 -> 41** (only A: the GTK arm takes the helper's `use_gtk` branch, so B's statement is not
+compiled there); the injections were removed and the file's hash re-checked.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0) on the final hash.
+
+**② The eleven arms.**  See above.
+
+**③ `extract-abi.py --check`**: **122 rows -> 118** (the in-tree baseline re-measured this slice) -
+the `missing function x_frame_list_z_order`, `missing function x_frame_restack`,
+`missing subr Fx_frame_list_z_order` and `missing subr Fx_frame_restack` rows retiring, nothing
+added but the line-count row's own text, and the drift reads `C 10662 vs Rust 10033` (**5.9%**,
+was 8.1%).  No token row arrived, so `docs/ports/macro-body-notes.tsv` gains nothing here.
+`check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**
+and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed literals), 0
+failures**.
+
+### Deviations (this slice)
+
+1. **C's `toplevels[i]`** is `*toplevels.offset (i as isize)` and C's narrowing of that `Window`
+   into `x_top_window_to_frame`'s `int` (xterm.h 1004) is written `as c_int`.
+2. **C's `for (i = 0; i < nchildren; i++)`** (`unsigned long` against `unsigned int`) is the port's
+   `while i < nchildren as c_ulong`.
+3. **C 7072/7075's `Success`/`XA_WINDOW`** come from the mirror's `x11_constants` through the
+   function's own `use` line (the 412 shape), and C 7069's `False` is `false as Bool`.
+4. **C's `\(stacking)` in the restack doc** (C 7194) is the plain paren in the literal, because the
+   digest compares make-docfile's value with Rust's decoded value (see the row list above).
+5. **C's `unsigned long mask = (CWSibling | CWStackMode);`** keeps its `c_ulong` local and is
+   narrowed at the call (`mask as c_uint`), because `XReconfigureWMWindow`'s mask is Xlib's
+   `unsigned int` (Xlib.h 1885-1890).
+
+### Owed (this slice)
+
+- `XWindowChanges` (Xlib.h 395-401) and the four `X11/X.h` constants it is configured with
+  (`CWSibling` 415, `CWStackMode` 416, `Above` 462, `Below` 463) stand at the use site and are
+  owed to `include/xlib.rs` (`xlib.rs` 148's comment already names the mask).
+- `x_wm_supports_1` (xterm.h 1898) and `x_top_window_to_frame` (xterm.h 1004) are owed to
+  `include/xterm.rs`; `xg_frame_restack` (gtkutil.h 201) to a gtkutil.h mirror
+  (`src/pgtkfns.rs` 720-722 declares the same row).
+- The GTK pair's three new rows are further instances of the `GDK_WINDOW_XID` class named above.
+- `syms_of_xfns`' four new `defsubr` sites and the rest of the remainder from C 7210: 3,453 C
+  lines plus the 17 missing functions, 1 macro, 4 objects, 28 subrs and 45 defsubrs `--check`
+  reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no property was queried, no child window was
+walked and no frame was restacked; the eleven arms' counts are text compile readings.

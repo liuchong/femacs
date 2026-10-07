@@ -9799,3 +9799,235 @@ DEFUN! ("x-frame-edges", Fx_frame_edges, Sx_frame_edges,
 				   || EQ (r#type, Qinner_edges ())
 				 { r#type } else { Qnative_edges () });
 });
+
+/* -----------------------------------------------------------------------------------------
+   C 7037-7207: `x_frame_list_z_order` (the comment C 7037-7043), its subr `x-frame-list-z-order`
+   (C 7125-7148), `x_frame_restack` (the comment C 7150-7157) and its subr `x-frame-restack`
+   (C 7182-7207).  The restack helper's two arms are C 7161's `#ifdef USE_GTK` pair: the GTK one
+   calls gtkutil.c's `xg_frame_restack`, the `#else` configures the window manager window.
+   -------------------------------------------------------------------------------------- */
+
+/* C: xterm.h 1898: `extern bool x_wm_supports_1 (struct x_display_info *, Atom);` - `src/xterm.c`
+   27728 defines it (the port's `src/xterm.rs` 15912, which carries C's linkage) and this unit's
+   include graph does not carry the row, so it stands at the use site (PORTING.md P-55/P-72 rule 3).
+   C 7064's call.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_wm_supports_1 (dpyinfo: *mut x_display_info, want_atom: Atom) -> bool;
+}
+
+/* C: xterm.h 1004: `extern struct frame *x_top_window_to_frame (struct x_display_info *, int);` -
+   `src/xterm.c` defines it (the port's `src/xterm.rs` 23137/23204, C's linkage) and no mirror
+   carries the row, so it stands at the use site (`src/emacsgtkfixed.rs` 177 declares the same
+   row).  C 7085's call, whose `Window` argument C narrows to the header's `int`.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_top_window_to_frame (dpyinfo: *mut x_display_info, w: c_int) -> *mut frame;
+}
+
+/* C: Xlib.h 395-401: `typedef struct { int x, y; int width, height; int border_width; Window
+   sibling; int stack_mode; } XWindowChanges;` - C 7168's record.  This machine's `<X11/Xlib.h>`
+   gives the layout, so the members stand in the header's own order; the row is owed to
+   `include/xlib.rs`, whose 148 already names the record.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk")))]
+#[repr (C)]
+pub struct XWindowChanges
+{
+  pub x: c_int,                              /* C: `int x, y;`  */
+  pub y: c_int,
+  pub width: c_int,                          /* C: `int width, height;`  */
+  pub height: c_int,
+  pub border_width: c_int,                   /* C: `int border_width;`  */
+  pub sibling: Window,                       /* C: `Window sibling;`  */
+  pub stack_mode: c_int,                     /* C: `int stack_mode;`  */
+}
+
+/* C: X11/X.h 415/416/462/463: `#define CWSibling (1<<5)` / `#define CWStackMode (1<<6)` /
+   `#define Above 0` / `#define Below 1` - C 7169/7172's four names.  The mirror's
+   `x11_constants` module (`include/xlib.rs` 61) carries none of them (`xlib.rs` 148's comment
+   names the mask C 7169 needs), so they stand at the use site and are owed to that module; the
+   values are this machine's header's.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk")))]
+const CWSibling: c_int = 1 << 5;                                          // X.h 415
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk")))]
+const CWStackMode: c_int = 1 << 6;                                        // X.h 416
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk")))]
+const Above: c_int = 0;                                                   // X.h 462
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk")))]
+const Below: c_int = 1;                                                   // X.h 463
+
+/* C: Xlib.h 1885-1890: `extern Status XReconfigureWMWindow (Display *, Window, int, unsigned int,
+   XWindowChanges *);` - C 7176's call, on the `not (use_gtk)` arm only (the GTK arm calls
+   `xg_frame_restack` instead), and no mirror carries this Xlib entry.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_gtk")))]
+unsafe extern "C" {
+  pub fn XReconfigureWMWindow (display: *mut Display, w: Window, screen_number: c_int,
+			       value_mask: c_uint, changes: *mut XWindowChanges) -> c_int;
+}
+
+/* C: gtkutil.h 201: `extern void xg_frame_restack (struct frame *f1, struct frame *f2, bool
+   above);` - C 7163's call (`src/gtkutil.rs` 2687 defines it; `src/pgtkfns.rs` 720-722 declares
+   the same row).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_frame_restack (f1: *mut frame, f2: *mut frame, above: bool);
+}
+
+/* C 7037-7043: "Recursively add list of all frames on the display specified via DPYINFO and whose
+   window-system window's parent is specified by WINDOW to FRAMES and return FRAMES."  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_frame_list_z_order (dpyinfo: *mut x_display_info, window: Window) -> Lisp_Object
+{
+  use crate::x11_constants::{Success, XA_WINDOW};                        // C 7072/7075
+
+  let dpy: *mut Display;                                                 // C 7047
+  let mut root: Window = 0;                                              // C 7048
+  let mut parent: Window = 0;
+  let mut children: *mut Window = std::ptr::null_mut ();
+  let mut nchildren: c_uint = 0;                                         // C 7049
+  let mut i: c_ulong;                                                    // C 7050
+  let mut frames: Lisp_Object = Qnil ();                                 // C 7051
+  let mut val: Lisp_Object = Qnil ();
+  let mut r#type: Atom = 0;                                              // C 7052
+  let toplevels: *mut Window;                                            // C 7053
+  let mut format: c_int = 0;                                             // C 7054
+  let mut rc: c_int = 0;
+  let mut nitems: c_ulong = 0;                                           // C 7055
+  let mut bytes_after: c_ulong = 0;
+  let mut data: *mut c_uchar = std::ptr::null_mut ();                    // C 7056
+  let mut f: *mut frame;                                                 // C 7057
+
+  dpy = (*dpyinfo).display;                                              // C 7059
+  data = std::ptr::null_mut ();                                          // C 7060
+  frames = Qnil ();                                                      // C 7061
+
+  if window == (*dpyinfo).root_window                                    // C 7063
+    && x_wm_supports_1 (dpyinfo, (*dpyinfo).Xatom_net_client_list_stacking)   // C 7064-7065
+    {
+      rc = XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,     // C 7067-7070
+			       (*dpyinfo).Xatom_net_client_list_stacking,
+			       0, LONG_MAX, false as Bool, XA_WINDOW, &raw mut r#type,
+			       &raw mut format, &raw mut nitems, &raw mut bytes_after,
+			       &raw mut data);
+
+      if rc != Success                                                   // C 7072
+	{ return Qnil (); }                                              // C 7073
+
+      if format != 32 || r#type != XA_WINDOW                             // C 7075
+	{
+	  XFree (data as *mut c_void);                                   // C 7077
+	  return Qnil ();                                                // C 7078
+	}
+
+      toplevels = data as *mut Window;                                   // C 7081
+
+      i = 0;                                                             // C 7083
+      while i < nitems
+	{
+	  f = x_top_window_to_frame (dpyinfo,                              // C 7085
+				     *toplevels.offset (i as isize) as c_int);
+
+	  if !f.is_null ()                                               // C 7087
+	    {
+	      XSETFRAME! (val, f);                                       // C 7089
+	      frames = Fcons (val, frames);                              // C 7090
+	    }
+	  i += 1;
+	}
+
+      XFree (data as *mut c_void);                                       // C 7094
+      return frames;                                                     // C 7095
+    }
+
+  if XQueryTree (dpy, window, &raw mut root, &raw mut parent, &raw mut children,   // C 7098
+		 &raw mut nchildren) != 0
+    {
+      i = 0;                                                             // C 7100
+      while i < nchildren as c_ulong
+	{
+	  let mut frame: Lisp_Object = Qnil ();                          // C 7102
+	  let mut tail: Lisp_Object = Qnil ();
+
+	  FOR_EACH_FRAME! (tail, frame, {                                // C 7104
+	      let cf: *mut frame = XFRAME (frame);                       // C 7106
+	      /* With a reparenting window manager the parent_desc
+		 field usually specifies the topmost windows of our
+		 frames.  Otherwise FRAME_OUTER_WINDOW should do.  */    // C 7107-7109
+	      if FRAME_X_P (cf)                                          // C 7110
+		  && ((*(((*cf).output_data.x) as *mut x_output)).parent_desc == *children.offset (i as isize)   // C 7111
+		      || FRAME_OUTER_WINDOW! (cf) == *children.offset (i as isize))   // C 7112
+		{ frames = Fcons (frame, frames); }                      // C 7113
+	  });
+	  i += 1;
+	}
+
+      if !children.is_null ()                                            // C 7117
+	{ XFree (children as *mut c_void); }                             // C 7118
+    }
+
+  return frames;                                                         // C 7121
+}
+
+/* C 7125-7148.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-frame-list-z-order", Fx_frame_list_z_order, Sx_frame_list_z_order,
+	0, 1, 0,
+	doc: "Return list of Emacs's frames, in Z (stacking) order.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be either a frame or a display name (a string).  If\nomitted or nil, that stands for the selected frame's display.  Return\nnil if TERMINAL contains no Emacs frame.\n\nAs a special case, if TERMINAL is non-nil and specifies a live frame,\nreturn the child frames of that frame in Z (stacking) order.\n\nFrames are listed from topmost (first) to bottommost (last).  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);    // C 7139
+  let window: Window;                                                    // C 7140
+
+  if FRAMEP (terminal) && FRAME_LIVE_P (XFRAME (terminal))                // C 7142
+    { window = FRAME_X_WINDOW! (XFRAME (terminal)); }                     // C 7143
+  else
+    { window = (*dpyinfo).root_window; }                                  // C 7145
+
+  return x_frame_list_z_order (dpyinfo, window);                          // C 7147
+});
+
+/* C 7150-7157: "Restack frame F1 below frame F2, above if ABOVE_FLAG is non-nil.  In practice
+   this is a two-step action: The first step removes F1's window-system window from the display.
+   The second step reinserts F1's window below (above if ABOVE_FLAG is true) that of F2."  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_frame_restack (f1: *mut frame, f2: *mut frame, above_flag: bool)
+{
+  #[cfg (feature = "use_gtk")]                                           // C 7161
+  {
+    block_input ();                                                       // C 7162
+    xg_frame_restack (f1, f2, above_flag);                                // C 7163
+    unblock_input ();                                                     // C 7164
+  }
+  #[cfg (not (feature = "use_gtk"))]                                     // C 7165
+  {
+    let dpy: *mut Display = FRAME_X_DISPLAY! (f1);                        // C 7166
+    let window1: Window = FRAME_OUTER_WINDOW! (f1);                       // C 7167
+    let mut wc: XWindowChanges = std::mem::zeroed ();                     // C 7168
+    let mask: c_ulong = (CWSibling | CWStackMode) as c_ulong;             // C 7169
+
+    wc.sibling = FRAME_OUTER_WINDOW! (f2);                                // C 7171
+    wc.stack_mode = if above_flag { Above } else { Below };               // C 7172
+    block_input ();                                                       // C 7173
+    /* Configure the window manager window (a normal XConfigureWindow
+       won't cut it).  This should also work for child frames.  */        // C 7174-7175
+    XReconfigureWMWindow (dpy, window1, FRAME_X_SCREEN_NUMBER! (f1),      // C 7176
+			  mask as c_uint, &raw mut wc);
+    unblock_input ();                                                     // C 7177
+  }
+}
+
+/* C 7182-7207.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-frame-restack", Fx_frame_restack, Sx_frame_restack,
+	2, 3, 0,
+	doc: "Restack FRAME1 below FRAME2.\nThis means that if both frames are visible and the display areas of\nthese frames overlap, FRAME2 (partially) obscures FRAME1.  If optional\nthird argument ABOVE is non-nil, restack FRAME1 above FRAME2.  This\nmeans that if both frames are visible and the display areas of these\nframes overlap, FRAME1 (partially) obscures FRAME2.\n\nThis may be thought of as an atomic action performed in two steps: The\nfirst step removes FRAME1's window-step window from the display.  The\nsecond step reinserts FRAME1's window below (above if ABOVE is true)\nthat of FRAME2.  Hence the position of FRAME2 in its display's Z\n(stacking) order relative to all other frames excluding FRAME1 remains\nunaltered.\n\nSome window managers may refuse to restack windows.  ",
+	(frame1: Lisp_Object, frame2: Lisp_Object, above: Lisp_Object),
+	{
+  let f1: *mut frame = decode_live_frame (frame1);                        // C 7200
+  let f2: *mut frame = decode_live_frame (frame2);                        // C 7201
+
+  if ! (FRAME_OUTER_WINDOW! (f1) != 0 && FRAME_OUTER_WINDOW! (f2) != 0)   // C 7203
+    { error (c"Cannot restack frames".as_ptr ()); }                       // C 7204
+  x_frame_restack (f1, f2, !NILP (above));                                // C 7205
+  return Qt ();                                                           // C 7206
+});
