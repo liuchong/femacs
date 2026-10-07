@@ -1,7 +1,8 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
-C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491 and C 7494-7606
+C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606 and
+C 7609-7729
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -19,11 +20,12 @@ C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491 and
 > the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth,
 > **9,547 lines** after the nineteenth, **9,801 lines** after the twentieth, **10,033 lines**
 > after the twenty-first, **10,157 lines** after the twenty-second, **10,332 lines** after the
-> twenty-third, **10,404 lines** after the twenty-fourth and **10,631 lines** after the
-> twenty-fifth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623,
-> C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123,
-> C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601, C 6604-6777, C 6785-7035, C 7037-7207,
-> C 7210-7273, C 7275-7447, C 7449-7491 and C 7494-7606, whose own
+> twenty-third, **10,404 lines** after the twenty-fourth, **10,631 lines** after the twenty-fifth
+> and **10,782 lines** after the twenty-sixth - C 803-2149, C 2150-3811, C 3812-3956,
+> C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
+> C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
+> C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606 and
+> C 7609-7729, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -198,7 +200,8 @@ defines both features.
 | 7275-7447 | the `x-begin-drag` `DEFUN` (C 7275 its header, C 7276-7334 its doc string; C 7350-7368 the target walk, C 7370-7426 the action dispatch, C 7430-7437 the atom interning under C 7432's error trap, C 7439-7443 the `x_dnd_begin_drag_and_drop` call, all inside C 7348/7445's `USE_SAFE_ALLOCA`/`SAFE_FREE` pair) | `have_x_windows`, with no nested `#if` (slice 23) |
 | 7449-7491 | C 7449-7451's `X Displays` section comment, C 7454-7470's `visual_class` record and its `visual_classes[]` table (the six X11/X.h class constants) and C 7473-7491's `#ifndef HAVE_XSCREENNUMBEROFSCREEN` `XScreenNumberOfScreen` substitute (the file's own non-`static` definition) | `have_x_windows` on every item (P-86 ⑧, caught by the frozen `build-tu`), with `not (have_xscreennumberofscreen)` on the substitute and the feature on Xlib's declaration at 1960-1961 (slice 24) |
 | 7494-7606 | `select_visual` (C 7494-7496 its comment) - the `visualClass` resource lookup, the CLASS-DEPTH parse (C's bare `alloca`), the `visual_classes` walk, `XMatchVisualInfo` and the default-visual fallback with its `#if !defined USE_X_TOOLKIT && !(defined USE_GTK && !defined HAVE_GTK3) && defined HAVE_XRENDER` alpha-mask attempt | `have_x_windows` on the function, with `have_xrender` (and C's two negations) on that block's `#[cfg]` (slice 25) |
-| 7608-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,055 lines, whose first live definition is `x_display_info_for_name` (C 7612-7613, the comment C 7609-7610) - the next slice's first item | not ported in this slice |
+| 7609-7729 | the connection group: `x_display_info_for_name` (C 7609-7610 its comment, C 7612-7634), `x-open-connection` (C 7637-7677), `x-close-connection` (C 7679-7695), `x-display-list` (C 7697-7708) and `x-synchronize` (C 7710-7729) | `have_x_windows`, with no nested `#if` (slice 26) |
+| 7731-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,932 lines, opening with C 7732-7734's `Window properties` section comment and the `x-change-window-property` `DEFUN` (C 7736, with C 7783/7858's `USE_XCB` pair inside it) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2732,3 +2735,70 @@ sites (0 forbidden, 18 allowed literals), 0 failures**.
 The frozen configuration compiles none of this file: no resource was read, no visual was matched
 and no display was opened; the fourteen arms' counts are text compile readings, and XR's 20/9 is a
 text compile of an XRender build whose records and constants are this machine's headers'.
+## Slice 26 (2026-10-08, status 3.929 - the integrator sets the round number): C 7609-7729
+
+**The slice is C 7609-7729**, the connection group: `x_display_info_for_name` (C 7609-7610 its
+comment, C 7617's `CHECK_STRING`, C 7619-7621's `x_display_list` walk, C 7624-7628's resource-name
+default, `validate_x_resource_name` and `x_term_init`, C 7630-7631's error), `x-open-connection`
+(C 7650-7673: the two `CHECK_STRING`s, C 7654's `xrm_option`, C 7660's `x_term_init` and C 7666-7671's
+five-line `fatal`), `x-close-connection` (C 7687-7692), `x-display-list` (C 7701-7705) and
+`x-synchronize` (C 7724-7726).  The port's slice is **151 Rust lines** (10,782 - 10,631,
+`grep -c ''`) against C's 121; md5 `95bfacd56f0fdef96dcfcf218f30e86b` (the slice 25 tree) ->
+`592d1f83c02ad2f26113cbca2052b9f7`.
+
+**Every arm retires one row and adds none.**  The five items sit under the file's own gate, so all
+fourteen arms compile them - and in each of the fourteen, exactly one row leaves the set and
+nothing arrives: `cannot find function x_display_info_for_name`, the forward reference slices 1-3
+owed (plain-X 16 -> **15**, WS, WSX, WSR, WSRX, WSR12 and XCB **15 / 9**, LUCID 24 -> **23 / 12**,
+GTK and GTK22 42 -> **41 / 20**, XI2 20 -> **19 / 9**, XSN 14 -> **13 / 9**, XR 20 -> **19 / 9**, Xt
+17 -> **16 / 12**).  No warning moves in any arm.
+
+**The first measurement's three rows.**  (1) One `E0308`: `XSynchronize`'s `Bool` parameter against
+the port's `bool` - closed as `!NILP (on) as Bool`, the conversion the port writes out.  (2) and (3)
+were `--check` token rows (`function x_display_info_for_name does not mention 0`,
+`subr Fx_open_connection does not mention 0`), closed by spelling C's two literal `0` pointer
+arguments as `0 as *mut c_char` - the file's own device (slice 38's `!= 0 as *mut Display` note).
+
+**Arm touch measured** (P-86 ⑦): two injections - `x_display_info_for_name`'s first statement (A)
+and `Fx_synchronize`'s body (B) - move plain-X **15 -> 17** and GTK **41 -> 43**, both logs naming
+both lines.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash.
+
+**② The fourteen arms.**  See above.
+
+**③ `extract-abi.py --check`**: **111 rows -> 106** - five retirements (`missing function
+x_display_info_for_name`, `missing subr Fx_open_connection`, `missing subr Fx_close_connection`,
+`missing subr Fx_display_list`, `missing subr Fx_synchronize`) and nothing appearing
+(`missing function` 15 -> 14, `missing subr` 25 -> 21).  The drift is `C 10662 vs Rust 10,782` =
+**1.1%**.  `check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0
+failure(s)** and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed
+literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **Three use-site rows**: `x_term_init` (xterm.h 1005 - `include/xterm.rs` 1759 keeps its
+   prototype as text in the prototype block), `x_delete_terminal` (xterm.h 1784) and
+   `XSynchronize` (Xlib.h 1518-1523, whose declaration on this machine is the
+   pointer-to-function form, so the port's result is
+   `Option<unsafe extern "C" fn (*mut Display) -> c_int>`).
+2. **C's `!NILP (on)`** is `!NILP (on) as Bool` (Xlib's `Bool` is `int`).
+3. **C's two literal `0` pointer arguments** (C 7628's `x_term_init (name, 0, …)` and C 7654's
+   `NILP (xrm_string) ? 0 : …`) are `0 as *mut c_char`, the file's own spelling for a C `0`
+   (slice 38's note) - `std::ptr::null_mut ()` reads the token row the checker asks for.
+
+### Owed (this slice)
+
+- The three rows above are owed to `include/xterm.rs` and `include/xlib.rs`.
+- `syms_of_xfns`' `defsubr` sites (the count stays 45: every one of this file's DEFUNs waits for
+  that block) and the rest of the remainder from C 7731: 2,932 C lines plus the 14 missing
+  functions, 1 macro, 4 objects, 21 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no connection was opened, no display was
+deleted, no display list was walked and no synchronization mode was set; the fourteen arms' counts
+are text compile readings.

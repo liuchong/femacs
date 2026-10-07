@@ -10629,3 +10629,154 @@ pub unsafe extern "C" fn select_visual (dpyinfo: *mut x_display_info)
       XFree (vinfo as *mut c_void);                                       // C 7604
     }
 }
+
+/* -----------------------------------------------------------------------------------------
+   C 7609-7729: the connection group - `x_display_info_for_name` (its comment is C 7609-7610),
+   `x-open-connection` (C 7637-7677), `x-close-connection` (C 7679-7695), `x-display-list`
+   (C 7697-7708) and `x-synchronize` (C 7710-7729).
+   -------------------------------------------------------------------------------------- */
+
+/* C: xterm.h 1005: `extern struct x_display_info *x_term_init (Lisp_Object, char *, char *);` -
+   C 7628/7660's calls.  `include/xterm.rs` 1759 records the prototype as text inside its
+   prototype block (fifteen names of that block stand the same way), so the row is the use-site
+   one (P-55/P-72 rule 3).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_term_init (name: Lisp_Object, resource_name: *mut c_char,
+		      resource_string: *mut c_char) -> *mut x_display_info;
+}
+
+/* C: xterm.h 1784: `extern void x_delete_terminal (struct terminal *);` - C 7692's call
+   (`src/term.c` defines it; no mirror carries the row).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_delete_terminal (terminal: *mut terminal);
+}
+
+/* C: Xlib.h 1518-1523: `extern int (*XSynchronize (Display *, Bool)) (Display *);` - C 7726's
+   call, which drops the returned handler (the header's own pointer-to-function form, so the
+   declaration's result is the function pointer itself).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XSynchronize (display: *mut Display, onoff: Bool)
+		       -> Option<unsafe extern "C" fn (*mut Display) -> c_int>;
+}
+
+/* C 7609-7610: "Return the X display structure for the display named NAME.  Open a new connection
+   if necessary."  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_display_info_for_name (name: Lisp_Object) -> *mut x_display_info
+{
+  let mut dpyinfo: *mut x_display_info;                                   // C 7615
+
+  CHECK_STRING (name);                                                    // C 7617
+
+  dpyinfo = x_display_list;                                               // C 7619
+  while !dpyinfo.is_null ()
+    {
+      if !NILP (Fstring_equal (XCAR ((*dpyinfo).name_list_element), name))   // C 7620
+	{ return dpyinfo; }                                               // C 7621
+      dpyinfo = (*dpyinfo).next;                                          // C 7619's step
+    }
+
+  /* Use this general default value to start with.  */                    // C 7623
+  Vx_resource_name = Vinvocation_name;                                    // C 7624
+
+  validate_x_resource_name ();                                            // C 7626
+
+  dpyinfo = x_term_init (name, 0 as *mut c_char,                          // C 7628
+			 SSDATA (Vx_resource_name));
+
+  if dpyinfo.is_null ()                                                   // C 7630
+    { error (c"Cannot connect to X server %s".as_ptr (), SDATA (name)); }  // C 7631
+
+  return dpyinfo;                                                         // C 7633
+}
+
+/* C 7637-7677.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-open-connection", Fx_open_connection, Sx_open_connection,
+	1, 3, 0,
+	doc: "Open a connection to a display server.\nDISPLAY is the name of the display to connect to.\nOptional second arg XRM-STRING is a string of resources in xrdb format.\nIf the optional third arg MUST-SUCCEED is non-nil,\nterminate Emacs if we can't open the connection.\n(In the Nextstep version, the last two arguments are currently ignored.)  ",
+	(display: Lisp_Object, xrm_string: Lisp_Object, must_succeed: Lisp_Object),
+	{
+  let mut xrm_option: *mut c_char;                                        // C 7647
+  let mut dpyinfo: *mut x_display_info;                                   // C 7648
+
+  CHECK_STRING (display);                                                 // C 7650
+  if !NILP (xrm_string)                                                   // C 7651
+    { CHECK_STRING (xrm_string); }                                        // C 7652
+
+  xrm_option = if NILP (xrm_string) { 0 as *mut c_char }                  // C 7654
+	       else { SSDATA (xrm_string) };
+
+  validate_x_resource_name ();                                            // C 7656
+
+  /* This is what opens the connection and sets x_current_display.
+     This also initializes many symbols, such as those used for input.  */  // C 7658-7659
+  dpyinfo = x_term_init (display, xrm_option,                             // C 7660-7661
+			 SSDATA (Vx_resource_name));
+
+  if dpyinfo.is_null ()                                                   // C 7663
+    {
+      if !NILP (must_succeed)                                             // C 7665
+	{ fatal (c"Cannot connect to X server %s.\nCheck the DISPLAY environment variable or use `-d'.\nAlso use the `xauth' program to verify that you have the proper\nauthorization information needed to connect the X server.\nAn insecure way to solve the problem may be to use `xhost'.\n".as_ptr (),   // C 7666-7670
+		 SDATA (display)); }                                      // C 7671
+      else
+	{ error (c"Cannot connect to X server %s".as_ptr (),              // C 7673
+		 SDATA (display)); }
+    }
+
+  return Qnil ();                                                         // C 7676
+});
+
+/* C 7679-7695.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-close-connection", Fx_close_connection, Sx_close_connection,
+	1, 1, 0,
+	doc: "Close the connection to TERMINAL's X server.\nFor TERMINAL, specify a terminal object, a frame or a display name (a\nstring).  If TERMINAL is nil, that stands for the selected frame's terminal.\n(On MS Windows, this function does not accept terminal objects.)  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);     // C 7687
+
+  if (*dpyinfo).reference_count > 0                                       // C 7689
+    { error (c"Display still has frames on it".as_ptr ()); }              // C 7690
+
+  x_delete_terminal ((*dpyinfo).terminal);                                // C 7692
+
+  return Qnil ();                                                         // C 7694
+});
+
+/* C 7697-7708.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-list", Fx_display_list, Sx_display_list,
+	0, 0, 0,
+	doc: "Return the list of display names that Emacs has connections to.  ",
+	(),
+	{
+  let mut result: Lisp_Object = Qnil ();                                  // C 7701
+  let mut xdi: *mut x_display_info;                                       // C 7702
+
+  xdi = x_display_list;                                                   // C 7704
+  while !xdi.is_null ()
+    {
+      result = Fcons (XCAR ((*xdi).name_list_element), result);           // C 7705
+      xdi = (*xdi).next;
+    }
+
+  return result;                                                          // C 7707
+});
+
+/* C 7710-7729.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-synchronize", Fx_synchronize, Sx_synchronize,
+	1, 2, 0,
+	doc: "If ON is non-nil, report X errors as soon as the erring request is made.\nThis function has an effect only on X Windows.  With MS Windows, it is\ndefined but does nothing.\n\nIf ON is nil, allow buffering of requests.\nTurning on synchronization prohibits the Xlib routines from buffering\nrequests and seriously degrades performance, but makes debugging much\neasier.\nThe optional second argument TERMINAL specifies which display to act on.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf TERMINAL is omitted or nil, that stands for the selected frame's display.  ",
+	(on: Lisp_Object, terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);     // C 7724
+
+  XSynchronize ((*dpyinfo).display, !NILP (on) as Bool);                  // C 7726
+
+  return Qnil ();                                                         // C 7728
+});
