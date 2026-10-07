@@ -27845,8 +27845,275 @@ unsafe fn x_dnd_update_tooltip_now ()
     { x_dnd_update_tooltip_position (root_x, root_y); }                // C 18258
 }
 
-/* C 18261-18479: `x_dnd_update_state` (217 lines, a slice of its own) is the next definition;
-   C 18481-18497 is the pair below.  */
+/// C 18261-18479: `static void x_dnd_update_state (struct x_display_info *dpyinfo, Time
+/// timestamp)` - C's `static`, so a plain `unsafe fn`, and this slice's `--check` item.  Every name
+/// the body reads is already this unit's - `x_query_pointer_1` (slice 65), `x_dnd_get_target_window`
+/// and `x_any_window_to_frame`, the four Xdnd senders with the Motif setter and senders (slices
+/// 3-6), and `x_dnd_update_tooltip_position` (slice 93) - so what this slice retires is the call
+/// rows its own callers carried, not a definition the body was waiting for.  Four shapes: C's output
+/// locals are zeroed per Deviation 12 (`x_query_pointer_1` and `x_dnd_get_target_window` write six
+/// of them through `&raw mut`, and C's four Motif message structs are handed to the senders the same
+/// way - the two `dmsg`/`dsmsg` blocks leave their structs partially written because C 18454 writes
+/// `dmsg.byteorder` where the block around it fills `dsmsg`, C's own statement); the two `#ifdef` pairs that sit *inside* an argument list (C
+/// 18276-18280's `HAVE_XINPUT2`, C 18406-18410's `HAVE_XKB`) are bound above the call, because a
+/// `#[cfg]` cannot sit on an argument (P-51's arm rule; slice 93's two cfg'd *statements* are the
+/// same rule's other half, where C's `#if` picks a callee rather than a value); C 18454's
+/// `dmsg.byteorder` is kept although the struct that block fills is `dsmsg` (C's own sentence,
+/// character for character); and `XM_DRAG_STYLE_*`/`XM_DROP_*`/`XM_DRAG_REASON_*` are the mirror's
+/// enums, written the way slices 3-6 write them.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_update_state (dpyinfo: *mut x_display_info, timestamp: Time)
+{
+  use crate::x11_constants::None;
+
+  let mut root_x: c_int = 0;                                           // C 18266
+  let mut root_y: c_int = 0;
+  let mut dummy_x: c_int = 0;
+  let mut dummy_y: c_int = 0;
+  let mut target_proto: c_int = 0;
+  let mut motif_style: c_int = 0;
+  let mut dummy_mask: c_uint = 0;                                      // C 18267
+  let mut dummy: Window = 0;                                           // C 18268
+  let mut dummy_child: Window = 0;
+  let mut target: Window;
+  let mut toplevel: Window = 0;
+  let mut lmsg: xm_top_level_leave_message = std::mem::zeroed ();      // C 18269
+  let mut emsg: xm_top_level_enter_message = std::mem::zeroed ();      // C 18270
+  let mut dmsg: xm_drag_motion_message = std::mem::zeroed ();          // C 18271
+  let mut dsmsg: xm_drop_start_message = std::mem::zeroed ();          // C 18272
+  let mut was_frame: bool = false;                                     // C 18273
+
+  /* C 18276-18280's and C 18406-18410's two `#ifdef` pairs: one arm's value per gate, and C's two
+     call statements stay one copy apiece.  */
+#[cfg (feature = "have_xinput2")]
+  let device: c_int = x_dnd_pointer_device;                            // C 18277
+#[cfg (not (feature = "have_xinput2"))]
+  let device: c_int = -1;                                              // C 18279
+#[cfg (feature = "have_xkb")]
+  let state: c_uint = x_dnd_keyboard_state;                            // C 18407
+#[cfg (not (feature = "have_xkb"))]
+  let state: c_uint = 0;                                               // C 18409
+
+  if x_query_pointer_1 (dpyinfo,                                       // C 18275
+			device,                                        // C 18277/C 18279
+			(*dpyinfo).root_window,                        // C 18281
+			&raw mut dummy, &raw mut dummy_child,          // C 18282
+			&raw mut root_x, &raw mut root_y,              // C 18283
+			&raw mut dummy_x, &raw mut dummy_y,            // C 18284
+			&raw mut dummy_mask) != 0                      // C 18285
+    {
+      target = x_dnd_get_target_window (dpyinfo, root_x,               // C 18287
+					root_y, &raw mut target_proto, // C 18288
+					&raw mut motif_style, &raw mut toplevel,
+					&raw mut was_frame);           // C 18290
+
+      if toplevel != x_dnd_last_seen_toplevel                          // C 18292
+	{
+	  if toplevel != FRAME_OUTER_WINDOW! (x_dnd_frame)             // C 18294
+	      && x_dnd_return_frame == 1                               // C 18295
+	    { x_dnd_return_frame = 2; }                                // C 18296
+
+	  /* C 18299's `x_any_window_to_frame (dpyinfo, toplevel)` is this unit's *function* in the
+	     toolkit/GTK arms and C 12486's `#define` in the others, and it sits inside C's `&&`; a
+	     `#[cfg]` cannot sit on an operand, so the arm's value is bound first - the `xinput_key_event`
+	     shape (this file 27465), which also states C's short circuit as its own step.  */
+	  #[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+	  let any: bool = !x_any_window_to_frame (dpyinfo, toplevel as c_int).is_null ();
+	  #[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+	  let any: bool = !x_any_window_to_frame! (dpyinfo, toplevel as c_int).is_null ();  // C 18299
+	  if x_dnd_return_frame == 2                                   // C 18298
+	      && any                                                   // C 18299
+	    {
+	      if x_dnd_last_seen_window != None as Window              // C 18301
+		  && x_dnd_last_protocol_version != -1                 // C 18302
+		  && x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 18303
+		{ x_dnd_send_leave (x_dnd_frame, x_dnd_last_seen_window,  // C 18304
+				    x_dnd_last_seen_toplevel); }       // C 18305
+	      else if x_dnd_last_seen_window != None as Window         // C 18306
+		       && XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)  // C 18307
+		       && !x_dnd_disable_motif_drag                    // C 18308
+		       && x_dnd_last_seen_window                       // C 18309
+			  != FRAME_OUTER_WINDOW! (x_dnd_frame)
+		{
+		  if !x_dnd_motif_setup_p                              // C 18311
+		    { xm_setup_drag_info (dpyinfo, x_dnd_frame); }     // C 18312
+
+		  lmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 18314
+						 xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_LEAVE as c_int) as u8;  // C 18315
+		  lmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;      // C 18316
+		  lmsg.zero = 0;                                       // C 18317
+		  lmsg.timestamp = timestamp as u32;                          // C 18318
+		  lmsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;  // C 18319
+		  if x_dnd_motif_setup_p                               // C 18321
+		    { xm_send_top_level_leave_message (dpyinfo,        // C 18322
+						       FRAME_X_WINDOW! (x_dnd_frame),
+						       x_dnd_last_seen_window,
+						       &raw mut lmsg); }  // C 18323
+		}
+
+	      x_dnd_end_window = x_dnd_last_seen_window;               // C 18326
+	      x_dnd_last_seen_window = None as Window;                 // C 18327
+	      x_dnd_last_seen_toplevel = None as Window;               // C 18328
+	      x_dnd_in_progress = false;                               // C 18329
+	      #[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+	      { x_dnd_return_frame_object = x_any_window_to_frame (dpyinfo, toplevel as c_int); }  // C 18330-18331
+	      #[cfg (not (any (feature = "use_x_toolkit", feature = "use_gtk")))]
+	      { x_dnd_return_frame_object = x_any_window_to_frame! (dpyinfo, toplevel as c_int); } // C 18330-18331
+	      x_dnd_return_frame = 3;                                  // C 18332
+	      x_dnd_waiting_for_finish = false;                        // C 18333
+	      target = None as Window;                                 // C 18334
+	    }
+	}
+
+      if target != x_dnd_last_seen_window                              // C 18338
+	{
+	  if x_dnd_last_seen_window != None as Window                  // C 18340
+	      && x_dnd_last_protocol_version != -1                     // C 18341
+	      && x_dnd_last_seen_window != FRAME_OUTER_WINDOW! (x_dnd_frame)  // C 18342
+	    { x_dnd_send_leave (x_dnd_frame, x_dnd_last_seen_window,   // C 18343
+				x_dnd_last_seen_toplevel); }           // C 18344
+	  else if x_dnd_last_seen_window != None as Window             // C 18345
+		   && XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)  // C 18346
+		   && !x_dnd_disable_motif_drag                        // C 18347
+		   && x_dnd_last_seen_window                           // C 18348
+		      != FRAME_OUTER_WINDOW! (x_dnd_frame)
+	    {
+	      if !x_dnd_motif_setup_p                                  // C 18350
+		{ xm_setup_drag_info (dpyinfo, x_dnd_frame); }         // C 18351
+
+	      lmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 18353
+					     xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_LEAVE as c_int) as u8;  // C 18354
+	      lmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;          // C 18355
+	      lmsg.zero = 0;                                           // C 18356
+	      lmsg.timestamp = timestamp as u32;                              // C 18357
+	      lmsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;      // C 18358
+	      if x_dnd_motif_setup_p                                   // C 18360
+		{ xm_send_top_level_leave_message (dpyinfo,            // C 18361
+						   FRAME_X_WINDOW! (x_dnd_frame),
+						   x_dnd_last_seen_window,
+						   &raw mut lmsg); }   // C 18362
+	    }
+
+	  x_dnd_action = None as Atom;                                 // C 18365
+	  x_dnd_last_seen_toplevel = toplevel;                         // C 18366
+	  x_dnd_last_seen_window = target;                             // C 18367
+	  x_dnd_last_protocol_version = target_proto;                  // C 18368
+	  x_dnd_last_motif_style = motif_style;                        // C 18369
+	  x_dnd_last_window_is_frame = was_frame;                      // C 18370
+
+	  if target != None as Window && x_dnd_last_protocol_version != -1  // C 18372
+	    { x_dnd_send_enter (x_dnd_frame, target,                   // C 18373
+				x_dnd_last_seen_toplevel,
+				x_dnd_last_protocol_version); }        // C 18374
+	  else if target != None as Window                             // C 18375
+		   && XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)
+		   && !x_dnd_disable_motif_drag                        // C 18376
+	    {
+	      if !x_dnd_motif_setup_p                                  // C 18378
+		{ xm_setup_drag_info (dpyinfo, x_dnd_frame); }         // C 18379
+
+	      emsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 18381
+					     xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_ENTER as c_int) as u8;  // C 18382
+	      emsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;           // C 18383
+	      emsg.zero = 0;                                            // C 18384
+	      emsg.timestamp = timestamp as u32;                               // C 18385
+	      emsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;       // C 18386
+	      emsg.index_atom = x_dnd_motif_atom as u32;                       // C 18387
+	      if x_dnd_motif_setup_p                                    // C 18389
+		{ xm_send_top_level_enter_message (dpyinfo,             // C 18390
+						   FRAME_X_WINDOW! (x_dnd_frame),
+						   target, &raw mut emsg); }  // C 18391
+	    }
+	}
+      else
+	{ x_dnd_last_seen_toplevel = toplevel; }                        // C 18395
+
+      if x_dnd_last_window_is_frame && target != None as Window        // C 18397
+	{ x_dnd_note_self_position (dpyinfo, target,                    // C 18398
+				    root_x as c_ushort, root_y as c_ushort); }
+      else if x_dnd_last_protocol_version != -1 && target != None as Window  // C 18399
+	{ x_dnd_send_position (x_dnd_frame, target,                     // C 18400
+			       x_dnd_last_seen_toplevel,                // C 18401
+			       x_dnd_last_protocol_version,             // C 18402
+			       root_x as c_ushort, root_y as c_ushort,  // C 18403
+			       x_dnd_selection_timestamp,               // C 18404
+			       x_dnd_wanted_action, 0,                  // C 18405
+			       state); }                                // C 18407/C 18409
+      else if XM_DRAG_STYLE_IS_DYNAMIC! (x_dnd_last_motif_style)        // C 18412
+	       && target != None as Window
+	       && !x_dnd_disable_motif_drag                             // C 18413
+	{
+	  if !x_dnd_motif_setup_p                                       // C 18415
+	    { xm_setup_drag_info (dpyinfo, x_dnd_frame); }              // C 18416
+
+	  dmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 18418
+					 xm_drag_reason::XM_DRAG_REASON_DRAG_MOTION as c_int) as u8;  // C 18419
+	  dmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;               // C 18420
+	  dmsg.side_effects                                             // C 18421
+	    = XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (dpyinfo,  // C 18422
+							       x_dnd_wanted_action),  // C 18423
+				   xm_drop_site_status::XM_DROP_SITE_VALID as c_int,  // C 18424
+				   x_dnd_motif_operations as c_int,
+				   (if !x_dnd_xm_use_help               // C 18425
+				    { xm_drag_action::XM_DROP_ACTION_DROP as c_int }  // C 18426
+				    else
+				    { xm_drag_action::XM_DROP_ACTION_DROP_HELP as c_int })) as u16;  // C 18427
+	  dmsg.timestamp = timestamp as u32;                                   // C 18428
+	  dmsg.x = root_x as u16;                                       // C 18429
+	  dmsg.y = root_y as u16;                                       // C 18430
+
+	  if x_dnd_motif_setup_p                                        // C 18432
+	    { xm_send_drag_motion_message (dpyinfo,                     // C 18433
+					   FRAME_X_WINDOW! (x_dnd_frame),
+					   target, &raw mut dmsg); }    // C 18434
+	}
+
+      x_dnd_update_tooltip_position (root_x, root_y);                    // C 18437
+    }
+  /* The pointer moved out of the screen.  */
+  else if x_dnd_last_protocol_version != -1                            // C 18440
+    {
+      if x_dnd_last_seen_window != None as Window                       // C 18442
+	  && x_dnd_last_protocol_version != -1                          // C 18443
+	{ x_dnd_send_leave (x_dnd_frame,                                // C 18444
+			    x_dnd_last_seen_window,                     // C 18445
+			    x_dnd_last_seen_toplevel); }                // C 18446
+      else if x_dnd_last_seen_window != None as Window                  // C 18447
+	       && !XM_DRAG_STYLE_IS_DROP_ONLY! (x_dnd_last_motif_style) // C 18448
+	       && x_dnd_last_motif_style                                // C 18449
+		  != xm_drag_style::XM_DRAG_STYLE_NONE as c_int
+	       && x_dnd_motif_setup_p                                   // C 18450
+	{
+	  dsmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,  // C 18452
+					  xm_drag_reason::XM_DRAG_REASON_DROP_START as c_int) as u8;  // C 18453
+	  dmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;                // C 18454
+	  dsmsg.timestamp = timestamp as u32;                                   // C 18455
+	  dsmsg.side_effects                                             // C 18456
+	    = XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (dpyinfo,  // C 18457
+							       x_dnd_wanted_action),  // C 18458
+				   xm_drop_site_status::XM_DROP_SITE_VALID as c_int,  // C 18459
+				   x_dnd_motif_operations as c_int,
+				   xm_drag_action::XM_DROP_ACTION_DROP_CANCEL as c_int) as u16;  // C 18460
+	  dsmsg.x = 0;                                                   // C 18461
+	  dsmsg.y = 0;                                                   // C 18462
+	  dsmsg.index_atom = x_dnd_motif_atom as u32;                           // C 18463
+	  dsmsg.source_window = FRAME_X_WINDOW! (x_dnd_frame) as u32;           // C 18464
+	  x_dnd_send_xm_leave_for_drop (dpyinfo, x_dnd_frame,            // C 18466
+					x_dnd_last_seen_window, timestamp);  // C 18467
+	  xm_send_drop_message (dpyinfo, FRAME_X_WINDOW! (x_dnd_frame),  // C 18468
+				x_dnd_last_seen_window, &raw mut dsmsg);  // C 18469
+	}
+
+      x_dnd_end_window = x_dnd_last_seen_window;                       // C 18472
+      x_dnd_last_seen_window = None as Window;                         // C 18473
+      x_dnd_last_seen_toplevel = None as Window;                       // C 18474
+      x_dnd_in_progress = false;                                       // C 18475
+      x_dnd_waiting_for_finish = false;                                // C 18476
+      x_dnd_frame = std::ptr::null_mut ();                             // C 18477
+    }
+}
+
+/* C 18481-18497 is the two-display-measurement pair below (slice 94).  */
 
 /// C 18481-18488: `int x_display_pixel_height (struct x_display_info *dpyinfo)` - non-`static` and
 /// declared in xterm.h 1863, so the exported shape; C's `if (dpyinfo->screen_height) return ...;`

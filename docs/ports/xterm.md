@@ -149,6 +149,17 @@ of the twelve arms.  The five `use_gtk` arms move by two rather than four becaus
 read `E0308` instead of `E0425`: the mirror's own P-55 `*mut c_void` declaration is what made those
 `FRAME_DISPLAY_INFO!` arguments mismatches, and C's own signature retires the mismatch - and their
 `x_wm_set_size_hint` pair is not compiled at all.
+  Slice 95 (C 18261-18479, Decision 108) goes **20 -> 19**: `x_dnd_update_state` retires as a
+missing function and retires nothing else - its callers (C 18674/21408/25544 and the rest) are
+inside text the port has not landed, so the seven arms without `use_gtk` read 0/0 on errors and the
+five that have it read +5 rows apiece: A **785 -> 785**, U **814 -> 814**, UT **800 -> 800**, UM
+**801 -> 801**, UG 797 -> **802**, UGX 899 -> **904**, AE **817 -> 817**, AI **793 -> 793**, AIU 832
+-> **837**, AIUX 938 -> **943**, AX **799 -> 799**, AG3 836 -> **841**.  Every one of the twelve arms
+gains **one warning**, and it is C's own dead store: C 18454 writes `dmsg.byteorder` where the block
+around it fills `dsmsg`, which Rust's `unused_assignments` names.  The five `use_gtk` arms' five rows
+are the mirror chain's class: `FRAME_OUTER_WINDOW!`'s GTK arm ends in `GDK_WINDOW_XID` ->
+`GDK_WINDOW_XWINDOW`, and neither name is in a mirror - one row per site (C 18294/18303/18309/18342/
+18348).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -351,7 +362,7 @@ read `E0308` instead of `E0425`: the mirror's own P-55 `*mut c_void` declaration
 - [x] x_dnd_compute_tip_xy  (line 18119, static)
 - [x] x_dnd_update_tooltip_position  (line 18190, static)
 - [x] x_dnd_update_tooltip_now  (line 18229, static)
-- [ ] x_dnd_update_state  (line 18264, static)
+- [x] x_dnd_update_state  (line 18264, static)
 - [x] x_display_pixel_height  (line 18482)
 - [x] x_display_pixel_width  (line 18491)
 - [ ] x_wait_for_cell_change  (line 18502)
@@ -4475,6 +4486,37 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   reading).  The four are slice 92's debt, named here rather than buried.
 * **What `--check` reads.**  **22 -> 20** (18 missing functions + 1 `does not mention` + the drift row):
   the line-count row moves to **27,881** against C's 33,125 (15.8% drift, was 27,848 / 15.9%).
+
+### 108. Slice 95 (C 18261-18479): `x_dnd_update_state`, and the two pairs C's `#ifdef` puts inside an argument list
+
+* **The `--check` item, and nothing retired behind it.**  `x_dnd_update_state` is C's `static`, so a
+  plain `unsafe fn`, and **20 -> 19** is its whole checklist reading.  Every name the body reads was
+  already this unit's: `x_query_pointer_1` (slice 65), `x_dnd_get_target_window`, `x_any_window_to_frame`,
+  the four Xdnd senders with `xm_setup_drag_info` and the four Motif senders (slices 3-6), and
+  `x_dnd_update_tooltip_position` (slice 93).  Its own callers are in unported text, so no call row
+  retires: the seven arms without `use_gtk` read 0/0 on errors.
+* **Two `#ifdef` pairs inside argument lists.**  C 18276-18280's `HAVE_XINPUT2` picks
+  `x_dnd_pointer_device` or `-1`, and C 18406-18410's `HAVE_XKB` picks `x_dnd_keyboard_state` or `0` -
+  both selecting an *argument*.  A `#[cfg]` cannot sit on an expression (P-51's arm rule, re-read in
+  every slice since 88), so each arm's value is bound above the call (`device`, `state`) and C's two
+  call statements stay single copies - the other half of the rule is slice 93's two cfg'd
+  *statements*, where C's `#if` picks a callee rather than a value.
+* **C's one name with two shapes, in a condition this time.**  C 18299's
+  `x_any_window_to_frame (dpyinfo, toplevel)` is this unit's *function* in the `USE_X_TOOLKIT`/`USE_GTK`
+  arm (C 12344) and C 12486's `#define` in the others, and here it sits inside C's `&&`.  The
+  port binds the arm's value first (`any`, the `xinput_key_event` shape at this file 27465) and keeps
+  C's single `if`; C 18330-18331's assignment takes the two-cfg'd-statements shape the file already
+  uses (`C 15184`).  The price of the binding is named rather than assumed: the lookup runs whenever
+  the enclosing test did, where C's `&&` would have skipped it - a read-only frame lookup either way.
+* **C's four message structs are zeroed, and C 18454 is C's own bug.**  `lmsg`/`emsg`/`dmsg`/`dsmsg`
+  are C's uninitialised declarators handed to the senders by address, so they are zeroed per
+  Deviation 12 (Rust's definite-initialisation cannot see the writes).  With them zeroed, the
+  remaining reading is C's: C 18454 writes `dmsg.byteorder` where the surrounding block fills
+  `dsmsg`, so `dmsg`'s write is dead *and* `dsmsg`'s `byte_order` is never set - exactly what the
+  reference does, kept character for character, and Rust says so: one `value assigned to `dmsg` is
+  never read` warning in **every** arm.
+* **What `--check` reads.**  **20 -> 19**: the function retires as a missing item; the line-count row
+  moves to **28,148** against C's 33,125 (15.0% drift, was 27,881 / 15.8%).
 
 ## Evidence
 
@@ -8835,3 +8877,54 @@ against C's 33,125 (15.8% drift, was 27,848 / 15.9%).
 **Not claimed.**  The frozen configuration compiles none of this file: no screen was measured, no
 frame was positioned and no display's dimensions were taken; the readings above are compile readings
 of text this machine cannot build.
+
+### Slice 95's readings (C 18261-18479), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s95/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`; A = `have_x_windows`, U = A +
+`use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI +
+`use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`.
+Both sides were measured on this revision (the baseline by restoring `src/xterm.rs` from HEAD, then
+putting the saved copy back - its md5 is the copy's).
+
+| arm | HEAD's unit (slice 94 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 785 / 72 | **785 / 73** | **0 / +1 w** |
+| U `+use_toolkit_scroll_bars` | 814 / 72 | **814 / 73** | **0 / +1 w** |
+| UT `U +use_x_toolkit` | 800 / 71 | **800 / 72** | **0 / +1 w** |
+| UM `UT +use_motif` | 801 / 71 | **801 / 72** | **0 / +1 w** |
+| **UG** `U +use_gtk` | 797 / 74 | **802 / 74** | **+5 / 0** |
+| **UGX** `UG +have_xinput2` | 899 / 76 | **904 / 76** | **+5 / 0** |
+| AE `A +enable_checking` | 817 / 71 | **817 / 72** | **0 / +1 w** |
+| AI `A +have_x_i18n` | 793 / 73 | **793 / 74** | **0 / +1 w** |
+| **AIU** `AI +use_gtk` | 832 / 74 | **837 / 74** | **+5 / 0** |
+| **AIUX** `AIU +have_xinput2` | 938 / 76 | **943 / 76** | **+5 / 0** |
+| AX `A +have_xdbe` | 799 / 72 | **799 / 73** | **0 / +1 w** |
+| AG3 `A +use_gtk +have_gtk3` | 836 / 73 | **841 / 73** | **+5 / 0** |
+
+**Additions, by name.**  All twelve arms add `warning: value assigned to `dmsg` is never read`
+(C 18454's dead store, Decision 108 4).  The five `use_gtk` arms add five rows each, one per site of
+`FRAME_OUTER_WINDOW (x_dnd_frame)` (C 18294/18303/18309/18342/18348): in UG/UGX/AIU/AIUX the mirror's
+`FRAME_OUTER_WINDOW!` reaches `GDK_WINDOW_XID!`, whose body names `GDK_WINDOW_XWINDOW` (no mirror
+declares it), and in AG3 the same chain stops one link earlier (`cannot find macro GDK_WINDOW_XID`).
+That is the class slice 81's `estimate_mode_line_height` opened - a mirror body reaching a name the
+tree does not carry - and its home is the `include/gtk.rs`/`include/xterm.rs` GDK surface, not this
+unit.  Nothing retires in any arm.
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides with
+identical sets: the frozen configuration has no window system, so this function (like the rest of the
+file) is not compiled there and the new warning is an arm reading, not a frozen one.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18273's `bool was_frame;` moves
+**A 785 -> 786** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:27899:18`; the same
+run reads **72** warnings rather than 73, because the injected error stops the MIR of the very
+function where the new warning lives (slice 85's mechanic, read in the other direction).  Removing
+the line returns A to the table.
+
+**What `--check` reads.**  **20 -> 19** as Decision 108 5 says, with the line-count row at **28,148**
+against C's 33,125 (15.0% drift, was 27,881 / 15.8%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no pointer was queried, no
+DND state was advanced and no Motif message was built; the readings above are compile readings of
+text this machine cannot build.
