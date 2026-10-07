@@ -470,7 +470,7 @@ boundary to the left or right.
 each @kbd{C-x 4} command pops up a buffer in a different window in the
 selected frame (@pxref{Pop Up Window}), the @kbd{C-x 5} commands use a
 different frame.  If an existing visible or iconified (a.k.a.@:
-``minimized'', @pxref{Visibility of Frames,,, elisp, The Emacs Lisp
+``minimized'', @pxref{Visibility of Frames,,, elisp, The femacs Lisp
 Reference Manual}) frame already displays the requested buffer, that
 frame is raised and deiconified (``un-minimized''); otherwise, a new
 frame is created on the current display terminal.
@@ -1176,7 +1176,7 @@ information, you can make them visible by enabling window dividers, see
 @ref{Window Dividers}.  To replicate the look of vertical borders, set
 the @code{right-divider-width} parameter of frames to one and have the
 @code{window-divider} face inherit from that of @code{vertical-border},
-@ref{Window Dividers,, Window Dividers, elisp, The Emacs Lisp Reference
+@ref{Window Dividers,, Window Dividers, elisp, The femacs Lisp Reference
 Manual}.
 
 @cindex Horizontal Scroll Bar

@@ -23300,7 +23300,7 @@ configuration in the first (or ``main'') frame, while a small additional
 frame will be created where picons will be shown.  As you can see,
 instead of the normal @code{1.0} top-level spec, each additional split
 should have a frame parameter alist as the size spec.
-@xref{Frame Parameters, , Frame Parameters, elisp, The GNU Emacs Lisp
+@xref{Frame Parameters, , Frame Parameters, elisp, The femacs Lisp
 Reference Manual}.
 The list of all possible keys for @code{gnus-buffer-configuration} can
 be found in its default value.
@@ -23364,7 +23364,7 @@ to fiddle with @code{gnus-tree-minimize-window} to avoid having the
 windows resized.
 
 Lastly, it's possible to make Gnus window layouts ``atomic''
-(@pxref{Atomic Windows, , Atomic Windows, elisp, The GNU Emacs Lisp
+(@pxref{Atomic Windows, , Atomic Windows, elisp, The femacs Lisp
 Reference Manual}) by setting @code{gnus-use-atomic-windows} to
 @code{t}.  This will ensure that pop-up buffers (e.g., help or
 completion buffers), will appear below or to the side of the entire
@@ -29729,7 +29729,7 @@ improvements, please produce the patch using @samp{diff -u}.
 If you want to debug your problem further before reporting, possibly
 in order to solve the problem yourself and send a patch, you can use
 edebug.  Debugging Lisp code is documented in the Elisp manual
-(@pxref{Debugging, , Debugging Lisp Programs, elisp, The GNU Emacs
+(@pxref{Debugging, , Debugging Lisp Programs, elisp, The femacs
 Lisp Reference Manual}).  To get you started with edebug, consider if
 you discover some weird behavior when pressing @kbd{c}, the first
 step is to do @kbd{C-h k c} and click on the hyperlink in

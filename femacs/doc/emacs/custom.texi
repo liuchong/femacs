@@ -18,7 +18,7 @@ involves writing Emacs Lisp code; see
 @cite{The femacs Lisp Reference Manual}.
 @end iftex
 @ifnottex
-@ref{Top, Emacs Lisp, Emacs Lisp, elisp, The Emacs Lisp
+@ref{Top, Emacs Lisp, Emacs Lisp, elisp, The femacs Lisp
 Reference Manual}.
 @end ifnottex
 
@@ -734,7 +734,7 @@ the @samp{[Merge Theme]} button and specifying the special theme named
   A theme file is simply an Emacs Lisp source file, and loading the
 Custom theme works by loading the Lisp file.  Therefore, you can edit
 a theme file directly instead of using the @file{*Custom Theme*}
-buffer.  @xref{Custom Themes,,, elisp, The Emacs Lisp Reference
+buffer.  @xref{Custom Themes,,, elisp, The femacs Lisp Reference
 Manual}, for details.
 
 @node Variables
@@ -953,7 +953,7 @@ hook variable explains how its functions are used.
   You can set a hook variable with @code{setq} like any other Lisp
 variable, but the recommended way to add a function to a hook (either
 normal or abnormal) is to use @code{add-hook}, as shown by the
-following examples.  @xref{Hooks,,, elisp, The Emacs Lisp Reference
+following examples.  @xref{Hooks,,, elisp, The femacs Lisp Reference
 Manual}, for details.
 
   Most major modes run one or more @dfn{mode hooks} as the last step
@@ -979,7 +979,7 @@ the following additional line:
 
 @noindent
 Here we have used the special macro @code{lambda} to construct an
-anonymous function (@pxref{Lambda Expressions,,, elisp, The Emacs Lisp
+anonymous function (@pxref{Lambda Expressions,,, elisp, The femacs Lisp
 Reference Manual}), which calls @code{auto-fill-mode} with an argument
 of @code{-1} to disable the minor mode.  Because @LaTeX{} mode runs
 @code{latex-mode-hook} after running @code{text-mode-hook}, the result
@@ -1008,7 +1008,7 @@ customize the indentation of C code:
 @cindex Prog mode
 @cindex modes for editing programs
   Major mode hooks also apply to other major modes @dfn{derived} from
-the original mode (@pxref{Derived Modes,,, elisp, The Emacs Lisp
+the original mode (@pxref{Derived Modes,,, elisp, The femacs Lisp
 Reference Manual}).  For instance, HTML mode is derived from Text mode
 (@pxref{HTML Mode}); when HTML mode is enabled, it runs
 @code{text-mode-hook} before running @code{html-mode-hook}.  This
@@ -1733,7 +1733,7 @@ with a remote default directory.
   Connection-local variables are not activated by default.  A package
 which uses connection-local variables must activate them for a given
 buffer, specifying for which @code{:application} it uses them.
-@xref{Applying Connection Local Variables,,, elisp, The Emacs Lisp
+@xref{Applying Connection Local Variables,,, elisp, The femacs Lisp
 Reference Manual}, for details.
 
   After the above definition of profiles and their activation, any
@@ -1874,7 +1874,7 @@ definition is the keymap for @kbd{C-x} commands.  The definitions of
 the global map, so these prefix keys are always available.
 
   Aside from ordinary prefix keys, there is a fictitious ``prefix key''
-which represents the menu bar; see @ref{Menu Bar,,,elisp, The Emacs Lisp
+which represents the menu bar; see @ref{Menu Bar,,,elisp, The femacs Lisp
 Reference Manual}, for special information about menu bar key bindings.
 Mouse button events that invoke pop-up menus are also prefix keys; see
 @ref{Menu Keymaps,,,elisp, The femacs Lisp Reference Manual}, for more
@@ -2634,7 +2634,7 @@ file that you load in your init file.
   If you are going to write actual Emacs Lisp programs that go beyond
 minor customization, you should read the @cite{femacs Lisp Reference Manual}.
 @ifnottex
-@xref{Top, Emacs Lisp, Emacs Lisp, elisp, the Emacs Lisp Reference
+@xref{Top, Emacs Lisp, Emacs Lisp, elisp, the femacs Lisp Reference
 Manual}.
 @end ifnottex
 
@@ -3129,7 +3129,7 @@ that modifies the coding system in other ways, such as calls to
 
   An alternative to using non-@acronym{ASCII} characters directly is
 to use one of the character escape syntaxes described in
-@pxref{General Escape Syntax,,, elisp, The Emacs Lisp Reference
+@pxref{General Escape Syntax,,, elisp, The femacs Lisp Reference
 Manual}, as they allow all Unicode codepoints to be specified using
 only @acronym{ASCII} characters.
 
@@ -3196,7 +3196,7 @@ autoloaded commands and other entry points for the files in your
 files in your initialization file.  @xref{Autoload,,, elisp, The
 femacs Lisp Reference Manual}.
 @item
-Byte-compile all the files (@pxref{Byte Compilation,,, elisp, The Emacs
+Byte-compile all the files (@pxref{Byte Compilation,,, elisp, The femacs
 Lisp Reference Manual}), and if supported by your build of Emacs,
 compile them to native code as well (@pxref{Native Compilation,,, elisp,
 The femacs Lisp Reference Manual}).  This speeds up the execution of the

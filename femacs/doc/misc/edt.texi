@@ -1,6 +1,6 @@
 \input texinfo
 @setfilename ../../info/edt.info
-@settitle EDT Emulation for Emacs
+@settitle EDT Emulation for femacs
 @documentlanguage en
 @include docstyle.texi
 
@@ -25,7 +25,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* EDT: (edt).                   An Emacs emulation of the EDT editor.
+* EDT: (edt).                   A femacs emulation of the EDT editor.
 @end direntry
 
 @titlepage

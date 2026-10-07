@@ -26,14 +26,14 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* VIPER: (viper).               A VI-emulation mode for Emacs.
+* VIPER: (viper).               A VI-emulation mode for femacs.
 @end direntry
 
 @finalout
 
 @titlepage
-@title Viper Is a Package for Emacs Rebels
-@subtitle a Vi emulator for Emacs
+@title Viper Is a Package for femacs Rebels
+@subtitle a Vi emulator for femacs
 @subtitle July 2013, Viper Version 3.14.2
 
 @author Michael Kifer (Viper)
@@ -215,7 +215,7 @@ shouldn't) happen if you restrict yourself to standard Vi keys, unless you
 modify the default editing style.  @xref{Customization}.
 
 In addition to the @dfn{point}, there is another distinguished buffer
-position called the @dfn{mark}.  @xref{Mark,,Mark,emacs,The GNU Emacs
+position called the @dfn{mark}.  @xref{Mark,,Mark,emacs,The femacs
 manual}, for more info on the mark.  The text between the @dfn{point} and
 the @dfn{mark} is called the @dfn{region} of the buffer.  For the Viper
 user, this simply means that in addition to the Vi textmarkers a--z, there
@@ -2219,7 +2219,7 @@ local to Viper state and the current buffer, not to the major mode.
 In such situations, the remedy is to type @kbd{M-x viper-zap-local-keys}.
 
 So much about Viper-specific bindings.
-@xref{Customization,,Customization,emacs,The GNU Emacs
+@xref{Customization,,Customization,emacs,The femacs
 Manual}, and the Emacs quick reference card for the general info on key
 bindings in Emacs.
 
@@ -2818,7 +2818,7 @@ As if all that is not enough, Viper (through its interface to Emacs
 macros) lets the user define keyboard macros that ask for confirmation or
 even prompt the user for input and then continue.  To do this, one should
 type @kbd{C-x q} (for confirmation) or @kbd{C-u C-x q} (for prompt).
-For details, @pxref{Keyboard Macro Query,,Customization,emacs,The GNU Emacs
+For details, @pxref{Keyboard Macro Query,,Customization,emacs,The femacs
 Manual}.
 
 When the user finishes defining a macro (which is done by typing @kbd{C-x)},

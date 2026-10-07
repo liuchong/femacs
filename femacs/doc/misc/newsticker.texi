@@ -33,11 +33,11 @@ modify this GNU manual.''
 
 @dircategory Emacs network features
 @direntry
-* Newsticker: (newsticker).     A feed reader for Emacs.
+* Newsticker: (newsticker).     A feed reader for femacs.
 @end direntry
 
 @titlepage
-@title Newsticker---a feed reader for Emacs
+@title Newsticker---a feed reader for femacs
 @author Ulf Jasper
 @author @email{ulf.jasper@@web.de}
 @page

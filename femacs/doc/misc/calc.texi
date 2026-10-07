@@ -3,7 +3,7 @@
 @comment %**start of header (This is for running Texinfo on a region.)
 @c smallbook
 @c [title]
-@settitle GNU Emacs Calc Manual
+@settitle femacs Calc Manual
 @documentlanguage en
 @include docstyle.texi
 @setchapternewpage odd
@@ -35321,7 +35321,7 @@ also be reset by putting the appropriate lines in your .emacs file;
 
 Some of the customizable variables are regular expressions.  A regular
 expression is basically a pattern that Calc can search for.
-@xref{Regexp Search,, Regular Expression Search, emacs, The GNU Emacs
+@xref{Regexp Search,, Regular Expression Search, emacs, The femacs
 Manual}, to see how regular expressions work.
 
 @defvar calc-settings-file

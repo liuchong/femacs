@@ -310,7 +310,7 @@ source files insert the usual header, with a copyright of your
 environment variable @env{$ORGANIZATION} or else the name of the
 current user, and prompt for valid keywords describing the contents.
 Files in a @file{bin} directory for which Emacs could determine no
-specialized mode (@pxref{Choosing Modes,,, emacs, The GNU Emacs
+specialized mode (@pxref{Choosing Modes,,, emacs, The femacs
 Manual}) are set to Shell script mode.
 
 @findex define-auto-insert

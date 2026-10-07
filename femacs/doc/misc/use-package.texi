@@ -31,7 +31,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* use-package: (use-package). Declarative package configuration for Emacs.
+* use-package: (use-package). Declarative package configuration for femacs.
 @end direntry
 
 @finalout
@@ -901,7 +901,7 @@ either a single cons or a list of conses.  Each cons has the form
 @w{@code{(@var{key} . @var{command})}}, where @var{key} is a string
 indicating the key to bind, and @var{command} is the name of a command
 (a symbol).  The syntax for the keys is similar to the syntax used by
-the @code{kbd} function (see @ref{Init Rebinding,,, emacs, GNU Emacs
+the @code{kbd} function (see @ref{Init Rebinding,,, emacs, femacs
 Manual}, for more information).
 
 @subheading Using @code{:bind} with a single cons
@@ -968,7 +968,7 @@ Examples:
 
 Remapping of commands with @code{:bind} and @code{bind-key} works as
 expected, because when the binding is a vector, it is passed straight
-to @code{define-key}.  @xref{Remapping Commands,,, elisp, GNU Emacs
+to @code{define-key}.  @xref{Remapping Commands,,, elisp, femacs
 Lisp Reference Manual}, for more information about command remapping.
 For example, the following declaration will rebind
 @code{fill-paragraph} (bound to @kbd{M-q} by default) to
@@ -1077,7 +1077,7 @@ and cannot be autoloaded using the built-in @code{autoload} function.
 
 When you define a keymap using @code{defvar-keymap} you can add the
 required function definition by including @code{:prefix t} in the keymap
-definition (@pxref{Creating Keymaps,,, elisp, GNU Emacs Lisp Reference
+definition (@pxref{Creating Keymaps,,, elisp, femacs Lisp Reference
 Manual}).
 
 For example:
@@ -1124,7 +1124,7 @@ For example:
 @findex :repeat-map@r{, inside} :bind
 @cindex @code{repeat-mode} and use-package, using
 A special case of binding within a local keymap is when that keymap is
-used by @code{repeat-mode} (@pxref{Repeating,,, emacs, GNU Emacs
+used by @code{repeat-mode} (@pxref{Repeating,,, emacs, femacs
 Manual}).  These keymaps are usually defined specifically for
 this.  Using the @code{:repeat-map} keyword, and passing it a name for
 the map it defines, will bind all the following keys inside that map, and

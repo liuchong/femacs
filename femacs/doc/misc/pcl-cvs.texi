@@ -1,7 +1,7 @@
 \input texinfo  @c -*-texinfo-*-
 @c %**start of header
 @setfilename ../../info/pcl-cvs.info
-@settitle PCL-CVS---Emacs Front-End to CVS
+@settitle PCL-CVS---femacs Front-End to CVS
 @documentlanguage en
 @include docstyle.texi
 @syncodeindex vr fn
@@ -25,7 +25,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* PCL-CVS: (pcl-cvs).           Emacs front-end to CVS.
+* PCL-CVS: (pcl-cvs).           femacs front-end to CVS.
 @end direntry
 
 @c The titlepage section does not appear in the Info file.
@@ -36,7 +36,7 @@ modify this GNU manual.''
 @sp 1
 @center @titlefont{to}
 @sp 1
-@center @titlefont{PCL-CVS---The Emacs Front-End to CVS}
+@center @titlefont{PCL-CVS---The femacs Front-End to CVS}
 @ignore
 @sp 2
 @center release 2.9

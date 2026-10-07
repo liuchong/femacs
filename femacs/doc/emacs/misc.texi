@@ -310,7 +310,7 @@ and subdirectories are also trusted.  A special value @code{:all} means
 @strong{this is not recommended}, as it opens a gaping security hole.
 @end defopt
 
-@xref{Security Considerations,,, elisp, The Emacs Lisp Reference
+@xref{Security Considerations,,, elisp, The femacs Lisp Reference
 Manual}, for more information about security considerations when using
 Emacs as part of a larger application.
 
@@ -3105,7 +3105,7 @@ It allows browsing URLs within an Emacs buffer.  The command @kbd{M-x
 eww} will open a URL or search the web.  You can open a file
 using the command @kbd{M-x eww-open-file}.  You can use EWW as the
 web browser for @code{browse-url}, @pxref{Browse-URL}.  For full
-details, @pxref{Top, EWW,, eww, The Emacs Web Wowser Manual}.
+details, @pxref{Top, EWW,, eww, The femacs Web Wowser Manual}.
 
 @node Embedded WebKit Widgets
 @subsection Embedded WebKit Widgets

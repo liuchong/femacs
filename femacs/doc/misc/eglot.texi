@@ -1,7 +1,7 @@
 \input texinfo  @c -*-texinfo-*-
 @c %**start of header
 @setfilename ../../eglot.info
-@settitle Eglot: The Emacs Client for the Language Server Protocol
+@settitle Eglot: The femacs Client for the Language Server Protocol
 @documentlanguage en
 @include docstyle.texi
 @syncodeindex vr cp
@@ -28,7 +28,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* Eglot: (eglot).             Language Server Protocol client for Emacs.
+* Eglot: (eglot).             Language Server Protocol client for femacs.
 @end direntry
 
 @titlepage
@@ -38,7 +38,7 @@ modify this GNU manual.''
 @sp 1
 @center @titlefont{to}
 @sp 1
-@center @titlefont{Eglot: The Emacs LSP Client}
+@center @titlefont{Eglot: The femacs LSP Client}
 @ignore
 @sp 2
 @center release 1.8
@@ -190,7 +190,7 @@ start it.
 
 For Eglot to be useful, it must first be combined with a suitable
 language server.  Usually, that means running the server program locally
-as a child process of Emacs (@pxref{Processes,,, elisp, GNU Emacs Lisp
+as a child process of Emacs (@pxref{Processes,,, elisp, femacs Lisp
 Reference Manual}) and communicating with it via the standard input and
 output streams.
 
@@ -541,12 +541,12 @@ directory.
 
 @item
 A VC project: source files in a directory hierarchy under some VCS,
-e.g.@: a VCS repository (@pxref{Version Control,,, emacs, GNU Emacs
+e.g.@: a VCS repository (@pxref{Version Control,,, emacs, femacs
 Manual}).
 
 @item
 An EDE project: source files in a directory hierarchy managed via the
-Emacs Development Environment (@pxref{EDE,,, emacs, GNU Emacs
+Emacs Development Environment (@pxref{EDE,,, emacs, femacs
 Manual}).
 @end itemize
 
@@ -1336,7 +1336,7 @@ ongoing Eglot session.
 For some users, setting @code{eglot-workspace-configuration} is a
 somewhat daunting task.  One of the reasons is having to manage the
 general Elisp syntax of per-mode directory-local variables, which uses
-alists (@pxref{Association Lists,,, elisp, GNU Emacs Lisp Reference
+alists (@pxref{Association Lists,,, elisp, femacs Lisp Reference
 Manual}), and the specific syntax of Eglot's variable, which uses
 plists.  Some examples are useful.
 
@@ -1504,7 +1504,7 @@ always overridden if a directory-local value is detected.
 
 Emacs's preferred way of representing JSON is via Lisp lists.  In Eglot,
 the syntax of this list is the simplest possible (the one with fewer
-parenthesis), a plist (@pxref{Property Lists,,, elisp, GNU Emacs Lisp
+parenthesis), a plist (@pxref{Property Lists,,, elisp, femacs Lisp
 Reference Manual}).
 
 The plist may be arbitrarily complex, and generally containing other
@@ -1904,7 +1904,7 @@ with the newest one available from the ELPA archives configured in
 You can also update Eglot through other methods, such as
 @code{use-package} (@pxref{Installing packages,,, use-package,
 use-package User Manual}), @code{package-install}, @code{list-packages}
-or the newer @code{package-upgrade} (@pxref{Packages,,, emacs, GNU Emacs
+or the newer @code{package-upgrade} (@pxref{Packages,,, emacs, femacs
 Manual}).  However, do read the docstrings of the command you intend to
 use before you use it, as some of them may not work in exactly the same
 way across Emacs versions, meaning your configuration may be not

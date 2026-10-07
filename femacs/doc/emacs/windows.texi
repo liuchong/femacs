@@ -124,7 +124,7 @@ truncation occurs; if the value is @code{nil}, automatic line
 truncation is disabled; and for any other non-@code{nil} value, Emacs
 truncates lines in every partial-width window regardless of its width.
 The total width of a window is in column units as reported by
-@code{window-total-width} (@pxref{Window Sizes,,, elisp, The Emacs
+@code{window-total-width} (@pxref{Window Sizes,,, elisp, The femacs
 Lisp Reference Manual}), it includes the fringes, the continuation and
 truncation glyphs, the margins, and the scroll bar.
 
@@ -592,7 +592,7 @@ Emacs usually tries to make its window just as large as necessary to
 display all of its contents.  To resize windows showing other
 temporary displays, like, for example, the @file{*Help*} buffer, turn
 on the minor mode (@pxref{Minor Modes}) @code{temp-buffer-resize-mode}
-(@pxref{Temporary Displays,,Temporary Displays, elisp, The Emacs Lisp
+(@pxref{Temporary Displays,,Temporary Displays, elisp, The femacs Lisp
 Reference Manual}).
 
 @vindex temp-buffer-max-height
@@ -600,7 +600,7 @@ Reference Manual}).
   The maximum size of windows resized by @code{temp-buffer-resize-mode}
 can be controlled by customizing the options
 @code{temp-buffer-max-height} and @code{temp-buffer-max-width}
-(@pxref{Temporary Displays,,Temporary Displays, elisp, The Emacs Lisp
+(@pxref{Temporary Displays,,Temporary Displays, elisp, The femacs Lisp
 Reference Manual}), and cannot exceed the size of the containing frame.
 
 @cindex warning buffer, display

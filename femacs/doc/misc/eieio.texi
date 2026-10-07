@@ -1606,7 +1606,7 @@ This signal is called when an attempt to reference @var{slot} in
 @node Naming Conventions
 @chapter Naming Conventions
 
-@xref{Tips,,Tips and Conventions,elisp,GNU Emacs Lisp Reference
+@xref{Tips,,Tips and Conventions,elisp,femacs Lisp Reference
 Manual}, for a description of Emacs Lisp programming conventions.
 These conventions help ensure that Emacs packages work nicely one
 another, so an @eieio{}-based program should follow them.  Here are

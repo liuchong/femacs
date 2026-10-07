@@ -63,7 +63,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* RefTeX: (reftex).             Emacs support for LaTeX cross-references
+* RefTeX: (reftex).             femacs support for LaTeX cross-references
                                   and citations.
 @end direntry
 
@@ -83,7 +83,7 @@ modify this GNU manual.''
 
 @titlepage
 @title @RefTeX{} User Manual
-@subtitle Support for @LaTeX{} labels, references, citations and index entries with GNU Emacs
+@subtitle Support for @LaTeX{} labels, references, citations and index entries with femacs
 @subtitle Version @value{VERSION}
 
 @author by Carsten Dominik

@@ -133,7 +133,7 @@ cannot use a frame object.
 
 A frame undeleted using @command{undelete-frame} will retain its
 identifier.  A frame cloned using @command{clone-frame} will not retain
-its original identifier.  @xref{Frame Commands,,,emacs, the Emacs
+its original identifier.  @xref{Frame Commands,,,emacs, the femacs
 Manual}.
 
 Frame identifiers are not persisted using the desktop library
@@ -2285,7 +2285,7 @@ The original frame if this frame was made via @code{clone-frame}
 @vindex undeleted@r{, a frame parameter}
 @item undeleted
 This is non-@code{nil} if this frame was undeleted using the command
-@command{undelete-frame} (@pxref{Frame Commands,,,emacs, the Emacs
+@command{undelete-frame} (@pxref{Frame Commands,,,emacs, the femacs
 Manual}).
 @end table
 
@@ -2607,7 +2607,7 @@ MS-Windows, there are currently three available font backends:
 @code{gdi} (the core MS-Windows font driver), @code{uniscribe} (font
 driver for OTF and TTF fonts with text shaping by the Uniscribe
 engine), and @code{harfbuzz} (font driver for OTF and TTF fonts with
-HarfBuzz text shaping) (@pxref{Windows Fonts,,, emacs, The GNU Emacs
+HarfBuzz text shaping) (@pxref{Windows Fonts,,, emacs, The femacs
 Manual}).  The @code{harfbuzz} driver is similarly recommended.  On
 Haiku, there can be several font drivers (@pxref{Haiku Fonts,,, emacs,
 The femacs Manual}), as on Android (@pxref{Android Fonts,,, emacs,
@@ -4435,7 +4435,7 @@ other reason without displaying a pop-up menu.
   An on-screen keyboard is a special kind of pop up provided by the
 system, with rows of clickable buttons that act as a real keyboard.
 
-  On certain systems (@pxref{On-Screen Keyboards,,,emacs, The Emacs
+  On certain systems (@pxref{On-Screen Keyboards,,,emacs, The femacs
 Manual}), Emacs is supposed to display and hide the on screen keyboard
 depending on whether or not the user is about to type something.
 
@@ -4591,7 +4591,7 @@ different applications by means of @dfn{selections}.  Each window
 system defines an arbitrary number of @dfn{selection types}, all
 storing their own data; however, only three are commonly used: the
 @dfn{clipboard}, @dfn{primary selection}, and @dfn{secondary
-selection}.  @xref{Cut and Paste,, Cut and Paste, emacs, The GNU Emacs
+selection}.  @xref{Cut and Paste,, Cut and Paste, emacs, The femacs
 Manual}, for Emacs commands that make use of these selections.  This
 section documents the low-level functions for reading and setting
 window-system selections; @xref{Accessing Selections}, for
@@ -5913,7 +5913,7 @@ If the name @var{color} is not defined, the value is @code{nil}.
 
 This section describes some of the functions and variables for
 querying and using X resources, or their equivalent on your operating
-system.  @xref{X Resources,, X Resources, emacs, The GNU Emacs
+system.  @xref{X Resources,, X Resources, emacs, The femacs
 Manual}, for more information about X resources.
 
 @defun x-get-resource attribute class &optional component subclass

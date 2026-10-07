@@ -2675,7 +2675,7 @@ support for the GnuTLS Transport Layer Security Library; see
 @uref{https://www.gnu.org/software/gnutls/, the GnuTLS project page}.
 If your Emacs was compiled with GnuTLS support, the function
 @code{gnutls-available-p} is defined and returns non-@code{nil}.  For
-more details, @pxref{Top,, Overview, emacs-gnutls, The Emacs-GnuTLS manual}.
+more details, @pxref{Top,, Overview, emacs-gnutls, The femacs-GnuTLS manual}.
 The @code{open-network-stream} function can transparently handle the
 details of creating encrypted connections for you, using whatever
 support is available.

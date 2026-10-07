@@ -1,7 +1,7 @@
 \input texinfo   @c -*- mode: texinfo; -*-
 @c %**start of header
 @setfilename ../../info/efaq.info
-@settitle GNU Emacs FAQ
+@settitle femacs FAQ
 @documentlanguage en
 @include docstyle.texi
 @c %**end of header
@@ -33,13 +33,13 @@ itself allows free copying and redistribution.
 
 @dircategory Emacs
 @direntry
-* Emacs FAQ: (efaq).            Frequently Asked Questions about Emacs.
+* femacs FAQ: (efaq).            Frequently Asked Questions about femacs.
 @end direntry
 
 @c The @titlepage stuff only appears in the printed version
 @titlepage
 @sp 10
-@center @titlefont{GNU Emacs FAQ}
+@center @titlefont{femacs FAQ}
 
 @c The following two commands start the copyright page.
 @page

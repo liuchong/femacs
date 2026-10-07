@@ -52,7 +52,7 @@ modify this GNU manual.''
 @sp 6
 @center @titlefont{Dired Extra}
 @sp 2
-@center @titlefont{For The GNU Emacs}
+@center @titlefont{For The femacs}
 @sp 1
 @center @titlefont{Directory Editor}
 @sp 4

@@ -1,7 +1,7 @@
 \input texinfo @c -*-texinfo-*-
 @c %**start of header
 @setfilename ../../info/eww.info
-@settitle Emacs Web Wowser
+@settitle femacs Web Wowser
 @documentlanguage en
 @include docstyle.texi
 @c %**end of header
@@ -26,14 +26,14 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* EWW: (eww).      Emacs Web Wowser
+* EWW: (eww).      femacs Web Wowser
 @end direntry
 
 @finalout
 
 @titlepage
-@title Emacs Web Wowser (EWW)
-@subtitle A web browser for GNU Emacs.
+@title femacs Web Wowser (EWW)
+@subtitle A web browser for femacs.
 
 @page
 @vskip 0pt plus 1filll

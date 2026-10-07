@@ -89,7 +89,7 @@ you are criticizing.
 @cindex bugs
 @cindex suggestions
 Please send comments and corrections using @kbd{M-x report-emacs-bug}.
-For more details, @xref{Bugs,, Reporting Bugs, emacs, The GNU Emacs
+For more details, @xref{Bugs,, Reporting Bugs, emacs, The femacs
 Manual}.
 
 @node Lisp History

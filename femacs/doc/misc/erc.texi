@@ -33,13 +33,13 @@ and modified without restriction.
 
 @dircategory Emacs network features
 @direntry
-* ERC: (erc).                   Powerful and extensible IRC client for Emacs.
+* ERC: (erc).                   Powerful and extensible IRC client for femacs.
 @end direntry
 
 @titlepage
 @title ERC manual
 @subtitle a full-featured IRC client
-@subtitle for Emacs
+@subtitle for femacs
 
 @c The following two commands
 @c start the copyright page.

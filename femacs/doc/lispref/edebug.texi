@@ -830,7 +830,7 @@ Switch to the evaluation list buffer @file{*edebug*}
 @end table
 
   In the @file{*edebug*} buffer you can use the commands of Lisp
-Interaction mode (@pxref{Lisp Interaction,,, emacs, The GNU Emacs
+Interaction mode (@pxref{Lisp Interaction,,, emacs, The femacs
 Manual}) as well as these special commands:
 
 @table @kbd

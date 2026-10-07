@@ -163,7 +163,7 @@ information about this command.
 
   The word commands' understanding of word boundaries is controlled by
 the syntax table.  Any character can, for example, be declared to be a
-word delimiter.  @xref{Syntax Tables,, Syntax Tables, elisp, The Emacs
+word delimiter.  @xref{Syntax Tables,, Syntax Tables, elisp, The femacs
 Lisp Reference Manual}.
 
   In addition, see @ref{Position Info} for the @kbd{M-=}
@@ -2304,7 +2304,7 @@ enables Enriched mode.
 markup tags rather than formatted text), use @kbd{M-x
 find-file-literally} (@pxref{Visiting}).
 
-  @xref{Format Conversion,, Format Conversion, elisp, the Emacs Lisp
+  @xref{Format Conversion,, Format Conversion, elisp, the femacs Lisp
 Reference Manual}, for details of how Emacs recognizes and converts
 file formats like @samp{text/enriched}.  @xref{Text Properties,,,
 elisp, the femacs Lisp Reference Manual}, for more information about
@@ -2564,7 +2564,7 @@ region.
 @vindex enriched-allow-eval-in-display-props
 @cindex security, when displaying enriched text
   Enriched mode also supports saving and restoring @code{display}
-properties (@pxref{Display Property,,,elisp, the Emacs Lisp Reference
+properties (@pxref{Display Property,,,elisp, the femacs Lisp Reference
 Manual}), which affect how text is displayed on the screen, and also
 allow displaying images and strings that come from sources other than
 buffer text.  The @code{display} properties also support execution of

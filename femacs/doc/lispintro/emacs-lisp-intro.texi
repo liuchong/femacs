@@ -1260,7 +1260,7 @@ In addition, when you type a closing parenthesis, Emacs momentarily
 jumps the cursor back to the matching opening parenthesis, so you can
 see which one it is.  This is very useful, since every list you type
 in Lisp must have its closing parenthesis match its opening
-parenthesis.  (@xref{Major Modes, , Major Modes, emacs, The GNU Emacs
+parenthesis.  (@xref{Major Modes, , Major Modes, emacs, The femacs
 Manual}, for more information about Emacs's modes.)
 
 @node Run a Program
@@ -3238,7 +3238,7 @@ end of the comment.  To stretch a comment over two or more lines, begin
 each line with a semicolon.
 
 @xref{Beginning init File, , Beginning a @file{.emacs}
-File}, and @ref{Comments, , Comments, elisp, The GNU Emacs Lisp
+File}, and @ref{Comments, , Comments, elisp, The femacs Lisp
 Reference Manual}, for more about comments.
 
 You can install this version of the @code{multiply-by-seven} function by
@@ -9646,7 +9646,7 @@ and the second of which holds the address of @code{buttercup}.
 @cindex dotted pair
 @cindex cons cell
 A pair of address-boxes is called a @dfn{cons cell} or @dfn{dotted
-pair}.  @xref{Cons Cell Type, , Cons Cell and List Types, elisp, The GNU Emacs Lisp
+pair}.  @xref{Cons Cell Type, , Cons Cell and List Types, elisp, The femacs Lisp
 Reference Manual}, and @ref{Dotted Pair Notation, , Dotted Pair
 Notation, elisp, The femacs Lisp Reference Manual}, for more
 information about cons cells and dotted pairs.
@@ -9718,7 +9718,7 @@ where the buried treasure lies.
 (In addition to its name, symbol definition, and variable value, a
 symbol has a drawer for a @dfn{property list} which can be used to
 record other information.  Property lists are not discussed here; see
-@ref{Property Lists, , Property Lists, elisp, The GNU Emacs Lisp
+@ref{Property Lists, , Property Lists, elisp, The femacs Lisp
 Reference Manual}.)
 
 @need 1500
@@ -11925,7 +11925,7 @@ as ``regexp''.
 
 Regular expression searches are described in @ref{Regexp Search, ,
 Regular Expression Search, emacs, The femacs Manual}, as well as in
-@ref{Regular Expressions, , , elisp, The GNU Emacs Lisp Reference
+@ref{Regular Expressions, , , elisp, The femacs Lisp Reference
 Manual}.  In writing this chapter, I am presuming that you have at
 least a mild acquaintance with them.  The major point to remember is
 that regular expressions permit you to search for patterns as well as
@@ -13225,7 +13225,7 @@ or more blank lines in sequence.
 
 @item
 Write a function to search for duplicated words, such as ``the the''.
-@xref{Regexps, , Syntax of Regular Expressions, emacs, The GNU Emacs
+@xref{Regexps, , Syntax of Regular Expressions, emacs, The femacs
 Manual}, for information on how to write a regexp (a regular
 expression) to match a string that is composed of two identical
 halves.  You can devise several regexps; some are better than others.
@@ -13386,7 +13386,7 @@ this is:
 @noindent
 The buffer's syntax table determines which characters are and are not
 word constituents.  For more information about syntax,
-@pxref{Syntax Tables, , Syntax Tables, elisp, The GNU Emacs Lisp
+@pxref{Syntax Tables, , Syntax Tables, elisp, The femacs Lisp
 Reference Manual}.
 
 @need 800
@@ -16451,7 +16451,7 @@ particularly fonts, that I find easier to manipulate using the
 Most of this chapter is about writing expressions yourself.  It
 describes a simple @file{.emacs} file; for more information, see
 @ref{Init File, , The Init File, emacs, The femacs Manual}, and
-@ref{Init File, , The Init File, elisp, The GNU Emacs Lisp Reference
+@ref{Init File, , The Init File, elisp, The femacs Lisp Reference
 Manual}.
 
 @node Site-wide Init
@@ -16674,7 +16674,7 @@ A @file{.emacs} file contains Lisp expressions.  Often, these are no
 more than expressions to set values; sometimes they are function
 definitions.
 
-@xref{Init File, , The Init File @file{~/.emacs}, emacs, The GNU Emacs
+@xref{Init File, , The Init File @file{~/.emacs}, emacs, The femacs
 Manual}, for a short description of initialization files.
 
 This chapter goes over some of the same ground, but is a walk among
@@ -16792,7 +16792,7 @@ per-buffer, local variables list, if any.
 @xref{Choosing Modes, , How Major Modes are Chosen, emacs, The GNU
 femacs Manual}.
 
-@xref{File Variables, , Local Variables in Files, emacs, The GNU Emacs
+@xref{File Variables, , Local Variables in Files, emacs, The femacs
 Manual}.
 @end ifinfo
 @iftex
@@ -16941,7 +16941,7 @@ values for the variable.
 @ifinfo
 @xref{Just Spaces, , Tabs vs.@: Spaces, emacs, The femacs Manual}.
 
-@xref{File Variables, , Local Variables in Files, emacs, The GNU Emacs
+@xref{File Variables, , Local Variables in Files, emacs, The femacs
 Manual}.
 @end ifinfo
 @iftex
@@ -17173,8 +17173,8 @@ You will see numerous @code{keymap-set} and @code{define-key}
 expressions in @file{loaddefs.el} as well as in the various mode
 libraries, such as @file{cc-mode.el} and @file{lisp-mode.el}.
 
-@xref{Key Bindings, , Customizing Key Bindings, emacs, The GNU Emacs
-Manual}, and @ref{Keymaps, , Keymaps, elisp, The GNU Emacs Lisp
+@xref{Key Bindings, , Customizing Key Bindings, emacs, The femacs
+Manual}, and @ref{Keymaps, , Keymaps, elisp, The femacs Lisp
 Reference Manual}, for more information about keymaps.
 
 @node Loading Files
@@ -17299,7 +17299,7 @@ load that function's file with a @code{load} expression in your
 In my @file{.emacs} file, I load 14 libraries that contain functions
 that would otherwise be autoloaded.  (Actually, it would have been
 better to include these files in my dumped Emacs, but I forgot.
-@xref{Building Emacs, , Building Emacs, elisp, The GNU Emacs Lisp
+@xref{Building Emacs, , Building Emacs, elisp, The femacs Lisp
 Reference Manual}, and the @file{INSTALL} file for more about
 dumping.)
 
@@ -17339,7 +17339,7 @@ duplicate the function's regular documentation in the autoload
 expression because the regular function is not yet loaded, so its
 documentation is not available.)
 
-@xref{Autoload, , Autoload, elisp, The GNU Emacs Lisp Reference
+@xref{Autoload, , Autoload, elisp, The femacs Lisp Reference
 Manual}, for more information.
 
 @node Simple Extension
@@ -17816,7 +17816,7 @@ property name, in this case, @samp{help-echo}, followed by a value, in this
 case, a string.  The second, third, and fourth elements of this new
 string format can be repeated.
 
-@xref{Text Properties, , Text Properties, elisp, The GNU Emacs Lisp
+@xref{Text Properties, , Text Properties, elisp, The femacs Lisp
 Reference Manual}, and see @ref{Mode Line Format, , Mode Line Format,
 elisp, The femacs Lisp Reference Manual}, for more information.
 
@@ -18198,7 +18198,7 @@ shows which line you are currently executing.
 You can walk through the execution of a function, line by line, or run
 quickly until reaching a @dfn{breakpoint} where execution stops.
 
-Edebug is described in @ref{Edebug, , , elisp, The GNU Emacs
+Edebug is described in @ref{Edebug, , , elisp, The femacs
 Lisp Reference Manual}.
 
 @need 1250
@@ -18325,7 +18325,7 @@ error or at specified stopping points; you can cause it to display the
 changing values of various expressions; you can find out how many
 times a function is called, and more.
 
-Edebug is described in @ref{Edebug, , , elisp, The GNU Emacs
+Edebug is described in @ref{Edebug, , , elisp, The femacs
 Lisp Reference Manual}.
 
 @need 1500
@@ -18475,7 +18475,7 @@ ones.  The @file{loaddefs.el} file contains the many standard
 autoloads and many keymaps.  I have never looked at it all; only at
 parts.  @file{loadup.el} is the file that loads the standard parts of
 Emacs; it tells you a great deal about how Emacs is built.
-(@xref{Building Emacs, , Building Emacs, elisp, The GNU Emacs Lisp
+(@xref{Building Emacs, , Building Emacs, elisp, The femacs Lisp
 Reference Manual}, for more about building.)
 
 As I said, you have learned some nuts and bolts; however, and very
@@ -18518,7 +18518,7 @@ duplicated words on different lines, since the ending of the first
 word, the end of the line, is different from the ending of the second
 word, a space.  (For more information about regular expressions, see
 @ref{Regexp Search, , Regular Expression Searches}, as well as
-@ref{Regexps, , Syntax of Regular Expressions, emacs, The GNU Emacs
+@ref{Regexps, , Syntax of Regular Expressions, emacs, The femacs
 Manual}, and @ref{Regular Expressions, , Regular Expressions, elisp,
 The femacs Lisp Reference Manual}.)
 
@@ -20600,7 +20600,7 @@ If we want to divide 100 by 50, we can write:
 This expression returns 2.  The 100 is passed to the function, which
 divides that number by 50.
 
-@xref{Lambda Expressions, , Lambda Expressions, elisp, The GNU Emacs
+@xref{Lambda Expressions, , Lambda Expressions, elisp, The femacs
 Lisp Reference Manual}, for more about @code{lambda}.  Lisp and lambda
 expressions derive from the Lambda Calculus.
 
@@ -20658,7 +20658,7 @@ The whole expression looks like this:
 (mapcar (lambda (arg) (/ arg 50)) full-range))
 @end smallexample
 
-@xref{Mapping Functions, , Mapping Functions, elisp, The GNU Emacs
+@xref{Mapping Functions, , Mapping Functions, elisp, The femacs
 Lisp Reference Manual}, for more about @code{mapcar}.
 
 Using the @code{one-fiftieth} function, we can generate a list in

@@ -1454,7 +1454,7 @@ evaluated.  @var{comment} is a string describing the customization.
 
 @cindex custom themes
   @dfn{Custom themes} are collections of settings that can be enabled
-or disabled as a unit.  @xref{Custom Themes,,, emacs, The GNU Emacs
+or disabled as a unit.  @xref{Custom Themes,,, emacs, The femacs
 Manual}.  Each Custom theme is defined by an Emacs Lisp source file,
 which should follow the conventions described in this section.
 (Instead of writing a Custom theme by hand, you can also create one

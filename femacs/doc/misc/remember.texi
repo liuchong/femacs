@@ -29,13 +29,13 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* Remember: (remember).         Simple information manager for Emacs.
+* Remember: (remember).         Simple information manager for femacs.
 @end direntry
 
 @titlepage
 @title Guide to Remember Mode
 @subtitle a simple information manager
-@subtitle for Emacs
+@subtitle for femacs
 
 @c The following two commands
 @c start the copyright page.
@@ -208,7 +208,7 @@ appended there into other files, or reorganize your document.
 You can also store remembered data in other backends.  @xref{Backends}.
 
 Here is one way to map the remember functions in your init file
-(@pxref{Init File, , The Emacs Initialization File, emacs, GNU Emacs
+(@pxref{Init File, , The Emacs Initialization File, emacs, femacs
 Manual}) to very accessible keystrokes facilities using the mode:
 
 @lisp

@@ -28,11 +28,11 @@ modify this GNU manual.''
 
 @dircategory Emacs lisp libraries
 @direntry
-* D-Bus: (dbus).                Using D-Bus in Emacs.
+* D-Bus: (dbus).                Using D-Bus in femacs.
 @end direntry
 
 @titlepage
-@title Using D-Bus in Emacs
+@title Using D-Bus in femacs
 @page
 @vskip 0pt plus 1filll
 @insertcopying

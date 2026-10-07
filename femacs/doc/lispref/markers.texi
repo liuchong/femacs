@@ -631,7 +631,7 @@ This piece of command_loop_1, run unless deactivating the mark:
 
 @defun handle-shift-selection
 This function implements the shift-selection behavior of
-point-motion commands.  @xref{Shift Selection,,, emacs, The GNU Emacs
+point-motion commands.  @xref{Shift Selection,,, emacs, The femacs
 Manual}.  It is called automatically by the Emacs command loop
 whenever a command with a @samp{^} character in its @code{interactive}
 spec is invoked, before the command itself is executed

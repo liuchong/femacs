@@ -1256,8 +1256,8 @@ If HANDLES is non-nil, use it instead reparsing the buffer."
     ["Validate MML" mml-validate t]
     ["Preview" mml-preview t]
     "----"
-    ["Emacs MIME manual" (lambda () (interactive) (message-info 4))
-     :help "Display the Emacs MIME manual"]
+    ["femacs MIME manual" (lambda () (interactive) (message-info 4))
+     :help "Display the femacs MIME manual"]
     ["PGG manual" (lambda () (interactive) (message-info mml2015-use))
      :visible (and (boundp 'mml2015-use) (equal mml2015-use 'pgg))
      :help "Display the PGG manual"]

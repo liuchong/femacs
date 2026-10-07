@@ -1139,7 +1139,7 @@ End:
 
 By default the time stamp is
 formatted according to your locale setting (@pxref{Environment}) and
-time zone (@pxref{Time of Day,,, elisp, The Emacs Lisp Reference
+time zone (@pxref{Time of Day,,, elisp, The femacs Lisp Reference
 Manual}).
 @vindex time-stamp-time-zone
 Set @code{time-stamp-time-zone} to override the time zone used.
@@ -2050,7 +2050,7 @@ All of them read two file names, @var{old} (or @var{target}) and
 accordingly; they do not accept wildcard file names.
 
 In all these commands, if the argument @var{new} is just a directory
-name (@pxref{Directory Names,,, elisp, the Emacs Lisp Reference
+name (@pxref{Directory Names,,, elisp, the femacs Lisp Reference
 Manual}), the real new name is in that directory, with the same
 non-directory component as @var{old}.  For example, the command
 @w{@kbd{M-x rename-file @key{RET} ~/foo @key{RET} /tmp/ @key{RET}}}

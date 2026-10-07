@@ -1,7 +1,7 @@
 \input texinfo  @c -*-texinfo-*-
 @c %**start of header
 @setfilename ../../info/eshell.info
-@settitle Eshell: The Emacs Shell
+@settitle Eshell: The femacs Shell
 @documentlanguage en
 @include docstyle.texi
 @defcodeindex cm
@@ -38,7 +38,7 @@ modify this GNU manual.''
 @sp 1
 @center @titlefont{to}
 @sp 1
-@center @titlefont{Eshell: The Emacs Shell}
+@center @titlefont{Eshell: The femacs Shell}
 @ignore
 @sp 2
 @center release 2.4
@@ -410,7 +410,7 @@ hellothere
 @subsection Lisp form
 Lisp form looks like ordinary Emacs Lisp code, because that's what it
 is.  As a result, you can use any syntax normally available to an
-Emacs Lisp program (@pxref{Top, , , elisp, The Emacs Lisp Reference
+Emacs Lisp program (@pxref{Top, , , elisp, The femacs Lisp Reference
 Manual}).
 
 @example
@@ -536,7 +536,7 @@ Lisp data types, such as lists or buffers.
 @item #'@var{lisp-form}
 This refers to the quoted Emacs Lisp form @var{lisp-form}.  Though
 this looks similar to the ``sharp quote'' syntax for functions
-(@pxref{Special Read Syntax, , , elisp, The Emacs Lisp Reference
+(@pxref{Special Read Syntax, , , elisp, The femacs Lisp Reference
 Manual}), it instead corresponds to @code{quote} and can be used for
 any quoted form.@footnote{Eshell would interpret a bare apostrophe
 (@code{'}) as the start of a single-quoted string.}
@@ -558,7 +558,7 @@ Return a marker at @var{position} in the buffer @var{buffer-or-name}.
 @var{buffer-or-name} can either be a string naming a buffer or an
 actual buffer object.  This is roughly equivalent to creating a new
 marker and calling @samp{$(set-marker marker @var{position}
-@var{buffer-or-name})} (@pxref{Moving Markers, , , elisp, The Emacs
+@var{buffer-or-name})} (@pxref{Moving Markers, , , elisp, The femacs
 Lisp Reference Manual}).
 
 @item #<process @var{name}>
@@ -1179,7 +1179,7 @@ List one file per line.
 @cmindex make
 @item make [@var{arg}]@dots{}
 Run @command{make} through @code{compile} when run asynchronously
-(e.g., @samp{make &}).  @xref{Compilation, , , emacs, The GNU Emacs
+(e.g., @samp{make &}).  @xref{Compilation, , , emacs, The femacs
 Manual}.  Otherwise call the external @command{make} command.
 
 @cmindex man
@@ -1377,7 +1377,7 @@ or a string, referring to an environment variable.
 @cindex processes, waiting for
 @item wait [-t @var{timeout}] [@var{process}]@dots{}
 Wait until each specified @var{process} has exited.  Processes can
-either be process objects (@pxref{Processes, , , elisp, GNU Emacs Lisp
+either be process objects (@pxref{Processes, , , elisp, femacs Lisp
 Reference Manual}) or integer PIDs.  If you pass @code{-t} or
 @code{--timeout}, wait at most that many seconds before exiting.
 
@@ -1896,7 +1896,7 @@ index.  The exact behavior depends on the type of @var{expr}'s value:
 
 @item a sequence
 Expands to the element at the (zero-based) index @var{i} of the
-sequence (@pxref{Sequences Arrays Vectors, , , elisp, The Emacs Lisp
+sequence (@pxref{Sequences Arrays Vectors, , , elisp, The femacs Lisp
 Reference Manual}).  If @var{i} is negative, @var{i} counts from the
 end, so -1 refers to the last element of the sequence.
 
@@ -1905,7 +1905,7 @@ to a subsequence from the indices @var{start} to @var{end}, where
 @var{end} is excluded@footnote{This behavior is different from ranges
 in Bash (where both the start and end are included in the range), but
 matches the behavior of similar Emacs Lisp functions, like
-@code{substring} (@pxref{Creating Strings, , , elisp, The Emacs Lisp
+@code{substring} (@pxref{Creating Strings, , , elisp, The femacs Lisp
 Reference Manual}).}.  @var{start} and/or @var{end} can also be
 omitted, which is equivalent to the start and/or end of the entire
 list.  For example, @samp{$@var{expr}[-2..]} expands to the last two
@@ -2034,7 +2034,7 @@ in the locale-dependent collation order.
 Additionally, you can include @dfn{character classes} in a character
 set.  A @samp{[:} and balancing @samp{:]} enclose a character class
 inside a character set.  For instance, @samp{[[:alnum:]]}
-matches any letter or digit.  @xref{Char Classes, , , elisp, The Emacs
+matches any letter or digit.  @xref{Char Classes, , , elisp, The femacs
 Lisp Reference Manual}, for a list of character classes.
 
 @cindex complemented character sets, in Eshell glob patterns
@@ -2446,7 +2446,7 @@ buffers (@pxref{Buffers, , , elisp, femacs Lisp Reference Manual});
 markers (@pxref{Markers, , , elisp, femacs Lisp Reference Manual});
 
 @item
-processes (@pxref{Processes, , , elisp, GNU Emacs Lisp Reference
+processes (@pxref{Processes, , , elisp, femacs Lisp Reference
 Manual}); and
 
 @item
@@ -3023,7 +3023,7 @@ comparing lists of strings.
 An Eshell module is defined the same as any other library but with two
 additional requirements: first, the module's source file should be
 named @file{em-@var{name}.el}; second, the module must define an
-autoloaded Customize group (@pxref{Customization, , , elisp, The Emacs
+autoloaded Customize group (@pxref{Customization, , , elisp, The femacs
 Lisp Reference Manual}) with @code{eshell-module} as the parent group.
 In order to properly autoload this group, you should wrap its
 definition with @code{progn} as follows:

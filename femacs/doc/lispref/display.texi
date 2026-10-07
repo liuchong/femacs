@@ -2959,7 +2959,7 @@ When specifying this attribute using @code{set-face-attribute} or
 supply a font spec, a font entity, or a string.  Emacs converts such
 values to an appropriate font object, and stores that font object as
 the actual attribute value.  If you specify a string, the contents of
-the string should be a font name (@pxref{Fonts,,, emacs, The GNU Emacs
+the string should be a font name (@pxref{Fonts,,, emacs, The femacs
 Manual}); if the font name is an XLFD containing wildcards, Emacs
 chooses the first font matching those wildcards.  Specifying this
 attribute also changes the values of the @code{:family},
@@ -3506,7 +3506,7 @@ particular face.  @xref{Glyphs}.
 
 @item
 If the text lies within an active region, Emacs highlights it using
-the @code{region} face.  @xref{Standard Faces,,, emacs, The GNU Emacs
+the @code{region} face.  @xref{Standard Faces,,, emacs, The femacs
 Manual}.
 
 @item
@@ -9511,7 +9511,7 @@ over the tool bar), in which case this function will return
 @end defun
 
 Other aspects of tooltip display are controlled by several
-customizable settings; see @ref{Tooltips,,, emacs, The GNU Emacs
+customizable settings; see @ref{Tooltips,,, emacs, The femacs
 Manual}.
 
 @node Bidirectional Display

@@ -838,7 +838,7 @@ terminals.
 This face is used for the prompt strings displayed in the minibuffer.
 By default, Emacs automatically adds this face to the value of
 @code{minibuffer-prompt-properties}, which is a list of text
-properties (@pxref{Text Properties,,, elisp, the Emacs Lisp Reference
+properties (@pxref{Text Properties,,, elisp, the femacs Lisp Reference
 Manual}) used to display the prompt text.  (This variable takes effect
 when you enter the minibuffer.)
 
@@ -1088,7 +1088,7 @@ expressions (@pxref{Regexp Search,, Regular Expression Search}).
 
 @item
 Find syntactically distinct parts of text based on built-in syntax
-tables (@pxref{Syntax Tables,,, elisp, The Emacs Lisp Reference
+tables (@pxref{Syntax Tables,,, elisp, The femacs Lisp Reference
 Manual}).
 
 @item
@@ -1170,7 +1170,7 @@ function @code{font-lock-remove-keywords}.  @xref{Search-based
 Fontification,,, elisp, The femacs Lisp Reference Manual}.
 Alternatively, you can selectively disable highlighting due to some
 keywords by customizing the @code{font-lock-ignore} option,
-@pxref{Customizing Keywords,,, elisp, The Emacs Lisp Reference
+@pxref{Customizing Keywords,,, elisp, The femacs Lisp Reference
 Manual}.
 
 @node Parser-based Font Lock
@@ -1599,7 +1599,7 @@ how the buffer boundaries and window scrolling is indicated in the
 fringes.  If the value is @code{left} or @code{right}, both angle and
 arrow bitmaps are displayed in the left or right fringe, respectively.
 
-  If value is an alist (@pxref{Association Lists,,, elisp, the Emacs
+  If value is an alist (@pxref{Association Lists,,, elisp, the femacs
 Lisp Reference Manual}), each element @code{(@var{indicator} .
 @var{position})} specifies the position of one of the indicators.  The
 @var{indicator} must be one of @code{top}, @code{bottom}, @code{up},
@@ -2431,7 +2431,7 @@ to draw underlined text.  The default is @code{nil}, which means to
 draw it at the baseline level of the font; if you change it to
 @code{t}, Emacs draws the underline at the same height as the font's
 descent line.  (If non-default line spacing was specified for the
-underlined text, see @ref{Line Height,,, elisp, The Emacs Lisp
+underlined text, see @ref{Line Height,,, elisp, The femacs Lisp
 Reference Manual}, Emacs draws the underline below the additional
 spacing.)
 

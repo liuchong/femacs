@@ -1,6 +1,6 @@
 \input texinfo
 @setfilename ../../info/ede.info
-@settitle Emacs Development Environment
+@settitle femacs Development Environment
 @documentlanguage en
 @include docstyle.texi
 
@@ -25,11 +25,11 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* EDE: (ede).                   The Emacs Development Environment.
+* EDE: (ede).                   The femacs Development Environment.
 @end direntry
 
 @titlepage
-@center @titlefont{EDE (The Emacs Development Environment)}
+@center @titlefont{EDE (The femacs Development Environment)}
 @sp 4
 @center by Eric Ludlam
 @page

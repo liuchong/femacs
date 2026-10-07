@@ -461,7 +461,7 @@ of the time.  For example:
 
 @noindent
 Note that the strings substituted for these @samp{%}-sequences depend
-on the current locale.  @xref{Time Parsing,,, elisp, The Emacs Lisp
+on the current locale.  @xref{Time Parsing,,, elisp, The femacs Lisp
 Reference Manual}, for more about format time specs.
 
 @vindex ls-lisp-use-localized-time-format

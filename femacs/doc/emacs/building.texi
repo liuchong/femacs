@@ -624,7 +624,7 @@ windows to display the state of the debugged program.  @xref{GDB
 Graphical Interface}.
 
   Emacs also has a built-in debugger for Emacs Lisp programs.
-@xref{Debugging,, The Lisp Debugger, elisp, the Emacs Lisp Reference
+@xref{Debugging,, The Lisp Debugger, elisp, the femacs Lisp Reference
 Manual}.
 
 @menu

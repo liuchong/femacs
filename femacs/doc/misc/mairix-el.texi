@@ -1,7 +1,7 @@
 \input texinfo.tex
 
 @setfilename ../../info/mairix-el.info
-@settitle Emacs Interface for Mairix
+@settitle femacs Interface for Mairix
 @documentlanguage en
 @include docstyle.texi
 
@@ -23,11 +23,11 @@ modify this GNU manual.''
 
 @dircategory Emacs network features
 @direntry
-* Mairix: (mairix-el).          Emacs interface to the Mairix mail indexer.
+* Mairix: (mairix-el).          femacs interface to the Mairix mail indexer.
 @end direntry
 
 @titlepage
-@title mairix.el---Mairix interface for Emacs
+@title mairix.el---Mairix interface for femacs
 
 @author David Engster
 @page

@@ -1,6 +1,6 @@
 \input texinfo    @c -*-coding:utf-8 -*-
 @setfilename ../../info/efaq-w32.info
-@settitle GNU Emacs FAQ For MS Windows
+@settitle femacs FAQ For MS Windows
 @documentlanguage en
 @include docstyle.texi
 @setchapternewpage odd
@@ -38,13 +38,13 @@ itself allows free copying and redistribution.
 
 @dircategory Emacs
 @direntry
-* Emacs W32 FAQ: (efaq-w32).	FAQs about Emacs on MS Windows.
+* femacs W32 FAQ: (efaq-w32).	FAQs about femacs on MS Windows.
 @end direntry
 
 @c The @titlepage stuff only appears in the printed version
 @titlepage
 @sp 10
-@center @titlefont{GNU Emacs FAQ for MS Windows}
+@center @titlefont{femacs FAQ for MS Windows}
 
 @c The following two commands start the copyright page.
 @page

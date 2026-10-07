@@ -619,6 +619,37 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     **未声称**：本半没有跑过任何东西——改的是文本，证据只有逐字节门（963 行每行都被读回）与声明门；
     这些手册没有被 `makeinfo` 重建过（交叉引用的第五栏与新标题一致这件事由逐字节门与逐条复核保证）。
     同一批读数记在 `docs/status.md` 4.008。
+    这条规则现在有第三十一半（2026-10-08，status 4.020）：**"这棵树自己的手册叫什么"这一面在其余手册上做完，并且第一次读到"换行引用"的另一半**。
+    第三十半读的是本仓库自己的**两本**手册（`doc/emacs` 与 `doc/lispref`）；`doc/` 里其余各本手册的书名留在原地，
+    每本手册 `@direntry` 块里**条目标签**那一格（第三十半读了同一个块、只改了描述句里的手册名）也没有读者。本半按同一条判据把三处一次改名：
+    ⑴ 书名与副题（`@settitle`/`@title`/`@subtitle`/`@shorttitlepage`/`@titlefont`，含 `@center @titlefont{…}`）——
+    小型库/模式手册一族、`doc/emacs/emacs-xtra.texi`、`doc/lispref/elisp.texi` 131 的副题、法文译本 `doc/translations/fr/misc/ses-fr.texi`；
+    ⑵ 每本手册 `@direntry` 块的**条目标签**与被 `makeinfo` 装进 Info 目录的**描述句**（`doc/emacs/emacs.texi` 44 的标签仍写着参照的名字，
+    而同一个文件的 `@settitle` 已是本仓库的名字——同一文件里的**分裂身份**）；⑶ 点到自己手册书名的引用行：`@xref`/`@pxref`/`@ref` 的
+    **手册标题栏**、`@cite{…}` 的书名、`@uref` 的标签、`lisp/gnus/mml.el` 的菜单标签与 `:help`。字形仍是第十半的**机械替换**
+    （只换产品名那一个 token，`GNU ` 前缀随产品名一起去掉），另有两处**随行而变的第二字形**、逐条写进行的理由里：
+    `an Emacs` → `a femacs`（冠词随首音，3 行）与法文 `d'Emacs` → `de femacs`（省音，2 行）。
+    **本半第一次读到"换行引用"的另一半**：第三十半的行形读法只覆盖了**手册标题栏的 token 落在续行**的那些换行引用（它把续行改名并登记），
+    token 落在**引用首行**的另一半（**136 行**）过得了逐字节门、却没有任何读者：本半用"窗口里看完整引用、只改本行那一段"的读法收掉，
+    并且**只改手册标题栏**——节点名（参照产品名 + ` Server` 这类节点标题）与 Info 文件名（`emacs`/`elisp`）一处都没动
+    （第十半"改的是名字，不是指向"同一条）。这条读法有一个**行形读者看不见的坑**，照录：把窗口里"引用在**后一行**起头"的匹配
+    当成当前行，会把整条引用粘到当前行尾；判据是逐行读回（见 `docs/status.md` 4.020 的结果）。
+    规模与读数：**246 行 / 85 个文件**（`ref` 148、`title` 61、`direntry` 35、`label` 2）逐行记进
+    `docs/baseline/verbatim-substitutions.tsv`（**8,173 → 8,419** 行）；`python3 tools/check-verbatim.py` →
+    **`6 trees, 4604 files, 8,419 sanctioned line(s), 0 failures`**（逐树 `doc` 953 → **1,199**、`lisp` 6,472 → **6,474**，
+    `etc`/`leim`/`admin` 与六棵树的文件数逐个不动）；`python3 tools/check-verbatim-declarations.py` →
+    **`710 candidate(s), 6 enumerated keep(s), 710 classified, 0 failure(s)`**（候选数与上一半相同）；十门其余不变
+    （declarations **18 / 0 / 18 / 0**、own-voice **0**、citations **676 / 0 / 0 / 2,416 / 36 / 0**、mirror-dupes **16/16/0**、
+    port-lines **0/0/0/0**、ledger-ticks **238/0**、carried **11/11/4/0**、dead-file-coverage **145/0**）。
+    **按判据不动、逐条点名（10 处）**：token 是**语言名**、不是本程序的名字那一族——`doc/lispintro/emacs-lisp-intro.texi` 4/169
+    与同一个文件的 copying 页 102/891、`doc/misc/ert.texi` 4/35 与它的 Info 目录描述 15、`doc/misc/cl.texi` 28、
+    `doc/misc/eieio.texi` 33、`doc/misc/eshell.texi` 31、`doc/lispintro/emacs-lisp-intro.texi` 89 的标签；判据与第十四半
+    "语言名留着、改的是手册名"一致（`doc/misc/calc.texi` 32,132 那一行是先例）。同族的"指向"与署名三处也不动：
+    `doc/misc/efaq-w32.texi` 2361（指向 gnu.org 手册集合的链接标签）、`doc/lispref/debugging.texi` 47（指向 ERT 手册的标题栏，
+    随那本手册自己的书名不动）、`lisp/help.el` 731（从 FSF 买印刷本那一句）。
+    **未声称**：本半没有跑过任何东西——改的是文本，读数只有逐字节门（246 行每行读回，并逐行核对字形：**零处非许可 hunk**，
+    即除 token 与那两处第二字形外整行逐字相同）与声明门；这些手册没有被 `makeinfo` 重建过，
+    "Info 目录里那一格现在印什么"只是文本读数、不是 `info` 的输出。
 
 
 

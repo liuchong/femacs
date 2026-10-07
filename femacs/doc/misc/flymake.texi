@@ -447,7 +447,7 @@ The value actually follows the syntax of @code{flymake-margin-indicators-string}
 @var{...}) of further properties used to affect the appearance of
 Flymake annotations.  With the exception of @code{category} and
 @code{evaporate}, these properties are applied directly to the created
-overlay (@pxref{Overlay Properties,,, elisp, The Emacs Lisp Reference
+overlay (@pxref{Overlay Properties,,, elisp, The femacs Lisp Reference
 Manual}).
 
 As an example, here's how to make diagnostics of the type @code{:note}
@@ -632,7 +632,7 @@ this check, but aren't in any way required to complete it before
 exiting: if the computation involved is expensive, as
 is often the case with large buffers, that slower task should be
 scheduled for the future using asynchronous sub-processes
-(@pxref{Asynchronous Processes,,, elisp, The Emacs Lisp reference
+(@pxref{Asynchronous Processes,,, elisp, The femacs Lisp reference
 manual}) or other asynchronous mechanisms.
 
 In any case, backend functions are expected to return quickly or

@@ -1,7 +1,7 @@
 \input texinfo.tex
 @c %**start of header
 @setfilename ../../info/eudc.info
-@settitle Emacs Unified Directory Client (EUDC) Manual
+@settitle femacs Unified Directory Client (EUDC) Manual
 @documentlanguage en
 @include docstyle.texi
 @afourpaper
@@ -32,14 +32,14 @@ modify this GNU manual.''
 
 @dircategory Emacs network features
 @direntry
-* EUDC: (eudc).                 Emacs client for directory servers (LDAP, BBDB).
+* EUDC: (eudc).                 femacs client for directory servers (LDAP, BBDB).
 @end direntry
 
 @footnotestyle end
 
 @titlepage
 @title EUDC Manual
-@subtitle The Emacs Unified Directory Client
+@subtitle The femacs Unified Directory Client
 @author by Oscar Figueiredo
 @code{1.40.0}
 

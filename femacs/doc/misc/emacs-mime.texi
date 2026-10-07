@@ -1,7 +1,7 @@
 \input texinfo
 
 @setfilename ../../info/emacs-mime.info
-@settitle Emacs MIME Manual
+@settitle femacs MIME Manual
 @documentlanguage en
 @include docstyle.texi
 @synindex fn cp
@@ -30,7 +30,7 @@ modify this GNU manual.''
 
 @dircategory Emacs lisp libraries
 @direntry
-* Emacs MIME: (emacs-mime).     Emacs MIME de/composition library.
+* femacs MIME: (emacs-mime).     femacs MIME de/composition library.
 @end direntry
 @iftex
 @finalout
@@ -39,10 +39,10 @@ modify this GNU manual.''
 
 @titlepage
 @ifset WEBHACKDEVEL
-@title Emacs MIME Manual (DEVELOPMENT VERSION)
+@title femacs MIME Manual (DEVELOPMENT VERSION)
 @end ifset
 @ifclear WEBHACKDEVEL
-@title Emacs MIME Manual
+@title femacs MIME Manual
 @end ifclear
 
 @author by Lars Magne Ingebrigtsen

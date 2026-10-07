@@ -16873,3 +16873,61 @@
      无全盘/大内存扫描。
   ⑦ **未声称**：本轮**没有运行证据**——没有任何东西被拖放到这个视图；编译门只到解析与类型检查；
      `check-swift-units.py` 只比名字集合，不比签名/函数体/布局/ABI。
+
+- **4.020 版本声明这条长期指令的第三十一半：其余手册自己的书名、Info 目录里那一格，与"换行引用"的另一半（246 行 / 85 文件）（2026-10-08）**：
+  ① **指令的读法不变**（与 3.433 … 4.008 同一条，这是它的第三十一半）：`版本声明不要再说是gnu emacs了` 与它的后半
+     `把之前的代码中的这种声明也去掉` 是同一条——**已写进树的产出物也要清**。判据仍是"这句话说的是谁"，本半的入口是
+     **这棵树自己的手册叫什么**：第三十半只读了本仓库自己的**两本**手册（`doc/emacs`/`doc/lispref`），`doc/` 里其余各本的书名
+     与每本手册 `@direntry` 块里**条目标签**那一格留在原地（第三十半读了同一个块、只改了描述句里的手册名），
+     本半把这三处一次收掉，并把"换行引用"里行形读法看不见的另一半补上。
+  ② **四个站点面（逐条点名）**：⑴ 书名与副题：`@settitle`/`@title`/`@subtitle`/`@shorttitlepage`/`@titlefont`
+     （含 `@center @titlefont{…}`），61 行——小型库/模式手册一族（`doc/misc/auth.texi` 6/35/38、`doc/misc/sasl.texi` 6/36/39、
+     `doc/misc/emacs-mime.texi` 4/42/45、`doc/misc/sieve.texi` 4/40/43、`doc/misc/eww.texi` 4/35/36、`doc/misc/eshell.texi` 4/41、
+     `doc/misc/ede.texi` 3/32、`doc/misc/eglot.texi` 4/41、`doc/misc/viper.texi` 35/36、`doc/misc/widget.texi` 4/36、
+     `doc/misc/vhdl-mode.texi` 4/40、`doc/misc/efaq.texi` 4/42、`doc/misc/efaq-w32.texi` 3/47、`doc/misc/calc.texi` 6、
+     `doc/misc/dired-x.texi` 55、`doc/misc/reftex.texi` 86、`doc/misc/woman.texi` 44、`doc/misc/octave-mode.texi` 34 等）、
+     `doc/emacs/emacs-xtra.texi` 4/40、`doc/lispref/elisp.texi` 131 的副题、法文译本 `doc/translations/fr/misc/ses-fr.texi` 6/48；
+     ⑵ 每本手册 `@direntry` 块的**条目标签**与被 `makeinfo` 装进 Info 目录的**描述句**，35 行——最刺眼的是
+     `doc/emacs/emacs.texi` 44（标签仍写参照的名字，而同一个文件的 `@settitle` 已是本仓库的名字：同一文件里的**分裂身份**）；
+     ⑶ 点到自己手册书名的引用行，148 行：`@xref`/`@pxref`/`@ref` 的**手册标题栏**、`@cite{…}` 的书名、
+     `@uref` 的标签（`doc/misc/mh-e.texi` 2588/2608/2632 与 5195 的换行标签）、`doc/misc/url.texi` 144、`doc/misc/ses.texi` 989、
+     `doc/translations/fr/misc/ses-fr.texi` 1097、`doc/emacs/misc.texi` 3108、`doc/emacs/package.texi` 490/523、
+     `doc/lispref/processes.texi` 2678、`doc/lispref/text.texi` 5731、`doc/misc/idlwave.texi` 1377 一族；
+     ⑷ 照抄树里点这些手册名的标签：`lisp/gnus/mml.el` 1259/1260（菜单标签与它的 `:help`，2 行）。
+  ③ **第一次读到"换行引用"的另一半（136 行）**：第三十半的行形读法只覆盖了**手册标题栏的 token 落在续行**的换行引用——
+     它把续行改名并登记（`doc/emacs/emacs.texi` 134 的 `femacs Lisp Reference Manual}.` 就是），
+     而 token 落在**引用首行**的另一半既过得了逐字节门、也没有任何读者看得见（`doc/emacs/abbrevs.texi` 228 一族）。
+     本半的读法是"窗口里看完整引用、只改本行那一段"，并且**只改手册标题栏**：节点名（参照产品名 + ` Server` 这类节点标题）
+     与 Info 文件名（`emacs`/`elisp`）一处都没动——第十半"改的是名字，不是指向"同一条。这里有两个**行形读者看不见的坑**，照录：
+     ⑴ 把"引用在**后一行**起头"的窗口匹配当成当前行 ⇒ 整条引用被粘到当前行尾（首跑 3 行：`doc/emacs/building.texi` 626、
+     `doc/emacs/commands.texi` 89、`doc/emacs/custom.texi` 734）；⑵ 把**节点名**栏当标题栏 ⇒ 节点被改名
+     （2 行：`doc/emacs/emacs.texi` 133 的 `Emacs Lisp` 栏、`doc/lispref/commands.texi` 98 的 `Emacs Server` 栏——
+     这两行在同一行上还有别的 token，正因如此才需要"只改标题栏"这条纪律）。两处都在落盘前的复核里被拦下，
+     **整批还原后重做**（见 ⑦），最终 246 行逐行读过：**零处非许可 hunk**。
+  ④ **两处随行而变的第二字形（逐条点名）**：`an Emacs` → `a femacs`（冠词随首音）3 行——`doc/misc/edt.texi` 28、
+     `doc/misc/epa.texi` 31、`doc/misc/octave-mode.texi` 34；法文省音 `d'Emacs` → `de femacs` 2 行——
+     `doc/translations/fr/misc/ses-fr.texi` 6/48。除这两处，字形与第十半**逐字同形**：只换产品名那一个 token，
+     `GNU ` 前缀随产品名一起去掉，同一行其余字符一个都不动。
+  ⑤ **读数（全部实测）**：⑴ `python3 tools/check-verbatim.py` ⇒ **`6 trees, 4604 files, 8,419 sanctioned line(s), 0 failures`**
+     （上一步 8,173；逐树 `doc` 953 → **1,199**、`lisp` 6,472 → **6,474**，`etc`/`leim`/`admin` 与六棵树的文件数逐个不变）。
+     ⑵ 字形核对：246 行**零处非许可 hunk**（除 token 与 ④ 那两处，整行逐字相同）。⑶ `python3 tools/check-verbatim-declarations.py`
+     ⇒ **`710 candidate(s) of which 0 wrapped across two lines, 6 enumerated keep(s), 710 classified, 0 failure(s)`**
+     （与上一半同数；登记表 8,419 行）。⑷ 十门其余：declarations **18 declaration sites (0 forbidden, 18 allowed literals), 0 failures**、
+     own-voice **0 failure(s)**、citations **676 / 0 drift / 0 range / 2,416 external / 36 allowed / 0 stale**、
+     mirror-dupes **16/16/0**、port-lines **0/0/0/0**、ledger-ticks **238/0**、carried **11 carried / 11 row(s) / 4 sanctioned / 0 failure(s)**、
+     dead-file-coverage **145/0**。
+  ⑥ **按判据不动、逐条点名（10 处）**：token 是**语言名**、不是本程序的名字那一族——`doc/lispintro/emacs-lisp-intro.texi` 4/169
+     与同一个文件的 copying 页 102/891、`doc/misc/ert.texi` 4/35 与它的 Info 目录描述 15、`doc/misc/cl.texi` 28、
+     `doc/misc/eieio.texi` 33、`doc/misc/eshell.texi` 31、`doc/lispintro/emacs-lisp-intro.texi` 89 的标签；判据与第十四半
+     "语言名留着、改的是手册名"一致（`doc/misc/calc.texi` 32,132 与 `lisp/window.el` 7,076 是先例）。同族的"指向"与署名三处也不动：
+     `doc/misc/efaq-w32.texi` 2361（指向 gnu.org 手册集合的链接标签，4.008 ⑤ 已点名）、`doc/lispref/debugging.texi` 47
+     （指向 ERT 手册的标题栏，随那本手册自己的书名不动）、`lisp/help.el` 731（从 FSF 买印刷本那一句，4.008 ⑤ 已点名）。
+     **仍未清、点名不冒充**：`doc/` 里**叙述**对本程序的称呼（399 行那一族）、其余手册标题以外同一句话的散文用法、
+     以及命令名/协议名（第十半 ⑴ 留给你裁决的那一类）。
+  ⑦ **预算与清理**：**零编译**（只改文本与两张表）；一个**流式**脚本改写 85 个文件并生成 246 行登记（逐文件读入即释放，
+     分两趟跑完，不把整棵树读进内存）；首跑落盘后发现上述两个行形读者的坑，**用 `git show HEAD:<path>` 逐文件还原**
+     （91 个文件 + 登记表，复原后 `git status --short -uall` 为空）、补上"引用必须在本行起头"与"候选栏必须带 `Manual`/是第五栏"
+     两条纪律后重做，终读即十门全绿。`/tmp/half31*.py`、`/tmp/half31_*.json`、`/tmp/half31_hits*.tsv`、`/tmp/half31_list.txt`
+     跑完即删，无全盘/大内存扫描。
+     **未声称**：本半**没有运行证据**——这些手册没有被 `makeinfo` 重建过，也没有 `info` 的读数，
+     "Info 目录里那一格现在印什么"只是文本读数；交叉引用的标题栏与手册自己的书名一致由逐字节门与逐行复核保证，不是编译或运行证据。

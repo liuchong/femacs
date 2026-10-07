@@ -225,7 +225,7 @@ once.  This command is effective even if Abbrev mode is not enabled.
   The function @code{expand-abbrev} performs the expansion by calling
 the function that @code{abbrev-expand-function} specifies.  By
 changing this function you can make arbitrary changes to
-the abbrev expansion.  @xref{Abbrev Expansion,,, elisp, The Emacs Lisp
+the abbrev expansion.  @xref{Abbrev Expansion,,, elisp, The femacs Lisp
 Reference Manual}.
 
 @node Abbrevs Suggestions

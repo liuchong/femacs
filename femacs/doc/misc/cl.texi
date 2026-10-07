@@ -252,7 +252,7 @@ description.
 @defvar cl-print-readably
 When this variable is non-@code{nil}, @code{cl-prin1} and other
 functions described here try to produce output which can later be read
-by the Lisp reader (@pxref{Input Functions,,,elisp,GNU Emacs Lisp
+by the Lisp reader (@pxref{Input Functions,,,elisp,femacs Lisp
 Reference Manual}).
 @end defvar
 
@@ -2244,7 +2244,7 @@ values were @code{nil}, the loop returns @code{nil}.
 
 @item iter-by @var{iterator}
 This clause iterates over the values from the specified form, an
-iterator object.  See (@pxref{Generators,,,elisp,GNU Emacs Lisp
+iterator object.  See (@pxref{Generators,,,elisp,femacs Lisp
 Reference Manual}).
 @end table
 
@@ -4008,7 +4008,7 @@ birthday-boy
 @end lisp
 
 Any macro that accepts a generalized variable can be used to modify
-struct fields (@pxref{Generalized Variables,,,elisp,GNU Emacs Lisp
+struct fields (@pxref{Generalized Variables,,,elisp,femacs Lisp
 Reference Manual}).  Here is an example using @code{incf}:
 
 @lisp

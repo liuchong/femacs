@@ -59,7 +59,7 @@ Public License.''
 @c Info Directory Entry
 @dircategory Emacs network features
 @direntry
-* MH-E: (mh-e).                 Emacs interface to the MH mail system.
+* MH-E: (mh-e).                 femacs interface to the MH mail system.
 @end direntry
 
 @c Title Page
@@ -2585,7 +2585,7 @@ and @code{mm-html-inhibit-images}
 @end ifinfo
 @ifnotinfo
 (see section @uref{https://www.gnus.org/manual/emacs-mime_6.html,
-Display Customization} in the @cite{The Emacs MIME Manual}).
+Display Customization} in the @cite{The femacs MIME Manual}).
 @end ifnotinfo
 @c -------------------------
 @cindex browser, @samp{w3m}
@@ -2605,7 +2605,7 @@ the option @code{mm-w3m-safe-url-regexp}
 @end ifinfo
 @ifnotinfo
 (see section @uref{https://www.gnus.org/manual/emacs-mime_6.html,
-Display Customization} in the @cite{The Emacs MIME Manual}).
+Display Customization} in the @cite{The femacs MIME Manual}).
 @end ifnotinfo
 @c -------------------------
 @cindex browser, @samp{w3m-standalone}
@@ -2629,7 +2629,7 @@ the Gnus command @kbd{W h} (@pxref{Article Washing,,,gnus}).
 @end ifinfo
 @ifnotinfo
 see section @uref{https://www.gnus.org/manual/emacs-mime_6.html,
-Display Customization} in the @cite{The Emacs MIME Manual} and the
+Display Customization} in the @cite{The femacs MIME Manual} and the
 documentation for the Gnus command @kbd{W h} (see section
 @uref{https://www.gnus.org/manual/gnus_48.html#Article-Washing, Article
 Washing} in the
@@ -5192,7 +5192,7 @@ Meta Language) tags@footnote{
 @end ifinfo
 @ifnotinfo
 See the section Composing in
-@uref{https://www.gnus.org/manual/emacs-mime.html, @cite{The Emacs MIME
+@uref{https://www.gnus.org/manual/emacs-mime.html, @cite{The femacs MIME
 Manual}}.
 @end ifnotinfo
 }. The option @code{mh-compose-insertion} can be used to choose

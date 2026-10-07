@@ -1,7 +1,7 @@
 \input texinfo   @c -*- texinfo -*-
 
 @setfilename ../../info/vhdl-mode.info
-@settitle VHDL Mode, an Emacs mode for editing VHDL code
+@settitle VHDL Mode, a femacs mode for editing VHDL code
 @documentlanguage en
 @include docstyle.texi
 
@@ -29,7 +29,7 @@ modify this GNU manual.''
 
 @dircategory Emacs editing modes
 @direntry
-* VHDL Mode: (vhdl-mode).       Emacs mode for editing VHDL code.
+* VHDL Mode: (vhdl-mode).       femacs mode for editing VHDL code.
 @end direntry
 
 @finalout
@@ -37,7 +37,7 @@ modify this GNU manual.''
 @titlepage
 @title VHDL Mode
 @sp 2
-@subtitle A GNU Emacs mode for editing VHDL code.
+@subtitle A femacs mode for editing VHDL code.
 @sp 2
 @author Reto Zimmermann
 @author @email{reto@@gnu.org}

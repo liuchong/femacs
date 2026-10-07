@@ -447,7 +447,7 @@ Saturday only that day's entries appear.
   You can customize the form of dates in your diary file by setting the
 variable @code{diary-date-forms}.  This variable is a list of patterns
 for recognizing a date.  Each date pattern is a list whose elements may
-be regular expressions (@pxref{Regular Expressions,,, elisp, the Emacs
+be regular expressions (@pxref{Regular Expressions,,, elisp, the femacs
 Lisp Reference Manual}) or the symbols @code{month}, @code{day},
 @code{year}, @code{monthname}, and @code{dayname}.  All these elements
 serve as patterns that match certain kinds of text in the diary file.

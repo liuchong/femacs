@@ -941,7 +941,7 @@ devices.
 The @code{alpha}, @code{alpha-background}, @code{z-group},
 @code{override-redirect}, @code{mouse-color}, @code{title},
 @code{wait-for-wm}, @code{sticky}, and @code{undecorated} frame
-parameters (@pxref{Frame Parameters,,, elisp, the Emacs Lisp Reference
+parameters (@pxref{Frame Parameters,,, elisp, the femacs Lisp Reference
 Manual}) are unsupported.
 
 @item

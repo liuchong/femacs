@@ -39,7 +39,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* Forms: (forms).               Emacs package for editing data bases
+* Forms: (forms).               femacs package for editing data bases
                                   by filling in forms.
 @end direntry
 

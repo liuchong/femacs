@@ -41,7 +41,7 @@ modify this GNU manual.''
 @titlepage
 @title WoMan
 @subtitle Browse Unix Manual Pages ``W.O. (without) Man''
-@subtitle as distributed with Emacs @value{EMACSVER}
+@subtitle as distributed with femacs @value{EMACSVER}
 @author Francis J. Wright
 @sp 2
 @author School of Mathematical Sciences

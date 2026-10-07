@@ -173,7 +173,7 @@ Display the femacs manual in Info (@code{info-emacs-manual}).
 Display the contents of the current @dfn{syntax table}
 (@code{describe-syntax}).  @xref{Misc Help}.  The syntax table says
 which characters are opening delimiters, which are parts of words, and
-so on.  @xref{Syntax Tables,, Syntax Tables, elisp, The Emacs Lisp
+so on.  @xref{Syntax Tables,, Syntax Tables, elisp, The femacs Lisp
 Reference Manual}, for details.
 @item C-h t
 Enter the Emacs interactive tutorial (@code{help-with-tutorial}).
@@ -326,7 +326,7 @@ yet further information is often reachable by clicking or typing
 @cindex declared type of a function
 @cindex inferred type of a function
 The function type, if known, is expressed with a @dfn{function type
-specifier} (@pxref{Type Specifiers,,,elisp, The Emacs Lisp Reference
+specifier} (@pxref{Type Specifiers,,,elisp, The femacs Lisp Reference
 Manual}), it will be specified if the type was manually declared by a
 Lisp program or inferred by the compiler.  Note that function type
 inference works only when native compilation is enabled (@pxref{native

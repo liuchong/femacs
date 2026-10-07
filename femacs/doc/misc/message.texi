@@ -924,7 +924,7 @@ external command to use to take the screenshot.  It defaults to
 @code{"import png:-"}, which is an ImageMagick command.
 
 You can also create arbitrarily complex multiparts using the @acronym{MML}
-language (@pxref{Composing, , Composing, emacs-mime, The Emacs MIME
+language (@pxref{Composing, , Composing, emacs-mime, The femacs MIME
 Manual}).
 
 @node IDNA

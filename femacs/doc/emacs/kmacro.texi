@@ -343,7 +343,7 @@ format is @samp{%d}, which means to insert the number in decimal
 without any padding.  You can exit with empty minibuffer to reset the
 format to this default.  You can specify any format string that the
 @code{format} function accepts and that makes sense with a single
-integer extra argument (@pxref{Formatting Strings,,, elisp, The Emacs
+integer extra argument (@pxref{Formatting Strings,,, elisp, The femacs
 Lisp Reference Manual}).  Do not put the format string inside double
 quotes when you insert it in the minibuffer.
 

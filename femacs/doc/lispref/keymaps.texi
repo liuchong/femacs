@@ -1692,7 +1692,7 @@ into a key sequence (a string or vector constant).  The contents of
 @var{keyseq-text} should use the same syntax as in the buffer invoked
 by the @kbd{C-x C-k @key{RET}} (@code{kmacro-edit-macro}) command; in
 particular, you must surround function key names with
-@samp{<@dots{}>}.  @xref{Edit Keyboard Macro,,, emacs, The GNU Emacs
+@samp{<@dots{}>}.  @xref{Edit Keyboard Macro,,, emacs, The femacs
 Manual}.
 
 @example
@@ -2979,7 +2979,7 @@ in Documentation}.
 @cindex tool bar
 
   A @dfn{tool bar} is a row of clickable icons at the top of a frame,
-just below the menu bar.  @xref{Tool Bars,,,emacs, The GNU Emacs
+just below the menu bar.  @xref{Tool Bars,,,emacs, The femacs
 Manual}.  Emacs normally shows a tool bar on graphical displays.
 
   On each frame, the frame parameter @code{tool-bar-lines} controls

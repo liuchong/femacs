@@ -187,7 +187,7 @@ modify this GNU manual.''
 @comment here is by request from the FSF folks.
 @dircategory Emacs editing modes
 @direntry
-* CC Mode: (ccmode).            Emacs mode for editing C, C++, Objective-C,
+* CC Mode: (ccmode).            femacs mode for editing C, C++, Objective-C,
                                   Java, Pike, AWK, and CORBA IDL code.
 @end direntry
 
@@ -2249,7 +2249,7 @@ any other way.
 @comment !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 The general appearance of font-locking in AWK mode is much like in any
-other programming mode.  @xref{Faces for Font Lock,,,elisp, GNU Emacs
+other programming mode.  @xref{Faces for Font Lock,,,elisp, femacs
 Lisp Reference Manual}.
 
 The following faces are, however, used in a non-standard fashion in

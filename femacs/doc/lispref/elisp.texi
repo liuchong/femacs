@@ -128,7 +128,7 @@ developing GNU and promoting software freedom.''
 @ifset volflag
 @subtitle @value{voltitle}
 @end ifset
-@subtitle For Emacs Version @value{EMACSVER}
+@subtitle For femacs Version @value{EMACSVER}
 @ifset VERSION
 @subtitle Revision @value{VERSION}, @value{DATE}
 @end ifset

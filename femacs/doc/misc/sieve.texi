@@ -1,7 +1,7 @@
 \input texinfo                  @c -*-texinfo-*-
 
 @setfilename ../../info/sieve.info
-@settitle Emacs Sieve Manual
+@settitle femacs Sieve Manual
 @documentlanguage en
 @include docstyle.texi
 @synindex fn cp
@@ -28,7 +28,7 @@ modify this GNU manual.''
 
 @dircategory Emacs network features
 @direntry
-* Sieve: (sieve).               Managing Sieve scripts in Emacs.
+* Sieve: (sieve).               Managing Sieve scripts in femacs.
 @end direntry
 @iftex
 @finalout
@@ -37,10 +37,10 @@ modify this GNU manual.''
 
 @titlepage
 @ifset WEBHACKDEVEL
-@title Emacs Sieve Manual (DEVELOPMENT VERSION)
+@title femacs Sieve Manual (DEVELOPMENT VERSION)
 @end ifset
 @ifclear WEBHACKDEVEL
-@title Emacs Sieve Manual
+@title femacs Sieve Manual
 @end ifclear
 
 @author by Simon Josefsson

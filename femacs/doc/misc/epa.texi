@@ -28,7 +28,7 @@ modify this GNU manual.''
 
 @dircategory Emacs misc features
 @direntry
-* EasyPG Assistant: (epa).      An Emacs user interface to GNU Privacy Guard.
+* EasyPG Assistant: (epa).      A femacs user interface to GNU Privacy Guard.
 @end direntry
 
 @titlepage

@@ -1,7 +1,7 @@
 \input texinfo.tex
 @c %**start of header
 @setfilename ../../info/widget.info
-@settitle The Emacs Widget Library
+@settitle The femacs Widget Library
 @documentlanguage en
 @include docstyle.texi
 @syncodeindex fn cp
@@ -27,13 +27,13 @@ modify this GNU manual.''
 
 @dircategory Emacs lisp libraries
 @direntry
-* Widget: (widget).             The "widget" package used by the Emacs
+* Widget: (widget).             The "widget" package used by the femacs
                                   Customization facility.
 @end direntry
 
 
 @titlepage
-@title The Emacs Widget Library
+@title The femacs Widget Library
 @page
 @vskip 0pt plus 1filll
 @insertcopying
@@ -2842,7 +2842,7 @@ Its super is the @code{sexp} widget, and its @code{:value} is
 
 @deffn Widget coding-system
 A widget that can represent a coding system name, offering
-completions.  @xref{Coding Systems,,,elisp, the Emacs Lisp Reference
+completions.  @xref{Coding Systems,,,elisp, the femacs Lisp Reference
 Manual}.  Its super is the @code{symbol} widget.
 
 It has a default value of @code{undecided}.
@@ -3232,7 +3232,7 @@ Prompt the user to choose an item from a list of options.
 
 @var{title} is the name of the list of options.  @var{items} should be
 a menu, with its items in the simple format or in the extended format.
-@xref{Defining Menus,, Defining Menus, elisp, the Emacs Lisp Reference
+@xref{Defining Menus,, Defining Menus, elisp, the femacs Lisp Reference
 Manual}.  Independently of the format, you don't have to provide a
 title for the menu, just pass the desired title in @var{title}.  The
 optional @var{event} is an input event.  If @var{event} is a mouse
@@ -3243,7 +3243,7 @@ the minibuffer.
 
 When @var{items} is a keymap menu, the returned value is the symbol in
 the key vector, as in the argument of @code{define-key}
-(@pxref{Changing Key Bindings,,,elisp, the Emacs Lisp Reference
+(@pxref{Changing Key Bindings,,,elisp, the femacs Lisp Reference
 Manual}).  When @var{items} is a list whose selectable items are of
 the form (@var{name} . @var{value}) (i.e., the simplified format),
 then the return value is the @var{value} of the chosen element.

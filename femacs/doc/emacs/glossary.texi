@@ -260,7 +260,7 @@ package.  @xref{Top, Common Lisp, Overview, cl, Common Lisp Extensions}.
 @item Compilation
 Compilation is the process of creating an executable program from source
 code.  Emacs has commands for compiling files of Emacs Lisp code
-(@pxref{Byte Compilation,,, elisp, the Emacs Lisp
+(@pxref{Byte Compilation,,, elisp, the femacs Lisp
 Reference Manual}) and programs in C and other languages
 (@pxref{Compilation}).  Byte-compiled Emacs Lisp code loads and
 executes faster.
@@ -423,7 +423,7 @@ On GNU and other Unix-like systems, directory names are strings that
 end in @samp{/}.  For example, @file{/no-such-dir/} is a directory
 name whereas @file{/tmp} is not, even though @file{/tmp} names a file
 that happens to be a directory.  On MS-Windows the relationship is more
-complicated.  @xref{Directory Names,,, elisp, the Emacs Lisp Reference
+complicated.  @xref{Directory Names,,, elisp, the femacs Lisp Reference
 Manual}.
 
 @item Dired
@@ -1349,7 +1349,7 @@ allowed as well.
 A symbol in Emacs Lisp is an object with a name.  The object can be a
 variable (q.v.@:), a function or command (q.v.@:), or a face (q.v.@:).
 The symbol's name serves as the printed representation of the symbol.
-@xref{Symbol Type,, Symbol Type, elisp, The Emacs Lisp Reference
+@xref{Symbol Type,, Symbol Type, elisp, The femacs Lisp Reference
 Manual}.
 
 @item Syntax Highlighting
@@ -1358,7 +1358,7 @@ Manual}.
 @item Syntax Table
 The syntax table tells Emacs which characters are part of a word,
 which characters balance each other like parentheses, etc.
-@xref{Syntax Tables,, Syntax Tables, elisp, The Emacs Lisp Reference
+@xref{Syntax Tables,, Syntax Tables, elisp, The femacs Lisp Reference
 Manual}.
 
 @item Super
