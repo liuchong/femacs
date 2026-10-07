@@ -924,7 +924,10 @@ pub struct x_output
   // C: bool_bf has_been_visible : 1;
   // C: bool_bf wait_for_wm : 1;
   // C: bool_bf alpha_identical_p : 1;
-  // C guard (feature = "have_xdbe"): bool_bf need_buffer_flip : 1;
+  // C guard (feature = "have_xdbe"): bool_bf need_buffer_flip : 1 - carried by slice 5 of
+  // src/xfns.c, whose `x_mark_frame_dirty` reads it through FRAME_X_NEED_BUFFER_FLIP.
+  #[cfg (feature = "have_xdbe")]
+  pub need_buffer_flip: bool,
   // C guard (feature = "have_xdbe"): bool_bf complete : 1;
   #[cfg (feature = "have_x_i18n")]
   pub xic: XIC,   // C: XIC xic;

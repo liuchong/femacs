@@ -5661,3 +5661,352 @@ unsafe extern "C" fn xic_string_conversion_callback (ic: XIC, client_data: XPoin
 /* C 3955-3956: the blank and the `#endif` that closes the C 2728 `#ifdef` over this whole XIM
    block.  Every item of that block carries the gate in its own `#[cfg]`, so the `#endif` is not
    an item of its own.  */
+
+/* C 3961-4168: `x_mark_frame_dirty`, `set_up_x_back_buffer`, `tear_down_x_back_buffer`,
+   `initial_set_up_x_back_buffer` and the `HAVE_XINPUT2` block's `setup_xi_event_mask`.  The
+   Xdbe/XRender/XInput2 vocabulary these five read has no mirror in this unit's include graph, so
+   it is declared here at the use site with the header's own prototypes and values, which on this
+   machine *are* measurable (P-72 rules 3-4; `docs/ports/xterm.md`'s slice 10 declares the same
+   family in its own use-site block).  Each member carries the guard its C call site has, so a
+   name resolves exactly in the arms C gives it to.  */
+
+/// C: X11/extensions/Xdbe.h 55: `typedef XID XdbeBackBuffer;` - Xlib's `XID`, so this port's
+/// `c_ulong` (P-72 rule 3); C 4000-4002's and C 4035-4036's calls read it.
+#[cfg (all (feature = "have_x_windows", feature = "have_xdbe"))]
+pub type XdbeBackBuffer = c_ulong;
+/// C: X11/extensions/Xdbe.h 63: `#define XdbeCopied 1` - C 4002's swap action (measured).
+#[cfg (all (feature = "have_x_windows", feature = "have_xdbe"))]
+pub const XdbeCopied: c_int = 1;
+/// C: X11/extensions/Xrender.h 810: `typedef XID Picture;` - Xlib's `XID`; no mirror of this
+/// unit's graph declares the name (`include/xterm.rs` 840 reads it in a commented field), so it
+/// stands here under the guard its only consumer has (P-72 rule 3).
+#[cfg (all (feature = "have_x_windows", feature = "have_xrender"))]
+pub type Picture = c_ulong;
+/// C: X11/extensions/XInput2.h 911-915: `typedef struct { int deviceid; int mask_len; unsigned
+/// char *mask; } XIEventMask;` - the record C 4062/4068-4073/4078/4082/4136 write.  No mirror of
+/// this unit's graph declares it, so it is carried at the use site with the header's published
+/// field order (P-88 rule 1); the layout is **UNVERIFIED** - the record is only ever read
+/// through these three fields.
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+#[repr (C)]
+pub struct XIEventMask
+{
+  pub deviceid: c_int,
+  pub mask_len: c_int,
+  pub mask: *mut c_uchar,
+}
+
+/* C: X11/extensions/Xdbe.h 114/121: `XdbeBackBuffer XdbeAllocateBackBufferName (Display *,
+   Window, XdbeSwapAction);` and `Status XdbeDeallocateBackBufferName (Display *, XdbeBackBuffer);`.
+   C: X11/extensions/Xrender.h 816: `void XRenderFreePicture (Display *, Picture);`.
+   C: X11/extensions/XInput2.h 951: `void XISelectEvents (Display *, Window, XIEventMask *, int);`.
+   The three prototypes stand in their own blocks so each carries the guard its call site has; a
+   doc comment cannot sit on an `extern` block without the `unused doc comment` warning this file's
+   baseline already counts, so they are block comments (`docs/ports/xfns.md`, slice 5).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xdbe"))]
+unsafe extern "C" {
+  pub fn XdbeAllocateBackBufferName (dpy: *mut Display, window: Window, swap_action: c_int)
+				     -> XdbeBackBuffer;
+  pub fn XdbeDeallocateBackBufferName (dpy: *mut Display, buffer: XdbeBackBuffer) -> c_int;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xrender"))]
+unsafe extern "C" {
+  pub fn XRenderFreePicture (dpy: *mut Display, picture: Picture);
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe extern "C" {
+  pub fn XISelectEvents (dpy: *mut Display, win: Window, masks: *mut XIEventMask,
+			 num_masks: c_int) -> c_int;
+}
+
+/// C: X11/extensions/XI2.h 187-223, every value measured on this machine's header:
+/// `XIAllDevices 0`, `XIAllMasterDevices 1`, `XI_KeyPress 2`, `XI_KeyRelease 3`,
+/// `XI_ButtonPress 4`, `XI_ButtonRelease 5`, `XI_Motion 6`, `XI_Enter 7`, `XI_Leave 8`,
+/// `XI_FocusIn 9`, `XI_FocusOut 10`, `XI_TouchBegin 18`, `XI_TouchUpdate 19`, `XI_TouchEnd 20`,
+/// `XI_TouchOwnership 21`, `XI_GesturePinchBegin 27`, `XI_GesturePinchUpdate 28`,
+/// `XI_GesturePinchEnd 29` and `XI_LASTEVENT XI_GestureSwipeEnd` (33) - the masks
+/// C 4063-4164 builds.
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XIAllDevices: c_int = 0;             // XI2.h 187
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XIAllMasterDevices: c_int = 1;       // XI2.h 188
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_KeyPress: c_int = 2;              // XI2.h 192
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_KeyRelease: c_int = 3;            // XI2.h 193
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_ButtonPress: c_int = 4;           // XI2.h 194
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_ButtonRelease: c_int = 5;         // XI2.h 195
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_Motion: c_int = 6;                // XI2.h 196
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_Enter: c_int = 7;                 // XI2.h 197
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_Leave: c_int = 8;                 // XI2.h 198
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_FocusIn: c_int = 9;               // XI2.h 199
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_FocusOut: c_int = 10;             // XI2.h 200
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_TouchBegin: c_int = 18;           // XI2.h 208
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_TouchUpdate: c_int = 19;          // XI2.h 209
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_TouchEnd: c_int = 20;             // XI2.h 210
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_TouchOwnership: c_int = 21;       // XI2.h 211
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_GesturePinchBegin: c_int = 27;    // XI2.h 217
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_GesturePinchUpdate: c_int = 28;   // XI2.h 218
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_GesturePinchEnd: c_int = 29;      // XI2.h 219
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+pub const XI_LASTEVENT: c_int = 33;            // XI2.h 223: `XI_GestureSwipeEnd`
+
+/// C: X11/extensions/XInput2.h 939: `#define XIMaskLen(event) (((event) >> 3) + 1)` and
+/// `#define XISetMask(ptr, event) (((unsigned char *) (ptr))[((event) >> 3)] |= (1 << ((event) & 7)))`
+/// - C 4063's `XIMaskLen (XI_LASTEVENT)` and C 4084-4153's set calls, with the header's own
+/// bodies (measured; the port spells macros with the `!` PORTING.md 1.7/D-1 gives them).
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+macro_rules! XIMaskLen { ($event:expr) => { (($event as c_int) >> 3) + 1 }; }
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+macro_rules! XISetMask {
+  ($ptr:expr, $event:expr) =>
+    { *($ptr).add (($event as usize) >> 3) |= 1u8 << (($event as usize) & 7) };
+}
+
+/* Mark the frame as needing a buffer flip the next time it is redrawn.  */
+
+/// C 3961-3969: `void x_mark_frame_dirty (struct frame *f)` - not `static`, so
+/// `#[unsafe(no_mangle)] pub unsafe extern "C" fn` (PORTING.md 0.2/1.4).  Its body is empty where
+/// `HAVE_XDBE` is not defined, which is C's own shape.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_mark_frame_dirty (f: *mut frame)
+{
+#[cfg (feature = "have_xdbe")]
+  if FRAME_X_DOUBLE_BUFFERED_P! (f)                                     // C 3965
+      && !FRAME_X_NEED_BUFFER_FLIP! (f)                                 // C 3966
+    { FRAME_X_NEED_BUFFER_FLIP! (f) = true; }                           // C 3967
+}
+
+/// C 3971-4010: `static void set_up_x_back_buffer (struct frame *f)` - C's `static`, so a plain
+/// `unsafe fn`; C's two `#ifdef`s are the port's gates and C 3999's chained assignment is written
+/// where C writes it.
+#[cfg (feature = "have_x_windows")]
+unsafe fn set_up_x_back_buffer (f: *mut frame)
+{
+#[cfg (feature = "have_xrender")]
+  {
+    block_input ();                                                     // C 3975
+    if FRAME_X_PICTURE! (f) != None                                     // C 3976
+      {
+	XRenderFreePicture (FRAME_X_DISPLAY! (f),                       // C 3978-3979
+			    FRAME_X_PICTURE! (f));
+	FRAME_X_PICTURE! (f) = None;                                    // C 3980
+      }
+    unblock_input ();                                                   // C 3982
+  }
+
+#[cfg (feature = "have_xdbe")]
+  {
+    block_input ();                                                     // C 3986
+    if FRAME_X_WINDOW! (f) != 0 && !FRAME_X_DOUBLE_BUFFERED_P! (f)       // C 3987
+      {
+#[cfg (feature = "use_cairo")]
+	x_cr_destroy_frame_context (f);                                 // C 3990
+	FRAME_X_RAW_DRAWABLE! (f) = FRAME_X_WINDOW! (f);                // C 3992
+	if (*FRAME_DISPLAY_INFO! (f)).supports_xdbe                     // C 3993
+	  {
+	    /* If allocating a back buffer fails, either because the
+	       server ran out of memory or we don't have the right kind
+	       of visual, just use single-buffered rendering.  */
+	    x_catch_errors (FRAME_X_DISPLAY! (f));                      // C 3998
+	    FRAME_X_RAW_DRAWABLE! (f)                                   // C 3999-4002
+	      = XdbeAllocateBackBufferName (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),
+					    XdbeCopied);
+	    if x_had_errors_p (FRAME_X_DISPLAY! (f))                    // C 4003
+	      { FRAME_X_RAW_DRAWABLE! (f) = FRAME_X_WINDOW! (f); }      // C 4004
+	    x_uncatch_errors_after_check ();                            // C 4005
+	  }
+      }
+    unblock_input ();                                                   // C 4008
+  }
+}
+
+/// C 4012-4042: `void tear_down_x_back_buffer (struct frame *f)` - not `static`, so exported.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn tear_down_x_back_buffer (f: *mut frame)
+{
+#[cfg (feature = "have_xrender")]
+  {
+    block_input ();                                                     // C 4016
+    if FRAME_X_PICTURE! (f) != None                                     // C 4017
+      {
+	XRenderFreePicture (FRAME_X_DISPLAY! (f),                       // C 4019-4020
+			    FRAME_X_PICTURE! (f));
+	FRAME_X_PICTURE! (f) = None;                                    // C 4021
+      }
+    unblock_input ();                                                   // C 4023
+  }
+
+#[cfg (feature = "have_xdbe")]
+  {
+    block_input ();                                                     // C 4027
+    if FRAME_X_WINDOW! (f) != 0 && FRAME_X_DOUBLE_BUFFERED_P! (f)        // C 4028
+      {
+	if FRAME_X_DOUBLE_BUFFERED_P! (f)                               // C 4030
+	  {
+#[cfg (feature = "use_cairo")]
+	    x_cr_destroy_frame_context (f);                             // C 4033
+	    XdbeDeallocateBackBufferName (FRAME_X_DISPLAY! (f),         // C 4035-4036
+					  FRAME_X_DRAWABLE! (f));
+	    FRAME_X_RAW_DRAWABLE! (f) = FRAME_X_WINDOW! (f);            // C 4037
+	  }
+      }
+    unblock_input ();                                                   // C 4040
+  }
+}
+
+/* Set up double buffering if the frame parameters don't prohibit
+   it.  */
+
+/// C 4046-4055: `void initial_set_up_x_back_buffer (struct frame *f)` - not `static`, so
+/// exported; C 4052's `f->param_alist` is the mirror's field and `Qinhibit_double_buffering` is
+/// frame.rs's DEFSYM accessor (the `Qnil ()` form).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn initial_set_up_x_back_buffer (f: *mut frame)
+{
+  eassert! (FRAME_X_WINDOW! (f));                                       // C 4049
+  FRAME_X_RAW_DRAWABLE! (f) = FRAME_X_WINDOW! (f);                      // C 4050
+
+  if NILP (CDR (Fassq (Qinhibit_double_buffering (), (*f).param_alist)))  // C 4052-4053
+    { set_up_x_back_buffer (f); }                                       // C 4054
+}
+
+/// C 4059-4168: `static void setup_xi_event_mask (struct frame *f)`, inside C 4057's
+/// `#if defined HAVE_XINPUT2`.  C 4076's `alloca` is the port's stack pool (P-05, the
+/// `xi_select_hierarchy_events` shape at `src/xterm.rs` 19884-19890) and the token it leaves
+/// behind has its `docs/ports/macro-body-notes.tsv` row; C 4071's
+/// `((unsigned char *) selected) + sizeof *selected` is the port's `.offset`.
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe fn setup_xi_event_mask (f: *mut frame)
+{
+  let mut mask: XIEventMask;                                            // C 4062
+  let l: ptrdiff_t = XIMaskLen! (XI_LASTEVENT) as ptrdiff_t;            // C 4063
+  let mut m: *mut c_uchar;                                              // C 4064
+#[cfg (not (feature = "have_xinput2_1"))]
+  let mut selected: *mut XIEventMask;                                   // C 4068
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+#[cfg (not (feature = "have_xinput2_1"))]
+  {
+    /* Set up fallback values, since XIGetSelectedEvents doesn't work
+       with this version of libXi.  */
+    selected = xzalloc (std::mem::size_of::<XIEventMask> () + l as usize)  // C 4070
+      as *mut XIEventMask;
+    (*selected).mask                                                    // C 4071
+      = (selected as *mut c_uchar).offset (std::mem::size_of::<XIEventMask> () as isize);
+    (*selected).mask_len = l;                                           // C 4072
+    (*selected).deviceid = XIAllMasterDevices;                          // C 4073
+  }
+
+  m = SAFE_ALLOCA! (sa_avail, l as usize) as *mut c_uchar;              // C 4076 (C's `mask.mask = m = alloca (l)`)
+  mask.mask = m;
+  memset (m as *mut c_void, 0, l as usize);                             // C 4077
+  mask.mask_len = l;                                                    // C 4078
+
+  block_input ();                                                       // C 4080
+#[cfg (not (feature = "have_gtk3"))]
+  {
+    mask.deviceid = XIAllMasterDevices;                                 // C 4082
+
+    XISetMask! (m, XI_ButtonPress);                                     // C 4084
+    XISetMask! (m, XI_ButtonRelease);                                   // C 4085
+    XISetMask! (m, XI_Motion);                                          // C 4086
+    XISetMask! (m, XI_Enter);                                           // C 4087
+    XISetMask! (m, XI_Leave);                                           // C 4088
+#[cfg (not (feature = "use_gtk"))]
+    {
+      XISetMask! (m, XI_FocusIn);                                       // C 4090
+      XISetMask! (m, XI_FocusOut);                                      // C 4091
+      XISetMask! (m, XI_KeyPress);                                      // C 4092
+      XISetMask! (m, XI_KeyRelease);                                    // C 4093
+    }
+#[cfg (feature = "have_xinput2_4")]
+    if (*FRAME_DISPLAY_INFO! (f)).xi2_version >= 4                      // C 4096
+      {
+	/* Select for gesture events.  Since this configuration doesn't
+	   use GTK 3, Emacs is the only code that can change the XI
+	   event mask, and can safely select for gesture events on
+	   master pointers only.  */
+	XISetMask! (m, XI_GesturePinchBegin);                           // C 4102
+	XISetMask! (m, XI_GesturePinchUpdate);                          // C 4103
+	XISetMask! (m, XI_GesturePinchEnd);                             // C 4104
+      }
+    XISelectEvents (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),          // C 4107-4108
+		    &raw mut mask, 1);
+
+    /* Fortunately `xi_masks' isn't used on GTK 3, where we really have
+       to get the event mask from the X server.  */
+#[cfg (not (feature = "have_xinput2_1"))]
+    memcpy ((*selected).mask as *mut c_void, m as *const c_void, l as usize);  // C 4113
+
+    memset (m as *mut c_void, 0, l as usize);                           // C 4116
+  }
+
+#[cfg (feature = "use_x_toolkit")]
+  {
+    XISetMask! (m, XI_KeyPress);                                        // C 4120
+    XISetMask! (m, XI_KeyRelease);                                      // C 4121
+
+    XISelectEvents (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),      // C 4123-4124
+		    &raw mut mask, 1);
+    memset (m as *mut c_void, 0, l as usize);                           // C 4125
+  }
+
+#[cfg (feature = "have_xinput2_2")]
+  if (*FRAME_DISPLAY_INFO! (f)).xi2_version >= 2                        // C 4129
+    {
+      /* Select for touch events from all devices.
+
+         Emacs will only process touch events originating
+         from slave devices, as master pointers may also
+         represent dependent touch devices.  */
+      mask.deviceid = XIAllDevices;                                     // C 4136
+
+      XISetMask! (m, XI_TouchBegin);                                    // C 4138
+      XISetMask! (m, XI_TouchUpdate);                                   // C 4139
+      XISetMask! (m, XI_TouchEnd);                                      // C 4140
+      XISetMask! (m, XI_TouchOwnership);                                // C 4141
+
+#[cfg (all (feature = "have_xinput2_4", feature = "use_gtk3"))]
+      if (*FRAME_DISPLAY_INFO! (f)).xi2_version >= 4                    // C 4144
+	{
+	  /* Now select for gesture events from all pointer devices.
+	     Emacs will only handle gesture events from the master
+	     pointer, but cannot afford to overwrite the event mask
+	     set by GDK.  */
+
+	  XISetMask! (m, XI_GesturePinchBegin);                         // C 4151
+	  XISetMask! (m, XI_GesturePinchUpdate);                        // C 4152
+	  XISetMask! (m, XI_GesturePinchEnd);                           // C 4153
+	}
+
+      XISelectEvents (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),        // C 4157-4158
+		      &raw mut mask, 1);
+    }
+
+#[cfg (not (feature = "have_xinput2_1"))]
+  {
+    (*FRAME_X_OUTPUT! (f)).xi_masks = selected;                         // C 4163
+    (*FRAME_X_OUTPUT! (f)).num_xi_masks = 1;                            // C 4164
+  }
+
+  unblock_input ();                                                     // C 4167
+  SAFE_FREE! (sa_count);
+}

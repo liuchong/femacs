@@ -1,4 +1,5 @@
-# emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811 and C 3812-3956
+# emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956 and
+C 3957-4170
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -7,8 +8,10 @@
 > lists no `xfns.o`, so `extract-abi.py`'s checklist for the file is empty and its checkbox
 > sections cannot be coverage evidence.  What follows is P-86 ②'s substitute: the **C line-range
 > table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice, **5,455 lines** after the third, **5,662 lines** after the fourth -
-> C 803-2149, C 2150-3811 and C 3812-3956, whose own ledger sections are at the end of this file - measured
+> `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice,
+> **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth -
+> C 803-2149, C 2150-3811, C 3812-3956 and C 3957-4170, whose own ledger sections are at the end of
+> this file - measured
 > with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
@@ -161,7 +164,8 @@ defines both features.
 | 3596-3635 | C 3596's blank, C 3597-3602's comment, C 3603's blank and `x_encode_xim_text` | `have_x_i18n` |
 | 3636-3811 | C 3636's blank and `xic_preedit_draw_callback` (C 3668/3680/3694/3709/3717/3726/3738/3764 the eight `goto im_abort` and C 3802's `im_abort:` label) | `have_x_i18n` |
 | 3812-3956 | C 3812's blank, `xic_set_xfontset` (C 3813 the `void`, C 3814 the name; C's definition has no `static`), C 3833-3836's blanks and comment and `xic_string_conversion_callback` (C 3837 the `static void`, C 3850/3907/3924/3943 the four `goto failure`, C 3947 the `failure:` label, C 3956 the `#endif` that closes C 2728) | `have_x_i18n` |
-| 3957-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 6,706 lines, whose first live definition is `x_mark_frame_dirty` (C 3961 is its `void`, C 3962 the name) - the next slice's first item | not ported in this slice |
+| 3957-4170 | C 3961's `void` and `x_mark_frame_dirty` (C 3962), C 3971's `static void` and `set_up_x_back_buffer` (C 3972), `tear_down_x_back_buffer` (C 4012 the `void`, C 4013 the name), `initial_set_up_x_back_buffer` (C 4046 the `void`, C 4047 the name), C 4057's `#if defined HAVE_XINPUT2` with `setup_xi_event_mask` (C 4059 the `static void`, C 4060 the name) and C 4170's `#endif` that closes it | the file gate plus `have_xdbe`/`have_xrender`/`use_cairo`/`have_xinput2`/`have_xinput2_1`/`have_xinput2_2`/`have_xinput2_4`/`use_gtk`/`use_gtk3`/`have_gtk3`/`use_x_toolkit`, each item carrying the guard C gives its statements |
+| 4172-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 8,492 lines, whose first live definition is `x_window` (C 4176 is its `static void`, C 4177 the name) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1083,3 +1087,108 @@ reading used in this ledger.
 - **Two arm readings are not readings of a C configuration** and are not run: `use_gtk` and
   `use_x_toolkit` together (`E0124` in the mirror's `x_output`, slice 3's ⑤), and
   `have_ext_tool_bar` without `have_ext_menu_bar` (`include/frame.rs`'s `compile_error!`).
+
+## Slice 5 (2026-10-07, status 3.907 - the integrator sets the round number): C 3957-4170
+
+**The slice is C 3957-4170.**  It opens after slice 4's `#endif /* HAVE_X_I18N */` and closes at
+C 4170's `#endif`, the one that closes C 4057's `#if defined HAVE_XINPUT2`.  Five definitions:
+`x_mark_frame_dirty` (C 3961-3969, no `static`), `set_up_x_back_buffer` (C 3971-4010, `static`),
+`tear_down_x_back_buffer` (C 4012-4042, no `static`), `initial_set_up_x_back_buffer`
+(C 4046-4055, no `static`) and `setup_xi_event_mask` (C 4059-4168, `static`, inside the XInput2
+block).  The port's slice is **329 Rust lines** (5,991 - 5,662), 1.54x the C slice's 214 lines.
+
+**The Xdbe/XRender/XInput2 vocabulary stands at the use site.**  No mirror in this unit's include
+graph carries `Picture`, `XdbeBackBuffer`, `XdbeCopied`, `XIEventMask`, `XIMaskLen`, `XISetMask`,
+`XISelectEvents` or the seventeen `XI_*` event numbers, so they are declared in the slice's own
+use-site block and constants, each member carrying the guard its C call site has
+(`have_xdbe` / `have_xrender` / `have_xinput2`) so a name resolves exactly in the arms C gives it
+to.  The two header macros keep the header's own bodies (`XIMaskLen(event) ((event >> 3) + 1)`,
+`XISetMask(ptr, event) ptr[event >> 3] |= 1 << (event & 7)`), measured on this machine's
+`/opt/homebrew/include/X11/extensions/XI2.h`; `XIEventMask`'s three-field layout is
+**UNVERIFIED** (P-88 rule 1 - it is only ever read through those three fields), and
+`docs/ports/xterm.md`'s slice 10 leaves the same family bare in its own file, which is that
+ledger's record, not this one's.
+
+**The mirror gains the field C guards.**  `include/xterm.rs`'s `x_output` carried
+`need_buffer_flip` as a comment ("C guard (feature = "have_xdbe")"); `x_mark_frame_dirty` is its
+first consumer, so the field is carried now, under that guard.  P-87 ①'s legs are both measured
+below.
+
+### Gate mapping (this slice's additions)
+
+| C `#if` / build condition | Port gate | Compiled when |
+| --- | --- | --- |
+| every item (the file gate) | `feature = "have_x_windows"` | an X11 configuration |
+| C 3964-3968 (`HAVE_XDBE`), C 3985-4009 and C 4026-4041's two halves | `feature = "have_xdbe"` | a build with the DBE extension |
+| C 3974-3983 and C 4015-4024 (`HAVE_XRENDER`) | `feature = "have_xrender"` | a build with XRender |
+| C 3989-3991 and C 4032-4034 (`USE_CAIRO`) | `feature = "use_cairo"` | a Cairo build |
+| C 4057-4170 (`defined HAVE_XINPUT2`) | `all (feature = "have_x_windows", feature = "have_xinput2")` | an XI2 build |
+| C 4065-4074, C 4112-4114 and C 4162-4165 (`#ifndef HAVE_XINPUT2_1`) | `not (feature = "have_xinput2_1")` | libXi without the 2.1 mask API |
+| C 4095-4106 (`defined HAVE_XINPUT2_4`) | `feature = "have_xinput2_4"` | XI 2.4 |
+| C 4128-4160 (`HAVE_XINPUT2_2`) | `feature = "have_xinput2_2"` | XI 2.2 |
+| C 4143-4155 (`defined HAVE_XINPUT2_4 && defined USE_GTK3`) | `all (feature = "have_xinput2_4", feature = "use_gtk3")` | XI 2.4 under GTK 3 |
+| C 4081-4117 (`#ifndef HAVE_GTK3`) and C 4089-4094 (`#ifndef USE_GTK`) | `not (feature = "have_gtk3")`, `not (feature = "use_gtk")` | the non-GTK arms |
+| C 4119-4126 (`USE_X_TOOLKIT`) | `feature = "use_x_toolkit"` | an Xt build |
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: every item sits behind
+`have_x_windows`, so the frozen feature set compiles nothing of the file -
+`build/femacs/xfns.o` is the **336-byte** empty object (exit 0, measured this round, and the same
+336 bytes on the baseline side).
+
+**② The plain-X11 arm** (`--cfg 'feature="have_x_windows"'`, run from `femacs/`): **exit 1,
+5 errors / 9 warnings** on *both* sides - the systime assertion, `x_display_info_for_name`,
+`wait_for_wm`, `alpha_identical_p` and the `c_variadic` declaration, all of them registered
+classes.  This arm reads nothing of this slice: every one of the five definitions needs
+`have_xdbe`, `have_xrender` or `have_xinput2`, which this `--cfg` set does not turn on.
+
+**③ The GTK arm** (`have_x_windows`, `have_window_system`, `have_x_i18n`, `have_xdbe`,
+`have_ext_tool_bar`, `have_ext_menu_bar`, `use_gtk`, `have_gtk3`, `use_toolkit_scroll_bars`,
+`glyph_debug`): **24 errors / 20 warnings before, 22 / 20 after** - the two rows slice 4's ③
+named (`cannot find function set_up_x_back_buffer` at C 3972 and `tear_down_x_back_buffer` at
+C 4013) both retire, and **no warning moved**: the first measurement of this slice added one
+`unused doc comment` (a `///` on an `extern` block cannot carry a doc comment), and the extern
+blocks' comments are block comments now, which is why the count is back at the baseline's 20.
+
+**④ `extract-abi.py --check`**: `missing function` **43 -> 38** (all five definitions leave the
+list), the token row `setup_xi_event_mask does not mention alloca` is closed by a
+`docs/ports/macro-body-notes.tsv` row (C 4076's `alloca` is the port's stack pool), and the drift
+row reads `C 10662 vs Rust 5991` (**43.8%**, was 46.9% at 5,662 lines).  The remaining classes -
+37 missing functions, 1 missing macro (`RANDR13_LIBRARY`), 4 missing file-scope objects, 53
+missing subrs, 45 missing defsubrs and the function-token rows - are unchanged by this slice.
+
+**⑤ P-87's two legs** (the mirror's `x_output.need_buffer_flip` row arrived): `check-mirror-dupes`
+**16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `tools/check-all-units.sh`
+**`checked 83 unit(s), 0 failure(s)`** + **`checking 83 unit(s), 0 unit failure(s)`** (the reading
+in the working tree, i.e. with this slice in flight).
+
+**⑥ `--check` for the mirror itself**: `emacs/src/xterm.h -> femacs/src/include/xterm.rs` reads
+**OK** (0 rows) with the new field.
+
+### Deviations (this slice)
+
+1. **`alloca (l)` is the port's stack pool** (PORTING.md P-05): `USE_SAFE_ALLOCA!` +
+   `SAFE_ALLOCA!` at C 4076, with `SAFE_FREE!` where C 4167's `unblock_input` ends the function.
+   The token is recorded in `docs/ports/macro-body-notes.tsv` rather than written, because the
+   port has no `alloca`.
+2. **The two header macros keep the `!` spelling** (`XIMaskLen!` / `XISetMask!`), with the
+   header's bodies; C's `mask.mask = m = alloca (l)` is written as the two statements the port's
+   `SAFE_ALLOCA!` needs, in C's own order.
+3. **`Picture`, `XdbeBackBuffer` and `XIEventMask` stand at the use site** with the header's
+   published field order and layouts marked UNVERIFIED (P-72 rule 3, P-88 rule 1), because no
+   mirror of this unit's graph declares them.
+
+### Owed (this slice)
+
+- The 37 missing functions, 1 macro, 4 objects, 53 subrs and 45 defsubrs the `--check` classes
+  still read for this file; the next slice's first item is `x_window` (C 4177).
+- `XIEventMask`'s layout and the `XIMaskLen`/`XISetMask` bodies are measured-but-unverified
+  against a header this machine has and the frozen configuration never compiles.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file, so nothing here is behaviour: no display was
+opened, no back buffer allocated, no picture freed, no XI event mask selected and no frame marked
+dirty.  The GTK arm's error count moving 24 -> 22 is a *text* compile reading; the two retirements
+are the rows slice 4 named, not a claim that the functions work.
