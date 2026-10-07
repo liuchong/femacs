@@ -650,20 +650,20 @@ in Decision 119 4-5.
 - [x] x_any_window_to_frame  (line 12486, body c8c88ba3cad5)
 
 ## Types and their fields — 14
-- [ ] x_atom_ref: const char* name, int offset
-- [ ] x_client_list_window: Window window, Display* dpy, int x, int y, int width, int height, long previous_event_mask, unsigned long wm_state, struct x_client_list_window* next, int frame_extents_left, int frame_extents_right, int frame_extents_top, int frame_extents_bottom, uint8_t xm_protocol_style, bool mapped_p
+- [x] x_atom_ref: const char* name, int offset
+- [x] x_client_list_window: Window window, Display* dpy, int x, int y, int width, int height, long previous_event_mask, unsigned long wm_state, struct x_client_list_window* next, int frame_extents_left, int frame_extents_right, int frame_extents_top, int frame_extents_bottom, uint8_t xm_protocol_style, bool mapped_p
 - [x] x_error_message_stack: char* string, Display* dpy, x_special_error_handler handler, void* handler_data, struct x_error_message_stack* prev, unsigned long first_request
-- [ ] x_selection_request_event: struct selection_input_event se, struct x_selection_request_event* next
-- [ ] xm_drag_initiator_info: uint8_t byteorder, uint8_t protocol, uint16_t table_index, uint32_t selection
-- [ ] xm_drag_motion_message: uint8_t reason, uint8_t byteorder, uint16_t side_effects, uint32_t timestamp, uint16_t x, uint16_t y
-- [ ] xm_drag_motion_reply: uint8_t reason, uint8_t byte_order, uint16_t side_effects, uint32_t timestamp, uint16_t better_x, uint16_t better_y
-- [ ] xm_drag_receiver_info: uint8_t byteorder, uint8_t protocol, uint8_t protocol_style, uint8_t unspecified0, uint32_t unspecified1, uint32_t unspecified2, uint32_t unspecified3
-- [ ] xm_drop_start_message: uint8_t reason, uint8_t byte_order, uint16_t side_effects, uint32_t timestamp, uint16_t x, uint16_t y, uint32_t index_atom, uint32_t source_window
-- [ ] xm_drop_start_reply: uint8_t reason, uint8_t byte_order, uint16_t side_effects, uint16_t better_x, uint16_t better_y
-- [ ] xm_targets_table_header: uint8_t byte_order, uint8_t protocol, uint16_t target_list_count, uint32_t total_data_size
-- [ ] xm_targets_table_rec: uint16_t n_targets, uint32_t targets
-- [ ] xm_top_level_enter_message: uint8_t reason, uint8_t byteorder, uint16_t zero, uint32_t timestamp, uint32_t source_window, uint32_t index_atom
-- [ ] xm_top_level_leave_message: uint8_t reason, uint8_t byteorder, uint16_t zero, uint32_t timestamp, uint32_t source_window
+- [x] x_selection_request_event: struct selection_input_event se, struct x_selection_request_event* next
+- [x] xm_drag_initiator_info: uint8_t byteorder, uint8_t protocol, uint16_t table_index, uint32_t selection
+- [x] xm_drag_motion_message: uint8_t reason, uint8_t byteorder, uint16_t side_effects, uint32_t timestamp, uint16_t x, uint16_t y
+- [x] xm_drag_motion_reply: uint8_t reason, uint8_t byte_order, uint16_t side_effects, uint32_t timestamp, uint16_t better_x, uint16_t better_y
+- [x] xm_drag_receiver_info: uint8_t byteorder, uint8_t protocol, uint8_t protocol_style, uint8_t unspecified0, uint32_t unspecified1, uint32_t unspecified2, uint32_t unspecified3
+- [x] xm_drop_start_message: uint8_t reason, uint8_t byte_order, uint16_t side_effects, uint32_t timestamp, uint16_t x, uint16_t y, uint32_t index_atom, uint32_t source_window
+- [x] xm_drop_start_reply: uint8_t reason, uint8_t byte_order, uint16_t side_effects, uint16_t better_x, uint16_t better_y
+- [x] xm_targets_table_header: uint8_t byte_order, uint8_t protocol, uint16_t target_list_count, uint32_t total_data_size
+- [x] xm_targets_table_rec: uint16_t n_targets, uint32_t targets
+- [x] xm_top_level_enter_message: uint8_t reason, uint8_t byteorder, uint16_t zero, uint32_t timestamp, uint32_t source_window, uint32_t index_atom
+- [x] xm_top_level_leave_message: uint8_t reason, uint8_t byteorder, uint16_t zero, uint32_t timestamp, uint32_t source_window
 
 ## File-scope objects — 80
 - [x] static bool any_help_event_p  (line 821, static)
@@ -10174,3 +10174,27 @@ status 3.73) with the reason on the line, and the reading is back to `18 declara
 (0 forbidden, 18 allowed literals), 0 failures`.  Comment lines only: no statement, no order and
 no value moved; the file grows by two comment lines (31,682 -> 31,684) and its md5 moves from
 `bec354a7a35280db33ccd7ad9bd76a98` to `9bdd5776783669aa980fc0b5fb311147`.
+
+## Stale-box audit (2026-10-08, status 3.953)
+
+Thirteen `- [ ]` rows in this ledger named records that `femacs/src/xterm.rs` already defines as
+`pub struct` items: `x_atom_ref`, `x_selection_request_event`, the sixteen-member
+`x_client_list_window` and the ten `xm_*` drag/DND protocol records.  They are ticked now, and the
+evidence is a field-by-field comparison of the two texts (a throwaway script: the C definition's
+declarator names from `emacs/src/xterm.c` against the Rust record's `pub <name>:` fields, both
+sides with comments stripped and C's multi-declarator lines - `int x, y;` - split on commas):
+
+- **Twelve of the thirteen agree field for field, in C's own order**: `x_atom_ref` (2),
+  `x_selection_request_event` (2), `xm_drag_initiator_info` (4), `xm_drag_motion_message` (6),
+  `xm_drag_motion_reply` (6), `xm_drag_receiver_info` (7), `xm_drop_start_message` (8),
+  `xm_drop_start_reply` (5), `xm_targets_table_header` (4), `xm_targets_table_rec` (2),
+  `xm_top_level_enter_message` (6) and `xm_top_level_leave_message` (5).
+- **`x_client_list_window` agrees once C's own conditional fields are counted**: C 1511-1526's
+  `#ifdef HAVE_XSHAPE` region holds `border_width` and the two rect pairs, and the port carries
+  them under `#[cfg (feature = "have_xshape")]` (this unit's 1011-1025), so the Rust record has the
+  two extra field names an unconditional reading of C's text would not see.  `have_xshape` is not
+  in `femacs/xtask/Cargo.toml`'s feature table - the ledger's `## Owed by the integrator` class.
+
+**What this audit does not close.**  The same section still has two unticked rows and they are the
+real work: `handle_one_xevent` (C 18876) - xterm.c's largest function - and `x_initialized`
+(C 30491, `static bool x_initialized`).  Neither is a record; both are xterm.c's own remainder.
