@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893, C 9895-10045, C 10047-10129 and C 10131-10296
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893, C 9895-10045, C 10047-10129, C 10131-10296 and C 10298-10662
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -31,14 +31,14 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **13,637 lines** after the fortieth, **13,724 lines** after the forty-first,
 > **13,791 lines** after the forty-second, **14,019 lines** after the forty-third,
 > **14,192 lines** after the forty-fourth, **14,311 lines** after the forty-fifth and
-> **14,580 lines** after the forty-sixth - C 803-2149,
+> **14,580 lines** after the forty-sixth and **14,918 lines** after the forty-seventh - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
 > C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415 and
 > C 9418-9453, C 9456-9658, C 9660-9733, C 9736-9785, C 9787-9893, C 9895-10045, C 10047-10129 and
-> C 10131-10296,
+> C 10131-10296 and C 10298-10662,
 > whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
@@ -244,7 +244,7 @@ defines both features.
 | 9895-10045 | the `Printing` banner (C 9896-9898), `#ifdef USE_CAIRO` (C 9900) with `x-export-frames` (C 9901-9964), and `#ifdef USE_GTK` (C 9966) with `x-page-setup-dialog` (C 9967-9977), `x-get-page-setup` (C 9979-10006) and `x-print-frames-dialog` (C 10008-10043) - the whole `USE_CAIRO` region | `all (have_x_windows, use_cairo)`, and `use_gtk` for the three dialogs (slice 44) |
 | 10047-10129 | `x-gtk-debug` (C 10050-10061, under C 10047-10049's three-way GTK guard), `x-display-set-last-user-time` (C 10066-10088) and `x-internal-focus-input-context` (C 10090-10129, whose body is C 10097's `#ifdef USE_GTK`) | file gate, with C 10047-10064's `use_gtk`/`have_gtk3`/`gtk_check_version_ge_3_14` triple and C 10097's `use_gtk` inside (slice 45) |
 | 10131-10296 | C 10131's dead `#if 0` block (recorded), the `Initialization` banner (C 10178-10180), `x_frame_parm_handlers` (C 10185-10243, with C 10226-10230's `HAVE_XDBE` pair) and the four libX11 replacements (C 10248-10296) | file gate, with `have_xkb` for the first pair and the `not (…)` side of the four `#ifndef`s in every arm (slice 46) |
-| 10298-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 364 lines, whose first live item is C 10298's `syms_of_xfns` (its 45 `defsubr`s, the `staticpro`d objects and the six `Fprovide`s C 10503/10525/10529/10531/10544/10545) | not ported in this slice |
+| 10298-10662 | `syms_of_xfns` (C 10298-10662): the `DEFSYM` tables, the two `Fput`s, the twenty-two `DEFVAR_LISP`/`DEFVAR_BOOL` declarations, the six `Fprovide`s, the 44 live `defsubr` registrations and the seven `staticpro` pairs - **the file's last definition, and with it `emacs/src/xfns.c` is ported to its last line** | file gate, with C 10309's `use_cairo`, C 10522's `have_xinput2`, C 10528's `use_x_toolkit`/`use_motif`, C 10539's `use_gtk`, C 10557's `use_cairo`, C 10637's `use_motif`/`use_gtk` pair, C 10641's `use_gtk`+`freetype`, C 10647's `use_cairo`/`use_gtk` and C 10655-10661's `use_gtk`/`have_gtk3`/`gtk_check_version_ge_3_14` triple inside (slice 47) |
 
 ## Evidence
 
@@ -4447,4 +4447,93 @@ explained `subr Fx_file_dialog: docstring differs`.
 
 The frozen configuration compiles none of this file: no frame parameter was set, no display was
 queried and no subwindow was destroyed; the twenty-two arms' counts are text compile readings, and
+the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.
+
+## Slice 47 (2026-10-08, status 3.952): C 10298-10662 - **the file is ported to its last line**
+
+**The slice is C 10298-10662**: `syms_of_xfns`, the file's last definition - 338 Rust lines
+(14,580 -> 14,918) for 365 C lines.  With it `emacs/src/xfns.c` (**10,662 lines**) is complete in
+`femacs/src/xfns.rs` (**14,918 lines**, 39.9% above the reference's own line count, which the
+drift row records).
+
+**All twenty-two arms are byte-identical to slice 46** - plain-X, XKB and XKBX **18 / 9**, WS, WSX,
+WSR, WSRX, WSR12 and XSN **16 / 9**, LUCID **25 / 12**, MOTIF **20 / 12**, MOTIFXI2 **24 / 12**,
+GTK, GTK22, GTKFT, GTK22FT, GTK314 and CAIRO **47 / 20**, XI2 and XR **22 / 9**, Xt **20 / 12** and
+XCB **18 / 9** - with both sets empty-diff, after the four first-measurement classes below.
+
+**The first measurement's four rows**, all named: ⑴ the generator emitted C 10618's `defsubr
+(&Sx_test_string_conversion)` although it sits in C 10617's `#if 0` (removed; the block is
+recorded); ⑵ `make_specified_string` (C 10553/10567) is declared at the use site (lisp.h 4566-4567,
+the `src/editfns.rs` 213-218 shape); ⑶ C's `list (...)` is the port's **`list!`** macro (C 10328);
+⑷ `INT_STRLEN_BOUND`'s gate was `all (have_x_windows, use_x_toolkit)` and C 10550/10563 call it
+under the file gate, so the row moved to the file gate - C's `<intprops.h>` is in every
+configuration's include graph.
+
+**The `doc` token.**  C's `DEFVAR_LISP`/`DEFVAR_BOOL` invocations spell their text as `doc: /* … */`
+inside the call, and the checker's function-body rule requires the port's own code to mention every
+token C's body does - comments do not count (they are stripped from the port's side).  The port's
+two macros took the docstring positionally, so this slice adds C's own labelled arm to both
+(`include/lisp.rs`: `($lname:expr, $vname:ident, doc: $doc:expr)`, a backwards-compatible second
+arm) and writes the twenty-six calls as `DEFVAR_LISP! (c"…", V…, doc: "…")` - C's spelling, and
+the row `function syms_of_xfns does not mention doc` reads 0.
+
+**Arm touch measured** (P-86 ⑦): an injection before C 10301's first `DEFSYM` (A, the body's first
+statement) moves plain-X **18 -> 19**, XKB **18 -> 19**, GTK **47 -> 48**, CAIRO **47 -> 48** and
+MOTIF **20 -> 21**; one before C 10658's `defsubr (&Sx_gtk_debug);` (B, inside C 10655-10661's
+triple) moves **GTK314 47 -> 48** while GTK, GTK22 and CAIRO stay at **47** and plain-X at **18** -
+the `gtk_check_version_ge_3_14` dimension is what compiles that registration.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+`femacs/src/xfns.rs` md5 `3f475898c9b321896ea366259cd63890` (slice 46's end hash was
+`c2b7a3d42ea021b066402b2fe520768a`).
+
+**② The twenty-two arms.**  See above.
+
+**③ `extract-abi.py --check`**: **70 rows -> 24**.  Forty-seven rows retire - the 45
+`missing defsubr (&raw const S…)` rows, `missing function syms_of_xfns` and one macro row - with
+nothing appearing but the drift row, which moves from `36.7%` to `39.9%: C 10662 vs Rust 14918`.
+The 24 that remain are the file's long-standing ones: 21 `does not mention` token rows in functions
+ported by earlier slices, the `macro INSTALL_CURSOR does not mention mouse_cursor, short_index` and
+`missing macro RANDR13_LIBRARY` rows, slice 41's explained `subr Fx_file_dialog: docstring
+differs`, and the drift row.  **Every `missing …` row the file had at slice 1 is gone.**
+
+### Deviations (this slice)
+
+1. **`include/lisp.rs` gains C's labelled arm** for `DEFVAR_LISP`/`DEFVAR_BOOL` (see above) - the
+   mirror edit is additive and backwards-compatible: the positional arm stays, and no other unit's
+   text changes.
+2. **C 10338-10343 and C 10352-10357's `#if false` blocks and C 10617-10619's `#if 0` are
+   recorded, not transcribed** (their live assignments below them are).
+3. **`XmVERSION_STRING`** (C 10535) is a placeholder string (`@(#)Motif Version 2.3.8`) with an
+   **UNVERIFIED** note - no Motif headers exist here (the `XmCR_CANCEL` class); **`GTK_*_VERSION`
+   and `CAIRO_VERSION_*`** are the values the tree already carries (`src/pgtkfns.rs` 5183-5185,
+   `src/haikufns.rs` 343-347), also UNVERIFIED.
+4. **C 10550/10563's version buffers** are fixed-size arrays whose length is C's own expression
+   (`6 + 3 * INT_STRLEN_BOUND! (c_int)`, the file's 6781 macro) filled by `sprintf` and handed to
+   `make_specified_string` - C's `local` + `sprintf` shape rather than the `g_strdup_printf` the
+   pgtk unit uses for its own C (whose reference spells it that way).
+5. **The six `Fprovide`s and the `intern_c_string` calls** keep C's spelling
+   (`intern_c_string (c"x-toolkit".as_ptr ())`).
+
+### Owed (this slice)
+
+- **`subr Fx_file_dialog: docstring differs`** (slice 41's Evidence ④): the checker pairs each C
+  `DEFUN` with the first Rust subr of that name; it retires only when `src/xfns.c` joins
+  `docs/baseline/config/cond-eval-verified.txt` or the checker pairs definitions in order.
+- The file's 21 `does not mention` token rows and its two macro rows are the ones its earlier
+  slices recorded; they are not this slice's and the ledger's earlier `## Owed` sections name their
+  owners (the `x_output` bitfield class, `FRAME_TOOLBAR_*`, `output_data`'s mirror rows, …).
+- The seven unregistered features this file's arms pass with `--cfg` (`use_motif`,
+  `gtk_check_version_ge_3_14`, `have_xkbrefreshkeyboardmapping`, `have_xkbfreenames`,
+  `have_xdisplaycells`, `have_xdestroysubwindows`, `have_xrandr`/`have_xinerama`/`have_xaw3d` and
+  the four cairo features).
+- `XmVERSION_STRING`'s real text, the GTK/cairo version triples and the Xt/Motif type widths are
+  the toolchain rows `docs/ports/lwlib-Xm.md`'s `## Owed` 5 names.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no subr was registered, no variable was
+defined and no feature was provided; the twenty-two arms' counts are text compile readings, and
 the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.

@@ -3481,6 +3481,9 @@ macro_rules! DEFUN {
    member at run time instead, which left every one of these forwarding objects with a NULL
    pointer after a dump load; `do_symval_forwarding` then dereferenced it (status 3.644).  */
 macro_rules! DEFVAR_LISP {
+    /* C spells the docstring `doc: /* … */` in the invocation itself, so the port accepts the
+       label too (status 3.952, `src/xfns.rs`'s `syms_of_xfns`).  */
+    ($lname:expr, $vname:ident, doc: $doc:expr) => { DEFVAR_LISP! ($lname, $vname, $doc) };
     ($lname:expr, $vname:ident, $doc:expr) => {{
         static mut O_FWD: Lisp_Fwd = Lisp_Fwd {
             r#type: Lisp_Fwd_Obj,
@@ -3534,6 +3537,9 @@ macro_rules! DEFVAR_INT {
 }
 
 macro_rules! DEFVAR_BOOL {
+    /* C spells the docstring `doc: /* … */` in the invocation itself, so the port accepts the
+       label too (status 3.952, `src/xfns.rs`'s `syms_of_xfns`).  */
+    ($lname:expr, $vname:ident, doc: $doc:expr) => { DEFVAR_BOOL! ($lname, $vname, $doc) };
     ($lname:expr, $vname:ident, $doc:expr) => {{
         static mut B_FWD: Lisp_Fwd = Lisp_Fwd {
             r#type: Lisp_Fwd_Bool,

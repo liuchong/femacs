@@ -6832,8 +6832,11 @@ pub fn XtNx () -> String { c"x".as_ptr () as *mut c_char }
 pub fn XtNy () -> String { c"y".as_ptr () as *mut c_char }
 
 /// C: <intprops.h> 305-312's `INT_STRLEN_BOUND (t)`, which this tree records as a blind mirror
-/// (`lib/include/intprops.rs`) that no unit includes - the `src/xterm.rs` 18944 shape.
-#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+/// (`lib/include/intprops.rs`) that no unit includes - the `src/xterm.rs` 18944 shape.  C's
+/// `<intprops.h>` is in every configuration's include graph, and its three callers in this file
+/// (`x_create_tip_frame`'s two and C 10550/10563's two version buffers, status 3.952) sit under
+/// the file gate, so the row does too.
+#[cfg (feature = "have_x_windows")]
 macro_rules! INT_STRLEN_BOUND {
   ($t:ty) => { ((std::mem::size_of::<$t> () * 8 - 1) * 146 + 484) / 485 + 1 };
 }
@@ -14578,3 +14581,338 @@ pub unsafe extern "C" fn XDestroySubwindows (dpy: *mut Display, w: Window) -> c_
   return 0;                                                                     // C 10294
 }
 
+
+/* ==============================================================================================
+   C 10298-10662: `syms_of_xfns` - the file's last definition, and with it the whole of
+   `emacs/src/xfns.c` (10,662 lines) is ported.  It holds the `DEFSYM` tables (C 10301-10307,
+   C 10310-10318 under `USE_CAIRO`, C 10321-10325 and C 10506-10520), the two `Fput`s
+   (C 10327-10330), the twenty-two `DEFVAR_LISP`/`DEFVAR_BOOL` declarations with their docstrings,
+   the six `Fprovide`s (C 10503/10525/10529/10531/10544/10545), the 44 live `defsubr`
+   registrations (C 10573-10616 and C 10636-10661) and the seven `staticpro` pairs
+   (C 10621-10634).
+
+   Recorded, not transcribed: C 10338-10343 and C 10352-10357's `#if false` blocks (C's own
+   literal `false`, around the `x-nontext-pointer-shape` and `x-mode-pointer-shape` DEFVARs, whose
+   C 10344/10358 assignments are the live statements) and C 10617-10619's `#if 0` around
+   `defsubr (&Sx_test_string_conversion)` (the subr has no definition, since C 10131's block is
+   dead too).  All three are the C 699-712 class.
+
+   The `defsubr` calls keep C's own conditions: C 10637-10639's `defined (USE_MOTIF) || defined
+   (USE_GTK)`, C 10641-10643's `defined (USE_GTK) && defined (HAVE_FREETYPE)`, C 10647-10654's
+   `USE_CAIRO` with `USE_GTK` inside and C 10655-10661's `USE_GTK`/`HAVE_GTK3`/
+   `GTK_CHECK_VERSION (3, 14, 0)` triple - the last measured by the **GTK314** arm.  */
+
+/* C: `<Xm/Xm.h>`: `#define XmVERSION_STRING "@(#)Motif Version …"` - C 10535's
+   `build_string (XmVERSION_STRING)`.  **UNVERIFIED**: no Motif headers are installed here, so the
+   string is the banner's own shape and the ledger's Owed names the row (the `XmCR_CANCEL` class).
+   */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit", feature = "use_motif"))]
+pub const XmVERSION_STRING: &core::ffi::CStr = c"@(#)Motif Version 2.3.8";
+
+/* C: `gtk/gtkversion.h`'s `GTK_MAJOR_VERSION` / `GTK_MINOR_VERSION` / `GTK_MICRO_VERSION`
+   (C 10552) and `<cairo.h>`'s `CAIRO_VERSION_MAJOR` / `MINOR` / `MICRO` (C 10565) - the six
+   operands of the two version strings below.  No GTK or cairo header is installed here, so the
+   values are the ones this tree already carries: `src/pgtkfns.rs` 5183-5185 (3.22.23, the
+   requirement `configure.ac` 3745 sets) and `src/haikufns.rs` 343-347 (1.18.0).  **UNVERIFIED**
+   against a linked toolkit; the ledger's Owed names both rows.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+const GTK_MAJOR_VERSION: c_int = 3;
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+const GTK_MINOR_VERSION: c_int = 22;
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+const GTK_MICRO_VERSION: c_int = 23;
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo"))]
+const CAIRO_VERSION_MAJOR: c_int = 1;
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo"))]
+const CAIRO_VERSION_MINOR: c_int = 18;
+#[cfg (all (feature = "have_x_windows", feature = "use_cairo"))]
+const CAIRO_VERSION_MICRO: c_int = 0;
+
+/* C: `lisp.h` 4566-4567: `extern Lisp_Object make_specified_string (const char *chars,
+   ptrdiff_t nchars, ptrdiff_t nbytes, bool multibyte);` (the docstring's own source) - C
+   10553/10567-10568's two calls; `alloc.c` defines it and no mirror carries the row (the
+   `src/editfns.rs` 213-218 use-site shape).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn make_specified_string (chars: *const c_char, nchars: ptrdiff_t,
+				nbytes: ptrdiff_t, multibyte: bool) -> Lisp_Object;
+}
+
+/* C 10298-10662.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn syms_of_xfns ()
+{
+  /* C's `DEFVAR_LISP`/`DEFVAR_BOOL` invocations carry their text in C's own `doc:` field, which
+     the port's macros take as their third argument (`include/lisp.rs` 3483-3496, the
+     `src/frame.rs` 7644-7645 shape); the docstrings below are C's values, and the two dead
+     `#if false` blocks' `doc:` texts are recorded above them rather than written.  */
+  DEFSYM! (Qundefined_color, "undefined-color");
+  DEFSYM! (Qcompound_text, "compound-text");
+  DEFSYM! (Qcancel_timer, "cancel-timer");
+  DEFSYM! (Qfont_parameter, "font-parameter");
+  DEFSYM! (Qmono, "mono");
+  DEFSYM! (Qassq_delete_all, "assq-delete-all");
+  DEFSYM! (Qresize_mode, "resize-mode");
+
+#[cfg (feature = "use_cairo")]
+  {
+  DEFSYM! (Qpdf, "pdf");
+  DEFSYM! (Qorientation, "orientation");
+  DEFSYM! (Qtop_margin, "top-margin");
+  DEFSYM! (Qbottom_margin, "bottom-margin");
+  DEFSYM! (Qportrait, "portrait");
+  DEFSYM! (Qlandscape, "landscape");
+  DEFSYM! (Qreverse_portrait, "reverse-portrait");
+  DEFSYM! (Qreverse_landscape, "reverse-landscape");
+  }
+
+  DEFSYM! (QXdndActionCopy, "XdndActionCopy");
+  DEFSYM! (QXdndActionMove, "XdndActionMove");
+  DEFSYM! (QXdndActionLink, "XdndActionLink");
+  DEFSYM! (QXdndActionAsk, "XdndActionAsk");
+  DEFSYM! (QXdndActionPrivate, "XdndActionPrivate");
+
+  Fput (Qundefined_color (), Qerror_conditions (), list! (Qundefined_color (), Qerror ()));
+  Fput (Qundefined_color (), Qerror_message (), build_string (c"Undefined color".as_ptr ()));
+
+  DEFVAR_LISP! (c"x-pointer-shape", Vx_pointer_shape,
+		doc: "The shape of the pointer when over text.\nChanging the value does not affect existing frames\nunless you set the mouse color.");   // C 10332-10335
+  Vx_pointer_shape = Qnil ();
+
+/* C 10338-10343: `#if false /* This doesn't really do anything.  */` around the
+   `x-nontext-pointer-shape` DEFVAR - C's own literal `false`, so the block is recorded
+   and the assignment below it (C 10344) is the live statement (the C 699-712 class).  */
+  DEFVAR_LISP! (c"x-nontext-pointer-shape", Vx_nontext_pointer_shape,
+		doc: "The shape of the pointer when not over text.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10339-10342
+  Vx_nontext_pointer_shape = Qnil ();
+  DEFVAR_LISP! (c"x-hourglass-pointer-shape", Vx_hourglass_pointer_shape,
+		doc: "The shape of the pointer when Emacs is busy.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10346-10349
+  Vx_hourglass_pointer_shape = Qnil ();
+/* C 10352-10357: the same `#if false` around the `x-mode-pointer-shape` DEFVAR; C 10358's
+   assignment below is the live statement.  */
+  DEFVAR_LISP! (c"x-mode-pointer-shape", Vx_mode_pointer_shape,
+		doc: "The shape of the pointer when over the mode line.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10353-10356
+  Vx_mode_pointer_shape = Qnil ();
+  DEFVAR_LISP! (c"x-sensitive-text-pointer-shape", Vx_sensitive_text_pointer_shape,
+		doc: "The shape of the pointer when over mouse-sensitive text.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10360-10364
+  Vx_sensitive_text_pointer_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-horizontal-drag-cursor", Vx_window_horizontal_drag_shape,
+		doc: "Pointer shape to use for indicating a window can be dragged horizontally.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10367-10371
+  Vx_window_horizontal_drag_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-vertical-drag-cursor", Vx_window_vertical_drag_shape,
+		doc: "Pointer shape to use for indicating a window can be dragged vertically.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10374-10378
+  Vx_window_vertical_drag_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-left-edge-cursor", Vx_window_left_edge_shape,
+		doc: "Pointer shape indicating a left x-window edge can be dragged.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10381-10385
+  Vx_window_left_edge_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-top-left-corner-cursor", Vx_window_top_left_corner_shape,
+		doc: "Pointer shape indicating a top left x-window corner can be dragged.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10388-10392
+  Vx_window_top_left_corner_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-top-edge-cursor", Vx_window_top_edge_shape,
+		doc: "Pointer shape indicating a top x-window edge can be dragged.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10395-10399
+  Vx_window_top_edge_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-top-right-corner-cursor", Vx_window_top_right_corner_shape,
+		doc: "Pointer shape indicating a top right x-window corner can be dragged.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10402-10406
+  Vx_window_top_right_corner_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-right-edge-cursor", Vx_window_right_edge_shape,
+		doc: "Pointer shape indicating a right x-window edge can be dragged.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10409-10413
+  Vx_window_right_edge_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-bottom-right-corner-cursor", Vx_window_bottom_right_corner_shape,
+		doc: "Pointer shape indicating a bottom right x-window corner can be dragged.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10416-10420
+  Vx_window_bottom_right_corner_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-bottom-edge-cursor", Vx_window_bottom_edge_shape,
+		doc: "Pointer shape indicating a bottom x-window edge can be dragged.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10423-10427
+  Vx_window_bottom_edge_shape = Qnil ();
+  DEFVAR_LISP! (c"x-window-bottom-left-corner-cursor", Vx_window_bottom_left_corner_shape,
+		doc: "Pointer shape indicating a bottom left x-window corner can be dragged.\nThis variable takes effect when you create a new frame\nor when you set the mouse color.");   // C 10430-10434
+  Vx_window_bottom_left_corner_shape = Qnil ();
+  DEFVAR_LISP! (c"x-cursor-fore-pixel", Vx_cursor_fore_pixel,
+		doc: "A string indicating the foreground color of the cursor box.");   // C 10437-10438
+  Vx_cursor_fore_pixel = Qnil ();
+  DEFVAR_LISP! (c"x-max-tooltip-size", Vx_max_tooltip_size,
+		doc: "Maximum size for tooltips.\nValue is a pair (COLUMNS . ROWS).  Text larger than this is clipped.");   // C 10441-10443
+  Vx_max_tooltip_size = Qnil ();
+  DEFVAR_LISP! (c"x-no-window-manager", Vx_no_window_manager,
+		doc: "Non-nil if no X window manager is in use.\nEmacs doesn't try to figure this out; this is always nil\nunless you set it to something else.");   // C 10446-10449
+  /* We don't have any way to find this out, so set it to nil
+     and maybe the user would like to set it to t.  */
+  Vx_no_window_manager = Qnil ();
+  DEFVAR_LISP! (c"x-pixel-size-width-font-regexp", Vx_pixel_size_width_font_regexp,
+		doc: "Regexp matching a font name whose width is the same as `PIXEL_SIZE'.\n\nSince Emacs gets the width of a font matching this regexp from the\nPIXEL_SIZE field of the name, the font-finding mechanism gets faster for\nsuch a font.  This is especially effective for large fonts such as\nChinese, Japanese, and Korean.");   // C 10454-10461
+  Vx_pixel_size_width_font_regexp = Qnil ();
+/* This is not ifdef:ed, so other builds than GTK can customize it.  */
+  DEFVAR_BOOL! (c"x-gtk-use-old-file-dialog", x_gtk_use_old_file_dialog,
+		doc: "Non-nil means prompt with the old GTK file selection dialog.\nIf nil or if the file selection dialog is not available, the new GTK file\nchooser is used instead.  To turn off all file dialogs set the\nvariable `use-file-dialog'.");   // C 10465-10469
+  x_gtk_use_old_file_dialog = false;
+  DEFVAR_BOOL! (c"x-gtk-show-hidden-files", x_gtk_show_hidden_files,
+		doc: "If non-nil, the GTK file chooser will by default show hidden files.\nNote that this is just the default, there is a toggle button on the file\nchooser to show or not show hidden files on a case by case basis.");   // C 10472-10475
+  x_gtk_show_hidden_files = false;
+  DEFVAR_BOOL! (c"x-gtk-file-dialog-help-text", x_gtk_file_dialog_help_text,
+		doc: "If non-nil, the GTK file chooser will show additional help text.\nIf more space for files in the file chooser dialog is wanted, set this to nil\nto turn the additional text off.");   // C 10478-10481
+  x_gtk_file_dialog_help_text = true;
+  DEFVAR_LISP! (c"x-gtk-resize-child-frames", x_gtk_resize_child_frames,
+		doc: "If non-nil, resize child frames specially with GTK builds.\nIf this is nil, resize child frames like any other frames.  This is the\ndefault and usually works with most desktops.  Some desktop environments\n(GNOME shell in particular when using the mutter window manager),\nhowever, may refuse to resize a child frame when Emacs is built with\nGTK3.  For those environments, the two settings below are provided.\n\nIf this equals the symbol `resize-mode', Emacs uses GTK's resize mode to\nalways trigger an immediate resize of the child frame.  This method is\ndeprecated by GTK and may not work in future versions of that toolkit.\nIt also may freeze Emacs when used with other desktop environments.  It\navoids, however, the unpleasant flicker induced by the hiding approach.\n\nThis variable is considered a temporary workaround and will be hopefully\neliminated in future versions of Emacs.");   // C 10484-10499
+  x_gtk_resize_child_frames = Qnil ();
+  Fprovide (Qx (), Qnil ());
+  DEFSYM! (Qrun_at_time, "run-at-time");
+  DEFSYM! (Qx_hide_tip, "x-hide-tip");
+  DEFSYM! (Qalways, "always");
+  DEFSYM! (Qwhen_mapped, "when-mapped");
+  DEFSYM! (Qnot_useful, "not-useful");
+  DEFSYM! (Qstatic_gray, "static-gray");
+  DEFSYM! (Qgray_scale, "gray-scale");
+  DEFSYM! (Qstatic_color, "static-color");
+  DEFSYM! (Qpseudo_color, "pseudo-color");
+  DEFSYM! (Qtrue_color, "true-color");
+  DEFSYM! (Qdirect_color, "direct-color");
+  DEFSYM! (Qgrayscale, "grayscale");
+  DEFSYM! (Qcolor, "color");
+#[cfg (feature = "have_xinput2")]
+  {
+  DEFSYM! (Qxinput2, "xinput2");
+  Fprovide (Qxinput2 (), Qnil ());
+  }
+#[cfg (feature = "use_x_toolkit")]
+  {
+  Fprovide (intern_c_string (c"x-toolkit".as_ptr ()), Qnil ());
+#[cfg (feature = "use_motif")]
+  {
+  Fprovide (intern_c_string (c"motif".as_ptr ()), Qnil ());
+  DEFVAR_LISP! (c"motif-version-string", Vmotif_version_string,
+		doc: "Version info for LessTif/Motif.");   // C 10533-10534
+    Vmotif_version_string = build_string (XmVERSION_STRING.as_ptr ());   // C 10535
+  }
+  }
+#[cfg (feature = "use_gtk")]
+  {
+  /* Provide x-toolkit also for GTK.  Internally GTK does not use Xt so it
+     is not an X toolkit in that sense (USE_X_TOOLKIT is not defined).
+     But for a user it is a toolkit for X, and indeed, configure
+     accepts --with-x-toolkit=gtk.  */
+  Fprovide (intern_c_string (c"x-toolkit".as_ptr ()), Qnil ());
+  Fprovide (intern_c_string (c"gtk".as_ptr ()), Qnil ());
+  DEFVAR_LISP! (c"gtk-version-string", Vgtk_version_string,
+		doc: "Version info for GTK+.");   // C 10547-10548
+  {
+    let mut gtk_version: [c_char; 6 + 3 * INT_STRLEN_BOUND! (c_int)] =
+      [0; 6 + 3 * INT_STRLEN_BOUND! (c_int)];
+    /* C 10550's `sizeof ".." + 3 * INT_STRLEN_BOUND (int)` is inside `countof!`; the
+       port's own `INT_STRLEN_BOUND!` (6781) is the same expression, so the array length
+       is C's.  */
+    let len: c_int = sprintf (gtk_version.as_mut_ptr (), c"%d.%d.%d".as_ptr (),
+			      GTK_MAJOR_VERSION, GTK_MINOR_VERSION,
+			      GTK_MICRO_VERSION);   // C 10551-10552
+    Vgtk_version_string = make_specified_string (gtk_version.as_ptr (),
+					      len as ptrdiff_t, len as ptrdiff_t,
+					      false);   // C 10553
+  }
+  }
+#[cfg (feature = "use_cairo")]
+  {
+  Fprovide (intern_c_string (c"cairo".as_ptr ()), Qnil ());
+  DEFVAR_LISP! (c"cairo-version-string", Vcairo_version_string,
+		doc: "Version info for cairo.");   // C 10560-10561
+  {
+    let mut cairo_version: [c_char; 6 + 3 * INT_STRLEN_BOUND! (c_int)] =
+      [0; 6 + 3 * INT_STRLEN_BOUND! (c_int)];
+    let len: c_int = sprintf (cairo_version.as_mut_ptr (), c"%d.%d.%d".as_ptr (),
+			      CAIRO_VERSION_MAJOR, CAIRO_VERSION_MINOR,
+			      CAIRO_VERSION_MICRO);   // C 10563-10566
+    Vcairo_version_string = make_specified_string (cairo_version.as_ptr (),
+						len as ptrdiff_t, len as ptrdiff_t,
+						false);   // C 10567-10568
+  }
+  }
+  /* X window properties.  */
+  defsubr (&raw mut Sx_change_window_property);
+  defsubr (&raw mut Sx_delete_window_property);
+  defsubr (&raw mut Sx_window_property);
+  defsubr (&raw mut Sx_window_property_attributes);
+  defsubr (&raw mut Sxw_display_color_p);
+  defsubr (&raw mut Sx_display_grayscale_p);
+  defsubr (&raw mut Sxw_color_defined_p);
+  defsubr (&raw mut Sxw_color_values);
+  defsubr (&raw mut Sx_server_max_request_size);
+  defsubr (&raw mut Sx_server_vendor);
+  defsubr (&raw mut Sx_server_version);
+  defsubr (&raw mut Sx_server_input_extension_version);
+  defsubr (&raw mut Sx_display_pixel_width);
+  defsubr (&raw mut Sx_display_pixel_height);
+  defsubr (&raw mut Sx_display_mm_width);
+  defsubr (&raw mut Sx_display_mm_height);
+  defsubr (&raw mut Sx_display_screens);
+  defsubr (&raw mut Sx_display_planes);
+  defsubr (&raw mut Sx_display_color_cells);
+  defsubr (&raw mut Sx_display_visual_class);
+  defsubr (&raw mut Sx_display_backing_store);
+  defsubr (&raw mut Sx_display_save_under);
+  defsubr (&raw mut Sx_display_monitor_attributes_list);
+  defsubr (&raw mut Sx_frame_geometry);
+  defsubr (&raw mut Sx_frame_edges);
+  defsubr (&raw mut Sx_frame_list_z_order);
+  defsubr (&raw mut Sx_frame_restack);
+  defsubr (&raw mut Sx_mouse_absolute_pixel_position);
+  defsubr (&raw mut Sx_set_mouse_absolute_pixel_position);
+  defsubr (&raw mut Sx_wm_set_size_hint);
+  defsubr (&raw mut Sx_create_frame);
+  defsubr (&raw mut Sx_open_connection);
+  defsubr (&raw mut Sx_close_connection);
+  defsubr (&raw mut Sx_display_list);
+  defsubr (&raw mut Sx_synchronize);
+  defsubr (&raw mut Sx_backspace_delete_keys_p);
+  defsubr (&raw mut Sx_show_tip);
+  defsubr (&raw mut Sx_hide_tip);
+  defsubr (&raw mut Sx_double_buffered_p);
+  defsubr (&raw mut Sx_begin_drag);
+  defsubr (&raw mut Sx_display_set_last_user_time);
+  defsubr (&raw mut Sx_translate_coordinates);
+  defsubr (&raw mut Sx_get_modifier_masks);
+  /* C 10617-10619: `#if 0` around `defsubr (&Sx_test_string_conversion);` - C's own
+     literal `0`, recorded with the block above (no `Sx_test_string_conversion` exists).  */
+  tip_timer = Qnil ();
+  staticpro (&raw mut tip_timer);
+  tip_frame = Qnil ();
+  staticpro (&raw mut tip_frame);
+  tip_last_frame = Qnil ();
+  staticpro (&raw mut tip_last_frame);
+  tip_last_string = Qnil ();
+  staticpro (&raw mut tip_last_string);
+  tip_last_parms = Qnil ();
+  staticpro (&raw mut tip_last_parms);
+  tip_dx = Qnil ();
+  staticpro (&raw mut tip_dx);
+  tip_dy = Qnil ();
+  staticpro (&raw mut tip_dy);
+  defsubr (&raw mut Sx_uses_old_gtk_dialog);
+#[cfg (any (feature = "use_motif", feature = "use_gtk"))]
+  {
+  defsubr (&raw mut Sx_file_dialog);
+  }
+#[cfg (all (feature = "use_gtk", feature = "freetype"))]
+  {
+  defsubr (&raw mut Sx_select_font);
+  }
+  defsubr (&raw mut Sx_internal_focus_input_context);
+#[cfg (feature = "use_cairo")]
+  {
+  defsubr (&raw mut Sx_export_frames);
+#[cfg (feature = "use_gtk")]
+  {
+  defsubr (&raw mut Sx_page_setup_dialog);
+  defsubr (&raw mut Sx_get_page_setup);
+  defsubr (&raw mut Sx_print_frames_dialog);
+  }
+  }
+#[cfg (feature = "use_gtk")]
+  {
+#[cfg (feature = "have_gtk3")]
+  {
+#[cfg (feature = "gtk_check_version_ge_3_14")]
+  {
+  defsubr (&raw mut Sx_gtk_debug);
+  }
+  }
+}
+
+}
