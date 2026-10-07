@@ -211,7 +211,7 @@
 - [x] ns_displays_reconfigured  (line 5839, static) — C 5837-5868 (the `NS_IMPL_COCOA` arm), landed as `fileprivate func ns_displays_reconfigured (_:_:_:)`: it needed this unit's view of `union buffered_input_event` (src/keyboard.h 228-235), the kbd buffer's three data entries (`kbd_buffer`/`kbd_fetch_ptr`/`kbd_store_ptr`, the core's `#[unsafe(no_mangle)]` statics), `Fequal`, the nsfns lane's `Fns_display_monitor_attributes_list`, `XSETTERMINAL` (a macro entry) and the member reader `ns_display_info_terminal` this round adds; the two enumerators it reads are mirror-valued constants (`KBD_BUFFER_SIZE` 4096, `MONITORS_CHANGED_EVENT` 35 - the values `femacs/src/include/keyboard.rs` 43 and `termhooks.rs` 62 fix)
 - [x] ns_delete_display  (line 5872, static) — C 5871-5875, landed as `fileprivate func ns_delete_display (_:)`: C's whole body is the comment `/* TODO...  */`, so the body is empty here too and the parameter unread (the `ns_default_font_parameter`/`applicationWillBecomeActive` reading: a body C leaves empty is transcribed empty rather than stubbed)
 - [x] ns_delete_terminal  (line 5880, static) — C 5877-5902, landed as `fileprivate func ns_delete_terminal (_:)`: it needed `terminal_display_info_ns` (already the core's own shim, `femacs/src/abi_shim.rs` 412), `image_destroy_all_bitmaps` (the core's, `femacs/src/image.rs` 1841) and one new member entry, `terminal_name`, for C 5888's guard; `ns_delete_display` (C 5900) landed in round 38, and C 5896's `setActivationPolicy:` is `NSApp.setActivationPolicy (.prohibited)`
-- [ ] ns_create_terminal  (line 5908, static)
+- [ ] ns_create_terminal  (line 5908, static) - **open, first half landed in round 50**: the entry layer C 5913-5921's body needs is in the unit now - `create_terminal` (src/terminal.c's own entry, `femacs/src/terminal.rs` 366), `output_ns` (src/termhooks.h 64's enumerator, mirror-valued 5), the `ns_display_info_set_terminal` writer C 5920 needs, and the **36 `terminal_set_<member>` hook setters** C 5922-5957 writes, each carrying C's own function-pointer prototype from src/termhooks.h.  The body itself - the create call, the two display-info writes and the 36 hook assignments with their `@convention(c)` closures - is the remainder, and the box stays open until it lands
 - [ ] ns_term_init  (line 5965)
 - [ ] ns_term_shutdown  (line 6198)
 - [x] runAlertPanel  (line 6634, static) — landed as `fileprivate func runAlertPanel (_:_:_:_:) -> Bool`: the `NS_IMPL_COCOA` arm builds an `NSAlert` (the GNUstep `NSRunAlertPanel` at C 6640 is dead), and C 6649's `[alert release]` is the reference being dropped under ARC
@@ -2217,6 +2217,13 @@ call site takes an entry and the definition lands at its own C line - and **both
   declares `FRAME_LIVE_P` - are what round 49 adds and the core owes.  The scroll-bar hook batch is
   closed with this round: five hooks landed (rounds 47-49) and `ns_redraw_scroll_bars` recorded as a
   dead arm.
+* **round 50's names**: the `ns_create_terminal` entry layer - `create_terminal` (the core's own),
+  `output_ns` (mirror-valued), `ns_display_info_set_terminal`, and the 36 `terminal_set_<member>`
+  setters (`terminal_set_clear_frame_hook` … `terminal_set_change_tab_bar_height_hook`), each with
+  C's prototype from src/termhooks.h - are what this round adds and the core owes.  The setters'
+  function-pointer types are `@convention(c)`, and C 5926's `struct input_event *` is **untyped**
+  there because a `@convention(c)` type cannot name this unit's Swift view of that record
+  (measured), the limitation round 2 recorded for `@_cdecl`.
 
 ## Evidence
 
@@ -3738,3 +3745,39 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (nothing condemned, redeemed, judged or
   redrawn); the compile gate reaches parsing and type checking only; the two macro entries are
   declarations the core still owes.
+
+### Round 50: the `ns_create_terminal` entry layer (C 5906-5961)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-49 carry, so **no new warning**.  Object
+  `/tmp/nsterm50.o`, **860,304 bytes**, md5 `ce0bc8cd21cc37fa3f4bbf490c6c81c1` (**identical before and after the citation fix below** - a
+  comment-only edit does not change the object).  The unit is
+  **9,919 lines**.
+* **Why this round is the entry layer rather than the body**: C 5922-5957 assigns 36 distinct
+  hook functions, and every assignment needs a `struct terminal` member write whose parameter type
+  is that hook's own C prototype.  The prototypes are 36 different function-pointer types, so the
+  entries come first; the body (the create call, the two display-info writes and the 36
+  assignments with their non-capturing `@convention(c)` closures, the round-39 shape) is the
+  remainder, and the box's text says so.
+* **What landed**: `create_terminal` (the core's own entry, `femacs/src/terminal.rs` 366),
+  `output_ns` (src/termhooks.h 64's enumerator - a *type tag*, not a record - mirror-valued 5 at
+  `femacs/src/include/termhooks.rs` 159), `ns_display_info_set_terminal` (the writer C 5920 needs,
+  of the family round 37 established and round 40 read), and the **36 `terminal_set_<member>`
+  setters**, each declared with C's prototype transcribed from src/termhooks.h and the C line
+  `ns_create_terminal` writes it at.
+* **One compile failure and its fix**: `terminal_set_read_socket_hook`'s `(…, *mut input_event) ->
+  int` is refused as a `@convention(c)` type - `'(UnsafeMutableRawPointer?, UnsafeMutablePointer<input_event>?) -> Int32'
+  is not representable in Objective-C` - so C 5926's record pointer is **untyped** in that entry, the
+  same limitation round 2 recorded for `@_cdecl` (a Swift record cannot cross that boundary).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **16** unported,
+  16 row(s); **529** C symbol import(s)` - unported unchanged, which is the expected reading for an
+  entry-layer round (no C definition lands yet); the imports are 491 -> 529 (the 38 new entries).
+  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **Two citation drifts, both fixed** (the round 24 lesson, and the second time this lane meets it):
+  the `output_ns` note first named the enumeration on the line citing src/termhooks.h 64, then named
+  `create_terminal` there (the header declares that function at 964); the note now names on each
+  citing line only what lives at the cited line, and `tools/check-citations.py` reads **0 drift** -
+  the digest above is the same one before and after that fix (comments do not reach the object).
+* **What this round does not claim**: no run evidence (no terminal created, no hook installed); the
+  compile gate reaches parsing and type checking only; all 38 entries are declarations the core
+  still owes, and `ns_create_terminal`'s body is not written yet.

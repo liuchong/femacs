@@ -9744,3 +9744,176 @@ fileprivate func ns_judge_scroll_bars(_ f: UnsafeMutableRawPointer?) {
    `-updateMonitors:` reading); its body would walk `[[FRAME_NS_VIEW (f) superview] subviews]`
    backwards, skipping everything that is not an `EmacsScroller`, and send each the rest `display`.
    It sits after round 4's C 641-991 block, which is why it is recorded here.  */
+
+// ==========================================================================
+// Round 50: the `ns_create_terminal` entry layer (C 5906-5961)
+// ==========================================================================
+
+/// C: `output_ns` (src/termhooks.h 64) - the first argument C 5917 passes on.  It is a *type tag*,
+/// not a record: the anonymous enumeration it belongs to opens at src/termhooks.h 57.
+/// Its value is the mirror's (`femacs/src/include/termhooks.rs` 159 gives 5), the reading this unit
+/// already uses for enumerators the frozen macro table cannot decide.
+fileprivate let output_ns: Int32 = 5
+
+/// C: `struct terminal *create_terminal (enum output_method, struct redisplay_interface *)`
+/// (src/terminal.c) - the core's own entry (`femacs/src/terminal.rs` 366, `pub unsafe extern "C" fn`).
+@_silgen_name("create_terminal")
+func create_terminal(_ type: Int32, _ rif: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: the `struct ns_display_info` member write `dpyinfo->terminal = terminal` (C 5920) - the setter
+/// of the reader round 40 added, of the `ns_display_info_set_*` family round 37 established.
+@_silgen_name("ns_display_info_set_terminal")
+func ns_display_info_set_terminal(_ f: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+
+/// C: the `struct terminal` hook members `ns_create_terminal` writes (C 5922-5957), as
+/// `<record>_set_<member>` entries - one per member, each with C's own function-pointer prototype
+/// (src/termhooks.h) spelled as an optional `@convention(c)` type.  The writes themselves land with
+/// the function's body in the next round (the box's text records the split); the entries come first
+/// because that body cannot be written without them.
+/// C: `void (*)(struct frame *)` (src/termhooks.h 94) - C 5922's write.
+@_silgen_name("terminal_set_clear_frame_hook")
+func terminal_set_clear_frame_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 103) - C 5923's write.
+@_silgen_name("terminal_set_ring_bell_hook")
+func terminal_set_ring_bell_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 109) - C 5924's write.
+@_silgen_name("terminal_set_update_begin_hook")
+func terminal_set_update_begin_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 110) - C 5925's write.
+@_silgen_name("terminal_set_update_end_hook")
+func terminal_set_update_end_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `int (*)(struct terminal *, struct input_event *)` (src/termhooks.h 357) - C 5926's write.  The
+/// second parameter is **untyped** here: a `@convention(c)` type cannot name this unit's Swift view
+/// of `struct input_event` (measured - `'(…) -> Int32' is not representable in Objective-C`), which
+/// is the same limitation round 2 recorded for `@_cdecl`.
+@_silgen_name("terminal_set_read_socket_hook")
+func terminal_set_read_socket_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Int32)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 361) - C 5927's write.
+@_silgen_name("terminal_set_frame_up_to_date_hook")
+func terminal_set_frame_up_to_date_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `bool (*)(struct frame *, const char *, Emacs_Color *, bool, bool)` (src/termhooks.h 119) - C 5928's write.
+@_silgen_name("terminal_set_defined_color_hook")
+func terminal_set_defined_color_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<CChar>?, UnsafeMutableRawPointer?, Bool, Bool) -> Bool)?)
+/// C: `void (*)(struct frame *, Emacs_Color *)` (src/termhooks.h 139) - C 5929's write.
+@_silgen_name("terminal_set_query_frame_background_color")
+func terminal_set_query_frame_background_color(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame **, int, Lisp_Object *, enum scroll_bar_part *, Lisp_Object *, Lisp_Object *, Time *)` (src/termhooks.h 163) - C 5930's write.
+@_silgen_name("terminal_set_mouse_position_hook")
+func terminal_set_mouse_position_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutablePointer<UnsafeMutableRawPointer?>?, Int32, UnsafeMutablePointer<Lisp_Object>?, UnsafeMutablePointer<Int32>?, UnsafeMutablePointer<Lisp_Object>?, UnsafeMutablePointer<Lisp_Object>?, UnsafeMutablePointer<UInt>?) -> Void)?)
+/// C: `Lisp_Object (*)(struct frame *)` (src/termhooks.h 171) - C 5931's write.
+@_silgen_name("terminal_set_get_focus_frame")
+func terminal_set_get_focus_frame(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Lisp_Object)?)
+/// C: `void (*)(struct frame *, bool)` (src/termhooks.h 174) - C 5932's write.
+@_silgen_name("terminal_set_focus_frame_hook")
+func terminal_set_focus_frame_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Bool) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 179) - C 5933's write.
+@_silgen_name("terminal_set_frame_rehighlight_hook")
+func terminal_set_frame_rehighlight_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *, bool)` (src/termhooks.h 191) - C 5934's write.
+@_silgen_name("terminal_set_frame_raise_lower_hook")
+func terminal_set_frame_raise_lower_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Bool) -> Void)?)
+/// C: `void (*)(struct frame *, bool)` (src/termhooks.h 195) - C 5935's write.
+@_silgen_name("terminal_set_frame_visible_invisible_hook")
+func terminal_set_frame_visible_invisible_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Bool) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 200) - C 5936's write.
+@_silgen_name("terminal_set_fullscreen_hook")
+func terminal_set_fullscreen_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 203) - C 5937's write.
+@_silgen_name("terminal_set_iconify_frame_hook")
+func terminal_set_iconify_frame_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *, bool, int, int)` (src/termhooks.h 209) - C 5938's write.
+@_silgen_name("terminal_set_set_window_size_hook")
+func terminal_set_set_window_size_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Bool, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct frame *, int, int)` (src/termhooks.h 214) - C 5939's write.
+@_silgen_name("terminal_set_set_window_size_and_position_hook")
+func terminal_set_set_window_size_and_position_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct frame *, int, int, int)` (src/termhooks.h 223) - C 5940's write.
+@_silgen_name("terminal_set_set_frame_offset_hook")
+func terminal_set_set_frame_offset_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 227) - C 5941's write.
+@_silgen_name("terminal_set_set_frame_alpha_hook")
+func terminal_set_set_frame_alpha_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `Lisp_Object (*)(struct frame *, Lisp_Object, int)` (src/termhooks.h 230) - C 5942's write.
+@_silgen_name("terminal_set_set_new_font_hook")
+func terminal_set_set_new_font_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Int32) -> Lisp_Object)?)
+/// C: `void (*)(struct frame *, Lisp_Object, Lisp_Object)` (src/termhooks.h 238) - C 5943's write.
+@_silgen_name("terminal_set_implicit_set_name_hook")
+func terminal_set_implicit_set_name_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Lisp_Object) -> Void)?)
+/// C: `Lisp_Object (*)(struct frame *, int, int, int, Lisp_Object, const char **)` (src/termhooks.h 242) - C 5944's write.
+@_silgen_name("terminal_set_menu_show_hook")
+func terminal_set_menu_show_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32, Lisp_Object, UnsafeMutablePointer<UnsafePointer<CChar>?>?) -> Lisp_Object)?)
+/// C: `Lisp_Object (*)(struct frame *, Lisp_Object, Lisp_Object)` (src/termhooks.h 251) - C 5945's write.
+@_silgen_name("terminal_set_popup_dialog_hook")
+func terminal_set_popup_dialog_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Lisp_Object) -> Lisp_Object)?)
+/// C: `void (*)(struct window *, int, int, int)` (src/termhooks.h 287) - C 5946's write.
+@_silgen_name("terminal_set_set_vertical_scroll_bar_hook")
+func terminal_set_set_vertical_scroll_bar_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct window *, int, int, int)` (src/termhooks.h 297) - C 5947's write.
+@_silgen_name("terminal_set_set_horizontal_scroll_bar_hook")
+func terminal_set_set_horizontal_scroll_bar_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 302) - C 5948's write.
+@_silgen_name("terminal_set_set_scroll_bar_default_width_hook")
+func terminal_set_set_scroll_bar_default_width_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 305) - C 5949's write.
+@_silgen_name("terminal_set_set_scroll_bar_default_height_hook")
+func terminal_set_set_scroll_bar_default_height_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 327) - C 5950's write.
+@_silgen_name("terminal_set_condemn_scroll_bars_hook")
+func terminal_set_condemn_scroll_bars_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct window *)` (src/termhooks.h 331) - C 5951's write.
+@_silgen_name("terminal_set_redeem_scroll_bar_hook")
+func terminal_set_redeem_scroll_bar_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 344) - C 5952's write.
+@_silgen_name("terminal_set_judge_scroll_bars_hook")
+func terminal_set_judge_scroll_bars_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `const char *(*)(void *, const char *, const char *)` (src/termhooks.h 370) - C 5953's write.
+@_silgen_name("terminal_set_get_string_resource_hook")
+func terminal_set_get_string_resource_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<CChar>?, UnsafePointer<CChar>?) -> UnsafePointer<CChar>?)?)
+/// C: `void (*)(struct frame *, Emacs_Pixmap)` (src/termhooks.h 377) - C 5954's write.
+@_silgen_name("terminal_set_free_pixmap")
+func terminal_set_free_pixmap(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *)` (src/termhooks.h 385) - C 5955's write.
+@_silgen_name("terminal_set_delete_frame_hook")
+func terminal_set_delete_frame_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct terminal *)` (src/termhooks.h 397) - C 5956's write.
+@_silgen_name("terminal_set_delete_terminal_hook")
+func terminal_set_delete_terminal_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?)
+/// C: `void (*)(struct frame *, int)` (src/termhooks.h 255) - C 5957's write.
+@_silgen_name("terminal_set_change_tab_bar_height_hook")
+func terminal_set_change_tab_bar_height_hook(_ t: UnsafeMutableRawPointer?,
+                       _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32) -> Void)?)
