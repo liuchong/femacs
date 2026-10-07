@@ -16973,3 +16973,32 @@
      钉准入口、selector 与 SDK 声明；**对象 `/tmp/nsterm80.o` 与 `/tmp/r80_*.py` 跑完即删**，无全盘/大内存扫描。
      **未声称**：本轮**没有运行证据**——没有服务菜单项被选中、没有选区写进粘贴板、没有 miniwindow 图像被设置；
      编译门只到解析与类型检查，两个入口定义的**链接期验收**在本 lane 里不可得。
+
+- **4.022 `src/nsterm.m` round 81（Swift lane）：`EmacsView` 最后五个方法 + 协议表落地，**整类收口**（台账勾 430、未勾 **0**）（2026-10-08）**：
+  ① **本片落的五件**（C 顺序）：`firstRectForCharacterRange:actualRange:`（C 7458-7462，`<NSTextInputClient>` 的必需方法，整身是 C 7461 那次到单参版本的调用）、
+     `accessibilityFrame`（C 7464-7468）、`firstRectForCharacterRange:`（C 7651-7696——**round 34 当时点名移出的那一个**，它等的是 `WINDOW_TEXT_TO_FRAME_PIXEL_X` 这条第四宏的入口：
+     宏的展开体 `window_box_left (W, TEXT_AREA) + (X)` 正是 `window_box_left`/`TEXT_AREA` 待的地方，入口一落，那两个名字就不上本单元的界面）、
+     `selectedRange`（C 7733-7755）、`attributedSubstringFromRange:`（C 7769-7776，方法内 `static NSAttributedString *str` 按 C 7248 的 `nsEvArray` 读法提到文件域）。**类盒子关掉**：
+     `class EmacsView: NSView, NSTextInputClient, NSWindowDelegate` 落地，类盒子下**每一个框都勾上**（勾 424 → **430**、未勾 6 → **0**），round 25 那条"协议表是唯一延后项"的记录因此收口；
+     Cocoa 臂里的 `NSTextInput` 半边是 **非正式协议**（AppKit 在 `NSObject` 上的 category），没有 Swift 协议可写，所以 C 7481-7776 的方法保持普通 `@objc`。
+  ② **协议表把编译器变成验收器**：首跑 **6 条 error**，每一条都是读数——⑴ 类级 `does not conform to protocol 'NSTextInputClient'`，注记点名
+     `characterIndex (for:) -> Int` ⇒ 已落地的 `characterIndexForPoint (_:) -> UInt` 改名并重定型（派生的 selector 仍是 C 7759 的）；⑵ `'doCommandBySelector' has been renamed to 'doCommand (by:)'`
+     （NSTextInputClient.h 41，注记写 "obsoleted in Swift 3"）⇒ 改名，随之而来的是 `overriding declaration requires an 'override' keyword`（注记 `NSResponder.h 145`，即 `NSResponder` 自己就有这个 selector）；
+     ⑶ `accessibilityFrame` 同样要 `override`（注记 `NSAccessibilityProtocols.h` 21，即 `NSAccessibilityElement` 的要求）。二跑 **2 条 error**、三跑 **0 条**——类级 conformance 错误在最后一个 witness 就位时消失，这正是"盒子可以关"的判据。
+  ③ **八条新警告逐条点名，并且不"修"**：`insertText (_:replacementRange:)`（9206）与 `setMarkedText (_:selectedRange:replacementRange:)`（9217）各一条
+     "parameter has different optionality than expected by protocol 'NSTextInputClient'"——C 7435/7444 写的是 `(id) string`，本端口保留这个不带的写法（`Any?`）而不是协议要求的非可选 `Any`；
+     六条 "instance method … nearly matches optional requirement … of protocol 'NSWindowDelegate'"——`windowShouldClose`（9678）、`windowDidMove`（9986）、`windowDidDeminiaturize`（10101）、
+     `windowDidExpose`（10119）、`windowDidMiniaturize`（10135）、`windowWillMiniaturize`（10367），C 8195 的 `(id)sender` 与 C 8645/8788/8806/8820/8532 的裸 `sender` 都是 `id`，而协议把它们定型了。
+     两族都保留 C 的形状：witness 由 selector 在运行期找到（参照实现也是这样），给它定型就是本端口替 C 发明类型。
+  ④ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 17 warnings**（round 73-80 的九条 + ③ 的八条，逐条具名、无其它新增）；
+     对象 `/tmp/nsterm81.o` **1,411,856 字节**、md5 `347a0dc614f1f1ec7f69731b3f8012bf`；单元 **15,255 行**（round 80 是 15,095）。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), **6** unported, 6 row(s); **717** C symbol import(s)`（round 80 是 711：本轮六条新入口），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**。
+     ⑶ 台账：五个方法框 + 类盒子 = **6 个框一次勾完**（勾 424 → **430**、未勾 6 → **0**），两行"已落地"的写法按编译器的读数改写（`doCommand (by:)`、`characterIndex (for:)`），并追加 `### Round 81`（证据）。
+     ⑷ ABI：新增六条入口——`WINDOW_TEXT_TO_FRAME_PIXEL_X`、`BUF_PT`、`buffer_mark`、`window_phys_cursor_x`/`_y`（**open**：头文件宏或核心的成员读者）与 `marker_position`（**provided**：`femacs/src/marker.rs` 849 的 `#[unsafe(no_mangle)]`）。
+     ⑸ 十门其余：declarations **18/0/18/0**、own-voice **0**、citations **676 / 0 drift / 0 range / 2,417 external / 36 allowed / 0 stale**、
+     mirror-dupes **16/16/0**、port-lines **0/0/0/0**、ledger-ticks **238/0**、carried **11/11/4/0**、verbatim **6 树 / 4604 文件 / 8,419 行 / 0**、
+     verbatim-declarations **710 候选 / 6 登记 / 0 失败**、dead-file-coverage **145/0**。
+  ⑤ **预算与清理**：本片**单文件编译门 6 发**（都是 `swiftc -parse-as-library -c` 对同一文件，每发 1-2 秒：首跑 6 error、二跑 2 error、三跑 0 error、取字节/md5、枚举新增警告、终读；全部落在"改—读—再改"的必要循环里）+
+     **6 组只读 grep**（C 签名、SDK 头、既有入口的拼法）；`/tmp/nsterm81.o`、`/tmp/r81_*.py` 跑完即删，无全盘/大内存扫描。
+     **未声称**：本轮**没有运行证据**——没有输入法、服务或辅助功能客户端问过这五件事，协议表的实际效果（AppKit 把十一条要求路由到这里）是编译期读数，
+     要跑起来得有活的窗口服务器会话；编译门只到解析与类型检查。

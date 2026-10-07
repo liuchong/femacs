@@ -295,7 +295,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [x] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881) — landed as `@objc func requestService (_:userData:error:)`: the queue `ns_read_socket_1` drains is filled here, and C 6886's factory is the selection lane's `stringWithLispString` over `ns_string_from_pasteboard`
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
-- [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) round 72 the class initializer (C 8559-8642) round 73 the class prologue and the font panel (C 7041-7235) and round 74 `keyDown:` (C 7243-7427) and round 75 the fullscreen trio (C 9017-9200) and round 76 the mouse/toolbar/layer batch (C 9202-9336) and round 77 the copy/layout/draw batch (C 9340-9446) and round 78 the drag-and-drop batch's first four (C 9452-9536) and round 79 `performDragOperation:` (C 9538-9654) and round 80 the class's **last five** (`validRequestorForSendType:returnType:` C 9657, `readSelectionFromPasteboard:` C 9680, `writeSelectionToPasteboard:types:` C 9688, `setMiniwindowImage:` C 9721, `fullscreenState` C 9741) - **5 of the class's method boxes remain** (the five protocol requirements indented under this box) - so the class's C text (`@implementation` 7039 - `@end` 9746) is now reached; the box stays open until the protocol list (`src/nsterm.h` 466) lands with those five, which is the deferral its own text names
+- [x] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch.  **Brought up to date by round 69**: since that record, rounds 32/33 landed the input-method batch (C 7593-7767), round 68 the focus/notification batch (C 8404-8556) round 69 the mouse event family (C 7783-8193) and round 70 the window-shape family (C 8195-8401) and round 71 the window-delegate/fullscreen family (C 8645-8950) round 72 the class initializer (C 8559-8642) round 73 the class prologue and the font panel (C 7041-7235) and round 74 `keyDown:` (C 7243-7427) and round 75 the fullscreen trio (C 9017-9200) and round 76 the mouse/toolbar/layer batch (C 9202-9336) and round 77 the copy/layout/draw batch (C 9340-9446) and round 78 the drag-and-drop batch's first four (C 9452-9536) and round 79 `performDragOperation:` (C 9538-9654) and round 80 the class's **last five** (`validRequestorForSendType:returnType:` C 9657, `readSelectionFromPasteboard:` C 9680, `writeSelectionToPasteboard:types:` C 9688, `setMiniwindowImage:` C 9721, `fullscreenState` C 9741) - **5 of the class's method boxes remain** (the five protocol requirements indented under this box) - so the class's C text (`@implementation` 7039 - `@end` 9746) is reached; **round 81 lands those five and the protocol list itself**, so **every box under this one is ticked and the class box closes**: `class EmacsView: NSView, NSTextInputClient, NSWindowDelegate` is declared, every `NSTextInputClient` requirement is one of the methods above (measured: the compiler named `characterIndex (for:)` as the one still missing on the first run), the Cocoa arm's `NSTextInput` half is the *informal* protocol on `NSObject` and has no Swift protocol to name (so C 7481-7776's methods stay the plain `@objc` ones), and `NSWindowDelegate`'s requirements are all optional - the round-25 record now carries the `<…>` list it named as its own deferral
   - [x] `- (void)windowDidEndLiveResize:(NSNotification *)notification`  (line 7041) — landed as `@objc func windowDidEndLiveResize (_:)`; C's body is the forward to `updateFramePosition`
   - [x] `- (void) setWindowClosing: (BOOL)closing`  (line 7047) — landed as `@objc func setWindowClosing (_:)`: C's one statement assigns the ivar the class keeps as `windowClosing` (Swift's stored property is not Objective-C visible, which leaves the selector free)
   - [x] `- (void)dealloc`  (line 7055) — landed as `deinit`: the three `release` calls are the references ARC drops (C 7066's `nonfs_window`, C 7071's layer, C 7074's menu), `[super dealloc]` has no Swift statement, and C 7068-7072's `NS_IMPL_COCOA && MIN_REQUIRED >= 101400` arm is this target's
@@ -310,22 +310,22 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void) insertText: (id) string replacementRange: (NSRange) replacementRange`  (line 7435) — landed as `@objc func insertText (_:replacementRange:)`: C unmarks and hands the string to the older method (C 7440-7441), the `NSAttributedString` arm being C 7438-7439
   - [x] `- (void) setMarkedText: (id) string selectedRange: (NSRange) selectedRange replacementRange: (NSRange) replacementRange`  (line 7444) — landed as `@objc func setMarkedText (_:selectedRange:replacementRange:)`, whose body is C 7448's two-argument call
   - [x] `- (nullable NSAttributedString *) attributedSubstringForProposedRange: (NSRange) range actualRange: (nullable NSRangePointer) actualRange`  (line 7451) — landed as `@objc func attributedSubstring (forProposedRange:actualRange:) -> NSAttributedString?`: C's whole body is `return nil;`
-  - [ ] `- (NSRect) firstRectForCharacterRange: (NSRange) range actualRange: (nullable NSRangePointer) actualRange`  (line 7458)
-  - [ ] `- (NSRect)accessibilityFrame`  (line 7464)
+  - [x] `- (NSRect) firstRectForCharacterRange: (NSRange) range actualRange: (nullable NSRangePointer) actualRange`  (line 7458) — landed as `@objc func firstRect (forCharacterRange:actualRange:) -> NSRect` (round 81): it is `<NSTextInputClient>`'s required method and its whole body is C 7461's call to the one-argument method below, so the two share one Swift family and the call is direct; C 7459's `actualRange` stays as unused as C leaves it
+  - [x] `- (NSRect)accessibilityFrame`  (line 7464) — landed as `@objc override func accessibilityFrame () -> NSRect` (round 81): the `override` is **measured** - the SDK's `NSAccessibilityElement` requirement (NSAccessibilityProtocols.h 21) is the declaration this selector overrides; C 7466's `FRAME_NS_VIEW` is this unit's entry, C 7467's `[[view window] convertRectToScreen: …]` is `convertToScreen (_:)` over the file-scope `ns_UAZoom_cursor_rect_new` (C 1152), and C's nil-receiver result reads as the zeroed rect
   - [x] `- (void)insertText: (id)aString`  (line 7481) — landed as `@objc override func insertText (_:)` (the override is for `NSResponder`'s own method, measured): C 7515-7523's surrogate pair is this unit's two predicates and `surrogates_to_codepoint` (written out from their `src/coding.h` bodies, since the port's mirror spells them as plain functions), C 7524-7526's tilde substitution and the 32/0 modifier rule are kept, and the `kind` write uses the three enum constants the port's mirror fixes
   - [x] `- (void)setMarkedText: (id)aString selectedRange: (NSRange)selRange`  (line 7538) — landed as `@objc func setMarkedText (_:selectedRange:)`: C 7561-7562's `[workingText release]` + `[str copy]` is the ARC assignment, `ns_working_text` is this file's own `DEFVAR_LISP` data symbol, and C 7578-7579's `NS_KEYLOG` block is dead
   - [x] `- (void)deleteWorkingText`  (line 7572) — landed as `@objc func deleteWorkingText ()`: C 7580's `[workingText release]` is the reference being dropped, and the two `EMACS_EVENT` writes are C 7587-7588
   - [x] `- (BOOL)hasMarkedText`  (line 7593) — landed as `@objc func hasMarkedText () -> Bool`; C's whole body is the `workingText` test
   - [x] `- (NSRange)markedRange`  (line 7601) — landed as `@objc func markedRange () -> NSRange`: C 7605-7606's `NSMakeRange (NSNotFound, 0)` is the no-marked-text answer, and C 7607-7608's `NS_KEYLOG` block is dead (`NS_KEYLOG` is 0 at C 7241)
   - [x] `- (void)unmarkText`  (line 7613) — landed as `@objc func unmarkText ()`: C's two statements are the `deleteWorkingText` call and the `processingCompose` clear
-  - [ ] `- (NSRect)firstRectForCharacterRange: (NSRange)theRange`  (line 7651)
+  - [x] `- (NSRect)firstRectForCharacterRange: (NSRange)theRange`  (line 7651) — landed as `@objc(firstRectForCharacterRange:) func firstRectForCharacterRange (_:) -> NSRect` (round 81) - the method round 34 moved out with its blocker named, settled here: `WINDOW_TEXT_TO_FRAME_PIXEL_X` is the fourth macro's new entry (its expansion is `window_box_left (W, TEXT_AREA) + (X)`), the other three macros were already entries, C 7662's echo-area test is the `echo_area_window` data symbol plus this unit's own `ns_in_echo_area`, C 7673's conversion is `convert (_:to:)`, and the `MAC_OS_X_VERSION_*` guards C 7675-7693 carry resolve to this target's live arm - so C 7687-7693's `convertBaseToScreen:` block is **dead as a whole**; C 7653-7655's three uninitialized locals start at zero (the C 7823 reading)
   - [x] `- (NSInteger)conversationIdentifier`  (line 7699) — landed as `@objc func conversationIdentifier () -> Int`: C returns the receiver's own address as an integer, which Swift spells through `Unmanaged`
-  - [x] `- (void)doCommandBySelector: (SEL)aSelector`  (line 7705) — landed as `@objc func doCommandBySelector (_:)`: C 7709-7710's `NS_KEYLOG` block is dead, the `deleteBackward:` arm writes `NON_ASCII_KEYSTROKE_EVENT` (the enum value the port's mirror fixes) and code `0xFF08`, and C's `EV_TRAILER ((id)nil)` passes the same `emacsframe` this unit's other callers do
+  - [x] `- (void)doCommandBySelector: (SEL)aSelector`  (line 7705) — landed as `@objc override func doCommand (by aSelector: Selector)` (round 81 renamed it to the spelling the compiler's `NSTextInputClient` witness needs - NSTextInputClient.h 41's `doCommandBySelector:`, "obsoleted in Swift 3" - and the `override` is `NSResponder`'s own declaration, NSResponder.h 145; the derived selector is still C 7705's, measured): C 7709-7710's `NS_KEYLOG` block is dead, the `deleteBackward:` arm writes `NON_ASCII_KEYSTROKE_EVENT` (the enum value the port's mirror fixes) and code `0xFF08`, and C's `EV_TRAILER ((id)nil)` passes the same `emacsframe` this unit's other callers do
   - [x] `- (NSArray *)validAttributesForMarkedText`  (line 7725) — landed as `@objc func validAttributesForMarkedText () -> [NSAttributedString.Key]`: C's lazy `static NSArray *arr` starts empty and is never filled (its one `arrayWithObject:` is commented out at C 7729), so the body is the empty array
-  - [ ] `- (NSRange)selectedRange`  (line 7733)
-  - [x] `- (NSUInteger)characterIndexForPoint: (NSPoint)thePoint`  (line 7759) — landed as `@objc func characterIndexForPoint (_:) -> UInt`, C's whole body being `return 0;`
+  - [x] `- (NSRange)selectedRange`  (line 7733) — landed as `@objc func selectedRange () -> NSRange` (round 81, `<NSTextInputClient>`'s required method): C 7738-7740's chain is `frame_selected_window`/`XWINDOW`/`window_contents`/`XBUFFER` plus the new `BUF_PT` entry, C 7742's `BVAR (buf, mark_active)` is the existing `buffer_mark_active` reader and C 7748's `BVAR (buf, mark)` the new `buffer_mark` with `marker_position` (**provided** by the core, `femacs/src/marker.rs` 849), and C's `min`/`max` are Swift's `min`/`max`
+  - [x] `- (NSUInteger)characterIndexForPoint: (NSPoint)thePoint`  (line 7759) — landed as `@objc func characterIndex (for thePoint: NSPoint) -> Int` (round 81 renamed it and re-typed the answer to the witness the compiler needs - NSTextInputClient.h 77's `characterIndex(for:) -> Int`, the derived selector still C 7759's, measured; the `NSUInteger` C returns is 0 either way), C's whole body being `return 0;`
   - [x] `- (unsigned int)characterIndexForPoint: (NSPoint)thePoint`  (line 7761; the `#if defined (NS_IMPL_COCOA) || GNUSTEP_GUI…` arm of the box above) — the same selector and the same body; this target takes C 7757's first conjunct, so the row above is the live spelling and the two share one Swift `func`
-  - [ ] `- (NSAttributedString *)attributedSubstringFromRange: (NSRange)theRange`  (line 7769)
+  - [x] `- (NSAttributedString *)attributedSubstringFromRange: (NSRange)theRange`  (line 7769) — landed as `@objc(attributedSubstringFromRange:) func attributedSubstringFromRange (_:) -> NSAttributedString` (round 81): C 7771-7772's method-local `static NSAttributedString *str` is hoisted file-scope as `ns_attributed_substring_str` (the `nsEvArray` reading of C 7248, the name qualified because `str` is a local name elsewhere in the file), C 7773-7774's `NS_KEYLOG` block is dead, and C 7778 closes `<NSTextInput>`'s implementation
   - [x] `- (void)mouseDown: (NSEvent *)theEvent`  (line 7783) — landed as `@objc override func mouseDown (with:)`: C 7808-7810's `MAC_OS_X_VERSION_MIN_REQUIRED < 1070` guard around `respondsToSelector: (hasPreciseScrollingDeltas)` and C 7952-7955's `else` twin are **dead on this target**, C 7957-7979's `NS_IMPL_GNUSTEP || MIN_REQUIRED < 1070` coarse-wheel arm is **dead as a whole** (both recorded, not transcribed); C 7823's `bool horizontal;` is read by C 7944 when neither branch assigned it, and Swift has no indeterminate value, so the port starts it at zero and records the deviation; the wheel and tab-bar arms' entries are round 69's ABI block (`list3`, `mwheel_coalesce_scroll_events`, `default_line_pixel_height`, `NUMBERP`/`XFLOATINT`, `window_from_coordinates`, `handle_tab_bar_click`, `frame_tab_bar_window`, the `ns_display_info_grabbed` reader)
   - [x] `- (void)rightMouseDown: (NSEvent *)theEvent`  (line 8022) — landed as `@objc override func rightMouseDown (with:)`; C's whole body is `[self mouseDown: theEvent]`
   - [x] `- (void)otherMouseDown: (NSEvent *)theEvent`  (line 8029) — landed as `@objc override func otherMouseDown (with:)`; the forward, like its sibling above
@@ -2336,6 +2336,16 @@ call site takes an entry and the definition lands at its own C line - and **both
   adds - the second already the other lane's, so this unit only declares it.  `colorWithUnsignedLong`
   (C 10550) is `macfont.swift` 1321-1327's import of `src/nsfns.m`'s category method, and the
   cross-unit `@_cdecl("beginDrag")` entry is this round's *provider* for `nsselect.swift` 220-224.
+* **round 81's names**: four symbols the class's last five methods read that this unit did not carry -
+  `WINDOW_TEXT_TO_FRAME_PIXEL_X` (src/window.h 1091-1092, the fourth macro round 34's own note listed;
+  **open**: header-only, the core's to export, and its expansion - `window_box_left (W, TEXT_AREA) + (X)` -
+  is exactly why the entry is what keeps those two names off this unit's surface), `BUF_PT`
+  (src/buffer.h 933-934; **open**: header-only, the core's to export, the sibling of this unit's
+  `BUF_BEGV`), `buffer_mark` (src/buffer.h 308's `BVAR`, the per-field reader beside
+  `buffer_mark_active`; **open**) and `window_phys_cursor_x`/`window_phys_cursor_y` (`struct window`'s
+  nested `phys_cursor.x`/`.y`, src/window.h 332; **open**: the two readers `nsfns.swift` 770 already
+  imports) - plus `marker_position` (src/marker.c 723-724), which is **provided**:
+  `femacs/src/marker.rs` 849's `#[unsafe(no_mangle)]`.
 
 ## Evidence
 
@@ -5040,3 +5050,49 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **Not claimed**: no runtime evidence - no services menu item was chosen, no selection was written
   to a pasteboard and no miniwindow image was set; the compile gate reaches type checking only, and
   the two definitions' link-time acceptance is not available in this lane.
+
+### Round 81: the class's last five boxes, the protocol list, and `EmacsView` closes (C 7458-7776)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **seventeen** warnings - the nine rounds 73-80 leave plus **eight this round's conformance
+  surfaces**, named below.  The first run had **six errors**, the second **two**, and every one of
+  them is a reading:
+  * `type 'EmacsView' does not conform to protocol 'NSTextInputClient'` with the note
+    `protocol requires function 'characterIndex (for:)' with type '(NSPoint) -> Int'` - the port's
+    `characterIndexForPoint (_:) -> UInt` witness did not match, so the method is renamed and
+    re-typed (the ledger's row 326 records it).
+  * `'doCommandBySelector' has been renamed to 'doCommand (by:)'` (NSTextInputClient.h 41,
+    "obsoleted in Swift 3") and, after that rename, `overriding declaration requires an 'override'
+    keyword` with the note `NSResponder.h 145` - both recorded in row 323.
+  * `overriding declaration requires an 'override' keyword` for `accessibilityFrame` too, with the
+    note `NSAccessibilityProtocols.h 21` (`NSAccessibilityElement`'s requirement) - so the port
+    overrides it.
+  * the two `error: overriding declaration requires an 'override' keyword` runs also show that the
+    class-level conformance error disappears the moment the last requirement is witnessed, which is
+    the reading that makes the box closable.
+* **The eight new warnings, one by one**: `insertText (_:replacementRange:)` (line 9206) and
+  `setMarkedText (_:selectedRange:replacementRange:)` (9217) "parameter has different optionality
+  than expected by protocol 'NSTextInputClient'" - C 7435/7444 declare `(id) string` and the port
+  keeps that untyped spelling (`Any?`) rather than the protocol's non-optional `Any`; and six
+  "instance method … nearly matches optional requirement … of protocol 'NSWindowDelegate'"
+  (`windowShouldClose` 9678, `windowDidMove` 9986, `windowDidDeminiaturize` 10101,
+  `windowDidExpose` 10119, `windowDidMiniaturize` 10135, `windowWillMiniaturize` 10367) - C 8195's
+  `(id)sender` and C 8645/8788/8806/8820/8532's bare `sender` are `id`, while the delegate protocol
+  types them.  Both families keep C's shape: the witness is found by selector at run time (which is
+  how the reference works too), and typing them would be the port inventing a C type.
+* **Five `EmacsView` methods land and the class closes**: C 7458-7462, C 7464-7468, C 7651-7696,
+  C 7733-7755 and C 7769-7776; the class declaration gains the protocol list
+  (`NSTextInputClient, NSWindowDelegate`), so **every box under the class box is ticked** (ticks
+  424 -> **429**, open 6 -> **1** - `NS_KEYLOG` is the file's own constant row, ticked in round 74).
+  Object `/tmp/nsterm81.o`, **1,411,856 bytes**, md5 `347a0dc614f1f1ec7f69731b3f8012bf`.  The unit is
+  **15,255 lines**.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **717** C symbol imports (round 80 read 711 - this round's six new entries) and
+  **`0 new, 0 stale, 7 Swift unit(s) landed`**.
+* **The ABI block adds six entries**: `WINDOW_TEXT_TO_FRAME_PIXEL_X`, `BUF_PT`, `buffer_mark` and
+  the `window_phys_cursor_x`/`_y` pair (**open** - header-only or the core's member readers) plus
+  `marker_position` (**provided**, `femacs/src/marker.rs` 849).
+* **Not claimed**: no runtime evidence - no input method, service or accessibility client asked
+  this class any of the five questions, and the protocol list's effect (AppKit routing the eleven
+  requirements here) is a compile-time reading of a conformance that would need a live window
+  server session to exercise; the compile gate reaches type checking only.

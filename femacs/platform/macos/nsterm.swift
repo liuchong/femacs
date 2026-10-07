@@ -8083,7 +8083,12 @@ class EmacsWindow: NSWindow {
 /// conformance is declared, so the `<…>` list lands in the round that carries that method batch,
 /// not with the record (the ledger's box for this class says so).  The reference's own text is
 /// unchanged by this split: no method below reads a protocol requirement it does not implement.
-class EmacsView: NSView {
+/// **Round 81 lands the list**: every `NSTextInputClient` requirement is now one of the methods
+/// below, so the conformance can be declared.  The Cocoa arm's `NSTextInput` half has no Swift
+/// protocol to name - AppKit's is the *informal* protocol on `NSObject` (NSAccessibility.h's
+/// category shape) - so its methods stay the plain `@objc` ones C 7481-7776 writes, and
+/// `NSWindowDelegate`'s requirements are all optional.
+class EmacsView: NSView, NSTextInputClient, NSWindowDelegate {
   /// C nsterm.h 472-474, the `NS_IMPL_COCOA` arm: `char *old_title; BOOL maximizing_resize;`
   var old_title: UnsafeMutablePointer<CChar>? = nil
   var maximizing_resize: Bool = false
@@ -9243,8 +9248,11 @@ class EmacsView: NSView {
   }
 
   /// C 7757-7767: `- (NSUInteger)characterIndexForPoint: (NSPoint)thePoint` - the
-  /// `NS_IMPL_COCOA` arm of C 7757-7762, whose whole body is `return 0;`.
-  @objc func characterIndexForPoint(_ thePoint: NSPoint) -> UInt {
+  /// `NS_IMPL_COCOA` arm of C 7757-7762, whose whole body is `return 0;`.  The Swift name and the
+  /// `Int` return are the compiler's: `NSTextInputClient`'s requirement is
+  /// `characterIndex (for:) -> Int` (NSTextInputClient.h 77), the derived selector is C's, and the
+  /// `NSUInteger` C returns is 0 either way - measured when round 81 declared the conformance.
+  @objc func characterIndex(for thePoint: NSPoint) -> Int {
     0                                                 // C 7766
   }
 
@@ -9256,8 +9264,12 @@ class EmacsView: NSView {
 
   /// C 7705-7723: `- (void)doCommandBySelector: (SEL)aSelector`.  C 7709-7710's `NS_KEYLOG` block
   /// is dead (`NS_KEYLOG` is 0 at C 7241); the `deleteBackward:` arm is the live one, and C's
-  /// `EV_TRAILER ((id)nil)` reaches the same `emacsframe` this unit's other callers pass.
-  @objc func doCommandBySelector(_ aSelector: Selector) {
+  /// `EV_TRAILER ((id)nil)` reaches the same `emacsframe` this unit's other callers pass.  The
+  /// Swift name is the compiler's: `NSTextInputClient`'s requirement is `doCommand (by:)`
+  /// (NSTextInputClient.h 41's `doCommandBySelector:`, "obsoleted in Swift 3"), and the derived
+  /// selector is C's, and the declaration overrides **`NSResponder`'s own** (NSResponder.h 145) -
+  /// both measured when round 81 declared the conformance.
+  @objc override func doCommand(by aSelector: Selector) {
     processingCompose = false                         // C 7712
     if aSelector == #selector(NSResponder.deleteBackward(_:)) {   // C 7713
       /* C 7715-7716: "Happens when user backspaces over an ongoing composition: throw a
@@ -10485,6 +10497,117 @@ class EmacsView: NSView {
   /// class already writes (C 7065, C 8567, C 8853, C 9130-9199); C 9746's `@end` closes the class.
   @objc func fullscreenState() -> Int32 {
     fs_state                                                 // C 9743
+  }
+
+  // ==========================================================================
+  // C 7458-7468 (the `NSTextInputClient` arm) and C 7651-7776 (the `NSTextInput`
+  // family's remaining three): the class's last five method boxes, and the
+  // protocol list they were waiting for.
+  // ==========================================================================
+
+  /// C 7458-7462: `- (NSRect) firstRectForCharacterRange: (NSRange) range actualRange:
+  /// (nullable NSRangePointer) actualRange` - `<NSTextInputClient>`'s required method, whose whole
+  /// body is the call to the one-argument method below (C 7461); C 7459's `actualRange` is as
+  /// unused as C leaves it.
+  @objc func firstRect(forCharacterRange range: NSRange,
+                       actualRange: NSRangePointer?) -> NSRect {
+    firstRectForCharacterRange(range)                 // C 7461
+  }
+
+  /// C 7464-7468: `- (NSRect)accessibilityFrame` (the `NS_IMPL_COCOA` arm; C 7470 closes that
+  /// block).  Readings: C 7466's `EmacsView *view = FRAME_NS_VIEW (emacsframe)` is this unit's
+  /// entry, C 7467's `[[view window] convertRectToScreen: …]` is `NSWindow.convertToScreen (_:)`
+  /// over the file-scope `ns_UAZoom_cursor_rect_new` (C 1152), and a nil view or window reads as
+  /// the zeroed rect C's nil-messaging produces (`ns_parent_window_rect`'s reading); the
+  /// `override` is measured - the SDK's `NSAccessibilityElement` requirement (NSAccessibilityProtocols.h
+  /// 21) is the declaration this selector overrides.
+  @objc override func accessibilityFrame() -> NSRect {
+    let view = FRAME_NS_VIEW(emacsframe)              // C 7466
+    return view?.window?.convertToScreen(ns_UAZoom_cursor_rect_new) ?? .zero   // C 7467
+  }
+
+  /// C 7651-7696: `- (NSRect)firstRectForCharacterRange: (NSRange)theRange` - "Used to position
+  /// char selection windows, etc."  Readings: C 7657's `NSTRACE` and C 7659-7660's `NS_KEYLOG`
+  /// block are empty/dead (`NS_KEYLOG` is 0 at C 7241); C 7662's `WINDOWP (echo_area_window) &&
+  /// ns_in_echo_area ()` is the `echo_area_window` data symbol (C 10998) plus this unit's own
+  /// `ns_in_echo_area`; C 7667-7671's four macros are the entries `FRAME_COLUMN_WIDTH`,
+  /// `FRAME_LINE_HEIGHT`, `WINDOW_TEXT_TO_FRAME_PIXEL_X` (new) and `WINDOW_TO_FRAME_PIXEL_Y`, over
+  /// the `window_phys_cursor_x`/`_y` member reads (`nsfns.swift` 770's spelling); C 7673's
+  /// `[self convertPoint: pt toView: nil]` is `convert (_:to:)`; and the `MAC_OS_X_VERSION_*`
+  /// guards C 7675-7693 carry resolve to this target's live arm, so C 7687-7693's
+  /// `convertBaseToScreen:` block is **dead as a whole** (recorded, not transcribed).  C 7653-7655
+  /// declares its three locals without initializers and writes every field before reading it, so
+  /// the port starts them at zero (Swift has no indeterminate value - the C 7823 reading).
+  @objc(firstRectForCharacterRange:)
+  func firstRectForCharacterRange(_ theRange: NSRange) -> NSRect {
+    var rect: NSRect = .zero                          // C 7653
+    var pt: NSPoint = .zero                           // C 7654
+    let win: UnsafeMutableRawPointer?                 // C 7655
+
+    // C 7657: `NSTRACE ("[EmacsView firstRectForCharacterRange:]");` - empty.
+    // C 7659-7660: `if (NS_KEYLOG) NSLog (@"firstRectForCharRange request");` - `NS_KEYLOG` is 0.
+
+    if WINDOWP(echo_area_window) && ns_in_echo_area() {   // C 7662
+      win = XWINDOW(echo_area_window)                     // C 7663
+    } else {
+      win = XWINDOW(frame_selected_window(emacsframe))    // C 7665
+    }
+
+    rect.size.width = CGFloat(theRange.length)
+                      * CGFloat(FRAME_COLUMN_WIDTH(emacsframe))                          // C 7667
+    rect.size.height = CGFloat(FRAME_LINE_HEIGHT(emacsframe))                            // C 7668
+    pt.x = CGFloat(WINDOW_TEXT_TO_FRAME_PIXEL_X(win, Int32(window_phys_cursor_x(win))))  // C 7669
+    pt.y = CGFloat(WINDOW_TO_FRAME_PIXEL_Y(win, Int32(window_phys_cursor_y(win))
+                                             + FRAME_LINE_HEIGHT(emacsframe)))           // C 7670-7671
+
+    pt = self.convert(pt, to: nil)                    // C 7673
+
+    rect.origin = pt                                  // C 7680
+    rect = self.window?.convertToScreen(rect) ?? .zero   // C 7681
+
+    return rect                                       // C 7695
+  }
+
+  /// C 7733-7755: `- (NSRange)selectedRange` (`<NSTextInputClient>`'s required method).  Readings:
+  /// C 7735-7736's `NS_KEYLOG` block is dead; C 7738-7740's chain is the `frame_selected_window`
+  /// entry (C 10994), `XWINDOW` (C 3295), `window_contents` (C 14487) and `XBUFFER` (C 14484) with
+  /// the new `BUF_PT`; C 7742's `BVAR (buf, mark_active)` is the existing `buffer_mark_active`
+  /// reader (C 14492) and C 7748's `BVAR (buf, mark)` the new `buffer_mark`, whose
+  /// `marker_position` (C 7748) is the core's own export (`femacs/src/marker.rs` 849); C's `min`
+  /// and `max` are Swift's, and the two `NSUInteger` locals are `NSMakeRange`'s `Int`s.
+  @objc func selectedRange() -> NSRange {
+    // C 7735-7736: `if (NS_KEYLOG) NSLog (@"selectedRange request");` - `NS_KEYLOG` is 0.
+
+    let w = XWINDOW(frame_selected_window(emacsframe))    // C 7738
+    let buf = XBUFFER(window_contents(w))                 // C 7739
+    let point = BUF_PT(buf)                               // C 7740
+
+    if NILP(buffer_mark_active(buf)) {                    // C 7742
+      let selection_location = point - BUF_BEGV(buf)      // C 7744
+      return NSMakeRange(selection_location, 0)           // C 7745
+    }
+
+    let mark = marker_position(buffer_mark(buf))          // C 7748
+    let region_start = min(point, mark)                   // C 7749
+    let region_end = max(point, mark)                     // C 7750
+    let selection_location = region_start - BUF_BEGV(buf) // C 7751
+    let selection_length = region_end - region_start      // C 7752
+
+    return NSMakeRange(selection_location, selection_length)   // C 7754
+  }
+
+  /// C 7769-7776: `- (NSAttributedString *)attributedSubstringFromRange: (NSRange)theRange`.
+  /// Readings: C 7771-7772's method-local `static NSAttributedString *str` is hoisted to the
+  /// file-scope `ns_attributed_substring_str` (the `nsEvArray` reading of C 7248, with the name
+  /// qualified because `str` is a local name elsewhere in this file); C 7773-7774's `NS_KEYLOG`
+  /// block is dead; and C 7778 closes `<NSTextInput>`'s implementation.
+  @objc(attributedSubstringFromRange:)
+  func attributedSubstringFromRange(_ theRange: NSRange) -> NSAttributedString {
+    if ns_attributed_substring_str == nil {               // C 7772
+      ns_attributed_substring_str = NSAttributedString()  // C 7771
+    }
+    // C 7773-7774: `if (NS_KEYLOG) NSLog (@"attributedSubstringFromRange request");` - 0.
+    return ns_attributed_substring_str!                   // C 7775
   }
 }
 
@@ -14882,6 +15005,10 @@ fileprivate let NS_KEYLOG: Int32 = 0
 /// and here (the `ns_initialized` reading); C 7275-7276 fills it on first use.
 fileprivate var nsEvArray: NSMutableArray? = nil
 
+/// C 7771: `static NSAttributedString *str;` - C 7769's method-local cache, hoisted here the
+/// `nsEvArray` way; the name is qualified because `str` is a local name elsewhere in this file.
+fileprivate var ns_attributed_substring_str: NSAttributedString? = nil
+
 /// C: `Lisp_Object Vmake_pointer_invisible` and `Lisp_Object Vmouse_highlight` (this file's own
 /// `DEFVAR_LISP`s, C 11705-11720) - C 7278's and C 7281's reads.  Provided:
 /// `femacs/src/frame.rs` 7427 and 7425 (`#[unsafe(no_mangle)]`).
@@ -15093,3 +15220,36 @@ func setMiniwindowImage_definition(_ view: NSView?, _ mini: Bool) {
 func fullscreenState_definition(_ view: NSView?) -> Int32 {
   (view as? EmacsView)?.fullscreenState() ?? 0
 }
+
+// ==========================================================================
+// Round 81: the entries the class's last five methods need
+// ==========================================================================
+
+/// C: `#define WINDOW_TEXT_TO_FRAME_PIXEL_X(W, X) window_box_left (W, TEXT_AREA) + (X)`
+/// (src/window.h 1091-1092) - "Convert a text area relative x-position in window W to frame X
+/// pixel coordinates"; the sibling of `WINDOW_TO_FRAME_PIXEL_Y` above, and the fourth macro
+/// round 34 listed as this method's blocker (its expansion is where `window_box_left`/`TEXT_AREA`
+/// live, so the entry is what keeps them off this unit's surface).  **Open**: header-only, the
+/// core's to export.
+@_silgen_name("WINDOW_TEXT_TO_FRAME_PIXEL_X")
+func WINDOW_TEXT_TO_FRAME_PIXEL_X(_ w: UnsafeMutableRawPointer?, _ x: Int32) -> Int32
+
+/// C: `INLINE ptrdiff_t BUF_PT (struct buffer *buf)` (src/buffer.h 933-934) - "Position of point
+/// in buffer", read at C 7740.  **Open**: header-only, the core's to export (its sibling
+/// `BUF_BEGV` is already this unit's entry, C 14499).
+@_silgen_name("BUF_PT") func BUF_PT(_ buf: UnsafeMutableRawPointer?) -> Int
+
+/// C: `BVAR (buf, mark)` (src/buffer.h 308's `BVAR`, whose mirror is `femacs/src/include/buffer.rs`
+/// 407) - the per-field reader of `struct buffer`'s `mark` member, C 7748's read and the shape
+/// `buffer_mark_active` (C 14492) already sets.  **Open**: the core's to export.
+@_silgen_name("buffer_mark") func buffer_mark(_ buf: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: `ptrdiff_t marker_position (Lisp_Object marker)` (src/marker.c 723-724, declared src/lisp.h) -
+/// C 7748's call.  **Provided**: `femacs/src/marker.rs` 849 (`#[unsafe(no_mangle)]`).
+@_silgen_name("marker_position") func marker_position(_ marker: Lisp_Object) -> Int
+
+/// C: `struct window`'s nested `phys_cursor.x`/`phys_cursor.y` (src/window.h 332's
+/// `struct cursor_pos`) - C 7669-7670's two reads, under the member-reader names `nsfns.swift`
+/// 770 already imports.  **Open**: the core's to export.
+@_silgen_name("window_phys_cursor_x") func window_phys_cursor_x(_ w: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("window_phys_cursor_y") func window_phys_cursor_y(_ w: UnsafeMutableRawPointer?) -> Int
