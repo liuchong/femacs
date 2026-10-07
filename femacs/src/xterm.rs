@@ -28386,4 +28386,102 @@ unsafe fn x_monitors_changed_cb (gscr: *mut GdkScreen, user_data: gpointer)
   (*dpyinfo).last_monitor_attributes_list = current_monitors;          // C 18677
 }
 
-/* C 18681-18683's comment opens `x_coords_from_dnd_message` (C 18685-...), the next definition.  */
+/* Extract the root window coordinates from the client message EVENT
+   if it is a message that we already understand.  Return false if the
+   event was not understood.  */
+
+/// C 18684-18761: `static bool x_coords_from_dnd_message (struct x_display_info *dpyinfo, XEvent
+/// *event, int *x_out, int *y_out)` - C's `static`, so a plain `unsafe fn`, and this slice's
+/// `--check` item.  Five shapes: C's four uninitialised Motif message structs are zeroed per
+/// Deviation 12 (the readers write them through `&raw mut`), the four readers are slices 4-6's
+/// definitions returning C's `bool` as `c_int` (so C's `!` is `== 0`), C's two `unsigned long`
+/// computations and the two stores into `int *` are stated as `as c_ulong` / `as c_int` (the
+/// file's rule since slice 92), and C 18750's `data.l[4]` truth value is `!= 0`.
+/// The twelve `(*event).xclient`/`r#type` reads are the file's recorded opaque-`XEvent` class
+/// (`include/xlib.rs` 1364 keeps C's measured 192 bytes and no member), and the two KDE atoms are
+/// `include/xterm.rs` 495-496's rows, so this function adds no *name* row of its own.  C 18743-18750's
+/// `((A) || (B)) && C && D` keeps C's group pair - it is required, since Rust's `&&` binds tighter
+/// than `||` - and rustc's `unused_parens` calls it unnecessary anyway (a two-line probe reproduces
+/// the lint on `if ((a || b) && c && d)`), so every arm reads one extra warning and the shape stays
+/// C's.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_coords_from_dnd_message (dpyinfo: *mut x_display_info,
+				     event: *mut XEvent, x_out: *mut c_int,
+				     y_out: *mut c_int) -> bool
+{
+  use crate::x11_constants::ClientMessage;
+
+  let mut dmsg: xm_drag_motion_message = core::mem::zeroed ();          // C 18688 (Deviation 12)
+  let mut dreply: xm_drag_motion_reply = core::mem::zeroed ();          // C 18689
+  let mut smsg: xm_drop_start_message = core::mem::zeroed ();           // C 18690
+  let mut reply: xm_drop_start_reply = core::mem::zeroed ();            // C 18691
+  let mut kde_data: c_ulong;                                           // C 18692
+
+  if (*event).r#type != ClientMessage                                 // C 18694
+    { return false; }                                                  // C 18695
+
+  if (*event).xclient.message_type == (*dpyinfo).Xatom_XdndPosition    // C 18697
+    {
+      if (*event).xclient.format != 32                                 // C 18699
+	{ return false; }                                              // C 18700
+
+      *x_out = ((((*event).xclient.data.l[2]) as c_ulong) >> 16        // C 18702-18703
+		& 0xffff) as c_int;
+      *y_out = ((*event).xclient.data.l[2] & 0xffff) as c_int;         // C 18704
+
+      return true;                                                     // C 18706
+    }
+
+  if (*event).xclient.message_type                                     // C 18709-18711
+      == (*dpyinfo).Xatom_MOTIF_DRAG_AND_DROP_MESSAGE
+      && (*event).xclient.format == 8
+    {
+      if xm_read_drag_motion_message (event, &raw mut dmsg) == 0       // C 18713
+	{
+	  *x_out = dmsg.x as c_int;                                      // C 18715
+	  *y_out = dmsg.y as c_int;                                      // C 18716
+
+	  return true;                                                   // C 18718
+	}
+      else if xm_read_drag_motion_reply (event, &raw mut dreply) == 0  // C 18720
+	{
+	  *x_out = dreply.better_x as c_int;                             // C 18722
+	  *y_out = dreply.better_y as c_int;                             // C 18723
+
+	  return true;                                                   // C 18725
+	}
+      else if xm_read_drop_start_message (event, &raw mut smsg) == 0   // C 18727
+	{
+	  *x_out = smsg.x as c_int;                                      // C 18729
+	  *y_out = smsg.y as c_int;                                      // C 18730
+
+	  return true;                                                   // C 18732
+	}
+      else if xm_read_drop_start_reply (event, &raw mut reply) == 0    // C 18734
+	{
+	  *x_out = reply.better_x as c_int;                              // C 18736
+	  *y_out = reply.better_y as c_int;                              // C 18737
+
+	  return true;                                                   // C 18739
+	}
+    }
+
+  if (((*event).xclient.message_type == (*dpyinfo).Xatom_DndProtocol  // C 18743-18744
+       || (*event).xclient.message_type == (*dpyinfo).Xatom_DND_PROTOCOL)  // C 18745-18746
+      && (*event).xclient.format == 32                                 // C 18747
+      /* Check that the version of the old KDE protocol is new
+	 enough to include coordinates.  */
+      && (*event).xclient.data.l[4] != 0)                              // C 18750
+    {
+      kde_data = (*event).xclient.data.l[3] as c_ulong;               // C 18752
+
+      *x_out = (kde_data & 0xffff) as c_int;                           // C 18754
+      *y_out = ((kde_data >> 16) & 0xffff) as c_int;                   // C 18755
+
+      return true;                                                     // C 18757
+    }
+
+  return false;                                                        // C 18760
+}
+
+/* C 18763-18764 is `x_handle_wm_state` (C 18764-...), the next definition.  */

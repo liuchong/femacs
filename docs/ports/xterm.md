@@ -184,6 +184,18 @@ U 819 -> **819**, UT 805 -> **805**, UM 806 -> **806**, UG 803 -> **805**, UGX 9
 **844**, with **no warning moved in any of the twelve arms**.  `x_monitors_changed_cb` (C 18638-18678)
 is dead text - `USE_GTK` is `undef` in the frozen table - so it is carried with its gate (P-86 1) and
 is not a checklist row.
+  Slice 98 (C 18681-18761, Decision 111) goes **17 -> 16**: `x_coords_from_dnd_message` retires as a
+missing function, and the slice's whole rustc footprint is **the same twelve rows in all twelve
+arms** - eleven `E0609 no field xclient on type xlib_surface::XEvent` and one `no field r#type` - plus
+**one warning**: `unnecessary parentheses around `if` condition`, which is rustc's `unused_parens`
+false positive on C 18743-18750's `((A) || (B)) && C && D` (proved with a two-line probe: the lint
+also fires on `if ((a || b) && c && d)`, where removing the pair would change the meaning) - so C's
+grouping stays and the warning is the reading.  The `xclient`/`r#type` class is the file's own
+recorded one (`include/xlib.rs` 1364 keeps C's measured 192-byte `XEvent` and no member; the baseline
+already carries 153 + 9 of these rows), and the two KDE atoms are `include/xterm.rs` 495-496's rows,
+so this function adds no *name* row: A 790 -> **802**, U 819 -> **831**, UT 805 -> **817**, UM 806 ->
+**818**, UG 805 -> **817**, UGX 907 -> **919**, AE 822 -> **834**, AI 798 -> **810**, AIU 840 -> **852**,
+AIUX 946 -> **958**, AX 804 -> **816**, AG3 844 -> **856**.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -391,7 +403,7 @@ is not a checklist row.
 - [x] x_display_pixel_width  (line 18491)
 - [x] x_wait_for_cell_change  (line 18502)
 - [x] x_find_monitors_changed_event  (line 18619, static)
-- [ ] x_coords_from_dnd_message  (line 18685, static)
+- [x] x_coords_from_dnd_message  (line 18685, static)
 - [ ] x_handle_wm_state  (line 18764, static)
 - [ ] handle_one_xevent  (line 18876, static)
 - [ ] x_dispatch_event  (line 25645, static)
@@ -4593,6 +4605,32 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   (this file 5206).
 * **What `--check` reads.**  **18 -> 17**, with the line-count row at **28,389** against C's 33,125
   (14.3% drift, was 28,303 / 14.6%).
+
+### 111. Slice 98 (C 18681-18761): `x_coords_from_dnd_message`, the twelve `xclient` reads and one lint false positive
+
+* **The `--check` item.**  `x_coords_from_dnd_message` is C's `static`, so a plain `unsafe fn`, and
+  **17 -> 16**.  Its four readers are slices 4-6's definitions (`xm_read_drag_motion_message`,
+  `xm_read_drag_motion_reply`, `xm_read_drop_start_message`, `xm_read_drop_start_reply`), which return
+  C's `bool` as `c_int`, so C's four `!` become `== 0`; the two KDE atoms are `include/xterm.rs`
+  495-496's rows; and C's two `unsigned long` computations plus the stores into `int *` state their
+  conversions (`as c_ulong` / `as c_int`, the rule since slice 92).
+* **The twelve rows are the file's opaque-`XEvent` class.**  Every arm reads eleven
+  `E0609 no field xclient` and one `no field r#type`: `include/xlib.rs` 1364 keeps C's measured
+  192-byte `XEvent` with no member, and the baseline already reads 153 + 9 of these rows, so this
+  function adds sites of a recorded class rather than a new one.  That is also why the earlier
+  slices' `msg.xclient.*` writes are rows too.
+* **One warning, and it is a lint false positive - measured, not assumed.**  C 18743-18750 is
+  `if (((A) || (B)) && C && D)`, whose group pair is *required* (`&&` binds tighter than `||`).
+  rustc's `unused_parens` fires on it as "unnecessary parentheses around `if` condition" and offers to
+  remove the pair - which would change the meaning.  A two-line probe (`if ((a || b) && c && d)`)
+  reproduces the same lint, so the port keeps C's grouping (C's own pair, no deviation) and the twelve
+  arms each read **one** extra warning; the alternative shapes (dropping the pair, hoisting the group
+  into a binding, or splitting the `if`) were rejected because each deviates from C's structure or
+  semantics to hide a compiler defect.
+* **Deviation 12's four zeroes.**  `dmsg`/`dreply`/`smsg`/`reply` are C's uninitialised Motif message
+  structs, zeroed at their declarations because the readers write them through `&raw mut`.
+* **What `--check` reads.**  **17 -> 16**, with the line-count row at **28,487** against C's 33,125
+  (14.0% drift, was 28,389 / 14.3%).
 
 ## Evidence
 
@@ -9099,3 +9137,50 @@ against C's 33,125 (14.3% drift, was 28,303 / 14.6%).
 **Not claimed.**  The frozen configuration compiles none of this file: no event queue was walked, no
 monitor list was compared and no terminal was set; the readings above are compile readings of text
 this machine cannot build.
+
+### Slice 98's readings (C 18681-18761), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s98/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`; A = `have_x_windows`, U = A +
+`use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI +
+`use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`.
+Both sides were measured on this revision (the baseline by restoring `src/xterm.rs` from HEAD, then
+putting the saved copy back - its md5 is the copy's).
+
+| arm | HEAD's unit (slice 97 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 790 / 73 | **802 / 74** | **+12 / +1 w** |
+| U `+use_toolkit_scroll_bars` | 819 / 73 | **831 / 74** | **+12 / +1 w** |
+| UT `U +use_x_toolkit` | 805 / 72 | **817 / 73** | **+12 / +1 w** |
+| UM `UT +use_motif` | 806 / 72 | **818 / 73** | **+12 / +1 w** |
+| UG `U +use_gtk` | 805 / 74 | **817 / 75** | **+12 / +1 w** |
+| UGX `UG +have_xinput2` | 907 / 76 | **919 / 77** | **+12 / +1 w** |
+| AE `A +enable_checking` | 822 / 72 | **834 / 73** | **+12 / +1 w** |
+| AI `A +have_x_i18n` | 798 / 74 | **810 / 75** | **+12 / +1 w** |
+| AIU `AI +use_gtk` | 840 / 74 | **852 / 75** | **+12 / +1 w** |
+| AIUX `AIU +have_xinput2` | 946 / 76 | **958 / 77** | **+12 / +1 w** |
+| AX `A +have_xdbe` | 804 / 73 | **816 / 74** | **+12 / +1 w** |
+| AG3 `A +use_gtk +have_gtk3` | 844 / 73 | **856 / 74** | **+12 / +1 w** |
+
+**Additions, by name** (the same in all twelve): `E0609 no field `xclient` on type
+`xlib_surface::XEvent`` x11 and `no field `r#type`` x1 - the twelve accesses C 18694-18752 makes
+through the opaque `XEvent` (one `type`, four `message_type`, three `format`, four `data.l`).  The
+warning is `unnecessary parentheses around `if` condition` x1, C 18743-18750's group pair, which
+rustc's `unused_parens` misreads as removable (proved on a two-line probe).  **Nothing retires in any
+arm.**
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has no window system, so this function is not compiled
+there).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 18692's `unsigned long kde_data;` moves
+**A 802 -> 803** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:28429:18`; removing
+the line returns A to the table.
+
+**What `--check` reads.**  **17 -> 16** as Decision 111 5 says, with the line-count row at **28,487**
+against C's 33,125 (14.0% drift, was 28,389 / 14.3%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no client message was read and
+no coordinates were extracted; the readings above are compile readings of text this machine cannot
+build.
