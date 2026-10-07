@@ -341,6 +341,13 @@ independent test (Rust has no attribute for an `else`), and where the lane keeps
 bounds rather than opening new arms: `HAVE_XWIDGETS`'s early return and `USE_LUCID`'s widget
 dispatch are carried text no arm compiles, as they have been since Decision 101's note.
 
+  Slice 114 (C 20007-20195, Decision 125) lands `UnmapNotify` and `MapNotify` (189 C lines) and adds
+the lane's **nineteenth arm**, `AG3X = A + use_gtk + have_gtk3 + have_xinput2`, for C 20090's
+`#if defined HAVE_XINPUT2 && defined HAVE_GTK3` block - the one feature pair no earlier arm spelled.
+Three more names stand at their use sites (`gui_redo_mouse_highlight`, `tip_window`,
+`xg_is_menu_window`/`popup_activated_flag`), and the round carries one repair the new arms exposed:
+slice 112's two `FRAME_PIXEL_WIDTH!`/`_HEIGHT!` calls, which are functions, not macros.
+
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 310
@@ -5258,6 +5265,48 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `x_get_wm_check_window does not mention false`); the long row's list goes **388 -> 373**.  The
   unit is **32,553 lines** against C's 33,125 (**1.73%** drift, was 2.22%), file md5
   `98326e93ce65349619f3bf0db9a15443`.
+
+### 125. Slice 114 (C 20007-20195): `UnmapNotify` and `MapNotify`, and the nineteenth arm
+
+* **What it lands.**  `case UnmapNotify:` (C 20007-20088, 82 lines) and `case MapNotify:`
+  (C 20089-20195, 107 lines), each line with its own `// C NNNN` comment.  The XDND toplevel
+  table's `mapped_p` clear and its set, the tooltip's mouse-highlight redo, the GTK3 menu check,
+  the two `x_dnd_update_state` sites, and then the frame's own state: `x_get_current_wm_state` with
+  its three out-parameters, `frame_size_history_extra`'s four-message conditional,
+  `x_check_fullscreen` with the `#ifndef USE_GTK` skip-taskbar pair, the `z-group` reset, the
+  `HAVE_GTK3` `was_invisible` pair, `x_update_opaque_region (f, NULL)` and the two `XSETFRAME`
+  sites.  `xunmap`/`xmap` are owed `XEvent` members, so C's own member text stays.
+* **The nineteenth arm.**  C 20090 is `#if defined HAVE_XINPUT2 && defined HAVE_GTK3`, and no arm
+  of the eighteen spelled both features: `AG3` has `have_gtk3` without `have_xinput2`, `UGX`/`AIUX`
+  have `have_xinput2` with `USE_GTK` but *not* `HAVE_GTK3` (C's other XInput2+GTK sites all read
+  `USE_GTK && !HAVE_GTK3 && HAVE_XINPUT2`, which is why the pair had never come up).  **AG3X** is
+  added and reads the block.  Measured: `AG3X` baseline 1126/78, slice **1133/78**.
+* **Three names at their use sites (P-88 1), and why not in the mirror.**  `gui_redo_mouse_highlight`
+  (dispextern.h 4007) is `src/frame.rs` 6435's definition; `tip_window` is xterm.h 1010's
+  `extern Window tip_window;`, whose definition is `src/xfns.rs` 11584's (the four-object group that
+  unit's note already cites); `xg_is_menu_window` (gtkutil.h 225) and `popup_activated_flag`
+  (xmenu.c 116's non-`static` object, `src/xmenu.rs` 939) stand behind the AG3X gate their only
+  caller needs.  `tip_window` does **not** go into `include/xterm.rs`: the mirror may not own a name
+  another unit defines for a *different* arm's reading (P-90 7, the note at 1729) - and the two
+  `cannot find value tip_window` rows this slice's first reading carried retire once the use-site
+  declaration lands.
+* **Four spellings the first writing read (each measured, each fixed in place).**
+  (1) `FRAME_PIXEL_WIDTH`/`FRAME_PIXEL_HEIGHT` are **functions**, not macros: the first writing
+  called them with `!` and arm A read `cannot find macro …` twice.  That defect was not this
+  slice's alone - slice 112's `HAVE_GTK3` block carried the same two calls, and only `AG3`/`AG3X`
+  ever compile them, which is exactly why the ledger's slice-112 entry mis-read those two rows as
+  the arm's own.  **This round retires them** (`AG3` 1055 -> **1061**, i.e. +8 in its own text
+  minus the 2 retired).  (2) C 20025's `tip_window = None` needs `None as Window` - the same
+  `c_long`-into-`Window` conversion `src/xfns.rs` 11621 spells.  (3) `FRAME_SKIP_TASKBAR!`'s getter
+  returns `c_int` (include/frame.rs 1254), so C 20152's truth test is `!= 0`.  (4) `FOR_EACH_FRAME!`
+  takes its body as a *third argument* (`FOR_EACH_FRAME! (tail, frame, { … })`), which is how the
+  Lucid arm is written.
+* **The standing bound.**  C 20035-20061's `#ifdef USE_LUCID` block - "Bloodcurdling hack alert" -
+  joins the `HAVE_XWIDGETS` and `USE_LUCID` text Decision 124 already named: the block is carried
+  with its gate and no arm of this lane opens that feature, so its reading is `0` everywhere.
+* **What `--check` reads.**  Unchanged at two rows; the long row's token list goes **373 -> 343**.
+  The unit is **32,799 lines** against C's 33,125 (**0.98%** drift, was 1.73%), file md5
+  `ade46505587b6ef0d0a6835333fab2b8`.
 
 ## Evidence
 
@@ -10580,7 +10629,9 @@ column to the digit (A 948/77, UT 955/75, UG 958/77, UGX 1054/79, AX 958/77, AG3
   `has_been_visible` - and adds two `GDK_WINDOW_XWINDOW` rows, because `FRAME_OUTER_WINDOW`'s GTK
   expansion is what C 19709's and C 19853's two uses reach in those arms (**AG3** reads
   `GDK_WINDOW_XID` x2 for the same two sites instead, plus `FRAME_PIXEL_WIDTH`/`_HEIGHT` x1 each
-  from the `HAVE_GTK3` block C 19647-19651, which only that arm compiles).
+  from the `HAVE_GTK3` block C 19647-19651, which only that arm compiles - **and those two rows are a
+  defect this entry first mis-read as the arm's own**: the names are *functions*, and slice 114's
+  Decision 125 4 retires them, which is why `AG3` reads +6 there instead of +8).
 * **Warnings go -1 in every arm without a toolkit and hold in every arm with one**: the row is
   `unused label`, because `break 'other` now has users in the plain-X arms too (`'other` had none
   there while only slice 111's three GTK/toolkit-gated sites existed).  `'done` still waits for the
@@ -10647,4 +10698,59 @@ fourth item).
 
 **Not claimed**: no runtime evidence - this lane does not link, and no expose event was ever
 delivered; the readings are the eighteen arm compiles, the `--check` row's token count and this
+ledger.
+
+### Slice 114's readings (C 20007-20195), as landed and measured (2026-10-08)
+
+`case UnmapNotify:` (C 20007-20088) and `case MapNotify:` (C 20089-20195), plus the lane's
+nineteenth arm `AG3X = A + use_gtk + have_gtk3 + have_xinput2`, which is what C 20090's
+`HAVE_XINPUT2 && HAVE_GTK3` block needed.  Twenty `case` bodies remain.
+
+| arm | baseline | slice 114 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 986 / 76 | **994 / 76** | **+8 / 0** |
+| U `A +use_toolkit_scroll_bars` | 999 / 76 | **1007 / 76** | **+8 / 0** |
+| UT `U +use_x_toolkit` | 993 / 75 | **1001 / 75** | **+8 / 0** |
+| UM `UT +use_motif` | 994 / 75 | **1002 / 75** | **+8 / 0** |
+| UG `U +use_gtk` | 1002 / 77 | **1010 / 77** | **+8 / 0** |
+| UGX `UG +have_xinput2` | 1098 / 79 | **1106 / 79** | **+8 / 0** |
+| AE `A +enable_checking` | 1018 / 75 | **1026 / 75** | **+8 / 0** |
+| AI `A +have_x_i18n` | 1010 / 77 | **1018 / 77** | **+8 / 0** |
+| AIU `AI +use_gtk` | 1069 / 77 | **1077 / 77** | **+8 / 0** |
+| AIUX `AIU +have_xinput2` | 1169 / 79 | **1177 / 79** | **+8 / 0** |
+| AX `A +have_xdbe` | 996 / 76 | **1004 / 76** | **+8 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 1055 / 76 | **1061 / 76** | **+6 / 0** |
+| **AG3X** `AG3 +have_xinput2` (this slice's, the nineteenth) | 1126 / 78 | **1133 / 78** | **+7 / 0** |
+| AXF `A +have_xfixes` | 996 / 76 | **1004 / 76** | **+8 / 0** |
+| AXPM `A +have_xpm` | 987 / 76 | **995 / 76** | **+8 / 0** |
+| AXKB `A +have_xkb` | 1024 / 76 | **1032 / 76** | **+8 / 0** |
+| AXR `A +have_xrandr` | 993 / 76 | **1001 / 76** | **+8 / 0** |
+| AX11 `A +have_x11` | 970 / 76 | **978 / 76** | **+8 / 0** |
+| AUX `A +use_xcb` | 1069 / 74 | **1077 / 74** | **+8 / 0** |
+
+**Both sides were measured in this revision**: the baseline is HEAD (`d107f719`, slice 113) with its
+own `_root.rs` re-materialised per arm - the eighteen baseline numbers reproduce the ledger's
+slice-113 column to the digit, and `AG3X`'s 1126/78 is its own first baseline - and the slice's file
+md5 is `ade46505587b6ef0d0a6835333fab2b8`.  **No warning moves in any arm.**
+
+**The `of which`, by name:**
+
+| rows | arms | C sites |
+| --- | --- | --- |
+| `no field xunmap` +3 | every arm | C 20014, C 20023, C 20029 |
+| `no field xmap` +3 | every arm but AG3X | C 20110, C 20121, C 20127 |
+| `no field xmap` +4 | AG3X | the three above plus C 20091, the `xg_is_menu_window` call the new arm compiles |
+| `no field has_been_visible` +2 | every arm | C 20145 (read), C 20183 (write) |
+| `no field explicit_parent` +2 | every arm | C 20169 and C 20188 (`FRAME_X_EMBEDDED_P`'s two expansions) |
+| `cannot find value tip_window` -2 | every arm | C 20023/20025 - retired by this slice's use-site declaration |
+| `cannot find macro FRAME_PIXEL_WIDTH/HEIGHT` -1 each | AG3, AG3X | slice 112's C 19649, retired by the repair |
+| `mismatched types` -2 (A/UT/UM class), -1 (the rest) | every arm | C 20025's `None as Window` and C 20152's `!= 0`, both fixed before this reading |
+
+Every row is a class this lane has already named: `xunmap`/`xmap` are the `include/xlib.rs` owed
+`XEvent` members, and the `x_output` rows are the six-bitfield debt include/xterm.rs 821-928
+records.  The two GTK3 arms read **+6/+7** rather than +8 because they are the only arms that
+compile slice 112's `FRAME_PIXEL_*` calls, so this round's repair shows up there and nowhere else.
+
+**Not claimed**: no runtime evidence - this lane does not link, and no map/unmap event was ever
+delivered; the readings are the nineteen arm compiles, the `--check` row's token count and this
 ledger.

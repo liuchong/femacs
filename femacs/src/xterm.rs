@@ -30872,6 +30872,37 @@ unsafe extern "C" {
   pub fn expose_frame (f: *mut frame, x: c_int, y: c_int, w: c_int, h: c_int);
 }
 
+/* C 20026's `gui_redo_mouse_highlight` (dispextern.h 4007) is `src/frame.rs` 6435's
+   definition, which no mirror of this unit's graph declares; C 20091's `xg_is_menu_window`
+   (gtkutil.h 225) is `src/gtkutil.rs` 1458's, and C 20092's `popup_activated_flag` is the
+   non-`static` object `src/xmenu.rs` 939 carries - all three at this use site (P-88 1).
+   The last two stand behind the same two-macro arm as their only caller.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: dispextern.h 4007: `extern void gui_redo_mouse_highlight (Display_Info *);` -
+  /// `Display_Info` is that header's name for `struct x_display_info`.
+  pub fn gui_redo_mouse_highlight (dpyinfo: *mut x_display_info);
+}
+
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2", feature = "have_gtk3"))]
+unsafe extern "C" {
+  /// C: gtkutil.h 225: `extern bool xg_is_menu_window (Display *, Window);`
+  pub fn xg_is_menu_window (dpy: *mut Display, wdesc: Window) -> bool;
+  /// C: xmenu.c 116: `int popup_activated_flag;` (the non-`static` arm's object).
+  pub static mut popup_activated_flag: c_int;
+}
+
+/* C 20023/20025's `tip_window` is xterm.h 1010's `extern Window tip_window;`, whose
+   definition is `src/xfns.rs` 11584's (`tip_window`, `tip_dx`, `tip_dy` and `tip_frame`
+   are that unit's four; only the first is read here).  It stands at this use site (P-88 1)
+   rather than in the mirror, because a mirror may not own a name another unit defines
+   (P-90 7).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: xterm.h 1010: `extern Window tip_window;`
+  pub static mut tip_window: Window;
+}
+
 /* C 19964's `xlwmenu_redisplay` is the lwlib/xlwmenu.c function (`src/lwlib/xlwmenu.rs` 3665
    carries it under the same `use_lucid` arm) whose declaration lives in lwlib.h 85 - a header
    this unit's graph does not reach - so it stands at this use site (P-88 1).  */
@@ -31251,8 +31282,8 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 				     FRAME_WAS_INVISIBLE_SHIFT)
 			{
 			  xg_frame_set_char_size (f,                     // C 19649
-						  FRAME_PIXEL_WIDTH! (f),
-						  FRAME_PIXEL_HEIGHT! (f));
+						  FRAME_PIXEL_WIDTH (f),
+						  FRAME_PIXEL_HEIGHT (f));
 			  frame_set_flag (f, FRAME_WAS_INVISIBLE_UNIT,   // C 19650
 					  FRAME_WAS_INVISIBLE_SHIFT, 0);
 			}
@@ -31634,6 +31665,221 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	      /* C 20002-20004's `#ifdef USE_X_TOOLKIT`.  */
 #[cfg (feature = "use_x_toolkit")]
 	      { *finish = X_EVENT_DROP; }                                          // C 20003
+	    }
+
+	  /* C 20007-20088: `case UnmapNotify:`.  The XDND toplevel table's `mapped_p` clear, the
+	     tooltip's mouse-highlight redo, and the frame-state block whose Lucid arm is C's own
+	     "bloodcurdling hack" (that arm is text no arm of this lane compiles - Decision 101's
+	     standing bound).  `xunmap` is one of the `XEvent` stand-in's owed members.  */
+	  UnmapNotify =>
+	    {
+	      if x_dnd_in_progress                                          // C 20008
+		&& x_dnd_use_toplevels
+		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)             // C 20009
+		{
+		  let mut tem: *mut x_client_list_window = x_dnd_toplevels;  // C 20011
+		  while !tem.is_null ()                                     // C 20011
+		    {
+		      if (*tem).window == (*event).xunmap.window            // C 20014
+			{
+			  (*tem).mapped_p = false;                          // C 20016
+			  break;                                            // C 20017
+			}
+		      tem = (*tem).next;                                    // C 20012
+		    }
+		}
+
+	      /* "Redo the mouse-highlight after the tooltip has gone."  */
+	      if (*event).xunmap.window == tip_window                       // C 20023
+		{
+		  tip_window = None as Window;                              // C 20025
+		  gui_redo_mouse_highlight (dpyinfo);                       // C 20026
+		}
+
+	      f = x_top_window_to_frame (dpyinfo, (*event).xunmap.window);  // C 20029
+	      /* "F may no longer exist if the frame was deleted."  */
+	      if !f.is_null ()                                          // C 20030
+		{
+		  let visible: bool = FRAME_VISIBLE_P (f);                  // C 20033
+
+		  /* C 20035-20061's `#ifdef USE_LUCID` block.  */
+#[cfg (feature = "use_lucid")]
+		  {
+		    /* "Bloodcurdling hack alert: The Lucid menu bar widget's redisplay procedure
+		       is not called when a tip frame over menu items is unmapped.  Redisplay the
+		       menu manually…"  */
+		    if FRAME_TOOLTIP_P (f) && popup_activated ()            // C 20039
+		      {
+			let mut w: Widget;                                  // C 20041
+			let mut tail: Lisp_Object;                          // C 20042
+			let mut frame: Lisp_Object;                         // C 20042
+			let mut f1: *mut frame;                             // C 20043
+
+			FOR_EACH_FRAME! (tail, frame, {                     // C 20045
+			  if !FRAME_X_P (XFRAME (frame))                    // C 20047
+			    { continue; }                                   // C 20048
+
+			  f1 = XFRAME (frame);                              // C 20050
+
+			  if FRAME_LIVE_P (f1)                              // C 20052
+			    {
+			      w = (*(FRAME_X_OUTPUT! (f1) as *mut x_output)).menubar_widget;  // C 20054
+
+			      if !w.is_null ()                              // C 20056
+				&& !DoesSaveUnders ((*FRAME_DISPLAY_INFO! (f1)).screen)
+				{ xlwmenu_redisplay (w); }                  // C 20057
+			    }
+			});
+		      }
+		  }
+
+		  /* "While a frame is unmapped, display generation is disabled; you don't want to
+		     spend time updating a display that won't ever be seen."  */
+		  SET_FRAME_VISIBLE! (f, 0);                                // C 20066
+		  /* "We can't distinguish, from the event, whether the window has become iconified
+		     or invisible.  So assume, if it was previously visible, than now it is
+		     iconified.  But x_make_frame_invisible clears both the visible flag and the
+		     iconified flag; and that way, we know the window is not iconified now."  */
+		  if visible || FRAME_ICONIFIED_P (f)                       // C 20073
+		    {
+		      if CONSP (frame_size_history)                         // C 20075
+			{
+			  frame_size_history_plain                          // C 20076-20077
+			    (f, build_string (c"UnmapNotify, visible | iconified".as_ptr ()));
+			}
+
+		      SET_FRAME_ICONIFIED (f, true as c_int);               // C 20079
+		      input_event_bits! (kind, &raw mut inev.ie, ICONIFY_EVENT);  // C 20080
+		      XSETFRAME! (inev.ie.frame_or_window, f);              // C 20081
+		    }
+		  else if CONSP (frame_size_history)                        // C 20083
+		    {
+		      frame_size_history_plain                              // C 20084-20085
+			(f, build_string (c"UnmapNotify, not visible & not iconified".as_ptr ()));
+		    }
+		}
+	      break 'other;                                                 // C 20087
+	    }
+
+	  /* C 20089-20195: `case MapNotify:`.  The GTK3 menu check, the two XDND state updates, the
+	     toplevel table's `mapped_p` set, then the frame's own state: `x_get_current_wm_state`,
+	     the fullscreen/skip-taskbar pair, the `z-group` reset, the gtk3 `was_invisible` pair and
+	     the two `XSETFRAME` sites.  `xmap` is an owed `XEvent` member.  */
+	  MapNotify =>
+	    {
+	      /* C 20090-20093's `#if defined HAVE_XINPUT2 && defined HAVE_GTK3` block - the pair
+		 that is this slice's nineteenth arm (`AG3X`), because no earlier arm spells both
+		 features at once.  */
+#[cfg (all (feature = "have_xinput2", feature = "have_gtk3"))]
+	      if xg_is_menu_window ((*dpyinfo).display, (*event).xmap.window)  // C 20091
+		{ popup_activated_flag = 1; }                              // C 20092
+
+	      if x_dnd_in_progress                                         // C 20095
+		/* "When _NET_WM_CLIENT_LIST stacking is being used, changes in that property are
+		   watched for, and it's not necessary to update the state in response to ordinary
+		   window substructure events."  */
+		&& !x_dnd_use_toplevels                                    // C 20100
+		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)            // C 20101
+		{ x_dnd_update_state (dpyinfo, (*dpyinfo).last_user_time); }  // C 20102
+
+	      if x_dnd_in_progress && x_dnd_use_toplevels                  // C 20104
+		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)            // C 20105
+		{
+		  let mut tem: *mut x_client_list_window = x_dnd_toplevels;  // C 20107
+		  while !tem.is_null ()                                     // C 20107
+		    {
+		      if (*tem).window == (*event).xmap.window              // C 20110
+			{
+			  (*tem).mapped_p = true;                           // C 20112
+			  break;                                            // C 20113
+			}
+		      tem = (*tem).next;                                    // C 20108
+		    }
+		}
+
+	      /* "We use x_top_window_to_frame because map events can come for sub-windows and
+		 they don't mean that the frame is visible."  */
+	      f = x_top_window_to_frame (dpyinfo, (*event).xmap.window);    // C 20121
+	      if !f.is_null ()                                            // C 20122
+		{
+		  let iconified: bool = FRAME_ICONIFIED_P (f);              // C 20124
+		  let mut value: c_int;                                     // C 20125
+		  let mut sticky: bool;                                     // C 20126
+		  let mut shaded: bool;                                     // C 20126
+		  let not_hidden: bool
+		    = x_get_current_wm_state (f, (*event).xmap.window, &raw mut value,  // C 20127
+					      &raw mut sticky, &raw mut shaded);  // C 20128
+
+		  if CONSP (frame_size_history)                             // C 20130
+		    {
+		      frame_size_history_extra                              // C 20131-20141
+			(f,
+			 if iconified
+			   { if not_hidden
+			       { build_string (c"MapNotify, not hidden & iconified".as_ptr ()) }
+			     else
+			       { build_string (c"MapNotify, hidden & iconified".as_ptr ()) } }
+			 else
+			   { if not_hidden
+			       { build_string (c"MapNotify, not hidden & not iconified".as_ptr ()) }
+			     else
+			       { build_string (c"MapNotify, hidden & not iconified".as_ptr ()) } },
+			 FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f),
+			 -1, -1, (*f).new_width, (*f).new_height);          // C 20141
+		    }
+
+		  /* "Check if fullscreen was specified before we where mapped the first time, i.e.
+		     from the command line."  */
+		  if !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible  // C 20145
+		    {
+		      x_check_fullscreen (f);                               // C 20148
+		      /* C 20149-20154's `#ifndef USE_GTK` block: "For systems that cannot
+			 synthesize `skip_taskbar' for unmapped windows do the following."  */
+#[cfg (not (feature = "use_gtk"))]
+		      if FRAME_SKIP_TASKBAR! (f) != 0                       // C 20152
+			{ x_set_skip_taskbar (f, Qt (), Qnil ()); }         // C 20153
+		    }
+
+		  if !iconified                                           // C 20157
+		    {
+		      /* "The `z-group' is reset every time a frame becomes invisible.  Handle this
+			 here."  */
+		      if FRAME_Z_GROUP! (f) == z_group_above                // C 20161
+			{ x_set_z_group (f, Qabove (), Qnil ()); }          // C 20162
+		      else if FRAME_Z_GROUP! (f) == z_group_below           // C 20163
+			{ x_set_z_group (f, Qbelow (), Qnil ()); }          // C 20164
+		    }
+
+		  /* "Embedded frames might have NET_WM_STATE left over, but are always visible once
+		     mapped."  */
+		  if not_hidden || FRAME_X_EMBEDDED_P! (f)                  // C 20169
+		    {
+		      SET_FRAME_VISIBLE! (f, 1);                            // C 20171
+		      SET_FRAME_ICONIFIED (f, false as c_int);              // C 20172
+		      /* C 20173-20182's `#if defined USE_GTK && defined HAVE_GTK3` block: "If GTK3
+			 wants to impose some old size here (Bug#24526), tell it that the current
+			 size is what we want."  */
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+		      if frame_flag (f, FRAME_WAS_INVISIBLE_UNIT, FRAME_WAS_INVISIBLE_SHIFT)  // C 20176
+			{
+			  xg_frame_set_char_size (f,                         // C 20178
+						  FRAME_PIXEL_WIDTH (f),
+						  FRAME_PIXEL_HEIGHT (f));
+			  frame_set_flag (f, FRAME_WAS_INVISIBLE_UNIT,        // C 20180
+					  FRAME_WAS_INVISIBLE_SHIFT, 0);
+			}
+		      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;  // C 20183
+		    }
+
+		  x_update_opaque_region (f, std::ptr::null_mut ());        // C 20186
+
+		  if (not_hidden || FRAME_X_EMBEDDED_P! (f)) && iconified   // C 20188
+		    {
+		      input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);  // C 20190
+		      XSETFRAME! (inev.ie.frame_or_window, f);              // C 20191
+		    }
+		}
+	      break 'other;                                                 // C 20194
 	    }
 
 	  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
