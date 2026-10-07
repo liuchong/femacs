@@ -1,5 +1,5 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
-C 3957-4170 and C 4430-4621
+C 3957-4170, C 4430-4623 and C 4624-4783
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -10,8 +10,9 @@ C 3957-4170 and C 4430-4621
 > table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
 > `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice,
 > **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
-> **6,325 lines** after the sixth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170 and C 4430-4621,
-> whose own ledger sections are at the end of this file - measured
+> **6,325 lines** after the sixth, **6,543 lines** after the seventh - C 803-2149, C 2150-3811,
+> C 3812-3956, C 3957-4170, C 4430-4623 and C 4624-4783, whose own ledger sections are at the end of
+> this file - measured
 > with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
@@ -167,7 +168,8 @@ defines both features.
 | 3957-4170 | C 3961's `void` and `x_mark_frame_dirty` (C 3962), C 3971's `static void` and `set_up_x_back_buffer` (C 3972), `tear_down_x_back_buffer` (C 4012 the `void`, C 4013 the name), `initial_set_up_x_back_buffer` (C 4046 the `void`, C 4047 the name), C 4057's `#if defined HAVE_XINPUT2` with `setup_xi_event_mask` (C 4059 the `static void`, C 4060 the name) and C 4170's `#endif` that closes it | the file gate plus `have_xdbe`/`have_xrender`/`use_cairo`/`have_xinput2`/`have_xinput2_1`/`have_xinput2_2`/`have_xinput2_4`/`use_gtk`/`use_gtk3`/`have_gtk3`/`use_x_toolkit`, each item carrying the guard C gives its statements |
 | 4172-4428 | the `USE_X_TOOLKIT` arm of `x_window` (C 4176 the `static void`, C 4177 the name: the `XtSetArg`/`XtAppCreateShell`/`lw_create_widget` body) | not in this slice: the next slice's first item, and the reason the table's next row starts at C 4430 |
 | 4430-4623 | C 4430's `#else /* not USE_X_TOOLKIT */` with the two arms of `x_window` - the GTK one (C 4431-4474) and the plain-X one (C 4476-4619) - up to C 4622's `#endif /* not USE_X_TOOLKIT */` | the file gate plus `use_gtk` / `not (feature = "use_gtk")`, and each item's own guard inside them (`have_x_i18n`, `have_xinput2`) |
-| 4624-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 6,039 lines, whose first live definition is `x_icon_verify` (C 4626 is its `static void`, C 4627 the name) - the next slice's first item | not ported in this slice |
+| 4624-4783 | C 4624's comment and `x_icon_verify` (C 4626 the `static void`, C 4627 the name), C 4644-4646's comment and `x_icon` (C 4648/4649), C 4693-4695's comment and `x_make_gc` (C 4697/4698), and C 4747-4748's comment and `x_free_gcs` (C 4750 the `void`, C 4751 the name) | the file gate |
+| 4785-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 5,878 lines, whose first live definition is `unwind_create_frame` (C 4789 is its `static Lisp_Object`, C 4790 the name) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1271,3 +1273,75 @@ Xt arm's absence is what the C-range table records, not what the tool demands). 
 The frozen configuration compiles none of this file: no window was created, no class hint or WM
 hint was set, no cursor was defined and no GC was made.  The GTK arm's unchanged count and the
 plain-X arm's +1 are *text* compile readings.
+
+## Slice 7 (2026-10-08, status 3.909 - the integrator sets the round number): C 4624-4783
+
+**The slice is C 4624-4783**, the four definitions between this file's `x_window` halves and
+`unwind_create_frame`: `x_icon_verify` (C 4626-4642, `static`), `x_icon` (C 4648-4691, `static`),
+`x_make_gc` (C 4697-4745, `static`) and `x_free_gcs` (C 4750-4782, the one of the four C does not
+declare `static`, so the port exports it).  The port's slice is **218 Rust lines** (6,543 - 6,325)
+against C's 160.
+
+**What the four read.**  `gui_frame_get_and_record_arg` and `check_integer_range` are frame.rs's
+(`pub unsafe extern "C" fn`, so declared here at the use site), `x_wm_set_icon_position` is the
+`xterm.h` entry point frame.rs already declares for its own consumers, `x_text_icon` is this
+file's own declaration (2127), and the four Xlib calls (`XCreateGC`, `XFreeGC`, `XFreePixmap`,
+`DefaultDepth`) plus `XCreatePixmapFromBitmapData` and the `XGCValues` record (Xlib.h 177-203,
+fields in the header's own order, **UNVERIFIED** beyond the three this file writes) stand in this
+slice's use-site block.  `GCLineWidth` is Xlib's `(1L<<4)` under the file gate (every arm compiles
+`x_make_gc`); `GCForeground`/`GCBackground` are the mirror's `x11_constants` members.
+
+**The one gap this slice keeps open** is the one the file's own header note (97-98) already
+records: `gray_bits`, `gray_width` and `gray_height` are `src/bitmaps/gray.xbm`'s data-file
+constants, ported by no unit (the xbm is a *Kept* data file, `docs/port-map.md`), so they are read
+bare at C 4739 and the arms' `E0425` rows count them - three rows in each of the two arms, plus the
+one `E0308` the unresolved type leaves at the `XCreatePixmapFromBitmapData` call site.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the
+**336-byte** empty object (exit 0).
+
+**② The plain-X11 arm**: **6 errors / 9 warnings before, 10 / 9 after**.  The four additions are
+the three `gray_*` names and the `E0308` at their call site; the warning set is unchanged.
+
+**③ The GTK arm** (the ten-cfg set): **22 / 20 before, 26 / 20 after** - the same four additions,
+because `x_make_gc`/`x_free_gcs` are compiled by every arm; no warning moved.
+
+**④ `extract-abi.py --check`**: `missing function` **37 -> 33** (all four definitions leave the
+list); drift reads `C 10662 vs Rust 6543` (**38.6%**, was 40.7%).  The definitions of
+`x_free_gcs` and `x_icon` resolve the call sites earlier slices owed (`x_free_frame_resources`'s
+`x_free_gcs`, `unwind_create_frame`'s `x_icon`), and C 4686's `x_text_icon` call resolves against
+this file's own declaration.
+
+**⑤ No mirror change**, so P-87's legs are not this slice's: `check-mirror-dupes` still reads
+**16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**.
+
+### Deviations (this slice)
+
+1. **`x_icon`'s two C locals** (`int icon_xval, icon_yval`) are zero-initialised (PORTING.md
+   Deviation 12), because Rust has no uninitialised binding to leave either side of C's `if
+   (xgiven)`.
+2. **`x_icon`'s `#if false` block** (C 4674-4684, the `x_wm_set_window_state` arm C's own comment
+   says is unusable) is carried as a comment, not as a `cfg`.
+3. **The GC handles are pointers** in the mirror (`normal_gc`, `reverse_gc`, `cursor_gc` are
+   `*mut _XGC`), so C's `if (gc)`/`gc = 0` are written `.is_null ()`/`std::ptr::null_mut ()`, and
+   `XCreateGC`'s fourth parameter is the mirror's `*mut c_void` - the `XGCValues` record is handed
+   over with that cast.  Four declarations this slice first wrote at the use site
+   (`check_integer_range`, `XCreateGC`, `XFreeGC`, `XFreePixmap`) were dropped again:
+   `check-mirror-dupes.py` reports 4 failures for a name a mirror in the include graph already
+   declares, and all four are in `include/lisp.rs`/`include/xlib.rs`.
+
+### Owed (this slice)
+
+- `src/bitmaps/gray.xbm`'s three constants (this slice's only new rows), the Xt arm of `x_window`
+  (C 4172-4428) and the 33 missing functions, 1 macro, 4 objects, 53 subrs and 45 defsubrs
+  `--check` still reads for this file; the next slice's first item is `unwind_create_frame`
+  (C 4790).
+- `XGCValues`' layout is measured but unverified beyond the three fields this file writes.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no GC was created or freed, no pixmap was
+made, no icon position was set and no window title was written.  The two arms' error counts are
+text compile readings.

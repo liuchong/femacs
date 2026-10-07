@@ -6081,9 +6081,6 @@ pub const StaticGravity: c_int = 10;                     // X11/X.h 431
 pub const NotUseful: c_int = 0;                          // X11/X.h 439
 #[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
 	    not (feature = "use_gtk")))]
-pub const GCLineWidth: c_long = 1 << 4;                 // X11/X.h 568
-#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
-	    not (feature = "use_gtk")))]
 pub const XNegative: c_int = 0x0010;                    // X11/Xutil.h 74
 #[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
 	    not (feature = "use_gtk")))]
@@ -6322,4 +6319,220 @@ unsafe fn x_window (f: *mut frame)
 
   if FRAME_X_WINDOW! (f) == 0                                           // C 4617
     { error (c"Unable to create window".as_ptr ()); }                   // C 4618
+}
+
+/* C 4624-4789: the four definitions between this slice's `x_window` halves and
+   `unwind_create_frame` - `x_icon_verify` (C 4626-4642), `x_icon` (C 4648-4691), `x_make_gc`
+   (C 4697-4745) and `x_free_gcs` (C 4750-4782, the only one of the four C does not declare
+   `static`).  `gray_bits`, `gray_width` and `gray_height` are `src/bitmaps/gray.xbm`'s
+   data-file constants - the gap this file's own header note (97-98) and `docs/ports/xfns.md`
+   already record - so they are read bare and the arms' `E0425` rows count them.  */
+
+/* C: frame.h 1886: `extern void x_wm_set_icon_position (struct frame *, int, int);` - C 4672's.
+   C: frame.h 1651-1655: `extern Lisp_Object gui_frame_get_and_record_arg (struct frame *,
+   Lisp_Object, Lisp_Object, const char *, const char *, enum resource_types);` - C 4633/4634 and
+   C 4654/4656's.
+   C: Xlib.h 2258: `extern int DefaultDepth (Display *, int);` - C 4742's.
+   `check_integer_range` (C 4665/4666), `XCreateGC` (C 4711), `XFreeGC` (C 4759) and `XFreePixmap`
+   (C 4777) are already declared by mirrors in this unit's include graph
+   (`include/lisp.rs` and `include/xlib.rs`), so nothing of those four is repeated here
+   (`check-mirror-dupes.py` is the gate that says so).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_wm_set_icon_position (f: *mut frame, icon_x: c_int, icon_y: c_int);
+  pub fn gui_frame_get_and_record_arg (f: *mut frame, alist: Lisp_Object, param: Lisp_Object,
+				       attribute: *const c_char, class: *const c_char,
+				       r#type: resource_types) -> Lisp_Object;
+  pub fn DefaultDepth (dpy: *mut Display, screen_number: c_int) -> c_int;
+  /// C: Xlib.h 2507-2509: `extern Pixmap XCreatePixmapFromBitmapData (Display *, Drawable, char *,
+  /// unsigned int, unsigned int, unsigned long, unsigned long, unsigned int);` - C 4737-4742's.
+  pub fn XCreatePixmapFromBitmapData (dpy: *mut Display, d: Drawable, data: *mut c_char,
+				      width: c_uint, height: c_uint, fg: c_ulong, bg: c_ulong,
+				      depth: c_uint) -> Pixmap;
+}
+
+/// C: X11/X.h 568: `#define GCLineWidth (1L<<4)` - read by `x_make_gc`, which every arm
+/// compiles, so it stands under the file gate alone (measured on this machine's header).
+#[cfg (feature = "have_x_windows")]
+pub const GCLineWidth: c_int = 1 << 4;
+
+/// C: Xlib.h 177-203: the `XGCValues` record, fields in the header's own order and with the
+/// header's own types (measured on this machine); C 4707-4731 writes `foreground`, `background`
+/// and `line_width` and hands the record to `XCreateGC` (P-88 rule 1; the layout is
+/// **UNVERIFIED** beyond those three fields).
+#[cfg (feature = "have_x_windows")]
+#[repr (C)]
+pub struct XGCValues
+{
+  pub function: c_int, pub plane_mask: c_ulong, pub foreground: c_ulong, pub background: c_ulong,
+  pub line_width: c_int, pub line_style: c_int, pub cap_style: c_int, pub join_style: c_int,
+  pub fill_style: c_int, pub fill_rule: c_int, pub arc_mode: c_int, pub tile: Pixmap,
+  pub stipple: Pixmap, pub ts_x_origin: c_int, pub ts_y_origin: c_int, pub font: Font,
+  pub subwindow_mode: c_int, pub graphics_exposures: Bool, pub clip_x_origin: c_int,
+  pub clip_y_origin: c_int, pub clip_mask: Pixmap, pub dash_offset: c_int, pub dashes: c_char,
+}
+
+/// C 4626-4642: `static void x_icon_verify (struct frame *f, Lisp_Object parms)`.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_icon_verify (f: *mut frame, parms: Lisp_Object)
+{
+  let icon_x: Lisp_Object;                                              // C 4629
+  let icon_y: Lisp_Object;                                              // C 4629
+
+  /* Set the position of the icon.  Note that twm groups all
+     icons in an icon window.  */
+  icon_x = gui_frame_get_and_record_arg (f, parms, Qicon_left (),       // C 4633
+					 std::ptr::null::<c_char> (),
+					 std::ptr::null::<c_char> (), RES_TYPE_NUMBER);
+  icon_y = gui_frame_get_and_record_arg (f, parms, Qicon_top (),        // C 4634
+					 std::ptr::null::<c_char> (),
+					 std::ptr::null::<c_char> (), RES_TYPE_NUMBER);
+  if !BASE_EQ (icon_x, Qunbound ()) && !BASE_EQ (icon_y, Qunbound ())   // C 4635
+    {
+      CHECK_FIXNUM (icon_x);                                            // C 4637
+      CHECK_FIXNUM (icon_y);                                            // C 4638
+    }
+  else if !BASE_EQ (icon_x, Qunbound ()) || !BASE_EQ (icon_y, Qunbound ())  // C 4640
+    { error (c"Both left and top icon corners of icon must be specified".as_ptr ()); }  // C 4641
+}
+
+/* Handle the icon stuff for this window.  Perhaps later we might
+   want an x_set_icon_position which can be called interactively as
+   well.  */
+
+/// C 4648-4691: `static void x_icon (struct frame *f, Lisp_Object parms)`.  C 4674-4684's
+/// `#if false` block (the `x_wm_set_window_state` arm) is C's own dead text; the port carries it
+/// as the comment below rather than inventing a `cfg` for it.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_icon (f: *mut frame, parms: Lisp_Object)
+{
+  /* Set the position of the icon.  Note that twm groups all
+     icons in an icon window.  */
+  let icon_x: Lisp_Object                                              // C 4653-4654
+    = gui_frame_get_and_record_arg (f, parms, Qicon_left (), std::ptr::null::<c_char> (),
+				    std::ptr::null::<c_char> (), RES_TYPE_NUMBER);
+  let icon_y: Lisp_Object                                              // C 4655-4656
+    = gui_frame_get_and_record_arg (f, parms, Qicon_top (), std::ptr::null::<c_char> (),
+				    std::ptr::null::<c_char> (), RES_TYPE_NUMBER);
+  let mut icon_xval: c_int = 0;                                         // C 4657 (Deviation 12)
+  let mut icon_yval: c_int = 0;                                         // C 4657 (Deviation 12)
+
+  let xgiven: bool = !BASE_EQ (icon_x, Qunbound ());                    // C 4659
+  let ygiven: bool = !BASE_EQ (icon_y, Qunbound ());                    // C 4660
+  if xgiven != ygiven                                                   // C 4661
+    { error (c"Both left and top icon corners of icon must be specified".as_ptr ()); }  // C 4662
+  if xgiven                                                             // C 4663
+    {
+      icon_xval = check_integer_range (icon_x, c_int::MIN as intmax_t,  // C 4665
+				       c_int::MAX as intmax_t) as c_int;
+      icon_yval = check_integer_range (icon_y, c_int::MIN as intmax_t,  // C 4666
+				       c_int::MAX as intmax_t) as c_int;
+    }
+
+  block_input ();                                                       // C 4669
+
+  if xgiven                                                             // C 4671
+    { x_wm_set_icon_position (f, icon_xval, icon_yval); }               // C 4672
+
+  /* C 4674-4684: `#if false` - the `x_wm_set_window_state (f, EQ (gui_display_get_arg (…)) ? IconicState
+     : NormalState)` arm, which C's own comment says `gui_display_get_arg` makes unusable.  */
+
+  x_text_icon (f, SSDATA (if !NILP ((*f).icon_name)                   // C 4686-4688
+			  { (*f).icon_name }
+			else
+			  { (*f).name }));
+
+  unblock_input ();                                                     // C 4690
+}
+
+/* Make the GCs needed for this window, setting the
+   background, border and mouse colors; also create the
+   mouse cursor and the gray border tile.  */
+
+/// C 4697-4745: `static void x_make_gc (struct frame *f)`.  C 4700's `XGCValues gc_values;` is
+/// C's uninitialised local (Deviation 12's zeroed form), and the four `f->output_data.x->…`
+/// fields are the mirror's `x_output` members.
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_make_gc (f: *mut frame)
+{
+  use crate::x11_constants::{GCBackground, GCForeground};
+
+  let mut gc_values: XGCValues = std::mem::zeroed ();                   // C 4700 (Deviation 12)
+
+  block_input ();                                                       // C 4702
+
+  /* Create the GCs of this frame.
+     Note that many default values are used.  */
+
+  gc_values.foreground = FRAME_FOREGROUND_PIXEL (f);                    // C 4707
+  gc_values.background = FRAME_BACKGROUND_PIXEL! (f);                   // C 4708
+  gc_values.line_width = 1;                                             // C 4709
+  (*((*f).output_data.x as *mut x_output)).normal_gc                    // C 4710-4714
+    = XCreateGC (FRAME_X_DISPLAY! (f), FRAME_X_DRAWABLE! (f),
+		 (GCLineWidth | GCForeground | GCBackground) as c_ulong, &raw mut gc_values as *mut c_void);
+
+  /* Reverse video style.  */
+  gc_values.foreground = FRAME_BACKGROUND_PIXEL! (f);                   // C 4717
+  gc_values.background = FRAME_FOREGROUND_PIXEL (f);                    // C 4718
+  (*((*f).output_data.x as *mut x_output)).reverse_gc                   // C 4719-4723
+    = XCreateGC (FRAME_X_DISPLAY! (f), FRAME_X_DRAWABLE! (f),
+		 (GCForeground | GCBackground | GCLineWidth) as c_ulong, &raw mut gc_values as *mut c_void);
+
+  /* Cursor has cursor-color background, background-color foreground.  */
+  gc_values.foreground = FRAME_BACKGROUND_PIXEL! (f);                   // C 4726
+  gc_values.background = (*((*f).output_data.x as *mut x_output)).cursor_pixel;  // C 4727
+  (*((*f).output_data.x as *mut x_output)).cursor_gc                    // C 4728-4731
+    = XCreateGC (FRAME_X_DISPLAY! (f), FRAME_X_DRAWABLE! (f),
+		 (GCForeground | GCBackground | GCLineWidth) as c_ulong, &raw mut gc_values as *mut c_void);
+
+  /* Create the gray border tile used when the pointer is not in
+     the frame.  Since this depends on the frame's pixel values,
+     this must be done on a per-frame basis.  */
+  (*((*f).output_data.x as *mut x_output)).border_tile                  // C 4736-4742
+    = XCreatePixmapFromBitmapData (FRAME_X_DISPLAY! (f),
+				   (*FRAME_DISPLAY_INFO! (f)).root_window,
+				   gray_bits.as_ptr (), gray_width, gray_height,
+				   FRAME_FOREGROUND_PIXEL (f), FRAME_BACKGROUND_PIXEL! (f),
+				   DefaultDepth (FRAME_X_DISPLAY! (f),
+						 FRAME_X_SCREEN_NUMBER! (f)));
+
+  unblock_input ();                                                     // C 4744
+}
+
+/* Free what was allocated in x_make_gc.  */
+
+/// C 4750-4782: `void x_free_gcs (struct frame *f)` - no `static`, so exported.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_free_gcs (f: *mut frame)
+{
+  let dpy: *mut Display = FRAME_X_DISPLAY! (f);                         // C 4753
+
+  block_input ();                                                       // C 4755
+
+  if !(*((*f).output_data.x as *mut x_output)).normal_gc.is_null ()     // C 4757
+    {
+      XFreeGC (dpy, (*((*f).output_data.x as *mut x_output)).normal_gc);  // C 4759
+      (*((*f).output_data.x as *mut x_output)).normal_gc = std::ptr::null_mut ();  // C 4760
+    }
+
+  if !(*((*f).output_data.x as *mut x_output)).reverse_gc.is_null ()    // C 4763
+    {
+      XFreeGC (dpy, (*((*f).output_data.x as *mut x_output)).reverse_gc);  // C 4765
+      (*((*f).output_data.x as *mut x_output)).reverse_gc = std::ptr::null_mut ();  // C 4766
+    }
+
+  if !(*((*f).output_data.x as *mut x_output)).cursor_gc.is_null ()     // C 4769
+    {
+      XFreeGC (dpy, (*((*f).output_data.x as *mut x_output)).cursor_gc);  // C 4771
+      (*((*f).output_data.x as *mut x_output)).cursor_gc = std::ptr::null_mut ();  // C 4772
+    }
+
+  if (*((*f).output_data.x as *mut x_output)).border_tile != 0          // C 4775
+    {
+      XFreePixmap (dpy, (*((*f).output_data.x as *mut x_output)).border_tile);  // C 4777
+      (*((*f).output_data.x as *mut x_output)).border_tile = 0;         // C 4778
+    }
+
+  unblock_input ();                                                     // C 4781
 }
