@@ -1,7 +1,7 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
-C 6604-6777, C 6785-7035 and C 7037-7207
+C 6604-6777, C 6785-7035, C 7037-7207 and C 7210-7273
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -17,11 +17,11 @@ C 6604-6777, C 6785-7035 and C 7037-7207
 > the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth,
 > **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth, **8,768 lines** after
 > the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth,
-> **9,547 lines** after the nineteenth, **9,801 lines** after the twentieth and **10,033 lines**
-> after the twenty-first - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428,
-> C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991,
-> C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601, C 6604-6777, C 6785-7035 and
-> C 7037-7207, whose own
+> **9,547 lines** after the nineteenth, **9,801 lines** after the twentieth, **10,033 lines**
+> after the twenty-first and **10,157 lines** after the twenty-second - C 803-2149, C 2150-3811,
+> C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582,
+> C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513,
+> C 6515-6601, C 6604-6777, C 6785-7035, C 7037-7207 and C 7210-7273, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -192,7 +192,8 @@ defines both features.
 | 6604-6777 | the `x-display-monitor-attributes-list` `DEFUN` (C 6604-6606 its header, C 6607-6621 the verbatim doc string, C 6627-6767 the `USE_GTK` arm with its 3.22 / pre-3.22 sub-arms and C 6768-6773 the plain-X one) | `have_x_windows`, with `use_gtk` and, inside it, `gtk_check_version_ge_3_22` / `have_gtk3` for C's three-way workarea and scale arms (slice 19) |
 | 6785-7035 | `frame_geometry` (C 6785-6786 the `static Lisp_Object`, the comment C 6779-6783; C 6860-6868 the `HAVE_EXT_MENU_BAR` pair, C 6877-6922 the `HAVE_EXT_TOOL_BAR` pair) and the two subrs it backs, `x-frame-geometry` (C 6964) and `x-frame-edges` (C 7013) | `have_x_windows`, with `have_ext_menu_bar` and `have_ext_tool_bar` inside (slice 20) |
 | 7037-7207 | `x_frame_list_z_order` (C 7037-7043 its comment, C 7044-7045 the `static Lisp_Object`; C 7063-7096 the `_NET_CLIENT_LIST_STACKING` arm, C 7098-7119 the `XQueryTree` walk) with its subr `x-frame-list-z-order` (C 7125), then `x_frame_restack` (C 7150-7157 its comment, C 7161-7178 the `USE_GTK` pair) with its subr `x-frame-restack` (C 7182) | `have_x_windows`, with `use_gtk` for the restack helper's two arms (slice 21) |
-| 7210-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,453 lines, whose first live definition is the `x-mouse-absolute-pixel-position` `DEFUN` (C 7210) - the next slice's first item | not ported in this slice |
+| 7210-7273 | the two mouse subrs: `x-mouse-absolute-pixel-position` (C 7210-7233, `x_query_pointer`'s nine arguments) and `x-set-mouse-absolute-pixel-position` (C 7235-7273, whose C 7251-7266 `HAVE_XINPUT2` pair chooses `XIWarpPointer` or `XWarpPointer`) | `have_x_windows`, with `have_xinput2` for the client-pointer-device arm (slice 22) |
+| 7275-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,388 lines, whose first live definition is the `x-begin-drag` `DEFUN` (C 7275-7447) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2417,3 +2418,79 @@ failures**.
 
 The frozen configuration compiles none of this file: no property was queried, no child window was
 walked and no frame was restacked; the eleven arms' counts are text compile readings.
+## Slice 22 (2026-10-08, status 3.925 - the integrator sets the round number): C 7210-7273
+
+**The slice is C 7210-7273**: the two mouse subrs - `x-mouse-absolute-pixel-position`
+(C 7210-7233: `SELECTED_FRAME`, the two-way early exit, `x_query_pointer`'s nine arguments and the
+`Fcons (make_fixnum …)` pair) and `x-set-mouse-absolute-pixel-position` (C 7235-7273: the two
+`check_integer_range` bounds, then C 7251-7266's `HAVE_XINPUT2` pair - `client_pointer_device`,
+`supports_xi2`, `x_catch_errors_for_lisp`, `XIWarpPointer`, `x_uncatch_errors_for_lisp` - over
+C 7267-7269's `XWarpPointer` tail, which every arm reaches).  The port's slice is **124 Rust
+lines** (10,157 - 10,033, `grep -c ''`) against C's 64; md5 `327df657fffb507803472c41b617e7cc`
+(the slice 21 tree) -> `bcfc6bbad92b6262a6e5b5bda113710e`.
+
+**A twelfth arm.**  C 7260's `XIWarpPointer` is compiled only under `HAVE_XINPUT2`, so the table
+gains **XI2** = `have_x_windows` + `have_xinput2`; its first reading is **18 / 9**.  The eleven
+arms that already existed read their baselines unchanged - plain-X, WS, WSX, WSR, WSRX, WSR12 and
+XCB **14 / 9**, LUCID **22 / 12**, GTK and GTK22 **40 / 20**, Xt **15 / 12** - and every arm's
+error set is byte-identical to its baseline.
+
+**The Xlib pair is declared, not left bare.**  `XWarpPointer` (Xlib.h 3524-3534) and
+`XIWarpPointer` (`<X11/extensions/XInput2.h>`, no header on this machine, so the row names the
+header and the signature and is UNVERIFIED) stand at the use site, which is this file's posture for
+Xlib entries (slices 9 and 21's `XGetGeometry`/`XReconfigureWMWindow`).  That supersedes the
+prediction in `src/xterm.rs` 17421-17422 ("the `src/xfns.rs` copy of the same call pair … has the
+same two rows"), whose comment is corrected in this slice (comment lines only).
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0) on the final hash.
+
+**② The twelve arms.**  plain-X **14 / 9**, WS **14 / 9**, WSX **14 / 9**, WSR **14 / 9**, WSRX
+**14 / 9**, WSR12 **14 / 9**, XCB **14 / 9**, LUCID **22 / 12**, GTK **40 / 20**, GTK22 **40 / 20**,
+Xt **15 / 12** - unchanged - and **XI2 18 / 9** (first reading).  No warning moves in any arm.
+
+**③ Arm touch measured** (P-86 ⑦): three injections - `Fx_mouse_absolute_pixel_position`'s body
+(A), the `supports_xi2` branch (B) and the `not (have_xinput2)` tail (C) - move plain-X
+**14 -> 16** (A and C) and XI2 **18 -> 20** (A and B), each log naming what it read; the injections
+were removed and the file's hash re-checked.
+
+**④ `extract-abi.py --check`**: **118 rows -> 115** - the `missing subr Fx_mouse_absolute_pixel_position`
+and `missing subr Fx_set_mouse_absolute_pixel_position` rows retiring, **and the line-count row
+retiring with them: the port passes this unit's 5% bar** (`C 10662 vs Rust 10,157` is **4.7%**,
+against the 5.9% the row carried at slice 21's hash).  Nothing appears in their place, so the unit
+now has neither a missing item this slice's text names nor a line-count row.
+`check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**
+and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed literals), 0
+failures**.
+
+### Deviations (this slice)
+
+1. **C's `XWarpPointer` tail is written in both cfg blocks** (`(not (have_xinput2))` and the
+   `else` of the XInput2 pair), because a `#[cfg]` cannot cover one half of an `if`/`else` chain
+   (P-86 ①; C 7266's `#endif` sits between the `else` and the tail).
+2. **C's `(unsigned int *) &dummy`** is `&raw mut dummy as *mut c_uint`, and C's `INT_MIN`/`INT_MAX`
+   keep C's names (the file's 2551 shape) rather than `c_int::MIN`/`c_int::MAX` - the token gate
+   asks for `int_min`/`int_max` (measured: the first writing read one
+   `does not mention int_max, int_min` row).
+3. **C 7239's `\(0, 0)`** is the plain paren in the literal, the make-docfile rule slice 21
+   established (the digest compares make-docfile's value with Rust's decoded value).
+4. **The three XInput2 names' gates**: `XIWarpPointer`, `x_catch_errors_for_lisp` and
+   `x_uncatch_errors_for_lisp` stand under `all (have_x_windows, have_xinput2)` - C 7251's own
+   `#ifdef`, which is inside the file gate.
+
+### Owed (this slice)
+
+- `XWarpPointer` (Xlib.h 3524-3534) is owed to `include/xlib.rs`; `XIWarpPointer` to an XInput2
+  mirror (UNVERIFIED, no header here); `x_catch_errors_for_lisp`/`x_uncatch_errors_for_lisp`
+  (xterm.h 1755/1756) to `include/xterm.rs`.
+- `syms_of_xfns`' two new `defsubr` sites and the rest of the remainder from C 7275
+  (`x-begin-drag`, C 7275-7447): 3,388 C lines plus the 17 missing functions, 1 macro, 4 objects,
+  26 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: the pointer was not queried and no warp was
+performed; the twelve arms' counts are text compile readings, and XI2's 18/9 is a text compile of
+an XInput2 build this machine has no headers for.

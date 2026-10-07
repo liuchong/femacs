@@ -10031,3 +10031,127 @@ DEFUN! ("x-frame-restack", Fx_frame_restack, Sx_frame_restack,
   x_frame_restack (f1, f2, !NILP (above));                                // C 7205
   return Qt ();                                                           // C 7206
 });
+
+/* -----------------------------------------------------------------------------------------
+   C 7210-7273: the two mouse subrs - `x-mouse-absolute-pixel-position` (C 7210-7233) and
+   `x-set-mouse-absolute-pixel-position` (C 7235-7273, whose C 7251-7266 `HAVE_XINPUT2` pair
+   chooses `XIWarpPointer` on the client pointer device or `XWarpPointer`).
+   -------------------------------------------------------------------------------------- */
+
+/* C: Xlib.h 3524-3534: `extern int XWarpPointer (Display *, Window, Window, int, int, unsigned
+   int, unsigned int, int, int);` - C 7267/7269's call, and the header is on this machine.  The
+   file's posture for Xlib entries is the use-site row (slices 9 and 21's `XGetGeometry` and
+   `XReconfigureWMWindow`), so this closes the row `src/xterm.rs` 17421-17422 predicts for this
+   file rather than keeping it bare (that comment is corrected in this slice).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XWarpPointer (display: *mut Display, src_w: Window, dest_w: Window, src_x: c_int,
+		       src_y: c_int, src_width: c_uint, src_height: c_uint, dest_x: c_int,
+		       dest_y: c_int) -> c_int;
+}
+
+/* C: `<X11/extensions/XInput2.h>`: `extern int XIWarpPointer (Display *, int, Window, Window, int,
+   int, int, int, int, int);` - C 7260's call.  This machine has no XInput2.h
+   (`/opt/homebrew/include/X11/extensions/` carries `XI2.h`, the protocol header, and no
+   declaration), so the row names the header and the signature and is **UNVERIFIED**; it is owed
+   to an XInput2 mirror.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe extern "C" {
+  pub fn XIWarpPointer (display: *mut Display, deviceid: c_int, src_w: Window, dest_w: Window,
+			src_x: c_int, src_y: c_int, src_width: c_int, src_height: c_int,
+			dest_x: c_int, dest_y: c_int) -> c_int;
+}
+
+/* C: xterm.h 1755/1756: `extern void x_catch_errors_for_lisp (struct x_display_info *);` /
+   `… x_uncatch_errors_for_lisp (…);` - C 7259/7263's calls (`src/xterm.rs` 21835/21858 define
+   them; `src/xselect.rs` 497-502 declares the same two rows).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+unsafe extern "C" {
+  pub fn x_catch_errors_for_lisp (dpyinfo: *mut x_display_info);
+  pub fn x_uncatch_errors_for_lisp (dpyinfo: *mut x_display_info);
+}
+
+/* C 7210-7233.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-mouse-absolute-pixel-position", Fx_mouse_absolute_pixel_position,
+	Sx_mouse_absolute_pixel_position,
+	0, 0, 0,
+	doc: "Return absolute position of mouse cursor in pixels.\nThe position is returned as a cons cell (X . Y) of the coordinates of\nthe mouse cursor position in pixels relative to a position (0, 0) of the\nselected frame's display.  ",
+	(),
+	{
+  let f: *mut frame = SELECTED_FRAME ();                                  // C 7218
+  let mut root: Window = 0;                                               // C 7219
+  let mut dummy_window: Window = 0;
+  let mut x: c_int = 0;                                                   // C 7220
+  let mut y: c_int = 0;
+  let mut dummy: c_int = 0;
+
+  if FRAME_INITIAL_P (f) || !FRAME_X_P (f)                                 // C 7222
+    { return Qnil (); }                                                   // C 7223
+
+  block_input ();                                                         // C 7225
+  x_query_pointer (FRAME_X_DISPLAY! (f),                                  // C 7226
+		   (*FRAME_DISPLAY_INFO! (f)).root_window,                 // C 7227
+		   &raw mut root, &raw mut dummy_window,                   // C 7228
+		   &raw mut x, &raw mut y,
+		   &raw mut dummy, &raw mut dummy,                         // C 7229
+		   &raw mut dummy as *mut c_uint);
+  unblock_input ();                                                       // C 7230
+
+  return Fcons (make_fixnum (x as EMACS_INT),                             // C 7232
+		make_fixnum (y as EMACS_INT));
+});
+
+/* C 7235-7273.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-set-mouse-absolute-pixel-position", Fx_set_mouse_absolute_pixel_position,
+	Sx_set_mouse_absolute_pixel_position,
+	2, 2, 0,
+	doc: "Move mouse pointer to absolute pixel position (X, Y).\nThe coordinates X and Y are interpreted in pixels relative to a position\n(0, 0) of the selected frame's display.  ",
+	(x: Lisp_Object, y: Lisp_Object),
+	{
+  let f: *mut frame = SELECTED_FRAME ();                                  // C 7242
+
+  if FRAME_INITIAL_P (f) || !FRAME_X_P (f)                                 // C 7244
+    { return Qnil (); }                                                   // C 7245
+
+  let xval: c_int = check_integer_range (x, INT_MIN as intmax_t,          // C 7247
+					 INT_MAX as intmax_t) as c_int;
+  let yval: c_int = check_integer_range (y, INT_MIN as intmax_t,          // C 7248
+					 INT_MAX as intmax_t) as c_int;
+
+  block_input ();                                                         // C 7250
+  #[cfg (feature = "have_xinput2")]                                       // C 7251
+  {
+    let mut deviceid: c_int;                                              // C 7252
+
+    deviceid = (*FRAME_DISPLAY_INFO! (f)).client_pointer_device;          // C 7254
+
+    if (*FRAME_DISPLAY_INFO! (f)).supports_xi2 && deviceid != -1          // C 7256-7257
+      {
+	use crate::x11_constants::None;                                   // X.h 115's `None`
+	x_catch_errors_for_lisp (FRAME_DISPLAY_INFO! (f));                // C 7259
+	XIWarpPointer (FRAME_X_DISPLAY! (f), deviceid, None as Window,    // C 7260-7262
+		       (*FRAME_DISPLAY_INFO! (f)).root_window,
+		       0, 0, 0, 0, xval, yval);
+	x_uncatch_errors_for_lisp (FRAME_DISPLAY_INFO! (f));              // C 7263
+      }
+    else
+      {
+	use crate::x11_constants::None;
+	XWarpPointer (FRAME_X_DISPLAY! (f), None as Window,               // C 7267-7269
+		      (*FRAME_DISPLAY_INFO! (f)).root_window,
+		      0, 0, 0, 0, xval, yval);
+      }
+  }
+  #[cfg (not (feature = "have_xinput2"))]                                 // C 7266's `#endif`
+  {
+    use crate::x11_constants::None;
+    XWarpPointer (FRAME_X_DISPLAY! (f), None as Window,                   // C 7267-7269
+		  (*FRAME_DISPLAY_INFO! (f)).root_window,
+		  0, 0, 0, 0, xval, yval);
+  }
+  unblock_input ();                                                       // C 7270
+
+  return Qnil ();                                                         // C 7272
+});

@@ -17418,8 +17418,10 @@ unsafe extern "C" {
 /// - non-`static` and declared in xterm.h, so `#[unsafe(no_mangle)] pub unsafe extern "C" fn`
 /// (PORTING.md 0.2/1.4); C's `#ifdef HAVE_XINPUT2` arm keeps its `if`/`else` and the
 /// `XWarpPointer` tail is written in both (P-86 ①).  `XIWarpPointer`/`XWarpPointer` are Xlib /
-/// XInput2 entries with no mirror row - kept bare, the owed class (the `src/xfns.rs` copy of
-/// the same call pair, xfns.c 7260/7267, has the same two rows).
+/// XInput2 entries with no mirror row - kept bare here, the owed class.  The `src/xfns.rs` copy
+/// of the same call pair (xfns.c 7260/7267) declared both at its own use site instead - that
+/// file's posture for Xlib entries, slices 9/21 - so its arms read no new row for them
+/// (status 3.925).
 #[cfg (feature = "have_x_windows")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_mouse_pixel_position (f: *mut frame, pix_x: c_int,
