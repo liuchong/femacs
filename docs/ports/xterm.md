@@ -219,6 +219,19 @@ AIUX 960/77, AX 817/74, AG3 858/74 - and the slice adds the lane's thirteenth ar
 `E0609` on the three `#ifdef HAVE_XFIXES` members of `x_display_info` (`monitored_selections` x4,
 `selection_tracking_window` x1, `n_monitored_selections` x2), with the SDK record resolving (the
 unit declares `XFixesSelectionNotifyEvent` at the use site, P-88 1) and **no warning moved**.
+  Slice 101 (C 25641-25811, Decision 114) goes **15 -> 13**: `x_dispatch_event` and `XTread_socket`
+both retire as missing functions, and the slice reads **+4** in the eight arms that compile
+`XTread_socket`'s `#ifndef USE_GTK` block (the seven plus AXF: `XPending` x1, `XNextEvent` x1,
+`handle_one_xevent` x2 and `XNoOp` x1, against the retirement of `cannot find value XTread_socket` x1
+- the terminal hook table's reference to it), **0/0** in UG/UGX/AIU/AIUX (C 25656's
+`handle_one_xevent` call and `XNoOp` arrive while the hook table's `XTread_socket` and
+`x_dispatch_event` references retire) and **-1** in AG3, whose hook table names `x_dispatch_event`
+twice: A 803 -> **807**, U 832 -> **836**, UT 818 -> **822**, UM 819 -> **823**, UG 819 -> **819**, UGX
+921 -> **921**, AE 835 -> **839**, AI 811 -> **815**, AIU 854 -> **854**, AIUX 960 -> **960**, AX 817 ->
+**821**, AG3 858 -> **857**, AXF 816 -> **820**, with **no warning moved in any of the thirteen
+arms**.  C 25656's `0` for `hold_quit` puts a `does not mention 0` row on `x_dispatch_event` (closed
+by a `docs/ports/macro-body-notes.tsv` row), and C 25640's `#ifdef USE_GTK` picking the *linkage* is
+the slice's one named deviation (Decision 114 1).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -429,8 +442,8 @@ unit declares `XFixesSelectionNotifyEvent` at the use site, P-88 1) and **no war
 - [x] x_coords_from_dnd_message  (line 18685, static)
 - [x] x_handle_wm_state  (line 18764, static)
 - [ ] handle_one_xevent  (line 18876, static)
-- [ ] x_dispatch_event  (line 25645, static)
-- [ ] XTread_socket  (line 25672, static)
+- [x] x_dispatch_event  (line 25645, static)
+- [x] XTread_socket  (line 25672, static)
 - [ ] x_clip_to_row  (line 25831, static)
 - [ ] x_draw_hollow_cursor  (line 25857, static)
 - [ ] x_draw_bar_cursor  (line 25913, static)
@@ -4708,6 +4721,33 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  **15 -> 15** (unchanged: the two functions are not demanded and the
   token check does not reach a function the frozen table does not name), with the line-count row at
   **28,657** against C's 33,125 (13.5% drift, was 28,569 / 13.8%).
+
+### 114. Slice 101 (C 25641-25811): `x_dispatch_event` and `XTread_socket`, and the first linkage C's `#ifdef` picks
+
+* **One deviation, and it is a linkage the port cannot spell.**  C 25640's `#ifdef USE_GTK` makes
+  `x_dispatch_event` `static int` in the GTK arm and plain `int` otherwise.  The port writes **one**
+  item, in the exported shape (`#[unsafe(no_mangle)] pub unsafe extern "C" fn`, which xterm.h 1806's
+  declaration and `check-linkage.py` both require for C's non-`static` arm), because C's statements
+  must appear once; the GTK arm therefore exports a symbol C keeps internal, and no caller can see the
+  difference (the GTK arm's callers are this file's own).
+* **Two `--check` items retired, one token row brought.**  `x_dispatch_event` (C 25645) and
+  `XTread_socket` (C 25672) both retire as missing functions - **15 -> 13** once the row below is
+  closed - and C 25656's `0` argument (C's null `struct input_event *`, the port's
+  `std::ptr::null_mut ()`) is closed by a notes row rather than by a null-pointer spelling C lacks.
+* **The readings are the arms' split.**  The eight arms compiling `XTread_socket`'s `#ifndef USE_GTK`
+  block read **+4** (five rows, one retirement); UG/UGX/AIU/AIUX read **0/0**; AG3 reads **-1**
+  (its hook table names `x_dispatch_event` twice).  `XPending`/`XNextEvent`/`XNoOp` are Xlib's
+  recorded bare class, and `handle_one_xevent` is the file's largest remaining `--check` row
+  (C 18866-25632) - its placeholder now sits above this text in C's order (P-91 2).
+* **C's own shapes.**  `terminal->display_info.x` is the mirror's P-72 rule-3 `*mut c_void` cast the
+  way `x_term_init` reads it (this file 19940); both loops are cfg'd blocks with C's loop-local
+  declarations inside (slice 96's shape) and those two locals are zeroed per Deviation 12 because
+  `handle_one_xevent` writes `finish` through `&raw mut`; C 25692's comparison states
+  `x_dnd_finish_display as *mut Display` (the object is the mirror's `*mut c_void`); C 25702's `= 0`
+  is `std::ptr::null_mut ()`; C 25771's struct assignment is Rust's; and C 25774 clears the pending
+  quit event's kind through `input_event_bits!`'s three-argument form.
+* **What `--check` reads.**  **15 -> 13** (11 missing + 1 `does not mention false` + the drift row),
+  with the line-count row at **28,874** against C's 33,125 (12.8% drift, was 28,657 / 13.5%).
 
 ## Evidence
 
@@ -9373,3 +9413,52 @@ C's 33,125 (13.5% drift, was 28,569 / 13.8%).
 block either: no selection was monitored, no owner was looked up and no event was inspected; the
 readings above are compile readings, and the SDK record's layout stays UNVERIFIED until a machine
 with `<X11/extensions/Xfixes.h>` measures it (Owed item 0).
+
+### Slice 101's readings (C 25641-25811), as landed and measured (2026-10-07)
+
+Probe = `cargo run -q -p xtask -- probe src/xterm.rs /tmp/s101/<tag>.o --crate-type=lib
+--emit=metadata -C panic=abort <cfg flags>`; A = `have_x_windows`, U = A +
+`use_toolkit_scroll_bars`, UT = U + `use_x_toolkit`, UM = UT + `use_motif`, UG = U + `use_gtk`,
+UGX = UG + `have_xinput2`, AE = A + `enable_checking`, AI = A + `have_x_i18n`, AIU = AI +
+`use_gtk`, AIUX = AIU + `have_xinput2`, AX = A + `have_xdbe`, AG3 = A + `use_gtk` + `have_gtk3`,
+AXF = A + `have_xfixes` (slice 100's arm).  Both sides were measured on this revision (the baseline
+by restoring `src/xterm.rs` from HEAD, then putting the saved copy back - its md5 is the copy's).
+
+| arm | HEAD's unit (slice 100 text) | this slice's text | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 803 / 74 | **807 / 74** | **+4 / 0** |
+| U `+use_toolkit_scroll_bars` | 832 / 74 | **836 / 74** | **+4 / 0** |
+| UT `U +use_x_toolkit` | 818 / 73 | **822 / 73** | **+4 / 0** |
+| UM `UT +use_motif` | 819 / 73 | **823 / 73** | **+4 / 0** |
+| UG `U +use_gtk` | 819 / 75 | **819 / 75** | 0 |
+| UGX `UG +have_xinput2` | 921 / 77 | **921 / 77** | 0 |
+| AE `A +enable_checking` | 835 / 73 | **839 / 73** | **+4 / 0** |
+| AI `A +have_x_i18n` | 811 / 75 | **815 / 75** | **+4 / 0** |
+| AIU `AI +use_gtk` | 854 / 75 | **854 / 75** | 0 |
+| AIUX `AIU +have_xinput2` | 960 / 77 | **960 / 77** | 0 |
+| AX `A +have_xdbe` | 817 / 74 | **821 / 74** | **+4 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 858 / 74 | **857 / 74** | **-1 / 0** |
+| AXF `A +have_xfixes` | 816 / 74 | **820 / 74** | **+4 / 0** |
+
+**Additions and retirements, by name.**  The eight arms that compile `XTread_socket`'s
+`#ifndef USE_GTK` block (the seven plus AXF): `XPending` x1, `XNextEvent` x1, `XNoOp` x1,
+`handle_one_xevent` x2 (C 25656 and C 25732) and the retirement of `cannot find value XTread_socket`
+x1 - the terminal hook table's reference, which this slice resolves.  UG/UGX/AIU/AIUX: `XNoOp` x1 and
+`handle_one_xevent` x1 arrive (C 25656 only), and `XTread_socket`'s and `x_dispatch_event`'s
+hook-table references both retire.  AG3: the same, except that two `x_dispatch_event` references
+retire.  **Warning sets are identical to the baselines' in all thirteen arms.**
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets (the frozen configuration has no window system, so neither function is compiled
+there).
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` after C 25674's `int count = 0;` moves
+**A 807 -> 808** with `E0308` 13 -> 14, anchored at `build/probes/xterm/_root.rs:28736:18`; removing
+the line returns A to the table.
+
+**What `--check` reads.**  **15 -> 13** as Decision 114 5 says, with the line-count row at **28,874**
+against C's 33,125 (12.8% drift, was 28,657 / 13.5%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no X event was read, no no-op
+was requested and no frame was raised; the readings above are compile readings of text this machine
+cannot build.

@@ -28654,4 +28654,221 @@ pub unsafe extern "C" fn x_find_selection_owner (dpyinfo: *mut x_display_info,
   return X_INVALID_WINDOW;                                             // C 18861
 }
 
-/* C 18866-18874's comment opens `XTread_socket` (C 18876-...), the next definition.  */
+/* C 18866-25632: `handle_one_xevent` (6,757 lines) is the file's largest function and a slice of
+   its own - the lane's next target, with `XTread_socket`'s call site C 25732 and
+   `x_dispatch_event`'s C 25656 already waiting for it.  The two items below are its neighbours in
+   C's order, and the port keeps their text at their own C positions (P-91 2).  */
+
+/* Handles the XEvent EVENT on display DISPLAY.
+   This is used for event loops outside the normal event handling,
+   i.e. looping while a popup menu or a dialog is posted.
+
+   Returns the value handle_one_xevent sets in the finish argument.  */
+
+/// C 25641-25661: `x_dispatch_event (XEvent *event, Display *display)` - C 25640's `#ifdef USE_GTK`
+/// picks the *linkage* (C's `static int` in the GTK arm, plain `int` otherwise) and xterm.h 1806
+/// declares it, so the port writes the exported shape in both arms: one item, because C's
+/// statements must appear once and the difference is a linkage the port cannot spell per arm - the
+/// deviation is named in Decision 114 1, and `check-linkage.py` requires the exported symbol
+/// anyway (C's non-`static` arm is what its inventory reads).  `x_display_info_for_display`,
+/// `block_input`/`unblock_input` and `X_EVENT_NORMAL` are already this unit's, and C 25656's `0`
+/// for `hold_quit` is `std::ptr::null_mut ()` - the one row this item reads is
+/// `handle_one_xevent`'s own `--check` row.
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_dispatch_event (event: *mut XEvent, display: *mut Display) -> c_int
+{
+  let mut dpyinfo: *mut x_display_info;                                // C 25647
+  let mut finish: c_int = X_EVENT_NORMAL;                              // C 25648
+
+  dpyinfo = x_display_info_for_display (display);                      // C 25650
+
+  if !dpyinfo.is_null ()                                               // C 25652
+    {
+      /* Block input before calling x_dispatch_event.  */
+      block_input ();                                                  // C 25655
+      handle_one_xevent (dpyinfo, event, &raw mut finish,              // C 25656
+			 std::ptr::null_mut ());
+      unblock_input ();                                                // C 25657
+    }
+
+  return finish;                                                       // C 25660
+}
+
+/* Read events coming from the X server.
+   Return as soon as there are no more events to be read.
+
+   Return the number of characters stored into the buffer,
+   thus pretending to be `read' (except the characters we store
+   in the keyboard buffer can be multibyte, so are not necessarily
+   C chars).  */
+
+/// C 25671-25811: `static int XTread_socket (struct terminal *terminal, struct input_event
+/// *hold_quit)` - C's `static`, so a plain `unsafe fn`, and this slice's second `--check` item.
+/// Shapes: C's two loop-local declarations inside the `#ifndef USE_GTK` arm are zeroed per
+/// Deviation 12 (`handle_one_xevent` writes `finish` through `&raw mut`), the whole loop is one
+/// `#[cfg (not (feature = "use_gtk"))]` block and the GTK loop plus C 25764-25775's pending-quit
+/// flush another (slice 96's shape), `terminal->display_info.x` is the mirror's P-72 rule-3
+/// `*mut c_void` cast the way this file's `x_term_init` reads it (19940), C 25702's `= 0` is
+/// `std::ptr::null_mut ()`, C 25771's struct assignment is Rust's, and C 25774 clears the kind
+/// through `input_event_bits!`'s three-argument form.  The GTK arm's `gtk_events_pending`/
+/// `gtk_main_iteration` resolve through `include/xterm.rs` 53's edge (slice 96's reading), while
+/// `XPending`, `XNextEvent` and `XNoOp` are Xlib's recorded bare class.
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTread_socket (terminal: *mut terminal,
+			 hold_quit: *mut input_event) -> c_int
+{
+  let mut count: c_int = 0;                                            // C 25674
+  let mut event_found: bool = false;                                   // C 25675
+  let dpyinfo: *mut x_display_info                                     // C 25676
+    = (*terminal).display_info.x as *mut x_display_info;
+
+  /* Don't allow XTread_socket to do anything if drag-and-drop is in
+     progress.  If unblock_input causes XTread_socket to be called and
+     read X events while the drag-and-drop event loop is in progress,
+     things can go wrong very quick.
+
+     When x_dnd_unwind_flag is true, the above doesn't apply, since
+     the surrounding code takes special precautions to keep it safe.
+
+     That doesn't matter for events from displays other than the
+     display of the drag-and-drop operation, though.  */
+  if !x_dnd_unwind_flag                                                // C 25688
+      && ((x_dnd_in_progress                                          // C 25689
+	   && (*dpyinfo).display == FRAME_X_DISPLAY! (x_dnd_frame))   // C 25690
+	  || (x_dnd_waiting_for_finish                                // C 25691
+	      && (*dpyinfo).display
+		 == x_dnd_finish_display as *mut Display))        // C 25692
+    { return 0; }                                                      // C 25693
+
+  x_clean_failable_requests (dpyinfo);                                 // C 25695
+
+  block_input ();                                                      // C 25697
+
+  /* For debugging, this gives a way to fake an I/O error.  */
+  if dpyinfo == XTread_socket_fake_io_error                             // C 25700
+    {
+      XTread_socket_fake_io_error = std::ptr::null_mut ();              // C 25702
+      x_io_error_quitter ((*dpyinfo).display);                         // C 25703
+    }
+
+#[cfg (not (feature = "use_gtk"))]
+  {
+    while XPending ((*dpyinfo).display) != 0                            // C 25707
+      {
+	let mut finish: c_int = 0;                                      // C 25709
+	let mut event: XEvent = std::mem::zeroed ();                     // C 25710
+
+	XNextEvent ((*dpyinfo).display, &raw mut event);                 // C 25712
+
+#[cfg (feature = "have_x_i18n")]
+	{
+	  /* Filter events for the current X input method.  */
+#[cfg (feature = "have_xinput2")]
+	  {
+	    if (*event).r#type != GenericEvent                            // C 25717
+		|| !(*dpyinfo).supports_xi2                               // C 25718
+		|| (*event).xgeneric.extension != (*dpyinfo).xi2_opcode   // C 25719
+	      {
+		/* Input extension key events are filtered inside
+		   handle_one_xevent.  */
+		if x_filter_event (dpyinfo, &raw mut event) != 0          // C 25724
+		  { continue; }                                           // C 25725
+	      }
+	  }
+#[cfg (not (feature = "have_xinput2"))]
+	  {
+	    if x_filter_event (dpyinfo, &raw mut event) != 0              // C 25724
+	      { continue; }                                               // C 25725
+	  }
+	}
+	event_found = true;                                               // C 25730
+
+	count += handle_one_xevent (dpyinfo, &raw mut event,              // C 25732
+				    &raw mut finish, hold_quit);
+
+	if finish == X_EVENT_GOTO_OUT                                     // C 25734
+	  { break; }                                                      // C 25735
+      }
+  }
+
+#[cfg (feature = "use_gtk")]
+  {
+    /* For GTK we must use the GTK event loop.  But XEvents gets passed
+       to our filter function above, and then to the big event switch.
+       We use a bunch of globals to communicate with our filter function,
+       that is kind of ugly, but it works.
+
+       There is no way to do one display at the time, GTK just does events
+       from all displays.  */
+
+    while gtk_events_pending () != 0                                  // C 25748
+      {
+	current_count = count;                                        // C 25750
+	current_hold_quit = hold_quit;                                // C 25751
+
+	gtk_main_iteration ();                                        // C 25753
+
+	count = current_count;                                        // C 25755
+	current_count = -1;                                           // C 25756
+	current_hold_quit = std::ptr::null_mut ();                     // C 25757
+
+	if current_finish == X_EVENT_GOTO_OUT                         // C 25759
+	  { break; }                                                  // C 25760
+      }
+
+    /* Now see if `xg_pending_quit_event' was set.  */
+    if input_event_bits! (kind, &raw mut xg_pending_quit_event)       // C 25764
+	!= NO_EVENT
+      {
+	/* Check that the frame is still valid.  It could have been
+	   deleted between now and the time the event was recorded.  */
+	if FRAME_LIVE_P (XFRAME (xg_pending_quit_event.frame_or_window))  // C 25768
+	  /* Store that event into hold_quit and clear the pending quit
+	     event.  */
+	  { *hold_quit = xg_pending_quit_event; }                     // C 25771
+
+	/* If the frame is invalid, just clear the event as well.  */
+	input_event_bits! (kind, &raw mut xg_pending_quit_event, NO_EVENT);  // C 25774
+      }
+  }
+
+  /* On some systems, an X bug causes Emacs to get no more events
+     when the window is destroyed.  Detect that.  (1994.)  */
+  if !event_found                                                     // C 25780
+    {
+      /* Emacs and the X Server eats up CPU time if XNoOp is done every time.
+	 One XNOOP in 100 loops will make Emacs terminate.
+	 B. Bretthauer, 1994 */
+      x_noop_count += 1;                                              // C 25785
+      if x_noop_count >= 100                                          // C 25786
+	{
+	  x_noop_count = 0;                                           // C 25788
+
+	  if next_noop_dpyinfo.is_null ()                             // C 25790
+	    { next_noop_dpyinfo = x_display_list; }                   // C 25791
+
+	  XNoOp ((*next_noop_dpyinfo).display);                       // C 25793
+
+	  /* Each time we get here, cycle through the displays now open.  */
+	  next_noop_dpyinfo = (*next_noop_dpyinfo).next;              // C 25796
+	}
+    }
+
+  /* If the focus was just given to an auto-raising frame,
+     raise it now.  FIXME: handle more than one such frame.  */
+  if !(*dpyinfo).x_pending_autoraise_frame.is_null ()                 // C 25802
+    {
+      x_raise_frame ((*dpyinfo).x_pending_autoraise_frame);           // C 25804
+      (*dpyinfo).x_pending_autoraise_frame = std::ptr::null_mut ();   // C 25805
+    }
+
+  unblock_input ();                                                   // C 25808
+
+  return count;                                                       // C 25810
+}
+
+/* C 25813-25829's comment and `x_clip_to_row` (C 25831-...), `x_draw_hollow_cursor` (C 25857-...),
+   `x_draw_bar_cursor` (C 25913-...), `x_define_frame_cursor` (C 26020-...), `x_clear_frame_area`
+   (C 26032-...), `x_draw_window_cursor` (C 26041-...) and `x_bitmap_icon` (C 26104-...) come next in
+   C's order; C 26194-26214 is `x_text_icon`.  */
