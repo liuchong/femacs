@@ -6963,6 +6963,120 @@ class EmacsApp: NSApplication {
     ns_send_appdefined(-1)                            // C 6757
   }
 
+  /// C 6402-6413: `- (void)showPreferencesWindow: (id)sender`.
+  @objc func showPreferencesWindow(_ sender: Any?) {
+    let emacsframe = SELECTED_FRAME()                 // C 6404
+    let theEvent = NSApp.currentEvent                 // C 6405
+
+    if emacs_event == nil {                           // C 6407
+      return                                          // C 6408
+    }
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)          // C 6409
+    emacs_event!.pointee.code = UInt32(KEY_NS_SHOW_PREFS)        // C 6410
+    emacs_event!.pointee.modifiers = 0                           // C 6411
+    EV_TRAILER(theEvent, emacsframe)                             // C 6412
+  }
+
+  /// C 6416-6429: `- (void)newFrame: (id)sender` - `showPreferencesWindow:`'s twin with
+  /// `KEY_NS_NEW_FRAME`.
+  @objc func newFrame(_ sender: Any?) {
+    let emacsframe = SELECTED_FRAME()                 // C 6420
+    let theEvent = NSApp.currentEvent                 // C 6421
+
+    if emacs_event == nil {                           // C 6423
+      return                                          // C 6424
+    }
+    input_event_set_kind(emacs_event!, NS_NONKEY_EVENT)          // C 6425
+    emacs_event!.pointee.code = UInt32(KEY_NS_NEW_FRAME)         // C 6426
+    emacs_event!.pointee.modifiers = 0                           // C 6427
+    EV_TRAILER(theEvent, emacsframe)                             // C 6428
+  }
+
+  /// C 6783-6870: `- (void)fd_handler:(id)unused` - "Check data waiting on file descriptors and
+  /// terminate if so."  `waiting` alternates between a blocking probe of the self-pipe and a
+  /// `pselect` over the descriptors `ns_select_1` recorded (C 5291-5295's mutex protocol is the
+  /// same one), and the loop never returns - it is the thread `ns_term_init` starts.
+  @objc func fd_handler(_ unused: Any?) {
+    var result: Int32
+    var waiting: Int32 = 1                            // C 6789
+    var nfds: Int32
+    var c: CChar = 0                                  // C 6790
+    var readfds = fd_set()                            // C 6792
+    var writefds = fd_set()
+    var timeout = timespec()
+    var pool: UnsafeMutableRawPointer? = nil          // C 6794
+
+    while true {                                      // C 6798
+      objc_autoreleasePoolPop(pool)                   // C 6800
+      pool = objc_autoreleasePoolPush()               // C 6801
+
+      if waiting != 0 {                               // C 6803
+        var fds = fd_set()                            // C 6805
+        __darwin_fd_zero(&fds)                        // C 6806
+        __darwin_fd_set(selfds.0, &fds)               // C 6807
+        result = pselect(selfds.0 + 1, &fds, nil, nil, nil, nil)   // C 6808
+        if result > 0 && read(selfds.0, &c, 1) == 1 && c == CChar(UInt8(ascii: "g")) {
+          waiting = 0                                 // C 6810
+        }
+      } else {
+        pthread_mutex_lock(&select_mutex)             // C 6814
+        nfds = select_nfds                            // C 6815
+
+        if select_valid & Int32(SELECT_HAVE_READ) != 0 {   // C 6817
+          readfds = select_readfds                    // C 6818
+        } else {
+          __darwin_fd_zero(&readfds)                  // C 6820
+        }
+
+        if select_valid & Int32(SELECT_HAVE_WRITE) != 0 {  // C 6822
+          writefds = select_writefds                  // C 6824
+        }
+        if select_valid & Int32(SELECT_HAVE_TMO) != 0 {    // C 6829
+          timeout = select_timeout                    // C 6831
+        }
+
+        pthread_mutex_unlock(&select_mutex)           // C 6837
+
+        let self_fd = selfds.0                        // C 6839's and C 6840's `selfds[0]`
+        __darwin_fd_set(self_fd, &readfds)            // C 6839
+        if self_fd >= nfds { nfds = self_fd + 1 }     // C 6840
+
+        /* C 6825/6832 put the *addresses* of those two locals into `wfds`/`tmo`, which Swift
+           cannot assign (`&` is valid only at a call site).  The two flags therefore select one of
+           C's four call shapes here, at the call itself; the mutex, the values and the order are
+           C's.  */
+        let haveW = select_valid & Int32(SELECT_HAVE_WRITE) != 0
+        let haveT = select_valid & Int32(SELECT_HAVE_TMO) != 0
+        if haveW {
+          if haveT { result = pselect(nfds, &readfds, &writefds, nil, &timeout, nil) }
+          else     { result = pselect(nfds, &readfds, &writefds, nil, nil, nil) }
+        } else {
+          if haveT { result = pselect(nfds, &readfds, nil, nil, &timeout, nil) }
+          else     { result = pselect(nfds, &readfds, nil, nil, nil, nil) }
+        }
+
+        if result == 0 {                              // C 6844
+          ns_send_appdefined(-2)                      // C 6845
+        } else if result > 0 {                        // C 6846
+          if __darwin_fd_isset(self_fd, &readfds) != 0 {   // C 6848
+            if read(self_fd, &c, 1) == 1 && c == CChar(UInt8(ascii: "s")) {
+              waiting = 1                             // C 6851
+            }
+          } else {
+            pthread_mutex_lock(&select_mutex)         // C 6855
+            if select_valid & Int32(SELECT_HAVE_READ) != 0 { select_readfds = readfds }    // C 6857
+            if select_valid & Int32(SELECT_HAVE_WRITE) != 0 { select_writefds = writefds }  // C 6859
+            if select_valid & Int32(SELECT_HAVE_TMO) != 0 { select_timeout = timeout }      // C 6861
+            pthread_mutex_unlock(&select_mutex)       // C 6862
+
+            ns_send_appdefined(result)                // C 6864
+          }
+        }
+        waiting = 1                                   // C 6867
+      }
+    }
+  }
+
   /// C 6615-6631: `- (void) terminate: (id)sender`.  It waited for `NS_NONKEY_EVENT`'s value (the
   /// entry above records how this unit takes it); C 6617's uninitialized record is the state
   /// C 6623's `EVENT_INIT` writes, as in `systemWillSleep:`.
@@ -7704,4 +7818,20 @@ fileprivate func ns_read_socket(_ terminal: UnsafeMutableRawPointer?,
                                 _ hold_quit: UnsafeMutablePointer<input_event>?) -> Int32 {
   ns_read_socket_1(terminal, hold_quit, false)       // C 5198
 }
+
+// ==========================================================================
+// Round 29: `showPreferencesWindow:`, `newFrame:` and `fd_handler:`
+// ==========================================================================
+
+/// C `src/nsterm.h` 804 and 806: `#define KEY_NS_NEW_FRAME ((1<<28)|(0<<16)|12)` and
+/// `#define KEY_NS_SHOW_PREFS ((1<<28)|(0<<16)|14)`.
+let KEY_NS_NEW_FRAME = (1 << 28) | (0 << 16) | 12
+let KEY_NS_SHOW_PREFS = (1 << 28) | (0 << 16) | 14
+
+/// C: `void FD_ZERO (fd_set *)` and `void FD_SET (int, fd_set *)` (sys/select.h) - the other two
+/// Darwin expansions of that family (`__darwin_fd_isset` above is the third), imported in the same
+/// shape because Swift marks the `fd_set` macros unavailable.
+@_silgen_name("__darwin_fd_zero") func __darwin_fd_zero(_ set: UnsafeMutablePointer<fd_set>?)
+@_silgen_name("__darwin_fd_set")
+func __darwin_fd_set(_ fd: Int32, _ set: UnsafeMutablePointer<fd_set>?)
 

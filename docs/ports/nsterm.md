@@ -271,8 +271,8 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)stop: (id)sender`  (line 6295) — landed as `override func stop (_ sender: Any?)` (the `NS_IMPL_COCOA` arm; C 6304 closes it)
   - [x] `- (void)logNotification: (NSNotification *)notification`  (line 6306) — landed as `@objc func logNotification (_:)`: C's `[[notification name] UTF8String]` is `withCString` over `notification.name.rawValue`, so the three `strstr` calls read the same bytes (the new declaration is the `fputs` shape)
   - [x] `- (void)sendEvent: (NSEvent *)theEvent`  (line 6317) — landed as `override func sendEvent (_:)`: C's `NSEventTypeXxx` constants are `NSEvent.EventType` cases (C 6323's `int type` becomes the enum), the `NS_IMPL_GNUSTEP` keyboard arm (6329-6337) is dead, C 6344/6349's two `data2` values are `src/nsterm.h` 1189/1192's own `let`s, and C 6389's `di->next` walk is the new `ns_display_info_next` shim
-  - [ ] `- (void)showPreferencesWindow: (id)sender`  (line 6402)
-  - [ ] `- (void)newFrame: (id)sender`  (line 6416)
+  - [x] `- (void)showPreferencesWindow: (id)sender`  (line 6402) — landed as `@objc func showPreferencesWindow (_:)`: the four statements are C 6409-6412, and the `kind` write is the value round 28 settled (`NS_NONKEY_EVENT`, the unit's UNVERIFIED constant)
+  - [x] `- (void)newFrame: (id)sender`  (line 6416) — landed as `@objc func newFrame (_:)`, the row above's twin with `KEY_NS_NEW_FRAME` (`src/nsterm.h` 804)
   - [x] `- (BOOL) openFile: (NSString *)fileName`  (line 6433) — landed as `@objc func openFile (_:) -> Bool`, the event constructor the pending open-file queue drains into; `ns_input_file`/`ns_input_line` are this file's own file-scope objects imported as data symbols, and `lispString` is the Cocoa lane's exported helper
   - [ ] `- (void) updateMonitors: (NSNotification *) notification`  (line 6454)
   - [ ] `- (void)applicationDidFinishLaunching: (NSNotification *)notification`  (line 6490)
@@ -292,7 +292,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)applicationDidResignActive: (NSNotification *)notification`  (line 6752) — landed as `@objc func applicationDidResignActive (_:)`: C's one live statement is the `ns_send_appdefined (-1)` call
   - [x] `- (void)timeout_handler: (NSTimer *)timedEntry`  (line 6769) — landed as `@objc func timeout_handler (_ timedEntry: Timer)`: its one statement calls `ns_send_appdefined (-2)`, so it lands with round 22
   - [x] `- (void)sendFromMainThread:(id)unused`  (line 6778) — landed as `@objc func sendFromMainThread (_ unused: Any?)`: the main-thread half of `ns_send_appdefined`'s non-main-thread arm (C 5027 posts this very selector), which is why the two land together
-  - [ ] `- (void)fd_handler:(id)unused`  (line 6783)
+  - [x] `- (void)fd_handler:(id)unused`  (line 6783) — landed as `@objc func fd_handler (_:)`: the `while true` is C 6798's `for (;;)`, `FD_ZERO`/`FD_SET`/`FD_ISSET` are the three Darwin expansions this unit imports (`__darwin_fd_zero`/`__darwin_fd_set`/`__darwin_fd_isset`), and C 6825/6832's two `&local` assignments became the four call shapes C's `wfds`/`tmo` select (Swift cannot assign `&`, so the choice happens at the call)
   - [ ] `- (void)requestService: (NSPasteboard *)pboard userData: (NSString *)userData error: (NSString **)error`  (line 6881)
   - [x] `- (BOOL)fulfillService: (NSString *)name withArg: (NSString *)arg`  (line 6891) — landed as `@objc func fulfillService (_:withArg:) -> Bool`, the service-request twin of `openFile:` (C 6905's `EV_MODIFIERS` is this unit's own entry)
 - [ ] EmacsView  (`@implementation` 7039, `@end` 9746) - round 25 landed **the class record** (the fifteen ivars of `src/nsterm.h` 470-488, `@public emacsframe` included) and three methods (`fsIsNative` C 8952, `isFullscreen` C 8957, `updateCollectionBehavior` C 8981); the protocol list (nsterm.h 466) is the named deferral - Swift enforces the required methods of `NSTextInput`/`NSTextInputClient`/`NSWindowDelegate` where the conformance is declared, so it lands with that method batch
@@ -3019,3 +3019,24 @@ call site takes an entry and the definition lands at its own C line - and **both
   `-fulfillService:withArg:`).  Five ledger boxes are ticked (228 -> 233), and the covered range
   now spans C 60-5001, C 5012-5084, C 5109-5199, C 5203-5385, C 6433-6451, C 6556-6613,
   C 6615-6631, C 6769-6781 and C 6891-6909.
+
+
+
+### Round 29: `showPreferencesWindow:`, `newFrame:` and `fd_handler:` (C 6402-6429, C 6783-6870)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-28 carry, so **no new warning**.  Object
+  `/tmp/nsterm29.o`, **631,608 bytes**, md5 `ba37f082a5702630d97eb6a20854bbb8`.
+* **One Swift-versus-C shape, recorded in the source**: C 6825/6832 hold the *addresses* of two
+  locals in `wfds`/`tmo` for `pselect`'s optional arguments.  Swift cannot assign `&x`
+  (`error: '&' may only be used to pass an argument to inout parameter`, measured twice), so the
+  two flags now select one of C's four call shapes at the call itself - same mutex, same values,
+  same order.  `selfds[0]` likewise became the local `self_fd` at C 6839/6840/6848/6850, where C
+  indexes the array.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 36 unported,
+  36 row(s); **422** C symbol import(s)` - the unported count is unchanged because these three are
+  Objective-C selectors, and the two new imports are the `fd_set` family members above.  Final:
+  `0 new, 0 stale, 7 Swift unit(s) landed`; `tools/check-own-voice.py` reads 0 failure(s).
+* **Three boxes are ticked** (233 -> 236).  `fd_handler:` is the run loop's own worker - the thread
+  `ns_term_init` starts - so the event loop now has both its entry pair (round 28) and its select
+  side (round 26) in the port.
