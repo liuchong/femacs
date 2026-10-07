@@ -370,3 +370,14 @@ object`（整树 13 份 failing 里最便宜的那一条）。现在它登记在
 `docs/ports/excluded-objects.txt`（P-90 7 与 PORTING.md 0.1-2 的新例外），门的读数是
 `OK` 并打印规模：`(1 file-scope object(s) recorded as not carried, with their reasons:
 x_error_message_count)`；读到它的单元仍自己声明（`src/eval.rs` 1835-1836）。
+
+## 2026-10-07: `DEFER_SELECTIONS!` 的 `Some (...)`（3.901）
+
+C 1851-1852 的 `#define DEFER_SELECTIONS x_defer_selection_requests ();
+record_unwind_protect_void (x_release_selection_requests_and_flush)` 在这面镜像里是
+1556-1563 的宏，宏体把助手**不裹 `Some`** 地交给 `record_unwind_protect_void`。这行一直"编得过"
+只是因为 `record_unwind_protect_void` 这个名字**在单元的作用域里未解析**（E0425 先报名字，
+类型检查根本没轮到）；第六十六个 `xterm` 切片（3.901）在用法点声明了它，类型错就露出来了：
+声明要 `Option<unsafe extern "C" fn ()>`（`src/alloc.rs` 6266 / `src/androidmenu.rs` 90 的形状），
+宏体交的是裸 fn。改法只加一层 `Some (...)`；P-87 两条腿跑过：`check-mirror-dupes` 16/16/0、
+`tools/check-all-units.sh` `checked 83 unit(s), 0 failure(s)`。

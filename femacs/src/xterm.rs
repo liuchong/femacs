@@ -4856,7 +4856,7 @@ unsafe fn x_set_dnd_targets (targets: *mut Atom, ntargets: c_int)
 
 /* C 4743-4755: free them.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_free_dnd_targets ()
+unsafe extern "C" fn x_free_dnd_targets ()
 {
   if x_dnd_targets.is_null ()
     { return; }
@@ -4871,7 +4871,7 @@ unsafe fn x_free_dnd_targets ()
 
 /* C 4757-4762.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_clear_dnd_variables ()
+unsafe extern "C" fn x_clear_dnd_variables ()
 {
   x_dnd_monitors = Qnil ();
   x_dnd_unsupported_drop_data = Qnil ();
@@ -4879,7 +4879,7 @@ unsafe fn x_clear_dnd_variables ()
 
 /* C 4764-4776.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_free_dnd_toplevels ()
+unsafe extern "C" fn x_free_dnd_toplevels ()
 {
   if x_dnd_use_toplevels == false || x_dnd_toplevels.is_null ()
     { return; }
@@ -4984,7 +4984,7 @@ unsafe fn x_dnd_cancel_dnd_early ()
 /* C 4866-4919: the unwind-protect cleanup.  C's `void *frame` parameter is the port's cast, and
    `FRAME_DISPLAY_INFO (f)->grabbed` is the one macro expansion C writes with the field.  */
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_dnd_cleanup_drag_and_drop (frame: *mut c_void)
+unsafe extern "C" fn x_dnd_cleanup_drag_and_drop (frame: *mut c_void)
 {
   use crate::x11_constants::None;
 
@@ -21878,7 +21878,7 @@ pub unsafe extern "C" fn x_detect_pending_selection_requests () -> bool
 
 /// C 12589-12593: `static void x_clear_dnd_action (void)` - C's `static`.
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_clear_dnd_action ()
+unsafe extern "C" fn x_clear_dnd_action ()
 {
   x_dnd_action_symbol = Qnil ();                                        // C 12592
 }
@@ -21889,7 +21889,7 @@ unsafe fn x_clear_dnd_action ()
 /// `XDeleteProperty` is the bare Xlib class (the reading names it) and the two atoms are the
 /// display record's members this file already reads.
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_dnd_delete_action_list (frame: Lisp_Object)
+unsafe extern "C" fn x_dnd_delete_action_list (frame: Lisp_Object)
 {
   let mut f: *mut frame;                                                // C 12599
 
@@ -21915,7 +21915,7 @@ unsafe fn x_dnd_delete_action_list (frame: Lisp_Object)
 /// `static`; the subr is the mirror's `Fx_disown_selection_internal` and the selection symbol is
 /// the mirror's `QXdndSelection`.
 #[cfg (feature = "have_x_windows")]
-unsafe fn x_dnd_lose_ownership (timestamp_and_frame: Lisp_Object)
+unsafe extern "C" fn x_dnd_lose_ownership (timestamp_and_frame: Lisp_Object)
 {
   let f: *mut frame;                                                    // C 12622
 
@@ -21993,6 +21993,727 @@ unsafe fn x_dnd_process_quit (f: *mut frame, timestamp: Time)
   x_dnd_return_frame_object = std::ptr::null_mut ();                    // C 12680
   x_dnd_movement_frame = std::ptr::null_mut ();                         // C 12681
   x_dnd_wheel_frame = std::ptr::null_mut ();                            // C 12682
+}
+
+/* This function is defined far away from the rest of the XDND code so
+   it can utilize `x_any_window_to_frame'.  */
+
+/* Implementers beware!  On most other platforms (where drag-and-drop
+   data is not provided via selections, but some kind of serialization
+   mechanism), it is usually much easier to implement a suitable
+   primitive instead of copying the C code here, and then to build
+   `x-begin-drag' on top of that, by making it a wrapper function in
+   Lisp that converts the list of targets and value of `XdndSelection'
+   to serialized data.  Also be sure to update the data types used in
+   dnd.el.
+
+   For examples of how to do this, see `haiku-drag-message' and
+   `x-begin-drag' in haikuselect.c and lisp/term/haiku-win.el, and
+   `ns-begin-drag' and `x-begin-drag' in nsselect.m and
+   lisp/term/ns-win.el.  */
+/// C 12702-13327: `Lisp_Object x_dnd_begin_drag_and_drop (struct frame *f, Time time, Atom xaction,
+/// Lisp_Object return_frame, Atom *ask_action_list, const char **ask_action_names, int
+/// n_ask_actions, bool allow_current_frame, Atom *target_atoms, int ntargets, Lisp_Object
+/// selection_target_list, bool follow_tooltip)` - a **non-`static`** C definition, so the port
+/// carries `#[unsafe(no_mangle)]` and `extern "C"` (PORTING.md 0.2), and this slice's only
+/// `--check` item.  The body is C's own nesting, one axis at a time: `#ifndef USE_GTK` for the
+/// three plain-X/XT locals and the event-dispatch half (P-86 1 - both arms are transcribed),
+/// `#ifdef HAVE_XKB` and `#ifdef HAVE_XINPUT2` for their two blocks, and `#if defined HAVE_XRANDR
+/// || defined USE_GTK` for the monitor list.  C's `while (x_dnd_in_progress ||
+/// x_dnd_waiting_for_finish)` loop's three dispatch arms are C's own `#ifdef USE_GTK` / `#elif
+/// defined USE_X_TOOLKIT` / `#else` (the `x_toolkit_position` shape).  C leaves several locals
+/// uninitialised (`next_event`, `finish`, `ask_actions`, `end`, `fill`); the port keeps the
+/// deferred initialisation where C assigns before any read and zeroes the two C hands to
+/// `handle_one_xevent` (`std::mem::zeroed ()`, this file 14976's reading).
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_dnd_begin_drag_and_drop (f: *mut frame, time: Time, xaction: Atom,
+						    return_frame: Lisp_Object,
+						    ask_action_list: *mut Atom,
+						    ask_action_names: *const *const c_char,
+						    n_ask_actions: c_int, allow_current_frame: bool,
+						    target_atoms: *mut Atom, ntargets: c_int,
+						    selection_target_list: Lisp_Object,
+						    follow_tooltip: bool) -> Lisp_Object
+{
+  use crate::x11_constants::{None, PropModeReplace, PropertyChangeMask, XA_ATOM};
+
+  /* C: the prototypes C's body calls that no mirror of this unit's graph carries, declared at
+     this use site (P-72 rule 4 / P-88 1): lisp.h 4825's
+     `extern void record_unwind_protect_void (void (*) (void));` (the `src/androidmenu.rs` 90
+     shape), dispextern.h 3589's `void redisplay_preserve_echo_area (int);`, lisp.h 4786's
+     `extern Lisp_Object quit (void);`, dispextern.h 3879's `int popup_activated (void);`,
+     xterm.h 1945's `extern Lisp_Object x_timestamp_for_selection (struct x_display_info *,
+     Lisp_Object);` (the definition is `src/xselect.rs` 3731's), Xutil.h 628's
+     `extern void XSetTextProperty (Display *, Window, XTextProperty *, Atom);` and string.h's
+     `char *strncpy (char *, const char *, size_t);` (the `src/haikufont.rs` 90-92 shape - the
+     prelude carries `strlen` but not this one).  `SubstructureNotifyMask` (X11/X.h 173) is
+     *not* a member of `crate::x11_constants` (importing it is `E0432`), so it stays bare like
+     this file's 9269 `GCGraphicsExposures` site (Decision 116 4).  */
+  unsafe extern "C" {
+    pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+    pub fn redisplay_preserve_echo_area (a: c_int);
+    pub fn quit () -> Lisp_Object;
+    pub fn popup_activated () -> bool;
+    pub fn x_timestamp_for_selection (dpyinfo: *mut x_display_info,
+				      selection: Lisp_Object) -> Lisp_Object;
+    pub fn XSetTextProperty (display: *mut Display, w: Window, text_prop: *mut XTextProperty,
+			     property: Atom);
+    pub fn strncpy (dest: *mut c_char, src: *const c_char, n: size_t) -> *mut c_char;
+  }
+
+#[cfg (not (feature = "use_gtk"))]
+  let mut next_event: XEvent = std::mem::zeroed ();                    // C 12711
+#[cfg (not (feature = "use_gtk"))]
+  let mut finish: c_int = 0;                                           // C 12712
+  let mut root_window_attrs: XWindowAttributes = std::mem::zeroed ();  // C 12714
+  let mut hold_quit: input_event = std::mem::zeroed ();                // C 12715
+  let mut atom_name: *mut c_char;                                      // C 12716
+  let mut ask_actions: *mut c_char;                                    // C 12716
+  let mut action: Lisp_Object;                                         // C 12717
+  let mut ltimestamp: Lisp_Object;                                     // C 12717
+  let mut val: Lisp_Object;                                            // C 12717
+  let mut r#ref: specpdl_ref;                                          // C 12718
+  let mut count: specpdl_ref;                                          // C 12718
+  let mut base: specpdl_ref;                                           // C 12718
+  let mut end: ptrdiff_t;                                              // C 12719
+  let mut fill: ptrdiff_t;                                             // C 12719
+  let mut prop: XTextProperty = std::mem::zeroed ();                   // C 12720
+  let mut frame_object: Lisp_Object;                                   // C 12721
+  let mut x: Lisp_Object;                                              // C 12721
+  let mut y: Lisp_Object;                                              // C 12721
+  let mut frame: Lisp_Object;                                          // C 12721
+  let mut local_value: Lisp_Object;                                    // C 12721
+  let mut signals_were_pending: bool;                                  // C 12722
+  let mut need_sync: bool;                                             // C 12722
+#[cfg (feature = "have_xkb")]
+  let mut keyboard_state: XkbStateRec = std::mem::zeroed ();           // C 12724
+#[cfg (not (feature = "use_gtk"))]
+  let mut event_display: *mut x_display_info;                          // C 12727
+  let mut additional_mask: c_uint;                                     // C 12729
+#[cfg (feature = "have_xinput2")]
+  let mut device: *mut xi_device_t;                                    // C 12731
+
+  if (*FRAME_DISPLAY_INFO! (f)).untrusted                              // C 12734
+    /* Untrusted clients cannot send messages to trusted clients or
+	 read the window tree, so drag and drop will likely not work at
+	 all.  */
+    { error (c"Drag-and-drop is not possible when the client is not trusted by the X server.".as_ptr ()); } // C 12738-12739
+
+  base = SPECPDL_INDEX ();                                             // C 12741
+
+  /* Bind this here to avoid juggling bindings and SAFE_FREE in
+	 Fx_begin_drag.  */
+  specbind (Qx_dnd_targets_list (), selection_target_list);            // C 12745
+
+  if !FRAME_VISIBLE_P (f)                                              // C 12747
+    { error (c"Frame must be visible".as_ptr ()); }                   // C 12748
+
+  XSETFRAME! (frame, f);                                               // C 12750
+  local_value = assq_no_quit (QXdndSelection (),                       // C 12751
+				(*FRAME_TERMINAL! (f)).Vselection_alist);             // C 12752
+
+  if x_dnd_in_progress || x_dnd_waiting_for_finish                     // C 12754
+    { error (c"A drag-and-drop session is already in progress".as_ptr ()); } // C 12755
+
+  DEFER_SELECTIONS! ();                                                // C 12757
+
+  /* If local_value is nil, then we lost ownership of XdndSelection.
+	 Signal a more informative error than args-out-of-range.  */
+  if NILP (local_value)                                                // C 12761
+    { error (c"No local value for XdndSelection".as_ptr ()); }        // C 12762
+
+  if popup_activated ()                                                // C 12764
+    { error (c"Trying to drag-and-drop from within a menu-entry".as_ptr ()); } // C 12765
+
+  x_set_dnd_targets (target_atoms, ntargets);                          // C 12767
+  record_unwind_protect_void (Some (x_free_dnd_targets));              // C 12768
+  record_unwind_protect_void (Some (x_clear_dnd_action));              // C 12769
+
+  ltimestamp = x_timestamp_for_selection (FRAME_DISPLAY_INFO! (f),     // C 12771
+					  QXdndSelection ());                  // C 12772
+
+  if NILP (ltimestamp)                                                 // C 12774
+    { error (c"No local value for XdndSelection".as_ptr ()); }        // C 12775
+
+  if BIGNUMP (ltimestamp)                                              // C 12777
+    { x_dnd_selection_timestamp = bignum_to_intmax (ltimestamp) as Time; } // C 12778
+  else
+    { x_dnd_selection_timestamp = XFIXNUM (ltimestamp) as Time; }     // C 12780
+
+  /* Release ownership of XdndSelection after this function returns.
+	 VirtualBox uses the owner of XdndSelection to determine whether
+	 or not mouse motion is part of a drag-and-drop operation.  */
+  if !x_dnd_preserve_selection_data                                    // C 12786
+    {
+      record_unwind_protect (Some (x_dnd_lose_ownership),              // C 12787
+			     Fcons (ltimestamp, frame));                // C 12788
+    }
+
+  x_dnd_motif_operations                                               // C 12790
+    = xm_side_effect_from_action (FRAME_DISPLAY_INFO! (f), xaction);  // C 12791
+
+  x_dnd_first_motif_operation = xm_drag_operation::XM_DRAG_NOOP as u8; // C 12793
+
+  if n_ask_actions != 0                                                // C 12795
+    {
+      x_dnd_motif_operations                                           // C 12797
+	= xm_operations_from_actions (FRAME_DISPLAY_INFO! (f),        // C 12798
+				      ask_action_list,                  // C 12799
+				      n_ask_actions);                   // C 12800
+      x_dnd_first_motif_operation                                      // C 12801
+	= xm_side_effect_from_action (FRAME_DISPLAY_INFO! (f),        // C 12802
+				      *ask_action_list.add (0));        // C 12803
+
+      record_unwind_protect (Some (x_dnd_delete_action_list), frame);  // C 12805
+
+      ask_actions = std::ptr::null_mut ();                             // C 12807
+      end = 0;                                                         // C 12808
+      count = SPECPDL_INDEX ();                                        // C 12809
+
+      let mut i: c_int = 0;                                            // C 12811
+      while i < n_ask_actions                                          // C 12811
+	{
+	  fill = end;                                                 // C 12813
+	  end += strlen (*ask_action_names.add (i as usize)) as ptrdiff_t + 1; // C 12814
+
+	  if !ask_actions.is_null ()                                  // C 12816
+	    { ask_actions = xrealloc (ask_actions as *mut c_void, end as size_t) as *mut c_char; } // C 12817
+	  else
+	    { ask_actions = xmalloc (end as size_t) as *mut c_char; }  // C 12819
+
+	  strncpy (ask_actions.offset (fill),                         // C 12821
+		   *ask_action_names.add (i as usize),                 // C 12822
+		   (end - fill) as size_t);                            // C 12823
+
+	  i += 1;                                                     // C 12811's step
+	}
+
+      prop.value = ask_actions as *mut c_uchar;                        // C 12826
+      prop.encoding = XA_STRING;                                       // C 12827
+      prop.format = 8;                                                 // C 12828
+      prop.nitems = end as c_ulong;                                    // C 12829
+
+      record_unwind_protect_ptr (Some (xfree), ask_actions as *mut c_void); // C 12831
+
+      /* This can potentially store a lot of data in window
+	 properties, so check for allocation errors.  */
+      block_input ();                                                  // C 12835
+      x_catch_errors (FRAME_X_DISPLAY! (f));                           // C 12836
+      XSetTextProperty (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),     // C 12837
+			&raw mut prop, (*FRAME_DISPLAY_INFO! (f))      // C 12838
+						 .Xatom_XdndActionDescription);
+      XChangeProperty (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),      // C 12840
+		       (*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionList, XA_ATOM, 32, // C 12841
+		       PropModeReplace, ask_action_list as *mut c_uchar,       // C 12842
+		       n_ask_actions);                                         // C 12843
+      x_check_errors (FRAME_X_DISPLAY! (f),                            // C 12844
+		      c"Can't set action descriptions: %s".as_ptr ()); // C 12845
+      x_uncatch_errors_after_check ();                                 // C 12846
+      unblock_input ();                                                // C 12847
+
+      unbind_to (count, Qnil ());                                      // C 12849
+    }
+
+  record_unwind_protect_void (Some (x_clear_dnd_variables));           // C 12852
+
+  if follow_tooltip                                                    // C 12854
+    {
+/* C 12856-12861: `#if defined HAVE_XRANDR || defined USE_GTK` guards the cached monitor list and
+   its `NILP` test; C 12862-12863 is the tail *both* arms share, so the port writes it once per
+   arm (the arm with the cache falls through to it, the other one starts there).  */
+#[cfg (any (feature = "have_xrandr", feature = "use_gtk"))]
+      {
+	x_dnd_monitors = (*FRAME_DISPLAY_INFO! (f)).last_monitor_attributes_list; // C 12857-12858
+	if NILP (x_dnd_monitors)                                      // C 12860
+	  { x_dnd_monitors = Fx_display_monitor_attributes_list (frame); } // C 12862-12863
+      }
+#[cfg (not (any (feature = "have_xrandr", feature = "use_gtk")))]
+      { x_dnd_monitors = Fx_display_monitor_attributes_list (frame); } // C 12862-12863
+    }
+
+  x_dnd_update_tooltip = follow_tooltip;                               // C 12866
+
+  /* This shouldn't happen.  */
+  if !x_dnd_toplevels.is_null ()                                       // C 12869
+    { x_dnd_free_toplevels (true); }                                  // C 12870
+
+#[cfg (feature = "use_gtk")]
+  {
+    /* Prevent GTK+ timeouts from being run, since they can call
+	 handle_one_xevent behind our back.  */
+    suppress_xg_select ();                                            // C 12875
+    record_unwind_protect_void (Some (release_xg_select));            // C 12876
+  }
+
+  /* Set up a meaningless alias.  */
+  XSETCAR (x_dnd_selection_alias_cell, QSECONDARY ());                 // C 12880
+  XSETCDR (x_dnd_selection_alias_cell, QSECONDARY ());                 // C 12881
+
+  /* Bind this here.  The cell doesn't actually alias between
+	 anything until `xm_setup_dnd_targets' is called.  */
+  specbind (Qx_selection_alias_alist (),                               // C 12885
+	    Fcons (x_dnd_selection_alias_cell,                         // C 12886
+		   Vx_selection_alias_alist));                         // C 12887
+
+  /* Initialize most of the state for the drag-and-drop operation.  */
+  x_dnd_in_progress = true;                                            // C 12890
+  x_dnd_recursion_depth = (command_loop_level + minibuf_level) as c_int;          // C 12891
+  x_dnd_frame = f;                                                     // C 12892
+  x_dnd_last_seen_window = None as Window;                             // C 12893
+  x_dnd_last_seen_toplevel = None as Window;                           // C 12894
+  x_dnd_last_protocol_version = -1;                                    // C 12895
+  x_dnd_last_window_is_frame = false;                                  // C 12896
+  x_dnd_last_motif_style = xm_drag_style::XM_DRAG_STYLE_NONE as c_int;    // C 12897
+  x_dnd_mouse_rect_target = None as Window;                            // C 12898
+  x_dnd_action = None as Atom;                                         // C 12899
+  x_dnd_action_symbol = Qnil ();                                       // C 12900
+  x_dnd_wanted_action = xaction;                                       // C 12901
+  x_dnd_return_frame = 0;                                              // C 12902
+  x_dnd_waiting_for_finish = false;                                    // C 12903
+  x_dnd_waiting_for_motif_finish = 0;                                  // C 12904
+  x_dnd_waiting_for_status_window = None as Window;                    // C 12905
+  x_dnd_pending_send_position.r#type = 0;                              // C 12906
+  x_dnd_xm_use_help = false;                                           // C 12907
+  x_dnd_motif_setup_p = false;                                         // C 12908
+  x_dnd_end_window = None as Window;                                   // C 12909
+  x_dnd_run_unsupported_drop_function = false;                         // C 12910
+  x_dnd_use_toplevels                                                  // C 12911
+    = x_wm_supports (f, (*FRAME_DISPLAY_INFO! (f)).Xatom_net_client_list_stacking); // C 12912
+  x_dnd_last_tooltip_valid = false;                                    // C 12913
+  x_dnd_toplevels = std::ptr::null_mut ();                             // C 12914
+  x_dnd_allow_current_frame = allow_current_frame;                     // C 12915
+  x_dnd_movement_frame = std::ptr::null_mut ();                        // C 12916
+  x_dnd_wheel_frame = std::ptr::null_mut ();                           // C 12917
+  x_dnd_init_type_lists = false;                                       // C 12918
+  x_dnd_need_send_drop = false;                                        // C 12919
+
+#[cfg (feature = "have_xinput2")]
+  {
+    if (*FRAME_DISPLAY_INFO! (f)).supports_xi2                        // C 12923
+      {
+	/* Only accept input from the last master pointer to have interacted
+	   with Emacs.  This prevents another pointer device getting our
+	   idea of the button state messed up.  */
+	if (*FRAME_DISPLAY_INFO! (f)).client_pointer_device != -1     // C 12928
+	  { x_dnd_pointer_device = (*FRAME_DISPLAY_INFO! (f)).client_pointer_device; } // C 12929-12930
+	else
+	  /* This returns Bool but cannot actually fail.  */
+	  { XIGetClientPointer (FRAME_X_DISPLAY! (f), None,           // C 12933
+				&raw mut x_dnd_pointer_device); }                     // C 12934
+
+	x_dnd_keyboard_device = -1;                                   // C 12936
+
+	device = xi_device_from_id (FRAME_DISPLAY_INFO! (f),          // C 12938
+				    x_dnd_pointer_device);            // C 12939
+
+	if !device.is_null ()                                         // C 12941
+	  { x_dnd_keyboard_device = (*device).attachment; }           // C 12942
+      }
+    else
+      {
+	x_dnd_pointer_device = -1;                                    // C 12946
+	x_dnd_keyboard_device = -1;                                   // C 12947
+      }
+  }
+
+#[cfg (feature = "have_xkb")]
+  {
+    x_dnd_keyboard_state = 0;                                         // C 12954
+
+    if (*FRAME_DISPLAY_INFO! (f)).supports_xkb                        // C 12955
+      {
+	XkbSelectEvents (FRAME_X_DISPLAY! (f), XkbUseCoreKbd,         // C 12957
+			 XkbStateNotifyMask, XkbStateNotifyMask);     // C 12958
+	XkbGetState (FRAME_X_DISPLAY! (f), XkbUseCoreKbd,             // C 12959
+		     &raw mut keyboard_state);                        // C 12960
+
+	x_dnd_keyboard_state = keyboard_state.mods                    // C 12962
+				       | keyboard_state.ptr_buttons;                       // C 12963
+      }
+  }
+
+  if x_dnd_use_toplevels                                               // C 12967
+    {
+      if x_dnd_compute_toplevels (FRAME_DISPLAY_INFO! (f)) != 0        // C 12969
+	{
+	  x_dnd_free_toplevels (true);                                // C 12971
+	  x_dnd_use_toplevels = false;                                // C 12972
+	}
+      else
+	{ record_unwind_protect_void (Some (x_free_dnd_toplevels)); } // C 12975
+    }
+
+  if !NILP (return_frame)                                              // C 12978
+    { x_dnd_return_frame = 1; }                                       // C 12979
+
+  if EQ (return_frame, Qnow ())                                        // C 12981
+    { x_dnd_return_frame = 2; }                                       // C 12982
+
+  /* Now select for SubstructureNotifyMask and PropertyChangeMask on
+	 the root window, so we can get notified when window stacking
+	 changes, a common operation during drag-and-drop.  */
+  XGetWindowAttributes (FRAME_X_DISPLAY! (f),                          // C 12988
+			(*FRAME_DISPLAY_INFO! (f)).root_window,        // C 12989
+			&raw mut root_window_attrs);                   // C 12990
+
+  additional_mask = SubstructureNotifyMask as c_uint;                  // C 12992
+
+  if x_dnd_use_toplevels                                               // C 12994
+    { additional_mask |= PropertyChangeMask as c_uint; }              // C 12995
+
+  XSelectInput (FRAME_X_DISPLAY! (f),                                  // C 12997
+		(*FRAME_DISPLAY_INFO! (f)).root_window,                // C 12998
+		root_window_attrs.your_event_mask                      // C 12999
+		| additional_mask as c_long);                          // C 13000
+
+  if EQ (return_frame, Qnow ())                                        // C 13002
+    { x_dnd_update_state (FRAME_DISPLAY_INFO! (f), CurrentTime); }    // C 13003
+
+  while x_dnd_in_progress || x_dnd_waiting_for_finish                  // C 13005
+    {
+      EVENT_INIT (&raw mut hold_quit);                                 // C 13007
+
+#[cfg (feature = "use_gtk")]
+      {
+	current_finish = X_EVENT_NORMAL;                              // C 13010
+	current_hold_quit = &raw mut hold_quit;                       // C 13011
+	current_count = 0;                                            // C 13012
+	input_event_bits! (kind, &raw mut xg_pending_quit_event, NO_EVENT);                        // C 13013
+      }
+
+      block_input ();                                                  // C 13016
+      x_dnd_inside_handle_one_xevent = true;                           // C 13017
+#[cfg (feature = "use_gtk")]
+      { gtk_main_iteration (); }                                       // C 13019
+#[cfg (all (not (feature = "use_gtk"), feature = "use_x_toolkit"))]
+      { XtAppNextEvent (Xt_app_con, &raw mut next_event); }            // C 13021
+#[cfg (all (not (feature = "use_gtk"), not (feature = "use_x_toolkit")))]
+      { x_next_event_from_any_display (&raw mut next_event); }         // C 13023
+
+/* C 13026-13054: `#ifndef USE_GTK` guards the whole dispatch half; inside it, C 13032-13052's
+   `#ifdef HAVE_X_I18N`/`#ifdef HAVE_XINPUT2` pair leaves the *plain* `handle_one_xevent` call
+   (C 13050-13051) as the tail three of its four combinations share, so the port writes it once
+   under `not (all (…))` and the XI2 test under `all (…)` (the shape slice 88 read).  */
+#[cfg (not (feature = "use_gtk"))]
+      {
+	event_display                                                 // C 13027
+	  = x_display_info_for_display (next_event.xany.display);     // C 13028
+
+	if !event_display.is_null ()                                  // C 13030
+	  {
+#[cfg (all (feature = "have_x_i18n", feature = "have_xinput2"))]
+	    {
+	      if next_event.r#type != GenericEvent                     // C 13034
+		  || !(*event_display).supports_xi2                    // C 13035
+		  || (next_event.xgeneric.extension                    // C 13036
+		      != (*event_display).xi2_opcode)                  // C 13037
+		{
+		  if x_filter_event (event_display, &raw mut next_event) == 0 // C 13040
+		    { handle_one_xevent (event_display,                 // C 13041
+					 &raw mut next_event, &raw mut finish, &raw mut hold_quit); } // C 13042
+		}
+	      else
+		{ handle_one_xevent (event_display,                    // C 13046
+				     &raw mut next_event, &raw mut finish, &raw mut hold_quit); }  // C 13047
+	    }
+#[cfg (not (all (feature = "have_x_i18n", feature = "have_xinput2")))]
+	    {
+	      handle_one_xevent (event_display,                        // C 13050
+				 &raw mut next_event, &raw mut finish, &raw mut hold_quit);  // C 13051
+	    }
+	  }
+      }
+#[cfg (feature = "use_gtk")]
+      {
+	/* Clear these before the read_socket_hook can be called.  */
+	current_count = -1;                                           // C 13056
+	current_hold_quit = std::ptr::null_mut ();                    // C 13057
+      }
+      x_dnd_inside_handle_one_xevent = false;                          // C 13059
+
+      /* Clean up any event handlers that are now out of date.  */
+      x_clean_failable_requests (FRAME_DISPLAY_INFO! (f));             // C 13062
+
+      /* The unblock_input below might try to read input, but
+	 XTread_socket does nothing inside a drag-and-drop event
+	 loop, so don't let it clear the pending_signals flag.  */
+      signals_were_pending = pending_signals;                          // C 13067
+      unblock_input ();                                                // C 13068
+      pending_signals = signals_were_pending;                          // C 13069
+
+/* C 13073-13076 and C 13242-13265: C's `#ifndef USE_GTK` opens `if (event_display ==
+   FRAME_DISPLAY_INFO (f)) {` and that `{` is closed in the `#else` half of C 13242's `#ifdef
+   USE_GTK` - so in a GTK build the block has no `if` at all and the two `else` clears belong to
+   the non-GTK build only.  A `#[cfg]` cannot sit on an expression (`E0658`, status 3.806), so
+   C's condition is lifted into a cfg'd `let` (the slice 88 reading) and the body is written once:
+   `true` in the GTK build is exactly what C's absent `if` means.  */
+#[cfg (not (feature = "use_gtk"))]
+      let event_display_is_ours: bool = event_display == FRAME_DISPLAY_INFO! (f); // C 13074
+#[cfg (feature = "use_gtk")]
+      let event_display_is_ours: bool = true;
+
+      if event_display_is_ours
+	{
+	  if !x_dnd_movement_frame.is_null ()                         // C 13077
+	      /* FIXME: how come this can end up with movement frames
+		 from other displays on GTK builds?  */
+	      && (FRAME_X_DISPLAY! (x_dnd_movement_frame)              // C 13080
+		  == FRAME_X_DISPLAY! (f))                             // C 13081
+	      /* If both those variables are false, then F is no
+		 longer protected from deletion by Lisp code.  This
+		 can only happen during the final iteration of the DND
+		 event loop.  */
+	      && (x_dnd_in_progress || x_dnd_waiting_for_finish)       // C 13086
+	    {
+	      XSETFRAME! (frame_object, x_dnd_movement_frame);         // C 13088
+	      XSETINT! (x, x_dnd_movement_x as isize);                 // C 13089
+	      XSETINT! (y, x_dnd_movement_y as isize);                 // C 13090
+	      x_dnd_movement_frame = std::ptr::null_mut ();            // C 13091
+
+	      if !NILP (Vx_dnd_movement_function)                      // C 13093
+		  && FRAME_LIVE_P (XFRAME (frame_object))              // C 13094
+		  && !FRAME_TOOLTIP_P (XFRAME (frame_object))          // C 13095
+		  && x_dnd_movement_x >= 0                             // C 13096
+		  && x_dnd_movement_y >= 0                             // C 13097
+		  && !x_dnd_frame.is_null ()                           // C 13098
+		  && (XFRAME (frame_object) != x_dnd_frame             // C 13099
+		      || x_dnd_allow_current_frame)                    // C 13100
+		{
+		  x_dnd_old_window_attrs = root_window_attrs;          // C 13102
+		  x_dnd_unwind_flag = true;                            // C 13103
+
+		  r#ref = SPECPDL_INDEX ();                            // C 13105
+		  record_unwind_protect_ptr (Some (x_dnd_cleanup_drag_and_drop), // C 13106
+					     f as *mut c_void);        // C 13106
+		  calln! (Vx_dnd_movement_function, frame_object,      // C 13107
+			  Fposn_at_x_y (x, y, frame_object, Qnil ()));     // C 13108
+		  x_dnd_unwind_flag = false;                           // C 13109
+		  unbind_to (r#ref, Qnil ());                          // C 13110
+
+		  /* Redisplay this way to preserve the echo area.
+		     Otherwise, the contents will abruptly disappear
+		     when the mouse moves over a frame.  */
+		  redisplay_preserve_echo_area (33);                   // C 13115
+		}
+	    }
+
+	  if !x_dnd_wheel_frame.is_null ()                            // C 13119
+	      && (x_dnd_in_progress || x_dnd_waiting_for_finish)       // C 13120
+	    {
+	      XSETFRAME! (frame_object, x_dnd_wheel_frame);            // C 13122
+	      XSETINT! (x, x_dnd_wheel_x as isize);                    // C 13123
+	      XSETINT! (y, x_dnd_wheel_y as isize);                    // C 13124
+	      x_dnd_wheel_frame = std::ptr::null_mut ();               // C 13125
+
+	      if !NILP (Vx_dnd_wheel_function)                         // C 13127
+		  && FRAME_LIVE_P (XFRAME (frame_object))              // C 13128
+		  && !FRAME_TOOLTIP_P (XFRAME (frame_object))          // C 13129
+		  && x_dnd_movement_x >= 0                             // C 13130
+		  && x_dnd_movement_y >= 0                             // C 13131
+		  && !x_dnd_frame.is_null ()                           // C 13132
+		  && (XFRAME (frame_object) != x_dnd_frame             // C 13133
+		      || x_dnd_allow_current_frame)                    // C 13134
+		{
+		  x_dnd_old_window_attrs = root_window_attrs;          // C 13136
+		  x_dnd_unwind_flag = true;                            // C 13137
+
+		  r#ref = SPECPDL_INDEX ();                            // C 13139
+		  record_unwind_protect_ptr (Some (x_dnd_cleanup_drag_and_drop), // C 13140
+					     f as *mut c_void);        // C 13140
+		  calln! (Vx_dnd_wheel_function,                       // C 13141
+			  Fposn_at_x_y (x, y, frame_object, Qnil ()),      // C 13142
+			  make_fixnum (x_dnd_wheel_button as isize),       // C 13143
+			  make_uint (x_dnd_wheel_state as u64),            // C 13144
+			  make_uint (x_dnd_wheel_time));                   // C 13145
+		  x_dnd_unwind_flag = false;                           // C 13146
+		  unbind_to (r#ref, Qnil ());                          // C 13147
+
+		  /* Redisplay this way to preserve the echo area.
+		     Otherwise, the contents will abruptly disappear
+		     when the mouse moves over a frame.  */
+		  redisplay_preserve_echo_area (33);                   // C 13152
+		}
+	    }
+
+	  if input_event_bits! (kind, &raw mut hold_quit) != NO_EVENT // C 13156
+	    {
+	      x_dnd_process_quit (f, hold_quit.timestamp);             // C 13158
+#[cfg (feature = "use_gtk")]
+	      { current_hold_quit = std::ptr::null_mut (); }           // C 13160
+	      /* Restore the old event mask.  */
+	      x_restore_events_after_dnd (f, &raw mut root_window_attrs); // C 13163
+
+	      /* Call kbd_buffer_store event, which calls
+		 handle_interrupt and sets `last-event-frame' along
+		 with various other things.  */
+	      kbd_buffer_store_event (&raw mut hold_quit as *mut c_void); // C 13168
+	      /* Now quit anyway.  */
+	      quit ();                                                 // C 13170
+	    }
+
+	  if !pending_selection_requests.is_null ()                   // C 13173
+	      && (x_dnd_in_progress || x_dnd_waiting_for_finish)       // C 13174
+	    {
+	      x_dnd_old_window_attrs = root_window_attrs;              // C 13176
+	      x_dnd_unwind_flag = true;                                // C 13177
+
+	      r#ref = SPECPDL_INDEX ();                                // C 13179
+	      record_unwind_protect_ptr (Some (x_dnd_cleanup_drag_and_drop), // C 13180
+					 f as *mut c_void);            // C 13180
+	      x_handle_pending_selection_requests ();                  // C 13181
+	      x_dnd_unwind_flag = false;                               // C 13182
+	      unbind_to (r#ref, Qnil ());                              // C 13183
+	    }
+
+	  /* Sometimes C-g can be pressed inside a selection
+	     converter, where quitting is inhibited.  We want
+	     to quit after the converter exits.  */
+	  if !NILP (Vquit_flag) && !NILP (Vinhibit_quit)              // C 13189
+	    {
+	      x_dnd_process_quit (f, (*FRAME_DISPLAY_INFO! (f)).last_user_time); // C 13191
+#[cfg (feature = "use_gtk")]
+	      { current_hold_quit = std::ptr::null_mut (); }           // C 13193
+	      x_restore_events_after_dnd (f, &raw mut root_window_attrs); // C 13195
+	      quit ();                                                 // C 13196
+	    }
+
+	  if x_dnd_run_unsupported_drop_function                      // C 13199
+	      && x_dnd_waiting_for_finish                              // C 13200
+	    {
+	      x_dnd_run_unsupported_drop_function = false;             // C 13202
+	      x_dnd_waiting_for_finish = false;                        // C 13203
+	      x_dnd_unwind_flag = true;                                // C 13204
+
+	      r#ref = SPECPDL_INDEX ();                                // C 13206
+	      record_unwind_protect_ptr (Some (x_dnd_cleanup_drag_and_drop), // C 13207
+					 f as *mut c_void);            // C 13207
+
+	      if !NILP (Vx_dnd_unsupported_drop_function)              // C 13209
+		{
+		  val = calln! (Vx_dnd_unsupported_drop_function,      // C 13210
+				XCAR (XCDR (x_dnd_unsupported_drop_data)),            // C 13211
+				Fnth (make_fixnum (3), x_dnd_unsupported_drop_data),  // C 13212
+				Fnth (make_fixnum (4), x_dnd_unsupported_drop_data),  // C 13213
+				Fnth (make_fixnum (2), x_dnd_unsupported_drop_data),  // C 13214
+				make_uint (x_dnd_unsupported_drop_window),            // C 13215
+				frame, make_uint (x_dnd_unsupported_drop_time),       // C 13216
+				Fcopy_sequence (XCAR (x_dnd_unsupported_drop_data))); // C 13217
+		}
+	      else
+		{ val = Qnil (); }                                     // C 13219
+
+	      if NILP (val)                                            // C 13221
+		{
+		  x_dnd_do_unsupported_drop (FRAME_DISPLAY_INFO! (f),  // C 13222
+					     frame, XCAR (x_dnd_unsupported_drop_data), // C 13223
+					     XCAR (XCDR (x_dnd_unsupported_drop_data)), // C 13224
+					     x_dnd_unsupported_drop_window, // C 13225
+					     XFIXNUM (Fnth (make_fixnum (3), // C 13226
+							    x_dnd_unsupported_drop_data)) as c_int,  // C 13227
+					     XFIXNUM (Fnth (make_fixnum (4), // C 13228
+							    x_dnd_unsupported_drop_data)) as c_int,  // C 13229
+					     x_dnd_unsupported_drop_time); // C 13230
+		}
+	      else if SYMBOLP (val)                                    // C 13231
+		{ x_dnd_action_symbol = val; }                         // C 13232
+
+	      x_dnd_unwind_flag = false;                               // C 13234
+	      unbind_to (r#ref, Qnil ());                              // C 13235
+
+	      /* Break out of the loop now, since DND has
+		 completed.  */
+	      break;                                                   // C 13239
+	    }
+
+#[cfg (feature = "use_gtk")]
+	  if input_event_bits! (kind, &raw mut xg_pending_quit_event) != NO_EVENT                   // C 13243
+	    {
+	      input_event_bits! (kind, &raw mut xg_pending_quit_event, NO_EVENT);  // C 13245
+	      current_hold_quit = std::ptr::null_mut ();               // C 13246
+
+	      x_dnd_process_quit (f, (*FRAME_DISPLAY_INFO! (f)).last_user_time); // C 13248
+	      x_restore_events_after_dnd (f, &raw mut root_window_attrs); // C 13249
+	      quit ();                                                 // C 13250
+	    }
+	}
+      /* C 13254-13264 is the `#else` half of C 13242's `#ifdef USE_GTK`, so the arm exists in
+	 the non-GTK build only; an attribute cannot sit on `else` itself, so its *body* is the
+	 cfg'd block - an empty `else` in the GTK build is what C's absent arm means.  */
+      else
+	{
+#[cfg (not (feature = "use_gtk"))]
+	  {
+	    if !x_dnd_movement_frame.is_null ()                        // C 13256
+	      { x_dnd_movement_frame = std::ptr::null_mut (); }        // C 13257
+
+	    if !x_dnd_wheel_frame.is_null ()                           // C 13259
+	      { x_dnd_wheel_frame = std::ptr::null_mut (); }           // C 13260
+
+	    if input_event_bits! (kind, &raw mut hold_quit) != NO_EVENT // C 13262
+	      { EVENT_INIT (&raw mut hold_quit); }                     // C 13263
+	  }
+	}
+    }
+
+  x_dnd_waiting_for_finish = false;                                    // C 13268
+
+#[cfg (feature = "use_gtk")]
+  { current_hold_quit = std::ptr::null_mut (); }                       // C 13271
+
+  x_dnd_movement_frame = std::ptr::null_mut ();                        // C 13273
+  x_dnd_wheel_frame = std::ptr::null_mut ();                           // C 13274
+  x_restore_events_after_dnd (f, &raw mut root_window_attrs);          // C 13275
+
+  if x_dnd_return_frame == 3                                           // C 13277
+      && FRAME_LIVE_P (x_dnd_return_frame_object)                      // C 13278
+    {
+      /* Deliberately preserve the last device if
+	 x_dnd_return_frame_object is the drag source.  */
+      if x_dnd_return_frame_object != x_dnd_frame                      // C 13283
+	{ (*x_dnd_return_frame_object).last_mouse_device = Qnil (); } // C 13284
+
+      frame_bits! (mouse_moved, x_dnd_return_frame_object, true);      // C 13286
+
+      XSETFRAME! (action, x_dnd_return_frame_object);                  // C 13288
+      x_dnd_return_frame_object = std::ptr::null_mut ();               // C 13289
+
+      return unbind_to (base, action);                                 // C 13291
+    }
+
+  x_dnd_return_frame_object = std::ptr::null_mut ();                   // C 13294
+  (*FRAME_DISPLAY_INFO! (f)).grabbed = 0;                              // C 13295
+
+  if !NILP (x_dnd_action_symbol)                                       // C 13297
+    { return unbind_to (base, x_dnd_action_symbol); }                 // C 13298
+
+  if x_dnd_action != None as Atom                                      // C 13300
+    {
+      block_input ();                                                  // C 13302
+      x_catch_errors (FRAME_X_DISPLAY! (f));                           // C 13303
+      atom_name = x_get_atom_name (FRAME_DISPLAY_INFO! (f),            // C 13304
+				   x_dnd_action, &raw mut need_sync);  // C 13305
+
+      if need_sync                                                     // C 13307
+	{ x_uncatch_errors (); }                                      // C 13308
+      else
+	/* No protocol request actually happened, so avoid the extra
+	   sync by calling x_uncatch_errors_after_check instead.  */
+	{ x_uncatch_errors_after_check (); }                          // C 13312
+
+      if !atom_name.is_null ()                                         // C 13314
+	{
+	  action = intern (atom_name);                                // C 13316
+	  xfree (atom_name as *mut c_void);                           // C 13317
+	}
+      else
+	{ action = Qnil (); }                                         // C 13320
+      unblock_input ();                                                // C 13321
+
+      return unbind_to (base, action);                                 // C 13323
+    }
+
+  return unbind_to (base, Qnil ());                                    // C 13326
 }
 
 /* Like x_any_window_to_frame but only try to find tooltip frames.

@@ -1557,7 +1557,7 @@ macro_rules! DEFER_SELECTIONS {
   () => {
     {
       x_defer_selection_requests ();
-      record_unwind_protect_void (x_release_selection_requests_and_flush)
+      record_unwind_protect_void (Some (x_release_selection_requests_and_flush))
     }
   };
 }

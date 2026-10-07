@@ -285,6 +285,28 @@ the retirement less the `#elif` half's own `gnu_xpm_bits`): A 824 -> **823**, U 
 the fifteen arms**.  The first writing's three defects (a second `XA_STRING` the unit already
 carries at 18924, C's two implicit `int` -> `unsigned int` conversions left without the port's
 casts, and a `mut` rustc did not need) are named in Decision 118 5.
+  Slice 106 (C 12702-13327, Decision 119) goes **5 -> 4**: `x_dnd_begin_drag_and_drop` retires as a
+missing function - the file's second-longest, 625 C lines - and no token row arrives (the first
+writing's one omission, C 12852's `record_unwind_protect_void (x_clear_dnd_variables)`, was read by
+the checker's `does not mention x_clear_dnd_variables` row and fixed).  The slice reads **+7 in
+eleven arms** (A, U, AE, AI, AX, AXF, AXPM, and their four peers: four Xlib names the mirror does
+not carry - `XWindowAttributes`, `XGetWindowAttributes`, `XChangeProperty`, `XSelectInput` - plus
+`handle_one_xevent`, the `xany`/`r#type` members of the XEvent stand-in and
+`last_monitor_attributes_list`), **+6 in the five `use_gtk` arms** (the GTK build has no `xany`
+read: C 13074's `if` is absent there), **+8 in UT/UM and AXR** (the Xt arm adds
+`XtAppNextEvent`), **+9 in UGX/AIUX** (`XIGetClientPointer`, `client_pointer_device` x2) and
+**+15 in the new AXKB arm** (the XKB block: `XkbSelectEvents` x1, `XkbUseCoreKbd` x2,
+`XkbStateNotifyMask` x2, `supports_xkb` x1, `XkbGetState` x1, `XkbStateRec` x1, plus the seven
+shared rows): A 823 -> **830**, U 852 -> **859**, UT 837 -> **845**, UM 838 -> **846**, UG 837 ->
+**843**, UGX 939 -> **948**, AE 855 -> **862**, AI 832 -> **839**, AIU 873 -> **879**, AIUX 979 ->
+**988**, AX 837 -> **844**, AG3 875 -> **881**, AXF 836 -> **843**, AWS 510/0 -> **515/0**, AXPM 824
+-> **831**, AXKB 841 -> **856** and AXR 825 -> **833**, with **no warning set moved in any of the
+seventeen arms**.  The two new arms (`AXKB = A + have_xkb`, `AXR = A + have_xrandr`) are this
+slice's: C 12952's `#ifdef HAVE_XKB` block and C 12856's `#if defined HAVE_XRANDR || defined
+USE_GTK` are the text no earlier arm could read.  The eight defects the first writing read (the
+seven `static` helpers whose address the callbacks take, three `Option<...>` call sites, the
+mirror's `DEFER_SELECTIONS`), the two C locals the port must zero and the FIXME comment are named
+in Decision 119 4-5.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -445,7 +467,7 @@ casts, and a `mut` rustc did not need) are named in Decision 118 5.
 - [x] x_dnd_delete_action_list  (line 12597, static)
 - [x] x_dnd_lose_ownership  (line 12620, static)
 - [x] x_dnd_process_quit  (line 12636, static)
-- [ ] x_dnd_begin_drag_and_drop  (line 12703)
+- [x] x_dnd_begin_drag_and_drop  (line 12703)
 - [x] x_detect_focus_change  (line 13980, static)
 - [x] x_mouse_leave  (line 14039)
 - [x] XTframe_rehighlight  (line 14095, static)
@@ -4939,6 +4961,70 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   instead of the function, which is `unused doc comment` (the mirrors' seven).
 * **What `--check` reads.**  **7 -> 5** as above, with the line-count row at **29,493** against C's
   33,125 (11.0% drift, was 29,302 / 11.5%).
+
+### 119. Slice 106 (C 12702-13327): `x_dnd_begin_drag_and_drop`, the file's second-longest function
+
+* **The `--check` item.**  `--check` goes **5 -> 4**: `x_dnd_begin_drag_and_drop` retires as a
+  missing function and no token row arrives.  The four left are `handle_one_xevent`, `x_term_init`,
+  `x_get_wm_check_window does not mention false` and the line-count row.  The first writing *was*
+  one line short: C 12852's `record_unwind_protect_void (x_clear_dnd_variables);` was dropped, and
+  the checker's `does not mention x_clear_dnd_variables` row is what read it back (the tool is a
+  line-level reader, not only a name-level one).
+* **The reading is four sizes, and every added row is a class the baseline already carries.**  The
+  eleven non-GTK arms read **+7**: `XWindowAttributes` x1, `XGetWindowAttributes` x1,
+  `XChangeProperty` x1 and `XSelectInput` x1 (four Xlib names no mirror of this unit's graph
+  declares - the baseline carries 5/3/16/4 rows of them), `handle_one_xevent` x1 (the *other*
+  `--check` item - this function's event loop is its caller), `xany` x1 and `r#type` x1 (the
+  `xlib_surface::XEvent` stand-in's owed members) and `last_monitor_attributes_list` x1 (the
+  `x_display_info` field xterm.h 834 declares inside `#if defined HAVE_XRANDR || defined USE_GTK`,
+  which the mirror does not carry either - 16 rows of it exist already).  The five `use_gtk` arms
+  read **+6**: C 13073-13076's `if (event_display == FRAME_DISPLAY_INFO (f))` is *absent* in a GTK
+  build, so those arms never read `xany`.  UT and UM read **+8** (`XtAppNextEvent`, the Xt arm's
+  dispatch call), UGX and AIUX **+9** (`XIGetClientPointer` x1 and `client_pointer_device` x2) and
+  AXKB **+15** (the XKB block: `XkbSelectEvents` x1, `XkbUseCoreKbd` x2, `XkbStateNotifyMask` x2,
+  `supports_xkb` x1, `XkbGetState` x1, `XkbStateRec` x1 and the seven shared rows).
+* **Two new arms, and why they are this slice's.**  `AXKB = A + have_xkb` and `AXR = A +
+  have_xrandr` are the only arms that can read C 12952's `#ifdef HAVE_XKB` block and C 12856's
+  `#if defined HAVE_XRANDR || defined USE_GTK`, so without them the slice's XKB text would be
+  unmeasured (the slice-100 reading's rule).  Their four new names (`XkbStateRec`, `XkbGetState`,
+  `XtAppNextEvent`, `XIGetClientPointer`) are the third-party-SDK class this ledger's Owed 0
+  describes: no XKB, libXt or XInput2 header exists on this machine, so the port writes C's names
+  and the arms record them.
+* **Five defects the first writing read, and the mirror row they fixed.**  (1) Seven of this file's
+  `static` helpers (`x_free_dnd_targets`, `x_free_dnd_toplevels`, `x_clear_dnd_variables`,
+  `x_clear_dnd_action`, `x_dnd_delete_action_list`, `x_dnd_lose_ownership`,
+  `x_dnd_cleanup_drag_and_drop`) have their **address taken** by the callbacks C 12768/12769/12787/
+  12805/12852/12975/13106 pass them to, so PORTING.md 1.4's rule applies and all seven become
+  `unsafe extern "C" fn` (the `src/androidmenu.rs` 213 shape).  (2) Three of those call sites are
+  `record_unwind_protect*` with an `Option<...fn>` parameter, so the calls need `Some (f)` - and
+  the mirror's own `DEFER_SELECTIONS!` macro (`include/xterm.rs` 1556-1563) passed its helper
+  *unwrapped*: that box compiled only because the name was unresolved before, and the fix is the
+  mirror row `record_unwind_protect_void (Some (x_release_selection_requests_and_flush))` (P-87's
+  two legs were run for it: `check-mirror-dupes` 16/16/0 and `check-all-units.sh` `83 unit(s), 0
+  failure(s)`).  (3) C's `None` is an `X11` `long` and the port's `Window`/`Atom` are unsigned, so
+  six state-initialisation stores and the `x_dnd_action != None` test carry `as Window`/`as Atom`
+  (the file's own `None as Window` precedent, 21988).  (4) C's implicit narrowings are the port's
+  casts: `XSETINT!`'s four `x_dnd_movement_*`/`x_dnd_wheel_*` reads (`as isize`, the mirror's
+  `XSETINT` feeds `make_fixnum`), `make_fixnum (x_dnd_wheel_button as isize)`,
+  `make_uint (x_dnd_wheel_state as u64)`, `x_dnd_recursion_depth = (command_loop_level +
+  minibuf_level) as c_int`, `XFIXNUM (...)` twice into `x_dnd_do_unsupported_drop`'s `int`
+  parameters, `kbd_buffer_store_event (&raw mut hold_quit as *mut c_void)` (the port's signature
+  takes `*mut c_void`) and `(*FRAME_DISPLAY_INFO! (f)).Xatom_XdndActionDescription` (the field of
+  the struct the macro returns a pointer to).  (5) `hold_quit.kind`/`xg_pending_quit_event.kind`
+  are C's `bool_bf`-style packed fields in the port (`input_event.bits`, PORTING.md 1.3), so all
+  five sites read and write through `input_event_bits!`; and `x_dnd_pending_send_position.type`
+  keeps C's field name as the raw identifier `.r#type` (the file's `msg.xclient.r#type` spelling).
+* **What the arm does not read, and the port's spelling for it.**  C's `#if defined HAVE_XRANDR ||
+  defined USE_GTK` guards only *part* of C 12854's block (the cached monitor list and its `NILP`
+  test), and C 12862-12863 is the tail both arms share - the port writes that tail once per arm.
+  C's `#else` half at C 13254-13264 exists in the non-GTK build only and an attribute cannot sit
+  on `else`, so the arm's *body* is the cfg'd block (an empty `else` in the GTK build is what C's
+  absent arm means); C's `if (event_display == FRAME_DISPLAY_INFO (f))` - the guard the
+  `#ifndef USE_GTK` at C 13073 opens and the `#else` at C 13252 closes - is likewise lifted into a
+  cfg'd `let` (`event_display_is_ours`: `true` in the GTK build is what C's absent `if` means),
+  because a `#[cfg]` on an expression is `E0658`.
+* **What `--check` reads.**  **5 -> 4** as above, with the line-count row at **30,214** against C's
+  33,125 (8.8% drift, was 29,493 / 11.0%).
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -6386,6 +6472,15 @@ the target unit's text, and fail with the name and the line on a hit.  What must
 the other direction's false-positive class: this ledger's ticked-but-no-`fn` rows (19) are all
 macro/const landings (`ATOM_REFS_INIT`, `SWAPCARD16/32`, `XM_DRAG_*`, `OPAQUE`, …), so an `fn`-only
 reading would report 19 false failures.
+**Slice 106 reads four new third-party-SDK names and one more mirror gap** (2026-10-07, Decision
+119).  The names are `XtAppNextEvent` (the `USE_X_TOOLKIT` arm's dispatch call, item 0's libXt),
+`XIGetClientPointer` (the `HAVE_XINPUT2` arm, item 2's SDK), `XkbGetState` and `XkbStateRec` (the
+new `AXKB` arm's `HAVE_XKB` block, which no earlier arm could read).  The mirror gap is the same
+shape slice 105 found for GDK: `x_display_info`'s `last_monitor_attributes_list` (xterm.h 834,
+inside `#if defined HAVE_XRANDR || defined USE_GTK`) is not in this mirror, so the six arms that
+compile C 12857 read one more `no field ...` row of a class the baseline already carries (16 rows
+of it exist from earlier text).  Closing them needs the SDKs (item 0) or a mirror round that adds
+the gated members - both are the integrator's, not this slice's.
 
 ### Slice 15's readings (C 26994-27126), as landed and measured (2026-10-06)
 
@@ -9873,3 +9968,58 @@ was 29,302 / 11.5%).
 neither an XBM nor an XPM bitmap was created, no mask was made and no WM icon name was written; the
 GTK and XPM arms have never been compiled by any configuration in this tree (the frozen table
 leaves `USE_GTK` and `HAVE_XPM` undef), so their two new rows are text readings too.
+
+### Slice 106's readings (C 12702-13327), as landed and measured (2026-10-07)
+
+| arm | baseline | slice 106 | delta |
+| --- | --- | --- | --- |
+| A `have_x_windows` | 823 / 74 | **830 / 74** | **+7 / 0** |
+| U `A +use_toolkit_scroll_bars` | 852 / 74 | **859 / 74** | **+7 / 0** |
+| UT `U +use_x_toolkit` | 837 / 73 | **845 / 73** | **+8 / 0** |
+| UM `UT +use_motif` | 838 / 73 | **846 / 73** | **+8 / 0** |
+| UG `U +use_gtk` | 837 / 75 | **843 / 75** | **+6 / 0** |
+| UGX `UG +have_xinput2` | 939 / 77 | **948 / 77** | **+9 / 0** |
+| AE `A +enable_checking` | 855 / 73 | **862 / 73** | **+7 / 0** |
+| AI `A +have_x_i18n` | 832 / 75 | **839 / 75** | **+7 / 0** |
+| AIU `AI +use_gtk` | 873 / 75 | **879 / 75** | **+6 / 0** |
+| AIUX `AIU +have_xinput2` | 979 / 77 | **988 / 77** | **+9 / 0** |
+| AX `A +have_xdbe` | 837 / 74 | **844 / 74** | **+7 / 0** |
+| AG3 `A +use_gtk +have_gtk3` | 875 / 74 | **881 / 74** | **+6 / 0** |
+| AXF `A +have_xfixes` | 836 / 74 | **843 / 74** | **+7 / 0** |
+| **AWS** `A +have_window_system` | 510 / 0 | **515 / 0** | **+5 / 0** |
+| AXPM `A +have_xpm` | 824 / 74 | **831 / 74** | **+7 / 0** |
+| **AXKB** `A +have_xkb` (new) | 841 / 74 | **856 / 74** | **+15 / 0** |
+| **AXR** `A +have_xrandr` (new) | 825 / 74 | **833 / 74** | **+8 / 0** |
+
+**Additions, by name.**  Rows of classes the baseline already carries: `XWindowAttributes` x1,
+`XGetWindowAttributes` x1, `XChangeProperty` x1 and `XSelectInput` x1 in every arm (the four Xlib
+names no mirror of this unit's graph declares - the baseline carries 5/3/16/4 rows of them),
+`handle_one_xevent` x1 in the twelve arms that compile the plain-X dispatch (the *other* `--check`
+item this function calls), `xany` x1 (eleven arms - the GTK build has no `if` to read it in),
+`r#type` x1 (sixteen arms), `last_monitor_attributes_list` x1 (six arms - the XRANDR/GTK-gated
+`x_display_info` field of xterm.h 834, which this mirror does not carry) and `client_pointer_device`
+x2 in UGX/AIUX.  **New names** (the third-party-SDK class, this ledger's Owed 0): `XtAppNextEvent`
+x1 in UT/UM, `XIGetClientPointer` x1 in UGX/AIUX, and in AXKB `XkbSelectEvents` x1,
+`XkbUseCoreKbd` x2, `XkbStateNotifyMask` x2, `supports_xkb` x1, `XkbGetState` x1 and
+`XkbStateRec` x1.  **No warning moved** in any of the seventeen arms (kind sets compared, not
+offsets).
+
+**Two legs of `build-tu`**: `src/xterm.rs` - exit 0 and `30 warnings emitted` on **both** sides,
+identical sets.
+
+**P-87's two legs** (the mirror's `DEFER_SELECTIONS!` row changed): `check-mirror-dupes`
+**16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `tools/check-all-units.sh`
+**`checked 83 unit(s), 0 failure(s)`** + **`checking 83 unit(s), 0 unit failure(s)`**.
+
+**Arm reachability** (P-86 7).  `let _: c_int = true;` before C 12734's
+`if (FRAME_DISPLAY_INFO (f)->untrusted)` moves **A 830 -> 831** with `E0308` 13 -> 14, anchored at
+`build/probes/xterm/_root.rs:22111:18`; removing the line returns A to the table.
+
+**What `--check` reads.**  **5 -> 4**: `x_dnd_begin_drag_and_drop` retires as a missing item and no
+token row arrives (this slice's one omission, C 12852, was read back by the checker and fixed).
+The line-count row is **30,214** against C's 33,125 (8.8% drift, was 29,493 / 11.0%).
+
+**Not claimed.**  The frozen configuration compiles none of this file: no drag was started, no
+selection was released, no event loop was entered and no `handle_one_xevent` was called; the XKB,
+Xt, XInput2, GTK and XRANDR arms have never been compiled by any configuration in this tree (the
+frozen table leaves those macros undefined), so their rows are text readings too.
