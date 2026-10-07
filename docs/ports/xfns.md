@@ -1,7 +1,7 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
-C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447 and C 7449-7491
+C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491 and C 7494-7606
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -19,11 +19,11 @@ C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447 and C 7449-7491
 > the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth,
 > **9,547 lines** after the nineteenth, **9,801 lines** after the twentieth, **10,033 lines**
 > after the twenty-first, **10,157 lines** after the twenty-second, **10,332 lines** after the
-> twenty-third and **10,404 lines** after the twenty-fourth - C 803-2149, C 2150-3811,
-> C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582,
-> C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513,
-> C 6515-6601, C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447 and C 7449-7491,
-> whose own
+> twenty-third, **10,404 lines** after the twenty-fourth and **10,631 lines** after the
+> twenty-fifth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623,
+> C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123,
+> C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601, C 6604-6777, C 6785-7035, C 7037-7207,
+> C 7210-7273, C 7275-7447, C 7449-7491 and C 7494-7606, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -197,7 +197,8 @@ defines both features.
 | 7210-7273 | the two mouse subrs: `x-mouse-absolute-pixel-position` (C 7210-7233, `x_query_pointer`'s nine arguments) and `x-set-mouse-absolute-pixel-position` (C 7235-7273, whose C 7251-7266 `HAVE_XINPUT2` pair chooses `XIWarpPointer` or `XWarpPointer`) | `have_x_windows`, with `have_xinput2` for the client-pointer-device arm (slice 22) |
 | 7275-7447 | the `x-begin-drag` `DEFUN` (C 7275 its header, C 7276-7334 its doc string; C 7350-7368 the target walk, C 7370-7426 the action dispatch, C 7430-7437 the atom interning under C 7432's error trap, C 7439-7443 the `x_dnd_begin_drag_and_drop` call, all inside C 7348/7445's `USE_SAFE_ALLOCA`/`SAFE_FREE` pair) | `have_x_windows`, with no nested `#if` (slice 23) |
 | 7449-7491 | C 7449-7451's `X Displays` section comment, C 7454-7470's `visual_class` record and its `visual_classes[]` table (the six X11/X.h class constants) and C 7473-7491's `#ifndef HAVE_XSCREENNUMBEROFSCREEN` `XScreenNumberOfScreen` substitute (the file's own non-`static` definition) | `have_x_windows` on every item (P-86 ⑧, caught by the frozen `build-tu`), with `not (have_xscreennumberofscreen)` on the substitute and the feature on Xlib's declaration at 1960-1961 (slice 24) |
-| 7494-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,169 lines, whose first live definition is `select_visual` (C 7494-7606, the table's only reader) - the next slice's first item | not ported in this slice |
+| 7494-7606 | `select_visual` (C 7494-7496 its comment) - the `visualClass` resource lookup, the CLASS-DEPTH parse (C's bare `alloca`), the `visual_classes` walk, `XMatchVisualInfo` and the default-visual fallback with its `#if !defined USE_X_TOOLKIT && !(defined USE_GTK && !defined HAVE_GTK3) && defined HAVE_XRENDER` alpha-mask attempt | `have_x_windows` on the function, with `have_xrender` (and C's two negations) on that block's `#[cfg]` (slice 25) |
+| 7608-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 3,055 lines, whose first live definition is `x_display_info_for_name` (C 7612-7613, the comment C 7609-7610) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2650,3 +2651,84 @@ literals), 0 failures**.
 The frozen configuration compiles none of this file: no display was opened, no visual was matched
 and no screen number was computed; the thirteen arms' counts are text compile readings, and XSN's
 14/9 is a text compile of a build whose Xlib is assumed to provide the function.
+## Slice 25 (2026-10-08, status 3.928 - the integrator sets the round number): C 7494-7606
+
+**The slice is C 7494-7606**: `select_visual` - C 7494-7496's comment, the `visualClass`/`VisualClass`
+resource lookup (C 7504-7507), the `STRINGP` arm's CLASS-DEPTH parse (C 7514's bare `alloca`,
+C 7520-7529's `-`) and the `visual_classes` walk (C 7532-7537, which is why the table's
+`dead_code` allowance in the last slice is gone), C 7541-7547's `XMatchVisualInfo` and the
+`else` arm's `#if !defined USE_X_TOOLKIT && !(defined USE_GTK && !defined HAVE_GTK3) && defined
+HAVE_XRENDER` alpha-mask attempt (C 7566-7591) over the default-visual fallback (C 7596-7604).
+The port's slice is **227 Rust lines** (10,631 - 10,404, `grep -c ''`) against C's 113; md5
+`f7247a85422a83e1f6df61bf5bccf5ed` (the slice 24 tree) -> `95bfacd56f0fdef96dcfcf218f30e86b`.
+
+**A fourteenth arm.**  The alpha-mask block's gate is C's three-way `#if`, which none of the
+thirteen arms satisfied (the toolkit arms are excluded by the first two negations and the rest carry
+no `have_xrender`), so the table gains **XR** = `have_x_windows` + `have_xrender` - and the block
+compiles cleanly in it: its first reading is **20 / 9**, unchanged by the slice.  All fourteen arms
+read their baselines with **byte-identical error sets** and no warning moves anywhere.
+
+**The first measurement's rows, all closed.**  One `E0774` was this slice's own slip (a `derive`
+left on the `static mut`), three `E0308`s were the widths C implies (`sa_stack_alloc`'s parameter is
+`usize` while `SBYTES` is `isize`; `XGetVisualInfo`'s `vinfo_mask` is `c_long` while the two
+`Xutil.h` masks are `int`), and one `E0381` was C's `int n_visuals;` out-parameter, which takes the
+file's zero initialiser.  Two `--check` rows followed: the token row
+`function select_visual does not mention alloca, have_xrender` is closed by a
+`docs/ports/macro-body-notes.tsv` row (C 7514's `alloca` is the port's stack pool and C 7557's
+`defined HAVE_XRENDER` is the `#[cfg]` the reader blanks), and
+`function select_visual is not static in C but has no #[unsafe(no_mangle)] in the port` is closed by
+carrying C's linkage - `select_visual` is declared in xterm.h 1008, so the port's definition is
+`#[unsafe(no_mangle)] pub unsafe extern "C" fn`.
+
+**Arm touch measured** (P-86 ⑦): two injections - the body's first statement (A) and the
+`xrender_supported_p` branch (B) - move plain-X **16 -> 17** (A alone: the `#if` block is not
+compiled there) and XR **20 -> 22** (A and B), which measures the new gate from the reading side.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash.
+
+**② The fourteen arms.**  See above.
+
+**③ `extract-abi.py --check`**: **112 rows -> 111** - `missing function select_visual` retiring, with
+the slice's two other rows closed rather than standing (`missing function` 16 -> 15).  The unit
+still has no line-count row (it retired at slice 22 when the port passed the 5% bar; the drift is
+now `C 10662 vs Rust 10,631` = **0.3%**).  `check-mirror-dupes.py` stays at **16 duplicate
+declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at **18 declaration
+sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **Eleven use-site rows**: `XGetVisualInfo`/`XMatchVisualInfo` and `VisualIDMask`/
+   `VisualScreenMask` (Xutil.h 471-476, 542-548, 305-306), `XRenderDirectFormat`/
+   `XRenderPictFormat` (`XRenderFindVisualFormat` with them) and `PictTypeDirect` (Xrender.h 57-74,
+   87-98, 482-484; render.h 89-90), `DefaultVisualOfScreen` (Xlib.h 128, a `macro_rules!` over the
+   mirror's `Screen.root_visual`) and `XVisualIDFromVisual` (Xlib.h 1724-1726), `xstrcasecmp`
+   (dispextern.h 104), `atoi` (`<stdlib.h>`), and `fatal` (lisp.h 5371).
+2. **C 7514's bare `alloca`** is `sa_stack_alloc ((SBYTES (value) + 1) as usize)` - the port's stack
+   pool, with the width written out (PORTING.md P-05).
+3. **The two masks are widened at the calls** (`VisualScreenMask as c_long`,
+   `(VisualIDMask | VisualScreenMask) as c_long`), which is C's implicit conversion.
+4. **C's `int n_visuals;`** takes the file's zero initialiser (it is `XGetVisualInfo`'s
+   out-parameter).
+5. **C 7582's `dpyinfo->pict_format = format;`** is `format as *mut c_void`, because the mirror
+   records that member untyped (`include/xterm.rs` 418).
+6. **The `static mut` table is read by value** - `visual_class` derives `Clone, Copy` and the
+   walk copies each element - which is how a `static mut` can be read in edition 2024 without the
+   `static_mut_refs` lint.
+
+### Owed (this slice)
+
+- The eleven rows above are owed to `include/xlib.rs` (the Xutil.h/Xlib.h/render.h constants and
+  records), an XRender mirror, `include/lisp.rs` (`fatal`), `include/dispextern.rs`
+  (`xstrcasecmp`) and `lib/include/stdlib.rs` (`atoi`).
+- `syms_of_xfns`' `defsubr` site and the rest of the remainder from C 7608
+  (`x_display_info_for_name`, C 7612-7613): 3,055 C lines plus the 15 missing functions, 1 macro,
+  4 objects, 25 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no resource was read, no visual was matched
+and no display was opened; the fourteen arms' counts are text compile readings, and XR's 20/9 is a
+text compile of an XRender build whose records and constants are this machine's headers'.

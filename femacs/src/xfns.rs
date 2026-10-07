@@ -10353,16 +10353,17 @@ use crate::x11_constants::{GrayScale, PseudoColor, DirectColor};
 
 /* C 7454-7470: "Mapping visual names to visuals."  C's record and its table.  The table's only
    reader is `select_visual` (C 7532-7535), the next slice's first item, so it carries the
-   `dead_code` allowance until that slice lands (`src/sysdep.rs` 4245's device).  */
+   `dead_code` allowance it needed before `select_visual` landed is gone: the reads are by value
+   (the record is `Copy`), which `static mut` allows.  */
 #[cfg (feature = "have_x_windows")]
 #[repr (C)]
+#[derive (Clone, Copy)]
 pub struct visual_class
 {
   pub name: *const c_char,                 /* C: `const char *name;`  */
   pub class: c_int,                        /* C: `int class;`  */
 }
 #[cfg (feature = "have_x_windows")]
-#[allow (dead_code)]
 static mut visual_classes: [visual_class; 7] =
   [
     visual_class { name: c"StaticGray".as_ptr (), class: StaticGray },     // C 7463
@@ -10401,4 +10402,230 @@ pub unsafe extern "C" fn XScreenNumberOfScreen (scr: *mut Screen) -> c_int
     }
 
   return i;                                                               // C 7488
+}
+
+/* -----------------------------------------------------------------------------------------
+   C 7494-7606: `select_visual` - "Select the visual that should be used on display DPYINFO.  Set
+   members of DPYINFO appropriately.  Called from x_term_init."  It is `visual_classes`' only
+   reader (C 7532-7535), whose `dead_code` allowance is therefore gone.
+   -------------------------------------------------------------------------------------- */
+
+/* C: Xutil.h 305/306: `#define VisualIDMask 0x1` / `#define VisualScreenMask 0x2` - C 7569 and
+   C 7598's masks.  The mirror's `x11_constants` module does not carry them, so they stand at the
+   use site and are owed to it; the values are this machine's header's.  */
+#[cfg (feature = "have_x_windows")]
+const VisualIDMask: c_int = 0x1;                                          // Xutil.h 305
+#[cfg (feature = "have_x_windows")]
+const VisualScreenMask: c_int = 0x2;                                      // Xutil.h 306
+
+/* C: Xutil.h 471-476 and 542-548: `extern XVisualInfo *XGetVisualInfo (Display *, long,
+   XVisualInfo *, int *);` and `extern Status XMatchVisualInfo (Display *, int, int, int,
+   XVisualInfo *);` - C 7569/7598's and C 7541's calls; no mirror carries either.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XGetVisualInfo (display: *mut Display, vinfo_mask: c_long,
+			 vinfo_template: *mut XVisualInfo, nitems_return: *mut c_int)
+			 -> *mut XVisualInfo;
+  pub fn XMatchVisualInfo (display: *mut Display, screen: c_int, depth: c_int, class: c_int,
+			   vinfo_return: *mut XVisualInfo) -> c_int;
+}
+
+/* C: Xrender.h 57-74 and 87-98: `XRenderDirectFormat` (`short` red, redMask, green, greenMask,
+   blue, blueMask, alpha, alphaMask) and `XRenderPictFormat` (`PictFormat id; int type; int depth;
+   XRenderDirectFormat direct; Colormap colormap;`), with 482-484's
+   `XRenderPictFormat *XRenderFindVisualFormat (Display *, Visual *);` and render.h 89-90's
+   `#define PictTypeIndexed 0` / `#define PictTypeDirect 1` - C 7559/7574/7575/7576/7577's reads.
+   Both headers are on this machine, so the members' order and the constants' values are theirs;
+   render.h's `PictFormat` is `typedef XID PictFormat;`, which this graph has no name for, so the
+   field keeps `XID`.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xrender"))]
+const PictTypeDirect: c_int = 1;                                          // render.h 90
+#[cfg (all (feature = "have_x_windows", feature = "have_xrender"))]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct XRenderDirectFormat
+{
+  pub red: c_short,                        /* C: `short red;`  */
+  pub redMask: c_short,                    /* C: `short redMask;`  */
+  pub green: c_short,
+  pub greenMask: c_short,
+  pub blue: c_short,
+  pub blueMask: c_short,
+  pub alpha: c_short,                      /* C: `short alpha;` (C 7577's `alphaMask`)  */
+  pub alphaMask: c_short,
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xrender"))]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct XRenderPictFormat
+{
+  pub id: XID,                             /* C: `PictFormat id;` (render.h's `typedef XID`)  */
+  pub r#type: c_int,                       /* C: `int type;` (C 7576 reads it)  */
+  pub depth: c_int,                        /* C: `int depth;`  */
+  pub direct: XRenderDirectFormat,          /* C: `XRenderDirectFormat direct;`  */
+  pub colormap: Colormap,                  /* C: `Colormap colormap;`  */
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xrender"))]
+unsafe extern "C" {
+  pub fn XRenderFindVisualFormat (dpy: *mut Display, visual: *mut Visual) -> *mut XRenderPictFormat;
+}
+
+/* C: Xlib.h 128: `#define DefaultVisualOfScreen(s)((s)->root_visual)` - C 7596's call; the
+   mirror's `Screen` carries `root_visual` (`include/xlib.rs` 1128), so the macro keeps C's name
+   and reads it (the `WidthMMOfScreen` shape at 8194-8200).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! DefaultVisualOfScreen { ($s:expr) => { (*$s).root_visual }; }     // Xlib.h 128
+
+/* C: Xlib.h 1724-1726: `extern VisualID XVisualIDFromVisual (Visual *);` - C 7597's call; the
+   name stands in `include/gtk.rs` only inside comments (1402-1404), so this is the use-site row
+   (the Xutil.h pair above, same header group).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XVisualIDFromVisual (visual: *mut Visual) -> VisualID;
+}
+
+/* C: dispextern.h 104: `extern int xstrcasecmp (const char *, const char *);` - C 7533's call
+   (`src/font.rs` 298 defines it; `src/fontset.rs` 108 declares the same row).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int;
+}
+
+/* C: `<stdlib.h>`: `int atoi (const char *);` - C 7523's call (the `lib/include/stdlib.rs` mirror
+   carries `free` and `malloc` only; `src/font.rs` 386-387 declares the same row).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn atoi (nptr: *const c_char) -> c_int;
+}
+
+/* C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...);` - C 7543/7601's calls; no
+   mirror carries it, so it stands at the use site (`src/eval.rs` 100's shape).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn fatal (format: *const c_char, ...) -> !;
+}
+
+/* C 7497-7606.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn select_visual (dpyinfo: *mut x_display_info)
+{
+  let dpy: *mut Display = (*dpyinfo).display;                             // C 7500
+  let screen: *mut Screen = (*dpyinfo).screen;                            // C 7501
+
+  /* See if a visual is specified.  */                                    // C 7503
+  AUTO_STRING! (visualClass, c"visualClass".as_ptr ());                   // C 7504
+  AUTO_STRING! (VisualClass, c"VisualClass".as_ptr ());                   // C 7505
+  let mut value: Lisp_Object = gui_display_get_resource (dpyinfo, visualClass,   // C 7506-7507
+							 VisualClass, Qnil (), Qnil ());
+
+  if STRINGP (value)                                                      // C 7509
+    {
+      /* VALUE should be of the form CLASS-DEPTH, where CLASS is one
+	 of `PseudoColor', `TrueColor' etc. and DEPTH is the color
+	 depth, a decimal number.  NAME is compared with case ignored.  */   // C 7511-7513
+      /* C's bare `alloca` is the port's stack pool (PORTING.md P-05/3.2).  */
+      let s: *mut c_char = sa_stack_alloc ((SBYTES (value) + 1) as usize) as *mut c_char;   // C 7514
+      let mut dash: *mut c_char;                                          // C 7515
+      let mut i: c_int = 0;                                               // C 7516
+      let mut class: c_int = -1;
+      let mut vinfo: XVisualInfo = std::mem::zeroed ();                   // C 7517
+
+      lispstpcpy (s, value);                                              // C 7519
+      dash = strchr (s, b'-' as c_int);                                   // C 7520
+      if !dash.is_null ()                                                 // C 7521
+	{
+	  (*dpyinfo).n_planes = atoi (dash.offset (1));                      // C 7523
+	  *dash = b'\0' as c_char;                                          // C 7524
+	}
+      else
+	/* We won't find a matching visual with depth 0, so that
+	   an error will be printed below.  */                            // C 7527-7528
+	{ (*dpyinfo).n_planes = 0; }                                      // C 7529
+
+      /* Determine the visual class.  */                                  // C 7531
+      i = 0;                                                              // C 7532
+      while !(visual_classes[i as usize].name).is_null ()                 // C 7532's loop test
+	{
+	  if xstrcasecmp (s, visual_classes[i as usize].name) == 0         // C 7533
+	    {
+	      class = visual_classes[i as usize].class;                    // C 7535
+	      break;                                                      // C 7536
+	    }
+	  i += 1;
+	}
+
+      /* Look up a matching visual for the specified class.  */           // C 7539
+      if class == -1                                                      // C 7540
+	|| XMatchVisualInfo (dpy, XScreenNumberOfScreen (screen),          // C 7541-7542
+			     (*dpyinfo).n_planes, class, &raw mut vinfo) == 0
+	{ fatal (c"Invalid visual specification '%s'".as_ptr (),           // C 7543-7544
+		 SSDATA (ENCODE_SYSTEM (value))); }
+
+      (*dpyinfo).visual = vinfo.visual;                                   // C 7546
+      (*dpyinfo).visual_info = vinfo;                                     // C 7547
+    }
+  else
+    {
+      let mut n_visuals: c_int = 0;                                       // C 7551
+      let mut vinfo: *mut XVisualInfo;                                    // C 7552
+      let mut vinfo_template: XVisualInfo = std::mem::zeroed ();
+
+      vinfo_template.screen = XScreenNumberOfScreen (screen);             // C 7554
+
+      #[cfg (all (not (feature = "use_x_toolkit"),
+		  not (all (feature = "use_gtk", not (feature = "have_gtk3"))),
+		  feature = "have_xrender"))]                             // C 7556-7557
+      {
+	let mut i: c_int;                                                 // C 7558
+	let mut format: *mut XRenderPictFormat;                           // C 7559
+
+	/* First attempt to find a visual with an alpha mask if
+	   available.  That information is only available when the
+	   render extension is present, and we cannot do much with such
+	   a visual if it isn't.  */                                      // C 7561-7564
+
+	if (*dpyinfo).xrender_supported_p                                 // C 7566
+	  {
+	    vinfo = XGetVisualInfo (dpy, VisualScreenMask as c_long,      // C 7569-7570
+				    &raw mut vinfo_template, &raw mut n_visuals);
+
+	    i = 0;                                                        // C 7572
+	    while i < n_visuals
+	      {
+		format = XRenderFindVisualFormat (dpy,                    // C 7574
+						  (*vinfo.offset (i as isize)).visual);
+
+		if !format.is_null ()                                     // C 7576
+		    && (*format).r#type == PictTypeDirect                  // C 7576
+		    && (*format).direct.alphaMask != 0                     // C 7577
+		  {
+		    (*dpyinfo).n_planes = (*vinfo.offset (i as isize)).depth;      // C 7579
+		    (*dpyinfo).visual = (*vinfo.offset (i as isize)).visual;       // C 7580
+		    (*dpyinfo).visual_info = *vinfo.offset (i as isize);           // C 7581
+		    (*dpyinfo).pict_format = format as *mut c_void;                // C 7582
+
+		    XFree (vinfo as *mut c_void);                              // C 7584
+		    return;                                                   // C 7585
+		  }
+		i += 1;
+	      }
+
+	    if !vinfo.is_null ()                                          // C 7589
+	      { XFree (vinfo as *mut c_void); }                           // C 7590
+	  }
+      }
+
+      /* Visual with alpha channel (or the Render extension) not
+	 available, fallback to default visual.  */                      // C 7594-7595
+      (*dpyinfo).visual = DefaultVisualOfScreen! (screen);                // C 7596
+      vinfo_template.visualid = XVisualIDFromVisual ((*dpyinfo).visual);  // C 7597
+      vinfo = XGetVisualInfo (dpy, (VisualIDMask | VisualScreenMask) as c_long,  // C 7598-7599
+			      &raw mut vinfo_template, &raw mut n_visuals);
+      if n_visuals <= 0                                                   // C 7600
+	{ fatal (c"Can't get proper X visual info".as_ptr ()); }          // C 7601
+      (*dpyinfo).visual_info = *vinfo;                                    // C 7602
+      (*dpyinfo).n_planes = (*vinfo).depth;                               // C 7603
+      XFree (vinfo as *mut c_void);                                       // C 7604
+    }
 }
