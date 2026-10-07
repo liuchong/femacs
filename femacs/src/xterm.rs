@@ -19952,9 +19952,10 @@ unsafe fn xi_check_toolkit (display: *mut Display) -> c_int
 /// display-opening arms are C's `USE_GTK` / `USE_X_TOOLKIT` / plain-X chain.  `cm_atom_fmt` is C's
 /// function-`static` array (PORTING.md 1.3 keeps it here) and `cm_atom_sprintf`'s size is C's
 /// `sizeof cm_atom_fmt - 2 + INT_STRLEN_BOUND (int)` - 12 plus this file's own `INT_STRLEN_BOUND!`
-/// macro (18792).  C 31017's `title[] = "GNU Emacs"` is the *default display name* PORTING.md's
-/// eighth half names: this repository's own name goes there (0.1-19's name half, status 3.433/
-/// 3.599), so the port writes `c"femacs"`.
+/// macro (18792).  C 31017's `title[] = "<PACKAGE_NAME>"` is the *default display name*
+/// PORTING.md's eighth half names: this repository's own name goes there (0.1-19's name half,
+/// status 3.433/3.599), so the port writes `c"femacs"`; the C literal is quoted as the
+/// `<PACKAGE_NAME>` placeholder (the `RCS_Id` reading, status 3.73) instead of spelled out.
 #[cfg (feature = "have_x_windows")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn x_term_init (display_name: Lisp_Object, xrm_option: *mut c_char,
@@ -20337,8 +20338,9 @@ pub unsafe extern "C" fn x_term_init (display_name: Lisp_Object, xrm_option: *mu
      text out and records it here rather than inventing a Rust `cfg` for it.  */
 
   let system_name: Lisp_Object = Fsystem_name ();                       // C 31016
-  /* C 31017's `title[] = "GNU Emacs"` is the *default display name* 0.1-19's eighth half names:
-     this repository's own name goes there, and the two sizes follow C's `sizeof` (NUL included).  */
+  /* C 31017's `title[] = "<PACKAGE_NAME>"` (the placeholder form above) is the *default display
+     name* 0.1-19's eighth half names: this repository's own name goes there, and the two sizes
+     follow C's `sizeof` (NUL included).  */
   let title: &CStr = c"femacs";
   if STRINGP (system_name)                                              // C 31018
     {

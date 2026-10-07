@@ -185,14 +185,17 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     地址）、Haiku 的 `application/x-vnd.…`（`check-carried.py` 把 `.cc` 钉成参照原文）。机器门是
     `tools/check-declarations.py` 的 `PRODUCT` 表新增的参照**其它注册名**（包名、JNI 前缀、`L"…"`、bug 地址、
     bundle 签名）：读数 `17 declaration sites (0 forbidden, 17 allowed literals), 0 failures`，每行带理由。
-    **还没移植的同类站点（点名，交给各自的 lane）**：`src/xterm.c` 31017、`src/w32term.c` 7834、
-    `src/androidterm.c` 6838、`src/haikuterm.c` 4536-4547 的窗口标题与 `nt/addpm.c` 266/297 的快捷方式描述，
+    **同类站点（点名）**：`src/xterm.c` 31017（**已落库**：xterm 切片 109/status 3.906；该片注释照引了 C 的
+    那一句、3.911 按第二十六半改成占位符）、`src/w32term.c` 7834、`src/androidterm.c` 6838、
+    `src/haikuterm.c` 4536-4547 的窗口标题与 `nt/addpm.c` 266/297 的快捷方式描述，
     以及 `src/android-emacs.c` 的 `app_process` 类名——落库时写本程序自己的名字。
     这条规则现在有第八半（2026-10-05，status 3.599）：**把"本程序默认叫什么"这一族字面量一次量清**。
     第七半点名的五个站点分散在四个 `.c` 里，容易被读成"各文件的局部细节"；判据不变，仍是"这句话说的是谁"，
     凡是**本程序的默认显示名/帧名/帧标题**就是"本程序自称"，落库时写本仓库自己的名字。这一族点名如下：
-    `src/xterm.c` 31017、`src/w32term.c` 7834、`src/androidterm.c` 6838、`src/haikuterm.c` 4536-4547
-    （四处都是 `dpyinfo->default_name`：值是 C 的默认显示名字面量本身，或它 + `" at "` + `system-name`；
+    `src/xterm.c` 31017（**已落库并已改**：`femacs/src/xterm.rs` 的 `x_term_init` = `c"femacs"`，xterm 切片 109/
+    status 3.906；该片的两处注释照引了 C 的那一句，3.911 按第二十六半改成占位符）、`src/w32term.c` 7834、
+    `src/androidterm.c` 6838、`src/haikuterm.c` 4536-4547
+    （这三处都是 `dpyinfo->default_name`：值是 C 的默认显示名字面量本身，或它 + `" at "` + `system-name`；
     **本文档不重复写出那个字面量**——本文件也在门的散文面里，而产品名在这里是 `title` 类；
     站点与读数记在 `docs/status.md` 3.599）、
     `nt/addpm.c` 266/297（快捷方式描述；**已落库并已改**：`femacs/nt/addpm.rs` 848/891 = `c"femacs"`）、
@@ -511,6 +514,22 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     （点名，不冒充已清）：本仓库的散文与台账仍按第十七半（3.692 ⑥）的裁决留在门外（那是**指称**：`README`／`plan`／
     `PORTING`／评审记录说"我们在重写…"），其 76 处读数不变；这一面读的是**散文**，工具的行为、输出与它证明的事一字未动；
     `femacs/xtask` 那条消息的**文本**改了、它所在的 `eprintln!` 没编译过（本片不编译任何东西）。
+    这条规则现在有第二十六半（2026-10-07，status 3.911）：**第七/第八半分点的"还没移植的同类站点"里，
+    `src/xterm.c` 31017 落库时把 C 的那一句连字面量一起引进了注释**。xterm 切片 109（status 3.906）把
+    `x_term_init` 整身落库，**运行期那个值照第八半写成本仓库自己的名字**（`femacs/src/xterm.rs` 的
+    `let title: &CStr = c"femacs";`）——问题不在值，在**同一片落的注释**：两处（`x_term_init` 的 doc 注释与
+    C 31017 上方的块注释）把 `title[] = …` 那一句**连 C 的字面量一起照引**。门的 `title` 类对注释**一行都不许有**
+    （第三半起就明说含 `/// C …` 引文），所以 3.906 落库后的读数是
+    `20 declaration sites (2 forbidden, 18 allowed literals), 2 failures`——判据正是第八半自己写下的那句：
+    凡是**本程序的默认显示名/帧名/帧标题**就是本程序自称。处置按 `src/emacs.rs` 的 `RCS_Id` 注释先例
+    （status 3.73）：**引文里的产品名写成 `<PACKAGE_NAME>` 占位符**，并在这段散文里写明为什么；引文其余部分、
+    它旁边的说明、运行期的 `c"femacs"`、语句与行序一字未动，两处注释各多一行
+    （`femacs/src/xterm.rs` 31,682 → 31,684 行，md5 `bec354a7…` → `9bdd5776…`）。读数回到
+    `18 declaration sites (0 forbidden, 18 allowed literals), 0 failures`，`check-own-voice` 0 failure(s)、
+    `check-citations` 676 文件 / 0 drift、`check-port-lines` 0 ratchet row；**本半只动注释行，因此没有编译、没有重链**。
+    **未声称**：门报 0 forbidden 只证明这两行字不在本仓库的注释里（引文仍是 C 的句子，只有名字换了占位符），
+    不证明参照没这样写过；第八半点名的另外四处（`src/w32term.c` 7834、`src/androidterm.c` 6838、
+    `src/haikuterm.c` 4536-4547、`src/android-emacs.c` 的 `app_process` 类名）**仍未落库**，仍欠各自的 lane。
 
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike

@@ -10162,3 +10162,15 @@ behaviour: no display was opened, no toolkit initialised, no XCB connection obta
 interned and no XIM opened.  Sixteen of the seventeen arms were measured; AWS is named above as the
 one whose cfg set this ledger still owes.  What the slice adds is a text reading of C's own
 statements in C's own order.
+
+**Follow-up: the two comments that recited C 31017's literal (status 3.911).**  The reported
+file md5 above is the one the slice landed with.  Its runtime value is this repository's own name
+(`let title: &CStr = c"femacs";`), but its two comments recited C's own line with the product name
+spelled out - the `title` class the declaration gate fails outright, citations included - so
+`tools/check-declarations.py` read `20 declaration sites (2 forbidden, 18 allowed literals),
+2 failures` after `29fa36b3`, both findings being these comments (this file's 19955 and 20340).
+They now quote that line with the `<PACKAGE_NAME>` placeholder (the `src/emacs.rs` `RCS_Id` form,
+status 3.73) with the reason on the line, and the reading is back to `18 declaration sites
+(0 forbidden, 18 allowed literals), 0 failures`.  Comment lines only: no statement, no order and
+no value moved; the file grows by two comment lines (31,682 -> 31,684) and its md5 moves from
+`bec354a7a35280db33ccd7ad9bd76a98` to `9bdd5776783669aa980fc0b5fb311147`.
