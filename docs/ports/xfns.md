@@ -1,5 +1,5 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
-C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916 and C 4918-5582
+C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582 and C 5583-5758
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -11,10 +11,10 @@ C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916 and C 4918-5582
 > `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice,
 > **5,455 lines** after the third, **5,662 lines** after the fourth, **5,991 lines** after the fifth,
 > **6,325 lines** after the sixth, **6,543 lines** after the seventh, **6,727 lines** after the
-> eighth, **7,133 lines** after the ninth and **7,982 lines** after the tenth - C 803-2149,
-> C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916 and
-> C 4918-5582, whose own ledger sections are at the end of this file - measured with
-> `grep -c ''`), both arms of every `#if` carried.
+> eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth and **8,168 lines**
+> after the eleventh - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428,
+> C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582 and C 5583-5758, whose own ledger sections
+> are at the end of this file - measured with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
 > frozen configuration, so the port is the empty unit plus a note"), exactly as
@@ -172,7 +172,8 @@ defines both features.
 | 4624-4783 | C 4624's comment and `x_icon_verify` (C 4626 the `static void`, C 4627 the name), C 4644-4646's comment and `x_icon` (C 4648/4649), C 4693-4695's comment and `x_make_gc` (C 4697/4698), and C 4747-4748's comment and `x_free_gcs` (C 4750 the `void`, C 4751 the name) | the file gate |
 | 4785-4916 | C 4785-4787's comment with `unwind_create_frame` (C 4789 the `static Lisp_Object`, C 4790 the name), `do_unwind_create_frame` (C 4816/4817), `x_default_font_parameter` (C 4822 the `void`, C 4823 the name), the `x-wm-set-size-hint` `DEFUN` (C 4885) and `set_machine_and_pid_properties` (C 4900/4901) | the file gate |
 | 4918-5582 | `Fx_create_frame` (C 4918-4927 the DEFUN and its doc string, C 4930-4943 the `USE_GTK` local, C 4945-5130 the display/name/parent/colour setup, C 5131-5146 the font drivers, C 5151-5393 the parameter block, the two `x_window` call arms (C 5316-5320) and the Xt/GTK-only blocks, C 5395-5579 the menu bar, the visibility block, the machine/pid properties and the XSync block) | `have_x_windows`, with C's own nested arms: `use_gtk` (C 5184-5188/5213-5217/5322-5326/5378-5386), `use_x_toolkit` (C 5316-5320), `all (use_x_toolkit, use_gtk)` (C 5395-5411), `use_cairo` (C 5131-5145/5432-5441), `have_gtk3` (C 4941-4943/5243-5248), `have_xsync` (C 5500-5546) - slice 10 |
-| 5583-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 5,080 lines, whose first live definition is `xw-color-defined-p` (C 5583, a `DEFUN`) - the next slice's first item | not ported in this slice |
+| 5583-5758 | the first nine subrs of the remainder: `xw-color-defined-p` (C 5583), `xw-color-values` (C 5599), `xw-display-color-p` (C 5615), `x-display-grayscale-p` (C 5637), `x-display-pixel-width` (C 5666), `x-display-pixel-height` (C 5684), `x-display-planes` (C 5702), `x-display-color-cells` (C 5716) and `x-server-max-request-size` (C 5743) | `have_x_windows` (slice 11; the two `switch` bodies' `case`/`default` tokens are answered in `docs/ports/macro-body-notes.tsv`) |
+| 5760-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,903 lines, whose first live definition is `x-server-vendor` (C 5760, a `DEFUN`) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -1626,3 +1627,69 @@ body.  Drift reads `C 10662 vs Rust 7982` (**25.1%**, was 33.1%).  `check-mirror
 The frozen configuration compiles none of this file: no frame object was allocated, no display was
 consulted, no font driver was registered, no X window or widget was created, no size hint was sent
 and no WM property was written.  The three arms' counts are text compile readings.
+
+
+## Slice 11 (2026-10-08, status 3.914 - the integrator sets the round number): C 5583-5758
+
+**The slice is C 5583-5758**, the first nine subrs of the remainder - `xw-color-defined-p`
+(C 5583-5597), `xw-color-values` (C 5599-5613), `xw-display-color-p` (C 5615-5635),
+`x-display-grayscale-p` (C 5637-5664), `x-display-pixel-width` (C 5666-5682),
+`x-display-pixel-height` (C 5684-5700), `x-display-planes` (C 5702-5714),
+`x-display-color-cells` (C 5716-5741) and `x-server-max-request-size` (C 5743-5758).  Nine small
+`DEFUN`s whose doc strings stay verbatim: the port's slice is **186 Rust lines** (8,168 - 7,982,
+`grep -c ''`) against C's 176; md5 `172efa6331f5678600ff70c6480ec80a` (the slice 10 tree) ->
+`29ea2288899f1925b901888b49b6239e`.
+
+**What it reads.**  Two things only.  ⑴ `x_display_pixel_width`/`x_display_pixel_height` are
+xterm.c 18491/18482's definitions, so the two prototypes stand in a use-site block (P-72 rule 4;
+rows owed to `include/xterm.rs`).  ⑵ The two `switch` bodies (C 5624-5634, C 5651-5663) are the
+port's `match` arms plus `_` (PORTING.md 2.2), whose `case`/`default`/`switch` tokens cannot appear
+in the port text - the two rows `docs/ports/macro-body-notes.tsv` now carries.  `list3i`'s three
+arguments write C's conversions out (`foo.red as EMACS_INT` …), the two colour locals are C's
+`XColor` with the file's zeroed initialiser (the C 695 `cdef` shape: the callee fills them through
+`Emacs_Color *`, which dispextern.h 38's alias makes the same type in C and the mirror's record is
+not), and the five `\(` doc strings are decoded per `lib-src/make-docfile.c`'s rule
+(PORTING.md's P-38/P-24 note: `\X` reads as X, so the port's literal carries `(`, not `\(`).
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0), both sides.
+
+**② The three arms are byte-for-byte the baseline's readings**: plain-X **14 / 9**, GTK **34 / 20**
+and Xt **15 / 12**, before and after - the nine subrs add no name, no warning and no diagnostic in
+any arm.  The first measurement did add nine `unused doc comment` warnings (a doc comment on a
+`DEFUN!` invocation) and two `E0381`/one `E0425` rows; all three are closed (block comments, the
+zeroed locals, and the `x11_constants` import the C 5727-5728 comparisons need).
+
+**③ `extract-abi.py --check`**: **153 rows -> 144** - exactly the nine `missing subr` rows retiring,
+with nothing added - and the drift reads `C 10662 vs Rust 8168` (**23.4%**, was 25.1%).
+`check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**
+and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed literals), 0
+failures**.
+
+### Deviations (this slice)
+
+1. **`Emacs_Color *` at the two `x_defined_color` calls** is C's `XColor` through dispextern.h 38's
+   alias; the mirror carries the `#else` arm's record, so the local is C's `XColor` (zeroed, the C
+   695 shape) and the conversion happens at the call site (`&raw mut foo as *mut Emacs_Color`).
+2. **C's two `switch`es** are `match` arms with the case order kept and `_` for `default`
+   (PORTING.md 2.2); their `case`/`default`/`switch` tokens are recorded, not spelled.
+3. **C's `\(` doc-string escape** is decoded (`(On MS Windows…`), and the C 5674/5692 `"` pair is a
+   plain `"` in the port's literal - the `make-docfile` value both sides are compared as.
+4. **`make_fixnum`'s argument conversions** are written out (`… as EMACS_INT`), as the file's other
+   call sites do.
+
+### Owed (this slice)
+
+- `include/xterm.rs`'s two rows for `x_display_pixel_width`/`x_display_pixel_height` (xterm.h
+  2011/2004) and the `Emacs_Color = XColor` alias for `have_x_windows` (the row slices 1 and 11 both
+  name).
+- `syms_of_xfns` (the nine registrations this slice's subrs are still owed), and the rest of the
+  remainder: the 29 missing functions, 1 macro, 4 objects, 42 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no display was consulted, no colour was
+defined or allocated and no server attribute was read; the three arms' counts are text compile
+readings.

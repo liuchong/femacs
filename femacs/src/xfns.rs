@@ -7979,3 +7979,190 @@ DEFUN! ("x-create-frame", Fx_create_frame, Sx_create_frame,
 
   unbind_to (count, frame)                                                  // C 5579
 });
+
+/* C 5583-5758: the first nine subrs of the remainder - `xw-color-defined-p`, `xw-color-values`,
+   `xw-display-color-p`, `x-display-grayscale-p`, `x-display-pixel-width`,
+   `x-display-pixel-height`, `x-display-planes`, `x-display-color-cells` and
+   `x-server-max-request-size`.  All nine are `DEFUN`s of this file whose doc strings stay
+   verbatim; `x_display_pixel_width`/`x_display_pixel_height` are xterm.c 18491/18482's
+   definitions, declared at this use site below.  */
+/* C: xterm.h 2011/2004: `extern int x_display_pixel_width (struct x_display_info *)` and
+   `… x_display_pixel_height (…)` - the two rows `docs/ports/xfns.md` owes `include/xterm.rs`
+   (the `src/xfns.rs` use-site block's shape, P-72 rule 4).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_display_pixel_width (dpyinfo: *mut x_display_info) -> c_int;
+  pub fn x_display_pixel_height (dpyinfo: *mut x_display_info) -> c_int;
+}
+
+/* C 5583-5597: `DEFUN ("xw-color-defined-p", Fxw_color_defined_p, Sxw_color_defined_p, 1, 2, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("xw-color-defined-p", Fxw_color_defined_p, Sxw_color_defined_p,
+	1, 2, 0,
+	doc: "Internal function called by `color-defined-p'.\n(Note that the Nextstep version of this function ignores FRAME.)  ",
+	(color: Lisp_Object, frame: Lisp_Object),
+	{
+  let mut foo: XColor = std::mem::zeroed ();                            // C 5588 (the callee fills it)
+  let f: *mut frame = decode_window_system_frame (frame);               // C 5589
+
+  CHECK_STRING (color);                                                 // C 5591
+
+  /* C's `Emacs_Color *` parameter is dispextern.h 38's `typedef XColor Emacs_Color` for this arm,
+     so the local is C's `XColor` and the conversion is at the call site (this file's 969-974
+     shape; the owed mirror row is in `docs/ports/xfns.md`).  */
+  if x_defined_color (f, SSDATA (color), &raw mut foo as *mut Emacs_Color, false, false)  // C 5593
+    { return Qt (); }                                                   // C 5594
+  else
+    { return Qnil (); }                                                 // C 5596
+});
+
+/* C 5599-5613: `DEFUN ("xw-color-values", Fxw_color_values, Sxw_color_values, 1, 2, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("xw-color-values", Fxw_color_values, Sxw_color_values,
+	1, 2, 0,
+	doc: "Internal function called by `color-values'.\n(Note that the Nextstep version of this function ignores FRAME.)  ",
+	(color: Lisp_Object, frame: Lisp_Object),
+	{
+  let mut foo: XColor = std::mem::zeroed ();                            // C 5604 (the callee fills it)
+  let f: *mut frame = decode_window_system_frame (frame);               // C 5605
+
+  CHECK_STRING (color);                                                 // C 5607
+
+  if x_defined_color (f, SSDATA (color), &raw mut foo as *mut Emacs_Color, false, false)  // C 5609
+    { return list3i (foo.red as EMACS_INT, foo.green as EMACS_INT,      // C 5610
+		     foo.blue as EMACS_INT); }
+  else
+    { return Qnil (); }                                                 // C 5612
+});
+
+/* C 5615-5635: `DEFUN ("xw-display-color-p", Fxw_display_color_p, Sxw_display_color_p, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("xw-display-color-p", Fxw_display_color_p, Sxw_display_color_p,
+	0, 1, 0,
+	doc: "Internal function called by `display-color-p'.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5619
+
+  if (*dpyinfo).n_planes <= 2                                           // C 5621
+    { return Qnil (); }                                                 // C 5622
+
+  use crate::x11_constants::{DirectColor, PseudoColor, StaticColor, TrueColor};
+
+  match (*dpyinfo).visual_info.class                                    // C 5624
+    {
+      StaticColor                                                       // C 5626
+	| PseudoColor                                                   // C 5627
+	| TrueColor                                                     // C 5628
+	| DirectColor                                                   // C 5629
+	=> { return Qt (); }                                            // C 5630
+
+      _                                                                 // C 5632
+	=> { return Qnil (); }                                          // C 5633
+    }
+});
+
+/* C 5637-5664: `DEFUN ("x-display-grayscale-p", Fx_display_grayscale_p, Sx_display_grayscale_p, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-grayscale-p", Fx_display_grayscale_p, Sx_display_grayscale_p,
+	0, 1, 0,
+	doc: "Return t if the X display supports shades of gray.\nNote that color displays do support shades of gray.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5646
+
+  if (*dpyinfo).n_planes <= 1                                           // C 5648
+    { return Qnil (); }                                                 // C 5649
+
+  use crate::x11_constants::{DirectColor, GrayScale, PseudoColor, StaticColor, StaticGray,
+					     TrueColor};
+
+  match (*dpyinfo).visual_info.class                                    // C 5651
+    {
+      StaticColor                                                       // C 5653
+	| PseudoColor                                                   // C 5654
+	| TrueColor                                                     // C 5655
+	| DirectColor                                                   // C 5656
+	| StaticGray                                                    // C 5657
+	| GrayScale                                                     // C 5658
+	=> { return Qt (); }                                            // C 5659
+
+      _                                                                 // C 5661
+	=> { return Qnil (); }                                          // C 5662
+    }
+});
+
+/* C 5666-5682: `DEFUN ("x-display-pixel-width", Fx_display_pixel_width, Sx_display_pixel_width, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-pixel-width", Fx_display_pixel_width, Sx_display_pixel_width,
+	0, 1, 0,
+	doc: "Return the width in pixels of the X display TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n(On MS Windows, this function does not accept terminal objects.)\n\nOn \"multi-monitor\" setups this refers to the pixel width for all\nphysical monitors associated with TERMINAL.  To get information for\neach physical monitor, use `display-monitor-attributes-list'.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5679
+
+  return make_fixnum (x_display_pixel_width (dpyinfo) as EMACS_INT);    // C 5681
+});
+
+/* C 5684-5700: `DEFUN ("x-display-pixel-height", Fx_display_pixel_height, Sx_display_pixel_height, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-pixel-height", Fx_display_pixel_height, Sx_display_pixel_height,
+	0, 1, 0,
+	doc: "Return the height in pixels of the X display TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n(On MS Windows, this function does not accept terminal objects.)\n\nOn \"multi-monitor\" setups this refers to the pixel height for all\nphysical monitors associated with TERMINAL.  To get information for\neach physical monitor, use `display-monitor-attributes-list'.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5697
+
+  return make_fixnum (x_display_pixel_height (dpyinfo) as EMACS_INT);   // C 5699
+});
+
+/* C 5702-5714: `DEFUN ("x-display-planes", Fx_display_planes, Sx_display_planes, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-planes", Fx_display_planes, Sx_display_planes,
+	0, 1, 0,
+	doc: "Return the number of bitplanes of the X display TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n(On MS Windows, this function does not accept terminal objects.)  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5711
+
+  return make_fixnum ((*dpyinfo).n_planes as EMACS_INT);                // C 5713
+});
+
+/* C 5716-5741: `DEFUN ("x-display-color-cells", Fx_display_color_cells, Sx_display_color_cells, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-color-cells", Fx_display_color_cells, Sx_display_color_cells,
+	0, 1, 0,
+	doc: "Return the number of color cells of the X display TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n(On MS Windows, this function does not accept terminal objects.)  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5725
+
+  use crate::x11_constants::{DirectColor, TrueColor};
+
+  if (*dpyinfo).visual_info.class != TrueColor                          // C 5727
+      && (*dpyinfo).visual_info.class != DirectColor                    // C 5728
+    { return make_fixnum ((*dpyinfo).visual_info.colormap_size as EMACS_INT); }  // C 5729
+
+  let mut nr_planes: c_int = (*dpyinfo).n_planes;                       // C 5731
+
+  /* Truncate nr_planes to 24 to avoid integer overflow.  Some
+     displays says 32, but only 24 bits are actually significant.
+     There are only very few and rare video cards that have more than
+     24 significant bits.  Also 24 bits is more than 16 million
+     colors, it "should be enough for everyone".  */
+  if nr_planes > 24 { nr_planes = 24; }                                 // C 5738
+
+  return make_fixnum ((1 << nr_planes) as EMACS_INT);                   // C 5740
+});
+
+/* C 5743-5758: `DEFUN ("x-server-max-request-size", Fx_server_max_request_size, Sx_server_max_request_size, 0, 1, 0, …)`.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-server-max-request-size", Fx_server_max_request_size, Sx_server_max_request_size,
+	0, 1, 0,
+	doc: "Return the maximum request size of the X server of display TERMINAL.\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n\nOn MS Windows, this function just returns 1.\nOn Nextstep and PGTK, this function just returns nil.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);   // C 5755
+
+  return make_fixnum (MAXREQUEST! ((*dpyinfo).display) as EMACS_INT);   // C 5757
+});
