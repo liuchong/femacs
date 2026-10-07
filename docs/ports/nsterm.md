@@ -204,7 +204,7 @@
 - [x] ns_display_pixel_width  (line 5676) — C 5675-5688, landed as `func ns_display_pixel_width (_:) -> Int32`: the same union read as a width, in C's own two-call shape (round 35's Evidence)
 - [x] ns_string_to_lispmod  (line 5691, static) — C 5691-5710, landed as `fileprivate func ns_string_to_lispmod (_:) -> Lisp_Object`: C's six `strncmp (SSDATA (SYMBOL_NAME (Q…)), s, 10)` tests keep their order and their length 10, and the five modifier symbols are read through this file's own `DEFSYM` names (C 11799's `syms_of_nsterm`)
 - [x] ns_default  (line 5714, static) — C 5713-5738, landed as `fileprivate func ns_default (_:_:_:_:_:_:)`: C's two `BOOL`s are `Bool`, C 5731's comma expression is one local function (`strtod_and_test`) whose body is C's own two steps so the chain keeps its single `else if` and its short-circuit, and the two pointer uses carry `value!` behind C's own `if (value)` guard (the `Fns_get_resource` shape)
-- [ ] ns_initialize_display_info  (line 5742, static)
+- [x] ns_initialize_display_info  (line 5742, static) — C 5741-5764, landed as `fileprivate func ns_initialize_display_info (_:)`: C 5758's chained assignment is written in C's own order (`a = b = NULL` assigns `b` first), C 5752-5755's two `isEqualToString:` reads are the eight member entries this round declares (`ns_display_info_set_resx` through `ns_display_info_set_smallest_char_width`, plus `ns_display_info_mouse_highlight` for C's `&dpyinfo->mouse_highlight`), and the AppKit spellings are the compiler's own renames (`NSColorSpaceName.deviceWhite`, `depth.colorSpaceName`, `depth.bitsPerPixel` - class B)
 - [x] ns_default_font_parameter  (line 5770, static) — C 5769-5773, landed as `fileprivate func ns_default_font_parameter (_:_:)`: C's body is empty and the comment above the definition (C 5766-5768) says why, so both parameters stay unread (the `applicationWillBecomeActive` reading)
 - [x] ns_update_window_end  (line 5776, static) — **dead in this build**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 5774 and closes it at C 5783, so the whole definition is the arm this target does not take.  Recorded, not transcribed (the `-updateMonitors:` reading); its two statements, named in the round's note, are `NSTRACE` (empty) and `ns_redraw_scroll_bars (WINDOW_XFRAME (w))`
 - [ ] ns_flush_display  (line 5786, static)
@@ -3239,3 +3239,46 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no defaults key read, no float parsed, no
   `ns_redraw_scroll_bars` reached); the compile gate reaches parsing and type checking only, and
   `tools/check-swift-units.py` compares name sets, not signatures, bodies, layout or ABI.
+
+### Round 37: `ns_initialize_display_info` (C 5741-5764)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-36 carry, so **no new warning**.  Object
+  `/tmp/nsterm37.o`, **712,856 bytes**, md5 `e5d6726aecabdf8838370b7fab226415`.  The unit is
+  **8,491 lines**.
+* **One C definition and the nine member entries it needs**: the definition writes five `int`
+  members, two `double`s and `Window`, so this round declares `ns_display_info_set_resx`,
+  `_set_resy`, `_set_color_p`, `_set_n_planes`, `_set_root_window`, `_set_n_fonts`,
+  `_set_smallest_font_height` and `_set_smallest_char_width`, plus `ns_display_info_mouse_highlight`
+  for C 5763's `&dpyinfo->mouse_highlight` (the member's *address*, which is what
+  `reset_mouse_highlight` takes).  The two frame members reuse round 7's
+  `ns_display_info_set_ns_focus_frame` and `ns_display_info_set_highlight_frame`.  `Window` is
+  `typedef int Window` on this arm (src/nsgui.h 67), and the frozen layout agrees
+  (`docs/baseline/ns_display_info-layout.tsv` 27: `root_window` at 92, `int color_p` at 88), so the
+  root-window entry takes an `Int32` like its neighbours.
+* **Four compile failures and their fixes** (all named in the source): ⑴ four AppKit names are
+  renames Swift performs itself - `NSDeviceWhiteColorSpace` is `NSColorSpaceName.deviceWhite`,
+  `NSCalibratedWhiteColorSpace` is `.calibratedWhite`, `NSColorSpaceFromDepth (depth)` is
+  `depth.colorSpaceName` and `NSBitsPerPixelFromDepth (depth)` is `depth.bitsPerPixel` (class B);
+  C's two calls to `NSColorSpaceFromDepth` stay two reads.  ⑵ C 5747-5748's nil receiver is the
+  round 2 reading again, and it needed one measurement: `NSScreen.depth` is `NSWindow.Depth` in
+  Swift (the `NSWindowDepth` typedef) whose raw-value initializer is **failable**, so C's own zero
+  is `NSWindow.Depth (rawValue: 0)!` - a probe on this machine answers `rawValue0_is_nil: false`
+  (so the unwrap cannot trap for 0), and the same probe is why the form is not written as
+  `?? 0`.  ⑶ C 5758's chained assignment keeps C's order: the inner `ns_focus_frame` write comes
+  before the outer `highlight_frame` one.  ⑷ the `int color_p` member takes C's integral
+  conversion of a `bool` explicitly (`color_p ? 1 : 0`), because Swift has no such implicit one.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **25** unported,
+  25 row(s); **454** C symbol import(s)` - one fewer unported than round 36's 26 (the definition
+  above), **one stale row cleared** by name, and the round's import count rises 445 -> 454 (the
+  nine member entries).  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What is left in this block, by name**: `ns_flush_display` (C 5785-5792) still needs a reader for
+  `FRAME_TERMINAL (f)`; no lane has spelled it yet (`frame_set_terminal` is the only `terminal`
+  accessor, and `frame.rs` carries the member as a raw pointer), so it gets its own round with
+  that spelling settled first.
+* **What this round does not claim**: no run evidence (no display info initialised, no screen
+  queried, no mouse-highlight state reset); the compile gate reaches parsing and type checking
+  only, and `tools/check-swift-units.py` compares name sets, not signatures, bodies, layout or ABI.
+  The nine member entries are *declarations*: the core side that exports them is the
+  `src/nsterm.h` unit's, which is not landed yet - the same standing state round 7's member
+  entries are in.

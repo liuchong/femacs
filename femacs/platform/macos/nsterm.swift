@@ -8417,3 +8417,75 @@ fileprivate func ns_default_font_parameter(_ f: UnsafeMutableRawPointer?, _ parm
 /// item carries the name, and the ledger's box says the same (the `-updateMonitors:` reading of
 /// round 31).  The definition's two statements would be `NSTRACE`, empty at `NSTRACE_ENABLED` 0,
 /// and `ns_redraw_scroll_bars (WINDOW_XFRAME (w))`.
+
+// ==========================================================================
+// Round 37: `ns_initialize_display_info` (C 5741-5764)
+// ==========================================================================
+
+/// C: the `struct ns_display_info` members this definition writes, as member entries of the
+/// `<record>_<member>` family round 7 settled (`docs/ports/nsmenu.swift` 311-328): five `int`
+/// members, two `double`s and `Window`.  src/nsgui.h 67 is `typedef int Window;` on this arm
+/// (measured in the frozen layout: `docs/baseline/ns_display_info-layout.tsv` 27 puts
+/// `root_window` at offset 92 with `int color_p` at 88), so the root-window entry takes an `Int32`
+/// like its neighbours.
+@_silgen_name("ns_display_info_set_resx")
+func ns_display_info_set_resx(_ f: UnsafeMutableRawPointer?, _ v: Double)
+@_silgen_name("ns_display_info_set_resy")
+func ns_display_info_set_resy(_ f: UnsafeMutableRawPointer?, _ v: Double)
+@_silgen_name("ns_display_info_set_color_p")
+func ns_display_info_set_color_p(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_n_planes")
+func ns_display_info_set_n_planes(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_root_window")
+func ns_display_info_set_root_window(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_n_fonts")
+func ns_display_info_set_n_fonts(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_smallest_font_height")
+func ns_display_info_set_smallest_font_height(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_display_info_set_smallest_char_width")
+func ns_display_info_set_smallest_char_width(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `&dpyinfo->mouse_highlight` (C 5763) - the `mouse_highlight` member's *address*, which is
+/// what `reset_mouse_highlight` takes.  It is the same member entry as the readers above; C's `&`
+/// is this record's because the entry returns the member's own address rather than a copy of the
+/// `Mouse_HLInfo` struct.
+@_silgen_name("ns_display_info_mouse_highlight")
+func ns_display_info_mouse_highlight(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C 5741-5764: `static void ns_initialize_display_info (struct ns_display_info *dpyinfo)` -
+/// "Initialize global info and storage for display."  C 5758's chained assignment is written in
+/// C's own order (`a = b = NULL` assigns `b` first), and C 5752-5755's two `isEqualToString:`
+/// messages are the `==` the unit's other AppKit string comparisons use, kept as two calls to
+/// `NSColorSpaceFromDepth` because C makes two.
+fileprivate func ns_initialize_display_info(_ dpyinfo: UnsafeMutableRawPointer?) {
+  let screen = NSScreen.main                             // C 5747
+  // C 5748: `[screen depth]` - a message to a nil screen answers 0, the reading round 2's
+  // `?? NSRect.zero` gives the same receiver.  Swift spells the result `NSWindow.Depth` (the
+  // `NSWindowDepth` typedef) and its raw-value initializer is *failable*, so C's own zero is
+  // written as `rawValue: 0` plus the unwrap that follows from the initializer's type; that 0 is
+  // a representable depth was measured on this machine (`NSWindow.Depth (rawValue: 0) != nil`).
+  let depth = screen?.depth ?? NSWindow.Depth (rawValue: 0)!
+
+  ns_display_info_set_resx (dpyinfo, 72.27)              // C 5750
+  ns_display_info_set_resy (dpyinfo, 72.27)              // C 5751
+
+  /* C 5752-5755: `NSDeviceWhiteColorSpace` and `NSCalibratedWhiteColorSpace` are
+     `NSColorSpaceName.deviceWhite`/`.calibratedWhite` in Swift, `NSColorSpaceFromDepth (depth)`
+     is `depth.colorSpaceName` (the compiler's own rename readings - class B), and the member is
+     an `int` while the expression is a `bool`, so C's integral conversion (false -> 0, true -> 1)
+     is spelled out.  Two reads of `colorSpaceName` stay two, as C's two calls are two.  */
+  let color_p = !(NSColorSpaceName.deviceWhite == depth.colorSpaceName)
+    && !(NSColorSpaceName.calibratedWhite == depth.colorSpaceName)
+  ns_display_info_set_color_p (dpyinfo, color_p ? 1 : 0)
+
+  // C 5756: `NSBitsPerPixelFromDepth (depth)` is `depth.bitsPerPixel`.
+  ns_display_info_set_n_planes (dpyinfo, Int32 (depth.bitsPerPixel))
+  ns_display_info_set_root_window (dpyinfo, 42)          // C 5757 (C's placeholder)
+  ns_display_info_set_ns_focus_frame (dpyinfo, nil)      // C 5758 (the inner assignment)
+  ns_display_info_set_highlight_frame (dpyinfo, nil)     // C 5758 (the outer one, C's order)
+  ns_display_info_set_n_fonts (dpyinfo, 0)               // C 5759
+  ns_display_info_set_smallest_font_height (dpyinfo, 1)  // C 5760
+  ns_display_info_set_smallest_char_width (dpyinfo, 1)   // C 5761
+
+  reset_mouse_highlight (ns_display_info_mouse_highlight (dpyinfo))  // C 5763
+}
