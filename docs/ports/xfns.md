@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176 and C 8178-8256
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256 and C 8258-8360
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -23,12 +23,13 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176 and C 8178-8256
 > twenty-third, **10,404 lines** after the twenty-fourth, **10,631 lines** after the twenty-fifth,
 > **10,782 lines** after the twenty-sixth, **11,042 lines** after the twenty-seventh and
 > **11,088 lines** after the twenty-eighth, **11,179 lines** after the twenty-ninth and
-> **11,286 lines** after the thirtieth and **11,371 lines** after the thirty-first - C 803-2149,
+> **11,286 lines** after the thirtieth, **11,371 lines** after the thirty-first and
+> **11,493 lines** after the thirty-second - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
-> C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176 and
-> C 8178-8256, whose own
+> C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
+> C 8178-8256 and C 8258-8360, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -209,7 +210,8 @@ defines both features.
 | 7998-8073 | `x_window_property_intern` (C 7998-8005 the `static Lisp_Object` and its seven parameters, C 8007-8012 the locals, C 8014-8017 the first `XGetWindowProperty`, C 8019's `*found`, C 8026-8031 the second call with C 8029's `! NILP (delete_p)`, C 8034-8046 the quoted `XGetWindowProperty` man page, C 8048-8056 the `LONG_WIDTH > 32` arm, C 8058-8066 the `make_string`/`x_property_data_to_lisp` pair, C 8069's `XFree`) | `have_x_windows`, with no nested `#if` (slice 29) |
 | 8075-8176 | `x-window-property` (C 8075-8076 the `DEFUN` header, C 8077-8115 the verbatim doc string, C 8119-8124 the locals, C 8126's `CHECK_STRING`, C 8128-8133 the `WINDOW-ID` pair, C 8136's `x_catch_errors`, C 8138-8145 the `AnyPropertyType`/intern pair, C 8149-8155 and C 8161-8167 the two `x_window_property_intern` calls with C 8156-8159's four-way test, C 8170-8172 the error pair) | `have_x_windows`, with no nested `#if` (slice 30) |
 | 8178-8256 | `x-window-property-attributes` (C 8178-8179 the `DEFUN` header, C 8180-8194 the verbatim doc string, C 8197-8205 the locals, C 8207's `CHECK_STRING`, C 8209-8214 the `WINDOW-ID` pair, C 8218-8220's `x_catch_errors` and cached-atom intern, C 8221-8224's first `XGetWindowProperty`, C 8225-8238's four-way outer-window retry with C 8230-8232's comment, C 8240-8248's `XFree` and `CALLN (Fvector, ...)`, C 8250-8252's error pair) | `have_x_windows`, with no nested `#if` (slice 31) |
-| 8258-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,404 lines, whose first live items are C 8258's form feed, C 8259-8261's `Coordinate management` section comment and `x-translate-coordinates` (C 8263, the `DEFUN`) - the next slice's first items | not ported in this slice |
+| 8258-8360 | the `Coordinate management` section comment (C 8259-8261) and `x-translate-coordinates` (C 8263-8360: C 8265-8285's verbatim doc string, C 8290-8295 the locals, C 8297's `check_x_display_info`, C 8301-8311 the two `CHECK_FIXNUM`/`XFIXNUM` pairs, C 8313-8321's `source_frame`/`source_window` pair, C 8323-8332's `require_child` early return, C 8334-8340's `src`/`dest` defaults, C 8342-8350's `XTranslateCoordinates` with the error pair, C 8352-8359's `list3` result) | `have_x_windows`, with no nested `#if` (slice 32) |
+| 8362-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,301 lines, whose first live item is the `Tooltips` section banner (C 8362-8364) and `compute_tip_xy` (C 8366, its declaration) - the next slice's first items | not ported in this slice |
 
 ## Evidence
 
@@ -3193,3 +3195,78 @@ failures**.
 
 The frozen configuration compiles none of this file: no window property metadata was read, no atom
 was interned and no vector was built; the fourteen arms' counts are text compile readings.
+
+## Slice 32 (2026-10-08, status 3.936 - the integrator sets the round number): C 8258-8360
+
+**The slice is C 8258-8360**: the `Coordinate management` section comment (C 8259-8261) and
+`x-translate-coordinates` - its header and verbatim doc string (C 8263-8285), the locals
+(C 8290-8295), C 8297's `check_x_display_info`, C 8298-8299's zeroed `dest_x`/`dest_y`, the two
+`CHECK_FIXNUM`/`XFIXNUM` pairs (C 8301-8305 and C 8307-8311), C 8313's null `source_frame`,
+C 8315-8321's `source_window` pair, C 8323-8232's comment with C 8325-8332's `require_child` early
+return, C 8334-8335's root-window default, C 8337-8340's `dest_window` pair, C 8342-8350's
+`XTranslateCoordinates` between the error pair, and C 8352-8359's `Qnil` / `list3` result.  The
+port's slice is **122 Rust lines** (11,493 - 11,371, `grep -c ''`) against C's 103; md5
+`3c9eae3abf16a3d2e94c142030975da3` (the slice 31 tree) -> `af746053494a103b6a80da48e2c289c3`.
+
+**Every one of the fourteen arms is byte-identical.**  plain-X, WS, WSX, WSR, WSRX, WSR12 and XCB
+**15 / 9**, LUCID **23 / 12**, GTK and GTK22 **46 / 20** (the four named `GDK_WINDOW_XID` instances
+of slices 27/30/31, unchanged - this slice uses `FRAME_X_WINDOW`, not `FRAME_OUTER_WINDOW`), XI2
+**19 / 9**, XSN **13 / 9**, XR **19 / 9** and Xt **16 / 12** - and both the `^error` and the
+`^warning` sets are empty-diff against the in-tree HEAD baseline in all fourteen.
+
+**The first measurement's one row.**  `if !rc` read `E0308` (`expected bool, found i32`): C's `!rc`
+on a `Bool` is a comparison, not a Rust `!`.  The port writes `if rc == 0`, which is this tree's
+reading of a `Bool`'s falsity (`src/xterm.rs` 1936/2213/2308/3428/3533 all read it that way); after
+that the arms read their baselines.
+
+**Arm touch measured** (P-86 ⑦): an injection at the body's first statement (A) moves plain-X
+**15 -> 16**, GTK **46 -> 47**, XCB **15 -> 16** and XI2 **19 -> 20**; one before C 8355's `list3`
+return (B) moves plain-X **15 -> 16**, GTK **46 -> 47**, XCB **15 -> 16**, LUCID **23 -> 24** and Xt
+**16 -> 17**; both logs carry the injected line's text once.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash.
+
+**② The fourteen arms.**  See above: every arm at its baseline, both sets empty-diff.
+
+**③ `extract-abi.py --check`**: **102 rows -> 101** - `missing subr Fx_translate_coordinates
+(x-translate-coordinates)` retiring and the drift row moving from `6.6%` to `7.8%: C 10662 vs Rust
+11493` (`missing subr` 17 -> 16).  The drift row is the reader's own ratchet and its tolerance table
+is the integrator's; the lane records both readings.  `check-mirror-dupes.py` stays at **16
+duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at **18
+declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **`x_handle_translate_coordinates` stands at the use site** (xterm.h 1836-1837: `extern
+   Lisp_Object x_handle_translate_coordinates (struct frame *, Lisp_Object, int, int);`), because no
+   mirror carries the row and `src/xterm.rs` defines it (C 14481) - P-55/P-72 rule 3.
+2. **C 8323-8324's comment is transcribed verbatim** inside the body, and C 8259-8261's section
+   banner is *described* in this slice's block comment rather than transcribed - the treatment this
+   file's ten existing slice blocks already give xfns.c's eight banners (0 of the 8 are carried
+   verbatim in the port; the three most recent slices before this one did the same).  Recorded here
+   so the reading is a decision, not a gap.
+3. **C's pointer and integer tests keep the file's spellings**: `! source_frame.is_null ()` for
+   C 8325's `source_frame`, `src == 0` for C 8334's `!src`, `child_return != None as Window` for
+   C 8357's `child_return != None` (X.h 115's `None` imported in the body).
+4. **C's conversions are written out**: `XFIXNUM (source_x) as c_int` (C 8304/8310, `EMACS_INT` to
+   `int`), `make_int (dest_x as intmax_t)` and `make_uint (child_return as uintmax_t)` (C 8355-8358,
+   the `src/alloc.rs` cast form), and the ternary becomes Rust's `if`/`else` block with `Qnil ()`
+   in the else arm (the `src/callproc.rs` 1950 shape).
+5. **The four out-parameters of C's locals take the file's zero initialisers** (`dest_x`, `dest_y`,
+   `child_return`, `src`, `dest`) and `source_frame`'s `NULL` is `std::ptr::null_mut ()`.
+
+### Owed (this slice)
+
+- `x_handle_translate_coordinates` is owed to `include/xterm.rs` (xterm.h 1836-1837); the
+  `GDK_WINDOW_XID` class keeps its four instances.
+- `syms_of_xfns`' `defsubr` sites (45, plus this slice's `Sx_translate_coordinates`) and the rest of
+  the remainder from C 8362 (the `Tooltips` banner and `compute_tip_xy`): 2,301 C lines plus the 13
+  missing functions, 1 macro, 4 objects, 16 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no coordinates were translated, no display was
+checked and no list was built; the fourteen arms' counts are text compile readings.

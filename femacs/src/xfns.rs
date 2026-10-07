@@ -11369,3 +11369,125 @@ Otherwise, the return value is a vector with the following fields:
   unblock_input ();                                                       // C 8254
   return prop_attr;                                                       // C 8255
 });
+/* -----------------------------------------------------------------------------------------
+   C 8258-8360: the `Coordinate management` section comment (C 8259-8261; the banners are
+   described in these blocks rather than transcribed, the file's standing treatment - see the
+   ledger) and `x-translate-coordinates` - the two `CHECK_FIXNUM`/`XFIXNUM` pairs, C 8313's null
+   `source_frame`, C 8315-8321's `source_window` pair, C 8323-8332's `require_child` early
+   return, C 8334-8340's `src`/`dest` defaults, C 8342-8350's `XTranslateCoordinates` with the
+   error pair, and C 8352-8359's `list3` result.
+   -------------------------------------------------------------------------------------- */
+
+/* C: xterm.h 1836-1837: `extern Lisp_Object x_handle_translate_coordinates (struct frame *,
+   Lisp_Object, int, int);` - C 8328's call.  `src/xterm.rs` defines it (C 14481) and no mirror
+   carries the row, so it stands at the use site (P-55/P-72 rule 3).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_handle_translate_coordinates (f: *mut frame, dest_window: Lisp_Object,
+					 dest_x: c_int, dest_y: c_int) -> Lisp_Object;
+}
+
+/* C 8263-8360.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-translate-coordinates", Fx_translate_coordinates, Sx_translate_coordinates,
+	1, 6, 0, doc: "Translate coordinates from FRAME.
+Translate the given coordinates SOURCE-X and SOURCE-Y from
+SOURCE-WINDOW's coordinate space to that of DEST-WINDOW, on FRAME.
+
+If SOURCE-X and SOURCE-Y are nil, use 0 instead.
+
+FRAME can either be a terminal or a frame.  If nil, it defaults to the
+selected frame.  SOURCE-WINDOW must be an X window ID, 0 (which means
+to use the root window), or nil, which means to use FRAME's inner
+window.  DEST-WINDOW must be another X window ID, or nil (which means
+to use the root window).
+
+Return a list of (X Y CHILD) if the given coordinates are on the same
+screen, or nil otherwise, where X and Y are the coordinates in
+DEST-WINDOW's coordinate space, and CHILD is the window ID of any
+mapped child in DEST-WINDOW at those coordinates, or nil if there is
+no such window.  If REQUIRE-CHILD is nil, avoid fetching CHILD if it
+would result in an avoidable request to the X server, thereby
+improving performance when the X connection is over a slow network.
+Otherwise, always obtain the mapped child window from the X
+server. ",
+	(frame: Lisp_Object, source_window: Lisp_Object,
+	 dest_window: Lisp_Object, source_x: Lisp_Object,
+	 source_y: Lisp_Object, require_child: Lisp_Object),
+	{
+  use crate::x11_constants::None;                                         // C 8357
+
+  let dpyinfo: *mut x_display_info;                                       // C 8290
+  let mut source_frame: *mut frame;                                       // C 8291
+  let mut dest_x: c_int = 0;                                              // C 8292
+  let mut dest_y: c_int = 0;
+  let mut child_return: Window = 0;                                       // C 8293
+  let mut src: Window = 0;
+  let mut dest: Window = 0;
+  let mut rc: Bool;                                                       // C 8294
+  let temp_result: Lisp_Object;                                           // C 8295
+
+  dpyinfo = check_x_display_info (frame);                                 // C 8297
+  dest_x = 0;                                                             // C 8298
+  dest_y = 0;                                                             // C 8299
+
+  if !NILP (source_x)                                                     // C 8301
+    {
+      CHECK_FIXNUM (source_x);                                            // C 8303
+      dest_x = XFIXNUM (source_x) as c_int;                               // C 8304
+    }
+
+  if !NILP (source_y)                                                     // C 8307
+    {
+      CHECK_FIXNUM (source_y);                                            // C 8309
+      dest_y = XFIXNUM (source_y) as c_int;                               // C 8310
+    }
+
+  source_frame = std::ptr::null_mut ();                                   // C 8313
+
+  if !NILP (source_window)                                                // C 8315
+    { CONS_TO_INTEGER! (source_window, src); }                            // C 8316
+  else
+    {
+      source_frame = decode_window_system_frame (frame);                  // C 8319
+      src = FRAME_X_WINDOW! (source_frame);                               // C 8320
+    }
+
+  /* If require_child is nil, try to avoid an avoidable roundtrip to
+     the X server.  */
+  if NILP (require_child) && ! source_frame.is_null ()                    // C 8325
+    {
+      temp_result                                                         // C 8327-8329
+	= x_handle_translate_coordinates (source_frame, dest_window, dest_x,
+					  dest_y);
+      if !NILP (temp_result)                                              // C 8330
+	{ return temp_result; }                                             // C 8331
+    }
+
+  if src == 0                                                             // C 8334
+    { src = (*dpyinfo).root_window; }                                     // C 8335
+
+  if !NILP (dest_window)                                                  // C 8337
+    { CONS_TO_INTEGER! (dest_window, dest); }                             // C 8338
+  else
+    { dest = (*dpyinfo).root_window; }                                    // C 8340
+
+  block_input ();                                                         // C 8342
+  x_catch_errors ((*dpyinfo).display);                                    // C 8343
+  rc = XTranslateCoordinates ((*dpyinfo).display, src, dest,              // C 8344-8346
+			      dest_x, dest_y, &raw mut dest_x, &raw mut dest_y,
+			      &raw mut child_return);
+  x_check_errors ((*dpyinfo).display,                                     // C 8347-8348
+		  c"Couldn't translate coordinates: %s".as_ptr ());
+  x_uncatch_errors_after_check ();                                        // C 8349
+  unblock_input ();                                                       // C 8350
+
+  if rc == 0                                                              // C 8352
+    { return Qnil (); }                                                   // C 8353
+
+  return list3 (make_int (dest_x as intmax_t),                            // C 8355-8359
+		make_int (dest_y as intmax_t),
+		(if child_return != None as Window
+		   { make_uint (child_return as uintmax_t) }
+		 else { Qnil () }));
+});
