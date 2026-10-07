@@ -16000,3 +16000,11 @@
   ④ **新增面**：三个宏 + 八个函数声明（各自的 header 行都写在文本里）、`redisplay_interface` 记录、`AUTO_STRING!`、六条参数 `let mut x = x;`、labeled block、`CAR`/`CDR` 拼法、以及切片 34 九行尾注的修正——全部记进台账 `## Slice 37` 的 Deviations 1-6。
   ⑤ **台账与门**：`docs/ports/xfns.md` 头部切片表/行数、C-range 表把末行拆成 `9031-9372`（本片）与 `9375-10662`（remainder = `x-hide-tip` 的 `DEFUN` C 9375）并写入 `## Slice 37`；八道文本门 + `check-dead-file-coverage` 全绿（`check-declarations` 18/0/18/0、`check-verbatim` 7,197/0、`check-dead-file-coverage` 145/0、`check-mirror-dupes` 16/16/0、`check-ledger-ticks` 238/0、`check-carried` 11/11/4/0、`check-port-lines` 0/0/0/0、`check-own-voice` 0、`check-citations` 676 文件/0 drift、`check-verbatim-declarations` 820/116/0）。
   ⑥ **未声称**：冻结配置不编译这个文件——没有 tooltip 被显示、没有计时器被启动、没有帧被创建；十四条臂读数是文本编译读数。
+
+- **3.943 `src/xfns.c` 切片 38 落地（C 9375-9415）：三个 subr 与段横幅进树**（`x-hide-tip`（一行转调切片 36 的助手）、`x-double-buffered-p`（`HAVE_XDBE` 两臂）、`x-uses-old-gtk-dialog`（`USE_GTK` 守卫下的四重合取）、C 9396-9399 的 `File selection dialog` 横幅）——**十四条臂与基线逐条相同、两个集合 **十四条** 全 0 位移**；`--check` 92 → 89（三条 `missing subr` 退场、无新增；漂移行 20.6% → 21.1%）；冻结 `build-tu` exit 0 / 336 字节（2026-10-08）**：
+  ① **范围与形状**：本片 58 行（12,855 → 12,912），C 41 行；末哈希 md5 `79e7dfa8acb3f9ea8ecd74e1a88c4293`。
+  ② **首测一行**：C 9410 的 `SELECTED_FRAME ()` 在本端口是**函数**（`src/data.rs` 1126 与本文件 10096/10127 都这样拼），不是宏 ⇒ GTK/GTK22 读到 `cannot find macro SELECTED_FRAME`，改写法后回到基线。
+  ③ **臂触达实测**（P-86 ⑦）：A（`x-hide-tip` 体 C 9380）令 plain-X **18 → 19**、GTK **47 → 48**、XCB **18 → 19**、XI2 **22 → 23**；B（C 9414 的 `return Qnil ();` 之前）令 plain-X **18 → 19**、GTK **47 → 48**、XCB **18 → 19**、Xt **20 → 21**；两份日志各含注入行原文一次。
+  ④ **偏差三条**：`xg_uses_old_file_dialog` 用点声明（gtkutil.h 86，门 `all (have_x_windows, use_gtk)`）；C 的 `HAVE_XDBE` 与 `USE_GTK` 两处预处理落成 cfg 块、无条件的 `return Qnil ();` 留在块外；C 9390 的三元写成 `if FRAME_X_DOUBLE_BUFFERED_P! (f) { Qt () } else { Qnil () }`（本文件 `P` 宏的既有拼法）。
+  ⑤ **台账与门**：`docs/ports/xfns.md` 头部切片表/行数、C-range 表把末行拆成 `9375-9415`（本片）与 `9418-10662`（remainder = `#ifdef USE_MOTIF` 与它守住的三个回调）并写入 `## Slice 38`；十道门全绿（`check-declarations` 18/0/18/0、`check-own-voice` 0、`check-citations` 676 文件/0 drift、`check-mirror-dupes` 16/16/0、`check-carried` 11/11/4/0、`check-verbatim` 7,197/0、`check-verbatim-declarations` 820/116/0、`check-dead-file-coverage` 145/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0）。
+  ⑥ **未声称**：冻结配置不编译这个文件——没有 tooltip 被隐藏、没有帧被问缓冲、没有对话框策略被读；十四条臂读数是文本编译读数。

@@ -12853,3 +12853,60 @@ Text larger than the specified size is clipped. ",
 
   return unbind_to (count, Qnil ());                                        // C 9371
 });                                                                        // C 9372
+
+/* C: gtkutil.h 86: `extern bool xg_uses_old_file_dialog (void);` - C 9411's call in the
+   `USE_GTK` arm.  `src/gtkutil.rs` defines it and no mirror carries the row, so it stands at
+   the use site (P-55/P-72 rule 3).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn xg_uses_old_file_dialog () -> bool;
+}
+
+/* C 9375-9381.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-hide-tip", Fx_hide_tip, Sx_hide_tip, 0, 0, 0,
+	doc: "Hide the current tooltip window, if there is any.\nValue is t if tooltip was open, nil otherwise.  ",
+	(),
+	{
+  return x_hide_tip (!tooltip_reuse_hidden_frame);                           // C 9380
+});
+
+/* C 9383-9394.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-double-buffered-p", Fx_double_buffered_p, Sx_double_buffered_p,
+	0, 1, 0,
+	doc: "Return t if FRAME is being double buffered.  ",
+	(frame: Lisp_Object),
+	{
+#[cfg (feature = "have_xdbe")]                                                 // C 9388
+  {
+    let f: *mut frame = decode_live_frame (frame);                           // C 9389
+    return if FRAME_X_DOUBLE_BUFFERED_P! (f) { Qt () } else { Qnil () };      // C 9390
+  }
+#[cfg (not (feature = "have_xdbe"))]                                           // C 9391
+  { return Qnil (); }                                                        // C 9392
+});
+
+
+/***********************************************************************
+			File selection dialog
+ ***********************************************************************/
+
+/* C 9401-9415.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-uses-old-gtk-dialog", Fx_uses_old_gtk_dialog,
+	Sx_uses_old_gtk_dialog,
+	0, 0, 0,
+	doc: "Return t if the old Gtk+ file selection dialog is used.  ",
+	(),
+	{
+#[cfg (feature = "use_gtk")]                                                   // C 9407
+  {
+    if use_dialog_box                                                        // C 9408
+      && use_file_dialog                                                     // C 9409
+      && window_system_available (SELECTED_FRAME ())                        // C 9410
+      && xg_uses_old_file_dialog ()                                          // C 9411
+      { return Qt (); }                                                      // C 9412
+  }
+  return Qnil ();                                                            // C 9414
+});

@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028 and C 9031-9372
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372 and C 9375-9415
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -26,13 +26,14 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **11,286 lines** after the thirtieth, **11,371 lines** after the thirty-first and
 > **11,493 lines** after the thirty-second, **11,554 lines** after the thirty-third and
 > **12,025 lines** after the thirty-fourth, **12,155 lines** after the thirty-fifth and
-> **12,303 lines** after the thirty-sixth and **12,855 lines** after the thirty-seventh - C 803-2149,
+> **12,303 lines** after the thirty-sixth, **12,855 lines** after the thirty-seventh and
+> **12,912 lines** after the thirty-eighth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
-> C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028 and C 9031-9372,
-> whose own
+> C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372 and
+> C 9375-9415, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -219,7 +220,8 @@ defines both features.
 | 8778-8893 | C 8778-8782's comment and `compute_tip_xy` (C 8784-8893: the four `Fassq` reads, C 8808-8811's `x_query_pointer` between `block_input`/`unblock_input`, C 8815-8824's `HAVE_XRANDR`/`USE_GTK` cached-list choice, C 8828-8849's monitor walk with C 8834-8837's four `Fnth` reads, C 8854-8860's defaults, and C 8862-8892's two four-arm chains) | `have_x_windows`, with `have_xrandr`/`use_gtk` for the cached-list choice (slice 35) |
 | 8896-9028 | C 8896-8908's doc comment and `x_hide_tip` (C 8909-9028: C 8912-8916's timer cancel, C 8918-8987's `USE_GTK` arm - the early-return test, the two `specbind`s, `xg_hide_tooltip`, the `tip_last_frame` reset and the delete-or-hide pair - and C 8988-9027's `not USE_GTK` arm) | `have_x_windows`, with `use_gtk` splitting the two arms (slice 36) |
 | 9031-9372 | the `x-show-tip` `DEFUN` (C 9031-9061's verbatim doc string, C 9065-9078 the locals and `AUTO_STRING`, C 9080-9105 the argument defaults, C 9107-9127's `USE_GTK` arm, C 9129-9209's reuse/delete/hide block with its two parameter walks, C 9211-9238's `tip_frame` creation, C 9240-9278's window setup, C 9280-9311's buffer/`try_window` block with its `ENABLE_CHECKING` arm, C 9314-9323's size and position, C 9325-9348's show block with its `not USE_XCB`/`USE_XCB` pair, and C 9350-9371's garbage/update/timer tail) | `have_x_windows`, with `use_gtk`, `use_cairo`, `enable_checking` and the `use_xcb` pair inside (slice 37) |
-| 9375-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,288 lines, whose first live item is the `x-hide-tip` `DEFUN` (C 9375) - the next slice's first item | not ported in this slice |
+| 9375-9415 | the three subrs `x-hide-tip` (C 9375-9381), `x-double-buffered-p` (C 9383-9394, with C 9388-9393's `HAVE_XDBE` pair) and `x-uses-old-gtk-dialog` (C 9401-9415, with C 9407-9414's `USE_GTK` guard), plus C 9396-9399's `File selection dialog` banner | `have_x_windows`, with `have_xdbe` and `use_gtk` inside (slice 38) |
+| 9418-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,244 lines, whose first live item is C 9418's `#ifdef USE_MOTIF` and the three callbacks it guards (C 9421-9453) - the next slice's first items | not ported in this slice |
 
 ## Evidence
 
@@ -3623,3 +3625,61 @@ ratchet row(s), 0 failure(s)** and `check-declarations.py` at **18 declaration s
 
 The frozen configuration compiles none of this file: no tooltip was shown, no timer was started and
 no frame was created; the fourteen arms' counts are text compile readings.
+
+## Slice 38 (2026-10-08, status 3.943): C 9375-9415
+
+**The slice is C 9375-9415**: three subrs and a banner (58 Rust lines, 12,855 -> 12,912):
+`x-hide-tip` (C 9375-9381, one call to slice 36's helper), `x-double-buffered-p`
+(C 9383-9394, with C 9388-9393's `HAVE_XDBE` pair as two cfg blocks) and `x-uses-old-gtk-dialog`
+(C 9401-9415, with C 9407-9414's `USE_GTK` guard around the four-way test).
+
+**All fourteen arms are byte-identical.**  Each reads exactly its slice-37 level - plain-X
+**18 / 9**, WS, WSX, WSR, WSRX, WSR12 and XSN **16 / 9**, LUCID **25 / 12**, GTK and GTK22
+**47 / 20**, XI2 and XR **22 / 9**, Xt **20 / 12** and XCB **18 / 9** - with both the `^error` and the
+`^warning` sets empty-diff against the in-tree HEAD baseline in all fourteen.
+
+**The first measurement's one row** was `SELECTED_FRAME`: C 9410's `SELECTED_FRAME ()` is a
+*function* in this port (`SELECTED_FRAME ()`, as `src/data.rs` 1126 and this file's 10096/10127
+spell it), not a macro, so the GTK and GTK22 arms read `cannot find macro SELECTED_FRAME` until the
+call was written that way.
+
+**Arm touch measured** (P-86 ⑦): an injection at `x-hide-tip`'s body (A, C 9380) moves plain-X
+**18 -> 19**, GTK **47 -> 48**, XCB **18 -> 19** and XI2 **22 -> 23**; one before C 9414's
+`return Qnil ();` (B) moves plain-X **18 -> 19**, GTK **47 -> 48**, XCB **18 -> 19** and Xt
+**20 -> 21**; both logs carry the injected line's text once.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash (`79e7dfa8acb3f9ea8ecd74e1a88c4293`).
+
+**② The fourteen arms.**  See above.
+
+**③ `extract-abi.py --check`**: **92 rows -> 89** - three `missing subr` retiring
+(`Fx_hide_tip`, `Fx_double_buffered_p`, `Fx_uses_old_gtk_dialog`) with nothing appearing, and the
+drift row moving from `20.6%` to `21.1%: C 10662 vs Rust 12912`.  `check-mirror-dupes.py` stays at
+**16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at
+**18 declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **`xg_uses_old_file_dialog` stands at the use site** (gtkutil.h 86: `extern bool
+   xg_uses_old_file_dialog (void);`, gated `all (have_x_windows, use_gtk)`), because
+   `src/gtkutil.rs` defines it and no mirror carries the row - P-55/P-72 rule 3.
+2. **C 9388-9393's `HAVE_XDBE` pair and C 9407-9414's `USE_GTK` guard** are cfg blocks; the
+   guarded arm keeps C's four-way test with `window_system_available (SELECTED_FRAME ())`
+   (`include/frame.rs` 1413) and the unconditional `return Qnil ();` stays outside them.
+3. **C 9390's ternary** is `if FRAME_X_DOUBLE_BUFFERED_P! (f) { Qt () } else { Qnil () }` (the
+   file's `P`-macro spelling, used at 8929/9131 in the last two slices).
+
+### Owed (this slice)
+
+- `syms_of_xfns`' `defsubr` sites (45, plus these three `Sx_*` when that section lands) and the rest
+  of the remainder from C 9418 (the `USE_MOTIF` callbacks): 1,244 C lines plus the 9 missing
+  functions, 1 macro, 0 objects, 12 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no tooltip was hidden, no frame was asked
+about its buffering and no dialog policy was read; the fourteen arms' counts are text compile
+readings.
