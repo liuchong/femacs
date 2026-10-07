@@ -4640,7 +4640,7 @@ states of the same tree:
   RANDR13_LIBRARY`; `macro INSTALL_CURSOR does not mention mouse_cursor, short_index` (Rust has no
   `##`, and this table's own row records the paste prefix); `subr Fx_file_dialog: docstring
   differs` (slice 41's explanation); `xg_set_icon_from_xpm_data` (`__clang`, `gnuc_prereq` and the
-  GDK version macros); `x_set_mouse_color` (the two `INSTALL_CURSOR` families, eighteen tokens);
+  GDK version macros); `x_set_mouse_color` (the fifteen `INSTALL_CURSOR` arguments plus `mouse_cursor` and `short_index`, seventeen tokens);
   `subr Fx_create_frame` (`frame_background_pixel`, `frame_foreground_pixel`, `frame_output_data`,
   `have_clock_gettime`, `qleft`, `qright`); and the line-count ratchet at 39.9% (C 10,662 vs Rust
   14,918).
@@ -4664,5 +4664,74 @@ above gains no C range.
 **Not claimed** - the frozen configuration still compiles nothing from this file: no subr is
 registered, no frame parameter is set, no icon is placed.  The arms are text-compile readings
 (`rustc --emit=metadata`), not runtime ones.  The seven rows above are named, not fixed - in
-particular `x_set_mouse_color`'s eighteen tokens are still the `INSTALL_CURSOR` family's debt, and
+particular `x_set_mouse_color`'s seventeen tokens are still the `INSTALL_CURSOR` family's debt, and
 the line-count ratchet belongs to `docs/ports/line-drift-tolerance.tsv`, not to this lane.
+
+## Slice 50 (2026-10-08, status 3.958): the five readable rows - `--check` 7 -> 2
+
+**This is the second half of the same fidelity repair: no C range, no Rust line** - only the two
+registration tables that record where C's form cannot appear in the port.  Five of the seven rows
+slice 49 left standing are closed here; the two that remain are named below with the reason each
+one cannot be closed from this lane.
+
+**Four rows in `docs/ports/macro-body-notes.tsv`, one in `docs/ports/excluded-macros.txt`:**
+
+- `INSTALL_CURSOR`, tokens `mouse_cursor, short_index` - C 1450-1454's body pastes `mouse_cursor_`
+  onto the `SHORT_INDEX` argument, and the port's `macro_rules!` (src/xfns.rs 2356-2363) takes the
+  pasted identifier as its own parameter because Rust has no `##`.  Slice 49's note table already
+  carried `mouse_cursor_` for this macro, which is what makes this row show that the checker's
+  note comparison is **literal**: the token it reports is `mouse_cursor` (no trailing underscore),
+  and the trailing-`_` folding of the body-token comparison does not apply to the note column.
+- `x_set_mouse_color`, seventeen tokens - C 1456-1470's fifteen `INSTALL_CURSOR (FIELD,
+  SHORT_INDEX)` calls.  The fifteen second arguments (`text`, `nontext`, ..., `bottom_left_corner`)
+  are what C pastes onto, so the port passes the pasted identifier instead
+  (`INSTALL_CURSOR! (x, cursor_data, text_cursor, mouse_cursor_text as usize)`) and neither the
+  fifteen names nor the prefix is writable in that body.  This is the `pgtkfns.c` row's shape
+  (`Fx_create_frame` there), measured a second time.
+- `xg_set_icon_from_xpm_data`, seven tokens - C 1156-1160 and C 1169-1173 are the two guards `#if
+  (defined GDK_PIXBUF_VERSION_2_44 && GDK_PIXBUF_VERSION_2_44 <= GDK_PIXBUF_VERSION_MIN_REQUIRED &&
+  (GNUC_PREREQ (4, 6, 0) || defined __clang__))` around `# pragma GCC diagnostic push` /
+  `ignored "-Wdeprecated-declarations"` / `pop`: compiler directives with no Rust counterpart,
+  silencing a warning rustc does not raise for a C-API call.  The port carries the comment
+  (src/xfns.rs 1749-1752) and drops both guards, so the two GDK version macros, the two
+  compiler-feature names and `GNUC_PREREQ`'s three arguments have no spelling in the body.
+- `Fx_create_frame`, six tokens, one function (C 4918-5582) - C 5082-5083 and C 5090-5092 write
+  `FRAME_FOREGROUND_PIXEL (f)`/`FRAME_BACKGROUND_PIXEL (f)` as l-values, and the port spells those
+  through the field (`(*f).foreground_pixel`, src/xfns.rs 7529-7530, whose comment records why);
+  C 5244/5246 read `FRAME_OUTPUT_DATA (f)->scrollbar_*_css_provider` under C 5243's `#ifdef
+  HAVE_GTK3`, and the port writes that member through `FRAME_X_OUTPUT!` (src/xfns.rs 7701-7703),
+  the mirror's spelling rather than C's name; C 5540-5541's `#if defined HAVE_XSYNCTRIGGERFENCE &&
+  !defined USE_GTK && defined HAVE_CLOCK_GETTIME` is a `#[cfg]` attribute to the port, which P-78
+  blanks (the `select_visual` row's `have_xrender` shape); and C 5214/5216's `Qright`/`Qleft` are
+  the two cfg arms of `macro_rules! vertical_scroll_bars_default` (src/xfns.rs 7265-7268), so those
+  names live in the macro and not in the body.
+- `RANDR13_LIBRARY` in `docs/ports/excluded-macros.txt` as `config` - C 6413-6414 defines it as
+  `RANDR_MAJOR > 1 || (RANDR_MAJOR == 1 && RANDR_MINOR >= 3)` and C 6443 `#undef`s it after use, so
+  it selects a branch rather than carrying a value.  The port writes C 6416's and C 6438's blocks
+  under the derived feature `have_xrandr_1_3`, which `femacs/xtask/Cargo.toml` 806 registers with
+  these very lines named (the integrator's 3.920 row).
+
+**Readings.**  `extract-abi.py --check emacs/src/xfns.c femacs/src/xfns.rs`: **7 rows -> 2**, the
+five closed ones being `missing macro RANDR13_LIBRARY`, `macro INSTALL_CURSOR does not mention
+mouse_cursor, short_index`, `x_set_mouse_color`, `xg_set_icon_from_xpm_data` and `subr
+Fx_create_frame`; **no row was added**.  Slice 49's entry above and `docs/status.md` 3.957 said
+`x_set_mouse_color`'s list was eighteen tokens; it is **seventeen** (fifteen paste arguments plus
+the prefix's name and the formal parameter), and both places are corrected in this round.
+
+**The two rows that remain, and why this lane cannot close them:**
+
+- `subr Fx_file_dialog: docstring differs` - C defines this subr **twice** (C 9456, the Motif arm,
+  whose docstring is `SKIP: real doc in USE_GTK definition in xfns.c.`; and C 9670, the GTK arm,
+  with the real docstring), and the port carries both arms (src/xfns.rs 13438 and 13705, each with
+  its own C docstring).  The gate's subr loop looks the Rust side up with a **single** candidate
+  (`next (x for x in r["subrs"] if x["c_name"] == subr["c_name"])`), so the second C definition is
+  compared against the *first* Rust one and can never match.  The function loop already solves this
+  problem (`bodies_all`, "the arm with the fewest complaints wins"); the subr loop has no
+  counterpart.  It is a gate gap, not a port defect.
+- `line count drifted 39.9%: C 10662 vs Rust 14918` - the reader's own ratchet, whose tolerance is
+  `docs/ports/line-drift-tolerance.tsv`, an integrator table; slices 47 and 48 recorded the same
+  row.
+
+**Not claimed** - no Rust line moved this round, so nothing was compiled and no arm was run; both
+tables are read by the gates, so these rows are a record of a measured state and not a permission
+to skip a check.  The file's checklist is now limited by one gate gap and one integrator table.
