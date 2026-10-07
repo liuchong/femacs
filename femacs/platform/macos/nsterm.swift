@@ -8778,3 +8778,51 @@ fileprivate func ns_displays_reconfigured(_ display: CGDirectDisplayID,
 
   kbd_buffer_store_event(&ie)                                        // C 5867
 }
+
+// ==========================================================================
+// Round 41: `ns_delete_terminal` (C 5877-5902)
+// ==========================================================================
+
+/// C: `union display_info { … struct ns_display_info *ns; … }` (src/termhooks.h 533) - the
+/// `terminal->display_info.ns` read, which the core already spells as its own shim
+/// (`femacs/src/abi_shim.rs` 412, `pub unsafe extern "C" fn terminal_display_info_ns`).
+@_silgen_name("terminal_display_info_ns")
+func terminal_display_info_ns(_ t: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: the `struct terminal` member C 5888's guard tests, `terminal->name` (src/termhooks.h) - a
+/// member entry of the `<record>_<member>` family; the core owes this export the way it owes the
+/// `ns_display_info_*` readers rounds 37 and 40 added (the shim's own table,
+/// `docs/ports/abi_shim.md`, is where such an export is recorded).
+@_silgen_name("terminal_name")
+func terminal_name(_ t: UnsafeMutableRawPointer?) -> UnsafeMutablePointer<CChar>?
+
+/// C: `void image_destroy_all_bitmaps (struct ns_display_info *)` (src/image.c) - the core's own
+/// entry (`femacs/src/image.rs` 1841, `pub unsafe extern "C" fn`); the `fputs` shape.
+@_silgen_name("image_destroy_all_bitmaps")
+func image_destroy_all_bitmaps(_ dpyinfo: UnsafeMutableRawPointer?)
+
+/// C 5877-5902: `static void ns_delete_terminal (struct terminal *terminal)` - "This function is
+/// called when the last frame on a display is deleted."  C 5884's `NSTRACE` is the empty macro at
+/// `NSTRACE_ENABLED` 0, `block_input`/`unblock_input` are the pair the unit already imports
+/// (C 1172-1174), and the `NS_IMPL_COCOA` arm C 5893-5897 is the one this target takes.
+fileprivate func ns_delete_terminal(_ terminal: UnsafeMutableRawPointer?) {
+  let dpyinfo = terminal_display_info_ns(terminal)          // C 5882
+
+  // C 5884: `NSTRACE ("ns_delete_terminal");` - empty at `NSTRACE_ENABLED` 0.
+
+  /* Protect against recursive calls.  delete_frame in
+     delete_terminal calls us back when it deletes our last frame.  */
+  if terminal_name(terminal) == nil {                      // C 5888
+    return
+  }
+
+  block_input()                                            // C 5891
+
+  /* Rather than try to clean up the NS environment we can just
+     disable the app and leave it waiting for any new frames.  */
+  NSApp.setActivationPolicy(.prohibited)                   // C 5896
+
+  image_destroy_all_bitmaps(dpyinfo)                       // C 5899
+  ns_delete_display(dpyinfo)                               // C 5900
+  unblock_input()                                          // C 5901
+}

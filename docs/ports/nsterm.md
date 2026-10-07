@@ -210,7 +210,7 @@
 - [x] ns_flush_display  (line 5786, static) — C 5785-5792, landed as `fileprivate func ns_flush_display (_:)`: C's body is `EVENT_INIT` plus one `ns_read_socket_1` call whose value C discards; it waited on `FRAME_TERMINAL (f)`, which this round declares as a macro entry under the construct's own name (the `FRAME_DISPLAY_INFO` shape, and the other direction of `nsfns.swift` 639's `frame_set_terminal`)
 - [x] ns_displays_reconfigured  (line 5839, static) — C 5837-5868 (the `NS_IMPL_COCOA` arm), landed as `fileprivate func ns_displays_reconfigured (_:_:_:)`: it needed this unit's view of `union buffered_input_event` (src/keyboard.h 228-235), the kbd buffer's three data entries (`kbd_buffer`/`kbd_fetch_ptr`/`kbd_store_ptr`, the core's `#[unsafe(no_mangle)]` statics), `Fequal`, the nsfns lane's `Fns_display_monitor_attributes_list`, `XSETTERMINAL` (a macro entry) and the member reader `ns_display_info_terminal` this round adds; the two enumerators it reads are mirror-valued constants (`KBD_BUFFER_SIZE` 4096, `MONITORS_CHANGED_EVENT` 35 - the values `femacs/src/include/keyboard.rs` 43 and `termhooks.rs` 62 fix)
 - [x] ns_delete_display  (line 5872, static) — C 5871-5875, landed as `fileprivate func ns_delete_display (_:)`: C's whole body is the comment `/* TODO...  */`, so the body is empty here too and the parameter unread (the `ns_default_font_parameter`/`applicationWillBecomeActive` reading: a body C leaves empty is transcribed empty rather than stubbed)
-- [ ] ns_delete_terminal  (line 5880, static)
+- [x] ns_delete_terminal  (line 5880, static) — C 5877-5902, landed as `fileprivate func ns_delete_terminal (_:)`: it needed `terminal_display_info_ns` (already the core's own shim, `femacs/src/abi_shim.rs` 412), `image_destroy_all_bitmaps` (the core's, `femacs/src/image.rs` 1841) and one new member entry, `terminal_name`, for C 5888's guard; `ns_delete_display` (C 5900) landed in round 38, and C 5896's `setActivationPolicy:` is `NSApp.setActivationPolicy (.prohibited)`
 - [ ] ns_create_terminal  (line 5908, static)
 - [ ] ns_term_init  (line 5965)
 - [ ] ns_term_shutdown  (line 6198)
@@ -3433,3 +3433,36 @@ call site takes an entry and the definition lands at its own C line - and **both
   event stored in the buffer, no terminal set); the compile gate reaches parsing and type checking
   only; the two enumerator values are mirror-derived rather than measured on this machine, and
   `kbd_buffer`'s address is taken the way round 39 takes the handlers array's.
+
+### Round 41: `ns_delete_terminal` (C 5877-5902)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-40 carry, so **no new warning**, and like rounds
+  38/39 it **needed no fix round**.  Object `/tmp/nsterm41.o`, **761,520 bytes**, md5
+  `4575f252497a81e0467d977f679b14f4`.  The unit is **8,828 lines**.
+* **What the definition needed**: `terminal->display_info.ns` (C 5882) is already the core's own
+  shim (`femacs/src/abi_shim.rs` 412, `terminal_display_info_ns`) - the first member entry of this
+  lane that was provided before its Swift side landed; `image_destroy_all_bitmaps` (C 5899) is the
+  core's (`femacs/src/image.rs` 1841); `block_input`/`unblock_input` (C 5891/5901) and the
+  `NSTRACE` empty macro are the unit's existing shapes; `ns_delete_display` (C 5900) landed in
+  round 38; and C 5896's `[NSApp setActivationPolicy: NSApplicationActivationPolicyProhibited]` is
+  `NSApp.setActivationPolicy (.prohibited)`.  **One new name**: `terminal_name`, the member entry
+  C 5888's guard reads.
+* **The Swift-imports gate, run once for this round** (`tools/check-swift-imports.py`, the gate
+  that asks whether the core provides every `@_silgen_name` the Swift units import): it reads
+  `1209 import(s) in 7 Swift file(s), 5037 core export(s), 965 unprovided, 801 ratchet row(s),
+  182 failure(s)`, of which nine are ratchet rows the tool now calls `STALE (satisfied)` and 173
+  names it calls unclassified.  **This gate was already red before this round and is not one of the
+  lane's per-round set** (`docs/baseline/swift-import-pending.txt`'s own rule: the ratchet is
+  rewritten by `--write-pending`, "appended only by the integrator", and the tool reports that 159
+  ratcheted names "need a ruling"), so this round does **not** rewrite it - it records the reading
+  and names the debt: the member entries this lane declares for the core (`terminal_name`, the nine
+  `ns_display_info_set_*` of round 37, `ns_display_info_terminal` and `XSETTERMINAL` of round 40,
+  the seven `gui_*` and `ns_frame_parm_handlers` of round 39) are the class the core still owes.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **21** unported,
+  21 row(s); **469** C symbol import(s)` - one fewer unported than round 40's 22 (the definition
+  above), **one stale row cleared** by name, and the round's imports are 466 -> 469.  Final:
+  `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no terminal deleted, no activation policy
+  changed, no bitmaps destroyed); the compile gate reaches parsing and type checking only;
+  `terminal_name` is a declaration whose provider the core still owes.
