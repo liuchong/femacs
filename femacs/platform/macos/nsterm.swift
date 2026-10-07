@@ -9209,6 +9209,129 @@ class EmacsScroller: NSScroller {
     self.sendScrollEventAtLoc(0, fromEvent: e)         // C 10922
     return self                                        // C 10923
   }
+
+  /// C 10927-11047: `- (void)mouseDown: (NSEvent *)e` - "Asynchronous mouse tracking for scroller.
+  /// This allows us to dispatch mouseDragged events without going into a modal loop."  C 10945-10950's
+  /// two `case`s (`NSScrollerDecrementLine`/`IncrementLine`) are dead on this target
+  /// (`NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 1070`), C 10934's `UNINIT` is
+  /// conf_post.h 369's `= {0,}` on this configuration (`GCC_LINT` is 1 in the frozen macros), so
+  /// the three locals start at zero as C's own arm does, C 10956's `%ld` prints `part`'s own
+  /// `NSInteger` (`part.rawValue`), and C's `NSWidth`/`NSHeight`/`NSMinX`/`NSMinY` are the rect's
+  /// own accessors.  Swift's own renames (`mouseDown` -> `mouseDown (with:)`, `mouseUp` ->
+  /// `mouseUp (with:)`) are the compiler's readings (class B); the Objective-C selectors are C's.
+  @objc override func mouseDown(with e: NSEvent) {
+    var sr = NSRect.zero                               // C 10931
+    var kr = NSRect.zero
+    /* hitPart is only updated AFTER event is passed on.  */
+    let part = self.testPart(e.locationInWindow)       // C 10933
+    var loc: CGFloat = 0                               // C 10934 (C's `UNINIT` = `= {0,}`)
+    var kloc: CGFloat = 0
+    var pos: CGFloat = 0
+    var edge: Int32 = 0                                // C 10935
+
+    // C 10937: `NSTRACE ("[EmacsScroller mouseDown:]");` - empty at `NSTRACE_ENABLED` 0.
+
+    switch part {                                      // C 10939
+    case .decrementPage:                               // C 10941
+      last_hit_part =
+        horizontal ? scroll_bar_before_handle() : scroll_bar_above_handle()      // C 10942
+    case .incrementPage:                               // C 10943
+      last_hit_part =
+        horizontal ? scroll_bar_after_handle() : scroll_bar_below_handle()       // C 10944
+    /* C 10945-10950: `NSScrollerDecrementLine`/`NSScrollerIncrementLine` and their two
+       `last_hit_part` arms, dead on this target (recorded, not transcribed).  */
+    case .knob:                                       // C 10951
+      last_hit_part =
+        horizontal ? scroll_bar_horizontal_handle() : scroll_bar_handle()        // C 10952
+    case .knobSlot:  /* GNUstep-only */               // C 10953
+      last_hit_part = scroll_bar_move_ratio()         // C 10954
+    default:  /* NSScrollerNoPart? */                 // C 10955
+      fprintf(stderr, "EmacsScroller-mouseDown: unexpected part %ld\n",
+              part.rawValue)                          // C 10956-10957
+      return                                          // C 10958
+    }
+
+    if part == .knob || part == .knobSlot {            // C 10961
+      /* handle, or on GNUstep possibly slot */
+      var fake_event: NSEvent? = nil                   // C 10964
+      var length: Int32 = 0                            // C 10965
+
+      /* compute float loc in slot and mouse offset on knob */
+      sr = self.convert(self.rect(for: .knobSlot), to: nil)          // C 10968-10969
+      if horizontal {                                  // C 10970
+        length = Int32(NSWidth(sr))                    // C 10972
+        loc = (e.locationInWindow.x - NSMinX(sr))      // C 10973
+      } else {
+        length = Int32(NSHeight(sr))                   // C 10977
+        loc = CGFloat(length) - (e.locationInWindow.y - NSMinY(sr))  // C 10978
+      }
+
+      if loc <= 0.0 {                                  // C 10981
+        loc = 0.0
+        edge = -1                                      // C 10984
+      } else if loc >= CGFloat(length) {               // C 10986
+        loc = CGFloat(length)                          // C 10988
+        edge = 1                                       // C 10989
+      }
+
+      if edge != 0 {                                   // C 10992
+        kloc = 0.5 * CGFloat(edge)                     // C 10993
+      } else {
+        kr = self.convert(self.rect(for: .knob), to: nil)            // C 10996-10997
+        if horizontal {                                // C 10998
+          kloc = (e.locationInWindow.x - NSMinX(kr))   // C 10999
+        } else {
+          kloc = NSHeight(kr) - (e.locationInWindow.y - NSMinY(kr))  // C 11001
+        }
+      }
+      last_mouse_offset = kloc                         // C 11003
+
+      /* if knob, tell emacs a location offset by knob pos
+         (to indicate top of handle) */
+      if part == .knob {                               // C 11007
+        pos = (loc - last_mouse_offset)                // C 11008
+      } else {
+        /* else this is a slot click on GNUstep: go straight there */
+        pos = loc                                      // C 11011
+      }
+
+      /* If there are buttons in the scroller area, we need to
+         recalculate pos as emacs expects the scroller slot to take up
+         the entire available length.  */
+      if length != pixel_length {                      // C 11016
+        pos = pos * CGFloat(pixel_length) / CGFloat(length)   // C 11017
+      }
+
+      /* send a fake mouse-up to super to preempt modal -trackKnob: mode */
+      fake_event = NSEvent.mouseEvent(with: .leftMouseUp,       // C 11020-11028
+                                      location: e.locationInWindow,
+                                      modifierFlags: e.modifierFlags,
+                                      timestamp: e.timestamp,
+                                      windowNumber: e.windowNumber,
+                                      context: nil,
+                                      eventNumber: e.eventNumber,
+                                      clickCount: e.clickCount,
+                                      pressure: e.pressure)
+      /* C 11029's `[super mouseUp: fake_event]` - a message to a nil event is C's own no-op.  */
+      if let fake_event = fake_event {
+        super.mouseUp(with: fake_event)
+      }
+    } else {
+      pos = 0; /* ignored */                           // C 11033
+
+      /* Set a timer to repeat, as we can't let superclass do this modally.  */
+      scroll_repeat_entry =
+        Timer.scheduledTimer(timeInterval: SCROLL_BAR_FIRST_DELAY,    // C 11036-11042
+                             target: self,
+                             selector: #selector(EmacsScroller.repeatScroll(_:)),
+                             userInfo: nil,
+                             repeats: true)
+    }
+
+    if part != .knob {                                 // C 11045
+      self.sendScrollEventAtLoc(Float(pos), fromEvent: e)   // C 11046
+    }
+  }
 }
 
 /// C 10623-10624: the two `#define`s the class's repeat timer uses, spelled as this file's other
@@ -9222,6 +9345,22 @@ fileprivate let SCROLL_BAR_CONTINUOUS_DELAY: TimeInterval = 1.0 / 15
 /// is the first use of).
 @_silgen_name("input_event_set_part")
 func input_event_set_part(_ e: UnsafeMutablePointer<input_event>, _ v: Int32)
+
+/// C: the `enum scroll_bar_part` enumerators C 10942-10954 assigns to `last_hit_part` (src/termhooks.h
+/// 37's family, whose `scroll_bar_above_handle` this unit already imports) - enumerator entries, one
+/// per name.
+@_silgen_name("scroll_bar_before_handle")
+func scroll_bar_before_handle() -> Int32
+@_silgen_name("scroll_bar_after_handle")
+func scroll_bar_after_handle() -> Int32
+@_silgen_name("scroll_bar_below_handle")
+func scroll_bar_below_handle() -> Int32
+@_silgen_name("scroll_bar_handle")
+func scroll_bar_handle() -> Int32
+@_silgen_name("scroll_bar_horizontal_handle")
+func scroll_bar_horizontal_handle() -> Int32
+@_silgen_name("scroll_bar_move_ratio")
+func scroll_bar_move_ratio() -> Int32
 
 /// C: `SCROLL_BAR_CLICK_EVENT` and `HORIZONTAL_SCROLL_BAR_CLICK_EVENT` (members of `event_kind`,
 /// src/termhooks.h) - mirror-valued constants, the `MONITORS_CHANGED_EVENT` reading: the frozen

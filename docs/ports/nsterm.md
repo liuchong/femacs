@@ -426,7 +426,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void) draggedImage: (NSImage *) dragged_image movedTo: (NSPoint) screen_point`  (line 10482)
   - [ ] `- (BOOL) mustNotDropOn: (NSView *) receiver`  (line 10522)
   - [ ] `- (NSDragOperation) beginDrag: (NSDragOperation) op forPasteboard: (NSPasteboard *) pasteboard withMode: (enum ns_return_frame_mode) mode returnFrameTo: (struct frame **) frame_return prohibitSame: (BOOL) prohibit_same_frame followTooltip: (BOOL) follow_tooltip`  (line 10528)
-- [ ] EmacsScroller  (`@implementation` 10620, `@end` 11117) - round 42 landed **the class record** (the eleven ivars of `src/nsterm.h` 716-733, two of whose C names `NSView` already owns: `window`/`frame`, carried as `emacs_window`/`emacs_frame` - a declared deviation) and two methods (`initFrame:window:` C 10650 and, in round 43, `setFrame:` C 10703, `dealloc` C 10719, `condemn` C 10734, `reprieve` C 10742, `judge` C 10750, `mark` C 10777 and `resetCursorRects` C 10788); `+scrollerWidth` (C 10626) is **omitted** because Swift refuses both spellings of it (the `EmacsFileDelegate` class of refusal), and the three methods below keep this box open (round 44 added `checkSamePosition:portion:whole:` C 10806, `setPosition:portion:whole:` C 10814, `sendScrollEventAtLoc:fromEvent:` C 10850 and `repeatScroll:` C 10894)
+- [ ] EmacsScroller  (`@implementation` 10620, `@end` 11117) - round 42 landed **the class record** (the eleven ivars of `src/nsterm.h` 716-733, two of whose C names `NSView` already owns: `window`/`frame`, carried as `emacs_window`/`emacs_frame` - a declared deviation) and two methods (`initFrame:window:` C 10650 and, in round 43, `setFrame:` C 10703, `dealloc` C 10719, `condemn` C 10734, `reprieve` C 10742, `judge` C 10750, `mark` C 10777 and `resetCursorRects` C 10788); `+scrollerWidth` (C 10626) is **omitted** because Swift refuses both spellings of it (the `EmacsFileDelegate` class of refusal), and the two methods below keep this box open (round 45 added `mouseDown:` C 10929; round 44 added `checkSamePosition:portion:whole:` C 10806, `setPosition:portion:whole:` C 10814, `sendScrollEventAtLoc:fromEvent:` C 10850 and `repeatScroll:` C 10894)
   - [x] `+ (CGFloat) scrollerWidth`  (line 10626) — **omitted, recorded**: Swift refuses the override (`cannot override 'scrollerWidth' which has been marked unavailable`) *and* the `@objc(scrollerWidth)` renamed spelling (`conflicts with method 'scrollerWidth()' from superclass 'NSScroller'`), and nothing in the reference calls it, so omitting it changes no caller's behaviour (the `EmacsFileDelegate` shape; the ledger's `## ABI` (3) carries the gap)
   - [x] `- (instancetype)initFrame: (NSRect )r window: (Lisp_Object)nwin`  (line 10650) — landed as `@objc(initFrame:window:) init(frame:window:)`: C's descending `for` is the `while`, C 10679's `20 / pixel_length` keeps C's integer division, C 10666-10667's GNUstep arm is dead here, and the `isKindOfClass: [EmacsScroller class]` count is the `is EmacsScroller` test
   - [x] `- (void)setFrame: (NSRect)newRect`  (line 10703) — landed as the `frame` property's **setter** (`override var frame: NSRect { get { super.frame } set(newRect) { … } }`): AppKit's `-setFrame:` is imported as the property (measured: a plain `override func setFrame(_:)` is refused, and `super.setFrame` has no member of that name), and C overrides only the setter, so the getter is the superclass's; C 10713's `20 / pixel_length` keeps C's integer division
@@ -440,7 +440,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (instancetype)setPosition: (int)position portion: (int)portion whole: (int)whole`  (line 10814) — landed as `func setPosition (_:portion:whole:) -> EmacsScroller`: the `NS_IMPL_COCOA` arms are the live ones (C 10825-10826, C 10839-10840), the two setters are Swift's `knobProportion`/`doubleValue`, C 10835's `max ((float)whole*min_portion/pixel_length, portion)` is `Swift.max` over C's promoted `float` arithmetic with C's truncation back into the `int`, and C's reassignment of the `portion` parameter is the shadow the lane already uses for that shape
   - [x] `- (void) sendScrollEventAtLoc: (float)loc fromEvent: (NSEvent *)e`  (line 10850) — landed as `func sendScrollEventAtLoc (_:fromEvent:)`: `part` is written through the new bitfield entry `input_event_set_part` (the `input_event_set_kind` counterpart), C's `float` expressions are converted where C's `make_number` converts them (`XSETINT` takes C's `int`), C's mixed `unsigned int`/`int` modifier OR is `truncatingIfNeeded:`, and C's `EV_MODIFIERS (e)`/`EV_TIMESTAMP (e)` on a **possibly-nil** event are written out (nil's `modifierFlags`/`timestamp` are zero) because both macros take a live `NSEvent`
   - [x] `- (instancetype)repeatScroll: (NSTimer *)scrollEntry`  (line 10894) — landed as `@objc func repeatScroll (_:) -> EmacsScroller`: C 10896-10897's `[self window]` is AppKit's own message (not the class's `window` ivar, which is why that ivar is `emacs_window` here) and its nil receiver answers the zero-valued point, C 10906's `release` is the reference the method drops, C 10912-10919's `retain` is ARC's strong reference to the timer `scheduledTimer` returns (the `SCROLL_BAR_CONTINUOUS_DELAY` macro is a file-scope `let`), and C 10916's `@selector (repeatScroll:)` is this method's own `#selector`
-  - [ ] `- (void)mouseDown: (NSEvent *)e`  (line 10929)
+  - [x] `- (void)mouseDown: (NSEvent *)e`  (line 10929) — landed as `@objc override func mouseDown (with:)` (Swift's own rename reading; the Objective-C selector stays `mouseDown:`): C 10945-10950's two `case`s are dead on this target, C 10934's `UNINIT` is conf_post.h 369's `= {0,}` here (`GCC_LINT` is 1 in the frozen macros, line 1162), C 10956's `%ld` prints `part.rawValue`, the rect reads are the rect's own accessors, and C 11029's `[super mouseUp: fake_event]` is the superclass's renamed `mouseUp (with:)` with C's nil no-op kept
   - [ ] `- (void)mouseDragged: (NSEvent *)e`  (line 11051)
   - [ ] `- (void)mouseUp: (NSEvent *)e`  (line 11094)
   - [ ] `- (void) scrollWheel: (NSEvent *)theEvent`  (line 11109)
@@ -2197,6 +2197,11 @@ call site takes an entry and the definition lands at its own C line - and **both
   round adds and the core still owes; the two enumerators it writes
   (`SCROLL_BAR_CLICK_EVENT` 8, `HORIZONTAL_SCROLL_BAR_CLICK_EVENT` 9) are mirror-valued constants
   (`femacs/src/include/termhooks.rs` 35/36), not exports.
+* **round 45's names**: the six `enum scroll_bar_part` enumerators C 10942-10954 assigns to
+  `last_hit_part` (`scroll_bar_before_handle`, `scroll_bar_after_handle`, `scroll_bar_below_handle`,
+  `scroll_bar_handle`, `scroll_bar_horizontal_handle`, `scroll_bar_move_ratio`) are enumerator
+  entries of the `scroll_bar_above_handle` family this unit already imports, so the core owes them
+  the same way.
 
 ## Evidence
 
@@ -3577,3 +3582,33 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no scroll event stored or sent, no timer
   fired, no knob moved); the compile gate reaches parsing and type checking only; `input_event_set_part`
   is a declaration the core still owes.
+
+### Round 45: `EmacsScroller`'s `mouseDown:` (C 10927-11047)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-44 carry, so **no new warning**.  Object
+  `/tmp/nsterm45.o`, **838,456 bytes**, md5 `dc438486d790b23e0e567360cb4d6b97`.  The unit is
+  **9,370 lines**.
+* **The method, and the two renames Swift forces** (measured, and recorded in the source's doc
+  comment): `@objc override func mouseDown(_:)` is refused (`error: 'mouseDown' has been renamed to
+  'mouseDown(with:)'`) and `super.mouseUp(_:)` likewise (`mouseUp(with:)`), so the port uses the
+  renamed spellings - class B, the compiler's own reading - while the Objective-C selectors stay
+  C's (`mouseDown:`, `mouseUp:`).
+* **What C's own text decides here**: the `switch` keeps C's order and its five live cases
+  (C 10945-10950's `NSScrollerDecrementLine`/`NSScrollerIncrementLine` pair is dead on this
+  target - `NS_IMPL_GNUSTEP || MAC_OS_X_VERSION_MIN_REQUIRED < 1070` - and is recorded, not
+  transcribed); C 10934's `UNINIT` is `conf_post.h` 369's `= {0,}` on this configuration
+  (`GCC_LINT` is 1 at `docs/baseline/config/darwin-arm64.macros.tsv` 1162), so the three locals
+  start at zero as C's own arm does; C 10956's `%ld` prints `part`'s `NSInteger`; and
+  `NSWidth`/`NSHeight`/`NSMinX`/`NSMinY` are the rect's own accessors.
+* **Two nil readings kept**: C 11029's `[super mouseUp: fake_event]` is C's message, whose nil case
+  does nothing - the port keeps that as the `if let` (rather than a force-unwrap); and the fake
+  event itself is `NSEvent.mouseEvent (with:…)`, the `otherEvent (with:…)` spelling this unit
+  already uses.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **21** unported,
+  21 row(s); **480** C symbol import(s)` - unported unchanged (Objective-C methods are not C
+  definitions), and the round's imports are 474 -> 480 (the six `scroll_bar_*` enumerators).
+  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no mouse-down reached the scroller, no fake
+  event sent, no timer armed); the compile gate reaches parsing and type checking only; the six
+  enumerator entries are declarations the core still owes.
