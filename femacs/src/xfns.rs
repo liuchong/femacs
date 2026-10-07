@@ -13020,3 +13020,618 @@ unsafe extern "C" fn clean_up_file_dialog (arg: *mut c_void)
   x_menu_set_in_use (false);                                                 // C 9451
   unblock_input ();                                                          // C 9452
 }
+
+/* ==============================================================================================
+   C 9456-9658: the Motif `x-file-dialog` - the first `USE_MOTIF`-only subr of this unit, and its
+   only Xt event loop of its own.
+
+   The names below are the rest of the file's `USE_MOTIF` surface (slice 39 carried the first
+   part): the Xlib records C 9568's `XEvent event, copy;` is read through, the two `<X11/Xlib.h>`
+   entry points C 9579/9599 spend, `<X11/Intrinsic.h>`'s app-context, callback and teardown
+   vocabulary, `xterm.h`'s three rows C 9520/9569/9630 read plus the `DEFER_SELECTIONS` pair C
+   9483 expands to, `math.h`'s `lrint`, `dispextern.h`'s `popup_activated` and `lisp.h`'s `quit` -
+   and then `<Xm/Xm.h>`/`<Xm/FileSB.h>`/`<Xm/TextF.h>`/`<Xm/List.h>`'s own surface (C 102-107),
+   which has no mirror in this tree and no header on this machine, so every Xm row is C's spelling
+   with the values this file can state and the rest marked **UNVERIFIED** (the
+   `lwlib/lwlib-Xm.rs` rule for the same headers).
+
+   **The union-member pattern** is `src/xmenu.rs` 1163-1170's (the same idiom in the sibling unit
+   of the same library): a pointer view bound to a local named after C's *member* (`xany`, `xkey`,
+   `xgeneric`, `xcookie`), because `include/xlib.rs`'s `XEvent` is the measured 192-byte record
+   with an opaque body; `copy = event` - C's struct assignment - is `copy_nonoverlapping`, since
+   `XEvent` carries no `Copy`.  */
+
+/* C: <X11/Xlib.h> 936 closes the record opened at 933: `typedef struct { int type; unsigned long
+   serial; Bool send_event; Display *display; Window window; } XAnyEvent;` - measured: `sizeof`
+   **40**, `window`@32.  It is the view C 9576/9586 read `event.type` through.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XAnyEvent
+{
+  pub r#type: c_int,          // Xlib.h 934
+  pub serial: c_ulong,
+  pub send_event: Bool,
+  pub display: *mut Display,
+  pub window: Window,         // Xlib.h 935
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = {
+  core::assert! (core::mem::size_of::<XAnyEvent> () == 40);
+  core::assert! (core::mem::offset_of! (XAnyEvent, r#type) == 0);
+  core::assert! (core::mem::offset_of! (XAnyEvent, serial) == 8);
+  core::assert! (core::mem::offset_of! (XAnyEvent, send_event) == 16);
+  core::assert! (core::mem::offset_of! (XAnyEvent, display) == 24);
+  core::assert! (core::mem::offset_of! (XAnyEvent, window) == 32);
+};
+
+/* C: <X11/Xlib.h> 567 closes the record opened at 556: `typedef struct { int type; unsigned long
+   serial; Bool send_event; Display *display; Window window; Window root; Window subwindow; Time
+   time; int x, y; int x_root, y_root; unsigned int state; unsigned int keycode; Bool same_screen;
+   } XKeyEvent;` - the view C 9577/9603-9617/9619/9622 reads `event.xkey`/`copy.xkey` through;
+   measured: `sizeof` **96**, `serial`@8, `send_event`@16, `display`@24, `window`@32, `root`@40,
+   `subwindow`@48, `time`@56, `x`@64, `y`@68, `x_root`@72, `y_root`@76, `state`@80, `keycode`@84,
+   `same_screen`@88.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XKeyEvent
+{
+  pub r#type: c_int,          // Xlib.h 557
+  pub serial: c_ulong,        // Xlib.h 558
+  pub send_event: Bool,       // Xlib.h 559
+  pub display: *mut Display,  // Xlib.h 560
+  pub window: Window,         // Xlib.h 561
+  pub root: Window,           // Xlib.h 562
+  pub subwindow: Window,      // Xlib.h 563
+  pub time: Time,             // Xlib.h 564
+  pub x: c_int,               // Xlib.h 565
+  pub y: c_int,
+  pub x_root: c_int,
+  pub y_root: c_int,
+  pub state: c_uint,          // Xlib.h 566
+  pub keycode: c_uint,
+  pub same_screen: Bool,
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = {
+  core::assert! (core::mem::size_of::<XKeyEvent> () == 96);
+  core::assert! (core::mem::offset_of! (XKeyEvent, r#type) == 0);
+  core::assert! (core::mem::offset_of! (XKeyEvent, serial) == 8);
+  core::assert! (core::mem::offset_of! (XKeyEvent, send_event) == 16);
+  core::assert! (core::mem::offset_of! (XKeyEvent, display) == 24);
+  core::assert! (core::mem::offset_of! (XKeyEvent, window) == 32);
+  core::assert! (core::mem::offset_of! (XKeyEvent, root) == 40);
+  core::assert! (core::mem::offset_of! (XKeyEvent, subwindow) == 48);
+  core::assert! (core::mem::offset_of! (XKeyEvent, time) == 56);
+  core::assert! (core::mem::offset_of! (XKeyEvent, x) == 64);
+  core::assert! (core::mem::offset_of! (XKeyEvent, y) == 68);
+  core::assert! (core::mem::offset_of! (XKeyEvent, x_root) == 72);
+  core::assert! (core::mem::offset_of! (XKeyEvent, y_root) == 76);
+  core::assert! (core::mem::offset_of! (XKeyEvent, state) == 80);
+  core::assert! (core::mem::offset_of! (XKeyEvent, keycode) == 84);
+  core::assert! (core::mem::offset_of! (XKeyEvent, same_screen) == 88);
+};
+
+/* C: <X11/Xlib.h> 952 closes the record opened at 943: `typedef struct { int type; unsigned long
+   serial; Bool send_event; Display *display; int extension; int evtype; } XGenericEvent;` - the
+   view C 9587-9591 reads `event.xgeneric` through; measured: `sizeof` **40**, `display`@24,
+   `extension`@32, `evtype`@36.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XGenericEvent
+{
+  pub r#type: c_int,          // Xlib.h 944
+  pub serial: c_ulong,
+  pub send_event: Bool,
+  pub display: *mut Display,
+  pub extension: c_int,       // Xlib.h 948
+  pub evtype: c_int,          // Xlib.h 951
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = {
+  core::assert! (core::mem::size_of::<XGenericEvent> () == 40);
+  core::assert! (core::mem::offset_of! (XGenericEvent, display) == 24);
+  core::assert! (core::mem::offset_of! (XGenericEvent, extension) == 32);
+  core::assert! (core::mem::offset_of! (XGenericEvent, evtype) == 36);
+};
+
+/* C: <X11/Xlib.h> 963 closes the record opened at 955: `typedef struct { int type; unsigned long
+   serial; Bool send_event; Display *display; int extension; int evtype; unsigned int cookie;
+   void *data; } XGenericEventCookie;` - the view C 9596/9599/9601/9625 reads `event.xcookie`
+   through; measured: `sizeof` **56**, `evtype`@36, `cookie`@40, `data`@48.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XGenericEventCookie
+{
+  pub r#type: c_int,          // Xlib.h 956
+  pub serial: c_ulong,
+  pub send_event: Bool,
+  pub display: *mut Display,
+  pub extension: c_int,
+  pub evtype: c_int,
+  pub cookie: c_uint,         // Xlib.h 961
+  pub data: *mut c_void,      // Xlib.h 962
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = {
+  core::assert! (core::mem::size_of::<XGenericEventCookie> () == 56);
+  core::assert! (core::mem::offset_of! (XGenericEventCookie, evtype) == 36);
+  core::assert! (core::mem::offset_of! (XGenericEventCookie, cookie) == 40);
+  core::assert! (core::mem::offset_of! (XGenericEventCookie, data) == 48);
+};
+
+/* C: `<X11/X.h>` and `<X11/keysymdef.h>`: the three values C 9576/9586/9582 compares against,
+   each measured on this machine's `xorgproto` headers (`/opt/homebrew/include/X11`).  */
+/// C: X11/X.h 181: `#define KeyPress 2`
+#[cfg (feature = "have_x_windows")]
+pub const KeyPress: c_int = 2;
+/// C: X11/X.h 214: `#define GenericEvent 35`
+#[cfg (feature = "have_x_windows")]
+pub const GenericEvent: c_int = 35;
+/// C: X11/keysymdef.h 696: `#define XK_g 0x0067 /* U+0067 LATIN SMALL LETTER G */`
+#[cfg (feature = "have_x_windows")]
+pub const XK_g: KeySym = 0x0067;
+
+/* C: <X11/extensions/XInput2.h> (libXi - not on this machine, C 71): the record C 9601's cast
+   and C 9604-9616's reads spend.  The members are the header's documented order up to `mods`
+   (whose `effective` C 9615 reads); `buttons`/`valuators` are carried because `mods` sits behind
+   them, and every offset here is **UNVERIFIED**.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIButtonState
+{
+  pub num_buttons: c_int,
+  pub labels: *mut Atom,
+  pub state: *mut c_uchar,
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIValuatorState
+{
+  pub num_valuators: c_int,
+  pub valuators: *mut c_int,
+  pub values: *mut f64,
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIModifierState
+{
+  pub base: c_int,
+  pub latched: c_int,
+  pub locked: c_int,
+  pub effective: c_int,       // C 9615's `xev->mods.effective`
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIDeviceEvent
+{
+  pub r#type: c_int,
+  pub serial: c_ulong,        // C 9604
+  pub send_event: Bool,       // C 9605
+  pub display: *mut Display,
+  pub extension: c_int,
+  pub evtype: c_int,
+  pub deviceid: c_int,
+  pub sourceid: c_int,
+  pub detail: c_int,          // C 9616
+  pub flags: c_int,
+  pub root: Window,           // C 9608
+  pub event: Window,          // C 9607
+  pub child: Window,          // C 9609
+  pub root_x: f64,            // C 9613
+  pub root_y: f64,            // C 9614
+  pub event_x: f64,           // C 9611
+  pub event_y: f64,           // C 9612
+  pub time: Time,             // C 9610
+  pub buttons_len: c_int,
+  pub buttons: XIButtonState,
+  pub valuators: XIValuatorState,
+  pub mods: XIModifierState,  // C 9615
+}
+
+/* C: <X11/Xlib.h>: `extern KeySym XLookupKeysym (XKeyEvent *, int);`, `extern Bool
+   XGetEventData (Display *, XGenericEventCookie *);` and `extern void XFreeEventData (Display *,
+   XGenericEventCookie *);` - C 9579/9619, C 9599 and C 9625.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn XLookupKeysym (event: *mut XKeyEvent, index: c_int) -> KeySym;       // Xlib.h 1575
+  pub fn XGetEventData (display: *mut Display,
+			cookie: *mut XGenericEventCookie) -> Bool;            // Xlib.h 4009
+  pub fn XFreeEventData (display: *mut Display,
+			 cookie: *mut XGenericEventCookie);                   // Xlib.h 4014
+}
+
+/* C: <X11/Intrinsic.h>: `typedef struct _XtAppContextRec *XtAppContext;`, `extern Boolean
+   XtAppPending (XtAppContext);`, `extern void XtAppNextEvent (XtAppContext, XEvent *);`,
+   `typedef void (*XtCallbackProc) (Widget, XtPointer, XtPointer);`, `extern void XtAddCallback
+   (Widget, const char *, XtCallbackProc, XtPointer);`, `extern void XtSetSensitive (Widget,
+   Boolean);` and `extern void XtFree (char *);` - C 9571/9573, C 9504-9509, C 9528-9529 and
+   C 9644.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtAppContext = *mut c_void;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+pub type XtCallbackProc = Option<unsafe extern "C" fn (Widget, XtPointer, XtPointer)>;
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe extern "C" {
+  pub fn XtAppPending (app_context: XtAppContext) -> Boolean;
+  pub fn XtAppNextEvent (app_context: XtAppContext, event_return: *mut XEvent);
+  pub fn XtAddCallback (widget: Widget, name: *const c_char, callback: XtCallbackProc,
+			client_data: XtPointer);
+  pub fn XtSetSensitive (widget: Widget, sensitive: Boolean);
+  pub fn XtFree (data: *mut c_char);
+}
+
+/* C: `src/xterm.h` 1788/1806/1855/1856/1993: the toolkit's application context, the dispatcher
+   C 9630 hands the copy to, the two names `DEFER_SELECTIONS` (C 9483) expands to, and the
+   waiter C 9569 calls.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn x_dispatch_event (event: *mut XEvent, display: *mut Display) -> c_int;  // xterm.h 1806
+  pub fn x_defer_selection_requests ();                                       // xterm.h 1855
+  pub fn x_release_selection_requests_and_flush ();                            // xterm.h 1856
+  pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);  // lisp.h 4825
+  pub fn x_menu_wait_for_event (data: *mut c_void);                           // xterm.h 1993
+}
+/* C: `xterm.h` 1787-1790: `extern XtAppContext Xt_app_con;`, inside that header's own
+   `#ifdef USE_X_TOOLKIT` - the toolkit's application context C 9571/9573 pass to
+   `XtAppPending`/`XtAppNextEvent`.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+unsafe extern "C" {
+  pub static mut Xt_app_con: XtAppContext;                                    // xterm.h 1788
+}
+
+/* C: `math.h`'s `lrint` (C 9611-9614), `dispextern.h` 3879's `int popup_activated (void);`
+   (C 9473), `frame.h` 1504's `extern WINDOW_SYSTEM_RETURN void check_window_system (struct
+   frame *);` (C 9471) and `lisp.h` 4786's `extern Lisp_Object quit (void);` (C 9653).  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  pub fn lrint (x: c_double) -> c_long;
+  pub fn popup_activated () -> c_int;                                       // dispextern.h 3879
+  pub fn check_window_system (f: *mut frame);                               // frame.h 1504
+  pub fn quit () -> Lisp_Object;                                            // lisp.h 4786
+}
+
+/* C: `Xm/Xm.h`, `Xm/FileSB.h`, `Xm/TextF.h` and `Xm/List.h` (C 102-106): the opaque handle, the
+   two scalars and the fourteen entry points C 9490-9642 spend.  **UNVERIFIED**: no Motif headers
+   are installed here, so the prototypes are the headers' own text as `lwlib/lwlib-Xm.rs` records
+   the same family, and the return/argument widths are that file's readings.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub type XmString = *mut c_void;
+/// C: Xm/Xm.h: `typedef String XmStringTag;`
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub type XmStringTag = String;
+/// C: Xm/Xm.h: `typedef long XmTextPosition;`
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub type XmTextPosition = c_long;
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+unsafe extern "C" {
+  /// C: Xm/Xm.h: `XmString XmStringCreateLocalized (String);` - C 9490/9491/9548.
+  pub fn XmStringCreateLocalized (string: String) -> XmString;
+  /// C: Xm/Xm.h: `void XmStringFree (XmString);` - C 9500/9501/9558.
+  pub fn XmStringFree (string: XmString);
+  /// C: Xm/FileSB.h: `Widget XmCreateFileSelectionDialog (Widget, String, ArgList, Cardinal);` -
+  /// C 9498.
+  pub fn XmCreateFileSelectionDialog (parent: Widget, name: String, args: *mut Arg,
+				      n: c_uint) -> Widget;
+  /// C: Xm/FileSB.h: `Widget XmFileSelectionBoxGetChild (Widget, unsigned char);` - C 9512/9516/
+  /// 9523/9527/9538/9539.
+  pub fn XmFileSelectionBoxGetChild (widget: Widget, child: c_uchar) -> Widget;
+  /// C: Xm/TextF.h: `XmTextPosition XmTextFieldGetLastPosition (Widget);` - C 9541.
+  pub fn XmTextFieldGetLastPosition (widget: Widget) -> XmTextPosition;
+  /// C: Xm/TextF.h: `void XmTextFieldReplace (Widget, XmTextPosition, XmTextPosition, String);` -
+  /// C 9542.
+  pub fn XmTextFieldReplace (widget: Widget, from: XmTextPosition, to: XmTextPosition,
+			     string: String);
+  /// C: Xm/List.h: `Boolean XmListItemExists (Widget, XmString);` - C 9550.
+  pub fn XmListItemExists (widget: Widget, item: XmString) -> Boolean;
+  /// C: Xm/List.h: `int XmListItemPos (Widget, XmString);` - C 9552.
+  pub fn XmListItemPos (widget: Widget, item: XmString) -> c_int;
+  /// C: Xm/List.h: `void XmListSelectPos (Widget, int, Boolean);` - C 9554.
+  pub fn XmListSelectPos (widget: Widget, position: c_int, notify: Boolean);
+  /// C: Xm/List.h: `void XmListSetPos (Widget, int);` - C 9555.
+  pub fn XmListSetPos (widget: Widget, position: c_int);
+  /// C: Xm/Xm.h: `Boolean XmStringGetLtoR (XmString, XmStringTag, char **);` - C 9641.
+  pub fn XmStringGetLtoR (string: XmString, tag: XmStringTag,
+			  text: *mut *mut c_char) -> Boolean;
+}
+
+/* C: `Xm/Xm.h`'s resource names, the values C 9496/9497 hand `XtSetArg`, and `Xm/FileSB.h`'s
+   child-type constants C 9512/9516/9523/9527/9538/9539 pass to `XmFileSelectionBoxGetChild`.
+   C's spelling is kept; every value below is **UNVERIFIED** (no Motif headers here) and the
+   child-type row is the header's documented order.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNdirectory: &core::ffi::CStr = c"directory";
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNdialogStyle: &core::ffi::CStr = c"dialogStyle";
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNcancelCallback: &core::ffi::CStr = c"cancelCallback";
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNokCallback: &core::ffi::CStr = c"okCallback";
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNpattern: &core::ffi::CStr = c"pattern";
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNresizePolicy: &core::ffi::CStr = c"resizePolicy";
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNshowAsDefault: &core::ffi::CStr = c"showAsDefault";
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNtextString: &core::ffi::CStr = c"textString";
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNtitle: &core::ffi::CStr = c"title";
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmNunmapCallback: &core::ffi::CStr = c"unmapCallback";
+/// C: Xm/Xm.h: `#define XmRESIZE_GROW 1` - C 9496's `XtSetArg` value.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmRESIZE_GROW: c_int = 1;
+/// C: Xm/Xm.h: `#define XmDIALOG_APPLICATION_MODAL 3` (the dialog-style enum, whose documented
+/// order is NONE 0, … `XmDIALOG_SYSTEM_MODAL` 1, `XmDIALOG_FULL_APPLICATION_MODAL` 2,
+/// `XmDIALOG_APPLICATION_MODAL` 3) - C 9497's `XtSetArg` value.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmDIALOG_APPLICATION_MODAL: c_int = 3;
+/// C: Xm/Xm.h: `#define XmCR_OK 21` - C 9635's `result` test, the constant pair of slice 39's
+/// `XmCR_CANCEL`.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmCR_OK: c_int = 21;
+/// C: Xm/Xm.h: `#define XmFONTLIST_DEFAULT_TAG "FONTLIST_DEFAULT_TAG_STRING"` - C 9641's
+/// `XmStringGetLtoR` tag.  **UNVERIFIED**.
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmFONTLIST_DEFAULT_TAG: &core::ffi::CStr = c"FONTLIST_DEFAULT_TAG_STRING";
+/// C: Xm/FileSB.h: `typedef unsigned char XmFileSelectionBoxChildType;` and the four members C
+/// 9512/9516/9523/9527/9538/9539 asks for.  The values are the header's documented child order
+/// (APPLY_BUTTON 0, CANCEL_BUTTON 1, DEFAULT_BUTTON 2, OK_BUTTON 3, FILTER_LABEL 4, FILTER_TEXT 5,
+/// HELP_BUTTON 6, LIST 7, LIST_LABEL 8, MESSAGE_LABEL 9, SELECTION_LABEL 10, SEPARATOR 11,
+/// TEXT 12, …) and are **UNVERIFIED** placeholders.
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmDIALOG_OK_BUTTON: c_uchar = 3;
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmDIALOG_HELP_BUTTON: c_uchar = 6;
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmDIALOG_LIST: c_uchar = 7;
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmDIALOG_SELECTION_LABEL: c_uchar = 10;
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+pub const XmDIALOG_TEXT: c_uchar = 12;
+
+/* C 9456-9658.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_motif"))]
+DEFUN! ("x-file-dialog", Fx_file_dialog, Sx_file_dialog, 2, 5, 0,              // C 9456
+	doc: "SKIP: real doc in USE_GTK definition in xfns.c.",                   // C 9457
+	(prompt: Lisp_Object, dir: Lisp_Object, default_filename: Lisp_Object,    // C 9458-9459
+	 mustmatch: Lisp_Object, only_dir_p: Lisp_Object),
+	{
+  /* C's `dir` is written at C 9489 and the `DEFUN!` macro's `$arg:ident` cannot say `mut`.  */
+  let mut dir = dir;                                                          // C 9489
+  let mut result: c_int = 0;                                                  // C 9461
+  let f: *mut frame = SELECTED_FRAME ();                                      // C 9462
+  let mut file: Lisp_Object = Qnil ();                                        // C 9463
+  let decoded_file: Lisp_Object;                                              // C 9464
+  let dialog: Widget;                                                         // C 9465
+  let text: Widget;
+  let help: Widget;
+  let mut al: [Arg; 10] = std::mem::zeroed ();                                // C 9466
+  let mut ac: c_int = 0;                                                      // C 9467
+  let dir_xmstring: XmString;                                                 // C 9468
+  let pattern_xmstring: XmString;
+  let count: specpdl_ref = SPECPDL_INDEX ();                                  // C 9469
+  use crate::x11_constants::ControlMask;   // C 9582/9622 (X.h 223, the module's `c_long` row)
+
+  check_window_system (f);                                                    // C 9471
+
+  if popup_activated () != 0                                                  // C 9473
+    { error (c"Trying to use a menu from within a menu-entry".as_ptr ()); }   // C 9474
+
+  CHECK_STRING (prompt);                                                      // C 9476
+  CHECK_STRING (dir);                                                         // C 9477
+
+  /* Prevent redisplay.  */                                                   // C 9479
+  specbind (Qinhibit_redisplay (), Qt ());                                    // C 9480
+
+  /* Defer selection requests.  */                                            // C 9482
+  DEFER_SELECTIONS! ();                                                       // C 9483
+
+  block_input ();                                                             // C 9485
+
+  /* Create the dialog with PROMPT as title, using DIR as initial
+     directory and using "*" as pattern.  */                                  // C 9487-9488
+  dir = Fexpand_file_name (dir, Qnil ());                                     // C 9489
+  dir_xmstring = XmStringCreateLocalized (SSDATA (dir));                      // C 9490
+  pattern_xmstring = XmStringCreateLocalized (c"*".as_ptr () as String);      // C 9491
+
+  XtSetArg! (al[ac as usize], XmNtitle.as_ptr () as String, SDATA (prompt));
+  ac += 1;                                                                    // C 9493
+  XtSetArg! (al[ac as usize], XmNdirectory.as_ptr () as String, dir_xmstring);
+  ac += 1;                                                                    // C 9494
+  XtSetArg! (al[ac as usize], XmNpattern.as_ptr () as String, pattern_xmstring);
+  ac += 1;                                                                    // C 9495
+  XtSetArg! (al[ac as usize], XmNresizePolicy.as_ptr () as String, XmRESIZE_GROW);
+  ac += 1;                                                                    // C 9496
+  XtSetArg! (al[ac as usize], XmNdialogStyle.as_ptr () as String,
+	     XmDIALOG_APPLICATION_MODAL);
+  ac += 1;                                                                    // C 9497
+  dialog = XmCreateFileSelectionDialog ((*((*f).output_data.x as *mut x_output)).widget,
+					c"fsb".as_ptr () as String, al.as_mut_ptr (),
+					ac as c_uint);                        // C 9498-9499
+  XmStringFree (dir_xmstring);                                                // C 9500
+  XmStringFree (pattern_xmstring);                                            // C 9501
+
+  /* Add callbacks for OK and Cancel.  */                                     // C 9503
+  XtAddCallback (dialog, XmNokCallback.as_ptr (), Some (file_dialog_cb),
+		 &raw mut result as XtPointer);                               // C 9504-9505
+  XtAddCallback (dialog, XmNcancelCallback.as_ptr (), Some (file_dialog_cb),
+		 &raw mut result as XtPointer);                               // C 9506-9507
+  XtAddCallback (dialog, XmNunmapCallback.as_ptr (), Some (file_dialog_unmap_cb),
+		 &raw mut result as XtPointer);                               // C 9508-9509
+
+  /* Remove the help button since we can't display help.  */                  // C 9511
+  help = XmFileSelectionBoxGetChild (dialog, XmDIALOG_HELP_BUTTON);          // C 9512
+  XtUnmanageChild (help);                                                     // C 9513
+
+  /* Mark OK button as default.  */                                           // C 9515
+  XtVaSetValues (XmFileSelectionBoxGetChild (dialog, XmDIALOG_OK_BUTTON),     // C 9516-9517
+		 XmNshowAsDefault.as_ptr () as String, True,
+		 std::ptr::null_mut::<c_void> ());
+
+  /* If MUSTMATCH is non-nil, disable the file entry field of the
+     dialog, so that the user must select a file from the files list
+     box.  We can't remove it because we wouldn't have a way to get at
+     the result file name, then.  */                                         // C 9519-9522
+  text = XmFileSelectionBoxGetChild (dialog, XmDIALOG_TEXT);                  // C 9523
+  if !NILP (mustmatch)                                                        // C 9524
+    {
+      let label: Widget;                                                      // C 9526
+      label = XmFileSelectionBoxGetChild (dialog, XmDIALOG_SELECTION_LABEL);  // C 9527
+      XtSetSensitive (text, False);                                           // C 9528
+      XtSetSensitive (label, False);                                          // C 9529
+    }
+
+  /* Manage the dialog, so that list boxes get filled.  */                     // C 9532
+  XtManageChild (dialog);                                                     // C 9533
+
+  if STRINGP (default_filename)                                               // C 9535
+    {
+      let default_xmstring: XmString;                                         // C 9537
+      let wtext: Widget = XmFileSelectionBoxGetChild (dialog, XmDIALOG_TEXT);  // C 9538
+      let list: Widget = XmFileSelectionBoxGetChild (dialog, XmDIALOG_LIST);  // C 9539
+
+      let last_pos: XmTextPosition = XmTextFieldGetLastPosition (wtext);      // C 9541
+      XmTextFieldReplace (wtext, 0, last_pos,
+			  SSDATA (Ffile_name_nondirectory (default_filename)));  // C 9542-9543
+
+      /* Select DEFAULT_FILENAME in the files list box.  DEFAULT_FILENAME
+         must include the path for this to work.  */                         // C 9545-9546
+
+      default_xmstring = XmStringCreateLocalized (SSDATA (default_filename));  // C 9548
+
+      if XmListItemExists (list, default_xmstring) != 0                       // C 9550
+	{
+	  let item_pos: c_int = XmListItemPos (list, default_xmstring);       // C 9552
+	  /* Select the item and scroll it into view.  */                     // C 9553
+	  XmListSelectPos (list, item_pos, True);                             // C 9554
+	  XmListSetPos (list, item_pos);                                      // C 9555
+	}
+
+      XmStringFree (default_xmstring);                                        // C 9558
+    }
+
+  record_unwind_protect_ptr (Some (clean_up_file_dialog), dialog);            // C 9561
+
+  /* Process events until the user presses Cancel or OK.  */                   // C 9563
+  x_menu_set_in_use (true);                                                   // C 9564
+  result = 0;                                                                 // C 9565
+  while result == 0                                                           // C 9566
+    {
+      let mut event: XEvent = std::mem::zeroed ();                            // C 9568
+      let mut copy: XEvent = std::mem::zeroed ();
+      x_menu_wait_for_event (std::ptr::null_mut ());                          // C 9569
+
+      if XtAppPending (Xt_app_con) != 0                                       // C 9571
+	{
+	  XtAppNextEvent (Xt_app_con, &raw mut event);                        // C 9573
+
+	  core::ptr::copy_nonoverlapping (&raw const event, &raw mut copy, 1);  // C 9575
+	  let xany: *mut XAnyEvent = &raw mut event as *mut XAnyEvent;
+	  let xkey: *mut XKeyEvent = &raw mut event as *mut XKeyEvent;
+	  if (*xany).r#type == KeyPress                                       // C 9576
+	      && FRAME_X_DISPLAY! (f) == (*xkey).display
+	    {
+	      let keysym: KeySym = XLookupKeysym (xkey, 0);                   // C 9579
+
+	      /* Pop down on C-g.  */                                         // C 9581
+	      if keysym == XK_g                                               // C 9582
+		  && ((*xkey).state & (ControlMask as c_uint)) != 0
+		{ XtUnmanageChild (dialog); }                                 // C 9583
+	    }
+	  else
+	    {
+	      /* C's `else if` is C 9586, the first statement of C's else arm, and C's whole arm
+		 sits inside `#ifdef HAVE_XINPUT2` (C 9585/C 9628); an attribute is not allowed on
+		 an `else if` clause, so the arm is the else block's one statement.  */
+	      #[cfg (feature = "have_xinput2")]
+	      let xgeneric: *mut XGenericEvent = &raw mut event as *mut XGenericEvent;
+	      #[cfg (feature = "have_xinput2")]
+	      let xcookie: *mut XGenericEventCookie
+		= &raw mut event as *mut XGenericEventCookie;
+	      #[cfg (feature = "have_xinput2")]
+	      if (*xany).r#type == GenericEvent                               // C 9586
+		  && FRAME_X_DISPLAY! (f) == (*xgeneric).display
+		  && (*FRAME_DISPLAY_INFO! (f)).supports_xi2
+		  && ((*xgeneric).extension == (*FRAME_DISPLAY_INFO! (f)).xi2_opcode)
+		  && (*xgeneric).evtype == XI_KeyPress
+		{
+		  let mut keysym: KeySym;                                     // C 9593
+		  let mut xev: *mut XIDeviceEvent;                            // C 9594
+
+		  if !(*xcookie).data.is_null ()                              // C 9596
+		    { emacs_abort (); }                                       // C 9597
+
+		  if XGetEventData (FRAME_X_DISPLAY! (f), xcookie) != 0      // C 9599
+		    {
+		      xev = (*xcookie).data as *mut XIDeviceEvent;            // C 9601
+
+		      let xkey: *mut XKeyEvent = &raw mut copy as *mut XKeyEvent;  // C 9603-9617
+		      (*xkey).r#type = KeyPress;
+		      (*xkey).serial = (*xev).serial;
+		      (*xkey).send_event = (*xev).send_event;
+		      (*xkey).display = FRAME_X_DISPLAY! (f);
+		      (*xkey).window = (*xev).event;
+		      (*xkey).root = (*xev).root;
+		      (*xkey).subwindow = (*xev).child;
+		      (*xkey).time = (*xev).time;
+		      (*xkey).x = lrint ((*xev).event_x) as c_int;
+		      (*xkey).y = lrint ((*xev).event_y) as c_int;
+		      (*xkey).x_root = lrint ((*xev).root_x) as c_int;
+		      (*xkey).y_root = lrint ((*xev).root_y) as c_int;
+		      (*xkey).state = (*xev).mods.effective as c_uint;
+		      (*xkey).keycode = (*xev).detail as c_uint;
+		      (*xkey).same_screen = True;
+
+		      keysym = XLookupKeysym (xkey, 0);                         // C 9619
+
+		      if keysym == XK_g                                         // C 9621-9622
+			  && ((*xkey).state & (ControlMask as c_uint)) != 0
+			{ XtUnmanageChild (dialog); }                         // C 9623
+
+		      XFreeEventData (FRAME_X_DISPLAY! (f), xcookie);            // C 9625
+		    }
+		}
+	    }
+
+	  /* C 9630's `(void)` cast: the result is dropped.  */
+	  x_dispatch_event (&raw mut copy, FRAME_X_DISPLAY! (f));            // C 9630
+	}
+    }
+
+  /* Get the result.  */                                                      // C 9634
+  if result == XmCR_OK                                                        // C 9635
+    {
+      let mut text_string: XmString = std::ptr::null_mut ();                  // C 9637
+      let mut data: *mut c_char = std::ptr::null_mut ();                      // C 9638
+
+      XtVaGetValues (dialog, XmNtextString.as_ptr () as String,               // C 9640
+		     &raw mut text_string, std::ptr::null_mut::<c_void> ());
+      XmStringGetLtoR (text_string, XmFONTLIST_DEFAULT_TAG.as_ptr () as XmStringTag,
+		       &raw mut data);                                        // C 9641
+      XmStringFree (text_string);                                             // C 9642
+      file = build_string (data);                                             // C 9643
+      XtFree (data);                                                          // C 9644
+    }
+  else
+    { file = Qnil (); }                                                       // C 9646-9647
+
+  unblock_input ();                                                           // C 9649
+
+  /* Make "Cancel" equivalent to C-g.  */                                     // C 9651
+  if NILP (file)                                                              // C 9652
+    { quit (); }                                                              // C 9653
+
+  decoded_file = DECODE_FILE (file);                                          // C 9655
+
+  return unbind_to (count, decoded_file);                                     // C 9657
+});
+

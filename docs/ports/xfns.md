@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415 and C 9418-9453
+C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415, C 9418-9453 and C 9456-9658
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -27,13 +27,14 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 > **11,493 lines** after the thirty-second, **11,554 lines** after the thirty-third and
 > **12,025 lines** after the thirty-fourth, **12,155 lines** after the thirty-fifth and
 > **12,303 lines** after the thirty-sixth, **12,855 lines** after the thirty-seventh and
-> **12,912 lines** after the thirty-eighth and **13,022 lines** after the thirty-ninth - C 803-2149,
+> **12,912 lines** after the thirty-eighth, **13,022 lines** after the thirty-ninth and
+> **13,637 lines** after the fortieth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176,
 > C 8178-8256, C 8258-8360, C 8362-8404, C 8406-8775, C 8778-8893, C 8896-9028, C 9031-9372, C 9375-9415 and
-> C 9418-9453, whose own
+> C 9418-9453 and C 9456-9658, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -71,7 +72,8 @@ C 7609-7729, C 7731-7950, C 7953-7995, C 7998-8073, C 8075-8176, C 8178-8256, C 
 | C 124 `#ifdef USE_GTK` … C 126 (empty) | `feature = "use_gtk"` | the GTK configuration |
 | C 130 `#ifdef GLYPH_DEBUG` … C 132 (`dpyinfo_refcount`) | `all (feature = "have_x_windows", feature = "glyph_debug")` | a GLYPH_DEBUG configuration |
 | C 134-135 `#ifndef USE_MOTIF` / `#ifndef USE_GTK` … C 160-161 | `all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk"))` | neither Motif nor GTK |
-| C 9418 `#ifdef USE_MOTIF` … C 9660 | `all (feature = "have_x_windows", feature = "use_motif")` | the Motif configuration - measured by the probe matrix's **MOTIF** arm from status 3.944 |
+| C 9418 `#ifdef USE_MOTIF` … C 9660 | `all (feature = "have_x_windows", feature = "use_motif")` | the Motif configuration - measured by the probe matrix's **MOTIF** arm from status 3.944, and its C 9585-9628 `HAVE_XINPUT2` arm by the **MOTIFXI2** arm from status 3.945 |
+| C 9585 `#ifdef HAVE_XINPUT2` … C 9628 (inside the Motif subr) | `all (feature = "have_x_windows", feature = "use_motif", feature = "have_xinput2")` | a Motif configuration with XInput2 - the **MOTIFXI2** arm |
 | C 251/279/292/331/343/383/416/450/482/490/539/557/567 (`USE_XCB` and its `#else` partners, inside `x_real_pos_and_offsets`) | `use_xcb` / `not (use_xcb)` | both arms carried |
 | C 673 `#ifdef USE_GTK` (inside `x_defined_color`) | `use_gtk`, nested in the file gate | the GTK configuration |
 | C 699 `#if false` … C 712 (inside `x_decode_color`) | no gate: C's own condition is the literal `false` | never - recorded, not transcribed |
@@ -223,7 +225,8 @@ defines both features.
 | 9031-9372 | the `x-show-tip` `DEFUN` (C 9031-9061's verbatim doc string, C 9065-9078 the locals and `AUTO_STRING`, C 9080-9105 the argument defaults, C 9107-9127's `USE_GTK` arm, C 9129-9209's reuse/delete/hide block with its two parameter walks, C 9211-9238's `tip_frame` creation, C 9240-9278's window setup, C 9280-9311's buffer/`try_window` block with its `ENABLE_CHECKING` arm, C 9314-9323's size and position, C 9325-9348's show block with its `not USE_XCB`/`USE_XCB` pair, and C 9350-9371's garbage/update/timer tail) | `have_x_windows`, with `use_gtk`, `use_cairo`, `enable_checking` and the `use_xcb` pair inside (slice 37) |
 | 9375-9415 | the three subrs `x-hide-tip` (C 9375-9381), `x-double-buffered-p` (C 9383-9394, with C 9388-9393's `HAVE_XDBE` pair) and `x-uses-old-gtk-dialog` (C 9401-9415, with C 9407-9414's `USE_GTK` guard), plus C 9396-9399's `File selection dialog` banner | `have_x_windows`, with `have_xdbe` and `use_gtk` inside (slice 38) |
 | 9418-9453 | C 9418's `#ifdef USE_MOTIF` and the three statics it guards: `file_dialog_cb` (C 9421-9427), `file_dialog_unmap_cb` (C 9430-9440) and `clean_up_file_dialog` (C 9442-9453), with C 9419's and C 9430-9433's comments | `all (have_x_windows, use_motif)` (slice 39) |
-| 9456-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,206 lines, whose first live item is C 9456's `DEFUN ("x-file-dialog", …)` - the next slice's first item | not ported in this slice |
+| 9456-9658 | the Motif `x-file-dialog` (C 9456-9459's `DEFUN` header with the `SKIP` docstring, C 9461-9469's locals, the setup C 9471-9501, the three `XtAddCallback`s and the two `XtUnmanageChild`/`XtVaSetValues` runs C 9503-9517, the `MUSTMATCH` block C 9519-9530, C 9532-9559's dialog fill-in, C 9561's `record_unwind_protect_ptr`, C 9563-9632's event loop with C 9585-9628's `HAVE_XINPUT2` arm, and C 9634-9657's result) | `all (have_x_windows, use_motif)`, with `have_xinput2` for the XI2 arm inside (slice 40) |
+| 9660-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 1,002 lines, whose first live items are C 9660's `#endif /* USE_MOTIF */`, C 9662's `#ifdef USE_GTK` with `clean_up_dialog` (C 9664-9668) and C 9670's second `DEFUN ("x-file-dialog", …)` | not ported in this slice |
 
 ## Evidence
 
@@ -3778,3 +3781,106 @@ drift row moving from `21.1%` to `22.1%: C 10662 vs Rust 13022`.  `check-mirror-
 The frozen configuration compiles none of this file: no dialog was created, no callback fired and
 no widget was destroyed; the fifteen arms' counts are text compile readings, and the MOTIF arm's
 twenty pre-existing rows are not this slice's.
+
+## Slice 40 (2026-10-08, status 3.945): C 9456-9658
+
+**The slice is C 9456-9658**: the Motif `x-file-dialog` - the whole `DEFUN` from its header (C
+9456-9459, with C 9457's `SKIP` docstring) to its closing brace (C 9658) - 615 Rust lines
+(13,022 -> 13,637).  It is the unit's first `USE_MOTIF`-only subr, it is the only place in the
+file that runs an Xt event loop of its own, and it is the reason the `MOTIF` arm exists.
+
+**The probe matrix gains a sixteenth arm, `MOTIFXI2`** (the `MOTIF` arm plus `have_xinput2`, the
+combination that makes C 9585's `#ifdef HAVE_XINPUT2` arm inside this subr compile).  Without it
+that arm would have been unmeasured for the same reason the whole `USE_MOTIF` surface was before
+slice 39: `MOTIF` does not set `have_xinput2`, `XI2` does not set `use_motif`.  Its baseline (the
+in-tree HEAD text) is **24 errors / 12 warnings**, and its own arm only: **all sixteen arms end at
+their HEAD level**, with both the `^error` and the `^warning` sets empty-diff in every one -
+plain-X **18 / 9**, WS, WSX, WSR, WSRX, WSR12 and XSN **16 / 9**, LUCID **25 / 12**, MOTIF
+**20 / 12**, MOTIFXI2 **24 / 12**, GTK and GTK22 **47 / 20**, XI2 and XR **22 / 9**, Xt **20 / 12**
+and XCB **18 / 9**.
+
+**The first measurement's four rows** (all named): ⑴ `XtAppContext` under plain-X - C's `Xt_app_con`
+is `xterm.h` 1788's, and that header puts it inside its **own** `#ifdef USE_X_TOOLKIT` (xterm.h
+1787-1790), so the row moved under `all (have_x_windows, use_x_toolkit)` rather than the file gate;
+⑵ `record_unwind_protect_void` under MOTIF - the name `DEFER_SELECTIONS! ()` (C 9483) expands to,
+and `xmenu.rs` 918's precedent for the same macro, so it stands at the use site (lisp.h 4825);
+⑶ `ControlMask` under MOTIF - the mask lives in the mirror's `x11_constants` module, so C 9582/9622
+take this function's own `use crate::x11_constants::ControlMask;` (the file's 449/3182 shape); and
+⑷ one `E0308` on C 9480 - `Qinhibit_redisplay` is a **function** in this port (`include/globals.rs`
+3205), so `specbind` takes `Qinhibit_redisplay ()`, the `SELECTED_FRAME` lesson of slice 38.
+
+**Arm touch measured** (P-86 ⑦): an injection before C 9471's `check_window_system (f);` (A, the
+body's first statement) moves MOTIF **20 -> 21** and MOTIFXI2 **24 -> 25**, and leaves plain-X at
+**18**, GTK at **47** and XCB at **18**; one before C 9655's `decoded_file = DECODE_FILE (file);`
+(B, the statement before the body's last) moves MOTIF **20 -> 21** and MOTIFXI2 **24 -> 25**, and
+leaves plain-X at **18**, LUCID at **25** and Xt at **20**.  Both logs carry the injected line's
+text once, and both readings are the arm gate doing its job: nothing outside `use_motif` compiles
+one line of this subr.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object
+(`sha256 d1ea88b2fe3d960975d134e566e65932...`), on the final `femacs/src/xfns.rs` md5
+`ba821e3add72169d17c10607c8bf7283` (slice 39's end hash was
+`9e0af05033877f8ac54dcb803ba579ce`).
+
+**② The sixteen arms.**  See above.
+
+**③ `extract-abi.py --check`**: **86 rows -> 85**.  Both `missing subr Fx_file_dialog (x-file-dialog)`
+rows retire (the file defines the subr twice - the Motif one at C 9456 and the GTK one at C 9670 -
+so the checklist carried a row for each), the drift row moves from `22.1%` to `27.9%: C 10662 vs
+Rust 13637`, and **one row appears**: `subr Fx_file_dialog: docstring differs`.  That row is the
+pairing, not a wrong literal: the checker pairs the two C definitions with the two Rust ones in
+order, and only the Motif definition exists yet, so the second C definition's real doc (C 9670-9683)
+has no counterpart to match.  The Motif literal is C 9457's own `SKIP` sentence, whose
+`doc_comment_value` is exactly `SKIP: real doc in USE_GTK definition in xfns.c.` (measured:
+`tools/cinventory.py`'s rule on the reference's text).  `xmenu.rs` shows the same two-definition
+shape closing that row - it carries both `DEFUN!`s (1353/1470) and its `--check` reports no
+docstring row at all.  **The row retires with C 9670.**  `check-mirror-dupes.py` stays at
+**16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)** and `check-declarations.py` at
+**18 declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **The `MOTIFXI2` arm is new**, and its baseline is the in-tree HEAD text's 24 / 12 rather than a
+   zero reading; the ledger's gate table records the arm and the C condition it measures.
+2. **C's `else if` at C 9586** sits inside `#ifdef HAVE_XINPUT2`; an attribute is not allowed on an
+   `else if` clause, so the arm is the else block's one statement (`else { #[cfg …] if … }`) and the
+   port says so in the comment - C's chain and C's single condition are kept.
+3. **C 9461's `int result;` is zero-initialised** (`let mut result: c_int = 0;`): the value is
+   written twice through `XtPointer`s C 9505-9509 take (the `E0381` device of slices 27/28/29/31),
+   and C's own next write is C 9565's `result = 0;`.
+4. **Six Xlib records, three XInput2 records and the Xt `XtAppContext`/`XtCallbackProc` pair stand
+   at their use sites** (P-88 ①, since their headers have no mirror in this tree): `XAnyEvent`,
+   `XKeyEvent`, `XGenericEvent` and `XGenericEventCookie` under the file gate (their header is
+   included in every X configuration), and the XInput2 records under `have_xinput2`.  The four
+   Xlib records carry this machine's measured layouts (the same readings `src/xmenu.rs` 232/423
+   records); the three XInput2 records are C's documented member order with **UNVERIFIED** offsets
+   (no libXi header here), and the four members after `event_y` exist only because `mods` - whose
+   `effective` C 9615 reads - sits behind them.
+5. **Thirteen Xm rows are C's spelling with the values this file can state**: the four `<Xm/Xm.h>`
+   scalars, the eleven resource names, and the five child-type constants, which are the header's
+   documented order and **UNVERIFIED** placeholders - the `lwlib/lwlib-Xm.rs` rule for the same
+   headers on this machine.
+6. **C 9630's `(void)` cast** is the port's bare call (the result is dropped) and **C 9593-9594's
+   `KeySym keysym; XIDeviceEvent *xev;`** are the port's `let mut` pair, since both are written
+   before their first read.
+
+### Owed (this slice)
+
+- `syms_of_xfns`' `defsubr` sites (45) and the rest of the remainder from C 9660: 1,002 C lines
+  plus the 5 missing functions, 1 macro, 0 objects, 12 subrs and 45 defsubrs `--check` reads, and
+  the `subr Fx_file_dialog: docstring differs` row, which retires with C 9670.
+- The real shapes of the Xt/Motif surface - the Xm type widths, the thirteen Xm values and the
+  three XInput2 records' offsets - are the toolchain rows `docs/ports/lwlib-Xm.md`'s `## Owed` 5
+  names.
+- `use_motif` (with `have_xrandr`, `have_xinerama` and `have_xaw3d`) is still absent from
+  `femacs/xtask/Cargo.toml`'s feature table; the sixteen-arm probe passes it with `--cfg`.
+- The `x_output` bitfield class (`explicit_parent` and friends) stays the mirror round slice 34's
+  Owed describes; it is six of the MOTIF arm's twenty pre-existing rows.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no dialog was created, no callback fired, no
+event was waited for and no file name was returned; the sixteen arms' counts are text compile
+readings, and the MOTIF/MOTIFXI2 arms' pre-existing rows are not this slice's.
