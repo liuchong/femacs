@@ -7541,6 +7541,56 @@ class EmacsView: NSView {
       fs_is_native = ns_use_native_fullscreen         // C 9012
     }
   }
+
+  /// C 7593-7598: `- (BOOL)hasMarkedText` - C's whole body is the `workingText` test.
+  @objc func hasMarkedText() -> Bool {
+    workingText != nil                                // C 7597
+  }
+
+  /// C 7601-7610: `- (NSRange)markedRange`.  C's `NSMakeRange (NSNotFound, 0)` is the "no marked
+  /// text" answer, and C 7607-7608's `NS_KEYLOG` block is dead (`NS_KEYLOG` is 0 at C 7241).
+  @objc func markedRange() -> NSRange {
+    let rng = (workingText != nil)
+      ? NSRange(location: 0, length: (workingText! as NSString).length)
+      : NSRange(location: NSNotFound, length: 0)      // C 7605-7606
+    return rng                                        // C 7609
+  }
+
+  /// C 7725-7731: `- (NSArray *)validAttributesForMarkedText` - C's lazy `static NSArray *arr`
+  /// starts empty and is never filled (its one `arrayWithObject:` is commented out at C 7729), so
+  /// the body is the empty array; C 7730's `return arr` is this return.
+  @objc func validAttributesForMarkedText() -> [NSAttributedString.Key] {
+    []                                                // C 7730
+  }
+
+  /// C 7757-7767: `- (NSUInteger)characterIndexForPoint: (NSPoint)thePoint` - the
+  /// `NS_IMPL_COCOA` arm of C 7757-7762, whose whole body is `return 0;`.
+  @objc func characterIndexForPoint(_ thePoint: NSPoint) -> UInt {
+    0                                                 // C 7766
+  }
+
+  /// C 7699-7702: `- (NSInteger)conversationIdentifier` - C returns the receiver's own address as
+  /// an integer, which Swift spells through `Unmanaged`.
+  @objc func conversationIdentifier() -> Int {
+    Int(bitPattern: Unmanaged.passUnretained(self).toOpaque())   // C 7701
+  }
+
+  /// C 7705-7723: `- (void)doCommandBySelector: (SEL)aSelector`.  C 7709-7710's `NS_KEYLOG` block
+  /// is dead (`NS_KEYLOG` is 0 at C 7241); the `deleteBackward:` arm is the live one, and C's
+  /// `EV_TRAILER ((id)nil)` reaches the same `emacsframe` this unit's other callers pass.
+  @objc func doCommandBySelector(_ aSelector: Selector) {
+    processingCompose = false                         // C 7712
+    if aSelector == #selector(NSResponder.deleteBackward(_:)) {   // C 7713
+      /* C 7715-7716: "Happens when user backspaces over an ongoing composition: throw a
+         'delete' into the event queue."  */
+      if emacs_event == nil {                         // C 7717
+        return                                        // C 7718
+      }
+      input_event_set_kind(emacs_event!, NON_ASCII_KEYSTROKE_EVENT)   // C 7719
+      emacs_event!.pointee.code = 0xFF08              // C 7720
+      EV_TRAILER(nil, emacsframe)                     // C 7721
+    }
+  }
 }
 
 /// C 5086-5107: `static void check_native_fs (void)` - the function C 5127 and C 5218 call from
@@ -7984,3 +8034,11 @@ fileprivate func nswindow_orderedIndex_sort(_ w1: AnyObject, _ w2: AnyObject,
   return 0                 /* NSOrderedSame */                              // C 10095
 }
 
+
+
+/// C: `NON_ASCII_KEYSTROKE_EVENT` and `ASCII_KEYSTROKE_EVENT` - two `enum event_kind` members the
+/// input methods write into `kind`; the port's mirror fixes both values
+/// (`femacs/src/include/termhooks.rs` 30 and 28).  They go through the bitfield setter, like
+/// `SLEEP_EVENT` above.
+fileprivate let NON_ASCII_KEYSTROKE_EVENT: UInt32 = 3
+fileprivate let ASCII_KEYSTROKE_EVENT: UInt32 = 1

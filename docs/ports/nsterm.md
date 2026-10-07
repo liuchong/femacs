@@ -315,16 +315,16 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (void)insertText: (id)aString`  (line 7481)
   - [ ] `- (void)setMarkedText: (id)aString selectedRange: (NSRange)selRange`  (line 7538)
   - [ ] `- (void)deleteWorkingText`  (line 7572)
-  - [ ] `- (BOOL)hasMarkedText`  (line 7593)
-  - [ ] `- (NSRange)markedRange`  (line 7601)
+  - [x] `- (BOOL)hasMarkedText`  (line 7593) — landed as `@objc func hasMarkedText () -> Bool`; C's whole body is the `workingText` test
+  - [x] `- (NSRange)markedRange`  (line 7601) — landed as `@objc func markedRange () -> NSRange`: C 7605-7606's `NSMakeRange (NSNotFound, 0)` is the no-marked-text answer, and C 7607-7608's `NS_KEYLOG` block is dead (`NS_KEYLOG` is 0 at C 7241)
   - [ ] `- (void)unmarkText`  (line 7613)
   - [ ] `- (NSRect)firstRectForCharacterRange: (NSRange)theRange`  (line 7651)
-  - [ ] `- (NSInteger)conversationIdentifier`  (line 7699)
-  - [ ] `- (void)doCommandBySelector: (SEL)aSelector`  (line 7705)
-  - [ ] `- (NSArray *)validAttributesForMarkedText`  (line 7725)
+  - [x] `- (NSInteger)conversationIdentifier`  (line 7699) — landed as `@objc func conversationIdentifier () -> Int`: C returns the receiver's own address as an integer, which Swift spells through `Unmanaged`
+  - [x] `- (void)doCommandBySelector: (SEL)aSelector`  (line 7705) — landed as `@objc func doCommandBySelector (_:)`: C 7709-7710's `NS_KEYLOG` block is dead, the `deleteBackward:` arm writes `NON_ASCII_KEYSTROKE_EVENT` (the enum value the port's mirror fixes) and code `0xFF08`, and C's `EV_TRAILER ((id)nil)` passes the same `emacsframe` this unit's other callers do
+  - [x] `- (NSArray *)validAttributesForMarkedText`  (line 7725) — landed as `@objc func validAttributesForMarkedText () -> [NSAttributedString.Key]`: C's lazy `static NSArray *arr` starts empty and is never filled (its one `arrayWithObject:` is commented out at C 7729), so the body is the empty array
   - [ ] `- (NSRange)selectedRange`  (line 7733)
-  - [ ] `- (NSUInteger)characterIndexForPoint: (NSPoint)thePoint`  (line 7759)
-  - [ ] `- (unsigned int)characterIndexForPoint: (NSPoint)thePoint`  (line 7761; the `#if defined (NS_IMPL_COCOA) || GNUSTEP_GUI…` arm of the box above)
+  - [x] `- (NSUInteger)characterIndexForPoint: (NSPoint)thePoint`  (line 7759) — landed as `@objc func characterIndexForPoint (_:) -> UInt`, C's whole body being `return 0;`
+  - [x] `- (unsigned int)characterIndexForPoint: (NSPoint)thePoint`  (line 7761; the `#if defined (NS_IMPL_COCOA) || GNUSTEP_GUI…` arm of the box above) — the same selector and the same body; this target takes C 7757's first conjunct, so the row above is the live spelling and the two share one Swift `func`
   - [ ] `- (NSAttributedString *)attributedSubstringFromRange: (NSRange)theRange`  (line 7769)
   - [ ] `- (void)mouseDown: (NSEvent *)theEvent`  (line 7783)
   - [ ] `- (void)rightMouseDown: (NSEvent *)theEvent`  (line 8022)
@@ -3087,3 +3087,26 @@ call site takes an entry and the definition lands at its own C line - and **both
   `#ifdef NS_IMPL_GNUSTEP` at C 6453 and closes it at C 6489 - so its box is ticked as *recorded,
   not transcribed*, the reading this unit uses for its three `nstrace_*` rows.  Five boxes are
   ticked (238 -> 243).
+
+
+
+### Round 32: `EmacsView`'s leaf input methods (C 7593-7767)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-31 carry, so **no new warning**.  Object
+  `/tmp/nsterm32.o`, **669,824 bytes**, md5 `fc8052696523d4a1d0c8bff1f055cc9d`.
+* **Six methods and the two enum constants they need**: `hasMarkedText` (C 7593),
+  `markedRange` (C 7601), `validAttributesForMarkedText` (C 7725), `characterIndexForPoint:`
+  (C 7759, the live `NS_IMPL_COCOA` arm of C 7757-7762), `conversationIdentifier` (C 7699) and
+  `doCommandBySelector:` (C 7705).  These are the leaves of the protocol batch: each one's body
+  closes over members the class already has, which is why they go first - `insertText:` (C 7481),
+  `setMarkedText:selectedRange:` (C 7538) and `unmarkText` (C 7613, which calls
+  `deleteWorkingText`) are the ones that wait on the next round.
+* **`NS_KEYLOG` is 0** (C 7241), so the three `if (NS_KEYLOG)` blocks in these bodies are the dead
+  arm this unit records rather than transcribes - the `NSTRACE` reading.
+* **`python3 tools/check-swift-units.py`**: `0 new, 0 stale, 7 Swift unit(s) landed`, with
+  nsterm.swift at 150 C definitions / 35 unported / 428 imports - every number unchanged, which is
+  what an Objective-C-method round reads as through that gate.  `tools/check-own-voice.py` reads
+  0 failure(s).
+* **Seven ledger boxes are ticked** (243 -> 250; the two `characterIndexForPoint:` arms are one
+  selector and share the one Swift function).
