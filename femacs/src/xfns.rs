@@ -11040,3 +11040,49 @@ DEFUN! ("x-change-window-property", Fx_change_window_property, Sx_change_window_
   unblock_input ();                                                       // C 7948
   return value;                                                           // C 7949
 });
+
+/* C 7953-7995.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-delete-window-property", Fx_delete_window_property, Sx_delete_window_property,
+	1, 3, 0,
+	doc: "Remove window property PROP from X window of FRAME.
+FRAME nil or omitted means use the selected frame.
+If WINDOW-ID is non-nil, remove property from that window instead
+ of FRAME's X window; the number 0 denotes the root window.  This
+ argument is separate from FRAME because window IDs are not unique
+ across X displays or screens on the same display, so FRAME provides
+ context for the window ID.
+
+Value is PROP.
+
+Wait for the request to complete and signal any error, unless
+`x-fast-protocol-requests' is non-nil, in which case errors will be
+silently ignored.  ",
+	(prop: Lisp_Object, frame: Lisp_Object, window_id: Lisp_Object),
+	{
+  let f: *mut frame = decode_window_system_frame (frame);                 // C 7970
+  let mut target_window: Window = FRAME_X_WINDOW! (f);                    // C 7971
+  let prop_atom: Atom;                                                    // C 7972
+
+  CHECK_STRING (prop);                                                    // C 7974
+
+  if !NILP (window_id)                                                    // C 7976
+    {
+      CONS_TO_INTEGER! (window_id, target_window);                        // C 7978
+      if target_window == 0                                               // C 7979
+	{ target_window = (*FRAME_DISPLAY_INFO! (f)).root_window; }          // C 7980
+    }
+
+  block_input ();                                                         // C 7983
+  prop_atom = x_intern_cached_atom (FRAME_DISPLAY_INFO! (f),              // C 7984-7985
+				    SSDATA (prop), false);
+
+  x_catch_errors_for_lisp (FRAME_DISPLAY_INFO! (f));                      // C 7987
+  XDeleteProperty (FRAME_X_DISPLAY! (f), target_window, prop_atom);       // C 7988
+  x_check_errors_for_lisp (FRAME_DISPLAY_INFO! (f),                       // C 7989-7990
+			   c"Couldn't delete window property: %s".as_ptr ());
+  x_uncatch_errors_for_lisp (FRAME_DISPLAY_INFO! (f));                    // C 7991
+
+  unblock_input ();                                                       // C 7993
+  return prop;                                                            // C 7994
+});

@@ -2,7 +2,7 @@
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
 C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
-C 7609-7729 and C 7731-7950
+C 7609-7729, C 7731-7950 and C 7953-7995
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -21,11 +21,12 @@ C 7609-7729 and C 7731-7950
 > **9,547 lines** after the nineteenth, **9,801 lines** after the twentieth, **10,033 lines**
 > after the twenty-first, **10,157 lines** after the twenty-second, **10,332 lines** after the
 > twenty-third, **10,404 lines** after the twenty-fourth, **10,631 lines** after the twenty-fifth,
-> **10,782 lines** after the twenty-sixth and **11,042 lines** after the twenty-seventh - C 803-2149,
+> **10,782 lines** after the twenty-sixth, **11,042 lines** after the twenty-seventh and
+> **11,088 lines** after the twenty-eighth - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
 > C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
-> C 7449-7491, C 7494-7606, C 7609-7729 and C 7731-7950, whose own
+> C 7449-7491, C 7494-7606, C 7609-7729, C 7731-7950 and C 7953-7995, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -202,7 +203,8 @@ defines both features.
 | 7494-7606 | `select_visual` (C 7494-7496 its comment) - the `visualClass` resource lookup, the CLASS-DEPTH parse (C's bare `alloca`), the `visual_classes` walk, `XMatchVisualInfo` and the default-visual fallback with its `#if !defined USE_X_TOOLKIT && !(defined USE_GTK && !defined HAVE_GTK3) && defined HAVE_XRENDER` alpha-mask attempt | `have_x_windows` on the function, with `have_xrender` (and C's two negations) on that block's `#[cfg]` (slice 25) |
 | 7609-7729 | the connection group: `x_display_info_for_name` (C 7609-7610 its comment, C 7612-7634), `x-open-connection` (C 7637-7677), `x-close-connection` (C 7679-7695), `x-display-list` (C 7697-7708) and `x-synchronize` (C 7710-7729) | `have_x_windows`, with no nested `#if` (slice 26) |
 | 7731-7950 | C 7732-7734's `Window properties` section comment and `x-change-window-property` (C 7736-7950: the FORMAT check, the two VALUE arms with C 7821/7837's `elsize`, the target-window choice, C 7783-7791 and C 7858-7933's `USE_XCB` pair, C 7937-7939's `XChangeProperty` and C 7944-7946's error pair) | `have_x_windows` on the DEFUN, with `use_xcb` on C 7867's arm (slice 27) |
-| 7953-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,710 lines, whose first live definition is `x-delete-window-property` (C 7953-7995) - the next slice's first item | not ported in this slice |
+| 7953-7995 | `x-delete-window-property` (C 7953-7955 the `DEFUN` header, C 7956-7967 the verbatim doc string, C 7970-7994 the body: the `CHECK_STRING`, the `WINDOW-ID` pair with its root-window fallback, the cached-atom intern and the error pair around `XDeleteProperty`) | `have_x_windows`, with no nested `#if` (slice 28) |
+| 7998-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 2,665 lines, whose first live definition is `x_window_property_intern` (C 7998-8000) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2880,3 +2882,81 @@ slice 22, when the port passed the 5% bar); what remains is `missing function` 1
 
 The frozen configuration compiles none of this file: no window property was changed, no atom was
 interned and no XCB connection was used; the fourteen arms' counts are text compile readings.
+
+## Slice 28 (2026-10-08, status 3.932 - the integrator sets the round number): C 7953-7995
+
+**The slice is C 7953-7995**: `x-delete-window-property` - the `DEFUN` header (C 7953-7955) with its
+verbatim doc string (C 7956-7967), the argument list (C 7968) and the body: C 7970's
+`decode_window_system_frame` and C 7971's `FRAME_X_WINDOW`, C 7974's `CHECK_STRING`, C 7976-7981's
+`WINDOW-ID` pair (C 7978's `CONS_TO_INTEGER` and C 7979-7980's root-window fallback), C 7983's
+`block_input`, C 7984-7985's `x_intern_cached_atom`, C 7987-7991's error pair around C 7988's
+`XDeleteProperty`, and C 7993-7994's `unblock_input` and `return prop`.  The port's slice is
+**46 Rust lines** (11,088 - 11,042, `grep -c ''`) against C's 43; md5
+`00de98651732c8b4e46c975629b29169` (the slice 27 tree) -> `d687aa97281a68a50b20616fc557d0b5`.
+
+**All fourteen arms read their baselines on the first measurement, with diff-empty sets.**  plain-X,
+WS, WSX, WSR, WSRX, WSR12 and XCB **15 / 9**, LUCID **23 / 12**, GTK and GTK22 **42 / 20**, XI2
+**19 / 9**, XSN **13 / 9**, XR **19 / 9** and Xt **16 / 12** - and the `^error` and `^warning` line
+sets are empty-diff against the in-tree HEAD baseline in every one of the fourteen (measured by
+putting `git show HEAD:femacs/src/xfns.rs` back at the same path, probing all fourteen, restoring
+the slice and diffing both sets).  The body compiled clean: no `E0381`, no `E0308` and no new
+unresolved name - the four names it calls were all declared by earlier slices.
+
+**The one row the checker raised was closed by spelling C's macro.**  The first `--check` read one
+new token row, `subr Fx_delete_window_property does not mention frame_x_display`: the port's
+`XDeleteProperty` call had written C 7988's `FRAME_X_DISPLAY (f)` out as its expansion,
+`(*FRAME_DISPLAY_INFO! (f)).display`.  C 7988 is one line and the file has hundreds of sites that
+keep the macro's name, so the call now reads `XDeleteProperty (FRAME_X_DISPLAY! (f), target_window,
+prop_atom);` and the row is gone.
+
+**Arm touch measured** (P-86 ⑦): two injections.  A, at the body's first statement, moves plain-X
+**15 -> 16**, GTK **42 -> 43**, XCB **15 -> 16** and XI2 **19 -> 20**; B, before C 7993's
+`unblock_input`, moves plain-X **15 -> 16**, GTK **42 -> 43**, XCB **15 -> 16**, LUCID **23 -> 24**
+and Xt **16 -> 17**.  Both anchors point at the injected line (the materialised `_root.rs` line is
+the unit's line plus the 7 inlined mirror lines), so C 7970's body and C 7993's tail are both read by
+these arms.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  exit 0, the **336-byte** empty object, on the final
+hash.
+
+**② The fourteen arms.**  See above: every arm at its baseline, both sets empty-diff.
+
+**③ `extract-abi.py --check`**: **105 rows -> 104** - `missing subr Fx_delete_window_property
+(x-delete-window-property)` retiring, and nothing appearing in its place; `missing subr` 20 -> 19.
+The remaining 104 are 45 `missing defsubr`, 19 `missing subr`, 14 `missing function`, 1
+`missing macro`, 4 file-scope objects and the token rows the mechanical check keeps (19 `function`
+and 1 `subr` "does not mention").  The drift is `C 10662 vs Rust 11,088` = **4.0%**;
+`check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s), 0 failure(s)**
+and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed literals), 0
+failures** - this slice adds no declaration site and touches no mirror.
+
+### Deviations (this slice)
+
+1. **C 7988's `FRAME_X_DISPLAY (f)` keeps the macro's name** at the use site rather than being
+   written out as the expansion, because the expansion leaves the checker's token row standing;
+   the file's other `XDeleteProperty` site (C 3559) and its hundreds of `FRAME_X_DISPLAY (f)` sites
+   spell it the same way.
+2. **C 7980's `FRAME_DISPLAY_INFO (f)->root_window`** is `(*FRAME_DISPLAY_INFO! (f)).root_window`,
+   the port's spelling for that read (C 7847's `root_window`, `include/xterm.rs`'s field).
+3. **C 7978's three-argument `CONS_TO_INTEGER (window_id, Window, target_window)`** is the port's
+   two-argument `CONS_TO_INTEGER! (window_id, target_window)` - the macro's port form, which C
+   7845 took in the last slice.
+
+### Owed (this slice)
+
+- **Nothing new.**  The four names this body calls already stand: `decode_window_system_frame`
+  (frame.h 1474-1475, this file 308-309), `x_intern_cached_atom` (xterm.h 1841, this file 10803),
+  the `_for_lisp` trio (xterm.h 1755/1756/1759, this file 10079-10081) and `XDeleteProperty`
+  (Xlib.h 2247, this file 1142) - the first three are owed to mirrors (`x_intern_cached_atom` and
+  the trio to `include/xterm.rs`) from the earlier slices' lists.
+- `syms_of_xfns`' `defsubr` sites (45, plus this slice's `Sx_delete_window_property` when that
+  section lands) and the rest of the remainder from C 7998 (`x_window_property_intern`,
+  C 7998-8000): 2,665 C lines plus the 14 missing functions, 1 macro, 4 objects, 19 subrs and 45
+  defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no window property was deleted, no atom was
+interned and no frame was decoded; the fourteen arms' counts are text compile readings.
