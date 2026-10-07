@@ -10784,3 +10784,25 @@ func ns_xlfd_to_fontname(_ xlfd: UnsafePointer<CChar>) -> UnsafeMutablePointer<C
   if string == nil { return nil }                                // C 11525
   return UnsafeMutablePointer(mutating: string!.utf8String!)      // C 11525
 }
+
+// ==========================================================================
+// Round 59: `cancel_ns_deferred_UAZoomChangeFocus_timer` (C 8459-8470)
+// ==========================================================================
+
+/// C 8459-8470: `static void cancel_ns_deferred_UAZoomChangeFocus_timer ()` - the `NS_IMPL_COCOA`
+/// arm C 8459 opens and C 8470 closes, i.e. this target's.  C's `.valid` read is `Timer.isValid`,
+/// C 8466's `release` is the runtime decrement (`Unmanaged.passUnretained (…).release ()`, round 3's
+/// reading), and the whole body is C 1098's own static, which this unit already carries.
+///
+/// Its two callers are `EmacsView`'s: `windowWillClose:` (C 8472-8479) and
+/// `deferred_UAZoomChangeFocus_handler:` (C 8481-8492), both in the method batch that class's ledger
+/// box still owes - so this definition is landed ahead of them, the `ns_create_terminal`-style
+/// entry/definition split the ledger records.
+fileprivate func cancel_ns_deferred_UAZoomChangeFocus_timer() {
+  if ns_deferred_UAZoomChangeFocus_timer != nil                        // C 8462
+       && ns_deferred_UAZoomChangeFocus_timer!.isValid {               // C 8463
+    ns_deferred_UAZoomChangeFocus_timer!.invalidate()                  // C 8465
+    Unmanaged.passUnretained(ns_deferred_UAZoomChangeFocus_timer!).release()   // C 8466
+  }
+  ns_deferred_UAZoomChangeFocus_timer = nil                            // C 8468
+}

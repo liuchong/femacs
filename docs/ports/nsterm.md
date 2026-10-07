@@ -221,7 +221,7 @@
 - [x] ns_in_echo_area_1  (line 7624, static) — landed as `fileprivate func ns_in_echo_area_1 (_:) -> Lisp_Object`: C 7628's `safe_calln (Qns_in_echo_area)` is one `safe_funcall` call (the macro's own expansion at lisp.h 4846-4847), and `Qns_in_echo_area` is this file's own `DEFSYM` (C 11799) imported as a data symbol
 - [x] ns_in_echo_area_2  (line 7633, static) — landed as `fileprivate func ns_in_echo_area_2 (_:_:) -> Lisp_Object`: C's whole body is `return Qnil;`
 - [x] ns_in_echo_area  (line 7639, static) — landed as `fileprivate func ns_in_echo_area () -> Bool`: the `internal_catch_all` call takes C 7644-7645's two helpers as `@convention(c)` closures and its `NULL`, and C 7647's `!NILP` is the predicate the entry returns
-- [ ] cancel_ns_deferred_UAZoomChangeFocus_timer  (line 8460, static)
+- [x] cancel_ns_deferred_UAZoomChangeFocus_timer  (line 8460, static) — C 8459-8470 (the `NS_IMPL_COCOA` arm C 8459 opens and C 8470 closes), landed as `fileprivate func cancel_ns_deferred_UAZoomChangeFocus_timer ()` (round 59): C's `.valid` read is `Timer.isValid` and C 8466's `release` is the runtime decrement; its two callers (`windowWillClose:` C 8472-8479 and `deferred_UAZoomChangeFocus_handler:` C 8481-8492) are EmacsView's method batch, still owed by that box
 - [x] nswindow_orderedIndex_sort  (line 10085, static) — landed as `fileprivate func nswindow_orderedIndex_sort (_:_:_:) -> Int`: C sends `orderedIndex` as a **message**, and on Cocoa that selector is not declared on `NSWindow` at all (C's own definition of it is the GNUstep arm at C 10074-10077), so the port sends the same dynamic message instead of inventing a property; the three `NSOrdered*` results are C 10090-10095's three returns
 - [x] ns_new_font  (line 11418, static) — C 11410-11476, landed as `fileprivate func ns_new_font (_:_:_:)` (round 51 took it ahead of `ns_create_terminal`'s body because C 5942 hands it to `terminal->set_new_font_hook`, the dependency order P-91 ① allows): C's `font` reads are the `font_<member>` family, the `struct ns_output` writes are `ns_output_set_*` and the `struct frame` writes `frame_set_*` (this round's entry rule), C's parameter reassignment is the shadow spelling, and C 11470's `! [view isFullscreen]` on a possibly-nil view is C's nil-receiver answer
 - [x] ns_xlfd_to_fontname  (line 11484) — C 11483-11526, landed as `@_cdecl("ns_xlfd_to_fontname")` (declared src/nsterm.h 1129, imported by `nsfns.swift` 1099-1101): `sscanf` is variadic and reaches the C entry by name (the `fprintf` reading), `strncmp`/`strcpy`/`strlen` are the SDK's, `c_toupper` is `femacs/lib/c-ctype.rs` 103-104's export, and the returned pointer belongs to an autoreleased `NSString` (the `ns_relocate` pair)
@@ -4080,3 +4080,26 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: **no run evidence** - no font descriptor was converted, no
   panel was built, no XLFD was converted; the compile gate reaches parsing and type checking only,
   and `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.
+
+### Round 59: `cancel_ns_deferred_UAZoomChangeFocus_timer` (C 8459-8470)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-58 carry, so **no new warning**, and the round
+  **compiled first try**.  Object `/tmp/nsterm59.o`, **956,440 bytes**, md5
+  `0a101815faffdc859d4d4a7156f9fd4f`.  The unit is **10,808 lines**.
+* **The function lands whole**: C's `.valid` read is `Timer.isValid`, C 8466's `release` is the
+  runtime decrement (`Unmanaged.passUnretained (…).release ()`), and C 8468's `= nil` is the store
+  into the static this unit already carries (C 1098, line 1284 above).
+* **Its two callers stay owed by another box**: `windowWillClose:` (C 8472-8479) and
+  `deferred_UAZoomChangeFocus_handler:` (C 8481-8492) are `EmacsView`'s methods, and that class's
+  box still owes its method batch - so this definition is landed ahead of them (the
+  `ns_create_terminal` entry/definition split the ledger records for C 5012/5013's pair).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **7** unported,
+  7 row(s); 595 C symbol import(s)` - one fewer unported than round 58's 8 (this definition), with
+  the one stale row cleared by name from `docs/baseline/swift-units.tsv`.  Final:
+  `0 new, 0 stale, 7 Swift unit(s) landed`.  **One live definition remains** - `syms_of_nsterm`
+  (C 11546-11811, the file's last function) - plus the six recorded dead entries and the two classes
+  `EmacsLayer` (C 11128-11396) and `EmacsDocument` (C 11404-11406).
+* **What this round does not claim**: **no run evidence** - the timer was never created, cancelled or
+  fired; the compile gate reaches parsing and type checking only, and `check-swift-units.py` compares
+  name sets, not signatures, bodies, layouts or ABI.
