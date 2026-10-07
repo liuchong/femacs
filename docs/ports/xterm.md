@@ -323,7 +323,9 @@ C 25656 and `XTread_socket` C 25732) carried **retire**.
 `OTHER:`'s block (C 25558-25587) and `done:`'s (C 25590-25595), then `SelectionNotify`,
 `SelectionClear` and `SelectionRequest` - 89 C lines in C's order.  The two labels C writes
 *inside* the `GenericEvent` case are the whole switch's tail (thirty sites `goto OTHER`), so they
-are carried once at the end of the `match` with `break 'other` at each site, and `done:`'s six
+are carried once at the end of the `match`, with `break 'switch` at each site (**corrected
+by Decision 126**: this paragraph first spelled it `break 'other`, which is C's `break`),
+and `done:`'s six
 lines come with their label.  The other twenty-seven `case` bodies are the slices that follow, at
 their own C line numbers.  The row `--check` reads keeps its two lines and its token list goes
 **531 -> 484**; the mirror round this slice needed (C's own guard for `buffered_input_event`'s
@@ -347,6 +349,16 @@ the lane's **nineteenth arm**, `AG3X = A + use_gtk + have_gtk3 + have_xinput2`, 
 Three more names stand at their use sites (`gui_redo_mouse_highlight`, `tip_window`,
 `xg_is_menu_window`/`popup_activated_flag`), and the round carries one repair the new arms exposed:
 slice 112's two `FRAME_PIXEL_WIDTH!`/`_HEIGHT!` calls, which are functions, not macros.
+
+  **The four slices that landed the switch's frame had it backwards, and round 90 repairs it**
+(Decision 126): C's `done:` stands *outside* the switch (C 25588's `}` and C 25590's one-space
+`done:`), so C's `break` reaches `done:` **without** running the `OTHER:` block, while a
+`goto OTHER` runs that block and then falls into `done:`.  Slices 111-114 spelled `break 'other`
+at the thirty `goto OTHER` sites and left the C-`break` arms to fall out of the `match` - the two
+the other way round.  The `match` now sits inside a `'switch:` labelled block: `break 'switch` is
+C's `goto OTHER`, `break 'other` is C's `break`, and an arm that merely ends is C's fall-out into
+`OTHER:`.  The repair is a zero-difference reading in the arms it was measured in, and its
+evidence is `spikes/switch-frame-probe.rs`, which prints both shapes as paths.
 
 ## Subrs (DEFUN) — 0
 
@@ -5133,8 +5145,11 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   case, but it is the switch's shared tail: thirty sites `goto OTHER` (C 19254, 19372, 19385,
   19458, 19476, 19490, 19519, 19803, 19861, ...) and the last case falls into it.  Rust has no
   forward jump, so the text is carried **once**, at the end of the `match`, inside a labelled
-  `'other:` block; a site that C sends there is `break 'other`, which runs the block and then C's
-  own `break` - the same sequence C's control flow produces.  The block reads only function-scope
+  `'other:` block; a site that C sends there is `break 'switch`, which lands on the block -
+  the same sequence C's control flow produces.  (**Corrected by Decision 126**: this bullet
+  first spelled that site `break 'other` and read it as "runs the block and then C's own
+  `break`", which is the reverse - C's `break` is the jump that *skips* the block, and the
+  frame needed the inner `'switch:` label to tell the two apart.)  The block reads only function-scope
   names (`*finish`, `event`, `use_copy`, `copy`), so moving it cannot change what it sees.
   `done:` (C 25590) is its mirror: the six lines every `goto done` reaches *and* what the switch
   falls into when no case matches, as one labelled `'done:` block.
@@ -5232,7 +5247,7 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
   `x-set-frame-visibility-more-laxly`'s `Qexpose`/`Qt` override, `FRAME_GARBAGED_P`), the two
   `USE_GTK` clears (`x_clear_area1` then `x_clear_area`), the toolkit's widget hand-off,
   `expose_frame` with the scroll-bar exposure, the `HAVE_XDBE` pairs, and the three `goto OTHER`
-  sites as `break 'other`.
+  sites as `break 'switch` (Decision 126's correction).
 * **C's `#ifdef`'d `else`, which Rust has no attribute for.**  C 19945-19948's
   `else x_scroll_bar_handle_exposure (f, event);` hangs on C 19921's
   `if (!FRAME_GARBAGED_P (f))`, and C 19993-19996's `else goto OTHER;` on C 19977's `if (f)`; an
@@ -5307,6 +5322,44 @@ raw pointer before any read, so rustc's `unused_assignments`/`unused_mut` classe
 * **What `--check` reads.**  Unchanged at two rows; the long row's token list goes **373 -> 343**.
   The unit is **32,799 lines** against C's 33,125 (**0.98%** drift, was 1.73%), file md5
   `ade46505587b6ef0d0a6835333fab2b8`.
+
+### 126. The switch frame, repaired: `break 'switch` is C's `goto OTHER`, `break 'other` is C's `break`
+
+* **What was wrong.**  Decision 121 (slice 110) and Decision 122 (slice 111) laid the frame out as
+  `'done: { 'other: { match { … } OTHER-block } done-block }` and read it as "a site that C sends to
+  `OTHER` is `break 'other`, which runs the block and then C's own `break`".  That is the reverse of
+  what the shape does: `break 'other` leaves the `'other` block, so it *skips* the `OTHER:` block
+  and lands on `done:` - which is C's `break`.  And an arm that merely ends runs the `OTHER:` block
+  - which is C's `goto OTHER`.  Four slices (111-114, 25 arms' worth of `goto OTHER`/`break` sites)
+  were spelled on the wrong reading: the jump sites skipped the block C runs, and the C-`break`
+  arms ran the block C skips.  **No arm's reading could see it**: the `OTHER:` block compiles only
+  in UT/UM (the `USE_X_TOOLKIT` arm) and UGX/AIUX (the `USE_GTK && !HAVE_GTK3 && HAVE_XINPUT2`
+  arm), and the row counts are identical either way - it is control flow, not text.
+* **Where C says so.**  C 25586-25590, measured: `#endif`, then `    break;` (C 25587, the `OTHER:`
+  block's own break), then `    }` (C 25588 - the **switch closes here**), a blank line, and
+  ` done:` (C 25590) at **one space** of indent, i.e. **outside** the switch.  So three things
+  reach `done:`: every `goto done`, every `break` from inside the switch, and the switch's own
+  fall-out when no case matches.
+* **The repair.**  The `match` is wrapped in a labelled `'switch:` block inside `'other:`, which
+  makes all three of C's jumps expressible: `break 'switch` lands on the `OTHER:` block (C's
+  `goto OTHER`, and the only way to spell a jump from *inside* an arm), `break 'other` leaves the
+  switch's block and lands on `done:` (C's `break`), and an arm that merely ends is C's fall-out
+  into `OTHER:`.  All eleven landed `goto OTHER` sites became `break 'switch` (C 19476, 19490,
+  19519, 19803, 19862, 19874, 19927, 19969, 19995, 20087, 20194) and the six arms C ends with
+  `break;` now say so (C 19485, 19514, 19560, 19971, 19997, 20005 - the previously implicit
+  fall-out).  The two block comments and Decision 121/122's prose are corrected in place.
+* **The evidence is runnable.**  `spikes/switch-frame-probe.rs` puts both shapes side by side and
+  prints the path each took: the old one reads `[done]` for a `goto OTHER` site (it skipped the
+  block) and `[body OTHER done]` for a C-`break` arm (it ran the block), the repaired one reads
+  `[OTHER done]` and `[body done]` - which is what C's control flow does.  Run:
+  `rustc --edition 2024 -O spikes/switch-frame-probe.rs -o /tmp/switch-frame && /tmp/switch-frame`.
+* **Zero-difference readings, measured on three arms.**  A **994 / 76**, UT **1001 / 75**, UG
+  **1010 / 77** - identical to slice 114's numbers, and the warning *sets* are identical message by
+  message (diffed against a HEAD copy of the unit, which the round re-materialised and removed).
+  That is what a control-flow-only repair should read like: the same statements compile either way.
+* **Not claimed.**  No runtime evidence - this lane does not link; the probe is a Rust model of the
+  frame, not the unit running.  What the repair changes is which path C's own jumps take, and that
+  is what the C text (25586-25590) and the probe each show.
 
 ## Evidence
 

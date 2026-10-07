@@ -17172,3 +17172,15 @@
      ⑶ **`--check`** 仍 2 行，长行的 token 清单 **373 → 343**；单元 **32,799 行**（C 33,125，**0.98%** 漂移，was 1.73%），文件 md5 `ade46505587b6ef0d0a6835333fab2b8`。
   ⑦ **预算与清理**：本片 rustc 编译 **约 65 发**（19 臂 × 2 轮 + 19 臂 × 1 轮复测 + 探针；每次 12-15 秒，单文件 `--emit=metadata`），`build/probes/xterm/`、`/tmp/s114/`、`/tmp/xterm-probe` 全部由收尾步骤删除，无全盘/大内存扫描。
      **未声称**：无运行证据——本 lane 不链接，map/unmap 事件一次也没到过；读数只有十九臂编译、`--check` 的 token 数与台账。剩余二十个 `case` 体，下一片从 `KeyPress`（C 20196，509 行）起。
+
+- **4.031 `src/xterm.c` round 90：**修掉 `handle_one_xevent` 的 switch 框架——slices 111-114 把 C 的 `break` 与 `goto OTHER` **接反了**（Decision 126；`spikes/switch-frame-probe.rs` 是可跑的判据）（2026-10-08）**：
+  ① **缺陷是什么**：Decision 121/122 把框架铺成 `'done: { 'other: { match { … } OTHER 块 } done 块 }`，并把它读成"C 送往 `OTHER` 的站点写 `break 'other`，它先跑该块再走 C 自己的 `break`"。**这正好是反的**：`break 'other` 离开 `'other` 块，所以它**跳过** `OTHER:` 块、落在 `done:` 上——那才是 C 的 `break`；而"臂自然结束"会**跑** `OTHER:` 块——那才是 C 的 `goto OTHER`。
+     于是四个 slice（111-114，共 25 处 `goto OTHER`/`break` 站点）全按错的读法拼：该跳的站点把 C 要跑的块跳掉了，该跳的 C `break` 臂反而把块跑了。
+  ② **为什么没有任何读数看得见**：`OTHER:` 块只在 UT/UM（`USE_X_TOOLKIT` 臂）与 UGX/AIUX（`USE_GTK && !HAVE_GTK3 && HAVE_XINPUT2` 臂）里编译，而这四处**两种写法编译出的语句完全一样、行数也完全一样**——它是控制流，不是正文，所以编译读数对它是盲的。
+  ③ **C 自己怎么说的（实测）**：C 25586-25590 逐行读出来是 `#endif`、`    break;`（C 25587，`OTHER:` 块自己的 break）、`    }`（C 25588——**switch 在这里闭合**）、空行、` done:`（C 25590）**只有一个空格缩进 ⇒ 在 switch 之外**。所以 `done:` 有三条来路：每一处 `goto done`、switch 内每一处 `break`、以及无 case 匹配时的自然落出。
+  ④ **修法**：把 `match` 包进 `'other:` 里的一个 `'switch:` 标号块，C 的三种跳法就都能写：`break 'switch` 落在 `OTHER:` 块上（= C 的 `goto OTHER`，也是"从臂**内部**跳走"唯一能写的形式）、`break 'other` 离开 switch 的块落在 `done:` 上（= C 的 `break`）、臂自然结束 = C 的自然落出。
+     已落的十一处 `goto OTHER` 全改成 `break 'switch`（C 19476/19490/19519/19803/19862/19874/19927/19969/19995/20087/20194），六个"以 C 的 `break;` 结尾"的臂补上显式的 `break 'other`（C 19485/19514/19560/19971/19997/20005，此前是隐式的落出）。两处块注释与 Decision 121/122 的散文按处改正。
+  ⑤ **判据是可跑的**：**新增 `spikes/switch-frame-probe.rs`**，把两种框架并排跑并打印各自走过的路径——旧框架对 `goto OTHER` 站点读 `[done]`（跳掉了块）、对 C `break` 臂读 `[body OTHER done]`（跑了块）；修好的框架读 `[OTHER done]` 与 `[body done]`，即 C 的控制流。跑法写在文件头（`rustc --edition 2024 -O … && /tmp/switch-frame`），本轮实测输出 `switch-frame-probe: ok (old shape read [done, body OTHER done])`。
+  ⑥ **零差量读数（三臂实测）**：A **994 / 76**、UT **1001 / 75**、UG **1010 / 77**——与 slice 114 的数字逐位相同，且**警告集合逐条相同**（对照的是本轮重新材化的 HEAD 副本，用完即删）。控制流修正在编译读数上就该是这个样子：两种写法编译出的语句一样。
+  ⑦ **预算与清理**：本轮编译 **约 15 发**（三臂 × 两侧 + 探针 + 一次警告集合对照），`build/probes/xterm/`、`/tmp/s115/` 由收尾步骤删除。
+     **未声称**：无运行证据——本 lane 不链接，探针是框架的 Rust 模型而不是单元在跑；本项改动改变的是"C 自己的跳转走哪条路"，判据是 C 25586-25590 的正文与探针两条。

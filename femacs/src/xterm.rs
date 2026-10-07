@@ -31055,845 +31055,863 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 
   'done: {
     'other: {
-      match (*event).r#type                                             // C 18949
-	{
-	  /* C 19473-19486: `case SelectionNotify:`.  The toolkit and GTK arms look the event's
-	     window up among this display's frames and hand everything else to the toolkit; the
-	     other arms go straight to the handler.  `xselection` is one of the 33 owed members
-	     of `include/xlib.rs`'s measured 192-byte opaque `XEvent`, so the read is C's own
-	     text and its row is counted (slice 110's `r#type`/`xany` class).  */
-	  SelectionNotify =>
-	    {
-#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
-	      if x_window_to_frame (dpyinfo, (*event).xselection.requestor).is_null ()  // C 19475
-		{ break 'other; }                                          // C 19476
-#[cfg (feature = "have_gtk3")]
-	      /* "GTK 3 apparently chokes on these events since they have no associated device.
-		 (bug#56869, another bug as well that I can't find)"  */
-	      { *finish = X_EVENT_DROP; }                                // C 19482
-	      x_handle_selection_notify (&raw mut (*event).xselection);  // C 19484
-	    }
-
-	  /* C 19487-19515: `case SelectionClear:` - "someone has grabbed ownership".  */
-	  SelectionClear =>
-	    {
-	      /* Xlib.h 1005-1010's `XSelectionClearEvent`, the `XEvent` union member C names in
-		 the local below and the opaque stand-in does not carry: the record stands at this
-		 use site (P-88 1, the `src/xselect.rs` 202 shape), with C's three read members.  */
-	      #[repr(C)]
-	      struct XSelectionClearEvent
+      /* C 18949's `switch (event->type)`.  **The four slices before this one had its frame
+	 backwards** (this round's repair, Decision 126): `done:` sits *outside* the switch in C
+	 (C 25588 closes it with `}` and C 25590's `done:` is at one-space indent), so C's `break`
+	 leaves the switch and reaches `done:` *without* running `OTHER:`.  The `match` is wrapped
+	 in this labelled block, which makes all three of C's jumps expressible: `break 'switch` is
+	 C's `goto OTHER` (it lands on the block below, and is how a jump from *inside* an arm is
+	 spelled), `break 'other` is C's `break` (it leaves the switch's block and lands on
+	 `done:`), and an arm that merely ends is C's own fall-out into `OTHER:`.  */
+      'switch: {
+		match (*event).r#type                                             // C 18949
 		{
-		  window: Window,                                  // C: Window window;
-		  selection: Atom,                                 // C: Atom selection;
-		  time: Time,                                      // C: Time time;
-		}
-#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
-	      if x_window_to_frame (dpyinfo, (*event).xselectionclear.window).is_null ()  // C 19489
-		{ break 'other; }                                          // C 19490
-#[cfg (feature = "have_gtk3")]
-	      { *finish = X_EVENT_DROP; }                                // C 19493
-	      let eventp: *const XSelectionClearEvent
-		= &raw const (*event).xselectionclear;                   // C 19496
-
-	      if (*eventp).selection == (*dpyinfo).motif_drag_atom        // C 19498
-		&& ((*eventp).time == CurrentTime                        // C 19499
-		    || (*dpyinfo).motif_drag_atom_time <= (*eventp).time) // C 19500
-		{ (*dpyinfo).motif_drag_atom = None as Atom; }            // C 19501
-
-	      selection_input_event_bits! (kind, &raw mut inev.sie, SELECTION_CLEAR_EVENT);  // C 19503
-	      SELECTION_EVENT_DPYINFO! (&raw mut inev.sie) = dpyinfo;     // C 19504
-	      SELECTION_EVENT_SELECTION! (&raw mut inev.sie) = (*eventp).selection;  // C 19505
-	      SELECTION_EVENT_TIME! (&raw mut inev.sie) = (*eventp).time; // C 19506
-
-	      if x_use_pending_selection_requests != 0                    // C 19508
-		{
-		  x_push_selection_request (&raw mut inev.sie);           // C 19510
-		  EVENT_INIT (&raw mut inev.ie);                          // C 19511
-		}
-	    }
-
-	  /* C 19516-19561: `case SelectionRequest:` - "someone wants our selection".  */
-	  SelectionRequest =>
-	    {
-	      /* Xlib.h 1005-1011's `XSelectionRequestEvent`, the same use-site record the
-		 sibling unit declares for its own reads (`src/xselect.rs` 202's pair).  */
-	      #[repr(C)]
-	      struct XSelectionRequestEvent
-		{
-		  owner: Window,                                    // C: Window owner;
-		  requestor: Window,                                // C: Window requestor;
-		  selection: Atom,                                  // C: Atom selection;
-		  target: Atom,                                     // C: Atom target;
-		  property: Atom,                                   // C: Atom property;
-		  time: Time,                                       // C: Time time;
-		}
-#[cfg (feature = "use_x_toolkit")]
-	      if x_window_to_frame (dpyinfo, (*event).xselectionrequest.owner).is_null ()  // C 19518
-		{ break 'other; }                                          // C 19519
-#[cfg (feature = "have_gtk3")]
-	      { *finish = X_EVENT_DROP; }                                // C 19522
-	      let eventp: *const XSelectionRequestEvent
-		= &raw const (*event).xselectionrequest;                 // C 19525
-
-	      selection_input_event_bits! (kind, &raw mut inev.sie, SELECTION_REQUEST_EVENT);  // C 19527
-	      SELECTION_EVENT_DPYINFO! (&raw mut inev.sie) = dpyinfo;     // C 19528
-	      SELECTION_EVENT_REQUESTOR! (&raw mut inev.sie) = (*eventp).requestor;  // C 19529
-	      SELECTION_EVENT_SELECTION! (&raw mut inev.sie) = (*eventp).selection;  // C 19530
-	      SELECTION_EVENT_TARGET! (&raw mut inev.sie) = (*eventp).target;        // C 19531
-	      SELECTION_EVENT_PROPERTY! (&raw mut inev.sie) = (*eventp).property;    // C 19532
-	      SELECTION_EVENT_TIME! (&raw mut inev.sie) = (*eventp).time;            // C 19533
-
-	      /* If drag-and-drop or another modal dialog/menu is in progress, handle
-		 SelectionRequest events immediately, by pushing it onto the selection queue.  */
-
-	      if x_use_pending_selection_requests != 0                    // C 19539
-		{
-		  x_push_selection_request (&raw mut inev.sie);           // C 19541
-		  EVENT_INIT (&raw mut inev.ie);                          // C 19542
-		}
-
-	      if x_dnd_waiting_for_finish                                 // C 19545
-		&& x_dnd_waiting_for_motif_finish == 2                    // C 19546
-		&& dpyinfo == x_dnd_waiting_for_motif_finish_display      // C 19547
-		&& (*eventp).selection == x_dnd_motif_atom                // C 19548
-		&& ((*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_SUCCESS     // C 19549
-		    || (*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_FAILURE) // C 19550
-		{
-		  x_dnd_waiting_for_finish = false;                       // C 19552
-
-		  /* If the transfer failed, then return nil from `x-begin-drag'.  */
-		  if (*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_FAILURE  // C 19556
-		    { x_dnd_action = None as Atom; }                       // C 19557
-		}
-	    }
-
-	  /* C 19562-19804: `case PropertyNotify:`.  The XDND toplevel table's `wm_state` reader, the
-	     two frame-state readers (`_NET_WM_STATE` and `WM_STATE`), the `_NET_WM_WINDOW_OPACITY`
-	     reader with its two `USE_XCB` arms, the root-window toplevel-list refresh, and the two
-	     handlers C ends on.  `event->xproperty` is one of the `XEvent` stand-in's owed members
-	     (`docs/ports/include-xlib.md`), so the port keeps C's own member text - the class slices
-	     110 and 111 carry - and the two `XEvent` records C's calls need (`XPropertyEvent`, the
-	     unit's own at 16681) are what makes the call sites type as C's do.  */
-	  PropertyNotify =>
-	    {
-	      if x_dnd_in_progress                                          // C 19563
-		&& x_dnd_use_toplevels
-		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)             // C 19564
-		&& (*event).xproperty.atom == (*dpyinfo).Xatom_wm_state     // C 19565
-		{
-		  let mut tem: *mut x_client_list_window;                   // C 19567
-		  let mut last: *mut x_client_list_window;                  // C 19567
-
-		  last = std::ptr::null_mut ();                             // C 19569
-		  tem = x_dnd_toplevels;
-		  while !tem.is_null ()                                     // C 19569
+		  /* C 19473-19486: `case SelectionNotify:`.  The toolkit and GTK arms look the event's
+		     window up among this display's frames and hand everything else to the toolkit; the
+		     other arms go straight to the handler.  `xselection` is one of the 33 owed members
+		     of `include/xlib.rs`'s measured 192-byte opaque `XEvent`, so the read is C's own
+		     text and its row is counted (slice 110's `r#type`/`xany` class).  */
+		  SelectionNotify =>
 		    {
-		      if (*tem).window == (*event).xproperty.window         // C 19572
+	#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		      if x_window_to_frame (dpyinfo, (*event).xselection.requestor).is_null ()  // C 19475
+			{ break 'switch; }                                          // C 19476
+	#[cfg (feature = "have_gtk3")]
+		      /* "GTK 3 apparently chokes on these events since they have no associated device.
+			 (bug#56869, another bug as well that I can't find)"  */
+		      { *finish = X_EVENT_DROP; }                                // C 19482
+		      x_handle_selection_notify (&raw mut (*event).xselection);  // C 19484
+		      break 'other;                                           // C 19485
+		    }
+
+		  /* C 19487-19515: `case SelectionClear:` - "someone has grabbed ownership".  */
+		  SelectionClear =>
+		    {
+		      /* Xlib.h 1005-1010's `XSelectionClearEvent`, the `XEvent` union member C names in
+			 the local below and the opaque stand-in does not carry: the record stands at this
+			 use site (P-88 1, the `src/xselect.rs` 202 shape), with C's three read members.  */
+		      #[repr(C)]
+		      struct XSelectionClearEvent
 			{
-			  let mut actual_type: Atom;                        // C 19574
-			  let mut actual_format: c_int;                     // C 19575
-			  let mut rc: c_int;                                // C 19575
-			  let mut nitems: c_ulong;                          // C 19576
-			  let mut bytesafter: c_ulong;                      // C 19576
-			  let mut data: *mut c_uchar                        // C 19577
-			    = std::ptr::null_mut ();
+			  window: Window,                                  // C: Window window;
+			  selection: Atom,                                 // C: Atom selection;
+			  time: Time,                                      // C: Time time;
+			}
+	#[cfg (any (feature = "use_x_toolkit", feature = "use_gtk"))]
+		      if x_window_to_frame (dpyinfo, (*event).xselectionclear.window).is_null ()  // C 19489
+			{ break 'switch; }                                          // C 19490
+	#[cfg (feature = "have_gtk3")]
+		      { *finish = X_EVENT_DROP; }                                // C 19493
+		      let eventp: *const XSelectionClearEvent
+			= &raw const (*event).xselectionclear;                   // C 19496
 
-			  if (*event).xproperty.state == PropertyDelete     // C 19579
+		      if (*eventp).selection == (*dpyinfo).motif_drag_atom        // C 19498
+			&& ((*eventp).time == CurrentTime                        // C 19499
+			    || (*dpyinfo).motif_drag_atom_time <= (*eventp).time) // C 19500
+			{ (*dpyinfo).motif_drag_atom = None as Atom; }            // C 19501
+
+		      selection_input_event_bits! (kind, &raw mut inev.sie, SELECTION_CLEAR_EVENT);  // C 19503
+		      SELECTION_EVENT_DPYINFO! (&raw mut inev.sie) = dpyinfo;     // C 19504
+		      SELECTION_EVENT_SELECTION! (&raw mut inev.sie) = (*eventp).selection;  // C 19505
+		      SELECTION_EVENT_TIME! (&raw mut inev.sie) = (*eventp).time; // C 19506
+
+		      if x_use_pending_selection_requests != 0                    // C 19508
+			{
+			  x_push_selection_request (&raw mut inev.sie);           // C 19510
+			  EVENT_INIT (&raw mut inev.ie);                          // C 19511
+			}
+		      break 'other;                                           // C 19514
+		    }
+
+		  /* C 19516-19561: `case SelectionRequest:` - "someone wants our selection".  */
+		  SelectionRequest =>
+		    {
+		      /* Xlib.h 1005-1011's `XSelectionRequestEvent`, the same use-site record the
+			 sibling unit declares for its own reads (`src/xselect.rs` 202's pair).  */
+		      #[repr(C)]
+		      struct XSelectionRequestEvent
+			{
+			  owner: Window,                                    // C: Window owner;
+			  requestor: Window,                                // C: Window requestor;
+			  selection: Atom,                                  // C: Atom selection;
+			  target: Atom,                                     // C: Atom target;
+			  property: Atom,                                   // C: Atom property;
+			  time: Time,                                       // C: Time time;
+			}
+	#[cfg (feature = "use_x_toolkit")]
+		      if x_window_to_frame (dpyinfo, (*event).xselectionrequest.owner).is_null ()  // C 19518
+			{ break 'switch; }                                          // C 19519
+	#[cfg (feature = "have_gtk3")]
+		      { *finish = X_EVENT_DROP; }                                // C 19522
+		      let eventp: *const XSelectionRequestEvent
+			= &raw const (*event).xselectionrequest;                 // C 19525
+
+		      selection_input_event_bits! (kind, &raw mut inev.sie, SELECTION_REQUEST_EVENT);  // C 19527
+		      SELECTION_EVENT_DPYINFO! (&raw mut inev.sie) = dpyinfo;     // C 19528
+		      SELECTION_EVENT_REQUESTOR! (&raw mut inev.sie) = (*eventp).requestor;  // C 19529
+		      SELECTION_EVENT_SELECTION! (&raw mut inev.sie) = (*eventp).selection;  // C 19530
+		      SELECTION_EVENT_TARGET! (&raw mut inev.sie) = (*eventp).target;        // C 19531
+		      SELECTION_EVENT_PROPERTY! (&raw mut inev.sie) = (*eventp).property;    // C 19532
+		      SELECTION_EVENT_TIME! (&raw mut inev.sie) = (*eventp).time;            // C 19533
+
+		      /* If drag-and-drop or another modal dialog/menu is in progress, handle
+			 SelectionRequest events immediately, by pushing it onto the selection queue.  */
+
+		      if x_use_pending_selection_requests != 0                    // C 19539
+			{
+			  x_push_selection_request (&raw mut inev.sie);           // C 19541
+			  EVENT_INIT (&raw mut inev.ie);                          // C 19542
+			}
+
+		      if x_dnd_waiting_for_finish                                 // C 19545
+			&& x_dnd_waiting_for_motif_finish == 2                    // C 19546
+			&& dpyinfo == x_dnd_waiting_for_motif_finish_display      // C 19547
+			&& (*eventp).selection == x_dnd_motif_atom                // C 19548
+			&& ((*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_SUCCESS     // C 19549
+			    || (*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_FAILURE) // C 19550
+			{
+			  x_dnd_waiting_for_finish = false;                       // C 19552
+
+			  /* If the transfer failed, then return nil from `x-begin-drag'.  */
+			  if (*eventp).target == (*dpyinfo).Xatom_XmTRANSFER_FAILURE  // C 19556
+			    { x_dnd_action = None as Atom; }                       // C 19557
+			}
+		      break 'other;                                           // C 19560
+		    }
+
+		  /* C 19562-19804: `case PropertyNotify:`.  The XDND toplevel table's `wm_state` reader, the
+		     two frame-state readers (`_NET_WM_STATE` and `WM_STATE`), the `_NET_WM_WINDOW_OPACITY`
+		     reader with its two `USE_XCB` arms, the root-window toplevel-list refresh, and the two
+		     handlers C ends on.  `event->xproperty` is one of the `XEvent` stand-in's owed members
+		     (`docs/ports/include-xlib.md`), so the port keeps C's own member text - the class slices
+		     110 and 111 carry - and the two `XEvent` records C's calls need (`XPropertyEvent`, the
+		     unit's own at 16681) are what makes the call sites type as C's do.  */
+		  PropertyNotify =>
+		    {
+		      if x_dnd_in_progress                                          // C 19563
+			&& x_dnd_use_toplevels
+			&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)             // C 19564
+			&& (*event).xproperty.atom == (*dpyinfo).Xatom_wm_state     // C 19565
+			{
+			  let mut tem: *mut x_client_list_window;                   // C 19567
+			  let mut last: *mut x_client_list_window;                  // C 19567
+
+			  last = std::ptr::null_mut ();                             // C 19569
+			  tem = x_dnd_toplevels;
+			  while !tem.is_null ()                                     // C 19569
 			    {
-			      if last.is_null ()                            // C 19581
-				{ x_dnd_toplevels = (*tem).next; }          // C 19582
-			      else
-				{ (*last).next = (*tem).next; }             // C 19584
+			      if (*tem).window == (*event).xproperty.window         // C 19572
+				{
+				  let mut actual_type: Atom;                        // C 19574
+				  let mut actual_format: c_int;                     // C 19575
+				  let mut rc: c_int;                                // C 19575
+				  let mut nitems: c_ulong;                          // C 19576
+				  let mut bytesafter: c_ulong;                      // C 19576
+				  let mut data: *mut c_uchar                        // C 19577
+				    = std::ptr::null_mut ();
 
-			      /* C 19586-19591's `#ifdef HAVE_XSHAPE` block - the same shape
-				 `x_dnd_free_toplevels` landed (2959-2966).  */
-#[cfg (feature = "have_xshape")]
-			      {
-				if (*tem).n_input_rects != -1               // C 19587
-				  { xfree ((*tem).input_rects as *mut c_void); }   // C 19588
-				if (*tem).n_bounding_rects != -1            // C 19589
-				  { xfree ((*tem).bounding_rects as *mut c_void); } // C 19590
-			      }
-			      xfree (tem as *mut c_void);                   // C 19592
+				  if (*event).xproperty.state == PropertyDelete     // C 19579
+				    {
+				      if last.is_null ()                            // C 19581
+					{ x_dnd_toplevels = (*tem).next; }          // C 19582
+				      else
+					{ (*last).next = (*tem).next; }             // C 19584
+
+				      /* C 19586-19591's `#ifdef HAVE_XSHAPE` block - the same shape
+					 `x_dnd_free_toplevels` landed (2959-2966).  */
+	#[cfg (feature = "have_xshape")]
+				      {
+					if (*tem).n_input_rects != -1               // C 19587
+					  { xfree ((*tem).input_rects as *mut c_void); }   // C 19588
+					if (*tem).n_bounding_rects != -1            // C 19589
+					  { xfree ((*tem).bounding_rects as *mut c_void); } // C 19590
+				      }
+				      xfree (tem as *mut c_void);                   // C 19592
+				    }
+				  else
+				    {
+				      x_catch_errors ((*dpyinfo).display);          // C 19596
+				      rc = XGetWindowProperty ((*dpyinfo).display,   // C 19597
+							       (*event).xproperty.window,   // C 19598
+							       (*dpyinfo).Xatom_wm_state,   // C 19599
+							       0, 2, 0, AnyPropertyType as Atom,   // C 19600
+							       &raw mut actual_type,        // C 19601
+							       &raw mut actual_format,
+							       &raw mut nitems,             // C 19602
+							       &raw mut bytesafter,
+							       &raw mut data);
+
+				      if !x_had_errors_p ((*dpyinfo).display)       // C 19604
+					&& rc == Success && !data.is_null ()        // C 19605
+					&& nitems == 2 && actual_format == 32
+					{ (*tem).wm_state = *(data as *mut c_ulong).offset (0); }  // C 19606
+				      else
+					{ (*tem).wm_state = WithdrawnState; }       // C 19608
+
+				      if !data.is_null ()                           // C 19610
+					{ XFree (data as *mut c_void); }            // C 19611
+				      x_uncatch_errors_after_check ();              // C 19612
+				    }
+
+				  x_dnd_update_state (dpyinfo, (*event).xproperty.time);  // C 19615
+				  break;                                        // C 19616
+				}
+			      last = tem;                                       // C 19570
+			      tem = (*tem).next;                                // C 19570
+			    }
+			}
+
+		      f = x_top_window_to_frame (dpyinfo, (*event).xproperty.window);  // C 19621
+		      if !f.is_null ()                                          // C 19622
+			&& (*event).xproperty.atom == (*dpyinfo).Xatom_net_wm_state
+			/* This should never happen with embedded windows.  */  // C 19623
+			&& !FRAME_X_EMBEDDED_P! (f)                             // C 19624
+			{
+			  let not_hidden: bool
+			    = x_handle_net_wm_state (f, &raw const (*event).xproperty);  // C 19626
+
+			  if not_hidden && FRAME_ICONIFIED_P (f)                // C 19628
+			    {
+			      if CONSP (frame_size_history)                     // C 19630
+				{
+				  frame_size_history_plain                      // C 19631-19632
+				    (f, build_string (c"PropertyNotify, not hidden & iconified".as_ptr ()));
+				}
+
+			      /* "Gnome shell does not iconify us when C-z is pressed.  It hides the
+				 frame.  So if our state says we aren't hidden anymore, treat it as
+				 deiconified."  */
+			      SET_FRAME_VISIBLE! (f, 1);                        // C 19638
+			      SET_FRAME_ICONIFIED (f, false as c_int);          // C 19639
+
+			      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;   // C 19641
+			      input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);  // C 19642
+			      /* C 19643-19652's `#if defined USE_GTK && defined HAVE_GTK3` block: "If GTK3
+				 wants to impose some old size here (Bug#24526), tell it that the current
+				 size is what we want."  */
+	#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+			      if frame_flag (f, FRAME_WAS_INVISIBLE_UNIT,        // C 19647
+					     FRAME_WAS_INVISIBLE_SHIFT)
+				{
+				  xg_frame_set_char_size (f,                     // C 19649
+							  FRAME_PIXEL_WIDTH (f),
+							  FRAME_PIXEL_HEIGHT (f));
+				  frame_set_flag (f, FRAME_WAS_INVISIBLE_UNIT,   // C 19650
+						  FRAME_WAS_INVISIBLE_SHIFT, 0);
+				}
+			      XSETFRAME! (inev.ie.frame_or_window, f);          // C 19653
+			    }
+			  else if !not_hidden && !FRAME_ICONIFIED_P (f)         // C 19655
+			    {
+			      if CONSP (frame_size_history)                     // C 19657
+				{
+				  frame_size_history_plain                      // C 19658-19659
+				    (f, build_string (c"PropertyNotify, hidden & not iconified".as_ptr ()));
+				}
+
+			      SET_FRAME_VISIBLE! (f, 0);                        // C 19661
+			      SET_FRAME_ICONIFIED (f, true as c_int);           // C 19662
+			      input_event_bits! (kind, &raw mut inev.ie, ICONIFY_EVENT);  // C 19663
+			      XSETFRAME! (inev.ie.frame_or_window, f);          // C 19664
+			    }
+			}
+
+		      if !f.is_null ()                                          // C 19668
+			&& (*event).xproperty.atom == (*dpyinfo).Xatom_wm_state
+			&& !FRAME_X_EMBEDDED_P! (f) && FRAME_PARENT_FRAME (f).is_null ()  // C 19669
+			/* "Handle WM_STATE.  We use this to clear the iconified flag on a frame if it is
+			   set.  GTK builds ignore deiconifying frames on FocusIn or Expose by default, and
+			   cannot wait for the window manager to remove _NET_WM_STATE_HIDDEN, as it is
+			   ambiguous when not set.  Handling UnmapNotify also checks for
+			   _NET_WM_STATE_HIDDEN, and thus suffers from the same problem."  */
+			{ x_handle_wm_state (f, &raw mut inev.ie); }            // C 19679
+
+		      if !f.is_null ()                                          // C 19681
+			&& (*(FRAME_X_OUTPUT! (f) as *mut x_output)).alpha_identical_p
+			&& (*event).xproperty.atom == (*dpyinfo).Xatom_net_wm_window_opacity  // C 19682
+			{
+			  /* C 19684-19697: the two arms' locals.  */
+			  #[cfg (not (feature = "use_xcb"))]
+			  let (mut rc, mut actual_format): (c_int, c_int);      // C 19685
+			  #[cfg (not (feature = "use_xcb"))]
+			  let mut actual: Atom;                                 // C 19686
+			  #[cfg (not (feature = "use_xcb"))]
+			  let mut tmp_data: *mut c_uchar;                       // C 19687
+			  #[cfg (not (feature = "use_xcb"))]
+			  let (mut n, mut left, mut opacity): (c_ulong, c_ulong, c_ulong);  // C 19688
+
+			  #[cfg (not (feature = "use_xcb"))]
+			  { tmp_data = std::ptr::null_mut (); }                 // C 19690
+
+			  #[cfg (feature = "use_xcb")]
+			  let mut opacity_cookie: xcb_get_property_cookie_t;    // C 19692
+			  #[cfg (feature = "use_xcb")]
+			  let mut opacity_reply: *mut xcb_get_property_reply_t; // C 19693
+			  #[cfg (feature = "use_xcb")]
+			  let mut error: *mut xcb_generic_error_t;              // C 19694
+			  #[cfg (feature = "use_xcb")]
+			  let mut rc: bool;                                     // C 19695
+			  #[cfg (feature = "use_xcb")]
+			  let mut value: u32;                                   // C 19696
+
+			  if (*event).xproperty.state == PropertyDelete         // C 19699
+			    {
+			      (*f).alpha[0] = 1.0;                              // C 19701
+			      (*f).alpha[1] = 1.0;                              // C 19702
+
+			      store_frame_param (f, Qalpha (), Qnil ());        // C 19704
 			    }
 			  else
 			    {
-			      x_catch_errors ((*dpyinfo).display);          // C 19596
-			      rc = XGetWindowProperty ((*dpyinfo).display,   // C 19597
-						       (*event).xproperty.window,   // C 19598
-						       (*dpyinfo).Xatom_wm_state,   // C 19599
-						       0, 2, 0, AnyPropertyType as Atom,   // C 19600
-						       &raw mut actual_type,        // C 19601
-						       &raw mut actual_format,
-						       &raw mut nitems,             // C 19602
-						       &raw mut bytesafter,
-						       &raw mut data);
+			      /* C 19708-19736's `#ifndef USE_XCB` arm.  */
+			      #[cfg (not (feature = "use_xcb"))]
+			      {
+				rc = XGetWindowProperty ((*dpyinfo).display,    // C 19709
+							 FRAME_OUTER_WINDOW! (f),
+							 (*dpyinfo).Xatom_net_wm_window_opacity,  // C 19710
+							 0, 1, 0, AnyPropertyType as Atom, &raw mut actual,  // C 19711
+							 &raw mut actual_format, &raw mut n,      // C 19712
+							 &raw mut left, &raw mut tmp_data);
 
-			      if !x_had_errors_p ((*dpyinfo).display)       // C 19604
-				&& rc == Success && !data.is_null ()        // C 19605
-				&& nitems == 2 && actual_format == 32
-				{ (*tem).wm_state = *(data as *mut c_ulong).offset (0); }  // C 19606
-			      else
-				{ (*tem).wm_state = WithdrawnState; }       // C 19608
+				if rc == Success && actual_format == 32         // C 19716
+				  && (actual == XA_CARDINAL                     // C 19717
+				      || actual == XA_ATOM                      // C 19720
+				      || actual == XA_WINDOW) && n != 0         // C 19721
+				  {
+				    opacity = *(tmp_data as *mut c_ulong) & OPAQUE;  // C 19723
+				    (*f).alpha[0] = (opacity as c_double) / (OPAQUE as c_double);  // C 19724
+				    (*f).alpha[1] = (opacity as c_double) / (OPAQUE as c_double);  // C 19725
 
-			      if !data.is_null ()                           // C 19610
-				{ XFree (data as *mut c_void); }            // C 19611
-			      x_uncatch_errors_after_check ();              // C 19612
+				    store_frame_param (f, Qalpha (), make_float ((*f).alpha[0]));  // C 19727
+				  }
+				else
+				  {
+				    (*f).alpha[0] = 1.0;                        // C 19731
+				    (*f).alpha[1] = 1.0;                        // C 19732
+
+				    store_frame_param (f, Qalpha (), Qnil ());  // C 19734
+				  }
+			      }
+
+			      /* C 19737-19772's `#else` arm.  */
+			      #[cfg (feature = "use_xcb")]
+			      {
+				opacity_cookie
+				  = xcb_get_property ((*dpyinfo).xcb_connection, 0,   // C 19737
+						      FRAME_OUTER_WINDOW! (f) as xcb_window_t,  // C 19738
+						      (*dpyinfo).Xatom_net_wm_window_opacity as xcb_atom_t,  // C 19739
+						      XA_CARDINAL as xcb_atom_t, 0, 1);  // C 19740
+				opacity_reply
+				  = xcb_get_property_reply ((*dpyinfo).xcb_connection,  // C 19742
+							    opacity_cookie, &raw mut error);
+
+				if opacity_reply.is_null ()                          // C 19745
+				  { free (error as *mut c_void); rc = false; }       // C 19746
+				else
+				  {
+				    rc = (*opacity_reply).format == 32               // C 19748
+				      && ((*opacity_reply).r#type == XA_CARDINAL as xcb_atom_t  // C 19749
+					  || (*opacity_reply).r#type == XA_ATOM as xcb_atom_t  // C 19750
+					  || (*opacity_reply).r#type == XA_WINDOW as xcb_atom_t)  // C 19751
+				      && xcb_get_property_value_length (opacity_reply) >= 4;  // C 19752
+				  }
+
+				if rc                                                // C 19754
+				  {
+				    value = *(xcb_get_property_value (opacity_reply) as *mut u32);  // C 19756
+
+				    (*f).alpha[0] = (value as c_double) / (OPAQUE as c_double);  // C 19758
+				    (*f).alpha[1] = (value as c_double) / (OPAQUE as c_double);  // C 19759
+				    store_frame_param (f, Qalpha (), make_float ((*f).alpha[0]));  // C 19760
+				  }
+				else
+				  {
+				    (*f).alpha[0] = 1.0;                        // C 19764
+				    (*f).alpha[1] = 1.0;                        // C 19765
+
+				    store_frame_param (f, Qalpha (), Qnil ());  // C 19767
+				  }
+
+				if !opacity_reply.is_null ()                     // C 19770
+				  { free (opacity_reply as *mut c_void); }       // C 19771
+			      }
 			    }
 
-			  x_dnd_update_state (dpyinfo, (*event).xproperty.time);  // C 19615
-			  break;                                        // C 19616
+			  /* C 19775-19778: the `#ifndef USE_XCB` tail.  */
+			  #[cfg (not (feature = "use_xcb"))]
+			  if !tmp_data.is_null ()                               // C 19776
+			    { XFree (tmp_data as *mut c_void); }                // C 19777
 			}
-		      last = tem;                                       // C 19570
-		      tem = (*tem).next;                                // C 19570
-		    }
-		}
 
-	      f = x_top_window_to_frame (dpyinfo, (*event).xproperty.window);  // C 19621
-	      if !f.is_null ()                                          // C 19622
-		&& (*event).xproperty.atom == (*dpyinfo).Xatom_net_wm_state
-		/* This should never happen with embedded windows.  */  // C 19623
-		&& !FRAME_X_EMBEDDED_P! (f)                             // C 19624
-		{
-		  let not_hidden: bool
-		    = x_handle_net_wm_state (f, &raw const (*event).xproperty);  // C 19626
-
-		  if not_hidden && FRAME_ICONIFIED_P (f)                // C 19628
-		    {
-		      if CONSP (frame_size_history)                     // C 19630
+		      if (*event).xproperty.window == (*dpyinfo).root_window    // C 19781
+			&& ((*event).xproperty.atom == (*dpyinfo).Xatom_net_client_list_stacking  // C 19782
+			    || (*event).xproperty.atom == (*dpyinfo).Xatom_net_current_desktop)  // C 19783
+			&& x_dnd_in_progress                                    // C 19784
+			&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)          // C 19785
 			{
-			  frame_size_history_plain                      // C 19631-19632
-			    (f, build_string (c"PropertyNotify, not hidden & iconified".as_ptr ()));
-			}
-
-		      /* "Gnome shell does not iconify us when C-z is pressed.  It hides the
-			 frame.  So if our state says we aren't hidden anymore, treat it as
-			 deiconified."  */
-		      SET_FRAME_VISIBLE! (f, 1);                        // C 19638
-		      SET_FRAME_ICONIFIED (f, false as c_int);          // C 19639
-
-		      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;   // C 19641
-		      input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);  // C 19642
-		      /* C 19643-19652's `#if defined USE_GTK && defined HAVE_GTK3` block: "If GTK3
-			 wants to impose some old size here (Bug#24526), tell it that the current
-			 size is what we want."  */
-#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
-		      if frame_flag (f, FRAME_WAS_INVISIBLE_UNIT,        // C 19647
-				     FRAME_WAS_INVISIBLE_SHIFT)
-			{
-			  xg_frame_set_char_size (f,                     // C 19649
-						  FRAME_PIXEL_WIDTH (f),
-						  FRAME_PIXEL_HEIGHT (f));
-			  frame_set_flag (f, FRAME_WAS_INVISIBLE_UNIT,   // C 19650
-					  FRAME_WAS_INVISIBLE_SHIFT, 0);
-			}
-		      XSETFRAME! (inev.ie.frame_or_window, f);          // C 19653
-		    }
-		  else if !not_hidden && !FRAME_ICONIFIED_P (f)         // C 19655
-		    {
-		      if CONSP (frame_size_history)                     // C 19657
-			{
-			  frame_size_history_plain                      // C 19658-19659
-			    (f, build_string (c"PropertyNotify, hidden & not iconified".as_ptr ()));
-			}
-
-		      SET_FRAME_VISIBLE! (f, 0);                        // C 19661
-		      SET_FRAME_ICONIFIED (f, true as c_int);           // C 19662
-		      input_event_bits! (kind, &raw mut inev.ie, ICONIFY_EVENT);  // C 19663
-		      XSETFRAME! (inev.ie.frame_or_window, f);          // C 19664
-		    }
-		}
-
-	      if !f.is_null ()                                          // C 19668
-		&& (*event).xproperty.atom == (*dpyinfo).Xatom_wm_state
-		&& !FRAME_X_EMBEDDED_P! (f) && FRAME_PARENT_FRAME (f).is_null ()  // C 19669
-		/* "Handle WM_STATE.  We use this to clear the iconified flag on a frame if it is
-		   set.  GTK builds ignore deiconifying frames on FocusIn or Expose by default, and
-		   cannot wait for the window manager to remove _NET_WM_STATE_HIDDEN, as it is
-		   ambiguous when not set.  Handling UnmapNotify also checks for
-		   _NET_WM_STATE_HIDDEN, and thus suffers from the same problem."  */
-		{ x_handle_wm_state (f, &raw mut inev.ie); }            // C 19679
-
-	      if !f.is_null ()                                          // C 19681
-		&& (*(FRAME_X_OUTPUT! (f) as *mut x_output)).alpha_identical_p
-		&& (*event).xproperty.atom == (*dpyinfo).Xatom_net_wm_window_opacity  // C 19682
-		{
-		  /* C 19684-19697: the two arms' locals.  */
-		  #[cfg (not (feature = "use_xcb"))]
-		  let (mut rc, mut actual_format): (c_int, c_int);      // C 19685
-		  #[cfg (not (feature = "use_xcb"))]
-		  let mut actual: Atom;                                 // C 19686
-		  #[cfg (not (feature = "use_xcb"))]
-		  let mut tmp_data: *mut c_uchar;                       // C 19687
-		  #[cfg (not (feature = "use_xcb"))]
-		  let (mut n, mut left, mut opacity): (c_ulong, c_ulong, c_ulong);  // C 19688
-
-		  #[cfg (not (feature = "use_xcb"))]
-		  { tmp_data = std::ptr::null_mut (); }                 // C 19690
-
-		  #[cfg (feature = "use_xcb")]
-		  let mut opacity_cookie: xcb_get_property_cookie_t;    // C 19692
-		  #[cfg (feature = "use_xcb")]
-		  let mut opacity_reply: *mut xcb_get_property_reply_t; // C 19693
-		  #[cfg (feature = "use_xcb")]
-		  let mut error: *mut xcb_generic_error_t;              // C 19694
-		  #[cfg (feature = "use_xcb")]
-		  let mut rc: bool;                                     // C 19695
-		  #[cfg (feature = "use_xcb")]
-		  let mut value: u32;                                   // C 19696
-
-		  if (*event).xproperty.state == PropertyDelete         // C 19699
-		    {
-		      (*f).alpha[0] = 1.0;                              // C 19701
-		      (*f).alpha[1] = 1.0;                              // C 19702
-
-		      store_frame_param (f, Qalpha (), Qnil ());        // C 19704
-		    }
-		  else
-		    {
-		      /* C 19708-19736's `#ifndef USE_XCB` arm.  */
-		      #[cfg (not (feature = "use_xcb"))]
-		      {
-			rc = XGetWindowProperty ((*dpyinfo).display,    // C 19709
-						 FRAME_OUTER_WINDOW! (f),
-						 (*dpyinfo).Xatom_net_wm_window_opacity,  // C 19710
-						 0, 1, 0, AnyPropertyType as Atom, &raw mut actual,  // C 19711
-						 &raw mut actual_format, &raw mut n,      // C 19712
-						 &raw mut left, &raw mut tmp_data);
-
-			if rc == Success && actual_format == 32         // C 19716
-			  && (actual == XA_CARDINAL                     // C 19717
-			      || actual == XA_ATOM                      // C 19720
-			      || actual == XA_WINDOW) && n != 0         // C 19721
-			  {
-			    opacity = *(tmp_data as *mut c_ulong) & OPAQUE;  // C 19723
-			    (*f).alpha[0] = (opacity as c_double) / (OPAQUE as c_double);  // C 19724
-			    (*f).alpha[1] = (opacity as c_double) / (OPAQUE as c_double);  // C 19725
-
-			    store_frame_param (f, Qalpha (), make_float ((*f).alpha[0]));  // C 19727
-			  }
-			else
-			  {
-			    (*f).alpha[0] = 1.0;                        // C 19731
-			    (*f).alpha[1] = 1.0;                        // C 19732
-
-			    store_frame_param (f, Qalpha (), Qnil ());  // C 19734
-			  }
-		      }
-
-		      /* C 19737-19772's `#else` arm.  */
-		      #[cfg (feature = "use_xcb")]
-		      {
-			opacity_cookie
-			  = xcb_get_property ((*dpyinfo).xcb_connection, 0,   // C 19737
-					      FRAME_OUTER_WINDOW! (f) as xcb_window_t,  // C 19738
-					      (*dpyinfo).Xatom_net_wm_window_opacity as xcb_atom_t,  // C 19739
-					      XA_CARDINAL as xcb_atom_t, 0, 1);  // C 19740
-			opacity_reply
-			  = xcb_get_property_reply ((*dpyinfo).xcb_connection,  // C 19742
-						    opacity_cookie, &raw mut error);
-
-			if opacity_reply.is_null ()                          // C 19745
-			  { free (error as *mut c_void); rc = false; }       // C 19746
-			else
-			  {
-			    rc = (*opacity_reply).format == 32               // C 19748
-			      && ((*opacity_reply).r#type == XA_CARDINAL as xcb_atom_t  // C 19749
-				  || (*opacity_reply).r#type == XA_ATOM as xcb_atom_t  // C 19750
-				  || (*opacity_reply).r#type == XA_WINDOW as xcb_atom_t)  // C 19751
-			      && xcb_get_property_value_length (opacity_reply) >= 4;  // C 19752
-			  }
-
-			if rc                                                // C 19754
-			  {
-			    value = *(xcb_get_property_value (opacity_reply) as *mut u32);  // C 19756
-
-			    (*f).alpha[0] = (value as c_double) / (OPAQUE as c_double);  // C 19758
-			    (*f).alpha[1] = (value as c_double) / (OPAQUE as c_double);  // C 19759
-			    store_frame_param (f, Qalpha (), make_float ((*f).alpha[0]));  // C 19760
-			  }
-			else
-			  {
-			    (*f).alpha[0] = 1.0;                        // C 19764
-			    (*f).alpha[1] = 1.0;                        // C 19765
-
-			    store_frame_param (f, Qalpha (), Qnil ());  // C 19767
-			  }
-
-			if !opacity_reply.is_null ()                     // C 19770
-			  { free (opacity_reply as *mut c_void); }       // C 19771
-		      }
-		    }
-
-		  /* C 19775-19778: the `#ifndef USE_XCB` tail.  */
-		  #[cfg (not (feature = "use_xcb"))]
-		  if !tmp_data.is_null ()                               // C 19776
-		    { XFree (tmp_data as *mut c_void); }                // C 19777
-		}
-
-	      if (*event).xproperty.window == (*dpyinfo).root_window    // C 19781
-		&& ((*event).xproperty.atom == (*dpyinfo).Xatom_net_client_list_stacking  // C 19782
-		    || (*event).xproperty.atom == (*dpyinfo).Xatom_net_current_desktop)  // C 19783
-		&& x_dnd_in_progress                                    // C 19784
-		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)          // C 19785
-		{
-		  if x_dnd_use_toplevels                                // C 19787
-		    {
-		      x_dnd_free_toplevels (true);                      // C 19789
-
-		      if x_dnd_compute_toplevels (dpyinfo) != 0         // C 19791
-			{
-			  x_dnd_free_toplevels (true);                  // C 19793
-			  x_dnd_use_toplevels = false;                  // C 19794
-			}
-		    }
-
-		  x_dnd_update_state (dpyinfo, (*event).xproperty.time);  // C 19798
-		}
-
-	      x_handle_property_notify (&raw const (*event).xproperty);  // C 19801
-	      xft_settings_event (dpyinfo as *mut c_void,           // C 19802
-			  event as *const c_void);
-	      break 'other;                                          // C 19803
-	    }
-
-	  /* C 19805-19862: `case ReparentNotify:` - the embedder/`parent_desc` bookkeeping C does
-	     when a window is reparented by the window manager.  */
-	  ReparentNotify =>
-	    {
-	      f = x_top_window_to_frame (dpyinfo, (*event).xreparent.window);  // C 19806
-	      if !f.is_null ()                                       // C 19807
-		{
-		  /* C 19809-19827's `#ifndef USE_GTK` block.  */
-#[cfg (not (feature = "use_gtk"))]
-		  if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).parent_desc != 0  // C 19810
-		    && FRAME_X_EMBEDDED_P! (f)                       // C 19811
-		    {
-		      /* "The frame's embedder was destroyed; mark the frame as no longer
-			 embedded, and map the frame.  An UnmapNotify event must have previously
-			 been received during the start of save-set processing."  */
-		      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).explicit_parent = false;  // C 19818
-
-		      /* "Remove the leftover XEMBED_INFO property."  */
-		      XDeleteProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),  // C 19821
-				       (*dpyinfo).Xatom_XEMBED_INFO);    // C 19822
-		      x_make_frame_visible (f);                      // C 19823
-		    }
-
-		  /* "Maybe we shouldn't set this for child frames ??"  */
-		  (*(FRAME_X_OUTPUT! (f) as *mut x_output)).parent_desc = (*event).xreparent.parent;  // C 19828
-
-		  if FRAME_PARENT_FRAME (f).is_null ()               // C 19830
-		    {
-		      x_real_positions (f, &raw mut (*f).left_pos, &raw mut (*f).top_pos);  // C 19832
-
-		      /* "Perhaps reparented due to a WM restart.  Reset this."  */
-		      (*dpyinfo).wm_type = X_WMTYPE_UNKNOWN;         // C 19835
-		      (*dpyinfo).net_supported_window = 0;           // C 19836
-
-		      /* C 19838-19846's `#ifndef USE_GTK` block: "The window manager could have
-			 restarted and the new window manager might not support user time windows,
-			 so update what is used accordingly.  Note that this doesn't handle changes
-			 between non-reparenting window managers."  */
-#[cfg (not (feature = "use_gtk"))]
-		      if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible  // C 19844
-			{ x_update_frame_user_time_window (f); }     // C 19845
-		    }
-		  else
-		    {
-		      let mut root: Window;                          // C 19850
-		      let mut dummy_uint: c_uint;                    // C 19851
-
-		      XGetGeometry (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),  // C 19853
-				    &raw mut root, &raw mut (*f).left_pos,   // C 19854
-				    &raw mut (*f).top_pos,
-				    &raw mut dummy_uint, &raw mut dummy_uint,   // C 19855
-				    &raw mut dummy_uint, &raw mut dummy_uint);
-		    }
-
-		  x_set_frame_alpha (f);                             // C 19860
-		}
-	      break 'other;                                          // C 19862
-	    }
-
-	  /* C 19863-19971: `case Expose:`.  The xwidget-view early return (C 19865-19877), the frame
-	     lookup and the three visibility paths (`FRAME_VISIBLE_P`, `FRAME_GARBAGED_P`, and the
-	     `x-set-frame-visibility-more-laxly` override C 19889-19890), then the widget dispatch C
-	     hands to the toolkit.  `xexpose` is one of the `XEvent` stand-in's owed members, so C's
-	     own member text stays (slices 110-112's class).  */
-	  Expose =>
-	    {
-	      /* C 19865-19877's `#ifdef HAVE_XWIDGETS` block.  */
-#[cfg (feature = "have_xwidgets")]
-	      {
-		let xv: *mut xwidget_view;                                // C 19867
-
-		xv = xwidget_view_from_window ((*event).xexpose.window);  // C 19869
-
-		if !xv.is_null ()                                         // C 19871
-		  {
-		    xwidget_expose (xv);                                  // C 19873
-		    break 'other;                                         // C 19874
-		  }
-	      }
-
-	      f = x_window_to_frame (dpyinfo, (*event).xexpose.window);   // C 19879
-	      if !f.is_null ()                                            // C 19880
-		{
-		  if !FRAME_VISIBLE_P (f)                                 // C 19882
-		    {
-		      /* "By default, do not set the frame's visibility here, see
-			 https://lists.gnu.org/archive/html/emacs-devel/2017-02/msg00133.html.
-			 The default behavior can be overridden by setting
-			 'x-set-frame-visibility-more-laxly' (Bug#49955, Bug#53298)."  */
-		      if EQ (x_set_frame_visibility_more_laxly, Qexpose ())  // C 19889
-			|| EQ (x_set_frame_visibility_more_laxly, Qt ())     // C 19890
-			{
-			  SET_FRAME_VISIBLE! (f, 1);                      // C 19892
-			  SET_FRAME_ICONIFIED (f, false as c_int);        // C 19893
-			}
-
-		      /* C 19896-19899's `#ifdef HAVE_XDBE` block.  */
-#[cfg (feature = "have_xdbe")]
-		      if FRAME_X_DOUBLE_BUFFERED_P! (f)                   // C 19897
-			{ x_drop_xrender_surfaces (f); }                  // C 19898
-		      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;  // C 19900
-		      SET_FRAME_GARBAGED! (f);                            // C 19901
-		    }
-		  else if FRAME_GARBAGED_P (f)                            // C 19903
-		    {
-		      /* C 19905-19918's `#ifdef USE_GTK` block: "Go around the back buffer and
-			 manually clear the window the first time we show it. … Yuck."  */
-#[cfg (feature = "use_gtk")]
-		      {
-			x_clear_area1 (FRAME_X_DISPLAY! (f),             // C 19912
-				       FRAME_X_WINDOW! (f),
-				       (*event).xexpose.x,                // C 19914
-				       (*event).xexpose.y,
-				       (*event).xexpose.width,            // C 19915
-				       (*event).xexpose.height,
-				       0);                                // C 19916
-			x_clear_under_internal_border (f);               // C 19917
-		      }
-		    }
-
-		  /* C 19921's `if (!FRAME_GARBAGED_P (f))` is evaluated once, as C evaluates it,
-		     because the two arms below read the value the test produced.  */
-		  let garbaged: bool = FRAME_GARBAGED_P (f);              // C 19921
-		  if !garbaged
-		    {
-		      /* C 19923-19928's `#if defined USE_X_TOOLKIT && defined
-			 USE_TOOLKIT_SCROLL_BARS`: the widget's expose proc is what runs then.  */
-#[cfg (all (feature = "use_x_toolkit", feature = "use_toolkit_scroll_bars"))]
-		      if !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).edit_widget.is_null ()  // C 19924
-			{ break 'other; }                                 // C 19927
-		      /* C 19929-19938's `#ifdef USE_GTK` block.  */
-#[cfg (feature = "use_gtk")]
-		      {
-			x_clear_area (f,                                   // C 19932
-				      (*event).xexpose.x,                  // C 19933
-				      (*event).xexpose.y,
-				      (*event).xexpose.width,              // C 19934
-				      (*event).xexpose.height);
-			x_clear_under_internal_border (f);               // C 19937
-		      }
-		      expose_frame (f, (*event).xexpose.x,                // C 19939
-				    (*event).xexpose.y,
-				    (*event).xexpose.width,                // C 19940
-				    (*event).xexpose.height);
-		      /* C 19941-19943's `#ifndef USE_TOOLKIT_SCROLL_BARS`.  */
-#[cfg (not (feature = "use_toolkit_scroll_bars"))]
-		      { x_scroll_bar_handle_exposure (f, event); }        // C 19942
-		    }
-		  /* C 19945-19948's `#ifndef USE_TOOLKIT_SCROLL_BARS` else, whose test is the
-		     value C 19921 saved.  */
-#[cfg (not (feature = "use_toolkit_scroll_bars"))]
-		  if garbaged
-		    { x_scroll_bar_handle_exposure (f, event); }          // C 19947
-
-		  /* C 19950-19953's `#ifdef HAVE_XDBE` tail - C's own second read of the flag.  */
-#[cfg (feature = "have_xdbe")]
-		  if !FRAME_GARBAGED_P (f)                                // C 19951
-		    { show_back_buffer (f); }                             // C 19952
-		}
-	      else
-		{
-		  /* C 19957-19966's `#if defined USE_LUCID` block.  */
-#[cfg (feature = "use_lucid")]
-		  {
-		    let widget: Widget = x_window_to_menu_bar ((*event).xexpose.window);  // C 19962
-		    if !widget.is_null ()                                 // C 19963
-		      { xlwmenu_redisplay (widget); }                     // C 19964
-		  }
-
-		  /* "Dispatch event to the widget."  */
-		  break 'other;                                           // C 19969
-		}
-	    }
-
-	  /* C 19973-19997: `case GraphicsExpose:` - "this occurs when an XCopyArea's source area
-	     was obscured or not available".  */
-	  GraphicsExpose =>
-	    {
-	      f = x_window_to_frame (dpyinfo, (*event).xgraphicsexpose.drawable);  // C 19976
-	      if !f.is_null ()                                                  // C 19977
-		{
-		  expose_frame (f, (*event).xgraphicsexpose.x,                     // C 19979
-				(*event).xgraphicsexpose.y,                        // C 19980
-				(*event).xgraphicsexpose.width,                    // C 19981
-				(*event).xgraphicsexpose.height);                  // C 19982
-		  /* C 19983-19985's `#ifndef USE_TOOLKIT_SCROLL_BARS`.  */
-#[cfg (not (feature = "use_toolkit_scroll_bars"))]
-		  { x_scroll_bar_handle_exposure (f, event); }                     // C 19984
-		  /* C 19986-19988's `#ifdef USE_GTK`.  */
-#[cfg (feature = "use_gtk")]
-		  { x_clear_under_internal_border (f); }                           // C 19987
-		  /* C 19989-19991's `#ifdef HAVE_XDBE`.  */
-#[cfg (feature = "have_xdbe")]
-		  { show_back_buffer (f); }                                        // C 19990
-		}
-	      /* C 19993-19996's `#ifdef USE_X_TOOLKIT` else.  */
-#[cfg (feature = "use_x_toolkit")]
-	      if f.is_null ()
-		{ break 'other; }                                                  // C 19995
-	    }
-
-	  /* C 19999-20005: `case NoExpose:` - "this occurs when an XCopyArea's source area was
-	     completely available".  */
-	  NoExpose =>
-	    {
-	      /* C 20002-20004's `#ifdef USE_X_TOOLKIT`.  */
-#[cfg (feature = "use_x_toolkit")]
-	      { *finish = X_EVENT_DROP; }                                          // C 20003
-	    }
-
-	  /* C 20007-20088: `case UnmapNotify:`.  The XDND toplevel table's `mapped_p` clear, the
-	     tooltip's mouse-highlight redo, and the frame-state block whose Lucid arm is C's own
-	     "bloodcurdling hack" (that arm is text no arm of this lane compiles - Decision 101's
-	     standing bound).  `xunmap` is one of the `XEvent` stand-in's owed members.  */
-	  UnmapNotify =>
-	    {
-	      if x_dnd_in_progress                                          // C 20008
-		&& x_dnd_use_toplevels
-		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)             // C 20009
-		{
-		  let mut tem: *mut x_client_list_window = x_dnd_toplevels;  // C 20011
-		  while !tem.is_null ()                                     // C 20011
-		    {
-		      if (*tem).window == (*event).xunmap.window            // C 20014
-			{
-			  (*tem).mapped_p = false;                          // C 20016
-			  break;                                            // C 20017
-			}
-		      tem = (*tem).next;                                    // C 20012
-		    }
-		}
-
-	      /* "Redo the mouse-highlight after the tooltip has gone."  */
-	      if (*event).xunmap.window == tip_window                       // C 20023
-		{
-		  tip_window = None as Window;                              // C 20025
-		  gui_redo_mouse_highlight (dpyinfo);                       // C 20026
-		}
-
-	      f = x_top_window_to_frame (dpyinfo, (*event).xunmap.window);  // C 20029
-	      /* "F may no longer exist if the frame was deleted."  */
-	      if !f.is_null ()                                          // C 20030
-		{
-		  let visible: bool = FRAME_VISIBLE_P (f);                  // C 20033
-
-		  /* C 20035-20061's `#ifdef USE_LUCID` block.  */
-#[cfg (feature = "use_lucid")]
-		  {
-		    /* "Bloodcurdling hack alert: The Lucid menu bar widget's redisplay procedure
-		       is not called when a tip frame over menu items is unmapped.  Redisplay the
-		       menu manually…"  */
-		    if FRAME_TOOLTIP_P (f) && popup_activated ()            // C 20039
-		      {
-			let mut w: Widget;                                  // C 20041
-			let mut tail: Lisp_Object;                          // C 20042
-			let mut frame: Lisp_Object;                         // C 20042
-			let mut f1: *mut frame;                             // C 20043
-
-			FOR_EACH_FRAME! (tail, frame, {                     // C 20045
-			  if !FRAME_X_P (XFRAME (frame))                    // C 20047
-			    { continue; }                                   // C 20048
-
-			  f1 = XFRAME (frame);                              // C 20050
-
-			  if FRAME_LIVE_P (f1)                              // C 20052
+			  if x_dnd_use_toplevels                                // C 19787
 			    {
-			      w = (*(FRAME_X_OUTPUT! (f1) as *mut x_output)).menubar_widget;  // C 20054
+			      x_dnd_free_toplevels (true);                      // C 19789
 
-			      if !w.is_null ()                              // C 20056
-				&& !DoesSaveUnders ((*FRAME_DISPLAY_INFO! (f1)).screen)
-				{ xlwmenu_redisplay (w); }                  // C 20057
+			      if x_dnd_compute_toplevels (dpyinfo) != 0         // C 19791
+				{
+				  x_dnd_free_toplevels (true);                  // C 19793
+				  x_dnd_use_toplevels = false;                  // C 19794
+				}
 			    }
-			});
+
+			  x_dnd_update_state (dpyinfo, (*event).xproperty.time);  // C 19798
+			}
+
+		      x_handle_property_notify (&raw const (*event).xproperty);  // C 19801
+		      xft_settings_event (dpyinfo as *mut c_void,           // C 19802
+				  event as *const c_void);
+		      break 'switch;                                          // C 19803
+		    }
+
+		  /* C 19805-19862: `case ReparentNotify:` - the embedder/`parent_desc` bookkeeping C does
+		     when a window is reparented by the window manager.  */
+		  ReparentNotify =>
+		    {
+		      f = x_top_window_to_frame (dpyinfo, (*event).xreparent.window);  // C 19806
+		      if !f.is_null ()                                       // C 19807
+			{
+			  /* C 19809-19827's `#ifndef USE_GTK` block.  */
+	#[cfg (not (feature = "use_gtk"))]
+			  if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).parent_desc != 0  // C 19810
+			    && FRAME_X_EMBEDDED_P! (f)                       // C 19811
+			    {
+			      /* "The frame's embedder was destroyed; mark the frame as no longer
+				 embedded, and map the frame.  An UnmapNotify event must have previously
+				 been received during the start of save-set processing."  */
+			      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).explicit_parent = false;  // C 19818
+
+			      /* "Remove the leftover XEMBED_INFO property."  */
+			      XDeleteProperty ((*dpyinfo).display, FRAME_OUTER_WINDOW! (f),  // C 19821
+					       (*dpyinfo).Xatom_XEMBED_INFO);    // C 19822
+			      x_make_frame_visible (f);                      // C 19823
+			    }
+
+			  /* "Maybe we shouldn't set this for child frames ??"  */
+			  (*(FRAME_X_OUTPUT! (f) as *mut x_output)).parent_desc = (*event).xreparent.parent;  // C 19828
+
+			  if FRAME_PARENT_FRAME (f).is_null ()               // C 19830
+			    {
+			      x_real_positions (f, &raw mut (*f).left_pos, &raw mut (*f).top_pos);  // C 19832
+
+			      /* "Perhaps reparented due to a WM restart.  Reset this."  */
+			      (*dpyinfo).wm_type = X_WMTYPE_UNKNOWN;         // C 19835
+			      (*dpyinfo).net_supported_window = 0;           // C 19836
+
+			      /* C 19838-19846's `#ifndef USE_GTK` block: "The window manager could have
+				 restarted and the new window manager might not support user time windows,
+				 so update what is used accordingly.  Note that this doesn't handle changes
+				 between non-reparenting window managers."  */
+	#[cfg (not (feature = "use_gtk"))]
+			      if (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible  // C 19844
+				{ x_update_frame_user_time_window (f); }     // C 19845
+			    }
+			  else
+			    {
+			      let mut root: Window;                          // C 19850
+			      let mut dummy_uint: c_uint;                    // C 19851
+
+			      XGetGeometry (FRAME_X_DISPLAY! (f), FRAME_OUTER_WINDOW! (f),  // C 19853
+					    &raw mut root, &raw mut (*f).left_pos,   // C 19854
+					    &raw mut (*f).top_pos,
+					    &raw mut dummy_uint, &raw mut dummy_uint,   // C 19855
+					    &raw mut dummy_uint, &raw mut dummy_uint);
+			    }
+
+			  x_set_frame_alpha (f);                             // C 19860
+			}
+		      break 'switch;                                          // C 19862
+		    }
+
+		  /* C 19863-19971: `case Expose:`.  The xwidget-view early return (C 19865-19877), the frame
+		     lookup and the three visibility paths (`FRAME_VISIBLE_P`, `FRAME_GARBAGED_P`, and the
+		     `x-set-frame-visibility-more-laxly` override C 19889-19890), then the widget dispatch C
+		     hands to the toolkit.  `xexpose` is one of the `XEvent` stand-in's owed members, so C's
+		     own member text stays (slices 110-112's class).  */
+		  Expose =>
+		    {
+		      /* C 19865-19877's `#ifdef HAVE_XWIDGETS` block.  */
+	#[cfg (feature = "have_xwidgets")]
+		      {
+			let xv: *mut xwidget_view;                                // C 19867
+
+			xv = xwidget_view_from_window ((*event).xexpose.window);  // C 19869
+
+			if !xv.is_null ()                                         // C 19871
+			  {
+			    xwidget_expose (xv);                                  // C 19873
+			    break 'switch;                                         // C 19874
+			  }
 		      }
-		  }
 
-		  /* "While a frame is unmapped, display generation is disabled; you don't want to
-		     spend time updating a display that won't ever be seen."  */
-		  SET_FRAME_VISIBLE! (f, 0);                                // C 20066
-		  /* "We can't distinguish, from the event, whether the window has become iconified
-		     or invisible.  So assume, if it was previously visible, than now it is
-		     iconified.  But x_make_frame_invisible clears both the visible flag and the
-		     iconified flag; and that way, we know the window is not iconified now."  */
-		  if visible || FRAME_ICONIFIED_P (f)                       // C 20073
-		    {
-		      if CONSP (frame_size_history)                         // C 20075
+		      f = x_window_to_frame (dpyinfo, (*event).xexpose.window);   // C 19879
+		      if !f.is_null ()                                            // C 19880
 			{
-			  frame_size_history_plain                          // C 20076-20077
-			    (f, build_string (c"UnmapNotify, visible | iconified".as_ptr ()));
+			  if !FRAME_VISIBLE_P (f)                                 // C 19882
+			    {
+			      /* "By default, do not set the frame's visibility here, see
+				 https://lists.gnu.org/archive/html/emacs-devel/2017-02/msg00133.html.
+				 The default behavior can be overridden by setting
+				 'x-set-frame-visibility-more-laxly' (Bug#49955, Bug#53298)."  */
+			      if EQ (x_set_frame_visibility_more_laxly, Qexpose ())  // C 19889
+				|| EQ (x_set_frame_visibility_more_laxly, Qt ())     // C 19890
+				{
+				  SET_FRAME_VISIBLE! (f, 1);                      // C 19892
+				  SET_FRAME_ICONIFIED (f, false as c_int);        // C 19893
+				}
+
+			      /* C 19896-19899's `#ifdef HAVE_XDBE` block.  */
+	#[cfg (feature = "have_xdbe")]
+			      if FRAME_X_DOUBLE_BUFFERED_P! (f)                   // C 19897
+				{ x_drop_xrender_surfaces (f); }                  // C 19898
+			      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;  // C 19900
+			      SET_FRAME_GARBAGED! (f);                            // C 19901
+			    }
+			  else if FRAME_GARBAGED_P (f)                            // C 19903
+			    {
+			      /* C 19905-19918's `#ifdef USE_GTK` block: "Go around the back buffer and
+				 manually clear the window the first time we show it. … Yuck."  */
+	#[cfg (feature = "use_gtk")]
+			      {
+				x_clear_area1 (FRAME_X_DISPLAY! (f),             // C 19912
+					       FRAME_X_WINDOW! (f),
+					       (*event).xexpose.x,                // C 19914
+					       (*event).xexpose.y,
+					       (*event).xexpose.width,            // C 19915
+					       (*event).xexpose.height,
+					       0);                                // C 19916
+				x_clear_under_internal_border (f);               // C 19917
+			      }
+			    }
+
+			  /* C 19921's `if (!FRAME_GARBAGED_P (f))` is evaluated once, as C evaluates it,
+			     because the two arms below read the value the test produced.  */
+			  let garbaged: bool = FRAME_GARBAGED_P (f);              // C 19921
+			  if !garbaged
+			    {
+			      /* C 19923-19928's `#if defined USE_X_TOOLKIT && defined
+				 USE_TOOLKIT_SCROLL_BARS`: the widget's expose proc is what runs then.  */
+	#[cfg (all (feature = "use_x_toolkit", feature = "use_toolkit_scroll_bars"))]
+			      if !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).edit_widget.is_null ()  // C 19924
+				{ break 'switch; }                                 // C 19927
+			      /* C 19929-19938's `#ifdef USE_GTK` block.  */
+	#[cfg (feature = "use_gtk")]
+			      {
+				x_clear_area (f,                                   // C 19932
+					      (*event).xexpose.x,                  // C 19933
+					      (*event).xexpose.y,
+					      (*event).xexpose.width,              // C 19934
+					      (*event).xexpose.height);
+				x_clear_under_internal_border (f);               // C 19937
+			      }
+			      expose_frame (f, (*event).xexpose.x,                // C 19939
+					    (*event).xexpose.y,
+					    (*event).xexpose.width,                // C 19940
+					    (*event).xexpose.height);
+			      /* C 19941-19943's `#ifndef USE_TOOLKIT_SCROLL_BARS`.  */
+	#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+			      { x_scroll_bar_handle_exposure (f, event); }        // C 19942
+			    }
+			  /* C 19945-19948's `#ifndef USE_TOOLKIT_SCROLL_BARS` else, whose test is the
+			     value C 19921 saved.  */
+	#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+			  if garbaged
+			    { x_scroll_bar_handle_exposure (f, event); }          // C 19947
+
+			  /* C 19950-19953's `#ifdef HAVE_XDBE` tail - C's own second read of the flag.  */
+	#[cfg (feature = "have_xdbe")]
+			  if !FRAME_GARBAGED_P (f)                                // C 19951
+			    { show_back_buffer (f); }                             // C 19952
+			}
+		      else
+			{
+			  /* C 19957-19966's `#if defined USE_LUCID` block.  */
+	#[cfg (feature = "use_lucid")]
+			  {
+			    let widget: Widget = x_window_to_menu_bar ((*event).xexpose.window);  // C 19962
+			    if !widget.is_null ()                                 // C 19963
+			      { xlwmenu_redisplay (widget); }                     // C 19964
+			  }
+
+			  /* "Dispatch event to the widget."  */
+			  break 'switch;                                           // C 19969
+			}
+		      break 'other;                                                 // C 19971
+		    }
+
+		  /* C 19973-19997: `case GraphicsExpose:` - "this occurs when an XCopyArea's source area
+		     was obscured or not available".  */
+		  GraphicsExpose =>
+		    {
+		      f = x_window_to_frame (dpyinfo, (*event).xgraphicsexpose.drawable);  // C 19976
+		      if !f.is_null ()                                                  // C 19977
+			{
+			  expose_frame (f, (*event).xgraphicsexpose.x,                     // C 19979
+					(*event).xgraphicsexpose.y,                        // C 19980
+					(*event).xgraphicsexpose.width,                    // C 19981
+					(*event).xgraphicsexpose.height);                  // C 19982
+			  /* C 19983-19985's `#ifndef USE_TOOLKIT_SCROLL_BARS`.  */
+	#[cfg (not (feature = "use_toolkit_scroll_bars"))]
+			  { x_scroll_bar_handle_exposure (f, event); }                     // C 19984
+			  /* C 19986-19988's `#ifdef USE_GTK`.  */
+	#[cfg (feature = "use_gtk")]
+			  { x_clear_under_internal_border (f); }                           // C 19987
+			  /* C 19989-19991's `#ifdef HAVE_XDBE`.  */
+	#[cfg (feature = "have_xdbe")]
+			  { show_back_buffer (f); }                                        // C 19990
+			}
+		      /* C 19993-19996's `#ifdef USE_X_TOOLKIT` else.  */
+	#[cfg (feature = "use_x_toolkit")]
+		      if f.is_null ()
+			{ break 'switch; }                                                  // C 19995
+		      break 'other;                                                 // C 19997
+		    }
+
+		  /* C 19999-20005: `case NoExpose:` - "this occurs when an XCopyArea's source area was
+		     completely available".  */
+		  NoExpose =>
+		    {
+		      /* C 20002-20004's `#ifdef USE_X_TOOLKIT`.  */
+	#[cfg (feature = "use_x_toolkit")]
+		      { *finish = X_EVENT_DROP; }                                          // C 20003
+		      break 'other;                                                 // C 20005
+		    }
+
+		  /* C 20007-20088: `case UnmapNotify:`.  The XDND toplevel table's `mapped_p` clear, the
+		     tooltip's mouse-highlight redo, and the frame-state block whose Lucid arm is C's own
+		     "bloodcurdling hack" (that arm is text no arm of this lane compiles - Decision 101's
+		     standing bound).  `xunmap` is one of the `XEvent` stand-in's owed members.  */
+		  UnmapNotify =>
+		    {
+		      if x_dnd_in_progress                                          // C 20008
+			&& x_dnd_use_toplevels
+			&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)             // C 20009
+			{
+			  let mut tem: *mut x_client_list_window = x_dnd_toplevels;  // C 20011
+			  while !tem.is_null ()                                     // C 20011
+			    {
+			      if (*tem).window == (*event).xunmap.window            // C 20014
+				{
+				  (*tem).mapped_p = false;                          // C 20016
+				  break;                                            // C 20017
+				}
+			      tem = (*tem).next;                                    // C 20012
+			    }
 			}
 
-		      SET_FRAME_ICONIFIED (f, true as c_int);               // C 20079
-		      input_event_bits! (kind, &raw mut inev.ie, ICONIFY_EVENT);  // C 20080
-		      XSETFRAME! (inev.ie.frame_or_window, f);              // C 20081
-		    }
-		  else if CONSP (frame_size_history)                        // C 20083
-		    {
-		      frame_size_history_plain                              // C 20084-20085
-			(f, build_string (c"UnmapNotify, not visible & not iconified".as_ptr ()));
-		    }
-		}
-	      break 'other;                                                 // C 20087
-	    }
-
-	  /* C 20089-20195: `case MapNotify:`.  The GTK3 menu check, the two XDND state updates, the
-	     toplevel table's `mapped_p` set, then the frame's own state: `x_get_current_wm_state`,
-	     the fullscreen/skip-taskbar pair, the `z-group` reset, the gtk3 `was_invisible` pair and
-	     the two `XSETFRAME` sites.  `xmap` is an owed `XEvent` member.  */
-	  MapNotify =>
-	    {
-	      /* C 20090-20093's `#if defined HAVE_XINPUT2 && defined HAVE_GTK3` block - the pair
-		 that is this slice's nineteenth arm (`AG3X`), because no earlier arm spells both
-		 features at once.  */
-#[cfg (all (feature = "have_xinput2", feature = "have_gtk3"))]
-	      if xg_is_menu_window ((*dpyinfo).display, (*event).xmap.window)  // C 20091
-		{ popup_activated_flag = 1; }                              // C 20092
-
-	      if x_dnd_in_progress                                         // C 20095
-		/* "When _NET_WM_CLIENT_LIST stacking is being used, changes in that property are
-		   watched for, and it's not necessary to update the state in response to ordinary
-		   window substructure events."  */
-		&& !x_dnd_use_toplevels                                    // C 20100
-		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)            // C 20101
-		{ x_dnd_update_state (dpyinfo, (*dpyinfo).last_user_time); }  // C 20102
-
-	      if x_dnd_in_progress && x_dnd_use_toplevels                  // C 20104
-		&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)            // C 20105
-		{
-		  let mut tem: *mut x_client_list_window = x_dnd_toplevels;  // C 20107
-		  while !tem.is_null ()                                     // C 20107
-		    {
-		      if (*tem).window == (*event).xmap.window              // C 20110
+		      /* "Redo the mouse-highlight after the tooltip has gone."  */
+		      if (*event).xunmap.window == tip_window                       // C 20023
 			{
-			  (*tem).mapped_p = true;                           // C 20112
-			  break;                                            // C 20113
+			  tip_window = None as Window;                              // C 20025
+			  gui_redo_mouse_highlight (dpyinfo);                       // C 20026
 			}
-		      tem = (*tem).next;                                    // C 20108
-		    }
-		}
 
-	      /* "We use x_top_window_to_frame because map events can come for sub-windows and
-		 they don't mean that the frame is visible."  */
-	      f = x_top_window_to_frame (dpyinfo, (*event).xmap.window);    // C 20121
-	      if !f.is_null ()                                            // C 20122
-		{
-		  let iconified: bool = FRAME_ICONIFIED_P (f);              // C 20124
-		  let mut value: c_int;                                     // C 20125
-		  let mut sticky: bool;                                     // C 20126
-		  let mut shaded: bool;                                     // C 20126
-		  let not_hidden: bool
-		    = x_get_current_wm_state (f, (*event).xmap.window, &raw mut value,  // C 20127
-					      &raw mut sticky, &raw mut shaded);  // C 20128
-
-		  if CONSP (frame_size_history)                             // C 20130
-		    {
-		      frame_size_history_extra                              // C 20131-20141
-			(f,
-			 if iconified
-			   { if not_hidden
-			       { build_string (c"MapNotify, not hidden & iconified".as_ptr ()) }
-			     else
-			       { build_string (c"MapNotify, hidden & iconified".as_ptr ()) } }
-			 else
-			   { if not_hidden
-			       { build_string (c"MapNotify, not hidden & not iconified".as_ptr ()) }
-			     else
-			       { build_string (c"MapNotify, hidden & not iconified".as_ptr ()) } },
-			 FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f),
-			 -1, -1, (*f).new_width, (*f).new_height);          // C 20141
-		    }
-
-		  /* "Check if fullscreen was specified before we where mapped the first time, i.e.
-		     from the command line."  */
-		  if !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible  // C 20145
-		    {
-		      x_check_fullscreen (f);                               // C 20148
-		      /* C 20149-20154's `#ifndef USE_GTK` block: "For systems that cannot
-			 synthesize `skip_taskbar' for unmapped windows do the following."  */
-#[cfg (not (feature = "use_gtk"))]
-		      if FRAME_SKIP_TASKBAR! (f) != 0                       // C 20152
-			{ x_set_skip_taskbar (f, Qt (), Qnil ()); }         // C 20153
-		    }
-
-		  if !iconified                                           // C 20157
-		    {
-		      /* "The `z-group' is reset every time a frame becomes invisible.  Handle this
-			 here."  */
-		      if FRAME_Z_GROUP! (f) == z_group_above                // C 20161
-			{ x_set_z_group (f, Qabove (), Qnil ()); }          // C 20162
-		      else if FRAME_Z_GROUP! (f) == z_group_below           // C 20163
-			{ x_set_z_group (f, Qbelow (), Qnil ()); }          // C 20164
-		    }
-
-		  /* "Embedded frames might have NET_WM_STATE left over, but are always visible once
-		     mapped."  */
-		  if not_hidden || FRAME_X_EMBEDDED_P! (f)                  // C 20169
-		    {
-		      SET_FRAME_VISIBLE! (f, 1);                            // C 20171
-		      SET_FRAME_ICONIFIED (f, false as c_int);              // C 20172
-		      /* C 20173-20182's `#if defined USE_GTK && defined HAVE_GTK3` block: "If GTK3
-			 wants to impose some old size here (Bug#24526), tell it that the current
-			 size is what we want."  */
-#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
-		      if frame_flag (f, FRAME_WAS_INVISIBLE_UNIT, FRAME_WAS_INVISIBLE_SHIFT)  // C 20176
+		      f = x_top_window_to_frame (dpyinfo, (*event).xunmap.window);  // C 20029
+		      /* "F may no longer exist if the frame was deleted."  */
+		      if !f.is_null ()                                          // C 20030
 			{
-			  xg_frame_set_char_size (f,                         // C 20178
-						  FRAME_PIXEL_WIDTH (f),
-						  FRAME_PIXEL_HEIGHT (f));
-			  frame_set_flag (f, FRAME_WAS_INVISIBLE_UNIT,        // C 20180
-					  FRAME_WAS_INVISIBLE_SHIFT, 0);
+			  let visible: bool = FRAME_VISIBLE_P (f);                  // C 20033
+
+			  /* C 20035-20061's `#ifdef USE_LUCID` block.  */
+	#[cfg (feature = "use_lucid")]
+			  {
+			    /* "Bloodcurdling hack alert: The Lucid menu bar widget's redisplay procedure
+			       is not called when a tip frame over menu items is unmapped.  Redisplay the
+			       menu manually…"  */
+			    if FRAME_TOOLTIP_P (f) && popup_activated ()            // C 20039
+			      {
+				let mut w: Widget;                                  // C 20041
+				let mut tail: Lisp_Object;                          // C 20042
+				let mut frame: Lisp_Object;                         // C 20042
+				let mut f1: *mut frame;                             // C 20043
+
+				FOR_EACH_FRAME! (tail, frame, {                     // C 20045
+				  if !FRAME_X_P (XFRAME (frame))                    // C 20047
+				    { continue; }                                   // C 20048
+
+				  f1 = XFRAME (frame);                              // C 20050
+
+				  if FRAME_LIVE_P (f1)                              // C 20052
+				    {
+				      w = (*(FRAME_X_OUTPUT! (f1) as *mut x_output)).menubar_widget;  // C 20054
+
+				      if !w.is_null ()                              // C 20056
+					&& !DoesSaveUnders ((*FRAME_DISPLAY_INFO! (f1)).screen)
+					{ xlwmenu_redisplay (w); }                  // C 20057
+				    }
+				});
+			      }
+			  }
+
+			  /* "While a frame is unmapped, display generation is disabled; you don't want to
+			     spend time updating a display that won't ever be seen."  */
+			  SET_FRAME_VISIBLE! (f, 0);                                // C 20066
+			  /* "We can't distinguish, from the event, whether the window has become iconified
+			     or invisible.  So assume, if it was previously visible, than now it is
+			     iconified.  But x_make_frame_invisible clears both the visible flag and the
+			     iconified flag; and that way, we know the window is not iconified now."  */
+			  if visible || FRAME_ICONIFIED_P (f)                       // C 20073
+			    {
+			      if CONSP (frame_size_history)                         // C 20075
+				{
+				  frame_size_history_plain                          // C 20076-20077
+				    (f, build_string (c"UnmapNotify, visible | iconified".as_ptr ()));
+				}
+
+			      SET_FRAME_ICONIFIED (f, true as c_int);               // C 20079
+			      input_event_bits! (kind, &raw mut inev.ie, ICONIFY_EVENT);  // C 20080
+			      XSETFRAME! (inev.ie.frame_or_window, f);              // C 20081
+			    }
+			  else if CONSP (frame_size_history)                        // C 20083
+			    {
+			      frame_size_history_plain                              // C 20084-20085
+				(f, build_string (c"UnmapNotify, not visible & not iconified".as_ptr ()));
+			    }
 			}
-		      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;  // C 20183
+		      break 'switch;                                                 // C 20087
 		    }
 
-		  x_update_opaque_region (f, std::ptr::null_mut ());        // C 20186
-
-		  if (not_hidden || FRAME_X_EMBEDDED_P! (f)) && iconified   // C 20188
+		  /* C 20089-20195: `case MapNotify:`.  The GTK3 menu check, the two XDND state updates, the
+		     toplevel table's `mapped_p` set, then the frame's own state: `x_get_current_wm_state`,
+		     the fullscreen/skip-taskbar pair, the `z-group` reset, the gtk3 `was_invisible` pair and
+		     the two `XSETFRAME` sites.  `xmap` is an owed `XEvent` member.  */
+		  MapNotify =>
 		    {
-		      input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);  // C 20190
-		      XSETFRAME! (inev.ie.frame_or_window, f);              // C 20191
-		    }
-		}
-	      break 'other;                                                 // C 20194
-	    }
+		      /* C 20090-20093's `#if defined HAVE_XINPUT2 && defined HAVE_GTK3` block - the pair
+			 that is this slice's nineteenth arm (`AG3X`), because no earlier arm spells both
+			 features at once.  */
+	#[cfg (all (feature = "have_xinput2", feature = "have_gtk3"))]
+		      if xg_is_menu_window ((*dpyinfo).display, (*event).xmap.window)  // C 20091
+			{ popup_activated_flag = 1; }                              // C 20092
 
-	  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
-	     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
-	  _ => {}
+		      if x_dnd_in_progress                                         // C 20095
+			/* "When _NET_WM_CLIENT_LIST stacking is being used, changes in that property are
+			   watched for, and it's not necessary to update the state in response to ordinary
+			   window substructure events."  */
+			&& !x_dnd_use_toplevels                                    // C 20100
+			&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)            // C 20101
+			{ x_dnd_update_state (dpyinfo, (*dpyinfo).last_user_time); }  // C 20102
+
+		      if x_dnd_in_progress && x_dnd_use_toplevels                  // C 20104
+			&& dpyinfo == FRAME_DISPLAY_INFO! (x_dnd_frame)            // C 20105
+			{
+			  let mut tem: *mut x_client_list_window = x_dnd_toplevels;  // C 20107
+			  while !tem.is_null ()                                     // C 20107
+			    {
+			      if (*tem).window == (*event).xmap.window              // C 20110
+				{
+				  (*tem).mapped_p = true;                           // C 20112
+				  break;                                            // C 20113
+				}
+			      tem = (*tem).next;                                    // C 20108
+			    }
+			}
+
+		      /* "We use x_top_window_to_frame because map events can come for sub-windows and
+			 they don't mean that the frame is visible."  */
+		      f = x_top_window_to_frame (dpyinfo, (*event).xmap.window);    // C 20121
+		      if !f.is_null ()                                            // C 20122
+			{
+			  let iconified: bool = FRAME_ICONIFIED_P (f);              // C 20124
+			  let mut value: c_int;                                     // C 20125
+			  let mut sticky: bool;                                     // C 20126
+			  let mut shaded: bool;                                     // C 20126
+			  let not_hidden: bool
+			    = x_get_current_wm_state (f, (*event).xmap.window, &raw mut value,  // C 20127
+						      &raw mut sticky, &raw mut shaded);  // C 20128
+
+			  if CONSP (frame_size_history)                             // C 20130
+			    {
+			      frame_size_history_extra                              // C 20131-20141
+				(f,
+				 if iconified
+				   { if not_hidden
+				       { build_string (c"MapNotify, not hidden & iconified".as_ptr ()) }
+				     else
+				       { build_string (c"MapNotify, hidden & iconified".as_ptr ()) } }
+				 else
+				   { if not_hidden
+				       { build_string (c"MapNotify, not hidden & not iconified".as_ptr ()) }
+				     else
+				       { build_string (c"MapNotify, hidden & not iconified".as_ptr ()) } },
+				 FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f),
+				 -1, -1, (*f).new_width, (*f).new_height);          // C 20141
+			    }
+
+			  /* "Check if fullscreen was specified before we where mapped the first time, i.e.
+			     from the command line."  */
+			  if !(*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible  // C 20145
+			    {
+			      x_check_fullscreen (f);                               // C 20148
+			      /* C 20149-20154's `#ifndef USE_GTK` block: "For systems that cannot
+				 synthesize `skip_taskbar' for unmapped windows do the following."  */
+	#[cfg (not (feature = "use_gtk"))]
+			      if FRAME_SKIP_TASKBAR! (f) != 0                       // C 20152
+				{ x_set_skip_taskbar (f, Qt (), Qnil ()); }         // C 20153
+			    }
+
+			  if !iconified                                           // C 20157
+			    {
+			      /* "The `z-group' is reset every time a frame becomes invisible.  Handle this
+				 here."  */
+			      if FRAME_Z_GROUP! (f) == z_group_above                // C 20161
+				{ x_set_z_group (f, Qabove (), Qnil ()); }          // C 20162
+			      else if FRAME_Z_GROUP! (f) == z_group_below           // C 20163
+				{ x_set_z_group (f, Qbelow (), Qnil ()); }          // C 20164
+			    }
+
+			  /* "Embedded frames might have NET_WM_STATE left over, but are always visible once
+			     mapped."  */
+			  if not_hidden || FRAME_X_EMBEDDED_P! (f)                  // C 20169
+			    {
+			      SET_FRAME_VISIBLE! (f, 1);                            // C 20171
+			      SET_FRAME_ICONIFIED (f, false as c_int);              // C 20172
+			      /* C 20173-20182's `#if defined USE_GTK && defined HAVE_GTK3` block: "If GTK3
+				 wants to impose some old size here (Bug#24526), tell it that the current
+				 size is what we want."  */
+	#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+			      if frame_flag (f, FRAME_WAS_INVISIBLE_UNIT, FRAME_WAS_INVISIBLE_SHIFT)  // C 20176
+				{
+				  xg_frame_set_char_size (f,                         // C 20178
+							  FRAME_PIXEL_WIDTH (f),
+							  FRAME_PIXEL_HEIGHT (f));
+				  frame_set_flag (f, FRAME_WAS_INVISIBLE_UNIT,        // C 20180
+						  FRAME_WAS_INVISIBLE_SHIFT, 0);
+				}
+			      (*(FRAME_X_OUTPUT! (f) as *mut x_output)).has_been_visible = true;  // C 20183
+			    }
+
+			  x_update_opaque_region (f, std::ptr::null_mut ());        // C 20186
+
+			  if (not_hidden || FRAME_X_EMBEDDED_P! (f)) && iconified   // C 20188
+			    {
+			      input_event_bits! (kind, &raw mut inev.ie, DEICONIFY_EVENT);  // C 20190
+			      XSETFRAME! (inev.ie.frame_or_window, f);              // C 20191
+			    }
+			}
+		      break 'switch;                                                 // C 20194
+		    }
+
+		  /* C 18951-25595's thirty `case` arms land one per slice, in C's order - the map is in
+		     the item's `///` block above - and C's no-case path is this `_` arm until then.  */
+		  _ => {}
+      }
 	}
 
       /* C 25558-25587: the `OTHER:` label's block.  C writes it *inside* the `GenericEvent`
-	 case, but it is the switch's shared tail: the earlier cases `goto OTHER` thirty times
-	 (C 19254, 19372, 19385, 19458, 19476, 19490, 19519, 19803, 19861, ...) and the last
-	 case falls into it.  Rust has no forward jump, so the text keeps one copy here at the
-	 switch's end and each site becomes a `break 'other` - which runs this block and then
-	 C's own `break` (Decision 121).  It reads only function-scope names (`*finish`, `event`,
-	 `use_copy`, `copy`), so the move preserves C's semantics.  */
+	 case, but it is the switch's shared tail: thirty sites `goto OTHER` (C 19254, 19372,
+	 19385, 19458, 19476, 19490, 19519, 19803, 19861, ...) and the last case falls into it.
+	 Rust has no forward jump, so the text keeps one copy here, after the `match`, and every
+	 site that C sends here is `break 'switch` - which lands exactly on this block, the way
+	 C's `goto OTHER` does (Decision 126; Decision 121 read this block as what `break
+	 'other` runs, which is the reverse, and that entry is corrected in place).  It reads
+	 only function-scope names (`*finish`, `event`, `use_copy`, `copy`), so the move cannot
+	 change what it sees.  */
 #[cfg (feature = "use_x_toolkit")]
       if *finish != X_EVENT_DROP                                        // C 25560
 	{
@@ -31922,9 +31940,11 @@ unsafe fn handle_one_xevent (dpyinfo: *mut x_display_info,
 	{ gdk_event_free (copy); }                                       // C 25585
     }
 
-    /* C 25590-25595: the `done:` label's block - what every `goto done` reaches, and what
-       the switch falls into when no case matched.  Slice 110 took the tail to start at C
-       25596 and left these six lines unwritten; this slice lands them with their label.  */
+    /* C 25590-25595: the `done:` label's block.  It is *outside* C's switch (C 25588's `}`),
+       so three things reach it: every `goto done`, every C `break` - which this port spells
+       `break 'other`, the one jump that skips the `OTHER:` block - and the no-case fall-out.
+       Slice 110 took the tail to start at C 25596 and left these six lines unwritten, and
+       slice 111 landed them with their label; this round corrected the frame around them.  */
     if input_event_bits! (kind, &raw mut inev.ie) != NO_EVENT            // C 25591
       {
 	kbd_buffer_store_buffered_event (&raw mut inev, hold_quit);      // C 25593
