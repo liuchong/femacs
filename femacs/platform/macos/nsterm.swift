@@ -7542,6 +7542,120 @@ class EmacsView: NSView {
     }
   }
 
+  /// C 7535-7568: `- (void)setMarkedText: (id)aString selectedRange: (NSRange)selRange` -
+  /// "&lt;NSTextInput&gt;: inserts display of composing characters."  C's `[aString
+  /// respondsToSelector: @selector (string)]` is the optional cast, C 7561-7562's
+  /// `[workingText release]` + `[str copy]` is the ARC assignment, and C 7578-7579's `NS_KEYLOG`
+  /// block is dead (`NS_KEYLOG` is 0 at C 7241).
+  @objc func setMarkedText(_ aString: Any?, selectedRange selRange: NSRange) {
+    let str: NSString = (aString as? NSAttributedString)?.string as NSString? ?? aString as? NSString ?? ""   // C 7540-7541
+    if str.length == 0 {                              // C 7551
+      deleteWorkingText()                             // C 7553
+      return                                          // C 7554
+    }
+    if emacs_event == nil {                           // C 7557
+      return                                          // C 7558
+    }
+
+    processingCompose = true                          // C 7560
+    workingText = str as String                       // C 7562 (C's `[str copy]`)
+    ns_working_text = lispString(workingText! as NSString)   // C 7563
+
+    input_event_set_kind(emacs_event!, NS_TEXT_EVENT) // C 7565
+    emacs_event!.pointee.code = UInt32(KEY_NS_PUT_WORKING_TEXT)   // C 7566
+    EV_TRAILER(nil, emacsframe)                       // C 7567
+  }
+
+  /// C 7571-7590: `- (void)deleteWorkingText` - "Delete display of composing characters [not in
+  /// &lt;NSTextInput&gt;]."  C 7580's `[workingText release]` is the reference being dropped.
+  @objc func deleteWorkingText() {
+    if workingText == nil {                           // C 7576
+      return                                          // C 7577
+    }
+    workingText = nil                                 // C 7581
+    processingCompose = false                         // C 7582
+
+    if emacs_event == nil {                           // C 7584
+      return                                          // C 7585
+    }
+
+    input_event_set_kind(emacs_event!, NS_TEXT_EVENT) // C 7587
+    emacs_event!.pointee.code = UInt32(KEY_NS_UNPUT_WORKING_TEXT)  // C 7588
+    EV_TRAILER(nil, emacsframe)                       // C 7589
+  }
+
+  /// C 7613-7621: `- (void)unmarkText`.
+  @objc func unmarkText() {
+    deleteWorkingText()                               // C 7619
+    processingCompose = false                         // C 7620
+  }
+
+  /// C 7481-7534: `- (void)insertText: (id)aString` - "&lt;NSTextInput&gt;: called when done
+  /// composing".  C 7515-7523's surrogate pair is the two predicates and the helper above;
+  /// C 7496's and C 7525-7526's `NS_KEYLOG`/`TODO` lines are C's own comments.
+  @objc override func insertText(_ aString: Any?) {
+    let s: NSString = (aString as? NSAttributedString)?.string as NSString? ?? aString as? NSString ?? ""   // C 7488-7491
+    let len = s.length                                // C 7493
+    processingCompose = false                         // C 7497
+
+    if emacs_event == nil {                           // C 7499
+      return                                          // C 7500
+    }
+
+    /* C 7502-7504: "First, clear any working text."  */
+    if workingText != nil {                           // C 7503
+      deleteWorkingText()                             // C 7504
+    }
+
+    /* C 7511-7512: "Now insert the string as keystrokes."  */
+    var i = 0
+    while i < len {
+      var code = UInt32(s.character(at: i))           // C 7514
+      if UTF_16_HIGH_SURROGATE_P(code) && i < len - 1 {   // C 7515
+        let low = UInt32(s.character(at: i + 1))      // C 7517
+        if UTF_16_LOW_SURROGATE_P(low) {              // C 7518
+          code = surrogates_to_codepoint(low, code)   // C 7520
+          i += 1                                      // C 7521
+        }
+      }
+      /* C 7524-7526: "TODO: still need this?" - the 0xB2DC code unit becomes a tilde.  */
+      if code == 0x2DC { code = 0x7E }
+      if code != 32 {                                 // C 7527
+        emacs_event!.pointee.modifiers = 0            // C 7528
+      }
+      input_event_set_kind(emacs_event!,
+                           code > 0xFF ? MULTIBYTE_CHAR_KEYSTROKE_EVENT : ASCII_KEYSTROKE_EVENT)  // C 7529-7530
+      emacs_event!.pointee.code = code                // C 7531
+      EV_TRAILER(nil, emacsframe)                     // C 7532
+      i += 1
+    }
+  }
+
+  /// C 7435-7442: `- (void) insertText: (id) string replacementRange: (NSRange) replacementRange` -
+  /// the `NSTextInputClient` spelling, which unmarks and hands the string to the older method.
+  @objc func insertText(_ string: Any?, replacementRange: NSRange) {
+    var s = string
+    if let attributed = string as? NSAttributedString {      // C 7438
+      s = attributed.string                                 // C 7439
+    }
+    unmarkText()                                            // C 7440
+    insertText(s)                                           // C 7441
+  }
+
+  /// C 7444-7449: `- (void) setMarkedText: (id) string selectedRange: (NSRange) selectedRange
+  /// replacementRange: (NSRange) replacementRange` - C's body is the two-argument call.
+  @objc func setMarkedText(_ string: Any?, selectedRange: NSRange, replacementRange: NSRange) {
+    setMarkedText(string, selectedRange: selectedRange)      // C 7448
+  }
+
+  /// C 7451-7456: `- (nullable NSAttributedString *) attributedSubstringForProposedRange:
+  /// (NSRange) range actualRange: (nullable NSRangePointer) actualRange` - C's whole body is
+  /// `return nil;`.
+  @objc func attributedSubstring(forProposedRange range: NSRange,
+                                 actualRange: NSRangePointer?) -> NSAttributedString? {
+    nil                                              // C 7455
+  }
+
   /// C 7593-7598: `- (BOOL)hasMarkedText` - C's whole body is the `workingText` test.
   @objc func hasMarkedText() -> Bool {
     workingText != nil                                // C 7597
@@ -8042,3 +8156,43 @@ fileprivate func nswindow_orderedIndex_sort(_ w1: AnyObject, _ w2: AnyObject,
 /// `SLEEP_EVENT` above.
 fileprivate let NON_ASCII_KEYSTROKE_EVENT: UInt32 = 3
 fileprivate let ASCII_KEYSTROKE_EVENT: UInt32 = 1
+/// C: `MULTIBYTE_CHAR_KEYSTROKE_EVENT` - the third member `insertText:` writes into `kind`
+/// (`femacs/src/include/termhooks.rs` 29).
+fileprivate let MULTIBYTE_CHAR_KEYSTROKE_EVENT: UInt32 = 2
+
+// ==========================================================================
+// Round 33: `EmacsView`'s composing pair and its three light Cocoa-arm methods
+// ==========================================================================
+
+/// C: `NS_TEXT_EVENT` - the `enum event_kind` member beside the `NS_NONKEY_EVENT` round 28
+/// counted (C's `src/termhooks.h` 273-279 gates both on `HAVE_NS`).  It is the same count, one
+/// step earlier, and carries the same **UNVERIFIED** mark for the same reason.
+fileprivate let NS_TEXT_EVENT: UInt32 = 29
+
+/// C `src/nsterm.h` 801/802: `KEY_NS_PUT_WORKING_TEXT ((1<<28)|(0<<16)|9)` and
+/// `KEY_NS_UNPUT_WORKING_TEXT (…|10)` - the two `code` values the composing methods write.
+let KEY_NS_PUT_WORKING_TEXT = (1 << 28) | (0 << 16) | 9
+let KEY_NS_UNPUT_WORKING_TEXT = (1 << 28) | (0 << 16) | 10
+
+/// C: `Lisp_Object ns_working_text` - this file's own `DEFVAR_LISP` (`ns-working-text`, C 11604),
+/// imported as the data symbol the core exports (the `ns_confirm_quit` shape).
+@_silgen_name("ns_working_text") var ns_working_text: Lisp_Object
+
+/// C `src/coding.h` 674/680: `#define UTF_16_HIGH_SURROGATE_P(val) (((val) & 0xFC00) == 0xD800)`
+/// and the low-surrogate twin.  The port's mirror spells them as plain functions
+/// (`femacs/src/include/coding.rs` 304/308) rather than C-ABI entries, so this unit writes them
+/// out as the macro bodies state them.
+fileprivate func UTF_16_HIGH_SURROGATE_P(_ val: UInt32) -> Bool {
+  (val & 0xFC00) == 0xD800                             // C coding.h 675
+}
+fileprivate func UTF_16_LOW_SURROGATE_P(_ val: UInt32) -> Bool {
+  (val & 0xFC00) == 0xDC00                             // C coding.h 681
+}
+
+/// C `src/coding.h` 760-768: `INLINE int surrogates_to_codepoint (int low, int high)` - "Return
+/// the Unicode code point for the given UTF-16 surrogates."  C's four `eassert`s are the no-ops of
+/// an unset `ENABLE_CHECKING`, and the expression is C 767's.
+fileprivate func surrogates_to_codepoint(_ low: UInt32, _ high: UInt32) -> UInt32 {
+  0x10000 + (low - 0xDC00) + ((high - 0xD800) * 0x400) // C coding.h 767
+}
+

@@ -307,17 +307,17 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (BOOL)acceptsFirstMouse:(NSEvent *)theEvent`  (line 7211)
   - [ ] `- (void)resetCursorRects`  (line 7217)
   - [ ] `- (void)keyDown: (NSEvent *)theEvent`  (line 7243)
-  - [ ] `- (void) insertText: (id) string replacementRange: (NSRange) replacementRange`  (line 7435)
-  - [ ] `- (void) setMarkedText: (id) string selectedRange: (NSRange) selectedRange replacementRange: (NSRange) replacementRange`  (line 7444)
-  - [ ] `- (nullable NSAttributedString *) attributedSubstringForProposedRange: (NSRange) range actualRange: (nullable NSRangePointer) actualRange`  (line 7451)
+  - [x] `- (void) insertText: (id) string replacementRange: (NSRange) replacementRange`  (line 7435) — landed as `@objc func insertText (_:replacementRange:)`: C unmarks and hands the string to the older method (C 7440-7441), the `NSAttributedString` arm being C 7438-7439
+  - [x] `- (void) setMarkedText: (id) string selectedRange: (NSRange) selectedRange replacementRange: (NSRange) replacementRange`  (line 7444) — landed as `@objc func setMarkedText (_:selectedRange:replacementRange:)`, whose body is C 7448's two-argument call
+  - [x] `- (nullable NSAttributedString *) attributedSubstringForProposedRange: (NSRange) range actualRange: (nullable NSRangePointer) actualRange`  (line 7451) — landed as `@objc func attributedSubstring (forProposedRange:actualRange:) -> NSAttributedString?`: C's whole body is `return nil;`
   - [ ] `- (NSRect) firstRectForCharacterRange: (NSRange) range actualRange: (nullable NSRangePointer) actualRange`  (line 7458)
   - [ ] `- (NSRect)accessibilityFrame`  (line 7464)
-  - [ ] `- (void)insertText: (id)aString`  (line 7481)
-  - [ ] `- (void)setMarkedText: (id)aString selectedRange: (NSRange)selRange`  (line 7538)
-  - [ ] `- (void)deleteWorkingText`  (line 7572)
+  - [x] `- (void)insertText: (id)aString`  (line 7481) — landed as `@objc override func insertText (_:)` (the override is for `NSResponder`'s own method, measured): C 7515-7523's surrogate pair is this unit's two predicates and `surrogates_to_codepoint` (written out from their `src/coding.h` bodies, since the port's mirror spells them as plain functions), C 7524-7526's tilde substitution and the 32/0 modifier rule are kept, and the `kind` write uses the three enum constants the port's mirror fixes
+  - [x] `- (void)setMarkedText: (id)aString selectedRange: (NSRange)selRange`  (line 7538) — landed as `@objc func setMarkedText (_:selectedRange:)`: C 7561-7562's `[workingText release]` + `[str copy]` is the ARC assignment, `ns_working_text` is this file's own `DEFVAR_LISP` data symbol, and C 7578-7579's `NS_KEYLOG` block is dead
+  - [x] `- (void)deleteWorkingText`  (line 7572) — landed as `@objc func deleteWorkingText ()`: C 7580's `[workingText release]` is the reference being dropped, and the two `EMACS_EVENT` writes are C 7587-7588
   - [x] `- (BOOL)hasMarkedText`  (line 7593) — landed as `@objc func hasMarkedText () -> Bool`; C's whole body is the `workingText` test
   - [x] `- (NSRange)markedRange`  (line 7601) — landed as `@objc func markedRange () -> NSRange`: C 7605-7606's `NSMakeRange (NSNotFound, 0)` is the no-marked-text answer, and C 7607-7608's `NS_KEYLOG` block is dead (`NS_KEYLOG` is 0 at C 7241)
-  - [ ] `- (void)unmarkText`  (line 7613)
+  - [x] `- (void)unmarkText`  (line 7613) — landed as `@objc func unmarkText ()`: C's two statements are the `deleteWorkingText` call and the `processingCompose` clear
   - [ ] `- (NSRect)firstRectForCharacterRange: (NSRange)theRange`  (line 7651)
   - [x] `- (NSInteger)conversationIdentifier`  (line 7699) — landed as `@objc func conversationIdentifier () -> Int`: C returns the receiver's own address as an integer, which Swift spells through `Unmanaged`
   - [x] `- (void)doCommandBySelector: (SEL)aSelector`  (line 7705) — landed as `@objc func doCommandBySelector (_:)`: C 7709-7710's `NS_KEYLOG` block is dead, the `deleteBackward:` arm writes `NON_ASCII_KEYSTROKE_EVENT` (the enum value the port's mirror fixes) and code `0xFF08`, and C's `EV_TRAILER ((id)nil)` passes the same `emacsframe` this unit's other callers do
@@ -3099,9 +3099,10 @@ call site takes an entry and the definition lands at its own C line - and **both
   `markedRange` (C 7601), `validAttributesForMarkedText` (C 7725), `characterIndexForPoint:`
   (C 7759, the live `NS_IMPL_COCOA` arm of C 7757-7762), `conversationIdentifier` (C 7699) and
   `doCommandBySelector:` (C 7705).  These are the leaves of the protocol batch: each one's body
-  closes over members the class already has, which is why they go first - `insertText:` (C 7481),
-  `setMarkedText:selectedRange:` (C 7538) and `unmarkText` (C 7613, which calls
-  `deleteWorkingText`) are the ones that wait on the next round.
+  closes over members the class already has, which is why they went first - and round 33 landed the
+  ones this paragraph named as waiting: `insertText:` (C 7481), `setMarkedText:selectedRange:`
+  (C 7538), `deleteWorkingText` (C 7572) and `unmarkText` (C 7613), plus the three light
+  `NSTextInputClient` methods of the Cocoa arm (C 7435, C 7444, C 7451).
 * **`NS_KEYLOG` is 0** (C 7241), so the three `if (NS_KEYLOG)` blocks in these bodies are the dead
   arm this unit records rather than transcribes - the `NSTRACE` reading.
 * **`python3 tools/check-swift-units.py`**: `0 new, 0 stale, 7 Swift unit(s) landed`, with
@@ -3110,3 +3111,33 @@ call site takes an entry and the definition lands at its own C line - and **both
   0 failure(s).
 * **Seven ledger boxes are ticked** (243 -> 250; the two `characterIndexForPoint:` arms are one
   selector and share the one Swift function).
+
+
+
+### Round 33: `EmacsView`'s composing pair and three light Cocoa-arm methods (C 7435-7456, C 7481-7568, C 7572-7621)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-32 carry, so **no new warning**.  Object
+  `/tmp/nsterm33.o`, **685,976 bytes**, md5 `322c7bbe4a128c5353a0212a5506dd19`.  Two errors on the first compile, both
+  recorded: `overriding declaration requires an 'override' keyword` for the one-argument
+  `insertText:` (it overrides `NSResponder`'s own method), and `MULTIBYTE_CHAR_KEYSTROKE_EVENT`
+  missing, which is now the third of the enum constants the port's mirror fixes.
+* **Seven boxes are ticked** (250 -> 257): the composing pair (`insertText:` C 7481,
+  `setMarkedText:selectedRange:` C 7538), its helper (`deleteWorkingText` C 7572) and `unmarkText`
+  (C 7613), plus the three light `NSTextInputClient` methods of the Cocoa arm -
+  `insertText:replacementRange:` (C 7435), `setMarkedText:selectedRange:replacementRange:`
+  (C 7444) and `attributedSubstringForProposedRange:actualRange:` (C 7451).
+* **What this round wrote out instead of importing**: `UTF_16_HIGH_SURROGATE_P`,
+  `UTF_16_LOW_SURROGATE_P` and `surrogates_to_codepoint`.  Their C bodies are `src/coding.h`
+  674/680/760-768, and the port's mirror spells them as plain Rust functions
+  (`femacs/src/include/coding.rs` 304/308/317) rather than C-ABI entries, so they cannot be
+  reached by `@_silgen_name`; each Swift body is the macro's own expression, with the two dead
+  `eassert`s of an unset `ENABLE_CHECKING` carried as the comment they are.
+* **And one more UNVERIFIED constant**: `NS_TEXT_EVENT = 29`, the member beside round 28's
+  `NS_NONKEY_EVENT` - same enum, same `HAVE_NS` gate, same counted-inference mark.
+* **`python3 tools/check-swift-units.py`**: `0 new, 0 stale, 7 Swift unit(s) landed`, with
+  nsterm.swift at 150 C definitions / 35 unported / 428 imports - unchanged, an
+  Objective-C-method round's reading.  `tools/check-own-voice.py` reads 0 failure(s).
+* **Still waiting**: `firstRectForCharacterRange:` (C 7651) and the Cocoa arm's two callers
+  (C 7458, C 7464).  Its body reaches five macros and `ns_in_echo_area`, which is why it is a
+  round of its own rather than a tail on this one.
