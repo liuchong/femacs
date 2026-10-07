@@ -223,7 +223,7 @@
 - [x] ns_in_echo_area  (line 7639, static) — landed as `fileprivate func ns_in_echo_area () -> Bool`: the `internal_catch_all` call takes C 7644-7645's two helpers as `@convention(c)` closures and its `NULL`, and C 7647's `!NILP` is the predicate the entry returns
 - [ ] cancel_ns_deferred_UAZoomChangeFocus_timer  (line 8460, static)
 - [x] nswindow_orderedIndex_sort  (line 10085, static) — landed as `fileprivate func nswindow_orderedIndex_sort (_:_:_:) -> Int`: C sends `orderedIndex` as a **message**, and on Cocoa that selector is not declared on `NSWindow` at all (C's own definition of it is the GNUstep arm at C 10074-10077), so the port sends the same dynamic message instead of inventing a property; the three `NSOrdered*` results are C 10090-10095's three returns
-- [ ] ns_new_font  (line 11418, static)
+- [x] ns_new_font  (line 11418, static) — C 11410-11476, landed as `fileprivate func ns_new_font (_:_:_:)` (round 51 took it ahead of `ns_create_terminal`'s body because C 5942 hands it to `terminal->set_new_font_hook`, the dependency order P-91 ① allows): C's `font` reads are the `font_<member>` family, the `struct ns_output` writes are `ns_output_set_*` and the `struct frame` writes `frame_set_*` (this round's entry rule), C's parameter reassignment is the shadow spelling, and C 11470's `! [view isFullscreen]` on a possibly-nil view is C's nil-receiver answer
 - [ ] ns_xlfd_to_fontname  (line 11484)
 - [ ] mark_nsterm  (line 11529)
 - [ ] syms_of_nsterm  (line 11550)
@@ -2224,6 +2224,14 @@ call site takes an entry and the definition lands at its own C line - and **both
   function-pointer types are `@convention(c)`, and C 5926's `struct input_event *` is **untyped**
   there because a `@convention(c)` type cannot name this unit's Swift view of that record
   (measured), the limitation round 2 recorded for `@_cdecl`.
+* **round 51's names**: the frame and font members `ns_new_font` reads and writes - `XFONT_OBJECT`,
+  `fontset_from_font`, `ns_output_set_fontset`/`_set_font`/`_set_baseline_offset`,
+  `frame_set_column_width`/`_set_line_height`/`_set_config_scroll_bar_cols`/`_set_config_scroll_bar_lines`,
+  the readers `FRAME_LINE_HEIGHT`, `FRAME_CONFIG_SCROLL_BAR_WIDTH`/`_HEIGHT`, `FRAME_COLS`, `FRAME_LINES`,
+  `ns_output_window_desc`, `font_baseline_offset`/`font_average_width`, plus `get_font_ascent_descent`,
+  `adjust_frame_size` and `Qfont` (the last already the core's, `src/textprop.c` 2439) - are what that
+  round adds and the core owes.  The rule it settles: **reads keep the accessor macro's name, writes go
+  through the setter of the family the record belongs to** (`ns_output_set_*` vs `frame_set_*`).
 
 ## Evidence
 
@@ -3781,3 +3789,31 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: no run evidence (no terminal created, no hook installed); the
   compile gate reaches parsing and type checking only; all 38 entries are declarations the core
   still owes, and `ns_create_terminal`'s body is not written yet.
+
+### Round 51: `ns_new_font` (C 11410-11476)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-50 carry, so **no new warning**, and the round
+  **compiled first try**.  Object `/tmp/nsterm51.o`, **864,336 bytes**, md5
+  `a95602d825bbf424d56c6ec1661a26d7`.  The unit is **10,037 lines**.
+* **Why here, why now**: `ns_create_terminal`'s body still needed one hook function - C 5942's
+  `ns_new_font` - and it was the only one of the 36 that no lane had landed.  Landing it first is
+  the dependency order P-91 ① allows (the class rounds already land out of C order for that reason).
+* **The entry rule this round settles** (recorded in the source and in `## ABI` (3)): **reads keep
+  the accessor macro's own name** (`FRAME_LINE_HEIGHT`, `FRAME_CONFIG_SCROLL_BAR_WIDTH`/`_HEIGHT`,
+  `FRAME_COLS`, `FRAME_LINES` - the practice `FRAME_FONT`/`FRAME_COLUMN_WIDTH` already follow),
+  while **writes go through the setter of the family the record belongs to**: `ns_output_set_fontset`
+  / `_set_font` / `_set_baseline_offset` for the `struct ns_output` members (src/nsterm.h 1049-1051,
+  the family `ns_output_set_current_pointer` belongs to) and `frame_set_column_width` /
+  `_set_line_height` / `_set_config_scroll_bar_cols` / `_set_config_scroll_bar_lines` for the
+  `struct frame` members (src/frame.h, the family `frame_set_terminal` belongs to).
+* **Two shapes C's text forces, both written out**: C 11427-11429 reassigns the `fontset` parameter
+  (the shadow spelling this lane uses for that) and C 11470's `! [view isFullscreen]` reads a
+  possibly-nil view (C's nil-receiver answer, `?? false` inside the negation).
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **15** unported,
+  15 row(s); **549** C symbol import(s)` - one fewer unported than round 50's 16 (this definition),
+  one stale row cleared by name, and the round's imports are 529 -> 549 (the 20 entries above).
+  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: no run evidence (no font set, no frame resized); the compile
+  gate reaches parsing and type checking only; the entries are declarations (several of the core
+  items are mirrored Rust functions rather than C-ABI exports, so the export side is owed).

@@ -9917,3 +9917,121 @@ func terminal_set_delete_terminal_hook(_ t: UnsafeMutableRawPointer?,
 @_silgen_name("terminal_set_change_tab_bar_height_hook")
 func terminal_set_change_tab_bar_height_hook(_ t: UnsafeMutableRawPointer?,
                        _ h: (@convention(c) (UnsafeMutableRawPointer?, Int32) -> Void)?)
+
+// ==========================================================================
+// Round 51: `ns_new_font` (C 11410-11476) - the hook `ns_create_terminal`'s
+// body is still missing (C 5942)
+// ==========================================================================
+
+/// C: the frame and font members `ns_new_font` reads and writes.  Reads keep the accessor
+/// macro's own name (the unit's practice, `FRAME_FONT`/`FRAME_COLUMN_WIDTH` above); **writes go
+/// through the setter of the family the record belongs to** - `ns_output_set_*` for the
+/// `struct ns_output` members `FRAME_FONT`/`FRAME_FONTSET`/`FRAME_BASELINE_OFFSET` name
+/// (src/nsterm.h 1049-1051, the family `ns_output_set_current_pointer` already belongs to) and
+/// `frame_set_*` for the `struct frame` members (src/frame.h, the family `frame_set_terminal`
+/// belongs to).
+@_silgen_name("XFONT_OBJECT") func XFONT_OBJECT(_ p: Lisp_Object) -> UnsafeMutableRawPointer?
+@_silgen_name("fontset_from_font") func fontset_from_font(_ font_object: Lisp_Object) -> Int32
+@_silgen_name("ns_output_set_fontset")
+func ns_output_set_fontset(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_output_set_font")
+func ns_output_set_font(_ f: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+@_silgen_name("ns_output_set_baseline_offset")
+func ns_output_set_baseline_offset(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("frame_set_column_width")
+func frame_set_column_width(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_LINE_HEIGHT") func FRAME_LINE_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_line_height")
+func frame_set_line_height(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_CONFIG_SCROLL_BAR_WIDTH")
+func FRAME_CONFIG_SCROLL_BAR_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_CONFIG_SCROLL_BAR_HEIGHT")
+func FRAME_CONFIG_SCROLL_BAR_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_config_scroll_bar_cols")
+func frame_set_config_scroll_bar_cols(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("frame_set_config_scroll_bar_lines")
+func frame_set_config_scroll_bar_lines(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_COLS") func FRAME_COLS(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_LINES") func FRAME_LINES(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: `FRAME_NS_WINDOW (f)` = the `struct ns_output` member `window_desc` (src/nsterm.h 1034) - an
+/// `ns_output_<member>` reader, the family `ns_output_miniimage` belongs to.
+@_silgen_name("ns_output_window_desc")
+func ns_output_window_desc(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: `void get_font_ascent_descent (struct font *, int *, int *)` (src/font.h) and
+/// `void adjust_frame_size (struct frame *, int, int, int, bool, Lisp_Object)` (src/frame.h 1511) -
+/// the two core functions this hook calls.
+@_silgen_name("get_font_ascent_descent")
+func get_font_ascent_descent(_ font: UnsafeMutableRawPointer?,
+                             _ ascent: UnsafeMutablePointer<Int32>?,
+                             _ descent: UnsafeMutablePointer<Int32>?)
+@_silgen_name("adjust_frame_size")
+func adjust_frame_size(_ f: UnsafeMutableRawPointer?, _ new_width: Int32, _ new_height: Int32,
+                       _ inhibit: Int32, _ inhibit_x: Bool, _ parameter: Lisp_Object)
+/// C: `Qfont` - the symbol `src/textprop.c` 2439 defines (`docs/baseline/globals/symbols.tsv` 858),
+/// read as data symbol the way `Qnil` is.
+@_silgen_name("Qfont") func Qfont() -> Lisp_Object
+/// C: `struct font`'s members `baseline_offset` and `average_width` (src/font.h) - the
+/// `font_<member>` family the unit already reads (`font_descent`, `font_underline_thickness`).
+@_silgen_name("font_baseline_offset")
+func font_baseline_offset(_ font: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("font_average_width")
+func font_average_width(_ font: UnsafeMutableRawPointer?) -> Int32
+
+/// C 11410-11476: `static Lisp_Object ns_new_font (struct frame *f, Lisp_Object font_object, int
+/// fontset)` - the header above it reads "Font-related functions; these used to be in nsfaces.m",
+/// and its own comment is "External (hook)".  It lands here, ahead of `ns_create_terminal`'s body,
+/// because C 5942 hands it to `terminal->set_new_font_hook` (the dependency order P-91 ① allows);
+/// C's reassignment of the `fontset` parameter is the shadow spelling this lane uses, and C 11470's
+/// `! [view isFullscreen]` on a possibly-nil view is C's nil-receiver answer.
+fileprivate func ns_new_font(_ f: UnsafeMutableRawPointer?, _ font_object: Lisp_Object,
+                             _ fontsetIn: Int32) -> Lisp_Object {
+  let font = XFONT_OBJECT(font_object)               // C 11423
+  let view = FRAME_NS_VIEW(f) as? EmacsView          // C 11424
+  var font_ascent: Int32 = 0                         // C 11425
+  var font_descent: Int32 = 0
+  var fontset = fontsetIn                            // C 11428 reassigns C's parameter
+
+  if fontset < 0 {                                   // C 11427
+    fontset = fontset_from_font(font_object)         // C 11428
+  }
+  ns_output_set_fontset(f, fontset)                  // C 11429
+
+  if FRAME_FONT(f) == font {                         // C 11431
+    /* This font is already set in frame F.  There's nothing more to
+       do.  */
+    return font_object                               // C 11434
+  }
+
+  ns_output_set_font(f, font)                        // C 11436
+  ns_output_set_baseline_offset(f, font_baseline_offset(font))      // C 11438
+  frame_set_column_width(f, font_average_width(font))               // C 11439
+  get_font_ascent_descent(font, &font_ascent, &font_descent)        // C 11440
+  frame_set_line_height(f, font_ascent + font_descent)              // C 11441
+
+  /* Compute the scroll bar width in character columns.  */
+  if FRAME_CONFIG_SCROLL_BAR_WIDTH(f) > 0 {          // C 11444
+    let wid = FRAME_COLUMN_WIDTH(f)                  // C 11446
+    frame_set_config_scroll_bar_cols(f, (FRAME_CONFIG_SCROLL_BAR_WIDTH(f) + wid - 1) / wid)   // C 11447-11448
+  } else {
+    let wid = FRAME_COLUMN_WIDTH(f)                  // C 11452
+    frame_set_config_scroll_bar_cols(f, (14 + wid - 1) / wid)   // C 11453
+  }
+
+  /* Compute the scroll bar height in character lines.  */
+  if FRAME_CONFIG_SCROLL_BAR_HEIGHT(f) > 0 {         // C 11457
+    let height = FRAME_LINE_HEIGHT(f)                // C 11459
+    frame_set_config_scroll_bar_lines(f, (FRAME_CONFIG_SCROLL_BAR_HEIGHT(f) + height - 1) / height)   // C 11460-11461
+  } else {
+    let height = FRAME_LINE_HEIGHT(f)                // C 11465
+    frame_set_config_scroll_bar_lines(f, (14 + height - 1) / height)   // C 11466
+  }
+
+  /* Now make the frame display the given font.  */
+  if ns_output_window_desc(f) != 0 && !(view?.isFullscreen() ?? false) {   // C 11470
+    adjust_frame_size(f, FRAME_COLS(f) * FRAME_COLUMN_WIDTH(f),      // C 11471
+                      FRAME_LINES(f) * FRAME_LINE_HEIGHT(f), 3,      // C 11472
+                      false, Qfont())                                // C 11473
+  }
+
+  return font_object                                 // C 11475
+}
