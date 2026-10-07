@@ -10806,3 +10806,392 @@ fileprivate func cancel_ns_deferred_UAZoomChangeFocus_timer() {
   }
   ns_deferred_UAZoomChangeFocus_timer = nil                            // C 8468
 }
+
+// ==========================================================================
+// Round 60: `syms_of_nsterm` (C 11549-11811) - the file's last function
+// ==========================================================================
+
+/// C: `struct Lisp_Fwd { ENUM_BF (Lisp_Fwd_Type) type : 8; union { … } u; }` (src/lisp.h
+/// 3118-3133).  The bitfield is one byte and the union one slot, and the union's two C members
+/// (`objvar`, `boolvar`) collapse to the one raw slot below - the `docs/ports/nsselect.md` record,
+/// extended to the `bool` member the way `nsfns.swift` 733-742 does: `DEFVAR_LISP` hands
+/// `defvar_lisp` a `Lisp_Object *` and `DEFVAR_BOOL` hands `defvar_bool` a `bool *`, and both are
+/// one pointer.
+struct Lisp_Fwd_u {
+  var ptr: UnsafeMutableRawPointer?
+}
+struct Lisp_Fwd {
+  var type: UInt8
+  var u: Lisp_Fwd_u
+}
+
+/// C: `Lisp_Fwd_Obj` (src/lisp.h 531) and `Lisp_Fwd_Bool` (src/lisp.h 532), the two members of
+/// `enum Lisp_Fwd_Type` C 11580-11786's macros build their records with, and the two registering
+/// calls those macros end in - `defvar_lisp` (src/lisp.h 3472) and `defvar_bool` (src/lisp.h 3474).
+@_silgen_name("Lisp_Fwd_Obj") func Lisp_Fwd_Obj() -> UInt8
+@_silgen_name("Lisp_Fwd_Bool") func Lisp_Fwd_Bool() -> UInt8
+@_silgen_name("defvar_lisp")
+func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+@_silgen_name("defvar_bool")
+func defvar_bool(_ b_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+
+/// C: `void staticpro (Lisp_Object const *)` (src/lisp.h 3919) - C 11810's call, the same entry
+/// `nsfns.swift` 753 declares.
+@_silgen_name("staticpro") func staticpro(_ varaddress: UnsafePointer<Lisp_Object>?)
+
+/// C: `Lisp_Object Fput (Lisp_Object, Lisp_Object, Lisp_Object)` and
+/// `Lisp_Object Fprovide (Lisp_Object, Lisp_Object)` (globals.h's subr table) - the two subrs
+/// C 11574-11578 and C 11789/11802 call.
+@_silgen_name("Fput")
+func Fput(_ symbol: Lisp_Object, _ propname: Lisp_Object, _ value: Lisp_Object) -> Lisp_Object
+@_silgen_name("Fprovide")
+func Fprovide(_ feature: Lisp_Object, _ subfeatures: Lisp_Object) -> Lisp_Object
+
+/// C: `Lisp_Object make_fixnum (intmax_t)` (src/lisp.h) - the five `Fput` values C 11574-11578
+/// build, the entry the lane's other units declare with the same signature.
+@_silgen_name("make_fixnum") func make_fixnum(_ n: Int) -> Lisp_Object
+
+/// C: `PDUMPER_REMEMBER_SCALAR (thing)` (src/pdumper.h 52-53) is
+/// `pdumper_remember_scalar (&(thing), sizeof (thing))`, and that INLINE (src/pdumper.h 61-68) calls
+/// the exported `pdumper_remember_scalar_impl` - the arm `HAVE_PDUMPER` 1 selects, which is the
+/// frozen configuration's.  The INLINE itself has no C symbol (`femacs/src/include/pdumper.rs`
+/// 96-101 is the port's mirror of it), so C 11555's macro is written as the call it ends in, with
+/// the same two arguments.
+@_silgen_name("pdumper_remember_scalar_impl")
+func pdumper_remember_scalar_impl(_ data: UnsafeMutableRawPointer?, _ nbytes: Int)
+
+/// C: `void syms_of_macfont (void)` (src/font.h 986) - C 11803's `NS_IMPL_COCOA`-arm call, whose
+/// definition is `macfont.swift` 11275.  (The other arm's `syms_of_nsfont ()`, C 11806, is the
+/// GNUstep half and is dead here.)
+@_silgen_name("syms_of_macfont") func syms_of_macfont()
+
+/// C: the four `enum` members of `src/termhooks.h` 457-463 the `Fput` block names, reached as the
+/// C-ABI entries carrying their own names - the shape this unit already uses for `up_modifier`,
+/// `down_modifier`, `hyper_modifier` and `shift_modifier` (docs/ports/nsselect.md's `PVEC_SUBR`
+/// reading); the four providers join that family's own open item.
+@_silgen_name("alt_modifier") func alt_modifier() -> Int32
+@_silgen_name("super_modifier") func super_modifier() -> Int32
+@_silgen_name("meta_modifier") func meta_modifier() -> Int32
+@_silgen_name("ctrl_modifier") func ctrl_modifier() -> Int32
+
+/// C: the symbols the `DEFSYM`s of C 11558-11572, C 11591-11799 name **and this function reads**.
+/// `#define DEFSYM(sym, name) /* empty */` (src/lisp.h 2394) is only a marker for make-docfile, so
+/// those call sites carry no statement (the `syms_of_nsselect` reading above) - the symbols
+/// themselves come from the generated globals, and this unit declares the three it does not
+/// already carry: `Qmodifier_value` (the `Fput` block, whose `Qalt`/`Qmeta`/`Qsuper`/`Qcontrol`
+/// are entries of the echo-area slice above), `Qns_handle_drag_motion` (C 11786) and
+/// `Qcocoa`/`Qgnustep` (C 11802/11805; `Qns_in_echo_area` is above too).
+@_silgen_name("Qmodifier_value") func Qmodifier_value() -> Lisp_Object
+@_silgen_name("Qns_handle_drag_motion") func Qns_handle_drag_motion() -> Lisp_Object
+@_silgen_name("Qcocoa") func Qcocoa() -> Lisp_Object
+@_silgen_name("Qgnustep") func Qgnustep() -> Lisp_Object
+
+/// C 11580-11786's variables that no earlier slice needed.  C's `DEFVAR_LISP`/`DEFVAR_BOOL` define
+/// members of the generated `globals` struct - which is why the reference itself carries no
+/// declaration for them - and this lane reaches every one of them as the data symbol the core
+/// exports, the ruling the seven modifiers above record (and the reason `macfont.swift` 774-775
+/// reads `ns_antialias_text`/`ns_use_thin_smoothing` the same way).
+@_silgen_name("ns_input_font") var ns_input_font: Lisp_Object
+@_silgen_name("ns_input_fontsize") var ns_input_fontsize: Lisp_Object
+@_silgen_name("ns_use_thin_smoothing") var ns_use_thin_smoothing: Lisp_Object
+@_silgen_name("ns_use_fullscreen_animation") var ns_use_fullscreen_animation: Bool
+@_silgen_name("ns_use_mwheel_acceleration") var ns_use_mwheel_acceleration: Bool
+@_silgen_name("ns_mwheel_line_height") var ns_mwheel_line_height: Lisp_Object
+@_silgen_name("ns_use_mwheel_momentum") var ns_use_mwheel_momentum: Bool
+@_silgen_name("ns_click_through") var ns_click_through: Bool
+@_silgen_name("Vns_scroll_event_delta_factor") var Vns_scroll_event_delta_factor: Lisp_Object
+@_silgen_name("Vns_drag_motion_function") var Vns_drag_motion_function: Lisp_Object
+/// C 11740-11754's three `x-*` variables are `src/xterm.c`'s - the reference says so in their own
+/// docstrings ("SKIP: real doc in xterm.c") - and the port's `femacs/src/xterm.rs` 22166-22170
+/// carries all three with `#[unsafe(no_mangle)]`, so this unit registers them and nothing else.
+@_silgen_name("Vx_toolkit_scroll_bars") var Vx_toolkit_scroll_bars: Lisp_Object
+@_silgen_name("x_use_underline_position_properties") var x_use_underline_position_properties: Bool
+@_silgen_name("x_underline_at_descent_line") var x_underline_at_descent_line: Bool
+
+/// C's `DEFVAR_LISP`/`DEFVAR_BOOL` build a function-local `static struct Lisp_Fwd` (src/lisp.h
+/// 3495-3512); Swift has no function-local statics, so each record is a fileprivate global that
+/// `syms_of_nsterm` fills in and hands to `defvar_lisp`/`defvar_bool` - the
+/// `docs/ports/nsselect.md` `O_FWD_…` shape.  Thirty of them, in C's order.
+fileprivate var O_FWD_ns_input_font: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_input_fontsize: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_input_line: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_input_spi_name: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_input_spi_arg: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_input_file: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_working_text: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_alternate_modifier: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_right_alternate_modifier: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_command_modifier: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_right_command_modifier: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_control_modifier: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_right_control_modifier: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_function_modifier: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_antialias_text: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_use_thin_smoothing: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_confirm_quit: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_auto_hide_menu_bar: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_use_native_fullscreen: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_use_fullscreen_animation: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_use_srgb_colorspace: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_use_mwheel_acceleration: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_mwheel_line_height: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_use_mwheel_momentum: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_Vx_toolkit_scroll_bars: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_x_use_underline_position_properties: Lisp_Fwd =
+  Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_x_underline_at_descent_line: Lisp_Fwd =
+  Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_click_through: Lisp_Fwd = Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_Vns_scroll_event_delta_factor: Lisp_Fwd =
+  Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_Vns_drag_motion_function: Lisp_Fwd =
+  Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+
+/// C 11549-11811: `void syms_of_nsterm (void)` - "the symbols and variables this window system
+/// brings" (declared src/nsterm.h 1196, called from src/emacs.c 2421), the file's last function.
+/// Each `DEFVAR_LISP`/`DEFVAR_BOOL` below is the macro's three steps: the record above, the
+/// registering call, and C's own initialising assignment - and C's docstrings stay on the C text
+/// (each comment names the line range they belong to; the lane's `defvar_lisp`/`defvar_bool` are
+/// C's own two-argument calls, src/lisp.h 3472/3474, and make-docfile reads the C source, so a
+/// `doc:` argument has no port-side spelling - the reading `docs/ports/nsfns.md` 269-273 records
+/// for the four units before this one).  The `DEFSYM`s carry no statement at all
+/// (src/lisp.h 2394) and are recorded as comments in the same way.
+@_cdecl("syms_of_nsterm")
+func syms_of_nsterm() {
+  // C 11552: `NSTRACE ("syms_of_nsterm");` - empty at `NSTRACE_ENABLED` 0.
+
+  ns_antialias_threshold = 10.0                                        // C 11554
+  // C 11555: `PDUMPER_REMEMBER_SCALAR (ns_antialias_threshold)` - `sizeof` of C's `float`
+  // variable (C 298), and `addr_of_mut!`'s "the argument is an lvalue" requirement is the
+  // address Swift's `&` takes.
+  pdumper_remember_scalar_impl(
+    withUnsafeMutablePointer(to: &ns_antialias_threshold) { UnsafeMutableRawPointer($0) },
+    MemoryLayout<Float>.size)
+
+  /* From 23+ we need to tell emacs what modifiers there are.  */
+  // C 11558-11572: `DEFSYM (Qmodifier_value, "modifier-value"); DEFSYM (Qalt, "alt"); DEFSYM
+  // (Qhyper, "hyper"); DEFSYM (Qmeta, "meta"); DEFSYM (Qsuper, "super"); DEFSYM (Qcontrol,
+  // "control"); DEFSYM (QUTF8_STRING, "UTF8_STRING"); DEFSYM (Qfile, "file"); DEFSYM (Qurl,
+  // "url"); DEFSYM (Qns_drag_operation_copy, …); DEFSYM (Qns_drag_operation_link, …); DEFSYM
+  // (Qns_drag_operation_generic, …); DEFSYM (Qns_handle_drag_motion, …)` - thirteen `DEFSYM`s,
+  // each carrying no statement.
+
+  _ = Fput(Qalt(), Qmodifier_value(), make_fixnum(Int(alt_modifier())))     // C 11574
+  _ = Fput(Qhyper(), Qmodifier_value(), make_fixnum(Int(hyper_modifier())))  // C 11575
+  _ = Fput(Qmeta(), Qmodifier_value(), make_fixnum(Int(meta_modifier())))   // C 11576
+  _ = Fput(Qsuper(), Qmodifier_value(), make_fixnum(Int(super_modifier())))  // C 11577
+  _ = Fput(Qcontrol(), Qmodifier_value(), make_fixnum(Int(ctrl_modifier())))  // C 11578
+
+  // C 11580-11582: `DEFVAR_LISP ("ns-input-font", ns_input_font, …); ns_input_font = Qnil;`
+  O_FWD_ns_input_font = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_font) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_font, "ns-input-font")
+  ns_input_font = Qnil()
+
+  // C 11584-11586: `DEFVAR_LISP ("ns-input-fontsize", ns_input_fontsize, …)`.
+  O_FWD_ns_input_fontsize = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_fontsize) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_fontsize, "ns-input-fontsize")
+  ns_input_fontsize = Qnil()
+
+  // C 11588-11590: `DEFVAR_LISP ("ns-input-line", ns_input_line, …)`.
+  O_FWD_ns_input_line = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_line) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_line, "ns-input-line")
+  ns_input_line = Qnil()
+
+  // C 11592-11594: `DEFVAR_LISP ("ns-input-spi-name", ns_input_spi_name, …)`.
+  O_FWD_ns_input_spi_name = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_spi_name) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_spi_name, "ns-input-spi-name")
+  ns_input_spi_name = Qnil()
+
+  // C 11596-11598: `DEFVAR_LISP ("ns-input-spi-arg", ns_input_spi_arg, …)`.
+  O_FWD_ns_input_spi_arg = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_spi_arg) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_spi_arg, "ns-input-spi-arg")
+  ns_input_spi_arg = Qnil()
+
+  // C 11600-11602: `DEFVAR_LISP ("ns-input-file", ns_input_file, …)`.
+  O_FWD_ns_input_file = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_input_file) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_input_file, "ns-input-file")
+  ns_input_file = Qnil()
+
+  // C 11604-11606: `DEFVAR_LISP ("ns-working-text", ns_working_text, …)`.
+  O_FWD_ns_working_text = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_working_text) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_working_text, "ns-working-text")
+  ns_working_text = Qnil()
+
+  // C 11608-11616: `DEFVAR_LISP ("ns-alternate-modifier", ns_alternate_modifier, …)`; the
+  // docstring C 11609-11615 describes the `(:ordinary …)` form.
+  O_FWD_ns_alternate_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_alternate_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_alternate_modifier, "ns-alternate-modifier")
+  ns_alternate_modifier = Qmeta()                                      // C 11616
+
+  // C 11618-11627: `DEFVAR_LISP ("ns-right-alternate-modifier", ns_right_alternate_modifier, …)`.
+  O_FWD_ns_right_alternate_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_right_alternate_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_right_alternate_modifier, "ns-right-alternate-modifier")
+  ns_right_alternate_modifier = Qleft()                                // C 11627
+
+  // C 11629-11641: `DEFVAR_LISP ("ns-command-modifier", ns_command_modifier, …)`, whose
+  // assignment is C's own `NS_IMPL_COCOA` pair - `Qsuper` is the arm this target takes.
+  O_FWD_ns_command_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_command_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_command_modifier, "ns-command-modifier")
+  ns_command_modifier = Qsuper()                                       // C 11638
+
+  // C 11643-11652: `DEFVAR_LISP ("ns-right-command-modifier", ns_right_command_modifier, …)`.
+  O_FWD_ns_right_command_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_right_command_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_right_command_modifier, "ns-right-command-modifier")
+  ns_right_command_modifier = Qleft()                                  // C 11652
+
+  // C 11654-11662: `DEFVAR_LISP ("ns-control-modifier", ns_control_modifier, …)`.
+  O_FWD_ns_control_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_control_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_control_modifier, "ns-control-modifier")
+  ns_control_modifier = Qcontrol()                                     // C 11662
+
+  // C 11664-11673: `DEFVAR_LISP ("ns-right-control-modifier", ns_right_control_modifier, …)`.
+  O_FWD_ns_right_control_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_right_control_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_right_control_modifier, "ns-right-control-modifier")
+  ns_right_control_modifier = Qleft()                                  // C 11673
+
+  // C 11675-11683: `DEFVAR_LISP ("ns-function-modifier", ns_function_modifier, …)`.
+  O_FWD_ns_function_modifier = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_function_modifier) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_function_modifier, "ns-function-modifier")
+  ns_function_modifier = Qnone()                                       // C 11683
+
+  // C 11685-11687: `DEFVAR_LISP ("ns-antialias-text", ns_antialias_text, …)`.
+  O_FWD_ns_antialias_text = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_antialias_text) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_antialias_text, "ns-antialias-text")
+  ns_antialias_text = Qt()                                             // C 11687
+
+  // C 11689-11691: `DEFVAR_LISP ("ns-use-thin-smoothing", ns_use_thin_smoothing, …)`.
+  O_FWD_ns_use_thin_smoothing = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_thin_smoothing) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_use_thin_smoothing, "ns-use-thin-smoothing")
+  ns_use_thin_smoothing = Qnil()                                       // C 11691
+
+  // C 11693-11695: `DEFVAR_LISP ("ns-confirm-quit", ns_confirm_quit, …)`.
+  O_FWD_ns_confirm_quit = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_confirm_quit) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_confirm_quit, "ns-confirm-quit")
+  ns_confirm_quit = Qnil()                                             // C 11695
+
+  // C 11697-11700: `DEFVAR_LISP ("ns-auto-hide-menu-bar", ns_auto_hide_menu_bar, …)`.
+  O_FWD_ns_auto_hide_menu_bar = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_auto_hide_menu_bar) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_auto_hide_menu_bar, "ns-auto-hide-menu-bar")
+  ns_auto_hide_menu_bar = Qnil()                                       // C 11700
+
+  // C 11702-11708: `DEFVAR_BOOL ("ns-use-native-fullscreen", ns_use_native_fullscreen, …)`;
+  // C 11708's second statement is the file's own `ns_last_use_native_fullscreen` copy (C 335).
+  O_FWD_ns_use_native_fullscreen = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_native_fullscreen) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_native_fullscreen, "ns-use-native-fullscreen")
+  ns_use_native_fullscreen = true                                      // C 11707
+  ns_last_use_native_fullscreen = ns_use_native_fullscreen             // C 11708
+
+  // C 11710-11714: `DEFVAR_BOOL ("ns-use-fullscreen-animation", ns_use_fullscreen_animation, …)`.
+  O_FWD_ns_use_fullscreen_animation = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_fullscreen_animation) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_fullscreen_animation, "ns-use-fullscreen-animation")
+  ns_use_fullscreen_animation = false                                  // C 11714
+
+  // C 11716-11720: `DEFVAR_BOOL ("ns-use-srgb-colorspace", ns_use_srgb_colorspace, …)`.
+  O_FWD_ns_use_srgb_colorspace = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_srgb_colorspace) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_srgb_colorspace, "ns-use-srgb-colorspace")
+  ns_use_srgb_colorspace = true                                        // C 11720
+
+  // C 11722-11726: `DEFVAR_BOOL ("ns-use-mwheel-acceleration", ns_use_mwheel_acceleration, …)`.
+  O_FWD_ns_use_mwheel_acceleration = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_mwheel_acceleration) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_mwheel_acceleration, "ns-use-mwheel-acceleration")
+  ns_use_mwheel_acceleration = true                                    // C 11726
+
+  // C 11728-11732: `DEFVAR_LISP ("ns-mwheel-line-height", ns_mwheel_line_height, …)`.
+  O_FWD_ns_mwheel_line_height = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_mwheel_line_height) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_ns_mwheel_line_height, "ns-mwheel-line-height")
+  ns_mwheel_line_height = Qnil()                                       // C 11732
+
+  // C 11734-11737: `DEFVAR_BOOL ("ns-use-mwheel-momentum", ns_use_mwheel_momentum, …)`.
+  O_FWD_ns_use_mwheel_momentum = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_mwheel_momentum) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_mwheel_momentum, "ns-use-mwheel-momentum")
+  ns_use_mwheel_momentum = true                                        // C 11737
+
+  /* TODO: Move to common code.  */
+  // C 11740-11742: `DEFVAR_LISP ("x-toolkit-scroll-bars", Vx_toolkit_scroll_bars, …)` - the
+  // variable is `src/xterm.c`'s ("SKIP: real doc in xterm.c"), so this unit registers it only.
+  O_FWD_Vx_toolkit_scroll_bars = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vx_toolkit_scroll_bars) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_Vx_toolkit_scroll_bars, "x-toolkit-scroll-bars")
+  Vx_toolkit_scroll_bars = Qt()                                        // C 11742
+
+  // C 11744-11749: `DEFVAR_BOOL ("x-use-underline-position-properties", …)` and its `DEFSYM
+  // (Qx_use_underline_position_properties, "x-use-underline-position-properties")` (C 11748-11749,
+  // an empty macro).
+  O_FWD_x_use_underline_position_properties = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &x_use_underline_position_properties) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_x_use_underline_position_properties, "x-use-underline-position-properties")
+  x_use_underline_position_properties = false                          // C 11747 (C's `0`)
+
+  // C 11751-11754: `DEFVAR_BOOL ("x-underline-at-descent-line", x_underline_at_descent_line, …)`.
+  O_FWD_x_underline_at_descent_line = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &x_underline_at_descent_line) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_x_underline_at_descent_line, "x-underline-at-descent-line")
+  x_underline_at_descent_line = false                                  // C 11754 (C's `0`)
+
+  /* TODO: add an "auto" mode that passes clicks through to "utility" UI
+     elements, selects windows, and so on, but doesn't pass them through
+     for commands in general--as with other applications.  */           // C 11756-11758
+
+  // C 11760-11768: `DEFVAR_BOOL ("ns-click-through", ns_click_through, …)`; the docstring
+  // C 11762-11767 is the long one about which click activates.
+  O_FWD_ns_click_through = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_click_through) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_click_through, "ns-click-through")
+  ns_click_through = true                                              // C 11768
+
+  // C 11770: `DEFSYM (Qx_underline_at_descent_line, "x-underline-at-descent-line");` - empty.
+
+  // C 11772-11776: `DEFVAR_LISP ("ns-scroll-event-delta-factor", Vns_scroll_event_delta_factor,
+  // …)`.
+  O_FWD_Vns_scroll_event_delta_factor = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_scroll_event_delta_factor) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_Vns_scroll_event_delta_factor, "ns-scroll-event-delta-factor")
+  Vns_scroll_event_delta_factor = make_float(1.0)                      // C 11776
+
+  // C 11778-11786: `DEFVAR_LISP ("ns-drag-motion-function", Vns_drag_motion_function, …)`.
+  O_FWD_Vns_drag_motion_function = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_drag_motion_function) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_Vns_drag_motion_function, "ns-drag-motion-function")
+  Vns_drag_motion_function = Qns_handle_drag_motion()                  // C 11786
+
+  /* Tell Emacs about this window system.  */
+  _ = Fprovide(Qns(), Qnil())                                          // C 11789
+
+  // C 11791-11799: `DEFSYM (Qcocoa, "cocoa"); DEFSYM (Qgnustep, "gnustep"); DEFSYM (QCordinary,
+  // ":ordinary"); DEFSYM (QCfunction, ":function"); DEFSYM (QCmouse, ":mouse"); DEFSYM (Qcondensed,
+  // "condensed"); DEFSYM (Qreverse_italic, "reverse-italic"); DEFSYM (Qexpanded, "expanded");
+  // DEFSYM (Qns_in_echo_area, "ns-in-echo-area");` - nine `DEFSYM`s, each carrying no statement.
+
+  // C 11801-11807: the `NS_IMPL_COCOA` arm is this target's - `Fprovide (Qcocoa, Qnil)` and the
+  // neighbouring lane's `syms_of_macfont ()`; the `#else` arm's `Fprovide (Qgnustep, Qnil)` and
+  // `syms_of_nsfont ()` are the GNUstep half and are dead here.
+  _ = Fprovide(Qcocoa(), Qnil())                                       // C 11802
+  syms_of_macfont()                                                    // C 11803
+
+  last_known_monitors = Qnil()                                         // C 11809
+  staticpro(withUnsafePointer(to: &last_known_monitors) { $0 })         // C 11810
+}

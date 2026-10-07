@@ -16,4 +16,3 @@ femacs/platform/macos/nsterm.swift	ns_update_window_end	src/nsterm.m
 femacs/platform/macos/nsterm.swift	nstrace_fullscreen_type_name	src/nsterm.m
 femacs/platform/macos/nsterm.swift	nstrace_leave	src/nsterm.m
 femacs/platform/macos/nsterm.swift	nstrace_restore_global_trace_state	src/nsterm.m
-femacs/platform/macos/nsterm.swift	syms_of_nsterm	src/nsterm.m

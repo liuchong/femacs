@@ -226,7 +226,7 @@
 - [x] ns_new_font  (line 11418, static) — C 11410-11476, landed as `fileprivate func ns_new_font (_:_:_:)` (round 51 took it ahead of `ns_create_terminal`'s body because C 5942 hands it to `terminal->set_new_font_hook`, the dependency order P-91 ① allows): C's `font` reads are the `font_<member>` family, the `struct ns_output` writes are `ns_output_set_*` and the `struct frame` writes `frame_set_*` (this round's entry rule), C's parameter reassignment is the shadow spelling, and C 11470's `! [view isFullscreen]` on a possibly-nil view is C's nil-receiver answer
 - [x] ns_xlfd_to_fontname  (line 11484) — C 11483-11526, landed as `@_cdecl("ns_xlfd_to_fontname")` (declared src/nsterm.h 1129, imported by `nsfns.swift` 1099-1101): `sscanf` is variadic and reaches the C entry by name (the `fprintf` reading), `strncmp`/`strcpy`/`strlen` are the SDK's, `c_toupper` is `femacs/lib/c-ctype.rs` 103-104's export, and the returned pointer belongs to an autoreleased `NSString` (the `ns_relocate` pair)
 - [x] mark_nsterm  (line 11529) — C 11528-11547, landed as `@_cdecl("mark_nsterm")` (C's own non-static entry): it walks every frame's scrollers and sends each the `mark` method round 43 landed; the `FOR_EACH_FRAME` spelling, `FRAME_NS_P`, `FRAME_NS_VIEW` and the `isKindOfClass:` test are the unit's own already, so it needed **no new entry**
-- [ ] syms_of_nsterm  (line 11550)
+- [x] syms_of_nsterm  (line 11550) — C 11549-11811, landed as `@_cdecl("syms_of_nsterm")` (declared src/nsterm.h 1196, called src/emacs.c 2421), the file's last function (round 60): the `PDUMPER_REMEMBER_SCALAR` pair, the 13 `DEFSYM`s of the modifier block and the 11 later ones (empty macros, recorded), the five `Fput`s, **30 `DEFVAR`s** (22 `DEFVAR_LISP` + 8 `DEFVAR_BOOL`) with their fileprivate `O_FWD_…` records, `Fprovide (Qns)`, the `NS_IMPL_COCOA` arm's `Fprovide (Qcocoa)` + `syms_of_macfont ()`, and the closing `last_known_monitors = Qnil` + `staticpro`.  The `DEFVAR` variables are the generated `globals` struct's members, which is why the reference carries no declaration for them, and this lane reaches each as the data symbol the core exports (the ruling the seven modifiers record); the docstrings stay on the C text, since C's `defvar_lisp`/`defvar_bool` take no `doc:` argument
 
 Two definitions the pre-3.260 reader missed for the same comment-stop reason as `ns_focus` above
 (the documented declarator is followed by a comment before its `{`); they were added by hand so the
@@ -4103,3 +4103,55 @@ call site takes an entry and the definition lands at its own C line - and **both
 * **What this round does not claim**: **no run evidence** - the timer was never created, cancelled or
   fired; the compile gate reaches parsing and type checking only, and `check-swift-units.py` compares
   name sets, not signatures, bodies, layouts or ABI.
+
+### Round 60: `syms_of_nsterm` (C 11549-11811) - the file's last function
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-59 carry, so **no new warning**.  Object
+  `/tmp/nsterm60.o`, **1,011,888 bytes**, md5 `003b4fad7535ad4d0569297b76819adb`.  The unit is
+  **11,197 lines**.  The first measurement stopped on four errors; they are the entry below.
+* **The function lands whole**: `ns_antialias_threshold = 10.0` with its `PDUMPER_REMEMBER_SCALAR`,
+  the 24 `DEFSYM` sites (empty macros, recorded as comments - src/lisp.h 2394), the five `Fput`s of
+  the modifier properties, **30 `DEFVAR`s** (22 `DEFVAR_LISP`, 8 `DEFVAR_BOOL`) in C's order with
+  their initialising assignments, `Fprovide (Qns, Qnil)`, the `NS_IMPL_COCOA` arm's
+  `Fprovide (Qcocoa, Qnil)` + `syms_of_macfont ()`, and the closing `last_known_monitors = Qnil` +
+  `staticpro (&last_known_monitors)`.
+* **Where the `DEFVAR` storage lives**: C's `DEFVAR_LISP`/`DEFVAR_BOOL` build members of the
+  generated `globals` struct (`globals.f_…`), which is why the reference itself carries no
+  declaration for them; this lane reaches every one as the data symbol the core exports - the ruling
+  the seven modifiers above record - so 13 of them (`ns_input_font`, `ns_input_fontsize`,
+  `ns_use_thin_smoothing`, `ns_use_fullscreen_animation`, `ns_use_mwheel_acceleration`,
+  `ns_mwheel_line_height`, `ns_use_mwheel_momentum`, `ns_click_through`,
+  `Vns_scroll_event_delta_factor`, `Vns_drag_motion_function`, `Vx_toolkit_scroll_bars`,
+  `x_use_underline_position_properties`, `x_underline_at_descent_line`) are new imports here.  The
+  last three are `src/xterm.c`'s - the reference's own docstrings say so ("SKIP: real doc in
+  xterm.c") and `femacs/src/xterm.rs` 22166-22170 already carries them.
+* **The `DEFVAR` machinery** is the lane's (`docs/ports/nsselect.md`): the `Lisp_Fwd`/`Lisp_Fwd_u`
+  records (one slot for C's two-member union, the `nsfns.swift` 733-742 extension), `Lisp_Fwd_Obj`/
+  `Lisp_Fwd_Bool`, `defvar_lisp`/`defvar_bool`, `staticpro`, `make_fixnum`, `Fput` and `Fprovide`.
+  The docstrings stay on the C text: C's registering calls take no `doc:` argument (src/lisp.h
+  3472/3474) and make-docfile reads the C source - the reading `docs/ports/nsfns.md` 269-273
+  records for the four units before this one.
+* **`PDUMPER_REMEMBER_SCALAR` and the four enumerator entries**: the macro (src/pdumper.h 52-53) is
+  `pdumper_remember_scalar (&thing, sizeof thing)`, whose INLINE body calls the exported
+  `pdumper_remember_scalar_impl` on the `HAVE_PDUMPER` 1 arm - the INLINE has no C symbol
+  (`femacs/src/include/pdumper.rs` 96-101 mirrors it), so C 11555 is written as that call with the
+  same two arguments.  `alt_modifier`/`super_modifier`/`meta_modifier`/`ctrl_modifier` (src/termhooks.h
+  457-463) join the four enumerator entries this unit already has (the `PVEC_SUBR` reading), with the
+  same open item: their providers are the port's C-ABI side's.
+* **The first measurement's four errors, and the fix**: `invalid redeclaration of 'Qalt()'` and the
+  same for `Qmeta`/`Qsuper`/`Qcontrol` - those four are already entries of the echo-area slice
+  (line 8278-8281 above), so this round declares only `Qmodifier_value`, `Qns_handle_drag_motion`,
+  `Qcocoa` and `Qgnustep`.  After the fix the round compiled first try.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **6** unported,
+  6 row(s); **613** C symbol import(s)` - one fewer unported than round 59's 7 (this definition),
+  18 more imports (this round's entries), with the one stale row cleared by name from
+  `docs/baseline/swift-units.tsv`.  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.  **No live
+  definition remains**: the six unported rows are the recorded dead arms (`hide_bell`,
+  `ns_redraw_scroll_bars`, `ns_update_window_end` and the three `nstrace*`), so what the checklist
+  still lacks is the two classes `EmacsLayer` (C 11128-11396) and `EmacsDocument` (C 11404-11406).
+* **What this round does not claim**: **no run evidence** - `syms_of_nsterm` was never called, no
+  `defvar` was registered and no dump was made; the compile gate reaches parsing and type checking
+  only, and `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.  The
+  providers of the new data imports are owed by the port's C-ABI side (the same open item the
+  modifiers' row names).
