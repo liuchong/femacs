@@ -1,7 +1,7 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
 C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601,
-C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
+C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447, C 7449-7491, C 7494-7606,
 C 7609-7729 and C 7731-7950
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
@@ -24,7 +24,7 @@ C 7609-7729 and C 7731-7950
 > **10,782 lines** after the twenty-sixth and **11,042 lines** after the twenty-seventh - C 803-2149,
 > C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916,
 > C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297,
-> C 6300-6513, C 6515-6601, C 6604-6777, C 6785-7035, C 7037-7207, C 7210-7273, C 7275-7447,
+> C 6300-6513, C 6515-6601, C 6604-6777, C 6779-7035, C 7037-7207, C 7210-7273, C 7275-7447,
 > C 7449-7491, C 7494-7606, C 7609-7729 and C 7731-7950, whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
@@ -194,7 +194,7 @@ defines both features.
 | 6300-6513 | C 6300's `#ifdef HAVE_XRANDR`, `x_get_monitor_attributes_xrandr` (C 6301-6302 the `static Lisp_Object`, C 6312's `#if RANDR_MAJOR … >= 5` with C 6314's `#ifdef USE_XCB` inside it, C 6413-6414's `RANDR13_LIBRARY`, C 6438-6440's own 1.3 arm) and C 6513's `#endif` | `all (have_x_windows, not (use_gtk), have_window_system, have_xrandr)`, with the derived `have_xrandr_1_5` / `have_xrandr_1_3` and `use_xcb` inside (slice 17) |
 | 6515-6601 | C 6515-6516's `static Lisp_Object`, the dispatcher `x_get_monitor_attributes` (C 6523-6530 the `HAVE_XRANDR` arm, C 6532-6538 the `HAVE_XINERAMA` arm, C 6540-6541 the fallback), C 6546's `#endif /* !USE_GTK */`, C 6548's `#ifdef USE_LUCID`, `xlw_monitor_dimensions_at_pos_1` (C 6551-6554 the `static void`) with `xlw_monitor_dimensions_at_pos` (C 6589-6591 the `void`) and C 6601's `#endif` | the slice 15 pair for the dispatcher (its three callees' own gate, `all (have_x_windows, not (use_gtk), have_window_system)`); `use_lucid` alone for the two Lucid functions, whose callee is the pair's, so the ledger's Lucid arm carries it (slice 18) |
 | 6604-6777 | the `x-display-monitor-attributes-list` `DEFUN` (C 6604-6606 its header, C 6607-6621 the verbatim doc string, C 6627-6767 the `USE_GTK` arm with its 3.22 / pre-3.22 sub-arms and C 6768-6773 the plain-X one) | `have_x_windows`, with `use_gtk` and, inside it, `gtk_check_version_ge_3_22` / `have_gtk3` for C's three-way workarea and scale arms (slice 19) |
-| 6785-7035 | `frame_geometry` (C 6785-6786 the `static Lisp_Object`, the comment C 6779-6783; C 6860-6868 the `HAVE_EXT_MENU_BAR` pair, C 6877-6922 the `HAVE_EXT_TOOL_BAR` pair) and the two subrs it backs, `x-frame-geometry` (C 6964) and `x-frame-edges` (C 7013) | `have_x_windows`, with `have_ext_menu_bar` and `have_ext_tool_bar` inside (slice 20) |
+| 6779-7035 | `frame_geometry` (C 6779-6783 the comment, C 6785-6786 the `static Lisp_Object`; C 6860-6868 the `HAVE_EXT_MENU_BAR` pair, C 6877-6922 the `HAVE_EXT_TOOL_BAR` pair) and the two subrs it backs, `x-frame-geometry` (C 6964) and `x-frame-edges` (C 7013) | `have_x_windows`, with `have_ext_menu_bar` and `have_ext_tool_bar` inside (slice 20) |
 | 7037-7207 | `x_frame_list_z_order` (C 7037-7043 its comment, C 7044-7045 the `static Lisp_Object`; C 7063-7096 the `_NET_CLIENT_LIST_STACKING` arm, C 7098-7119 the `XQueryTree` walk) with its subr `x-frame-list-z-order` (C 7125), then `x_frame_restack` (C 7150-7157 its comment, C 7161-7178 the `USE_GTK` pair) with its subr `x-frame-restack` (C 7182) | `have_x_windows`, with `use_gtk` for the restack helper's two arms (slice 21) |
 | 7210-7273 | the two mouse subrs: `x-mouse-absolute-pixel-position` (C 7210-7233, `x_query_pointer`'s nine arguments) and `x-set-mouse-absolute-pixel-position` (C 7235-7273, whose C 7251-7266 `HAVE_XINPUT2` pair chooses `XIWarpPointer` or `XWarpPointer`) | `have_x_windows`, with `have_xinput2` for the client-pointer-device arm (slice 22) |
 | 7275-7447 | the `x-begin-drag` `DEFUN` (C 7275 its header, C 7276-7334 its doc string; C 7350-7368 the target walk, C 7370-7426 the action dispatch, C 7430-7437 the atom interning under C 7432's error trap, C 7439-7443 the `x_dnd_begin_drag_and_drop` call, all inside C 7348/7445's `USE_SAFE_ALLOCA`/`SAFE_FREE` pair) | `have_x_windows`, with no nested `#if` (slice 23) |
@@ -2268,9 +2268,9 @@ The frozen configuration compiles none of this file: no Gdk display was looked u
 enumerated, no workarea was intersected and no attribute list was built; the eleven arms' counts
 are text compile readings, and GTK/GTK22 are text compiles of a build this machine cannot link
 (there are no GTK headers and no libgtk here).
-## Slice 20 (2026-10-08, status 3.923 - the integrator sets the round number): C 6785-7035
+## Slice 20 (2026-10-08, status 3.923 - the integrator sets the round number): C 6779-7035
 
-**The slice is C 6785-7035**: `frame_geometry` (C 6785-6786 the `static Lisp_Object`, C 6788-6801
+**The slice is C 6779-7035**: the comment C 6779-6783 and `frame_geometry` (C 6785-6786 the `static Lisp_Object`, C 6788-6801
 its locals, C 6803-6804 the three-way early exit, C 6806-6814's `block_input`/`XGetGeometry`/
 `x_real_pos_and_offsets`/`unblock_input`, C 6819-6852 the parent-frame and window-manager halves of
 the outer and native edges, C 6854-6858 the internal border, C 6860-6922 the menu-bar and tool-bar
