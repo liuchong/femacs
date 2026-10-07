@@ -9294,3 +9294,254 @@ pub unsafe fn xlw_monitor_dimensions_at_pos (dpy: *mut Display,         // C 658
 
   unblock_input ();                                                     // C 6599
 }
+
+/* -----------------------------------------------------------------------------------------
+   C 6604-6777: the DEFUN `x-display-monitor-attributes-list` - the GTK monitor walk
+   (C 6627-6767, whose 3.22 arms choose between the `gdk_monitor_*` family and the pre-3.22
+   `gdk_screen_*` one) and the plain-X arm (C 6768-6773, the slice 18 dispatcher between
+   `block_input` and `unblock_input`).
+   -------------------------------------------------------------------------------------- */
+
+/* C: gdk/gdkscreen.h's nine pre-3.22 `GdkScreen` entry points C 6643-6757 reads, plus
+   gdk/gdkrectangle.h's intersection C 6720 reads: no mirror carries them (`include/gtk.rs`
+   carries the 3.22 *monitor* family instead, under `#[cfg (not (have_pgtk))]`), so they stand at
+   the use site under C's own sub-arm gate (P-55/P-72 rule 3).  This machine has no GTK headers
+   (`include/gtk.rs`'s own rows name the header and the signature only), so the rows are owed to
+   a `gdk.rs`-style mirror and the `Owed` list names them.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk",
+	    not (feature = "gtk_check_version_ge_3_22")))]
+unsafe extern "C" {
+  pub fn gdk_screen_get_n_monitors (screen: *mut GdkScreen) -> gint;                // C 6644
+  pub fn gdk_screen_get_primary_monitor (screen: *mut GdkScreen) -> gint;           // C 6645
+  pub fn gdk_screen_get_monitor_at_window (screen: *mut GdkScreen,                  // C 6671
+					   window: *mut GdkWindow) -> gint;
+  pub fn gdk_screen_get_monitor_geometry (screen: *mut GdkScreen, monitor_num: gint,  // C 6691
+					  dest: *mut GdkRectangle);
+  pub fn gdk_screen_get_monitor_width_mm (screen: *mut GdkScreen,                   // C 6698
+					  monitor_num: gint) -> gint;
+  pub fn gdk_screen_get_monitor_height_mm (screen: *mut GdkScreen,                  // C 6699
+					   monitor_num: gint) -> gint;
+  pub fn gdk_screen_get_monitor_workarea (screen: *mut GdkScreen, monitor_num: gint,  // C 6708
+					  dest: *mut GdkRectangle);
+  pub fn gdk_screen_get_monitor_scale_factor (screen: *mut GdkScreen,               // C 6732
+					      monitor_num: gint) -> gint;
+  pub fn gdk_screen_get_monitor_plug_name (screen: *mut GdkScreen,                  // C 6757
+					   monitor_num: gint) -> *mut c_char;
+  pub fn gdk_rectangle_intersect (src1: *const GdkRectangle, src2: *const GdkRectangle,  // C 6720
+				  dest: *mut GdkRectangle) -> gboolean;
+}
+
+/* C: lisp.h 5555: `extern void dupstring (char **, char const *);` - C 6755's call; no mirror
+   carries it (`pgtkfns.rs` 743-745 declares the same row at its own use site).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_gtk"))]
+unsafe extern "C" {
+  pub fn dupstring (dest: *mut *mut c_char, src: *const c_char);                    // C 6755
+}
+
+/* C 6604-6777.  */
+#[cfg (feature = "have_x_windows")]
+DEFUN! ("x-display-monitor-attributes-list", Fx_display_monitor_attributes_list,
+	Sx_display_monitor_attributes_list,
+	0, 1, 0,
+	doc: "Return a list of physical monitor attributes on the X display TERMINAL.\n\nThe optional argument TERMINAL specifies which display to ask about.\nTERMINAL should be a terminal object, a frame or a display name (a string).\nIf omitted or nil, that stands for the selected frame's display.\n\nIn addition to the standard attribute keys listed in\n`display-monitor-attributes-list', the following keys are contained in\nthe attributes:\n\n source -- String describing the source from which multi-monitor\n\t   information is obtained, one of \"Gdk\", \"XRandR 1.5\",\n\t   \"XRandr\", \"Xinerama\", or \"fallback\"\n\nInternal use only, use `display-monitor-attributes-list' instead.  ",
+	(terminal: Lisp_Object),
+	{
+  let dpyinfo: *mut x_display_info = check_x_display_info (terminal);    // C 6624
+  let mut attributes_list: Lisp_Object = Qnil ();                        // C 6625
+
+  #[cfg (feature = "use_gtk")]                                           // C 6627
+  {
+    let mut gdpy: *mut GdkDisplay;                                       // C 6628
+    #[cfg (not (feature = "gtk_check_version_ge_3_22"))]                 // C 6629
+    let mut mm_width_per_pixel: c_double = 0.0;                          // C 6630
+    #[cfg (not (feature = "gtk_check_version_ge_3_22"))]
+    let mut mm_height_per_pixel: c_double = 0.0;
+    #[cfg (not (feature = "gtk_check_version_ge_3_22"))]
+    let mut gscreen: *mut GdkScreen = std::ptr::null_mut ();             // C 6631
+    let mut primary_monitor: gint = 0;                                   // C 6633
+    let mut n_monitors: gint;
+    let mut i: gint;
+    let mut monitor_frames: Lisp_Object;                                 // C 6634
+    let mut rest: Lisp_Object;
+    let mut frame: Lisp_Object;
+    /* C 6635: `static const char *source = "Gdk";` - C's function-scope static, whose storage
+       duration is the program's; the port writes Rust's function-scope `static mut` with C's own
+       value (`pgtkfns.rs` 3707-3710's shape).  */
+    static mut source: *const c_char = c"Gdk".as_ptr ();
+    let mut monitors: *mut MonitorInfo;                                  // C 6636
+
+    block_input ();                                                      // C 6638
+    gdpy = gdk_x11_lookup_xdisplay ((*dpyinfo).display);                 // C 6639
+    #[cfg (feature = "gtk_check_version_ge_3_22")]                       // C 6640
+    { n_monitors = gdk_display_get_n_monitors (gdpy); }                  // C 6641
+    #[cfg (not (feature = "gtk_check_version_ge_3_22"))]                 // C 6642
+    {
+      gscreen = gdk_display_get_default_screen (gdpy);                   // C 6643
+      n_monitors = gdk_screen_get_n_monitors (gscreen);                  // C 6644
+      primary_monitor = gdk_screen_get_primary_monitor (gscreen);        // C 6645
+      /* C 6646: "Fallback if gdk_screen_get_monitor_{width,height}_mm fail".  */
+      mm_width_per_pixel = (WidthMMOfScreen! ((*dpyinfo).screen) as c_double)   // C 6647-6648
+			    / x_display_pixel_width (dpyinfo) as c_double;
+      mm_height_per_pixel = (HeightMMOfScreen! ((*dpyinfo).screen) as c_double)  // C 6649-6650
+			     / x_display_pixel_height (dpyinfo) as c_double;	/* the pair is declared at 7989-7996 */
+    }
+    monitor_frames = make_nil_vector (n_monitors as isize);              // C 6652
+    monitors = xcalloc (n_monitors as size_t,                            // C 6653
+			std::mem::size_of::<MonitorInfo> ()) as *mut MonitorInfo;
+
+    FOR_EACH_FRAME! (rest, frame, {                                      // C 6655
+	let f: *mut frame = XFRAME (frame);                              // C 6657
+
+	if FRAME_X_P (f)                                                 // C 6659
+	  && FRAME_DISPLAY_INFO! (f) == dpyinfo
+	  && !FRAME_TOOLTIP_P (f)
+	  {
+	    let gwin: *mut GdkWindow = gtk_widget_get_window (FRAME_GTK_WIDGET! (f));  // C 6663
+
+	    #[cfg (feature = "gtk_check_version_ge_3_22")]               // C 6665
+	    {
+	      i = 0;                                                     // C 6666
+	      while i < n_monitors
+		{
+		  if gdk_display_get_monitor_at_window (gdpy, gwin)      // C 6667-6668
+		     == gdk_display_get_monitor (gdpy, i)
+		    { break; }                                           // C 6669
+		  i += 1;
+		}
+	    }
+	    #[cfg (not (feature = "gtk_check_version_ge_3_22"))]         // C 6670
+	    { i = gdk_screen_get_monitor_at_window (gscreen, gwin); }    // C 6671
+
+	    if 0 <= i && i < n_monitors                                  // C 6673
+	      { ASET (monitor_frames, i as isize,                        // C 6674
+		      Fcons (frame, AREF (monitor_frames, i as isize))); }
+	  }
+    });
+
+    i = 0;                                                               // C 6678
+    while i < n_monitors
+      {
+	let mut width_mm: gint = 0;                                      // C 6680
+	let mut height_mm: gint = 0;
+	let mut rec: GdkRectangle = std::mem::zeroed ();                 // C 6681
+	let mut work: GdkRectangle = std::mem::zeroed ();
+	/* C 6682's `struct MonitorInfo *mi = &monitors[i];` - the port's element address.  */
+	let mi: *mut MonitorInfo = monitors.offset (i as isize);
+	let mut scale: c_int = 1;                                        // C 6683
+	/* C 6686's `GdkMonitor *monitor` is declared inside its 3.22 arm but read by four more of
+	   them (C 6695/6696, 6706, 6730, 6755), so the port hoists the declaration to the loop's own
+	   locals under the same gate (the `randr13_avail` shape, slice 17's deviation 3).  */
+	#[cfg (feature = "gtk_check_version_ge_3_22")]
+	let mut monitor: *mut GdkMonitor = std::ptr::null_mut ();
+
+	#[cfg (feature = "gtk_check_version_ge_3_22")]                   // C 6685
+	{
+	  monitor = gdk_display_get_monitor (gdpy, i);                   // C 6686
+	  if gdk_monitor_is_primary (monitor) != 0                       // C 6687
+	    { primary_monitor = i; }                                     // C 6688
+	  gdk_monitor_get_geometry (monitor, &raw mut rec);              // C 6689
+	}
+	#[cfg (not (feature = "gtk_check_version_ge_3_22"))]             // C 6690
+	{ gdk_screen_get_monitor_geometry (gscreen, i, &raw mut rec); }  // C 6691
+
+	#[cfg (feature = "gtk_check_version_ge_3_22")]                   // C 6694
+	{
+	  width_mm = gdk_monitor_get_width_mm (monitor);                 // C 6695
+	  height_mm = gdk_monitor_get_height_mm (monitor);               // C 6696
+	}
+	#[cfg (not (feature = "gtk_check_version_ge_3_22"))]             // C 6697
+	{
+	  width_mm = gdk_screen_get_monitor_width_mm (gscreen, i);       // C 6698
+	  height_mm = gdk_screen_get_monitor_height_mm (gscreen, i);     // C 6699
+	  if width_mm < 0                                                // C 6700
+	    { width_mm = (rec.width as c_double * mm_width_per_pixel + 0.5) as gint; }   // C 6701
+	  if height_mm < 0                                               // C 6702
+	    { height_mm = (rec.height as c_double * mm_height_per_pixel + 0.5) as gint; }  // C 6703
+	}
+
+	#[cfg (feature = "gtk_check_version_ge_3_22")]                   // C 6705
+	{ gdk_monitor_get_workarea (monitor, &raw mut work); }           // C 6706
+	#[cfg (all (not (feature = "gtk_check_version_ge_3_22"),
+		    feature = "have_gtk3"))]                             // C 6707
+	{ gdk_screen_get_monitor_workarea (gscreen, i, &raw mut work); }  // C 6708
+	#[cfg (all (not (feature = "gtk_check_version_ge_3_22"),
+		    not (feature = "have_gtk3")))]                       // C 6709
+	{
+	  /* Emulate the behavior of GTK+ 3.4.  */                       // C 6710
+	  let mut workarea_r: XRectangle = std::mem::zeroed ();          // C 6712
+
+	  if i == primary_monitor && x_get_net_workarea (dpyinfo, &raw mut workarea_r)  // C 6714
+	    {
+	      work.x = workarea_r.x as c_int;                            // C 6716
+	      work.y = workarea_r.y as c_int;                            // C 6717
+	      work.width = workarea_r.width as c_int;                    // C 6718
+	      work.height = workarea_r.height as c_int;                  // C 6719
+	      if ! gdk_rectangle_intersect (&raw const rec, &raw const work, &raw mut work)  // C 6720
+		{ work = rec; }                                          // C 6721
+	    }
+	  else
+	    { work = rec; }                                              // C 6724
+	}
+
+	/* GTK returns scaled sizes for the workareas.  */               // C 6728
+	#[cfg (feature = "gtk_check_version_ge_3_22")]                   // C 6729
+	{ scale = gdk_monitor_get_scale_factor (monitor); }              // C 6730
+	#[cfg (all (not (feature = "gtk_check_version_ge_3_22"),
+		    feature = "have_gtk3"))]                             // C 6731
+	{ scale = gdk_screen_get_monitor_scale_factor (gscreen, i); }    // C 6732
+	rec.x *= scale;                                                  // C 6734
+	rec.y *= scale;                                                  // C 6735
+	rec.width *= scale;                                              // C 6736
+	rec.height *= scale;                                             // C 6737
+	work.x *= scale;                                                 // C 6738
+	work.y *= scale;                                                 // C 6739
+	work.width *= scale;                                             // C 6740
+	work.height *= scale;                                            // C 6741
+
+	/* C's `struct MonitorInfo` rectangles are `Emacs_Rectangle` (`frame.h` 1929), which the X
+	   build reads as `XRectangle` (`dispextern.h` 38's alias: `short`/`unsigned short`), so the
+	   eight implicit gint -> short/unsigned short conversions C writes are written out.  */
+	(*mi).geom.x = rec.x as c_short;                                 // C 6743
+	(*mi).geom.y = rec.y as c_short;                                 // C 6744
+	(*mi).geom.width = rec.width as c_ushort;                        // C 6745
+	(*mi).geom.height = rec.height as c_ushort;                      // C 6746
+	(*mi).work.x = work.x as c_short;                                // C 6747
+	(*mi).work.y = work.y as c_short;                                // C 6748
+	(*mi).work.width = work.width as c_ushort;                       // C 6749
+	(*mi).work.height = work.height as c_ushort;                     // C 6750
+	(*mi).mm_width = width_mm;                                       // C 6751
+	(*mi).mm_height = height_mm;                                     // C 6752
+
+	#[cfg (feature = "gtk_check_version_ge_3_22")]                   // C 6754
+	{ dupstring (&raw mut (*mi).name, gdk_monitor_get_model (monitor)); }  // C 6755
+	#[cfg (not (feature = "gtk_check_version_ge_3_22"))]             // C 6756
+	{ (*mi).name = gdk_screen_get_monitor_plug_name (gscreen, i); }  // C 6757
+
+	i += 1;                                                          // C 6678's `++i`
+      }
+
+    attributes_list = make_monitor_attribute_list (monitors,             // C 6761-6765
+						   n_monitors,
+						   primary_monitor,
+						   monitor_frames,
+						   source);
+    free_monitors (monitors, n_monitors);                                // C 6766
+    unblock_input ();                                                    // C 6767
+  }
+
+  #[cfg (not (feature = "use_gtk"))]                                     // C 6768
+  {
+    block_input ();                                                      // C 6770
+    /* C's `#ifndef USE_GTK` arm is reachable only where its callee is: `HAVE_X_WINDOWS`
+       implies `HAVE_WINDOW_SYSTEM` (configure.ac 7517-7518 defines the latter whenever
+       `$window_system != "none"`), and the callee's own gate is the slice 15 pair (frame.h
+       1926's `#ifdef HAVE_WINDOW_SYSTEM`, where `struct MonitorInfo` lives).  The statement
+       carries the callee's existence condition, so the `have_x_windows`-only reading arms - a
+       combination C cannot reach - read no phantom `E0425`; the ledger records the deviation.  */
+    #[cfg (feature = "have_window_system")]
+    { attributes_list = x_get_monitor_attributes (dpyinfo); }            // C 6771
+    unblock_input ();                                                    // C 6772
+  }
+
+  return attributes_list;                                               // C 6776
+});

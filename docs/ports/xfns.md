@@ -1,6 +1,7 @@
 # emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811, C 3812-3956,
 C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758,
-C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513 and C 6515-6601
+C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601 and
+C 6604-6777
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -15,10 +16,11 @@ C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513 and
 > eighth, **7,133 lines** after the ninth, **7,982 lines** after the tenth, **8,168 lines** after
 > the eleventh, **8,296 lines** after the twelfth, **8,389 lines** after the thirteenth,
 > **8,538 lines** after the fourteenth, **8,650 lines** after the fifteenth, **8,768 lines** after
-> the sixteenth, **9,167 lines** after the seventeenth and **9,296 lines** after the eighteenth -
-> C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170, C 4172-4428, C 4430-4623, C 4624-4783,
-> C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889, C 5891-5991, C 5993-6123, C 6125-6215,
-> C 6217-6297, C 6300-6513 and C 6515-6601, whose own
+> the sixteenth, **9,167 lines** after the seventeenth, **9,296 lines** after the eighteenth and
+> **9,547 lines** after the nineteenth - C 803-2149, C 2150-3811, C 3812-3956, C 3957-4170,
+> C 4172-4428, C 4430-4623, C 4624-4783, C 4785-4916, C 4918-5582, C 5583-5758, C 5760-5889,
+> C 5891-5991, C 5993-6123, C 6125-6215, C 6217-6297, C 6300-6513, C 6515-6601 and C 6604-6777,
+> whose own
 > ledger sections are at the end of this file - measured with `grep -c ''`), both arms of every
 > `#if` carried.
 >
@@ -186,7 +188,8 @@ defines both features.
 | 6217-6297 | `x_get_monitor_attributes_fallback` (C 6217-6238) and C 6241's `#ifdef HAVE_XINERAMA`, `x_get_monitor_attributes_xinerama` (C 6242-6296) and C 6297's `#endif` | the slice 15 pair, with `have_xinerama` for the second (the record and entry point stand at the use site; slice 16) |
 | 6300-6513 | C 6300's `#ifdef HAVE_XRANDR`, `x_get_monitor_attributes_xrandr` (C 6301-6302 the `static Lisp_Object`, C 6312's `#if RANDR_MAJOR … >= 5` with C 6314's `#ifdef USE_XCB` inside it, C 6413-6414's `RANDR13_LIBRARY`, C 6438-6440's own 1.3 arm) and C 6513's `#endif` | `all (have_x_windows, not (use_gtk), have_window_system, have_xrandr)`, with the derived `have_xrandr_1_5` / `have_xrandr_1_3` and `use_xcb` inside (slice 17) |
 | 6515-6601 | C 6515-6516's `static Lisp_Object`, the dispatcher `x_get_monitor_attributes` (C 6523-6530 the `HAVE_XRANDR` arm, C 6532-6538 the `HAVE_XINERAMA` arm, C 6540-6541 the fallback), C 6546's `#endif /* !USE_GTK */`, C 6548's `#ifdef USE_LUCID`, `xlw_monitor_dimensions_at_pos_1` (C 6551-6554 the `static void`) with `xlw_monitor_dimensions_at_pos` (C 6589-6591 the `void`) and C 6601's `#endif` | the slice 15 pair for the dispatcher (its three callees' own gate, `all (have_x_windows, not (use_gtk), have_window_system)`); `use_lucid` alone for the two Lucid functions, whose callee is the pair's, so the ledger's Lucid arm carries it (slice 18) |
-| 6604-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,059 lines, whose first live definition is the `x-display-monitor-attributes-list` `DEFUN` (C 6604-6605, with a `USE_GTK` arm and a plain-X one) - the next slice's first item | not ported in this slice |
+| 6604-6777 | the `x-display-monitor-attributes-list` `DEFUN` (C 6604-6606 its header, C 6607-6621 the verbatim doc string, C 6627-6767 the `USE_GTK` arm with its 3.22 / pre-3.22 sub-arms and C 6768-6773 the plain-X one) | `have_x_windows`, with `use_gtk` and, inside it, `gtk_check_version_ge_3_22` / `have_gtk3` for C's three-way workarea and scale arms (slice 19) |
+| 6779-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 4,884 lines, whose first live definition is `frame_geometry` (C 6785-6786, the comment C 6779-6783) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -2159,3 +2162,96 @@ declaration sites (0 forbidden, 18 allowed literals), 0 failures**.
 The frozen configuration compiles none of this file: no monitor list was asked for, no workarea was
 consulted, no screen size was read and no widget was resized; the arms' counts are text compile
 readings, and C's `USE_LUCID` path is a build no reading here compiles end to end.
+## Slice 19 (2026-10-08, status 3.922 - the integrator sets the round number): C 6604-6777
+
+**The slice is C 6604-6777**, the file's first subr since the run of subrs that ended at C 5991:
+`x-display-monitor-attributes-list` (C 6604-6606 the `DEFUN` header, C 6607-6621 the verbatim doc
+string, C 6624-6625 the two locals) with its **GTK arm** (C 6627-6767: `gdk_x11_lookup_xdisplay`,
+the two monitor-count arms, C 6638-6653's `block_input`/`make_nil_vector`/`xcalloc`,
+C 6655-6676's `FOR_EACH_FRAME` walk, C 6678-6759's per-monitor loop - geometry, the millimetre
+sizes with their pre-3.22 fallback, the three workarea arms, the scale factor, the eight rectangle
+assignments and the name - and C 6761-6767's `make_monitor_attribute_list`/`free_monitors`/
+`unblock_input`) and its **plain-X arm** (C 6768-6773: `block_input`, the slice 18 dispatcher,
+`unblock_input`).  The port's slice is **251 Rust lines** (9,547 - 9,296, `grep -c ''`) against
+C's 174; md5 `8268c83472d493ec76de55a4ddb1060c` (the slice 18 tree) ->
+`4d8e2c054ee0babbc731d2f195d7f41f`.
+
+**Eleven arms, one of them new.**  The `DEFUN` sits under the file's own gate (`have_x_windows`),
+so every arm compiles it; C 6627-6767's two GTK sub-arms (`gtk_check_version_ge_3_22` on and off)
+exercise different halves, so the table gains a tenth reading that splits the GTK arm:
+**GTK22** = the GTK arm + `gtk_check_version_ge_3_22`.  All eleven read their baselines unchanged -
+plain-X **14 / 9**, WS **14 / 9**, WSX **14 / 9**, WSR **14 / 9**, WSRX **14 / 9**, WSR12
+**14 / 9**, XCB **14 / 9**, LUCID **22 / 12**, GTK **34 / 20**, GTK22 **34 / 20** and Xt
+**15 / 12** - and every arm's error *set* is byte-identical to its baseline, not merely equal in
+count.
+
+**The names this slice has to bring.**  `include/gtk.rs` carries the 3.22 `gdk_monitor_*` family
+(under `#[cfg (not (have_pgtk))]`) and none of the nine pre-3.22 `GdkScreen` entry points the C
+reads, nor `gdk_rectangle_intersect`, so those ten stand at the use site under C's own sub-arm gate
+(`not (gtk_check_version_ge_3_22)`), each row naming the header and the signature and no line
+number - this machine has no GTK headers, which is `include/gtk.rs`'s own row style; `dupstring`
+(lisp.h 5555) joins them the way `pgtkfns.rs` 743-745 declares it; and the pixel pair C 6648/6650
+calls was already this file's own use-site row at 7989-7996.
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged: `build/femacs/xfns.o` is the **336-byte**
+empty object (exit 0) on the final hash.
+
+**② The eleven arms.**  No arm moves and no warning moves in any of them.
+
+**③ Arm touch measured** (P-86 ⑦): three `let _: c_int = true;` injections - one at the `DEFUN`
+body's first statement (A), one in the `use_gtk` arm (B) and one in the `not (use_gtk)` arm (C) -
+move WS **14 -> 16** (A and C read), GTK22 **34 -> 36** (A and B) and LUCID **22 -> 24** (A and C),
+each log naming the injected line it read; the injections were removed and the file's hash
+re-checked.
+
+**④ `extract-abi.py --check`**: **126 rows -> 125** (the in-tree baseline re-measured this slice) -
+the `missing subr Fx_display_monitor_attributes_list (x-display-monitor-attributes-list)` row
+retiring, nothing added but the line-count row's own text, and the drift reads
+`C 10662 vs Rust 9547` (**10.5%**, was 12.8%).  The `missing defsubr (&raw const
+Sx_display_monitor_attributes_list)` row **stays**, because C's `defsubr` site is `syms_of_xfns`'
+own block, not this `DEFUN`.  No token row arrived, so `docs/ports/macro-body-notes.tsv` gains
+nothing here.  `check-mirror-dupes.py` stays at **16 duplicate declaration(s), 16 ratchet row(s),
+0 failure(s)** and `check-declarations.py` at **18 declaration sites (0 forbidden, 18 allowed
+literals), 0 failures**.
+
+### Deviations (this slice)
+
+1. **The plain arm's call carries its callee's existence condition.**  C 6771's call sits under
+   `#ifndef USE_GTK`, but the callee is this port's slice 15 pair (`all (have_x_windows,
+   not (use_gtk), have_window_system)`), so the statement is written
+   `#[cfg (feature = "have_window_system")]`: C cannot reach a `HAVE_X_WINDOWS` build without
+   `HAVE_WINDOW_SYSTEM` (configure.ac 7517-7518 defines it whenever `$window_system != "none"`, and
+   the callee's `struct MonitorInfo` is frame.h 1926's own gate), so the port drops no
+   C-reachable path while the `have_x_windows`-only reading arms stop reading a phantom `E0425`.
+   The first measurement read exactly that row - one in plain-X, XCB and Xt - and it is closed
+   this way.
+2. **C 6686's `GdkMonitor *monitor` is hoisted** to the loop's own locals under
+   `gtk_check_version_ge_3_22`: C declares it inside its first 3.22 arm and reads it in four more
+   (C 6695/6696, 6706, 6730, 6755) - the `randr13_avail` shape of slice 17's deviation 3.
+3. **C 6635's `static const char *source = "Gdk"`** is the port's function-scope `static mut` with
+   C's own value (`pgtkfns.rs` 3707-3710's device for the same C shape).
+4. **The eight rectangle assignments** (C 6743-6750) carry the conversion C writes implicitly:
+   `struct MonitorInfo`'s rectangles are `Emacs_Rectangle`, which the x11 arm reads as `XRectangle`
+   (`include/dispextern.rs` 61-62's alias - four shorts), so each is `as c_short` / `as c_ushort`.
+5. **C's two millimetre fallbacks** (C 6701/6703) put the cast where C's own promotion puts it:
+   `rec.width as c_double * mm_width_per_pixel + 0.5) as gint`.
+
+### Owed (this slice)
+
+- The ten pre-3.22 `GdkScreen` / `GdkRectangle` rows are owed to a `gdk.rs`-style mirror (they
+  stand at the use site under `not (gtk_check_version_ge_3_22)`), and `dupstring` to
+  `include/lisp.rs`; `x_display_pixel_width`/`x_display_pixel_height` stay this file's own rows
+  (7989-7996), owed to `include/xterm.rs`.
+- `syms_of_xfns`' `defsubr` site (the surviving `missing defsubr (&raw const
+  Sx_display_monitor_attributes_list)` row) and the rest of the remainder from C 6779
+  (`frame_geometry`, C 6785-6786): 4,884 C lines plus the 20 missing functions, 1 macro,
+  4 objects, 32 subrs and 45 defsubrs `--check` reads.
+
+### Not claimed (this slice)
+
+The frozen configuration compiles none of this file: no Gdk display was looked up, no monitor was
+enumerated, no workarea was intersected and no attribute list was built; the eleven arms' counts
+are text compile readings, and GTK/GTK22 are text compiles of a build this machine cannot link
+(there are no GTK headers and no libgtk here).
