@@ -7806,8 +7806,8 @@ class EmacsWindow: NSWindow {
   /// recorded arm as elsewhere and the body it guards is transcribed directly, the way the C
   /// compiler takes it; C 9964-9966's `>= 1070` arm is live.  `ourView` is `[self delegate]` read as
   /// this unit's own `EmacsView` class (whose `updateCollectionBehavior`/`fsIsNative`/`isFullscreen`
-  /// are landed methods); `toggleFullScreen:` is its own, still owed by that class's box, so those
-  /// two calls go through the deferred entry declared below.
+  /// are landed methods); and `toggleFullScreen:` is that class's own too, so C 9998/C 10017's two
+  /// sends are the direct calls round 82 switched them to (the deferred entry they used is gone).
   func setParentChildRelationships() {
     let ourView = delegate as? EmacsView                  // C 9944
     let ourFrame = emacs_view_frame(ourView)              // C 9945 (C's `ourView->emacsframe`)
@@ -7848,7 +7848,7 @@ class EmacsWindow: NSWindow {
       var p: NSWindow? = oldParentWindow                  // C 9993
       while p != nil {                                    // C 9994
         if p!.styleMask.contains(.fullScreen) {           // C 9996
-          toggleFullScreen_entry(ourView, self)           // C 9998
+          ourView?.toggleFullScreen(self)                 // C 9998
           break                                           // C 9999
         }
         p = p!.parent                                      // C 10001
@@ -7860,7 +7860,7 @@ class EmacsWindow: NSWindow {
 
       /* Child frames must not be fullscreen.  */
       if ourView!.fsIsNative() && ourView!.isFullscreen() {   // C 10016
-        toggleFullScreen_entry(ourView, self)                 // C 10017
+        ourView?.toggleFullScreen(self)                       // C 10017
       }
 
       /* -addChildWindow: also orders the child window onto the screen, so
@@ -14536,14 +14536,6 @@ func EmacsWindow_initWithEmacsFrame_impl(_ f: UnsafeMutableRawPointer?) -> AnyOb
 // Round 65: the three providers rounds 25/62 left waiting, and one new deferred entry
 // ==========================================================================
 
-/// C 9017's `- (void)toggleFullScreen: (id)sender` is `EmacsView`'s own method (not `NSView`'s:
-/// measured, `value of type 'NSView' has no member 'toggleFullScreen'`), and it has not landed, so
-/// C 9998/10017's two calls go through this deferred entry - the selector's own name with the
-/// receiver first, the `setParentChildRelationships` shape.  The definition lands with that class's
-/// method batch.
-@_silgen_name("toggleFullScreen")
-func toggleFullScreen_entry(_ view: NSView?, _ sender: Any?)
-
 /// C 9934-10037's own method, which round 64's initializer reaches through the deferred entry above
 /// (`setParentChildRelationships_entry`, declared at C 2285's family).  That entry's provider is
 /// this C-ABI definition - the `setAppearance`/`EmacsWindow_initWithEmacsFrame` shape, where the
@@ -15253,3 +15245,50 @@ func WINDOW_TEXT_TO_FRAME_PIXEL_X(_ w: UnsafeMutableRawPointer?, _ x: Int32) -> 
 /// 770 already imports.  **Open**: the core's to export.
 @_silgen_name("window_phys_cursor_x") func window_phys_cursor_x(_ w: UnsafeMutableRawPointer?) -> Int
 @_silgen_name("window_phys_cursor_y") func window_phys_cursor_y(_ w: UnsafeMutableRawPointer?) -> Int
+
+// ==========================================================================
+// Round 82: the providers this unit owes its neighbours
+// ==========================================================================
+
+/// The C-ABI half of C 2537-2538's two reads - `[[w delegate] isKindOfClass: [EmacsView class]]`
+/// and the `emacsframe` cast through it - the entries declared above (C 2834-2836) and imported by
+/// `nsfns.swift` 697-699.  The class they name is this unit's own (C 7039), which is what the
+/// ledger's (3) row was waiting for ("this unit defines them when the class lands").
+@_cdecl("emacs_view_frame")
+func emacs_view_frame_definition(_ view: AnyObject?) -> UnsafeMutableRawPointer? {
+  (view as? EmacsView)?.emacsframe
+}
+@_cdecl("is_emacs_view")
+func is_emacs_view_definition(_ obj: AnyObject?) -> Bool {
+  obj is EmacsView
+}
+
+/// The C-ABI half of `showFontPanel` above (C 7140-7160): the entry `nsfns.swift` 700 declares,
+/// whose call site there is `FRAME_NS_VIEW (f)`.  A nil view is the nil receiver C would message,
+/// which reads as the zero `Lisp_Object` - `Qnil` (`nil_lisp_object`).
+@_cdecl("showFontPanel")
+func showFontPanel_definition(_ view: NSView?) -> Lisp_Object {
+  (view as? EmacsView)?.showFontPanel() ?? Qnil()
+}
+
+/// The C-ABI half of `restackWindow:above:` above (C 10124-10155): the entry `nsfns.swift` 701-702
+/// declares, whose call site is `src/nsfns.m` 1676's `[window restackWindow:window2 above:…]`.  The
+/// receiver's nil is C's nil-message (`NO`, the `?? false`); the **argument's** nil is the entry's
+/// own gap, recorded here: C 10130 compares `[win parentWindow]` (nil for a nil `win`, so the
+/// parented case answers `NO`), while C 10144's `[children indexOfObject: nil]` is `NSNotFound` and
+/// C 10145 would insert at `NSNotFound + 1` - C does not survive its own nil-argument path, so the
+/// port answers the comparison's `NO` instead of transcribing a branch that has no Swift
+/// equivalent (the ledger's Round 82 records it).
+@_cdecl("restackWindow")
+func restackWindow_definition(_ window: AnyObject?, _ window2: NSWindow?, _ above: Bool) -> Bool {
+  guard let win = window2 else { return false }
+  return (window as? EmacsWindow)?.restackWindow(win, above: above) ?? false
+}
+
+/// The C-ABI half of `setDoubleBuffered:` above (C 11181-11187, `EmacsLayer`'s): the entry
+/// `nsfns.swift` 516-517 declares, whose call site there is
+/// `setDoubleBuffered (FRAME_NS_VIEW (f)?.layer, FRAME_DOUBLE_BUFFERED (f))`.
+@_cdecl("setDoubleBuffered")
+func setDoubleBuffered_definition(_ layer: CALayer?, _ flag: Bool) {
+  (layer as? EmacsLayer)?.setDoubleBuffered(flag)
+}

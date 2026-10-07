@@ -404,7 +404,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (void)createToolbar: (struct frame *)f`  (line 9878) — landed as `func createToolbar (_:)` (round 66) **plus the C-ABI provider `@_cdecl("createToolbar")` that round 64's initializer reaches through the deferred entry**: the guard C 9888 opens (`>= 101400`) is this target's, so the `EmacsLayer` test is transcribed, `[self toolbar]` is `NSWindow`'s own property, `EmacsToolbar`'s `initForView:withIdentifier:` is another unit's class method (`nsmenu.swift`) reached through the new cross-file entry (the `EmacsMenu_initWithTitle` shape), C 9897's `%p` is spelled through the pointer's bit pattern (measured: `String (format: "%p", UInt (bitPattern: p))` prints what C's `printf` prints), and C 9907's `@selector (toggleToolbar:)` is the selector itself (`EmacsView`'s method, C 9275, still owed)
   - [x] `- (void)dealloc`  (line 9912) — **deferred by name**: Swift forbids overriding `dealloc` (measured: `error: 'init(coder:)' is unavailable`'s family - ARC owns the releases C writes), so this box records the reference's three statements (`toolbar` release, `setToolbar: nil`, `last_drag_event` release) as the ARC equivalent they already read as — landed as `deinit` (round 66), the `EmacsScroller` shape: a Swift class cannot name `dealloc`, and C's three statements are the references ARC owns - C 9917's `[[self toolbar] release]` with C 9918's `[self setToolbar: nil]` are `toolbar = nil` (the teardown and the property assignment in one, which is also what AppKit's own bookkeeping sees) and C 9922-9923's `[last_drag_event release]` is `last_drag_event = nil`; C 9925's `[super dealloc]` is implicit.  This supersedes the earlier "deferred by name" reading of this box, which predated the class's methods landing
   - [x] `- (NSInteger) borderWidth`  (line 9928) — landed as `func borderWidth () -> Int`: C's `NSWidth` is the rect's own `width`, and the `contentView` read is optional-chained because C's own message to nil does nothing
-  - [x] `- (void)setParentChildRelationships`  (line 9934) — landed as `func setParentChildRelationships ()` (round 65) **plus the C-ABI provider `@_cdecl("setParentChildRelationships")` that round 64's initializer reaches through the deferred entry** (the `setAppearance`/`EmacsWindow_initWithEmacsFrame` shape): the `>= 1070` arm of C 9964-9966 is live while C 9955-9957's `< 101000` and C 9987-9989/10012-10014's `< 1070` guards are **dead on this target** and recorded, the accessibility subroles are `setAccessibilitySubrole (.floatingWindow/.standardWindow)`, `[self setHasShadow:]` is the `hasShadow` property, `[parent styleMask] & NSWindowStyleMaskFullScreen` is `styleMask.contains (.fullScreen)`, and `toggleFullScreen:` (C 9998/10017) goes through the new deferred entry below because that method is `EmacsView`'s own and has not landed
+  - [x] `- (void)setParentChildRelationships`  (line 9934) — landed as `func setParentChildRelationships ()` (round 65) **plus the C-ABI provider `@_cdecl("setParentChildRelationships")` that round 64's initializer reaches through the deferred entry** (the `setAppearance`/`EmacsWindow_initWithEmacsFrame` shape): the `>= 1070` arm of C 9964-9966 is live while C 9955-9957's `< 101000` and C 9987-9989/10012-10014's `< 1070` guards are **dead on this target** and recorded, the accessibility subroles are `setAccessibilitySubrole (.floatingWindow/.standardWindow)`, `[self setHasShadow:]` is the `hasShadow` property, `[parent styleMask] & NSWindowStyleMaskFullScreen` is `styleMask.contains (.fullScreen)`, and `toggleFullScreen:` (C 9998/10017) went through round 65's deferred entry because that method is `EmacsView`'s own and had not landed - **round 81 landed it and round 82 switched those two calls to the direct send** (`ourView?.toggleFullScreen (self)`) **and deleted the entry**
   - [x] `- (void)orderFront:(id)sender`  (line 10043) — landed as `@objc override func orderFront (_:)`: the parent arm removes and re-adds the receiver above it, the `else` is the `super` call, and C 10047's `[self parentWindow]` is Swift's renamed `parent`
   - [x] `- (void)makeKeyAndOrderFront:(id)sender`  (line 10057) — landed as `@objc override func makeKeyAndOrderFront (_:)`: C 10064's `[self makeKeyWindow]` is Swift's `makeKey ()`
   - [x] `- (NSInteger) orderedIndex`  (line 10074) — **dead on this target, recorded**: C opens `#ifdef NS_IMPL_GNUSTEP` at C 10071 and closes it at C 10078, and the ledger's own neighbour says why - the comment above C 10074 is "orderedIndex isn't yet available in GNUstep, but it seems pretty easy to implement."  On Cocoa the selector is AppKit's, which is why `nswindow_orderedIndex_sort` (C 10084-10096, landed) sends it as a *message* and why the port declares no member for it
@@ -2346,6 +2346,18 @@ call site takes an entry and the definition lands at its own C line - and **both
   nested `phys_cursor.x`/`.y`, src/window.h 332; **open**: the two readers `nsfns.swift` 770 already
   imports) - plus `marker_position` (src/marker.c 723-724), which is **provided**:
   `femacs/src/marker.rs` 849's `#[unsafe(no_mangle)]`.
+* **round 82's names**: the providers the entries above were waiting for, now that every class they
+  name has landed - `emacs_view_frame` and `is_emacs_view` (C 2537-2538's two reads; **provided
+  here**, the (3) row that said "this unit defines them when the class lands"), `showFontPanel`
+  (C 7140; **provided**, the entry `nsfns.swift` 700 declares), `restackWindow` (C 10124;
+  **provided**, `nsfns.swift` 701-702's entry, whose nil-argument reading the provider records) and
+  `setDoubleBuffered` (C 11181, `EmacsLayer`'s; **provided**, `nsfns.swift` 516-517's entry).  One
+  entry is **deleted** rather than defined: round 65's `toggleFullScreen` (C 9998/10017's two calls)
+  is gone because C 9017's method is `EmacsView`'s own and has landed, so those two call sites read
+  the method directly - the round-75 ruling, and the import ratchet reads one fewer name
+  (717 -> **716**).  `svcsMenu` stays as it is: its global is `src/nsmenu.m` 50's (declared
+  `src/nsterm.h` 776) and its provider is `nsmenu.swift`'s (`nsmenu.swift` 494 declares the same
+  entry).
 
 ## Evidence
 
@@ -5096,3 +5108,37 @@ call site takes an entry and the definition lands at its own C line - and **both
   this class any of the five questions, and the protocol list's effect (AppKit routing the eleven
   requirements here) is a compile-time reading of a conformance that would need a live window
   server session to exercise; the compile gate reaches type checking only.
+
+### Round 82: the providers this unit owed its neighbours (five land, one entry is deleted)
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **seventeen** warnings - the same seventeen round 81 leaves, **nothing new on the first run**.
+  Object `/tmp/nsterm82.o`, **1,415,320 bytes**, md5 `bafd6c7e9db0b3fa70164f19ab2d632d`.  The unit is
+  **15,294 lines**.
+* **Five C-ABI providers land**, each the other half of an entry a sibling unit declared:
+  `@_cdecl("emacs_view_frame")` and `@_cdecl("is_emacs_view")` (the `nsfns.swift` 697-699 entries for
+  C 2537-2538's two reads - the (3) row that said "this unit defines them when the class lands"),
+  `@_cdecl("showFontPanel")` (C 7140's method, the entry `nsfns.swift` 700 declares, whose nil view
+  reads as the zero `Lisp_Object`), `@_cdecl("restackWindow")` (the entry `nsfns.swift` 701-702,
+  whose call site is `src/nsfns.m` 1676) and `@_cdecl("setDoubleBuffered")` (C 11181's `EmacsLayer`
+  method, the entry `nsfns.swift` 516-517 declares).
+* **The one reading those providers needed, recorded rather than invented**: C's
+  `restackWindow:above:` takes `NSWindow *`; C 10130's `[win parentWindow]` on a nil `win` is the
+  nil-message (so the parented case answers `NO`), while C 10144's `[children indexOfObject: nil]`
+  is `NSNotFound` and C 10145 would insert at `NSNotFound + 1` - C does not survive its own
+  nil-argument path, so the port answers the comparison's `NO` (`guard let win = window2 else
+  { return false }`) and the provider's own comment says exactly that.  The receiver's nil is C's
+  nil-message either way (`?? false`).
+* **One entry is deleted instead of defined**: round 65's `toggleFullScreen` entry (C 9998/10017's
+  two calls) is gone, because C 9017's method is `EmacsView`'s own and landed in round 75 - the two
+  call sites read the method directly (`ourView?.toggleFullScreen (self)`, C's own no-op message to
+  a nil `ourView`), and the import ratchet shows it: **716** symbols, one fewer than round 81's 717.
+* **`svcsMenu` is not this unit's**: the global is `src/nsmenu.m` 50's (declared `src/nsterm.h` 776)
+  and `nsmenu.swift` 494 declares the same entry, so its provider belongs to that lane; this unit's
+  row keeps saying so.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), 6 unported, 6
+  row(s);` **716** C symbol imports (round 81 read 717) and **`0 new, 0 stale, 7 Swift unit(s)
+  landed`**.
+* **Not claimed**: no runtime evidence - no frame was restacked, no font panel was opened, no layer
+  was told to double-buffer, and no cross-unit call was resolved (this lane does not link); the
+  readings are the compile gate and the import/coverage gates.

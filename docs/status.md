@@ -17002,3 +17002,30 @@
      **6 组只读 grep**（C 签名、SDK 头、既有入口的拼法）；`/tmp/nsterm81.o`、`/tmp/r81_*.py` 跑完即删，无全盘/大内存扫描。
      **未声称**：本轮**没有运行证据**——没有输入法、服务或辅助功能客户端问过这五件事，协议表的实际效果（AppKit 把十一条要求路由到这里）是编译期读数，
      要跑起来得有活的窗口服务器会话；编译门只到解析与类型检查。
+
+- **4.023 `src/nsterm.m` round 82（Swift lane）：本单元欠邻居的 provider 五条落地、一条入口删除（2026-10-08）**：
+  ① **落的五条**（每条都是某个兄弟单元声明的入口的另一半）：`@_cdecl("emacs_view_frame")` 与 `@_cdecl("is_emacs_view")`
+     （C 2537-2538 那两处读法，`nsfns.swift` 697-699 的入口——台账 (3) 那条"类落地时由本单元定义"的欠账由此关闭）、
+     `@_cdecl("showFontPanel")`（C 7140 的方法；nil view 读成零 `Lisp_Object`，即 C 的 nil receiver）、
+     `@_cdecl("restackWindow")`（C 10124，`nsfns.swift` 701-702 的入口，调用点是 `src/nsfns.m` 1676）与
+     `@_cdecl("setDoubleBuffered")`（C 11181，`EmacsLayer` 的方法，`nsfns.swift` 516-517 的入口）。
+  ② **唯一需要判定的一处，照录不发明**：C 的 `restackWindow:above:` 参数是 `NSWindow *`；`win` 为 nil 时 C 10130 的 `[win parentWindow]`
+     是 nil 消息（有父窗口那一支因此答 `NO`），而 C 10144 的 `[children indexOfObject: nil]` 是 `NSNotFound`、C 10145 会在 `NSNotFound + 1` 处插入——
+     **C 自己走不过它自己的 nil 参数路径**，所以本端口答那一支的 `NO`（`guard let win = window2 else { return false }`），并把这条判定写进 provider 的注释里；
+     receiver 为 nil 则是 C 的 nil 消息（`?? false`），两侧一致。
+  ③ **一条入口不是补定义、而是删除**：round 65 的 `toggleFullScreen` 入口（C 9998/10017 两处调用）删掉——C 9017 的方法是本类自己的、round 75 已落地，
+     于是两处调用改成直呼（`ourView?.toggleFullScreen (self)`，nil `ourView` 就是 C 的 nil 消息），这正是 round 75 那条判据的最后一例。
+     **读数上有回响**：import 棘轮从 717 少到 **716**，正好是删掉的那一条。
+  ④ **`svcsMenu` 不是本单元的**：它那个全局是 `src/nsmenu.m` 50 的（声明在 `src/nsterm.h` 776），`nsmenu.swift` 494 声明同一个入口 ⇒ provider 归那条 lane；本单元的读法不变。
+  ⑤ **读数（全部实测）**：⑴ **编译门** ⇒ **exit 0 / 0 error / 17 warnings**（与 round 81 的十七条逐条相同，**首跑零新增**）；
+     对象 `/tmp/nsterm82.o` **1,415,320 字节**、md5 `bafd6c7e9db0b3fa70164f19ab2d632d`；单元 **15,294 行**（round 81 是 15,255）。
+     ⑵ **覆盖门** ⇒ `nsterm.swift: 150 C definition(s), 6 unported, 6 row(s); **716** C symbol import(s)`（round 81 是 717），终读 **`0 new, 0 stale, 7 Swift unit(s) landed`**。
+     ⑶ 台账：ABI (3) 追加 `round 82's names`（五条 provided、一条 deleted、`svcsMenu` 归 `nsmenu.swift`），
+     round 65 那条"还在等延迟入口"的类盒子行改为"round 81 落了方法、round 82 改直呼并删入口"，并追加 `### Round 82`（证据）。
+     ⑷ 十门其余：declarations **18/0/18/0**、own-voice **0**、citations **676 / 0 drift / 0 range / 2,420 external / 36 allowed / 0 stale**、
+     mirror-dupes **16/16/0**、port-lines **0/0/0/0**、ledger-ticks **238/0**、carried **11/11/4/0**、verbatim **6 树 / 4604 文件 / 8,419 行 / 0**、
+     verbatim-declarations **710 候选 / 6 登记 / 0 失败**、dead-file-coverage **145/0**。
+  ⑥ **预算与清理**：本片**单文件编译门 2 发**（首跑即 0 error，第二发取字节/md5/警告读数，各约 2 秒）+ **4 组只读 grep**；
+     `/tmp/nsterm82.o`、`/tmp/r82_*.py` 跑完即删，无全盘/大内存扫描。
+     **未声称**：本轮**没有运行证据**——没有窗口被重排、没有字体面板被打开、没有图层被要求双缓冲，跨单元调用也没有被解析（本 lane 不链接）；
+     读数只有编译门与 import/覆盖门。
