@@ -7346,11 +7346,18 @@ fileprivate func input_event_set_kind(_ e: UnsafeMutablePointer<input_event>, _ 
 /// **Round 24 lands** the four Cocoa ivars (nsterm.h 421-424) and five methods:
 /// `borderWidth` (declared nsterm.h 442, defined C 9928-9931), `setFrameTopLeftPoint:`
 /// (C 10444-10450), `canBecomeKeyWindow` (C 10452-10455),
-/// `canBecomeMainWindow` (C 10457-10461) and `setLastDragEvent:` (C 10463-10468).  Two things are
-/// deferred by name: the four drag-and-drop ivars (nsterm.h 426-429 - `dnd_mode` is the
-/// `ns_return_frame_mode` enum `nsselect.swift` 104 spells, so they land with the drag methods
-/// that read them) and `dealloc` (C 9912-9926, whose `release` calls ARC forbids overriding; the
-/// reference being dropped is the same statement this lane reads elsewhere).
+/// `canBecomeMainWindow` (C 10457-10461) and `setLastDragEvent:` (C 10463-10468).
+///
+/// **Round 62 lands the four drag-and-drop ivars** (nsterm.h 426-429 - `dnd_mode` is the
+/// `ns_return_frame_mode` enum this unit now spells, the `nsselect.swift` 102-107 shape) **with the
+/// two methods of that family Swift can declare**: `mustNotDropOn:` (C 10522-10526) and
+/// `beginDrag:…` (C 10528-10608, whose cross-unit C-ABI entry is the `nsselect.swift` 220-224
+/// import this round provides).  Three of the family are **refused by Swift** and are recorded, not
+/// transcribed: `draggingSourceOperationMaskForLocal:` (C 10470-10473),
+/// `draggedImage:endedAt:operation:` (C 10475-10480) and `draggedImage:movedTo:` (C 10482-10520) -
+/// each measured, each named in the ledger's `## Decisions` and `## ABI` (3).  `dealloc`
+/// (C 9912-9926, whose `release` calls ARC forbids overriding; the reference being dropped is the
+/// same statement this lane reads elsewhere) stays the one named deferral.
 class EmacsWindow: NSWindow {
   /// C nsterm.h 421: `NSPoint grabOffset;`
   var grabOffset: NSPoint = .zero
@@ -7359,6 +7366,14 @@ class EmacsWindow: NSWindow {
   /// C nsterm.h 423-424: `NSDragOperation drag_op; NSDragOperation selected_op;`
   var drag_op: NSDragOperation = []
   var selected_op: NSDragOperation = []
+  /// C nsterm.h 426: `struct frame *dnd_return_frame;`
+  var dnd_return_frame: UnsafeMutableRawPointer? = nil
+  /// C nsterm.h 427: `enum ns_return_frame_mode dnd_mode;` - the enum this round spells below.
+  var dnd_mode: ns_return_frame_mode = .RETURN_FRAME_NEVER
+  /// C nsterm.h 428: `BOOL dnd_allow_same_frame;`
+  var dnd_allow_same_frame: Bool = false
+  /// C nsterm.h 429: `BOOL dnd_move_tooltip_with_frame;`
+  var dnd_move_tooltip_with_frame: Bool = false
 
   /// `NSWindow`'s designated initializer, spelled out because a Swift subclass must reach one and
   /// Swift marks `NSWindow`'s `init (coder:)` unavailable (id: `error: 'init(coder:)' is
@@ -7404,6 +7419,106 @@ class EmacsWindow: NSWindow {
   /// Swift's `copy()`, whose `NSCopying` result is cast back to the record type.
   func setLastDragEvent(_ event: NSEvent) {
     last_drag_event = event.copy() as? NSEvent         // C 10467
+  }
+
+  /// **Round 62 lands this family**: `mustNotDropOn:` (C 10522-10526) and `beginDrag:…`
+  /// (C 10528-10608) below, plus a `@objc(mustNotDropOn:)` name because C reaches it by selector
+  /// (`respondsToSelector:` at C 9460/9474/9554).  Three of the five are **refused by Swift**, each
+  /// measured and recorded rather than approximated (their `## ABI` (3) rows name the gap):
+  ///  * `- (NSDragOperation) draggingSourceOperationMaskForLocal: (BOOL) is_local` (C 10470-10473):
+  ///    the override is unavailable (`error: cannot override 'draggingSourceOperationMask' which
+  ///    has been marked unavailable: Use -draggingSession:sourceOperationMaskForDraggingContext:
+  ///    instead`) and the plain `@objc` spelling conflicts with the superclass member of the same
+  ///    selector (both measured);
+  ///  * `- (void) draggedImage: (NSImage *) endedAt: (NSPoint) operation: (NSDragOperation)`
+  ///    (C 10475-10480) and `- (void) draggedImage: (NSImage *) movedTo: (NSPoint)` (C 10482-10520):
+  ///    the override is unavailable too (`... Use -draggingSession:endedAtPoint:operation:
+  ///    instead`, and the same for `movedToPoint:`).  Their bodies would be `selected_op =
+  ///    operation` and the `dnd_return_frame`/`NSException` block; nothing here transcribes them,
+  ///    and the record says so.
+
+  /// C 10522-10526: `- (BOOL) mustNotDropOn: (NSView *) receiver` - C's conditional with its own
+  /// nil-receiver case: the message to nil answers nil, nil != self, so the answer is `NO`.
+  @objc(mustNotDropOn:)
+  func mustNotDropOn(_ receiver: NSView?) -> Bool {
+    receiver?.window == self ? !dnd_allow_same_frame : false     // C 10524-10525
+  }
+
+  /// C 10528-10608: `- (NSDragOperation) beginDrag: (NSDragOperation) op forPasteboard:
+  /// (NSPasteboard *) pasteboard withMode: (enum ns_return_frame_mode) mode returnFrameTo:
+  /// (struct frame **) frame_return prohibitSame: (BOOL) prohibit_same_frame followTooltip:
+  /// (BOOL) follow_tooltip`.  C 10536-10539's GNUstep-only two locals are dead here; C's
+  /// `NSDragOperationNone` is the empty option set this unit's own `drag_op` already uses; C
+  /// 10551-10552's `NSRectFillUsingOperation` is the SDK's rename of that call
+  /// (`NSRect.fill (using:)`, measured); C 10567/10604's `[image release]` are the references ARC
+  /// owns; C 10574-10591's `@try`/`@catch (NSException *)` cannot be spelled in Swift, so the
+  /// protected call is plain and the guard is a recorded deviation (the `ns_uni_to_glyphs_1`
+  /// reading); and C's two `frame_return` writes are the pointee writes C makes.
+  // (No `@objc` name: measured, Swift refuses to expose this one - `instance method cannot be
+  // marked '@objc' because the type of the parameter 3 cannot be represented in Objective-C`,
+  // the parameter being C's own `enum ns_return_frame_mode`.  Nothing needs the selector: the
+  // reference's one other caller is `src/nsselect.m` 771, and this lane routes that through the
+  // C-ABI entry below - `nsselect.swift` 220-224's import, whose provider this round adds.)
+  func beginDrag(_ op: NSDragOperation, forPasteboard pasteboard: NSPasteboard?,
+                 withMode mode: ns_return_frame_mode,
+                 returnFrameTo frame_return: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+                 prohibitSame prohibit_same_frame: Bool,
+                 followTooltip follow_tooltip: Bool) -> NSDragOperation {
+    drag_op = op                                        // C 10540
+    selected_op = []                                    // C 10541 (C's `NSDragOperationNone`)
+    let image = NSImage(size: NSMakeSize(1.0, 1.0))     // C 10542
+    dnd_mode = mode                                     // C 10543
+    dnd_return_frame = nil                              // C 10544
+    dnd_allow_same_frame = !prohibit_same_frame         // C 10545
+    dnd_move_tooltip_with_frame = follow_tooltip        // C 10546
+
+    /* Now draw transparency onto the image.  */
+    image.lockFocus()                                   // C 10549
+    colorWithUnsignedLong(unsafeBitCast(NSColor.self, to: UnsafeMutableRawPointer.self),
+                          0)?.set()                     // C 10550
+    NSMakeRect(0, 0, 1, 1).fill(using: .copy)           // C 10551-10552
+    image.unlockFocus()                                 // C 10553
+
+    block_input()                                       // C 10555
+    if mode == .RETURN_FRAME_NOW {                      // C 10557
+      let window_number = NSWindow.windowNumber(at: NSEvent.mouseLocation,
+                                                belowWindowWithWindowNumber: 0)  // C 10559-10560
+      let w = NSApp.window(withWindowNumber: window_number)                      // C 10561
+
+      if w != nil && (w!.delegate as? EmacsView) != nil
+           && !FRAME_TOOLTIP_P(emacs_view_frame(w!.delegate)) {                  // C 10563-10564
+        frame_return!.pointee = emacs_view_frame(w!.delegate)                    // C 10566
+        // C 10567: `[image release];` - the reference ARC owns.
+        unblock_input()                                                          // C 10568
+
+        return []                                                                // C 10570
+      }
+    }
+
+    // C 10574-10591: `@try { … } @catch (NSException *e) { /* Ignore. … */ }` - Swift cannot catch
+    // an Objective-C exception, so the protected call is plain and the guard is a recorded
+    // deviation (the reading above).
+    if last_drag_event != nil {                         // C 10577
+      drag(image, at: NSMakePoint(0, 0), offset: NSMakeSize(0, 0),       // C 10578-10584
+           event: last_drag_event!, pasteboard: pasteboard!, source: self, slideBack: false)
+    }
+    unblock_input()                                     // C 10593
+
+    /* The drop happened, so delete the tooltip.  */
+    if follow_tooltip {                                 // C 10596
+      _ = Fx_hide_tip()                                 // C 10597
+    }
+
+    /* Assume all buttons have been released since the drag-and-drop
+       operation is now over.  */
+    if dnd_return_frame == nil {                        // C 10601
+      ns_display_info_set_grabbed(x_display_list, 0)    // C 10602
+    }
+
+    // C 10604: `[image release];` - the reading above.
+
+    frame_return!.pointee = dnd_return_frame            // C 10606
+    return selected_op                                  // C 10607
   }
 
   /// C 10043-10055: `- (void)orderFront:(id)sender` - C's parent-window arm removes and re-adds
@@ -11492,3 +11607,48 @@ final class EmacsLayer: CALayer {
 // C 11394: `#undef CACHE_MAX_SIZE` - a macro the tree never defines (a grep over `src/` finds only
 // this `#undef`), so the site carries no statement; recorded, like the other empty-macro sites.
 // C 11396: `@end` closes the class.
+
+// ==========================================================================
+// Round 62: the drag-and-drop family's entries, and the cross-unit `beginDrag` provider
+// ==========================================================================
+
+/// C: `enum ns_return_frame_mode { RETURN_FRAME_NEVER, RETURN_FRAME_EVENTUALLY, RETURN_FRAME_NOW }`
+/// (src/nsterm.h 411-416) - the type of C 10543/10494/10557's comparisons.  `nsselect.swift` 102-107
+/// declares its own view of the same enum (the two units are compiled apart, so each writes the
+/// lane ABI it needs), and this is that shape.
+enum ns_return_frame_mode: Int32 {
+  case RETURN_FRAME_NEVER = 0
+  case RETURN_FRAME_EVENTUALLY = 1
+  case RETURN_FRAME_NOW = 2
+}
+
+/// C: the `struct ns_display_info` member `dpyinfo->grabbed` - C 10602's write.  The layout
+/// baseline has the row (`docs/baseline/ns_display_info-layout.tsv` 24: `int grabbed`, offset 80),
+/// so the entry is an `Int32` member write of the round-37 family.
+@_silgen_name("ns_display_info_set_grabbed")
+func ns_display_info_set_grabbed(_ dpyinfo: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `Lisp_Object Fx_hide_tip (void)` - the DEFUN of src/xfns.c C 10597 calls ("Hide a tooltip");
+/// `nsfns.swift` 4433 defines the C-ABI entry this unit imports.
+@_silgen_name("Fx_hide_tip") func Fx_hide_tip() -> Lisp_Object
+
+/// C: `+[NSColor colorWithUnsignedLong: (unsigned long)]` (declared src/nsterm.h 361, defined
+/// src/nsfns.m) - C 10550's call, imported exactly the way `macfont.swift` 1321-1327 imports it
+/// (the class object first, because a class method has no receiver of C's own to name).
+@_silgen_name("colorWithUnsignedLong")
+func colorWithUnsignedLong(_ cls: UnsafeMutableRawPointer?, _ c: UInt) -> NSColor?
+
+/// C 10528-10608's own method, reached from `src/nsselect.m` 771 by *selector*: the cross-unit
+/// entry `nsselect.swift` 220-224 imports (the receiver first, then C's six arguments, with the
+/// enum C narrows to its `Int32` raw value).  Its body is the class method above.
+@_cdecl("beginDrag")
+func beginDrag(_ window: UnsafeMutableRawPointer?, _ op: NSDragOperation,
+               _ pasteboard: NSPasteboard?, _ mode: Int32,
+               _ returnFrameTo: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+               _ prohibitSameFrame: Bool, _ followTooltip: Bool) -> NSDragOperation {
+  let w = Unmanaged<EmacsWindow>.fromOpaque(window!).takeUnretainedValue()
+  return w.beginDrag(op, forPasteboard: pasteboard,
+                     withMode: ns_return_frame_mode(rawValue: mode)!,
+                     returnFrameTo: returnFrameTo, prohibitSame: prohibitSameFrame,
+                     followTooltip: followTooltip)
+}

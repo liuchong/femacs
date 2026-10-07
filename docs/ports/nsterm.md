@@ -398,7 +398,7 @@ spelling the same selector is one box and is named where it occurs.)
   - [ ] `- (BOOL) writeSelectionToPasteboard: (NSPasteboard *)pb types: (NSArray *)types`  (line 9688)
   - [ ] `- (instancetype)setMiniwindowImage: (BOOL) setMini`  (line 9721)
   - [ ] `- (int) fullscreenState`  (line 9741)
-- [ ] EmacsWindow  (`@implementation` 9756, `@end` 10610) - round 24 landed **the class record** (the four Cocoa ivars, `src/nsterm.h` 421-424) and five methods; the four drag-and-drop ivars (nsterm.h 426-429, whose `dnd_mode` is `nsselect.swift` 104's enum) and `dealloc` are the two named deferrals, and the remaining methods keep this box open
+- [ ] EmacsWindow  (`@implementation` 9756, `@end` 10610) - round 24 landed **the class record** (the four Cocoa ivars, `src/nsterm.h` 421-424) and five methods; the four drag-and-drop ivars (nsterm.h 426-429, whose `dnd_mode` is this unit's own `ns_return_frame_mode`, the `nsselect.swift` 102-107 shape) **landed in round 62** with `mustNotDropOn:` (C 10522-10526) and `beginDrag:…` (C 10528-10608, plus the cross-unit C-ABI entry `nsselect.swift` 220-224 imports); round 62 also **records the three methods of that family Swift refuses** (`draggingSourceOperationMaskForLocal:` C 10470-10473, `draggedImage:endedAt:operation:` C 10475-10480 and `draggedImage:movedTo:` C 10482-10520); `dealloc` stays a named deferral, and the remaining methods keep this box open
   - [ ] `- (instancetype) initWithEmacsFrame: (struct frame *) f`  (line 9759)
   - [ ] `- (instancetype) initWithEmacsFrame: (struct frame *) f fullscreen: (BOOL) fullscreen screen: (NSScreen *) screen`  (line 9765)
   - [ ] `- (void)createToolbar: (struct frame *)f`  (line 9878)
@@ -421,11 +421,11 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (BOOL)canBecomeKeyWindow`  (line 10452) — landed as `override var canBecomeKey: Bool` (the AppKit apinotes' rename, class B: no symbol is invented); the frame comes through this unit's `emacs_view_frame` shim and the predicate is the `frame_no_accept_focus` entry
   - [x] `- (BOOL)canBecomeMainWindow`  (line 10457) — landed as `override var canBecomeMain: Bool` (the same rename): C's whole body is `return YES;`
   - [x] `- (void) setLastDragEvent: (NSEvent *) event`  (line 10463) — landed as `func setLastDragEvent (_:)`: C's `[event copy]` is `copy()` with the `NSCopying` result cast back to the record type
-  - [ ] `- (NSDragOperation) draggingSourceOperationMaskForLocal: (BOOL) is_local`  (line 10470)
-  - [ ] `- (void) draggedImage: (NSImage *) image endedAt: (NSPoint) screen_point operation: (NSDragOperation) operation`  (line 10475)
-  - [ ] `- (void) draggedImage: (NSImage *) dragged_image movedTo: (NSPoint) screen_point`  (line 10482)
-  - [ ] `- (BOOL) mustNotDropOn: (NSView *) receiver`  (line 10522)
-  - [ ] `- (NSDragOperation) beginDrag: (NSDragOperation) op forPasteboard: (NSPasteboard *) pasteboard withMode: (enum ns_return_frame_mode) mode returnFrameTo: (struct frame **) frame_return prohibitSame: (BOOL) prohibit_same_frame followTooltip: (BOOL) follow_tooltip`  (line 10528)
+  - [x] `- (NSDragOperation) draggingSourceOperationMaskForLocal: (BOOL) is_local`  (line 10470) — **omitted, recorded**: Swift refuses both spellings (measured: the override is `cannot override 'draggingSourceOperationMask' which has been marked unavailable: Use -draggingSession:sourceOperationMaskForDraggingContext: instead`, and a plain `@objc` method with that selector `conflicts with method 'draggingSourceOperationMask(forLocal:)' from superclass 'NSObject'`).  C's body is one statement (`return drag_op;`, C 10472), so an AppKit drag gets the default mask instead of it - a named gap in `## Decisions` and `## ABI` (3), the `+scrollerWidth` shape
+  - [x] `- (void) draggedImage: (NSImage *) image endedAt: (NSPoint) screen_point operation: (NSDragOperation) operation`  (line 10475) — **omitted, recorded**: the override is unavailable too (`cannot override 'draggedImage' which has been marked unavailable: Use -draggingSession:endedAtPoint:operation: instead`), and `@objc(draggedImage:endedAt:operation:)` conflicts with the renamed superclass member (both measured).  C's body is `selected_op = operation;` (C 10479) - recorded, not transcribed
+  - [x] `- (void) draggedImage: (NSImage *) dragged_image movedTo: (NSPoint) screen_point`  (line 10482) — **omitted, recorded**: the same refusal (`… Use -draggingSession:movedToPoint: instead`).  C's body (C 10482-10520) is the `dnd_mode`/`dnd_return_frame` walk and its `NSException` exit; not transcribed, named in `## Decisions`
+  - [x] `- (BOOL) mustNotDropOn: (NSView *) receiver`  (line 10522) — landed as `@objc(mustNotDropOn:) func mustNotDropOn (_:) -> Bool` (the `@objc` name is C's own selector: C 9460/9474/9554 reach it through `respondsToSelector:`): C's conditional keeps its nil-receiver case (the message to nil answers nil, so the answer is `false`)
+  - [x] `- (NSDragOperation) beginDrag: (NSDragOperation) op forPasteboard: (NSPasteboard *) pasteboard withMode: (enum ns_return_frame_mode) mode returnFrameTo: (struct frame **) frame_return prohibitSame: (BOOL) prohibit_same_frame followTooltip: (BOOL) follow_tooltip`  (line 10528) — landed as `func beginDrag (_:forPasteboard:withMode:returnFrameTo:prohibitSame:followTooltip:)` plus the cross-unit C-ABI entry `@_cdecl("beginDrag")` (`nsselect.swift` 220-224's import, whose provider this round adds): C's `NSDragOperationNone` is the empty option set, C 10551-10552's `NSRectFillUsingOperation` is the SDK's rename `NSRect.fill (using:)`, C 10567/10604's `[image release]` are ARC's, C 10574-10591's `@try`/`@catch` is a recorded deviation (Swift cannot catch an `NSException`), C 10602's `x_display_list->grabbed = 0` is the new member entry `ns_display_info_set_grabbed`, and the method carries no `@objc` name (measured: `instance method cannot be marked '@objc' because the type of the parameter 3 cannot be represented in Objective-C`, the parameter being C's own enum - the selector is reached through the C-ABI entry instead)
 - [x] EmacsScroller  (`@implementation` 10620, `@end` 11117) - **closed in round 46**: every method is landed except the one Swift cannot declare; round 42 landed **the class record** (the eleven ivars of `src/nsterm.h` 716-733, two of whose C names `NSView` already owns: `window`/`frame`, carried as `emacs_window`/`emacs_frame` - a declared deviation) and two methods (`initFrame:window:` C 10650 and, in round 43, `setFrame:` C 10703, `dealloc` C 10719, `condemn` C 10734, `reprieve` C 10742, `judge` C 10750, `mark` C 10777 and `resetCursorRects` C 10788); `+scrollerWidth` (C 10626) is **omitted** because Swift refuses both spellings of it (the `EmacsFileDelegate` class of refusal), and rounds 44-46 the rest: `checkSamePosition:portion:whole:` (C 10806), `setPosition:portion:whole:` (C 10814), `sendScrollEventAtLoc:fromEvent:` (C 10850), `repeatScroll:` (C 10894), `mouseDown:` (C 10929), `mouseDragged:` (C 11051), `mouseUp:` (C 11094) and `scrollWheel:` (C 11109)
   - [x] `+ (CGFloat) scrollerWidth`  (line 10626) — **omitted, recorded**: Swift refuses the override (`cannot override 'scrollerWidth' which has been marked unavailable`) *and* the `@objc(scrollerWidth)` renamed spelling (`conflicts with method 'scrollerWidth()' from superclass 'NSScroller'`), and nothing in the reference calls it, so omitting it changes no caller's behaviour (the `EmacsFileDelegate` shape; the ledger's `## ABI` (3) carries the gap)
   - [x] `- (instancetype)initFrame: (NSRect )r window: (Lisp_Object)nwin`  (line 10650) — landed as `@objc(initFrame:window:) init(frame:window:)`: C's descending `for` is the `while`, C 10679's `20 / pixel_length` keeps C's integer division, C 10666-10667's GNUstep arm is dead here, and the `isKindOfClass: [EmacsScroller class]` count is the `is EmacsScroller` test
@@ -2196,6 +2196,23 @@ call site takes an entry and the definition lands at its own C line - and **both
   live body is one message (`NSScroller.scrollerWidth (for: .regular, scrollerStyle: .legacy)`), and no reference
   caller reaches it (`[EmacsScroller scrollerWidth]` occurs nowhere; C 10645's call is on `NSScroller`, in a dead
   arm), so the class is declared with the method omitted - the gap named here rather than hidden.
+* **round 62's three refusals**: `EmacsWindow`'s drag-and-drop family has three methods Swift cannot
+  declare, each measured twice (the override form *and* the `@objc`-named form): C 10470-10473's
+  `draggingSourceOperationMaskForLocal:` (`cannot override 'draggingSourceOperationMask' which has
+  been marked unavailable: Use -draggingSession:sourceOperationMaskForDraggingContext: instead`; a
+  plain `@objc` method `conflicts with method 'draggingSourceOperationMask(forLocal:)' from
+  superclass 'NSObject'`), C 10475-10480's `draggedImage:endedAt:operation:` and C 10482-10520's
+  `draggedImage:movedTo:` (the same, with `-draggingSession:endedAtPoint:operation:` and
+  `-draggingSession:movedToPoint:` as the SDK's named replacements).  C's own text is not
+  transcribed for them: the class is declared with the three omitted, and the gap is named here and
+  in `## ABI` (3) rather than hidden - the `+scrollerWidth`/`EmacsFileDelegate` class of refusal.
+  Their bodies are one statement (`return drag_op;`), one statement (`selected_op = operation;`) and
+  the `dnd_mode`/`dnd_return_frame` walk with its `NSException` exit.  `beginDrag:…` shows the same
+  limitation one notch milder: it *can* be a plain Swift method (and is), but Swift refuses an
+  `@objc` name for it (`instance method cannot be marked '@objc' because the type of the parameter 3
+  cannot be represented in Objective-C` - C's own `enum ns_return_frame_mode`), so its selector is
+  reached through this round's C-ABI entry instead, which is what `nsselect.swift` 220-224 already
+  imports.
 * **round 43's names**: `mark_object` is already the core's (`femacs/src/alloc.rs` 7308), while
   `wset_horizontal_scroll_bar`/`wset_vertical_scroll_bar` (src/window.h's INLINE setters - the port
   mirrors them as Rust functions at `femacs/src/include/window.rs` 233/236) and the macro entry
@@ -2245,6 +2262,12 @@ call site takes an entry and the definition lands at its own C line - and **both
   `adjust_frame_size` and `Qfont` (the last already the core's, `src/textprop.c` 2439) - are what that
   round adds and the core owes.  The rule it settles: **reads keep the accessor macro's name, writes go
   through the setter of the family the record belongs to** (`ns_output_set_*` vs `frame_set_*`).
+* **round 62's names**: the `struct ns_display_info` member writer `ns_display_info_set_grabbed`
+  (C 10602's `x_display_list->grabbed = 0`; the baseline row 24 has `int grabbed` at offset 80) and
+  the DEFUN `Fx_hide_tip` (C 10597, defined by `nsfns.swift` 4433) are what that round
+  adds - the second already the other lane's, so this unit only declares it.  `colorWithUnsignedLong`
+  (C 10550) is `macfont.swift` 1321-1327's import of `src/nsfns.m`'s category method, and the
+  cross-unit `@_cdecl("beginDrag")` entry is this round's *provider* for `nsselect.swift` 220-224.
 
 ## Evidence
 
@@ -4215,3 +4238,49 @@ call site takes an entry and the definition lands at its own C line - and **both
   allocated, no context was made and nothing was drawn; the compile gate reaches parsing and type
   checking only, and `check-swift-units.py` compares name sets, not signatures, bodies, layouts or
   ABI.  After this round the checklist still owes `EmacsDocument` (C 11404-11406).
+
+### Round 62: `EmacsWindow`'s drag-and-drop family (C 10470-10608) and its four ivars
+
+* **`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift`**: **exit 0**, **0 errors**,
+  **eight** warnings - the same eight rounds 22-61 carry, so **no new warning**.  Object
+  `/tmp/nsterm62.o`, **1,109,312 bytes**, md5 `e73693675fcc15730cb126c4913d2662`.  The unit is
+  **11,654 lines**.  The first measurement stopped on one error; it is the `@objc` entry below.
+* **The four ivars land** (nsterm.h 426-429): `dnd_return_frame` (a frame pointer, the unit's own
+  stand-in), `dnd_mode` (this unit's `ns_return_frame_mode`, the `nsselect.swift` 102-107 shape),
+  `dnd_allow_same_frame` and `dnd_move_tooltip_with_frame`.
+* **Two of the family's five methods land**: `mustNotDropOn:` (C 10522-10526) as
+  `@objc(mustNotDropOn:) func mustNotDropOn (_:) -> Bool` - C reaches it by *selector*
+  (`respondsToSelector:` at C 9460/9474/9554), so the `@objc` name is C's own, and C's conditional
+  keeps its nil-receiver case - and `beginDrag:…` (C 10528-10608) as a plain Swift method plus the
+  cross-unit C-ABI entry `@_cdecl("beginDrag")` that `nsselect.swift` 220-224 imports.
+* **Three are refused by Swift and are recorded, not transcribed** (the `## Decisions` item names
+  each): `draggingSourceOperationMaskForLocal:` (C 10470-10473), `draggedImage:endedAt:operation:`
+  (C 10475-10480) and `draggedImage:movedTo:` (C 10482-10520).  Each was measured twice - the
+  override form says the member "has been marked unavailable" and names the modern replacement, and
+  the `@objc`-named form conflicts with the renamed superclass member.  The gap is named in
+  `## ABI` (3), the `+scrollerWidth` shape.
+* **`beginDrag:`'s own readings**: C's `NSDragOperationNone` is the empty option set this unit's
+  `drag_op` already uses; C's `NSRectFillUsingOperation` is the SDK's rename
+  `NSRect.fill (using:)` (measured); C 10567/10604's `[image release]` are the references ARC owns;
+  C 10574-10591's `@try`/`@catch (NSException *)` cannot be spelled in Swift, so the protected call
+  is plain and the guard is a recorded deviation (the `ns_uni_to_glyphs_1` reading); C 10602's
+  `x_display_list->grabbed = 0` is the new member entry `ns_display_info_set_grabbed`; and C's two
+  `frame_return` writes are the pointee writes C makes.
+* **The one first-measurement error, and the fix**: `@objc(beginDrag:forPasteboard:withMode:…)` on
+  the class method failed with `instance method cannot be marked '@objc' because the type of the
+  parameter 3 cannot be represented in Objective-C` - the parameter is C's own
+  `enum ns_return_frame_mode`.  Nothing needs that selector (the reference's only other caller is
+  `src/nsselect.m` 771, routed through the C-ABI entry), so the method is a plain Swift method and
+  the attribute is gone; after that the round compiled first try.
+* **`python3 tools/check-swift-units.py`**: `nsterm.swift: 150 C definition(s), **6** unported,
+  6 row(s); **616** C symbol import(s)` - three more imports than round 61's 613
+  (`ns_display_info_set_grabbed`, `Fx_hide_tip`, `colorWithUnsignedLong`; the `beginDrag` provider is
+  a definition, not an import), with no stale row.  Final: `0 new, 0 stale, 7 Swift unit(s) landed`.
+* **What this round does not claim**: **no run evidence** - no drag was started, no image drawn, no
+  window asked for a mask; the compile gate reaches parsing and type checking only, and
+  `check-swift-units.py` compares name sets, not signatures, bodies, layouts or ABI.  After this
+  round `EmacsWindow` still owes `initWithEmacsFrame:` (C 9759/9765), `createToolbar:` (C 9878),
+  `setParentChildRelationships` (C 9934), `orderedIndex` (C 10074), `restackWindow:above:` (C 10124),
+  `accessibilityAttributeValue:` (C 10158), `constrainFrameRect:toScreen:` (C 10230),
+  `performZoom:`/`zoom:` (C 10299/10306), `setAppearance` (C 10398), the two `setFrame:display:…`
+  (C 10424/10433) and the `dealloc` deferral.
